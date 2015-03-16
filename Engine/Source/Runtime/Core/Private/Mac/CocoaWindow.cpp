@@ -163,7 +163,11 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	GameThreadCall(^{
 		if (MacApplication)
 		{
-			MacApplication->OnWindowClose(self);
+			TSharedPtr<FMacWindow> Window = MacApplication->FindWindowByNSWindow(self);
+			if (Window.IsValid())
+			{
+				MacApplication->CloseWindow(Window.ToSharedRef());
+			}
 		}
 	}, @[ NSDefaultRunLoopMode ], false);
 }
@@ -210,7 +214,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 {
 	WindowMode = self.TargetWindowMode;
 
-	GameThreadCall(^{ FMacApplication::ProcessEvent([Notification retain]); }, @[ NSDefaultRunLoopMode, UE4FullscreenEventMode ], false);
+	MacApplication->DeferEvent(Notification);
 
 	FMacCursor* MacCursor = (FMacCursor*)MacApplication->Cursor.Get();
 	if (MacCursor)
@@ -236,7 +240,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	WindowMode = EWindowMode::Windowed;
 	self.TargetWindowMode = EWindowMode::Windowed;
 
-	GameThreadCall(^{ FMacApplication::ProcessEvent([Notification retain]); }, @[ NSDefaultRunLoopMode, UE4FullscreenEventMode ], false);
+	MacApplication->DeferEvent(Notification);
 
 	[self setFrame:self.PreFullScreenRect display:YES];
 	FMacCursor* MacCursor = (FMacCursor*)MacApplication->Cursor.Get();
@@ -254,7 +258,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 		[self orderFrontAndMakeMain:false andKey:false];
 	}
 
-	GameThreadCall(^{ FMacApplication::ProcessEvent([Notification retain]); }, @[ NSDefaultRunLoopMode, UE4ShowEventMode, UE4CloseEventMode, UE4FullscreenEventMode ], false);
+	MacApplication->DeferEvent(Notification);
 }
 
 - (void)windowDidResignMain:(NSNotification*)Notification
@@ -263,12 +267,12 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	[self setMovable: YES];
 	[self setMovableByWindowBackground: NO];
 
-	GameThreadCall(^{ FMacApplication::ProcessEvent([Notification retain]); }, @[ NSDefaultRunLoopMode, UE4ShowEventMode, UE4CloseEventMode, UE4FullscreenEventMode ], false);
+	MacApplication->DeferEvent(Notification);
 }
 
 - (void)windowWillMove:(NSNotification*)Notification
 {
-	GameThreadCall(^{ FMacApplication::ProcessEvent([Notification retain]); }, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ], false);
+	MacApplication->DeferEvent(Notification);
 }
 
 - (void)windowDidMove:(NSNotification*)Notification
@@ -279,7 +283,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	NSView* OpenGLView = [self openGLView];
 	[[NSNotificationCenter defaultCenter] postNotificationName:NSViewGlobalFrameDidChangeNotification object:OpenGLView];
 	
-	GameThreadCall(^{ FMacApplication::ProcessEvent([Notification retain]); }, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ], false);
+	MacApplication->DeferEvent(Notification);
 }
 
 - (void)windowDidChangeScreen:(NSNotification*)Notification
@@ -347,65 +351,30 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 - (void)windowWillStartLiveResize:(NSNotification*)Notification
 {
 	SCOPED_AUTORELEASE_POOL;
-	GameThreadCall(^{ FMacApplication::ProcessEvent([Notification retain]); }, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ], false);
+	MacApplication->DeferEvent(Notification);
 }
 
 - (void)windowDidEndLiveResize:(NSNotification*)Notification
 {
 	SCOPED_AUTORELEASE_POOL;
-	GameThreadCall(^{ FMacApplication::ProcessEvent([Notification retain]); }, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ], false);
+	MacApplication->DeferEvent(Notification);
 }
 
 - (void)windowDidResize:(NSNotification*)Notification
 {
 	SCOPED_AUTORELEASE_POOL;
 	bZoomed = [self isZoomed];
-	GameThreadCall(^{ FMacApplication::ProcessEvent([Notification retain]); }, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ], true);
+	MacApplication->DeferEvent(Notification);
 }
 
 - (void)windowWillClose:(NSNotification*)Notification
 {
 	SCOPED_AUTORELEASE_POOL;
-	GameThreadCall(^{ FMacApplication::ProcessEvent([Notification retain]); }, @[ NSDefaultRunLoopMode, UE4CloseEventMode ], false);
-	[self setDelegate:nil];
-}
-
-- (void)mouseDown:(NSEvent*)Event
-{
-	GameThreadCall(^{ FMacApplication::ProcessEvent([Event retain]); }, @[ NSDefaultRunLoopMode ], false);
-}
-
-- (void)rightMouseDown:(NSEvent*)Event
-{
-	// Really we shouldn't be doing this - on OS X only left-click changes focus,
-	// but for the moment it is easier than changing Slate.
-	SCOPED_AUTORELEASE_POOL;
-	if ([self canBecomeKeyWindow] && self != [NSApp keyWindow])
+	if (MacApplication)
 	{
-		[self makeKeyWindow];
+		MacApplication->DeferEvent(Notification);
 	}
-	
-	GameThreadCall(^{ FMacApplication::ProcessEvent([Event retain]); }, @[ NSDefaultRunLoopMode ], false);
-}
-
-- (void)otherMouseDown:(NSEvent*)Event
-{
-	GameThreadCall(^{ FMacApplication::ProcessEvent([Event retain]); }, @[ NSDefaultRunLoopMode ], false);
-}
-
-- (void)mouseUp:(NSEvent*)Event
-{
-	GameThreadCall(^{ FMacApplication::ProcessEvent([Event retain]); }, @[ NSDefaultRunLoopMode ], false);
-}
-
-- (void)rightMouseUp:(NSEvent*)Event
-{
-	GameThreadCall(^{ FMacApplication::ProcessEvent([Event retain]); }, @[ NSDefaultRunLoopMode ], false);
-}
-
-- (void)otherMouseUp:(NSEvent*)Event
-{
-	GameThreadCall(^{ FMacApplication::ProcessEvent([Event retain]); }, @[ NSDefaultRunLoopMode ], false);
+	[self setDelegate:nil];
 }
 
 - (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)Sender
@@ -417,14 +386,14 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 {
 	SCOPED_AUTORELEASE_POOL;
 	NSNotification* Notification = [NSNotification notificationWithName:NSDraggingExited object:Sender];
-	GameThreadCall(^{ FMacApplication::ProcessEvent([Notification retain]); }, @[ NSDefaultRunLoopMode ], false);
+	MacApplication->DeferEvent(Notification);
 }
 
 - (NSDragOperation)draggingUpdated:(id <NSDraggingInfo>)Sender
 {
 	SCOPED_AUTORELEASE_POOL;
 	NSNotification* Notification = [NSNotification notificationWithName:NSDraggingUpdated object:Sender];
-	GameThreadCall(^{ FMacApplication::ProcessEvent([Notification retain]); }, @[ NSDefaultRunLoopMode ], false);
+	MacApplication->DeferEvent(Notification);
 	return NSDragOperationGeneric;
 }
 
@@ -432,7 +401,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 {
 	SCOPED_AUTORELEASE_POOL;
 	NSNotification* Notification = [NSNotification notificationWithName:NSPrepareForDragOperation object:Sender];
-	GameThreadCall(^{ FMacApplication::ProcessEvent([Notification retain]); }, @[ NSDefaultRunLoopMode ], false);
+	MacApplication->DeferEvent(Notification);
 	return YES;
 }
 
@@ -440,7 +409,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 {
 	SCOPED_AUTORELEASE_POOL;
 	NSNotification* Notification = [NSNotification notificationWithName:NSPerformDragOperation object:Sender];
-	GameThreadCall(^{ FMacApplication::ProcessEvent([Notification retain]); }, @[ NSDefaultRunLoopMode ], false);
+	MacApplication->DeferEvent(Notification);
 	return YES;
 }
 

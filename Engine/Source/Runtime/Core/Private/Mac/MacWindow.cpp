@@ -7,6 +7,14 @@
 #include "CocoaTextView.h"
 #include "CocoaThread.h"
 
+FMacWindow::FMacWindow()
+:	WindowHandle(NULL)
+,	bIsVisible(false)
+,	bIsClosed(false)
+{
+	PreFullscreenWindowRect.origin.x = PreFullscreenWindowRect.origin.y = PreFullscreenWindowRect.size.width = PreFullscreenWindowRect.size.height = 0.0f;
+}
+
 FMacWindow::~FMacWindow()
 {
 }
@@ -187,14 +195,6 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 	}
 }
 
-FMacWindow::FMacWindow()
-	: WindowHandle(NULL)
-	, bIsVisible(false)
-	, bIsClosed(false)
-{
-	PreFullscreenWindowRect.origin.x = PreFullscreenWindowRect.origin.y = PreFullscreenWindowRect.size.width = PreFullscreenWindowRect.size.height = 0.0f;
-}
-
 FCocoaWindow* FMacWindow::GetWindowHandle() const
 {
 	return WindowHandle;
@@ -251,7 +251,7 @@ void FMacWindow::ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height )
 						MacCursor->SetMouseScaling(FVector2D(WidthScale, HeightScale));
 					}
 				}, UE4ResizeEventMode, true);
-				GameThreadCall(^{ FMacApplication::ProcessEvent([[NSNotification notificationWithName:NSWindowDidResizeNotification object:WindowHandle] retain]); }, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ], true);
+				MacApplication->DeferEvent([NSNotification notificationWithName:NSWindowDidResizeNotification object:WindowHandle]);
 			}
 		}
 	}
@@ -297,7 +297,11 @@ void FMacWindow::Destroy()
 		bIsClosed = true;
 		[WindowHandle setAlphaValue:0.0f];
 		[WindowHandle setBackgroundColor:[NSColor clearColor]];
-		MacApplication->OnWindowDestroyed(WindowHandle);
+		TSharedPtr<FMacWindow> Window = MacApplication->FindWindowByNSWindow(WindowHandle);
+		if (Window.IsValid())
+		{
+			MacApplication->OnWindowDestroyed(Window.ToSharedRef());
+		}
 		WindowHandle = nullptr;
 	}
 }

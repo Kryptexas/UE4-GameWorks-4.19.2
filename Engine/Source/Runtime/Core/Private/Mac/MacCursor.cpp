@@ -265,8 +265,6 @@ void FMacCursor::Show( bool bShow )
 void FMacCursor::Lock( const RECT* const Bounds )
 {
 	SCOPED_AUTORELEASE_POOL;
-	
-	MacApplication->OnMouseCursorLock( Bounds != NULL );
 
 	// Lock/Unlock the cursor
 	if ( Bounds == NULL )

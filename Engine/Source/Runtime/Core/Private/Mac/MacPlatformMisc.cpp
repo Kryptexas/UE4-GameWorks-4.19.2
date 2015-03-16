@@ -579,16 +579,13 @@ void FMacPlatformMisc::PumpMessages( bool bFromMainLoop )
 	{
 		ProcessGameThreadEvents();
 
-		if (MacApplication && !MacApplication->IsProcessingNSEvent() && IsInGameThread())
+		if (MacApplication && IsInGameThread())
 		{
 			if (UpdateCachedMacMenuState && bChachedMacMenuStateNeedsUpdate)
 			{
 				UpdateCachedMacMenuState();
 				bChachedMacMenuStateNeedsUpdate = false;
 			}
-
-			MacApplication->InvalidateTextLayouts();
-			MacApplication->CloseQueuedWindows();
 		}
 	}
 }

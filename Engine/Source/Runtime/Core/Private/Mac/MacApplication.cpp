@@ -14,7 +14,9 @@
 #include "ModuleManager.h"
 #include "CocoaTextView.h"
 
-FMacApplication* MacApplication = NULL;
+FMacApplication* MacApplication = nullptr;
+
+const uint32 RESET_EVENT_SUBTYPE = 0x0f00;
 
 #if WITH_EDITOR
 typedef int32 (*MTContactCallbackFunction)(void*, void*, int32, double, int32);
@@ -22,16 +24,6 @@ extern "C" CFMutableArrayRef MTDeviceCreateList(void);
 extern "C" void MTRegisterContactFrameCallback(void*, MTContactCallbackFunction);
 extern "C" void MTDeviceStart(void*, int);
 extern "C" bool MTDeviceIsBuiltIn(void*);
-
-static int MTContactCallback(void* Device, void* Data, int32 NumFingers, double TimeStamp, int32 Frame)
-{
-	if (MacApplication)
-	{
-		const bool bIsTrackpad = MTDeviceIsBuiltIn(Device);
-		MacApplication->SetIsUsingTrackpad(NumFingers > (bIsTrackpad ? 1 : 0));
-	}
-	return 1;
-}
 #endif
 
 FMacApplication* FMacApplication::CreateMacApplication()
@@ -40,26 +32,370 @@ FMacApplication* FMacApplication::CreateMacApplication()
 	return MacApplication;
 }
 
+FMacApplication::FMacApplication()
+:	GenericApplication(MakeShareable(new FMacCursor()))
+,	bUsingHighPrecisionMouseInput(false)
+,	bUsingTrackpad(false)
+,	HIDInput(HIDInputInterface::Create(MessageHandler))
+,	DraggedWindow(nullptr)
+,	bSystemModalMode(false)
+,	ModifierKeysFlags(0)
+,	CurrentModifierFlags(0)
+,	bIsWorkspaceSessionActive(true)
+{
+	TextInputMethodSystem = MakeShareable(new FMacTextInputMethodSystem);
+	if (!TextInputMethodSystem->Initialize())
+	{
+		TextInputMethodSystem.Reset();
+	}
+
+	AppActivationObserver = [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationDidBecomeActiveNotification
+																			  object:[NSApplication sharedApplication]
+																			   queue:[NSOperationQueue mainQueue]
+																		  usingBlock:^(NSNotification* Notification) { OnApplicationDidBecomeActive(); }];
+
+	AppDeactivationObserver = [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationWillResignActiveNotification
+																				object:[NSApplication sharedApplication]
+																				 queue:[NSOperationQueue mainQueue]
+																			usingBlock:^(NSNotification* Notification) { OnApplicationWillResignActive(); }];
+
+	WorkspaceActivationObserver = [[[NSWorkspace sharedWorkspace] notificationCenter] addObserverForName:NSWorkspaceSessionDidBecomeActiveNotification
+																								  object:[NSWorkspace sharedWorkspace]
+																								   queue:[NSOperationQueue mainQueue]
+																							  usingBlock:^(NSNotification* Notification){ bIsWorkspaceSessionActive = true; }];
+
+	WorkspaceDeactivationObserver = [[[NSWorkspace sharedWorkspace] notificationCenter] addObserverForName:NSWorkspaceSessionDidResignActiveNotification
+																									object:[NSWorkspace sharedWorkspace]
+																									 queue:[NSOperationQueue mainQueue]
+																								usingBlock:^(NSNotification* Notification){ bIsWorkspaceSessionActive = false; }];
+
+	MouseMovedEventMonitor = [NSEvent addGlobalMonitorForEventsMatchingMask:NSMouseMovedMask handler:^(NSEvent* Event) { DeferEvent(Event); }];
+	EventMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSAnyEventMask handler:^(NSEvent* IncomingEvent) { return HandleNSEvent(IncomingEvent); }];
+
+	CGDisplayRegisterReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
+
+#if WITH_EDITOR
+	NSMutableArray* MultiTouchDevices = (__bridge NSMutableArray*)MTDeviceCreateList();
+	for (id Device in MultiTouchDevices)
+	{
+		MTRegisterContactFrameCallback((void*)Device, FMacApplication::MTContactCallback);
+		MTDeviceStart((void*)Device, 0);
+	}
+
+	FMemory::Memzero(GestureUsage);
+	LastGestureUsed = EGestureEvent::None;
+#endif
+}
+
+FMacApplication::~FMacApplication()
+{
+	if (MouseMovedEventMonitor)
+	{
+		[NSEvent removeMonitor:MouseMovedEventMonitor];
+	}
+	if (EventMonitor)
+	{
+		[NSEvent removeMonitor:EventMonitor];
+	}
+	if (AppActivationObserver)
+	{
+		[[NSNotificationCenter defaultCenter] removeObserver:AppActivationObserver];
+	}
+	if (AppDeactivationObserver)
+	{
+		[[NSNotificationCenter defaultCenter] removeObserver:AppDeactivationObserver];
+	}
+	if (WorkspaceActivationObserver)
+	{
+		[[NSNotificationCenter defaultCenter] removeObserver:WorkspaceActivationObserver];
+	}
+	if (WorkspaceDeactivationObserver)
+	{
+		[[NSNotificationCenter defaultCenter] removeObserver:WorkspaceDeactivationObserver];
+	}
+
+	CGDisplayRemoveReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
+
+	TextInputMethodSystem->Terminate();
+
+	MacApplication = nullptr;
+}
+
+void FMacApplication::SetMessageHandler(const TSharedRef<FGenericApplicationMessageHandler>& InMessageHandler)
+{
+	GenericApplication::SetMessageHandler(InMessageHandler);
+	HIDInput->SetMessageHandler(InMessageHandler);
+}
+
+void FMacApplication::PollGameDeviceState(const float TimeDelta)
+{
+	// Poll game device state and send new events
+	HIDInput->SendControllerEvents();
+}
+
+void FMacApplication::PumpMessages(const float TimeDelta)
+{
+	FPlatformMisc::PumpMessages(true);
+}
+
+void FMacApplication::ProcessDeferredEvents(const float TimeDelta)
+{
+	TArray<FDeferredMacEvent> EventsToProcess;
+
+	EventsMutex.Lock();
+	EventsToProcess.Append(DeferredEvents);
+	DeferredEvents.Empty();
+	EventsMutex.Unlock();
+
+	for (int32 Index = 0; Index < EventsToProcess.Num(); ++Index)
+	{
+		ProcessEvent(EventsToProcess[Index]);
+	}
+
+	InvalidateTextLayouts();
+	CloseQueuedWindows();
+}
+
+TSharedRef<FGenericWindow> FMacApplication::MakeWindow()
+{
+	return FMacWindow::Make();
+}
+
+void FMacApplication::InitializeWindow(const TSharedRef<FGenericWindow>& InWindow, const TSharedRef<FGenericWindowDefinition>& InDefinition, const TSharedPtr<FGenericWindow>& InParent, const bool bShowImmediately)
+{
+	const TSharedRef<FMacWindow> Window = StaticCastSharedRef<FMacWindow >(InWindow);
+	const TSharedPtr<FMacWindow> ParentWindow = StaticCastSharedPtr<FMacWindow>(InParent);
+
+	Windows.Add(Window);
+	Window->Initialize(this, InDefinition, ParentWindow, bShowImmediately);
+}
+
+FModifierKeysState FMacApplication::GetModifierKeys() const
+{
+	uint32 CurrentFlags = ModifierKeysFlags;
+
+	const bool bIsLeftShiftDown			= (CurrentFlags & (1 << 0)) != 0;
+	const bool bIsRightShiftDown		= (CurrentFlags & (1 << 1)) != 0;
+	const bool bIsLeftControlDown		= (CurrentFlags & (1 << 6)) != 0; // Mac pretends the Command key is Control
+	const bool bIsRightControlDown		= (CurrentFlags & (1 << 7)) != 0; // Mac pretends the Command key is Control
+	const bool bIsLeftAltDown			= (CurrentFlags & (1 << 4)) != 0;
+	const bool bIsRightAltDown			= (CurrentFlags & (1 << 5)) != 0;
+	const bool bIsLeftCommandDown		= (CurrentFlags & (1 << 2)) != 0; // Mac pretends the Control key is Command
+	const bool bIsRightCommandDown		= (CurrentFlags & (1 << 3)) != 0; // Mac pretends the Control key is Command
+	const bool bAreCapsLocked           = (CurrentFlags & (1 << 8)) != 0;
+
+	return FModifierKeysState(bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, bIsLeftCommandDown, bIsRightCommandDown, bAreCapsLocked);
+}
+
+bool FMacApplication::IsCursorDirectlyOverSlateWindow() const
+{
+	SCOPED_AUTORELEASE_POOL;
+	const NSInteger WindowNumber = [NSWindow windowNumberAtPoint:[NSEvent mouseLocation] belowWindowWithWindowNumber:0];
+	NSWindow* const Window = [NSApp windowWithWindowNumber:WindowNumber];
+	return Window && [Window isKindOfClass:[FCocoaWindow class]] && Window != DraggedWindow;
+}
+
+void FMacApplication::SetHighPrecisionMouseMode(const bool Enable, const TSharedPtr<FGenericWindow>& InWindow)
+{
+	bUsingHighPrecisionMouseInput = Enable;
+	((FMacCursor*)Cursor.Get())->SetHighPrecisionMouseMode(Enable);
+}
+
+FPlatformRect FMacApplication::GetWorkArea(const FPlatformRect& CurrentWindow) const
+{
+	SCOPED_AUTORELEASE_POOL;
+
+	NSScreen* Screen = FindScreenByPoint(CurrentWindow.Left, CurrentWindow.Top);
+
+	const int32 ScreenHeight = FMath::TruncToInt([Screen frame].size.height);
+	const NSRect VisibleFrame = [Screen visibleFrame];
+
+	NSArray* AllScreens = [NSScreen screens];
+	NSScreen* PrimaryScreen = (NSScreen*)[AllScreens objectAtIndex: 0];
+	NSRect PrimaryFrame = [PrimaryScreen frame];
+
+	FPlatformRect WorkArea;
+	WorkArea.Left = VisibleFrame.origin.x;
+	WorkArea.Top = (PrimaryFrame.origin.y + PrimaryFrame.size.height) - (VisibleFrame.origin.y + VisibleFrame.size.height);
+	WorkArea.Right = WorkArea.Left + VisibleFrame.size.width;
+	WorkArea.Bottom = WorkArea.Top + VisibleFrame.size.height;
+
+	return WorkArea;
+}
+
+#if WITH_EDITOR
+void FMacApplication::SendAnalytics(IAnalyticsProvider* Provider)
+{
+	static_assert(EGestureEvent::Count == 5, "If the number of gestures changes you need to add more entries below!");
+
+	TArray<FAnalyticsEventAttribute> GestureAttributes;
+	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Scroll"),	GestureUsage[EGestureEvent::Scroll]));
+	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Magnify"),	GestureUsage[EGestureEvent::Magnify]));
+	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Swipe"),	GestureUsage[EGestureEvent::Swipe]));
+	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Rotate"),	GestureUsage[EGestureEvent::Rotate]));
+
+	Provider->RecordEvent(FString("Mac.Gesture.Usage"), GestureAttributes);
+
+	FMemory::Memzero(GestureUsage);
+	LastGestureUsed = EGestureEvent::None;
+}
+#endif
+
+void FMacApplication::CloseWindow(TSharedRef<FMacWindow> Window)
+{
+	MessageHandler->OnWindowClose(Window);
+}
+
+void FMacApplication::DeferEvent(NSObject* Object)
+{
+	FDeferredMacEvent DeferredEvent;
+	FCocoaWindow* WindowHandle = nullptr;
+
+	if (Object && [Object isKindOfClass:[NSEvent class]])
+	{
+		NSEvent* Event = (NSEvent*)Object;
+		WindowHandle = FindEventWindow(Event);
+		DeferredEvent.Type = [Event type];
+		DeferredEvent.LocationInWindow = FVector2D([Event locationInWindow].x, [Event locationInWindow].y);
+		DeferredEvent.ModifierFlags = [Event modifierFlags];
+		DeferredEvent.Timestamp = [Event timestamp];
+		DeferredEvent.WindowNumber = [Event windowNumber];
+		DeferredEvent.Context = [[Event context] retain];
+
+		if (DeferredEvent.Type == NSKeyDown && !bSystemModalMode)
+		{
+			DeferredEvent.Window = FindWindowByNSWindow(WindowHandle);
+			if (DeferredEvent.Window.IsValid() && DeferredEvent.Window->OnIMKKeyDown(Event))
+			{
+				return;
+			}
+		}
+
+		switch (DeferredEvent.Type)
+		{
+			case NSMouseMoved:
+			case NSLeftMouseDragged:
+			case NSRightMouseDragged:
+			case NSOtherMouseDragged:
+			case NSEventTypeSwipe:
+				DeferredEvent.Delta = FVector2D([Event deltaX], [Event deltaY]);
+				break;
+
+			case NSLeftMouseDown:
+			case NSRightMouseDown:
+			case NSOtherMouseDown:
+			case NSLeftMouseUp:
+			case NSRightMouseUp:
+			case NSOtherMouseUp:
+				DeferredEvent.ButtonNumber = [Event buttonNumber];
+				DeferredEvent.ClickCount = [Event clickCount];
+				break;
+
+			case NSScrollWheel:
+				DeferredEvent.Delta = FVector2D([Event deltaX], [Event deltaY]);
+				DeferredEvent.ScrollingDelta = FVector2D([Event scrollingDeltaX], [Event scrollingDeltaY]);
+				DeferredEvent.Phase = [Event phase];
+				DeferredEvent.MomentumPhase = [Event momentumPhase];
+				DeferredEvent.IsDirectionInvertedFromDevice = [Event isDirectionInvertedFromDevice];
+				break;
+
+			case NSEventTypeMagnify:
+				DeferredEvent.Delta = FVector2D([Event magnification], [Event magnification]);
+				break;
+
+			case NSEventTypeRotate:
+				DeferredEvent.Delta = FVector2D([Event rotation], [Event rotation]);
+				break;
+
+			case NSKeyDown:
+			case NSKeyUp:
+			{
+				if ([[Event characters] length] > 0)
+				{
+					DeferredEvent.Characters = [[Event characters] retain];
+					DeferredEvent.CharactersIgnoringModifiers = [[Event charactersIgnoringModifiers] retain];
+					DeferredEvent.IsRepeat = [Event isARepeat];
+					DeferredEvent.KeyCode = [Event keyCode];
+				}
+				else
+				{
+					return;
+				}
+				break;
+			}
+		}
+	}
+	else if (Object && [Object isKindOfClass:[NSNotification class]])
+	{
+		NSNotification* Notification = (NSNotification*)Object;
+		DeferredEvent.NotificationName = [[Notification name] retain];
+		if ([[Notification object] isKindOfClass:[FCocoaWindow class]])
+		{
+			WindowHandle = (FCocoaWindow*)[Notification object];
+
+			if (DeferredEvent.NotificationName == NSWindowDidResizeNotification)
+			{
+				DeferredEvent.Window = FindWindowByNSWindow(WindowHandle);
+				if (DeferredEvent.Window.IsValid())
+				{
+					GameThreadCall(^{ OnWindowDidResize(DeferredEvent.Window.ToSharedRef()); }, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ], true);
+				}
+				return;
+			}
+		}
+		else if ([[Notification object] conformsToProtocol:@protocol(NSDraggingInfo)])
+		{
+			WindowHandle = (FCocoaWindow*)[(id<NSDraggingInfo>)[Notification object] draggingDestinationWindow];
+			if (DeferredEvent.NotificationName == NSPrepareForDragOperation)
+			{
+				DeferredEvent.DraggingPasteboard = [[(id<NSDraggingInfo>)[Notification object] draggingPasteboard] retain];
+			}
+		}
+	}
+
+	DeferredEvent.Window = FindWindowByNSWindow(WindowHandle);
+
+	FScopeLock Lock(&EventsMutex);
+	DeferredEvents.Add(DeferredEvent);
+}
+
+TSharedPtr<FMacWindow> FMacApplication::FindWindowByNSWindow(FCocoaWindow* WindowHandle)
+{
+	FScopeLock Lock(&WindowsMutex);
+
+	for (int32 WindowIndex=0; WindowIndex < Windows.Num(); ++WindowIndex)
+	{
+		TSharedRef<FMacWindow> Window = Windows[WindowIndex];
+		if (Window->GetWindowHandle() == WindowHandle)
+		{
+			return Window;
+		}
+	}
+
+	return TSharedPtr<FMacWindow>(nullptr);
+}
+
+void FMacApplication::InvalidateTextLayout(FCocoaWindow* Window)
+{
+	WindowsRequiringTextInvalidation.AddUnique(Window);
+}
+
 NSEvent* FMacApplication::HandleNSEvent(NSEvent* Event)
 {
 	NSEvent* ReturnEvent = Event;
 
-	const bool bIsMouseClickOrKeyEvent = [Event type] == NSLeftMouseDown || [Event type] == NSLeftMouseUp
-		|| [Event type] == NSRightMouseDown || [Event type] == NSRightMouseUp
-		|| [Event type] == NSOtherMouseDown || [Event type] == NSOtherMouseUp;
-	const bool bIsResentEvent = [Event type] == NSApplicationDefined && (FMacApplicationEventTypes)[Event subtype] == FMacApplication::ResentEvent;
-
 	if (MacApplication)
 	{
+		const bool bIsResentEvent = [Event type] == NSApplicationDefined && [Event subtype] == RESET_EVENT_SUBTYPE;
+
 		if (bIsResentEvent)
 		{
 			ReturnEvent = (NSEvent*)[Event data1];
 		}
-
-		if (!bIsResentEvent && (!bIsMouseClickOrKeyEvent || [Event window] == NULL))
+		else
 		{
-			GameThreadCall(^{ FMacApplication::ProcessEvent([Event retain]); }, @[ NSDefaultRunLoopMode ], false);
-			
+			MacApplication->DeferEvent(Event);
+
 			if ([Event type] == NSKeyDown || [Event type] == NSKeyUp)
 			{
 				ReturnEvent = nil;
@@ -80,857 +416,536 @@ void FMacApplication::OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisp
 		FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
 		App->BroadcastDisplayMetricsChanged(DisplayMetrics);
 	}
-	
+
 	for (int32 WindowIndex=0; WindowIndex < App->Windows.Num(); ++WindowIndex)
 	{
-		TSharedRef< FMacWindow > WindowRef = App->Windows[ WindowIndex ];
+		TSharedRef<FMacWindow> WindowRef = App->Windows[WindowIndex];
 		WindowRef->OnDisplayReconfiguration(Display, Flags);
 	}
 }
 
-FMacApplication::FMacApplication()
-	: GenericApplication( MakeShareable( new FMacCursor() ) )
-	, bUsingHighPrecisionMouseInput( false )
-	, bUsingTrackpad( false )
-	, HIDInput( HIDInputInterface::Create( MessageHandler ) )
-	, DraggedWindow( NULL )
-	, bIsMouseCursorLocked( false )
-	, bSystemModalMode( false )
-	, bIsProcessingNSEvent( false )
-	, ModifierKeysFlags( 0 )
-	, CurrentModifierFlags( 0 )
-	, bIsWorkspaceSessionActive( true )
-{
-	CGDisplayRegisterReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
-
-	[NSEvent addGlobalMonitorForEventsMatchingMask:NSMouseMovedMask handler:^(NSEvent* Event){
-		GameThreadCall(^{ FMacApplication::ProcessEvent([Event retain]); }, @[ NSDefaultRunLoopMode ], false);
-	}];
-
-	EventMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSAnyEventMask handler:^(NSEvent* IncomingEvent)
-	{
-		NSEvent* ReturnEvent = HandleNSEvent(IncomingEvent);
-		return ReturnEvent;
-	}];
-
 #if WITH_EDITOR
-	NSMutableArray* MultiTouchDevices = (__bridge NSMutableArray*)MTDeviceCreateList();
-	for (id Device in MultiTouchDevices)
+int32 FMacApplication::MTContactCallback(void* Device, void* Data, int32 NumFingers, double TimeStamp, int32 Frame)
+{
+	if (MacApplication)
 	{
-		MTRegisterContactFrameCallback((void*)Device, MTContactCallback);
-		MTDeviceStart((void*)Device, 0);
+		const bool bIsTrackpad = MTDeviceIsBuiltIn(Device);
+		MacApplication->bUsingTrackpad = NumFingers > (bIsTrackpad ? 1 : 0);
 	}
+	return 1;
+}
 #endif
 
-	TextInputMethodSystem = MakeShareable( new FMacTextInputMethodSystem );
-	if (!TextInputMethodSystem->Initialize())
-	{
-		TextInputMethodSystem.Reset();
-	}
-
-	AppActivationObserver = [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationDidBecomeActiveNotification object:[NSApplication sharedApplication] queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification* Notification)
-							{
-								OnApplicationDidBecomeActive();
-							 }];
-
-	AppDeactivationObserver = [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationWillResignActiveNotification object:[NSApplication sharedApplication] queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification* Notification)
-							{
-								OnApplicationWillResignActive();
-							}];
-
-	WorkspaceActivationObserver = [[[NSWorkspace sharedWorkspace] notificationCenter] addObserverForName:NSWorkspaceSessionDidBecomeActiveNotification object:[NSWorkspace sharedWorkspace] queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification* Notification){
-									   bIsWorkspaceSessionActive = true;
-								   }];
-
-	WorkspaceDeactivationObserver = [[[NSWorkspace sharedWorkspace] notificationCenter] addObserverForName:NSWorkspaceSessionDidResignActiveNotification object:[NSWorkspace sharedWorkspace] queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification* Notification){
-									   bIsWorkspaceSessionActive = false;
-								   }];
-
-#if WITH_EDITOR
-	FMemory::Memzero(GestureUsage);
-	LastGestureUsed = EGestureEvent::None;
-#endif
-}
-
-FMacApplication::~FMacApplication()
+void FMacApplication::ProcessEvent(const FDeferredMacEvent& Event)
 {
-	if (EventMonitor)
+	if (Event.Type)
 	{
-		[NSEvent removeMonitor:EventMonitor];
-		EventMonitor = nil;
-	}
-	
-	if (AppActivationObserver)
-	{
-		[[NSNotificationCenter defaultCenter] removeObserver:AppActivationObserver];
-		AppActivationObserver = nil;
-	}
-	
-	if (AppDeactivationObserver)
-	{
-		[[NSNotificationCenter defaultCenter] removeObserver:AppDeactivationObserver];
-		AppDeactivationObserver = nil;
-	}
-	
-	if (WorkspaceActivationObserver)
-	{
-		[[NSNotificationCenter defaultCenter] removeObserver:WorkspaceActivationObserver];
-		WorkspaceActivationObserver = nil;
-	}
-
-	if (WorkspaceDeactivationObserver)
-	{
-		[[NSNotificationCenter defaultCenter] removeObserver:WorkspaceDeactivationObserver];
-		WorkspaceDeactivationObserver = nil;
-	}
-
-	CGDisplayRemoveReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
-
-	TextInputMethodSystem->Terminate();
-
-	MacApplication = NULL;
-}
-
-TSharedRef< FGenericWindow > FMacApplication::MakeWindow()
-{
-	return FMacWindow::Make();
-}
-
-void FMacApplication::InitializeWindow( const TSharedRef< FGenericWindow >& InWindow, const TSharedRef< FGenericWindowDefinition >& InDefinition, const TSharedPtr< FGenericWindow >& InParent, const bool bShowImmediately )
-{
-	const TSharedRef< FMacWindow > Window = StaticCastSharedRef< FMacWindow >( InWindow );
-	const TSharedPtr< FMacWindow > ParentWindow = StaticCastSharedPtr< FMacWindow >( InParent );
-
-	Windows.Add( Window );
-	Window->Initialize( this, InDefinition, ParentWindow, bShowImmediately );
-}
-
-void FMacApplication::SetMessageHandler( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler )
-{
-	GenericApplication::SetMessageHandler( InMessageHandler );
-	HIDInput->SetMessageHandler( InMessageHandler );
-}
-
-static TSharedPtr< FMacWindow > FindWindowByNSWindow( const TArray< TSharedRef< FMacWindow > >& WindowsToSearch, FCriticalSection* const Mutex, FCocoaWindow* const WindowHandle )
-{
-	FScopeLock Lock(Mutex);
-	for (int32 WindowIndex=0; WindowIndex < WindowsToSearch.Num(); ++WindowIndex)
-	{
-		TSharedRef< FMacWindow > Window = WindowsToSearch[ WindowIndex ];
-		if ( Window->GetWindowHandle() == WindowHandle )
+		if (CurrentModifierFlags != Event.ModifierFlags)
 		{
-			return Window;
+			NSUInteger ModifierFlags = Event.ModifierFlags;
+
+			HandleModifierChange(ModifierFlags, (1<<4), 7, MMK_RightCommand);
+			HandleModifierChange(ModifierFlags, (1<<3), 6, MMK_LeftCommand);
+			HandleModifierChange(ModifierFlags, (1<<1), 0, MMK_LeftShift);
+			HandleModifierChange(ModifierFlags, (1<<16), 8, MMK_CapsLock);
+			HandleModifierChange(ModifierFlags, (1<<5), 4, MMK_LeftAlt);
+			HandleModifierChange(ModifierFlags, (1<<0), 2, MMK_LeftControl);
+			HandleModifierChange(ModifierFlags, (1<<2), 1, MMK_RightShift);
+			HandleModifierChange(ModifierFlags, (1<<6), 5, MMK_RightAlt);
+			HandleModifierChange(ModifierFlags, (1<<13), 3, MMK_RightControl);
+
+			CurrentModifierFlags = ModifierFlags;
+		}
+
+		switch (Event.Type)
+		{
+			case NSMouseMoved:
+			case NSLeftMouseDragged:
+			case NSRightMouseDragged:
+			case NSOtherMouseDragged:
+				ProcessMouseMovedEvent(Event);
+				break;
+
+			case NSLeftMouseDown:
+			case NSRightMouseDown:
+			case NSOtherMouseDown:
+				ProcessMouseDownEvent(Event);
+				break;
+
+			case NSLeftMouseUp:
+			case NSRightMouseUp:
+			case NSOtherMouseUp:
+				ProcessMouseUpEvent(Event);
+				break;
+
+			case NSScrollWheel:
+				ProcessScrollWheelEvent(Event);
+				break;
+
+			case NSEventTypeMagnify:
+			case NSEventTypeSwipe:
+			case NSEventTypeRotate:
+			case NSEventTypeBeginGesture:
+			case NSEventTypeEndGesture:
+				ProcessGestureEvent(Event);
+				break;
+
+			case NSKeyDown:
+				ProcessKeyDownEvent(Event);
+				break;
+
+			case NSKeyUp:
+				ProcessKeyUpEvent(Event);
+				break;
 		}
 	}
-
-	return TSharedPtr< FMacWindow >( NULL );
-}
-
-bool FMacApplication::IsCursorDirectlyOverSlateWindow() const
-{
-	SCOPED_AUTORELEASE_POOL;
-	const NSInteger WindowNumber = [NSWindow windowNumberAtPoint:[NSEvent mouseLocation] belowWindowWithWindowNumber:0];
-	NSWindow* const Window = [NSApp windowWithWindowNumber:WindowNumber];
-	return Window && [Window isKindOfClass:[FCocoaWindow class]] && Window != DraggedWindow;
-}
-
-void FMacApplication::ProcessEvent(NSObject const* const Event)
-{
-	// Must have an event
-	check(Event);
-	
-	if ([Event isKindOfClass:[NSEvent class]])
+	else if (Event.Window.IsValid())
 	{
-		// Process a standard NSEvent as we always did
-		MacApplication->ProcessNSEvent((NSEvent*)Event);
-	}
-	else if ([Event isKindOfClass:[NSNotification class]])
-	{
-		// Notifications need to mapped to the right handler function, that's no longer handled in the
-		// call location.
-		NSNotification* Notification = (NSNotification*)Event;
-		NSString* const NotificationName = [Notification name];
-		FCocoaWindow* CocoaWindow = [[Notification object] isKindOfClass:[FCocoaWindow class]] ? (FCocoaWindow*)[Notification object] : nullptr;
-		if (CocoaWindow)
+		if (Event.NotificationName == NSWindowWillStartLiveResizeNotification)
 		{
-			if (NotificationName == NSWindowDidResizeNotification)
-			{
-				MacApplication->OnWindowDidResize(CocoaWindow);
-			}
-			else if (NotificationName == NSWindowWillStartLiveResizeNotification)
-			{
-				MacApplication->OnWindowWillStartLiveResize(CocoaWindow);
-			}
-			else if (NotificationName == NSWindowDidEndLiveResizeNotification)
-			{
-				MacApplication->OnWindowDidEndLiveResize(CocoaWindow);
-			}
-			else if (NotificationName == NSWindowDidEnterFullScreenNotification)
-			{
-				MacApplication->OnWindowDidResize(CocoaWindow);
-			}
-			else if (NotificationName == NSWindowDidExitFullScreenNotification)
-			{
-				MacApplication->OnWindowDidResize(CocoaWindow);
-			}
-			else if (NotificationName == NSWindowDidBecomeMainNotification)
-			{
-				MacApplication->OnWindowDidBecomeMain(CocoaWindow);
-			}
-			else if (NotificationName == NSWindowDidResignMainNotification)
-			{
-				MacApplication->OnWindowDidResignMain(CocoaWindow);
-			}
-			else if (NotificationName == NSWindowWillMoveNotification)
-			{
-				MacApplication->OnWindowWillMove(CocoaWindow);
-			}
-			else if (NotificationName == NSWindowDidMoveNotification)
-			{
-				MacApplication->OnWindowDidMove(CocoaWindow);
-			}
-			else if (NotificationName == NSWindowWillCloseNotification)
-			{
-				MacApplication->OnWindowDidClose(CocoaWindow);
-			}
-			else
-			{
-				check(false);
-			}
+			MessageHandler->BeginReshapingWindow(Event.Window.ToSharedRef());
 		}
-		else if ([[Notification object] conformsToProtocol:@protocol(NSDraggingInfo)])
+		else if (Event.NotificationName == NSWindowDidEndLiveResizeNotification)
 		{
-			CocoaWindow = (FCocoaWindow*)[(id<NSDraggingInfo>)[Notification object] draggingDestinationWindow];
-			if (NotificationName == NSDraggingExited)
-			{
-				MacApplication->OnDragOut(CocoaWindow);
-			}
-			else if (NotificationName == NSDraggingUpdated)
-			{
-				MacApplication->OnDragOver(CocoaWindow);
-			}
-			else if (NotificationName == NSPrepareForDragOperation)
-			{
-				MacApplication->OnDragEnter(CocoaWindow, [(id <NSDraggingInfo>)[Notification object] draggingPasteboard]);
-			}
-			else if (NotificationName == NSPerformDragOperation)
-			{
-				MacApplication->OnDragDrop(CocoaWindow);
-			}
-			else
-			{
-				check(false);
-			}
+			MessageHandler->FinishedReshapingWindow(Event.Window.ToSharedRef());
 		}
-	}
-	
-	// We are responsible for deallocating the event
-	[Event release];
-}
-
-void FMacApplication::RedrawWindow(FCocoaWindow* Window)
-{
-	TSharedPtr<FMacWindow> EventWindow = FindWindowByNSWindow(Windows, &WindowsMutex, Window);
-	if (EventWindow.IsValid())
-	{
-		MessageHandler->OnOSPaint(EventWindow.ToSharedRef());
-	}
-}
-
-void FMacApplication::PumpMessages(const float TimeDelta)
-{
-	FPlatformMisc::PumpMessages(true);
-}
-
-void FMacApplication::CloseQueuedWindows()
-{
-	if (WindowsToClose.Num() > 0)
-	{
-		MainThreadCall(^{
+		else if (Event.NotificationName == NSWindowDidEnterFullScreenNotification)
+		{
+			OnWindowDidResize(Event.Window.ToSharedRef());
+		}
+		else if (Event.NotificationName == NSWindowDidExitFullScreenNotification)
+		{
+			OnWindowDidResize(Event.Window.ToSharedRef());
+		}
+		else if (Event.NotificationName == NSWindowDidBecomeMainNotification)
+		{
+			MessageHandler->OnWindowActivationChanged(Event.Window.ToSharedRef(), EWindowActivation::Activate);
+			OnWindowsReordered(![NSApp isActive]);
+		}
+		else if (Event.NotificationName == NSWindowDidResignMainNotification)
+		{
+			MessageHandler->OnWindowActivationChanged(Event.Window.ToSharedRef(), EWindowActivation::Deactivate);
+			OnWindowsReordered(![NSApp isActive]);
+		}
+		else if (Event.NotificationName == NSWindowWillMoveNotification)
+		{
+			DraggedWindow = Event.Window->GetWindowHandle();
+		}
+		else if (Event.NotificationName == NSWindowDidMoveNotification)
+		{
+			OnWindowDidMove(Event.Window.ToSharedRef());
+		}
+		else if (Event.NotificationName == NSWindowWillCloseNotification)
+		{
+			OnWindowDidClose(Event.Window.ToSharedRef());
+		}
+		else if (Event.NotificationName == NSDraggingExited)
+		{
+			MessageHandler->OnDragLeave(Event.Window.ToSharedRef());
+		}
+		else if (Event.NotificationName == NSDraggingUpdated)
+		{
+			MessageHandler->OnDragOver(Event.Window.ToSharedRef());
+		}
+		else if (Event.NotificationName == NSPrepareForDragOperation)
+		{
 			SCOPED_AUTORELEASE_POOL;
 
-			// Set the new key window, if needed. We cannot trust Cocoa to set the key window to the actual top most window. It will prefer windows with title bars so,
-			// for example, will choose the main window over a context menu window, when closing a submenu.
-			NSArray* AllWindows = [NSApp orderedWindows];
-			for (NSWindow* Window : AllWindows)
+			// Decipher the pasteboard data
+			const bool bHaveText = [[Event.DraggingPasteboard types] containsObject:NSPasteboardTypeString];
+			const bool bHaveFiles = [[Event.DraggingPasteboard types] containsObject:NSFilenamesPboardType];
+
+			if (bHaveFiles)
 			{
-				if ([Window isKindOfClass:[FCocoaWindow class]] && !WindowsToClose.Contains((FCocoaWindow*)Window) && [Window canBecomeKeyWindow])
+				TArray<FString> FileList;
+
+				NSArray *Files = [Event.DraggingPasteboard propertyListForType:NSFilenamesPboardType];
+				for (int32 Index = 0; Index < [Files count]; Index++)
 				{
-					if (Window != [NSApp keyWindow])
-					{
-						[Window makeKeyWindow];
-					}
-					break;
+					NSString* FilePath = [Files objectAtIndex: Index];
+					const FString ListElement = FString([FilePath fileSystemRepresentation]);
+					FileList.Add(ListElement);
 				}
-			}
 
-			for (FCocoaWindow* Window : WindowsToClose)
+				MessageHandler->OnDragEnterFiles(Event.Window.ToSharedRef(), FileList);
+			}
+			else if (bHaveText)
 			{
-				[Window close];
-				[Window release];
+				NSString* Text = [Event.DraggingPasteboard stringForType:NSPasteboardTypeString];
+				MessageHandler->OnDragEnterText(Event.Window.ToSharedRef(), FString(Text));
 			}
-		}, UE4CloseEventMode, true);
-
-		WindowsToClose.Empty();
-	}
-}
-
-void FMacApplication::InvalidateTextLayout(FCocoaWindow* Window)
-{
-	WindowsRequiringTextInvalidation.AddUnique( Window );
-}
-
-void FMacApplication::InvalidateTextLayouts()
-{
-	if( WindowsRequiringTextInvalidation.Num() > 0 )
-	{
-	   MainThreadCall(^{
-		   SCOPED_AUTORELEASE_POOL;
-	
-		   for( FCocoaWindow* CocoaWindow : WindowsRequiringTextInvalidation)
-		   {
-			   if(CocoaWindow && [CocoaWindow openGLView])
-			   {
-				   FCocoaTextView* TextView = (FCocoaTextView*)[CocoaWindow openGLView];
-				   [[TextView inputContext] invalidateCharacterCoordinates];
-			   }
-		   }
-
-		}, UE4IMEEventMode, true);
-		
-		WindowsRequiringTextInvalidation.Empty();
-	}
-
-}
-
-bool FMacApplication::IsWindowMovable(FCocoaWindow* Win, bool* OutMovableByBackground)
-{
-	if (OutMovableByBackground)
-	{
-		*OutMovableByBackground = false;
-	}
-
-	FCocoaWindow* NativeWindow = (FCocoaWindow*)Win;
-	TSharedPtr< FMacWindow > CurrentEventWindow = FindWindowByNSWindow( Windows, &WindowsMutex, NativeWindow );
-	if ( CurrentEventWindow.IsValid() )
-	{
-		const FVector2D CursorPos = static_cast<FMacCursor*>( Cursor.Get() )->GetPosition();
-		const int32 LocalMouseX = CursorPos.X - CurrentEventWindow->PositionX;
-		const int32 LocalMouseY = CursorPos.Y - CurrentEventWindow->PositionY;
-		
-		const EWindowZone::Type Zone = MessageHandler->GetWindowZoneForPoint( CurrentEventWindow.ToSharedRef(), LocalMouseX, LocalMouseY );
-		bool IsMouseOverTitleBar = Zone == EWindowZone::TitleBar;
-		switch(Zone)
+		}
+		else if (Event.NotificationName == NSPerformDragOperation)
 		{
-			case EWindowZone::NotInWindow:
-			case EWindowZone::TopLeftBorder:
-			case EWindowZone::TopBorder:
-			case EWindowZone::TopRightBorder:
-			case EWindowZone::LeftBorder:
-			case EWindowZone::RightBorder:
-			case EWindowZone::BottomLeftBorder:
-			case EWindowZone::BottomBorder:
-			case EWindowZone::BottomRightBorder:
-				return true;
-			case EWindowZone::TitleBar:
-				if (OutMovableByBackground)
-				{
-					*OutMovableByBackground = true;
-				}
-				return true;
-			case EWindowZone::ClientArea:
-			case EWindowZone::MinimizeButton:
-			case EWindowZone::MaximizeButton:
-			case EWindowZone::CloseButton:
-			case EWindowZone::SysMenu:
-			default:
-				return false;
+			MessageHandler->OnDragDrop(Event.Window.ToSharedRef());
 		}
 	}
-	return true;
-}
-
-void FMacApplication::HandleModifierChange(NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode)
-{
-	bool CurrentPressed = (CurrentModifierFlags & FlagsShift) != 0;
-	bool NewPressed = (NewModifierFlags & FlagsShift) != 0;
-	if (CurrentPressed != NewPressed)
-	{
-		if ( NewPressed )
-		{
-			ModifierKeysFlags |= 1 << UE4Shift;
-			MessageHandler->OnKeyDown( TranslatedCode, 0, false );
-		}
-		else
-		{
-			ModifierKeysFlags &= ~(1 << UE4Shift);
-			MessageHandler->OnKeyUp( TranslatedCode, 0, false );
-		}
-	}
-}
-
-void FMacApplication::ProcessNSEvent(NSEvent* const Event)
-{
-	SCOPED_AUTORELEASE_POOL;
-
-	const bool bWasProcessingNSEvent = bIsProcessingNSEvent; // This function can be called recursively
-	bIsProcessingNSEvent = true;
-
-	if (CurrentModifierFlags != [Event modifierFlags])
-	{
-		NSUInteger ModifierFlags = [Event modifierFlags];
-
-		HandleModifierChange(ModifierFlags, (1<<4), 7, MMK_RightCommand);
-		HandleModifierChange(ModifierFlags, (1<<3), 6, MMK_LeftCommand);
-		HandleModifierChange(ModifierFlags, (1<<1), 0, MMK_LeftShift);
-		HandleModifierChange(ModifierFlags, (1<<16), 8, MMK_CapsLock);
-		HandleModifierChange(ModifierFlags, (1<<5), 4, MMK_LeftAlt);
-		HandleModifierChange(ModifierFlags, (1<<0), 2, MMK_LeftControl);
-		HandleModifierChange(ModifierFlags, (1<<2), 1, MMK_RightShift);
-		HandleModifierChange(ModifierFlags, (1<<6), 5, MMK_RightAlt);
-		HandleModifierChange(ModifierFlags, (1<<13), 3, MMK_RightControl);
-
-		CurrentModifierFlags = ModifierFlags;
-	}
-
-	FCocoaWindow* NativeWindow = FindEventWindow(Event);
-	TSharedPtr<FMacWindow> CurrentEventWindow = FindWindowByNSWindow(MacApplication->Windows, &MacApplication->WindowsMutex, NativeWindow);
-
-	const NSEventType EventType = [Event type];
-	switch (EventType)
-	{
-		case NSMouseMoved:
-		case NSLeftMouseDragged:
-		case NSRightMouseDragged:
-		case NSOtherMouseDragged:
-		{
-			if (CurrentEventWindow.IsValid() && CurrentEventWindow->IsRegularWindow())
-			{
-				bool IsMouseOverTitleBar = false;
-				const bool IsMovable = IsWindowMovable(NativeWindow, &IsMouseOverTitleBar);
-				[NativeWindow setMovable:IsMovable];
-				[NativeWindow setMovableByWindowBackground:IsMouseOverTitleBar];
-			}
-
-			FMacCursor* MacCursor = (FMacCursor*)Cursor.Get();
-
-			FVector2D const MouseScaling = MacCursor->GetMouseScaling();
-			
-			if (bUsingHighPrecisionMouseInput)
-			{
-				// Under OS X we disassociate the cursor and mouse position during hi-precision mouse input.
-				// The game snaps the mouse cursor back to the starting point when this is disabled, which
-				// accumulates mouse delta that we want to ignore.
-				const FVector2D AccumDelta = MacCursor->GetMouseWarpDelta() * MouseScaling;
-				
-				// Get the mouse position
-				FVector2D HighPrecisionMousePos = MacCursor->GetPosition();
-				
-				// Find the screen the cursor is currently on.
-				NSEnumerator *ScreenEnumerator = [[NSScreen screens] objectEnumerator];
-				NSScreen *Screen;
-				while ((Screen = [ScreenEnumerator nextObject]) && !NSMouseInRect(NSMakePoint(HighPrecisionMousePos.X / MouseScaling.X, HighPrecisionMousePos.Y / MouseScaling.Y), Screen.frame, NO))
-					;
-				
-				// Account for warping delta's
-				FVector2D Delta = FVector2D([Event deltaX], [Event deltaY]) * MouseScaling;
-				const FVector2D WarpDelta(FMath::Abs(AccumDelta.X)<FMath::Abs(Delta.X) ? AccumDelta.X : Delta.X, FMath::Abs(AccumDelta.Y)<FMath::Abs(Delta.Y) ? AccumDelta.Y : Delta.Y);
-				Delta -= WarpDelta;
-				
-				// Update to latest position
-				HighPrecisionMousePos += Delta;
-				
-				// Clip to lock rect
-				MacCursor->UpdateCursorClipping(HighPrecisionMousePos);
-				
-				// Clamp to the current screen and avoid the menu bar and dock to prevent popups and other
-				// assorted potential for mouse abuse.
-				NSRect VisibleFrame = [Screen visibleFrame];
-				// Avoid the menu bar & dock disclosure borders at the top & bottom of fullscreen windows
-				if (CurrentEventWindow.IsValid() && CurrentEventWindow->GetWindowMode() != EWindowMode::Windowed)
-				{
-					VisibleFrame.origin.y += 5;
-					VisibleFrame.size.height -= 10;
-				}
-				NSRect FullFrame = [Screen frame];
-				VisibleFrame.origin.y = (FullFrame.origin.y+FullFrame.size.height) - (VisibleFrame.origin.y + VisibleFrame.size.height);
-				
-				int32 ScaledX = (int32)(HighPrecisionMousePos.X / MouseScaling.X);
-				int32 ScaledY = (int32)(HighPrecisionMousePos.Y / MouseScaling.Y);
-				int32 ClampedPosX = FMath::Clamp(ScaledX, (int32)VisibleFrame.origin.x, (int32)(VisibleFrame.origin.x + VisibleFrame.size.width)-1);
-				int32 ClampedPosY = FMath::Clamp(ScaledY, (int32)VisibleFrame.origin.y, (int32)(VisibleFrame.origin.y + VisibleFrame.size.height)-1);
-				MacCursor->SetPosition(ClampedPosX * MouseScaling.X, ClampedPosY * MouseScaling.Y);
-				
-				// Forward the delta on to Slate
-				MessageHandler->OnRawMouseMove(Delta.X, Delta.Y);
-			}
-			else
-			{
-				NSPoint CursorPos = [NSEvent mouseLocation];
-				CursorPos.y--; // The y coordinate of the point returned by mouseLocation starts from a base of 1
-				const FVector2D MousePosition = FVector2D(CursorPos.x, FPlatformMisc::ConvertSlateYPositionToCocoa(CursorPos.y));
-				FVector2D CurrentPosition = MousePosition * MouseScaling;
-				const FVector2D MouseDelta = CurrentPosition - MacCursor->GetPosition();
-				if (MacCursor->UpdateCursorClipping(CurrentPosition))
-				{
-					MacCursor->SetPosition(CurrentPosition.X, CurrentPosition.Y);
-				}
-				else
-				{
-					MacCursor->UpdateCurrentPosition(CurrentPosition);
-				}
-
-				if (CurrentEventWindow.IsValid())
-				{
-					// Cocoa does not update NSWindow's frame until user stops dragging the window, so while window is being dragged, we calculate
-					// its position based on mouse move delta
-					if (DraggedWindow && DraggedWindow == NativeWindow)
-					{
-						const int32 X = FMath::TruncToInt(CurrentEventWindow->PositionX + MouseDelta.X);
-						const int32 Y = FMath::TruncToInt(CurrentEventWindow->PositionY + MouseDelta.Y);
-						MessageHandler->OnMovedWindow(CurrentEventWindow.ToSharedRef(), X, Y);
-						CurrentEventWindow->PositionX = X;
-						CurrentEventWindow->PositionY = Y;
-					}
-
-					MessageHandler->OnMouseMove();
-				}
-			}
-
-			if (CurrentEventWindow.IsValid() && !DraggedWindow && !GetCapture())
-			{
-				MessageHandler->OnCursorSet();
-			}
-			break;
-		}
-
-		case NSLeftMouseDown:
-		case NSRightMouseDown:
-		case NSOtherMouseDown:
-		{
-			EMouseButtons::Type Button = [Event type] == NSLeftMouseDown ? EMouseButtons::Left : EMouseButtons::Right;
-			if ([Event type] == NSOtherMouseDown)
-			{
-				switch ([Event buttonNumber])
-				{
-					case 2:
-						Button = EMouseButtons::Middle;
-						break;
-
-					case 3:
-						Button = EMouseButtons::Thumb01;
-						break;
-
-					case 4:
-						Button = EMouseButtons::Thumb02;
-						break;
-				}
-			}
-
-			if (CurrentEventWindow.IsValid())
-			{
-				if (Button == LastPressedMouseButton && ([Event clickCount] % 2) == 0)
-				{
-					MessageHandler->OnMouseDoubleClick(CurrentEventWindow, Button);
-
-					bool IsMouseOverTitleBar = false;
-					const bool IsMovable = IsWindowMovable(NativeWindow, &IsMouseOverTitleBar);
-					if (IsMouseOverTitleBar)
-					{
-						const bool bShouldMinimize = [[NSUserDefaults standardUserDefaults] boolForKey:@"AppleMiniaturizeOnDoubleClick"];
-						if (bShouldMinimize)
-						{
-							MainThreadCall(^{ [NativeWindow performMiniaturize:nil]; }, NSDefaultRunLoopMode, true);
-						}
-						else if (!FPlatformMisc::IsRunningOnMavericks())
-						{
-							MainThreadCall(^{ [NativeWindow zoom:nil]; }, NSDefaultRunLoopMode, true);
-						}
-					}
-				}
-				else
-				{
-					MessageHandler->OnMouseDown(CurrentEventWindow, Button);
-				}
-
-				if (CurrentEventWindow->GetWindowHandle() && !DraggedWindow && !GetCapture())
-				{
-					MessageHandler->OnCursorSet();
-				}
-			}
-
-			LastPressedMouseButton = Button;
-
-			break;
-		}
-
-		case NSLeftMouseUp:
-		case NSRightMouseUp:
-		case NSOtherMouseUp:
-		{
-			EMouseButtons::Type Button = [Event type] == NSLeftMouseUp ? EMouseButtons::Left : EMouseButtons::Right;
-			if ([Event type] == NSOtherMouseUp)
-			{
-				switch ([Event buttonNumber])
-				{
-					case 2:
-						Button = EMouseButtons::Middle;
-						break;
-
-					case 3:
-						Button = EMouseButtons::Thumb01;
-						break;
-
-					case 4:
-						Button = EMouseButtons::Thumb02;
-						break;
-				}
-			}
-
-			MessageHandler->OnMouseUp(Button);
-
-			if (CurrentEventWindow.IsValid() && CurrentEventWindow->GetWindowHandle() && !DraggedWindow && !GetCapture())
-			{
-				MessageHandler->OnCursorSet();
-			}
-
-			FPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
-			DraggedWindow = nullptr;
-			break;
-		}
-
-		case NSScrollWheel:
-		{
-			const float DeltaX = ([Event modifierFlags] & NSShiftKeyMask) ? [Event deltaY] : [Event deltaX];
-			const float DeltaY = ([Event modifierFlags] & NSShiftKeyMask) ? [Event deltaX] : [Event deltaY];
-
-			NSEventPhase Phase = [Event phase];
-
-			if ([Event momentumPhase] != NSEventPhaseNone || [Event phase] != NSEventPhaseNone)
-			{
-				const bool bInverted = [Event isDirectionInvertedFromDevice];
-
-				const FVector2D ScrollDelta([Event scrollingDeltaX], [Event scrollingDeltaY]);
-
-				// This is actually a scroll gesture from trackpad
-				MessageHandler->OnTouchGesture(EGestureEvent::Scroll, bInverted ? -ScrollDelta : ScrollDelta, DeltaY);
-				RecordUsage(EGestureEvent::Scroll);
-			}
-			else
-			{
-				MessageHandler->OnMouseWheel(DeltaY);
-			}
-
-			if (CurrentEventWindow.IsValid() && !DraggedWindow && !GetCapture())
-			{
-				MessageHandler->OnCursorSet();
-			}
-			break;
-		}
-
-		case NSEventTypeMagnify:
-		{
-			MessageHandler->OnTouchGesture(EGestureEvent::Magnify, FVector2D([Event magnification], [Event magnification]), 0);
-			RecordUsage(EGestureEvent::Magnify);
-			break;
-		}
-
-		case NSEventTypeSwipe:
-		{
-			MessageHandler->OnTouchGesture(EGestureEvent::Swipe, FVector2D([Event deltaX], [Event deltaY]), 0);
-			RecordUsage(EGestureEvent::Swipe);
-			break;
-		}
-
-		case NSEventTypeRotate:
-		{
-			MessageHandler->OnTouchGesture(EGestureEvent::Rotate, FVector2D([Event rotation], [Event rotation]), 0);
-			RecordUsage(EGestureEvent::Rotate);
-			break;
-		}
-
-		case NSEventTypeBeginGesture:
-		{
-			MessageHandler->OnBeginGesture();
-			break;
-		}
-
-		case NSEventTypeEndGesture:
-		{
-			MessageHandler->OnEndGesture();
-#if WITH_EDITOR
-			LastGestureUsed = EGestureEvent::None;
-#endif
-			break;
-		}
-
-		case NSKeyDown:
-		{
-			NSString *Characters = [Event characters];
-			bool bHandled = false;
-			if (!bSystemModalMode && [Characters length] && CurrentEventWindow.IsValid())
-			{
-				bHandled = CurrentEventWindow->OnIMKKeyDown(Event);
-				if (!bHandled)
-				{
-					const bool IsRepeat = [Event isARepeat];
-					const TCHAR Character = ConvertChar([Characters characterAtIndex:0]);
-					const TCHAR CharCode = [[Event charactersIgnoringModifiers] characterAtIndex:0];
-					const uint32 KeyCode = [Event keyCode];
-					const bool IsPrintable = IsPrintableKey(Character);
-
-					bHandled = MessageHandler->OnKeyDown(KeyCode, TranslateCharCode(CharCode, KeyCode), IsRepeat);
-
-					// First KeyDown, then KeyChar. This is important, as in-game console ignores first character otherwise
-					bool bCmdKeyPressed = [Event modifierFlags] & 0x18;
-					if (!bCmdKeyPressed && IsPrintable)
-					{
-						MessageHandler->OnKeyChar(Character, IsRepeat);
-					}
-				}
-			}
-			if (bHandled)
-			{
-				FCocoaMenu* MainMenu = [[NSApp mainMenu] isKindOfClass:[FCocoaMenu class]] ? (FCocoaMenu*)[NSApp mainMenu]: nil;
-				if (MainMenu)
-				{
-					MainThreadCall(^{ [MainMenu highlightKeyEquivalent:Event]; }, NSDefaultRunLoopMode, true);
-				}
-			}
-			else
-			{
-				ResendEvent(Event);
-			}
-			break;
-		}
-
-		case NSKeyUp:
-		{
-			NSString *Characters = [Event characters];
-			bool bHandled = false;
-			if (!bSystemModalMode && [Characters length])
-			{
-				const bool IsRepeat = [Event isARepeat];
-				const TCHAR Character = ConvertChar([Characters characterAtIndex:0]);
-				const TCHAR CharCode = [[Event charactersIgnoringModifiers] characterAtIndex:0];
-				const uint32 KeyCode = [Event keyCode];
-				const bool IsPrintable = IsPrintableKey(Character);
-
-				bHandled = MessageHandler->OnKeyUp(KeyCode, TranslateCharCode(CharCode, KeyCode), IsRepeat);
-			}
-			if (!bHandled)
-			{
-				ResendEvent(Event);
-			}
-			FPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
-			break;
-		}
-	}
-
-	bIsProcessingNSEvent = bWasProcessingNSEvent;
 }
 
 void FMacApplication::ResendEvent(NSEvent* Event)
 {
 	MainThreadCall(^{
-		NSEvent* Wrapper = [NSEvent otherEventWithType:NSApplicationDefined location:[Event locationInWindow] modifierFlags:[Event modifierFlags] timestamp:[Event timestamp] windowNumber:[Event windowNumber] context:[Event context] subtype:FMacApplication::ResentEvent data1:(NSInteger)Event data2:0];
-		
+		NSEvent* Wrapper = [NSEvent otherEventWithType:NSApplicationDefined location:[Event locationInWindow] modifierFlags:[Event modifierFlags] timestamp:[Event timestamp] windowNumber:[Event windowNumber] context:[Event context] subtype:RESET_EVENT_SUBTYPE data1:(NSInteger)Event data2:0];
 		[NSApp sendEvent:Wrapper];
 	}, NSDefaultRunLoopMode, true);
 }
 
-FCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
+void FMacApplication::ProcessMouseMovedEvent(const FDeferredMacEvent& Event)
 {
-	SCOPED_AUTORELEASE_POOL;
-
-	bool IsMouseEvent = false;
-	switch ([Event type])
+	if (Event.Window.IsValid() && Event.Window->IsRegularWindow())
 	{
-		case NSMouseMoved:
-		case NSLeftMouseDragged:
-		case NSRightMouseDragged:
-		case NSOtherMouseDragged:
-		case NSLeftMouseDown:
-		case NSRightMouseDown:
-		case NSOtherMouseDown:
-		case NSLeftMouseUp:
-		case NSRightMouseUp:
-		case NSOtherMouseUp:
-		case NSScrollWheel:
-			IsMouseEvent = true;
-			break;
+		bool IsMouseOverTitleBar = false;
+		const bool IsMovable = IsWindowMovable(Event.Window.ToSharedRef(), &IsMouseOverTitleBar);
+		[Event.Window->GetWindowHandle() setMovable:IsMovable];
+		[Event.Window->GetWindowHandle() setMovableByWindowBackground:IsMouseOverTitleBar];
 	}
 
-	FCocoaWindow* EventWindow = (FCocoaWindow*)[Event window];
+	FMacCursor* MacCursor = (FMacCursor*)Cursor.Get();
 
-	if ([Event type] == NSMouseMoved)
+	FVector2D const MouseScaling = MacCursor->GetMouseScaling();
+
+	if (bUsingHighPrecisionMouseInput)
 	{
-		// Ignore windows owned by other applications
-		NSInteger WindowNumber = [NSWindow windowNumberAtPoint:[NSEvent mouseLocation] belowWindowWithWindowNumber:0];
-		if ([NSApp windowWithWindowNumber:WindowNumber] == NULL)
+		// Under OS X we disassociate the cursor and mouse position during hi-precision mouse input.
+		// The game snaps the mouse cursor back to the starting point when this is disabled, which
+		// accumulates mouse delta that we want to ignore.
+		const FVector2D AccumDelta = MacCursor->GetMouseWarpDelta() * MouseScaling;
+
+		// Get the mouse position
+		FVector2D HighPrecisionMousePos = MacCursor->GetPosition();
+
+		// Find the screen the cursor is currently on.
+		NSEnumerator *ScreenEnumerator = [[NSScreen screens] objectEnumerator];
+		NSScreen *Screen;
+		while ((Screen = [ScreenEnumerator nextObject]) && !NSMouseInRect(NSMakePoint(HighPrecisionMousePos.X / MouseScaling.X, HighPrecisionMousePos.Y / MouseScaling.Y), Screen.frame, NO))
+			;
+
+		// Account for warping delta's
+		FVector2D Delta = FVector2D(Event.Delta.X, Event.Delta.Y) * MouseScaling;
+		const FVector2D WarpDelta(FMath::Abs(AccumDelta.X)<FMath::Abs(Delta.X) ? AccumDelta.X : Delta.X, FMath::Abs(AccumDelta.Y)<FMath::Abs(Delta.Y) ? AccumDelta.Y : Delta.Y);
+		Delta -= WarpDelta;
+
+		// Update to latest position
+		HighPrecisionMousePos += Delta;
+
+		// Clip to lock rect
+		MacCursor->UpdateCursorClipping(HighPrecisionMousePos);
+
+		// Clamp to the current screen and avoid the menu bar and dock to prevent popups and other
+		// assorted potential for mouse abuse.
+		NSRect VisibleFrame = [Screen visibleFrame];
+		// Avoid the menu bar & dock disclosure borders at the top & bottom of fullscreen windows
+		if (Event.Window.IsValid() && Event.Window->GetWindowMode() != EWindowMode::Windowed)
 		{
-			return NULL;
+			VisibleFrame.origin.y += 5;
+			VisibleFrame.size.height -= 10;
 		}
-	}
+		NSRect FullFrame = [Screen frame];
+		VisibleFrame.origin.y = (FullFrame.origin.y+FullFrame.size.height) - (VisibleFrame.origin.y + VisibleFrame.size.height);
 
-	if ( IsMouseEvent )
+		int32 ScaledX = (int32)(HighPrecisionMousePos.X / MouseScaling.X);
+		int32 ScaledY = (int32)(HighPrecisionMousePos.Y / MouseScaling.Y);
+		int32 ClampedPosX = FMath::Clamp(ScaledX, (int32)VisibleFrame.origin.x, (int32)(VisibleFrame.origin.x + VisibleFrame.size.width)-1);
+		int32 ClampedPosY = FMath::Clamp(ScaledY, (int32)VisibleFrame.origin.y, (int32)(VisibleFrame.origin.y + VisibleFrame.size.height)-1);
+		MacCursor->SetPosition(ClampedPosX * MouseScaling.X, ClampedPosY * MouseScaling.Y);
+
+		// Forward the delta on to Slate
+		MessageHandler->OnRawMouseMove(Delta.X, Delta.Y);
+	}
+	else
 	{
-		if ( DraggedWindow )
+		NSPoint CursorPos = [NSEvent mouseLocation];
+		CursorPos.y--; // The y coordinate of the point returned by mouseLocation starts from a base of 1
+		const FVector2D MousePosition = FVector2D(CursorPos.x, FPlatformMisc::ConvertSlateYPositionToCocoa(CursorPos.y));
+		FVector2D CurrentPosition = MousePosition * MouseScaling;
+		const FVector2D MouseDelta = CurrentPosition - MacCursor->GetPosition();
+		if (MacCursor->UpdateCursorClipping(CurrentPosition))
 		{
-			EventWindow = DraggedWindow;
+			MacCursor->SetPosition(CurrentPosition.X, CurrentPosition.Y);
 		}
 		else
 		{
-			NSPoint CursorPos = [NSEvent mouseLocation];
-			CursorPos.y--; // The y coordinate of the point returned by mouseLocation starts from a base of 1
-			TSharedPtr<FMacWindow> WindowUnderCursor = LocateWindowUnderCursor(CursorPos);
-			if (WindowUnderCursor.IsValid())
+			MacCursor->UpdateCurrentPosition(CurrentPosition);
+		}
+
+		if (Event.Window.IsValid())
+		{
+			// Cocoa does not update NSWindow's frame until user stops dragging the window, so while window is being dragged, we calculate
+			// its position based on mouse move delta
+			if (DraggedWindow && DraggedWindow == Event.Window->GetWindowHandle())
 			{
-				EventWindow = WindowUnderCursor->GetWindowHandle();
+				const int32 X = FMath::TruncToInt(Event.Window->PositionX + MouseDelta.X);
+				const int32 Y = FMath::TruncToInt(Event.Window->PositionY + MouseDelta.Y);
+				MessageHandler->OnMovedWindow(Event.Window.ToSharedRef(), X, Y);
+				Event.Window->PositionX = X;
+				Event.Window->PositionY = Y;
 			}
+
+			MessageHandler->OnMouseMove();
 		}
 	}
 
-	return EventWindow;
+	if (Event.Window.IsValid() && !DraggedWindow && !GetCapture())
+	{
+		MessageHandler->OnCursorSet();
+	}
 }
 
-TSharedPtr<FMacWindow> FMacApplication::LocateWindowUnderCursor( const NSPoint Position )
+void FMacApplication::ProcessMouseDownEvent(const FDeferredMacEvent& Event)
 {
-	NSScreen* MouseScreen = nil;
-	if ([NSScreen screensHaveSeparateSpaces])
+	EMouseButtons::Type Button = Event.Type == NSLeftMouseDown ? EMouseButtons::Left : EMouseButtons::Right;
+	if (Event.Type == NSOtherMouseDown)
 	{
-		// New default mode which uses a separate Space per display
-		// Find the screen the cursor is currently on so we can ignore invisible window regions.
-		NSEnumerator* ScreenEnumerator = [[NSScreen screens] objectEnumerator];
-		while ((MouseScreen = [ScreenEnumerator nextObject]) && !NSMouseInRect(Position, MouseScreen.frame, NO))
-			;
+		switch (Event.ButtonNumber)
+		{
+			case 2:
+				Button = EMouseButtons::Middle;
+				break;
+
+			case 3:
+				Button = EMouseButtons::Thumb01;
+				break;
+
+			case 4:
+				Button = EMouseButtons::Thumb02;
+				break;
+		}
 	}
 
-	NSArray* AllWindows = [NSApp orderedWindows];
-	for (int32 Index = 0; Index < [AllWindows count]; Index++)
+	if (Event.Window.IsValid())
 	{
-		NSWindow* NativeWindow = (NSWindow*)[AllWindows objectAtIndex: Index];
-		if ([NativeWindow isMiniaturized] || ![NativeWindow isVisible] || ![NativeWindow isOnActiveSpace] || ![NativeWindow isKindOfClass: [FCocoaWindow class]])
+		if (Button == LastPressedMouseButton && (Event.ClickCount % 2) == 0)
 		{
-			continue;
+			MessageHandler->OnMouseDoubleClick(Event.Window, Button);
+
+			if (Event.Window.IsValid())
+			{
+				bool IsMouseOverTitleBar = false;
+				const bool IsMovable = IsWindowMovable(Event.Window.ToSharedRef(), &IsMouseOverTitleBar);
+				if (IsMouseOverTitleBar)
+				{
+					const bool bShouldMinimize = [[NSUserDefaults standardUserDefaults] boolForKey:@"AppleMiniaturizeOnDoubleClick"];
+					if (bShouldMinimize)
+					{
+						MainThreadCall(^{ [Event.Window->GetWindowHandle() performMiniaturize:nil]; }, NSDefaultRunLoopMode, true);
+					}
+					else if (!FPlatformMisc::IsRunningOnMavericks())
+					{
+						MainThreadCall(^{ [Event.Window->GetWindowHandle() zoom:nil]; }, NSDefaultRunLoopMode, true);
+					}
+				}
+			}
+		}
+		else
+		{
+			MessageHandler->OnMouseDown(Event.Window, Button);
 		}
 
-        NSRect VisibleFrame = [NativeWindow frame];
+		if (Event.Window->GetWindowHandle() && !DraggedWindow && !GetCapture())
+		{
+			MessageHandler->OnCursorSet();
+		}
+	}
+
+	LastPressedMouseButton = Button;
+}
+
+void FMacApplication::ProcessMouseUpEvent(const FDeferredMacEvent& Event)
+{
+	EMouseButtons::Type Button = Event.Type == NSLeftMouseUp ? EMouseButtons::Left : EMouseButtons::Right;
+	if (Event.Type == NSOtherMouseUp)
+	{
+		switch (Event.ButtonNumber)
+		{
+			case 2:
+				Button = EMouseButtons::Middle;
+				break;
+
+			case 3:
+				Button = EMouseButtons::Thumb01;
+				break;
+
+			case 4:
+				Button = EMouseButtons::Thumb02;
+				break;
+		}
+	}
+
+	MessageHandler->OnMouseUp(Button);
+
+	if (Event.Window.IsValid() && Event.Window->GetWindowHandle() && !DraggedWindow && !GetCapture())
+	{
+		MessageHandler->OnCursorSet();
+	}
+
+	FPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
+	DraggedWindow = nullptr;
+}
+
+void FMacApplication::ProcessScrollWheelEvent(const FDeferredMacEvent& Event)
+{
+	const float DeltaX = (Event.ModifierFlags & NSShiftKeyMask) ? Event.Delta.Y : Event.Delta.X;
+	const float DeltaY = (Event.ModifierFlags & NSShiftKeyMask) ? Event.Delta.X : Event.Delta.Y;
+
+	NSEventPhase Phase = Event.Phase;
+
+	if (Event.MomentumPhase != NSEventPhaseNone || Event.Phase != NSEventPhaseNone)
+	{
+		const FVector2D ScrollDelta(Event.ScrollingDelta.X, Event.ScrollingDelta.Y);
+
+		// This is actually a scroll gesture from trackpad
+		MessageHandler->OnTouchGesture(EGestureEvent::Scroll, Event.IsDirectionInvertedFromDevice ? -ScrollDelta : ScrollDelta, DeltaY);
+		RecordUsage(EGestureEvent::Scroll);
+	}
+	else
+	{
+		MessageHandler->OnMouseWheel(DeltaY);
+	}
+
+	if (Event.Window.IsValid() && !DraggedWindow && !GetCapture())
+	{
+		MessageHandler->OnCursorSet();
+	}
+}
+
+void FMacApplication::ProcessGestureEvent(const FDeferredMacEvent& Event)
+{
+	if (Event.Type == NSEventTypeBeginGesture)
+	{
+		MessageHandler->OnBeginGesture();
+	}
+	else if (Event.Type == NSEventTypeEndGesture)
+	{
+		MessageHandler->OnEndGesture();
 #if WITH_EDITOR
-        if (MouseScreen != nil)
-        {
-            VisibleFrame = NSIntersectionRect([MouseScreen frame], VisibleFrame);
-        }
+		LastGestureUsed = EGestureEvent::None;
 #endif
+	}
+	else
+	{
+		const EGestureEvent::Type GestureType = Event.Type == NSEventTypeMagnify ? EGestureEvent::Magnify : (Event.Type == NSEventTypeSwipe ? EGestureEvent::Swipe : EGestureEvent::Rotate);
+		MessageHandler->OnTouchGesture(GestureType, Event.Delta, 0);
+		RecordUsage(GestureType);
+	}
+}
 
-		if (NSPointInRect(Position, VisibleFrame))
+void FMacApplication::ProcessKeyDownEvent(const FDeferredMacEvent& Event)
+{
+	bool bHandled = false;
+	if (!bSystemModalMode && Event.Window.IsValid())
+	{
+		const TCHAR Character = ConvertChar([Event.Characters characterAtIndex:0]);
+		const TCHAR CharCode = [Event.CharactersIgnoringModifiers characterAtIndex:0];
+		const bool IsPrintable = IsPrintableKey(Character);
+
+		bHandled = MessageHandler->OnKeyDown(Event.KeyCode, TranslateCharCode(CharCode, Event.KeyCode), Event.IsRepeat);
+
+		// First KeyDown, then KeyChar. This is important, as in-game console ignores first character otherwise
+		bool bCmdKeyPressed = Event.ModifierFlags & 0x18;
+		if (!bCmdKeyPressed && IsPrintable)
 		{
-			TSharedPtr<FMacWindow> MacWindow = FindWindowByNSWindow(Windows, &WindowsMutex, (FCocoaWindow*)NativeWindow);
-			return MacWindow;
+			MessageHandler->OnKeyChar(Character, Event.IsRepeat);
 		}
 	}
+	if (bHandled)
+	{
+		FCocoaMenu* MainMenu = [[NSApp mainMenu] isKindOfClass:[FCocoaMenu class]] ? (FCocoaMenu*)[NSApp mainMenu]: nil;
+		if (MainMenu)
+		{
+			MainThreadCall(^{ [MainMenu highlightKeyEquivalent:Event.GetKeyNSEvent()]; }, NSDefaultRunLoopMode, true);
+		}
+	}
+	else
+	{
+		ResendEvent(Event.GetKeyNSEvent());
+	}
+}
 
-	return NULL;
+void FMacApplication::ProcessKeyUpEvent(const FDeferredMacEvent& Event)
+{
+	bool bHandled = false;
+	if (!bSystemModalMode)
+	{
+		const TCHAR Character = ConvertChar([Event.Characters characterAtIndex:0]);
+		const TCHAR CharCode = [Event.CharactersIgnoringModifiers characterAtIndex:0];
+
+		bHandled = MessageHandler->OnKeyUp(Event.KeyCode, TranslateCharCode(CharCode, Event.KeyCode), Event.IsRepeat);
+	}
+	if (!bHandled)
+	{
+		ResendEvent(Event.GetKeyNSEvent());
+	}
+	FPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
+}
+
+void FMacApplication::OnWindowDidMove(TSharedRef<FMacWindow> Window)
+{
+	SCOPED_AUTORELEASE_POOL;
+
+	NSRect WindowFrame = [Window->GetWindowHandle() frame];
+	NSRect OpenGLFrame = [Window->GetWindowHandle() openGLFrame];
+
+	const int32 X = (int32)WindowFrame.origin.x;
+	int32 Y = 0;
+
+	if ([Window windowMode] != EWindowMode::Fullscreen)
+	{
+		Y = FPlatformMisc::ConvertCocoaYPositionToSlate(WindowFrame.origin.y + WindowFrame.size.height) + (OpenGLFrame.size.height - WindowFrame.size.height);
+	}
+
+	MessageHandler->OnMovedWindow(Window, X, Y);
+	Window->PositionX = X;
+	Window->PositionY = Y;
+}
+
+void FMacApplication::OnWindowDidResize(TSharedRef<FMacWindow> Window)
+{
+	SCOPED_AUTORELEASE_POOL;
+
+	OnWindowDidMove(Window);
+
+	// default is no override
+	uint32 Width = [Window->GetWindowHandle() openGLFrame].size.width;
+	uint32 Height = [Window->GetWindowHandle() openGLFrame].size.height;
+
+	if ([Window->GetWindowHandle() windowMode] == EWindowMode::WindowedFullscreen)
+	{
+		// Grab current monitor data for sizing
+		Width = FMath::TruncToInt([[Window->GetWindowHandle() screen] frame].size.width);
+		Height = FMath::TruncToInt([[Window->GetWindowHandle() screen] frame].size.height);
+	}
+
+	// OnResizingWindow flushes the renderer commands which is needed before we start resizing, but also right after that
+	// because window view's drawRect: can be called before Slate has a chance to flush them.
+	MessageHandler->OnResizingWindow(Window);
+	MessageHandler->OnSizeChanged(Window, Width, Height);
+	MessageHandler->OnResizingWindow(Window);
+}
+
+void FMacApplication::OnWindowDidClose(TSharedRef<FMacWindow> Window)
+{
+	SCOPED_AUTORELEASE_POOL;
+	if ([Window->GetWindowHandle() isKeyWindow])
+	{
+		MessageHandler->OnWindowActivationChanged(Window, EWindowActivation::Deactivate);
+	}
+	Windows.Remove(Window);
+	MessageHandler->OnWindowClose(Window);
+}
+
+bool FMacApplication::OnWindowDestroyed(TSharedRef<FMacWindow> Window)
+{
+	SCOPED_AUTORELEASE_POOL;
+	if ([Window->GetWindowHandle() isKeyWindow])
+	{
+		MessageHandler->OnWindowActivationChanged(Window, EWindowActivation::Deactivate);
+	}
+	Windows.Remove(Window);
+	if (!WindowsToClose.Contains(Window->GetWindowHandle()))
+	{
+		WindowsToClose.Add(Window->GetWindowHandle());
+	}
+	return true;
 }
 
 void FMacApplication::OnApplicationDidBecomeActive()
@@ -958,8 +973,8 @@ void FMacApplication::OnApplicationDidBecomeActive()
 			}
 		}
 	}
-	
-	static_cast<FMacCursor*>( Cursor.Get() )->UpdateVisibility();
+
+	((FMacCursor*)Cursor.Get())->UpdateVisibility();
 
 	// If editor thread doesn't have the focus, don't suck up too much CPU time.
 	if (GIsEditor && !IsRunningCommandlet())
@@ -1003,8 +1018,8 @@ void FMacApplication::OnApplicationWillResignActive()
 			}
 		}
 	}
-	
-	static_cast<FMacCursor*>( Cursor.Get() )->UpdateVisibility();
+
+	((FMacCursor*)Cursor.Get())->UpdateVisibility();
 
 	// If editor thread doesn't have the focus, don't suck up too much CPU time.
 	if (GIsEditor && !IsRunningCommandlet())
@@ -1053,63 +1068,60 @@ void FMacApplication::OnWindowsReordered(bool bIsAppInBackground)
 	}
 }
 
-void FMacApplication::PollGameDeviceState( const float TimeDelta )
+void FMacApplication::HandleModifierChange(NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode)
 {
-	// Poll game device state and send new events
-	HIDInput->SendControllerEvents();
+	const bool CurrentPressed = (CurrentModifierFlags & FlagsShift) != 0;
+	const bool NewPressed = (NewModifierFlags & FlagsShift) != 0;
+	if (CurrentPressed != NewPressed)
+	{
+		if (NewPressed)
+		{
+			ModifierKeysFlags |= 1 << UE4Shift;
+			MessageHandler->OnKeyDown(TranslatedCode, 0, false);
+		}
+		else
+		{
+			ModifierKeysFlags &= ~(1 << UE4Shift);
+			MessageHandler->OnKeyUp(TranslatedCode, 0, false);
+		}
+	}
 }
 
-void FMacApplication::SetHighPrecisionMouseMode( const bool Enable, const TSharedPtr< FGenericWindow >& InWindow )
-{
-	bUsingHighPrecisionMouseInput = Enable;
-	static_cast<FMacCursor*>( Cursor.Get() )->SetHighPrecisionMouseMode( Enable );
-}
-
-FModifierKeysState FMacApplication::GetModifierKeys() const
-{
-	uint32 CurrentFlags = ModifierKeysFlags;
-
-	const bool bIsLeftShiftDown			= ( CurrentFlags & ( 1 << 0 ) ) != 0;
-	const bool bIsRightShiftDown		= ( CurrentFlags & ( 1 << 1 ) ) != 0;
-	const bool bIsLeftControlDown		= ( CurrentFlags & ( 1 << 6 ) ) != 0; // Mac pretends the Command key is Control
-	const bool bIsRightControlDown		= ( CurrentFlags & ( 1 << 7 ) ) != 0; // Mac pretends the Command key is Control
-	const bool bIsLeftAltDown			= ( CurrentFlags & ( 1 << 4 ) ) != 0;
-	const bool bIsRightAltDown			= ( CurrentFlags & ( 1 << 5 ) ) != 0;
-	const bool bIsLeftCommandDown		= ( CurrentFlags & ( 1 << 2 ) ) != 0; // Mac pretends the Control key is Command
-	const bool bIsRightCommandDown		= ( CurrentFlags & ( 1 << 3 ) ) != 0; // Mac pretends the Control key is Command
-	const bool bAreCapsLocked           = ( CurrentFlags & ( 1 << 8 ) ) != 0; 
-
-	return FModifierKeysState(bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, bIsLeftCommandDown, bIsRightCommandDown, bAreCapsLocked);
-}
-
-FPlatformRect FMacApplication::GetWorkArea( const FPlatformRect& CurrentWindow ) const
+FCocoaWindow* FMacApplication::FindEventWindow(NSEvent* Event) const
 {
 	SCOPED_AUTORELEASE_POOL;
 
-	NSScreen* Screen = FindScreenByPoint( CurrentWindow.Left, CurrentWindow.Top );
+	FCocoaWindow* EventWindow = [[Event window] isKindOfClass:[FCocoaWindow class]] ? (FCocoaWindow*)[Event window] : nullptr;
 
-	const int32 ScreenHeight = FMath::TruncToInt([Screen frame].size.height);
-	const NSRect VisibleFrame = [Screen visibleFrame];
-	
-	NSArray* AllScreens = [NSScreen screens];
-	NSScreen* PrimaryScreen = (NSScreen*)[AllScreens objectAtIndex: 0];
-	NSRect PrimaryFrame = [PrimaryScreen frame];
+	if ([Event type] != NSKeyDown && [Event type] != NSKeyUp)
+	{
+		NSInteger WindowNumber = [NSWindow windowNumberAtPoint:[NSEvent mouseLocation] belowWindowWithWindowNumber:0];
+		NSWindow* WindowUnderCursor = [NSApp windowWithWindowNumber:WindowNumber];
 
-	FPlatformRect WorkArea;
-	WorkArea.Left = VisibleFrame.origin.x;
-	WorkArea.Top = (PrimaryFrame.origin.y + PrimaryFrame.size.height) - (VisibleFrame.origin.y + VisibleFrame.size.height);
-	WorkArea.Right = WorkArea.Left + VisibleFrame.size.width;
-	WorkArea.Bottom = WorkArea.Top + VisibleFrame.size.height;
+		if ([Event type] == NSMouseMoved && WindowUnderCursor == nullptr)
+		{
+			// Ignore windows owned by other applications
+			return nullptr;
+		}
+		else if (DraggedWindow)
+		{
+			EventWindow = DraggedWindow;
+		}
+		else if (WindowUnderCursor && [WindowUnderCursor isKindOfClass:[FCocoaWindow class]])
+		{
+			EventWindow = (FCocoaWindow*)WindowUnderCursor;
+		}
+	}
 
-	return WorkArea;
+	return EventWindow;
 }
 
-NSScreen* FMacApplication::FindScreenByPoint( int32 X, int32 Y ) const
+NSScreen* FMacApplication::FindScreenByPoint(int32 X, int32 Y) const
 {
 	NSPoint Point = {0};
 	Point.x = X;
 	Point.y = FPlatformMisc::ConvertSlateYPositionToCocoa(Y);
-	
+
 	NSArray* AllScreens = [NSScreen screens];
 	NSScreen* TargetScreen = [AllScreens objectAtIndex: 0];
 	for(NSScreen* Screen in AllScreens)
@@ -1124,255 +1136,48 @@ NSScreen* FMacApplication::FindScreenByPoint( int32 X, int32 Y ) const
 	return TargetScreen;
 }
 
-void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
+bool FMacApplication::IsWindowMovable(TSharedRef<FMacWindow> Window, bool* OutMovableByBackground) const
 {
-	SCOPED_AUTORELEASE_POOL;
-
-	NSArray* AllScreens = [NSScreen screens];
-	NSScreen* PrimaryScreen = (NSScreen*)[AllScreens objectAtIndex: 0];
-
-	NSRect ScreenFrame = [PrimaryScreen frame];
-	NSRect VisibleFrame = [PrimaryScreen visibleFrame];
-
-	// Total screen size of the primary monitor
-	OutDisplayMetrics.PrimaryDisplayWidth = ScreenFrame.size.width;
-	OutDisplayMetrics.PrimaryDisplayHeight = ScreenFrame.size.height;
-
-	// Virtual desktop area
-	NSRect WholeWorkspace = {{0,0},{0,0}};
-	for (NSScreen* Screen in AllScreens)
+	if (OutMovableByBackground)
 	{
-		if (Screen)
-		{
-			WholeWorkspace = NSUnionRect(WholeWorkspace, [Screen frame]);
-		}
-	}
-	OutDisplayMetrics.VirtualDisplayRect.Left = WholeWorkspace.origin.x;
-	OutDisplayMetrics.VirtualDisplayRect.Top = FMath::Min((ScreenFrame.size.height - (WholeWorkspace.origin.y + WholeWorkspace.size.height)), 0.0);
-	OutDisplayMetrics.VirtualDisplayRect.Right = WholeWorkspace.origin.x + WholeWorkspace.size.width;
-	OutDisplayMetrics.VirtualDisplayRect.Bottom = WholeWorkspace.size.height + OutDisplayMetrics.VirtualDisplayRect.Top;
-	
-	// Get the screen rect of the primary monitor, excluding taskbar etc.
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = VisibleFrame.origin.x;
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = ScreenFrame.size.height - (VisibleFrame.origin.y + VisibleFrame.size.height);
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = VisibleFrame.origin.x + VisibleFrame.size.width;
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top + VisibleFrame.size.height;
-}
-
-void FMacApplication::OnDragEnter(FCocoaWindow* Window, NSPasteboard* Pasteboard)
-{
-	SCOPED_AUTORELEASE_POOL;
-
-	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow(Windows, &WindowsMutex, Window);
-	if (!EventWindow.IsValid())
-	{
-		return;
+		*OutMovableByBackground = false;
 	}
 
-	// Decipher the pasteboard data
-	const bool bHaveText = [[Pasteboard types] containsObject:NSPasteboardTypeString];
-	const bool bHaveFiles = [[Pasteboard types] containsObject:NSFilenamesPboardType];
+	const FVector2D CursorPos = ((FMacCursor*)Cursor.Get())->GetPosition();
+	const int32 LocalMouseX = CursorPos.X - Window->PositionX;
+	const int32 LocalMouseY = CursorPos.Y - Window->PositionY;
 
-	if (bHaveFiles)
+	const EWindowZone::Type Zone = MessageHandler->GetWindowZoneForPoint(Window, LocalMouseX, LocalMouseY);
+	const bool IsMouseOverTitleBar = Zone == EWindowZone::TitleBar;
+	switch (Zone)
 	{
-		TArray<FString> FileList;
-
-		NSArray *Files = [Pasteboard propertyListForType:NSFilenamesPboardType];
-		for (int32 Index = 0; Index < [Files count]; Index++)
-		{
-			NSString* FilePath = [Files objectAtIndex: Index];
-			const FString ListElement = FString([FilePath fileSystemRepresentation]);
-			FileList.Add(ListElement);
-		}
-
-		MessageHandler->OnDragEnterFiles(EventWindow.ToSharedRef(), FileList);
-	}
-	else if (bHaveText)
-	{
-		NSString* Text = [Pasteboard stringForType:NSPasteboardTypeString];
-		MessageHandler->OnDragEnterText(EventWindow.ToSharedRef(), FString(Text));
+		case EWindowZone::NotInWindow:
+		case EWindowZone::TopLeftBorder:
+		case EWindowZone::TopBorder:
+		case EWindowZone::TopRightBorder:
+		case EWindowZone::LeftBorder:
+		case EWindowZone::RightBorder:
+		case EWindowZone::BottomLeftBorder:
+		case EWindowZone::BottomBorder:
+		case EWindowZone::BottomRightBorder:
+			return true;
+		case EWindowZone::TitleBar:
+			if (OutMovableByBackground)
+			{
+				*OutMovableByBackground = true;
+			}
+			return true;
+		case EWindowZone::ClientArea:
+		case EWindowZone::MinimizeButton:
+		case EWindowZone::MaximizeButton:
+		case EWindowZone::CloseButton:
+		case EWindowZone::SysMenu:
+		default:
+			return false;
 	}
 }
 
-void FMacApplication::OnDragOver( FCocoaWindow* Window )
-{
-	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow( Windows, &WindowsMutex, Window );
-	if (EventWindow.IsValid())
-	{
-		MessageHandler->OnDragOver( EventWindow.ToSharedRef() );
-	}
-}
-
-void FMacApplication::OnDragOut( FCocoaWindow* Window )
-{
-	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow( Windows, &WindowsMutex, Window );
-	if (EventWindow.IsValid())
-	{
-		MessageHandler->OnDragLeave( EventWindow.ToSharedRef() );
-	}
-}
-
-void FMacApplication::OnDragDrop( FCocoaWindow* Window )
-{
-	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow( Windows, &WindowsMutex, Window );
-	if (EventWindow.IsValid())
-	{
-		MessageHandler->OnDragDrop( EventWindow.ToSharedRef() );
-	}
-}
-
-void FMacApplication::OnWindowDidBecomeMain( FCocoaWindow* Window )
-{
-	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow( Windows, &WindowsMutex, Window );
-	if (EventWindow.IsValid())
-	{
-		MessageHandler->OnWindowActivationChanged( EventWindow.ToSharedRef(), EWindowActivation::Activate );
-	}
-
-	OnWindowsReordered(![NSApp isActive]);
-}
-
-void FMacApplication::OnWindowDidResignMain( FCocoaWindow* Window )
-{
-	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow( Windows, &WindowsMutex, Window );
-	if (EventWindow.IsValid())
-	{
-		MessageHandler->OnWindowActivationChanged( EventWindow.ToSharedRef(), EWindowActivation::Deactivate );
-	}
-
-	OnWindowsReordered(![NSApp isActive]);
-}
-
-void FMacApplication::OnWindowWillMove( FCocoaWindow* Window )
-{
-	SCOPED_AUTORELEASE_POOL;
-
-	DraggedWindow = Window;
-}
-
-void FMacApplication::OnWindowDidMove( FCocoaWindow* Window )
-{
-	SCOPED_AUTORELEASE_POOL;
-
-	NSRect WindowFrame = [Window frame];
-	NSRect OpenGLFrame = [Window openGLFrame];
-	
-	const int32 X = (int32)WindowFrame.origin.x;
-	int32 Y = 0;
-    
-    if ([Window windowMode] != EWindowMode::Fullscreen)
-    {
-        Y = FPlatformMisc::ConvertCocoaYPositionToSlate(WindowFrame.origin.y + WindowFrame.size.height) + (OpenGLFrame.size.height - WindowFrame.size.height);
-    }
-	
-	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow( Windows, &WindowsMutex, Window );
-	if (EventWindow.IsValid())
-	{
-		MessageHandler->OnMovedWindow( EventWindow.ToSharedRef(), X, Y );
-		EventWindow->PositionX = X;
-		EventWindow->PositionY = Y;
-	}
-}
-
-void FMacApplication::OnWindowWillStartLiveResize(FCocoaWindow* Window)
-{
-	SCOPED_AUTORELEASE_POOL;
-
-	TSharedPtr<FMacWindow> EventWindow = FindWindowByNSWindow(Windows, &WindowsMutex, Window);
-	if (EventWindow.IsValid())
-	{
-		MessageHandler->BeginReshapingWindow(EventWindow.ToSharedRef());
-	}
-}
-
-void FMacApplication::OnWindowDidEndLiveResize(FCocoaWindow* Window)
-{
-	SCOPED_AUTORELEASE_POOL;
-
-	TSharedPtr<FMacWindow> EventWindow = FindWindowByNSWindow(Windows, &WindowsMutex, Window);
-	if (EventWindow.IsValid())
-	{
-		MessageHandler->FinishedReshapingWindow(EventWindow.ToSharedRef());
-	}
-}
-
-void FMacApplication::OnWindowDidResize(FCocoaWindow* Window)
-{
-	SCOPED_AUTORELEASE_POOL;
-
-	OnWindowDidMove(Window);
-
-	TSharedPtr<FMacWindow> EventWindow = FindWindowByNSWindow(Windows, &WindowsMutex, Window);
-	if (EventWindow.IsValid())
-	{
-		// default is no override
-		uint32 Width = [Window openGLFrame].size.width;
-		uint32 Height = [Window openGLFrame].size.height;
-
-		if ([Window windowMode] == EWindowMode::WindowedFullscreen)
-		{
-			// Grab current monitor data for sizing
-			Width = FMath::TruncToInt([[Window screen] frame].size.width);
-			Height = FMath::TruncToInt([[Window screen] frame].size.height);
-		}
-
-		// OnResizingWindow flushes the renderer commands which is needed before we start resizing, but also right after that
-		// because window view's drawRect: can be called before Slate has a chance to flush them.
-		MessageHandler->OnResizingWindow(EventWindow.ToSharedRef());
-		MessageHandler->OnSizeChanged(EventWindow.ToSharedRef(), Width, Height);
-		MessageHandler->OnResizingWindow(EventWindow.ToSharedRef());
-	}
-}
-
-void FMacApplication::OnWindowDidClose( FCocoaWindow* Window )
-{
-	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow( Windows, &WindowsMutex, Window );
-	if (EventWindow.IsValid())
-	{
-		SCOPED_AUTORELEASE_POOL;
-		if ([Window isKeyWindow])
-		{
-			MessageHandler->OnWindowActivationChanged( EventWindow.ToSharedRef(), EWindowActivation::Deactivate );
-		}
-		Windows.Remove( EventWindow.ToSharedRef() );
-		MessageHandler->OnWindowClose( EventWindow.ToSharedRef() );
-	}
-}
-
-bool FMacApplication::OnWindowDestroyed( FCocoaWindow* Window )
-{
-	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow( Windows, &WindowsMutex, Window );
-	if (EventWindow.IsValid())
-	{
-		if ([Window isKeyWindow])
-		{
-			MessageHandler->OnWindowActivationChanged( EventWindow.ToSharedRef(), EWindowActivation::Deactivate );
-		}
-		Windows.Remove( EventWindow.ToSharedRef() );
-		if (!WindowsToClose.Contains(Window))
-		{
-			WindowsToClose.Add(Window);
-		}
-		return true;
-	}
-	return false;
-}
-
-void FMacApplication::OnWindowClose( FCocoaWindow* Window )
-{
-	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow( Windows, &WindowsMutex, Window );
-	if (EventWindow.IsValid())
-	{
-		MessageHandler->OnWindowClose( EventWindow.ToSharedRef() );
-	}
-}
-
-void FMacApplication::OnMouseCursorLock( bool bLockEnabled )
-{
-	bIsMouseCursorLocked = bLockEnabled;
-}
-
-bool FMacApplication::IsPrintableKey(uint32 Character)
+bool FMacApplication::IsPrintableKey(uint32 Character) const
 {
 	switch (Character)
 	{
@@ -1407,7 +1212,7 @@ bool FMacApplication::IsPrintableKey(uint32 Character)
 	}
 }
 
-TCHAR FMacApplication::ConvertChar(TCHAR Character)
+TCHAR FMacApplication::ConvertChar(TCHAR Character) const
 {
 	switch (Character)
 	{
@@ -1418,31 +1223,31 @@ TCHAR FMacApplication::ConvertChar(TCHAR Character)
 	}
 }
 
-TCHAR FMacApplication::TranslateCharCode(TCHAR CharCode, uint32 KeyCode)
+TCHAR FMacApplication::TranslateCharCode(TCHAR CharCode, uint32 KeyCode) const
 {
 	// Keys like F1-F12 or Enter do not need translation
 	bool bNeedsTranslation = CharCode < NSOpenStepUnicodeReservedBase || CharCode > 0xF8FF;
-	if ( bNeedsTranslation )
+	if (bNeedsTranslation)
 	{
 		// For non-numpad keys, the key code depends on the keyboard layout, so find out what was pressed by converting the key code to a Latin character
 		TISInputSourceRef CurrentKeyboard = TISCopyCurrentKeyboardLayoutInputSource();
-		if ( CurrentKeyboard )
+		if (CurrentKeyboard)
 		{
-			CFDataRef CurrentLayoutData = ( CFDataRef )TISGetInputSourceProperty( CurrentKeyboard, kTISPropertyUnicodeKeyLayoutData );
-			CFRelease( CurrentKeyboard );
+			CFDataRef CurrentLayoutData = (CFDataRef)TISGetInputSourceProperty(CurrentKeyboard, kTISPropertyUnicodeKeyLayoutData);
+			CFRelease(CurrentKeyboard);
 
-			if ( CurrentLayoutData )
+			if (CurrentLayoutData)
 			{
-				const UCKeyboardLayout *KeyboardLayout = ( UCKeyboardLayout *)CFDataGetBytePtr( CurrentLayoutData );
-				if ( KeyboardLayout )
+				const UCKeyboardLayout *KeyboardLayout = (UCKeyboardLayout*)CFDataGetBytePtr(CurrentLayoutData);
+				if (KeyboardLayout)
 				{
 					UniChar Buffer[256] = { 0 };
 					UniCharCount BufferLength = 256;
 					uint32 DeadKeyState = 0;
 
 					// To ensure we get a latin character, we pretend that command modifier key is pressed
-					OSStatus Status = UCKeyTranslate( KeyboardLayout, KeyCode, kUCKeyActionDown, cmdKey >> 8, LMGetKbdType(), kUCKeyTranslateNoDeadKeysMask, &DeadKeyState, BufferLength, &BufferLength, Buffer );
-					if ( Status == noErr )
+					OSStatus Status = UCKeyTranslate(KeyboardLayout, KeyCode, kUCKeyActionDown, cmdKey >> 8, LMGetKbdType(), kUCKeyTranslateNoDeadKeysMask, &DeadKeyState, BufferLength, &BufferLength, Buffer);
+					if (Status == noErr)
 					{
 						CharCode = Buffer[0];
 					}
@@ -1450,45 +1255,113 @@ TCHAR FMacApplication::TranslateCharCode(TCHAR CharCode, uint32 KeyCode)
 			}
 		}
 	}
-	// Private use range should not be returned
 	else
 	{
+		// Private use range should not be returned
 		CharCode = 0;
 	}
 
 	return CharCode;
 }
 
-#if WITH_EDITOR
+void FMacApplication::CloseQueuedWindows()
+{
+	if (WindowsToClose.Num() > 0)
+	{
+		MainThreadCall(^{
+			SCOPED_AUTORELEASE_POOL;
 
+			// Set the new key window, if needed. We cannot trust Cocoa to set the key window to the actual top most window. It will prefer windows with title bars so,
+			// for example, will choose the main window over a context menu window, when closing a submenu.
+			NSArray* AllWindows = [NSApp orderedWindows];
+			for (NSWindow* Window : AllWindows)
+			{
+				if ([Window isKindOfClass:[FCocoaWindow class]] && !WindowsToClose.Contains((FCocoaWindow*)Window) && [Window canBecomeKeyWindow])
+				{
+					if (Window != [NSApp keyWindow])
+					{
+						[Window makeKeyWindow];
+					}
+					break;
+				}
+			}
+
+			for (FCocoaWindow* Window : WindowsToClose)
+			{
+				[Window close];
+				[Window release];
+			}
+		}, UE4CloseEventMode, true);
+
+		WindowsToClose.Empty();
+	}
+}
+
+void FMacApplication::InvalidateTextLayouts()
+{
+	if (WindowsRequiringTextInvalidation.Num() > 0)
+	{
+		MainThreadCall(^{
+			SCOPED_AUTORELEASE_POOL;
+
+			for (FCocoaWindow* CocoaWindow : WindowsRequiringTextInvalidation)
+			{
+				if (CocoaWindow && [CocoaWindow openGLView])
+				{
+					FCocoaTextView* TextView = (FCocoaTextView*)[CocoaWindow openGLView];
+					[[TextView inputContext] invalidateCharacterCoordinates];
+				}
+			}
+
+		}, UE4IMEEventMode, true);
+
+		WindowsRequiringTextInvalidation.Empty();
+	}
+
+}
+
+#if WITH_EDITOR
 void FMacApplication::RecordUsage(EGestureEvent::Type Gesture)
 {
-	if ( LastGestureUsed != Gesture )
+	if (LastGestureUsed != Gesture)
 	{
 		LastGestureUsed = Gesture;
 		GestureUsage[Gesture] += 1;
 	}
 }
-
-void FMacApplication::SendAnalytics(IAnalyticsProvider* Provider)
-{
-	static_assert(EGestureEvent::Count == 5, "If the number of gestures changes you need to add more entries below!");
-
-	TArray<FAnalyticsEventAttribute> GestureAttributes;
-	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Scroll"),	GestureUsage[EGestureEvent::Scroll]));
-	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Magnify"),	GestureUsage[EGestureEvent::Magnify]));
-	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Swipe"),	GestureUsage[EGestureEvent::Swipe]));
-	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Rotate"),	GestureUsage[EGestureEvent::Rotate]));
-
-    Provider->RecordEvent(FString("Mac.Gesture.Usage"), GestureAttributes);
-
-	FMemory::Memzero(GestureUsage);
-	LastGestureUsed = EGestureEvent::None;
-}
-
 #endif
 
-void FMacApplication::SystemModalMode(bool const bInSystemModalMode)
+void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 {
-	bSystemModalMode = bInSystemModalMode;
+	SCOPED_AUTORELEASE_POOL;
+
+	NSArray* AllScreens = [NSScreen screens];
+	NSScreen* PrimaryScreen = (NSScreen*)[AllScreens objectAtIndex: 0];
+
+	NSRect ScreenFrame = [PrimaryScreen frame];
+	NSRect VisibleFrame = [PrimaryScreen visibleFrame];
+
+	// Total screen size of the primary monitor
+	OutDisplayMetrics.PrimaryDisplayWidth = ScreenFrame.size.width;
+	OutDisplayMetrics.PrimaryDisplayHeight = ScreenFrame.size.height;
+
+	// Virtual desktop area
+	NSRect WholeWorkspace = {{0,0},{0,0}};
+	for (NSScreen* Screen in AllScreens)
+	{
+		if (Screen)
+		{
+			WholeWorkspace = NSUnionRect(WholeWorkspace, [Screen frame]);
+		}
+	}
+	OutDisplayMetrics.VirtualDisplayRect.Left = WholeWorkspace.origin.x;
+	OutDisplayMetrics.VirtualDisplayRect.Top = FMath::Min((ScreenFrame.size.height - (WholeWorkspace.origin.y + WholeWorkspace.size.height)), 0.0);
+	OutDisplayMetrics.VirtualDisplayRect.Right = WholeWorkspace.origin.x + WholeWorkspace.size.width;
+	OutDisplayMetrics.VirtualDisplayRect.Bottom = WholeWorkspace.size.height + OutDisplayMetrics.VirtualDisplayRect.Top;
+	
+	// Get the screen rect of the primary monitor, excluding taskbar etc.
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = VisibleFrame.origin.x;
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = ScreenFrame.size.height - (VisibleFrame.origin.y + VisibleFrame.size.height);
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = VisibleFrame.origin.x + VisibleFrame.size.width;
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top + VisibleFrame.size.height;
 }
