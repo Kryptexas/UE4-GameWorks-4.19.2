@@ -1774,40 +1774,36 @@ bool IsActorValidToNotify(AActor* Actor)
 	return (Actor != NULL) && !Actor->IsPendingKill() && !Actor->GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists);
 }
 
-void AActor::DispatchBlockingHit(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp, bool bSelfMoved, FHitResult const& Hit)
+void AActor::InternalDispatchBlockingHit(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp, bool bSelfMoved, FHitResult const& Hit)
 {
 	check(MyComp);
 
 	AActor* OtherActor = (OtherComp != NULL) ? OtherComp->GetOwner() : NULL;
-	const FHitResult* HitResult = &Hit;
 
-	FHitResult FlippedHit(Hit);
-	if(bSelfMoved == false)	//if we didn't move we flip the normals so they push us away from moving object
-	{
-		FlippedHit.Normal = -FlippedHit.Normal;
-		FlippedHit.ImpactNormal = -FlippedHit.ImpactNormal;
-		HitResult = &FlippedHit;
-	}
-	
 	// Call virtual
 	if(IsActorValidToNotify(this))
 	{
-		
-		ReceiveHit(MyComp, OtherActor, OtherComp, bSelfMoved, Hit.ImpactPoint, HitResult->ImpactNormal, FVector(0,0,0), *HitResult);
+		ReceiveHit(MyComp, OtherActor, OtherComp, bSelfMoved, Hit.ImpactPoint, Hit.ImpactNormal, FVector(0,0,0), Hit);
 	}
 
 	// If we are still ok, call delegate on actor
 	if(IsActorValidToNotify(this))
 	{
-		OnActorHit.Broadcast(this, OtherActor, FVector(0,0,0), *HitResult);
+		OnActorHit.Broadcast(this, OtherActor, FVector(0,0,0), Hit);
 	}
 
 	// If component is still alive, call delegate on component
 	if(!MyComp->IsPendingKill())
 	{
-		MyComp->OnComponentHit.Broadcast(OtherActor, OtherComp, FVector(0,0,0), *HitResult);
+		MyComp->OnComponentHit.Broadcast(OtherActor, OtherComp, FVector(0,0,0), Hit);
 	}
 }
+
+void AActor::DispatchBlockingHit(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp, bool bSelfMoved, FHitResult const& Hit)
+{
+	InternalDispatchBlockingHit(MyComp, OtherComp, bSelfMoved, bSelfMoved ? Hit : FHitResult::GetReversedHit(Hit));
+}
+
 
 FString AActor::GetHumanReadableName() const
 {

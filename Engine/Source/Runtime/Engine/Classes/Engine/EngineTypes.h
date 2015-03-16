@@ -1448,9 +1448,9 @@ struct ENGINE_API FHitResult
 	float Time;
 	
 	/**
-	 * The location in world space where the shape would end up against the impacted object, if there is a hit. Equal to the point of impact for line tests.
+	 * The location in world space where the moving shape would end up against the impacted object, if there is a hit. Equal to the point of impact for line tests.
 	 * Example: for a sphere trace test, this is the point where the center of the sphere would be located when it touched the other object.
-	 * For swept movement (but not queries) this may not equal the final location of the shape since hits are pulled back slightly to prevent precision issues.
+	 * For swept movement (but not queries) this may not equal the final location of the shape since hits are pulled back slightly to prevent precision issues from overlapping another surface.
 	 */
 	UPROPERTY()
 	FVector_NetQuantize Location;
@@ -1605,6 +1605,18 @@ struct ENGINE_API FHitResult
 	static int32 GetNumOverlapHits(const TArray<FHitResult>& InHits)
 	{
 		return (InHits.Num() - GetNumBlockingHits(InHits));
+	}
+
+	/**
+	 * Get a copy of the HitResult with relevant information reversed.
+	 * For example when receiving a hit from another object, we reverse the normals.
+	 */
+	static FHitResult GetReversedHit(const FHitResult& Hit)
+	{
+		FHitResult Result(Hit);
+		Result.Normal = -Result.Normal;
+		Result.ImpactNormal = -Result.ImpactNormal;
+		return Result;
 	}
 };
 
