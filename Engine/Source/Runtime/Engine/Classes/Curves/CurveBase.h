@@ -360,6 +360,9 @@ public:
 	/** Auto set tangents for any 'auto' keys in curve */
 	void AutoSetTangents(float Tension = 0.f);
 
+	/** Resize curve length to the [MinTimeRange, MaxTimeRange] */
+	void ResizeTimeRange(float NewMinTimeRange, float NewMaxTimeRange);
+
 	/** Determine if two RichCurves are the same */
 	bool operator == (const FRichCurve& Curve) const;
 private:

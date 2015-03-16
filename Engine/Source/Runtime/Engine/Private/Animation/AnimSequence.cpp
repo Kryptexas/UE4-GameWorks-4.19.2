@@ -1238,6 +1238,70 @@ static int32 CropRawTrack(FRawAnimSequenceTrack& RawTrack, int32 StartKey, int32
 	return FMath::Max<int32>( RawTrack.PosKeys.Num(), FMath::Max<int32>(RawTrack.RotKeys.Num(), RawTrack.ScaleKeys.Num()) );
 }
 
+void UAnimSequence::ResizeSequence(float NewLength, int32 NewNumFrames)
+{
+	NumFrames = NewNumFrames;
+	// Update sequence length to match new number of frames.
+	SequenceLength = NewLength;
+
+	// resize curves
+	RawCurveData.Resize(NewLength);
+}
+
+bool UAnimSequence::InsertFramesToRawAnimData( int32 StartFrame, int32 EndFrame, int32 CopyFrame)
+{
+	// make sure the copyframe is valid and start frame is valid
+	int32 NumFramesToInsert = EndFrame-StartFrame;
+	if ((CopyFrame>=0 && CopyFrame<NumFrames) && (StartFrame >= 0 && StartFrame <=NumFrames) && NumFramesToInsert > 0)
+	{
+		for (auto& RawData : RawAnimationData)
+		{
+			if (RawData.PosKeys.Num() > 1 && RawData.PosKeys.IsValidIndex(CopyFrame))
+			{
+				auto Source = RawData.PosKeys[CopyFrame];
+				RawData.PosKeys.InsertZeroed(StartFrame, NumFramesToInsert);
+				for (int32 Index=StartFrame; Index<EndFrame; ++Index)
+				{
+					RawData.PosKeys[Index] = Source;
+				}
+			}
+
+			if(RawData.RotKeys.Num() > 1 && RawData.RotKeys.IsValidIndex(CopyFrame))
+			{
+				auto Source = RawData.RotKeys[CopyFrame];
+				RawData.RotKeys.InsertZeroed(StartFrame, NumFramesToInsert);
+				for(int32 Index=StartFrame; Index<EndFrame; ++Index)
+				{
+					RawData.RotKeys[Index] = Source;
+				}
+			}
+
+			if(RawData.ScaleKeys.Num() > 1 && RawData.ScaleKeys.IsValidIndex(CopyFrame))
+			{
+				auto Source = RawData.ScaleKeys[CopyFrame];
+				RawData.ScaleKeys.InsertZeroed(StartFrame, NumFramesToInsert);
+
+				for(int32 Index=StartFrame; Index<EndFrame; ++Index)
+				{
+					RawData.ScaleKeys[Index] = Source;
+				}
+			}
+		}
+
+		float const FrameTime = SequenceLength / ((float)NumFrames);
+
+		int32 NewNumFrames = NumFrames + NumFramesToInsert;
+		ResizeSequence((float)NewNumFrames * FrameTime, NewNumFrames);
+
+		UE_LOG(LogAnimation, Log, TEXT("\tSequenceLength: %f, NumFrames: %d"), SequenceLength, NumFrames);
+
+		MarkPackageDirty();
+
+		return true;
+	}
+
+	return false;
+}
 
 bool UAnimSequence::CropRawAnimData( float CurrentTime, bool bFromStart )
 {
@@ -1350,7 +1414,7 @@ bool UAnimSequence::CropRawAnimData( float CurrentTime, bool bFromStart )
 	}
 
 	// Update sequence length to match new number of frames.
-	SequenceLength = (float)NumFrames * FrameTime;
+	ResizeSequence((float)NumFrames * FrameTime, NumFrames);
 
 	UE_LOG(LogAnimation, Log, TEXT("\tSequenceLength: %f, NumFrames: %d"), SequenceLength, NumFrames);
 

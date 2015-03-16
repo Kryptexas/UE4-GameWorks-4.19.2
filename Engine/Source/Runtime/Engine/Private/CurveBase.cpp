@@ -664,6 +664,49 @@ void FRichCurve::AutoSetTangents(float Tension)
 	}
 }
 
+void FRichCurve::ResizeTimeRange(float NewMinTimeRange, float NewMaxTimeRange)
+{
+	float MinTime, MaxTime;
+	GetTimeRange(MinTime, MaxTime);
+
+	bool bNeedToDeleteKey=false;
+
+	// if there is key below min time, just add key at new min range, 
+	if (MinTime < NewMinTimeRange)
+	{
+		float NewValue = Eval(NewMinTimeRange);
+		AddKey(NewMinTimeRange, NewValue);
+
+		bNeedToDeleteKey = true;
+	}
+
+	// if there is key after max time, just add key at new max range, 
+	if(MaxTime > NewMaxTimeRange)
+	{
+		float NewValue = Eval(NewMaxTimeRange);
+		AddKey(NewMaxTimeRange, NewValue);
+
+		bNeedToDeleteKey = true;
+	}
+
+	// delete the keys outside of range
+	if (bNeedToDeleteKey)
+	{
+		for (int32 KeyIndex=0; KeyIndex<Keys.Num(); ++KeyIndex)
+		{
+			if (Keys[KeyIndex].Time < NewMinTimeRange || Keys[KeyIndex].Time > NewMaxTimeRange)
+			{
+				const FKeyHandle* KeyHandle = KeyHandlesToIndices.FindKey(KeyIndex);
+				if (KeyHandle)
+				{
+					DeleteKey(*KeyHandle);
+					--KeyIndex;
+				}
+			}
+		}
+	}
+}
+
 /** Util to find float value on bezier defined by 4 control points */ 
 static float BezierInterp(float P0, float P1, float P2, float P3, float Alpha)
 {

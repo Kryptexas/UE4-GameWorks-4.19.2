@@ -139,6 +139,10 @@ void FFloatCurve::UpdateOrAddKey(float NewKey, float CurrentTime)
 	FloatCurve.UpdateOrAddKey(CurrentTime, NewKey);
 }
 
+void FFloatCurve::Resize(float NewLength)
+{
+	FloatCurve.ResizeTimeRange(0, NewLength);
+}
 ////////////////////////////////////////////////////
 //  FVectorCurve
 
@@ -164,6 +168,13 @@ void FVectorCurve::UpdateOrAddKey(const FVector& NewKey, float CurrentTime)
 	FloatCurves[X].UpdateOrAddKey(CurrentTime, NewKey.X);
 	FloatCurves[Y].UpdateOrAddKey(CurrentTime, NewKey.Y);
 	FloatCurves[Z].UpdateOrAddKey(CurrentTime, NewKey.Z);
+}
+
+void FVectorCurve::Resize(float NewLength)
+{
+	FloatCurves[X].ResizeTimeRange(0, NewLength);
+	FloatCurves[Y].ResizeTimeRange(0, NewLength);
+	FloatCurves[Z].ResizeTimeRange(0, NewLength);
 }
 ////////////////////////////////////////////////////
 //  FTransformCurve
@@ -211,6 +222,14 @@ void FTransformCurve::UpdateOrAddKey(const FTransform& NewKey, float CurrentTime
 	RotationCurve.UpdateOrAddKey(RotationAsVector, CurrentTime);
 	ScaleCurve.UpdateOrAddKey(NewKey.GetScale3D(), CurrentTime);
 }
+
+void FTransformCurve::Resize(float NewLength)
+{
+	TranslationCurve.Resize(NewLength);
+	RotationCurve.Resize(NewLength);
+	ScaleCurve.Resize(NewLength);
+}
+
 /////////////////////////////////////////////////////
 // FRawCurveTracks
 
@@ -304,6 +323,24 @@ bool FRawCurveTracks::AddCurveData(USkeleton::AnimCurveUID Uid, int32 CurveFlags
 	case FloatType:
 	default:
 		return AddCurveDataImpl<FFloatCurve>(FloatCurves, Uid, CurveFlags);
+	}
+}
+
+void FRawCurveTracks::Resize(float TotalLength)
+{
+	for (auto& Curve: FloatCurves)
+	{
+		Curve.Resize(TotalLength);
+	}
+
+	for(auto& Curve: VectorCurves)
+	{
+		Curve.Resize(TotalLength);
+	}
+
+	for(auto& Curve: TransformCurves)
+	{
+		Curve.Resize(TotalLength);
 	}
 }
 

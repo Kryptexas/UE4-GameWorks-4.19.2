@@ -723,6 +723,19 @@ public:
 	 */
 	ENGINE_API bool CropRawAnimData( float CurrentTime, bool bFromStart );
 
+		
+	/**
+	 * Crops the raw anim data either from Start to CurrentTime or CurrentTime to End depending on
+	 * value of bFromStart.  Can't be called against cooked data.
+	 *
+	 * @param	StartFrame		StartFrame to insert (0-based)
+	 * @param	EndFrame		EndFrame to insert (0-based
+	 * @param	CopyFrame		A frame that we copy from (0-based)
+	 * @return					true if the operation was successful.
+	 */
+	ENGINE_API bool InsertFramesToRawAnimData( int32 StartFrame, int32 EndFrame, int32 CopyFrame);
+
+
 	/** Clears any data in the AnimSequence, so it can be recycled when importing a new animation with same name over it. */
 	ENGINE_API void RecycleAnimSequence();
 
@@ -843,6 +856,9 @@ private:
 	 * Utility function that finds the correct spot to insert track to 
 	 */
 	int32 InsertTrack(const FName& BoneName);
+
+	/** Resize Sequence Length and Num of Frames */
+	void ResizeSequence(float NewLength, int32 NewNumFrames);
 
 	friend class UAnimationAsset;
 };
