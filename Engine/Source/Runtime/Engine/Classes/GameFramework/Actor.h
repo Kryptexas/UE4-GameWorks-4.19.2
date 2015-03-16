@@ -1091,9 +1091,9 @@ public:
 	 * This could happen due to things like Character movement, using Set Location with 'sweep' enabled, or physics simulation.
 	 * For events when objects overlap (e.g. walking into a trigger) see the 'Overlap' event.
 	 *
-	 * @note When receiving a hit from another object (bSelfMoved is false), the 'Hit.Normal' and 'Hit.ImpactNormal' will
-	 * have their directions reversed to indicate opposition to this object's potential response and deflection.
 	 * @note For collisions during physics simulation to generate hit events, 'Simulation Generates Hit Events' must be enabled.
+	 * @note When receiving a hit from another object's movement (bSelfMoved is false), the directions of 'Hit.Normal' and 'Hit.ImpactNormal'
+	 * will be adjusted to indicate force from the other object against this object.
 	 */
 	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "Hit"), Category="Collision")
 	virtual void ReceiveHit(class UPrimitiveComponent* MyComp, AActor* Other, class UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit);
