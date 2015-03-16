@@ -406,9 +406,6 @@ protected:
 	// Special parsed struct names that have a 'T' prefix
 	TArray<FString> StructsWithTPrefix;
 
-	// List of all legal variable specifier tokens
-	TSet<FString> LegalVariableSpecifiers;
-
 	// Mapping from 'human-readable' macro substring to # of parameters for delegate declarations
 	// Index 0 is 1 parameter, Index 1 is 2, etc...
 	TArray<FString> DelegateParameterCountStrings;
@@ -429,9 +426,6 @@ protected:
 			FScriptLocation::Compiler = NULL;
 		}
 	}
-
-	// Returns true if the token is a variable specifier
-	bool IsValidVariableSpecifier(const FToken& Token) const;
 
 	// Returns true if the token is a dynamic delegate declaration
 	bool IsValidDelegateDeclaration(const FToken& Token) const;
