@@ -112,7 +112,8 @@ void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifie
 		.EditorMode(EComponentEditorMode::ActorInstance)
 		.AllowEditing(this, &SActorDetails::GetAllowComponentTreeEditing)
 		.ActorContext(this, &SActorDetails::GetActorContext)
-		.OnSelectionUpdated(this, &SActorDetails::OnSCSEditorTreeViewSelectionChanged);
+		.OnSelectionUpdated(this, &SActorDetails::OnSCSEditorTreeViewSelectionChanged)
+		.OnItemDoubleClicked(this, &SActorDetails::OnSCSEditorTreeViewItemDoubleClicked);
 		
 	ComponentsBox->SetContent(SCSEditor.ToSharedRef());
 
@@ -463,6 +464,22 @@ void SActorDetails::OnSCSEditorTreeViewSelectionChanged(const TArray<FSCSEditorT
 					GUnrealEd->UpdatePivotLocationForSelection(true);
 					GEditor->RedrawLevelEditingViewports();
 				}
+			}
+		}
+	}
+}
+
+void SActorDetails::OnSCSEditorTreeViewItemDoubleClicked(const TSharedPtr<class FSCSEditorTreeNode> ClickedNode)
+{
+	if (ClickedNode.IsValid())
+	{
+		if (ClickedNode->GetNodeType() == FSCSEditorTreeNode::ComponentNode)
+		{
+			USceneComponent* SceneComponent = Cast<USceneComponent>(ClickedNode->GetComponentTemplate());
+			if (SceneComponent != nullptr)
+			{
+				const bool bActiveViewportOnly = false;
+				GEditor->MoveViewportCamerasToComponent(SceneComponent, bActiveViewportOnly);
 			}
 		}
 	}

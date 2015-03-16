@@ -66,6 +66,11 @@ DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 /** Used for the "tagsounds" and "checksounds" commands only			*/
 static FUObjectAnnotationSparseBool DebugSoundAnnotation;
 
+namespace EditorEngineDefs
+{
+	/** Limit the minimum size of the bounding box when centering cameras on individual components to avoid extreme zooming */
+	static const float MinComponentBoundsForZoom = 50.0f;
+}
 
 namespace 
 {
@@ -4459,42 +4464,7 @@ void UEditorEngine::MoveViewportCamerasToActor(const TArray<AActor*> &Actors, co
 		}
 	}
 
-	// Make sure we had atleast one non-null actor in the array passed in.
-	if( BoundingBox.GetSize() != FVector::ZeroVector )
-	{
-		if ( bActiveViewportOnly )
-		{
-			if ( GCurrentLevelEditingViewportClient )
-			{
-				GCurrentLevelEditingViewportClient->FocusViewportOnBox( BoundingBox );
-				
-				// Update Linked Orthographic viewports.
-				if( GCurrentLevelEditingViewportClient->IsOrtho() && GetDefault<ULevelEditorViewportSettings>()->bUseLinkedOrthographicViewports )
-				{
-					// Search through all viewports
-					for( auto ViewportIt = GEditor->LevelViewportClients.CreateConstIterator(); ViewportIt ; ++ViewportIt )
-					{
-						FLevelEditorViewportClient* LinkedViewportClient = *ViewportIt;
-						// Only update other orthographic viewports
-						if( LinkedViewportClient && LinkedViewportClient != GCurrentLevelEditingViewportClient && LinkedViewportClient->IsOrtho() )
-						{
-							LinkedViewportClient->FocusViewportOnBox( BoundingBox );
-						}
-					}
-				}
-			}
-
-		}
-		else
-		{
-			// Update all viewports.
-			for( int32 i = 0; i < LevelViewportClients.Num(); i++ )
-			{
-				FEditorViewportClient* ViewportClient = LevelViewportClients[i];
-				ViewportClient->FocusViewportOnBox( BoundingBox );
-			}
-		}
-	}
+	MoveViewportCamerasToBox(BoundingBox, bActiveViewportOnly);
 
 	// Warn the user with a suppressable dialog if they attempted to zoom to actors that are in an invisible level
 	if ( InvisLevelActors.Num() > 0 )
@@ -4516,6 +4486,29 @@ void UEditorEngine::MoveViewportCamerasToActor(const TArray<AActor*> &Actors, co
 
 	// Notify 'focus on actors' delegate
 	FEditorDelegates::OnFocusViewportOnActors.Broadcast(Actors);
+}
+
+void UEditorEngine::MoveViewportCamerasToComponent(USceneComponent* Component, bool bActiveViewportOnly)
+{
+	if (Component != nullptr)
+	{
+		if (FLevelUtils::IsLevelVisible(Component->GetComponentLevel()) && Component->IsRegistered())
+		{
+			FBox Box = Component->Bounds.GetBox();
+			FVector Center;
+			FVector Extents;
+			Box.GetCenterAndExtents(Center, Extents);
+
+			// Apply a minimum size to the extents of the component's box to avoid the camera's zooming too close to small or zero-sized components
+			if (Extents.SizeSquared() < EditorEngineDefs::MinComponentBoundsForZoom * EditorEngineDefs::MinComponentBoundsForZoom)
+			{
+				FVector NewExtents(EditorEngineDefs::MinComponentBoundsForZoom, SMALL_NUMBER, SMALL_NUMBER);
+				Box = FBox(Center - NewExtents, Center + NewExtents);
+			}
+
+			MoveViewportCamerasToBox(Box, bActiveViewportOnly);
+		}
+	}
 }
 
 /** 
@@ -6586,4 +6579,44 @@ void UEditorEngine::AutoMergeStaticMeshes()
 		OwnerComponent->StaticMesh->Build();
 	}
 #endif // #if TODO_STATICMESH
+}
+
+void UEditorEngine::MoveViewportCamerasToBox(const FBox& BoundingBox, bool bActiveViewportOnly) const
+{
+	// Make sure we had at least one non-null actor in the array passed in.
+	if (BoundingBox.GetSize() != FVector::ZeroVector)
+	{
+		if (bActiveViewportOnly)
+		{
+			if (GCurrentLevelEditingViewportClient)
+			{
+				GCurrentLevelEditingViewportClient->FocusViewportOnBox(BoundingBox);
+
+				// Update Linked Orthographic viewports.
+				if (GCurrentLevelEditingViewportClient->IsOrtho() && GetDefault<ULevelEditorViewportSettings>()->bUseLinkedOrthographicViewports)
+				{
+					// Search through all viewports
+					for (auto ViewportIt = LevelViewportClients.CreateConstIterator(); ViewportIt; ++ViewportIt)
+					{
+						FLevelEditorViewportClient* LinkedViewportClient = *ViewportIt;
+						// Only update other orthographic viewports
+						if (LinkedViewportClient && LinkedViewportClient != GCurrentLevelEditingViewportClient && LinkedViewportClient->IsOrtho())
+						{
+							LinkedViewportClient->FocusViewportOnBox(BoundingBox);
+						}
+					}
+				}
+			}
+
+		}
+		else
+		{
+			// Update all viewports.
+			for (auto ViewportIt = LevelViewportClients.CreateConstIterator(); ViewportIt; ++ViewportIt)
+			{
+				FLevelEditorViewportClient* LinkedViewportClient = *ViewportIt;
+				LinkedViewportClient->FocusViewportOnBox(BoundingBox);
+			}
+		}
+	}
 }
