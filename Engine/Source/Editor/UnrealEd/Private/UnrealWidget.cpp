@@ -441,7 +441,7 @@ void FWidget::Render_Translate( const FSceneView* View, FPrimitiveDrawInterface*
 		// but in the ortho viewports it will prevent scaling in the direction of the camera and thus intersecting the near plane.
 		FVector FlattenScale = FVector(Scale.Component(0) == 1.0f ? 1.0f / UniformScale : 1.0f, Scale.Component(1) == 1.0f ? 1.0f / UniformScale : 1.0f, Scale.Component(2) == 1.0f ? 1.0f / UniformScale : 1.0f);
 
-		if( bIsPerspective || bIsLocalSpace || View->ViewMatrices.ViewMatrix.M[2][1] == 0.f )
+		if (bIsPerspective || bIsLocalSpace || bIsOrthoXY)
 		{
 			if( (DrawAxis&EAxisList::XY) == EAxisList::XY )							// Top
 			{
@@ -456,7 +456,7 @@ void FWidget::Render_Translate( const FSceneView* View, FPrimitiveDrawInterface*
 			}
 		}
 
-		if( bIsPerspective || bIsLocalSpace || View->ViewMatrices.ViewMatrix.M[1][2] == -1.f )		// Front
+		if (bIsPerspective || bIsLocalSpace || bIsOrthoXZ)		// Front
 		{
 			if( (DrawAxis&EAxisList::XZ) == EAxisList::XZ ) 
 			{
@@ -471,7 +471,7 @@ void FWidget::Render_Translate( const FSceneView* View, FPrimitiveDrawInterface*
 			}
 		}
 
-		if( bIsPerspective || bIsLocalSpace || View->ViewMatrices.ViewMatrix.M[1][0] == 1.f )		// Side
+		if( bIsPerspective || bIsLocalSpace || bIsOrthoYZ )		// Side
 		{
 			if( (DrawAxis&EAxisList::YZ) == EAxisList::YZ ) 
 			{
