@@ -11,6 +11,7 @@
 #include "DerivedDataCacheInterface.h"
 #include "ISourceControlModule.h"
 #include "GlobalShader.h"
+#include "MaterialShader.h"
 #include "TargetPlatform.h"
 #include "IConsoleManager.h"
 #include "Developer/PackageDependencyInfo/Public/PackageDependencyInfo.h"
@@ -2100,6 +2101,11 @@ bool UCookOnTheFlyServer::GetCurrentIniVersionStrings( const ITargetPlatform* Ta
 	GetVersionFormatNumbersForIniVersionStrings( IniVersionStrings, TEXT("AudioFormat"), TPM->GetAudioFormats() );
 	GetVersionFormatNumbersForIniVersionStrings( IniVersionStrings, TEXT("TextureFormat"), TPM->GetTextureFormats() );
 	GetVersionFormatNumbersForIniVersionStrings( IniVersionStrings, TEXT("ShaderFormat"), TPM->GetShaderFormats() );
+
+	FString MaterialShaderMapDDCVersion = FString::Printf(TEXT("MaterialShaderMapDDCVersion:%s"), *GetMaterialShaderMapDDCKey());
+	IniVersionStrings.Emplace( MoveTemp(MaterialShaderMapDDCVersion) );
+	FString GlobalDDCVersion = FString::Printf(TEXT("GlobalDDCVersion:%s"), *GetGlobalShaderMapDDCKey());
+	IniVersionStrings.Emplace( MoveTemp(GlobalDDCVersion) );
 
 	return true;
 }

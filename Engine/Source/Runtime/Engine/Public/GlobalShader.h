@@ -219,6 +219,11 @@ extern ENGINE_API void FinishRecompileGlobalShaders();
 /** Called by the shader compiler to process completed global shader jobs. */
 extern void ProcessCompiledGlobalShaders(const TArray<FShaderCompileJob*>& CompilationResults);
 
+extern ENGINE_API FString GetGlobalShaderMapDDCKey();
+
+extern ENGINE_API FString GetMaterialShaderMapDDCKey();
+
+
 /** 
  * Recompiles global shaders
  *

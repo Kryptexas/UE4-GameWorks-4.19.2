@@ -307,6 +307,16 @@ FString SaveGlobalShaderFile(EShaderPlatform Platform, FString SavePath)
 	return FullPath;
 }
 
+FString GetGlobalShaderMapDDCKey()
+{
+	return FString(GLOBALSHADERMAP_DERIVEDDATA_VER);
+}
+
+FString GetMaterialShaderMapDDCKey()
+{
+	return FString(MATERIALSHADERMAP_DERIVEDDATA_VER);
+}
+
 /** Creates a string key for the derived data cache entry for the global shader map. */
 FString GetGlobalShaderMapKeyString(const FGlobalShaderMapId& ShaderMapId, EShaderPlatform Platform)
 {
