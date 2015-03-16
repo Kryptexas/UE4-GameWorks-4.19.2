@@ -137,6 +137,10 @@ namespace AutomationTool
 					}
 				}				
 			}
+			else
+			{
+				bFound = true;
+			}
 			return bFound;
 		}
 
