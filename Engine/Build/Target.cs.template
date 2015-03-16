@@ -143,7 +143,7 @@ public class {GAME_NAME}Target : TargetRules
             { 
                 new GUBPFormalBuild(UnrealTargetPlatform.IOS, UnrealTargetConfiguration.Development),
 				new GUBPFormalBuild(UnrealTargetPlatform.IOS, UnrealTargetConfiguration.Shipping),
-				new GUBPFormalBuild(UnrealTargetPlatform.IOS, UnrealTargetConfiguration.Test),
+				new GUBPFormalBuild(UnrealTargetPlatform.IOS, UnrealTargetConfiguration.Test, false, true),
             };
 		}
 	}
