@@ -225,7 +225,7 @@ void FIOSTargetSettingsCustomization::UpdateStatus()
 	}
 }
 
-void FIOSTargetSettingsCustomization::UpdateStatus()
+void FIOSTargetSettingsCustomization::UpdateSSHStatus()
 {
 	// updated SSH key
 	const UIOSRuntimeSettings* Settings = GetDefault<UIOSRuntimeSettings>();
