@@ -9,6 +9,7 @@
 #endif // !UE_SERVER
 #include "DynamicMeshBuilder.h"
 #include "Scalability.h"
+#include "WidgetLayoutLibrary.h"
 
 DECLARE_CYCLE_STAT(TEXT("3DHitTesting"), STAT_Slate3DHitTesting, STATGROUP_Slate);
 
