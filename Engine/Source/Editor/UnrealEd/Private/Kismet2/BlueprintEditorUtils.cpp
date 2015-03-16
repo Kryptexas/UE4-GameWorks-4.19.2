@@ -1126,6 +1126,7 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 
 	if( ShouldRegenerateBlueprint(Blueprint) && !Blueprint->bHasBeenRegenerated )
 	{
+		Blueprint->bCachedDependenciesUpToDate = false;
 		Blueprint->bIsRegeneratingOnLoad = true;
 
 		// Cache off the linker index, if needed
