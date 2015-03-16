@@ -1600,7 +1600,11 @@ void FGlobalTabmanager::SetActiveTab( const TSharedPtr<class SDockTab>& NewActiv
 
 	if (bShouldApplyChange && (CurrentlyActiveTab != NewActiveTab))
 	{
-		NewActiveTab->UpdateActivationTime();
+		if (NewActiveTab.IsValid())
+		{
+			NewActiveTab->UpdateActivationTime();
+		}
+
 		OnActiveTabChanged.Broadcast( CurrentlyActiveTab, NewActiveTab );
 		ActiveTabPtr = NewActiveTab;
 	}	
