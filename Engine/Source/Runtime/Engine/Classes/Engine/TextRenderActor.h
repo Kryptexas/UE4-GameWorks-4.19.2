@@ -11,9 +11,7 @@
 UCLASS(MinimalAPI, ComponentWrapperClass, hideCategories = (Collision, Attachment, Actor))
 class ATextRenderActor : public AActor
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API ATextRenderActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	friend class UActorFactoryTextRender;
 

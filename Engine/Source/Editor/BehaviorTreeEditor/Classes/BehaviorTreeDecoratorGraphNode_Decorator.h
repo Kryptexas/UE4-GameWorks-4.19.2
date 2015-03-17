@@ -8,9 +8,7 @@
 UCLASS()
 class UBehaviorTreeDecoratorGraphNode_Decorator : public UBehaviorTreeDecoratorGraphNode 
 {
-	GENERATED_BODY()
-public:
-	UBehaviorTreeDecoratorGraphNode_Decorator(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	UObject* NodeInstance;

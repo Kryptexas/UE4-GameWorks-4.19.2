@@ -55,7 +55,7 @@ enum EEmitterRenderMode
 USTRUCT()
 struct FParticleBurst
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The number of particles to burst */
 	UPROPERTY(EditAnywhere, Category=ParticleBurst)
@@ -83,9 +83,7 @@ struct FParticleBurst
 UCLASS(hidecategories=Object, editinlinenew, abstract, MinimalAPI)
 class UParticleEmitter : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleEmitter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	//=============================================================================
 	//	General variables

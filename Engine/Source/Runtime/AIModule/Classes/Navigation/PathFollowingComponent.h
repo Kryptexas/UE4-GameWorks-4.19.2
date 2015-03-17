@@ -90,9 +90,7 @@ namespace EPathFollowingMessage
 UCLASS(config=Engine)
 class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIResourceInterface
 {
-	GENERATED_BODY()
-public:
-	UPathFollowingComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	DECLARE_DELEGATE_TwoParams(FPostProcessMoveSignature, UPathFollowingComponent* /*comp*/, FVector& /*velocity*/);
 	DECLARE_DELEGATE_OneParam(FRequestCompletedSignature, EPathFollowingResult::Type /*Result*/);

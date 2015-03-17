@@ -7,15 +7,12 @@
 UINTERFACE(MinimalAPI, meta=(CannotImplementInterfaceInBlueprint))
 class UAIResourceInterface : public UInterface
 {
-	GENERATED_BODY()
-public:
-	AIMODULE_API UAIResourceInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class IAIResourceInterface
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 
 	/** If resource is lockable lock it with indicated priority */
 	virtual void LockResource(EAIRequestPriority::Type LockSource) {}

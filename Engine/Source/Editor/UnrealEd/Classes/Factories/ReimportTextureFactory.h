@@ -10,9 +10,7 @@
 UCLASS(hidecategories=(LightMap, DitherMipMaps, LODGroup), collapsecategories)
 class UReimportTextureFactory : public UTextureFactory, public FReimportHandler
 {
-	GENERATED_BODY()
-public:
-	UReimportTextureFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	class UTexture* pOriginalTex;

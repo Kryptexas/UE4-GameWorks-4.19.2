@@ -12,7 +12,7 @@
 USTRUCT()
 struct FBranchFilter
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Bone Name to filter **/
 	UPROPERTY(EditAnywhere, Category=Branch)
@@ -26,7 +26,7 @@ struct FBranchFilter
 USTRUCT()
 struct FInputBlendPose
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Bone Name to filter **/
 	UPROPERTY(EditAnywhere, Category=Filter)
@@ -36,9 +36,7 @@ struct FInputBlendPose
 UCLASS(hidecategories=Object, BlueprintType,MinimalAPI)
 class UBoneMaskFilter : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UBoneMaskFilter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=BoneMask)
 	TArray<FInputBlendPose>	BlendPoses;

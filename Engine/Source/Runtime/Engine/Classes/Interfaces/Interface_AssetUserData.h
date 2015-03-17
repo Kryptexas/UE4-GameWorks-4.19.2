@@ -9,15 +9,12 @@ class UAssetUserData;
 UINTERFACE(MinimalApi, meta=(CannotImplementInterfaceInBlueprint))
 class UInterface_AssetUserData : public UInterface
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UInterface_AssetUserData(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class IInterface_AssetUserData
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 
 	virtual void AddAssetUserData(UAssetUserData* InUserData) {}
 

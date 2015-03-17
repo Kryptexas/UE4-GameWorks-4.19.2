@@ -7,9 +7,7 @@
 UCLASS()
 class USoundVisualizationStatics : public UBlueprintFunctionLibrary
 {
-	GENERATED_BODY()
-public:
-	USoundVisualizationStatics(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	static void CalculateFrequencySpectrum(USoundWave* SoundWave, const bool bSplitChannels, const float StartTime, const float TimeLength, const int32 SpectrumWidth, TArray< TArray<float> >& OutSpectrums);
 

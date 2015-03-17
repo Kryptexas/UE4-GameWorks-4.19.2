@@ -9,9 +9,7 @@
 UCLASS()
 class UDialogueSoundWaveProxy : public USoundBase
 {
-	GENERATED_BODY()
-public:
-	UDialogueSoundWaveProxy(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	friend class UDialogueWave;
 

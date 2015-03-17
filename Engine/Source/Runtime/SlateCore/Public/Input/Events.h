@@ -56,7 +56,7 @@ namespace EKeyboardFocusCause
 USTRUCT()
 struct FFocusEvent
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 
@@ -128,7 +128,7 @@ struct FVirtualPointerPosition
 USTRUCT(BlueprintType)
 struct FInputEvent
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 
@@ -358,7 +358,7 @@ USTRUCT(BlueprintType)
 struct FKeyEvent
 	: public FInputEvent
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 	/**
@@ -445,7 +445,7 @@ USTRUCT(BlueprintType)
 struct FKeyboardEvent : public FKeyEvent
 //struct DEPRECATED(4.6, "Use FKeyEvent") FKeyboardEvent : public FKeyEvent
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 public:
 	FKeyEvent() {}
 
@@ -461,7 +461,7 @@ USTRUCT(BlueprintType)
 struct FAnalogInputEvent
 	: public FKeyEvent
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 	/**
@@ -515,7 +515,7 @@ USTRUCT()
 struct FCharacterEvent
 	: public FInputEvent
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 	/**
@@ -587,7 +587,7 @@ USTRUCT(BlueprintType)
 struct FPointerEvent
 	: public FInputEvent
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 public:
 
 	/**
@@ -782,7 +782,7 @@ USTRUCT(BlueprintType)
 struct FControllerEvent
 	: public FInputEvent
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 public:
 
 	FControllerEvent()
@@ -816,7 +816,7 @@ USTRUCT(BlueprintType)
 struct FMotionEvent
 	: public FInputEvent
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 	/**
@@ -884,7 +884,7 @@ USTRUCT(BlueprintType)
 struct FNavigationEvent
 	: public FInputEvent
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 	/**

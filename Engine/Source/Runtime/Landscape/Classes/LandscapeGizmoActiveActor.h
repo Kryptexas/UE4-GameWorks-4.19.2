@@ -20,7 +20,7 @@ enum ELandscapeGizmoType
 USTRUCT()
 struct FGizmoSelectData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
@@ -46,9 +46,7 @@ struct FGizmoSelectData
 UCLASS(notplaceable, MinimalAPI)
 class ALandscapeGizmoActiveActor : public ALandscapeGizmoActor
 {
-	GENERATED_BODY()
-public:
-	LANDSCAPE_API ALandscapeGizmoActiveActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(Transient)

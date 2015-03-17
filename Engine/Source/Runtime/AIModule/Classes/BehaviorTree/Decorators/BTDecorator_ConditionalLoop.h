@@ -11,9 +11,7 @@
 UCLASS(HideCategories=(FlowControl))
 class AIMODULE_API UBTDecorator_ConditionalLoop : public UBTDecorator_Blackboard
 {
-	GENERATED_BODY()
-public:
-	UBTDecorator_ConditionalLoop(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const override;
 	virtual void OnBlackboardChange(const UBlackboardComponent& Blackboard, FBlackboard::FKey ChangedKeyID) override;

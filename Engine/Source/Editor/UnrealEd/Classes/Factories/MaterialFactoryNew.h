@@ -10,9 +10,7 @@
 UCLASS(hidecategories=Object, collapsecategories, MinimalAPI)
 class UMaterialFactoryNew : public UFactory
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UMaterialFactoryNew(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** An initial texture to place in the newly created material */
 	UPROPERTY()

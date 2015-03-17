@@ -13,10 +13,8 @@
 UCLASS(config=Engine, globaluserconfig)
 class ANDROIDPLATFORMEDITOR_API UAndroidSDKSettings : public UObject
 {
-	GENERATED_BODY()
 public:
-	UAndroidSDKSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-public:
+	GENERATED_UCLASS_BODY()
 
 	// Location on disk of the Android SDK (falls back to ANDROID_HOME environment variable if this is left blank)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = SDKConfig, Meta = (DisplayName = "Location of Android SDK (the directory usually contains 'android-sdk-')"))

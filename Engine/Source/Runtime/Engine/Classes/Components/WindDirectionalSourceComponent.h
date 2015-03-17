@@ -7,9 +7,7 @@
 UCLASS(collapsecategories, hidecategories=(Object, Mobility), editinlinenew)
 class UWindDirectionalSourceComponent : public USceneComponent
 {
-	GENERATED_BODY()
-public:
-	UWindDirectionalSourceComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(interp, Category=WindDirectionalSourceComponent)
 	float Strength;

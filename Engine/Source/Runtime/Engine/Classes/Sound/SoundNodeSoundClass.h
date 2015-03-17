@@ -11,9 +11,7 @@
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, meta=( DisplayName="SoundClass" ))
 class USoundNodeSoundClass : public USoundNode
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API USoundNodeSoundClass(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=SoundClass)
 	USoundClass* SoundClassOverride;

@@ -7,9 +7,7 @@
 UCLASS(hidecategories=Object)
 class ULandscapeGizmoRenderComponent : public UPrimitiveComponent
 {
-	GENERATED_BODY()
-public:
-	ULandscapeGizmoRenderComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UPrimitiveComponent Interface

@@ -10,9 +10,7 @@
 UCLASS()
 class UMG_API UScaleBoxSlot : public UPanelSlot
 {
-	GENERATED_BODY()
-public:
-	UScaleBoxSlot(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	

@@ -9,9 +9,7 @@
 UCLASS(MinimalAPI)
 class UMaterialGraphNode_Comment : public UEdGraphNode_Comment
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UMaterialGraphNode_Comment(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Material Comment that this node represents */
 	UPROPERTY()

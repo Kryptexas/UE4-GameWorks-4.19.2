@@ -9,9 +9,7 @@
 UCLASS(notplaceable, MinimalAPI, NotBlueprintable)
 class ALandscapeGizmoActor : public AActor
 {
-	GENERATED_BODY()
-public:
-	LANDSCAPE_API ALandscapeGizmoActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(EditAnywhere, Category=Gizmo)

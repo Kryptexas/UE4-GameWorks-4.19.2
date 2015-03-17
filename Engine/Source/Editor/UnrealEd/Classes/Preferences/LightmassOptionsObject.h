@@ -15,9 +15,7 @@
 UCLASS(hidecategories=Object, editinlinenew)
 class ULightmassOptionsObject : public UObject
 {
-	GENERATED_BODY()
-public:
-	ULightmassOptionsObject(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Debug)
 	struct FLightmassDebugOptions DebugSettings;

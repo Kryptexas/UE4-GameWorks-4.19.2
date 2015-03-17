@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UK2Node_InputTouch : public UK2Node
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_InputTouch(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Prevents actors with lower priority from handling this input
 	UPROPERTY(EditAnywhere, Category="Input")

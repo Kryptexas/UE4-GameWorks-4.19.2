@@ -11,9 +11,7 @@
 UCLASS()
 class AIMODULE_API UBTDecorator_ReachedMoveGoal : public UBTDecorator
 {
-	GENERATED_BODY()
-public:
-	UBTDecorator_ReachedMoveGoal(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const override;
 

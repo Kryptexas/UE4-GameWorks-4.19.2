@@ -7,9 +7,7 @@
 UCLASS()
 class UFixupRedirectsCommandlet : public UCommandlet
 {
-	GENERATED_BODY()
-public:
-	UFixupRedirectsCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	// Begin UCommandlet Interface
 	virtual void CreateCustomEngine(const FString& Params) override;
 	virtual int32 Main(const FString& Params) override;

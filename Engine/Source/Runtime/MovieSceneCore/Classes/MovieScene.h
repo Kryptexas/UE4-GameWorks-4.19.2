@@ -12,7 +12,7 @@ MOVIESCENECORE_API DECLARE_LOG_CATEGORY_EXTERN(LogSequencerRuntime, Log, All);
 USTRUCT()
 struct FMovieSceneSpawnable 
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 
@@ -75,7 +75,7 @@ private:
 USTRUCT()
 struct FMovieScenePossessable
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY( FMovieScenePossessable )
 
 public:
 
@@ -134,7 +134,7 @@ private:
 USTRUCT()
 struct FMovieSceneEditorData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** List of collapsed sequencer nodes.  We store collapsed instead of expanded so that new nodes with no saved state are expanded by default */
 	UPROPERTY()
@@ -147,7 +147,7 @@ struct FMovieSceneEditorData
 USTRUCT()
 struct FMovieSceneObjectBinding
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FMovieSceneObjectBinding()
 	{}
@@ -218,9 +218,7 @@ private:
 UCLASS( MinimalAPI )
 class UMovieScene : public UObject
 {
-	GENERATED_BODY()
-public:
-	MOVIESCENECORE_API UMovieScene(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 public:
 
 #if WITH_EDITOR

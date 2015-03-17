@@ -51,9 +51,7 @@ enum EStereoscopicPass
 UCLASS(Within=Engine, transient, config=Engine)
 class ENGINE_API UGameViewportClient : public UScriptViewportClient, public FExec
 {
-	GENERATED_BODY()
-public:
-	UGameViewportClient(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	virtual ~UGameViewportClient();

@@ -7,9 +7,7 @@
 UCLASS()
 class UInterpTrackInstLinearColorProp : public UInterpTrackInstProperty
 {
-	GENERATED_BODY()
-public:
-	UInterpTrackInstLinearColorProp(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Pointer to color property in TrackObject. */
 	FLinearColor* ColorProp;

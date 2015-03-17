@@ -10,9 +10,7 @@
 UCLASS()
 class UStaticMeshExporterOBJ : public UExporter
 {
-	GENERATED_BODY()
-public:
-	UStaticMeshExporterOBJ(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UExporter Interface

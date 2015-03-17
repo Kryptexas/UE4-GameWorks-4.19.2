@@ -13,9 +13,7 @@ class UEdGraph;
 UCLASS()
 class AIMODULE_API UEnvQuery : public UObject
 {
-	GENERATED_BODY()
-public:
-	UEnvQuery(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITORONLY_DATA
 	/** Graph for query */

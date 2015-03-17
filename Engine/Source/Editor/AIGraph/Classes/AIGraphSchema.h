@@ -9,7 +9,7 @@
 USTRUCT()
 struct AIGRAPH_API FAISchemaAction_NewNode : public FEdGraphSchemaAction
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY();
 
 	/** Template of node we want to create */
 	UPROPERTY()
@@ -45,7 +45,7 @@ struct AIGRAPH_API FAISchemaAction_NewNode : public FEdGraphSchemaAction
 USTRUCT()
 struct AIGRAPH_API FAISchemaAction_NewSubNode : public FEdGraphSchemaAction
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY();
 
 	/** Template of node we want to create */
 	UPROPERTY()
@@ -77,9 +77,7 @@ struct AIGRAPH_API FAISchemaAction_NewSubNode : public FEdGraphSchemaAction
 UCLASS()
 class AIGRAPH_API UAIGraphSchema : public UEdGraphSchema
 {
-	GENERATED_BODY()
-public:
-	UAIGraphSchema(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	void GetBreakLinkToSubMenuActions(class FMenuBuilder& MenuBuilder, class UEdGraphPin* InGraphPin);
 

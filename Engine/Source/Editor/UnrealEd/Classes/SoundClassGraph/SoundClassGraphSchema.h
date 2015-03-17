@@ -7,7 +7,7 @@
 USTRUCT()
 struct UNREALED_API FSoundClassGraphSchemaAction_NewNode : public FEdGraphSchemaAction
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY();
 
 	// Simple type info
 	static FName StaticGetTypeId() {static FName Type("FSoundClassGraphSchemaAction_NewNode"); return Type;}
@@ -34,9 +34,7 @@ struct UNREALED_API FSoundClassGraphSchemaAction_NewNode : public FEdGraphSchema
 UCLASS(MinimalAPI)
 class USoundClassGraphSchema : public UEdGraphSchema
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API USoundClassGraphSchema(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Check whether connecting these pins would cause a loop */
 	bool ConnectionCausesLoop(const UEdGraphPin* InputPin, const UEdGraphPin* OutputPin) const;

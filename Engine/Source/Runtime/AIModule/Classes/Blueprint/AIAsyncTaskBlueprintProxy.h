@@ -14,9 +14,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOAISimpleDelegate, EPathFollowingRe
 UCLASS(MinimalAPI)
 class UAIAsyncTaskBlueprintProxy : public UObject
 {
-	GENERATED_BODY()
-public:
-	AIMODULE_API UAIAsyncTaskBlueprintProxy(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(BlueprintAssignable)
 	FOAISimpleDelegate	OnSuccess;

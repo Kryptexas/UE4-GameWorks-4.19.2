@@ -14,9 +14,7 @@
 UCLASS(MinimalAPI)
 class USceneThumbnailInfoWithPrimitive : public USceneThumbnailInfo
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API USceneThumbnailInfoWithPrimitive(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The type of primitive used in this thumbnail */
 	UPROPERTY(EditAnywhere, Category=Thumbnail)

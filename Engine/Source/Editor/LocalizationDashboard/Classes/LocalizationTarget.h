@@ -16,7 +16,7 @@ enum class ELocalizationTargetStatus : uint8
 USTRUCT()
 struct FGatherTextFromTextFilesConfiguration
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(config, EditAnywhere, Category = "Filter")
 	TArray<FString> SearchDirectories;
@@ -31,7 +31,7 @@ struct FGatherTextFromTextFilesConfiguration
 USTRUCT()
 struct FGatherTextFromPackagesConfiguration
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(config, EditAnywhere, Category = "Filter")
 	TArray<FString> IncludePathWildcards;
@@ -46,7 +46,7 @@ struct FGatherTextFromPackagesConfiguration
 USTRUCT()
 struct FMetaDataKeyGatherSpecification
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(config, EditAnywhere, Category = "Input")
 	FString MetaDataKey;
@@ -61,7 +61,7 @@ struct FMetaDataKeyGatherSpecification
 USTRUCT()
 struct FGatherTextFromMetaDataConfiguration
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(config, EditAnywhere, Category = "Filter")
 	TArray<FString> IncludePathWildcards;
@@ -76,7 +76,7 @@ struct FGatherTextFromMetaDataConfiguration
 USTRUCT()
 struct FCultureStatistics
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FCultureStatistics()
 		: WordCount(0)
@@ -93,7 +93,7 @@ struct FCultureStatistics
 USTRUCT()
 struct FLocalizationTargetSettings
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FLocalizationTargetSettings();
 

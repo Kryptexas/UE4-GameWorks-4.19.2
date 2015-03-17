@@ -14,7 +14,7 @@
 USTRUCT()
 struct FSessionServicePing
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 };
 
@@ -34,7 +34,7 @@ struct TStructOpsTypeTraits<FSessionServicePing> : public TStructOpsTypeTraitsBa
 USTRUCT()
 struct FSessionServicePong
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Holds the application's build date. */
 	UPROPERTY()
@@ -96,7 +96,7 @@ struct TStructOpsTypeTraits<FSessionServicePong> : public TStructOpsTypeTraitsBa
 USTRUCT()
 struct FSessionServiceLog
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Holds the log message category. */
 	UPROPERTY()
@@ -153,7 +153,7 @@ struct TStructOpsTypeTraits<FSessionServiceLog> : public TStructOpsTypeTraitsBas
 USTRUCT()
 struct FSessionServiceLogSubscribe
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 };
 
 template<>
@@ -172,7 +172,7 @@ struct TStructOpsTypeTraits<FSessionServiceLogSubscribe> : public TStructOpsType
 USTRUCT()
 struct FSessionServiceLogUnsubscribe
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 };
 
 template<>

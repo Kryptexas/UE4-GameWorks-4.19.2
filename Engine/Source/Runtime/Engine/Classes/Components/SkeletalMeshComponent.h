@@ -193,7 +193,7 @@ namespace EAnimationMode
 USTRUCT()
 struct FSingleAnimationPlayData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	// @todo in the future, we should make this one UObject
 	// and have detail customization to display different things
@@ -245,7 +245,7 @@ struct FSingleAnimationPlayData
 USTRUCT()
 struct FSkeletalMeshComponentPreClothTickFunction : public FTickFunction
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** World this tick function belongs to **/
 	class USkeletalMeshComponent*	Target;
@@ -272,9 +272,7 @@ struct FSkeletalMeshComponentPreClothTickFunction : public FTickFunction
 UCLASS(ClassGroup=(Rendering, Common), hidecategories=Object, config=Engine, editinlinenew, meta=(BlueprintSpawnableComponent))
 class ENGINE_API USkeletalMeshComponent : public USkinnedMeshComponent, public IInterface_CollisionDataProvider
 {
-	GENERATED_BODY()
-public:
-	USkeletalMeshComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	
 	/**
 	 * Animation 

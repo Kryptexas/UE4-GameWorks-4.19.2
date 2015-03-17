@@ -11,7 +11,7 @@
 USTRUCT()
 struct FEditorKeyBinding
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	uint32 bCtrlDown:1;
@@ -38,9 +38,7 @@ struct FEditorKeyBinding
 UCLASS(Config=EditorKeyBindings)
 class UUnrealEdKeyBindings : public UObject
 {
-	GENERATED_BODY()
-public:
-	UUnrealEdKeyBindings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Array of keybindings */
 	UPROPERTY(config)

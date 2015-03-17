@@ -7,7 +7,7 @@
 USTRUCT()
 struct FAtmospherePrecomputeParameters
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 	
 	/** Rayleigh scattering density height scale, ranges from [0...1] */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=AtmosphereParam)
@@ -89,9 +89,7 @@ struct FAtmospherePrecomputeParameters
 UCLASS(ClassGroup=Rendering, collapsecategories, hidecategories=(Object, Mobility, Activation, "Components|Activation"), editinlinenew, meta=(BlueprintSpawnableComponent), MinimalAPI)
 class UAtmosphericFogComponent : public USceneComponent
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UAtmosphericFogComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Global scattering factor. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, interp, Category=Atmosphere)

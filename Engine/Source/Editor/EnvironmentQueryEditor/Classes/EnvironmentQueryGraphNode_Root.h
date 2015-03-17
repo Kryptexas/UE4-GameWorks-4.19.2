@@ -5,9 +5,7 @@
 UCLASS()
 class UEnvironmentQueryGraphNode_Root : public UEnvironmentQueryGraphNode
 {
-	GENERATED_BODY()
-public:
-	UEnvironmentQueryGraphNode_Root(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;

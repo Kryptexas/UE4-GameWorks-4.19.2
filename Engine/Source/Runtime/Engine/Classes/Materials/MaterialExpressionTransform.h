@@ -28,9 +28,7 @@ enum EMaterialVectorCoordTransform
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionTransform : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionTransform(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** input expression for this transform */
 	UPROPERTY()

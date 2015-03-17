@@ -44,9 +44,7 @@ UCLASS(config=Engine, defaultconfig)
 class ENGINE_API UUserInterfaceSettings
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	UUserInterfaceSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

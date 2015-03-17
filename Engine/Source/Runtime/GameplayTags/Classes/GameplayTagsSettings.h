@@ -22,9 +22,7 @@
 UCLASS(config=Engine, defaultconfig, notplaceable)
 class GAMEPLAYTAGS_API UGameplayTagsSettings : public UObject
 {
-	GENERATED_BODY()
-public:
-	UGameplayTagsSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(config, EditAnywhere, Category=GameplayTags)
 	TArray<FString>		GameplayTags;

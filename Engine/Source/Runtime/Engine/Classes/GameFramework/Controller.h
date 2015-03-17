@@ -31,9 +31,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams( FInstigatedAnyDamageSignature, fl
 UCLASS(abstract, notplaceable, NotBlueprintable, HideCategories=(Collision,Rendering,"Utilities|Transformation")) 
 class ENGINE_API AController : public AActor, public INavAgentInterface
 {
-	GENERATED_BODY()
-public:
-	AController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 private:
 	/** Pawn currently being controlled by this controller.  Use Pawn.Possess() to take control of a pawn */
@@ -155,14 +153,12 @@ public:
 	class APlayerController* CastToPlayerController();
 
 	/** Replicated function to set the pawn location and rotation, allowing server to force (ex. teleports). */
-	UFUNCTION(reliable, client="ClientSetLocation_Implementation")
+	UFUNCTION(reliable, client)
 	void ClientSetLocation(FVector NewLocation, FRotator NewRotation);
-	virtual void ClientSetLocation_Implementation(FVector NewLocation, FRotator NewRotation);
 
 	/** Replicated function to set the pawn rotation, allowing the server to force. */
-	UFUNCTION(reliable, client="ClientSetRotation_Implementation")
+	UFUNCTION(reliable, client)
 	void ClientSetRotation(FRotator NewRotation, bool bResetCamera = false);
-	virtual void ClientSetRotation_Implementation(FRotator NewRotation, bool bResetCamera);
 
 	/** Return the Pawn that is currently 'controlled' by this PlayerController */
 	UFUNCTION(BlueprintCallable, Category="Pawn", meta=(FriendlyName="Get Controlled Pawn"))

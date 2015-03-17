@@ -20,9 +20,7 @@ struct F2DTransformKey
 UCLASS( MinimalAPI )
 class UMovieScene2DTransformTrack : public UMovieScenePropertyTrack
 {
-	GENERATED_BODY()
-public:
-	UMG_API UMovieScene2DTransformTrack(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 public:
 	/** UMovieSceneTrack interface */
 	virtual UMovieSceneSection* CreateNewSection() override;

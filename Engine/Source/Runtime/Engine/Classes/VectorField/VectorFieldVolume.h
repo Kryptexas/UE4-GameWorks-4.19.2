@@ -11,9 +11,7 @@
 UCLASS(hidecategories=(Object, Advanced, Collision), MinimalAPI)
 class AVectorFieldVolume : public AActor
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API AVectorFieldVolume(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 private_subobject:
 	DEPRECATED_FORGAME(4.6, "VectorFieldComponent should not be accessed directly, please use GetVectorFieldComponent() function instead. VectorFieldComponent will soon be private and your code will not compile.")

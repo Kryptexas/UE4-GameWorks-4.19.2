@@ -11,9 +11,7 @@
 UCLASS(ClassGroup="Collision", editinlinenew, hidecategories=(Object,LOD,Lighting,TextureStreaming), meta=(DisplayName="Sphere Collision", BlueprintSpawnableComponent))
 class ENGINE_API USphereComponent : public UShapeComponent
 {
-	GENERATED_BODY()
-public:
-	USphereComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 protected:
 	/** The radius of the sphere **/

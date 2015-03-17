@@ -12,9 +12,7 @@ UCLASS(hidecategories=Object)
 class UMediaPlayerFactoryNew
 	: public UFactory
 {
-	GENERATED_BODY()
-public:
-	UMediaPlayerFactoryNew(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

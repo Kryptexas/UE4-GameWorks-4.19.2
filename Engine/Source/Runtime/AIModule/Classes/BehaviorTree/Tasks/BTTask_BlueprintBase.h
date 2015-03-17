@@ -18,9 +18,7 @@ class FBehaviorBlueprintDetails;
 UCLASS(Abstract, Blueprintable)
 class AIMODULE_API UBTTask_BlueprintBase : public UBTTaskNode
 {
-	GENERATED_BODY()
-public:
-	UBTTask_BlueprintBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** setup node name */
 	virtual void PostInitProperties() override;

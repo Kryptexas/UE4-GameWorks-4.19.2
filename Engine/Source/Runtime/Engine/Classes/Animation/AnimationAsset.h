@@ -17,7 +17,7 @@
 USTRUCT(BlueprintType)
 struct FBlendSampleData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	int32 SampleDataIndex;
@@ -59,7 +59,7 @@ struct FBlendSampleData
 USTRUCT()
 struct FBlendFilter
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FFIRFilterTimeBased FilterPerAxis[3];
 
@@ -113,7 +113,7 @@ namespace ERootMotionMode
 USTRUCT()
 struct FAnimExtractContext
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Is Root Motion being extracted? */
 	UPROPERTY()
@@ -149,7 +149,7 @@ struct FAnimExtractContext
 USTRUCT()
 struct FAnimTickRecord
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	class UAnimationAsset* SourceAsset;
@@ -187,7 +187,7 @@ namespace EAnimGroupRole
 USTRUCT()
 struct FAnimGroupInstance
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 	// The list of animation players in this group which are going to be evaluated this frame
@@ -240,7 +240,7 @@ public:
 USTRUCT()
 struct FRootMotionMovementParams
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	bool bHasRootMotion;
@@ -411,7 +411,7 @@ private:
 USTRUCT()
 struct FAnimationGroupReference
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 	
 	// The name of the group
 	UPROPERTY(EditAnywhere, Category=Settings)
@@ -430,9 +430,7 @@ struct FAnimationGroupReference
 UCLASS(abstract, MinimalAPI)
 class UAnimationAsset : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UAnimationAsset(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 private:
 	/** Pointer to the Skeleton this asset can be played on .	*/

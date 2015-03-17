@@ -19,11 +19,9 @@ DECLARE_MULTICAST_DELEGATE( FOnManagerUpdated );
  UCLASS( config=DeviceProfiles, transient )
 class ENGINE_API UDeviceProfileManager : public UObject
 {
-	GENERATED_BODY()
-public:
-	UDeviceProfileManager(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 public:
 
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 * Startup and select the active device profile

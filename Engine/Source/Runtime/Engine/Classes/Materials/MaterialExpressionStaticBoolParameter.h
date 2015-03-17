@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionStaticBoolParameter : public UMaterialExpressionParameter
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UMaterialExpressionStaticBoolParameter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionStaticBoolParameter)
 	uint32 DefaultValue:1;

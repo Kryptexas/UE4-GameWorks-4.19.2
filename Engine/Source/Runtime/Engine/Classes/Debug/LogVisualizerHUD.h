@@ -7,9 +7,7 @@
 UCLASS()
 class ALogVisualizerHUD : public ADebugCameraHUD
 {
-	GENERATED_BODY()
-public:
-	ALogVisualizerHUD(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	FFontRenderInfo TextRenderInfo;
 

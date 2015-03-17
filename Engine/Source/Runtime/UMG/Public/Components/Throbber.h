@@ -13,9 +13,7 @@ class USlateBrushAsset;
 UCLASS(ClassGroup=UserInterface)
 class UMG_API UThrobber : public UWidget
 {
-	GENERATED_BODY()
-public:
-	UThrobber(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	

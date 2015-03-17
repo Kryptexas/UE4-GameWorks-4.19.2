@@ -17,7 +17,7 @@ class UWorld;
 USTRUCT()
 struct FSupportedAreaData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	FString AreaClassName;
@@ -410,9 +410,7 @@ enum class ERuntimeGenerationType : uint8
 UCLASS(config=Engine, defaultconfig, NotBlueprintable, abstract)
 class ENGINE_API ANavigationData : public AActor
 {
-	GENERATED_BODY()
-public:
-	ANavigationData(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	
 	UPROPERTY(transient, duplicatetransient)
 	UPrimitiveComponent* RenderingComp;

@@ -8,10 +8,8 @@
 UCLASS()
 class UNiagaraSpriteRendererProperties : public UNiagaraEffectRendererProperties
 {
-	GENERATED_BODY()
 public:
-	UNiagaraSpriteRendererProperties(const FObjectInitializer& ObjectInitializer);
-public:
+	GENERATED_UCLASS_BODY()
 
 	UNiagaraSpriteRendererProperties()
 	{

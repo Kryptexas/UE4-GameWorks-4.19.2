@@ -22,9 +22,7 @@ struct FBTInstancedNodeMemory
 UCLASS(Abstract,config=Game)
 class AIMODULE_API UBTNode : public UObject
 {
-	GENERATED_BODY()
-public:
-	UBTNode(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual UWorld* GetWorld() const override;
 

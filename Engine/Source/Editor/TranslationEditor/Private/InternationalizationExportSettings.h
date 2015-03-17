@@ -6,9 +6,7 @@
 UCLASS(hidecategories = Object, MinimalAPI, config=InternationalizationExport)
 class UInternationalizationExportSettings : public UObject
 {
-	GENERATED_BODY()
-public:
-	TRANSLATIONEDITOR_API UInternationalizationExportSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

@@ -14,7 +14,7 @@
 USTRUCT()
 struct FSHAHashData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	uint8 Hash[FSHA1::DigestSize];

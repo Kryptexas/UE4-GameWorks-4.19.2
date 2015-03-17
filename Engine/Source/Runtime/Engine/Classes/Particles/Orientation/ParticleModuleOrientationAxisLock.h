@@ -35,9 +35,7 @@ enum EParticleAxisLock
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Lock Axis"))
 class UParticleModuleOrientationAxisLock : public UParticleModuleOrientationBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleOrientationAxisLock(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 *	The lock axis flag setting.

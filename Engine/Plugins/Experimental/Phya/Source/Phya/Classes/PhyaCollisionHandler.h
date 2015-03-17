@@ -28,9 +28,7 @@ class FPhyaPairInfo : public TSharedFromThis<FPhyaPairInfo>
 UCLASS()
 class UPhyaCollisionHandler : public UPhysicsCollisionHandler
 {
-	GENERATED_BODY()
-public:
-	UPhyaCollisionHandler(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin UPhysicsCollisionHandler interface
 	virtual void InitCollisionHandler() override;

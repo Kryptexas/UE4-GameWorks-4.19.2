@@ -12,9 +12,7 @@
 UCLASS(hidecategories=(Object, Mobility, LOD), ClassGroup=Physics, showcategories=Trigger)
 class ENGINE_API UPhysicsSpringComponent : public USceneComponent
 {
-	GENERATED_BODY()
-public:
-	UPhysicsSpringComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Specifies how much strength the spring has. The higher the SpringStiffness the more force the spring can push on a body with. */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Physics)

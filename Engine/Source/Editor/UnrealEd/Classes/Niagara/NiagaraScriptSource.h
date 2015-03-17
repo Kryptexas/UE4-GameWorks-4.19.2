@@ -9,9 +9,7 @@
 UCLASS(MinimalAPI)
 class UNiagaraScriptSource : public UNiagaraScriptSourceBase
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UNiagaraScriptSource(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Graph for particle update expression */
 	UPROPERTY()

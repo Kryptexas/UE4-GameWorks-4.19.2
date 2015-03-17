@@ -12,7 +12,7 @@ class FWorldTileModel;
 USTRUCT()
 struct FTileLODEntryDetails
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 	
 	// Maximum deviation of details percentage
 	UPROPERTY(Category=LODDetails, VisibleAnywhere)
@@ -37,9 +37,7 @@ struct FTileLODEntryDetails
 UCLASS()
 class UWorldTileDetails : public UObject
 {
-	GENERATED_BODY()
-public:
-	UWorldTileDetails(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	
 	// Whether this tile properties can be edited via details panel
 	UPROPERTY(Category=Tile, VisibleAnywhere)

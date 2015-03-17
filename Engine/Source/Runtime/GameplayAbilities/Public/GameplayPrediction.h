@@ -281,7 +281,7 @@ DECLARE_DELEGATE(FPredictionKeyEvent);
 USTRUCT()
 struct GAMEPLAYABILITIES_API FPredictionKey
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	typedef int16 KeyType;
 

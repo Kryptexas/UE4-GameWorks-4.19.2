@@ -14,9 +14,7 @@
 UCLASS(MinimalApi, collapsecategories, EarlyAccessPreview)
 class UReimportScriptFactory : public UScriptFactory, public FReimportHandler
 {
-	GENERATED_BODY()
-public:
-	SCRIPTEDITORPLUGIN_API UReimportScriptFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	class UScriptBlueprint* OriginalScript;

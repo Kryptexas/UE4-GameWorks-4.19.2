@@ -11,9 +11,7 @@ struct FGameplayTagContainer;
 UCLASS()
 class UGameplayTagsK2Node_MultiCompareBase : public UK2Node
 {
-	GENERATED_BODY()
-public:
-	UGameplayTagsK2Node_MultiCompareBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category = PinOptions)
 	int32 NumberOfPins;

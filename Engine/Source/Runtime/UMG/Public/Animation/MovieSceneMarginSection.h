@@ -14,9 +14,7 @@ struct FMarginKey;
 UCLASS(MinimalAPI)
 class UMovieSceneMarginSection : public UMovieSceneSection
 {
-	GENERATED_BODY()
-public:
-	UMG_API UMovieSceneMarginSection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 public:
 	/** UMovieSceneSection interface */
 	virtual void MoveSection( float DeltaPosition ) override;

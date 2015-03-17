@@ -8,9 +8,7 @@
 UCLASS(Abstract, MinimalAPI)
 class UAnimGraphNode_SkeletalControlBase : public UAnimGraphNode_Base
 {
-	GENERATED_BODY()
-public:
-	ANIMGRAPH_API UAnimGraphNode_SkeletalControlBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	// UEdGraphNode interface

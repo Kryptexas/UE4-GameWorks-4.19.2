@@ -9,9 +9,7 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionDeriveNormalZ : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionDeriveNormalZ(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	FExpressionInput InXY;

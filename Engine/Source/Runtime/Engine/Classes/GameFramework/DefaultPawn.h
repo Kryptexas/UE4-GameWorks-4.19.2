@@ -20,9 +20,7 @@ class UStaticMeshComponent;
 UCLASS(config=Game, Blueprintable, BlueprintType)
 class ENGINE_API ADefaultPawn : public APawn
 {
-	GENERATED_BODY()
-public:
-	ADefaultPawn(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin Pawn overrides
 	virtual UPawnMovementComponent* GetMovementComponent() const override;

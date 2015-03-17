@@ -8,9 +8,7 @@
 UCLASS()
 class UMaterialExpressionDotProduct : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionDotProduct(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	FExpressionInput A;

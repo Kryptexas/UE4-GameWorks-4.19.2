@@ -14,6 +14,7 @@ UCLASS(hidecategories=Object)
 class SLATECORE_API USlateWidgetStyleContainerBase : public UObject, public ISlateWidgetStyleContainerInterface
 {
 	GENERATED_BODY()
+
 public:
 
 	virtual const struct FSlateWidgetStyle* const GetStyle() const override;

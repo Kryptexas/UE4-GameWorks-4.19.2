@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionLandscapeVisibilityMask : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionLandscapeVisibilityMask(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** GUID that should be unique within the material, this is used for parameter renaming. */
 	UPROPERTY()

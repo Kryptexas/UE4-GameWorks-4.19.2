@@ -14,7 +14,7 @@
 USTRUCT(BlueprintType)
 struct FGameplayAbilitySpecHandle
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGameplayAbilitySpecHandle()
 	: Handle(INDEX_NONE)
@@ -89,7 +89,6 @@ enum class EGameplayEffectGrantedAbilityRemovePolicy : uint8
 USTRUCT(BlueprintType)
 struct FGameplayAbilitySpecDef
 {
-	GENERATED_BODY()
 	FGameplayAbilitySpecDef()
 		: Level(1)
 		, InputID(INDEX_NONE)
@@ -97,6 +96,7 @@ struct FGameplayAbilitySpecDef
 	{
 	}
 
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditDefaultsOnly, Category="Ability Definition", NotReplicated)
 	TSubclassOf<UGameplayAbility> Ability;
@@ -130,7 +130,7 @@ struct FGameplayAbilitySpecDef
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayAbilityActivationInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGameplayAbilityActivationInfo()
 		: ActivationMode(EGameplayAbilityActivationMode::Authority)
@@ -186,7 +186,7 @@ private:
 USTRUCT()
 struct GAMEPLAYABILITIES_API FGameplayAbilitySpec : public FFastArraySerializerItem
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGameplayAbilitySpec()
 	: Ability(nullptr), Level(1), InputID(INDEX_NONE), SourceObject(nullptr), InputPressed(false), ActiveCount(0), RemoveAfterActivation(false), PendingRemove(false)
@@ -278,7 +278,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilitySpec : public FFastArraySerializerI
 USTRUCT()
 struct GAMEPLAYABILITIES_API FGameplayAbilitySpecContainer : public FFastArraySerializer
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** List of activatable abilities */
 	UPROPERTY()

@@ -11,9 +11,7 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionDepthFade : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionDepthFade(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Input opacity which will be scaled by the result of the fade. */
 	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'OpacityDefault' if not specified"))

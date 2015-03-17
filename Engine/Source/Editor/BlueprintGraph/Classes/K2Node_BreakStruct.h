@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UK2Node_BreakStruct : public UK2Node_StructMemberGet
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_BreakStruct(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	static bool CanBeBroken(const UScriptStruct* Struct);
 	static bool CanCreatePinForProperty(const UProperty* Property);

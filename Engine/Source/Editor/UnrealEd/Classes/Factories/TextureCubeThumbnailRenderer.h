@@ -11,9 +11,7 @@
 UCLASS()
 class UTextureCubeThumbnailRenderer : public UTextureThumbnailRenderer
 {
-	GENERATED_BODY()
-public:
-	UTextureCubeThumbnailRenderer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UThumbnailRenderer Interface

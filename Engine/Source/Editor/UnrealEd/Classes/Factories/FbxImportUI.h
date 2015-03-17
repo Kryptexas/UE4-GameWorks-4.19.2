@@ -25,9 +25,7 @@ enum EFBXImportType
 UCLASS(config=EditorUserSettings, AutoExpandCategories=(FTransform), HideCategories=Object, MinimalAPI)
 class UFbxImportUI : public UObject
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UFbxImportUI(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Whether or not the imported file is in OBJ format */
 	UPROPERTY()

@@ -12,9 +12,7 @@ struct FColorKey;
 UCLASS( MinimalAPI )
 class UMovieSceneColorSection : public UMovieSceneSection
 {
-	GENERATED_BODY()
-public:
-	MOVIESCENECORETYPES_API UMovieSceneColorSection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 public:
 	/** MovieSceneSection interface */
 	virtual void MoveSection( float DeltaPosition ) override;

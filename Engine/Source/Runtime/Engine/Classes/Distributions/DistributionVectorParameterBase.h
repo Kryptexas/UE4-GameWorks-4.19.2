@@ -8,9 +8,7 @@
 UCLASS(abstract, collapsecategories, hidecategories=Object, editinlinenew)
 class UDistributionVectorParameterBase : public UDistributionVectorConstant
 {
-	GENERATED_BODY()
-public:
-	UDistributionVectorParameterBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=DistributionVectorParameterBase)
 	FName ParameterName;

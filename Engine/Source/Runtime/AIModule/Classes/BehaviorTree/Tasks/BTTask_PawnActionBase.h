@@ -20,9 +20,7 @@ class UPawnAction;
 UCLASS(Abstract)
 class AIMODULE_API UBTTask_PawnActionBase : public UBTTaskNode
 {
-	GENERATED_BODY()
-public:
-	UBTTask_PawnActionBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 

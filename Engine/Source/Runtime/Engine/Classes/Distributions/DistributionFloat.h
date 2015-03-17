@@ -20,7 +20,7 @@ struct FFloatDistribution
 USTRUCT()
 struct FRawDistributionFloat : public FRawDistribution
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 private:
 	UPROPERTY()
@@ -71,11 +71,10 @@ public:
 	
 };
 
-UCLASS(abstract,MinimalAPI)
+UCLASS(abstract, customconstructor,MinimalAPI)
 class UDistributionFloat : public UDistribution
 {
-	GENERATED_BODY()
-public:
+	GENERATED_UCLASS_BODY()
 
 	/** Can this variable be baked out to a FRawDistribution? Should be true 99% of the time*/
 	UPROPERTY(EditAnywhere, Category=Baked)

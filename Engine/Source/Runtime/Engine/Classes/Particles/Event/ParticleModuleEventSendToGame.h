@@ -7,9 +7,7 @@
 UCLASS(abstract, editinlinenew, hidecategories=Object)
 class UParticleModuleEventSendToGame : public UObject
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleEventSendToGame(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	/** This is our function to allow subclasses to "do the event action" **/

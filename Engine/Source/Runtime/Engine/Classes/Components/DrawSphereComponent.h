@@ -11,9 +11,7 @@
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
 class UDrawSphereComponent : public USphereComponent
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UDrawSphereComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 #if WITH_EDITOR

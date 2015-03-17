@@ -10,9 +10,7 @@
 UCLASS(editinlinenew, MinimalAPI, meta=( DisplayName="Crossfade by Param" ))
 class USoundNodeParamCrossFade : public USoundNodeDistanceCrossFade
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API USoundNodeParamCrossFade(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

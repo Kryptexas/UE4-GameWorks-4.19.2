@@ -11,7 +11,7 @@ class UAISenseConfig_Hearing;
 USTRUCT()
 struct AIMODULE_API FAINoiseEvent
 {	
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	typedef class UAISense_Hearing FSenseClass;
 
@@ -39,9 +39,7 @@ struct AIMODULE_API FAINoiseEvent
 UCLASS(ClassGroup=AI, Config=Game)
 class AIMODULE_API UAISense_Hearing : public UAISense
 {
-	GENERATED_BODY()
-public:
-	UAISense_Hearing(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 		
 protected:
 	UPROPERTY()

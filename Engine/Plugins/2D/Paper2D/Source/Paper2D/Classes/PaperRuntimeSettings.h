@@ -10,9 +10,7 @@
 UCLASS(config = Engine, defaultconfig)
 class PAPER2D_API UPaperRuntimeSettings : public UObject
 {
-	GENERATED_BODY()
-public:
-	UPaperRuntimeSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// The default scaling factor between pixels and Unreal units (cm) to use for newly created sprite assets (e.g., 0.64 would make a 64 pixel wide sprite take up 100 cm)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=Settings)

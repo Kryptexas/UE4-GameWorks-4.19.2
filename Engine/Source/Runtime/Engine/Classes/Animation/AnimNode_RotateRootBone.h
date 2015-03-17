@@ -9,7 +9,7 @@
 USTRUCT()
 struct ENGINE_API FAnimNode_RotateRootBone : public FAnimNode_Base
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Links)
 	FPoseLink BasePose;

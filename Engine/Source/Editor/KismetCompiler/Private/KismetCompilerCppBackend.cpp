@@ -774,8 +774,7 @@ void FKismetCppBackend::GenerateCodeFromClass(UClass* SourceClass, TIndirectArra
 	Emit(Header,
 		TEXT("{\n")
 		TEXT("public:\n"));
-	Emit(Header, *FString::Printf(TEXT("\tGENERATED_BODY()\n")));
-	Emit(Header, *FString::Printf(TEXT("public:\n")));
+	Emit(Header, *FString::Printf(TEXT("\tGENERATED_UCLASS_BODY()\n")));
 
 	EmitClassProperties(Header, SourceClass);
 
@@ -794,6 +793,11 @@ void FKismetCppBackend::GenerateCodeFromClass(UClass* SourceClass, TIndirectArra
 
 	Emit(Body, *FString::Printf(TEXT("#include \"%s.h\"\n"), FApp::GetGameName()));
 	Emit(Body, TEXT("#include \"GeneratedCodeHelpers.h\"\n\n"));
+
+	//constructor
+	Emit(Body, *FString::Printf(
+		TEXT("%s::%s(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}\n\n"),
+		*CppClassName, *CppClassName));
 
 	for (int32 i = 0; i < Functions.Num(); ++i)
 	{

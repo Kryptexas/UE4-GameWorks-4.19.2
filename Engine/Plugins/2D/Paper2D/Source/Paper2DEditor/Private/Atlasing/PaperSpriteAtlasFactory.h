@@ -7,9 +7,7 @@
 UCLASS()
 class UPaperSpriteAtlasFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	UPaperSpriteAtlasFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// UFactory interface
 	virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) override;

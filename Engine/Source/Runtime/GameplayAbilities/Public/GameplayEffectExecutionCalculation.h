@@ -14,7 +14,7 @@ class UAbilitySystemComponent;
 USTRUCT()
 struct GAMEPLAYABILITIES_API FGameplayEffectCustomExecutionParameters
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 
@@ -112,7 +112,7 @@ private:
 USTRUCT()
 struct GAMEPLAYABILITIES_API FGameplayEffectCustomExecutionOutput
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 
@@ -168,9 +168,7 @@ private:
 UCLASS(BlueprintType, Blueprintable, Abstract)
 class GAMEPLAYABILITIES_API UGameplayEffectExecutionCalculation : public UGameplayEffectCalculation
 {
-	GENERATED_BODY()
-public:
-	UGameplayEffectExecutionCalculation(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 protected:
 
@@ -212,5 +210,4 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, Category="Calculation")
 	void Execute(const FGameplayEffectCustomExecutionParameters& ExecutionParams, FGameplayEffectCustomExecutionOutput& OutExecutionOutput) const;
-	virtual void Execute_Implementation(const FGameplayEffectCustomExecutionParameters& ExecutionParams, FGameplayEffectCustomExecutionOutput& OutExecutionOutput) const;
 };

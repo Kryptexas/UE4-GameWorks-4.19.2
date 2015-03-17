@@ -10,9 +10,7 @@
 UCLASS(Abstract, Blueprintable, notplaceable, config=Game)
 class GAMEPLAYABILITIES_API AGameplayAbilityTargetActor_Trace : public AGameplayAbilityTargetActor
 {
-	GENERATED_BODY()
-public:
-	AGameplayAbilityTargetActor_Trace(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;

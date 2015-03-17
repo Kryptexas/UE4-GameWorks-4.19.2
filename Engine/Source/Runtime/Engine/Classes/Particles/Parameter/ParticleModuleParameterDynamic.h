@@ -37,7 +37,7 @@ enum EEmitterDynamicParameterValue
 USTRUCT()
 struct FEmitterDynamicParameter
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The parameter name - from the material DynamicParameter expression. READ-ONLY */
 	UPROPERTY(Category=EmitterDynamicParameter, VisibleAnywhere, BlueprintReadWrite)
@@ -86,9 +86,7 @@ struct FEmitterDynamicParameter
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Dynamic"))
 class UParticleModuleParameterDynamic : public UParticleModuleParameterBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleParameterDynamic(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The dynamic parameters this module uses. */
 	UPROPERTY(EditAnywhere, editfixedsize, Category=ParticleModuleParameterDynamic)

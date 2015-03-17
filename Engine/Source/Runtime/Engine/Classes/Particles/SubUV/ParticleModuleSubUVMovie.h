@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, hidecategories=SubUV, meta=(DisplayName = "SubUV Movie"))
 class UParticleModuleSubUVMovie : public UParticleModuleSubUV
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleSubUVMovie(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 *	If true, use the emitter time to look up the frame rate.
