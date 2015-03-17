@@ -1588,8 +1588,7 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FA2Pose & SourceP
 
 void UAnimInstance::ReinitializeSlotNodes()
 {
-	ActiveSlotWeights.Empty();
-	ActiveSlotRootMotionWeights.Empty();
+	SlotWeightTracker.Empty();
 	
 	// Increment counter
 	SlotNodeInitializationCounter++;
@@ -1604,63 +1603,55 @@ void UAnimInstance::RegisterSlotNodeWithAnimInstance(FName SlotNodeName)
 {
 	// verify if same slot node name exists
 	// then warn users, this is invalid
-	for (auto Iter = ActiveSlotWeights.CreateConstIterator(); Iter; ++Iter)
+	if (SlotWeightTracker.Contains(SlotNodeName))
 	{
-		// if same name found, we should warn user, and make sure they know about it
-		if (SlotNodeName == Iter.Key())
-		{
-			FMessageLog("AnimBlueprint").Warning(FText::Format(LOCTEXT("AnimInstance_SlotNode", "SLOTNODE: '{0}' already exists. Each slot node has to have unique name."), FText::FromString(SlotNodeName.ToString())));
-			return;
-		}
+		FMessageLog("AnimBlueprint").Warning(FText::Format(LOCTEXT("AnimInstance_SlotNode", "SLOTNODE: '{0}' already exists. Each slot node has to have unique name."), FText::FromString(SlotNodeName.ToString())));
+		return;
 	}
 
-	ActiveSlotWeights.Add(SlotNodeName, 0.f);
-	ActiveSlotRootMotionWeights.Add(SlotNodeName, 0.f);
+	SlotWeightTracker.Add(SlotNodeName, FMontageActiveSlotTracker());
 }
 
 void UAnimInstance::UpdateSlotNodeWeight(FName SlotNodeName, float Weight)
 {
-	float* CurrentWeight = ActiveSlotWeights.Find(SlotNodeName);
-	if (CurrentWeight)
+	FMontageActiveSlotTracker* Tracker = SlotWeightTracker.Find(SlotNodeName);
+	if (Tracker)
 	{
-		*CurrentWeight = Weight;
+		// Count as relevant if we are weighted in
+		Tracker->bIsRelevantThisTick = Tracker->bIsRelevantThisTick || Weight > ZERO_ANIMWEIGHT_THRESH;
 	}
 }
 
 void UAnimInstance::ClearSlotNodeWeights()
 {
-	for (auto Iter = ActiveSlotWeights.CreateIterator(); Iter; ++Iter)
+	for (auto Iter = SlotWeightTracker.CreateIterator(); Iter; ++Iter)
 	{
-		float& Weight = Iter.Value();
-		Weight = 0.f;
-	}
-
-	for (auto Iter = ActiveSlotRootMotionWeights.CreateIterator(); Iter; ++Iter)
-	{
-		float& Weight = Iter.Value();
-		Weight = 0.f;
+		FMontageActiveSlotTracker& Tracker = Iter.Value();
+		Tracker.bWasRelevantOnPreviousTick = Tracker.bIsRelevantThisTick;
+		Tracker.bIsRelevantThisTick = false;
+		Tracker.RootMotionWeight = 0.f;
 	}
 }
 
-bool UAnimInstance::IsActiveSlotNode(FName SlotNodeName) const
+bool UAnimInstance::IsSlotNodeRelevantForNotifies(FName SlotNodeName) const
 {
-	const float* SlotNodeWeight = ActiveSlotWeights.Find(SlotNodeName);
-	return ( SlotNodeWeight && (*SlotNodeWeight > ZERO_ANIMWEIGHT_THRESH) );
+	const FMontageActiveSlotTracker* Tracker = SlotWeightTracker.Find(SlotNodeName);
+	return ( Tracker && (Tracker->bIsRelevantThisTick || Tracker->bWasRelevantOnPreviousTick) );
 }
 
 void UAnimInstance::UpdateSlotRootMotionWeight(FName SlotNodeName, float Weight)
 {
-	float* CurrentWeight = ActiveSlotRootMotionWeights.Find(SlotNodeName);
-	if (CurrentWeight)
+	FMontageActiveSlotTracker* Tracker = SlotWeightTracker.Find(SlotNodeName);
+	if (Tracker)
 	{
-		*CurrentWeight += Weight;
+		Tracker->RootMotionWeight += Weight;
 	}
 }
 
 float UAnimInstance::GetSlotRootMotionWeight(FName SlotNodeName) const
 {
-	const float* SlotNodeWeight = ActiveSlotRootMotionWeights.Find(SlotNodeName);
-	return SlotNodeWeight ? *SlotNodeWeight : 0.f;
+	const FMontageActiveSlotTracker* Tracker = SlotWeightTracker.Find(SlotNodeName);
+	return Tracker ? Tracker->RootMotionWeight : 0.f;
 }
 
 float UAnimInstance::GetCurveValue(FName CurveName)

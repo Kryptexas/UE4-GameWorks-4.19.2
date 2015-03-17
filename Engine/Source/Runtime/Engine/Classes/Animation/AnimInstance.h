@@ -337,6 +337,20 @@ struct FNativeStateBinding
 	}
 };
 
+/** Tracks state of active slot nodes in the graph */
+struct FMontageActiveSlotTracker
+{
+	//Weighting of root motion from this montage
+	float RootMotionWeight;
+
+	//Is the montage slot part of the active graph this tick
+	bool  bIsRelevantThisTick;
+
+	//Was the motnage slot part of the active graph last tick
+	bool  bWasRelevantOnPreviousTick;
+
+	FMontageActiveSlotTracker() : RootMotionWeight(0.f), bIsRelevantThisTick(false), bWasRelevantOnPreviousTick(false) {}
+};
 
 UCLASS(transient, Blueprintable, hideCategories=AnimInstance, BlueprintType)
 class ENGINE_API UAnimInstance : public UObject
@@ -404,7 +418,7 @@ public:
 	void UpdateSlotNodeWeight(FName SlotNodeName, float Weight);
 	// if it doesn't tick, it will keep old weight, so we'll have to clear it in the beginning of tick
 	void ClearSlotNodeWeights();
-	bool IsActiveSlotNode(FName SlotNodeName) const;
+	bool IsSlotNodeRelevantForNotifies(FName SlotNodeName) const;
 
 	// Allow slot nodes to store off their root motion weight during ticking
 	void UpdateSlotRootMotionWeight(FName SlotNodeName, float Weight);
@@ -769,10 +783,7 @@ private:
 	UPROPERTY(Transient)
 	int16 GraphTraversalCounter;
 
-	TMap<FName, float> ActiveSlotWeights;
-
-	// Mapping from slot name to weighting for that root motion
-	TMap<FName, float> ActiveSlotRootMotionWeights;
+	TMap<FName, FMontageActiveSlotTracker> SlotWeightTracker;
 
 public:
 	/** 

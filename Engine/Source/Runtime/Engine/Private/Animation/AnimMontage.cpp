@@ -1098,6 +1098,10 @@ void FAnimMontageInstance::UpdateWeight(float DeltaTime)
 
 		// update weight
 		FAnimationRuntime::TickBlendWeight(DeltaTime, DesiredWeight, Weight, BlendTime);
+
+		// Notify weight is max of previous and current as notify could have come
+		// from any point between now and last tick
+		NotifyWeight = FMath::Max(PreviousWeight, Weight);
 	}
 }
 
@@ -1381,7 +1385,7 @@ void FAnimMontageInstance::HandleEvents(float PreviousTrackPos, float CurrentTra
 		// we'll do this for all slots for now
 		for (auto SlotTrack = Montage->SlotAnimTracks.CreateIterator(); SlotTrack; ++SlotTrack)
 		{
-			if (AnimInstance->IsActiveSlotNode(SlotTrack->SlotName))
+			if (AnimInstance->IsSlotNodeRelevantForNotifies(SlotTrack->SlotName))
 			{
 				for (auto AnimSegment = SlotTrack->AnimTrack.AnimSegments.CreateIterator(); AnimSegment; ++AnimSegment)
 				{
@@ -1391,7 +1395,7 @@ void FAnimMontageInstance::HandleEvents(float PreviousTrackPos, float CurrentTra
 		}
 
 		// Queue all these notifies.
-		AnimInstance->AddAnimNotifies(Notifies, Weight);
+		AnimInstance->AddAnimNotifies(Notifies, NotifyWeight);
 	}
 
 	// Update active state branching points, before we handle the immediate tick marker.

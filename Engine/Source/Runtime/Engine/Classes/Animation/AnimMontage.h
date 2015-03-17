@@ -192,6 +192,10 @@ public:
 	// transient PreviousWeight - Weight of previous tick
 	float PreviousWeight;
 
+	// transient NotifyWeight   - Weight for spawned notifies, modified slightly to make sure
+	//                          - we spawn all notifies
+	float NotifyWeight;
+
 	/** Currently Active AnimNotifyState, stored as a copy of the event as we need to
 		call NotifyEnd on the event after a deletion in the editor. After this the event
 		is removed correctly. */
