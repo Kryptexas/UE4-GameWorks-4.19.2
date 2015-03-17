@@ -2,9 +2,10 @@
 
 #include "CodeEditorPrivatePCH.h"
 #include "SProjectViewItem.h"
-#include "CodeEditorStyle.h"
+
 
 #define LOCTEXT_NAMESPACE "ProjectViewItem"
+
 
 void SProjectViewItem::Construct(const FArguments& InArgs)
 {
@@ -31,5 +32,6 @@ void SProjectViewItem::Construct(const FArguments& InArgs)
 		]
 	];
 }
+
 
 #undef LOCTEXT_NAMESPACE

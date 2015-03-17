@@ -2,6 +2,10 @@
 
 #pragma once
 
+
+/* Private dependencies
+ *****************************************************************************/
+
 #include "Core.h"
 #include "CoreUObject.h"
 #include "SlateBasics.h"
@@ -9,3 +13,13 @@
 #include "PropertyEditing.h"
 #include "UnrealEd.h"
 #include "DirectoryWatcherModule.h"
+
+
+/* Private includes
+ *****************************************************************************/
+
+#include "CodeEditorStyle.h"
+#include "CodeProject.h"
+#include "CodeProjectEditorCommands.h"
+#include "CodeProjectEditor.h"
+#include "CodeProjectItem.h"

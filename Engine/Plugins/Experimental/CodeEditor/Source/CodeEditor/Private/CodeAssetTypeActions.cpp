@@ -2,10 +2,10 @@
 
 #include "CodeEditorPrivatePCH.h"
 #include "CodeAssetTypeActions.h"
-#include "CodeProjectEditor.h"
-#include "CodeProject.h"
+
 
 #define LOCTEXT_NAMESPACE "CodeAssetTypeActions"
+
 
 FText FCodeAssetTypeActions::GetName() const
 {

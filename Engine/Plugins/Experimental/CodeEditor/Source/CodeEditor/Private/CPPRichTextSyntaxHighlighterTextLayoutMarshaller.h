@@ -2,7 +2,7 @@
 #pragma once
 
 #include "SyntaxHighlighterTextLayoutMarshaller.h"
-#include "CodeEditorStyle.h"
+
 
 /**
  * Get/set the raw text to/from a text layout, and also inject syntax highlighting for our rich-text markup

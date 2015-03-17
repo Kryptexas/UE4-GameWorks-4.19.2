@@ -4,8 +4,6 @@
 #include "ModuleManager.h"
 #include "AssetToolsModule.h"
 #include "AssetEditorToolkit.h"
-#include "CodeEditorStyle.h"
-#include "CodeProjectEditor.h"
 #include "LevelEditor.h"
 
 static const FName CodeEditorTabName( TEXT( "CodeEditor" ) );

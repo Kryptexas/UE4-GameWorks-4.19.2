@@ -1,15 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "CodeEditorPrivatePCH.h"
-#include "CodeProjectEditor.h"
 #include "SCodeEditor.h"
 #include "SCodeProjectEditor.h"
-#include "CodeProject.h"
-#include "CodeProjectItem.h"
-#include "CodeEditorStyle.h"
 #include "SDockTab.h"
 #include "CodeProjectEditorToolbar.h"
-#include "CodeProjectEditorCommands.h"
+
 
 #define LOCTEXT_NAMESPACE "CodeEditor"
 

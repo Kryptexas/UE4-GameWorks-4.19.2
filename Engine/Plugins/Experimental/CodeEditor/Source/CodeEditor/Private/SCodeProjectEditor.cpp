@@ -3,15 +3,12 @@
 #include "CodeEditorPrivatePCH.h"
 #include "SCodeProjectEditor.h"
 #include "SProjectViewItem.h"
-#include "CodeEditorStyle.h"
-#include "CodeProjectItem.h"
 #include "DirectoryScanner.h"
-#include "CodeProjectEditor.h"
-#include "CodeProject.h"
-#include "CodeProjectItem.h"
 #include "SThrobber.h"
 
+
 #define LOCTEXT_NAMESPACE "CodeProjectEditor"
+
 
 void SCodeProjectEditor::Construct(const FArguments& InArgs, UCodeProject* InCodeProject)
 {

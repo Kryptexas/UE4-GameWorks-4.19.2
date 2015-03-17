@@ -2,7 +2,7 @@
 
 #include "CodeEditorPrivatePCH.h"
 #include "SCodeEditableText.h"
-#include "CodeEditorStyle.h"
+
 
 void SCodeEditableText::Construct( const FArguments& InArgs )
 {

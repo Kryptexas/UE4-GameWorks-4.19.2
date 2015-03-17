@@ -2,11 +2,10 @@
 
 #include "CodeEditorPrivatePCH.h"
 #include "CodeProjectEditorToolbar.h"
-#include "CodeProjectEditorCommands.h"
 #include "LevelEditorActions.h"
 #include "SourceCodeNavigation.h"
 #include "EditorStyleSet.h"
-#include "CodeProjectEditor.h"
+
 
 void FCodeProjectEditorToolbar::AddEditorToolbar(TSharedPtr<FExtender> Extender)
 {

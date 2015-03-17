@@ -4,11 +4,11 @@
 #include "SCodeEditor.h"
 #include "SMultiLineEditableText.h"
 #include "CPPRichTextSyntaxHighlighterTextLayoutMarshaller.h"
-#include "CodeEditorStyle.h"
-#include "CodeProjectItem.h"
 #include "SCodeEditableText.h"
 
+
 #define LOCTEXT_NAMESPACE "CodeEditor"
+
 
 void SCodeEditor::Construct(const FArguments& InArgs, UCodeProjectItem* InCodeProjectItem)
 {
