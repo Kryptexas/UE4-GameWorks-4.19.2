@@ -708,7 +708,7 @@ void UCharacterMovementComponent::OnMovementModeChanged(EMovementMode PreviousMo
 		// make sure we update our new floor/base on initial entry of the walking physics
 		FindFloor(UpdatedComponent->GetComponentLocation(), CurrentFloor, false);
 		AdjustFloorHeight();
-		SetBase(CurrentFloor.HitResult.Component.Get(), CurrentFloor.HitResult.BoneName);
+		SetBaseFromFloor(CurrentFloor);
 	}
 	else
 	{
@@ -1263,7 +1263,19 @@ void UCharacterMovementComponent::SetBase( UPrimitiveComponent* NewBase, FName B
 {
 	if (CharacterOwner)
 	{
-		CharacterOwner->SetBase(NewBase, BoneName, bNotifyActor);
+		CharacterOwner->SetBase(NewBase, NewBase ? BoneName : NAME_None, bNotifyActor);
+	}
+}
+
+void UCharacterMovementComponent::SetBaseFromFloor(const FFindFloorResult& FloorResult)
+{
+	if (FloorResult.IsWalkableFloor())
+	{
+		SetBase(FloorResult.HitResult.GetComponent(), FloorResult.HitResult.BoneName);
+	}
+	else
+	{
+		SetBase(nullptr);
 	}
 }
 
@@ -6532,8 +6544,16 @@ void UCharacterMovementComponent::ClientAdjustPosition_Implementation
 		if (PreviousBase)
 		{
 			FindFloor(UpdatedComponent->GetComponentLocation(), CurrentFloor, false);
-			FinalBase = CurrentFloor.HitResult.Component.Get();
-			FinalBaseBoneName = CurrentFloor.HitResult.BoneName;
+			if (CurrentFloor.IsWalkableFloor())
+			{
+				FinalBase = CurrentFloor.HitResult.Component.Get();
+				FinalBaseBoneName = CurrentFloor.HitResult.BoneName;
+			}
+			else
+			{
+				FinalBase = nullptr;
+				FinalBaseBoneName = NAME_None;
+			}
 		}
 	}
 	SetBase(FinalBase, FinalBaseBoneName);

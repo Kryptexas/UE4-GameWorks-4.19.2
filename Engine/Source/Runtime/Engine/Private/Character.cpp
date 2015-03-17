@@ -545,8 +545,12 @@ namespace MovementBaseUtility
 
 
 /**	Change the Pawn's base. */
-void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, const FName BoneName, bool bNotifyPawn )
+void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, const FName InBoneName, bool bNotifyPawn )
 {
+	// If NewBaseComponent is null, ignore bone name.
+	const FName BoneName = (NewBaseComponent ? InBoneName : NAME_None);
+
+	// See what changed.
 	const bool bBaseChanged = (NewBaseComponent != BasedMovement.MovementBase);
 	const bool bBoneChanged = (BoneName != BasedMovement.BoneName);
 

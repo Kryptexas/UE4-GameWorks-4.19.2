@@ -1028,8 +1028,13 @@ public:
 	 */
 	virtual bool StepUp(const FVector& GravDir, const FVector& Delta, const FHitResult &Hit, struct UCharacterMovementComponent::FStepDownResult* OutStepDownResult = NULL);
 
-	/** Update the base of the character, which is the obejct we are standing on. */
+	/** Update the base of the character, which is the PrimitiveComponent we are standing on. */
 	virtual void SetBase(UPrimitiveComponent* NewBase, const FName BoneName = NAME_None, bool bNotifyActor=true);
+
+	/**
+	 * Update the base of the character, using the given floor result if it is walkable, or null if not. Calls SetBase().
+	 */
+	void SetBaseFromFloor(const FFindFloorResult& FloorResult);
 
 	/** Applies repulsion force to all touched components. */
 	virtual void ApplyRepulsionForce(float DeltaSeconds);
@@ -1407,21 +1412,22 @@ protected:
 	 * Sweeps a vertical trace to find the floor for the capsule at the given location. Will attempt to perch if ShouldComputePerchResult() returns true for the downward sweep result.
 	 *
 	 * @param CapsuleLocation:		Location where the capsule sweep should originate
-	 * @param OutFloorResult:		[Out] Contains the result of the floor check.
+	 * @param OutFloorResult:		[Out] Contains the result of the floor check. The HitResult will contain the valid sweep or line test upon success, or the result of the sweep upon failure.
 	 * @param bZeroDelta:			If true, the capsule was not actively moving in this update (can be used to avoid unnecessary floor tests).
 	 * @param DownwardSweepResult:	If non-null and it contains valid blocking hit info, this will be used as the result of a downward sweep test instead of doing it as part of the update.
 	 */
 	virtual void FindFloor(const FVector& CapsuleLocation, struct FFindFloorResult& OutFloorResult, bool bZeroDelta, const FHitResult* DownwardSweepResult = NULL) const;
 
 	/**
-	 * Compute distance to the floor from bottom sphere of capsule. This is the swept distance of the capsule to the first point impacted by the lower sphere.
+	 * Compute distance to the floor from bottom sphere of capsule and store the result in OutFloorResult.
+	 * This distance is the swept distance of the capsule to the first point impacted by the lower hemisphere, or distance from the bottom of the capsule in the case of a line trace.
 	 * SweepDistance MUST be greater than or equal to the line distance.
 	 * @see FindFloor
 	 *
 	 * @param CapsuleLocation:	Location of the capsule used for the query
-	 * @param LineDistance:		If non-zero, max distance to test for a simple line check from the capsule base. Used before the sweep test, and only returns a valid result if the impact normal is a walkable normal.
+	 * @param LineDistance:		If non-zero, max distance to test for a simple line check from the capsule base. Used only if the sweep test fails to find a walkable floor, and only returns a valid result if the impact normal is a walkable normal.
 	 * @param SweepDistance:	If non-zero, max distance to use when sweeping a capsule downwards for the test.
-	 * @param OutFloorResult:	Result of the floor check.
+	 * @param OutFloorResult:	Result of the floor check. The HitResult will contain the valid sweep or line test upon success, or the result of the sweep upon failure.
 	 * @param SweepRadius:		The radius to use for sweep tests. Should be <= capsule radius.
 	 * @param DownwardSweepResult:	If non-null and it contains valid blocking hit info, this will be used as the result of a downward sweep test instead of doing it as part of the update.
 	 */
