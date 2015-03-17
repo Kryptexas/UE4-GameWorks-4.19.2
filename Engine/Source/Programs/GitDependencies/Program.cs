@@ -181,6 +181,10 @@ namespace GitDependencies
 				{
 					ExcludeFolders.Add("Android");
 				}
+				if(Environment.OSVersion.Platform == PlatformID.Win32NT && Environment.GetEnvironmentVariable("LINUX_ROOT") == null)
+				{
+					ExcludeFolders.Add("Linux");
+				}
 			}
 
 			// Parse all the explicit include filters
