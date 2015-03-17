@@ -2,6 +2,7 @@
 
 #include "CodeEditorPrivatePCH.h"
 #include "CodeProjectEditorCommands.h"
+#include "CodeEditorStyle.h"
 
 #define LOCTEXT_NAMESPACE "CodeProjectEditorCommands"
 
