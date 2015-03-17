@@ -97,6 +97,8 @@ private:
 
 private:
 
+	void RefreshDisplayCache();
+
 	struct SDLControllerState
 	{
 		SDL_HController controller;
@@ -149,11 +151,11 @@ private:
 	/** Used to check with cursor type is current and set to true if left button is pressed.*/
 	bool bLockToCurrentMouseType;
 
-	/** Cached work area - to reduce costly communication with X server (may be better cached in SDL? avoids ugly 'mutable') */
-	mutable FPlatformRect	CachedWorkArea;
+	/** Cached displays - to reduce costly communication with X server (may be better cached in SDL? avoids ugly 'mutable') */
+	mutable TArray<SDL_Rect>	CachedDisplays;
 
 	/** Last time we asked about work area (this is a hack. What we need is a callback when screen config changes). */
-	mutable double			LastTimeCachedWorkArea;
+	mutable double			LastTimeCachedDisplays;
 };
 
 extern FLinuxApplication* LinuxApplication;
