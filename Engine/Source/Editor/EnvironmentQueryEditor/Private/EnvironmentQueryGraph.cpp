@@ -103,8 +103,11 @@ void UEnvironmentQueryGraph::UpdateAsset(int32 UpdateFlags)
 void UEnvironmentQueryGraph::Initialize()
 {
 	Super::Initialize();
+	
+	LockUpdates();
 	SpawnMissingNodes();
 	CalculateAllWeights();
+	UnlockUpdates();
 }
 
 void UEnvironmentQueryGraph::OnLoaded()
