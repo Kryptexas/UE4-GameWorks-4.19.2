@@ -801,7 +801,11 @@ void SMultiLineEditableText::TypeChar( const int32 Character )
 	// Certain characters are not allowed
 	bool bIsCharAllowed = true;
 	{
-		if( Character <= 0x1F )
+		if( Character == TEXT('\t') )
+		{
+			bIsCharAllowed = true;
+		}
+		else if( Character <= 0x1F )
 		{
 			bIsCharAllowed = false;
 		}

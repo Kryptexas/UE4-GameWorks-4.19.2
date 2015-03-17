@@ -646,7 +646,11 @@ void SEditableText::TypeChar( const int32 InChar )
 	// Certain characters are not allowed
 	bool bIsCharAllowed = true;
 	{
-		if( InChar <= 0x1F )
+		if( InChar == TEXT('\t') )
+		{
+			bIsCharAllowed = true;
+		}
+		else if( InChar <= 0x1F )
 		{
 			bIsCharAllowed = false;
 		}
