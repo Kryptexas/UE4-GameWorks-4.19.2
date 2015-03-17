@@ -449,7 +449,10 @@ void UGameplayDebuggingComponent::CollectBasicPathData(APawn* MyPawn)
 	AAIController* MyAIController = Cast<AAIController>(MyPawn->GetController());
 
 	const ANavigationData* NavData = NavSys->GetNavDataForProps(MyAIController->GetNavAgentPropertiesRef());
-	NavDataInfo = NavData->GetConfig().Name.ToString();
+	if (NavData)
+	{
+		NavDataInfo = NavData->GetConfig().Name.ToString();
+	}
 
 	UPathFollowingComponent* PFC = MyAIController->GetPathFollowingComponent();
 	bIsUsingPathFollowing = (PFC != nullptr);
