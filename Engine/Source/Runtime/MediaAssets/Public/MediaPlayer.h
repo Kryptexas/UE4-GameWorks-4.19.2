@@ -286,14 +286,6 @@ protected:
 
 protected:
 
-	/** Whether this media should automatically start playing when it is loaded. */
-	UPROPERTY(EditAnywhere, Category=Playback)
-	uint32 AutoPlay:1;
-
-	/** The default playback rate when auto play is enabled. */
-	UPROPERTY(EditAnywhere, Category=Playback)
-	float AutoPlayRate;
-
 	/** Whether playback should loop when it reaches the end. */
 	UPROPERTY(EditAnywhere, Category=Playback)
 	uint32 Looping:1;

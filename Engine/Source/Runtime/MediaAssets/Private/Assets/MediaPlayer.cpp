@@ -10,8 +10,6 @@
 
 UMediaPlayer::UMediaPlayer( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
-	, AutoPlay(false)
-	, AutoPlayRate(1.0f)
 	, Looping(true)
 	, StreamMode(MASM_FromUrl)
 	, Player(nullptr)
@@ -286,17 +284,9 @@ void UMediaPlayer::InitializePlayer()
 		}
 	}
 
-	if (!Player.IsValid())
+	if (Player.IsValid())
 	{
-		return;
-	}
-
-	// start playback, if desired
-	Player->SetLooping(Looping);
-    
-	if (AutoPlay)
-	{
-		Player->SetRate(AutoPlayRate);
+		Player->SetLooping(Looping);
 	}
 }
 
