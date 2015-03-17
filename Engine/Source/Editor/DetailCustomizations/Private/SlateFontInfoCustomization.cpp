@@ -102,6 +102,17 @@ void FSlateFontInfoStructCustomization::OnFontChanged(const FAssetData& InAssetD
 		// We've changed (or cleared) the font asset, so make sure and update the typeface entry name being used by the font info
 		TypefaceFontNameProperty->SetValue(FirstFontName);
 	}
+
+	if(!FontAsset)
+	{
+		const FString PropertyPath = FontObjectProperty->GeneratePathToProperty();
+		TArray<UObject*> PropertyOuterObjects;
+		FontObjectProperty->GetOuterObjects(PropertyOuterObjects);
+		for(const UObject* OuterObject : PropertyOuterObjects)
+		{
+			UE_LOG(LogSlate, Warning, TEXT("FSlateFontInfo property '%s' on object '%s' was set to use a null UFont. Slate will be forced to use the fallback font path which may be slower."), *PropertyPath, *OuterObject->GetPathName());
+		}
+	}
 }
 
 bool FSlateFontInfoStructCustomization::IsFontEntryComboEnabled() const

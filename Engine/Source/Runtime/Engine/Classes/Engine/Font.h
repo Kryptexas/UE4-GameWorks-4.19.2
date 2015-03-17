@@ -182,7 +182,7 @@ public:
 	/** IFontProviderInterface */
 	virtual const FCompositeFont* GetCompositeFont() const override
 	{
-		return &CompositeFont;
+		return (FontCacheType == EFontCacheType::Runtime) ? &CompositeFont : nullptr;
 	}
 
 	/** Get the info needed to use this UFont with Slate, using the fallback data for legacy Canvas APIs */
