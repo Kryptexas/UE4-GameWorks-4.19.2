@@ -109,9 +109,10 @@ ULineBatchComponent::ULineBatchComponent(const FObjectInitializer& ObjectInitial
 	bGenerateOverlapEvents = false;
 }
 
-void ULineBatchComponent::DrawLine(const FVector& Start,const FVector& End,const FLinearColor& Color,uint8 DepthPriority,const float Thickness, const float LifeTime)
+void ULineBatchComponent::DrawLine(const FVector& Start, const FVector& End, const FLinearColor& Color, uint8 DepthPriority, const float Thickness, const float LifeTime)
 {
-	new(BatchedLines) FBatchedLine(Start,End,Color,LifeTime,Thickness,DepthPriority);
+	new(BatchedLines) FBatchedLine(Start, End, Color, LifeTime, Thickness, DepthPriority);
+
 	// LineBatcher and PersistentLineBatcher components will be updated at the end of UWorld::Tick
 	MarkRenderStateDirty();
 }
@@ -119,6 +120,7 @@ void ULineBatchComponent::DrawLine(const FVector& Start,const FVector& End,const
 void ULineBatchComponent::DrawLines(const TArray<FBatchedLine>& InLines)
 {
 	BatchedLines.Append(InLines);
+	
 	// LineBatcher and PersistentLineBatcher components will be updated at the end of UWorld::Tick
 	MarkRenderStateDirty();
 }
