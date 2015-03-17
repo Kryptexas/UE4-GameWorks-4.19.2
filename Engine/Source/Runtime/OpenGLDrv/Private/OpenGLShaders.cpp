@@ -1780,7 +1780,7 @@ static FString GetShaderStageSource(TOpenGLStage* Shader)
 				ANSICHAR* Code = new ANSICHAR[Len + 1];
 				glGetShaderSource(Shaders[i], Len + 1, &Len, Code);
 				Source += Code;
-				delete Code;
+				delete [] Code;
 			}
 		}
 	}
