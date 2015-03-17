@@ -526,7 +526,7 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const UEnvQu
 			CreateOptionInstance(LocalOption, SortedTests, *InstanceTemplate);
 		}
 
-		check(InstanceTemplate->Options.Num() == 0);
+		check(InstanceTemplate->Options.Num() != 0);
 	}
 
 	// create new instance
