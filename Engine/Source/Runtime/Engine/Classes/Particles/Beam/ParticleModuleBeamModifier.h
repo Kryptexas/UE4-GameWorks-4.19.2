@@ -25,7 +25,7 @@ enum BeamModifierType
 USTRUCT()
 struct FBeamModifierOptions
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** If true, modify the value associated with this grouping.	*/
 	UPROPERTY(EditAnywhere, Category=BeamModifierOptions)
@@ -52,9 +52,7 @@ struct FBeamModifierOptions
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Beam Modifier"))
 class UParticleModuleBeamModifier : public UParticleModuleBeamBase
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleBeamModifier(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**	Whether this module modifies the Source or the Target. */
 	UPROPERTY(EditAnywhere, Category=Modifier)

@@ -18,9 +18,7 @@ namespace EOutputJson
 UCLASS()
 class UGatherTextCommandlet : public UGatherTextCommandletBase
 {
-    GENERATED_BODY()
-public:
-    UGatherTextCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+    GENERATED_UCLASS_BODY()
 public:
 	// Begin UCommandlet Interface
 	virtual int32 Main(const FString& Params) override;

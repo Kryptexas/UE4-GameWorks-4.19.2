@@ -7,9 +7,7 @@
 UCLASS()
 class UPaperSpriteActorFactory : public UActorFactory
 {
-	GENERATED_BODY()
-public:
-	UPaperSpriteActorFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin UActorFactory Interface
 	virtual void PostSpawnActor(UObject* Asset, AActor* NewActor) override;

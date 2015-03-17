@@ -16,9 +16,7 @@ class UK2Node;
 UCLASS(Transient)
 class BLUEPRINTGRAPH_API UBlueprintFieldNodeSpawner : public UBlueprintNodeSpawner
 {
-	GENERATED_BODY()
-public:
-	UBlueprintFieldNodeSpawner(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	DECLARE_DELEGATE_TwoParams(FSetNodeFieldDelegate, UEdGraphNode*, UField const*);
 
 public:

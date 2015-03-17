@@ -15,7 +15,7 @@
 USTRUCT()
 struct ENGINE_API FAnimNode_HandIKRetargeting : public FAnimNode_SkeletalControlBase
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Bone for Right Hand FK */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HandIKRetargeting")

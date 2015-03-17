@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionSquareRoot : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionSquareRoot(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	FExpressionInput Input;

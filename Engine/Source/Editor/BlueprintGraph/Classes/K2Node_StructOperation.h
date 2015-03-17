@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI, abstract)
 class UK2Node_StructOperation : public UK2Node_Variable
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_StructOperation(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Class that this variable is defined in.  */
 	UPROPERTY()

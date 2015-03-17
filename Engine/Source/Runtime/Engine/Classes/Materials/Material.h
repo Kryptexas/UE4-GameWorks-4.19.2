@@ -217,7 +217,7 @@ struct FVector2MaterialInput : public FMaterialInput
 USTRUCT()
 struct FMaterialFunctionInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Id that the function had when this material was last compiled. */
 	UPROPERTY()
@@ -236,7 +236,7 @@ struct FMaterialFunctionInfo
 USTRUCT()
 struct FMaterialParameterCollectionInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Id that the collection had when this material was last compiled. */
 	UPROPERTY()
@@ -264,9 +264,7 @@ struct FMaterialParameterCollectionInfo
 UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
 class UMaterial : public UMaterialInterface
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UMaterial(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Physics.
 	

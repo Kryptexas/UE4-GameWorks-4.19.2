@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionCosine : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionCosine(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	FExpressionInput Input;

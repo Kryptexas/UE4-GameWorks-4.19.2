@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Lifetime (Seed)"))
 class UParticleModuleLifetime_Seeded : public UParticleModuleLifetime
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleLifetime_Seeded(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The random seed(s) to use for looking up values in StartLocation */
 	UPROPERTY(EditAnywhere, Category=RandomSeed)

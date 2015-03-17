@@ -37,7 +37,7 @@ enum ESoundGroup
 USTRUCT()
 struct FSoundGroup
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	// The sound group enumeration we are setting values for
 	UPROPERTY(config)
@@ -71,9 +71,7 @@ struct FSoundGroup
 UCLASS(config=Engine, abstract)
 class USoundGroups : public UObject
 {
-	GENERATED_BODY()
-public:
-	USoundGroups(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	void Initialize() const;
 

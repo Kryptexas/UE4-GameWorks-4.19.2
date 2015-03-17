@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UAnimGraphNode_BlendListByBool : public UAnimGraphNode_BlendListBase
 {
-	GENERATED_BODY()
-public:
-	ANIMGRAPH_API UAnimGraphNode_BlendListByBool(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_BlendListByBool Node;

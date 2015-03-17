@@ -10,9 +10,7 @@
 UCLASS(MinimalAPI)
 class UThumbnailInfo : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UThumbnailInfo(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 };
 
 

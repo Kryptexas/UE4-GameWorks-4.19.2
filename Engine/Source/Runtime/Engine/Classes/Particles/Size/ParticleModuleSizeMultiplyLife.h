@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Size By Life"))
 class UParticleModuleSizeMultiplyLife : public UParticleModuleSizeBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleSizeMultiplyLife(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 *	The scale factor for the size that should be used for a particle.

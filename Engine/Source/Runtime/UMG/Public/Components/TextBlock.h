@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,9 +13,7 @@
 UCLASS(meta=(DisplayName="Text"))
 class UMG_API UTextBlock : public UWidget
 {
-	GENERATED_BODY()
-public:
-	UTextBlock(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	/**  

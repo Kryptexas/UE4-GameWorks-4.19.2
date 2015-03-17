@@ -11,9 +11,7 @@
 UCLASS(config=Editor, MinimalAPI)
 class USkeletalMeshThumbnailRenderer : public UDefaultSizedThumbnailRenderer
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API USkeletalMeshThumbnailRenderer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UThumbnailRenderer Object

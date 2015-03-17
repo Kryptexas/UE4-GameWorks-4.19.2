@@ -9,9 +9,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FInAppPurchaseQueryResult, const TAr
 UCLASS(MinimalAPI)
 class UInAppPurchaseQueryCallbackProxy : public UObject
 {
-	GENERATED_BODY()
-public:
-	ONLINESUBSYSTEMUTILS_API UInAppPurchaseQueryCallbackProxy(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Called when there is a successful InAppPurchase query
 	UPROPERTY(BlueprintAssignable)

@@ -19,7 +19,7 @@ namespace ENavLinkDirection
 USTRUCT()
 struct ENGINE_API FNavigationLinkBase
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** if greater than 0 nav system will attempt to project navlink's end point geometry below */
 	UPROPERTY(EditAnywhere, Category=Default, meta=(ClampMin = "0.0"))
@@ -100,7 +100,7 @@ struct ENGINE_API FNavigationLinkBase
 USTRUCT()
 struct ENGINE_API FNavigationLink : public FNavigationLinkBase
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Default, BlueprintReadWrite, meta=(MakeEditWidget=""))
 	FVector Left;
@@ -148,7 +148,7 @@ struct ENGINE_API FNavigationLink : public FNavigationLinkBase
 USTRUCT()
 struct ENGINE_API FNavigationSegmentLink : public FNavigationLinkBase
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Default, BlueprintReadWrite, meta=(MakeEditWidget=""))
 	FVector LeftStart;
@@ -197,9 +197,7 @@ struct ENGINE_API FNavigationSegmentLink : public FNavigationLinkBase
 UCLASS(abstract, Config=Engine, Blueprintable)
 class ENGINE_API UNavLinkDefinition : public UObject
 {
-	GENERATED_BODY()
-public:
-	UNavLinkDefinition(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=OffMeshLinks)
 	TArray<FNavigationLink> Links;

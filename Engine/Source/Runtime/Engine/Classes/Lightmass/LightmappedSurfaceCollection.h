@@ -11,9 +11,7 @@
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI)
 class ULightmappedSurfaceCollection : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API ULightmappedSurfaceCollection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The UModel these surfaces come from. */
 	UPROPERTY(EditAnywhere, Category=LightmappedSurfaceCollection)

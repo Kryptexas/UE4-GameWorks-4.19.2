@@ -11,9 +11,7 @@
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, meta=( DisplayName="Mixer" ))
 class USoundNodeMixer : public USoundNode
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API USoundNodeMixer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** A volume for each input.  Automatically sized. */
 	UPROPERTY(EditAnywhere, export, editfixedsize, Category=Mixer)

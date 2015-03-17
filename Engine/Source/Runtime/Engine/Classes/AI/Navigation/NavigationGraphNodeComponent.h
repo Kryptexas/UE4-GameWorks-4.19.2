@@ -7,9 +7,7 @@
 UCLASS(config=Engine, MinimalAPI, HideCategories=(Mobility))
 class UNavigationGraphNodeComponent : public USceneComponent
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UNavigationGraphNodeComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	FNavGraphNode Node;

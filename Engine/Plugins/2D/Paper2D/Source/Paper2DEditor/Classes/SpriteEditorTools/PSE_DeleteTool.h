@@ -7,7 +7,5 @@
 UCLASS()
 class UPSE_DeleteTool : public USpriteEditorTool
 {
-	GENERATED_BODY()
-public:
-	UPSE_DeleteTool(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 };

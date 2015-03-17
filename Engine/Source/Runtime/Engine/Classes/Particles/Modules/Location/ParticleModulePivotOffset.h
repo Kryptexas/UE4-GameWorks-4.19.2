@@ -7,9 +7,7 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, DisplayName="Pivot Offset")
 class UParticleModulePivotOffset : public UParticleModuleLocationBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModulePivotOffset(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Offset applied in UV space to the particle vertex positions. Defaults to (0.5,0.5) putting the pivot in the centre of the partilce. */
 	UPROPERTY(EditAnywhere, Category=PivotOffset)

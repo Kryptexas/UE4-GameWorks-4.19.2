@@ -12,9 +12,7 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionAbs : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionAbs(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Link to the input expression to be evaluated */
 	UPROPERTY()

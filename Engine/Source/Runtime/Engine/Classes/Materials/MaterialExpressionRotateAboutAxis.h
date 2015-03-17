@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UMaterialExpressionRotateAboutAxis : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UMaterialExpressionRotateAboutAxis(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	FExpressionInput NormalizedRotationAxis;

@@ -23,9 +23,7 @@ enum ELocationEmitterSelectionMethod
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Emitter Initial Location"))
 class UParticleModuleLocationEmitter : public UParticleModuleLocationBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleLocationEmitter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	//=============================================================================
 	// Variables

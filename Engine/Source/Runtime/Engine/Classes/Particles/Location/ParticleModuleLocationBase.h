@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Location"))
 class UParticleModuleLocationBase : public UParticleModule
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleLocationBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 };
 

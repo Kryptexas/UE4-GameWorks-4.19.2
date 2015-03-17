@@ -11,9 +11,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams( FLiveEditorEventMIDIMultiCast, i
 UCLASS(MinimalAPI)
 class ULiveEditorBroadcaster : public UObject
 {
-	GENERATED_BODY()
-public:
-	LIVEEDITOR_API ULiveEditorBroadcaster(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(BlueprintAssignable)
 	FLiveEditorEventMIDIMultiCast OnEventMIDI;

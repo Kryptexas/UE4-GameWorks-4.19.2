@@ -129,9 +129,7 @@ private:
 UCLASS( MinimalAPI )
 class UMovieScene3DTransformTrack : public UMovieScenePropertyTrack
 {
-	GENERATED_BODY()
-public:
-	MOVIESCENECORETYPES_API UMovieScene3DTransformTrack(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 public:
 	/** UMovieSceneTrack interface */
 	virtual UMovieSceneSection* CreateNewSection() override;

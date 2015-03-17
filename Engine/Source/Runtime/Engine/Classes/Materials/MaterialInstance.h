@@ -18,7 +18,7 @@ class FSHAHash;
 USTRUCT()
 struct FFontParameterValue
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FontParameterValue)
 	FName ParameterName;
@@ -48,7 +48,7 @@ struct FFontParameterValue
 USTRUCT()
 struct FScalarParameterValue
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ScalarParameterValue)
 	FName ParameterName;
@@ -74,7 +74,7 @@ struct FScalarParameterValue
 USTRUCT()
 struct FTextureParameterValue
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=TextureParameterValue)
 	FName ParameterName;
@@ -100,7 +100,7 @@ struct FTextureParameterValue
 USTRUCT()
 struct FVectorParameterValue
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=VectorParameterValue)
 	FName ParameterName;
@@ -125,9 +125,7 @@ struct FVectorParameterValue
 UCLASS(abstract, BlueprintType,MinimalAPI)
 class UMaterialInstance : public UMaterialInterface
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UMaterialInstance(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Physical material to use for this graphics material. Used for sounds, effects etc.*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MaterialInstance)

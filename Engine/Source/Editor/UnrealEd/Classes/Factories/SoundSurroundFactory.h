@@ -10,9 +10,7 @@
 UCLASS(hidecategories=Object)
 class USoundSurroundFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	USoundSurroundFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	float CueVolume;

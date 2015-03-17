@@ -6,9 +6,7 @@
 UCLASS(meta=( DisplayName = "Float Anim BP Parameter Track" ) )
 class UInterpTrackFloatAnimBPParam : public UInterpTrackFloatBase
 {
-	GENERATED_BODY()
-public:
-	UInterpTrackFloatAnimBPParam(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	
 	/** Materials whose parameters we want to change and the references to those materials. */
 	UPROPERTY(EditAnywhere, Category=InterpTrackFloatAnimBPParam)

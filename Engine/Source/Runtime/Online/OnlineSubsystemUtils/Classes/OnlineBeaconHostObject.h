@@ -19,9 +19,7 @@ class UNetConnection;
 UCLASS(transient, config=Engine, notplaceable)
 class ONLINESUBSYSTEMUTILS_API AOnlineBeaconHostObject : public AActor
 {
-	GENERATED_BODY()
-public:
-	AOnlineBeaconHostObject(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Custom name for this beacon */
 	UPROPERTY(Transient)

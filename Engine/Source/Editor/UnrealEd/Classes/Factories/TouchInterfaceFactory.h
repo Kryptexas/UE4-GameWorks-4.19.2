@@ -6,9 +6,7 @@
 UCLASS(hidecategories=Object)
 class UTouchInterfaceFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	UTouchInterfaceFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UFactory Interface

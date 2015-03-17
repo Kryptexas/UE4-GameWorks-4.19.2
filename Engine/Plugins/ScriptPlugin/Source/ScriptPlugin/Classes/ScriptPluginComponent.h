@@ -10,9 +10,7 @@
 UCLASS(Blueprintable, hidecategories = (Object, ActorComponent), editinlinenew, meta = (BlueprintSpawnableComponent), ClassGroup = Script, Abstract, EarlyAccessPreview)
 class SCRIPTPLUGIN_API UScriptPluginComponent : public UActorComponent
 {
-	GENERATED_BODY()
-public:
-	UScriptPluginComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

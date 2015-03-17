@@ -515,7 +515,7 @@ struct COREUOBJECT_API FReferencerInformationList
 #define UENUM(...)
 #define UDELEGATE(...)
 
-// This pair of macros is used to help implement GENERATED*_BODY() macros
+// This pair of macros is used to help implement GENERATED_BODY() and GENERATED_USTRUCT_BODY()
 #define BODY_MACRO_COMBINE_INNER(A,B,C,D) A##B##C##D
 #define BODY_MACRO_COMBINE(A,B,C,D) BODY_MACRO_COMBINE_INNER(A,B,C,D)
 
@@ -525,7 +525,7 @@ struct COREUOBJECT_API FReferencerInformationList
 #define GENERATED_USTRUCT_BODY(...) GENERATED_BODY()
 #define GENERATED_UCLASS_BODY(...) GENERATED_BODY_LEGACY()
 #define GENERATED_UINTERFACE_BODY(...) GENERATED_BODY_LEGACY()
-#define GENERATED_IINTERFACE_BODY(...) GENERATED_BODY_LEGACY()
+#define GENERATED_IINTERFACE_BODY(...) GENERATED_BODY()
 
 #if UE_BUILD_DOCS
 #define UCLASS(...)

@@ -22,9 +22,7 @@ enum EVectorFieldConstructionOp
 UCLASS(MinimalAPI)
 class UVectorFieldAnimated : public UVectorField
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UVectorFieldAnimated(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The texture from which to create the vector field. */
 	UPROPERTY(EditAnywhere, Category=Reconstruction)

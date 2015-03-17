@@ -6,9 +6,7 @@
 UCLASS()
 class UBehaviorTreeGraphNode_Composite : public UBehaviorTreeGraphNode
 {
-	GENERATED_BODY()
-public:
-	UBehaviorTreeGraphNode_Composite(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual bool RefreshNodeClass() override{ return false; }

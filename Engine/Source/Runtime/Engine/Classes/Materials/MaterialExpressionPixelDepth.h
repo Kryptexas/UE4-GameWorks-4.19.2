@@ -11,9 +11,7 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionPixelDepth : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionPixelDepth(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UMaterialExpression Interface

@@ -8,9 +8,7 @@
 UCLASS()
 class UMaterialExpressionCrossProduct : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionCrossProduct(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	FExpressionInput A;

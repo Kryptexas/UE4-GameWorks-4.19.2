@@ -10,9 +10,7 @@
 UCLASS()
 class UMG_API UUniformGridPanel : public UPanelWidget
 {
-	GENERATED_BODY()
-public:
-	UUniformGridPanel(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

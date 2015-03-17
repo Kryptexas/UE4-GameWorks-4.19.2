@@ -10,9 +10,7 @@
 UCLASS(MinimalAPI)
 class UNiagaraScript : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UNiagaraScript(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Byte code to execute for this system */
 	UPROPERTY()

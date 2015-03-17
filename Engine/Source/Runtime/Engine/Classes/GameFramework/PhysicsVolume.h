@@ -12,9 +12,7 @@
 UCLASS()
 class ENGINE_API APhysicsVolume : public AVolume
 {
-	GENERATED_BODY()
-public:
-	APhysicsVolume(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin UObject interface.
 #if WITH_EDITOR

@@ -7,9 +7,7 @@
 UCLASS()
 class USmokeTestCommandlet : public UCommandlet
 {
-	GENERATED_BODY()
-public:
-	USmokeTestCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UCommandlet Interface

@@ -14,7 +14,7 @@
 USTRUCT()
 struct FDirectorTrackCut
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Time to perform the cut. */
 	UPROPERTY()
@@ -45,9 +45,7 @@ struct FDirectorTrackCut
 UCLASS(MinimalAPI, meta=( DisplayName = "Director Track" ) )
 class UInterpTrackDirector : public UInterpTrack
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UInterpTrackDirector(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Array of cuts between cameras. */
 	UPROPERTY()

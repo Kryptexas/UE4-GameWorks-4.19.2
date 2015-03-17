@@ -39,7 +39,7 @@ enum EVisibilityTrackCondition
 USTRUCT()
 struct FVisibilityTrackKey
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	float Time;
@@ -64,9 +64,7 @@ struct FVisibilityTrackKey
 UCLASS(MinimalAPI, meta=( DisplayName = "Visibility Track" ) )
 class UInterpTrackVisibility : public UInterpTrack
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UInterpTrackVisibility(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Array of events to fire off. */
 	UPROPERTY()

@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Size Scale"))
 class UParticleModuleSizeScale : public UParticleModuleSizeBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleSizeScale(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 *	The amount the BaseSize should be scaled before being used as the size of the particle. 

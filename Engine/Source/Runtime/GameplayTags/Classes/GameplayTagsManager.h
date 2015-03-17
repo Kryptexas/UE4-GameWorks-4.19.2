@@ -9,7 +9,7 @@
 USTRUCT()
 struct FGameplayTagTableRow : public FTableRowBase
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Tag specified in the table */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=GameplayTag)
@@ -33,7 +33,7 @@ struct FGameplayTagTableRow : public FTableRowBase
 USTRUCT()
 struct FGameplayTagNode
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 	FGameplayTagNode(){};
 
 	/** Simple constructor */
@@ -117,9 +117,7 @@ private:
 UCLASS(config=Engine)
 class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 {
-	GENERATED_BODY()
-public:
-	UGameplayTagsManager(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Destructor
 	~UGameplayTagsManager();

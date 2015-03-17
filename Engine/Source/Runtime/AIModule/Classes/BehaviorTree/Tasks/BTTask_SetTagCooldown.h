@@ -10,9 +10,7 @@
 UCLASS()
 class AIMODULE_API UBTTask_SetTagCooldown : public UBTTaskNode
 {
-	GENERATED_BODY()
-public:
-	UBTTask_SetTagCooldown(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** gameplay tag that will be used for the cooldown */
 	UPROPERTY(Category = Cooldown, EditAnywhere)

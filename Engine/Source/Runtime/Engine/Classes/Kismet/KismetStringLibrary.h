@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class UKismetStringLibrary : public UBlueprintFunctionLibrary
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UKismetStringLibrary(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Converts a float value to a string */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "ToString (float)", CompactNodeTitle = "->"), Category="Utilities|String")

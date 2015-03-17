@@ -11,15 +11,12 @@
 UINTERFACE(MinimalAPI, meta = (CannotImplementInterfaceInBlueprint))
 class UGameplayCueInterface: public UInterface
 {
-	GENERATED_BODY()
-public:
-	GAMEPLAYABILITIES_API UGameplayCueInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class GAMEPLAYABILITIES_API IGameplayCueInterface
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 
 	virtual void HandleGameplayCue(AActor *Self, FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
 
@@ -61,7 +58,7 @@ struct FActiveGameplayCueContainer;
 USTRUCT(BlueprintType)
 struct FActiveGameplayCue : public FFastArraySerializerItem
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	FGameplayTag GameplayCueTag;
@@ -77,7 +74,7 @@ struct FActiveGameplayCue : public FFastArraySerializerItem
 USTRUCT(BlueprintType)
 struct FActiveGameplayCueContainer : public FFastArraySerializer
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	TArray< FActiveGameplayCue >	GameplayCues;

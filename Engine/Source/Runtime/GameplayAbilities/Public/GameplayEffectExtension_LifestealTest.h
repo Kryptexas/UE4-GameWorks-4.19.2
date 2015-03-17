@@ -11,9 +11,7 @@
 UCLASS(BlueprintType)
 class GAMEPLAYABILITIES_API UGameplayEffectExtension_LifestealTest : public UGameplayEffectExtension
 {
-	GENERATED_BODY()
-public:
-	UGameplayEffectExtension_LifestealTest(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

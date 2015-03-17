@@ -10,9 +10,7 @@
 UCLASS()
 class UGatherTextFromMetaDataCommandlet : public UGatherTextCommandletBase
 {
-	GENERATED_BODY()
-public:
-	UGatherTextFromMetaDataCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	// Begin UCommandlet Interface

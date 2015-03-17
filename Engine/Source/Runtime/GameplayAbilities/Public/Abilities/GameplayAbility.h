@@ -77,7 +77,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameplayAbilityStateEnded, FName);
 USTRUCT()
 struct FAbilityTriggerData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FAbilityTriggerData() 
 	: TriggerSource(EGameplayAbilityTriggerSource::GameplayEvent)
@@ -98,9 +98,7 @@ struct FAbilityTriggerData
 UCLASS(Blueprintable)
 class GAMEPLAYABILITIES_API UGameplayAbility : public UObject
 {
-	GENERATED_BODY()
-public:
-	UGameplayAbility(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	friend class UAbilitySystemComponent;
 	friend class UGameplayAbilitySet;

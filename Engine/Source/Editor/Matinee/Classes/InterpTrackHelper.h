@@ -8,9 +8,7 @@
 UCLASS()
 class MATINEE_API UInterpTrackHelper : public UObject
 {
-	GENERATED_BODY()
-public:
-	UInterpTrackHelper(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 * @param  Track	The track to get the actor for.

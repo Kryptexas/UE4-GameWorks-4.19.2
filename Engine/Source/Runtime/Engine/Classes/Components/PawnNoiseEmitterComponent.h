@@ -12,9 +12,7 @@
 UCLASS(ClassGroup=AI, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UPawnNoiseEmitterComponent : public UActorComponent
 {
-	GENERATED_BODY()
-public:
-	UPawnNoiseEmitterComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	// Most recent noise made by this pawn not at its own location

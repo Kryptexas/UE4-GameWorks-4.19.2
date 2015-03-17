@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew,MinimalAPI)
 class UDistributionFloatConstant : public UDistributionFloat
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UDistributionFloatConstant(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** This float will be returned for all values of time. */
 	UPROPERTY(EditAnywhere, Category=DistributionFloatConstant)

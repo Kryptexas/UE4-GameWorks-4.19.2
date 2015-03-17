@@ -18,9 +18,7 @@ namespace EDecoratorLogicMode
 UCLASS()
 class UBehaviorTreeDecoratorGraphNode_Logic : public UBehaviorTreeDecoratorGraphNode
 {
-	GENERATED_BODY()
-public:
-	UBehaviorTreeDecoratorGraphNode_Logic(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	TEnumAsByte<EDecoratorLogicMode::Type> LogicMode;

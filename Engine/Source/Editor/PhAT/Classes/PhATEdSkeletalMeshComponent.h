@@ -8,9 +8,7 @@
 UCLASS()
 class UPhATEdSkeletalMeshComponent : public USkeletalMeshComponent
 {
-	GENERATED_BODY()
-public:
-	UPhATEdSkeletalMeshComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Data and methods shared across multiple classes */
 	class FPhATSharedData* SharedData;

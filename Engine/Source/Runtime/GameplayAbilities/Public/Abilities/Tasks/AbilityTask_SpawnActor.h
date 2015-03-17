@@ -23,9 +23,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSpawnActorDelegate, AActor*, Spawne
 UCLASS(MinimalAPI)
 class UAbilityTask_SpawnActor: public UAbilityTask
 {
-	GENERATED_BODY()
-public:
-	GAMEPLAYABILITIES_API UAbilityTask_SpawnActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(BlueprintAssignable)
 	FSpawnActorDelegate	Success;

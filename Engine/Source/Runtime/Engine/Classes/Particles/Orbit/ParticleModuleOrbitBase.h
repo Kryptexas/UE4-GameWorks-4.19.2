@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Orbit"))
 class UParticleModuleOrbitBase : public UParticleModule
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleOrbitBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** 
 	 *	If true, distribution values will be retrieved using the EmitterTime.

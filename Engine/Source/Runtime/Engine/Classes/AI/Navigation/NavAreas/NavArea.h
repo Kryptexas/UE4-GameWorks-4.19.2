@@ -7,9 +7,7 @@
 UCLASS(DefaultToInstanced, abstract, Config=Engine, Blueprintable)
 class ENGINE_API UNavArea : public UObject
 {
-	GENERATED_BODY()
-public:
-	UNavArea(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** travel cost multiplier for path distance */
 	UPROPERTY(EditAnywhere, Category=NavArea, config, meta=(ClampMin = "0.0"))

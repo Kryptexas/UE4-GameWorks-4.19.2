@@ -14,9 +14,7 @@
 UCLASS()
 class UGenerateGatherArchiveCommandlet : public UGatherTextCommandletBase
 {
-    GENERATED_BODY()
-public:
-    UGenerateGatherArchiveCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+    GENERATED_UCLASS_BODY()
 #if CPP || UE_BUILD_DOCS
 public:
 	// Begin UCommandlet Interface

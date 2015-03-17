@@ -74,7 +74,7 @@ struct FLandscapeVertexRef
 USTRUCT()
 struct FWeightmapLayerAllocationInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	ULandscapeLayerInfoObject* LayerInfo;
@@ -141,9 +141,7 @@ struct FLandscapeComponentGrassData
 UCLASS(hidecategories=(Display, Attachment, Physics, Debug, Collision, Movement, Rendering, PrimitiveComponent, Object, Transform), showcategories=("Rendering|Material"), MinimalAPI)
 class ULandscapeComponent : public UPrimitiveComponent
 {
-	GENERATED_BODY()
-public:
-	LANDSCAPE_API ULandscapeComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	
 	/** X offset from global components grid origin (in quads) */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=LandscapeComponent)

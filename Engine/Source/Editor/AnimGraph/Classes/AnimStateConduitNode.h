@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class UAnimStateConduitNode : public UAnimStateNodeBase
 {
-	GENERATED_BODY()
-public:
-	ANIMGRAPH_API UAnimStateConduitNode(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 public:
 
 	// The transition graph for this conduit; it's a logic graph, not an animation graph

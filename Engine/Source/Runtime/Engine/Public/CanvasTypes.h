@@ -24,7 +24,7 @@ class FRHICommandListImmediate;
 USTRUCT()
 struct FTextSizingParameters
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** a pixel value representing the horizontal screen location to begin rendering the string */
 	UPROPERTY()
@@ -87,7 +87,7 @@ struct FTextSizingParameters
 USTRUCT()
 struct FWrappedStringElement
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** the string associated with this line */
 	UPROPERTY()

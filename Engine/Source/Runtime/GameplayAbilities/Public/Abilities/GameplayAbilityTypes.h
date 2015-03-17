@@ -115,7 +115,7 @@ namespace EGameplayAbilityTriggerSource
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayAbilityActorInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	virtual ~FGameplayAbilityActorInfo() {}
 
@@ -164,7 +164,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActorInfo
 USTRUCT()
 struct FGameplayAbilitySpecHandleAndPredictionKey
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGameplayAbilitySpecHandleAndPredictionKey()
 	: PredictionKeyAtCreation(0)
@@ -206,7 +206,7 @@ private:
 USTRUCT()
 struct GAMEPLAYABILITIES_API FGameplayAbilityRepAnimMontage
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** AnimMontage ref */
 	UPROPERTY()
@@ -255,7 +255,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityRepAnimMontage
 USTRUCT()
 struct GAMEPLAYABILITIES_API FGameplayAbilityLocalAnimMontage
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGameplayAbilityLocalAnimMontage()
 	: AnimMontage(nullptr), PlayBit(false), AnimatingAbility(nullptr)
@@ -281,7 +281,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityLocalAnimMontage
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayEventData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGameplayEventData()
 	: Instigator(nullptr)
@@ -364,7 +364,7 @@ struct FGameplayAbiliyInputBinds
 USTRUCT()
 struct GAMEPLAYABILITIES_API FAttributeDefaults
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category = "AttributeTest")
 	TSubclassOf<UAttributeSet> Attributes;

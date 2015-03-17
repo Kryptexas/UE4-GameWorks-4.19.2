@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class UAchievementQueryCallbackProxy : public UOnlineBlueprintCallProxyBase
 {
-	GENERATED_BODY()
-public:
-	ONLINESUBSYSTEMUTILS_API UAchievementQueryCallbackProxy(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Called when there is a successful query
 	UPROPERTY(BlueprintAssignable)

@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UK2Node_Timeline : public UK2Node
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_Timeline(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The name of the timeline. Used to name ONLY the member variable (Component). To obtain the name of timeline template use UTimelineTemplate::TimelineVariableNameToTemplateName */
 	UPROPERTY()

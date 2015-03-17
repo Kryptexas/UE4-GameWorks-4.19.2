@@ -7,9 +7,7 @@
 UCLASS()
 class UInterpTrackInstSound : public UInterpTrackInst
 {
-	GENERATED_BODY()
-public:
-	UInterpTrackInstSound(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	float LastUpdatePosition;

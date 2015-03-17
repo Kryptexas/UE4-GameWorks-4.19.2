@@ -10,9 +10,7 @@
 UCLASS()
 class PAPER2DEDITOR_API UPaperFlipbookFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	UPaperFlipbookFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	TArray<FPaperFlipbookKeyFrame> KeyFrames;
 

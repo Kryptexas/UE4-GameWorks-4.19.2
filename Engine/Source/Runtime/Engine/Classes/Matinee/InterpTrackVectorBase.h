@@ -7,9 +7,7 @@
 UCLASS(abstract, MinimalAPI)
 class UInterpTrackVectorBase : public UInterpTrack
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UInterpTrackVectorBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Actually track data containing keyframes of a FVector as it varies over time. */
 	UPROPERTY()

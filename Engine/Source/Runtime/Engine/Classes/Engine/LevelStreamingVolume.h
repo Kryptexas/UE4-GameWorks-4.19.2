@@ -25,9 +25,7 @@ enum EStreamingVolumeUsage
 UCLASS(hidecategories=(Advanced, Attachment, Collision, Volume), MinimalAPI)
 class ALevelStreamingVolume : public AVolume
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API ALevelStreamingVolume(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Levels names affected by this level streaming volume. */
 	UPROPERTY(Category=LevelStreamingVolume, VisibleAnywhere, BlueprintReadOnly, meta=(DisplayName = "Streaming Levels"))

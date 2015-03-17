@@ -11,9 +11,7 @@
 UCLASS(hidecategories=(Collision, Brush, Attachment, Physics, Volume), MinimalAPI)
 class APrecomputedVisibilityOverrideVolume : public AVolume
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API APrecomputedVisibilityOverrideVolume(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Array of actors that will always be considered visible by Precomputed Visibility when viewed from inside this volume. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PrecomputedVisibilityOverrideVolume)

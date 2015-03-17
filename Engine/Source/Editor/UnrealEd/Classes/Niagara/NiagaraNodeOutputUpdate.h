@@ -6,9 +6,7 @@
 UCLASS(MinimalAPI, Deprecated)
 class UDEPRECATED_NiagaraNodeOutputUpdate : public UNiagaraNode
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UDEPRECATED_NiagaraNodeOutputUpdate(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

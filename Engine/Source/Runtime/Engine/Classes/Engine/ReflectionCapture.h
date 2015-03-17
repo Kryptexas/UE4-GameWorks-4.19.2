@@ -6,9 +6,7 @@
 UCLASS(abstract, hidecategories=(Collision, Attachment, Actor), MinimalAPI)
 class AReflectionCapture : public AActor
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API AReflectionCapture(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 private_subobject:
 	/** Reflection capture component. */

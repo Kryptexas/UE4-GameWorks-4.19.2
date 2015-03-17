@@ -10,10 +10,8 @@
 UCLASS()
 class UVisualLoggerRenderingComponent : public UPrimitiveComponent
 {
-	GENERATED_BODY()
 public:
-	UVisualLoggerRenderingComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-public:
+	GENERATED_UCLASS_BODY()
 
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform &LocalToWorld) const override;

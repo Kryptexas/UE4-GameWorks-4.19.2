@@ -9,7 +9,7 @@ struct FEdGraphEditAction;
 USTRUCT()
 struct ENGINE_API FGraphReference
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 protected:
 	// Reference to the actual graph
 	UPROPERTY()
@@ -55,9 +55,7 @@ struct TStructOpsTypeTraits<FGraphReference> : public TStructOpsTypeTraitsBase
 UCLASS()
 class ENGINE_API UEdGraph : public UObject
 {
-	GENERATED_BODY()
-public:
-	UEdGraph(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The schema that this graph obeys */
 	UPROPERTY()

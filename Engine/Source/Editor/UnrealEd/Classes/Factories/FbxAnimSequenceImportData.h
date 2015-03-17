@@ -26,9 +26,7 @@ enum EFBXAnimationLengthImportType
 UCLASS()
 class UNREALED_API UFbxAnimSequenceImportData : public UFbxAssetImportData
 {
-	GENERATED_BODY()
-public:
-	UFbxAnimSequenceImportData(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Type of asset to import from the FBX file */
 	UPROPERTY(EditAnywhere, Category=ImportSettings, meta=(DisplayName = "Animation Length"))

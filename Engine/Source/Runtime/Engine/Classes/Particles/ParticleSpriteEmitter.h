@@ -20,9 +20,7 @@ enum EParticleScreenAlignment
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
 class UParticleSpriteEmitter : public UParticleEmitter
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleSpriteEmitter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UObject Interface

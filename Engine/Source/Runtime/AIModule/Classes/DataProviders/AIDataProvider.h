@@ -20,7 +20,7 @@ class UAIDataProvider;
 USTRUCT()
 struct AIMODULE_API FAIDataProviderValue
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** cached uproperty of provider */
 	UPROPERTY(transient)
@@ -57,7 +57,7 @@ struct AIMODULE_API FAIDataProviderValue
 USTRUCT()
 struct AIMODULE_API FAIDataProviderTypedValue : public FAIDataProviderValue
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** type of value */
 	UPROPERTY()
@@ -70,7 +70,7 @@ struct AIMODULE_API FAIDataProviderTypedValue : public FAIDataProviderValue
 USTRUCT()
 struct AIMODULE_API FAIDataProviderStructValue : public FAIDataProviderValue
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** name of UStruct type */
 	FString StructName;
@@ -81,7 +81,7 @@ struct AIMODULE_API FAIDataProviderStructValue : public FAIDataProviderValue
 USTRUCT()
 struct AIMODULE_API FAIDataProviderIntValue : public FAIDataProviderTypedValue
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 	FAIDataProviderIntValue();
 
 	UPROPERTY(EditAnywhere, Category = Value)
@@ -94,7 +94,7 @@ struct AIMODULE_API FAIDataProviderIntValue : public FAIDataProviderTypedValue
 USTRUCT()
 struct AIMODULE_API FAIDataProviderFloatValue : public FAIDataProviderTypedValue
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 	FAIDataProviderFloatValue();
 
 	UPROPERTY(EditAnywhere, Category = Value)
@@ -107,7 +107,7 @@ struct AIMODULE_API FAIDataProviderFloatValue : public FAIDataProviderTypedValue
 USTRUCT()
 struct AIMODULE_API FAIDataProviderBoolValue : public FAIDataProviderTypedValue
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 	FAIDataProviderBoolValue();
 
 	UPROPERTY(EditAnywhere, Category = Value)
@@ -120,9 +120,7 @@ struct AIMODULE_API FAIDataProviderBoolValue : public FAIDataProviderTypedValue
 UCLASS(EditInlineNew, Abstract, CollapseCategories, AutoExpandCategories=(Provider))
 class AIMODULE_API UAIDataProvider : public UObject
 {
-	GENERATED_BODY()
-public:
-	UAIDataProvider(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual void BindData(UObject* Owner, int32 RequestId);
 	virtual FString ToString(FName PropName) const;

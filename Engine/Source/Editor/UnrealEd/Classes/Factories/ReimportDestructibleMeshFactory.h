@@ -8,9 +8,7 @@
 UCLASS(hideCategories=Object)
 class UReimportDestructibleMeshFactory : public UDestructibleMeshFactory, public FReimportHandler
 {
-    GENERATED_BODY()
-public:
-    UReimportDestructibleMeshFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+    GENERATED_UCLASS_BODY()
 public:
 	virtual FText GetDisplayName() const override;
 #if WITH_APEX

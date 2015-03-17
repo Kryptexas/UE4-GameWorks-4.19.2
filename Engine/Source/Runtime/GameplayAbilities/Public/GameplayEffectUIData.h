@@ -11,9 +11,7 @@
 UCLASS(Blueprintable, Abstract, EditInlineNew, CollapseCategories)
 class GAMEPLAYABILITIES_API UGameplayEffectUIData : public UObject
 {
-	GENERATED_BODY()
-public:
-	UGameplayEffectUIData(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual bool NeedsLoadForServer() const override
 	{

@@ -10,9 +10,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FGameplayEffectAppliedTargetDeleg
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitGameplayEffectApplied_Target : public UAbilityTask_WaitGameplayEffectApplied
 {
-	GENERATED_BODY()
-public:
-	GAMEPLAYABILITIES_API UAbilityTask_WaitGameplayEffectApplied_Target(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(BlueprintAssignable)
 	FGameplayEffectAppliedTargetDelegate OnApplied;

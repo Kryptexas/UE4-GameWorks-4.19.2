@@ -7,9 +7,7 @@
 UCLASS(hidecategories=Object, MinimalAPI)
 class UCameraAnimFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UCameraAnimFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin UFactory Interface
 	virtual FText GetDisplayName() const override;

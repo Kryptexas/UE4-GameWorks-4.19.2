@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class UK2Node_InputVectorAxisEvent : public UK2Node_InputAxisKeyEvent
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_InputVectorAxisEvent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// UObject interface
 	virtual void Serialize(FArchive& Ar) override;

@@ -10,9 +10,7 @@
 UCLASS(hidecategories=Object, MinimalAPI)
 class UTexture2DFactoryNew : public UFactory
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UTexture2DFactoryNew(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** width of new texture */
 	UPROPERTY()

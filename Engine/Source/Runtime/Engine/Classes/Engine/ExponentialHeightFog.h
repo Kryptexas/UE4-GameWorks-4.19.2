@@ -12,9 +12,7 @@ UCLASS(showcategories=(Movement, Rendering, "Utilities|Transformation"), ClassGr
 class AExponentialHeightFog
 	: public AInfo
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API AExponentialHeightFog(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 private_subobject:
 	/** @todo document */

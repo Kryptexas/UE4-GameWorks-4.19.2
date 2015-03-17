@@ -12,7 +12,7 @@
 USTRUCT(BlueprintType)
 struct SLATECORE_API FSlateFontInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The font object (valid when used from UMG or a Slate widget style asset) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SlateStyleRules, meta=(AllowedClasses="Font", DisplayName="Font Family"))

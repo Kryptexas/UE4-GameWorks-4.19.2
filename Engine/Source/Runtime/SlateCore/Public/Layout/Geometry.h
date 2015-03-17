@@ -23,7 +23,7 @@ class FLayoutGeometry;
 USTRUCT(BlueprintType)
 struct SLATECORE_API FGeometry
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 

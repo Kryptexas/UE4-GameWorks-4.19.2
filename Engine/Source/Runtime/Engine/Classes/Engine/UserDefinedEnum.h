@@ -17,9 +17,7 @@
 UCLASS()
 class ENGINE_API UUserDefinedEnum : public UEnum
 {
-	GENERATED_BODY()
-public:
-	UUserDefinedEnum(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()

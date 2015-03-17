@@ -10,9 +10,7 @@
 UCLASS(hidecategories=Object, collapsecategories)
 class UNREALED_API UBlueprintFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	UBlueprintFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// The parent class of the created blueprint
 	UPROPERTY(EditAnywhere, Category=BlueprintFactory, meta=(AllowAbstract = "", BlueprintBaseOnly = ""))

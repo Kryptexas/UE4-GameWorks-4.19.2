@@ -17,9 +17,7 @@ UCLASS(config=EditorUserSettings)
 class UNREALED_API UContentBrowserSettings
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	UContentBrowserSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

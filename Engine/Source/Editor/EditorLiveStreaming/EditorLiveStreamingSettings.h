@@ -38,9 +38,7 @@ namespace EEditorLiveStreamingWebCamResolution
 UCLASS(config=EditorGameAgnostic)
 class UEditorLiveStreamingSettings : public UObject
 {
-	GENERATED_BODY()
-public:
-	UEditorLiveStreamingSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

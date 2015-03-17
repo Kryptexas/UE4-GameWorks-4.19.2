@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Collision"))
 class UParticleModuleCollision : public UParticleModuleCollisionBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleCollision(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 *	How much to `slow' the velocity of the particle after a collision.

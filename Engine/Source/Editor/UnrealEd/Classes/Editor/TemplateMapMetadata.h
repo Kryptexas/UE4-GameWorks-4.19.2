@@ -7,8 +7,6 @@
 UCLASS(deprecated)
 class UDEPRECATED_TemplateMapMetadata : public UObject
 {
-	GENERATED_BODY()
-public:
-	UDEPRECATED_TemplateMapMetadata(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 };
 

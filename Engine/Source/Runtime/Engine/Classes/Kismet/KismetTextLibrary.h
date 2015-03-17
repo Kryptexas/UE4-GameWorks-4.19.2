@@ -31,7 +31,7 @@ enum ERoundingMode
 USTRUCT()
 struct FFormatTextArgument
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category=ArgumentValue)
 	FText ArgumentName;
@@ -43,9 +43,7 @@ struct FFormatTextArgument
 UCLASS(MinimalAPI)
 class UKismetTextLibrary : public UBlueprintFunctionLibrary
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UKismetTextLibrary(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Converts localizable text to the string */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "ToString (text)", CompactNodeTitle = "->"), Category="Utilities|String")

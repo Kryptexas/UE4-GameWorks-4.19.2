@@ -18,9 +18,7 @@ enum class EEnvTestDot : uint8
 UCLASS(MinimalAPI)
 class UEnvQueryTest_Dot : public UEnvQueryTest
 {
-	GENERATED_BODY()
-public:
-	AIMODULE_API UEnvQueryTest_Dot(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 protected:
 	/** defines direction of first line used by test */

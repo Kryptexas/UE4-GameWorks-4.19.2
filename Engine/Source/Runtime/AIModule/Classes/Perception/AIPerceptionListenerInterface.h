@@ -9,15 +9,12 @@ class UAIPerceptionComponent;
 UINTERFACE()
 class AIMODULE_API UAIPerceptionListenerInterface : public UInterface
 {
-	GENERATED_BODY()
-public:
-	UAIPerceptionListenerInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class AIMODULE_API IAIPerceptionListenerInterface
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 
 	virtual UAIPerceptionComponent* GetPerceptionComponent() { return NULL; }
 };

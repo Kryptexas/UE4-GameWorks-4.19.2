@@ -10,9 +10,7 @@
 UCLASS()
 class UPackageFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	UPackageFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UFactory Interface

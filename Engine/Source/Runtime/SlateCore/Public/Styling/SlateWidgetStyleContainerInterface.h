@@ -8,15 +8,12 @@
 UINTERFACE()
 class SLATECORE_API USlateWidgetStyleContainerInterface : public UInterface
 {
-	GENERATED_BODY()
-public:
-	USlateWidgetStyleContainerInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class ISlateWidgetStyleContainerInterface
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 
 public:
 

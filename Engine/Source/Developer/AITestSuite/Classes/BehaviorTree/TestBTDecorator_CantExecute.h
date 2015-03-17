@@ -7,9 +7,7 @@
 UCLASS(meta=(HiddenNode))
 class UTestBTDecorator_CantExecute : public UBTDecorator
 {
-	GENERATED_BODY()
-public:
-	UTestBTDecorator_CantExecute(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const override;
 };

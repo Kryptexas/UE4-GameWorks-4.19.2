@@ -7,9 +7,7 @@
 UCLASS()
 class UInterpTrackInstBoolProp : public UInterpTrackInstProperty
 {
-	GENERATED_BODY()
-public:
-	UInterpTrackInstBoolProp(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Pointer to boolean property in TrackObject. */
 	void* BoolPropertyAddress;

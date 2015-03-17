@@ -8,9 +8,7 @@
 UCLASS()
 class UBehaviorTreeGraph : public UAIGraph
 {
-	GENERATED_BODY()
-public:
-	UBehaviorTreeGraph(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	enum EUpdateFlags
 	{

@@ -10,9 +10,7 @@
 UCLASS(hidecategories=(Object, Mobility), ClassGroup=Physics, showcategories=Trigger, meta=(BlueprintSpawnableComponent), MinimalAPI)
 class URadialForceComponent : public USceneComponent
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API URadialForceComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The radius to apply the force or impulse in */
 	UPROPERTY(interp, EditAnywhere, BlueprintReadWrite, Category=RadialForceComponent)

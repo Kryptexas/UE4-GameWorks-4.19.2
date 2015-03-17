@@ -16,7 +16,7 @@ DECLARE_DYNAMIC_DELEGATE( FOnMatineeEvent );
 USTRUCT()
 struct FCameraCutInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	FVector Location;
@@ -39,7 +39,7 @@ struct FCameraCutInfo
 USTRUCT()
 struct FInterpGroupActorInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpGroupActorInfo)
 	FName ObjectName;
@@ -52,9 +52,7 @@ struct FInterpGroupActorInfo
 UCLASS(MinimalAPI, NotBlueprintable, hidecategories=(Collision, Game, Input), showcategories=("Input|MouseInput", "Input|TouchInput", "Game|Damage"))
 class AMatineeActor : public AActor
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API AMatineeActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The matinee data used by this actor*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MatineeActor, replicated, meta=(ForceRebuildProperty = "GroupActorInfos"))

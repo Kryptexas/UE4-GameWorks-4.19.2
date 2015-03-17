@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionStaticSwitchParameter : public UMaterialExpressionStaticBoolParameter
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UMaterialExpressionStaticSwitchParameter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	FExpressionInput A;

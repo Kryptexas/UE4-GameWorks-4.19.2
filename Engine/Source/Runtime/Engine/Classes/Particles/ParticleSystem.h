@@ -47,7 +47,7 @@ enum EParticleSystemOcclusionBoundsMethod
 USTRUCT()
 struct FParticleSystemLOD
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FParticleSystemLOD()
 	{
@@ -67,7 +67,7 @@ struct FParticleSystemLOD
 USTRUCT()
 struct FLODSoloTrack
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(transient)
 	TArray<uint8> SoloEnableSetting;
@@ -77,7 +77,7 @@ struct FLODSoloTrack
 USTRUCT()
 struct FNamedEmitterMaterial
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FNamedEmitterMaterial()
 	: Name(NAME_None)
@@ -100,9 +100,7 @@ struct FNamedEmitterMaterial
 UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
 class UParticleSystem : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleSystem(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=ParticleSystem, AssetRegistrySearchable)
 	TEnumAsByte<enum EParticleSystemUpdateMode> SystemUpdateMode;

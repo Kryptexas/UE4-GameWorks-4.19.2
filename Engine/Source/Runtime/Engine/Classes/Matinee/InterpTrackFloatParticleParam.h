@@ -6,9 +6,7 @@
 UCLASS(meta=( DisplayName = "Float Particle Param Track" ) )
 class UInterpTrackFloatParticleParam : public UInterpTrackFloatBase
 {
-	GENERATED_BODY()
-public:
-	UInterpTrackFloatParticleParam(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	
 	/** Name of property in the Emitter which this track mill modify over time. */
 	UPROPERTY(EditAnywhere, Category=InterpTrackFloatParticleParam)

@@ -10,9 +10,7 @@
 UCLASS()
 class UMG_API UWrapBoxSlot : public UPanelSlot
 {
-	GENERATED_BODY()
-public:
-	UWrapBoxSlot(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

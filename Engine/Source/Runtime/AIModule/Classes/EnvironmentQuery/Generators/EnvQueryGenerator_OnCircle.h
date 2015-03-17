@@ -9,9 +9,7 @@ struct FEnvQueryInstance;
 UCLASS(meta = (DisplayName = "Points: Circle"))
 class AIMODULE_API UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_ProjectedPoints
 {
-	GENERATED_BODY()
-public:
-	UEnvQueryGenerator_OnCircle(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** max distance of path between point and context */
 	UPROPERTY(EditDefaultsOnly, Category=Generator)

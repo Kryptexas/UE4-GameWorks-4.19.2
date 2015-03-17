@@ -13,9 +13,7 @@
 UCLASS()
 class UInterpFilter_Classes : public UInterpFilter
 {
-	GENERATED_BODY()
-public:
-	UInterpFilter_Classes(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITORONLY_DATA
 	/** Which class to filter groups by. */

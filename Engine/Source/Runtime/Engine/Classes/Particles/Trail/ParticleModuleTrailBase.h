@@ -13,9 +13,7 @@
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Trail"))
 class UParticleModuleTrailBase : public UParticleModule
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleTrailBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UParticleModule Interface

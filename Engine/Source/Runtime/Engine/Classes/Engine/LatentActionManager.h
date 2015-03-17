@@ -10,7 +10,7 @@
 USTRUCT()
 struct ENGINE_API FLatentActionInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The resume point within the function to execute */
 	UPROPERTY(meta=(NeedsLatentFixup = true))
@@ -42,7 +42,7 @@ struct ENGINE_API FLatentActionInfo
 USTRUCT()
 struct ENGINE_API FLatentActionManager
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Map of UUID->Action(s). */ 
 	typedef TMultiMap<int32, class FPendingLatentAction*> FActionList;

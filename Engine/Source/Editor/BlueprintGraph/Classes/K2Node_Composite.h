@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class UK2Node_Composite : public UK2Node_Tunnel
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_Composite(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// The graph that this composite node is representing
 	UPROPERTY()

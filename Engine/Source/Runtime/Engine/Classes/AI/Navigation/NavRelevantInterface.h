@@ -11,15 +11,12 @@ struct FNavigableGeometryExport;
 UINTERFACE(MinimalAPI, meta=(CannotImplementInterfaceInBlueprint))
 class UNavRelevantInterface : public UInterface
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UNavRelevantInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class INavRelevantInterface
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 
 	/** Prepare navigation modifiers */
 	virtual void GetNavigationData(FNavigationRelevantData& Data) const {}

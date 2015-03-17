@@ -25,9 +25,7 @@ UCLASS(config=EditorUserSettings)
 class TEXTUREEDITOR_API UTextureEditorSettings
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	UTextureEditorSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

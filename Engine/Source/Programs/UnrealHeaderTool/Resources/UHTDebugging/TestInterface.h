@@ -7,15 +7,12 @@
 UINTERFACE()
 class UTestInterface : public UInterface
 {
-	GENERATED_BODY()
-public:
-	UTestInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class ITestInterface
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 
 	UFUNCTION(BlueprintNativeEvent)
 	FString SomeFunction(int32 Val) const;

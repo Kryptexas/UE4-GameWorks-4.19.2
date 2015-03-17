@@ -16,9 +16,7 @@ UCLASS(config=Game, hidedropdown)
 class ENGINE_API ADebugCameraController
 	: public APlayerController
 {
-	GENERATED_BODY()
-public:
-	ADebugCameraController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Whether to show information about the selected actor on the debug camera HUD. */
 	UPROPERTY(globalconfig)

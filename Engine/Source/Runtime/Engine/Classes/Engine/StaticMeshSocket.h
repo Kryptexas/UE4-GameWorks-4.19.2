@@ -7,9 +7,7 @@
 UCLASS(hidecategories=Object, hidecategories=Actor, MinimalAPI)
 class UStaticMeshSocket : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UStaticMeshSocket(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** 
 	 *	Defines a named attachment location on the UStaticMesh. 

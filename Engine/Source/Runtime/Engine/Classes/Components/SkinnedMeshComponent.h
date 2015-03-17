@@ -76,7 +76,7 @@ namespace EBoneSpaces
 USTRUCT()
 struct FActiveVertexAnim
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The anim that we want to apply. */
 	UPROPERTY()
@@ -122,7 +122,7 @@ struct FActiveVertexAnim
 USTRUCT()
 struct FSkelMeshComponentLODInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Material corresponds to section. To show/hide each section, use this **/
 	UPROPERTY()
@@ -147,9 +147,7 @@ struct FSkelMeshComponentLODInfo
 UCLASS(hidecategories=Object, config=Engine, editinlinenew, abstract)
 class ENGINE_API USkinnedMeshComponent : public UMeshComponent
 {
-	GENERATED_BODY()
-public:
-	USkinnedMeshComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The skeletal mesh used by this component. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Mesh")

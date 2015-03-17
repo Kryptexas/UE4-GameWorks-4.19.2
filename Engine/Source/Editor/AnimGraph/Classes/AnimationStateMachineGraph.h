@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class UAnimationStateMachineGraph : public UEdGraph
 {
-	GENERATED_BODY()
-public:
-	ANIMGRAPH_API UAnimationStateMachineGraph(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Entry node within the state machine
 	UPROPERTY()

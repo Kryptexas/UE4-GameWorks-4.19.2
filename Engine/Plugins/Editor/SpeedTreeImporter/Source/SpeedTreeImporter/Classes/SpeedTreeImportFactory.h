@@ -10,9 +10,7 @@
 UCLASS(hidecategories=Object)
 class USpeedTreeImportFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	USpeedTreeImportFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin UFactory Interface
 	virtual FText GetDisplayName() const override;

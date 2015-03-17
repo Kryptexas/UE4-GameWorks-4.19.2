@@ -11,9 +11,7 @@
 UCLASS(config=EditorUserSettings, HideCategories=Object, abstract)
 class UNREALED_API UFbxAssetImportData : public UAssetImportData
 {
-	GENERATED_BODY()
-public:
-	UFbxAssetImportData(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Transform, meta=(ImportType="StaticMesh|SkeletalMesh|Animation", ImportCategory="Transform"))
 	FVector ImportTranslation;

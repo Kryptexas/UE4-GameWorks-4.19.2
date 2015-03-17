@@ -6,9 +6,7 @@
 UCLASS(Abstract)
 class AIMODULE_API UEnvQueryNode : public UObject
 {
-	GENERATED_BODY()
-public:
-	UEnvQueryNode(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Versioning for updating deprecated properties */
 	UPROPERTY()

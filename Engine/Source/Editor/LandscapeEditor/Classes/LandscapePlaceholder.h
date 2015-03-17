@@ -7,9 +7,7 @@
 UCLASS(NotPlaceable)
 class ALandscapePlaceholder : public AActor
 {
-	GENERATED_BODY()
-public:
-	ALandscapePlaceholder(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	//virtual void PostEditMove(bool bFinished) override;
 	virtual bool TeleportTo(const FVector& DestLocation, const FRotator& DestRotation, bool bIsATest = false, bool bNoCheck = false) override;

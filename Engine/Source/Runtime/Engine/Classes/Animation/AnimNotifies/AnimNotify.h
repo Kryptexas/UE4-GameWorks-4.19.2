@@ -12,16 +12,13 @@ struct FAnimNotifyEvent;
 UCLASS(abstract, Blueprintable, const, hidecategories=Object, collapsecategories)
 class ENGINE_API UAnimNotify : public UObject
 {
-	GENERATED_BODY()
-public:
-	UAnimNotify(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** 
 	 * Implementable event to get a custom name for the notify
 	 */
 	UFUNCTION(BlueprintNativeEvent)
 	FString GetNotifyName() const;
-	virtual FString GetNotifyName_Implementation() const;
 
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual bool Received_Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation) const;

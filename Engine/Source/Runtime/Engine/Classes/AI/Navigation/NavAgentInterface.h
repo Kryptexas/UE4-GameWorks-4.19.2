@@ -11,15 +11,12 @@ struct FNavAgentProperties;
 UINTERFACE(MinimalAPI, meta=(CannotImplementInterfaceInBlueprint))
 class UNavAgentInterface : public UInterface
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UNavAgentInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class INavAgentInterface
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 
 	/**
 	 *	Retrieves FNavAgentProperties expressing navigation props and caps of represented agent

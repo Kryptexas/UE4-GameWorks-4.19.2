@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionScalarParameter : public UMaterialExpressionParameter
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UMaterialExpressionScalarParameter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionScalarParameter)
 	float DefaultValue;

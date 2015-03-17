@@ -50,7 +50,7 @@ enum ECanCreateConnectionResponse
 USTRUCT()
 struct ENGINE_API FEdGraphSchemaAction
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	// Simple type info
 	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction"); return Type;}
@@ -146,7 +146,7 @@ struct ENGINE_API FEdGraphSchemaAction
 USTRUCT()
 struct ENGINE_API FEdGraphSchemaAction_NewNode : public FEdGraphSchemaAction
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	// Simple type info
 	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_NewNode"); return Type;}
@@ -398,9 +398,7 @@ public:
 UCLASS(abstract)
 class ENGINE_API UEdGraphSchema : public UObject
 {
-	GENERATED_BODY()
-public:
-	UEdGraphSchema(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	/**

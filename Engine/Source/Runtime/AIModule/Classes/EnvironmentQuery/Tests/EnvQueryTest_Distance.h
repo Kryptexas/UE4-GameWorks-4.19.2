@@ -20,9 +20,7 @@ namespace EEnvTestDistance
 UCLASS()
 class UEnvQueryTest_Distance : public UEnvQueryTest
 {
-	GENERATED_BODY()
-public:
-	UEnvQueryTest_Distance(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** testing mode */
 	UPROPERTY(EditDefaultsOnly, Category=Distance)

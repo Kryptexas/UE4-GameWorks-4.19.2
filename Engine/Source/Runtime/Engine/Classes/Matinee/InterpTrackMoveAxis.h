@@ -26,9 +26,7 @@ enum EInterpMoveAxis
 UCLASS(MinimalAPI, meta=( DisplayName = "Move Axis Track" ) )
 class UInterpTrackMoveAxis : public UInterpTrackFloatBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UInterpTrackMoveAxis(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The axis which this track will use when transforming an actor */
 	UPROPERTY()

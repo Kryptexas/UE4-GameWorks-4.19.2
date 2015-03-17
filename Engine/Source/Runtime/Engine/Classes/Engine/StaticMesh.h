@@ -53,7 +53,7 @@ enum EOptimizationType
 USTRUCT()
 struct FStaticMeshOptimizationSettings
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The method to use when optimizing the skeletal mesh LOD */
 	UPROPERTY()
@@ -134,7 +134,7 @@ struct FStaticMeshOptimizationSettings
 USTRUCT()
 struct FStaticMeshSourceModel
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 #if WITH_EDITOR
 	/** Imported raw mesh data. Optional for all but the first LOD. */
@@ -174,7 +174,7 @@ struct FStaticMeshSourceModel
 USTRUCT()
 struct FMeshSectionInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Index in to the Materials array on UStaticMesh. */
 	UPROPERTY()
@@ -215,7 +215,7 @@ bool operator!=(const FMeshSectionInfo& A, const FMeshSectionInfo& B);
 USTRUCT()
 struct FMeshSectionInfoMap
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Maps an LOD+Section to the material it should render with. */
 	TMap<uint32,FMeshSectionInfo> Map;
@@ -245,7 +245,7 @@ struct FMeshSectionInfoMap
 USTRUCT()
 struct FAssetEditorOrbitCameraPosition
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FAssetEditorOrbitCameraPosition()
 		: bIsSet(false)
@@ -285,11 +285,10 @@ struct FAssetEditorOrbitCameraPosition
  * @see https://docs.unrealengine.com/latest/INT/Engine/Content/Types/StaticMeshes/
  * @see AStaticMeshActor, UStaticMeshComponent
  */
-UCLASS(collapsecategories, hidecategories=Object, MinimalAPI, BlueprintType, config=Engine)
+UCLASS(collapsecategories, hidecategories=Object, customconstructor, MinimalAPI, BlueprintType, config=Engine)
 class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, public IInterface_AssetUserData
 {
-	GENERATED_BODY()
-public:
+	GENERATED_UCLASS_BODY()
 
 	/** Pointer to the data used to render this static mesh. */
 	TScopedPointer<class FStaticMeshRenderData> RenderData;

@@ -9,9 +9,7 @@
 UCLASS()
 class UMG_API UHorizontalBoxSlot : public UPanelSlot
 {
-	GENERATED_BODY()
-public:
-	UHorizontalBoxSlot(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	

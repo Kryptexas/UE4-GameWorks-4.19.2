@@ -10,10 +10,11 @@
 UCLASS()
 class UTextBufferExporterTXT : public UExporter
 {
-	GENERATED_BODY()
 public:
-	UTextBufferExporterTXT(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_BODY()
 
+public:
+	UTextBufferExporterTXT(const FObjectInitializer& ObjectInitializer = FObjectInitializer());
 
 	// Begin UExporter Interface
 	virtual bool ExportText( const FExportObjectInnerContext* Context, UObject* Object, const TCHAR* Type, FOutputDevice& Ar, FFeedbackContext* Warn, uint32 PortFlags=0 ) override;

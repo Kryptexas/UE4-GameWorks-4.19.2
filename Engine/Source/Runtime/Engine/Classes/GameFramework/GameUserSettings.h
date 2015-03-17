@@ -10,9 +10,7 @@
 UCLASS(config=GameUserSettings, configdonotcheckdefaults)
 class ENGINE_API UGameUserSettings : public UObject
 {
-	GENERATED_BODY()
-public:
-	UGameUserSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

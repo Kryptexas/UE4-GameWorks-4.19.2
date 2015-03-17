@@ -49,9 +49,7 @@ DECLARE_DELEGATE(FOnReservationsFull);
 UCLASS(transient, notplaceable, config=Engine)
 class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
 {
-	GENERATED_BODY()
-public:
-	APartyBeaconHost(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin AActor Interface
 	virtual void Tick(float DeltaTime) override;

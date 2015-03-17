@@ -9,9 +9,7 @@
 UCLASS(MinimalAPI)
 class UAnimGraphNode_BlendListByEnum : public UAnimGraphNode_BlendListBase, public INodeDependingOnEnumInterface
 {
-	GENERATED_BODY()
-public:
-	ANIMGRAPH_API UAnimGraphNode_BlendListByEnum(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_BlendListByEnum Node;

@@ -7,7 +7,7 @@
 USTRUCT()
 struct FAudioEQEffect
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/* Start time of effect */
 	double RootTime;
@@ -73,7 +73,7 @@ struct FAudioEQEffect
 USTRUCT()
 struct FSoundClassAdjuster
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/* The sound class this adjuster affects. */
 	UPROPERTY(EditAnywhere, Category=SoundClassAdjuster, DisplayName = "Sound Class" )
@@ -111,9 +111,7 @@ struct FSoundClassAdjuster
 UCLASS(BlueprintType, hidecategories=object, MinimalAPI)
 class USoundMix : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API USoundMix(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Whether to apply the EQ effect */
 	UPROPERTY(EditAnywhere, Category=EQ, AssetRegistrySearchable )

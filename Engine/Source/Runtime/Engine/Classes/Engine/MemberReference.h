@@ -53,7 +53,7 @@ struct FParamRemapInfo
 USTRUCT()
 struct FMemberReference
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 protected:
 	/** Class that this member is defined in. Should be NULL if bSelfContext is true.  */

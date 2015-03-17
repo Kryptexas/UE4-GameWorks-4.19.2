@@ -6,7 +6,7 @@
 USTRUCT()
 struct AIGRAPH_API FGraphNodeClassData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGraphNodeClassData() {}
 	FGraphNodeClassData(UClass* InClass, const FString& InDeprecatedMessage);

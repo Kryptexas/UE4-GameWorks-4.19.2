@@ -24,15 +24,12 @@ struct FNavigationLink;
 UINTERFACE(MinimalAPI, meta=(CannotImplementInterfaceInBlueprint))
 class UNavLinkCustomInterface : public UInterface
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UNavLinkCustomInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class ENGINE_API INavLinkCustomInterface
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 
 	/** Get basic link data: two points (relative to owner) and direction */
 	virtual void GetLinkData(FVector& LeftPt, FVector& RightPt, ENavLinkDirection::Type& Direction) const {};

@@ -44,7 +44,7 @@ namespace EDestructibleImportOptions
 USTRUCT()
 struct FFractureMaterial
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/**
 	 * The UV scale (geometric distance/unit texture distance) for interior materials.
@@ -102,7 +102,7 @@ struct FFractureMaterial
 USTRUCT()
 struct FDestructibleChunkParameters
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/**
 		Defines the chunk to be environmentally supported, if the appropriate NxDestructibleParametersFlag flags
@@ -153,9 +153,7 @@ UCLASS(MinimalAPI)
 class UDestructibleFractureSettings
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UDestructibleFractureSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 #if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */

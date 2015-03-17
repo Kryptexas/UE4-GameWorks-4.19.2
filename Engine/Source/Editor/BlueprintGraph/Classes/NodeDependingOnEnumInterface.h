@@ -6,15 +6,12 @@
 UINTERFACE(meta=(CannotImplementInterfaceInBlueprint))
 class BLUEPRINTGRAPH_API UNodeDependingOnEnumInterface : public UInterface
 {
-	GENERATED_BODY()
-public:
-	UNodeDependingOnEnumInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class BLUEPRINTGRAPH_API INodeDependingOnEnumInterface
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 
 	virtual class UEnum* GetEnum() const PURE_VIRTUAL(INodeDependingOnEnumInterface::GetEnum,return NULL;);
 

@@ -20,9 +20,7 @@ struct EditorExposedVectorCurveConstant
 UCLASS(MinimalAPI)
 class UNiagaraScriptSourceBase : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UNiagaraScriptSourceBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	TArray<TSharedPtr<EditorExposedVectorConstant> > ExposedVectorConstants;
 	TArray<TSharedPtr<EditorExposedVectorCurveConstant> > ExposedVectorCurveConstants;

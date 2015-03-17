@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UControlPointMeshComponent : public UStaticMeshComponent
 {
-	GENERATED_BODY()
-public:
-	LANDSCAPE_API UControlPointMeshComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(transient)

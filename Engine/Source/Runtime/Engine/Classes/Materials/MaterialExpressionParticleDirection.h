@@ -12,9 +12,7 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionParticleDirection : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionParticleDirection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UMaterialExpression Interface

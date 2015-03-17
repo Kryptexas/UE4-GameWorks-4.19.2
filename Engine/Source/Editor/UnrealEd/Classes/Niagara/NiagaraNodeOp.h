@@ -6,9 +6,7 @@
 UCLASS(MinimalAPI)
 class UNiagaraNodeOp : public UNiagaraNode
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UNiagaraNodeOp(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

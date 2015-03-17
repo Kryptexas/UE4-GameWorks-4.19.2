@@ -6,9 +6,7 @@
 UCLASS()
 class UEnvironmentQueryGraphNode_Test : public UEnvironmentQueryGraphNode
 {
-	GENERATED_BODY()
-public:
-	UEnvironmentQueryGraphNode_Test(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** weight percent for display */
 	UPROPERTY()

@@ -33,7 +33,7 @@ namespace EAnimLinkMethod
 USTRUCT()
 struct FAnimLinkableElement
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FAnimLinkableElement()
 	: LinkedMontage(nullptr)

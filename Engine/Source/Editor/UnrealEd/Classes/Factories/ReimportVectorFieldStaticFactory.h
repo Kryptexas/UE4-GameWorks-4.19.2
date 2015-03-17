@@ -10,9 +10,7 @@
 UCLASS()
 class UReimportVectorFieldStaticFactory : public UVectorFieldStaticFactory, public FReimportHandler
 {
-	GENERATED_BODY()
-public:
-	UReimportVectorFieldStaticFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin FReimportHandler interface
 	virtual bool CanReimport( UObject* Obj, TArray<FString>& OutFilenames ) override;

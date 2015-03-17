@@ -10,9 +10,7 @@ struct FParticleEmitterInstance;
 UCLASS(editinlinenew, hidecategories=Object, abstract, MinimalAPI)
 class UParticleModuleTypeDataBase : public UParticleModule
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleTypeDataBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UParticleModule Interface

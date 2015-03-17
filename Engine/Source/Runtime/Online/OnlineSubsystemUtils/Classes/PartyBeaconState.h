@@ -127,7 +127,7 @@ namespace EPartyReservationResult
 USTRUCT()
 struct FPlayerReservation
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 	
 	#if CPP
 	FPlayerReservation() :
@@ -152,7 +152,7 @@ struct FPlayerReservation
 USTRUCT()
 struct ONLINESUBSYSTEMUTILS_API FPartyReservation
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Team assigned to this party */
 	UPROPERTY(Transient)
@@ -176,9 +176,7 @@ struct ONLINESUBSYSTEMUTILS_API FPartyReservation
 UCLASS(transient, notplaceable, config=Engine)
 class ONLINESUBSYSTEMUTILS_API UPartyBeaconState : public UObject
 {
-	GENERATED_BODY()
-public:
-	UPartyBeaconState(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 * Initialize this state object 

@@ -11,8 +11,6 @@
 UCLASS(deprecated)
 class UDEPRECATED_CurveEdPresetCurve : public UObject
 {
-	GENERATED_BODY()
-public:
-	UDEPRECATED_CurveEdPresetCurve(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 };
 

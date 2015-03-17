@@ -14,7 +14,7 @@ DECLARE_EVENT( UK2Node_PlayMovieScene, FOnMovieSceneBindingsChanged );
 USTRUCT()
 struct FEdGraphSchemaAction_K2AddPlayMovieScene : public FEdGraphSchemaAction_K2NewNode
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FEdGraphSchemaAction_K2AddPlayMovieScene()
 		: FEdGraphSchemaAction_K2NewNode()
@@ -36,9 +36,7 @@ struct FEdGraphSchemaAction_K2AddPlayMovieScene : public FEdGraphSchemaAction_K2
 UCLASS( MinimalAPI )
 class UK2Node_PlayMovieScene : public UK2Node
 {
-	GENERATED_BODY()
-public:
-	MOVIESCENETOOLS_API UK2Node_PlayMovieScene(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITOR
 	// UEdGraphNode interface.

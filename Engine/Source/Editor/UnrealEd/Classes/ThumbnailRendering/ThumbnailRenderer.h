@@ -13,9 +13,7 @@
 UCLASS(abstract, MinimalAPI)
 class UThumbnailRenderer : public UObject
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UThumbnailRenderer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 public:

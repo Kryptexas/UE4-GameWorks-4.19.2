@@ -12,9 +12,7 @@
 UCLASS()
 class UGenerateTextLocalizationResourceCommandlet : public UGatherTextCommandletBase
 {
-	GENERATED_BODY()
-public:
-	UGenerateTextLocalizationResourceCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	// Begin UCommandlet Interface

@@ -13,9 +13,7 @@ UCLASS(config=Engine, transient)
 class ENGINE_API UGameEngine
 	: public UEngine
 {
-	GENERATED_BODY()
-public:
-	UGameEngine(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Check to see if we need to start a movie capture (used on the first tick when we want to record a Matinee) */
 	UPROPERTY(transient)

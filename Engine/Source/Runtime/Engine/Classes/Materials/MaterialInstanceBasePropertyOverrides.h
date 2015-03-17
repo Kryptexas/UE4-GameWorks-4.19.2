@@ -9,7 +9,7 @@ class UMaterialInstance;
 USTRUCT()
 struct ENGINE_API FMaterialInstanceBasePropertyOverrides
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Enables override of the opacity mask clip value. */
 	UPROPERTY(EditAnywhere, Category = Material)

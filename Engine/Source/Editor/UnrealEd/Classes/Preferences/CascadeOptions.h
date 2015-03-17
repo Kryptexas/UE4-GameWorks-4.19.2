@@ -13,9 +13,7 @@
 UCLASS(hidecategories=Object, config=EditorUserSettings)
 class UNREALED_API UCascadeOptions : public UObject
 {
-	GENERATED_BODY()
-public:
-	UCascadeOptions(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, config, Category=Options)
 	uint32 bShowModuleDump:1;

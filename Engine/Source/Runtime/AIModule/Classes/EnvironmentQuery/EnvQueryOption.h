@@ -9,9 +9,7 @@ class UEnvQueryTest;
 UCLASS()
 class AIMODULE_API UEnvQueryOption : public UObject
 {
-	GENERATED_BODY()
-public:
-	UEnvQueryOption(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	UEnvQueryGenerator* Generator;

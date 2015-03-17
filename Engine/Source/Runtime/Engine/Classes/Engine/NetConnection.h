@@ -97,11 +97,10 @@ struct DelayedPacket
 #define PING_ACK_DELAY 0.5
 
 
-UCLASS(Abstract, MinimalAPI, transient, config=Engine)
+UCLASS(customConstructor, Abstract, MinimalAPI, transient, config=Engine)
 class UNetConnection : public UPlayer
 {
-	GENERATED_BODY()
-public:
+	GENERATED_UCLASS_BODY()
 
 	/** child connections for secondary viewports */
 	UPROPERTY(transient)

@@ -105,9 +105,7 @@ private:
 UCLASS(abstract, BlueprintType)
 class AIMODULE_API UBrainComponent : public UActorComponent, public IAIResourceInterface
 {
-	GENERATED_BODY()
-public:
-	UBrainComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 protected:
 	/** blackboard component */

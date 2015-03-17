@@ -18,9 +18,7 @@
 UCLASS(ShowCategories=(Mobility), ClassGroup=Paper2D, meta=(BlueprintSpawnableComponent))
 class PAPER2D_API UPaperSpriteComponent : public UMeshComponent
 {
-	GENERATED_BODY()
-public:
-	UPaperSpriteComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 protected:
 	// The sprite asset used by this component

@@ -8,9 +8,7 @@
 UCLASS()
 class UMaterialExpressionSubtract : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionSubtract(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'ConstA' if not specified"))
 	FExpressionInput A;

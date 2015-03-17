@@ -22,9 +22,7 @@ enum class EWidgetSpace : uint8
 UCLASS(ClassGroup=Experimental, hidecategories=(Object,Activation,"Components|Activation",Sockets,Base,Lighting,LOD,Mesh), editinlinenew, meta=(BlueprintSpawnableComponent,  DevelopmentStatus=Experimental) )
 class UMG_API UWidgetComponent : public UPrimitiveComponent
 {
-	GENERATED_BODY()
-public:
-	UWidgetComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	/* UPrimitiveComponent Interface */

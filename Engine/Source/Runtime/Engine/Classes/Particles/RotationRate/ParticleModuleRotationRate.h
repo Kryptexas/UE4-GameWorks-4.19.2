@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Initial Rotation Rate"))
 class UParticleModuleRotationRate : public UParticleModuleRotationRateBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleRotationRate(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** 
 	 *	Initial rotation rate, in rotations per second.

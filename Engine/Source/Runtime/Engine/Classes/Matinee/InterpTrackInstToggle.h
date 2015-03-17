@@ -10,9 +10,7 @@
 UCLASS()
 class UInterpTrackInstToggle : public UInterpTrackInst
 {
-	GENERATED_BODY()
-public:
-	UInterpTrackInstToggle(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=InterpTrackInstToggle)
 	TEnumAsByte<enum ETrackToggleAction> Action;

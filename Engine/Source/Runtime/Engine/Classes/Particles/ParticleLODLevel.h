@@ -13,9 +13,7 @@ class UInterpCurveEdSetup;
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
 class UParticleLODLevel : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleLODLevel(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The index value of the LOD level												*/
 	UPROPERTY()

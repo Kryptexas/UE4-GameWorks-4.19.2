@@ -16,9 +16,7 @@
 UCLASS(autoexpandcategories=Settings)
 class UGeomModifier_Edit : public UGeomModifier
 {
-	GENERATED_BODY()
-public:
-	UGeomModifier_Edit(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 

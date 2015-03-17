@@ -14,9 +14,7 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionFresnel : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionFresnel(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'Exponent' if not specified"))
 	FExpressionInput ExponentIn;

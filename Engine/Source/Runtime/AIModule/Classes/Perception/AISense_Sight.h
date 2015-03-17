@@ -23,7 +23,7 @@ namespace ESightPerceptionEventName
 USTRUCT()
 struct AIMODULE_API FAISightEvent
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	typedef UAISense_Sight FSenseClass;
 
@@ -101,9 +101,7 @@ struct FAISightQuery
 UCLASS(ClassGroup=AI, config=Game)
 class AIMODULE_API UAISense_Sight : public UAISense
 {
-	GENERATED_BODY()
-public:
-	UAISense_Sight(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	struct FDigestedSightProperties

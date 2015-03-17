@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionTextureSampleParameterCube : public UMaterialExpressionTextureSampleParameter
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UMaterialExpressionTextureSampleParameterCube(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 

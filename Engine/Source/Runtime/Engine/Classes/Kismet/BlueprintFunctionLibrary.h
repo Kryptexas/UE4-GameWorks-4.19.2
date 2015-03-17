@@ -8,9 +8,7 @@
 UCLASS(Abstract, MinimalAPI)
 class UBlueprintFunctionLibrary : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UBlueprintFunctionLibrary(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// UObject interface
 	ENGINE_API virtual int32 GetFunctionCallspace(UFunction* Function, void* Parms, FFrame* Stack) override;

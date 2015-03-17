@@ -17,9 +17,7 @@ UCLASS(config=EditorUserSettings)
 class UNREALED_API UEditorExperimentalSettings
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	UEditorExperimentalSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

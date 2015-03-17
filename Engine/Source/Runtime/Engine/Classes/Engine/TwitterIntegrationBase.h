@@ -31,9 +31,7 @@ enum ETwitterIntegrationDelegate
 UCLASS(config=Engine)
 class UTwitterIntegrationBase : public UPlatformInterfaceBase
 {
-	GENERATED_BODY()
-public:
-	UTwitterIntegrationBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 * Perform any needed initialization

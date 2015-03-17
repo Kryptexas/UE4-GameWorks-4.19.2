@@ -8,13 +8,11 @@
 UCLASS(config=Input, hidedropdown)
 class ALogVisualizerCameraController : public ADebugCameraController
 {
-	GENERATED_BODY()
-public:
-	ALogVisualizerCameraController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 public:
 	DECLARE_DELEGATE_OneParam(FActorSelectedDelegate, class AActor*);
 	DECLARE_DELEGATE_OneParam(FLogEntryIterationDelegate, int32);
 
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	class AActor* PickedActor;

@@ -11,9 +11,7 @@
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, meta=( DisplayName="Modulator" ))
 class USoundNodeModulator : public USoundNode
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API USoundNodeModulator(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/* The lower bound of pitch (1.0 is no change). */
 	UPROPERTY(EditAnywhere, Category=Modulation )

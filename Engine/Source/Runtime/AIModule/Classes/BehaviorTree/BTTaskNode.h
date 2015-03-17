@@ -26,9 +26,7 @@ struct FAIMessage;
 UCLASS(Abstract)
 class AIMODULE_API UBTTaskNode : public UBTNode
 {
-	GENERATED_BODY()
-public:
-	UBTTaskNode(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** starts this task, should return Succeeded, Failed or InProgress
 	 *  (use FinishLatentTask() when returning InProgress)

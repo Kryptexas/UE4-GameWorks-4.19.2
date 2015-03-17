@@ -11,9 +11,7 @@
 UCLASS(config=Editor, MinimalAPI)
 class UAnimBlueprintThumbnailRenderer : public UDefaultSizedThumbnailRenderer
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UAnimBlueprintThumbnailRenderer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UThumbnailRenderer Object

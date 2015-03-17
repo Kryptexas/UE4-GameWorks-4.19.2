@@ -29,9 +29,7 @@ enum ELandscapeCustomizedCoordType
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionLandscapeLayerCoords : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionLandscapeLayerCoords(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Determines the mapping place to use on the terrain. */
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionLandscapeLayerCoords)

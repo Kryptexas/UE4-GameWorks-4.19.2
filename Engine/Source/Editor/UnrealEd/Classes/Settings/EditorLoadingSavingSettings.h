@@ -23,9 +23,7 @@ UCLASS(config=EditorUserSettings, autoexpandcategories=(AutoSave, AutoReimport, 
 class UNREALED_API UEditorLoadingSavingSettings
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	UEditorLoadingSavingSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

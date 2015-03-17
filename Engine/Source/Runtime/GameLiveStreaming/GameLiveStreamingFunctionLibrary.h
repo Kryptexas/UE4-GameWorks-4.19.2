@@ -5,9 +5,7 @@
 UCLASS()
 class UGameLiveStreamingFunctionLibrary : public UBlueprintFunctionLibrary
 {
-	GENERATED_BODY()
-public:
-	UGameLiveStreamingFunctionLibrary(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	/**

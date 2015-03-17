@@ -45,7 +45,7 @@ namespace ETutorialAnchorIdentifier
 USTRUCT()
 struct INTROTUTORIALS_API FTutorialCategory
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Period-separated category name, e.g. "Editor Quickstart.Level Editor" */
 	UPROPERTY(EditAnywhere, Category="Content")
@@ -76,7 +76,7 @@ struct INTROTUTORIALS_API FTutorialCategory
 USTRUCT()
 struct INTROTUTORIALS_API FTutorialContent
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FTutorialContent()
 	{
@@ -104,7 +104,7 @@ struct INTROTUTORIALS_API FTutorialContent
 USTRUCT()
 struct INTROTUTORIALS_API FTutorialContentAnchor
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 	
 	FTutorialContentAnchor()
 	{
@@ -149,7 +149,7 @@ struct INTROTUTORIALS_API FTutorialContentAnchor
 USTRUCT()
 struct INTROTUTORIALS_API FTutorialWidgetContent
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FTutorialWidgetContent()
 	{
@@ -190,7 +190,7 @@ struct INTROTUTORIALS_API FTutorialWidgetContent
 USTRUCT()
 struct INTROTUTORIALS_API FTutorialStage
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Identifier for this stage */
 	UPROPERTY(EditAnywhere, Category="Stage")
@@ -217,9 +217,7 @@ struct INTROTUTORIALS_API FTutorialStage
 UCLASS(Blueprintable, hideCategories=(Object), EditInlineNew)
 class INTROTUTORIALS_API UEditorTutorial : public UObject
 {
-	GENERATED_BODY()
-public:
-	UEditorTutorial(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Title of this tutorial, used when presented to the user */
 	UPROPERTY(EditAnywhere, Category="Tutorial", AssetRegistrySearchable)

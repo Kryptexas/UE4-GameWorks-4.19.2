@@ -16,7 +16,7 @@ struct FPerInstanceRenderData;
 USTRUCT()
 struct FInstancedStaticMeshInstanceData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Instances)
 	FMatrix Transform;
@@ -49,7 +49,7 @@ struct FInstancedStaticMeshInstanceData
 USTRUCT()
 struct FInstancedStaticMeshMappingInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FStaticLightingTextureMapping_InstancedStaticMesh* Mapping;
 
@@ -63,9 +63,7 @@ struct FInstancedStaticMeshMappingInfo
 UCLASS(ClassGroup=Rendering, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 {
-	GENERATED_BODY()
-public:
-	UInstancedStaticMeshComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Array of instances, bulk serialized */
 	UPROPERTY(EditAnywhere, Transient, DuplicateTransient, DisplayName="Instances", Category=Instances, meta=(MakeEditWidget=true))

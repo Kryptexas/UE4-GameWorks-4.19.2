@@ -24,9 +24,7 @@ struct FNavigationRelevantData;
 UCLASS()
 class ENGINE_API UNavLinkCustomComponent : public UNavRelevantComponent, public INavLinkCustomInterface
 {
-	GENERATED_BODY()
-public:
-	UNavLinkCustomComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	DECLARE_DELEGATE_ThreeParams(FOnMoveReachedLink, UNavLinkCustomComponent* /*ThisComp*/, UPathFollowingComponent* /*PathComp*/, const FVector& /*DestPoint*/);
 	DECLARE_DELEGATE_TwoParams(FBroadcastFilter, UNavLinkCustomComponent* /*ThisComp*/, TArray<UPathFollowingComponent*>& /*NotifyList*/);

@@ -14,9 +14,7 @@ class APlayerController;
 UCLASS(config=Game, notplaceable)
 class ENGINE_API AGameSession : public AInfo
 {
-	GENERATED_BODY()
-public:
-	AGameSession(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Maximum number of spectators allowed by this server. */
 	UPROPERTY(globalconfig)

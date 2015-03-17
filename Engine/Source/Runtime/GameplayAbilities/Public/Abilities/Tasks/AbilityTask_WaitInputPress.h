@@ -14,9 +14,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FInputPressDelegate, float, TimeWait
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitInputPress : public UAbilityTask
 {
-	GENERATED_BODY()
-public:
-	GAMEPLAYABILITIES_API UAbilityTask_WaitInputPress(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(BlueprintAssignable)
 	FInputPressDelegate		OnPress;

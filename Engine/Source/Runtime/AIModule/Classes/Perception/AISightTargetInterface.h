@@ -7,15 +7,12 @@
 UINTERFACE()
 class AIMODULE_API UAISightTargetInterface : public UInterface
 {
-	GENERATED_BODY()
-public:
-	UAISightTargetInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class AIMODULE_API IAISightTargetInterface
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 
 	/**	Implementation should check whether from given ObserverLocation
 	 *	implementer can be seen. If so OutSeenLocation should contain

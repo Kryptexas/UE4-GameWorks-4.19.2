@@ -11,9 +11,7 @@
 UCLASS(hidecategories=(Collision, Brush, Attachment, Physics, Volume), MinimalAPI)
 class APrecomputedVisibilityVolume : public AVolume
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API APrecomputedVisibilityVolume(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 };
 

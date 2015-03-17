@@ -8,9 +8,7 @@
 UCLASS(Abstract, Blueprintable)
 class ULiveEditorBlueprint : public UObject
 {
-	GENERATED_BODY()
-public:
-	ULiveEditorBlueprint(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	UFUNCTION(BlueprintImplementableEvent)

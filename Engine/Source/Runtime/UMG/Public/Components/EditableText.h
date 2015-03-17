@@ -12,9 +12,7 @@
 UCLASS()
 class UMG_API UEditableText : public UWidget
 {
-	GENERATED_BODY()
-public:
-	UEditableText(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

@@ -11,9 +11,7 @@
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, meta=( DisplayName="Random" ))
 class USoundNodeRandom : public USoundNode
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API USoundNodeRandom(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, editfixedsize, Category=Random)
 	TArray<float> Weights;

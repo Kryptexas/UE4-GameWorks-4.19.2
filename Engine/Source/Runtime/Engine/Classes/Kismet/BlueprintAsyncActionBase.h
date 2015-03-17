@@ -6,9 +6,7 @@
 UCLASS()
 class ENGINE_API UBlueprintAsyncActionBase : public UObject
 {
-	GENERATED_BODY()
-public:
-	UBlueprintAsyncActionBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Called to trigger the action once the delegates have been bound
 	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true"))

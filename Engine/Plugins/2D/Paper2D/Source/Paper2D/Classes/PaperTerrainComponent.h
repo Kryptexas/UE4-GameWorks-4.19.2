@@ -44,9 +44,7 @@ struct FTerrainSegment
 UCLASS(BlueprintType, Experimental)
 class PAPER2D_API UPaperTerrainComponent : public UPrimitiveComponent
 {
-	GENERATED_BODY()
-public:
-	UPaperTerrainComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	/** The terrain material to apply to this component (set of rules for which sprites are used on different surfaces or the interior) */

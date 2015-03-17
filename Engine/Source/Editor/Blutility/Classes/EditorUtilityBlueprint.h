@@ -11,9 +11,7 @@
 UCLASS()
 class UEditorUtilityBlueprint : public UBlueprint
 {
-	GENERATED_BODY()
-public:
-	UEditorUtilityBlueprint(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITOR
 	// UBlueprint interface

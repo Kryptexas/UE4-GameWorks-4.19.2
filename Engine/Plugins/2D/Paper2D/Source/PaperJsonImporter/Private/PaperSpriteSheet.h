@@ -7,9 +7,7 @@
 UCLASS(BlueprintType, meta = (DisplayThumbnail = "true"))
 class UPaperSpriteSheet : public UObject
 {
-	GENERATED_BODY()
-public:
-	UPaperSpriteSheet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	// The names of sprites during import

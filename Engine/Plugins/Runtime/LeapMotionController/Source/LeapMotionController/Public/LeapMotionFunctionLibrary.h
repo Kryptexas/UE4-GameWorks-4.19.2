@@ -18,9 +18,7 @@ class ULeapMotionControllerComponent;
 UCLASS()
 class LEAPMOTIONCONTROLLER_API ULeapMotionFunctionLibrary : public UBlueprintFunctionLibrary
 {
-	GENERATED_BODY()
-public:
-	ULeapMotionFunctionLibrary(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** 
 	 * Checks whether a Leap Motion controller is connected.

@@ -9,9 +9,7 @@
 UCLASS(AutoExpandCategories=(Texture))
 class UNREALED_API UFbxTextureImportData : public UFbxAssetImportData
 {
-	GENERATED_BODY()
-public:
-	UFbxTextureImportData(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** If either importing of textures (or materials) is enabled, this option will cause normal map values to be inverted */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=ImportSettings, meta=(OBJRestrict="true"))

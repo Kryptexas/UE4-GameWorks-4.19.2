@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionReflectionVectorWS : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UMaterialExpressionReflectionVectorWS(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Optional world normal to reflect the camera view vector about. If unconnected, pixel normal is used */
 	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to Reflection Vector if not specified"))

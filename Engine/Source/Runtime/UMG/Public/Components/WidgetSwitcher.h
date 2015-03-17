@@ -10,9 +10,7 @@
 UCLASS()
 class UMG_API UWidgetSwitcher : public UPanelWidget
 {
-	GENERATED_BODY()
-public:
-	UWidgetSwitcher(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	/** The slot index to display */

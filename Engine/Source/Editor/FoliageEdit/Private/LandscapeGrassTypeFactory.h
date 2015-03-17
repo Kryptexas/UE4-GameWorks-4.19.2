@@ -12,9 +12,7 @@
 UCLASS()
 class ULandscapeGrassTypeFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	ULandscapeGrassTypeFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// UFactory interface
 	virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) override;

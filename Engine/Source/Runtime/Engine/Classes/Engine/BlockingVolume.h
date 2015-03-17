@@ -11,9 +11,7 @@ UCLASS(MinimalAPI)
 class ABlockingVolume
 	: public AVolume
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API ABlockingVolume(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

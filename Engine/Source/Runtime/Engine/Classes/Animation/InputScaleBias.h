@@ -8,7 +8,7 @@
 USTRUCT(BlueprintType)
 struct ENGINE_API FInputScaleBias
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings)
 	float Scale;

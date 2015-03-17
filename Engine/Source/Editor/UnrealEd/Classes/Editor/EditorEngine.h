@@ -42,7 +42,7 @@ enum EPasteTo
 USTRUCT()
 struct FSlatePlayInEditorInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The spawned player for updating viewport location from player when pie closes */
 	TWeakObjectPtr<class ULocalPlayer>	EditorPlayer;
@@ -67,9 +67,9 @@ struct FSlatePlayInEditorInfo
 USTRUCT()
 struct FPIELoginInfo
 {
-	GENERATED_BODY()
 public:
 
+	GENERATED_USTRUCT_BODY()
 
 	/** Type of account. Needed to identity the auth method to use (epic, internal, facebook, etc) */
 	UPROPERTY()
@@ -120,7 +120,7 @@ struct FPieLoginStruct
 USTRUCT()
 struct FCopySelectedInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Do not cache this info, it is only valid after a call to CanCopySelectedActorsToClipboard has been made, and becomes redundant
 	when the current selection changes. Used to determine whether a copy can be performed based on the current selection state */

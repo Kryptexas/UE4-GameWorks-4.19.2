@@ -7,9 +7,7 @@
 UCLASS(hidecategories=Object)
 class UInteractiveFoliageComponent : public UStaticMeshComponent
 {
-	GENERATED_BODY()
-public:
-	UInteractiveFoliageComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 public:

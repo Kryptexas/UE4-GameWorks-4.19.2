@@ -8,7 +8,7 @@
 USTRUCT()
 struct ENGINE_API FAnimNode_ConvertComponentToLocalSpace : public FAnimNode_Base
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Links)
@@ -30,7 +30,7 @@ public:
 USTRUCT()
 struct ENGINE_API FAnimNode_ConvertLocalToComponentSpace : public FAnimNode_Base
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Links)

@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionObjectBounds : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionObjectBounds(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UMaterialExpression Interface

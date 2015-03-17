@@ -9,9 +9,7 @@
 UCLASS(editinlinenew, hidecategories=Object, abstract)
 class UParticleModuleEventReceiverBase : public UParticleModuleEventBase
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleEventReceiverBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The type of event that will generate the kill. */
 	UPROPERTY(EditAnywhere, Category=Source)

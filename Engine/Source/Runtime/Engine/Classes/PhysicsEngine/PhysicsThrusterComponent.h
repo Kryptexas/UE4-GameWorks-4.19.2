@@ -11,9 +11,7 @@
 UCLASS(hidecategories=(Object, Mobility, LOD), ClassGroup=Physics, showcategories=Trigger, MinimalAPI, meta=(BlueprintSpawnableComponent))
 class UPhysicsThrusterComponent : public USceneComponent
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UPhysicsThrusterComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Strength of thrust force applied to the base object. */
 	UPROPERTY(BlueprintReadWrite, interp, Category=Physics)

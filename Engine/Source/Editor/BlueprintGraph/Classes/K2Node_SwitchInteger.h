@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UK2Node_SwitchInteger : public UK2Node_Switch
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_SwitchInteger(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Set the starting index for the node */
 	UPROPERTY(EditAnywhere, Category=PinOptions, meta=(NoSpinbox=true))

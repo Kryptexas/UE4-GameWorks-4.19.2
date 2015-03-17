@@ -9,9 +9,7 @@
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitGameplayEffectApplied : public UAbilityTask
 {
-	GENERATED_BODY()
-public:
-	GAMEPLAYABILITIES_API UAbilityTask_WaitGameplayEffectApplied(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UFUNCTION()
 	void OnApplyGameplayEffectCallback(UAbilitySystemComponent* Target, const FGameplayEffectSpec& SpecApplied, FActiveGameplayEffectHandle ActiveHandle);

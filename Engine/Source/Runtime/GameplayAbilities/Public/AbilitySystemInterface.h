@@ -12,15 +12,12 @@ class UAbilitySystemComponent;
 UINTERFACE(MinimalAPI, meta = (CannotImplementInterfaceInBlueprint))
 class UAbilitySystemInterface : public UInterface
 {
-	GENERATED_BODY()
-public:
-	GAMEPLAYABILITIES_API UAbilitySystemInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class GAMEPLAYABILITIES_API IAbilitySystemInterface
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const = 0;
 };

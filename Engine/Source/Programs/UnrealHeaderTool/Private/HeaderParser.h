@@ -22,8 +22,7 @@ enum ENestType
 	NEST_GlobalScope,
 	NEST_Class,
 	NEST_FunctionDeclaration,
-	NEST_Interface,
-	NEST_NativeInterface
+	NEST_Interface
 };
 
 /** Types of statements to allow within a particular nesting block. */
@@ -296,7 +295,7 @@ protected:
 	 */
 	FStructScope* GetCurrentClassScope() const
 	{
-		check(TopNest->NestType == NEST_Class || TopNest->NestType == NEST_Interface || TopNest->NestType == NEST_NativeInterface);
+		check(TopNest->NestType == NEST_Class || TopNest->NestType == NEST_Interface);
 
 		return (FStructScope*)TopNest->GetScope();
 	}
@@ -309,7 +308,7 @@ protected:
 		int32 Index = 0;
 		while (TopNest[Index].NestType != NEST_GlobalScope)
 		{
-			if (TopNest[Index].NestType == NEST_Class || TopNest->NestType == NEST_Interface || TopNest->NestType == NEST_NativeInterface)
+			if (TopNest[Index].NestType == NEST_Class || TopNest->NestType == NEST_Interface)
 			{
 				return true;
 			}

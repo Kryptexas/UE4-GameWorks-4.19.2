@@ -8,10 +8,8 @@
 UCLASS(MinimalAPI)
 class UQuitMatchCallbackProxy : public UOnlineBlueprintCallProxyBase
 {
-	GENERATED_BODY()
 public:
-	ONLINESUBSYSTEMUTILS_API UQuitMatchCallbackProxy(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-public:
+	GENERATED_UCLASS_BODY()
 
 	virtual ~UQuitMatchCallbackProxy();
 

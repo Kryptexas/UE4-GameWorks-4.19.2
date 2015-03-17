@@ -8,9 +8,7 @@
 UCLASS(hidecategories=(Object,CompositeTexture,Texture2D), MinimalAPI, BlueprintType)
 class UTextureLightProfile : public UTexture2D
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UTextureLightProfile(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Light brightness in Lumens, imported from IES profile, <= 0 if the profile is used for masking only. Use with InverseSquareFalloff. */
 	UPROPERTY(EditAnywhere, Category=TextureLightProfile, AssetRegistrySearchable)

@@ -10,9 +10,7 @@
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, meta=(DisplayName="Switch"))
 class USoundNodeSwitch : public USoundNode
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API USoundNodeSwitch(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The name of the integer parameter to use to determine which branch we should take */
 	UPROPERTY(EditAnywhere, Category=Switch)

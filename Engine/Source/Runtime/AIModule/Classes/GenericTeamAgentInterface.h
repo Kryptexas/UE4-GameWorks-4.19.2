@@ -18,7 +18,7 @@ namespace ETeamAttitude
 USTRUCT()
 struct AIMODULE_API FGenericTeamId
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 private:
 	enum EPredefinedId
@@ -49,15 +49,12 @@ public:
 UINTERFACE()
 class AIMODULE_API UGenericTeamAgentInterface : public UInterface
 {
-	GENERATED_BODY()
-public:
-	UGenericTeamAgentInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class AIMODULE_API IGenericTeamAgentInterface
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 
 	/** Assigns Team Agent to given TeamID */
 	virtual void SetGenericTeamId(const FGenericTeamId& TemaID) {}

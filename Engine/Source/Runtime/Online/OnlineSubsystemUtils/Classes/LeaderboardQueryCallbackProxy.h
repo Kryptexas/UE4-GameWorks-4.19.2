@@ -9,9 +9,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLeaderboardQueryResult, int32, Lead
 UCLASS(MinimalAPI)
 class ULeaderboardQueryCallbackProxy : public UObject
 {
-	GENERATED_BODY()
-public:
-	ONLINESUBSYSTEMUTILS_API ULeaderboardQueryCallbackProxy(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Called when there is a successful leaderboard query
 	UPROPERTY(BlueprintAssignable)

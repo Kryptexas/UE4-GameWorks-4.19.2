@@ -7,9 +7,7 @@
 UCLASS(meta=( DisplayName = "Fade Track" ) )
 class UInterpTrackFade : public UInterpTrackFloatBase
 {
-	GENERATED_BODY()
-public:
-	UInterpTrackFade(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** 
 	 * InterpTrackFade

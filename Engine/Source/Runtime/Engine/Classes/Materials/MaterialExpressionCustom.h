@@ -18,7 +18,7 @@ enum ECustomMaterialOutputType
 USTRUCT()
 struct FCustomInput
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category=CustomInput)
 	FString InputName;
@@ -31,9 +31,7 @@ struct FCustomInput
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionCustom : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UMaterialExpressionCustom(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionCustom, meta=(MultiLine=true))
 	FString Code;

@@ -84,7 +84,7 @@ struct AIMODULE_API FActorPerceptionInfo
 USTRUCT(BlueprintType, meta = (DisplayName = "Sensed Actor's Data"))
 struct FActorPerceptionBlueprintInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(BlueprintReadWrite, Category = "AI|Perception")
 	AActor* Target;
@@ -107,9 +107,7 @@ struct FActorPerceptionBlueprintInfo
 UCLASS(ClassGroup=AI, HideCategories=(Activation, Collision), meta=(BlueprintSpawnableComponent), config=Game)
 class AIMODULE_API UAIPerceptionComponent : public UActorComponent
 {
-	GENERATED_BODY()
-public:
-	UAIPerceptionComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	
 	static const int32 InitialStimuliToProcessArraySize;
 

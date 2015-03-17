@@ -8,9 +8,7 @@
 UCLASS(abstract, MinimalAPI)
 class UK2Node_FunctionTerminator : public UK2Node_EditablePinBase
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_FunctionTerminator(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** 
 	 * The source class that defines the signature, if it is getting that from elsewhere (e.g. interface, base class etc). 

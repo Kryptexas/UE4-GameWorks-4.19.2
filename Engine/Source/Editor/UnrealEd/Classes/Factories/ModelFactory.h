@@ -10,9 +10,7 @@
 UCLASS()
 class UModelFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	UModelFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UFactory Interface

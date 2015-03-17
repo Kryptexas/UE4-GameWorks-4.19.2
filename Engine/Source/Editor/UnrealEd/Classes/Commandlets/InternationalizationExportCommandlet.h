@@ -381,9 +381,7 @@ private:
 UCLASS()
 class UInternationalizationExportCommandlet : public UGatherTextCommandletBase
 {
-    GENERATED_BODY()
-public:
-    UInternationalizationExportCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+    GENERATED_UCLASS_BODY()
 
 public:
 	// Begin UCommandlet Interface

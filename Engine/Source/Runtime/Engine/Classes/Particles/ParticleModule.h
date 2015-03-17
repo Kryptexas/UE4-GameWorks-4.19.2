@@ -56,7 +56,7 @@ enum EParticleSourceSelectionMethod
 USTRUCT()
 struct FParticleCurvePair
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	FString CurveName;
@@ -75,7 +75,7 @@ struct FParticleCurvePair
 USTRUCT()
 struct FParticleRandomSeedInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The name to expose to the placed instances for setting this seed */
 	UPROPERTY(EditAnywhere, Category=ParticleRandomSeedInfo)
@@ -136,9 +136,7 @@ struct FParticleRandomSeedInfo
 UCLASS(editinlinenew, hidecategories=Object, abstract, MinimalAPI)
 class UParticleModule : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModule(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** If true, the module performs operations on particles during Spawning		*/
 	UPROPERTY()

@@ -9,9 +9,7 @@
 UCLASS(MinimalAPI)
 class UK2Node_StructMemberGet : public UK2Node_StructOperation
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_StructMemberGet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=PinOptions, EditFixedSize)
 	TArray<FOptionalPinFromProperty> ShowPinForProperties;

@@ -30,11 +30,9 @@ UCLASS(config=EditorUserSettings)
 class EDITORSTYLE_API UEditorStyleSettings
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	UEditorStyleSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 public:
 
+	GENERATED_UCLASS_BODY()
 
 public:
 

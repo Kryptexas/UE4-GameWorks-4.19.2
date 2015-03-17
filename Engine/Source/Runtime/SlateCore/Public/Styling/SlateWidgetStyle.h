@@ -11,7 +11,7 @@
 USTRUCT()
 struct SLATECORE_API FSlateWidgetStyle
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 

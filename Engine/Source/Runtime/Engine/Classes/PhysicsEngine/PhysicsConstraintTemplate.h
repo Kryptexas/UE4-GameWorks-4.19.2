@@ -17,9 +17,7 @@
 UCLASS(hidecategories=Object, MinimalAPI)
 class UPhysicsConstraintTemplate : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UPhysicsConstraintTemplate(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	FName JointName_DEPRECATED;

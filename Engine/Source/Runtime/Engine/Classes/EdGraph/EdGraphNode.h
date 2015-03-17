@@ -85,9 +85,7 @@ struct FGraphNodeContextMenuBuilder
 UCLASS()
 class ENGINE_API UEdGraphNode : public UObject
 {
-	GENERATED_BODY()
-public:
-	UEdGraphNode(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** List of connector pins */
 	UPROPERTY()

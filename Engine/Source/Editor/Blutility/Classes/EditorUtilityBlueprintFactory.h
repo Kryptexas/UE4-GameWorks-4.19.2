@@ -11,9 +11,7 @@
 UCLASS()
 class UEditorUtilityBlueprintFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	UEditorUtilityBlueprintFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// The parent class of the created blueprint
 	UPROPERTY(EditAnywhere, Category=BlueprintFactory, meta=(AllowAbstract = "", BlueprintBaseOnly = ""))

@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class UMaterialGraphNode : public UMaterialGraphNode_Base
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UMaterialGraphNode(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Material Expression this node is representing */
 	UPROPERTY()

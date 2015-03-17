@@ -14,9 +14,7 @@ class UNavigationQueryFilter;
 UCLASS(meta = (DisplayName = "Points: Pathing Grid"))
 class UEnvQueryGenerator_PathingGrid : public UEnvQueryGenerator_SimpleGrid
 {
-	GENERATED_BODY()
-public:
-	UEnvQueryGenerator_PathingGrid(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** pathfinding direction */
 	UPROPERTY(EditDefaultsOnly, Category = Generator)

@@ -9,7 +9,5 @@ UCLASS(transient, config=Engine)
 class UDemoPendingNetGame
 	: public UPendingNetGame
 {
-	GENERATED_BODY()
-public:
-	UDemoPendingNetGame(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 };

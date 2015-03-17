@@ -10,9 +10,7 @@
 UCLASS(MinimalAPI, Blueprintable, meta = (DisplayName = "Timed Particle Effect"))
 class UAnimNotifyState_TimedParticleEffect : public UAnimNotifyState
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UAnimNotifyState_TimedParticleEffect(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// The particle system template to use when spawning the particle component
 	UPROPERTY(EditAnywhere, Category = ParticleSystem, meta = (ToolTip = "The particle system to spawn for the notify state"))

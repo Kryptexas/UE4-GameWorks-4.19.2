@@ -36,9 +36,7 @@ class dtNavMesh;
 UCLASS()
 class ENGINE_API URecastNavMeshDataChunk : public UNavigationDataChunk
 {
-	GENERATED_BODY()
-public:
-	URecastNavMeshDataChunk(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;

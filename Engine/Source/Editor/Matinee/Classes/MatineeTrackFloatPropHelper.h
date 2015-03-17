@@ -10,9 +10,7 @@
 UCLASS()
 class UMatineeTrackFloatPropHelper : public UInterpTrackHelper
 {
-	GENERATED_BODY()
-public:
-	UMatineeTrackFloatPropHelper(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	void OnCreateTrackTextEntry(const FString& ChosenText, TSharedRef<SWindow> Window, FString* OutputString);
 

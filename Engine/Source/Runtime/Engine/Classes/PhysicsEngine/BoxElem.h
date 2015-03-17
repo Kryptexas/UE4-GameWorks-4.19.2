@@ -10,7 +10,7 @@ class FMeshElementCollector;
 USTRUCT()
 struct FKBoxElem
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	FMatrix TM_DEPRECATED;

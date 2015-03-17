@@ -27,9 +27,7 @@ namespace ESplinePointType
 UCLASS(ClassGroup=Utility, meta=(BlueprintSpawnableComponent))
 class ENGINE_API USplineComponent : public UPrimitiveComponent
 {
-	GENERATED_BODY()
-public:
-	USplineComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Actual data for spline. Locations and tangents are in world space. */
 	UPROPERTY()

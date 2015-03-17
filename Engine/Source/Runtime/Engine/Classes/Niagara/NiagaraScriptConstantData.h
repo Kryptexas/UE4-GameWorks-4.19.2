@@ -9,7 +9,7 @@
 USTRUCT()
 struct FNiagaraScriptConstantData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The set of external constants for this script. */
 	UPROPERTY()

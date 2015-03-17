@@ -19,8 +19,8 @@
 USTRUCT()
 struct ENGINE_API FClientReceiveData
 {
-	GENERATED_BODY()
 	//always need to be here
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	APlayerController* LocalPC;
@@ -49,9 +49,7 @@ struct ENGINE_API FClientReceiveData
 UCLASS(abstract)
 class ENGINE_API ULocalMessage : public UObject
 {
-	GENERATED_BODY()
-public:
-	ULocalMessage(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	/** send message to client */
 	virtual void ClientReceive(const FClientReceiveData& ClientData) const PURE_VIRTUAL(ULocalMessage::ClientReceive,);
 };

@@ -9,9 +9,7 @@ UCLASS(config=Game)
 class ENGINESETTINGS_API UGameSessionSettings
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	UGameSessionSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Maximum number of spectators allowed by this server. */
 	UPROPERTY(globalconfig, EditAnywhere, Category=GameSessionSettings)

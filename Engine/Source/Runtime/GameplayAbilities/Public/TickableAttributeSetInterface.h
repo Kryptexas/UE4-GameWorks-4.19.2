@@ -8,15 +8,12 @@
 UINTERFACE(MinimalAPI, meta = (CannotImplementInterfaceInBlueprint))
 class UTickableAttributeSetInterface : public UInterface
 {
-	GENERATED_BODY()
-public:
-	GAMEPLAYABILITIES_API UTickableAttributeSetInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class ITickableAttributeSetInterface
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 
 public:
 	/**

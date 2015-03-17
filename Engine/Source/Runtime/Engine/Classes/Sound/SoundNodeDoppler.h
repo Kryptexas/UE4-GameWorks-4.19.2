@@ -12,9 +12,7 @@ struct FListener;
 UCLASS(hidecategories=Object, editinlinenew, meta=( DisplayName="Doppler" ))
 class USoundNodeDoppler : public USoundNode
 {
-	GENERATED_BODY()
-public:
-	USoundNodeDoppler(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/* How much to scale the doppler shift (1.0 is normal). */
 	UPROPERTY(EditAnywhere, Category=Doppler )

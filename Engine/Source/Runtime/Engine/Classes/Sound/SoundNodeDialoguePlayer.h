@@ -11,9 +11,7 @@
 UCLASS(hidecategories = Object, editinlinenew, MinimalAPI, meta = (DisplayName = "Dialogue Player"))
 class USoundNodeDialoguePlayer : public USoundNode
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API USoundNodeDialoguePlayer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=DialoguePlayer)
 	FDialogueWaveParameter DialogueWaveParameter;

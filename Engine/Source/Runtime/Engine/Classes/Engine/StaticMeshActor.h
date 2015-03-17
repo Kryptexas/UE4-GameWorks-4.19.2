@@ -15,9 +15,7 @@
 UCLASS(hidecategories=(Input), showcategories=("Input|MouseInput", "Input|TouchInput"), ConversionRoot, ComponentWrapperClass, meta=(ChildCanTick))
 class ENGINE_API AStaticMeshActor : public AActor
 {
-	GENERATED_BODY()
-public:
-	AStaticMeshActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 private_subobject:
 	DEPRECATED_FORGAME(4.6, "StaticMeshComponent should not be accessed directly, please use GetStaticMeshComponent() function instead. StaticMeshComponent will soon be private and your code will not compile.")

@@ -6,7 +6,7 @@
 USTRUCT()
 struct FTranslationChange
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 
@@ -30,7 +30,7 @@ public:
 USTRUCT()
 struct FTranslationContextInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 
@@ -50,9 +50,7 @@ public:
 UCLASS(hidecategories = Object, MinimalAPI)
 class UTranslationUnit : public UObject
 {
-	GENERATED_BODY()
-public:
-	TRANSLATIONEDITOR_API UTranslationUnit(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

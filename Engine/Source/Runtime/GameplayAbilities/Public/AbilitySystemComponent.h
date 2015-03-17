@@ -51,9 +51,7 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FAbilityFailedDelegate, const UGameplayAbil
 UCLASS(ClassGroup=AbilitySystem, hidecategories=(Object,LOD,Lighting,Transform,Sockets,TextureStreaming), editinlinenew, meta=(BlueprintSpawnableComponent))
 class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, public IGameplayTagAssetInterface
 {
-	GENERATED_BODY()
-public:
-	UAbilitySystemComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Used to register callbacks to confirm/cancel input */
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FAbilityConfirmOrCancel);
@@ -459,19 +457,15 @@ public:
 	// Do not call these functions directly, call the wrappers on GameplayCueManager instead
 	UFUNCTION(NetMulticast, unreliable)
 	void NetMulticast_InvokeGameplayCueExecuted_FromSpec(const FGameplayEffectSpecForRPC Spec, FPredictionKey PredictionKey);
-	virtual void NetMulticast_InvokeGameplayCueExecuted_FromSpec_Implementation(const FGameplayEffectSpecForRPC Spec, FPredictionKey PredictionKey);
 
 	UFUNCTION(NetMulticast, unreliable)
 	void NetMulticast_InvokeGameplayCueExecuted(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext);
-	virtual void NetMulticast_InvokeGameplayCueExecuted_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext);
 
 	UFUNCTION(NetMulticast, unreliable)
 	void NetMulticast_InvokeGameplayCueExecuted_WithParams(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayCueParameters GameplayCueParameters);
-	virtual void NetMulticast_InvokeGameplayCueExecuted_WithParams_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayCueParameters GameplayCueParameters);
 
 	UFUNCTION(NetMulticast, unreliable)
 	void NetMulticast_InvokeGameplayCueAdded(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext);
-	virtual void NetMulticast_InvokeGameplayCueAdded_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext);
 
 	// GameplayCues can also come on their own. These take an optional effect context to pass through hit result, etc
 	void ExecuteGameplayCue(const FGameplayTag GameplayCueTag, FGameplayEffectContextHandle EffectContext = FGameplayEffectContextHandle());
@@ -656,15 +650,11 @@ public:
 	UFUNCTION()
 	void	OnRep_ActivateAbilities();
 
-	UFUNCTION(Server="ServerTryActivateAbility_Implementation", reliable, WithValidation="ServerTryActivateAbility_Validate")
+	UFUNCTION(Server, reliable, WithValidation)
 	void	ServerTryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey PredictionKey);
-	virtual void ServerTryActivateAbility_Implementation(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey PredictionKey);
-	virtual bool ServerTryActivateAbility_Validate(FGameplayAbilitySpecHandle , FPredictionKey );
 
-	UFUNCTION(Server="ServerTryActivateAbilityWithEventData_Implementation", reliable, WithValidation="ServerTryActivateAbilityWithEventData_Validate")
+	UFUNCTION(Server, reliable, WithValidation)
 	void	ServerTryActivateAbilityWithEventData(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey PredictionKey, FGameplayEventData TriggerEventData);
-	virtual void ServerTryActivateAbilityWithEventData_Implementation(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey PredictionKey, FGameplayEventData TriggerEventData);
-	virtual bool ServerTryActivateAbilityWithEventData_Validate(FGameplayAbilitySpecHandle , FPredictionKey , FGameplayEventData );
 
 	/** Replicate that an ability has ended/canceled, to the client or server as appropriate */
 	void	ReplicateEndOrCancelAbility(FGameplayAbilitySpecHandle Handle, FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ability, bool bWasCanceled);
@@ -672,37 +662,28 @@ public:
 	/** Called by ServerEndAbility/ServerCancelAbility and ClientEndAbility/ClientCancelAbility; avoids code duplication. */
 	void	RemoteEndOrCancelAbility(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo, bool bWasCanceled);
 
-	UFUNCTION(Server="ServerEndAbility_Implementation", reliable, WithValidation="ServerEndAbility_Validate")
+	UFUNCTION(Server, reliable, WithValidation)
 	void	ServerEndAbility(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo, FPredictionKey PredictionKey);
-	virtual void ServerEndAbility_Implementation(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo, FPredictionKey PredictionKey);
-	virtual bool ServerEndAbility_Validate(FGameplayAbilitySpecHandle , FGameplayAbilityActivationInfo , FPredictionKey );
 
-	UFUNCTION(Client="ClientEndAbility_Implementation", reliable)
+	UFUNCTION(Client, reliable)
 	void	ClientEndAbility(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo);
-	virtual void ClientEndAbility_Implementation(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo);
 
-	UFUNCTION(Server="ServerCancelAbility_Implementation", reliable, WithValidation="ServerCancelAbility_Validate")
+	UFUNCTION(Server, reliable, WithValidation)
 	void    ServerCancelAbility(FGameplayAbilitySpecHandle AbilityToCancel, FGameplayAbilityActivationInfo ActivationInfo);
-	virtual void ServerCancelAbility_Implementation(FGameplayAbilitySpecHandle AbilityToCancel, FGameplayAbilityActivationInfo ActivationInfo);
-	virtual bool ServerCancelAbility_Validate(FGameplayAbilitySpecHandle , FGameplayAbilityActivationInfo );
 
-	UFUNCTION(Client="ClientCancelAbility_Implementation", reliable)
+	UFUNCTION(Client, reliable)
 	void    ClientCancelAbility(FGameplayAbilitySpecHandle AbilityToCancel, FGameplayAbilityActivationInfo ActivationInfo);
-	virtual void ClientCancelAbility_Implementation(FGameplayAbilitySpecHandle AbilityToCancel, FGameplayAbilityActivationInfo ActivationInfo);
 
-	UFUNCTION(Client="ClientActivateAbilityFailed_Implementation", Reliable)
+	UFUNCTION(Client, Reliable)
 	void	ClientActivateAbilityFailed(FGameplayAbilitySpecHandle AbilityToActivate, int16 PredictionKey);
-	virtual void ClientActivateAbilityFailed_Implementation(FGameplayAbilitySpecHandle AbilityToActivate, int16 PredictionKey);
 
 	void	OnClientActivateAbilityFailed(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey::KeyType PredictionKey);
 
-	UFUNCTION(Client="ClientActivateAbilitySucceed_Implementation", Reliable)
+	UFUNCTION(Client, Reliable)
 	void	ClientActivateAbilitySucceed(FGameplayAbilitySpecHandle AbilityToActivate, int16 PredictionKey);
-	virtual void ClientActivateAbilitySucceed_Implementation(FGameplayAbilitySpecHandle AbilityToActivate, int16 PredictionKey);
 
-	UFUNCTION(Client="ClientActivateAbilitySucceedWithEventData_Implementation", Reliable)
+	UFUNCTION(Client, Reliable)
 	void	ClientActivateAbilitySucceedWithEventData(FGameplayAbilitySpecHandle AbilityToActivate, int16 PredictionKey, FGameplayEventData TriggerEventData);
-	virtual void ClientActivateAbilitySucceedWithEventData_Implementation(FGameplayAbilitySpecHandle AbilityToActivate, int16 PredictionKey, FGameplayEventData TriggerEventData);
 
 	// ----------------------------------------------------------------------------------------------------------------
 
@@ -847,16 +828,12 @@ protected:
 	void OnRep_ReplicatedAnimMontage();
 
 	/** RPC function called from CurrentMontageSetNextSectopnName, replicates to other clients */
-	UFUNCTION(reliable, server="ServerCurrentMontageSetNextSectionName_Implementation", WithValidation="ServerCurrentMontageSetNextSectionName_Validate")
+	UFUNCTION(reliable, server, WithValidation)
 	void ServerCurrentMontageSetNextSectionName(UAnimMontage* ClientAnimMontage, float ClientPosition, FName SectionName, FName NextSectionName);
-	virtual void ServerCurrentMontageSetNextSectionName_Implementation(UAnimMontage* ClientAnimMontage, float ClientPosition, FName SectionName, FName NextSectionName);
-	virtual bool ServerCurrentMontageSetNextSectionName_Validate(UAnimMontage* , float , FName , FName );
 
 	/** RPC function called from CurrentMontageJumpToSection, replicates to other clients */
-	UFUNCTION(reliable, server="ServerCurrentMontageJumpToSectionName_Implementation", WithValidation="ServerCurrentMontageJumpToSectionName_Validate")
+	UFUNCTION(reliable, server, WithValidation)
 	void ServerCurrentMontageJumpToSectionName(UAnimMontage* ClientAnimMontage, FName SectionName);
-	virtual void ServerCurrentMontageJumpToSectionName_Implementation(UAnimMontage* ClientAnimMontage, FName SectionName);
-	virtual bool ServerCurrentMontageJumpToSectionName_Validate(UAnimMontage* , FName );
 
 	/** Abilities that are triggered from a gameplay event */
 	TMap<FGameplayTag, TArray<FGameplayAbilitySpecHandle > > GameplayEventTriggeredAbilities;
@@ -938,30 +915,23 @@ public:
 	 */
 
 	/** Replicates the Generic Replicated Event to the server. */
-	UFUNCTION(Server="ServerSetReplicatedEvent_Implementation", reliable, WithValidation="ServerSetReplicatedEvent_Validate")
+	UFUNCTION(Server, reliable, WithValidation)
 	void ServerSetReplicatedEvent(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, FPredictionKey CurrentPredictionKey);
-	virtual void ServerSetReplicatedEvent_Implementation(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, FPredictionKey CurrentPredictionKey);
-	virtual bool ServerSetReplicatedEvent_Validate(EAbilityGenericReplicatedEvent::Type , FGameplayAbilitySpecHandle , FPredictionKey , FPredictionKey );
 
 	/** Replicates the Generic Replicated Event to the server. */
-	UFUNCTION(Client="ClientSetReplicatedEvent_Implementation", reliable)
+	UFUNCTION(Client, reliable)
 	void ClientSetReplicatedEvent(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
-	virtual void ClientSetReplicatedEvent_Implementation(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
 
 	/** Calls local callbacks that are registered with the given Generic Replicated Event */
 	bool InvokeReplicatedEvent(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
 
 	/**  */
-	UFUNCTION(Server="ServerSetReplicatedTargetData_Implementation", reliable, WithValidation="ServerSetReplicatedTargetData_Validate")
+	UFUNCTION(Server, reliable, WithValidation)
 	void ServerSetReplicatedTargetData(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, FGameplayAbilityTargetDataHandle ReplicatedTargetData, FGameplayTag ApplicationTag, FPredictionKey CurrentPredictionKey);
-	virtual void ServerSetReplicatedTargetData_Implementation(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, FGameplayAbilityTargetDataHandle ReplicatedTargetData, FGameplayTag ApplicationTag, FPredictionKey CurrentPredictionKey);
-	virtual bool ServerSetReplicatedTargetData_Validate(FGameplayAbilitySpecHandle , FPredictionKey , FGameplayAbilityTargetDataHandle , FGameplayTag , FPredictionKey );
 
 	/** Replicates to the server that targeting has been cancelled */
-	UFUNCTION(Server="ServerSetReplicatedTargetDataCancelled_Implementation", reliable, WithValidation="ServerSetReplicatedTargetDataCancelled_Validate")
+	UFUNCTION(Server, reliable, WithValidation)
 	void ServerSetReplicatedTargetDataCancelled(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, FPredictionKey CurrentPredictionKey);
-	virtual void ServerSetReplicatedTargetDataCancelled_Implementation(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, FPredictionKey CurrentPredictionKey);
-	virtual bool ServerSetReplicatedTargetDataCancelled_Validate(FGameplayAbilitySpecHandle , FPredictionKey , FPredictionKey );
 
 	/** Sets the current target data and calls applicable callbacks */
 	void ConfirmAbilityTargetData(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, const FGameplayAbilityTargetDataHandle& TargetData, const FGameplayTag& ApplicationTag);
@@ -1000,15 +970,11 @@ public:
 	FSimpleMulticastDelegate& AbilityReplicatedEventDelegate(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
 
 	// Direct Input state replication. These will be called if bReplicateInputDirectly is true on the ability and is generally not a good thing to use. (Instead, prefer to use Generic Replicated Events).
-	UFUNCTION(Server="ServerSetInputPressed_Implementation", reliable, WithValidation="ServerSetInputPressed_Validate")
+	UFUNCTION(Server, reliable, WithValidation)
 	void ServerSetInputPressed(FGameplayAbilitySpecHandle AbilityHandle);
-	virtual void ServerSetInputPressed_Implementation(FGameplayAbilitySpecHandle AbilityHandle);
-	virtual bool ServerSetInputPressed_Validate(FGameplayAbilitySpecHandle );
 
-	UFUNCTION(Server="ServerSetInputReleased_Implementation", reliable, WithValidation="ServerSetInputReleased_Validate")
+	UFUNCTION(Server, reliable, WithValidation)
 	void ServerSetInputReleased(FGameplayAbilitySpecHandle AbilityHandle);
-	virtual void ServerSetInputReleased_Implementation(FGameplayAbilitySpecHandle AbilityHandle);
-	virtual bool ServerSetInputReleased_Validate(FGameplayAbilitySpecHandle );
 
 	/** Called on local player always. Called on server only if bReplicateInputDirectly is set on the GameplayAbility. */
 	void AbilitySpecInputReleased(FGameplayAbilitySpec& Spec);

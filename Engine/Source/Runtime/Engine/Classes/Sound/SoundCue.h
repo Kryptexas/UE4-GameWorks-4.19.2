@@ -10,7 +10,7 @@ struct FSoundParseParameters;
 USTRUCT()
 struct FSoundNodeEditorData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	int32 NodePosX;
 
@@ -36,9 +36,7 @@ struct FSoundNodeEditorData
 UCLASS(hidecategories=object, MinimalAPI, BlueprintType)
 class USoundCue : public USoundBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API USoundCue(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/* Indicates whether attenuation should use the Attenuation Overrides or the Attenuation Settings asset */
 	UPROPERTY(EditAnywhere, Category=Attenuation)

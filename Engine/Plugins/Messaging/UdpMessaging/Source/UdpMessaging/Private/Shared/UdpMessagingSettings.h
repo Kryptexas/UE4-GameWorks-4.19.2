@@ -9,9 +9,7 @@ UCLASS(config=Engine)
 class UUdpMessagingSettings
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	UUdpMessagingSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

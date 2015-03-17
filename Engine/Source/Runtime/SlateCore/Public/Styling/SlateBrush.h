@@ -103,7 +103,7 @@ namespace ESlateBrushImageType
 USTRUCT(BlueprintType)
 struct SLATECORE_API FSlateBrush
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Size of the resource in Slate Units */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush)

@@ -12,9 +12,7 @@
 UCLASS(ClassGroup=Rendering, hidecategories=Object, meta=(BlueprintSpawnableComponent), MinimalAPI)
 class UVectorFieldComponent : public UPrimitiveComponent
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UVectorFieldComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The vector field asset. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=VectorFieldComponent)

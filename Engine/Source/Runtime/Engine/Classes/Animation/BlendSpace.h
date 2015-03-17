@@ -12,9 +12,7 @@
 UCLASS(config=Engine, hidecategories=Object, MinimalAPI, BlueprintType)
 class UBlendSpace : public UBlendSpaceBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UBlendSpace(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

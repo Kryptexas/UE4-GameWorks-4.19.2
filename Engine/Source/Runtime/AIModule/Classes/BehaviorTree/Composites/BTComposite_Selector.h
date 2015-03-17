@@ -11,9 +11,7 @@
 UCLASS()
 class AIMODULE_API UBTComposite_Selector: public UBTCompositeNode
 {
-	GENERATED_BODY()
-public:
-	UBTComposite_Selector(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	int32 GetNextChildHandler(struct FBehaviorTreeSearchData& SearchData, int32 PrevChild, EBTNodeResult::Type LastResult) const;
 

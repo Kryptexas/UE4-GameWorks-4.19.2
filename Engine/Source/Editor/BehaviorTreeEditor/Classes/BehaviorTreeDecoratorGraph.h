@@ -7,9 +7,7 @@
 UCLASS()
 class UBehaviorTreeDecoratorGraph : public UEdGraph
 {
-	GENERATED_BODY()
-public:
-	UBehaviorTreeDecoratorGraph(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	void CollectDecoratorData(TArray<class UBTDecorator*>& DecoratorInstances, TArray<struct FBTDecoratorLogic>& DecoratorOperations) const;
 	int32 SpawnMissingNodes(const TArray<class UBTDecorator*>& NodeInstances, const TArray<struct FBTDecoratorLogic>& Operations, int32 StartIndex);

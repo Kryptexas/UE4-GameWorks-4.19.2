@@ -20,7 +20,7 @@ namespace GameMenuLayoutType
 USTRUCT()
 struct FGameMenuStyle : public FSlateWidgetStyle
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGameMenuStyle();
 	virtual ~FGameMenuStyle();
@@ -178,9 +178,7 @@ struct FGameMenuStyle : public FSlateWidgetStyle
 UCLASS(hidecategories = Object, MinimalAPI)
 class UGameMenuWidgetStyle : public USlateWidgetStyleContainerBase
 {
-	GENERATED_BODY()
-public:
-	GAMEMENUBUILDER_API UGameMenuWidgetStyle(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	/** The actual data describing the menu's appearance. */

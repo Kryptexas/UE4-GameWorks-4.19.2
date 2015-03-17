@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Point Attractor"))
 class UParticleModuleAttractorPoint : public UParticleModuleAttractorBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleAttractorPoint(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**	The position of the point attractor from the source of the emitter.		*/
 	UPROPERTY(EditAnywhere, Category=Attractor)

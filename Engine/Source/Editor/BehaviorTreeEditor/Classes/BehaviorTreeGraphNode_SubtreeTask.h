@@ -6,9 +6,7 @@
 UCLASS()
 class UBehaviorTreeGraphNode_SubtreeTask : public UBehaviorTreeGraphNode_Task
 {
-	GENERATED_BODY()
-public:
-	UBehaviorTreeGraphNode_SubtreeTask(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** UBehaviorTreeGraph.UpdateCounter value of subtree graph */
 	int32 SubtreeVersion;

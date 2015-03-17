@@ -8,9 +8,7 @@
 UCLASS()
 class UMatineeTrackSoundHelper : public UInterpTrackHelper
 {
-	GENERATED_BODY()
-public:
-	UMatineeTrackSoundHelper(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

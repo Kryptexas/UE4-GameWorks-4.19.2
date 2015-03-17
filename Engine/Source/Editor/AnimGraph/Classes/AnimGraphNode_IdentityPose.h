@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class UAnimGraphNode_IdentityPose : public UAnimGraphNode_RefPoseBase
 {
-	GENERATED_BODY()
-public:
-	ANIMGRAPH_API UAnimGraphNode_IdentityPose(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// UEdGraphNode interface
 	virtual FText GetTooltipText() const override;

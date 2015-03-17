@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class UK2Node_PureAssignmentStatement : public UK2Node
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_PureAssignmentStatement(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Name of the Variable pin for this node
 	static FString VariablePinName;

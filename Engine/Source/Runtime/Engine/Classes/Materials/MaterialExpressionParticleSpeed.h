@@ -12,9 +12,7 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionParticleSpeed : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionParticleSpeed(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UMaterialExpression Interface

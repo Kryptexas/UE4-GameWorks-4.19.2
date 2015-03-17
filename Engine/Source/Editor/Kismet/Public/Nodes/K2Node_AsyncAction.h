@@ -7,9 +7,7 @@
 UCLASS()
 class KISMET_API UK2Node_AsyncAction : public UK2Node_BaseAsyncTask
 {
-	GENERATED_BODY()
-public:
-	UK2Node_AsyncAction(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	
 	// UEdGraphNode interface
 	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const override;

@@ -11,7 +11,7 @@ struct FLandscapeSplineInterpPoint;
 USTRUCT()
 struct FLandscapeSplineConnection
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FLandscapeSplineConnection() {}
 
@@ -41,9 +41,7 @@ struct FLandscapeSplineConnection
 UCLASS(Within=LandscapeSplinesComponent,autoExpandCategories=LandscapeSplineControlPoint,MinimalAPI)
 class ULandscapeSplineControlPoint : public UObject
 {
-	GENERATED_BODY()
-public:
-	LANDSCAPE_API ULandscapeSplineControlPoint(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 // Directly editable data:
 	/** Location in Landscape-space */

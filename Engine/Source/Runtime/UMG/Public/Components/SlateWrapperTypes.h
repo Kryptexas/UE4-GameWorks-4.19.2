@@ -46,7 +46,7 @@ namespace ESlateSizeRule
 USTRUCT(BlueprintType)
 struct FEventReply
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 
@@ -62,7 +62,7 @@ public:
 USTRUCT(BlueprintType)
 struct FSlateChildSize
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The parameter of the size rule. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance, meta=( UIMin="0", UIMax="1" ))

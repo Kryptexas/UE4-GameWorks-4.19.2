@@ -10,9 +10,7 @@
 UCLASS(hidecategories=Object, collapsecategories)
 class UReimportSoundSurroundFactory : public USoundSurroundFactory, public FReimportHandler
 {
-	GENERATED_BODY()
-public:
-	UReimportSoundSurroundFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	TArray<FString> ReimportPaths;

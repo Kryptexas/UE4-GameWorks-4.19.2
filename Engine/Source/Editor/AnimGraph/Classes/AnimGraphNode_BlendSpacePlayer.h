@@ -9,9 +9,7 @@
 UCLASS(MinimalAPI)
 class UAnimGraphNode_BlendSpacePlayer : public UAnimGraphNode_BlendSpaceBase
 {
-	GENERATED_BODY()
-public:
-	ANIMGRAPH_API UAnimGraphNode_BlendSpacePlayer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_BlendSpacePlayer Node;

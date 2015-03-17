@@ -11,9 +11,7 @@ UCLASS(transient, config=Engine)
 class UDemoNetDriver
 	: public UNetDriver
 {
-	GENERATED_BODY()
-public:
-	UDemoNetDriver(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Name of the file to read/write from */
 	FString DemoFilename;

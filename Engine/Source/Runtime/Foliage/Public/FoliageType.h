@@ -37,9 +37,7 @@ enum class EFoliageScaling : uint8
 UCLASS(hidecategories = Object, editinlinenew, MinimalAPI, BlueprintType, Blueprintable)
 class UFoliageType : public UObject
 {
-	GENERATED_BODY()
-public:
-	FOLIAGE_API UFoliageType(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/* A GUID that is updated every time the foliage type is modified, 
 	   so foliage placed in the level can detect the FoliageType has changed. */

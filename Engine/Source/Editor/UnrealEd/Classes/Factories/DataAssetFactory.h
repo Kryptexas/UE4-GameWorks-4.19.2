@@ -9,9 +9,7 @@ class UDataAsset;
 UCLASS(hidecategories=Object, MinimalAPI)
 class UDataAssetFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UDataAssetFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=DataAsset)
 	TSubclassOf<UDataAsset> DataAssetClass;

@@ -14,7 +14,7 @@
 USTRUCT()
 struct FLightmassParameterValue
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** If true, override the given parameter with the given settings */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LightmassParameterValue)
@@ -32,7 +32,7 @@ struct FLightmassParameterValue
 USTRUCT()
 struct FLightmassBooleanParameterValue : public FLightmassParameterValue
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The boolean value to override the parent value with */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LightmassBooleanParameterValue)
@@ -50,7 +50,7 @@ struct FLightmassBooleanParameterValue : public FLightmassParameterValue
 USTRUCT()
 struct FLightmassScalarParameterValue : public FLightmassParameterValue
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The scalar value to override the parent value with */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LightmassScalarParameterValue)
@@ -71,7 +71,7 @@ struct FLightmassScalarParameterValue : public FLightmassParameterValue
 USTRUCT()
 struct FLightmassParameterizedMaterialSettings
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** If true, forces translucency to cast static shadows as if the material were masked. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LightmassParameterizedMaterialSettings)
@@ -132,9 +132,7 @@ enum ELevelViewportType
 UCLASS(abstract, config=UnrealEd)
 class UUnrealEdTypes : public UObject
 {
-	GENERATED_BODY()
-public:
-	UUnrealEdTypes(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 };
 

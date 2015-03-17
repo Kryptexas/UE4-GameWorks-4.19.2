@@ -9,9 +9,7 @@
 UCLASS()
 class AIMODULE_API UPawnAction_Wait : public UPawnAction
 {
-	GENERATED_BODY()
-public:
-	UPawnAction_Wait(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 		
 	UPROPERTY()
 	float TimeToWait;

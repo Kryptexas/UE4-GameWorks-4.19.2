@@ -12,9 +12,7 @@ UCLASS(config=Engine, defaultconfig)
 class ENGINE_API UNetworkSettings
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	UNetworkSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(config, EditAnywhere, Category=libcurl, meta=(
 		ConsoleVariable="n.VerifyPeer",DisplayName="Verify Peer",

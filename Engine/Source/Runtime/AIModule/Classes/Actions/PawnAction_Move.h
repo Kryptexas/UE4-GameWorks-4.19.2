@@ -22,9 +22,7 @@ namespace EPawnActionMoveMode
 UCLASS()
 class AIMODULE_API UPawnAction_Move : public UPawnAction
 {
-	GENERATED_BODY()
-public:
-	UPawnAction_Move(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 protected:
 	UPROPERTY(Category = PawnAction, EditAnywhere, BlueprintReadWrite)
 	AActor* GoalActor;

@@ -9,9 +9,7 @@ UCLASS(config=Game)
 class ENGINESETTINGS_API UHudSettings
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	UHudSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Whether the HUD is visible at all.	 */
 	UPROPERTY(config, EditAnywhere, Category=HudSettings)

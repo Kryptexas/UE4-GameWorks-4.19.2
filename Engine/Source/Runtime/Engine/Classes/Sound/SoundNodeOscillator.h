@@ -11,9 +11,7 @@
 UCLASS(hidecategories=Object, editinlinenew, meta=( DisplayName="Oscillator" ))
 class USoundNodeOscillator : public USoundNode
 {
-	GENERATED_BODY()
-public:
-	USoundNodeOscillator(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/* Whether to oscillate volume. */
 	UPROPERTY(EditAnywhere, Category=Oscillator )

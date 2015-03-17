@@ -7,5 +7,5 @@
 USTRUCT()
 struct FSomeStruct
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 };

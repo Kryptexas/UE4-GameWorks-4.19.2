@@ -18,7 +18,7 @@
 USTRUCT()
 struct FGPUSpriteLocalVectorFieldInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Local vector field to apply to this emitter. */
 	UPROPERTY()
@@ -84,7 +84,7 @@ struct FGPUSpriteLocalVectorFieldInfo
 USTRUCT()
 struct FGPUSpriteEmitterInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The required module. Needed for now, but should be divorced from the runtime. */
 	UPROPERTY()
@@ -215,7 +215,7 @@ struct FGPUSpriteEmitterInfo
 USTRUCT()
 struct FGPUSpriteResourceData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Quantized color samples. */
 	UPROPERTY()
@@ -392,9 +392,7 @@ struct FGPUSpriteResourceData
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "GPU Sprites"))
 class UParticleModuleTypeDataGpu : public UParticleModuleTypeDataBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleTypeDataGpu(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Information for runtime simulation. */
 	UPROPERTY(transient)

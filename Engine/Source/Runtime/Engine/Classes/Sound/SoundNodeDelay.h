@@ -10,9 +10,7 @@
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, meta=( DisplayName="Delay" ))
 class USoundNodeDelay : public USoundNode
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API USoundNodeDelay(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/* The lower bound of delay time in seconds. */
 	UPROPERTY(EditAnywhere, Category=Delay )

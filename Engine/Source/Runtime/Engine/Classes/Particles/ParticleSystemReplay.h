@@ -7,7 +7,7 @@
 USTRUCT()
 struct FParticleEmitterReplayFrame
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Type of emitter (EDynamicEmitterType) */
 	int32 EmitterType;
@@ -46,7 +46,7 @@ struct FParticleEmitterReplayFrame
 USTRUCT()
 struct FParticleSystemReplayFrame
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Emitter frame state data */
 	TArray<struct FParticleEmitterReplayFrame> Emitters;
@@ -61,9 +61,7 @@ struct FParticleSystemReplayFrame
 UCLASS(hidecategories=Object, AutoExpandCategories=ParticleSystemReplay)
 class UParticleSystemReplay : public UObject
 {
-	GENERATED_BODY()
-public:
-	UParticleSystemReplay(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Unique ID number for this replay clip */
 	UPROPERTY(EditAnywhere, transient, duplicatetransient, Category=ParticleSystemReplay)

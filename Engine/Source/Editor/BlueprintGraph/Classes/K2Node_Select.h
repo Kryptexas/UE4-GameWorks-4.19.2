@@ -9,9 +9,7 @@
 UCLASS(MinimalAPI)
 class UK2Node_Select : public UK2Node, public INodeDependingOnEnumInterface
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_Select(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The number of selectable options this node currently has */
 	UPROPERTY()

@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UInterpTrackInstDirector : public UInterpTrackInst
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UInterpTrackInstDirector(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	class AActor* OldViewTarget;

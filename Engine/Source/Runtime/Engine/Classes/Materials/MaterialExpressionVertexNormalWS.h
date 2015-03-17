@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionVertexNormalWS : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionVertexNormalWS(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UMaterialExpression Interface

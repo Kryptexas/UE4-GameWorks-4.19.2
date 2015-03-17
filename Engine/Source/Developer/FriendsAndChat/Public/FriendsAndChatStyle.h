@@ -21,7 +21,7 @@ USTRUCT()
 struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	: public FSlateWidgetStyle
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	// Default Constructor
 	FFriendsAndChatStyle() { }

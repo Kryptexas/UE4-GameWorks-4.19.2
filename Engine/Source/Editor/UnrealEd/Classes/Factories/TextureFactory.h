@@ -5,11 +5,10 @@
 #include "Factories/Factory.h"
 #include "TextureFactory.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object)
+UCLASS(customconstructor, collapsecategories, hidecategories=Object)
 class UNREALED_API UTextureFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	uint32 NoCompression:1;

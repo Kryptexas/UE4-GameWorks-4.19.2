@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Acceleration/Life"), MinimalAPI)
 class UParticleModuleAccelerationOverLifetime : public UParticleModuleAccelerationBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleAccelerationOverLifetime(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** 
 	 *	The acceleration of the particle over its lifetime.

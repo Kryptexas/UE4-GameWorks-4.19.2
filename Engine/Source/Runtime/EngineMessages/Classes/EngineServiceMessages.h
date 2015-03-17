@@ -14,7 +14,7 @@
 USTRUCT()
 struct FEngineServicePing
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 };
 
 template<>
@@ -33,7 +33,7 @@ struct TStructOpsTypeTraits<FEngineServicePing> : public TStructOpsTypeTraitsBas
 USTRUCT()
 struct FEngineServicePong
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Holds the name of the currently loaded level, if any. */
 	UPROPERTY()
@@ -83,7 +83,7 @@ struct TStructOpsTypeTraits<FEngineServicePong> : public TStructOpsTypeTraitsBas
 USTRUCT()
 struct FEngineServiceAuthDeny
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Holds the name of the user that denied access. */
 	UPROPERTY()
@@ -110,7 +110,7 @@ struct TStructOpsTypeTraits<FEngineServiceAuthDeny> : public TStructOpsTypeTrait
 USTRUCT()
 struct FEngineServiceAuthGrant
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Holds the name of the user that granted access. */
 	UPROPERTY()
@@ -141,7 +141,7 @@ struct TStructOpsTypeTraits<FEngineServiceAuthGrant> : public TStructOpsTypeTrai
 USTRUCT()
 struct FEngineServiceExecuteCommand
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Holds the command to execute. */
 	UPROPERTY()
@@ -181,7 +181,7 @@ struct TStructOpsTypeTraits<FEngineServiceExecuteCommand> : public TStructOpsTyp
 USTRUCT()
 struct FEngineServiceTerminate
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Holds the name of the user that wants to terminate the engine. */
 	UPROPERTY()
@@ -219,7 +219,7 @@ struct TStructOpsTypeTraits<FEngineServiceTerminate> : public TStructOpsTypeTrai
 USTRUCT()
 struct FEngineServiceNotification
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Holds the notification text. */
 	UPROPERTY()

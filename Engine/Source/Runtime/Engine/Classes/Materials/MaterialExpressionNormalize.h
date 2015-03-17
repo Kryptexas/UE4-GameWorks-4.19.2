@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UMaterialExpressionNormalize : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UMaterialExpressionNormalize(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	FExpressionInput VectorInput;

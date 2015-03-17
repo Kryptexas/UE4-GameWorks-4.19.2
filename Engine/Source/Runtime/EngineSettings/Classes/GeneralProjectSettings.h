@@ -9,9 +9,7 @@ UCLASS(config=Game, defaultconfig)
 class ENGINESETTINGS_API UGeneralProjectSettings
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	UGeneralProjectSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The name of the company (author, provider) that created the project. */
 	UPROPERTY(config, EditAnywhere, Category=Publisher)

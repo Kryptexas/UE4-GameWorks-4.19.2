@@ -53,7 +53,7 @@ enum class EAttributeBasedFloatCalculationType : uint8
 USTRUCT()
 struct FAttributeBasedFloat
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 
@@ -111,7 +111,7 @@ public:
 USTRUCT()
 struct FCustomCalculationBasedFloat
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FCustomCalculationBasedFloat()
 		: CalculationClassMagnitude(nullptr)
@@ -154,7 +154,7 @@ public:
 USTRUCT()
 struct FSetByCallerFloat
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FSetByCallerFloat()
 	: DataName(NAME_None)
@@ -169,7 +169,7 @@ struct FSetByCallerFloat
 USTRUCT()
 struct GAMEPLAYABILITIES_API FGameplayEffectModifierMagnitude
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 
@@ -278,7 +278,7 @@ protected:
 USTRUCT()
 struct FGameplayEffectExecutionScopedModifierInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	// Constructors
 	FGameplayEffectExecutionScopedModifierInfo()
@@ -319,7 +319,7 @@ struct FGameplayEffectExecutionScopedModifierInfo
 USTRUCT()
 struct FGameplayEffectExecutionDefinition
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/**
 	 * Gathers and populates the specified array with the capture definitions that the execution would like in order
@@ -356,7 +356,7 @@ struct FGameplayEffectExecutionDefinition
 USTRUCT()
 struct GAMEPLAYABILITIES_API FGameplayModifierInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGameplayModifierInfo()	
 	: ModifierOp(EGameplayModOp::Additive)
@@ -402,7 +402,7 @@ struct GAMEPLAYABILITIES_API FGameplayModifierInfo
 USTRUCT()
 struct FGameplayEffectCue
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGameplayEffectCue()
 		: MinLevel(0.f)
@@ -448,7 +448,7 @@ struct FGameplayEffectCue
 USTRUCT()
 struct GAMEPLAYABILITIES_API FInheritedTagContainer
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Tags that I inherited and tags that I added minus tags that I removed*/
 	UPROPERTY(VisibleAnywhere, Transient, BlueprintReadOnly, Category = Application)
@@ -512,11 +512,9 @@ enum class EGameplayEffectStackingPeriodPolicy : uint8
 UCLASS(Blueprintable)
 class GAMEPLAYABILITIES_API UGameplayEffect : public UObject, public IGameplayTagAssetInterface
 {
-	GENERATED_BODY()
-public:
-	UGameplayEffect(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
+	GENERATED_UCLASS_BODY()
 
 	/** Infinite duration */
 	static const float INFINITE_DURATION;
@@ -700,7 +698,7 @@ public:
 USTRUCT()
 struct FModifierSpec
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FModifierSpec() : EvaluatedMagnitude(0.f) { }
 
@@ -722,7 +720,7 @@ private:
 USTRUCT()
 struct GAMEPLAYABILITIES_API FGameplayEffectModifiedAttribute
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The attribute that has been modified */
 	UPROPERTY()
@@ -739,11 +737,11 @@ struct GAMEPLAYABILITIES_API FGameplayEffectModifiedAttribute
 USTRUCT()
 struct GAMEPLAYABILITIES_API FGameplayEffectAttributeCaptureSpec
 {
-	GENERATED_BODY()
 	// Allow these as friends so they can seed the aggregator, which we don't otherwise want exposed
 	friend struct FActiveGameplayEffectsContainer;
 	friend class UAbilitySystemComponent;
 
+	GENERATED_USTRUCT_BODY()
 
 	// Constructors
 	FGameplayEffectAttributeCaptureSpec();
@@ -846,7 +844,7 @@ private:
 USTRUCT()
 struct GAMEPLAYABILITIES_API FGameplayEffectAttributeCaptureSpecContainer
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 
@@ -931,7 +929,7 @@ private:
 USTRUCT()
 struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	// --------------------------------------------------------------------------------------------------------------------------
 	//	IMPORTANT: Any state added to FGameplayEffectSpec must be handled in the move/copy constructor/operator!
@@ -1122,7 +1120,7 @@ private:
 USTRUCT()
 struct GAMEPLAYABILITIES_API FGameplayEffectSpecForRPC
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGameplayEffectSpecForRPC();
 
@@ -1171,7 +1169,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpecForRPC
 USTRUCT()
 struct GAMEPLAYABILITIES_API FActiveGameplayEffect : public FFastArraySerializerItem
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	// ---------------------------------------------------------------------------------------------------------------------------------
 	//  IMPORTANT: Any new state added to FActiveGameplayEffect must be handled in the copy/move constructor/operator
@@ -1266,7 +1264,7 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffect : public FFastArraySerializer
 USTRUCT()
 struct FActiveGameplayEffectQuery
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FActiveGameplayEffectQuery()
 		: OwningTagContainer(nullptr)
@@ -1338,7 +1336,7 @@ struct FActiveGameplayEffectQuery
 USTRUCT()
 struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArraySerializer
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY();
 
 	friend struct FActiveGameplayEffect;
 	friend class UAbilitySystemComponent;

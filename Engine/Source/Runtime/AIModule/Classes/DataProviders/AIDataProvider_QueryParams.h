@@ -16,9 +16,7 @@
 UCLASS(EditInlineNew, meta=(DisplayName="Query Params"))
 class AIMODULE_API UAIDataProvider_QueryParams : public UAIDataProvider
 {
-	GENERATED_BODY()
-public:
-	UAIDataProvider_QueryParams(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual void BindData(UObject* Owner, int32 RequestId);
 	virtual FString ToString(FName PropName) const override;

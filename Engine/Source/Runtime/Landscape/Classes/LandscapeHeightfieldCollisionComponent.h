@@ -20,9 +20,7 @@ namespace physx
 UCLASS(MinimalAPI)
 class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 {
-	GENERATED_BODY()
-public:
-	LANDSCAPE_API ULandscapeHeightfieldCollisionComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** List of layers painted on this component. Matches the WeightmapLayerAllocations array in the LandscapeComponent. */
 	UPROPERTY()

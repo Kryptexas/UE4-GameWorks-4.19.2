@@ -6,9 +6,7 @@
 UCLASS()
 class UReimportDataTableFactory : public UCSVImportFactory, public FReimportHandler
 {
-	GENERATED_BODY()
-public:
-	UReimportDataTableFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin FReimportHandler interface
 	virtual bool CanReimport( UObject* Obj, TArray<FString>& OutFilenames ) override;

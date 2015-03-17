@@ -9,7 +9,7 @@
 USTRUCT()
 struct FTutorialProgress
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FTutorialProgress()
 	{
@@ -33,9 +33,7 @@ struct FTutorialProgress
 UCLASS(config=EditorGameAgnostic)
 class UTutorialStateSettings : public UObject
 {
-	GENERATED_BODY()
-public:
-	UTutorialStateSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(Config)
 	TArray<FTutorialProgress> TutorialsProgress;

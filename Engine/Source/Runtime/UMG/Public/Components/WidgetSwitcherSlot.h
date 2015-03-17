@@ -11,9 +11,7 @@
 UCLASS()
 class UMG_API UWidgetSwitcherSlot : public UPanelSlot
 {
-	GENERATED_BODY()
-public:
-	UWidgetSwitcherSlot(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	

@@ -6,15 +6,12 @@
 UINTERFACE(MinimalAPI, meta=(CannotImplementInterfaceInBlueprint))
 class UNavigationPathGenerator : public UInterface
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UNavigationPathGenerator(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class INavigationPathGenerator
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 
 
 	/** 

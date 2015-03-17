@@ -14,9 +14,7 @@ class UPawnAction;
 UCLASS()
 class AIMODULE_API UBTTask_PushPawnAction : public UBTTask_PawnActionBase
 {
-	GENERATED_BODY()
-public:
-	UBTTask_PushPawnAction(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 protected:
 	UPROPERTY(EditAnywhere, Instanced, Category = Action)

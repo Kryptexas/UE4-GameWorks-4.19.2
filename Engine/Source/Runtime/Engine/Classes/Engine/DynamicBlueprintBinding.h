@@ -9,9 +9,7 @@ UCLASS(abstract)
 class ENGINE_API UDynamicBlueprintBinding
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	UDynamicBlueprintBinding(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual void BindDynamicDelegates(UObject* InInstance) const { }
 };

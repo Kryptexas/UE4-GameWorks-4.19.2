@@ -15,7 +15,7 @@
 USTRUCT()
 struct ENGINE_API FAnimNode_SkeletalControlBase : public FAnimNode_Base
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	// Input link
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Links)

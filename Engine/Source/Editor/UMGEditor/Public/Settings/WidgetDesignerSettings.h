@@ -11,9 +11,7 @@ UCLASS(config=EditorUserSettings)
 class UMGEDITOR_API UWidgetDesignerSettings
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	UWidgetDesignerSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** If enabled, actor positions will snap to the grid. */
 	UPROPERTY(EditAnywhere, config, Category=GridSnapping, meta=(DisplayName = "Enable Grid Snapping"))

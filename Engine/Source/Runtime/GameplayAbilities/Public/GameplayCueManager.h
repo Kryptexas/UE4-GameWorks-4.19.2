@@ -48,7 +48,7 @@
 USTRUCT()
 struct FGameplayCueNotifyData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGameplayCueNotifyData()
 	: LoadedGameplayCueClass(nullptr)
@@ -80,7 +80,7 @@ enum class EGameplayCuePayloadType : uint8
 USTRUCT()
 struct FGameplayCuePendingExecute
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGameplayCuePendingExecute()
 	: PayloadType(EGameplayCuePayloadType::EffectContext)
@@ -129,9 +129,7 @@ struct GAMEPLAYABILITIES_API FScopedGameplayCueSendContext
 UCLASS()
 class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 {
-	GENERATED_BODY()
-public:
-	UGameplayCueManager(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// -------------------------------------------------------------
 	// Wrappers to handle replicating executed cues

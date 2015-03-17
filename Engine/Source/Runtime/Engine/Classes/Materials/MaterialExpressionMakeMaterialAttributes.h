@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionMakeMaterialAttributes : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionMakeMaterialAttributes(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	FExpressionInput BaseColor;

@@ -12,7 +12,7 @@ struct FGameplayAbilityActorInfo;
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayAttribute
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGameplayAttribute()
 		: Attribute(nullptr)
@@ -74,9 +74,7 @@ private:
 UCLASS(DefaultToInstanced, Blueprintable)
 class GAMEPLAYABILITIES_API UAttributeSet : public UObject
 {
-	GENERATED_BODY()
-public:
-	UAttributeSet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	bool IsNameStableForNetworking() const override;
@@ -146,7 +144,7 @@ protected:
 USTRUCT()
 struct GAMEPLAYABILITIES_API FGlobalCurveDataOverride
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	TArray<UCurveTable*>	Overrides;
 };
@@ -158,7 +156,7 @@ struct GAMEPLAYABILITIES_API FGlobalCurveDataOverride
 USTRUCT()
 struct GAMEPLAYABILITIES_API FScalableFloat
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FScalableFloat()
 		: Value(0.f)
@@ -239,7 +237,7 @@ private:
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FAttributeMetaData : public FTableRowBase
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 

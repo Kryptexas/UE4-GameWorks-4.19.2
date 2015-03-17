@@ -12,9 +12,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FConstraintBrokenSignature, int32, C
 UCLASS(ClassGroup=Physics, MinimalAPI, meta=(BlueprintSpawnableComponent), HideCategories=(Activation,"Components|Activation", Physics, Mobility), ShowCategories=("Physics|Components|PhysicsConstraint"))
 class UPhysicsConstraintComponent : public USceneComponent
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UPhysicsConstraintComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Pointer to first Actor to constrain.  */
 	UPROPERTY(EditInstanceOnly, Category=Constraint)

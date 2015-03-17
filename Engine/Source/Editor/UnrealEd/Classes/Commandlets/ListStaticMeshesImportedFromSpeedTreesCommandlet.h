@@ -7,9 +7,7 @@
 UCLASS()
 class UListStaticMeshesImportedFromSpeedTreesCommandlet : public UCommandlet
 {
-	GENERATED_BODY()
-public:
-	UListStaticMeshesImportedFromSpeedTreesCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin UCommandlet Interface
 	virtual int32 Main(const FString& Params) override;

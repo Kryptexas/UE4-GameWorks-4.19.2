@@ -10,9 +10,7 @@
 UCLASS(hidecategories=Object, MinimalAPI)
 class UBlendSpaceFactoryNew : public UFactory
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UBlendSpaceFactoryNew(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	class USkeleton*	TargetSkeleton;

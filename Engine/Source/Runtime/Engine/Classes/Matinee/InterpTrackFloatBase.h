@@ -7,9 +7,7 @@
 UCLASS(abstract, MinimalAPI)
 class UInterpTrackFloatBase : public UInterpTrack
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UInterpTrackFloatBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	
 	/** Actually track data containing keyframes of float as it varies over time. */
 	UPROPERTY()

@@ -10,9 +10,7 @@
 UCLASS(HideCategories=(Condition))
 class AIMODULE_API UBTDecorator_TimeLimit : public UBTDecorator
 {
-	GENERATED_BODY()
-public:
-	UBTDecorator_TimeLimit(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 		
 	/** max allowed time for execution of underlying node */
 	UPROPERTY(Category=Decorator, EditAnywhere)

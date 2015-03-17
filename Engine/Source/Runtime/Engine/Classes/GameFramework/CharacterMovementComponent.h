@@ -18,7 +18,7 @@ class ACharacter;
 USTRUCT(BlueprintType)
 struct ENGINE_API FFindFloorResult
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** True if there was a blocking hit in the floor test. */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=CharacterFloor)
@@ -82,7 +82,7 @@ public:
 USTRUCT()
 struct FCharacterMovementComponentPreClothTickFunction : public FTickFunction
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** CharacterMovementComponent that is the target of this tick **/
 	class UCharacterMovementComponent* Target;

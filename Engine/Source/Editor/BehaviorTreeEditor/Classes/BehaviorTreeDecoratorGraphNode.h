@@ -10,9 +10,7 @@
 UCLASS()
 class UBehaviorTreeDecoratorGraphNode : public UEdGraphNode
 {
-	GENERATED_BODY()
-public:
-	UBehaviorTreeDecoratorGraphNode(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Get the BT graph that owns this node */
 	virtual class UBehaviorTreeDecoratorGraph* GetDecoratorGraph();

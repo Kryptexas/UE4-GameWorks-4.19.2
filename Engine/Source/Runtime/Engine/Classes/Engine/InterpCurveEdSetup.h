@@ -9,7 +9,7 @@
 USTRUCT()
 struct FCurveEdEntry
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	class UObject* CurveObject;
@@ -56,7 +56,7 @@ struct FCurveEdEntry
 USTRUCT()
 struct FCurveEdTab
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	FString TabName;
@@ -99,9 +99,7 @@ struct FCurveEdTab
 UCLASS(MinimalAPI)
 class UInterpCurveEdSetup : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UInterpCurveEdSetup(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	TArray<struct FCurveEdTab> Tabs;

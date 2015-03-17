@@ -11,9 +11,7 @@ class AActor;
 UCLASS(MinimalAPI)
 class UEndTurnCallbackProxy : public UOnlineBlueprintCallProxyBase
 {
-	GENERATED_BODY()
-public:
-	ONLINESUBSYSTEMUTILS_API UEndTurnCallbackProxy(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual ~UEndTurnCallbackProxy();
 

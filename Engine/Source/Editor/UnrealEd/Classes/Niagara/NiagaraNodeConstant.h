@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI, Deprecated)
 class UDEPRECATED_NiagaraNodeConstant : public UNiagaraNode
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UDEPRECATED_NiagaraNodeConstant(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	/** The type of the constant we're creating. */

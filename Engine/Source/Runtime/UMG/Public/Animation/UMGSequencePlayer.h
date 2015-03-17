@@ -11,9 +11,7 @@ class UMovieSceneBindings;
 UCLASS(transient)
 class UMG_API UUMGSequencePlayer : public UObject, public IMovieScenePlayer
 {
-	GENERATED_BODY()
-public:
-	UUMGSequencePlayer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	void InitSequencePlayer( const UWidgetAnimation& InAnimation, UUserWidget& UserWidget );

@@ -46,9 +46,7 @@ enum class EPlaneConstraintAxisSetting : uint8
 UCLASS(ClassGroup=Movement, abstract, BlueprintType)
 class ENGINE_API UMovementComponent : public UActorComponent
 {
-	GENERATED_BODY()
-public:
-	UMovementComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 * The component we move and update.

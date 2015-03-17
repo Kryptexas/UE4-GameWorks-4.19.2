@@ -11,6 +11,7 @@ UCLASS(BlueprintType, hidecategories=Object, MinimalAPI)
 class UProgressWidgetStyle : public USlateWidgetStyleContainerBase
 {
 	GENERATED_BODY()
+
 public:
 	/** The actual data describing the button's appearance. */
 	UPROPERTY(Category="Style", EditAnywhere, BlueprintReadWrite, meta=(ShowOnlyInnerProperties))

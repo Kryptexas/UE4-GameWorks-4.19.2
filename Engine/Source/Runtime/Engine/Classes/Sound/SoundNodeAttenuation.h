@@ -15,9 +15,7 @@ class USoundAttenuation;
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, meta=( DisplayName="Attenuation" ))
 class USoundNodeAttenuation : public USoundNode
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API USoundNodeAttenuation(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Attenuation, meta=(EditCondition="!bOverrideAttenuation"))
 	USoundAttenuation* AttenuationSettings;

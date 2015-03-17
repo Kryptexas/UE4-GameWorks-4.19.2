@@ -45,7 +45,7 @@ namespace ETimelineDirection
 USTRUCT()
 struct FTimelineEventEntry
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Time at which event should fire */
 	UPROPERTY()
@@ -67,7 +67,7 @@ struct FTimelineEventEntry
 USTRUCT()
 struct FTimelineVectorTrack
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Vector curve to be evaluated */
 	UPROPERTY()
@@ -101,7 +101,7 @@ struct FTimelineVectorTrack
 USTRUCT()
 struct FTimelineFloatTrack
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Float curve to be evaluated */
 	UPROPERTY()
@@ -136,7 +136,7 @@ struct FTimelineFloatTrack
 USTRUCT()
 struct FTimelineLinearColorTrack
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Float curve to be evaluated */
 	UPROPERTY()
@@ -169,7 +169,7 @@ struct FTimelineLinearColorTrack
 USTRUCT()
 struct FTimeline
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 		
 private:
 	/** Specified how the timeline determines its own length (e.g. specified length, last keyframe) */
@@ -361,9 +361,7 @@ private:
 UCLASS(MinimalAPI)
 class UTimelineComponent : public UActorComponent
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UTimelineComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 private:
 	/** The actual timeline structure */

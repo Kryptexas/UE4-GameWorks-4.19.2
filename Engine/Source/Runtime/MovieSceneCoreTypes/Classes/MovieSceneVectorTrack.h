@@ -23,9 +23,7 @@ struct FVectorKey
 UCLASS(MinimalAPI)
 class UMovieSceneVectorTrack : public UMovieScenePropertyTrack
 {
-	GENERATED_BODY()
-public:
-	MOVIESCENECORETYPES_API UMovieSceneVectorTrack(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 public:
 	/** UMovieSceneTrack interface */
 	virtual UMovieSceneSection* CreateNewSection() override;

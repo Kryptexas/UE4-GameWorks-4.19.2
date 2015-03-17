@@ -8,9 +8,7 @@
 UCLASS(Blueprintable, BlueprintType, notplaceable)
 class GAMEPLAYABILITIES_API AAbilitySystemTestPawn : public ADefaultPawn, public IGameplayCueInterface, public IAbilitySystemInterface
 {
-	GENERATED_BODY()
-public:
-	AAbilitySystemTestPawn(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual void PostInitializeComponents() override;
 

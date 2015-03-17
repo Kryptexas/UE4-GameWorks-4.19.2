@@ -7,7 +7,7 @@
 USTRUCT()
 struct FBatchedLine
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	FVector Start;
@@ -48,7 +48,7 @@ struct FBatchedLine
 USTRUCT()
 struct FBatchedPoint
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	FVector Position;
@@ -111,9 +111,7 @@ public:
 UCLASS(MinimalAPI)
 class ULineBatchComponent : public UPrimitiveComponent
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API ULineBatchComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Buffer of lines to draw */
 	TArray<struct FBatchedLine> BatchedLines;

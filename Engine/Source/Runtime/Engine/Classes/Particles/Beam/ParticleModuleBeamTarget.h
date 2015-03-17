@@ -14,9 +14,7 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Target"))
 class UParticleModuleBeamTarget : public UParticleModuleBeamBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleBeamTarget(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The method flag. */
 	UPROPERTY(EditAnywhere, Category=Target)

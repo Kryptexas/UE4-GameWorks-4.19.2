@@ -11,9 +11,7 @@
 UCLASS(hidecategories=Object, hidecategories=Physics, hidecategories=Collision, editinlinenew)
 class UCascadeParticleSystemComponent : public UParticleSystemComponent
 {
-	GENERATED_BODY()
-public:
-	UCascadeParticleSystemComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 public:	

@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UK2Node_MatineeController : public UK2Node
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_MatineeController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The matinee actor in the level that this node controls */
 	UPROPERTY(EditAnywhere, Category=K2Node_MatineeController)

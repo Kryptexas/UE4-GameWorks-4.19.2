@@ -10,9 +10,11 @@
 UCLASS(MinimalAPI, autoexpandcategories=BrushSettings, EditInlineNew, meta=(DisplayName="Linear Stair"))
 class ULinearStairBuilder : public UEditorBrushBuilder
 {
-	GENERATED_BODY()
 public:
-	UNREALED_API ULinearStairBuilder(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_BODY()
+
+public:
+	ULinearStairBuilder(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The length of each step */
 	UPROPERTY(EditAnywhere, Category=BrushSettings, meta=(ClampMin = "1"))

@@ -10,9 +10,7 @@
 UCLASS(hidecategories=Object)
 class USoundFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	USoundFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** If enabled, a sound cue will automatically be created for the sound */
 	UPROPERTY(EditAnywhere, Category=SoundFactory, meta=(ToolTip="If enabled, a sound cue will automatically be created for the sound"))

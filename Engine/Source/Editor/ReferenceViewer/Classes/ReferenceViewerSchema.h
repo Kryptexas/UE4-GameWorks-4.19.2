@@ -6,9 +6,7 @@
 UCLASS()
 class UReferenceViewerSchema : public UEdGraphSchema
 {
-	GENERATED_BODY()
-public:
-	UReferenceViewerSchema(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	// UEdGraphSchema interface

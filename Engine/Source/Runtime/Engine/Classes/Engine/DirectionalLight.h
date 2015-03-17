@@ -16,9 +16,7 @@ UCLASS(ClassGroup=(Lights, DirectionalLights), MinimalAPI, meta=(ChildCanTick))
 class ADirectionalLight
 	: public ALight
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API ADirectionalLight(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITORONLY_DATA
 	// Reference to editor visualization arrow

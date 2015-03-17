@@ -8,9 +8,7 @@
 UCLASS()
 class UMG_API UVisual : public UObject
 {
-	GENERATED_BODY()
-public:
-	UVisual(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	virtual void ReleaseSlateResources(bool bReleaseChildren);

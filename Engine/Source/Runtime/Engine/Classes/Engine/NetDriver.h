@@ -92,11 +92,10 @@ struct FActorDestructionInfo
 };
 
 
-UCLASS(Abstract, transient, MinimalAPI, config=Engine)
+UCLASS(Abstract, customConstructor, transient, MinimalAPI, config=Engine)
 class UNetDriver : public UObject, public FExec
 {
-	GENERATED_BODY()
-public:
+	GENERATED_UCLASS_BODY()
 
 protected:
 

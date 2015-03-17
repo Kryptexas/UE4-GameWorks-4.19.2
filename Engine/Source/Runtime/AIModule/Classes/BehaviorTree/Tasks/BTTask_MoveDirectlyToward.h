@@ -17,9 +17,7 @@ struct FBTMoveDirectlyTowardMemory
 UCLASS(config=Game)
 class AIMODULE_API UBTTask_MoveDirectlyToward : public UBTTask_BlackboardBase
 {
-	GENERATED_BODY()
-public:
-	UBTTask_MoveDirectlyToward(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(config, Category=Node, EditAnywhere, meta=(ClampMin = "0.0"))
 	float AcceptableRadius;

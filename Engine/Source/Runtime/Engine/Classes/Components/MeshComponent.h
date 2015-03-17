@@ -17,9 +17,7 @@ struct FMaterialRelevance;
 UCLASS(abstract)
 class ENGINE_API UMeshComponent : public UPrimitiveComponent
 {
-	GENERATED_BODY()
-public:
-	UMeshComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Per-Component material overrides.  These must NOT be set directly or a race condition can occur between GC and the rendering thread. */
 	UPROPERTY(EditAnywhere, Category=Rendering, Meta=(ToolTip="Material overrides."))

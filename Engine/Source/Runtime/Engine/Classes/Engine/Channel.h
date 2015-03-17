@@ -33,9 +33,7 @@ UCLASS(transient)
 class ENGINE_API UChannel
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	UChannel(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	
 	UPROPERTY()
 	class UNetConnection*	Connection;		// Owner connection.

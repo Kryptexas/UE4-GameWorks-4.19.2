@@ -8,9 +8,7 @@
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI)
 class UFoliageType_InstancedStaticMesh : public UFoliageType
 {
-	GENERATED_BODY()
-public:
-	FOLIAGE_API UFoliageType_InstancedStaticMesh(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=FoliageType)
 	UStaticMesh* Mesh;

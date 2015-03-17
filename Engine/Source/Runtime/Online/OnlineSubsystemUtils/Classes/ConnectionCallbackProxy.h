@@ -11,9 +11,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnlineConnectionResult, int32, Erro
 UCLASS(MinimalAPI)
 class UConnectionCallbackProxy : public UOnlineBlueprintCallProxyBase
 {
-	GENERATED_BODY()
-public:
-	ONLINESUBSYSTEMUTILS_API UConnectionCallbackProxy(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Called when there is a successful query
 	UPROPERTY(BlueprintAssignable)

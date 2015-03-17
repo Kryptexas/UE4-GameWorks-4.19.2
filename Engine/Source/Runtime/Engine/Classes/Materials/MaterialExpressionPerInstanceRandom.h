@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionPerInstanceRandom : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionPerInstanceRandom(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UMaterialExpression Interface

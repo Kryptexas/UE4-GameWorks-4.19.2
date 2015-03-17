@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Components/PanelWidget.h"
@@ -19,9 +19,7 @@ class UCanvasPanelSlot;
 UCLASS()
 class UMG_API UCanvasPanel : public UPanelWidget
 {
-	GENERATED_BODY()
-public:
-	UCanvasPanel(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

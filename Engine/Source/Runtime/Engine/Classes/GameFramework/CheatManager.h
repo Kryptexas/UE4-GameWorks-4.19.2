@@ -57,9 +57,7 @@ struct FDebugTraceInfo
 UCLASS(Within=PlayerController)
 class ENGINE_API UCheatManager : public UObject
 {
-	GENERATED_BODY()
-public:
-	UCheatManager(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Debug camera - used to have independent camera without stopping gameplay */
 	UPROPERTY()
@@ -206,10 +204,8 @@ public:
 	UFUNCTION(exec)
 	virtual void ToggleAILogging();
 
-	UFUNCTION(reliable, server="ServerToggleAILogging_Implementation", WithValidation="ServerToggleAILogging_Validate")
+	UFUNCTION(reliable, server, WithValidation)
 	virtual void ServerToggleAILogging();
-	virtual void ServerToggleAILogging_Implementation();
-	virtual bool ServerToggleAILogging_Validate();
 
 	/** Toggle capsule trace debugging. Will trace a capsule from current view point and show where it hits the world */
 	UFUNCTION(exec)

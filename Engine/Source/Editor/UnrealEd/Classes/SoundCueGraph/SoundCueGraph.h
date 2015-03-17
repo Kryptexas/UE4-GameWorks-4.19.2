@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class USoundCueGraph : public UEdGraph
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API USoundCueGraph(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Returns the SoundCue that contains this graph */
 	UNREALED_API class USoundCue* GetSoundCue() const;

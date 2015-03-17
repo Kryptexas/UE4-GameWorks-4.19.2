@@ -7,9 +7,7 @@
 UCLASS()
 class UUpdateGameProjectCommandlet : public UCommandlet
 {
-	GENERATED_BODY()
-public:
-	UUpdateGameProjectCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin UCommandlet Interface
 	virtual int32 Main(const FString& Params) override;

@@ -37,7 +37,7 @@ enum EEmitterRenderModuleType
 USTRUCT()
 struct FNiagaraEmitterProperties
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 public:
 	FNiagaraEmitterProperties() : 
 		bIsEnabled(true), SpawnRate(50), UpdateScript(nullptr), SpawnScript(nullptr), Material(nullptr), 

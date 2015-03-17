@@ -9,9 +9,7 @@
 UCLASS(config=Editor)
 class UTutorialSettings : public UObject
 {
-	GENERATED_BODY()
-public:
-	UTutorialSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Categories for tutorials */
 	UPROPERTY(Config, EditAnywhere, Category="Tutorials")

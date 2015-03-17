@@ -36,12 +36,11 @@
  *		| </End Tag>           |                                                                           |
  *		|----------------------|---------------------------------------------------------------------------|
  */
-UCLASS(transient)
+UCLASS(transient, customConstructor)
 class ENGINE_API UActorChannel
 	: public UChannel
 {
-	GENERATED_BODY()
-public:
+	GENERATED_UCLASS_BODY()
 
 	friend class FObjectReplicator;
 

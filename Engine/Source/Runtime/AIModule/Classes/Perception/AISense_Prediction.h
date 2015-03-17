@@ -11,7 +11,7 @@ class UAISense_Prediction;
 USTRUCT()
 struct AIMODULE_API FAIPredictionEvent
 {	
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	typedef UAISense_Prediction FSenseClass;
 	
@@ -34,9 +34,7 @@ struct AIMODULE_API FAIPredictionEvent
 UCLASS(ClassGroup=AI)
 class AIMODULE_API UAISense_Prediction : public UAISense
 {
-	GENERATED_BODY()
-public:
-	UAISense_Prediction(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	TArray<FAIPredictionEvent> RegisteredEvents;

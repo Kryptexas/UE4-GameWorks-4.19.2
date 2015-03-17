@@ -9,9 +9,7 @@
 UCLASS()
 class URepairLocalizationDataCommandlet : public UGatherTextCommandletBase
 {
-	GENERATED_BODY()
-public:
-	URepairLocalizationDataCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	// Begin UCommandlet Interface

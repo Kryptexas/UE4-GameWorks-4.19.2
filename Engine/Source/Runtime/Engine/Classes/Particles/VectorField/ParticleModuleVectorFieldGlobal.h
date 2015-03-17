@@ -11,9 +11,7 @@
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Global Vector Fields"))
 class UParticleModuleVectorFieldGlobal : public UParticleModuleVectorFieldBase
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleVectorFieldGlobal(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Property override value for global vector field tightness.  */
 	UPROPERTY()

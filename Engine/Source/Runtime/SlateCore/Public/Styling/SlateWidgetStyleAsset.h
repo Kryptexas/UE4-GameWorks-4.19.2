@@ -11,7 +11,8 @@ UCLASS(hidecategories=Object)
 class SLATECORE_API USlateWidgetStyleAsset : public UObject
 {
 	GENERATED_BODY()
-public:
+		  
+public:  
 	/**  */
 	UPROPERTY(Category=Appearance, EditAnywhere, Instanced)
 	USlateWidgetStyleContainerBase* CustomStyle;

@@ -73,9 +73,7 @@ class UPanelSlot;
 UCLASS(Abstract, BlueprintType)
 class UMG_API UWidget : public UVisual
 {
-	GENERATED_BODY()
-public:
-	UWidget(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

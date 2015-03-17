@@ -11,9 +11,7 @@
 UCLASS()
 class UGeomModifier_Create : public UGeomModifier_Edit
 {
-	GENERATED_BODY()
-public:
-	UGeomModifier_Create(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UGeomModifier Interface

@@ -7,7 +7,7 @@
 USTRUCT()
 struct ENGINE_API FAnimNode_UseCachedPose : public FAnimNode_Base
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	// Note: This link is intentionally not public; it's wired up during compilation
 	UPROPERTY()

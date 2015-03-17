@@ -14,9 +14,7 @@
 UCLASS(ComponentWrapperClass, meta = (ChildCanTick))
 class PAPER2D_API APaperSpriteActor : public AActor
 {
-	GENERATED_BODY()
-public:
-	APaperSpriteActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 private:
 	UPROPERTY(Category=Sprite, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Sprite,Rendering,Physics,Components|Sprite", AllowPrivateAccess="true"))

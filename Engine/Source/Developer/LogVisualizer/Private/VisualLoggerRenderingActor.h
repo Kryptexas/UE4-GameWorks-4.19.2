@@ -13,10 +13,8 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectionChanged, class AActor*);
 UCLASS(config = Engine, NotBlueprintable, Transient)
 class LOGVISUALIZER_API AVisualLoggerRenderingActor : public AActor
 {
-	GENERATED_BODY()
 public:
-	AVisualLoggerRenderingActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-public:
+	GENERATED_UCLASS_BODY()
 
 	void OnItemSelectionChanged(const FVisualLogDevice::FVisualLogEntryItem& EntryItem);
 	void ObjectSelectionChanged(TSharedPtr<class STimeline> TimeLine);

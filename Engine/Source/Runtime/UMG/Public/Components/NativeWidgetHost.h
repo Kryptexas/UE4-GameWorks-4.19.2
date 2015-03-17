@@ -11,9 +11,7 @@
 UCLASS()
 class UMG_API UNativeWidgetHost : public UWidget
 {
-	GENERATED_BODY()
-public:
-	UNativeWidgetHost(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	void SetContent(TSharedRef<SWidget> InContent);
 

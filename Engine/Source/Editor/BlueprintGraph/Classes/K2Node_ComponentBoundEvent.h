@@ -11,9 +11,7 @@ class UDynamicBlueprintBinding;
 UCLASS(MinimalAPI)
 class UK2Node_ComponentBoundEvent : public UK2Node_Event
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_ComponentBoundEvent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Delegate property name that this event is associated with */
 	UPROPERTY()

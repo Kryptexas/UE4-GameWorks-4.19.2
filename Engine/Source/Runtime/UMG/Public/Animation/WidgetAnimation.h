@@ -12,7 +12,7 @@ class UWidgetTree;
 USTRUCT()
 struct FWidgetAnimationBinding
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	FName WidgetName;
@@ -48,9 +48,7 @@ public:
 UCLASS(MinimalAPI)
 class UWidgetAnimation : public UObject
 {
-	GENERATED_BODY()
-public:
-	UMG_API UWidgetAnimation(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

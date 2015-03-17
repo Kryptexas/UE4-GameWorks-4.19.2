@@ -9,9 +9,7 @@
 UCLASS()
 class UTestPawnAction_CallFunction : public UTestPawnAction_Log
 {
-	GENERATED_BODY()
-public:
-	UTestPawnAction_CallFunction(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	typedef void(*FFunctionToCall)(UPawnActionsComponent& ActionsComponent, UTestPawnAction_CallFunction& Caller, ETestPawnActionMessage::Type);
 	FFunctionToCall FunctionToCall;

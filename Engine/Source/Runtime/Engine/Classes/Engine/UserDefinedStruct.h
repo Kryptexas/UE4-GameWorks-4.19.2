@@ -22,9 +22,7 @@ enum EUserDefinedStructureStatus
 UCLASS()
 class ENGINE_API UUserDefinedStruct : public UScriptStruct
 {
-	GENERATED_BODY()
-public:
-	UUserDefinedStruct(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 #if WITH_EDITORONLY_DATA

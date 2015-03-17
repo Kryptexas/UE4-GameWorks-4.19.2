@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew,MinimalAPI)
 class UDistributionVectorConstantCurve : public UDistributionVector
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UDistributionVectorConstantCurve(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Keyframe data for each component (X,Y,Z) over time. */
 	UPROPERTY(EditAnywhere, Category=DistributionVectorConstantCurve)

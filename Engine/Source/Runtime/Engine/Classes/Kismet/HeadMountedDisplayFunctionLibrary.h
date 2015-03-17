@@ -17,9 +17,7 @@ namespace EOrientPositionSelector
 UCLASS()
 class UHeadMountedDisplayFunctionLibrary : public UBlueprintFunctionLibrary
 {
-	GENERATED_BODY()
-public:
-	UHeadMountedDisplayFunctionLibrary(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 * Returns whether or not we are currently using the head mounted display.

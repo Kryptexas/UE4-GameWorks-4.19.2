@@ -17,9 +17,7 @@ class UPrimitiveComponent;
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitOverlap : public UAbilityTask
 {
-	GENERATED_BODY()
-public:
-	GAMEPLAYABILITIES_API UAbilityTask_WaitOverlap(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(BlueprintAssignable)
 	FWaitOverlapDelegate	OnOverlap;

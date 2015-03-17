@@ -19,7 +19,7 @@ struct FConvexVolume;
 USTRUCT()
 struct FPaintedVertex
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	FVector Position;
@@ -51,7 +51,7 @@ struct FPaintedVertex
 USTRUCT()
 struct FStaticMeshComponentLODInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FLightMapRef LightMap;
 
@@ -120,9 +120,7 @@ struct TStructOpsTypeTraits<FStaticMeshComponentLODInfo> : public TStructOpsType
 UCLASS(ClassGroup=(Rendering, Common), hidecategories=(Object,Activation,"Components|Activation"), ShowCategories=(Mobility), editinlinenew, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UStaticMeshComponent : public UMeshComponent
 {
-	GENERATED_BODY()
-public:
-	UStaticMeshComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** If 0, auto-select LOD level. if >0, force to (ForcedLodModel-1). */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=LOD)

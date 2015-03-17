@@ -10,9 +10,7 @@
 UCLASS(MinimalAPI)
 class UK2Node_MacroInstance : public UK2Node_Tunnel
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_MacroInstance(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 private:
 	/** A macro is like a composite node, except that the associated graph lives

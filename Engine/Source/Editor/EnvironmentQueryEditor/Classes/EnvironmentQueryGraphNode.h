@@ -8,9 +8,7 @@
 UCLASS()
 class UEnvironmentQueryGraphNode : public UAIGraphNode
 {
-	GENERATED_BODY()
-public:
-	UEnvironmentQueryGraphNode(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual class UEnvironmentQueryGraph* GetEnvironmentQueryGraph();
 

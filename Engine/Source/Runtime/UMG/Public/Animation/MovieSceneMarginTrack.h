@@ -18,9 +18,7 @@ struct FMarginKey
 UCLASS( MinimalAPI )
 class UMovieSceneMarginTrack : public UMovieScenePropertyTrack
 {
-	GENERATED_BODY()
-public:
-	UMG_API UMovieSceneMarginTrack(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	/** UMovieSceneTrack interface */

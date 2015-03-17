@@ -8,15 +8,12 @@
 UINTERFACE(MinimalAPI, meta=(CannotImplementInterfaceInBlueprint))
 class UFontProviderInterface : public UInterface
 {
-	GENERATED_BODY()
-public:
-	SLATECORE_API UFontProviderInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class IFontProviderInterface
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 
 	virtual const FCompositeFont* GetCompositeFont() const = 0;
 };

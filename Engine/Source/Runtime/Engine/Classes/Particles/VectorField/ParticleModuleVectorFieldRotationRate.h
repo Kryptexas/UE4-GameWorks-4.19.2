@@ -11,9 +11,7 @@
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "VF Rotation Rate"))
 class UParticleModuleVectorFieldRotationRate : public UParticleModuleVectorFieldBase
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleVectorFieldRotationRate(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Constant rotation rate applied to the local vector field. */
 	UPROPERTY(EditAnywhere, Category=VectorField)

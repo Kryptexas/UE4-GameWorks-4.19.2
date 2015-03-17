@@ -56,7 +56,7 @@ namespace EAndroidDepthBufferPreference
 USTRUCT()
 struct FGooglePlayAchievementMapping
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	// The game-specific achievement name (the one passed in to WriteAchievement calls)
 	UPROPERTY(EditAnywhere, Category = GooglePlayServices)
@@ -73,7 +73,7 @@ struct FGooglePlayAchievementMapping
 USTRUCT()
 struct FGooglePlayLeaderboardMapping
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	// The game-specific leaderboard name (the one passed in to WriteLeaderboards calls)
 	UPROPERTY(EditAnywhere, Category = GooglePlayServices)
@@ -101,10 +101,8 @@ namespace EAndroidAudio
 UCLASS(config=Engine, defaultconfig)
 class ANDROIDRUNTIMESETTINGS_API UAndroidRuntimeSettings : public UObject
 {
-	GENERATED_BODY()
 public:
-	UAndroidRuntimeSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-public:
+	GENERATED_UCLASS_BODY()
 
 	// The official name of the product (same as the name you use on the Play Store web site)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Android Package Name ('com.Company.Project', [PROJECT] is replaced with project name)"))

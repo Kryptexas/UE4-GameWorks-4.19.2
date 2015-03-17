@@ -6,9 +6,7 @@
 UCLASS(MinimalAPI)
 class USoundClassGraphNode : public UEdGraphNode
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API USoundClassGraphNode(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The SoundNode this represents */
 	UPROPERTY(VisibleAnywhere, instanced, Category=Sound)

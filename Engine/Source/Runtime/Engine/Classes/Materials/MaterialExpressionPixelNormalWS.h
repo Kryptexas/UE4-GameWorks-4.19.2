@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionPixelNormalWS : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionPixelNormalWS(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UMaterialExpression Interface

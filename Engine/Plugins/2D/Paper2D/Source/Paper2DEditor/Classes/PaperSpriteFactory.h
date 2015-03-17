@@ -11,9 +11,7 @@
 UCLASS()
 class UPaperSpriteFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	UPaperSpriteFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Initial texture to create the sprite from (Can be nullptr)
 	class UTexture2D* InitialTexture;

@@ -9,7 +9,7 @@ class SVirtualJoystick;
 USTRUCT()
 struct FTouchInputControl
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	// basically mirroring SVirtualJoystick::FControlInfo but as an editable class
 	UPROPERTY(EditAnywhere, Category="Control", meta=(ToolTip="For sticks, this is the Thumb"))
@@ -44,9 +44,7 @@ struct FTouchInputControl
 UCLASS(Blueprintable, BlueprintType)
 class ENGINE_API UTouchInterface : public UObject
 {
-	GENERATED_BODY()
-public:
-	UTouchInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category="TouchInterface")
 	TArray<FTouchInputControl> Controls;

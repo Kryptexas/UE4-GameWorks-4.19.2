@@ -6,15 +6,12 @@
 UINTERFACE(MinimalAPI, meta=(CannotImplementInterfaceInBlueprint))
 class UNavPathObserverInterface : public UInterface
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UNavPathObserverInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class INavPathObserverInterface
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 
 	/** 
 	 *	Called on Navigation Agent when given PathGenerator updated it's path.

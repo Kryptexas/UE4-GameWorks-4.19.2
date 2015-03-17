@@ -14,11 +14,9 @@ class UAbilitySystemComponent;
 UCLASS(BlueprintType, Blueprintable, Abstract)
 class GAMEPLAYABILITIES_API UGameplayModMagnitudeCalculation : public UGameplayEffectCalculation
 {
-	GENERATED_BODY()
-public:
-	UGameplayModMagnitudeCalculation(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 * Calculate the base magnitude of the gameplay effect modifier, given the specified spec. Note that the owngin spec def can still modify this base value
@@ -30,7 +28,6 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, Category="Calculation")
 	float CalculateBaseMagnitude(const FGameplayEffectSpec& Spec) const;
-	virtual float CalculateBaseMagnitude_Implementation(const FGameplayEffectSpec& Spec) const;
 
 protected:
 	

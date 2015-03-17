@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UK2Node_CastByteToEnum : public UK2Node
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_CastByteToEnum(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	UEnum* Enum;

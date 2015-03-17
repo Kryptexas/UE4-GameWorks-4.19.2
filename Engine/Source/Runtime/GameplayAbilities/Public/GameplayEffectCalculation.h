@@ -12,9 +12,7 @@ class UAbilitySystemComponent;
 UCLASS(BlueprintType, Blueprintable, Abstract)
 class GAMEPLAYABILITIES_API UGameplayEffectCalculation : public UObject
 {
-	GENERATED_BODY()
-public:
-	UGameplayEffectCalculation(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

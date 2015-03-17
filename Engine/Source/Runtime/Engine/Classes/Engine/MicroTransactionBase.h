@@ -49,7 +49,7 @@ enum EMicroTransactionResult
 USTRUCT()
 struct FPurchaseInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 // 	/** What kind of microtransaction purchase is this? */
 // 	var EPurchaseType Type;
@@ -75,9 +75,7 @@ struct FPurchaseInfo
 UCLASS()
 class UMicroTransactionBase : public UPlatformInterfaceBase
 {
-	GENERATED_BODY()
-public:
-	UMicroTransactionBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The list of products available to purchase, filled out by the time a MTD_PurchaseQueryComplete is fired */
 	UPROPERTY()

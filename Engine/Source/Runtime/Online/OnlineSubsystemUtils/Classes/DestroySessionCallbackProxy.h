@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class UDestroySessionCallbackProxy : public UOnlineBlueprintCallProxyBase
 {
-	GENERATED_BODY()
-public:
-	ONLINESUBSYSTEMUTILS_API UDestroySessionCallbackProxy(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Called when there is a successful destroy
 	UPROPERTY(BlueprintAssignable)

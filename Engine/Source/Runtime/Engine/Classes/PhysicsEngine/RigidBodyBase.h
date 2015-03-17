@@ -10,9 +10,7 @@
 UCLASS(ClassGroup=Physics, abstract,MinimalAPI)
 class ARigidBodyBase : public AActor
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API ARigidBodyBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 };
 

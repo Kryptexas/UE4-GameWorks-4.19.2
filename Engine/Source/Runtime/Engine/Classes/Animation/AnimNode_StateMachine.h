@@ -12,7 +12,7 @@ struct FAnimNode_TransitionPoseEvaluator;
 USTRUCT()
 struct FAnimationActiveTransitionEntry
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	// Elapsed time for this transition
 	float ElapsedTime;
@@ -77,7 +77,7 @@ protected:
 USTRUCT()
 struct FAnimationPotentialTransition
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	int32 TargetState;
 
@@ -99,7 +99,7 @@ public:
 USTRUCT()
 struct ENGINE_API FAnimNode_StateMachine : public FAnimNode_Base
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 	// Index into the BakedStateMachines array in the owning UAnimBlueprintGeneratedClass

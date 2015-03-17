@@ -10,8 +10,8 @@
 USTRUCT(BlueprintType)
 struct FAnchorData
 {
-	GENERATED_BODY()
 public:
+	GENERATED_USTRUCT_BODY()
 
 public:
 
@@ -31,9 +31,7 @@ public:
 UCLASS()
 class UMG_API UCanvasPanelSlot : public UPanelSlot
 {
-	GENERATED_BODY()
-public:
-	UCanvasPanelSlot(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

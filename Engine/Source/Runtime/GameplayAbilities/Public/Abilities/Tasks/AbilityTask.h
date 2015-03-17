@@ -60,9 +60,7 @@
 UCLASS()
 class GAMEPLAYABILITIES_API UAbilityTask : public UObject
 {
-	GENERATED_BODY()
-public:
-	UAbilityTask(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGenericAbilityTaskDelegate);
 

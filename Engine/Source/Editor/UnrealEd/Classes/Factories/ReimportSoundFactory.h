@@ -10,9 +10,7 @@
 UCLASS(hidecategories=Object, collapsecategories)
 class UReimportSoundFactory : public USoundFactory, public FReimportHandler
 {
-	GENERATED_BODY()
-public:
-	UReimportSoundFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin FReimportHandler interface

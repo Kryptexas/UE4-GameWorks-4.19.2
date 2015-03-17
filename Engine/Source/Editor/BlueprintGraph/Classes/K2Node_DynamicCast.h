@@ -9,9 +9,7 @@
 UCLASS(MinimalAPI)
 class UK2Node_DynamicCast : public UK2Node
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_DynamicCast(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The type that the input should try to be cast to */
 	UPROPERTY()

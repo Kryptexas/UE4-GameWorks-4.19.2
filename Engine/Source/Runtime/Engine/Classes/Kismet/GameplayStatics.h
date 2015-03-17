@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Engine/LatentActionManager.h"
@@ -28,9 +28,7 @@ namespace ESuggestProjVelocityTraceOption
 UCLASS()
 class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 {
-	GENERATED_BODY()
-public:
-	UGameplayStatics(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// --- Spawning functions ------------------------------
 

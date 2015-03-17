@@ -9,9 +9,7 @@
 UCLASS(Blueprintable)
 class GAMEPLAYABILITIES_API AGameplayAbilityTargetActor_GroundTrace : public AGameplayAbilityTargetActor_Trace
 {
-	GENERATED_BODY()
-public:
-	AGameplayAbilityTargetActor_GroundTrace(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual void StartTargeting(UGameplayAbility* InAbility) override;
 

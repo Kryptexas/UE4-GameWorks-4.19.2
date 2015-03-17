@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI, meta=( DisplayName = "Color Property Track" ) )
 class UInterpTrackColorProp : public UInterpTrackVectorBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UInterpTrackColorProp(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Name of property in Group  AActor  which this track mill modify over time. */
 	UPROPERTY(Category=InterpTrackColorProp, VisibleAnywhere)

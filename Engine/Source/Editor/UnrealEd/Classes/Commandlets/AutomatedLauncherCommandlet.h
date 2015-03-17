@@ -9,9 +9,7 @@
 UCLASS()
 class UAutomatedLauncherCommandlet : public UCommandlet
 {
-	GENERATED_BODY()
-public:
-	UAutomatedLauncherCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin UCommandlet Interface
 	virtual int32 Main(const FString& Params) override;

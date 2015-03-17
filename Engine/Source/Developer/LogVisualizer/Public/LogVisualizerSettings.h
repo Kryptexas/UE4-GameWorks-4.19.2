@@ -11,7 +11,7 @@ GameplayDebuggerSettings.h: Declares the UGameplayDebuggerSettings class.
 USTRUCT()
 struct FCategoryFilter
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(config)
 	FString CategoryName;
@@ -26,7 +26,7 @@ struct FCategoryFilter
 USTRUCT()
 struct FVisualLoggerFilters
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(config)
 	FString SearchBoxFilter;
@@ -46,9 +46,7 @@ struct FCategoryFiltersManager;
 UCLASS(config = EditorUserSettings)
 class LOGVISUALIZER_API ULogVisualizerSettings : public UObject
 {
-	GENERATED_BODY()
-public:
-	ULogVisualizerSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	friend struct FCategoryFiltersManager;
 
 public:

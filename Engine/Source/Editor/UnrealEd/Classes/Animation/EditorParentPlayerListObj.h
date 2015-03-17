@@ -11,9 +11,7 @@ class UAnimBlueprint;
 UCLASS()
 class UNREALED_API UEditorParentPlayerListObj : public UObject
 {
-	GENERATED_BODY()
-public:
-	UEditorParentPlayerListObj(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 public:
 	// Build a possible list of overrides from a blueprint and pull in any existing overrides.
 	void InitialiseFromBlueprint(UAnimBlueprint* Blueprint);

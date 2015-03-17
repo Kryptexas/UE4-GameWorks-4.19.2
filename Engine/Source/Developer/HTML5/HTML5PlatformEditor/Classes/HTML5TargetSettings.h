@@ -16,11 +16,9 @@ UCLASS(config=Engine, defaultconfig)
 class HTML5PLATFORMEDITOR_API UHTML5TargetSettings
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	UHTML5TargetSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 public:
 
+	GENERATED_UCLASS_BODY()
 
  	/**
  	 * Setting to control HTML5 Heap size (in Development)

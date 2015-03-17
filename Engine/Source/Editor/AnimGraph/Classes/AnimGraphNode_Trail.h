@@ -9,9 +9,7 @@
 UCLASS(MinimalAPI)
 class UAnimGraphNode_Trail : public UAnimGraphNode_SkeletalControlBase
 {
-	GENERATED_BODY()
-public:
-	ANIMGRAPH_API UAnimGraphNode_Trail(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 		UPROPERTY(EditAnywhere, Category = Settings)
 		FAnimNode_Trail Node;

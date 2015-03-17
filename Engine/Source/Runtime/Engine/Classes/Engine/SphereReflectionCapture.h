@@ -13,9 +13,7 @@ class UDrawSphereComponent;
 UCLASS(hidecategories = (Collision, Attachment, Actor), MinimalAPI)
 class ASphereReflectionCapture : public AReflectionCapture
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API ASphereReflectionCapture(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 private_subobject:
 	/** Sphere component used to visualize the capture radius */

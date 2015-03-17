@@ -22,9 +22,7 @@ UCLASS(MinimalAPI)
 class UCurveTable
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UCurveTable(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The filename that was used to create this object. Relative to the object's package, BaseDir() or absolute */
 	UPROPERTY()
@@ -101,7 +99,7 @@ protected:
 USTRUCT(BlueprintType)
 struct ENGINE_API FCurveTableRowHandle
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FCurveTableRowHandle()
 		: CurveTable(nullptr)

@@ -21,9 +21,7 @@ enum CylinderHeightAxis
 UCLASS(editinlinenew, hidecategories = Object, MinimalAPI, meta = (DisplayName = "Cylinder"))
 class UParticleModuleLocationPrimitiveCylinder : public UParticleModuleLocationPrimitiveBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleLocationPrimitiveCylinder(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** If true, get the particle velocity form the radial distance inside the primitive. */
 	UPROPERTY(EditAnywhere, Category=Location)

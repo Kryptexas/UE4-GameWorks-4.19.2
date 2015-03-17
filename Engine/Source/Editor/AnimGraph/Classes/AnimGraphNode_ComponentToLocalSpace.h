@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UAnimGraphNode_ComponentToLocalSpace : public UAnimGraphNode_Base
 {
-	GENERATED_BODY()
-public:
-	ANIMGRAPH_API UAnimGraphNode_ComponentToLocalSpace(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_ConvertComponentToLocalSpace Node;

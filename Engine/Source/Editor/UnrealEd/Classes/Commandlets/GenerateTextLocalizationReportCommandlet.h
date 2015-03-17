@@ -9,9 +9,7 @@
 UCLASS()
 class UGenerateTextLocalizationReportCommandlet : public UGatherTextCommandletBase
 {
-	GENERATED_BODY()
-public:
-	UGenerateTextLocalizationReportCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 

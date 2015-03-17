@@ -8,9 +8,7 @@
 UCLASS()
 class UMaterialExpressionBlackBody : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionBlackBody(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Temperature */
 	UPROPERTY()

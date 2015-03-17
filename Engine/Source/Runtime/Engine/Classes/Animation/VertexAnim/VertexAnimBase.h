@@ -47,9 +47,7 @@ struct FVertexAnimEvalStateBase
 UCLASS(hidecategories=Object, MinimalAPI, abstract)
 class UVertexAnimBase : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UVertexAnimBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** USkeletalMesh that this vertex animation works on. */
 	UPROPERTY(AssetRegistrySearchable)

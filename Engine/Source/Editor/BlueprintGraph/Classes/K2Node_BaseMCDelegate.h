@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI, abstract)
 class UK2Node_BaseMCDelegate : public UK2Node
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_BaseMCDelegate(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Reference to delegate */
 	UPROPERTY()

@@ -8,9 +8,7 @@
 UCLASS()
 class UInterpTrackInstProperty : public UInterpTrackInst
 {
-	GENERATED_BODY()
-public:
-	UInterpTrackInstProperty(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Function to call after updating the value of the color property. */
 	UPROPERTY()

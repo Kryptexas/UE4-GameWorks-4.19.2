@@ -15,9 +15,7 @@ DECLARE_DYNAMIC_DELEGATE(FPostEvaluateAnimEvent);
 UCLASS(transient, NotBlueprintable)
 class ENGINE_API UAnimSingleNodeInstance : public UAnimInstance
 {
-	GENERATED_BODY()
-public:
-	UAnimSingleNodeInstance(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Current Asset being played **/
 	UPROPERTY(transient)

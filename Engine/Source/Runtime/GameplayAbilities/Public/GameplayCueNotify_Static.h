@@ -22,9 +22,7 @@
 UCLASS(Blueprintable, meta = (ShowWorldContextPin), hidecategories = (Replication))
 class GAMEPLAYABILITIES_API UGameplayCueNotify_Static : public UObject
 {
-	GENERATED_BODY()
-public:
-	UGameplayCueNotify_Static(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Does this GameplayCueNotify handle this type of GameplayCueEvent? */
 	virtual bool HandlesEvent(EGameplayCueEvent::Type EventType) const;
@@ -47,19 +45,15 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintPure, Category = "GameplayCueNotify")
 	bool OnExecute(AActor* MyTarget, FGameplayCueParameters Parameters) const;
-	virtual bool OnExecute_Implementation(AActor* MyTarget, FGameplayCueParameters Parameters) const;
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintPure, Category = "GameplayCueNotify")
 	bool OnActive(AActor* MyTarget, FGameplayCueParameters Parameters) const;
-	virtual bool OnActive_Implementation(AActor* MyTarget, FGameplayCueParameters Parameters) const;
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintPure, Category = "GameplayCueNotify")
 	bool WhileActive(AActor* MyTarget, FGameplayCueParameters Parameters) const;
-	virtual bool WhileActive_Implementation(AActor* MyTarget, FGameplayCueParameters Parameters) const;
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintPure, Category = "GameplayCueNotify")
 	bool OnRemove(AActor* MyTarget, FGameplayCueParameters Parameters) const;
-	virtual bool OnRemove_Implementation(AActor* MyTarget, FGameplayCueParameters Parameters) const;
 
 	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)
 	FGameplayTag	GameplayCueTag;

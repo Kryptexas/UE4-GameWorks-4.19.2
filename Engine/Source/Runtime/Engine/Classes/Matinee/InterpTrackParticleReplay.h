@@ -12,7 +12,7 @@
 USTRUCT()
 struct FParticleReplayTrackKey
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Position along timeline */
 	UPROPERTY()
@@ -39,9 +39,7 @@ struct FParticleReplayTrackKey
 UCLASS(MinimalAPI, meta=( DisplayName = "Particle Replay Track" ) )
 class UInterpTrackParticleReplay : public UInterpTrack
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UInterpTrackParticleReplay(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Array of keys */
 	UPROPERTY()

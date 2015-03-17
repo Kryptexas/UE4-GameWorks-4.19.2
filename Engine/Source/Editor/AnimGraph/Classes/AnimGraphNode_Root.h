@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UAnimGraphNode_Root : public UAnimGraphNode_Base
 {
-	GENERATED_BODY()
-public:
-	ANIMGRAPH_API UAnimGraphNode_Root(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_Root Node;

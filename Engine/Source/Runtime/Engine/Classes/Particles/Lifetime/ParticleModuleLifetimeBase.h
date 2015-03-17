@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Lifetime"))
 class UParticleModuleLifetimeBase : public UParticleModule
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleLifetimeBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	/** Return the maximum lifetime this module would return. */

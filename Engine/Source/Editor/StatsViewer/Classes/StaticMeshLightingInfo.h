@@ -17,9 +17,7 @@ enum EStaticMeshLightingInfoObjectSets
 UCLASS(Transient, MinimalAPI, meta=( DisplayName = "Static Mesh Lighting Info", ObjectSetType = "EStaticMeshLightingInfoObjectSets" ) )
 class UStaticMeshLightingInfo : public UObject
 {
-	GENERATED_BODY()
-public:
-	STATSVIEWER_API UStaticMeshLightingInfo(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The actor that is related to this error/warning. */
 	UPROPERTY(VisibleAnywhere, AssetRegistrySearchable, Category="Stats", meta=( DisplayName = "Actor", ColumnWidth = "200" ) )

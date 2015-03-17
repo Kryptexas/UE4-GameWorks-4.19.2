@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class UK2Node_ClearDelegate : public UK2Node_BaseMCDelegate
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_ClearDelegate(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	// UEdGraphNode interface

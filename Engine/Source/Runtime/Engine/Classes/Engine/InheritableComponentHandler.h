@@ -10,7 +10,7 @@ class UActorComponent;
 USTRUCT()
 struct ENGINE_API FComponentKey
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	UBlueprintGeneratedClass* OwnerClass;
@@ -41,7 +41,7 @@ struct ENGINE_API FComponentKey
 USTRUCT()
 struct FComponentOverrideRecord
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	UActorComponent* ComponentTemplate;

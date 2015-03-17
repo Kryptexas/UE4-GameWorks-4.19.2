@@ -13,7 +13,7 @@
 USTRUCT()
 struct FModuleMenuMapper
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	FString ObjName;
@@ -26,9 +26,7 @@ struct FModuleMenuMapper
 UCLASS(hidecategories=Object, config=Editor)
 class UCascadeConfiguration : public UObject
 {
-	GENERATED_BODY()
-public:
-	UCascadeConfiguration(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 *	TypeData-to-base module mappings.

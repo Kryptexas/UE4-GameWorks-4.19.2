@@ -61,7 +61,7 @@ struct FPerceptionChannelFilter
 USTRUCT(BlueprintType)
 struct AIMODULE_API FAIStimulus
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	static const float NeverHappenedAge;
 
@@ -130,7 +130,7 @@ public:
 USTRUCT()
 struct AIMODULE_API FAISenseAffiliationFilter
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sense")
 	uint32 bDetectEnemies : 1;

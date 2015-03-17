@@ -7,9 +7,7 @@
 UCLASS(HideCategories=Object, MinimalAPI)
 class UGameplayAbilitiesBlueprintFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	GAMEPLAYABILITIESEDITOR_API UGameplayAbilitiesBlueprintFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// The type of blueprint that will be created
 	UPROPERTY(EditAnywhere, Category=GameplayAbilitiesBlueprintFactory)

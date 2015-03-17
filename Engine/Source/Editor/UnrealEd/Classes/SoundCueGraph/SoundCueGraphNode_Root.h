@@ -6,9 +6,7 @@
 UCLASS(MinimalAPI)
 class USoundCueGraphNode_Root : public USoundCueGraphNode_Base
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API USoundCueGraphNode_Root(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// UEdGraphNode interface
 	virtual FLinearColor GetNodeTitleColor() const override;

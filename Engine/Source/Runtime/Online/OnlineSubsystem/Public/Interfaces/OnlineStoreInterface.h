@@ -55,7 +55,7 @@ typedef FOnInAppPurchaseComplete::FDelegate FOnInAppPurchaseCompleteDelegate;
 USTRUCT(BlueprintType)
 struct FInAppPurchaseProductRequest
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	// The unique product identifier that matches the one from your targeted store.
 	UPROPERTY(BlueprintReadWrite, Category = ProductInfo)
@@ -73,7 +73,7 @@ struct FInAppPurchaseProductRequest
 USTRUCT(BlueprintType)
 struct FInAppPurchaseProductInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	// The unique product identifier
 	UPROPERTY(BlueprintReadOnly, Category = ProductInfo)

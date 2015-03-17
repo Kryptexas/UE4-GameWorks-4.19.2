@@ -8,9 +8,7 @@
 UCLASS()
 class UMatineeTrackAnimControlHelper : public UInterpTrackHelper
 {
-	GENERATED_BODY()
-public:
-	UMatineeTrackAnimControlHelper(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	void OnAddKeyTextEntry(const class FAssetData& AssetData, IMatineeBase* Matinee, UInterpTrack* Track);
 	void OnCreateTrackTextEntry(const FString& ChosenText, TSharedRef<SWindow> Window, FString* OutputString);

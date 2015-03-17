@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "EventReceiver Spawn"))
 class UParticleModuleEventReceiverSpawn : public UParticleModuleEventReceiverBase
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleEventReceiverSpawn(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The number of particles to spawn. */
 	UPROPERTY(EditAnywhere, Category=Spawn)

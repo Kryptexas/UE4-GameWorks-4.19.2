@@ -9,7 +9,7 @@
 USTRUCT()
 struct FBuilderPoly
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	TArray<int32> VertexIndices;
@@ -48,9 +48,7 @@ UCLASS(abstract, hidecategories=(Object), MinimalAPI)
 class UBrushBuilder
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UBrushBuilder(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	FString BitmapFilename;

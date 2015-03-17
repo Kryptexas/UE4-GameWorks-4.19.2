@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Rotation Rate * Life"))
 class UParticleModuleRotationRateMultiplyLife : public UParticleModuleRotationRateBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleRotationRateMultiplyLife(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 *	The scale factor that should be applied to the rotation rate.

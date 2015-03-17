@@ -9,7 +9,7 @@
 USTRUCT()
 struct UNREALED_API FNiagaraSchemaAction_NewNode : public FEdGraphSchemaAction
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY();
 
 	/** Template of node we want to create */
 	UPROPERTY()
@@ -45,9 +45,7 @@ struct UNREALED_API FNiagaraSchemaAction_NewNode : public FEdGraphSchemaAction
 UCLASS(MinimalAPI)
 class UEdGraphSchema_Niagara : public UEdGraphSchema
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UEdGraphSchema_Niagara(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Allowable PinType.PinCategory values
 	UPROPERTY()

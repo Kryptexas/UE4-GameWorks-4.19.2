@@ -30,9 +30,7 @@ class UDialogueWave;
 UCLASS()
 class UGatherTextFromAssetsCommandlet : public UGatherTextCommandletBase
 {
-	GENERATED_BODY()
-public:
-	UGatherTextFromAssetsCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	void ProcessPackages( const TArray< UPackage* >& PackagesToProcess );
 	void ProcessDialogueWave( const UDialogueWave* DialogueWave );

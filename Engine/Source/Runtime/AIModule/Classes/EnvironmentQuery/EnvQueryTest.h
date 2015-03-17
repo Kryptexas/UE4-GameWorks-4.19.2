@@ -38,9 +38,7 @@ struct FEnvQueryTestScoringPreview
 UCLASS(Abstract)
 class AIMODULE_API UEnvQueryTest : public UEnvQueryNode
 {
-	GENERATED_BODY()
-public:
-	UEnvQueryTest(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Number of test as defined in data asset */
 	UPROPERTY()

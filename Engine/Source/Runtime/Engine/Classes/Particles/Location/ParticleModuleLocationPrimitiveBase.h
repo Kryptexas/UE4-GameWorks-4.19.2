@@ -12,9 +12,7 @@
 UCLASS(editinlinenew, hidecategories=Object)
 class UParticleModuleLocationPrimitiveBase : public UParticleModuleLocationBase
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleLocationPrimitiveBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Whether the positive X axis is valid for spawning. */
 	UPROPERTY(EditAnywhere, Category=Location)

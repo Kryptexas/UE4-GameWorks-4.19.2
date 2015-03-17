@@ -12,7 +12,7 @@ class UEdGraphPin;
 USTRUCT()
 struct FNodeToCodeAssociation
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 	TWeakObjectPtr<UEdGraphNode> Node;
@@ -38,7 +38,7 @@ public:
 USTRUCT()
 struct FDebuggingInfoForSingleFunction
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 	// Reverse map from code offset to source node
@@ -63,7 +63,7 @@ public:
 USTRUCT()
 struct FPointerToUberGraphFrame
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 	uint8* RawPointer;
@@ -180,7 +180,7 @@ public:
 USTRUCT()
 struct ENGINE_API FBlueprintDebugData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 	FBlueprintDebugData()
 	{
 	}
@@ -420,7 +420,7 @@ public:
 USTRUCT()
 struct ENGINE_API FEventGraphFastCallPair
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	UFunction* FunctionToPatch;
@@ -432,9 +432,7 @@ struct ENGINE_API FEventGraphFastCallPair
 UCLASS()
 class ENGINE_API UBlueprintGeneratedClass : public UClass
 {
-	GENERATED_BODY()
-public:
-	UBlueprintGeneratedClass(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

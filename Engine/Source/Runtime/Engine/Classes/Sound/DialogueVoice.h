@@ -13,9 +13,7 @@
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, BlueprintType)
 class UDialogueVoice : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UDialogueVoice(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=DialogueVoice, AssetRegistrySearchable)
 	TEnumAsByte<EGrammaticalGender::Type> Gender;

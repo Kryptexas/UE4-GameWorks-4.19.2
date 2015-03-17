@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, abstract, hidecategories=Object)
 class ENGINE_API UMaterialExpressionTextureSampleParameter : public UMaterialExpressionTextureSample
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionTextureSampleParameter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionTextureSampleParameter)
 	FName ParameterName;

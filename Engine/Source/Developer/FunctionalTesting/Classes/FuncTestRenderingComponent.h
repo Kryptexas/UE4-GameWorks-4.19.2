@@ -7,9 +7,7 @@
 UCLASS(hidecategories=Object, editinlinenew)
 class UFuncTestRenderingComponent : public UPrimitiveComponent
 {
-	GENERATED_BODY()
-public:
-	UFuncTestRenderingComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin UPrimitiveComponent Interface
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;

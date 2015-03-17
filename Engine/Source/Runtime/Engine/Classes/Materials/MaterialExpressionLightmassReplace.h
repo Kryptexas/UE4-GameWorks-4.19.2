@@ -8,9 +8,7 @@
 UCLASS()
 class UMaterialExpressionLightmassReplace : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionLightmassReplace(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	FExpressionInput Realtime;

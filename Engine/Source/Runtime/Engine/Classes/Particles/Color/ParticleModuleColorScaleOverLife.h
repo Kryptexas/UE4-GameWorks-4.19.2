@@ -14,9 +14,7 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Scale Color / Life"))
 class UParticleModuleColorScaleOverLife : public UParticleModuleColorBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleColorScaleOverLife(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The scale factor for the color.													*/
 	UPROPERTY(EditAnywhere, Category = Color, meta = (TreatAsColor))

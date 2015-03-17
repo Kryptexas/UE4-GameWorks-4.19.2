@@ -24,9 +24,7 @@ namespace EParticleCollisionResponse
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Collision (Scene Depth)"))
 class UParticleModuleCollisionGPU : public UParticleModuleCollisionBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleCollisionGPU(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 * Dampens the velocity of a particle in the direction normal to the

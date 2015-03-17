@@ -13,7 +13,7 @@ class UDynamicBlueprintBinding;
 USTRUCT()
 struct FOptionalPinFromProperty
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Hi, BlueprintReadOnly)
 	FName PropertyName;
@@ -87,9 +87,7 @@ enum ERenamePinResult
 UCLASS(abstract, MinimalAPI)
 class UK2Node : public UEdGraphNode
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// UObject interface
 	BLUEPRINTGRAPH_API virtual void PostLoad() override;

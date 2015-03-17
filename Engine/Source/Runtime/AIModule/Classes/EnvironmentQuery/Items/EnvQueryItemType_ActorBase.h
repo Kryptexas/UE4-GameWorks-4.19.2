@@ -11,9 +11,7 @@ class UBlackboardComponent;
 UCLASS(Abstract)
 class AIMODULE_API UEnvQueryItemType_ActorBase : public UEnvQueryItemType_VectorBase
 {
-	GENERATED_BODY()
-public:
-	UEnvQueryItemType_ActorBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual AActor* GetActor(const uint8* RawData) const;
 

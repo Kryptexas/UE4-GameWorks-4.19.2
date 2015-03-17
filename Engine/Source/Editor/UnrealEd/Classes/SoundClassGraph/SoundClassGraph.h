@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class USoundClassGraph : public UEdGraph
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API USoundClassGraph(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 * Set the SoundClass which forms the root of this graph

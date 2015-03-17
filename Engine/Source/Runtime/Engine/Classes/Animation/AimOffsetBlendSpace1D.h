@@ -15,9 +15,7 @@
 UCLASS(config=Engine, hidecategories=Object, MinimalAPI, BlueprintType)
 class UAimOffsetBlendSpace1D : public UBlendSpace1D
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UAimOffsetBlendSpace1D(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual bool IsValidAdditive() const override;
 

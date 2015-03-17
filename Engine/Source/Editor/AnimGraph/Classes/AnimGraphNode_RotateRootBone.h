@@ -9,9 +9,7 @@
 UCLASS(MinimalAPI)
 class UAnimGraphNode_RotateRootBone : public UAnimGraphNode_Base
 {
-	GENERATED_BODY()
-public:
-	ANIMGRAPH_API UAnimGraphNode_RotateRootBone(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_RotateRootBone Node;

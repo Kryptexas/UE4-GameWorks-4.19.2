@@ -34,7 +34,7 @@ enum EPlatformInterfaceDataType
 USTRUCT()
 struct FPlatformInterfaceData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** An optional tag for this data */
 	UPROPERTY()
@@ -72,7 +72,7 @@ struct FPlatformInterfaceData
 USTRUCT()
 struct FPlatformInterfaceDelegateResult
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** This is always usable, no matter the type */
 	UPROPERTY()
@@ -100,7 +100,7 @@ DECLARE_DYNAMIC_DELEGATE_OneParam( FPlatformInterfaceDelegate, const struct FPla
 USTRUCT()
 struct FDelegateArray
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	TArray<FPlatformInterfaceDelegate> Delegates;
@@ -110,9 +110,7 @@ struct FDelegateArray
 UCLASS(transient,MinimalAPI)
 class UPlatformInterfaceBase : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UPlatformInterfaceBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Array of delegate arrays. Only add and remove via helper functions, and call via the helper delegate call function */
 	UPROPERTY()

@@ -20,9 +20,7 @@
 UCLASS(MinimalAPI, NotBlueprintType)
 class ULevelScriptBlueprint : public UBlueprint
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API ULevelScriptBlueprint(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITORONLY_DATA
 	/** The friendly name to use for UI */

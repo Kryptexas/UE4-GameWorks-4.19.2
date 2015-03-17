@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Mesh Material"))
 class UParticleModuleMeshMaterial : public UParticleModuleMaterialBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleMeshMaterial(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The array of materials to apply to the mesh particles. */
 	UPROPERTY(EditAnywhere, Category=MeshMaterials)

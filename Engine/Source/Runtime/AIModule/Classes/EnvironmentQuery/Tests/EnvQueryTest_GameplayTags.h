@@ -10,9 +10,7 @@ class IGameplayTagAssetInterface;
 UCLASS(MinimalAPI)
 class UEnvQueryTest_GameplayTags : public UEnvQueryTest
 {
-	GENERATED_BODY()
-public:
-	AIMODULE_API UEnvQueryTest_GameplayTags(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 protected:
 	virtual void RunTest(FEnvQueryInstance& QueryInstance) const override;

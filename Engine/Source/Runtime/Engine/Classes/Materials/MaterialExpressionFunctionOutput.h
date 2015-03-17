@@ -8,9 +8,7 @@
 UCLASS(hidecategories=object, MinimalAPI)
 class UMaterialExpressionFunctionOutput : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UMaterialExpressionFunctionOutput(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The output's name, which will be drawn on the connector in function call expressions that use this function. */
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionFunctionOutput)

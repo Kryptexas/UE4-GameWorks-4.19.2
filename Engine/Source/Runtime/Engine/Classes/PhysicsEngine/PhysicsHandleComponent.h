@@ -17,9 +17,7 @@ namespace physx
 UCLASS(collapsecategories, ClassGroup=Physics, hidecategories=Object, MinimalAPI, meta=(BlueprintSpawnableComponent))
 class UPhysicsHandleComponent : public UActorComponent
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UPhysicsHandleComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Component we are currently holding */
 	UPROPERTY()

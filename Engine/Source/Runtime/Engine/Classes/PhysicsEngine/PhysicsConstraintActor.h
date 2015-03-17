@@ -10,9 +10,7 @@
 UCLASS(ConversionRoot, MinimalAPI, ComponentWrapperClass)
 class APhysicsConstraintActor : public ARigidBodyBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API APhysicsConstraintActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Cached reference to constraint component
 private_subobject:

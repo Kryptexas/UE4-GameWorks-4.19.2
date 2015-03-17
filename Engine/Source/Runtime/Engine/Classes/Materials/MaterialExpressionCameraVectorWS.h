@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionCameraVectorWS : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionCameraVectorWS(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UMaterialExpression Interface

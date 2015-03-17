@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Initial Rotation"))
 class UParticleModuleRotation : public UParticleModuleRotationBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleRotation(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 *	Initial rotation of the particle (1 = 360 degrees).

@@ -10,9 +10,7 @@ class UBlackboardComponent;
 UCLASS(Abstract)
 class AIMODULE_API UEnvQueryItemType_VectorBase : public UEnvQueryItemType
 {
-	GENERATED_BODY()
-public:
-	UEnvQueryItemType_VectorBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual FVector GetItemLocation(const uint8* RawData) const;
 	virtual FRotator GetItemRotation(const uint8* RawData) const;

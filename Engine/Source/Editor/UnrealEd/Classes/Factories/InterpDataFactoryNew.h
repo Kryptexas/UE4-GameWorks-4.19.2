@@ -10,9 +10,7 @@
 UCLASS(hidecategories=Object)
 class UInterpDataFactoryNew : public UFactory
 {
-	GENERATED_BODY()
-public:
-	UInterpDataFactoryNew(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UFactory Interface

@@ -12,9 +12,7 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionTextureObjectParameter : public UMaterialExpressionTextureSampleParameter
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionTextureObjectParameter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UMaterialExpression Interface

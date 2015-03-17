@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class UMaterialGraphNode_Base : public UEdGraphNode
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UMaterialGraphNode_Base(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Create all of the input pins required */
 	virtual void CreateInputPins() {};

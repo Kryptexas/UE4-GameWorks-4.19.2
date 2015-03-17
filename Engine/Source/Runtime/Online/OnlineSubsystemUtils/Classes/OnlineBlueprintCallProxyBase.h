@@ -8,9 +8,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FEmptyOnlineDelegate);
 UCLASS(MinimalAPI)
 class UOnlineBlueprintCallProxyBase : public UObject
 {
-	GENERATED_BODY()
-public:
-	ONLINESUBSYSTEMUTILS_API UOnlineBlueprintCallProxyBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Called to trigger the actual online action once the delegates have been bound
 	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true"), Category="Online")

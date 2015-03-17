@@ -11,9 +11,7 @@
 UCLASS(hidecategories=(Navigation))
 class ANavModifierVolume : public AVolume, public INavRelevantInterface
 {
-	GENERATED_BODY()
-public:
-	ANavModifierVolume(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Default)
 	TSubclassOf<class UNavArea> AreaClass;

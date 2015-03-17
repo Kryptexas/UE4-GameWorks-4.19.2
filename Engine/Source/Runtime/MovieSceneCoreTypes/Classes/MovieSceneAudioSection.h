@@ -11,9 +11,7 @@
 UCLASS( MinimalAPI )
 class UMovieSceneAudioSection : public UMovieSceneSection
 {
-	GENERATED_BODY()
-public:
-	MOVIESCENECORETYPES_API UMovieSceneAudioSection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 public:
 	/** Sets this section's sound */
 	void SetSound(class USoundBase* InSound) {Sound = InSound;}

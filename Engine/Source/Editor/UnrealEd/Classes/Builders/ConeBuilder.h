@@ -10,9 +10,11 @@
 UCLASS(MinimalAPI, autoexpandcategories=BrushSettings, EditInlineNew, meta=(DisplayName="Cone"))
 class UConeBuilder : public UEditorBrushBuilder
 {
-	GENERATED_BODY()
 public:
-	UNREALED_API UConeBuilder(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_BODY()
+
+public:
+	UConeBuilder(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Distance from base to tip of cone */
 	UPROPERTY(EditAnywhere, Category=BrushSettings, meta=(ClampMin = "0.000001"))

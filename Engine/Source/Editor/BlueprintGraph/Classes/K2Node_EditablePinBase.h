@@ -7,7 +7,7 @@
 USTRUCT()
 struct FUserPinInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The name of the pin, as defined by the user */
 	UPROPERTY()
@@ -48,7 +48,7 @@ struct FUserPinInfo
 USTRUCT()
 struct FKismetUserDeclaredFunctionMetadata
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	FString ToolTip;
@@ -77,9 +77,7 @@ public:
 UCLASS(abstract, MinimalAPI)
 class UK2Node_EditablePinBase : public UK2Node
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_EditablePinBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Whether or not this entry node should be user-editable with the function editor */
 	UPROPERTY()

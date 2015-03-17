@@ -21,9 +21,7 @@ UCLASS(hidecategories=(Compression, LevelOfDetail, Object, Texture))
 class MEDIAASSETS_API UMediaTexture
 	: public UTexture
 {
-	GENERATED_BODY()
-public:
-	UMediaTexture(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The addressing mode to use for the X axis. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MediaTexture, AssetRegistrySearchable)

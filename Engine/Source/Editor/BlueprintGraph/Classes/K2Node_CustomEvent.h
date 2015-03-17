@@ -9,9 +9,7 @@
 UCLASS(MinimalAPI)
 class UK2Node_CustomEvent : public UK2Node_Event
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_CustomEvent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Specifies that the event can be triggered in Editor */
 	UPROPERTY()

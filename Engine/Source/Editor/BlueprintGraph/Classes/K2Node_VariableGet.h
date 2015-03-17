@@ -9,9 +9,7 @@
 UCLASS()
 class BLUEPRINTGRAPH_API UK2Node_VariableGet : public UK2Node_Variable
 {
-	GENERATED_BODY()
-public:
-	UK2Node_VariableGet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;

@@ -24,9 +24,7 @@ struct GAMEPLAYDEBUGGER_API FDebugCategoryView
 UCLASS(config = Engine, notplaceable)
 class GAMEPLAYDEBUGGER_API AGameplayDebuggingHUDComponent : public AActor
 {
-	GENERATED_BODY()
-public:
-	AGameplayDebuggingHUDComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(config)
 	float MenuStartX;

@@ -8,9 +8,7 @@
 UCLASS()
 class ENGINE_API UBodySetup2D : public UBodySetup
 {
-	GENERATED_BODY()
-public:
-	UBodySetup2D(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	FAggregateGeometry2D AggGeom2D;

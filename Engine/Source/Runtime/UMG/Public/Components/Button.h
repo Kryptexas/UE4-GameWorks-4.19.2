@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -21,9 +21,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnButtonReleasedEvent);
 UCLASS()
 class UMG_API UButton : public UContentWidget
 {
-	GENERATED_BODY()
-public:
-	UButton(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	/** The template style asset, used to seed the mutable instance of the style. */

@@ -12,9 +12,7 @@ UCLASS(config=Engine)
 class USlateRemoteSettings
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	USlateRemoteSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

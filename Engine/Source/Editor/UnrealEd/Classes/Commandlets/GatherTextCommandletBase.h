@@ -248,9 +248,7 @@ class FJsonObject;
 UCLASS()
 class UGatherTextCommandletBase : public UCommandlet
 {
-	GENERATED_BODY()
-public:
-	UGatherTextCommandletBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 public:

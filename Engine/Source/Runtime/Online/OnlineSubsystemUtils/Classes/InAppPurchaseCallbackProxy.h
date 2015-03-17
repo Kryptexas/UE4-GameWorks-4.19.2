@@ -9,9 +9,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FInAppPurchaseResult, EInAppPurchas
 UCLASS(MinimalAPI)
 class UInAppPurchaseCallbackProxy : public UObject
 {
-	GENERATED_BODY()
-public:
-	ONLINESUBSYSTEMUTILS_API UInAppPurchaseCallbackProxy(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Called when there is a successful In-App Purchase transaction
 	UPROPERTY(BlueprintAssignable)

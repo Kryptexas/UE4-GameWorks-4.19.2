@@ -15,9 +15,7 @@ UCLASS(hideCategories=(Collision, Attachment, Actor, Input, Replication), showCa
 class ADecalActor
 	: public AActor
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API ADecalActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 private_subobject:
 	/** The decal component for this decal actor */

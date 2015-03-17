@@ -16,7 +16,7 @@ class AInstancedFoliageActor;
 USTRUCT()
 struct ENGINE_API FStreamableTextureInstance
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Bounding sphere/ box of object */
 	FSphere BoundingSphere;
@@ -39,7 +39,7 @@ struct ENGINE_API FStreamableTextureInstance
 USTRUCT()
 struct ENGINE_API FDynamicTextureInstance : public FStreamableTextureInstance
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Texture that is used by a dynamic UPrimitiveComponent. */
 	UPROPERTY()
@@ -233,7 +233,7 @@ private:
 USTRUCT()
 struct ENGINE_API FLevelSimplificationDetails
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	// Whether to create separate packages for each generated asset. All in map package otherwise
 	UPROPERTY(Category=General, EditAnywhere)

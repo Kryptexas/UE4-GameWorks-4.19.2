@@ -8,7 +8,7 @@
 USTRUCT()
 struct FBoolTrackKey
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	float Time;
@@ -28,9 +28,7 @@ struct FBoolTrackKey
 UCLASS(MinimalAPI, meta=( DisplayName = "Bool Property Track" ) )
 class UInterpTrackBoolProp : public UInterpTrack
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UInterpTrackBoolProp(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Array of booleans to set. */
 	UPROPERTY()

@@ -12,9 +12,7 @@ UCLASS(DefaultToInstanced)
 class ENGINE_API UAssetUserData
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	UAssetUserData(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** used for debugging UAssetUserData data in editor */
 	virtual void Draw(class FPrimitiveDrawInterface* PDI, const class FSceneView* View) const {}

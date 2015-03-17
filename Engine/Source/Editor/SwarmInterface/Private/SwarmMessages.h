@@ -9,7 +9,7 @@
 USTRUCT()
 struct FSwarmPingMessage
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 };
 
 template<>
@@ -25,7 +25,7 @@ struct TStructOpsTypeTraits<FSwarmPingMessage> : public TStructOpsTypeTraitsBase
 USTRUCT()
 struct FSwarmPongMessage
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	bool			bIsEditor;
@@ -55,7 +55,7 @@ struct TStructOpsTypeTraits<FSwarmPongMessage> : public TStructOpsTypeTraitsBase
 USTRUCT()
 struct FSwarmInfoMessage
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	FString TextMessage;
@@ -81,7 +81,7 @@ struct TStructOpsTypeTraits<FSwarmInfoMessage> : public TStructOpsTypeTraitsBase
 USTRUCT()
 struct FSwarmAlertMessage
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The Job Guid */
 	UPROPERTY()
@@ -124,7 +124,7 @@ struct TStructOpsTypeTraits<FSwarmAlertMessage> : public TStructOpsTypeTraitsBas
 USTRUCT()
 struct FSwarmTimingMessage
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** State that the distributed job is transitioning to */
 	UPROPERTY()
@@ -155,7 +155,7 @@ struct TStructOpsTypeTraits<FSwarmTimingMessage> : public TStructOpsTypeTraitsBa
 USTRUCT()
 struct FSwarmTaskRequestMessage
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FSwarmTaskRequestMessage() {}
 };
@@ -173,7 +173,7 @@ struct TStructOpsTypeTraits<FSwarmTaskRequestMessage> : public TStructOpsTypeTra
 USTRUCT()
 struct FSwarmTaskRequestReleaseMessage
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FSwarmTaskRequestReleaseMessage() {}
 };
@@ -191,7 +191,7 @@ struct TStructOpsTypeTraits<FSwarmTaskRequestReleaseMessage> : public TStructOps
 USTRUCT()
 struct FSwarmTaskRequestReservationMessage
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FSwarmTaskRequestReservationMessage() {}
 };
@@ -209,7 +209,7 @@ struct TStructOpsTypeTraits<FSwarmTaskRequestReservationMessage> : public TStruc
 USTRUCT()
 struct FSwarmTaskRequestSpecificationMessage
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The GUID used for identifying the Task being referred to */
 	UPROPERTY()
@@ -250,7 +250,7 @@ struct TStructOpsTypeTraits<FSwarmTaskRequestSpecificationMessage> : public TStr
 USTRUCT()
 struct FSwarmJobStateMessage
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The Job GUID used for identifying the Job */
 	UPROPERTY()
@@ -291,7 +291,7 @@ struct TStructOpsTypeTraits<FSwarmJobStateMessage> : public TStructOpsTypeTraits
 USTRUCT()
 struct FSwarmTaskStateMessage
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The Task GUID used for identifying the Task */
 	UPROPERTY()
@@ -332,7 +332,7 @@ struct TStructOpsTypeTraits<FSwarmTaskStateMessage> : public TStructOpsTypeTrait
 USTRUCT()
 struct FSwarmQuitMessage
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FSwarmQuitMessage() {}
 };

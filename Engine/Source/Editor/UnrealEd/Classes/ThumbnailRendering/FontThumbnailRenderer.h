@@ -11,9 +11,7 @@
 UCLASS()
 class UFontThumbnailRenderer : public UTextureThumbnailRenderer
 {
-	GENERATED_BODY()
-public:
-	UFontThumbnailRenderer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UThumbnailRenderer Object

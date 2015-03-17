@@ -8,7 +8,7 @@
 USTRUCT()
 struct ENGINE_API FRuntimeFloatCurve
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	FRichCurve EditorCurveData;
@@ -26,9 +26,7 @@ struct ENGINE_API FRuntimeFloatCurve
 UCLASS(BlueprintType)
 class ENGINE_API UCurveFloat : public UCurveBase
 {
-	GENERATED_BODY()
-public:
-	UCurveFloat(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Keyframe data */
 	UPROPERTY()

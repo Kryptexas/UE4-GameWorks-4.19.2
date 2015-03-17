@@ -55,9 +55,7 @@ enum Beam2SourceTargetTangentMethod
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Beam"))
 class UParticleModuleBeamBase : public UParticleModule
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleBeamBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	//Begin UParticleModule Interface

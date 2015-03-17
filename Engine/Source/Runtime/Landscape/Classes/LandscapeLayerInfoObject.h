@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class ULandscapeLayerInfoObject : public UObject
 {
-	GENERATED_BODY()
-public:
-	LANDSCAPE_API ULandscapeLayerInfoObject(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(VisibleAnywhere, Category=LandscapeLayerInfoObject, AssetRegistrySearchable)
 	FName LayerName;

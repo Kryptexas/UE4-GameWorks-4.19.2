@@ -7,9 +7,7 @@
 UCLASS()
 class UK2Node_GameplayCueEvent : public UK2Node_Event
 {
-	GENERATED_BODY()
-public:
-	UK2Node_GameplayCueEvent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// UObject interface
 	virtual void Serialize(FArchive& Ar) override;

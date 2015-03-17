@@ -11,9 +11,7 @@ class ANavigationData;
 UCLASS(Abstract)
 class AIMODULE_API UEnvQueryGenerator_ProjectedPoints : public UEnvQueryGenerator
 {
-	GENERATED_BODY()
-public:
-	UEnvQueryGenerator_ProjectedPoints(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** trace params */
 	UPROPERTY(EditDefaultsOnly, Category = Generator)

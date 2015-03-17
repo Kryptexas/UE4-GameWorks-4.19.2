@@ -23,7 +23,7 @@ enum EBlendSpaceAxis
 USTRUCT()
 struct FInterpolationParameter
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Interpolation Time for input, when it gets input, it will use this time to interpolate to target, used for smoother interpolation **/
 	UPROPERTY(EditAnywhere, Category=Parameter)
@@ -37,7 +37,7 @@ struct FInterpolationParameter
 USTRUCT()
 struct FBlendParameter
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category=BlendParameter)
 	FString DisplayName;
@@ -78,7 +78,7 @@ struct FBlendParameter
 USTRUCT()
 struct FBlendSample
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category=BlendSample)
 	class UAnimSequence* Animation;
@@ -115,7 +115,7 @@ struct FBlendSample
 USTRUCT()
 struct FEditorElement
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category=EditorElement)
 	int32 Indices[3];    /*MAX_VERTICES @fixmeconst*/
@@ -144,7 +144,7 @@ struct FEditorElement
 USTRUCT()
 struct FGridBlendSample
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	struct FEditorElement GridElement;
@@ -163,7 +163,7 @@ struct FGridBlendSample
 USTRUCT()
 struct FPerBoneInterpolation
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category=FPerBoneInterpolation)
 	FBoneReference BoneReference;
@@ -198,9 +198,7 @@ namespace ENotifyTriggerMode
 UCLASS(config=Engine, hidecategories=Object, MinimalAPI, BlueprintType)
 class UBlendSpaceBase : public UAnimationAsset
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UBlendSpaceBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 protected:
 	/** Blend Parameters for each axis. **/

@@ -12,9 +12,7 @@
 UCLASS()
 class UDerivedDataCacheCommandlet : public UCommandlet
 {
-	GENERATED_BODY()
-public:
-	UDerivedDataCacheCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	// Begin UCommandlet Interface
 	virtual int32 Main(const FString& Params) override;
 	// End UCommandlet Interface

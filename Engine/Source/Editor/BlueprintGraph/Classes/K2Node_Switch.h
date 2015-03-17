@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI, abstract)
 class UK2Node_Switch : public UK2Node
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_Switch(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** If true switch has a default pin */
 	UPROPERTY(EditAnywhere, Category=PinOptions)

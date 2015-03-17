@@ -7,7 +7,5 @@
 UCLASS()
 class ONLINEBLUEPRINTSUPPORT_API UK2Node_LeaderboardQuery : public UK2Node_BaseAsyncTask
 {
-	GENERATED_BODY()
-public:
-	UK2Node_LeaderboardQuery(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 };

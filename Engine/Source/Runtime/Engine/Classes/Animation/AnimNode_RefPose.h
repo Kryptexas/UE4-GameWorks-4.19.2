@@ -15,7 +15,7 @@ enum ERefPoseType
 USTRUCT()
 struct ENGINE_API FAnimNode_RefPose : public FAnimNode_Base
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	TEnumAsByte<ERefPoseType> RefPoseType;
@@ -35,7 +35,7 @@ public:
 USTRUCT()
 struct ENGINE_API FAnimNode_MeshSpaceRefPose : public FAnimNode_Base
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 public:	
 	FAnimNode_MeshSpaceRefPose()
 		:	FAnimNode_Base()

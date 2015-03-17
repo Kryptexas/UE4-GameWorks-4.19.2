@@ -19,9 +19,7 @@ struct FBTEnvQueryTaskMemory
 UCLASS()
 class AIMODULE_API UBTTask_RunEQSQuery : public UBTTask_BlackboardBase
 {
-	GENERATED_BODY()
-public:
-	UBTTask_RunEQSQuery(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** query to run */
 	UPROPERTY(Category=Node, EditAnywhere)

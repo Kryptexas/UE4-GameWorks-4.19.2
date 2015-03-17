@@ -19,7 +19,7 @@ struct FWheelSimulator
 USTRUCT()
 struct ENGINE_API FAnimNode_WheelHandler : public FAnimNode_SkeletalControlBase
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Current Asset being played **/
 	UPROPERTY(transient)

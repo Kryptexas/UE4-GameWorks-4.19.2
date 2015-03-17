@@ -11,7 +11,7 @@ struct FCompositeNavModifier;
 USTRUCT()
 struct FNavCollisionCylinder
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Cylinder)
 	FVector Offset;
@@ -26,7 +26,7 @@ struct FNavCollisionCylinder
 USTRUCT()
 struct FNavCollisionBox
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Box)
 	FVector Offset;
@@ -44,9 +44,7 @@ struct FNavCollisionConvex
 UCLASS(config=Engine)
 class ENGINE_API UNavCollision : public UObject
 {
-	GENERATED_BODY()
-public:
-	UNavCollision(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	FNavCollisionConvex TriMeshCollision;
 	FNavCollisionConvex ConvexCollision;

@@ -19,9 +19,7 @@ struct FBTConeCheckDecoratorMemory
 UCLASS()
 class AIMODULE_API UBTDecorator_ConeCheck : public UBTDecorator
 {
-	GENERATED_BODY()
-public:
-	UBTDecorator_ConeCheck(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	typedef FBTConeCheckDecoratorMemory TNodeInstanceMemory;
 

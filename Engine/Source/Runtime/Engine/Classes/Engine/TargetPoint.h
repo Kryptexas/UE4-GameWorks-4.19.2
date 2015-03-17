@@ -10,9 +10,7 @@
 UCLASS(MinimalAPI)
 class ATargetPoint : public AActor
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API ATargetPoint(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITORONLY_DATA
 private_subobject:

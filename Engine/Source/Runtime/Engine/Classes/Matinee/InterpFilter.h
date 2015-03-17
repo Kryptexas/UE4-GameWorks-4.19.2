@@ -12,9 +12,7 @@
 UCLASS()
 class UInterpFilter : public UObject
 {
-	GENERATED_BODY()
-public:
-	UInterpFilter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Caption for this filter. */
 	UPROPERTY()

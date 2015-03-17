@@ -22,9 +22,7 @@ UCLASS(Transient, MinimalAPI, meta=(DisplayName="Cooker Stats", ObjectSetType="E
 class UCookerStats
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	STATSVIEWER_API UCookerStats(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The assets contained in the file. */
 	UPROPERTY(VisibleAnywhere, AssetRegistrySearchable, Category="Stats", meta=(DisplayName="Asset(s)", ColumnWidth="100"))

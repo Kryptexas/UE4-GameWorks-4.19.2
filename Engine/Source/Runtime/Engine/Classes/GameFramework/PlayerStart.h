@@ -12,11 +12,9 @@
 UCLASS(ClassGroup=Common, hidecategories=Collision)
 class ENGINE_API APlayerStart : public ANavigationObjectBase
 {
-	GENERATED_BODY()
-public:
-	APlayerStart(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	/** To take more control over PlayerStart selection, you can override the virtual AGameMode::FindPlayerStart and AGameMode::ChoosePlayerStart function */
 
+	GENERATED_UCLASS_BODY()
 
 	/** Used when searching for which playerstart to use. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Object)

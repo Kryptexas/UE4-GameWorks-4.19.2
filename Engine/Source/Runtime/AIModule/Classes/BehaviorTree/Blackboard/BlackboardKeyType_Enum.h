@@ -6,9 +6,7 @@
 UCLASS(EditInlineNew, meta=(DisplayName="Enum"))
 class AIMODULE_API UBlackboardKeyType_Enum : public UBlackboardKeyType
 {
-	GENERATED_BODY()
-public:
-	UBlackboardKeyType_Enum(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	typedef uint8 FDataType;
 	static const FDataType InvalidValue;

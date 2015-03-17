@@ -16,9 +16,7 @@ class ULeapMotionControllerComponent;
 UCLASS(ClassGroup = LeapMotion, BlueprintType, Blueprintable)
 class LEAPMOTIONCONTROLLER_API ALeapMotionBoneActor : public AActor
 {
-	GENERATED_BODY()
-public:
-	ALeapMotionBoneActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = LeapMotion)
 	ELeapBone LeapBoneType;

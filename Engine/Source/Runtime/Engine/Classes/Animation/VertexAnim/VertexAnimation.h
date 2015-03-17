@@ -27,9 +27,7 @@ struct FVertexAnimFrame
 UCLASS(hidecategories=Object, MinimalAPI)
 class UVertexAnimation : public UVertexAnimBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UVertexAnimation(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Number of verts animated by this animation, should be size of Deltas array in each frame */
 	UPROPERTY()

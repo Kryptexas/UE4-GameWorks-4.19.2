@@ -8,9 +8,7 @@
 UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
 class UTexture2D : public UTexture
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UTexture2D(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	/** Number of miplevels the texture should have resident.					*/

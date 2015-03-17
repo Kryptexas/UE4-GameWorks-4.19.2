@@ -8,7 +8,5 @@
 UCLASS(Config=Engine)
 class ENGINE_API UNavArea_Default : public UNavArea
 {
-	GENERATED_BODY()
-public:
-	UNavArea_Default(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 };

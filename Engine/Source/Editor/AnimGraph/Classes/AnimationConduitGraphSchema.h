@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UAnimationConduitGraphSchema : public UEdGraphSchema_K2
 {
-	GENERATED_BODY()
-public:
-	ANIMGRAPH_API UAnimationConduitGraphSchema(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// UEdGraphSchema interface
 	virtual void CreateDefaultNodesForGraph(UEdGraph& Graph) const override;

@@ -10,9 +10,7 @@
 UCLASS()
 class UMG_API UOverlay : public UPanelWidget
 {
-	GENERATED_BODY()
-public:
-	UOverlay(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 

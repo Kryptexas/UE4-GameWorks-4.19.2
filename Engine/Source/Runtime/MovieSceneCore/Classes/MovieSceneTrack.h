@@ -12,9 +12,7 @@ class UMovieSceneSection;
 UCLASS( abstract, MinimalAPI )
 class UMovieSceneTrack : public UObject
 {
-	GENERATED_BODY()
-public:
-	MOVIESCENECORE_API UMovieSceneTrack(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	/**

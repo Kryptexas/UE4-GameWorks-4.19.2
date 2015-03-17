@@ -14,9 +14,6 @@
 UCLASS(abstract, Blueprintable, BlueprintType)
 class ENGINE_API USaveGame : public UObject
 {
-	GENERATED_BODY()
-public:
-	USaveGame(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	/**
 	 *	@see UGameplayStatics::CreateSaveGameObject
 	 *	@see UGameplayStatics::SaveGameToSlot
@@ -25,4 +22,5 @@ public:
 	 *	@see UGameplayStatics::DeleteGameInSlot
 	 */
 
+	GENERATED_UCLASS_BODY()
 };

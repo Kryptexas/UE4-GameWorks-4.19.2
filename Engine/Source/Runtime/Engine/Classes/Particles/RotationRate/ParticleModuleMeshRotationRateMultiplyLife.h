@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Mesh Rotation Rate * Life"))
 class UParticleModuleMeshRotationRateMultiplyLife : public UParticleModuleRotationRateBase
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleMeshRotationRateMultiplyLife(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 *	The scale factor that should be applied to the rotation rate.

@@ -9,7 +9,7 @@
 USTRUCT()
 struct FBehaviorTreeSchemaAction_AutoArrange : public FEdGraphSchemaAction
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY();
 
 	FBehaviorTreeSchemaAction_AutoArrange() 
 		: FEdGraphSchemaAction() {}
@@ -26,9 +26,7 @@ struct FBehaviorTreeSchemaAction_AutoArrange : public FEdGraphSchemaAction
 UCLASS(MinimalAPI)
 class UEdGraphSchema_BehaviorTree : public UAIGraphSchema
 {
-	GENERATED_BODY()
-public:
-	BEHAVIORTREEEDITOR_API UEdGraphSchema_BehaviorTree(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin EdGraphSchema interface
 	virtual void CreateDefaultNodesForGraph(UEdGraph& Graph) const override;

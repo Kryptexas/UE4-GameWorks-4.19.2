@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class UInterpTrackInstEvent : public UInterpTrackInst
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UInterpTrackInstEvent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** 
 	 *	Position we were in last time we evaluated Events. 

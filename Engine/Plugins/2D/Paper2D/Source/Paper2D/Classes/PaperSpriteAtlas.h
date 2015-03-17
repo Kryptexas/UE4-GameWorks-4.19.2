@@ -7,7 +7,7 @@
 USTRUCT()
 struct FPaperSpriteAtlasSlot
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	TAssetPtr<class UPaperSprite> SpriteRef;
@@ -47,9 +47,7 @@ enum class EPaperSpriteAtlasPadding : uint8
 UCLASS(MinimalAPI, BlueprintType, Experimental, meta=(DisplayThumbnail = "true"))
 class UPaperSpriteAtlas : public UObject
 {
-	GENERATED_BODY()
-public:
-	PAPER2D_API UPaperSpriteAtlas(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITORONLY_DATA
 	// Description of this atlas, which shows up in the content browser tooltip

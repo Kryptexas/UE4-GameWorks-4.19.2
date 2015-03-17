@@ -19,9 +19,7 @@ class AOnlineBeaconClient;
 UCLASS(transient, notplaceable, config=Engine)
 class ONLINESUBSYSTEMUTILS_API AOnlineBeaconHost : public AOnlineBeacon
 {
-	GENERATED_BODY()
-public:
-	AOnlineBeaconHost(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Configured listen port for this beacon host */
 	UPROPERTY(Config)

@@ -31,9 +31,7 @@ enum EObjectDiff
 UCLASS()
 class UDiffPackagesCommandlet : public UCommandlet
 {
-	GENERATED_BODY()
-public:
-	UDiffPackagesCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	UPackage* Packages[3];

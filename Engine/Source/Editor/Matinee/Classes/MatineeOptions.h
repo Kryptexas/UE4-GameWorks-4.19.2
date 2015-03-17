@@ -11,9 +11,7 @@
 UCLASS(hidecategories=Object, config=Editor)
 class UMatineeOptions : public UObject
 {
-	GENERATED_BODY()
-public:
-	UMatineeOptions(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	TArray<struct FInterpEdSelKey> SelectedKeys;

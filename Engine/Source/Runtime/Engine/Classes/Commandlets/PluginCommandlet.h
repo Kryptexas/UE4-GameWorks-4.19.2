@@ -7,9 +7,7 @@
 UCLASS()
 class UPluginCommandlet : public UCommandlet
 {
-	GENERATED_BODY()
-public:
-	UPluginCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Parsed commandline tokens */
 	TArray<FString> CmdLineTokens;

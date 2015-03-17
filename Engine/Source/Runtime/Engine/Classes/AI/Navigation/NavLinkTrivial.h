@@ -6,7 +6,5 @@
 UCLASS()
 class ENGINE_API UNavLinkTrivial : public UNavLinkDefinition
 {
-	GENERATED_BODY()
-public:
-	UNavLinkTrivial(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 };

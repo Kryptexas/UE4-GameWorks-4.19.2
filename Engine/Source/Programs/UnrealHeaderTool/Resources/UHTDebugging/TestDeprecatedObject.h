@@ -15,7 +15,5 @@ namespace EFoo
 UCLASS(deprecated)
 class UDEPRECATED_TestDeprecatedObject : public UObject
 {
-	GENERATED_BODY()
-public:
-	UDEPRECATED_TestDeprecatedObject(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 };

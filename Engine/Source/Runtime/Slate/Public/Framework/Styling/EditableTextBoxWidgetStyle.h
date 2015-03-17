@@ -11,6 +11,7 @@ UCLASS(hidecategories=Object, MinimalAPI)
 class UEditableTextBoxWidgetStyle : public USlateWidgetStyleContainerBase
 {
 	GENERATED_BODY()
+
 public:
 	/** The actual data describing the button's appearance. */
 	UPROPERTY(Category=Appearance, EditAnywhere, meta=(ShowOnlyInnerProperties))

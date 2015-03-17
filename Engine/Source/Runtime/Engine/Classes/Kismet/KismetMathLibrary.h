@@ -58,9 +58,7 @@ namespace EEasingFunc
 UCLASS(MinimalAPI)
 class UKismetMathLibrary : public UBlueprintFunctionLibrary
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UKismetMathLibrary(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	//
 	// Boolean functions.

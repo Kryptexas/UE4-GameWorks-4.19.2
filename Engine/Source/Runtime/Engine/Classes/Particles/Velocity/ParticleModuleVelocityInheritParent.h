@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Inherit Parent Velocity"))
 class UParticleModuleVelocityInheritParent : public UParticleModuleVelocityBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleVelocityInheritParent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 *	The scale to apply tot he parent velocity prior to adding it to the particle velocity during spawn.

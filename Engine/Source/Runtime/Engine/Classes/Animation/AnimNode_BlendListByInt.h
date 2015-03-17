@@ -10,7 +10,7 @@
 USTRUCT()
 struct ENGINE_API FAnimNode_BlendListByInt : public FAnimNode_BlendListBase
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Runtime, meta=(AlwaysAsPin))
 	mutable int32 ActiveChildIndex;

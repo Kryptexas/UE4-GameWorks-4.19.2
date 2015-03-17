@@ -6,9 +6,7 @@
 UCLASS(abstract, HideCategories=(Trigger,Activation,"Components|Activation",Physics), ShowCategories=(Mobility))
 class ENGINE_API ULightComponentBase : public USceneComponent
 {
-	GENERATED_BODY()
-public:
-	ULightComponentBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 * GUID used to associate a light component with precomputed shadowing information across levels.

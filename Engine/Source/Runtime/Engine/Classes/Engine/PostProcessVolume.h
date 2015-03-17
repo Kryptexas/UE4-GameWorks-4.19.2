@@ -17,9 +17,7 @@
 UCLASS(autoexpandcategories=PostProcessVolume, hidecategories=(Advanced, Collision, Volume, Brush, Attachment), MinimalAPI)
 class APostProcessVolume : public AVolume, public IInterface_PostProcessVolume
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API APostProcessVolume(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Post process settings to use for this volume. */
 	UPROPERTY(interp, Category=PostProcessVolume, meta=(ShowOnlyInnerProperties))

@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class UK2Node_DoOnceMultiInput : public UK2Node
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_DoOnceMultiInput(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The number of additional input pins to generate for this node (2 base pins are not included) */
 	UPROPERTY()

@@ -84,7 +84,7 @@ enum EAdditiveBasePoseType
 USTRUCT()
 struct FRawAnimSequenceTrack
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Position keys. */
 	UPROPERTY()
@@ -121,7 +121,7 @@ struct FRawAnimSequenceTrack
 USTRUCT()
 struct FAnimSequenceTrackContainer
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	TArray<struct FRawAnimSequenceTrack> AnimationTracks;
@@ -159,7 +159,7 @@ struct FAnimSequenceTrackContainer
 USTRUCT()
 struct FTrackToSkeletonMap
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	int32 SkeletonIndex_DEPRECATED;    // 0 as current Skeleton (the one above), and N is the N'th parent
@@ -185,7 +185,7 @@ struct FTrackToSkeletonMap
 USTRUCT()
 struct FTranslationTrack
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	TArray<FVector> PosKeys;
@@ -200,7 +200,7 @@ struct FTranslationTrack
 USTRUCT()
 struct FRotationTrack
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	TArray<FQuat> RotKeys;
@@ -215,7 +215,7 @@ struct FRotationTrack
 USTRUCT()
 struct FScaleTrack
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	TArray<FVector> ScaleKeys;
@@ -233,7 +233,7 @@ struct FScaleTrack
 USTRUCT()
 struct FCurveTrack
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	FName CurveName;
@@ -253,7 +253,7 @@ struct FCurveTrack
 USTRUCT()
 struct FCompressedTrack
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	TArray<uint8> ByteStream;
@@ -285,7 +285,7 @@ struct FCompressedTrack
 USTRUCT()
 struct FCompressedOffsetData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	TArray<int32> OffsetData;
@@ -345,9 +345,7 @@ struct FCompressedOffsetData
 UCLASS(config=Engine, hidecategories=(UObject, Length), MinimalAPI, BlueprintType)
 class UAnimSequence : public UAnimSequenceBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UAnimSequence(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Number of raw frames in this sequence (not used by engine - just for informational purposes). */
 	UPROPERTY(AssetRegistrySearchable)

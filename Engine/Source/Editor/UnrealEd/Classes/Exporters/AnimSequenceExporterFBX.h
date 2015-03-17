@@ -11,9 +11,7 @@
 UCLASS()
 class UAnimSequenceExporterFBX : public UExporter
 {
-	GENERATED_BODY()
-public:
-	UAnimSequenceExporterFBX(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UExporter Interface

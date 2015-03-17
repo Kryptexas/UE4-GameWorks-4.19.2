@@ -12,9 +12,7 @@
 UCLASS(BlueprintType, EarlyAccessPreview)
 class SCRIPTPLUGIN_API UScriptBlueprint : public UBlueprint
 {
-	GENERATED_BODY()
-public:
-	UScriptBlueprint(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

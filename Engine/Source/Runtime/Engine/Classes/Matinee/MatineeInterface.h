@@ -12,15 +12,12 @@
 UINTERFACE(meta=(CannotImplementInterfaceInBlueprint))
 class UMatineeInterface : public UInterface
 {
-	GENERATED_BODY()
-public:
-	UMatineeInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class IMatineeInterface
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 
 
 	/** Called when a matinee actor starts interpolating this  AActor via matinee.

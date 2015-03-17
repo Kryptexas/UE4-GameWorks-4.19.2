@@ -6,9 +6,7 @@
 UCLASS(hidecategories=Object)
 class UNavTestRenderingComponent: public UPrimitiveComponent
 {
-	GENERATED_BODY()
-public:
-	UNavTestRenderingComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform &LocalToWorld) const override;

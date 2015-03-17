@@ -8,9 +8,7 @@
 UCLASS()
 class UPaperBatchComponent : public UPrimitiveComponent
 {
-	GENERATED_BODY()
-public:
-	UPaperBatchComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// UActorComponent interface
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;

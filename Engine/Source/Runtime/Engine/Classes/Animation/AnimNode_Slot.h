@@ -10,7 +10,7 @@
 USTRUCT()
 struct ENGINE_API FAnimNode_Slot : public FAnimNode_Base
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	// The source input, passed thru to the output unless a montage or slot animation is currently playing
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Links)

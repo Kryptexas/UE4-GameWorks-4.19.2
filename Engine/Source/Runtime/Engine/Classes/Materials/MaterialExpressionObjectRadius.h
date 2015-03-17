@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionObjectRadius : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionObjectRadius(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UMaterialExpression Interface

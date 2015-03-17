@@ -11,7 +11,7 @@ class USoundNodeWavePlayer;
 USTRUCT()
 struct UNREALED_API FSoundCueGraphSchemaAction_NewNode : public FEdGraphSchemaAction
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY();
 
 	/** Class of node we want to create */
 	UPROPERTY()
@@ -41,7 +41,7 @@ private:
 USTRUCT()
 struct UNREALED_API FSoundCueGraphSchemaAction_NewFromSelected : public FSoundCueGraphSchemaAction_NewNode
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY();
 
 	FSoundCueGraphSchemaAction_NewFromSelected() 
 		: FSoundCueGraphSchemaAction_NewNode()
@@ -60,7 +60,7 @@ struct UNREALED_API FSoundCueGraphSchemaAction_NewFromSelected : public FSoundCu
 USTRUCT()
 struct UNREALED_API FSoundCueGraphSchemaAction_NewComment : public FEdGraphSchemaAction
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY();
 
 	FSoundCueGraphSchemaAction_NewComment() 
 		: FEdGraphSchemaAction()
@@ -79,7 +79,7 @@ struct UNREALED_API FSoundCueGraphSchemaAction_NewComment : public FEdGraphSchem
 USTRUCT()
 struct UNREALED_API FSoundCueGraphSchemaAction_Paste : public FEdGraphSchemaAction
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY();
 
 	FSoundCueGraphSchemaAction_Paste() 
 		: FEdGraphSchemaAction()
@@ -97,9 +97,7 @@ struct UNREALED_API FSoundCueGraphSchemaAction_Paste : public FEdGraphSchemaActi
 UCLASS(MinimalAPI)
 class USoundCueGraphSchema : public UEdGraphSchema
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API USoundCueGraphSchema(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Check whether connecting these pins would cause a loop */
 	bool ConnectionCausesLoop(const UEdGraphPin* InputPin, const UEdGraphPin* OutputPin) const;

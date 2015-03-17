@@ -11,9 +11,7 @@
 UCLASS(abstract, hidecategories=(Collision, Attachment, Actor), MinimalAPI)
 class ASceneCapture : public AActor
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API ASceneCapture(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 private_subobject:
 	/** To display the 3d camera in the editor. */

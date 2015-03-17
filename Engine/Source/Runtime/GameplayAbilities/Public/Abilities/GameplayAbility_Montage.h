@@ -11,9 +11,7 @@
 UCLASS()
 class GAMEPLAYABILITIES_API UGameplayAbility_Montage : public UGameplayAbility
 {
-	GENERATED_BODY()
-public:
-	UGameplayAbility_Montage(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	

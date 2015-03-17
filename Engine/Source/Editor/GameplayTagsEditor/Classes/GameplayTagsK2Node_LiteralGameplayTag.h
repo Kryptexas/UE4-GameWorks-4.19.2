@@ -8,9 +8,7 @@
 UCLASS()
 class UGameplayTagsK2Node_LiteralGameplayTag : public UK2Node
 {
-	GENERATED_BODY()
-public:
-	UGameplayTagsK2Node_LiteralGameplayTag(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITOR
 	// Begin UEdGraphNode interface

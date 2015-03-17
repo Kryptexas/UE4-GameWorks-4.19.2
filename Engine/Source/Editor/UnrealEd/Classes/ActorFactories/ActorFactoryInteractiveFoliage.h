@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI, config=Editor)
 class UActorFactoryInteractiveFoliage : public UActorFactoryStaticMesh
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UActorFactoryInteractiveFoliage(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UActorFactory Interface

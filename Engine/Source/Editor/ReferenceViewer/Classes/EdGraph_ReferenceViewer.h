@@ -7,9 +7,7 @@
 UCLASS()
 class UEdGraph_ReferenceViewer : public UEdGraph
 {
-	GENERATED_BODY()
-public:
-	UEdGraph_ReferenceViewer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	// UObject implementation

@@ -13,9 +13,7 @@ class UBTDecorator;
 UCLASS(BlueprintType)
 class AIMODULE_API UBehaviorTree : public UObject
 {
-	GENERATED_BODY()
-public:
-	UBehaviorTree(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** root node of loaded tree */
 	UPROPERTY()

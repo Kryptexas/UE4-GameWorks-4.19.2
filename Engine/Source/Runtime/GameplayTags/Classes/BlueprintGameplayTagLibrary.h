@@ -13,9 +13,7 @@ struct FGameplayTagContainer;
 UCLASS(MinimalAPI)
 class UBlueprintGameplayTagLibrary : public UBlueprintFunctionLibrary
 {
-	GENERATED_BODY()
-public:
-	GAMEPLAYTAGS_API UBlueprintGameplayTagLibrary(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 * Determine if the specified gameplay tags match, given the specified match types

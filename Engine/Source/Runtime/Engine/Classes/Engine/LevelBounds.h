@@ -12,9 +12,7 @@
 UCLASS(hidecategories=(Advanced, Collision, Display, Rendering, Physics, Input), showcategories=("Input|MouseInput", "Input|TouchInput"), MinimalAPI)
 class ALevelBounds : public AActor
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API ALevelBounds(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 		
 	/** Whether to automatically update actor bounds based on all relevant actors bounds belonging to the same level */
 	UPROPERTY(EditAnywhere, Category=LevelBounds)

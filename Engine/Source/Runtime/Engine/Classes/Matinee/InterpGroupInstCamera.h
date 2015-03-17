@@ -7,9 +7,7 @@
 UCLASS()
 class UInterpGroupInstCamera : public UInterpGroupInst
 {
-	GENERATED_BODY()
-public:
-	UInterpGroupInstCamera(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 };
 

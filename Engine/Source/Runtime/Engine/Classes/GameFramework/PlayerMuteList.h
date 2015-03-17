@@ -13,7 +13,7 @@ struct FUniqueNetIdRepl;
 USTRUCT()
 struct FPlayerMuteList
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 

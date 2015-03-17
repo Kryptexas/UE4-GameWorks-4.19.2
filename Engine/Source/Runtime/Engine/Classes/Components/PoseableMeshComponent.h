@@ -10,9 +10,7 @@
 UCLASS(ClassGroup=Rendering, hidecategories=(Object,Physics), config=Engine, editinlinenew, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UPoseableMeshComponent : public USkinnedMeshComponent
 {
-	GENERATED_BODY()
-public:
-	UPoseableMeshComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Temporary array of local-space (ie relative to parent bone) rotation/translation/scale for each bone. */
 	TArray<FTransform> LocalAtoms;

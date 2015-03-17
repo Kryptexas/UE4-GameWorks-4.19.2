@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UAnimGraphNode_ApplyAdditive : public UAnimGraphNode_Base
 {
-	GENERATED_BODY()
-public:
-	ANIMGRAPH_API UAnimGraphNode_ApplyAdditive(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_ApplyAdditive Node;

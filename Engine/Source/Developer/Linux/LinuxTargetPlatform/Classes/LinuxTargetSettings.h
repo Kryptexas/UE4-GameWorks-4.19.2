@@ -16,10 +16,9 @@ UCLASS(config=Engine, defaultconfig)
 class LINUXTARGETPLATFORM_API ULinuxTargetSettings
 	: public UObject
 {
-	GENERATED_BODY()
-
 public:
-	ULinuxTargetSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 * The collection of RHI's we want to support on this platform.

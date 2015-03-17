@@ -13,7 +13,7 @@ DECLARE_DELEGATE_TwoParams( FOnAnimObjectChange, class UObject*, bool)
 USTRUCT()
 struct FSkeletonNotifyDependentAnimations
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SkeletonNotifies)
 	TArray<UAnimSequenceBase*> Animations;
@@ -26,9 +26,7 @@ struct FSkeletonNotifyDependentAnimations
 UCLASS(MinimalAPI)
 class UEditorSkeletonNotifyObj : public UObject
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UEditorSkeletonNotifyObj(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 public:
 	
 	UObject* EditedObject;

@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class UAnimStateEntryNode : public UEdGraphNode
 {
-	GENERATED_BODY()
-public:
-	ANIMGRAPH_API UAnimStateEntryNode(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UEdGraphNode interface

@@ -9,9 +9,7 @@ UCLASS()
 class ENGINE_API UBreakpoint
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	UBreakpoint(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 private:
 	// Is the breakpoint currently enabled?

@@ -6,7 +6,5 @@
 UCLASS()
 class AIMODULE_API UAIHotSpotManager : public UObject
 {
-	GENERATED_BODY()
-public:
-	UAIHotSpotManager(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 };

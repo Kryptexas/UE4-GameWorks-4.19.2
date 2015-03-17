@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UAnimationGraphSchema : public UEdGraphSchema_K2
 {
-	GENERATED_BODY()
-public:
-	ANIMGRAPH_API UAnimationGraphSchema(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Common PinNames
 	UPROPERTY()

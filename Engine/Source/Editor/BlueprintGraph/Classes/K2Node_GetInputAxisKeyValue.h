@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UK2Node_GetInputAxisKeyValue : public UK2Node_CallFunction
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_GetInputAxisKeyValue(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	FKey InputAxisKey;

@@ -10,9 +10,7 @@
 UCLASS( MinimalAPI )
 class UMovieSceneBoolSection : public UMovieSceneSection
 {
-	GENERATED_BODY()
-public:
-	MOVIESCENECORETYPES_API UMovieSceneBoolSection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 public:
 	/**
 	 * Updates this section

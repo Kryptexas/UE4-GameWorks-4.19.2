@@ -9,9 +9,7 @@ struct FEnvQueryInstance;
 UCLASS(meta = (DisplayName = "Points: Donut"))
 class AIMODULE_API UEnvQueryGenerator_Donut : public UEnvQueryGenerator_ProjectedPoints
 {
-	GENERATED_BODY()
-public:
-	UEnvQueryGenerator_Donut(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** min distance between point and context */
 	UPROPERTY(EditDefaultsOnly, Category = Generator)

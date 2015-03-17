@@ -9,15 +9,12 @@
 UINTERFACE(Blueprintable, MinimalAPI, meta=(CannotImplementInterfaceInBlueprint))
 class UGameplayTagAssetInterface : public UInterface
 {
-	GENERATED_BODY()
-public:
-	GAMEPLAYTAGS_API UGameplayTagAssetInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class GAMEPLAYTAGS_API IGameplayTagAssetInterface
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 
 	/**
 	 * Get any owned gameplay tags on the asset

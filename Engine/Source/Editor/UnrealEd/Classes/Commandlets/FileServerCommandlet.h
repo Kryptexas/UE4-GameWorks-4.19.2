@@ -16,9 +16,7 @@ UCLASS()
 class UFileServerCommandlet
 	: public UCommandlet
 {
-	GENERATED_BODY()
-public:
-	UFileServerCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 public:

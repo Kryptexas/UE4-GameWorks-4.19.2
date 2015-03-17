@@ -7,9 +7,7 @@
 UCLASS(hidecategories=Object, collapsecategories)
 class UEditorTutorialFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	UEditorTutorialFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// UFactory Interface
 	virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) override;

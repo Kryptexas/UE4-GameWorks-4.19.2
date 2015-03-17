@@ -22,11 +22,9 @@ UCLASS(config=Engine, defaultconfig)
 class WINDOWSTARGETPLATFORM_API UWindowsTargetSettings
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	UWindowsTargetSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 public:
 
+	GENERATED_UCLASS_BODY()
 
 	/** 
 	 * The collection of RHI's we want to support on this platform.

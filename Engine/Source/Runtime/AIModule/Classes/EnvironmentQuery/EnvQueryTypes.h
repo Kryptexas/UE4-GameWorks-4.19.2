@@ -190,7 +190,7 @@ namespace EEnvQueryTestClamping
 USTRUCT(BlueprintType)
 struct AIMODULE_API FEnvNamedValue
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Param)
 	FName ParamName;
@@ -205,7 +205,7 @@ struct AIMODULE_API FEnvNamedValue
 USTRUCT()
 struct AIMODULE_API FEnvDirection
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** line A: start context */
 	UPROPERTY(EditDefaultsOnly, Category=Direction)
@@ -229,7 +229,7 @@ struct AIMODULE_API FEnvDirection
 USTRUCT()
 struct AIMODULE_API FEnvTraceData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	enum EDescriptionMode
 	{
@@ -886,7 +886,7 @@ namespace FEQSHelpers
 USTRUCT()
 struct AIMODULE_API FEnvFloatParam_DEPRECATED
 {
-	GENERATED_BODY();
+	GENERATED_USTRUCT_BODY();
 
 	/** default value */
 	UPROPERTY(EditDefaultsOnly, Category = Param)
@@ -903,7 +903,7 @@ struct AIMODULE_API FEnvFloatParam_DEPRECATED
 USTRUCT()
 struct AIMODULE_API FEnvIntParam_DEPRECATED
 {
-	GENERATED_BODY();
+	GENERATED_USTRUCT_BODY();
 
 	/** default value */
 	UPROPERTY(EditDefaultsOnly, Category = Param)
@@ -920,7 +920,7 @@ struct AIMODULE_API FEnvIntParam_DEPRECATED
 USTRUCT()
 struct AIMODULE_API FEnvBoolParam_DEPRECATED
 {
-	GENERATED_BODY();
+	GENERATED_USTRUCT_BODY();
 
 	/** default value */
 	UPROPERTY(EditDefaultsOnly, Category = Param)
@@ -937,19 +937,19 @@ struct AIMODULE_API FEnvBoolParam_DEPRECATED
 USTRUCT()
 struct DEPRECATED(4.8, "FEnvFloatParam is deprecated in 4.8 and was replaced with FAIDataProviderFloatValue. Please use that type instead.") AIMODULE_API FEnvFloatParam : public FEnvFloatParam_DEPRECATED
 {
-	GENERATED_BODY();
+	GENERATED_USTRUCT_BODY();
 };
 
 USTRUCT()
 struct DEPRECATED(4.8, "FEnvIntParam is deprecated in 4.8 and was replaced with FAIDataProviderIntValue. Please use that type instead.") AIMODULE_API FEnvIntParam : public FEnvIntParam_DEPRECATED
 {
-	GENERATED_BODY();
+	GENERATED_USTRUCT_BODY();
 };
 
 USTRUCT()
 struct DEPRECATED(4.8, "FEnvBoolParam is deprecated in 4.8 and was replaced with FAIDataProviderBoolValue. Please use that type instead.") AIMODULE_API FEnvBoolParam : public FEnvBoolParam_DEPRECATED
 {
-	GENERATED_BODY();
+	GENERATED_USTRUCT_BODY();
 };
 
 // END DEPRECATED SUPPORT

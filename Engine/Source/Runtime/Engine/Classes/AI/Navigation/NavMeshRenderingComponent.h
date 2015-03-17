@@ -8,9 +8,7 @@ struct FNavMeshSceneProxyData;
 UCLASS(hidecategories=Object, editinlinenew)
 class ENGINE_API UNavMeshRenderingComponent : public UPrimitiveComponent
 {
-	GENERATED_BODY()
-public:
-	UNavMeshRenderingComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	// Begin UObject Interface

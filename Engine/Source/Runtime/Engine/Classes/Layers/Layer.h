@@ -6,7 +6,7 @@
 USTRUCT()
 struct FLayerActorStats
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** A Type of Actor currently associated with the Layer */
 	UPROPERTY()
@@ -26,9 +26,7 @@ struct FLayerActorStats
 UCLASS( MinimalAPI )
 class ULayer : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API ULayer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The display name of the layer */
 	UPROPERTY()

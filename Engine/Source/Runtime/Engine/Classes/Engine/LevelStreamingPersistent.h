@@ -13,9 +13,7 @@
 UCLASS(transient)
 class ULevelStreamingPersistent : public ULevelStreaming
 {
-	GENERATED_BODY()
-public:
-	ULevelStreamingPersistent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin ULevelStreaming Interface

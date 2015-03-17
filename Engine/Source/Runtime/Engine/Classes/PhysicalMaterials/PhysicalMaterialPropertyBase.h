@@ -26,9 +26,7 @@
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew, abstract,MinimalAPI, deprecated)
 class UDEPRECATED_PhysicalMaterialPropertyBase : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UDEPRECATED_PhysicalMaterialPropertyBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin UObject Interface
 	virtual bool IsAsset() const override { return false; }

@@ -7,15 +7,12 @@
 UINTERFACE(MinimalAPI, meta=(CannotImplementInterfaceInBlueprint))
 class UCrowdAgentInterface : public UInterface
 {
-	GENERATED_BODY()
-public:
-	AIMODULE_API UCrowdAgentInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class ICrowdAgentInterface
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 
 	/** @return current location of crowd agent */
 	virtual FVector GetCrowdAgentLocation() const { return FAISystem::InvalidLocation; }

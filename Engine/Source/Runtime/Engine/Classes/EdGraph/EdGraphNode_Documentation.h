@@ -6,9 +6,7 @@
 UCLASS(MinimalAPI)
 class UEdGraphNode_Documentation : public UEdGraphNode
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UEdGraphNode_Documentation(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Documentation Link */
 	UPROPERTY(meta=(FriendlyName="Documentation Link"))

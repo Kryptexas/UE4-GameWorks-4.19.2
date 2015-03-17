@@ -35,9 +35,7 @@ enum EVerticalTextAligment
 UCLASS(ClassGroup=Rendering, hidecategories=(Object,LOD,Physics,TextureStreaming,Activation,"Components|Activation",Collision), editinlinenew, meta=(BlueprintSpawnableComponent = ""))
 class ENGINE_API UTextRenderComponent : public UPrimitiveComponent
 {
-	GENERATED_BODY()
-public:
-	UTextRenderComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Text content, can be multi line using <br> as line separator */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Text, meta=(MultiLine=true))

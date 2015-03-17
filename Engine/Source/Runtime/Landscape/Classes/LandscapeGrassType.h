@@ -7,7 +7,7 @@
 USTRUCT()
 struct FGrassVariety
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Grass)
 	class UStaticMesh* GrassMesh;
@@ -64,9 +64,7 @@ struct FGrassVariety
 UCLASS(MinimalAPI)
 class ULandscapeGrassType : public UObject
 {
-	GENERATED_BODY()
-public:
-	LANDSCAPE_API ULandscapeGrassType(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category = Grass)
 	TArray<FGrassVariety> GrassVarieties;

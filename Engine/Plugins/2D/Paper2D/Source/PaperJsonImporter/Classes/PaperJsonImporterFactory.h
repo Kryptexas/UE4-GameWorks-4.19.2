@@ -8,9 +8,7 @@
 UCLASS()
 class UPaperJsonImporterFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	UPaperJsonImporterFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// UFactory interface
 	virtual FText GetToolTip() const override;

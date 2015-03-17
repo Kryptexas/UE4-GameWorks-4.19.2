@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UMaterialExpressionConstantBiasScale : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UMaterialExpressionConstantBiasScale(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	FExpressionInput Input;

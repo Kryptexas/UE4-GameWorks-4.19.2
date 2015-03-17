@@ -22,7 +22,7 @@ struct FBlueprintActionContext;
 USTRUCT()
 struct FBlueprintActionMenuItem : public FEdGraphSchemaAction
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY();
 	static FName StaticGetTypeId() { static FName const TypeId("FBlueprintActionMenuItem"); return TypeId; }
 
 public:	

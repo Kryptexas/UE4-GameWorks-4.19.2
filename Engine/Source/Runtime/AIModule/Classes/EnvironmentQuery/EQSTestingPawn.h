@@ -24,9 +24,7 @@ enum class EEnvQueryHightlightMode : uint8
 UCLASS(abstract, hidecategories=(Advanced, Attachment, Collision, Mesh, Animation, Clothing, Physics, Rendering, Lighting, Activation, CharacterMovement, AgentPhysics, Avoidance, MovementComponent, Velocity, Shape, Camera, Input, Layers, SkeletalMesh, Optimization, Pawn, Replication, Actor))
 class AIMODULE_API AEQSTestingPawn : public ACharacter, public IEQSQueryResultSourceInterface
 {
-	GENERATED_BODY()
-public:
-	AEQSTestingPawn(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	
 	UPROPERTY(Category=EQS, EditAnywhere)
 	UEnvQuery* QueryTemplate;

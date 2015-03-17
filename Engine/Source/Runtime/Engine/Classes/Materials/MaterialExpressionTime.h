@@ -9,9 +9,7 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionTime : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionTime(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** This time continues advancing regardless of whether the game is paused. */
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionTime)

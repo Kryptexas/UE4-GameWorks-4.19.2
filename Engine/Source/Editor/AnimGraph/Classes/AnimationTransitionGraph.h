@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class UAnimationTransitionGraph : public UAnimationGraph
 {
-	GENERATED_BODY()
-public:
-	ANIMGRAPH_API UAnimationTransitionGraph(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	class UAnimGraphNode_TransitionResult* MyResultNode;

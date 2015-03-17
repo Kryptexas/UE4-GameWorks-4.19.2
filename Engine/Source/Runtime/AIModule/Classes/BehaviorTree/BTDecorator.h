@@ -30,9 +30,7 @@ struct FBehaviorTreeSearchData;
 UCLASS(Abstract)
 class AIMODULE_API UBTDecorator : public UBTAuxiliaryNode
 {
-	GENERATED_BODY()
-public:
-	UBTDecorator(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** fill in data about tree structure */
 	void InitializeDecorator(uint8 InChildIndex);

@@ -27,9 +27,7 @@ struct FGameplayEffectModCallbackData
 UCLASS(BlueprintType)
 class GAMEPLAYABILITIES_API UGameplayEffectExtension: public UObject
 {
-	GENERATED_BODY()
-public:
-	UGameplayEffectExtension(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Attributes on the source instigator that are relevant to calculating modifications using this extension */
 	UPROPERTY(EditDefaultsOnly, Category=Calculation)

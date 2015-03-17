@@ -10,7 +10,7 @@
 USTRUCT()
 struct FParticleEvent_GenerateInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The type of event. */
 	UPROPERTY(EditAnywhere, Category=ParticleEvent_GenerateInfo)
@@ -61,9 +61,7 @@ struct FParticleEvent_GenerateInfo
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Event Generator"))
 class UParticleModuleEventGenerator : public UParticleModuleEventBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleEventGenerator(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 */

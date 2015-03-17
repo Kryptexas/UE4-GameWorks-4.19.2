@@ -12,9 +12,7 @@
 UCLASS(hidecategories=Object, MinimalAPI)
 class UCheckBoxStyleAsset : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UCheckBoxStyleAsset(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	/** The actual data describing the Check Box's appearance. */

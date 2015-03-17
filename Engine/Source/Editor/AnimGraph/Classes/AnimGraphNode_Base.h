@@ -88,9 +88,7 @@ protected:
 UCLASS(Abstract, MinimalAPI)
 class UAnimGraphNode_Base : public UK2Node
 {
-	GENERATED_BODY()
-public:
-	ANIMGRAPH_API UAnimGraphNode_Base(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PinOptions, EditFixedSize)
 	TArray<FOptionalPinFromProperty> ShowPinForProperties;

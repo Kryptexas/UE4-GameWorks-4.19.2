@@ -12,15 +12,12 @@
 UINTERFACE(MinimalAPI, meta=(CannotImplementInterfaceInBlueprint))
 class UNetworkPredictionInterface : public UInterface
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UNetworkPredictionInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class ENGINE_API INetworkPredictionInterface
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 
 	//--------------------------------
 	// Server hooks

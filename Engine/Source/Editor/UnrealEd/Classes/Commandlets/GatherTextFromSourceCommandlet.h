@@ -10,9 +10,7 @@
 UCLASS()
 class UGatherTextFromSourceCommandlet : public UGatherTextCommandletBase
 {
-	GENERATED_BODY()
-public:
-	UGatherTextFromSourceCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 private:
 #define LOC_DEFINE_REGION

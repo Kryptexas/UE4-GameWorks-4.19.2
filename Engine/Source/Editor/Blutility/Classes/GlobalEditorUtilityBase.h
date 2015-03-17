@@ -16,9 +16,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FForEachAssetIteratorSignature, cl
 UCLASS(Abstract, hideCategories=(Object), Blueprintable)
 class BLUTILITY_API UGlobalEditorUtilityBase : public UObject
 {
-	GENERATED_BODY()
-public:
-	UGlobalEditorUtilityBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(Category=Config, EditDefaultsOnly, BlueprintReadWrite, AssetRegistrySearchable)
 	FString HelpText;

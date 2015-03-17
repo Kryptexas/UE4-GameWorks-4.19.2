@@ -11,9 +11,7 @@
 UCLASS(collapsecategories, hidecategories = Object, EarlyAccessPreview)
 class SCRIPTEDITORPLUGIN_API UScriptFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	UScriptFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

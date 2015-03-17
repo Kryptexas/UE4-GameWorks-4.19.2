@@ -11,9 +11,7 @@
 UCLASS()
 class UMG_API UNamedSlot : public UContentWidget
 {
-	GENERATED_BODY()
-public:
-	UNamedSlot(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

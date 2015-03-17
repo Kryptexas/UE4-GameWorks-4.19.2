@@ -10,9 +10,7 @@
 UCLASS(notplaceable, MinimalAPI)
 class UCameraAnim : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UCameraAnim(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The UInterpGroup that holds our actual interpolation data. */
 	UPROPERTY()

@@ -25,7 +25,7 @@ namespace EVehicleDifferential4W
 USTRUCT()
 struct FVehicleDifferential4WData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Type of differential */
 	UPROPERTY(EditAnywhere, Category=Setup)
@@ -59,7 +59,7 @@ struct FVehicleDifferential4WData
 USTRUCT()
 struct FVehicleEngineData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Torque (Nm) at a given RPM*/
 	UPROPERTY(EditAnywhere, Category = Setup)
@@ -93,7 +93,7 @@ struct FVehicleEngineData
 USTRUCT()
 struct FVehicleGearData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Determines the amount of torque multiplication*/
 	UPROPERTY(EditAnywhere, Category = Setup)
@@ -111,7 +111,7 @@ struct FVehicleGearData
 USTRUCT()
 struct FVehicleTransmissionData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 	/** Whether to use automatic transmission */
 	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta=(FriendlyName = "Automatic Transmission"))
 	bool bUseGearAutoBox;
@@ -148,9 +148,7 @@ struct FVehicleTransmissionData
 UCLASS()
 class ENGINE_API UWheeledVehicleMovementComponent4W : public UWheeledVehicleMovementComponent
 {
-	GENERATED_BODY()
-public:
-	UWheeledVehicleMovementComponent4W(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Engine */
 	UPROPERTY(EditAnywhere, Category = MechanicalSetup)

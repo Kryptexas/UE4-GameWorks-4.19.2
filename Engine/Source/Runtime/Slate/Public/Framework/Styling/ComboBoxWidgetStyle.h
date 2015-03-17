@@ -11,6 +11,7 @@ UCLASS(hidecategories=Object, MinimalAPI)
 class UComboBoxWidgetStyle : public USlateWidgetStyleContainerBase
 {
 	GENERATED_BODY()
+
 public:
 	/** The actual data describing the combo box's appearance. */
 	UPROPERTY(Category=Appearance, EditAnywhere, meta=(ShowOnlyInnerProperties))

@@ -10,9 +10,7 @@
 UCLASS( MinimalAPI )
 class UMovieSceneFloatSection : public UMovieSceneSection
 {
-	GENERATED_BODY()
-public:
-	MOVIESCENECORETYPES_API UMovieSceneFloatSection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 public:
 	/**
 	 * Updates this section

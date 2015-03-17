@@ -7,9 +7,7 @@
 UCLASS(abstract, MinimalAPI)
 class  UEngineMessage : public ULocalMessage
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UEngineMessage(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Message displayed in message dialog when player pawn fails to spawn because no playerstart was available. */
 	UPROPERTY()

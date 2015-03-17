@@ -11,9 +11,7 @@
 UCLASS()
 class UPaperTileMapFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	UPaperTileMapFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Initial tile set to create the tile map from (Can be nullptr)
 	class UPaperTileSet* InitialTileSet;

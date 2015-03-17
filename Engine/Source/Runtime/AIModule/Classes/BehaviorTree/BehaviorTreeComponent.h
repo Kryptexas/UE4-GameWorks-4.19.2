@@ -78,9 +78,7 @@ struct FBTPendingInitializeInfo
 UCLASS()
 class AIMODULE_API UBehaviorTreeComponent : public UBrainComponent
 {
-	GENERATED_BODY()
-public:
-	UBehaviorTreeComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin UBrainComponent overrides
 	virtual void RestartLogic() override;

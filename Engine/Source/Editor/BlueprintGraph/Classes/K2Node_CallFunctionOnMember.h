@@ -9,9 +9,7 @@
 UCLASS(MinimalAPI)
 class UK2Node_CallFunctionOnMember : public UK2Node_CallFunction
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_CallFunctionOnMember(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Reference to member variable to call function on */
 	UPROPERTY()

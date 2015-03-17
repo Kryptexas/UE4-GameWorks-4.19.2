@@ -7,9 +7,7 @@
 UCLASS(AutoExpandCategories=Audio, ClassGroup=Sounds, MinimalAPI, hideCategories(Collision, Input, Game), showCategories=("Input|MouseInput", "Input|TouchInput", "Game|Damage"), ComponentWrapperClass)
 class AAmbientSound : public AActor
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API AAmbientSound(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 private_subobject:
 	/** Audio component that handles sound playing */

@@ -9,9 +9,7 @@
 UCLASS(MinimalAPI)
 class UK2Node_LiveEditObject : public UK2Node
 {
-	GENERATED_BODY()
-public:
-	LIVEEDITOR_API UK2Node_LiveEditObject(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITOR
 	// Begin UEdGraphNode interface.

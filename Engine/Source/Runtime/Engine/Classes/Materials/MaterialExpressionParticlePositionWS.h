@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionParticlePositionWS : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionParticlePositionWS(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UMaterialExpression Interface

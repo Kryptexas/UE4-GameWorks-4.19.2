@@ -16,9 +16,7 @@ class UFoliageType_InstancedStaticMesh;
 UCLASS()
 class FOLIAGE_API UProceduralFoliageTile : public UObject
 {
-	GENERATED_BODY()
-public:
-	UProceduralFoliageTile(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	const UProceduralFoliage* ProceduralFoliage;

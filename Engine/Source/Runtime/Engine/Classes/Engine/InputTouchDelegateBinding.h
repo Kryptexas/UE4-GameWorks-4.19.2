@@ -7,7 +7,7 @@
 USTRUCT()
 struct ENGINE_API FBlueprintInputTouchDelegateBinding : public FBlueprintInputDelegateBinding
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	TEnumAsByte<EInputEvent> InputKeyEvent;
@@ -27,9 +27,7 @@ struct ENGINE_API FBlueprintInputTouchDelegateBinding : public FBlueprintInputDe
 UCLASS()
 class ENGINE_API UInputTouchDelegateBinding : public UInputDelegateBinding
 {
-	GENERATED_BODY()
-public:
-	UInputTouchDelegateBinding(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	TArray<FBlueprintInputTouchDelegateBinding> InputTouchDelegateBindings;

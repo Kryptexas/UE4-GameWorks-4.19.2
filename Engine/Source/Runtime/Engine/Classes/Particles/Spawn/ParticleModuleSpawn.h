@@ -11,9 +11,7 @@ class UParticleLODLevel;
 UCLASS(editinlinenew, hidecategories=Object, hidecategories=ParticleModuleSpawnBase, MinimalAPI, meta=(DisplayName = "Spawn"))
 class UParticleModuleSpawn : public UParticleModuleSpawnBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleSpawn(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The rate at which to spawn particles. */
 	UPROPERTY(EditAnywhere, Category=Spawn)

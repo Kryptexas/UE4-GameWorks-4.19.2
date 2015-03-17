@@ -7,9 +7,7 @@
 UCLASS()
 class UDumpBlueprintsInfoCommandlet : public UCommandlet
 {
-	GENERATED_BODY()
-public:
-	UDumpBlueprintsInfoCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:		
 	// Begin UCommandlet Interface

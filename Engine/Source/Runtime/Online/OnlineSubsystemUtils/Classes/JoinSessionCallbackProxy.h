@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class UJoinSessionCallbackProxy : public UOnlineBlueprintCallProxyBase
 {
-	GENERATED_BODY()
-public:
-	ONLINESUBSYSTEMUTILS_API UJoinSessionCallbackProxy(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Called when there is a successful join
 	UPROPERTY(BlueprintAssignable)

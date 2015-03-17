@@ -12,9 +12,7 @@
 UCLASS(hidecategories=(Collision, Material, Attachment, Actor), MinimalAPI)
 class ASceneCapture2D : public ASceneCapture
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API ASceneCapture2D(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 private_subobject:
 	/** Scene capture component. */

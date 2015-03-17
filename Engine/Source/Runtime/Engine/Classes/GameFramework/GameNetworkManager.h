@@ -22,9 +22,7 @@ enum EStandbyType
 UCLASS(config=Game, notplaceable)
 class ENGINE_API AGameNetworkManager : public AInfo
 {
-	GENERATED_BODY()
-public:
-	AGameNetworkManager(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	//======================================================================================================================
 	// Listen server dynamic netspeed adjustment

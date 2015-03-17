@@ -22,9 +22,7 @@ enum ETrailsRenderAxisOption
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Ribbon Data"))
 class UParticleModuleTypeDataRibbon : public UParticleModuleTypeDataBase
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleTypeDataRibbon(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	//
 	// General Trail Variables.

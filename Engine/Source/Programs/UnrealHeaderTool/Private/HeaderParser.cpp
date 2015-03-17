@@ -1432,17 +1432,17 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses, FUn
 		{
 			FError::Throwf(TEXT("USTRUCTs cannot contain UFUNCTIONs."));
 		}
-		else if (Token.Matches(TEXT("GENERATED_USTRUCT_BODY")) || Token.Matches(TEXT("GENERATED_BODY")))
+		else if (Token.Matches(TEXT("GENERATED_USTRUCT_BODY")))
 		{
-			// Match 'GENERATED_USTRUCT_BODY' '(' [StructName] ')' or 'GENERATED_BODY' '(' [StructName] ')'
+			// Match 'GENERATED_USTRUCT_BODY' '(' [StructName] ')'
 			if (CurrentAccessSpecifier != ACCESS_Public)
 			{
-				FError::Throwf(TEXT("%s must be in the public scope of '%s', not private or protected."), Token.Identifier, *StructNameInScript);
+				FError::Throwf(TEXT("GENERATED_USTRUCT_BODY must be in the public scope of '%s', not private or protected."), *StructNameInScript);
 			}
 
 			if (Struct->StructMacroDeclaredLineNumber != INDEX_NONE)
 			{
-				FError::Throwf(TEXT("Multiple %s declarations found in '%s'"), Token.Identifier, *StructNameInScript);
+				FError::Throwf(TEXT("Multiple GENERATED_USTRUCT_BODY declarations found in '%s'"), *StructNameInScript);
 			}
 
 			Struct->StructMacroDeclaredLineNumber = InputLine;
@@ -1453,7 +1453,7 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses, FUn
 			{
 				if (!DuplicateStructName.Matches(*StructNameInScript))
 				{
-					FError::Throwf(TEXT("The argument to %s must match the struct name '%s' if present.  However, the argument can be omitted entirely."), Token.Identifier, *StructNameInScript);
+					FError::Throwf(TEXT("The argument to GENERATED_USTRUCT_BODY must match the struct name '%s' if present.  However, the argument can be omitted entirely."), *StructNameInScript);
 				}
 			}
 
@@ -1567,7 +1567,7 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses, FUn
 	{
 		// Roll the line number back to the start of the struct body and error out
 		InputLine = SavedLineNumber;
-		FError::Throwf(TEXT("Expected a GENERATED_BODY() at the start of struct"));
+		FError::Throwf(TEXT("Expected a GENERATED_USTRUCT_BODY() at the start of struct"));
 	}
 
 	// Link the properties within the struct
@@ -1625,7 +1625,6 @@ const TCHAR *FHeaderParser::NestTypeName( ENestType NestType )
 			return TEXT("Global Scope");
 		case NEST_Class:
 			return TEXT("Class");
-		case NEST_NativeInterface:
 		case NEST_Interface:
 			return TEXT("Interface");
 		case NEST_FunctionDeclaration:
@@ -1706,7 +1705,6 @@ void FHeaderParser::PushNest(ENestType NestType, UStruct* InNode, FUnrealSourceF
 		TopNest->Allow = ALLOW_VarDecl | ALLOW_Function | ALLOW_TypeDecl;
 		break;
 
-	case NEST_NativeInterface:
 	case NEST_Interface:
 		TopNest->Allow = ALLOW_Function | ALLOW_TypeDecl;
 		break;
@@ -1740,7 +1738,7 @@ void FHeaderParser::PopNest(ENestType NestType, const TCHAR* Descr)
 		FError::Throwf(TEXT("Unexpected end of %s in '%s' block"), Descr, NestTypeName(TopNest->NestType));
 	}
 
-	if (NestType != NEST_GlobalScope && NestType != NEST_Class && NestType != NEST_Interface && NestType != NEST_NativeInterface && NestType != NEST_FunctionDeclaration)
+	if (NestType != NEST_GlobalScope && NestType != NEST_Class && NestType != NEST_Interface && NestType != NEST_FunctionDeclaration)
 	{
 		FError::Throwf(TEXT("Bad first pass NestType %i"), (uint8)NestType);
 	}
@@ -3629,7 +3627,7 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FUnrealSourceFile& 
 		{
 			FError::Throwf(TEXT("Access specifier %s not allowed here."), Token.Identifier);
 		}
-		check(TopNest->NestType == NEST_Class || TopNest->NestType == NEST_Interface || TopNest->NestType == NEST_NativeInterface);
+		check(TopNest->NestType == NEST_Class || TopNest->NestType == NEST_Interface);
 		CurrentAccessSpecifier = AccessSpecifier;
 	}
 	else if (Token.Matches(TEXT("class")) && (TopNest->NestType == NEST_GlobalScope))
@@ -3642,7 +3640,6 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FUnrealSourceFile& 
 
 		// Start parsing the second class
 		bEncounteredNewStyleClass_UnmatchedBrackets = true;
-		CurrentAccessSpecifier = ACCESS_Private;
 
 		if (!TryParseIInterfaceClass(AllClasses))
 		{
@@ -3651,28 +3648,61 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FUnrealSourceFile& 
 			return SkipDeclaration(Token);
 		}
 	}
-	else if (Token.Matches(TEXT("GENERATED_IINTERFACE_BODY")) || (Token.Matches(TEXT("GENERATED_BODY")) && TopNest->NestType == NEST_NativeInterface))
+	else if (Token.Matches(TEXT("GENERATED_BODY")))
 	{
-		if (TopNest->NestType != NEST_NativeInterface)
+		if (TopNest->NestType != NEST_Class && TopNest->NestType != NEST_Interface)
 		{
-			FError::Throwf(TEXT("%s must occur inside the native interface definition"), Token.Identifier);
+			FError::Throwf(TEXT("%s must occur inside the class or interface definition"), Token.Identifier);
 		}
+		if (!ClassDefinitionRanges.Contains(GetCurrentClass()))
+		{
+			ClassDefinitionRanges.Add(GetCurrentClass(), ClassDefinitionRange());
+		}
+
+		ClassDefinitionRanges[GetCurrentClass()].bHasGeneratedBody = true;
+
 		RequireSymbol(TEXT("("), Token.Identifier);
 		RequireSymbol(TEXT(")"), Token.Identifier);
 
 		auto* ClassData = GetCurrentClassData();
 
 		ClassData->GeneratedBodyMacroAccessSpecifier = CurrentAccessSpecifier;
-		ClassData->SetInterfaceGeneratedBodyLine(InputLine);
+		ClassData->SetGeneratedBodyLine(InputLine);
+
+		if (TopNest->NestType == NEST_Class)
+		{
+			bClassHasGeneratedBody = true;
+		}
+	}
+	else if (Token.Matches(TEXT("GENERATED_UCLASS_BODY")))
+	{
+		if (TopNest->NestType != NEST_Class)
+		{
+			FError::Throwf(TEXT("%s must occur inside the class definition"), Token.Identifier);
+		}
+		RequireSymbol(TEXT("("), Token.Identifier);
+		RequireSymbol(TEXT(")"), Token.Identifier);
+
+		GetCurrentClassData()->SetGeneratedBodyLine(InputLine);
+
+		// The body implementation macro always ends with a 'public:'
+		CurrentAccessSpecifier = ACCESS_Public;
+
+		bClassHasGeneratedBody = true;
+	}
+	else if (Token.Matches(TEXT("GENERATED_IINTERFACE_BODY")))
+	{
+		RequireSymbol(TEXT("("), Token.Identifier);
+		RequireSymbol(TEXT(")"), Token.Identifier);
+
+		GetCurrentClassData()->SetInterfaceGeneratedBodyLine(InputLine);
 
 		bClassHasGeneratedIInterfaceBody = true;
 
-		if (Token.Matches(TEXT("GENERATED_IINTERFACE_BODY")))
-		{
-			CurrentAccessSpecifier = ACCESS_Public;
-		}
+		// The body implementation macro always ends with a 'public:'
+		CurrentAccessSpecifier = ACCESS_Public;
 	}
-	else if (Token.Matches(TEXT("GENERATED_UINTERFACE_BODY")) || (Token.Matches(TEXT("GENERATED_BODY")) && TopNest->NestType == NEST_Interface))
+	else if (Token.Matches(TEXT("GENERATED_UINTERFACE_BODY")))
 	{
 		if (TopNest->NestType != NEST_Interface)
 		{
@@ -3681,49 +3711,12 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FUnrealSourceFile& 
 		RequireSymbol(TEXT("("), Token.Identifier);
 		RequireSymbol(TEXT(")"), Token.Identifier);
 
-		auto* ClassData = GetCurrentClassData();
-
-		ClassData->GeneratedBodyMacroAccessSpecifier = CurrentAccessSpecifier;
-		ClassData->SetGeneratedBodyLine(InputLine);
+		GetCurrentClassData()->SetGeneratedBodyLine(InputLine);
 
 		bClassHasGeneratedUInterfaceBody = true;
 
-		if (Token.Matches(TEXT("GENERATED_UINTERFACE_BODY")))
-		{
-			CurrentAccessSpecifier = ACCESS_Public;
-		}
-	}
-	else if (Token.Matches(TEXT("GENERATED_UCLASS_BODY")) || (Token.Matches(TEXT("GENERATED_BODY")) && TopNest->NestType == NEST_Class))
-	{
-		if (TopNest->NestType != NEST_Class)
-		{
-			FError::Throwf(TEXT("%s must occur inside the class definition"), Token.Identifier);
-		}
-
-		auto* ClassData = GetCurrentClassData();
-
-		if (Token.Matches(TEXT("GENERATED_BODY")))
-		{
-			if (!ClassDefinitionRanges.Contains(GetCurrentClass()))
-			{
-				ClassDefinitionRanges.Add(GetCurrentClass(), ClassDefinitionRange());
-			}
-
-			ClassDefinitionRanges[GetCurrentClass()].bHasGeneratedBody = true;
-
-			ClassData->GeneratedBodyMacroAccessSpecifier = CurrentAccessSpecifier;
-		}
-		else
-		{
-			CurrentAccessSpecifier = ACCESS_Public;
-		}
-
-		RequireSymbol(TEXT("("), Token.Identifier);
-		RequireSymbol(TEXT(")"), Token.Identifier);
-
-		ClassData->SetGeneratedBodyLine(InputLine);
-
-		bClassHasGeneratedBody = true;
+		// The body implementation macro always ends with a 'public:'
+		CurrentAccessSpecifier = ACCESS_Public;
 	}
 	else if (Token.Matches(TEXT("UCLASS"), ESearchCase::CaseSensitive) && (TopNest->Allow & ALLOW_Class))
 	{
@@ -3789,8 +3782,7 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FUnrealSourceFile& 
 		// Pop nesting here to allow other non UClass declarations in the header file.
 		if (CurrentClass->ClassFlags & CLASS_Interface)
 		{
-			checkf(TopNest->NestType == NEST_Interface || TopNest->NestType == NEST_NativeInterface, TEXT("Unexpected end of interface block."));
-			PopNest(TopNest->NestType, TEXT("'Interface'"));
+			PopNest(NEST_Interface, TEXT("'Interface'"));
 			PostPopNestInterface(AllClasses, CurrentClass);
 
 			// Ensure the UINTERFACE classes have a GENERATED_UINTERFACE_BODY declaration
@@ -3835,11 +3827,7 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FUnrealSourceFile& 
 			FError::Throwf(TEXT("Extra ';' before end of file"));
 		}
 	}
-	else if (bEncounteredNewStyleClass_UnmatchedBrackets && IsInAClass() && GetCurrentClass() &&
-		(
-			Token.Matches(NameLookupCPP.GetNameCPP(GetCurrentClass())) || 
-			FString(Token.Identifier).EndsWith("_API") && GetToken(Token) && Token.Matches(NameLookupCPP.GetNameCPP(GetCurrentClass()))
-		))
+	else if (bEncounteredNewStyleClass_UnmatchedBrackets && IsInAClass() && GetCurrentClass() && Token.Matches(NameLookupCPP.GetNameCPP(GetCurrentClass())))
 	{
 		if (!TryToMatchConstructorParameterList(Token))
 		{
@@ -4702,7 +4690,7 @@ bool FHeaderParser::TryParseIInterfaceClass(FClasses& AllClasses)
 	RequireSymbol(TEXT("{"), *ErrorMsg);
 
 	// Push the interface class nesting again.
-	PushNest(NEST_NativeInterface, FoundClass);
+	PushNest(NEST_Interface, FoundClass);
 
 	return true;
 }
@@ -4731,7 +4719,7 @@ void FHeaderParser::CompileInterfaceDeclaration(FClasses& AllClasses)
 	// New style files have the interface name / extends afterwards
 	RequireIdentifier(TEXT("class"), TEXT("Interface declaration"));
 	FClass* InterfaceClass = ParseInterfaceNameDeclaration(AllClasses, /*out*/ DeclaredInterfaceName, /*out*/ RequiredAPIMacroIfPresent);
-	ClassDefinitionRanges.Add(InterfaceClass, ClassDefinitionRange(&Input[InputPos], nullptr));
+
 
 	// Record that this interface is RequiredAPI if the CORE_API style macro was present
 	if (!RequiredAPIMacroIfPresent.IsEmpty())
@@ -5049,7 +5037,7 @@ void FHeaderParser::CompileDelegateDeclaration(FUnrealSourceFile& SourceFile, FC
 		FCString::Strcpy( FuncInfo.Function.Identifier, *Name );
 	}
 
-	FuncInfo.MacroLine = InputLine;
+	FuncInfo.DelegateMacroLine = InputLine;
 	auto* DelegateSignatureFunction = CreateDelegateFunction(FuncInfo);
 
 	GScriptHelper.AddClassData(DelegateSignatureFunction);
@@ -5156,7 +5144,6 @@ void FHeaderParser::CompileFunctionDeclaration(FUnrealSourceFile& SourceFile, FC
 	bool bAutomaticallyFinal = true;
 
 	FFuncInfo FuncInfo;
-	FuncInfo.MacroLine = InputLine;
 	FuncInfo.FunctionFlags = FUNC_Native;
 
 	// Infer the function's access level from the currently declared C++ access level

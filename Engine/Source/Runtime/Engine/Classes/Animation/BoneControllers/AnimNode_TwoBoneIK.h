@@ -12,7 +12,7 @@
 USTRUCT()
 struct ENGINE_API FAnimNode_TwoBoneIK : public FAnimNode_SkeletalControlBase
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 	
 	/** Name of bone to control. This is the main bone chain to modify from. **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=IK)

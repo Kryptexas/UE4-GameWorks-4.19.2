@@ -13,7 +13,7 @@
 USTRUCT()
 struct FSoundTrackKey
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	float Time;
@@ -42,9 +42,7 @@ struct FSoundTrackKey
 UCLASS(MinimalAPI, meta=( DisplayName = "Sound Track" ) )
 class UInterpTrackSound : public UInterpTrackVectorBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UInterpTrackSound(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Array of sounds to play at specific times. */
 	UPROPERTY()

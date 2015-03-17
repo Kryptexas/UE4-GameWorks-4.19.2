@@ -16,7 +16,7 @@ class UDialogueSoundWaveProxy;
 USTRUCT()
 struct FDialogueContextMapping
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FDialogueContextMapping();
 
@@ -39,9 +39,7 @@ bool operator!=(const FDialogueContextMapping& LHS, const FDialogueContextMappin
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, BlueprintType)
 class UDialogueWave : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UDialogueWave(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** true if this dialogue is considered to contain mature/adult content. */
 	UPROPERTY(EditAnywhere, Category=Filter, AssetRegistrySearchable)

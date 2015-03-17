@@ -9,7 +9,7 @@ DECLARE_DELEGATE( FStreamableDelegate );
 USTRUCT()
 struct ENGINE_API FStreamableManager
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY();
 
 	FStreamableManager();
 	~FStreamableManager();

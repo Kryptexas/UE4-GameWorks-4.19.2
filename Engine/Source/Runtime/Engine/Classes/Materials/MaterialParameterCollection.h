@@ -11,7 +11,7 @@
 USTRUCT()
 struct FCollectionParameterBase
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 	
 	FCollectionParameterBase()
 	{
@@ -31,7 +31,7 @@ struct FCollectionParameterBase
 USTRUCT()
 struct FCollectionScalarParameter : public FCollectionParameterBase
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 	
 	UPROPERTY(EditAnywhere, Category=Parameter)
 	float DefaultValue;
@@ -41,7 +41,7 @@ struct FCollectionScalarParameter : public FCollectionParameterBase
 USTRUCT()
 struct FCollectionVectorParameter : public FCollectionParameterBase
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 	
 	UPROPERTY(EditAnywhere, Category=Parameter)
 	FLinearColor DefaultValue;
@@ -54,9 +54,7 @@ struct FCollectionVectorParameter : public FCollectionParameterBase
 UCLASS(hidecategories=object, MinimalAPI)
 class UMaterialParameterCollection : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UMaterialParameterCollection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Used by materials using this collection to know when to recompile. */
 	UPROPERTY(duplicatetransient)

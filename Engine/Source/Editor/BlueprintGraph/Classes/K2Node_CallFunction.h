@@ -10,9 +10,7 @@
 UCLASS()
 class BLUEPRINTGRAPH_API UK2Node_CallFunction : public UK2Node
 {
-	GENERATED_BODY()
-public:
-	UK2Node_CallFunction(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Indicates that this is a call to a pure function */
 	UPROPERTY()

@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI, deprecated)
 class UDEPRECATED_K2Node_LocalVariable : public UK2Node_TemporaryVariable
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UDEPRECATED_K2Node_LocalVariable(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** If this is not an override, allow user to specify a name for the function created by this entry point */
 	UPROPERTY()

@@ -10,9 +10,7 @@ struct FParticleEmitterInstance;
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Spawn"))
 class UParticleModuleSpawnBase : public UParticleModule
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleSpawnBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** 
 	 *	If true, the SpawnRate of the SpawnModule of the emitter will be processed.

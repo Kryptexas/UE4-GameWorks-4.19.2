@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionSceneDepth : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionSceneDepth(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** 
 	* Coordinates - UV coordinates to apply to the scene depth lookup.

@@ -17,9 +17,7 @@ class UActorComponent;
 UCLASS(Transient)
 class BLUEPRINTGRAPH_API UBlueprintComponentNodeSpawner : public UBlueprintNodeSpawner
 {
-	GENERATED_BODY()
-public:
-	UBlueprintComponentNodeSpawner(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	/**

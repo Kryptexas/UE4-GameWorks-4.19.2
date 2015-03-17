@@ -11,9 +11,7 @@
 UCLASS(editinlinenew, hidecategories=(UObject, Acceleration), MinimalAPI, meta=(DisplayName = "Drag Scale/Life"))
 class UParticleModuleAccelerationDragScaleOverLife : public UParticleModuleAccelerationBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleAccelerationDragScaleOverLife(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Per-particle drag scale. Evaluted using particle relative time. */
 	UPROPERTY(EditAnywhere, Category=Drag)

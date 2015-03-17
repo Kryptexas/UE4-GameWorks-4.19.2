@@ -426,7 +426,7 @@ struct FBehaviorTreePropertyMemory
 USTRUCT(BlueprintType)
 struct AIMODULE_API FBlackboardKeySelector
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FBlackboardKeySelector() : SelectedKeyID(FBlackboard::InvalidKey)
 	{}
@@ -510,9 +510,7 @@ public:
 UCLASS(Abstract)
 class AIMODULE_API UBehaviorTreeTypes : public UObject
 {
-	GENERATED_BODY()
-public:
-	UBehaviorTreeTypes(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	static FString DescribeNodeHelper(const UBTNode* Node);
 

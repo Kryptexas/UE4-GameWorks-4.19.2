@@ -6,9 +6,7 @@
 UCLASS()
 class UMatineeTrackColorPropHelper : public UMatineeTrackVectorPropHelper
 {
-	GENERATED_BODY()
-public:
-	UMatineeTrackColorPropHelper(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

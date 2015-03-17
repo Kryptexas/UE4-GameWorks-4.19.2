@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UGameplayAbilityGraphSchema : public UEdGraphSchema_K2
 {
-	GENERATED_BODY()
-public:
-	GAMEPLAYABILITIESEDITOR_API UGameplayAbilityGraphSchema(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	* Creates a new variable getter node and adds it to ParentGraph

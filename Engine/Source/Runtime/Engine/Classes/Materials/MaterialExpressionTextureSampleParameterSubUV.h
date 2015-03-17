@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionTextureSampleParameterSubUV : public UMaterialExpressionTextureSampleParameter2D
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UMaterialExpressionTextureSampleParameterSubUV(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionTextureSampleParameterSubUV)
 	uint32 bBlend:1;

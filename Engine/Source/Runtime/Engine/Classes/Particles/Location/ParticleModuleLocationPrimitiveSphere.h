@@ -12,9 +12,7 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Sphere"))
 class UParticleModuleLocationPrimitiveSphere : public UParticleModuleLocationPrimitiveBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleLocationPrimitiveSphere(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The radius of the sphere. Retrieved using EmitterTime. */
 	UPROPERTY(EditAnywhere, Category=Location)

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -123,7 +123,7 @@ inline bool IsConcreteTypeCompatibleWithReflectedType<UObject*>(UProperty* Prope
 USTRUCT()
 struct UMG_API FPropertyPathSegment
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 	/** Implementation detail, don't use this constructor. */
@@ -166,7 +166,7 @@ private:
 USTRUCT()
 struct UMG_API FDynamicPropertyPath
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 

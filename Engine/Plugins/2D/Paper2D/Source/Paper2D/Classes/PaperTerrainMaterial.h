@@ -8,7 +8,7 @@
 USTRUCT(BlueprintType)
 struct FPaperTerrainMaterialRule
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	// The sprite to use at the 'left' (closest to spline start) edge of the terrain segment
 	UPROPERTY(Category=Sprite, EditAnywhere, meta=(DisplayThumbnail="true"))
@@ -68,9 +68,7 @@ struct FPaperTerrainMaterialRule
 UCLASS(BlueprintType)
 class PAPER2D_API UPaperTerrainMaterial : public UDataAsset
 {
-	GENERATED_BODY()
-public:
-	UPaperTerrainMaterial(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(Category=Sprite, EditAnywhere)
 	TArray<FPaperTerrainMaterialRule> Rules;

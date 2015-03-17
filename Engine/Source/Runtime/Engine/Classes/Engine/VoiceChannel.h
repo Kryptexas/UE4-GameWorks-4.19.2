@@ -9,11 +9,10 @@
 #include "Net/VoiceDataCommon.h"
 #include "VoiceChannel.generated.h"
 
-UCLASS(transient)
+UCLASS(transient, customConstructor)
 class UVoiceChannel : public UChannel
 {
-	GENERATED_BODY()
-public:
+	GENERATED_UCLASS_BODY()
 
 	// Variables.
 

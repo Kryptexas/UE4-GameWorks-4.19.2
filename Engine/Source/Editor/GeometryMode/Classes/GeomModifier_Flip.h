@@ -11,9 +11,7 @@
 UCLASS()
 class UGeomModifier_Flip : public UGeomModifier_Edit
 {
-	GENERATED_BODY()
-public:
-	UGeomModifier_Flip(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UGeomModifier Interface

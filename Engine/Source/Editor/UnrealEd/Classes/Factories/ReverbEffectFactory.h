@@ -10,9 +10,7 @@
 UCLASS(hidecategories=Object)
 class UReverbEffectFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	UReverbEffectFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UFactory Interface

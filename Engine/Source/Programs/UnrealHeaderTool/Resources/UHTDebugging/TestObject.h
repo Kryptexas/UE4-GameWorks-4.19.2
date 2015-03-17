@@ -8,9 +8,7 @@
 UCLASS()
 class UTestObject : public UObject
 {
-	GENERATED_BODY()
-public:
-	UTestObject(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UFUNCTION(BlueprintCallable, Category="Random")
 	void TestForNullPtrDefaults(UObject* Obj1 = NULL, UObject* Obj2 = nullptr, UObject* Obj3 = 0);

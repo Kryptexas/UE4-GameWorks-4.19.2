@@ -9,7 +9,7 @@
 USTRUCT()
 struct ENGINE_API FAnimNode_BlendListByEnum : public FAnimNode_BlendListBase
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 public:
 	// Mapping from enum value to BlendPose index; there will be one entry per entry in the enum; entries out of range always map to pose index 0
 	UPROPERTY()

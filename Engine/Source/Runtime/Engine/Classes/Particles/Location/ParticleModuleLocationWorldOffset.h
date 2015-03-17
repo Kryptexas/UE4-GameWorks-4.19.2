@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, meta=(DisplayName = "World Offset"))
 class UParticleModuleLocationWorldOffset : public UParticleModuleLocation
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleLocationWorldOffset(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 protected:

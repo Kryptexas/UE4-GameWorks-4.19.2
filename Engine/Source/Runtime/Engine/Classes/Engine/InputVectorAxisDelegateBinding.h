@@ -7,9 +7,7 @@
 UCLASS()
 class ENGINE_API UInputVectorAxisDelegateBinding : public UInputAxisKeyDelegateBinding
 {
-	GENERATED_BODY()
-public:
-	UInputVectorAxisDelegateBinding(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin UInputDelegateBinding interface
 	virtual void BindToInputComponent(UInputComponent* InputComponent) const override;

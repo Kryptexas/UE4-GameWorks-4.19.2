@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UInterpGroupInstDirector : public UInterpGroupInst
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UInterpGroupInstDirector(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 };
 

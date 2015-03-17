@@ -18,9 +18,7 @@ enum ETextureColorChannel
 UCLASS(MinimalAPI)
 class UMaterialExpressionAntialiasedTextureMask : public UMaterialExpressionTextureSampleParameter2D
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UMaterialExpressionAntialiasedTextureMask(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionAntialiasedTextureMask, meta=(UIMin = "0.0", UIMax = "1.0", ClampMin = "0.0", ClampMax = "1.0"))
 	float Threshold;

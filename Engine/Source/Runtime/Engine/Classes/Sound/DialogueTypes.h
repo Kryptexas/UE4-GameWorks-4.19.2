@@ -36,7 +36,7 @@ class UDialogueVoice;
 USTRUCT(BlueprintType)
 struct ENGINE_API FDialogueContext
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FDialogueContext();
 
@@ -61,7 +61,7 @@ class UDialogueWave;
 USTRUCT()
 struct FDialogueWaveParameter
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FDialogueWaveParameter();
 
@@ -77,7 +77,5 @@ struct FDialogueWaveParameter
 UCLASS(abstract)
 class UDialogueTypes : public UObject
 {
-	GENERATED_BODY()
-public:
-	UDialogueTypes(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 };

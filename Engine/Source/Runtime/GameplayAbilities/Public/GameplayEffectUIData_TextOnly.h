@@ -11,9 +11,7 @@
 UCLASS()
 class UGameplayEffectUIData_TextOnly : public UGameplayEffectUIData
 {
-	GENERATED_BODY()
-public:
-	UGameplayEffectUIData_TextOnly(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Data)
 	FText Description;

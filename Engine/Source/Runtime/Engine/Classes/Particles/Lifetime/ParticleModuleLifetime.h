@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Lifetime"))
 class UParticleModuleLifetime : public UParticleModuleLifetimeBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleLifetime(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The lifetime of the particle, in seconds. Retrieved using the EmitterTime at the spawn of the particle. */
 	UPROPERTY(EditAnywhere, Category=Lifetime)

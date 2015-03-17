@@ -18,9 +18,7 @@ class UBlackboardComponent;
 UCLASS(config=Engine, defaultconfig)
 class AIMODULE_API UAISystem : public UAISystemBase
 {
-	GENERATED_BODY()
-public:
-	UAISystem(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(globalconfig, EditAnywhere, Category = "AISystem", meta = (MetaClass = "AIPerceptionSystem", DisplayName = "Perception System Class"))
 	FStringClassReference PerceptionSystemClassName;

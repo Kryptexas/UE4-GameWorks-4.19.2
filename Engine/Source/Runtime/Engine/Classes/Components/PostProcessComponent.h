@@ -11,9 +11,7 @@
 UCLASS(ClassGroup = Rendering, collapsecategories, hidecategories = (Object), editinlinenew, meta = (BlueprintSpawnableComponent), MinimalAPI)
 class UPostProcessComponent : public USceneComponent, public IInterface_PostProcessVolume
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UPostProcessComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Post process settings to use for this volume. */
 	UPROPERTY(interp, Category = PostProcessVolume, meta = (ShowOnlyInnerProperties))

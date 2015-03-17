@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,9 +16,7 @@ class USlateBrushAsset;
 UCLASS()
 class UMG_API UBorder : public UContentWidget
 {
-	GENERATED_BODY()
-public:
-	UBorder(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

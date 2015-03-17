@@ -16,9 +16,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FSmartLinkReachedSignature, class 
 UCLASS(Blueprintable)
 class ENGINE_API ANavLinkProxy : public AActor, public INavLinkHostInterface, public INavRelevantInterface
 {
-	GENERATED_BODY()
-public:
-	ANavLinkProxy(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Navigation links (point to point) added to navigation data */
 	UPROPERTY(EditAnywhere, Category=SimpleLink)

@@ -12,9 +12,7 @@
 UCLASS(hidecategories=(Collision, Brush, Attachment, Physics, Volume), MinimalAPI)
 class ALightmassImportanceVolume : public AVolume
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API ALightmassImportanceVolume(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 };
 

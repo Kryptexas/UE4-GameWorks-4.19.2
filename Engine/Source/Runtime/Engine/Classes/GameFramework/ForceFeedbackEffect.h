@@ -6,7 +6,7 @@
 USTRUCT()
 struct FForceFeedbackChannelDetails
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category="ChannelDetails")
 	uint32 bAffectsLeftLarge:1;
@@ -35,7 +35,7 @@ struct FForceFeedbackChannelDetails
 USTRUCT()
 struct FActiveForceFeedbackEffect
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	class UForceFeedbackEffect* ForceFeedbackEffect;
@@ -70,9 +70,7 @@ struct FActiveForceFeedbackEffect
 UCLASS(BlueprintType, MinimalAPI)
 class UForceFeedbackEffect : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UForceFeedbackEffect(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category="ForceFeedbackEffect")
 	TArray<FForceFeedbackChannelDetails> ChannelDetails;

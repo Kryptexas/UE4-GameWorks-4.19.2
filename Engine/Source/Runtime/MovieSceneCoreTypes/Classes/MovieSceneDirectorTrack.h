@@ -12,9 +12,7 @@
 UCLASS( MinimalAPI )
 class UMovieSceneDirectorTrack : public UMovieSceneTrack
 {
-	GENERATED_BODY()
-public:
-	MOVIESCENECORETYPES_API UMovieSceneDirectorTrack(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	/** UMovieSceneTrack interface */

@@ -13,9 +13,7 @@
 UCLASS(MinimalAPI)
 class USceneThumbnailInfo : public UThumbnailInfo
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API USceneThumbnailInfo(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The pitch of the orbit camera around the asset */
 	UPROPERTY(EditAnywhere, Category=Thumbnail)

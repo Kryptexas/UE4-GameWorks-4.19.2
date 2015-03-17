@@ -10,15 +10,12 @@ class UWidget;
 UINTERFACE(MinimalAPI, meta=( CannotImplementInterfaceInBlueprint ))
 class UNamedSlotInterface : public UInterface
 {
-	GENERATED_BODY()
-public:
-	UMG_API UNamedSlotInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class UMG_API INamedSlotInterface
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 
 	/**  */
 	virtual void GetSlotNames(TArray<FName>& SlotNames) const = 0;

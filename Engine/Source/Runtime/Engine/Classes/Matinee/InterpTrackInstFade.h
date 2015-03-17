@@ -7,9 +7,7 @@
 UCLASS()
 class UInterpTrackInstFade : public UInterpTrackInst
 {
-	GENERATED_BODY()
-public:
-	UInterpTrackInstFade(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UInterpTrackInst Instance

@@ -11,9 +11,7 @@
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
 class UDrawFrustumComponent : public UPrimitiveComponent
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UDrawFrustumComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	
 	/** Color to draw the wireframe frustum. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=DrawFrustumComponent)

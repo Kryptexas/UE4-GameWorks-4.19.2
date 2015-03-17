@@ -33,9 +33,7 @@ class FOnlineSessionSearchResult;
 UCLASS(config=Game, transient, BlueprintType, Blueprintable)
 class ENGINE_API UGameInstance : public UObject, public FExec
 {
-	GENERATED_BODY()
-public:
-	UGameInstance(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 protected:
 	struct FWorldContext* WorldContext;

@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Initial Color"))
 class UParticleModuleColor : public UParticleModuleColorBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleColor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Initial color for a particle as a function of Emitter time. */
 	UPROPERTY(EditAnywhere, Category = Color, meta = (TreatAsColor))

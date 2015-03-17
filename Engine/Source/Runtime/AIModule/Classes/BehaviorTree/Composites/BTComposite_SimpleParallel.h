@@ -52,9 +52,7 @@ struct FBTParallelMemory : public FBTCompositeMemory
 UCLASS()
 class AIMODULE_API UBTComposite_SimpleParallel : public UBTCompositeNode
 {
-	GENERATED_BODY()
-public:
-	UBTComposite_SimpleParallel(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** how background tree should be handled when main task finishes execution */
 	UPROPERTY(EditInstanceOnly, Category=Parallel)

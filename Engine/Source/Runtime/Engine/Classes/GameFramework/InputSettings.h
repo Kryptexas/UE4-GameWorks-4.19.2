@@ -14,9 +14,7 @@ UCLASS(config=Input, defaultconfig)
 class ENGINE_API UInputSettings
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	UInputSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Properties of Axis controls */
 	UPROPERTY(config, EditAnywhere, EditFixedSize, Category="Bindings", meta=(ToolTip="List of Axis Properties"), AdvancedDisplay)

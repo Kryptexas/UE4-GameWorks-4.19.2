@@ -11,9 +11,7 @@
 UCLASS(MinimalAPI)
 class UWorldFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UWorldFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	TEnumAsByte<EWorldType::Type> WorldType;
 	bool bInformEngineOfWorld;

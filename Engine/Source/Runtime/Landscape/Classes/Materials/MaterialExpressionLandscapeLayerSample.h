@@ -9,9 +9,7 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionLandscapeLayerSample : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionLandscapeLayerSample(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionLandscapeLayerWeight)
 	FName ParameterName;

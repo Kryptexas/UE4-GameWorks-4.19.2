@@ -9,9 +9,7 @@
 UCLASS(hidecategories=Object, collapsecategories, editinlinenew)
 class UNREALED_API UDEditorVectorParameterValue : public UDEditorParameterValue
 {
-	GENERATED_BODY()
-public:
-	UDEditorVectorParameterValue(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=DEditorVectorParameterValue)
 	FLinearColor ParameterValue;

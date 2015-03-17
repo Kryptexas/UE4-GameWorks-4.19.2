@@ -7,9 +7,7 @@
 UCLASS(meta=(HiddenNode))
 class UTestBTTask_SetFlag : public UBTTaskNode
 {
-	GENERATED_BODY()
-public:
-	UTestBTTask_SetFlag(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	FName KeyName;

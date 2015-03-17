@@ -16,9 +16,7 @@ struct FBTWaitTaskMemory
 UCLASS()
 class AIMODULE_API UBTTask_Wait : public UBTTaskNode
 {
-	GENERATED_BODY()
-public:
-	UBTTask_Wait(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** wait time in seconds */
 	UPROPERTY(Category = Wait, EditAnywhere, meta = (ClampMin = "0.0", UIMin = "0.0"))

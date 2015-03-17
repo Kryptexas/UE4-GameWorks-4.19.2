@@ -31,9 +31,7 @@ namespace EBTBlackboardRestart
 UCLASS(HideCategories=(Condition))
 class AIMODULE_API UBTDecorator_Blackboard : public UBTDecorator_BlackboardBase
 {
-	GENERATED_BODY()
-public:
-	UBTDecorator_Blackboard(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const override;
 	virtual void OnBlackboardChange(const UBlackboardComponent& Blackboard, FBlackboard::FKey ChangedKeyID) override;

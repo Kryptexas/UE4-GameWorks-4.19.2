@@ -7,9 +7,7 @@
 UCLASS(ClassGroup=(Lights, PointLights), ComponentWrapperClass, MinimalAPI, meta=(ChildCanTick))
 class APointLight : public ALight
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API APointLight(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(BlueprintReadOnly, Category="Light", meta=(ExposeFunctionCategories="PointLight,Rendering|Lighting"))
 	class UPointLightComponent* PointLightComponent;

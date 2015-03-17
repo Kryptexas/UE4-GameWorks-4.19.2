@@ -880,34 +880,34 @@ struct FFuncInfo
 	/** Whether this function represents a sealed event */
 	bool		bSealedEvent;
 	/** Delegate macro line in header. */
-	int32		MacroLine;
+	int32		DelegateMacroLine;
 	//@}
 
 	/** Constructor. */
 	FFuncInfo()
-		: Function()
-		, FunctionFlags(0)
-		, FunctionExportFlags(0)
-		, ExpectParms(0)
-		, FunctionReference(NULL)
-		, CppImplName(TEXT(""))
-		, CppValidationImplName(TEXT(""))
-		, RPCId(0)
-		, RPCResponseId(0)
-		, bSealedEvent(false)
-		, MacroLine(-1)
+	:	Function				()
+	,	FunctionFlags			(0)
+	,	FunctionExportFlags		(0)
+	,	ExpectParms				(0)
+	,	FunctionReference		(NULL)
+	,	CppImplName				(TEXT(""))
+	,	CppValidationImplName	(TEXT(""))
+	,	RPCId					(0)
+	,	RPCResponseId			(0)
+	,	bSealedEvent			(false)
+	,	DelegateMacroLine		(-1)
 	{}
 
-	FFuncInfo(const FFuncInfo& Other)
-		: FunctionFlags(Other.FunctionFlags)
-		, FunctionExportFlags(Other.FunctionExportFlags)
-		, ExpectParms(Other.ExpectParms)
-		, FunctionReference(Other.FunctionReference)
-		, CppImplName(Other.CppImplName)
-		, CppValidationImplName(Other.CppValidationImplName)
-		, RPCId(Other.RPCId)
-		, RPCResponseId(Other.RPCResponseId)
-		, MacroLine(Other.MacroLine)
+	FFuncInfo( const FFuncInfo& Other )
+	:	FunctionFlags   (Other.FunctionFlags)
+	,	FunctionExportFlags(Other.FunctionExportFlags)
+	,	ExpectParms		(Other.ExpectParms)
+	,	FunctionReference(Other.FunctionReference)
+	,	CppImplName(Other.CppImplName)
+	,	CppValidationImplName(Other.CppValidationImplName)
+	,	RPCId(Other.RPCId)
+	,	RPCResponseId(Other.RPCResponseId)
+	,	DelegateMacroLine(Other.DelegateMacroLine)
 	{
 		Function.Clone(Other.Function);
 		if (FunctionReference)

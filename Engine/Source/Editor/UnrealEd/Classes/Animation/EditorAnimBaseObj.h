@@ -16,9 +16,7 @@ DECLARE_DELEGATE_TwoParams( FOnAnimObjectChange, class UObject*, bool)
 UCLASS(abstract, MinimalAPI)
 class UEditorAnimBaseObj: public UObject
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UEditorAnimBaseObj(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 public:
 	
 

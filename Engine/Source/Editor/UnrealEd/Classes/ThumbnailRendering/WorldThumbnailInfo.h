@@ -26,9 +26,7 @@ namespace EOrthoThumbnailDirection
 UCLASS(MinimalAPI)
 class UWorldThumbnailInfo : public USceneThumbnailInfo
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UWorldThumbnailInfo(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The type of projection to use */
 	UPROPERTY(EditAnywhere, Category=Thumbnail)

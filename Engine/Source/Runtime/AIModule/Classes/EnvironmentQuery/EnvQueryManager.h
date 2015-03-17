@@ -18,7 +18,7 @@ class UEnvQueryTest;
 USTRUCT()
 struct AIMODULE_API FEnvQueryRequest
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FEnvQueryRequest() : QueryTemplate(NULL), Owner(NULL), World(NULL) {}
 
@@ -74,7 +74,7 @@ protected:
 USTRUCT()
 struct FEnvQueryInstanceCache
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** query template, duplicated in manager's world */
 	UPROPERTY()
@@ -109,9 +109,7 @@ FORCEINLINE bool operator== (const FEQSDebugger::FEnvQueryInfo & Left, const FEQ
 UCLASS()
 class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject
 {
-	GENERATED_BODY()
-public:
-	UEnvQueryManager(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// We need to implement GetWorld() so that any EQS-related blueprints (such as blueprint contexts) can implement
 	// GetWorld() and so provide access to blueprint nodes using hidden WorldContextObject parameters.

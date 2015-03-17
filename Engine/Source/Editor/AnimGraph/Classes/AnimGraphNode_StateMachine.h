@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class UAnimGraphNode_StateMachine : public UAnimGraphNode_StateMachineBase
 {
-	GENERATED_BODY()
-public:
-	ANIMGRAPH_API UAnimGraphNode_StateMachine(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Runtime state machine representation (empty; populated during compilation)
 	UPROPERTY(EditAnywhere, Category=Settings)

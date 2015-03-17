@@ -10,9 +10,7 @@
 UCLASS(Experimental, meta=( DisplayName="ComboBox (Object)" ))
 class UMG_API UComboBox : public UWidget
 {
-	GENERATED_BODY()
-public:
-	UComboBox(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

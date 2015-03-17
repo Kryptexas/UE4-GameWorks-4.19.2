@@ -37,9 +37,7 @@ enum ESpeedTreeLODType
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionSpeedTree : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UMaterialExpressionSpeedTree(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()	
 
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionSpeedTree, meta=(DisplayName = "Geometry Type", ToolTip="The type of SpeedTree geometry on which this material will be used"))
 	TEnumAsByte<enum ESpeedTreeGeometryType> GeometryType;

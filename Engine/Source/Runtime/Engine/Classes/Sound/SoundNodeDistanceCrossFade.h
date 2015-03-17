@@ -8,7 +8,7 @@
 USTRUCT()
 struct FDistanceDatum
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/* The FadeInDistance at which to start hearing this sound.
 	 * If you want to hear the sound up close then setting this to 0 might be a good option. 
@@ -73,9 +73,7 @@ struct FDistanceDatum
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, meta=( DisplayName="Crossfade by Distance" ))
 class USoundNodeDistanceCrossFade : public USoundNode
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API USoundNodeDistanceCrossFade(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 * Each input needs to have the correct data filled in so the SoundNodeDistanceCrossFade is able

@@ -9,9 +9,7 @@
 UCLASS()
 class UMGEDITOR_API UK2Node_CreateDragDropOperation : public UK2Node_ConstructObjectFromClass
 {
-	GENERATED_BODY()
-public:
-	UK2Node_CreateDragDropOperation(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin UEdGraphNode interface.
 	virtual void AllocateDefaultPins() override;

@@ -10,9 +10,7 @@
 UCLASS()
 class UMG_API USpinBox : public UWidget
 {
-	GENERATED_BODY()
-public:
-	USpinBox(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSpinBoxValueChangedEvent, float, InValue);

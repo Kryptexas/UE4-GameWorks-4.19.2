@@ -11,9 +11,7 @@
 UCLASS(editinlinenew, hidecategories=(Object, Acceleration), MinimalAPI, meta=(DisplayName = "Drag"))
 class UParticleModuleAccelerationDrag : public UParticleModuleAccelerationBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleAccelerationDrag(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Per-particle drag coefficient. Evaluted using emitter time. */
 	UPROPERTY(EditAnywhere, Category=Drag)

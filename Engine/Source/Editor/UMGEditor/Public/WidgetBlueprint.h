@@ -15,7 +15,7 @@ class UMovieScene;
 USTRUCT()
 struct UMGEDITOR_API FEditorPropertyPathSegment
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 	FEditorPropertyPathSegment();
@@ -59,7 +59,7 @@ private:
 USTRUCT()
 struct UMGEDITOR_API FEditorPropertyPath
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 
@@ -96,7 +96,7 @@ public:
 USTRUCT()
 struct UMGEDITOR_API FDelegateEditorBinding
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The member widget the binding is on, must be a direct variable of the UUserWidget. */
 	UPROPERTY()
@@ -142,7 +142,7 @@ struct UMGEDITOR_API FDelegateEditorBinding
 USTRUCT()
 struct FWidgetAnimation_DEPRECATED
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	UMovieScene* MovieScene;
@@ -170,9 +170,7 @@ struct TStructOpsTypeTraits<FWidgetAnimation_DEPRECATED> : public TStructOpsType
 UCLASS(BlueprintType)
 class UMGEDITOR_API UWidgetBlueprint : public UBlueprint
 {
-	GENERATED_BODY()
-public:
-	UWidgetBlueprint(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

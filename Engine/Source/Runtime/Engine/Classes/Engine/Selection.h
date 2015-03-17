@@ -13,11 +13,10 @@
 
 #include "Selection.generated.h"
 
-UCLASS(transient)
+UCLASS(customConstructor, transient)
 class ENGINE_API USelection : public UObject
 {
-	GENERATED_BODY()
-public:
+	GENERATED_UCLASS_BODY()
 private:
 	typedef TArray<TWeakObjectPtr<UObject> >	ObjectArray;
 	typedef TMRUArray<UClass*>	ClassArray;

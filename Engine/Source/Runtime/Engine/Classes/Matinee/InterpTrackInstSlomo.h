@@ -7,9 +7,7 @@
 UCLASS()
 class UInterpTrackInstSlomo : public UInterpTrackInst
 {
-	GENERATED_BODY()
-public:
-	UInterpTrackInstSlomo(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Backup of initial LevelInfo MatineeTimeDilation setting when interpolation started. */
 	UPROPERTY()

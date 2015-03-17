@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI, meta=( DisplayName = "Float Property Track" ) )
 class UInterpTrackFloatProp : public UInterpTrackFloatBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UInterpTrackFloatProp(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	
 	/** Name of property in Group  AActor  which this track mill modify over time. */
 	UPROPERTY(Category=InterpTrackFloatProp, VisibleAnywhere)

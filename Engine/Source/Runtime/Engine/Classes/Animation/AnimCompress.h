@@ -13,9 +13,7 @@
 UCLASS(abstract, hidecategories=Object, MinimalAPI)
 class UAnimCompress : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UAnimCompress(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Name of Compression Scheme used for this asset*/
 	UPROPERTY(Category=Compression, VisibleAnywhere)

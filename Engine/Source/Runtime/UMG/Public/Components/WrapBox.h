@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,9 +14,7 @@
 UCLASS()
 class UMG_API UWrapBox : public UPanelWidget
 {
-	GENERATED_BODY()
-public:
-	UWrapBox(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	/** The inner slot padding goes between slots sharing borders */

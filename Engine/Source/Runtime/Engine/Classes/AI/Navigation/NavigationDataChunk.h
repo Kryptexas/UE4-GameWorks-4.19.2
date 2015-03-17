@@ -10,9 +10,7 @@
 UCLASS(NotBlueprintable, abstract)
 class ENGINE_API UNavigationDataChunk : public UObject
 {
-	GENERATED_BODY()
-public:
-	UNavigationDataChunk(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	/** Name of NavigationData actor that owns this chunk */

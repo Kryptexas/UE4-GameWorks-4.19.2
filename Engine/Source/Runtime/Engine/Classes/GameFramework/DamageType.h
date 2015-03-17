@@ -15,9 +15,7 @@
 UCLASS(MinimalAPI, const, Blueprintable, BlueprintType)
 class UDamageType : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UDamageType(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** True if this damagetype is caused by the world (falling off level, into lava, etc). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=DamageType)

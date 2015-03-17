@@ -6,9 +6,7 @@
 UCLASS(hidecategories=Object)
 class USubsurfaceProfileFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	USubsurfaceProfileFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UFactory Interface

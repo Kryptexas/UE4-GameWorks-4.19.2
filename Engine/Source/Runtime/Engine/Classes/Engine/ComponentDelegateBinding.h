@@ -10,7 +10,7 @@
 USTRUCT()
 struct ENGINE_API FBlueprintComponentDelegateBinding
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Name of component property that contains delegate we want to assign to. */
 	UPROPERTY()
@@ -36,9 +36,7 @@ UCLASS()
 class ENGINE_API UComponentDelegateBinding
 	: public UDynamicBlueprintBinding
 {
-	GENERATED_BODY()
-public:
-	UComponentDelegateBinding(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	TArray<FBlueprintComponentDelegateBinding> ComponentDelegateBindings;

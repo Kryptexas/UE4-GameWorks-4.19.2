@@ -9,9 +9,7 @@
 UCLASS(Abstract)
 class UMG_API UPanelWidget : public UWidget
 {
-	GENERATED_BODY()
-public:
-	UPanelWidget(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 protected:
 

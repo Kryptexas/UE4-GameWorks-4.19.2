@@ -19,7 +19,7 @@ struct FTemplateConfigValue
 USTRUCT()
 struct FTemplateReplacement
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	TArray<FString> Extensions;
@@ -37,7 +37,7 @@ struct FTemplateReplacement
 USTRUCT()
 struct FTemplateFolderRename
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	FString From;
@@ -49,7 +49,7 @@ struct FTemplateFolderRename
 USTRUCT()
 struct FLocalizedTemplateString
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	FString Language;
@@ -61,9 +61,7 @@ struct FLocalizedTemplateString
 UCLASS(abstract,config=TemplateDefs,MinimalAPI)
 class UTemplateProjectDefs : public UObject
 {
-	GENERATED_BODY()
-public:
-	GAMEPROJECTGENERATION_API UTemplateProjectDefs(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(config)
 	TArray<FLocalizedTemplateString> LocalizedDisplayNames;

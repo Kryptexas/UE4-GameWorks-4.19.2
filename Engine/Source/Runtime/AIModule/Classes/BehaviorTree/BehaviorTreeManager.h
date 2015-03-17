@@ -11,7 +11,7 @@ class UBehaviorTree;
 USTRUCT()
 struct FBehaviorTreeTemplateInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** behavior tree asset */
 	UPROPERTY()
@@ -28,9 +28,7 @@ struct FBehaviorTreeTemplateInfo
 UCLASS(config=Engine)
 class AIMODULE_API UBehaviorTreeManager : public UObject
 {
-	GENERATED_BODY()
-public:
-	UBehaviorTreeManager(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** limit for recording execution steps for debugger */
 	UPROPERTY(config)

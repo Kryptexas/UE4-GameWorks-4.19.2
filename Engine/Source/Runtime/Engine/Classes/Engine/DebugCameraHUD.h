@@ -13,9 +13,7 @@ UCLASS(config=Game)
 class ENGINE_API ADebugCameraHUD
 	: public AHUD
 {
-	GENERATED_BODY()
-public:
-	ADebugCameraHUD(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** @todo document */
 	virtual bool DisplayMaterials( float X, float& Y, float DY, class UMeshComponent* MeshComp );

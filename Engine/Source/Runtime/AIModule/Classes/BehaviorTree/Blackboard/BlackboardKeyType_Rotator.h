@@ -5,9 +5,7 @@
 UCLASS(EditInlineNew, meta=(DisplayName="Rotator"))
 class AIMODULE_API UBlackboardKeyType_Rotator : public UBlackboardKeyType
 {
-	GENERATED_BODY()
-public:
-	UBlackboardKeyType_Rotator(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	
 	typedef FRotator FDataType; 
 	static const FDataType InvalidValue;

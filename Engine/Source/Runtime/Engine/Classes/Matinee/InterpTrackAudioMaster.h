@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI, meta=( DisplayName = "Audio Master Track" ) )
 class UInterpTrackAudioMaster : public UInterpTrackVectorBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UInterpTrackAudioMaster(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UInterpTrack interface.

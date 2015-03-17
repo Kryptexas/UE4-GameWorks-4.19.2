@@ -21,9 +21,7 @@ struct FBTMoveToTaskMemory
 UCLASS(config=Game)
 class AIMODULE_API UBTTask_MoveTo : public UBTTask_BlackboardBase
 {
-	GENERATED_BODY()
-public:
-	UBTTask_MoveTo(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(config, Category=Node, EditAnywhere, meta=(ClampMin = "0.0"))
 	float AcceptableRadius;

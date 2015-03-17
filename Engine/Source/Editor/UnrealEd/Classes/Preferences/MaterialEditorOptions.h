@@ -12,9 +12,7 @@
 UCLASS(hidecategories=Object, config=EditorUserSettings)
 class UNREALED_API UMaterialEditorOptions : public UObject
 {
-	GENERATED_BODY()
-public:
-	UMaterialEditorOptions(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** If true, render grid the preview scene. */
 	UPROPERTY(EditAnywhere, config, Category=Options)

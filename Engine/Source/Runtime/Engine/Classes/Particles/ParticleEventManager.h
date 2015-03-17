@@ -16,9 +16,7 @@ class UParticleSystemComponent;
 UCLASS(config=Game, NotBlueprintable, notplaceable)
 class AParticleEventManager : public AActor
 {
-	GENERATED_BODY()
-public:
-	AParticleEventManager(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual void HandleParticleSpawnEvents( UParticleSystemComponent* Component, const TArray<FParticleEventSpawnData>& SpawnEvents );
 	virtual void HandleParticleDeathEvents( UParticleSystemComponent* Component, const TArray<FParticleEventDeathData>& DeathEvents );

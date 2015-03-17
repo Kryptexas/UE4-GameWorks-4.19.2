@@ -578,11 +578,10 @@ public:
 	}
 };
 
-UCLASS(MinimalAPI)
+UCLASS(customConstructor, MinimalAPI)
 class UPolys : public UObject
 {
-	GENERATED_BODY()
-public:
+	GENERATED_UCLASS_BODY()
 	// Elements.
 	TTransArray<FPoly> Element;
 

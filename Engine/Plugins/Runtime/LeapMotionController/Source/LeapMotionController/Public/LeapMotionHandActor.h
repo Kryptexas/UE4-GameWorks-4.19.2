@@ -18,9 +18,7 @@ class ULeapMotionControllerComponent;
 UCLASS(ClassGroup = LeapMotion, BlueprintType, Blueprintable)
 class LEAPMOTIONCONTROLLER_API ALeapMotionHandActor : public AActor
 {
-	GENERATED_BODY()
-public:
-	ALeapMotionHandActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Scale of the hand, relatively to real-world size */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = LeapMotion)

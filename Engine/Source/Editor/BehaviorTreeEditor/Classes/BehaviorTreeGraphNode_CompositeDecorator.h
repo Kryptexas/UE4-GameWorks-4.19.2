@@ -6,9 +6,7 @@
 UCLASS()
 class UBehaviorTreeGraphNode_CompositeDecorator : public UBehaviorTreeGraphNode
 {
-	GENERATED_BODY()
-public:
-	UBehaviorTreeGraphNode_CompositeDecorator(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// The logic graph for this decorator (returning a boolean)
 	UPROPERTY()

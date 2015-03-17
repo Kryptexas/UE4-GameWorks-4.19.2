@@ -8,9 +8,7 @@
 UCLASS(hidecategories=Object)
 class USlateWidgetStyleAssetFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	USlateWidgetStyleAssetFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=StyleType)
 	TSubclassOf< USlateWidgetStyleContainerBase > StyleType;

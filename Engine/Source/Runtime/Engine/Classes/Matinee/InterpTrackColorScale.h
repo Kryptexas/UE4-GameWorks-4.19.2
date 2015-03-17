@@ -12,9 +12,7 @@
 UCLASS(meta=( DisplayName = "Color Scale Track" ) )
 class UInterpTrackColorScale : public UInterpTrackVectorBase
 {
-	GENERATED_BODY()
-public:
-	UInterpTrackColorScale(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UInterpTrack interface.

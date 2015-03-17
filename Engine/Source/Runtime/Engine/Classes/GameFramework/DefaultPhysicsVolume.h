@@ -17,9 +17,7 @@
 UCLASS(notplaceable, transient, MinimalAPI)
 class ADefaultPhysicsVolume : public APhysicsVolume
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API ADefaultPhysicsVolume(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin AActor interface
 	ENGINE_API virtual void Destroyed() override;

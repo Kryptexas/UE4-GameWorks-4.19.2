@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UK2Node_IfThenElse : public UK2Node
 {
-	GENERATED_BODY()
-public:
-	BLUEPRINTGRAPH_API UK2Node_IfThenElse(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;

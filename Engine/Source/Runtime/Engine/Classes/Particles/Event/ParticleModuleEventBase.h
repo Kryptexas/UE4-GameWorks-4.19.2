@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Event"))
 class UParticleModuleEventBase : public UParticleModule
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleEventBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UParticleModule Interface

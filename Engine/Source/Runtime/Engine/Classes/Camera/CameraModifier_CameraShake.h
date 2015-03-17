@@ -16,7 +16,7 @@
 USTRUCT()
 struct ENGINE_API FCameraShakeInstance
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The source camera shake data. */
 	UPROPERTY()
@@ -100,9 +100,7 @@ struct ENGINE_API FCameraShakeInstance
 UCLASS(config=Camera)
 class ENGINE_API UCameraModifier_CameraShake : public UCameraModifier
 {
-	GENERATED_BODY()
-public:
-	UCameraModifier_CameraShake(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	/** List of active CameraShakes */

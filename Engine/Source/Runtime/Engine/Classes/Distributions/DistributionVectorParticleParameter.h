@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
 class UDistributionVectorParticleParameter : public UDistributionVectorParameterBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UDistributionVectorParticleParameter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UDistributionVectorParameterBase Interface

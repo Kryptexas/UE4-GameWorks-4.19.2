@@ -12,7 +12,7 @@
 USTRUCT()
 struct FEditorCommandCategory
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	FName Parent;
@@ -26,7 +26,7 @@ struct FEditorCommandCategory
 USTRUCT()
 struct FEditorCommand
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	FName Parent;
@@ -46,7 +46,7 @@ struct FEditorCommand
 USTRUCT()
 struct FClassPickerDefaults
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The name of the class to select */
 	UPROPERTY()
@@ -66,9 +66,7 @@ struct FClassPickerDefaults
 UCLASS(Config=Editor)
 class UNREALED_API UUnrealEdOptions : public UObject
 {
-	GENERATED_BODY()
-public:
-	UUnrealEdOptions(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Categories of commands. */
 	UPROPERTY(config)

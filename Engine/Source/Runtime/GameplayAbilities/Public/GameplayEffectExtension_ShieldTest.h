@@ -11,9 +11,7 @@
 UCLASS(BlueprintType)
 class GAMEPLAYABILITIES_API UGameplayEffectExtension_ShieldTest : public UGameplayEffectExtension
 {
-	GENERATED_BODY()
-public:
-	UGameplayEffectExtension_ShieldTest(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

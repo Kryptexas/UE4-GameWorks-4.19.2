@@ -8,9 +8,7 @@
 UCLASS(BlueprintType, MinimalAPI, EarlyAccessPreview, notplaceable)
 class AScriptTestActor : public AActor
 {
-	GENERATED_BODY()
-public:
-	SCRIPTPLUGIN_API AScriptTestActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(Category = Test, EditAnywhere, BlueprintReadWrite)
 	FString TestString;

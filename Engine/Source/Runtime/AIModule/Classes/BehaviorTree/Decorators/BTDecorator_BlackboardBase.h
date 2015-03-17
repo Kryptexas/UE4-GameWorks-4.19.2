@@ -8,9 +8,7 @@ class UBlackboardComponent;
 UCLASS(Abstract)
 class AIMODULE_API UBTDecorator_BlackboardBase : public UBTDecorator
 {
-	GENERATED_BODY()
-public:
-	UBTDecorator_BlackboardBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** initialize any asset related data */
 	virtual void InitializeFromAsset(UBehaviorTree& Asset) override;

@@ -12,9 +12,7 @@ UCLASS(config=EditorUserSettings)
 class UNREALED_API ULevelEditorMiscSettings
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	ULevelEditorMiscSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

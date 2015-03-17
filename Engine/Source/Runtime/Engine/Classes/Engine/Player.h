@@ -10,9 +10,7 @@
 UCLASS(transient, config=Engine)
 class UPlayer : public UObject, public FExec
 {
-	GENERATED_BODY()
-public:
-	UPlayer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The actor this player controls. */
 	UPROPERTY(transient)

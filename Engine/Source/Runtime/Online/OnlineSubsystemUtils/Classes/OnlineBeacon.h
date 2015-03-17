@@ -24,9 +24,7 @@ namespace EBeaconState
 UCLASS(transient, config=Engine, notplaceable)
 class ONLINESUBSYSTEMUTILS_API AOnlineBeacon : public AActor, public FNetworkNotify
 {
-	GENERATED_BODY()
-public:
-	AOnlineBeacon(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin AActor Interface
 	virtual void OnActorChannelOpen(class FInBunch& InBunch, class UNetConnection* Connection) override;

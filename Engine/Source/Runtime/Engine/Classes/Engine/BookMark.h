@@ -11,9 +11,7 @@
 UCLASS(hidecategories=Object, MinimalAPI)
 class UBookMark : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UBookMark(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Camera position */
 	UPROPERTY(EditAnywhere, Category=BookMark)

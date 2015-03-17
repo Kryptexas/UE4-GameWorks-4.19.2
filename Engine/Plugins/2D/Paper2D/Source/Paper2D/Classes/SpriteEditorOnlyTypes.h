@@ -9,7 +9,7 @@
 USTRUCT()
 struct FSpritePolygon
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FSpritePolygon() 
 	: bNegativeWinding(false)
@@ -82,7 +82,7 @@ namespace ESpriteSubdivisionMode
 USTRUCT()
 struct FSpritePolygonCollection
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(Category=PolygonData, EditAnywhere, AdvancedDisplay)
 	TArray<FSpritePolygon> Polygons;
@@ -147,7 +147,7 @@ struct FSpritePolygonCollection
 USTRUCT()
 struct FSpriteAssetInitParameters
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FSpriteAssetInitParameters()
 		: Texture(nullptr)

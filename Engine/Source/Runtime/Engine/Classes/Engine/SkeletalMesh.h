@@ -56,7 +56,7 @@ enum SkeletalMeshOptimizationType
 USTRUCT()
 struct FBoneMirrorInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The bone to mirror. */
 	UPROPERTY(EditAnywhere, Category=BoneMirrorInfo, meta=(ArrayClamp = "RefSkeleton"))
@@ -78,7 +78,7 @@ struct FBoneMirrorInfo
 USTRUCT()
 struct FBoneMirrorExport
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category=BoneMirrorExport)
 	FName BoneName;
@@ -101,7 +101,7 @@ struct FBoneMirrorExport
 USTRUCT()
 struct FTriangleSortSettings
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category=TriangleSortSettings)
 	TEnumAsByte<enum ETriangleSortOption> TriangleSorting;
@@ -125,7 +125,7 @@ struct FTriangleSortSettings
 USTRUCT()
 struct FBoneReference
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Name of bone to control. This is the main bone chain to modify from. **/
 	UPROPERTY(EditAnywhere, Category = BoneReference)
@@ -160,7 +160,7 @@ struct FBoneReference
 USTRUCT()
 struct FSkeletalMeshOptimizationSettings
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 		/** The method to use when optimizing the skeletal mesh LOD */
 		UPROPERTY()
@@ -281,7 +281,7 @@ struct FSkeletalMeshOptimizationSettings
 USTRUCT()
 struct FSkeletalMeshLODInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/**	Indicates when to use this LOD. A smaller number means use this LOD when further away. */
 	UPROPERTY(EditAnywhere, Category=SkeletalMeshLODInfo)
@@ -322,7 +322,7 @@ struct FSkeletalMeshLODInfo
 USTRUCT()
 struct FMorphTargetMap
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The bone to mirror. */
 	UPROPERTY(EditAnywhere, Category=MorphTargetMap)
@@ -403,7 +403,7 @@ struct FClothBonePlane
 USTRUCT()
 struct FClothPhysicsProperties
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	// Bending stiffness of the cloth in the range [0, 1]. 
 	UPROPERTY(EditAnywhere, Category = Stiffness, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
@@ -443,7 +443,7 @@ struct FClothPhysicsProperties
 USTRUCT()
 struct FClothingAssetData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/* User-defined asset name */
 	UPROPERTY(EditAnywhere, Category=ClothingAssetData)
@@ -491,7 +491,7 @@ struct FClothingAssetData
 USTRUCT()
 struct FSkeletalMaterial
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FSkeletalMaterial()
 		: MaterialInterface( NULL )
@@ -531,9 +531,7 @@ class FSkeletalMeshResource;
 UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
 class USkeletalMesh : public UObject, public IInterface_CollisionDataProvider, public IInterface_AssetUserData
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API USkeletalMesh(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 private:
 	/** Rendering resources created at import time. */

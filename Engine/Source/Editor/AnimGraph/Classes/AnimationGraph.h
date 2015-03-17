@@ -7,8 +7,6 @@
 UCLASS(MinimalAPI)
 class UAnimationGraph : public UEdGraph
 {
-	GENERATED_BODY()
-public:
-	ANIMGRAPH_API UAnimationGraph(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 };
 

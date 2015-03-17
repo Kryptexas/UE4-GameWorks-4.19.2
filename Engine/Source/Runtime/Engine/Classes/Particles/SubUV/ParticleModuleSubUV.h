@@ -9,9 +9,7 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "SubImage Index"))
 class UParticleModuleSubUV : public UParticleModuleSubUVBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleSubUV(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 *	The index of the sub-image that should be used for the particle.

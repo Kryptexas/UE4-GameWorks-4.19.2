@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitGameplayTag : public UAbilityTask
 {
-	GENERATED_BODY()
-public:
-	GAMEPLAYABILITIES_API UAbilityTask_WaitGameplayTag(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual void Activate() override;
 

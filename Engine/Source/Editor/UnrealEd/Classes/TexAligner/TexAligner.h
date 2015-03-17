@@ -38,9 +38,7 @@ enum ETexAlign
 UCLASS()
 class UTexAligner : public UObject
 {
-	GENERATED_BODY()
-public:
-	UTexAligner(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The default alignment this aligner represents. */
 	UPROPERTY()

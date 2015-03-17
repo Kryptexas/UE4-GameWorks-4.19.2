@@ -10,9 +10,7 @@
 UCLASS(hidecategories=Object)
 class USoundClassFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	USoundClassFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UFactory Interface

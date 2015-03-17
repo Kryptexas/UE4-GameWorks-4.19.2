@@ -9,7 +9,7 @@ class UNavigationSystem;
 USTRUCT()
 struct FNavGraphEdge
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	enum {
 		EgdeFlagsCount = 7
@@ -35,7 +35,7 @@ struct FNavGraphEdge
 USTRUCT()
 struct FNavGraphNode
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Who's this node referring to? This will most commonly point to an actor or a component */
 	UPROPERTY()
@@ -56,9 +56,7 @@ struct FNavGraphNode
 UCLASS(config=Engine, MinimalAPI, abstract)
 class ANavigationGraph : public ANavigationData
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API ANavigationGraph(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	static ANavigationData* CreateNavigationInstances(UNavigationSystem* NavSys);

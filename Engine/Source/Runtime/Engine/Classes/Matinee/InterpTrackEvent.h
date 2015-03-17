@@ -15,7 +15,7 @@
 USTRUCT()
 struct FEventTrackKey
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	float Time;
@@ -34,9 +34,7 @@ struct FEventTrackKey
 UCLASS(MinimalAPI, meta=( DisplayName = "Event Track" ) )
 class UInterpTrackEvent : public UInterpTrack
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UInterpTrackEvent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Array of events to fire off. */
 	UPROPERTY()

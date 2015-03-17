@@ -19,9 +19,7 @@ namespace physx
 UCLASS(BlueprintType, Blueprintable)
 class ENGINE_API UVehicleWheel : public UObject
 {
-	GENERATED_BODY()
-public:
-	UVehicleWheel(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** 
 	 * Static mesh with collision setup for wheel, will be used to create wheel shape

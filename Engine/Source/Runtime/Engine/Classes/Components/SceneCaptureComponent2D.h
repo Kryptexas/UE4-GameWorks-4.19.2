@@ -20,9 +20,7 @@ enum ESceneCaptureSource
 UCLASS(hidecategories=(Collision, Object, Physics, SceneComponent), ClassGroup=Rendering, MinimalAPI, editinlinenew, meta=(BlueprintSpawnableComponent))
 class USceneCaptureComponent2D : public USceneCaptureComponent
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API USceneCaptureComponent2D(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Camera field of view (in degrees) */
 	UPROPERTY(interp, Category=SceneCapture, meta=(DisplayName = "Field of View", UIMin = "5.0", UIMax = "170", ClampMin = "0.001", ClampMax = "360.0"))

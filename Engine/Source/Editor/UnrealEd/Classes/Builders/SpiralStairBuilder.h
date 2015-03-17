@@ -10,9 +10,11 @@
 UCLASS(MinimalAPI, autoexpandcategories=BrushSettings, EditInlineNew, meta=(DisplayName="Spiral Stair"))
 class USpiralStairBuilder : public UEditorBrushBuilder
 {
-	GENERATED_BODY()
 public:
-	UNREALED_API USpiralStairBuilder(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_BODY()
+
+public:
+	USpiralStairBuilder(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The radius of the inner curve of the stair */
 	UPROPERTY(EditAnywhere, Category=BrushSettings, meta=(ClampMin = "1"))

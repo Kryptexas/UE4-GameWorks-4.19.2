@@ -12,9 +12,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogCSVImportFactory, Log, All);
 UCLASS(hidecategories=Object)
 class UNREALED_API UCSVImportFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	UCSVImportFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin UFactory Interface
 	virtual FText GetDisplayName() const override;

@@ -9,9 +9,7 @@
 UCLASS(hidecategories=Object, collapsecategories)
 class UNREALED_API UDEditorTextureParameterValue : public UDEditorParameterValue
 {
-	GENERATED_BODY()
-public:
-	UDEditorTextureParameterValue(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=DEditorTextureParameterValue)
 	class UTexture* ParameterValue;

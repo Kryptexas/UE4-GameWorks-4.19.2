@@ -15,9 +15,7 @@ UCLASS(config=Engine, defaultconfig)
 class UNREALED_API UCookerSettings
 	: public UObject
 {
-	GENERATED_BODY()
-public:
-	UCookerSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

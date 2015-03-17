@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -15,9 +15,7 @@ class USlateBrushAsset;
 UCLASS()
 class UMG_API UCircularThrobber : public UWidget
 {
-	GENERATED_BODY()
-public:
-	UCircularThrobber(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

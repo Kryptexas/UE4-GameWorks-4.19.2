@@ -12,7 +12,7 @@
 USTRUCT()
 struct FFunctionExpressionInput
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** 
 	 * Reference to the FunctionInput in the material function.  
@@ -41,7 +41,7 @@ struct FFunctionExpressionInput
 USTRUCT()
 struct FFunctionExpressionOutput
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** 
 	 * Reference to the FunctionOutput in the material function.  
@@ -69,9 +69,7 @@ struct FFunctionExpressionOutput
 UCLASS(hidecategories=object, MinimalAPI)
 class UMaterialExpressionMaterialFunctionCall : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UMaterialExpressionMaterialFunctionCall(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The function to call. */
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionMaterialFunctionCall)

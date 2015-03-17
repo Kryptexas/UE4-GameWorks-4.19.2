@@ -13,9 +13,7 @@ class FDeferredDecalProxy;
 UCLASS(hidecategories=(Collision, Object, Physics, SceneComponent, Activation, "Components|Activation", Mobility), ClassGroup=Rendering, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UDecalComponent : public USceneComponent
 {
-	GENERATED_BODY()
-public:
-	UDecalComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Decal material. */
 	//editable(Decal) private{private} const MaterialInterface	DecalMaterial;

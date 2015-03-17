@@ -14,9 +14,7 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Source"))
 class UParticleModuleBeamSource : public UParticleModuleBeamBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleBeamSource(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The method flag. */
 	UPROPERTY(EditAnywhere, Category=Source)

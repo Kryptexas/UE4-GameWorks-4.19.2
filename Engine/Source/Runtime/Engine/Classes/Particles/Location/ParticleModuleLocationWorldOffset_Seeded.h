@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, meta=(DisplayName = "World Offset (Seed)"))
 class UParticleModuleLocationWorldOffset_Seeded : public UParticleModuleLocationWorldOffset
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleLocationWorldOffset_Seeded(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The random seed(s) to use for looking up values in StartLocation */
 	UPROPERTY(EditAnywhere, Category=RandomSeed)

@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Kill Height"))
 class UParticleModuleKillHeight : public UParticleModuleKillBase
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleKillHeight(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The height at which to kill the particle. */
 	UPROPERTY(EditAnywhere, Category=Kill)

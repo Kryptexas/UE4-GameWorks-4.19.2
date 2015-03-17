@@ -17,7 +17,7 @@
 USTRUCT()
 struct FNode
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Name of the original node. We don't allow to change this. This is used for identity.**/
 	UPROPERTY(VisibleAnywhere, Category="FNode")
@@ -86,7 +86,7 @@ namespace EConstraintTransform
 USTRUCT()
 struct FRigTransformConstraint
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** What transform type **/
 	UPROPERTY(/*EditAnywhere, Category="FTransformBaseConstraint"*/)
@@ -105,7 +105,7 @@ struct FRigTransformConstraint
 USTRUCT()
 struct FTransformBaseConstraint
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** What transform type **/
 	UPROPERTY(EditAnywhere, Category="FTransformBaseConstraint")
@@ -117,7 +117,7 @@ struct FTransformBaseConstraint
 USTRUCT()
 struct FTransformBase
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category="FTransformBase")
 	FName					Node;
@@ -136,9 +136,7 @@ DECLARE_DELEGATE_RetVal_OneParam(int32, FGetParentIndex, FName);
 UCLASS(hidecategories=Object, MinimalAPI)
 class URig : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API URig(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 private:
 

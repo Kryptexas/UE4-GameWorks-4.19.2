@@ -42,9 +42,7 @@ public:
 UCLASS(abstract, HideCategories=(Trigger,Activation,"Components|Activation",Physics), ShowCategories=(Mobility))
 class ENGINE_API ULightComponent : public ULightComponentBase
 {
-	GENERATED_BODY()
-public:
-	ULightComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** 
 	 * Shadow map channel which is used to match up with the appropriate static shadowing during a deferred shading pass.

@@ -10,15 +10,12 @@ struct FNavigationSegmentLink;
 UINTERFACE(MinimalAPI, meta=(CannotImplementInterfaceInBlueprint))
 class UNavLinkHostInterface : public UInterface
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UNavLinkHostInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UINTERFACE_BODY()
 };
 
 class ENGINE_API INavLinkHostInterface
 {
-	GENERATED_BODY()
-public:
+	GENERATED_IINTERFACE_BODY()
 		
 	/**
 	 *	Retrieves UNavLinkDefinition derived UClasses hosted by this interface implementor

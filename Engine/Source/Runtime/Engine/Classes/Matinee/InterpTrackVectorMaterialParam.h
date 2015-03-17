@@ -6,9 +6,7 @@
 UCLASS(MinimalAPI, meta=( DisplayName = "Vector Material Parameter Track" ))
 class UInterpTrackVectorMaterialParam : public UInterpTrackVectorBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UInterpTrackVectorMaterialParam(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Materials whose parameters we want to change and the references to those materials. */
 	UPROPERTY(EditAnywhere, Category=InterpTrackVectorMaterialParam)

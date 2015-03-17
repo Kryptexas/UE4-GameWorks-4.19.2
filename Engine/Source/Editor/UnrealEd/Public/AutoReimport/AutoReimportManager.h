@@ -22,9 +22,7 @@ struct FPathAndMountPoint
 UCLASS(config=Editor, transient)
 class UNREALED_API UAutoReimportManager : public UObject
 {
-	GENERATED_BODY()
-public:
-	UAutoReimportManager(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 public:
 
 	~UAutoReimportManager();

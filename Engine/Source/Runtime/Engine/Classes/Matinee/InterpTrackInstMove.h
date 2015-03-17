@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI)
 class UInterpTrackInstMove : public UInterpTrackInst
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UInterpTrackInstMove(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Saved position. Used in editor for resetting when quitting Matinee. */
 	UPROPERTY()

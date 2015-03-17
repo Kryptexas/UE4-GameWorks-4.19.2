@@ -7,9 +7,7 @@
 UCLASS(hidecategories=Object, collapsecategories)
 class UEditorTutorialImportFactory : public UFactory, public FReimportHandler
 {
-	GENERATED_BODY()
-public:
-	UEditorTutorialImportFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// UFactory Interface
 	virtual bool FactoryCanImport(const FString& Filename) override;

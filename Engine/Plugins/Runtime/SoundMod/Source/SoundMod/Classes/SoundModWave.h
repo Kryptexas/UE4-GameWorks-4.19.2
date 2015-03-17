@@ -11,9 +11,7 @@
 UCLASS()
 class USoundModWave : public USoundWaveStreaming
 {
-	GENERATED_BODY()
-public:
-	USoundModWave(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	class USoundMod* SoundMod;

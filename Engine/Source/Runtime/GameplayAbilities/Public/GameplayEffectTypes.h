@@ -101,7 +101,7 @@ enum class EGameplayEffectStackingType : uint8
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FActiveGameplayEffectHandle
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FActiveGameplayEffectHandle()
 		: Handle(INDEX_NONE)
@@ -156,7 +156,7 @@ private:
 USTRUCT()
 struct FGameplayModifierEvaluatedData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGameplayModifierEvaluatedData()
 		: Attribute()
@@ -202,7 +202,7 @@ struct FGameplayModifierEvaluatedData
 USTRUCT()
 struct GAMEPLAYABILITIES_API FGameplayEffectAttributeCaptureDefinition
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGameplayEffectAttributeCaptureDefinition()
 	{
@@ -256,7 +256,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectAttributeCaptureDefinition
 USTRUCT()
 struct GAMEPLAYABILITIES_API FGameplayEffectContext
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGameplayEffectContext()
 		: bHasWorldOrigin(false)
@@ -427,7 +427,7 @@ struct TStructOpsTypeTraits< FGameplayEffectContext > : public TStructOpsTypeTra
 USTRUCT(BlueprintType)
 struct FGameplayEffectContextHandle
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGameplayEffectContextHandle()
 	{
@@ -681,7 +681,7 @@ struct TStructOpsTypeTraits<FGameplayEffectContextHandle> : public TStructOpsTyp
 USTRUCT(BlueprintType)
 struct FGameplayCueParameters
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGameplayCueParameters()
 	: NormalizedMagnitude(0.0f)
@@ -838,7 +838,7 @@ private:
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayTagRequirements
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** All of these tags must be present */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayModifier)
@@ -859,7 +859,7 @@ struct GAMEPLAYABILITIES_API FGameplayTagRequirements
 USTRUCT()
 struct GAMEPLAYABILITIES_API FTagContainerAggregator
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FTagContainerAggregator() : CacheIsValid(false) {}
 
@@ -929,7 +929,7 @@ private:
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayEffectSpecHandle
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGameplayEffectSpecHandle() { }
 	FGameplayEffectSpecHandle(FGameplayEffectSpec* DataPtr)

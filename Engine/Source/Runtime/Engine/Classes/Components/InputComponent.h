@@ -80,7 +80,7 @@ protected:
 USTRUCT()
 struct FInputChord
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The Key is the core of the chord. */
 	UPROPERTY()
@@ -530,9 +530,7 @@ UCLASS(transient, config=Input, hidecategories=(Activation, "Components|Activati
 class ENGINE_API UInputComponent
 	: public UActorComponent
 {
-	GENERATED_BODY()
-public:
-	UInputComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The collection of key bindings. */
 	TArray<struct FInputKeyBinding> KeyBindings;

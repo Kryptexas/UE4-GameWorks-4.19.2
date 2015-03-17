@@ -25,7 +25,7 @@ namespace ESplineMeshAxis
 USTRUCT()
 struct FSplineMeshParams
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Start location of spline, in component space */
 	UPROPERTY(EditAnywhere, Category=SplineMesh)
@@ -91,9 +91,7 @@ struct FSplineMeshParams
 UCLASS(ClassGroup=Rendering, hidecategories=(Physics), meta=(BlueprintSpawnableComponent))
 class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInterface_CollisionDataProvider
 {
-	GENERATED_BODY()
-public:
-	USplineMeshComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Spline that is used to deform mesh */
 	UPROPERTY(EditAnywhere, Category=SplineMesh, meta=(ShowOnlyInnerProperties))

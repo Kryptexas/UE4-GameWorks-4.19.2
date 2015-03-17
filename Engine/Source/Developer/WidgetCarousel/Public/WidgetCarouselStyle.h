@@ -8,7 +8,7 @@
 USTRUCT()
 struct WIDGETCAROUSEL_API FWidgetCarouselNavigationButtonStyle : public FSlateWidgetStyle
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FWidgetCarouselNavigationButtonStyle();
 
@@ -37,7 +37,7 @@ struct WIDGETCAROUSEL_API FWidgetCarouselNavigationButtonStyle : public FSlateWi
 USTRUCT()
 struct WIDGETCAROUSEL_API FWidgetCarouselNavigationBarStyle : public FSlateWidgetStyle
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FWidgetCarouselNavigationBarStyle();
 

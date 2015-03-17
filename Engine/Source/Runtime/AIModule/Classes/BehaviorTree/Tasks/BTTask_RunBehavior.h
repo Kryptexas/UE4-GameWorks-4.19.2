@@ -21,9 +21,7 @@
 UCLASS()
 class AIMODULE_API UBTTask_RunBehavior : public UBTTaskNode
 {
-	GENERATED_BODY()
-public:
-	UBTTask_RunBehavior(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 	virtual uint16 GetInstanceMemorySize() const override;

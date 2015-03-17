@@ -12,9 +12,7 @@
 UCLASS()
 class UAnimCompress_LeastDestructive : public UAnimCompress
 {
-	GENERATED_BODY()
-public:
-	UAnimCompress_LeastDestructive(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 protected:

@@ -315,7 +315,7 @@ typedef TWeakPtr<struct FNavigationPath, ESPMode::ThreadSafe> FNavPathWeakPtr;
 USTRUCT()
 struct FMovementProperties
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** If true, this Pawn is capable of crouching. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties)
@@ -351,7 +351,7 @@ struct FMovementProperties
 USTRUCT()
 struct ENGINE_API FNavAgentProperties : public FMovementProperties
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Radius of the capsule used for navigation/pathfinding. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MovementProperties)
@@ -407,7 +407,7 @@ inline uint32 GetTypeHash(const FNavAgentProperties& A)
 USTRUCT()
 struct ENGINE_API FNavDataConfig : public FNavAgentProperties
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Display)
 	FName Name;
@@ -520,11 +520,10 @@ struct ENGINE_API FMoveRequestCustomData
 typedef TSharedPtr<FMoveRequestCustomData, ESPMode::ThreadSafe> FCustomMoveSharedPtr;
 typedef TWeakPtr<FMoveRequestCustomData, ESPMode::ThreadSafe> FCustomMoveWeakPtr;
 
-UCLASS(Abstract)
+UCLASS(Abstract, CustomConstructor)
 class UNavigationTypes : public UObject
 {
-	GENERATED_BODY()
-public:
+	GENERATED_UCLASS_BODY()
 
 	UNavigationTypes(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) { }
 };

@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class UNiagaraGraph : public UEdGraph
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UNiagaraGraph(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	
 	/** Get the source that owns this graph */
 	class UNiagaraScriptSource* GetSource() const;

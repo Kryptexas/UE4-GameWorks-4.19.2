@@ -43,9 +43,7 @@ struct FActiveSound;
 UCLASS(abstract, hidecategories=Object, editinlinenew)
 class ENGINE_API USoundNode : public UObject
 {
-	GENERATED_BODY()
-public:
-	USoundNode(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	static const int32 MAX_ALLOWED_CHILD_NODES = 32;
 

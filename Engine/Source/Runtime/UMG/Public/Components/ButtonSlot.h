@@ -10,9 +10,7 @@
 UCLASS()
 class UMG_API UButtonSlot : public UPanelSlot
 {
-	GENERATED_BODY()
-public:
-	UButtonSlot(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	

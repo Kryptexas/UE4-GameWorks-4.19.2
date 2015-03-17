@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class UAnimationTransitionSchema : public UEdGraphSchema_K2
 {
-	GENERATED_BODY()
-public:
-	ANIMGRAPH_API UAnimationTransitionSchema(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin UEdGraphSchema interface.
 	virtual void GetGraphContextActions(FGraphContextMenuBuilder& ContextMenuBuilder) const override;

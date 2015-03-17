@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Orientation"))
 class UParticleModuleOrientationBase : public UParticleModule
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleOrientationBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 };
 

@@ -96,9 +96,7 @@ struct FGraphLine
 UCLASS()
 class ENGINE_API UReporterGraph : public UReporterBase
 {
-	GENERATED_BODY()
-public:
-	UReporterGraph(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

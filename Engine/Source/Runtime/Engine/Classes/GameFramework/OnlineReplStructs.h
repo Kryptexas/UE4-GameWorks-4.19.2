@@ -17,7 +17,7 @@
 USTRUCT()
 struct FUniqueNetIdRepl
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FUniqueNetIdRepl() :
 		UniqueNetId(NULL)

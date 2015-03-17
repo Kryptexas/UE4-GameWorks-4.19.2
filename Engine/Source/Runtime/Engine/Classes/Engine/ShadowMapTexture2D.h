@@ -7,9 +7,7 @@
 UCLASS(MinimalAPI)
 class UShadowMapTexture2D : public UTexture2D
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UShadowMapTexture2D(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	
 	/** Bit-field with shadowmap flags. */
 	UPROPERTY()

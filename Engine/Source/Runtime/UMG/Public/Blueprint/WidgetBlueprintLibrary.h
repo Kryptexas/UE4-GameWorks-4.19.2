@@ -13,9 +13,7 @@ struct FPaintContext;
 UCLASS(MinimalAPI)
 class UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary
 {
-	GENERATED_BODY()
-public:
-	UMG_API UWidgetBlueprintLibrary(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

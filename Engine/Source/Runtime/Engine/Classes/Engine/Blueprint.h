@@ -113,7 +113,7 @@ public:
 USTRUCT()
 struct FBPVariableMetaDataEntry
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Name of metadata key */
 	UPROPERTY(EditAnywhere, Category=BPVariableMetaDataEntry)
@@ -138,7 +138,7 @@ struct FBPVariableMetaDataEntry
 USTRUCT()
 struct FBPVariableDescription
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Name of the variable */
 	UPROPERTY(EditAnywhere, Category=BPVariableDescription)
@@ -198,7 +198,7 @@ struct FBPVariableDescription
 USTRUCT()
 struct FBPInterfaceDescription
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Reference to the interface class we're adding to this blueprint */
 	UPROPERTY()
@@ -218,7 +218,7 @@ struct FBPInterfaceDescription
 USTRUCT()
 struct FEditedDocumentInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	UObject* EditedObject;
@@ -264,9 +264,7 @@ struct FEditedDocumentInfo
 UCLASS(config=Engine, BlueprintType)
 class ENGINE_API UBlueprint : public UBlueprintCore
 {
-	GENERATED_BODY()
-public:
-	UBlueprint(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Whether or not this blueprint should recompile itself on load */
 	UPROPERTY(config)

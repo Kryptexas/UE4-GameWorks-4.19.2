@@ -69,9 +69,7 @@ struct FMaterialInputInfo
 UCLASS(MinimalAPI)
 class UMaterialGraph : public UEdGraph
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UMaterialGraph(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Material this Graph represents */
 	UPROPERTY()

@@ -13,9 +13,7 @@ class UK2Node_TemporaryVariable;
 UCLASS(Abstract)
 class BLUEPRINTGRAPH_API UK2Node_BaseAsyncTask : public UK2Node
 {
-	GENERATED_BODY()
-public:
-	UK2Node_BaseAsyncTask(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;

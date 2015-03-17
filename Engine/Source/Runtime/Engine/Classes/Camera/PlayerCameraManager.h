@@ -34,7 +34,7 @@ enum EViewTargetBlendFunction
 USTRUCT()
 struct FCameraCacheEntry
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 public:
 
 	/** World time this entry was created. */
@@ -54,7 +54,7 @@ public:
 USTRUCT()
 struct ENGINE_API FTViewTarget
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 public:
 
 	/** Target Actor used to compute POV */
@@ -93,7 +93,7 @@ public:
 USTRUCT()
 struct FViewTargetTransitionParams
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 public:
 
 	/** Total duration of blend to pending view target. 0 means no blending. */
@@ -163,9 +163,7 @@ public:
 UCLASS(notplaceable, transient, BlueprintType, Blueprintable)
 class ENGINE_API APlayerCameraManager : public AActor
 {
-	GENERATED_BODY()
-public:
-	APlayerCameraManager(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** PlayerController that owns this Camera actor */
 	UPROPERTY()

@@ -13,9 +13,7 @@
 UCLASS(BlueprintType)
 class GAMEPLAYABILITIES_API UGameplayAbilityBlueprint : public UBlueprint
 {
-	GENERATED_BODY()
-public:
-	UGameplayAbilityBlueprint(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITOR
 

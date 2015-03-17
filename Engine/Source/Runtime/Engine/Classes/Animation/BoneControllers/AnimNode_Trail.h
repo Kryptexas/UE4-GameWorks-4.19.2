@@ -12,7 +12,7 @@
 USTRUCT()
 struct ENGINE_API FAnimNode_Trail : public FAnimNode_SkeletalControlBase
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Reference to the active bone in the hierarchy to modify. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Trail)

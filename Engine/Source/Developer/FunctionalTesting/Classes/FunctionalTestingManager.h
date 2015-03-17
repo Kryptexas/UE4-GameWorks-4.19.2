@@ -17,9 +17,7 @@ namespace FFunctionalTesting
 UCLASS(BlueprintType, MinimalAPI)
 class UFunctionalTestingManager : public UBlueprintFunctionLibrary
 {
-	GENERATED_BODY()
-public:
-	FUNCTIONALTESTING_API UFunctionalTestingManager(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 	
 	UPROPERTY(Transient)
 	TArray<class AFunctionalTest*> TestsLeft;

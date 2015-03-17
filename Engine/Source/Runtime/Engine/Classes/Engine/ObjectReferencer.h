@@ -11,9 +11,7 @@
 UCLASS()
 class UObjectReferencer : public UObject
 {
-	GENERATED_BODY()
-public:
-	UObjectReferencer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** Array of objects being referenced. */
 	UPROPERTY(EditAnywhere, Category=ObjectReferencer)

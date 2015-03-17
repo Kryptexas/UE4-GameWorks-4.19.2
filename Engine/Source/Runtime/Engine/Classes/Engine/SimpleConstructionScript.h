@@ -9,9 +9,7 @@ class USCS_Node;
 UCLASS(MinimalAPI)
 class USimpleConstructionScript : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API USimpleConstructionScript(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;

@@ -59,7 +59,7 @@ namespace EGameplayTargetingConfirmation
 USTRUCT()
 struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	virtual ~FGameplayAbilityTargetData() { }
 
@@ -160,7 +160,7 @@ namespace EGameplayAbilityTargetingLocationType
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayAbilityTargetDataHandle
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGameplayAbilityTargetDataHandle() { }
 	FGameplayAbilityTargetDataHandle(struct FGameplayAbilityTargetData* DataPtr)
@@ -248,7 +248,7 @@ struct TStructOpsTypeTraits<FGameplayAbilityTargetDataHandle> : public TStructOp
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayAbilityTargetingLocationInfo
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGameplayAbilityTargetingLocationInfo()
 	: LocationType(EGameplayAbilityTargetingLocationType::LiteralTransform)
@@ -345,7 +345,7 @@ struct TStructOpsTypeTraits<FGameplayAbilityTargetingLocationInfo> : public TStr
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_LocationInfo : public FGameplayAbilityTargetData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Generic location data for source */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Targeting)
@@ -406,7 +406,7 @@ struct TStructOpsTypeTraits<FGameplayAbilityTargetData_LocationInfo> : public TS
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_ActorArray : public FGameplayAbilityTargetData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** We could be selecting this group of actors from any type of location, so use a generic location type */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Targeting)
@@ -508,7 +508,7 @@ struct TStructOpsTypeTraits<FGameplayAbilityTargetData_ActorArray> : public TStr
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public FGameplayAbilityTargetData
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FGameplayAbilityTargetData_SingleTargetHit()
 	{ }

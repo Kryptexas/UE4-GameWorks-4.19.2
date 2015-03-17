@@ -12,9 +12,7 @@
 UCLASS(hidecategories=Object, MinimalAPI)
 class UButtonStyleAsset : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UButtonStyleAsset(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	/** The actual data describing the button's appearance. */

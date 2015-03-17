@@ -8,9 +8,7 @@
 UCLASS(MinimalAPI, config=Editor)
 class UActorFactoryProceduralFoliage : public UActorFactoryBoxVolume
 {
-	GENERATED_BODY()
-public:
-	FOLIAGEEDIT_API UActorFactoryProceduralFoliage(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin UActorFactory Interface
 	virtual bool CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg ) override;

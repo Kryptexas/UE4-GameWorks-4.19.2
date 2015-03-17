@@ -7,9 +7,7 @@
 UCLASS(hidecategories=Object, MinimalAPI)
 class UTexture2DDynamic : public UTexture
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UTexture2DDynamic(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The width of the texture. */
 	int32 SizeX;

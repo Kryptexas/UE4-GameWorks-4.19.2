@@ -17,7 +17,7 @@ class USkeletalMesh;
 USTRUCT()
 struct FSkeletonToMeshLinkup
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** 
 	 * Mapping table. Size must be same as size of bone tree (not Mesh Ref Pose). 
@@ -58,7 +58,7 @@ namespace EBoneTranslationRetargetingMode
 USTRUCT()
 struct FBoneNode
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** Name of bone, this is the search criteria to match with mesh bone. This will be NAME_None if deleted **/
 	UPROPERTY()
@@ -90,7 +90,7 @@ struct FBoneNode
 USTRUCT()
 struct FReferencePose
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	FName	PoseName;
@@ -117,7 +117,7 @@ struct FReferencePose
 USTRUCT()
 struct FBoneReductionSetting
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	TArray<FName> BonesToRemove;
@@ -147,7 +147,7 @@ struct FBoneReductionSetting
 USTRUCT()
 struct FNameMapping
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	FName NodeName;
@@ -177,7 +177,7 @@ struct FNameMapping
 USTRUCT()
 struct FRigConfiguration
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
 	class URig * Rig;
@@ -190,7 +190,7 @@ struct FRigConfiguration
 USTRUCT()
 struct FAnimSlotGroup
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 public:
 	static ENGINE_API const FName DefaultGroupName;
@@ -223,9 +223,7 @@ public:
 UCLASS(hidecategories=Object, MinimalAPI)
 class USkeleton : public UObject
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API USkeleton(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 private:
 	/** Skeleton bone tree - each contains name and parent index**/

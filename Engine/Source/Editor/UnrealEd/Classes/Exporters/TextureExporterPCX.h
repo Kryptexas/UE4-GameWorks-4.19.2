@@ -10,9 +10,7 @@
 UCLASS()
 class UTextureExporterPCX : public UExporter
 {
-	GENERATED_BODY()
-public:
-	UTextureExporterPCX(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UExporter Interface

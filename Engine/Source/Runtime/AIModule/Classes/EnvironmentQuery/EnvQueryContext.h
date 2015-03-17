@@ -9,9 +9,7 @@ struct FEnvQueryInstance;
 UCLASS(Abstract)
 class AIMODULE_API UEnvQueryContext : public UObject
 {
-	GENERATED_BODY()
-public:
-	UEnvQueryContext(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	virtual void ProvideContext(FEnvQueryInstance& QueryInstance, FEnvQueryContextData& ContextData) const;
 };

@@ -12,9 +12,7 @@
 UCLASS(MinimalAPI)
 class UAnimGraphNode_TwoBoneIK : public UAnimGraphNode_SkeletalControlBase
 {
-	GENERATED_BODY()
-public:
-	ANIMGRAPH_API UAnimGraphNode_TwoBoneIK(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_TwoBoneIK Node;

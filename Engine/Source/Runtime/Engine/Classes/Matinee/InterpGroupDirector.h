@@ -12,9 +12,7 @@
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UInterpGroupDirector : public UInterpGroup
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UInterpGroupDirector(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Begin UInterpGroup Interface
 	virtual AActor* SelectGroupActor( class UInterpGroupInst* GrInst, bool bDeselectActors ) override;

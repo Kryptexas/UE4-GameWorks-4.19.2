@@ -8,9 +8,7 @@
 UCLASS()
 class UMaterialExpressionDistance : public UMaterialExpression
 {
-	GENERATED_BODY()
-public:
-	UMaterialExpressionDistance(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	FExpressionInput A;

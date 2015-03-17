@@ -23,7 +23,7 @@ enum EOrbitChainMode
 USTRUCT()
 struct FOrbitOptions
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/**
 	 *	Whether to process the data during spawning.
@@ -57,9 +57,7 @@ struct FOrbitOptions
 UCLASS(editinlinenew, hidecategories=(Object, Orbit), MinimalAPI, meta=(DisplayName = "Orbit"))
 class UParticleModuleOrbit : public UParticleModuleOrbitBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UParticleModuleOrbit(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/**
 	 *	Orbit modules will chain together in the order they appear in the module stack.

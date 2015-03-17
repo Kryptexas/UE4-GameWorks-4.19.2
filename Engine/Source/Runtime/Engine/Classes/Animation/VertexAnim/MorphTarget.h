@@ -66,9 +66,7 @@ struct FMorphTargetLODModel
 UCLASS(hidecategories=Object, MinimalAPI)
 class UMorphTarget : public UVertexAnimBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UMorphTarget(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 	/** morph mesh vertex data for each LOD */

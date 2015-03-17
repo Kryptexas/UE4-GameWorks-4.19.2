@@ -8,9 +8,7 @@
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "SubUV"))
 class UParticleModuleSubUVBase : public UParticleModule
 {
-	GENERATED_BODY()
-public:
-	UParticleModuleSubUVBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 };
 

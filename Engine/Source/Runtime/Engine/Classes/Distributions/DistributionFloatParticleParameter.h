@@ -8,9 +8,7 @@
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
 class UDistributionFloatParticleParameter : public UDistributionFloatParameterBase
 {
-	GENERATED_BODY()
-public:
-	ENGINE_API UDistributionFloatParticleParameter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UDistributionFloatParameterBase Interface

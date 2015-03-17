@@ -10,9 +10,7 @@
 UCLASS(HideCategories=Object,MinimalAPI)
 class UAnimSequenceFactory : public UFactory
 {
-	GENERATED_BODY()
-public:
-	UNREALED_API UAnimSequenceFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	class USkeleton* TargetSkeleton;

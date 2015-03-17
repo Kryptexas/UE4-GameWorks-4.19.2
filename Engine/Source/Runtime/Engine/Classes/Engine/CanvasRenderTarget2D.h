@@ -24,9 +24,7 @@ UCLASS(BlueprintType, Blueprintable)
 class ENGINE_API UCanvasRenderTarget2D
 	: public UTextureRenderTarget2D
 {
-	GENERATED_BODY()
-public:
-	UCanvasRenderTarget2D(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 public:
 

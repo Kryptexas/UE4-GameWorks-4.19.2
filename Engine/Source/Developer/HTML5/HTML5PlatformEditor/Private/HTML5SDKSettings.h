@@ -14,7 +14,7 @@ class IHTML5TargetPlatformModule;
 USTRUCT()
 struct FHTML5DeviceMapping
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category = HTML5_Devices, Meta = (DisplayName = "Browser name"))
 	FString DeviceName;
@@ -26,7 +26,7 @@ struct FHTML5DeviceMapping
 USTRUCT()
 struct FHTML5SDKPath
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditAnywhere, Category = SDK_Path)
 	FString SDKPath;
@@ -42,10 +42,8 @@ struct FHTML5SDKPath
 UCLASS(config=Engine, globaluserconfig)
 class HTML5PLATFORMEDITOR_API UHTML5SDKSettings : public UObject
 {
-	GENERATED_BODY()
 public:
-	UHTML5SDKSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-public:
+	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = HTML5_SDK_Paths, Meta = (DisplayName = "Location of Python exe (This can be blank if python is on the PATH)"))
 	FFilePath Python;
