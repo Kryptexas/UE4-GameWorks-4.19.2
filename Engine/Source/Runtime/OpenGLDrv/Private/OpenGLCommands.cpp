@@ -53,8 +53,7 @@ namespace OpenGLConsoleVariables
 		TEXT("If true, don't issue dispatch work.")
 		);
 
-	//@todo-rco: Workaround Nvidia driver crash
-	int32 bUseVAB = (PLATFORM_DESKTOP && !PLATFORM_LINUX && IsRHIDeviceNVIDIA()) ? 0 : 1;
+	int32 bUseVAB = 1;
 	static FAutoConsoleVariableRef CVarUseVAB(
 		TEXT("OpenGL.UseVAB"),
 		bUseVAB,

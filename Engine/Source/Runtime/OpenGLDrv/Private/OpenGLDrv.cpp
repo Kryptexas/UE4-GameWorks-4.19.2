@@ -487,11 +487,29 @@ void FOpenGLBase::ProcessExtensions( const FString& ExtensionsString )
 
 #if PLATFORM_WINDOWS || PLATFORM_LINUX
 	FString VendorName( ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VENDOR) ) );
-	if (VendorName.Contains(TEXT("ATI ")) || VendorName.Contains(TEXT("Intel ")))
+	if (VendorName.Contains(TEXT("ATI ")))
 	{
 		bAmdWorkaround = true;
+		GRHIVendorId = 0x1002;
+	}
+	else if (VendorName.Contains(TEXT("Intel ")))
+	{
+		bAmdWorkaround = true;
+		GRHIVendorId = 0x8086;
+	}
+	else if (VendorName.Contains(TEXT("NVIDIA ")))
+	{
+		GRHIVendorId = 0x10DE;
 	}
 #endif
+
+	// Setup CVars that require the RHI initialized
+
+	//@todo-rco: Workaround Nvidia driver crash
+	if (PLATFORM_DESKTOP && !PLATFORM_LINUX && IsRHIDeviceNVIDIA())
+	{
+		OpenGLConsoleVariables::bUseVAB = 0;
+	}
 }
 
 void GetExtensionsString( FString& ExtensionsString)
