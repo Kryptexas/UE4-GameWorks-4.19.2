@@ -11,7 +11,7 @@ class UAISense_Team;
 USTRUCT()
 struct AIMODULE_API FAITeamStimulusEvent
 {	
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	typedef UAISense_Team FSenseClass;
 
@@ -47,7 +47,9 @@ public:
 UCLASS(ClassGroup=AI)
 class AIMODULE_API UAISense_Team : public UAISense
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAISense_Team(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	TArray<FAITeamStimulusEvent> RegisteredEvents;

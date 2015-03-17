@@ -8,7 +8,9 @@
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "EventReceiver Kill All"))
 class UParticleModuleEventReceiverKillParticles : public UParticleModuleEventReceiverBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleModuleEventReceiverKillParticles(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** If true, stop this emitter from spawning as well. */
 	UPROPERTY(EditAnywhere, Category=ParticleModuleEventReceiverKillParticles)

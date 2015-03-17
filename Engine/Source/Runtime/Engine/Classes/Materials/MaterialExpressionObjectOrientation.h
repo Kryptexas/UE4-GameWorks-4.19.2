@@ -8,7 +8,9 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionObjectOrientation : public UMaterialExpression
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMaterialExpressionObjectOrientation(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin UMaterialExpression Interface

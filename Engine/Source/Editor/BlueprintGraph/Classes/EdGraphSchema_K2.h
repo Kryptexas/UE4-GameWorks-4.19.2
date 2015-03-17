@@ -8,7 +8,7 @@
 USTRUCT()
 struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Struct : public FEdGraphSchemaAction
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// Simple type info
 	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2Struct"); return Type;}
@@ -214,7 +214,7 @@ USTRUCT()
 // into their never versions (with class param instead of blueprint).
 struct FBlueprintCallableFunctionRedirect
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FString ClassName;
@@ -235,7 +235,9 @@ struct FBlueprintCallableFunctionRedirect
 UCLASS(config=Editor)
 class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UEdGraphSchema_K2(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Allowable PinType.PinCategory values
 	static const FString PC_Exec;

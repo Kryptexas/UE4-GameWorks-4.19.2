@@ -12,7 +12,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDownloadImageDelegate, UTexture2D*,
 UCLASS()
 class UMG_API UAsyncTaskDownloadImage : public UBlueprintAsyncActionBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAsyncTaskDownloadImage(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	UFUNCTION(BlueprintCallable, meta=( BlueprintInternalUseOnly="true" ))

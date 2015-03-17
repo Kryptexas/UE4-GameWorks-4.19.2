@@ -9,7 +9,9 @@
 UCLASS()
 class UMaterialExpressionDDX : public UMaterialExpression
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMaterialExpressionDDX(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The value we want to compute ddx/ddy from */
 	UPROPERTY()

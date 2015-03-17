@@ -25,7 +25,9 @@ namespace ETransitionGetter
 UCLASS(MinimalAPI)
 class UK2Node_TransitionRuleGetter : public UK2Node
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ANIMGRAPH_API UK2Node_TransitionRuleGetter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	TEnumAsByte<ETransitionGetter::Type> GetterType;

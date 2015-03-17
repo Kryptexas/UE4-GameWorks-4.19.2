@@ -6,7 +6,9 @@
 UCLASS(Abstract)
 class AIMODULE_API UBTService_BlackboardBase : public UBTService
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBTService_BlackboardBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** initialize any asset related data */
 	virtual void InitializeFromAsset(UBehaviorTree& Asset) override;

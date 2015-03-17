@@ -7,7 +7,7 @@
 USTRUCT()
 struct ENGINE_API FAnimNode_SaveCachedPose : public FAnimNode_Base
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(transient)
 	int16 LastInitializedContextCounter;

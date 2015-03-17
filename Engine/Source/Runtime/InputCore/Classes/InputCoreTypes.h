@@ -7,7 +7,7 @@
 USTRUCT(BlueprintType)
 struct INPUTCORE_API FKey
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FKey()
 	{

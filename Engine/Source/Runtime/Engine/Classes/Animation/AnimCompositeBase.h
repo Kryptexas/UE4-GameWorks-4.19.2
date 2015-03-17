@@ -20,7 +20,7 @@ class UAnimSequence;
 USTRUCT()
 struct FRootMotionExtractionStep
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** AnimSequence ref */
 	UPROPERTY()
@@ -53,7 +53,7 @@ struct FRootMotionExtractionStep
 USTRUCT()
 struct FAnimSegment
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Anim Reference to play - only allow AnimSequence or AnimComposite **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimSegment)
@@ -138,7 +138,7 @@ struct FAnimSegment
 USTRUCT()
 struct FAnimTrack
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimTrack, EditFixedSize)
 	TArray<FAnimSegment>	AnimSegments;
@@ -186,7 +186,9 @@ struct FAnimTrack
 UCLASS(abstract, MinimalAPI)
 class UAnimCompositeBase : public UAnimSequenceBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UAnimCompositeBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 #if WITH_EDITOR
 	/** Set Sequence Length */

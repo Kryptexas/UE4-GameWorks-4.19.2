@@ -32,7 +32,9 @@
 UCLASS(abstract, transient,MinimalAPI)
 class UCommandlet : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Description of the commandlet's purpose */
 	UPROPERTY()

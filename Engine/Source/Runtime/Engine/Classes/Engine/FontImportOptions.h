@@ -20,7 +20,7 @@ enum EFontImportCharacterSet
 USTRUCT()
 struct FFontImportOptionsData
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Name of the typeface for the font to import */
 	UPROPERTY(EditAnywhere, Category=FontImportOptionsData)
@@ -179,7 +179,9 @@ UCLASS(hidecategories=Object, transient, MinimalAPI)
 class UFontImportOptions
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UFontImportOptions(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The actual data for this object.  We wrap it in a struct so that we can copy it around between objects. */
 	UPROPERTY(EditAnywhere, Category=FontImportOptions, meta=(FullyExpand = "true"))

@@ -11,7 +11,7 @@
 USTRUCT()
 struct FNamedInterface
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FNamedInterface() :
 		InterfaceName(NAME_None),
@@ -31,7 +31,7 @@ struct FNamedInterface
 USTRUCT()
 struct FNamedInterfaceDef
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FNamedInterfaceDef() : 
 		InterfaceName(NAME_None)
@@ -52,7 +52,9 @@ struct FNamedInterfaceDef
 UCLASS(transient, config=Engine)
 class UNamedInterfaces: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNamedInterfaces(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	void Initialize();
 	class UObject* GetNamedInterface(FName InterfaceName) const;

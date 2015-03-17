@@ -8,7 +8,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_SwitchName : public UK2Node_Switch
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_SwitchName(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category=PinOptions)
 	TArray<FName> PinNames;

@@ -7,7 +7,9 @@
 UCLASS()
 class UDumpHiddenCategoriesCommandlet : public UCommandlet
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UDumpHiddenCategoriesCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:		
 	// Begin UCommandlet Interface

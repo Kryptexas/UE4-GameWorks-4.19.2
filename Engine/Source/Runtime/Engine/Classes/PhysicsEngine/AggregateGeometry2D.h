@@ -9,7 +9,7 @@
 USTRUCT()
 struct ENGINE_API FConvexElement2D
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// Vertices that lie on the convex hull
 	UPROPERTY()
@@ -30,7 +30,7 @@ struct ENGINE_API FConvexElement2D
 USTRUCT()
 struct ENGINE_API FCircleElement2D
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(Category=KSphereElem, VisibleAnywhere)
 	FVector2D Center;
@@ -68,7 +68,7 @@ public:
 USTRUCT()
 struct ENGINE_API FBoxElement2D
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// Center of the box
 	UPROPERTY(Category=KBoxElem, VisibleAnywhere)
@@ -114,7 +114,7 @@ struct ENGINE_API FBoxElement2D
 USTRUCT()
 struct ENGINE_API FAggregateGeometry2D
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 public:
 	UPROPERTY(EditAnywhere, editfixedsize, Category = KAggregateGeom)

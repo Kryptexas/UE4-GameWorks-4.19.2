@@ -7,7 +7,9 @@
 UCLASS(config=EditorGameAgnostic)
 class UEditorGameAgnosticSettings : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UEditorGameAgnosticSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** When checked, the most recently loaded project will be auto-loaded at editor startup if no other project was specified on the command line */
 	UPROPERTY(EditAnywhere, Category=General)

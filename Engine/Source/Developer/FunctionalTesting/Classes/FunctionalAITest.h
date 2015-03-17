@@ -14,7 +14,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FFunctionalTestAISpawned, AAIContro
 USTRUCT()
 struct FAITestSpawnInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Determines AI to be spawned */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AISpawn)
@@ -56,7 +56,7 @@ struct FAITestSpawnInfo
 USTRUCT()
 struct FPendingDelayedSpawn : public FAITestSpawnInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	uint32 NumberToSpawnLeft;
 	float TimeToNextSpawn;
@@ -73,7 +73,7 @@ struct FPendingDelayedSpawn : public FAITestSpawnInfo
 USTRUCT()
 struct FAITestSpawnSet
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** what to spawn */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AISpawn)
@@ -97,7 +97,9 @@ struct FAITestSpawnSet
 UCLASS(Blueprintable, MinimalAPI)
 class AFunctionalAITest : public AFunctionalTest
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	FUNCTIONALTESTING_API AFunctionalAITest(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=AITest)

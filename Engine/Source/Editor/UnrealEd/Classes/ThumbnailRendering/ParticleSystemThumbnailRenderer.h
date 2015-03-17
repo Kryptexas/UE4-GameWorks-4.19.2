@@ -11,7 +11,9 @@
 UCLASS(config=Editor)
 class UParticleSystemThumbnailRenderer : public UTextureThumbnailRenderer
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleSystemThumbnailRenderer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	class UTexture2D* NoImage;

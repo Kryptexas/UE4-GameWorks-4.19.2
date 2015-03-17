@@ -10,8 +10,7 @@ class UEditorBrushBuilder : public UBrushBuilder
 public:
 	GENERATED_BODY()
 public:
-
-	UEditorBrushBuilder(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	UNREALED_API UEditorBrushBuilder(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** UBrushBuilder interface */
 	virtual void BeginBrush( bool InMergeCoplanars, FName InLayer ) override;

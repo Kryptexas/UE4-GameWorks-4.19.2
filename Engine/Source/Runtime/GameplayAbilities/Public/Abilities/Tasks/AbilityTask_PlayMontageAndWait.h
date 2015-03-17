@@ -8,7 +8,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMontageWaitSimpleDelegate);
 UCLASS(MinimalAPI)
 class UAbilityTask_PlayMontageAndWait : public UAbilityTask
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	GAMEPLAYABILITIES_API UAbilityTask_PlayMontageAndWait(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(BlueprintAssignable)
 	FMontageWaitSimpleDelegate	OnComplete;

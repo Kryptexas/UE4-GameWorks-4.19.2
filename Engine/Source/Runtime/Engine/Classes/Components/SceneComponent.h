@@ -11,7 +11,7 @@
 USTRUCT()
 struct FOverlapInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FOverlapInfo()
 	{}

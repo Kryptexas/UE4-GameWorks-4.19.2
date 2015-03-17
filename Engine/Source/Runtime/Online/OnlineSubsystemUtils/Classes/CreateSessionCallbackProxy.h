@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI)
 class UCreateSessionCallbackProxy : public UOnlineBlueprintCallProxyBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ONLINESUBSYSTEMUTILS_API UCreateSessionCallbackProxy(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Called when the session was created successfully
 	UPROPERTY(BlueprintAssignable)

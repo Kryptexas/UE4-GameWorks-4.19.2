@@ -8,7 +8,9 @@
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionTextureCoordinate : public UMaterialExpression
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UMaterialExpressionTextureCoordinate(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Texture coordinate index */
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionTextureCoordinate)

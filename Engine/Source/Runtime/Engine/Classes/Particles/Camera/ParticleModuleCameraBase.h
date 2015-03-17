@@ -8,7 +8,9 @@
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Camera"))
 class UParticleModuleCameraBase : public UParticleModule
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleModuleCameraBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual bool CanTickInAnyThread() override
 	{

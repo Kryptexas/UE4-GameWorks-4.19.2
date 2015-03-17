@@ -20,7 +20,9 @@
 UCLASS(hideCategories=Object, ClassGroup=Paper2D, Experimental, meta=(BlueprintSpawnableComponent))
 class PAPER2D_API UPaperTileMapComponent : public UMeshComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPaperTileMapComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 private:
 	UPROPERTY()

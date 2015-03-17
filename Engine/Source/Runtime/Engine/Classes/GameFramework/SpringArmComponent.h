@@ -14,7 +14,9 @@
 UCLASS(ClassGroup=Camera, meta=(BlueprintSpawnableComponent), hideCategories=(Mobility))
 class ENGINE_API USpringArmComponent : public USceneComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	USpringArmComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Natural length of the spring arm when there are no collisions */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera)

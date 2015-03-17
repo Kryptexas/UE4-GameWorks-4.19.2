@@ -10,7 +10,9 @@
 UCLASS()
 class UMG_API USizeBoxSlot : public UPanelSlot
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	USizeBoxSlot(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	/** The padding area between the slot and the content it contains. */

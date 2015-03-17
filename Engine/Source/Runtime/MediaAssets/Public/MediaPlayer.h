@@ -41,7 +41,9 @@ UCLASS(BlueprintType, hidecategories=(Object))
 class MEDIAASSETS_API UMediaPlayer
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMediaPlayer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

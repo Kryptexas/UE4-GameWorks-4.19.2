@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitConfirm : public UAbilityTask
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	GAMEPLAYABILITIES_API UAbilityTask_WaitConfirm(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(BlueprintAssignable)
 	FGenericAbilityTaskDelegate	OnConfirm;

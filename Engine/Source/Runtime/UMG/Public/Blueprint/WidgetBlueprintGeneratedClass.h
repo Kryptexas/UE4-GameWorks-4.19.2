@@ -22,7 +22,7 @@ enum class EBindingKind : uint8
 USTRUCT()
 struct FDelegateRuntimeBinding
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** The widget that will be bound to the live data. */
 	UPROPERTY()
@@ -55,7 +55,9 @@ struct FDelegateRuntimeBinding
 UCLASS()
 class UMG_API UWidgetBlueprintGeneratedClass : public UBlueprintGeneratedClass
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UWidgetBlueprintGeneratedClass(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

@@ -63,7 +63,7 @@ namespace ENotifyFilterType
 USTRUCT()
 struct FAnimNotifyEvent : public FAnimLinkableElement
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** The user requested time for this notify */
 	UPROPERTY()
@@ -193,7 +193,7 @@ struct FAnimNotifyEvent : public FAnimLinkableElement
 USTRUCT()
 struct FAnimNotifyTrack
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FName TrackName;
@@ -247,7 +247,7 @@ enum EAnimCurveFlags
 USTRUCT()
 struct FAnimCurveBase
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// Last observed name of the curve. We store this so we can recover from situations that
 	// mean the skeleton doesn't have a mapped name for our UID (such as a user saving the an
@@ -316,7 +316,7 @@ public:
 USTRUCT()
 struct FFloatCurve : public FAnimCurveBase
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Curve data for float. */
 	UPROPERTY()
@@ -348,7 +348,7 @@ struct FFloatCurve : public FAnimCurveBase
 USTRUCT()
 struct FVectorCurve : public FAnimCurveBase
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	enum EIndex
 	{
@@ -389,7 +389,7 @@ struct FVectorCurve : public FAnimCurveBase
 USTRUCT()
 struct FTransformCurve: public FAnimCurveBase
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Curve data for each transform. */
 	UPROPERTY()
@@ -433,7 +433,7 @@ struct FTransformCurve: public FAnimCurveBase
 USTRUCT()
 struct FRawCurveTracks
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	enum ESupportedCurveType
 	{
@@ -564,7 +564,9 @@ enum ETypeAdvanceAnim
 UCLASS(abstract, MinimalAPI, BlueprintType)
 class UAnimSequenceBase : public UAnimationAsset
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UAnimSequenceBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Animation notifies, sorted by time (earliest notification first). */
 	UPROPERTY()

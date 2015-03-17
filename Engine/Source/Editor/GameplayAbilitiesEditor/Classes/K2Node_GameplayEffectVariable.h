@@ -11,7 +11,9 @@
 UCLASS()
 class GAMEPLAYABILITIESEDITOR_API UK2Node_GameplayEffectVariable : public UK2Node_VariableGet // only need a custom node for the getter
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UK2Node_GameplayEffectVariable(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	UPROPERTY()

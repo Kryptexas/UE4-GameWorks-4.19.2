@@ -10,7 +10,9 @@
 UCLASS(hidecategories=Object, collapsecategories)
 class UMaterialFunctionFactoryNew : public UFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMaterialFunctionFactoryNew(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin UFactory Interface

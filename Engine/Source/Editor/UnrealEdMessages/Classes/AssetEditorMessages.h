@@ -11,7 +11,7 @@
 USTRUCT()
 struct FAssetEditorRequestOpenAsset
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 	
 	/**
 	 * Holds the name of the asset to open.

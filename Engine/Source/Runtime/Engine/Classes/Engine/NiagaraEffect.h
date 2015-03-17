@@ -9,7 +9,9 @@
 UCLASS(MinimalAPI)
 class UNiagaraEffect : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UNiagaraEffect(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	ENGINE_API FNiagaraEmitterProperties *AddEmitterProperties();

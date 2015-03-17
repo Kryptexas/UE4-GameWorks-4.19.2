@@ -6,7 +6,9 @@
 UCLASS()
 class AIGRAPH_API UAIGraph : public UEdGraph
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAIGraph(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	int32 GraphVersion;

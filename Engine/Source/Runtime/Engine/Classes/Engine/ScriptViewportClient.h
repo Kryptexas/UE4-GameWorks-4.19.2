@@ -12,7 +12,9 @@
 UCLASS(transient)
 class UScriptViewportClient : public UObject, public FCommonViewportClient
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UScriptViewportClient(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 };
 

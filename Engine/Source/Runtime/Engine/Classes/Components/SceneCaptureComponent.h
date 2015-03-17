@@ -8,7 +8,7 @@
 USTRUCT()
 struct FEngineShowFlagsSetting
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SceneCapture)
 	FString ShowFlagName;
@@ -21,7 +21,9 @@ struct FEngineShowFlagsSetting
 UCLASS(hidecategories=(abstract, Collision, Object, Physics, SceneComponent, Mobility), MinimalAPI)
 class USceneCaptureComponent : public USceneComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API USceneCaptureComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The components won't rendered by current component.*/
  	UPROPERTY()

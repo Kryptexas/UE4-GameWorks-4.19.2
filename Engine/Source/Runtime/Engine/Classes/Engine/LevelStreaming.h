@@ -69,7 +69,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE( FLevelStreamingVisibilityStatus );
 UCLASS(abstract, editinlinenew,MinimalAPI)
 class ULevelStreaming : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API ULevelStreaming(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Deprecated name of the package containing the level to load. Use WorldAsset or GetWorldAssetPackageFName instead.		*/
 	UPROPERTY()

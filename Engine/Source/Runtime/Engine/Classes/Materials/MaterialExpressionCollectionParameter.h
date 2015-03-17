@@ -11,7 +11,9 @@
 UCLASS(hidecategories=object, MinimalAPI)
 class UMaterialExpressionCollectionParameter : public UMaterialExpression
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UMaterialExpressionCollectionParameter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The Parameter Collection to use. */
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionCollectionParameter)

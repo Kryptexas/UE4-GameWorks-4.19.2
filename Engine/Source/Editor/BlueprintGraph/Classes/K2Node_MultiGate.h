@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_MultiGate : public UK2Node_ExecutionSequence
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_MultiGate(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Reference to the integer that contains */
 	UPROPERTY(transient)

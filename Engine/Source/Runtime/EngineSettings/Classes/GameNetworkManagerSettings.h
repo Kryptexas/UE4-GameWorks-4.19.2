@@ -12,7 +12,9 @@ UCLASS(config=Game)
 class ENGINESETTINGS_API UGameNetworkManagerSettings
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UGameNetworkManagerSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Minimum bandwidth dynamically set per connection. */
 	UPROPERTY(globalconfig, EditAnywhere, Category=Bandwidth)

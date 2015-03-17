@@ -8,7 +8,9 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Rotation/Life"))
 class UParticleModuleRotationOverLifetime : public UParticleModuleRotationBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UParticleModuleRotationOverLifetime(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** 
 	 *	The rotation of the particle (1.0 = 360 degrees).

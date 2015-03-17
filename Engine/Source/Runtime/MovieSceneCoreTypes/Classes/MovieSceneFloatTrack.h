@@ -13,7 +13,9 @@
 UCLASS( MinimalAPI )
 class UMovieSceneFloatTrack : public UMovieScenePropertyTrack
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	MOVIESCENECORETYPES_API UMovieSceneFloatTrack(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	/** UMovieSceneTrack interface */

@@ -31,7 +31,9 @@ enum EBlendableLocation
 UINTERFACE()
 class UBlendableInterface : public UInterface
 {
-	GENERATED_UINTERFACE_BODY()
+	GENERATED_BODY()
+public:
+	UBlendableInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };
 
 /**
@@ -39,7 +41,8 @@ class UBlendableInterface : public UInterface
  */
 class IBlendableInterface
 {
-	GENERATED_IINTERFACE_BODY()
+	GENERATED_BODY()
+public:
 		
 	// @param Weight 0..1, 1=fully take the values from this object, crash if outside the valid range
 	virtual void OverrideBlendableSettings(class FSceneView& View, float Weight) const = 0;

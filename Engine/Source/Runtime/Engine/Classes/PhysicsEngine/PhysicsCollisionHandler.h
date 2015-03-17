@@ -8,7 +8,9 @@ struct FCollisionNotifyInfo;
 UCLASS(hidecategories=(Object), Blueprintable)
 class ENGINE_API UPhysicsCollisionHandler : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPhysicsCollisionHandler(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// This class is SUPER BASIC, but games can implement their own handlers to do more advanced physics collisions
 

@@ -10,7 +10,9 @@
 UCLASS()
 class UMG_API UScrollBoxSlot : public UPanelSlot
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UScrollBoxSlot(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	

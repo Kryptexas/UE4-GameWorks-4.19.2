@@ -15,7 +15,9 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectionChanged, class AActor*);
 UCLASS(config = Engine, NotBlueprintable, Transient, hidecategories = Actor, notplaceable)
 class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AGameplayDebuggingReplicator(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(config)
 	FString DebugComponentClassName;
@@ -86,17 +88,24 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 	UPROPERTY()
 	class UTexture2D* DefaultTexture_Green;
 
-	UFUNCTION(reliable, server, WithValidation)
+	UFUNCTION(reliable, server="ServerReplicateMessage_Implementation", WithValidation="ServerReplicateMessage_Validate")
 	void ServerReplicateMessage(class AActor* Actor, uint32 InMessage, uint32 DataView = 0);
+	virtual void ServerReplicateMessage_Implementation(AActor* Actor, uint32 InMessage, uint32 DataView);
+	virtual bool ServerReplicateMessage_Validate(AActor* , uint32 , uint32 );
 
-	UFUNCTION(reliable, client, WithValidation)
+	UFUNCTION(reliable, client="ClientReplicateMessage_Implementation", WithValidation="ClientReplicateMessage_Validate")
 	void ClientReplicateMessage(class AActor* Actor, uint32 InMessage, uint32 DataView = 0);
+	virtual void ClientReplicateMessage_Implementation(AActor* Actor, uint32 InMessage, uint32 DataView);
+	virtual bool ClientReplicateMessage_Validate(AActor* , uint32 , uint32 );
 
-	UFUNCTION(Reliable, Client)
+	UFUNCTION(Reliable, Client="ClientAutoActivate_Implementation")
 	void ClientAutoActivate();
+	virtual void ClientAutoActivate_Implementation();
 
-	UFUNCTION(Reliable, Client, WithValidation)
+	UFUNCTION(Reliable, Client="ClientEnableTargetSelection_Implementation", WithValidation="ClientEnableTargetSelection_Validate")
 	void ClientEnableTargetSelection(bool bEnable, APlayerController* Context);
+	virtual void ClientEnableTargetSelection_Implementation(bool bEnable, APlayerController* Context);
+	virtual bool ClientEnableTargetSelection_Validate(bool , APlayerController* );
 
 #if WITH_EDITOR
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -132,8 +141,10 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 
 	FORCEINLINE AActor* GetSelectedActorToDebug() { return LastSelectedActorToDebug; }
 	
-	UFUNCTION(reliable, server, WithValidation)
+	UFUNCTION(reliable, server="ServerSetActorToDebug_Implementation", WithValidation="ServerSetActorToDebug_Validate")
 	void ServerSetActorToDebug(AActor* InActor);
+	virtual void ServerSetActorToDebug_Implementation(AActor* InActor);
+	virtual bool ServerSetActorToDebug_Validate(AActor* );
 
 	/**
 	 * Iterates through the pawn list to find the next pawn of the specified type to debug

@@ -14,7 +14,9 @@
 UCLASS(ComponentWrapperClass)
 class PAPER2D_API APaperFlipbookActor : public AActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	APaperFlipbookActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 private:
 	UPROPERTY(Category=Sprite, VisibleAnywhere, BlueprintReadOnly, meta=(ExposeFunctionCategories="Sprite,Rendering,Physics,Components|Flipbook", AllowPrivateAccess="true"))

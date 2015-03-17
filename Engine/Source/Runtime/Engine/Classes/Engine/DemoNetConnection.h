@@ -18,7 +18,9 @@ UCLASS(transient, config=Engine)
 class UDemoNetConnection
 	: public UNetConnection
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UDemoNetConnection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

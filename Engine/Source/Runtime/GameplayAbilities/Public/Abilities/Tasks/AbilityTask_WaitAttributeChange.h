@@ -31,7 +31,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitAttributeChangeDelegate);
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitAttributeChange : public UAbilityTask
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	GAMEPLAYABILITIES_API UAbilityTask_WaitAttributeChange(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(BlueprintAssignable)
 	FWaitAttributeChangeDelegate	OnChange;

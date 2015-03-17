@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI)
 class USlateBlueprintLibrary : public UBlueprintFunctionLibrary
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMG_API USlateBlueprintLibrary(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

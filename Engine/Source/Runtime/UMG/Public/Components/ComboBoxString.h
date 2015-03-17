@@ -12,7 +12,9 @@
 UCLASS( meta=( DisplayName="ComboBox (String)"), ClassGroup=UserInterface)
 class UMG_API UComboBoxString : public UWidget
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UComboBoxString(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSelectionChangedEvent, FString, SelectedItem, ESelectInfo::Type, SelectionType);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnOpeningEvent);

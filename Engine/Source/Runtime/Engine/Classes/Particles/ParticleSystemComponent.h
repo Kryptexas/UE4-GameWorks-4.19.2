@@ -78,7 +78,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnSystemFinished, class UParticleS
 USTRUCT(BlueprintType)
 struct FParticleSysParam
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** The name of the parameter */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ParticleSysParam)
@@ -250,7 +250,9 @@ struct FParticleEventKismetData : public FParticleEventData
 UCLASS(ClassGroup=(Rendering, Common), hidecategories=Object, hidecategories=Physics, hidecategories=Collision, showcategories=Trigger, editinlinenew, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UParticleSystemComponent : public UPrimitiveComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleSystemComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Particles)
 	class UParticleSystem* Template;

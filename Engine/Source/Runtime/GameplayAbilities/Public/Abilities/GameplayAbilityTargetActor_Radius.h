@@ -11,7 +11,9 @@
 UCLASS(Blueprintable, notplaceable)
 class GAMEPLAYABILITIES_API AGameplayAbilityTargetActor_Radius : public AGameplayAbilityTargetActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AGameplayAbilityTargetActor_Radius(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

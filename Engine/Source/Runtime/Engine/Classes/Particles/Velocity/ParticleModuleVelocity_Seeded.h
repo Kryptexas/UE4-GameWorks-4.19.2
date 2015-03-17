@@ -8,7 +8,9 @@
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Initial Velocity (Seed)"))
 class UParticleModuleVelocity_Seeded : public UParticleModuleVelocity
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleModuleVelocity_Seeded(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The random seed(s) to use for looking up values in StartLocation */
 	UPROPERTY(EditAnywhere, Category=RandomSeed)

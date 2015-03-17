@@ -17,7 +17,9 @@ namespace EReporterLineStyle
 UCLASS(Abstract)
 class UReporterBase : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UReporterBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	

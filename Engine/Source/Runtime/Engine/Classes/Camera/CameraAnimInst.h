@@ -13,7 +13,9 @@
 UCLASS(notplaceable, BlueprintType, transient)
 class ENGINE_API UCameraAnimInst : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UCameraAnimInst(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** which CameraAnim this is an instance of */
 	UPROPERTY()

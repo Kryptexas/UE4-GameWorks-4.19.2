@@ -25,7 +25,9 @@ UCLASS(hidecategories = (Sprite, MaterialSprite, Actor, Transform, Tags, Materia
 class ENGINE_API ADocumentationActor
 	: public AActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ADocumentationActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/* Open the document link this actor relates to */
 	bool OpenDocumentLink() const;

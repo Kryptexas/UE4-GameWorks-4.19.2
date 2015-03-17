@@ -7,7 +7,9 @@
 UCLASS()
 class UListMaterialsUsedWithMeshEmittersCommandlet : public UCommandlet
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UListMaterialsUsedWithMeshEmittersCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
 	/** Process the given particle system. For mesh emitters, output material paths that don't have bUsedWithParticleSprites flagged.*/
 	void ProcessParticleSystem(UParticleSystem* ParticleSystem , TArray<FString> &OutMaterials);

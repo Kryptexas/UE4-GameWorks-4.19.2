@@ -25,7 +25,9 @@ class UFont;
 UCLASS(config=Game, hidecategories=(Rendering,Actor,Input,Replication), showcategories=("Input|MouseInput", "Input|TouchInput"), notplaceable, transient, BlueprintType, Blueprintable)
 class ENGINE_API AHUD : public AActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AHUD(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Pre-defined FColors for convenience. */
 	UPROPERTY()
@@ -151,14 +153,16 @@ public:
 	 * @param InFont 				font to use
 	 * @param FontScale 			scale
 	 */
-	UFUNCTION(reliable, client, SealedEvent)
+	UFUNCTION(reliable, client="AddDebugText_Implementation", SealedEvent)
 	void AddDebugText(const FString& DebugText, AActor* SrcActor = NULL, float Duration = 0, FVector Offset = FVector(ForceInit), FVector DesiredOffset = FVector(ForceInit), FColor TextColor = FColor(ForceInit), bool bSkipOverwriteCheck = false, bool bAbsoluteLocation = false, bool bKeepAttachedToActor = false, UFont* InFont = NULL, float FontScale = 1.0);
+	void AddDebugText_Implementation(const FString& DebugText, AActor* SrcActor, float Duration, FVector Offset, FVector DesiredOffset, FColor TextColor, bool bSkipOverwriteCheck, bool bAbsoluteLocation, bool bKeepAttachedToActor, UFont* InFont, float FontScale);
 
 	/**
 	 * Remove all debug strings added via AddDebugText
 	 */
-	UFUNCTION(reliable, client, SealedEvent)
+	UFUNCTION(reliable, client="RemoveAllDebugStrings_Implementation", SealedEvent)
 	void RemoveAllDebugStrings();
+	void RemoveAllDebugStrings_Implementation();
 
 	/**
 	 * Remove debug strings for the given actor
@@ -166,8 +170,9 @@ public:
 	 * @param	SrcActor			Actor whose string you wish to remove
 	 * @param	bLeaveDurationText	when true text that has a finite duration will be removed, otherwise all will be removed for given actor
 	 */
-	UFUNCTION(reliable, client, SealedEvent)
+	UFUNCTION(reliable, client="RemoveDebugText_Implementation", SealedEvent)
 	void RemoveDebugText(AActor* SrcActor, bool bLeaveDurationText = false);
+	void RemoveDebugText_Implementation(AActor* SrcActor, bool bLeaveDurationText);
 
 	/** Hook to allow blueprints to do custom HUD drawing. @see bSuppressNativeHUD to control HUD drawing in base class. */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic)

@@ -10,11 +10,10 @@
 UCLASS()
 class ULevelExporterT3D : public UExporter
 {
-public:
 	GENERATED_BODY()
-
 public:
-	ULevelExporterT3D(const FObjectInitializer& ObjectInitializer = FObjectInitializer());
+	ULevelExporterT3D(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
 
 	// Begin UExporter Interface
 	virtual bool ExportText( const FExportObjectInnerContext* Context, UObject* Object, const TCHAR* Type, FOutputDevice& Ar, FFeedbackContext* Warn, uint32 PortFlags=0 ) override;

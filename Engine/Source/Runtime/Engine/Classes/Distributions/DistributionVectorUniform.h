@@ -8,7 +8,9 @@
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
 class UDistributionVectorUniform : public UDistributionVector
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UDistributionVectorUniform(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Upper end of FVector magnitude range. */
 	UPROPERTY(EditAnywhere, Category=DistributionVectorUniform)

@@ -30,7 +30,9 @@ struct FBTAuxiliaryMemory : public FBTInstancedNodeMemory
 UCLASS(Abstract)
 class AIMODULE_API UBTAuxiliaryNode : public UBTNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBTAuxiliaryNode(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** wrapper for node instancing: OnBecomeRelevant */
 	void WrappedOnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const;

@@ -12,7 +12,7 @@
 USTRUCT()
 struct FCullDistanceSizePair
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Size to associate with cull distance. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=CullDistanceSizePair)
@@ -39,7 +39,9 @@ UCLASS(hidecategories=(Advanced, Attachment, Collision, Volume))
 class ACullDistanceVolume
 	: public AVolume
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ACullDistanceVolume(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/**
 	 * Array of size and cull distance pairs. The code will calculate the sphere diameter of a primitive's BB and look for a best

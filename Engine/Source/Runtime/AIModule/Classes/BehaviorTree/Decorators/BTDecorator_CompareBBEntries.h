@@ -24,7 +24,9 @@ namespace EBlackBoardEntryComparison
 UCLASS(HideCategories=(Condition))
 class AIMODULE_API UBTDecorator_CompareBBEntries : public UBTDecorator
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBTDecorator_CompareBBEntries(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
 

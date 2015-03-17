@@ -13,7 +13,9 @@
 UCLASS()
 class ENGINE_API ALODActor : public AActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ALODActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 private_subobject:
 	UPROPERTY(Category=LODActor, VisibleAnywhere)

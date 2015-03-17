@@ -9,7 +9,9 @@
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
 class UDistributionFloatUniform : public UDistributionFloat
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UDistributionFloatUniform(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Low end of output float distribution. */
 	UPROPERTY(EditAnywhere, Category=DistributionFloatUniform)

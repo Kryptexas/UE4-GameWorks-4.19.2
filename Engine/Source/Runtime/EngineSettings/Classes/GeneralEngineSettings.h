@@ -9,6 +9,8 @@ UCLASS(config=Engine)
 class ENGINESETTINGS_API UGeneralEngineSettings
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UGeneralEngineSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 };

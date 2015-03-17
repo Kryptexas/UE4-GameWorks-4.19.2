@@ -7,7 +7,9 @@
 UCLASS()
 class UInterpTrackInstFloatAnimBPParam : public UInterpTrackInst
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UInterpTrackInstFloatAnimBPParam(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** MIDs we're using to set the desired parameter. */
 	UPROPERTY(transient)

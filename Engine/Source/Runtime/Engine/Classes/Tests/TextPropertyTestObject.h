@@ -10,7 +10,9 @@
 UCLASS()
 class UTextPropertyTestObject : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UTextPropertyTestObject(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	UPROPERTY()

@@ -13,7 +13,9 @@
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI,collapsecategories)
 class ULightmassPrimitiveSettingsObject : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API ULightmassPrimitiveSettingsObject(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category=Lightmass)
 	struct FLightmassPrimitiveSettings LightmassSettings;

@@ -12,7 +12,9 @@ UCLASS(MinimalAPI,transient,config=Engine)
 class UChildConnection
 	: public UNetConnection
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UChildConnection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(transient)
 	class UNetConnection* Parent;

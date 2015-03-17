@@ -26,7 +26,7 @@
 USTRUCT()
 struct FExampleStruct
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 	
 	/**
 	 * @param Ar			FArchive to read or write from.
@@ -90,7 +90,7 @@ struct TStructOpsTypeTraits< FExampleStruct > : public TStructOpsTypeTraitsBase
 USTRUCT()
 struct FExampleItemEntry : public FFastArraySerializerItem
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// Your data:
 	UPROPERTY()
@@ -116,7 +116,7 @@ struct FExampleItemEntry : public FFastArraySerializerItem
 USTRUCT()
 struct FExampleArray: public FFastArraySerializer
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	TArray<FExampleItemEntry>	Items;	/** Step 3: You MUST have a TArray named Items of the struct you made in step 1. */
@@ -274,7 +274,7 @@ public:
 USTRUCT()
 struct FFastArraySerializerItem
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FFastArraySerializerItem()
 		: ReplicationID(INDEX_NONE), ReplicationKey(INDEX_NONE)
@@ -341,7 +341,7 @@ struct FFastArraySerializerUnmappedItem
 USTRUCT()
 struct FFastArraySerializer
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FFastArraySerializer() : IDCounter(0), ArrayReplicationKey(0) { }
 
@@ -1060,7 +1060,7 @@ bool SerializeFixedVector(FVector &Vector, FArchive& Ar)
 USTRUCT()
 struct FVector_NetQuantize : public FVector
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FORCEINLINE FVector_NetQuantize()
 	{}
@@ -1105,7 +1105,7 @@ struct TStructOpsTypeTraits< FVector_NetQuantize > : public TStructOpsTypeTraits
 USTRUCT()
 struct FVector_NetQuantize10 : public FVector
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FORCEINLINE FVector_NetQuantize10()
 	{}
@@ -1150,7 +1150,7 @@ struct TStructOpsTypeTraits< FVector_NetQuantize10 > : public TStructOpsTypeTrai
 USTRUCT()
 struct FVector_NetQuantize100 : public FVector
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FORCEINLINE FVector_NetQuantize100()
 	{}
@@ -1193,7 +1193,7 @@ struct TStructOpsTypeTraits< FVector_NetQuantize100 > : public TStructOpsTypeTra
 USTRUCT()
 struct FVector_NetQuantizeNormal : public FVector
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FORCEINLINE FVector_NetQuantizeNormal()
 	{}

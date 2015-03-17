@@ -10,7 +10,9 @@
 UCLASS(DefaultToInstanced, EarlyAccessPreview)
 class SCRIPTPLUGIN_API UScriptContext : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UScriptContext(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void PostInitProperties() override;
 	virtual void BeginDestroy() override;

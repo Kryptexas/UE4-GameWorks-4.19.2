@@ -12,7 +12,9 @@
 UCLASS(MinimalAPI)
 class UAnimCompress_RemoveEverySecondKey : public UAnimCompress
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UAnimCompress_RemoveEverySecondKey(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Animations with fewer than MinKeys will not lose any keys. */
 	UPROPERTY(EditAnywhere, Category=AnimationCompressionAlgorithm_RemoveEverySecondKey)

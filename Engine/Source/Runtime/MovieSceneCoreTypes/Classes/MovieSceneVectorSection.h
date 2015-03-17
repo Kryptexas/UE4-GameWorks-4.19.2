@@ -12,7 +12,9 @@
 UCLASS(MinimalAPI )
 class UMovieSceneVectorSection : public UMovieSceneSection
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	MOVIESCENECORETYPES_API UMovieSceneVectorSection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 public:
 	
 	/**

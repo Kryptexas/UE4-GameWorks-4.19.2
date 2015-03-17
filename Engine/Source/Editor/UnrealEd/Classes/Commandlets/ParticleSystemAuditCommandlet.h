@@ -9,7 +9,9 @@
 UCLASS(config=Editor)
 class UParticleSystemAuditCommandlet : public UCommandlet
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleSystemAuditCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Helper struct for tracking disabled LOD level issues */
 	struct FParticleSystemLODInfo

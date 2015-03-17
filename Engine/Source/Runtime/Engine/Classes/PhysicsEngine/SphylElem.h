@@ -11,7 +11,7 @@ class FPrimitiveDrawInterface;
 USTRUCT()
 struct FKSphylElem
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** The transform assumes the sphyl axis points down Z. */
 	UPROPERTY()

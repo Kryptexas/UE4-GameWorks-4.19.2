@@ -7,7 +7,9 @@
 UCLASS(HideCategories=Object, MinimalAPI)
 class UWidgetBlueprintFactory : public UFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMGEDITOR_API UWidgetBlueprintFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// The type of blueprint that will be created
 	UPROPERTY(EditAnywhere, Category=WidgetBlueprintFactory)

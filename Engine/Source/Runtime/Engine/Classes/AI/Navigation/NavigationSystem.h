@@ -127,7 +127,9 @@ private:
 UCLASS(Within=World, config=Engine, defaultconfig)
 class ENGINE_API UNavigationSystem : public UBlueprintFunctionLibrary
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNavigationSystem(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual ~UNavigationSystem();
 

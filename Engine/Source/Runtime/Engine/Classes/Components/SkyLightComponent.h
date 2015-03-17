@@ -85,7 +85,9 @@ enum ESkyLightSourceType
 UCLASS(ClassGroup=Lights, HideCategories=(Trigger,Activation,"Components|Activation",Physics), meta=(BlueprintSpawnableComponent))
 class ENGINE_API USkyLightComponent : public ULightComponentBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	USkyLightComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Indicates where to get the light contribution from. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light)

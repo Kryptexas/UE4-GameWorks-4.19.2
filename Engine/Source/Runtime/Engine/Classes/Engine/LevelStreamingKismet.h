@@ -14,7 +14,9 @@
 UCLASS(MinimalAPI, BlueprintType)
 class ULevelStreamingKismet : public ULevelStreaming
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API ULevelStreamingKismet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Whether the level should be loaded at startup																			*/
 	UPROPERTY(Category=LevelStreaming, EditAnywhere)

@@ -9,7 +9,9 @@
 UCLASS(MinimalAPI)
 class UAnimGraphNode_Slot : public UAnimGraphNode_Base
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ANIMGRAPH_API UAnimGraphNode_Slot(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_Slot Node;

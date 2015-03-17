@@ -12,7 +12,9 @@
 UCLASS(config=Engine, hidecategories=UObject, MinimalAPI, BlueprintType)
 class UAnimComposite : public UAnimCompositeBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UAnimComposite(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	/** Serializable data that stores section/anim pairing **/

@@ -43,7 +43,7 @@ The settings for attenuating.
 USTRUCT(BlueprintType)
 struct ENGINE_API FAttenuationSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/* Enable attenuation via volume. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation )
@@ -162,7 +162,9 @@ struct TStructOpsTypeTraits<FAttenuationSettings> : public TStructOpsTypeTraitsB
 UCLASS(BlueprintType, hidecategories=Object, editinlinenew, MinimalAPI)
 class USoundAttenuation : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API USoundAttenuation(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAttenuationSettings Attenuation;

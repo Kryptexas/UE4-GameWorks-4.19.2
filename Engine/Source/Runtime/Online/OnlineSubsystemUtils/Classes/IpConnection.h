@@ -10,7 +10,9 @@
 UCLASS(transient, config=Engine)
 class ONLINESUBSYSTEMUTILS_API UIpConnection : public UNetConnection
 {
-    GENERATED_UCLASS_BODY()
+    GENERATED_BODY()
+public:
+    UIpConnection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	// Variables.
 	TSharedPtr<FInternetAddr>	RemoteAddr;
 	class FSocket*				Socket;

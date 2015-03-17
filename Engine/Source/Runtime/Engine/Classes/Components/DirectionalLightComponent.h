@@ -13,7 +13,9 @@
 UCLASS(ClassGroup=Lights, hidecategories=(Object, LightProfiles), editinlinenew, meta=(BlueprintSpawnableComponent), MinimalAPI)
 class UDirectionalLightComponent : public ULightComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UDirectionalLightComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Whether to occlude fog and atmosphere inscattering with screenspace blurred occlusion from this light. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LightShafts, meta=(DisplayName = "Light Shaft Occlusion"))

@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI)
 class UWidgetLayoutLibrary : public UBlueprintFunctionLibrary
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMG_API UWidgetLayoutLibrary(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

@@ -117,7 +117,9 @@ public:
 UCLASS(EarlyAccessPreview)
 class SCRIPTPLUGIN_API UScriptBlueprintGeneratedClass : public UBlueprintGeneratedClass
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UScriptBlueprintGeneratedClass(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Generated script bytecode */
 	UPROPERTY()

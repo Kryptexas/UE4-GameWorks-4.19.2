@@ -15,7 +15,7 @@
 USTRUCT()
 struct FDebugDisplayProperty
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** the object whose property to display. If this is a class, all objects of that class are drawn. */
 	UPROPERTY()

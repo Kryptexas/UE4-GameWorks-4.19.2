@@ -11,7 +11,9 @@ GameplayDebuggerSettings.h: Declares the UGameplayDebuggerSettings class.
 UCLASS()
 class LOGVISUALIZER_API ULogVisualizerSessionSettings : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ULogVisualizerSessionSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 public:
 	/**Whether to show trivial logs, i.e. the ones with only one entry.*/
 	UPROPERTY(EditAnywhere, Category = "VisualLogger")

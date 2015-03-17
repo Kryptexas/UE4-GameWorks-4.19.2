@@ -324,7 +324,7 @@ struct ENGINE_API FLevelViewportInfo
 USTRUCT()
 struct FStartPhysicsTickFunction : public FTickFunction
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** World this tick function belongs to **/
 	class UWorld*	Target;
@@ -347,7 +347,7 @@ struct FStartPhysicsTickFunction : public FTickFunction
 USTRUCT()
 struct FEndPhysicsTickFunction : public FTickFunction
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** World this tick function belongs to **/
 	class UWorld*	Target;
@@ -370,7 +370,7 @@ struct FEndPhysicsTickFunction : public FTickFunction
 USTRUCT()
 struct FStartClothSimulationFunction : public FTickFunction
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** World this tick function belongs to **/
 	class UWorld*	Target;
@@ -393,7 +393,7 @@ struct FStartClothSimulationFunction : public FTickFunction
 USTRUCT()
 struct FEndClothSimulationFunction : public FTickFunction
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** World this tick function belongs to **/
 	class UWorld*	Target;
@@ -537,10 +537,11 @@ public:
  *
  */
 
-UCLASS(customConstructor, config=Engine)
+UCLASS(config=Engine)
 class ENGINE_API UWorld : public UObject, public FNetworkNotify
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
 
 	~UWorld();
 

@@ -41,7 +41,7 @@ UENUM()
 USTRUCT()
 struct FIOSBuildResourceFilePath
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 	
 	/**
 	 * Custom export item used to serialize FIOSBuildResourceFilePath types as only a filename, no garland.
@@ -89,8 +89,10 @@ struct TStructOpsTypeTraits<FIOSBuildResourceFilePath> : public TStructOpsTypeTr
 UCLASS(config=Engine, defaultconfig)
 class IOSRUNTIMESETTINGS_API UIOSRuntimeSettings : public UObject
 {
+	GENERATED_BODY()
 public:
-	GENERATED_UCLASS_BODY()
+	UIOSRuntimeSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+public:
 
 	// Should Game Center support (iOS Online Subsystem) be enabled?
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Online)

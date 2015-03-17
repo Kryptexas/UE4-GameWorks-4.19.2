@@ -38,7 +38,7 @@ namespace EGameplayAbilityInputBinds
 USTRUCT()
 struct FGameplayAbilityBindInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category = BindInfo)
 	TEnumAsByte<EGameplayAbilityInputBinds::Type>	Command;
@@ -56,7 +56,9 @@ struct FGameplayAbilityBindInfo
 UCLASS()
 class GAMEPLAYABILITIES_API UGameplayAbilitySet : public UDataAsset
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UGameplayAbilitySet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	
 	UPROPERTY(EditAnywhere, Category = AbilitySet)

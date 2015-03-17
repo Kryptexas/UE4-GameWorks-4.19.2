@@ -11,7 +11,7 @@
 USTRUCT()
 struct ENGINE_API FAnimNode_BlendSpaceEvaluator : public FAnimNode_BlendSpacePlayer
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 public:
 	/** Normalized time between [0,1]. The actual length of a blendspace is dynamic based on the coordinate, so it is exposed as a normalized value. */

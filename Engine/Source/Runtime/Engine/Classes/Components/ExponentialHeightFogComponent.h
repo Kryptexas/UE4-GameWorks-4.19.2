@@ -10,7 +10,9 @@
 UCLASS(ClassGroup=Rendering, collapsecategories, hidecategories=(Object, Mobility), editinlinenew, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UExponentialHeightFogComponent : public USceneComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UExponentialHeightFogComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Global density factor. */
 	UPROPERTY(BlueprintReadOnly, interp, Category=ExponentialHeightFogComponent, meta=(UIMin = "0", UIMax = ".05"))

@@ -9,7 +9,9 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Light"))
 class UParticleModuleLight : public UParticleModuleLightBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UParticleModuleLight(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Whether to use physically based inverse squared falloff from the light.  If unchecked, the LightExponent distribution will be used instead. */
 	UPROPERTY(EditAnywhere, Category=Light)

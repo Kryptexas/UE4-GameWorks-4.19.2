@@ -8,7 +8,9 @@
 UCLASS()
 class UMaterialExpressionGIReplace : public UMaterialExpression
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMaterialExpressionGIReplace(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Used for direct lighting computations e.g. real-time shaders */
 	UPROPERTY()

@@ -8,7 +8,9 @@
 UCLASS(Abstract)
 class UMG_API UTableViewBase : public UWidget
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UTableViewBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Delegate for constructing a UWidget based on a UObject */
 	DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(UWidget*, FOnGenerateRowUObject, UObject*, Item);

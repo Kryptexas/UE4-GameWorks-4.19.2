@@ -17,7 +17,9 @@ struct FBTCooldownDecoratorMemory
 UCLASS(HideCategories=(Condition))
 class AIMODULE_API UBTDecorator_Cooldown : public UBTDecorator
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBTDecorator_Cooldown(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** max allowed time for execution of underlying node */
 	UPROPERTY(Category=Decorator, EditAnywhere)

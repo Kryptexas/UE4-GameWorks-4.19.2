@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI)
 class UAnimationCustomTransitionSchema : public UAnimationGraphSchema
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ANIMGRAPH_API UAnimationCustomTransitionSchema(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin UEdGraphSchema interface.
 	virtual void CreateDefaultNodesForGraph(UEdGraph& Graph) const override;

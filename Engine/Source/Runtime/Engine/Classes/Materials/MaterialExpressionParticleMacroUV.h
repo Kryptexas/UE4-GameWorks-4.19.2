@@ -12,7 +12,9 @@
 UCLASS()
 class UMaterialExpressionParticleMacroUV : public UMaterialExpression
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMaterialExpressionParticleMacroUV(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin UMaterialExpression Interface

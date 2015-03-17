@@ -21,7 +21,7 @@ DECLARE_DYNAMIC_DELEGATE_TwoParams( FOnQueueSubtitles, const TArray<struct FSubt
 USTRUCT()
 struct FAudioComponentParam
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// Name of the parameter
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AudioComponentParam)
@@ -63,7 +63,9 @@ struct FAudioComponentParam
 UCLASS(ClassGroup=(Audio, Common), hidecategories=(Object, ActorComponent, Physics, Rendering, Mobility, LOD), ShowCategories=Trigger, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UAudioComponent : public USceneComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAudioComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The sound to be played */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Sound)

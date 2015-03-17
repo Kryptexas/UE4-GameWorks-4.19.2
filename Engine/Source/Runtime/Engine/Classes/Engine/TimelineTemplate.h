@@ -7,7 +7,7 @@
 USTRUCT()
 struct FTTTrackBase
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Name of this track */
 	UPROPERTY()
@@ -30,7 +30,7 @@ struct FTTTrackBase
 USTRUCT()
 struct FTTEventTrack : public FTTTrackBase
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Curve object used to store keys */
 	UPROPERTY()
@@ -50,7 +50,7 @@ struct FTTEventTrack : public FTTTrackBase
 USTRUCT()
 struct FTTFloatTrack : public FTTTrackBase
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Curve object used to define float value over time */
 	UPROPERTY()
@@ -70,7 +70,7 @@ struct FTTFloatTrack : public FTTTrackBase
 USTRUCT()
 struct FTTVectorTrack : public FTTTrackBase
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Curve object used to define vector value over time */
 	UPROPERTY()
@@ -90,7 +90,7 @@ struct FTTVectorTrack : public FTTTrackBase
 USTRUCT()
 struct FTTLinearColorTrack : public FTTTrackBase
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Curve object used to define color value over time */
 	UPROPERTY()
@@ -109,7 +109,9 @@ struct FTTLinearColorTrack : public FTTTrackBase
 UCLASS(MinimalAPI)
 class UTimelineTemplate : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UTimelineTemplate(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Length of this timeline */
 	UPROPERTY(EditAnywhere, Category=TimelineTemplate)

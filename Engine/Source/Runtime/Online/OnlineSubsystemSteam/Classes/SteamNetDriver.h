@@ -10,7 +10,9 @@
 UCLASS(transient, config=Engine)
 class USteamNetDriver : public UIpNetDriver
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	USteamNetDriver(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Time between connection detail output */
 	double ConnectionDumpInterval;

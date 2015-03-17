@@ -9,7 +9,9 @@ class UNavLinkDefinition;
 UCLASS(hidecategories=Object, editinlinenew)
 class ENGINE_API UNavLinkRenderingComponent : public UPrimitiveComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNavLinkRenderingComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 		
 	// Begin UPrimitiveComponent Interface
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;

@@ -7,7 +7,9 @@
 UCLASS()
 class UReimportPaperJsonImporterFactory : public UPaperJsonImporterFactory, public FReimportHandler
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UReimportPaperJsonImporterFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin FReimportHandler interface
 	virtual bool CanReimport(UObject* Obj, TArray<FString>& OutFilenames) override;

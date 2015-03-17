@@ -10,7 +10,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_SwitchEnum : public UK2Node_Switch, public INodeDependingOnEnumInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_SwitchEnum(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Name of the enum being switched on */
 	UPROPERTY()

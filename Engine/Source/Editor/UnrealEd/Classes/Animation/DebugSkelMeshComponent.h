@@ -8,7 +8,7 @@
 USTRUCT()
 struct FSelectedSocketInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Default constructor */
 	FSelectedSocketInfo()
@@ -38,7 +38,9 @@ struct FSelectedSocketInfo
 UCLASS(transient, MinimalAPI)
 class UDebugSkelMeshComponent : public USkeletalMeshComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API UDebugSkelMeshComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** If true, render a wireframe skeleton of the mesh animated with the raw (uncompressed) animation data. */
 	UPROPERTY()

@@ -10,7 +10,7 @@
 USTRUCT()
 struct FCustomPin
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Name of the pin within the current node */
 	UPROPERTY()
@@ -28,7 +28,9 @@ struct FCustomPin
 UCLASS(MinimalAPI)
 class UK2Node_EaseFunction : public UK2Node
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_EaseFunction(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin UEdGraphNode interface.
 	virtual void AllocateDefaultPins() override;

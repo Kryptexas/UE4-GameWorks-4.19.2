@@ -11,7 +11,9 @@
 UCLASS(abstract, config=Editor, MinimalAPI)
 class UDefaultSizedThumbnailRenderer : public UThumbnailRenderer
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API UDefaultSizedThumbnailRenderer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/**
 	 * The default width of this thumbnail

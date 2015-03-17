@@ -8,7 +8,9 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Velocity/Life"))
 class UParticleModuleVelocityOverLifetime : public UParticleModuleVelocityBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UParticleModuleVelocityOverLifetime(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/**
 	 *	The scaling  value applied to the velocity.

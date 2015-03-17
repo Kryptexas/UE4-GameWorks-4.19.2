@@ -8,7 +8,9 @@
 UCLASS()
 class GAMEPROJECTGENERATION_API UDefaultTemplateProjectDefs : public UTemplateProjectDefs
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UDefaultTemplateProjectDefs(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual bool GeneratesCode(const FString& ProjectTemplatePath) const override;
 

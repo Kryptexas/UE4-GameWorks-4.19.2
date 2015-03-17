@@ -17,7 +17,9 @@ class UK2Node_Event;
 UCLASS(Transient)
 class BLUEPRINTGRAPH_API UBlueprintBoundEventNodeSpawner : public UBlueprintEventNodeSpawner
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBlueprintBoundEventNodeSpawner(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	/**

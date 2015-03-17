@@ -11,7 +11,9 @@
 UCLASS(config=Editor)
 class ULevelThumbnailRenderer : public UDefaultSizedThumbnailRenderer
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ULevelThumbnailRenderer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin UThumbnailRenderer Object

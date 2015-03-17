@@ -7,7 +7,7 @@
 USTRUCT()
 struct ENGINE_API FBlueprintInputAxisDelegateBinding : public FBlueprintInputDelegateBinding
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FName InputAxisName;
@@ -26,7 +26,9 @@ struct ENGINE_API FBlueprintInputAxisDelegateBinding : public FBlueprintInputDel
 UCLASS()
 class ENGINE_API UInputAxisDelegateBinding : public UInputDelegateBinding
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UInputAxisDelegateBinding(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	TArray<FBlueprintInputAxisDelegateBinding> InputAxisDelegateBindings;

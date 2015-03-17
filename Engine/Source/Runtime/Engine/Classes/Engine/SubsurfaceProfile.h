@@ -8,7 +8,7 @@
 USTRUCT(BlueprintType)
 struct FSubsurfaceProfileStruct
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 	
 	/** in world/unreal units (cm) */
 	UPROPERTY(Category = "SubsurfaceProfileStruct", EditAnywhere, BlueprintReadOnly, meta = (ClampMin = "0.1", UIMax = "50.0", ClampMax = "1000.0"))
@@ -55,7 +55,9 @@ struct FSubsurfaceProfileStruct
 UCLASS(autoexpandcategories = SubsurfaceProfile, MinimalAPI)
 class USubsurfaceProfile : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API USubsurfaceProfile(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(Category = USubsurfaceProfile, EditAnywhere, meta = (ShowOnlyInnerProperties))
 	struct FSubsurfaceProfileStruct Settings;

@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI)
 class UAnimationStateGraphSchema : public UAnimationGraphSchema
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ANIMGRAPH_API UAnimationStateGraphSchema(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin UEdGraphSchema interface.
 	virtual void CreateDefaultNodesForGraph(UEdGraph& Graph) const override;

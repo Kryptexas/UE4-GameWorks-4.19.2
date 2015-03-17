@@ -8,7 +8,9 @@
 UCLASS(abstract, collapsecategories, hidecategories=Object, editinlinenew)
 class UDistributionFloatParameterBase : public UDistributionFloatConstant
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UDistributionFloatParameterBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** todo document */
 	UPROPERTY(EditAnywhere, Category=DistributionFloatParameterBase)

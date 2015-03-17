@@ -33,7 +33,9 @@ enum class EDragPivot : uint8
 UCLASS(BlueprintType, Blueprintable)
 class UMG_API UDragDropOperation : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UDragDropOperation(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
 public:
 	/** A simple string tag you can optionally use to provide extra metadata about the operation. */
@@ -80,12 +82,15 @@ public:
 	/**  */
 	UFUNCTION(BlueprintNativeEvent, Category="Drag and Drop")
 	void Drop(const FPointerEvent& PointerEvent);
+	virtual void Drop_Implementation(const FPointerEvent& PointerEvent);
 
 	/**  */
 	UFUNCTION(BlueprintNativeEvent, Category="Drag and Drop")
 	void DragCancelled(const FPointerEvent& PointerEvent);
+	virtual void DragCancelled_Implementation(const FPointerEvent& PointerEvent);
 
 	/**  */
 	UFUNCTION(BlueprintNativeEvent, Category="Drag and Drop")
 	void Dragged(const FPointerEvent& PointerEvent);
+	virtual void Dragged_Implementation(const FPointerEvent& PointerEvent);
 };

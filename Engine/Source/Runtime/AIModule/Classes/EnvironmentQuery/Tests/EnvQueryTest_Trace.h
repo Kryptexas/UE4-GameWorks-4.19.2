@@ -9,7 +9,9 @@ class UEnvQueryContext;
 UCLASS(MinimalAPI)
 class UEnvQueryTest_Trace : public UEnvQueryTest
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AIMODULE_API UEnvQueryTest_Trace(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** trace data */
 	UPROPERTY(EditDefaultsOnly, Category=Trace)

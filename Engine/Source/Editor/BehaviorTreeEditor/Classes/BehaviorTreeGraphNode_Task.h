@@ -7,7 +7,9 @@
 UCLASS()
 class UBehaviorTreeGraphNode_Task : public UBehaviorTreeGraphNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBehaviorTreeGraphNode_Task(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;

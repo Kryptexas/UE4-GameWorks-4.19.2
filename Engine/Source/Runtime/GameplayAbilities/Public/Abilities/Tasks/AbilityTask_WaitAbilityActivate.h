@@ -14,7 +14,9 @@ class AActor;
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitAbilityActivate : public UAbilityTask
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	GAMEPLAYABILITIES_API UAbilityTask_WaitAbilityActivate(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(BlueprintAssignable)
 	FWaitAbilityActivateDelegate	OnActivate;

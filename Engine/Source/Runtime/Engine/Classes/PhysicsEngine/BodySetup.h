@@ -24,7 +24,9 @@ namespace physx
 UCLASS(hidecategories=Object, MinimalAPI)
 class UBodySetup : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UBodySetup(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Simplified collision representation of this  */
 	UPROPERTY()

@@ -8,7 +8,9 @@
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Dynamic (Seed)"))
 class UParticleModuleParameterDynamic_Seeded : public UParticleModuleParameterDynamic
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleModuleParameterDynamic_Seeded(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The random seed(s) to use for looking up values in StartLocation */
 	UPROPERTY(EditAnywhere, Category=RandomSeed)

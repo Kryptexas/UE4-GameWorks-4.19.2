@@ -83,7 +83,7 @@ enum EBoneRotationSource
 USTRUCT()
 struct FA2Pose
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	TArray<FTransform> Bones;
@@ -95,7 +95,7 @@ struct FA2Pose
 USTRUCT()
 struct ENGINE_API FA2CSPose : public FA2Pose
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 private:
 	/** Pointer to current BoneContainer. */
@@ -173,7 +173,7 @@ private:
 USTRUCT(BlueprintType)
 struct FBoneTransform
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** @todo anim: should be Skeleton bone index in the future, but right now it's Mesh BoneIndex **/
 	UPROPERTY()
@@ -196,7 +196,7 @@ struct FBoneTransform
 USTRUCT(BlueprintType)
 struct FPerBoneBlendWeight
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 	UPROPERTY()
 	int32 SourceIndex; // source index of the buffer
 	UPROPERTY()
@@ -212,7 +212,7 @@ struct FPerBoneBlendWeight
 USTRUCT(BlueprintType)
 struct FPerBoneBlendWeights
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	TArray<FPerBoneBlendWeight> BoneBlendWeights;
@@ -226,7 +226,7 @@ struct FPerBoneBlendWeights
 USTRUCT()
 struct FSlotEvaluationPose
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Type of additive for pose */
 	UPROPERTY()
@@ -341,7 +341,9 @@ struct FNativeStateBinding
 UCLASS(transient, Blueprintable, hideCategories=AnimInstance, BlueprintType)
 class ENGINE_API UAnimInstance : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAnimInstance(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** DeltaTime **/
 	UPROPERTY()

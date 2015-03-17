@@ -11,7 +11,7 @@
 USTRUCT()
 struct ENGINE_API FAnimNode_LayeredBoneBlend : public FAnimNode_Base
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Links)

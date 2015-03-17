@@ -17,7 +17,9 @@ class UPrimitiveComponent;
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitGameplayEffectRemoved : public UAbilityTask
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	GAMEPLAYABILITIES_API UAbilityTask_WaitGameplayEffectRemoved(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(BlueprintAssignable)
 	FWaitGameplayEffectRemovedDelegate	OnRemoved;

@@ -10,7 +10,7 @@
 USTRUCT()
 struct ENGINE_API FAnimNode_BlendListByBool : public FAnimNode_BlendListBase
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 public:
 	// Which input should be connected to the output?
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Runtime, meta=(AlwaysAsPin))

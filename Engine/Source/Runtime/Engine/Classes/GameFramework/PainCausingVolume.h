@@ -16,7 +16,9 @@
 UCLASS()
 class ENGINE_API APainCausingVolume : public APhysicsVolume
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	APainCausingVolume(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Whether volume currently causes damage. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PainCausingVolume)

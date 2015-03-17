@@ -8,7 +8,9 @@
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Init Mesh Rotation Rate (Seed)"))
 class UParticleModuleMeshRotationRate_Seeded : public UParticleModuleMeshRotationRate
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleModuleMeshRotationRate_Seeded(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The random seed(s) to use for looking up values in StartLocation */
 	UPROPERTY(EditAnywhere, Category=RandomSeed)

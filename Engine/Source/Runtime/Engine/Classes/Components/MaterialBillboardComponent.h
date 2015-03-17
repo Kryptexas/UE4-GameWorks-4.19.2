@@ -8,7 +8,7 @@
 USTRUCT()
 struct FMaterialSpriteElement
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** The material that the sprite is rendered with. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MaterialSpriteElement)
@@ -53,7 +53,9 @@ struct FMaterialSpriteElement
 UCLASS(ClassGroup=Rendering, collapsecategories, hidecategories=(Object,Activation,"Components|Activation",Physics,Collision,Lighting,LOD,Mesh,PhysicsVolume), editinlinenew, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UMaterialBillboardComponent : public UPrimitiveComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMaterialBillboardComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Sprite)
 	TArray<struct FMaterialSpriteElement> Elements;

@@ -13,7 +13,9 @@
 UCLASS()
 class UMG_API UUniformGridSlot : public UPanelSlot
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UUniformGridSlot(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

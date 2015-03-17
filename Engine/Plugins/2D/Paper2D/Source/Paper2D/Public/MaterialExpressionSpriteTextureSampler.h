@@ -9,7 +9,9 @@
 UCLASS(hideCategories=(MaterialExpressionTextureSampleParameter, MaterialExpressionSpriteTextureSampler))
 class PAPER2D_API UMaterialExpressionSpriteTextureSampler : public UMaterialExpressionTextureSampleParameter2D
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMaterialExpressionSpriteTextureSampler(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Is this a sampler for the default SourceTexture or the AdditionalSourceTextures list?
 	UPROPERTY(EditAnywhere, Category=Paper2D)

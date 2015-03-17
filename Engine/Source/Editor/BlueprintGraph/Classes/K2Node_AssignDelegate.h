@@ -13,7 +13,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_AssignDelegate : public UK2Node_AddDelegate
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_AssignDelegate(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	// UEdGraphNode interface

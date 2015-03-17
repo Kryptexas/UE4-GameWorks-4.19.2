@@ -8,7 +8,9 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Line Attractor"))
 class UParticleModuleAttractorLine : public UParticleModuleAttractorBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UParticleModuleAttractorLine(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The first endpoint of the line. */
 	UPROPERTY(EditAnywhere, Category=Attractor)

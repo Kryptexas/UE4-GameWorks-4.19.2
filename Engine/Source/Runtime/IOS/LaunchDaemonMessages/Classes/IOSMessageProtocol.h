@@ -8,7 +8,7 @@
 USTRUCT()
 struct FIOSLaunchDaemonPing
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	//FIOSLaunchDaemonPing() {}
 };
@@ -26,7 +26,7 @@ struct TStructOpsTypeTraits<FIOSLaunchDaemonPing> : public TStructOpsTypeTraitsB
 USTRUCT()
 struct FIOSLaunchDaemonPong
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FString DeviceID;
@@ -75,7 +75,7 @@ struct TStructOpsTypeTraits<FIOSLaunchDaemonPong> : public TStructOpsTypeTraitsB
 USTRUCT()
 struct FIOSLaunchDaemonLaunchApp
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FString AppID;

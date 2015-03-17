@@ -8,7 +8,7 @@ class AGameplayAbilityTargetActor;
 USTRUCT(BlueprintType)
 struct FWorldReticleParameters
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	//Use this so that we can't slip in new parameters without some actor knowing about it.
 	void Initialize(FVector InAOEScale)
@@ -24,7 +24,9 @@ struct FWorldReticleParameters
 UCLASS(Blueprintable, notplaceable)
 class GAMEPLAYABILITIES_API AGameplayAbilityWorldReticle : public AActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AGameplayAbilityWorldReticle(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

@@ -6,7 +6,9 @@
 UCLASS(EditInlineNew, meta=(DisplayName="Bool"))
 class AIMODULE_API UBlackboardKeyType_Bool : public UBlackboardKeyType
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBlackboardKeyType_Bool(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	typedef bool FDataType;
 	static const FDataType InvalidValue;

@@ -10,7 +10,9 @@
 UCLASS(MinimalAPI)
 class AInteractiveFoliageActor : public AStaticMeshActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	FOLIAGE_API AInteractiveFoliageActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 private:
 	/** Collision cylinder */

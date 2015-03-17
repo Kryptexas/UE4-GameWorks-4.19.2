@@ -9,7 +9,9 @@
 UCLASS(Blueprintable)
 class AGameplayAbilityTargetActor_ActorPlacement : public AGameplayAbilityTargetActor_GroundTrace
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AGameplayAbilityTargetActor_ActorPlacement(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 

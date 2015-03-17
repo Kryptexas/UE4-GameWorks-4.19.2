@@ -13,7 +13,9 @@
 UCLASS()
 class ENGINE_API UCameraModifier : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UCameraModifier(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
 	/** If true, do not apply this modifier to the camera. */

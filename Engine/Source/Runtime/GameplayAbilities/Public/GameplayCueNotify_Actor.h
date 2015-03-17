@@ -22,7 +22,9 @@
 UCLASS(Blueprintable, meta = (ShowWorldContextPin), hidecategories = (Replication))
 class GAMEPLAYABILITIES_API AGameplayCueNotify_Actor : public AActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AGameplayCueNotify_Actor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Does this GameplayCueNotify handle this type of GameplayCueEvent? */
 	virtual bool HandlesEvent(EGameplayCueEvent::Type EventType) const;
@@ -45,15 +47,19 @@ class GAMEPLAYABILITIES_API AGameplayCueNotify_Actor : public AActor
 
 	UFUNCTION(BlueprintNativeEvent, Category = "GameplayCueNotify")
 	bool OnExecute(AActor* MyTarget, FGameplayCueParameters Parameters);
+	virtual bool OnExecute_Implementation(AActor* MyTarget, FGameplayCueParameters Parameters);
 
 	UFUNCTION(BlueprintNativeEvent, Category = "GameplayCueNotify")
 	bool OnActive(AActor* MyTarget, FGameplayCueParameters Parameters);
+	virtual bool OnActive_Implementation(AActor* MyTarget, FGameplayCueParameters Parameters);
 
 	UFUNCTION(BlueprintNativeEvent, Category = "GameplayCueNotify")
 	bool WhileActive(AActor* MyTarget, FGameplayCueParameters Parameters);
+	virtual bool WhileActive_Implementation(AActor* MyTarget, FGameplayCueParameters Parameters);
 
 	UFUNCTION(BlueprintNativeEvent, Category = "GameplayCueNotify")
 	bool OnRemove(AActor* MyTarget, FGameplayCueParameters Parameters);
+	virtual bool OnRemove_Implementation(AActor* MyTarget, FGameplayCueParameters Parameters);
 
 	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)
 	FGameplayTag	GameplayCueTag;

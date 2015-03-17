@@ -20,7 +20,9 @@ enum EParticleCameraOffsetUpdateMethod
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Camera Offset"))
 class UParticleModuleCameraOffset : public UParticleModuleCameraBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleModuleCameraOffset(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** 
 	 *	The camera-relative offset to apply to sprite location

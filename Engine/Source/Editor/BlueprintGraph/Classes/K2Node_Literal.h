@@ -8,7 +8,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_Literal : public UK2Node
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_Literal(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 private:
 	/** If this is an object reference literal, keep a reference here so that it can be updated as objects move around */

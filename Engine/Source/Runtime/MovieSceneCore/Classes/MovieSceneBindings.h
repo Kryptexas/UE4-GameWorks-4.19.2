@@ -11,7 +11,7 @@
 USTRUCT()
 struct FMovieSceneBoundObject
 {
-	GENERATED_USTRUCT_BODY( FMovieSceneBoundObject )
+	GENERATED_BODY()
 
 public:
 
@@ -87,7 +87,9 @@ private:
 UCLASS( MinimalAPI )
 class UMovieSceneBindings : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	MOVIESCENECORE_API UMovieSceneBindings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

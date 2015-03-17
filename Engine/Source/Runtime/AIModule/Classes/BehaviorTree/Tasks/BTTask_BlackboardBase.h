@@ -10,7 +10,9 @@ class UBehaviorTree;
 UCLASS(Abstract)
 class AIMODULE_API UBTTask_BlackboardBase : public UBTTaskNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBTTask_BlackboardBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** initialize any asset related data */
 	virtual void InitializeFromAsset(UBehaviorTree& Asset) override;

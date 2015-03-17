@@ -11,7 +11,7 @@
 USTRUCT()
 struct FFileServerReady
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 	
 	/**
 	 * Holds the list of IP addresses that the file server is listening on.

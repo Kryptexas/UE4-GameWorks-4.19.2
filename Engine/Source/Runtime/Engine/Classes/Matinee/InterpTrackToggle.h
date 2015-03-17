@@ -26,7 +26,7 @@ enum ETrackToggleAction
 USTRUCT()
 struct FToggleTrackKey
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	float Time;
@@ -46,7 +46,9 @@ struct FToggleTrackKey
 UCLASS(MinimalAPI, meta=( DisplayName = "Toggle Track" ) )
 class UInterpTrackToggle : public UInterpTrack
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UInterpTrackToggle(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Array of events to fire off. */
 	UPROPERTY()

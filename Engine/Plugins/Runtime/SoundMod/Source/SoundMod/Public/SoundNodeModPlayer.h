@@ -11,7 +11,9 @@
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, meta=( DisplayName="Mod Player" ))
 class USoundNodeModPlayer : public USoundNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	SOUNDMOD_API USoundNodeModPlayer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category=ModPlayer)
 	USoundMod* SoundMod;

@@ -42,7 +42,9 @@ namespace EGraphicsPreset
 UCLASS(config=Engine, defaultconfig)
 class HARDWARETARGETING_API UHardwareTargetingSettings : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UHardwareTargetingSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Enum specifying which class of hardware this game is targeting */
 	UPROPERTY(config, EditAnywhere, category=None)

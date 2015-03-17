@@ -10,7 +10,7 @@
 USTRUCT()
 struct FProfilerServiceAuthorize
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**
 	 */
@@ -53,7 +53,7 @@ struct TStructOpsTypeTraits<FProfilerServiceAuthorize> : public TStructOpsTypeTr
 USTRUCT()
 struct FProfilerServiceAuthorize2
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**
 	 */
@@ -102,7 +102,7 @@ struct TStructOpsTypeTraits<FProfilerServiceAuthorize2> : public TStructOpsTypeT
 USTRUCT()
 struct FProfilerServiceData
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**
 	 */
@@ -145,7 +145,7 @@ struct TStructOpsTypeTraits<FProfilerServiceData> : public TStructOpsTypeTraitsB
 USTRUCT()
 struct FProfilerServiceData2
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**
 	 */
@@ -192,7 +192,7 @@ struct TStructOpsTypeTraits<FProfilerServiceData2> : public TStructOpsTypeTraits
 USTRUCT()
 struct FProfilerServicePreviewAck
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**
 	 */
@@ -233,7 +233,7 @@ struct TStructOpsTypeTraits<FProfilerServicePreviewAck> : public TStructOpsTypeT
 USTRUCT()
 struct FProfilerServiceMetaData
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**
 	 */
@@ -277,7 +277,7 @@ struct TStructOpsTypeTraits<FProfilerServiceMetaData> : public TStructOpsTypeTra
 USTRUCT()
 struct FProfilerServiceFileChunk
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** The ID of the instance where this message should be sent. */
 	UPROPERTY()
@@ -345,7 +345,7 @@ struct TStructOpsTypeTraits<FProfilerServiceFileChunk> : public TStructOpsTypeTr
 USTRUCT()
 struct FProfilerServicePing
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 };
 
 template<>
@@ -363,7 +363,7 @@ struct TStructOpsTypeTraits<FProfilerServicePing> : public TStructOpsTypeTraitsB
 USTRUCT()
 struct FProfilerServicePong
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 };
 
@@ -382,7 +382,7 @@ struct TStructOpsTypeTraits<FProfilerServicePong> : public TStructOpsTypeTraitsB
 USTRUCT()
 struct FProfilerServiceSubscribe
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**
 	 */
@@ -423,7 +423,7 @@ struct TStructOpsTypeTraits<FProfilerServiceSubscribe> : public TStructOpsTypeTr
 USTRUCT()
 struct FProfilerServiceUnsubscribe
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**
 	 */
@@ -465,7 +465,7 @@ struct TStructOpsTypeTraits<FProfilerServiceUnsubscribe> : public TStructOpsType
 USTRUCT()
 struct FProfilerServiceCapture
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**
 	 * The data capture state that should be set.
@@ -501,7 +501,7 @@ struct TStructOpsTypeTraits<FProfilerServiceCapture> : public TStructOpsTypeTrai
 USTRUCT()
 struct FProfilerServicePreview
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**
 	 * The data preview state that should be set.
@@ -537,7 +537,7 @@ struct TStructOpsTypeTraits<FProfilerServicePreview> : public TStructOpsTypeTrai
 USTRUCT()
 struct FProfilerServiceRequest
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Request @see EProfilerRequestType. */
 	UPROPERTY()

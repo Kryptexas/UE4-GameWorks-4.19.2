@@ -14,7 +14,9 @@ struct FWidgetTransform;
 UCLASS(MinimalAPI)
 class UMovieScene2DTransformSection : public UMovieSceneSection
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMG_API UMovieScene2DTransformSection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 public:
 
 	/** MovieSceneSection interface */

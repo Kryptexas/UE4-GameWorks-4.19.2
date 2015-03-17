@@ -13,7 +13,7 @@
 USTRUCT(BlueprintType)
 struct FCollisionProfileName
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FCollisionProfileName()
 		: Name(NAME_None)
@@ -30,7 +30,7 @@ struct FCollisionProfileName
 USTRUCT()
 struct ENGINE_API FCollisionResponseTemplate
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FName Name;
@@ -77,7 +77,7 @@ struct ENGINE_API FCollisionResponseTemplate
 USTRUCT()
 struct FCustomChannelSetup
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Which channel you'd like to customize **/
 	UPROPERTY()
@@ -122,7 +122,7 @@ struct FCustomChannelSetup
 USTRUCT()
 struct ENGINE_API FCustomProfile
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FName Name;
@@ -140,7 +140,9 @@ UCLASS(abstract, config=Engine, defaultconfig, MinimalAPI)
 class UCollisionProfile
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UCollisionProfile(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 private:
 

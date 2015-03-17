@@ -9,7 +9,9 @@
 UCLASS(Abstract)
 class ENGINE_API UNavAreaMeta_SwitchByAgent : public UNavAreaMeta
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNavAreaMeta_SwitchByAgent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category=AgentTypes)
 	TSubclassOf<UNavArea> Agent0Area;

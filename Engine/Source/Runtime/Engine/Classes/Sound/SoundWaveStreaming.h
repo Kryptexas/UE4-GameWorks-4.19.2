@@ -14,7 +14,9 @@ DECLARE_DELEGATE_TwoParams( FOnSoundWaveStreamingUnderflow, class USoundWaveStre
 UCLASS()
 class ENGINE_API USoundWaveStreaming : public USoundWave
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	USoundWaveStreaming(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 private:
 	TArray<uint8> QueuedAudio;

@@ -9,7 +9,9 @@
 UCLASS()
 class UDestructibleChunkParamsProxy : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UDestructibleChunkParamsProxy(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	UDestructibleMesh* DestructibleMesh;

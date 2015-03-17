@@ -15,7 +15,9 @@ DECLARE_DELEGATE(FOnCVarsUpdated);
 UCLASS(config=DeviceProfiles, perobjectconfig, Blueprintable)
 class ENGINE_API UDeviceProfile : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UDeviceProfile(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The type of this profile, I.e. IOS, Windows, PS4 etc */
 	UPROPERTY(VisibleAnywhere, config, Category=DeviceSettings)

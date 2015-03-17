@@ -7,7 +7,7 @@
 USTRUCT()
 struct ENGINE_API FBlueprintInputActionDelegateBinding : public FBlueprintInputDelegateBinding
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FName InputActionName;
@@ -30,7 +30,9 @@ struct ENGINE_API FBlueprintInputActionDelegateBinding : public FBlueprintInputD
 UCLASS()
 class ENGINE_API UInputActionDelegateBinding : public UInputDelegateBinding
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UInputActionDelegateBinding(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	TArray<FBlueprintInputActionDelegateBinding> InputActionDelegateBindings;

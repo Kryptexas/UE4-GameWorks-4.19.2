@@ -6,7 +6,9 @@
 UCLASS(MinimalAPI)
 class UInterpTrackInstAnimControl : public UInterpTrackInst
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UInterpTrackInstAnimControl(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/**
 	 */

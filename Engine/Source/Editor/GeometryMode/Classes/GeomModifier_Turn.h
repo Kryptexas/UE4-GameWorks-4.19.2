@@ -11,7 +11,9 @@
 UCLASS()
 class UGeomModifier_Turn : public UGeomModifier_Edit
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UGeomModifier_Turn(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin UGeomModifier Interface

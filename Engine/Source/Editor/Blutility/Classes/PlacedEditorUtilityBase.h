@@ -11,7 +11,9 @@
 UCLASS(Abstract, hideCategories=(Object, Actor)/*, Blueprintable*/)
 class BLUTILITY_API APlacedEditorUtilityBase : public AActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	APlacedEditorUtilityBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(Category=Config, EditDefaultsOnly, BlueprintReadWrite)
 	FString HelpText;

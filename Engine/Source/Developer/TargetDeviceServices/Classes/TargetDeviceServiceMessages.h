@@ -16,7 +16,7 @@
 USTRUCT()
 struct FTargetDeviceServiceDeployCommit
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Holds the variant identifier of the target device to use. */
 	UPROPERTY()
@@ -57,7 +57,7 @@ struct TStructOpsTypeTraits<FTargetDeviceServiceDeployCommit> : public TStructOp
 USTRUCT()
 struct FTargetDeviceServiceDeployFile
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Holds the name and path of the file as it will be stored on the target device. */
 	UPROPERTY()
@@ -96,7 +96,7 @@ struct TStructOpsTypeTraits<FTargetDeviceServiceDeployFile> : public TStructOpsT
 USTRUCT()
 struct FTargetDeviceServiceDeployFinished
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Holds the variant identifier of the target device to use. */
 	UPROPERTY()
@@ -157,7 +157,7 @@ struct TStructOpsTypeTraits<FTargetDeviceServiceDeployFinished> : public TStruct
 USTRUCT()
 struct FTargetDeviceServiceLaunchApp
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Holds the variant identifier of the target device to use. */
 	UPROPERTY()
@@ -213,7 +213,7 @@ struct TStructOpsTypeTraits<FTargetDeviceServiceLaunchApp> : public TStructOpsTy
 USTRUCT()
 struct FTargetDeviceServiceLaunchFinished
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**
 	 * Holds the identifier of the launched application.
@@ -268,7 +268,7 @@ struct TStructOpsTypeTraits<FTargetDeviceServiceLaunchFinished> : public TStruct
 USTRUCT()
 struct FTargetDeviceClaimDenied
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Holds the identifier of the device that is already claimed. */
 	UPROPERTY()
@@ -313,7 +313,7 @@ struct TStructOpsTypeTraits<FTargetDeviceClaimDenied> : public TStructOpsTypeTra
 USTRUCT()
 struct FTargetDeviceClaimed
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Holds the identifier of the device that is being claimed. */
 	UPROPERTY()
@@ -357,7 +357,7 @@ struct TStructOpsTypeTraits<FTargetDeviceClaimed> : public TStructOpsTypeTraitsB
 USTRUCT()
 struct FTargetDeviceUnclaimed
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Holds the identifier of the device that is no longer claimed. */
 	UPROPERTY()
@@ -402,7 +402,7 @@ struct TStructOpsTypeTraits<FTargetDeviceUnclaimed> : public TStructOpsTypeTrait
 USTRUCT()
 struct FTargetDeviceServicePing
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Holds the name of the user who generated the ping. */
 	UPROPERTY()
@@ -434,7 +434,7 @@ struct TStructOpsTypeTraits<FTargetDeviceServicePing> : public TStructOpsTypeTra
 USTRUCT()
 struct FTargetDeviceVariant
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FString DeviceID;
@@ -471,7 +471,7 @@ struct TStructOpsTypeTraits<FTargetDeviceVariant> : public TStructOpsTypeTraitsB
 USTRUCT()
 struct FTargetDeviceServicePong
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Holds a flag indicating whether the device is currently connected. */
 	UPROPERTY()
@@ -561,7 +561,7 @@ struct TStructOpsTypeTraits<FTargetDeviceServicePong> : public TStructOpsTypeTra
 USTRUCT()
 struct FTargetDeviceServicePowerOff
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**
 	 * Holds a flag indicating whether the power-off should be enforced.
@@ -602,7 +602,7 @@ struct TStructOpsTypeTraits<FTargetDeviceServicePowerOff> : public TStructOpsTyp
 USTRUCT()
 struct FTargetDeviceServicePowerOn
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Holds the name of the user that wishes to power on the device. */
 	UPROPERTY()
@@ -634,7 +634,7 @@ struct TStructOpsTypeTraits<FTargetDeviceServicePowerOn> : public TStructOpsType
 USTRUCT()
 struct FTargetDeviceServiceReboot
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Holds the name of the user that wishes to reboot the device. */
 	UPROPERTY()
@@ -670,7 +670,7 @@ struct TStructOpsTypeTraits<FTargetDeviceServiceReboot> : public TStructOpsTypeT
 USTRUCT()
 struct FTargetDeviceServiceRunExecutable
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Holds the variant identifier of the target device to use for execution. */
 	UPROPERTY()
@@ -714,7 +714,7 @@ struct TStructOpsTypeTraits<FTargetDeviceServiceRunExecutable> : public TStructO
 USTRUCT()
 struct FTargetDeviceServiceRunFinished
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Holds the variant identifier of the target device to use. */
 	UPROPERTY()

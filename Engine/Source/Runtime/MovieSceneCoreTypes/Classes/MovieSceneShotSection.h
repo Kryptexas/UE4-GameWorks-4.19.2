@@ -11,7 +11,9 @@
 UCLASS( MinimalAPI )
 class UMovieSceneShotSection : public UMovieSceneSection
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	MOVIESCENECORETYPES_API UMovieSceneShotSection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 public:
 	/** Sets the camera guid for this shot section */
 	void SetCameraGuid(const FGuid& InGuid);

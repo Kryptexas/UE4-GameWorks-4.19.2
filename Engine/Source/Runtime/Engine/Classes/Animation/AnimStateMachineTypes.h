@@ -30,7 +30,7 @@ namespace ETransitionLogicType
 USTRUCT()
 struct FAnimationTransitionRule
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FName RuleToExecute;
@@ -57,7 +57,7 @@ struct FAnimationTransitionRule
 USTRUCT()
 struct FAnimationStateBase
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// The name of this state
 	UPROPERTY()
@@ -71,7 +71,7 @@ struct FAnimationStateBase
 USTRUCT()
 struct FAnimationState : public FAnimationStateBase
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// Set of legal transitions out of this state; already in priority order
 	UPROPERTY()
@@ -105,7 +105,7 @@ struct FAnimationState : public FAnimationStateBase
 USTRUCT()
 struct FAnimationTransitionBetweenStates : public FAnimationStateBase
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// Transition-only: State being transitioned from
 	UPROPERTY()
@@ -157,7 +157,7 @@ struct FAnimationTransitionBetweenStates : public FAnimationStateBase
 USTRUCT()
 struct FBakedStateExitTransition
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// The node property index for this rule
 	UPROPERTY()
@@ -197,7 +197,7 @@ struct FBakedStateExitTransition
 USTRUCT()
 struct FBakedAnimationState
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// The name of this state
 	UPROPERTY()
@@ -240,7 +240,7 @@ public:
 USTRUCT()
 struct FBakedAnimationStateMachine
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// Name of this machine (primarily for debugging purposes)
 	UPROPERTY()
@@ -275,6 +275,8 @@ public:
 UCLASS()
 class UAnimStateMachineTypes : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAnimStateMachineTypes(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };
 

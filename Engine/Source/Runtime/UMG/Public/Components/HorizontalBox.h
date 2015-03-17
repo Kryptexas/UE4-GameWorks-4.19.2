@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Components/PanelWidget.h"
@@ -15,7 +15,9 @@ class UHorizontalBoxSlot;
 UCLASS(ClassGroup=UserInterface)
 class UMG_API UHorizontalBox : public UPanelWidget
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UHorizontalBox(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Widget")

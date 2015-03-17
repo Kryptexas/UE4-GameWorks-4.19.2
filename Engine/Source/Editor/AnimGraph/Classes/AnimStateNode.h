@@ -15,7 +15,9 @@ enum EAnimStateType
 UCLASS(MinimalAPI)
 class UAnimStateNode : public UAnimStateNodeBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ANIMGRAPH_API UAnimStateNode(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 public:
 
 	// The animation graph for this state

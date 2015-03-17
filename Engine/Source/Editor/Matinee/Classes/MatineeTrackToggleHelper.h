@@ -8,7 +8,9 @@
 UCLASS()
 class UMatineeTrackToggleHelper : public UInterpTrackHelper
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMatineeTrackToggleHelper(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	void OnAddKeyTextEntry(const FString& ChosenText, IMatineeBase* Matinee, UInterpTrack* Track);
 

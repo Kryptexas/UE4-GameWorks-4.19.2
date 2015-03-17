@@ -10,7 +10,9 @@
 UCLASS(collapsecategories)
 class UReimportFbxAnimSequenceFactory : public UFbxFactory, public FReimportHandler
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UReimportFbxAnimSequenceFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin FReimportHandler interface

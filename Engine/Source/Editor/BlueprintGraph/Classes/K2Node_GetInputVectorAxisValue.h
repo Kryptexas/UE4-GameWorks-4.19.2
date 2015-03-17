@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_GetInputVectorAxisValue : public UK2Node_GetInputAxisKeyValue
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_GetInputVectorAxisValue(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin EdGraphNode interface
 	virtual FText GetTooltipText() const override;

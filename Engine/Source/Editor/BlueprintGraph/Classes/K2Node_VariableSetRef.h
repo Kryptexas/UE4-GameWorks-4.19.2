@@ -9,7 +9,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_VariableSetRef : public UK2Node
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_VariableSetRef(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;

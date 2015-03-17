@@ -9,7 +9,9 @@
 UCLASS(Abstract)
 class ANIMGRAPH_API UAnimGraphNode_StateMachineBase : public UAnimGraphNode_Base
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAnimGraphNode_StateMachineBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Editor state machine representation
 	UPROPERTY()

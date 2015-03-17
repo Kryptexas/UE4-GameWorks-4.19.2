@@ -9,7 +9,9 @@
 UCLASS(hidecategories=Object, collapsecategories)
 class UNREALED_API UDEditorStaticSwitchParameterValue : public UDEditorParameterValue
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UDEditorStaticSwitchParameterValue(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category=DEditorStaticSwitchParameterValue)
 	uint32 ParameterValue:1;

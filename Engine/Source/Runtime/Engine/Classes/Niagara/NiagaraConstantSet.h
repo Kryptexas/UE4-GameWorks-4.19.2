@@ -9,7 +9,7 @@
 USTRUCT()
 struct FNiagaraConstantMap
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 private:
 	TMap<FNiagaraVariableInfo, float> ScalarConstants;
@@ -129,7 +129,7 @@ public:
 USTRUCT()
 struct FNiagaraConstants
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 private:
 

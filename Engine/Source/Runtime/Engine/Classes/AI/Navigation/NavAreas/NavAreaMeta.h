@@ -11,7 +11,9 @@ class AActor;
 UCLASS(Abstract)
 class ENGINE_API UNavAreaMeta : public UNavArea
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNavAreaMeta(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** 
 	 *	Picks an navigation area class that should be used for Actor when

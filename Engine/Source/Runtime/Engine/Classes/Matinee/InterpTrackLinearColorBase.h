@@ -7,7 +7,9 @@
 UCLASS(abstract, MinimalAPI)
 class UInterpTrackLinearColorBase : public UInterpTrack
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UInterpTrackLinearColorBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Actually track data containing keyframes of a FVector as it varies over time. */
 	UPROPERTY()

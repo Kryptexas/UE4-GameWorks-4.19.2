@@ -29,7 +29,7 @@ struct FBlueprintActionContext;
 USTRUCT()
 struct FBlueprintDragDropMenuItem : public FEdGraphSchemaAction
 {
-	GENERATED_USTRUCT_BODY();
+	GENERATED_BODY()
 	
 public:
 	static FName StaticGetTypeId() { static FName const TypeId("FBlueprintDragDropMenuItem"); return TypeId; }

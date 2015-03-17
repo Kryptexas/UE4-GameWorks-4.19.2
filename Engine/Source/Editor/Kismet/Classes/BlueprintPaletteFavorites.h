@@ -16,7 +16,7 @@ struct FBlueprintActionInfo;
 USTRUCT()
 struct FFavoritedBlueprintPaletteItem
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 public:
 	/**
@@ -88,7 +88,9 @@ private:
 UCLASS(config=EditorUserSettings)
 class KISMET_API UBlueprintPaletteFavorites : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBlueprintPaletteFavorites(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	// Begin UObject interface

@@ -7,7 +7,7 @@
 USTRUCT()
 struct FStructVariableDescription
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FName VarName;
@@ -65,7 +65,9 @@ struct FStructVariableDescription
 UCLASS()
 class UNREALED_API UUserDefinedStructEditorData : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UUserDefinedStructEditorData(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 private:
 	// the property is used to generate an uniqe name id for member variable

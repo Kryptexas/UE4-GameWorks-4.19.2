@@ -10,7 +10,9 @@
 UCLASS()
 class UMG_API UWidgetTree : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UWidgetTree(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

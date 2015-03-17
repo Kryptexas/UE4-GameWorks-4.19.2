@@ -16,7 +16,9 @@ enum ELocationSkelVertSurfaceSource
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Skel Vert/Surf Location"))
 class UParticleModuleLocationSkelVertSurface : public UParticleModuleLocationBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleModuleLocationSkelVertSurface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/**
 	 *	Whether the module uses Verts or Surfaces for locations.

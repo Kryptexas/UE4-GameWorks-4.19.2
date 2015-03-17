@@ -8,7 +8,9 @@
 UCLASS(Experimental)
 class UMG_API UScrollBar : public UWidget
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UScrollBar(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

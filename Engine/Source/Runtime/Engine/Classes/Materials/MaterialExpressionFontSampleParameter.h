@@ -8,7 +8,9 @@
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionFontSampleParameter : public UMaterialExpressionFontSample
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UMaterialExpressionFontSampleParameter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** name to be referenced when we want to find and set thsi parameter */
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionFontSampleParameter)

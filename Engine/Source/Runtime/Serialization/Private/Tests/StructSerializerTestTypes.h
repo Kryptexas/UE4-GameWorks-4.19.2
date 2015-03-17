@@ -10,7 +10,7 @@
 USTRUCT()
 struct FStructSerializerNumericTestStruct
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	int8 Int8;
@@ -67,7 +67,7 @@ struct FStructSerializerNumericTestStruct
 USTRUCT()
 struct FStructSerializerBooleanTestStruct
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	bool BoolFalse;
@@ -96,7 +96,7 @@ struct FStructSerializerBooleanTestStruct
 USTRUCT()
 struct FStructSerializerObjectTestStruct
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	TSubclassOf<class UObject> Class;
@@ -120,7 +120,7 @@ struct FStructSerializerObjectTestStruct
 USTRUCT()
 struct FStructSerializerBuiltinTestStruct
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FGuid Guid;
@@ -156,7 +156,7 @@ struct FStructSerializerBuiltinTestStruct
 USTRUCT()
 struct FStructSerializerArrayTestStruct
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	TArray<int32> Int32Array;
@@ -205,7 +205,7 @@ struct FStructSerializerArrayTestStruct
 USTRUCT()
 struct FStructSerializerTestStruct
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FStructSerializerNumericTestStruct Numerics;

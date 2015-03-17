@@ -6,7 +6,7 @@
 USTRUCT( BlueprintType )
 struct FBlueprintLiveStreamInfo 
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Name of the game that is streaming */
 	UPROPERTY( EditAnywhere, Category="LiveStreaming" )
@@ -27,7 +27,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FOnQueryLiveStreamsCompleted, cons
 UCLASS()
 class UQueryLiveStreamsCallbackProxy : public UOnlineBlueprintCallProxyBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UQueryLiveStreamsCallbackProxy(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Called when the asynchronous request for live streams completes, passing along the list of live streams currently active, along with a boolean value that indicates whether the request was successful at all
 	UPROPERTY( BlueprintAssignable )

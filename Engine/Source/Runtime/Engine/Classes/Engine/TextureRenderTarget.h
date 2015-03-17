@@ -13,7 +13,9 @@
 UCLASS(abstract, MinimalAPI)
 class UTextureRenderTarget : public UTexture
 {
-	GENERATED_UCLASS_BODY()	
+	GENERATED_BODY()
+public:
+	ENGINE_API UTextureRenderTarget(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Will override FTextureRenderTarget2DResource::GetDisplayGamma if > 0. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=TextureRenderTarget)

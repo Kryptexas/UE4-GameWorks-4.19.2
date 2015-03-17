@@ -14,7 +14,9 @@ class UActorComponent;
 UCLASS(abstract, transient, MinimalAPI)
 class UExporter : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UExporter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Supported class of this exporter */
 	UPROPERTY()

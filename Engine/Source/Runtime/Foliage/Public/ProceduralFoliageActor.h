@@ -9,7 +9,9 @@ class UProceduralFoliageComponent;
 UCLASS()
 class FOLIAGE_API AProceduralFoliageActor: public AVolume
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AProceduralFoliageActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(Category = ProceduralFoliageTile, VisibleAnywhere, BlueprintReadOnly)
 	UProceduralFoliageComponent* ProceduralComponent;

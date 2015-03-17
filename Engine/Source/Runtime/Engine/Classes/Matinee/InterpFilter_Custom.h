@@ -13,7 +13,9 @@
 UCLASS(MinimalAPI)
 class UInterpFilter_Custom : public UInterpFilter
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UInterpFilter_Custom(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 #if WITH_EDITORONLY_DATA
 	/** Which groups are included in this filter. */

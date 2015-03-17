@@ -8,8 +8,8 @@
 USTRUCT()
 struct FSpriteDrawCallRecord
 {
+	GENERATED_BODY()
 public:
-	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(Category=Sprite, EditAnywhere)
 	FVector Destination;

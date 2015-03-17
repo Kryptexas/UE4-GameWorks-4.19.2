@@ -13,7 +13,9 @@
 UCLASS(config=Game, Blueprintable, BlueprintType, notplaceable)
 class ENGINE_API ASpectatorPawn : public ADefaultPawn
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ASpectatorPawn(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin Pawn overrides
 	/** Overridden to avoid changing network role. If subclasses want networked behavior, call the Pawn::PossessedBy() instead. */

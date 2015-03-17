@@ -86,7 +86,7 @@ struct FTireShaderOutput
 USTRUCT()
 struct ENGINE_API FWheelSetup
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// The wheel class to use
 	UPROPERTY(EditAnywhere, Category=WheelSetup)
@@ -106,7 +106,7 @@ struct ENGINE_API FWheelSetup
 USTRUCT()
 struct ENGINE_API FReplicatedVehicleState
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// input replication: steering
 	UPROPERTY()
@@ -132,7 +132,7 @@ struct ENGINE_API FReplicatedVehicleState
 USTRUCT()
 struct ENGINE_API FVehicleInputRate
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// Rate at which the input value rises
 	UPROPERTY(EditAnywhere, Category=VehicleInputRate)
@@ -161,7 +161,9 @@ struct ENGINE_API FVehicleInputRate
 UCLASS(Abstract, hidecategories=(PlanarMovement, "Components|Movement|Planar", Activation, "Components|Activation"))
 class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponent, public IRVOAvoidanceInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UWheeledVehicleMovementComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Wheels to create */
 	UPROPERTY(EditAnywhere, Category=VehicleSetup)
@@ -498,8 +500,10 @@ protected:
 	void UpdateState(float DeltaTime);
 
 	/** Pass current state to server */
-	UFUNCTION(reliable, server, WithValidation)
+	UFUNCTION(reliable, server="ServerUpdateState_Implementation", WithValidation="ServerUpdateState_Validate")
 	void ServerUpdateState(float InSteeringInput, float InThrottleInput, float InBrakeInput, float InHandbrakeInput, int32 CurrentGear);
+	virtual void ServerUpdateState_Implementation(float InSteeringInput, float InThrottleInput, float InBrakeInput, float InHandbrakeInput, int32 CurrentGear);
+	virtual bool ServerUpdateState_Validate(float , float , float , float , int32 );
 
 	/** Update RVO Avoidance for simulation */
 	void UpdateAvoidance(float DeltaTime);

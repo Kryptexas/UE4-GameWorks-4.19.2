@@ -102,7 +102,7 @@ namespace EManifestFileHeader
 USTRUCT()
 struct FCustomFieldData
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FString Key;
@@ -120,7 +120,7 @@ struct FCustomFieldData
 USTRUCT()
 struct FChunkInfoData
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FGuid Guid;
@@ -143,7 +143,7 @@ struct FChunkInfoData
 USTRUCT()
 struct FChunkPartData
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// The GUID of the chunk containing this part
 	UPROPERTY()
@@ -166,7 +166,7 @@ struct FChunkPartData
 USTRUCT()
 struct FFileManifestData
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FString Filename;
@@ -207,7 +207,9 @@ private:
 UCLASS()
 class UBuildPatchManifest : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBuildPatchManifest(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	uint8 ManifestFileVersion;

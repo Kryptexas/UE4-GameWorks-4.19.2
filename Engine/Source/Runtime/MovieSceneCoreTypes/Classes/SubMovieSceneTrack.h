@@ -11,7 +11,9 @@
 UCLASS( MinimalAPI )
 class USubMovieSceneTrack : public UMovieSceneTrack
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	MOVIESCENECORETYPES_API USubMovieSceneTrack(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 public:
 	/** UMovieSceneTrack interface */
 	virtual UMovieSceneSection* CreateNewSection() override;

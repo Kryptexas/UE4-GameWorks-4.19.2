@@ -44,7 +44,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FComponentFractureSignature, const 
 UCLASS(ClassGroup=Physics, hidecategories=(Object,Mesh,"Components|SkinnedMesh",Mirroring,Activation,"Components|Activation"), config=Engine, editinlinenew, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UDestructibleComponent : public USkinnedMeshComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UDestructibleComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** If set, use this actor's fracture effects instead of the asset's fracture effects. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=DestructibleComponent)

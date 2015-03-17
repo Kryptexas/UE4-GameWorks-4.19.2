@@ -10,7 +10,9 @@ class UEnvQueryContext;
 UCLASS(meta = (DisplayName = "Actors Of Class"))
 class UEnvQueryGenerator_ActorsOfClass : public UEnvQueryGenerator
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UEnvQueryGenerator_ActorsOfClass(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** max distance of path between point and context */
 	UPROPERTY(EditDefaultsOnly, Category=Generator)

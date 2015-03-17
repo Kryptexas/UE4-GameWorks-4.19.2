@@ -35,7 +35,7 @@ class USplineComponent;
 USTRUCT()
 struct FLandscapeWeightmapUsage
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	ULandscapeComponent* ChannelUsage[4];
@@ -60,7 +60,7 @@ struct FLandscapeWeightmapUsage
 USTRUCT()
 struct FLandscapeEditorLayerSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
@@ -91,7 +91,7 @@ struct FLandscapeEditorLayerSettings
 USTRUCT()
 struct FLandscapeLayerStruct
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	ULandscapeLayerInfoObject* LayerInfoObj;
@@ -130,7 +130,7 @@ struct FLandscapeLayerStruct
 USTRUCT()
 struct FLandscapeImportLayerInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(Category="Import", VisibleAnywhere)
@@ -308,7 +308,9 @@ public:
 UCLASS(NotPlaceable, NotBlueprintable, hidecategories=(Display, Attachment, Physics, Debug, Lighting, LOD), showcategories=(Lighting, Rendering, "Utilities|Transformation"), MinimalAPI)
 class ALandscapeProxy : public AActor, public FTickableGameObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	LANDSCAPE_API ALandscapeProxy(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual ~ALandscapeProxy();
 

@@ -12,7 +12,7 @@ DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnActorFolderMove, UWorld&, FName /* src
 USTRUCT()
 struct FActorFolderProps
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FActorFolderProps() : bIsExpanded(true) {}
 
@@ -29,7 +29,6 @@ struct FActorFolderProps
 UCLASS()
 class UEditorActorFolders : public UObject
 {
-public:
 	GENERATED_BODY()
 public:
 	virtual void Serialize(FArchive& Ar) override;

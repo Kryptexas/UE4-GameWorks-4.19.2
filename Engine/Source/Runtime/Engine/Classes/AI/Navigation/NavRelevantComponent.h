@@ -8,7 +8,9 @@
 UCLASS()
 class ENGINE_API UNavRelevantComponent : public UActorComponent, public INavRelevantInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNavRelevantComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin UActorComponent Interface
 	virtual void OnRegister() override;

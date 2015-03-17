@@ -10,7 +10,9 @@
 UCLASS()
 class UMG_API UVerticalBoxSlot : public UPanelSlot
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UVerticalBoxSlot(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	

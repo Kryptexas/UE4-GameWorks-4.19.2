@@ -24,7 +24,9 @@ namespace ECrowdAvoidanceQuality
 UCLASS(BlueprintType)
 class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, public ICrowdAgentInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UCrowdFollowingComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	FVector CrowdAgentMoveDirection;

@@ -11,7 +11,9 @@
 UCLASS(config=Game, notplaceable, BlueprintType, Blueprintable)
 class ENGINE_API AGameState : public AInfo
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AGameState(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Class of the server's game mode, assigned by GameMode. */
 	UPROPERTY(replicatedUsing=OnRep_GameModeClass)

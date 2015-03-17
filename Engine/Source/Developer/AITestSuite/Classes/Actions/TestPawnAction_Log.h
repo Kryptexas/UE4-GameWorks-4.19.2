@@ -20,7 +20,9 @@ namespace ETestPawnActionMessage
 UCLASS()
 class UTestPawnAction_Log : public UPawnAction
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UTestPawnAction_Log(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	FTestLogger<int32>* Logger;
 

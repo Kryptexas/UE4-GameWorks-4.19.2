@@ -10,7 +10,9 @@
 UCLASS(transient, config=Engine)
 class ONLINESUBSYSTEMUTILS_API UIpNetDriver : public UNetDriver
 {
-    GENERATED_UCLASS_BODY()
+    GENERATED_BODY()
+public:
+    UIpNetDriver(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Should port unreachable messages be logged */
     UPROPERTY(Config)

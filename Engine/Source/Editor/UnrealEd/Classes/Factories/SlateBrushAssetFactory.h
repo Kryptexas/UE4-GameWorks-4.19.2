@@ -8,7 +8,9 @@
 UCLASS(hidecategories=Object, MinimalAPI)
 class USlateBrushAssetFactory : public UFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API USlateBrushAssetFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** An initial texture to assign to the newly created slate brush */
 	UPROPERTY()

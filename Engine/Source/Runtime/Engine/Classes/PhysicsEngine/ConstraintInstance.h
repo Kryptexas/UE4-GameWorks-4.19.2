@@ -53,7 +53,7 @@ namespace EAngularDriveMode
 USTRUCT()
 struct ENGINE_API FConstraintInstance
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	///////////////////////////// INSTANCE DATA
 

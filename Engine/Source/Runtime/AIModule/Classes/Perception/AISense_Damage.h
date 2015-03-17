@@ -9,7 +9,7 @@
 USTRUCT()
 struct AIMODULE_API FAIDamageEvent
 {	
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	typedef class UAISense_Damage FSenseClass;
 
@@ -49,7 +49,9 @@ struct AIMODULE_API FAIDamageEvent
 UCLASS(ClassGroup=AI)
 class AIMODULE_API UAISense_Damage : public UAISense
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAISense_Damage(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	TArray<FAIDamageEvent> RegisteredEvents;

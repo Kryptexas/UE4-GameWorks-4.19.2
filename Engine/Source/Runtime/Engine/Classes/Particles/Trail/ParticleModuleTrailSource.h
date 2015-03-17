@@ -32,7 +32,9 @@ enum ETrail2SourceMethod
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Source"))
 class UParticleModuleTrailSource : public UParticleModuleTrailBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UParticleModuleTrailSource(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The source method for the trail. */
 	UPROPERTY(EditAnywhere, Category=Source)

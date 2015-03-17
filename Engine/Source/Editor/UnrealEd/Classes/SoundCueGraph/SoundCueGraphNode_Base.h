@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI)
 class USoundCueGraphNode_Base : public UEdGraphNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API USoundCueGraphNode_Base(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Create all of the input pins required */
 	virtual void CreateInputPins() {};

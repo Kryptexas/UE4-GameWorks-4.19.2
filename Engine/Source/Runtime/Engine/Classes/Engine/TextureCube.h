@@ -7,7 +7,9 @@
 UCLASS(hidecategories=Object, MinimalAPI)
 class UTextureCube : public UTexture
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UTextureCube(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	/** Platform data. */

@@ -9,7 +9,7 @@
 USTRUCT()
 struct ENGINE_API FAnimNode_BlendListBase : public FAnimNode_Base
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 public:
 	UPROPERTY(EditAnywhere, EditFixedSize, BlueprintReadWrite, Category=Links)
 	TArray<FPoseLink> BlendPose;

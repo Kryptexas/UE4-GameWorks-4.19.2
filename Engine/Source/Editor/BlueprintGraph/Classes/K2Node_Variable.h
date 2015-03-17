@@ -22,7 +22,9 @@ namespace ESelfContextInfo
 UCLASS(abstract)
 class BLUEPRINTGRAPH_API UK2Node_Variable : public UK2Node
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UK2Node_Variable(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Reference to variable we want to set/get */
 	UPROPERTY()

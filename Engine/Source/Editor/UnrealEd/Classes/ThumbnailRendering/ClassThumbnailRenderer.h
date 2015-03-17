@@ -6,7 +6,9 @@
 UCLASS(config=Editor,MinimalAPI)
 class UClassThumbnailRenderer : public UDefaultSizedThumbnailRenderer
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API UClassThumbnailRenderer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin UThumbnailRenderer Object

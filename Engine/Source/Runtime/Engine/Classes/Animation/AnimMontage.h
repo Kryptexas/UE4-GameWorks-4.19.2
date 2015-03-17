@@ -21,7 +21,7 @@ class UAnimMontage;
 USTRUCT()
 struct FCompositeSection : public FAnimLinkableElement
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Section Name */
 	UPROPERTY(EditAnywhere, Category=Section)
@@ -50,7 +50,7 @@ struct FCompositeSection : public FAnimLinkableElement
 USTRUCT()
 struct FSlotAnimationTrack
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Slot)
 	FName SlotName;
@@ -69,7 +69,7 @@ struct FSlotAnimationTrack
 USTRUCT()
 struct FBranchingPoint : public FAnimLinkableElement
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category=BranchingPoint)
 	FName EventName;
@@ -103,7 +103,7 @@ namespace EAnimNotifyEventType
 USTRUCT()
 struct FBranchingPointMarker
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	int32 NotifyIndex;
@@ -147,7 +147,7 @@ DECLARE_DELEGATE_TwoParams( FOnMontageBlendingOutStarted, class UAnimMontage*, b
 USTRUCT()
 struct FAnimMontageInstance
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// Montage reference
 	UPROPERTY()
@@ -309,7 +309,9 @@ private:
 UCLASS(config=Engine, hidecategories=(UObject, Length), MinimalAPI, BlueprintType)
 class UAnimMontage : public UAnimCompositeBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UAnimMontage(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Default blend in time. */
 	UPROPERTY(EditAnywhere, Category=Montage)

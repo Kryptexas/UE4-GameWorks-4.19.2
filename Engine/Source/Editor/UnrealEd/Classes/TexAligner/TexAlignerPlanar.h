@@ -12,7 +12,9 @@
 UCLASS(hidecategories=Object)
 class UTexAlignerPlanar : public UTexAligner
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UTexAlignerPlanar(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin UObject Interface

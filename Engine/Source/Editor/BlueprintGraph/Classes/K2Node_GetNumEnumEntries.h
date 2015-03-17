@@ -8,7 +8,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_GetNumEnumEntries : public UK2Node, public INodeDependingOnEnumInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_GetNumEnumEntries(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	UEnum* Enum;

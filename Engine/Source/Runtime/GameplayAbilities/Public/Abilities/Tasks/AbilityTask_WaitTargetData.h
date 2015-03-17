@@ -13,7 +13,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWaitTargetDataDelegate, FGameplayAb
 UCLASS(notplaceable)
 class GAMEPLAYABILITIES_API UAbilityTask_WaitTargetData: public UAbilityTask
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAbilityTask_WaitTargetData(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(BlueprintAssignable)
 	FWaitTargetDataDelegate	ValidData;

@@ -13,7 +13,9 @@ class USoundCue;
 UCLASS()
 class AIMODULE_API UBTTask_PlaySound : public UBTTaskNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBTTask_PlaySound(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** CUE to play */
 	UPROPERTY(Category=Node, EditAnywhere)

@@ -12,7 +12,9 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionParticleMotionBlurFade : public UMaterialExpression
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMaterialExpressionParticleMotionBlurFade(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin UMaterialExpression Interface

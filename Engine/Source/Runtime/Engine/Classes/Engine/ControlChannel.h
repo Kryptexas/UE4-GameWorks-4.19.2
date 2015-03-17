@@ -8,11 +8,12 @@
 /**
  * A channel for exchanging connection control messages.
  */
-UCLASS(transient, customConstructor)
+UCLASS(transient)
 class UControlChannel
 	: public UChannel
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
 
 	/**
 	 * Used to interrogate the first packet received to determine endianess

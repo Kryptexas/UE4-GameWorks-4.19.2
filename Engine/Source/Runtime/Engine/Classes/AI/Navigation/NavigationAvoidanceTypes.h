@@ -6,7 +6,7 @@
 USTRUCT()
 struct FNavAvoidanceMask
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 #if CPP
 	union

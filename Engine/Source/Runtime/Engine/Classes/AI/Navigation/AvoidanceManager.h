@@ -12,7 +12,7 @@ class UAvoidanceManager;
 USTRUCT()
 struct FNavAvoidanceData
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Current location */
 	FVector Center;
@@ -75,7 +75,9 @@ struct FVelocityAvoidanceCone
 UCLASS(config=Engine, Blueprintable)
 class ENGINE_API UAvoidanceManager : public UObject, public FSelfRegisteringExec
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAvoidanceManager(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 		
 	/** How long an avoidance UID must not be updated before the system will put it back in the pool. Actual delay is up to 150% of this value. */
 	UPROPERTY(EditAnywhere, Category="Avoidance", config, meta=(ClampMin = "0.0"))

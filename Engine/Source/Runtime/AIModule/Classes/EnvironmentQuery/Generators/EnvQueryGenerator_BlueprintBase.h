@@ -12,7 +12,9 @@ class UEnvQueryItemType;
 UCLASS(Abstract, Blueprintable)
 class AIMODULE_API UEnvQueryGenerator_BlueprintBase : public UEnvQueryGenerator
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UEnvQueryGenerator_BlueprintBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** A short description of what test does, like "Generate pawn named Joe" */
 	UPROPERTY(EditAnywhere, Category = Generator)

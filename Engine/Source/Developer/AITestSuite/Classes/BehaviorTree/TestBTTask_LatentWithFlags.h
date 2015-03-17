@@ -15,7 +15,9 @@ struct FBTLatentTaskMemory
 UCLASS(meta = (HiddenNode))
 class UTestBTTask_LatentWithFlags : public UBTTaskNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UTestBTTask_LatentWithFlags(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	int32 LogIndexExecuteStart;

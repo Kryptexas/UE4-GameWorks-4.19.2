@@ -14,7 +14,9 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Noise"))
 class UParticleModuleBeamNoise : public UParticleModuleBeamBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UParticleModuleBeamNoise(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Is low frequency noise enabled. */
 	UPROPERTY(EditAnywhere, Category=LowFreq)

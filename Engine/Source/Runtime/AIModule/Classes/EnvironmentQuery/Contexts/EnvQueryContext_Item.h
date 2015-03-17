@@ -7,5 +7,7 @@
 UCLASS()
 class AIMODULE_API UEnvQueryContext_Item : public UEnvQueryContext
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UEnvQueryContext_Item(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };

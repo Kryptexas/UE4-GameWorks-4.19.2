@@ -375,7 +375,7 @@ namespace FAIResources
 USTRUCT()
 struct AIMODULE_API FAIRequestID
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 		
 private:
 	static const uint32 AnyRequestID = 0;
@@ -429,7 +429,7 @@ class UNavigationQueryFilter;
 USTRUCT()
 struct AIMODULE_API FAIMoveRequest
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FAIMoveRequest();
 	FAIMoveRequest(const AActor* InGoalActor);

@@ -17,7 +17,9 @@ UCLASS(config=EditorUserSettings)
 class UNREALED_API UDestructableMeshEditorSettings
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UDestructableMeshEditorSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

@@ -11,7 +11,9 @@
 UCLASS()
 class GAMEPLAYABILITIES_API UGameplayAbility_CharacterJump : public UGameplayAbility
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UGameplayAbility_CharacterJump(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

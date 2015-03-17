@@ -7,7 +7,9 @@
 UCLASS()
 class UGenerateBlueprintAPICommandlet : public UCommandlet
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UGenerateBlueprintAPICommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:		
 	// Begin UCommandlet Interface

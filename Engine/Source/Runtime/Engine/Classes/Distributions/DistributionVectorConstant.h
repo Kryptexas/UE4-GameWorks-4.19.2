@@ -8,7 +8,9 @@
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew)
 class ENGINE_API UDistributionVectorConstant : public UDistributionVector
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UDistributionVectorConstant(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** This FVector will be returned for all input times. */
 	UPROPERTY(EditAnywhere, Category=DistributionVectorConstant)

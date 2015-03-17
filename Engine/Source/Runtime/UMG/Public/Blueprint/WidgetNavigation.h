@@ -13,7 +13,7 @@
 USTRUCT()
 struct UMG_API FWidgetNavigationData
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Navigation")
@@ -29,7 +29,9 @@ public:
 UCLASS()
 class UMG_API UWidgetNavigation : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UWidgetNavigation(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
 public:
 	/**  */

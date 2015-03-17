@@ -22,7 +22,9 @@ enum ENoiseFunction
 UCLASS()
 class UMaterialExpressionNoise : public UMaterialExpression
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMaterialExpressionNoise(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** 2 to 3 dimensional vector */
 	UPROPERTY()

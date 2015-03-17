@@ -1582,7 +1582,7 @@ void UStruct::TagSubobjects(EObjectFlags NewFlags)
 USTRUCT()
 struct ENGINE_API FTestStruct
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	TMap<int32, double> Doubles;
 	FTestStruct()

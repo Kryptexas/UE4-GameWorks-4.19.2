@@ -21,7 +21,9 @@ enum ECurveType
 UCLASS(hidecategories=Object)
 class UCurveFactory : public UFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UCurveFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The type of blueprint that will be created */
 	UPROPERTY(EditAnywhere, Category=CurveFactory)

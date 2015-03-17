@@ -7,7 +7,9 @@
 UCLASS(abstract, Blueprintable)
 class AIMODULE_API UPawnAction_BlueprintBase : public UPawnAction
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPawnAction_BlueprintBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

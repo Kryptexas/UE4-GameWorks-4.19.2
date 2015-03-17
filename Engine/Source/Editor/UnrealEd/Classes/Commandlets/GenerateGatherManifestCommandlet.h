@@ -10,7 +10,9 @@
 UCLASS()
 class UGenerateGatherManifestCommandlet : public UGatherTextCommandletBase
 {
-    GENERATED_UCLASS_BODY()
+    GENERATED_BODY()
+public:
+    UGenerateGatherManifestCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 #if CPP || UE_BUILD_DOCS
 public:
 	// Begin UCommandlet Interface

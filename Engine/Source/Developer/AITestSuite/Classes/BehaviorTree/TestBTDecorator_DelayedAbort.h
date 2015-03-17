@@ -12,7 +12,9 @@ struct FBTDelayedAbortMemory
 UCLASS(meta = (HiddenNode))
 class UTestBTDecorator_DelayedAbort : public UBTDecorator
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UTestBTDecorator_DelayedAbort(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	int32 DelayTicks;

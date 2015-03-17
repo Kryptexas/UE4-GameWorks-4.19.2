@@ -8,7 +8,9 @@
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionFeatureLevelSwitch : public UMaterialExpression
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UMaterialExpressionFeatureLevelSwitch(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Default connection, used when a certain feature level doesn't have an override. */
 	UPROPERTY()

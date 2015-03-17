@@ -8,8 +8,10 @@
 UCLASS(MinimalAPI, config=Editor)
 class UActorFactoryDeferredDecal : public UActorFactory
 {
+	GENERATED_BODY()
 public:
-	GENERATED_UCLASS_BODY()
+	UNREALED_API UActorFactoryDeferredDecal(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+public:
 
 protected:
 	// Begin UActorFactory Interface

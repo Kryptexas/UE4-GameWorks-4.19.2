@@ -9,7 +9,9 @@
 UCLASS()
 class UFbxSkeletalMeshImportData : public UFbxMeshImportData
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UFbxSkeletalMeshImportData(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Enable this option to update Skeleton (of the mesh)'s reference pose. Mesh's reference pose is always updated.  */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=ImportSettings, meta=(ImportType="SkeletalMesh", ToolTip="If enabled, update the Skeleton (of the mesh being imported)'s reference pose."))

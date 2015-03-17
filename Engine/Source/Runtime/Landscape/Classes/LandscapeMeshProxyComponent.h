@@ -11,7 +11,9 @@
 UCLASS(MinimalAPI)
 class ULandscapeMeshProxyComponent : public UStaticMeshComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	LANDSCAPE_API ULandscapeMeshProxyComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 private:
 	/* The landscape this proxy was generated for */

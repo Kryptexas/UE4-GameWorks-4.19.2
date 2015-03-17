@@ -13,7 +13,7 @@
 USTRUCT()
 struct FInterpEdSelKey
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	class UInterpGroup* Group;
@@ -77,7 +77,9 @@ struct FInterpEdSelKey
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UInterpGroup : public UObject, public FInterpEdInputInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UInterpGroup(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(export)
 	TArray<class UInterpTrack*> InterpTracks;

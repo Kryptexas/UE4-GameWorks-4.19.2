@@ -7,7 +7,9 @@
 UCLASS()
 class UInterpTrackInstVectorProp : public UInterpTrackInstProperty
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UInterpTrackInstVectorProp(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Pointer to FVector property in TrackObject. */
 	FVector* VectorProp;

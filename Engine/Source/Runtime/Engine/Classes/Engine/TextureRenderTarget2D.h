@@ -15,7 +15,9 @@
 UCLASS(hidecategories=Object, hidecategories=Texture, MinimalAPI)
 class UTextureRenderTarget2D : public UTextureRenderTarget
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UTextureRenderTarget2D(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The width of the texture.												*/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=TextureRenderTarget2D, AssetRegistrySearchable)

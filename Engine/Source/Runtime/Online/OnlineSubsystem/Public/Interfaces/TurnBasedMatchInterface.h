@@ -9,12 +9,15 @@ class IOnlineSubsystem;
 UINTERFACE(Blueprintable)
 class UTurnBasedMatchInterface : public UInterface
 {
-	GENERATED_UINTERFACE_BODY()
+	GENERATED_BODY()
+public:
+	UTurnBasedMatchInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };
 
 class ITurnBasedMatchInterface
 {
-	GENERATED_IINTERFACE_BODY()
+	GENERATED_BODY()
+public:
 
 public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Online|TurnBased")

@@ -20,7 +20,9 @@ enum EDepthOfFieldFunctionValue
 UCLASS()
 class UMaterialExpressionDepthOfFieldFunction : public UMaterialExpression
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMaterialExpressionDepthOfFieldFunction(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Determines the mapping place to use on the terrain. */
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionDepthOfFieldFunction)

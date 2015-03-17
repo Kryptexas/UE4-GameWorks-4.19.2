@@ -7,7 +7,7 @@
 USTRUCT()
 struct FTileSetImportMapping
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FString SourceName;
@@ -25,7 +25,9 @@ struct FTileSetImportMapping
 UCLASS()
 class PAPER2DEDITOR_API UTileMapAssetImportData : public UAssetImportData
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UTileMapAssetImportData(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	TArray<FTileSetImportMapping> TileSetMap;

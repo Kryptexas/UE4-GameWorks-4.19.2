@@ -6,7 +6,9 @@
 UCLASS(hidecategories=Object)
 class UForceFeedbackEffectFactory : public UFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UForceFeedbackEffectFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin UFactory Interface

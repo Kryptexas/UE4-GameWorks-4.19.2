@@ -9,7 +9,9 @@
 UCLASS(MinimalAPI)
 class UAssetImportData : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UAssetImportData(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Path to the resource used to construct this static mesh. Relative to the object's package, BaseDir() or absolute */
 	UPROPERTY(EditAnywhere, Category=ImportSettings)

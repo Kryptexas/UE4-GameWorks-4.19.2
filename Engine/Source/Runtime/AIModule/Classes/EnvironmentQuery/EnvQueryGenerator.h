@@ -19,7 +19,9 @@ namespace EnvQueryGeneratorVersion
 UCLASS(EditInlineNew, Abstract, meta = (Category = "Generators"))
 class AIMODULE_API UEnvQueryGenerator : public UEnvQueryNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UEnvQueryGenerator(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditDefaultsOnly, Category=Option)
 	FString OptionName;

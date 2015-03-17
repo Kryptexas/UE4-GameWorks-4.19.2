@@ -10,7 +10,9 @@ UCLASS(minimalapi, autoexpandcategories=(ViewportControls, ViewportLookAndFeel, 
 	   config=EditorUserSettings)
 class UEditorUserSettings : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UEditorUserSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// =====================================================================
 	// The following options are exposed in the Preferences Editor 

@@ -17,7 +17,7 @@ namespace EAudioOutputTarget
 USTRUCT()
 struct FSoundClassEditorData
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	int32 NodePosX;
 
@@ -43,7 +43,7 @@ struct FSoundClassEditorData
 USTRUCT()
 struct FSoundClassProperties
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Volume multiplier. */
 	UPROPERTY(EditAnywhere, Category=SoundClassProperties)
@@ -132,7 +132,7 @@ struct FSoundClassProperties
 USTRUCT()
 struct FPassiveSoundMixModifier
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** The SoundMix to activate */
 	UPROPERTY(EditAnywhere, Category=PassiveSoundMixModifier)
@@ -158,7 +158,9 @@ struct FPassiveSoundMixModifier
 UCLASS(hidecategories=object, MinimalAPI)
 class USoundClass : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API USoundClass(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Configurable properties like volume and priority. */
 	UPROPERTY(EditAnywhere, Category=SoundClass)

@@ -27,7 +27,7 @@ typedef uint16 FGameplayTagNetIndex;
 USTRUCT(BlueprintType)
 struct GAMEPLAYTAGS_API FGameplayTag
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Constructors */
 	FGameplayTag();
@@ -117,7 +117,7 @@ struct TStructOpsTypeTraits< FGameplayTag > : public TStructOpsTypeTraitsBase
 USTRUCT(BlueprintType)
 struct GAMEPLAYTAGS_API FGameplayTagContainer
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Constructors */
 	FGameplayTagContainer();

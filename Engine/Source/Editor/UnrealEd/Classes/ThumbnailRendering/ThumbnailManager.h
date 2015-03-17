@@ -33,7 +33,7 @@ enum EThumbnailPrimType
 USTRUCT()
 struct FThumbnailRenderingInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**
 	 * The name of the class that this thumbnail is for (so we can lazy bind)
@@ -73,7 +73,9 @@ public:
 UCLASS(config=Editor)
 class UThumbnailManager : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UThumbnailManager(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
 	/**

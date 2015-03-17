@@ -18,7 +18,9 @@ enum EFBXNormalImportMethod
 UCLASS(config=EditorUserSettings, configdonotcheckdefaults, abstract)
 class UFbxMeshImportData : public UFbxAssetImportData
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UFbxMeshImportData(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Enables importing of mesh LODs from FBX LOD groups, if present in the FBX file */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=ImportSettings, meta=(OBJRestrict="true", ImportType="Mesh", ToolTip="If enabled, creates LOD models for Unreal meshes from LODs in the import file; If not enabled, only the base mesh from the LOD group is imported"))

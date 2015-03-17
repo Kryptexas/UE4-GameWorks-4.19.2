@@ -12,5 +12,7 @@ UCLASS(notplaceable, MinimalAPI)
 class AGeneratedMeshAreaLight
 	: public ASpotLight
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API AGeneratedMeshAreaLight(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };

@@ -7,5 +7,7 @@
 UCLASS()
 class UPSE_LineTool : public USpriteEditorTool
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPSE_LineTool(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };

@@ -13,7 +13,9 @@ struct FActiveSound;
 UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
 class USoundMod : public USoundBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	SOUNDMOD_API USoundMod(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** If set, when played directly (not through a sound cue) the nid will be played looping. */
 	UPROPERTY(EditAnywhere, Category=SoundMod)

@@ -9,7 +9,9 @@
 UCLASS()
 class UMGEDITOR_API UK2Node_CreateWidget : public UK2Node_ConstructObjectFromClass
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UK2Node_CreateWidget(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin UEdGraphNode interface.
 	virtual void AllocateDefaultPins() override;

@@ -8,11 +8,13 @@
 UCLASS(config=Input, hidedropdown)
 class AVisualLoggerCameraController : public ADebugCameraController
 {
+	GENERATED_BODY()
+public:
+	AVisualLoggerCameraController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 public:
 	DECLARE_DELEGATE_OneParam(FActorSelectedDelegate, class AActor*);
 	DECLARE_DELEGATE_OneParam(FLogEntryIterationDelegate, int32);
 
-	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	class AActor* PickedActor;

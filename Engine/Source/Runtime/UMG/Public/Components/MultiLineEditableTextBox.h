@@ -10,7 +10,9 @@
 UCLASS(meta=(DisplayName="Text Box (Multi-Line)"))
 class UMG_API UMultiLineEditableTextBox : public UWidget
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMultiLineEditableTextBox(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

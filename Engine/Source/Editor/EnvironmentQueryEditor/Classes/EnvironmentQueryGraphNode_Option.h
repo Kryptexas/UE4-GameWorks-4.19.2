@@ -6,7 +6,9 @@
 UCLASS()
 class UEnvironmentQueryGraphNode_Option : public UEnvironmentQueryGraphNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UEnvironmentQueryGraphNode_Option(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void AllocateDefaultPins() override;
 	virtual void PostPlacedNewNode() override;

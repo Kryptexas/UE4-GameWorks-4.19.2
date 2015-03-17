@@ -11,7 +11,9 @@
 UCLASS(config=Editor)
 class UWorldThumbnailRenderer : public UDefaultSizedThumbnailRenderer
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UWorldThumbnailRenderer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin UThumbnailRenderer Object
 	virtual bool CanVisualizeAsset(UObject* Object) override;

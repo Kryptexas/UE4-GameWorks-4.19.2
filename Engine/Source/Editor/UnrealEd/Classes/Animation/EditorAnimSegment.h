@@ -16,7 +16,9 @@ DECLARE_DELEGATE_OneParam( FOnAnimSegmentChanged, class UEditorAnimSegment*)
 UCLASS(hidecategories=UObject, MinimalAPI, BlueprintType)
 class UEditorAnimSegment: public UEditorAnimBaseObj
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API UEditorAnimSegment(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 public:
 
 	/** Default blend in time. */

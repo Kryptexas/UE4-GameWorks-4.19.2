@@ -20,7 +20,9 @@ namespace EEnvTestPathfinding
 UCLASS()
 class UEnvQueryTest_Pathfinding : public UEnvQueryTest
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UEnvQueryTest_Pathfinding(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** testing mode */
 	UPROPERTY(EditDefaultsOnly, Category=Pathfinding)

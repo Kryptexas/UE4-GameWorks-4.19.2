@@ -12,7 +12,7 @@ class UProceduralFoliageTile;
 USTRUCT()
 struct FProceduralFoliageTypeData
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(Category = ProceduralFoliageSimulation, EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<UFoliageType_InstancedStaticMesh> Type;
@@ -27,7 +27,9 @@ struct FProceduralFoliageTypeData
 UCLASS(BlueprintType, Blueprintable)
 class FOLIAGE_API UProceduralFoliage : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UProceduralFoliage(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/**The seed used for generating the randomness of the simulation. */
 	UPROPERTY(Category = ProceduralFoliageSimulation, EditAnywhere, BlueprintReadOnly)

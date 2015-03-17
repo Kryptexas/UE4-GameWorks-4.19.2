@@ -76,7 +76,7 @@ enum ETickingGroup
 USTRUCT()
 struct FTickPrerequisite
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Tick functions live inside of UObjects, so we need a separate weak pointer to the UObject solely for the purpose of determining if PrerequisiteTickFunction is still valid **/
 	TWeakObjectPtr<class UObject> PrerequisiteObject;
@@ -126,7 +126,7 @@ struct FTickPrerequisite
 USTRUCT()
 struct ENGINE_API FTickFunction
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 public:
 	// The following UPROPERTYs are for configuration and inherited from the CDO/archetype/blueprint etc
@@ -308,7 +308,7 @@ struct TStructOpsTypeTraits<FTickFunction> : public TStructOpsTypeTraitsBase
 USTRUCT()
 struct FActorTickFunction : public FTickFunction
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**  AActor  that is the target of this tick **/
 	class AActor*	Target;
@@ -340,7 +340,7 @@ struct TStructOpsTypeTraits<FActorTickFunction> : public TStructOpsTypeTraitsBas
 USTRUCT()
 struct FActorComponentTickFunction : public FTickFunction
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**  AActor  component that is the target of this tick **/
 	class UActorComponent*	Target;
@@ -372,7 +372,7 @@ struct TStructOpsTypeTraits<FActorComponentTickFunction> : public TStructOpsType
 USTRUCT()
 struct FPrimitiveComponentPostPhysicsTickFunction : public FTickFunction
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** PrimitiveComponent component that is the target of this tick **/
 	class UPrimitiveComponent*	Target;
@@ -575,7 +575,7 @@ namespace EDemoPlayFailure
 USTRUCT()
 struct ENGINE_API FURL
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FString Protocol;    // Protocol, i.e. "unreal" or "http".
@@ -704,7 +704,7 @@ enum EViewModeIndex
 USTRUCT()
 struct FExposureSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FExposureSettings()
 		: LogOffset(0), bFixed(false)
@@ -745,7 +745,9 @@ struct FExposureSettings
 UCLASS(abstract, config=Engine)
 class UEngineBaseTypes : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UEngineBaseTypes(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 };
 

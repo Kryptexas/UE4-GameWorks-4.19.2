@@ -11,7 +11,9 @@
 UCLASS()
 class UGeomModifier_Triangulate : public UGeomModifier_Edit
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UGeomModifier_Triangulate(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin UGeomModifier Interface

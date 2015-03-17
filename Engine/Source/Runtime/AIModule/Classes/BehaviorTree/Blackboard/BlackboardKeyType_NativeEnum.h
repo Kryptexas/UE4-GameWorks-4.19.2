@@ -9,7 +9,9 @@
 UCLASS(NotEditInlineNew)
 class AIMODULE_API UBlackboardKeyType_NativeEnum : public UBlackboardKeyType
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBlackboardKeyType_NativeEnum(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	typedef uint8 FDataType;
 	static const FDataType InvalidValue;

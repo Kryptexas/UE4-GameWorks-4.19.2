@@ -8,7 +8,9 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=( DisplayName = "Velocity Cone" ))
 class UParticleModuleVelocityCone : public UParticleModuleVelocityBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UParticleModuleVelocityCone(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The Min value represents the inner cone angle value and the Max value represents the outer cone angle value. */
 	UPROPERTY(EditAnywhere, Category=Cone)

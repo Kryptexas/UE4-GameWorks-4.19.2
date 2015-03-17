@@ -21,7 +21,9 @@ enum ELightMapFlags
 UCLASS(MinimalAPI)
 class ULightMapTexture2D : public UTexture2D
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API ULightMapTexture2D(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin UObject interface.
 	virtual void Serialize( FArchive& Ar ) override;

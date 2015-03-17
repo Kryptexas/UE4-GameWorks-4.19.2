@@ -16,7 +16,9 @@ class APlayerController;
 UCLASS(config=Game)
 class ONLINESUBSYSTEMUTILS_API UOnlineSessionClient : public UOnlineSession
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UOnlineSessionClient(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
 

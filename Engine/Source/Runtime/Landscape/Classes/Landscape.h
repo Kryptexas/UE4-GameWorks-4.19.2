@@ -29,7 +29,9 @@ enum ELandscapeSetupErrors
 UCLASS(hidecategories=LandscapeProxy, showcategories=(Display, Movement, Collision, Lighting, LOD, Input), MinimalAPI)
 class ALandscape : public ALandscapeProxy
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	LANDSCAPE_API ALandscape(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Make a key for XYtoComponentMap
 	static FIntPoint MakeKey( int32 X, int32 Y ) { return FIntPoint(X, Y); }

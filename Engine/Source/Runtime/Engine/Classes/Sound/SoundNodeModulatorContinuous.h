@@ -17,7 +17,7 @@ enum ModulationParamMode
 USTRUCT()
 struct FModulatorContinuousParams
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FModulatorContinuousParams()
 		: Default(1.f)
@@ -66,7 +66,9 @@ struct FModulatorContinuousParams
 UCLASS(hidecategories=Object, editinlinenew, meta=( DisplayName="Continuous Modulator" ))
 class USoundNodeModulatorContinuous : public USoundNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	USoundNodeModulatorContinuous(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category=ContinuousModulator)
 	FModulatorContinuousParams PitchModulationParams;

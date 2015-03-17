@@ -7,7 +7,9 @@
 UCLASS()
 class AIMODULE_API UPawnAction_Repeat : public UPawnAction
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPawnAction_Repeat(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	enum
 	{

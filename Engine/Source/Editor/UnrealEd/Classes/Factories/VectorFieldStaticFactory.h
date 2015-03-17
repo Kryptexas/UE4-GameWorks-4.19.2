@@ -11,7 +11,9 @@
 UCLASS()
 class UVectorFieldStaticFactory : public UFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UVectorFieldStaticFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin UFactory Interface

@@ -7,7 +7,7 @@
 USTRUCT()
 struct ENGINE_API FBlueprintInputDelegateBinding
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	uint32 bConsumeInput:1;
@@ -29,7 +29,9 @@ struct ENGINE_API FBlueprintInputDelegateBinding
 UCLASS(abstract)
 class ENGINE_API UInputDelegateBinding : public UDynamicBlueprintBinding
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UInputDelegateBinding(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void BindToInputComponent(UInputComponent* InputComponent) const { };
 

@@ -14,7 +14,9 @@
 UCLASS()
 class ENGINE_API AKillZVolume : public APhysicsVolume
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AKillZVolume(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
 	//Begin PhysicsVolume Interface
 	virtual void ActorEnteredVolume(class AActor* Other) override;

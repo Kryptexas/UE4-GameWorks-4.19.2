@@ -11,7 +11,9 @@
 UCLASS(hidecategories=VectorFieldBounds, MinimalAPI)
 class UVectorFieldStatic : public UVectorField
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UVectorFieldStatic(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Size of the vector field volume. */
 	UPROPERTY(Category=VectorFieldStatic, VisibleAnywhere)

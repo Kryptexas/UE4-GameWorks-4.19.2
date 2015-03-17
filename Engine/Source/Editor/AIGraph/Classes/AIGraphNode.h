@@ -9,7 +9,9 @@
 UCLASS()
 class AIGRAPH_API UAIGraphNode : public UEdGraphNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAIGraphNode(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** instance class */
 	UPROPERTY()

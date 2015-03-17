@@ -6,9 +6,10 @@
 UCLASS(Config=EditorGameAgnostic)
 class UMacGraphicsSwitchingSettings : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 	
 public:
+	UMacGraphicsSwitchingSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
 	UPROPERTY(Config, EditAnywhere, Category=OpenGL)
 	int32 DisplayMask;

@@ -64,7 +64,7 @@ struct FCollisionNotifyInfo;
 USTRUCT()
 struct ENGINE_API FCollisionResponse
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FCollisionResponse();
 	FCollisionResponse(ECollisionResponse DefaultResponse);
@@ -126,7 +126,7 @@ enum class BodyInstanceSceneState
 USTRUCT()
 struct ENGINE_API FBodyInstance
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** 
 	 *	Index of this BodyInstance within the SkeletalMeshComponent/PhysicsAsset. 

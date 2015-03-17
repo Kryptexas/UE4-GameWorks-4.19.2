@@ -8,7 +8,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_ForEachElementInEnum : public UK2Node
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_ForEachElementInEnum(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	UEnum* Enum;

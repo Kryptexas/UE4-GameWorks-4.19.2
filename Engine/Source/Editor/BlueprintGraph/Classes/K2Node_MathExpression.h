@@ -16,7 +16,9 @@
 UCLASS()
 class BLUEPRINTGRAPH_API UK2Node_MathExpression : public UK2Node_Composite
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UK2Node_MathExpression(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

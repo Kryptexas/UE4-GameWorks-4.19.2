@@ -13,7 +13,7 @@ namespace physx
 USTRUCT()
 struct FTireFrictionScalePair
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Tire type */
 	UPROPERTY(EditAnywhere, Category=TireFrictionScalePair)
@@ -36,7 +36,9 @@ struct FTireFrictionScalePair
 UCLASS(collapsecategories, hidecategories=Object)
 class ENGINE_API UPhysicalMaterial : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPhysicalMaterial(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	//
 	// Surface properties.

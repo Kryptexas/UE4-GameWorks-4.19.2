@@ -11,7 +11,9 @@ class UEnvironmentQueryGraphNode;
 UCLASS()
 class UEnvironmentQueryGraph : public UAIGraph
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UEnvironmentQueryGraph(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void Initialize() override;
 	virtual void OnLoaded() override;

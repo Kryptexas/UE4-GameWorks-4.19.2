@@ -12,7 +12,9 @@
 UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
 class USlateBrushAsset : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API USlateBrushAsset(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	/** The slate brush resource describing the texture's behavior. */

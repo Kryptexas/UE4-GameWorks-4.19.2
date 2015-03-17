@@ -7,7 +7,9 @@
 UCLASS(config=EditorUserSettings)
 class USourceCodeAccessSettings : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	USourceCodeAccessSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The source code editor we prefer to use. */
 	UPROPERTY(Config, EditAnywhere, Category="Source Code Editor", meta=(DisplayName="Source Code Editor"))

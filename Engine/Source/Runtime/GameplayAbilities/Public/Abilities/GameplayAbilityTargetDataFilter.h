@@ -18,7 +18,7 @@ namespace ETargetDataFilterSelf
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayTargetDataFilter
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	virtual ~FGameplayTargetDataFilter()
 	{
@@ -76,7 +76,7 @@ struct GAMEPLAYABILITIES_API FGameplayTargetDataFilter
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayTargetDataFilterHandle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	TSharedPtr<FGameplayTargetDataFilter> Filter;
 

@@ -12,7 +12,9 @@ UCLASS(hidecategories=Object)
 class UBookMark2D
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBookMark2D(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Zoom of the camera */
 	UPROPERTY(EditAnywhere, Category=BookMark2D)

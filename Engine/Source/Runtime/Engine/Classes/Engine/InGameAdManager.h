@@ -34,7 +34,9 @@ DECLARE_DYNAMIC_DELEGATE( FOnUserClosedAdvertisement );
 UCLASS()
 class UInGameAdManager : public UPlatformInterfaceBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UInGameAdManager(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** If true, the game will pause when the user clicks on the ad, which could take over the screen */
 	UPROPERTY()

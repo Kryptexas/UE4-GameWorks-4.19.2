@@ -13,7 +13,9 @@
 UCLASS(hidecategories=Object, config=EditorUserSettings)
 class UNREALED_API UCurveEdOptions : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UCurveEdOptions(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, config, Category=Options)
 	float MinViewRange;

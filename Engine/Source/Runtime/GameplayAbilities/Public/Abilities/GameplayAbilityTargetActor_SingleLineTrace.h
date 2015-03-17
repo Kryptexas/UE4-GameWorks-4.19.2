@@ -9,7 +9,9 @@
 UCLASS(Blueprintable)
 class GAMEPLAYABILITIES_API AGameplayAbilityTargetActor_SingleLineTrace : public AGameplayAbilityTargetActor_Trace
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AGameplayAbilityTargetActor_SingleLineTrace(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
 	virtual FHitResult PerformTrace(AActor* InSourceActor) override;

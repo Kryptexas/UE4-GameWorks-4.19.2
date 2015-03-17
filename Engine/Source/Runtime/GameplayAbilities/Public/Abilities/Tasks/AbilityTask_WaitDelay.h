@@ -9,7 +9,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitDelayDelegate);
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitDelay : public UAbilityTask
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	GAMEPLAYABILITIES_API UAbilityTask_WaitDelay(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(BlueprintAssignable)
 	FWaitDelayDelegate	OnFinish;

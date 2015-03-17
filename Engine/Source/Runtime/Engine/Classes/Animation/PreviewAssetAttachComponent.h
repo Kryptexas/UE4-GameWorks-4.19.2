@@ -14,7 +14,7 @@
 USTRUCT()
 struct FPreviewAttachedObjectPair
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 private:
 	/** the object to be attached */
@@ -71,7 +71,7 @@ typedef TIndexedContainerIterator<const TArray<FPreviewAttachedObjectPair>, cons
 USTRUCT()
 struct FPreviewAssetAttachContainer
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 public:
 	/**

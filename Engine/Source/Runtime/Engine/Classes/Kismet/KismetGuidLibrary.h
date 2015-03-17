@@ -9,7 +9,9 @@ UCLASS(MinimalAPI)
 class UKismetGuidLibrary
 	: public UBlueprintFunctionLibrary
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UKismetGuidLibrary(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Returns true if the values are equal (A == B) */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName="Equal (Guid)", CompactNodeTitle="=="), Category="Guid")

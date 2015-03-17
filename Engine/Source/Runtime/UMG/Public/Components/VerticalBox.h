@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Components/PanelWidget.h"
@@ -16,7 +16,9 @@ class UVerticalBoxSlot;
 UCLASS()
 class UMG_API UVerticalBox : public UPanelWidget
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UVerticalBox(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

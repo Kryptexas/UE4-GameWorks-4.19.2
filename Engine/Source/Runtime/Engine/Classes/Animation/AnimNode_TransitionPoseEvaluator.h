@@ -38,7 +38,7 @@ namespace EEvaluatorMode
 USTRUCT()
 struct ENGINE_API FAnimNode_TransitionPoseEvaluator : public FAnimNode_Base
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Pose, meta=(NeverAsPin))
 	TEnumAsByte<EEvaluatorDataSource::Type> DataSource;

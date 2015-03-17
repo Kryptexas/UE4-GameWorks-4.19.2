@@ -16,7 +16,7 @@ struct FLandscapeDataInterface;
 USTRUCT()
 struct FLandscapeAddCollision
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
@@ -37,7 +37,7 @@ struct FLandscapeAddCollision
 USTRUCT()
 struct FLandscapeInfoLayerSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	ULandscapeLayerInfoObject* LayerInfoObj;
@@ -95,7 +95,9 @@ struct FLandscapeInfoLayerSettings
 UCLASS()
 class ULandscapeInfo : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ULandscapeInfo(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	TLazyObjectPtr<ALandscape> LandscapeActor;

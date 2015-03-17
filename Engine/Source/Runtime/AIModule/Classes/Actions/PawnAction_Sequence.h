@@ -7,7 +7,9 @@
 UCLASS()
 class AIMODULE_API UPawnAction_Sequence : public UPawnAction
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPawnAction_Sequence(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	TArray<UPawnAction*> ActionSequence;

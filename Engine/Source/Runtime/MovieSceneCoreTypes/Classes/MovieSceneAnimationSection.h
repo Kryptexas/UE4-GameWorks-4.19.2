@@ -11,7 +11,9 @@
 UCLASS( MinimalAPI )
 class UMovieSceneAnimationSection : public UMovieSceneSection
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	MOVIESCENECORETYPES_API UMovieSceneAnimationSection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 public:
 	/** Sets the animation sequence for this section */
 	void SetAnimSequence(class UAnimSequence* InAnimSequence) {AnimSequence = InAnimSequence;}

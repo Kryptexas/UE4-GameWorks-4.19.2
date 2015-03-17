@@ -11,7 +11,7 @@ class UAISense_Touch;
 USTRUCT()
 struct AIMODULE_API FAITouchEvent
 {	
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	typedef UAISense_Touch FSenseClass;
 
@@ -34,7 +34,9 @@ struct AIMODULE_API FAITouchEvent
 UCLASS(ClassGroup=AI)
 class AIMODULE_API UAISense_Touch : public UAISense
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAISense_Touch(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	TArray<FAITouchEvent> RegisteredEvents;

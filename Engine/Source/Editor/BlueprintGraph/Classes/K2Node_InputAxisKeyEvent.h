@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_InputAxisKeyEvent : public UK2Node_Event
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_InputAxisKeyEvent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	FKey AxisKey;

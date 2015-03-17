@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI,config=Editor)
 class UActorFactoryPawn : public UActorFactoryEmptyActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API UActorFactoryPawn(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	virtual bool CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg ) override;

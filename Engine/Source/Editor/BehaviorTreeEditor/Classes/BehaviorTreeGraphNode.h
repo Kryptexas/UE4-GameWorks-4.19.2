@@ -9,7 +9,9 @@
 UCLASS()
 class UBehaviorTreeGraphNode : public UAIGraphNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBehaviorTreeGraphNode(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** only some of behavior tree nodes support decorators */
 	UPROPERTY()

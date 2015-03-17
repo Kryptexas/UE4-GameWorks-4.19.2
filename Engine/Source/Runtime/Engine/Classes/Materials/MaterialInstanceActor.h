@@ -11,7 +11,9 @@
 UCLASS(hidecategories=Movement, hidecategories=Advanced, hidecategories=Collision, hidecategories=Display, hidecategories=Actor, hidecategories=Attachment, MinimalAPI)
 class AMaterialInstanceActor : public AActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API AMaterialInstanceActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Pointer to actors that we want to control paramters of using Matinee. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MaterialInstanceActor)

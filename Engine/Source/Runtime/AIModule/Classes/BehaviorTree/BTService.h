@@ -33,7 +33,9 @@
 UCLASS(Abstract)
 class AIMODULE_API UBTService : public UBTAuxiliaryNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBTService(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual FString GetStaticDescription() const override;
 

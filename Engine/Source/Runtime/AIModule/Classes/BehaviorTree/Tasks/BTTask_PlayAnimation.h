@@ -14,7 +14,9 @@ class UAnimationAsset;
 UCLASS()
 class AIMODULE_API UBTTask_PlayAnimation : public UBTTaskNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBTTask_PlayAnimation(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Animation asset to play. Note that it needs to match the skeleton of pawn this BT is controlling */
 	UPROPERTY(Category = Node, EditAnywhere)

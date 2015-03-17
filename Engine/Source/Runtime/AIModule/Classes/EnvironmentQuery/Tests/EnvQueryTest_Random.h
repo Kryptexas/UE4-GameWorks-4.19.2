@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI, meta=(DeprecatedNode, DeprecationMessage = "This class is now deprecated, please use RunMode supporting random results instead."))
 class UEnvQueryTest_Random : public UEnvQueryTest
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AIMODULE_API UEnvQueryTest_Random(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
 	virtual void RunTest(FEnvQueryInstance& QueryInstance) const override;

@@ -13,7 +13,9 @@ DECLARE_DELEGATE_OneParam(FOnPerceptionListenerUpdateDelegate, const FPerception
 UCLASS(ClassGroup = AI, abstract, config = Engine)
 class AIMODULE_API UAISense : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAISense(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	static const float SuspendNextUpdate;
 

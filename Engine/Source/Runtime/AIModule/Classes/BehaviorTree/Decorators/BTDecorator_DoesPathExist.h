@@ -24,7 +24,9 @@ namespace EPathExistanceQueryType
 UCLASS()
 class AIMODULE_API UBTDecorator_DoesPathExist : public UBTDecorator
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBTDecorator_DoesPathExist(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
 

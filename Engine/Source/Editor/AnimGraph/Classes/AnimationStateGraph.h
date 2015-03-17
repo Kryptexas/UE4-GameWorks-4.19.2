@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI)
 class UAnimationStateGraph : public UAnimationGraph
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ANIMGRAPH_API UAnimationStateGraph(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Result node within the state's animation graph
 	UPROPERTY()

@@ -7,7 +7,7 @@
 USTRUCT()
 struct FDecoratorSchemaAction_NewNode : public FEdGraphSchemaAction
 {
-	GENERATED_USTRUCT_BODY();
+	GENERATED_BODY()
 
 	/** Template of node we want to create */
 	UPROPERTY()
@@ -42,7 +42,9 @@ struct FDecoratorSchemaAction_NewNode : public FEdGraphSchemaAction
 UCLASS(MinimalAPI)
 class UEdGraphSchema_BehaviorTreeDecorator : public UEdGraphSchema
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BEHAVIORTREEEDITOR_API UEdGraphSchema_BehaviorTreeDecorator(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	FString PC_Boolean;

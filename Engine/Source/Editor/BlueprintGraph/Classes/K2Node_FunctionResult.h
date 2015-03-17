@@ -8,7 +8,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_FunctionResult : public UK2Node_FunctionTerminator
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_FunctionResult(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;

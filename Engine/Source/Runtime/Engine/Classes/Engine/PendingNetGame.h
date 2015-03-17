@@ -61,12 +61,13 @@ public:
 	virtual void NotifyControlMessage(UNetConnection* Connection, uint8 MessageType, class FInBunch& Bunch) PURE_VIRTUAL(FNetworkNotify::NotifyReceivedText,);
 };
 
-UCLASS(customConstructor, transient)
+UCLASS(transient)
 class UPendingNetGame :
 	public UObject,
 	public FNetworkNotify
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
 
 	/** 
 	 * Net driver created for contacting the new server

@@ -6,7 +6,9 @@
 UCLASS(EditInlineNew, meta=(DisplayName="Float"))
 class AIMODULE_API UBlackboardKeyType_Float : public UBlackboardKeyType
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBlackboardKeyType_Float(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	typedef float FDataType;
 	static const FDataType InvalidValue;

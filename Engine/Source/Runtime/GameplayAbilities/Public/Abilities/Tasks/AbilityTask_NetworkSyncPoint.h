@@ -24,7 +24,9 @@ enum class EAbilityTaskNetSyncType : uint8
 UCLASS(MinimalAPI)
 class UAbilityTask_NetworkSyncPoint : public UAbilityTask
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	GAMEPLAYABILITIES_API UAbilityTask_NetworkSyncPoint(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(BlueprintAssignable)
 	FNetworkSyncDelegate	OnSync;

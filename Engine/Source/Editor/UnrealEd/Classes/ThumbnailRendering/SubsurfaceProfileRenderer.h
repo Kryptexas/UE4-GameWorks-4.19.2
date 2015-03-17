@@ -11,7 +11,9 @@
 UCLASS()
 class USubsurfaceProfileRenderer : public UTextureThumbnailRenderer
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	USubsurfaceProfileRenderer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin UThumbnailRenderer Object

@@ -10,7 +10,9 @@
 UCLASS(HideCategories=Object,MinimalAPI)
 class USkeletonFactory : public UFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API USkeletonFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// The skeletal mesh with which to initialize this skeleton.
 	UPROPERTY()

@@ -33,7 +33,9 @@ UCLASS()
 class UCloudStorageBase
 	: public UPlatformInterfaceBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UCloudStorageBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** When using local storage (aka "cloud emulation"), this maintains a list of the file paths */
 	UPROPERTY()

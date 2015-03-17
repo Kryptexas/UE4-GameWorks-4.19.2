@@ -30,7 +30,7 @@ struct FLocalPlayerContext;
 USTRUCT(BlueprintType)
 struct UMG_API FPaintContext
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 public:
 
@@ -83,7 +83,7 @@ public:
 USTRUCT()
 struct UMG_API FNamedSlotBinding
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 public:
 
@@ -126,7 +126,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnConstructEvent);
 UCLASS(Abstract, editinlinenew, BlueprintType, Blueprintable, meta=( Category="User Controls" ))
 class UMG_API UUserWidget : public UWidget, public INamedSlotInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UUserWidget(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	//UObject interface
@@ -253,6 +255,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="User Interface", meta=( Keywords="Begin Play" ))
 	void Construct();
+	virtual void Construct_Implementation();
 
 	/**
 	 * Ticks this widget.  Override in derived classes, but always call the parent implementation.
@@ -262,9 +265,11 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="User Interface")
 	void Tick(FGeometry MyGeometry, float InDeltaTime);
+	virtual void Tick_Implementation(FGeometry MyGeometry, float InDeltaTime);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="User Interface | Painting")
 	void OnPaint(UPARAM(ref) FPaintContext& Context) const;
+	virtual void OnPaint_Implementation(FPaintContext& Context) const;
 
 	/**
 	 * Called when keyboard focus is given to this widget.  This event does not bubble.
@@ -275,6 +280,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Input")
 	FEventReply OnFocusReceived(FGeometry MyGeometry, FFocusEvent InFocusEvent);
+	virtual FEventReply OnFocusReceived_Implementation(FGeometry MyGeometry, FFocusEvent InFocusEvent);
 
 	/**
 	 * Called when this widget loses focus.  This event does not bubble.
@@ -283,6 +289,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Input")
 	void OnFocusLost(FFocusEvent InFocusEvent);
+	virtual void OnFocusLost_Implementation(FFocusEvent InFocusEvent);
 
 	/**
 	 * Called after a character is entered while this widget has focus
@@ -293,6 +300,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Input")
 	FEventReply OnKeyChar(FGeometry MyGeometry, FCharacterEvent InCharacterEvent);
+	virtual FEventReply OnKeyChar_Implementation(FGeometry MyGeometry, FCharacterEvent InCharacterEvent);
 
 	/**
 	 * Called after a key (keyboard, controller, ...) is pressed when this widget or a child of this widget has focus
@@ -307,6 +315,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, Category="Input")
 	FEventReply OnPreviewKeyDown(FGeometry MyGeometry, FKeyEvent InKeyEvent);
+	virtual FEventReply OnPreviewKeyDown_Implementation(FGeometry MyGeometry, FKeyEvent InKeyEvent);
 
 	/**
 	 * Called after a key (keyboard, controller, ...) is pressed when this widget has focus (this event bubbles if not handled)
@@ -317,6 +326,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Input")
 	FEventReply OnKeyDown(FGeometry MyGeometry, FKeyEvent InKeyEvent);
+	virtual FEventReply OnKeyDown_Implementation(FGeometry MyGeometry, FKeyEvent InKeyEvent);
 
 	/**
 	 * Called after a key (keyboard, controller, ...) is released when this widget has focus
@@ -327,6 +337,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Input")
 	FEventReply OnKeyUp(FGeometry MyGeometry, FKeyEvent InKeyEvent);
+	virtual FEventReply OnKeyUp_Implementation(FGeometry MyGeometry, FKeyEvent InKeyEvent);
 
 	/**
 	* Called when an analog value changes on a button that supports analog
@@ -337,6 +348,7 @@ public:
 	*/
 	UFUNCTION(BlueprintNativeEvent, Category = "Input")
 	FEventReply OnAnalogValueChanged(FGeometry MyGeometry, FAnalogInputEvent InAnalogInputEvent);
+	virtual FEventReply OnAnalogValueChanged_Implementation(FGeometry MyGeometry, FAnalogInputEvent InAnalogInputEvent);
 
 	/**
 	 * The system calls this method to notify the widget that a mouse button was pressed within it. This event is bubbled.
@@ -347,6 +359,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Mouse")
 	FEventReply OnMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+	virtual FEventReply OnMouseButtonDown_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 
 	/**
 	 * Just like OnMouseButtonDown, but tunnels instead of bubbling.
@@ -361,6 +374,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Mouse")
 	FEventReply OnPreviewMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+	virtual FEventReply OnPreviewMouseButtonDown_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 
 	/**
 	 * The system calls this method to notify the widget that a mouse button was release within it. This event is bubbled.
@@ -371,6 +385,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Mouse")
 	FEventReply OnMouseButtonUp(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+	virtual FEventReply OnMouseButtonUp_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 
 	/**
 	 * The system calls this method to notify the widget that a mouse moved within it. This event is bubbled.
@@ -381,6 +396,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Mouse")
 	FEventReply OnMouseMove(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+	virtual FEventReply OnMouseMove_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 
 	/**
 	 * The system will use this event to notify a widget that the cursor has entered it. This event is NOT bubbled.
@@ -390,6 +406,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Mouse")
 	void OnMouseEnter(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+	virtual void OnMouseEnter_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 
 	/**
 	 * The system will use this event to notify a widget that the cursor has left it. This event is NOT bubbled.
@@ -398,6 +415,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Mouse")
 	void OnMouseLeave(const FPointerEvent& MouseEvent);
+	virtual void OnMouseLeave_Implementation(const FPointerEvent& MouseEvent);
 
 	/**
 	 * Called when the mouse wheel is spun. This event is bubbled.
@@ -407,6 +425,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Mouse")
 	FEventReply OnMouseWheel(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
+	virtual FEventReply OnMouseWheel_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent);
 
 	/**
 	 * Called when a mouse button is double clicked.  Override this in derived classes.
@@ -417,6 +436,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Mouse")
 	FEventReply OnMouseButtonDoubleClick(FGeometry InMyGeometry, const FPointerEvent& InMouseEvent);
+	virtual FEventReply OnMouseButtonDoubleClick_Implementation(FGeometry InMyGeometry, const FPointerEvent& InMouseEvent);
 
 	// TODO
 	//UFUNCTION(BlueprintNativeEvent, Category="Mouse")
@@ -434,6 +454,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Drag and Drop")
 	void OnDragDetected(FGeometry MyGeometry, const FPointerEvent& PointerEvent, UDragDropOperation*& Operation);
+	virtual void OnDragDetected_Implementation(FGeometry MyGeometry, const FPointerEvent& PointerEvent, UDragDropOperation*& Operation);
 
 	/**
 	 * Called when the user cancels the drag operation, typically when they simply release the mouse button after
@@ -444,6 +465,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Drag and Drop")
 	void OnDragCancelled(const FPointerEvent& PointerEvent, UDragDropOperation* Operation);
+	virtual void OnDragCancelled_Implementation(const FPointerEvent& PointerEvent, UDragDropOperation* Operation);
 	
 	/**
 	 * Called during drag and drop when the drag enters the widget.
@@ -454,6 +476,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Drag and Drop")
 	void OnDragEnter(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
+	virtual void OnDragEnter_Implementation(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
 
 	/**
 	 * Called during drag and drop when the drag leaves the widget.
@@ -463,6 +486,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Drag and Drop")
 	void OnDragLeave(FPointerEvent PointerEvent, UDragDropOperation* Operation);
+	virtual void OnDragLeave_Implementation(FPointerEvent PointerEvent, UDragDropOperation* Operation);
 
 	/**
 	 * Called during drag and drop when the the mouse is being dragged over a widget.
@@ -475,6 +499,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Drag and Drop")
 	bool OnDragOver(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
+	virtual bool OnDragOver_Implementation(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
 
 	/**
 	 * Called when the user is dropping something onto a widget.  Ends the drag and drop operation, even if no widget handles this.
@@ -487,16 +512,20 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Drag and Drop")
 	bool OnDrop(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
+	virtual bool OnDrop_Implementation(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation);
 
 
 	UFUNCTION(BlueprintNativeEvent, meta = (DeprecatedFunction, DeprecationMessage = "Use OnKeyDown() instead"), Category = "Gamepad Input")
 	FEventReply OnControllerButtonPressed(FGeometry MyGeometry, FControllerEvent ControllerEvent);
+	virtual FEventReply OnControllerButtonPressed_Implementation(FGeometry MyGeometry, FControllerEvent ControllerEvent);
 
 	UFUNCTION(BlueprintNativeEvent, meta = (DeprecatedFunction, DeprecationMessage = "Use OnKeyUp() instead"), Category = "Gamepad Input")
 	FEventReply OnControllerButtonReleased(FGeometry MyGeometry, FControllerEvent ControllerEvent);
+	virtual FEventReply OnControllerButtonReleased_Implementation(FGeometry MyGeometry, FControllerEvent ControllerEvent);
 
 	UFUNCTION(BlueprintNativeEvent, meta = (DeprecatedFunction, DeprecationMessage = "Use OnAnalogValueChanged() instead"), Category = "Gamepad Input")
 	FEventReply OnControllerAnalogValueChanged(FGeometry MyGeometry, FControllerEvent ControllerEvent);
+	virtual FEventReply OnControllerAnalogValueChanged_Implementation(FGeometry MyGeometry, FControllerEvent ControllerEvent);
 
 	/**
 	 * Called when the user performs a gesture on trackpad. This event is bubbled.
@@ -507,6 +536,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Touch Input")
 	FEventReply OnTouchGesture(FGeometry MyGeometry, const FPointerEvent& GestureEvent);
+	virtual FEventReply OnTouchGesture_Implementation(FGeometry MyGeometry, const FPointerEvent& GestureEvent);
 
 	/**
 	 * Called when a touchpad touch is started (finger down)
@@ -516,6 +546,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Touch Input")
 	FEventReply OnTouchStarted(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
+	virtual FEventReply OnTouchStarted_Implementation(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
 
 	/**
 	 * Called when a touchpad touch is moved  (finger moved)
@@ -525,6 +556,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Touch Input")
 	FEventReply OnTouchMoved(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
+	virtual FEventReply OnTouchMoved_Implementation(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
 
 	/**
 	 * Called when a touchpad touch is ended (finger lifted)
@@ -534,6 +566,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Touch Input")
 	FEventReply OnTouchEnded(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
+	virtual FEventReply OnTouchEnded_Implementation(FGeometry MyGeometry, const FPointerEvent& InTouchEvent);
 
 	/**
 	 * Called when motion is detected (controller or device)
@@ -544,6 +577,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Touch Input")
 	FEventReply OnMotionDetected(FGeometry MyGeometry, FMotionEvent InMotionEvent);
+	virtual FEventReply OnMotionDetected_Implementation(FGeometry MyGeometry, FMotionEvent InMotionEvent);
 
 	/**
 	 * Called when an animation is started.
@@ -552,6 +586,7 @@ public:
 	 */
 	UFUNCTION( BlueprintNativeEvent, BlueprintCosmetic, Category = "Animation" )
 	void OnAnimationStarted( const UWidgetAnimation* Animation );
+	virtual void OnAnimationStarted_Implementation(const UWidgetAnimation* Animation);
 
 	/**
 	 * Called when an animation has either played all the way through or is stopped
@@ -560,6 +595,7 @@ public:
 	 */
 	UFUNCTION( BlueprintNativeEvent, BlueprintCosmetic, Category = "Animation" )
 	void OnAnimationFinished( const UWidgetAnimation* Animation );
+	virtual void OnAnimationFinished_Implementation(const UWidgetAnimation* Animation);
 
 public:
 

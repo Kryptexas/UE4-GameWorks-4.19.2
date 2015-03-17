@@ -8,7 +8,9 @@
 UCLASS(hideCategories=Object, MinimalAPI)
 class UDestructibleMeshFactory : public UFactory
 {
-    GENERATED_UCLASS_BODY()
+    GENERATED_BODY()
+public:
+    UNREALED_API UDestructibleMeshFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	// Begin UFactory Interface
 	virtual FText GetDisplayName() const override;
 #if WITH_APEX

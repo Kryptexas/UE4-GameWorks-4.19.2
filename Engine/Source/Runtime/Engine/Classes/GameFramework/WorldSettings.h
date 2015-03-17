@@ -18,7 +18,7 @@ enum EVisibilityAggressiveness
 USTRUCT()
 struct FGameModePrefix
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** map prefix, e.g. "DM" */
 	UPROPERTY()
@@ -32,7 +32,7 @@ struct FGameModePrefix
 USTRUCT()
 struct FLightmassWorldInfoSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** 
 	 * Warning: Setting this to less than 1 will greatly increase build times!
@@ -162,7 +162,7 @@ struct FLightmassWorldInfoSettings
 USTRUCT()
 struct ENGINE_API FNetViewer
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** The player controller corresponding to this view */
 	UPROPERTY()
@@ -195,7 +195,7 @@ struct ENGINE_API FNetViewer
 USTRUCT()
 struct ENGINE_API FHierarchicalSimplification
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** If this is true, it will simplify mesh. However it is slower. If false, it will just merge actors but not simplify */
 	UPROPERTY(Category=FHierarchicalSimplification, EditAnywhere)
@@ -233,7 +233,9 @@ struct ENGINE_API FHierarchicalSimplification
 UCLASS(config=game, hidecategories=(Actor, Advanced, Display, Events, Object, Attachment, Info, Input, Blueprint, Layers, Tags, Replication), showcategories=("Input|MouseInput", "Input|TouchInput"), notplaceable)
 class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AWorldSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** DEFAULT BASIC PHYSICS SETTINGS **/
 

@@ -9,7 +9,9 @@
 UCLASS()
 class ENGINE_API ACameraBlockingVolume : public AVolume
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ACameraBlockingVolume(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };
 
 

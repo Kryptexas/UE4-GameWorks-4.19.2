@@ -8,7 +8,9 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionDesaturation : public UMaterialExpression
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMaterialExpressionDesaturation(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Outputs: Lerp(Input,dot(Input,LuminanceFactors)),Fraction)
 	UPROPERTY()

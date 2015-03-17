@@ -8,7 +8,7 @@
 USTRUCT()
 struct FSimpleMemberReference
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Class that this member is defined in. */
 	UPROPERTY()
@@ -48,7 +48,7 @@ FORCEINLINE FArchive& operator<<(FArchive& Ar, FSimpleMemberReference& Data)
 USTRUCT()
 struct FEdGraphPinType
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Category of pin type */
 	UPROPERTY()
@@ -152,7 +152,9 @@ enum EBlueprintPinStyleType
 UCLASS(MinimalAPI)
 class UEdGraphPin : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UEdGraphPin(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Name of this pin */
 	UPROPERTY()

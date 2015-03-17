@@ -15,7 +15,9 @@ DECLARE_DELEGATE_TwoParams(FDebugDrawDelegate, class UCanvas*, class APlayerCont
 UCLASS(config=Engine)
 class ENGINE_API UDebugDrawService : public UBlueprintFunctionLibrary
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UDebugDrawService(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	//void Register
 

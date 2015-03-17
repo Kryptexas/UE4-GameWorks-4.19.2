@@ -18,7 +18,9 @@ namespace EMaterialSceneAttributeInputMode
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionSceneColor : public UMaterialExpression
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMaterialExpressionSceneColor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
 	/**
 	* Coordinates - UV coordinates to apply to the scene color lookup.

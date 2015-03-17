@@ -11,7 +11,9 @@
 UCLASS(MinimalAPI)
 class ALandscapeMeshProxyActor : public AActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	LANDSCAPE_API ALandscapeMeshProxyActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 private:
 	UPROPERTY(Category = LandscapeMeshProxyActor, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Mesh,Rendering,Physics,Components|StaticMesh", AllowPrivateAccess = "true"))

@@ -16,7 +16,9 @@ UCLASS(config=EditorUserSettings)
 class LEVELS_API ULevelBrowserSettings
 	:	public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ULevelBrowserSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

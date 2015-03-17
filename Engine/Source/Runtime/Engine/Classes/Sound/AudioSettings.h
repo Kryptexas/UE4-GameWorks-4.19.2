@@ -12,7 +12,9 @@ UCLASS(config=Engine, defaultconfig)
 class ENGINE_API UAudioSettings
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAudioSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The SoundClass assigned to newly created sounds */
 	UPROPERTY(config, EditAnywhere, Category="Audio", meta=(AllowedClasses="SoundClass", DisplayName="Default Sound Class"))

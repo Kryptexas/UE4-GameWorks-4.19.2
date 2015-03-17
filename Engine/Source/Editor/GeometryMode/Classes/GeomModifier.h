@@ -11,7 +11,9 @@
 UCLASS(abstract, hidecategories=(Object, GeomModifier))
 class UGeomModifier : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UGeomModifier(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** A human readable name for this modifier (appears on buttons, menus, etc) */
 	UPROPERTY(EditAnywhere, Category=GeomModifier)

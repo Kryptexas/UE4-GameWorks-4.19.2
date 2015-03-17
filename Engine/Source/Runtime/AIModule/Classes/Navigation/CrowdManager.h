@@ -52,7 +52,7 @@ class dtObstacleAvoidanceDebugData;
 USTRUCT()
 struct AIMODULE_API FCrowdAvoidanceConfig
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Crowd)
 	float VelocityBias;
@@ -98,7 +98,7 @@ struct AIMODULE_API FCrowdAvoidanceConfig
 USTRUCT()
 struct AIMODULE_API FCrowdAvoidanceSamplingPattern
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Crowd)
 	TArray<float> Angles;
@@ -153,7 +153,9 @@ struct FCrowdTickHelper : FTickableGameObject
 UCLASS(config = Engine, defaultconfig)
 class AIMODULE_API UCrowdManager : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UCrowdManager(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void Tick(float DeltaTime);
 	virtual void BeginDestroy() override;

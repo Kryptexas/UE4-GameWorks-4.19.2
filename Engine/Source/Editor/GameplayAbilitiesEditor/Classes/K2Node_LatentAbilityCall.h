@@ -11,7 +11,9 @@
 UCLASS()
 class UK2Node_LatentAbilityCall : public UK2Node_BaseAsyncTask
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UK2Node_LatentAbilityCall(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// UEdGraphNode interface
 	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const;

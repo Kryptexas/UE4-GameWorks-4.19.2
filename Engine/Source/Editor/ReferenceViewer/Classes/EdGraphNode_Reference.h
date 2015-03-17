@@ -7,7 +7,9 @@
 UCLASS()
 class UEdGraphNode_Reference : public UEdGraphNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UEdGraphNode_Reference(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void SetupReferenceNode(const FIntPoint& NodeLoc, const TArray<FName>& NewPackageNames, const FAssetData& InAssetData);
 	virtual void SetReferenceNodeCollapsed(const FIntPoint& NodeLoc, int32 InNumReferencesExceedingMax);

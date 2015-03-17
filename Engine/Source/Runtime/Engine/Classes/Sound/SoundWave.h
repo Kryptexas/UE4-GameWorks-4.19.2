@@ -64,7 +64,7 @@ struct FStreamedAudioChunk
 USTRUCT()
 struct FStreamedAudioPlatformData
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Number of audio chunks. */
 	int32 NumChunks;
@@ -111,7 +111,9 @@ struct FStreamedAudioPlatformData
 UCLASS(hidecategories=Object, editinlinenew, BlueprintType)
 class ENGINE_API USoundWave : public USoundBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	USoundWave(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Platform agnostic compression quality. 1..100 with 1 being best compression and 100 being best quality. */
 	UPROPERTY(EditAnywhere, Category=Compression, meta=(ClampMin = "1", ClampMax = "100"), AssetRegistrySearchable)

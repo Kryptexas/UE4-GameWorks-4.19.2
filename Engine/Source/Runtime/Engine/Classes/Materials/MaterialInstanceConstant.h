@@ -14,7 +14,9 @@
 UCLASS(hidecategories=Object, collapsecategories, BlueprintType,MinimalAPI)
 class UMaterialInstanceConstant : public UMaterialInstance
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UMaterialInstanceConstant(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 #if WITH_EDITOR
 	/** For constructing new MICs. */

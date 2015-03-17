@@ -11,7 +11,6 @@ UCLASS(hidecategories=Object, MinimalAPI)
 class UScrollBoxWidgetStyle : public USlateWidgetStyleContainerBase
 {
 	GENERATED_BODY()
-
 public:
 	/** The actual data describing the scrollbox's appearance. */
 	UPROPERTY(Category=Appearance, EditAnywhere, meta=(ShowOnlyInnerProperties))

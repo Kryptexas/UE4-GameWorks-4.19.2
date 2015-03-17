@@ -12,7 +12,9 @@
 UCLASS()
 class UNiagaraEffectRendererProperties : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNiagaraEffectRendererProperties(const FObjectInitializer& ObjectInitializer);
 	UNiagaraEffectRendererProperties()
 	{}
 

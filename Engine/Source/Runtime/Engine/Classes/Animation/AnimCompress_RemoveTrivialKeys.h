@@ -14,7 +14,9 @@
 UCLASS(MinimalAPI)
 class UAnimCompress_RemoveTrivialKeys : public UAnimCompress
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UAnimCompress_RemoveTrivialKeys(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category=AnimationCompressionAlgorithm_RemoveTrivialKeys)
 	float MaxPosDiff;

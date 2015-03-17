@@ -8,7 +8,9 @@
 UCLASS(MinimalAPI, config = Editor, collapsecategories, hidecategories = Object)
 class UActorFactoryNiagara : public UActorFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API UActorFactoryNiagara(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin UActorFactory Interface
 	virtual void PostSpawnActor(UObject* Asset, AActor* NewActor) override;

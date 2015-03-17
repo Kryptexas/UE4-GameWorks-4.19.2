@@ -12,7 +12,9 @@
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "VF Init Rotation"))
 class UParticleModuleVectorFieldRotation : public UParticleModuleVectorFieldBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleModuleVectorFieldRotation(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Minimum initial rotation applied to the local vector field. */
 	UPROPERTY(EditAnywhere, Category=VectorField)

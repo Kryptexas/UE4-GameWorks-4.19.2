@@ -8,6 +8,8 @@
 UCLASS(NotBlueprintable, Transient, hidecategories = UObject, notplaceable)
 class UVisualLoggerAutomationTests : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UVisualLoggerAutomationTests(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };
 

@@ -8,7 +8,9 @@
 UCLASS(MinimalAPI)
 class UMaterialExpressionParticleSubUV : public UMaterialExpressionTextureSample
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UMaterialExpressionParticleSubUV(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionParticleSubUV)
 	uint32 bBlend:1;

@@ -7,7 +7,9 @@
 UCLASS()
 class UMockAI_BT : public UMockAI
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMockAI_BT(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	UBehaviorTreeComponent* BTComp;

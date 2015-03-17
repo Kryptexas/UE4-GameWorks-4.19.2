@@ -11,7 +11,9 @@
 UCLASS(MinimalAPI)
 class UVectorField : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UVectorField(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Bounds of the volume in local space. */
 	UPROPERTY(EditAnywhere, Category=VectorFieldBounds)

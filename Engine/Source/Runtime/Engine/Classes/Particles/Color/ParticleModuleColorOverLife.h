@@ -8,7 +8,9 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Color Over Life"))
 class UParticleModuleColorOverLife : public UParticleModuleColorBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UParticleModuleColorOverLife(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The color to apply to the particle, as a function of the particle RelativeTime. */
 	UPROPERTY(EditAnywhere, Category=Color, meta=(TreatAsColor))

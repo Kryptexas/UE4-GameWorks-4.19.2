@@ -29,7 +29,7 @@ namespace ESlateCheckBoxType
 USTRUCT(BlueprintType)
 struct SLATECORE_API FCheckBoxStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FCheckBoxStyle();
 
@@ -156,7 +156,7 @@ struct TStructOpsTypeTraits<FCheckBoxStyle> : public TStructOpsTypeTraitsBase
 USTRUCT(BlueprintType)
 struct SLATECORE_API FTextBlockStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FTextBlockStyle();
 
@@ -221,7 +221,7 @@ struct SLATECORE_API FTextBlockStyle : public FSlateWidgetStyle
 USTRUCT(BlueprintType)
 struct SLATECORE_API FButtonStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FButtonStyle();
 
@@ -311,7 +311,7 @@ struct TStructOpsTypeTraits<FButtonStyle> : public TStructOpsTypeTraitsBase
 USTRUCT(BlueprintType)
 struct SLATECORE_API FComboButtonStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FComboButtonStyle();
 
@@ -360,7 +360,7 @@ struct SLATECORE_API FComboButtonStyle : public FSlateWidgetStyle
 USTRUCT(BlueprintType)
 struct SLATECORE_API FComboBoxStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FComboBoxStyle();
 
@@ -420,7 +420,7 @@ struct TStructOpsTypeTraits<FComboBoxStyle> : public TStructOpsTypeTraitsBase
 USTRUCT(BlueprintType)
 struct SLATECORE_API FHyperlinkStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FHyperlinkStyle();
 
@@ -455,7 +455,7 @@ struct SLATECORE_API FHyperlinkStyle : public FSlateWidgetStyle
 USTRUCT(BlueprintType)
 struct SLATECORE_API FEditableTextStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FEditableTextStyle();
 
@@ -507,7 +507,7 @@ struct SLATECORE_API FEditableTextStyle : public FSlateWidgetStyle
 USTRUCT(BlueprintType)
 struct SLATECORE_API FScrollBarStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FScrollBarStyle();
 
@@ -573,7 +573,7 @@ struct SLATECORE_API FScrollBarStyle : public FSlateWidgetStyle
 USTRUCT(BlueprintType)
 struct SLATECORE_API FEditableTextBoxStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FEditableTextBoxStyle();
 
@@ -655,7 +655,7 @@ struct SLATECORE_API FEditableTextBoxStyle : public FSlateWidgetStyle
 USTRUCT(BlueprintType)
 struct SLATECORE_API FInlineEditableTextBlockStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FInlineEditableTextBlockStyle();
 
@@ -686,7 +686,7 @@ struct SLATECORE_API FInlineEditableTextBlockStyle : public FSlateWidgetStyle
 USTRUCT(BlueprintType)
 struct SLATECORE_API FProgressBarStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FProgressBarStyle();
 
@@ -722,7 +722,7 @@ struct SLATECORE_API FProgressBarStyle : public FSlateWidgetStyle
 USTRUCT()
 struct SLATECORE_API FExpandableAreaStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FExpandableAreaStyle();
 
@@ -753,7 +753,7 @@ struct SLATECORE_API FExpandableAreaStyle : public FSlateWidgetStyle
 USTRUCT()
 struct SLATECORE_API FSearchBoxStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FSearchBoxStyle();
 
@@ -814,7 +814,7 @@ struct SLATECORE_API FSearchBoxStyle : public FSlateWidgetStyle
 USTRUCT(BlueprintType)
 struct SLATECORE_API FSliderStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FSliderStyle();
 
@@ -855,7 +855,7 @@ struct SLATECORE_API FSliderStyle : public FSlateWidgetStyle
 USTRUCT()
 struct SLATECORE_API FVolumeControlStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FVolumeControlStyle();
 
@@ -905,7 +905,7 @@ struct SLATECORE_API FVolumeControlStyle : public FSlateWidgetStyle
 USTRUCT()
 struct SLATECORE_API FInlineTextImageStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FInlineTextImageStyle();
 
@@ -935,7 +935,7 @@ struct SLATECORE_API FInlineTextImageStyle : public FSlateWidgetStyle
 USTRUCT(BlueprintType)
 struct SLATECORE_API FSpinBoxStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FSpinBoxStyle();
 
@@ -991,7 +991,7 @@ struct SLATECORE_API FSpinBoxStyle : public FSlateWidgetStyle
 USTRUCT(BlueprintType)
 struct SLATECORE_API FSplitterStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FSplitterStyle();
 
@@ -1022,7 +1022,7 @@ struct SLATECORE_API FSplitterStyle : public FSlateWidgetStyle
 USTRUCT(BlueprintType)
 struct SLATECORE_API FTableRowStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FTableRowStyle();
 
@@ -1118,7 +1118,7 @@ struct SLATECORE_API FTableRowStyle : public FSlateWidgetStyle
 USTRUCT()
 struct SLATECORE_API FTableColumnHeaderStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FTableColumnHeaderStyle();
 
@@ -1184,7 +1184,7 @@ struct SLATECORE_API FTableColumnHeaderStyle : public FSlateWidgetStyle
 USTRUCT()
 struct SLATECORE_API FHeaderRowStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FHeaderRowStyle();
 
@@ -1230,7 +1230,7 @@ struct SLATECORE_API FHeaderRowStyle : public FSlateWidgetStyle
 USTRUCT()
 struct SLATECORE_API FDockTabStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FDockTabStyle();
 
@@ -1306,7 +1306,7 @@ struct SLATECORE_API FDockTabStyle : public FSlateWidgetStyle
 USTRUCT(BlueprintType)
 struct SLATECORE_API FScrollBoxStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FScrollBoxStyle();
 
@@ -1355,7 +1355,7 @@ struct SLATECORE_API FScrollBoxStyle : public FSlateWidgetStyle
 USTRUCT(BlueprintType)
 struct SLATECORE_API FScrollBorderStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FScrollBorderStyle();
 
@@ -1386,7 +1386,7 @@ struct SLATECORE_API FScrollBorderStyle : public FSlateWidgetStyle
 USTRUCT(BlueprintType)
 struct SLATECORE_API FWindowStyle : public FSlateWidgetStyle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FWindowStyle();
 
@@ -1470,7 +1470,5 @@ struct SLATECORE_API FWindowStyle : public FSlateWidgetStyle
 UCLASS()
 class USlateTypes : public UObject
 {
-public:
 	GENERATED_BODY()
-
 };

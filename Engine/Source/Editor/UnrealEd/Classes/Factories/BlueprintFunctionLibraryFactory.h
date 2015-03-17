@@ -10,7 +10,9 @@
 UCLASS(hidecategories=Object, collapsecategories)
 class UBlueprintFunctionLibraryFactory : public UBlueprintFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBlueprintFunctionLibraryFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// UFactory interface
 	virtual FText GetDisplayName() const override;

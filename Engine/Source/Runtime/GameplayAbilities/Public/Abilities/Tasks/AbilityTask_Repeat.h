@@ -13,7 +13,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRepeatedActionDelegate, int32, Acti
 UCLASS()
 class GAMEPLAYABILITIES_API UAbilityTask_Repeat : public UAbilityTask
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAbilityTask_Repeat(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(BlueprintAssignable)
 	FRepeatedActionDelegate		OnPerformAction;

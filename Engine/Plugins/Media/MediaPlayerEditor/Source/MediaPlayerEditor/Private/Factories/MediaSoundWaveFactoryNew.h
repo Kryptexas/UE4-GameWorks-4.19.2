@@ -12,7 +12,9 @@ UCLASS(hidecategories=Object, MinimalAPI)
 class UMediaSoundWaveFactoryNew
 	: public UFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	MEDIAPLAYEREDITOR_API UMediaSoundWaveFactoryNew(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** An initial UMediaPlayer asset to place in the newly created sound wave. */
 	UPROPERTY()

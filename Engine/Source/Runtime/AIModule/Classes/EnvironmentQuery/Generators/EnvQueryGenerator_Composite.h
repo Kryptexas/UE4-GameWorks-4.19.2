@@ -15,7 +15,9 @@ struct FEnvQueryInstance;
 UCLASS(meta = (DisplayName = "Composite"))
 class AIMODULE_API UEnvQueryGenerator_Composite : public UEnvQueryGenerator
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UEnvQueryGenerator_Composite(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditDefaultsOnly, Instanced, Category = Generator)
 	TArray<UEnvQueryGenerator*> Generators;

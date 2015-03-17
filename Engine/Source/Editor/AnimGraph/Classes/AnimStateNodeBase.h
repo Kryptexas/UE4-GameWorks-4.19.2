@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI, abstract)
 class UAnimStateNodeBase : public UEdGraphNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ANIMGRAPH_API UAnimStateNodeBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// UEdGraphNode interface
 	virtual void PostPasteNode() override;

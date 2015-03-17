@@ -8,7 +8,9 @@
 UCLASS()
 class UMatineeTrackLinearColorPropHelper : public UMatineeTrackVectorPropHelper
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMatineeTrackLinearColorPropHelper(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

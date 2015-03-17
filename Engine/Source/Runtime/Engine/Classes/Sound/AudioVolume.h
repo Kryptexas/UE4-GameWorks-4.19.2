@@ -47,7 +47,7 @@ enum ReverbPreset
 USTRUCT(BlueprintType)
 struct FReverbSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/* Whether to apply the reverb settings below. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ReverbSettings )
@@ -97,7 +97,7 @@ struct TStructOpsTypeTraits<FReverbSettings> : public TStructOpsTypeTraitsBase
 USTRUCT(BlueprintType)
 struct FInteriorSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// Whether these interior settings are the default values for the world
 	UPROPERTY()
@@ -155,7 +155,9 @@ struct FInteriorSettings
 UCLASS(hidecategories=(Advanced, Attachment, Collision, Volume), MinimalAPI)
 class AAudioVolume : public AVolume
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API AAudioVolume(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/**
 	 * Priority of this volume. In the case of overlapping volumes the one with the highest priority

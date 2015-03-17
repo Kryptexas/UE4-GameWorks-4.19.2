@@ -39,7 +39,9 @@ private:
 UCLASS(hidecategories=Object)
 class AIMODULE_API UEQSRenderingComponent : public UPrimitiveComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UEQSRenderingComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	FString DrawFlagName;
 	uint32 bDrawOnlyWhenSelected : 1;

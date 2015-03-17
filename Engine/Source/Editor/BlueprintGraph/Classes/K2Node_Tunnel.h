@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_Tunnel : public UK2Node_EditablePinBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_Tunnel(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// A tunnel node either has output pins that came from another tunnel's input pins, or vis versa
 	// Note: OutputSourceNode might be equal to InputSinkNode

@@ -13,7 +13,9 @@
 UCLASS(BlueprintType, Experimental)
 class PAPER2D_API APaperTerrainActor : public AActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	APaperTerrainActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 private:
 	UPROPERTY()

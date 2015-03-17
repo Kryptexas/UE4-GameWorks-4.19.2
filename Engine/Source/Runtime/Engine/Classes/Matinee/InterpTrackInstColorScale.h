@@ -6,7 +6,9 @@
 UCLASS()
 class UInterpTrackInstColorScale : public UInterpTrackInst
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UInterpTrackInstColorScale(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin UInterpTrackInst Instance

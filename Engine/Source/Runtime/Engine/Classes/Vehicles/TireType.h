@@ -11,7 +11,9 @@
 UCLASS()
 class ENGINE_API UTireType : public UDataAsset
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UTireType(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 private:
 

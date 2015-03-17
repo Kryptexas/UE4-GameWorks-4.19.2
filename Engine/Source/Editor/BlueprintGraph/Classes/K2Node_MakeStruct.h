@@ -9,7 +9,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_MakeStruct : public UK2Node_StructMemberSet
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_MakeStruct(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	BLUEPRINTGRAPH_API static bool CanBeMade(const UScriptStruct* Struct);
 	static bool CanBeExposed(const UProperty* Property);

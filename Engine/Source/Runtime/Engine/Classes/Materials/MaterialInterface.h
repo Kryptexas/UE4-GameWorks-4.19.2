@@ -34,7 +34,7 @@ enum EMaterialUsage
 USTRUCT()
 struct ENGINE_API FMaterialRelevance
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	uint32 bOpaque : 1;
@@ -104,7 +104,7 @@ struct ENGINE_API FMaterialRelevance
 USTRUCT()
 struct FLightmassMaterialInterfaceSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** If true, forces translucency to cast static shadows as if the material were masked. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Material)
@@ -171,7 +171,9 @@ struct FLightmassMaterialInterfaceSettings
 UCLASS(abstract, BlueprintType,MinimalAPI)
 class UMaterialInterface : public UObject, public IBlendableInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UMaterialInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** SubsurfaceProfile, for Screen Space Subsurface Scattering */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Material, meta = (DisplayName = "Subsurface Profile"))

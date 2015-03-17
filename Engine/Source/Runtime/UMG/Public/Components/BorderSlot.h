@@ -14,7 +14,9 @@ class UBorder;
 UCLASS()
 class UMG_API UBorderSlot : public UPanelSlot
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBorderSlot(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

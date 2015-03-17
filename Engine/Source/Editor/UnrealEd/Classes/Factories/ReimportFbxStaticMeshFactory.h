@@ -10,7 +10,9 @@
 UCLASS(collapsecategories)
 class UReimportFbxStaticMeshFactory : public UFbxFactory, public FReimportHandler
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UReimportFbxStaticMeshFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin FReimportHandler interface

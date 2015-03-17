@@ -9,7 +9,7 @@
 USTRUCT()
 struct FTutorialContext
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** The context that this tutorial is used in */
 	UPROPERTY(EditAnywhere, Category = "Tutorials")
@@ -32,7 +32,9 @@ struct FTutorialContext
 UCLASS(config=EditorGameAgnostic)
 class UEditorTutorialSettings : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UEditorTutorialSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Categories for tutorials */
 	UPROPERTY(Config, EditAnywhere, Category="Tutorials")

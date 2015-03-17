@@ -16,7 +16,7 @@ class UFont;
 USTRUCT()
 struct FDebugTextInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**  AActor related to text item */
 	UPROPERTY()

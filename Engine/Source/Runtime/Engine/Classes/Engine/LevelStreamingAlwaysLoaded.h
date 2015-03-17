@@ -13,7 +13,9 @@
 UCLASS(MinimalAPI)
 class ULevelStreamingAlwaysLoaded : public ULevelStreaming
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API ULevelStreamingAlwaysLoaded(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin ULevelStreaming Interface
 	virtual bool ShouldBeLoaded() const override;

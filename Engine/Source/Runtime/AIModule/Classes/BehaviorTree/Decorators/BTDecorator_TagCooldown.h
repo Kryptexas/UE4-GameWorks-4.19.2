@@ -17,7 +17,9 @@ struct FBTTagCooldownDecoratorMemory
 UCLASS(HideCategories=(Condition))
 class AIMODULE_API UBTDecorator_TagCooldown : public UBTDecorator
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBTDecorator_TagCooldown(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** gameplay tag that will be used for the cooldown */
 	UPROPERTY(Category = Decorator, EditAnywhere)

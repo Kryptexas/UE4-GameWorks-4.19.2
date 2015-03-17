@@ -16,7 +16,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnNavigationPathUpdated, UNavigati
 UCLASS(BlueprintType)
 class ENGINE_API UNavigationPath : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNavigationPath(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(BlueprintAssignable)
 	FOnNavigationPathUpdated PathUpdatedNotifier;

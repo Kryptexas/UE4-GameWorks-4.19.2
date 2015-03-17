@@ -9,7 +9,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_Message : public UK2Node_CallFunction
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_Message(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin UEdGraphNode interface.

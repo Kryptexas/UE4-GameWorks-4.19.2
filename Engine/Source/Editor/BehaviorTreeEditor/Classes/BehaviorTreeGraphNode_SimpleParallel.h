@@ -6,7 +6,9 @@
 UCLASS()
 class UBehaviorTreeGraphNode_SimpleParallel : public UBehaviorTreeGraphNode_Composite
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBehaviorTreeGraphNode_SimpleParallel(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void AllocateDefaultPins() override;
 	virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const override;

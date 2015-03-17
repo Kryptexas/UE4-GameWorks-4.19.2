@@ -16,7 +16,9 @@ UCLASS(config=Engine, defaultconfig)
 class ENGINE_API UAnimationSettings
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAnimationSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// compression upgrade version
 	UPROPERTY(config, VisibleAnywhere, Category = Compression)

@@ -10,7 +10,7 @@ struct FNavigationQueryFilter;
 USTRUCT()
 struct ENGINE_API FNavigationFilterArea
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** navigation area class */
 	UPROPERTY(EditAnywhere, Category=Area)
@@ -43,7 +43,7 @@ struct ENGINE_API FNavigationFilterArea
 USTRUCT()
 struct ENGINE_API FNavigationFilterFlags
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 #if CPP
 	union
@@ -201,7 +201,9 @@ protected:
 UCLASS(Abstract, Blueprintable)
 class ENGINE_API UNavigationQueryFilter : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNavigationQueryFilter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
 	/** list of overrides for navigation areas */
 	UPROPERTY(EditAnywhere, Category=Filter)

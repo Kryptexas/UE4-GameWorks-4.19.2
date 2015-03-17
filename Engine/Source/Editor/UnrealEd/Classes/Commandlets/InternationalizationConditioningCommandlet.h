@@ -13,7 +13,9 @@
 UCLASS()
 class UInternationalizationConditioningCommandlet : public UGatherTextCommandletBase
 {
-    GENERATED_UCLASS_BODY()
+    GENERATED_BODY()
+public:
+    UInternationalizationConditioningCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	
 	/**

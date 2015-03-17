@@ -11,7 +11,9 @@
 UCLASS(notplaceable,MinimalAPI)
 class APlayerStartPIE : public APlayerStart
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API APlayerStartPIE(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 };
 

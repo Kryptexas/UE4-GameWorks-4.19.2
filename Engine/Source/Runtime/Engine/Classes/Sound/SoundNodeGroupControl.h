@@ -11,7 +11,9 @@
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, meta=( DisplayName="Group Control" ))
 class USoundNodeGroupControl : public USoundNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API USoundNodeGroupControl(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/* How many active sounds are allowed for each group */
 	UPROPERTY(EditAnywhere, editfixedsize, Category=GroupControl)

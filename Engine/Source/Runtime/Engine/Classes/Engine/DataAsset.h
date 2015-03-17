@@ -12,7 +12,9 @@ UCLASS(abstract,MinimalAPI)
 class UDataAsset
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UDataAsset(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

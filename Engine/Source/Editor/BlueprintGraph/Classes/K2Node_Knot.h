@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_Knot : public UK2Node
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_Knot(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	// UEdGraphNode interface

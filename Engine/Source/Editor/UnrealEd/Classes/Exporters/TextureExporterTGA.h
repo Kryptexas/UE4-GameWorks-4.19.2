@@ -10,7 +10,9 @@
 UCLASS()
 class UNREALED_API UTextureExporterTGA : public UExporter
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UTextureExporterTGA(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin UExporter Interface

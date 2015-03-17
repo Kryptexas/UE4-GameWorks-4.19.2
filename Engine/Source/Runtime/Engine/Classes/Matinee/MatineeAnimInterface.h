@@ -13,12 +13,15 @@
 UINTERFACE(MinimalAPI, meta=(CannotImplementInterfaceInBlueprint))
 class UMatineeAnimInterface : public UInterface
 {
-	GENERATED_UINTERFACE_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UMatineeAnimInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };
 
 class IMatineeAnimInterface
 {
-	GENERATED_IINTERFACE_BODY()
+	GENERATED_BODY()
+public:
 
 
 	

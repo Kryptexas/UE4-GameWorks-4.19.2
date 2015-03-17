@@ -8,7 +8,9 @@
 UCLASS()
 class UMatineeTrackVectorPropHelper : public UInterpTrackHelper
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMatineeTrackVectorPropHelper(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/**
 	 * Pops up a dialog letting user choose between a set of properties, then checks to see if that property has been bound to yet.

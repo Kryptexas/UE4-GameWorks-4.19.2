@@ -9,7 +9,9 @@
 UCLASS()
 class ULiveEditorKismetLibrary : public UBlueprintFunctionLibrary
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ULiveEditorKismetLibrary(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UFUNCTION(BlueprintPure, Category="Development|LiveEditor")
 	static float LiveModifyFloat( float InFloat );

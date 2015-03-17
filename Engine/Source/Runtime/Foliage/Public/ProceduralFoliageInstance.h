@@ -61,8 +61,8 @@ struct FProceduralFoliageOverlap
 USTRUCT(BlueprintType)
 struct FOLIAGE_API FProceduralFoliageInstance
 {
+	GENERATED_BODY()
 public:
-	GENERATED_USTRUCT_BODY()
 	FProceduralFoliageInstance();
 	FProceduralFoliageInstance(const FProceduralFoliageInstance& Other);
 

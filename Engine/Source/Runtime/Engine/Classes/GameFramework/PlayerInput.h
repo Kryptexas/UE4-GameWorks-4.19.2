@@ -19,7 +19,7 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogInput, Log, All);
 USTRUCT()
 struct FKeyBind
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** The key to be bound to the command */
 	UPROPERTY(config)
@@ -70,7 +70,7 @@ struct FKeyBind
 USTRUCT()
 struct FInputAxisProperties
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** What the dead zone of the axis is.  For control axes such as analog sticks. */
 	UPROPERTY(EditAnywhere, Category="Input")
@@ -101,7 +101,7 @@ struct FInputAxisProperties
 USTRUCT()
 struct FInputAxisConfigEntry
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Axis Key these properties apply to */
 	UPROPERTY(VisibleAnywhere, Category="Input")
@@ -120,7 +120,7 @@ struct FInputAxisConfigEntry
 USTRUCT()
 struct FInputActionKeyMapping
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Friendly name of action, e.g "jump" */
 	UPROPERTY(EditAnywhere, Category="Input")
@@ -188,7 +188,7 @@ struct FInputActionKeyMapping
 USTRUCT()
 struct FInputAxisKeyMapping
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Friendly name of axis, e.g "MoveForward" */
 	UPROPERTY(EditAnywhere, Category="Input")
@@ -247,7 +247,9 @@ struct FInputAxisKeyMapping
 UCLASS(Within=PlayerController, config=Input, transient)
 class ENGINE_API UPlayerInput : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPlayerInput(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	// NOTE: These touch vectors are calculated and set directly, they do not go through the .ini Bindings

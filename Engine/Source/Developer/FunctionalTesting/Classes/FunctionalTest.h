@@ -26,7 +26,9 @@ DECLARE_DELEGATE_OneParam(FFunctionalTestDoneSignature, class AFunctionalTest*);
 UCLASS(Blueprintable, MinimalAPI)
 class AFunctionalTest : public AActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	FUNCTIONALTESTING_API AFunctionalTest(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	static const uint32 DefaultTimeLimit = 60;	// seconds
 

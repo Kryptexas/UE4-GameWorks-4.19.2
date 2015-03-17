@@ -7,5 +7,7 @@
 UCLASS()
 class ONLINEBLUEPRINTSUPPORT_API UK2Node_InAppPurchase : public UK2Node_BaseAsyncTask
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UK2Node_InAppPurchase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };

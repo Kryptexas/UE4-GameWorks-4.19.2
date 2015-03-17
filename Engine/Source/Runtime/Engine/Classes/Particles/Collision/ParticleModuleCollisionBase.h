@@ -29,7 +29,9 @@ enum EParticleCollisionComplete
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Collision"))
 class UParticleModuleCollisionBase : public UParticleModule
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleModuleCollisionBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 };
 

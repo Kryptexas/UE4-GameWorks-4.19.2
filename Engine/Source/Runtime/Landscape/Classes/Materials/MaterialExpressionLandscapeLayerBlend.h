@@ -17,7 +17,7 @@ enum ELandscapeLayerBlendType
 USTRUCT()
 struct FLayerBlendInput
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category=LayerBlendInput)
 	FName LayerName;
@@ -54,7 +54,9 @@ struct FLayerBlendInput
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionLandscapeLayerBlend : public UMaterialExpression
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMaterialExpressionLandscapeLayerBlend(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionLandscapeLayerBlend)
 	TArray<FLayerBlendInput> Layers;

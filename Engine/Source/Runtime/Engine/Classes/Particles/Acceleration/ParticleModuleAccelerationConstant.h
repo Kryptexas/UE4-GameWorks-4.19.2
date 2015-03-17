@@ -11,7 +11,9 @@
 UCLASS(editinlinenew, hidecategories=(Object, Acceleration), meta=(DisplayName = "Const Acceleration"))
 class UParticleModuleAccelerationConstant : public UParticleModuleAccelerationBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleModuleAccelerationConstant(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Constant acceleration for particles in this system. */
 	UPROPERTY(EditAnywhere, Category=ParticleModuleAccelerationConstant)

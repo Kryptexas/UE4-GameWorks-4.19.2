@@ -10,7 +10,9 @@
 UCLASS(transient)
 class ENGINE_API UVehicleAnimInstance : public UAnimInstance
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UVehicleAnimInstance(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Makes a montage jump to the end of a named section. */
 	UFUNCTION(BlueprintCallable, Category="Animation")

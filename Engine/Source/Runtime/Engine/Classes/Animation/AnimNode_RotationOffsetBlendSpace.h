@@ -9,7 +9,7 @@
 USTRUCT()
 struct ENGINE_API FAnimNode_RotationOffsetBlendSpace : public FAnimNode_BlendSpacePlayer
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Links)
 	FPoseLink BasePose;

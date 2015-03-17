@@ -21,7 +21,7 @@ class TJsonWriter;
 USTRUCT()
 struct FTableRowBase
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FTableRowBase() { }
 };
@@ -34,7 +34,9 @@ UCLASS(MinimalAPI)
 class UDataTable
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UDataTable(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Structure to use for each row of the table, must inherit from FTableRowBase */
 	UPROPERTY()
@@ -201,7 +203,7 @@ private:
 USTRUCT(BlueprintType)
 struct ENGINE_API FDataTableRowHandle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FDataTableRowHandle()
 		: DataTable(nullptr)
@@ -242,7 +244,7 @@ struct ENGINE_API FDataTableRowHandle
 USTRUCT()
 struct ENGINE_API FDataTableCategoryHandle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Pointer to table we want a row from */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=DataTableCategoryHandle)

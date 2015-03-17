@@ -11,7 +11,7 @@
 USTRUCT()
 struct FMyPluginStruct
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
  
 	UPROPERTY()
 	FString TestString;
@@ -24,7 +24,9 @@ struct FMyPluginStruct
 UCLASS()
 class UMyPluginObject : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMyPluginObject(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

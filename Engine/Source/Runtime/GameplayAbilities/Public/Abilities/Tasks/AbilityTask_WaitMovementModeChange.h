@@ -10,7 +10,9 @@ class ACharacter;
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitMovementModeChange : public UAbilityTask
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	GAMEPLAYABILITIES_API UAbilityTask_WaitMovementModeChange(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

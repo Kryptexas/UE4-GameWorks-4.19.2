@@ -23,8 +23,10 @@ namespace ESequencerCurveVisibility
 UCLASS(config=EditorUserSettings)
 class USequencerSettings : public UObject
 {
+	GENERATED_BODY()
 public:
-	GENERATED_UCLASS_BODY()
+	USequencerSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+public:
 
 	DECLARE_MULTICAST_DELEGATE( FOnCurveVisibilityChanged );
 

@@ -63,7 +63,7 @@ enum EMeasuringToolUnits
 USTRUCT()
 struct UNREALED_API FLevelEditorViewportInstanceSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FLevelEditorViewportInstanceSettings()
 		: ViewportType(LVT_Perspective)
@@ -141,7 +141,7 @@ struct UNREALED_API FLevelEditorViewportInstanceSettings
 USTRUCT()
 struct UNREALED_API FLevelEditorViewportInstanceSettingsKeyValuePair
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/*  Name identifying this config. */
 	UPROPERTY(config)
@@ -159,7 +159,7 @@ struct UNREALED_API FLevelEditorViewportInstanceSettingsKeyValuePair
 USTRUCT()
 struct UNREALED_API FSnapToSurfaceSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FSnapToSurfaceSettings()
 		: bEnabled(false)
@@ -188,7 +188,9 @@ UCLASS(config=EditorUserSettings)
 class UNREALED_API ULevelEditorViewportSettings
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ULevelEditorViewportSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Enable the use of flight camera controls under various circumstances. */
 	UPROPERTY(EditAnywhere, config, Category=Controls)

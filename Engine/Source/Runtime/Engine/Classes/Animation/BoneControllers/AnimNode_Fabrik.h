@@ -13,7 +13,7 @@
 USTRUCT()
 struct FABRIKChainLink
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 public:
 	/** Position of bone in component space. */
@@ -53,7 +53,7 @@ public:
 USTRUCT()
 struct ENGINE_API FAnimNode_Fabrik : public FAnimNode_SkeletalControlBase
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Coordinates for target location of tip bone - if EffectorLocationSpace is bone, this is the offset from Target Bone to use as target location*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EndEffector, meta = (PinShownByDefault))

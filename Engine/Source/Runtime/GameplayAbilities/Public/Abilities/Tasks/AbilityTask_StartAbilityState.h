@@ -25,7 +25,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FAbilityStateDelegate);
 UCLASS(MinimalAPI)
 class UAbilityTask_StartAbilityState : public UAbilityTask
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	GAMEPLAYABILITIES_API UAbilityTask_StartAbilityState(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Invoked if 'EndAbilityState' is called or if 'EndAbility' is called and this state is active. */
 	UPROPERTY(BlueprintAssignable)

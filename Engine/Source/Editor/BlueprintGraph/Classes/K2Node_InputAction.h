@@ -9,7 +9,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_InputAction : public UK2Node
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_InputAction(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	FName InputActionName;

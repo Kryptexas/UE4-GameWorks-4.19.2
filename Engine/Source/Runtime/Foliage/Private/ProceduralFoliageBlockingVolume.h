@@ -11,7 +11,9 @@ class AProceduralFoliageActor;
 UCLASS(MinimalAPI)
 class AProceduralFoliageBlockingVolume : public AVolume
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	FOLIAGE_API AProceduralFoliageBlockingVolume(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(Category = ProceduralFoliage, EditAnywhere)
 	AProceduralFoliageActor* ProceduralFoliageActor;

@@ -11,7 +11,9 @@
 UCLASS(hidecategories=Wait)
 class AIMODULE_API UBTTask_WaitBlackboardTime : public UBTTask_Wait
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBTTask_WaitBlackboardTime(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void InitializeFromAsset(UBehaviorTree& Asset) override;
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;

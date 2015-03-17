@@ -7,7 +7,9 @@
 UCLASS(meta=( DisplayName = "Slomo Track" ) )
 class UInterpTrackSlomo : public UInterpTrackFloatBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UInterpTrackSlomo(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin InterpTrack interface.

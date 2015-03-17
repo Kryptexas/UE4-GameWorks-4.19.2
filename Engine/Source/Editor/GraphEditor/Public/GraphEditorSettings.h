@@ -13,7 +13,9 @@ UCLASS(config=EditorUserSettings)
 class GRAPHEDITOR_API UGraphEditorSettings
 	:	public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UGraphEditorSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

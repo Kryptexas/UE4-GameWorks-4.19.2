@@ -8,7 +8,9 @@
 UCLASS(BlueprintType)
 class UMG_API UPanelSlot : public UVisual
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPanelSlot(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

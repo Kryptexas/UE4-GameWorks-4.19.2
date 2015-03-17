@@ -8,7 +8,9 @@
 UCLASS()
 class ATriggerVolume : public AVolume
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ATriggerVolume(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin UObject interface.
 #if WITH_EDITOR

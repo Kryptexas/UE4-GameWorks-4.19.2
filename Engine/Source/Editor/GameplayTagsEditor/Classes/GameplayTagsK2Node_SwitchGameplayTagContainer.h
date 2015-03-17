@@ -11,7 +11,9 @@ struct FGameplayTagContainer;
 UCLASS(MinimalAPI)
 class UGameplayTagsK2Node_SwitchGameplayTagContainer : public UK2Node_Switch
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	GAMEPLAYTAGSEDITOR_API UGameplayTagsK2Node_SwitchGameplayTagContainer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category = PinOptions)
 	TArray<FGameplayTagContainer> PinContainers;

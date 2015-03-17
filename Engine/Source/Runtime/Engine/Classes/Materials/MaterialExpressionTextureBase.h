@@ -12,7 +12,9 @@
 UCLASS(abstract, hidecategories=Object)
 class ENGINE_API UMaterialExpressionTextureBase : public UMaterialExpression 
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMaterialExpressionTextureBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionTextureBase)
 	class UTexture* Texture;

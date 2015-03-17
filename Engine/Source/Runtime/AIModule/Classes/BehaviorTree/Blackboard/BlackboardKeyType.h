@@ -77,7 +77,9 @@ struct FBlackboardInstancedKeyMemory
 UCLASS(EditInlineNew, Abstract, CollapseCategories, AutoExpandCategories=(Blackboard))
 class AIMODULE_API UBlackboardKeyType : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBlackboardKeyType(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** handle dynamic data size */
 	virtual void PreInitialize(UBlackboardComponent& OwnerComp);

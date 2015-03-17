@@ -6,7 +6,9 @@
 UCLASS(EditInlineNew, meta=(DisplayName="Vector"))
 class AIMODULE_API UBlackboardKeyType_Vector : public UBlackboardKeyType
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBlackboardKeyType_Vector(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	typedef FVector FDataType; 
 	static const FDataType InvalidValue;

@@ -27,7 +27,9 @@
 UCLASS()
 class UGameplayEffectTemplate : public UGameplayEffect
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UGameplayEffectTemplate(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 #if WITH_EDITORONLY_DATA
 	/** Names of the properties that should be exposed in the limited/basic view when editing a GameplayEffect based on this template */

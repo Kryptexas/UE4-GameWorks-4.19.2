@@ -43,7 +43,9 @@ namespace EPawnActionFailHandling
 UCLASS(abstract, EditInlineNew)
 class AIMODULE_API UPawnAction : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPawnAction(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	friend UPawnActionsComponent;
 	friend FPawnActionStack;

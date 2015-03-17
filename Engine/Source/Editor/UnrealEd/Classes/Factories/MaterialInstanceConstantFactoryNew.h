@@ -10,7 +10,9 @@
 UCLASS(hidecategories=Object, collapsecategories,MinimalAPI)
 class UMaterialInstanceConstantFactoryNew : public UFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API UMaterialInstanceConstantFactoryNew(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	class UMaterialInterface* InitialParent;

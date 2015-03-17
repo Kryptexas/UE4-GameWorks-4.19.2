@@ -12,7 +12,9 @@
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Point Gravity"))
 class UParticleModuleAttractorPointGravity : public UParticleModuleAttractorBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleModuleAttractorPointGravity(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The position of the point gravity source. */
 	UPROPERTY(EditAnywhere, Category=PointGravitySource)

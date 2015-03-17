@@ -22,7 +22,9 @@ namespace ETiledOrientation
 UCLASS()
 class UPaperTiledImporterFactory : public UFactory, public FReimportHandler
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPaperTiledImporterFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// UFactory interface
 	virtual FText GetToolTip() const override;

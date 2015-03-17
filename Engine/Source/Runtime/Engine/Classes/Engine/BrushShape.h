@@ -12,7 +12,9 @@ UCLASS(MinimalAPI)
 class ABrushShape
 	: public ABrush
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API ABrushShape(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

@@ -8,7 +8,7 @@
 USTRUCT()
 struct ENGINE_API FBlueprintInputKeyDelegateBinding : public FBlueprintInputDelegateBinding
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FInputChord InputChord;
@@ -30,7 +30,9 @@ struct ENGINE_API FBlueprintInputKeyDelegateBinding : public FBlueprintInputDele
 UCLASS()
 class ENGINE_API UInputKeyDelegateBinding : public UInputDelegateBinding
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UInputKeyDelegateBinding(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	TArray<FBlueprintInputKeyDelegateBinding> InputKeyDelegateBindings;

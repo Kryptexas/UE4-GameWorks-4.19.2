@@ -22,7 +22,7 @@ namespace ESpriteCollisionMode
 USTRUCT()
 struct FPaperSpriteSocket
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// Transform in pivot space (*not* texture space)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Sockets)
@@ -44,7 +44,9 @@ typedef TArray<class UTexture2D*, TInlineAllocator<4>> FAdditionalSpriteTextureA
 UCLASS(BlueprintType, meta=(DisplayThumbnail = "true"))
 class PAPER2D_API UPaperSprite : public UObject, public IInterface_CollisionDataProvider
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPaperSprite(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
 

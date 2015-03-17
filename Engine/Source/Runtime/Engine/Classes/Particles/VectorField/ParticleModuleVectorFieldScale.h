@@ -11,7 +11,9 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Vector Field Scale"))
 class UParticleModuleVectorFieldScale : public UParticleModuleVectorFieldBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UParticleModuleVectorFieldScale(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Per-particle vector field scale. Evaluated using emitter time. */
 	UPROPERTY(EditAnywhere, Category=VectorField)

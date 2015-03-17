@@ -12,7 +12,9 @@ UCLASS(config=Editor)
 class UCookCommandlet
 	: public UCommandlet
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UCookCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** List of asset types that will force GC after loading them during cook */
 	UPROPERTY(config)

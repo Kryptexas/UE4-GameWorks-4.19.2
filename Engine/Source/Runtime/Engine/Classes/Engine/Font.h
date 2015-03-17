@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,7 +26,7 @@ enum class EFontCacheType
 USTRUCT()
 struct FFontCharacter
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category=FontCharacter)
 	int32 StartU;
@@ -97,7 +97,9 @@ struct TStructOpsTypeTraits<FFontCharacter> : public TStructOpsTypeTraitsBase
 UCLASS(hidecategories=Object, autoexpandcategories=Font, MinimalAPI, BlueprintType)
 class UFont : public UObject, public IFontProviderInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UFont(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	~UFont();
 

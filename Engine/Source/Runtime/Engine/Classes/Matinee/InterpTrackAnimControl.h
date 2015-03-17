@@ -8,7 +8,7 @@
 USTRUCT()
 struct FAnimControlTrackKey
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Position in the Matinee sequence to start playing this animation. */
 	UPROPERTY()
@@ -55,7 +55,9 @@ struct FAnimControlTrackKey
 UCLASS(MinimalAPI, meta=( DisplayName = "Animation Track" ))
 class UInterpTrackAnimControl : public UInterpTrackFloatBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UInterpTrackAnimControl(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
 	/** 
 	 *	Name of slot to use when playing animation. Passed to Actor. 

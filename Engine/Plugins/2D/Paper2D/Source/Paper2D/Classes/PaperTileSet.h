@@ -10,7 +10,9 @@
 UCLASS()
 class PAPER2D_API UPaperTileSet : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPaperTileSet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// The width of a single tile (in pixels)
 	UPROPERTY(Category=TileSet, EditAnywhere, meta=(UIMin=1, ClampMin=1))

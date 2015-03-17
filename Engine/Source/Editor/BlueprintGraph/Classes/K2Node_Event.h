@@ -11,7 +11,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_Event : public UK2Node_EditablePinBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_Event(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	BLUEPRINTGRAPH_API static const FString DelegateOutputName;
 
 	/** Name of function signature that this event implements */

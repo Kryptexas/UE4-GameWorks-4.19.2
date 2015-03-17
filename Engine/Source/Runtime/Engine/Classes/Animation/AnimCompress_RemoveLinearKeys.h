@@ -12,7 +12,9 @@
 UCLASS(MinimalAPI)
 class UAnimCompress_RemoveLinearKeys : public UAnimCompress
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UAnimCompress_RemoveLinearKeys(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Maximum position difference to use when testing if an animation key may be removed. Lower values retain more keys, but yield less compression. */
 	UPROPERTY(EditAnywhere, Category=LinearKeyRemoval)

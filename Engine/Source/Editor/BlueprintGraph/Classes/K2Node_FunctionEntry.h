@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_FunctionEntry : public UK2Node_FunctionTerminator
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_FunctionEntry(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** If specified, the function that is created for this entry point will have this name.  Otherwise, it will have the function signature's name */
 	UPROPERTY()

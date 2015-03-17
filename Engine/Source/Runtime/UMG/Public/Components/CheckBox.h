@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -19,7 +19,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnCheckBoxComponentStateChanged, b
 UCLASS()
 class UMG_API UCheckBox : public UContentWidget
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UCheckBox(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	/** Whether the check box is currently in a checked state */

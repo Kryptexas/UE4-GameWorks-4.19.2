@@ -93,7 +93,9 @@ private:
 UCLASS()
 class ENGINE_API UNiagaraComponent : public UPrimitiveComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNiagaraComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 private:
 	UPROPERTY()
 	//class UNiagaraEffect *Effect;

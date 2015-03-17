@@ -50,7 +50,9 @@ UCLASS(config=Game, defaultconfig)
 class UNREALED_API UProjectPackagingSettings
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UProjectPackagingSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

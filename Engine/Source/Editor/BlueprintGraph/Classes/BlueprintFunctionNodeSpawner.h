@@ -15,7 +15,9 @@ class UK2Node_CallFunction;
 UCLASS(Transient)
 class BLUEPRINTGRAPH_API UBlueprintFunctionNodeSpawner : public UBlueprintFieldNodeSpawner
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBlueprintFunctionNodeSpawner(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	/**

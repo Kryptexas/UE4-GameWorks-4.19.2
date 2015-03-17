@@ -11,7 +11,7 @@ class UBlackboardData;
 USTRUCT()
 struct FBlackboardEntry
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Blackboard)
 	FName EntryName;
@@ -35,7 +35,9 @@ struct FBlackboardEntry
 UCLASS(AutoExpandCategories=(Blackboard))
 class AIMODULE_API UBlackboardData : public UDataAsset
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBlackboardData(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	DECLARE_MULTICAST_DELEGATE_OneParam(FKeyUpdate, UBlackboardData* /*asset*/);
 
 	/** parent blackboard (keys can be overridden) */

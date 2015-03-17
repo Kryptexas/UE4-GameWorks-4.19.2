@@ -8,7 +8,7 @@
 USTRUCT()
 struct ENGINE_API FAnimNode_TransitionResult : public FAnimNode_Base
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Result, meta=(AlwaysAsPin))
 	bool bCanEnterTransition;

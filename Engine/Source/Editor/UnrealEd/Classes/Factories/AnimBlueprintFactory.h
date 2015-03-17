@@ -11,7 +11,9 @@
 UCLASS(HideCategories=Object,MinimalAPI)
 class UAnimBlueprintFactory : public UFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API UAnimBlueprintFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// The type of blueprint that will be created
 	UPROPERTY(EditAnywhere, Category=AnimBlueprintFactory)

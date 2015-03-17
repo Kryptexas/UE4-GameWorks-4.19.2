@@ -16,8 +16,7 @@ UCLASS()
 class MACTARGETPLATFORM_API UMacTargetSettings
 	: public UObject
 {
+	GENERATED_BODY()
 public:
-
-	GENERATED_UCLASS_BODY()
-
+	UMacTargetSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };

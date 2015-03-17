@@ -7,7 +7,9 @@
 UCLASS()
 class UInterpTrackInstFloatParticleParam : public UInterpTrackInst
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UInterpTrackInstFloatParticleParam(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Saved value for restoring state when exiting Matinee. */
 	UPROPERTY()

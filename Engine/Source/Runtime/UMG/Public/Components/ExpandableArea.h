@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,7 +12,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnExpandableAreaExpansionChanged, b
 UCLASS(Experimental)
 class UMG_API UExpandableArea : public UWidget, public INamedSlotInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UExpandableArea(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	/**  */

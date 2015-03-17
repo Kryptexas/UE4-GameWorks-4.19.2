@@ -19,7 +19,7 @@ class  UAnimGraphNode_StateResult;
 USTRUCT()
 struct FStateMachineDebugData
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 public:
 	// Map from state nodes to their state entry in a state machine
@@ -41,7 +41,7 @@ public:
 USTRUCT()
 struct FAnimationFrameSnapshot
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FAnimationFrameSnapshot()
 #if WITH_EDITORONLY_DATA
@@ -68,7 +68,7 @@ public:
 USTRUCT()
 struct ENGINE_API FAnimBlueprintDebugData
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FAnimBlueprintDebugData()
 #if WITH_EDITORONLY_DATA
@@ -161,7 +161,9 @@ namespace EPropertySearchMode
 UCLASS()
 class ENGINE_API UAnimBlueprintGeneratedClass : public UBlueprintGeneratedClass
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAnimBlueprintGeneratedClass(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// List of state machines present in this blueprint class
 	UPROPERTY()

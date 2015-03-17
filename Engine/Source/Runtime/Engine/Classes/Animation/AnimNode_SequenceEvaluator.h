@@ -10,7 +10,7 @@
 USTRUCT()
 struct ENGINE_API FAnimNode_SequenceEvaluator : public FAnimNode_Base
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 public:
 	// The animation sequence asset to evaluate
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Settings, meta = (PinHiddenByDefault))

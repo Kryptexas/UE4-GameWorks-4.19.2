@@ -10,7 +10,9 @@
 UCLASS( abstract, MinimalAPI )
 class UMovieSceneSection : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	MOVIESCENECORE_API UMovieSceneSection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 public:
 
 	/**

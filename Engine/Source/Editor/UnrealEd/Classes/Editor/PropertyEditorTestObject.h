@@ -38,7 +38,7 @@ enum ArrayLabelEnum
 USTRUCT()
 struct FPropertyEditorTestSubStruct
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FPropertyEditorTestSubStruct()
 		: FirstProperty( 7897789 )
@@ -65,7 +65,7 @@ struct FPropertyEditorTestSubStruct
 USTRUCT()
 struct FPropertyEditorTestBasicStruct
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FPropertyEditorTestBasicStruct()
 		: IntPropertyInsideAStruct( 0 )
@@ -90,7 +90,9 @@ struct FPropertyEditorTestBasicStruct
 UCLASS(transient)
 class UPropertyEditorTestObject : public UObject
 {
-    GENERATED_UCLASS_BODY()
+    GENERATED_BODY()
+public:
+    UPropertyEditorTestObject(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Integer
 	UPROPERTY(EditAnywhere, Category=BasicProperties)

@@ -9,7 +9,9 @@
 UCLASS(BlueprintType, Experimental)
 class PAPER2D_API UPaperTerrainSplineComponent : public USplineComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPaperTerrainSplineComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	// UObject interface

@@ -7,7 +7,9 @@
 UCLASS()
 class ULoadPackageCommandlet : public UCommandlet
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ULoadPackageCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	/**
 	 *	Parse the given load list file, placing the entries in the given Tokens array.
 	 *

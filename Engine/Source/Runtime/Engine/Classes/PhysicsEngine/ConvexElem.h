@@ -15,7 +15,7 @@ namespace physx
 USTRUCT()
 struct FKConvexElem
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Array of indices that make up the convex hull. */
 	UPROPERTY()

@@ -46,7 +46,9 @@ struct FNodeBounds
 UCLASS()
 class UBehaviorTreeEditorTypes : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBehaviorTreeEditorTypes(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	static const FString PinCategory_MultipleNodes;
 	static const FString PinCategory_SingleComposite;

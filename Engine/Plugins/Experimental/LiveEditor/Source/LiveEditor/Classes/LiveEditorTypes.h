@@ -20,7 +20,7 @@ namespace ELiveEditControllerType UMETA(BlueprintType="true")
 USTRUCT()
 struct FLiveEditBinding
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	int32 Channel;
@@ -51,7 +51,7 @@ public:
 USTRUCT(BlueprintType)
 struct FLiveEditorCheckpointData
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Live Editor")
 	int32 IntValue;
@@ -65,10 +65,11 @@ struct FLiveEditorCheckpointData
 	}
 };
 
-UCLASS(Abstract, CustomConstructor)
+UCLASS(Abstract)
 class ULiveEditorTypes : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
 
 	ULiveEditorTypes(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}
 };

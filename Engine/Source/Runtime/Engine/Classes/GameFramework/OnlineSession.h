@@ -10,7 +10,9 @@
 UCLASS(config=Game)
 class ENGINE_API UOnlineSession : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UOnlineSession(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

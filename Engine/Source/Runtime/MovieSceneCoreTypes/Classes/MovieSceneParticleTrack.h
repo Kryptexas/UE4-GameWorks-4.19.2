@@ -13,7 +13,9 @@
 UCLASS( MinimalAPI )
 class UMovieSceneParticleTrack : public UMovieSceneTrack
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	MOVIESCENECORETYPES_API UMovieSceneParticleTrack(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	/** UMovieSceneTrack interface */

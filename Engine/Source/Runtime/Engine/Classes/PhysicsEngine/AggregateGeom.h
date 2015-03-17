@@ -16,7 +16,7 @@ class FPrimitiveDrawInterface;
 USTRUCT()
 struct ENGINE_API FKAggregateGeom
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, editfixedsize, Category = KAggregateGeom)
 	TArray<FKSphereElem> SphereElems;

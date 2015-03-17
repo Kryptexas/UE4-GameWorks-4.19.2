@@ -8,7 +8,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_MakeArray : public UK2Node
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_MakeArray(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The number of input pins to generate for this node */
 	UPROPERTY()

@@ -10,7 +10,9 @@
 UCLASS()
 class UTextureExporterBMP : public UExporter
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UTextureExporterBMP(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	bool ExportBinary( UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex = 0, uint32 PortFlags=0 );

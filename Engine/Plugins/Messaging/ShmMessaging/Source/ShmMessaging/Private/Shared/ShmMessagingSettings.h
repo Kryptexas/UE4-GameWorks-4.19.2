@@ -9,7 +9,9 @@ UCLASS(config=Engine)
 class UShmMessagingSettings
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UShmMessagingSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

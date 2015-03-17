@@ -12,7 +12,9 @@ class UCameraAnim;
 UCLASS(notplaceable, MinimalAPI, NotBlueprintable)
 class AMatineeActorCameraAnim : public AMatineeActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API AMatineeActorCameraAnim(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The camera anim we are editing */
 	UPROPERTY(Transient)

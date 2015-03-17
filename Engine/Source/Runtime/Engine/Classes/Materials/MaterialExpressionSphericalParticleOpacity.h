@@ -8,7 +8,9 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionSphericalParticleOpacity : public UMaterialExpression
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMaterialExpressionSphericalParticleOpacity(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Density of the particle sphere. */
 	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'ConstantDensity' if not specified"))

@@ -37,7 +37,7 @@ namespace ESlateColorStylingMode
 USTRUCT(BlueprintType)
 struct SLATECORE_API FSlateColor
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 public:
 

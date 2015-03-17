@@ -23,7 +23,9 @@ enum EFunctionInputType
 UCLASS(hidecategories=object, MinimalAPI)
 class UMaterialExpressionFunctionInput : public UMaterialExpression
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UMaterialExpressionFunctionInput(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Used for previewing when editing the function, also temporarily used to connect to the outside material when compiling that material. */
 	UPROPERTY(meta=(RequiredInput = "false"))

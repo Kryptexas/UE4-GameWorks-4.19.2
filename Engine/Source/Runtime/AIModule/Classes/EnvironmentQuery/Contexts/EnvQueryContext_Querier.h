@@ -10,7 +10,9 @@ struct FEnvQueryContextData;
 UCLASS(MinimalAPI)
 class UEnvQueryContext_Querier : public UEnvQueryContext
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AIMODULE_API UEnvQueryContext_Querier(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
  
 	virtual void ProvideContext(FEnvQueryInstance& QueryInstance, FEnvQueryContextData& ContextData) const override;
 };

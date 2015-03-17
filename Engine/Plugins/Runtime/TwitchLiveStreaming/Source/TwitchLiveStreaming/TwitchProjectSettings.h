@@ -6,7 +6,9 @@
 UCLASS(Config=Engine, DefaultConfig)
 class UTwitchProjectSettings : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UTwitchProjectSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

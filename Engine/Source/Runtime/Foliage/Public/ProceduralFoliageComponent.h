@@ -12,7 +12,9 @@ struct FDesiredFoliageInstance;
 UCLASS(BlueprintType)
 class FOLIAGE_API UProceduralFoliageComponent : public UActorComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UProceduralFoliageComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The overlap in Cms between two tiles. */
 	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere)

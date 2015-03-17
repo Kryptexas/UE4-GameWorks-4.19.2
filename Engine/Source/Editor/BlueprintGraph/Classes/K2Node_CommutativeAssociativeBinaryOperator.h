@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_CommutativeAssociativeBinaryOperator : public UK2Node_CallFunction
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_CommutativeAssociativeBinaryOperator(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The number of additional input pins to generate for this node (2 base pins are not included) */
 	UPROPERTY()

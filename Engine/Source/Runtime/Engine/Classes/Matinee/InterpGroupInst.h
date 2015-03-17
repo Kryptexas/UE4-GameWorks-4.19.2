@@ -6,7 +6,9 @@
 UCLASS(MinimalAPI)
 class UInterpGroupInst : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UInterpGroupInst(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/**
 	 *

@@ -20,7 +20,9 @@ struct FTestTickHelper : FTickableGameObject
 UCLASS()
 class UMockAI : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMockAI(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual ~UMockAI();
 

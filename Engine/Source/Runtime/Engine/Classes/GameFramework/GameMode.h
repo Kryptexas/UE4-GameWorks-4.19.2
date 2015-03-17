@@ -33,7 +33,7 @@ DECLARE_DELEGATE_RetVal( bool, FCanUnpause );
 USTRUCT()
 struct FGameClassShortName
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Abbreviation that can be used as an alias for the class name */
 	UPROPERTY()
@@ -62,7 +62,9 @@ struct FGameClassShortName
 UCLASS(config=Game, notplaceable, BlueprintType, Blueprintable, Transient, hideCategories=(Info, Rendering, MovementReplication, Replication, Actor), meta=(ShortTooltip="Game Mode defines the game being played, its rules, scoring, and other facets of the game type."))
 class ENGINE_API AGameMode : public AInfo
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AGameMode(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Code to deal with the match state machine
 

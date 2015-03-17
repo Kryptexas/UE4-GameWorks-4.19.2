@@ -11,7 +11,9 @@
 UCLASS(collapsecategories)
 class UReimportSpeedTreeFactory : public USpeedTreeImportFactory, public FReimportHandler
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UReimportSpeedTreeFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin FReimportHandler interface
 	virtual bool CanReimport(UObject* Obj, TArray<FString>& OutFilenames) override;

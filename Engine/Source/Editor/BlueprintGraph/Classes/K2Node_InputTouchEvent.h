@@ -8,7 +8,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_InputTouchEvent : public UK2Node_Event
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_InputTouchEvent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	TEnumAsByte<EInputEvent> InputKeyEvent;

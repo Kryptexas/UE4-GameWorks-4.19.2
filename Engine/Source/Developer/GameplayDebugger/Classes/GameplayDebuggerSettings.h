@@ -13,7 +13,7 @@ GameplayDebuggerSettings.h: Declares the UGameplayDebuggerSettings class.
 USTRUCT()
 struct FGDTCustomViewNames
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, config, Category = "Settings")
 	FString GameView1;
@@ -34,7 +34,9 @@ struct FGDTCustomViewNames
 UCLASS(config = EditorUserSettings)
 class GAMEPLAYDEBUGGER_API UGameplayDebuggerSettings : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UGameplayDebuggerSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 public:
 #if WITH_EDITOR
 	// Begin UObject Interface

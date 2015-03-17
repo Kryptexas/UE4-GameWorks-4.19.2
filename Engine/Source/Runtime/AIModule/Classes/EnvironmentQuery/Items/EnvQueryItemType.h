@@ -9,7 +9,9 @@ struct FBlackboardKeySelector;
 UCLASS(Abstract)
 class AIMODULE_API UEnvQueryItemType : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UEnvQueryItemType(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** get ValueSize */
 	FORCEINLINE uint16 GetValueSize() const { return ValueSize; }

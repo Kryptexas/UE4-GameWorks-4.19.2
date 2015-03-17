@@ -15,7 +15,7 @@
 USTRUCT()
 struct FOpenTestAsset
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**
 	 * Asset reference
@@ -34,7 +34,7 @@ struct FOpenTestAsset
 USTRUCT()
 struct FExternalToolDefinition
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/* The name of the tool / test. */
 	UPROPERTY(config, EditAnywhere, Category=ExternalTools)
@@ -67,7 +67,7 @@ struct FExternalToolDefinition
 USTRUCT()
 struct FImportFactorySettingValues
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/* The name of the UProperty to change */
 	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (ToolTip = "Name of the property to change.  Nested settings can be modified using \"Outer.Property\""))
@@ -85,7 +85,7 @@ struct FImportFactorySettingValues
 USTRUCT()
 struct FEditorImportExportTestDefinition
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/* The file to import */
 	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (FilePathFilter = "*"))
@@ -110,7 +110,7 @@ struct FEditorImportExportTestDefinition
 USTRUCT()
 struct FEditorImportWorkflowDefinition
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/* The file to import */
 	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (FilePathFilter = "*"))
@@ -127,7 +127,7 @@ struct FEditorImportWorkflowDefinition
 USTRUCT()
 struct FBuildPromotionImportWorkflowSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/* Import settings for the Diffuse texture */
 	UPROPERTY(config, EditAnywhere, Category = Automation)
@@ -180,7 +180,7 @@ struct FBuildPromotionImportWorkflowSettings
 USTRUCT()
 struct FBuildPromotionOpenAssetSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/* The blueprint asset to open */
 	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (FilePathFilter = "uasset"))
@@ -213,7 +213,7 @@ struct FBuildPromotionOpenAssetSettings
 USTRUCT()
 struct FBuildPromotionBlueprintSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** The starting mesh for the blueprint **/
 	UPROPERTY(EditAnywhere, Category = Automation, meta = (FilePathFilter = "uasset"))
@@ -230,7 +230,7 @@ struct FBuildPromotionBlueprintSettings
 USTRUCT()
 struct FBuildPromotionNewProjectSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** The path for the new project */
 	UPROPERTY(EditAnywhere, Category = Automation)
@@ -247,7 +247,7 @@ struct FBuildPromotionNewProjectSettings
 USTRUCT()
 struct FBuildPromotionTestSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Default static mesh asset to apply materials to **/
 	UPROPERTY(EditAnywhere, Category = Automation)
@@ -280,7 +280,7 @@ struct FBuildPromotionTestSettings
 USTRUCT()
 struct FEditorMapPerformanceTestDefinition
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 	
 	/** Map to be used for the Performance Capture **/
 	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (FilePathFilter = "umap"))
@@ -297,7 +297,7 @@ struct FEditorMapPerformanceTestDefinition
 USTRUCT()
 struct FLaunchOnTestSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Map to be used for the Launch On test **/
 	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (FilePathFilter = "umap"))
@@ -314,7 +314,9 @@ struct FLaunchOnTestSettings
 UCLASS(config=Engine)
 class ENGINE_API UAutomationTestSettings : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAutomationTestSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

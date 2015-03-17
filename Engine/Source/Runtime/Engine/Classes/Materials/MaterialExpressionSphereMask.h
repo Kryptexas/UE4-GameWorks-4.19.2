@@ -8,7 +8,9 @@
 UCLASS()
 class UMaterialExpressionSphereMask : public UMaterialExpression
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMaterialExpressionSphereMask(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** 1 to 4 dimensional vector, should be the same type as B */
 	UPROPERTY()

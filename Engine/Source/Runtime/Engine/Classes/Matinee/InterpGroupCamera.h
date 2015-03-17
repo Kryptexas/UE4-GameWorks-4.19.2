@@ -15,7 +15,7 @@
 USTRUCT()
 struct FCameraPreviewInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category=CameraPreviewInfo)
 	TSubclassOf<class APawn>  PawnClass;
@@ -50,7 +50,9 @@ struct FCameraPreviewInfo
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UInterpGroupCamera : public UInterpGroup
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UInterpGroupCamera(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(transient)
 	class UCameraAnim* CameraAnimInst;

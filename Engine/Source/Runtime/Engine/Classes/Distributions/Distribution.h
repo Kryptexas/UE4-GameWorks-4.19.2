@@ -58,7 +58,9 @@ struct FRawDistribution
 UCLASS(DefaultToInstanced, collapsecategories, hidecategories=Object, editinlinenew, abstract,MinimalAPI)
 class UDistribution : public UObject, public FCurveEdInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UDistribution(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Default value for initializing and checking correct values on UDistributions. */
 	static const float DefaultValue;

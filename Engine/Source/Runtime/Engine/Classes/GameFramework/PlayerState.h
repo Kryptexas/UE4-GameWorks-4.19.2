@@ -31,7 +31,9 @@ struct PingAvgData
 UCLASS(BlueprintType, Blueprintable, notplaceable)
 class ENGINE_API APlayerState : public AInfo
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	APlayerState(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Player's current score. */
 	UPROPERTY(replicatedUsing=OnRep_Score, BlueprintReadOnly, Category=PlayerState)

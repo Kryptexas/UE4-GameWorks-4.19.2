@@ -20,7 +20,9 @@ UCLASS(hidecategories=(Compression, Sound, SoundWave, Subtitles))
 class MEDIAASSETS_API UMediaSoundWave
 	: public USoundWave
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMediaSoundWave(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The index of the MediaPlayer's audio track to get the wave data from. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MediaPlayer)

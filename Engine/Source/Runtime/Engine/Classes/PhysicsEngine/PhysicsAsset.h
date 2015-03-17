@@ -18,7 +18,9 @@
 UCLASS(hidecategories=Object, BlueprintType, MinimalAPI)
 class UPhysicsAsset : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UPhysicsAsset(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 #if WITH_EDITORONLY_DATA
 	/** 

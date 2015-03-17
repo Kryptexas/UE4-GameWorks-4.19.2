@@ -8,5 +8,7 @@
 UCLASS(Config = Engine)
 class ENGINE_API UNavArea_Obstacle : public UNavArea
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNavArea_Obstacle(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };

@@ -29,7 +29,9 @@ UCLASS(config=EditorGameAgnostic)
 class UNewsFeedSettings
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNewsFeedSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

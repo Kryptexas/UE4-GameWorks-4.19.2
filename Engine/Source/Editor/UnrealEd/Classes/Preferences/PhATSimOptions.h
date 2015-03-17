@@ -7,7 +7,9 @@
 UCLASS(hidecategories=Object, config=EditorUserSettings)
 class UNREALED_API UPhATSimOptions : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPhATSimOptions(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Lets you manually control the physics/animation */
 	UPROPERTY(EditAnywhere, transient, Category=Anim)

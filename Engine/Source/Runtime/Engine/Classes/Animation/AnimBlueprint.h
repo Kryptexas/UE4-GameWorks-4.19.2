@@ -7,7 +7,7 @@
 USTRUCT()
 struct FAnimGroupInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FName Name;
@@ -24,7 +24,7 @@ struct FAnimGroupInfo
 USTRUCT()
 struct FAnimParentNodeAssetOverride
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	UAnimationAsset* NewAsset;
@@ -54,7 +54,9 @@ struct FAnimParentNodeAssetOverride
 UCLASS(BlueprintType)
 class ENGINE_API UAnimBlueprint : public UBlueprint
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAnimBlueprint(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The kind of skeleton that animation graphs compiled from the blueprint will animate */
 	UPROPERTY(AssetRegistrySearchable)

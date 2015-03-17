@@ -91,7 +91,9 @@ UCLASS(config=Engine, defaultconfig)
 class ENGINE_API URendererSettings
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	URendererSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(config, EditAnywhere, Category=Mobile, meta=(
 		ConsoleVariable="r.MobileHDR",DisplayName="Mobile HDR",

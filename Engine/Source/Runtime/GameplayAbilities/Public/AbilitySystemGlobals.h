@@ -21,7 +21,9 @@ struct FGameplayEffectSpec;
 UCLASS(config=Game)
 class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAbilitySystemGlobals(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Gets the single instance of the globals object, will create it as necessary */
 	static UAbilitySystemGlobals& Get();

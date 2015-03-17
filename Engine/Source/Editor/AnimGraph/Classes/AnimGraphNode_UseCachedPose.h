@@ -9,7 +9,9 @@
 UCLASS(MinimalAPI)
 class UAnimGraphNode_UseCachedPose : public UAnimGraphNode_Base
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ANIMGRAPH_API UAnimGraphNode_UseCachedPose(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	UPROPERTY()

@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI, config=Editor, collapsecategories, hidecategories=Object)
 class UActorFactorySphereReflectionCapture : public UActorFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API UActorFactorySphereReflectionCapture(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };
 
 

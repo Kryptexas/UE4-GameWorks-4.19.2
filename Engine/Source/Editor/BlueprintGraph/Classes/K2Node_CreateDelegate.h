@@ -6,7 +6,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_CreateDelegate : public UK2Node
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_CreateDelegate(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	FName SelectedFunctionName;

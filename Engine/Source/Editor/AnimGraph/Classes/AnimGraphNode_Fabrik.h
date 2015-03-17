@@ -9,7 +9,9 @@
 UCLASS(MinimalAPI)
 class UAnimGraphNode_Fabrik : public UAnimGraphNode_SkeletalControlBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ANIMGRAPH_API UAnimGraphNode_Fabrik(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category = Settings)
 	FAnimNode_Fabrik Node;

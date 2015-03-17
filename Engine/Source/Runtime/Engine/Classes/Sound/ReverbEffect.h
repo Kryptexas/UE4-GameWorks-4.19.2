@@ -7,7 +7,9 @@
 UCLASS(BlueprintType, hidecategories=object, MinimalAPI)
 class UReverbEffect : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UReverbEffect(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Density - 0.0 < 1.0 < 1.0 - Coloration of the late reverb - lower value is more */
 	UPROPERTY(Category=ReverbParameters, meta=(ClampMin = "0.0", ClampMax = "1.0"), EditAnywhere)

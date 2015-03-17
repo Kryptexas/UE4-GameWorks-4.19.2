@@ -11,7 +11,7 @@
 USTRUCT()
 struct FAutoCompleteCommand
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(config, EditAnywhere, Category=Command)
 	FString Command;
@@ -28,7 +28,9 @@ UCLASS(config=Input, defaultconfig)
 class ENGINESETTINGS_API UConsoleSettings
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UConsoleSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/**  Visible Console stuff */
 	UPROPERTY(globalconfig, EditAnywhere, Category=General)

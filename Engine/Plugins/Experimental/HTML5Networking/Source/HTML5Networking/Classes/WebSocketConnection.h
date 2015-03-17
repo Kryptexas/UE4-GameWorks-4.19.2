@@ -8,7 +8,9 @@
 UCLASS(transient, config = Engine)
 class HTML5NETWORKING_API UWebSocketConnection : public UNetConnection
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UWebSocketConnection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	class FWebSocket*			WebSocket; 
 

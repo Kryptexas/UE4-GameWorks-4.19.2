@@ -6,7 +6,9 @@
 UCLASS()
 class UReimportCurveTableFactory : public UCSVImportFactory, public FReimportHandler
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UReimportCurveTableFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin FReimportHandler interface
 	virtual bool CanReimport( UObject* Obj, TArray<FString>& OutFilenames ) override;

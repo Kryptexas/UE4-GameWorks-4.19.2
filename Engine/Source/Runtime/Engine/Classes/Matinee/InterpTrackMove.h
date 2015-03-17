@@ -29,7 +29,7 @@ enum EInterpTrackMoveRotMode
 USTRUCT()
 struct FInterpLookupPoint
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FName GroupName;
@@ -48,7 +48,7 @@ struct FInterpLookupPoint
 USTRUCT()
 struct FInterpLookupTrack
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	TArray<struct FInterpLookupPoint> Points;
@@ -92,7 +92,9 @@ struct FInterpLookupTrack
 UCLASS(MinimalAPI, meta=( DisplayName = "Movement Track" ) )
 class UInterpTrackMove : public UInterpTrack
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UInterpTrackMove(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
 	/** Actual position keyframe data. */
 	UPROPERTY()

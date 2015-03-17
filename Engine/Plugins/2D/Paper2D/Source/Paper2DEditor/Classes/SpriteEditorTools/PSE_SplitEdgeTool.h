@@ -7,5 +7,7 @@
 UCLASS()
 class UPSE_SplitEdgeTool : public USpriteEditorTool
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPSE_SplitEdgeTool(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };

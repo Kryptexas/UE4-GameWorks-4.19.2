@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI)
 class UVisualLoggerKismetLibrary : public UBlueprintFunctionLibrary
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UVisualLoggerKismetLibrary(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Logs simple text string with Visual Logger - recording for Visual Logs has to be enabled to record this data */
 	UFUNCTION(BlueprintCallable, Category = "Debug|VisualLogger", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", FriendlyName = "LogText"))

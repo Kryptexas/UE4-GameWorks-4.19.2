@@ -13,7 +13,9 @@
 UCLASS(abstract, Blueprintable, MinimalAPI)
 class AEmitterCameraLensEffectBase : public AEmitter
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API AEmitterCameraLensEffectBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
 	/** Particle System to use */

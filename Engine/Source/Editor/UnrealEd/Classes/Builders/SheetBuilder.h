@@ -19,11 +19,9 @@ enum ESheetAxis
 UCLASS(MinimalAPI, autoexpandcategories=BrushSettings, EditInlineNew, NotPlaceable, meta=(DisplayName="Plane"))
 class USheetBuilder : public UEditorBrushBuilder
 {
-public:
 	GENERATED_BODY()
-
 public:
-	USheetBuilder(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	UNREALED_API USheetBuilder(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category=BrushSettings, meta=(ClampMin = "1"))
 	int32 X;

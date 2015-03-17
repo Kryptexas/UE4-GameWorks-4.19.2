@@ -13,7 +13,9 @@ class UEnvQueryContext;
 UCLASS(meta = (DisplayName = "Points: Grid"))
 class UEnvQueryGenerator_SimpleGrid : public UEnvQueryGenerator_ProjectedPoints
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UEnvQueryGenerator_SimpleGrid(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** square's extent */
 	UPROPERTY(EditDefaultsOnly, Category=Generator)

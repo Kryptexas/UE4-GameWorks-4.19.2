@@ -11,7 +11,9 @@
 UCLASS()
 class UGeomModifier_Clip : public UGeomModifier_Edit
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UGeomModifier_Clip(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category=Settings)
 	uint32 bFlipNormal:1;

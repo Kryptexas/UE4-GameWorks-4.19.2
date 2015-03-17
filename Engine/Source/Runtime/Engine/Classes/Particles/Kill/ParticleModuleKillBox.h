@@ -8,7 +8,9 @@
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Kill Box"))
 class UParticleModuleKillBox : public UParticleModuleKillBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleModuleKillBox(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The lower left corner of the box. */
 	UPROPERTY(EditAnywhere, Category=Kill)

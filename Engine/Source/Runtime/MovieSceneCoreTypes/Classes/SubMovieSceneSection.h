@@ -10,7 +10,9 @@
 UCLASS( MinimalAPI )
 class USubMovieSceneSection : public UMovieSceneSection
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	MOVIESCENECORETYPES_API USubMovieSceneSection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 public:
 	/**
 	 * Sets the movie scene played by this section

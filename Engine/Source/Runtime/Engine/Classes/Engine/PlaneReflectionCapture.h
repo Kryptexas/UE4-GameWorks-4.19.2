@@ -10,7 +10,9 @@
 UCLASS(abstract, hidecategories=(Collision, Attachment, Actor), MinimalAPI)
 class APlaneReflectionCapture : public AReflectionCapture
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API APlaneReflectionCapture(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

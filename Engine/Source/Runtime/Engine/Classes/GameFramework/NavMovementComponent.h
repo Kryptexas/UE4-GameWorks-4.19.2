@@ -22,7 +22,9 @@ class UCapsuleComponent;
 UCLASS(abstract)
 class ENGINE_API UNavMovementComponent : public UMovementComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNavMovementComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Properties that define how the component can move. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementComponent, meta=(DisplayName="Movement Capabilities", Keywords="Nav Agent"))

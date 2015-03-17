@@ -9,7 +9,9 @@
 UCLASS(hidecategories=(Collision, Object, Physics, SceneComponent), MinimalAPI)
 class USphereReflectionCaptureComponent : public UReflectionCaptureComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API USphereReflectionCaptureComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Radius of the area that can receive reflections from this capture. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ReflectionCapture, meta=(UIMin = "8.0", UIMax = "16384.0"))

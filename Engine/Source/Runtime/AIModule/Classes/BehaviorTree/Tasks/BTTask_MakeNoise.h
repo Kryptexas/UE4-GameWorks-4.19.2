@@ -10,7 +10,9 @@
 UCLASS()
 class AIMODULE_API UBTTask_MakeNoise : public UBTTaskNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBTTask_MakeNoise(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Loudnes of generated noise */
 	UPROPERTY(Category=Node, EditAnywhere, meta=(ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1"))

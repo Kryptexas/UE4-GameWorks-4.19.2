@@ -85,7 +85,9 @@ struct FExpressionOutput
 UCLASS(abstract, hidecategories=Object)
 class ENGINE_API UMaterialExpression : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMaterialExpression(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()

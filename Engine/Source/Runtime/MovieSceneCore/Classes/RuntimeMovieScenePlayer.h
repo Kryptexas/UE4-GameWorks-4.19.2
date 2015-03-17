@@ -17,7 +17,9 @@
 UCLASS( MinimalAPI )
 class URuntimeMovieScenePlayer : public UObject, public IMovieScenePlayer, public IRuntimeMovieScenePlayerInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	MOVIESCENECORE_API URuntimeMovieScenePlayer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

@@ -219,7 +219,9 @@ protected:
 UCLASS(Experimental, ClassGroup=UserInterface)
 class UMG_API UViewport : public UContentWidget
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UViewport(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FLinearColor BackgroundColor;

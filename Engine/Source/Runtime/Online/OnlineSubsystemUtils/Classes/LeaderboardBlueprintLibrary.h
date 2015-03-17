@@ -10,7 +10,9 @@
 UCLASS()
 class ONLINESUBSYSTEMUTILS_API ULeaderboardBlueprintLibrary : public UBlueprintFunctionLibrary
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ULeaderboardBlueprintLibrary(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Writes an integer value to the specified leaderboard */
 	UFUNCTION(BlueprintCallable, Category = "Online|Leaderboard")

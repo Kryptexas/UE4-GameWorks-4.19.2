@@ -62,7 +62,9 @@ enum ESceneTextureId
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionSceneTexture : public UMaterialExpression
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMaterialExpressionSceneTexture(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** UV in 0..1 range */
 	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Ignored if not specified"))

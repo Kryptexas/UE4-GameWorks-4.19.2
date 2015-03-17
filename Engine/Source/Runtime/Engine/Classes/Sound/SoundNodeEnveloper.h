@@ -10,7 +10,9 @@
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, meta=( DisplayName="Enveloper" ))
 class USoundNodeEnveloper : public USoundNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API USoundNodeEnveloper(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// The time in seconds where the envelope's loop begins.
 	UPROPERTY(EditAnywhere, Category=Looping)

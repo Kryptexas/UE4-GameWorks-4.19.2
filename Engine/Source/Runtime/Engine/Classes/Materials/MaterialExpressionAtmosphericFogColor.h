@@ -7,7 +7,9 @@
 UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionAtmosphericFogColor : public UMaterialExpression
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMaterialExpressionAtmosphericFogColor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	FExpressionInput WorldPosition;

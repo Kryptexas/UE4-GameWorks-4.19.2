@@ -43,7 +43,7 @@ namespace EInterpolationBlend
 USTRUCT()
 struct ENGINE_API FAnimNode_LookAt : public FAnimNode_SkeletalControlBase
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Name of bone to control. This is the main bone chain to modify from. **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SkeletalControl) 

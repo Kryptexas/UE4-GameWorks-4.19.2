@@ -18,7 +18,9 @@ namespace AudioTrackConstants
 UCLASS( MinimalAPI )
 class UMovieSceneAudioTrack : public UMovieSceneTrack
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	MOVIESCENECORETYPES_API UMovieSceneAudioTrack(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	/** UMovieSceneTrack interface */

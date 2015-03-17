@@ -49,7 +49,7 @@ namespace EQuitPreference
 USTRUCT()
 struct FGenericStruct
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	int32 Data;
@@ -58,7 +58,9 @@ struct FGenericStruct
 UCLASS(MinimalAPI)
 class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UKismetSystemLibrary(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// --- Globally useful functions ------------------------------
 	/** Prints a stack trace to the log, so you can see how a blueprint got to this node */

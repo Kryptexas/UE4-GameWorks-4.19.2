@@ -7,7 +7,9 @@
 UCLASS()
 class UPaperFlipbookThumbnailRenderer : public UPaperSpriteThumbnailRenderer
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPaperFlipbookThumbnailRenderer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// UThumbnailRenderer interface
 	virtual void Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget*, FCanvas* Canvas) override;

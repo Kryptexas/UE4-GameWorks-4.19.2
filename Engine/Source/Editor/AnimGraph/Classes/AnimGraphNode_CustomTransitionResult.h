@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI)
 class UAnimGraphNode_CustomTransitionResult : public UAnimGraphNode_Root
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ANIMGRAPH_API UAnimGraphNode_CustomTransitionResult(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// UEdGraphNode interface
 	virtual FLinearColor GetNodeTitleColor() const override;

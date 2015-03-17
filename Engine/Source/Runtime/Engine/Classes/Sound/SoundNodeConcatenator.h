@@ -16,7 +16,9 @@
 UCLASS(hidecategories = Object, editinlinenew, MinimalAPI, meta = (DisplayName = "Concatenator"))
 class USoundNodeConcatenator : public USoundNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API USoundNodeConcatenator(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Volume multiplier for each input. */
 	UPROPERTY(EditAnywhere, editfixedsize, Category=Concatenator)

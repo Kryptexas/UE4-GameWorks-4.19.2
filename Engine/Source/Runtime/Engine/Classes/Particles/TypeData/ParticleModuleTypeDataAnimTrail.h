@@ -13,7 +13,9 @@
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "AnimTrail Data"))
 class UParticleModuleTypeDataAnimTrail : public UParticleModuleTypeDataBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleModuleTypeDataAnimTrail(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	//*****************************************************************************
 	// General Trail Variables

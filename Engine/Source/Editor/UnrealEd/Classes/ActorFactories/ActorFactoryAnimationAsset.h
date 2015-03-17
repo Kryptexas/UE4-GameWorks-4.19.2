@@ -10,7 +10,9 @@ class USkeletalMesh;
 UCLASS(MinimalAPI, config=Editor, hidecategories=Object)
 class UActorFactoryAnimationAsset : public UActorFactorySkeletalMesh
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API UActorFactoryAnimationAsset(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
 	// Begin UActorFactory Interface

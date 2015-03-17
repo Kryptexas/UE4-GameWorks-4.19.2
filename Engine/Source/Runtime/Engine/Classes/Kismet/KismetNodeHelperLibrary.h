@@ -12,7 +12,9 @@
 UCLASS(MinimalAPI)
 class UKismetNodeHelperLibrary : public UBlueprintFunctionLibrary
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UKismetNodeHelperLibrary(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// --- Functions for handling bitmasking an integer as an array of bools ------------------------------
 

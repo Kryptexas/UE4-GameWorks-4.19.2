@@ -12,7 +12,9 @@ UCLASS(config=EditorUserSettings)
 class USceneOutlinerSettings
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	USceneOutlinerSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** True when the Scene Outliner is hiding temporary/run-time Actors */
 	UPROPERTY(config)

@@ -8,5 +8,7 @@
 UCLASS(Config = Engine)
 class ENGINE_API UNavArea_LowHeight : public UNavArea
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNavArea_LowHeight(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };

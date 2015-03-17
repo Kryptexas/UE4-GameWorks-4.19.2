@@ -7,5 +7,7 @@
 UCLASS()
 class USpriteEditorTool : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	USpriteEditorTool(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };

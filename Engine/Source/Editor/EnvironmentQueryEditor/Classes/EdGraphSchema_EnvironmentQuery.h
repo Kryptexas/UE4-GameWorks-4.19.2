@@ -8,7 +8,9 @@
 UCLASS(MinimalAPI)
 class UEdGraphSchema_EnvironmentQuery : public UAIGraphSchema
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENVIRONMENTQUERYEDITOR_API UEdGraphSchema_EnvironmentQuery(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin EdGraphSchema interface
 	virtual void CreateDefaultNodesForGraph(UEdGraph& Graph) const override;

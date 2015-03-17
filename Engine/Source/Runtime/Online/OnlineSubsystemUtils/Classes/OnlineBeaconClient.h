@@ -19,7 +19,9 @@ DECLARE_DELEGATE(FOnHostConnectionFailure);
 UCLASS(transient, notplaceable, config=Engine)
 class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AOnlineBeaconClient(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin AActor Interface
 	void OnNetCleanup(class UNetConnection* Connection);
@@ -87,8 +89,9 @@ private:
 	/**
 	 * Called on the server side to open up the actor channel that will allow RPCs to occur
 	 */
-	UFUNCTION(client, reliable)
+	UFUNCTION(client="ClientOnConnected_Implementation", reliable)
 	virtual void ClientOnConnected();
+	virtual void ClientOnConnected_Implementation();
 
 	friend class AOnlineBeaconHost;
 	friend class AOnlineBeaconHostObject;

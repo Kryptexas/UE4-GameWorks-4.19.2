@@ -8,7 +8,9 @@
 UCLASS(MinimalAPI, meta=( DisplayName = "Vector Property Track" ) )
 class UInterpTrackVectorProp : public UInterpTrackVectorBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UInterpTrackVectorProp(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Name of property in Group  AActor  which this track mill modify over time. */
 	UPROPERTY(Category=InterpTrackVectorProp, VisibleAnywhere)

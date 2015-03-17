@@ -10,7 +10,9 @@
 UCLASS()
 class PAPER2D_API APaperCharacter : public ACharacter
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	APaperCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
 	// Name of the Sprite component
 	static FName SpriteComponentName;

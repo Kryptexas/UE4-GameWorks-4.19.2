@@ -8,7 +8,9 @@
 UCLASS(MinimalAPI)
 class UWidgetGraphSchema : public UEdGraphSchema_K2
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMGEDITOR_API UWidgetGraphSchema(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual bool ShouldAlwaysPurgeOnModification() const override { return true; }
 

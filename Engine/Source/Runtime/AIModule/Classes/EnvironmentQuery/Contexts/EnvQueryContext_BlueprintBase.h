@@ -12,7 +12,9 @@ struct FEnvQueryContextData;
 UCLASS(MinimalAPI, Abstract, Blueprintable)
 class UEnvQueryContext_BlueprintBase : public UEnvQueryContext
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AIMODULE_API UEnvQueryContext_BlueprintBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	enum ECallMode
 	{

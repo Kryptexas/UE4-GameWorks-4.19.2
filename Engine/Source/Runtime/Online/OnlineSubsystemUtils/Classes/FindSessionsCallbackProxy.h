@@ -7,7 +7,7 @@
 USTRUCT(BlueprintType)
 struct FBlueprintSessionResult
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FOnlineSessionSearchResult OnlineResult;
 };
@@ -17,7 +17,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FBlueprintFindSessionsResultDelegate
 UCLASS(MinimalAPI)
 class UFindSessionsCallbackProxy : public UOnlineBlueprintCallProxyBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ONLINESUBSYSTEMUTILS_API UFindSessionsCallbackProxy(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Called when there is a successful query
 	UPROPERTY(BlueprintAssignable)

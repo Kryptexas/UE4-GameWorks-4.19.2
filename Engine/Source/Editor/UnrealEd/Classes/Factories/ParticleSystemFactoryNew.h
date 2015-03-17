@@ -10,7 +10,9 @@
 UCLASS(hidecategories=Object)
 class UParticleSystemFactoryNew : public UFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleSystemFactoryNew(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin UFactory Interface

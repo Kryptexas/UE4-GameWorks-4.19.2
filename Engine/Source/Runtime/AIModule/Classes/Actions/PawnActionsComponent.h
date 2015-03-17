@@ -11,7 +11,7 @@ class UPawnAction;
 USTRUCT()
 struct AIMODULE_API FPawnActionEvent
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// used for marking FPawnActionEvent instances created solely for comparisons uses
 	static const int32 FakeActionIndex = INDEX_NONE;
@@ -37,7 +37,7 @@ struct AIMODULE_API FPawnActionEvent
 USTRUCT()
 struct AIMODULE_API FPawnActionStack
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 private:
 	UPROPERTY()
@@ -68,7 +68,9 @@ public:
 UCLASS()
 class AIMODULE_API UPawnActionsComponent : public UActorComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPawnActionsComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
 	UPROPERTY(BlueprintReadOnly, Category="PawnActions")

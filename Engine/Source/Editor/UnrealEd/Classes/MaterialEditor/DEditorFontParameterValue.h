@@ -10,7 +10,7 @@
 USTRUCT()
 struct UNREALED_API FDFontParameters
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category = DFontParameter)
 	class UFont* FontValue;
@@ -22,7 +22,9 @@ struct UNREALED_API FDFontParameters
 UCLASS(hidecategories = Object, collapsecategories)
 class UNREALED_API UDEditorFontParameterValue : public UDEditorParameterValue
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UDEditorFontParameterValue(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category = DEditorFontParameterValue)
 	struct FDFontParameters ParameterValue;

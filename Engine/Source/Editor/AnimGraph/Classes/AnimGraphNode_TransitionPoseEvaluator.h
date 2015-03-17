@@ -8,7 +8,9 @@
 UCLASS(MinimalAPI)
 class UAnimGraphNode_TransitionPoseEvaluator : public UAnimGraphNode_Base
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ANIMGRAPH_API UAnimGraphNode_TransitionPoseEvaluator(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings)
 	FAnimNode_TransitionPoseEvaluator Node;

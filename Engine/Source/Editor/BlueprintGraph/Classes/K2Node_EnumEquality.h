@@ -8,7 +8,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_EnumEquality : public UK2Node
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_EnumEquality(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;

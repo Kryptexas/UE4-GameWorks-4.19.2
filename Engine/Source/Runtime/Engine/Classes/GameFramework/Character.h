@@ -24,7 +24,7 @@ struct FAnimMontageInstance;
 USTRUCT()
 struct FRepRootMotionMontage
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** AnimMontage providing Root Motion */
 	UPROPERTY()
@@ -74,7 +74,7 @@ struct FRepRootMotionMontage
 USTRUCT()
 struct FSimulatedRootMotionReplicatedMove
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Local time when move was received on client and saved. */
 	UPROPERTY()
@@ -126,7 +126,7 @@ namespace MovementBaseUtility
 USTRUCT()
 struct FBasedMovementInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Component we are based on */
 	UPROPERTY()

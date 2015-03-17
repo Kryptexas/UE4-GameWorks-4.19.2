@@ -9,7 +9,9 @@
 UCLASS(hidecategories=object, MinimalAPI)
 class UMaterialFunction : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UMaterialFunction(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Used by materials using this function to know when to recompile. */
 	UPROPERTY(duplicatetransient)

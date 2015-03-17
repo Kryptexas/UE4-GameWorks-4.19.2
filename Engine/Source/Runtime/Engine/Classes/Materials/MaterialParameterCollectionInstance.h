@@ -14,7 +14,9 @@
 UCLASS(hidecategories=object, MinimalAPI)
 class UMaterialParameterCollectionInstance : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UMaterialParameterCollectionInstance(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin UObject interface.
 	ENGINE_API virtual void PostInitProperties();	

@@ -20,7 +20,7 @@ enum class EPaperTileFlags : uint32
 USTRUCT(BlueprintType)
 struct FPaperTileInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// The tile set that this tile comes from
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Sprite)
@@ -101,7 +101,9 @@ struct FPaperTileInfo
 UCLASS()
 class PAPER2D_API UPaperTileLayer : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPaperTileLayer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Name of the layer
 	UPROPERTY()

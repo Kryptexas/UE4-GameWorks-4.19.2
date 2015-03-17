@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI)
 class UExportTextContainer : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API UExportTextContainer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** ExportText representation of one or more objects */
 	UPROPERTY()

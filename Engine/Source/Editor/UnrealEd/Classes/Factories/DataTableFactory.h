@@ -7,7 +7,9 @@
 UCLASS(hidecategories=Object, MinimalAPI)
 class UDataTableFactory : public UFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API UDataTableFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	class UScriptStruct* Struct;

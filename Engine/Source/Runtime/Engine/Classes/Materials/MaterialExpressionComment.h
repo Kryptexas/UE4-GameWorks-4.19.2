@@ -8,7 +8,9 @@
 UCLASS(MinimalAPI)
 class UMaterialExpressionComment : public UMaterialExpression
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UMaterialExpressionComment(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	int32 SizeX;

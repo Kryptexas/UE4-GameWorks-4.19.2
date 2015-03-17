@@ -12,7 +12,9 @@ UCLASS()
 class INTERNATIONALIZATIONSETTINGS_API UInternationalizationSettingsModel
 	:	public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UInternationalizationSettingsModel(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

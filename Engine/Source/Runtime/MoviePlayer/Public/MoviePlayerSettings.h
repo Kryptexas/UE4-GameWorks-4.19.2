@@ -12,9 +12,11 @@ UCLASS(config=Game, defaultconfig)
 class MOVIEPLAYER_API UMoviePlayerSettings
 	: public UObject
 {
+	GENERATED_BODY()
+public:
+	UMoviePlayerSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 public:
 
-	GENERATED_UCLASS_BODY()
 
 	/** If enabled the game waits for startup movies to complete even if loading has finished */
 	UPROPERTY(globalconfig, EditAnywhere, Category="Movies")

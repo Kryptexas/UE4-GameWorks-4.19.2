@@ -16,7 +16,7 @@ class UFont;
 USTRUCT()
 struct FCanvasIcon
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Source texture */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CanvasIcon)
@@ -53,7 +53,9 @@ UCLASS(transient)
 class ENGINE_API UCanvas
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UCanvas(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Modifiable properties.
 	UPROPERTY()

@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_GetEnumeratorNameAsString : public UK2Node_GetEnumeratorName
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_GetEnumeratorNameAsString(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;

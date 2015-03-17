@@ -24,7 +24,7 @@ enum ELocationBoneSocketSelectionMethod
 USTRUCT()
 struct FLocationBoneSocketInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** The name of the bone/socket on the skeletal mesh */
 	UPROPERTY(EditAnywhere, Category=LocationBoneSocketInfo)
@@ -45,7 +45,9 @@ struct FLocationBoneSocketInfo
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Bone/Socket Location"))
 class UParticleModuleLocationBoneSocket : public UParticleModuleLocationBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleModuleLocationBoneSocket(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/**
 	 *	Whether the module uses Bones or Sockets for locations.

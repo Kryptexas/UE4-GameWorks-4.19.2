@@ -12,7 +12,9 @@
 UCLASS(MinimalAPI)
 class UMovieScene3DTransformSection : public UMovieSceneSection
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	MOVIESCENECORETYPES_API UMovieScene3DTransformSection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 public:
 
 	/** MovieSceneSection interface */

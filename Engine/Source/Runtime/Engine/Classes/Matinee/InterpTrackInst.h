@@ -14,7 +14,9 @@ class UInterpTrack;
 UCLASS(MinimalAPI)
 class UInterpTrackInst : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UInterpTrackInst(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	/** 

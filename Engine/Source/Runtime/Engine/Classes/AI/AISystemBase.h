@@ -9,7 +9,9 @@ class UWorld;
 UCLASS(abstract, config = Engine, defaultconfig)
 class ENGINE_API UAISystemBase : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAISystemBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual ~UAISystemBase(){}
 		

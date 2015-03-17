@@ -9,7 +9,9 @@
 UCLASS(MinimalAPI)
 class ATriggerBox : public ATriggerBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API ATriggerBox(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 #if WITH_EDITOR

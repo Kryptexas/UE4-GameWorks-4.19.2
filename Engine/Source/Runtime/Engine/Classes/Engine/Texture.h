@@ -111,7 +111,7 @@ enum ETextureSourceFormat
 USTRUCT()
 struct FTextureSource
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Default constructor. */
 	ENGINE_API FTextureSource();
@@ -277,7 +277,7 @@ private:
 USTRUCT()
 struct FTexturePlatformData
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Width of the texture. */
 	int32 SizeX;
@@ -341,7 +341,9 @@ struct FTexturePlatformData
 UCLASS(abstract, MinimalAPI, BlueprintType)
 class UTexture : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UTexture(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/*--------------------------------------------------------------------------
 		Editor only properties used to build the runtime texture data.

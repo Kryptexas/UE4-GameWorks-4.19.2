@@ -14,7 +14,9 @@
 UCLASS()
 class AIMODULE_API UBTDecorator_CheckGameplayTagsOnActor : public UBTDecorator
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBTDecorator_CheckGameplayTagsOnActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const override;
 	virtual void DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;

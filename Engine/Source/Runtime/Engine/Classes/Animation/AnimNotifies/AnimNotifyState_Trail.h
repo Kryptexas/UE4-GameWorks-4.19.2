@@ -9,7 +9,9 @@ DECLARE_LOG_CATEGORY_EXTERN(LogAnimTrails, Log, All);
 UCLASS(editinlinenew, Blueprintable, const, hidecategories = Object, collapsecategories, MinimalAPI, meta = (ShowWorldContextPin, DisplayName = "Trail"))
 class UAnimNotifyState_Trail : public UAnimNotifyState
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UAnimNotifyState_Trail(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
 	/** The particle system to use for this trail. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Trail)

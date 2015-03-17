@@ -19,7 +19,9 @@ struct FArrayPropertyPinCombo
 UCLASS(MinimalAPI)
 class UK2Node_CallArrayFunction : public UK2Node_CallFunction
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_CallArrayFunction(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;

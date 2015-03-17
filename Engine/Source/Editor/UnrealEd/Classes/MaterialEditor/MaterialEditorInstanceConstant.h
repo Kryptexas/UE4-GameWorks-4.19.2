@@ -13,7 +13,7 @@
 USTRUCT()
 struct FEditorParameterGroup
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FName GroupName;
@@ -26,7 +26,7 @@ struct FEditorParameterGroup
 USTRUCT()
 struct FEditorParameterValue
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category=EditorParameterValue)
 	uint32 bOverride:1;
@@ -48,7 +48,7 @@ struct FEditorParameterValue
 USTRUCT()
 struct FEditorVectorParameterValue : public FEditorParameterValue
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category=EditorVectorParameterValue)
 	FLinearColor ParameterValue;
@@ -64,7 +64,7 @@ struct FEditorVectorParameterValue : public FEditorParameterValue
 USTRUCT()
 struct FEditorScalarParameterValue : public FEditorParameterValue
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category=EditorScalarParameterValue)
 	float ParameterValue;
@@ -80,7 +80,7 @@ struct FEditorScalarParameterValue : public FEditorParameterValue
 USTRUCT()
 struct FEditorTextureParameterValue : public FEditorParameterValue
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category=EditorTextureParameterValue)
 	class UTexture* ParameterValue;
@@ -96,7 +96,7 @@ struct FEditorTextureParameterValue : public FEditorParameterValue
 USTRUCT()
 struct FEditorFontParameterValue : public FEditorParameterValue
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category=EditorFontParameterValue)
 	class UFont* FontValue;
@@ -116,7 +116,7 @@ struct FEditorFontParameterValue : public FEditorParameterValue
 USTRUCT()
 struct FEditorStaticSwitchParameterValue : public FEditorParameterValue
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category=EditorStaticSwitchParameterValue)
 	uint32 ParameterValue:1;
@@ -142,7 +142,7 @@ struct FEditorStaticSwitchParameterValue : public FEditorParameterValue
 USTRUCT()
 struct FComponentMaskParameter
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category=ComponentMaskParameter)
 	uint32 R:1;
@@ -180,7 +180,7 @@ struct FComponentMaskParameter
 USTRUCT()
 struct FEditorStaticComponentMaskParameterValue : public FEditorParameterValue
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category=EditorStaticComponentMaskParameterValue)
 	struct FComponentMaskParameter ParameterValue;
@@ -202,7 +202,9 @@ struct FEditorStaticComponentMaskParameterValue : public FEditorParameterValue
 UCLASS(hidecategories=Object, collapsecategories)
 class UNREALED_API UMaterialEditorInstanceConstant : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMaterialEditorInstanceConstant(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Physical material to use for this graphics material. Used for sounds, effects etc.*/
 	UPROPERTY(EditAnywhere, Category=MaterialEditorInstanceConstant)

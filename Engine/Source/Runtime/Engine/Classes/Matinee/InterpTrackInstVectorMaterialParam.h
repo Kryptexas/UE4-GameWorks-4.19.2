@@ -7,7 +7,9 @@
 UCLASS()
 class UInterpTrackInstVectorMaterialParam : public UInterpTrackInst
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UInterpTrackInstVectorMaterialParam(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** MIDs we're using to set the desired parameter. */
 	UPROPERTY()

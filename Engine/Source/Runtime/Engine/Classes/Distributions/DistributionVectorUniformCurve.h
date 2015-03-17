@@ -8,7 +8,9 @@
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
 class UDistributionVectorUniformCurve : public UDistributionVector
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UDistributionVectorUniformCurve(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Keyframe data for how output constant varies over time. */
 	UPROPERTY(EditAnywhere, Category=DistributionVectorUniformCurve)

@@ -9,7 +9,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_EnumLiteral : public UK2Node, public INodeDependingOnEnumInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_EnumLiteral(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	UEnum* Enum;

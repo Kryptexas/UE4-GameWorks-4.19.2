@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI, config=Editor)
 class UActorFactoryTextRender : public UActorFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API UActorFactoryTextRender(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };
 
 

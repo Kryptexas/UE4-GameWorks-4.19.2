@@ -39,7 +39,7 @@ enum EImpactDamageOverride
 USTRUCT()
 struct FDestructibleDepthParameters
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Chunks up to the depth DefaultImpactDamageDepth will take impact damage, unless one of the override options (see EImpactDamageOverride) is chosen. */
 	UPROPERTY(EditAnywhere, Category=DestructibleDepthParameters)
@@ -62,7 +62,7 @@ struct FDestructibleDepthParameters
 USTRUCT()
 struct FDestructibleParametersFlag
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**
 		If set, chunks will "remember" damage applied to them, so that many applications of a damage amount
@@ -168,7 +168,7 @@ struct FDestructibleParametersFlag
 USTRUCT()
 struct FDestructibleDamageParameters
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**
 		The damage amount which will cause a chunk to fracture (break free).
@@ -238,7 +238,7 @@ struct FDestructibleDamageParameters
 USTRUCT()
 struct FDestructibleDebrisParameters
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**
 		"Debris chunks" (see debrisDepth, above) will be destroyed after a time (in seconds)
@@ -299,7 +299,7 @@ struct FDestructibleDebrisParameters
 USTRUCT()
 struct FDestructibleAdvancedParameters
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**
 		Limits the amount of damage applied to a chunk.  This is useful for preventing the entire destructible
@@ -352,7 +352,7 @@ struct FDestructibleAdvancedParameters
 USTRUCT()
 struct FDestructibleSpecialHierarchyDepths
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// todo dynamicChunksDominanceGroup
 	// todo dynamicChunksGroupsMask
@@ -413,7 +413,7 @@ struct FDestructibleSpecialHierarchyDepths
 USTRUCT()
 struct FDestructibleParameters
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Parameters that pertain to chunk damage.  See DestructibleDamageParameters. */
 	UPROPERTY(EditAnywhere, Category=DestructibleParameters)
@@ -452,7 +452,9 @@ UCLASS(hidecategories=(Object, Mesh, LevelOfDetail, Mirroring, Physics, Reimport
 class UDestructibleMesh
 	: public USkeletalMesh
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UDestructibleMesh(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Parameters controlling the destruction behavior. */
 	UPROPERTY(EditAnywhere, Category=DestructibleMesh)

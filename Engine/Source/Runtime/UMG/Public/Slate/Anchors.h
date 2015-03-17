@@ -10,7 +10,7 @@
 USTRUCT(BlueprintType)
 struct FAnchors
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Holds the minimum anchors, left + top. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)

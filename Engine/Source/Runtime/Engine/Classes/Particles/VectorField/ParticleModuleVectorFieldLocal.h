@@ -11,7 +11,9 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Local Vector Field"))
 class UParticleModuleVectorFieldLocal : public UParticleModuleVectorFieldBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UParticleModuleVectorFieldLocal(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Vector field asset to use. */
 	UPROPERTY(EditAnywhere, Category=VectorField)

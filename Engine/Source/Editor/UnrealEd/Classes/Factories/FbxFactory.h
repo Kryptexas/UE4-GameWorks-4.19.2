@@ -6,7 +6,9 @@
 UCLASS(hidecategories=Object)
 class UNREALED_API UFbxFactory : public UFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UFbxFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	class UFbxImportUI* ImportUI;

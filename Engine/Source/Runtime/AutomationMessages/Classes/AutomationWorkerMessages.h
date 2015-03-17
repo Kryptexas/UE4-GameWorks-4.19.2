@@ -14,7 +14,7 @@
 USTRUCT()
 struct FAutomationWorkerFindWorkers
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Holds the change list number to find workers for. */
 	UPROPERTY()
@@ -61,7 +61,7 @@ struct TStructOpsTypeTraits<FAutomationWorkerFindWorkers> : public TStructOpsTyp
 USTRUCT()
 struct FAutomationWorkerFindWorkersResponse
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Holds the name of the device that the worker is running on. */
 	UPROPERTY()
@@ -125,7 +125,7 @@ struct TStructOpsTypeTraits<FAutomationWorkerFindWorkersResponse> : public TStru
 USTRUCT()
 struct FAutomationWorkerWorkerOffline
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 };
 
 template<>
@@ -143,7 +143,7 @@ struct TStructOpsTypeTraits<FAutomationWorkerWorkerOffline> : public TStructOpsT
 USTRUCT()
 struct FAutomationWorkerPing
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 };
 
 template<>
@@ -161,7 +161,7 @@ struct TStructOpsTypeTraits<FAutomationWorkerPing> : public TStructOpsTypeTraits
 USTRUCT()
 struct FAutomationWorkerResetTests
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 };
 
 template<>
@@ -179,7 +179,7 @@ struct TStructOpsTypeTraits<FAutomationWorkerResetTests> : public TStructOpsType
 USTRUCT()
 struct FAutomationWorkerPong
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 };
 
 template<>
@@ -198,7 +198,7 @@ struct TStructOpsTypeTraits<FAutomationWorkerPong> : public TStructOpsTypeTraits
 USTRUCT()
 struct FAutomationWorkerRequestTests
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Holds a flag indicating whether the developer directory should be included. */
 	UPROPERTY()
@@ -238,7 +238,7 @@ struct TStructOpsTypeTraits<FAutomationWorkerRequestTests> : public TStructOpsTy
 USTRUCT()
 struct FAutomationWorkerRequestTestsReply
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Holds the test information serialized into a string. */
 	UPROPERTY()
@@ -278,7 +278,7 @@ struct TStructOpsTypeTraits<FAutomationWorkerRequestTestsReply> : public TStruct
 USTRUCT()
 struct FAutomationWorkerRunTests
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** */
 	UPROPERTY()
@@ -333,7 +333,7 @@ struct TStructOpsTypeTraits<FAutomationWorkerRunTests> : public TStructOpsTypeTr
 USTRUCT()
 struct FAutomationWorkerRunTestsReply
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** */
 	UPROPERTY()
@@ -379,7 +379,7 @@ struct TStructOpsTypeTraits<FAutomationWorkerRunTestsReply> : public TStructOpsT
 USTRUCT()
 struct FAutomationWorkerRequestNextNetworkCommand
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** */
 	UPROPERTY()
@@ -413,7 +413,7 @@ struct TStructOpsTypeTraits<FAutomationWorkerRequestNextNetworkCommand> : public
 USTRUCT()
 struct FAutomationWorkerNextNetworkCommandReply
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 };
 
 template<>
@@ -432,7 +432,7 @@ struct TStructOpsTypeTraits<FAutomationWorkerNextNetworkCommandReply> : public T
 USTRUCT()
 struct FAutomationWorkerScreenImage
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** The screen shot data. */
 	UPROPERTY()

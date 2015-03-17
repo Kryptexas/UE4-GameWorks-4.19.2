@@ -31,7 +31,9 @@ namespace ETileMapProjectionMode
 UCLASS()
 class PAPER2D_API UPaperTileMap : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPaperTileMap(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Width of map (in tiles)
 	UPROPERTY(Category=Setup, EditAnywhere, BlueprintReadOnly, meta=(UIMin=1, ClampMin=1))

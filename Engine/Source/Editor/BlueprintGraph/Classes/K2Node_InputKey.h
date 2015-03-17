@@ -9,7 +9,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_InputKey : public UK2Node
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_InputKey(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// The key that is bound
 	UPROPERTY(EditAnywhere, Category="Input")

@@ -6,7 +6,9 @@
 UCLASS(MinimalAPI)
 class UKismetArrayLibrary : public UBlueprintFunctionLibrary
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UKismetArrayLibrary(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	/** 
 	 *Add item to array
 	 *

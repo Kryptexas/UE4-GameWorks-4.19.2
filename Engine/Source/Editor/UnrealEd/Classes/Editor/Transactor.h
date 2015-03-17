@@ -410,7 +410,9 @@ public:
 UCLASS(transient)
 class UTransactor : public UObject
 {
-    GENERATED_UCLASS_BODY()
+    GENERATED_BODY()
+public:
+    UTransactor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	/**
 	 * Begins a new undo transaction.  An undo transaction is defined as all actions
 	 * which take place when the user selects "undo" a single time.

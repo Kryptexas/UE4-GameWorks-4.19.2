@@ -9,7 +9,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitVelocityChangeDelegate);
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitVelocityChange: public UAbilityTask
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	GAMEPLAYABILITIES_API UAbilityTask_WaitVelocityChange(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Delegate called when velocity requirements are met */
 	UPROPERTY(BlueprintAssignable)

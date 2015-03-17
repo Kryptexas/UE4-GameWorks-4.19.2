@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_CallMaterialParameterCollectionFunction : public UK2Node_CallFunction
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_CallMaterialParameterCollectionFunction(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin EdGraphNode interface
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;

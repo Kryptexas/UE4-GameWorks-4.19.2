@@ -36,7 +36,9 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnDebuggingTargetChanged, class AActor* /*
 UCLASS(config=Engine)
 class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveComponent, public IEQSQueryResultSourceInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UGameplayDebuggingComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	friend class AGameplayDebuggingHUDComponent;
 
@@ -167,11 +169,15 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	UFUNCTION(exec)
 	void ServerReplicateData(uint32 InMessage, uint32 DataView);
 
-	UFUNCTION(reliable, server, WithValidation)
+	UFUNCTION(reliable, server="ServerCollectNavmeshData_Implementation", WithValidation="ServerCollectNavmeshData_Validate")
 	void ServerCollectNavmeshData(FVector_NetQuantize10 TargetLocation);
+	virtual void ServerCollectNavmeshData_Implementation(FVector_NetQuantize10 TargetLocation);
+	virtual bool ServerCollectNavmeshData_Validate(FVector_NetQuantize10 );
 
-	UFUNCTION(reliable, server, WithValidation)
+	UFUNCTION(reliable, server="ServerDiscardNavmeshData_Implementation", WithValidation="ServerDiscardNavmeshData_Validate")
 	void ServerDiscardNavmeshData();
+	virtual void ServerDiscardNavmeshData_Implementation();
+	virtual bool ServerDiscardNavmeshData_Validate();
 
 	void PrepareNavMeshData(struct FNavMeshSceneProxyData*) const;
 
@@ -194,8 +200,10 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	UPROPERTY(Replicated)
 	AActor* TargetActor;
 	
-	UFUNCTION(Reliable, Client, WithValidation)
+	UFUNCTION(Reliable, Client="ClientEnableTargetSelection_Implementation", WithValidation="ClientEnableTargetSelection_Validate")
 	void ClientEnableTargetSelection(bool bEnable);
+	virtual void ClientEnableTargetSelection_Implementation(bool bEnable);
+	virtual bool ClientEnableTargetSelection_Validate(bool );
 
 	void SetActorToDebug(AActor* Actor);
 	FORCEINLINE AActor* GetSelectedActor() const

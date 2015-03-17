@@ -13,7 +13,9 @@
 UCLASS(hidecategories=UObject, MinimalAPI, BlueprintType)
 class UEditorCompositeSection: public UEditorAnimBaseObj
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API UEditorCompositeSection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 public:
 
 	/** Default blend in time. */

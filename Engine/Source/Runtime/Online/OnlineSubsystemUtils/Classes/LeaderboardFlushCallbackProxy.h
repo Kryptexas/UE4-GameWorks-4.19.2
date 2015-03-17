@@ -9,7 +9,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLeaderboardFlushed, FName, Sessio
 UCLASS(MinimalAPI)
 class ULeaderboardFlushCallbackProxy : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ONLINESUBSYSTEMUTILS_API ULeaderboardFlushCallbackProxy(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Called when there is a successful leaderboard flush
 	UPROPERTY(BlueprintAssignable)

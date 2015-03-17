@@ -16,7 +16,9 @@ struct FBTLoopDecoratorMemory
 UCLASS(HideCategories=(Condition))
 class AIMODULE_API UBTDecorator_Loop : public UBTDecorator
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBTDecorator_Loop(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** number of executions */
 	UPROPERTY(Category=Decorator, EditAnywhere)

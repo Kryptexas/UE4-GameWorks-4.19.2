@@ -45,7 +45,7 @@ enum EBrushType
 USTRUCT()
 struct FGeomSelection
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	int32 Type;    // EGeometrySelectionType_
@@ -74,7 +74,9 @@ UCLASS(hidecategories=(Object, Collision, Display, Rendering, Physics, Input, Bl
 class ENGINE_API ABrush
 	: public AActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ABrush(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Type of brush */
 	UPROPERTY(EditAnywhere, Category=Brush)

@@ -10,7 +10,9 @@
 UCLASS(hidecategories = (Collision, Object, Physics, SceneComponent), ClassGroup=Rendering, MinimalAPI, editinlinenew, meta = (BlueprintSpawnableComponent))
 class USceneCaptureComponentCube : public USceneCaptureComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API USceneCaptureComponentCube(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Temporary render target that can be used by the editor. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SceneCapture)

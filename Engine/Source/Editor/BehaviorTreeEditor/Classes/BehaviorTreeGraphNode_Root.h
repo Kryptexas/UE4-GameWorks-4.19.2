@@ -7,7 +7,9 @@
 UCLASS()
 class UBehaviorTreeGraphNode_Root : public UBehaviorTreeGraphNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBehaviorTreeGraphNode_Root(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category=BehaviorTree)
 	class UBlackboardData* BlackboardAsset;

@@ -42,7 +42,7 @@ private:
 USTRUCT()
 struct FKeyHandleMap
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 public:
 	FKeyHandleMap() {}
 
@@ -92,7 +92,7 @@ struct TStructOpsTypeTraits< FKeyHandleMap > : public TStructOpsTypeTraitsBase
 USTRUCT()
 struct ENGINE_API FIndexedCurve
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 public:
 	FIndexedCurve() {}
 
@@ -160,7 +160,7 @@ enum ERichCurveTangentWeightMode
 USTRUCT()
 struct ENGINE_API FRichCurveKey
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Interpolation mode between this key and the next */
 	UPROPERTY()
@@ -268,7 +268,7 @@ struct TStructOpsTypeTraits< FRichCurveKey > : public TStructOpsTypeTraitsBase
 USTRUCT()
 struct ENGINE_API FRichCurve : public FIndexedCurve
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 public:
 	virtual ~FRichCurve()
@@ -462,7 +462,9 @@ public:
 UCLASS(abstract)
 class ENGINE_API UCurveBase : public UObject, public FCurveOwnerInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UCurveBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The filename imported to create this object. Relative to this object's package, BaseDir() or absolute */
 	UPROPERTY()
@@ -524,7 +526,7 @@ public:
 USTRUCT()
 struct FIntegralKey
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 public:
 	FIntegralKey(float InTime = 0.f, int32 InValue = 0)
 		: Time(InTime)
@@ -543,7 +545,7 @@ public:
 USTRUCT()
 struct ENGINE_API FIntegralCurve : public FIndexedCurve
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 public:
 	
 	/** Get number of keys in curve. */

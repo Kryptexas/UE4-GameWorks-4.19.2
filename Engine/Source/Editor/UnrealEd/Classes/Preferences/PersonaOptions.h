@@ -13,7 +13,9 @@
 UCLASS(hidecategories=Object, config=EditorUserSettings)
 class UNREALED_API UPersonaOptions : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPersonaOptions(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, config, Category=Options)
 	uint32 bShowFloor:1;

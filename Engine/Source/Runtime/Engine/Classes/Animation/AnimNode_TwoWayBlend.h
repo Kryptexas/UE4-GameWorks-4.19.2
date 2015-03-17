@@ -10,7 +10,7 @@
 USTRUCT()
 struct ENGINE_API FAnimationNode_TwoWayBlend : public FAnimNode_Base
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Links)

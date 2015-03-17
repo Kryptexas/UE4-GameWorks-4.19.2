@@ -16,7 +16,9 @@
 UCLASS(HideCategories=(Condition))
 class AIMODULE_API UBTDecorator_ForceSuccess : public UBTDecorator
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBTDecorator_ForceSuccess(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
 

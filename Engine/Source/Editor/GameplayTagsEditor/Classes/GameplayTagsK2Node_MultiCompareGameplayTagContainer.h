@@ -8,7 +8,9 @@
 UCLASS()
 class UGameplayTagsK2Node_MultiCompareGameplayTagContainer : public UGameplayTagsK2Node_MultiCompareBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UGameplayTagsK2Node_MultiCompareGameplayTagContainer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;

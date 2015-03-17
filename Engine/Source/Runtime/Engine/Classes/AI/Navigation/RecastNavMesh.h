@@ -411,7 +411,9 @@ namespace FNavMeshConfig
 UCLASS(config=Engine, defaultconfig, hidecategories=(Input,Rendering,Tags,Transform,"Utilities|Transformation",Actor,Layers,Replication), notplaceable)
 class ENGINE_API ARecastNavMesh : public ANavigationData
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ARecastNavMesh(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	typedef uint16 FNavPolyFlags;
 

@@ -12,7 +12,9 @@
 UCLASS(config = Game)
 class AIMODULE_API UBTTask_RotateToFaceBBEntry : public UBTTask_BlackboardBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBTTask_RotateToFaceBBEntry(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
 	/** Success condition precision in decrees */

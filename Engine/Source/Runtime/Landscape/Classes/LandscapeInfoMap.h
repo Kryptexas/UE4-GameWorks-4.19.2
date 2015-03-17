@@ -9,7 +9,9 @@
 UCLASS()
 class ULandscapeInfoMap : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ULandscapeInfoMap(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	void PostDuplicate(bool bDuplicateForPIE) override;

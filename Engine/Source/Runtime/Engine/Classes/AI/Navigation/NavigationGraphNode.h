@@ -9,5 +9,7 @@
 UCLASS(config=Engine, MinimalAPI, NotBlueprintable, abstract)
 class ANavigationGraphNode : public AActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API ANavigationGraphNode(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };

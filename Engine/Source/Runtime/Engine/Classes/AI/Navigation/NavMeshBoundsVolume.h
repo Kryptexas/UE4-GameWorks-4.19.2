@@ -12,7 +12,9 @@
 UCLASS(MinimalAPI)
 class ANavMeshBoundsVolume : public AVolume
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API ANavMeshBoundsVolume(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin AActor Interface
 	virtual void PostRegisterAllComponents() override;

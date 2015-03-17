@@ -23,7 +23,7 @@ enum EInitialOscillatorOffset
 USTRUCT()
 struct FFOscillator
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Amplitude of the sinusoidal oscillation. */
 	UPROPERTY(EditAnywhere, Category=FOscillator)
@@ -48,7 +48,7 @@ struct FFOscillator
 USTRUCT()
 struct FROscillator
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Pitch oscillation. */
 	UPROPERTY(EditAnywhere, Category=ROscillator)
@@ -68,7 +68,7 @@ struct FROscillator
 USTRUCT()
 struct FVOscillator
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Oscillation in the X axis. */
 	UPROPERTY(EditAnywhere, Category = VOscillator)
@@ -103,7 +103,9 @@ struct FVOscillator
 UCLASS(Blueprintable, editinlinenew)
 class ENGINE_API UCameraShake : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UCameraShake(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** 
 	 *  If true to only allow a single instance of this shake to play at any given time. 

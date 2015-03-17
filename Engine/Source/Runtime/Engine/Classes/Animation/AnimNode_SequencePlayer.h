@@ -10,7 +10,7 @@
 USTRUCT()
 struct ENGINE_API FAnimNode_SequencePlayer : public FAnimNode_Base
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 public:
 	// The animation sequence asset to play
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings, meta=(PinHiddenByDefault))

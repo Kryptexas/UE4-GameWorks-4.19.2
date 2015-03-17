@@ -545,7 +545,7 @@ enum class EFlushLevelStreamingType
 USTRUCT()
 struct FResponseChannel
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** This should match DisplayName of ECollisionChannel 
 	 *	Meta data of custom channels can be used as well
@@ -571,7 +571,7 @@ struct FResponseChannel
 USTRUCT()
 struct ENGINE_API FCollisionResponseContainer
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 #if !CPP      //noexport property
 
@@ -834,7 +834,7 @@ namespace ECollisionEnabled
 USTRUCT()
 struct FRigidBodyState
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FVector_NetQuantize100 Position;
@@ -876,7 +876,7 @@ namespace ERigidBodyFlags
 USTRUCT()
 struct FRigidBodyErrorCorrection
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** max squared position difference to perform velocity adjustment */
 	UPROPERTY()
@@ -924,7 +924,7 @@ struct FRigidBodyErrorCorrection
 USTRUCT()
 struct FRigidBodyContactInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FVector ContactPosition;
@@ -974,7 +974,7 @@ struct FRigidBodyContactInfo
 USTRUCT()
 struct FCollisionImpactData
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** all the contact points in the collision*/
 	UPROPERTY()
@@ -1002,7 +1002,7 @@ struct FCollisionImpactData
 USTRUCT()
 struct FFractureEffect
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Particle system effect to play at fracture location. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FractureEffect)
@@ -1023,7 +1023,7 @@ struct FFractureEffect
 USTRUCT()
 struct ENGINE_API FBasedPosition
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=BasedPosition)
 	class AActor* Base;
@@ -1055,7 +1055,7 @@ struct ENGINE_API FBasedPosition
 USTRUCT()
 struct FSubtitleCue
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** The text too appear in the subtitle. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SubtitleCue)
@@ -1075,7 +1075,7 @@ struct FSubtitleCue
 USTRUCT()
 struct FLocalizedSubtitle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** The 3-letter language for this subtitle */
 	UPROPERTY()
@@ -1112,7 +1112,7 @@ struct FLocalizedSubtitle
 USTRUCT()
 struct FLightmassLightSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** 0 will be completely desaturated, 1 will be unchanged */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lightmass, meta=(UIMin = "0.0", UIMax = "4.0"))
@@ -1133,7 +1133,7 @@ struct FLightmassLightSettings
 USTRUCT()
 struct FLightmassPointLightSettings : public FLightmassLightSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 };
 
 
@@ -1141,7 +1141,7 @@ struct FLightmassPointLightSettings : public FLightmassLightSettings
 USTRUCT()
 struct FLightmassDirectionalLightSettings : public FLightmassLightSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Angle that the directional light's emissive surface extends relative to a receiver, affects penumbra sizes. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lightmass, meta=(UIMin = ".0001", UIMax = "5"))
@@ -1158,7 +1158,7 @@ struct FLightmassDirectionalLightSettings : public FLightmassLightSettings
 USTRUCT()
 struct FLightmassPrimitiveSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** If true, this object will be lit as if it receives light from both sides of its polygons. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lightmass)
@@ -1234,7 +1234,7 @@ struct FLightmassPrimitiveSettings
 USTRUCT()
 struct FLightmassDebugOptions
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**
 	 *	If false, UnrealLightmass.exe is launched automatically (default)
@@ -1331,7 +1331,7 @@ struct FLightmassDebugOptions
 USTRUCT()
 struct FSwarmDebugOptions
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**
 	 *	If true, Swarm will distribute jobs.
@@ -1388,7 +1388,7 @@ enum EShadowMapFlags
 USTRUCT()
 struct FPrimitiveMaterialRef
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	class UPrimitiveComponent* Primitive;
@@ -1425,7 +1425,7 @@ struct FPrimitiveMaterialRef
 USTRUCT(BlueprintType, meta=(HasNativeBreak="Engine.GameplayStatics.BreakHitResult"))
 struct ENGINE_API FHitResult
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Indicates if this hit was a result of blocking collision. If false, there was no hit or it was an overlap/touch instead. */
 	UPROPERTY()
@@ -1635,7 +1635,7 @@ struct TStructOpsTypeTraits<FHitResult> : public TStructOpsTypeTraitsBase
 USTRUCT()
 struct ENGINE_API FOverlapResult
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Actor that the check hit. */
 	UPROPERTY()
@@ -1671,7 +1671,7 @@ struct ENGINE_API FOverlapResult
 USTRUCT()
 struct ENGINE_API FMTDResult
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Normalized direction of the minimum translation required to fix penetration. */
 	UPROPERTY()
@@ -1692,7 +1692,7 @@ struct ENGINE_API FMTDResult
 USTRUCT()
 struct FAnimSlotInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Name of slot that we want to play the animtion in. */
 	UPROPERTY()
@@ -1708,7 +1708,7 @@ struct FAnimSlotInfo
 USTRUCT()
 struct FAnimSlotDesc
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Name of the slot. */
 	UPROPERTY()
@@ -1731,7 +1731,7 @@ struct FAnimSlotDesc
 USTRUCT()
 struct FAnimUpdateRateParameters
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 public:
 	enum EOptimizeMode
@@ -1862,7 +1862,7 @@ public:
 USTRUCT()
 struct FPOV
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Location */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=POV)
@@ -1916,7 +1916,7 @@ namespace EMeshFeatureImportance
 USTRUCT()
 struct FMeshReductionSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Percentage of triangles to keep. 1.0 = no reduction, 0.0 = no triangles. */
 	UPROPERTY(EditAnywhere, Category=ReductionSettings)
@@ -1993,7 +1993,7 @@ struct FMeshReductionSettings
 USTRUCT()
 struct FMeshBuildSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** If true, degenerate triangles will be removed. */
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
@@ -2098,7 +2098,7 @@ struct FMeshBuildSettings
 USTRUCT()
 struct FMeshProxySettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 	/** Screen size of the resulting proxy mesh in pixel size*/
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
 	int32 ScreenSize;
@@ -2192,7 +2192,7 @@ struct FMeshProxySettings
 USTRUCT()
 struct ENGINE_API FDamageEvent
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 public:
 
@@ -2225,7 +2225,7 @@ public:
 USTRUCT()
 struct ENGINE_API FPointDamageEvent : public FDamageEvent
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// skipping ImpulseMag for now
 	UPROPERTY()
@@ -2257,7 +2257,7 @@ struct ENGINE_API FPointDamageEvent : public FDamageEvent
 USTRUCT()
 struct ENGINE_API FRadialDamageParams
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category=RadialDamageParams)
 	float BaseDamage;
@@ -2300,7 +2300,7 @@ struct ENGINE_API FRadialDamageParams
 USTRUCT()
 struct ENGINE_API FRadialDamageEvent : public FDamageEvent
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FRadialDamageParams Params;
@@ -2407,7 +2407,7 @@ DECLARE_DYNAMIC_DELEGATE(FTimerDynamicDelegate);
 USTRUCT()
 struct FRepMovement
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FVector_NetQuantize100 LinearVelocity;
@@ -2533,7 +2533,7 @@ struct FRepMovement
 USTRUCT()
 struct FRepAttachment
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	class AActor* AttachParent;
@@ -2603,7 +2603,7 @@ enum EWalkableSlopeBehavior
 USTRUCT(BlueprintType)
 struct FWalkableSlopeOverride
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Behavior of this surface (whether we affect the walkable slope). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=WalkableSlopeOverride)
@@ -2704,7 +2704,7 @@ static_assert(sizeof(FReplicationFlags) == 4, "FReplicationFlags has invalid siz
 USTRUCT()
 struct FConstrainComponentPropName
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Name of property */
 	UPROPERTY(EditAnywhere, Category=Constraint)
@@ -2719,7 +2719,7 @@ struct FConstrainComponentPropName
 USTRUCT()
 struct ENGINE_API FComponentReference
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Pointer to a different Actor that owns the Component.  */
 	UPROPERTY(EditInstanceOnly, Category=Component)
@@ -2845,7 +2845,9 @@ namespace EComponentMobility
 UCLASS(abstract, config=Engine)
 class ENGINE_API UEngineTypes : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UEngineTypes(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	/** Convert a trace type to a collision channel */
@@ -2924,7 +2926,7 @@ enum EAngularConstraintMotion
 USTRUCT(BlueprintType)
 struct FFilePath
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**
 	 * The path to the file.
@@ -2940,7 +2942,7 @@ struct FFilePath
 USTRUCT(BlueprintType)
 struct FDirectoryPath
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**
 	 * The path to the directory.
@@ -2958,7 +2960,7 @@ struct FDirectoryPath
 USTRUCT()
 struct ENGINE_API FRedirector
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FName OldName;
@@ -2985,7 +2987,7 @@ struct ENGINE_API FRedirector
 USTRUCT(BlueprintType)
 struct FDebugFloatHistory
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 private:
 	/** Samples */
@@ -3088,7 +3090,7 @@ public:
 USTRUCT(BlueprintType)
 struct FDepthFieldGlowInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** whether to turn on the outline glow (depth field fonts only) */
 	UPROPERTY(BlueprintReadWrite, Category="Glow")
@@ -3146,7 +3148,7 @@ struct FDepthFieldGlowInfo
 USTRUCT(BlueprintType)
 struct FFontRenderInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** whether to clip text */
 	UPROPERTY(BlueprintReadWrite, Category="FontInfo")
@@ -3170,7 +3172,7 @@ struct FFontRenderInfo
 USTRUCT()
 struct FCanvasUVTri
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Position of first vertex */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CanvasUVTri)

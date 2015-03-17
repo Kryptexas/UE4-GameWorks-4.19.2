@@ -12,7 +12,9 @@ struct FBTLogTaskMemory
 UCLASS(meta=(HiddenNode))
 class UTestBTTask_Log : public UBTTaskNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UTestBTTask_Log(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	int32 LogIndex;

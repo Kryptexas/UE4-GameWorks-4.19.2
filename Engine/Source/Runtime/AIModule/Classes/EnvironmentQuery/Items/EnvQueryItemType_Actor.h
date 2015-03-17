@@ -10,7 +10,9 @@ struct FEnvQueryContextData;
 UCLASS()
 class AIMODULE_API UEnvQueryItemType_Actor : public UEnvQueryItemType_ActorBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UEnvQueryItemType_Actor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	static AActor* GetValue(const uint8* RawData);
 	static void SetValue(uint8* RawData, const AActor* Value);

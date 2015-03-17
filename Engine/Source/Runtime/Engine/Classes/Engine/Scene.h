@@ -34,7 +34,7 @@ enum EAntiAliasingMethod
 USTRUCT(BlueprintType)
 struct FPostProcessSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// first all bOverride_... as they get grouped together into bitfields
 
@@ -1040,7 +1040,9 @@ struct FPostProcessSettings
 UCLASS()
 class UScene : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UScene(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	/** bits needed to store DPG value */

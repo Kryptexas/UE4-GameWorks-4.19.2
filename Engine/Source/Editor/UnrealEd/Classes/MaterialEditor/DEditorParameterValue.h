@@ -9,7 +9,9 @@
 UCLASS(hidecategories=Object, collapsecategories, editinlinenew)
 class UNREALED_API UDEditorParameterValue : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UDEditorParameterValue(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category=DEditorParameterValue)
 	uint32 bOverride:1;

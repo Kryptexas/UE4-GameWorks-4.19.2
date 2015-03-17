@@ -10,7 +10,9 @@
 UCLASS(hidecategories=(Object, Texture))
 class UTextureRenderTargetCubeFactoryNew : public UFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UTextureRenderTargetCubeFactoryNew(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** width of new texture */
 	UPROPERTY(meta=(ToolTip="Width of the texture render target"))

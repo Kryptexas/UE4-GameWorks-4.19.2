@@ -7,7 +7,9 @@
 UCLASS(Blueprintable, BlueprintType, meta=(HideInDetailsView))
 class GAMEPLAYABILITIES_API UAbilitySystemTestAttributeSet : public UAttributeSet
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAbilitySystemTestAttributeSet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 

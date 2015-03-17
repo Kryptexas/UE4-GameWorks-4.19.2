@@ -10,7 +10,9 @@
 UCLASS(EarlyAccessPreview)
 class SCRIPTPLUGIN_API UScriptContextComponent : public UActorComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UScriptContextComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

@@ -7,12 +7,15 @@
 UINTERFACE(MinimalAPI, meta=(CannotImplementInterfaceInBlueprint))
 class UEQSQueryResultSourceInterface : public UInterface
 {
-	GENERATED_UINTERFACE_BODY()
+	GENERATED_BODY()
+public:
+	AIMODULE_API UEQSQueryResultSourceInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };
 
 class IEQSQueryResultSourceInterface
 {
-	GENERATED_IINTERFACE_BODY()
+	GENERATED_BODY()
+public:
 
 	virtual const struct FEnvQueryResult* GetQueryResult() const { return NULL; }
 	virtual const struct FEnvQueryInstance* GetQueryInstance() const { return NULL; }

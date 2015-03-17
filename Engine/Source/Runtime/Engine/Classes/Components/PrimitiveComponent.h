@@ -65,7 +65,7 @@ namespace EHasCustomNavigableGeometry
 USTRUCT()
 struct FSpriteCategoryInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Sprite category that the component belongs to */
 	UPROPERTY()

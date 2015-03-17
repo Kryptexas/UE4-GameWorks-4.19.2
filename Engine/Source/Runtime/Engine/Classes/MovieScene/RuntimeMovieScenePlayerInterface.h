@@ -7,12 +7,15 @@
 UINTERFACE(MinimalAPI, meta=(CannotImplementInterfaceInBlueprint))
 class URuntimeMovieScenePlayerInterface : public UInterface
 {
-	GENERATED_UINTERFACE_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API URuntimeMovieScenePlayerInterface(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };
 
 class IRuntimeMovieScenePlayerInterface
 {
-	GENERATED_IINTERFACE_BODY()
+	GENERATED_BODY()
+public:
 
 	/**
 	 * Ticks this MovieScenePlayer.  Should be called every frame.

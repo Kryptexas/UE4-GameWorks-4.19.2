@@ -8,7 +8,9 @@
 UCLASS(MinimalAPI)
 class UAnimGraphNode_TwoWayBlend : public UAnimGraphNode_Base
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ANIMGRAPH_API UAnimGraphNode_TwoWayBlend(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimationNode_TwoWayBlend BlendNode;

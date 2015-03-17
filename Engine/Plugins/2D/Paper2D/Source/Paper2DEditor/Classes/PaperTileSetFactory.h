@@ -11,7 +11,9 @@
 UCLASS()
 class UPaperTileSetFactory : public UFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPaperTileSetFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Initial texture to create the tile set from (Can be nullptr)
 	class UTexture2D* InitialTexture;

@@ -7,7 +7,9 @@
 UCLASS()
 class UTerrainSplineActorFactory : public UActorFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UTerrainSplineActorFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// UActorFactory interface
 	virtual void PostSpawnActor(UObject* Asset, AActor* NewActor) override;

@@ -8,7 +8,9 @@
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Color"))
 class UParticleModuleColorBase : public UParticleModule
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleModuleColorBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 };
 

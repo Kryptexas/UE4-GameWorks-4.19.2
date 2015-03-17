@@ -7,7 +7,9 @@
 UCLASS()
 class UInterpTrackInstAudioMaster : public UInterpTrackInst
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UInterpTrackInstAudioMaster(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin UInterpTrackInst Instance

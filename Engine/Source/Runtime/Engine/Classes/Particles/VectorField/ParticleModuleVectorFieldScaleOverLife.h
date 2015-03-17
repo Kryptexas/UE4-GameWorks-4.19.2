@@ -11,7 +11,9 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "VF Scale/Life"))
 class UParticleModuleVectorFieldScaleOverLife : public UParticleModuleVectorFieldBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UParticleModuleVectorFieldScaleOverLife(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Per-particle vector field scale. Evaluated using particle relative time. */
 	UPROPERTY(EditAnywhere, Category=VectorField)

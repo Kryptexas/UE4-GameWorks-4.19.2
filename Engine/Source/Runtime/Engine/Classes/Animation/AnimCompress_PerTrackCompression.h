@@ -13,7 +13,9 @@
 UCLASS(hidecategories=AnimCompress)
 class UAnimCompress_PerTrackCompression : public UAnimCompress_RemoveLinearKeys
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAnimCompress_PerTrackCompression(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Maximum threshold to use when replacing a component with zero. Lower values retain more keys, but yield less compression. */
 	UPROPERTY(EditAnywhere, Category=PerTrack)

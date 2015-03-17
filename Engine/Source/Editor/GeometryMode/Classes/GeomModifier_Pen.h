@@ -11,7 +11,9 @@
 UCLASS()
 class UGeomModifier_Pen : public UGeomModifier_Edit
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UGeomModifier_Pen(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** If true, the shape will be automatically extruded into a brush upon completion. */
 	UPROPERTY(EditAnywhere, Category=Settings)

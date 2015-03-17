@@ -8,7 +8,7 @@
 USTRUCT()
 struct ENGINE_API FAnimNode_Root : public FAnimNode_Base
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Links)
 	FPoseLink Result;

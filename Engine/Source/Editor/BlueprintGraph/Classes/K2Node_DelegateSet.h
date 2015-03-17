@@ -9,7 +9,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_DelegateSet : public UK2Node
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_DelegateSet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Delegate property name that this event is associated with on the target */
 	UPROPERTY()

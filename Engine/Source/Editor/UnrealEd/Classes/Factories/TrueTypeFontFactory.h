@@ -10,7 +10,9 @@
 UCLASS(hidecategories=Object, collapsecategories)
 class UNREALED_API UTrueTypeFontFactory : public UTextureFactory, public FReimportHandler
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UTrueTypeFontFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Import options for this font */
 	UPROPERTY(EditAnywhere, Instanced, Category = TrueTypeFontFactory, meta = (ToolTip = "Import options for the font"))

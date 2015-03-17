@@ -10,7 +10,9 @@
 UCLASS(hidecategories=Object, MinimalAPI)
 class USoundCueFactoryNew : public UFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API USoundCueFactoryNew(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin UFactory Interface

@@ -6,7 +6,9 @@
 UCLASS()
 class ENGINE_API ANiagaraActor : public AActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ANiagaraActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 private_subobject:
 	/** Pointer to effect component */

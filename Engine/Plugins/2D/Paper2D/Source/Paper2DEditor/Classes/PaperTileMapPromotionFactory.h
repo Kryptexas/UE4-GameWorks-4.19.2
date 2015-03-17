@@ -11,7 +11,9 @@
 UCLASS()
 class UPaperTileMapPromotionFactory : public UFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPaperTileMapPromotionFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Object being promoted to an asset
 	UPROPERTY()

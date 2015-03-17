@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,7 +14,9 @@ class USlateBrushAsset;
 UCLASS()
 class UMG_API UImage : public UWidget
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UImage(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

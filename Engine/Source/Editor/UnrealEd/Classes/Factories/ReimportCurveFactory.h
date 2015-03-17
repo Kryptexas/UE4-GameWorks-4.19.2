@@ -6,7 +6,9 @@
 UCLASS()
 class UReimportCurveFactory : public UCSVImportFactory, public FReimportHandler
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UReimportCurveFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin FReimportHandler interface

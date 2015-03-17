@@ -10,7 +10,7 @@
 USTRUCT()
 struct FDummySpacerCameraTypes
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 };
 
 

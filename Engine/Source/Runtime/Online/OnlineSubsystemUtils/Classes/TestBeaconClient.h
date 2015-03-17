@@ -10,7 +10,9 @@
 UCLASS(transient, notplaceable, config=Engine)
 class ONLINESUBSYSTEMUTILS_API ATestBeaconClient : public AOnlineBeaconClient
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ATestBeaconClient(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin AOnlineBeacon Interface
 	virtual FString GetBeaconType() override { return TEXT("TestBeacon"); }
@@ -21,10 +23,13 @@ class ONLINESUBSYSTEMUTILS_API ATestBeaconClient : public AOnlineBeaconClient
 	// End AOnlineBeaconClient Interface
 
 	/** Send a ping RPC to the client */
-	UFUNCTION(client, reliable)
+	UFUNCTION(client="ClientPing_Implementation", reliable)
 	virtual void ClientPing();
+	virtual void ClientPing_Implementation();
 
 	/** Send a pong RPC to the host */
-	UFUNCTION(server, reliable, WithValidation)
+	UFUNCTION(server="ServerPong_Implementation", reliable, WithValidation="ServerPong_Validate")
 	virtual void ServerPong();
+	virtual void ServerPong_Implementation();
+	virtual bool ServerPong_Validate();
 };

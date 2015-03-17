@@ -10,7 +10,7 @@
 USTRUCT()
 struct FGrassInput
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category = Grass)
 	FName Name;
@@ -34,7 +34,9 @@ struct FGrassInput
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionLandscapeGrassOutput : public UMaterialExpressionCustomOutput
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	LANDSCAPE_API UMaterialExpressionLandscapeGrassOutput(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 	virtual const TArray<FExpressionInput*> GetInputs() override;

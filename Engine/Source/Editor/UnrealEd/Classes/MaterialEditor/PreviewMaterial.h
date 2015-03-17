@@ -9,7 +9,9 @@
 UCLASS()
 class UNREALED_API UPreviewMaterial : public UMaterial
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPreviewMaterial(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin UMaterial interface.

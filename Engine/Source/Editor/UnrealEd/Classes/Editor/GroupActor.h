@@ -11,7 +11,9 @@
 UCLASS(hidedropdown,MinimalAPI, notplaceable, NotBlueprintable)
 class AGroupActor : public AActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API AGroupActor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()

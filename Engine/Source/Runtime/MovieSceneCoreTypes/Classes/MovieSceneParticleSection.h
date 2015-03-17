@@ -24,7 +24,9 @@ namespace EParticleKey
 UCLASS( MinimalAPI )
 class UMovieSceneParticleSection : public UMovieSceneSection
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	MOVIESCENECORETYPES_API UMovieSceneParticleSection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 public:
 	/** Sets this section's key type*/
 	void SetKeyType(EParticleKey::Type InKeyType) {KeyType = InKeyType;}

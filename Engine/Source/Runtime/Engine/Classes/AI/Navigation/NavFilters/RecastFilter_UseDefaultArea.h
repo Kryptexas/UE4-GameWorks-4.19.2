@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI)
 class URecastFilter_UseDefaultArea : public UNavigationQueryFilter
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API URecastFilter_UseDefaultArea(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void InitializeFilter(const ANavigationData* NavData, FNavigationQueryFilter* Filter) const override;
 };

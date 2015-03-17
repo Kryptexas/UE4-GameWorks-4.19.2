@@ -24,7 +24,7 @@ enum class EFontHinting : uint8
 USTRUCT(BlueprintType)
 struct SLATECORE_API FFontData
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Default constructor */
 	FFontData();
@@ -62,7 +62,7 @@ struct SLATECORE_API FFontData
 USTRUCT(BlueprintType)
 struct SLATECORE_API FTypefaceEntry
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Default constructor */
 	FTypefaceEntry()
@@ -95,7 +95,7 @@ struct SLATECORE_API FTypefaceEntry
 USTRUCT(BlueprintType)
 struct SLATECORE_API FTypeface
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Default constructor */
 	FTypeface()
@@ -123,7 +123,7 @@ struct SLATECORE_API FTypeface
 USTRUCT(BlueprintType)
 struct SLATECORE_API FCompositeSubFont
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Default constructor */
 	FCompositeSubFont()
@@ -155,7 +155,7 @@ struct SLATECORE_API FCompositeSubFont
 USTRUCT(BlueprintType)
 struct SLATECORE_API FCompositeFont
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Default constructor */
 	FCompositeFont()

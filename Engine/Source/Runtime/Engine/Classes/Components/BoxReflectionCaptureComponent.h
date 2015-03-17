@@ -9,7 +9,9 @@
 UCLASS(hidecategories=(Collision, Object, Physics, SceneComponent), MinimalAPI)
 class UBoxReflectionCaptureComponent : public UReflectionCaptureComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UBoxReflectionCaptureComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Adjust capture transition distance */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=ReflectionCapture, meta=(UIMin = "1", UIMax = "1000"))

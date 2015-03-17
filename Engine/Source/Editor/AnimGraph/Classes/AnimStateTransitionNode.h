@@ -11,7 +11,9 @@
 UCLASS(MinimalAPI, config=Editor)
 class UAnimStateTransitionNode : public UAnimStateNodeBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ANIMGRAPH_API UAnimStateTransitionNode(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// The transition logic graph for this transition (returning a boolean)
 	UPROPERTY()

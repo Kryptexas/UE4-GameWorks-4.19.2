@@ -10,7 +10,7 @@
 USTRUCT(BlueprintType)
 struct FWidgetTransform
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** The amount to translate the widget in slate units */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Transform, meta=(Delta = "1"))

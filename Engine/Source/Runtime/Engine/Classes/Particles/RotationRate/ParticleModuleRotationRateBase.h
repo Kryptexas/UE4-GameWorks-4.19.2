@@ -8,7 +8,9 @@
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Rotation Rate"))
 class UParticleModuleRotationRateBase : public UParticleModule
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleModuleRotationRateBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 };
 

@@ -15,7 +15,7 @@
 USTRUCT()
 struct FPhysicalSurfaceName
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	TEnumAsByte<enum EPhysicalSurface> Type;
@@ -88,7 +88,9 @@ UCLASS(config=Engine, defaultconfig)
 class ENGINE_API UPhysicsSettings
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPhysicsSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Default gravity. */
 	UPROPERTY(config, EditAnywhere, Category = Constants)

@@ -22,7 +22,9 @@ DECLARE_DELEGATE_OneParam(FOnReservationRequestComplete, EPartyReservationResult
 UCLASS(transient, notplaceable, config=Engine)
 class ONLINESUBSYSTEMUTILS_API APartyBeaconClient : public AOnlineBeaconClient
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	APartyBeaconClient(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin AOnlineBeacon Interface
 	virtual FString GetBeaconType() override { return PARTY_BEACON_TYPE; }
@@ -55,8 +57,9 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconClient : public AOnlineBeaconClient
 	 *
 	 * @param ReservationResponse response from server
 	 */
- 	UFUNCTION(client, reliable)
+ 	UFUNCTION(client="ClientReservationResponse_Implementation", reliable)
 	virtual void ClientReservationResponse(EPartyReservationResult::Type ReservationResponse);
+ 	virtual void ClientReservationResponse_Implementation(EPartyReservationResult::Type ReservationResponse);
 
 	/**
 	 * Delegate triggered when a response from the party beacon host has been received
@@ -90,9 +93,13 @@ protected:
 	 *
 	 * @param Reservation pending reservation request to make with server
 	 */
-	UFUNCTION(server, reliable, WithValidation)
+	UFUNCTION(server="ServerReservationRequest_Implementation", reliable, WithValidation="ServerReservationRequest_Validate")
 	virtual void ServerReservationRequest(const FString& SessionId, struct FPartyReservation Reservation);
+	virtual void ServerReservationRequest_Implementation(const FString& SessionId, FPartyReservation Reservation);
+	virtual bool ServerReservationRequest_Validate(const FString& , FPartyReservation );
 
-	UFUNCTION(server, reliable, WithValidation)
+	UFUNCTION(server="ServerCancelReservationRequest_Implementation", reliable, WithValidation="ServerCancelReservationRequest_Validate")
 	virtual void ServerCancelReservationRequest(struct FUniqueNetIdRepl PartyLeader);
+	virtual void ServerCancelReservationRequest_Implementation(FUniqueNetIdRepl PartyLeader);
+	virtual bool ServerCancelReservationRequest_Validate(FUniqueNetIdRepl );
 };

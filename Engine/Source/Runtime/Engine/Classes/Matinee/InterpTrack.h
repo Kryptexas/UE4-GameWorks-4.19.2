@@ -33,7 +33,7 @@ enum ETrackActiveCondition
 USTRUCT()
 struct FSupportedSubTrackInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** The sub track class which is supported by this track */
 	UPROPERTY()
@@ -60,7 +60,7 @@ struct FSupportedSubTrackInfo
 USTRUCT()
 struct FSubTrackGroup
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Name of the subtrack  group */
 	UPROPERTY()
@@ -90,7 +90,9 @@ struct FSubTrackGroup
 UCLASS(collapsecategories, hidecategories=Object, abstract, MinimalAPI)
 class UInterpTrack : public UObject, public FCurveEdInterface, public FInterpEdInputInterface
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UInterpTrack(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** A list of subtracks that belong to this track */
 	UPROPERTY()

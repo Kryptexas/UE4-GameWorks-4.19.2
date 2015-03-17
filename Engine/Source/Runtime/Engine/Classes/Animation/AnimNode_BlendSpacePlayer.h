@@ -9,7 +9,7 @@
 USTRUCT()
 struct ENGINE_API FAnimNode_BlendSpacePlayer : public FAnimNode_Base
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 public:
 	// The X coordinate to sample in the blendspace

@@ -19,7 +19,9 @@ class FDebugDisplayInfo;
 UCLASS(abstract, config=Game, BlueprintType)
 class ENGINE_API AWheeledVehicle : public APawn
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AWheeledVehicle(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 private_subobject:
 	/**  The main skeletal mesh associated with this Vehicle */

@@ -10,7 +10,9 @@
 UCLASS()
 class BLUEPRINTGRAPH_API UK2Node_GetDataTableRow : public UK2Node
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UK2Node_GetDataTableRow(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin UEdGraphNode interface.
 	virtual void AllocateDefaultPins() override;

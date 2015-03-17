@@ -31,7 +31,9 @@ private:
 UCLASS(MinimalAPI)
 class UFindTurnBasedMatchCallbackProxy : public UOnlineBlueprintCallProxyBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ONLINESUBSYSTEMUTILS_API UFindTurnBasedMatchCallbackProxy(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
     virtual ~UFindTurnBasedMatchCallbackProxy();
     

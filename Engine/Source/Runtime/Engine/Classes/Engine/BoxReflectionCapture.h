@@ -14,5 +14,7 @@ UCLASS(hidecategories=(Collision, Attachment, Actor), MinimalAPI)
 class ABoxReflectionCapture
 	: public AReflectionCapture
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API ABoxReflectionCapture(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };

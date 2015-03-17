@@ -11,7 +11,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitGameplayTagDelegate);
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitGameplayTagAdded : public UAbilityTask_WaitGameplayTag
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	GAMEPLAYABILITIES_API UAbilityTask_WaitGameplayTagAdded(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(BlueprintAssignable)
 	FWaitGameplayTagDelegate	Added;
@@ -31,7 +33,9 @@ class UAbilityTask_WaitGameplayTagAdded : public UAbilityTask_WaitGameplayTag
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitGameplayTagRemoved : public UAbilityTask_WaitGameplayTag
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	GAMEPLAYABILITIES_API UAbilityTask_WaitGameplayTagRemoved(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(BlueprintAssignable)
 	FWaitGameplayTagDelegate	Removed;

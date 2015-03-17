@@ -7,7 +7,9 @@
 UCLASS(MinimalAPI,config=Editor)
 class UActorFactoryBasicShape : public UActorFactoryStaticMesh
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API UActorFactoryBasicShape(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual bool CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg ) override;
 	virtual void PostSpawnActor(UObject* Asset, AActor* NewActor) override;

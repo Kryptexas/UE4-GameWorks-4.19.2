@@ -8,7 +8,7 @@
 USTRUCT()
 struct ANIMGRAPH_API FEdGraphSchemaAction_NewStateNode : public FEdGraphSchemaAction
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UEdGraphNode* NodeTemplate;
 
@@ -39,7 +39,7 @@ struct ANIMGRAPH_API FEdGraphSchemaAction_NewStateNode : public FEdGraphSchemaAc
 USTRUCT()
 struct ANIMGRAPH_API FEdGraphSchemaAction_NewStateComment : public FEdGraphSchemaAction
 {
-	GENERATED_USTRUCT_BODY();
+	GENERATED_BODY()
 
 	FEdGraphSchemaAction_NewStateComment() 
 		: FEdGraphSchemaAction()
@@ -58,7 +58,9 @@ struct ANIMGRAPH_API FEdGraphSchemaAction_NewStateComment : public FEdGraphSchem
 UCLASS(MinimalAPI)
 class UAnimationStateMachineSchema : public UEdGraphSchema
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ANIMGRAPH_API UAnimationStateMachineSchema(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	FString PC_Exec;

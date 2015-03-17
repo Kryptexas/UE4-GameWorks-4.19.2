@@ -10,7 +10,9 @@ DECLARE_DELEGATE_OneParam( FSCSNodeNameChanged, const FName& );
 UCLASS(MinimalAPI)
 class USCS_Node : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API USCS_Node(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Template for the component to create */
 	UPROPERTY()

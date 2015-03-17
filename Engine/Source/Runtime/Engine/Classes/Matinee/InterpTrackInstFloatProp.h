@@ -8,7 +8,9 @@
 UCLASS(MinimalAPI)
 class UInterpTrackInstFloatProp : public UInterpTrackInstProperty
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UInterpTrackInstFloatProp(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Pointer to float property in TrackObject. */
 	float* FloatProp;

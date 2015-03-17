@@ -8,7 +8,9 @@
 UCLASS(MinimalAPI)
 class UAnimGraphNode_LayeredBoneBlend : public UAnimGraphNode_BlendListBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ANIMGRAPH_API UAnimGraphNode_LayeredBoneBlend(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_LayeredBoneBlend Node;

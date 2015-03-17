@@ -9,7 +9,9 @@ typedef FKeyEvent FKeyEvent;
 UCLASS(MinimalAPI)
 class UKismetInputLibrary : public UBlueprintFunctionLibrary
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UKismetInputLibrary(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Calibrate the tilt for the input device */
 	UFUNCTION(BlueprintCallable, Category="Input")

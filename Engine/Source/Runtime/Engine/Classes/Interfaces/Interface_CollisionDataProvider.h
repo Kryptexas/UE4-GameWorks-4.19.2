@@ -12,7 +12,7 @@
 USTRUCT()
 struct FTriIndices
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	int32 v0;
@@ -37,7 +37,7 @@ struct FTriIndices
 USTRUCT()
 struct FTriMeshCollisionData
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Array of vertices included in the triangle mesh */
 	UPROPERTY(transient)
@@ -64,12 +64,15 @@ struct FTriMeshCollisionData
 UINTERFACE(meta=(CannotImplementInterfaceInBlueprint))
 class UInterface_CollisionDataProvider : public UInterface
 {
-	GENERATED_UINTERFACE_BODY()
+	GENERATED_BODY()
+public:
+	UInterface_CollisionDataProvider(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };
 
 class IInterface_CollisionDataProvider
 {
-	GENERATED_IINTERFACE_BODY()
+	GENERATED_BODY()
+public:
 
 
 	/**	 Interface for retrieving triangle mesh collision data from the implementing object 

@@ -13,7 +13,9 @@
 UCLASS(transient,MinimalAPI)
 class UPlatformInterfaceWebResponse : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UPlatformInterfaceWebResponse(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** This holds the original requested URL */
 	UPROPERTY()

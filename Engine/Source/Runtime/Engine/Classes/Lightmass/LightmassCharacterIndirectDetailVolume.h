@@ -11,7 +11,9 @@
 UCLASS(hidecategories=(Collision, Brush, Attachment, Physics, Volume), MinimalAPI)
 class ALightmassCharacterIndirectDetailVolume : public AVolume
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API ALightmassCharacterIndirectDetailVolume(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 };
 

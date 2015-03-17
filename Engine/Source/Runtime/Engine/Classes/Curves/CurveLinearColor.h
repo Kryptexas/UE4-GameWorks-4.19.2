@@ -7,7 +7,7 @@
 USTRUCT()
 struct ENGINE_API FRuntimeCurveLinearColor
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 public:
 	UPROPERTY()
 	FRichCurve ColorCurves[4];
@@ -21,7 +21,9 @@ public:
 UCLASS(BlueprintType)
 class ENGINE_API UCurveLinearColor : public UCurveBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UCurveLinearColor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Keyframe data, one curve for red, green, blue, and alpha */
 	UPROPERTY()

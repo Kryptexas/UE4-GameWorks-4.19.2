@@ -6,7 +6,9 @@
 UCLASS()
 class UNREALED_API UNiagaraNode : public UEdGraphNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNiagaraNode(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

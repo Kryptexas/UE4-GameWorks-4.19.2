@@ -34,7 +34,7 @@ namespace ECameraAnimPlaySpace
 USTRUCT()
 struct FMinimalViewInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Location */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera)

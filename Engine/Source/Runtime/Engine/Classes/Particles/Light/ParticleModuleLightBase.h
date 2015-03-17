@@ -8,7 +8,9 @@
 UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Light"))
 class UParticleModuleLightBase : public UParticleModule
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleModuleLightBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	virtual bool CanTickInAnyThread() override
 	{
 		return false;

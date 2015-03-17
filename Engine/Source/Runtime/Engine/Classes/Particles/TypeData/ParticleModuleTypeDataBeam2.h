@@ -34,7 +34,7 @@ enum EBeamTaperMethod
 USTRUCT()
 struct FBeamTargetData
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Name of the target.																	*/
 	UPROPERTY(EditAnywhere, Category=BeamTargetData)
@@ -55,7 +55,9 @@ struct FBeamTargetData
 UCLASS(editinlinenew, dontcollapsecategories, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Beam Data"))
 class UParticleModuleTypeDataBeam2 : public UParticleModuleTypeDataBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UParticleModuleTypeDataBeam2(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	//
 	// General Beam Variables.

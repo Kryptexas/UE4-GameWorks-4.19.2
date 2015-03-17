@@ -9,7 +9,7 @@
 USTRUCT()
 struct UNREALED_API FDComponentMaskParameter
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category=DComponentMaskParameter)
 	uint32 R:1;
@@ -46,7 +46,9 @@ struct UNREALED_API FDComponentMaskParameter
 UCLASS(hidecategories=Object, collapsecategories)
 class UNREALED_API UDEditorStaticComponentMaskParameterValue : public UDEditorParameterValue
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UDEditorStaticComponentMaskParameterValue(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category=DEditorStaticComponentMaskParameterValue)
 	struct FDComponentMaskParameter ParameterValue;

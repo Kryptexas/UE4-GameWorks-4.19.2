@@ -5,8 +5,9 @@
 UCLASS(noexport, Intrinsic)
 class UModel : public UObject
 {
-	GENERATED_UCLASS_BODY()
-
+	GENERATED_BODY()
+public:
+	UModel(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };
 
 #endif

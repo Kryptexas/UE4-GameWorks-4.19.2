@@ -11,7 +11,9 @@
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, meta=( DisplayName="Looping" ))
 class USoundNodeLooping : public USoundNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API USoundNodeLooping(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/* The amount of times to loop */
 	UPROPERTY(EditAnywhere, Category = Looping, meta = (ClampMin = 1))

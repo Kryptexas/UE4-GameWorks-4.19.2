@@ -11,7 +11,9 @@
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Size By Speed"))
 class UParticleModuleSizeScaleBySpeed : public UParticleModuleSizeBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleModuleSizeScaleBySpeed(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** By how much speed affects the size of the particle in each dimension. */
 	UPROPERTY(EditAnywhere, Category=ParticleModuleSizeScaleBySpeed)

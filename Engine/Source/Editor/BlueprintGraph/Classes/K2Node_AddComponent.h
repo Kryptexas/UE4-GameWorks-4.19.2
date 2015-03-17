@@ -9,7 +9,9 @@
 UCLASS(MinimalAPI)
 class UK2Node_AddComponent : public UK2Node_CallFunction
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	BLUEPRINTGRAPH_API UK2Node_AddComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY()
 	uint32 bHasExposedVariable:1;

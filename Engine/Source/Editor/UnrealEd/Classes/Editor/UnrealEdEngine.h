@@ -37,7 +37,7 @@ enum EWriteDisallowedWarningState
 USTRUCT()
 struct FClassMoveInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** The type of asset this MoveInfo applies to. */
 	UPROPERTY(config)
@@ -67,7 +67,7 @@ struct FClassMoveInfo
 USTRUCT()
 struct FTemplateMapInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** The Texture2D associated with this map template */
 	UPROPERTY()
@@ -88,7 +88,6 @@ class FPerformanceMonitor;
 UCLASS(config=Engine, transient)
 class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 {
-public:
 	GENERATED_BODY()
 public:
 

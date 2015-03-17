@@ -128,7 +128,7 @@ namespace EColorChannel
 USTRUCT()
 struct FGizmoImportLayer
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(Category="Import", EditAnywhere)
 	FString LayerFilename;
@@ -175,7 +175,7 @@ enum class ELandscapeImportLayerError : uint8
 USTRUCT()
 struct FLandscapeImportLayer : public FLandscapeImportLayerInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(Category="Import", VisibleAnywhere)
 	ELandscapeImportLayerError ImportError;
@@ -190,7 +190,7 @@ struct FLandscapeImportLayer : public FLandscapeImportLayerInfo
 USTRUCT()
 struct FLandscapePatternBrushWorldSpaceSettings
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(Category="World-Space", EditAnywhere)
 	FVector2D Origin;
@@ -212,7 +212,9 @@ struct FLandscapePatternBrushWorldSpaceSettings
 UCLASS()
 class ULandscapeEditorObject : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ULandscapeEditorObject(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	FEdModeLandscape* ParentMode;
 

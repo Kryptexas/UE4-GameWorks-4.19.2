@@ -15,7 +15,9 @@
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Emitter Direct Location"))
 class UParticleModuleLocationEmitterDirect : public UParticleModuleLocationBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UParticleModuleLocationEmitterDirect(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The name of the emitter to use as a source for the location of the particles. */
 	UPROPERTY(EditAnywhere, export, noclear, Category=Location)

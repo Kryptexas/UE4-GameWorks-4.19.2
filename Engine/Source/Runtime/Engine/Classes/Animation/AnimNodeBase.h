@@ -261,7 +261,7 @@ namespace EPinHidingMode
 USTRUCT()
 struct ENGINE_API FPoseLinkBase
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// Serialized link ID, used to build the non-serialized pointer map
 	UPROPERTY()
@@ -305,7 +305,7 @@ public:
 USTRUCT()
 struct ENGINE_API FPoseLink : public FPoseLinkBase
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 public:
 	// Interface
@@ -316,7 +316,7 @@ public:
 USTRUCT()
 struct ENGINE_API FComponentSpacePoseLink : public FPoseLinkBase
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 public:
 	// Interface
@@ -327,7 +327,7 @@ public:
 USTRUCT()
 struct FExposedValueHandler
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// The function to call to update associated properties (can be NULL)
 	UPROPERTY()
@@ -354,7 +354,7 @@ struct FExposedValueHandler
 USTRUCT()
 struct ENGINE_API FAnimNode_Base
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// The default handler for graph-exposed inputs
 	UPROPERTY()

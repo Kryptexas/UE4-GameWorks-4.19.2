@@ -7,7 +7,9 @@
 UCLASS()
 class UMatineeTrackBoolPropHelper : public UInterpTrackHelper
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMatineeTrackBoolPropHelper(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	void OnCreateTrackTextEntry(const FString& ChosenText, TWeakPtr<SWindow> Window, FString* OutputString);
 

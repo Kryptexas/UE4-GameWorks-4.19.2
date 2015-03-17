@@ -12,7 +12,9 @@
 UCLASS()
 class UMG_API UOverlaySlot : public UPanelSlot
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UOverlaySlot(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	

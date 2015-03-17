@@ -9,7 +9,9 @@
 UCLASS(transient, config = Engine)
 class HTML5NETWORKING_API UWebSocketNetDriver : public UNetDriver
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UWebSocketNetDriver(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Websocket server port*/
 	UPROPERTY(Config)

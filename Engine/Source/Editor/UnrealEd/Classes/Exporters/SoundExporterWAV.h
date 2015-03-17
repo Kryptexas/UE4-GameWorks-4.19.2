@@ -6,11 +6,9 @@
 UCLASS()
 class USoundExporterWAV : public UExporter
 {
+    GENERATED_BODY()
 public:
-	GENERATED_BODY()
-
-public:
-	USoundExporterWAV(const FObjectInitializer& ObjectInitializer = FObjectInitializer());
+    USoundExporterWAV(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Begin UExporter Interface
 	virtual bool ExportBinary( UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex = 0, uint32 PortFlags=0 ) override;

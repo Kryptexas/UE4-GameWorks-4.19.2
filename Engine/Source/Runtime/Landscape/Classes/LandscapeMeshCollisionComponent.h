@@ -18,7 +18,9 @@ namespace physx
 UCLASS()
 class ULandscapeMeshCollisionComponent : public ULandscapeHeightfieldCollisionComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ULandscapeMeshCollisionComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Keep the possibility to share projected height field PhysX object with editor mesh collision objects...
 

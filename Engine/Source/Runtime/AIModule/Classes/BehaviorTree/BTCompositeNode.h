@@ -49,7 +49,7 @@ namespace EBTDecoratorLogic
 USTRUCT()
 struct FBTDecoratorLogic
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	TEnumAsByte<EBTDecoratorLogic::Type> Operation;
@@ -64,7 +64,7 @@ struct FBTDecoratorLogic
 USTRUCT()
 struct FBTCompositeChild
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** child node */
 	UPROPERTY()
@@ -85,7 +85,9 @@ struct FBTCompositeChild
 UCLASS(Abstract)
 class AIMODULE_API UBTCompositeNode : public UBTNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBTCompositeNode(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** child nodes */
 	UPROPERTY()

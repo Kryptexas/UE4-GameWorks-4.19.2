@@ -16,7 +16,9 @@ struct FBlendSample;
 UCLASS(config=Engine, hidecategories=Object, MinimalAPI, BlueprintType)
 class UAimOffsetBlendSpace : public UBlendSpace
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UAimOffsetBlendSpace(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual bool IsValidAdditive() const override;
 

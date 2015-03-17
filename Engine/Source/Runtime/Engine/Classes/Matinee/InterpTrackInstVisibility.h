@@ -9,7 +9,9 @@
 UCLASS()
 class UInterpTrackInstVisibility : public UInterpTrackInst
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UInterpTrackInstVisibility(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category=InterpTrackInstVisibility)
 	TEnumAsByte<enum EVisibilityTrackAction> Action;

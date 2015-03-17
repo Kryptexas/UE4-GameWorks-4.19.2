@@ -12,7 +12,9 @@ UCLASS(hidecategories=Object, MinimalAPI)
 class UMediaTextureFactoryNew
 	: public UFactory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	MEDIAPLAYEREDITOR_API UMediaTextureFactoryNew(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** An initial media player asset to place in the newly created texture. */
 	UPROPERTY()

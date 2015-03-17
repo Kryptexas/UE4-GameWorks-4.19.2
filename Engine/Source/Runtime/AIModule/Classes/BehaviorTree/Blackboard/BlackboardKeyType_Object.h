@@ -6,7 +6,9 @@
 UCLASS(EditInlineNew, meta=(DisplayName="Object"))
 class AIMODULE_API UBlackboardKeyType_Object : public UBlackboardKeyType
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBlackboardKeyType_Object(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	typedef UObject* FDataType;
 	static const FDataType InvalidValue;

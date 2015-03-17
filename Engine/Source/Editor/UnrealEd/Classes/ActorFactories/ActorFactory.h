@@ -11,7 +11,9 @@ class ULevel;
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew, config=Editor, abstract, transient)
 class UNREALED_API UActorFactory : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UActorFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Name used as basis for 'New Actor' menu. */
 	UPROPERTY()

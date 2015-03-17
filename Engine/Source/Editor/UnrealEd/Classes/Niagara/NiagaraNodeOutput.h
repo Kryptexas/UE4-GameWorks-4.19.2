@@ -6,7 +6,9 @@
 UCLASS(MinimalAPI)
 class UNiagaraNodeOutput : public UNiagaraNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API UNiagaraNodeOutput(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	void ReallocatePins();
 public:

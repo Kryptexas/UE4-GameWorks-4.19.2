@@ -12,7 +12,7 @@
 USTRUCT()
 struct FAutoCompleteNode
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Char for node in the tree */
 	UPROPERTY()
@@ -55,7 +55,9 @@ class ENGINE_API UConsole
 	: public UObject
 	, public FOutputDevice
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UConsole(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The player which the next console command should be executed in the context of.  If nullptr, execute in the viewport. */
 	UPROPERTY()

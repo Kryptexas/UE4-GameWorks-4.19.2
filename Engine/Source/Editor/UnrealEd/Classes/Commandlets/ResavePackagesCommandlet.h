@@ -8,7 +8,9 @@ UCLASS()
 // Added UNREALED_API to expose this to the save packages test
 class UNREALED_API UResavePackagesCommandlet : public UCommandlet
 {
-    GENERATED_UCLASS_BODY()
+    GENERATED_BODY()
+public:
+    UResavePackagesCommandlet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	enum EBrevity
 	{

@@ -12,7 +12,9 @@
 UCLASS(abstract)
 class UNREALED_API UFactory : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UFactory(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The class manufactured by this factory. */
 	UPROPERTY()

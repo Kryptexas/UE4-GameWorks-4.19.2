@@ -13,7 +13,9 @@
 UCLASS(hidecategories=AnimationCompressionAlgorithm)
 class UAnimCompress_Automatic : public UAnimCompress
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAnimCompress_Automatic(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Maximum amount of error that a compression technique can introduce in an end effector */
 	UPROPERTY(EditAnywhere, Category=AnimationCompressionAlgorithm_Automatic)

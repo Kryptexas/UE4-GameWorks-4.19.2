@@ -17,7 +17,9 @@ UCLASS(config=EditorUserSettings)
 class BLUEPRINTGRAPH_API UBlueprintEditorSettings
 	:	public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBlueprintEditorSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 // Style Settings
 public:

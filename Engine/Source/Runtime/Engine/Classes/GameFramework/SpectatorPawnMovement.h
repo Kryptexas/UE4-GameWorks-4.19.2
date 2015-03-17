@@ -11,7 +11,9 @@
 UCLASS()
 class ENGINE_API USpectatorPawnMovement : public UFloatingPawnMovement
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	USpectatorPawnMovement(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** If true, component moves at full speed no matter the time dilation. Default is false. */
 	UPROPERTY()

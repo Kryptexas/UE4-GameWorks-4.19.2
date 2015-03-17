@@ -27,7 +27,9 @@ enum EWorldPositionIncludedOffsets
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionWorldPosition : public UMaterialExpression
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UMaterialExpressionWorldPosition(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditAnywhere, Category=UMaterialExpressionWorldPosition, meta=(DisplayName = "Shader Offsets"))
 	TEnumAsByte<EWorldPositionIncludedOffsets> WorldPositionShaderOffset;

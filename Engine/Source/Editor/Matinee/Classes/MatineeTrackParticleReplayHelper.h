@@ -8,7 +8,9 @@
 UCLASS()
 class UMatineeTrackParticleReplayHelper : public UInterpTrackHelper
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMatineeTrackParticleReplayHelper(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

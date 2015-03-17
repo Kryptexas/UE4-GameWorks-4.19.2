@@ -7,7 +7,9 @@
 UCLASS()
 class FOLIAGE_API UFoliageStatistics : public UBlueprintFunctionLibrary
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UFoliageStatistics(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/**
 	* Counts how many foliage instances overlap a given sphere

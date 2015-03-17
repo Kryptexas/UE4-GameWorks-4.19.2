@@ -10,7 +10,9 @@
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, meta=( DisplayName="Wave Param" ))
 class USoundNodeWaveParam : public USoundNode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API USoundNodeWaveParam(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** The name of the wave parameter to use to look up the SoundWave we should play */
 	UPROPERTY(EditAnywhere, Category=WaveParam)

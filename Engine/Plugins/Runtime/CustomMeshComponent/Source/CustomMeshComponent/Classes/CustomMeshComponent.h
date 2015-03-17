@@ -7,7 +7,7 @@
 USTRUCT(BlueprintType)
 struct FCustomMeshTriangle
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Triangle)
 	FVector Vertex0;
@@ -23,7 +23,9 @@ struct FCustomMeshTriangle
 UCLASS(hidecategories=(Object,LOD, Physics, Collision), editinlinenew, meta=(BlueprintSpawnableComponent), ClassGroup=Rendering)
 class CUSTOMMESHCOMPONENT_API UCustomMeshComponent : public UMeshComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UCustomMeshComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Set the geometry to use on this triangle mesh */
 	UFUNCTION(BlueprintCallable, Category="Components|CustomMesh")

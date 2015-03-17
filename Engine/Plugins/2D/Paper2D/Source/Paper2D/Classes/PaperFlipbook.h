@@ -8,8 +8,8 @@
 USTRUCT()
 struct FPaperFlipbookKeyFrame
 {
+	GENERATED_BODY()
 public:
-	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(Category=Sprite, EditAnywhere)
 	UPaperSprite* Sprite;
@@ -46,7 +46,9 @@ namespace EFlipbookCollisionMode
 UCLASS(BlueprintType, meta = (DisplayThumbnail = "true"))
 class PAPER2D_API UPaperFlipbook : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UPaperFlipbook(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
 	// The nominal frame rate to play this flipbook animation back at

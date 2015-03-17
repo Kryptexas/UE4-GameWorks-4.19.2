@@ -12,7 +12,7 @@
 USTRUCT(BlueprintType)
 struct FMargin
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Holds the margin to the left. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)

@@ -10,7 +10,9 @@
 UCLASS(Experimental, ClassGroup=UserInterface)
 class UMG_API UListView : public UTableViewBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UListView(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

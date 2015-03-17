@@ -13,7 +13,9 @@ DECLARE_LOG_CATEGORY_EXTERN(LogVolume, Log, All);
 UCLASS(showcategories=Collision, hidecategories=(Brush, Physics), abstract, ConversionRoot)
 class ENGINE_API AVolume : public ABrush
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AVolume(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 #if WITH_EDITOR
 	/** Delegate used for notifications when a volumes initial shape changes */

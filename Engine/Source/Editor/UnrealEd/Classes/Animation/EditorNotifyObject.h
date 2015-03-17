@@ -14,7 +14,9 @@ class UEditorNotifyEntry;
 UCLASS(MinimalAPI)
 class UEditorNotifyObject : public UEditorAnimBaseObj
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API UEditorNotifyObject(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Set up the editor object
 	 *	@param TrackIdx Index of the track the notify belongs to

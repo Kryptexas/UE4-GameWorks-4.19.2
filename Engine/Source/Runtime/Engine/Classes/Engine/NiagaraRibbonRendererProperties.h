@@ -8,8 +8,10 @@
 UCLASS()
 class UNiagaraRibbonRendererProperties : public UNiagaraEffectRendererProperties
 {
+	GENERATED_BODY()
 public:
-	GENERATED_UCLASS_BODY()
+	UNiagaraRibbonRendererProperties(const FObjectInitializer& ObjectInitializer);
+public:
 
 	UNiagaraRibbonRendererProperties()
 	{

@@ -7,7 +7,9 @@
 UCLASS(BlueprintType, MinimalAPI)
 class UCurveVector : public UCurveBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UCurveVector(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Keyframe data, one curve for X, Y and Z */
 	UPROPERTY()

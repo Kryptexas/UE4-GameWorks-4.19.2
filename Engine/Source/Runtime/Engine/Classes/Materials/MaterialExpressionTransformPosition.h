@@ -16,7 +16,9 @@ enum EMaterialPositionTransformSource
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionTransformPosition : public UMaterialExpression
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UMaterialExpressionTransformPosition(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** input expression for this transform */
 	UPROPERTY()

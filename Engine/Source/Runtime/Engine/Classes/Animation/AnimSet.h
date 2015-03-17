@@ -13,7 +13,7 @@
 USTRUCT()
 struct FAnimSetMeshLinkup
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** 
 	 * Mapping table. Size must be same as size of SkelMesh reference skeleton. 
@@ -33,7 +33,9 @@ struct FAnimSetMeshLinkup
 UCLASS(hidecategories=Object, MinimalAPI)
 class UAnimSet : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UAnimSet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 private:
 	/** 

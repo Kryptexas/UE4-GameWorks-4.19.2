@@ -11,7 +11,9 @@
 UCLASS(MinimalAPI)
 class UTextureThumbnailRenderer : public UThumbnailRenderer
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UNREALED_API UTextureThumbnailRenderer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin UThumbnailRenderer Object

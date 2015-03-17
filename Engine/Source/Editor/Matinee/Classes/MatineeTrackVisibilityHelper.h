@@ -7,7 +7,9 @@
 UCLASS()
 class UMatineeTrackVisibilityHelper : public UInterpTrackHelper
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMatineeTrackVisibilityHelper(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	void OnAddKeyTextEntry(const FString& ChosenText, IMatineeBase* Matinee, UInterpTrack* Track);
 

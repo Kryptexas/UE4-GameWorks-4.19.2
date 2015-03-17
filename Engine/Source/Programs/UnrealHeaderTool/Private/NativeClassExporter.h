@@ -252,7 +252,7 @@ private:
 	void ExportGeneratedEnumsInitCode(const TArray<UEnum*>& Enums);
 
 	/**
-	 * Exports the macro declarations for GENERATED_USTRUCT_BODY() for each Foo in the list of structs specified
+	 * Exports the macro declarations for GENERATED_BODY() for each Foo in the list of structs specified
 	 * 
 	 * @param	SourceFile	the source file
 	 * @param	Structs		the structs to export
@@ -399,8 +399,9 @@ private:
 	 * @param FunctionData function data for the current function
 	 * @param Parameters list of parameters in the function
 	 * @param Return return parameter for the function
+	 * @param DeprecationWarningOutputDevice Device to output deprecation warnings for _Validate and _Implementation functions.
 	 */
-	void ExportFunctionThunk(FStringOutputDevice& RPCWrappers, UFunction* Function, const FFuncInfo& FunctionData, const TArray<UProperty*>& Parameters, UProperty* Return);
+	void ExportFunctionThunk(FStringOutputDevice& RPCWrappers, UFunction* Function, const FFuncInfo& FunctionData, const TArray<UProperty*>& Parameters, UProperty* Return, FStringOutputDevice& DeprecationWarningOutputDevice);
 
 	/** Exports the native function registration code for the given class. */
 	void ExportNatives(FClass* Class);

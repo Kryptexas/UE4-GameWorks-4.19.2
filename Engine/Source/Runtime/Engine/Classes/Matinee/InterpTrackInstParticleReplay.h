@@ -7,7 +7,9 @@
 UCLASS()
 class UInterpTrackInstParticleReplay : public UInterpTrackInst
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UInterpTrackInstParticleReplay(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** 
 	 *	Position we were in last time we evaluated.

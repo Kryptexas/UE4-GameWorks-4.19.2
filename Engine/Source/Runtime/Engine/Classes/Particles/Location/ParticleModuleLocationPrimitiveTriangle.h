@@ -12,7 +12,9 @@
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Triangle"))
 class UParticleModuleLocationPrimitiveTriangle : public UParticleModuleLocationBase
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UParticleModuleLocationPrimitiveTriangle(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	UPROPERTY(EditAnywhere, Category=Location)

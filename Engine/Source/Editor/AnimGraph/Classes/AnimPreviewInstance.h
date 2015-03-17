@@ -27,7 +27,9 @@ enum EMontagePreviewType
 UCLASS(transient, NotBlueprintable, noteditinlinenew)
 class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAnimPreviewInstance(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Controllers for individual bones */
 	UPROPERTY(transient)

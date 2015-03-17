@@ -13,7 +13,9 @@
 UCLASS(hidecategories=Object, MinimalAPI)
 class UInterpData : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UInterpData(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Duration of interpolation sequence - in seconds. */
 	UPROPERTY()

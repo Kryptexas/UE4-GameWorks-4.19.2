@@ -7,7 +7,7 @@
 USTRUCT()
 struct ENGINE_API FSmartNameMapping
 {
-	GENERATED_USTRUCT_BODY();
+	GENERATED_BODY()
 
 	FSmartNameMapping();
 
@@ -83,7 +83,7 @@ private:
 USTRUCT()
 struct ENGINE_API FSmartNameContainer
 {
-	GENERATED_USTRUCT_BODY();
+	GENERATED_BODY()
 
 	// Add a new smartname container with the provided name
 	void AddContainer(FName NewContainerName);

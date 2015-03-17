@@ -12,7 +12,7 @@ class FClusterBuilder;
 USTRUCT()
 struct FClusterNode
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FVector BoundMin;
@@ -76,7 +76,9 @@ public:
 UCLASS(ClassGroup=Rendering, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UHierarchicalInstancedStaticMeshComponent : public UInstancedStaticMeshComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UHierarchicalInstancedStaticMeshComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	~UHierarchicalInstancedStaticMeshComponent();
 

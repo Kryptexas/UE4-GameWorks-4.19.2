@@ -16,7 +16,9 @@ struct FBTKeepInConeDecoratorMemory
 UCLASS(HideCategories=(Condition))
 class AIMODULE_API UBTDecorator_KeepInCone : public UBTDecorator
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UBTDecorator_KeepInCone(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	typedef FBTKeepInConeDecoratorMemory TNodeInstanceMemory;
 

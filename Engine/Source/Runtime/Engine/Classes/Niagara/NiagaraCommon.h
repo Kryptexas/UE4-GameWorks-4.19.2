@@ -18,7 +18,7 @@ enum class ENiagaraDataType : uint8
 USTRUCT()
 struct FNiagaraVariableInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	FNiagaraVariableInfo()
 	: Name(NAME_None)

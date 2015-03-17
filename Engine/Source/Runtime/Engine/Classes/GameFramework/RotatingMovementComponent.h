@@ -12,7 +12,9 @@
 UCLASS(ClassGroup=Movement, meta=(BlueprintSpawnableComponent), HideCategories=(Velocity))
 class ENGINE_API URotatingMovementComponent : public UMovementComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	URotatingMovementComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** How fast to update roll/pitch/yaw of the component we update. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=RotatingComponent)

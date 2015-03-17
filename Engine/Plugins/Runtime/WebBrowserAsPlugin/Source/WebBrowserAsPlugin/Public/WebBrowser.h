@@ -14,7 +14,9 @@
 UCLASS()
 class WEBBROWSERASPLUGIN_API UWebBrowser : public UWidget
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UWebBrowser(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

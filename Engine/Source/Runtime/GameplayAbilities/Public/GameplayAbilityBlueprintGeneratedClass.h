@@ -7,5 +7,7 @@
 UCLASS()
 class  GAMEPLAYABILITIES_API UGameplayAbilityBlueprintGeneratedClass : public UBlueprintGeneratedClass
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UGameplayAbilityBlueprintGeneratedClass(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };

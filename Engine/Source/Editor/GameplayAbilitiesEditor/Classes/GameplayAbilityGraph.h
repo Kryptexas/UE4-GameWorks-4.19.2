@@ -7,6 +7,8 @@
 UCLASS(MinimalAPI)
 class UGameplayAbilityGraph : public UEdGraph
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	GAMEPLAYABILITIESEDITOR_API UGameplayAbilityGraph(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };
 

@@ -7,7 +7,7 @@
 USTRUCT()
 struct FLandscapeSplineInterpPoint
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Center Point */
 	UPROPERTY()
@@ -51,7 +51,7 @@ struct FLandscapeSplineInterpPoint
 USTRUCT()
 struct FLandscapeSplineSegmentConnection
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	// Control point connected to this end of the segment
 	UPROPERTY()
@@ -85,7 +85,7 @@ enum LandscapeSplineMeshOrientation
 USTRUCT()
 struct FLandscapeSplineMeshEntry
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Mesh to use on the spline */
 	UPROPERTY(EditAnywhere, Category=LandscapeSplineMeshEntry)
@@ -143,7 +143,9 @@ struct FLandscapeSplineMeshEntry
 UCLASS(Within=LandscapeSplinesComponent,autoExpandCategories=(LandscapeSplineSegment,LandscapeSplineMeshes),MinimalAPI)
 class ULandscapeSplineSegment : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	LANDSCAPE_API ULandscapeSplineSegment(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 // Directly editable data:
 	UPROPERTY(EditAnywhere, EditFixedSize, Category=LandscapeSplineSegment)

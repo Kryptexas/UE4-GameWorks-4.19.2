@@ -7,7 +7,9 @@
 UINTERFACE()
 class UInterface_PostProcessVolume : public UInterface
 {
-	GENERATED_UINTERFACE_BODY()
+	GENERATED_BODY()
+public:
+	UInterface_PostProcessVolume(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };
 
 struct FPostProcessVolumeProperties
@@ -22,7 +24,8 @@ struct FPostProcessVolumeProperties
 
 class IInterface_PostProcessVolume
 {
-	GENERATED_IINTERFACE_BODY()
+	GENERATED_BODY()
+public:
 
 	ENGINE_API virtual bool EncompassesPoint(FVector Point, float SphereRadius/*=0.f*/, float* OutDistanceToPoint) = 0;
 	ENGINE_API virtual FPostProcessVolumeProperties GetProperties() const = 0;

@@ -8,7 +8,7 @@
 USTRUCT(BlueprintType)
 struct FAnalyticsEventAttr
 {
-	GENERATED_USTRUCT_BODY();
+	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Analytics")
 	FString Name;
@@ -21,7 +21,9 @@ UCLASS()
 class UAnalyticsBlueprintLibrary :
 	public UBlueprintFunctionLibrary
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UAnalyticsBlueprintLibrary(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Starts an analytics session without any custom attributes specified */
 	UFUNCTION(BlueprintCallable, Category="Analytics")

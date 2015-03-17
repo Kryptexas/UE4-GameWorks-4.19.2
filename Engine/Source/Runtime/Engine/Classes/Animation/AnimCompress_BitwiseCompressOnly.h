@@ -12,7 +12,9 @@
 UCLASS(MinimalAPI)
 class UAnimCompress_BitwiseCompressOnly : public UAnimCompress
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ENGINE_API UAnimCompress_BitwiseCompressOnly(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 protected:

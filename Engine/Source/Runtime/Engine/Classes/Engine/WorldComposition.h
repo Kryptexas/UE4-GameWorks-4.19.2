@@ -64,7 +64,9 @@ struct FDistanceVisibleLevel
 UCLASS(config=Engine)
 class ENGINE_API UWorldComposition : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UWorldComposition(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	typedef TArray<FWorldCompositionTile> FTilesList;
 

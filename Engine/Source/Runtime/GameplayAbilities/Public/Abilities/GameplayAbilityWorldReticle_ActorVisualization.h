@@ -11,7 +11,9 @@ class AGameplayAbilityTargetActor;
 UCLASS(notplaceable)
 class AGameplayAbilityWorldReticle_ActorVisualization : public AGameplayAbilityWorldReticle
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AGameplayAbilityWorldReticle_ActorVisualization(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 	void InitializeReticleVisualizationInformation(AGameplayAbilityTargetActor* InTargetingActor, AActor* VisualizationActor, UMaterialInterface *VisualizationMaterial);

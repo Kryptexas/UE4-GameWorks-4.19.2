@@ -25,7 +25,9 @@ struct FCableParticle
 UCLASS(hidecategories=(Object, Physics, Collision, Activation, "Components|Activation"), editinlinenew, meta=(BlueprintSpawnableComponent), ClassGroup=Rendering)
 class UCableComponent : public UMeshComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UCableComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

@@ -63,7 +63,7 @@ enum EConsoleType
 USTRUCT()
 struct FFullyLoadedPackagesInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** When to load these packages */
 	UPROPERTY()
@@ -94,7 +94,7 @@ struct FFullyLoadedPackagesInfo
 USTRUCT()
 struct FLevelStreamingStatus
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FName PackageName;
@@ -130,7 +130,7 @@ struct FLevelStreamingStatus
 USTRUCT()
 struct FNetDriverDefinition
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Unique name of this net driver definition */
 	UPROPERTY()
@@ -160,7 +160,7 @@ struct FNetDriverDefinition
 USTRUCT()
 struct FNamedNetDriver
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Instantiation of named net driver */
 	UPROPERTY(transient)
@@ -208,7 +208,7 @@ struct FNamedNetDriver
 USTRUCT()
 struct FWorldContext
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/**************************************************************/
 	
@@ -341,7 +341,7 @@ private:
 USTRUCT()
 struct FStatColorMapEntry
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(globalconfig)
 	float In;
@@ -362,7 +362,7 @@ struct FStatColorMapEntry
 USTRUCT()
 struct FStatColorMapping
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY(globalconfig)
 	FString StatName;
@@ -386,7 +386,7 @@ struct FStatColorMapping
 USTRUCT()
 struct FDropNoteInfo
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** Location to create Note actor in edited level. */
 	UPROPERTY()
@@ -415,7 +415,7 @@ struct FDropNoteInfo
 USTRUCT()
 struct FScreenMessageString
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** The 'key' for this message. */
 	UPROPERTY(transient)
@@ -466,7 +466,7 @@ namespace EMatineeCaptureType
 USTRUCT()
 struct FGameNameRedirect
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FString OldGameName;
@@ -479,7 +479,7 @@ struct FGameNameRedirect
 USTRUCT()
 struct FClassRedirect
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FString ObjectName;
@@ -504,7 +504,7 @@ struct FClassRedirect
 USTRUCT()
 struct FStructRedirect
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FString OldStructName;
@@ -517,7 +517,7 @@ struct FStructRedirect
 USTRUCT()
 struct FPluginRedirect
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	UPROPERTY()
 	FString OldPluginName;
@@ -535,7 +535,7 @@ DECLARE_DELEGATE(FEndStreamingPauseDelegate);
 USTRUCT()
 struct FMatineeScreenshotOptions
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	/** determines if we should start the matinee capture as soon as the game loads */
 	UPROPERTY(transient)
@@ -578,7 +578,9 @@ class ENGINE_API UEngine
 	: public UObject
 	, public FExec
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UEngine(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 private:
 	// Fonts.

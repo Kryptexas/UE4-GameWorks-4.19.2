@@ -15,7 +15,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMenuOpenChangedEvent, bool, bIsOp
 UCLASS()
 class UMG_API UMenuAnchor : public UContentWidget
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UMenuAnchor(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 

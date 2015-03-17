@@ -84,7 +84,7 @@ enum EPlayNetMode
 USTRUCT()
 struct FPlayScreenResolution
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 public:
 
@@ -113,7 +113,9 @@ UCLASS(config=EditorUserSettings)
 class UNREALED_API ULevelEditorPlaySettings
 	: public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	ULevelEditorPlaySettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 public:
 
