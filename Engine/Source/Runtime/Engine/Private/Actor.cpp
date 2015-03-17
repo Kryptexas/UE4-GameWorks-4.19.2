@@ -2452,6 +2452,8 @@ void AActor::PostNetInit()
 
 void AActor::ExchangeNetRoles(bool bRemoteOwned)
 {
+	checkf(!HasAnyFlags(RF_ClassDefaultObject), TEXT("ExchangeNetRoles should never be called on a CDO as it causes issues when replicating actors over the network due to mutated transient data!"));
+
 	if (!bExchangedRoles)
 	{
 		if (bRemoteOwned)
