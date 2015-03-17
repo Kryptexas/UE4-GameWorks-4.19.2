@@ -14,7 +14,7 @@ FIOSTargetPlatform::FIOSTargetPlatform()
 {
 #if WITH_ENGINE
 	FConfigCacheIni::LoadLocalIniFile(EngineSettings, TEXT("Engine"), true, *PlatformName());
-	TextureLODSettings.Initialize(EngineSettings, TEXT("SystemSettings"));
+	TextureLODSettings = nullptr; // TextureLODSettings are registered by the device profile.
 	StaticMeshLODSettings.Initialize(EngineSettings);
 #endif // #if WITH_ENGINE
 
@@ -445,9 +445,9 @@ void FIOSTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FNam
 }
 
 
-const FTextureLODSettings& FIOSTargetPlatform::GetTextureLODSettings() const
+const UTextureLODSettings& FIOSTargetPlatform::GetTextureLODSettings() const
 {
-	return TextureLODSettings;
+	return *TextureLODSettings;
 }
 
 

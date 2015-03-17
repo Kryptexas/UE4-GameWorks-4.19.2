@@ -439,7 +439,7 @@ FString UTexture2D::GetDesc()
 	UpdateCachedLODBias();
 #endif //#if WITH_EDITOR
 
-	GSystemSettings.TextureLODSettings.ComputeInGameMaxResolution(GetCachedLODBias(), *this, EffectiveSizeX, EffectiveSizeY);
+	UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->ComputeInGameMaxResolution(GetCachedLODBias(), *this, EffectiveSizeX, EffectiveSizeY);
 
 	return FString::Printf( TEXT("%s %dx%d -> %dx%d[%s]"), 
 		NeverStream ? TEXT("NeverStreamed") : TEXT("Streamed"), 
@@ -1352,7 +1352,7 @@ void FTexture2DResource::CreateSamplerStates(float MipMapBias)
 	// Create the sampler state RHI resource.
 	FSamplerStateInitializerRHI SamplerStateInitializer
 	(
-	  GSystemSettings.TextureLODSettings.GetSamplerFilter(Owner),
+	  (ESamplerFilter)UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->GetSamplerFilter(Owner),
 	  Owner->AddressX == TA_Wrap ? AM_Wrap : (Owner->AddressX == TA_Clamp ? AM_Clamp : AM_Mirror),
 	  Owner->AddressY == TA_Wrap ? AM_Wrap : (Owner->AddressY == TA_Clamp ? AM_Clamp : AM_Mirror),
 	  AM_Wrap,
@@ -1363,7 +1363,7 @@ void FTexture2DResource::CreateSamplerStates(float MipMapBias)
 	// Create a custom sampler state for using this texture in a deferred pass, where ddx / ddy are discontinuous
 	FSamplerStateInitializerRHI DeferredPassSamplerStateInitializer
 	(
-	  GSystemSettings.TextureLODSettings.GetSamplerFilter(Owner),
+	  (ESamplerFilter)UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->GetSamplerFilter(Owner),
 	  Owner->AddressX == TA_Wrap ? AM_Wrap : (Owner->AddressX == TA_Clamp ? AM_Clamp : AM_Mirror),
 	  Owner->AddressY == TA_Wrap ? AM_Wrap : (Owner->AddressY == TA_Clamp ? AM_Clamp : AM_Mirror),
 	  AM_Wrap,
@@ -2330,7 +2330,7 @@ FIncomingTextureArrayDataEntry::FIncomingTextureArrayDataEntry(UTexture2D* InTex
 	NumMips = InTexture->GetNumMips();
 	LODGroup = (TextureGroup)InTexture->LODGroup;
 	Format = InTexture->GetPixelFormat();
-	Filter = GSystemSettings.TextureLODSettings.GetSamplerFilter(InTexture);
+	Filter = (ESamplerFilter)UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->GetSamplerFilter(InTexture);
 	bSRGB = InTexture->SRGB;
 
 	MipData.Empty(NumMips);

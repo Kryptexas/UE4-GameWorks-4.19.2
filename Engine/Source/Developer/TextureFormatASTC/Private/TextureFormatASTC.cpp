@@ -306,7 +306,7 @@ class FTextureFormatASTC : public ITextureFormat
 //	// Since we want to have per texture [group] compression settings, we need to have the key based on the texture
 //	virtual FString GetDerivedDataKeyString(const class UTexture& Texture) const override
 //	{
-//		const int32 LODBias = GSystemSettings.TextureLODSettings.CalculateLODBias(Texture.Source.GetSizeX(), Texture.Source.GetSizeY(), Texture.LODGroup, Texture.LODBias, Texture.NumCinematicMipLevels, Texture.MipGenSettings);
+//		const int32 LODBias = UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->CalculateLODBias(Texture.Source.GetSizeX(), Texture.Source.GetSizeY(), Texture.LODGroup, Texture.LODBias, Texture.NumCinematicMipLevels, Texture.MipGenSettings);
 //		check(LODBias >= 0);
 //		return FString::Printf(TEXT("%02u%d_"), (uint32)LODBias, CVarVirtualTextureReducedMemoryEnabled->GetValueOnGameThread());
 //	}

@@ -276,7 +276,7 @@ static void GetTextureDerivedDataKey(
  */
 static void GetTextureBuildSettings(
 	const UTexture& Texture,
-	const FTextureLODSettings& TextureLODSettings,
+	const UTextureLODSettings& TextureLODSettings,
 	FTextureBuildSettings& OutBuildSettings
 	)
 {
@@ -347,7 +347,7 @@ static void GetTextureBuildSettings(
 	OutBuildSettings.bFlipGreenChannel = Texture.bFlipGreenChannel;
 	OutBuildSettings.CompositeTextureMode = Texture.CompositeTextureMode;
 	OutBuildSettings.CompositePower = Texture.CompositePower;
-	OutBuildSettings.LODBias = GSystemSettings.TextureLODSettings.CalculateLODBias(Texture.Source.GetSizeX(), Texture.Source.GetSizeY(), Texture.LODGroup, Texture.LODBias, Texture.NumCinematicMipLevels, Texture.MipGenSettings);
+	OutBuildSettings.LODBias = UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->CalculateLODBias(Texture.Source.GetSizeX(), Texture.Source.GetSizeY(), Texture.LODGroup, Texture.LODBias, Texture.NumCinematicMipLevels, Texture.MipGenSettings);
 	OutBuildSettings.bStreamable = !Texture.NeverStream && (Texture.LODGroup != TEXTUREGROUP_UI) && (Cast<const UTexture2D>(&Texture) != NULL);
 	OutBuildSettings.PowerOfTwoMode = Texture.PowerOfTwoMode;
 	OutBuildSettings.PaddingColor = Texture.PaddingColor;
@@ -393,7 +393,8 @@ static void GetBuildSettingsForRunningPlatform(
 
 		// Assume there is at least one format and the first one is what we want at runtime.
 		check(PlatformFormats.Num());
-		GetTextureBuildSettings(Texture, GSystemSettings.TextureLODSettings, OutBuildSettings);
+		const UTextureLODSettings* LODSettings = (UTextureLODSettings*)&UDeviceProfileManager::Get().FindProfile(CurrentPlatform->PlatformName());
+		GetTextureBuildSettings(Texture, *LODSettings, OutBuildSettings);
 		OutBuildSettings.TextureFormatName = PlatformFormats[0];
 	}
 }
@@ -1384,7 +1385,7 @@ void UTexture2D::GetMipData(int32 FirstMipToLoad, void** OutMipData)
 
 void UTexture::UpdateCachedLODBias( bool bIncTextureMips )
 {
-	CachedCombinedLODBias = GSystemSettings.TextureLODSettings.CalculateLODBias( this, bIncTextureMips );
+	CachedCombinedLODBias = UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->CalculateLODBias(this, bIncTextureMips);
 }
 
 #if WITH_EDITOR

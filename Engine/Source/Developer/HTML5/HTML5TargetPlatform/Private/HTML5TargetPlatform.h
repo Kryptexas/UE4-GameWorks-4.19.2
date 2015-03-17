@@ -70,7 +70,12 @@ public:
 		OutFormats.Add(FName(TEXT("EncodedHDR")));
 	}
 
-	virtual const struct FTextureLODSettings& GetTextureLODSettings( ) const override;
+	virtual const UTextureLODSettings& GetTextureLODSettings() const override;
+
+	virtual void RegisterTextureLODSettings(const UTextureLODSettings* InTextureLODSettings) override
+	{
+		HTML5LODSettings = InTextureLODSettings;
+	}
 
 	virtual FName GetWaveFormat( const class USoundWave* Wave ) const override;
 #endif // WITH_ENGINE
@@ -101,7 +106,7 @@ private:
 
 #if WITH_ENGINE
 	// Holds the cached target LOD settings.
-	FTextureLODSettings HTML5LODSettings;
+	const UTextureLODSettings* HTML5LODSettings;
 
 	// Holds the static mesh LOD settings.
 	FStaticMeshLODSettings StaticMeshLODSettings;

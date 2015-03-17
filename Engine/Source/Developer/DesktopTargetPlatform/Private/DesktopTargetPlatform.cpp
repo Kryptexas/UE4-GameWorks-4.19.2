@@ -15,7 +15,6 @@ FDesktopTargetPlatform::FDesktopTargetPlatform()
 #if WITH_ENGINE
 	// use non-platform specific settings
 	FConfigCacheIni::LoadLocalIniFile(EngineSettings, TEXT("Engine"), true, NULL);
-	TextureLODSettings.Initialize(EngineSettings, TEXT("SystemSettings"));
 	StaticMeshLODSettings.Initialize(EngineSettings);
 #endif // #if WITH_ENGINE
 
@@ -59,12 +58,6 @@ void FDesktopTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<
 {
 	// just use the standard texture format name for this texture (without DX11 texture support)
 	OutFormats.Add(GetDefaultTextureFormatName(Texture, EngineSettings, false));
-}
-
-
-const FTextureLODSettings& FDesktopTargetPlatform::GetTextureLODSettings() const
-{
-	return TextureLODSettings;
 }
 
 

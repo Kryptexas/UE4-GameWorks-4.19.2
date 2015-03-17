@@ -6,12 +6,11 @@
 
 #pragma once
 
+#include "DeviceProfile.h"
 #include "DeviceProfileManager.generated.h"
 
-class UDeviceProfile;
-
 // Delegate used to refresh the UI when the profiles change
-DECLARE_MULTICAST_DELEGATE( FOnManagerUpdated );
+DECLARE_MULTICAST_DELEGATE( FOnDeviceProfileManagerUpdated );
 
 /**
  * Implements a helper class that manages all profiles in the Device
@@ -21,7 +20,7 @@ class ENGINE_API UDeviceProfileManager : public UObject
 {
 public:
 
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
 	/**
 	 * Startup and select the active device profile
@@ -36,7 +35,7 @@ public:
 	 *
 	 * @return the created profile.
 	 */
-	UDeviceProfile* CreateProfile( const FString& ProfileName );
+	UDeviceProfile& CreateProfile( const FString& ProfileName );
 
 	/**
 	 * Create a copy of a device profile from a copy.
@@ -46,7 +45,7 @@ public:
 	 *
 	 * @return the created profile.
 	 */
-	UDeviceProfile* CreateProfile( const FString& ProfileName, const FString& ProfileType, const FString& ParentName = TEXT("") );
+	UDeviceProfile& CreateProfile( const FString& ProfileName, const FString& ProfileType, const FString& ParentName = TEXT("") );
 
 	/**
 	 * Delete a profile.
@@ -61,14 +60,14 @@ public:
 	 * @param ProfileName - The profile name to find.
 	 * @return The found profile.
 	 */
-	UDeviceProfile* FindProfile( const FString& ProfileName );
+	UDeviceProfile& FindProfile( const FString& ProfileName );
 
 	/**
 	 * Get the device profile .ini name.
 	 *
 	 * @return the device profile .ini name.
 	 */
-	const FString GetDeviceProfileIniName();
+	const FString GetDeviceProfileIniName() const;
 
 	/**
 	 * Load the device profiles from the config file.
@@ -80,7 +79,7 @@ public:
 	 *
 	 * @return The delegate.
 	 */
-	FOnManagerUpdated& OnManagerUpdated();
+	FOnDeviceProfileManagerUpdated& OnManagerUpdated();
 
 	/**
 	 * Save the device profiles.
@@ -107,8 +106,10 @@ public:
 	 * @param ChildProfile				- The profile we are looking for potential parents
 	 * @param PossibleParentProfiles	- The list of profiles which would be suitable as a parent for the given profile
 	 */
-	void GetAllPossibleParentProfiles( const UDeviceProfile* ChildProfile, OUT TArray<UDeviceProfile*>& PossibleParentProfiles );
+	void GetAllPossibleParentProfiles( const UDeviceProfile* ChildProfile, OUT TArray<UDeviceProfile*>& PossibleParentProfiles ) const;
 
+	static class UDeviceProfileManager* DeviceProfileManagerSingleton;
+	static UDeviceProfileManager& Get();
 
 public:
 
@@ -119,13 +120,11 @@ public:
 private:
 
 	// Holds a delegate to be invoked profiles are updated.
-	FOnManagerUpdated ManagerUpdatedDelegate;
+	FOnDeviceProfileManagerUpdated ManagerUpdatedDelegate;
 
 	// Holds the selected device profile
-	class UDeviceProfile* ActiveDeviceProfile;
+	UDeviceProfile* ActiveDeviceProfile;
 
 	// Holds the device profile .ini location
 	static FString DeviceProfileFileName;
-
-	int32 RenameIndex;
 };

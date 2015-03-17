@@ -39,8 +39,8 @@ void SMeshMergingDialog::Construct(const FArguments& InArgs)
 	
 
 	// Setup available resolutions for lightmap
-	const int32 MinTexResolution = 1 << FTextureLODSettings::FTextureLODGroup().MinLODMipCount;
-	const int32 MaxTexResolution = 1 << FTextureLODSettings::FTextureLODGroup().MaxLODMipCount;
+	const int32 MinTexResolution = 1 << FTextureLODGroup().MinLODMipCount;
+	const int32 MaxTexResolution = 1 << FTextureLODGroup().MaxLODMipCount;
 	for (int32 LightmapRes = MinTexResolution; LightmapRes <= MaxTexResolution; LightmapRes*=2)
 	{
 		LightMapResolutionOptions.Add(MakeShareable(new FString(FString::FormatAsNumber(LightmapRes))));

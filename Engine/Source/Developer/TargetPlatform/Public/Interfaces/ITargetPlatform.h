@@ -314,7 +314,12 @@ public:
 	 *
 	 * @return A texture LOD settings structure.
 	 */
-	virtual const struct FTextureLODSettings& GetTextureLODSettings() const = 0;
+	virtual const class UTextureLODSettings& GetTextureLODSettings() const = 0;
+
+	/**
+	* Register Basic LOD Settings for this platform
+	*/
+	virtual void RegisterTextureLODSettings(const class UTextureLODSettings* InTextureLODSettings) = 0;
 
 	/**
 	 * Gets the static mesh LOD settings used by this platform.

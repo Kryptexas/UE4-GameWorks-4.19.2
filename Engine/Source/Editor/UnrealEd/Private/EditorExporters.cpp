@@ -36,7 +36,7 @@
 #include "AI/Navigation/NavigationSystem.h"
 #include "Engine/TextureCube.h"
 #include "EngineUtils.h"
-#include "TextureLODSettings.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorExporters, Log, All);
 
@@ -1050,14 +1050,7 @@ public:
 	FIntPoint FindMaxTextureSize(UMaterialInterface* InMaterialInterface, FIntPoint MinimumSize = FIntPoint(1, 1)) const
 	{
 		// static lod settings so that we only initialize them once
-		static FTextureLODSettings GameTextureLODSettings;
-		static bool bAreLODSettingsInitialized = false;
-		if (!bAreLODSettingsInitialized)
-		{
-			// initialize LOD settings with game texture resolutions, since we don't want to use 
-			// potentially bloated editor settings
-			GameTextureLODSettings.Initialize(GEngineIni, TEXT("SystemSettings"));
-		}
+		UTextureLODSettings* GameTextureLODSettings = UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings();
 
 		TArray<UTexture*> MaterialTextures;
 
@@ -1087,7 +1080,7 @@ public:
 				LocalSize = FIntPoint(TexCube->GetSizeX(), TexCube->GetSizeY());
 			}
 
-			int32 LocalBias = GameTextureLODSettings.CalculateLODBias(Texture);
+			int32 LocalBias = GameTextureLODSettings->CalculateLODBias(Texture);
 
 			// bias the texture size based on LOD group
 			FIntPoint BiasedLocalSize(LocalSize.X >> LocalBias, LocalSize.Y >> LocalBias);

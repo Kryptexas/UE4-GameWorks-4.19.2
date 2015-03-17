@@ -1395,21 +1395,6 @@ public:
 
 private:
 
-	/** Used to hold the device profile manager and device profiles */
-	UPROPERTY(transient)
-	UDeviceProfileManager* DeviceProfileManager;
-
-public:
-
-	/**
-	 * Get the reference to the engines device profile manager
-	 *
-	 * return A reference to the dpm singleton, initializes if not already.
-	 */
-	UDeviceProfileManager* GetDeviceProfileManager();
-
-private:
-
 	/** Whether the engine should be playing sounds.  If false at initialization time the AudioDevice will not be created */
 	uint32 bUseSound:1;
 

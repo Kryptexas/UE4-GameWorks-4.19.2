@@ -18,30 +18,30 @@
 
 
 /**
-* Formatter of the console variable property for a device profile.
+* Formatter of the Texture LOD Settings property for a device profile.
 */
-class FConsoleVariableCellPresenter : public TSharedFromThis< FConsoleVariableCellPresenter > , public IPropertyTableCellPresenter
+class FTextureLODSettingsCellPresenter : public TSharedFromThis< FTextureLODSettingsCellPresenter > , public IPropertyTableCellPresenter
 {
 public:
 	/** 
 	 * Constructor 
 	 */
-	FConsoleVariableCellPresenter(TWeakObjectPtr<UDeviceProfile> InOwnerProfile, const FOnEditDeviceProfileCVarsRequestDelegate& OnCVarsEditRequest )
+	FTextureLODSettingsCellPresenter(TWeakObjectPtr<UDeviceProfile> InOwnerProfile, const FOnEditDeviceProfileTextureLODSettingsRequestDelegate& OnTextureLODSettingsEditRequest )
 		: OwnerProfile(InOwnerProfile)
-		, OnEditCVarsRequest(OnCVarsEditRequest)
+		, OnEditTextureLODSettingsRequest(OnTextureLODSettingsEditRequest)
 	{
 	}
 
-	virtual ~FConsoleVariableCellPresenter() {}
+	virtual ~FTextureLODSettingsCellPresenter() {}
 
 	/**
-	 * Event handler triggered when the user presses the edit CVars button
+	 * Event handler triggered when the user presses the edit TextureLODSettings button
 	 *
 	 * @return Whether the event was handled.
 	 */
-	FReply HandleEditCVarsButtonPressed()
+	FReply HandleEditTextureLODSettingsButtonPressed()
 	{
-		OnEditCVarsRequest.ExecuteIfBound(OwnerProfile);
+		OnEditTextureLODSettingsRequest.ExecuteIfBound(OwnerProfile);
 		return FReply::Handled();
 	}
 
@@ -92,12 +92,12 @@ private:
 	/** The object we will link to */
 	TWeakObjectPtr<UDeviceProfile> OwnerProfile;
 
-	/** Delegate triggered when the user opts to edit the CVars from the button in this cell */
-	FOnEditDeviceProfileCVarsRequestDelegate OnEditCVarsRequest;
+	/** Delegate triggered when the user opts to edit the TextureLODSettings from the button in this cell */
+	FOnEditDeviceProfileTextureLODSettingsRequestDelegate OnEditTextureLODSettingsRequest;
 };
 
 
-TSharedRef<class SWidget> FConsoleVariableCellPresenter::ConstructDisplayWidget()
+TSharedRef<class SWidget> FTextureLODSettingsCellPresenter::ConstructDisplayWidget()
 {
 	return SNew(SBorder)
 	.Padding(0.0f)
@@ -107,7 +107,7 @@ TSharedRef<class SWidget> FConsoleVariableCellPresenter::ConstructDisplayWidget(
 	.Content()
 	[
 		SNew(SButton)
-		.OnClicked(this, &FConsoleVariableCellPresenter::HandleEditCVarsButtonPressed)
+		.OnClicked(this, &FTextureLODSettingsCellPresenter::HandleEditTextureLODSettingsButtonPressed)
 		.ContentPadding(2.0f)
 		.ForegroundColor(FSlateColor::UseForeground())
 		.IsFocusable(false)
@@ -120,12 +120,12 @@ TSharedRef<class SWidget> FConsoleVariableCellPresenter::ConstructDisplayWidget(
 }
 
 
-FDeviceProfileConsoleVariableColumn::FDeviceProfileConsoleVariableColumn()
+FDeviceProfileTextureLODSettingsColumn::FDeviceProfileTextureLODSettingsColumn()
 {
 }
 
 
-bool FDeviceProfileConsoleVariableColumn::Supports(const TSharedRef< IPropertyTableColumn >& Column, const TSharedRef< IPropertyTableUtilities >& Utilities) const
+bool FDeviceProfileTextureLODSettingsColumn::Supports(const TSharedRef< IPropertyTableColumn >& Column, const TSharedRef< IPropertyTableUtilities >& Utilities) const
 {
 	if( Column->GetDataSource()->IsValid() )
 	{
@@ -134,7 +134,7 @@ bool FDeviceProfileConsoleVariableColumn::Supports(const TSharedRef< IPropertyTa
 		{
 			const FPropertyInfo& PropertyInfo = PropertyPath->GetRootProperty();
 			UProperty* Property = PropertyInfo.Property.Get();
-			if (Property->GetName() == TEXT("CVars") && Property->IsA(UArrayProperty::StaticClass()))
+			if (Property->GetName() == TEXT("TextureLODGroups") && Property->IsA(UArrayProperty::StaticClass()))
 			{
 				return true;
 			}
@@ -145,22 +145,22 @@ bool FDeviceProfileConsoleVariableColumn::Supports(const TSharedRef< IPropertyTa
 }
 
 
-TSharedPtr< SWidget > FDeviceProfileConsoleVariableColumn::CreateColumnLabel(const TSharedRef< IPropertyTableColumn >& Column, const TSharedRef< IPropertyTableUtilities >& Utilities, const FName& Style) const
+TSharedPtr< SWidget > FDeviceProfileTextureLODSettingsColumn::CreateColumnLabel(const TSharedRef< IPropertyTableColumn >& Column, const TSharedRef< IPropertyTableUtilities >& Utilities, const FName& Style) const
 {
 	return NULL;
 }
 
 
-TSharedPtr< IPropertyTableCellPresenter > FDeviceProfileConsoleVariableColumn::CreateCellPresenter(const TSharedRef< IPropertyTableCell >& Cell, const TSharedRef< IPropertyTableUtilities >& Utilities, const FName& Style) const
+TSharedPtr< IPropertyTableCellPresenter > FDeviceProfileTextureLODSettingsColumn::CreateCellPresenter(const TSharedRef< IPropertyTableCell >& Cell, const TSharedRef< IPropertyTableUtilities >& Utilities, const FName& Style) const
 {
 	TSharedPtr< IPropertyHandle > PropertyHandle = Cell->GetPropertyHandle();
-	if( PropertyHandle.IsValid() )
+	if (PropertyHandle.IsValid())
 	{
 		TArray<UObject*> OuterObjects;
 		PropertyHandle->GetOuterObjects(OuterObjects);
 		if (OuterObjects.Num() == 1)
 		{
-			return MakeShareable(new FConsoleVariableCellPresenter(CastChecked<UDeviceProfile>(OuterObjects[0]),OnEditCVarsRequestDelegate));
+			return MakeShareable(new FTextureLODSettingsCellPresenter(CastChecked<UDeviceProfile>(OuterObjects[0]),OnEditTextureLODSettingsRequestDelegate));
 		}
 	}
 

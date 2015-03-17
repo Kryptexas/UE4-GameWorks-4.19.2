@@ -2187,7 +2187,7 @@ FStreamingManagerTexture::FStreamingManagerTexture()
 
 	for ( int32 LODGroup=0; LODGroup < TEXTUREGROUP_MAX; ++LODGroup )
 	{
-		FTextureLODSettings::FTextureLODGroup& TexGroup = GSystemSettings.TextureLODSettings.GetTextureLODGroup( LODGroup );
+		const FTextureLODGroup& TexGroup = UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->GetTextureLODGroup(TextureGroup(LODGroup));
 		ThreadSettings.NumStreamedMips[LODGroup] = TexGroup.NumStreamedMips;
 	}
 
@@ -4410,7 +4410,7 @@ bool FStreamingManagerTexture::HandleNumStreamedMipsCommand( const TCHAR* Cmd, F
 	int32 NumMips = ( NumMipsString.Len() > 0 ) ? FCString::Atoi(*NumMipsString) : MAX_int32;
 	if ( LODGroup >= 0 && LODGroup < TEXTUREGROUP_MAX )
 	{
-		FTextureLODSettings::FTextureLODGroup& TexGroup = GSystemSettings.TextureLODSettings.GetTextureLODGroup(LODGroup);
+		FTextureLODGroup& TexGroup = UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->GetTextureLODGroup(TextureGroup(LODGroup));
 		if ( NumMips >= -1 && NumMips <= MAX_TEXTURE_MIP_COUNT )
 		{
 			TexGroup.NumStreamedMips = NumMips;

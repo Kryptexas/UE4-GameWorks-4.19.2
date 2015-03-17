@@ -109,3 +109,14 @@ namespace ETexturePowerOfTwoSetting
 		// in the texture compressor DDC key
 	};
 }
+
+// Must match enum ESamplerFilter in RHIDefinitions.h
+UENUM()
+enum class ETextureSamplerFilter : uint8
+{
+	Point,
+	Bilinear,
+	Trilinear,
+	AnisotropicPoint,
+	AnisotropicLinear,
+};

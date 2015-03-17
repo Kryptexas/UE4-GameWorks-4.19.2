@@ -355,7 +355,7 @@ void FSharedSamplerState::InitRHI()
 
 	FSamplerStateInitializerRHI SamplerStateInitializer
 	(
-		GSystemSettings.TextureLODSettings.GetSamplerFilter(TEXTUREGROUP_World),
+	(ESamplerFilter)UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->GetSamplerFilter(TEXTUREGROUP_World),
 		bWrap ? AM_Wrap : AM_Clamp,
 		bWrap ? AM_Wrap : AM_Clamp,
 		bWrap ? AM_Wrap : AM_Clamp,

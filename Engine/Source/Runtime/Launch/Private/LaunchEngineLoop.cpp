@@ -1212,20 +1212,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		InitializeStdOutDevice();
 	}
 
-	// Initialize the RHI.
-	RHIInit(bHasEditorToken);
-
-	InitializeSharedSamplerStates();
-
-	if (!FPlatformProperties::RequiresCookedData())
-	{
-		check(!GShaderCompilingManager);
-		GShaderCompilingManager = new FShaderCompilingManager();
-
-		check(!GDistanceFieldAsyncQueue);
-		GDistanceFieldAsyncQueue = new FDistanceFieldAsyncQueue();
-	}
-
 	FIOSystem::Get(); // force it to be created if it isn't already
 
 	// allow the platform to start up any features it may need
@@ -1297,6 +1283,18 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	FScopedSlowTask SlowTask(100, NSLOCTEXT("EngineLoop", "EngineLoop_Initializing", "Initializing..."));
 
 	SlowTask.EnterProgressFrame(10);
+
+	// Initialize the RHI.
+	RHIInit(bHasEditorToken);
+
+	if (!FPlatformProperties::RequiresCookedData())
+	{
+		check(!GShaderCompilingManager);
+		GShaderCompilingManager = new FShaderCompilingManager();
+
+		check(!GDistanceFieldAsyncQueue);
+		GDistanceFieldAsyncQueue = new FDistanceFieldAsyncQueue();
+	}
 
 	{
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Initial UObject load"), STAT_InitialUObjectLoad, STATGROUP_LoadTime);

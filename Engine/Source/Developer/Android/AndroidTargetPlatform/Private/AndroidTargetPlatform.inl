@@ -32,7 +32,7 @@ inline FAndroidTargetPlatform<TPlatformProperties>::FAndroidTargetPlatform( ) :
 {
 	#if WITH_ENGINE
 		FConfigCacheIni::LoadLocalIniFile(EngineSettings, TEXT("Engine"), true, *TTargetPlatformBase<TPlatformProperties>::PlatformName());
-		TextureLODSettings.Initialize(EngineSettings, TEXT("SystemSettings"));
+			TextureLODSettings = nullptr; // These are registered by the device profile system.
 		StaticMeshLODSettings.Initialize(EngineSettings);
 	#endif
 
@@ -282,11 +282,10 @@ void FAndroidTargetPlatform<TPlatformProperties>::GetReflectionCaptureFormats( T
 }
 
 
-
 template<class TPlatformProperties>
-const FTextureLODSettings& FAndroidTargetPlatform<TPlatformProperties>::GetTextureLODSettings( ) const
+const UTextureLODSettings& FAndroidTargetPlatform<TPlatformProperties>::GetTextureLODSettings() const
 {
-	return TextureLODSettings;
+	return *TextureLODSettings;
 }
 
 

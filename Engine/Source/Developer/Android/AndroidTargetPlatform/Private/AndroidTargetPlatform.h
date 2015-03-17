@@ -131,7 +131,12 @@ public:
 
 	virtual void GetTextureFormats( const UTexture* InTexture, TArray<FName>& OutFormats ) const override;
 
-	virtual const struct FTextureLODSettings& GetTextureLODSettings( ) const override;
+	virtual const UTextureLODSettings& GetTextureLODSettings() const override;
+
+	virtual void RegisterTextureLODSettings(const UTextureLODSettings* InTextureLODSettings) override
+	{
+		TextureLODSettings = InTextureLODSettings;
+	}
 
 	virtual FName GetWaveFormat( const class USoundWave* Wave ) const override;
 #endif //WITH_ENGINE
@@ -199,7 +204,7 @@ private:
 
 #if WITH_ENGINE
 	// Holds a cache of the target LOD settings.
-	FTextureLODSettings TextureLODSettings;
+	const UTextureLODSettings* TextureLODSettings;
 
 	// Holds the static mesh LOD settings.
 	FStaticMeshLODSettings StaticMeshLODSettings;

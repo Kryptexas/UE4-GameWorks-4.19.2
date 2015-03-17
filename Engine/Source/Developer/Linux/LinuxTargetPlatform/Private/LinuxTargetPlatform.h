@@ -37,7 +37,7 @@ public:
 	
 #if WITH_ENGINE
 		FConfigCacheIni::LoadLocalIniFile(EngineSettings, TEXT("Engine"), true, *this->PlatformName());
-		TextureLODSettings.Initialize(EngineSettings, TEXT("SystemSettings"));
+		TextureLODSettings = nullptr;
 		StaticMeshLODSettings.Initialize(EngineSettings);
 
 		// Get the Target RHIs for this platform, we do not always want all those that are supported.
@@ -169,9 +169,14 @@ public:
 		}
 	}
 
-	virtual const struct FTextureLODSettings& GetTextureLODSettings( ) const override
+	virtual const UTextureLODSettings& GetTextureLODSettings() const override
 	{
-		return TextureLODSettings;
+		return *TextureLODSettings;
+	}
+
+	virtual void RegisterTextureLODSettings(const UTextureLODSettings* InTextureLODSettings) override
+	{
+		TextureLODSettings = InTextureLODSettings;
 	}
 
 	virtual FName GetWaveFormat( const class USoundWave* Wave ) const override
@@ -247,7 +252,7 @@ private:
 	FConfigFile EngineSettings;
 
 	// Holds the texture LOD settings.
-	FTextureLODSettings TextureLODSettings;
+	const UTextureLODSettings* TextureLODSettings;
 
 	// Holds static mesh LOD settings.
 	FStaticMeshLODSettings StaticMeshLODSettings;

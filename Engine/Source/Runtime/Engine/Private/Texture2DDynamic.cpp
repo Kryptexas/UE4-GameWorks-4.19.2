@@ -35,7 +35,7 @@ void FTexture2DDynamicResource::InitRHI()
 	// Create the sampler state RHI resource.
 	FSamplerStateInitializerRHI SamplerStateInitializer
 	(
-		GSystemSettings.TextureLODSettings.GetSamplerFilter( Owner ),
+		(ESamplerFilter)UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->GetSamplerFilter( Owner ),
 		AM_Wrap,
 		AM_Wrap,
 		AM_Wrap

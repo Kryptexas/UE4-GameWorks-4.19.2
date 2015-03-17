@@ -9,6 +9,30 @@
 
 FString UDeviceProfileManager::DeviceProfileFileName;
 
+UDeviceProfileManager* UDeviceProfileManager::DeviceProfileManagerSingleton = nullptr;
+
+UDeviceProfileManager& UDeviceProfileManager::Get()
+{
+	if (DeviceProfileManagerSingleton == nullptr)
+	{
+		DeviceProfileManagerSingleton = NewObject<UDeviceProfileManager>();
+
+		DeviceProfileManagerSingleton->AddToRoot();
+		DeviceProfileManagerSingleton->LoadProfiles();
+
+		FString DeviceProfileSelectionModule;
+		GConfig->GetString(TEXT("DeviceProfileManager"), TEXT("DeviceProfileSelectionModule"), DeviceProfileSelectionModule, GEngineIni);
+		IDeviceProfileSelectorModule& DPSelectorModule = FModuleManager::LoadModuleChecked<IDeviceProfileSelectorModule>(*DeviceProfileSelectionModule);
+
+		UDeviceProfile* ActiveProfile = &DeviceProfileManagerSingleton->FindProfile(DPSelectorModule.GetRuntimeDeviceProfileName());
+		DeviceProfileManagerSingleton->SetActiveDeviceProfile(ActiveProfile);
+
+		InitializeSharedSamplerStates();
+	}
+	return *DeviceProfileManagerSingleton;
+}
+
+
 void UDeviceProfileManager::InitializeCVarsForActiveDeviceProfile()
 {
 	// Find the device profile selector module used in this instance
@@ -123,35 +147,24 @@ void UDeviceProfileManager::InitializeCVarsForActiveDeviceProfile()
 }
 
 
-UDeviceProfileManager::UDeviceProfileManager( const FObjectInitializer& ObjectInitializer )
-	: Super( ObjectInitializer )
+UDeviceProfile& UDeviceProfileManager::CreateProfile( const FString& ProfileName )
 {
-	RenameIndex = 0;
-#if WITH_EDITOR
-	LoadProfiles();
-#endif
-}
-
-
-UDeviceProfile* UDeviceProfileManager::CreateProfile( const FString& ProfileName )
-{
-	UDeviceProfile* NewProfile = NewObject<UDeviceProfile>(GetTransientPackage(), *ProfileName, RF_Transient | RF_Public);
+	UDeviceProfile* NewProfile = NewObject<UDeviceProfile>();
 	Profiles.Add( NewProfile );
 
 	// Inform the UI that the device list has changed
 	ManagerUpdatedDelegate.Broadcast();
 
-	return NewProfile;
+	return *NewProfile;
 }
 
 
-UDeviceProfile* UDeviceProfileManager::CreateProfile( const FString& ProfileName, const FString& ProfileType, const FString& ParentName )
+UDeviceProfile& UDeviceProfileManager::CreateProfile( const FString& ProfileName, const FString& ProfileType, const FString& ParentName )
 {
 	UDeviceProfile* DeviceProfile = FindObject<UDeviceProfile>( GetTransientPackage(), *ProfileName );
 	if( DeviceProfile == NULL )
 	{
-		DeviceProfile = NewObject<UDeviceProfile>(GetTransientPackage(), *ProfileName, RF_Transient | RF_Public);
-		DeviceProfile->LoadConfig( UDeviceProfile::StaticClass(), *DeviceProfileFileName );
+		DeviceProfile = NewObject<UDeviceProfile>(GetTransientPackage(), *ProfileName);
 		DeviceProfile->BaseProfileName = ParentName != TEXT("") ? ParentName : DeviceProfile->BaseProfileName;
 		DeviceProfile->DeviceType = ProfileType;
 
@@ -163,7 +176,7 @@ UDeviceProfile* UDeviceProfileManager::CreateProfile( const FString& ProfileName
 			DeviceProfile->Parent = FindObject<UDeviceProfile>( GetTransientPackage(), *DeviceProfile->BaseProfileName );
 			if( DeviceProfile->Parent == NULL )
 			{
-				DeviceProfile->Parent = CreateProfile( DeviceProfile->BaseProfileName, ProfileType );
+				DeviceProfile->Parent = &CreateProfile( DeviceProfile->BaseProfileName, ProfileType );
 			}
 			ObjectTemplate = CastChecked<UDeviceProfile>(DeviceProfile->Parent);
 		}
@@ -180,7 +193,7 @@ UDeviceProfile* UDeviceProfileManager::CreateProfile( const FString& ProfileName
 		ManagerUpdatedDelegate.Broadcast(); 
 	}
 
-	return DeviceProfile;
+	return *DeviceProfile;
 }
 
 
@@ -190,9 +203,9 @@ void UDeviceProfileManager::DeleteProfile( UDeviceProfile* Profile )
 }
 
 
-UDeviceProfile* UDeviceProfileManager::FindProfile( const FString& ProfileName )
+UDeviceProfile& UDeviceProfileManager::FindProfile( const FString& ProfileName )
 {
-	UDeviceProfile* FoundProfile = NULL;
+	UDeviceProfile* FoundProfile = nullptr;
 
 	for( int32 Idx = 0; Idx < Profiles.Num(); Idx++ )
 	{
@@ -204,17 +217,17 @@ UDeviceProfile* UDeviceProfileManager::FindProfile( const FString& ProfileName )
 		}
 	}
 
-	return FoundProfile;
+	return FoundProfile != nullptr ? *FoundProfile : CreateProfile(ProfileName);
 }
 
 
-const FString UDeviceProfileManager::GetDeviceProfileIniName()
+const FString UDeviceProfileManager::GetDeviceProfileIniName() const
 {
 	return DeviceProfileFileName;
 }
 
 
-FOnManagerUpdated& UDeviceProfileManager::OnManagerUpdated()
+FOnDeviceProfileManagerUpdated& UDeviceProfileManager::OnManagerUpdated()
 {
 	return ManagerUpdatedDelegate;
 }
@@ -238,6 +251,25 @@ void UDeviceProfileManager::LoadProfiles()
 				CreateProfile(NewDeviceProfileSelectorPlatformName, NewDeviceProfileSelectorPlatformType);
 			}
 		}
+
+		// Register Texture LOD settings with each Target Platform
+		ITargetPlatformManagerModule& TargetPlatformManager = GetTargetPlatformManagerRef();
+		const TArray<ITargetPlatform*>& TargetPlatforms = TargetPlatformManager.GetActiveTargetPlatforms();
+		for (int32 PlatformIndex = 0; PlatformIndex < TargetPlatforms.Num(); ++PlatformIndex)
+		{
+			ITargetPlatform* Platform = TargetPlatforms[PlatformIndex];
+			if (const UTextureLODSettings* TextureLODSettingsObj = (UTextureLODSettings*)&FindProfile(Platform->PlatformName()))
+			{
+				// Set TextureLODSettings
+				Platform->RegisterTextureLODSettings(TextureLODSettingsObj);
+			}
+			else
+			{
+				// No Device Profile found that matches target platform
+			}
+		}
+
+
 		ManagerUpdatedDelegate.Broadcast();
 	}
 }
@@ -289,7 +321,7 @@ UDeviceProfile* UDeviceProfileManager::GetActiveProfile() const
 }
 
 
-void UDeviceProfileManager::GetAllPossibleParentProfiles(const UDeviceProfile* ChildProfile, OUT TArray<UDeviceProfile*>& PossibleParentProfiles)
+void UDeviceProfileManager::GetAllPossibleParentProfiles(const UDeviceProfile* ChildProfile, OUT TArray<UDeviceProfile*>& PossibleParentProfiles) const
 {
 	for(auto& NextProfile : Profiles)
 	{

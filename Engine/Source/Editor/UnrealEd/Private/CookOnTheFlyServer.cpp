@@ -34,7 +34,7 @@
 // shader compiler processAsyncResults
 #include "ShaderCompiler.h"
 #include "Engine/LevelStreaming.h"
-#include "TextureLODSettings.h"
+#include "Engine/TextureLODSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCook, Log, All);
 
@@ -2080,7 +2080,7 @@ bool UCookOnTheFlyServer::GetCurrentIniVersionStrings( const ITargetPlatform* Ta
 	PlatformIniFiles.Empty();
 
 
-	const FTextureLODSettings& LodSettings = TargetPlatform->GetTextureLODSettings();
+	const UTextureLODSettings& LodSettings = TargetPlatform->GetTextureLODSettings();
 
 	UEnum* TextureGroupEnum = FindObject<UEnum>( NULL, TEXT("Engine.TextureGroup") );
 	UEnum* TextureMipGenSettingsEnum = FindObject<UEnum>( NULL, TEXT("Engine.TextureMipGenSettings") );

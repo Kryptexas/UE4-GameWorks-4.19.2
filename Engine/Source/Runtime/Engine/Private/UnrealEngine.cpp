@@ -3344,7 +3344,7 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	SortedTextures.Sort( FCompareFSortedTexture( bAlphaSort ) );
 
 	// Retrieve mapping from LOD group enum value to text representation.
-	TArray<FString> TextureGroupNames = FTextureLODSettings::GetTextureGroupNames();
+	TArray<FString> TextureGroupNames = UTextureLODSettings::GetTextureGroupNames();
 
 	// Display.
 	int32 TotalMaxSize		= 0;
@@ -10649,17 +10649,6 @@ bool UEngine::ShouldAbsorbAuthorityOnlyEvent()
 		}
 	}
 	return false;
-}
-
-
-UDeviceProfileManager* UEngine::GetDeviceProfileManager()
-{
-	if(DeviceProfileManager == NULL)
-	{
-		DeviceProfileManager = NewObject<UDeviceProfileManager>(GetTransientPackage(), TEXT("GlobalDeviceProfileManager"), RF_Public | RF_Transient);
-	}
-
-	return DeviceProfileManager;
 }
 
 

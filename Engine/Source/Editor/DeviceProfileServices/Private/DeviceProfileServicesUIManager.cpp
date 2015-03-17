@@ -10,7 +10,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogDeviceProfileServices, Log, All);
 
 FDeviceProfileServicesUIManager::FDeviceProfileServicesUIManager()
 {
-	GEngine->GetDeviceProfileManager()->OnManagerUpdated().AddRaw(this, &FDeviceProfileServicesUIManager::HandleRefreshUIData);
+	UDeviceProfileManager::Get().OnManagerUpdated().AddRaw(this, &FDeviceProfileServicesUIManager::HandleRefreshUIData);
 	HandleRefreshUIData();
 	CreatePlatformMap();
 }
@@ -38,9 +38,9 @@ const TArray<TSharedPtr<FString> > FDeviceProfileServicesUIManager::GetPlatformL
 
 void FDeviceProfileServicesUIManager::GetProfilesByType( TArray<UDeviceProfile*>& OutDeviceProfiles, const FString& InType )
 {
-	for( int32 Idx = 0; Idx < GEngine->GetDeviceProfileManager()->Profiles.Num(); Idx++ )
+	for( int32 Idx = 0; Idx < UDeviceProfileManager::Get().Profiles.Num(); Idx++ )
 	{
-		UDeviceProfile* CurrentDevice = CastChecked<UDeviceProfile>( GEngine->GetDeviceProfileManager()->Profiles[Idx] );
+		UDeviceProfile* CurrentDevice = CastChecked<UDeviceProfile>( UDeviceProfileManager::Get().Profiles[Idx] );
 		if ( CurrentDevice->DeviceType == InType )
 		{
 			OutDeviceProfiles.Add( CurrentDevice );
@@ -64,9 +64,9 @@ void FDeviceProfileServicesUIManager::HandleRefreshUIData()
 {
 	// Rebuild profile to platform map
 	DeviceToPlatformMap.Empty();
-	for( int32 Idx = 0; Idx < GEngine->GetDeviceProfileManager()->Profiles.Num(); Idx++ )
+	for( int32 Idx = 0; Idx < UDeviceProfileManager::Get().Profiles.Num(); Idx++ )
 	{
-		UDeviceProfile* CurrentDevice = CastChecked<UDeviceProfile>( GEngine->GetDeviceProfileManager()->Profiles[Idx] );
+		UDeviceProfile* CurrentDevice = CastChecked<UDeviceProfile>( UDeviceProfileManager::Get().Profiles[Idx] );
 		DeviceToPlatformMap.Add( CurrentDevice->GetName(), CurrentDevice->DeviceType );
 	}
 }

@@ -96,3 +96,6 @@ EnginePrivate.h: Unreal engine private header file.
 #include "TimerManager.h"					// Game play timers
 #include "SlateCore.h"
 #include "SlateBasics.h"
+#include "Engine/TextureLODSettings.h"
+#include "DeviceProfiles/DeviceProfile.h"
+#include "DeviceProfiles/DeviceProfileManager.h"

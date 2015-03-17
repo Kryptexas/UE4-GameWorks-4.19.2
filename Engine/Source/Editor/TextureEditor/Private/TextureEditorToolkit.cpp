@@ -10,7 +10,7 @@
 #include "Engine/TextureRenderTargetCube.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/Texture2D.h"
-#include "SystemSettings.h"
+#include "DeviceProfiles/DeviceProfile.h"
 #include "Engine/LightMapTexture2D.h"
 #include "Engine/ShadowMapTexture2D.h"
 #include "Engine/Texture2DDynamic.h"
@@ -352,7 +352,7 @@ void FTextureEditorToolkit::PopulateQuickInfo( )
 
 	// In game max bias and dimensions
 	uint32 MaxInGameWidth, MaxInGameHeight;
-	int32 MipLevel = GSystemSettings.TextureLODSettings.CalculateLODBias(Texture);
+	int32 MipLevel = UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->CalculateLODBias(Texture);
 	CalculateEffectiveTextureDimensions(MipLevel, MaxInGameWidth, MaxInGameHeight);
 
 	// Editor bias and dimensions (takes user specified mip setting into account)
@@ -600,7 +600,7 @@ TSharedRef<SWidget> FTextureEditorToolkit::BuildTexturePropertiesWidget( )
 void FTextureEditorToolkit::CalculateEffectiveTextureDimensions( int32 LODBias, uint32& EffectiveTextureWidth, uint32& EffectiveTextureHeight )
 {
 	//Calculate in-game max resolution and store in EffectiveTextureWidth, EffectiveTextureHeight
-	GSystemSettings.TextureLODSettings.ComputeInGameMaxResolution(LODBias, *Texture, (uint32 &)EffectiveTextureWidth, (uint32 &)EffectiveTextureHeight);
+	UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->ComputeInGameMaxResolution(LODBias, *Texture, (uint32 &)EffectiveTextureWidth, (uint32 &)EffectiveTextureHeight);
 }
 
 

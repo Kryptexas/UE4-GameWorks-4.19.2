@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MediaAssetsPrivatePCH.h"
+#include "DeviceProfiles/DeviceProfile.h"
 
 
 /* FMediaTextureResource structors
@@ -49,7 +50,7 @@ void FMediaTextureResource::InitDynamicRHI()
 
 	// Create the sampler state RHI resource.
 	FSamplerStateInitializerRHI SamplerStateInitializer(
-		GSystemSettings.TextureLODSettings.GetSamplerFilter(Owner),
+		(ESamplerFilter)UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->GetSamplerFilter(Owner),
 		Owner->AddressX == TA_Wrap ? AM_Wrap : (Owner->AddressX == TA_Clamp ? AM_Clamp : AM_Mirror),
 		Owner->AddressY == TA_Wrap ? AM_Wrap : (Owner->AddressY == TA_Clamp ? AM_Clamp : AM_Mirror),
 		AM_Wrap

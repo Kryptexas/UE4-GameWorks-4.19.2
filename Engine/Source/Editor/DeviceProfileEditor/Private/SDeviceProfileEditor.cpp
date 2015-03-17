@@ -92,7 +92,7 @@ SDeviceProfileSourceControl::~SDeviceProfileSourceControl()
 
 FReply SDeviceProfileSourceControl::HandleSaveDefaultsButtonPressed()
 {
-	GEngine->GetDeviceProfileManager()->SaveProfiles(true);
+	UDeviceProfileManager::Get().SaveProfiles(true);
 
 	return FReply::Handled();
 }
@@ -226,7 +226,7 @@ void SDeviceProfileSourceControl::Tick( const FGeometry& AllottedGeometry, const
 
 void SDeviceProfileEditor::Construct( const FArguments& InArgs )
 {
-	DeviceProfileManager = GEngine->GetDeviceProfileManager();
+	DeviceProfileManager = &UDeviceProfileManager::Get();
 
 	// Setup the tab layout for the editor.
 	TSharedRef<FWorkspaceItem> RootMenuGroup = FWorkspaceItem::NewGroup( LOCTEXT("RootMenuGroupName", "Root") );
@@ -514,9 +514,14 @@ TSharedRef< SWidget > SDeviceProfileEditor::SetupPropertyEditor()
 	// Bind our action to open a single editor when requested from the property table
 	CVarsColumn->OnEditCVarsRequest().BindRaw(this, &SDeviceProfileEditor::HandleDeviceProfileViewAlone);
 
+	// Adapt the TextureLODSettings column as a button to open a single editor which will allow better control of the Texture Groups
+	TSharedRef<FDeviceProfileTextureLODSettingsColumn> TextureLODSettingsColumn = MakeShareable(new FDeviceProfileTextureLODSettingsColumn());
+	TextureLODSettingsColumn->OnEditTextureLODSettingsRequest().BindRaw(this, &SDeviceProfileEditor::HandleDeviceProfileViewAlone);
+
 	// Add our Custom Rows to the table
 	TArray<TSharedRef<IPropertyTableCustomColumn>> CustomColumns;
 	CustomColumns.Add(CVarsColumn);
+	CustomColumns.Add(TextureLODSettingsColumn);
 
 	return PropertyEditorModule.CreatePropertyTableWidget(PropertyTable.ToSharedRef(), CustomColumns);
 }

@@ -228,7 +228,7 @@ public:
 		// Create the sampler state RHI resource.
 		FSamplerStateInitializerRHI SamplerStateInitializer
 		(
-			GSystemSettings.TextureLODSettings.GetSamplerFilter( Owner ),
+			(ESamplerFilter)UDeviceProfileManager::Get().GetActiveProfile()->GetTextureLODSettings()->GetSamplerFilter( Owner ),
 			AM_Clamp,
 			AM_Clamp,
 			AM_Clamp

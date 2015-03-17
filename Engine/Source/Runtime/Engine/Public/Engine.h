@@ -292,6 +292,8 @@
 #include "Engine/StreamableManager.h"
 #include "Engine/TextureDefines.h"
 #include "Tests/TextPropertyTestObject.h"
+#include "Engine/TextureLODSettings.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
 #include "Engine/Texture.h"
 #include "Engine/LightMapTexture2D.h"
 #include "Engine/ShadowMapTexture2D.h"

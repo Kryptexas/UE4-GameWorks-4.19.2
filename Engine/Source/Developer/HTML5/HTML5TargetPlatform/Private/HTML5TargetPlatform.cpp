@@ -6,8 +6,8 @@
 
 #include "HTML5TargetPlatformPrivatePCH.h"
 
-#if WITH_EDITOR
-#include "TextureLODSettings.h"
+#if WITH_ENGINE
+#include "DeviceProfiles/DeviceProfile.h"
 #endif 
 
  /* FHTML5TargetPlatform structors
@@ -19,7 +19,7 @@ FHTML5TargetPlatform::FHTML5TargetPlatform( )
 
 #if WITH_ENGINE
 	// load up texture settings from the config file
-	HTML5LODSettings.Initialize(HTML5EngineSettings, TEXT("SystemSettings"));
+	HTML5LODSettings = nullptr;
 	StaticMeshLODSettings.Initialize(HTML5EngineSettings);
 #endif
 }
@@ -309,9 +309,9 @@ void FHTML5TargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FN
 }
 
 
-const struct FTextureLODSettings& FHTML5TargetPlatform::GetTextureLODSettings( ) const
+const UTextureLODSettings& FHTML5TargetPlatform::GetTextureLODSettings() const
 {
-	return HTML5LODSettings;
+	return *HTML5LODSettings;
 }
 
 
