@@ -1504,7 +1504,10 @@ struct ENGINE_API FHitResult
 	UPROPERTY()
 	int32 Item;
 
-	/** Physical material that was hit. Must set bReturnPhysicalMaterial to true in the query params for this to be returned. */
+	/**
+	 * Physical material that was hit.
+	 * @note Must set bReturnPhysicalMaterial on the swept PrimitiveComponent or in the query params for this to be returned.
+	 */
 	UPROPERTY()
 	TWeakObjectPtr<class UPhysicalMaterial> PhysMaterial;
 
