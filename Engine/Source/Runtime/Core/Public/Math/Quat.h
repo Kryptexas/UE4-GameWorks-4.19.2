@@ -311,6 +311,9 @@ public:
 	 */
 	CORE_API FQuat Exp() const;
 
+	/**
+	 * @return inverse of this quaternion
+	 */
 	FORCEINLINE FQuat Inverse() const;
 
 	/**
