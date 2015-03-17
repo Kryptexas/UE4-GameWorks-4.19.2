@@ -1237,13 +1237,13 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 		GestureMoveForwardBackwardImpulse = 0.0f;
 
 		// Forward/back
-		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().Forward->GetActiveGesture()->Key ) ) ||
+		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().Forward->GetActiveChord()->Key ) ) ||
 			( bRemapArrowKeys && Viewport->KeyState( EKeys::Up ) ) ||
 			Viewport->KeyState( EKeys::NumPadEight ) )
 		{
 			CameraUserImpulseData->MoveForwardBackwardImpulse += 1.0f;
 		}
-		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().Backward->GetActiveGesture()->Key ) ) ||
+		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().Backward->GetActiveChord()->Key ) ) ||
 			( bRemapArrowKeys && Viewport->KeyState( EKeys::Down ) ) ||
 			Viewport->KeyState( EKeys::NumPadTwo ) )
 		{
@@ -1251,13 +1251,13 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 		}
 
 		// Right/left
-		if ( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().Right->GetActiveGesture()->Key) ) ||
+		if ( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().Right->GetActiveChord()->Key) ) ||
 			( bRemapArrowKeys && Viewport->KeyState( EKeys::Right ) ) ||
 			Viewport->KeyState( EKeys::NumPadSix ) )
 		{
 			CameraUserImpulseData->MoveRightLeftImpulse += 1.0f;
 		}
-		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().Left->GetActiveGesture()->Key ) ) ||
+		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().Left->GetActiveChord()->Key ) ) ||
 			( bRemapArrowKeys && Viewport->KeyState( EKeys::Left ) ) ||
 			Viewport->KeyState( EKeys::NumPadFour ) )
 		{
@@ -1265,24 +1265,24 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 		}
 
 		// Up/down
-		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().Up->GetActiveGesture()->Key ) ) ||
+		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().Up->GetActiveChord()->Key ) ) ||
 			Viewport->KeyState( EKeys::PageUp ) || Viewport->KeyState( EKeys::NumPadNine ) || Viewport->KeyState( EKeys::Add ) )
 		{
 			CameraUserImpulseData->MoveUpDownImpulse += 1.0f;
 		}
-		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().Down->GetActiveGesture()->Key) ) ||
+		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().Down->GetActiveChord()->Key) ) ||
 			Viewport->KeyState( EKeys::PageDown ) || Viewport->KeyState( EKeys::NumPadSeven ) || Viewport->KeyState( EKeys::Subtract ) )
 		{
 			CameraUserImpulseData->MoveUpDownImpulse -= 1.0f;
 		}
 
 		// Zoom FOV out/in
-		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().FovZoomOut->GetActiveGesture()->Key ) ) ||
+		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().FovZoomOut->GetActiveChord()->Key ) ) ||
 			Viewport->KeyState( EKeys::NumPadOne ) )
 		{
 			CameraUserImpulseData->ZoomOutInImpulse += 1.0f;
 		}
-		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().FovZoomIn->GetActiveGesture()->Key ) ) ||
+		if( ( bRemapWASDKeys && Viewport->KeyState( FViewportNavigationCommands::Get().FovZoomIn->GetActiveChord()->Key ) ) ||
 			Viewport->KeyState( EKeys::NumPadThree ) )
 		{
 			CameraUserImpulseData->ZoomOutInImpulse -= 1.0f;
@@ -1888,14 +1888,14 @@ void FEditorViewportClient::SetMatineeRecordingWindow (IMatineeBase* InInterpEd)
 bool FEditorViewportClient::IsFlightCameraActive() const
 {
 	bool bIsFlightMovementKey = 
-		( Viewport->KeyState( FViewportNavigationCommands::Get().Forward->GetActiveGesture()->Key )
-		|| Viewport->KeyState( FViewportNavigationCommands::Get().Backward->GetActiveGesture()->Key )
-		|| Viewport->KeyState( FViewportNavigationCommands::Get().Left->GetActiveGesture()->Key )
-		|| Viewport->KeyState( FViewportNavigationCommands::Get().Right->GetActiveGesture()->Key )
-		|| Viewport->KeyState( FViewportNavigationCommands::Get().Up->GetActiveGesture()->Key )
-		|| Viewport->KeyState( FViewportNavigationCommands::Get().Down->GetActiveGesture()->Key )
-		|| Viewport->KeyState( FViewportNavigationCommands::Get().FovZoomIn->GetActiveGesture()->Key )
-		|| Viewport->KeyState( FViewportNavigationCommands::Get().FovZoomOut->GetActiveGesture()->Key ) );
+		( Viewport->KeyState( FViewportNavigationCommands::Get().Forward->GetActiveChord()->Key )
+		|| Viewport->KeyState( FViewportNavigationCommands::Get().Backward->GetActiveChord()->Key )
+		|| Viewport->KeyState( FViewportNavigationCommands::Get().Left->GetActiveChord()->Key )
+		|| Viewport->KeyState( FViewportNavigationCommands::Get().Right->GetActiveChord()->Key )
+		|| Viewport->KeyState( FViewportNavigationCommands::Get().Up->GetActiveChord()->Key )
+		|| Viewport->KeyState( FViewportNavigationCommands::Get().Down->GetActiveChord()->Key )
+		|| Viewport->KeyState( FViewportNavigationCommands::Get().FovZoomIn->GetActiveChord()->Key )
+		|| Viewport->KeyState( FViewportNavigationCommands::Get().FovZoomOut->GetActiveChord()->Key ) );
 
 	const bool bIsUsingTrackpad = FSlateApplication::Get().IsUsingTrackpad();
 
@@ -4790,16 +4790,16 @@ FViewportNavigationCommands::FViewportNavigationCommands()
 
 void FViewportNavigationCommands::RegisterCommands()
 {
-	UI_COMMAND(Forward, "Forward", "Moves the camera Forward", EUserInterfaceActionType::Button, FInputGesture(EKeys::W));
-	UI_COMMAND(Backward, "Backward", "Moves the camera Backward", EUserInterfaceActionType::Button, FInputGesture(EKeys::S));
-	UI_COMMAND(Left, "Left", "Moves the camera Left", EUserInterfaceActionType::Button, FInputGesture(EKeys::A));
-	UI_COMMAND(Right, "Right", "Moves the camera Right", EUserInterfaceActionType::Button, FInputGesture(EKeys::D));
+	UI_COMMAND(Forward, "Forward", "Moves the camera Forward", EUserInterfaceActionType::Button, FInputChord(EKeys::W));
+	UI_COMMAND(Backward, "Backward", "Moves the camera Backward", EUserInterfaceActionType::Button, FInputChord(EKeys::S));
+	UI_COMMAND(Left, "Left", "Moves the camera Left", EUserInterfaceActionType::Button, FInputChord(EKeys::A));
+	UI_COMMAND(Right, "Right", "Moves the camera Right", EUserInterfaceActionType::Button, FInputChord(EKeys::D));
 
-	UI_COMMAND(Up, "Up", "Moves the camera Up", EUserInterfaceActionType::Button, FInputGesture(EKeys::E));
-	UI_COMMAND(Down, "Down", "Moves the camera Down", EUserInterfaceActionType::Button, FInputGesture(EKeys::Q));
+	UI_COMMAND(Up, "Up", "Moves the camera Up", EUserInterfaceActionType::Button, FInputChord(EKeys::E));
+	UI_COMMAND(Down, "Down", "Moves the camera Down", EUserInterfaceActionType::Button, FInputChord(EKeys::Q));
 
-	UI_COMMAND(FovZoomIn, "FOV Zoom In", "Narrows the camers FOV", EUserInterfaceActionType::Button, FInputGesture(EKeys::C));
-	UI_COMMAND(FovZoomOut, "FOV Zoom Out", "Widens the camera FOV", EUserInterfaceActionType::Button, FInputGesture(EKeys::Z));
+	UI_COMMAND(FovZoomIn, "FOV Zoom In", "Narrows the camers FOV", EUserInterfaceActionType::Button, FInputChord(EKeys::C));
+	UI_COMMAND(FovZoomOut, "FOV Zoom Out", "Widens the camera FOV", EUserInterfaceActionType::Button, FInputChord(EKeys::Z));
 }
 
 #undef LOCTEXT_NAMESPACE 

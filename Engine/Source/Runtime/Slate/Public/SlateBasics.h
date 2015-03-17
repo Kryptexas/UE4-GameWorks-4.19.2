@@ -31,7 +31,7 @@
 #include "SlateIcon.h"
 
 // Commands
-#include "InputGesture.h"
+#include "InputChord.h"
 #include "UIAction.h"
 #include "UICommandInfo.h"
 #include "InputBindingManager.h"

@@ -176,7 +176,7 @@ public:
 	 */
 	virtual void RegisterCommands() override
 	{
-		UI_COMMAND(RefreshPalette, "Refresh List", "Refreshes the list of nodes.", EUserInterfaceActionType::Button, FInputGesture());
+		UI_COMMAND(RefreshPalette, "Refresh List", "Refreshes the list of nodes.", EUserInterfaceActionType::Button, FInputChord());
 	}
 };
 

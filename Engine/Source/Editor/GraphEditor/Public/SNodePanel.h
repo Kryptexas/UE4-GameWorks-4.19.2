@@ -875,8 +875,8 @@ protected:
 	/** Invoked when the user may be attempting to spawn a node using a shortcut */
 	SGraphEditor::FOnSpawnNodeByShortcut OnSpawnNodeByShortcut;
 
-	/** The last key gesture detected in this graph panel */
-	FInputGesture LastKeyGestureDetected;
+	/** The last key chord detected in this graph panel */
+	FInputChord LastKeyChordDetected;
 
 	/** The current transaction for undo/redo */
 	TSharedPtr<FScopedTransaction> ScopedTransactionPtr;

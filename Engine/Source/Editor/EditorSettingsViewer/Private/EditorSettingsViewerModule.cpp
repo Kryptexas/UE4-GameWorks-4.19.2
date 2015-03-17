@@ -354,7 +354,7 @@ private:
 	{
 		if( EAppReturnType::Ok == ShowRestartWarning(LOCTEXT("ResetKeyBindings_Title", "Reset Key Bindings")))
 		{
-			FInputBindingManager::Get().RemoveUserDefinedGestures();
+			FInputBindingManager::Get().RemoveUserDefinedChords();
 			GConfig->Flush(false, GEditorKeyBindingsIni);
 			FUnrealEdMisc::Get().RestartEditor(false);
 
@@ -370,7 +370,7 @@ private:
 	// overwrite the imported settings just copied across.
 	bool HandleInputBindingsSave()
 	{
-		FInputBindingManager::Get().RemoveUserDefinedGestures();
+		FInputBindingManager::Get().RemoveUserDefinedChords();
 		GConfig->Flush(false, GEditorKeyBindingsIni);
 		return true;
 	}

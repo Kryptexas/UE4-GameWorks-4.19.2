@@ -912,7 +912,7 @@ public:
 
 	virtual void RegisterCommands() override
 	{
-		UI_COMMAND( SomeSequenceAction, "Some Sequence Action", "Does some sequence action", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( SomeSequenceAction, "Some Sequence Action", "Does some sequence action", EUserInterfaceActionType::Button, FInputChord() );
 	}
 public:
 	TSharedPtr<FUICommandInfo> SomeSequenceAction;
@@ -3037,7 +3037,7 @@ bool SNotifyEdTrack::CanDeleteTrack()
 
 void FAnimNotifyPanelCommands::RegisterCommands()
 {
-	UI_COMMAND(DeleteNotify, "Delete", "Deletes the selected notifies.", EUserInterfaceActionType::Button, FInputGesture(EKeys::Platform_Delete));
+	UI_COMMAND(DeleteNotify, "Delete", "Deletes the selected notifies.", EUserInterfaceActionType::Button, FInputChord(EKeys::Platform_Delete));
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -459,8 +459,8 @@ public:
 	/** Find all instances of the selected custom event. */
 	void OnFindInstancesCustomEvent();
 
-	/** Handles spawning a graph node in the current graph using the passed in gesture */
-	FReply OnSpawnGraphNodeByShortcut(FInputGesture InGesture, const FVector2D& InPosition, UEdGraph* InGraph);
+	/** Handles spawning a graph node in the current graph using the passed in chord */
+	FReply OnSpawnGraphNodeByShortcut(FInputChord InChord, const FVector2D& InPosition, UEdGraph* InGraph);
 
 	/** 
 	 * Perform the actual promote to variable action on the given pin in the given blueprint.

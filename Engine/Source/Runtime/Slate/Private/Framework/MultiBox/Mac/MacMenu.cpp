@@ -433,27 +433,27 @@ NSString* FSlateMacMenu::GetMenuItemKeyEquivalent(const TSharedRef<const class F
 {
 	if (Block->GetAction().IsValid())
 	{
-		const TSharedRef<const FInputGesture>& Gesture = Block->GetAction()->GetActiveGesture();
+		const TSharedRef<const FInputChord>& Chord = Block->GetAction()->GetActiveChord();
 
 		*OutModifiers = 0;
-		if (Gesture->NeedsControl())
+		if (Chord->NeedsControl())
 		{
 			*OutModifiers |= NSControlKeyMask;
 		}
-		if (Gesture->NeedsShift())
+		if (Chord->NeedsShift())
 		{
 			*OutModifiers |= NSShiftKeyMask;
 		}
-		if (Gesture->NeedsAlt())
+		if (Chord->NeedsAlt())
 		{
 			*OutModifiers |= NSAlternateKeyMask;
 		}
-		if (Gesture->NeedsCommand())
+		if (Chord->NeedsCommand())
 		{
 			*OutModifiers |= NSCommandKeyMask;
 		}
 
-		FString KeyString = Gesture->GetKeyText().ToString().ToLower();
+		FString KeyString = Chord->GetKeyText().ToString().ToLower();
 		return KeyString.GetNSString();
 	}
 	return @"";

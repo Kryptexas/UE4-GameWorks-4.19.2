@@ -26,76 +26,76 @@ PRAGMA_DISABLE_OPTIMIZATION
 	virtual void RegisterCommands() override
 	{
 		//selected level
-		UI_COMMAND( MakeLevelCurrent, "Make Current", "Make this Level the Current Level", EUserInterfaceActionType::Button, FInputGesture( EKeys::Enter ) );
-		UI_COMMAND( MoveActorsToSelected, "Move Selected Actors to Level", "Moves the selected actors to this level", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( MakeLevelCurrent, "Make Current", "Make this Level the Current Level", EUserInterfaceActionType::Button, FInputChord( EKeys::Enter ) );
+		UI_COMMAND( MoveActorsToSelected, "Move Selected Actors to Level", "Moves the selected actors to this level", EUserInterfaceActionType::Button, FInputChord() );
 
 		//invalid selected level
-		UI_COMMAND( FixUpInvalidReference, "Replace Missing Level","Removes the broken level and replaces it with the level browsed to", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( RemoveInvalidReference, "Remove Missing Level", "Removes the reference to the missing level from the map", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( FixUpInvalidReference, "Replace Missing Level","Removes the broken level and replaces it with the level browsed to", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( RemoveInvalidReference, "Remove Missing Level", "Removes the reference to the missing level from the map", EUserInterfaceActionType::Button, FInputChord() );
 
 		//levels
-		UI_COMMAND( EditProperties, "Edit Properties", "Opens the edit properties window for the selected levels", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( SaveSelectedLevels, "Save Selected Levels", "Saves selected levels", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( MigrateSelectedLevels, "Migrate Selected Levels...", "Copies the selected levels and all their dependencies to a different game", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( EditProperties, "Edit Properties", "Opens the edit properties window for the selected levels", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( SaveSelectedLevels, "Save Selected Levels", "Saves selected levels", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( MigrateSelectedLevels, "Migrate Selected Levels...", "Copies the selected levels and all their dependencies to a different game", EUserInterfaceActionType::Button, FInputChord() );
 		
-		UI_COMMAND( DisplayActorCount, "Show Actor Count", "If enabled, displays the number of actors in each level", EUserInterfaceActionType::ToggleButton, FInputGesture() );
-		UI_COMMAND( DisplayLightmassSize, "Show Lightmass Size", "If enabled, displays the Lightmass size for each level", EUserInterfaceActionType::ToggleButton, FInputGesture() );
-		UI_COMMAND( DisplayFileSize, "Show File Size", "If enabled, displays the file size for each level", EUserInterfaceActionType::ToggleButton, FInputGesture() );
-		UI_COMMAND( DisplayPaths, "Show Paths", "If enabled, displays the path for each level", EUserInterfaceActionType::ToggleButton, FInputGesture() );
-		UI_COMMAND( DisplayEditorOffset, "Show Editor Offset", "If enabled, displays the editor offset for each level", EUserInterfaceActionType::ToggleButton, FInputGesture() );
+		UI_COMMAND( DisplayActorCount, "Show Actor Count", "If enabled, displays the number of actors in each level", EUserInterfaceActionType::ToggleButton, FInputChord() );
+		UI_COMMAND( DisplayLightmassSize, "Show Lightmass Size", "If enabled, displays the Lightmass size for each level", EUserInterfaceActionType::ToggleButton, FInputChord() );
+		UI_COMMAND( DisplayFileSize, "Show File Size", "If enabled, displays the file size for each level", EUserInterfaceActionType::ToggleButton, FInputChord() );
+		UI_COMMAND( DisplayPaths, "Show Paths", "If enabled, displays the path for each level", EUserInterfaceActionType::ToggleButton, FInputChord() );
+		UI_COMMAND( DisplayEditorOffset, "Show Editor Offset", "If enabled, displays the editor offset for each level", EUserInterfaceActionType::ToggleButton, FInputChord() );
 		
-		UI_COMMAND( CreateEmptyLevel, "Create Empty Level", "Creates a new empty Level", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( AddExistingLevel, "Add Existing Level", "Adds an existing level", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( AddSelectedActorsToNewLevel, "Add Selected Actors to New Level", "Adds the actors currently selected in the active viewport to a new Level", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( MergeSelectedLevels, "Merge Levels into New Level", "Merges the selected levels into a new level, removing the original levels from the persistent", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( RemoveSelectedLevels, "Remove Selected Levels", "Removes selected levels from world", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( CreateEmptyLevel, "Create Empty Level", "Creates a new empty Level", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( AddExistingLevel, "Add Existing Level", "Adds an existing level", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( AddSelectedActorsToNewLevel, "Add Selected Actors to New Level", "Adds the actors currently selected in the active viewport to a new Level", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( MergeSelectedLevels, "Merge Levels into New Level", "Merges the selected levels into a new level, removing the original levels from the persistent", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( RemoveSelectedLevels, "Remove Selected Levels", "Removes selected levels from world", EUserInterfaceActionType::Button, FInputChord() );
 
 		// Source Control
-		UI_COMMAND( SCCCheckOut, "Check Out", "Checks out the selected asset from source control.", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( SCCCheckIn, "Check In", "Checks in the selected asset to source control.", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( SCCOpenForAdd, "Mark For Add", "Adds the selected asset to source control.", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( SCCHistory, "History", "Displays the source control revision history of the selected asset.", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( SCCRefresh, "Refresh", "Updates the source control status of the asset.", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( SCCDiffAgainstDepot, "Diff Against Depot", "Look at differences between your version of the asset and that in source control.", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( SCCConnect, "Connect To Source Control", "Connect to source control to allow source control operations to be performed on content and levels.", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( SCCCheckOut, "Check Out", "Checks out the selected asset from source control.", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( SCCCheckIn, "Check In", "Checks in the selected asset to source control.", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( SCCOpenForAdd, "Mark For Add", "Adds the selected asset to source control.", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( SCCHistory, "History", "Displays the source control revision history of the selected asset.", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( SCCRefresh, "Refresh", "Updates the source control status of the asset.", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( SCCDiffAgainstDepot, "Diff Against Depot", "Look at differences between your version of the asset and that in source control.", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( SCCConnect, "Connect To Source Control", "Connect to source control to allow source control operations to be performed on content and levels.", EUserInterfaceActionType::Button, FInputChord() );
 
 		// set new streaming method
-		UI_COMMAND( SetAddStreamingMethod_Blueprint, "Set Blueprint Streaming Method", "Sets the streaming method for new or added levels to Blueprint streaming", EUserInterfaceActionType::RadioButton, FInputGesture() );
-		UI_COMMAND( SetAddStreamingMethod_AlwaysLoaded, "Set Streaming to Always Loaded", "Sets the streaming method new or added selected levels to be always loaded", EUserInterfaceActionType::RadioButton, FInputGesture() );
+		UI_COMMAND( SetAddStreamingMethod_Blueprint, "Set Blueprint Streaming Method", "Sets the streaming method for new or added levels to Blueprint streaming", EUserInterfaceActionType::RadioButton, FInputChord() );
+		UI_COMMAND( SetAddStreamingMethod_AlwaysLoaded, "Set Streaming to Always Loaded", "Sets the streaming method new or added selected levels to be always loaded", EUserInterfaceActionType::RadioButton, FInputChord() );
 
 		// change streaming method
-		UI_COMMAND( SetStreamingMethod_Blueprint, "Change Blueprint Streaming Method", "Changes the streaming method for the selected levels to Blueprint streaming", EUserInterfaceActionType::Check, FInputGesture() );
-		UI_COMMAND( SetStreamingMethod_AlwaysLoaded, "Change Streaming to Always Loaded", "Changes the streaming method for the selected levels to be always loaded", EUserInterfaceActionType::Check, FInputGesture() );
+		UI_COMMAND( SetStreamingMethod_Blueprint, "Change Blueprint Streaming Method", "Changes the streaming method for the selected levels to Blueprint streaming", EUserInterfaceActionType::Check, FInputChord() );
+		UI_COMMAND( SetStreamingMethod_AlwaysLoaded, "Change Streaming to Always Loaded", "Changes the streaming method for the selected levels to be always loaded", EUserInterfaceActionType::Check, FInputChord() );
 
 		//level selection
-		UI_COMMAND( SelectAllLevels, "Select All Levels", "Selects all levels", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( DeselectAllLevels, "De-select All Levels", "De-selects all levels", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( InvertLevelSelection, "Invert Level Selection", "Inverts level selection", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( SelectAllLevels, "Select All Levels", "Selects all levels", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( DeselectAllLevels, "De-select All Levels", "De-selects all levels", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( InvertLevelSelection, "Invert Level Selection", "Inverts level selection", EUserInterfaceActionType::Button, FInputChord() );
 		
 		//actors
-		UI_COMMAND( SelectLevelActors, "Select Actors in Levels", "Sets actors in the selected Levels as the viewport's selection", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( DeselectLevelActors, "Deselect Actors in Levels", "Removes the Actors in the selected Levels from the viewport's existing selection", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( SelectLevelActors, "Select Actors in Levels", "Sets actors in the selected Levels as the viewport's selection", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( DeselectLevelActors, "Deselect Actors in Levels", "Removes the Actors in the selected Levels from the viewport's existing selection", EUserInterfaceActionType::Button, FInputChord() );
 
 		//streaming volumes
-		UI_COMMAND( AddStreamingLevelVolumes, "Add Streaming Volumes", "Adds the streaming volumes to the selected levels", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( SetStreamingLevelVolumes, "Set Streaming Volumes", "Clears the streaming volumes associated with the selected levels and adds the selected streaming volumes", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( SelectStreamingVolumes, "Select Streaming Volumes", "Selects the streaming volumes associated with the selected levels", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( ClearStreamingVolumes, "Clear Streaming Volumes", "Removes all streaming volume associations with the selected levels", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( AddStreamingLevelVolumes, "Add Streaming Volumes", "Adds the streaming volumes to the selected levels", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( SetStreamingLevelVolumes, "Set Streaming Volumes", "Clears the streaming volumes associated with the selected levels and adds the selected streaming volumes", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( SelectStreamingVolumes, "Select Streaming Volumes", "Selects the streaming volumes associated with the selected levels", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( ClearStreamingVolumes, "Clear Streaming Volumes", "Removes all streaming volume associations with the selected levels", EUserInterfaceActionType::Button, FInputChord() );
 
 		//visibility
-		UI_COMMAND( ShowSelectedLevels, "Show Selected Levels", "Toggles selected levels to a visible state in the viewports", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( HideSelectedLevels, "Hide Selected Levels", "Toggles selected levels to an invisible state in the viewports", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( ShowOnlySelectedLevels, "Show Only Selected Levels", "Toggles the selected levels to a visible state; toggles all other levels to an invisible state", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( ShowAllLevels, "Show All Levels", "Toggles all levels to a visible state in the viewports", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( HideAllLevels, "Hide All Levels", "Hides all levels to an invisible state in the viewports", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( ShowSelectedLevels, "Show Selected Levels", "Toggles selected levels to a visible state in the viewports", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( HideSelectedLevels, "Hide Selected Levels", "Toggles selected levels to an invisible state in the viewports", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( ShowOnlySelectedLevels, "Show Only Selected Levels", "Toggles the selected levels to a visible state; toggles all other levels to an invisible state", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( ShowAllLevels, "Show All Levels", "Toggles all levels to a visible state in the viewports", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( HideAllLevels, "Hide All Levels", "Hides all levels to an invisible state in the viewports", EUserInterfaceActionType::Button, FInputChord() );
 
 		//lock
-		UI_COMMAND( LockSelectedLevels, "Lock Selected Levels", "Locks selected levels", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( UnockSelectedLevels, "Unlock Selected Levels", "Unlocks selected levels", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( LockAllLevels, "Lock All Levels", "Locks all levels", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( UnockAllLevels, "Unlock All Levels", "Unlocks all levels", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( LockReadOnlyLevels, "Lock Read-Only Levels", "Locks all read-only levels", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( UnlockReadOnlyLevels, "Unlock Read-Only Levels", "Unlocks all read-only levels", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( LockSelectedLevels, "Lock Selected Levels", "Locks selected levels", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( UnockSelectedLevels, "Unlock Selected Levels", "Unlocks selected levels", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( LockAllLevels, "Lock All Levels", "Locks all levels", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( UnockAllLevels, "Unlock All Levels", "Unlocks all levels", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( LockReadOnlyLevels, "Lock Read-Only Levels", "Locks all read-only levels", EUserInterfaceActionType::Button, FInputChord() );
+		UI_COMMAND( UnlockReadOnlyLevels, "Unlock Read-Only Levels", "Unlocks all read-only levels", EUserInterfaceActionType::Button, FInputChord() );
 	}
 PRAGMA_ENABLE_OPTIMIZATION
 

@@ -344,12 +344,12 @@ void SGlobalTabSwitchingDialog::DismissDialog()
 	FSlateApplication::Get().DismissAllMenus();
 }
 
-void SGlobalTabSwitchingDialog::Construct(const FArguments& InArgs, FVector2D InSize, FInputGesture InTriggerGesture)
+void SGlobalTabSwitchingDialog::Construct(const FArguments& InArgs, FVector2D InSize, FInputChord InTriggerChord)
 {
 	check(!bIsAlreadyOpen);
 	bIsAlreadyOpen = true;
 
-	TriggerGesture = InTriggerGesture;
+	TriggerChord = InTriggerChord;
 
 	AssetThumbnailPool = MakeShareable(new FAssetThumbnailPool(128));
 
@@ -475,9 +475,9 @@ void SGlobalTabSwitchingDialog::Construct(const FArguments& InArgs, FVector2D In
 FReply SGlobalTabSwitchingDialog::OnKeyUp(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
 	// Check to see if the trigger modifier key was released, which should close the dialog
-	const bool bCloseViaControl = TriggerGesture.NeedsControl() && ((InKeyEvent.GetKey() == EKeys::LeftControl) || (InKeyEvent.GetKey() == EKeys::RightControl));
-	const bool bCloseViaCommand = TriggerGesture.NeedsCommand() && ((InKeyEvent.GetKey() == EKeys::LeftCommand) || (InKeyEvent.GetKey() == EKeys::RightCommand));
-	const bool bCloseViaAlt = TriggerGesture.NeedsAlt() && ((InKeyEvent.GetKey() == EKeys::LeftAlt) || (InKeyEvent.GetKey() == EKeys::RightAlt));
+	const bool bCloseViaControl = TriggerChord.NeedsControl() && ((InKeyEvent.GetKey() == EKeys::LeftControl) || (InKeyEvent.GetKey() == EKeys::RightControl));
+	const bool bCloseViaCommand = TriggerChord.NeedsCommand() && ((InKeyEvent.GetKey() == EKeys::LeftCommand) || (InKeyEvent.GetKey() == EKeys::RightCommand));
+	const bool bCloseViaAlt = TriggerChord.NeedsAlt() && ((InKeyEvent.GetKey() == EKeys::LeftAlt) || (InKeyEvent.GetKey() == EKeys::RightAlt));
 	
 	if (bCloseViaControl || bCloseViaCommand || bCloseViaAlt)
 	{
@@ -490,7 +490,7 @@ FReply SGlobalTabSwitchingDialog::OnKeyUp(const FGeometry& MyGeometry, const FKe
 
 FReply SGlobalTabSwitchingDialog::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
-	if (TriggerGesture.Key == InKeyEvent.GetKey())
+	if (TriggerChord.Key == InKeyEvent.GetKey())
 	{
 		const bool bCycleForward = !InKeyEvent.IsShiftDown();
 		CycleSelection(bCycleForward);

@@ -3,42 +3,6 @@
 #include "EnginePrivate.h"
 
 
-/* FInputChord interface
- *****************************************************************************/
-
-FInputChord::ERelationshipType FInputChord::GetRelationship( const FInputChord& OtherChord ) const
-{
-	ERelationshipType Relationship = None;
-
-	if (Key == OtherChord.Key)
-	{
-		if ((bAlt == OtherChord.bAlt) &&
-			(bCtrl == OtherChord.bCtrl) &&
-			(bShift == OtherChord.bShift) &&
-			(bCmd == OtherChord.bCmd))
-		{
-			Relationship = Same;
-		}
-		else if ((bAlt || !OtherChord.bAlt) &&
-				(bCtrl || !OtherChord.bCtrl) &&
-				(bShift || !OtherChord.bShift) &&
-				(bCmd || !OtherChord.bCmd))
-		{
-			Relationship = Masks;
-		}
-		else if ((!bAlt || OtherChord.bAlt) &&
-				(!bCtrl || OtherChord.bCtrl) &&
-				(!bShift || OtherChord.bShift) &&
-				(!bCmd || OtherChord.bCmd))
-		{
-			Relationship = Masked;
-		}
-	}
-
-	return Relationship;
-}
-
-
 /* UInputComponent interface
  *****************************************************************************/
 

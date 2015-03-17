@@ -2289,13 +2289,13 @@ TSharedPtr<FDragTool> FLevelEditorViewportClient::MakeDragTool( EDragTool::Type 
 
 static bool CommandAcceptsInput( FLevelEditorViewportClient& ViewportClient, FKey Key, const TSharedPtr<FUICommandInfo> Command )
 {
-	const FInputGesture& Gesture = *Command->GetActiveGesture();
+	const FInputChord& Chord = *Command->GetActiveChord();
 
-	return (!Gesture.NeedsControl()	|| ViewportClient.IsCtrlPressed() ) 
-		&& (!Gesture.NeedsAlt()		|| ViewportClient.IsAltPressed() ) 
-		&& (!Gesture.NeedsShift()	|| ViewportClient.IsShiftPressed() ) 
-		&& (!Gesture.NeedsCommand()		|| ViewportClient.IsCmdPressed() )
-		&& Gesture.Key == Key;
+	return (!Chord.NeedsControl()	|| ViewportClient.IsCtrlPressed() ) 
+		&& (!Chord.NeedsAlt()		|| ViewportClient.IsAltPressed() ) 
+		&& (!Chord.NeedsShift()	|| ViewportClient.IsShiftPressed() ) 
+		&& (!Chord.NeedsCommand()		|| ViewportClient.IsCmdPressed() )
+		&& Chord.Key == Key;
 }
 
 static const FLevelViewportCommands& GetLevelViewportCommands()

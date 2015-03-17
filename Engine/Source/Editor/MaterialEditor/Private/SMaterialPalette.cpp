@@ -23,16 +23,16 @@ void SMaterialPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetForA
 	TSharedPtr<FEdGraphSchemaAction> GraphAction = InCreateData->Action;
 	ActionPtr = InCreateData->Action;
 
-	// Get the Hotkey gesture if one exists for this action
-	TSharedPtr<const FInputGesture> HotkeyGesture;
+	// Get the Hotkey chord if one exists for this action
+	TSharedPtr<const FInputChord> HotkeyChord;
 	if (GraphAction->GetTypeId() == FMaterialGraphSchemaAction_NewNode::StaticGetTypeId())
 	{
 		UClass* MaterialExpressionClass = StaticCastSharedPtr<FMaterialGraphSchemaAction_NewNode>(GraphAction)->MaterialExpressionClass;
-		HotkeyGesture = FMaterialEditorSpawnNodeCommands::Get().GetGestureByClass(MaterialExpressionClass);
+		HotkeyChord = FMaterialEditorSpawnNodeCommands::Get().GetChordByClass(MaterialExpressionClass);
 	}
 	else if (GraphAction->GetTypeId() == FMaterialGraphSchemaAction_NewComment::StaticGetTypeId())
 	{
-		HotkeyGesture = FMaterialEditorSpawnNodeCommands::Get().GetGestureByClass(UMaterialExpressionComment::StaticClass());
+		HotkeyChord = FMaterialEditorSpawnNodeCommands::Get().GetChordByClass(UMaterialExpressionComment::StaticClass());
 	}
 
 	// Find icons
@@ -44,7 +44,7 @@ void SMaterialPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetForA
 
 	TSharedRef<SWidget> IconWidget = CreateIconWidget( IconToolTip, IconBrush, IconColor );
 	TSharedRef<SWidget> NameSlotWidget = CreateTextSlotWidget( NameFont, InCreateData, bIsReadOnly );
-	TSharedRef<SWidget> HotkeyDisplayWidget = CreateHotkeyDisplayWidget( NameFont, HotkeyGesture );
+	TSharedRef<SWidget> HotkeyDisplayWidget = CreateHotkeyDisplayWidget( NameFont, HotkeyChord );
 
 	// Create the actual widget
 	this->ChildSlot
@@ -74,12 +74,12 @@ void SMaterialPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetForA
 	];
 }
 
-TSharedRef<SWidget> SMaterialPaletteItem::CreateHotkeyDisplayWidget(const FSlateFontInfo& NameFont, const TSharedPtr<const FInputGesture> HotkeyGesture)
+TSharedRef<SWidget> SMaterialPaletteItem::CreateHotkeyDisplayWidget(const FSlateFontInfo& NameFont, const TSharedPtr<const FInputChord> HotkeyChord)
 {
 	FText HotkeyText;
-	if (HotkeyGesture.IsValid())
+	if (HotkeyChord.IsValid())
 	{
-		HotkeyText = HotkeyGesture->GetInputText();
+		HotkeyText = HotkeyChord->GetInputText();
 	}
 	return SNew(STextBlock)
 		.Text(HotkeyText)

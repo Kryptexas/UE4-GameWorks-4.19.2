@@ -864,10 +864,10 @@ FReply SNodePanel::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 
 				if(OnSpawnNodeByShortcut.IsBound())
 				{
-					OnSpawnNodeByShortcut.Execute(LastKeyGestureDetected, PanelCoordToGraphCoord(  MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() ) ));
+					OnSpawnNodeByShortcut.Execute(LastKeyChordDetected, PanelCoordToGraphCoord(  MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() ) ));
 				}
 
-				LastKeyGestureDetected = FInputGesture();
+				LastKeyChordDetected = FInputChord();
 			}
 		}
 		else if ( Marquee.IsValid() )
@@ -932,7 +932,7 @@ FReply SNodePanel::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKe
 {
 	if( IsEditable.Get() )
 	{
-		LastKeyGestureDetected = FInputGesture(InKeyEvent.GetKey(), EModifierKey::FromBools(InKeyEvent.IsControlDown(), InKeyEvent.IsAltDown(), InKeyEvent.IsShiftDown(), InKeyEvent.IsCommandDown()));
+		LastKeyChordDetected = FInputChord(InKeyEvent.GetKey(), EModifierKey::FromBools(InKeyEvent.IsControlDown(), InKeyEvent.IsAltDown(), InKeyEvent.IsShiftDown(), InKeyEvent.IsCommandDown()));
 	}
 
 	return FReply::Unhandled();
@@ -940,9 +940,9 @@ FReply SNodePanel::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKe
 
 FReply SNodePanel::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if(LastKeyGestureDetected.Key == InKeyEvent.GetKey())
+	if(LastKeyChordDetected.Key == InKeyEvent.GetKey())
 	{
-		LastKeyGestureDetected = FInputGesture();
+		LastKeyChordDetected = FInputChord();
 	}
 
 	return FReply::Unhandled();
@@ -950,7 +950,7 @@ FReply SNodePanel::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyE
 
 void SNodePanel::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
-	LastKeyGestureDetected = FInputGesture();
+	LastKeyChordDetected = FInputChord();
 }
 
 FReply SNodePanel::OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& GestureEvent )

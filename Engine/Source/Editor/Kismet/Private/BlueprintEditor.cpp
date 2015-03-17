@@ -7334,7 +7334,7 @@ void FBlueprintEditor::DestroyPreview()
 }
 
 
-FReply FBlueprintEditor::OnSpawnGraphNodeByShortcut(FInputGesture InGesture, const FVector2D& InPosition, UEdGraph* InGraph)
+FReply FBlueprintEditor::OnSpawnGraphNodeByShortcut(FInputChord InChord, const FVector2D& InPosition, UEdGraph* InGraph)
 {
 	UEdGraph* Graph = InGraph;
 	if (Graph == nullptr)
@@ -7343,7 +7343,7 @@ FReply FBlueprintEditor::OnSpawnGraphNodeByShortcut(FInputGesture InGesture, con
 	}
 
 	FBlueprintPaletteListBuilder PaletteBuilder(GetBlueprintObj());
-	FBlueprintSpawnNodeCommands::Get().GetGraphActionByGesture(InGesture, PaletteBuilder, InGraph);
+	FBlueprintSpawnNodeCommands::Get().GetGraphActionByChord(InChord, PaletteBuilder, InGraph);
 
 	TSet<const UEdGraphNode*> NodesToSelect;
 	FVector2D NodeSpawnPos = InPosition;

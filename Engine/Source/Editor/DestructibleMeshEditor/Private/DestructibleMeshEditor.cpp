@@ -26,9 +26,9 @@ static float ExplodeRange = 5.0f;
 
 void FDestructibleMeshEditorCommands::RegisterCommands()
 {
-	UI_COMMAND( Fracture, "Fracture Mesh", "Fractures the mesh's root chunk(s) based upon the Fracture Settings.", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( Refresh, "Refresh", "Refreshes the DestructibleMesh from the StaticMesh it was created from.", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( ImportFBXChunks, "Import FBX Chunks", "Imports a FBX as level 1 chunks.", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( Fracture, "Fracture Mesh", "Fractures the mesh's root chunk(s) based upon the Fracture Settings.", EUserInterfaceActionType::Button, FInputChord() );
+	UI_COMMAND( Refresh, "Refresh", "Refreshes the DestructibleMesh from the StaticMesh it was created from.", EUserInterfaceActionType::Button, FInputChord() );
+	UI_COMMAND( ImportFBXChunks, "Import FBX Chunks", "Imports a FBX as level 1 chunks.", EUserInterfaceActionType::Button, FInputChord() );
 }
 
 

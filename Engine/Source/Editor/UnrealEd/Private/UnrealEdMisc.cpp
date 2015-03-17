@@ -426,7 +426,7 @@ void FUnrealEdMisc::OnInit()
 	FAssetNameToken::OnGotoAsset().BindRaw(this, &FUnrealEdMisc::OnGotoAsset);
 
 	// Register to receive notification of new key bindings
-	OnUserDefinedGestureChangedDelegateHandle = FInputBindingManager::Get().RegisterUserDefinedGestureChanged(FOnUserDefinedGestureChanged::FDelegate::CreateRaw( this, &FUnrealEdMisc::OnUserDefinedGestureChanged ));
+	OnUserDefinedChordChangedDelegateHandle = FInputBindingManager::Get().RegisterUserDefinedChordChanged(FOnUserDefinedChordChanged::FDelegate::CreateRaw( this, &FUnrealEdMisc::OnUserDefinedChordChanged ));
 
 	SlowTask.EnterProgressFrame(10);
 
@@ -756,7 +756,7 @@ void FUnrealEdMisc::OnExit()
 		FEditorViewportStats::SendUsageData();
 	}
 
-	FInputBindingManager::Get().UnregisterUserDefinedGestureChanged(OnUserDefinedGestureChangedDelegateHandle);
+	FInputBindingManager::Get().UnregisterUserDefinedChordChanged(OnUserDefinedChordChangedDelegateHandle);
 	FMessageLog::OnMessageSelectionChanged().Unbind();
 	FUObjectToken::DefaultOnMessageTokenActivated().Unbind();
 	FUObjectToken::DefaultOnGetObjectDisplayName().Unbind();
@@ -1606,17 +1606,17 @@ FString FUnrealEdMisc::GetExecutableForCommandlets() const
 	return ExecutableName;
 }
 
-void FUnrealEdMisc::OnUserDefinedGestureChanged(const FUICommandInfo& CommandInfo)
+void FUnrealEdMisc::OnUserDefinedChordChanged(const FUICommandInfo& CommandInfo)
 {
 	if( FEngineAnalytics::IsAvailable() )
 	{
-		FString GestureName = FString::Printf(TEXT("%s.%s"), *CommandInfo.GetBindingContext().ToString(), *CommandInfo.GetCommandName().ToString());
+		FString ChordName = FString::Printf(TEXT("%s.%s"), *CommandInfo.GetBindingContext().ToString(), *CommandInfo.GetCommandName().ToString());
 
 		//@todo This shouldn't be using a localized value; GetInputText() [10/11/2013 justin.sargent]
-		TArray< FAnalyticsEventAttribute > GestureAttribs;
-		GestureAttribs.Add(FAnalyticsEventAttribute(TEXT("Context"), GestureName));
-		GestureAttribs.Add(FAnalyticsEventAttribute(TEXT("Shortcut"), CommandInfo.GetActiveGesture()->GetInputText().ToString()));
-		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.KeyboardShortcut"), GestureAttribs);
+		TArray< FAnalyticsEventAttribute > ChordAttribs;
+		ChordAttribs.Add(FAnalyticsEventAttribute(TEXT("Context"), ChordName));
+		ChordAttribs.Add(FAnalyticsEventAttribute(TEXT("Shortcut"), CommandInfo.GetActiveChord()->GetInputText().ToString()));
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.KeyboardShortcut"), ChordAttribs);
 	}
 }
 

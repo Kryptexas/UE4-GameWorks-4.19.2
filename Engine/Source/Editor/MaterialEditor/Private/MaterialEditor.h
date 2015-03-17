@@ -386,15 +386,15 @@ protected:
 	void OnNodeTitleCommitted(const FText& NewText, ETextCommit::Type CommitInfo, UEdGraphNode* NodeBeingChanged);
 
 	/**
-	 * Handles spawning a graph node in the current graph using the passed in gesture
+	 * Handles spawning a graph node in the current graph using the passed in chord
 	 *
-	 * @param	InGesture	Gesture that was just performed
+	 * @param	InChord		Chord that was just performed
 	 * @param	InPosition	Current cursor position
-	 * @param	InGraph		Graph that gesture was performed in
+	 * @param	InGraph		Graph that chord was performed in
 	 *
-	 * @return	FReply	Whether gesture was handled
+	 * @return	FReply	Whether chord was handled
 	 */
-	FReply OnSpawnGraphNodeByShortcut(FInputGesture InGesture, const FVector2D& InPosition, UEdGraph* InGraph);
+	FReply OnSpawnGraphNodeByShortcut(FInputChord InChord, const FVector2D& InPosition, UEdGraph* InGraph);
 
 	/** Select every node in the graph */
 	void SelectAllNodes();

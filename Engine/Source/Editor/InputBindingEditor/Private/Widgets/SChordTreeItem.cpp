@@ -1,20 +1,20 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "InputBindingEditorPrivatePCH.h"
-#include "SGestureTreeItem.h"
+#include "SChordTreeItem.h"
 #include "UICommandDragDropOp.h"
 
 
 
 
-void SGestureTreeItem::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable, TSharedPtr<FGestureTreeItem> InItem)
+void SChordTreeItem::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable, TSharedPtr<FChordTreeItem> InItem)
 {
 	TreeItem = InItem;
 
-	SMultiColumnTableRow< TSharedPtr<FGestureTreeItem> >::Construct(FSuperRowType::FArguments(), InOwnerTable);
+	SMultiColumnTableRow< TSharedPtr<FChordTreeItem> >::Construct(FSuperRowType::FArguments(), InOwnerTable);
 }
 
-TSharedRef<SWidget> SGestureTreeItem::GenerateWidgetForColumn(const FName& ColumnName)
+TSharedRef<SWidget> SChordTreeItem::GenerateWidgetForColumn(const FName& ColumnName)
 {
 	if (ColumnName == "Name")
 	{
@@ -59,16 +59,16 @@ TSharedRef<SWidget> SGestureTreeItem::GenerateWidgetForColumn(const FName& Colum
 			.Padding(2.0f)
 			.VAlign(VAlign_Center)
 			[
-				SNew(SGestureEditBox, TreeItem)
+				SNew(SChordEditBox, TreeItem)
 			];
 	}
 	else
 	{
-		return SNew(STextBlock).Text(NSLOCTEXT("GestureTreeItem", "UnknownColumn", "Unknown Column"));
+		return SNew(STextBlock).Text(NSLOCTEXT("ChordTreeItem", "UnknownColumn", "Unknown Column"));
 	}
 }
 
-FReply SGestureTreeItem::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+FReply SChordTreeItem::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && FMultiBoxSettings::IsInToolbarEditMode())
 	{
@@ -78,7 +78,7 @@ FReply SGestureTreeItem::OnMouseButtonDown(const FGeometry& MyGeometry, const FP
 	return FReply::Unhandled();
 }
 
-FReply SGestureTreeItem::OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+FReply SChordTreeItem::OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	FToolBarBuilder TempBuilder(MakeShareable(new FUICommandList), FMultiBoxCustomization::None);
 	TempBuilder.AddToolBarButton(TreeItem->CommandInfo.ToSharedRef());

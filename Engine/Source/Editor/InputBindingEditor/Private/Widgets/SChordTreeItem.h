@@ -4,9 +4,9 @@
 
 
 /**
- * An item for the gesture tree view
+ * An item for the chord tree view
  */
-struct FGestureTreeItem
+struct FChordTreeItem
 {
 	// Note these are mutually exclusive
 	TWeakPtr<FBindingContext> BindingContext;
@@ -19,18 +19,18 @@ struct FGestureTreeItem
 };
 
 
-typedef STreeView< TSharedPtr<FGestureTreeItem> > SGestureTree;
+typedef STreeView< TSharedPtr<FChordTreeItem> > SChordTree;
 
 
 /**
  * A widget which visualizes a command info      .              
  */
-class SGestureTreeItem
-	: public SMultiColumnTableRow< TSharedPtr< FGestureTreeItem > >
+class SChordTreeItem
+	: public SMultiColumnTableRow< TSharedPtr< FChordTreeItem > >
  {
 public:
 
-	SLATE_BEGIN_ARGS( SGestureTreeItem ){}
+	SLATE_BEGIN_ARGS( SChordTreeItem ){}
 	SLATE_END_ARGS()
 
  public:
@@ -42,7 +42,7 @@ public:
 	 * @param InOwnerTable The table that owns this tree item.
 	 * @param InItem The actual item to be displayed.
 	 */
-	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable, TSharedPtr<FGestureTreeItem> InItem );
+	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable, TSharedPtr<FChordTreeItem> InItem );
 
 	/**
 	 * Called to generate a widget for each column.
@@ -62,5 +62,5 @@ public:
 private:
 
 	/** Holds the tree item being visualized. */
-	TSharedPtr<FGestureTreeItem> TreeItem;
+	TSharedPtr<FChordTreeItem> TreeItem;
 };

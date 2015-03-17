@@ -90,17 +90,17 @@ public:
 	/** Initialize Commands */
 	virtual void RegisterCommands() override
 	{
-		UI_COMMAND( NewCommand, "New", "Creates a new plist file", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::N) );
-		UI_COMMAND( OpenCommand, "Open", "Opens an existing plist file", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::O) );
-		UI_COMMAND( SaveCommand, "Save", "Saves the current plist file", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::S) );
-		UI_COMMAND( SaveAsCommand, "Save As", "Saves the current plist file to a specific location", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control | EModifierKey::Shift, EKeys::S) );
-		UI_COMMAND( DeleteSelectedCommand, "Remove Selected", "Removed the selected entries from the plist", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::R) );
-		UI_COMMAND( MoveUpCommand, "Move Up", "Moves the selected entry up within its parent", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::U) );
-		UI_COMMAND( MoveDownCommand, "Move Down", "Moves the selected entry down within its parent", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::D) );
-		UI_COMMAND( AddDictionaryCommand, "Add Dictionary", "Adds a new dictionary to the selected file or array", EUserInterfaceActionType::Button, FInputGesture());
-		UI_COMMAND( AddArrayCommand, "Add Array", "Adds a new array to the selected file, array, or dictionary", EUserInterfaceActionType::Button, FInputGesture());
-		UI_COMMAND( AddStringCommand, "Add String", "Adds a new string to the selected file, array, or dictionary", EUserInterfaceActionType::Button, FInputGesture());
-		UI_COMMAND( AddBooleanCommand, "Add Boolean", "Adds a new boolean to the selected file, array, or dictionary", EUserInterfaceActionType::Button, FInputGesture());
+		UI_COMMAND( NewCommand, "New", "Creates a new plist file", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control, EKeys::N) );
+		UI_COMMAND( OpenCommand, "Open", "Opens an existing plist file", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control, EKeys::O) );
+		UI_COMMAND( SaveCommand, "Save", "Saves the current plist file", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control, EKeys::S) );
+		UI_COMMAND( SaveAsCommand, "Save As", "Saves the current plist file to a specific location", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control | EModifierKey::Shift, EKeys::S) );
+		UI_COMMAND( DeleteSelectedCommand, "Remove Selected", "Removed the selected entries from the plist", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control, EKeys::R) );
+		UI_COMMAND( MoveUpCommand, "Move Up", "Moves the selected entry up within its parent", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control, EKeys::U) );
+		UI_COMMAND( MoveDownCommand, "Move Down", "Moves the selected entry down within its parent", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control, EKeys::D) );
+		UI_COMMAND( AddDictionaryCommand, "Add Dictionary", "Adds a new dictionary to the selected file or array", EUserInterfaceActionType::Button, FInputChord());
+		UI_COMMAND( AddArrayCommand, "Add Array", "Adds a new array to the selected file, array, or dictionary", EUserInterfaceActionType::Button, FInputChord());
+		UI_COMMAND( AddStringCommand, "Add String", "Adds a new string to the selected file, array, or dictionary", EUserInterfaceActionType::Button, FInputChord());
+		UI_COMMAND( AddBooleanCommand, "Add Boolean", "Adds a new boolean to the selected file, array, or dictionary", EUserInterfaceActionType::Button, FInputChord());
 	}
 };
 

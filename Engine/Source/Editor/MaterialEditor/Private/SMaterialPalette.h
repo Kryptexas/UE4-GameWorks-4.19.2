@@ -16,7 +16,7 @@ public:
 
 private:
 	/* Create the hotkey display widget */
-	TSharedRef<SWidget> CreateHotkeyDisplayWidget(const FSlateFontInfo& NameFont, const TSharedPtr<const FInputGesture> HotkeyGesture);
+	TSharedRef<SWidget> CreateHotkeyDisplayWidget(const FSlateFontInfo& NameFont, const TSharedPtr<const FInputChord> HotkeyChord);
 };
 
 //////////////////////////////////////////////////////////////////////////

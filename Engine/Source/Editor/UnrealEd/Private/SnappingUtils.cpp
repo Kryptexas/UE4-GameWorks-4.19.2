@@ -134,12 +134,12 @@ bool FEditorViewportSnapping::IsSnapToVertexEnabled()
 		FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
 		const FLevelEditorCommands& Commands = LevelEditor.GetLevelEditorCommands();
 
-		const FInputGesture& Gesture = *Commands.HoldToEnableVertexSnapping->GetActiveGesture();
+		const FInputChord& Chord = *Commands.HoldToEnableVertexSnapping->GetActiveChord();
 
-		return (Gesture.NeedsControl() == GCurrentLevelEditingViewportClient->IsCtrlPressed() ) 
-			&& (Gesture.NeedsAlt() ==  GCurrentLevelEditingViewportClient->IsAltPressed() ) 
-			&& (Gesture.NeedsShift() == GCurrentLevelEditingViewportClient->IsShiftPressed() ) 
-			&& GCurrentLevelEditingViewportClient->Viewport->KeyState(Gesture.Key) == true;
+		return (Chord.NeedsControl() == GCurrentLevelEditingViewportClient->IsCtrlPressed() ) 
+			&& (Chord.NeedsAlt() ==  GCurrentLevelEditingViewportClient->IsAltPressed() ) 
+			&& (Chord.NeedsShift() == GCurrentLevelEditingViewportClient->IsShiftPressed() ) 
+			&& GCurrentLevelEditingViewportClient->Viewport->KeyState(Chord.Key) == true;
 	}
 	else
 	{

@@ -4,14 +4,14 @@
 
 
 /**
- * A widget that adds visuals to an SGestureEditor
+ * A widget that adds visuals to an SChordEditor
  */
-class SGestureEditBox
+class SChordEditBox
 	: public SCompoundWidget
 {
 public:
 
-	SLATE_BEGIN_ARGS( SGestureEditBox ){}
+	SLATE_BEGIN_ARGS( SChordEditBox ){}
 	SLATE_END_ARGS()
 
 public:
@@ -21,7 +21,7 @@ public:
 	 *
 	 * @param InArgs The Slate argument list.
 	 */
-	void Construct( const FArguments& InArgs, TSharedPtr<struct FGestureTreeItem> InputCommand );
+	void Construct( const FArguments& InArgs, TSharedPtr<struct FChordTreeItem> InputCommand );
 
 private:
 
@@ -30,26 +30,26 @@ private:
 
 	FText GetNotificationMessage() const;
 
-	/** Called when the gesture editor loses focus */
-	void OnGestureEditorLostFocus();
+	/** Called when the chord editor loses focus */
+	void OnChordEditorLostFocus();
 
-	/** Called when editing starts in the gesture editor */
-	void OnGestureEditingStarted();
+	/** Called when editing starts in the chord editor */
+	void OnChordEditingStarted();
 
-	/** Called when editing stops in the gesture editor */
-	void OnGestureEditingStopped();
+	/** Called when editing stops in the chord editor */
+	void OnChordEditingStopped();
 
-	/** Called when the edited gesture changes */
-	void OnGestureChanged();
+	/** Called when the edited chord changes */
+	void OnChordChanged();
 
-	/** @return the visibility of the gesture edit button */
-	EVisibility GetGestureRemoveButtonVisibility() const;
+	/** @return the visibility of the chord edit button */
+	EVisibility GetChordRemoveButtonVisibility() const;
 
-	/** Called when the gesture edit button is clicked */
-	FReply OnGestureRemoveButtonClicked();
+	/** Called when the chord edit button is clicked */
+	FReply OnChordRemoveButtonClicked();
 
 	/** Called when the accept button is clicked.  */
-	FReply OnAcceptNewGestureButtonClicked();
+	FReply OnAcceptNewChordButtonClicked();
 
 	/** @return content to be shown in the key binding conflict pop-up */
 	TSharedRef<SWidget> OnGetContentForConflictPopup();
@@ -63,14 +63,14 @@ private:
 
 private:
 
-	/** The gesture editor for this box */
-	TSharedPtr<class SGestureEditor> GestureEditor;
+	/** The chord editor for this box */
+	TSharedPtr<class SChordEditor> ChordEditor;
 	
 	/** Menu anchor where the conflict pop-up is shown */
 	TSharedPtr<SMenuAnchor> ConflictPopup;
 	
-	/** The button for committing gesture */
-	mutable TSharedPtr<SButton> GestureAcceptButton;
+	/** The button for committing chord */
+	mutable TSharedPtr<SButton> ChordAcceptButton;
 	
 	/** Styling: border image to draw when not hovered or focused */
 	const FSlateBrush* BorderImageNormal;

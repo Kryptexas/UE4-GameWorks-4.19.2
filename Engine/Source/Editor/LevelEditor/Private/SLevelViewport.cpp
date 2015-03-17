@@ -3341,21 +3341,21 @@ FText SLevelViewport::GetMouseCaptureLabelText() const
 	{
 		// Only need to fetch the exec binding once since it can't change
 		// but better than hard coding to the current binding.
-		static FInputGesture Gesture(EKeys::F1, EModifierKey::Shift);
-		static bool bInitedGesture = false;
-		if(!bInitedGesture)
+		static FInputChord Chord(EKeys::F1, EModifierKey::Shift);
+		static bool bInitedChord = false;
+		if(!bInitedChord)
 		{
 			ULocalPlayer* const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(GetWorld(), 0);
 			if (TargetPlayer && TargetPlayer->PlayerController && TargetPlayer->PlayerController->PlayerInput)
 			{
 				FKeyBind Binding = TargetPlayer->PlayerController->PlayerInput->GetExecBind(TEXT("ShowMouseCursor"));
-				Gesture = FInputGesture(Binding.Key, EModifierKey::FromBools(Binding.Control, Binding.Alt, Binding.Shift, Binding.Cmd));
-				bInitedGesture = true;
+				Chord = FInputChord(Binding.Key, EModifierKey::FromBools(Binding.Control, Binding.Alt, Binding.Shift, Binding.Cmd));
+				bInitedChord = true;
 			}
 		}
 
 		FFormatNamedArguments Args;
-		Args.Add( TEXT("InputText"), Gesture.GetInputText() );
+		Args.Add( TEXT("InputText"), Chord.GetInputText() );
 		return FText::Format( LOCTEXT("ShowMouseCursorLabel", "{InputText} for Mouse Cursor"), Args );
 	}
 	else

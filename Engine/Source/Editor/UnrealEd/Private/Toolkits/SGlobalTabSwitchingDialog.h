@@ -12,7 +12,7 @@ public:
 	SLATE_END_ARGS()
 
 public:
-	void Construct(const FArguments& InArgs, FVector2D InSize, FInputGesture InTriggerGesture);
+	void Construct(const FArguments& InArgs, FVector2D InSize, FInputChord InTriggerChord);
 
 	~SGlobalTabSwitchingDialog()
 	{
@@ -48,8 +48,8 @@ private:
 	FTabListItemPtr GetMainTabListSelectedItem() const;
 
 private:
-	// The gesture that triggered the dialog (so we can handle the correct Tab/`/etc... key repeat, and dismiss on the correct control/command modifier release
-	FInputGesture TriggerGesture;
+	// The chord that triggered the dialog (so we can handle the correct Tab/`/etc... key repeat, and dismiss on the correct control/command modifier release
+	FInputChord TriggerChord;
 
 	// Pool for maintaining and rendering thumbnails
 	TSharedPtr<class FAssetThumbnailPool> AssetThumbnailPool;

@@ -164,15 +164,15 @@ namespace EditorBuildPromotionTestUtils
 	*
 	* @param CommandContext - The context of the command
 	* @param Command - The command name to set
-	* @param NewGesture - The new input gesture to assign
+	* @param NewChord - The new input chord to assign
 	*/
-	static void SetEditorKeybinding(const FString& CommandContext, const FString& Command, const FInputGesture& NewGesture)
+	static void SetEditorKeybinding(const FString& CommandContext, const FString& Command, const FInputChord& NewChord)
 	{
 		TSharedPtr<FUICommandInfo> UICommand = FInputBindingManager::Get().FindCommandInContext(*CommandContext, *Command);
 		if (UICommand.IsValid())
 		{
-			UICommand->SetActiveGesture(NewGesture);
-			FInputBindingManager::Get().NotifyActiveGestureChanged(*UICommand.Get());
+			UICommand->SetActiveChord(NewChord);
+			FInputBindingManager::Get().NotifyActiveChordChanged(*UICommand.Get());
 			FInputBindingManager::Get().SaveInputBindings();
 		}
 		else
@@ -186,15 +186,15 @@ namespace EditorBuildPromotionTestUtils
 	*
 	* @param CommandContext - The context of the command
 	* @param Command - The command name to get
-	* @param NewGesture - The current input gesture that is assigned
+	* @param NewChord - The current input chord that is assigned
 	*/
-	static bool GetEditorKeybinding(const FString& CommandContext, const FString& Command, FInputGesture& CurrentGesture)
+	static bool GetEditorKeybinding(const FString& CommandContext, const FString& Command, FInputChord& CurrentChord)
 	{
 		TSharedPtr<FUICommandInfo> UICommand = FInputBindingManager::Get().FindCommandInContext(*CommandContext, *Command);
 		if (UICommand.IsValid())
 		{
-			TSharedRef<const FInputGesture> ActiveGesture = UICommand->GetActiveGesture();
-			CurrentGesture = ActiveGesture.Get();
+			TSharedRef<const FInputChord> ActiveChord = UICommand->GetActiveChord();
+			CurrentChord = ActiveChord.Get();
 		}
 		else
 		{
@@ -344,10 +344,10 @@ namespace EditorBuildPromotionTestUtils
 	/**
 	* Sends a UI command to the active top level window after focusing on a widget of a given type
 	*
-	* @param InGesture - The gesture to send to the window
+	* @param InChord - The chord to send to the window
 	* @param WidgetTypeToFocus - The widget type to find and focus on
 	*/
-	static void SendCommandToCurrentEditor(const FInputGesture& InGesture, const FName& WidgetTypeToFocus)
+	static void SendCommandToCurrentEditor(const FInputChord& InChord, const FName& WidgetTypeToFocus)
 	{
 		//Focus the asset Editor / Graph 
 		TSharedRef<SWindow> EditorWindow = FSlateApplication::Get().GetActiveTopLevelWindow().ToSharedRef();
@@ -358,8 +358,8 @@ namespace EditorBuildPromotionTestUtils
 			FSlateApplication::Get().SetKeyboardFocus(FocusWidget.ToSharedRef(), EFocusCause::SetDirectly);
 
 			//Send the command
-			FModifierKeysState ModifierKeys(InGesture.NeedsShift(), false, InGesture.NeedsControl(), false, InGesture.NeedsAlt(), false, InGesture.NeedsCommand(), false, false);
-			FKeyEvent KeyEvent(InGesture.Key, ModifierKeys, 0/*UserIndex*/, false, 0, 0);
+			FModifierKeysState ModifierKeys(InChord.NeedsShift(), false, InChord.NeedsControl(), false, InChord.NeedsAlt(), false, InChord.NeedsCommand(), false, false);
+			FKeyEvent KeyEvent(InChord.Key, ModifierKeys, 0/*UserIndex*/, false, 0, 0);
 			FSlateApplication::Get().ProcessKeyDownEvent(KeyEvent);
 			FSlateApplication::Get().ProcessKeyUpEvent(KeyEvent);
 		}
@@ -370,25 +370,25 @@ namespace EditorBuildPromotionTestUtils
 	}
 
 	/**
-	* Gets the current input gesture or sets a new one if it doesn't exist
+	* Gets the current input chord or sets a new one if it doesn't exist
 	*
 	* @param Context - The context of the UI Command
 	* @param Command - The name of the UI command
 	*/
-	static FInputGesture GetOrSetUICommand(const FString& Context, const FString& Command)
+	static FInputChord GetOrSetUICommand(const FString& Context, const FString& Command)
 	{
-		FInputGesture CurrentGesture;
-		GetEditorKeybinding(Context, Command, CurrentGesture);
+		FInputChord CurrentChord;
+		GetEditorKeybinding(Context, Command, CurrentChord);
 
 		//If there is no current keybinding, set one
-		if (!CurrentGesture.Key.IsValid())
+		if (!CurrentChord.Key.IsValid())
 		{
-			FInputGesture NewGesture(EKeys::J, EModifierKey::Control);
-			SetEditorKeybinding(Context, Command, NewGesture);
-			CurrentGesture = NewGesture;
+			FInputChord NewChord(EKeys::J, EModifierKey::Control);
+			SetEditorKeybinding(Context, Command, NewChord);
+			CurrentChord = NewChord;
 		}
 
-		return CurrentGesture;
+		return CurrentChord;
 	}
 
 	/**
@@ -398,10 +398,10 @@ namespace EditorBuildPromotionTestUtils
 	{
 		const FString Context = TEXT("MaterialEditor");
 		const FString Command = TEXT("Apply");
-		FInputGesture CurrentApplyGesture = GetOrSetUICommand(Context, Command);
+		FInputChord CurrentApplyChord = GetOrSetUICommand(Context, Command);
 
 		const FName FocusWidgetType(TEXT("SGraphEditor"));
-		SendCommandToCurrentEditor(CurrentApplyGesture, FocusWidgetType);
+		SendCommandToCurrentEditor(CurrentApplyChord, FocusWidgetType);
 	}
 
 	/**
@@ -412,10 +412,10 @@ namespace EditorBuildPromotionTestUtils
 		const FString Context = TEXT("AssetEditor");
 		const FString Command = TEXT("SaveAsset");
 
-		FInputGesture CurrentSaveGesture = GetOrSetUICommand(Context, Command);
+		FInputChord CurrentSaveChord = GetOrSetUICommand(Context, Command);
 
 		const FName FocusWidgetType(TEXT("SCascadeEmitterCanvas"));
-		SendCommandToCurrentEditor(CurrentSaveGesture, FocusWidgetType);
+		SendCommandToCurrentEditor(CurrentSaveChord, FocusWidgetType);
 	}
 
 	/**
@@ -426,10 +426,10 @@ namespace EditorBuildPromotionTestUtils
 		const FString Context = TEXT("BlueprintEditor");
 		const FString Command = TEXT("ResetCamera");
 
-		FInputGesture CurrentSaveGesture = GetOrSetUICommand(Context, Command);
+		FInputChord CurrentSaveChord = GetOrSetUICommand(Context, Command);
 
 		const FName FocusWidgetType(TEXT("SSCSEditorViewport"));
-		SendCommandToCurrentEditor(CurrentSaveGesture, FocusWidgetType);
+		SendCommandToCurrentEditor(CurrentSaveChord, FocusWidgetType);
 	}
 
 	/**
@@ -4349,18 +4349,18 @@ bool FBuildPromotionSettingsTest::RunTest(const FString& Parameters)
 	UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Binding create empty layer shortcut"));
 
 	//Bind H to CreateEmptyLayer keybinding
-	FInputGesture NewCreateGesture(EKeys::H, EModifierKey::None);
-	EditorBuildPromotionTestUtils::SetEditorKeybinding(TEXT("LayersView"), TEXT("CreateEmptyLayer"), NewCreateGesture);
+	FInputChord NewCreateChord(EKeys::H, EModifierKey::None);
+	EditorBuildPromotionTestUtils::SetEditorKeybinding(TEXT("LayersView"), TEXT("CreateEmptyLayer"), NewCreateChord);
 
 	UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Binding request rename layer shortcut"));
 
 	//Bind J to RequestRenameLayer
-	FInputGesture NewRenameGesture(EKeys::J, EModifierKey::None);
-	EditorBuildPromotionTestUtils::SetEditorKeybinding(TEXT("LayersView"), TEXT("RequestRenameLayer"), NewRenameGesture);
+	FInputChord NewRenameChord(EKeys::J, EModifierKey::None);
+	EditorBuildPromotionTestUtils::SetEditorKeybinding(TEXT("LayersView"), TEXT("RequestRenameLayer"), NewRenameChord);
 
 	UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Binding play shortcut (PIE)"));
-	FInputGesture NewPIEGesture(EKeys::L, EModifierKey::Control);
-	EditorBuildPromotionTestUtils::SetEditorKeybinding(TEXT("PlayWorld"), TEXT("RepeatLastPlay"), NewPIEGesture);
+	FInputChord NewPIEChord(EKeys::L, EModifierKey::Control);
+	EditorBuildPromotionTestUtils::SetEditorKeybinding(TEXT("PlayWorld"), TEXT("RepeatLastPlay"), NewPIEChord);
 
 	//Export the keybindings
 	const FString TargetKeybindFile = FString::Printf(TEXT("%s/BuildPromotion/Keybindings-%d.ini"), *FPaths::AutomationDir(), GEngineVersion.GetChangelist());
@@ -4386,9 +4386,9 @@ bool FBuildPromotionSettingsTest::RunTest(const FString& Parameters)
 	//Change the setting back
 	EditorBuildPromotionTestUtils::SetPropertyByName(EditorStyleSettings, TEXT("bUseSmallToolBarIcons"), OldStyleSetting);
 
-	FInputGesture CurrentCreateGesture;
-	EditorBuildPromotionTestUtils::GetEditorKeybinding(TEXT("LayersView"), TEXT("CreateEmptyLayer"), CurrentCreateGesture);
-	if (CurrentCreateGesture.Key == NewCreateGesture.Key)
+	FInputChord CurrentCreateChord;
+	EditorBuildPromotionTestUtils::GetEditorKeybinding(TEXT("LayersView"), TEXT("CreateEmptyLayer"), CurrentCreateChord);
+	if (CurrentCreateChord.Key == NewCreateChord.Key)
 	{
 		UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("CreateEmptyLayer keybinding correct."));
 	}
@@ -4397,9 +4397,9 @@ bool FBuildPromotionSettingsTest::RunTest(const FString& Parameters)
 		UE_LOG(LogEditorBuildPromotionTests, Error, TEXT("CreateEmptyLayer keybinding incorrect."));
 	}
 
-	FInputGesture CurrentRenameGesture;
-	EditorBuildPromotionTestUtils::GetEditorKeybinding(TEXT("LayersView"), TEXT("RequestRenameLayer"), CurrentRenameGesture);
-	if (CurrentRenameGesture.Key == NewRenameGesture.Key)
+	FInputChord CurrentRenameChord;
+	EditorBuildPromotionTestUtils::GetEditorKeybinding(TEXT("LayersView"), TEXT("RequestRenameLayer"), CurrentRenameChord);
+	if (CurrentRenameChord.Key == NewRenameChord.Key)
 	{
 		UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("RequestRenameLayer keybinding correct."));
 	}

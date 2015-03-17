@@ -2,9 +2,7 @@
 
 #include "SlatePrivatePCH.h"
 
-
-#define LOCTEXT_NAMESPACE "FInputGesture"
-
+#define LOCTEXT_NAMESPACE "FInputChord"
 
 /* FInputGesture interface
  *****************************************************************************/
@@ -13,7 +11,7 @@
  * Returns the friendly, localized string name of this key binding
  * @todo Slate: Got to be a better way to do this
  */
-FText FInputGesture::GetInputText( ) const
+FText FInputChord::GetInputText( ) const
 {
 #if PLATFORM_MAC
     const FText CommandText = LOCTEXT("KeyName_Control", "Ctrl");
@@ -30,19 +28,19 @@ FText FInputGesture::GetInputText( ) const
 	FFormatNamedArguments Args;
 	int32 ModCount = 0;
 
-    if (ModifierKeys & EModifierKey::Control)
+    if (bCtrl)
     {
 		Args.Add(FString::Printf(TEXT("Mod%d"),++ModCount), ControlText);
     }
-    if (ModifierKeys & EModifierKey::Command)
+    if (bCmd)
     {
 		Args.Add(FString::Printf(TEXT("Mod%d"),++ModCount), CommandText);
     }
-    if (ModifierKeys & EModifierKey::Alt)
+    if (bAlt)
     {
 		Args.Add(FString::Printf(TEXT("Mod%d"),++ModCount), AltText);
     }
-    if (ModifierKeys & EModifierKey::Shift)
+    if (bShift)
     {
 		Args.Add(FString::Printf(TEXT("Mod%d"),++ModCount), ShiftText);
     }
@@ -67,7 +65,7 @@ FText FInputGesture::GetInputText( ) const
 }
 
 
-FText FInputGesture::GetKeyText( ) const
+FText FInputChord::GetKeyText( ) const
 {
 	FText OutString; // = KeyGetDisplayName(Key);
 
@@ -79,5 +77,36 @@ FText FInputGesture::GetKeyText( ) const
 	return OutString;
 }
 
+FInputChord::ERelationshipType FInputChord::GetRelationship( const FInputChord& OtherChord ) const
+{
+	ERelationshipType Relationship = None;
+
+	if (Key == OtherChord.Key)
+	{
+		if ((bAlt == OtherChord.bAlt) &&
+			(bCtrl == OtherChord.bCtrl) &&
+			(bShift == OtherChord.bShift) &&
+			(bCmd == OtherChord.bCmd))
+		{
+			Relationship = Same;
+		}
+		else if ((bAlt || !OtherChord.bAlt) &&
+				(bCtrl || !OtherChord.bCtrl) &&
+				(bShift || !OtherChord.bShift) &&
+				(bCmd || !OtherChord.bCmd))
+		{
+			Relationship = Masks;
+		}
+		else if ((!bAlt || OtherChord.bAlt) &&
+				(!bCtrl || OtherChord.bCtrl) &&
+				(!bShift || OtherChord.bShift) &&
+				(!bCmd || OtherChord.bCmd))
+		{
+			Relationship = Masked;
+		}
+	}
+
+	return Relationship;
+}
 
 #undef LOCTEXT_NAMESPACE
