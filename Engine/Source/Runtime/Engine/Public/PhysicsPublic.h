@@ -297,16 +297,6 @@ public:
 	float							FrameTimeSmoothingFactor[PST_MAX];
 
 #if WITH_PHYSX
-	/** Body instances awaiting scene add */
-	TArray<FBodyInstance*> DeferredAddInstances[PST_MAX];
-	/** PhysX Actors awaiting scene add */
-	TArray<PxActor*> DeferredAddActors[PST_MAX];
-
-	/** Body instances awaiting scene remove */
-	TArray<FBodyInstance*> DeferredRemoveInstances[PST_MAX];
-	/** PhysX Actors awaiting scene remove */
-	TArray<PxActor*> DeferredRemoveActors[PST_MAX];
-
 	/** Flush the deferred actor and instance arrays, either adding or removing from the scene */
 	void FlushDeferredActors();
 
@@ -354,6 +344,31 @@ private:
 	FGraphEventRef PhysicsSceneCompletion;
 
 #if WITH_PHYSX
+
+	struct FDeferredSceneData
+	{
+		/** The PhysX scene index used*/
+		int32 SceneIndex;
+
+		/** Body instances awaiting scene add */
+		TArray<FBodyInstance*> AddInstances;
+		/** PhysX Actors awaiting scene add */
+		TArray<PxActor*> AddActors;
+
+		/** Body instances awaiting scene remove */
+		TArray<FBodyInstance*> RemoveInstances;
+		/** PhysX Actors awaiting scene remove */
+		TArray<PxActor*> RemoveActors;
+
+		void FlushDeferredActors();
+		void DeferAddActor(FBodyInstance* OwningInstance, PxActor* Actor);
+		void DeferAddActors(TArray<FBodyInstance*>& OwningInstances, TArray<PxActor*>& Actors);
+		void DeferRemoveActor(FBodyInstance* OwningInstance, PxActor* Actor);
+	};
+
+	FDeferredSceneData DeferredSceneData[PST_MAX];
+
+
 	/** Dispatcher for CPU tasks */
 	class PxCpuDispatcher*			CPUDispatcher;
 	/** Simulation event callback object */

@@ -353,16 +353,16 @@ void FPhysScene::TermBody(FBodyInstance* BodyInstance)
 #endif
 	}
 
-		// Remove body from any pending deferred addition / removal
-		for(int32 SceneIdx = 0 ; SceneIdx < PST_MAX ; ++SceneIdx)
+	// Remove body from any pending deferred addition / removal
+	for(FDeferredSceneData& Deferred : DeferredSceneData)
+	{
+		int32 FoundIdx = INDEX_NONE;
+		if(Deferred.AddInstances.Find(BodyInstance, FoundIdx))
 		{
-			int32 FoundIdx = INDEX_NONE;
-		if(DeferredAddInstances[SceneIdx].Find(BodyInstance, FoundIdx))
-			{
-				DeferredAddActors->RemoveAt(FoundIdx);
-				DeferredAddInstances->RemoveAt(FoundIdx);
-			}
+			Deferred.AddActors.RemoveAtSwap(FoundIdx);
+			Deferred.AddInstances.RemoveAtSwap(FoundIdx);
 		}
+	}
 
 #if WITH_PHYSX
 	RemoveActiveBody(BodyInstance, PST_Sync);
@@ -1313,6 +1313,7 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 
 	// Store index of PhysX Scene in this FPhysScene
 	this->PhysXSceneIndex[SceneType] = PhysXSceneCount;
+	DeferredSceneData[SceneType].SceneIndex = PhysXSceneCount;
 
 	// Increment scene count
 	PhysXSceneCount++;
@@ -1396,108 +1397,135 @@ void FPhysScene::TermPhysScene(uint32 SceneType)
 }
 
 #if WITH_PHYSX
+
+void FPhysScene::FDeferredSceneData::FlushDeferredActors()
+{
+	check(AddInstances.Num() == AddActors.Num());
+
+	if (AddInstances.Num() > 0)
+	{
+		PxScene* Scene = GetPhysXSceneFromIndex(SceneIndex);
+		SCOPED_SCENE_WRITE_LOCK(Scene);
+
+		Scene->addActors(AddActors.GetData(), AddActors.Num());
+		int32 Idx = -1;
+		for (FBodyInstance* Instance : AddInstances)
+		{
+			++Idx;
+			Instance->CurrentSceneState = BodyInstanceSceneState::Added;
+
+			if (Instance->IsDynamic())
+			{
+				// Extra setup necessary for dynamic objects.
+				Instance->InitDynamicProperties();
+			}
+		}
+
+		AddInstances.Empty();
+		AddActors.Empty();
+	}
+
+	check(RemoveInstances.Num() == RemoveActors.Num());
+
+	if (RemoveInstances.Num() > 0)
+	{
+		PxScene* Scene = GetPhysXSceneFromIndex(SceneIndex);
+		SCOPED_SCENE_WRITE_LOCK(Scene);
+
+		Scene->removeActors(RemoveActors.GetData(), RemoveActors.Num());
+
+		for (FBodyInstance* Instance : AddInstances)
+		{
+			Instance->CurrentSceneState = BodyInstanceSceneState::Removed;
+		}
+
+		RemoveInstances.Empty();
+		RemoveActors.Empty();
+	}
+}
+
 void FPhysScene::FlushDeferredActors()
 {
 	check(IsInGameThread());
 
-	for(int32 SceneIdx = 0 ; SceneIdx < PST_MAX ; ++SceneIdx)
+	for(FDeferredSceneData& Deferred : DeferredSceneData)
 	{
-		check(DeferredAddInstances[SceneIdx].Num() == DeferredAddActors[SceneIdx].Num());
+		Deferred.FlushDeferredActors();
+	}
+}
 
-		if(DeferredAddInstances[SceneIdx].Num() > 0)
-		{
-			PxScene* Scene = GetPhysXScene(SceneIdx);
-			SCOPED_SCENE_WRITE_LOCK(Scene);
 
-			Scene->addActors(DeferredAddActors[SceneIdx].GetData(), DeferredAddActors[SceneIdx].Num());
-			int32 Idx = -1;
-			for(FBodyInstance* Instance : DeferredAddInstances[SceneIdx])
-			{
-				++Idx;
-				Instance->CurrentSceneState = BodyInstanceSceneState::Added;
 
-				if(Instance->IsDynamic())
-				{
-					// Extra setup necessary for dynamic objects.
-					Instance->InitDynamicProperties();
-				}
-			}
+void FPhysScene::FDeferredSceneData::DeferAddActor(FBodyInstance* OwningInstance, PxActor* Actor)
+{
+	// Allowed to be unadded or awaiting add here (objects can be in more than one scene
+	if (OwningInstance->CurrentSceneState == BodyInstanceSceneState::NotAdded ||
+		OwningInstance->CurrentSceneState == BodyInstanceSceneState::AwaitingAdd)
+	{
+		OwningInstance->CurrentSceneState = BodyInstanceSceneState::AwaitingAdd;
+		AddInstances.Add(OwningInstance);
+		AddActors.Add(Actor);
+	}
+	else if (OwningInstance->CurrentSceneState == BodyInstanceSceneState::AwaitingRemove)
+	{
+		// We were waiting to be removed, but we're canceling that
 
-			DeferredAddInstances->Empty();
-			DeferredAddActors->Empty();
-		}
-
-		check(DeferredRemoveInstances[SceneIdx].Num() == DeferredRemoveActors[SceneIdx].Num());
-
-		if(DeferredRemoveInstances[SceneIdx].Num() > 0)
-		{
-			PxScene* Scene = GetPhysXScene(SceneIdx);
-			SCOPED_SCENE_WRITE_LOCK(Scene);
-
-			Scene->removeActors(DeferredRemoveActors[SceneIdx].GetData(), DeferredRemoveActors[SceneIdx].Num());
-
-			for(FBodyInstance* Instance : DeferredAddInstances[SceneIdx])
-			{
-				Instance->CurrentSceneState = BodyInstanceSceneState::Removed;
-			}
-
-			DeferredRemoveInstances->Empty();
-			DeferredRemoveActors->Empty();
-		}
+		OwningInstance->CurrentSceneState = BodyInstanceSceneState::Added;
+		RemoveInstances.RemoveSingle(OwningInstance);
+		RemoveActors.RemoveSingle(Actor);
 	}
 }
 
 void FPhysScene::DeferAddActor(FBodyInstance* OwningInstance, PxActor* Actor, EPhysicsSceneType SceneType)
 {
+	check(IsInGameThread());
 	check(OwningInstance && Actor && SceneType < PST_MAX);
-	// Allowed to be unadded or awaiting add here (objects can be in more than one scene
-	if(OwningInstance->CurrentSceneState == BodyInstanceSceneState::NotAdded ||
-	   OwningInstance->CurrentSceneState == BodyInstanceSceneState::AwaitingAdd)
-	{
-		OwningInstance->CurrentSceneState = BodyInstanceSceneState::AwaitingAdd;
-		DeferredAddInstances[SceneType].Add(OwningInstance);
-		DeferredAddActors[SceneType].Add(Actor);
-	}
-	else if(OwningInstance->CurrentSceneState == BodyInstanceSceneState::AwaitingRemove)
-	{
-		// We were waiting to be removed, but we're canceling that
+	DeferredSceneData[SceneType].DeferAddActor(OwningInstance, Actor);
+}
 
-		OwningInstance->CurrentSceneState = BodyInstanceSceneState::Added;
-		DeferredRemoveInstances[SceneType].RemoveSingle(OwningInstance);
-		DeferredRemoveActors[SceneType].RemoveSingle(Actor);
+
+void FPhysScene::FDeferredSceneData::DeferAddActors(TArray<FBodyInstance*>& OwningInstances, TArray<PxActor*>& Actors)
+{
+	int32 Num = OwningInstances.Num();
+	AddInstances.Reserve(AddInstances.Num() + Num);
+	AddActors.Reserve(AddActors.Num() + Num);
+
+	for (int32 Idx = 0; Idx < Num; ++Idx)
+	{
+		DeferAddActor(OwningInstances[Idx], Actors[Idx]);
 	}
 }
 
 void FPhysScene::DeferAddActors(TArray<FBodyInstance*>& OwningInstances, TArray<PxActor*>& Actors, EPhysicsSceneType SceneType)
 {
-	int32 Num = OwningInstances.Num();
+	check(IsInGameThread());
+	check(SceneType < PST_MAX);
+	DeferredSceneData[SceneType].DeferAddActors(OwningInstances, Actors);
+}
 
-	DeferredAddInstances[SceneType].Reserve(DeferredAddInstances->Num() + Num);
-	DeferredAddActors[SceneType].Reserve(DeferredAddActors->Num() + Num);
-
-	for(int32 Idx = 0 ; Idx < Num ; ++Idx)
+void FPhysScene::FDeferredSceneData::DeferRemoveActor(FBodyInstance* OwningInstance, PxActor* Actor)
+{
+	if (OwningInstance->CurrentSceneState == BodyInstanceSceneState::Added ||
+		OwningInstance->CurrentSceneState == BodyInstanceSceneState::AwaitingRemove)
 	{
-		DeferAddActor(OwningInstances[Idx], Actors[Idx], SceneType);
+		OwningInstance->CurrentSceneState = BodyInstanceSceneState::AwaitingRemove;
+		RemoveInstances.Add(OwningInstance);
+		RemoveActors.Add(Actor);
+	}
+	else if (OwningInstance->CurrentSceneState == BodyInstanceSceneState::AwaitingAdd)
+	{
+		// We were waiting to add but now we're canceling it
+		OwningInstance->CurrentSceneState = BodyInstanceSceneState::Removed;
+		AddInstances.RemoveSingle(OwningInstance);
+		AddActors.RemoveSingle(Actor);
 	}
 }
 
 void FPhysScene::DeferRemoveActor(FBodyInstance* OwningInstance, PxActor* Actor, EPhysicsSceneType SceneType)
 {
+	check(IsInGameThread());
 	check(OwningInstance && Actor && SceneType < PST_MAX);
-	if(OwningInstance->CurrentSceneState == BodyInstanceSceneState::Added ||
-	   OwningInstance->CurrentSceneState == BodyInstanceSceneState::AwaitingRemove)
-	{
-		OwningInstance->CurrentSceneState = BodyInstanceSceneState::AwaitingRemove;
-		DeferredRemoveInstances[SceneType].Add(OwningInstance);
-		DeferredRemoveActors[SceneType].Add(Actor);
-	}
-	else if(OwningInstance->CurrentSceneState == BodyInstanceSceneState::AwaitingAdd)
-	{
-		// We were waiting to add but now we're canceling it
-		OwningInstance->CurrentSceneState = BodyInstanceSceneState::Removed;
-		DeferredAddInstances[SceneType].RemoveSingle(OwningInstance);
-		DeferredAddActors[SceneType].RemoveSingle(Actor);
-	}
+	DeferredSceneData[SceneType].DeferRemoveActor(OwningInstance, Actor);
 }
 
 #endif
