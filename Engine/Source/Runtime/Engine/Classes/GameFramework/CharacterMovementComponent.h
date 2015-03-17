@@ -1639,8 +1639,19 @@ protected:
 	/** Call the appropriate replicated servermove() function to send a client player move to the server. */
 	virtual void CallServerMove(const class FSavedMove_Character* NewMove, const class FSavedMove_Character* OldMove);
 	
-	/** Have the server check if the client is outside an error tolerance, and set a client adjustment if so. ClientLoc will be a relative location if MovementBaseUtility::UseRelativePosition(ClientMovementBase) is true. */
-	virtual void ServerMoveHandleClientError(float TimeStamp, float DeltaTime, const FVector& Accel, const FVector& ClientLoc, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
+	/**
+	 * Have the server check if the client is outside an error tolerance, and queue a client adjustment if so.
+	 * If either GetPredictionData_Server_Character()->bForceClientUpdate or ServerCheckClientError() are true, the client adjustment will be sent.
+	 * RelativeClientLocation will be a relative location if MovementBaseUtility::UseRelativePosition(ClientMovementBase) is true, or a world location if false.
+	 * @see ServerCheckClientError()
+	 */
+	virtual void ServerMoveHandleClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel, const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
+
+	/**
+	 * Check for Server-Client disagreement in position or other movement state important enough to trigger a client correction.
+	 * @see ServerMoveHandleClientError()
+	 */
+	virtual bool ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel, const FVector& ClientWorldLocation, const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
 
 	/* Process a move at the given time stamp, given the compressed flags representing various events that occurred (ie jump). */
 	virtual void MoveAutonomous( float ClientTimeStamp, float DeltaTime, uint8 CompressedFlags, const FVector& NewAccel);
@@ -2016,6 +2027,8 @@ public:
 	// how long server will wait for client move update before setting position
 	// @TODO: don't duplicate between server and client data (though it's used by both)
 	float MaxResponseTime;
+
+	uint32 bForceClientUpdate:1;	// Force client update on the next ServerMoveHandleClientError() call.
 
 	/** @return time delta to use for the current ServerMove() */
 	float GetServerMoveDeltaTime(float TimeStamp) const;

@@ -6162,7 +6162,7 @@ void UCharacterMovementComponent::ServerMove_Implementation(
 }
 
 
-void UCharacterMovementComponent::ServerMoveHandleClientError(float TimeStamp, float DeltaTime, const FVector& Accel, const FVector& RelativeClientLoc, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
+void UCharacterMovementComponent::ServerMoveHandleClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel, const FVector& RelativeClientLoc, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
 {
 	if (RelativeClientLoc == FVector(1.f,2.f,3.f)) // first part of double servermove
 	{
@@ -6191,11 +6191,8 @@ void UCharacterMovementComponent::ServerMoveHandleClientError(float TimeStamp, f
 	}
 
 	// Compute the client error from the server's position
-	const FVector LocDiff = CharacterOwner->GetActorLocation() - ClientLoc;
-	const uint8 CurrentPackedMovementMode = PackNetworkMovementMode();
-
 	// If client has accumulated a noticeable positional error, correct him.
-	if (GetDefault<AGameNetworkManager>()->ExceedsAllowablePositionError(LocDiff) || (CurrentPackedMovementMode != ClientMovementMode))
+	if (ServerData->bForceClientUpdate || ServerCheckClientError(ClientTimeStamp, DeltaTime, Accel, ClientLoc, RelativeClientLoc, ClientMovementBase, ClientBaseBoneName, ClientMovementMode))
 	{
 		UPrimitiveComponent* MovementBase = CharacterOwner->GetMovementBase();
 		ServerData->PendingAdjustment.NewVel = Velocity;
@@ -6218,8 +6215,9 @@ void UCharacterMovementComponent::ServerMoveHandleClientError(float TimeStamp, f
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if (CVarNetShowCorrections.GetValueOnGameThread() != 0)
 		{
+			const FVector LocDiff = CharacterOwner->GetActorLocation() - ClientLoc;
 			UE_LOG(LogNetPlayerMovement, Warning, TEXT("******** Client Error at %f is %f Accel %s LocDiff %s ClientLoc %s, ServerLoc: %s, Base: %s, Bone: %s"),
-				TimeStamp, LocDiff.Size(), *Accel.ToString(), *LocDiff.ToString(), *ClientLoc.ToString(), *CharacterOwner->GetActorLocation().ToString(), *GetNameSafe(MovementBase), *ServerData->PendingAdjustment.NewBaseBoneName.ToString());
+				ClientTimeStamp, LocDiff.Size(), *Accel.ToString(), *LocDiff.ToString(), *ClientLoc.ToString(), *CharacterOwner->GetActorLocation().ToString(), *GetNameSafe(MovementBase), *ServerData->PendingAdjustment.NewBaseBoneName.ToString());
 			const float DebugLifetime = CVarNetCorrectionLifetime.GetValueOnGameThread();
 			DrawDebugCapsule(GetWorld(), CharacterOwner->GetActorLocation(), CharacterOwner->GetSimpleCollisionHalfHeight(), CharacterOwner->GetSimpleCollisionRadius(), FQuat::Identity, FColor(100, 255, 100), true, DebugLifetime);
 			DrawDebugCapsule(GetWorld(), ClientLoc                    , CharacterOwner->GetSimpleCollisionHalfHeight(), CharacterOwner->GetSimpleCollisionRadius(), FQuat::Identity, FColor(255, 100, 100), true, DebugLifetime);
@@ -6228,15 +6226,16 @@ void UCharacterMovementComponent::ServerMoveHandleClientError(float TimeStamp, f
 
 		ServerData->LastUpdateTime = GetWorld()->TimeSeconds;
 		ServerData->PendingAdjustment.DeltaTime = DeltaTime;
-		ServerData->PendingAdjustment.TimeStamp = TimeStamp;
+		ServerData->PendingAdjustment.TimeStamp = ClientTimeStamp;
 		ServerData->PendingAdjustment.bAckGoodMove = false;
-		ServerData->PendingAdjustment.MovementMode = CurrentPackedMovementMode;
+		ServerData->PendingAdjustment.MovementMode = PackNetworkMovementMode();
 	}
 	else
 	{
 		if (GetDefault<AGameNetworkManager>()->ClientAuthorativePosition)
 		{
-			if (!LocDiff.IsZero() || ClientMovementMode != CurrentPackedMovementMode)
+			const FVector LocDiff = CharacterOwner->GetActorLocation() - ClientLoc;
+			if (!LocDiff.IsZero() || ClientMovementMode != PackNetworkMovementMode())
 			{
 				// Just set the position. On subsequent moves we will resolve initially overlapping conditions.
 				UpdatedComponent->SetWorldLocation(ClientLoc, false);
@@ -6254,9 +6253,30 @@ void UCharacterMovementComponent::ServerMoveHandleClientError(float TimeStamp, f
 		}
 
 		// acknowledge receipt of this successful servermove()
-		ServerData->PendingAdjustment.TimeStamp = TimeStamp;
+		ServerData->PendingAdjustment.TimeStamp = ClientTimeStamp;
 		ServerData->PendingAdjustment.bAckGoodMove = true;
 	}
+
+	ServerData->bForceClientUpdate = false;
+}
+
+bool UCharacterMovementComponent::ServerCheckClientError(float ClientTimeStamp, float DeltaTime, const FVector& Accel, const FVector& ClientWorldLocation, const FVector& RelativeClientLocation, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
+{
+	// Check location difference against global setting
+	const FVector LocDiff = CharacterOwner->GetActorLocation() - ClientWorldLocation;
+	if (GetDefault<AGameNetworkManager>()->ExceedsAllowablePositionError(LocDiff))
+	{
+		return true;
+	}
+
+	// Check for disagreement in movement mode
+	const uint8 CurrentPackedMovementMode = PackNetworkMovementMode();
+	if (CurrentPackedMovementMode != ClientMovementMode)
+	{
+		return true;
+	}
+
+	return false;
 }
 
 
@@ -6400,6 +6420,7 @@ void UCharacterMovementComponent::SendClientAdjustment()
 
 	ServerData->PendingAdjustment.TimeStamp = 0;
 	ServerData->PendingAdjustment.bAckGoodMove = false;
+	ServerData->bForceClientUpdate = false;
 }
 
 
@@ -7027,6 +7048,7 @@ FNetworkPredictionData_Server_Character::FNetworkPredictionData_Server_Character
 	, CurrentClientTimeStamp(0.f)
 	, LastUpdateTime(0.f)
 	, MaxResponseTime(0.125f)
+	, bForceClientUpdate(false)
 {
 }
 
