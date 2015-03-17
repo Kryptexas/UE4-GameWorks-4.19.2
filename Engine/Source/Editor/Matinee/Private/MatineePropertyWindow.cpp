@@ -12,6 +12,18 @@ void FMatinee::BuildPropertyWindow()
 
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	PropertyWindow = PropertyModule.CreateDetailView( Args );
+
+	if (IsCameraAnim())
+	{
+		// if editing a CameraAnim, show the CameraAnim object properties by default (when no track or group selected)
+		AMatineeActorCameraAnim* const CamAnimMatineeActor = Cast<AMatineeActorCameraAnim>(MatineeActor);
+		if ((CamAnimMatineeActor != nullptr) && (CamAnimMatineeActor->CameraAnim != nullptr))
+		{
+			TArray<UObject*> Objects;
+			Objects.Add(CamAnimMatineeActor->CameraAnim);
+			PropertyWindow->SetObjects(Objects);
+		}
+	}
 }
 
 
@@ -48,6 +60,15 @@ void FMatinee::UpdatePropertyWindow()
 		for (int32 Index=0; Index < SelectedGroups.Num(); Index++)
 		{
 			Objects.Add(SelectedGroups[Index]);
+		}
+	}
+	else if (IsCameraAnim())
+	{
+		// if editing a CameraAnim, show the CameraAnim properties when nothing else selected
+		AMatineeActorCameraAnim* const CamAnimMatineeActor = Cast<AMatineeActorCameraAnim>(MatineeActor);
+		if ((CamAnimMatineeActor != nullptr) && (CamAnimMatineeActor->CameraAnim != nullptr))
+		{
+			Objects.Add(CamAnimMatineeActor->CameraAnim);
 		}
 	}
 	// else send nothing
