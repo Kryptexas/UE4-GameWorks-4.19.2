@@ -1211,7 +1211,8 @@ public:
 
 		if (bForcePerElementSerialization
 			|| (Ar.IsSaving()			// if we are saving, we always do the ordinary serialize as a way to make sure it matches up with bulk serialization
-			&& !Ar.IsCooking())		// but cooking is performance critical, so we skip that
+			&& !Ar.IsCooking()			// but cooking and transacting is performance critical, so we skip that
+			&& !Ar.IsTransacting())		
 			|| Ar.IsByteSwapping()		// if we are byteswapping, we need to do that per-element
 			)
 		{

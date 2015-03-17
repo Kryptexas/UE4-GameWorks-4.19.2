@@ -224,7 +224,14 @@ FArchive& operator<<(FArchive& Ar, FFoliageMeshInfo& MeshInfo)
 #if WITH_EDITORONLY_DATA
 	if (!Ar.ArIsFilterEditorOnly && !(Ar.GetPortFlags() & PPF_DuplicateForPIE))
 	{
-		Ar << MeshInfo.Instances;
+		if (Ar.IsTransacting())
+		{
+			MeshInfo.Instances.BulkSerialize(Ar);
+		}
+		else
+		{
+			Ar << MeshInfo.Instances;
+		}
 	}
 
 	if (!Ar.ArIsFilterEditorOnly)
@@ -235,7 +242,6 @@ FArchive& operator<<(FArchive& Ar, FFoliageMeshInfo& MeshInfo)
 	// Serialize the transient data for undo.
 	if (Ar.IsTransacting())
 	{
-		Ar << *MeshInfo.InstanceHash;
 		Ar << MeshInfo.ComponentHash;
 		Ar << MeshInfo.SelectedIndices;
 	}
@@ -1753,6 +1759,14 @@ void AInstancedFoliageActor::PostEditUndo()
 	{
 		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 		MeshInfo.ReapplyInstancesToComponent();
+
+		// Regenerate instance hash
+		// We regenerate it here instead of saving to transaction buffer to speed up modify operations
+		MeshInfo.InstanceHash->Empty();
+		for (int32 InstanceIdx = 0; InstanceIdx < MeshInfo.Instances.Num(); InstanceIdx++)
+		{
+			MeshInfo.InstanceHash->InsertInstance(MeshInfo.Instances[InstanceIdx].Location, InstanceIdx);
+		}
 	}
 }
 
