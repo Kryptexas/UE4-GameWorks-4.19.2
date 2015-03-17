@@ -171,6 +171,33 @@ bool AnnotateFile( ISourceControlProvider& InProvider, const FString& InLabel, c
 	return false;
 }
 
+bool AnnotateFile( ISourceControlProvider& InProvider, int32 InCheckInIdentifier, const FString& InFile, TArray<FAnnotationLine>& OutLines )
+{
+	TSharedRef<FUpdateStatus, ESPMode::ThreadSafe> UpdateStatusOperation = ISourceControlOperation::Create<FUpdateStatus>();
+	UpdateStatusOperation->SetUpdateHistory(true);
+	if(InProvider.Execute(UpdateStatusOperation, InFile) == ECommandResult::Succeeded)
+	{
+		FSourceControlStatePtr State = InProvider.GetState(InFile, EStateCacheUsage::Use);
+		if(State.IsValid())
+		{
+			for(int32 HistoryIndex = State->GetHistorySize() - 1; HistoryIndex >= 0; HistoryIndex--)
+			{
+				// check that the changelist corresponds to this revision - we assume history is in latest-first order
+				TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> Revision = State->GetHistoryItem(HistoryIndex);
+				if(Revision.IsValid() && Revision->GetCheckInIdentifier() >= InCheckInIdentifier)
+				{
+					if(Revision->GetAnnotated(OutLines))
+					{
+						return true;
+					}
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
 bool CheckOutFile( const FString& InFilePath )
 {
 	if ( InFilePath.IsEmpty() )
@@ -274,14 +301,14 @@ bool CheckoutOrMarkForAdd( const FString& InDestFile, const FText& InFileDescrip
 		if (SourceControlState.IsValid())
 		{
 			if (SourceControlState->IsSourceControlled() && SourceControlState->CanCheckout())
-			{
-				ECommandResult::Type Result = Provider.Execute(ISourceControlOperation::Create<FCheckOut>(), InDestFile);
-				bSucceeded = (Result == ECommandResult::Succeeded);
-				if (!bSucceeded)
 				{
-					OutFailReason = FText::Format(LOCTEXT("SourceControlCheckoutError", "Could not check out {0} file."), InFileDescription);
+					ECommandResult::Type Result = Provider.Execute(ISourceControlOperation::Create<FCheckOut>(), InDestFile);
+					bSucceeded = (Result == ECommandResult::Succeeded);
+					if (!bSucceeded)
+					{
+						OutFailReason = FText::Format(LOCTEXT("SourceControlCheckoutError", "Could not check out {0} file."), InFileDescription);
+					}
 				}
-			}
 		}
 	}
 
