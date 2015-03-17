@@ -2,10 +2,10 @@
 <ordesignerObjectsDiagram dslVersion="1.0.0.0" absoluteBounds="0, 0, 13.75, 9.75" name="CrashReport">
   <DataContextMoniker Name="/CrashReportDataContext" />
   <nestedChildShapes>
-    <classShape Id="a37f1cdb-93d7-48ef-8da7-2b7ca09282b0" absoluteBounds="11.5, 1.25, 2, 4.0785139973958326">
+    <classShape Id="a37f1cdb-93d7-48ef-8da7-2b7ca09282b0" absoluteBounds="11.5, 1.25, 2, 2.9247054036458326">
       <DataClassMoniker Name="/CrashReportDataContext/Bugg" />
       <nestedChildShapes>
-        <elementListCompartment Id="7672a5dd-a23f-4509-99c2-fa6215910daf" absoluteBounds="11.515, 1.7100000000000009, 1.9700000000000002, 3.518513997395833" name="DataPropertiesCompartment" titleTextColor="Black" itemTextColor="Black" />
+        <elementListCompartment Id="7672a5dd-a23f-4509-99c2-fa6215910daf" absoluteBounds="11.515, 1.7100000000000009, 1.9700000000000002, 2.364705403645833" name="DataPropertiesCompartment" titleTextColor="Black" itemTextColor="Black" />
       </nestedChildShapes>
     </classShape>
     <classShape Id="01dddf4f-058f-43b4-b6c0-b90e7acfe0b9" absoluteBounds="3.375, 3.875, 2, 1.3862939453124987">
@@ -71,7 +71,7 @@
         <classShapeMoniker Id="8a60fc4a-a797-417f-87ed-25b22bd5e420" />
       </nodes>
     </associationConnector>
-    <associationConnector edgePoints="[(11.5 : 2.47199625651042); (10.875 : 2.47199625651042)]" fixedFrom="NotFixed" fixedTo="NotFixed">
+    <associationConnector edgePoints="[(11.5 : 2.47199625651042); (10.875 : 2.47199625651042)]" fixedFrom="Algorithm" fixedTo="Algorithm">
       <AssociationMoniker Name="/CrashReportDataContext/Bugg/Bugg_Buggs_Crash" />
       <nodes>
         <classShapeMoniker Id="a37f1cdb-93d7-48ef-8da7-2b7ca09282b0" />

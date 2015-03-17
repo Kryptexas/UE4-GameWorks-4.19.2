@@ -4,9 +4,6 @@
     <Type Name="Bugg">
       <Column Name="Id" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
       <Column Name="TTPID" Type="System.String" DbType="VarChar(50)" CanBeNull="true" />
-      <Column Name="Title" Type="System.String" DbType="VarChar(120)" CanBeNull="true" />
-      <Column Name="SummaryV2" Member="Summary" Type="System.String" DbType="VarChar(512)" CanBeNull="true" />
-      <Column Name="Priority" Type="System.Int32" DbType="Int" CanBeNull="true" />
       <Column Name="Pattern" Type="System.String" DbType="VarChar(800) NOT NULL" CanBeNull="false" />
       <Column Name="NumberOfCrashes" Type="System.Int32" DbType="Int" CanBeNull="true" />
       <Column Name="NumberOfUsers" Type="System.Int32" DbType="Int" CanBeNull="true" />
@@ -14,10 +11,7 @@
       <Column Name="TimeOfLastCrash" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
       <Column Name="Status" Type="System.String" DbType="VarChar(64)" CanBeNull="true" />
       <Column Name="FixedChangeList" Type="System.String" DbType="VarChar(50)" CanBeNull="true" />
-      <Column Name="Description" Type="System.String" DbType="Text" CanBeNull="true" UpdateCheck="Never" />
-      <Column Name="ReproSteps" Type="System.String" DbType="Text" CanBeNull="true" UpdateCheck="Never" />
-      <Column Name="Game" Type="System.String" DbType="VarChar(120)" CanBeNull="true" />
-      <Column Name="BuildVersion" Type="System.String" DbType="VarChar(128)" CanBeNull="true" />
+      <Column Name="BuildVersion" Type="System.String" DbType="VarChar(64)" CanBeNull="true" />
       <Column Name="CrashType" Type="System.Int16" DbType="SmallInt" CanBeNull="true" />
       <Association Name="Bugg_Buggs_Crash" Member="Buggs_Crashes" ThisKey="Id" OtherKey="BuggId" Type="Buggs_Crash" />
     </Type>

@@ -28,36 +28,36 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		
 		private static System.Data.Linq.Mapping.MappingSource mappingSource = new AttributeMappingSource();
 		
-	#region Extensibility Method Definitions
-	partial void OnCreated();
-	partial void InsertBugg(Bugg instance);
-	partial void UpdateBugg(Bugg instance);
-	partial void DeleteBugg(Bugg instance);
-	partial void InsertUser(User instance);
-	partial void UpdateUser(User instance);
-	partial void DeleteUser(User instance);
-	partial void InsertBuggs_Crash(Buggs_Crash instance);
-	partial void UpdateBuggs_Crash(Buggs_Crash instance);
-	partial void DeleteBuggs_Crash(Buggs_Crash instance);
-	partial void InsertBuggs_UserGroup(Buggs_UserGroup instance);
-	partial void UpdateBuggs_UserGroup(Buggs_UserGroup instance);
-	partial void DeleteBuggs_UserGroup(Buggs_UserGroup instance);
-	partial void InsertBuggs_User(Buggs_User instance);
-	partial void UpdateBuggs_User(Buggs_User instance);
-	partial void DeleteBuggs_User(Buggs_User instance);
-	partial void InsertCrash(Crash instance);
-	partial void UpdateCrash(Crash instance);
-	partial void DeleteCrash(Crash instance);
-	partial void InsertFunctionCall(FunctionCall instance);
-	partial void UpdateFunctionCall(FunctionCall instance);
-	partial void DeleteFunctionCall(FunctionCall instance);
-	partial void InsertUserGroup(UserGroup instance);
-	partial void UpdateUserGroup(UserGroup instance);
-	partial void DeleteUserGroup(UserGroup instance);
-	partial void InsertUsersMapping(UsersMapping instance);
-	partial void UpdateUsersMapping(UsersMapping instance);
-	partial void DeleteUsersMapping(UsersMapping instance);
-	#endregion
+    #region Extensibility Method Definitions
+    partial void OnCreated();
+    partial void InsertBugg(Bugg instance);
+    partial void UpdateBugg(Bugg instance);
+    partial void DeleteBugg(Bugg instance);
+    partial void InsertUser(User instance);
+    partial void UpdateUser(User instance);
+    partial void DeleteUser(User instance);
+    partial void InsertBuggs_Crash(Buggs_Crash instance);
+    partial void UpdateBuggs_Crash(Buggs_Crash instance);
+    partial void DeleteBuggs_Crash(Buggs_Crash instance);
+    partial void InsertBuggs_UserGroup(Buggs_UserGroup instance);
+    partial void UpdateBuggs_UserGroup(Buggs_UserGroup instance);
+    partial void DeleteBuggs_UserGroup(Buggs_UserGroup instance);
+    partial void InsertBuggs_User(Buggs_User instance);
+    partial void UpdateBuggs_User(Buggs_User instance);
+    partial void DeleteBuggs_User(Buggs_User instance);
+    partial void InsertCrash(Crash instance);
+    partial void UpdateCrash(Crash instance);
+    partial void DeleteCrash(Crash instance);
+    partial void InsertFunctionCall(FunctionCall instance);
+    partial void UpdateFunctionCall(FunctionCall instance);
+    partial void DeleteFunctionCall(FunctionCall instance);
+    partial void InsertUserGroup(UserGroup instance);
+    partial void UpdateUserGroup(UserGroup instance);
+    partial void DeleteUserGroup(UserGroup instance);
+    partial void InsertUsersMapping(UsersMapping instance);
+    partial void UpdateUsersMapping(UsersMapping instance);
+    partial void DeleteUsersMapping(UsersMapping instance);
+    #endregion
 		
 		public CrashReportDataContext() : 
 				base(global::System.Configuration.ConfigurationManager.ConnectionStrings["CrashReportConnectionString"].ConnectionString, mappingSource)
@@ -172,12 +172,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		
 		private string _TTPID;
 		
-		private string _Title;
-		
-		private string _Summary;
-		
-		private System.Nullable<int> _Priority;
-		
 		private string _Pattern;
 		
 		private System.Nullable<int> _NumberOfCrashes;
@@ -192,57 +186,39 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		
 		private string _FixedChangeList;
 		
-		private string _Description;
-		
-		private string _ReproSteps;
-		
-		private string _Game;
-		
 		private string _BuildVersion;
 		
 		private System.Nullable<short> _CrashType;
 		
 		private EntitySet<Buggs_Crash> _Buggs_Crashes;
 		
-	#region Extensibility Method Definitions
-	partial void OnLoaded();
-	partial void OnValidate(System.Data.Linq.ChangeAction action);
-	partial void OnCreated();
-	partial void OnIdChanging(int value);
-	partial void OnIdChanged();
-	partial void OnTTPIDChanging(string value);
-	partial void OnTTPIDChanged();
-	partial void OnTitleChanging(string value);
-	partial void OnTitleChanged();
-	partial void OnSummaryChanging(string value);
-	partial void OnSummaryChanged();
-	partial void OnPriorityChanging(System.Nullable<int> value);
-	partial void OnPriorityChanged();
-	partial void OnPatternChanging(string value);
-	partial void OnPatternChanged();
-	partial void OnNumberOfCrashesChanging(System.Nullable<int> value);
-	partial void OnNumberOfCrashesChanged();
-	partial void OnNumberOfUsersChanging(System.Nullable<int> value);
-	partial void OnNumberOfUsersChanged();
-	partial void OnTimeOfFirstCrashChanging(System.Nullable<System.DateTime> value);
-	partial void OnTimeOfFirstCrashChanged();
-	partial void OnTimeOfLastCrashChanging(System.Nullable<System.DateTime> value);
-	partial void OnTimeOfLastCrashChanged();
-	partial void OnStatusChanging(string value);
-	partial void OnStatusChanged();
-	partial void OnFixedChangeListChanging(string value);
-	partial void OnFixedChangeListChanged();
-	partial void OnDescriptionChanging(string value);
-	partial void OnDescriptionChanged();
-	partial void OnReproStepsChanging(string value);
-	partial void OnReproStepsChanged();
-	partial void OnGameChanging(string value);
-	partial void OnGameChanged();
-	partial void OnBuildVersionChanging(string value);
-	partial void OnBuildVersionChanged();
-	partial void OnCrashTypeChanging(System.Nullable<short> value);
-	partial void OnCrashTypeChanged();
-	#endregion
+    #region Extensibility Method Definitions
+    partial void OnLoaded();
+    partial void OnValidate(System.Data.Linq.ChangeAction action);
+    partial void OnCreated();
+    partial void OnIdChanging(int value);
+    partial void OnIdChanged();
+    partial void OnTTPIDChanging(string value);
+    partial void OnTTPIDChanged();
+    partial void OnPatternChanging(string value);
+    partial void OnPatternChanged();
+    partial void OnNumberOfCrashesChanging(System.Nullable<int> value);
+    partial void OnNumberOfCrashesChanged();
+    partial void OnNumberOfUsersChanging(System.Nullable<int> value);
+    partial void OnNumberOfUsersChanged();
+    partial void OnTimeOfFirstCrashChanging(System.Nullable<System.DateTime> value);
+    partial void OnTimeOfFirstCrashChanged();
+    partial void OnTimeOfLastCrashChanging(System.Nullable<System.DateTime> value);
+    partial void OnTimeOfLastCrashChanged();
+    partial void OnStatusChanging(string value);
+    partial void OnStatusChanged();
+    partial void OnFixedChangeListChanging(string value);
+    partial void OnFixedChangeListChanged();
+    partial void OnBuildVersionChanging(string value);
+    partial void OnBuildVersionChanged();
+    partial void OnCrashTypeChanging(System.Nullable<short> value);
+    partial void OnCrashTypeChanged();
+    #endregion
 		
 		public Bugg()
 		{
@@ -286,66 +262,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					this._TTPID = value;
 					this.SendPropertyChanged("TTPID");
 					this.OnTTPIDChanged();
-				}
-			}
-		}
-		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_Title", DbType="VarChar(120)")]
-		public string Title
-		{
-			get
-			{
-				return this._Title;
-			}
-			set
-			{
-				if ((this._Title != value))
-				{
-					this.OnTitleChanging(value);
-					this.SendPropertyChanging();
-					this._Title = value;
-					this.SendPropertyChanged("Title");
-					this.OnTitleChanged();
-				}
-			}
-		}
-		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Name="SummaryV2", Storage="_Summary", DbType="VarChar(512)")]
-		public string Summary
-		{
-			get
-			{
-				return this._Summary;
-			}
-			set
-			{
-				if ((this._Summary != value))
-				{
-					this.OnSummaryChanging(value);
-					this.SendPropertyChanging();
-					this._Summary = value;
-					this.SendPropertyChanged("Summary");
-					this.OnSummaryChanged();
-				}
-			}
-		}
-		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_Priority", DbType="Int")]
-		public System.Nullable<int> Priority
-		{
-			get
-			{
-				return this._Priority;
-			}
-			set
-			{
-				if ((this._Priority != value))
-				{
-					this.OnPriorityChanging(value);
-					this.SendPropertyChanging();
-					this._Priority = value;
-					this.SendPropertyChanged("Priority");
-					this.OnPriorityChanged();
 				}
 			}
 		}
@@ -490,67 +406,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 		}
 		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_Description", DbType="Text", UpdateCheck=UpdateCheck.Never)]
-		public string Description
-		{
-			get
-			{
-				return this._Description;
-			}
-			set
-			{
-				if ((this._Description != value))
-				{
-					this.OnDescriptionChanging(value);
-					this.SendPropertyChanging();
-					this._Description = value;
-					this.SendPropertyChanged("Description");
-					this.OnDescriptionChanged();
-				}
-			}
-		}
-		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_ReproSteps", DbType="Text", UpdateCheck=UpdateCheck.Never)]
-		public string ReproSteps
-		{
-			get
-			{
-				return this._ReproSteps;
-			}
-			set
-			{
-				if ((this._ReproSteps != value))
-				{
-					this.OnReproStepsChanging(value);
-					this.SendPropertyChanging();
-					this._ReproSteps = value;
-					this.SendPropertyChanged("ReproSteps");
-					this.OnReproStepsChanged();
-				}
-			}
-		}
-		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_Game", DbType="VarChar(120)")]
-		public string Game
-		{
-			get
-			{
-				return this._Game;
-			}
-			set
-			{
-				if ((this._Game != value))
-				{
-					this.OnGameChanging(value);
-					this.SendPropertyChanging();
-					this._Game = value;
-					this.SendPropertyChanged("Game");
-					this.OnGameChanged();
-				}
-			}
-		}
-		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_BuildVersion", DbType="VarChar(128)")]
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_BuildVersion", DbType="VarChar(64)")]
 		public string BuildVersion
 		{
 			get
@@ -654,17 +510,17 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		
 		private EntityRef<UserGroup> _UserGroup;
 		
-	#region Extensibility Method Definitions
-	partial void OnLoaded();
-	partial void OnValidate(System.Data.Linq.ChangeAction action);
-	partial void OnCreated();
-	partial void OnIdChanging(int value);
-	partial void OnIdChanged();
-	partial void OnUserNameChanging(string value);
-	partial void OnUserNameChanged();
-	partial void OnUserGroupIdChanging(int value);
-	partial void OnUserGroupIdChanged();
-	#endregion
+    #region Extensibility Method Definitions
+    partial void OnLoaded();
+    partial void OnValidate(System.Data.Linq.ChangeAction action);
+    partial void OnCreated();
+    partial void OnIdChanging(int value);
+    partial void OnIdChanged();
+    partial void OnUserNameChanging(string value);
+    partial void OnUserNameChanged();
+    partial void OnUserGroupIdChanging(int value);
+    partial void OnUserGroupIdChanged();
+    #endregion
 		
 		public User()
 		{
@@ -857,15 +713,15 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		
 		private EntityRef<Bugg> _Bugg;
 		
-	#region Extensibility Method Definitions
-	partial void OnLoaded();
-	partial void OnValidate(System.Data.Linq.ChangeAction action);
-	partial void OnCreated();
-	partial void OnBuggIdChanging(int value);
-	partial void OnBuggIdChanged();
-	partial void OnCrashIdChanging(int value);
-	partial void OnCrashIdChanged();
-	#endregion
+    #region Extensibility Method Definitions
+    partial void OnLoaded();
+    partial void OnValidate(System.Data.Linq.ChangeAction action);
+    partial void OnCreated();
+    partial void OnBuggIdChanging(int value);
+    partial void OnBuggIdChanged();
+    partial void OnCrashIdChanging(int value);
+    partial void OnCrashIdChanged();
+    #endregion
 		
 		public Buggs_Crash()
 		{
@@ -1023,15 +879,15 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		
 		private EntityRef<UserGroup> _UserGroup;
 		
-	#region Extensibility Method Definitions
-	partial void OnLoaded();
-	partial void OnValidate(System.Data.Linq.ChangeAction action);
-	partial void OnCreated();
-	partial void OnBuggIdChanging(int value);
-	partial void OnBuggIdChanged();
-	partial void OnUserGroupIdChanging(int value);
-	partial void OnUserGroupIdChanged();
-	#endregion
+    #region Extensibility Method Definitions
+    partial void OnLoaded();
+    partial void OnValidate(System.Data.Linq.ChangeAction action);
+    partial void OnCreated();
+    partial void OnBuggIdChanging(int value);
+    partial void OnBuggIdChanged();
+    partial void OnUserGroupIdChanging(int value);
+    partial void OnUserGroupIdChanged();
+    #endregion
 		
 		public Buggs_UserGroup()
 		{
@@ -1152,17 +1008,17 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		
 		private EntityRef<User> _User;
 		
-	#region Extensibility Method Definitions
-	partial void OnLoaded();
-	partial void OnValidate(System.Data.Linq.ChangeAction action);
-	partial void OnCreated();
-	partial void OnBuggIdChanging(int value);
-	partial void OnBuggIdChanged();
-	partial void OnUserNameChanging(string value);
-	partial void OnUserNameChanged();
-	partial void OnUserNameIdChanging(System.Nullable<int> value);
-	partial void OnUserNameIdChanged();
-	#endregion
+    #region Extensibility Method Definitions
+    partial void OnLoaded();
+    partial void OnValidate(System.Data.Linq.ChangeAction action);
+    partial void OnCreated();
+    partial void OnBuggIdChanging(int value);
+    partial void OnBuggIdChanged();
+    partial void OnUserNameChanging(string value);
+    partial void OnUserNameChanged();
+    partial void OnUserNameIdChanging(System.Nullable<int> value);
+    partial void OnUserNameIdChanged();
+    #endregion
 		
 		public Buggs_User()
 		{
@@ -1363,75 +1219,75 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		
 		private EntityRef<User> _User;
 		
-	#region Extensibility Method Definitions
-	partial void OnLoaded();
-	partial void OnValidate(System.Data.Linq.ChangeAction action);
-	partial void OnCreated();
-	partial void OnIdChanging(int value);
-	partial void OnIdChanged();
-	partial void OnSummaryChanging(string value);
-	partial void OnSummaryChanged();
-	partial void OnGameNameChanging(string value);
-	partial void OnGameNameChanged();
-	partial void OnStatusChanging(string value);
-	partial void OnStatusChanged();
-	partial void OnTimeOfCrashChanging(System.Nullable<System.DateTime> value);
-	partial void OnTimeOfCrashChanged();
-	partial void OnChangeListVersionChanging(string value);
-	partial void OnChangeListVersionChanged();
-	partial void OnPlatformNameChanging(string value);
-	partial void OnPlatformNameChanged();
-	partial void OnEngineModeChanging(string value);
-	partial void OnEngineModeChanged();
-	partial void OnDescriptionChanging(string value);
-	partial void OnDescriptionChanged();
-	partial void OnRawCallStackChanging(string value);
-	partial void OnRawCallStackChanged();
-	partial void OnPatternChanging(string value);
-	partial void OnPatternChanged();
-	partial void OnCommandLineChanging(string value);
-	partial void OnCommandLineChanged();
-	partial void OnComputerNameChanging(string value);
-	partial void OnComputerNameChanged();
-	partial void OnFixedChangeListChanging(string value);
-	partial void OnFixedChangeListChanged();
-	partial void OnLanguageExtChanging(string value);
-	partial void OnLanguageExtChanged();
-	partial void OnModuleChanging(string value);
-	partial void OnModuleChanged();
-	partial void OnBuildVersionChanging(string value);
-	partial void OnBuildVersionChanged();
-	partial void OnBaseDirChanging(string value);
-	partial void OnBaseDirChanged();
-	partial void OnUserNameChanging(string value);
-	partial void OnUserNameChanged();
-	partial void OnTTPIDChanging(string value);
-	partial void OnTTPIDChanged();
-	partial void OnbAllowToBeContactedChanging(System.Nullable<bool> value);
-	partial void OnbAllowToBeContactedChanged();
-	partial void OnHasLogFileChanging(System.Nullable<bool> value);
-	partial void OnHasLogFileChanged();
-	partial void OnHasMiniDumpFileChanging(System.Nullable<bool> value);
-	partial void OnHasMiniDumpFileChanged();
-	partial void OnHasVideoFileChanging(System.Nullable<bool> value);
-	partial void OnHasVideoFileChanged();
-	partial void OnHasDiagnosticsFileChanging(System.Nullable<bool> value);
-	partial void OnHasDiagnosticsFileChanged();
-	partial void OnBranchChanging(string value);
-	partial void OnBranchChanged();
-	partial void OnUserNameIdChanging(System.Nullable<int> value);
-	partial void OnUserNameIdChanged();
-	partial void OnCrashTypeChanging(System.Nullable<short> value);
-	partial void OnCrashTypeChanged();
-	partial void OnHasMetaDataChanging(System.Nullable<bool> value);
-	partial void OnHasMetaDataChanged();
-	partial void OnSourceContextChanging(string value);
-	partial void OnSourceContextChanged();
-	partial void OnEpicAccountIdChanging(string value);
-	partial void OnEpicAccountIdChanged();
-	partial void OnEngineVersionChanging(string value);
-	partial void OnEngineVersionChanged();
-	#endregion
+    #region Extensibility Method Definitions
+    partial void OnLoaded();
+    partial void OnValidate(System.Data.Linq.ChangeAction action);
+    partial void OnCreated();
+    partial void OnIdChanging(int value);
+    partial void OnIdChanged();
+    partial void OnSummaryChanging(string value);
+    partial void OnSummaryChanged();
+    partial void OnGameNameChanging(string value);
+    partial void OnGameNameChanged();
+    partial void OnStatusChanging(string value);
+    partial void OnStatusChanged();
+    partial void OnTimeOfCrashChanging(System.Nullable<System.DateTime> value);
+    partial void OnTimeOfCrashChanged();
+    partial void OnChangeListVersionChanging(string value);
+    partial void OnChangeListVersionChanged();
+    partial void OnPlatformNameChanging(string value);
+    partial void OnPlatformNameChanged();
+    partial void OnEngineModeChanging(string value);
+    partial void OnEngineModeChanged();
+    partial void OnDescriptionChanging(string value);
+    partial void OnDescriptionChanged();
+    partial void OnRawCallStackChanging(string value);
+    partial void OnRawCallStackChanged();
+    partial void OnPatternChanging(string value);
+    partial void OnPatternChanged();
+    partial void OnCommandLineChanging(string value);
+    partial void OnCommandLineChanged();
+    partial void OnComputerNameChanging(string value);
+    partial void OnComputerNameChanged();
+    partial void OnFixedChangeListChanging(string value);
+    partial void OnFixedChangeListChanged();
+    partial void OnLanguageExtChanging(string value);
+    partial void OnLanguageExtChanged();
+    partial void OnModuleChanging(string value);
+    partial void OnModuleChanged();
+    partial void OnBuildVersionChanging(string value);
+    partial void OnBuildVersionChanged();
+    partial void OnBaseDirChanging(string value);
+    partial void OnBaseDirChanged();
+    partial void OnUserNameChanging(string value);
+    partial void OnUserNameChanged();
+    partial void OnTTPIDChanging(string value);
+    partial void OnTTPIDChanged();
+    partial void OnbAllowToBeContactedChanging(System.Nullable<bool> value);
+    partial void OnbAllowToBeContactedChanged();
+    partial void OnHasLogFileChanging(System.Nullable<bool> value);
+    partial void OnHasLogFileChanged();
+    partial void OnHasMiniDumpFileChanging(System.Nullable<bool> value);
+    partial void OnHasMiniDumpFileChanged();
+    partial void OnHasVideoFileChanging(System.Nullable<bool> value);
+    partial void OnHasVideoFileChanged();
+    partial void OnHasDiagnosticsFileChanging(System.Nullable<bool> value);
+    partial void OnHasDiagnosticsFileChanged();
+    partial void OnBranchChanging(string value);
+    partial void OnBranchChanged();
+    partial void OnUserNameIdChanging(System.Nullable<int> value);
+    partial void OnUserNameIdChanged();
+    partial void OnCrashTypeChanging(System.Nullable<short> value);
+    partial void OnCrashTypeChanged();
+    partial void OnHasMetaDataChanging(System.Nullable<bool> value);
+    partial void OnHasMetaDataChanged();
+    partial void OnSourceContextChanging(string value);
+    partial void OnSourceContextChanged();
+    partial void OnEpicAccountIdChanging(string value);
+    partial void OnEpicAccountIdChanged();
+    partial void OnEngineVersionChanging(string value);
+    partial void OnEngineVersionChanged();
+    #endregion
 		
 		public Crash()
 		{
@@ -2174,15 +2030,15 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		
 		private string _Call;
 		
-	#region Extensibility Method Definitions
-	partial void OnLoaded();
-	partial void OnValidate(System.Data.Linq.ChangeAction action);
-	partial void OnCreated();
-	partial void OnIdChanging(int value);
-	partial void OnIdChanged();
-	partial void OnCallChanging(string value);
-	partial void OnCallChanged();
-	#endregion
+    #region Extensibility Method Definitions
+    partial void OnLoaded();
+    partial void OnValidate(System.Data.Linq.ChangeAction action);
+    partial void OnCreated();
+    partial void OnIdChanging(int value);
+    partial void OnIdChanged();
+    partial void OnCallChanging(string value);
+    partial void OnCallChanged();
+    #endregion
 		
 		public FunctionCall()
 		{
@@ -2264,15 +2120,15 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		
 		private EntitySet<Buggs_UserGroup> _Buggs_UserGroups;
 		
-	#region Extensibility Method Definitions
-	partial void OnLoaded();
-	partial void OnValidate(System.Data.Linq.ChangeAction action);
-	partial void OnCreated();
-	partial void OnIdChanging(int value);
-	partial void OnIdChanged();
-	partial void OnNameChanging(string value);
-	partial void OnNameChanged();
-	#endregion
+    #region Extensibility Method Definitions
+    partial void OnLoaded();
+    partial void OnValidate(System.Data.Linq.ChangeAction action);
+    partial void OnCreated();
+    partial void OnIdChanging(int value);
+    partial void OnIdChanged();
+    partial void OnNameChanging(string value);
+    partial void OnNameChanged();
+    #endregion
 		
 		public UserGroup()
 		{
@@ -2408,21 +2264,21 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		
 		private string _UserName;
 		
-	#region Extensibility Method Definitions
-	partial void OnLoaded();
-	partial void OnValidate(System.Data.Linq.ChangeAction action);
-	partial void OnCreated();
-	partial void OnIdChanging(int value);
-	partial void OnIdChanged();
-	partial void OnUserEmailChanging(string value);
-	partial void OnUserEmailChanged();
-	partial void OnMachineIdChanging(string value);
-	partial void OnMachineIdChanged();
-	partial void OnEpicAccountIdChanging(string value);
-	partial void OnEpicAccountIdChanged();
-	partial void OnUserNameChanging(string value);
-	partial void OnUserNameChanged();
-	#endregion
+    #region Extensibility Method Definitions
+    partial void OnLoaded();
+    partial void OnValidate(System.Data.Linq.ChangeAction action);
+    partial void OnCreated();
+    partial void OnIdChanging(int value);
+    partial void OnIdChanged();
+    partial void OnUserEmailChanging(string value);
+    partial void OnUserEmailChanged();
+    partial void OnMachineIdChanging(string value);
+    partial void OnMachineIdChanged();
+    partial void OnEpicAccountIdChanging(string value);
+    partial void OnEpicAccountIdChanged();
+    partial void OnUserNameChanging(string value);
+    partial void OnUserNameChanged();
+    #endregion
 		
 		public UsersMapping()
 		{

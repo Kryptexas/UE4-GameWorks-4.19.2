@@ -15,18 +15,6 @@
 	<script type="text/javascript">
 		$(document).ready(function ()
 		{
-			$("#EditDescription").click(function ()
-			{
-				$("#CrashDescription").css("display", "none");
-				$("#ShowCrashDescription input").css("display", "block");
-				$("#EditDescription").css("display", "none");
-				$("#SaveDescription").css("display", "inline");
-			});
-
-			$("#SaveDescription").click(function ()
-			{
-				$('#EditCrashDescriptionForm').submit();
-			});
 			// Zebra stripes
 			$("#CrashesTable tr:nth-child(even)").css("background-color", "#C3CAD0");
 			$("#CrashesTable tr:nth-child(odd)").css("background-color", "#eeeeee");
@@ -183,13 +171,13 @@
 
 	<div id="CallStackContainer" >
 
-		<% if( !string.IsNullOrEmpty( Model.Bugg.Summary ) ) 
+		<% if( !string.IsNullOrEmpty( Model.Bugg.LatestCrashSummary ) ) 
 			{ %>
 				<div id='ShowErrorMessage'>
 					<br />
 					<h3>Error Message</h3>
 					<div id='ErrorMessage'>
-						<%=Html.DisplayFor( m => m.Bugg.Summary )%>
+						<%=Html.DisplayFor( m => m.Bugg.LatestCrashSummary )%>
 					</div>
 				</div>
 				<br />
@@ -244,16 +232,6 @@
 				<pre><%=Html.DisplayFor( x => Model.SourceContext )%></pre>
 			</div>
 		</div>
-		<%using( Html.BeginForm( "Show", "Buggs", FormMethod.Post, new { id = "EditCrashDescriptionForm"} ) )
-			{ %>
-			<div id='ShowCrashDescription' class='CrashViewTextBox'>
-				<br />
-				<h3>Description <span class='EditButton' id='EditDescription'>Edit</span> <span class='EditButton' id='SaveDescription'>Save</span></h3>
-				<div id='InputCrashDescription'>
-					<%=Html.TextBox( "Description", Model.Bugg.Description )%> 
-				</div>
-			</div>
-		<%} %>
 
 		<div class='CrashViewTextBoxRight'>
 			<h3>Crashes</h3>

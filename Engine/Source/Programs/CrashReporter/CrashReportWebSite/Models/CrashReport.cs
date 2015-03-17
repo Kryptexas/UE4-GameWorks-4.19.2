@@ -113,6 +113,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary></summary>
 		public string JiraFixCL { get; set; }
 
+		/// <summary></summary>
+		public string LatestCrashSummary { get; set; }
+
 		/// <summary>The CL of the oldest build when this bugg is occurring</summary>
 		int ToJiraFirstCLAffected { get; set; }
 
@@ -409,9 +412,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				var CrashList =
 				(
 						from BuggCrash in CrashRepo.Context.Buggs_Crashes
-						where BuggCrash.BuggId == Id
+						where BuggCrash.BuggId == Id && BuggCrash.Crash.TimeOfCrash > DateTime.UtcNow.AddMonths(-6)
 						select BuggCrash.Crash
-				).ToList();
+				).OrderByDescending( c => c.TimeOfCrash ).ToList();
 				return CrashList;
 			}
 		}
@@ -512,6 +515,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 	/// </summary>
 	public partial class Crash
 	{
+		/// <summary> Helper method, display this Bugg as a human readable string. Debugging purpose. </summary>
+		public override string ToString()
+		{
+			return string.Format( "Id={0} TOC={1} BV={2}-{3}+{4} G={5} U={6}", Id, TimeOfCrash, this.BuildVersion, this.BuiltFromCL, this.Branch, this.GameName, this.UserName );
+		}
+
 		/// <summary>A formatted callstack.</summary>
 		public CallStackContainer CallStackContainer { get; set; }
 

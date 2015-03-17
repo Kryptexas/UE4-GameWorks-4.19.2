@@ -221,11 +221,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 						Buggs.SetJIRAForBuggAndCrashes( NewBugg.TTPID, id );
 					}
 
-					if( !string.IsNullOrEmpty( BuggsForm["Description"] ) )
-					{
-						NewBugg.Description = BuggsForm["Description"];
-					}
-
 					// <STATUS>
 				}
 
@@ -257,6 +252,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 						Model.SourceContext = NewCrash.SourceContext;
 					}
+
+					Model.Bugg.LatestCrashSummary = NewCrash.Summary;
 				}
 
 				Model.GenerationTime = LogTimer.GetElapsedSeconds().ToString( "F2" );
