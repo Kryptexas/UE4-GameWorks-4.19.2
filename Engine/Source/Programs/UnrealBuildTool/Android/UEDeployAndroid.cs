@@ -278,6 +278,7 @@ namespace UnrealBuildTool.Android
 			switch (UE4Arch)
 			{
 				case "-armv7": return "armeabi-v7a";
+                case "-arm64":  return "arm64-v8a";
 				case "-x86": return "x86";
 
 				default: throw new BuildException("Unknown UE4 architecture {0}", UE4Arch);
@@ -289,9 +290,12 @@ namespace UnrealBuildTool.Android
 			switch (NDKArch)
 			{
 				case "armeabi-v7a": return "-armv7";
+                case "arm64-v8a":   return "-arm64";
 				case "x86":			return "-x86";
 
-				default: throw new BuildException("Unknown NDK architecture '{0}'", NDKArch);
+//				default: throw new BuildException("Unknown NDK architecture '{0}'", NDKArch);
+                // future-proof by returning armv7 for unknown
+                default:            return "-armv7";
 			}
 		}
 
@@ -598,9 +602,9 @@ namespace UnrealBuildTool.Android
 					return "sensorPortrait";
 				case "landscape":
 					return "landscape";
-				case "reversepandscape":
+				case "reverselandscape":
 					return "reverseLandscape";
-				case "sensorpandscape":
+				case "sensorlandscape":
 					return "sensorLandscape";
 				case "sensor":
 					return "sensor";
@@ -640,6 +644,7 @@ namespace UnrealBuildTool.Android
 
 			// replace some variables
 			PackageName = PackageName.Replace("[PROJECT]", ProjectName);
+            PackageName = PackageName.Replace("-", "_");
 
 			StringBuilder Text = new StringBuilder();
 			Text.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
@@ -690,7 +695,8 @@ namespace UnrealBuildTool.Android
 			Text.AppendLine("\t\t</activity>");
 			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.DepthBufferPreference\" android:value=\"{0}\"/>", ConvertDepthBufferIniValue(DepthBufferPreference)));
 			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.bPackageDataInsideApk\" android:value=\"{0}\"/>", bPackageDataInsideApk ? "true" : "false"));
-			Text.AppendLine("\t\t<meta-data android:name=\"com.google.android.gms.games.APP_ID\"");
+            Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.ProjectName\" android:value=\"{0}\"/>", ProjectName));
+            Text.AppendLine("\t\t<meta-data android:name=\"com.google.android.gms.games.APP_ID\"");
 			Text.AppendLine("\t\t           android:value=\"@string/app_id\" />");
 			Text.AppendLine("\t\t<meta-data android:name=\"com.google.android.gms.version\"");
 			Text.AppendLine("\t\t           android:value=\"@integer/google_play_services_version\" />");

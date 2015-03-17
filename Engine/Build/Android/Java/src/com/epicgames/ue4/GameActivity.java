@@ -266,11 +266,15 @@ public class GameActivity extends NativeActivity
 		// Grab a reference to the asset manager
 		AssetManagerReference = this.getAssets();
 
-		// Get the preferred depth buffer size from AndroidManifest.xml
+		// Read metadata from AndroidManifest.xml
 		int DepthBufferPreference = 0;
+		String ProjectName = getPackageName();
+		ProjectName = ProjectName.substring(ProjectName.lastIndexOf('.') + 1);
 		try {
 			ApplicationInfo ai = getPackageManager().getApplicationInfo(getPackageName(), PackageManager.GET_META_DATA);
 			Bundle bundle = ai.metaData;
+
+			// Get the preferred depth buffer size from AndroidManifest.xml
 			if (bundle.containsKey("com.epicgames.ue4.GameActivity.DepthBufferPreference"))
 			{
 				DepthBufferPreference = bundle.getInt("com.epicgames.ue4.GameActivity.DepthBufferPreference");
@@ -281,6 +285,7 @@ public class GameActivity extends NativeActivity
 				Log.debug( "Did not find DepthBufferPreference, using default.");
 			}
 
+			// Determine if data is embedded in APK from AndroidManifest.xml
 			if (bundle.containsKey("com.epicgames.ue4.GameActivity.bPackageDataInsideApk"))
 			{
 				PackageDataInsideApkValue = bundle.getBoolean("com.epicgames.ue4.GameActivity.bPackageDataInsideApk") ? 1 : 0;
@@ -290,6 +295,17 @@ public class GameActivity extends NativeActivity
 			{
 				PackageDataInsideApkValue = 0;
 				Log.debug( "Did not find bPackageDataInsideApk, using default.");
+			}
+
+			// Get the project name from AndroidManifest.xml
+			if (bundle.containsKey("com.epicgames.ue4.GameActivity.ProjectName"))
+			{
+				ProjectName = bundle.getString("com.epicgames.ue4.GameActivity.ProjectName");
+				Log.debug( "Found ProjectName = " + ProjectName);
+			}
+			else
+			{
+				Log.debug( "Did not find ProjectName, using package name = " + ProjectName);
 			}
 		}
 		catch (NameNotFoundException e)
@@ -320,7 +336,7 @@ public class GameActivity extends NativeActivity
 		{
 			int Version = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode;
 			int PatchVersion = 0;
-			nativeSetObbInfo(getApplicationContext().getPackageName(), Version, PatchVersion);
+			nativeSetObbInfo(ProjectName, getApplicationContext().getPackageName(), Version, PatchVersion);
 		}
 		catch (Exception e)
 		{
@@ -952,7 +968,7 @@ public class GameActivity extends NativeActivity
 	public native boolean nativeIsShippingBuild();
 	public native void nativeSetGlobalActivity();
 	public native void nativeSetWindowInfo(boolean bIsPortrait, int DepthBufferPreference);
-	public native void nativeSetObbInfo(String PackageName, int Version, int PatchVersion);
+	public native void nativeSetObbInfo(String ProjectName, String PackageName, int Version, int PatchVersion);
 	public native void nativeSetAndroidVersionInformation( String AndroidVersion, String PhoneMake, String PhoneModel, String OSLanguage );
 
 	public native void nativeConsoleCommand(String commandString);

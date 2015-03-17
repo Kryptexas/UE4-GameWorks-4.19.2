@@ -484,7 +484,7 @@ bool ULandscapeMeshCollisionComponent::CookCollsionData(const FName& Format, boo
 		// Ensure that content was saved with physical materials before using DDC data
 		if (GetLinkerUE4Version() >= VER_UE4_LANDSCAPE_SERIALIZE_PHYSICS_MATERIALS)
 		{
-			if (GetDerivedDataCacheRef().GetSynchronous(*GetHFDDCKeyString(Format, bUseDefMaterial, HeightfieldGuid), OutCookedData))
+			if (GetDerivedDataCacheRef().GetSynchronous(*GetHFDDCKeyString(Format, bUseDefMaterial, MeshGuid), OutCookedData))
 			{
 				bShouldSaveCookedDataToDDC[CookedDataIndex] = false;
 				return true;
@@ -628,7 +628,7 @@ bool ULandscapeMeshCollisionComponent::CookCollsionData(const FName& Format, boo
 
 		if (bShouldSaveCookedDataToDDC[CookedDataIndex])
 		{
-			GetDerivedDataCacheRef().Put(*GetHFDDCKeyString(Format, bUseDefMaterial, HeightfieldGuid), OutCookedData);
+			GetDerivedDataCacheRef().Put(*GetHFDDCKeyString(Format, bUseDefMaterial, MeshGuid), OutCookedData);
 			bShouldSaveCookedDataToDDC[CookedDataIndex] = false;
 		}
 	}

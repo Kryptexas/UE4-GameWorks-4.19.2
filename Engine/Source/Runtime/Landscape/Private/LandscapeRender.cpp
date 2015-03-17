@@ -698,7 +698,7 @@ void FLandscapeComponentSceneProxy::CreateRenderThreadResources()
 		}
 	}
 	else
-	{
+		{
 		// UE_LOG(LogLandscape, Warning, TEXT("Duplicate ComponentBase %d, %d"), ComponentBase.X, ComponentBase.Y);
 	}
 
@@ -769,7 +769,7 @@ FLandscapeComponentSceneProxy::~FLandscapeComponentSceneProxy()
 {
 	// Remove ourselves from the map
 	if (bAddedToSceneProxyMap)
-	{
+{
 		TMap<FIntPoint, const FLandscapeComponentSceneProxy*>* SceneProxyMap = SharedSceneProxyMap.Find(LandscapeKey);
 		check(SceneProxyMap);
 
@@ -799,7 +799,7 @@ FLandscapeComponentSceneProxy::~FLandscapeComponentSceneProxy()
 					Neighbors[2]->Neighbors[1] = nullptr;
 				}
 				if (Neighbors[3])
-				{
+			{
 					Neighbors[3]->Neighbors[0] = nullptr;
 				}
 			}
@@ -1101,7 +1101,7 @@ namespace
 void FLandscapeComponentSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PDI)
 {
 	int32 FirstLOD = (ForcedLOD >= 0) ? FMath::Min<int32>(ForcedLOD, MaxLOD) : FMath::Max<int32>(LODBias, 0);
-	int32 LastLOD = (ForcedLOD >= 0) ? FirstLOD : FMath::Min<int32>(MaxLOD, MaxLOD + LODBias);
+	int32 LastLOD = (ForcedLOD >= 0) ? FirstLOD : MaxLOD;	// we always need to go to MaxLOD regardless of LODBias as we could need the lowest LODs due to streaming.
 
 	StaticBatchParamArray.Empty((1 + LastLOD - FirstLOD) * (FMath::Square(NumSubsections) + 1));
 
@@ -1198,13 +1198,12 @@ uint64 FLandscapeComponentSceneProxy::GetStaticBatchElementVisibility(const clas
 	SCOPE_CYCLE_COUNTER(STAT_LandscapeStaticDrawLODTime);
 	if (ForcedLOD >= 0)
 	{
-		// When forcing LOD we only create one Batch Element, so not sure this loop is necessary?
-		for (int32 BatchElementIndex = 0; BatchElementIndex < Batch->Elements.Num(); BatchElementIndex++)
-		{
-			BatchesToRenderMask |= (((uint64)1) << BatchElementIndex);
-			INC_DWORD_STAT(STAT_LandscapeDrawCalls);
-			INC_DWORD_STAT_BY(STAT_LandscapeTriangles, Batch->Elements[BatchElementIndex].NumPrimitives);
-		}
+		// When forcing LOD we only create one Batch Element 
+		ensure(Batch->Elements.Num() == 1);
+		int32 BatchElementIndex = 1;
+		BatchesToRenderMask |= (((uint64)1) << BatchElementIndex);
+		INC_DWORD_STAT(STAT_LandscapeDrawCalls);
+		INC_DWORD_STAT_BY(STAT_LandscapeTriangles, Batch->Elements[BatchElementIndex].NumPrimitives);
 	}
 	else
 	{
@@ -1217,34 +1216,34 @@ uint64 FLandscapeComponentSceneProxy::GetStaticBatchElementVisibility(const clas
 		int32 CombinedLOD = -1;
 		int32 bAllSameLOD = true;
 
+		// Components with positive LODBias don't generate batch elements for unused LODs.
+		int32 LODBiasOffset = FMath::Max<int32>(LODBias, 0);
+
 		for (int32 SubY = 0; SubY < NumSubsections; SubY++)
 		{
 			for (int32 SubX = 0; SubX < NumSubsections; SubX++)
 			{
-				int32 TempLOD = CalcLODForSubsection(View, SubX, SubY, CameraLocalPos);
-
-				if (LODBias > 0)
-				{
-					TempLOD = FMath::Max<int32>(TempLOD - LODBias, 0);
-				}
-
+				int32 ThisSubsectionLOD = CalcLODForSubsection(View, SubX, SubY, CameraLocalPos);
 				// check if all LODs are the same.
-				if (TempLOD != CombinedLOD && CombinedLOD != -1)
+				if (ThisSubsectionLOD != CombinedLOD && CombinedLOD != -1)
 				{
 					bAllSameLOD = false;
 				}
-				CombinedLOD = TempLOD;
-				CalculatedLods[SubX][SubY] = TempLOD;
+				CombinedLOD = ThisSubsectionLOD;
+				CalculatedLods[SubX][SubY] = ThisSubsectionLOD;
 			}
 		}
 
 		if (bAllSameLOD && NumSubsections > 1 && !GLandscapeDebugOptions.bDisableCombine)
 		{
 			// choose the combined batch element
-			int32 BatchElementIndex = (CombinedLOD + 1)*BatchesPerLOD - 1;
-			BatchesToRenderMask |= (((uint64)1) << BatchElementIndex);
-			INC_DWORD_STAT(STAT_LandscapeDrawCalls);
-			INC_DWORD_STAT_BY(STAT_LandscapeTriangles, Batch->Elements[BatchElementIndex].NumPrimitives);
+			int32 BatchElementIndex = (CombinedLOD - LODBiasOffset + 1)*BatchesPerLOD - 1;
+			if (ensure(Batch->Elements.IsValidIndex(BatchElementIndex)))
+			{
+			    BatchesToRenderMask |= (((uint64)1) << BatchElementIndex);
+			    INC_DWORD_STAT(STAT_LandscapeDrawCalls);
+			    INC_DWORD_STAT_BY(STAT_LandscapeTriangles, Batch->Elements[BatchElementIndex].NumPrimitives);
+		    }
 		}
 		else
 		{
@@ -1252,14 +1251,16 @@ uint64 FLandscapeComponentSceneProxy::GetStaticBatchElementVisibility(const clas
 			{
 				for (int32 SubX = 0; SubX < NumSubsections; SubX++)
 				{
-					int32 BatchElementIndex = CalculatedLods[SubX][SubY] * BatchesPerLOD + SubY*NumSubsections + SubX;
-					BatchesToRenderMask |= (((uint64)1) << BatchElementIndex);
-					INC_DWORD_STAT(STAT_LandscapeDrawCalls);
-					INC_DWORD_STAT_BY(STAT_LandscapeTriangles, Batch->Elements[BatchElementIndex].NumPrimitives);
-				}
-			}
+					int32 BatchElementIndex = (CalculatedLods[SubX][SubY] - LODBiasOffset) * BatchesPerLOD + SubY*NumSubsections + SubX;
+					if (ensure(Batch->Elements.IsValidIndex(BatchElementIndex)))
+					{
+					    BatchesToRenderMask |= (((uint64)1) << BatchElementIndex);
+					    INC_DWORD_STAT(STAT_LandscapeDrawCalls);
+					    INC_DWORD_STAT_BY(STAT_LandscapeTriangles, Batch->Elements[BatchElementIndex].NumPrimitives);
+				    }
+			    }
+		    }
 		}
-
 	}
 
 	INC_DWORD_STAT(STAT_LandscapeComponents);
@@ -1351,9 +1352,9 @@ float FLandscapeComponentSceneProxy::CalcDesiredLOD(const class FSceneView& View
 				break;
 			}
 		}
-	}
 
-	fLOD = FMath::Clamp<float>(fLOD, SubsectionLODBias, FMath::Min<int32>(MaxLOD, MaxLOD + SubsectionLODBias));
+		fLOD = FMath::Clamp<float>(fLOD, SubsectionLODBias, FMath::Min<int32>(MaxLOD, MaxLOD + SubsectionLODBias));
+	}
 
 	// ultimately due to texture streaming we sometimes need to go past MaxLOD
 	fLOD = FMath::Max<float>(fLOD, MinStreamedLOD);

@@ -1027,7 +1027,15 @@ namespace Manzana
 
             // Make sure the directory exists on the phone
             string DirectoryOnPhone = PathOnPhone.Remove(PathOnPhone.LastIndexOf('/'));
-            CreateDirectory(DirectoryOnPhone);
+			if (!IsDirectory(DirectoryOnPhone))
+			{
+				Console.WriteLine("Directory (" + DirectoryOnPhone + ") doesn't exist!");
+				if (!CreateDirectory(DirectoryOnPhone))
+				{
+					Console.WriteLine("CreateDirectory (" + DirectoryOnPhone + ") failed");
+//					throw new IOException("CreateDirectory (" + DirectoryOnPhone + ") failed");
+				}
+			}
 
             FileStream SourceFile = File.OpenRead(PathOnPC);
             iPhoneFile DestinationFile = iPhoneFile.OpenWrite(this, PathOnPhone);
@@ -1304,7 +1312,7 @@ namespace Manzana
         public void CopyFileToPublicStaging(string SourceFile)
         {
             string IpaFilename = Path.GetFileName(SourceFile);
-            CopyFileToPhone(SourceFile, "/PublicStaging/" + IpaFilename);
+            CopyFileToPhone(SourceFile, "PublicStaging/" + IpaFilename);
             //Dictionary<string, string> fi = GetFileInfo("/PublicStaging/" + IpaFilename);
         }
 

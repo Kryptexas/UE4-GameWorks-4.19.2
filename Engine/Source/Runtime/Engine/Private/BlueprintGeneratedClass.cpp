@@ -272,6 +272,30 @@ UInheritableComponentHandler* UBlueprintGeneratedClass::GetInheritableComponentH
 		return nullptr;
 	}
 
+	if (InheritableComponentHandler)
+	{
+	    if (InheritableComponentHandler->HasAllFlags(RF_NeedLoad))
+	    {
+		    auto Linker = InheritableComponentHandler->GetLinker();
+		    if (Linker)
+		    {
+			    Linker->Preload(InheritableComponentHandler);
+		    }
+	    }
+
+		for (auto Record : InheritableComponentHandler->Records)
+		{
+			if (Record.ComponentTemplate && Record.ComponentTemplate->HasAllFlags(RF_NeedLoad))
+			{
+				auto Linker = Record.ComponentTemplate->GetLinker();
+				if (Linker)
+				{
+					Linker->Preload(Record.ComponentTemplate);
+				}
+			}
+		}
+	}
+
 	if (!InheritableComponentHandler && bCreateIfNecessary)
 	{
 		InheritableComponentHandler = NewNamedObject<UInheritableComponentHandler>(this, FName(TEXT("InheritableComponentHandler")));
@@ -626,6 +650,8 @@ void UBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties
 
 	if (UsePersistentUberGraphFrame() && UberGraphFunction)
 	{
+		Ar.Preload(UberGraphFunction);
+
 		for (auto Property : TFieldRange<UStructProperty>(this, EFieldIteratorFlags::ExcludeSuper))
 		{
 			if (Property->GetFName() == GetUberGraphFrameName())

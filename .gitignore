@@ -147,3 +147,6 @@
 
 # Ignore crash reports
 /crashinfo--*
+
+# Ignore package version counter
+/Engine/Build/IOS/UE4Client.PackageVersionCounter

@@ -42,19 +42,21 @@ public:
 		bool bShadowOnly
 		)
 	{
-		check(Mesh.GetNumPrimitives() > 0);
-		check(Mesh.VertexFactory);
-		check(Mesh.VertexFactory->IsInitialized());
+		if (Mesh.GetNumPrimitives() > 0)
+		{
+			check(Mesh.VertexFactory);
+			check(Mesh.VertexFactory->IsInitialized());
 #if DO_CHECK
-		Mesh.CheckUniformBuffers();
+			Mesh.CheckUniformBuffers();
 #endif
-		FStaticMesh* StaticMesh = new(PrimitiveSceneInfo->StaticMeshes) FStaticMesh(
-			PrimitiveSceneInfo,
-			Mesh,
-			ScreenSize,
-			bShadowOnly,
-			CurrentHitProxy ? CurrentHitProxy->Id : FHitProxyId()
-			);
+			FStaticMesh* StaticMesh = new(PrimitiveSceneInfo->StaticMeshes) FStaticMesh(
+				PrimitiveSceneInfo,
+				Mesh,
+				ScreenSize,
+				bShadowOnly,
+				CurrentHitProxy ? CurrentHitProxy->Id : FHitProxyId()
+				);
+		}
 	}
 
 private:

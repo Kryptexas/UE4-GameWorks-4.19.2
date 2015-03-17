@@ -184,17 +184,24 @@ void FFileCache::WriteCache()
 {
 	if (bSavedCacheDirty)
 	{
+		const FString ParentFolder = FPaths::GetPath(Config.CacheFile);
+		if (!IFileManager::Get().DirectoryExists(*ParentFolder))
+		{
+			IFileManager::Get().MakeDirectory(*ParentFolder, true);	
+		}
+		
 		FArchive* Ar = IFileManager::Get().CreateFileWriter(*Config.CacheFile);
-		check(Ar);
+		if (ensureMsgf(Ar, TEXT("Unable to write file-cache for '%s' to '%s'."), *Config.Directory, *Config.CacheFile))
+		{
+			*Ar << CachedDirectoryState;
 
-		*Ar << CachedDirectoryState;
+			Ar->Close();
+			delete Ar;
 
-		Ar->Close();
-		delete Ar;
+			CachedDirectoryState.Files.Shrink();
 
-		CachedDirectoryState.Files.Shrink();
-
-		bSavedCacheDirty = false;
+			bSavedCacheDirty = false;
+		}
 	}
 }
 

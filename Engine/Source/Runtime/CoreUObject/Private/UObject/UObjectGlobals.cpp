@@ -824,6 +824,8 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 	// Try to load.
 	BeginLoad();
 
+	bool bFullyLoadSkipped = false;
+
 	SlowTask.EnterProgressFrame(30);
 	{
 		// Keep track of start time.
@@ -874,11 +876,7 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		// if this linker already has the DeferDependencyLoads flag, then we're
 		// already loading it earlier up the load chain (don't let it invoke any
 		// deeper loads that may introduce a circular dependency)
-		if ((Linker->LoadFlags & LOAD_DeferDependencyLoads))
-		{
-			DoNotLoadExportsFlags |= LOAD_DeferDependencyLoads;
-		}
-		// @TODO: what of cases where DeferDependencyLoads was specified, but not already set on the Linker?
+		DoNotLoadExportsFlags |= LOAD_DeferDependencyLoads;
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
 		if ((LoadFlags & DoNotLoadExportsFlags) == 0)
@@ -894,6 +892,10 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 			Linker->LoadAllObjects();
 
 			Linker->SetSerializedProperty(OldSerialziedProperty);
+		}
+		else
+		{
+			bFullyLoadSkipped = true;
 		}
 
 		SlowTask.EnterProgressFrame(30);
@@ -965,8 +967,11 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		// We no longer need the linker. Passing in NULL would reset all loaders so we need to check for that.
 		ResetLoaders( Result );
 	}
-	// Mark package as loaded.
-	Result->SetFlags(RF_WasLoaded);
+	if (!bFullyLoadSkipped)
+	{
+		// Mark package as loaded.
+		Result->SetFlags(RF_WasLoaded);
+	}
 
 	return Result;
 }

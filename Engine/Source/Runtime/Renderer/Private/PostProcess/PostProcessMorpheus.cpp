@@ -16,7 +16,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogMorpheusHMDPostProcess, All, All);
 
-#if HAS_MORPHEUS
+#if MORPHEUS_ENGINE_DISTORTION
 
 /** Encapsulates the post processing HMD distortion and correction pixel shader. */
 class FPostProcessMorpheusPS : public FGlobalShader
@@ -99,7 +99,10 @@ public:
 			if (StereoPass == eSSP_LEFT_EYE)
 			{
 				FTexture* TextureLeft = HMDDevice->GetDistortionTextureLeft();
-				SetTextureParameter(Context.RHICmdList, ShaderRHI, DistortionTextureParam, DistortionTextureSampler, TextureLeft->SamplerStateRHI, TextureLeft->TextureRHI);
+				if (TextureLeft)
+				{
+					SetTextureParameter(Context.RHICmdList, ShaderRHI, DistortionTextureParam, DistortionTextureSampler, TextureLeft->SamplerStateRHI, TextureLeft->TextureRHI);
+				}
 				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureScale, HMDDevice->GetTextureScaleLeft());
 				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureOffset, HMDDevice->GetTextureOffsetLeft());
 				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureUVOffset, 0.0f);
@@ -107,7 +110,10 @@ public:
 			else
 			{
 				FTexture* TextureRight = HMDDevice->GetDistortionTextureRight();
-				SetTextureParameter(Context.RHICmdList, ShaderRHI, DistortionTextureParam, DistortionTextureSampler, TextureRight->SamplerStateRHI, TextureRight->TextureRHI);
+				if (TextureRight)
+				{
+					SetTextureParameter(Context.RHICmdList, ShaderRHI, DistortionTextureParam, DistortionTextureSampler, TextureRight->SamplerStateRHI, TextureRight->TextureRHI);
+				}
 				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureScale, HMDDevice->GetTextureScaleRight());
 				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureOffset, HMDDevice->GetTextureOffsetRight());
 				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureUVOffset, -0.5f);
@@ -244,4 +250,4 @@ FPooledRenderTargetDesc FRCPassPostProcessMorpheus::ComputeOutputDesc(EPassOutpu
 	return Ret;
 }
 
-#endif // HAS_MORPHEUS
+#endif // MORPHEUS_ENGINE_DISTORTION

@@ -288,21 +288,24 @@ void UAnimGraphNode_SkeletalControlBase::GetDefaultValue(const FString& UpdateDe
 			if (GetSchema()->IsCurrentPinDefaultValid(Pin).IsEmpty())
 			{
 				FString DefaultString = Pin->GetDefaultAsString();
-				TArray<FString> ResultString;
+				if(!DefaultString.IsEmpty())
+				{
+					TArray<FString> ResultString;
 
-				//Parse string to split its contents separated by ','
-				DefaultString.Trim();
-				DefaultString.TrimTrailing();
-				DefaultString.ParseIntoArray(&ResultString, TEXT(","), true);
+					//Parse string to split its contents separated by ','
+					DefaultString.Trim();
+					DefaultString.TrimTrailing();
+					DefaultString.ParseIntoArray(&ResultString, TEXT(","), true);
 
-				check(ResultString.Num() == 3);
+					check(ResultString.Num() == 3);
 
-				OutVec.Set(
-							FCString::Atof(*ResultString[0]),
-							FCString::Atof(*ResultString[1]),
-							FCString::Atof(*ResultString[2])
-							);
-				return;
+					OutVec.Set(
+								FCString::Atof(*ResultString[0]),
+								FCString::Atof(*ResultString[1]),
+								FCString::Atof(*ResultString[2])
+								);
+					return;
+				}
 			}
 		}
 	}

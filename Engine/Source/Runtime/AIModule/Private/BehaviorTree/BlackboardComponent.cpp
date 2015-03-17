@@ -499,13 +499,18 @@ UClass* UBlackboardComponent::GetValueAsClass(const FName& KeyName) const
 uint8 UBlackboardComponent::GetValueAsEnum(const FName& KeyName) const
 {
 	FBlackboard::FKey KeyID = GetKeyID(KeyName);
-	if (GetKeyType(KeyID) != UBlackboardKeyType_Enum::StaticClass() &&
-		GetKeyType(KeyID) != UBlackboardKeyType_NativeEnum::StaticClass())
+	TSubclassOf<UBlackboardKeyType> KeyType = GetKeyType(KeyID);
+
+	if (KeyType == UBlackboardKeyType_Enum::StaticClass())
 	{
-		return UBlackboardKeyType_Enum::InvalidValue;
+		return GetValue<UBlackboardKeyType_Enum>(KeyName);
+	}
+	else if (KeyType == UBlackboardKeyType_NativeEnum::StaticClass())
+	{
+		return GetValue<UBlackboardKeyType_NativeEnum>(KeyName);
 	}
 
-	return GetValue<UBlackboardKeyType_Enum>(KeyName);
+	return UBlackboardKeyType_Enum::InvalidValue;
 }
 
 int32 UBlackboardComponent::GetValueAsInt(const FName& KeyName) const
@@ -558,7 +563,16 @@ void UBlackboardComponent::SetValueAsClass(const FName& KeyName, UClass* ClassVa
 void UBlackboardComponent::SetValueAsEnum(const FName& KeyName, uint8 EnumValue)
 {
 	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
-	SetValue<UBlackboardKeyType_Enum>(KeyID, EnumValue);
+	TSubclassOf<UBlackboardKeyType> KeyType = GetKeyType(KeyID);
+
+	if (KeyType == UBlackboardKeyType_Enum::StaticClass())
+	{
+		SetValue<UBlackboardKeyType_Enum>(KeyID, EnumValue);
+	}
+	else if (KeyType == UBlackboardKeyType_NativeEnum::StaticClass())
+	{
+		SetValue<UBlackboardKeyType_NativeEnum>(KeyID, EnumValue);
+	}
 }
 
 void UBlackboardComponent::SetValueAsInt(const FName& KeyName, int32 IntValue)
