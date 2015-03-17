@@ -20,6 +20,7 @@ UCameraAnim::UCameraAnim(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	AnimLength = 3.0f;
+	bRelativeToInitialTransform = true;
 	BaseFOV = 90.0f;
 }
 

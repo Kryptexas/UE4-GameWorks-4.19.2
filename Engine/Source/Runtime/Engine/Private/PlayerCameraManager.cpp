@@ -278,15 +278,17 @@ void APlayerCameraManager::GetCachedPostProcessBlends(TArray<FPostProcessSetting
 
 void APlayerCameraManager::ApplyAnimToCamera(ACameraActor const* AnimatedCamActor, UCameraAnimInst const* AnimInst, FMinimalViewInfo& InOutPOV)
 {
+	if (AnimInst->CamAnim->bRelativeToInitialTransform)
+	{
+		// move animated cam actor to initial-relative position
+		FTransform const AnimatedCamToWorld = AnimatedCamActor->GetTransform();
+		FTransform const AnimatedCamToInitialCam = AnimatedCamToWorld * AnimInst->InitialCamToWorld.Inverse();
+		ACameraActor* const MutableCamActor = const_cast<ACameraActor*>(AnimatedCamActor);
+		MutableCamActor->SetActorTransform(AnimatedCamToInitialCam);
+	}
+
 	float const Scale = AnimInst->CurrentBlendWeight;
-
 	FRotationMatrix const CameraToWorld(InOutPOV.Rotation);
-
-	// move animated cam actor to initial-relative position
-	FTransform const AnimatedCamToWorld = AnimatedCamActor->GetTransform();
-	FTransform const AnimatedCamToInitialCam = AnimatedCamToWorld * AnimInst->InitialCamToWorld.Inverse();
-	ACameraActor* const MutableCamActor = const_cast<ACameraActor*>(AnimatedCamActor);
-	MutableCamActor->SetActorTransform(AnimatedCamToInitialCam);		// set it back because that's what the code below expects
 
 	if (AnimInst->PlaySpace == ECameraAnimPlaySpace::CameraLocal)
 	{
