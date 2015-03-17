@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "SlateEnums.h"
+
 #include "NavigationReply.generated.h"
 
 class SWidget;

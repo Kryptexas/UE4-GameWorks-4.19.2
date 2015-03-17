@@ -7,10 +7,7 @@
 #include "Json.h"
 #include "SlateCore.h"
 #include "SlateClasses.h"
-
-
-#define BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION PRAGMA_DISABLE_OPTIMIZATION
-#define END_SLATE_FUNCTION_BUILD_OPTIMIZATION   PRAGMA_ENABLE_OPTIMIZATION
+#include "SlateOptMacros.h"
 
 #include "IPlatformTextField.h"
 #if PLATFORM_IOS

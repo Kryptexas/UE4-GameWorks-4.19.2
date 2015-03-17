@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "SWidget.h"
+#include "SlateColor.h"
+#include "Children.h"
+
 
 /**
  * A CompoundWidget is the base from which most non-primitive widgets should be built.

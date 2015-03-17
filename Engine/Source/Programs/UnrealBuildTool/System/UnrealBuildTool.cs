@@ -72,6 +72,9 @@ namespace UnrealBuildTool
         /** This is set to true during UBT startup, after it is safe to be accessing the IsGatheringBuild and IsAssemblingBuild properties.  Never access this directly. */
         private static bool bIsSafeToCheckIfGatheringOrAssemblingBuild = false;
 
+		/** True if this run of UBT should only invalidate Makefile. */
+		static public bool bIsInvalidatingMakefilesOnly = false;
+
         /** True if we should gather module dependencies for building in this run.  If this is false, then we'll expect to be loading information from disk about
             the target's modules before we'll be able to build anything.  One or both of IsGatheringBuild or IsAssemblingBuild must be true. */
         static public bool IsGatheringBuild
@@ -948,6 +951,10 @@ namespace UnrealBuildTool
                             BuildConfiguration.bXGEExport = true;
                             BuildConfiguration.bAllowXGE = true;
                         }
+						else if (LowercaseArg == "-invalidatemakefilesonly")
+						{
+							UnrealBuildTool.bIsInvalidatingMakefilesOnly = true;
+						}
                         else if (LowercaseArg == "-gather")
                         {
                             UnrealBuildTool.bIsGatheringBuild_Unsafe = true;
@@ -1426,6 +1433,21 @@ namespace UnrealBuildTool
 					}
 				}
 
+				if (UnrealBuildTool.bIsInvalidatingMakefilesOnly)
+				{
+					Log.TraceInformation("Invalidating makefiles only in this run.");
+					if (TargetDescs != null && TargetDescs.Count == 1)
+					{
+						InvalidateMakefiles(TargetDescs[0]);
+						return ECompilationResult.Succeeded;
+					}
+					else
+					{
+						Log.TraceError("You have to provide one target name for makefile invalidation.");
+						return ECompilationResult.OtherCompilationError;
+					}
+				}
+
 				UEBuildConfiguration.bHotReloadFromIDE = UEBuildConfiguration.bAllowHotReloadFromIDE && TargetDescs.Count == 1 && !TargetDescs[0].bIsEditorRecompile && ShouldDoHotReloadFromIDE(TargetDescs[0]);
 				bool bIsHotReload = UEBuildConfiguration.bHotReloadFromIDE || ( TargetDescs.Count == 1 && TargetDescs[0].OnlyModules.Count > 0 );
 				TargetDescriptor HotReloadTargetDesc = bIsHotReload ? TargetDescs[0] : null;
@@ -1888,6 +1910,25 @@ namespace UnrealBuildTool
         }
 
 		/// <summary>
+		/// Invalidates makefiles for given target.
+		/// </summary>
+		/// <param name="Target">Target</param>
+		private static void InvalidateMakefiles(TargetDescriptor Target)
+		{
+			var MakefileNames = new string[] { "HotReloadMakefile.ubt", "Makefile.ubt" };
+			var BaseDir = GetUBTMakefileDirectoryPathForSingleTarget(Target);
+
+			foreach (var MakefileName in MakefileNames)
+			{
+				var MakefilePath = Path.Combine(BaseDir, MakefileName);
+
+				if (File.Exists(MakefilePath))
+				{
+					File.Delete(MakefilePath);
+				}
+			}
+		}
+		/// <summary>
 		/// Checks if the editor is currently running and this is a hot-reload
 		/// </summary>
 		/// <param name="ResetPlatform"></param>
@@ -2340,28 +2381,10 @@ namespace UnrealBuildTool
             {
 				var TargetDesc = TargetDescs[0];
 
-                // If there's only one target, just save the UBTMakefile in the target's build intermediate directory
-                // under a folder for that target (and platform/config combo.)
-                string PlatformIntermediatePath = BuildConfiguration.PlatformIntermediatePath;
-                if (UnrealBuildTool.HasUProjectFile())
-                {
-                    PlatformIntermediatePath = Path.Combine(UnrealBuildTool.GetUProjectPath(), BuildConfiguration.PlatformIntermediateFolder);
-                }
-
-				bool bIsHotReload = ( UEBuildConfiguration.bHotReloadFromIDE || ( TargetDesc.OnlyModules != null && TargetDesc.OnlyModules.Count > 0 ) );
+				bool bIsHotReload = (UEBuildConfiguration.bHotReloadFromIDE || (TargetDesc.OnlyModules != null && TargetDesc.OnlyModules.Count > 0));
 				string UBTMakefileName = bIsHotReload ? "HotReloadMakefile.ubt" : "Makefile.ubt";
 
-				// @todo ubtmake: If this is a compile triggered from the editor it will have passed along the game's target name, not the editor target name.
-				// At this point in Unreal Build Tool, we can't possibly know what the actual editor target name is, but we can take a guess.
-				// Even if we get it wrong, this won't have any side effects aside from not being able to share the exact same cached UBT Makefile
-				// between hot reloads invoked from the editor and hot reloads invoked from within the IDE.
-				string TargetName = TargetDesc.TargetName;
-				if( !TargetName.EndsWith( "Editor", StringComparison.InvariantCultureIgnoreCase ) && TargetDesc.bIsEditorRecompile )
-				{
-					TargetName += "Editor";
-				}
-
-                UBTMakefilePath = Path.Combine(PlatformIntermediatePath, TargetName, TargetDescs[0].Configuration.ToString(), UBTMakefileName );
+				UBTMakefilePath = Path.Combine(GetUBTMakefileDirectoryPathForSingleTarget(TargetDesc), UBTMakefileName);
             }
             else
             {
@@ -2382,6 +2405,33 @@ namespace UnrealBuildTool
             return UBTMakefilePath;
         }
 
+		/// <summary>
+		/// Gets the file path for a UBTMakefile for single target.
+		/// </summary>
+		/// <param name="Target">The target.</param>
+		/// <returns>UBTMakefile path</returns>
+		private static string GetUBTMakefileDirectoryPathForSingleTarget(TargetDescriptor Target)
+		{
+			// If there's only one target, just save the UBTMakefile in the target's build intermediate directory
+			// under a folder for that target (and platform/config combo.)
+			string PlatformIntermediatePath = BuildConfiguration.PlatformIntermediatePath;
+			if (UnrealBuildTool.HasUProjectFile())
+			{
+				PlatformIntermediatePath = Path.Combine(UnrealBuildTool.GetUProjectPath(), BuildConfiguration.PlatformIntermediateFolder);
+			}
+
+			// @todo ubtmake: If this is a compile triggered from the editor it will have passed along the game's target name, not the editor target name.
+			// At this point in Unreal Build Tool, we can't possibly know what the actual editor target name is, but we can take a guess.
+			// Even if we get it wrong, this won't have any side effects aside from not being able to share the exact same cached UBT Makefile
+			// between hot reloads invoked from the editor and hot reloads invoked from within the IDE.
+			string TargetName = Target.TargetName;
+			if (!TargetName.EndsWith("Editor", StringComparison.InvariantCultureIgnoreCase) && Target.bIsEditorRecompile)
+			{
+				TargetName += "Editor";
+			}
+
+			return Path.Combine(PlatformIntermediatePath, TargetName, Target.Configuration.ToString());
+		}
 
         /// <summary>
         /// Makes up a name for a set of targets that we can use for file or directory names

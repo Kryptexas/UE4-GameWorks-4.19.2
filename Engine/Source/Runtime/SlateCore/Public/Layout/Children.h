@@ -2,8 +2,10 @@
 
 #pragma once
 
-class SWidget;
+#include "SlotBase.h"
+#include "Margin.h"
 
+class SWidget;
 
 /**
  * FChildren is an interface that must be implemented by all child containers.

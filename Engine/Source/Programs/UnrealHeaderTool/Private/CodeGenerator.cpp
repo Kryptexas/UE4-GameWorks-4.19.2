@@ -1544,6 +1544,37 @@ void WriteMacro(FStringOutputDevice &Output, const FString& MacroName, const FSt
 	Output.Log(*Macroize(*MacroName, *MacroContent));
 }
 
+/**
+ * Writes to output device auto-includes for the given source file.
+ *
+ * @param Out Output device.
+ * @param SourceFile Source file.
+ */
+void ExportAutoIncludes(FStringOutputDevice& Out, const FUnrealSourceFile& SourceFile)
+{
+	for (const auto& Include : SourceFile.GetIncludes())
+	{
+		if (!Include.IsAutoInclude())
+		{
+			continue;
+		}
+
+		const auto* AutoIncludedSourceFile = Include.GetResolved();
+
+		if (AutoIncludedSourceFile == nullptr)
+		{
+			continue;
+		}
+
+		Out.Logf(
+			TEXT("#ifndef %s")			LINE_TERMINATOR
+			TEXT("	#include \"%s\"")	LINE_TERMINATOR
+			TEXT("#endif")				LINE_TERMINATOR
+			LINE_TERMINATOR,
+			*AutoIncludedSourceFile->GetFileDefineName(), *AutoIncludedSourceFile->GetIncludePath());
+	}
+}
+
 void FNativeClassHeaderGenerator::ExportClassesFromSourceFileInner(FUnrealSourceFile& SourceFile)
 {
 	TArray<UEnum*>				Enums;
@@ -1551,12 +1582,14 @@ void FNativeClassHeaderGenerator::ExportClassesFromSourceFileInner(FUnrealSource
 	TArray<UDelegateFunction*>	DelegateFunctions;
 
 	GeneratedHeaderText.Logf(
-		TEXT("#ifdef %s_%s_generated_h")													LINE_TERMINATOR
+		TEXT("#ifdef %s")																	LINE_TERMINATOR
 		TEXT("#error \"%s.generated.h already included, missing '#pragma once' in %s.h\"")	LINE_TERMINATOR
 		TEXT("#endif")																		LINE_TERMINATOR
-		TEXT("#define %s_%s_generated_h")													LINE_TERMINATOR
+		TEXT("#define %s")																	LINE_TERMINATOR
 		LINE_TERMINATOR,
-		*API, *SourceFile.GetStrippedFilename(), *SourceFile.GetStrippedFilename(), *SourceFile.GetStrippedFilename(), *API, *SourceFile.GetStrippedFilename());
+		*SourceFile.GetFileDefineName(), *SourceFile.GetStrippedFilename(), *SourceFile.GetStrippedFilename(), *SourceFile.GetFileDefineName());
+
+	ExportAutoIncludes(GeneratedHeaderText, SourceFile);
 
 	// get the lists of fields that belong to this class that should be exported
 	SourceFile.GetScope()->SplitTypesIntoArrays(Enums, Structs, DelegateFunctions);
@@ -2205,10 +2238,10 @@ void FNativeClassHeaderGenerator::ExportClassesFromSourceFileWrapper(FUnrealSour
 	ConvertToBuildIncludePath(Package, NewFileName);
 
 	auto IncludeStr = FString::Printf(
-		TEXT("#ifndef %s_%s_generated_h")													LINE_TERMINATOR
-		TEXT("    #include \"%s\"")															LINE_TERMINATOR
-		TEXT("#endif")																		LINE_TERMINATOR,
-		*API, *SourceFile.GetStrippedFilename(), *NewFileName);
+		TEXT("#ifndef %s")			LINE_TERMINATOR
+		TEXT("    #include \"%s\"")	LINE_TERMINATOR
+		TEXT("#endif")				LINE_TERMINATOR,
+		*SourceFile.GetFileDefineName(), *NewFileName);
 
 	// Keep track of all of the UObject headers for this module, in the same order that we digest them in
 	// @todo uht: We're wrapping these includes in checks for header guards, ONLY because most existing UObject headers are missing '#pragma once'

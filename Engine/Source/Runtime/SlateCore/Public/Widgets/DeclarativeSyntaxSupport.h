@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "SNullWidget.h"
+
+class ISlateMetaData;
+class IToolTip;
 
 /**
  * Slate widgets are constructed through SNew and SAssignNew.

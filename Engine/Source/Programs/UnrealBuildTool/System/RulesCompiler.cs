@@ -320,6 +320,46 @@ namespace UnrealBuildTool
 
 		/** Redistribution override flag for this module. */
 		public bool? IsRedistributableOverride { get; set; }
+
+		/**
+		 * Reads additional dependencies array for project module from project file and fills PrivateDependencyModuleNames. 
+		 *
+		 * @param ProjectFile A path to the .uproject file.
+		 * @param ModuleName Name of the module.
+		 */
+		public void ReadAdditionalDependencies(string ProjectFile, string ModuleName)
+		{
+			// Create a case-insensitive dictionary of the contents
+			Dictionary<string, object> Descriptor = fastJSON.JSON.Instance.ToObject<Dictionary<string, object>>(File.ReadAllText(ProjectFile));
+			Descriptor = new Dictionary<string,object>(Descriptor, StringComparer.InvariantCultureIgnoreCase);
+
+			// Get the list of plugins
+			object ModulesObject;
+			if (Descriptor.TryGetValue("Modules", out ModulesObject))
+			{
+				foreach(var ModuleObject in (ModulesObject as object[]).Cast<Dictionary<string, object>>())
+				{
+					object NameObject;
+					object AdditionalDependenciesObject;
+
+					if(!ModuleObject.TryGetValue("Name", out NameObject)
+						|| !(NameObject as string).Equals(ModuleName)
+						|| !ModuleObject.TryGetValue("AdditionalDependencies", out AdditionalDependenciesObject))
+					{
+						continue;
+					}
+
+					foreach (var AdditionalDependency in (AdditionalDependenciesObject as object[]).Cast<string>())
+					{
+						if(!PrivateDependencyModuleNames.Contains(AdditionalDependency))
+						{
+							PrivateDependencyModuleNames.Add(AdditionalDependency);
+						}
+					}
+					break;
+				}
+			}
+		}
 	}
 
 	/// <summary>
@@ -1382,6 +1422,19 @@ namespace UnrealBuildTool
 			catch( Exception Ex )
 			{
 				throw new BuildException( Ex, "Unable to instantiate instance of '{0}' object type from compiled assembly '{1}'.  Unreal Build Tool creates an instance of your module's 'Rules' object in order to find out about your module's requirements.  The CLR exception details may provide more information:  {2}", ModuleTypeName, AssemblyFileName, Ex.ToString() );
+			}
+
+			// Have to do absolute here as this could be a project that is under the root
+			var FullUProjectPath = string.IsNullOrWhiteSpace(UnrealBuildTool.GetUProjectPath())
+				? ""
+				: Path.GetFullPath(UnrealBuildTool.GetUProjectPath());
+			var bProjectModule = string.IsNullOrWhiteSpace(FullUProjectPath)
+				? false
+				: Utils.IsFileUnderDirectory(ModuleFileName, FullUProjectPath);
+
+			if (bProjectModule)
+			{
+				RulesObject.ReadAdditionalDependencies(UnrealBuildTool.GetUProjectFile(), ModuleName);
 			}
 
 			// Validate rules object

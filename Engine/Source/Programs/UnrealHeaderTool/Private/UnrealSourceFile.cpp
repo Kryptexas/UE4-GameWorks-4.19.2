@@ -108,3 +108,13 @@ bool FUnrealSourceFile::HasChanged() const
 {
 	return bHasChanged;
 }
+
+FString FUnrealSourceFile::GetAPI() const
+{
+	return FPackageName::GetShortName(Package).ToUpper();
+}
+
+FString FUnrealSourceFile::GetFileDefineName() const
+{
+	return FString::Printf(TEXT("%s_%s_generated_h"), *GetAPI(), *GetStrippedFilename());
+}

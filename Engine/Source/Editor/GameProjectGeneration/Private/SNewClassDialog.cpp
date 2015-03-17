@@ -883,12 +883,12 @@ EVisibility SNewClassDialog::GetSourceHyperlinkVisibility() const
 		return EVisibility::Collapsed;
 	}
 
-	return (GetClassHeaderPath(ParentClassInfo.BaseClass).Len() > 0 ? EVisibility::Visible : EVisibility::Hidden);
+	return (ParentClassInfo.GetBaseClassHeaderFilename().Len() > 0 ? EVisibility::Visible : EVisibility::Hidden);
 }
 
 FText SNewClassDialog::GetSelectedParentClassFilename() const
 {
-	const FString ClassHeaderPath = GetClassHeaderPath(ParentClassInfo.BaseClass);
+	const FString ClassHeaderPath = ParentClassInfo.GetBaseClassHeaderFilename();
 	if (ClassHeaderPath.Len() > 0)
 	{
 		return FText::FromString(FPaths::GetCleanFilename(*ClassHeaderPath));
@@ -908,7 +908,7 @@ FString SNewClassDialog::GetSelectedParentDocLink() const
 
 void SNewClassDialog::OnEditCodeClicked()
 {
-	const FString ClassHeaderPath = GetClassHeaderPath(ParentClassInfo.BaseClass);
+	const FString ClassHeaderPath = ParentClassInfo.GetBaseClassHeaderFilename();
 	if (ClassHeaderPath.Len() > 0)
 	{
 		const FString AbsoluteHeaderPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*ClassHeaderPath);

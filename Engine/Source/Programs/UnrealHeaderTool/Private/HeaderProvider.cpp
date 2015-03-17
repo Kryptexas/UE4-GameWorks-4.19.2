@@ -5,8 +5,8 @@
 #include "UnrealSourceFile.h"
 #include "ClassMaps.h"
 
-FHeaderProvider::FHeaderProvider(EHeaderProviderSourceType Type, const FString& Id)
-	: Type(Type), Id(Id), Cache(nullptr)
+FHeaderProvider::FHeaderProvider(EHeaderProviderSourceType Type, const FString& Id, bool bAutoInclude/* = false*/)
+	: Type(Type), Id(Id), Cache(nullptr), bAutoInclude(bAutoInclude)
 {
 
 }
@@ -84,6 +84,12 @@ const FString& FHeaderProvider::GetId() const
 EHeaderProviderSourceType FHeaderProvider::GetType() const
 {
 	return Type;
+}
+
+const FUnrealSourceFile* FHeaderProvider::GetResolved() const
+{
+	check(Type == EHeaderProviderSourceType::Resolved);
+	return Cache;
 }
 
 bool operator==(const FHeaderProvider& A, const FHeaderProvider& B)

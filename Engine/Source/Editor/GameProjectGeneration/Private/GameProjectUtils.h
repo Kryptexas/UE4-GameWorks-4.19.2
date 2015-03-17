@@ -29,6 +29,8 @@ struct FProjectInformation
 	EGraphicsPreset::Type DefaultGraphicsPerformance;
 };
 
+DECLARE_DELEGATE_RetVal_OneParam(bool, FProjectDescriptorModifier, FProjectDescriptor&);
+
 class GameProjectUtils
 {
 public:
@@ -310,6 +312,18 @@ private:
 	static void GetProjectCodeFilenames(TArray<FString>& OutProjectCodeFilenames);
 
 	/**
+	 * Updates the projects and modifies FProjectDescriptor accordingly to given modifier.
+	 *
+	 * @param Modifier	Callback delegate that will modify the project descriptor accordingly.
+	 */
+	static void UpdateProject(const FProjectDescriptorModifier& Modifier);
+
+	/**
+	 * Updates the project file.
+	 */
+	static void UpdateProject();
+
+	/**
 	 * Updates the projects, and optionally the modules names
 	 *
 	 * @param StartupModuleNames	if specified, replaces the existing module names with this version
@@ -331,6 +345,29 @@ private:
 	 */
 	static bool UpdateGameProjectFile(const FString& ProjectFilename, const FString& EngineIdentifier, const TArray<FString>* StartupModuleNames, FText& OutFailReason);
 
+	/**
+	 * Updates the loaded game project file to the current version and modifies FProjectDescriptor accordingly to given modifier.
+	 *
+	 * @param ProjectFilename		The name of the project (used to checkout from source control)
+	 * @param EngineIdentifier		The identifier for the engine to open the project with
+	 * @param Modifier				Callback delegate that will modify the project descriptor accordingly.
+	 * @param OutFailReason			Out, if unsuccessful this is the reason why
+
+	 * @return true, if successful
+	 */
+	static bool UpdateGameProjectFile(const FString& ProjectFilename, const FString& EngineIdentifier, const FProjectDescriptorModifier& Modifier, FText& OutFailReason);
+
+	/**
+	 * Updates the loaded game project file to the current version.
+	 *
+	 * @param ProjectFilename		The name of the project (used to checkout from source control)
+	 * @param EngineIdentifier		The identifier for the engine to open the project with
+	 * @param OutFailReason			Out, if unsuccessful this is the reason why
+
+	 * @return true, if successful
+	 */
+	static bool UpdateGameProjectFile(const FString& ProjectFilename, const FString& EngineIdentifier, FText& OutFailReason);
+
 	/** Checks the specified game project file out from source control */
 	static bool CheckoutGameProjectFile(const FString& ProjectFilename, FText& OutFailReason);
 
@@ -347,7 +384,56 @@ private:
 	/** Given a source file name, find its location within the project */
 	static bool FindSourceFileInProject(const FString& InFilename, const FString& InSearchPath, FString& OutPath);
 
+	/**
+	 * Gets required additional dependencies for fresh project for given class info.
+	 *
+	 * @param ClassInfo Given class info.
+	 *
+	 * @returns Array of required dependencies.
+	 */
+	static TArray<FString> GetRequiredAdditionalDependencies(const FNewClassInfo& ClassInfo);
+
+	/**
+	 * Updates startup module names in project descriptor.
+	 *
+	 * @param Descriptor Descriptor to update.
+	 * @param StartupModuleNames Modules to fill.
+	 *
+	 * @returns True if descriptor has been modified. False otherwise.
+	 */
+	static bool UpdateStartupModuleNames(FProjectDescriptor& Descriptor, const TArray<FString>* StartupModuleNames);
+
+	/**
+	 * Updates additional dependencies in project descriptor.
+	 *
+	 * @param Descriptor Descriptor to update.
+	 * @param RequiredDependencies Required dependencies.
+	 * @param ModuleName Module name for which those dependencies are required.
+	 *
+	 * @returns True if descriptor has been modified. False otherwise.
+	 */
+	static bool UpdateRequiredAdditionalDependencies(FProjectDescriptor& Descriptor, TArray<FString>& RequiredDependencies, const FString& ModuleName);
+
 private:
+	/**
+	 * Updates the projects and modifies FProjectDescriptor accordingly to given modifier.
+	 *
+	 * @param Modifier	Callback delegate that will modify the project descriptor accordingly.
+	 */
+	static void UpdateProject_Impl(const FProjectDescriptorModifier* Modifier);
+
+	/**
+	 * Updates the loaded game project file to the current version and modifies FProjectDescriptor accordingly to given modifier.
+	 *
+	 * @param ProjectFilename		The name of the project (used to checkout from source control)
+	 * @param EngineIdentifier		The identifier for the engine to open the project with
+	 * @param Modifier				Callback delegate that will modify the project descriptor accordingly.
+	 * @param OutFailReason			Out, if unsuccessful this is the reason why
+
+	 * @return true, if successful
+	 */
+	static bool UpdateGameProjectFile_Impl(const FString& ProjectFilename, const FString& EngineIdentifier, const FProjectDescriptorModifier* Modifier, FText& OutFailReason);
+
 	static TWeakPtr<SNotificationItem> UpdateGameProjectNotification;
 	static TWeakPtr<SNotificationItem> WarningProjectNameNotification;
 };

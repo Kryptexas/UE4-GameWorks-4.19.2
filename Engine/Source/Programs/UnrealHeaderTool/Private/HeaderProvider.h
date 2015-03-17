@@ -17,9 +17,10 @@ class FHeaderProvider
 {
 	friend bool operator==(const FHeaderProvider& A, const FHeaderProvider& B);
 public:
-	FHeaderProvider(EHeaderProviderSourceType Type, const FString& Id);
+	FHeaderProvider(EHeaderProviderSourceType Type, const FString& Id, bool bAutoInclude = false);
 
 	FUnrealSourceFile* Resolve();
+	const FUnrealSourceFile* GetResolved() const;
 
 	FString ToString() const;
 
@@ -27,10 +28,15 @@ public:
 
 	EHeaderProviderSourceType GetType() const;
 
+	bool IsAutoInclude() const { return bAutoInclude; }
+
 private:
 	EHeaderProviderSourceType Type;
 	FString Id;
 	FUnrealSourceFile* Cache;
+
+	// Tells if this include should be auto included in generated.h file.
+	bool bAutoInclude;
 };
 
 bool operator==(const FHeaderProvider& A, const FHeaderProvider& B);

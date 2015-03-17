@@ -84,6 +84,9 @@ struct FNewClassInfo
 	/** Get the path needed to include this class into another file */
 	bool GetIncludePath(FString& OutIncludePath) const;
 
+	/** Gets header filename of the base class. */
+	FString GetBaseClassHeaderFilename() const;
+
 	/** Given a class name, generate the header file (.h) that should be used for this class */
 	FString GetHeaderFilename(const FString& ClassName) const;
 

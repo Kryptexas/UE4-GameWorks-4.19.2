@@ -479,7 +479,7 @@ bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FS
 	return bRes;
 }
 
-bool FDesktopPlatformBase::GatherProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn)
+bool FDesktopPlatformBase::InvalidateMakefiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn)
 {
 	// Composes the target, platform, and config (eg, "QAGame Win64 Development")
 	FString Arguments = FString::Printf(TEXT("%s %s %s"), FApp::GetGameName(), FPlatformMisc::GetUBTPlatform(), FModuleManager::GetUBTConfiguration());
@@ -498,10 +498,8 @@ bool FDesktopPlatformBase::GatherProjectFiles(const FString& RootDir, const FStr
 		}
 	}
 	
-	// -gatheronly tells UBT to update its UBT makefiles without building
-	Arguments += TEXT(" -gatheronly");
-
-	Arguments += TEXT(" -progress");
+	// -invalidatemakefilesonly tells UBT to invalidate its UBT makefiles without building
+	Arguments += TEXT(" -invalidatemakefilesonly");
 
 	if (FRocketSupport::IsRocket())
 	{
@@ -510,7 +508,7 @@ bool FDesktopPlatformBase::GatherProjectFiles(const FString& RootDir, const FStr
 
 	// Compile UnrealBuildTool if it doesn't exist. This can happen if we're just copying source from somewhere.
 	bool bRes = true;
-	Warn->BeginSlowTask(LOCTEXT("GatheringProjectFiles", "Gathering project files..."), true, true);
+	Warn->BeginSlowTask(LOCTEXT("InvalidateMakefiles", "Invalidating makefiles..."), true, true);
 	if(!FPaths::FileExists(GetUnrealBuildToolExecutableFilename(RootDir)))
 	{
 		Warn->StatusUpdate(0, 1, LOCTEXT("BuildingUBT", "Building UnrealBuildTool..."));
@@ -518,8 +516,8 @@ bool FDesktopPlatformBase::GatherProjectFiles(const FString& RootDir, const FStr
 	}
 	if(bRes)
 	{
-		Warn->StatusUpdate(0, 1, LOCTEXT("GatheringProjectFiles", "Gathering project files..."));
-		bRes = RunUnrealBuildTool(LOCTEXT("GatheringProjectFiles", "Gathering project files..."), RootDir, Arguments, Warn);
+		Warn->StatusUpdate(0, 1, LOCTEXT("InvalidateMakefiles", "Invalidating makefiles..."));
+		bRes = RunUnrealBuildTool(LOCTEXT("InvalidateMakefiles", "Invalidating makefiles..."), RootDir, Arguments, Warn);
 	}
 	Warn->EndSlowTask();
 	return bRes;

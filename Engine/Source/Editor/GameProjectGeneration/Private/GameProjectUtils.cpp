@@ -207,10 +207,46 @@ bool FNewClassInfo::GetIncludePath(FString& OutIncludePath) const
 		}
 		break;
 
+	case EClassType::SlateWidget:
+		OutIncludePath = "Widgets/SCompoundWidget.h";
+		return true;
+
+	case EClassType::SlateWidgetStyle:
+		OutIncludePath = "Styling/SlateWidgetStyle.h";
+		return true;
+
 	default:
 		break;
 	}
 	return false;
+}
+
+FString FNewClassInfo::GetBaseClassHeaderFilename() const
+{
+	FString IncludePath;
+
+	switch (ClassType)
+	{
+	case EClassType::UObject:
+		if (BaseClass)
+		{
+			FString ClassHeaderPath;
+			if (FSourceCodeNavigation::FindClassHeaderPath(BaseClass, ClassHeaderPath) && IFileManager::Get().FileSize(*ClassHeaderPath) != INDEX_NONE)
+			{
+				return ClassHeaderPath;
+			}
+		}
+		break;
+
+	case EClassType::SlateWidget:
+	case EClassType::SlateWidgetStyle:
+		GetIncludePath(IncludePath);
+		return FPaths::EngineDir() / TEXT("Source") / TEXT("Runtime") / TEXT("SlateCore") / TEXT("Public") / IncludePath;
+	default:
+		return FString();
+	}
+
+	return FString();
 }
 
 FString FNewClassInfo::GetHeaderFilename(const FString& ClassName) const
@@ -688,9 +724,50 @@ void GameProjectUtils::OnWarningReasonOk()
 	}
 }
 
+bool GameProjectUtils::UpdateStartupModuleNames(FProjectDescriptor& Descriptor, const TArray<FString>* StartupModuleNames)
+{
+	if (StartupModuleNames == nullptr)
+	{
+		return false;
+	}
+
+	// Replace the modules names, if specified
+	Descriptor.Modules.Empty();
+	for (int32 Idx = 0; Idx < StartupModuleNames->Num(); Idx++)
+	{
+		Descriptor.Modules.Add(FModuleDescriptor(*(*StartupModuleNames)[Idx]));
+	}
+
+	return true;
+}
+
+bool GameProjectUtils::UpdateRequiredAdditionalDependencies(FProjectDescriptor& Descriptor, TArray<FString>& RequiredDependencies, const FString& ModuleName)
+{
+	bool bNeedsUpdate = false;
+
+	for (auto& ModuleDesc : Descriptor.Modules)
+	{
+		if (ModuleDesc.Name != *ModuleName)
+		{
+			continue;
+		}
+
+		for (const auto& RequiredDep : RequiredDependencies)
+		{
+			if (!ModuleDesc.AdditionalDependencies.Contains(RequiredDep))
+			{
+				ModuleDesc.AdditionalDependencies.Add(RequiredDep);
+				bNeedsUpdate = true;
+			}
+		}
+	}
+
+	return bNeedsUpdate;
+}
+
 bool GameProjectUtils::UpdateGameProject(const FString& ProjectFile, const FString& EngineIdentifier, FText& OutFailReason)
 {
-	return UpdateGameProjectFile(ProjectFile, EngineIdentifier, NULL, OutFailReason);
+	return UpdateGameProjectFile(ProjectFile, EngineIdentifier, OutFailReason);
 }
 
 void GameProjectUtils::OpenAddToProjectDialog(const FAddToProjectConfig& Config, EClassDomain InDomain)
@@ -1702,7 +1779,12 @@ bool GameProjectUtils::GenerateBasicSourceCode(TArray<FString>& OutCreatedFiles,
 	TArray<FString> StartupModuleNames;
 	if (GameProjectUtils::GenerateBasicSourceCode(FPaths::GameSourceDir().LeftChop(1), FApp::GetGameName(), FPaths::GameDir(), StartupModuleNames, OutCreatedFiles, OutFailReason))
 	{
-		GameProjectUtils::UpdateProject(&StartupModuleNames);
+		GameProjectUtils::UpdateProject(
+			FProjectDescriptorModifier::CreateLambda(
+			[&StartupModuleNames](FProjectDescriptor& Descriptor)
+			{
+				return UpdateStartupModuleNames(Descriptor, &StartupModuleNames);
+			}));
 		return true;
 	}
 
@@ -2690,17 +2772,27 @@ bool GameProjectUtils::GenerateGameModuleHeaderFile(const FString& NewBuildFileN
 
 void GameProjectUtils::OnUpdateProjectConfirm()
 {
-	UpdateProject(NULL);
+	UpdateProject();
 }
 
-void GameProjectUtils::UpdateProject(const TArray<FString>* StartupModuleNames)
+void GameProjectUtils::UpdateProject(const FProjectDescriptorModifier& Modifier)
+{
+	UpdateProject_Impl(&Modifier);
+}
+
+void GameProjectUtils::UpdateProject()
+{
+	UpdateProject_Impl(nullptr);
+}
+
+void GameProjectUtils::UpdateProject_Impl(const FProjectDescriptorModifier* Modifier)
 {
 	const FString& ProjectFilename = FPaths::GetProjectFilePath();
 	const FString& ShortFilename = FPaths::GetCleanFilename(ProjectFilename);
 	FText FailReason;
 	FText UpdateMessage;
 	SNotificationItem::ECompletionState NewCompletionState;
-	if ( UpdateGameProjectFile(ProjectFilename, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), StartupModuleNames, FailReason) )
+	if (UpdateGameProjectFile_Impl(ProjectFilename, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), Modifier, FailReason))
 	{
 		// The project was updated successfully.
 		FFormatNamedArguments Args;
@@ -2725,6 +2817,21 @@ void GameProjectUtils::UpdateProject(const TArray<FString>* StartupModuleNames)
 		UpdateGameProjectNotification.Pin()->ExpireAndFadeout();
 		UpdateGameProjectNotification.Reset();
 	}
+}
+
+void GameProjectUtils::UpdateProject(const TArray<FString>* StartupModuleNames)
+{
+	UpdateProject(
+		FProjectDescriptorModifier::CreateLambda(
+			[StartupModuleNames](FProjectDescriptor& Desc)
+			{
+				if (StartupModuleNames != nullptr)
+				{
+					return UpdateStartupModuleNames(Desc, StartupModuleNames);
+				}
+
+				return false;
+			}));
 }
 
 void GameProjectUtils::OnUpdateProjectCancel()
@@ -2761,7 +2868,17 @@ void GameProjectUtils::TryMakeProjectFileWriteable(const FString& ProjectFile)
 	}
 }
 
-bool GameProjectUtils::UpdateGameProjectFile(const FString& ProjectFile, const FString& EngineIdentifier, const TArray<FString>* StartupModuleNames, FText& OutFailReason)
+bool GameProjectUtils::UpdateGameProjectFile(const FString& ProjectFile, const FString& EngineIdentifier, const FProjectDescriptorModifier& Modifier, FText& OutFailReason)
+{
+	return UpdateGameProjectFile_Impl(ProjectFile, EngineIdentifier, &Modifier, OutFailReason);
+}
+
+bool GameProjectUtils::UpdateGameProjectFile(const FString& ProjectFile, const FString& EngineIdentifier, FText& OutFailReason)
+{
+	return UpdateGameProjectFile_Impl(ProjectFile, EngineIdentifier, nullptr, OutFailReason);
+}
+
+bool GameProjectUtils::UpdateGameProjectFile_Impl(const FString& ProjectFile, const FString& EngineIdentifier, const FProjectDescriptorModifier* Modifier, FText& OutFailReason)
 {
 	// Make sure we can write to the project file
 	TryMakeProjectFileWriteable(ProjectFile);
@@ -2770,20 +2887,32 @@ bool GameProjectUtils::UpdateGameProjectFile(const FString& ProjectFile, const F
 	FProjectDescriptor Descriptor;
 	if(Descriptor.Load(ProjectFile, OutFailReason))
 	{
-		// Replace the modules names, if specified
-		if(StartupModuleNames != NULL)
+		if (Modifier && Modifier->IsBound() && !Modifier->Execute(Descriptor))
 		{
-			Descriptor.Modules.Empty();
-			for(int32 Idx = 0; Idx < StartupModuleNames->Num(); Idx++)
-			{
-				Descriptor.Modules.Add(FModuleDescriptor(*(*StartupModuleNames)[Idx]));
-			}
+			// If modifier returns false it means that we want to drop changes.
+			return true;
 		}
 
 		// Update file on disk
 		return Descriptor.Save(ProjectFile, OutFailReason) && FDesktopPlatformModule::Get()->SetEngineIdentifierForProject(ProjectFile, EngineIdentifier);
 	}
 	return false;
+}
+
+bool GameProjectUtils::UpdateGameProjectFile(const FString& ProjectFilename, const FString& EngineIdentifier, const TArray<FString>* StartupModuleNames, FText& OutFailReason)
+{
+	return UpdateGameProjectFile(ProjectFilename, EngineIdentifier,
+		FProjectDescriptorModifier::CreateLambda(
+			[StartupModuleNames](FProjectDescriptor& Desc)
+			{
+				if (StartupModuleNames != nullptr)
+				{
+					return UpdateStartupModuleNames(Desc, StartupModuleNames);
+				}
+
+				return false;
+			}
+		), OutFailReason);
 }
 
 bool GameProjectUtils::CheckoutGameProjectFile(const FString& ProjectFilename, FText& OutFailReason)
@@ -2869,6 +2998,31 @@ bool GameProjectUtils::ProjectHasCodeFiles()
 	return GameProjectUtils::GetProjectCodeFileCount() > 0;
 }
 
+TArray<FString> GameProjectUtils::GetRequiredAdditionalDependencies(const FNewClassInfo& ClassInfo)
+{
+	TArray<FString> Out;
+
+	switch (ClassInfo.ClassType)
+	{
+	case FNewClassInfo::EClassType::SlateWidget:
+	case FNewClassInfo::EClassType::SlateWidgetStyle:
+		Out.Reserve(2);
+		Out.Add(TEXT("Slate"));
+		Out.Add(TEXT("SlateCore"));
+		break;
+
+	case FNewClassInfo::EClassType::UObject:
+		auto ClassPackageName = ClassInfo.BaseClass->GetOutermost()->GetFName().ToString();
+
+		checkf(ClassPackageName.StartsWith(TEXT("/Script/")), TEXT("Class outermost should start with /Script/"));
+
+		Out.Add(ClassPackageName.Mid(8)); // Skip the /Script/ prefix.
+		break;
+	}
+
+	return Out;
+}
+
 bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, const FString& NewClassPath, const FModuleContextInfo& ModuleInfo, const FNewClassInfo ParentClassInfo, const TSet<FString>& DisallowedHeaderNames, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason)
 {
 	if ( !ParentClassInfo.IsSet() )
@@ -2902,9 +3056,17 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 	SlowTask.MakeDialog();
 
 	SlowTask.EnterProgressFrame();
+
+	auto RequiredDependencies = GetRequiredAdditionalDependencies(ParentClassInfo);
+	RequiredDependencies.Remove(ModuleInfo.ModuleName);
+
+	// Update project file if needed.
+	auto bUpdateProjectModules = false;
 	
 	// If the project does not already contain code, add the primary game module
 	TArray<FString> CreatedFiles;
+	TArray<FString> StartupModuleNames;
+
 	const bool bProjectHadCodeFiles = ProjectHasCodeFiles();
 	if (!bProjectHadCodeFiles)
 	{
@@ -2914,16 +3076,30 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 		// Assuming the game name is the same as the primary game module name
 		const FString GameModuleName = FApp::GetGameName();
 
-		TArray<FString> StartupModuleNames;
 		if ( GenerateBasicSourceCode(SourceDir, GameModuleName, FPaths::GameDir(), StartupModuleNames, CreatedFiles, OutFailReason) )
 		{
-			UpdateProject(&StartupModuleNames);
+			bUpdateProjectModules = true;
 		}
 		else
 		{
 			DeleteCreatedFiles(SourceDir, CreatedFiles);
 			return false;
 		}
+	}
+
+	if (RequiredDependencies.Num() > 0 || bUpdateProjectModules)
+	{
+		UpdateProject(
+			FProjectDescriptorModifier::CreateLambda(
+			[&StartupModuleNames, &RequiredDependencies, &ModuleInfo, bUpdateProjectModules](FProjectDescriptor& Descriptor)
+			{
+				bool bNeedsUpdate = false;
+
+				bNeedsUpdate |= UpdateStartupModuleNames(Descriptor, bUpdateProjectModules ? &StartupModuleNames : nullptr);
+				bNeedsUpdate |= UpdateRequiredAdditionalDependencies(Descriptor, RequiredDependencies, ModuleInfo.ModuleName);
+
+				return bNeedsUpdate;
+			}));
 	}
 
 	SlowTask.EnterProgressFrame();
@@ -2975,7 +3151,7 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 	if ( bProjectHadCodeFiles && FSourceCodeNavigation::AddSourceFiles(CreatedFilesForExternalAppRead) )
 	{
 		// We successfully added the new files to the solution, but we still need to run UBT with -gather to update any UBT makefiles
-		if ( FDesktopPlatformModule::Get()->GatherProjectFiles(FPaths::RootDir(), FPaths::GetProjectFilePath(), GWarn) )
+		if ( FDesktopPlatformModule::Get()->InvalidateMakefiles(FPaths::RootDir(), FPaths::GetProjectFilePath(), GWarn) )
 		{
 			// We managed the gather, so we can skip running the full generate
 			bGenerateProjectFiles = false;

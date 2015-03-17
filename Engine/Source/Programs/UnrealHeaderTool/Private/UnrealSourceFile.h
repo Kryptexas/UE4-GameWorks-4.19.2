@@ -83,6 +83,16 @@ public:
 	FString GetFileId() const;
 
 	/**
+	 * Gets source file API.
+	 */
+	FString GetAPI() const;
+
+	/**
+	 * Gets define name of this source file.
+	 */
+	FString GetFileDefineName() const;
+
+	/**
 	 * Gets file-wise generated body macro name.
 	 *
 	 * @param LineNumber Number at which generated body macro is.
@@ -162,6 +172,14 @@ public:
 	 * Gets includes.
 	 */
 	TArray<FHeaderProvider>& GetIncludes()
+	{
+		return Includes;
+	}
+
+	/**
+	 * Gets includes. Const version.
+	 */
+	const TArray<FHeaderProvider>& GetIncludes() const
 	{
 		return Includes;
 	}

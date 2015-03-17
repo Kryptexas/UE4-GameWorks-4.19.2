@@ -2,7 +2,38 @@
 
 #pragma once
 
+#include "Visibility.h"
 #include "SlateRenderTransform.h"
+#include "NavigationReply.h"
+#include "SlateColor.h"
+#include "WidgetActiveTimerDelegate.h"
+#include "DeclarativeSyntaxSupport.h"
+
+class ISlateMetaData;
+class FActiveTimerHandle;
+class FPaintArgs;
+class FSlateRect;
+class FSlateWindowElementList;
+class FWidgetStyle;
+class FWeakWidgetPath;
+class FWidgetPath;
+class FDragDropEvent;
+class FSlotBase;
+class FArrangedChildren;
+class FChildren;
+class FArrangedWidget;
+struct FSlateBrush;
+struct FGeometry;
+struct FFocusEvent;
+struct FKeyboardFocusEvent;
+struct FCharacterEvent;
+struct FKeyEvent;
+struct FControllerEvent;
+struct FAnalogInputEvent;
+struct FPointerEvent;
+struct FMotionEvent;
+struct FVirtualPointerPosition;
+struct FNavigationEvent;
 
 enum class EPopupMethod : uint8;
 
@@ -435,7 +466,7 @@ public:
 	 */
 	virtual TOptional<EPopupMethod> OnQueryPopupMethod() const;
 
-	virtual TSharedPtr<struct FVirtualPointerPosition> TranslateMouseCoordinateFor3DChild(const TSharedRef<SWidget>& ChildWidget, const FGeometry& MyGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate) const;
+	virtual TSharedPtr<FVirtualPointerPosition> TranslateMouseCoordinateFor3DChild(const TSharedRef<SWidget>& ChildWidget, const FGeometry& MyGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate) const;
 	
 	/**
 	 * All the pointer (mouse, touch, stylus, etc.) events from this frame have been routed.
