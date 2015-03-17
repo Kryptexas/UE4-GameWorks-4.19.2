@@ -132,9 +132,6 @@ public:
 	/** Creates code project files for a new game project. On failure, OutFailReason will be populated. */
 	static bool GenerateCodeProjectFiles(const FString& ProjectFilename, FText& OutFailReason);
 
-	/** Generates a set of resource files for a game module */
-	static bool GenerateGameResourceFiles(const FString& NewResourceFolderName, const FString& GameName, const FString& GameRoot, bool bShouldGenerateCode, TArray<FString>& OutCreatedFiles, FText& OutFailReason);
-
 	/** Returns true if there are starter content files available for instancing into new projects. */
 	static bool IsStarterContentAvailableForNewProjects();
 
