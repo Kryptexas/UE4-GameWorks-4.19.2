@@ -23,6 +23,8 @@
 #include "GameFramework/GameMode.h"
 #include "GameFramework/PlayerState.h"
 
+#include "GameDelegates.h"
+
 DEFINE_LOG_CATEGORY(LogPlayerManagement);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -1027,6 +1029,9 @@ bool ULocalPlayer::HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		ViewportClient->CloseRequested(ViewportClient->Viewport);
 	}
+
+	FGameDelegates::Get().GetExitCommandDelegate().Broadcast();
+
 	return true;
 }
 

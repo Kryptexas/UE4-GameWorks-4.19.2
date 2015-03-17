@@ -48,6 +48,9 @@ extern ENGINE_API class FLightMap2D* GDebugSelectedLightmap;
 /** Delegate called at the end of the frame when a screenshot is captured */
 FOnScreenshotCaptured UGameViewportClient::ScreenshotCapturedDelegate;
 
+/** Delegate called when the game viewport is created. */
+FSimpleMulticastDelegate UGameViewportClient::CreatedDelegate;
+
 /** A list of all the stat names which are enabled for this viewport (static so they persist between runs) */
 TArray<FString> UGameViewportClient::EnabledStats;
 
@@ -221,6 +224,7 @@ TSharedPtr<class SViewport> UGameViewportClient::GetGameViewportWidget()
 
 void UGameViewportClient::Tick( float DeltaTime )
 {
+	TickDelegate.Broadcast(DeltaTime);
 }
 
 FString UGameViewportClient::ConsoleCommand( const FString& Command)
@@ -768,6 +772,8 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	//Valid SceneCanvas is required.  Make this explicit.
 	check(SceneCanvas);
 
+	BeginDrawDelegate.Broadcast();
+
 	FCanvas* DebugCanvas = InViewport->GetDebugCanvas();
 
 	// Create a temporary canvas if there isn't already one.
@@ -1160,6 +1166,9 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		{
 			DebugCanvas->Flush_GameThread();
 		}
+
+		DrawnDelegate.Broadcast();
+
 		// Allow the viewport to render additional stuff
 		PostRender(DebugCanvasObject);
 		
@@ -1241,6 +1250,8 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	{
 		DrawStatsHUD( GetWorld(), InViewport, DebugCanvas, DebugCanvasObject, DebugProperties, PlayerCameraLocation, PlayerCameraRotation );
 	}
+
+	EndDrawDelegate.Broadcast();
 }
 
 void UGameViewportClient::ProcessScreenShots(FViewport* InViewport)
@@ -1330,7 +1341,7 @@ void UGameViewportClient::Precache()
 			for(TObjectIterator<USoundWave> It;It;++It)
 			{
 				USoundWave* SoundWave = *It;
-				AudioDevice->Precache(SoundWave);
+				AudioDevice->Precache( SoundWave );
 			}
 			UE_LOG(LogPlayerManagement, Log, TEXT("Precaching sounds completed..."));
 		}
@@ -1903,6 +1914,8 @@ void UGameViewportClient::NotifyPlayerAdded( int32 PlayerIndex, ULocalPlayer* Ad
 	{
 		GameLayerManager->NotifyPlayerAdded(PlayerIndex, AddedPlayer);
 	}
+
+	PlayerAddedDelegate.Broadcast( PlayerIndex );
 }
 
 void UGameViewportClient::NotifyPlayerRemoved( int32 PlayerIndex, ULocalPlayer* RemovedPlayer )
@@ -1914,6 +1927,8 @@ void UGameViewportClient::NotifyPlayerRemoved( int32 PlayerIndex, ULocalPlayer* 
 	{
 		GameLayerManager->NotifyPlayerRemoved(PlayerIndex, RemovedPlayer);
 	}
+
+	PlayerRemovedDelegate.Broadcast( PlayerIndex );
 }
 
 void UGameViewportClient::AddViewportWidgetContent( TSharedRef<SWidget> ViewportContent, const int32 ZOrder )
@@ -1968,7 +1983,7 @@ void UGameViewportClient::RemoveAllViewportWidgets()
 
 	TSharedPtr< IGameLayerManager > GameLayerManager(GameLayerManagerPtr.Pin());
 	if ( GameLayerManager.IsValid() )
-	{
+		{
 		GameLayerManager->ClearWidgets();
 	}
 }

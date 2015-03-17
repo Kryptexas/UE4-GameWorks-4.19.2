@@ -58,6 +58,7 @@
 #include "EngineUtils.h"
 #include "GameMapsSettings.h"
 #include "GameFramework/Pawn.h"
+#include "GameDelegates.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayLevel, Log, All);
 
@@ -230,6 +231,8 @@ void UEditorEngine::EndPlayMap()
 	{
 		EditorWorld->GetNavigationSystem()->OnPIEEnd();
 	}
+
+	FGameDelegates::Get().GetEndPlayMapDelegate().Broadcast();
 
 	EditorWorld->bAllowAudioPlayback = true;
 	EditorWorld = NULL;

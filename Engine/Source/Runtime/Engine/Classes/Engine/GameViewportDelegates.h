@@ -31,3 +31,19 @@ DECLARE_DELEGATE_FourParams(FOnPNGScreenshotCaptured, int32, int32, const TArray
  * @see UGameViewportClient
  */
 DECLARE_DELEGATE_OneParam(FOnCloseRequested, FViewport*);
+
+/**
+ * Delegate type used by UGameViewportClient for when a player is added or removed
+ *
+ * The first parameter is the player index
+ * @see UGameViewportClient
+ */
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameViewportClientPlayerAction, int32);
+
+/**
+ * Delegate type used by UGameViewportClient for tick callbacks
+ *
+ * The first parameter is the time delta
+ * @see UGameViewportClient
+ */
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameViewportTick, float);

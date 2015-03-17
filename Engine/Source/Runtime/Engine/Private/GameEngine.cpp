@@ -37,6 +37,7 @@
 #include "Engine/GameEngine.h"
 #include "GameFramework/GameUserSettings.h"
 #include "GameFramework/GameMode.h"
+#include "GameDelegates.h"
 
 ENGINE_API bool GDisallowNetworkTravel = false;
 
@@ -458,6 +459,9 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 		{
 			SwitchGameWindowToUseGameViewport();
 		}
+
+		UGameViewportClient::OnViewportCreated().Broadcast();
+
 		FString Error;
 		if(ViewportClient->SetupInitialLocalPlayer(Error) == NULL)
 		{
@@ -674,6 +678,7 @@ bool UGameEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 bool UGameEngine::HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	Ar.Log( TEXT("Closing by request") );
+	FGameDelegates::Get().GetExitCommandDelegate().Broadcast();
 	FPlatformMisc::RequestExit( 0 );
 	return true;
 }

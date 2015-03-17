@@ -477,6 +477,48 @@ public:
 		return CloseRequestedDelegate;
 	}
 
+	/** Accessor for the delegate called when the game viewport is created. */
+	static FSimpleMulticastDelegate& OnViewportCreated()
+	{
+		return CreatedDelegate;
+	}
+
+	// Accessor for the delegate called when a player is added to the game viewport
+	FOnGameViewportClientPlayerAction& OnPlayerAdded()
+	{
+		return PlayerAddedDelegate;
+	}
+
+	// Accessor for the delegate called when a player is removed from the game viewport
+	FOnGameViewportClientPlayerAction& OnPlayerRemoved()
+	{
+		return PlayerRemovedDelegate;
+	}
+
+	// Accessor for the delegate called when the engine starts drawing a game viewport
+	FSimpleMulticastDelegate& OnBeginDraw()
+	{
+		return BeginDrawDelegate;
+	}
+
+	// Accessor for the delegate called when the game viewport is drawn, before drawing the console
+	FSimpleMulticastDelegate& OnDrawn()
+	{
+		return DrawnDelegate;
+	}
+
+	// Accessor for the delegate called when the engine finishes drawing a game viewport
+	FSimpleMulticastDelegate& OnEndDraw()
+	{
+		return EndDrawDelegate;
+	}
+
+	// Accessor for the delegate called when ticking the game viewport
+	FOnGameViewportTick& OnTick()
+	{
+		return TickDelegate;
+	}
+
 	/** Return the engine show flags for this viewport */
 	virtual FEngineShowFlags* GetEngineShowFlags() 
 	{ 
@@ -699,6 +741,27 @@ private:
 
 	/** Delegate called when a request to close the viewport is received */
 	FOnCloseRequested CloseRequestedDelegate;
+
+	/** Delegate called when the game viewport is created. */
+	static FSimpleMulticastDelegate CreatedDelegate;
+
+	/** Delegate called when a player is added to the game viewport */
+	FOnGameViewportClientPlayerAction PlayerAddedDelegate;
+
+	/** Delegate called when a player is removed from the game viewport */
+	FOnGameViewportClientPlayerAction PlayerRemovedDelegate;
+
+	/** Delegate called when the engine starts drawing a game viewport */
+	FSimpleMulticastDelegate BeginDrawDelegate;
+
+	/** Delegate called when the game viewport is drawn, before drawing the console */
+	FSimpleMulticastDelegate DrawnDelegate;
+
+	/** Delegate called when the engine finishes drawing a game viewport */
+	FSimpleMulticastDelegate EndDrawDelegate;
+
+	/** Delegate called when ticking the game viewport */
+	FOnGameViewportTick TickDelegate;
 
 	/** Data needed to display perframe stat tracking when STAT UNIT is enabled */
 	FStatUnitData* StatUnitData;
