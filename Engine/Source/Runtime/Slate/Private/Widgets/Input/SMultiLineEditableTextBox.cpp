@@ -90,6 +90,7 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 				[
 					SAssignNew( EditableText, SMultiLineEditableText )
 					.Text( InArgs._Text )
+					.HintText( InArgs._HintText )
 					.TextStyle( InArgs._TextStyle )
 					.Marshaller( InArgs._Marshaller )
 					.Font( Font )
@@ -140,15 +141,14 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 
 }
 
-
-/**
- * Sets the text string currently being edited 
- *
- * @param  InNewText  The new text string
- */
 void SMultiLineEditableTextBox::SetText( const TAttribute< FText >& InNewText )
 {
 	EditableText->SetText( InNewText );
+}
+
+void SMultiLineEditableTextBox::SetHintText( const TAttribute< FText >& InHintText )
+{
+	EditableText->SetHintText( InHintText );
 }
 
 void SMultiLineEditableTextBox::SetError( const FText& InError )

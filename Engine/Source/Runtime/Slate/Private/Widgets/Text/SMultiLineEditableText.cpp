@@ -6,6 +6,7 @@
 
 #include "TextEditHelper.h"
 #include "PlainTextLayoutMarshaller.h"
+#include "TextBlockLayout.h"
 #include "GenericCommands.h"
 
 void SMultiLineEditableText::FCursorInfo::SetCursorLocationAndCalculateAlignment(const TSharedPtr<FTextLayout>& InTextLayout, const FTextLocation& InCursorPosition)
@@ -300,6 +301,14 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 
 	TextLayout->UpdateIfNeeded();
 
+	// If we have hint text that is either non-empty or bound to a delegate, we'll also need to make the hint text layout
+	HintText = InArgs._HintText;
+	if (HintText.IsBound() || !HintText.Get(FText::GetEmpty()).IsEmpty())
+	{
+		HintTextStyle = MakeShareable(new FTextBlockStyle(TextStyle));
+		HintTextLayout = FTextBlockLayout::Create(*HintTextStyle, Marshaller.ToSharedRef(), nullptr);
+	}
+
 	// Map UI commands to delegates which are called when the command should be executed
 	UICommandList->MapAction(FGenericCommands::Get().Undo,
 		FExecuteAction::CreateSP(this, &SMultiLineEditableText::Undo),
@@ -360,6 +369,23 @@ void SMultiLineEditableText::SetText(const TAttribute< FText >& InText)
 	{
 		// Let outsiders know that the text content has been changed
 		OnTextChanged.ExecuteIfBound(TextToSet);
+	}
+}
+
+void SMultiLineEditableText::SetHintText(const TAttribute< FText >& InHintText)
+{
+	HintText = InHintText;
+
+	// If we have hint text that is either non-empty or bound to a delegate, we'll also need to make the hint text layout
+	if (HintText.IsBound() || !HintText.Get(FText::GetEmpty()).IsEmpty())
+	{
+		HintTextStyle = MakeShareable(new FTextBlockStyle(TextStyle));
+		HintTextLayout = FTextBlockLayout::Create(*HintTextStyle, Marshaller.ToSharedRef(), nullptr);
+	}
+	else
+	{
+		HintTextStyle.Reset();
+		HintTextLayout.Reset();
 	}
 }
 
@@ -2271,6 +2297,21 @@ int32 SMultiLineEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& 
 	// Note: This is done here rather than in Tick(), because Tick() doesn't get called while resizing windows, but OnPaint() does
 	CachedSize = AllottedGeometry.Size;
 
+	// Only paint the hint text layout if we don't have any text set
+	if(TextLayout->IsEmpty() && HintTextLayout.IsValid())
+	{
+		// This should always be set when HintTextLayout is
+		check(HintTextStyle.IsValid());
+
+		const FLinearColor ThisColorAndOpacity = TextStyle.ColorAndOpacity.GetColor(InWidgetStyle);
+
+		// Make sure the hint text is the correct color before we paint it
+		HintTextStyle->ColorAndOpacity = FLinearColor(ThisColorAndOpacity.R, ThisColorAndOpacity.G, ThisColorAndOpacity.B, 0.35f);
+		HintTextLayout->OverrideTextStyle(*HintTextStyle);
+
+		LayerId = HintTextLayout->OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled(bParentEnabled) );
+	}
+
 	LayerId = TextLayout->OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 
 	return LayerId;
@@ -2300,35 +2341,67 @@ void SMultiLineEditableText::CacheDesiredSize(float LayoutScaleMultiplier)
 	SWidget::CacheDesiredSize(LayoutScaleMultiplier);
 }
 
-FVector2D SMultiLineEditableText::ComputeDesiredSize( float ) const
+FVector2D SMultiLineEditableText::ComputeDesiredSize( float LayoutScaleMultiplier ) const
 {
 	const float FontMaxCharHeight = FTextEditHelper::GetFontHeight(TextStyle.Font);
 	const float CaretWidth = FTextEditHelper::CalculateCaretWidth(FontMaxCharHeight);
 
-	// If a wrapping width has been provided, then we need to report the wrapped size as the desired width
-	// (rather than the actual text layout size as that can have non-breaking lines that extend beyond the wrap width)
-	// Note: We don't do this when auto-wrapping as it would cause a feedback loop in the Slate sizing logic
 	const float WrappingWidth = WrapTextAt.Get();
-	const FVector2D TextLayoutBaseSize = WrappingWidth > 0 ? TextLayout->GetWrappedSize() : TextLayout->GetSize();
-	const FVector2D TextLayoutSize = TextLayoutBaseSize + FVector2D(CaretWidth, 0);
+	float DesiredWidth = 0.0f;
+	float DesiredHeight = 0.0f;
 
-	// The layouts current margin size. We should not report a size smaller then the margins.
-	const FMargin TextLayoutMargin = TextLayout->GetMargin();
-	float DesiredWidth = FMath::Max(TextLayoutMargin.GetTotalSpaceAlong<Orient_Horizontal>(), TextLayoutSize.X);
-	float DesiredHeight = FMath::Max(TextLayoutMargin.GetTotalSpaceAlong<Orient_Vertical>(), TextLayoutSize.Y);
-	DesiredHeight = FMath::Max(DesiredHeight, FontMaxCharHeight);
+	// If we have hint text, make sure we include that in any size calculations
+	if(TextLayout->IsEmpty() && HintTextLayout.IsValid())
+	{
+		// This should always be set when HintTextLayout is
+		check(HintTextStyle.IsValid());
+
+		const FVector2D HintTextSize = HintTextLayout->ComputeDesiredSize(
+			FTextBlockLayout::FWidgetArgs(HintText, FText::GetEmpty(), WrapTextAt, AutoWrapText, Margin, LineHeightPercentage, Justification), 
+			LayoutScaleMultiplier, *HintTextStyle
+			);
+
+		// If a wrapping width has been provided, then we need to report that as the desired width
+		DesiredWidth = WrappingWidth > 0 ? WrappingWidth : HintTextSize.X;
+		DesiredHeight = HintTextSize.Y;
+	}
+	else
+	{
+		// If a wrapping width has been provided, then we need to report the wrapped size as the desired width
+		// (rather than the actual text layout size as that can have non-breaking lines that extend beyond the wrap width)
+		// Note: We don't do this when auto-wrapping as it would cause a feedback loop in the Slate sizing logic
+		const FVector2D TextLayoutBaseSize = WrappingWidth > 0 ? TextLayout->GetWrappedSize() : TextLayout->GetSize();
+		const FVector2D TextLayoutSize = TextLayoutBaseSize + FVector2D(CaretWidth, 0);
+
+		// The layouts current margin size. We should not report a size smaller then the margins.
+		const FMargin TextLayoutMargin = TextLayout->GetMargin();
+		DesiredWidth = FMath::Max(TextLayoutMargin.GetTotalSpaceAlong<Orient_Horizontal>(), TextLayoutSize.X);
+		DesiredHeight = FMath::Max(TextLayoutMargin.GetTotalSpaceAlong<Orient_Vertical>(), TextLayoutSize.Y);
+		DesiredHeight = FMath::Max(DesiredHeight, FontMaxCharHeight);
+	}
 	
 	return FVector2D(DesiredWidth, DesiredHeight);
 }
 
 FChildren* SMultiLineEditableText::GetChildren()
 {
-	return TextLayout->GetChildren();
+	// Only use the hint text layout if we don't have any text set
+	return (TextLayout->IsEmpty() && HintTextLayout.IsValid())
+		? HintTextLayout->GetChildren()
+		: TextLayout->GetChildren();
 }
 
 void SMultiLineEditableText::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
-	TextLayout->ArrangeChildren( AllottedGeometry, ArrangedChildren );
+	// Only arrange the hint text layout if we don't have any text set
+	if(TextLayout->IsEmpty() && HintTextLayout.IsValid())
+	{
+		HintTextLayout->ArrangeChildren( AllottedGeometry, ArrangedChildren );
+	}
+	else
+	{
+		TextLayout->ArrangeChildren( AllottedGeometry, ArrangedChildren );
+	}
 }
 
 bool SMultiLineEditableText::SupportsKeyboardFocus() const

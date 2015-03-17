@@ -10,6 +10,8 @@
 #include "ITextLayoutMarshaller.h"
 #include "SScrollBar.h"
 
+class FTextBlockLayout;
+
 /** An editable text widget that supports multiple lines and soft word-wrapping. */
 class SLATE_API SMultiLineEditableText : public SWidget, public ITextEditorWidget, public IVirtualKeyboardEntry
 {
@@ -19,6 +21,7 @@ public:
 
 	SLATE_BEGIN_ARGS( SMultiLineEditableText )
 		: _Text()
+		, _HintText()
 		, _Marshaller()
 		, _WrapTextAt( 0.0f )
 		, _AutoWrapText(false)
@@ -36,6 +39,9 @@ public:
 	{}
 		/** The initial text that will appear in the widget. */
 		SLATE_ATTRIBUTE(FText, Text)
+
+		/** Hint text that appears when there is no text in the text box */
+		SLATE_ATTRIBUTE(FText, HintText)
 
 		/** The marshaller used to get/set the raw text to/from the text layout. */
 		SLATE_ARGUMENT(TSharedPtr< ITextLayoutMarshaller >, Marshaller)
@@ -104,6 +110,11 @@ public:
 	 * Sets the text for this text block
 	 */
 	void SetText(const TAttribute< FText >& InText);
+
+	/**
+	 * Sets the text that appears when there is no text in the text box
+	 */
+	void SetHintText(const TAttribute< FText >& InHintText);
 
 	virtual bool GetIsReadOnly() const override;
 	virtual void ClearSelection() override;
@@ -406,12 +417,12 @@ public:
 
 	virtual const FText& GetText() const override
 	{
-		return BoundText.Get();
+		return BoundText.Get(FText::GetEmpty());
 	}
 
 	virtual const FText GetHintText() const override
 	{
-		return FText();
+		return HintText.Get(FText::GetEmpty());
 	}
 
 	virtual EKeyboardType GetVirtualKeyboardType() const override
@@ -430,7 +441,7 @@ protected:
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 	virtual void CacheDesiredSize(float) override;
-	virtual FVector2D ComputeDesiredSize(float) const override;
+	virtual FVector2D ComputeDesiredSize(float LayoutScaleMultiplier) const override;
 	virtual FChildren* GetChildren() override;
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
 	virtual bool SupportsKeyboardFocus() const override;
@@ -562,15 +573,24 @@ private:
 	/** The state of BoundText last Tick() (used to allow updates when the text is changed) */
 	FTextSnapshot BoundTextLastTick;
 
+	/** The text that appears when there is no text in the text box */
+	TAttribute<FText> HintText;
+
 	/** The marshaller used to get/set the BoundText text to/from the text layout. */
 	TSharedPtr< ITextLayoutMarshaller > Marshaller;
 
 	/** In control of the layout and wrapping of the BoundText */
 	TSharedPtr< FSlateTextLayout > TextLayout;
 
+	/** In control of the layout and wrapping of the HintText */
+	TSharedPtr< FTextBlockLayout > HintTextLayout;
+
 	/** Default style used by the TextLayout */
 	FTextBlockStyle TextStyle;
 	
+	/** Style used to draw the hint text (only valid when HintTextLayout is set) */
+	TSharedPtr< FTextBlockStyle > HintTextStyle;
+
 	/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
 	TAttribute< float > WrapTextAt;
 

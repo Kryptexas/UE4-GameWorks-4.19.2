@@ -3,7 +3,7 @@
 #pragma once
 
 class FSlateTextLayout;
-class FBaseTextLayoutMarshaller;
+class ITextLayoutMarshaller;
 class ISlateRunRenderer;
 
 #if WITH_FANCY_TEXT
@@ -42,7 +42,7 @@ public:
 		const TAttribute<ETextJustify::Type>& Justification;
 	};
 
-	static TSharedRef<FTextBlockLayout> Create(FTextBlockStyle InDefaultTextStyle, TSharedRef<FBaseTextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy);
+	static TSharedRef<FTextBlockLayout> Create(FTextBlockStyle InDefaultTextStyle, TSharedRef<ITextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy);
 
 	/**
 	 * Get the computed desired size for this layout, updating the internal cache as required
@@ -60,6 +60,13 @@ public:
 	void DirtyLayout();
 
 	/**
+	 * Override the text style used and immediately update the text layout (if required).
+	 * This can be used to override the text style after calling ComputeDesiredSize (eg, if you can only compute your text style in OnPaint)
+	 * Please note that changing the size or font used by the text may causing clipping issues until the next call to ComputeDesiredSize
+	 */
+	void OverrideTextStyle(const FTextBlockStyle& InTextStyle);
+
+	/**
 	 * Get the child widgets of this layout
 	 */
 	FChildren* GetChildren();
@@ -73,6 +80,9 @@ private:
 	/** Updates the text layout to contain the given text */
 	void UpdateTextLayout(const FText& InText);
 
+	/** Updates the text layout to contain the given string */
+	void UpdateTextLayout(const FString& InText);
+
 	/** Update the text highlights */
 	void UpdateTextHighlights(const FText& InHighlightText);
 
@@ -82,13 +92,13 @@ private:
 	/** Calculate the wrapping width based on the given fixed wrap width, and whether we're auto-wrapping */
 	float CalculateWrappingWidth(const FWidgetArgs& InWidgetArgs) const;
 
-	FTextBlockLayout(FTextBlockStyle InDefaultTextStyle, TSharedRef<FBaseTextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy);
+	FTextBlockLayout(FTextBlockStyle InDefaultTextStyle, TSharedRef<ITextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy);
 
 	/** In control of the layout and wrapping of the text */
 	TSharedPtr<FSlateTextLayout> TextLayout;
 
 	/** The marshaller used to get/set the text to/from the text layout. */
-	TSharedPtr<FBaseTextLayoutMarshaller> Marshaller;
+	TSharedPtr<ITextLayoutMarshaller> Marshaller;
 
 	/** Used to render the current highlights in the text layout */
 	TSharedPtr<ISlateRunRenderer> TextHighlighter;

@@ -3,7 +3,7 @@
 #include "SlatePrivatePCH.h"
 #include "TextBlockLayout.h"
 #include "SlateTextLayout.h"
-#include "BaseTextLayoutMarshaller.h"
+#include "ITextLayoutMarshaller.h"
 #include "SlateTextHighlightRunRenderer.h"
 #include "SlateStats.h"
 
@@ -11,12 +11,12 @@
 
 SLATE_DECLARE_CYCLE_COUNTER(GSlateTextBlockLayoutComputeDesiredSize, "FTextBlockLayout ComputeDesiredSize");
 
-TSharedRef<FTextBlockLayout> FTextBlockLayout::Create(FTextBlockStyle InDefaultTextStyle, TSharedRef<FBaseTextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy)
+TSharedRef<FTextBlockLayout> FTextBlockLayout::Create(FTextBlockStyle InDefaultTextStyle, TSharedRef<ITextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy)
 {
 	return MakeShareable(new FTextBlockLayout(MoveTemp(InDefaultTextStyle), InMarshaller, InLineBreakPolicy));
 }
 
-FTextBlockLayout::FTextBlockLayout(FTextBlockStyle InDefaultTextStyle, TSharedRef<FBaseTextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy)
+FTextBlockLayout::FTextBlockLayout(FTextBlockStyle InDefaultTextStyle, TSharedRef<ITextLayoutMarshaller> InMarshaller, TSharedPtr<IBreakIterator> InLineBreakPolicy)
 	: TextLayout(FSlateTextLayout::Create(MoveTemp(InDefaultTextStyle)))
 	, Marshaller(InMarshaller)
 	, TextHighlighter(FSlateTextHighlightRunRenderer::Create())
@@ -125,6 +125,19 @@ void FTextBlockLayout::DirtyLayout()
 	TextLayout->DirtyLayout();
 }
 
+void FTextBlockLayout::OverrideTextStyle(const FTextBlockStyle& InTextStyle)
+{
+	// Has the style used for this text block changed?
+	if(!IsStyleUpToDate(InTextStyle))
+	{
+		TextLayout->SetDefaultTextStyle(InTextStyle);
+		
+		FString CurrentText;
+		Marshaller->GetText(CurrentText, *TextLayout);
+		UpdateTextLayout(CurrentText);
+	}
+}
+
 FChildren* FTextBlockLayout::GetChildren()
 {
 	return TextLayout->GetChildren();
@@ -135,11 +148,17 @@ void FTextBlockLayout::ArrangeChildren(const FGeometry& AllottedGeometry, FArran
 	TextLayout->ArrangeChildren(AllottedGeometry, ArrangedChildren);
 }
 
+
 void FTextBlockLayout::UpdateTextLayout(const FText& InText)
+{
+	UpdateTextLayout(InText.ToString());
+}
+
+void FTextBlockLayout::UpdateTextLayout(const FString& InText)
 {
 	Marshaller->ClearDirty();
 	TextLayout->ClearLines();
-	Marshaller->SetText(InText.ToString(), *TextLayout);
+	Marshaller->SetText(InText, *TextLayout);
 
 	TextLayout->ClearLineHighlights();
 	TextLayout->ClearRunRenderers();

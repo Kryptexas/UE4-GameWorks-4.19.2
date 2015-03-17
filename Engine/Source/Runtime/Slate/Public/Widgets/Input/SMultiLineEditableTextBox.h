@@ -177,6 +177,13 @@ public:
 	void SetText( const TAttribute< FText >& InNewText );
 
 	/**
+	 * Sets the text that appears when there is no text in the text box
+	 *
+	 * @param  InHintText The hint text string
+	 */
+	void SetHintText( const TAttribute< FText >& InHintText );
+
+	/**
 	 * If InError is a non-empty string the TextBox will the ErrorReporting provided during construction
 	 * If no error reporting was provided, the TextBox will create a default error reporter.
 	 */
