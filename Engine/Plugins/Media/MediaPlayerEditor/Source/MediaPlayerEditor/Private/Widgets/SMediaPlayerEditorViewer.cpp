@@ -181,7 +181,7 @@ void SMediaPlayerEditorViewer::Construct( const FArguments& InArgs, UMediaPlayer
 									.VAlign(VAlign_Center)
 									[
 										SNew(STextBlock)
-											.Text(LOCTEXT("CaptionTrackLabel", "Playback Rate:"))
+											.Text(LOCTEXT("PlaybackRateLabel", "Playback Rate:"))
 									]
 
 								+ SHorizontalBox::Slot()
