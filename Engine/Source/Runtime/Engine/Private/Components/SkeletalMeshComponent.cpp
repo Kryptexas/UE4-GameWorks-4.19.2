@@ -1046,7 +1046,6 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	AnimEvaluationContext.bDoEvaluation = bShouldDoEvaluation;
 	
 	AnimEvaluationContext.bDoInterpolation = bDoEvaluationRateOptimization && !bInvalidCachedBones && AnimUpdateRateParams->ShouldInterpolateSkippedFrames();
-	//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("DoInt: %s DoURO: %s InvCacBones: %s ShouldInterp: %s\nCach Num: %i Local Num:%i\n"), B(AnimEvaluationContext.bDoInterpolation), B(bDoEvaluationRateOptimization), B(bInvalidCachedBones), B(AnimUpdateRateParams->ShouldInterpolateSkippedFrames()), CachedLocalAtoms.Num(), LocalAtoms.Num());
 	AnimEvaluationContext.bDuplicateToCacheBones = bInvalidCachedBones || (bDoEvaluationRateOptimization && AnimEvaluationContext.bDoEvaluation && !AnimEvaluationContext.bDoInterpolation);
 
 	if (!bDoEvaluationRateOptimization)
