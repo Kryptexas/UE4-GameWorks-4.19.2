@@ -118,3 +118,11 @@ bool UBehaviorTreeDecoratorGraphNode_Decorator::RefreshNodeClass()
 
 	return bUpdated;
 }
+
+void UBehaviorTreeDecoratorGraphNode_Decorator::UpdateNodeClassData()
+{
+	if (NodeInstance)
+	{
+		UAIGraphNode::UpdateNodeClassDataFrom(NodeInstance->GetClass(), ClassData);
+	}
+}

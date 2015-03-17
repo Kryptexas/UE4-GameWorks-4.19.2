@@ -383,6 +383,31 @@ bool UAIGraphNode::RefreshNodeClass()
 	return bUpdated;
 }
 
+void UAIGraphNode::UpdateNodeClassData()
+{
+	if (NodeInstance)
+	{
+		UpdateNodeClassDataFrom(NodeInstance->GetClass(), ClassData);
+		ErrorMessage = ClassData.GetDeprecatedMessage();
+	}
+}
+
+void UAIGraphNode::UpdateNodeClassDataFrom(UClass* InstanceClass, FGraphNodeClassData& UpdatedData)
+{
+	if (InstanceClass)
+	{
+		UBlueprint* BPOwner = Cast<UBlueprint>(InstanceClass->ClassGeneratedBy);
+		if (BPOwner)
+		{
+			UpdatedData = FGraphNodeClassData(BPOwner->GetName(), BPOwner->GetOutermost()->GetName(), InstanceClass->GetName(), InstanceClass);
+		}
+		else
+		{
+			UpdatedData = FGraphNodeClassData(InstanceClass, FGraphNodeClassHelper::GetDeprecationMessage(InstanceClass));
+		}
+	}
+}
+
 bool UAIGraphNode::HasErrors() const
 {
 	return ErrorMessage.Len() > 0 || NodeInstance == nullptr;

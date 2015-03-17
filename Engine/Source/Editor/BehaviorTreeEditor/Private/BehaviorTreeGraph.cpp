@@ -16,8 +16,9 @@ namespace BTGraphVersion
 {
 	const int32 Initial = 0;
 	const int32 UnifiedSubNodes = 1;
+	const int32 InnerGraphWhitespace = 2;
 
-	const int32 Latest = UnifiedSubNodes;
+	const int32 Latest = InnerGraphWhitespace;
 }
 
 UBehaviorTreeGraph::UBehaviorTreeGraph(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -1158,6 +1159,11 @@ void UBehaviorTreeGraph::UpdateVersion()
 		UpdateVersion_UnifiedSubNodes();
 	}
 
+	if (GraphVersion < BTGraphVersion::InnerGraphWhitespace)
+	{
+		UpdateVersion_InnerGraphWhitespace();
+	}
+
 	GraphVersion = BTGraphVersion::Latest;
 	Modify();
 }
@@ -1183,6 +1189,28 @@ void UBehaviorTreeGraph::UpdateVersion_UnifiedSubNodes()
 		for (int32 SubIdx = 0; SubIdx < MyNode->Services.Num(); SubIdx++)
 		{
 			MyNode->SubNodes.Add(MyNode->Services[SubIdx]);
+		}
+	}
+}
+
+void UBehaviorTreeGraph::UpdateVersion_InnerGraphWhitespace()
+{
+	for (int32 NodeIdx = 0; NodeIdx < Nodes.Num(); NodeIdx++)
+	{
+		UBehaviorTreeGraphNode* MyNode = Cast<UBehaviorTreeGraphNode>(Nodes[NodeIdx]);
+		if (MyNode)
+		{
+			for (int32 SubIdx = 0; SubIdx < MyNode->SubNodes.Num(); SubIdx++)
+			{
+				UBehaviorTreeGraphNode_CompositeDecorator* InnerGraphNode = Cast<UBehaviorTreeGraphNode_CompositeDecorator>(MyNode->SubNodes[SubIdx]);
+				int32 DummyIdx = INDEX_NONE;
+				
+				if (InnerGraphNode && InnerGraphNode->BoundGraph && InnerGraphNode->BoundGraph->GetName().FindChar(TEXT(' '), DummyIdx))
+				{
+					// don't use white space in name here, it prevents links from being copied correctly
+					InnerGraphNode->BoundGraph->Rename(TEXT("CompositeDecorator"), InnerGraphNode);
+				}
+			}
 		}
 	}
 }

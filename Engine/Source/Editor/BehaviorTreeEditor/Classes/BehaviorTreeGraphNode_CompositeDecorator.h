@@ -33,6 +33,7 @@ class UBehaviorTreeGraphNode_CompositeDecorator : public UBehaviorTreeGraphNode
 	virtual bool IsSubNode() const override;
 	virtual bool HasErrors() const override;
 	virtual bool RefreshNodeClass() override;
+	virtual void UpdateNodeClassData() override;
 
 	virtual void PrepareForCopying() override;
 	virtual void PostCopyNode() override;

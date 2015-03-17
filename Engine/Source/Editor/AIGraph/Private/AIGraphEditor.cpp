@@ -420,6 +420,8 @@ void FAIGraphEditor::PasteNodesHere(const FVector2D& Location)
 		}
 	}
 
+	EdGraph->UpdateClassData();
+
 	// Update UI
 	EdGraph->UnlockUpdates();
 	CurrentGraphEditor->NotifyGraphChanged();

@@ -231,42 +231,7 @@ void UEnvironmentQueryGraph::UpdateVersion_FixupOuters()
 
 void UEnvironmentQueryGraph::UpdateVersion_CollectClassData()
 {
-	for (int32 Idx = 0; Idx < Nodes.Num(); Idx++)
-	{
-		UEnvironmentQueryGraphNode* MyNode = Cast<UEnvironmentQueryGraphNode>(Nodes[Idx]);
-		if (MyNode)
-		{
-			UEnvQueryOption* OptionInstance = Cast<UEnvQueryOption>(MyNode->NodeInstance);
-			if (OptionInstance && OptionInstance->Generator)
-			{
-				UpdateNodeClassData(MyNode, OptionInstance->Generator->GetClass());
-			}
-
-			for (int32 SubIdx = 0; SubIdx < MyNode->SubNodes.Num(); SubIdx++)
-			{
-				UAIGraphNode* SubNode = MyNode->SubNodes[SubIdx];
-				if (SubNode && SubNode->NodeInstance)
-				{
-					UpdateNodeClassData(SubNode, SubNode->NodeInstance->GetClass());
-				}
-			}
-		}
-	}
-}
-
-void UEnvironmentQueryGraph::UpdateNodeClassData(UAIGraphNode* UpdateNode, UClass* InstanceClass)
-{
-	UBlueprint* BPOwner = Cast<UBlueprint>(InstanceClass->ClassGeneratedBy);
-	if (BPOwner)
-	{
-		UpdateNode->ClassData = FGraphNodeClassData(BPOwner->GetName(), BPOwner->GetOutermost()->GetName(), InstanceClass->GetName(), InstanceClass);
-	}
-	else
-	{
-		UpdateNode->ClassData = FGraphNodeClassData(InstanceClass, FGraphNodeClassHelper::GetDeprecationMessage(InstanceClass));
-	}
-
-	UpdateNode->ErrorMessage = UpdateNode->ClassData.GetDeprecatedMessage();
+	UpdateClassData();
 }
 
 void UEnvironmentQueryGraph::CollectAllNodeInstances(TSet<UObject*>& NodeInstances)
@@ -357,7 +322,8 @@ void UEnvironmentQueryGraph::SpawnMissingNodes()
 
 		FGraphNodeCreator<UEnvironmentQueryGraphNode_Option> NodeBuilder(*this);
 		UEnvironmentQueryGraphNode_Option* MyNode = NodeBuilder.CreateNode();
-		UpdateNodeClassData(MyNode, OptionInstance->Generator->GetClass());
+		UAIGraphNode::UpdateNodeClassDataFrom(OptionInstance->Generator->GetClass(), MyNode->ClassData);
+		MyNode->ErrorMessage = MyNode->ClassData.GetDeprecatedMessage();
 		NodeBuilder.Finalize();
 
 		if (MyRootNode)
@@ -389,7 +355,7 @@ void UEnvironmentQueryGraph::SpawnMissingSubNodes(UEnvQueryOption* Option, TSet<
 
 		UEnvironmentQueryGraphNode_Test* TestNode = NewObject<UEnvironmentQueryGraphNode_Test>(this);
 		TestNode->NodeInstance = TestsCopy[SubIdx];
-		UpdateNodeClassData(TestNode, TestsCopy[SubIdx]->GetClass());
+		TestNode->UpdateNodeClassData();
 
 		OptionNode->AddSubNode(TestNode, this);
 		TestNode->NodeInstance = TestsCopy[SubIdx];

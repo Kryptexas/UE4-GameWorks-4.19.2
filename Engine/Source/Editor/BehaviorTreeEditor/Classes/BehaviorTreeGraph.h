@@ -53,4 +53,5 @@ protected:
 	virtual void CollectAllNodeInstances(TSet<UObject*>& NodeInstances);
 
 	void UpdateVersion_UnifiedSubNodes();
+	void UpdateVersion_InnerGraphWhitespace();
 };

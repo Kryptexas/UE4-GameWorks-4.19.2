@@ -14,6 +14,7 @@ class UEnvironmentQueryGraphNode_Option : public UEnvironmentQueryGraphNode
 	virtual FText GetDescription() const override;
 
 	virtual void PrepareForCopying() override;
+	virtual void UpdateNodeClassData() override;
 
 	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
 	void CreateAddTestSubMenu(class FMenuBuilder& MenuBuilder, UEdGraph* Graph) const;

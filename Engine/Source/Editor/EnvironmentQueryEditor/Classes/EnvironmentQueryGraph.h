@@ -30,8 +30,6 @@ protected:
 	void UpdateVersion_FixupOuters();
 	void UpdateVersion_CollectClassData();
 
-	void UpdateNodeClassData(UAIGraphNode* UpdateNode, UClass* InstanceClass);
-
 	virtual void CollectAllNodeInstances(TSet<UObject*>& NodeInstances) override;
 
 	void SpawnMissingSubNodes(UEnvQueryOption* Option, TSet<UEnvQueryTest*> ExistingTests, UEnvironmentQueryGraphNode* OptionNode);

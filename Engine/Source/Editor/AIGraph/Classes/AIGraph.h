@@ -24,6 +24,7 @@ class AIGRAPH_API UAIGraph : public UEdGraph
 	bool UpdateUnknownNodeClasses();
 	void UpdateDeprecatedClasses();
 	void RemoveOrphanedNodes();
+	void UpdateClassData();
 
 	bool IsLocked() const;
 	void LockUpdates();

@@ -96,11 +96,16 @@ class AIGRAPH_API UAIGraphNode : public UEdGraphNode
 	/** reinitialize node instance */
 	virtual bool RefreshNodeClass();
 
+	/** updates ClassData from node instance */
+	virtual void UpdateNodeClassData();
+
 	/** Check if node instance uses blueprint for its implementation */
 	bool UsesBlueprint() const;
 
 	/** check if node has any errors, used for assigning colors on graph */
 	virtual bool HasErrors() const;
+
+	static void UpdateNodeClassDataFrom(UClass* InstanceClass, FGraphNodeClassData& UpdatedData);
 
 protected:
 

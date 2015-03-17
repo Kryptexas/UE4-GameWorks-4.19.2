@@ -26,6 +26,7 @@ class UBehaviorTreeDecoratorGraphNode_Decorator : public UBehaviorTreeDecoratorG
 	virtual void PrepareForCopying() override;
 	void PostCopyNode();
 	bool RefreshNodeClass();
+	void UpdateNodeClassData();
 
 private:
 

@@ -65,6 +65,16 @@ void UEnvironmentQueryGraphNode_Option::PrepareForCopying()
 	}
 }
 
+void UEnvironmentQueryGraphNode_Option::UpdateNodeClassData()
+{
+	UEnvQueryOption* OptionInstance = Cast<UEnvQueryOption>(NodeInstance);
+	if (OptionInstance && OptionInstance->Generator)
+	{
+		UpdateNodeClassDataFrom(OptionInstance->Generator->GetClass(), ClassData);
+		ErrorMessage = ClassData.GetDeprecatedMessage();
+	}
+}
+
 FText UEnvironmentQueryGraphNode_Option::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	UEnvQueryOption* OptionInstance = Cast<UEnvQueryOption>(NodeInstance);

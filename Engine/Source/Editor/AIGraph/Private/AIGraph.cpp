@@ -90,6 +90,26 @@ void UAIGraph::UpdateDeprecatedClasses()
 	}
 }
 
+void UAIGraph::UpdateClassData()
+{
+	for (int32 Idx = 0; Idx < Nodes.Num(); Idx++)
+	{
+		UAIGraphNode* Node = Cast<UAIGraphNode>(Nodes[Idx]);
+		if (Node)
+		{
+			Node->UpdateNodeClassData();
+
+			for (int32 SubIdx = 0; SubIdx < Node->SubNodes.Num(); SubIdx++)
+			{
+				if (Node->SubNodes[SubIdx])
+				{
+					Node->UpdateNodeClassData();
+				}
+			}
+		}
+	}
+}
+
 void UAIGraph::CollectAllNodeInstances(TSet<UObject*>& NodeInstances)
 {
 	for (int32 Idx = 0; Idx < Nodes.Num(); Idx++)
