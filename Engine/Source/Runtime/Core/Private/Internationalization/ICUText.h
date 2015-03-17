@@ -25,7 +25,7 @@ FText FText::AsNumberTemplate(T1 Val, const FNumberFormattingOptions* const Opti
 	FString NativeString;
 	ICUUtilities::ConvertString(FormattedString, NativeString);
 
-	FText ReturnText = FText::CreateNumericalText(NativeString);
+	FText ReturnText = FText::CreateNumericalText(MoveTemp(NativeString));
 	ReturnText.History = MakeShareable(new FTextHistory_AsNumber(Val, Options, TargetCulture));
 	return ReturnText;
 }
@@ -45,7 +45,7 @@ FText FText::AsCurrencyTemplate(T1 Val, const FString& CurrencyCode, const FNumb
 	FString NativeString;
 	ICUUtilities::ConvertString(FormattedString, NativeString);
 
-	FText ReturnText = FText::CreateNumericalText(NativeString);
+	FText ReturnText = FText::CreateNumericalText(MoveTemp(NativeString));
 	ReturnText.History = MakeShareable(new FTextHistory_AsCurrency(Val, CurrencyCode, Options, TargetCulture));
 	return ReturnText;
 }
@@ -65,7 +65,7 @@ FText FText::AsPercentTemplate(T1 Val, const FNumberFormattingOptions* const Opt
 	FString NativeString;
 	ICUUtilities::ConvertString(FormattedString, NativeString);
 
-	FText ReturnText = FText::CreateNumericalText(NativeString);
+	FText ReturnText = FText::CreateNumericalText(MoveTemp(NativeString));
 	ReturnText.History = MakeShareable(new FTextHistory_AsPercent(Val, Options, TargetCulture));
 	return ReturnText;
 }

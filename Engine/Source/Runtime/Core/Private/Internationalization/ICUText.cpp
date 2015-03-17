@@ -38,7 +38,7 @@ FText FText::AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateSt
 	FString NativeString;
 	ICUUtilities::ConvertString(FormattedString, NativeString);
 
-	FText ResultText = FText::CreateChronologicalText(NativeString);
+	FText ResultText = FText::CreateChronologicalText(MoveTemp(NativeString));
 	ResultText.History = MakeShareable(new FTextHistory_AsDate(DateTime, DateStyle, TimeZone, TargetCulture));
 
 	return ResultText;
@@ -61,7 +61,7 @@ FText FText::AsTime(const FDateTime& DateTime, const EDateTimeStyle::Type TimeSt
 	FString NativeString;
 	ICUUtilities::ConvertString(FormattedString, NativeString);
 
-	FText ResultText = FText::CreateChronologicalText(NativeString);
+	FText ResultText = FText::CreateChronologicalText(MoveTemp(NativeString));
 	ResultText.History = MakeShareable(new FTextHistory_AsTime(DateTime, TimeStyle, TimeZone, TargetCulture));
 
 	return ResultText;
@@ -108,7 +108,7 @@ FText FText::AsDateTime(const FDateTime& DateTime, const EDateTimeStyle::Type Da
 	FString NativeString;
 	ICUUtilities::ConvertString(FormattedString, NativeString);
 
-	FText ResultText = FText::CreateChronologicalText(NativeString);
+	FText ResultText = FText::CreateChronologicalText(MoveTemp(NativeString));
 	ResultText.History = MakeShareable(new FTextHistory_AsDateTime(DateTime, DateStyle, TimeStyle, TimeZone, TargetCulture));
 
 	return ResultText;
