@@ -39,7 +39,7 @@ bool FUdpDeserializedMessage::Deserialize( const FUdpReassembledMessageRef& Reas
 		int32 NumRecipients = 0;
 		MessageReader << NumRecipients;
 
-		if (NumRecipients > UDP_MESSAGING_MAX_RECIPIENTS)
+		if ((NumRecipients < 0) || (NumRecipients > UDP_MESSAGING_MAX_RECIPIENTS))
 		{
 			return false;
 		}
