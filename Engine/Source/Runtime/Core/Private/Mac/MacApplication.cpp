@@ -255,6 +255,7 @@ void FMacApplication::DeferEvent(NSObject* Object)
 	{
 		NSEvent* Event = (NSEvent*)Object;
 		WindowHandle = FindEventWindow(Event);
+		DeferredEvent.Event = [Event retain];
 		DeferredEvent.Type = [Event type];
 		DeferredEvent.LocationInWindow = FVector2D([Event locationInWindow].x, [Event locationInWindow].y);
 		DeferredEvent.ModifierFlags = [Event modifierFlags];
@@ -852,12 +853,12 @@ void FMacApplication::ProcessKeyDownEvent(const FDeferredMacEvent& Event)
 		FCocoaMenu* MainMenu = [[NSApp mainMenu] isKindOfClass:[FCocoaMenu class]] ? (FCocoaMenu*)[NSApp mainMenu]: nil;
 		if (MainMenu)
 		{
-			MainThreadCall(^{ [MainMenu highlightKeyEquivalent:Event.GetKeyNSEvent()]; }, NSDefaultRunLoopMode, true);
+			MainThreadCall(^{ [MainMenu highlightKeyEquivalent:Event.Event]; }, NSDefaultRunLoopMode, true);
 		}
 	}
 	else
 	{
-		ResendEvent(Event.GetKeyNSEvent());
+		ResendEvent(Event.Event);
 	}
 }
 
@@ -873,7 +874,7 @@ void FMacApplication::ProcessKeyUpEvent(const FDeferredMacEvent& Event)
 	}
 	if (!bHandled)
 	{
-		ResendEvent(Event.GetKeyNSEvent());
+		ResendEvent(Event.Event);
 	}
 	FPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
 }

@@ -10,7 +10,8 @@
 struct FDeferredMacEvent
 {
 	FDeferredMacEvent()
-	:	Type(0)
+	:	Event(nullptr)
+	,	Type(0)
 	,	LocationInWindow(FVector2D::ZeroVector)
 	,	ModifierFlags(0)
 	,	Timestamp(0.0)
@@ -33,7 +34,8 @@ struct FDeferredMacEvent
 	}
 
 	FDeferredMacEvent(const FDeferredMacEvent& Other)
-	:	Window(Other.Window)
+	:	Event(Other.Event ? [Other.Event retain] : nullptr)
+	,	Window(Other.Window)
 	,	Type(Other.Type)
 	,	LocationInWindow(Other.LocationInWindow)
 	,	ModifierFlags(Other.ModifierFlags)
@@ -59,6 +61,10 @@ struct FDeferredMacEvent
 	~FDeferredMacEvent()
 	{
 		SCOPED_AUTORELEASE_POOL;
+		if (Event)
+		{
+			[Event release];
+		}
 		if (Context)
 		{
 			[Context release];
@@ -81,19 +87,9 @@ struct FDeferredMacEvent
 		}
 	}
 
-	NSEvent* GetKeyNSEvent() const
-	{
-		return [NSEvent keyEventWithType:(NSEventType)Type
-								location:NSMakePoint(LocationInWindow.X, LocationInWindow.Y)
-						   modifierFlags:ModifierFlags
-							   timestamp:Timestamp
-							windowNumber:WindowNumber
-								 context:Context
-							  characters:Characters
-			 charactersIgnoringModifiers:CharactersIgnoringModifiers
-							   isARepeat:IsRepeat
-								 keyCode:KeyCode];
-	}
+	// Using NSEvent on the game thread is unsafe, so we copy of all its properties and use them when processing the event.
+	// However, in some cases we need the original NSEvent (highlighting menus, resending unhandled key events), so we store it as well.
+	NSEvent* Event;
 
 	TSharedPtr<FMacWindow> Window;
 
