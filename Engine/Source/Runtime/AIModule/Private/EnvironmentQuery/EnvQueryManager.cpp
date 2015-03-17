@@ -418,9 +418,10 @@ UEnvQuery* UEnvQueryManager::FindQueryTemplate(const FString& QueryName) const
 
 TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const UEnvQuery* Template, EEnvQueryRunMode::Type RunMode)
 {
-	if (Template == NULL)
+	if (Template == nullptr || Template->Options.Num() == 0)
 	{
-		return NULL;
+		UE_CLOG(Template != nullptr && Template->Options.Num() == 0, LogEQS, Warning, TEXT("Query [%s] doesn't have any valid options!"), *Template->GetName());
+		return nullptr;
 	}
 
 	// try to find entry in cache
@@ -525,11 +526,7 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const UEnvQu
 			CreateOptionInstance(LocalOption, SortedTests, *InstanceTemplate);
 		}
 
-		if (InstanceTemplate->Options.Num() == 0)
-		{
-			UE_LOG(LogEQS, Warning, TEXT("Query [%s] doesn't have any valid options!"), *GetNameSafe(LocalTemplate));
-			return NULL;
-		}
+		check(InstanceTemplate->Options.Num() == 0);
 	}
 
 	// create new instance
