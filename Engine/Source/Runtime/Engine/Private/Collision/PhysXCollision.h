@@ -89,14 +89,14 @@ public:
 	/** Result of PreFilter callback. */
 	PxSceneQueryHitType::Enum PrefilterReturnValue;
 
-	/** Whether this is a raycastSingle or sweepSingle, because in 3.3 you can't return eTOUCH for single queries */
-	bool bSingleQuery;
+	/** Whether to ignore touches (convert an eTOUCH result to eNONE). */
+	bool bIgnoreTouches;
 
 
 	FPxQueryFilterCallback()
 	{
 		PrefilterReturnValue = PxSceneQueryHitType::eNONE;
-		bSingleQuery = false;
+		bIgnoreTouches = false;
 	}
 
 	FPxQueryFilterCallback(const FilterIgnoreComponentsArrayType& InIgnoreComponents)
@@ -104,7 +104,7 @@ public:
 		PrefilterReturnValue = PxSceneQueryHitType::eNONE;
 		
 		IgnoreComponents = InIgnoreComponents;
-		bSingleQuery = false;
+		bIgnoreTouches = false;
 	}
 
 	/** 
