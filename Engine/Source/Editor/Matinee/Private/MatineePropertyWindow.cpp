@@ -2,6 +2,7 @@
 
 #include "MatineeModule.h"
 #include "Matinee.h"
+#include "Matinee/MatineeActorCameraAnim.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 
