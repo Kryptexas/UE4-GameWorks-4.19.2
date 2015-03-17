@@ -31,8 +31,13 @@ public:
 	/** Returns Offset to center comment on the node's only pin */
 	FVector2D GetCommentOffset() const;
 
+	/** Called when the comment bubble visibility/pinned state is changed */
+	void OnCommentBubbleToggle( ECheckBoxState State );
+
 protected:
 
+	/** The pinned state for comment bubble */
+	bool bCommentPinnedState;
 	/** SharedPtr to comment bubble */
 	TSharedPtr<SCommentBubble> CommentBubble;
 

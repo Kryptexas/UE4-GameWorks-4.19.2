@@ -254,6 +254,7 @@ FReply SGraphPinKnot::OnPinMouseDown(const FGeometry& SenderGeometry, const FPoi
 void SGraphNodeKnot::Construct(const FArguments& InArgs, UK2Node_Knot* InKnot)
 {
 	SGraphNodeDefault::Construct(SGraphNodeDefault::FArguments().GraphNodeObj(InKnot));
+	bCommentPinnedState = InKnot->bCommentBubbleVisible;
 }
 
 void SGraphNodeKnot::UpdateGraphNode()
@@ -325,9 +326,11 @@ void SGraphNodeKnot::UpdateGraphNode()
 	SAssignNew( CommentBubble, SCommentBubble )
 	.GraphNode( GraphNode )
 	.Text( this, &SGraphNode::GetNodeComment )
+	.EnableBubbleCtrls( true )
 	.ColorAndOpacity( FLinearColor::White )
 	.GraphLOD( this, &SGraphNode::GetCurrentLOD )
-	.IsGraphNodeHovered( this, &SGraphNode::IsHovered );
+	.IsGraphNodeHovered( this, &SGraphNode::IsHovered )
+	.OnCommentBubbleToggle( this, &SGraphNodeKnot::OnCommentBubbleToggle );
 
 	GetOrAddSlot( ENodeZone::TopCenter )
 	.SlotOffset( TAttribute<FVector2D>( this, &SGraphNodeKnot::GetCommentOffset ))
@@ -390,7 +393,7 @@ FVector2D SGraphNodeKnot::GetCommentOffset() const
 
 void SGraphNodeKnot::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if( !GraphNode->NodeComment.IsEmpty() )
+	if( !bCommentPinnedState && !GraphNode->NodeComment.IsEmpty() )
 	{
 		GraphNode->bCommentBubbleVisible = true;
 		CommentBubble->UpdateBubble();
@@ -399,9 +402,19 @@ void SGraphNodeKnot::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEv
 
 void SGraphNodeKnot::OnMouseLeave( const FPointerEvent& MouseEvent )
 {
-	if( !GraphNode->NodeComment.IsEmpty() )
+	if( !bCommentPinnedState && !GraphNode->NodeComment.IsEmpty() )
 	{
 		GraphNode->bCommentBubbleVisible = false;
+		CommentBubble->UpdateBubble();
+	}
+}
+
+void SGraphNodeKnot::OnCommentBubbleToggle( ECheckBoxState State )
+{
+	if( CommentBubble.IsValid() )
+	{
+		bCommentPinnedState = !bCommentPinnedState;
+		GraphNode->bCommentBubbleVisible = bCommentPinnedState;
 		CommentBubble->UpdateBubble();
 	}
 }

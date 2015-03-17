@@ -46,6 +46,11 @@ void SCommentBubble::Construct( const FArguments& InArgs )
 	IsGraphNodeHovered		= InArgs._IsGraphNodeHovered;
 	HintText				= InArgs._HintText.IsSet() ? InArgs._HintText : NSLOCTEXT( "CommentBubble", "EditCommentHint", "Click to edit" );
 	OpacityValue			= SCommentBubbleDefs::FadeDelay;
+	// Create Default toggle and pin handlers
+	CommentBubbleToggleDelegate	= InArgs._OnCommentBubbleToggle.IsBound() ? InArgs._OnCommentBubbleToggle : 
+																			FOnCheckStateChanged::CreateSP( this, &SCommentBubble::OnCommentBubbleToggle );
+	CommentBubblePinnedDelegate = InArgs._OnCommentBubblePinned.IsBound() ? InArgs._OnCommentBubblePinned : 
+																			FOnCheckStateChanged::CreateSP( this, &SCommentBubble::OnPinStateToggle );
 	// Ensue this value is set to something sensible
 	ForegroundColor = SCommentBubbleDefs::LightForegroundClr;
 
@@ -144,7 +149,7 @@ void SCommentBubble::UpdateBubble()
 						SNew( SCheckBox )
 						.Style( &FEditorStyle::Get().GetWidgetStyle<FCheckBoxStyle>( "CommentBubblePin" ))
 						.IsChecked( GraphNode->bCommentBubblePinned ? ECheckBoxState::Checked : ECheckBoxState::Unchecked )
-						.OnCheckStateChanged( this, &SCommentBubble::OnPinStateToggle )
+						.OnCheckStateChanged( CommentBubblePinnedDelegate )
 						.ToolTipText( this, &SCommentBubble::GetScaleButtonTooltip )
 						.Cursor( EMouseCursor::Default )
 						.ForegroundColor( this, &SCommentBubble::GetForegroundColor )
@@ -157,8 +162,8 @@ void SCommentBubble::UpdateBubble()
 				[
 					SNew( SCheckBox )
 					.Style( &FEditorStyle::Get().GetWidgetStyle< FCheckBoxStyle >( "CommentBubbleButton" ))
-					.IsChecked( GraphNode->bCommentBubbleVisible ? ECheckBoxState::Checked : ECheckBoxState::Unchecked )
-					.OnCheckStateChanged( this, &SCommentBubble::OnCommentBubbleToggle )
+					.IsChecked( ECheckBoxState::Checked )
+					.OnCheckStateChanged( CommentBubbleToggleDelegate )
 					.ToolTipText( NSLOCTEXT( "CommentBubble", "ToggleCommentTooltip", "Toggle Comment Bubble" ))
 					.Cursor( EMouseCursor::Default )
 					.ForegroundColor( FLinearColor::White )
@@ -174,8 +179,8 @@ void SCommentBubble::UpdateBubble()
 				[
 					SNew( SCheckBox )
 					.Style( &FEditorStyle::Get().GetWidgetStyle< FCheckBoxStyle >( "CommentBubbleButton" ))
-					.IsChecked( GraphNode->bCommentBubbleVisible ? ECheckBoxState::Checked : ECheckBoxState::Unchecked )
-					.OnCheckStateChanged( this, &SCommentBubble::OnCommentBubbleToggle )
+					.IsChecked( ECheckBoxState::Checked )
+					.OnCheckStateChanged( CommentBubbleToggleDelegate )
 					.ToolTipText( NSLOCTEXT( "CommentBubble", "ToggleCommentTooltip", "Toggle Comment Bubble" ))
 					.Cursor( EMouseCursor::Default )
 					.ForegroundColor( FLinearColor::White )
@@ -262,7 +267,7 @@ void SCommentBubble::UpdateBubble()
 				SNew( SCheckBox )
 				.Style( &FEditorStyle::Get().GetWidgetStyle< FCheckBoxStyle >( "CommentTitleButton" ))
 				.IsChecked( ECheckBoxState::Unchecked )
-				.OnCheckStateChanged( this, &SCommentBubble::OnCommentBubbleToggle )
+				.OnCheckStateChanged( CommentBubbleToggleDelegate )
 				.ToolTipText( NSLOCTEXT( "CommentBubble", "ToggleCommentTooltip", "Toggle Comment Bubble" ))
 				.Cursor( EMouseCursor::Default )
 				.ForegroundColor( this, &SCommentBubble::GetToggleButtonColor )
@@ -280,8 +285,8 @@ FVector2D SCommentBubble::GetOffset() const
 {
 	if( GraphNode->bCommentBubbleVisible || OpacityValue > 0.f )
 	{
-	return FVector2D( 0.f, -GetDesiredSize().Y );
-}
+		return FVector2D( 0.f, -GetDesiredSize().Y );
+	}
 	return FVector2D::ZeroVector;
 }
 

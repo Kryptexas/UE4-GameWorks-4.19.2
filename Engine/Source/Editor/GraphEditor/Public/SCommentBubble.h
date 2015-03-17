@@ -18,6 +18,12 @@ class GRAPHEDITOR_API SCommentBubble : public SCompoundWidget
 		/** the GraphNode this bubble should interact with */
 		SLATE_ARGUMENT( UEdGraphNode*, GraphNode )
 
+		/** Called when the comment bubble toggle button is pressed */
+		SLATE_EVENT( FOnCheckStateChanged, OnCommentBubbleToggle )
+
+		/** Called when the comment bubble pin button is pressed */
+		SLATE_EVENT( FOnCheckStateChanged, OnCommentBubblePinned )
+
 		/** The comment text for the bubble */
 		SLATE_ATTRIBUTE( FString, Text )
 
@@ -121,15 +127,15 @@ protected:
 	TAttribute<FSlateColor> ColorAndOpacity;
 	/** Attribute to query node comment */
 	TAttribute<FString> CommentAttribute;
-	/** Attribute to query node pinned state */
-	TAttribute<bool> PinnedState;
-	/** Attribute to query node visibility state */
-	TAttribute<bool> VisibilityState;
 	/** Attribute to query current LOD */
 	TAttribute<EGraphRenderingLOD::Type> GraphLOD;
 	/** Hint Text */
 	TAttribute<FText> HintText;
 
+	/** Optional delegate to call when the comment is toggled */
+	FOnCheckStateChanged CommentBubbleToggleDelegate;
+	/** Optional delegate to call when the comment is toggled */
+	FOnCheckStateChanged CommentBubblePinnedDelegate;
 	/** Delegate to determine if the graph node is currently hovered */
 	FIsGraphNodeHovered IsGraphNodeHovered;
 
