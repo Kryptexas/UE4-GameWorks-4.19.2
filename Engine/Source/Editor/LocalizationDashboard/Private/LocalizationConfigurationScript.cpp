@@ -159,7 +159,7 @@ namespace LocalizationConfigurationScript
 		}
 
 		// GatherTextFromAssets
-		if (Target->Settings.GatherFromTextFiles.SearchDirectories.Num() && Target->Settings.GatherFromTextFiles.FileExtensions.Num()) // Don't gather from packages if there are none specified.
+		if (Target->Settings.GatherFromPackages.IncludePathWildcards.Num() && Target->Settings.GatherFromPackages.FileExtensions.Num()) // Don't gather from packages if there are none specified.
 		{
 			FConfigSection& ConfigSection = Script.GatherTextStep(GatherTextStepIndex++);
 
