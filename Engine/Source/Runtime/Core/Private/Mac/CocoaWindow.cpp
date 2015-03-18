@@ -198,15 +198,20 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	// Handle clicking on the titlebar fullscreen item
 	if (self.TargetWindowMode == EWindowMode::Windowed)
 	{
-		self.TargetWindowMode = EWindowMode::Fullscreen;
-#if WITH_EDITORONLY_DATA
+		self.PreFullScreenRect.origin = [self frame].origin;
+		self.PreFullScreenRect.size = [self openGLFrame].size;
+		
+		// Use the current default fullscreen mode when switching via the OS button
+		auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FullScreenMode"));
+		check(CVar);
+		self.TargetWindowMode = CVar->GetValueOnAnyThread() == 0 ? EWindowMode::Fullscreen : EWindowMode::WindowedFullscreen;
+		
+#if WITH_EDITORONLY_DATA // Always use WindowedFullscreen for the Editor or bad things happen
 		if (GIsEditor)
 		{
 			self.TargetWindowMode = EWindowMode::WindowedFullscreen;
 		}
 #endif
-		self.PreFullScreenRect.origin = [self frame].origin;
-		self.PreFullScreenRect.size = [self openGLFrame].size;
 	}
 }
 
@@ -242,7 +247,6 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 
 	MacApplication->DeferEvent(Notification);
 
-	[self setFrame:self.PreFullScreenRect display:YES];
 	FMacCursor* MacCursor = (FMacCursor*)MacApplication->Cursor.Get();
 	if (MacCursor)
 	{

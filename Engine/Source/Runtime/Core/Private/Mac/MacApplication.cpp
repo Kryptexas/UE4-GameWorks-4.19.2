@@ -891,7 +891,7 @@ void FMacApplication::OnWindowDidMove(TSharedRef<FMacWindow> Window)
 
 	if ([Window->GetWindowHandle() windowMode] != EWindowMode::Fullscreen)
 	{
-		Y = FPlatformMisc::ConvertCocoaYPositionToSlate(WindowFrame.origin.y + WindowFrame.size.height) + (OpenGLFrame.size.height - WindowFrame.size.height);
+		Y = FPlatformMisc::ConvertCocoaYPositionToSlate(WindowFrame.origin.y + OpenGLFrame.size.height);
 	}
 
 	MessageHandler->OnMovedWindow(Window, X, Y);
