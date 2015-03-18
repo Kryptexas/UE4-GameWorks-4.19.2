@@ -507,13 +507,19 @@ FGeometry SWidget::FindChildGeometry( const FGeometry& MyGeometry, TSharedRef<SW
 int32 SWidget::FindChildUnderMouse( const FArrangedChildren& Children, const FPointerEvent& MouseEvent )
 {
 	const FVector2D& AbsoluteCursorLocation = MouseEvent.GetScreenSpacePosition();
+	return SWidget::FindChildUnderPosition( Children, AbsoluteCursorLocation );
+}
+
+
+int32 SWidget::FindChildUnderPosition( const FArrangedChildren& Children, const FVector2D& ArrangedSpacePosition )
+{
 	const int32 NumChildren = Children.Num();
 	for( int32 ChildIndex=NumChildren-1; ChildIndex >= 0; --ChildIndex )
 	{
 		const FArrangedWidget& Candidate = Children[ChildIndex];
 		const bool bCandidateUnderCursor = 
 			// Candidate is physically under the cursor
-			Candidate.Geometry.IsUnderLocation( AbsoluteCursorLocation );
+			Candidate.Geometry.IsUnderLocation( ArrangedSpacePosition );
 
 		if (bCandidateUnderCursor)
 		{

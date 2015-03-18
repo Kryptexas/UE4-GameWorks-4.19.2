@@ -841,6 +841,9 @@ protected:
 	/** @return The index of the child that the mouse is currently hovering */
 	static int32 FindChildUnderMouse( const FArrangedChildren& Children, const FPointerEvent& MouseEvent );
 
+	/** @return The index of the child that is under the specified position */
+	static int32 FindChildUnderPosition(const FArrangedChildren& Children, const FVector2D& ArrangedSpacePosition);
+
 	/** 
 	 * Determines if this widget should be enabled.
 	 * 
