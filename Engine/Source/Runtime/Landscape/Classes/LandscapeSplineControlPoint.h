@@ -82,6 +82,16 @@ class ULandscapeSplineControlPoint : public UObject
 	float LDMaxDrawDistance;
 
 	/**
+	 * Translucent objects with a lower sort priority draw behind objects with a higher priority.
+	 * Translucent objects with the same priority are rendered from back-to-front based on their bounds origin.
+	 *
+	 * Ignored if the object is not translucent.  The default priority is zero.
+	 * Warning: This should never be set to a non-default value unless you know what you are doing, as it will prevent the renderer from sorting correctly.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Mesh)
+	int32 TranslucencySortPriority;
+
+	/**
 	 * Name of blend layer to paint when applying spline to landscape
 	 * If "none", no layer is painted
 	 */

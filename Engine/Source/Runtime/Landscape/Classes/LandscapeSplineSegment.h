@@ -169,6 +169,16 @@ class ULandscapeSplineSegment : public UObject
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = LandscapeSplineMeshes, meta = (DisplayName = "Max Draw Distance"))
 	float LDMaxDrawDistance;
 
+	/**
+	 * Translucent objects with a lower sort priority draw behind objects with a higher priority.
+	 * Translucent objects with the same priority are rendered from back-to-front based on their bounds origin.
+	 *
+	 * Ignored if the object is not translucent.  The default priority is zero.
+	 * Warning: This should never be set to a non-default value unless you know what you are doing, as it will prevent the renderer from sorting correctly.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=LandscapeSplineMeshes)
+	int32 TranslucencySortPriority;
+
 	/** If the spline is above the terrain, whether to raise the terrain up to the level of the spline when applying it to the landscape. */
 	UPROPERTY(EditAnywhere, Category=LandscapeSplineSegment)
 	uint32 bRaiseTerrain:1;

@@ -527,6 +527,7 @@ ULandscapeSplineControlPoint::ULandscapeSplineControlPoint(const FObjectInitiali
 	MeshScale = FVector(1);
 
 	LDMaxDrawDistance = 0;
+	TranslucencySortPriority = 0;
 
 	LayerName = NAME_None;
 	bRaiseTerrain = true;
@@ -831,6 +832,13 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 			}
 		}
 
+		if (MeshComponent->TranslucencySortPriority != TranslucencySortPriority)
+		{
+			MeshComponent->Modify();
+			MeshComponent->TranslucencySortPriority = TranslucencySortPriority;
+			MeshComponent->MarkRenderStateDirty();
+		}
+
 		if (MeshComponent->LDMaxDrawDistance != LDMaxDrawDistance)
 		{
 			MeshComponent->Modify();
@@ -1006,6 +1014,7 @@ ULandscapeSplineSegment::ULandscapeSplineSegment(const FObjectInitializer& Objec
 	// SplineMesh properties
 	SplineMeshes.Empty();
 	LDMaxDrawDistance = 0;
+	TranslucencySortPriority = 0;
 	bEnableCollision = true;
 	bCastShadow = true;
 
@@ -1498,6 +1507,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 				MeshComponent->LDMaxDrawDistance = LDMaxDrawDistance;
 				MeshComponent->CachedMaxDrawDistance = 0;
 			}
+			MeshComponent->TranslucencySortPriority = TranslucencySortPriority;
 
 			MeshComponent->SetCastShadow(bCastShadow);
 			MeshComponent->InvalidateLightingCache();
