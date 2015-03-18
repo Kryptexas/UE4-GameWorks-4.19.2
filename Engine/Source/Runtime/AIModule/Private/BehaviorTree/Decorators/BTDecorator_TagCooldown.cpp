@@ -33,9 +33,7 @@ bool UBTDecorator_TagCooldown::HasCooldownFinished(const UBehaviorTreeComponent&
 		return true;
 	}
 
-	const float TimePassed = (OwnerComp.GetWorld()->GetTimeSeconds() - TagCooldownEndTime);
-
-	return TimePassed >= CooldownDuration;
+	return (OwnerComp.GetWorld()->GetTimeSeconds() >= TagCooldownEndTime);
 }
 
 bool UBTDecorator_TagCooldown::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
