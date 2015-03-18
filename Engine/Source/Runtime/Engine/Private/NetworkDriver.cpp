@@ -2438,7 +2438,9 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 						}
 						
 						// if the actor is now relevant or was recently relevant
-						if( bIsRelevant || (Channel && Time - Channel->RelevantTime < RelevantTimeout) )
+						const bool bIsRecentlyRelevant = bIsRelevant || (Channel && Time - Channel->RelevantTime < RelevantTimeout);
+
+						if( bIsRecentlyRelevant )
 						{	
 							FinalRelevantCount++;
 
@@ -2508,8 +2510,10 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 								}
 							}
 						}
-						// otherwise close the actor channel if it exists for this connection
-						else if ( Channel != NULL )
+						
+						// If the actor wasn't recently relevant, or if it was torn off,
+						// close the actor channel if it exists for this connection
+						if ((!bIsRecentlyRelevant || Actor->bTearOff) && Channel != NULL)
 						{
 							// Non startup (map) actors have their channels closed immediately, which destroys them.
 							// Startup actors get to keep their channels open.

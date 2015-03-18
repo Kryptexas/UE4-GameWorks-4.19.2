@@ -1445,6 +1445,9 @@ bool UActorChannel::CleanUp( const bool bForDestroy )
 			{
 				Actor->Role = ROLE_Authority;
 				Actor->SetReplicates(false);
+				bTornOff = true;
+				Actor->TornOff();
+				Actor = NULL;
 			}
 			else if (Dormant)
 			{
@@ -1932,17 +1935,6 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 	if (Actor && bSpawnedNewActor)
 	{
 		Actor->PostNetInit();
-	}
-
-	// Tear off an actor on the client-side
-	if ( Actor && Actor->bTearOff && Connection->Driver->GetNetMode() == NM_Client )
-	{
-		Actor->Role = ROLE_Authority;
-		Actor->SetReplicates(false);
-		bTornOff = true;
-		Connection->ActorChannels.Remove( Actor );
-		Actor->TornOff();
-		Actor = NULL;
 	}
 }
 
