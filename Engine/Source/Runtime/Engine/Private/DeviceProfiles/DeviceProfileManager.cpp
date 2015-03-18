@@ -18,7 +18,10 @@ UDeviceProfileManager& UDeviceProfileManager::Get()
 		DeviceProfileManagerSingleton = NewObject<UDeviceProfileManager>();
 
 		DeviceProfileManagerSingleton->AddToRoot();
-		DeviceProfileManagerSingleton->LoadProfiles();
+		if (!FPlatformProperties::RequiresCookedData())
+		{
+			DeviceProfileManagerSingleton->LoadProfiles();
+		}
 
 		FString DeviceProfileSelectionModule;
 		GConfig->GetString(TEXT("DeviceProfileManager"), TEXT("DeviceProfileSelectionModule"), DeviceProfileSelectionModule, GEngineIni);
