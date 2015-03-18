@@ -878,6 +878,7 @@ static void BuildShaderOutput(
 		verify(Match(ShaderSource, '('));
 		uint16 BufferIndex = ParseNumber(ShaderSource);
 		check(BufferIndex == Header.Bindings.NumUniformBuffers);
+		UsedUniformBufferSlots[BufferIndex] = true;
 		verify(Match(ShaderSource, ')'));
 		ParameterMap.AddParameterAllocation(*BufferName, Header.Bindings.NumUniformBuffers++, 0, 0);
 
