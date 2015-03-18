@@ -228,6 +228,9 @@ private:
 
 	/** Friendship required for the reader thread to flag when finished */
 	friend struct FAsyncDirectoryReaderThread;
+
+	/** Scratch buffer used for reading in files */
+	TArray<uint8> ScratchBuffer;
 };
 
 /** Configuration structure required to construct a FFileCache */
