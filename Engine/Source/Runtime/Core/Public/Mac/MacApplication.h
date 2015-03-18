@@ -170,6 +170,8 @@ public:
 
 	void DeferEvent(NSObject* Object);
 
+	bool IsProcessingDeferredEvents() const { return bIsProcessingDeferredEvents; }
+
 	TSharedPtr<FMacWindow> FindWindowByNSWindow(FCocoaWindow* WindowHandle);
 
 	/** Queues a window for text layout invalidation when safe */
@@ -246,6 +248,8 @@ private:
 
 	FCriticalSection WindowsMutex;
 	TArray<TSharedRef<FMacWindow>> Windows;
+
+	bool bIsProcessingDeferredEvents;
 
 	struct FSavedWindowOrderInfo
 	{

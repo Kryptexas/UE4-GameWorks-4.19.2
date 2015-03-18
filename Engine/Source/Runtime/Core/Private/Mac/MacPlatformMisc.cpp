@@ -579,7 +579,7 @@ void FMacPlatformMisc::PumpMessages( bool bFromMainLoop )
 	{
 		ProcessGameThreadEvents();
 
-		if (MacApplication && IsInGameThread())
+		if (MacApplication && !MacApplication->IsProcessingDeferredEvents() && IsInGameThread())
 		{
 			if (UpdateCachedMacMenuState && bChachedMacMenuStateNeedsUpdate)
 			{
