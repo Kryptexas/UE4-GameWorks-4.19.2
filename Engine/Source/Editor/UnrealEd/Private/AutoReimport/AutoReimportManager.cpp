@@ -6,6 +6,7 @@
 #include "AutoReimport/AutoReimportManager.h"
 #include "ContentDirectoryMonitor.h"
 
+#include "PackageTools.h"
 #include "ObjectTools.h"
 #include "ARFilter.h"
 #include "ContentBrowserModule.h"
@@ -15,9 +16,6 @@
 
 #define LOCTEXT_NAMESPACE "AutoReimportManager"
 #define yield if (TimeLimit.Exceeded()) return
-
-DEFINE_LOG_CATEGORY_STATIC(LogAutoReimportManager, Log, All);
-
 
 enum class EStateMachineNode { CallOnce, CallMany };
 
@@ -103,7 +101,10 @@ public:
 	TArray<FPathAndMountPoint> GetMonitoredDirectories() const;
 
 	/** Report an external change to the manager, such that a subsequent equal change reported by the os be ignored */
-	void ReportExternalChange(const FString& Filename, FFileChangeData::EFileChangeAction Action);
+	void IgnoreNewFile(const FString& Filename);
+	void IgnoreFileModification(const FString& Filename);
+	void IgnoreMovedFile(const FString& SrcFilename, const FString& DstFilename);
+	void IgnoreDeletedFile(const FString& Filename);
 
 	/** Destroy this manager */
 	void Destroy();
@@ -122,6 +123,9 @@ private:
 
 	/** Called when a new asset path has been mounted or unmounted */
 	void OnContentPathChanged(const FString& InAssetPath, const FString& FileSystemPath);
+
+	/** Called when an asset has been renamed */
+	void OnAssetRenamed(const FAssetData& AssetData, const FString& OldPath);
 
 private:
 
@@ -150,7 +154,7 @@ private:
 private:
 
 	/** Idle processing */
-	TOptional<ECurrentState> Idle(const FTimeLimit& Limit);
+	TOptional<ECurrentState> Idle();
 	
 	/** Process any remaining pending additions we have */
 	TOptional<ECurrentState> ProcessAdditions(const FTimeLimit& TimeLimit);
@@ -175,9 +179,6 @@ private:
 	/** Feedback context that can selectively override the global context to consume progress events for saving of assets */
 	TSharedPtr<FReimportFeedbackContext> FeedbackContextOverride;
 
-	/** Cached string of extensions that are supported by all available factories */
-	FString SupportedExtensions;
-
 	/** Array of objects that detect changes to directories */
 	TArray<FContentDirectoryMonitor> DirectoryMonitors;
 
@@ -189,15 +190,16 @@ private:
 
 	/** The cached number of unprocessed changes we currently have to process */
 	int32 CachedNumUnprocessedChanges;
+
+	/** Reentracy guard for when we are making changes to assets */
+	bool bGuardAssetChanges;
 };
 
 FAutoReimportManager::FAutoReimportManager()
 	: StateMachine(ECurrentState::Idle)
 	, StartProcessingDelay(0.5)
+	, bGuardAssetChanges(false)
 {
-	// @todo: arodham: update this when modules are reloaded or new factory types are available?
-	SupportedExtensions = GetAllFactoryExtensions();
-
 	auto* Settings = GetMutableDefault<UEditorLoadingSavingSettings>();
 	Settings->OnSettingChanged().AddRaw(this, &FAutoReimportManager::HandleLoadingSavingSettingChanged);
 
@@ -210,13 +212,16 @@ FAutoReimportManager::FAutoReimportManager()
 		MessageLogModule.RegisterLogListing("AssetReimport", LOCTEXT("AssetReimportLabel", "Asset Reimport"));
 	}
 
+	IAssetRegistry& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
+	AssetRegistry.OnAssetRenamed().AddRaw(this, &FAutoReimportManager::OnAssetRenamed);
+
 	// Only set this up for content directories if the user has this enabled
 	if (Settings->bMonitorContentDirectories)
 	{
 		SetUpDirectoryMonitors();
 	}
 
-	StateMachine.Add(ECurrentState::Idle,					EStateMachineNode::CallOnce,	[this](const FTimeLimit& T){ return this->Idle(T);					});
+	StateMachine.Add(ECurrentState::Idle,					EStateMachineNode::CallOnce,	[this](const FTimeLimit& T){ return this->Idle();					});
 	StateMachine.Add(ECurrentState::PendingResponse,		EStateMachineNode::CallOnce,	[this](const FTimeLimit& T){ return this->PendingResponse();		});
 	StateMachine.Add(ECurrentState::ProcessAdditions,		EStateMachineNode::CallMany,	[this](const FTimeLimit& T){ return this->ProcessAdditions(T);		});
 	StateMachine.Add(ECurrentState::SavePackages,			EStateMachineNode::CallOnce,	[this](const FTimeLimit& T){ return this->SavePackages();			});
@@ -234,19 +239,68 @@ TArray<FPathAndMountPoint> FAutoReimportManager::GetMonitoredDirectories() const
 	return Dirs;
 }
 
-void FAutoReimportManager::ReportExternalChange(const FString& Filename, FFileChangeData::EFileChangeAction Action)
+void FAutoReimportManager::IgnoreNewFile(const FString& Filename)
 {
 	for (auto& Monitor : DirectoryMonitors)
 	{
 		if (Filename.StartsWith(Monitor.GetDirectory()))
 		{
-			Monitor.ReportExternalChange(Filename, Action);
+			Monitor.IgnoreNewFile(Filename);
+		}
+	}
+}
+
+void FAutoReimportManager::IgnoreFileModification(const FString& Filename)
+{
+	for (auto& Monitor : DirectoryMonitors)
+	{
+		if (Filename.StartsWith(Monitor.GetDirectory()))
+		{
+			Monitor.IgnoreFileModification(Filename);
+		}
+	}
+}
+
+void FAutoReimportManager::IgnoreMovedFile(const FString& SrcFilename, const FString& DstFilename)
+{
+	for (auto& Monitor : DirectoryMonitors)
+	{
+		const bool bSrcInFolder = SrcFilename.StartsWith(Monitor.GetDirectory());
+		const bool bDstInFolder = DstFilename.StartsWith(Monitor.GetDirectory());
+
+		if (bSrcInFolder && bDstInFolder)
+		{
+			Monitor.IgnoreMovedFile(SrcFilename, DstFilename);
+		}
+		else if (bSrcInFolder)
+		{
+			Monitor.IgnoreDeletedFile(SrcFilename);
+		}
+		else if (bDstInFolder)
+		{
+			Monitor.IgnoreNewFile(DstFilename);
+		}
+	}
+}
+
+void FAutoReimportManager::IgnoreDeletedFile(const FString& Filename)
+{
+	for (auto& Monitor : DirectoryMonitors)
+	{
+		if (Filename.StartsWith(Monitor.GetDirectory()))
+		{
+			Monitor.IgnoreDeletedFile(Filename);
 		}
 	}
 }
 
 void FAutoReimportManager::Destroy()
 {
+	if (auto* AssetRegistryModule = FModuleManager::GetModulePtr<FAssetRegistryModule>("AssetRegistry"))
+	{
+		AssetRegistryModule->Get().OnAssetRenamed().RemoveAll(this);
+	}
+	
 	if (auto* Settings = GetMutableDefault<UEditorLoadingSavingSettings>())
 	{
 		Settings->OnSettingChanged().RemoveAll(this);
@@ -262,6 +316,74 @@ void FAutoReimportManager::Destroy()
 
 	// Force a save of all the caches
 	DirectoryMonitors.Empty();
+}
+
+void FAutoReimportManager::OnAssetRenamed(const FAssetData& AssetData, const FString& OldPath)
+{
+	if (bGuardAssetChanges)
+	{
+		return;
+	}
+
+	// This code moves a source content file that reside alongside assets when the assets are renamed. We do this under the following conditions:
+	// 	1. The sourcefile is solely referenced from the the asset that has been moved
+	//	2. Said asset only references a single file
+	//	3. The source file resides in the same folder as the asset
+	//
+	// Additionally, we rename the source file if it matched the name of the asset before the rename/move.
+	//	- If we rename the source file, then we also update the reimport paths for the asset
+
+	TArray<FString> SourceFilesRelativeToOldPath;
+	for (const auto& Pair : AssetData.TagsAndValues)
+	{
+		if (Pair.Key.IsEqual(UObject::SourceFileTagName(), ENameCase::IgnoreCase, false))
+		{
+			SourceFilesRelativeToOldPath.Add(Pair.Value);
+		}
+	}
+
+	// We move the file with the asset provided it is the only file referenced, and sits right beside the uasset file
+	if (SourceFilesRelativeToOldPath.Num() == 1 && !SourceFilesRelativeToOldPath[0].GetCharArray().ContainsByPredicate([](const TCHAR Char) { return Char == '/' || Char == '\\'; }))
+	{
+		const FString AbsoluteSrcPath = FPaths::ConvertRelativePathToFull(FPackageName::LongPackageNameToFilename(FPackageName::GetLongPackagePath(OldPath)));
+		const FString AbsoluteDstPath = FPaths::ConvertRelativePathToFull(FPackageName::LongPackageNameToFilename(AssetData.PackagePath.ToString()));
+
+		const FString OldAssetName = FPackageName::GetLongPackageAssetName(FPackageName::ObjectPathToPackageName(OldPath));
+		FString NewFileName = FPaths::GetBaseFilename(SourceFilesRelativeToOldPath[0]);
+
+		bool bRequireReimportPathUpdate = false;
+		if (PackageTools::SanitizePackageName(NewFileName) == OldAssetName)
+		{
+			NewFileName = AssetData.AssetName.ToString();
+			bRequireReimportPathUpdate = true;
+		}
+
+		const FString SrcFile = AbsoluteSrcPath / SourceFilesRelativeToOldPath[0];
+		const FString DstFile = AbsoluteDstPath / NewFileName + TEXT(".") + FPaths::GetExtension(SourceFilesRelativeToOldPath[0]);
+
+		// We can't do this if multiple assets reference the same file. We should be checking for > 1 referencing asset, but the asset registry
+		// filter lookup won't return the recently renamed package because it will be Empty by now, so we check for *anything* referencing the asset (assuming that we'll never find *this* asset).
+		const IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
+		if (Utils::FindAssetsPertainingToFile(Registry, SrcFile).Num() > 0)
+		{
+			return;
+		}
+
+		if (!FPlatformFileManager::Get().GetPlatformFile().FileExists(*DstFile) &&
+			IFileManager::Get().Move(*DstFile, *SrcFile, false /*bReplace */, false, true /* attributes */, true /* don't retry */))
+		{
+			IgnoreMovedFile(SrcFile, DstFile);
+
+			if (bRequireReimportPathUpdate)
+			{
+				TArray<FString> Paths;
+				Paths.Add(DstFile);
+
+				// Update the reimport file names
+				FReimportManager::Instance()->UpdateReimportPaths(AssetData.GetAsset(), Paths);
+			}
+		}
+	}
 }
 
 int32 FAutoReimportManager::GetNumUnprocessedChanges() const
@@ -297,6 +419,7 @@ TOptional<ECurrentState> FAutoReimportManager::ProcessAdditions(const FTimeLimit
 {
 	// Override the global feedback context while we do this to avoid popping up dialogs
 	TGuardValue<FFeedbackContext*> ScopedContextOverride(GWarn, FeedbackContextOverride.Get());
+	TGuardValue<bool> ScopedAssetChangesGuard(bGuardAssetChanges, true);
 
 	FeedbackContextOverride->GetContent()->SetMainText(GetProgressText());
 
@@ -348,6 +471,8 @@ TOptional<ECurrentState> FAutoReimportManager::SavePackages()
 	// We don't override the context specifically when saving packages so the user gets proper feedback
 	//TGuardValue<FFeedbackContext*> ScopedContextOverride(GWarn, FeedbackContextOverride.Get());
 
+	TGuardValue<bool> ScopedAssetChangesGuard(bGuardAssetChanges, true);
+
 	FeedbackContextOverride->GetContent()->SetMainText(GetProgressText());
 
 	if (PackagesToSave.Num() > 0)
@@ -367,6 +492,7 @@ TOptional<ECurrentState> FAutoReimportManager::ProcessModifications(const FTimeL
 {
 	// Override the global feedback context while we do this to avoid popping up dialogs
 	TGuardValue<FFeedbackContext*> ScopedContextOverride(GWarn, FeedbackContextOverride.Get());
+	TGuardValue<bool> ScopedAssetChangesGuard(bGuardAssetChanges, true);
 
 	FeedbackContextOverride->GetContent()->SetMainText(GetProgressText());
 
@@ -383,6 +509,8 @@ TOptional<ECurrentState> FAutoReimportManager::ProcessModifications(const FTimeL
 
 TOptional<ECurrentState> FAutoReimportManager::ProcessDeletions()
 {
+	TGuardValue<bool> ScopedAssetChangesGuard(bGuardAssetChanges, true);
+
 	const IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
 
 	FeedbackContextOverride->GetContent()->SetMainText(GetProgressText());
@@ -404,6 +532,8 @@ TOptional<ECurrentState> FAutoReimportManager::ProcessDeletions()
 		ObjectTools::DeleteAssets(AssetsToDelete);
 	}
 
+	FeedbackContextOverride->GetContent()->SetMainText(GetProgressText());
+
 	Cleanup();
 	return ECurrentState::Idle;
 }
@@ -414,12 +544,11 @@ TOptional<ECurrentState> FAutoReimportManager::PendingResponse()
 	return TOptional<ECurrentState>();
 }
 
-TOptional<ECurrentState> FAutoReimportManager::Idle(const FTimeLimit& TimeLimit)
+TOptional<ECurrentState> FAutoReimportManager::Idle()
 {
 	for (auto& Monitor : DirectoryMonitors)
 	{
-		Monitor.Tick(TimeLimit);
-		yield TOptional<ECurrentState>();
+		Monitor.Tick();
 	}
 
 	const int32 NumUnprocessedChanges = GetNumUnprocessedChanges();
@@ -493,7 +622,7 @@ void FAutoReimportManager::AddReferencedObjects(FReferenceCollector& Collector)
 void FAutoReimportManager::HandleLoadingSavingSettingChanged(FName PropertyName)
 {
 	if (PropertyName == GET_MEMBER_NAME_CHECKED(UEditorLoadingSavingSettings, bMonitorContentDirectories) ||
-		PropertyName == GET_MEMBER_NAME_CHECKED(UEditorLoadingSavingSettings, AutoReimportDirectories))
+		PropertyName == GET_MEMBER_NAME_CHECKED(UEditorLoadingSavingSettings, AutoReimportDirectorySettings))
 	{
 		const auto* Settings = GetDefault<UEditorLoadingSavingSettings>();
 		if (Settings->bMonitorContentDirectories)
@@ -525,60 +654,54 @@ void FAutoReimportManager::OnContentPathChanged(const FString& InAssetPath, cons
 
 void FAutoReimportManager::SetUpDirectoryMonitors()
 {
-	TArray<FPathAndMountPoint> CollapsedDirectories;
-
-	// Build an array of directory / mounted path so we can match up absolute paths that the user has typed in
-	TArray<TPair<FString, FString>> MountedPaths;
+	struct FParsedSettings
 	{
-		TArray<FString> RootContentPaths;
-		FPackageName::QueryRootContentPaths( RootContentPaths );
-		for (FString& RootPath : RootContentPaths)
+		FString SourceDirectory;
+		FString MountPoint;
+		FMatchRules Rules;
+	};
+
+	TArray<FParsedSettings> FinalArray;
+	auto SupportedExtensions = GetAllFactoryExtensions();
+	for (const auto& Setting : GetDefault<UEditorLoadingSavingSettings>()->AutoReimportDirectorySettings)
+	{
+		FParsedSettings NewMapping;
+		NewMapping.SourceDirectory = Setting.SourceDirectory;
+		NewMapping.MountPoint = Setting.MountPoint;
+
+		if (!FAutoReimportDirectoryConfig::ParseSourceDirectoryAndMountPoint(NewMapping.SourceDirectory, NewMapping.MountPoint))
 		{
-			FString ContentFolder = FPaths::ConvertRelativePathToFull(FPackageName::LongPackageNameToFilename(RootPath));
-			MountedPaths.Add( TPairInitializer<FString, FString>(MoveTemp(ContentFolder), MoveTemp(RootPath)) );
+			continue;
 		}
+
+		// Only include extensions that match a factory
+		NewMapping.Rules.SetApplicableExtensions(SupportedExtensions);
+		for (const auto& WildcardConfig : Setting.Wildcards)
+		{
+			NewMapping.Rules.AddWildcardRule(WildcardConfig.Wildcard, WildcardConfig.bInclude);
+		}
+		
+		FinalArray.Add(NewMapping);
 	}
 
-
-	auto& FileManager = IFileManager::Get();
-	for (const FString& Path : GetDefault<UEditorLoadingSavingSettings>()->AutoReimportDirectories)
+	for (int32 Index = 0; Index < FinalArray.Num(); ++Index)
 	{
-		FPathAndMountPoint ThisPath;
+		const auto& Mapping = FinalArray[Index];
 
-		const FName MountPoint = FPackageName::GetPackageMountPoint(Path);
-		if (!MountPoint.IsNone())
+		// We only create a directory monitor if there are no other's watching parent directories of this one
+		for (int32 OtherIndex = Index + 1; OtherIndex < FinalArray.Num(); ++OtherIndex)
 		{
-			ThisPath.Path = FPaths::ConvertRelativePathToFull(FPackageName::LongPackageNameToFilename(Path / TEXT(""))) / "";
-		}
-		else
-		{
-			ThisPath.Path = FPaths::ConvertRelativePathToFull(Path) / "";
-		}
-
-		if (FileManager.DirectoryExists(*ThisPath.Path))
-		{
-			// Set the mounted path if necessary
-			auto* Pair = MountedPaths.FindByPredicate([&](const TPair<FString, FString>& InPair){
-				return ThisPath.Path.StartsWith(InPair.Key);
-			});
-
-			if (Pair)
+			if (FinalArray[Index].SourceDirectory.StartsWith(FinalArray[OtherIndex].SourceDirectory))
 			{
-				ThisPath.MountPoint = Pair->Value / ThisPath.Path.RightChop(Pair->Key.Len());
+				UE_LOG(LogAutoReimportManager, Warning, TEXT("Unable to watch directory %s as it will conflict with another watching %s."), *FinalArray[Index].SourceDirectory, *FinalArray[OtherIndex].SourceDirectory);
+				goto next;
 			}
-
-			CollapsedDirectories.Add(ThisPath);
 		}
-	}
 
-	Utils::RemoveDuplicates(CollapsedDirectories, [](const FPathAndMountPoint& A, const FPathAndMountPoint& B){
-		return A.Path.StartsWith(B.Path, ESearchCase::IgnoreCase) ||
-			   B.Path.StartsWith(A.Path, ESearchCase::IgnoreCase);
-	});
+		DirectoryMonitors.Emplace(Mapping.SourceDirectory, Mapping.Rules, Mapping.MountPoint);
 
-	for (const auto& Dir : CollapsedDirectories)
-	{
-		DirectoryMonitors.Emplace(Dir.Path, SupportedExtensions, Dir.MountPoint);
+	next:
+		continue;
 	}
 }
 
@@ -634,9 +757,24 @@ void UAutoReimportManager::Initialize()
 	Implementation = MakeShareable(new FAutoReimportManager);
 }
 
-void UAutoReimportManager::ReportExternalChange(const FString& Filename, FFileChangeData::EFileChangeAction Action)
+void UAutoReimportManager::IgnoreNewFile(const FString& Filename)
 {
-	Implementation->ReportExternalChange(Filename, Action);
+	Implementation->IgnoreNewFile(Filename);
+}
+
+void UAutoReimportManager::IgnoreFileModification(const FString& Filename)
+{
+	Implementation->IgnoreFileModification(Filename);
+}
+
+void UAutoReimportManager::IgnoreMovedFile(const FString& SrcFilename, const FString& DstFilename)
+{
+	Implementation->IgnoreMovedFile(SrcFilename, DstFilename);
+}
+
+void UAutoReimportManager::IgnoreDeletedFile(const FString& Filename)
+{
+	Implementation->IgnoreDeletedFile(Filename);
 }
 
 TArray<FPathAndMountPoint> UAutoReimportManager::GetMonitoredDirectories() const

@@ -200,7 +200,7 @@ void FAssetDeleteModel::DeleteSourceContentFiles()
 		}
 
 		// One way or another this file is going to be deleted, but we don't want the import manager to react to the deletion
-		GUnrealEd->AutoReimportManager->ReportExternalChange(Path, FFileChangeData::FCA_Removed);
+		GUnrealEd->AutoReimportManager->IgnoreDeletedFile(Path);
 
 		if (ISourceControlModule::Get().IsEnabled())
 		{

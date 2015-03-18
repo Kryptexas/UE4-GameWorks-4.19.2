@@ -14,13 +14,13 @@ public:
 	/**
 	 * Constructor.
 	 * @param InDirectory			Content directory path to monitor. Assumed to be absolute.
-	 * @param InSupportedExtensions A string containing semi-colon separated extensions to monitor.
+	 * @param InMatchRules			Rules to select what will apply to this folder
 	 * @param InMountedContentPath	(optional) Mounted content path (eg /Engine/, /Game/) to which InDirectory maps.
 	 */
-	FContentDirectoryMonitor(const FString& InDirectory, const FString& InSupportedExtensions, const FString& InMountedContentPath = FString());
+	FContentDirectoryMonitor(const FString& InDirectory, const FMatchRules& InMatchRules, const FString& InMountedContentPath = FString());
 
 	/** Tick this monitor's cache to give it a chance to finish scanning for files */
-	void Tick(const FTimeLimit& TimeLimit);
+	void Tick();
 
 	/** Start processing any outstanding changes this monitor is aware of */
 	void StartProcessing();
@@ -35,7 +35,10 @@ public:
 	void ExtractAssetsToDelete(const IAssetRegistry& Registry, TArray<FAssetData>& OutAssetsToDelete);
 
 	/** Report an external change to the manager, such that a subsequent equal change reported by the os be ignored */
-	void ReportExternalChange(const FString& Filename, FFileChangeData::EFileChangeAction Action);
+	void IgnoreNewFile(const FString& Filename);
+	void IgnoreFileModification(const FString& Filename);
+	void IgnoreMovedFile(const FString& SrcFilename, const FString& DstFilename);
+	void IgnoreDeletedFile(const FString& Filename);
 
 	/** Destroy this monitor including its cache */
 	void Destroy();

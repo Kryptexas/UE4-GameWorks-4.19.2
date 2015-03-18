@@ -288,7 +288,8 @@ void SReimportFeedback::Construct(const FArguments& InArgs, FText InMainText)
 }
 
 FReimportFeedbackContext::FReimportFeedbackContext()
-	: MessageLog("AssetReimport")
+	: bSuppressSlowTaskMessages(false)
+	, MessageLog("AssetReimport")
 {}
 
 void FReimportFeedbackContext::Initialize(TSharedRef<SReimportFeedback> Widget)
@@ -331,7 +332,7 @@ void FReimportFeedbackContext::StartSlowTask(const FText& Task, bool bShowCancel
 {
 	FFeedbackContext::StartSlowTask(Task, bShowCancelButton);
 
-	if (!Task.IsEmpty())
+	if (!bSuppressSlowTaskMessages && !Task.IsEmpty())
 	{
 		NotificationContent->Add(SNew(STextBlock).Text(Task));
 	}

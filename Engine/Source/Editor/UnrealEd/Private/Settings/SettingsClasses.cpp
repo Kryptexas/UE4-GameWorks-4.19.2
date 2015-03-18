@@ -5,6 +5,7 @@
 #include "Components/BillboardComponent.h"
 #include "AI/Navigation/NavigationSystem.h"
 #include "Components/ArrowComponent.h"
+#include "AutoReimport/AutoReimportUtilities.h"
 
 /* UContentBrowserSettings interface
  *****************************************************************************/
@@ -96,10 +97,14 @@ UEditorLoadingSavingSettings::UEditorLoadingSavingSettings( const FObjectInitial
 	, bMonitorContentDirectories(false)
 	, bAutoCreateAssets(true)
 	, bAutoDeleteAssets(true)
+	, bDetectChangesOnRestart(false)
 	, bDeleteSourceFilesWithAssets(false)
 {
 	TextDiffToolPath.FilePath = TEXT("P4Merge.exe");
-	AutoReimportDirectories.Add("/Game/");
+
+	FAutoReimportDirectoryConfig Default;
+	Default.SourceDirectory = TEXT("/Game/");
+	AutoReimportDirectorySettings.Add(Default);
 }
 
 
@@ -113,7 +118,8 @@ void UEditorLoadingSavingSettings::PostEditChangeProperty( struct FPropertyChang
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	const FName Name = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	// Use MemberProperty here so we report the correct member name for nested changes
+	const FName Name = (PropertyChangedEvent.MemberProperty != nullptr) ? PropertyChangedEvent.MemberProperty->GetFName() : NAME_None;
 
 	if (Name == FName(TEXT("bSCCUseGlobalSettings")))
 	{
@@ -129,6 +135,93 @@ void UEditorLoadingSavingSettings::PostEditChangeProperty( struct FPropertyChang
 	SettingChangedEvent.Broadcast(Name);
 }
 
+void UEditorLoadingSavingSettings::PostInitProperties()
+{
+	for (const auto& String : AutoReimportDirectories_DEPRECATED)
+	{
+		FAutoReimportDirectoryConfig Config;
+		Config.SourceDirectory = String;
+		AutoReimportDirectorySettings.Add(Config);
+	}
+	Super::PostInitProperties();
+}
+
+FAutoReimportDirectoryConfig::FParseContext::FParseContext(bool bInEnableLogging)
+	: bEnableLogging(bInEnableLogging)
+{
+	TArray<FString> RootContentPaths;
+	FPackageName::QueryRootContentPaths( RootContentPaths );
+	for (FString& RootPath : RootContentPaths)
+	{
+		FString ContentFolder = FPaths::ConvertRelativePathToFull(FPackageName::LongPackageNameToFilename(RootPath));
+		MountedPaths.Add( TPairInitializer<FString, FString>(MoveTemp(ContentFolder), MoveTemp(RootPath)) );
+	}
+}
+
+bool FAutoReimportDirectoryConfig::ParseSourceDirectoryAndMountPoint(FString& SourceDirectory, FString& MountPoint, const FParseContext& InContext)
+{
+	SourceDirectory.ReplaceInline(TEXT("\\"), TEXT("/"));
+
+	// Check if the source directory is actually a mount point
+	if (!FPackageName::GetPackageMountPoint(SourceDirectory).IsNone())
+	{
+		MountPoint = SourceDirectory;
+		SourceDirectory = FString();
+	}
+
+	if (!SourceDirectory.IsEmpty() && !MountPoint.IsEmpty())
+	{
+		// We have both a source directory and a mount point. Verify that the source dir exists, and that the mount point is valid.
+		if (!IFileManager::Get().DirectoryExists(*SourceDirectory))
+		{
+			UE_CLOG(InContext.bEnableLogging, LogAutoReimportManager, Warning, TEXT("Unable to watch directory %s as it doesn't exist."), *SourceDirectory);
+			return false;
+		}
+
+		if (FPackageName::GetPackageMountPoint(MountPoint).IsNone())
+		{
+			UE_CLOG(InContext.bEnableLogging, LogAutoReimportManager, Warning, TEXT("Unable to setup directory %s to map to %s, as it's not a valid mounted path. Continuing without mounted path (auto reimports will still work, but auto add won't)."), *SourceDirectory, *MountPoint);
+		}
+	}
+	else if(!MountPoint.IsEmpty())
+	{
+		// We have just a mount point - validate it, and find its source directory
+		if (FPackageName::GetPackageMountPoint(MountPoint).IsNone())
+		{
+			UE_CLOG(InContext.bEnableLogging, LogAutoReimportManager, Warning, TEXT("Unable to setup directory monitor for %s, as it's not a valid mounted path."), *MountPoint);
+			return false;
+		}
+
+		SourceDirectory = FPackageName::LongPackageNameToFilename(MountPoint);
+	}
+	else if(!SourceDirectory.IsEmpty())
+	{
+		// We have just a source directory - verify whether it's a mounted path, and set up the mount point if so
+		if (!IFileManager::Get().DirectoryExists(*SourceDirectory))
+		{
+			UE_CLOG(InContext.bEnableLogging, LogAutoReimportManager, Warning, TEXT("Unable to watch directory %s as it doesn't exist."), *SourceDirectory);
+			return false;
+		}
+
+		// Set the mounted path if necessary
+		auto* Pair = InContext.MountedPaths.FindByPredicate([&](const TPair<FString, FString>& Pair){
+			return SourceDirectory.StartsWith(Pair.Key);
+		});
+
+		if (Pair)
+		{
+			MountPoint = Pair->Value / SourceDirectory.RightChop(Pair->Key.Len());
+			MountPoint.ReplaceInline(TEXT("\\"), TEXT("/"));
+		}
+	}
+	else
+	{
+		// Don't have any valid settings
+		return false;
+	}
+
+	return true;
+}
 
 /* UEditorMiscSettings interface
  *****************************************************************************/
