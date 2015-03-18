@@ -2,6 +2,7 @@
 
 #pragma once
 #include "BehaviorTree/BTTaskNode.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "BTTask_PlayAnimation.generated.h"
 
 class UAnimationAsset;
