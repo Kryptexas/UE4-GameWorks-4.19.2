@@ -2728,13 +2728,19 @@ class ir_gen_glsl_visitor : public ir_visitor
 #endif		
 	}
 
-	void print_extensions(bool bUsesFramebufferFetchES2, bool bUsesES31Extensions)
+	void print_extensions(_mesa_glsl_parse_state* state, bool bUsesFramebufferFetchES2, bool bUsesES31Extensions)
 	{
 		if (bUsesES2TextureLODExtension)
 		{
 			ralloc_asprintf_append(buffer, "#ifndef DONTEMITEXTENSIONSHADERTEXTURELODENABLE\n");
 			ralloc_asprintf_append(buffer, "#extension GL_EXT_shader_texture_lod : enable\n");
 			ralloc_asprintf_append(buffer, "#endif\n");
+		}
+
+		if (state->bSeparateShaderObjects && !state->bGenerateES && 
+			(state->target == tessellation_control_shader) || (state->target == tessellation_evaluation_shader))
+		{
+			ralloc_asprintf_append(buffer, "#extension GL_ARB_tessellation_shader : enable\n");
 		}
 
 		if (bUsesDXDY && bIsES)
@@ -2878,8 +2884,8 @@ public:
 
 		char* Extensions = ralloc_asprintf(mem_ctx, "");
 		buffer = &Extensions;
-		print_extensions(bUsesFramebufferFetchES2, state->language_version == 310);
-		if(state->bSeparateShaderObjects && !state->bGenerateES)
+		print_extensions(state, bUsesFramebufferFetchES2, state->language_version == 310);
+		if (state->bSeparateShaderObjects && !state->bGenerateES)
 		{
 			switch (state->target)
 			{
