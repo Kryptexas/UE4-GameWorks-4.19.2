@@ -94,7 +94,7 @@ struct AIMODULE_API FEQSDebugger
 		TSharedPtr<FEnvQueryInstance> Instance;
 	};
 
-	void StoreQuery(TSharedPtr<FEnvQueryInstance>& Query);
+	void StoreQuery(UWorld* InWorld, TSharedPtr<FEnvQueryInstance>& Query);
 	TArray<FEnvQueryInfo>&  GetAllQueriesForOwner(const UObject* Owner);
 
 protected:
