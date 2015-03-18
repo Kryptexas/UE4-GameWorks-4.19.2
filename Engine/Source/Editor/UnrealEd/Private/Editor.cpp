@@ -2609,6 +2609,20 @@ bool FReimportManager::CanReimport( UObject* Obj ) const
 	return false;
 }
 
+void FReimportManager::UpdateReimportPaths( UObject* Obj, const TArray<FString>& InFilenames )
+{
+	if (Obj)
+	{
+		TArray<FString> UnusedExistingFilenames;
+		auto* Handler = Handlers.FindByPredicate([&](FReimportHandler* Handler){ return Handler->CanReimport(Obj, UnusedExistingFilenames); });
+		if (Handler)
+		{
+			(*Handler)->SetReimportPaths(Obj, InFilenames);
+			Obj->MarkPackageDirty();
+		}
+	}
+}
+
 bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing, bool bShowNotification )
 {
 	// Warn that were about to reimport, so prep for it
