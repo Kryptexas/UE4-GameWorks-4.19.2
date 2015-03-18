@@ -111,6 +111,16 @@ void SGameLayerManager::ClearWidgetsForPlayer(ULocalPlayer* Player)
 void SGameLayerManager::ClearWidgets()
 {
 	PlayerCanvas->ClearChildren();
+
+	for(const auto& LayerIt : PlayerLayers)
+	{
+		const TSharedPtr<FPlayerLayer>& Layer = LayerIt.Value;
+		if (Layer.IsValid())
+		{
+			Layer->Slot = nullptr;
+		}
+	}
+	PlayerLayers.Reset();
 }
 
 void SGameLayerManager::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
