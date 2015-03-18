@@ -559,6 +559,9 @@ private:
 	void OnHScrollBarMoved(const float InScrollOffsetFraction);
 	void OnVScrollBarMoved(const float InScrollOffsetFraction);
 
+	/** Return whether a RMB+Drag scroll operation is taking place */
+	bool IsRightClickScrolling() const;
+
 	/**
 	 * Ensure that we will get a Tick() soon (either due to having active focus, or something having changed progmatically and requiring an update)
 	 * Does nothing if the active tick timer is already enabled
@@ -694,6 +697,15 @@ private:
 
 	/** The timer that is actively driving this widget to Tick() even when Slate is idle */
 	TWeakPtr<FActiveTimerHandle> ActiveTickTimer;
+
+	/** How much we scrolled while RMB was being held */
+	float AmountScrolledWhileRightMouseDown;
+
+	/** Whether a software cursor is currently active */
+	bool bIsSoftwareCursor;
+
+	/**	The current position of the software cursor */
+	FVector2D SoftwareCursorPosition;
 };
 
 
