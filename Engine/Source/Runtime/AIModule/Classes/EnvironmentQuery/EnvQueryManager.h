@@ -3,6 +3,7 @@
 #pragma once
 #include "EnvQueryTypes.h"
 #include "Tickable.h"
+#include "EnvironmentQuery/EnvQueryInstanceBlueprintWrapper.h"
 #include "EnvQueryManager.generated.h"
 
 class UObject;
@@ -164,6 +165,9 @@ class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject
 
 	static UEnvQueryManager* GetCurrent(UWorld* World);
 	static UEnvQueryManager* GetCurrent(UObject* WorldContextObject);
+	
+	UFUNCTION(BlueprintCallable, Category = "AI|EQS", meta = (WorldContext = "WorldContext", AdvancedDisplay = "WrapperClass"))
+	static UEnvQueryInstanceBlueprintWrapper* RunEQSQuery(UObject* WorldContext, UEnvQuery* QueryTemplate, UObject* Querier, TEnumAsByte<EEnvQueryRunMode::Type> RunMode, TSubclassOf<UEnvQueryInstanceBlueprintWrapper> WrapperClass);
 
 #if USE_EQS_DEBUGGER
 	static void NotifyAssetUpdate(UEnvQuery* Query);

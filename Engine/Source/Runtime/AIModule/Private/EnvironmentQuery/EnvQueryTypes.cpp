@@ -11,16 +11,19 @@
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 float UEnvQueryTypes::SkippedItemValue = -FLT_MAX;
 
+//----------------------------------------------------------------------//
+// FEnvQueryResult
+//----------------------------------------------------------------------//
 AActor* FEnvQueryResult::GetItemAsActor(int32 Index) const
 {
 	if (Items.IsValidIndex(Index) &&
 		ItemType->IsChildOf(UEnvQueryItemType_ActorBase::StaticClass()))
 	{
-		UEnvQueryItemType_ActorBase* DefTypeOb = (UEnvQueryItemType_ActorBase*)ItemType->GetDefaultObject();
+		UEnvQueryItemType_ActorBase* DefTypeOb = static_cast<UEnvQueryItemType_ActorBase*>(ItemType->GetDefaultObject());
 		return DefTypeOb->GetActor(RawData.GetData() + Items[Index].DataOffset);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 FVector FEnvQueryResult::GetItemAsLocation(int32 Index) const
@@ -28,13 +31,46 @@ FVector FEnvQueryResult::GetItemAsLocation(int32 Index) const
 	if (Items.IsValidIndex(Index) &&
 		ItemType->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass()))
 	{
-		UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ItemType->GetDefaultObject();
+		UEnvQueryItemType_VectorBase* DefTypeOb = static_cast<UEnvQueryItemType_VectorBase*>(ItemType->GetDefaultObject());
 		return DefTypeOb->GetItemLocation(RawData.GetData() + Items[Index].DataOffset);
 	}
 
 	return FVector::ZeroVector;
 }
 
+void FEnvQueryResult::GetAllAsActors(TArray<AActor*>& OutActors) const
+{
+	if (ItemType->IsChildOf(UEnvQueryItemType_ActorBase::StaticClass()) && Items.Num() > 0)
+	{
+		UEnvQueryItemType_ActorBase* DefTypeOb = static_cast<UEnvQueryItemType_ActorBase*>(ItemType->GetDefaultObject());
+		
+		OutActors.Reserve(OutActors.Num() + Items.Num());
+
+		for (const FEnvQueryItem& Item : Items)
+		{
+			OutActors.Add(DefTypeOb->GetActor(RawData.GetData() + Item.DataOffset));
+		}
+	}
+}
+
+void FEnvQueryResult::GetAllAsLocations(TArray<FVector>& OutLocations) const
+{
+	if (ItemType->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass()) && Items.Num() > 0)
+	{
+		UEnvQueryItemType_VectorBase* DefTypeOb = static_cast<UEnvQueryItemType_VectorBase*>(ItemType->GetDefaultObject());
+
+		OutLocations.Reserve(OutLocations.Num() + Items.Num());
+
+		for (const FEnvQueryItem& Item : Items)
+		{
+			OutLocations.Add(DefTypeOb->GetItemLocation(RawData.GetData() + Item.DataOffset));
+		}
+	}
+}
+
+//----------------------------------------------------------------------//
+// UEnvQueryTypes
+//----------------------------------------------------------------------//
 FText UEnvQueryTypes::GetShortTypeName(const UObject* Ob)
 {
 	if (Ob == NULL)

@@ -125,9 +125,9 @@ namespace EEnvQueryRunMode
 {
 	enum Type
 	{
-		SingleResult	UMETA(Tooltip="Pick first item with the best score"),
-		RandomBest5Pct	UMETA(Tooltip="Pick random item with score 95% .. 100% of max", DisplayName="Random Best 5%"),
-		RandomBest25Pct	UMETA(Tooltip="Pick random item with score 75% .. 100% of max", DisplayName="Random Best 25%"),
+		SingleResult	UMETA(Tooltip="Pick first item with the best score", DisplayName="Single Best Item"),
+		RandomBest5Pct	UMETA(Tooltip="Pick random item with score 95% .. 100% of max", DisplayName="Single Random Item from Best 5%"),
+		RandomBest25Pct	UMETA(Tooltip="Pick random item with score 75% .. 100% of max", DisplayName="Single Random Item from Best 25%"),
 		AllMatching		UMETA(Tooltip="Get all items that match conditions"),
 	};
 }
@@ -352,11 +352,15 @@ struct AIMODULE_API FEnvQueryItem
 
 template <> struct TIsZeroConstructType<FEnvQueryItem> { enum { Value = true }; };
 
+USTRUCT()
 struct AIMODULE_API FEnvQueryResult
 {
+	GENERATED_USTRUCT_BODY()
+
 	TArray<FEnvQueryItem> Items;
 
 	/** type of generated items */
+	UPROPERTY(BlueprintReadOnly, Category = "EQS")
 	TSubclassOf<UEnvQueryItemType> ItemType;
 
 	/** raw data of items */
@@ -364,13 +368,15 @@ struct AIMODULE_API FEnvQueryResult
 
 private:
 	/** query status */
-	TEnumAsByte<EEnvQueryStatus::Type> Status;
+	EEnvQueryStatus::Type Status;
 
 public:
 	/** index of query option, that generated items */
+	UPROPERTY(BlueprintReadOnly, Category = "EQS")
 	int32 OptionIndex;
 
 	/** instance ID */
+	UPROPERTY(BlueprintReadOnly, Category = "EQS")
 	int32 QueryID;
 
 	/** instance owner. Mind that it doesn't have to be the query's "Querier". This is just the object that is responsible for this query instance. */
@@ -382,6 +388,10 @@ public:
 	AActor* GetItemAsActor(int32 Index) const;
 	FVector GetItemAsLocation(int32 Index) const;
 
+	/** note that this function does not strip out the null-actors to not mess up results of GetItemScore(Index) calls*/
+	void GetAllAsActors(TArray<AActor*>& OutActors) const;
+	void GetAllAsLocations(TArray<FVector>& OutLocations) const;
+
 	FEnvQueryResult() : ItemType(NULL), Status(EEnvQueryStatus::Processing), OptionIndex(0) {}
 	FEnvQueryResult(const EEnvQueryStatus::Type& InStatus) : ItemType(NULL), Status(InStatus), OptionIndex(0) {}
 
@@ -392,6 +402,8 @@ public:
 	FORCEINLINE void MarkAsFailed() { Status = EEnvQueryStatus::Failed; }
 	FORCEINLINE void MarkAsFinishedWithoutIssues() { Status = EEnvQueryStatus::Success; }
 	FORCEINLINE void MarkAsOwnerLost() { Status = EEnvQueryStatus::OwnerLost; }
+
+	FORCEINLINE EEnvQueryStatus::Type GetRawStatus() const { return Status; }
 };
 
 
