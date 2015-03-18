@@ -30,6 +30,11 @@ class AIMODULE_API UBTTask_PlayAnimation : public UBTTaskNode
 	UPROPERTY()
 	UBehaviorTreeComponent* MyOwnerComp;
 
+	UPROPERTY()
+	USkeletalMeshComponent* CachedSkelMesh;
+
+	EAnimationMode::Type PreviousAnimationMode;
+
 	FTimerDelegate TimerDelegate;
 	FTimerHandle TimerHandle;
 
@@ -38,8 +43,11 @@ class AIMODULE_API UBTTask_PlayAnimation : public UBTTaskNode
 	virtual FString GetStaticDescription() const override;
 
 	void OnAnimationTimerDone();
-
+	
 #if WITH_EDITOR
 	virtual FName GetNodeIconName() const override;
 #endif // WITH_EDITOR
+
+protected:
+	void CleanUp(UBehaviorTreeComponent& OwnerComp);
 };

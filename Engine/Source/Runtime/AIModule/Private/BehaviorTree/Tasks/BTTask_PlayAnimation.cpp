@@ -20,6 +20,7 @@ UBTTask_PlayAnimation::UBTTask_PlayAnimation(const FObjectInitializer& ObjectIni
 	bNonBlocking = false;
 
 	TimerDelegate = FTimerDelegate::CreateUObject(this, &UBTTask_PlayAnimation::OnAnimationTimerDone);
+	PreviousAnimationMode = EAnimationMode::AnimationBlueprint;
 }
 
 EBTNodeResult::Type UBTTask_PlayAnimation::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
@@ -46,6 +47,9 @@ EBTNodeResult::Type UBTTask_PlayAnimation::ExecuteTask(UBehaviorTreeComponent& O
 
 		if (SkelMesh != nullptr)
 		{
+			PreviousAnimationMode = SkelMesh->GetAnimationMode();
+			CachedSkelMesh = SkelMesh;
+
 			SkelMesh->PlayAnimation(AnimationToPlay, bLooping);
 			const float FinishDelay = AnimationToPlay->GetMaxCurrentTime();
 
@@ -80,6 +84,8 @@ EBTNodeResult::Type UBTTask_PlayAnimation::AbortTask(UBehaviorTreeComponent& Own
 
 	TimerHandle.Invalidate();
 
+	CleanUp(OwnerComp);
+
 	return EBTNodeResult::Aborted;
 }
 
@@ -94,7 +100,16 @@ void UBTTask_PlayAnimation::OnAnimationTimerDone()
 {
 	if (MyOwnerComp)
 	{
+		CleanUp(*MyOwnerComp);
 		FinishLatentTask(*MyOwnerComp, EBTNodeResult::Succeeded);
+	}
+}
+
+void UBTTask_PlayAnimation::CleanUp(UBehaviorTreeComponent& OwnerComp)
+{
+	if (CachedSkelMesh != nullptr && PreviousAnimationMode == EAnimationMode::AnimationBlueprint)
+	{
+		CachedSkelMesh->SetAnimationMode(EAnimationMode::AnimationBlueprint);
 	}
 }
 
