@@ -72,7 +72,7 @@ public:
 	void UpdateBytecodeReferences();
 
 	/** Worker function to replace all instances of OldClass with a new instance of NewClass */
-	static void ReplaceInstancesOfClass(UClass* OldClass, UClass* NewClass, UObject* OriginalCDO = NULL, TSet<UObject*>* ObjectsThatShouldUseOldStuff = NULL);
+	static void ReplaceInstancesOfClass(UClass* OldClass, UClass* NewClass, UObject* OriginalCDO = NULL, TSet<UObject*>* ObjectsThatShouldUseOldStuff = NULL, bool bClassObjectReplaced = false);
 
 	/**
 	 * When re-instancing a component, we have to make sure all instance owners' 
@@ -85,6 +85,8 @@ public:
 	
 	/** Verify that all instances of the duplicated class have been replaced and collected */
 	void VerifyReplacement();
+
+	virtual bool IsClassObjectReplaced() const { return false; }
 
 protected:
 	void ReinstanceInner(bool bForceAlwaysReinstance);

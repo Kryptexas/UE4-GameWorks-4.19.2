@@ -114,6 +114,8 @@ public:
 	// FSerializableObject interface
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	// End of FSerializableObject interface
+
+	virtual bool IsClassObjectReplaced() const override  { return true; }
 };
 
 #endif // WITH_ENGINE
