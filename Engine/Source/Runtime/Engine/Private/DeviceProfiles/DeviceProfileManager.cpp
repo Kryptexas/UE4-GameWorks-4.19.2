@@ -254,7 +254,7 @@ void UDeviceProfileManager::LoadProfiles()
 
 		// Register Texture LOD settings with each Target Platform
 		ITargetPlatformManagerModule& TargetPlatformManager = GetTargetPlatformManagerRef();
-		const TArray<ITargetPlatform*>& TargetPlatforms = TargetPlatformManager.GetActiveTargetPlatforms();
+		const TArray<ITargetPlatform*>& TargetPlatforms = TargetPlatformManager.GetTargetPlatforms();
 		for (int32 PlatformIndex = 0; PlatformIndex < TargetPlatforms.Num(); ++PlatformIndex)
 		{
 			ITargetPlatform* Platform = TargetPlatforms[PlatformIndex];
