@@ -20,6 +20,9 @@ public:
 	virtual void StopStreaming() override;
 	virtual FArchive* GetHeaderArchive() override;
 	virtual FArchive* GetStreamingArchive() override;
+	virtual FArchive* GetCheckpointArchive() override { return NULL; }
+	virtual void FlushCheckpoint( const uint32 TimeInMS ) override { }
+	virtual void GotoCheckpoint( const uint32 TimeInMS, const FOnCheckpointReadyDelegate& Delegate ) override { };
 	virtual FArchive* GetMetadataArchive() override;
 	virtual void UpdateTotalDemoTime( uint32 TimeInMS ) override { }
 	virtual uint32 GetTotalDemoTime() const override { return 0; }

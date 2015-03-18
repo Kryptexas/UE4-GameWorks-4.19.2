@@ -24,8 +24,10 @@ DEFINE_LOG_CATEGORY_STATIC( LogDemo, Log, All );
 static TAutoConsoleVariable<float> CVarDemoRecordHz( TEXT( "demo.RecordHz" ), 10, TEXT( "Number of demo frames recorded per second" ) );
 static TAutoConsoleVariable<float> CVarDemoTimeDilation( TEXT( "demo.TimeDilation" ), -1.0f, TEXT( "Override time dilation during demo playback (-1 = don't override)" ) );
 static TAutoConsoleVariable<float> CVarDemoSkipTime( TEXT( "demo.SkipTime" ), 0, TEXT( "Skip fixed amount of network replay time (in seconds)" ) );
+static TAutoConsoleVariable<int32> CVarEnableCheckpoints( TEXT( "demo.EnableCheckpoints" ), 0, TEXT( "Whether or not checkpoints save on the server" ) );
+static TAutoConsoleVariable<int32> CVarTestCheckpoint( TEXT( "demo.TestCheckpoint" ), 0, TEXT( "For testing only, jump to a particular checkpoint" ) );
 
-static const int32 MAX_DEMO_READ_WRITE_BUFFER = 1024 * 32;
+static const int32 MAX_DEMO_READ_WRITE_BUFFER = 1024 * 2;
 
 #define DEMO_CHECKSUMS 0		// When setting this to 1, this will invalidate all demos, you will need to re-record and playback
 
@@ -364,10 +366,6 @@ bool UDemoNetDriver::InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool
 		return false;
 	}
 
-	// use the same byte format regardless of platform so that the demos are cross platform
-	//@note: swap on non console platforms as the console archives have byte swapping compiled out by default
-	//FileAr->SetByteSwapping(true);
-
 	FNetworkDemoHeader DemoHeader;
 
 	DemoHeader.LevelName = World->GetCurrentLevel()->GetOutermost()->GetName();
@@ -493,6 +491,12 @@ void UDemoNetDriver::TickFlush( float DeltaSeconds )
 					SpectatorMovement->PrimaryComponentTick.bTickEvenWhenPaused = true;
 				}
 			}
+		}
+
+		if ( CVarTestCheckpoint.GetValueOnGameThread() > 0 )
+		{
+			ReplayStreamer->GotoCheckpoint( CVarTestCheckpoint.GetValueOnGameThread(), FOnCheckpointReadyDelegate::CreateUObject( this, &UDemoNetDriver::CheckpointReady ) );
+			CVarTestCheckpoint.AsVariable()->Set( TEXT( "0" ), ECVF_SetByConsole );
 		}
 
 		if ( bDemoPlaybackDone )
@@ -664,6 +668,146 @@ static void DemoReplicateActor(AActor* Actor, UNetConnection* Connection, bool I
 	}
 }
 
+static void SerializeGuidCache( TSharedPtr< class FNetGUIDCache > GuidCache, FArchive* CheckpointArchive )
+{
+	int32 NumValues = 0;
+
+	for ( auto It = GuidCache->ObjectLookup.CreateIterator(); It; ++It )
+	{
+		if ( It.Value().Object == NULL )
+		{
+			continue;
+		}
+
+		if ( !It.Value().Object->IsNameStableForNetworking() )
+		{
+			continue;
+		}
+
+		NumValues++;
+	}
+
+	*CheckpointArchive << NumValues;
+
+	UE_LOG( LogDemo, Warning, TEXT( "Checkpoint. SerializeGuidCache: %i" ), NumValues );
+
+	for ( auto It = GuidCache->ObjectLookup.CreateIterator(); It; ++It )
+	{
+		if ( It.Value().Object == NULL )
+		{
+			continue;
+		}
+
+		if ( !It.Value().Object->IsNameStableForNetworking() )
+		{
+			continue;
+		}
+
+		FString PathName = It.Value().Object->GetName();
+
+		*CheckpointArchive << It.Key();
+		*CheckpointArchive << It.Value().OuterGUID;
+		*CheckpointArchive << PathName;
+		*CheckpointArchive << It.Value().PackageGuid;
+
+		uint8 Flags = 0;
+		
+		Flags |= It.Value().bNoLoad ? ( 1 << 0 ) : 0;
+		Flags |= It.Value().bIgnoreWhenMissing ? ( 1 << 1 ) : 0;
+
+		*CheckpointArchive << Flags;
+	}
+}
+
+void UDemoNetDriver::SaveCheckpoint()
+{
+	if ( DemoCurrentTime > 30.0f )
+	{
+		return;
+	}
+
+	FArchive* CheckpointArchive = ReplayStreamer->GetCheckpointArchive();
+
+	if ( CheckpointArchive == nullptr )
+	{
+		return;
+	}
+
+	const double StartCheckpointTime = FPlatformTime::Seconds();
+
+	// First, save the current guid cache
+	SerializeGuidCache( GuidCache, CheckpointArchive );
+
+	const uint32 GuidCacheSize = CheckpointArchive->TotalSize();
+
+	// Save total absolute demo time in MS
+	uint32 SavedAbsTimeMS = GetDemoCurrentTimeInMS();
+	*CheckpointArchive << SavedAbsTimeMS;
+
+	FURL CheckpointURL;
+	CheckpointURL.Map = TEXT( "Checkpoint" );
+
+	UDemoNetConnection* CheckpointConnection = NewObject<UDemoNetConnection>();
+	ClientConnections.Add( CheckpointConnection );
+	CheckpointConnection->InitConnection( this, USOCK_Open, CheckpointURL, 1000000 );
+	CheckpointConnection->InitSendBuffer();
+
+	// Some hackery to make the player thinks this checkpoint connection owns it
+	CheckpointConnection->PlayerController					= ClientConnections[0]->PlayerController;
+	CheckpointConnection->PlayerController->Player			= CheckpointConnection;
+	CheckpointConnection->PlayerController->NetConnection	= CheckpointConnection;
+	//CheckpointConnection->OwningActor						= CheckpointConnection->PlayerController;
+
+	// Make sure we have the exact same actor channel indexes
+	for ( auto It = ClientConnections[0]->ActorChannels.CreateIterator(); It; ++It )
+	{
+		UActorChannel* Channel = (UActorChannel*)CheckpointConnection->CreateChannel( CHTYPE_Actor, true, It.Value()->ChIndex );
+		if ( Channel != NULL )
+		{
+			Channel->SetChannelActor( It.Value()->Actor );
+		}
+	}
+
+	bSavingCheckpoint = true;
+
+	DemoReplicateActor( World->GetWorldSettings(), CheckpointConnection, false );
+
+	for ( int32 i = 0; i < World->NetworkActors.Num(); i++ )
+	{
+		AActor* Actor = World->NetworkActors[i];
+
+		Actor->PreReplication( *FindOrCreateRepChangedPropertyTracker( Actor ).Get() );
+		DemoReplicateActor( Actor, CheckpointConnection, false );
+	}
+
+	CheckpointConnection->FlushNet();
+
+	bSavingCheckpoint = false;
+
+	// Write a count of 0 to signal the end of the frame
+	int32 EndCount = 0;
+	*CheckpointArchive << EndCount;
+
+	// Undo hackery
+	ClientConnections[0]->PlayerController->Player			= ClientConnections[0];
+	ClientConnections[0]->PlayerController->NetConnection	= ClientConnections[0];
+
+	CheckpointConnection->Close();
+	CheckpointConnection->CleanUp();
+
+	const uint32 CheckpointSize = CheckpointArchive->TotalSize() - GuidCacheSize;
+
+	const int32 TotalSize = CheckpointArchive->TotalSize();
+
+	ReplayStreamer->FlushCheckpoint( 1 );
+
+	const double EndCheckpointTime = FPlatformTime::Seconds();
+
+	const float CheckpointTimeInMS = ( EndCheckpointTime - StartCheckpointTime ) * 1000.0f;
+
+	UE_LOG( LogDemo, Warning, TEXT( "Checkpoint. Total: %i, Rep size: %i, PackageMap: %u, Time: %2.2f" ), TotalSize, CheckpointSize, GuidCacheSize, CheckpointTimeInMS );
+}
+
 void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 {
 	if ( ClientConnections.Num() == 0 )
@@ -693,6 +837,17 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 	}
 
 	LastRecordTime = CurrentSeconds;
+
+	if ( CVarEnableCheckpoints.GetValueOnGameThread() == 1 )
+	{
+		const double CHECKPOINT_DELAY = 10.0;
+
+		if ( CurrentSeconds - LastCheckpointTime > CHECKPOINT_DELAY )
+		{
+			SaveCheckpoint();
+			LastCheckpointTime = CurrentSeconds;
+		}
+	}
 
 	// Save out a frame
 	DemoFrameNum++;
@@ -775,7 +930,7 @@ void UDemoNetDriver::PauseChannels( const bool bPause )
 	bChannelsArePaused = bPause;
 }
 
-bool UDemoNetDriver::ReadDemoFrame()
+bool UDemoNetDriver::ConditionallyReadDemoFrame()
 {
 	FArchive* FileAr = ReplayStreamer->GetStreamingArchive();
 
@@ -794,7 +949,7 @@ bool UDemoNetDriver::ReadDemoFrame()
 
 	if ( ReplayStreamer->GetLastError() != ENetworkReplayError::None )
 	{
-		UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::ReadDemoFrame: ReplayStreamer ERROR: %s" ), ENetworkReplayError::ToString( ReplayStreamer->GetLastError() ) );
+		UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::ConditionallyReadDemoFrame: ReplayStreamer ERROR: %s" ), ENetworkReplayError::ToString( ReplayStreamer->GetLastError() ) );
 		StopDemo();
 		return false;
 	}
@@ -823,7 +978,7 @@ bool UDemoNetDriver::ReadDemoFrame()
 
 		if ( DeltaTimeChecksum != ServerDeltaTimeCheksum )
 		{
-			UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::ReadDemoFrame: DeltaTimeChecksum != ServerDeltaTimeCheksum" ) );
+			UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::ConditionallyReadDemoFrame: DeltaTimeChecksum != ServerDeltaTimeCheksum" ) );
 			StopDemo();
 			return false;
 		}
@@ -832,7 +987,7 @@ bool UDemoNetDriver::ReadDemoFrame()
 
 	if ( FileAr->IsError() )
 	{
-		UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::ReadDemoFrame: Failed to read demo ServerDeltaTime" ) );
+		UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::ConditionallyReadDemoFrame: Failed to read demo ServerDeltaTime" ) );
 		StopDemo();
 		return false;
 	}
@@ -844,15 +999,20 @@ bool UDemoNetDriver::ReadDemoFrame()
 		return false;
 	}
 
+	return ReadDemoFrame( FileAr );
+}
+
+bool UDemoNetDriver::ReadDemoFrame( FArchive* Archive )
+{
 	while ( true )
 	{
 		uint8 ReadBuffer[ MAX_DEMO_READ_WRITE_BUFFER ];
 
 		int32 PacketBytes;
 
-		*FileAr << PacketBytes;
+		*Archive << PacketBytes;
 
-		if ( FileAr->IsError() )
+		if ( Archive->IsError() )
 		{
 			UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::ReadDemoFrame: Failed to read demo PacketBytes" ) );
 			StopDemo();
@@ -879,9 +1039,9 @@ bool UDemoNetDriver::ReadDemoFrame()
 		}
 
 		// Read data from file.
-		FileAr->Serialize( ReadBuffer, PacketBytes );
+		Archive->Serialize( ReadBuffer, PacketBytes );
 
-		if ( FileAr->IsError() )
+		if ( Archive->IsError() )
 		{
 			UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::ReadDemoFrame: Failed to read demo file packet" ) );
 			StopDemo();
@@ -891,7 +1051,7 @@ bool UDemoNetDriver::ReadDemoFrame()
 #if DEMO_CHECKSUMS == 1
 		{
 			uint32 ServerChecksum = 0;
-			*FileAr << ServerChecksum;
+			*Archive << ServerChecksum;
 
 			const uint32 Checksum = FCrc::MemCrc32( ReadBuffer, PacketBytes, 0 );
 
@@ -970,7 +1130,7 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 	}
 
 	// Read demo frames until we are caught up
-	while ( ReadDemoFrame() )
+	while ( ConditionallyReadDemoFrame() )
 	{
 		DemoFrameNum++;
 	}
@@ -1028,6 +1188,83 @@ void UDemoNetDriver::ReplayStreamingReady( bool bSuccess, bool bRecord )
 	}
 }
 
+void UDemoNetDriver::CheckpointReady( bool bSuccess )
+{
+	if ( !bSuccess )
+	{
+		GetWorld()->GetGameInstance()->HandleDemoPlaybackFailure( EDemoPlayFailure::DemoNotFound, FString( EDemoPlayFailure::ToString( EDemoPlayFailure::DemoNotFound ) ) );
+		return;
+	}
+
+	FURL ConnectURL;
+	ConnectURL.Map = DemoFilename;
+
+	for ( int32 i = ServerConnection->OpenChannels.Num() - 1; i >= 0; i-- )
+	{
+		UChannel* OpenChannel = ServerConnection->OpenChannels[i];
+		if ( OpenChannel != NULL )
+		{
+			UActorChannel* ActorChannel = Cast< UActorChannel >( OpenChannel );
+			if ( ActorChannel != NULL && ActorChannel->GetActor() != NULL )
+			{
+				GetWorld()->DestroyActor( ActorChannel->GetActor(), true );
+			}
+		}
+	}
+
+	ServerConnection->Close();
+	ServerConnection->CleanUp();
+
+	ServerConnection = NewObject<UNetConnection>(GetTransientPackage(), UDemoNetConnection::StaticClass());
+	ServerConnection->InitConnection( this, USOCK_Pending, ConnectURL, 1000000 );
+
+	// Create fake control channel
+	ServerConnection->CreateChannel( CHTYPE_Control, 1 );
+
+	FArchive* CheckpointArchive = ReplayStreamer->GetCheckpointArchive();
+
+	GuidCache->ObjectLookup.Empty();
+	GuidCache->NetGUIDLookup.Empty();
+
+	int32 NumValues = 0;
+	*CheckpointArchive << NumValues;
+
+	for ( int32 i = 0; i < NumValues; i++ )
+	{
+		FNetworkGUID Guid;
+		
+		*CheckpointArchive << Guid;
+		
+		FNetGuidCacheObject CacheObject;
+
+		FString PathName;
+
+		*CheckpointArchive << CacheObject.OuterGUID;
+		*CheckpointArchive << PathName;
+		*CheckpointArchive << CacheObject.PackageGuid;
+
+		CacheObject.PathName = FName( *PathName );
+
+		uint8 Flags = 0;
+		*CheckpointArchive << Flags;
+
+		CacheObject.bNoLoad = ( Flags & ( 1 << 0 ) ) ? true : false;
+		CacheObject.bIgnoreWhenMissing = ( Flags & ( 1 << 1 ) ) ? true : false;		
+
+		GuidCache->ObjectLookup.Add( Guid, CacheObject );
+		//GuidCache->GetObjectFromNetGUID( Guid, false );
+	}
+
+	uint32 SavedAbsTimeMS = 0;
+	*CheckpointArchive << SavedAbsTimeMS;
+
+	DemoCurrentTime = (float)SavedAbsTimeMS / 1000.0f;
+
+	ReadDemoFrame( CheckpointArchive );
+
+	bDemoPlaybackDone = false;
+}
+
 /*-----------------------------------------------------------------------------
 	UDemoNetConnection.
 -----------------------------------------------------------------------------*/
@@ -1059,6 +1296,20 @@ FString UDemoNetConnection::LowLevelGetRemoteAddress( bool bAppendPort )
 
 void UDemoNetConnection::LowLevelSend( void* Data, int32 Count )
 {
+	if ( GetDriver()->bSavingCheckpoint )
+	{
+		FArchive* CheckpointArchive = GetDriver()->ReplayStreamer->GetCheckpointArchive();
+
+		if ( CheckpointArchive == nullptr )
+		{
+			return;
+		}
+	
+		*CheckpointArchive << Count;
+		CheckpointArchive->Serialize( Data, Count );
+		return;
+	}
+
 	if ( Count == 0 )
 	{
 		UE_LOG( LogDemo, Warning, TEXT( "UDemoNetConnection::LowLevelSend: Ignoring empty packet." ) );

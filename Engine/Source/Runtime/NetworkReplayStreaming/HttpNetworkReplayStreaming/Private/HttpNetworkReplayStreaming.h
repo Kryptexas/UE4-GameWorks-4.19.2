@@ -37,9 +37,12 @@ public:
 	virtual void		StopStreaming() override;
 	virtual FArchive*	GetHeaderArchive() override;
 	virtual FArchive*	GetStreamingArchive() override;
+	virtual FArchive*	GetCheckpointArchive() override;
+	virtual void		FlushCheckpoint( const uint32 TimeInMS ) override;
+	virtual void		GotoCheckpoint( const uint32 TimeInMS, const FOnCheckpointReadyDelegate& Delegate ) override;
 	virtual FArchive*	GetMetadataArchive() override;
 	virtual void		UpdateTotalDemoTime( uint32 TimeInMS ) override;
-	virtual uint32		GetTotalDemoTime() const override { return DemoTimeInMS; }
+	virtual uint32		GetTotalDemoTime() const override { return TotalDemoTimeInMS; }
 	virtual bool		IsDataAvailable() const override;
 	virtual void		SetHighPriorityTimeRange( const uint32 StartTimeInMS, const uint32 EndTimeInMS ) override;
 	virtual bool		IsDataAvailableForTimeRange( const uint32 StartTimeInMS, const uint32 EndTimeInMS ) override;
@@ -55,11 +58,13 @@ public:
 	void DownloadNextChunk();
 	void RefreshViewer();
 	void SetLastError( const ENetworkReplayError::Type InLastError );
+	void FlushCheckpointInternal( uint32 TimeInMS );
 
 	/** Delegates */
 	void HttpStartDownloadingFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 	void HttpDownloadHeaderFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 	void HttpDownloadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
+	void HttpDownloadCheckpointFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 	void HttpRefreshViewerFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 	void HttpStartUploadingFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 	void HttpStopUploadingFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
@@ -84,6 +89,8 @@ public:
 		DownloadingStream,			// We are in the process of downloading the replay stream
 		RefreshingViewer,			// We are refreshing the server to let it know we're still viewing
 		EnumeratingSessions,		// We are in the process of downloading the available sessions
+		UploadingCheckpoint,		// We are uploading a checkpoint
+		DownloadingCheckpoint,		// We are downloading a checkpoint
 	};
 
 	/** EStreamerState - Overall state of the streamer */
@@ -100,6 +107,7 @@ public:
 
 	HttpStreamFArchive		HeaderArchive;			// Archive used to buffer the header stream
 	HttpStreamFArchive		StreamArchive;			// Archive used to buffer the data stream
+	HttpStreamFArchive		CheckpointArchive;		// Archive used to buffer checkpoint data
 	FString					SessionName;			// Name of the session on the http replay server
 	FString					SessionVersion;			// Version of the session
 	FString					ServerURL;				// The address of the server
@@ -111,7 +119,8 @@ public:
 	bool					bStopStreamingCalled;
 	bool					bStreamIsLive;			// If true, we are viewing a live stream
 	int32					NumDownloadChunks;
-	uint32					DemoTimeInMS;
+	uint32					TotalDemoTimeInMS;
+	uint32					FlushCheckpointTime;
 	FString					ViewerName;
 	uint32					HighPriorityEndTime;
 
@@ -119,6 +128,7 @@ public:
 
 	FOnStreamReadyDelegate			StartStreamingDelegate;		// Delegate passed in to StartStreaming
 	FOnEnumerateStreamsComplete		EnumerateStreamsDelegate;
+	FOnCheckpointReadyDelegate		GotoCheckpointDelegate;
 };
 
 class FHttpNetworkReplayStreamingFactory : public INetworkReplayStreamingFactory, public FTickableGameObject

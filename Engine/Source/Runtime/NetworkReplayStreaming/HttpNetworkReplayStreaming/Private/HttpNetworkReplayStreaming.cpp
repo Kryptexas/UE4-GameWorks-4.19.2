@@ -91,6 +91,8 @@ int64 HttpStreamFArchive::TotalSize()
 
 void HttpStreamFArchive::Seek( int64 InPos ) 
 {
+	check( InPos < Buffer.Num() );
+
 	Pos = InPos;
 }
 
@@ -108,7 +110,8 @@ FHttpNetworkReplayStreamer::FHttpNetworkReplayStreamer() :
 	bStopStreamingCalled( false ), 
 	bStreamIsLive( false ),
 	NumDownloadChunks( 0 ),
-	DemoTimeInMS( 0 ),
+	TotalDemoTimeInMS( 0 ),
+	FlushCheckpointTime( 0 ),
 	HighPriorityEndTime( 0 ),
 	StreamerLastError( ENetworkReplayError::None )
 {
@@ -142,12 +145,15 @@ void FHttpNetworkReplayStreamer::StartStreaming( const FString& StreamName, bool
 	StartStreamingDelegate = Delegate;
 
 	// Setup the archives
-	StreamArchive.ArIsLoading = !bRecord;
-	StreamArchive.ArIsSaving = !StreamArchive.ArIsLoading;
-	StreamArchive.bAtEndOfReplay = false;
+	StreamArchive.ArIsLoading		= !bRecord;
+	StreamArchive.ArIsSaving		= !StreamArchive.ArIsLoading;
+	StreamArchive.bAtEndOfReplay	= false;
 
-	HeaderArchive.ArIsLoading = !bRecord;
-	HeaderArchive.ArIsSaving = !StreamArchive.ArIsLoading;
+	HeaderArchive.ArIsLoading		= StreamArchive.ArIsLoading;
+	HeaderArchive.ArIsSaving		= StreamArchive.ArIsSaving;
+
+	CheckpointArchive.ArIsLoading	= StreamArchive.ArIsLoading;
+	CheckpointArchive.ArIsSaving	= StreamArchive.ArIsSaving;
 
 	LastChunkTime = FPlatformTime::Seconds();
 
@@ -237,7 +243,7 @@ void FHttpNetworkReplayStreamer::UploadHeader()
 
 	HttpState = EHttptate::UploadingHeader;
 
-	HttpRequest->SetURL( FString::Printf( TEXT( "%supload?Version=%s&Session=%s&NumChunks=%i&Time=%i&Filename=replay.header" ), *ServerURL, *SessionVersion, *SessionName, StreamFileCount, DemoTimeInMS ) );
+	HttpRequest->SetURL( FString::Printf( TEXT( "%supload?Version=%s&Session=%s&NumChunks=%i&Time=%i&Filename=replay.header" ), *ServerURL, *SessionVersion, *SessionName, StreamFileCount, TotalDemoTimeInMS ) );
 	HttpRequest->SetVerb( TEXT( "POST" ) );
 	HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
 	HttpRequest->SetContent( HeaderArchive.Buffer );
@@ -259,6 +265,12 @@ void FHttpNetworkReplayStreamer::FlushStream()
 		return;
 	}
 
+	if ( StreamArchive.Buffer.Num() == 0 )
+	{
+		// Nothing to flush
+		return;
+	}
+
 	if ( IsHttpBusy() )
 	{
 		// If we're currently busy we can't flush right now
@@ -275,7 +287,7 @@ void FHttpNetworkReplayStreamer::FlushStream()
 
 	HttpState = EHttptate::UploadingStream;
 
-	HttpRequest->SetURL( FString::Printf( TEXT( "%supload?Version=%s&Session=%s&NumChunks=%i&Time=%i&Filename=stream.%i" ), *ServerURL, *SessionVersion, *SessionName, StreamFileCount + 1, DemoTimeInMS, StreamFileCount ) );
+	HttpRequest->SetURL( FString::Printf( TEXT( "%supload?Version=%s&Session=%s&NumChunks=%i&Time=%i&Filename=stream.%i" ), *ServerURL, *SessionVersion, *SessionName, StreamFileCount + 1, TotalDemoTimeInMS, StreamFileCount ) );
 	HttpRequest->SetVerb( TEXT( "POST" ) );
 	HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
 	HttpRequest->SetContent( StreamArchive.Buffer );
@@ -288,6 +300,77 @@ void FHttpNetworkReplayStreamer::FlushStream()
 	HttpRequest->ProcessRequest();
 
 	LastChunkTime = FPlatformTime::Seconds();
+}
+
+void FHttpNetworkReplayStreamer::FlushCheckpoint( const uint32 TimeInMS )
+{
+	check( CheckpointArchive.Buffer.Num() > 0 );
+	FlushCheckpointTime = TimeInMS;
+	
+	// Flush any existing stream, we need checkpoints to line up with the next chunk
+	check( !IsHttpBusy() || StreamArchive.Buffer.Num() == 0 );
+
+	FlushStream();
+}
+
+void FHttpNetworkReplayStreamer::GotoCheckpoint( const uint32 TimeInMS, const FOnCheckpointReadyDelegate& Delegate )
+{
+	if ( IsHttpBusy() )
+	{
+		return;
+	}
+
+	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+
+	// Download the next stream chunk
+	HttpRequest->SetURL( FString::Printf( TEXT( "%sdownload?Version=%s&Session=%s&Filename=checkpoint.%i" ), *ServerURL, *SessionVersion, *SessionName, 0 ) );
+	HttpRequest->SetVerb( TEXT( "GET" ) );
+
+	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpDownloadCheckpointFinished );
+
+	HttpState = EHttptate::DownloadingCheckpoint;
+
+	HttpRequest->ProcessRequest();
+
+	GotoCheckpointDelegate = Delegate;
+}
+
+void FHttpNetworkReplayStreamer::FlushCheckpointInternal( uint32 TimeInMS )
+{
+	if ( SessionName.IsEmpty() || !CheckpointArchive.ArIsSaving )
+	{
+		// IF there is no active session, or we are not recording, we don't need to flush
+		return;
+	}
+
+	if ( IsHttpBusy() )
+	{
+		// If we're currently busy we can't flush right now
+		return;
+	}
+
+	// Upload any new streamed data to the http server
+	UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::FlushCheckpoint. Size: %i, StreamFileCount: %i" ), CheckpointArchive.Buffer.Num(), StreamFileCount );
+
+	// Create the Http request and add to pending request list
+	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+
+	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpUploadFinished );
+
+	HttpState = EHttptate::UploadingStream;
+
+	// Save the chunk to the checkpoint
+	CheckpointArchive << StreamFileCount;
+
+	HttpRequest->SetURL( FString::Printf( TEXT( "%supload?Version=%s&Session=%s&NumChunks=%i&Time=%i&Filename=checkpoint.%i" ), *ServerURL, *SessionVersion, *SessionName, StreamFileCount, TotalDemoTimeInMS, 0 ) );
+	HttpRequest->SetVerb( TEXT( "POST" ) );
+	HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
+	HttpRequest->SetContent( CheckpointArchive.Buffer );
+
+	CheckpointArchive.Buffer.Empty();
+	CheckpointArchive.Pos = 0;
+
+	HttpRequest->ProcessRequest();
 }
 
 void FHttpNetworkReplayStreamer::DownloadHeader()
@@ -407,7 +490,12 @@ FArchive* FHttpNetworkReplayStreamer::GetHeaderArchive()
 
 FArchive* FHttpNetworkReplayStreamer::GetStreamingArchive()
 {
-	return &StreamArchive;//( StreamArchive.IsSaving() || IsDataAvailable() ) ? &StreamArchive : NULL;
+	return &StreamArchive;
+}
+
+FArchive* FHttpNetworkReplayStreamer::GetCheckpointArchive()
+{	
+	return &CheckpointArchive;
 }
 
 FArchive* FHttpNetworkReplayStreamer::GetMetadataArchive()
@@ -417,7 +505,7 @@ FArchive* FHttpNetworkReplayStreamer::GetMetadataArchive()
 
 void FHttpNetworkReplayStreamer::UpdateTotalDemoTime( uint32 TimeInMS )
 {
-	DemoTimeInMS = TimeInMS;
+	TotalDemoTimeInMS = TimeInMS;
 }
 
 bool FHttpNetworkReplayStreamer::IsDataAvailable() const
@@ -572,7 +660,7 @@ void FHttpNetworkReplayStreamer::HttpUploadFinished( FHttpRequestPtr , FHttpResp
 
 			HttpState = EHttptate::StopUploading;
 
-			HttpRequest->SetURL( FString::Printf( TEXT( "%sstopuploading?Version=%s&Session=%s&NumChunks=%i&Time=%i" ), *ServerURL, *SessionVersion, *SessionName, StreamFileCount, DemoTimeInMS ) );
+			HttpRequest->SetURL( FString::Printf( TEXT( "%sstopuploading?Version=%s&Session=%s&NumChunks=%i&Time=%i" ), *ServerURL, *SessionVersion, *SessionName, StreamFileCount, TotalDemoTimeInMS ) );
 			HttpRequest->SetVerb( TEXT( "POST" ) );
 			HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
 
@@ -604,9 +692,9 @@ void FHttpNetworkReplayStreamer::HttpStartDownloadingFinished( FHttpRequestPtr H
 		bStreamIsLive = State == TEXT( "Live" );
 
 		NumDownloadChunks = FCString::Atoi( *NumChunksString );
-		DemoTimeInMS = FCString::Atoi( *DemoTimeString );
+		TotalDemoTimeInMS = FCString::Atoi( *DemoTimeString );
 
-		UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::HttpStartDownloadingFinished. Viewer: %s, State: %s, NumChunks: %i, DemoTime: %2.2f" ), *ViewerName, *State, NumDownloadChunks, (float)DemoTimeInMS / 1000 );
+		UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::HttpStartDownloadingFinished. Viewer: %s, State: %s, NumChunks: %i, DemoTime: %2.2f" ), *ViewerName, *State, NumDownloadChunks, (float)TotalDemoTimeInMS / 1000 );
 
 		// First, download the header
 		if ( NumDownloadChunks > 0 )
@@ -686,7 +774,7 @@ void FHttpNetworkReplayStreamer::HttpDownloadFinished( FHttpRequestPtr HttpReque
 		bStreamIsLive = State == TEXT( "Live" );
 
 		NumDownloadChunks = FCString::Atoi( *NumChunksString );
-		DemoTimeInMS = FCString::Atoi( *DemoTimeString );
+		TotalDemoTimeInMS = FCString::Atoi( *DemoTimeString );
 
 		if ( HttpResponse->GetContent().Num() > 0 || bStreamIsLive )
 		{
@@ -696,7 +784,7 @@ void FHttpNetworkReplayStreamer::HttpDownloadFinished( FHttpRequestPtr HttpReque
 				StreamFileCount++;
 			}
 
-			UE_LOG( LogHttpReplay, Verbose, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadFinished. State: %s, Progress: %i / %i, DemoTime: %2.2f" ), *State, StreamFileCount, NumDownloadChunks, (float)DemoTimeInMS / 1000 );
+			UE_LOG( LogHttpReplay, Verbose, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadFinished. State: %s, Progress: %i / %i, DemoTime: %2.2f" ), *State, StreamFileCount, NumDownloadChunks, (float)TotalDemoTimeInMS / 1000 );
 		}
 		else
 		{
@@ -711,6 +799,51 @@ void FHttpNetworkReplayStreamer::HttpDownloadFinished( FHttpRequestPtr HttpReque
 		StreamArchive.Buffer.Empty();
 		SetLastError( ENetworkReplayError::ServiceUnavailable );
 	}
+}
+
+void FHttpNetworkReplayStreamer::HttpDownloadCheckpointFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
+{
+	check( HttpState == EHttptate::DownloadingCheckpoint );
+	check( StreamArchive.IsLoading() );
+
+	if ( bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok )
+	{
+		StreamArchive.Buffer.Empty();
+		StreamArchive.Pos = 0;
+		StreamArchive.bAtEndOfReplay = false;
+
+		CheckpointArchive.Buffer = HttpResponse->GetContent();
+		CheckpointArchive.Pos = 0;
+
+		int32 NumValues = 0;
+		CheckpointArchive << NumValues;
+
+		// Seek to the end, where we added our internal meta data
+		CheckpointArchive.Seek( CheckpointArchive.Buffer.Num() - 4 );
+		
+		// Set the next chunk to be the first chunk that represents the start of the stream after the checkpoint
+		CheckpointArchive << StreamFileCount;
+
+		// Make sure we read to the very end
+		check( CheckpointArchive.Pos == CheckpointArchive.Buffer.Num() );
+
+		// Remove the data we serialized from the end of the checkpoint
+		CheckpointArchive.Buffer.SetNum( CheckpointArchive.Buffer.Num() - 4 );
+
+		CheckpointArchive.Pos = 0;
+
+		GotoCheckpointDelegate.ExecuteIfBound( true );
+	}
+	else
+	{
+		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadCheckpointFinished. FAILED." ) );
+		SetLastError( ENetworkReplayError::ServiceUnavailable );
+		GotoCheckpointDelegate.ExecuteIfBound( false );
+	}
+
+	HttpState = EHttptate::Idle;
+
+	GotoCheckpointDelegate = FOnCheckpointReadyDelegate();
 }
 
 void FHttpNetworkReplayStreamer::HttpRefreshViewerFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
@@ -815,6 +948,12 @@ void FHttpNetworkReplayStreamer::Tick( const float DeltaTime )
 	}
 	else if ( StreamerState == EStreamerState::StreamingUp )
 	{
+		if ( FlushCheckpointTime > 0 )
+		{
+			FlushCheckpointInternal( FlushCheckpointTime );
+			FlushCheckpointTime = 0;
+		}
+
 		const double FLUSH_TIME_IN_SECONDS = 10;
 
 		if ( FPlatformTime::Seconds() - LastChunkTime > FLUSH_TIME_IN_SECONDS )

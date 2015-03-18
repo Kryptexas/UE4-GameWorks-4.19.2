@@ -57,6 +57,11 @@ class UDemoNetDriver
 	double		MaxRecordTime;
 	int32		RecordCountSinceFlush;
 	float		TimeToSkip;
+
+	bool		bSavingCheckpoint;
+	double		LastCheckpointTime;
+
+	void		SaveCheckpoint();
 public:
 
 	// UNetDriver interface.
@@ -92,7 +97,8 @@ public:
 
 	void TickDemoRecord( float DeltaSeconds );
 	void PauseChannels( const bool bPause );
-	bool ReadDemoFrame();
+	bool ConditionallyReadDemoFrame();
+	bool ReadDemoFrame( FArchive* Archive );
 	void TickDemoPlayback( float DeltaSeconds );
 	void SpawnDemoRecSpectator( UNetConnection* Connection );
 	void ResetDemoState();
@@ -100,4 +106,5 @@ public:
 	void StopDemo();
 
 	void ReplayStreamingReady( bool bSuccess, bool bRecord );
+	void CheckpointReady( bool bSuccess );
 };

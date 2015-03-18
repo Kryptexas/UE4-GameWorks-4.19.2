@@ -57,8 +57,20 @@ namespace ENetworkReplayError
 	}
 }
 
-DECLARE_MULTICAST_DELEGATE_TwoParams( FOnStreamReady, bool, bool );
-typedef FOnStreamReady::FDelegate FOnStreamReadyDelegate;
+/**
+ * Delegate called when StartStreaming() completes.
+ *
+ * @param bWasSuccessful Whether streaming was started.
+ * @param bRecord Whether streaming is recording or not (vs playing)
+ */
+DECLARE_DELEGATE_TwoParams( FOnStreamReadyDelegate, bool, bool );
+
+/**
+ * Delegate called when GotoCheckpoint() completes.
+ *
+ * @param bWasSuccessful Whether streaming was started.
+ */
+DECLARE_DELEGATE_OneParam( FOnCheckpointReadyDelegate, bool );
 
 /**
  * Delegate called when DeleteFinishedStream() completes.
@@ -84,6 +96,9 @@ public:
 	virtual void StopStreaming() = 0;
 	virtual FArchive* GetHeaderArchive() = 0;
 	virtual FArchive* GetStreamingArchive() = 0;
+	virtual FArchive* GetCheckpointArchive() = 0;
+	virtual void FlushCheckpoint( const uint32 TimeInMS ) = 0;
+	virtual void GotoCheckpoint( const uint32 TimeInMS, const FOnCheckpointReadyDelegate& Delegate ) = 0;
 	virtual FArchive* GetMetadataArchive() = 0;
 	virtual void UpdateTotalDemoTime( uint32 TimeInMS ) = 0;
 	virtual uint32 GetTotalDemoTime() const = 0;
