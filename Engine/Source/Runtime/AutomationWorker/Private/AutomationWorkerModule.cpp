@@ -1,5 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
+#include "AssetRegistryModule.h"
 #include "AutomationWorkerPrivatePCH.h"
 
 
@@ -61,6 +62,9 @@ void FAutomationWorkerModule::Tick()
 	{
 		MessageEndpoint->ProcessInbox();
 	}
+
+	// Run any of the automation commands that was obtained during initialization.
+	//RunDeferredAutomationCommands();
 }
 
 
@@ -131,8 +135,22 @@ void FAutomationWorkerModule::Initialize()
 	}
 	ExecutionCount = INDEX_NONE;
 	bExecutingNetworkCommandResults = false;
-}
 
+#if !(UE_BUILD_SHIPPING)
+	//Obtain any command line tests commands that use '-automationtests='.
+	FString AutomationCmds;
+	if (FParse::Value(FCommandLine::Get(), TEXT("AutomationTests="), AutomationCmds, false))
+	{
+		new(DeferredAutomationCommands) FString(FString(TEXT("Automation CommandLineTests ")) + AutomationCmds);
+	}
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	if (AssetRegistryModule.Get().IsLoadingAssets())
+	{
+		AssetRegistryModule.Get().OnFilesLoaded().AddRaw(this, &FAutomationWorkerModule::RunDeferredAutomationCommands);
+	}
+#endif // !(UE_BUILD_SHIPPING)
+}
 
 void FAutomationWorkerModule::ReportNetworkCommandComplete()
 {
@@ -393,6 +411,27 @@ void FAutomationWorkerModule::RunTest(const FString& InTestToRun, const int32 In
 	FAutomationTestFramework::GetInstance().StartTestByName(InTestToRun, InRoleIndex);
 }
 
+void FAutomationWorkerModule::RunDeferredAutomationCommands()
+{
+	// Get the loaded asset registry module.
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	
+	// Don't run any of the deferred commands if the registry is still loading otherwise not all possible tests will be found and ran.
+	if (!AssetRegistryModule.Get().IsLoadingAssets())
+	{
+		// Execute all currently queued deferred commands (allows commands to be queued up for next frame).
+		const int32 DeferredCommandsCount = DeferredAutomationCommands.Num();
+		for (int32 DeferredCommandsIndex = 0; DeferredCommandsIndex < DeferredCommandsCount; DeferredCommandsIndex++)
+		{
+			{
+				GEngine->Exec(NULL, *DeferredAutomationCommands[DeferredCommandsIndex], *GLog);
+			}
+		}
+
+		// Once all of the commands have executed then we remove them from the array.
+		DeferredAutomationCommands.RemoveAt(0, DeferredCommandsCount);
+	}
+}
 
 /**
  * Implements a local controller to run tests and spew results, mostly used by automated testing.
@@ -544,7 +583,6 @@ bool GenerateTestNamesFromCommandLine(const TCHAR* InTestCommands, TArray<FStrin
 	return OutTestNames.Num() > 0;
 }
 
-
 bool DirectAutomationCommand(const TCHAR* Cmd, FOutputDevice* Ar = GLog)
 {
 	bool bResult = false;
@@ -614,6 +652,8 @@ bool DirectAutomationCommand(const TCHAR* Cmd, FOutputDevice* Ar = GLog)
 	}
 	return bResult;
 }
+
+
 
 
 static class FAutomationTestCmd : private FSelfRegisteringExec

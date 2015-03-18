@@ -813,13 +813,6 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 		}
 	}
 
-	// Optionally queue automation tests
-	FString AutomationCmds;
-	if (FParse::Value(FCommandLine::Get(), TEXT("AutomationTests="), AutomationCmds, false))
-	{
-		new(GEngine->DeferredCommands) FString(FString(TEXT("Automation CommandLineTests ")) + AutomationCmds);
-	}
-
 	// optionally set the vsync console variable
 	if( FParse::Param(FCommandLine::Get(), TEXT("vsync")) )
 	{
@@ -3344,7 +3337,7 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	SortedTextures.Sort( FCompareFSortedTexture( bAlphaSort ) );
 
 	// Retrieve mapping from LOD group enum value to text representation.
-	TArray<FString> TextureGroupNames = UTextureLODSettings::GetTextureGroupNames();
+	TArray<FString> TextureGroupNames = FTextureLODSettings::GetTextureGroupNames();
 
 	// Display.
 	int32 TotalMaxSize		= 0;
@@ -10649,6 +10642,17 @@ bool UEngine::ShouldAbsorbAuthorityOnlyEvent()
 		}
 	}
 	return false;
+}
+
+
+UDeviceProfileManager* UEngine::GetDeviceProfileManager()
+{
+	if(DeviceProfileManager == NULL)
+	{
+		DeviceProfileManager = NewObject<UDeviceProfileManager>(GetTransientPackage(), TEXT("GlobalDeviceProfileManager"), RF_Public | RF_Transient);
+	}
+
+	return DeviceProfileManager;
 }
 
 

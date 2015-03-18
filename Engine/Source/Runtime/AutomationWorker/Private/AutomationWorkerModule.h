@@ -118,4 +118,10 @@ private:
 
 	/** Delegate to fire when the test is complete */
 	FStopTestEvent StopTestEvent;
+
+	// Holds the automation command line arguments.
+	TArray<FString> DeferredAutomationCommands;
+
+	// Cycles through and executes the automation commands in the deferred array.
+	void RunDeferredAutomationCommands();
 };
