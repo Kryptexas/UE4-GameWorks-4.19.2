@@ -399,6 +399,13 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 		UE_LOG(LogSpawn, Warning, TEXT("Destroying %s, which doesn't have a valid world pointer"), *ThisActor->GetPathName());
 	}
 
+	// If already on list to be deleted, pretend the call was successful.
+	// We don't want recursive calls to trigger destruction notifications multiple times.
+	if (ThisActor->IsPendingKillPending())
+	{
+		return true;
+	}
+
 	// In-game deletion rules.
 	if( AreActorsInitialized() )
 	{
@@ -407,12 +414,6 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 		if (GetWorldSettings() == ThisActor)
 		{
 			return false;
-		}
-
-		// If already on list to be deleted, pretend the call was successful.
-		if( ThisActor->IsPendingKill() )
-		{
-			return true;
 		}
 
 		// Can't kill if wrong role.
@@ -441,6 +442,8 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 	{
 		ThisActor->Modify();
 	}
+
+	// Prevent recursion
 	ThisActor->bPendingKillPending = true;
 
 	// Notify the texture streaming manager about the destruction of this actor.
@@ -453,11 +456,10 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 	TArray<AActor*> AttachedActors;
 	ThisActor->GetAttachedActors(AttachedActors);
 
-	TInlineComponentArray<USceneComponent*> SceneComponents;
-	ThisActor->GetComponents(SceneComponents);
-
 	if (AttachedActors.Num() > 0)
 	{
+		TInlineComponentArray<USceneComponent*> SceneComponents;
+		ThisActor->GetComponents(SceneComponents);
 
 		for (TArray< AActor* >::TConstIterator AttachedActorIt(AttachedActors); AttachedActorIt; ++AttachedActorIt)
 		{
@@ -498,26 +500,12 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 #endif
 	}
 
-	if( ThisActor->IsPendingKill() )
-	{
-		return true;
-	}
-
 	ThisActor->ClearComponentOverlaps();
-
-	if (ThisActor->IsPendingKill())
-	{
-		return true;
-	}
 
 	// If this actor has an owner, notify it that it has lost a child.
 	if( ThisActor->GetOwner() )
 	{
 		ThisActor->SetOwner(NULL);
-		if( ThisActor->IsPendingKill() )
-		{
-			return true;
-		}
 	}
 	// Notify net players that this guy has been destroyed.
 	if( NetDriver )

@@ -2828,8 +2828,8 @@ bool AActor::GetActorEnableCollision()
 
 bool AActor::Destroy( bool bNetForce, bool bShouldModifyLevel )
 {
-	// It's already pending kill, no need to beat the corpse
-	if (!IsPendingKill())
+	// It's already pending kill or in DestroyActor(), no need to beat the corpse
+	if (!IsPendingKillPending())
 	{
 		UWorld* World = GetWorld();
 		if (World)
@@ -2841,7 +2841,8 @@ bool AActor::Destroy( bool bNetForce, bool bShouldModifyLevel )
 			UE_LOG(LogSpawn, Warning, TEXT("Destroying %s, which doesn't have a valid world pointer"), *GetPathName());
 		}
 	}
-	return IsPendingKill();
+
+	return IsPendingKillPending();
 }
 
 void AActor::K2_DestroyActor()

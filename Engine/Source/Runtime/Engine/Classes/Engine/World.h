@@ -2725,7 +2725,7 @@ public:
 	 * @param	ThisActor				Actor to remove.
 	 * @param	bNetForce				[opt] Ignored unless called during play.  Default is false.
 	 * @param	bShouldModifyLevel		[opt] If true, Modify() the level before removing the actor.  Default is true.
-	 * @return							true if destroy, false if actor couldn't be destroyed.
+	 * @return							true if destroyed or already marked for destruction, false if actor couldn't be destroyed.
 	 */
 	bool DestroyActor( AActor* Actor, bool bNetForce=false, bool bShouldModifyLevel=true );
 

@@ -1112,11 +1112,11 @@ public:
 	void UserConstructionScript();
 
 	/**
-	 * Destroy this actor. Returns true if destroyed, false if indestructible.
+	 * Destroy this actor. Returns true the actor is destroyed or already marked for destruction, false if indestructible.
 	 * Destruction is latent. It occurs at the end of the tick.
 	 * @param	bNetForce				[opt] Ignored unless called during play.  Default is false.
 	 * @param	bShouldModifyLevel		[opt] If true, Modify() the level before removing the actor.  Default is true.	
-	 * returns	the state of the RF_PendingKill flag
+	 * returns	true if destroyed or already marked for destruction, false if indestructible.
 	 */
 	bool Destroy(bool bNetForce = false, bool bShouldModifyLevel = true );
 
