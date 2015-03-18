@@ -2,6 +2,7 @@
 
 #include "DirectoryWatcherPrivatePCH.h"
 #include "DirectoryWatcherModule.h"
+#include "ModuleManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDirectoryWatcherTests, Log, All);
 
