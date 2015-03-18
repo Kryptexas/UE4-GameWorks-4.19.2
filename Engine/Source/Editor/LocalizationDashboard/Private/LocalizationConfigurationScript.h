@@ -43,8 +43,8 @@ namespace LocalizationConfigurationScript
 	FLocalizationConfigurationScript GenerateExportScript(const ULocalizationTarget* const Target, const TOptional<FString> CultureName = TOptional<FString>(), const TOptional<FString> OutputPathOverride = TOptional<FString>());
 	FString GetExportScriptPath(const ULocalizationTarget* const Target, const TOptional<FString> CultureName = TOptional<FString>());
 
-	FLocalizationConfigurationScript GenerateReportScript(const ULocalizationTarget* const Target);
-	FString GetReportScriptPath(const ULocalizationTarget* const Target);
+	FLocalizationConfigurationScript GenerateWordCountReportScript(const ULocalizationTarget* const Target);
+	FString GetWordCountReportScriptPath(const ULocalizationTarget* const Target);
 
 	FLocalizationConfigurationScript GenerateCompileScript(const ULocalizationTarget* const Target);
 	FString GetCompileScriptPath(const ULocalizationTarget* const Target);

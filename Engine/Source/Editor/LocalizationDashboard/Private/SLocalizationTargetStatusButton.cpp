@@ -30,16 +30,16 @@ void SLocalizationTargetStatusButton::Construct(const FArguments& InArgs, ULocal
 
 const FSlateBrush* SLocalizationTargetStatusButton::GetImageBrush() const
 {
-	switch (Target->Settings.Status)
+	switch (Target->Settings.ConflictStatus)
 	{
 	default:
-	case ELocalizationTargetStatus::Unknown:
+	case ELocalizationTargetConflictStatus::Unknown:
 		return FEditorStyle::GetBrush("Icons.Warning");
 		break;
-	case ELocalizationTargetStatus::Clear:
+	case ELocalizationTargetConflictStatus::Clear:
 		return FEditorStyle::GetBrush("Symbols.Check");
 		break;
-	case ELocalizationTargetStatus::ConflictsPresent:
+	case ELocalizationTargetConflictStatus::ConflictsPresent:
 		return FEditorStyle::GetBrush("Symbols.X");
 		break;
 	}
@@ -47,16 +47,16 @@ const FSlateBrush* SLocalizationTargetStatusButton::GetImageBrush() const
 
 FSlateColor SLocalizationTargetStatusButton::GetColorAndOpacity() const
 {
-	switch (Target->Settings.Status)
+	switch (Target->Settings.ConflictStatus)
 	{
 	default:
-	case ELocalizationTargetStatus::Unknown:
+	case ELocalizationTargetConflictStatus::Unknown:
 		return FLinearColor::White;
 		break;
-	case ELocalizationTargetStatus::Clear:
+	case ELocalizationTargetConflictStatus::Clear:
 		return FLinearColor::Green;
 		break;
-	case ELocalizationTargetStatus::ConflictsPresent:
+	case ELocalizationTargetConflictStatus::ConflictsPresent:
 		return FLinearColor::Red;
 		break;
 	}
@@ -64,16 +64,16 @@ FSlateColor SLocalizationTargetStatusButton::GetColorAndOpacity() const
 
 FText SLocalizationTargetStatusButton::GetToolTipText() const
 {
-	switch (Target->Settings.Status)
+	switch (Target->Settings.ConflictStatus)
 	{
 	default:
-	case ELocalizationTargetStatus::Unknown:
-		return LOCTEXT("StatusToolTip_Unknown", "Conflict report file not detected. Click to generate the conflict report.");
+	case ELocalizationTargetConflictStatus::Unknown:
+		return LOCTEXT("StatusToolTip_Unknown", "Conflict report file not detected. Perform a gather to generate a conflict report file.");
 		break;
-	case ELocalizationTargetStatus::Clear:
+	case ELocalizationTargetConflictStatus::Clear:
 		return LOCTEXT("StatusToolTip_Clear", "No conflicts detected.");
 		break;
-	case ELocalizationTargetStatus::ConflictsPresent:
+	case ELocalizationTargetConflictStatus::ConflictsPresent:
 		return LOCTEXT("StatusToolTip_ConflictsPresent", "Conflicts detected. Click to open the conflict report.");
 		break;
 	}
@@ -81,42 +81,16 @@ FText SLocalizationTargetStatusButton::GetToolTipText() const
 
 FReply SLocalizationTargetStatusButton::OnClicked()
 {
-	switch (Target->Settings.Status)
+	switch (Target->Settings.ConflictStatus)
 	{
-	case ELocalizationTargetStatus::Unknown:
-		{
-			// Generate conflict report.
-			const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
-			if (LocalizationCommandletTasks::GenerateReportsForTarget(ParentWindow.ToSharedRef(), Target))
-			{
-				Target->UpdateStatusFromConflictReport();
-			}
-		}
-		break;
-	case ELocalizationTargetStatus::Clear:
+	case ELocalizationTargetConflictStatus::Unknown:
 		// Do nothing.
 		break;
-	case ELocalizationTargetStatus::ConflictsPresent:
-		FString ReportString;
-		if (FFileHelper::LoadFileToString(ReportString, *LocalizationConfigurationScript::GetConflictReportPath(Target)))
-		{
-			TSharedPtr<SWindow> ReportWindow =
-				SNew(SWindow)
-				.Content()
-				[
-					SNew(SBorder)
-					.BorderImage(FCoreStyle::Get().GetBrush("ToolPanel.GroupBorder"))
-					[
-						SNew(SMultiLineEditableText)
-						.Text( FText::FromString(ReportString) )
-					]
-				];
-
-			if (ReportWindow.IsValid())
-			{
-				FSlateApplication::Get().AddWindow(ReportWindow.ToSharedRef());
-			}
-		}
+	case ELocalizationTargetConflictStatus::Clear:
+		// Do nothing.
+		break;
+	case ELocalizationTargetConflictStatus::ConflictsPresent:
+		FPlatformProcess::LaunchFileInDefaultExternalApplication(*FPaths::ConvertRelativePathToFull(LocalizationConfigurationScript::GetConflictReportPath(Target)), nullptr, ELaunchVerb::Open);
 		break;
 	}
 

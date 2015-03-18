@@ -134,7 +134,7 @@ void FLocalizationTargetSetDetailCustomization::CustomizeDetails(IDetailLayoutBu
 							.HAlignCell(HAlign_Left)
 							.VAlignCell(VAlign_Center)
 							+SHeaderRow::Column("Status")
-							.DefaultLabel( LOCTEXT("StatusColumnLabel", "Status"))
+							.DefaultLabel( LOCTEXT("StatusColumnLabel", "Conflict Status"))
 							.HAlignHeader(HAlign_Center)
 							.HAlignCell(HAlign_Center)
 							.VAlignCell(VAlign_Center)

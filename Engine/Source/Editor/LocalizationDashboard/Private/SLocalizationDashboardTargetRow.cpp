@@ -314,7 +314,7 @@ FReply SLocalizationDashboardTargetRow::RefreshWordCount()
 	if (LocalizationTarget)
 	{
 		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
-		LocalizationCommandletTasks::GenerateReportsForTarget(ParentWindow.ToSharedRef(), LocalizationTarget);
+		LocalizationCommandletTasks::GenerateWordCountReportForTarget(ParentWindow.ToSharedRef(), LocalizationTarget);
 
 		UpdateTargetFromReports();
 	}

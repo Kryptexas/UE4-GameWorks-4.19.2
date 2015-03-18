@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LocalizationDashboardPrivatePCH.h"
 #include "LocalizationConfigurationScript.h"
@@ -43,7 +43,7 @@ namespace LocalizationConfigurationScript
 		Result.Add(GetGatherScriptPath(Target));
 		Result.Add(GetImportScriptPath(Target));
 		Result.Add(GetExportScriptPath(Target));
-		Result.Add(GetReportScriptPath(Target));
+		Result.Add(GetWordCountReportScriptPath(Target));
 		return Result;
 	}
 
@@ -229,6 +229,34 @@ namespace LocalizationConfigurationScript
 
 			// CommandletClass
 			ConfigSection.Add( TEXT("CommandletClass"), TEXT("GenerateGatherArchive") );
+		}
+
+		// GenerateTextLocalizationReport
+		{
+			FConfigSection& ConfigSection = Script.GatherTextStep(GatherTextStepIndex++);
+
+			// CommandletClass
+			ConfigSection.Add( TEXT("CommandletClass"), TEXT("GenerateTextLocalizationReport") );
+
+			const FString SourcePath = ContentDirRelativeToGameDir / TEXT("Localization") / Target->Settings.Name;
+			ConfigSection.Add( TEXT("SourcePath"), SourcePath );
+			const FString DestinationPath = ContentDirRelativeToGameDir / TEXT("Localization") / Target->Settings.Name;
+			ConfigSection.Add( TEXT("DestinationPath"), DestinationPath );
+
+			ConfigSection.Add( TEXT("ManifestName"), FString::Printf( TEXT("%s.%s"), *Target->Settings.Name, TEXT("manifest") ) );
+
+			for (const FCultureStatistics& CultureStatistics : Target->Settings.SupportedCulturesStatistics)
+			{
+				ConfigSection.Add( TEXT("CulturesToGenerate"), CultureStatistics.CultureName );
+			}
+
+			ConfigSection.Add( TEXT("bWordCountReport"), TEXT("true") );
+
+			ConfigSection.Add( TEXT("WordCountReportName"), FPaths::GetCleanFilename( GetWordCountCSVPath(Target) ) );
+
+			ConfigSection.Add( TEXT("bConflictReport"), TEXT("true") );
+
+			ConfigSection.Add( TEXT("ConflictReportName"), FPaths::GetCleanFilename( GetConflictReportPath(Target) ) );
 		}
 
 		Script.Dirty = true;
@@ -453,7 +481,7 @@ namespace LocalizationConfigurationScript
 		return ConfigFilePath;
 	}
 
-	FLocalizationConfigurationScript GenerateReportScript(const ULocalizationTarget* const Target)
+	FLocalizationConfigurationScript GenerateWordCountReportScript(const ULocalizationTarget* const Target)
 	{
 		FLocalizationConfigurationScript Script;
 
@@ -481,10 +509,6 @@ namespace LocalizationConfigurationScript
 			ConfigSection.Add( TEXT("bWordCountReport"), TEXT("true") );
 
 			ConfigSection.Add( TEXT("WordCountReportName"), FPaths::GetCleanFilename( GetWordCountCSVPath(Target) ) );
-
-			ConfigSection.Add( TEXT("bConflictReport"), TEXT("true") );
-
-			ConfigSection.Add( TEXT("ConflictReportName"), FPaths::GetCleanFilename( GetConflictReportPath(Target) ) );
 		}
 
 		Script.Dirty = true;
@@ -492,7 +516,7 @@ namespace LocalizationConfigurationScript
 		return Script;
 	}
 
-	FString GetReportScriptPath(const ULocalizationTarget* const Target)
+	FString GetWordCountReportScriptPath(const ULocalizationTarget* const Target)
 	{
 		return GetScriptDirectory(Target) / FString::Printf( TEXT("%s_GenerateReports.%s"), *(Target->Settings.Name), TEXT("ini") );
 	}

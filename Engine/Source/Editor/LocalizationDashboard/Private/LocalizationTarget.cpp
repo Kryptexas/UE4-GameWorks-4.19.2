@@ -8,7 +8,7 @@
 #include "LocalizationConfigurationScript.h"
 
 FLocalizationTargetSettings::FLocalizationTargetSettings()
-	: Status(ELocalizationTargetStatus::Unknown)
+	: ConflictStatus(ELocalizationTargetConflictStatus::Unknown)
 {
 }
 
@@ -189,15 +189,15 @@ void ULocalizationTarget::UpdateStatusFromConflictReport()
 	{
 	case INDEX_NONE:
 		// Unknown
-		Settings.Status = ELocalizationTargetStatus::Unknown;
+		Settings.ConflictStatus = ELocalizationTargetConflictStatus::Unknown;
 		break;
 	case 0:
 		// Good
-		Settings.Status = ELocalizationTargetStatus::Clear;
+		Settings.ConflictStatus = ELocalizationTargetConflictStatus::Clear;
 		break;
 	default:
 		// Bad
-		Settings.Status = ELocalizationTargetStatus::ConflictsPresent;
+		Settings.ConflictStatus = ELocalizationTargetConflictStatus::ConflictsPresent;
 		break;
 	}
 }
@@ -342,7 +342,7 @@ bool ULocalizationTarget::RenameTargetAndFiles(const FString& NewName)
 	LocalizationConfigurationScript::GenerateGatherScript(this).Write(LocalizationConfigurationScript::GetGatherScriptPath(this));
 	LocalizationConfigurationScript::GenerateImportScript(this).Write(LocalizationConfigurationScript::GetImportScriptPath(this));
 	LocalizationConfigurationScript::GenerateExportScript(this).Write(LocalizationConfigurationScript::GetExportScriptPath(this));
-	LocalizationConfigurationScript::GenerateReportScript(this).Write(LocalizationConfigurationScript::GetReportScriptPath(this));
+	LocalizationConfigurationScript::GenerateWordCountReportScript(this).Write(LocalizationConfigurationScript::GetWordCountReportScriptPath(this));
 
 	//if (CanUseSourceControl)
 	//{

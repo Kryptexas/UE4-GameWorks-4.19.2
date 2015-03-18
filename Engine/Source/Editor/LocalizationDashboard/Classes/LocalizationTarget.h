@@ -6,7 +6,7 @@
 #include "LocalizationTarget.generated.h"
 
 UENUM()
-enum class ELocalizationTargetStatus : uint8
+enum class ELocalizationTargetConflictStatus : uint8
 {
 	Unknown,
 	ConflictsPresent,
@@ -102,7 +102,7 @@ struct FLocalizationTargetSettings
 	FString Name;
 
 	UPROPERTY(Transient, EditAnywhere, Category = "Target")
-	ELocalizationTargetStatus Status;
+	ELocalizationTargetConflictStatus ConflictStatus;
 
 	UPROPERTY(config, EditAnywhere, Category = "Gather Configuration")
 	TArray<FString> TargetDependencies;
