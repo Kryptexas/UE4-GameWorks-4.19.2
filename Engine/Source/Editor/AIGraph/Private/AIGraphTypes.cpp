@@ -288,8 +288,8 @@ void FGraphNodeClassHelper::OnAssetRemoved(const class FAssetData& AssetData)
 	if (GeneratedClassname)
 	{
 		FString AssetClassName = *GeneratedClassname;
-		UObject* Outer1(NULL);
-		ResolveName(Outer1, AssetClassName, false, false);
+		ConstructorHelpers::StripObjectClass(AssetClassName);
+		AssetClassName = FPackageName::ObjectPathToObjectName(*AssetClassName);
 
 		TSharedPtr<FGraphNodeClassNode> Node = FindBaseClassNode(RootNode, AssetClassName);
 		if (Node.IsValid() && Node->ParentNode.IsValid())
