@@ -101,10 +101,14 @@ public:
 
 	/** retrieves information whether test wants to have another run just after finishing */
 	UFUNCTION(BlueprintImplementableEvent, Category="FunctionalTesting")
-	virtual bool WantsToRunAgain() const;
+	bool OnWantsReRunCheck() const;
+
+	virtual bool WantsToRunAgain() const { return false; }
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "FunctionalTesting")
-	virtual FString GetAdditionalTestFinishedMessage(EFunctionalTestResult::Type TestResult) const;
+	FString OnAdditionalTestFinishedMessageRequest(EFunctionalTestResult::Type TestResult) const;
+	
+	virtual FString GetAdditionalTestFinishedMessage(EFunctionalTestResult::Type TestResult) const { return FString(); }
 	
 	/** ACtors registered this way will be automatically destroyed (by limiting their lifespan)
 	 *	on test finish */

@@ -218,7 +218,7 @@ void UFunctionalTestingManager::NotifyTestDone(AFunctionalTest* FTest)
 		GatheredFailedTestsReproString += FTest->GetReproString();
 	}
 
-	if (FTest->WantsToRunAgain() == false)
+	if (FTest->OnWantsReRunCheck() == false && FTest->WantsToRunAgain() == false)
 	{
 		TestsLeft.RemoveSingle(FTest);
 		/*if (bDiscardSuccessfulTests && FTest->IsSuccessful())
