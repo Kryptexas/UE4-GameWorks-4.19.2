@@ -145,7 +145,7 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 
 				if( Definition->HasOSWindowBorder )
 				{
-					[WindowHandle setCollectionBehavior: NSWindowCollectionBehaviorFullScreenPrimary|NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
+					[WindowHandle setCollectionBehavior: NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
 				}
 				else
 				{
@@ -414,12 +414,11 @@ void FMacWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 			FPlatformMisc::PumpMessages(true);
 			WindowIsFullScreen = [WindowHandle windowMode] != EWindowMode::Windowed;
 		} while(WindowIsFullScreen != bMakeFullscreen);
-		
-		if(!bMakeFullscreen && !Definition->HasOSWindowBorder)
-		{
-			Behaviour &= ~(NSWindowCollectionBehaviorFullScreenPrimary);
-			Behaviour |= NSWindowCollectionBehaviorFullScreenAuxiliary;
-		}
+	}
+	else // Already in/out fullscreen but a different mode - we should just update the mode rather than forcing the window to change again
+	{
+		WindowHandle.TargetWindowMode = NewWindowMode;
+		[WindowHandle setWindowMode:NewWindowMode];
 	}
 }
 
