@@ -32,6 +32,9 @@ FLinuxWindow::FLinuxWindow()
 	, bIsPopupWindow(false)
 	, bIsTooltipWindow(false)
 	, bIsPointerInsideWindow(false)
+	, LeftBorderWidth(0)
+	, TopBorderHeight(0)
+	, bValidNativePropertiesCache(false)
 {
 	PreFullscreenWindowRect.left = PreFullscreenWindowRect.top = PreFullscreenWindowRect.right = PreFullscreenWindowRect.bottom = 0;
 }
@@ -137,6 +140,9 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 	VirtualWidth  = ClientWidth;
 	VirtualHeight = ClientHeight;
 
+	// attempt to early cache native properties
+	CacheNativeProperties();
+
 	// We call reshape window here because we didn't take into account the non-client area
 	// in the initial creation of the window. Slate should only pass client area dimensions.
 	// Reshape window may resize the window if the non-client area is encroaching on our
@@ -197,13 +203,9 @@ SDL_HitTestResult FLinuxWindow::HitTest( SDL_Window *SDLwin, const SDL_Point *po
 void FLinuxWindow::MoveWindowTo( int32 X, int32 Y )
 {
 	// we are passed coordinates of a client area, so account for decorations
-	SDL_Rect Borders;
-	if (SDL_GetWindowBordersSize(HWnd, &Borders) == 0)
-	{
-		X -= Borders.x;
-		Y -= Borders.y;
-	}
-    SDL_SetWindowPosition( HWnd, X, Y );
+	checkf(bValidNativePropertiesCache, TEXT("Attempted to use border sizes too early, native properties aren't yet cached. Review the flow"));
+
+	SDL_SetWindowPosition( HWnd, X - LeftBorderWidth, Y - TopBorderHeight );
 }
 
 /** Native windows should implement BringToFront by making this window the top-most window (i.e. focused).
@@ -328,12 +330,9 @@ void FLinuxWindow::ReshapeWindow( int32 NewX, int32 NewY, int32 NewWidth, int32 
 			if (Definition->HasOSWindowBorder)
 			{
 				// we are passed coordinates of a client area, so account for decorations
-				SDL_Rect Borders;
-				if (SDL_GetWindowBordersSize(HWnd, &Borders) == 0)
-				{
-					NewX -= Borders.x;
-					NewY -= Borders.y;
-				}
+				checkf(bValidNativePropertiesCache, TEXT("Attempted to use border sizes too early, native properties aren't yet cached. Review the flow"));
+				NewX -= LeftBorderWidth;
+				NewY -= TopBorderHeight;
 			}
 			SDL_SetWindowPosition( HWnd, NewX, NewY );
 			SDL_SetWindowSize( HWnd, NewWidth, NewHeight );
@@ -574,4 +573,24 @@ void FLinuxWindow::OnPointerEnteredWindow(bool PointerEnteredWindow)
 bool FLinuxWindow::IsPointerInsideWindow() const
 {
 	return bIsPointerInsideWindow;
+}
+
+void FLinuxWindow::GetNativeBordersSize(int32& OutLeftBorderWidth, int32& OutTopBorderHeight) const
+{
+	checkf(bValidNativePropertiesCache, TEXT("Attempted to get border sizes too early, native properties aren't yet cached. Review the flow"));
+	OutLeftBorderWidth = LeftBorderWidth;
+	OutTopBorderHeight = TopBorderHeight;
+}
+
+void FLinuxWindow::CacheNativeProperties()
+{
+	// cache border sizes
+	SDL_Rect Borders;
+	if (SDL_GetWindowBordersSize(HWnd, &Borders) == 0)
+	{
+		LeftBorderWidth = Borders.x;
+		TopBorderHeight = Borders.y;
+	}
+
+	bValidNativePropertiesCache = true;
 }

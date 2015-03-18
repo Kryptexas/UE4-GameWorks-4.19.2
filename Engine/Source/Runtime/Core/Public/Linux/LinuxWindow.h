@@ -151,7 +151,21 @@ public:
 	 * @return Returns 'true' if the pointer is inside the window else 'false'.
 	 */
 	bool IsPointerInsideWindow() const;
-	
+
+	/**
+	 * Returns window border sizes (frame extents).
+	 * 
+	 * @param BorderWidth - width of a vertical border (left side)
+	 * @param BorderHeight - height of a horizontal border (from the top)
+	 */
+	void GetNativeBordersSize(int32& OutLeftBorderWidth, int32& OutTopBorderHeight) const;
+
+	/**
+	 *  Caches window properties that are too expensive to query all the time.
+	 *  (e.g. border sizes)
+	 */
+	void CacheNativeProperties();
+
 private:
 
 	/**
@@ -210,4 +224,13 @@ private:
 	/** Parent window as given by Slate */
 	TSharedPtr< FLinuxWindow > ParentWindow;
 	static SDL_HitTestResult HitTest( SDL_Window *SDLwin, const SDL_Point *point, void *data );
+
+	/** Cached width of the left border */
+	int32 LeftBorderWidth;
+
+	/** Cached height of the top border */
+	int32 TopBorderHeight;
+
+	/** Whether native properties cache is valid */
+	bool bValidNativePropertiesCache;
 };

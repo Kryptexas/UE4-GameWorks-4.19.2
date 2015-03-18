@@ -246,6 +246,7 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 		{
 			SDL_MouseMotionEvent motionEvent = Event.motion;
 			FLinuxCursor *LinuxCursor = (FLinuxCursor*)Cursor.Get();
+			LinuxCursor->InvalidateCaches();
 
 			if (LinuxCursor->IsHidden())
 			{
@@ -660,6 +661,9 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 
 				case SDL_WINDOWEVENT_SHOWN:
 					{
+						// (re)cache native properties
+						CurrentEventWindow->CacheNativeProperties();
+
 						if (CurrentEventWindow->IsRegularWindow())
 						{
 							CurrentEventWindow->SetWindowFocus();
@@ -681,16 +685,12 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 					{
 						int32 ClientScreenX = windowEvent.data1;
 						int32 ClientScreenY = windowEvent.data2;
-						SDL_Rect Borders;
-						if (SDL_GetWindowBordersSize(NativeWindow, &Borders) == 0)
-						{
-							ClientScreenX += Borders.x;
-							ClientScreenY += Borders.y;
-						}
-						else
-						{
-							UE_LOG(LogLinuxWindow, Verbose, TEXT("Could not get Window border sizes!"));
-						}
+
+						int32 BorderSizeX, BorderSizeY;
+						CurrentEventWindow->GetNativeBordersSize(BorderSizeX, BorderSizeY);
+						ClientScreenX += BorderSizeX;
+						ClientScreenY += BorderSizeY;
+
 						MessageHandler->OnMovedWindow(CurrentEventWindow.ToSharedRef(), ClientScreenX, ClientScreenY);
 					}
 					break;
