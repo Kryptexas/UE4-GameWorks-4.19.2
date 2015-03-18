@@ -40,7 +40,7 @@ void FFileManagerGeneric::ProcessCommandLineOptions()
 
 FArchive* FFileManagerGeneric::CreateFileReader( const TCHAR* InFilename, uint32 Flags )
 {
-	IFileHandle* Handle = GetLowLevel().OpenRead( InFilename );
+	IFileHandle* Handle = GetLowLevel().OpenRead( InFilename, !!(Flags & FILEREAD_AllowWrite) );
 	if( !Handle )
 	{
 		if( Flags & FILEREAD_NoFail )
