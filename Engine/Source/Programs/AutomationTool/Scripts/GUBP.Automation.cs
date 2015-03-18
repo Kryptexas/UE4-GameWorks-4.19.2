@@ -6032,9 +6032,9 @@ public class GUBP : BuildCommand
             {
                 var Options = CodeProj.Options(HostPlatform);
 
-                if (!Options.bIsPromotable && !Options.bTestWithShared)
+                if (!Options.bIsPromotable && !Options.bTestWithShared && !Options.bIsNonCode)
                 {
-                    continue; // we skip things that aren't promotable and aren't tested
+                    continue; // we skip things that aren't promotable and aren't tested - except noncode as code situations
                 }
                 var AgentShareName = CodeProj.GameName;
                 if (!Options.bSeparateGamePromotion)
