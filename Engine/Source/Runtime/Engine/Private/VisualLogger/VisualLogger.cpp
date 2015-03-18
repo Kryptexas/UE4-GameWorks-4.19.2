@@ -4,6 +4,7 @@
 #include "VisualLogger/VisualLogger.h"
 #include "VisualLogger/VisualLogger.h"
 #include "VisualLogger/VisualLoggerBinaryFileDevice.h"
+#include "VisualLogger/VisualLoggerCircularBufferDevice.h"
 #if WITH_EDITOR
 #	include "Editor/UnrealEd/Public/EditorComponents.h"
 #	include "Editor/UnrealEd/Public/EditorReimportHandler.h"
@@ -26,6 +27,10 @@ FVisualLogger::FVisualLogger()
 {
 	BlockAllCategories(false);
 	AddDevice(&FVisualLoggerBinaryFileDevice::Get());
+	if (FVisualLoggerCircularBufferDevice::Get().GetCircularBufferSize() > 0)
+	{
+		AddDevice(&FVisualLoggerCircularBufferDevice::Get());
+	}
 	SetIsRecording(GEngine ? !!GEngine->bEnableVisualLogRecordingOnStart : false);
 	SetIsRecordingOnServer(false);
 
@@ -34,6 +39,25 @@ FVisualLogger::FVisualLogger()
 		SetIsRecording(true);
 		SetIsRecordingToFile(true);
 	}
+}
+
+bool FVisualLogger::IsUsingCircularBuffer()
+{
+	return GetDevices().Find(&FVisualLoggerCircularBufferDevice::Get()) != INDEX_NONE;
+}
+
+FVisualLogDevice* FVisualLogger::GetCircularBuffer()
+{
+	return FVisualLoggerCircularBufferDevice::Get().GetCircularBufferSize() > 0 ? & FVisualLoggerCircularBufferDevice::Get() : NULL;
+}
+
+bool FVisualLogger::DumpCircularBuffer()
+{
+	if (FVisualLoggerCircularBufferDevice::Get().GetCircularBufferSize() > 0)
+	{
+		FVisualLoggerCircularBufferDevice::Get().DumpBuffer();
+	}
+	return true;
 }
 
 UWorld* FVisualLogger::GetWorld(const class UObject* Object)
@@ -231,6 +255,13 @@ public:
 #else
 			UE_LOG(LogVisual, Warning, TEXT("Unable to open LogVisualizer - logs are disabled"));
 #endif
+			} 
+		}
+		else if (FParse::Command(&Cmd, TEXT("dumpvislog")))
+		{
+			if (FVisualLogger::Get().IsUsingCircularBuffer())
+			{
+				FVisualLogger::Get().DumpCircularBuffer();
 			}
 		}
 		return false;

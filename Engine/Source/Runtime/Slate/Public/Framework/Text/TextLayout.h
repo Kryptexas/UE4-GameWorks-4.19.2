@@ -9,7 +9,7 @@
 
 #define TEXT_LAYOUT_DEBUG 0
 
-UENUM()
+UENUM( BlueprintType )
 namespace ETextJustify
 {
 	enum Type

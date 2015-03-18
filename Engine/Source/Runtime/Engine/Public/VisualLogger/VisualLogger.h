@@ -97,6 +97,7 @@
 #define TEXT_NULL TEXT("NULL")
 #define TEXT_TRUE TEXT("TRUE")
 #define TEXT_FALSE TEXT("FALSE")
+#define VISLOG_FILENAME_EXT TEXT("bvlog")
 #define TEXT_CONDITION(Condition) ((Condition) ? TEXT_TRUE : TEXT_FALSE)
 
 #if ENABLE_VISUAL_LOG
@@ -193,6 +194,12 @@ public:
 
 	void SetIsRecordingOnServer(bool IsRecording) { bIsRecordingOnServer = IsRecording; }
 	bool IsRecordingOnServer() { return !!bIsRecordingOnServer; }
+
+	bool IsUsingCircularBuffer();
+
+	FVisualLogDevice* GetCircularBuffer();
+
+	bool DumpCircularBuffer();
 
 	/** Add visual logger output device */
 	void AddDevice(FVisualLogDevice* InDevice) { OutputDevices.AddUnique(InDevice); }

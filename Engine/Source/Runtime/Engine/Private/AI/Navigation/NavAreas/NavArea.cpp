@@ -45,7 +45,7 @@ void UNavArea::CopyFrom(TSubclassOf<UNavArea> AreaClass)
 		UNavArea* DefArea = (UNavArea*)AreaClass->GetDefaultObject();
 
 		DefaultCost = DefArea->DefaultCost;
-		FixedAreaEnteringCost = DefArea->FixedAreaEnteringCost;
+		FixedAreaEnteringCost = DefArea->GetFixedAreaEnteringCost();
 		AreaFlags = DefArea->GetAreaFlags();
 		DrawColor = DefArea->DrawColor;
 

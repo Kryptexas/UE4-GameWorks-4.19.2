@@ -311,3 +311,73 @@ bool UOnlineSessionClient::HandleDisconnectInternal(UWorld* World, UNetDriver* N
 
 	return false;
 }
+
+void UOnlineSessionClient::StartOnlineSession(FName SessionName)
+{
+	APlayerController* PC = GetPlayerController();
+	if (PC)
+	{
+		UWorld* World = PC->GetWorld();
+		IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
+		if (SessionInt.IsValid())
+		{
+			FNamedOnlineSession* Session = SessionInt->GetNamedSession(SessionName);
+			if (Session &&
+				(Session->SessionState == EOnlineSessionState::Pending || Session->SessionState == EOnlineSessionState::Ended))
+			{
+				StartSessionCompleteHandle = SessionInt->AddOnStartSessionCompleteDelegate_Handle(FOnStartSessionCompleteDelegate::CreateUObject(this, &UOnlineSessionClient::OnStartSessionComplete));
+				SessionInt->StartSession(SessionName);
+			}
+		}
+	}
+}
+
+void UOnlineSessionClient::OnStartSessionComplete(FName SessionName, bool bWasSuccessful)
+{
+	UE_LOG(LogOnline, Verbose, TEXT("OnStartSessionComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
+	APlayerController* PC = GetPlayerController();
+	if (PC)
+	{
+		UWorld* World = PC->GetWorld();
+		IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
+		if (SessionInt.IsValid())
+		{
+			SessionInt->ClearOnStartSessionCompleteDelegate_Handle(StartSessionCompleteHandle);
+		}
+	}
+}
+
+void UOnlineSessionClient::EndOnlineSession(FName SessionName)
+{
+	APlayerController* PC = GetPlayerController();
+	if (PC)
+	{
+		UWorld* World = PC->GetWorld();
+		IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
+		if (SessionInt.IsValid())
+		{
+			FNamedOnlineSession* Session = SessionInt->GetNamedSession(SessionName);
+			if (Session &&
+				Session->SessionState == EOnlineSessionState::InProgress)
+			{
+				EndSessionCompleteHandle = SessionInt->AddOnEndSessionCompleteDelegate_Handle(FOnStartSessionCompleteDelegate::CreateUObject(this, &UOnlineSessionClient::OnEndSessionComplete));
+				SessionInt->EndSession(SessionName);
+			}
+		}
+	}
+}
+
+void UOnlineSessionClient::OnEndSessionComplete(FName SessionName, bool bWasSuccessful)
+{
+	UE_LOG(LogOnline, Verbose, TEXT("OnEndSessionComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
+	APlayerController* PC = GetPlayerController();
+	if (PC)
+	{
+		UWorld* World = PC->GetWorld();
+		IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
+		if (SessionInt.IsValid())
+		{
+			SessionInt->ClearOnEndSessionCompleteDelegate_Handle(EndSessionCompleteHandle);
+		}
+	}
+}

@@ -83,7 +83,7 @@ public:
 									SNew(STextBlock)
 									.Font(FriendStyle.FriendsFontStyleBold)
 									.ColorAndOpacity(FriendStyle.DefaultFontColor)
-									.Text(ViewModel->GetName())
+									.Text(FText::FromString(ViewModel->GetName()))
 								]
 								+ SVerticalBox::Slot()
 								.HAlign(HAlign_Left)

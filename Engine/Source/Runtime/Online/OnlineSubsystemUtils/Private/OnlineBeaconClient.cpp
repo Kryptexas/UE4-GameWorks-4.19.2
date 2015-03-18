@@ -8,7 +8,8 @@
 
 AOnlineBeaconClient::AOnlineBeaconClient(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
-	BeaconOwner(nullptr)
+	BeaconOwner(nullptr),
+	BeaconConnection(nullptr)
 {
 	NetDriverName = FName(TEXT("BeaconDriverClient"));
 	bOnlyRelevantToOwner = true;
@@ -22,6 +23,11 @@ AOnlineBeaconHostObject* AOnlineBeaconClient::GetBeaconOwner() const
 void AOnlineBeaconClient::SetBeaconOwner(AOnlineBeaconHostObject* InBeaconOwner)
 {
 	BeaconOwner = InBeaconOwner;
+}
+
+UNetConnection* AOnlineBeaconClient::GetNetConnection()
+{
+	return BeaconConnection;
 }
 
 bool AOnlineBeaconClient::InitClient(FURL& URL)

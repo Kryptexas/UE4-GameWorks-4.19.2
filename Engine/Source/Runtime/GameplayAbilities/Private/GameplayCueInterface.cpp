@@ -100,7 +100,7 @@ void IGameplayCueInterface::ForwardGameplayCueToParent()
 
 void FActiveGameplayCue::PreReplicatedRemove(const struct FActiveGameplayCueContainer &InArray)
 {
-	if (PredictionKey.IsValidKey() == false)
+	if (PredictionKey.IsLocalClientKey() == false)
 	{
 		// If predicted ignore the add/remove
 		InArray.Owner->InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Removed);
@@ -110,7 +110,7 @@ void FActiveGameplayCue::PreReplicatedRemove(const struct FActiveGameplayCueCont
 
 void FActiveGameplayCue::PostReplicatedAdd(const struct FActiveGameplayCueContainer &InArray)
 {
-	if (PredictionKey.IsValidKey() == false)
+	if (PredictionKey.IsLocalClientKey() == false)
 	{
 		// If predicted ignore the add/remove
 		InArray.Owner->InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::WhileActive);

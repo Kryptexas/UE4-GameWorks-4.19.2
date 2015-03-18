@@ -73,10 +73,12 @@ struct FAISightQuery
 	float Score;
 	float Importance;
 
+	FVector LastSeenLocation;
+
 	uint32 bLastResult : 1;
 
 	FAISightQuery(FPerceptionListenerID ListenerId = FPerceptionListenerID::InvalidID(), FAISightTarget::FTargetId Target = FAISightTarget::InvalidTargetId)
-		: ObserverId(ListenerId), TargetId(Target), Age(0), Score(0), Importance(0), bLastResult(false)
+		: ObserverId(ListenerId), TargetId(Target), Age(0), Score(0), Importance(0), LastSeenLocation(FAISystem::InvalidLocation), bLastResult(false)
 	{
 	}
 
@@ -108,6 +110,7 @@ public:
 	{
 		float PeripheralVisionAngleCos;
 		float SightRadiusSq;
+		float AutoSuccessRangeSqFromLastSeenLocation;
 		float LoseSightRadiusSq;
 		uint8 AffiliationFlags;
 
@@ -147,6 +150,8 @@ public:
 	
 protected:
 	virtual float Update() override;
+
+	virtual bool ShouldAutomaticallySeeTarget(const FDigestedSightProperties& PropDigest, FAISightQuery* SightQuery, FPerceptionListener& Listener, AActor* TargetActor) const;
 
 	void OnNewListenerImpl(const FPerceptionListener& NewListener);
 	void OnListenerUpdateImpl(const FPerceptionListener& UpdatedListener);

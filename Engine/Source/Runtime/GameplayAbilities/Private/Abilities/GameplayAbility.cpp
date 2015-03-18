@@ -380,6 +380,17 @@ bool UGameplayAbility::CommitCheck(const FGameplayAbilitySpecHandle Handle, cons
 	 *			-E.g., its possible the act of starting your ability makes it no longer activatable (CanaCtivateAbility() may be false if called here).
 	 */
 
+	const bool bValidHandle = Handle.IsValid();
+	const bool bValidActorInfoPieces = (ActorInfo && (ActorInfo->AbilitySystemComponent != nullptr));
+	const bool bValidSpecFound = bValidActorInfoPieces && (ActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(Handle) != nullptr);
+
+	// Ensure that the ability spec is even valid before trying to process the commit
+	if (!bValidHandle || !bValidActorInfoPieces || !bValidSpecFound)
+	{
+		ensureMsgf(false, TEXT("UGameplayAbility::CommitCheck provided an invalid handle or actor info or couldn't find ability spec: %s Handle Valid: %d ActorInfo Valid: %d Spec Not Found: %d"), *GetName(), bValidHandle, bValidActorInfoPieces, bValidSpecFound);
+		return false;
+	}
+
 	if (!UAbilitySystemGlobals::Get().ShouldIgnoreCooldowns() && !CheckCooldown(Handle, ActorInfo))
 	{
 		return false;
@@ -936,7 +947,7 @@ void UGameplayAbility::MontageStop(float OverrideBlendOutTime)
 		// We should only stop the current montage if we are the animating ability
 		if (AbilitySystemComponent->IsAnimatingAbility(this))
 		{
-			AbilitySystemComponent->CurrentMontageStop(OverrideBlendOutTime);
+			AbilitySystemComponent->CurrentMontageStop();
 		}
 	}
 }

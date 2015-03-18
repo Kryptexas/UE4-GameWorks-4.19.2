@@ -12,16 +12,16 @@ class AIMODULE_API UBTTask_SetTagCooldown : public UBTTaskNode
 {
 	GENERATED_UCLASS_BODY()
 
-	/** gameplay tag that will be used for the cooldown */
+	/** Gameplay tag that will be used for the cooldown. */
 	UPROPERTY(Category = Cooldown, EditAnywhere)
 	FGameplayTag CooldownTag;
 
-	/** true if we are adding to any existing duration, false if we are setting the duration (potentially invalidating an existing end time) */
+	/** True if we are adding to any existing duration, false if we are setting the duration (potentially invalidating an existing end time). */
 	UPROPERTY(Category = Decorator, EditAnywhere)
 	bool bAddToExistingDuration;
 
-	/** how long the cooldown lasts */
-	UPROPERTY(Category = Decorator, EditAnywhere)
+	/** Value we will add or set to the Cooldown tag when this task runs. */
+	UPROPERTY(Category = Cooldown, EditAnywhere)
 	float CooldownDuration;
 
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;

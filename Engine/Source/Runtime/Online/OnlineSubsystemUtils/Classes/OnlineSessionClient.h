@@ -41,6 +41,11 @@ protected:
 	FDelegateHandle OnDestroyForMainMenuCompleteDelegateHandle;
 	FDelegateHandle OnJoinSessionCompleteDelegateHandle;
 
+	/** Handle to outstanding start session call */
+	FDelegateHandle StartSessionCompleteHandle;
+	/** Handle to outstanding end session call */
+	FDelegateHandle EndSessionCompleteHandle;
+
 	/** Cached invite/search result while in the process of tearing down an existing session */
 	FOnlineSessionSearchResult CachedSessionResult;
 	/** Is this join from an invite */
@@ -93,6 +98,22 @@ protected:
 	 * @param Delegate delegate to call at session end
 	 */
 	void EndExistingSession(FName SessionName, FOnEndSessionCompleteDelegate& Delegate);
+
+	/** 
+	 * Delegate called when StartSession has completed 
+	 *
+	 * @param InSessionName name of session involved
+	 * @param bWasSuccessful true if the call was successful, false otherwise
+	 */
+	virtual void OnStartSessionComplete(FName InSessionName, bool bWasSuccessful);
+
+	/**
+	 * Delegate called when EndSession has completed
+	 *
+	 * @param InSessionName name of session involved
+	 * @param bWasSuccessful true if the call was successful, false otherwise
+	 */
+	virtual void OnEndSessionComplete(FName InSessionName, bool bWasSuccessful);
 
 private:
 	/**
@@ -166,21 +187,13 @@ protected:
 
 public:
 
-	/**
-	 * Register all delegates needed to manage online sessions
-	 */
+	// UOnlineSession interface begin
 	virtual void RegisterOnlineDelegates(class UWorld* InWorld) override;
-
-	/**
-	 * Tear down all delegates used to manage online sessions
-	 */
 	virtual void ClearOnlineDelegates(class UWorld* InWorld) override;
-
-	/**
-	 * Called to tear down any online sessions and return to main menu
-	 */
-	void HandleDisconnect(UWorld *World, UNetDriver *NetDriver) override;
-
+	virtual void HandleDisconnect(UWorld *World, UNetDriver *NetDriver) override;
+	virtual void StartOnlineSession(FName SessionName) override;
+	virtual void EndOnlineSession(FName SessionName) override;
+	// UOnlineSession interface end
 };
 
 

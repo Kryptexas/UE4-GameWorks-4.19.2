@@ -22,6 +22,12 @@ public:
 
 	/** Called to tear down any online sessions and return to main menu	 */
 	virtual void HandleDisconnect(UWorld *World, class UNetDriver *NetDriver);
+
+	/** Start the online session specified */
+	virtual void StartOnlineSession(FName SessionName) {};
+
+	/** End the online session specified */
+	virtual void EndOnlineSession(FName SessionName) {};
 };
 
 

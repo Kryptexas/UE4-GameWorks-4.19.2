@@ -20,7 +20,7 @@ UBTDecorator_TagCooldown::UBTDecorator_TagCooldown(const FObjectInitializer& Obj
 void UBTDecorator_TagCooldown::PostLoad()
 {
 	Super::PostLoad();
-	bNotifyTick = bActivatesCooldown && (FlowAbortMode != EBTFlowAbortMode::None);
+	bNotifyTick = (FlowAbortMode != EBTFlowAbortMode::None);
 }
 
 bool UBTDecorator_TagCooldown::HasCooldownFinished(const UBehaviorTreeComponent& OwnerComp) const
@@ -54,13 +54,15 @@ void UBTDecorator_TagCooldown::OnNodeDeactivation(FBehaviorTreeSearchData& Searc
 {
 	FBTTagCooldownDecoratorMemory* DecoratorMemory = GetNodeMemory<FBTTagCooldownDecoratorMemory>(SearchData);
 	DecoratorMemory->bRequestedRestart = false;
-	SearchData.OwnerComp.AddCooldownTagDuration(CooldownTag, CooldownDuration, bAddToExistingDuration);
+
+	if (bActivatesCooldown)
+	{
+		SearchData.OwnerComp.AddCooldownTagDuration(CooldownTag, CooldownDuration, bAddToExistingDuration);
+	}
 }
 
 void UBTDecorator_TagCooldown::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
-	check(bActivatesCooldown);
-
 	FBTTagCooldownDecoratorMemory* DecoratorMemory = (FBTTagCooldownDecoratorMemory*)NodeMemory;
 	if (!DecoratorMemory->bRequestedRestart)
 	{

@@ -5,7 +5,7 @@
 #include "AI/Navigation/NavAgentInterface.h"
 #include "AI/Navigation/RecastNavMesh.h"
 #include "EnvironmentQuery/Contexts/EnvQueryContext_Querier.h"
-#include "EnvironmentQuery/Items/EnvQueryItemType_Point.h"
+#include "EnvironmentQuery/Items/EnvQueryItemType_VectorBase.h"
 #include "EnvironmentQuery/Tests/EnvQueryTest_PathfindingBatch.h"
 
 #if WITH_RECAST
@@ -57,12 +57,8 @@ namespace NodePoolHelpers
 	typedef float(*PathParamFunc)(const FRecastDebugPathfindingData&, const FNavigationProjectionWork&, const dtQueryFilter*);
 }
 
-DECLARE_CYCLE_STAT(TEXT("Debug test total"), STAT_AI_EQS_Debug1, STATGROUP_AI_EQS);
-
 void UEnvQueryTest_PathfindingBatch::RunTest(FEnvQueryInstance& QueryInstance) const
 {
-	SCOPE_CYCLE_COUNTER(STAT_AI_EQS_Debug1);
-
 	UObject* DataOwner = QueryInstance.Owner.Get();
 	BoolValue.BindData(DataOwner, QueryInstance.QueryID);
 	PathFromContext.BindData(DataOwner, QueryInstance.QueryID);
@@ -102,30 +98,9 @@ void UEnvQueryTest_PathfindingBatch::RunTest(FEnvQueryInstance& QueryInstance) c
 	NavigationFilter->SetBacktrackingEnabled(!bPathToItem);
 	const dtQueryFilter* NavQueryFilter = ((const FRecastQueryFilter*)NavigationFilter->GetImplementation())->GetAsDetourQueryFilter();
 
-	UEnvQueryItemType_Point* PointCDO = QueryInstance.ItemType->GetDefaultObject<UEnvQueryItemType_Point>();
-	if (QueryInstance.Options[QueryInstance.OptionIndex].bHasNavLocations && PointCDO)
 	{
-		for (int32 ItemIdx = 0; ItemIdx < QueryInstance.Items.Num(); ItemIdx++)
-		{
-			if (QueryInstance.Items[ItemIdx].IsValid())
-			{
-				const FNavLocation ItemNavLocation = PointCDO->GetItemNavLocation(QueryInstance.RawData.GetData() + QueryInstance.Items[ItemIdx].DataOffset);
+		// scope for perf timers
 
-				FNavigationProjectionWork ProjData(ItemNavLocation.Location);
-				ProjData.OutLocation = ItemNavLocation;
-				ProjData.bResult = true;
-				TestPoints.Add(ProjData);
-
-				for (int32 ContextIdx = 0; ContextIdx < ContextLocations.Num(); ContextIdx++)
-				{
-					const float TestDistanceSq = FVector::DistSquared(ItemNavLocation.Location, ContextLocations[ContextIdx]);
-					CollectDistanceSq[ContextIdx] = FMath::Max(CollectDistanceSq[ContextIdx], TestDistanceSq);
-				}
-			}
-		}
-	}
-	else
-	{
 		// can't use FEnvQueryInstance::ItemIterator yet, since it has built in scoring functionality
 		for (int32 ItemIdx = 0; ItemIdx < QueryInstance.Items.Num(); ItemIdx++)
 		{

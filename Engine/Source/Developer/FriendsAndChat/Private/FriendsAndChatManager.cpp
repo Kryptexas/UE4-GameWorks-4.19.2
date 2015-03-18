@@ -211,7 +211,7 @@ void FFriendsAndChatManager::Logout()
 	OnlineSub = nullptr;
 	// Prevent a shared pointer issue with stale analytics providers
     // @todo do this as a failsafe, but unsafe now until FTickerObjectBase issues are resolved
-	//SetAnalyticsProvider(nullptr);
+	SetAnalyticsProvider(nullptr);
 
 	if ( UpdateFriendsTickerDelegate.IsBound() )
 	{

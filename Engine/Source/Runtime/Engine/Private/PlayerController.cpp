@@ -12,6 +12,7 @@
 #include "ConfigCacheIni.h"
 #include "SoundDefinitions.h"
 #include "OnlineSubsystemUtils.h"
+#include "GameFramework/OnlineSession.h"
 #include "IHeadMountedDisplay.h"
 #include "IInputInterface.h"
 #include "SlateBasics.h"
@@ -3098,6 +3099,38 @@ void APlayerController::NotifyDirectorControl(bool bNowControlling, AMatineeActo
 
 void APlayerController::ClientWasKicked_Implementation(const FText& KickReason)
 {
+}
+
+void APlayerController::ClientStartOnlineSession_Implementation()
+{
+	if (IsPrimaryPlayer() && PlayerState)
+	{
+		ULocalPlayer* LP = Cast<ULocalPlayer>(Player);
+		if (LP)
+		{
+			UOnlineSession* Session = LP->GetOnlineSession();
+			if (Session)
+			{
+				Session->StartOnlineSession(PlayerState->SessionName);
+			}
+		}
+	}
+}
+
+void APlayerController::ClientEndOnlineSession_Implementation()
+{
+	if (IsPrimaryPlayer() && PlayerState)
+	{
+		ULocalPlayer* LP = Cast<ULocalPlayer>(Player);
+		if (LP)
+		{
+			UOnlineSession* Session = LP->GetOnlineSession();
+			if (Session)
+			{
+				Session->EndOnlineSession(PlayerState->SessionName);
+			}
+		}
+	}
 }
 
 void APlayerController::ConsoleKey(FKey Key)

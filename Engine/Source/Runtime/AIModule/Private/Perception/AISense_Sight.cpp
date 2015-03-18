@@ -61,10 +61,12 @@ UAISense_Sight::FDigestedSightProperties::FDigestedSightProperties(const UAISens
 	LoseSightRadiusSq = FMath::Square(SenseConfig.LoseSightRadius);
 	PeripheralVisionAngleCos = FMath::Cos(FMath::DegreesToRadians(SenseConfig.PeripheralVisionAngleDegrees));
 	AffiliationFlags = SenseConfig.DetectionByAffiliation.GetAsFlags();
+	// keep the special value of FAISystem::InvalidRange (-1.f) if it's set.
+	AutoSuccessRangeSqFromLastSeenLocation = (SenseConfig.AutoSuccessRangeFromLastSeenLocation == FAISystem::InvalidRange) ? FAISystem::InvalidRange : FMath::Square(SenseConfig.AutoSuccessRangeFromLastSeenLocation);
 }
 
 UAISense_Sight::FDigestedSightProperties::FDigestedSightProperties()
-	: PeripheralVisionAngleCos(0.f), SightRadiusSq(-1.f), LoseSightRadiusSq(-1.f), AffiliationFlags(-1)
+	: PeripheralVisionAngleCos(0.f), SightRadiusSq(-1.f), AutoSuccessRangeSqFromLastSeenLocation(FAISystem::InvalidRange), LoseSightRadiusSq(-1.f), AffiliationFlags(-1)
 {}
 
 //----------------------------------------------------------------------//
@@ -99,6 +101,17 @@ void UAISense_Sight::PostInitProperties()
 {
 	Super::PostInitProperties();
 	HighImportanceDistanceSquare = FMath::Square(HighImportanceQueryDistanceThreshold);
+}
+
+bool UAISense_Sight::ShouldAutomaticallySeeTarget(const FDigestedSightProperties& PropDigest, FAISightQuery* SightQuery, FPerceptionListener& Listener, AActor* TargetActor) const
+{
+	if ((PropDigest.AutoSuccessRangeSqFromLastSeenLocation != FAISystem::InvalidRange) && (SightQuery->LastSeenLocation != FAISystem::InvalidLocation))
+	{
+		const float DistanceToLastSeenLocationSq = FVector::DistSquared(TargetActor->GetActorLocation(), SightQuery->LastSeenLocation);
+		return (DistanceToLastSeenLocationSq <= PropDigest.AutoSuccessRangeSqFromLastSeenLocation);
+	}
+
+	return false;
 }
 
 float UAISense_Sight::Update()
@@ -143,7 +156,13 @@ float UAISense_Sight::Update()
 				const FDigestedSightProperties& PropDigest = DigestedProperties[SightQuery->ObserverId];
 				const float SightRadiusSq = SightQuery->bLastResult ? PropDigest.LoseSightRadiusSq : PropDigest.SightRadiusSq;
 
-				if (CheckIsTargetInSightPie(Listener, PropDigest, TargetLocation, SightRadiusSq))
+				if (ShouldAutomaticallySeeTarget(PropDigest, SightQuery, Listener, TargetActor))
+				{
+					// Pretend like we've seen this target where we last saw them
+					Listener.RegisterStimulus(TargetActor, FAIStimulus(*this, 1.f, SightQuery->LastSeenLocation, Listener.CachedLocation));
+					SightQuery->bLastResult = true;
+				}
+				else if (CheckIsTargetInSightPie(Listener, PropDigest, TargetLocation, SightRadiusSq))
 				{
 					SIGHT_LOG_SEGMENT(Listener.Listener.Get()->GetOwner(), Listener.CachedLocation, TargetLocation, FColor::Green, TEXT("%s"), *(Target.TargetId.ToString()));
 
@@ -158,6 +177,7 @@ float UAISense_Sight::Update()
 						{
 							Listener.RegisterStimulus(TargetActor, FAIStimulus(*this, SightStrength, OutSeenLocation, Listener.CachedLocation));
 							SightQuery->bLastResult = true;
+							SightQuery->LastSeenLocation = OutSeenLocation;
 						}
 						else
 						{
@@ -182,6 +202,7 @@ float UAISense_Sight::Update()
 						{
 							Listener.RegisterStimulus(TargetActor, FAIStimulus(*this, 1.f, TargetLocation, Listener.CachedLocation));
 							SightQuery->bLastResult = true;
+							SightQuery->LastSeenLocation = TargetLocation;
 						}
 						else
 						{

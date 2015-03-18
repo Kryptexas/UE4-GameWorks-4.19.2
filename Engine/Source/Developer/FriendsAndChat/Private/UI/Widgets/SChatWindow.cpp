@@ -435,14 +435,14 @@ public:
 			{
 				if (FadeCurve.GetLerp() == 0.0f)
 				{
-					FadeAnimation.Play();
+					FadeAnimation.Play(this->AsShared());
 				}
 			}
 			else
 			{
 				if (FadeCurve.GetLerp() == 1.0f)
 				{
-					FadeAnimation.PlayReverse();
+					FadeAnimation.PlayReverse(this->AsShared());
 				}
 
 				if (FadeAnimation.IsPlaying())

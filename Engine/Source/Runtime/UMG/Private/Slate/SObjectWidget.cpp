@@ -61,7 +61,7 @@ int32 SObjectWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGe
 	if ( CanRouteEvent() )
 	{
 		FPaintContext Context(AllottedGeometry, MyClippingRect, OutDrawElements, MaxLayer, InWidgetStyle, bParentEnabled);
-		WidgetObject->OnPaint(Context);
+		WidgetObject->NativePaint(Context);
 
 		return FMath::Max(MaxLayer, Context.MaxLayer);
 	}
@@ -83,7 +83,7 @@ FReply SObjectWidget::OnFocusReceived(const FGeometry& MyGeometry, const FFocusE
 {
 	if ( CanRouteEvent() )
 	{
-		return WidgetObject->OnFocusReceived(MyGeometry, InFocusEvent).NativeReply;
+		return WidgetObject->NativeOnFocusReceived( MyGeometry, InFocusEvent );
 	}
 
 	return FReply::Unhandled();
@@ -93,7 +93,7 @@ void SObjectWidget::OnFocusLost(const FFocusEvent& InFocusEvent)
 {
 	if ( CanRouteEvent() )
 	{
-		WidgetObject->OnFocusLost(InFocusEvent);
+		WidgetObject->NativeOnFocusLost( InFocusEvent );
 	}
 }
 
@@ -106,7 +106,7 @@ FReply SObjectWidget::OnKeyChar(const FGeometry& MyGeometry, const FCharacterEve
 {
 	if ( CanRouteEvent() )
 	{
-		return WidgetObject->OnKeyChar(MyGeometry, InCharacterEvent).NativeReply;
+		return WidgetObject->NativeOnKeyChar( MyGeometry, InCharacterEvent );
 	}
 
 	return FReply::Unhandled();
@@ -116,7 +116,7 @@ FReply SObjectWidget::OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyEv
 {
 	if ( CanRouteEvent() )
 	{
-		return WidgetObject->OnPreviewKeyDown(MyGeometry, InKeyEvent).NativeReply;
+		return WidgetObject->NativeOnPreviewKeyDown( MyGeometry, InKeyEvent );
 	}
 
 	return FReply::Unhandled();
@@ -126,7 +126,7 @@ FReply SObjectWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& In
 {
 	if ( CanRouteEvent() )
 	{
-		return WidgetObject->OnKeyDown(MyGeometry, InKeyEvent).NativeReply;
+		return WidgetObject->NativeOnKeyDown( MyGeometry, InKeyEvent );
 	}
 
 	return FReply::Unhandled();
@@ -136,7 +136,7 @@ FReply SObjectWidget::OnKeyUp(const FGeometry& MyGeometry, const FKeyEvent& InKe
 {
 	if ( CanRouteEvent() )
 	{
-		return WidgetObject->OnKeyUp(MyGeometry, InKeyEvent).NativeReply;
+		return WidgetObject->NativeOnKeyUp( MyGeometry, InKeyEvent );
 	}
 
 	return FReply::Unhandled();
@@ -146,7 +146,7 @@ FReply SObjectWidget::OnAnalogValueChanged(const FGeometry& MyGeometry, const FA
 {
 	if ( CanRouteEvent() )
 	{
-		return WidgetObject->OnAnalogValueChanged(MyGeometry, InAnalogInputEvent).NativeReply;
+		return WidgetObject->NativeOnAnalogValueChanged( MyGeometry, InAnalogInputEvent );
 	}
 
 	return FReply::Unhandled();
@@ -158,7 +158,7 @@ FReply SObjectWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoin
 
 	if ( CanRouteEvent() )
 	{
-		return WidgetObject->OnMouseButtonDown(MyGeometry, MouseEvent).NativeReply;
+		return WidgetObject->NativeOnMouseButtonDown( MyGeometry, MouseEvent );
 	}
 
 	return FReply::Unhandled();
@@ -170,7 +170,7 @@ FReply SObjectWidget::OnPreviewMouseButtonDown(const FGeometry& MyGeometry, cons
 
 	if ( CanRouteEvent() )
 	{
-		return WidgetObject->OnPreviewMouseButtonDown(MyGeometry, MouseEvent).NativeReply;
+		return WidgetObject->NativeOnPreviewMouseButtonDown( MyGeometry, MouseEvent );
 	}
 
 	return FReply::Unhandled();
@@ -182,7 +182,7 @@ FReply SObjectWidget::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointe
 
 	if ( CanRouteEvent() )
 	{
-		return WidgetObject->OnMouseButtonUp(MyGeometry, MouseEvent).NativeReply;
+		return WidgetObject->NativeOnMouseButtonUp( MyGeometry, MouseEvent );
 	}
 
 	return FReply::Unhandled();
@@ -192,7 +192,7 @@ FReply SObjectWidget::OnMouseMove(const FGeometry& MyGeometry, const FPointerEve
 {
 	if ( CanRouteEvent() )
 	{
-		return WidgetObject->OnMouseMove(MyGeometry, MouseEvent).NativeReply;
+		return WidgetObject->NativeOnMouseMove( MyGeometry, MouseEvent );
 	}
 
 	return FReply::Unhandled();
@@ -202,7 +202,7 @@ void SObjectWidget::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEven
 {
 	if ( CanRouteEvent() )
 	{
-		WidgetObject->OnMouseEnter(MyGeometry, MouseEvent);
+		WidgetObject->NativeOnMouseEnter( MyGeometry, MouseEvent );
 	}
 }
 
@@ -210,7 +210,7 @@ void SObjectWidget::OnMouseLeave(const FPointerEvent& MouseEvent)
 {
 	if ( CanRouteEvent() )
 	{
-		WidgetObject->OnMouseLeave(MouseEvent);
+		WidgetObject->NativeOnMouseLeave( MouseEvent );
 	}
 }
 
@@ -218,7 +218,7 @@ FReply SObjectWidget::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEv
 {
 	if ( CanRouteEvent() )
 	{
-		return WidgetObject->OnMouseWheel(MyGeometry, MouseEvent).NativeReply;
+		return WidgetObject->NativeOnMouseWheel( MyGeometry, MouseEvent );
 	}
 
 	return FReply::Unhandled();
@@ -234,7 +234,7 @@ FReply SObjectWidget::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, cons
 {
 	if ( CanRouteEvent() )
 	{
-		return WidgetObject->OnMouseButtonDoubleClick(MyGeometry, MouseEvent).NativeReply;
+		return WidgetObject->NativeOnMouseButtonDoubleClick( MyGeometry, MouseEvent );
 	}
 
 	return FReply::Unhandled();
@@ -245,7 +245,7 @@ FReply SObjectWidget::OnDragDetected(const FGeometry& MyGeometry, const FPointer
 	if ( CanRouteEvent() )
 	{
 		UDragDropOperation* Operation = nullptr;
-		WidgetObject->OnDragDetected(MyGeometry, PointerEvent, Operation);
+	WidgetObject->NativeOnDragDetected( MyGeometry, PointerEvent, Operation );
 
 		if ( Operation )
 		{
@@ -270,7 +270,7 @@ void SObjectWidget::OnDragEnter(const FGeometry& MyGeometry, const FDragDropEven
 	{
 		if ( CanRouteEvent() )
 		{
-			WidgetObject->OnDragEnter(MyGeometry, DragDropEvent, NativeOp->GetOperation());
+		WidgetObject->NativeOnDragEnter( MyGeometry, DragDropEvent, NativeOp->GetOperation() );
 		}
 	}
 }
@@ -282,7 +282,7 @@ void SObjectWidget::OnDragLeave(const FDragDropEvent& DragDropEvent)
 	{
 		if ( CanRouteEvent() )
 		{
-			WidgetObject->OnDragLeave(DragDropEvent, NativeOp->GetOperation());
+		WidgetObject->NativeOnDragLeave( DragDropEvent, NativeOp->GetOperation() );
 		}
 	}
 }
@@ -294,7 +294,7 @@ FReply SObjectWidget::OnDragOver(const FGeometry& MyGeometry, const FDragDropEve
 	{
 		if ( CanRouteEvent() )
 		{
-			if ( WidgetObject->OnDragOver(MyGeometry, DragDropEvent, NativeOp->GetOperation()) )
+		if ( WidgetObject->NativeOnDragOver( MyGeometry, DragDropEvent, NativeOp->GetOperation() ) )
 			{
 				return FReply::Handled();
 			}
@@ -311,7 +311,7 @@ FReply SObjectWidget::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& 
 	{
 		if ( CanRouteEvent() )
 		{
-			if ( WidgetObject->OnDrop(MyGeometry, DragDropEvent, NativeOp->GetOperation()) )
+			if ( WidgetObject->NativeOnDrop( MyGeometry, DragDropEvent, NativeOp->GetOperation() ) )
 			{
 				return FReply::Handled();
 			}
@@ -328,7 +328,7 @@ void SObjectWidget::OnDragCancelled(const FDragDropEvent& DragDropEvent, UDragDr
 	{
 		if ( CanRouteEvent() )
 		{
-			WidgetObject->OnDragCancelled(DragDropEvent, NativeOp->GetOperation());
+			WidgetObject->NativeOnDragCancelled( DragDropEvent, NativeOp->GetOperation() );
 		}
 	}
 }
@@ -337,7 +337,7 @@ FReply SObjectWidget::OnTouchGesture(const FGeometry& MyGeometry, const FPointer
 {
 	if ( CanRouteEvent() )
 	{
-		return WidgetObject->OnTouchGesture(MyGeometry, GestureEvent).NativeReply;
+		return WidgetObject->NativeOnTouchGesture( MyGeometry, GestureEvent );
 	}
 
 	return FReply::Unhandled();
@@ -347,7 +347,7 @@ FReply SObjectWidget::OnTouchStarted(const FGeometry& MyGeometry, const FPointer
 {
 	if ( CanRouteEvent() )
 	{
-		return WidgetObject->OnTouchStarted(MyGeometry, InTouchEvent).NativeReply;
+		return WidgetObject->NativeOnTouchStarted( MyGeometry, InTouchEvent );
 	}
 
 	return FReply::Unhandled();
@@ -357,7 +357,7 @@ FReply SObjectWidget::OnTouchMoved(const FGeometry& MyGeometry, const FPointerEv
 {
 	if ( CanRouteEvent() )
 	{
-		return WidgetObject->OnTouchMoved(MyGeometry, InTouchEvent).NativeReply;
+		return WidgetObject->NativeOnTouchMoved( MyGeometry, InTouchEvent );
 	}
 
 	return FReply::Unhandled();
@@ -367,7 +367,7 @@ FReply SObjectWidget::OnTouchEnded(const FGeometry& MyGeometry, const FPointerEv
 {
 	if ( CanRouteEvent() )
 	{
-		return WidgetObject->OnTouchEnded(MyGeometry, InTouchEvent).NativeReply;
+		return WidgetObject->NativeOnTouchEnded( MyGeometry, InTouchEvent );
 	}
 
 	return FReply::Unhandled();
@@ -377,7 +377,7 @@ FReply SObjectWidget::OnMotionDetected(const FGeometry& MyGeometry, const FMotio
 {
 	if ( CanRouteEvent() )
 	{
-		return WidgetObject->OnMotionDetected(MyGeometry, InMotionEvent).NativeReply;
+		return WidgetObject->NativeOnMotionDetected( MyGeometry, InMotionEvent );
 	}
 
 	return FReply::Unhandled();

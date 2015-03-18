@@ -100,6 +100,7 @@ public:
 		bIsPlayingThisGame = 0;
 		bIsJoinable = 0;
 		bHasVoiceSupport = 0;
+		Status = FOnlineUserPresenceStatus();
 	}
 };
 

@@ -1927,6 +1927,63 @@ float UAnimInstance::PlaySlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeN
 	return Montage_Play(NewMontage, InPlayRate);
 }
 
+UAnimMontage* UAnimInstance::PlaySlotAnimationAsDynamicMontage(UAnimSequenceBase* Asset, FName SlotNodeName, float BlendInTime, float BlendOutTime, float InPlayRate, int32 LoopCount)
+{
+	// create temporary montage and play
+	bool bValidAsset = Asset && !Asset->IsA(UAnimMontage::StaticClass());
+	if (!bValidAsset)
+	{
+		// user warning
+		UE_LOG(LogAnimation, Warning, TEXT("Invalid Asset. If Montage, use Montage_Play"));
+		return NULL;
+	}
+
+	if (SlotNodeName == NAME_None)
+	{
+		// user warning
+		UE_LOG(LogAnimation, Warning, TEXT("SlotNode Name is required. Make sure to add Slot Node in your anim graph and name it."));
+		return NULL;
+	}
+
+	USkeleton* AssetSkeleton = Asset->GetSkeleton();
+	if (!CurrentSkeleton->IsCompatible(AssetSkeleton))
+	{
+		UE_LOG(LogAnimation, Warning, TEXT("The Skeleton isn't compatible"));
+		return NULL;
+	}
+
+	// now play
+	UAnimMontage * NewMontage = NewObject<UAnimMontage>();
+	NewMontage->SetSkeleton(AssetSkeleton);
+
+	// add new track
+	FSlotAnimationTrack NewTrack;
+	NewTrack.SlotName = SlotNodeName;
+	FAnimSegment NewSegment;
+	NewSegment.AnimReference = Asset;
+	NewSegment.AnimStartTime = 0.f;
+	NewSegment.AnimEndTime = Asset->SequenceLength;
+	NewSegment.AnimPlayRate = 1.f;
+	NewSegment.StartPos = 0.f;
+	NewSegment.LoopingCount = LoopCount;
+	NewMontage->SequenceLength = NewSegment.GetLength();
+	NewTrack.AnimTrack.AnimSegments.Add(NewSegment);
+
+	FCompositeSection NewSection;
+	NewSection.SectionName = TEXT("Default");
+	NewSection.SetTime(0.0f);
+
+	// add new section
+	NewMontage->CompositeSections.Add(NewSection);
+	NewMontage->BlendInTime = BlendInTime;
+	NewMontage->BlendOutTime = BlendOutTime;
+	NewMontage->SlotAnimTracks.Add(NewTrack);
+
+	// if playing is successful, return the montage to allow more control if needed
+	float PlayTime = Montage_Play(NewMontage, InPlayRate);
+	return PlayTime > 0.0f ? NewMontage : NULL;
+}
+
 void UAnimInstance::StopSlotAnimation(float InBlendOutTime, FName SlotNodeName)
 {
 	// stop temporary montage

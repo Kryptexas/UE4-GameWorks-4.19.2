@@ -278,12 +278,12 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 						SNew(SHorizontalBox)
 					
 						+ SHorizontalBox::Slot()
-							.AutoWidth()
-							.VAlign(VAlign_Center)
-							[
-								SNew(STextBlock)
-									.Text(LOCTEXT("AppScale", "Application Scale: "))
-							]
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						[
+							SNew(STextBlock)
+								.Text(LOCTEXT("AppScale", "Application Scale: "))
+						]
 
 						+ SHorizontalBox::Slot()
 						.AutoWidth()
@@ -335,12 +335,12 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 					[
 						// Check box that controls LIVE MODE
 						SNew(SCheckBox)
-							.IsChecked(this, &SWidgetReflector::HandleFocusCheckBoxIsChecked)
-							.OnCheckStateChanged(this, &SWidgetReflector::HandleFocusCheckBoxCheckedStateChanged)
-							[
-								SNew(STextBlock)
-									.Text(LOCTEXT("ShowFocus", "Show Focus"))
-							]
+						.IsChecked(this, &SWidgetReflector::HandleFocusCheckBoxIsChecked)
+						.OnCheckStateChanged(this, &SWidgetReflector::HandleFocusCheckBoxCheckedStateChanged)
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("ShowFocus", "Show Focus"))
+						]
 					]
 
 					+ SHorizontalBox::Slot()

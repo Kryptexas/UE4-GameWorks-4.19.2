@@ -840,6 +840,143 @@ const FText UUserWidget::GetPaletteCategory()
 
 #endif
 
+// Native handling for SObjectWidget
+
+void UUserWidget::NativePaint( FPaintContext& InContext ) const 
+{
+	OnPaint( InContext );
+}
+
+FReply UUserWidget::NativeOnFocusReceived( const FGeometry& InGeometry, const FFocusEvent& InFocusEvent )
+{
+	return OnFocusReceived( InGeometry, InFocusEvent ).NativeReply;
+}
+
+void UUserWidget::NativeOnFocusLost( const FFocusEvent& InFocusEvent )
+{
+	OnFocusLost( InFocusEvent );
+}
+
+FReply UUserWidget::NativeOnKeyChar( const FGeometry& InGeometry, const FCharacterEvent& InCharEvent )
+{
+	return OnKeyChar( InGeometry, InCharEvent ).NativeReply;
+}
+
+FReply UUserWidget::NativeOnPreviewKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent )
+{
+	return OnPreviewKeyDown( InGeometry, InKeyEvent ).NativeReply;
+}
+
+FReply UUserWidget::NativeOnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent )
+{
+	return OnKeyDown( InGeometry, InKeyEvent ).NativeReply;
+}
+
+FReply UUserWidget::NativeOnKeyUp( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent )
+{
+	return OnKeyUp( InGeometry, InKeyEvent ).NativeReply;
+}
+
+FReply UUserWidget::NativeOnAnalogValueChanged( const FGeometry& InGeometry, const FAnalogInputEvent& InAnalogEvent )
+{
+	return OnAnalogValueChanged( InGeometry, InAnalogEvent ).NativeReply;
+}
+
+FReply UUserWidget::NativeOnMouseButtonDown( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent )
+{
+	return OnMouseButtonDown( InGeometry, InMouseEvent ).NativeReply;
+}
+
+FReply UUserWidget::NativeOnPreviewMouseButtonDown( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent )
+{
+	return OnPreviewMouseButtonDown( InGeometry, InMouseEvent ).NativeReply;
+}
+
+FReply UUserWidget::NativeOnMouseButtonUp( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent )
+{
+	return OnMouseButtonUp(InGeometry, InMouseEvent).NativeReply;
+}
+
+FReply UUserWidget::NativeOnMouseMove( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent )
+{
+	return OnMouseMove( InGeometry, InMouseEvent ).NativeReply;
+}
+
+void UUserWidget::NativeOnMouseEnter( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent )
+{
+	OnMouseEnter( InGeometry, InMouseEvent );
+}
+
+void UUserWidget::NativeOnMouseLeave( const FPointerEvent& InMouseEvent )
+{
+	OnMouseLeave( InMouseEvent );
+}
+
+FReply UUserWidget::NativeOnMouseWheel( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent )
+{
+	return OnMouseWheel( InGeometry, InMouseEvent ).NativeReply;
+}
+
+FReply UUserWidget::NativeOnMouseButtonDoubleClick( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent )
+{
+	return OnMouseButtonDoubleClick( InGeometry, InMouseEvent ).NativeReply;
+}
+
+void UUserWidget::NativeOnDragDetected( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& InOperation )
+{
+	OnDragDetected( InGeometry, InMouseEvent, InOperation );
+}
+
+void UUserWidget::NativeOnDragEnter( const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation )
+{
+	OnDragEnter( InGeometry, InDragDropEvent, InOperation );
+}
+
+void UUserWidget::NativeOnDragLeave( const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation )
+{
+	OnDragLeave( InDragDropEvent, InOperation );
+}
+
+bool UUserWidget::NativeOnDragOver( const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation )
+{
+	return OnDragOver( InGeometry, InDragDropEvent, InOperation );
+}
+
+bool UUserWidget::NativeOnDrop( const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation )
+{
+	return OnDrop( InGeometry, InDragDropEvent, InOperation );
+}
+
+void UUserWidget::NativeOnDragCancelled( const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation )
+{
+	OnDragCancelled( InDragDropEvent, InOperation );
+}
+
+FReply UUserWidget::NativeOnTouchGesture( const FGeometry& InGeometry, const FPointerEvent& InGestureEvent )
+{
+	return OnTouchGesture( InGeometry, InGestureEvent ).NativeReply;
+}
+
+FReply UUserWidget::NativeOnTouchStarted( const FGeometry& InGeometry, const FPointerEvent& InGestureEvent )
+{
+	return OnTouchStarted( InGeometry, InGestureEvent ).NativeReply;
+}
+
+FReply UUserWidget::NativeOnTouchMoved( const FGeometry& InGeometry, const FPointerEvent& InGestureEvent )
+{
+	return OnTouchMoved( InGeometry, InGestureEvent ).NativeReply;
+}
+
+FReply UUserWidget::NativeOnTouchEnded( const FGeometry& InGeometry, const FPointerEvent& InGestureEvent )
+{
+	return OnTouchEnded( InGeometry, InGestureEvent ).NativeReply;
+}
+
+FReply UUserWidget::NativeOnMotionDetected( const FGeometry& InGeometry, const FMotionEvent& InMotionEvent )
+{
+	return OnMotionDetected( InGeometry, InMotionEvent ).NativeReply;
+}
+
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

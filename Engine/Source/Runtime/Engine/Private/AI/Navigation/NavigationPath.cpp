@@ -921,12 +921,13 @@ bool FNavMeshPath::DoesPathIntersectBoxImplementation(const FBox& Box, const FVe
 {
 	bool bIntersects = false;	
 	const TArray<FNavigationPortalEdge>& CorridorEdges = GetPathCorridorEdges();
+	const uint32 NumCorridorEdges = CorridorEdges.Num();
 
 	// note that it's a bit simplified. It works
 	FVector Start = StartLocation;
 	if (CorridorEdges.IsValidIndex(StartingIndex))
 	{
-		for (int32 PortalIndex = StartingIndex; PortalIndex < CorridorEdges.Num(); ++PortalIndex)
+		for (uint32 PortalIndex = StartingIndex; PortalIndex < NumCorridorEdges; ++PortalIndex)
 		{
 			const FNavigationPortalEdge& Edge = CorridorEdges[PortalIndex];
 			const FVector End = Edge.Right + (Edge.Left - Edge.Right) / 2 + (AgentExtent ? FVector(0.f, 0.f, AgentExtent->Z) : FVector::ZeroVector);
@@ -953,12 +954,36 @@ bool FNavMeshPath::DoesPathIntersectBoxImplementation(const FBox& Box, const FVe
 
 			Start = End;
 		}
+
+		// test the last portal->path end line. 
+		if (bIntersects == false)
+		{
+			ensure(PathPoints.Num() == 2);
+			const FVector End = PathPoints.Last().Location + (AgentExtent ? FVector(0.f, 0.f, AgentExtent->Z) : FVector::ZeroVector);
+
+			if (FVector::DistSquared(StartLocation, End) > SMALL_NUMBER)
+			{
+				const FVector Direction = (End - Start);
+
+				FVector HitLocation, HitNormal;
+				float HitTime; 
+
+				// If we have a valid AgentExtent, then we use an extent box to represent the path
+				// Otherwise we use a line to represent the path
+				if ((AgentExtent && FMath::LineExtentBoxIntersection(Box, Start, End, *AgentExtent, HitLocation, HitNormal, HitTime)) ||
+					(!AgentExtent && FMath::LineBoxIntersection(Box, Start, End, Direction)))
+				{
+					bIntersects = true;
+					if (IntersectingSegmentIndex != NULL)
+					{
+						*IntersectingSegmentIndex = NumCorridorEdges;
+					}
+				}
+			}
+		}
 	}
-	
-	// test the last portal->path end line. 
-	if (bIntersects == false)
+	else if (NumCorridorEdges > 0 && StartingIndex == NumCorridorEdges) //at last polygon, just after last edge so direct line check 
 	{
-		ensure(PathPoints.Num() == 2);
 		const FVector End = PathPoints.Last().Location + (AgentExtent ? FVector(0.f, 0.f, AgentExtent->Z) : FVector::ZeroVector);
 			
 		if (FVector::DistSquared(StartLocation, End) > SMALL_NUMBER)

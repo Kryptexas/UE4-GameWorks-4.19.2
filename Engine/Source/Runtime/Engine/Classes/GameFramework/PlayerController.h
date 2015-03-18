@@ -873,6 +873,14 @@ public:
 	UFUNCTION(Reliable, Client)
 	void ClientWasKicked(const FText& KickReason);
 
+	/** Notify client that the session is starting */
+	UFUNCTION(Reliable, Client)
+	void ClientStartOnlineSession();
+
+	/** Notify client that the session is about to start */
+	UFUNCTION(Reliable, Client)
+	void ClientEndOnlineSession();
+
 	/** Assign Pawn to player, but avoid calling ClientRestart if we have already accepted this pawn */
 	UFUNCTION(Reliable, Client)
 	void ClientRetryClientRestart(class APawn* NewPawn);

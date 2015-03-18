@@ -1,8 +1,5 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-//
-// Basic beacon
-//
 #pragma once
 #include "OnlineBeacon.generated.h"
 
@@ -28,6 +25,7 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeacon : public AActor, public FNetworkNot
 
 	// Begin AActor Interface
 	virtual void OnActorChannelOpen(class FInBunch& InBunch, class UNetConnection* Connection) override;
+	virtual UNetConnection* GetNetConnection() override { return nullptr; }
 	// End AActor Interface
 
 	// Begin FNetworkNotify Interface
@@ -79,23 +77,6 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeacon : public AActor, public FNetworkNot
 	/** Beacon cleanup and net driver destruction */
 	virtual void DestroyBeacon();
 
-	/**
-	 * Associate this beacon with a network connection
-	 *
-	 * @param NetConnection connection that the beacon will communicate over
-	 */
-	virtual void SetNetConnection(class UNetConnection* NetConnection) 
-	{
-		BeaconConnection = NetConnection;
-	}
-
-	/**
-	 * Get the network connection associated with this beacon
-	 *
-	 * @return net connection used in communication
-	 */
-	virtual UNetConnection* GetNetConnection() override;	
-
 protected:
 
 	/** Time beacon will wait to establish a connection with the beacon host */
@@ -109,9 +90,6 @@ protected:
 	UPROPERTY()
 	UNetDriver* NetDriver;
 
-	/** Network connection */
-	UPROPERTY()
-	UNetConnection* BeaconConnection;
 	/** State of beacon */
 	EBeaconState::Type BeaconState;
 	/** Handle to the registered HandleNetworkFailure delegate */

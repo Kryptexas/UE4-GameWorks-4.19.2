@@ -43,7 +43,7 @@ public:
 					SNew(STextBlock)
 					.Font(FriendStyle.FriendsFontStyleBold)
 					.ColorAndOpacity(FriendStyle.DefaultFontColor)
-					.Text(ViewModel->GetName())
+					.Text(FText::FromString(ViewModel->GetName()))
 				]
 				+ SOverlay::Slot()
 				.HAlign(HAlign_Right)

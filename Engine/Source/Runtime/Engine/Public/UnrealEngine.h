@@ -146,7 +146,7 @@ protected:
 template<class T>
 struct TPlayerControllerIterator
 {
-	typedef TBasePlayerControllerIterator<T, true>	LocalOnly;	// Only iterates locally controleld player controllers - can be used on client or server
+	typedef TBasePlayerControllerIterator<T, true>	LocalOnly;	// Only iterates locally controlled player controllers - can be used on client or server
 	typedef TBasePlayerControllerIterator<T, false> ServerAll;	// Iterates all player controllers - local or remote - only can be used on server
 };
 

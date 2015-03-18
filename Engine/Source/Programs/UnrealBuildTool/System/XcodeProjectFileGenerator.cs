@@ -1065,7 +1065,7 @@ namespace UnrealBuildTool
 				FullPath = Utils.MakePathRelativeTo(FullPath, FullProjectPath);
 				FullPath = FullPath.TrimEnd('/');
 			}
-			if (!IncludeDirectories.Contains(FullPath) && !FullPath.Contains("FortniteGame/")) // @todo: skipping Fortnite header paths to shorten clang command line for building UE4XcodeHelper
+			if ( !IncludeDirectories.Contains(FullPath) )
 			{
 				IncludeDirectories.Add(FullPath);
 			}

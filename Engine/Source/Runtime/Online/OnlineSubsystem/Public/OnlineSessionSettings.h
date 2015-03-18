@@ -28,14 +28,11 @@
 
 /** TODO ONLINE Settings to consider */
 /** The server's nonce for this session */
-/** Whether this match is publicly advertised on the online service */
-/** Whether joining in progress is allowed or not */
 /** Whether the game is an invitation or searched for game */
 /** The ping of the server in milliseconds (-1 means the server was unreachable) */
 /** Whether this server is a dedicated server or not */
 /** Represents how good a match this is in a range from 0 to 1 */
 /** Whether there is a skill update in progress or not (don't do multiple at once) */
-/** Used to keep different builds from seeing each other during searches */
 /** Whether to shrink the session slots when a player leaves the match or not */
 
 /**
@@ -346,7 +343,7 @@ public:
 };
 
 /** Holds the per session information for named sessions */
-class ONLINESUBSYSTEM_API FNamedOnlineSession : public FOnlineSession
+class FNamedOnlineSession : public FOnlineSession
 {
 protected:
 	FNamedOnlineSession() :
@@ -405,7 +402,22 @@ public:
 	 *
 	 * @return true if the out params are valid, false otherwise
 	 */
-	bool GetJoinability(bool& bPublicJoinable, bool& bFriendJoinable, bool& bInviteOnly) const;
+	bool GetJoinability(bool& bPublicJoinable, bool& bFriendJoinable, bool& bInviteOnly) const
+	{
+		if (SessionState != EOnlineSessionState::NoSession && SessionState != EOnlineSessionState::Destroying)
+		{
+			bool bAllowJIP = SessionSettings.bAllowJoinInProgress || (SessionState != EOnlineSessionState::Starting && SessionState != EOnlineSessionState::InProgress);
+			if (bAllowJIP)
+			{
+				bPublicJoinable = SessionSettings.bShouldAdvertise || SessionSettings.bAllowJoinViaPresence;
+				bFriendJoinable = SessionSettings.bAllowJoinViaPresenceFriendsOnly;
+				bInviteOnly = !bPublicJoinable && !bFriendJoinable && SessionSettings.bAllowInvites;
+				return true;
+			}
+		}
+
+		return false;
+	}
 };
 
 /** Value returned on unreachable or otherwise bad search results */
@@ -508,6 +520,16 @@ public:
 	 *	Give the game a chance to sort the returned results
 	 */
 	virtual void SortSearchResults() {}
+
+	/**
+	 * Get the default session settings for this search type
+	 * Allows games to set reasonable defaults that aren't advertised
+	 * but would be setup for each instantiated search result
+	 */
+	virtual TSharedPtr<FOnlineSessionSettings> GetDefaultSessionSettings() const 
+	{ 
+		return MakeShareable(new FOnlineSessionSettings()); 
+	}
 };
 
 /**

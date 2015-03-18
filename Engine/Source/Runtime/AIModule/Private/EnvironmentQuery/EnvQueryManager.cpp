@@ -539,7 +539,6 @@ void UEnvQueryManager::CreateOptionInstance(UEnvQueryOption* OptionTemplate, con
 	FEnvQueryOptionInstance OptionInstance;
 	OptionInstance.Generator = OptionTemplate->Generator;
 	OptionInstance.ItemType = OptionTemplate->Generator->ItemType;
-	OptionInstance.bHasNavLocations = false;
 
 	OptionInstance.Tests.AddZeroed(SortedTests.Num());
 	for (int32 TestIndex = 0; TestIndex < SortedTests.Num(); TestIndex++)

@@ -33,8 +33,8 @@ void AGameplayAbilityTargetActor::Destroyed()
 			UAbilitySystemComponent* ASC = Info->AbilitySystemComponent.Get();
 			if (ASC)
 			{
-				ASC->GenericLocalConfirmCallbacks.RemoveDynamic(this, &AGameplayAbilityTargetActor::ConfirmTargeting);
-				ASC->GenericLocalCancelCallbacks.RemoveDynamic(this, &AGameplayAbilityTargetActor::CancelTargeting);
+				ASC->ConfirmCallbacks.RemoveDynamic(this, &AGameplayAbilityTargetActor::ConfirmTargeting);
+				ASC->CancelCallbacks.RemoveDynamic(this, &AGameplayAbilityTargetActor::CancelTargeting);
 			}
 		}
 	}
@@ -142,8 +142,8 @@ void AGameplayAbilityTargetActor::BindToConfirmCancelInputs()
 		if (Info->IsLocallyControlled())
 		{
 			// We have to wait for the callback from the AbilitySystemComponent. Which will always be instigated locally
-			ASC->GenericLocalConfirmCallbacks.AddDynamic(this, &AGameplayAbilityTargetActor::ConfirmTargeting);	// Tell me if the confirm input is pressed
-			ASC->GenericLocalCancelCallbacks.AddDynamic(this, &AGameplayAbilityTargetActor::CancelTargeting);	// Tell me if the cancel input is pressed
+			ASC->ConfirmCallbacks.AddDynamic(this, &AGameplayAbilityTargetActor::ConfirmTargeting);	// Tell me if the confirm input is pressed
+			ASC->CancelCallbacks.AddDynamic(this, &AGameplayAbilityTargetActor::CancelTargeting);	// Tell me if the cancel input is pressed
 		}
 		else
 		{	

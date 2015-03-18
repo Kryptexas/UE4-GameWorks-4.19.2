@@ -14,15 +14,15 @@ class AIMODULE_API UBTDecorator_SetTagCooldown : public UBTDecorator
 {
 	GENERATED_UCLASS_BODY()
 
-	/** gameplay tag that will be used for the set cooldown */
+	/** Gameplay tag that will be used for the cooldown. */
 	UPROPERTY(Category = Decorator, EditAnywhere)
 	FGameplayTag CooldownTag;
 
-	/** how long the cooldown lasts */
+	/** Value we will add or set to the Cooldown tag when this task runs. */
 	UPROPERTY(Category = Decorator, EditAnywhere)
 	float CooldownDuration;
 
-	/** true if we are adding to any existing duration, false if we are setting the duration (potentially invalidating an existing end time) */
+	/** True if we are adding to any existing duration, false if we are setting the duration (potentially invalidating an existing end time). */
 	UPROPERTY(Category = Decorator, EditAnywhere)
 	bool bAddToExistingDuration;
 

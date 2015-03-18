@@ -572,10 +572,10 @@ void ARecastNavMesh::OnNavAreaAdded(const UClass* NavAreaClass, int32 AgentIndex
 	const int32 AreaID = GetAreaID(NavAreaClass);
 	if (AreaID != INDEX_NONE)
 	{
-		const UNavArea* DefArea = ((UClass*)NavAreaClass)->GetDefaultObject<UNavArea>();
+		UNavArea* DefArea = ((UClass*)NavAreaClass)->GetDefaultObject<UNavArea>();
 
 		DefaultQueryFilter->SetAreaCost(AreaID, DefArea->DefaultCost);
-		DefaultQueryFilter->SetFixedAreaEnteringCost(AreaID, DefArea->FixedAreaEnteringCost);
+		DefaultQueryFilter->SetFixedAreaEnteringCost(AreaID, DefArea->GetFixedAreaEnteringCost());
 	}
 
 	// update generator's cached data

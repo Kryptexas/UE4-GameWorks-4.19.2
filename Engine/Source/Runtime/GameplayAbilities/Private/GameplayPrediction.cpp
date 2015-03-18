@@ -7,6 +7,11 @@
 
 bool FPredictionKey::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
+	// Read bit for server initiated first
+	uint8 ServerInitiatedByte = bIsServerInitiated;
+	Ar.SerializeBits(&ServerInitiatedByte, 1);
+	bIsServerInitiated = ServerInitiatedByte & 1;
+
 	if (Ar.IsLoading())
 	{
 		Ar << Current;
@@ -14,16 +19,20 @@ bool FPredictionKey::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bO
 		{
 			Ar << Base;
 		}
-		PredictiveConnection = Map;
+		if (!bIsServerInitiated)
+		{
+			PredictiveConnection = Map;
+		}
 	}
 	else
 	{
 		/**
-		 *	Only serialize the payload if we have no owning connection (Client sending to server).
-		 *	or if the owning connection is this connection (Server only sends the prediction key to the client who gave it to us).
+		 *	Only serialize the payload if we have no owning connection (Client sending to server)
+		 *	or if the owning connection is this connection (Server only sends the prediction key to the client who gave it to us)
+		 *  or if this is a server initiated key (valid on all connections)
 		 */
 		
-		if (PredictiveConnection == nullptr || (Map == PredictiveConnection))
+		if (PredictiveConnection == nullptr || (Map == PredictiveConnection) || bIsServerInitiated)
 		{
 			Ar << Current;
 			if (Current > 0)
@@ -51,6 +60,12 @@ void FPredictionKey::GenerateNewPredictionKey()
 
 void FPredictionKey::GenerateDependentPredictionKey()
 {
+	if (bIsServerInitiated)
+	{
+		// Can't have dependent keys on server keys, use same key
+		return;
+	}
+
 	KeyType Previous = 0;
 	if (Base == 0)
 	{
@@ -80,6 +95,20 @@ FPredictionKey FPredictionKey::CreateNewPredictionKey(UAbilitySystemComponent* O
 	}
 	return NewKey;
 }
+
+FPredictionKey FPredictionKey::CreateNewServerInitiatedKey(UAbilitySystemComponent* OwningComponent)
+{
+	FPredictionKey NewKey;
+
+	// Only valid on the server
+	if (OwningComponent->GetOwnerRole() == ROLE_Authority)
+	{
+		NewKey.GenerateNewPredictionKey();
+		NewKey.bIsServerInitiated = true;
+	}
+	return NewKey;
+}
+
 
 FPredictionKeyEvent& FPredictionKey::NewRejectedDelegate()
 {

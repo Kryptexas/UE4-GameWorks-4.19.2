@@ -725,7 +725,10 @@ void FMainFrameModule::HandleLevelEditorModuleCompileStarted( bool bIsAsyncCompi
 		CompileNotificationPtr.Pin()->ExpireAndFadeout();
 	}
 
-	GEditor->PlayPreviewSound(CompileStartSound);
+	if ( GEditor )
+	{
+		GEditor->PlayPreviewSound(CompileStartSound);
+	}
 
 	FNotificationInfo Info( NSLOCTEXT("MainFrame", "RecompileInProgress", "Compiling C++ Code") );
 	Info.Image = FEditorStyle::GetBrush(TEXT("LevelEditor.RecompileGameCode"));
@@ -773,7 +776,11 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished(const FString& Log
 	{
 		if (!ECompilationResult::Failed(CompilationResult))
 		{
-			GEditor->PlayPreviewSound(CompileSuccessSound);
+			if ( GEditor )
+			{
+				GEditor->PlayPreviewSound(CompileSuccessSound);
+			}
+
 			NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileComplete", "Compile Complete!"));
 			NotificationItem->SetExpireDuration( 5.0f );
 			NotificationItem->SetCompletionState(SNotificationItem::CS_Success);
@@ -789,7 +796,11 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished(const FString& Log
 				}
 			};
 
-			GEditor->PlayPreviewSound(CompileFailSound);
+			if ( GEditor )
+			{
+				GEditor->PlayPreviewSound(CompileFailSound);
+			}
+
 			if (CompilationResult == ECompilationResult::FailedDueToHeaderChange)
 			{
 				NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileFailedDueToHeaderChange", "Compile failed due to the header changes. Close the editor and recompile project in IDE to apply changes."));

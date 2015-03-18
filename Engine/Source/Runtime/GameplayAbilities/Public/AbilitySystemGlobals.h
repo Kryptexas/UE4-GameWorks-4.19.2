@@ -123,6 +123,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	UPROPERTY(config)
 	FName ActivateFailTagsMissingName;
 
+	UPROPERTY()
+	FGameplayTag ActivateFailNetworkingTag; // Failed to activate due to invalid networking settings, this is designer error
+	UPROPERTY(config)
+	FName ActivateFailNetworkingName;
+
 	virtual void InitGlobalTags()
 	{
 		if (ActivateFailCooldownName != NAME_None)
@@ -143,6 +148,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 		if (ActivateFailTagsMissingName != NAME_None)
 		{
 			ActivateFailTagsMissingTag = IGameplayTagsModule::RequestGameplayTag(ActivateFailTagsMissingName);
+		}
+
+		if (ActivateFailNetworkingName != NAME_None)
+		{
+			ActivateFailNetworkingTag = IGameplayTagsModule::RequestGameplayTag(ActivateFailNetworkingName);
 		}
 	}
 

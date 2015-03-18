@@ -135,8 +135,3 @@ bool AOnlineBeacon::NotifyAcceptingChannel(UChannel* Channel)
 void AOnlineBeacon::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType, FInBunch& Bunch)
 {
 }
-
-UNetConnection* AOnlineBeacon::GetNetConnection()
-{
-	return BeaconConnection;
-}

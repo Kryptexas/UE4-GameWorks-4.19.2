@@ -33,6 +33,51 @@ static bool appCompressMemoryZLIB( void* CompressedBuffer, int32& CompressedSize
 	return bOperationSucceeded;
 }
 
+static bool appCompressMemoryGZIP(void* CompressedBuffer, int32& CompressedSize, const void* UncompressedBuffer, int32 UncompressedSize)
+{
+	SCOPE_CYCLE_COUNTER(Stat_appCompressMemoryZLIB);
+
+	z_stream gzipstream;
+	gzipstream.zalloc = Z_NULL;
+	gzipstream.zfree = Z_NULL;
+	gzipstream.opaque = Z_NULL;
+
+	// Setup input buffer
+	gzipstream.next_in = (uint8*)UncompressedBuffer;
+	gzipstream.avail_in = UncompressedSize;
+
+	// Init deflate settings to use GZIP
+	int windowsBits = 15;
+	int GZIP_ENCODING = 16;
+	deflateInit2(
+		&gzipstream,
+		Z_DEFAULT_COMPRESSION,
+		Z_DEFLATED,
+		windowsBits | GZIP_ENCODING,
+		MAX_MEM_LEVEL,
+		Z_DEFAULT_STRATEGY);
+
+	// Setup output buffer
+	const unsigned long GzipHeaderLength = 12;
+	// This is how much memory we may need, however the consumer is allocating memory for us without knowing the required length.
+	//unsigned long CompressedMaxSize = deflateBound(&gzipstream, gzipstream.avail_in) + GzipHeaderLength;
+	gzipstream.next_out = (uint8*)CompressedBuffer;
+	gzipstream.avail_out = UncompressedSize;
+
+	int status = 0;
+	bool bOperationSucceeded = false;
+	while ((status = deflate(&gzipstream, Z_FINISH)) == Z_OK);
+	if (status == Z_STREAM_END)
+	{
+		bOperationSucceeded = true;
+		deflateEnd(&gzipstream);
+	}
+
+	// Propagate compressed size from intermediate variable back into out variable.
+	CompressedSize = gzipstream.total_out;
+	return bOperationSucceeded;
+}
+
 /**
  * Thread-safe abstract compression routine. Compresses memory from uncompressed buffer and writes it to compressed
  * buffer. Updates CompressedSize with size of compressed data.
@@ -137,7 +182,7 @@ bool FCompression::CompressMemory( ECompressionFlags Flags, void* CompressedBuff
 	double CompressorStartTime = FPlatformTime::Seconds();
 
 	// make sure a valid compression scheme was provided
-	check(Flags & COMPRESS_ZLIB);
+	check(Flags & COMPRESS_ZLIB || Flags & COMPRESS_GZIP);
 
 	bool bCompressSucceeded = false;
 
@@ -147,6 +192,9 @@ bool FCompression::CompressMemory( ECompressionFlags Flags, void* CompressedBuff
 	{
 		case COMPRESS_ZLIB:
 			bCompressSucceeded = appCompressMemoryZLIB(CompressedBuffer, CompressedSize, UncompressedBuffer, UncompressedSize);
+			break;
+		case COMPRESS_GZIP:
+			bCompressSucceeded = appCompressMemoryGZIP(CompressedBuffer, CompressedSize, UncompressedBuffer, UncompressedSize);
 			break;
 		default:
 			UE_LOG(LogCompression, Warning, TEXT("appCompressMemory - This compression type not supported"));

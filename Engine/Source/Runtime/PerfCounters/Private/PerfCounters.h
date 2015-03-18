@@ -5,50 +5,54 @@
 #include "PerfCountersModule.h"
 #include "Json.h"
 
+class FSocket;
+
 DECLARE_LOG_CATEGORY_EXTERN(LogPerfCounters, Verbose, All);
 
-class FPerfCounters : public IPerfCounters
+class FPerfCounters 
+	: public FTickerObjectBase
+	, public IPerfCounters
 {
-	struct FPerfCounter
-	{
-		/** Name of this counter*/
-		FString		Name;
-		
-		/** Pointer to the shared memory */
-		void *		Pointer;
-		
-		/** Size of the counter in bytes*/
-		SIZE_T		SizeOf;
+public:
 
-		/** Initializes from JSON object. */
-		bool		Initialize(const FJsonObject& JsonObject);
+	FPerfCounters(const FString& InUniqueInstanceId);
+	virtual ~FPerfCounters();
+
+	/** Initializes this instance from JSON config. */
+	bool Initialize();
+
+	/** FTickerObjectBase */
+	virtual bool Tick(float DeltaTime) override;
+
+	// IPerfCounters interface
+	const FString& GetInstanceName() const override { return UniqueInstanceId; }
+	virtual void SetNumber(const FString& Name, double Value) override;
+	virtual void SetString(const FString& Name, const FString& Value) override;
+	virtual void SetJson(const FString& Name, const FProduceJsonCounterValue& Callback) override;
+	// IPerfCounters interface end
+
+private:
+	/** Convert all perf counters into a json type */
+	FString ToJson() const;
+
+private:
+	struct FJsonVariant
+	{
+		enum { Null, String, Number, Callback } Format;
+		FString		StringValue;
+		double		NumberValue;
+		FProduceJsonCounterValue CallbackValue;
+
+		FJsonVariant() : Format(Null), NumberValue(0) {}
 	};
 
 	/** Unique name of this instance */
 	FString UniqueInstanceId;
 
 	/** Map of all known performance counters */
-	TMap<FString, FPerfCounter>  PerfCounterMap;
+	TMap<FString, FJsonVariant>  PerfCounterMap;
 
-	/** Shared memory */
-	FPlatformMemory::FSharedMemoryRegion * SharedMemory;
-
-public:
-
-	FPerfCounters(const FString& InUniqueInstanceId)
-		:	UniqueInstanceId(InUniqueInstanceId)
-		,	SharedMemory(nullptr)
-	{
-	}
-
-	virtual ~FPerfCounters();
-
-	/** Initializes this instance from JSON config. */
-	bool Initialize(const FString& JsonText);
-
-	// IPerfCounters interface
-	const FString& GetInstanceName() const override { return UniqueInstanceId; }
-	void SetPOD(const FString& Name, const void* Ptr, SIZE_T Size) override;
-	// IPerfCounters interface end
+	/* Listen socket for outputting JSON on request */
+	FSocket* Socket;
 };
 

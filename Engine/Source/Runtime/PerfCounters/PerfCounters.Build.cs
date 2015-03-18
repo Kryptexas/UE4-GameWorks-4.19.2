@@ -10,8 +10,8 @@ public class PerfCounters : ModuleRules
             new string[] {
 				"Core",
 				"CoreUObject",
-				"IPC",
 				"Json",
+				"Sockets",
 			}
         );
     }

@@ -553,7 +553,7 @@ void UGameplayCueManager::FlushPendingCues()
 		if (PendingCue.OwningComponent)
 		{
 			bool bHasAuthority = PendingCue.OwningComponent->IsOwnerActorAuthoritative();
-			bool bValidPredictionKey = PendingCue.PredictionKey.IsValidKey();
+			bool bLocalPredictionKey = PendingCue.PredictionKey.IsLocalClientKey();
 
 			// TODO: Could implement non-rpc method for replicating if desired
 			switch (PendingCue.PayloadType)
@@ -564,7 +564,7 @@ void UGameplayCueManager::FlushPendingCues()
 					PendingCue.OwningComponent->ForceReplication();
 					PendingCue.OwningComponent->NetMulticast_InvokeGameplayCueExecuted_WithParams(PendingCue.GameplayCueTag, PendingCue.PredictionKey, PendingCue.CueParameters);
 				}
-				else if (bValidPredictionKey)
+				else if (bLocalPredictionKey)
 				{
 					PendingCue.OwningComponent->InvokeGameplayCueEvent(PendingCue.GameplayCueTag, EGameplayCueEvent::Executed, PendingCue.CueParameters);
 				}
@@ -575,7 +575,7 @@ void UGameplayCueManager::FlushPendingCues()
 					PendingCue.OwningComponent->ForceReplication();
 					PendingCue.OwningComponent->NetMulticast_InvokeGameplayCueExecuted(PendingCue.GameplayCueTag, PendingCue.PredictionKey, PendingCue.CueParameters.EffectContext);
 				}
-				else if (bValidPredictionKey)
+				else if (bLocalPredictionKey)
 				{
 					PendingCue.OwningComponent->InvokeGameplayCueEvent(PendingCue.GameplayCueTag, EGameplayCueEvent::Executed, PendingCue.CueParameters.EffectContext);
 				}
@@ -586,7 +586,7 @@ void UGameplayCueManager::FlushPendingCues()
 					PendingCue.OwningComponent->ForceReplication();
 					PendingCue.OwningComponent->NetMulticast_InvokeGameplayCueExecuted_FromSpec(PendingCue.FromSpec, PendingCue.PredictionKey);
 				}
-				else if (bValidPredictionKey)
+				else if (bLocalPredictionKey)
 				{
 					PendingCue.OwningComponent->InvokeGameplayCueEvent(PendingCue.FromSpec, EGameplayCueEvent::Executed);
 				}

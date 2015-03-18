@@ -279,7 +279,7 @@ FGameplayAbilitySpecHandle UAbilitySystemComponent::GiveAbilityAndActivateOnce(F
 	{
 		FoundSpec->RemoveAfterActivation = true;
 
-		if (!TryActivateAbility(AddedAbilityHandle, FPredictionKey()))
+		if (!InternalTryActivateAbility(AddedAbilityHandle))
 		{
 			// We failed to activate it, so remove it now
 			ClearAbility(AddedAbilityHandle);
@@ -815,7 +815,14 @@ void UAbilitySystemComponent::OnRep_ActivateAbilities()
 
 	for (auto PendingAbilityInfo : PendingServerActivatedAbilities)
 	{
-		ClientActivateAbilitySucceedWithEventData_Implementation(PendingAbilityInfo.Handle, PendingAbilityInfo.PredictionKey.Current, PendingAbilityInfo.TriggerEventData);
+		if (PendingAbilityInfo.bPartiallyActivated)
+		{
+			ClientActivateAbilitySucceedWithEventData_Implementation(PendingAbilityInfo.Handle, PendingAbilityInfo.PredictionKey, PendingAbilityInfo.TriggerEventData);
+		}
+		else
+		{
+			ClientTryActivateAbility(PendingAbilityInfo.Handle);
+		}
 	}
 	PendingServerActivatedAbilities.Empty();
 
@@ -837,21 +844,78 @@ void UAbilitySystemComponent::GetActivatableGameplayAbilitySpecsByAllMatchingTag
 	}
 }
 
-bool UAbilitySystemComponent::TryActivateAbilityByTag(const FGameplayTagContainer& GameplayTagContainer)
+bool UAbilitySystemComponent::TryActivateAbilitiesByTag(const FGameplayTagContainer& GameplayTagContainer, bool bAllowRemoteActivation)
 {
 	TArray<FGameplayAbilitySpec*> AbilitiesToActivate;
 	GetActivatableGameplayAbilitySpecsByAllMatchingTags(GameplayTagContainer, AbilitiesToActivate);
-
-	UGameplayAbility* ActivatedAbility(nullptr);
 
 	bool bSuccess = false;
 
 	for (auto GameplayAbilitySpec : AbilitiesToActivate)
 	{
-		bSuccess |= TryActivateAbility(GameplayAbilitySpec->Handle, FPredictionKey(), &ActivatedAbility);
+		bSuccess |= TryActivateAbility(GameplayAbilitySpec->Handle, bAllowRemoteActivation);
 	}
 
 	return bSuccess;
+}
+
+bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate, bool bAllowRemoteActivation)
+{
+	FGameplayTagContainer FailureTags;
+	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(AbilityToActivate);
+	if (!Spec)
+	{
+		ABILITY_LOG(Warning, TEXT("TryActivateAbility called with invalid Handle"));
+		return false;
+	}
+
+	UGameplayAbility* Ability = Spec->Ability;
+
+	if (!Ability)
+	{
+		ABILITY_LOG(Warning, TEXT("TryActivateAbility called with invalid Ability"));
+		return false;
+	}
+
+	const FGameplayAbilityActorInfo* ActorInfo = AbilityActorInfo.Get();
+
+	// make sure the ActorInfo and then Actor on that FGameplayAbilityActorInfo are valid, if not bail out.
+	if (ActorInfo == NULL || !ActorInfo->OwnerActor.IsValid() || !ActorInfo->AvatarActor.IsValid())
+	{
+		return false;
+	}
+
+	ENetRole NetMode = ActorInfo->AvatarActor->Role;
+	ensure(NetMode != ROLE_SimulatedProxy);
+	bool bIsLocal = AbilityActorInfo->IsLocallyControlled();
+
+	// Check to see if this a local only or server only ability, if so either remotely execute or fail
+	if (!bIsLocal && (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::LocalOnly || Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::LocalPredicted))
+	{
+		if (bAllowRemoteActivation)
+		{
+			ClientTryActivateAbility(AbilityToActivate);
+			return true;
+		}
+
+		ABILITY_LOG(Log, TEXT("Can't activate LocalOnly or LocalPredicted ability %s when not local."), *Ability->GetName());
+		return false;
+	}
+
+	if (NetMode != ROLE_Authority && (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::ServerOnly || Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::ServerInitiated))
+	{
+		if (bAllowRemoteActivation)
+		{
+			// No prediction key, server will assign a server-generated key
+			ServerTryActivateAbility(AbilityToActivate, Spec->InputPressed, FPredictionKey());
+			return true;
+		}
+
+		ABILITY_LOG(Log, TEXT("Can't activate ServerOnly or ServerInitiated ability %s when not the server."), *Ability->GetName());
+		return false;
+	}
+
+	return InternalTryActivateAbility(AbilityToActivate);
 }
 
 bool UAbilitySystemComponent::IsAbilityInputBlocked(int32 InputID) const
@@ -872,13 +936,15 @@ bool UAbilitySystemComponent::IsAbilityInputBlocked(int32 InputID) const
  *	-This function handles networking and prediction
  *	-If all goes well, CallActivateAbility is called next.
  */
-bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Handle, FPredictionKey InPredictionKey, UGameplayAbility** OutInstancedAbility, FOnGameplayAbilityEnded* OnGameplayAbilityEndedDelegate, const FGameplayEventData* TriggerEventData)
+bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHandle Handle, FPredictionKey InPredictionKey, UGameplayAbility** OutInstancedAbility, FOnGameplayAbilityEnded* OnGameplayAbilityEndedDelegate, const FGameplayEventData* TriggerEventData)
 {
+	const FGameplayTag& NetworkFailTag = UAbilitySystemGlobals::Get().ActivateFailNetworkingTag;
+
 	FGameplayTagContainer FailureTags;
 	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
 	if (!Spec)
 	{
-		ABILITY_LOG(Warning, TEXT("TryActivateAbility called with invalid Handle"));
+		ABILITY_LOG(Warning, TEXT("InternalTryActivateAbility called with invalid Handle"));
 		return false;
 	}
 
@@ -903,28 +969,46 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 
 	if (!Ability)
 	{
-		ABILITY_LOG(Warning, TEXT("TryActivateAbility called with invalid Ability"));
+		ABILITY_LOG(Warning, TEXT("InternalTryActivateAbility called with invalid Ability"));
 		return false;
 	}
+
+	
 
 	// Check to see if this a local only or server only ability, if so don't execute
-	if (!bIsLocal && Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::LocalOnly)
+	if (!bIsLocal)
 	{
-		ABILITY_LOG(Warning, TEXT("Can't activate LocalOnly ability %s when not local!"), *Ability->GetName());
-		return false;
+		if (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::LocalOnly || (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::LocalPredicted && !InPredictionKey.IsValidKey()))
+		{
+			// If we have a valid prediction key, the ability was started on the local client so it's okay
+
+			ABILITY_LOG(Warning, TEXT("Can't activate LocalOnly or LocalPredicted ability %s when not local!"), *Ability->GetName());
+
+			if (NetworkFailTag.IsValid())
+			{
+				FailureTags.AddTag(NetworkFailTag);
+				NotifyAbilityFailed(Handle, Ability, FailureTags);
+			}
+
+			return false;
+		}		
 	}
 
-	if (NetMode != ROLE_Authority && Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::ServerOnly)
+	if (NetMode != ROLE_Authority && (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::ServerOnly || Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::ServerInitiated))
 	{
-		ABILITY_LOG(Warning, TEXT("Can't activate ServerOnly ability %s when not the server!"), *Ability->GetName());
+		ABILITY_LOG(Warning, TEXT("Can't activate ServerOnly or ServerInitiated ability %s when not the server!"), *Ability->GetName());
+
+		if (NetworkFailTag.IsValid())
+		{
+			FailureTags.AddTag(NetworkFailTag);
+			NotifyAbilityFailed(Handle, Ability, FailureTags);
+		}
+
 		return false;
 	}
 
 	// If it's instance once the instanced ability will be set, otherwise it will be null
 	UGameplayAbility* InstancedAbility = Spec->GetPrimaryInstance();
-
-	// TODO: We should run this on on the non instanced, but run it on the instance once for now, need to fixup data
-	// (Always do a non instanced CanActivate check)
 
 	const FGameplayTagContainer* SourceTags = nullptr;
 	const FGameplayTagContainer* TargetTags = nullptr;
@@ -934,15 +1018,8 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 		TargetTags = &TriggerEventData->TargetTags;
 	}
 
-	if (InstancedAbility)
-	{
-		if (!InstancedAbility->CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, &FailureTags))
-		{
-			NotifyAbilityFailed(Handle, Ability, FailureTags);
-			return false;
-		}
-	}
-	else if (!Ability->CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, &FailureTags))
+	// (Always do a non instanced CanActivate check)
+	if (!Ability->CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, &FailureTags))
 	{
 		NotifyAbilityFailed(Handle, Ability, FailureTags);
 		return false;
@@ -967,7 +1044,7 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 	// Make sure we have a primary
 	if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerActor && !InstancedAbility)
 	{
-		ABILITY_LOG(Warning, TEXT("TryActivateAbility called but instanced ability is missing! NetMode: %d. Ability: %s"), (int32)NetMode, *Ability->GetName());
+		ABILITY_LOG(Warning, TEXT("InternalTryActivateAbility called but instanced ability is missing! NetMode: %d. Ability: %s"), (int32)NetMode, *Ability->GetName());
 		return false;
 	}
 
@@ -993,6 +1070,11 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 			// If available, set the prediction key to what was passed up
 			ActivationInfo.ServerSetActivationPredictionKey(InPredictionKey);
 		}
+		else if (NetMode == ROLE_Authority)
+		{
+			// Otherwise if we're the server give it a server activation key to uniquely identify it
+			ActivationInfo.ServerSetActivationPredictionKey(FPredictionKey::CreateNewServerInitiatedKey(this));
+		}
 
 		// Create instance of this ability if necessary
 		if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
@@ -1012,37 +1094,18 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 		// Tell the client that you activated it if we're not local and not server only
 		if (!bIsLocal && Ability->GetNetExecutionPolicy() != EGameplayAbilityNetExecutionPolicy::ServerOnly)
 		{
-			// TODO: Add support for "Server prediction keys"
 			if (TriggerEventData)
 			{
-				ClientActivateAbilitySucceedWithEventData(Handle, InPredictionKey.Current, *TriggerEventData);
+				ClientActivateAbilitySucceedWithEventData(Handle, ActivationInfo.GetActivationPredictionKey(), *TriggerEventData);
 			}
 			else
 			{
-				ClientActivateAbilitySucceed(Handle, InPredictionKey.Current);
+				ClientActivateAbilitySucceed(Handle, ActivationInfo.GetActivationPredictionKey());
 			}
 			
 			// This will get copied into the instanced abilities
 			ActivationInfo.bCanBeEndedByOtherInstance = Ability->bServerRespectsRemoteAbilityCancellation;;
-		}
-	}
-	else if (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::ServerInitiated)
-	{
-		if (NetMode != ROLE_Authority)
-		{
-			// Client hasn't technically activated the ability yet, so he shouldn't have advanced the active count.
-			// (this is ugly but the only case where this happens, and we want the ActiveCount to increment prior to activating the ability in the other case).
-			Spec->ActiveCount--;
-		}
 
-		// Tell the server to start the ability, this will return to the client 
-		if (TriggerEventData)
-		{
-			ServerTryActivateAbilityWithEventData(Handle, FPredictionKey(), *TriggerEventData);
-		}
-		else
-		{
-			ServerTryActivateAbility(Handle, FPredictionKey());
 		}
 	}
 	else if (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::LocalPredicted)
@@ -1055,11 +1118,11 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 		// This must be called immediately after GeneratePredictionKey to prevent problems with recursively activating abilities
 		if (TriggerEventData)
 		{
-			ServerTryActivateAbilityWithEventData(Handle, ScopedPredictionKey, *TriggerEventData);
+			ServerTryActivateAbilityWithEventData(Handle, Spec->InputPressed, ScopedPredictionKey, *TriggerEventData);
 		}
 		else
 		{
-			ServerTryActivateAbility(Handle, ScopedPredictionKey);
+			ServerTryActivateAbility(Handle, Spec->InputPressed, ScopedPredictionKey);
 		}
 
 		// If this PredictionKey is rejected, we will call OnClientActivateAbilityFailed.
@@ -1078,7 +1141,7 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 			}
 			else
 			{
-				ABILITY_LOG(Error, TEXT("TryActivateAbility called on ability %s that is InstancePerExecution and Replicated. This is an invalid configuration."), *Ability->GetName() );
+				ABILITY_LOG(Error, TEXT("InternalTryActivateAbility called on ability %s that is InstancePerExecution and Replicated. This is an invalid configuration."), *Ability->GetName() );
 			}
 		}
 		else if (InstancedAbility)
@@ -1106,27 +1169,45 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 	return true;
 }
 
-void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(FGameplayAbilitySpecHandle Handle, FPredictionKey PredictionKey)
+void UAbilitySystemComponent::ServerTryActivateAbility_Implementation(FGameplayAbilitySpecHandle Handle, bool InputPressed, FPredictionKey PredictionKey)
 {
-	InternalServerTryActiveAbility(Handle, PredictionKey, nullptr);
+	InternalServerTryActiveAbility(Handle, InputPressed, PredictionKey, nullptr);
 }
 
-bool UAbilitySystemComponent::ServerTryActivateAbility_Validate(FGameplayAbilitySpecHandle Handle, FPredictionKey PredictionKey)
-{
-	return true;
-}
-
-void UAbilitySystemComponent::ServerTryActivateAbilityWithEventData_Implementation(FGameplayAbilitySpecHandle Handle, FPredictionKey PredictionKey, FGameplayEventData TriggerEventData)
-{
-	InternalServerTryActiveAbility(Handle, PredictionKey, &TriggerEventData);
-}
-
-bool UAbilitySystemComponent::ServerTryActivateAbilityWithEventData_Validate(FGameplayAbilitySpecHandle Handle, FPredictionKey PredictionKey, FGameplayEventData TriggerEventData)
+bool UAbilitySystemComponent::ServerTryActivateAbility_Validate(FGameplayAbilitySpecHandle Handle, bool InputPressed, FPredictionKey PredictionKey)
 {
 	return true;
 }
 
-void UAbilitySystemComponent::InternalServerTryActiveAbility(FGameplayAbilitySpecHandle Handle, const FPredictionKey& PredictionKey, const FGameplayEventData* TriggerEventData)
+void UAbilitySystemComponent::ServerTryActivateAbilityWithEventData_Implementation(FGameplayAbilitySpecHandle Handle, bool InputPressed, FPredictionKey PredictionKey, FGameplayEventData TriggerEventData)
+{
+	InternalServerTryActiveAbility(Handle, InputPressed, PredictionKey, &TriggerEventData);
+}
+
+bool UAbilitySystemComponent::ServerTryActivateAbilityWithEventData_Validate(FGameplayAbilitySpecHandle Handle, bool InputPressed, FPredictionKey PredictionKey, FGameplayEventData TriggerEventData)
+{
+	return true;
+}
+
+void UAbilitySystemComponent::ClientTryActivateAbility_Implementation(FGameplayAbilitySpecHandle Handle)
+{
+	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
+	if (!Spec)
+	{
+		// Can happen if the client gets told to activate an ability the same frame that abilities are added on the server
+		FPendingAbilityInfo AbilityInfo;
+		AbilityInfo.Handle = Handle;
+		AbilityInfo.bPartiallyActivated = false;
+
+		// This won't add it if we're currently being called from the pending list
+		PendingServerActivatedAbilities.AddUnique(AbilityInfo);
+		return;
+	}
+
+	InternalTryActivateAbility(Handle);
+}
+
+void UAbilitySystemComponent::InternalServerTryActiveAbility(FGameplayAbilitySpecHandle Handle, bool InputPressed, const FPredictionKey& PredictionKey, const FGameplayEventData* TriggerEventData)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (DenyClientActivation > 0)
@@ -1174,11 +1255,11 @@ void UAbilitySystemComponent::InternalServerTryActiveAbility(FGameplayAbilitySpe
 				case EAbilityExecutionState::Succeeded:
 					if (TriggerEventData)
 					{
-						ClientActivateAbilitySucceedWithEventData(Handle, PredictionKey.Current, *TriggerEventData);
+						ClientActivateAbilitySucceedWithEventData(Handle, PredictionKey, *TriggerEventData);
 					}
 					else
 					{
-						ClientActivateAbilitySucceed(Handle, PredictionKey.Current);
+						ClientActivateAbilitySucceed(Handle, PredictionKey);
 					}
 
 					// Client commands to end the ability that come in after this point are considered for this instance
@@ -1202,6 +1283,7 @@ void UAbilitySystemComponent::InternalServerTryActiveAbility(FGameplayAbilitySpe
 		FPendingAbilityInfo AbilityInfo;
 		AbilityInfo.PredictionKey = PredictionKey;
 		AbilityInfo.Handle = Handle;
+		AbilityInfo.bPartiallyActivated = true;
 
 		PendingClientActivatedAbilities.Add(AbilityInfo);
 		return;
@@ -1211,7 +1293,7 @@ void UAbilitySystemComponent::InternalServerTryActiveAbility(FGameplayAbilitySpe
 	Spec->InputPressed = true;
 
 	// Attempt to activate the ability (server side) and tell the client if it succeeded or failed.
-	if (TryActivateAbility(Handle, PredictionKey, &InstancedAbility, nullptr, TriggerEventData))
+	if (InternalTryActivateAbility(Handle, PredictionKey, &InstancedAbility, nullptr, TriggerEventData))
 	{
 		// TryActivateAbility handles notifying the client of success
 	}
@@ -1225,7 +1307,7 @@ void UAbilitySystemComponent::InternalServerTryActiveAbility(FGameplayAbilitySpe
 
 void UAbilitySystemComponent::ReplicateEndOrCancelAbility(FGameplayAbilitySpecHandle Handle, FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ability, bool bWasCanceled)
 {
-	if (Ability->NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::LocalPredicted || Ability->NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::ServerInitiated)
+	if (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::LocalPredicted || Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::ServerInitiated)
 	{
 		// Only replicate ending if policy is predictive
 		if (GetOwnerRole() == ROLE_Authority)
@@ -1259,7 +1341,7 @@ void UAbilitySystemComponent::ReplicateEndOrCancelAbility(FGameplayAbilitySpecHa
 }
 
 //This is only called when ending or canceling an ability in response to a remote instruction.
-void UAbilitySystemComponent::RemoteEndOrCancelAbility(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo, bool bWasCanceled)
+void UAbilitySystemComponent::RemoteEndAbility(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo)
 {
 	FGameplayAbilitySpec* AbilitySpec = FindAbilitySpecFromHandle(AbilityToEnd);
 	if (AbilitySpec && AbilitySpec->Ability && AbilitySpec->IsActive())
@@ -1269,19 +1351,10 @@ void UAbilitySystemComponent::RemoteEndOrCancelAbility(FGameplayAbilitySpecHandl
 		for (auto Instance : Instances)
 		{
 			// Check if the ability is the same prediction key (can both by 0) and has been confirmed. If so cancel it.
-			if (Instance->CurrentActivationInfo.GetActivationPredictionKey() == ActivationInfo.GetActivationPredictionKey() && Instance->CurrentActivationInfo.bCanBeEndedByOtherInstance)
+			if (Instance->GetCurrentActivationInfoRef().GetActivationPredictionKey() == ActivationInfo.GetActivationPredictionKey() && Instance->GetCurrentActivationInfoRef().bCanBeEndedByOtherInstance)
 			{
-				// End/Cancel the ability but don't replicate it back to whoever called us
-				if (bWasCanceled)
-				{
-					// Since this was a remote cancel, we should force it through. We do not support 'server says ability was cancelled but client disagrees that it can be'.
-					Instance->SetCanBeCanceled(true);
-					Instance->CancelAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false);
-				}
-				else
-				{
-					Instance->EndAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false);
-				}
+				// End the ability but don't replicate it back to whoever called us
+				Instance->EndAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false);
 			}
 		}
 	}
@@ -1291,7 +1364,7 @@ void UAbilitySystemComponent::ServerEndAbility_Implementation(FGameplayAbilitySp
 {
 	FScopedPredictionWindow ScopedPrediction(this, PredictionKey);
 	
-	RemoteEndOrCancelAbility(AbilityToEnd, ActivationInfo, false);
+	RemoteEndAbility(AbilityToEnd, ActivationInfo);
 }
 
 bool UAbilitySystemComponent::ServerEndAbility_Validate(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo, FPredictionKey PredictionKey)
@@ -1301,12 +1374,12 @@ bool UAbilitySystemComponent::ServerEndAbility_Validate(FGameplayAbilitySpecHand
 
 void UAbilitySystemComponent::ClientEndAbility_Implementation(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo)
 {
-	RemoteEndOrCancelAbility(AbilityToEnd, ActivationInfo, false);
+	RemoteEndAbility(AbilityToEnd, ActivationInfo);
 }
 
 void UAbilitySystemComponent::ServerCancelAbility_Implementation(FGameplayAbilitySpecHandle AbilityToCancel, FGameplayAbilityActivationInfo ActivationInfo)
 {
-	RemoteEndOrCancelAbility(AbilityToCancel, ActivationInfo, true);
+	RemoteEndAbility(AbilityToCancel, ActivationInfo);
 }
 
 bool UAbilitySystemComponent::ServerCancelAbility_Validate(FGameplayAbilitySpecHandle AbilityToCancel, FGameplayAbilityActivationInfo ActivationInfo)
@@ -1316,7 +1389,7 @@ bool UAbilitySystemComponent::ServerCancelAbility_Validate(FGameplayAbilitySpecH
 
 void UAbilitySystemComponent::ClientCancelAbility_Implementation(FGameplayAbilitySpecHandle AbilityToCancel, FGameplayAbilityActivationInfo ActivationInfo)
 {
-	RemoteEndOrCancelAbility(AbilityToCancel, ActivationInfo, true);
+	RemoteEndAbility(AbilityToCancel, ActivationInfo);
 }
 
 static_assert(sizeof(int16) == sizeof(FPredictionKey::KeyType), "Sizeof PredictionKey::KeyType does not match RPC parameters in AbilitySystemComponent ClientActivateAbilityFailed_Implementation");
@@ -1350,26 +1423,22 @@ void UAbilitySystemComponent::OnClientActivateAbilityFailed(FGameplayAbilitySpec
 	}
 }
 
-
-static_assert(sizeof(int16) == sizeof(FPredictionKey::KeyType), "Sizeof PredictionKey::KeyType does not match RPC parameters in AbilitySystemComponent ClientActivateAbilitySucceed_Implementation");
-
-void UAbilitySystemComponent::ClientActivateAbilitySucceed_Implementation(FGameplayAbilitySpecHandle Handle, int16 PredictionKey)
+void UAbilitySystemComponent::ClientActivateAbilitySucceed_Implementation(FGameplayAbilitySpecHandle Handle, FPredictionKey PredictionKey)
 {
 	ClientActivateAbilitySucceedWithEventData_Implementation(Handle, PredictionKey, FGameplayEventData());
 }
 
-void UAbilitySystemComponent::ClientActivateAbilitySucceedWithEventData_Implementation(FGameplayAbilitySpecHandle Handle, int16 PredictionKey, FGameplayEventData TriggerEventData)
+void UAbilitySystemComponent::ClientActivateAbilitySucceedWithEventData_Implementation(FGameplayAbilitySpecHandle Handle, FPredictionKey PredictionKey, FGameplayEventData TriggerEventData)
 {
 	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
 	if (!Spec)
 	{
 		// Can happen if the client gets told to activate an ability the same frame that abilities are added on the server
-		FPredictionKey TempKey;
-		TempKey.Current = PredictionKey;
 		FPendingAbilityInfo AbilityInfo;
-		AbilityInfo.PredictionKey = TempKey;
+		AbilityInfo.PredictionKey = PredictionKey;
 		AbilityInfo.Handle = Handle;
 		AbilityInfo.TriggerEventData = TriggerEventData;
+		AbilityInfo.bPartiallyActivated = true;
 
 		// This won't add it if we're currently being called from the pending list
 		PendingServerActivatedAbilities.AddUnique(AbilityInfo);
@@ -1399,7 +1468,7 @@ void UAbilitySystemComponent::ClientActivateAbilitySucceedWithEventData_Implemen
 			TArray<UGameplayAbility*> Instances = Spec->GetAbilityInstances();
 			for (UGameplayAbility* LocalAbility : Instances)
 			{
-				if (LocalAbility->GetCurrentActivationInfo().GetActivationPredictionKey().Current == PredictionKey)
+				if (LocalAbility->GetCurrentActivationInfo().GetActivationPredictionKey() == PredictionKey)
 				{
 					LocalAbility->ConfirmActivateSucceed();
 					found = true;
@@ -1409,7 +1478,7 @@ void UAbilitySystemComponent::ClientActivateAbilitySucceedWithEventData_Implemen
 
 			if (!found)
 			{
-				ABILITY_LOG(Verbose, TEXT("Ability %s was confirmed by server but no longer exists on client (replication key: %d"), *AbilityToActivate->GetName(), PredictionKey);
+				ABILITY_LOG(Verbose, TEXT("Ability %s was confirmed by server but no longer exists on client (replication key: %d"), *AbilityToActivate->GetName(), PredictionKey.Current);
 			}
 		}
 	}
@@ -1473,15 +1542,7 @@ bool UAbilitySystemComponent::TriggerAbilityFromGameplayEvent(FGameplayAbilitySp
 	FGameplayEventData TempEventData = *Payload;
 	TempEventData.EventTag = EventTag;
 
-	// If it's instance once the instanced ability will be set, otherwise it will be null
-	UGameplayAbility* InstancedAbility = Spec->GetPrimaryInstance();
-
-	if (InstancedAbility)
-	{
-		// TODO: This should run on the CDO but will run on the primary instance until data is fixed up
-		Ability = InstancedAbility;
-	}
-
+	// Run on the non-instanced ability
 	if (Ability->ShouldAbilityRespondToEvent(ActorInfo, &TempEventData))
 	{
 		int32 ExecutingAbilityIndex = -1;
@@ -1514,7 +1575,7 @@ bool UAbilitySystemComponent::TriggerAbilityFromGameplayEvent(FGameplayAbilitySp
 			}
 		}
 
-		if (TryActivateAbility(Handle, ScopedPredictionKey, nullptr, nullptr, &TempEventData))
+		if (InternalTryActivateAbility(Handle, ScopedPredictionKey, nullptr, nullptr, &TempEventData))
 		{
 			if (ExecutingAbilityIndex >= 0)
 			{
@@ -1618,7 +1679,7 @@ void UAbilitySystemComponent::MonitoredTagChanged(const FGameplayTag Tag, int32 
 						EventData.Instigator = OwnerActor;
 						EventData.Target = OwnerActor;
 						// Try to activate it
-						TryActivateAbility(Spec->Handle, FPredictionKey(), nullptr, nullptr, &EventData);
+						InternalTryActivateAbility(Spec->Handle, FPredictionKey(), nullptr, nullptr, &EventData);
 
 						// TODO: Check client/server type
 					}
@@ -1664,14 +1725,14 @@ void UAbilitySystemComponent::BindToInputComponent(UInputComponent* InputCompone
 	// Pressed event
 	{
 		FInputActionBinding AB(ConfirmBindName, IE_Pressed);
-		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::LocalInputConfirm);
+		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::InputConfirm);
 		InputComponent->AddActionBinding(AB);
 	}
 
 	// 
 	{
 		FInputActionBinding AB(CancelBindName, IE_Pressed);
-		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::LocalInputCancel);
+		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::InputCancel);
 		InputComponent->AddActionBinding(AB);
 	}
 }
@@ -1691,14 +1752,14 @@ void UAbilitySystemComponent::BindAbilityActivationToInputComponent(UInputCompon
 		// Pressed event
 		{
 			FInputActionBinding AB(FName(*BindStr), IE_Pressed);
-			AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::AbilityLocalInputPressed, idx);
+			AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::AbilityInputPressed, idx);
 			InputComponent->AddActionBinding(AB);
 		}
 
 		// Released event
 		{
 			FInputActionBinding AB(FName(*BindStr), IE_Released);
-			AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::AbilityLocalInputReleased, idx);
+			AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::AbilityInputReleased, idx);
 			InputComponent->AddActionBinding(AB);
 		}
 	}
@@ -1707,14 +1768,14 @@ void UAbilitySystemComponent::BindAbilityActivationToInputComponent(UInputCompon
 	if (BindInfo.ConfirmTargetCommand.IsEmpty() == false)
 	{
 		FInputActionBinding AB(FName(*BindInfo.ConfirmTargetCommand), IE_Pressed);
-		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::LocalInputConfirm);
+		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::InputConfirm);
 		InputComponent->AddActionBinding(AB);
 	}
 	
 	if (BindInfo.CancelTargetCommand.IsEmpty() == false)
 	{
 		FInputActionBinding AB(FName(*BindInfo.CancelTargetCommand), IE_Pressed);
-		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::LocalInputCancel);
+		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::InputCancel);
 		InputComponent->AddActionBinding(AB);
 	}
 
@@ -1728,18 +1789,18 @@ void UAbilitySystemComponent::BindAbilityActivationToInputComponent(UInputCompon
 	}
 }
 
-void UAbilitySystemComponent::AbilityLocalInputPressed(int32 InputID)
+void UAbilitySystemComponent::AbilityInputPressed(int32 InputID)
 {
 	// Consume the input if this InputID is overloaded with GenericConfirm/Cancel and the GenericConfim/Cancel callback is bound
 	if (IsGenericConfirmInputBound(InputID))
 	{
-		LocalInputConfirm();
+		InputConfirm();
 		return;
 	}
 
 	if (IsGenericCancelInputBound(InputID))
 	{
-		LocalInputCancel();
+		InputCancel();
 		return;
 	}
 
@@ -1775,7 +1836,7 @@ void UAbilitySystemComponent::AbilityLocalInputPressed(int32 InputID)
 	}
 }
 
-void UAbilitySystemComponent::AbilityLocalInputReleased(int32 InputID)
+void UAbilitySystemComponent::AbilityInputReleased(int32 InputID)
 {
 	ABILITYLIST_SCOPE_LOCK();
 	for (FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
@@ -1869,17 +1930,17 @@ void UAbilitySystemComponent::AbilitySpecInputReleased(FGameplayAbilitySpec& Spe
 	}
 }
 
-void UAbilitySystemComponent::LocalInputConfirm()
+void UAbilitySystemComponent::InputConfirm()
 {
-	FAbilityConfirmOrCancel Temp = GenericLocalConfirmCallbacks;
-	GenericLocalConfirmCallbacks.Clear();
+	FAbilityConfirmOrCancel Temp = ConfirmCallbacks;
+	ConfirmCallbacks.Clear();
 	Temp.Broadcast();
 }
 
-void UAbilitySystemComponent::LocalInputCancel()
+void UAbilitySystemComponent::InputCancel()
 {	
-	FAbilityConfirmOrCancel Temp = GenericLocalCancelCallbacks;
-	GenericLocalCancelCallbacks.Clear();
+	FAbilityConfirmOrCancel Temp = CancelCallbacks;
+	CancelCallbacks.Clear();
 	Temp.Broadcast();
 }
 
@@ -2157,13 +2218,13 @@ void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
 			bool ReplicatedIsStopped = bool(RepAnimMontageInfo.IsStopped);
 			if( ReplicatedIsStopped && !bIsStopped )
 			{
-				CurrentMontageStop(RepAnimMontageInfo.BlendTime);
+				CurrentMontageStop();
 			}
 		}
 	}
 }
 
-void UAbilitySystemComponent::CurrentMontageStop(float OverrideBlendOutTime)
+void UAbilitySystemComponent::CurrentMontageStop()
 {
 	UAnimInstance* AnimInstance = AbilityActorInfo->AnimInstance.Get();
 	UAnimMontage* MontageToStop = LocalAnimMontageInfo.AnimMontage;
@@ -2171,9 +2232,7 @@ void UAbilitySystemComponent::CurrentMontageStop(float OverrideBlendOutTime)
 
 	if (bShouldStopMontage)
 	{
-		const float BlendOutTime = (OverrideBlendOutTime >= 0.0f ? OverrideBlendOutTime : MontageToStop->BlendOutTime);
-
-		AnimInstance->Montage_Stop(BlendOutTime);
+		AnimInstance->Montage_Stop(MontageToStop->BlendOutTime);
 
 		if (IsOwnerActorAuthoritative())
 		{

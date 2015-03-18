@@ -11,7 +11,8 @@ namespace FAISystem
 {
 	static const FRotator InvalidRotation = FRotator(FLT_MAX);
 	static const FVector InvalidLocation = FVector(FLT_MAX);
-	static const FVector InvalidDirection = FVector::ZeroVector;
+	static const FVector InvalidDirection = FVector::ZeroVector; 
+	static const float InvalidRange = -1.f;
 	static const float InfiniteInterval = -FLT_MAX;
 
 	FORCEINLINE bool IsValidLocation(const FVector& TestLocation)

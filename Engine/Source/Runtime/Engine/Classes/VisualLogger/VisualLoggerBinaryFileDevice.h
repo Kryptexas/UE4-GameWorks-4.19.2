@@ -4,8 +4,6 @@
 
 #if ENABLE_VISUAL_LOG
 
-#define VISLOG_FILENAME_EXT TEXT("bvlog")
-
 class FVisualLoggerBinaryFileDevice : public FVisualLogDevice
 {
 public:

@@ -574,7 +574,7 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	
 
 	// Clients should treat predicted instant effects as if they have infinite duration. The effects will be cleaned up later.
-	bool bTreatAsInfiniteDuration = GetOwnerRole() != ROLE_Authority && PredictionKey.IsValidKey() && Spec.GetDuration() == UGameplayEffect::INSTANT_APPLICATION;
+	bool bTreatAsInfiniteDuration = GetOwnerRole() != ROLE_Authority && PredictionKey.IsLocalClientKey() && Spec.GetDuration() == UGameplayEffect::INSTANT_APPLICATION;
 
 	// Make sure we create our copy of the spec in the right place
 	FActiveGameplayEffectHandle	MyHandle;
@@ -932,7 +932,7 @@ void UAbilitySystemComponent::AddGameplayCue(const FGameplayTag GameplayCueTag, 
 			InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::WhileActive);
 		}
 	}
-	else if (ScopedPredictionKey.IsValidKey())
+	else if (ScopedPredictionKey.IsLocalClientKey())
 	{
 		// Allow for predictive gameplaycue events? Needs more thought
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive, EffectContext);
@@ -955,7 +955,7 @@ void UAbilitySystemComponent::RemoveGameplayCue(const FGameplayTag GameplayCueTa
 		}
 		// Don't need to multicast broadcast this, ACtiveGameplayCues replication handles it
 	}
-	else if (ScopedPredictionKey.IsValidKey())
+	else if (ScopedPredictionKey.IsLocalClientKey())
 	{
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Removed);
 	}
@@ -971,7 +971,7 @@ void UAbilitySystemComponent::RemoveAllGameplayCues()
 
 void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_FromSpec_Implementation(const FGameplayEffectSpecForRPC Spec, FPredictionKey PredictionKey)
 {
-	if (IsOwnerActorAuthoritative() || PredictionKey.IsValidKey() == false)
+	if (IsOwnerActorAuthoritative() || PredictionKey.IsLocalClientKey() == false)
 	{
 		InvokeGameplayCueEvent(Spec, EGameplayCueEvent::Executed);
 	}
@@ -979,7 +979,7 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_FromSpec_Im
 
 void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext)
 {
-	if (IsOwnerActorAuthoritative() || PredictionKey.IsValidKey() == false)
+	if (IsOwnerActorAuthoritative() || PredictionKey.IsLocalClientKey() == false)
 	{
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Executed, EffectContext);
 	}
@@ -987,7 +987,7 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_Implementat
 
 void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_WithParams_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayCueParameters GameplayCueParameters)
 {
-	if (IsOwnerActorAuthoritative() || PredictionKey.IsValidKey() == false)
+	if (IsOwnerActorAuthoritative() || PredictionKey.IsLocalClientKey() == false)
 	{
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Executed, GameplayCueParameters);
 	}
@@ -995,7 +995,7 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_WithParams_
 
 void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAdded_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext)
 {
-	if (IsOwnerActorAuthoritative() || PredictionKey.IsValidKey() == false)
+	if (IsOwnerActorAuthoritative() || PredictionKey.IsLocalClientKey() == false)
 	{
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive, EffectContext);
 	}

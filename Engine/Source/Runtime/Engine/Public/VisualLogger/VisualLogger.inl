@@ -34,7 +34,7 @@ FORCEINLINE
 bool CheckVisualLogInputInternal(const class UObject* Object, const struct FLogCategoryBase& Category, ELogVerbosity::Type Verbosity, UWorld **World, FVisualLogEntry **CurrentEntry)
 {
 	FVisualLogger& VisualLogger = FVisualLogger::Get();
-	if (!Object || (GEngine && GEngine->bDisableAILogging) || VisualLogger.IsRecording() == false || Object->HasAnyFlags(RF_ClassDefaultObject))
+	if (!Object || (GEngine && GEngine->bDisableAILogging) || (VisualLogger.IsRecording() == false && VisualLogger.IsUsingCircularBuffer() == false) || Object->HasAnyFlags(RF_ClassDefaultObject))
 	{
 		return false; 
 	}
@@ -81,9 +81,16 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, flo
 				FVisualLogEntry* Entry = &CurrentPair.Value;
 				if (Entry->TimeStamp >= 0 && Entry->TimeStamp < TimeStamp)
 				{
-					for (auto* Device : OutputDevices)
+					if (IsRecording())
 					{
-						Device->Serialize(CurrentPair.Key, ObjectToNameMap[CurrentPair.Key], ObjectToClassNameMap[CurrentPair.Key], *Entry);
+						for (auto* Device : OutputDevices)
+						{
+							Device->Serialize(CurrentPair.Key, ObjectToNameMap[CurrentPair.Key], ObjectToClassNameMap[CurrentPair.Key], *Entry);
+						}
+					}
+					else if (IsUsingCircularBuffer())
+					{
+						GetCircularBuffer()->Serialize(CurrentPair.Key, ObjectToNameMap[CurrentPair.Key], ObjectToClassNameMap[CurrentPair.Key], *Entry);
 					}
 					Entry->Reset();
 				}
@@ -148,9 +155,16 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, flo
 				FVisualLogEntry* Entry = &CurrentPair.Value;
 				if (Entry->TimeStamp >= 0 && (!World.IsValid() || Entry->TimeStamp < World->GetTimeSeconds())) // CurrentEntry->TimeStamp == -1 means it's not initialized entry information
 				{
-					for (auto* Device : OutputDevices)
+					if (IsRecording())
 					{
-						Device->Serialize(CurrentPair.Key, ObjectToNameMap[CurrentPair.Key], ObjectToClassNameMap[CurrentPair.Key], *Entry);
+						for (auto* Device : OutputDevices)
+						{
+							Device->Serialize(CurrentPair.Key, ObjectToNameMap[CurrentPair.Key], ObjectToClassNameMap[CurrentPair.Key], *Entry);
+						}
+					}
+					else if (IsUsingCircularBuffer())
+					{
+						GetCircularBuffer()->Serialize(CurrentPair.Key, ObjectToNameMap[CurrentPair.Key], ObjectToClassNameMap[CurrentPair.Key], *Entry);
 					}
 					Entry->Reset();
 				}

@@ -39,21 +39,12 @@ public:
 		return PerfCountersSingleton;
 	}
 
-	IPerfCounters * CreatePerformanceCounters(const FString& JsonConfigFilename, const FString& UniqueInstanceId) override
+	IPerfCounters * CreatePerformanceCounters(const FString& UniqueInstanceId) override
 	{
 		if (PerfCountersSingleton)
 		{
 			UE_LOG(LogPerfCounters, Warning, TEXT("CreatePerformanceCounters: instance already exists, new instance not created."));
 			return PerfCountersSingleton;
-		}
-
-		const FString JsonConfigFullPath = FPaths::GameDir() + TEXT("Config/") + JsonConfigFilename;
-
-		FString JSonText;
-		if (!FFileHelper::LoadFileToString(JSonText, *JsonConfigFullPath))
-		{
-			UE_LOG(LogPerfCounters, Warning, TEXT("CreatePerformanceCounters: failed to find configuration file for perfcounters: %s"), *JsonConfigFullPath);
-			return nullptr;
 		}
 
 		FString InstanceUID = UniqueInstanceId;
@@ -63,9 +54,9 @@ public:
 		}
 
 		FPerfCounters * PerfCounters = new FPerfCounters(InstanceUID);
-		if (!PerfCounters->Initialize(JSonText))
+		if (!PerfCounters->Initialize())
 		{
-			UE_LOG(LogPerfCounters, Warning, TEXT("CreatePerformanceCounters: could not create perfcounters from (invalid?) configuration file: %s"), *JsonConfigFullPath);
+			UE_LOG(LogPerfCounters, Warning, TEXT("CreatePerformanceCounters: could not create perfcounters"));
 			delete PerfCounters;
 			return nullptr;
 		}

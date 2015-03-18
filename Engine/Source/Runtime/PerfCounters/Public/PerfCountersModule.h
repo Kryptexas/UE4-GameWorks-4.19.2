@@ -4,6 +4,14 @@
 
 #include "ModuleManager.h"
 
+template <class CharType>
+struct TPrettyJsonPrintPolicy;
+template <class CharType, class PrintPolicy>
+class TJsonWriter;
+typedef TSharedRef< TJsonWriter<TCHAR,TPrettyJsonPrintPolicy<TCHAR> > > FPrettyJsonWriter;
+
+DECLARE_DELEGATE_OneParam(FProduceJsonCounterValue, const FPrettyJsonWriter& /* JsonWriter */);
+
 /**
  * A programming interface for setting/updating performance counters
  */
@@ -16,14 +24,56 @@ public:
 	/** Get the unique identifier for this perf counter instance */
 	virtual const FString& GetInstanceName() const = 0;
 
-	/** Copies the value as is */
-	virtual void SetPOD(const FString& Name, const void* Ptr, SIZE_T Size) = 0;
+	/** Maps value to a numeric holder */
+	virtual void SetNumber(const FString& Name, double Value) = 0;
 
-	/** Sets (POD) value */
-	template< typename T >
-	void Set(const FString& Name, const T & Val)
+	/** Maps value to a string holder */
+	virtual void SetString(const FString& Name, const FString& Value) = 0;
+
+	/** Make a callback so we can request more extensive types on demand (presumably backed by some struct locally) */
+	virtual void SetJson(const FString& Name, const FProduceJsonCounterValue& Callback) = 0;
+
+public:
+	/** Set overloads (use these) */
+
+	void Set(const FString& Name, int32 Val)
 	{
-		SetPOD(Name, &Val, sizeof(T));
+		SetNumber(Name, (double)Val);
+	}
+
+	void Set(const FString& Name, uint32 Val)
+	{
+		SetNumber(Name, (double)Val);
+	}
+
+	void Set(const FString& Name, float Val)
+	{
+		SetNumber(Name, (double)Val);
+	}
+
+	void Set(const FString& Name, double Val)
+	{
+		SetNumber(Name, Val);
+	}
+
+	void Set(const FString& Name, int64 Val)
+	{
+		SetString(Name, FString::Printf(TEXT("%lld"), Val));
+	}
+
+	void Set(const FString& Name, uint64 Val)
+	{
+		SetString(Name, FString::Printf(TEXT("%llu"), Val));
+	}
+
+	void Set(const FString& Name, const FString& Val)
+	{
+		SetString(Name, Val);
+	}
+
+	void Set(const FString& Name, const FProduceJsonCounterValue& Callback)
+	{
+		SetJson(Name, Callback);
 	}
 };
 
@@ -62,12 +112,11 @@ public:
 	virtual IPerfCounters* GetPerformanceCounters() const = 0;
 
 	/** 
-	 * Creates and initializes the performance counters from a JSON config file.
+	 * Creates and initializes the performance counters object
 	 *
-	 * @param JsonConfigFilename	file that should reside in <GameName>/Config
 	 * @param UniqueInstanceId		optional parameter that allows to assign a known name for this set of counters (a default one that will include process id will be provided if not given)
 	 *
 	 * @return IPerfCounters object (should be explicitly deleted later), or nullptr if failed
 	 */
-	virtual IPerfCounters * CreatePerformanceCounters(const FString& JsonConfigFilename, const FString& UniqueInstanceId = TEXT("")) = 0;
+	virtual IPerfCounters * CreatePerformanceCounters(const FString& UniqueInstanceId = TEXT("")) = 0;
 };

@@ -1,168 +1,173 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PerfCounters.h"
+#include "SocketSubsystem.h"
+#include "Sockets.h"
 
 #define JSON_ARRAY_NAME					TEXT("PerfCounters")
 #define JSON_PERFCOUNTER_NAME			TEXT("Name")
 #define JSON_PERFCOUNTER_SIZE_IN_BYTES	TEXT("SizeInBytes")
 
+FPerfCounters::FPerfCounters(const FString& InUniqueInstanceId)
+: UniqueInstanceId(InUniqueInstanceId)
+, Socket(nullptr)
+{
+}
+
 FPerfCounters::~FPerfCounters()
 {
-	if (SharedMemory)
+	if (Socket)
 	{
-		FPlatformMemory::UnmapNamedSharedMemoryRegion(SharedMemory);
-		SharedMemory = nullptr;
-	}
-}
-
-bool FPerfCounters::Initialize(const FString& JsonText)
-{
-	// first load and create all the perf counters, keeping track of the used memory, and only
-	// then initialize the memory object
-
-	if (JsonText.IsEmpty())
-	{
-		UE_LOG(LogPerfCounters, Warning, TEXT("FPerfCounters::Initialize : empty JSON configuration."));
-		return false;
-	}
-
-	TSharedPtr<FJsonObject> JsonObjectPtr;
-	TSharedRef<TJsonReader<>> JsonReaderRef = TJsonReaderFactory<>::Create(JsonText);
-	if (!FJsonSerializer::Deserialize(JsonReaderRef, JsonObjectPtr) || !JsonObjectPtr.IsValid())
-	{
-		UE_LOG(LogPerfCounters, Warning, TEXT("FPerfCounters::Initialize : could not deserialize performance counters from JSON."));
-		return false;
-	}
-
-	if (!JsonObjectPtr->HasTypedField<EJson::Array>(JSON_ARRAY_NAME))
-	{
-		UE_LOG(LogPerfCounters, Warning, TEXT("FPerfCounters::Initialize : configuration file does not have %s array."), JSON_ARRAY_NAME);
-		return false;
-	}
-
-	PerfCounterMap.Empty();
-	SIZE_T TotalPerfCountersSizeInBytes = 0;
-
-	auto PerfCounterArrayJson = JsonObjectPtr->GetArrayField(JSON_ARRAY_NAME);
-	for (const auto & PerfCounterJsonIt : PerfCounterArrayJson)
-	{
-		TSharedPtr<FJsonObject> PerfCounterJsonConfig = PerfCounterJsonIt->AsObject();
-		FPerfCounter New;
-		if (!PerfCounterJsonConfig.IsValid() || !New.Initialize(*PerfCounterJsonConfig.Get()))
+		ISocketSubsystem* SocketSystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
+		if (SocketSystem)
 		{
-			UE_LOG(LogPerfCounters, Warning, TEXT("FPerfCounters::Initialize : could not initialize a perfcounter instance (invalid configuration file?)."));
-			return false;
+			SocketSystem->DestroySocket(Socket);
 		}
+		Socket = nullptr;
+	}
+}
 
-		TotalPerfCountersSizeInBytes += New.SizeOf;
-		PerfCounterMap.Add(New.Name, New);
+bool FPerfCounters::Initialize()
+{
+	// get the requested port from the command line (if specified)
+	int32 StatsPort = -1;
+	FParse::Value(FCommandLine::Get(), TEXT("statsPort="), StatsPort);
+	if (StatsPort < 0)
+	{
+		UE_LOG(LogPerfCounters, Log, TEXT("FPerfCounters JSON socket disabled."));
+		return true;
 	}
 
-	UE_LOG(LogPerfCounters, Log, TEXT("Initialized %d performance counters taking total %d bytes."), PerfCounterMap.Num(), static_cast<int32>(TotalPerfCountersSizeInBytes));
-
-	// if there are no performance counters, just return
-	if (PerfCounterMap.Num() == 0 || TotalPerfCountersSizeInBytes == 0)
+	// get the socket subsystem
+	ISocketSubsystem* SocketSystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
+	if (SocketSystem == nullptr)
 	{
-		return true;	// success?
-	}
-
-	// allocate shared memory. Note that size will be adjusted to match page size internally
-	SharedMemory = FPlatformMemory::MapNamedSharedMemoryRegion(*UniqueInstanceId, true,
-		FPlatformMemory::ESharedMemoryAccess::Read | FPlatformMemory::ESharedMemoryAccess::Write, TotalPerfCountersSizeInBytes);
-
-	if (SharedMemory == nullptr)
-	{
-		UE_LOG(LogPerfCounters, Warning, TEXT("FPerfCounters::Initialize : could not allocate shared memory of at least %d bytes size."), TotalPerfCountersSizeInBytes);
+		UE_LOG(LogPerfCounters, Error, TEXT("FPerfCounters unable to get socket subsystem"));
 		return false;
 	}
 
-	// now assign the pointers sequentially
-	char * SharedMemAddress = reinterpret_cast<char *>(SharedMemory->GetAddress());
-	FMemory::Memzero(SharedMemAddress, TotalPerfCountersSizeInBytes);
-
-	for (auto & Counter : PerfCounterMap)
+	// make our listen socket
+	Socket = SocketSystem->CreateSocket(NAME_Stream, TEXT("FPerfCounters"));
+	if (Socket == nullptr)
 	{
-		Counter.Value.Pointer = SharedMemAddress;
-		SharedMemAddress += Counter.Value.SizeOf;
+		UE_LOG(LogPerfCounters, Error, TEXT("FPerfCounters unable to allocate stream socket"));
+		return false;
+	}
+
+	// make us non blocking
+	Socket->SetNonBlocking(true);
+
+	// create a localhost binding for the requested port
+	TSharedRef<FInternetAddr> LocalhostAddr = SocketSystem->CreateInternetAddr(0x7f000001 /* 127.0.0.1 */, StatsPort);
+	if (!Socket->Bind(*LocalhostAddr))
+	{
+		UE_LOG(LogPerfCounters, Error, TEXT("FPerfCounters unable to bind to %s"), *LocalhostAddr->ToString(true));
+		return false;
+	}
+	StatsPort = Socket->GetPortNo();
+
+	// log the port
+	UE_LOG(LogPerfCounters, Display, TEXT("FPerfCounters listening on port %d"), StatsPort);
+
+	// for now, jack this up so we can send in one go
+	int32 NewSize;
+	Socket->SetSendBufferSize(512 * 1024, NewSize); // best effort 512k buffer to avoid not being able to send in one go
+
+	// listen on the port
+	if (!Socket->Listen(16))
+	{
+		UE_LOG(LogPerfCounters, Error, TEXT("FPerfCounters unable to listen on socket"));
+		return false;
 	}
 
 	return true;
 }
 
-bool FPerfCounters::FPerfCounter::Initialize(const FJsonObject& JsonObject)
+FString FPerfCounters::ToJson() const
 {
-	if (!JsonObject.HasTypedField<EJson::String>(JSON_PERFCOUNTER_NAME))
+	FString JsonStr;
+	TSharedRef< TJsonWriter<> > Json = TJsonWriterFactory<>::Create(&JsonStr);
+	Json->WriteObjectStart();
+	for (const auto& It : PerfCounterMap)
 	{
-		UE_LOG(LogPerfCounters, Warning, TEXT("FPerfCounters::Initialize : perfcounter in the configuration file does not have %s string field."), JSON_PERFCOUNTER_NAME);
+		const FJsonVariant& JsonValue = It.Value;
+		switch (JsonValue.Format)
+		{
+		case FJsonVariant::String:
+			Json->WriteValue(It.Key, JsonValue.StringValue);
+			break;
+		case FJsonVariant::Number:
+			Json->WriteValue(It.Key, JsonValue.NumberValue);
+			break;
+		case FJsonVariant::Callback:
+			if (JsonValue.CallbackValue.IsBound())
+			{
+				Json->WriteIdentifierPrefix(It.Key);
+				JsonValue.CallbackValue.Execute(Json);
+			}
+			else
+			{
+				// write an explict null since the callback is unbound and the implication is this would have been an object
+				Json->WriteNull(It.Key);
+			}
+			break;
+		case FJsonVariant::Null:
+		default:
+			// don't write anything since wash may expect a scalar
+			break;
+		}
+	}
+	Json->WriteObjectEnd();
+	Json->Close();
+	return JsonStr;
+}
+
+bool FPerfCounters::Tick(float DeltaTime)
+{
+	// if we didn't get a socket, don't tick
+	if (Socket == nullptr)
+	{
 		return false;
 	}
 
-	const TSharedPtr<FJsonValue>& NameValue = JsonObject.GetField<EJson::String>(JSON_PERFCOUNTER_NAME);
-	Name = NameValue->AsString();
-
-	if (!JsonObject.HasTypedField<EJson::Number>(JSON_PERFCOUNTER_SIZE_IN_BYTES))
+	// accept any connections
+	static const FString PerfCounterRequest = TEXT("FPerfCounters Request");
+	FSocket* IncomingConnection = Socket->Accept(PerfCounterRequest);
+	if (IncomingConnection)
 	{
-		UE_LOG(LogPerfCounters, Warning, TEXT("FPerfCounters::Initialize : perfcounter '%s' in the configuration file does not have %s number field."), *Name, JSON_PERFCOUNTER_SIZE_IN_BYTES);
-		return false;
+		// handle the connection
+		int32 BytesSent = 0;
+		FTCHARToUTF8 ConvertToUtf8(*ToJson());
+		bool bSuccess = IncomingConnection->Send(reinterpret_cast<const uint8*>(ConvertToUtf8.Get()), ConvertToUtf8.Length(), BytesSent);
+		if (!bSuccess || BytesSent != ConvertToUtf8.Length())
+		{
+			UE_LOG(LogPerfCounters, Warning, TEXT("FPerfCounters was unable to send a JSON response (or sent partial response)"));
+		}
+		IncomingConnection->Close();
+		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(IncomingConnection);
 	}
 
-	const TSharedPtr<FJsonValue>& SizeOfValue = JsonObject.GetField<EJson::Number>(JSON_PERFCOUNTER_SIZE_IN_BYTES);
-	SizeOf = static_cast<SIZE_T>(SizeOfValue->AsNumber());
-
-	if (SizeOf == 0)
-	{
-		UE_LOG(LogPerfCounters, Warning, TEXT("FPerfCounters::Initialize : perfcounter '%s' in the configuration file has 0 size in bytes."), *Name);
-		return false;
-	}
-
-	if (SizeOf != 4 && SizeOf != 8)
-	{
-		UE_LOG(LogPerfCounters, Warning, TEXT("FPerfCounters::Initialize : perfcounter '%s' size is neither 4 nor 8 (but %d) -> we don't support non-atomic writes"), *Name, SizeOf);
-		return false;
-	}
-
-	// cannot assign pointers at this point
-	Pointer = nullptr;
-
+	// keep ticking
 	return true;
 }
 
-void FPerfCounters::SetPOD(const FString& Name, const void* Ptr, SIZE_T Size)
+void FPerfCounters::SetNumber(const FString& Name, double Value) 
 {
-	const FPerfCounter* Counter = PerfCounterMap.Find(Name);
-	if (Counter == nullptr)
-	{
-		UE_LOG(LogPerfCounters, Warning, TEXT("FPerfCounters::Set(POD) : perfcounter '%s' could not be found"), *Name);
-		return;
-	}
+	FJsonVariant& JsonValue = PerfCounterMap.FindOrAdd(Name);
+	JsonValue.Format = FJsonVariant::Number;
+	JsonValue.NumberValue = Value;
+}
 
-	if (Counter->Pointer == nullptr)
-	{
-		UE_LOG(LogPerfCounters, Warning, TEXT("FPerfCounters::Set(POD) : perfcounter '%s' was not initialized properly (not alloted a shared memory)"), *Name);
-		return;
-	}
+void FPerfCounters::SetString(const FString& Name, const FString& Value)
+{
+	FJsonVariant& JsonValue = PerfCounterMap.FindOrAdd(Name);
+	JsonValue.Format = FJsonVariant::String;
+	JsonValue.StringValue = Value;
+}
 
-	if (Counter->SizeOf != Size)
-	{
-		UE_LOG(LogPerfCounters, Warning, TEXT("FPerfCounters::Set(POD) : perfcounter '%s' size is different from write (configured as %d bytes, trying to write %d bytes)"), *Name, Counter->SizeOf, Size);
-		// while we could allow writing smaller size than configured, this seems like a potential source of hard-to-track bugs... let's better be strict
-		return;
-	}
-
-	// note - cannot use Memcpy here, write has to be atomic - checked at config time
-	check(Counter->SizeOf != 4 || Counter->SizeOf != 8);
-
-	// TODO: check if really atomic, especially 64-bit writes (on 32-bit systems). Compiler can f..k this up.
-	if (Counter->SizeOf == 4)
-	{
-		const int32* SrcPtr = reinterpret_cast<const int32*>(Ptr);
-		int32* DstPtr = reinterpret_cast<int32*>(Counter->Pointer);
-		*DstPtr = *SrcPtr;
-	}
-	else if (Counter->SizeOf == 8)
-	{
-		const int64 * SrcPtr = reinterpret_cast<const int64*>(Ptr);
-		int64 * DstPtr = reinterpret_cast<int64*>(Counter->Pointer);
-		*DstPtr = *SrcPtr;
-	}
-};
+void FPerfCounters::SetJson(const FString& Name, const FProduceJsonCounterValue& Callback)
+{
+	FJsonVariant& JsonValue = PerfCounterMap.FindOrAdd(Name);
+	JsonValue.Format = FJsonVariant::Callback;
+	JsonValue.CallbackValue = Callback;
+}
