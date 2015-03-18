@@ -612,7 +612,7 @@ UEnvQueryInstanceBlueprintWrapper* UEnvQueryManager::RunEQSQuery(UObject* WorldC
 
 	if (EQSManager)
 	{
-		QueryInstanceWrapper = NewObject<UEnvQueryInstanceBlueprintWrapper>((*WrapperClass) ? WrapperClass : UEnvQueryInstanceBlueprintWrapper::StaticClass());
+		QueryInstanceWrapper = NewObject<UEnvQueryInstanceBlueprintWrapper>((UClass*)(WrapperClass)  ? (UClass*)WrapperClass : UEnvQueryInstanceBlueprintWrapper::StaticClass());
 		check(QueryInstanceWrapper);
 		FEnvQueryRequest QueryRequest(QueryTemplate, Querier);
 		// @todo named params still missing support
