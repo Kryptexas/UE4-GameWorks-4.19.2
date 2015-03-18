@@ -243,6 +243,15 @@ namespace BlueprintActionFilterImpl
 	 * @param  BlueprintAction	
 	 * @return 
 	 */
+	static bool IsLevelScriptActionValid(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
+
+	/**
+	 * 
+	 * 
+	 * @param  Filter	
+	 * @param  BlueprintAction	
+	 * @return 
+	 */
 	static bool IsSchemaIncompatible(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 
 	/**
@@ -919,6 +928,42 @@ static bool BlueprintActionFilterImpl::IsOutOfScopeLocalVariable(FBlueprintActio
 			}
 		}
 	}
+	return bIsFilteredOut;
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintActionFilterImpl::IsLevelScriptActionValid(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
+{
+	bool bIsFilteredOut = false;
+	FBlueprintActionContext const& FilterContext = Filter.Context;
+	UClass* OuterClass = nullptr;
+
+	if( UFunction const* NodeFunction = BlueprintAction.GetAssociatedFunction() )
+	{
+		OuterClass = Cast<UClass>( NodeFunction->GetOuter() );
+	}
+	else if( UProperty const* NodeProperty = BlueprintAction.GetAssociatedProperty() )
+	{
+		OuterClass = Cast<UClass>( NodeProperty->GetOuter() );
+	}
+
+	if( OuterClass )
+	{
+		UBlueprint const* BPOwner = Cast<UBlueprint>( OuterClass->ClassGeneratedBy );
+		if( BPOwner && BPOwner->BlueprintType == BPTYPE_LevelScript )
+		{
+			bIsFilteredOut = true;
+			for( auto Blueprint : FilterContext.Blueprints )
+			{
+				if( BPOwner->GetBlueprintGuid() == Blueprint->GetBlueprintGuid() )
+				{
+					bIsFilteredOut = false;
+					break;
+				}
+			}
+		}
+	}
+
 	return bIsFilteredOut;
 }
 
@@ -1605,6 +1650,7 @@ FBlueprintActionFilter::FBlueprintActionFilter(uint32 Flags/*= 0x00*/)
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsNonTargetMember, !(Flags & BPFILTER_RejectGlobalFields)));
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsUnBoundBindingSpawner));
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsOutOfScopeLocalVariable));
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsLevelScriptActionValid));
 }
 
 //------------------------------------------------------------------------------
