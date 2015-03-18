@@ -896,7 +896,7 @@ public:
 	 * @param	EntryPoint	The entry point to start code execution at.
 	 */
 	UFUNCTION(BlueprintImplementableEvent, meta=(BlueprintInternalUseOnly = "true"))
-	virtual void ExecuteUbergraph(int32 EntryPoint);
+	void ExecuteUbergraph(int32 EntryPoint);
 };
 
 #endif

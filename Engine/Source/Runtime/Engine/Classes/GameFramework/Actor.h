@@ -993,7 +993,7 @@ public:
 	
 	/** Event when play begins for this actor. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "BeginPlay"))
-	virtual void ReceiveBeginPlay();
+	void ReceiveBeginPlay();
 
 	/** Event when play begins for this actor. */
 	virtual void BeginPlay();
@@ -1006,22 +1006,22 @@ public:
 
 	/** Event when this actor takes ANY damage */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintAuthorityOnly, meta=(FriendlyName = "AnyDamage"), Category="Game|Damage")
-	virtual void ReceiveAnyDamage(float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
+	void ReceiveAnyDamage(float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
 	
 	/** 
 	 * Event when this actor takes RADIAL damage 
 	 * @todo Pass it the full array of hits instead of just one?
 	 */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintAuthorityOnly, meta=(FriendlyName = "RadialDamage"), Category="Game|Damage")
-	virtual void ReceiveRadialDamage(float DamageReceived, const class UDamageType* DamageType, FVector Origin, const struct FHitResult& HitInfo, class AController* InstigatedBy, AActor* DamageCauser);
+	void ReceiveRadialDamage(float DamageReceived, const class UDamageType* DamageType, FVector Origin, const struct FHitResult& HitInfo, class AController* InstigatedBy, AActor* DamageCauser);
 
 	/** Event when this actor takes POINT damage */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintAuthorityOnly, meta=(FriendlyName = "PointDamage"), Category="Game|Damage")
-	virtual void ReceivePointDamage(float Damage, const class UDamageType* DamageType, FVector HitLocation, FVector HitNormal, class UPrimitiveComponent* HitComponent, FName BoneName, FVector ShotFromDirection, class AController* InstigatedBy, AActor* DamageCauser);
+	void ReceivePointDamage(float Damage, const class UDamageType* DamageType, FVector HitLocation, FVector HitNormal, class UPrimitiveComponent* HitComponent, FName BoneName, FVector ShotFromDirection, class AController* InstigatedBy, AActor* DamageCauser);
 
 	/** Event called every frame */
 	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "Tick"))
-	virtual void ReceiveTick(float DeltaSeconds);
+	void ReceiveTick(float DeltaSeconds);
 
 	/** 
 	 *	Event when this actor overlaps another actor, for example a player walking into a trigger.
@@ -1070,10 +1070,6 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "TouchLeave"), Category="Touch Input")
 	virtual void ReceiveActorOnInputTouchLeave(const ETouchIndex::Type FingerIndex);
 
-	/** Event when keys/touches/tilt/etc happen */
-	UFUNCTION(BlueprintImplementableEvent, meta=(DeprecatedFunction))
-	virtual void ReceiveInput(const FString& InputName, float Value, FVector VectorValue, bool bStarted, bool bEnded);
-
 	/** 
 	 * Returns list of actors this actor is overlapping (any component overlapping any component). Does not return itself.
 	 * @param OverlappingActors		[out] Returned list of overlapping actors
@@ -1113,7 +1109,7 @@ public:
 	 * @param	Rotation	The rotation.
 	 */
 	UFUNCTION(BlueprintImplementableEvent, meta=(BlueprintInternalUseOnly = "true", FriendlyName = "Construction Script"))
-	virtual void UserConstructionScript();
+	void UserConstructionScript();
 
 	/**
 	 * Destroy this actor. Returns true if destroyed, false if indestructible.
@@ -1125,7 +1121,7 @@ public:
 	bool Destroy(bool bNetForce = false, bool bShouldModifyLevel = true );
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (Keywords = "delete", FriendlyName = "Destroyed"))
-	virtual void ReceiveDestroyed();
+	void ReceiveDestroyed();
 
 	/** Event triggered when the actor is destroyed. */
 	UPROPERTY(BlueprintAssignable, Category="Game")
@@ -1134,7 +1130,7 @@ public:
 
 	/** Event to notify blueprints this actor is about to be deleted. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(Keywords = "delete", FriendlyName = "End Play"))
-	virtual void ReceiveEndPlay(EEndPlayReason::Type EndPlayReason);
+	void ReceiveEndPlay(EEndPlayReason::Type EndPlayReason);
 
 	/** Event triggered when the actor is being removed from a level. */
 	UPROPERTY(BlueprintAssignable, Category="Game")
@@ -2077,11 +2073,11 @@ public:
 
 	/** Event called when this Actor becomes the view target for the given PlayerController. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName="OnBecomeViewTarget", Keywords="Activate Camera"), Category=Actor)
-	virtual void K2_OnBecomeViewTarget( class APlayerController* PC );
+	void K2_OnBecomeViewTarget( class APlayerController* PC );
 
 	/** Event called when this Actor is no longer the view target for the given PlayerController. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName="OnEndViewTarget", Keywords="Deactivate Camera"), Category=Actor)
-	virtual void K2_OnEndViewTarget( class APlayerController* PC );
+	void K2_OnEndViewTarget( class APlayerController* PC );
 
 	/**
 	 *	Calculate camera view point, when viewing this actor.

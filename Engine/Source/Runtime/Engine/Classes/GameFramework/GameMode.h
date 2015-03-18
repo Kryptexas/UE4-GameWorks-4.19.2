@@ -437,7 +437,7 @@ public:
 
 	/** Notification that a player has successfully logged in, and has been given a player controller */
 	UFUNCTION(BlueprintImplementableEvent, Category="Game", meta=(FriendlyName="PostLogin"))
-	virtual void K2_PostLogin( APlayerController* NewPlayer );
+	void K2_PostLogin( APlayerController* NewPlayer );
 
 	/** 
 	 * Spawns a PlayerController at the specified location; split out from Login()/HandleSeamlessTravelPlayer() for easier overriding 

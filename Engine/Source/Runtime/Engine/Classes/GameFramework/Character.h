@@ -476,7 +476,7 @@ public:
 
 	/** Let blueprint know that we were launched */
 	UFUNCTION(BlueprintImplementableEvent)
-	virtual void OnLaunched(FVector LaunchVelocity, bool bXYOverride, bool bZOverride);
+	void OnLaunched(FVector LaunchVelocity, bool bXYOverride, bool bZOverride);
 
 	/** Event fired when the character has just started jumping */
 	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character")
@@ -512,7 +512,7 @@ public:
 	* @see OnMovementModeChanged()
 	*/
 	UFUNCTION(BlueprintImplementableEvent)
-	virtual void OnLanded(const FHitResult& Hit);
+	void OnLanded(const FHitResult& Hit);
 
 	/**
 	 * Event fired when the Character is walking off a surface and is about to fall because CharacterMovement->CurrentFloor became unwalkable.
@@ -560,7 +560,7 @@ public:
 	 * @param	ScaledHalfHeightAdjust	difference after component scale is taken in to account.
 	 */
 	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "OnEndCrouch"))
-	virtual void K2_OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
+	void K2_OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
 
 	/**
 	 * Called when Character crouches. Called on non-owned Characters through bIsCrouched replication.
@@ -575,7 +575,7 @@ public:
 	 * @param	ScaledHalfHeightAdjust	difference after component scale is taken in to account.
 	 */
 	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "OnStartCrouch"))
-	virtual void K2_OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
+	void K2_OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
 
 	/**
 	 * Called from CharacterMovementComponent to notify the character that the movement mode has changed.
@@ -594,7 +594,7 @@ public:
 	 * @param	NewCustomMode		New custom mode (applicable if NewMovementMode is Custom)
 	 */
 	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "OnMovementModeChanged"))
-	virtual void K2_OnMovementModeChanged(EMovementMode PrevMovementMode, EMovementMode NewMovementMode, uint8 PrevCustomMode, uint8 NewCustomMode);
+	void K2_OnMovementModeChanged(EMovementMode PrevMovementMode, EMovementMode NewMovementMode, uint8 PrevCustomMode, uint8 NewCustomMode);
 
 	/** Event for implementing custom character movement mode. Called by CharacterMovement if MovementMode is set to Custom. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName= "UpdateCustomMovement"))

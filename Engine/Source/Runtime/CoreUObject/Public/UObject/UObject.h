@@ -1140,7 +1140,7 @@ public:
 	{
 		int32 EntryPoint;
 	};
-	virtual void ExecuteUbergraph(int32 EntryPoint)
+	void ExecuteUbergraph(int32 EntryPoint)
 	{
 		Object_eventExecuteUbergraph_Parms Parms;
 		Parms.EntryPoint=EntryPoint;

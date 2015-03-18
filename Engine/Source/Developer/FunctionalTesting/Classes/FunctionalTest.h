@@ -95,7 +95,7 @@ public:
 
 	/** Used by debug drawing to gather actors this test is using and point at them on the level to better understand test's setup */
 	UFUNCTION(BlueprintImplementableEvent, Category = "FunctionalTesting")
-	virtual TArray<AActor*> DebugGatherRelevantActors() const;
+	TArray<AActor*> DebugGatherRelevantActors() const;
 
 	virtual void GatherRelevantActors(TArray<AActor*>& OutActors) const;
 

@@ -61,14 +61,14 @@ public:
 
 	/** Opportunity for blueprints to handle the game instance being initialized. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "Init"))
-	virtual void ReceiveInit();
+	void ReceiveInit();
 
 	/** virtual function to allow custom GameInstances an opportunity to do cleanup when shutting down */
 	virtual void Shutdown();
 
 	/** Opportunity for blueprints to handle the game instance being shutdown. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "Shutdown"))
-	virtual void ReceiveShutdown();
+	void ReceiveShutdown();
 
 	/** Opportunity for blueprints to handle network errors. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "NetworkError"))

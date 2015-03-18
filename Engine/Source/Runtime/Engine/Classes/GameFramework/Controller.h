@@ -291,7 +291,7 @@ protected:
 
 	/** Event when this controller instigates ANY damage */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintAuthorityOnly)
-	virtual void ReceiveInstigatedAnyDamage(float Damage, const class UDamageType* DamageType, class AActor* DamagedActor, class AActor* DamageCauser);
+	void ReceiveInstigatedAnyDamage(float Damage, const class UDamageType* DamageType, class AActor* DamagedActor, class AActor* DamageCauser);
 
 public:
 	/** Called when the level this controller is in is unloaded via streaming. */

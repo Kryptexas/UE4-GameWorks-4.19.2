@@ -432,7 +432,7 @@ public:
 	 * final camera POV. 
 	 */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic)
-	virtual bool BlueprintUpdateCamera(AActor* CameraTarget, FVector& NewCameraLocation, FRotator& NewCameraRotation, float& NewCameraFOV);
+	bool BlueprintUpdateCamera(AActor* CameraTarget, FVector& NewCameraLocation, FRotator& NewCameraRotation, float& NewCameraFOV);
 
 	/** Returns the PlayerController that owns this camera. */
 	UFUNCTION(BlueprintCallable, Category="Game|Player")

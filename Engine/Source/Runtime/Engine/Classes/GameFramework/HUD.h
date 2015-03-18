@@ -171,7 +171,7 @@ public:
 
 	/** Hook to allow blueprints to do custom HUD drawing. @see bSuppressNativeHUD to control HUD drawing in base class. */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic)
-	virtual void ReceiveDrawHUD(int32 SizeX, int32 SizeY);
+	void ReceiveDrawHUD(int32 SizeX, int32 SizeY);
 
 	/** Called when a hit box is clicked on. Provides the name associated with that box. */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic)
