@@ -1686,7 +1686,7 @@ private:
 	void MountOBB(const TCHAR* Filename)
 	{
 		FFileHandleAndroid* File
-			= static_cast<FFileHandleAndroid*>(OpenRead(Filename, true));
+			= static_cast<FFileHandleAndroid*>(OpenRead(Filename, true, false));
 		check(nullptr != File);
 		ZipResource.AddPatchFile(MakeShareable(File));
 		FPlatformMisc::LowLevelOutputDebugStringf(
