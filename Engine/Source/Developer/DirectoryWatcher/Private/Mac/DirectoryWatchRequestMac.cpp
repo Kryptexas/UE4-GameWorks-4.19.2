@@ -61,7 +61,7 @@ bool FDirectoryWatchRequestMac::Init(const FString& InDirectory)
 	CFStringRef FullPathMac = FPlatformString::TCHARToCFString(*FullPath);
 	CFArrayRef PathsToWatch = CFArrayCreate(NULL, (const void**)&FullPathMac, 1, NULL);
 
-	CFAbsoluteTime Latency = 2.0;	// seconds
+	CFAbsoluteTime Latency = 0.2;	// seconds
 
 	FSEventStreamContext Context;
 	Context.version = 0;
@@ -170,11 +170,27 @@ void FDirectoryWatchRequestMac::ProcessChanges( size_t EventCount, void* EventPa
 		FFileChangeData::EFileChangeAction Action;
 
 		const bool bFileAdded = ( Flags & kFSEventStreamEventFlagItemCreated );
-		const bool bFileModified = ( Flags & ( kFSEventStreamEventFlagItemRenamed | kFSEventStreamEventFlagItemModified ) );
+		const bool bFileRenamed = ( Flags & kFSEventStreamEventFlagItemRenamed );
+		const bool bFileModified = ( Flags & kFSEventStreamEventFlagItemModified );
 		const bool bFileRemoved = ( Flags & kFSEventStreamEventFlagItemRemoved );
+
 		bool bFileNeedsChecking = false;
 
-		if( bFileAdded )
+		// File modifications take precendent over everything, unless the file has actually been deleted. We only handle newly created files when 
+		// kFSEventStreamEventFlagItemCreated is exclusively set. This flag can often be set when files have been renamed or copied over the top,
+		// but we abstract this behavior and just mark it as modified.
+		if ( bFileModified )
+		{
+			bFileNeedsChecking = true;
+			Action = FFileChangeData::FCA_Modified;
+		}
+		else if ( bFileRenamed )
+		{
+			// for now, renames are abstracted as deletes/adds
+			bFileNeedsChecking = true;
+			Action = FFileChangeData::FCA_Added;
+		}
+		else if( bFileAdded )
 		{
 			if( bFileRemoved )
 			{
@@ -183,17 +199,6 @@ void FDirectoryWatchRequestMac::ProcessChanges( size_t EventCount, void* EventPa
 				bFileNeedsChecking = true;
 			}
 			Action = FFileChangeData::FCA_Added;
-		}
-		else if( bFileModified )
-		{
-			// File modified
-			if( bFileRemoved )
-			{
-				// Event indicates that file was both modified and removed. To find out which of those events
-				// happened later, we have to check for file's presence.
-				bFileNeedsChecking = true;
-			}
-			Action = FFileChangeData::FCA_Modified;
 		}
 		else if( bFileRemoved )
 		{
