@@ -302,7 +302,7 @@ void STutorialButton::LaunchBrowser()
 
 bool STutorialButton::ShouldLaunchBrowser() const
 {
-	return (!bTutorialAvailable || (bTutorialAvailable && bTutorialCompleted));
+	return (!bTutorialAvailable || bTutorialCompleted || bTutorialDismissed);
 }
 
 bool STutorialButton::ShouldShowAlert() const
