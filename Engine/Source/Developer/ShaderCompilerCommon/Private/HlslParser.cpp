@@ -7,6 +7,7 @@
 #include "ShaderCompilerCommon.h"
 #include "HlslParser.h"
 #include "HlslExpressionParser.inl"
+#include "CCIR.h"
 
 namespace CrossCompiler
 {
@@ -1714,6 +1715,8 @@ check(0);
 			{
 				return false;
 			}
+
+			IR::FIRCreator IRCreator(&Allocator);
 
 			bool bSuccess = true;
 			TLinearArray<AST::FNode*> Nodes(&Allocator);
