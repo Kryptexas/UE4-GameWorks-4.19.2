@@ -1176,12 +1176,20 @@ public:
 	UPROPERTY(config)
 	uint32 bEnableEditorPSysRealtimeLOD:1;
 
+	/** Whether to use a fixed framerate. */
+	UPROPERTY(config, EditAnywhere, Category = Framerate)
+	uint32 bUseFixedFrameRate : 1;
+	
+	/** The fixed framerate to use. */
+	UPROPERTY(config, EditAnywhere, Category = Framerate, meta=(EditCondition="bUseFixedFrameRate"))
+	float FixedFrameRate;
+
 	/** Whether to enable framerate smoothing.																		*/
-	UPROPERTY(config, EditAnywhere, Category=Framerate)
+	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(EditCondition="!bUseFixedFrameRate"))
 	uint32 bSmoothFrameRate:1;
 
 	/** Range of framerates in which smoothing will kick in */
-	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(UIMin=0, UIMax=200))
+	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(UIMin=0, UIMax=200, EditCondition="!bUseFixedFrameRate"))
 	FFloatRange SmoothedFrameRateRange;
 
 	/** 
@@ -1338,7 +1346,7 @@ public:
 	float DisplayGamma;
 
 	/** Minimum desired framerate setting */
-	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(UIMin=0, ClampMin=0))
+	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(UIMin=0, ClampMin=0, EditCondition="!bUseFixedFrameRate"))
 	float MinDesiredFrameRate;
 
 private:

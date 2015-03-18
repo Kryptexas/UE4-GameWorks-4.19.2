@@ -394,6 +394,9 @@ UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
 	EndStreamingPauseDelegate = NULL;
 
 	bCanBlueprintsTickByDefault = true;
+
+	bUseFixedFrameRate = false;
+	FixedFrameRate = 30.f;
 }
 
 void UGameEngine::Init(IEngineLoop* InEngineLoop)

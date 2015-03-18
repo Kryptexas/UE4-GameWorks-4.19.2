@@ -1001,11 +1001,11 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 	FApp::UpdateLastTime();
 
 	// Calculate delta time and update time.
-	if( bUseFixedTimeStep )
+	if( bUseFixedTimeStep || bUseFixedFrameRate )
 	{
 		bTimeWasManipulated = true;
-
-		FApp::SetDeltaTime(FApp::GetFixedDeltaTime());
+		const float FrameRate = bUseFixedTimeStep ? FApp::GetFixedDeltaTime() : (1.f / FixedFrameRate);
+		FApp::SetDeltaTime(FrameRate);
 		LastTime = FApp::GetCurrentTime();
 		FApp::SetCurrentTime(FApp::GetCurrentTime() + FApp::GetDeltaTime());
 	}
