@@ -273,10 +273,14 @@ void USkinnedMeshComponent::CreateRenderState_Concurrent()
 
 		if(MeshObject)
 		{
-			int32 UseLOD = PredictedLODLevel;
+			int32 UseLOD;
 			if(MasterPoseComponent.IsValid())
 			{
 				UseLOD = FMath::Clamp(MasterPoseComponent->PredictedLODLevel, 0, MeshObject->GetSkeletalMeshResource().LODModels.Num()-1);
+			}
+			else
+			{
+				UseLOD = FMath::Clamp(PredictedLODLevel, 0, MeshObject->GetSkeletalMeshResource().LODModels.Num()-1);
 			}
 
 			// We just recreated RenderState, that means it could be new mesh or different mesh
@@ -469,22 +473,7 @@ void USkinnedMeshComponent::UpdateSlaveComponent()
 	MarkRenderDynamicDataDirty();
 }
 
-TArray<class UMaterialInterface*> USkinnedMeshComponent::GetMaterials() const
-{
-	TArray<class UMaterialInterface*> OutMaterials = Super::GetMaterials();
-
-	// if no material is overriden, look for mesh material;
-	if(OutMaterials.Num() == 0 && SkeletalMesh)
-	{
-		for (auto Material : SkeletalMesh->Materials)
-		{
-			OutMaterials.Add(Material.MaterialInterface);
-		}
-	}
-
-	return OutMaterials;
-}
-
+// this has to be skeletalmesh material. You can't have more than what SkeletalMesh materials have
 int32 USkinnedMeshComponent::GetNumMaterials() const
 {
 	if (SkeletalMesh)

@@ -464,10 +464,6 @@ public:
 	virtual int32 GetNumMaterials() const override;
 	// End UPrimitiveComponent interface
 
-	// Begin MeshComponent interface
-	virtual TArray<class UMaterialInterface*> GetMaterials() const override;
-	// End MeshComponent interface
-
 	/**
 	 *	Sets the value of the bForceWireframe flag and reattaches the component as necessary.
 	 *

@@ -311,10 +311,6 @@ public:
 	virtual bool IsNavigationRelevant() const override;
 	virtual void GetNavigationData(FNavigationRelevantData& Data) const override;
 	// End INavRelevantInterface interface.
-	
-	// Begin UMeshComponent interface
-	virtual TArray<class UMaterialInterface*> GetMaterials() const override;
-	// End UMeshComponent interface
 	/**
 	 *	Returns true if the component uses texture lightmaps
 	 *

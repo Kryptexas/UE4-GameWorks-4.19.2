@@ -138,5 +138,18 @@ void UMeshComponent::SetTextureForceResidentFlag( bool bForceMiplevelsToBeReside
 
 TArray<class UMaterialInterface*> UMeshComponent::GetMaterials() const
 {
-	return OverrideMaterials;
+	TArray<class UMaterialInterface*> OutMaterials;
+	int32 TotalNumMaterials = GetNumMaterials();
+	if(TotalNumMaterials > 0)
+	{
+		// make sure to extend it
+		OutMaterials.AddZeroed(TotalNumMaterials);
+
+		for(int32 MaterialIndex=0; MaterialIndex < TotalNumMaterials; ++MaterialIndex)
+		{
+			OutMaterials[MaterialIndex] = GetMaterial(MaterialIndex);
+		}
+	}
+
+	return OutMaterials;
 }

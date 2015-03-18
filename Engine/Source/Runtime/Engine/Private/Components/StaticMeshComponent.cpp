@@ -1467,19 +1467,6 @@ int32 UStaticMeshComponent::GetNumMaterials() const
 	}
 }
 
-TArray<class UMaterialInterface*> UStaticMeshComponent::GetMaterials() const
-{
-	TArray<class UMaterialInterface*> OutMaterials = Super::GetMaterials();
-
-	// if no material is overriden, look for mesh material;
-	if(OutMaterials.Num() == 0 && StaticMesh)
-	{
-		OutMaterials = StaticMesh->Materials;
-	}
-
-	return OutMaterials;
-}
-
 UMaterialInterface* UStaticMeshComponent::GetMaterial(int32 MaterialIndex) const
 {
 	// If we have a base materials array, use that
