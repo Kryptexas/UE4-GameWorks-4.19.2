@@ -2738,7 +2738,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 		}
 
 		if (state->bSeparateShaderObjects && !state->bGenerateES && 
-			(state->target == tessellation_control_shader) || (state->target == tessellation_evaluation_shader))
+			((state->target == tessellation_control_shader) || (state->target == tessellation_evaluation_shader)))
 		{
 			ralloc_asprintf_append(buffer, "#extension GL_ARB_tessellation_shader : enable\n");
 		}
