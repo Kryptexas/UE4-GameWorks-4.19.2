@@ -582,6 +582,16 @@ void SGraphPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrange
 	ArrangedChildren.Append(MyArrangedChildren);
 }
 
+TSharedPtr<IToolTip> SGraphPanel::GetToolTip()
+{
+	if (SGraphPin* BestPinFromHoveredSpline = GetBestPinFromHoveredSpline())
+	{
+		return BestPinFromHoveredSpline->GetToolTip();
+	}
+
+	return SNodePanel::GetToolTip();
+}
+
 void SGraphPanel::UpdateSelectedNodesPositions(FVector2D PositionIncrement)
 {
 	for (FGraphPanelSelectionSet::TIterator NodeIt(SelectionManager.SelectedNodes); NodeIt; ++NodeIt)
