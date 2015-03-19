@@ -23,6 +23,7 @@ UObject* UPaperTileMapFactory::FactoryCreateNew(UClass* Class, UObject* InParent
 	{
 		NewTileMap->TileWidth = InitialTileSet->TileWidth;
 		NewTileMap->TileHeight = InitialTileSet->TileHeight;
+		NewTileMap->SelectedTileSet = InitialTileSet;
 	}
 
 	NewTileMap->InitializeNewEmptyTileMap();

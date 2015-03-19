@@ -375,6 +375,11 @@ void UPaperTileMapComponent::CreateNewOwnedTileMap()
 	NewTileMap->SetFlags(RF_Transactional);
 	NewTileMap->InitializeNewEmptyTileMap();
 
+	if (TileMap != nullptr)
+	{
+		NewTileMap->SelectedTileSet = TileMap->SelectedTileSet;
+	}
+
 	SetTileMap(NewTileMap);
 }
 
