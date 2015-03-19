@@ -341,7 +341,15 @@ FText FLocalizationTargetDetailCustomization::GetTargetName() const
 
 bool FLocalizationTargetDetailCustomization::IsTargetNameUnique(const FString& Name) const
 {
-	for (ULocalizationTarget* const TargetObject : TargetSet->TargetObjects)
+	TArray<ULocalizationTarget*> AllLocalizationTargets;
+	ULocalizationTargetSet* EngineTargetSet = FindObjectChecked<ULocalizationTargetSet>(ANY_PACKAGE, *ULocalizationTargetSet::EngineTargetSetName.ToString());
+	if (EngineTargetSet != TargetSet)
+	{
+		AllLocalizationTargets.Append(EngineTargetSet->TargetObjects);
+	}
+	AllLocalizationTargets.Append(TargetSet->TargetObjects);
+
+	for (ULocalizationTarget* const TargetObject : AllLocalizationTargets)
 	{
 		if (TargetObject != LocalizationTarget)
 		{
