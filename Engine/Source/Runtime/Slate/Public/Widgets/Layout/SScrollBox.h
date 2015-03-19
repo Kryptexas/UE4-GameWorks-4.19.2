@@ -47,6 +47,7 @@ public:
 		, _ScrollBarAlwaysVisible(false)
 		, _ScrollBarThickness(FVector2D(5, 5))
 		, _OnUserScrolled()
+		, _ConsumeMouseWheel(EConsumeMouseWheel::WhenScrollingPossible)
 		{}
 		
 		SLATE_SUPPORTS_SLOT( FSlot )
@@ -71,6 +72,8 @@ public:
 
 		/** Called when the button is clicked */
 		SLATE_EVENT(FOnUserScrolled, OnUserScrolled)
+
+		SLATE_ARGUMENT(EConsumeMouseWheel, ConsumeMouseWheel);
 
 	SLATE_END_ARGS()
 
@@ -220,6 +223,9 @@ private:
 
 	/** Style resource for the scrollbar */
 	const FScrollBarStyle* ScrollBarStyle;
+
+	/** How we should handle scrolling with the mouse wheel */
+	EConsumeMouseWheel ConsumeMouseWheel;
 
 	/** Cached geometry for use with the active timer */
 	FGeometry CachedGeometry;

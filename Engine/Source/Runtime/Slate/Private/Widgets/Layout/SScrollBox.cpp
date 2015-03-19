@@ -161,6 +161,7 @@ void SScrollBox::Construct( const FArguments& InArgs )
 	Orientation = InArgs._Orientation;
 	bScrollToEnd = false;
 	bIsActiveTimerRegistered = false;
+	ConsumeMouseWheel = InArgs._ConsumeMouseWheel;
 
 	if (InArgs._ExternalScrollbar.IsValid())
 	{
@@ -642,7 +643,7 @@ bool SScrollBox::ScrollBy( const FGeometry& AllottedGeometry, float ScrollAmount
 
 	OnUserScrolled.ExecuteIfBound(DesiredScrollOffset);
 
-	return DesiredScrollOffset != PreviousScrollOffset;
+	return ConsumeMouseWheel == EConsumeMouseWheel::Always || DesiredScrollOffset != PreviousScrollOffset;
 }
 
 FReply SScrollBox::OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )

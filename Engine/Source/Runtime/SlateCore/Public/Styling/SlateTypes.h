@@ -9,6 +9,18 @@
 
 #include "SlateTypes.generated.h"
 
+/** Used to determine how we should handle mouse wheel input events when someone scrolls. */
+UENUM()
+enum class EConsumeMouseWheel
+{
+	/** Only consume the mouse wheel event when we actually scroll some amount. */
+	WhenScrollingPossible,
+
+	/** Always consume mouse wheel event even if we don't scroll at all. */
+	Always,
+};
+
+
 /** Type of check box */
 UENUM()
 namespace ESlateCheckBoxType

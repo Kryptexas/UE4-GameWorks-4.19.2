@@ -15,16 +15,6 @@ enum class EAllowOverscroll
 	No
 };
 
-/** Used to determine how we should handle mouse wheel input events when someone scrolls. */
-enum class EConsumeMouseWheel
-{
-	/** Only consume the mouse wheel event when we actually scroll some amount. */
-	WhenScrollingPossible,
-
-	/** Always consume mouse wheel event even if we don't scroll at all. */
-	Always, 
-};
-
 /** If the list panel is arranging items horizontally, this enum dictates how the items should be aligned (basically, where any extra space is placed) */
 enum class EListItemAlignment : uint8
 {

@@ -36,6 +36,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Scroll")
 	TEnumAsByte<ESlateVisibility> ScrollBarVisibility;
 
+	/**  Enable to always consume mouse wheel event, even when scrolling is not possible */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Scroll")
+	TEnumAsByte<EConsumeMouseWheel> ConsumeMouseWheel;
+
 	/**  */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Scroll")
 	FVector2D ScrollbarThickness;
