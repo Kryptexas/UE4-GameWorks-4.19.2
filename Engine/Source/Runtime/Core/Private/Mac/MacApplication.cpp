@@ -8,6 +8,8 @@
 #include "CocoaMenu.h"
 #include "GenericApplicationMessageHandler.h"
 #include "HIDInputInterface.h"
+#include "IInputDeviceModule.h"
+#include "IInputDevice.h"
 #include "AnalyticsEventAttribute.h"
 #include "IAnalyticsProvider.h"
 #include "CocoaThread.h"
@@ -39,6 +41,7 @@ FMacApplication::FMacApplication()
 ,	LastPressedMouseButton(EMouseButtons::Invalid)
 ,	bIsProcessingDeferredEvents(false)
 ,	HIDInput(HIDInputInterface::Create(MessageHandler))
+,   bHasLoadedInputPlugins(false)
 ,	DraggedWindow(nullptr)
 ,	bSystemModalMode(false)
 ,	ModifierKeysFlags(0)
@@ -138,8 +141,12 @@ void FMacApplication::PollGameDeviceState(const float TimeDelta)
 		for( auto InputPluginIt = PluginImplementations.CreateIterator(); InputPluginIt; ++InputPluginIt )
 		{
 			TSharedPtr<IInputDevice> Device = (*InputPluginIt)->CreateInputDevice(MessageHandler);
-			AddExternalInputDevice(Device);			
-		}
+            if (Device.IsValid())
+            {
+                UE_LOG(LogInit, Log, TEXT("Adding external input plugin."));
+                ExternalInputDevices.Add(Device);
+            }
+        }
 
 		bHasLoadedInputPlugins = true;
 	}

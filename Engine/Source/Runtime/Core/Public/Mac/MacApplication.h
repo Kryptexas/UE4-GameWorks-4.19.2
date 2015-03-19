@@ -6,6 +6,7 @@
 #include "GenericApplication.h"
 #include "MacWindow.h"
 #include "MacTextInputMethodSystem.h"
+#include "IInputInterface.h"
 
 struct FDeferredMacEvent
 {
