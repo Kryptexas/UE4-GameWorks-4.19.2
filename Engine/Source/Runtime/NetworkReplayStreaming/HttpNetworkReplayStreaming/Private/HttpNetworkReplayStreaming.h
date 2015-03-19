@@ -8,10 +8,10 @@
 /**
  * Archive used to buffer stream over http
  */
-class HttpStreamFArchive : public FArchive
+class FHttpStreamFArchive : public FArchive
 {
 public:
-	HttpStreamFArchive() : Pos( 0 ), bAtEndOfReplay( false ) {}
+	FHttpStreamFArchive() : Pos( 0 ), bAtEndOfReplay( false ) {}
 
 	virtual void	Serialize( void* V, int64 Length );
 	virtual int64	Tell();
@@ -22,6 +22,30 @@ public:
 	TArray< uint8 >	Buffer;
 	int32			Pos;
 	bool			bAtEndOfReplay;
+};
+
+enum class EQueuedHttpRequestType
+{
+	StartUploading,				// We have made a request to start uploading a replay
+	UploadingHeader,			// We are uploading the replay header
+	UploadingStream,			// We are in the process of uploading the replay stream
+	StopUploading,				// We have made the request to stop uploading a live replay stream
+	StartDownloading,			// We have made the request to start downloading a replay stream
+	DownloadingHeader,			// We are downloading the replay header
+	DownloadingStream,			// We are in the process of downloading the replay stream
+	RefreshingViewer,			// We are refreshing the server to let it know we're still viewing
+	EnumeratingSessions,		// We are in the process of downloading the available sessions
+	UploadingCheckpoint,		// We are uploading a checkpoint
+	DownloadingCheckpoint		// We are downloading a checkpoint
+};
+
+class FQueuedHttpRequest
+{
+public:
+	FQueuedHttpRequest( const EQueuedHttpRequestType InType, TSharedPtr< class IHttpRequest > InRequest ) : Type( InType ), Request( InRequest ) { }
+
+	EQueuedHttpRequestType				Type;
+	TSharedPtr< class IHttpRequest >	Request;
 };
 
 /**
@@ -54,11 +78,13 @@ public:
 	/** FHttpNetworkReplayStreamer */
 	void UploadHeader();
 	void FlushStream();
+	void StopUploading();
 	void DownloadHeader();
 	void DownloadNextChunk();
-	void RefreshViewer();
+	void RefreshViewer( const bool bFinal );
 	void SetLastError( const ENetworkReplayError::Type InLastError );
 	void FlushCheckpointInternal( uint32 TimeInMS );
+	void AddRequestToQueue( const EQueuedHttpRequestType Type, TSharedPtr< class IHttpRequest >	Request );
 
 	/** Delegates */
 	void HttpStartDownloadingFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
@@ -76,38 +102,17 @@ public:
 	bool IsHttpBusy() const;		// True if we are waiting on http request response
 	bool IsStreaming() const;		// True if we are streaming a replay up or down
 
-	/** EHttptate - If not idle, there is a http request in flight */
-	enum class EHttptate
-	{
-		Idle,						// There is no http request in flight
-		StartUploading,				// We have made a request to start uploading a replay
-		UploadingHeader,			// We are uploading the replay header
-		UploadingStream,			// We are in the process of uploading the replay stream
-		StopUploading,				// We have made the request to stop uploading a live replay stream
-		StartDownloading,			// We have made the request to start downloading a replay stream
-		DownloadingHeader,			// We are downloading the replay header
-		DownloadingStream,			// We are in the process of downloading the replay stream
-		RefreshingViewer,			// We are refreshing the server to let it know we're still viewing
-		EnumeratingSessions,		// We are in the process of downloading the available sessions
-		UploadingCheckpoint,		// We are uploading a checkpoint
-		DownloadingCheckpoint,		// We are downloading a checkpoint
-	};
-
 	/** EStreamerState - Overall state of the streamer */
 	enum class EStreamerState
 	{
 		Idle,						// The streamer is idle. Either we haven't started streaming yet, or we are done
-		NeedToUploadHeader,			// We are waiting to upload the header
-		NeedToDownloadHeader,		// We are waiting to download the header
 		StreamingUp,				// We are in the process of streaming a replay to the http server
-		StreamingDown,				// We are in the process of streaming a replay from the http server
-		StreamingDownFinal,			// We are done streaming (will notify server to remove us as a viewer)
-		StreamingUpFinal,			// We are uploading the final stream
+		StreamingDown				// We are in the process of streaming a replay from the http server
 	};
 
-	HttpStreamFArchive		HeaderArchive;			// Archive used to buffer the header stream
-	HttpStreamFArchive		StreamArchive;			// Archive used to buffer the data stream
-	HttpStreamFArchive		CheckpointArchive;		// Archive used to buffer checkpoint data
+	FHttpStreamFArchive		HeaderArchive;			// Archive used to buffer the header stream
+	FHttpStreamFArchive		StreamArchive;			// Archive used to buffer the data stream
+	FHttpStreamFArchive		CheckpointArchive;		// Archive used to buffer checkpoint data
 	FString					SessionName;			// Name of the session on the http replay server
 	FString					SessionVersion;			// Version of the session
 	FString					ServerURL;				// The address of the server
@@ -115,12 +120,11 @@ public:
 	double					LastChunkTime;			// The last time we uploaded/downloaded a chunk
 	double					LastRefreshViewerTime;	// The last time we refreshed ourselves as an active viewer
 	EStreamerState			StreamerState;			// Overall state of the streamer
-	EHttptate				HttpState;				// If not idle, there is a http request in flight
 	bool					bStopStreamingCalled;
+	bool					bNeedToUploadHeader;	// We're waiting on session name so we can upload header
 	bool					bStreamIsLive;			// If true, we are viewing a live stream
 	int32					NumDownloadChunks;
 	uint32					TotalDemoTimeInMS;
-	uint32					FlushCheckpointTime;
 	FString					ViewerName;
 	uint32					HighPriorityEndTime;
 
@@ -129,6 +133,9 @@ public:
 	FOnStreamReadyDelegate			StartStreamingDelegate;		// Delegate passed in to StartStreaming
 	FOnEnumerateStreamsComplete		EnumerateStreamsDelegate;
 	FOnCheckpointReadyDelegate		GotoCheckpointDelegate;
+
+	TQueue< TSharedPtr< FQueuedHttpRequest > >	QueuedHttpRequests;
+	TSharedPtr< FQueuedHttpRequest >			InFlightHttpRequest;
 };
 
 class FHttpNetworkReplayStreamingFactory : public INetworkReplayStreamingFactory, public FTickableGameObject
