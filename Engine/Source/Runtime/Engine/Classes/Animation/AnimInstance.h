@@ -489,6 +489,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Animation")
 	void Montage_Stop(float InBlendOutTime, UAnimMontage * Montage = NULL);
 
+	/** Pauses the animation montage. If reference is NULL, it will stop ALL active montages. */
+	UFUNCTION(BlueprintCallable, Category = "Animation")
+	void Montage_Pause(UAnimMontage * Montage = NULL);
+
 	/** Makes a montage jump to a named section. If Montage reference is NULL, it will do that to all active montages. */
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	void Montage_JumpToSection(FName SectionName, UAnimMontage * Montage = NULL);

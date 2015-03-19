@@ -2120,6 +2120,30 @@ void UAnimInstance::Montage_Stop(float InBlendOutTime, UAnimMontage * Montage)
 	}
 }
 
+void UAnimInstance::Montage_Pause(UAnimMontage * Montage)
+{
+	if (Montage)
+	{
+		FAnimMontageInstance * MontageInstance = GetActiveInstanceForMontage(*Montage);
+		if (MontageInstance)
+		{
+			MontageInstance->Pause();
+		}
+	}
+	else
+	{
+		// If no Montage reference, do it on all active ones.
+		for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
+		{
+			FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
+			if (MontageInstance && MontageInstance->IsActive())
+			{
+				MontageInstance->Pause();
+			}
+		}
+	}
+}
+
 void UAnimInstance::Montage_JumpToSection(FName SectionName, UAnimMontage * Montage)
 {
 	if (Montage)
