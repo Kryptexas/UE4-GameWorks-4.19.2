@@ -2345,29 +2345,25 @@ void UClass::PostInitProperties()
 
 UObject* UClass::GetDefaultSubobjectByName(FName ToFind)
 {
-	TArray<UObject*> SubObjects;
-	GetDefaultObjectSubobjects(SubObjects);
-	for (int32 Index = 0; Index < SubObjects.Num(); ++Index)
+	UObject* DefaultObj = GetDefaultObject();
+	UObject* DefaultSubobject = nullptr;
+	if (DefaultObj)
 	{
-		if (SubObjects[Index]->GetFName() == ToFind)
-		{
-			return SubObjects[Index];
-		}
+		DefaultSubobject = DefaultObj->GetDefaultSubobjectByName(ToFind);
 	}
-	return NULL;
+	return DefaultSubobject;
 }
 
 void UClass::GetDefaultObjectSubobjects(TArray<UObject*>& OutDefaultSubobjects)
 {
-	OutDefaultSubobjects.Empty();
-	GetObjectsWithOuter(GetDefaultObject(), OutDefaultSubobjects, false);
-	for ( int32 SubobjectIndex = 0; SubobjectIndex < OutDefaultSubobjects.Num(); SubobjectIndex++ )
+	UObject* DefaultObj = GetDefaultObject();
+	if (DefaultObj)
 	{
-		UObject* PotentialComponent = OutDefaultSubobjects[SubobjectIndex];
-		if (!PotentialComponent->IsDefaultSubobject())
-		{
-			OutDefaultSubobjects.RemoveAtSwap(SubobjectIndex--);
-		}
+		DefaultObj->GetDefaultSubobjects(OutDefaultSubobjects);
+	}
+	else
+	{
+		OutDefaultSubobjects.Empty();
 	}
 }
 

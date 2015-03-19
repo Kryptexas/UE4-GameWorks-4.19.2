@@ -134,6 +134,18 @@ class COREUOBJECT_API UObject : public UObjectBaseUtility
 		return static_cast<TReturnType*>(CreateDefaultSubobject(SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ true, /*bIsAbstract =*/ true, bTransient));
 	}
 
+	/**
+	* Gets all default subobjects associated with this object instance.
+	* @param	OutDefaultSubobjects	Array containing all default subobjects of this object.
+	*/
+	void GetDefaultSubobjects(TArray<UObject*>& OutDefaultSubobjects);
+
+	/**
+	* Finds a subobject associated with this object instance by its name
+	* @param	OutDefaultSubobjects	Array containing all default subobjects of this object.
+	*/
+	UObject* GetDefaultSubobjectByName(FName ToFind);
+
 	//==========================================
 	// UObject interface.
 	//==========================================	

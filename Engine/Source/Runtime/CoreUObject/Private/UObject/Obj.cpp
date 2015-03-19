@@ -95,6 +95,34 @@ UObject* UObject::CreateEditorOnlyDefaultSubobjectImpl(FName SubobjectName, UCla
 	return CurrentInitializer->CreateEditorOnlyDefaultSubobject(this, SubobjectName, ReturnType, bTransient);
 }
 
+void UObject::GetDefaultSubobjects(TArray<UObject*>& OutDefaultSubobjects)
+{
+	OutDefaultSubobjects.Empty();
+	GetObjectsWithOuter(this, OutDefaultSubobjects, false);
+	for (int32 SubobjectIndex = 0; SubobjectIndex < OutDefaultSubobjects.Num(); SubobjectIndex++)
+	{
+		UObject* PotentialSubobject = OutDefaultSubobjects[SubobjectIndex];
+		if (!PotentialSubobject->IsDefaultSubobject())
+		{
+			OutDefaultSubobjects.RemoveAtSwap(SubobjectIndex--);
+		}
+	}
+}
+
+UObject* UObject::GetDefaultSubobjectByName(FName ToFind)
+{
+	TArray<UObject*> SubObjects;
+	GetDefaultSubobjects(SubObjects);
+	for (int32 Index = 0; Index < SubObjects.Num(); ++Index)
+	{
+		if (SubObjects[Index]->GetFName() == ToFind)
+		{
+			return SubObjects[Index];
+		}
+	}
+	return nullptr;
+}
+
 bool UObject::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags )
 {
 #if WITH_EDITOR
