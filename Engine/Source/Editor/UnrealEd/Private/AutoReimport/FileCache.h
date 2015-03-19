@@ -146,8 +146,75 @@ enum EPathType
 	Absolute
 };
 
+struct IAsyncTask : public TSharedFromThis<IAsyncTask, ESPMode::ThreadSafe>
+{
+	enum class EProgressResult
+	{
+		Finished, Pending
+	};
+
+	IAsyncTask() : StartTime(FPlatformTime::Seconds()) {}
+
+	/** Tick this task. Only to be called on the task thread. */
+	virtual EProgressResult Tick(const FTimeLimit& TimeLimit) = 0;
+
+	/** Check whether this task is complete. Must be implemented in a thread-safe manner. */
+	virtual bool IsComplete() const = 0;
+
+	/** Get the age of this task in seconds */
+	double GetAge() const { return FPlatformTime::Seconds() - StartTime; }
+
+protected:
+
+	/** The time this task started */
+	double StartTime;
+};
+
+/** Simple struct that encapsulates a filename and its associated MD5 hash */
+struct FFilenameAndHash
+{
+	FString AbsoluteFilename;
+	FMD5Hash FileHash;
+
+	FFilenameAndHash(){}
+	FFilenameAndHash(const FString& File) : AbsoluteFilename(File) {}
+
+	FFilenameAndHash(FFilenameAndHash&& In) : AbsoluteFilename(MoveTemp(In.AbsoluteFilename)), FileHash(In.FileHash) {}
+	FFilenameAndHash& operator=(FFilenameAndHash&& In) { Swap(AbsoluteFilename, In.AbsoluteFilename); FileHash = In.FileHash; }
+};
+
+/** Async task responsible for MD5 hashing a number of files, reporting completed hashes to the client when done */
+struct FAsyncFileHasher : public IAsyncTask
+{
+	/** Constructor */
+	FAsyncFileHasher(TArray<FFilenameAndHash> InFilesThatNeedHashing);
+
+	/** Return any completed filenames and their corresponding hashes */
+	TArray<FFilenameAndHash> GetCompletedData();
+
+	/** Returns true when this directory reader has finished scanning the directory */
+	virtual bool IsComplete() const override;
+
+protected:
+
+	/** Tick this reader (discover new directories / files). Returns progress state. */
+	virtual EProgressResult Tick(const FTimeLimit& Limit) override;
+
+	/** The array of data that we will process */
+	TArray<FFilenameAndHash> Data;
+
+	/** The number of items we have returned to the client. Only accessed from the main thread. */
+	int32 NumReturned;
+
+	/** The number of files that we have hashed on the task thread. Atomic - safe to access from any thread. */
+	FThreadSafeCounter CurrentIndex;
+
+	/** Scratch buffer used for reading in files */
+	TArray<uint8> ScratchBuffer;
+};
+
 /**
- * Class responsible for 'asyncronously' scanning a folder for files and timestamps.
+ * Class responsible for 'asynchronously' scanning a folder for files and timestamps.
  * Example usage:
  *		FAsyncDirectoryReader Reader(TEXT("C:\\Path"), EPathType::Relative);
  *
@@ -158,13 +225,8 @@ enum EPathType
  *		}
  *		TOptional<FDirectoryState> State = Reader.GetFinalState();
  */
-struct FAsyncDirectoryReader : public TSharedFromThis<FAsyncDirectoryReader, ESPMode::ThreadSafe>
+struct FAsyncDirectoryReader : public IAsyncTask
 {
-	enum class EProgressResult
-	{
-		Finished, Pending
-	};
-
 	/** Constructor that sets up the directory reader to the specified directory */
 	FAsyncDirectoryReader(const FString& InDirectory, EPathType InPathType);
 
@@ -186,6 +248,14 @@ struct FAsyncDirectoryReader : public TSharedFromThis<FAsyncDirectoryReader, ESP
 	/** Retrieve the cached state supplied to this class through UseCachedState(). */
 	TOptional<FDirectoryState> GetCachedState();
 
+	/** Retrieve the cached state supplied to this class through UseCachedState(). */
+	TArray<FFilenameAndHash> GetFilesThatNeedHashing()
+	{
+		TArray<FFilenameAndHash> Swapped;
+		Swap(FilesThatNeedHashing, Swapped);
+		return Swapped;
+	}
+
 	/** Instruct the directory reader to use the specified cached state to lookup file hashes, where timestamps haven't changed */
 	void UseCachedState(FDirectoryState InCachedState)
 	{
@@ -193,10 +263,10 @@ struct FAsyncDirectoryReader : public TSharedFromThis<FAsyncDirectoryReader, ESP
 	}
 
 	/** Returns true when this directory reader has finished scanning the directory */
-	bool IsComplete() const;
+	virtual bool IsComplete() const override;
 
 	/** Tick this reader (discover new directories / files). Returns progress state. */
-	EProgressResult Tick(const FTimeLimit& Limit);
+	virtual EProgressResult Tick(const FTimeLimit& Limit) override;
 
 private:
 	/** Non-recursively scan a single directory for its contents. Adds results to Pending arrays. */
@@ -214,6 +284,9 @@ private:
 	/** The previously cached  state of the directory, optional */
 	TOptional<FDirectoryState> CachedState;
 
+	/** An array of files that need hashing */
+	TArray<FFilenameAndHash> FilesThatNeedHashing;
+
 	/** A list of directories we have recursively found on our travels */
 	TArray<FString> PendingDirectories;
 
@@ -222,22 +295,13 @@ private:
 
 	/** Thread safe flag to signify when this class has finished reading */
 	FThreadSafeBool bIsComplete;
-
-	/** The time we started scanning the directory */
-	double StartTime;
-
-	/** Friendship required for the reader thread to flag when finished */
-	friend struct FAsyncDirectoryReaderThread;
-
-	/** Scratch buffer used for reading in files */
-	TArray<uint8> ScratchBuffer;
 };
 
 /** Configuration structure required to construct a FFileCache */
 struct FFileCacheConfig
 {
 	FFileCacheConfig(FString InDirectory, FString InCacheFile)
-		: Directory(InDirectory), CacheFile(InCacheFile), PathType(EPathType::Relative), bDetectChangesSinceLastRun(false)
+		: Directory(InDirectory), CacheFile(InCacheFile), PathType(EPathType::Relative), bDetectChangesSinceLastRun(false), bDetectMoves(true)
 	{}
 
 	/** String specifying the directory on disk that the cache should reflect */
@@ -254,6 +318,10 @@ struct FFileCacheConfig
 
 	/** When true, changes to the directory since the cache shutdown will be detected and reported. When false, said changes will silently be applied to the serialized cache. */
 	bool bDetectChangesSinceLastRun;
+
+	/** True to detect moves and renames (based on file hash), false otherwise. When true, an additional thread will be launched on startup to harvest MD5 hashes.
+	 *  Changes that occur *before* hashes have been gatherd will not be detected as moves/renames. */
+	bool bDetectMoves;
 };
 
 /**
@@ -335,6 +403,9 @@ private:
 	/** Read the cache file data and return the contents */
 	TOptional<FDirectoryState> ReadCache() const;
 
+	/** Called when the initial async reader has finished harvesting file system timestamps */
+	void ReadStateFromAsyncReader();
+
 private:
 
 	/** Configuration settings applied on construction */
@@ -342,6 +413,7 @@ private:
 
 	/** 'Asynchronous' directory reader responsible for gathering all file/timestamp information recursively from our cache directory */
 	TSharedPtr<FAsyncDirectoryReader, ESPMode::ThreadSafe> DirectoryReader;
+	TSharedPtr<FAsyncFileHasher, ESPMode::ThreadSafe> AsyncFileHasher;
 
 	/** A set of dirty files that we will use to report changes to the user */
 	TSet<FImmutableString> DirtyFiles;
@@ -357,4 +429,7 @@ private:
 
 	/** True when the cached state we have in memory is more up to date than the serialized file. Enables WriteCache() when true. */
 	bool bSavedCacheDirty;
+
+	/** The time we last retrieved file hashes from the thread */
+	double LastFileHashGetTime;
 };

@@ -58,23 +58,24 @@ FMD5Hash ReadFileMD5(const FString& Filename, TArray<uint8>* Buffer = nullptr)
 const FGuid FFileCacheCustomVersion::Key(0x8E7DDCB3, 0x80DA47BB, 0x9FD346A2, 0x93984DF6);
 FCustomVersionRegistration GRegisterFileCacheVersion(FFileCacheCustomVersion::Key, FFileCacheCustomVersion::Latest, TEXT("FileCacheVersion"));
 
-/** Single runnable thread used to parse file cache directories without blocking the main thread */
-struct FAsyncDirectoryReaderThread : public FRunnable
-{
-	typedef TArray<TWeakPtr<FAsyncDirectoryReader, ESPMode::ThreadSafe>> FReaderArray;
 
-	FAsyncDirectoryReaderThread() : Thread(nullptr) {}
+/** Single runnable thread used to parse file cache directories without blocking the main thread */
+struct FAsyncTaskThread : public FRunnable
+{
+	typedef TArray<TWeakPtr<IAsyncTask, ESPMode::ThreadSafe>> FTaskArray;
+
+	FAsyncTaskThread() : Thread(nullptr) {}
 
 	/** Add a reader to this thread which will get ticked periodically until complete */
-	void AddReader(TSharedPtr<FAsyncDirectoryReader, ESPMode::ThreadSafe> InReader)
+	void AddTask(TSharedPtr<IAsyncTask, ESPMode::ThreadSafe> InTask)
 	{
-		FScopeLock Lock(&ReaderArrayMutex);
-		Readers.Add(InReader);
+		FScopeLock Lock(&TaskArrayMutex);
+		Tasks.Add(InTask);
 
 		if (!Thread)
 		{
 			static int32 Index = 0;
-			Thread = FRunnableThread::Create(this, *FString::Printf(TEXT("AsyncDirectoryReaders_%d"), ++Index));
+			Thread = FRunnableThread::Create(this, *FString::Printf(TEXT("AsyncTaskThread_%d"), ++Index));
 		}
 	}
 
@@ -84,30 +85,30 @@ struct FAsyncDirectoryReaderThread : public FRunnable
 		for(;;)
 		{
 			// Copy the array while we tick the readers
-			FReaderArray Dupl;
+			FTaskArray Dupl;
 			{
-				FScopeLock Lock(&ReaderArrayMutex);
-				Dupl = Readers;
+				FScopeLock Lock(&TaskArrayMutex);
+				Dupl = Tasks;
 			}
 
 			// Tick each one for a second
-			for (auto& Reader : Dupl)
+			for (auto& Task : Dupl)
 			{
-				auto PinnedReader = Reader.Pin();
-				if (PinnedReader.IsValid())
+				auto PinnedTask = Task.Pin();
+				if (PinnedTask.IsValid())
 				{
-					PinnedReader->Tick(FTimeLimit(1));
+					PinnedTask->Tick(FTimeLimit(1));
 				}
 			}
 
-			// Cleanup dead/finished readers
-			FScopeLock Lock(&ReaderArrayMutex);
-			for (int32 Index = 0; Index < Readers.Num(); )
+			// Cleanup dead/finished Tasks
+			FScopeLock Lock(&TaskArrayMutex);
+			for (int32 Index = 0; Index < Tasks.Num(); )
 			{
-				auto Reader = Readers[Index].Pin();
-				if (!Reader.IsValid() || Reader->IsComplete())
+				auto Task = Tasks[Index].Pin();
+				if (!Task.IsValid() || Task->IsComplete())
 				{
-					Readers.RemoveAt(Index);
+					Tasks.RemoveAt(Index);
 				}
 				else
 				{
@@ -116,7 +117,7 @@ struct FAsyncDirectoryReaderThread : public FRunnable
 			}
 
 			// Shutdown the thread if we've nothing left to do
-			if (Readers.Num() == 0)
+			if (Tasks.Num() == 0)
 			{
 				Thread = nullptr;
 				break;
@@ -127,22 +128,81 @@ struct FAsyncDirectoryReaderThread : public FRunnable
 	}
 
 private:
-	/** We start our own thread if one doesn't already exist. Guard it with a critical section */
+	/** We start our own thread if one doesn't already exist. */
 	FRunnableThread* Thread;
 
-	/** Array of things that need ticking, and a separate mutex to protect those */
-	FCriticalSection ReaderArrayMutex;
-	FReaderArray Readers;
+	/** Array of things that need ticking, and a mutex to protect them */
+	FCriticalSection TaskArrayMutex;
+	FTaskArray Tasks;
 };
 
-FAsyncDirectoryReaderThread AsyncReaderThread;
+FAsyncTaskThread AsyncTaskThread;
 
-FAsyncDirectoryReader::FAsyncDirectoryReader(const FString& InDirectory, EPathType InPathType)
-	: RootPath(InDirectory), PathType(InPathType), StartTime(0)
+/** Threading stategy for FAsyncFileHasher:
+ *	The task is constructed on the main thread with its Data.
+ *	The array 'Data' *never* changes size. The task thread moves along setting file hashes, while the main thread
+ * 	trails behind accessing the completed entries. We should thus never have 2 threads accessing the same memory,
+ *	except for the atomic 'CurrentIndex'
+ */
+
+FAsyncFileHasher::FAsyncFileHasher(TArray<FFilenameAndHash> InFilesThatNeedHashing)
+	: Data(MoveTemp(InFilesThatNeedHashing)), NumReturned(0)
 {
 	// Read in files in 1MB chunks
 	ScratchBuffer.SetNumUninitialized(1024 * 1024);
+}
 
+TArray<FFilenameAndHash> FAsyncFileHasher::GetCompletedData()
+{
+	TArray<FFilenameAndHash> Local;
+	const int32 CompletedIndex = CurrentIndex.GetValue();
+
+	if (NumReturned < CompletedIndex)
+	{
+		Local.Append(Data.GetData() + NumReturned, CompletedIndex - NumReturned);
+		NumReturned = CompletedIndex;
+
+		if (CompletedIndex == Data.Num())
+		{
+			Data.Empty();
+		}
+	}
+
+	return Local;
+}
+
+bool FAsyncFileHasher::IsComplete() const
+{
+	return CurrentIndex.GetValue() == Data.Num();
+}
+
+IAsyncTask::EProgressResult FAsyncFileHasher::Tick(const FTimeLimit& Limit)
+{
+	for (; CurrentIndex.GetValue() < Data.Num(); )
+	{
+		const auto Index = CurrentIndex.GetValue();
+		Data[Index].FileHash = ReadFileMD5(Data[Index].AbsoluteFilename, &ScratchBuffer);
+
+		CurrentIndex.Increment();
+
+		if (Limit.Exceeded())
+		{
+			return EProgressResult::Pending;
+		}
+	}
+
+	return EProgressResult::Finished;
+}
+
+/** Threading stategy for FAsyncDirectoryReader:
+ *	The directory reader owns the cached and live state until it has completely finished. Once IsComplete() is true, the main thread can 
+ *	have access to both the cached and farmed data.
+ */
+
+
+FAsyncDirectoryReader::FAsyncDirectoryReader(const FString& InDirectory, EPathType InPathType)
+	: RootPath(InDirectory), PathType(InPathType)
+{
 	PendingDirectories.Add(InDirectory);
 	LiveState.Emplace();
 }
@@ -150,7 +210,11 @@ FAsyncDirectoryReader::FAsyncDirectoryReader(const FString& InDirectory, EPathTy
 TOptional<FDirectoryState> FAsyncDirectoryReader::GetLiveState()
 {
 	TOptional<FDirectoryState> OldState;
-	Swap(OldState, LiveState);
+
+	if (ensureMsg(IsComplete(), TEXT("Invalid property access from thread before task completion")))
+	{
+		Swap(OldState, LiveState);
+	}
 
 	return OldState;
 }
@@ -159,7 +223,11 @@ TOptional<FDirectoryState> FAsyncDirectoryReader::GetLiveState()
 TOptional<FDirectoryState> FAsyncDirectoryReader::GetCachedState()
 {
 	TOptional<FDirectoryState> OldState;
-	Swap(OldState, CachedState);
+
+	if (ensureMsg(IsComplete(), TEXT("Invalid property access from thread before task completion")))
+	{
+		Swap(OldState, CachedState);
+	}
 
 	return OldState;
 }
@@ -174,11 +242,6 @@ FAsyncDirectoryReader::EProgressResult FAsyncDirectoryReader::Tick(const FTimeLi
 	if (IsComplete())
 	{
 		return EProgressResult::Finished;
-	}
-
-	if (StartTime == 0)
-	{
-		StartTime = FPlatformTime::Seconds();
 	}
 
 	auto& FileManager = IFileManager::Get();
@@ -220,7 +283,7 @@ FAsyncDirectoryReader::EProgressResult FAsyncDirectoryReader::Tick(const FTimeLi
 
 		if (!MD5.IsValid())
 		{
-			MD5 = ReadFileMD5(File, &ScratchBuffer);
+			FilesThatNeedHashing.Emplace(File);
 		}
 
 		LiveState->Files.Emplace(MoveTemp(Filename), FFileData(Timestamp, MD5));
@@ -236,7 +299,7 @@ FAsyncDirectoryReader::EProgressResult FAsyncDirectoryReader::Tick(const FTimeLi
 
 	bIsComplete = true;
 
-	UE_LOG(LogAutoReimportManager, Log, TEXT("Scanning file cache directory took %.2fs"), FPlatformTime::Seconds() - StartTime);
+	UE_LOG(LogAutoReimportManager, Log, TEXT("Scanning file cache for directory '%s' took %.2fs"), *RootPath, GetAge());
 	return EProgressResult::Finished;
 }
 
@@ -276,6 +339,7 @@ void FAsyncDirectoryReader::ScanDirectory(const FString& InDirectory)
 FFileCache::FFileCache(const FFileCacheConfig& InConfig)
 	: Config(InConfig)
 	, bSavedCacheDirty(false)
+	, LastFileHashGetTime(0)
 {
 	// Ensure the directory has a trailing /
 	Config.Directory /= TEXT("");
@@ -290,7 +354,7 @@ FFileCache::FFileCache(const FFileCacheConfig& InConfig)
 		DirectoryReader->UseCachedState(MoveTemp(ExistingCache.GetValue()));
 	}
 
-	AsyncReaderThread.AddReader(DirectoryReader);
+	AsyncTaskThread.AddTask(DirectoryReader);
 
 	FDirectoryWatcherModule& Module = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
 	if (IDirectoryWatcher* DirectoryWatcher = Module.Get())
@@ -316,6 +380,8 @@ void FFileCache::Destroy()
 	}
 
 	DirectoryReader = nullptr;
+	AsyncFileHasher = nullptr;
+
 	PendingTransactions.Empty();
 	DirtyFiles.Empty();
 	CachedDirectoryState = FDirectoryState();
@@ -433,6 +499,9 @@ TOptional<FString> FFileCache::GetTransactionPath(const FString& InAbsolutePath)
 
 void FFileCache::DiffDirtyFiles(const TSet<FImmutableString>& InDirtyFiles, TArray<FUpdateCacheTransaction>& InOutTransactions, const FDirectoryState* InFileSystemState) const
 {
+	TArray<uint8> ScratchBuffer;
+	ScratchBuffer.SetNumUninitialized(1024*1024);
+
 	TMap<FImmutableString, FFileData> AddedFiles, ModifiedFiles;
 	TSet<FImmutableString> RemovedFiles;
 
@@ -448,7 +517,7 @@ void FFileCache::DiffDirtyFiles(const TSet<FImmutableString>& InDirtyFiles, TArr
 		const bool bFileExists = InFileSystemState ? InFileSystemState->Files.Find(File) != nullptr : PlatformFile.FileExists(*AbsoluteFilename);
 		if (bFileExists)
 		{
-			const FFileData FileData = InFileSystemState ? *InFileSystemState->Files.Find(File) : FFileData(FileManager.GetTimeStamp(*AbsoluteFilename), ReadFileMD5(AbsoluteFilename));
+			const FFileData FileData = InFileSystemState ? *InFileSystemState->Files.Find(File) : FFileData(FileManager.GetTimeStamp(*AbsoluteFilename), ReadFileMD5(AbsoluteFilename, &ScratchBuffer));
 
 			// Do we think it exists in the cache?
 			if (CachedState)
@@ -472,21 +541,24 @@ void FFileCache::DiffDirtyFiles(const TSet<FImmutableString>& InDirtyFiles, TArr
 	}
 
 	// Rename / move detection
-	for (auto RemoveIt = RemovedFiles.CreateIterator(); RemoveIt; ++RemoveIt)
+	if (Config.bDetectMoves)
 	{
-		const auto* CachedState = CachedDirectoryState.Files.Find(*RemoveIt);
-		if (CachedState)
+		for (auto RemoveIt = RemovedFiles.CreateIterator(); RemoveIt; ++RemoveIt)
 		{
-			for (auto AdIt = AddedFiles.CreateIterator(); AdIt; ++AdIt)
-			{				
-				if (AdIt.Value().FileHash == CachedState->FileHash)
-				{
-					// Found a move destination!
-					InOutTransactions.Add(FUpdateCacheTransaction(*RemoveIt, AdIt.Key(), AdIt.Value()));
+			const auto* CachedState = CachedDirectoryState.Files.Find(*RemoveIt);
+			if (CachedState)
+			{
+				for (auto AdIt = AddedFiles.CreateIterator(); AdIt; ++AdIt)
+				{				
+					if (AdIt.Value().FileHash.IsValid() && AdIt.Value().FileHash == CachedState->FileHash)
+					{
+						// Found a move destination!
+						InOutTransactions.Add(FUpdateCacheTransaction(*RemoveIt, AdIt.Key(), AdIt.Value()));
 
-					AdIt.RemoveCurrent();
-					RemoveIt.RemoveCurrent();
-					break;
+						AdIt.RemoveCurrent();
+						RemoveIt.RemoveCurrent();
+						break;
+					}
 				}
 			}
 		}
@@ -626,19 +698,73 @@ void FFileCache::CompleteTransaction(FUpdateCacheTransaction&& Transaction)
 
 void FFileCache::Tick()
 {
-	if (!DirectoryReader.IsValid() || !DirectoryReader->IsComplete())
+	/** Stage one: wait for the asynchronous directory reader to finish harvesting timestamps for the directory */
+	if (DirectoryReader.IsValid())
 	{
-		return;
-	}
+		if (!DirectoryReader->IsComplete())
+		{
+			return;
+		}
+		else
+		{
+			ReadStateFromAsyncReader();
 
+			if (Config.bDetectMoves)
+			{
+				auto FilesThatNeedHashing = DirectoryReader->GetFilesThatNeedHashing();
+				if (FilesThatNeedHashing.Num() > 0)
+				{
+					AsyncFileHasher = MakeShareable(new FAsyncFileHasher(MoveTemp(FilesThatNeedHashing)));
+
+					AsyncTaskThread.AddTask(AsyncFileHasher);
+				}
+			}
+
+			// Null out our pointer to the directory reader to indicate that we've finished
+			DirectoryReader = nullptr;
+		}
+	}
+	/** The file cache is now running, and will report changes. */
+	/** Keep harvesting file hashes from the file hashing task until complete. These are much slower to gather, and only required for rename/move detection. */
+	else if (AsyncFileHasher.IsValid())
+	{
+		double Now = FPlatformTime::Seconds();
+
+		if (Now - LastFileHashGetTime > 5.f)
+		{
+			LastFileHashGetTime = Now;
+			auto Hashes = AsyncFileHasher->GetCompletedData();
+			if (Hashes.Num() > 0)
+			{
+				bSavedCacheDirty = true;
+				for (const auto& Data : Hashes)
+				{
+					FImmutableString CachePath = (Config.PathType == EPathType::Relative) ? *Data.AbsoluteFilename + Config.Directory.Len() : *Data.AbsoluteFilename;
+
+					auto* FileData = CachedDirectoryState.Files.Find(CachePath);
+					if (FileData && !FileData->FileHash.IsValid())
+					{
+						FileData->FileHash = Data.FileHash;
+					}
+				}
+			}
+
+			if (AsyncFileHasher->IsComplete())
+			{
+				UE_LOG(LogAutoReimportManager, Log, TEXT("Retrieving MD5 hashes for directory '%s' took %.2fs"), *Config.Directory, AsyncFileHasher->GetAge());
+				AsyncFileHasher = nullptr;
+			}
+		}
+	}
+}
+
+void FFileCache::ReadStateFromAsyncReader()
+{
 	// We should only ever get here once. The directory reader has finished scanning, and we can now diff the results with what we had saved in the cache file.
 	check(DirectoryReader->IsComplete());
 	
 	TOptional<FDirectoryState> LiveState = DirectoryReader->GetLiveState();
 	TOptional<FDirectoryState> CachedState = DirectoryReader->GetCachedState();
-
-	// Null out our pointer to the directory reader to indicate that we've finished
-	DirectoryReader = nullptr;
 
 	if (!CachedState.IsSet() || !Config.bDetectChangesSinceLastRun)
 	{
