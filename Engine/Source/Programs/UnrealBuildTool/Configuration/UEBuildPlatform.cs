@@ -990,7 +990,6 @@ namespace UnrealBuildTool
 		 */
 		public virtual bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, string ProjectPath)
 		{
-			Console.WriteLine("HasDefaultBuildConfig!");
 			string[] BoolKeys = new string[] {
 				"bCompileApex", "bCompileBox2D", "bCompileICU", "bCompileSimplygon", 
 				"bCompileLeanAndMeanUE", "bIncludeADO", "bCompileRecast", "bCompileSpeedTree", 
