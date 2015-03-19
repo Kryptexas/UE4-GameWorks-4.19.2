@@ -138,7 +138,10 @@ void ADefaultPawn::SetupPlayerInputComponent(UInputComponent* InputComponent)
 
 void ADefaultPawn::UpdateNavigationRelevance()
 {
-	CollisionComponent->SetCanEverAffectNavigation(bCanAffectNavigationGeneration);
+	if (CollisionComponent)
+	{
+		CollisionComponent->SetCanEverAffectNavigation(bCanAffectNavigationGeneration);
+	}
 }
 
 void ADefaultPawn::MoveRight(float Val)
