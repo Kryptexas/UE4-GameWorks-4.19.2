@@ -2554,7 +2554,6 @@ namespace UnrealBuildTool
 				// 
 				bool bAllowGameOverride = !TargetRules.IsGameType(TargetType);
 				if (bAllowGameOverride ||
-					(Rules.ToString() == "UE4EditorTarget" && UnrealBuildTool.BuildingRocket()) ||	// @todo Rocket: Hard coded target name hack
 					Rules.ShouldCompileMonolithic(Platform, Configuration))
 				{
 					Rules.SetupGlobalEnvironment(
