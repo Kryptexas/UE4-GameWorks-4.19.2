@@ -1441,14 +1441,14 @@ bool UActorChannel::CleanUp( const bool bForDestroy )
 		checkSlow(Connection->Driver->IsValidLowLevel());
 		if (Actor != NULL)
 		{
-			if (Actor->bTearOff)
+			if (Actor->bTearOff && !Connection->Driver->ShouldClientDestroyTearOffActors())
 			{
 				Actor->Role = ROLE_Authority;
 				Actor->SetReplicates(false);
 				bTornOff = true;
 				Actor->TornOff();
 			}
-			else if (Dormant)
+			else if (Dormant && !Actor->bTearOff)
 			{
 				Connection->DormantActors.Add(Actor);
 			}

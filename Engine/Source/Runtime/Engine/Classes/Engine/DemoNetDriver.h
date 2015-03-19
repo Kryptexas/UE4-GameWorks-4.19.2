@@ -62,6 +62,10 @@ class UDemoNetDriver
 	double		LastCheckpointTime;
 
 	void		SaveCheckpoint();
+
+private:
+	bool		bIsFastForwarding;
+
 public:
 
 	// UNetDriver interface.
@@ -77,6 +81,7 @@ public:
 	virtual bool IsAvailable() const override { return true; }
 	ENGINE_API void SkipTime(float InTimeToSkip);
 	bool InitConnectInternal( FString& Error );
+	virtual bool ShouldClientDestroyTearOffActors() const;
 
 public:
 

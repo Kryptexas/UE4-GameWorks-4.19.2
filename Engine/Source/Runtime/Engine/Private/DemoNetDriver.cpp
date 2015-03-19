@@ -27,6 +27,7 @@ static TAutoConsoleVariable<float> CVarDemoTimeDilation( TEXT( "demo.TimeDilatio
 static TAutoConsoleVariable<float> CVarDemoSkipTime( TEXT( "demo.SkipTime" ), 0, TEXT( "Skip fixed amount of network replay time (in seconds)" ) );
 static TAutoConsoleVariable<int32> CVarEnableCheckpoints( TEXT( "demo.EnableCheckpoints" ), 0, TEXT( "Whether or not checkpoints save on the server" ) );
 static TAutoConsoleVariable<int32> CVarTestCheckpoint( TEXT( "demo.TestCheckpoint" ), 0, TEXT( "For testing only, jump to a particular checkpoint" ) );
+static TAutoConsoleVariable<int32> CVarDemoFastForwardDestroyTearOffActors( TEXT( "demo.FastForwardDestroyTearOffActors" ), 1, TEXT( "If true, the driver will destroy any torn-off actors immediately while fast-forwarding a replay." ) );
 
 static const int32 MAX_DEMO_READ_WRITE_BUFFER = 1024 * 2;
 
@@ -50,7 +51,8 @@ bool UDemoNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, con
 		bIsRecordingDemoFrame	= false;
 		bDemoPlaybackDone		= false;
 		bChannelsArePaused		= false;
-		TimeToSkip = 0.0f;
+		TimeToSkip				= 0.0f;
+		bIsFastForwarding		= false;
 
 		ResetDemoState();
 
@@ -521,6 +523,16 @@ void UDemoNetDriver::ProcessRemoteFunction( class AActor* Actor, class UFunction
 			InternalProcessRemoteFunction(Actor, SubObject, ClientConnections[0], Function, Parameters, OutParms, Stack, IsServer());
 		}
 	}
+}
+
+bool UDemoNetDriver::ShouldClientDestroyTearOffActors() const
+{
+	if ( CVarDemoFastForwardDestroyTearOffActors.GetValueOnGameThread() != 0 )
+	{
+		return bIsFastForwarding;
+	}
+
+	return false;
 }
 
 bool UDemoNetDriver::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
@@ -1121,6 +1133,8 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 		DemoCurrentTime += TimeToSkip;
 
 		TimeToSkip = 0.0f;
+
+		bIsFastForwarding = true;
 	}
 
 	DemoCurrentTime += DeltaSeconds;
@@ -1135,6 +1149,8 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 	{
 		DemoFrameNum++;
 	}
+
+	bIsFastForwarding = false;
 }
 
 void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection )

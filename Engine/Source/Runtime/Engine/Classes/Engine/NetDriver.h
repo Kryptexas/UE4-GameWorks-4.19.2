@@ -531,6 +531,9 @@ public:
 	*/
 	TSharedPtr<FRepChangedPropertyTracker> FindOrCreateRepChangedPropertyTracker(UObject *Obj);
 
+	/** Returns true if the client should destroy immediately any actor that becomes torn-off */
+	virtual bool ShouldClientDestroyTearOffActors() const { return false; }
+
 protected:
 
 	/** Adds (fully initialized, ready to go) client connection to the ClientConnections list + any other game related setup */
