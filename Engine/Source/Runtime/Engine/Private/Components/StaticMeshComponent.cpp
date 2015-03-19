@@ -683,7 +683,7 @@ FTransform UStaticMeshComponent::GetSocketTransform(FName InSocketName, ERelativ
 		}
 	}
 
-	return ComponentToWorld;
+	return Super::GetSocketTransform(InSocketName, TransformSpace);
 }
 
 
