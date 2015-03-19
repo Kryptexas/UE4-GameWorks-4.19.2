@@ -1274,12 +1274,15 @@ namespace SceneOutliner
 				GEditor->SelectActor(Actor, true, /*bNotify=*/false);
 			}
 		}
+	};
 
+	struct FSelectActorsRecursive : FSelectActors
+	{
 		virtual void Visit(const FFolderTreeItem& FolderItem) const override
 		{
 			for (auto& Child : FolderItem.GetChildren())
 			{
-				Child.Pin()->Visit(FSelectActors());
+				Child.Pin()->Visit(FSelectActorsRecursive());
 			}
 		}
 	};
@@ -1319,7 +1322,7 @@ namespace SceneOutliner
 
 			for (const auto& Folder : SelectedFolders)
 			{
-				Folder->Visit(FSelectActors());
+				Folder->Visit(FSelectActorsRecursive());
 			}
 
 			GEditor->GetSelectedActors()->EndBatchSelectOperation();
