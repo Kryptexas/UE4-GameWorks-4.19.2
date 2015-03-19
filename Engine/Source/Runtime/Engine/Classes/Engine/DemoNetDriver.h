@@ -47,7 +47,7 @@ class UDemoNetDriver
 	FString DemoSpectatorClass;
 
 	/** Our network replay streamer */
-	TSharedPtr< class INetworkReplayStreamer > ReplayStreamer;
+	TSharedPtr< class INetworkReplayStreamer >	ReplayStreamer;
 
 	uint32 GetDemoCurrentTimeInMS() { return (uint32)( (double)DemoCurrentTime * 1000 ); }
 
@@ -60,6 +60,7 @@ class UDemoNetDriver
 
 	bool		bSavingCheckpoint;
 	double		LastCheckpointTime;
+	int32		CurrentCheckpointIndex;
 
 	void		SaveCheckpoint();
 

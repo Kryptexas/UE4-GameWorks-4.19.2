@@ -270,9 +270,9 @@ void FHttpNetworkReplayStreamer::UploadHeader()
 
 void FHttpNetworkReplayStreamer::FlushStream()
 {
-	if ( SessionName.IsEmpty() || !StreamArchive.ArIsSaving )
+	if ( bNeedToUploadHeader || !StreamArchive.ArIsSaving )
 	{
-		// IF there is no active session, or we are not recording, we don't need to flush
+		// If we haven't uploaded the header, or we are not recording, we don't need to flush
 		return;
 	}
 
@@ -497,6 +497,12 @@ FArchive* FHttpNetworkReplayStreamer::GetStreamingArchive()
 
 FArchive* FHttpNetworkReplayStreamer::GetCheckpointArchive()
 {	
+	if ( bNeedToUploadHeader )
+	{
+		// If we need to upload the header, we're not ready to save checkpoints
+		return NULL;
+	}
+
 	return &CheckpointArchive;
 }
 
@@ -629,18 +635,25 @@ void FHttpNetworkReplayStreamer::HttpHeaderUploadFinished( FHttpRequestPtr HttpR
 	check( InFlightHttpRequest->Request == HttpRequest );
 	check( InFlightHttpRequest->Type == EQueuedHttpRequestType::UploadingHeader );
 	check( StreamerState == EStreamerState::StreamingUp );
+	check( StartStreamingDelegate.IsBound() );
 
 	InFlightHttpRequest = NULL;
 
 	if ( bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok )
 	{
 		UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::HttpHeaderUploadFinished." ) );
+
+		StartStreamingDelegate.ExecuteIfBound( true, true );
 	}
 	else
 	{
 		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpHeaderUploadFinished. FAILED" ) );
+		StartStreamingDelegate.ExecuteIfBound( false, true );
 		SetLastError( ENetworkReplayError::ServiceUnavailable );
 	}
+
+	// Reset delegate
+	StartStreamingDelegate = FOnStreamReadyDelegate();
 }
 
 void FHttpNetworkReplayStreamer::HttpUploadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
@@ -696,7 +709,7 @@ void FHttpNetworkReplayStreamer::HttpStartDownloadingFinished( FHttpRequestPtr H
 		{
 			UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpStartDownloadingFinished. NO CHUNKS" ) );
 
-			StartStreamingDelegate.ExecuteIfBound( false, StreamArchive.IsSaving() );
+			StartStreamingDelegate.ExecuteIfBound( false, true );
 
 			// Reset delegate
 			StartStreamingDelegate = FOnStreamReadyDelegate();
@@ -708,7 +721,7 @@ void FHttpNetworkReplayStreamer::HttpStartDownloadingFinished( FHttpRequestPtr H
 	{
 		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpStartDownloadingFinished. FAILED" ) );
 
-		StartStreamingDelegate.ExecuteIfBound( false, StreamArchive.IsSaving() );
+		StartStreamingDelegate.ExecuteIfBound( false, true );
 
 		// Reset delegate
 		StartStreamingDelegate = FOnStreamReadyDelegate();
@@ -724,6 +737,7 @@ void FHttpNetworkReplayStreamer::HttpDownloadHeaderFinished( FHttpRequestPtr Htt
 	check( InFlightHttpRequest->Type == EQueuedHttpRequestType::DownloadingHeader );
 	check( StreamerState == EStreamerState::StreamingDown );
 	check( StreamArchive.IsLoading() );
+	check( StartStreamingDelegate.IsBound() );
 
 	InFlightHttpRequest = NULL;
 
@@ -733,7 +747,7 @@ void FHttpNetworkReplayStreamer::HttpDownloadHeaderFinished( FHttpRequestPtr Htt
 
 		UE_LOG( LogHttpReplay, Log, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadHeaderFinished. Size: %i" ), HeaderArchive.Buffer.Num() );
 
-		StartStreamingDelegate.ExecuteIfBound( true, StreamArchive.IsSaving() );
+		StartStreamingDelegate.ExecuteIfBound( true, false );
 	}
 	else
 	{
@@ -741,7 +755,7 @@ void FHttpNetworkReplayStreamer::HttpDownloadHeaderFinished( FHttpRequestPtr Htt
 		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadHeaderFinished. FAILED." ) );
 
 		StreamArchive.Buffer.Empty();
-		StartStreamingDelegate.ExecuteIfBound( false, StreamArchive.IsSaving() );
+		StartStreamingDelegate.ExecuteIfBound( false, false );
 
 		SetLastError( ENetworkReplayError::ServiceUnavailable );
 	}
