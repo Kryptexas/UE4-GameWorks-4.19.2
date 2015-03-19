@@ -75,8 +75,8 @@ SGraphPin::SGraphPin()
 	: bShowLabel(true)
 	, bIsMovingLinks(false)
 	, PinColorModifier(FLinearColor::White)
-	, CachedNodeOffset(FVector2D::ZeroVector)
 	, GraphPinObj(nullptr)
+	, CachedNodeOffset(FVector2D::ZeroVector)
 {
 	IsEditable = true;
 
