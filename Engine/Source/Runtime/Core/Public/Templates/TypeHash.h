@@ -104,3 +104,15 @@ inline uint32 GetTypeHash( void* A )
 {
 	return PointerHash(A);
 }
+
+template <typename T>
+struct TIsEnum
+{
+	enum { Value = IS_ENUM(T) };
+};
+
+template <typename EnumType>
+FORCEINLINE  typename TEnableIf<TIsEnum<EnumType>::Value, uint32>::Type GetTypeHash(EnumType E)
+{
+	return GetTypeHash((__underlying_type(EnumType))E);
+}
