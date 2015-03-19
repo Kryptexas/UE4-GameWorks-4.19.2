@@ -780,6 +780,7 @@ void SEditableText::JumpTo(ETextLocation JumpLocation, ECursorAction Action)
 	{
 		case ETextLocation::BeginningOfLine:
 		case ETextLocation::BeginningOfDocument:
+		case ETextLocation::PreviousPage:
 		{
 			const int32 OldCaretPosition = CaretPosition;
 			SetCaretPosition( 0 );
@@ -797,6 +798,7 @@ void SEditableText::JumpTo(ETextLocation JumpLocation, ECursorAction Action)
 
 		case ETextLocation::EndOfLine:
 		case ETextLocation::EndOfDocument:
+		case ETextLocation::NextPage:
 		{
 			const int32 OldCaretPosition = CaretPosition;
 			SetCaretPosition( EditedText.ToString().Len() );
@@ -811,7 +813,7 @@ void SEditableText::JumpTo(ETextLocation JumpLocation, ECursorAction Action)
 			}
 		}
 		break;
-	};
+	}
 }
 
 

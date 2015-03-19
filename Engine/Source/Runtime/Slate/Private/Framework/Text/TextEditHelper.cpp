@@ -164,6 +164,24 @@ FReply FTextEditHelper::OnKeyDown( const FKeyEvent& InKeyEvent, const TSharedRef
 
 		return FReply::Handled();
 	}
+	else if( Key == EKeys::PageUp )
+	{
+		// Go to the previous page of the document document; select text if Shift is down.
+		TextEditor->JumpTo(
+			ETextLocation::PreviousPage,
+			(InKeyEvent.IsShiftDown()) ? ECursorAction::SelectText : ECursorAction::MoveCursor );
+
+		return FReply::Handled();
+	}
+	else if ( Key == EKeys::PageDown )
+	{
+		// Go to the next page of the document document; select text if Shift is down.
+		TextEditor->JumpTo(
+			ETextLocation::NextPage,
+			(InKeyEvent.IsShiftDown()) ? ECursorAction::SelectText : ECursorAction::MoveCursor );
+
+		return FReply::Handled();
+	}
 	else if( Key == EKeys::Enter && !TextEditor->GetIsReadOnly() )
 	{
 		FScopedTextTransaction TextTransaction(TextEditor);

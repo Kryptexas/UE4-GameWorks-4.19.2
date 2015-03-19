@@ -37,7 +37,11 @@ enum class ETextLocation
 	/** Jump to the beginning of the line or beginning of text within a line (e.g. Home) */
 	BeginningOfLine,
 	/** Jump to the end of line (e.g. End) */
-	EndOfLine
+	EndOfLine,
+	/** Jump to the previous page in this document (e.g. PageUp) */
+	PreviousPage,
+	/** Jump to the next page in this document (e.g. PageDown) */
+	NextPage,
 };
 
 /**

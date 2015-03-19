@@ -492,12 +492,12 @@ private:
 	 * Given a location and a Direction to offset, return a new location.
 	 *
 	 * @param Location              Cursor location from which to offset
-	 * @param Direction             Positive means down, negative means up.
+	 * @param NumLinesToMove        Number of lines to move in a given direction. Positive means down, negative means up.
 	 * @param GeometryScale         Geometry DPI scale at which the widget is being rendered
 	 * @param OutCursorPosition     Fill with the updated cursor position.
 	 * @param OutCursorAlignment    Optionally fill with a new cursor alignment (will be auto-calculated if not set).
 	 */
-	void TranslateLocationVertical( const FTextLocation& Location, int8 Direction, float GeometryScale, FTextLocation& OutCursorPosition, TOptional<ECursorAlignment>& OutCursorAlignment ) const;
+	void TranslateLocationVertical( const FTextLocation& Location, int32 NumLinesToMove, float GeometryScale, FTextLocation& OutCursorPosition, TOptional<ECursorAlignment>& OutCursorAlignment ) const;
 
 	/** Find the closest word boundary */
 	FTextLocation ScanForWordBoundary( const FTextLocation& Location, int8 Direction ) const; 
@@ -603,7 +603,7 @@ private:
 	/** The last known size of the control from the previous OnPaint, used to recalculate wrapping. */
 	mutable FVector2D CachedSize;
 
-	/** The scroll offset (in Slate units) for this text */
+	/** The scroll offset (in unscaled Slate units) for this text */
 	FVector2D ScrollOffset;
 
 	TAttribute< FMargin > Margin;

@@ -485,13 +485,13 @@ void SMultiLineEditableText::ForceRefreshTextLayout(const FText& CurrentText)
 
 void SMultiLineEditableText::OnHScrollBarMoved(const float InScrollOffsetFraction)
 {
-	ScrollOffset.X = FMath::Clamp<float>(InScrollOffsetFraction, 0.0, 1.0) * GetDesiredSize().X;
+	ScrollOffset.X = FMath::Clamp<float>(InScrollOffsetFraction, 0.0, 1.0) * TextLayout->GetSize().X;
 	OnHScrollBarUserScrolled.ExecuteIfBound(InScrollOffsetFraction);
 }
 
 void SMultiLineEditableText::OnVScrollBarMoved(const float InScrollOffsetFraction)
 {
-	ScrollOffset.Y = FMath::Clamp<float>(InScrollOffsetFraction, 0.0, 1.0) * GetDesiredSize().Y;
+	ScrollOffset.Y = FMath::Clamp<float>(InScrollOffsetFraction, 0.0, 1.0) * TextLayout->GetSize().Y;
 	OnVScrollBarUserScrolled.ExecuteIfBound(InScrollOffsetFraction);
 }
 
@@ -542,7 +542,7 @@ FReply SMultiLineEditableText::OnFocusReceived( const FGeometry& MyGeometry, con
 		// gain focus since it can cause the scroll position to jump unexpectedly
 		// If we gained focus via a mouse click that moved the cursor, then MoveCursor will already take care
 		// of making sure that gets scrolled into view
-		PositionToScrollIntoView = TOptional<FScrollInfo>();
+		PositionToScrollIntoView.Reset();
 
 		return SWidget::OnFocusReceived( MyGeometry, InFocusEvent );
 	}
@@ -600,7 +600,7 @@ void SMultiLineEditableText::OnFocusLost( const FFocusEvent& InFocusEvent )
 
 		// UpdateCursorHighlight always tries to scroll to the cursor, but we don't want that to happen when we 
 		// lose focus since it can cause the scroll position to jump unexpectedly
-		PositionToScrollIntoView = TOptional<FScrollInfo>();
+		PositionToScrollIntoView.Reset();
 	}
 }
 
@@ -1187,6 +1187,32 @@ void SMultiLineEditableText::UpdatePreferredCursorScreenOffsetInLine()
 
 void SMultiLineEditableText::JumpTo(ETextLocation JumpLocation, ECursorAction Action)
 {
+	// Utility function to count the number of fully visible lines (vertically)
+	// We consider this to be the number of lines on the current page
+	auto CountVisibleLines = [](const TArray<FTextLayout::FLineView>& LineViews, const float VisibleHeight) -> int32
+	{
+		int32 LinesInView = 0;
+		for (const auto& LineView : LineViews)
+		{
+			// The line view is scrolled such that lines above the top of the text area have negative offsets
+			if (LineView.Offset.Y >= 0.0f)
+			{
+				const float EndOffsetY = LineView.Offset.Y + LineView.Size.Y;
+				if (EndOffsetY <= VisibleHeight)
+				{
+					// Line is completely in view
+					++LinesInView;
+				}
+				else
+				{
+					// Line extends beyond the bottom of the text area - we've finished finding visible lines
+					break;
+				}
+			}
+		}
+		return LinesInView;
+	};
+
 	switch (JumpLocation)
 	{
 		case ETextLocation::BeginningOfLine:
@@ -1278,6 +1304,7 @@ void SMultiLineEditableText::JumpTo(ETextLocation JumpLocation, ECursorAction Ac
 			}
 		}
 		break;
+
 		case ETextLocation::EndOfDocument:
 		{
 			if (!TextLayout->IsEmpty())
@@ -1307,7 +1334,121 @@ void SMultiLineEditableText::JumpTo(ETextLocation JumpLocation, ECursorAction Ac
 			}
 		}
 		break;
-	};
+
+		case ETextLocation::PreviousPage:
+		{
+			const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
+			const TArray< FTextLayout::FLineView >& LineViews = TextLayout->GetLineViews();
+			const int32 CurrentLineViewIndex = TextLayout->GetLineViewIndexForTextLocation(LineViews, CursorInteractionPosition, CursorInfo.GetCursorAlignment() == ECursorAlignment::Right );
+
+			if (LineViews.IsValidIndex(CurrentLineViewIndex))
+			{
+				const FTextLayout::FLineView& CurrentLineView = LineViews[CurrentLineViewIndex];
+				
+				const FTextLocation OldCursorPosition = CursorInteractionPosition;
+
+				FTextLocation NewCursorPosition;
+				TOptional<ECursorAlignment> NewCursorAlignment;
+				const int32 NumLinesToMove = FMath::Max(1, CountVisibleLines(LineViews, CachedSize.Y));
+				TranslateLocationVertical(OldCursorPosition, -NumLinesToMove, TextLayout->GetScale(), NewCursorPosition, NewCursorAlignment);
+
+				if (Action == ECursorAction::SelectText)
+				{
+					if (!SelectionStart.IsSet())
+					{
+						this->SelectionStart = OldCursorPosition;
+					}
+				}
+				else
+				{
+					ClearSelection();
+				}
+
+				if (NewCursorAlignment.IsSet())
+				{
+					CursorInfo.SetCursorLocationAndAlignment(NewCursorPosition, NewCursorAlignment.GetValue());
+				}
+				else
+				{
+					CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+				}
+				OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
+				UpdatePreferredCursorScreenOffsetInLine();
+				UpdateCursorHighlight();
+
+				// We need to scroll by the delta vertical offset value of the old line and the new line
+				// This will (try to) keep the cursor in the same relative location after the page jump
+				const int32 NewLineViewIndex = TextLayout->GetLineViewIndexForTextLocation(LineViews, CursorInfo.GetCursorInteractionLocation(), CursorInfo.GetCursorAlignment() == ECursorAlignment::Right );
+				if (LineViews.IsValidIndex(NewLineViewIndex))
+				{
+					const FTextLayout::FLineView& NewLineView = LineViews[NewLineViewIndex];
+					const float DeltaScrollY = (NewLineView.Offset.Y - CurrentLineView.Offset.Y) / TextLayout->GetScale();
+					ScrollOffset.Y = FMath::Max(0.0f, ScrollOffset.Y + DeltaScrollY);
+
+					// Disable the normal cursor scrolling that UpdateCursorHighlight triggers
+					PositionToScrollIntoView.Reset();
+				}
+			}
+		}
+		break;
+
+		case ETextLocation::NextPage:
+		{
+			const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
+			const TArray< FTextLayout::FLineView >& LineViews = TextLayout->GetLineViews();
+			const int32 CurrentLineViewIndex = TextLayout->GetLineViewIndexForTextLocation(LineViews, CursorInteractionPosition, CursorInfo.GetCursorAlignment() == ECursorAlignment::Right );
+
+			if (LineViews.IsValidIndex(CurrentLineViewIndex))
+			{
+				const FTextLayout::FLineView& CurrentLineView = LineViews[CurrentLineViewIndex];
+				
+				const FTextLocation OldCursorPosition = CursorInteractionPosition;
+
+				FTextLocation NewCursorPosition;
+				TOptional<ECursorAlignment> NewCursorAlignment;
+				const int32 NumLinesToMove = FMath::Max(1, CountVisibleLines(LineViews, CachedSize.Y));
+				TranslateLocationVertical(OldCursorPosition, NumLinesToMove, TextLayout->GetScale(), NewCursorPosition, NewCursorAlignment);
+
+				if (Action == ECursorAction::SelectText)
+				{
+					if (!SelectionStart.IsSet())
+					{
+						this->SelectionStart = OldCursorPosition;
+					}
+				}
+				else
+				{
+					ClearSelection();
+				}
+
+				if (NewCursorAlignment.IsSet())
+				{
+					CursorInfo.SetCursorLocationAndAlignment(NewCursorPosition, NewCursorAlignment.GetValue());
+				}
+				else
+				{
+					CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+				}
+				OnCursorMoved.ExecuteIfBound(CursorInfo.GetCursorInteractionLocation());
+				UpdatePreferredCursorScreenOffsetInLine();
+				UpdateCursorHighlight();
+
+				// We need to scroll by the delta vertical offset value of the old line and the new line
+				// This will (try to) keep the cursor in the same relative location after the page jump
+				const int32 NewLineViewIndex = TextLayout->GetLineViewIndexForTextLocation(LineViews, CursorInfo.GetCursorInteractionLocation(), CursorInfo.GetCursorAlignment() == ECursorAlignment::Right );
+				if (LineViews.IsValidIndex(NewLineViewIndex))
+				{
+					const FTextLayout::FLineView& NewLineView = LineViews[NewLineViewIndex];
+					const float DeltaScrollY = (NewLineView.Offset.Y - CurrentLineView.Offset.Y) / TextLayout->GetScale();
+					ScrollOffset.Y = FMath::Min(TextLayout->GetSize().Y - CachedSize.Y, ScrollOffset.Y + DeltaScrollY);
+
+					// Disable the normal cursor scrolling that UpdateCursorHighlight triggers
+					PositionToScrollIntoView.Reset();
+				}
+			}
+		}
+		break;
+	}
 }
 
 void SMultiLineEditableText::ClearSelection()
@@ -2240,7 +2381,7 @@ void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const doub
 			}
 		}
 
-		PositionToScrollIntoView = TOptional<FScrollInfo>();
+		PositionToScrollIntoView.Reset();
 	}
 
 	{
@@ -2290,7 +2431,7 @@ void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const doub
 		}
 	}
 
-	TextLayout->SetVisibleRegion(AllottedGeometry.Size, ScrollOffset);
+	TextLayout->SetVisibleRegion(AllottedGeometry.Size, ScrollOffset * TextLayout->GetScale());
 }
 
 int32 SMultiLineEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
@@ -2351,7 +2492,7 @@ void SMultiLineEditableText::CacheDesiredSize(float LayoutScaleMultiplier)
 	TextLayout->SetMargin( OurMargin );
 	TextLayout->SetLineHeightPercentage( LineHeightPercentage.Get() );
 	TextLayout->SetJustification( Justification.Get() );
-	TextLayout->SetVisibleRegion( CachedSize, ScrollOffset );
+	TextLayout->SetVisibleRegion( CachedSize, ScrollOffset * TextLayout->GetScale() );
 	TextLayout->UpdateIfNeeded();
 
 	SWidget::CacheDesiredSize(LayoutScaleMultiplier);
@@ -2604,7 +2745,7 @@ FTextLocation SMultiLineEditableText::TranslatedLocation( const FTextLocation& L
 	}
 }
 
-void SMultiLineEditableText::TranslateLocationVertical( const FTextLocation& Location, int8 Direction, float GeometryScale, FTextLocation& OutCursorPosition, TOptional<ECursorAlignment>& OutCursorAlignment ) const
+void SMultiLineEditableText::TranslateLocationVertical( const FTextLocation& Location, int32 NumLinesToMove, float GeometryScale, FTextLocation& OutCursorPosition, TOptional<ECursorAlignment>& OutCursorAlignment ) const
 {
 	const TArray< FTextLayout::FLineView >& LineViews = TextLayout->GetLineViews();
 	const int32 NumberOfLineViews = LineViews.Num();
@@ -2613,7 +2754,7 @@ void SMultiLineEditableText::TranslateLocationVertical( const FTextLocation& Loc
 	ensure(CurrentLineViewIndex != INDEX_NONE);
 	const FTextLayout::FLineView& CurrentLineView = LineViews[ CurrentLineViewIndex ];
 
-	const int32 NewLineViewIndex = FMath::Clamp( CurrentLineViewIndex + Direction, 0, NumberOfLineViews - 1 );
+	const int32 NewLineViewIndex = FMath::Clamp( CurrentLineViewIndex + NumLinesToMove, 0, NumberOfLineViews - 1 );
 	const FTextLayout::FLineView& NewLineView = LineViews[ NewLineViewIndex ];
 	
 	// Our horizontal position is the clamped version of whatever the user explicitly set with horizontal movement.
