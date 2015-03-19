@@ -57,16 +57,16 @@ void UTexAligner::PostInitProperties()
 	DefTexAlign = TEXALIGN_Default;
 }
 
-void UTexAligner::Align( ETexAlign InTexAlignType )
+void UTexAligner::Align( UWorld* InWorld, ETexAlign InTexAlignType )
 {
-	for( int32 LevelIndex = 0; LevelIndex < GWorld->GetNumLevels(); ++LevelIndex )
+	for( int32 LevelIndex = 0; LevelIndex < InWorld->GetNumLevels(); ++LevelIndex )
 	{
-		ULevel* Level = GWorld->GetLevel(LevelIndex);
-		Align( InTexAlignType, Level->Model );
+		ULevel* Level = InWorld->GetLevel(LevelIndex);
+		Align( InWorld, InTexAlignType, Level->Model );
 	}
 }
 
-void UTexAligner::Align( ETexAlign InTexAlignType, UModel* InModel )
+void UTexAligner::Align( UWorld* InWorld, ETexAlign InTexAlignType, UModel* InModel )
 {
 	//
 	// Build an initial list of BSP surfaces to be aligned.
@@ -132,7 +132,7 @@ void UTexAligner::Align( ETexAlign InTexAlignType, UModel* InModel )
 
 	GEditor->RedrawLevelEditingViewports();
 
-	GWorld->MarkPackageDirty();
+	InWorld->MarkPackageDirty();
 	ULevel::LevelDirtiedEvent.Broadcast();
 }
 
@@ -490,12 +490,12 @@ UTexAligner* FTexAlignTools::GetAligner( ETexAlign InTexAlign )
 
 }
 
-void FTexAlignTools::OnEditorFitTextureToSurface()
+void FTexAlignTools::OnEditorFitTextureToSurface(UWorld* InWorld)
 {
 	UTexAligner* FitAligner = GTexAlignTools.Aligners[ 3 ];
-	for ( int32 LevelIndex = 0; LevelIndex < GWorld->GetNumLevels() ; ++LevelIndex )
+	for ( int32 LevelIndex = 0; LevelIndex < InWorld->GetNumLevels() ; ++LevelIndex )
 	{
-		ULevel* Level = GWorld->GetLevel(LevelIndex);
-		FitAligner->Align( TEXALIGN_None, Level->Model );
+		ULevel* Level = InWorld->GetLevel(LevelIndex);
+		FitAligner->Align( InWorld, TEXALIGN_None, Level->Model );
 	}
 }

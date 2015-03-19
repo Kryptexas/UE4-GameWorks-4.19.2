@@ -1671,7 +1671,7 @@ void FLevelEditorActionCallbacks::OnSelectStationaryLightsExceedingOverlap()
 
 void FLevelEditorActionCallbacks::OnSurfaceAlignment( ETexAlign AlignmentMode )
 {
-	GTexAlignTools.GetAligner( AlignmentMode )->Align( AlignmentMode );
+	GTexAlignTools.GetAligner( AlignmentMode )->Align( GetWorld(), AlignmentMode );
 }
 
 void FLevelEditorActionCallbacks::RegroupActor_Clicked()

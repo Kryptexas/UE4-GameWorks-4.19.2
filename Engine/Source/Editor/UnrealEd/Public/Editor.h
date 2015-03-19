@@ -96,6 +96,8 @@ struct UNREALED_API FEditorDelegates
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAssetsDeleted, const TArray<UClass*>& /*DeletedAssetClasses*/);
 	/** delegate type for when a new level is added to the world */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAddLevelToWorld, ULevel*);
+	/** delegate type for when a texture is fit to surface  */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnFitTextureToSurface, UWorld*);
 
 	/** Called when the CurrentLevel is switched to a new level.  Note that this event won't be fired for temporary
 		changes to the current level, such as when copying/pasting actors. */
@@ -109,7 +111,7 @@ struct UNREALED_API FEditorDelegates
 	/** Sent when requesting to display the properties of selected actors or BSP surfaces */
 	static FSimpleMulticastDelegate SelectedProps;
 	/** Fits the currently assigned texture to the selected surfaces */
-	static FSimpleMulticastDelegate FitTextureToSurface;
+	static FOnFitTextureToSurface FitTextureToSurface;
 	/** Called when the editor mode is changed */
 	static FOnModeChanged ChangeEditorMode;
 	/** Called when properties of an actor have changed */

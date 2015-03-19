@@ -110,7 +110,7 @@ FSimpleMulticastDelegate								FEditorDelegates::LayerChange;
 FEditorDelegates::FOnModeChanged						FEditorDelegates::ChangeEditorMode;
 FSimpleMulticastDelegate								FEditorDelegates::SurfProps;
 FSimpleMulticastDelegate								FEditorDelegates::SelectedProps;
-FSimpleMulticastDelegate								FEditorDelegates::FitTextureToSurface;
+FEditorDelegates::FOnFitTextureToSurface				FEditorDelegates::FitTextureToSurface;
 FSimpleMulticastDelegate								FEditorDelegates::ActorPropertiesChange;
 FSimpleMulticastDelegate								FEditorDelegates::RefreshEditor;
 FSimpleMulticastDelegate								FEditorDelegates::RefreshAllBrowsers;

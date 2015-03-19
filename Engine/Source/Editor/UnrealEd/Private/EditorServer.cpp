@@ -5184,7 +5184,7 @@ bool UEditorEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice& A
 	}
 	else if( FParse::Command(&Str,TEXT("EDCALLBACK")) )
 	{
-		HandleCallbackCommand( Str, Ar );
+		HandleCallbackCommand( InWorld, Str, Ar );
 	}
 	else if(FParse::Command(&Str,TEXT("STATICMESH")))
 	{
@@ -5535,7 +5535,7 @@ bool UEditorEngine::HandleBlueprintifyFunction( const TCHAR* Str , FOutputDevice
 	
 }
 
-bool UEditorEngine::HandleCallbackCommand( const TCHAR* Str , FOutputDevice& Ar )
+bool UEditorEngine::HandleCallbackCommand( UWorld* InWorld, const TCHAR* Str , FOutputDevice& Ar )
 {
 	bool bResult = true;
 	if ( FParse::Command(&Str,TEXT("SELECTEDPROPS")) )
@@ -5544,7 +5544,7 @@ bool UEditorEngine::HandleCallbackCommand( const TCHAR* Str , FOutputDevice& Ar 
 	}
 	else if( FParse::Command( &Str, TEXT( "FITTEXTURETOSURFACE" ) ) )
 	{
-		FEditorDelegates::FitTextureToSurface.Broadcast();
+		FEditorDelegates::FitTextureToSurface.Broadcast(InWorld);
 	}
 	else
 	{

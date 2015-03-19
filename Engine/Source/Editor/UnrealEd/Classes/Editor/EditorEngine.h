@@ -709,7 +709,7 @@ public:
 	 * Exec command handlers
 	 */
 	bool	HandleBlueprintifyFunction( const TCHAR* Str , FOutputDevice& Ar );
-	bool	HandleCallbackCommand( const TCHAR* Str, FOutputDevice& Ar );
+	bool	HandleCallbackCommand( UWorld* InWorld, const TCHAR* Str, FOutputDevice& Ar );
 	bool	HandleTestPropsCommand( const TCHAR* Str, FOutputDevice& Ar );
 	bool	HandleMapCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
 	bool	HandleSelectCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
