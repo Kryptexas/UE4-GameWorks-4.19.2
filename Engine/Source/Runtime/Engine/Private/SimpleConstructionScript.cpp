@@ -495,39 +495,39 @@ void USimpleConstructionScript::RemoveNode(USCS_Node* Node)
 	}
 }
 
-USCS_Node* USimpleConstructionScript::RemoveNodeAndPromoteChildren(USCS_Node* Node)
+void USimpleConstructionScript::RemoveNodeAndPromoteChildren(USCS_Node* Node)
 {
 	Node->Modify();
-	   
-	USCS_Node* ChildToPromote = NULL;
-
-	// Pick the first child to promote as a new 'root'
-	if (Node->ChildNodes.Num() > 0)
-	{
-		int32 PromoteIndex = 0;
-		ChildToPromote = Node->ChildNodes[PromoteIndex];
-
-		// if this is an editor-only component, then it can't have any game-component children (better make sure that's the case)
-		if (ChildToPromote->ComponentTemplate != NULL && ChildToPromote->ComponentTemplate->IsEditorOnly())
-		{
-			for (int32 ChildIndex = 1; ChildIndex < Node->ChildNodes.Num(); ++ChildIndex)
-			{
-				USCS_Node* Child = Node->ChildNodes[ChildIndex];
-				// we found a game-component sibling, better make it the child to promote
-				if (Child->ComponentTemplate != NULL && !Child->ComponentTemplate->IsEditorOnly())
-				{
-					ChildToPromote = Child;
-					PromoteIndex = ChildIndex;
-					break;
-				}
-			}
-		}
-
-		Node->ChildNodes.RemoveAt(PromoteIndex);
-	}
 
 	if (RootNodes.Contains(Node))
 	{
+		USCS_Node* ChildToPromote = NULL;
+
+		// Pick the first child to promote as a new 'root'
+		if (Node->ChildNodes.Num() > 0)
+		{
+			int32 PromoteIndex = 0;
+			ChildToPromote = Node->ChildNodes[PromoteIndex];
+
+			// if this is an editor-only component, then it can't have any game-component children (better make sure that's the case)
+			if (ChildToPromote->ComponentTemplate != NULL && ChildToPromote->ComponentTemplate->IsEditorOnly())
+			{
+				for (int32 ChildIndex = 1; ChildIndex < Node->ChildNodes.Num(); ++ChildIndex)
+				{
+					USCS_Node* Child = Node->ChildNodes[ChildIndex];
+					// we found a game-component sibling, better make it the child to promote
+					if (Child->ComponentTemplate != NULL && !Child->ComponentTemplate->IsEditorOnly())
+					{
+						ChildToPromote = Child;
+						PromoteIndex = ChildIndex;
+						break;
+					}
+				}
+			}
+
+			Node->ChildNodes.RemoveAt(PromoteIndex);
+		}
+
 		Modify();
 
 		if(ChildToPromote != NULL)
@@ -558,23 +558,14 @@ USCS_Node* USimpleConstructionScript::RemoveNodeAndPromoteChildren(USCS_Node* No
 
 		ParentNode->Modify();
 
-		if ( ChildToPromote != NULL )
-		{
-			ChildToPromote->Modify();
-
-			// Insert promoted node next to node being removed.
-			int32 Location = ParentNode->ChildNodes.Find(Node);
-			ParentNode->ChildNodes.Insert(ChildToPromote,Location);
-			ChildToPromote->ChildNodes.Append(Node->ChildNodes);	
-		}
-		// remove node
+		// remove node and move children onto parent
+		int32 Location = ParentNode->ChildNodes.Find(Node);
 		ParentNode->ChildNodes.Remove(Node);
+		ParentNode->ChildNodes.Insert(Node->ChildNodes, Location);
 	}
 
-	// Clear out references to promoted children
+	// Clear out references to previous children
 	Node->ChildNodes.Empty();
-
-	return ChildToPromote;
 }
 
 

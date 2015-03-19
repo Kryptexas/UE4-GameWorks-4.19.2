@@ -57,8 +57,8 @@ class USimpleConstructionScript : public UObject
 	/** Remove this node from the script (will take all its children with it) */
 	ENGINE_API void RemoveNode(USCS_Node* Node);
 
-	/** Remove this node from the script and promote its first child to replace it */
-	ENGINE_API USCS_Node* RemoveNodeAndPromoteChildren(USCS_Node* Node);
+	/** Remove this node from the script and if it's the root, promote its first child to replace it */
+	ENGINE_API void RemoveNodeAndPromoteChildren(USCS_Node* Node);
 
 	/** Find the parent node of this one. Returns NULL if node is not in tree or if is root */
 	ENGINE_API USCS_Node* FindParentNode(USCS_Node* InNode) const;
