@@ -236,6 +236,15 @@ void FComponentTypeRegistryData::ForceRefreshComponentList()
 					FComponentClassComboEntryPtr NewEntry(new FComponentClassComboEntry(ClassGroup, Class, bIncludeInFilter, EComponentCreateAction::SpawnExistingClass));
 					SortedClassList.Add(NewEntry);
 				}
+				else if(ClassGroupNames.Num() == 0 )
+				{
+					// No class group name found. Just add it to a "custom" category
+					
+					const bool bIncludeInFilter = true;
+					FString ClassGroup = LOCTEXT("CustomClassGroup", "Custom").ToString();
+					FComponentClassComboEntryPtr NewEntry(new FComponentClassComboEntry(ClassGroup, Class, bIncludeInFilter, EComponentCreateAction::SpawnExistingClass));
+					SortedClassList.Add(NewEntry);
+				}
 			}
 			
 			if (!bOutOfDateClass && !bBlueprintSkeletonClass)
