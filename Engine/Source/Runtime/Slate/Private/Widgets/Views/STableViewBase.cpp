@@ -233,7 +233,9 @@ void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCur
 			const int32 NumItemsBeingObserved = GetNumItemsBeingObserved();
 
 			const int32 NumItemsWide = GetNumItemsWide();
-			const bool bEnoughRoomForAllItems = ReGenerateResults.ExactNumRowsOnScreen >= (NumItemsBeingObserved / NumItemsWide);
+			const int32 NumItemRows = NumItemsBeingObserved / NumItemsWide;
+
+			const bool bEnoughRoomForAllItems = ReGenerateResults.ExactNumRowsOnScreen >= NumItemRows;
 			if (bEnoughRoomForAllItems)
 			{
 				// We can show all the items, so make sure there is no scrolling.
@@ -259,11 +261,22 @@ void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCur
 			// Update scrollbar
 			if (NumItemsBeingObserved > 0)
 			{
-				// The thumb size is whatever fraction of the items we are currently seeing (including partially seen items).
-				// e.g. if we are seeing 0.5 of the first generated widget and 0.75 of the last widget, that's 1.25 widgets.
-				const double ThumbSizeFraction = ReGenerateResults.ExactNumRowsOnScreen / (NumItemsBeingObserved / NumItemsWide);
-				const double OffsetFraction = ScrollOffset / NumItemsBeingObserved;
-				ScrollBar->SetState( OffsetFraction, ThumbSizeFraction );
+				if (ReGenerateResults.ExactNumRowsOnScreen < 1.0f)
+				{
+					// We are be observing a single row which is larger than the available visible area, so we should calculate thumb size based on that
+					const double VisibleSizeFraction = AllottedGeometry.GetLocalSize().Y / ReGenerateResults.HeightOfGeneratedItems;
+					const double ThumbSizeFraction = FMath::Min(VisibleSizeFraction, 1.0);
+					const double OffsetFraction = ScrollOffset / NumItemsBeingObserved;
+					ScrollBar->SetState( OffsetFraction, ThumbSizeFraction );
+				}
+				else
+				{
+					// The thumb size is whatever fraction of the items we are currently seeing (including partially seen items).
+					// e.g. if we are seeing 0.5 of the first generated widget and 0.75 of the last widget, that's 1.25 widgets.
+					const double ThumbSizeFraction = ReGenerateResults.ExactNumRowsOnScreen / NumItemRows;
+					const double OffsetFraction = ScrollOffset / NumItemsBeingObserved;
+					ScrollBar->SetState( OffsetFraction, ThumbSizeFraction );
+				}
 			}
 			else
 			{

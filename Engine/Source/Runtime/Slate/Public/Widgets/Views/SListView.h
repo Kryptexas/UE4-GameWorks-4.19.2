@@ -813,7 +813,13 @@ public:
 				if (bIsFirstItem)
 				{
 					// The first item may not be fully visible (but cannot exceed 1)
-					ItemsInView += 1.0f - FMath::Max(FMath::Fractional(ScrollOffset), 0.0f);
+					// FirstItemFractionScrolledIntoView is the fraction of the item that is visible after taking into account anything that may be scrolled off the top of the list view
+					// FirstItemHeightScrolledIntoView is the height of the item, ignoring anything that is scrolled off the top of the list view
+					// FirstItemVisibleFraction is either: The visible item height as a fraction of the available list view height (if the item size is larger than the available size, otherwise this will be >1), or just FirstItemFractionScrolledIntoView (which can never be >1)
+					const float FirstItemFractionScrolledIntoView = 1.0f - FMath::Max(FMath::Fractional(ScrollOffset), 0.0f);
+					const float FirstItemHeightScrolledIntoView = ItemHeight * FirstItemFractionScrolledIntoView;
+					const float FirstItemVisibleFraction = FMath::Min(MyGeometry.Size.Y / FirstItemHeightScrolledIntoView, FirstItemFractionScrolledIntoView);
+					ItemsInView += FirstItemVisibleFraction;
 				}
 				else if (ViewHeightUsedSoFar + ItemHeight > MyGeometry.Size.Y)
 				{
@@ -1378,7 +1384,7 @@ protected:
 	/** Delegate to invoke when selection changes. */
 	FOnSelectionChanged OnSelectionChanged;
 
-	/** Caled when the user clicks on an element int he list view with the left mouse button */
+	/** Called when the user clicks on an element int he list view with the left mouse button */
 	FOnMouseButtonClick OnClick;
 
 	/** Called when the user double-clicks on an element in the list view with the left mouse button */
