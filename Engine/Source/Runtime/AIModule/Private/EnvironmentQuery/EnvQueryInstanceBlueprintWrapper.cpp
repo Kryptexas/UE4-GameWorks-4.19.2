@@ -2,6 +2,7 @@
 
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/EnvQueryInstanceBlueprintWrapper.h"
+#include "EnvironmentQuery/Items/EnvQueryItemType_ActorBase.h"
 
 UEnvQueryInstanceBlueprintWrapper::UEnvQueryInstanceBlueprintWrapper(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

@@ -9,6 +9,7 @@
 #include "Engine/DemoNetConnection.h"
 #include "Engine/DemoPendingNetGame.h"
 #include "Engine/ActorChannel.h"
+#include "Engine/PackageMapClient.h"
 #include "RepLayout.h"
 #include "GameFramework/SpectatorPawn.h"
 #include "Engine/LevelStreamingKismet.h"
