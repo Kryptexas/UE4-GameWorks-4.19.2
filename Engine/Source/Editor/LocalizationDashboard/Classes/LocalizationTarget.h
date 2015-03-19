@@ -90,6 +90,17 @@ struct FCultureStatistics
 	uint32 WordCount;
 };
 
+UENUM()
+enum class ELocalizationTargetLoadingPolicy : uint8
+{
+	Never,
+	Always,
+	Editor,
+	Game,
+	PropertyNames,
+	ToolTips,
+};
+
 USTRUCT()
 struct FLocalizationTargetSettings
 {

@@ -22,6 +22,11 @@ private:
 	void OnTargetNameChanged(const FText& NewText);
 	void OnTargetNameCommitted(const FText& NewText, ETextCommit::Type Type);
 
+	ELocalizationTargetLoadingPolicy GetLoadingPolicy() const;
+	void SetLoadingPolicy(const ELocalizationTargetLoadingPolicy LoadingPolicy);
+	void OnLoadingPolicySelectionChanged(TSharedPtr<ELocalizationTargetLoadingPolicy> LoadingPolicy, ESelectInfo::Type SelectInfo);
+	TSharedRef<SWidget> GenerateWidgetForLoadingPolicy(TSharedPtr<ELocalizationTargetLoadingPolicy> LoadingPolicy);
+
 	void RebuildTargetDependenciesBox();
 	void RebuildTargetsList();
 	TSharedRef<ITableRow> OnGenerateTargetRow(ULocalizationTarget* OtherLocalizationTarget, const TSharedRef<STableViewBase>& Table);
