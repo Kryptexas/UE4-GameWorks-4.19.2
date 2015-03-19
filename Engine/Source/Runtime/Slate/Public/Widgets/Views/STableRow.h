@@ -223,7 +223,7 @@ public:
 				DropIndicatorBrush,
 				MyClippingRect,
 				ESlateDrawEffect::None,
-				InWidgetStyle.GetColorAndOpacityTint()
+				DropIndicatorBrush->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint()
 			);
 		}
 

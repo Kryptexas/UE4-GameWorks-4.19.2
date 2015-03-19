@@ -482,10 +482,6 @@ public:
 
 	// SWidget interface
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
-	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
-	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
-	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 	// End of SWidget interface
 
 	/** Get the blueprint we are editing */
@@ -522,6 +518,13 @@ private:
 
 	/** Creates a tooltip for this row */
 	TSharedRef<SToolTip> CreateToolTipWidget() const;
+
+	/** Drag-drop handlers */
+	void HandleOnDragEnter(const FDragDropEvent& DragDropEvent);
+	void HandleOnDragLeave(const FDragDropEvent& DragDropEvent);
+	FReply HandleOnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+	TOptional<EItemDropZone> HandleOnCanAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, FSCSEditorTreeNodePtrType TargetItem);
+	FReply HandleOnAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, FSCSEditorTreeNodePtrType TargetItem);
 
 	/** Handler for attaching a single node to this node */
 	void OnAttachToDropAction(FSCSEditorTreeNodePtrType DroppedNodePtr)
@@ -668,11 +671,10 @@ public:
 	/** Object construction - mostly defers to the base STreeView */
 	void Construct( const FArguments& InArgs );
 
-	/** Handler for drag over operations */
-	FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent );
-
-	/** Handler for drop operations */
-	FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent );
+	// SWidget interface
+	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	// End SWidget interface
 
 private:
 	/** Pointer to the SSCSEditor that owns this widget */

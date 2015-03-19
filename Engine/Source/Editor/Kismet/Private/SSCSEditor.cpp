@@ -1274,7 +1274,12 @@ void SSCS_RowWidget::Construct( const FArguments& InArgs, TSharedPtr<SSCSEditor>
 				&FEditorStyle::Get().GetWidgetStyle<FTableRowStyle>("TableView.NoHoverTableRow") :
 				&FEditorStyle::Get().GetWidgetStyle<FTableRowStyle>("SceneOutliner.TableViewRow")) //@todo create editor style for the SCS tree
 		.Padding(FMargin(0.f, 0.f, 0.f, 4.f))
-		.ShowSelection(!bIsSeparator);
+		.ShowSelection(!bIsSeparator)
+		.OnDragDetected(this, &SSCS_RowWidget::HandleOnDragDetected)
+		.OnDragEnter(this, &SSCS_RowWidget::HandleOnDragEnter)
+		.OnDragLeave(this, &SSCS_RowWidget::HandleOnDragLeave)
+		.OnCanAcceptDrop(this, &SSCS_RowWidget::HandleOnCanAcceptDrop)
+		.OnAcceptDrop(this, &SSCS_RowWidget::HandleOnAcceptDrop);
 
 	SMultiColumnTableRow<FSCSEditorTreeNodePtrType>::Construct( Args, InOwnerTableView.ToSharedRef() );
 }
@@ -1836,7 +1841,7 @@ FReply SSCS_RowWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoi
 	}
 }
 
-FReply SSCS_RowWidget::OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+FReply SSCS_RowWidget::HandleOnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	auto SCSEditorPtr = SCSEditor.Pin();
 	if (MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton)
@@ -1868,7 +1873,7 @@ FReply SSCS_RowWidget::OnDragDetected( const FGeometry& MyGeometry, const FPoint
 	return FReply::Unhandled();
 }
 
-void SSCS_RowWidget::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
+void SSCS_RowWidget::HandleOnDragEnter( const FDragDropEvent& DragDropEvent )
 {
 	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
 	if (!Operation.IsValid())
@@ -2165,12 +2170,13 @@ void SSCS_RowWidget::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEv
 		TSharedPtr<SSCSEditor> PinnedEditor = SCSEditor.Pin();
 		if ( PinnedEditor.IsValid() && PinnedEditor->SCSTreeWidget.IsValid() )
 		{
-			PinnedEditor->SCSTreeWidget->OnDragEnter( MyGeometry, DragDropEvent );
+			// The widget geometry is irrelevant to the tree widget's OnDragEnter
+			PinnedEditor->SCSTreeWidget->OnDragEnter( FGeometry(), DragDropEvent );
 		}
 	}
 }
 
-void SSCS_RowWidget::OnDragLeave( const FDragDropEvent& DragDropEvent )
+void SSCS_RowWidget::HandleOnDragLeave(const FDragDropEvent& DragDropEvent)
 {
 	TSharedPtr<FSCSRowDragDropOp> DragRowOp = DragDropEvent.GetOperationAs<FSCSRowDragDropOp>();
 	if (DragRowOp.IsValid())
@@ -2194,7 +2200,33 @@ void SSCS_RowWidget::OnDragLeave( const FDragDropEvent& DragDropEvent )
 	}
 }
 
-FReply SSCS_RowWidget::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
+TOptional<EItemDropZone> SSCS_RowWidget::HandleOnCanAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, FSCSEditorTreeNodePtrType TargetItem)
+{
+	TOptional<EItemDropZone> ReturnDropZone;
+
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (Operation.IsValid())
+	{
+		if (Operation->IsOfType<FSCSRowDragDropOp>() && ( Cast<USceneComponent>(GetNode()->GetComponentTemplate()) != nullptr ))
+		{
+			TSharedPtr<FSCSRowDragDropOp> DragRowOp = StaticCastSharedPtr<FSCSRowDragDropOp>(Operation);
+			check(DragRowOp.IsValid());
+
+			if (DragRowOp->PendingDropAction != FSCSRowDragDropOp::DropAction_None)
+			{
+				ReturnDropZone = EItemDropZone::OntoItem;
+			}
+		}
+		else if (Operation->IsOfType<FExternalDragOperation>() || Operation->IsOfType<FAssetDragDropOp>())
+		{
+			ReturnDropZone = EItemDropZone::OntoItem;
+		}
+	}
+
+	return ReturnDropZone;
+}
+
+FReply SSCS_RowWidget::HandleOnAcceptDrop( const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, FSCSEditorTreeNodePtrType TargetItem )
 {
 	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
 	if (!Operation.IsValid())
@@ -2243,7 +2275,8 @@ FReply SSCS_RowWidget::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent
 		TSharedPtr<SSCSEditor> PinnedEditor = SCSEditor.Pin();
 		if ( PinnedEditor.IsValid() && PinnedEditor->SCSTreeWidget.IsValid() )
 		{
-			PinnedEditor->SCSTreeWidget->OnDrop( MyGeometry, DragDropEvent );
+			// The widget geometry is irrelevant to the tree widget's OnDrop
+			PinnedEditor->SCSTreeWidget->OnDrop( FGeometry(), DragDropEvent );
 		}
 	}
 
