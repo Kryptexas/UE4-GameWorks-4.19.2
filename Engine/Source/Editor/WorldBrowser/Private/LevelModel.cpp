@@ -9,6 +9,7 @@
 #include "Engine/Selection.h"
 #include "Engine/LevelStreaming.h"
 #include "AssetRegistryModule.h"
+#include "GameFramework/WorldSettings.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
@@ -656,6 +657,14 @@ void FLevelModel::SelectActors(bool bSelect, bool bNotify, bool bSelectEvenIfHid
 				continue;
 			}
 			
+			//exclude the world settings and builder brush from actors selected
+			const bool bIsWorldSettings = Actor->IsA(AWorldSettings::StaticClass());
+			const bool bIsBuilderBrush = (Actor->IsA(ABrush::StaticClass()) && FActorEditorUtils::IsABuilderBrush(Actor));
+			if (bIsWorldSettings || bIsBuilderBrush)
+			{
+				continue;
+			}
+
 			bool bNotifyForActor = false;
 			Editor->GetSelectedActors()->Modify();
 			Editor->SelectActor(Actor, bSelect, bNotifyForActor, bSelectEvenIfHidden);

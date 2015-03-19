@@ -115,6 +115,7 @@ void UUnrealEdEngine::edactCopySelected( UWorld* InWorld, FString* DestinationDa
 		// Before copying, deselect:
 		//		- Actors belonging to prefabs unless all actors in the prefab are selected.
 		//		- Builder brushes.
+		//      - World Settings.
 		TArray<AActor*> ActorsToDeselect;
 
 		bool bSomeSelectedActorsNotInCurrentLevel = false;
@@ -127,6 +128,12 @@ void UUnrealEdEngine::edactCopySelected( UWorld* InWorld, FString* DestinationDa
 			ABrush* Brush = Cast< ABrush >(Actor);
 			const bool bActorIsBuilderBrush = ( Brush && FActorEditorUtils::IsABuilderBrush(Brush) );
 			if (bActorIsBuilderBrush)
+			{
+				ActorsToDeselect.Add(Actor);
+			}
+
+			// Deselect world settings
+			if (Actor->IsA( AWorldSettings::StaticClass() ))
 			{
 				ActorsToDeselect.Add(Actor);
 			}
