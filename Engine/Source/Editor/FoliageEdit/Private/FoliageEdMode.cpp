@@ -1166,19 +1166,22 @@ void FEdModeFoliage::RemoveSelectedInstances(UWorld* InWorld)
 	GEditor->EndTransaction();
 }
 
-void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere)
+void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere, float Pressure)
 {
+	// Adjust instance density first
+	ReapplyInstancesDensityForBrush(InWorld, Settings, BrushSphere, Pressure);
+		
 	for (FFoliageMeshInfoIterator It(InWorld, Settings); It; ++It)
 	{
 		FFoliageMeshInfo* MeshInfo = (*It);
 		AInstancedFoliageActor* IFA = It.GetActor();
 
-		ReapplyInstancesForBrush(InWorld, IFA, Settings, MeshInfo, BrushSphere);
+		ReapplyInstancesForBrush(InWorld, IFA, Settings, MeshInfo, BrushSphere, Pressure);
 	}
 }
 
 /** Reapply instance settings to exiting instances */
-void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliageActor* IFA, const UFoliageType* Settings, FFoliageMeshInfo* MeshInfo, const FSphere& BrushSphere)
+void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliageActor* IFA, const UFoliageType* Settings, FFoliageMeshInfo* MeshInfo, const FSphere& BrushSphere, float Pressure)
 {
 	TArray<int32> ExistingInstances;
 	MeshInfo->GetInstancesInsideSphere(BrushSphere, ExistingInstances);
@@ -1486,31 +1489,29 @@ void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliage
 
 void FEdModeFoliage::ReapplyInstancesDensityForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere, float Pressure)
 {
-	// TODO: make it work with seamless painting
+	if (Settings->ReapplyDensity && !FMath::IsNearlyEqual(Settings->ReapplyDensityAmount, 1.f))
+	{
+		// Determine number of instances at the start of the brush stroke
+		int32 SnapshotInstanceCount = 0;
+		TArray<const FMeshInfoSnapshot*> SnapshotList;
+		InstanceSnapshot.MultiFindPointer(const_cast<UFoliageType*>(Settings), SnapshotList);
+		for (const auto* Snapshot: SnapshotList)
+		{
+			SnapshotInstanceCount+= Snapshot->CountInstancesInsideSphere(BrushSphere);
+		}
 	
-	//// Adjust instance density
-	//int32 SnapShotInstanceCount = 0;
-	//TArray<FMeshInfoSnapshot*> SnapShotList;
-	//InstanceSnapshot.MultiFindPointer(Settings, SnapShotList);
+		// Determine desired number of instances
+		int32 DesiredInstanceCount = FMath::RoundToInt((float)SnapshotInstanceCount * Settings->ReapplyDensityAmount);
 
-	//if (SnapShotList.Num())
-	//{
-	//	// Use snapshot to determine number of instances at the start of the brush stroke
-	//	for (auto* SnapShot : SnapShotList)
-	//	{
-	//		SnapShotInstanceCount+= SnapShot->CountInstancesInsideSphere(BrushSphere);
-	//	}
-	//			
-	//	int32 NewInstanceCount = FMath::RoundToInt((float)SnapShotInstanceCount * Settings->ReapplyDensityAmount);
-	//	if (Settings->ReapplyDensityAmount > 1.f && NewInstanceCount > Instances.Num())
-	//	{
-	//		AddInstancesForBrush(InWorld, Settings, BrushSphere, );
-	//	}
-	//	else if (Settings->ReapplyDensityAmount < 1.f && NewInstanceCount < Instances.Num())
-	//	{
-	//		RemoveInstancesForBrush(IFA, *MeshInfo, NewInstanceCount, Instances, Pressure);
-	//	}
-	//}
+		if (Settings->ReapplyDensityAmount > 1.f)
+		{
+			AddInstancesForBrush(InWorld, Settings, BrushSphere, DesiredInstanceCount, Pressure);
+		}
+		else if (Settings->ReapplyDensityAmount < 1.f)
+		{
+			RemoveInstancesForBrush(InWorld, Settings, BrushSphere, DesiredInstanceCount, Pressure);
+		}
+	}
 }
 
 void FEdModeFoliage::PreApplyBrush()
@@ -1582,7 +1583,7 @@ void FEdModeFoliage::ApplyBrush(FEditorViewportClient* ViewportClient)
 		else if (UISettings.GetReapplyToolSelected())
 		{
 			// Reapply any settings checked by the user
-			ReapplyInstancesForBrush(World, Settings, BrushSphere);
+			ReapplyInstancesForBrush(World, Settings, BrushSphere, Pressure);
 		}
 		else if (UISettings.GetPaintToolSelected())
 		{

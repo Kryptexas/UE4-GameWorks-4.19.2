@@ -131,14 +131,16 @@ public:
 	FMeshInfoSnapshot(FFoliageMeshInfo* MeshInfo)
 		: Hash(*MeshInfo->InstanceHash)
 	{
-		Locations.AddUninitialized(MeshInfo->Instances.Num());
-		for (int32 Idx = 0; Idx < MeshInfo->Instances.Num(); Idx++)
+		int32 NumInstances = MeshInfo->Instances.Num();
+		Locations.Reserve(NumInstances);
+		Locations.AddUninitialized(NumInstances);
+		for (int32 Idx = 0; Idx < NumInstances; Idx++)
 		{
 			Locations[Idx] = MeshInfo->Instances[Idx].Location;
 		}
 	}
 
-	int32 CountInstancesInsideSphere(const FSphere& Sphere)
+	int32 CountInstancesInsideSphere(const FSphere& Sphere) const
 	{
 		int32 Count = 0;
 
@@ -337,8 +339,8 @@ private:
 
 	/** Reapply instance settings to exiting instances */
 	void ReapplyInstancesDensityForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere, float Pressure);
-	void ReapplyInstancesForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere);
-	void ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliageActor* IFA, const UFoliageType* Settings, FFoliageMeshInfo* MeshInfo, const FSphere& BrushSphere);
+	void ReapplyInstancesForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere, float Pressure);
+	void ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliageActor* IFA, const UFoliageType* Settings, FFoliageMeshInfo* MeshInfo, const FSphere& BrushSphere, float Pressure);
 
 	/** Select instances inside the brush. */
 	void SelectInstancesForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere, bool bSelect);

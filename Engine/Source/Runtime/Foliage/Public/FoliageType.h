@@ -140,7 +140,7 @@ class UFoliageType : public UObject
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Painting)
 	uint32 VertexColorMaskInvert:1;
 
-	UPROPERTY(EditAnywhere, Category=Painting)
+	UPROPERTY(EditAnywhere, Category=Painting, meta=(DisplayName="Density Amount", UIMin=0, ClampMin=0))
 	float ReapplyDensityAmount;
 
 	/** If checked, the density of foliage instances already placed will be adjusted. <1 will remove instances to reduce the density, >1 will place extra instances */

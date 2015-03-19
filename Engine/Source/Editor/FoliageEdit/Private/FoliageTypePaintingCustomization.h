@@ -31,6 +31,9 @@ private:
 	void OnReapplyPropertyStateChanged(ECheckBoxState CheckState, TSharedPtr<IPropertyHandle> ReapplyProperty);
 	bool IsReapplyPropertyEnabled(TSharedPtr<IPropertyHandle> ReapplyProperty) const;
 
+	EVisibility GetDensityVisibility() const;
+	EVisibility GetReapplyDensityAmountVisibility() const;
+
 	IDetailPropertyRow& AddFoliageProperty(
 		IDetailCategoryBuilder& Category,
 		TSharedPtr<IPropertyHandle>& Property, 

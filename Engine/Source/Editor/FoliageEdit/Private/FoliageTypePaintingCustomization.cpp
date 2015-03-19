@@ -77,11 +77,15 @@ void FFoliageTypePaintingCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 	ReapplyCollisionWithWorld = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, ReapplyCollisionWithWorld));
 	ReapplyVertexColorMask = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, ReapplyVertexColorMask));
 	
-	// Density
-	// TODO: Reapply density
+	// Density is hidden during Reapply mode
 	AddFoliageProperty(PaintingCategory, Density, InvalidProperty, 
-		TAttribute<EVisibility>(), 
-		TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::IsReapplyPropertyEnabled, ReapplyDensity)));
+		TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::GetDensityVisibility)), 
+		TAttribute<bool>());
+	
+	// Reapply DensityAmount is visible only during Reapply mode
+	AddFoliageProperty(PaintingCategory, ReapplyDensityAmount, ReapplyDensity, 
+		TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::GetReapplyDensityAmountVisibility)), 
+		TAttribute<bool>());
 
 	// Radius
 	AddFoliageProperty(PaintingCategory, Radius, ReapplyRadius, TAttribute<EVisibility>(), TAttribute<bool>());
@@ -313,5 +317,18 @@ bool FFoliageTypePaintingCustomization::IsReapplyPropertyEnabled(TSharedPtr<IPro
 
 	return true;
 }
+
+EVisibility FFoliageTypePaintingCustomization::GetDensityVisibility() const
+{
+	// mutually exclusive with ReapplyDensityAmmount
+	return !FoliageEditMode->UISettings.GetReapplyToolSelected() ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+EVisibility FFoliageTypePaintingCustomization::GetReapplyDensityAmountVisibility() const
+{
+	// mutually exclusive with Density
+	return FoliageEditMode->UISettings.GetReapplyToolSelected() ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
 
 #undef LOCTEXT_NAMESPACE

@@ -239,12 +239,12 @@ private:
 	const int32 HashCellBits;
 	TMap<uint64, TSet<int32>> CellMap;
 
-	uint64 MakeKey(int32 CellX, int32 CellY)
+	uint64 MakeKey(int32 CellX, int32 CellY) const
 	{
 		return ((uint64)(*(uint32*)(&CellX)) << 32) | (*(uint32*)(&CellY) & 0xffffffff);
 	}
 
-	uint64 MakeKey(const FVector& Location)
+	uint64 MakeKey(const FVector& Location) const
 	{
 		return  MakeKey(FMath::FloorToInt(Location.X) >> HashCellBits, FMath::FloorToInt(Location.Y) >> HashCellBits);
 	}
@@ -269,7 +269,7 @@ public:
 		check(RemoveCount == 1);
 	}
 
-	void GetInstancesOverlappingBox(const FBox& InBox, TArray<int32>& OutInstanceIndices)
+	void GetInstancesOverlappingBox(const FBox& InBox, TArray<int32>& OutInstanceIndices) const
 	{
 		int32 MinX = FMath::FloorToInt(InBox.Min.X) >> HashCellBits;
 		int32 MinY = FMath::FloorToInt(InBox.Min.Y) >> HashCellBits;
@@ -290,7 +290,7 @@ public:
 		}
 	}
 
-	TArray<int32> GetInstancesOverlappingBox(const FBox& InBox)
+	TArray<int32> GetInstancesOverlappingBox(const FBox& InBox) const
 	{
 		TArray<int32> Result;
 		GetInstancesOverlappingBox(InBox, Result);
@@ -298,7 +298,7 @@ public:
 	}
 
 #if UE_BUILD_DEBUG
-	void CheckInstanceCount(int32 InCount)
+	void CheckInstanceCount(int32 InCount) const
 	{
 		int32 HashCount = 0;
 		for (const auto& Pair : CellMap)
