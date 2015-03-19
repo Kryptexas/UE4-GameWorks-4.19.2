@@ -113,7 +113,6 @@ void EndInitTextLocalization()
 				{
 					// Make the user aware that the localization data belongs to a parent culture.
 					UE_LOG(LogTextLocalizationManager, Log, TEXT("The requested culture ('%s') has no localization data; parent culture's ('%s') localization data will be used."), *RequestedCultureName, *ValidCultureName);
-					TargetCultureName = ValidCultureName;
 				}
 			}
 			else
