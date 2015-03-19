@@ -131,8 +131,28 @@ void FMacApplication::SetMessageHandler(const TSharedRef<FGenericApplicationMess
 
 void FMacApplication::PollGameDeviceState(const float TimeDelta)
 {
+	// initialize any externally-implemented input devices (we delay load initialize the array so any plugins have had time to load)
+	if (!bHasLoadedInputPlugins)
+	{
+		TArray<IInputDeviceModule*> PluginImplementations = IModularFeatures::Get().GetModularFeatureImplementations<IInputDeviceModule>( IInputDeviceModule::GetModularFeatureName() );
+		for( auto InputPluginIt = PluginImplementations.CreateIterator(); InputPluginIt; ++InputPluginIt )
+		{
+			TSharedPtr<IInputDevice> Device = (*InputPluginIt)->CreateInputDevice(MessageHandler);
+			AddExternalInputDevice(Device);			
+		}
+
+		bHasLoadedInputPlugins = true;
+	}
+
 	// Poll game device state and send new events
 	HIDInput->SendControllerEvents();
+
+	// Poll externally-implemented devices
+	for( auto DeviceIt = ExternalInputDevices.CreateIterator(); DeviceIt; ++DeviceIt )
+	{
+		(*DeviceIt)->Tick( TimeDelta );
+		(*DeviceIt)->SendControllerEvents();
+	}
 }
 
 void FMacApplication::PumpMessages(const float TimeDelta)
