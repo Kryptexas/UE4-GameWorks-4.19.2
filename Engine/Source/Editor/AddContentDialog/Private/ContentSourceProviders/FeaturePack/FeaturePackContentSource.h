@@ -15,6 +15,7 @@ public:
 	
 	virtual EContentSourceCategory GetCategory() override;
 	virtual TArray<FLocalizedText> GetLocalizedAssetTypes() override;
+	virtual FString GetSortKey() const override;
 	virtual FString GetClassTypesUsed() override;
 
 	virtual TSharedPtr<FImageData> GetIconData() override;
@@ -40,4 +41,5 @@ private:
 	FString ClassTypes;
 	bool bPackValid;
 	FString FocusAssetIdent;
+	FString SortKey;
 };

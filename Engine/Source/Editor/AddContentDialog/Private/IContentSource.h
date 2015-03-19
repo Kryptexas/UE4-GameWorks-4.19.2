@@ -100,6 +100,8 @@ public:
 	/** Gets the class types used in this pack. */
 	virtual FString GetClassTypesUsed() = 0;
 
+	/** Gets the category for the content source. */
+	virtual FString GetSortKey() const { return FString(TEXT(""));};
 	/*
 	 * Installs the content in the content source to the specific path. 
 	 * @returns true if install suceeded

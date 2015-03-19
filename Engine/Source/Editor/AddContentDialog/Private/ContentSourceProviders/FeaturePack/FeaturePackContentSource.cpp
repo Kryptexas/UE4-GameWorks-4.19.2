@@ -68,6 +68,10 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath)
 	// Parse initial focus asset
 	FocusAssetIdent = ManifestObject->GetStringField("FocusAsset");
 
+	// Use the path as the sort key - it will be alphabetical that way
+	SortKey = FeaturePackPath;
+	ManifestObject->TryGetStringField("SortKey", SortKey);
+
 	FString CategoryString = ManifestObject->GetStringField("Category");	
 	if (CategoryString == "CodeFeature")
 	{
@@ -219,4 +223,9 @@ bool FFeaturePackContentSource::IsDataValid() const
 FString FFeaturePackContentSource::GetFocusAssetName() const
 {
 	return FocusAssetIdent;
+}
+
+FString FFeaturePackContentSource::GetSortKey() const
+{
+	return SortKey;
 }
