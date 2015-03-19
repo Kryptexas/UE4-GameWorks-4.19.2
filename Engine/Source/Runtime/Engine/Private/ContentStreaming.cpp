@@ -2657,7 +2657,7 @@ bool FStreamingManagerTexture::AddDynamicPrimitive( const UPrimitiveComponent* P
 	if (Primitive && Primitive->IsRegistered())
 	{
 		TArray<FStreamingTexturePrimitiveInfo> TextureInstanceInfos;
-		Primitive->GetStreamingTextureInfo( TextureInstanceInfos );
+		Primitive->GetStreamingTextureInfoWithNULLRemoval( TextureInstanceInfos );
 
 		FSpawnedPrimitiveData* PrimitiveData = NULL;
 		TArray<FSpawnedTextureInstance>* TextureInstances = NULL;
@@ -3032,7 +3032,7 @@ void FStreamingManagerTexture::NotifyTimedPrimitiveAttached( const UPrimitiveCom
 	if ( Primitive  && Primitive->IsRegistered())
 	{
 		TArray<FStreamingTexturePrimitiveInfo> TextureInstanceInfos;
-		Primitive->GetStreamingTextureInfo( TextureInstanceInfos );
+		Primitive->GetStreamingTextureInfoWithNULLRemoval( TextureInstanceInfos );
 
 		FSpawnedPrimitiveData* PrimitiveData = NULL;
 		TArray<FSpawnedTextureInstance>* TextureInstances = NULL;
@@ -3063,7 +3063,7 @@ void FStreamingManagerTexture::NotifyTimedPrimitiveDetached( const UPrimitiveCom
 	if ( Primitive )
 	{
 		TArray<FStreamingTexturePrimitiveInfo> TextureInstanceInfos;
-		Primitive->GetStreamingTextureInfo( TextureInstanceInfos );
+		Primitive->GetStreamingTextureInfoWithNULLRemoval( TextureInstanceInfos );
 
 		FSpawnedPrimitiveData* PrimitiveData = NULL;
 		TArray<FSpawnedTextureInstance>* TextureInstances = NULL;

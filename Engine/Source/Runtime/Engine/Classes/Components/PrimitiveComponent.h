@@ -24,6 +24,13 @@ struct FStreamingTexturePrimitiveInfo
 	UTexture* Texture;
 	FSphere Bounds;
 	float TexelFactor;
+
+	FStreamingTexturePrimitiveInfo()
+		: Texture(nullptr)
+		, Bounds(0)
+		, TexelFactor(1.0f)
+	{
+	}
 };
 
 /** Determines whether a Character can attempt to step up onto a component when they walk in to it. */
@@ -1059,7 +1066,14 @@ public:
 	 * @param OutStreamingTextures - Upon return, contains a list of the streaming textures used by the primitive.
 	 */
 	virtual void GetStreamingTextureInfo(TArray<struct FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
-	{}
+	{
+	}
+
+	/**
+	 * Call GetStreamingTextureInfo and remove the elements with a NULL texture
+	 * @param OutStreamingTextures - Upon return, contains a list of the non-null streaming textures used by the primitive.
+	 */
+	void GetStreamingTextureInfoWithNULLRemoval(TArray<struct FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const;
 
 	/**
 	 * Determines the DPG the primitive's primary elements are drawn in.

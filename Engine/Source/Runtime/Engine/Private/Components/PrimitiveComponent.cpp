@@ -164,6 +164,17 @@ bool UPrimitiveComponent::HasStaticLighting() const
 	return ((Mobility == EComponentMobility::Static) || bLightAsIfStatic) && SupportsStaticLighting();
 }
 
+void UPrimitiveComponent::GetStreamingTextureInfoWithNULLRemoval(TArray<struct FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
+{
+	GetStreamingTextureInfo(OutStreamingTextures);
+	for (int32 Index = 0; Index < OutStreamingTextures.Num(); Index++)
+	{
+		if (!OutStreamingTextures[Index].Texture || !Cast<UTexture2D>(OutStreamingTextures[Index].Texture))
+		{
+			OutStreamingTextures.RemoveAt(Index--);
+		}
+	}
+}
 
 void UPrimitiveComponent::GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel)
 {
