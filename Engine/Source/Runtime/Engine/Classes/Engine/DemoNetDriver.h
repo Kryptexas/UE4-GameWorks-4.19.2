@@ -66,6 +66,7 @@ class UDemoNetDriver
 
 private:
 	bool		bIsFastForwarding;
+	double		FastForwardStartSeconds;
 
 public:
 
@@ -83,6 +84,7 @@ public:
 	ENGINE_API void SkipTime(float InTimeToSkip);
 	bool InitConnectInternal( FString& Error );
 	virtual bool ShouldClientDestroyTearOffActors() const override;
+	virtual bool ShouldSkipRepNotifies() const override;
 
 public:
 

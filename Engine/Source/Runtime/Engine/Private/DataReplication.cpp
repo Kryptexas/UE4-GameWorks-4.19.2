@@ -1127,6 +1127,11 @@ void FObjectReplicator::CallRepNotifies()
 		return;
 	}
 
+	if ( Connection != NULL && Connection->Driver != NULL && Connection->Driver->ShouldSkipRepNotifies() )
+	{
+		return;
+	}
+
 	RepLayout->CallRepNotifies( RepState, Object );
 
 	if ( RepNotifies.Num() > 0 )
