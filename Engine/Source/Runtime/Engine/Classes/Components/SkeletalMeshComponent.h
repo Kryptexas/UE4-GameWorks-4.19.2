@@ -569,7 +569,7 @@ public:
 	 *
 	 * @param bRemoveZeroWeight : Used by editor code when it should stay in the active list with zero weight
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
+	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh", meta=(UnsafeDuringActorConstruction="true"))
 	void SetMorphTarget(FName MorphTargetName, float Value, bool bRemoveZeroWeight=true);
 
 	/**
