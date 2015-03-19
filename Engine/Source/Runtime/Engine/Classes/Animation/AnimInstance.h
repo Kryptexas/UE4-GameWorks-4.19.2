@@ -709,6 +709,7 @@ public:
 
 	void InitializeAnimation();
 	void UpdateAnimation(float DeltaSeconds);
+	void UninitializeAnimation();
 
 	// Native initialization override point
 	virtual void NativeInitializeAnimation();

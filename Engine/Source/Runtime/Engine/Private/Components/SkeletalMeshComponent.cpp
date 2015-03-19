@@ -209,6 +209,11 @@ void USkeletalMeshComponent::OnUnregister()
 	ReleaseAllClothingResources();
 #endif// #if WITH_APEX_CLOTHING
 
+	if (AnimScriptInstance)
+	{
+		AnimScriptInstance->UninitializeAnimation();
+	}
+
 	Super::OnUnregister();
 }
 
@@ -2003,16 +2008,16 @@ void USkeletalMeshComponent::UnregisterOnSkeletalMeshPropertyChanged( FDelegateH
 
 void USkeletalMeshComponent::ValidateAnimation()
 {
-	if (SkeletalMesh && SkeletalMesh->Skeleton == NULL)
+	if (SkeletalMesh && SkeletalMesh->Skeleton == nullptr)
 	{
 		UE_LOG(LogAnimation, Warning, TEXT("SkeletalMesh %s has no skeleton. This needs to fixed before an animation can be set"), *SkeletalMesh->GetName());
 		if (AnimationMode == EAnimationMode::AnimationSingleNode)
 		{
-			AnimationData.AnimToPlay = NULL;
+			AnimationData.AnimToPlay = nullptr;
 		}
 		else
 		{
-			AnimBlueprintGeneratedClass = NULL;
+			AnimBlueprintGeneratedClass = nullptr;
 		}
 		return;
 	}
@@ -2021,24 +2026,32 @@ void USkeletalMeshComponent::ValidateAnimation()
 	{
 		if(AnimationData.AnimToPlay && SkeletalMesh && AnimationData.AnimToPlay->GetSkeleton() != SkeletalMesh->Skeleton)
 		{
-			UE_LOG(LogAnimation, Warning, TEXT("Animation %s is incompatible with skeleton %s, removing animation from actor."), *AnimationData.AnimToPlay->GetName(), *SkeletalMesh->Skeleton->GetName());
-			AnimationData.AnimToPlay = NULL;
+			if (SkeletalMesh->Skeleton)
+			{
+				UE_LOG(LogAnimation, Warning, TEXT("Animation %s is incompatible with skeleton %s, removing animation from actor."), *AnimationData.AnimToPlay->GetName(), *SkeletalMesh->Skeleton->GetName());
+			}
+			else
+			{
+				UE_LOG(LogAnimation, Warning, TEXT("Animation %s is incompatible because mesh %s has no skeleton, removing animation from actor."), *AnimationData.AnimToPlay->GetName());
+			}
+
+			AnimationData.AnimToPlay = nullptr;
 		}
 	}
 	else
 	{
 		if(AnimBlueprintGeneratedClass && SkeletalMesh && AnimBlueprintGeneratedClass->TargetSkeleton != SkeletalMesh->Skeleton)
 		{
-			if(SkeletalMesh->Skeleton == nullptr)
-			{
-				UE_LOG(LogAnimation, Warning, TEXT("AnimBP %s is incompatible because mesh %s has no skeleton, removing AnimBP from actor."), *AnimBlueprintGeneratedClass->GetName(), *SkeletalMesh->GetName());
-			}
-			else
+			if(SkeletalMesh->Skeleton)
 			{
 				UE_LOG(LogAnimation, Warning, TEXT("AnimBP %s is incompatible with skeleton %s, removing AnimBP from actor."), *AnimBlueprintGeneratedClass->GetName(), *SkeletalMesh->Skeleton->GetName());
 			}
+			else
+			{
+				UE_LOG(LogAnimation, Warning, TEXT("AnimBP %s is incompatible because mesh %s has no skeleton, removing AnimBP from actor."), *AnimBlueprintGeneratedClass->GetName(), *SkeletalMesh->GetName());
+			}
 
-			AnimBlueprintGeneratedClass = NULL;
+			AnimBlueprintGeneratedClass = nullptr;
 		}
 	}
 }
