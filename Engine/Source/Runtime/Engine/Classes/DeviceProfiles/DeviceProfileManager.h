@@ -29,15 +29,6 @@ public:
 	static void InitializeCVarsForActiveDeviceProfile();
 
 	/**
-	 * Create a device profile.
-	 *
-	 * @param ProfileName - The profile name.
-	 *
-	 * @return the created profile.
-	 */
-	UDeviceProfile& CreateProfile( const FString& ProfileName );
-
-	/**
 	 * Create a copy of a device profile from a copy.
 	 *
 	 * @param ProfileName - The profile name.
