@@ -154,7 +154,6 @@ void NiagaraEffectRendererSprites::GetDynamicMeshElements(const TArray<const FSc
 				CollectorResources.VertexFactory.SetFeatureLevel(ViewFamily.GetFeatureLevel());
 				CollectorResources.VertexFactory.SetParticleFactoryType(PVFT_Sprite);
 
-				PerViewUniformParameters.MacroUVParameters = FVector4(0.0f, 0.0f, 1.0f, 1.0f);
 				CollectorResources.UniformBuffer = FParticleSpriteUniformBufferRef::CreateUniformBufferImmediate(PerViewUniformParameters, UniformBuffer_SingleFrame);
 
 				CollectorResources.VertexFactory.InitResource();

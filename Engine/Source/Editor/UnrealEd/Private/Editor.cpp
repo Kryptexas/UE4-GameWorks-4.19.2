@@ -2027,7 +2027,7 @@ void UEditorEngine::CloseEditedWorldAssets(UWorld* InWorld)
 	for (int32 Index = 0; Index < InWorld->StreamingLevels.Num(); ++Index)
 	{
 		ULevelStreaming* LevelStreaming = InWorld->StreamingLevels[Index];
-		if (LevelStreaming && LevelStreaming->LoadedLevel && LevelStreaming->LoadedLevel)
+		if (LevelStreaming && LevelStreaming->LoadedLevel)
 		{
 			ClosingWorlds.Add(CastChecked<UWorld>(LevelStreaming->LoadedLevel->GetOuter()));
 		}

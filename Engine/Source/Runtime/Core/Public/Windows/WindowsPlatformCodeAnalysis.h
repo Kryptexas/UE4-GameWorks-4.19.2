@@ -4,7 +4,7 @@
 
 
 // Code analysis features
-#if defined( _PREFAST_ )
+#if defined( _PREFAST_ ) || defined( PVS_STUDIO )
 	#define USING_CODE_ANALYSIS 1
 #else
 	#define USING_CODE_ANALYSIS 0

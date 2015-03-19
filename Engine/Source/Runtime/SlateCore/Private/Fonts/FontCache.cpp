@@ -455,10 +455,9 @@ public:
 
 		FT_Bitmap* Bitmap = nullptr;
 
+		FT_Bitmap NewBitmap;
 		if( Slot->bitmap.pixel_mode == FT_PIXEL_MODE_MONO )
 		{
-			FT_Bitmap NewBitmap;
-
 			FT_Bitmap_New( &NewBitmap );
 			// Convert the mono font to 8bbp from 1bpp
 			FT_Bitmap_Convert( FTLibrary, &Slot->bitmap, &NewBitmap, 4 );

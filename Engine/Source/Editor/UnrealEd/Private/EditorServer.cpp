@@ -3651,7 +3651,7 @@ bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 	{
 		if(bCheckDeprecatedOnly)
 		{
-			if(WarningCount > 0)
+			if(ErrorCount > 0)
 			{
 				MapCheckLog.Notify(LOCTEXT("MapCheckGenErrors", "Map check generated errors!"));
 			}

@@ -4467,7 +4467,6 @@ void FEdModeMeshPaint::UpdateTexturePaintTargetList()
 							|| Texture2D->LODGroup == TEXTUREGROUP_CharacterNormalMap
 							|| Texture2D->LODGroup == TEXTUREGROUP_WeaponNormalMap
 							|| Texture2D->LODGroup == TEXTUREGROUP_VehicleNormalMap
-							|| Texture2D->LODGroup == TEXTUREGROUP_WorldNormalMap
 							|| Texture2DName.Contains( TEXT("_N0" ))
 							|| Texture2DName.Contains( TEXT("_N_" ))
 							|| Texture2DName.Contains( TEXT("_NORMAL" ))

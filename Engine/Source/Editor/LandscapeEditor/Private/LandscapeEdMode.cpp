@@ -821,7 +821,7 @@ EEditAction::Type FEdModeLandscape::GetActionEditDuplicate()
 
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		if (CurrentTool != NULL && CurrentTool != NULL)
+		if (CurrentTool != NULL)
 		{
 			Result = CurrentTool->GetActionEditDuplicate();
 		}
@@ -836,7 +836,7 @@ EEditAction::Type FEdModeLandscape::GetActionEditDelete()
 
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		if (CurrentTool != NULL && CurrentTool != NULL)
+		if (CurrentTool != NULL)
 		{
 			Result = CurrentTool->GetActionEditDelete();
 		}
@@ -871,7 +871,7 @@ EEditAction::Type FEdModeLandscape::GetActionEditCut()
 
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		if (CurrentTool != NULL && CurrentTool != NULL)
+		if (CurrentTool != NULL)
 		{
 			Result = CurrentTool->GetActionEditCut();
 		}
@@ -893,7 +893,7 @@ EEditAction::Type FEdModeLandscape::GetActionEditCopy()
 
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		if (CurrentTool != NULL && CurrentTool != NULL)
+		if (CurrentTool != NULL)
 		{
 			Result = CurrentTool->GetActionEditCopy();
 		}
@@ -919,7 +919,7 @@ EEditAction::Type FEdModeLandscape::GetActionEditPaste()
 
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		if (CurrentTool != NULL && CurrentTool != NULL)
+		if (CurrentTool != NULL)
 		{
 			Result = CurrentTool->GetActionEditPaste();
 		}
@@ -950,7 +950,7 @@ bool FEdModeLandscape::ProcessEditDuplicate()
 
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		if (CurrentTool != NULL && CurrentTool != NULL)
+		if (CurrentTool != NULL)
 		{
 			Result = CurrentTool->ProcessEditDuplicate();
 		}
@@ -970,7 +970,7 @@ bool FEdModeLandscape::ProcessEditDelete()
 
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		if (CurrentTool != NULL && CurrentTool != NULL)
+		if (CurrentTool != NULL)
 		{
 			Result = CurrentTool->ProcessEditDelete();
 		}
@@ -990,7 +990,7 @@ bool FEdModeLandscape::ProcessEditCut()
 
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		if (CurrentTool != NULL && CurrentTool != NULL)
+		if (CurrentTool != NULL)
 		{
 			Result = CurrentTool->ProcessEditCut();
 		}
@@ -1010,7 +1010,7 @@ bool FEdModeLandscape::ProcessEditCopy()
 
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		if (CurrentTool != NULL && CurrentTool != NULL)
+		if (CurrentTool != NULL)
 		{
 			Result = CurrentTool->ProcessEditCopy();
 		}
@@ -1052,7 +1052,7 @@ bool FEdModeLandscape::ProcessEditPaste()
 
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		if (CurrentTool != NULL && CurrentTool != NULL)
+		if (CurrentTool != NULL)
 		{
 			Result = CurrentTool->ProcessEditPaste();
 		}

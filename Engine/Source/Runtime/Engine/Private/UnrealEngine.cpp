@@ -11584,11 +11584,10 @@ int32 UEngine::RenderStatSoundWaves(UWorld* World, FViewport* Viewport, FCanvas*
 		}
 
 		int32 ActiveInstances = WaveInstances.Num() - FirstActiveIndex;
-		int32 R, G, B;
-		R = G = B = 0;
 		int32 Max = AudioDevice->MaxChannels / 2;
 		float f = FMath::Clamp<float>((float)(ActiveInstances - Max) / (float)Max, 0.f, 1.f);
-		R = FMath::TruncToInt(f * 255);
+		int32 R = FMath::TruncToInt(f * 255);
+
 		if (ActiveInstances > Max)
 		{
 			f = FMath::Clamp<float>((float)(Max - ActiveInstances) / (float)Max, 0.5f, 1.f);
@@ -11597,7 +11596,8 @@ int32 UEngine::RenderStatSoundWaves(UWorld* World, FViewport* Viewport, FCanvas*
 		{
 			f = 1.0f;
 		}
-		G = FMath::TruncToInt(f * 255);
+		int32 G = FMath::TruncToInt(f * 255);
+		int32 B = 0;
 
 		Canvas->DrawShadowedString(X, Y, *FString::Printf(TEXT(" Total: %i"), ActiveInstances), GetSmallFont(), FColor(R, G, B));
 		Y += 12;

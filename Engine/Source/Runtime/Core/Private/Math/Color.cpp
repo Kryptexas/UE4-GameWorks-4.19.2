@@ -271,14 +271,12 @@ FColor FColor::MakeRandomColor()
 
 FColor FColor::MakeRedToGreenColorFromScalar(float Scalar)
 {
-	int32 R,G,B;
-	R=G=B=0;
-
 	float RedSclr = FMath::Clamp<float>((1.0f - Scalar)/0.5f,0.f,1.f);
 	float GreenSclr = FMath::Clamp<float>((Scalar/0.5f),0.f,1.f);
-	R = FMath::TruncToInt(255 * RedSclr);
-	G = FMath::TruncToInt(255 * GreenSclr);
-	return FColor(R,G,B);
+	int32 R = FMath::TruncToInt(255 * RedSclr);
+	int32 G = FMath::TruncToInt(255 * GreenSclr);
+	int32 B = 0;
+	return FColor(R, G, B);
 }
 
 void ComputeAndFixedColorAndIntensity(const FLinearColor& InLinearColor,FColor& OutColor,float& OutIntensity)

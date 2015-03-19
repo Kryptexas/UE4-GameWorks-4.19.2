@@ -429,7 +429,7 @@ bool FWindowsTextInputMethodSystem::InitializeTSF()
 		static const DWORD WindowsVistaMinorVersion = 0;
 
 		// Install profile notification sink for versions of Windows Vista and after.
-		if(WindowsMajorVersion > WindowsVistaMajorVersion || (WindowsMajorVersion == WindowsVistaMajorVersion && WindowsMinorVersion >= WindowsMinorVersion))
+		if(WindowsMajorVersion > WindowsVistaMajorVersion || (WindowsMajorVersion == WindowsVistaMajorVersion && WindowsMinorVersion >= WindowsVistaMinorVersion))
 		{
 			Result = TSFSource->AdviseSink(IID_ITfInputProcessorProfileActivationSink, static_cast<ITfInputProcessorProfileActivationSink*>(TSFActivationProxy), &(TSFActivationProxy->TSFProfileCookie));
 			if(FAILED(Result))

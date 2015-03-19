@@ -684,7 +684,7 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 	
 	bc.lcset = dtAllocTileCacheContourSet(m_talloc);
 	bc.lclusters = dtAllocTileCacheClusterSet(m_talloc);
-	if (!bc.lclusters || !bc.lclusters)
+	if (!bc.lcset || !bc.lclusters)
 		return status;
 	status = dtBuildTileCacheContours(m_talloc, *bc.layer, walkableClimbVx,
 									  m_params.maxSimplificationError, m_params.cs, m_params.ch,

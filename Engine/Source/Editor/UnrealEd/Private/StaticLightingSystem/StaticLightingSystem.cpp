@@ -194,7 +194,7 @@ void FStaticLightingManager::SendBuildDoneNotification( bool AutoApplyFailed )
 		LOCTEXT( "LightBuildDiscard", "Discard" ),
 		LOCTEXT( "LightBuildDiscardToolTip", "Ignores the built lighting data generated." ),
 		FSimpleDelegate::CreateStatic( &FStaticLightingManager::ProcessLightingData, true ) );
-	ApplyNow.VisibilityOnSuccess = EVisibility::Collapsed;
+	Discard.VisibilityOnSuccess = EVisibility::Collapsed;
 
 	Info.ButtonDetails.Add( ApplyNow );
 	Info.ButtonDetails.Add( Discard );
