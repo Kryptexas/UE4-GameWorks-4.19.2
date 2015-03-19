@@ -869,10 +869,8 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 				GRenderTargetPool.FindFreeElement(Desc, LightAccumulation, TEXT("LightAccumulation"));
 			}
 
-			SetRenderTarget(RHICmdList, LightAccumulation->GetRenderTargetItem().TargetableTexture, NULL);
-
 			// Clear to no reflection contribution, alpha of 1 indicates full background contribution
-			RHICmdList.Clear(true, FLinearColor(0, 0, 0, 1), false, 0, false, 0, FIntRect());
+			SetRenderTarget(RHICmdList, LightAccumulation->GetRenderTargetItem().TargetableTexture, NULL, ESimpleRenderTargetMode::EClearColorToBlackWithFullAlpha);
 
 			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 

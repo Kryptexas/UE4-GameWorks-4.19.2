@@ -149,7 +149,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		if (bIsForGeometryShader && !IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4))
+		if (bIsForGeometryShader && !RHISupportsGeometryShaders(Platform))
 		{
 			return false;
 		}
@@ -297,13 +297,13 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return TShadowDepthVS<VertexShadowDepth_OnePassPointLight, false, false>::ShouldCache(Platform, Material, VertexFactoryType) && RHISupportsGeometryShaders(Platform);
+		return TShadowDepthVS<VertexShadowDepth_OnePassPointLight, false, false, true>::ShouldCache(Platform, Material, VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FMeshMaterialShader::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
-		TShadowDepthVS<VertexShadowDepth_OnePassPointLight, false, false>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		TShadowDepthVS<VertexShadowDepth_OnePassPointLight, false, false, true>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	}
 
 	FOnePassPointShadowProjectionGS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -1733,7 +1733,7 @@ void StencilingGeometry::DrawSphere(FRHICommandList& RHICmdList)
 	RHICmdList.SetStreamSource(0, StencilingGeometry::GStencilSphereVertexBuffer.VertexBufferRHI, sizeof(FVector4), 0);
 	RHICmdList.DrawIndexedPrimitive(StencilingGeometry::GStencilSphereIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0,
 		StencilingGeometry::GStencilSphereVertexBuffer.GetVertexCount(), 0, 
-		StencilingGeometry::GStencilSphereIndexBuffer.GetIndexCount() / 3, 0);
+		StencilingGeometry::GStencilSphereIndexBuffer.GetIndexCount() / 3, 1);
 }
 
 void StencilingGeometry::DrawCone(FRHICommandList& RHICmdList)
@@ -1742,7 +1742,7 @@ void StencilingGeometry::DrawCone(FRHICommandList& RHICmdList)
 	RHICmdList.SetStreamSource(0, StencilingGeometry::GStencilConeVertexBuffer.VertexBufferRHI, sizeof(FVector4), 0);
 
 	RHICmdList.DrawIndexedPrimitive(StencilingGeometry::GStencilConeIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0,
-		FStencilConeIndexBuffer::NumVerts, 0, StencilingGeometry::GStencilConeIndexBuffer.GetIndexCount() / 3, 0);
+		FStencilConeIndexBuffer::NumVerts, 0, StencilingGeometry::GStencilConeIndexBuffer.GetIndexCount() / 3, 1);
 }
 
 /** bound shader state for stencil masking the shadow projection [0]:FShadowProjectionNoTransformVS [1]:FShadowProjectionVS */
