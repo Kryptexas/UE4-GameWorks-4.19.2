@@ -91,7 +91,7 @@ struct FDeferredMacEvent
 	// However, in some cases we need the original NSEvent (highlighting menus, resending unhandled key events), so we store it as well.
 	NSEvent* Event;
 
-	TSharedPtr<FMacWindow> Window;
+	TWeakPtr<FMacWindow> Window;
 
 	int32 Type;
 	FVector2D LocationInWindow;
