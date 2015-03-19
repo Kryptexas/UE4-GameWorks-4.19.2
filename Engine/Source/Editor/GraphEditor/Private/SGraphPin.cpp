@@ -76,6 +76,7 @@ SGraphPin::SGraphPin()
 	, bIsMovingLinks(false)
 	, PinColorModifier(FLinearColor::White)
 	, CachedNodeOffset(FVector2D::ZeroVector)
+	, GraphPinObj(nullptr)
 {
 	IsEditable = true;
 
@@ -967,8 +968,7 @@ FText SGraphPin::GetTooltip() const
 {
 	FText HoverText = FText::GetEmpty();
 
-	check(GraphPinObj != nullptr);
-	UEdGraphNode* GraphNode = GraphPinObj->GetOwningNodeUnchecked();
+	UEdGraphNode* GraphNode = GraphPinObj ? GraphPinObj->GetOwningNodeUnchecked() : nullptr;
 	if (GraphNode != nullptr)
 	{
 		FString HoverStr;
