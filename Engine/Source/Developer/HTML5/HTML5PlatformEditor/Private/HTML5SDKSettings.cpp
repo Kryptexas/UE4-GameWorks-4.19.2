@@ -32,7 +32,7 @@ void UHTML5SDKSettings::PostEditChangeProperty(struct FPropertyChangedEvent& Pro
 	
 	if (TargetPlatformModule) 
 	{
-		SaveConfig();
+		UpdateGlobalUserConfigFile();//SaveConfig();
 		TargetPlatformModule->RefreshAvailableDevices();
 	}
 }
@@ -51,7 +51,8 @@ void UHTML5SDKSettings::QueryKnownBrowserLocations()
 	} PossibleLocations[] = 
 	{
 #if PLATFORM_WINDOWS
-		{TEXT("Nightly"), TEXT("C:/Program Files/Nightly/firefox.exe")},
+		{TEXT("Nightly(64bit)"), TEXT("C:/Program Files/Nightly/firefox.exe")},
+		{TEXT("Nightly"), TEXT("C:/Program Files (x86)/Nightly/firefox.exe")},
 		{TEXT("Firefox"), TEXT("C:/Program Files (x86)/Mozilla Firefox/firefox.exe")},
 		{TEXT("Chrome"), TEXT("C:/Program Files (x86)/Google/Chrome/Application/chrome.exe")},
 #elif PLATFORM_MAC
@@ -65,15 +66,22 @@ void UHTML5SDKSettings::QueryKnownBrowserLocations()
 #endif
 	};
 
+	bool bDirty = false;
 	for (const auto& Loc : PossibleLocations)
 	{
-		if (FPlatformFileManager::Get().GetPlatformFile().FileExists(*Loc.Name))
+		if (FPlatformFileManager::Get().GetPlatformFile().FileExists(*Loc.Path) || FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*Loc.Path))
 		{
 			FHTML5DeviceMapping NewDevice;
 			NewDevice.DeviceName = Loc.Name;
 			NewDevice.DevicePath.FilePath = Loc.Path;
 			DeviceMap.Add(NewDevice);
+			bDirty = true;
 		}
+	}
+
+	if (bDirty)
+	{
+		UpdateGlobalUserConfigFile();
 	}
 }
 
@@ -239,6 +247,15 @@ void FHTML5SDKPathCustomization::UpdateAvailableVersions()
 
 	TArray<FHTML5SDKVersionNumber> SDKVersions;
 	TargetPlatformModule->GetInstalledSDKVersions(*(Settings->EmscriptenRoot.SDKPath), SDKVersions);
+
+	if (SDKVersions.Num() == 0) 
+	{
+		//Try the environment variable EMSCRIPTEN - This assumes latest version.
+		TCHAR SDKDirectory[32768] = { 0 };
+		FPlatformMisc::GetEnvironmentVariable(TEXT("EMSCRIPTEN"), SDKDirectory, ARRAY_COUNT(SDKDirectory));
+		TargetPlatformModule->GetInstalledSDKVersions(SDKDirectory, SDKVersions);
+		PrevSelectedVersion->Version.MakeLatestVersionNumber();
+	}
 
 	if (SDKVersions.Num() == 0)
 	{

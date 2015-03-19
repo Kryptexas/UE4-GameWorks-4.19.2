@@ -45,15 +45,16 @@ class HTML5PLATFORMEDITOR_API UHTML5SDKSettings : public UObject
 public:
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = HTML5_SDK_Paths, Meta = (DisplayName = "Location of Python exe (This can be blank if python is on the PATH)"))
+	// Path to the python executable. Can be blank is python is on the PATH
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = HTML5_SDK_Paths, Meta = (DisplayName = "Location of Python exe"))
 	FFilePath Python;
 
 	// Available browsers that can be used when launching HTML5 builds.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = HTML5_Devices, Meta = (DisplayName = "Available browsers"))
 	TArray<FHTML5DeviceMapping> DeviceMap;
 
-	// Path to Emscripten SDK install directory
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = HTML5_SDK_Paths, Meta = (DisplayName = "Location of Emscripten SDK (This directory contains all emscripten versions)"))
+	// Path to Emscripten SDK install directory. This directory contains emsdk. Will use the environment variable "EMSCRIPTEN" if left blank
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = HTML5_SDK_Paths, Meta = (DisplayName = "Location of Emscripten SDK"))
 	FHTML5SDKPath EmscriptenRoot;
 
 #if WITH_EDITOR

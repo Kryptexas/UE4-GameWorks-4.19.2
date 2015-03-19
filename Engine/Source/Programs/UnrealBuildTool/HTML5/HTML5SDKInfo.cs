@@ -226,6 +226,12 @@ namespace UnrealBuildTool
 					}
 				}
 
+				if (string.IsNullOrEmpty(SDKPathString) && Environment.GetEnvironmentVariable("EMSCRIPTEN") != null)
+				{
+					VersionString = "-1.-1.-1";
+					SDKPathString = Environment.GetEnvironmentVariable("EMSCRIPTEN");
+				}
+
 				if (!string.IsNullOrEmpty(SDKPathString) && !string.IsNullOrEmpty(VersionString))
 				{
 					var SDKVersions = GetInstalledVersions(SDKPathString);
