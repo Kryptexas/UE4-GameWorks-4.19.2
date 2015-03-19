@@ -741,42 +741,7 @@ FReply FHierarchyWidget::HandleAcceptDrop(const FDragDropEvent& DragDropEvent, E
 
 bool FHierarchyWidget::OnVerifyNameTextChanged(const FText& InText, FText& OutErrorMessage)
 {
-	FString NewName = InText.ToString();
-
-	if (NewName.IsEmpty())
-	{
-		OutErrorMessage = LOCTEXT("EmptyWidgetName", "Empty Widget Name");
-		return false;
-	}
-
-	UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
-	UWidget* ExistingTemplate = Blueprint->WidgetTree->FindWidget( FName(*NewName) );
-
-	bool bIsSameWidget = false;
-	if ( ExistingTemplate != nullptr )
-	{
-		if ( Item.GetTemplate() != ExistingTemplate )
-		{
-			OutErrorMessage = LOCTEXT("ExistingWidgetName", "Existing Widget Name");
-			return false;
-		}
-		else
-		{
-			bIsSameWidget = true;
-		}
-	}
-
-	FKismetNameValidator Validator(Blueprint);
-
-	const bool bUniqueNameForVariable = ( EValidatorResult::Ok == Validator.IsValid(NewName) );
-
-	if ( !bUniqueNameForVariable && !bIsSameWidget )
-	{
-		OutErrorMessage = LOCTEXT("ExistingVariableName", "Existing Variable Name");
-		return false;
-	}
-
-	return true;
+	return FWidgetBlueprintEditorUtils::VerifyWidgetRename(BlueprintEditor.Pin().ToSharedRef(), Item, InText, OutErrorMessage);
 }
 
 void FHierarchyWidget::OnNameTextCommited(const FText& InText, ETextCommit::Type CommitInfo)

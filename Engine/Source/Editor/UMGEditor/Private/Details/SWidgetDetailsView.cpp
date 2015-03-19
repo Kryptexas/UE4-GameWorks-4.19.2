@@ -366,44 +366,13 @@ bool SWidgetDetailsView::HandleVerifyNameTextChanged(const FText& InText, FText&
 {
 	if ( SelectedObjects.Num() == 1 )
 	{
-		FString NewName = InText.ToString();
-
-		if (NewName.IsEmpty())
-		{
-			OutErrorMessage = LOCTEXT("EmptyWidgetName", "Empty Widget Name");
-			return false;
-		}
-
 		UWidget* PreviewWidget = Cast<UWidget>(SelectedObjects[0].Get());
+		
+		TSharedRef<class FWidgetBlueprintEditor> BlueprintEditorRef = BlueprintEditor.Pin().ToSharedRef();
 
-		UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
-		UWidget* TemplateWidget = Blueprint->WidgetTree->FindWidget( FName(*NewName) );
+		FWidgetReference WidgetRef = BlueprintEditorRef->GetReferenceFromPreview(PreviewWidget);
 
-		bool bIsSameWidget = false;
-		if ( TemplateWidget != NULL )
-		{
-			if ( BlueprintEditor.Pin()->GetReferenceFromTemplate( TemplateWidget ).GetPreview() != PreviewWidget )
-			{
-				OutErrorMessage = LOCTEXT("ExistingWidgetName", "Existing Widget Name");
-				return false;
-			}
-			else
-			{
-				bIsSameWidget = true;
-			}
-		}
-
-		FKismetNameValidator Validator(Blueprint);
-
-		const bool bUniqueNameForVariable = ( EValidatorResult::Ok == Validator.IsValid(NewName) );
-
-		if ( !bUniqueNameForVariable && !bIsSameWidget )
-		{
-			OutErrorMessage = LOCTEXT("ExistingVariableName", "Existing Variable Name");
-			return false;
-		}
-
-		return true;
+		return FWidgetBlueprintEditorUtils::VerifyWidgetRename(BlueprintEditorRef, WidgetRef, InText, OutErrorMessage);
 	}
 	else
 	{

@@ -67,6 +67,54 @@ public:
 	TMap<FName, UWidgetSlotPair*> MissingSlotData;
 };
 
+bool FWidgetBlueprintEditorUtils::VerifyWidgetRename(TSharedRef<class FWidgetBlueprintEditor> BlueprintEditor, FWidgetReference Widget, const FText& NewName, FText& OutErrorMessage)
+{
+	if (NewName.IsEmptyOrWhitespace())
+	{
+		OutErrorMessage = LOCTEXT("EmptyWidgetName", "Empty Widget Name");
+		return false;
+	}
+
+	const FString& NewNameString = NewName.ToString();
+
+	if (NewNameString.Len() >= NAME_SIZE)
+	{
+		OutErrorMessage = LOCTEXT("WidgetNameTooLong", "Widget Name is Too Long");
+		return false;
+	}
+
+	const FName NewFName(*NewNameString);
+	
+	UWidgetBlueprint* Blueprint = BlueprintEditor->GetWidgetBlueprintObj();
+	UWidget* ExistingTemplate = Blueprint->WidgetTree->FindWidget(NewFName);
+
+	bool bIsSameWidget = false;
+	if (ExistingTemplate != nullptr)
+	{
+		if (Widget.GetTemplate() != ExistingTemplate)
+		{
+			OutErrorMessage = LOCTEXT("ExistingWidgetName", "Existing Widget Name");
+			return false;
+		}
+		else
+		{
+			bIsSameWidget = true;
+		}
+	}
+
+	FKismetNameValidator Validator(Blueprint);
+
+	const bool bUniqueNameForVariable = (EValidatorResult::Ok == Validator.IsValid(NewFName));
+
+	if (!bUniqueNameForVariable && !bIsSameWidget)
+	{
+		OutErrorMessage = LOCTEXT("ExistingVariableName", "Existing Variable Name");
+		return false;
+	}
+
+	return true;
+}
+
 bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor> BlueprintEditor, const FName& OldName, const FName& NewName)
 {
 	UWidgetBlueprint* Blueprint = BlueprintEditor->GetWidgetBlueprintObj();
