@@ -7,7 +7,7 @@ ActorFactory.cpp:
 #include "UnrealEd.h"
 #include "ActorFactoryProceduralFoliage.h"
 #include "ProceduralFoliage.h"
-#include "ProceduralFoliageActor.h"
+#include "ProceduralFoliageVolume.h"
 #include "ProceduralFoliageComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogActorFactory, Log, All);
@@ -21,7 +21,7 @@ UActorFactoryProceduralFoliage::UActorFactoryProceduralFoliage(const FObjectInit
 : Super(ObjectInitializer)
 {
 	DisplayName = LOCTEXT("ProceduralFoliageDisplayName", "ProceduralFoliage");
-	NewActorClass = AProceduralFoliageActor::StaticClass();
+	NewActorClass = AProceduralFoliageVolume::StaticClass();
 	bUseSurfaceOrientation = true;
 }
 
@@ -44,8 +44,8 @@ void UActorFactoryProceduralFoliage::PostSpawnActor(UObject* Asset, AActor* NewA
 	UE_LOG(LogActorFactory, Log, TEXT("Actor Factory created %s"), *ProceduralFoliage->GetName());
 
 	// Change properties
-	AProceduralFoliageActor* PFA = CastChecked<AProceduralFoliageActor>(NewActor);
-	UProceduralFoliageComponent* ProceduralComponent = PFA->ProceduralComponent;
+	AProceduralFoliageVolume* ProceduralFoliageVolume = CastChecked<AProceduralFoliageVolume>(NewActor);
+	UProceduralFoliageComponent* ProceduralComponent = ProceduralFoliageVolume->ProceduralComponent;
 	check(ProceduralComponent);
 
 	ProceduralComponent->UnregisterComponent();
@@ -59,18 +59,20 @@ void UActorFactoryProceduralFoliage::PostSpawnActor(UObject* Asset, AActor* NewA
 UObject* UActorFactoryProceduralFoliage::GetAssetFromActorInstance(AActor* Instance)
 {
 	check(Instance->IsA(NewActorClass));
-	AProceduralFoliageActor* ProceduralFoliage = CastChecked<AProceduralFoliageActor>(Instance);
-	UProceduralFoliageComponent* ProceduralComponent = ProceduralFoliage->ProceduralComponent;
+
+	AProceduralFoliageVolume* ProceduralFoliageVolume = CastChecked<AProceduralFoliageVolume>(Instance);
+	UProceduralFoliageComponent* ProceduralComponent = ProceduralFoliageVolume->ProceduralComponent;
 	check(ProceduralComponent);
+	
 	return ProceduralComponent->ProceduralFoliage;
 }
 
 void UActorFactoryProceduralFoliage::PostCreateBlueprint(UObject* Asset, AActor* CDO)
 {
-	if (Asset != NULL && CDO != NULL)
+	if (Asset != nullptr && CDO != nullptr)
 	{
 		UProceduralFoliage* ProceduralFoliage = CastChecked<UProceduralFoliage>(Asset);
-		AProceduralFoliageActor* PFA = CastChecked<AProceduralFoliageActor>(CDO);
+		AProceduralFoliageVolume* PFA = CastChecked<AProceduralFoliageVolume>(CDO);
 		UProceduralFoliageComponent* ProceduralComponent = PFA->ProceduralComponent;
 		ProceduralComponent->ProceduralFoliage = ProceduralFoliage;
 	}

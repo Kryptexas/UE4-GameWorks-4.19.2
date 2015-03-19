@@ -14,7 +14,7 @@
 #include "Serialization/CustomVersion.h"
 #include "ProceduralFoliageComponent.h"
 #include "ProceduralFoliageBlockingVolume.h"
-#include "ProceduralFoliageActor.h"
+#include "ProceduralFoliageVolume.h"
 
 #define LOCTEXT_NAMESPACE "InstancedFoliage"
 
@@ -2268,8 +2268,8 @@ bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& Out
 		{
 			if (const AProceduralFoliageBlockingVolume* ProceduralFoliageBlockingVolume = Cast<AProceduralFoliageBlockingVolume>(Hit.Actor.Get()))
 			{
-				const AProceduralFoliageActor* ProceduralFoliageActor = ProceduralFoliageBlockingVolume->ProceduralFoliageActor;
-				if (ProceduralFoliageActor == nullptr || ProceduralFoliageActor->ProceduralComponent == nullptr || ProceduralFoliageActor->ProceduralComponent->GetProceduralGuid() == DesiredInstance.ProceduralGuid)
+				const AProceduralFoliageVolume* ProceduralFoliageVolume = ProceduralFoliageBlockingVolume->ProceduralFoliageVolume;
+				if (ProceduralFoliageVolume == nullptr || ProceduralFoliageVolume->ProceduralComponent == nullptr || ProceduralFoliageVolume->ProceduralComponent->GetProceduralGuid() == DesiredInstance.ProceduralGuid)
 				{
 					return false;
 				}
@@ -2278,7 +2278,7 @@ bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& Out
 			{
 				return false;
 			}
-			else if (Cast<AProceduralFoliageActor>(Hit.Actor.Get()))	//we never want to collide with our spawning volume
+			else if (Cast<AProceduralFoliageVolume>(Hit.Actor.Get()))	//we never want to collide with our spawning volume
 			{
 				continue;
 			}

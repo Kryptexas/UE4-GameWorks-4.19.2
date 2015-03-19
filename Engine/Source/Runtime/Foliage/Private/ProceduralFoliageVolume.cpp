@@ -1,11 +1,11 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FoliagePrivate.h"
-#include "ProceduralFoliageActor.h"
+#include "ProceduralFoliageVolume.h"
 #include "ProceduralFoliageComponent.h"
 #include "ProceduralFoliage.h"
 
-AProceduralFoliageActor::AProceduralFoliageActor(const FObjectInitializer& ObjectInitializer)
+AProceduralFoliageVolume::AProceduralFoliageVolume(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
 	ProceduralComponent = ObjectInitializer.CreateDefaultSubobject<UProceduralFoliageComponent>(this, TEXT("ProceduralFoliageComponent"));
@@ -22,7 +22,7 @@ AProceduralFoliageActor::AProceduralFoliageActor(const FObjectInitializer& Objec
 
 #if WITH_EDITOR
 
-bool AProceduralFoliageActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
+bool AProceduralFoliageVolume::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 {
 	Super::GetReferencedContentObjects(Objects);
 

@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include "ProceduralFoliageActor.generated.h"
+#include "ProceduralFoliageVolume.generated.h"
 
 class UProceduralFoliageComponent;
 
 UCLASS()
-class FOLIAGE_API AProceduralFoliageActor: public AVolume
+class FOLIAGE_API AProceduralFoliageVolume: public AVolume
 {
 	GENERATED_UCLASS_BODY()
 

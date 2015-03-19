@@ -14,7 +14,7 @@ const FName FoliageEditAppIdentifier = FName(TEXT("FoliageEdApp"));
 #include "ProceduralFoliageComponentDetails.h"
 #include "ActorFactoryProceduralFoliage.h"
 #include "ComponentVisualizer.h"
-#include "ProceduralFoliageActor.h"
+#include "ProceduralFoliageVolume.h"
 #include "ProceduralFoliageComponent.h"
 
 /**
@@ -46,8 +46,8 @@ public:
 		PropertyEditor.RegisterCustomClassLayout("ProceduralFoliageComponent", FOnGetDetailCustomizationInstance::CreateStatic(&FProceduralFoliageComponentDetails::MakeInstance));
 
 		// Actor Factories
-		auto ProceduralFoliageActorFactory = NewObject<UActorFactoryProceduralFoliage>();
-		GEditor->ActorFactories.Add(ProceduralFoliageActorFactory);
+		auto ProceduralFoliageVolumeFactory = NewObject<UActorFactoryProceduralFoliage>();
+		GEditor->ActorFactories.Add(ProceduralFoliageVolumeFactory);
 
 #if WITH_EDITOR
 		SubscribeEvents();
@@ -83,9 +83,9 @@ public:
 
 	void OnLevelActorDeleted(AActor* Actor)
 	{
-		if (AProceduralFoliageActor* PFA = Cast<AProceduralFoliageActor>(Actor))
+		if (AProceduralFoliageVolume* ProceduralFoliageVolume = Cast<AProceduralFoliageVolume>(Actor))
 		{
-			if (UProceduralFoliageComponent* ProceduralComponent = PFA->ProceduralComponent)
+			if (UProceduralFoliageComponent* ProceduralComponent = ProceduralFoliageVolume->ProceduralComponent)
 			{
 				ProceduralComponent->RemoveProceduralContent();
 			}
