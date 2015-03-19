@@ -1016,6 +1016,8 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 
 	ValidateSendBuffer();
 
+	check( !bSkipAck || !InternalAck );		// 100% reliable connections shouldn't be skipping acks
+
 	// Acknowledge the packet.
 	if ( !bSkipAck )
 	{
