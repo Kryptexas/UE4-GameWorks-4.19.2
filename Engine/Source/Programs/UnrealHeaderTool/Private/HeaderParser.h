@@ -587,10 +587,8 @@ protected:
 	 * @param   PropertyDeclarationStyle  if the variable is defined with a UPROPERTY
 	 * @param   VariableCategory          what kind of variable is being parsed
 	 * @param   ParsedVarIndexRange       The source text [Start, End) index range for the parsed type.
-	 *
-	 * @return  true if the variable type was parsed
 	 */
-	bool GetVarType(
+	void GetVarType(
 		FClasses&                       AllClasses,
 		FScope*							Scope,
 		FPropertyBase&                  VarProperty,
