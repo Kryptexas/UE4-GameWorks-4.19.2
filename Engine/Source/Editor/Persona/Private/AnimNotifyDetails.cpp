@@ -101,10 +101,14 @@ void FAnimNotifyDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 			for(uint32 ChildIdx = 0 ; ChildIdx < NumChildren ; ++ChildIdx)
 			{
 				TSharedPtr<IPropertyHandle> NotifyProperty = BaseHandle->GetChildHandle(ChildIdx);
-
-				if(!CustomizeProperty(AnimNotifyCategory, NotifyPtr, NotifyProperty))
+				UProperty* Prop = NotifyProperty->GetProperty();
+				
+				if(Prop && !Prop->HasAnyPropertyFlags(CPF_DisableEditOnInstance))
 				{
-					AnimNotifyCategory.AddProperty(NotifyProperty);
+					if(!CustomizeProperty(AnimNotifyCategory, NotifyPtr, NotifyProperty))
+					{
+						AnimNotifyCategory.AddProperty(NotifyProperty);
+					}
 				}
 			}
 		}
