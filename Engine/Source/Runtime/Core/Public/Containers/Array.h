@@ -1081,7 +1081,8 @@ public:
 	 *
 	 * @returns	True if found. False otherwise.
 	 */
-	bool Contains(const ElementType& Item) const
+	template <typename ComparisonType>
+	bool Contains(const ComparisonType& Item) const
 	{
 		for (const ElementType* RESTRICT Data = GetData(), *RESTRICT DataEnd = Data + ArrayNum; Data != DataEnd; ++Data)
 		{

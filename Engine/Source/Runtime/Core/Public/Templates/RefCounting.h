@@ -104,11 +104,6 @@ public:
 		return *this = InPtr.Reference;
 	}
 
-	bool operator==(const TRefCountPtr& Other) const
-	{
-		return Reference == Other.Reference;
-	}
-
 	ReferencedType* operator->() const
 	{
 		return Reference;
@@ -175,3 +170,21 @@ private:
 
 	ReferencedType* Reference;
 };
+
+template<typename ReferencedType>
+FORCEINLINE bool operator==(const TRefCountPtr<ReferencedType>& A, const TRefCountPtr<ReferencedType>& B)
+{
+	return A.GetReference() == B.GetReference();
+}
+
+template<typename ReferencedType>
+FORCEINLINE bool operator==(const TRefCountPtr<ReferencedType>& A, ReferencedType* B)
+{
+	return A.GetReference() == B;
+}
+
+template<typename ReferencedType>
+FORCEINLINE bool operator==(ReferencedType* A, const TRefCountPtr<ReferencedType>& B)
+{
+	return A == B.GetReference();
+}
