@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GraphEditor.h"
+#include "GraphSplineOverlapResult.h"
 
 class SGraphNode;
 class SGraphPin;
@@ -93,7 +94,11 @@ public:
 	~SGraphPanel();
 public:
 	// SWidget interface
-	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual FReply OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual void OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
 	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
 	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
@@ -197,19 +202,27 @@ protected:
 	/** Pin visibility mode */
 	SGraphEditor::EPinVisibility PinVisibility;
 
-	/** The selected (hovered) pin in the graph */
-	TWeakPtr<SGraphPin> SelectedPin;
-
 	/** List of pins currently being hovered over */
 	TSet< TWeakObjectPtr<UEdGraphPin> > CurrentHoveredPins;
 
 	/** Time since the last mouse enter/exit on a pin */
-	double TimeSinceMouseEnteredPin;
-	double TimeSinceMouseLeftPin;
+	double TimeWhenMouseEnteredPin;
+	double TimeWhenMouseLeftPin;
 
 	/** Sometimes the panel draws a preview connector; e.g. when the user is connecting pins */
 	TArray< FGraphPinHandle > PreviewConnectorFromPins;
 	FVector2D PreviewConnectorEndpoint;
+
+	/** Last mouse position seen, used for paint-centric highlighting */
+	FVector2D SavedMousePosForOnPaintEventLocalSpace;
+	
+	/** The overlap results from the previous OnPaint call */
+	FVector2D PreviousFrameSavedMousePosForSplineOverlap;
+	FGraphSplineOverlapResult PreviousFrameSplineOverlap;
+
+	/** The mouse state from the last mouse move event, used to synthesize pin actions when hovering over a spline on the panel */
+	FGeometry LastPointerGeometry;
+	FPointerEvent LastPointerEvent;
 
 	/** Invoked when we need to summon a context menu */
 	FOnGetContextMenuFor OnGetContextMenuFor;
@@ -267,5 +280,11 @@ private:
 	void OnGraphChanged( const FEdGraphEditAction& InAction );
 
 	/** Update all selected nodes position by provided vector2d */
-	void UpdateSelectedNodesPositions (FVector2D PositionIncrement);
+	void UpdateSelectedNodesPositions(FVector2D PositionIncrement);
+
+	/** Handle updating the spline hover state */
+	void OnSplineHoverStateChanged(const FGraphSplineOverlapResult& NewSplineHoverState);
+
+	/** Returns the pin that we're considering as hovered if we are hovering over a spline; may be null */
+	class SGraphPin* GetBestPinFromHoveredSpline() const;
 };

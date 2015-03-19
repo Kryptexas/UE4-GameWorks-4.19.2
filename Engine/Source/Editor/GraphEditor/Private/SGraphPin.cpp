@@ -551,13 +551,16 @@ FReply SGraphPin::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEv
 
 void SGraphPin::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	FKnotNetCollector NetCollector(GetPinObj());
-
-	TSharedPtr<SGraphPanel> Panel = OwnerNodePtr.Pin()->GetOwnerPanel();
-	for (UEdGraphPin* PinInNet : NetCollector.VisitedPins)
+	if (!bIsHovered)
 	{
-		Panel->AddPinToHoverSet(PinInNet);
-		HoverPinSet.Add(PinInNet);
+		FKnotNetCollector NetCollector(GetPinObj());
+
+		TSharedPtr<SGraphPanel> Panel = OwnerNodePtr.Pin()->GetOwnerPanel();
+		for (UEdGraphPin* PinInNet : NetCollector.VisitedPins)
+		{
+			Panel->AddPinToHoverSet(PinInNet);
+			HoverPinSet.Add(PinInNet);
+		}
 	}
 
 	SCompoundWidget::OnMouseEnter(MyGeometry, MouseEvent);

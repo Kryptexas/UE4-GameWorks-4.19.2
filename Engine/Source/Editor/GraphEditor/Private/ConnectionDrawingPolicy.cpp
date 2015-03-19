@@ -86,10 +86,11 @@ FConnectionDrawingPolicy::FConnectionDrawingPolicy(int32 InBackLayerID, int32 In
 	, ZoomFactor(InZoomFactor)
 	, ClippingRect(InClippingRect)
 	, DrawElementsList(InDrawElements)
+	, LocalMousePosition(0.0f, 0.0f)
 {
 	ArrowImage = FEditorStyle::GetBrush( TEXT("Graph.Arrow") );
 	ArrowRadius = ArrowImage->ImageSize * ZoomFactor * 0.5f;
-	MidpointImage = NULL;
+	MidpointImage = nullptr;
 	MidpointRadius = FVector2D::ZeroVector;
 	HoverDeemphasisDarkFraction = 0.8f;
 
@@ -167,6 +168,11 @@ void FConnectionDrawingPolicy::SetHoveredPins(const TSet< TWeakObjectPtr<UEdGrap
 	}
 }
 
+void FConnectionDrawingPolicy::SetMousePosition(const FVector2D& InMousePos)
+{
+	LocalMousePosition = InMousePos;
+}
+
 void FConnectionDrawingPolicy::SetMarkedPin(TWeakPtr<SGraphPin> InMarkedPin)
 {
 	if (InMarkedPin.IsValid())
@@ -186,9 +192,9 @@ void FConnectionDrawingPolicy::SetMarkedPin(TWeakPtr<SGraphPin> InMarkedPin)
 /** Util to make a 'distance->alpha' table and also return spline length */
 float FConnectionDrawingPolicy::MakeSplineReparamTable(const FVector2D& P0, const FVector2D& P0Tangent, const FVector2D& P1, const FVector2D& P1Tangent, FInterpCurve<float>& OutReparamTable)
 {
-	OutReparamTable.Reset();
-
 	const int32 NumSteps = 10; // TODO: Make this adaptive...
+
+	OutReparamTable.Points.Empty(NumSteps);
 
 	// Find range of input
 	float Param = 0.f;
@@ -231,6 +237,89 @@ void FConnectionDrawingPolicy::DrawConnection(int32 LayerId, const FVector2D& St
 	const FVector2D P0Tangent = (Params.StartDirection == EGPD_Output) ? SplineTangent : -SplineTangent;
 	const FVector2D P1Tangent = (Params.EndDirection == EGPD_Input) ? SplineTangent : -SplineTangent;
 
+	if (Settings->bTreatSplinesLikePinsEXPERIMENTAL)
+	{
+		// Distance to consider as an overlap
+		const float QueryDistanceTriggerThresholdSquared = FMath::Square(Settings->SplineHoverToleranceEXPERIMENTAL + Params.WireThickness * 0.5f);
+
+		// Distance to pass the bounding box cull test (may want to expand this later on if we want to do 'closest pin' actions that don't require an exact hit)
+		const float QueryDistanceToBoundingBoxSquared = QueryDistanceTriggerThresholdSquared;
+
+		bool bCloseToSpline = false;
+		{
+			// The curve will include the endpoints but can extend out of a tight bounds because of the tangents
+			// P0Tangent coefficient maximizes to 4/27 at a=1/3, and P1Tangent minimizes to -4/27 at a=2/3.
+			const float MaximumTangentContribution = 4.0f / 27.0f;
+			FBox2D Bounds(ForceInit);
+
+			Bounds += FVector2D(P0);
+			Bounds += FVector2D(P0 + MaximumTangentContribution * P0Tangent);
+			Bounds += FVector2D(P1);
+			Bounds += FVector2D(P1 - MaximumTangentContribution * P1Tangent);
+
+			bCloseToSpline = Bounds.ComputeSquaredDistanceToPoint(LocalMousePosition) < QueryDistanceToBoundingBoxSquared;
+
+			// Draw the bounding box for debugging
+#if 0
+#define DrawSpaceLine(Point1, Point2, DebugWireColor) {const FVector2D FakeTangent = (Point2 - Point1).GetSafeNormal(); FSlateDrawElement::MakeDrawSpaceSpline(DrawElementsList, LayerId, Point1, FakeTangent, Point2, FakeTangent, ClippingRect, 1.0f, ESlateDrawEffect::None, DebugWireColor); }
+
+			if (bCloseToSpline)
+			{
+				const FLinearColor BoundsWireColor = bCloseToSpline ? FLinearColor::Green : FLinearColor::White;
+
+				FVector2D TL = Bounds.Min;
+				FVector2D BR = Bounds.Max;
+				FVector2D TR = FVector2D(Bounds.Max.X, Bounds.Min.Y);
+				FVector2D BL = FVector2D(Bounds.Min.X, Bounds.Max.Y);
+
+				DrawSpaceLine(TL, TR, BoundsWireColor);
+				DrawSpaceLine(TR, BR, BoundsWireColor);
+				DrawSpaceLine(BR, BL, BoundsWireColor);
+				DrawSpaceLine(BL, TL, BoundsWireColor);
+			}
+#endif
+		}
+
+		if (bCloseToSpline)
+		{
+			// Find the closest approach to the spline
+			FVector2D ClosestPoint(ForceInit);
+			float ClosestDistanceSquared = FLT_MAX;
+
+			const int32 NumStepsToTest = 16;
+			float TestAlpha = 0.0f;
+			const float StepInterval = 1.0f / (float)NumStepsToTest;
+			FVector2D Point1 = FMath::CubicInterp(P0, P0Tangent, P1, P1Tangent, 0.0f);
+			for (float TestAlpha = 0.0f; TestAlpha < 1.0f; TestAlpha += StepInterval)
+			{
+				const FVector2D Point2 = FMath::CubicInterp(P0, P0Tangent, P1, P1Tangent, TestAlpha + StepInterval);
+
+				const FVector2D ClosestPointToSegment = FMath::ClosestPointOnSegment2D(LocalMousePosition, Point1, Point2);
+				const float DistanceSquared = (LocalMousePosition - ClosestPointToSegment).SizeSquared();
+
+				if (DistanceSquared < ClosestDistanceSquared)
+				{
+					ClosestDistanceSquared = DistanceSquared;
+					ClosestPoint = ClosestPointToSegment;
+				}
+
+				Point1 = Point2;
+			}
+
+			// Record the overlap
+			if (ClosestDistanceSquared < QueryDistanceTriggerThresholdSquared)
+			{
+				if (ClosestDistanceSquared < SplineOverlapResult.DistanceSquared)
+				{
+					const float SquaredDistToPin1 = (Params.AssociatedPin1 != nullptr) ? (P0 - ClosestPoint).SizeSquared() : FLT_MAX;
+					const float SquaredDistToPin2 = (Params.AssociatedPin2 != nullptr) ? (P1 - ClosestPoint).SizeSquared() : FLT_MAX;
+
+					SplineOverlapResult = FGraphSplineOverlapResult(Params.AssociatedPin1, Params.AssociatedPin2, ClosestDistanceSquared, SquaredDistToPin1, SquaredDistToPin2);
+				}
+			}
+		}
+	}
+
 	// Draw the spline itself
 	FSlateDrawElement::MakeDrawSpaceSpline(
 		DrawElementsList,
@@ -243,11 +332,11 @@ void FConnectionDrawingPolicy::DrawConnection(int32 LayerId, const FVector2D& St
 		Params.WireColor
 	);
 
-	if (Params.bDrawBubbles || (MidpointImage != NULL))
+	if (Params.bDrawBubbles || (MidpointImage != nullptr))
 	{
 		// This table maps distance along curve to alpha
 		FInterpCurve<float> SplineReparamTable;
-		float SplineLength = MakeSplineReparamTable(P0, P0Tangent, P1, P1Tangent, SplineReparamTable);
+		const float SplineLength = MakeSplineReparamTable(P0, P0Tangent, P1, P1Tangent, SplineReparamTable);
 
 		// Draw bubbles on the spline
 		if (Params.bDrawBubbles)
@@ -282,7 +371,7 @@ void FConnectionDrawingPolicy::DrawConnection(int32 LayerId, const FVector2D& St
 		}
 
 		// Draw the midpoint image
-		if (MidpointImage != NULL)
+		if (MidpointImage != nullptr)
 		{
 			// Determine the spline position for the midpoint
 			const float MidpointAlpha = SplineReparamTable.Eval(SplineLength * 0.5f, 0.f);
@@ -324,6 +413,8 @@ void FConnectionDrawingPolicy::DrawPreviewConnector(const FGeometry& PinGeometry
 
 void FConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ FConnectionParams& Params)
 {
+	Params.AssociatedPin1 = OutputPin;
+	Params.AssociatedPin2 = InputPin;
 }
 
 void FConnectionDrawingPolicy::DetermineLinkGeometry(
@@ -367,8 +458,8 @@ void FConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArrangedWidget>& 
 		{
 			for (int32 LinkIndex=0; LinkIndex < ThePin->LinkedTo.Num(); ++LinkIndex)
 			{
-				FArrangedWidget* LinkStartWidgetGeometry = NULL;
-				FArrangedWidget* LinkEndWidgetGeometry = NULL;
+				FArrangedWidget* LinkStartWidgetGeometry = nullptr;
+				FArrangedWidget* LinkEndWidgetGeometry = nullptr;
 
 				UEdGraphPin* TargetPin = ThePin->LinkedTo[LinkIndex];
 
@@ -416,7 +507,7 @@ void FConnectionDrawingPolicy::ApplyHoverDeemphasis(UEdGraphPin* OutputPin, UEdG
 
 	const bool bContainsBoth = HoveredPins.Contains(InputPin) && HoveredPins.Contains(OutputPin);
 	const bool bContainsOutput = HoveredPins.Contains(OutputPin);
-	const bool bEmphasize = bContainsBoth || (bContainsOutput && (InputPin == NULL));
+	const bool bEmphasize = bContainsBoth || (bContainsOutput && (InputPin == nullptr));
 	if (bEmphasize)
 	{
 		Thickness = FMath::Lerp(Thickness, Thickness * ((Thickness < 3.0f) ? 5.0f : 3.0f), TimeFraction);
@@ -425,5 +516,40 @@ void FConnectionDrawingPolicy::ApplyHoverDeemphasis(UEdGraphPin* OutputPin, UEdG
 	else
 	{
 		WireColor = FMath::Lerp<FLinearColor>(WireColor, DarkenedColor, HoverDeemphasisDarkFraction * TimeFraction);
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+// FGraphSplineOverlapResult
+
+void FGraphSplineOverlapResult::ComputeBestPin()
+{
+	if (Pin1 == nullptr)
+	{
+		BestPin = Pin2;
+	}
+	else if (Pin2 == nullptr)
+	{
+		BestPin = Pin1;
+	}
+	else
+	{
+		// Both are valid, now see if one of the pins has one connection while the other has more than one
+		const int32 LinksTo1 = Pin1->LinkedTo.Num();
+		const int32 LinksTo2 = Pin2->LinkedTo.Num();
+
+		if ((LinksTo1 > 1) && (LinksTo2 == 1))
+		{
+			BestPin = Pin2;
+		}
+		else if ((LinksTo1 == 1) && (LinksTo2 > 1))
+		{
+			BestPin = Pin1;
+		}
+		else
+		{
+			// Both pins have multiple links, or both pins have one link, choose based on distance to the pins
+			BestPin = (DistanceSquaredToPin1 < DistanceSquaredToPin2) ? Pin1 : Pin2;
+		}
 	}
 }

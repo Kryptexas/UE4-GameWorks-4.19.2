@@ -422,6 +422,9 @@ bool FKismetConnectionDrawingPolicy::ShouldChangeTangentForKnot(UK2Node_Knot* Kn
 // Give specific editor modes a chance to highlight this connection or darken non-interesting connections
 void FKismetConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ FConnectionParams& Params)
 {
+	Params.AssociatedPin1 = OutputPin;
+	Params.AssociatedPin2 = InputPin;
+
 	// Get the schema and grab the default color from it
 	check(OutputPin);
 	check(GraphObj);
@@ -523,13 +526,13 @@ void FKismetConnectionDrawingPolicy::SetIncompatiblePinDrawState(const TSharedPt
 {
 	ResetIncompatiblePinDrawState(VisiblePins);
 
-	for(auto VisiblePinIterator = VisiblePins.CreateConstIterator(); VisiblePinIterator; ++VisiblePinIterator)
+	for (auto VisiblePinIterator = VisiblePins.CreateConstIterator(); VisiblePinIterator; ++VisiblePinIterator)
 	{
 		TSharedPtr<SGraphPin> CheckPin = StaticCastSharedRef<SGraphPin>(*VisiblePinIterator);
-		if(CheckPin != StartPin)
+		if (CheckPin != StartPin)
 		{
 			const FPinConnectionResponse Response = StartPin->GetPinObj()->GetSchema()->CanCreateConnection(StartPin->GetPinObj(), CheckPin->GetPinObj());
-			if(Response.Response == CONNECT_RESPONSE_DISALLOW)
+			if (Response.Response == CONNECT_RESPONSE_DISALLOW)
 			{
 				CheckPin->SetPinColorModifier(FLinearColor(0.25f, 0.25f, 0.25f, 0.5f));
 			}
@@ -539,7 +542,7 @@ void FKismetConnectionDrawingPolicy::SetIncompatiblePinDrawState(const TSharedPt
 
 void FKismetConnectionDrawingPolicy::ResetIncompatiblePinDrawState(const TSet< TSharedRef<SWidget> >& VisiblePins)
 {
-	for(auto VisiblePinIterator = VisiblePins.CreateConstIterator(); VisiblePinIterator; ++VisiblePinIterator)
+	for (auto VisiblePinIterator = VisiblePins.CreateConstIterator(); VisiblePinIterator; ++VisiblePinIterator)
 	{
 		TSharedPtr<SGraphPin> VisiblePin = StaticCastSharedRef<SGraphPin>(*VisiblePinIterator);
 		VisiblePin->SetPinColorModifier(FLinearColor::White);

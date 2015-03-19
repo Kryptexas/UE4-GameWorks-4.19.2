@@ -13,6 +13,8 @@ FAIGraphConnectionDrawingPolicy::FAIGraphConnectionDrawingPolicy(int32 InBackLay
 
 void FAIGraphConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ FConnectionParams& Params)
 {
+	Params.AssociatedPin1 = OutputPin;
+	Params.AssociatedPin2 = InputPin;
 	Params.WireThickness = 1.5f;
 
 	const bool bDeemphasizeUnhoveredPins = HoveredPins.Num() > 0;
@@ -40,7 +42,7 @@ void FAIGraphConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArrangedWi
 void FAIGraphConnectionDrawingPolicy::DrawPreviewConnector(const FGeometry& PinGeometry, const FVector2D& StartPoint, const FVector2D& EndPoint, UEdGraphPin* Pin)
 {
 	FConnectionParams Params;
-	DetermineWiringStyle(Pin, NULL, /*inout*/ Params);
+	DetermineWiringStyle(Pin, nullptr, /*inout*/ Params);
 
 	if (Pin->Direction == EEdGraphPinDirection::EGPD_Output)
 	{

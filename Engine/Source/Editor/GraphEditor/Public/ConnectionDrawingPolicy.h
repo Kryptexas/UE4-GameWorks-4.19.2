@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "GraphSplineOverlapResult.h"
+
 /////////////////////////////////////////////////////
 
 GRAPHEDITOR_API DECLARE_LOG_CATEGORY_EXTERN(LogConnectionDrawingPolicy, Log, All);
@@ -29,6 +31,9 @@ public:
 struct GRAPHEDITOR_API FConnectionParams
 {
 	FLinearColor WireColor;
+	UEdGraphPin* AssociatedPin1;
+	UEdGraphPin* AssociatedPin2;
+
 	float WireThickness;
 	bool bDrawBubbles;
 	bool bUserFlag1;
@@ -39,6 +44,8 @@ struct GRAPHEDITOR_API FConnectionParams
 
 	FConnectionParams()
 		: WireColor(FLinearColor::White)
+		, AssociatedPin1(nullptr)
+		, AssociatedPin2(nullptr)
 		, WireThickness(1.0f)
 		, bDrawBubbles(false)
 		, bUserFlag1(false)
@@ -68,6 +75,9 @@ protected:
 public:
 	FVector2D ArrowRadius;
 	FVector2D MidpointRadius;
+
+	FGraphSplineOverlapResult SplineOverlapResult;
+
 protected:
 	float ZoomFactor; 
 	float HoverDeemphasisDarkFraction;
@@ -77,6 +87,7 @@ protected:
 	TSet< UEdGraphPin* > HoveredPins;
 	TMap<TSharedRef<SWidget>, FArrangedWidget>* PinGeometries;
 	double LastHoverTimeEvent;
+	FVector2D LocalMousePosition;
 public:
 	virtual ~FConnectionDrawingPolicy() {}
 
@@ -84,6 +95,8 @@ public:
 
 	// Update the drawing policy with the set of hovered pins (which can be empty)
 	void SetHoveredPins(const TSet< TWeakObjectPtr<UEdGraphPin> >& InHoveredPins, const TArray< TSharedPtr<SGraphPin> >& OverridePins, double HoverTime);
+
+	void SetMousePosition(const FVector2D& InMousePos);
 
 	// Update the drawing policy with the marked pin (which may not be valid)
 	void SetMarkedPin(TWeakPtr<SGraphPin> InMarkedPin);

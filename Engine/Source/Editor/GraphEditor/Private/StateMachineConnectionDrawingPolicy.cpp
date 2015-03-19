@@ -17,6 +17,8 @@ FStateMachineConnectionDrawingPolicy::FStateMachineConnectionDrawingPolicy(int32
 
 void FStateMachineConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ FConnectionParams& Params)
 {
+	Params.AssociatedPin1 = OutputPin;
+	Params.AssociatedPin2 = InputPin;
 	Params.WireThickness = 1.5f;
 
 	if (InputPin)

@@ -114,6 +114,9 @@ void FSoundCueGraphConnectionDrawingPolicy::BuildAudioFlowRoadmap()
 // Give specific editor modes a chance to highlight this connection or darken non-interesting connections
 void FSoundCueGraphConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ FConnectionParams& Params)
 {
+	Params.AssociatedPin1 = OutputPin;
+	Params.AssociatedPin2 = InputPin;
+
 	// Get the schema and grab the default color from it
 	check(OutputPin);
 	check(GraphObj);
