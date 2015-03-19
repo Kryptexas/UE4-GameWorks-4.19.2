@@ -952,7 +952,7 @@ bool RaycastSingle(const UWorld* World, struct FHitResult& OutHit, const FVector
 			if (bHaveBlockingHit) // If we got a hit
 			{
 				PxTransform PStartTM(U2PVector(Start));
-				ConvertQueryImpactHit(PHit, OutHit, DeltaMag, PFilter, Start, End, NULL, PStartTM, Params.bReturnFaceIndex, Params.bReturnPhysicalMaterial);
+				ConvertQueryImpactHit(World, PHit, OutHit, DeltaMag, PFilter, Start, End, NULL, PStartTM, Params.bReturnFaceIndex, Params.bReturnPhysicalMaterial);
 			}
 		}
 #endif //WITH_PHYSX
@@ -1130,7 +1130,7 @@ bool RaycastMulti(const UWorld* World, TArray<struct FHitResult>& OutHits, const
 
 		if (NumHits > 0)
 		{
-			ConvertRaycastResults(NumHits, PHits, DeltaMag, PFilter, OutHits, Start, End, Params.bReturnFaceIndex, Params.bReturnPhysicalMaterial);
+			ConvertRaycastResults(World, NumHits, PHits, DeltaMag, PFilter, OutHits, Start, End, Params.bReturnFaceIndex, Params.bReturnPhysicalMaterial);
 		}
 
 		bHaveBlockingHit = bBlockingHit;
@@ -1333,7 +1333,7 @@ bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& Collisio
 
 		if(bHaveBlockingHit) // If we got a hit, convert it to unreal type
 		{
-			ConvertQueryImpactHit(PHit, OutHit, DeltaMag, PFilter, Start, End, &PGeom, PStartTM, false, Params.bReturnPhysicalMaterial);
+			ConvertQueryImpactHit(World, PHit, OutHit, DeltaMag, PFilter, Start, End, &PGeom, PStartTM, false, Params.bReturnPhysicalMaterial);
 		}
 	}
 
@@ -1431,7 +1431,7 @@ bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const Px
 				{
 					TestLength = PHits[NumHits - 1].distance;
 					FHitResult TestHit;
-					ConvertQueryImpactHit(PHits[NumHits - 1], TestHit, DeltaMag, PFilter, Start, End, &PGeom, PStartTM, false, Params.bReturnPhysicalMaterial);
+					ConvertQueryImpactHit(World, PHits[NumHits - 1], TestHit, DeltaMag, PFilter, Start, End, &PGeom, PStartTM, false, Params.bReturnPhysicalMaterial);
 					HitLocation = TestHit.Location;
 				}
 
@@ -1503,7 +1503,7 @@ bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const Px
 		// Convert all hits to unreal structs. This will remove any hits further than MinBlockDistance, and sort results.
 		if (NumHits > 0)
 		{
-			bBlockingHit |= AddSweepResults(NumHits, PHits, DeltaMag, PFilter, OutHits, Start, End, PGeom, PStartTM, MinBlockDistance, Params.bReturnPhysicalMaterial);
+			bBlockingHit |= AddSweepResults(World, NumHits, PHits, DeltaMag, PFilter, OutHits, Start, End, PGeom, PStartTM, MinBlockDistance, Params.bReturnPhysicalMaterial);
 		}
 	}
 

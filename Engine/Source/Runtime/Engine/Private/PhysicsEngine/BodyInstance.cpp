@@ -3521,7 +3521,8 @@ bool FBodyInstance::LineTrace(struct FHitResult& OutHit, const FVector& Start, c
 				QueryFilter.word2 = 0xFFFFF;
 
 				PxTransform PStartTM(U2PVector(Start));
-				ConvertQueryImpactHit(BestHit, OutHit, DeltaMag, QueryFilter, Start, End, NULL, PStartTM, false, bReturnPhysicalMaterial);
+				const UPrimitiveComponent* Owner = OwnerComponent.Get();
+				ConvertQueryImpactHit(Owner ? Owner->GetWorld() : nullptr, BestHit, OutHit, DeltaMag, QueryFilter, Start, End, NULL, PStartTM, false, bReturnPhysicalMaterial);
 				bHitSomething = true;
 			}
 		}
@@ -3623,7 +3624,8 @@ bool FBodyInstance::InternalSweepPhysX(struct FHitResult& OutHit, const FVector&
 						PHit.shape = PShape;
 						PHit.actor = PShape->getActor();
 						PxTransform PStartTransform(U2PVector(Start));
-						ConvertQueryImpactHit(PHit, OutHit, DeltaMag, QueryFilter, Start, End, NULL, PStartTransform, false, false);
+						const UPrimitiveComponent* Owner = OwnerComponent.Get();
+						ConvertQueryImpactHit(Owner ? Owner->GetWorld() : nullptr, PHit, OutHit, DeltaMag, QueryFilter, Start, End, NULL, PStartTransform, false, false);
 						return true;
 					}
 				}
