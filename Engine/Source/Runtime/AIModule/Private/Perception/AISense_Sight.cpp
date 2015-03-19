@@ -103,8 +103,10 @@ void UAISense_Sight::PostInitProperties()
 	HighImportanceDistanceSquare = FMath::Square(HighImportanceQueryDistanceThreshold);
 }
 
-bool UAISense_Sight::ShouldAutomaticallySeeTarget(const FDigestedSightProperties& PropDigest, FAISightQuery* SightQuery, FPerceptionListener& Listener, AActor* TargetActor) const
+bool UAISense_Sight::ShouldAutomaticallySeeTarget(const FDigestedSightProperties& PropDigest, FAISightQuery* SightQuery, FPerceptionListener& Listener, AActor* TargetActor, float& OutStimulusStrength) const
 {
+	OutStimulusStrength = 1.0f;
+
 	if ((PropDigest.AutoSuccessRangeSqFromLastSeenLocation != FAISystem::InvalidRange) && (SightQuery->LastSeenLocation != FAISystem::InvalidLocation))
 	{
 		const float DistanceToLastSeenLocationSq = FVector::DistSquared(TargetActor->GetActorLocation(), SightQuery->LastSeenLocation);
@@ -155,11 +157,13 @@ float UAISense_Sight::Update()
 				const FVector TargetLocation = TargetActor->GetActorLocation();
 				const FDigestedSightProperties& PropDigest = DigestedProperties[SightQuery->ObserverId];
 				const float SightRadiusSq = SightQuery->bLastResult ? PropDigest.LoseSightRadiusSq : PropDigest.SightRadiusSq;
+				
+				float StimulusStrength = 1.f;
 
-				if (ShouldAutomaticallySeeTarget(PropDigest, SightQuery, Listener, TargetActor))
+				if (ShouldAutomaticallySeeTarget(PropDigest, SightQuery, Listener, TargetActor, StimulusStrength))
 				{
 					// Pretend like we've seen this target where we last saw them
-					Listener.RegisterStimulus(TargetActor, FAIStimulus(*this, 1.f, SightQuery->LastSeenLocation, Listener.CachedLocation));
+					Listener.RegisterStimulus(TargetActor, FAIStimulus(*this, StimulusStrength, SightQuery->LastSeenLocation, Listener.CachedLocation));
 					SightQuery->bLastResult = true;
 				}
 				else if (CheckIsTargetInSightPie(Listener, PropDigest, TargetLocation, SightRadiusSq))
@@ -172,10 +176,9 @@ float UAISense_Sight::Update()
 					{
 						int32 NumberOfLoSChecksPerformed = 0;
 						// defaulting to 1 to have "full strength" by default instead of "no strength"
-						float SightStrength = 1.f;
-						if (Target.SightTargetInterface->CanBeSeenFrom(Listener.CachedLocation, OutSeenLocation, NumberOfLoSChecksPerformed, SightStrength, Listener.Listener->GetBodyActor()) == true)
+						if (Target.SightTargetInterface->CanBeSeenFrom(Listener.CachedLocation, OutSeenLocation, NumberOfLoSChecksPerformed, StimulusStrength, Listener.Listener->GetBodyActor()) == true)
 						{
-							Listener.RegisterStimulus(TargetActor, FAIStimulus(*this, SightStrength, OutSeenLocation, Listener.CachedLocation));
+							Listener.RegisterStimulus(TargetActor, FAIStimulus(*this, StimulusStrength, OutSeenLocation, Listener.CachedLocation));
 							SightQuery->bLastResult = true;
 							SightQuery->LastSeenLocation = OutSeenLocation;
 						}

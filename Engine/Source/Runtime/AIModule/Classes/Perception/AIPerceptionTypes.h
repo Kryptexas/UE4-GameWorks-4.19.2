@@ -86,8 +86,11 @@ public:
 	FVector ReceiverLocation;
 
 	FAISenseID Type;
+
 protected:
-	uint32 bLastSensingResult:1; // currently used only for marking failed sight tests
+	UPROPERTY(BlueprintReadWrite, Category = "AI|Perception")
+	uint32 bSuccessfullySensed:1; // currently used only for marking failed sight tests
+
 	/** this means the stimulus was originally created with a "time limit" and this time has passed. 
 	 *	Expiration also results in calling MarkNoLongerSensed */
 	uint32 bExpired:1;	
@@ -101,13 +104,13 @@ public:
 		: Age(0.f), ExpirationAge(NeverHappenedAge)
 		, Strength(Result == SensingSucceeded ? StimulusStrength : -1.f)
 		, StimulusLocation(InStimulusLocation)
-		, ReceiverLocation(InReceiverLocation), Type(SenseType), bLastSensingResult(Result == SensingSucceeded), bExpired(false)
+		, ReceiverLocation(InReceiverLocation), Type(SenseType), bSuccessfullySensed(Result == SensingSucceeded), bExpired(false)
 	{}
 
 	// default constructor
 	FAIStimulus()
 		: Age(NeverHappenedAge), ExpirationAge(NeverHappenedAge), Strength(-1.f), StimulusLocation(FAISystem::InvalidLocation)
-		, ReceiverLocation(FAISystem::InvalidLocation), Type(FAISenseID::InvalidID()), bLastSensingResult(false), bExpired(false)
+		, ReceiverLocation(FAISystem::InvalidLocation), Type(FAISenseID::InvalidID()), bSuccessfullySensed(false), bExpired(false)
 	{}
 
 	FAIStimulus& SetExpirationAge(float InExpirationAge) { ExpirationAge = InExpirationAge; return *this; }
@@ -120,9 +123,9 @@ public:
 		Age += ConstPerceptionAgingRate; 
 		return Age < ExpirationAge;
 	}
-	FORCEINLINE bool WasSuccessfullySensed() const { return bLastSensingResult; }
+	FORCEINLINE bool WasSuccessfullySensed() const { return bSuccessfullySensed; }
 	FORCEINLINE bool IsExpired() const { return bExpired; }
-	FORCEINLINE void MarkNoLongerSensed() { bLastSensingResult = false; }
+	FORCEINLINE void MarkNoLongerSensed() { bSuccessfullySensed = false; }
 	FORCEINLINE void MarkExpired() { bExpired = true; MarkNoLongerSensed(); }
 	FORCEINLINE bool IsActive() const { return WasSuccessfullySensed() == true && GetAge() < NeverHappenedAge; }
 };
