@@ -2,7 +2,7 @@
 
 #pragma once
 
-class SGraphPinNum : public SGraphPinString
+class SGraphPinInteger : public SGraphPinNum
 {
 public:
 	SLATE_BEGIN_ARGS(SGraphPinNum) {}
@@ -11,7 +11,7 @@ public:
 	void Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj);
 
 protected:
-	// SGraphPinString interface
+	// Begin SGraphPinString interface
 	virtual void SetTypeInValue(const FText& NewTypeInValue, ETextCommit::Type CommitInfo) override;
 	// End of SGraphPinString interface
 };

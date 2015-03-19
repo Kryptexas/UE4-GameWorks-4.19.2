@@ -57,6 +57,7 @@
 #include "KismetPins/SGraphPinClass.h"
 #include "KismetPins/SGraphPinExec.h"
 #include "KismetPins/SGraphPinNum.h"
+#include "KismetPins/SGraphPinInteger.h"
 #include "KismetPins/SGraphPinColor.h"
 #include "KismetPins/SGraphPinEnum.h"
 #include "KismetPins/SGraphPinKey.h"
@@ -293,7 +294,11 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 		{
 			return SNew(SGraphPinClass, InPin);
 		}
-		else if ((InPin->PinType.PinCategory == K2Schema->PC_Int) || (InPin->PinType.PinCategory == K2Schema->PC_Float))
+		else if (InPin->PinType.PinCategory == K2Schema->PC_Int)
+		{
+			return SNew(SGraphPinInteger, InPin);
+		}
+		else if (InPin->PinType.PinCategory == K2Schema->PC_Float)
 		{
 			return SNew(SGraphPinNum, InPin);
 		}
@@ -343,7 +348,7 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 			}
 			else
 			{
-				return SNew(SGraphPinNum, InPin);
+				return SNew(SGraphPinInteger, InPin);
 			}
 		}
 		else if ((InPin->PinType.PinCategory == K2Schema->PC_Wildcard) && (InPin->PinType.PinSubCategory == K2Schema->PSC_Index))
