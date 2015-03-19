@@ -2305,9 +2305,9 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 			}
 
 			auto* Package = dynamic_cast<UPackage*>(Top->XObject);
-			if (Package && (Package->PackageFlags & PKG_CompiledIn))
+			if (Package && (Package->PackageFlags & PKG_InMemoryOnly))
 			{
-				// this is an import to a compiled in thing, just search for it in the package
+				// This is an import to a memory-only package, just search for it in the package.
 				TmpPkg = Package;
 			}
 		}
@@ -2464,11 +2464,11 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 		}
 	}
 
-	bool bCameFromCompiledInPackage = false;
-	if (!Pkg && TmpPkg && (TmpPkg->PackageFlags&PKG_CompiledIn))
+	bool bCameFromMemoryOnlyPackage = false;
+	if (!Pkg && TmpPkg && (TmpPkg->PackageFlags & PKG_InMemoryOnly))
 	{
-		Pkg = TmpPkg; // this is a compiled in package, so that is the package to search regardless of FindIfFail
-		bCameFromCompiledInPackage = true;
+		Pkg = TmpPkg; // this is a package that exists in memory only, so that is the package to search regardless of FindIfFail
+		bCameFromMemoryOnlyPackage = true;
 
 		if (IsCoreUObjectPackage(Import.ClassPackage) && Import.ClassName == NAME_Package && !TmpPkg->GetOuter())
 		{
@@ -2514,10 +2514,10 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 				}
 
 				UObject* FindObject = StaticFindObject(FindClass, FindOuter, *Import.ObjectName.ToString());
-				// reference to native transient class or CDO of such a class
-				bool IsNativeTransient	= bCameFromCompiledInPackage || (FindObject != NULL && (FindObject->HasAllFlags(EObjectFlags(RF_Public|RF_Native|RF_Transient)) || (FindObject->HasAnyFlags(RF_ClassDefaultObject) && FindObject->GetClass()->HasAllFlags(EObjectFlags(RF_Public|RF_Native|RF_Transient)))));
+				// Reference to in memory-only package's object, native transient class or CDO of such a class.
+				bool bIsInMemoryOnlyOrNativeTransient = bCameFromMemoryOnlyPackage || (FindObject != NULL && (FindObject->HasAllFlags(EObjectFlags(RF_Public | RF_Native | RF_Transient)) || (FindObject->HasAnyFlags(RF_ClassDefaultObject) && FindObject->GetClass()->HasAllFlags(EObjectFlags(RF_Public | RF_Native | RF_Transient)))));
 				// Check for structs which have been moved to another header (within the same class package).
-				if (!FindObject && IsNativeTransient && FindClass == UScriptStruct::StaticClass())
+				if (!FindObject && bIsInMemoryOnlyOrNativeTransient && FindClass == UScriptStruct::StaticClass())
 				{
 					FindObject = StaticFindObject( FindClass, ANY_PACKAGE, *Import.ObjectName.ToString(), true );
 					if (FindObject && FindOuter->GetOutermost() != FindObject->GetOutermost())
@@ -2526,7 +2526,7 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 						FindObject = NULL;
 					}
 				}
-				if (FindObject != NULL && ((LoadFlags & LOAD_FindIfFail) || IsNativeTransient))
+				if (FindObject != NULL && ((LoadFlags & LOAD_FindIfFail) || bIsInMemoryOnlyOrNativeTransient))
 				{
 					Import.XObject = FindObject;
 					GImportCount++;

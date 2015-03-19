@@ -67,7 +67,7 @@ enum ESaveFlags
 //
 enum EPackageFlags
 {
-//	PKG_Unused						= 0x00000001,	// 
+	PKG_NewlyCreated				= 0x00000001,	// Newly created package, not saved yet. In editor only.
 	PKG_ClientOptional				= 0x00000002,	// Purely optional for clients.
 	PKG_ServerSideOnly				= 0x00000004,   // Only needed on the server side.
 	PKG_CompiledIn					= 0x00000010,   // This package is from "compiled in" classes.
@@ -89,6 +89,8 @@ enum EPackageFlags
 //	PKG_Unused						= 0x20000000,
 	PKG_ReloadingForCooker			= 0x40000000,   // this package is reloading in the cooker, try to avoid getting data we will never need. We won't save this package.
 	PKG_FilterEditorOnly			= 0x80000000,	// Package has editor-only data filtered
+
+	PKG_InMemoryOnly				= PKG_CompiledIn | PKG_NewlyCreated, // Flag mask that indicates if this package is a package that exists in memory only.
 };
 
 //

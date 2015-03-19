@@ -1140,6 +1140,10 @@ void FAssetRegistry::AssetCreated(UObject* NewAsset)
 		// determined by its long package name.
 		// @todo AssetRegistry We are assuming it will be saved in a single asset package.
 		UPackage* NewPackage = NewAsset->GetOutermost();
+
+		// Mark this package as newly created.
+		NewPackage->PackageFlags |= PKG_NewlyCreated;
+
 		const FString NewPackageName = NewPackage->GetName();
 		const FString Filename = FPackageName::LongPackageNameToFilename(NewPackageName, FPackageName::GetAssetPackageExtension());
 

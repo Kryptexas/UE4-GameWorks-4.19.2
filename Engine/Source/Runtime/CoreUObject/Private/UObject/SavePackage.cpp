@@ -3727,6 +3727,9 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 		}
 		if( Success == true )
 		{
+			// Package has been save, so unmark NewlyCreated flag.
+			InOuter->PackageFlags &= ~PKG_NewlyCreated;
+
 			// send a message that the package was saved
 			UPackage::PackageSavedEvent.Broadcast(Filename, InOuter);
 		}

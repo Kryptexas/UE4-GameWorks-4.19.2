@@ -570,8 +570,8 @@ ULinkerLoad* GetPackageLinker
 
 		if( !FPackageName::DoesPackageExist(InOuter->GetName(), CompatibleGuid, &NewFilename) )
 		{
-			// Compiled in packages have no linker and this is ok
-			if (!(LoadFlags & LOAD_AllowDll) && !(InOuter->PackageFlags & PKG_CompiledIn))
+			// In memory-only packages have no linker and this is ok.
+			if (!(LoadFlags & LOAD_AllowDll) && !(InOuter->PackageFlags & PKG_InMemoryOnly))
 			{
 				FFormatNamedArguments Arguments;
 				Arguments.Add(TEXT("AssetName"), FText::FromString(InOuter->GetName()));
@@ -599,9 +599,9 @@ ULinkerLoad* GetPackageLinker
 
 		if (UPackage* ExistingPackage = FindObject<UPackage>(nullptr, *PackageName))
 		{
-			if (!ExistingPackage->GetOuter() && (ExistingPackage->PackageFlags & PKG_CompiledIn))
+			if (!ExistingPackage->GetOuter() && (ExistingPackage->PackageFlags & PKG_InMemoryOnly))
 			{
-				// this is a compiled in package and so it has no linker and this is ok
+				// This is a memory-only in package and so it has no linker and this is ok.
 				return nullptr;
 			}
 		}
