@@ -1447,7 +1447,6 @@ bool UActorChannel::CleanUp( const bool bForDestroy )
 				Actor->SetReplicates(false);
 				bTornOff = true;
 				Actor->TornOff();
-				Actor = NULL;
 			}
 			else if (Dormant)
 			{
