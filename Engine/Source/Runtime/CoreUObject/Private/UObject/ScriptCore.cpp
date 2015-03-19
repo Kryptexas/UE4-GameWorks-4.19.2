@@ -1846,7 +1846,10 @@ void UObject::execStructConst( FFrame& Stack, RESULT_DECL )
 			continue;
 		}
 
-		Stack.Step(Stack.Object, StructProp->ContainerPtrToValuePtr<uint8>(Result));
+		for (int32 ArrayIter = 0; ArrayIter < StructProp->ArrayDim; ++ArrayIter)
+		{
+			Stack.Step(Stack.Object, StructProp->ContainerPtrToValuePtr<uint8>(Result, ArrayIter));
+		}
 	}
 
 	P_FINISH;	// EX_EndStructConst
