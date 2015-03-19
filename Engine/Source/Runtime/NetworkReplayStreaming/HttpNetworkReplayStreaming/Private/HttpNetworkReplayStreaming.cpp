@@ -821,6 +821,13 @@ void FHttpNetworkReplayStreamer::HttpDownloadCheckpointFinished( FHttpRequestPtr
 
 	if ( bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok )
 	{
+		if ( HttpResponse->GetContent().Num() == 0 )
+		{
+			UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadCheckpointFinished. Checkpoint empty." ) );
+			GotoCheckpointDelegate.ExecuteIfBound( true );
+			return;
+		}
+
 		StreamArchive.Buffer.Empty();
 		StreamArchive.Pos = 0;
 		StreamArchive.bAtEndOfReplay = false;

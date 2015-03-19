@@ -832,7 +832,10 @@ void UDemoNetDriver::SaveCheckpoint()
 
 	const int32 TotalSize = CheckpointArchive->TotalSize();
 
-	ReplayStreamer->FlushCheckpoint( CurrentCheckpointIndex++ );
+	if ( CheckpointArchive->TotalSize() > 0 )
+	{
+		ReplayStreamer->FlushCheckpoint( CurrentCheckpointIndex++ );
+	}
 
 	const double EndCheckpointTime = FPlatformTime::Seconds();
 
@@ -1258,6 +1261,13 @@ void UDemoNetDriver::CheckpointReady( bool bSuccess )
 		return;
 	}
 
+	FArchive* CheckpointArchive = ReplayStreamer->GetCheckpointArchive();
+
+	if ( CheckpointArchive->TotalSize() == 0 )
+	{
+		return;
+	}
+
 	if ( SpectatorController == NULL )
 	{
 		UE_LOG( LogDemo, Warning, TEXT( "UDemoNetConnection::CheckpointReady: No spectator player controller." ) );
@@ -1310,8 +1320,6 @@ void UDemoNetDriver::CheckpointReady( bool bSuccess )
 
 	// Create fake control channel
 	ServerConnection->CreateChannel( CHTYPE_Control, 1 );
-
-	FArchive* CheckpointArchive = ReplayStreamer->GetCheckpointArchive();
 
 	GuidCache->ObjectLookup.Empty();
 	GuidCache->NetGUIDLookup.Empty();
