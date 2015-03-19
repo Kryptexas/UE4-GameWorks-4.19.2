@@ -955,6 +955,10 @@ public:
 	/** Remove tick dependency on PrerequisiteComponent. */
 	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "dependency"))
 	virtual void RemoveTickPrerequisiteComponent(UActorComponent* PrerequisiteComponent);
+	
+	/** Gets whether this actor can tick when paused. */
+	UFUNCTION(BlueprintCallable, Category="Utilities")
+	bool GetTickableWhenPaused();
 
 	/** Sets whether this actor can tick when paused. */
 	UFUNCTION(BlueprintCallable, Category="Utilities")

@@ -380,6 +380,11 @@ void AActor::RemoveTickPrerequisiteComponent(UActorComponent* PrerequisiteCompon
 	}
 }
 
+bool AActor::GetTickableWhenPaused()
+{
+	return PrimaryActorTick.bTickEvenWhenPaused;
+}
+
 void AActor::SetTickableWhenPaused(bool bTickableWhenPaused)
 {
 	PrimaryActorTick.bTickEvenWhenPaused = bTickableWhenPaused;
