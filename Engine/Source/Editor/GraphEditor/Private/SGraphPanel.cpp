@@ -673,9 +673,13 @@ FReply SGraphPanel::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerE
 
 FReply SGraphPanel::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	if (SGraphPin* BestPinFromHoveredSpline = GetBestPinFromHoveredSpline())
+	if (PreviousFrameSplineOverlap.IsValid() && (PreviousFrameSplineOverlap.Pin1 != nullptr) && (PreviousFrameSplineOverlap.Pin2 != nullptr))
 	{
-		//@TODO: Should insert a reroute node here
+		// Give the schema a chance to do something interesting with a double click on a proper spline (both ends are attached to a pin, i.e., not a preview/drag one)
+		const FVector2D DoubleClickPositionInGraphSpace = PanelCoordToGraphCoord(MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()));
+
+		const UEdGraphSchema* Schema = GraphObj->GetSchema();
+		Schema->OnPinConnectionDoubleCicked(PreviousFrameSplineOverlap.Pin1, PreviousFrameSplineOverlap.Pin2, DoubleClickPositionInGraphSpace);
 	}
 
 	return SNodePanel::OnMouseButtonDoubleClick(MyGeometry, MouseEvent);

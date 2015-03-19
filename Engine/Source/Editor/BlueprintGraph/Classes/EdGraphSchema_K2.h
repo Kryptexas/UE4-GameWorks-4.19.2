@@ -424,6 +424,7 @@ public:
 	virtual bool ShouldAlwaysPurgeOnModification() const override { return false; }
 	virtual void SplitPin(UEdGraphPin* Pin) const override;
 	virtual void RecombinePin(UEdGraphPin* Pin) const override;
+	virtual void OnPinConnectionDoubleCicked(UEdGraphPin* PinA, UEdGraphPin* PinB, const FVector2D& GraphPosition) const override;
 	// End EdGraphSchema Interface
 
 	/**

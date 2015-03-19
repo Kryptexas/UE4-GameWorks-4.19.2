@@ -620,6 +620,9 @@ class ENGINE_API UEdGraphSchema : public UObject
 	/** Collapses a pin and its siblings back in to the original pin */
 	virtual void RecombinePin(UEdGraphPin* Pin) const { };
 
+	/** Handles double-clicking on a pin<->pin connection */
+	virtual void OnPinConnectionDoubleCicked(UEdGraphPin* PinA, UEdGraphPin* PinB, const FVector2D& GraphPosition) const { }
+
 	/** Break links on this pin and create links instead on MoveToPin */
 	virtual FPinConnectionResponse MovePinLinks(UEdGraphPin& MoveFromPin, UEdGraphPin& MoveToPin, bool bIsIntermediateMove = false) const;
 

@@ -5635,6 +5635,29 @@ void UEdGraphSchema_K2::RecombinePin(UEdGraphPin* Pin) const
 	FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 }
 
+void UEdGraphSchema_K2::OnPinConnectionDoubleCicked(UEdGraphPin* PinA, UEdGraphPin* PinB, const FVector2D& GraphPosition) const
+{
+	const FScopedTransaction Transaction(LOCTEXT("CreateRerouteNodeOnWire", "Create Reroute Node"));
+
+	//@TODO: This constant is duplicated from inside of SGraphNodeKnot
+	const FVector2D NodeSpacerSize(42.0f, 24.0f);
+	const FVector2D KnotTopLeft = GraphPosition - (NodeSpacerSize * 0.5f);
+
+	// Create a new knot
+	UEdGraph* ParentGraph = PinA->GetOwningNode()->GetGraph();
+	UK2Node_Knot* NewKnot = FEdGraphSchemaAction_K2NewNode::SpawnNodeFromTemplate<UK2Node_Knot>(ParentGraph, NewObject<UK2Node_Knot>(), KnotTopLeft);
+
+	// Move the connections across (only notifying the knot, as the other two didn't really change)
+	PinA->BreakLinkTo(PinB);
+	PinA->MakeLinkTo((PinA->Direction == EGPD_Output) ? NewKnot->GetInputPin() : NewKnot->GetOutputPin());
+	PinB->MakeLinkTo((PinB->Direction == EGPD_Output) ? NewKnot->GetInputPin() : NewKnot->GetOutputPin());
+	NewKnot->PostReconstructNode();
+
+	// Dirty the blueprint
+	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CastChecked<UEdGraph>(ParentGraph));
+	FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+}
+
 void UEdGraphSchema_K2::ConfigureVarNode(UK2Node_Variable* InVarNode, FName InVariableName, UStruct* InVariableSource, UBlueprint* InTargetBlueprint)
 {
 	// See if this is a 'self context' (ie. blueprint class is owner (or child of owner) of dropped var class)
