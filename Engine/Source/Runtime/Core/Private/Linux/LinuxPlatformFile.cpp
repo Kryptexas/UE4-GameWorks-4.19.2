@@ -459,7 +459,7 @@ public:
 
 		// We can get some "absolute" filenames like "D:/Blah/" here (e.g. non-Linux paths to source files embedded in assets).
 		// In that case, fail silently.
-		if (PossiblyWrongFilename[0] != TEXT('/'))
+		if (PossiblyWrongFilename.IsEmpty() || PossiblyWrongFilename[0] != TEXT('/'))
 		{
 			return false;
 		}
