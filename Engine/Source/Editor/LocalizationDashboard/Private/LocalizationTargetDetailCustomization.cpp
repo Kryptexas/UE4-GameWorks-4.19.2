@@ -464,7 +464,14 @@ void FLocalizationTargetDetailCustomization::RebuildTargetsList()
 		return false;
 	};
 
-	for (ULocalizationTarget* const OtherTarget : TargetSet->TargetObjects)
+	TArray<ULocalizationTarget*> AllLocalizationTargets;
+	ULocalizationTargetSet* EngineTargetSet = FindObjectChecked<ULocalizationTargetSet>(ANY_PACKAGE, *ULocalizationTargetSet::EngineTargetSetName.ToString());
+	if (EngineTargetSet != TargetSet)
+	{
+		AllLocalizationTargets.Append(EngineTargetSet->TargetObjects);
+	}
+	AllLocalizationTargets.Append(TargetSet->TargetObjects);
+	for (ULocalizationTarget* const OtherTarget : AllLocalizationTargets)
 	{
 		if (OtherTarget != LocalizationTarget)
 		{
