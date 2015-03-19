@@ -677,12 +677,12 @@ void FPhATEdPreviewViewportClient::Tick(float DeltaSeconds)
 		// We back up the transforms array now
 		SharedData->EditorSkelComp->AnimationSpaceBases = SharedData->EditorSkelComp->GetSpaceBases();
 		SharedData->EditorSkelComp->SetPhysicsBlendWeight(SharedData->EditorSimOptions->PhysicsBlend);
+	}
 
-		if(SharedData->Recorder.InRecording())
-		{
-			// make sure you don't allow switch SharedData->EditorSkelComp
-			SharedData->Recorder.UpdateRecord(SharedData->EditorSkelComp, DeltaSeconds);
-		}
+	if(SharedData->Recorder.InRecording())
+	{
+		// make sure you don't allow switch SharedData->EditorSkelComp
+		SharedData->Recorder.UpdateRecord(SharedData->EditorSkelComp, DeltaSeconds);
 	}
 }
 
