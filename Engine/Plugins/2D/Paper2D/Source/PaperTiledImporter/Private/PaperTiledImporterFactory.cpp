@@ -195,6 +195,7 @@ UObject* UPaperTiledImporterFactory::FactoryCreateText(UClass* InClass, UObject*
 		Result->SeparationPerTileY = 0.0f;
 		Result->SeparationPerLayer = -1.0f;
 		Result->ProjectionMode = GlobalInfo.GetOrientationType();
+		Result->PixelsPerUnrealUnit = GetDefault<UPaperRuntimeSettings>()->DefaultPixelsPerUnrealUnit;
 
 		// Create the tile sets
 		for (const FTileSetFromTiled& TileSetData : GlobalInfo.TileSets)

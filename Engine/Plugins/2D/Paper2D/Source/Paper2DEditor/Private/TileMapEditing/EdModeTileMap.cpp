@@ -110,7 +110,7 @@ void FEdModeTileMap::Enter()
 	UWorld* World = GetWorld();
 
 	CursorPreviewComponent = NewObject<UPaperTileMapComponent>();
-	CursorPreviewComponent->TileMap->AddNewLayer();
+	CursorPreviewComponent->TileMap->InitializeNewEmptyTileMap();
 	CursorPreviewComponent->TranslucencySortPriority = 99999;
 	CursorPreviewComponent->UpdateBounds();
 	CursorPreviewComponent->AddToRoot();
@@ -997,7 +997,7 @@ void FEdModeTileMap::SynchronizePreviewWithTileMap(UPaperTileMap* NewTileMap)
 
 	UE_CHANGE_IF_DIFFERENT(TileWidth);
 	UE_CHANGE_IF_DIFFERENT(TileHeight);
-	UE_CHANGE_IF_DIFFERENT(PixelsPerUnit);
+	UE_CHANGE_IF_DIFFERENT(PixelsPerUnrealUnit);
 	UE_CHANGE_IF_DIFFERENT(SeparationPerTileX);
 	UE_CHANGE_IF_DIFFERENT(SeparationPerTileY);
 	UE_CHANGE_IF_DIFFERENT(SeparationPerLayer);

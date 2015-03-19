@@ -16,7 +16,7 @@ UPaperTileMap::UPaperTileMap(const FObjectInitializer& ObjectInitializer)
 	MapHeight = 4;
 	TileWidth = 32;
 	TileHeight = 32;
-	PixelsPerUnit = 1.0f;
+	PixelsPerUnrealUnit = 1.0f;
 	SeparationPerTileX = 0.0f;
 	SeparationPerTileY = 0.0f;
 	SeparationPerLayer = 4.0f;
@@ -83,6 +83,11 @@ void UPaperTileMap::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 	FTileMapReregisterContext ReregisterTileMapComponents(this);
 
 	ValidateSelectedLayerIndex();
+
+	if (PixelsPerUnrealUnit <= 0.0f)
+	{
+		PixelsPerUnrealUnit = 1.0f;
+	}
 
 	if ((PropertyName == GET_MEMBER_NAME_CHECKED(UPaperTileMap, MapWidth)) || (PropertyName == GET_MEMBER_NAME_CHECKED(UPaperTileMap, MapHeight)))
 	{
@@ -181,54 +186,62 @@ void UPaperTileMap::UpdateBodySetup()
 
 void UPaperTileMap::GetTileToLocalParameters(FVector& OutCornerPosition, FVector& OutStepX, FVector& OutStepY, FVector& OutOffsetYFactor) const
 {
+	const float UnrealUnitsPerPixel = GetUnrealUnitsPerPixel();
+	const float TileWidthInUU = TileWidth * UnrealUnitsPerPixel;
+	const float TileHeightInUU = TileHeight * UnrealUnitsPerPixel;
+
 	switch (ProjectionMode)
 	{
 	case ETileMapProjectionMode::Orthogonal:
 	default:
-		OutCornerPosition = -(TileWidth * PaperAxisX * 0.5f) + (TileHeight * PaperAxisY * 0.5f);
+		OutCornerPosition = -(TileWidthInUU * PaperAxisX * 0.5f) + (TileHeightInUU * PaperAxisY * 0.5f);
 		OutOffsetYFactor = FVector::ZeroVector;
-		OutStepX = PaperAxisX * TileWidth;
-		OutStepY = -PaperAxisY * TileHeight;
+		OutStepX = PaperAxisX * TileWidthInUU;
+		OutStepY = -PaperAxisY * TileHeightInUU;
 		break;
 	case ETileMapProjectionMode::IsometricDiamond:
-		OutCornerPosition = (TileHeight * PaperAxisY * 0.5f);
+		OutCornerPosition = (TileHeightInUU * PaperAxisY * 0.5f);
 		OutOffsetYFactor = FVector::ZeroVector;
-		OutStepX = (TileWidth * PaperAxisX * 0.5f) - (TileHeight * PaperAxisY * 0.5f);
-		OutStepY = (TileWidth * PaperAxisX * -0.5f) - (TileHeight * PaperAxisY * 0.5f);
+		OutStepX = (TileWidthInUU * PaperAxisX * 0.5f) - (TileHeightInUU * PaperAxisY * 0.5f);
+		OutStepY = (TileWidthInUU * PaperAxisX * -0.5f) - (TileHeightInUU * PaperAxisY * 0.5f);
 		break;
 	case ETileMapProjectionMode::HexagonalStaggered:
 	case ETileMapProjectionMode::IsometricStaggered:
-		OutCornerPosition = -(TileWidth * PaperAxisX * 0.5f) + (TileHeight * PaperAxisY * 1.0f);
-		OutOffsetYFactor = 0.5f * TileWidth * PaperAxisX;
-		OutStepX = PaperAxisX * TileWidth;
-		OutStepY = 0.5f * -PaperAxisY * TileHeight;
+		OutCornerPosition = -(TileWidthInUU * PaperAxisX * 0.5f) + (TileHeightInUU * PaperAxisY * 1.0f);
+		OutOffsetYFactor = 0.5f * TileWidthInUU * PaperAxisX;
+		OutStepX = PaperAxisX * TileWidthInUU;
+		OutStepY = 0.5f * -PaperAxisY * TileHeightInUU;
 		break;
 	}
 }
 
 void UPaperTileMap::GetLocalToTileParameters(FVector& OutCornerPosition, FVector& OutStepX, FVector& OutStepY, FVector& OutOffsetYFactor) const
 {
+	const float UnrealUnitsPerPixel = GetUnrealUnitsPerPixel();
+	const float TileWidthInUU = TileWidth * UnrealUnitsPerPixel;
+	const float TileHeightInUU = TileHeight * UnrealUnitsPerPixel;
+
 	switch (ProjectionMode)
 	{
 	case ETileMapProjectionMode::Orthogonal:
 	default:
-		OutCornerPosition = -(TileWidth * PaperAxisX * 0.5f) + (TileHeight * PaperAxisY * 0.5f);
+		OutCornerPosition = -(TileWidthInUU * PaperAxisX * 0.5f) + (TileHeightInUU * PaperAxisY * 0.5f);
 		OutOffsetYFactor = FVector::ZeroVector;
-		OutStepX = PaperAxisX / TileWidth;
-		OutStepY = -PaperAxisY / TileHeight;
+		OutStepX = PaperAxisX / TileWidthInUU;
+		OutStepY = -PaperAxisY / TileHeightInUU;
 		break;
 	case ETileMapProjectionMode::IsometricDiamond:
-		OutCornerPosition = (TileHeight * PaperAxisY * 0.5f);
+		OutCornerPosition = (TileHeightInUU * PaperAxisY * 0.5f);
 		OutOffsetYFactor = FVector::ZeroVector;
-		OutStepX = (PaperAxisX / TileWidth) - (PaperAxisY / TileHeight);
-		OutStepY = (-PaperAxisX / TileWidth) - (PaperAxisY / TileHeight);
+		OutStepX = (PaperAxisX / TileWidthInUU) - (PaperAxisY / TileHeightInUU);
+		OutStepY = (-PaperAxisX / TileWidthInUU) - (PaperAxisY / TileHeightInUU);
 		break;
 	case ETileMapProjectionMode::HexagonalStaggered:
 	case ETileMapProjectionMode::IsometricStaggered:
-		OutCornerPosition = -(TileWidth * PaperAxisX * 0.5f) + (TileHeight * PaperAxisY * 1.0f);
-		OutOffsetYFactor = 0.5f * TileWidth * PaperAxisX;
-		OutStepX = PaperAxisX / TileWidth;
-		OutStepY = -PaperAxisY / TileHeight;
+		OutCornerPosition = -(TileWidthInUU * PaperAxisX * 0.5f) + (TileHeightInUU * PaperAxisY * 1.0f);
+		OutOffsetYFactor = 0.5f * TileWidthInUU * PaperAxisX;
+		OutStepX = PaperAxisX / TileWidthInUU;
+		OutStepY = -PaperAxisY / TileHeightInUU;
 		break;
 	}
 }
@@ -299,21 +312,25 @@ FBoxSphereBounds UPaperTileMap::GetRenderBounds() const
 	const float Depth = SeparationPerLayer * (TileLayers.Num() - 1);
 	const float HalfThickness = 2.0f;
 
+	const float UnrealUnitsPerPixel = GetUnrealUnitsPerPixel();
+	const float TileWidthInUU = TileWidth * UnrealUnitsPerPixel;
+	const float TileHeightInUU = TileHeight * UnrealUnitsPerPixel;
+
 	switch (ProjectionMode)
 	{
 		case ETileMapProjectionMode::Orthogonal:
 		default:
 		{
-			const FVector BottomLeft((-0.5f) * TileWidth, -HalfThickness - Depth, -(MapHeight - 0.5f) * TileHeight);
-			const FVector Dimensions(MapWidth*TileWidth, Depth + 2 * HalfThickness, MapHeight * TileHeight);
+			const FVector BottomLeft((-0.5f) * TileWidthInUU, -HalfThickness - Depth, -(MapHeight - 0.5f) * TileHeightInUU);
+			const FVector Dimensions(MapWidth * TileWidthInUU, Depth + 2 * HalfThickness, MapHeight * TileHeightInUU);
 
 			const FBox Box(BottomLeft, BottomLeft + Dimensions);
 			return FBoxSphereBounds(Box);
 		}
 		case ETileMapProjectionMode::IsometricDiamond:
 		{
-			 const FVector BottomLeft((-0.5f) * TileWidth * MapWidth, -HalfThickness - Depth, -MapHeight * TileHeight);
-			 const FVector Dimensions(MapWidth*TileWidth, Depth + 2 * HalfThickness, (MapHeight + 1) * TileHeight);
+			 const FVector BottomLeft((-0.5f) * TileWidthInUU * MapWidth, -HalfThickness - Depth, -MapHeight * TileHeightInUU);
+			 const FVector Dimensions(MapWidth * TileWidthInUU, Depth + 2 * HalfThickness, (MapHeight + 1) * TileHeightInUU);
 
 			 const FBox Box(BottomLeft, BottomLeft + Dimensions);
 			 return FBoxSphereBounds(Box);
@@ -385,6 +402,13 @@ void UPaperTileMap::ResizeMap(int32 NewWidth, int32 NewHeight, bool bForceResize
 			TileLayer->ResizeMap(MapWidth, MapHeight);
 		}
 	}
+}
+
+void UPaperTileMap::InitializeNewEmptyTileMap()
+{
+	AddNewLayer();
+
+	PixelsPerUnrealUnit = GetDefault<UPaperRuntimeSettings>()->DefaultPixelsPerUnrealUnit;
 }
 
 //////////////////////////////////////////////////////////////////////////

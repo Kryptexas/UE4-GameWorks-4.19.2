@@ -93,7 +93,7 @@ void UPaperTileMapComponent::PostLoad()
 		TileMap->MapHeight = MapHeight_DEPRECATED;
 		TileMap->TileWidth = TileWidth_DEPRECATED;
 		TileMap->TileHeight = TileHeight_DEPRECATED;
-		TileMap->PixelsPerUnit = 1.0f;
+		TileMap->PixelsPerUnrealUnit = 1.0f;
 		TileMap->SelectedTileSet = DefaultLayerTileSet_DEPRECATED;
 		TileMap->Material = Material_DEPRECATED;
 		TileMap->TileLayers = TileLayers_DEPRECATED;
@@ -211,6 +211,8 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 	FVector2D SourceDimensionsUV(1.0f, 1.0f);
 	FVector2D TileSizeXY(0.0f, 0.0f);
 
+	const float UnrealUnitsPerPixel = TileMap->GetUnrealUnitsPerPixel();
+
 	for (int32 Z = 0; Z < TileMap->TileLayers.Num(); ++Z)
 	{
 		UPaperTileLayer* Layer = TileMap->TileLayers[Z];
@@ -313,13 +315,13 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 						if (TileInfo.TileSet != nullptr)
 						{
 							SourceDimensionsUV = FVector2D(TileInfo.TileSet->TileWidth * InverseTextureSize.X, TileInfo.TileSet->TileHeight * InverseTextureSize.Y);
-							TileSizeXY = FVector2D(TileInfo.TileSet->TileWidth, TileInfo.TileSet->TileHeight);
+							TileSizeXY = FVector2D(UnrealUnitsPerPixel * TileInfo.TileSet->TileWidth, UnrealUnitsPerPixel * TileInfo.TileSet->TileHeight);
 							TileSetOffset = (TileInfo.TileSet->DrawingOffset.X * PaperAxisX) + (TileInfo.TileSet->DrawingOffset.Y * PaperAxisY);
 						}
 						else
 						{
 							SourceDimensionsUV = FVector2D(TileWidth * InverseTextureSize.X, TileHeight * InverseTextureSize.Y);
-							TileSizeXY = FVector2D(TileWidth, TileHeight);
+							TileSizeXY = FVector2D(UnrealUnitsPerPixel * TileWidth, UnrealUnitsPerPixel * TileHeight);
 							TileSetOffset = FVector::ZeroVector;
 						}
 						LastSourceTexture = SourceTexture;
@@ -371,7 +373,7 @@ void UPaperTileMapComponent::CreateNewOwnedTileMap()
 
 	UPaperTileMap* NewTileMap = NewObject<UPaperTileMap>(this);
 	NewTileMap->SetFlags(RF_Transactional);
-	NewTileMap->AddNewLayer();
+	NewTileMap->InitializeNewEmptyTileMap();
 
 	SetTileMap(NewTileMap);
 }

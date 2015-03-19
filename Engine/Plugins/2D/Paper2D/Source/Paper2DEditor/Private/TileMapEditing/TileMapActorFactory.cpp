@@ -42,7 +42,7 @@ void UTileMapActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 
 	if (RenderComponent->OwnsTileMap())
 	{
-		RenderComponent->TileMap->AddNewLayer();
+		RenderComponent->TileMap->InitializeNewEmptyTileMap();
 	}
 }
 
@@ -68,7 +68,7 @@ void UTileMapActorFactory::PostCreateBlueprint(UObject* Asset, AActor* CDO)
 
 		if (RenderComponent->OwnsTileMap())
 		{
-			RenderComponent->TileMap->AddNewLayer();
+			RenderComponent->TileMap->InitializeNewEmptyTileMap();
 		}
 	}
 }

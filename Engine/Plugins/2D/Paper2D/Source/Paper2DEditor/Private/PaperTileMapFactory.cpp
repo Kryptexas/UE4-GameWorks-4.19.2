@@ -25,7 +25,7 @@ UObject* UPaperTileMapFactory::FactoryCreateNew(UClass* Class, UObject* InParent
 		NewTileMap->TileHeight = InitialTileSet->TileHeight;
 	}
 
-	NewTileMap->AddNewLayer();
+	NewTileMap->InitializeNewEmptyTileMap();
 
 	return NewTileMap;
 }

@@ -49,9 +49,9 @@ class PAPER2D_API UPaperTileMap : public UObject
 	UPROPERTY(Category=Setup, EditAnywhere, BlueprintReadOnly, meta=(UIMin=1, ClampMin=1))
 	int32 TileHeight;
 
-	// Pixels per Unreal Unit (pixels per cm) - Note: Currently unused!
-	UPROPERTY(Category=Setup, EditAnywhere)
-	float PixelsPerUnit;
+	// The scaling factor between pixels and Unreal units (cm) (e.g., 0.64 would make a 64 pixel wide tile take up 100 cm)
+	UPROPERTY(Category = Setup, EditAnywhere)
+	float PixelsPerUnrealUnit;
 
 	// The Z-separation incurred as you travel in X (not strictly applied, batched tiles will be put at the same Z level) 
 	UPROPERTY(Category=Setup, EditAnywhere, AdvancedDisplay)
@@ -144,6 +144,17 @@ public:
 
 	// Resize the tile map and all layers
 	void ResizeMap(int32 NewWidth, int32 NewHeight, bool bForceResize = true);
+
+	// Return the scaling factor between pixels and Unreal units (cm)
+	float GetPixelsPerUnrealUnit() const { return PixelsPerUnrealUnit; }
+
+	// Return the scaling factor between Unreal units (cm) and pixels
+	float GetUnrealUnitsPerPixel() const { return 1.0f / PixelsPerUnrealUnit; }
+
+	// Called when a fresh tile map has been created (by factory or otherwise)
+	// Adds a default layer and pulls the PixelsPerUnrealUnit from the project settings
+	void InitializeNewEmptyTileMap();
+
 protected:
 	virtual void UpdateBodySetup();
 };
