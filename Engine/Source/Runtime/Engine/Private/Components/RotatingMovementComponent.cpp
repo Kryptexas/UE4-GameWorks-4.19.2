@@ -14,10 +14,12 @@ URotatingMovementComponent::URotatingMovementComponent(const FObjectInitializer&
 void URotatingMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 	// skip if we don't want component updated when not rendered or if updated component can't move
-	if ( ShouldSkipUpdate(DeltaTime) )
+	if (ShouldSkipUpdate(DeltaTime))
 	{
 		return;
 	}
+
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// Compute new rotation
 	const FQuat OldRotation = UpdatedComponent->GetComponentQuat();
