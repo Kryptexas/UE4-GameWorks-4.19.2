@@ -64,7 +64,6 @@ public:
 	// End of UObject interface
 
 	// UActorComponent interface
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual const UObject* AdditionalStatObject() const override;
 	// End of UActorComponent interface
 

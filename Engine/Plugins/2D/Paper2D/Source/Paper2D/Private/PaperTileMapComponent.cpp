@@ -71,12 +71,6 @@ FBoxSphereBounds UPaperTileMapComponent::CalcBounds(const FTransform& LocalToWor
 	}
 }
 
-void UPaperTileMapComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	// Indicate we need to send new dynamic data.
-	MarkRenderDynamicDataDirty();
-}
-
 #if WITH_EDITORONLY_DATA
 void UPaperTileMapComponent::Serialize(FArchive& Ar)
 {
