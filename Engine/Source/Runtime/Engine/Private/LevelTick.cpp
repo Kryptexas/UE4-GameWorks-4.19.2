@@ -701,6 +701,11 @@ static TAutoConsoleVariable<int32> CVarAllowAsyncRenderThreadUpdates(
 	0,
 	TEXT("Used to control async renderthread updates."));
 
+static TAutoConsoleVariable<int32> CVarCollectGarbageEveryFrame(
+	TEXT("CollectGarbageEveryFrame"),
+	0,
+	TEXT("Used to debug garbage collection...Collects garbage every frame if the value is > 0."));
+
 void UWorld::MarkActorComponentForNeededEndOfFrameUpdate(class UActorComponent* Component, bool bForceGameThread)
 {
 	check(!bPostTickComponentUpdate); // can't call this while we are doing the updates
@@ -1312,6 +1317,11 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 			SCOPE_CYCLE_COUNTER(STAT_GCSweepTime);
 			IncrementalPurgeGarbage( true );
 		}
+	}
+
+	if (CVarCollectGarbageEveryFrame.GetValueOnGameThread() > 0)
+	{
+		ForceGarbageCollection(true);
 	}
 
 	// players only request from last frame
