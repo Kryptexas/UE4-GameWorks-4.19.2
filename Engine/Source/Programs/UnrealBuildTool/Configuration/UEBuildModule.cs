@@ -507,7 +507,7 @@ namespace UnrealBuildTool
 		public virtual string FixupOutputPath(string InOutputPath)
 		{
 			string ModuleOutputPath = InOutputPath;
-			if ((OutputDirectory.Length != 0) && (UnrealBuildTool.BuildingRocket() == false))
+			if (OutputDirectory.Length != 0)
 			{
 				// Use from 'Binaries/' on as it is setup w/ the correct platform already
 				int BinariesIndex = ModuleOutputPath.LastIndexOf("Binaries");
