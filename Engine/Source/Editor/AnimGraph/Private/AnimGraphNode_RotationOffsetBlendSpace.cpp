@@ -141,4 +141,16 @@ void UAnimGraphNode_RotationOffsetBlendSpace::GetContextMenuActions(const FGraph
 	}
 }
 
+void UAnimGraphNode_RotationOffsetBlendSpace::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& ComplexAnims, TArray<UAnimSequence*>& AnimationSequences) const
+{
+	if(Node.BlendSpace)
+	{
+		HandleAnimReferenceCollection(Node.BlendSpace, ComplexAnims, AnimationSequences);
+	}
+}
+
+void UAnimGraphNode_RotationOffsetBlendSpace::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ComplexAnimsMap, const TMap<UAnimSequence*, UAnimSequence*>& AnimSequenceMap)
+{
+	HandleAnimReferenceReplacement(Node.BlendSpace, ComplexAnimsMap, AnimSequenceMap);
+}
 #undef LOCTEXT_NAMESPACE
