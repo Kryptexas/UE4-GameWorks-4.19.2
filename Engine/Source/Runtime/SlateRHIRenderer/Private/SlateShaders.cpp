@@ -78,6 +78,7 @@ FSlateElementVS::FSlateElementVS( const ShaderMetaType::CompiledShaderInitialize
 {
 	ViewProjection.Bind(Initializer.ParameterMap, TEXT("ViewProjection"));
 	VertexShaderParams.Bind( Initializer.ParameterMap, TEXT("VertexShaderParams"));
+	SwitchVerticalAxisMultiplier.Bind( Initializer.ParameterMap, TEXT("SwitchVerticalAxisMultiplier"));
 }
 
 void FSlateElementVS::SetViewProjection(FRHICommandList& RHICmdList, const FMatrix& InViewProjection )
@@ -90,6 +91,11 @@ void FSlateElementVS::SetShaderParameters(FRHICommandList& RHICmdList, const FVe
 	SetShaderValue(RHICmdList, GetVertexShader(), VertexShaderParams, ShaderParams );
 }
 
+void FSlateElementVS::SetVerticalAxisMultiplier(FRHICommandList& RHICmdList, float InMultiplier )
+{
+	SetShaderValue(RHICmdList, GetVertexShader(), SwitchVerticalAxisMultiplier, InMultiplier );
+}
+
 /** Serializes the shader data */
 bool FSlateElementVS::Serialize( FArchive& Ar )
 {
@@ -97,6 +103,7 @@ bool FSlateElementVS::Serialize( FArchive& Ar )
 
 	Ar << ViewProjection;
 	Ar << VertexShaderParams;
+	Ar << SwitchVerticalAxisMultiplier;
 
 	return bShaderHasOutdatedParameters;
 }

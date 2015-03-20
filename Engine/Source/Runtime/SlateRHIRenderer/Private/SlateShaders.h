@@ -55,6 +55,11 @@ public:
 	 */
 	void SetShaderParameters(FRHICommandList& RHICmdList, const FVector4& ShaderParams );
 
+	/**
+	 * Sets the vertical axis multiplier to use depending on graphics api
+	 */
+	void SetVerticalAxisMultiplier(FRHICommandList& RHICmdList, float InMultiplier);
+
 	/** Serializes the shader data */
 	virtual bool Serialize( FArchive& Ar );
 
@@ -63,6 +68,8 @@ private:
 	FShaderParameter ViewProjection;
 	/** Shader parmeters used by the shader */
 	FShaderParameter VertexShaderParams;
+	/** Parameter used to determine if we need to swtich the vertical axis for opengl */
+	FShaderParameter SwitchVerticalAxisMultiplier;
 };
 
 /** 
