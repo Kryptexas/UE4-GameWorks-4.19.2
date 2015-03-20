@@ -308,7 +308,7 @@ namespace UnrealBuildTool
 			}
 
 			// debug info
-            if (CompileEnvironment.Config.bCreateDebugInfo && !UnrealBuildTool.BuildingRocket())
+            if (CompileEnvironment.Config.bCreateDebugInfo)
 			{
 				Result += " -g2 -gdwarf-2";
 			}
@@ -437,11 +437,6 @@ namespace UnrealBuildTool
 			Result += " -nostdlib";
 			Result += " -Wl,-shared,-Bsymbolic";
 			Result += " -Wl,--no-undefined";
-
-            if (UnrealBuildTool.BuildingRocket())
-            {
-                Result += " -Wl,--strip-debug";
-            }
 
             if (Architecture == "-armv7")
 			{
