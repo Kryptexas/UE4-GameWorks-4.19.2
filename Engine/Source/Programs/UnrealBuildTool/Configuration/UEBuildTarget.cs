@@ -166,6 +166,8 @@ namespace UnrealBuildTool
 		public bool bIsEditorRecompile;
 		public string RemoteRoot;
 		public List<OnlyModule> OnlyModules;
+		public bool bPrecompileModules;
+		public bool bUsePrecompiledModules;
 	}
 
 
@@ -219,6 +221,9 @@ namespace UnrealBuildTool
 			// If true, the recompile was launched by the editor.
 			bool bIsEditorRecompile = false;
 
+			// Settings for creating/using static libraries for the engine
+			bool bPrecompileModules = UnrealBuildTool.BuildingRocket();
+			bool bUsePrecompiledModules = UnrealBuildTool.RunningRocket();
 
 			// Combine the two arrays of arguments
 			List<string> Arguments = new List<string>(SourceArguments.Length);
@@ -379,6 +384,20 @@ namespace UnrealBuildTool
 							}
 							break;
 
+						case "-PRECOMPILEMODULES":
+							{
+								// Make static libraries for all engine modules as intermediates for this target
+								bPrecompileModules = true;
+							}
+							break;
+							
+						case "-USEPRECOMPILEDMODULES":
+							{
+								// Use existing static libraries for all engine modules in this target
+								bUsePrecompiledModules = true;
+							}
+							break;
+
 						default:
 							PossibleTargetNames.Add(Arguments[ArgumentIndex]);
 							break;
@@ -438,7 +457,9 @@ namespace UnrealBuildTool
 							AdditionalDefinitions = AdditionalDefinitions,
 							bIsEditorRecompile = bIsEditorRecompile,
 							RemoteRoot = RemoteRoot,
-							OnlyModules = OnlyModules
+							OnlyModules = OnlyModules,
+							bPrecompileModules = bPrecompileModules,
+							bUsePrecompiledModules = bUsePrecompiledModules,
 						} );
 					break;
 				}
@@ -671,6 +692,12 @@ namespace UnrealBuildTool
 		/** Remote path of the binary if it is to be synced with CookerSync */
 		public string RemoteRoot;
 
+		/** Whether to build engine modules that can be used without compiling */
+		public bool bPrecompileModules;
+
+		/** Whether to use precompiled engine modules */
+		public bool bUsePrecompiledModules;
+
 		/** The C++ environment that all the environments used to compile UE-based modules are derived from. */
 		[NonSerialized]
 		public CPPEnvironment GlobalCompileEnvironment = new CPPEnvironment();
@@ -694,6 +721,10 @@ namespace UnrealBuildTool
 		/** Extra engine module names to either include in the binary (monolithic) or create side-by-side DLLs for (modular) */
 		[NonSerialized]
 		public List<string> ExtraModuleNames = new List<string>();
+
+		/** Extra engine module names which are compiled but not linked into any binary in precompiled engine distributions */
+		[NonSerialized]
+		public List<UEBuildBinary> PrecompiledBinaries = new List<UEBuildBinary>();
 
 		/** True if re-compiling this target from the editor */
 		public bool bEditorRecompile;
@@ -734,7 +765,8 @@ namespace UnrealBuildTool
 			Configuration = InDesc.Configuration;
 			Rules = InRulesObject;
 			bEditorRecompile = InDesc.bIsEditorRecompile;
-
+			bPrecompileModules = InDesc.bPrecompileModules;
+			bUsePrecompiledModules = InDesc.bUsePrecompiledModules;
 
 			{
 				bCompileMonolithic = (Rules != null) ? Rules.ShouldCompileMonolithic(InDesc.Platform, InDesc.Configuration) : false;
@@ -1287,7 +1319,7 @@ namespace UnrealBuildTool
 				// Don't add static library files to the manifest as we do not check them into perforce.
 				// However, add them to the manifest when cleaning the project as we do want to delete 
 				// them in that case.
-				if (UEBuildConfiguration.bCleanProject == false)
+				if (UEBuildConfiguration.bCleanProject == false && !bPrecompileModules)
 				{
                     if (Binary.Config.Type == UEBuildBinaryType.StaticLibrary)
 					{
@@ -1357,7 +1389,7 @@ namespace UnrealBuildTool
 					var AllReferencedModules = Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: true, bForceCircular: true);
 					foreach (var CurModule in AllReferencedModules)
 					{
-						if (CurModule.Binary == null || CurModule.Binary == ExecutableBinary)
+						if (CurModule.Binary == null || CurModule.Binary == ExecutableBinary || CurModule.Binary.Config.Type == UEBuildBinaryType.StaticLibrary)
 						{
 							ExecutableBinary.AddModule(CurModule.Name);
 						}
@@ -1398,25 +1430,6 @@ namespace UnrealBuildTool
 					string ProjectName = Path.GetFileNameWithoutExtension(UnrealBuildTool.GetUProjectFile());
 					GlobalCompileEnvironment.Config.Definitions.Add(String.Format("UE_PROJECT_NAME={0}", ProjectName));
 				}
-
-				// Generate static libraries for monolithic games in Rocket
-				if ((UnrealBuildTool.BuildingRocket() || UnrealBuildTool.RunningRocket()) && TargetRules.IsAGame(TargetType))
-				{
-					List<UEBuildModule> Modules = ExecutableBinary.GetAllDependencyModules(true, false);
-					foreach (UEBuildModuleCPP Module in Modules.OfType<UEBuildModuleCPP>())
-					{
-						if(Utils.IsFileUnderDirectory(Module.ModuleDirectory, BuildConfiguration.RelativeEnginePath) && Module.Binary == ExecutableBinary)
-						{
-							UnrealTargetConfiguration LibraryConfiguration = (Configuration == UnrealTargetConfiguration.DebugGame)? UnrealTargetConfiguration.Development : Configuration;
-							Module.RedistStaticLibraryPaths = MakeBinaryPaths("", "UE4Game-Redist-" + Module.Name, Platform, LibraryConfiguration, UEBuildBinaryType.StaticLibrary, TargetType, null, AppName);
-							Module.bBuildingRedistStaticLibrary = UnrealBuildTool.BuildingRocket();
-                            if (Module.bBuildingRedistStaticLibrary)
-                            {
-                                SpecialRocketLibFilesThatAreBuildProducts.AddRange(Module.RedistStaticLibraryPaths);
-                            }
-						}
-					}
-				}
 			}
 
 			// On Mac and Linux we have actions that should be executed after all the binaries are created
@@ -1453,8 +1466,11 @@ namespace UnrealBuildTool
 			{
 				var UObjectDiscoveryStartTime = DateTime.UtcNow;
 
+				// Reconstruct a full list of binaries. Binaries which aren't compiled are stripped out of AppBinaries, but we still need to scan them for UHT.
+				List<UEBuildBinary> AllAppBinaries = AppBinaries.Union(PrecompiledBinaries).Distinct().ToList();
+	
 				// Figure out which modules have UObjects that we may need to generate headers for
-				foreach( var Binary in AppBinaries )
+				foreach( var Binary in AllAppBinaries )
 				{
 					var LocalUObjectModules = UObjectModules;	// For lambda access
 					var DependencyModules = Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: false, bForceCircular: false);
@@ -1629,14 +1645,27 @@ namespace UnrealBuildTool
 			GlobalLinkEnvironment.Config.LocalShadowDirectory = GlobalLinkEnvironment.Config.OutputDirectory;
 
 			// Add all of the extra modules, including game modules, that need to be compiled along
-			// with this app.  These modules aren't necessarily statically linked against, but may
-			// still be required at runtime in order for the application to load and function properly!
+			// with this app.  These modules are always statically linked in monolithic targets, but not necessarily linked to anything in modular targets,
+			// and may still be required at runtime in order for the application to load and function properly!
 			AddExtraModules();
 
-			// Bind modules for all app binaries.
+			// Add all the precompiled modules to the target. In contrast to "Extra Modules", these modules are not compiled into monolithic targets by default.
+			AddPrecompiledModules();
+
+			// Bind modules for all app binaries. Static libraries can be linked into other binaries, so bound modules to those first.
+			foreach(UEBuildBinary Binary in AppBinaries)
+			{
+				if(Binary.Config.Type == UEBuildBinaryType.StaticLibrary)
+				{
+					Binary.BindModules();
+				}
+			}
 			foreach (var Binary in AppBinaries)
 			{
-				Binary.BindModules();
+				if(Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
+				{
+					Binary.BindModules();
+				}
 			}
 
 			// Process all referenced modules and create new binaries for DLL dependencies if needed
@@ -1650,7 +1679,13 @@ namespace UnrealBuildTool
 					NewBinaries.AddRange(FoundBinaries);
 				}
 			}
-			AppBinaries.AddRange(NewBinaries);
+			foreach(var NewBinary in NewBinaries)
+			{
+				if(!AppBinaries.Contains(NewBinary))
+				{
+					AppBinaries.Add(NewBinary);
+				}
+			}
 
 			// On Mac AppBinaries paths for non-console targets need to be adjusted to be inside the app bundle
 			if (GlobalLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Mac && !GlobalLinkEnvironment.Config.bIsBuildingConsoleApplication)
@@ -2056,7 +2091,7 @@ namespace UnrealBuildTool
 						var CPPModule = GetModuleByName( ModuleName ) as UEBuildModuleCPP;
 						if( CPPModule != null )
 						{
-							if( !String.IsNullOrEmpty( CPPModule.SharedPCHHeaderFile ) )
+							if( !String.IsNullOrEmpty( CPPModule.SharedPCHHeaderFile ) && CPPModule.Binary.Config.bAllowCompilation )
 							{
 								// @todo SharedPCH: Ideally we could figure the PCH header name automatically, and simply use a boolean in the module
 								//     definition to opt into exposing a shared PCH.  Unfortunately we don't determine which private PCH header "goes with"
@@ -2246,6 +2281,130 @@ namespace UnrealBuildTool
 				// Tell the target about this new binary
 				AppBinaries.Add(new UEBuildBinaryCPP(this, Config));
 			}
+		}
+
+		/// <summary>
+		/// Adds all the precompiled modules into the target. Precompiled modules are compiled alongside the target, but not linked into it unless directly referenced.
+		/// </summary>
+		protected void AddPrecompiledModules()
+		{
+			if(bPrecompileModules || bUsePrecompiledModules)
+			{
+				// Find all the precompiled module names.
+				List<string> PrecompiledModuleNames = new List<string>();
+				Rules.GetModulesToPrecompile(new TargetInfo(Platform, Configuration, TargetTypeOrNull), PrecompiledModuleNames);
+
+				// Add all the enabled plugins to the precompiled module list. Plugins are always precompiled, even if bPrecompileModules is not set, so we should precompile their dependencies.
+				foreach(PluginInfo Plugin in BuildPlugins)
+				{
+					foreach(PluginInfo.PluginModuleInfo Module in Plugin.Modules)
+					{
+						if (ShouldIncludePluginModule(Plugin, Module))
+						{
+							PrecompiledModuleNames.Add(Module.Name);
+						}
+					}
+				}
+
+				// When running in Rocket, all engine modules have to be precompiled, but are precompiled using a different target (UE4Game) with a separate list of precompiled module names.
+				// Add every referenced engine module to the list instead.
+				if(UnrealBuildTool.RunningRocket())
+				{
+					List<UEBuildModule> TargetModules = new List<UEBuildModule>();
+					foreach(UEBuildBinary TargetBinary in AppBinaries)
+					{
+						foreach(string ModuleName in TargetBinary.Config.ModuleNames)
+						{
+							UEBuildModule TargetModule = FindOrCreateModuleByName(ModuleName);
+							TargetModule.RecursivelyAddPrecompiledModules(TargetModules);
+						}
+					}
+					foreach(UEBuildModuleCPP TargetModule in TargetModules)
+					{
+						if(TargetModule is UEBuildModuleCPP && !RulesCompiler.IsGameModule(TargetModule.Name))
+						{
+							PrecompiledModuleNames.Add(TargetModule.Name);
+						}
+					}
+				}
+
+				// Build the final list of precompiled modules from the list of module names
+				List<UEBuildModule> PrecompiledModules = new List<UEBuildModule>();
+				foreach(string PrecompiledModuleName in PrecompiledModuleNames)
+				{
+					UEBuildModule PrecompiledModule = FindOrCreateModuleByName(PrecompiledModuleName);
+					PrecompiledModule.RecursivelyAddPrecompiledModules(PrecompiledModules);
+				}
+
+				// Find all the module names which are already bound to one binary and cannot be bound to another.
+				// For monolithic builds, modules which are already bound to static libraries (eg. plugins) do not need new binaries. 
+				// For modular builds, modules which are already bound to DLLs or executables (eg. launch, extra modules, plugins) do not need new binaries.
+				HashSet<string> BoundModuleNames = new HashSet<string>();
+				foreach(UEBuildBinary Binary in AppBinaries)
+				{
+					foreach(string ModuleName in Binary.Config.ModuleNames)
+					{
+						if(!bCompileMonolithic || Binary.Config.Type == UEBuildBinaryType.StaticLibrary)
+						{
+							BoundModuleNames.Add(ModuleName);
+						}
+					}
+				}
+
+				// Create binaries for the of names to actual modules. Make sure every referenced module is also precompiled.
+				foreach(UEBuildModule PrecompiledModule in PrecompiledModules)
+				{
+					if(PrecompiledModule is UEBuildModuleCPP && !BoundModuleNames.Contains(PrecompiledModule.Name))
+					{
+						UEBuildBinary Binary = AddBinaryForModule(PrecompiledModule.Name, bCompileMonolithic? UEBuildBinaryType.StaticLibrary : UEBuildBinaryType.DynamicLinkLibrary, bUsePrecompiledModules);
+						PrecompiledBinaries.Add(Binary);
+						BoundModuleNames.Add(PrecompiledModule.Name);
+					}
+				}
+			}
+		}
+
+		protected UEBuildBinaryCPP AddBinaryForModule(string ModuleName, UEBuildBinaryType BinaryType, bool bAllowCompilation)
+		{
+			// Get the plugin info for the module
+			PluginInfo Plugin = Plugins.GetPluginInfoForModule(ModuleName);
+
+			// Get the output paths for it. 
+			// HACK: Rocket does not allow overriding the compile environment, so always use the UE4Game prefix. This should be fixed by allowing targets choose whether to use a custom build environment.
+			string[] OutputFilePaths;
+			if(TargetType == TargetRules.TargetType.Game && UnrealBuildTool.RunningRocket())
+			{
+				OutputFilePaths = MakeBinaryPaths(ModuleName, "UE4Game-" + ModuleName, BinaryType, TargetType, Plugin, AppName);
+			}
+			else
+			{
+				OutputFilePaths = MakeBinaryPaths(ModuleName, AppName + "-" + ModuleName, BinaryType, TargetType, Plugin, AppName);
+			}
+
+			// Get the intermediate path
+			string IntermediateDirectory = RulesCompiler.IsGameModule(ModuleName)? ProjectIntermediateDirectory : EngineIntermediateDirectory;
+
+			// If it's a plugin, check if it actually has source.
+			if(Plugin != null)
+			{
+				string ModuleFileName = RulesCompiler.GetModuleFilename(ModuleName);
+				if(String.IsNullOrEmpty(ModuleFileName))
+				{
+					bAllowCompilation = false;
+				}
+				else if(!Directory.EnumerateFiles(Path.GetDirectoryName(ModuleFileName), "*.cpp", SearchOption.AllDirectories).Any())
+				{
+					bAllowCompilation = false;
+				}
+			}
+
+			// Get the binary configuration
+			UEBuildBinaryConfiguration BinaryConfig = new UEBuildBinaryConfiguration(BinaryType, OutputFilePaths, IntermediateDirectory, true, bInAllowCompilation: bPrecompileModules, bInCompileMonolithic: bCompileMonolithic, InModuleNames: new List<string>{ ModuleName });
+
+			// Create the binary
+			UEBuildBinaryCPP Binary = new UEBuildBinaryCPP(this, BinaryConfig);
+			AppBinaries.Add(Binary);
+			return Binary;
 		}
 
 		/**

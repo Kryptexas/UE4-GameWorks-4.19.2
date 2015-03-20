@@ -358,12 +358,15 @@ namespace UnrealBuildTool
 				if (Config.bHasModuleRules)
 				{
 					Module = Target.FindOrCreateModuleByName(ModuleName);
-					if (Module.Binary != null)
+					if(Module.Binary == null)
+					{
+						Module.Binary = this;
+						Module.bIncludedInTarget = true;
+					}
+					else if(Module.Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
 					{
 						throw new BuildException("Module \"{0}\" linked into both {1} and {2}, which creates ambiguous linkage for dependents.", ModuleName, Module.Binary.Config.OutputFilePath, Config.OutputFilePath);
 					}
-					Module.Binary = this;
-					Module.bIncludedInTarget = true;
 				}
 
 				// We set whether the binary is being compiled monolithic here to know later - specifically
@@ -610,20 +613,27 @@ namespace UnrealBuildTool
 			{
 				var Module = Target.GetModuleByName(ModuleName);
 
-				// Compile each module.
-				Log.TraceVerbose("Compile module: " + ModuleName);
-
-				var LinkInputFiles = Module.Compile(CompileEnvironment, BinaryCompileEnvironment, Config.bCompileMonolithic);
-
-				// NOTE: Because of 'Shared PCHs', in monolithic builds the same PCH file may appear as a link input
-				// multiple times for a single binary.  We'll check for that here, and only add it once.  This avoids
-				// a linker warning about redundant .obj files. 
-				foreach (var LinkInputFile in LinkInputFiles)
+				List<FileItem> LinkInputFiles; 
+				if(Module.Binary == null || Module.Binary == this)
 				{
-					if (!BinaryLinkEnvironment.InputFiles.Contains(LinkInputFile))
+					// Compile each module.
+					Log.TraceVerbose("Compile module: " + ModuleName);
+					LinkInputFiles = Module.Compile(CompileEnvironment, BinaryCompileEnvironment, Config.bCompileMonolithic);
+
+					// NOTE: Because of 'Shared PCHs', in monolithic builds the same PCH file may appear as a link input
+					// multiple times for a single binary.  We'll check for that here, and only add it once.  This avoids
+					// a linker warning about redundant .obj files. 
+					foreach (var LinkInputFile in LinkInputFiles)
 					{
-						BinaryLinkEnvironment.InputFiles.Add(LinkInputFile);
+						if (!BinaryLinkEnvironment.InputFiles.Contains(LinkInputFile))
+						{
+							BinaryLinkEnvironment.InputFiles.Add(LinkInputFile);
+						}
 					}
+				}
+				else 
+				{
+					BinaryDependencies.Add(Module.Binary);
 				}
 
 				if (!BuildConfiguration.bRunUnrealCodeAnalyzer)

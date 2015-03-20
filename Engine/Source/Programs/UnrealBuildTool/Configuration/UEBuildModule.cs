@@ -810,6 +810,15 @@ namespace UnrealBuildTool
 		}
 
 		/**
+		 * Gets all of the modules precompiled along with this module
+		 * 
+		 * @param	Modules	Set of all the precompiled modules
+		 */
+		public virtual void RecursivelyAddPrecompiledModules(List<UEBuildModule> Modules)
+		{
+		}
+
+		/**
 		 * Gathers and binds binaries for this module and all of it's dependent modules
 		 *
 		 * @param	Target				The target we are currently building
@@ -987,13 +996,7 @@ namespace UnrealBuildTool
 		/** Enable exception handling */
 		public bool bEnableExceptions = false;
 
-		/** Path to this module's redist static library */
-		public string[] RedistStaticLibraryPaths = null;
-
 		public List<string> IncludeSearchPaths = new List<string>();
-
-		/** Whether we're building the redist static library (as well as using it). */
-		public bool bBuildingRedistStaticLibrary = false;
 
 		public class ProcessedDependenciesClass
 		{
@@ -1143,12 +1146,6 @@ namespace UnrealBuildTool
 				return LinkInputFiles;
 			}
 
-			if(RedistStaticLibraryPaths != null && !bBuildingRedistStaticLibrary)
-			{
-				// The redist static library will be added in SetupPrivateLinkEnvironment
-				return LinkInputFiles;
-			}
-
 			var ModuleCompileEnvironment = CreateModuleCompileEnvironment(CompileEnvironment);
 			IncludeSearchPaths = ModuleCompileEnvironment.Config.CPPIncludeInfo.IncludePaths.ToList();
 			IncludeSearchPaths.AddRange(ModuleCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.ToList());
@@ -1269,7 +1266,7 @@ namespace UnrealBuildTool
 					Log.TraceVerbose("Module '{0}' was not allowed to use Shared PCHs, because we're compiling to a library in monolithic mode", this.Name );
 				}
 
-				bool bUseSharedPCHFiles  = BuildConfiguration.bUseSharedPCHs && (bDisableSharedPCHFiles == false) && !UnrealBuildTool.BuildingRocket();
+				bool bUseSharedPCHFiles  = BuildConfiguration.bUseSharedPCHs && (bDisableSharedPCHFiles == false) && GlobalCompileEnvironment.SharedPCHHeaderFiles.Count > 0;
 
 				if( bUseSharedPCHFiles )
 				{
@@ -1524,23 +1521,6 @@ namespace UnrealBuildTool
 
 			// Compile MM files directly.
 			LinkInputFiles.AddRange(CPPCompileEnvironment.CompileFiles( Target, SourceFilesToBuild.MMFiles, Name).ObjectFiles);
-
-			// If we're building Rocket, generate a static library for this module
-			if(RedistStaticLibraryPaths != null)
-			{
-				// Create a link environment for it
-				LinkEnvironment RedistLinkEnvironment = new LinkEnvironment();
-				RedistLinkEnvironment.InputFiles.AddRange(LinkInputFiles);
-				RedistLinkEnvironment.Config.Target                = CompileEnvironment.Config.Target;
-				RedistLinkEnvironment.Config.bIsBuildingDLL        = false;
-				RedistLinkEnvironment.Config.bIsBuildingLibrary    = true;
-				RedistLinkEnvironment.Config.IntermediateDirectory = Binary.Config.IntermediateDirectory;
-				RedistLinkEnvironment.Config.OutputFilePaths       = RedistStaticLibraryPaths != null ? (string[])RedistStaticLibraryPaths.Clone() : null;
-
-				// Replace the items built so far with the library
-				RedistLinkEnvironment.LinkExecutable(false);
-				LinkInputFiles.Clear();
-			}
 
 			// Compile RC files.
 			LinkInputFiles.AddRange(CPPCompileEnvironment.CompileRCFiles(Target, SourceFilesToBuild.RCFiles).ObjectFiles);
@@ -1829,23 +1809,6 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		public override void SetupPrivateLinkEnvironment(
-			ref LinkEnvironment LinkEnvironment,
-			ref List<UEBuildBinary> BinaryDependencies,
-			ref Dictionary<UEBuildModule, bool> VisitedModules
-			)
-		{
-			base.SetupPrivateLinkEnvironment(ref LinkEnvironment,ref BinaryDependencies,ref VisitedModules);
-
-			if(RedistStaticLibraryPaths != null)
-			{
-				foreach (string LibVar in RedistStaticLibraryPaths)
-				{
-					LinkEnvironment.Config.AdditionalLibraries.Add(Path.GetFullPath(LibVar));
-				}
-			}
-		}
-
 		public HashSet<FileItem> _AllClassesHeaders     = new HashSet<FileItem>();
 		public HashSet<FileItem> _PublicUObjectHeaders  = new HashSet<FileItem>();
 		public HashSet<FileItem> _PrivateUObjectHeaders = new HashSet<FileItem>();
@@ -1950,6 +1913,28 @@ namespace UnrealBuildTool
 
 						OrderedModules.Add( Module );
 					}
+				}
+			}
+		}
+
+		public override void RecursivelyAddPrecompiledModules(List<UEBuildModule> Modules)
+		{
+			if(!Modules.Contains(this))
+			{
+				Modules.Add(this);
+
+				// Get the dependent modules
+				List<string> DependentModuleNames = new List<string>();
+				DependentModuleNames.AddRange(PrivateDependencyModuleNames);
+				DependentModuleNames.AddRange(PublicDependencyModuleNames);
+				DependentModuleNames.AddRange(DynamicallyLoadedModuleNames);
+				DependentModuleNames.AddRange(PlatformSpecificDynamicallyLoadedModuleNames);
+
+				// Find modules for each of them, and add their dependencies too
+				foreach(string DependentModuleName in DependentModuleNames)
+				{
+					UEBuildModule DependentModule = Target.FindOrCreateModuleByName(DependentModuleName);
+					DependentModule.RecursivelyAddPrecompiledModules(Modules);
 				}
 			}
 		}

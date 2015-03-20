@@ -656,6 +656,17 @@ namespace UnrealBuildTool
 			)
 		{
 		}
+
+		/// <summary>
+		/// Allows the target to specify modules which can be precompiled with the -PrecompileModules/-UsePrecompiledModules arguments to UBT. 
+		/// All dependencies of the specified modules will be included.
+		/// </summary>
+		/// <param name="Target">The target information, such as platform and configuration</param>
+		/// <param name="ModuleNames">List which receives module names to precompile</param>
+		public virtual void GetModulesToPrecompile(TargetInfo Target, List<string> ModuleNames)
+		{
+		}
+
         /// <summary>
         /// Return true if this target should always be built with the base editor. Usually programs like shadercompilerworker.
         /// </summary>

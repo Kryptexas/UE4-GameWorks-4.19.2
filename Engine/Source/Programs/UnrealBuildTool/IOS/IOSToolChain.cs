@@ -1126,25 +1126,6 @@ namespace UnrealBuildTool
 					BuiltBinaries.Add(Path.GetFullPath(Binary.ToString()));
 				}
 
-				// Generate static libraries for monolithic games in Rocket
-				if ((UnrealBuildTool.BuildingRocket() || UnrealBuildTool.RunningRocket()) && TargetRules.IsAGame(Target.TargetType))
-				{
-					List<UEBuildModule> Modules = Target.AppBinaries[0].GetAllDependencyModules(true, false);
-					foreach (UEBuildModuleCPP Module in Modules.OfType<UEBuildModuleCPP>())
-					{
-						if (Utils.IsFileUnderDirectory(Module.ModuleDirectory, BuildConfiguration.RelativeEnginePath) && Module.Binary == Target.AppBinaries[0])
-						{
-							if (Module.bBuildingRedistStaticLibrary)
-							{
-								foreach (var LibraryPath in Module.RedistStaticLibraryPaths)
-								{
-									BuiltBinaries.Add(Path.GetFullPath(LibraryPath));
-								}
-							}
-						}
-					}
-				}
-
 				// check to see if the DangerouslyFast mode is valid (in other words, a build has gone through since a Rebuild/Clean operation)
 				string DangerouslyFastValidFile = Path.Combine(Target.GlobalLinkEnvironment.Config.IntermediateDirectory, "DangerouslyFastIsNotDangerous");
 				bool bUseDangerouslyFastModeWasRequested = bUseDangerouslyFastMode;

@@ -17,25 +17,6 @@ public class UE4EditorTarget : TargetRules
 		)
 	{
 		OutExtraModuleNames.Add("UE4Game");
-		OutExtraModuleNames.Add("GameMenuBuilder");
-		if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
-		{
-			OutExtraModuleNames.Add("OnlineSubsystemNull");
-			OutExtraModuleNames.Add("OnlineSubsystemAmazon");
-			if (UEBuildConfiguration.bCompileSteamOSS == true)
-			{
-				OutExtraModuleNames.Add("OnlineSubsystemSteam");
-			}
-			OutExtraModuleNames.Add("OnlineSubsystemFacebook");
-		}
-		else if (Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux)
-		{
-			OutExtraModuleNames.Add("OnlineSubsystemNull");
-			if (UEBuildConfiguration.bCompileSteamOSS == true)
-			{
-				OutExtraModuleNames.Add("OnlineSubsystemSteam");
-			}
-		}
 	}
 
 	public override void SetupGlobalEnvironment(
@@ -45,6 +26,31 @@ public class UE4EditorTarget : TargetRules
 		)
 	{
 	}
+
+	public override void GetModulesToPrecompile(TargetInfo Target, List<string> ModuleNames)
+	{
+		ModuleNames.Add("Launch");
+		ModuleNames.Add("GameMenuBuilder");
+		if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
+		{
+			ModuleNames.Add("OnlineSubsystemNull");
+			ModuleNames.Add("OnlineSubsystemAmazon");
+			if (UEBuildConfiguration.bCompileSteamOSS == true)
+			{
+				ModuleNames.Add("OnlineSubsystemSteam");
+			}
+			ModuleNames.Add("OnlineSubsystemFacebook");
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			ModuleNames.Add("OnlineSubsystemNull");
+			if (UEBuildConfiguration.bCompileSteamOSS == true)
+			{
+				ModuleNames.Add("OnlineSubsystemSteam");
+			}
+		}
+	}
+
     public override GUBPProjectOptions GUBP_IncludeProjectInPromotedBuild_EditorTypeOnly(UnrealTargetPlatform HostPlatform)
     {
         var Result = new GUBPProjectOptions();
