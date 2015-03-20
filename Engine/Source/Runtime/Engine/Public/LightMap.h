@@ -212,6 +212,12 @@ public:
 	ENGINE_API UTexture2D* GetTexture(uint32 BasisIndex);
 
 	/**
+	 * Returns SkyOcclusionTexture.
+	 * @return	The SkyOcclusionTexture.
+	 */
+	ENGINE_API UTexture2D* GetSkyOcclusionTexture();
+
+	/**
 	 * Returns whether the specified basis has a valid lightmap texture or not.
 	 * @param	BasisIndex - The basis index.
 	 * @return	true if the specified basis has a valid lightmap texture, otherwise false

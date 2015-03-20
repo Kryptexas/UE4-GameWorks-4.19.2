@@ -1581,6 +1581,30 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstan
 		{
 			LODData[i].LightMap = StaticMeshInstanceData->CachedStaticLighting.LODDataLightMap[i];
 			LODData[i].ShadowMap = StaticMeshInstanceData->CachedStaticLighting.LODDataShadowMap[i];
+
+// this code is to try to track down a mystery GC crash from crash reporter...if this code crashes, and then we know it is component reinstancing
+			if (LODData[i].LightMap.GetReference())
+			{
+				FLightMap2D* LightMap = LODData[i].LightMap->GetLightMap2D();
+				if (LightMap)
+				{
+					if (LightMap->IsValid(0))
+					{
+						UTexture2D* Tex = LightMap->GetTexture(0);
+						Tex->GetResourceSize(EResourceSizeMode::Exclusive);
+					}
+					if (LightMap->IsValid(1))
+					{
+						UTexture2D* Tex = LightMap->GetTexture(1);
+						Tex->GetResourceSize(EResourceSizeMode::Exclusive);
+					}
+					if (LightMap->GetSkyOcclusionTexture())
+					{
+						UTexture2D* Tex = LightMap->GetSkyOcclusionTexture();
+						Tex->GetResourceSize(EResourceSizeMode::Exclusive);
+					}
+				}
+			}
 		}
 
 		IrrelevantLights = StaticMeshInstanceData->CachedStaticLighting.IrrelevantLights;

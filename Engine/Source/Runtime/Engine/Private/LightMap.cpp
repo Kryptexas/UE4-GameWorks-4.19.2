@@ -1591,6 +1591,11 @@ UTexture2D* FLightMap2D::GetTexture(uint32 BasisIndex)
 	return Textures[BasisIndex];
 }
 
+UTexture2D* FLightMap2D::GetSkyOcclusionTexture()
+{
+	return SkyOcclusionTexture;
+}
+
 /**
  * Returns whether the specified basis has a valid lightmap texture or not.
  * @param	BasisIndex - The basis index.
