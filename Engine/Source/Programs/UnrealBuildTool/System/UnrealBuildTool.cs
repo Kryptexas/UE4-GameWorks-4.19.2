@@ -418,24 +418,6 @@ namespace UnrealBuildTool
             }
         }
 
-		/// <summary>
-		/// Determines whether the given path is ignored for the active build.
-		/// </summary>
-		/// <param name="InString">The path to check</param>
-		/// <returns>true if the path should be ignored for the build</returns>
-		public static bool IsPathIgnoredForBuild(string InPath)
-		{
-			if (BuildingRocket())
-			{
-				string NormalizedPath = InPath.Replace('\\', '/').ToLowerInvariant();
-				if (NormalizedPath.Contains("/notforlicensees/") || NormalizedPath.Contains("/epicinternal/") || NormalizedPath.Contains("/noredist/"))
-				{
-					return true;
-				}
-			}
-			return false;
-		}
-
         /// <summary>
         /// See if the given string was pass in on the command line
         /// </summary>

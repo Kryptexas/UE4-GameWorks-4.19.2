@@ -386,33 +386,30 @@ namespace UnrealBuildTool
 			var PluginsDirectoryInfo = new DirectoryInfo(PluginsDirectory);
 			foreach( var PossiblePluginDirectory in PluginsDirectoryInfo.EnumerateDirectories() )
 			{
-				if (!UnrealBuildTool.IsPathIgnoredForBuild(PossiblePluginDirectory.FullName))
+				// Do we have a plugin descriptor in this directory?
+				bool bFoundPlugin = false;
+				foreach (var PluginDescriptorFileName in Directory.GetFiles(PossiblePluginDirectory.FullName, "*" + PluginDescriptorFileExtension))
 				{
-					// Do we have a plugin descriptor in this directory?
-					bool bFoundPlugin = false;
-					foreach (var PluginDescriptorFileName in Directory.GetFiles(PossiblePluginDirectory.FullName, "*" + PluginDescriptorFileExtension))
+					// Found a plugin directory!  No need to recurse any further, but make sure it's unique.
+					if (!Plugins.Any(x => x.Directory == PossiblePluginDirectory.FullName))
 					{
-						// Found a plugin directory!  No need to recurse any further, but make sure it's unique.
-						if (!Plugins.Any(x => x.Directory == PossiblePluginDirectory.FullName))
-						{
-							// Load the plugin info and keep track of it
-							var PluginDescriptorFile = new FileInfo(PluginDescriptorFileName);
-							var PluginInfo = LoadPluginDescriptor(PluginDescriptorFile, LoadedFrom);
+						// Load the plugin info and keep track of it
+						var PluginDescriptorFile = new FileInfo(PluginDescriptorFileName);
+						var PluginInfo = LoadPluginDescriptor(PluginDescriptorFile, LoadedFrom);
 
-							Plugins.Add(PluginInfo);
-							bFoundPlugin = true;
-							Log.TraceVerbose("Found plugin in: " + PluginInfo.Directory);
-						}
-
-						// No need to search for more plugins
-						break;
+						Plugins.Add(PluginInfo);
+						bFoundPlugin = true;
+						Log.TraceVerbose("Found plugin in: " + PluginInfo.Directory);
 					}
 
-					if (!bFoundPlugin)
-					{
-						// Didn't find a plugin in this directory.  Continue to look in subfolders.
-						FindPluginsRecursively(PossiblePluginDirectory.FullName, LoadedFrom, ref Plugins);
-					}
+					// No need to search for more plugins
+					break;
+				}
+
+				if (!bFoundPlugin)
+				{
+					// Didn't find a plugin in this directory.  Continue to look in subfolders.
+					FindPluginsRecursively(PossiblePluginDirectory.FullName, LoadedFrom, ref Plugins);
 				}
 			}
 		}
