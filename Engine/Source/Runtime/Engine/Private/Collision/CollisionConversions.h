@@ -78,7 +78,7 @@ bool IsBlocking(const PxShape* PShape, const PxFilterData& QueryFilter);
  * @param	QueryFilter	Query filter for converting
  * @return	OutOverlaps	Converted data
  */
-bool ConvertOverlapResults(const UWorld* World, int32 NumOverlaps,  PxOverlapHit* POverlapResults, const PxFilterData& QueryFilter, TArray<FOverlapResult>& OutOverlaps);
+bool ConvertOverlapResults(int32 NumOverlaps,  PxOverlapHit* POverlapResults, const PxFilterData& QueryFilter, TArray<FOverlapResult>& OutOverlaps);
 
 
 #endif // WITH_PHYX
