@@ -75,7 +75,7 @@ public:
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	virtual void OnFocusLost(const FFocusEvent& InFocusEvent) override;
 	virtual bool SupportsKeyboardFocus() const override;
-
+	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const override;
 	// End of SWidget interface
 
 	// SNodePanel::SNode interface
@@ -108,7 +108,7 @@ public:
 	void DropCancelled();
 
 	/** Returns the size of this notifies duration in screen space */
-	float GetDurationSize() { return NotifyDurationSizeX;}
+	float GetDurationSize() const { return NotifyDurationSizeX;}
 
 	/** Sets the position the mouse was at when this node was last hit */
 	void SetLastMouseDownPosition(const FVector2D& CursorPosition) {LastMouseDownPosition = CursorPosition;}
@@ -1576,6 +1576,25 @@ bool SAnimNotifyNode::SupportsKeyboardFocus() const
 	// Need to support focus on the node so we can end drag transactions if the user alt-tabs
 	// from the editor while in the proceess of dragging a state notify duration marker.
 	return true;
+}
+
+FCursorReply SAnimNotifyNode::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
+{
+	// Show resize cursor if the cursor is hoverring over either of the scrub handles of a notify state node
+	if(IsHovered() && GetDurationSize() > 0.0f)
+	{
+		FVector2D RelMouseLocation = MyGeometry.AbsoluteToLocal(CursorEvent.GetScreenSpacePosition());
+
+		const float HandleHalfWidth = ScrubHandleSize.X / 2.0f;
+		const float DistFromFirstHandle = FMath::Abs(RelMouseLocation.X - NotifyScrubHandleCentre);
+		const float DistFromSecondHandle = FMath::Abs(RelMouseLocation.X - (NotifyScrubHandleCentre + NotifyDurationSizeX));
+
+		if(DistFromFirstHandle < HandleHalfWidth || DistFromSecondHandle < HandleHalfWidth || CurrentDragHandle != ENotifyStateHandleHit::None)
+		{
+			return FCursorReply::Cursor(EMouseCursor::ResizeLeftRight);
+		}
+	}
+	return FCursorReply::Unhandled();
 }
 
 //////////////////////////////////////////////////////////////////////////
