@@ -616,7 +616,6 @@ protected:
 		FToken& VarProperty,
 		bool NoArrays,
 		bool IsFunction,
-		const TCHAR* HardcodedName,
 		EVariableCategory::Type VariableCategory);
 	
 	/**
