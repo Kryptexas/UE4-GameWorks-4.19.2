@@ -126,18 +126,18 @@ public:
 	TArray<FAISightQuery> SightQueryQueue;
 
 protected:
-	UPROPERTY(config)
+	UPROPERTY(EditDefaultsOnly, Category = "AI Perception", config)
 	int32 MaxTracesPerTick;
 
-	UPROPERTY(config)
+	UPROPERTY(EditDefaultsOnly, Category = "AI Perception", config)
 	float HighImportanceQueryDistanceThreshold;
 
 	float HighImportanceDistanceSquare;
 
-	UPROPERTY(config)
+	UPROPERTY(EditDefaultsOnly, Category = "AI Perception", config)
 	float MaxQueryImportance;
 
-	UPROPERTY(config)
+	UPROPERTY(EditDefaultsOnly, Category = "AI Perception", config)
 	float SightLimitQueryImportance;
 
 public:

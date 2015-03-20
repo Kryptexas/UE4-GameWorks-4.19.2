@@ -39,6 +39,7 @@
 #include "EnvironmentQuery/EnvQueryTypes.h"
 #include "EnvironmentQuery/EnvQueryGenerator.h"
 #include "EnvironmentQuery/EnvQueryTest.h"
+#include "EnvironmentQuery/Items/EnvQueryItemType_ActorBase.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType.h"
 #include "Actions/PawnAction.h"
 #include "Actions/PawnActionsComponent.h"

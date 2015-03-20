@@ -28,6 +28,9 @@ protected:
 	/** age past which stimulus of this sense are "forgotten"*/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI Perception", config)
 	float DefaultExpirationAge;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI Perception", config)
+	EAISenseNotifyType NotifyType;
 	
 private:
 	UPROPERTY()
@@ -62,6 +65,8 @@ public:
 		return GetDefault<TSense>()->GetSenseID();
 	}
 	FORCEINLINE FAISenseID GetSenseID() const { return SenseID; }
+
+	FORCEINLINE bool WantsUpdateOnlyOnPerceptionValueChange() const { return (NotifyType == EAISenseNotifyType::OnPerceptionChange); }
 
 	virtual void PostInitProperties() override;
 

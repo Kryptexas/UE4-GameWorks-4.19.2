@@ -124,10 +124,8 @@ float UAISense_Hearing::Update()
 		{
 			const FAINoiseEvent& Event = NoiseEvents[EventIndex];
 		
-			// @todo implement some kind of TeamIdentifierType that would supply comparison operator 
-			// @todo use PropDigest.AffiliationFlags
-			if (Listener.TeamIdentifier == Event.TeamIdentifier 
-				|| FVector::DistSquared(Event.NoiseLocation, Listener.CachedLocation) > PropDigest.HearingRangeSq * Event.Loudness)
+			if (FVector::DistSquared(Event.NoiseLocation, Listener.CachedLocation) > PropDigest.HearingRangeSq * Event.Loudness
+				|| FAISenseAffiliationFilter::ShouldSenseTeam(Listener.TeamIdentifier, Event.TeamIdentifier, PropDigest.AffiliationFlags) == false)
 			{
 				continue;
 			}

@@ -88,6 +88,7 @@ UAISense_Sight::UAISense_Sight(const FObjectInitializer& ObjectInitializer)
 
 	DebugDrawColor = FColor::Green;
 	DebugName = TEXT("Sight");
+	NotifyType = EAISenseNotifyType::OnPerceptionChange;
 }
 
 FORCEINLINE_DEBUGGABLE float UAISense_Sight::CalcQueryImportance(const FPerceptionListener& Listener, const FVector& TargetLocation, const float SightRadiusSq) const
@@ -313,16 +314,18 @@ bool UAISense_Sight::RegisterTarget(AActor& TargetActor, FQueriesOperationPostPr
 		const FPerceptionListener& Listener = ItListener->Value;
 		const IGenericTeamAgentInterface* ListenersTeamAgent = Listener.GetTeamAgent();
 
-		// @todo add configuration here
-		if (Listener.HasSense(GetSenseID()) && (ListenersTeamAgent == NULL || ListenersTeamAgent->GetTeamAttitudeTowards(TargetActor) == ETeamAttitude::Hostile))
+		if (Listener.HasSense(GetSenseID()))
 		{
-			// create a sight query		
-			FAISightQuery SightQuery(ItListener->Key, SightTarget->TargetId);
 			const FDigestedSightProperties& PropDigest = DigestedProperties[Listener.GetListenerID()];
-			SightQuery.Importance = CalcQueryImportance(ItListener->Value, TargetLocation, PropDigest.SightRadiusSq);
+			if (FAISenseAffiliationFilter::ShouldSenseTeam(ListenersTeamAgent, TargetActor, PropDigest.AffiliationFlags))
+			{
+				// create a sight query		
+				FAISightQuery SightQuery(ItListener->Key, SightTarget->TargetId);
+				SightQuery.Importance = CalcQueryImportance(ItListener->Value, TargetLocation, PropDigest.SightRadiusSq);
 
-			SightQueryQueue.Add(SightQuery);
-			bNewQueriesAdded = true;
+				SightQueryQueue.Add(SightQuery);
+				bNewQueriesAdded = true;
+			}
 		}
 	}
 
@@ -361,8 +364,7 @@ void UAISense_Sight::GenerateQueriesForListener(const FPerceptionListener& Liste
 			continue;
 		}
 
-		// @todo this should be configurable - some AI might want to observe Neutrals and Friendlies as well
-		if (ListenersTeamAgent == NULL || ListenersTeamAgent->GetTeamAttitudeTowards(*TargetActor) == ETeamAttitude::Hostile)
+		if (FAISenseAffiliationFilter::ShouldSenseTeam(ListenersTeamAgent, *TargetActor, PropertyDigest.AffiliationFlags))
 		{
 			// create a sight query		
 			FAISightQuery SightQuery(Listener.GetListenerID(), ItTarget->Key);

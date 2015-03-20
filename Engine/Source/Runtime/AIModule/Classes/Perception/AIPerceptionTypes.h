@@ -25,6 +25,13 @@ typedef FAIGenericID<FPerceptionListenerCounter> FPerceptionListenerID;
 
 //////////////////////////////////////////////////////////////////////////
 
+UENUM()
+enum class EAISenseNotifyType : uint8
+{
+	OnEveryPerception,	// continuous update whenever target is perceived
+	OnPerceptionChange, // from "visible" to "not visible" or vice versa
+};
+
 struct FPerceptionChannelFilter
 {
 	static const uint32 AllChannels = uint32(-1);
@@ -88,6 +95,8 @@ public:
 	FAISenseID Type;
 
 protected:
+	uint32 bWantsToNotifyOnlyOnValueChange : 1;
+
 	UPROPERTY(BlueprintReadWrite, Category = "AI|Perception")
 	uint32 bSuccessfullySensed:1; // currently used only for marking failed sight tests
 
@@ -100,21 +109,24 @@ public:
 	/** this is the recommended constructor. Use others if you know what you're doing. */
 	FAIStimulus(const UAISense& Sense, float StimulusStrength, const FVector& InStimulusLocation, const FVector& InReceiverLocation, FResult Result = SensingSucceeded);
 
-	FAIStimulus(FAISenseID SenseType, float StimulusStrength, const FVector& InStimulusLocation, const FVector& InReceiverLocation, FResult Result = SensingSucceeded)
+	/*FAIStimulus(FAISenseID SenseType, float StimulusStrength, const FVector& InStimulusLocation, const FVector& InReceiverLocation, FResult Result = SensingSucceeded)
 		: Age(0.f), ExpirationAge(NeverHappenedAge)
 		, Strength(Result == SensingSucceeded ? StimulusStrength : -1.f)
 		, StimulusLocation(InStimulusLocation)
-		, ReceiverLocation(InReceiverLocation), Type(SenseType), bSuccessfullySensed(Result == SensingSucceeded), bExpired(false)
-	{}
+		, ReceiverLocation(InReceiverLocation), Type(SenseType), bWantsToNotifyOnlyOnValueChange(false)
+		, bSuccessfullySensed(Result == SensingSucceeded), bExpired(false)
+	{}*/
 
 	// default constructor
 	FAIStimulus()
 		: Age(NeverHappenedAge), ExpirationAge(NeverHappenedAge), Strength(-1.f), StimulusLocation(FAISystem::InvalidLocation)
-		, ReceiverLocation(FAISystem::InvalidLocation), Type(FAISenseID::InvalidID()), bSuccessfullySensed(false), bExpired(false)
+		, ReceiverLocation(FAISystem::InvalidLocation), Type(FAISenseID::InvalidID()), bWantsToNotifyOnlyOnValueChange(false)
+		, bSuccessfullySensed(false), bExpired(false)
 	{}
 
 	FAIStimulus& SetExpirationAge(float InExpirationAge) { ExpirationAge = InExpirationAge; return *this; }
 	FAIStimulus& SetStimulusAge(float StimulusAge) { Age = StimulusAge; return *this; }
+	FAIStimulus& SetWantsNotifyOnlyOnValueChange(bool InEnable) { bWantsToNotifyOnlyOnValueChange = InEnable; return *this; }
 	
 	FORCEINLINE float GetAge() const { return Strength > 0 ? Age : NeverHappenedAge; }
 	/** @return false when this stimulus is no longer valid, when it is Expired */
@@ -128,6 +140,7 @@ public:
 	FORCEINLINE void MarkNoLongerSensed() { bSuccessfullySensed = false; }
 	FORCEINLINE void MarkExpired() { bExpired = true; MarkNoLongerSensed(); }
 	FORCEINLINE bool IsActive() const { return WasSuccessfullySensed() == true && GetAge() < NeverHappenedAge; }
+	FORCEINLINE bool WantsToNotifyOnlyOnPerceptionChange() const { return bWantsToNotifyOnlyOnValueChange; }
 };
 
 USTRUCT()
@@ -145,6 +158,22 @@ struct AIMODULE_API FAISenseAffiliationFilter
 	uint32 bDetectFriendlies : 1;
 	
 	uint8 GetAsFlags() const { return (bDetectEnemies << ETeamAttitude::Hostile) | (bDetectNeutrals << ETeamAttitude::Neutral) | (bDetectFriendlies << ETeamAttitude::Friendly); }
+	FORCEINLINE bool ShouldDetectAll() const { return (bDetectEnemies & bDetectNeutrals & bDetectFriendlies); }
+
+	static FORCEINLINE uint8 DetectAllFlags() { return (1 << ETeamAttitude::Hostile) | (1 << ETeamAttitude::Neutral) | (1 << ETeamAttitude::Friendly); }
+
+	static bool ShouldSenseTeam(FGenericTeamId TeamA, FGenericTeamId TeamB, uint8 AffiliationFlags)
+	{
+		static const uint8 AllFlags = DetectAllFlags();
+		return AffiliationFlags == AllFlags || ((1 << FGenericTeamId::GetAttitude(TeamA, TeamB)) & AffiliationFlags);
+	}
+
+	static bool ShouldSenseTeam(const IGenericTeamAgentInterface* TeamAgent, const AActor& TargetActor, uint8 AffiliationFlags)
+	{
+		static const uint8 AllFlags = DetectAllFlags();
+		return AffiliationFlags == AllFlags 
+			|| (TeamAgent == nullptr ? (AffiliationFlags & (1 << ETeamAttitude::Neutral)) : ((1 << TeamAgent->GetTeamAttitudeTowards(TargetActor)) & AffiliationFlags));
+	}
 };
 
 /** Should contain only cached information common to all senses. Sense-specific data needs to be stored by senses themselves */

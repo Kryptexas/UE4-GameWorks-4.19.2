@@ -643,9 +643,9 @@ void AGameplayDebuggingHUDComponent::DrawPerception(APlayerController* PC, class
 		if (BTAI)
 		{
 			// standalone only
-			if (BTAI->PerceptionComponent && DefaultContext.Canvas != NULL)
+			if (BTAI->GetAIPerceptionComponent() && DefaultContext.Canvas != NULL)
 			{
-				BTAI->PerceptionComponent->DrawDebugInfo(DefaultContext.Canvas);
+				BTAI->GetAIPerceptionComponent()->DrawDebugInfo(DefaultContext.Canvas);
 
 				const FVector AILocation = MyPawn->GetActorLocation();
 				const FVector Facing = MyPawn->GetActorRotation().Vector();

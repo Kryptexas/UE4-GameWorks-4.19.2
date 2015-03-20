@@ -110,7 +110,8 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = AI)
 	UBrainComponent* BrainComponent;
 
-	UPROPERTY(BlueprintReadOnly, Category = AI)
+	DEPRECATED_FORGAME(4.8, "PerceptionComponent should not be accessed directly, please use GetAIPerceptionComponent() function instead. PerceptionComponent will soon be private and your code will not compile.")
+	UPROPERTY()
 	UAIPerceptionComponent* PerceptionComponent;
 
 private_subobject:
@@ -328,10 +329,11 @@ public:
 	 *	@param InPriority focus priority to clear. If you don't know what to use you probably mean EAIFocusPriority::Gameplay*/
 	virtual void ClearFocus(EAIFocusPriority::Type InPriority);
 
+	void SetPerceptionComponent(UAIPerceptionComponent& InPerceptionComponent);
 	//----------------------------------------------------------------------//
 	// IAIPerceptionListenerInterface
 	//----------------------------------------------------------------------//
-	virtual UAIPerceptionComponent* GetPerceptionComponent() override { return PerceptionComponent; }
+	virtual UAIPerceptionComponent* GetPerceptionComponent() override { return GetAIPerceptionComponent(); }
 
 	//----------------------------------------------------------------------//
 	// Actions
@@ -356,8 +358,15 @@ public:
 	UPathFollowingComponent* GetPathFollowingComponent() const;
 	/** Returns ActionsComp subobject **/
 	UPawnActionsComponent* GetActionsComp() const;
+	UFUNCTION(BlueprintPure, Category = "AI|Perception")
+	UAIPerceptionComponent* GetAIPerceptionComponent();
+
+	const UAIPerceptionComponent* GetAIPerceptionComponent() const;
 };
 
+//----------------------------------------------------------------------//
+// forceinlines
+//----------------------------------------------------------------------//
 namespace FAISystem
 {
 	FORCEINLINE bool IsValidControllerAndHasValidPawn(const AController* Controller)

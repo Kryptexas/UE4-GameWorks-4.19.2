@@ -276,6 +276,15 @@ void AAIController::ClearFocus(EAIFocusPriority::Type InPriority)
 	}
 }
 
+void AAIController::SetPerceptionComponent(UAIPerceptionComponent& InPerceptionComponent)
+{
+	if (PerceptionComponent != nullptr)
+	{
+		UE_VLOG(this, LogAIPerception, Warning, TEXT("Setting perception component while AIController already has one!"));
+	}
+	PerceptionComponent = &InPerceptionComponent;
+}
+
 bool AAIController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool bAlternateChecks) const
 {
 	if (Other == nullptr)
@@ -485,10 +494,10 @@ EPathFollowingRequestResult::Type AAIController::MoveToActor(AActor* Goal, float
 	MoveReq.SetCanStrafe(bCanStrafe);
 
 	return MoveTo(MoveReq);
-	}
+}
 
 EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& Dest, float AcceptanceRadius, bool bStopOnOverlap, bool bUsePathfinding, bool bProjectDestinationToNavigation, bool bCanStrafe, TSubclassOf<UNavigationQueryFilter> FilterClass, bool bAllowPartialPaths)
-		{
+{
 	FAIMoveRequest MoveReq(Dest);
 	MoveReq.SetUsePathfinding(bUsePathfinding);
 	MoveReq.SetAllowPartialPath(bAllowPartialPaths);
@@ -499,7 +508,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 	MoveReq.SetCanStrafe(bCanStrafe);
 
 	return MoveTo(MoveReq);
-	}
+}
 
 EPathFollowingRequestResult::Type AAIController::MoveTo(const FAIMoveRequest& MoveRequest)
 {
@@ -874,3 +883,13 @@ FString AAIController::GetDebugIcon() const
 UPathFollowingComponent* AAIController::GetPathFollowingComponent() const { return PathFollowingComponent; }
 /** Returns ActionsComp subobject **/
 UPawnActionsComponent* AAIController::GetActionsComp() const { return ActionsComp; }
+
+UAIPerceptionComponent* AAIController::GetAIPerceptionComponent()
+{
+	return PerceptionComponent;
+}
+
+const UAIPerceptionComponent* AAIController::GetAIPerceptionComponent() const 
+{
+	return PerceptionComponent;
+}
