@@ -1315,7 +1315,6 @@ protected:
 				}
 				else
 				{
-					deref->image->accept(this);
 					ralloc_asprintf_append( buffer, "[" );
 					deref->image_index->accept(this);
 					ralloc_asprintf_append( buffer, "] = " );
