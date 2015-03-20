@@ -604,9 +604,6 @@ protected:
 	 * @param	Scope				struct to create the property in
 	 * @param	VarProperty			type and propertyflag info for the new property (inout)
 	 * @param	NoArrays			true if static arrays are disallowed
-	 * @param	IsFunction			true if the property is a function parameter or return value
-	 * @param	HardcodedName		name to assign to the new UProperty, if specified. primarily used for function return values,
-	 *								which are automatically called "ReturnValue"
 	 * @param   VariableCategory	what kind of variable is being created
 	 *
 	 * @return	a pointer to the new UProperty if successful, or NULL if there was no property to parse
@@ -615,7 +612,6 @@ protected:
 		UStruct* Struct,
 		FToken& VarProperty,
 		bool NoArrays,
-		bool IsFunction,
 		EVariableCategory::Type VariableCategory);
 	
 	/**
