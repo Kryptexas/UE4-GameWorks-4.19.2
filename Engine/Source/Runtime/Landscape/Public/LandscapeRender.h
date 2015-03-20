@@ -486,7 +486,10 @@ class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy, public FLands
 	};
 
 protected:
-	int8						MaxLOD;
+	int8						MaxLOD;		// Maximum LOD level, user override possible
+	int32						FirstLOD;	// First LOD we have batch elements for
+	int32						LastLOD;	// Last LOD we have batch elements for
+
 	/** 
 	 * Number of subsections within the component in each dimension, this can be 1 or 2.  
 	 * Subsections exist to improve the speed at which LOD transitions can take place over distance. 
