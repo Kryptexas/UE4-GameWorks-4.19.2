@@ -61,12 +61,12 @@ EActiveTimerReturnType STutorialButton::OpenTutorialPostConstruct( double InCurr
 
 	RefreshStatus();
 
-	if ( bTutorialAvailable && CachedAttractTutorial != nullptr && !bTutorialDismissed && !bTutorialCompleted )
+	if (bTutorialAvailable && CachedAttractTutorial != nullptr && !bTutorialDismissed && !bTutorialCompleted && !GetMutableDefault<UTutorialStateSettings>()->AreAllTutorialsDismissed())
 	{
 		// kick off the attract tutorial if the user hasn't dismissed it and hasn't completed it
 		FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>( TEXT( "IntroTutorials" ) );
 		const bool bRestart = true;
-		IntroTutorials.LaunchTutorial( CachedAttractTutorial, bRestart, ContextWindow );
+		IntroTutorials.LaunchTutorial(CachedAttractTutorial, bRestart, ContextWindow);
 	}
 
 	if ( ShouldShowAlert() )
@@ -230,6 +230,13 @@ FReply STutorialButton::OnMouseButtonDown(const FGeometry& MyGeometry, const FPo
 				FUIAction(FExecuteAction::CreateSP(this, &STutorialButton::DismissAlert))
 				);
 
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("DismissAllReminders", "Dismiss All Tutorial Reminders"),
+				LOCTEXT("DismissAllRemindersTooltip", "Selecting this option will prevent all tutorial blips from being displayed."),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateSP(this, &STutorialButton::DismissAllAlerts))
+				);
+
 			MenuBuilder.AddMenuSeparator();
 		}
 
@@ -287,6 +294,12 @@ void STutorialButton::DismissAlert()
 	RefreshStatus();
 }
 
+void STutorialButton::DismissAllAlerts()
+{
+	GetMutableDefault<UTutorialStateSettings>()->DismissAllTutorials();
+	DismissAlert();		//TODO FIXME Call this for all STutorialButtons that are currently displayed so they all stop pulsing.
+}
+
 void STutorialButton::LaunchTutorial()
 {
 	HandleButtonClicked();
@@ -307,7 +320,11 @@ bool STutorialButton::ShouldLaunchBrowser() const
 
 bool STutorialButton::ShouldShowAlert() const
 {
-	return ((bTestAlerts || !FEngineBuildSettings::IsInternalBuild()) && bTutorialAvailable && !(bTutorialCompleted || bTutorialDismissed));
+	if ((bTestAlerts || !FEngineBuildSettings::IsInternalBuild()) && bTutorialAvailable && !(bTutorialCompleted || bTutorialDismissed))
+	{
+		return !GetMutableDefault<UTutorialStateSettings>()->AreAllTutorialsDismissed();
+	}
+	return false;
 }
 
 FText STutorialButton::GetButtonToolTip() const

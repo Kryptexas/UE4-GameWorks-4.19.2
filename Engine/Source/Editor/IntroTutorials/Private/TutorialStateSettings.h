@@ -65,7 +65,17 @@ class UTutorialStateSettings : public UObject
 	/** Save the progress of all our tutorials */
 	void SaveProgress();
 
+	/** Dismiss all tutorials, used by right-click option on scholar cap button (STutorialButton) */
+	void DismissAllTutorials();
+
+	/** Returns true if user has dismissed tutorials */
+	bool AreAllTutorialsDismissed();
+
 private:
 	/** Recorded progress */
 	TMap<UEditorTutorial*, FTutorialProgress> ProgressMap;
+
+	/** Record if user has chosen to cancel all tutorials */
+	UPROPERTY(Config)
+	bool bDismissedAllTutorials;
 };

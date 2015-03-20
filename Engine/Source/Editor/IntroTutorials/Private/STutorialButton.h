@@ -33,6 +33,9 @@ private:
 	/** Dismiss the pulsing alert */
 	void DismissAlert();
 
+	/** Dismiss all pulsing alerts */
+	void DismissAllAlerts();
+
 	/** Launch the tutorials browser */
 	void LaunchBrowser();
 
