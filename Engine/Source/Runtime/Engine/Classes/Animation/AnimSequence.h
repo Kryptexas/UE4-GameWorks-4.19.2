@@ -561,7 +561,7 @@ public:
 #if WITH_EDITOR
 	ENGINE_API virtual bool GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences) override;
 	ENGINE_API virtual void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap) override;
-	ENGINE_API virtual int32 GetNumberOfFrames() override { return NumFrames; }
+	ENGINE_API virtual int32 GetNumberOfFrames() const override { return NumFrames; }
 #endif
 	// End of UAnimationAsset interface
 

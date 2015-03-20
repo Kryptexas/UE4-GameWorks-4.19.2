@@ -792,9 +792,21 @@ void UAnimSequenceBase::InitializeNotifyTrack()
 	}
 }
 
-int32 UAnimSequenceBase::GetNumberOfFrames()
+int32 UAnimSequenceBase::GetNumberOfFrames() const
 {
 	return (SequenceLength/0.033f);
+}
+
+int32 UAnimSequenceBase::GetFrameAtTime(const float Time) const
+{
+	const float Frac = Time / SequenceLength;
+	return FMath::FloorToInt(Frac * GetNumberOfFrames());
+}
+
+float UAnimSequenceBase::GetTimeAtFrame(const int32 Frame) const
+{
+	const float FrameTime = SequenceLength / GetNumberOfFrames();
+	return FrameTime * Frame;
 }
 
 void UAnimSequenceBase::RegisterOnNotifyChanged(const FOnNotifyChanged& Delegate)

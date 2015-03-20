@@ -624,7 +624,13 @@ class UAnimSequenceBase : public UAnimationAsset
 
 #if WITH_EDITOR
 	/** Return Number of Frames **/
-	virtual int32 GetNumberOfFrames();
+	virtual int32 GetNumberOfFrames() const;
+
+	/** Get the frame number for the provided time */
+	virtual int32 GetFrameAtTime(const float Time) const;
+
+	/** Get the time at the given frame */
+	virtual float GetTimeAtFrame(const int32 Frame) const;
 
 	// update anim notify track cache
 	ENGINE_API void UpdateAnimNotifyTrackCache();
