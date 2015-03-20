@@ -120,6 +120,7 @@ void SGameMenuPageWidget::Construct(const FArguments& InArgs)
 	MenuStyle = InArgs._MenuStyle;
 	check(MenuStyle);
 	MainMenuPanel.SetStyle(MenuStyle);
+	SubMenuPanel.SetStyle(MenuStyle);
 	
 	EHorizontalAlignment MainAlignmentH;
 	if (MenuStyle->LayoutType == GameMenuLayoutType::Single)
@@ -376,7 +377,7 @@ void SGameMenuPageWidget::BuildPanelButtons(TSharedPtr< class FGameMenuPage > In
 	{
 		for (int32 i = 0; i < InPanel->NumItems(); ++i)
 		{
-			TSharedPtr<SWidget> TmpWidget;
+			TSharedPtr<SGameMenuItemWidget> TmpWidget;
 			TSharedPtr<FGameMenuItem> EachItem = InPanel->GetItem(i);
 			if (EachItem.Get()->MenuItemType == EGameMenuItemType::Standard)
 			{
@@ -402,6 +403,8 @@ void SGameMenuPageWidget::BuildPanelButtons(TSharedPtr< class FGameMenuPage > In
 			else if (EachItem.Get()->MenuItemType == EGameMenuItemType::CustomWidget)
 			{
 				TmpWidget = EachItem.Get()->CustomWidget;
+				TmpWidget->SetMenuOwner(PCOwner);
+				TmpWidget->SetMenuStyle(MenuStyle);
 			}
 			InBox->AddSlot().HAlign(HAlign_Left).AutoHeight()
 				[
@@ -586,11 +589,7 @@ void SGameMenuPageWidget::OnMainPanelStateChange(bool bWasOpened)
 		if (PendingMainMenu.IsValid())
 		{
 			OpenMainPanel(PendingMainMenu);
-			if (MenuStyle->LayoutType == GameMenuLayoutType::Single)
-			{
-				OpenMainPanel(PendingMainMenu);
-			}
-			else
+			if (MenuStyle->LayoutType != GameMenuLayoutType::Single)
 			{
 				MainMenuPanel.ForcePanelOpen();
 				SubMenuPanel.ForcePanelClosed();				
@@ -1056,4 +1055,10 @@ void SGameMenuPageWidget::ResetMenu()
 	PendingMainMenu.Reset();
 	CurrentMenu.Reset();
 	SubPanel.Reset();	
+}
+
+
+TSharedPtr< FGameMenuPage > SGameMenuPageWidget::GetCurrentMenu()
+{
+	return CurrentMenu;
 }

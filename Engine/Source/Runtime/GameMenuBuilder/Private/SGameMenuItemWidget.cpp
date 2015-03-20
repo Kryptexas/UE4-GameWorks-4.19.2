@@ -182,3 +182,23 @@ void SGameMenuItemWidget::SetMenuItemActive(bool bIsMenuItemActive)
 {
 	this->bIsActiveMenuItem = bIsMenuItemActive;
 }
+
+void SGameMenuItemWidget::SetMenuOwner(TWeakObjectPtr<class APlayerController> InPCOwner)
+{
+	PCOwner = InPCOwner;
+}
+
+void SGameMenuItemWidget::SetMenuStyle(const FGameMenuStyle* InMenuStyle)
+{
+	MenuStyle = InMenuStyle;
+}
+
+void SGameMenuItemWidget::SetClickedDelegate(FOnClicked InOnClicked)
+{
+	OnClicked = InOnClicked;
+}
+
+void SGameMenuItemWidget::SetArrowPressedDelegate(FOnArrowPressed InOnArrowPressed)
+{
+	OnArrowPressed = InOnArrowPressed;
+}

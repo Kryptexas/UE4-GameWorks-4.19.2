@@ -3,7 +3,7 @@
 #pragma once
 
 // Menu item widget
-class SGameMenuItemWidget : public SCompoundWidget
+class GAMEMENUBUILDER_API SGameMenuItemWidget : public SCompoundWidget
 {
 public:
 	DECLARE_DELEGATE_OneParam( FOnArrowPressed, int );
@@ -60,6 +60,17 @@ public:
 	/** set in option item to enable right arrow*/
 	EVisibility RightArrowVisible;
 
+	/** Set pointer to our parent Player Controller. */
+	void SetMenuOwner(TWeakObjectPtr<class APlayerController> InPCOwner);
+	
+	/** Set pointer to our style. */
+	void SetMenuStyle(const FGameMenuStyle* InMenuStyle);
+
+	void SetClickedDelegate(FOnClicked InOnClicked);
+
+	/** Delegate to execute when one of arrows was pressed. */
+	void SetArrowPressedDelegate(FOnArrowPressed InOnArrowPressed);
+
 protected:
 	/** Delegate to execute when the button is clicked. */
 	FOnClicked OnClicked;
@@ -67,13 +78,29 @@ protected:
 	/** Delegate to execute when one of arrows was pressed. */
 	FOnArrowPressed OnArrowPressed;
 
-private:
 	/** Menu item text attribute. */
 	TAttribute< FText > Text;
 
 	/** Menu item option text attribute. */
 	TAttribute< FText > OptionText;
 
+	/** Inactive text alpha value. */
+	float InactiveTextAlpha;
+
+	/** Active item flag. */
+	bool bIsActiveMenuItem;
+
+	/** Does this menu item represent multi-choice field. */
+	bool bIsMultichoice;
+
+	/** Pointer to our parent Player Controller. */
+	TWeakObjectPtr<class APlayerController> PCOwner;
+
+	/* The Style of the menu. */
+	const FGameMenuStyle* MenuStyle;
+
+private:
+	
 	/** Getter for menu item background color. */
 	FSlateColor GetButtonBgColor() const;
 
@@ -92,20 +119,6 @@ private:
 	/** Left Arrow pressed handler. */
 	FReply OnLeftArrowDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 
-	/** Inactive text alpha value. */
-	float InactiveTextAlpha;
-
-	/** Active item flag. */
-	bool bIsActiveMenuItem;
-
-	/** Does this menu item represent multi-choice field. */
-	bool bIsMultichoice;
-
-	/** Pointer to our parent Player Controller. */
-	TWeakObjectPtr<class APlayerController> PCOwner;
-
-	/* The Style of the menu. */
-	const FGameMenuStyle* MenuStyle;
 };
 
 
