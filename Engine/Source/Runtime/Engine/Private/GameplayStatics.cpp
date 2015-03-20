@@ -985,7 +985,7 @@ void UGameplayStatics::ActivateReverbEffect(UObject* WorldContextObject, class U
 
 void UGameplayStatics::DeactivateReverbEffect(UObject* WorldContextObject, FName TagName)
 {
-	if (GEngine || !GEngine->UseSound())
+	if (GEngine == nullptr || !GEngine->UseSound())
 	{
 		return;
 	}

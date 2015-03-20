@@ -971,9 +971,9 @@ void FShadowMap2D::EncodeSingleTexture(FShadowMapPendingTexture& PendingTexture,
 
 						for (int32 NeighborIndex = 0; NeighborIndex < ARRAY_COUNT(Neighbors); NeighborIndex++)
 						{
-							if (DestY + Neighbors[NeighborIndex].Y >= 0 
+							if (static_cast<int32>(DestY) + Neighbors[NeighborIndex].Y >= 0 
 								&& DestY + Neighbors[NeighborIndex].Y < MipSizeY
-								&& DestX + Neighbors[NeighborIndex].X >= 0 
+								&& static_cast<int32>(DestX) + Neighbors[NeighborIndex].X >= 0
 								&& DestX + Neighbors[NeighborIndex].X < MipSizeX)
 							{
 								const FFourDistanceFieldSamples& FourNeighborSamples = MipData[MipIndex][(DestY + Neighbors[NeighborIndex].Y) * MipSizeX + DestX + Neighbors[NeighborIndex].X];
@@ -981,9 +981,9 @@ void FShadowMap2D::EncodeSingleTexture(FShadowMapPendingTexture& PendingTexture,
 
 								if (NeighborSample.Coverage > 0)
 								{
-									if (DestY + Neighbors[NeighborIndex].Y * 2 >= 0 
+									if (static_cast<int32>(DestY) + Neighbors[NeighborIndex].Y * 2 >= 0
 										&& DestY + Neighbors[NeighborIndex].Y * 2 < MipSizeY
-										&& DestX + Neighbors[NeighborIndex].X * 2 >= 0 
+										&& static_cast<int32>(DestX) + Neighbors[NeighborIndex].X * 2 >= 0
 										&& DestX + Neighbors[NeighborIndex].X * 2 < MipSizeX)
 									{
 										// Lookup the second neighbor in the first neighbor's direction

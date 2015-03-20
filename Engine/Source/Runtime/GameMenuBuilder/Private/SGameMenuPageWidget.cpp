@@ -625,7 +625,7 @@ void SGameMenuPageWidget::OnSubPanelStateChange(bool bWasOpened)
 void SGameMenuPageWidget::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	//ugly code seeing if the console is open
-	UConsole* ViewportConsole = ( GEngine->GameViewport != nullptr ) ? GEngine->GameViewport->ViewportConsole : nullptr;
+	UConsole* ViewportConsole = (GEngine && GEngine->GameViewport != nullptr) ? GEngine->GameViewport->ViewportConsole : nullptr;
 	if ( ViewportConsole != nullptr && ( ViewportConsole->ConsoleState == "Typing" || ViewportConsole->ConsoleState == "Open" ) )
 	{
 		if (!bConsoleVisible)
@@ -931,7 +931,7 @@ FReply SGameMenuPageWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEve
 	
 	if ((CurrentMenu.IsValid() == true) && (!bControlsLocked))
 	{
-		bool bNavigationLocked = bControlsLocked | PendingMainMenu.IsValid() | PendingSubMenu.IsValid();
+		bool bNavigationLocked = bControlsLocked || PendingMainMenu.IsValid() || PendingSubMenu.IsValid();
 		const FKey Key = InKeyEvent.GetKey();
 
 		if (bNavigationLocked == false)
