@@ -346,8 +346,11 @@ public:
 	/** Get the absolute path of the directory this cache reflects */
 	const FString& GetDirectory() const { return Config.Directory; }
 
-	/** Check whether this file cache has finished starting up yet */
-	bool HasStartedUp() const { return !DirectoryReader.IsValid() || DirectoryReader->IsComplete(); }
+	/** Check whether this file cache has finished starting up yet. Does not imply rename/move detection is fully initialized. (see MoveDetectionInitialized()) */
+	bool HasStartedUp() const;
+
+	/** Check whether this move/rename detection has been initiated or not. This can take much longer than startup, so can be checked separately */
+	bool MoveDetectionInitialized() const;
 
 	/** Attempt to locate file data pertaining to the specified filename.
 	 *	@param		InFilename		The filename to find data for - either relative to the directory, or absolute, depending on Config.PathType.

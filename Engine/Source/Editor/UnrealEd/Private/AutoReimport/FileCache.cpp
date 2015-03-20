@@ -165,6 +165,7 @@ TArray<FFilenameAndHash> FAsyncFileHasher::GetCompletedData()
 		if (CompletedIndex == Data.Num())
 		{
 			Data.Empty();
+			CurrentIndex.Set(0);
 		}
 	}
 
@@ -387,6 +388,28 @@ void FFileCache::Destroy()
 	CachedDirectoryState = FDirectoryState();
 
 	UnbindWatcher();
+}
+
+bool FFileCache::HasStartedUp() const
+{
+	return !DirectoryReader.IsValid() || DirectoryReader->IsComplete();
+}
+
+bool FFileCache::MoveDetectionInitialized() const
+{
+	if (!HasStartedUp())
+	{
+		return false;
+	}
+	else if (!Config.bDetectMoves)
+	{
+		return true;
+	}
+	else
+	{
+		// We don't check AsyncFileHasher->IsComplete() here because that doesn't necessarily mean we've harvested the results off the thread
+		return !AsyncFileHasher.IsValid();
+	}
 }
 
 const FFileData* FFileCache::FindFileData(FImmutableString InFilename) const

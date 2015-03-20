@@ -77,7 +77,7 @@ struct FAutoReimportTestPayload
 	{
 		ADD_LATENT_AUTOMATION_COMMAND(FDelayedCallbackLatentCommand([=]{
 			FileCache->Tick();
-			if (FileCache->HasStartedUp())
+			if (FileCache->MoveDetectionInitialized())
 			{
 				Finished();
 			}
