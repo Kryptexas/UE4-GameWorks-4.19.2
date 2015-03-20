@@ -12,7 +12,7 @@
 
 FText FFlipbookAssetTypeActions::GetName() const
 {
-	return LOCTEXT("FFlipbookAssetTypeActionsName", "Sprite Flipbook");
+	return LOCTEXT("FFlipbookAssetTypeActionsName", "Paper Flipbook");
 }
 
 FColor FFlipbookAssetTypeActions::GetTypeColor() const
