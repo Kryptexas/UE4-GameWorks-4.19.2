@@ -50,11 +50,11 @@ FWindowsApplication::FWindowsApplication( const HINSTANCE HInstance, const HICON
 	, bIsMouseAttached( false )
 	, XInput( XInputInterface::Create( MessageHandler ) )
 	, bHasLoadedInputPlugins( false )
+	, bAllowedToDeferMessageProcessing(true)
 	, CVarDeferMessageProcessing( 
 		TEXT( "Slate.DeferWindowsMessageProcessing" ),
 		bAllowedToDeferMessageProcessing,
 		TEXT( "Whether windows message processing is deferred until tick or if they are processed immediately" ) )
-	, bAllowedToDeferMessageProcessing( true )
 	, bInModalSizeLoop( false )
 
 {
@@ -1935,11 +1935,11 @@ void FWindowsApplication::QueryConnectedMice()
 		if (Device.dwType != RIM_TYPEMOUSE)
 			continue;
 		//Force the use of ANSI versions of these calls
-		if (GetRawInputDeviceInfoA(Device.hDevice, RIDI_DEVICENAME, nullptr, &NameLen) < 0)
+		if (GetRawInputDeviceInfoA(Device.hDevice, RIDI_DEVICENAME, nullptr, &NameLen) == static_cast<UINT>(-1))
 			continue;
 
 		Name.Reset(new char[NameLen+1]);
-		if (GetRawInputDeviceInfoA(Device.hDevice, RIDI_DEVICENAME, Name.GetOwnedPointer(), &NameLen) < 0)
+		if (GetRawInputDeviceInfoA(Device.hDevice, RIDI_DEVICENAME, Name.GetOwnedPointer(), &NameLen) == static_cast<UINT>(-1))
 			continue;
 
 		Name[NameLen] = 0;

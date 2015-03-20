@@ -92,4 +92,16 @@
 	// so we can get the benefits of analysis on cross-platform code sooner.
 	#pragma warning(disable : 6320) // warning C6320: Exception-filter expression is the constant EXCEPTION_EXECUTE_HANDLER. This might mask exceptions that were not intended to be handled.
 
+	//PVS-Studio settings:
+	//-V::505
+	//-V:TRYCOMPRESSION:519,547
+	//-V:check:547
+	//-V:ENABLE_TEXT_ERROR_CHECKING_RESULTS:560
+	//-V:ENABLE_LOC_TESTING:560
+	//-V:WITH_EDITOR:560
+	//-V:UE_LOG_ACTIVE:560
+	//-V:verify:501
+	//-V:check:501
+	//-V::677,720,704
+
 #endif

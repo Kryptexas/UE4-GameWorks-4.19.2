@@ -5084,7 +5084,7 @@ void UEditorEngine::ReplaceActors(UActorFactory* Factory, const FAssetData& Asse
 			UBlueprint* Blueprint = CastChecked<UBlueprint>(Asset);
 			// Only try to copy properties if this blueprint is based on the actor
 			UClass* OldActorClass = OldActor->GetClass();
-			if (Blueprint->GeneratedClass->IsChildOf(OldActorClass))
+			if (Blueprint->GeneratedClass->IsChildOf(OldActorClass) && NewActor != NULL)
 			{
 				NewActor->UnregisterAllComponents();
 				UEditorEngine::CopyPropertiesForUnrelatedObjects(OldActor, NewActor);

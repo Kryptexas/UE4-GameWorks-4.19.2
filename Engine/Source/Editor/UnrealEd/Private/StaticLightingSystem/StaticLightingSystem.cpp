@@ -1624,20 +1624,20 @@ void FStaticLightingSystem::AddPrimitiveStaticLightingInfo(FStaticLightingPrimit
 	for(int32 MeshIndex = 0;MeshIndex < PrimitiveInfo.Meshes.Num();MeshIndex++)
 	{
 		FStaticLightingMesh* Mesh = PrimitiveInfo.Meshes[MeshIndex];
-		Mesh->VisibilityIds.Add(PrimitiveInfo.VisibilityId);
-		if (!GLightmassDebugOptions.bSortMappings && bBuildActorLighting)
+		if (Mesh)
 		{
-			if (Mesh)
+			Mesh->VisibilityIds.Add(PrimitiveInfo.VisibilityId);
+			if (!GLightmassDebugOptions.bSortMappings && bBuildActorLighting)
 			{
-				Mesh->Guid = FGuid(0,0,0,DeterministicIndex++);
+				Mesh->Guid = FGuid(0, 0, 0, DeterministicIndex++);
 			}
-		}
-		Meshes.Add(Mesh);
-		LightingMeshBounds += Mesh->BoundingBox;
+			Meshes.Add(Mesh);
+			LightingMeshBounds += Mesh->BoundingBox;
 
-		if (Mesh->bCastShadow)
-		{
-			UpdateAutomaticImportanceVolumeBounds( Mesh->BoundingBox );
+			if (Mesh->bCastShadow)
+			{
+				UpdateAutomaticImportanceVolumeBounds(Mesh->BoundingBox);
+			}
 		}
 	}
 

@@ -236,12 +236,10 @@ void FEdGraphUtilities::MergeChildrenGraphsIn(UEdGraph* MergeTarget, UEdGraph* P
 // Tries to rename the graph to have a name similar to BaseName
 void FEdGraphUtilities::RenameGraphCloseToName(UEdGraph* Graph, const FString& BaseName, int32 StartIndex)
 {
-	bool bFoundName = false;
-
 	FString NewName = BaseName;
 
 	int32 NameIndex = StartIndex;
-	while (!bFoundName)
+	for (;;)
 	{
 		if (Graph->Rename(*NewName, Graph->GetOuter(), REN_Test))
 		{

@@ -1546,7 +1546,7 @@ namespace BuildPromotionTestHelper
 			}
 
 			//Apply if this is a material.  (Editor won't close unless we do)
-			if (CurrentAsset->IsA(UMaterialInterface::StaticClass()))
+			if (CurrentAsset && CurrentAsset->IsA(UMaterialInterface::StaticClass()))
 			{
 				EditorBuildPromotionTestUtils::SendUpdateMaterialCommand();
 			}

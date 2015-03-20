@@ -48,7 +48,7 @@ namespace FAIResources
 
 	void RegisterResource(const FAIResourceID& Resource)
 	{
-		if (FAIResourceID::GetSize() - FAIResources::ResourceIDs.Num() > 0)
+		if (FAIResourceID::GetSize() > static_cast<uint32>(FAIResources::ResourceIDs.Num()))
 		{
 			ResourceIDs.AddZeroed(FAIResourceID::GetSize() - FAIResources::ResourceIDs.Num());
 		}

@@ -450,9 +450,9 @@ private:
 	
 	FModifierKeysState CachedModifierKeyState;
 
-	FAutoConsoleVariableRef CVarDeferMessageProcessing;
-
 	int32 bAllowedToDeferMessageProcessing;
+
+	FAutoConsoleVariableRef CVarDeferMessageProcessing;
 	
 	/** True if we are in the middle of a windows modal size loop */
 	bool bInModalSizeLoop;

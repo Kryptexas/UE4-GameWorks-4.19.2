@@ -133,7 +133,7 @@ void FFontEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 					RenderInfo->Renderer->GetThumbnailSize(Texture, 1.0f, Width, Height);
 
 					// Don't draw if we are outside of our range
-					if (YPos + Height >= 0 && YPos <= (int32)Viewport->GetSizeXY().Y)
+					if (YPos + (int32)Height >= 0 && YPos <= (int32)Viewport->GetSizeXY().Y)
 					{
 						// If hit testing, draw a tile instead
 						if (Canvas->IsHitTesting())

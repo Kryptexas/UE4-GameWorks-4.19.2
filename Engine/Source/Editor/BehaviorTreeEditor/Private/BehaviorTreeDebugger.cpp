@@ -1112,7 +1112,7 @@ void FBehaviorTreeDebugger::OnInstanceSelectedInDropdown(UBehaviorTreeComponent*
 
 		AController* OldController = TreeInstance.IsValid() ? Cast<AController>(TreeInstance->GetOwner()) : NULL;
 		APawn* OldPawn = OldController != NULL ? OldController->GetPawn() : NULL;
-		USelection* SelectedActors = GEditor->GetSelectedActors();
+		USelection* SelectedActors = GEditor ? GEditor->GetSelectedActors() : NULL;
 		if (SelectedActors && OldPawn)
 		{
 			SelectedActors->Deselect(OldPawn);
@@ -1120,7 +1120,7 @@ void FBehaviorTreeDebugger::OnInstanceSelectedInDropdown(UBehaviorTreeComponent*
 
 		TreeInstance = SelectedInstance;
 
-		if (SelectedActors && GEditor && SelectedInstance && SelectedInstance->GetOwner())
+		if (SelectedActors && SelectedInstance && SelectedInstance->GetOwner())
 		{
 			AController* TestController = Cast<AController>(SelectedInstance->GetOwner());
 			APawn* Pawn = TestController != NULL ? TestController->GetPawn() : NULL;

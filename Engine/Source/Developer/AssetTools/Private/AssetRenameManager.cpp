@@ -578,7 +578,6 @@ void FAssetRenameManager::PerformAssetRename(TArray<FAssetRenameDataWithReferenc
 		}
 
 		UObject* Asset = RenameData.Asset.Get();
-		FString OldAssetPath = Asset->GetPathName();
 
 		if ( !Asset )
 		{
@@ -586,6 +585,8 @@ void FAssetRenameManager::PerformAssetRename(TArray<FAssetRenameDataWithReferenc
 			RenameData.bRenameFailed = true;
 			continue;
 		}
+
+		FString OldAssetPath = Asset->GetPathName();
 
 		ObjectTools::FPackageGroupName PGN;
 		PGN.ObjectName = RenameData.NewName;

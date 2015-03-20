@@ -553,7 +553,7 @@ void FSequencerActorBindingManager::PropagatePuppetActorChanges( const TSharedRe
 			}
 		}
 		
-		if( ensure( FoundSpawnable != NULL ) )
+		if (ensure( FoundSpawnable != NULL && PuppetActor != NULL ))
 		{
 			UClass* ActorClass = FoundSpawnable->GetClass();
 

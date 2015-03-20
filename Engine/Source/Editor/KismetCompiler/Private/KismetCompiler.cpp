@@ -2949,13 +2949,13 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 			for (TArray<UEdGraphNode*>::TIterator MacroNodeIt(MacroNodes); MacroNodeIt; ++MacroNodeIt)
 			{
 				UEdGraphNode* DuplicatedNode = *MacroNodeIt;
-				if ( bMacroNodesNeedRefresh)
-				{
-					DuplicatedNode->ReconstructNode();
-				}
-
+				
 				if( DuplicatedNode != NULL )
 				{
+					if (bMacroNodesNeedRefresh)
+					{
+						DuplicatedNode->ReconstructNode();
+					}
 					// Record the source node mapping for the intermediate node first, as it's going to be overwritten through the MessageLog below
 					UEdGraphNode* MacroSourceNode = Cast<UEdGraphNode>(MessageLog.FindSourceObject(DuplicatedNode));
 					if (MacroSourceNode)

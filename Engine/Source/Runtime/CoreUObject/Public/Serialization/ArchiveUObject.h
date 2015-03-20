@@ -263,14 +263,14 @@ protected:
 	 */
 	void SetRootObject( UObject* NewRoot );
 
+	/** the raw UObject data contained by this archive */
+	TArray<uint8>		Bytes;
+
 	/** moves UObject data from storage into UObject address space */
 	FMemoryReader		Reader;
 
 	/** stores UObject data in a temporary location for later retrieval */
 	FMemoryWriter		Writer;
-
-	/** the raw UObject data contained by this archive */
-	TArray<uint8>		Bytes;
 
 	/** UObjects for which all data is stored in the memory archive */
 	TArray<UObject*>	CompleteObjects;
@@ -1586,10 +1586,10 @@ public:
 	uint32 Crc32(UObject* Object, uint32 CRC = 0);
 
 private:
-	/** Internal archive used for serialization */
-	FMemoryWriter MemoryWriter;
 	/** Internal byte array used for serialization */
 	TArray<uint8> SerializedObjectData;
+	/** Internal archive used for serialization */
+	FMemoryWriter MemoryWriter;
 	/** Internal queue of object references awaiting serialization */
 	TQueue<UObject*> ObjectsToSerialize;
 	/** Internal currently serialized object */

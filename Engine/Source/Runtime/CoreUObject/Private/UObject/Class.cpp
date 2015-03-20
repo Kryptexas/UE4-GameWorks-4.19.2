@@ -805,7 +805,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				if (InAr.UE4Ver() < VER_UE4_STRUCT_GUID_IN_PROPERTY_TAG)
 				{
 					// Old Implementation
-					return !StructProperty->UseBinaryOrNativeSerialization(InAr);
+					return StructProperty && !StructProperty->UseBinaryOrNativeSerialization(InAr);
 				}
 				return PropertyTag.StructGuid.IsValid() && StructProperty && StructProperty->Struct && (PropertyTag.StructGuid == StructProperty->Struct->GetCustomGuid());
 			};

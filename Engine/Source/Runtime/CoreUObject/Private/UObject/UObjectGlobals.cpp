@@ -2557,35 +2557,37 @@ private:
 		if( InObject )
 		{
 			UObject* Object = const_cast<UObject*>(InObject);
-			// Remove references to pending kill objects if we're allowed to do so.
-			UObject* ObjectToAdd = Object->HasAnyFlags( RF_Unreachable ) ? Object : NULL;
-			if (Object && Object->HasAnyFlags(ReferenceSearchFlags))
+			if ( Object )
 			{
-				// Stop recursing, and add to the list of references
-				if (FoundReferencesList)
+				// Remove references to pending kill objects if we're allowed to do so.
+				UObject* ObjectToAdd = Object->HasAnyFlags(RF_Unreachable) ? Object : NULL;
+				if (Object->HasAnyFlags(ReferenceSearchFlags))
 				{
-					if (!CurrentReferenceInfo)
+					// Stop recursing, and add to the list of references
+					if (FoundReferencesList)
 					{
-						CurrentReferenceInfo = new(FoundReferencesList->ExternalReferences) FReferencerInformation(CurrentObject);
+						if (!CurrentReferenceInfo)
+						{
+							CurrentReferenceInfo = new(FoundReferencesList->ExternalReferences) FReferencerInformation(CurrentObject);
+						}
+						if (InReferencingObject != NULL)
+						{
+							CurrentReferenceInfo->ReferencingProperties.AddUnique(dynamic_cast<const UProperty*>(InReferencingObject));
+						}
+						CurrentReferenceInfo->TotalReferences++;
 					}
-					if ( InReferencingObject != NULL )
+					if (ObjectToAdd)
 					{
-						CurrentReferenceInfo->ReferencingProperties.AddUnique(dynamic_cast<const UProperty*>(InReferencingObject));
+						// Mark it as reachable.
+						Object->ClearFlags(RF_Unreachable);
 					}
-					CurrentReferenceInfo->TotalReferences++;
 				}
-				if (ObjectToAdd)
+				else if (ObjectToAdd)
 				{
-					// Mark it as reachable.
-					Object->ClearFlags( RF_Unreachable );
+					// Add encountered object reference to list of to be serialized objects if it hasn't already been added.
+					AddToObjectList(InReferencingObject, InReferencingProperty, ObjectToAdd);
 				}
 			}
-			else if (ObjectToAdd)
-			{
-				// Add encountered object reference to list of to be serialized objects if it hasn't already been added.
-				AddToObjectList(InReferencingObject, InReferencingProperty, ObjectToAdd);
-			}
-
 		}
 	}
 

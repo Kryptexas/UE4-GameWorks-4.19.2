@@ -253,16 +253,16 @@ bool UObjectBase::IsValidLowLevelFast(bool bRecursive /*= true*/) const
 		UE_LOG(LogUObjectBase, Error, TEXT("Object flags are invalid or either Class or Outer is misaligned"));
 		return false;
 	}
-	// Avoid infinite recursion so call IsValidLowLevelFast on the class object with bRecirsive = false.
-	if (bRecursive && !Class->IsValidLowLevelFast(false))
-	{
-		UE_LOG(LogUObjectBase, Error, TEXT("Class object failed IsValidLowLevelFast test."));
-		return false;
-	}
 	// These should all be non-NULL (except CDO-alignment check which should be 0)
 	if (Class == NULL || Class->ClassDefaultObject == NULL || ((UPTRINT)Class->ClassDefaultObject & AlignmentCheck) != 0)
 	{
 		UE_LOG(LogUObjectBase, Error, TEXT("Class pointer is invalid or CDO is invalid."));
+		return false;
+	}
+	// Avoid infinite recursion so call IsValidLowLevelFast on the class object with bRecirsive = false.
+	if (bRecursive && !Class->IsValidLowLevelFast(false))
+	{
+		UE_LOG(LogUObjectBase, Error, TEXT("Class object failed IsValidLowLevelFast test."));
 		return false;
 	}
 	// Lightweight versions of index checks.
@@ -809,11 +809,18 @@ void UObjectBaseShutdown()
  */
 const TCHAR* DebugFName(UObject* Object)
 {
-	// Hardcoded static array. This function is only used inside the debugger so it should be fine to return it.
-	static TCHAR TempName[256];
-	FName Name = Object->GetFName();
-	FCString::Strcpy(TempName,Object ? *FName::SafeString(Name.GetDisplayIndex(), Name.GetNumber()) : TEXT("NULL"));
-	return TempName;
+	if ( Object )
+	{
+		// Hardcoded static array. This function is only used inside the debugger so it should be fine to return it.
+		static TCHAR TempName[256];
+		FName Name = Object->GetFName();
+		FCString::Strcpy(TempName, *FName::SafeString(Name.GetDisplayIndex(), Name.GetNumber()));
+		return TempName;
+	}
+	else
+	{
+		return TEXT("NULL");
+	}
 }
 
 /**

@@ -3109,9 +3109,9 @@ bool FDeferredShadingSceneRenderer::RenderReflectiveShadowMaps(FRHICommandListIm
 			{
 				FSceneViewState* ViewState = (FSceneViewState*)ProjectedShadowInfo->DependentView->State;
 
-				FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume();
+				FLightPropagationVolume* LightPropagationVolume = ViewState ? ViewState->GetLightPropagationVolume() : NULL;
 
-				if ( ViewState && LightPropagationVolume )
+				if ( LightPropagationVolume )
 				{
 					if ( ProjectedShadowInfo->bWholeSceneShadow )
 					{

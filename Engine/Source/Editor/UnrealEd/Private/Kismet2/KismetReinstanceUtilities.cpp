@@ -991,7 +991,7 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 	}
 
 	SelectedActors->EndBatchSelectOperation();
-	if (bSelectionChanged)
+	if (bSelectionChanged && GEditor)
 	{
 		GEditor->NoteSelectionChange();
 	}

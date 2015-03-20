@@ -341,9 +341,7 @@ void FFbxExporter::ExportAnimSequencesAsSingle( USkeletalMesh* SkelMesh, const A
  */
 void FFbxExporter::ExportMatineeGroup(class AMatineeActor* MatineeActor, USkeletalMeshComponent* SkeletalMeshComponent)
 {
-	float MatineeLength = MatineeActor->MatineeData->InterpLength;
-	
-	if (Scene == NULL || MatineeActor == NULL || SkeletalMeshComponent == NULL || MatineeLength == 0)
+	if (Scene == NULL || MatineeActor == NULL || SkeletalMeshComponent == NULL || MatineeActor->MatineeData->InterpLength == 0)
 	{
 		return;
 	}

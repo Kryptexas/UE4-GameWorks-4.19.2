@@ -715,10 +715,9 @@ public:
 		FString TmpFilename = FPaths::GetPath( DstFilename ) / ( FPaths::GetBaseFilename( DstFilename ) + TEXT( "_SaveCompressed.tmp" ));
 		// Create file reader and writer...
 		FMemoryReader Reader(*(FBufferArchive*)(SrcLinker->Saver),true);
-		FArchive* FileReader = &Reader;
 		FArchive* FileWriter = IFileManager::Get().CreateFileWriter( *TmpFilename );
 		// ... and abort if either operation wasn't successful.
-		if( !FileReader || !FileWriter )
+		if( !FileWriter )
 		{
 			// Delete potentially created reader or writer.
 			delete FileWriter;
@@ -729,7 +728,7 @@ public:
 		}
 
 
-		CompressArchive(FileReader,FileWriter,SrcLinker);
+		CompressArchive(&Reader,FileWriter,SrcLinker);
 
 		// Tear down file writer. This will flush the writer first.
 		delete FileWriter;

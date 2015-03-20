@@ -1577,13 +1577,13 @@ FSceneView* FLevelEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFami
 			FLevelEditorViewportClient* ViewportClient = GEditor->LevelViewportClients[ViewportIndex];
 
 			//only change camera for a viewport that is looking at the same scene
-			if (GetScene() != ViewportClient->GetScene())
+			if (ViewportClient == NULL || GetScene() != ViewportClient->GetScene())
 			{
 				continue;
 			}
 
 			// go over all other level viewports
-			if (ViewportClient && ViewportClient->Viewport && ViewportClient != this)
+			if (ViewportClient->Viewport && ViewportClient != this)
 			{
 				// force camera of same-typed viewports
 				if (ViewportClient->GetViewportType() == GetViewportType())

@@ -3080,7 +3080,7 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 #if WITH_EDITOR
 	// If we're server traveling, we need to break the reference dependency here (caused by levelscript)
 	// to avoid a GC crash for not cleaning up the gameinfo referenced by levelscript
-	if( IsGameWorld() && !GIsEditor && !IsRunningCommandlet() && bSessionEnded && bCleanupResources )
+	if (IsGameWorld() && !GIsEditor && !IsRunningCommandlet() && bSessionEnded && bCleanupResources && PersistentLevel)
 	{
 		if( ULevelScriptBlueprint* LSBP = PersistentLevel->GetLevelScriptBlueprint(true) )
 		{

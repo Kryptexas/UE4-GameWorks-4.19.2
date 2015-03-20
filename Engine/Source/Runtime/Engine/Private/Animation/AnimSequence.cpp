@@ -1839,77 +1839,80 @@ void FillUpTransformBasedOnRig(USkeleton* Skeleton, TArray<FTransform>& NodeSpac
 
 	const URig* Rig = Skeleton->GetRig();
 
-	// this one has to collect all Nodes in Rig data
-	// since we're comparing two of them together. 
-	int32 NodeNum = Rig->GetNodeNum();
-
-	if (Rig && NodeNum > 0)
+	if (Rig)
 	{
-		NodeSpaceBases.Empty(NodeNum);
-		NodeSpaceBases.AddUninitialized(NodeNum);
+		// this one has to collect all Nodes in Rig data
+		// since we're comparing two of them together. 
+		int32 NodeNum = Rig->GetNodeNum();
 
-		Rotations.Empty(NodeNum);
-		Rotations.AddUninitialized(NodeNum);
-
-		Translations.Empty(NodeNum);
-		Translations.AddUninitialized(NodeNum);
-
-		TranslationParentFlags.Empty(Translations.Num());
-		TranslationParentFlags.AddZeroed(Translations.Num());
-		
-		const USkeletalMesh* PreviewMesh = Skeleton->GetPreviewMesh();
-
-		for ( int32 Index = 0; Index < NodeNum; ++Index )
+		if (NodeNum > 0)
 		{
-			const FName NodeName = Rig->GetNodeName(Index);
-			const FName& BoneName = Skeleton->GetRigBoneMapping(NodeName);
-			const int32& BoneIndex = FindMeshBoneIndexFromBoneName(Skeleton, BoneName);
-			
-			if (BoneIndex == INDEX_NONE)
-			{
-				// add identity
-				NodeSpaceBases[Index].SetIdentity();
-				Rotations[Index].SetIdentity();
-				Translations[Index].SetIdentity();
-			}
-			else
-			{
-				// initialize with SpaceBases - assuming World Based
-				NodeSpaceBases[Index] = SpaceBases[BoneIndex];
-				Rotations[Index] = SpaceBases[BoneIndex];
-				Translations[Index] = SpaceBases[BoneIndex];
+			NodeSpaceBases.Empty(NodeNum);
+			NodeSpaceBases.AddUninitialized(NodeNum);
 
-				const FTransformBase* TransformBase = Rig->GetTransformBaseByNodeName(NodeName);
+			Rotations.Empty(NodeNum);
+			Rotations.AddUninitialized(NodeNum);
 
-				if (TransformBase != NULL)
+			Translations.Empty(NodeNum);
+			Translations.AddUninitialized(NodeNum);
+
+			TranslationParentFlags.Empty(Translations.Num());
+			TranslationParentFlags.AddZeroed(Translations.Num());
+
+			const USkeletalMesh* PreviewMesh = Skeleton->GetPreviewMesh();
+
+			for (int32 Index = 0; Index < NodeNum; ++Index)
+			{
+				const FName NodeName = Rig->GetNodeName(Index);
+				const FName& BoneName = Skeleton->GetRigBoneMapping(NodeName);
+				const int32& BoneIndex = FindMeshBoneIndexFromBoneName(Skeleton, BoneName);
+
+				if (BoneIndex == INDEX_NONE)
 				{
-					// orientation constraint			
-					const auto& RotConstraint = TransformBase->Constraints[EControlConstraint::Type::Orientation];
+					// add identity
+					NodeSpaceBases[Index].SetIdentity();
+					Rotations[Index].SetIdentity();
+					Translations[Index].SetIdentity();
+				}
+				else
+				{
+					// initialize with SpaceBases - assuming World Based
+					NodeSpaceBases[Index] = SpaceBases[BoneIndex];
+					Rotations[Index] = SpaceBases[BoneIndex];
+					Translations[Index] = SpaceBases[BoneIndex];
 
-					if (RotConstraint.TransformConstraints.Num() > 0)
+					const FTransformBase* TransformBase = Rig->GetTransformBaseByNodeName(NodeName);
+
+					if (TransformBase != NULL)
 					{
-						const FName& ParentBoneName = Skeleton->GetRigBoneMapping(RotConstraint.TransformConstraints[0].ParentSpace);
-						const int32& ParentBoneIndex = FindMeshBoneIndexFromBoneName(Skeleton, ParentBoneName);
+						// orientation constraint			
+						const auto& RotConstraint = TransformBase->Constraints[EControlConstraint::Type::Orientation];
 
-						if (ParentBoneIndex != INDEX_NONE)
+						if (RotConstraint.TransformConstraints.Num() > 0)
 						{
-							Rotations[Index] = SpaceBases[BoneIndex].GetRelativeTransform(SpaceBases[ParentBoneIndex]);
+							const FName& ParentBoneName = Skeleton->GetRigBoneMapping(RotConstraint.TransformConstraints[0].ParentSpace);
+							const int32& ParentBoneIndex = FindMeshBoneIndexFromBoneName(Skeleton, ParentBoneName);
+
+							if (ParentBoneIndex != INDEX_NONE)
+							{
+								Rotations[Index] = SpaceBases[BoneIndex].GetRelativeTransform(SpaceBases[ParentBoneIndex]);
+							}
 						}
-					}
 
-					// translation constraint
-					const auto& TransConstraint = TransformBase->Constraints[EControlConstraint::Type::Translation];
+						// translation constraint
+						const auto& TransConstraint = TransformBase->Constraints[EControlConstraint::Type::Translation];
 
-					if (TransConstraint.TransformConstraints.Num() > 0)
-					{
-						const FName& ParentBoneName = Skeleton->GetRigBoneMapping(TransConstraint.TransformConstraints[0].ParentSpace);
-						const int32& ParentBoneIndex = FindMeshBoneIndexFromBoneName(Skeleton, ParentBoneName);
-
-						if (ParentBoneIndex != INDEX_NONE)
+						if (TransConstraint.TransformConstraints.Num() > 0)
 						{
-							// I think translation has to include rotation, otherwise it won't work
-							Translations[Index] = SpaceBases[BoneIndex].GetRelativeTransform(SpaceBases[ParentBoneIndex]);
-							TranslationParentFlags[Index] = true;
+							const FName& ParentBoneName = Skeleton->GetRigBoneMapping(TransConstraint.TransformConstraints[0].ParentSpace);
+							const int32& ParentBoneIndex = FindMeshBoneIndexFromBoneName(Skeleton, ParentBoneName);
+
+							if (ParentBoneIndex != INDEX_NONE)
+							{
+								// I think translation has to include rotation, otherwise it won't work
+								Translations[Index] = SpaceBases[BoneIndex].GetRelativeTransform(SpaceBases[ParentBoneIndex]);
+								TranslationParentFlags[Index] = true;
+							}
 						}
 					}
 				}

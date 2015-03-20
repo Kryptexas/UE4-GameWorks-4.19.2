@@ -430,16 +430,16 @@ void ULevel::SortActorList()
 	// Replace with sorted list.
 	Actors.AssignButKeepOwner(NewActors);
 
-	// Don't use sorted optimization outside of gameplay so we can safely shuffle around actors e.g. in the Editor
-	// without there being a chance to break code using dynamic/ net relevant actor iterators.
-	if (!OwningWorld->IsGameWorld())
-	{
-		iFirstNetRelevantActor = 0;
-	}
-
 	// Add all network actors to the owning world
 	if ( OwningWorld != NULL )
 	{
+		// Don't use sorted optimization outside of gameplay so we can safely shuffle around actors e.g. in the Editor
+		// without there being a chance to break code using dynamic/ net relevant actor iterators.
+		if (!OwningWorld->IsGameWorld())
+		{
+			iFirstNetRelevantActor = 0;
+		}
+
 		for ( int32 i = iFirstNetRelevantActor; i < Actors.Num(); i++ )
 		{
 			if ( Actors[ i ] != NULL )

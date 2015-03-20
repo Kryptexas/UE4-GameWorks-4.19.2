@@ -866,11 +866,10 @@ void UWorld::RefreshStreamingLevels( const TArray<class ULevelStreaming*>& InLev
 		for( int32 LevelIndex=0; LevelIndex<InLevelsToRefresh.Num(); LevelIndex++ )
 		{
 			ULevelStreaming* StreamingLevel = InLevelsToRefresh[LevelIndex];
-			ULevel* LoadedLevel = StreamingLevel->GetLoadedLevel();
+			ULevel* LoadedLevel = StreamingLevel ? StreamingLevel->GetLoadedLevel() : nullptr;
 
-			if( StreamingLevel 
-				&&	LoadedLevel 
-				&&	LoadedLevel->bIsVisible )
+			if( LoadedLevel &&
+				LoadedLevel->bIsVisible )
 			{
 				RemoveFromWorld( LoadedLevel );
 			}
