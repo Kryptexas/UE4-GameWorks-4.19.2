@@ -586,6 +586,14 @@ void ARecastNavMesh::OnNavAreaAdded(const UClass* NavAreaClass, int32 AgentIndex
 	}
 }
 
+void ARecastNavMesh::OnNavAreaChanged()
+{
+	if (RecastNavMeshImpl)
+	{
+		RecastNavMeshImpl->OnAreaCostChanged();
+	}
+}
+
 int32 ARecastNavMesh::GetNewAreaID(const UClass* AreaClass) const
 {
 	if (AreaClass == UNavigationSystem::GetDefaultWalkableArea())

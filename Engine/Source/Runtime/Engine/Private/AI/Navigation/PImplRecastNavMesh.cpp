@@ -2521,6 +2521,43 @@ void FPImplRecastNavMesh::SetFilterForbiddenFlags(FRecastQueryFilter* Filter, ui
 	// include-exclude don't need to be symmetrical, filter will check both conditions
 }
 
+void FPImplRecastNavMesh::OnAreaCostChanged()
+{
+	struct FFloatIntPair
+	{
+		float Score;
+		int32 Index;
+
+		FFloatIntPair() : Score(MAX_FLT), Index(0) {}
+		FFloatIntPair(int32 AreaId, float TravelCost, float EntryCost) : Score(TravelCost + EntryCost), Index(AreaId) {}
+
+		bool operator <(const FFloatIntPair& Other) const { return Score < Other.Score; }
+	};
+
+	if (NavMeshOwner && DetourNavMesh)
+	{
+		const INavigationQueryFilterInterface* NavFilter = NavMeshOwner->GetDefaultQueryFilterImpl();
+		const dtQueryFilter* DetourFilter = ((const FRecastQueryFilter*)NavFilter)->GetAsDetourQueryFilter();
+
+		TArray<FFloatIntPair> AreaData;
+		AreaData.Reserve(RECAST_MAX_AREAS);
+		for (int32 Idx = 0; Idx < RECAST_MAX_AREAS; Idx++)
+		{
+			AreaData.Add(FFloatIntPair(Idx, DetourFilter->getAreaCost(Idx), DetourFilter->getAreaFixedCost(Idx)));
+		}
+
+		AreaData.Sort();
+
+		uint8 AreaCostOrder[RECAST_MAX_AREAS];
+		for (int32 Idx = 0; Idx < RECAST_MAX_AREAS; Idx++)
+		{
+			AreaCostOrder[AreaData[Idx].Index] = Idx;
+		}
+
+		DetourNavMesh->applyAreaCostOrder(AreaCostOrder);
+	}
+}
+
 void FPImplRecastNavMesh::RemoveTileCacheLayers(int32 TileX, int32 TileY)
 {
 	CompressedTileCacheLayers.Remove(FIntPoint(TileX, TileY));

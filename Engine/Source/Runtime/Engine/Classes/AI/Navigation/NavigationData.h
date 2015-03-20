@@ -734,7 +734,10 @@ public:
 	
 	/** area was removed from navigation system */
 	virtual void OnNavAreaRemoved(const UClass* NavAreaClass);
-		
+
+	/** called after changes to registered area classes */
+	virtual void OnNavAreaChanged();
+
 	void OnNavAreaEvent(const UClass* NavAreaClass, ENavAreaEvent::Type Event);
 
 	/** add all existing areas */

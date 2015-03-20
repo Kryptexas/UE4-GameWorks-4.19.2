@@ -24,7 +24,7 @@ static const float CONVEX_HULL_POINTS_MIN_DISTANCE_SQ = 4.0f * 4.0f;
 //----------------------------------------------------------------------//
 FNavigationLinkBase::FNavigationLinkBase() 
 	: MaxFallDownLength(1000.0f), Direction(ENavLinkDirection::BothWays), UserId(0),
-	  SnapRadius(30.f), SnapHeight(50.0f), bUseSnapHeight(false)
+	  SnapRadius(30.f), SnapHeight(50.0f), bUseSnapHeight(false), bSnapToCheapestArea(true)
 {
 	AreaClass = NULL;
 	SupportedAgentsBits = 0xFFFFFFFF;

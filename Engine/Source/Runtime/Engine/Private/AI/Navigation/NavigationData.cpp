@@ -579,6 +579,8 @@ void ANavigationData::OnNavAreaEvent(const UClass* NavAreaClass, ENavAreaEvent::
 	{
 		OnNavAreaRemoved(NavAreaClass);
 	}
+
+	OnNavAreaChanged();
 }
 
 void ANavigationData::OnNavAreaRemoved(const UClass* NavAreaClass)
@@ -594,12 +596,19 @@ void ANavigationData::OnNavAreaRemoved(const UClass* NavAreaClass)
 	}
 }
 
+void ANavigationData::OnNavAreaChanged()
+{
+	// empty in base class
+}
+
 void ANavigationData::ProcessNavAreas(const TArray<const UClass*>& AreaClasses, int32 AgentIndex)
 {
 	for (int32 i = 0; i < AreaClasses.Num(); i++)
 	{
 		OnNavAreaAdded(AreaClasses[i], AgentIndex);
 	}
+
+	OnNavAreaChanged();
 }
 
 int32 ANavigationData::GetNewAreaID(const UClass* AreaClass) const

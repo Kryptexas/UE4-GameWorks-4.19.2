@@ -190,6 +190,8 @@ public:
 	static uint16 GetFilterForbiddenFlags(const FRecastQueryFilter* Filter);
 	static void SetFilterForbiddenFlags(FRecastQueryFilter* Filter, uint16 ForbiddenFlags);
 
+	void OnAreaCostChanged();
+
 public:
 	dtNavMesh const* GetRecastMesh() const { return DetourNavMesh; };
 	dtNavMesh* GetRecastMesh() { return DetourNavMesh; };
