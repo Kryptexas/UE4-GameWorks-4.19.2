@@ -83,7 +83,7 @@ private:
 /** Enum and value to specify the current state of our processing */
 enum class ECurrentState
 {
-	Idle, PendingResponse, ProcessAdditions, SavePackages, ProcessModifications, ProcessDeletions
+	Idle, PendingResponse, ProcessAdditions, ProcessModifications, ProcessDeletions, SavePackages
 };
 uint32 GetTypeHash(ECurrentState State)
 {
@@ -224,9 +224,9 @@ FAutoReimportManager::FAutoReimportManager()
 	StateMachine.Add(ECurrentState::Idle,					EStateMachineNode::CallOnce,	[this](const FTimeLimit& T){ return this->Idle();					});
 	StateMachine.Add(ECurrentState::PendingResponse,		EStateMachineNode::CallOnce,	[this](const FTimeLimit& T){ return this->PendingResponse();		});
 	StateMachine.Add(ECurrentState::ProcessAdditions,		EStateMachineNode::CallMany,	[this](const FTimeLimit& T){ return this->ProcessAdditions(T);		});
-	StateMachine.Add(ECurrentState::SavePackages,			EStateMachineNode::CallOnce,	[this](const FTimeLimit& T){ return this->SavePackages();			});
 	StateMachine.Add(ECurrentState::ProcessModifications,	EStateMachineNode::CallMany,	[this](const FTimeLimit& T){ return this->ProcessModifications(T);	});
 	StateMachine.Add(ECurrentState::ProcessDeletions,		EStateMachineNode::CallMany,	[this](const FTimeLimit& T){ return this->ProcessDeletions();		});
+	StateMachine.Add(ECurrentState::SavePackages,			EStateMachineNode::CallOnce,	[this](const FTimeLimit& T){ return this->SavePackages();			});
 }
 
 TArray<FPathAndMountPoint> FAutoReimportManager::GetMonitoredDirectories() const
@@ -459,30 +459,8 @@ TOptional<ECurrentState> FAutoReimportManager::ProcessAdditions(const FTimeLimit
 
 	for (auto& Monitor : DirectoryMonitors)
 	{
-		Monitor.ProcessAdditions(Registry, PackagesToSave, TimeLimit, Factories, *FeedbackContextOverride);
+		Monitor.ProcessAdditions(Registry, TimeLimit, PackagesToSave, Factories, *FeedbackContextOverride);
 		yield TOptional<ECurrentState>();
-	}
-
-	return ECurrentState::SavePackages;
-}
-
-TOptional<ECurrentState> FAutoReimportManager::SavePackages()
-{
-	// We don't override the context specifically when saving packages so the user gets proper feedback
-	//TGuardValue<FFeedbackContext*> ScopedContextOverride(GWarn, FeedbackContextOverride.Get());
-
-	TGuardValue<bool> ScopedAssetChangesGuard(bGuardAssetChanges, true);
-
-	FeedbackContextOverride->GetContent()->SetMainText(GetProgressText());
-
-	if (PackagesToSave.Num() > 0)
-	{
-		const bool bAlreadyCheckedOut = false;
-		const bool bCheckDirty = false;
-		const bool bPromptToSave = false;
-		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, bCheckDirty, bPromptToSave, nullptr, bAlreadyCheckedOut);
-
-		PackagesToSave.Empty();
 	}
 
 	return ECurrentState::ProcessModifications;
@@ -500,7 +478,7 @@ TOptional<ECurrentState> FAutoReimportManager::ProcessModifications(const FTimeL
 
 	for (auto& Monitor : DirectoryMonitors)
 	{
-		Monitor.ProcessModifications(Registry, TimeLimit, *FeedbackContextOverride);
+		Monitor.ProcessModifications(Registry, TimeLimit, PackagesToSave, *FeedbackContextOverride);
 		yield TOptional<ECurrentState>();
 	}
 
@@ -532,6 +510,29 @@ TOptional<ECurrentState> FAutoReimportManager::ProcessDeletions()
 		ObjectTools::DeleteAssets(AssetsToDelete);
 	}
 
+	return ECurrentState::SavePackages;
+}
+
+TOptional<ECurrentState> FAutoReimportManager::SavePackages()
+{
+	// We don't override the context specifically when saving packages so the user gets proper feedback
+	//TGuardValue<FFeedbackContext*> ScopedContextOverride(GWarn, FeedbackContextOverride.Get());
+
+	TGuardValue<bool> ScopedAssetChangesGuard(bGuardAssetChanges, true);
+
+	FeedbackContextOverride->GetContent()->SetMainText(GetProgressText());
+
+	if (PackagesToSave.Num() > 0)
+	{
+		const bool bAlreadyCheckedOut = false;
+		const bool bCheckDirty = false;
+		const bool bPromptToSave = false;
+		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, bCheckDirty, bPromptToSave, nullptr, bAlreadyCheckedOut);
+
+		PackagesToSave.Empty();
+	}
+
+	// Make sure the progress text is up to date before we close the notification
 	FeedbackContextOverride->GetContent()->SetMainText(GetProgressText());
 
 	Cleanup();

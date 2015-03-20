@@ -12,6 +12,12 @@
 
 #define LOCTEXT_NAMESPACE "ContentDirectoryMonitor"
 
+bool IsAssetDirty(UObject* Asset)
+{
+	UPackage* Package = Asset ? Asset->GetOutermost() : nullptr;
+	return Package ? Package->IsDirty() : false;
+}
+
 /** Generate a config from the specified options, to pass to FFileCache on construction */
 FFileCacheConfig GenerateFileCacheConfig(const FString& InPath, const FMatchRules& InMatchRules, const FString& InMountedContentPath)
 {
@@ -138,7 +144,7 @@ UObject* AttemptImport(UClass* InFactoryType, UPackage* Package, FName InName, b
 	return Asset;
 }
 
-void FContentDirectoryMonitor::ProcessAdditions(const IAssetRegistry& Registry, TArray<UPackage*>& OutPackagesToSave, const FTimeLimit& TimeLimit, const TMap<FString, TArray<UFactory*>>& InFactoriesByExtension, FReimportFeedbackContext& Context)
+void FContentDirectoryMonitor::ProcessAdditions(const IAssetRegistry& Registry, const FTimeLimit& TimeLimit, TArray<UPackage*>& OutPackagesToSave, const TMap<FString, TArray<UFactory*>>& InFactoriesByExtension, FReimportFeedbackContext& Context)
 {
 	bool bCancelled = false;
 	for (int32 Index = 0; Index < AddedFiles.Num(); ++Index)
@@ -272,7 +278,7 @@ void FContentDirectoryMonitor::ProcessAdditions(const IAssetRegistry& Registry, 
 	AddedFiles.Empty();
 }
 
-void FContentDirectoryMonitor::ProcessModifications(const IAssetRegistry& Registry, const FTimeLimit& TimeLimit, FReimportFeedbackContext& Context)
+void FContentDirectoryMonitor::ProcessModifications(const IAssetRegistry& Registry, const FTimeLimit& TimeLimit, TArray<UPackage*>& OutPackagesToSave, FReimportFeedbackContext& Context)
 {
 	auto* ReimportManager = FReimportManager::Instance();
 
@@ -292,6 +298,8 @@ void FContentDirectoryMonitor::ProcessModifications(const IAssetRegistry& Regist
 				UObject* Asset = Assets[0].GetAsset();
 				if (Asset && Utils::ExtractSourceFilePaths(Asset).Num() == 1)
 				{
+					const bool bAssetWasDirty = IsAssetDirty(Asset);
+
 					FString NewAssetName = ObjectTools::SanitizeObjectName(FPaths::GetBaseFilename(Change.Filename.Get()));
 					FString PackagePath = PackageTools::SanitizePackageName(MountedContentPath / FPaths::GetPath(Change.Filename.Get()));
 
@@ -317,6 +325,11 @@ void FContentDirectoryMonitor::ProcessModifications(const IAssetRegistry& Regist
 						// Update the reimport file names
 						FReimportManager::Instance()->UpdateReimportPaths(Asset, Filenames);
 						Asset->MarkPackageDirty();
+
+						if (!bAssetWasDirty)
+						{
+							OutPackagesToSave.Add(Asset->GetOutermost());
+						}
 					}
 				}
 			}
@@ -326,13 +339,21 @@ void FContentDirectoryMonitor::ProcessModifications(const IAssetRegistry& Regist
 			for (const auto& AssetData : Utils::FindAssetsPertainingToFile(Registry, FullFilename))
 			{
 				UObject* Asset = AssetData.GetAsset();
-				if (!ReimportManager->Reimport(Asset, false /* Ask for new file */, false /* Show notification */))
+				if (Asset)
 				{
-					Context.AddMessage(EMessageSeverity::Error, FText::Format(LOCTEXT("Error_FailedToReimportAsset", "Failed to reimport asset {0}."), FText::FromString(Asset->GetName())));
-				}
-				else
-				{
-					Context.AddMessage(EMessageSeverity::Info, FText::Format(LOCTEXT("Success_CreatedNewAsset", "Reimported asset {0} from {1}."), FText::FromString(Asset->GetName()), FText::FromString(FullFilename)));
+					const bool bAssetWasDirty = IsAssetDirty(Asset);
+					if (!ReimportManager->Reimport(Asset, false /* Ask for new file */, false /* Show notification */))
+					{
+						Context.AddMessage(EMessageSeverity::Error, FText::Format(LOCTEXT("Error_FailedToReimportAsset", "Failed to reimport asset {0}."), FText::FromString(Asset->GetName())));
+					}
+					else
+					{
+						Context.AddMessage(EMessageSeverity::Info, FText::Format(LOCTEXT("Success_CreatedNewAsset", "Reimported asset {0} from {1}."), FText::FromString(Asset->GetName()), FText::FromString(FullFilename)));
+						if (!bAssetWasDirty)
+						{
+							OutPackagesToSave.Add(Asset->GetOutermost());
+						}
+					}
 				}
 			}
 		}
