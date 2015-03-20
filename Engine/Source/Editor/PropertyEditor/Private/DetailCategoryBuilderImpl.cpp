@@ -600,12 +600,15 @@ void FDetailCategoryImpl::GenerateNodesFromCustomizations( const FCustomizationL
 			TSharedRef<FDetailItemNode> NewNode = MakeShareable( new FDetailItemNode( Customization, AsShared(), IsParentEnabled ) );
 			NewNode->Initialize();
 
-			if( CustomizationIndex == InCustomizationList.Num()-1 )
+			if( !NewNode->ShouldShowOnlyChildren() || NewNode->HasGeneratedChildren() )
 			{
-				bOutLastItemHasMultipleColumns = NewNode->HasMultiColumnWidget();
-			}
+				if(CustomizationIndex == InCustomizationList.Num()-1)
+				{
+					bOutLastItemHasMultipleColumns = NewNode->HasMultiColumnWidget();
+				}
 
-			OutNodeList.Add( NewNode );
+				OutNodeList.Add(NewNode);
+			}
 		}
 	}
 }

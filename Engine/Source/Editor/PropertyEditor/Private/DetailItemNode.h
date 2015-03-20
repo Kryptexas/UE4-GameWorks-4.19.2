@@ -30,6 +30,11 @@ public:
 	 */
 	bool HasMultiColumnWidget() const;
 
+	/**
+	 * @return true if this node has any children (regardless of child visibility)
+	 */
+	bool HasGeneratedChildren() const { return Children.Num() > 0;}
+
 	/** IDetailTreeNode interface */
 	virtual IDetailsViewPrivate& GetDetailsView() const override{ return ParentCategory.Pin()->GetDetailsView(); }
 	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities ) override;
