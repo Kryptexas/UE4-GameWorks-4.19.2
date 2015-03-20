@@ -46,6 +46,9 @@ struct FPaperCustomVersion
 		// Add source texture size
 		AddSourceTextureSize = 12,
 
+		// Fix incorrect collision geometry generation when sprites were rotated in the source texture
+		FixIncorrectCollisionOnSourceRotatedSprites = 13,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1
