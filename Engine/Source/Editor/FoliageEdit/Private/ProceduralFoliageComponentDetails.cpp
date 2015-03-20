@@ -7,6 +7,7 @@
 #include "ProceduralFoliageComponent.h"
 #include "InstancedFoliage.h"
 #include "FoliageEdMode.h"
+#include "ScopedTransaction.h"
 
 TSharedRef<IDetailCustomization> FProceduralFoliageComponentDetails::MakeInstance()
 {
@@ -73,6 +74,7 @@ FReply FProceduralFoliageComponentDetails::OnResimulateClicked()
 				UniqueFoliageSpawners.Add(Component->FoliageSpawner);
 			}
 
+			FScopedTransaction Transaction(NSLOCTEXT("ProceduralFoliageComponentDetails", "Resimulate_Transaction", "Procedural Foliage Simulation"));
 			TArray <FDesiredFoliageInstance> DesiredFoliageInstances;
 			if (Component->SpawnProceduralContent(DesiredFoliageInstances))
 			{
