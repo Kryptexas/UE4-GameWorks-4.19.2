@@ -3,34 +3,13 @@
 #pragma once
 
 #include "SceneViewport.h"
+#include "AssetEditorModeManager.h"
 
 struct FViewportSelectionRectangle
 {
 	FVector2D TopLeft;
 	FVector2D Dimensions;
 	FLinearColor Color;
-};
-
-//////////////////////////////////////////////////////////////////////////
-// FAssetEditorModeTools
-
-class FAssetEditorModeTools : public FEditorModeTools
-{
-public:
-	FAssetEditorModeTools();
-	virtual ~FAssetEditorModeTools();
-
-	// FEditorModeTools interface
-	virtual class USelection* GetSelectedActors() const override;
-	virtual class USelection* GetSelectedObjects() const override;
-	virtual UWorld* GetWorld() const override;
-	// End of FEditorModeTools interface
-
-	void SetPreviewScene(class FPreviewScene* NewPreviewScene);
-protected:
-	class USelection* ActorSet;
-	class USelection* ObjectSet;
-	class FPreviewScene* PreviewScene;
 };
 
 //////////////////////////////////////////////////////////////////////////

@@ -25,6 +25,7 @@
 #include "Components/BillboardComponent.h"
 #include "EngineUtils.h"
 #include "SEditorViewport.h"
+#include "AssetEditorModeManager.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewportClient"
 
@@ -277,7 +278,7 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 {
 	if (ModeTools == nullptr)
 	{
-		ModeTools = new FEditorModeTools();
+		ModeTools = new FAssetEditorModeManager();
 		bOwnsModeTools = true;
 	}
 

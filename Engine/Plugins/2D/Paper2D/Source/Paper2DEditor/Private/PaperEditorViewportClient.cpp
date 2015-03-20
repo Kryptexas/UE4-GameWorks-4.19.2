@@ -8,53 +8,10 @@
 #include "PreviewScene.h"
 
 //////////////////////////////////////////////////////////////////////////
-// FAssetEditorModeTools
-
-FAssetEditorModeTools::FAssetEditorModeTools()
-	: PreviewScene(nullptr)
-{
-	ActorSet = NewObject<USelection>();
-	ActorSet->SetFlags(RF_Transactional);
-	ActorSet->AddToRoot();
-
-	ObjectSet = NewObject<USelection>();
-	ObjectSet->SetFlags(RF_Transactional);
-	ObjectSet->AddToRoot();
-}
-
-FAssetEditorModeTools::~FAssetEditorModeTools()
-{
-	ActorSet->RemoveFromRoot();
-	ActorSet = nullptr;
-	ObjectSet->RemoveFromRoot();
-	ObjectSet = nullptr;
-}
-
-USelection* FAssetEditorModeTools::GetSelectedActors() const
-{
-	return ActorSet;
-}
-
-USelection* FAssetEditorModeTools::GetSelectedObjects() const
-{
-	return ObjectSet;
-}
-
-UWorld* FAssetEditorModeTools::GetWorld() const
-{
-	return (PreviewScene != nullptr) ? PreviewScene->GetWorld() : GEditor->GetEditorWorldContext().World();
-}
-
-void FAssetEditorModeTools::SetPreviewScene(class FPreviewScene* NewPreviewScene)
-{
-	PreviewScene = NewPreviewScene;
-}
-
-//////////////////////////////////////////////////////////////////////////
 // FPaperEditorViewportClient
 
 FPaperEditorViewportClient::FPaperEditorViewportClient(const TWeakPtr<SEditorViewport>& InEditorViewportWidget)
-	: FEditorViewportClient(new FAssetEditorModeTools(), nullptr, InEditorViewportWidget)
+	: FEditorViewportClient(new FAssetEditorModeManager(), nullptr, InEditorViewportWidget)
 	, CheckerboardTexture(nullptr)
 {
 	bOwnsModeTools = true;
