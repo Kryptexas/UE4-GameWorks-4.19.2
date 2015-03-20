@@ -88,7 +88,7 @@ public:
 };
 
 UCLASS(transient)
-class UPackageMapClient : public UPackageMap
+class ENGINE_API UPackageMapClient : public UPackageMap
 {
 public:
 	GENERATED_BODY()
