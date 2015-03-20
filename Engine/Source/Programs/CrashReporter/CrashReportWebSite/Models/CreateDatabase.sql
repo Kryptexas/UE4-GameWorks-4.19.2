@@ -171,29 +171,21 @@ GO
 SET ANSI_PADDING ON
 GO
 CREATE TABLE [dbo].[Buggs](
-		[Id] [int] IDENTITY(1,1) NOT NULL,
+	[Id] [int] IDENTITY(1,1) NOT NULL,
 	[TTPID] [varchar](50) NULL,
-	[Title] [varchar](120) NULL,
-	[Summary] [varchar](250) NULL,
-	[Priority] [int] NULL,
 	[Pattern] [varchar](800) NOT NULL,
-	[Type] [varchar](50) NULL,
 	[NumberOfCrashes] [int] NULL,
 	[NumberOfUsers] [int] NULL,
 	[TimeOfFirstCrash] [datetime] NULL,
 	[TimeOfLastCrash] [datetime] NULL,
 	[Status] [varchar](64) NULL,
 	[FixedChangeList] [varchar](50) NULL,
-	[Description] [text] NULL,
-	[ReproSteps] [text] NULL,
-	[Game] [varchar](120) NULL,
-	[BuildVersion] [varchar](128) NULL,
 	[CrashType] [smallint] NULL,
-	[SummaryV2] [varchar](512) NULL,
+	[BuildVersion] [varchar](64) NULL,
  CONSTRAINT [PK_Buggs] PRIMARY KEY CLUSTERED 
 (
 	[Id] ASC
-)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY  = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 GO
 SET ANSI_PADDING OFF
