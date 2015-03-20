@@ -2621,7 +2621,7 @@ namespace UnrealBuildTool
 			DependentPlugins.AddRange(EnabledPlugins);
 
 			// Set the list of plugins that should be built
-			if (UnrealBuildTool.BuildingRocket() && TargetType != TargetRules.TargetType.Program)
+			if (bPrecompileModules && TargetType != TargetRules.TargetType.Program)
 			{
 				BuildPlugins.AddRange(ValidPlugins);
 			}
