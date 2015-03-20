@@ -186,7 +186,7 @@ public:
 	{
 		FlipbookEditorPtr = InFlipbookEditor;
 
-		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments());
+		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments(), /*bAutomaticallyObserveViaGetObjectToObserve=*/ true, /*bAllowSearch=*/ true);
 	}
 
 	// SSingleObjectDetailsPanel interface
