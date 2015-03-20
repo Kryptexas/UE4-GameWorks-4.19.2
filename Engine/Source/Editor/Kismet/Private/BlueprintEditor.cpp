@@ -6148,6 +6148,9 @@ void FBlueprintEditor::ExpandNode(UEdGraphNode* InNodeToExpand, UEdGraph* InSour
 	{
 		UEdGraphNode* Node = SourceGraph->Nodes.Pop();
 
+		Node->Modify();
+		Node->Rename(/*NewName=*/ NULL, /*NewOuter=*/ DestinationGraph);
+
 		// We do not check CanPasteHere when determining CanCollapseNodes, unlike CanCollapseSelectionToFunction/Macro,
 		// so when expanding a collapsed graph we don't want to check the CanPasteHere function:
 		if (!bIsCollapsedGraph && !Node->CanPasteHere(DestinationGraph))
@@ -6156,9 +6159,7 @@ void FBlueprintEditor::ExpandNode(UEdGraphNode* InNodeToExpand, UEdGraph* InSour
 			continue;
 		}
 
-		Node->Modify();
-
-		Node->Rename(/*NewName=*/ NULL, /*NewOuter=*/ DestinationGraph);
+		// Successfully added the node to the graph, we may need to remove flags
 		if (Node->HasAllFlags(RF_Transient) && !DestinationGraph->HasAllFlags(RF_Transient))
 		{
 			Node->ClearFlags(RF_Transient);
