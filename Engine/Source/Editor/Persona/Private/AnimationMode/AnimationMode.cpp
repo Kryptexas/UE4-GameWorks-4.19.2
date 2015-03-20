@@ -28,7 +28,7 @@ public:
 	{
 		PersonaPtr = InPersona;
 
-		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments());
+		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments(), true, true);
 	}
 
 	virtual EVisibility GetAssetDisplayNameVisibility() const
