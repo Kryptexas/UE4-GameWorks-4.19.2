@@ -2,7 +2,7 @@
 
 #include "UnrealEd.h"
 #include "ProceduralFoliageComponentVisualizer.h"
-#include "ProceduralFoliage.h"
+#include "ProceduralFoliageSpawner.h"
 #include "ProceduralFoliageComponent.h"
 
 
@@ -13,12 +13,12 @@ void FProceduralFoliageComponentVisualizer::DrawVisualization(const UActorCompon
 {
 	if (const UProceduralFoliageComponent* ProcComponent = Cast<const UProceduralFoliageComponent>(Component))
 	{
-		if (ProcComponent->ProceduralFoliage && ProcComponent->bHideDebugTiles == false)
+		if (ProcComponent->FoliageSpawner && ProcComponent->bShowDebugTiles == true)
 		{
-			const float TileSize = ProcComponent->ProceduralFoliage->TileSize;
+			const float TileSize = ProcComponent->FoliageSpawner->TileSize;
 			const FVector TileSizeOffset(TileSize, TileSize, 0.f);
 			const FVector TileLocation = ProcComponent->GetWorldPosition();
-			const FVector OverlapV(ProcComponent->Overlap, ProcComponent->Overlap, 0.f);
+			const FVector OverlapV(ProcComponent->TileOverlap, ProcComponent->TileOverlap, 0.f);
 			
 			int32 XOffset, YOffset;
 			int32 NumX = 0;

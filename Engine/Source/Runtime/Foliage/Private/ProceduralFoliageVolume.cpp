@@ -3,7 +3,7 @@
 #include "FoliagePrivate.h"
 #include "ProceduralFoliageVolume.h"
 #include "ProceduralFoliageComponent.h"
-#include "ProceduralFoliage.h"
+#include "ProceduralFoliageSpawner.h"
 
 AProceduralFoliageVolume::AProceduralFoliageVolume(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
@@ -26,9 +26,9 @@ bool AProceduralFoliageVolume::GetReferencedContentObjects(TArray<UObject*>& Obj
 {
 	Super::GetReferencedContentObjects(Objects);
 
-	if (ProceduralComponent && ProceduralComponent->ProceduralFoliage)
+	if (ProceduralComponent && ProceduralComponent->FoliageSpawner)
 	{
-		Objects.Add(ProceduralComponent->ProceduralFoliage);
+		Objects.Add(ProceduralComponent->FoliageSpawner);
 	}
 	return true;
 }

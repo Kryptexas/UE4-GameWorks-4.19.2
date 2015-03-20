@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FoliagePrivate.h"
-#include "ProceduralFoliage.h"
+#include "ProceduralFoliageSpawner.h"
 #include "ProceduralFoliageTile.h"
 #include "Components/BoxComponent.h"
 #include "PhysicsPublic.h"
@@ -9,7 +9,7 @@
 
 #define LOCTEXT_NAMESPACE "ProceduralFoliage"
 
-UProceduralFoliage::UProceduralFoliage(const FObjectInitializer& ObjectInitializer)
+UProceduralFoliageSpawner::UProceduralFoliageSpawner(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	TileSize = 10000;	//100 m
@@ -18,13 +18,13 @@ UProceduralFoliage::UProceduralFoliage(const FObjectInitializer& ObjectInitializ
 }
 
 #if WITH_EDITOR
-void UProceduralFoliage::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+void UProceduralFoliageSpawner::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	bNeedsSimulation = true;
 }
 #endif
 
-UProceduralFoliageTile* UProceduralFoliage::CreateTempTile()
+UProceduralFoliageTile* UProceduralFoliageSpawner::CreateTempTile()
 {
 	UProceduralFoliageTile* TmpTile = NewObject<UProceduralFoliageTile>(this);
 	TmpTile->InitSimulation(this, 0);
@@ -32,7 +32,7 @@ UProceduralFoliageTile* UProceduralFoliage::CreateTempTile()
 	return TmpTile;
 }
 
-void UProceduralFoliage::CreateProceduralFoliageInstances()
+void UProceduralFoliageSpawner::CreateProceduralFoliageInstances()
 {
 	for(FProceduralFoliageTypeData& TypeData : Types)
 	{
@@ -48,7 +48,7 @@ void UProceduralFoliage::CreateProceduralFoliageInstances()
 	}
 }
 
-void UProceduralFoliage::SetClean()
+void UProceduralFoliageSpawner::SetClean()
 {
 	for (FProceduralFoliageTypeData& TypeData : Types)
 	{
@@ -86,14 +86,14 @@ const FGuid FProceduralFoliageCustomVersion::GUID(0xaafe32bd, 0x53954c14, 0xb66a
 // Register the custom version with core
 FCustomVersionRegistration GRegisterProceduralFoliageCustomVersion(FProceduralFoliageCustomVersion::GUID, FProceduralFoliageCustomVersion::LatestVersion, TEXT("ProceduralFoliageVer"));
 
-void UProceduralFoliage::Serialize(FArchive& Ar)
+void UProceduralFoliageSpawner::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
 	Ar.UsingCustomVersion(FProceduralFoliageCustomVersion::GUID);
 }
 
-bool UProceduralFoliage::AnyDirty() const
+bool UProceduralFoliageSpawner::AnyDirty() const
 {
 	bool bDirty = bNeedsSimulation;
 
@@ -117,7 +117,7 @@ bool UProceduralFoliage::AnyDirty() const
 	return bDirty;
 }
 
-void UProceduralFoliage::SimulateIfNeeded()
+void UProceduralFoliageSpawner::SimulateIfNeeded()
 {
 	//if (AnyDirty())	@todo: for now we must force simulation every time since precomputed tiles are weak pointers
 	{
@@ -126,7 +126,7 @@ void UProceduralFoliage::SimulateIfNeeded()
 
 }
 
-const UProceduralFoliageTile* UProceduralFoliage::GetRandomTile(int32 X, int32 Y)
+const UProceduralFoliageTile* UProceduralFoliageSpawner::GetRandomTile(int32 X, int32 Y)
 {
 	if (PrecomputedTiles.Num())
 	{
@@ -143,7 +143,7 @@ const UProceduralFoliageTile* UProceduralFoliage::GetRandomTile(int32 X, int32 Y
 	return nullptr;
 }
 
-void UProceduralFoliage::Simulate(int32 NumSteps)
+void UProceduralFoliageSpawner::Simulate(int32 NumSteps)
 {
 	RandomStream.Initialize(RandomSeed);
 	CreateProceduralFoliageInstances();
@@ -200,7 +200,7 @@ void UProceduralFoliage::Simulate(int32 NumSteps)
 	}
 }
 
-int32 UProceduralFoliage::GetRandomNumber()
+int32 UProceduralFoliageSpawner::GetRandomNumber()
 {
 	return RandomStream.FRand() * RAND_MAX;
 }

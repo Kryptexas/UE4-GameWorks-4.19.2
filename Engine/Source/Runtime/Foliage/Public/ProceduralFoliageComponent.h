@@ -5,7 +5,7 @@
 #include "ProceduralFoliageInstance.h"
 #include "ProceduralFoliageComponent.generated.h"
 
-class UProceduralFoliage;
+class UProceduralFoliageSpawner;
 class AProceduralFoliageLevelInfo;
 struct FDesiredFoliageInstance;
 
@@ -14,17 +14,18 @@ class FOLIAGE_API UProceduralFoliageComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
 
-	/** The overlap in Cms between two tiles. */
+	/** The procedural foliage spawner used to generate foliage instances within this volume. */
 	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere)
-	float Overlap;
+	UProceduralFoliageSpawner* FoliageSpawner;
 
-	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere, meta=(DisplayName="ProceduralFoliage Asset") )
-	UProceduralFoliage* ProceduralFoliage;
+	/** The amount of overlap between simulation tiles (in cm). */
+	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere)
+	float TileOverlap;
 
 #if WITH_EDITORONLY_DATA
-	/** The overlap in Cms between two tiles. */
+	/** Whether to visualize the tiles used for the foliage spawner simulation */
 	UPROPERTY(Category = "ProceduralFoliage", BlueprintReadWrite, EditAnywhere)
-	bool bHideDebugTiles;
+	bool bShowDebugTiles;
 #endif
 
 	bool SpawnProceduralContent(TArray<FDesiredFoliageInstance>& OutFoliageInstances);

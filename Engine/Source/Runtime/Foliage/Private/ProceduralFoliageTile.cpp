@@ -2,7 +2,7 @@
 
 #include "FoliagePrivate.h"
 #include "ProceduralFoliageTile.h"
-#include "ProceduralFoliage.h"
+#include "ProceduralFoliageSpawner.h"
 #include "ProceduralFoliageBroadphase.h"
 #include "InstancedFoliageActor.h"
 
@@ -192,7 +192,7 @@ void UProceduralFoliageTile::SpreadSeeds(TArray<FProceduralFoliageInstance*>& Ne
 
 void UProceduralFoliageTile::AddRandomSeeds(TArray<FProceduralFoliageInstance*>& OutInstances)
 {
-	const float SizeTenM2 = (ProceduralFoliage->TileSize * ProceduralFoliage->TileSize) / (1000.f * 1000.f);
+	const float SizeTenM2 = ( FoliageSpawner->TileSize * FoliageSpawner->TileSize ) / ( 1000.f * 1000.f );
 
 	TMap<int32,float> MaxShadeRadii;
 	TMap<int32, float> MaxCollisionRadii;
@@ -201,7 +201,7 @@ void UProceduralFoliageTile::AddRandomSeeds(TArray<FProceduralFoliageInstance*>&
 
 	TArray<const UFoliageType_InstancedStaticMesh*> TypesToSeed;
 
-	for (const FProceduralFoliageTypeData& Data : ProceduralFoliage->GetTypes())
+	for (const FProceduralFoliageTypeData& Data : FoliageSpawner->GetTypes())
 	{
 		if (UserCancelled()){ return; }
 		const UFoliageType_InstancedStaticMesh* Type = Data.TypeInstance;
@@ -217,7 +217,7 @@ void UProceduralFoliageTile::AddRandomSeeds(TArray<FProceduralFoliageInstance*>&
 			}
 
 			{	//save the random stream per type
-				RandomStreamPerType.Add(Type, FRandomStream(Type->DistributionSeed + ProceduralFoliage->RandomSeed));
+				RandomStreamPerType.Add(Type, FRandomStream(Type->DistributionSeed + FoliageSpawner->RandomSeed));
 			}
 
 			{	//compute the needed offsets for initial seed variance
@@ -282,8 +282,8 @@ void UProceduralFoliageTile::AddRandomSeeds(TArray<FProceduralFoliageInstance*>&
 			}
 			else
 			{
-				InitX = TypeRandomStream.FRandRange(0, ProceduralFoliage->TileSize);
-				InitY = TypeRandomStream.FRandRange(0, ProceduralFoliage->TileSize);
+				InitX = TypeRandomStream.FRandRange(0, FoliageSpawner->TileSize);
+				InitY = TypeRandomStream.FRandRange(0, FoliageSpawner->TileSize);
 				NeededRadius = MaxShadeRadii.FindRef(Type->DistributionSeed);
 			}
 
@@ -364,17 +364,17 @@ void UProceduralFoliageTile::FlushPendingRemovals()
 	PendingRemovals.Empty();
 }
 
-void UProceduralFoliageTile::InitSimulation(const UProceduralFoliage* InProceduralFoliage, const int32 RandomSeed)
+void UProceduralFoliageTile::InitSimulation(const UProceduralFoliageSpawner* InFoliageSpawner, const int32 RandomSeed)
 {
 	RandomStream.Initialize(RandomSeed);
-	ProceduralFoliage = InProceduralFoliage;
+	FoliageSpawner = InFoliageSpawner;
 	SimulationStep = 0;
-	Broadphase = FProceduralFoliageBroadphase(ProceduralFoliage->TileSize);
+	Broadphase = FProceduralFoliageBroadphase(FoliageSpawner->TileSize);
 }
 
 bool UProceduralFoliageTile::UserCancelled() const
 {
-	return ProceduralFoliage->LastCancel.GetValue() != LastCancel;
+	return FoliageSpawner->LastCancel.GetValue() != LastCancel;
 }
 
 
@@ -404,7 +404,7 @@ void UProceduralFoliageTile::StartSimulation(const int32 MaxNumSteps, bool bShad
 {
 	int32 MaxSteps = 0;
 
-	for (const FProceduralFoliageTypeData& Data : ProceduralFoliage->GetTypes())
+	for (const FProceduralFoliageTypeData& Data : FoliageSpawner->GetTypes())
 	{
 		const UFoliageType_InstancedStaticMesh* TypeInstance = Data.TypeInstance;
 		if (TypeInstance && TypeInstance->bGrowsInShade == bShadeGrowth)
@@ -429,10 +429,10 @@ void UProceduralFoliageTile::StartSimulation(const int32 MaxNumSteps, bool bShad
 	InstancesToArray();
 }
 
-void UProceduralFoliageTile::Simulate(const UProceduralFoliage* InProceduralFoliage, const int32 RandomSeed, const int32 MaxNumSteps, const int32 InLastCancel)
+void UProceduralFoliageTile::Simulate(const UProceduralFoliageSpawner* InFoliageSpawner, const int32 RandomSeed, const int32 MaxNumSteps, const int32 InLastCancel)
 {
 	LastCancel = InLastCancel;
-	InitSimulation(InProceduralFoliage, RandomSeed);
+	InitSimulation(InFoliageSpawner, RandomSeed);
 
 	StartSimulation(MaxNumSteps, false);
 	StartSimulation(MaxNumSteps, true);

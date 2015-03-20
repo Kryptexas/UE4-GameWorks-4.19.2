@@ -6,11 +6,11 @@
 
 #pragma once
 
-#include "ProceduralFoliageFactory.generated.h"
+#include "ProceduralFoliageSpawnerFactory.generated.h"
 
 
 UCLASS()
-class UProceduralFoliageFactory : public UFactory
+class UProceduralFoliageSpawnerFactory : public UFactory
 {
 	GENERATED_UCLASS_BODY()
 

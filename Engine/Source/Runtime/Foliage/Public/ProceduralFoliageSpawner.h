@@ -4,7 +4,7 @@
 
 #include "FoliageType_InstancedStaticMesh.h"
 #include "ProceduralFoliageInstance.h"
-#include "ProceduralFoliage.generated.h"
+#include "ProceduralFoliageSpawner.generated.h"
 
 class UProceduralFoliageTile;
 
@@ -25,7 +25,7 @@ struct FProceduralFoliageTypeData
 };
 
 UCLASS(BlueprintType, Blueprintable)
-class FOLIAGE_API UProceduralFoliage : public UObject
+class FOLIAGE_API UProceduralFoliageSpawner : public UObject
 {
 	GENERATED_UCLASS_BODY()
 

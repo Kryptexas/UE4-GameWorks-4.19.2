@@ -9,8 +9,7 @@
 
 struct FProceduralFoliageInstance;
 struct FProceduralFoliageOverlap;
-class UProceduralFoliageComponent;
-class UProceduralFoliage;
+class UProceduralFoliageSpawner;
 class UFoliageType_InstancedStaticMesh;
 
 UCLASS()
@@ -18,10 +17,7 @@ class FOLIAGE_API UProceduralFoliageTile : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY()
-	const UProceduralFoliage* ProceduralFoliage;
-
-	void Simulate(const UProceduralFoliage* ProceduralFoliage, const int32 RandomSeed, const int32 MaxNumSteps, const int32 InLastCancel);
+	void Simulate(const UProceduralFoliageSpawner* InFoliageSpawner, const int32 RandomSeed, const int32 MaxNumSteps, const int32 InLastCancel);
 	void RemoveInstances();
 	void RemoveInstance(FProceduralFoliageInstance* Inst);
 
@@ -34,7 +30,7 @@ class FOLIAGE_API UProceduralFoliageTile : public UObject
 
 	virtual void BeginDestroy() override;
 
-	void InitSimulation(const UProceduralFoliage* ProceduralFoliage, const int32 RandomSeed);
+	void InitSimulation(const UProceduralFoliageSpawner* InFoliageSpawner, const int32 RandomSeed);
 
 	void InstancesToArray();
 
@@ -61,6 +57,9 @@ private:
 	bool UserCancelled() const;
 	
 private:
+
+	UPROPERTY()
+	const UProceduralFoliageSpawner* FoliageSpawner;
 
 	TSet<FProceduralFoliageInstance*> PendingRemovals;
 	TSet<FProceduralFoliageInstance*> Instances;

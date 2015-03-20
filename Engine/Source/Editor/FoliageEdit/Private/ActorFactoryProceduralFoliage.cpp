@@ -6,7 +6,7 @@ ActorFactory.cpp:
 
 #include "UnrealEd.h"
 #include "ActorFactoryProceduralFoliage.h"
-#include "ProceduralFoliage.h"
+#include "ProceduralFoliageSpawner.h"
 #include "ProceduralFoliageVolume.h"
 #include "ProceduralFoliageComponent.h"
 
@@ -27,7 +27,7 @@ UActorFactoryProceduralFoliage::UActorFactoryProceduralFoliage(const FObjectInit
 
 bool UActorFactoryProceduralFoliage::CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg)
 {
-	if (!AssetData.IsValid() || !AssetData.GetClass()->IsChildOf(UProceduralFoliage::StaticClass()))
+	if (!AssetData.IsValid() || !AssetData.GetClass()->IsChildOf(UProceduralFoliageSpawner::StaticClass()))
 	{
 		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoProceduralFoliage", "A valid ProceduralFoliage must be specified.");
 		return false;
@@ -39,18 +39,18 @@ bool UActorFactoryProceduralFoliage::CanCreateActorFrom(const FAssetData& AssetD
 void UActorFactoryProceduralFoliage::PostSpawnActor(UObject* Asset, AActor* NewActor)
 {
 	Super::PostSpawnActor(Asset, NewActor);
-	UProceduralFoliage* ProceduralFoliage = CastChecked<UProceduralFoliage>(Asset);
+	UProceduralFoliageSpawner* FoliageSpawner = CastChecked<UProceduralFoliageSpawner>(Asset);
 
-	UE_LOG(LogActorFactory, Log, TEXT("Actor Factory created %s"), *ProceduralFoliage->GetName());
+	UE_LOG(LogActorFactory, Log, TEXT("Actor Factory created %s"), *FoliageSpawner->GetName());
 
 	// Change properties
-	AProceduralFoliageVolume* ProceduralFoliageVolume = CastChecked<AProceduralFoliageVolume>(NewActor);
-	UProceduralFoliageComponent* ProceduralComponent = ProceduralFoliageVolume->ProceduralComponent;
+	AProceduralFoliageVolume* PFV = CastChecked<AProceduralFoliageVolume>(NewActor);
+	UProceduralFoliageComponent* ProceduralComponent = PFV->ProceduralComponent;
 	check(ProceduralComponent);
 
 	ProceduralComponent->UnregisterComponent();
 
-	ProceduralComponent->ProceduralFoliage = ProceduralFoliage;
+	ProceduralComponent->FoliageSpawner = FoliageSpawner;
 
 	// Init Component
 	ProceduralComponent->RegisterComponent();
@@ -60,21 +60,21 @@ UObject* UActorFactoryProceduralFoliage::GetAssetFromActorInstance(AActor* Insta
 {
 	check(Instance->IsA(NewActorClass));
 
-	AProceduralFoliageVolume* ProceduralFoliageVolume = CastChecked<AProceduralFoliageVolume>(Instance);
-	UProceduralFoliageComponent* ProceduralComponent = ProceduralFoliageVolume->ProceduralComponent;
+	AProceduralFoliageVolume* PFV = CastChecked<AProceduralFoliageVolume>(Instance);
+	UProceduralFoliageComponent* ProceduralComponent = PFV->ProceduralComponent;
 	check(ProceduralComponent);
 	
-	return ProceduralComponent->ProceduralFoliage;
+	return ProceduralComponent->FoliageSpawner;
 }
 
 void UActorFactoryProceduralFoliage::PostCreateBlueprint(UObject* Asset, AActor* CDO)
 {
 	if (Asset != nullptr && CDO != nullptr)
 	{
-		UProceduralFoliage* ProceduralFoliage = CastChecked<UProceduralFoliage>(Asset);
-		AProceduralFoliageVolume* PFA = CastChecked<AProceduralFoliageVolume>(CDO);
-		UProceduralFoliageComponent* ProceduralComponent = PFA->ProceduralComponent;
-		ProceduralComponent->ProceduralFoliage = ProceduralFoliage;
+		UProceduralFoliageSpawner* FoliageSpawner = CastChecked<UProceduralFoliageSpawner>(Asset);
+		AProceduralFoliageVolume* PFV = CastChecked<AProceduralFoliageVolume>(CDO);
+		UProceduralFoliageComponent* ProceduralComponent = PFV->ProceduralComponent;
+		ProceduralComponent->FoliageSpawner = FoliageSpawner;
 	}
 }
 #undef LOCTEXT_NAMESPACE

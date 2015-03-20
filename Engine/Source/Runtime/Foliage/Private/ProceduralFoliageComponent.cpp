@@ -5,7 +5,7 @@
 #include "ProceduralFoliageTile.h"
 #include "InstancedFoliage.h"
 #include "InstancedFoliageActor.h"
-#include "ProceduralFoliage.h"
+#include "ProceduralFoliageSpawner.h"
 
 #include "Async/Async.h"
 
@@ -14,10 +14,10 @@
 UProceduralFoliageComponent::UProceduralFoliageComponent(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
-	Overlap = 0.f;
+	TileOverlap = 0.f;
 	ProceduralGuid = FGuid::NewGuid();
 #if WITH_EDITORONLY_DATA
-	bHideDebugTiles = true;
+	bShowDebugTiles = false;
 #endif
 }
 
@@ -51,15 +51,15 @@ void UProceduralFoliageComponent::GetTilesLayout(int32& MinXIdx, int32& MinYIdx,
 {
 	if(UBrushComponent* Brush = SpawningVolume->GetBrushComponent())
 	{
-		const FVector MinPosition = Brush->Bounds.GetBox().Min + Overlap;
-		const FVector MaxPosition = Brush->Bounds.GetBox().Max - Overlap;
+		const FVector MinPosition = Brush->Bounds.GetBox().Min + TileOverlap;
+		const FVector MaxPosition = Brush->Bounds.GetBox().Max - TileOverlap;
 
 		//we want to find the bottom left tile that contains this MinPosition
-		MinXIdx = FMath::FloorToInt(MinPosition.X / ProceduralFoliage->TileSize);
-		MinYIdx = FMath::FloorToInt(MinPosition.Y / ProceduralFoliage->TileSize);
+		MinXIdx = FMath::FloorToInt(MinPosition.X / FoliageSpawner->TileSize);
+		MinYIdx = FMath::FloorToInt(MinPosition.Y / FoliageSpawner->TileSize);
 
-		const int32 MaxXIdx = FMath::FloorToInt(MaxPosition.X / ProceduralFoliage->TileSize);
-		const int32 MaxYIdx = FMath::FloorToInt(MaxPosition.Y / ProceduralFoliage->TileSize);
+		const int32 MaxXIdx = FMath::FloorToInt(MaxPosition.X / FoliageSpawner->TileSize);
+		const int32 MaxYIdx = FMath::FloorToInt(MaxPosition.Y / FoliageSpawner->TileSize);
 
 		NumX = (MaxXIdx - MinXIdx) + 1;
 		NumY = (MaxYIdx - MinYIdx) + 1;
@@ -71,7 +71,7 @@ void UProceduralFoliageComponent::GetTilesLayout(int32& MinXIdx, int32& MinYIdx,
 FVector UProceduralFoliageComponent::GetWorldPosition() const
 {
 	UBrushComponent* Brush = SpawningVolume->GetBrushComponent();
-	if (Brush == nullptr || ProceduralFoliage == nullptr)
+	if (Brush == nullptr || FoliageSpawner == nullptr)
 	{
 		return FVector::ZeroVector;
 	}
@@ -82,27 +82,27 @@ FVector UProceduralFoliageComponent::GetWorldPosition() const
 	float HalfHeight;
 	GetTilesLayout(X1, Y1, NumX, NumY, HalfHeight);
 
-	return FVector(X1 * ProceduralFoliage->TileSize, Y1 * ProceduralFoliage->TileSize, Brush->Bounds.Origin.Z);
+	return FVector(X1 * FoliageSpawner->TileSize, Y1 * FoliageSpawner->TileSize, Brush->Bounds.Origin.Z);
 }
 
 bool UProceduralFoliageComponent::SpawnTiles(TArray<FDesiredFoliageInstance>& OutInstances)
 {
 #if WITH_EDITOR
-	if (ProceduralFoliage && SpawningVolume && SpawningVolume->GetBrushComponent())
+	if (FoliageSpawner && SpawningVolume && SpawningVolume->GetBrushComponent())
 	{
 		/** Constants for laying out the overlapping tile grid*/
-		const float InnerTileSize = ProceduralFoliage->TileSize;
+		const float InnerTileSize = FoliageSpawner->TileSize;
 		const FVector2D InnerTileV(InnerTileSize, InnerTileSize);
 		const FVector2D InnerTileX(InnerTileSize, 0.f);
 		const FVector2D InnerTileY(0.f, InnerTileSize);
 
-		const float OuterTileSize = ProceduralFoliage->TileSize + Overlap;
+		const float OuterTileSize = FoliageSpawner->TileSize + TileOverlap;
 		const FVector2D OuterTileV(OuterTileSize, OuterTileSize);
 		const FVector2D OuterTileX(OuterTileSize, 0.f);
 		const FVector2D OuterTileY(0.f, OuterTileSize);
 
-		const FVector2D OverlapX(Overlap, 0.f);
-		const FVector2D OverlapY(0.f, Overlap);
+		const FVector2D OverlapX(TileOverlap, 0.f);
+		const FVector2D OverlapY(0.f, TileOverlap);
 
 		TArray<TFuture< TArray<FDesiredFoliageInstance>* >> Futures;
 		
@@ -117,24 +117,24 @@ bool UProceduralFoliageComponent::SpawnTiles(TArray<FDesiredFoliageInstance>& Ou
 		FThreadSafeCounter* LastCancelPtr = &LastCancel;
 
 		const FVector WorldPosition = GetWorldPosition();
-		ProceduralFoliage->SimulateIfNeeded();
+		FoliageSpawner->SimulateIfNeeded();
 
 		for (int32 X = 0; X < NumTilesX; ++X)
 		{
 			for (int32 Y = 0; Y < NumTilesY; ++Y)
 			{
 				//We have to get the tiles and create new one to build on main thread
-				const UProceduralFoliageTile* Tile = ProceduralFoliage->GetRandomTile(X + XOffset, Y + YOffset);
-				if (Tile == nullptr)	//simulation was cancelled or failed
+				const UProceduralFoliageTile* Tile = FoliageSpawner->GetRandomTile(X + XOffset, Y + YOffset);
+				if (Tile == nullptr)	//simulation was canceled or failed
 				{
 					return false;
 				}
 
-				const UProceduralFoliageTile* RightTile = (X + 1 < NumTilesX) ? ProceduralFoliage->GetRandomTile(X + XOffset + 1, Y + YOffset) : nullptr;
-				const UProceduralFoliageTile* TopTile = (Y + 1 < NumTilesY) ? ProceduralFoliage->GetRandomTile(X + XOffset, Y + YOffset+ 1) : nullptr;
-				const UProceduralFoliageTile* TopRightTile = (RightTile && TopTile) ? ProceduralFoliage->GetRandomTile(X + XOffset + 1, Y + YOffset + 1) : nullptr;
+				const UProceduralFoliageTile* RightTile = ( X + 1 < NumTilesX ) ? FoliageSpawner->GetRandomTile(X + XOffset + 1, Y + YOffset) : nullptr;
+				const UProceduralFoliageTile* TopTile = ( Y + 1 < NumTilesY ) ? FoliageSpawner->GetRandomTile(X + XOffset, Y + YOffset + 1) : nullptr;
+				const UProceduralFoliageTile* TopRightTile = ( RightTile && TopTile ) ? FoliageSpawner->GetRandomTile(X + XOffset + 1, Y + YOffset + 1) : nullptr;
 
-				UProceduralFoliageTile* JTile = ProceduralFoliage->CreateTempTile();
+				UProceduralFoliageTile* JTile = FoliageSpawner->CreateTempTile();
 
 				Futures.Add(Async<TArray<FDesiredFoliageInstance>*>(EAsyncExecution::ThreadPool, [=]()
 				{
@@ -147,32 +147,32 @@ bool UProceduralFoliageComponent::SpawnTiles(TArray<FDesiredFoliageInstance>& Ou
 					const FTransform TileTM(OrientedOffset + WorldPosition);
 
 					//copy the inner tile
-					const FBox2D InnerBox = GetTileRegion(X, Y, NumTilesX, NumTilesY, InnerTileSize, Overlap);
-					CopyTileInstances(Tile, JTile, InnerBox, FTransform::Identity, Overlap);
+					const FBox2D InnerBox = GetTileRegion(X, Y, NumTilesX, NumTilesY, InnerTileSize, TileOverlap);
+					CopyTileInstances(Tile, JTile, InnerBox, FTransform::Identity, TileOverlap);
 
 
 					if (RightTile)
 					{
 						//Add overlap to the right
-						const FBox2D RightBox(FVector2D(-Overlap, InnerBox.Min.Y), FVector2D(Overlap, InnerBox.Max.Y));
+						const FBox2D RightBox(FVector2D(-TileOverlap, InnerBox.Min.Y), FVector2D(TileOverlap, InnerBox.Max.Y));
 						const FTransform RightTM(FVector(InnerTileSize, 0.f, 0.f));
-						CopyTileInstances(RightTile, JTile, RightBox, RightTM, Overlap);
+						CopyTileInstances(RightTile, JTile, RightBox, RightTM, TileOverlap);
 					}
 
 					if (TopTile)
 					{
 						//Add overlap to the top
-						const FBox2D TopBox(FVector2D(InnerBox.Min.X, -Overlap), FVector2D(InnerBox.Max.X, Overlap));
+						const FBox2D TopBox(FVector2D(InnerBox.Min.X, -TileOverlap), FVector2D(InnerBox.Max.X, TileOverlap));
 						const FTransform TopTM(FVector(0.f, InnerTileSize, 0.f));
-						CopyTileInstances(TopTile, JTile, TopBox, TopTM, Overlap);
+						CopyTileInstances(TopTile, JTile, TopBox, TopTM, TileOverlap);
 					}
 
 					if (TopRightTile)
 					{
 						//Add overlap to the top right
-						const FBox2D TopRightBox(FVector2D(-Overlap, -Overlap), FVector2D(Overlap, Overlap));
+						const FBox2D TopRightBox(FVector2D(-TileOverlap, -TileOverlap), FVector2D(TileOverlap, TileOverlap));
 						const FTransform TopRightTM(FVector(InnerTileSize, InnerTileSize, 0.f));
-						CopyTileInstances(TopRightTile, JTile, TopRightBox, TopRightTM, Overlap);
+						CopyTileInstances(TopRightTile, JTile, TopRightBox, TopRightTM, TileOverlap);
 					}
 
 					TArray<FDesiredFoliageInstance>* DesiredInstances = new TArray<FDesiredFoliageInstance>();
