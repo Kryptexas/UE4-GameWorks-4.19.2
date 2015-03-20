@@ -48,7 +48,7 @@ FTileMapEditorViewportClient::FTileMapEditorViewportClient(TWeakPtr<FTileMapEdit
 		RenderTileMapComponent = NewObject<UPaperTileMapComponent>();
 		UPaperTileMap* TileMap = GetTileMapBeingEdited();
 		RenderTileMapComponent->TileMap = TileMap;
-		GSelectedAnnotation.Set(RenderTileMapComponent);
+		RenderTileMapComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateLambda([](const UPrimitiveComponent*) { return true; });
 
 		PreviewScene->AddComponent(RenderTileMapComponent, FTransform::Identity);
 	}
