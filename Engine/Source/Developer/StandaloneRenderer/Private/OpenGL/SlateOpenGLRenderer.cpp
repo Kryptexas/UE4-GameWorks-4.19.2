@@ -157,6 +157,8 @@ void FSlateOpenGLRenderer::OnWindowDestroyed( const TSharedRef<SWindow>& InWindo
 		Viewport->Destroy();
 	}
 	WindowToViewportMap.Remove( &InWindow.Get() );
+
+	SharedContext.MakeCurrent();
 }
 
 void FSlateOpenGLRenderer::CreateViewport( const TSharedRef<SWindow> InWindow )
