@@ -781,6 +781,14 @@ namespace UnrealBuildTool
             return new List<UnrealTargetConfiguration>{UnrealTargetConfiguration.Development};
         }
         /// <summary>
+        /// Return a list of configs which are precompiled for the given target platform
+        /// </summary>
+        /// <returns>a list of configs for a target platforms for the monolithic</returns>        
+        public virtual List<UnrealTargetConfiguration> GUBP_GetConfigsForPrecompiledBuilds_MonolithicOnly(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform Platform)
+        {
+            return new List<UnrealTargetConfiguration>();
+        }
+        /// <summary>
         /// Return a list of configs for target platforms for formal builds
         /// </summary>
         /// <returns>a list of configs for a target platforms for the monolithic</returns>        

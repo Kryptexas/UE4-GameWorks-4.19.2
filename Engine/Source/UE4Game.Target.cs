@@ -122,6 +122,27 @@ public class UE4GameTarget : TargetRules
     {
         return new List<UnrealTargetConfiguration> { UnrealTargetConfiguration.Development, UnrealTargetConfiguration.Shipping, UnrealTargetConfiguration.Test };
     }
+    public override List<UnrealTargetConfiguration> GUBP_GetConfigsForPrecompiledBuilds_MonolithicOnly(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform Platform)
+    {
+		List<UnrealTargetConfiguration> Platforms = new List<UnrealTargetConfiguration>();
+		if(HostPlatform == UnrealTargetPlatform.Mac)
+		{
+			if(Platform == UnrealTargetPlatform.Mac || Platform == UnrealTargetPlatform.IOS)
+			{
+				Platforms.Add(UnrealTargetConfiguration.Development);
+				Platforms.Add(UnrealTargetConfiguration.Shipping);
+			}
+		}
+		else if(HostPlatform == UnrealTargetPlatform.Win64)
+		{
+			if(Platform == UnrealTargetPlatform.Win32 || Platform == UnrealTargetPlatform.Win64 || Platform == UnrealTargetPlatform.Android || Platform == UnrealTargetPlatform.HTML5)
+			{
+				Platforms.Add(UnrealTargetConfiguration.Development);
+				Platforms.Add(UnrealTargetConfiguration.Shipping);
+			}
+		}
+		return Platforms;
+    }
 	public override bool GUBP_BuildWindowsXPMonolithics()
 	{
 		return true;
