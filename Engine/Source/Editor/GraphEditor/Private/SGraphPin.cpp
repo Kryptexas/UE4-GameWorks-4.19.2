@@ -72,11 +72,11 @@ struct FKnotNetCollector
 
 
 SGraphPin::SGraphPin()
-	: bShowLabel(true)
+	: GraphPinObj(nullptr)
+	, bShowLabel(true)
 	, bIsMovingLinks(false)
 	, PinColorModifier(FLinearColor::White)
 	, CachedNodeOffset(FVector2D::ZeroVector)
-	, GraphPinObj(nullptr)
 {
 	IsEditable = true;
 
