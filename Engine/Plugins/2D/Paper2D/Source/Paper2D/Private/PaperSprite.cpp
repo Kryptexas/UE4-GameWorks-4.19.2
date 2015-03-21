@@ -1647,7 +1647,7 @@ FVector2D UPaperSprite::ConvertWorldSpaceToTextureSpace(const FVector& WorldPoin
 	return ConvertPivotSpaceToTextureSpace(FVector2D(XValue, YValue));
 }
 
-FVector2D UPaperSprite::ConvertWorldSpaceDeltaToTextureSpace(const FVector& WorldSpaceDelta) const
+FVector2D UPaperSprite::ConvertWorldSpaceDeltaToTextureSpace(const FVector& WorldSpaceDelta, bool bIgnoreRotation) const
 {
 	const FVector ProjectionX = WorldSpaceDelta.ProjectOnTo(PaperAxisX);
 	const FVector ProjectionY = WorldSpaceDelta.ProjectOnTo(PaperAxisY);
@@ -1656,7 +1656,7 @@ FVector2D UPaperSprite::ConvertWorldSpaceDeltaToTextureSpace(const FVector& Worl
 	float YValue = FMath::Sign(ProjectionY | PaperAxisY) * ProjectionY.Size() * PixelsPerUnrealUnit;
 
 	// Undo pivot space rotation, ignoring pivot position
-	if (bRotatedInSourceImage)
+	if (bRotatedInSourceImage && !bIgnoreRotation)
 	{
 		Swap(XValue, YValue);
 		XValue = -XValue;

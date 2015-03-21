@@ -183,7 +183,7 @@ public:
 	FVector ConvertTextureSpaceToPivotSpace(FVector Input) const;
 	FVector ConvertPivotSpaceToTextureSpace(FVector Input) const;
 	FVector2D ConvertWorldSpaceToTextureSpace(const FVector& WorldPoint) const;
-	FVector2D ConvertWorldSpaceDeltaToTextureSpace(const FVector& WorldDelta) const;
+	FVector2D ConvertWorldSpaceDeltaToTextureSpace(const FVector& WorldDelta, bool bIgnoreRotation = false) const;
 
 	// World space WRT the sprite editor *only*
 	FVector ConvertTextureSpaceToWorldSpace(const FVector2D& SourcePoint) const;

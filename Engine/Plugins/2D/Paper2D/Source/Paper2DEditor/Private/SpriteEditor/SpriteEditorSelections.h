@@ -60,8 +60,9 @@ public:
 		{
 			UTexture2D* SourceTexture = Sprite->GetSourceTexture();
 			const FVector2D SourceDims = (SourceTexture != nullptr) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
-            int XAxis = 0; // -1 = min, 0 = none, 1 = max
-            int YAxis = 0; // ditto
+
+			int32 XAxis = 0; // -1 = min, 0 = none, 1 = max
+            int32 YAxis = 0; // ditto
             
 			switch (VertexIndex)
 			{
@@ -97,11 +98,11 @@ public:
 				break;
 			}
 
-			const FVector2D TextureSpaceDelta = Sprite->ConvertWorldSpaceDeltaToTextureSpace(PaperAxisX * WorldSpaceDelta.X + PaperAxisY * WorldSpaceDelta.Y);
+			const FVector2D TextureSpaceDelta = Sprite->ConvertWorldSpaceDeltaToTextureSpace(PaperAxisX * WorldSpaceDelta.X + PaperAxisY * WorldSpaceDelta.Y, /*bIgnoreRotation=*/ true);
 
             if (XAxis == -1)
             {
-                float AllowedDelta = FMath::Clamp(TextureSpaceDelta.X, -Sprite->SourceUV.X, Sprite->SourceDimension.X - 1);
+                const float AllowedDelta = FMath::Clamp(TextureSpaceDelta.X, -Sprite->SourceUV.X, Sprite->SourceDimension.X - 1);
                 Sprite->SourceUV.X += AllowedDelta;
                 Sprite->SourceDimension.X -= AllowedDelta;
             }
@@ -112,7 +113,7 @@ public:
             
             if (YAxis == -1)
             {
-				float AllowedDelta = FMath::Clamp(TextureSpaceDelta.Y, -Sprite->SourceUV.Y, Sprite->SourceDimension.Y - 1);
+				const float AllowedDelta = FMath::Clamp(TextureSpaceDelta.Y, -Sprite->SourceUV.Y, Sprite->SourceDimension.Y - 1);
 				Sprite->SourceUV.Y += AllowedDelta;
 				Sprite->SourceDimension.Y -= AllowedDelta;
             }
