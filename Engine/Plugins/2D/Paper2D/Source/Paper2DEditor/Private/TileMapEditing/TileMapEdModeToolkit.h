@@ -32,12 +32,14 @@ protected:
 
 	void BindCommands();
 
-	EVisibility GetTileSetSelectorVisibility() const;
-
 	void OnSelectTool(ETileMapEditorTool::Type NewTool);
 	bool IsToolSelected(ETileMapEditorTool::Type QueryTool) const;
 
 	TSharedRef<SWidget> BuildToolBar() const;
+
+	EVisibility GetTileSetPaletteCornerTextVisibility() const;
+	FReply ClickedOnTileSetPaletteCornerText();
+
 private:
 	class FEdModeTileMap* TileMapEditor;
 
@@ -48,4 +50,7 @@ private:
 
 	// The tile set selector palette
 	TSharedPtr<class STileSetSelectorViewport> TileSetPalette;
+
+	// The tile set asset reference widget
+	TSharedPtr<class SContentReference> TileSetAssetReferenceWidget;
 };

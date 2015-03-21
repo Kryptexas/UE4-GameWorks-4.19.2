@@ -38,7 +38,7 @@ FText FTileMapEdModeToolkit::GetBaseToolkitName() const
 
 FText FTileMapEdModeToolkit::GetToolkitName() const
 {
-	if ( CurrentTileSetPtr.IsValid() )
+	if (CurrentTileSetPtr.IsValid())
 	{
 		const bool bDirtyState = CurrentTileSetPtr->GetOutermost()->IsDirty();
 
@@ -77,6 +77,39 @@ void FTileMapEdModeToolkit::Init(const TSharedPtr<IToolkitHost>& InitToolkitHost
 
 	TileSetPalette = SNew(STileSetSelectorViewport, CurrentTileSetPtr.Get(), TileMapEditor);
 
+	TSharedRef<SWidget> TileSetPaletteWidget = SNew(SOverlay)
+		// The palette widget
+		+SOverlay::Slot()
+		[
+			TileSetPalette.ToSharedRef()
+		]
+		// The no tile set selected warning text/button
+		+SOverlay::Slot()
+		.Padding(8.0f)
+		.VAlign(VAlign_Bottom)
+		.HAlign(HAlign_Right)
+		[
+			SNew(SButton)
+			.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+			.Visibility(this, &FTileMapEdModeToolkit::GetTileSetPaletteCornerTextVisibility)
+			.OnClicked(this, &FTileMapEdModeToolkit::ClickedOnTileSetPaletteCornerText)
+			.Content()
+			[
+				SNew(STextBlock)
+				.TextStyle(FPaperStyle::Get(), "TileMapEditor.TileSetPalette.NothingSelectedText")
+				.Text(LOCTEXT("NoTileSetSelected", "Pick a tile set"))
+				.ToolTipText(LOCTEXT("NoTileSetSelectedTooltip", "A tile set must be selected before painting the tile map"))
+			]
+		];
+
+	TileSetAssetReferenceWidget = SNew(SContentReference)
+		.WidthOverride(ContentRefWidth)
+		.AssetReference(this, &FTileMapEdModeToolkit::GetCurrentTileSet)
+		.OnSetReference(this, &FTileMapEdModeToolkit::OnChangeTileSet)
+		.AllowedClass(UPaperTileSet::StaticClass())
+		.AllowSelectingNewAsset(true)
+		.AllowClearingReference(false);
+
 	// Create the contents of the editor mode toolkit
 	MyWidget = 
 		SNew(SBorder)
@@ -97,7 +130,6 @@ void FTileMapEdModeToolkit::Init(const TSharedPtr<IToolkitHost>& InitToolkitHost
 			.VAlign(VAlign_Fill)
 			[
 				SNew(SVerticalBox)
-				.Visibility(this, &FTileMapEdModeToolkit::GetTileSetSelectorVisibility)
 
 				+SVerticalBox::Slot()
 				.AutoHeight()
@@ -116,13 +148,7 @@ void FTileMapEdModeToolkit::Init(const TSharedPtr<IToolkitHost>& InitToolkitHost
 					.FillWidth(1.0f)
 					.HAlign(HAlign_Right)
 					[
-						SNew(SContentReference)
-						.WidthOverride(ContentRefWidth)
-						.AssetReference(this, &FTileMapEdModeToolkit::GetCurrentTileSet)
-						.OnSetReference(this, &FTileMapEdModeToolkit::OnChangeTileSet)
-						.AllowedClass(UPaperTileSet::StaticClass())
-						.AllowSelectingNewAsset(true)
-						.AllowClearingReference(false)
+						TileSetAssetReferenceWidget.ToSharedRef()
 					]
 				]
 
@@ -135,7 +161,7 @@ void FTileMapEdModeToolkit::Init(const TSharedPtr<IToolkitHost>& InitToolkitHost
 					+SHorizontalBox::Slot()
 					.HAlign(HAlign_Fill)
 					[
-						TileSetPalette.ToSharedRef()
+						TileSetPaletteWidget
 					]
 				]
 			]
@@ -223,11 +249,6 @@ bool FTileMapEdModeToolkit::IsToolSelected(ETileMapEditorTool::Type QueryTool) c
 	return (TileMapEditor->GetActiveTool() == QueryTool);
 }
 
-EVisibility FTileMapEdModeToolkit::GetTileSetSelectorVisibility() const
-{
-	return EVisibility::Visible;
-}
-
 TSharedRef<SWidget> FTileMapEdModeToolkit::BuildToolBar() const
 {
 	const FTileMapEditorCommands& Commands = FTileMapEditorCommands::Get();
@@ -279,6 +300,18 @@ TSharedRef<SWidget> FTileMapEdModeToolkit::BuildToolBar() const
 				ToolsToolbar.MakeWidget()
 			]
 		];
+}
+
+EVisibility FTileMapEdModeToolkit::GetTileSetPaletteCornerTextVisibility() const
+{
+	return (GetCurrentTileSet() != nullptr) ? EVisibility::Collapsed : EVisibility::Visible;
+}
+
+FReply FTileMapEdModeToolkit::ClickedOnTileSetPaletteCornerText()
+{
+	TileSetAssetReferenceWidget->OpenAssetPickerMenu();
+
+	return FReply::Handled();
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -7,6 +7,7 @@
 #define IMAGE_PLUGIN_BRUSH( RelativePath, ... ) FSlateImageBrush( FPaperStyle::InContent( RelativePath, ".png" ), __VA_ARGS__ )
 #define IMAGE_BRUSH(RelativePath, ...) FSlateImageBrush(StyleSet->RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
 #define BOX_BRUSH(RelativePath, ...) FSlateBoxBrush(StyleSet->RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)
+#define TTF_FONT( RelativePath, ... ) FSlateFontInfo(StyleSet->RootToContentDir(RelativePath, TEXT(".ttf")), __VA_ARGS__)
 
 FString FPaperStyle::InContent(const FString& RelativePath, const ANSICHAR* Extension)
 {
@@ -81,6 +82,13 @@ void FPaperStyle::Initialize()
 			);
 
 		StyleSet->Set("TileMapEditor.LayerBrowser.SelectionColor", LayerSelectionColor);
+
+		StyleSet->Set("TileMapEditor.TileSetPalette.NothingSelectedText", FTextBlockStyle(FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("NormalText"))
+			.SetFont(TTF_FONT("Fonts/Roboto-BoldCondensed", 18))
+			.SetColorAndOpacity(FLinearColor(0.8, 0.8f, 0.0f, 0.8f))
+			.SetShadowOffset(FVector2D(1.0f, 1.0f))
+			.SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.9f))
+			);
 	}
 
 	// Sprite editor
