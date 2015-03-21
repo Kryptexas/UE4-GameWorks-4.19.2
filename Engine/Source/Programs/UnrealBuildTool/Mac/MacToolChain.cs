@@ -1447,6 +1447,11 @@ namespace UnrealBuildTool
 		{
 			var OutputFiles = base.PostBuild(Executable, BinaryLinkEnvironment);
 
+			if (BinaryLinkEnvironment.Config.bIsBuildingLibrary)
+			{
+				return OutputFiles;
+			}
+
 			foreach (UEBuildBundleResource Resource in BinaryLinkEnvironment.Config.AdditionalBundleResources)
 			{
 				OutputFiles.Add(CopyBundleResource(Resource, Executable));
