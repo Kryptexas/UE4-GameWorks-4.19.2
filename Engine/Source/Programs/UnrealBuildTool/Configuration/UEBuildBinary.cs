@@ -227,7 +227,7 @@ namespace UnrealBuildTool
 		/// a module that depends on a module in this binary. */
 		/// </summary>
 		/// <param name="DependentLinkEnvironment">The link environment of the dependency</param>
-		public virtual void SetupDependentLinkEnvironment(ref LinkEnvironment DependentLinkEnvironment) {}
+		public virtual void SetupDependentLinkEnvironment(LinkEnvironment DependentLinkEnvironment) {}
 
 		/// <summary>
 		/// Called to allow the binary to to determine if it matches the Only module "short module name".
@@ -408,7 +408,7 @@ namespace UnrealBuildTool
 					ReferencedModules[ ModuleName ] = Module;
 
 					bool bOnlyDirectDependencies = false;
-					Module.GetAllDependencyModules(ref ReferencedModules, ref OrderedModules, bIncludeDynamicallyLoaded, bForceCircular, bOnlyDirectDependencies);
+					Module.GetAllDependencyModules(ReferencedModules, OrderedModules, bIncludeDynamicallyLoaded, bForceCircular, bOnlyDirectDependencies);
 
 					OrderedModules.Add( Module );
 				}
@@ -431,7 +431,7 @@ namespace UnrealBuildTool
 				foreach (var ModuleName in ModuleNames)
 				{
 					var Module = Target.FindOrCreateModuleByName(ModuleName);
-					Module.RecursivelyProcessUnboundModules(Target, ref Binaries, ExecutableBinary);
+					Module.RecursivelyProcessUnboundModules(Target, Binaries, ExecutableBinary);
 				}
 			}
 			else
@@ -524,7 +524,7 @@ namespace UnrealBuildTool
 		/// a module that depends on a module in this binary.
 		/// </summary>
 		/// <param name="DependentLinkEnvironment">The link environment of the dependency</param>
-		public override void SetupDependentLinkEnvironment(ref LinkEnvironment DependentLinkEnvironment)
+		public override void SetupDependentLinkEnvironment(LinkEnvironment DependentLinkEnvironment)
 		{
 			foreach (string OutputFilePath in Config.OutputFilePaths)
 			{
@@ -639,7 +639,7 @@ namespace UnrealBuildTool
 				if (!BuildConfiguration.bRunUnrealCodeAnalyzer)
 				{
 					// Allow the module to modify the link environment for the binary.
-					Module.SetupPrivateLinkEnvironment(ref BinaryLinkEnvironment, ref BinaryDependencies, ref LinkEnvironmentVisitedModules);
+					Module.SetupPrivateLinkEnvironment(BinaryLinkEnvironment, BinaryDependencies, LinkEnvironmentVisitedModules);
 				}
 			}
 
@@ -653,7 +653,7 @@ namespace UnrealBuildTool
 			// Allow the binary dependencies to modify the link environment.
 			foreach (var BinaryDependency in BinaryDependencies)
 			{
-				BinaryDependency.SetupDependentLinkEnvironment(ref BinaryLinkEnvironment);
+				BinaryDependency.SetupDependentLinkEnvironment(BinaryLinkEnvironment);
 			}
 
 			// Set the link output file.
