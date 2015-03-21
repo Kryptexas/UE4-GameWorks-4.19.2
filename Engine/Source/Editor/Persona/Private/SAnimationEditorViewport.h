@@ -452,7 +452,7 @@ private:
 	void UpdateMeshRootTranslation(const FText& NewText, ETextCommit::Type CommitInfo, int32 Dimension);
 
 	EVisibility GetViewportCornerImageVisibility() const;
-	const FSlateBrush * GetViewportCornerImage() const;
+	const FSlateBrush* GetViewportCornerImage() const;
 
 	EVisibility GetViewportCornerTextVisibility() const;
 	FText GetViewportCornerText() const;
