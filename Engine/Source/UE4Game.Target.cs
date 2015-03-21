@@ -56,6 +56,7 @@ public class UE4GameTarget : TargetRules
 	{
 		// Add all the precompiled modules for this target
 		ModuleNames.Add("Launch");
+		ModuleNames.Add("InputDevice");
 		ModuleNames.Add("GameMenuBuilder");
 		if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
 		{
