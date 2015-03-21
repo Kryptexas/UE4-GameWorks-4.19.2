@@ -529,7 +529,10 @@ namespace UnrealBuildTool
         public override void AddFilesToManifest(BuildManifest Manifest, UEBuildBinary Binary)
         {
             // we need to include the generated .mem file.  
-            Manifest.AddBuildProduct(Binary.Config.OutputFilePath + ".mem");
+			if(Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
+			{
+	            Manifest.AddBuildProduct(Binary.Config.OutputFilePath + ".mem");
+			}
         }
 
 		public override UnrealTargetPlatform GetPlatform()
