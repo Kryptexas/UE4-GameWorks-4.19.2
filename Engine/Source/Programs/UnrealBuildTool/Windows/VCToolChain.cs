@@ -1672,7 +1672,7 @@ namespace UnrealBuildTool
         public override void AddFilesToManifest(BuildManifest Manifest, UEBuildBinary Binary)
         {
             // ok, this is pretty awful, we want the import libraries that go with the editor, only on the PC
-            if (UnrealBuildTool.BuildingRocket() &&
+            if (Binary.Target.bPrecompileModules &&
                 Path.GetFileNameWithoutExtension(Binary.Config.OutputFilePath).StartsWith("UE4Editor-", StringComparison.InvariantCultureIgnoreCase) &&
                 Path.GetExtension(Binary.Config.OutputFilePath).EndsWith("dll", StringComparison.InvariantCultureIgnoreCase) &&
                 Binary.Config.Type == UEBuildBinaryType.DynamicLinkLibrary)

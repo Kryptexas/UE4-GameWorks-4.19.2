@@ -222,7 +222,7 @@ namespace UnrealBuildTool
 			bool bIsEditorRecompile = false;
 
 			// Settings for creating/using static libraries for the engine
-			bool bPrecompileModules = UnrealBuildTool.BuildingRocket();
+			bool bPrecompileModules = false;
 			bool bUsePrecompiledModules = UnrealBuildTool.RunningRocket();
 
 			// Combine the two arrays of arguments
@@ -2196,17 +2196,17 @@ namespace UnrealBuildTool
 
 			// Get the output path. Don't prefix the app name for Rocket
 			string[] OutputFilePaths;
-			if ((UnrealBuildTool.BuildingRocket() || UnrealBuildTool.RunningRocket()) && bCompileMonolithic)
+			if (UnrealBuildTool.RunningRocket() && bCompileMonolithic)
 			{
-				OutputFilePaths = MakeBinaryPaths(Module.Name, Module.Name, BinaryType, TargetType, Plugin, AppName);
-                if (UnrealBuildTool.BuildingRocket())
-                {
-                    SpecialRocketLibFilesThatAreBuildProducts.AddRange(OutputFilePaths);
-                }
+				OutputFilePaths = MakeBinaryPaths(Module.Name, "UE4Game-" + Module.Name, BinaryType, TargetType, Plugin, AppName);
 			}
 			else
 			{
 				OutputFilePaths = MakeBinaryPaths(Module.Name, GetAppName() + "-" + Module.Name, BinaryType, TargetType, Plugin, AppName);
+				if (bPrecompileModules)
+				{
+					SpecialRocketLibFilesThatAreBuildProducts.AddRange(OutputFilePaths);
+				}
 			}
 
 			// Try to determine if we have the rules file
@@ -2589,12 +2589,6 @@ namespace UnrealBuildTool
 				{
 					ValidPlugins.Add(Plugin);
 				}
-			}
-
-			// For Rocket builds, remove plugin that's designed for a NDA console
-			if(UnrealBuildTool.BuildingRocket())
-			{
-				ValidPlugins.RemoveAll(x => x.Directory.IndexOf("\\PS4\\", StringComparison.InvariantCultureIgnoreCase) != -1 || x.Directory.IndexOf("\\XboxOne\\", StringComparison.InvariantCultureIgnoreCase) != -1);
 			}
 
 			// Build a list of enabled plugins

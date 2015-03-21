@@ -57,9 +57,6 @@ namespace UnrealBuildTool
         /** Are we running for Rocket */
         static public bool bRunningRocket = false;
 
-        /** Are we building Rocket */
-        static bool bBuildingRocket = false;
-
         /** The project file */
         static string UProjectFile = "";
 
@@ -142,15 +139,6 @@ namespace UnrealBuildTool
         static public bool RunningRocket()
         {
             return bRunningRocket;
-        }
-
-        /// <summary>
-        /// Checks to see if we're building a "Rocket" target
-        /// </summary>
-        /// <returns>True if building a "Rocket" target, such as RocketEditor (not running with "-rocket" though)</returns>
-        static public bool BuildingRocket()
-        {
-            return bBuildingRocket;
         }
 
 		/// <summary>
@@ -555,10 +543,6 @@ namespace UnrealBuildTool
             {
                 UProjectFile = InArg;
                 bSetupProject = true;
-            }
-            else if (LowercaseArg == "-buildrocket")
-            {
-                bBuildingRocket = true;
             }
             else
             {

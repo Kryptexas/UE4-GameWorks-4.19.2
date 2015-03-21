@@ -117,8 +117,7 @@ namespace UnrealBuildTool
 				PrivateHeaders           = Info.PrivateUObjectHeaders      .Select((Header) => Header.AbsolutePath).ToList(),
 				PCH                      = Info.PCH,
 				GeneratedCPPFilenameBase = Info.GeneratedCPPFilenameBase,
-				//@todo.Rocket: This assumes Engine/Source is a 'safe' folder name to check for
-				SaveExportedHeaders = !UnrealBuildTool.RunningRocket() || !Info.ModuleDirectory.Contains("Engine\\Source\\")
+				SaveExportedHeaders      = true, // Rocket just regenerates all headers to the project directory now
 
 			}).ToList();
 		}

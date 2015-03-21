@@ -148,7 +148,7 @@ public class GUBP : BuildCommand
 		string Args = "";
         if (bBuildRocket)
         {
-            Args = " -NoSimplygon " + (bUseRocketInsteadOfBuildRocket ? "-Rocket" : "-BuildRocket");
+            Args = (bUseRocketInsteadOfBuildRocket ? "-Rocket" : "-BuildRocket -PrecompileModules");
         }
         return Args;
     }

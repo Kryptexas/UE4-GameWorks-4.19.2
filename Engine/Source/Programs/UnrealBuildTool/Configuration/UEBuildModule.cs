@@ -2071,12 +2071,9 @@ namespace UnrealBuildTool
 		public static string GetGeneratedCodeDirectoryForModule(UEBuildTarget Target, string ModuleDirectory, string ModuleName)
 		{
 			string BaseDirectory = null;
-			if ((Target.ShouldCompileMonolithic() || Target.TargetType == TargetRules.TargetType.Program) && 
-				(!UnrealBuildTool.BuildingRocket()) &&
-				(!UnrealBuildTool.RunningRocket() || Utils.IsFileUnderDirectory(ModuleDirectory, UnrealBuildTool.GetUProjectPath())))
+			if (Target.ShouldCompileMonolithic() || Target.TargetType == TargetRules.TargetType.Program || UnrealBuildTool.RunningRocket())
 			{
-				// Monolithic configurations and programs have their intermediate headers stored under their
-				// respective project folders with the exception of rocket which always stores engine modules in the engine folder.
+				// Monolithic configurations, programs and Rocket games have their intermediate headers stored under their respective project folders.
 				string RootDirectory = UnrealBuildTool.GetUProjectPath();
 				if (String.IsNullOrEmpty(RootDirectory))
 				{
