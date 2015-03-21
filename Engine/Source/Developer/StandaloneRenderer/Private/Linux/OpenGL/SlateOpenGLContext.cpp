@@ -116,7 +116,6 @@ void FSlateOpenGLContext::MakeCurrent()
 		if(SDL_GL_MakeCurrent( WindowHandle, Context ) == 0)
 		{
 			glBindVertexArray(VertexArrayObject);
-			glGetError(); // SDL leaves glGetError in a dirty state even when successful?
 		}
 	}
 }
