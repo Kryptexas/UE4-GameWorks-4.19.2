@@ -89,6 +89,8 @@ protected:
 	void SynchronizePreviewWithTileMap(UPaperTileMap* NewTileMap);
 
 	void RotateTilesInSelection(bool bIsClockwise);
+
+	bool IsToolReadyToBeUsed() const;
 public:
 	UPaperTileMapComponent* FindSelectedComponent() const;
 
