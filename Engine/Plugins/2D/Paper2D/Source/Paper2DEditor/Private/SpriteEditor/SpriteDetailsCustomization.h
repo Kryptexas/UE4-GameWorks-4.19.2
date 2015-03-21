@@ -23,6 +23,8 @@ protected:
 	EVisibility GetCustomPivotVisibility(TSharedPtr<IPropertyHandle> Property) const;
 	EVisibility Get2DPhysicsNotEnabledWarningVisibility(TSharedPtr<IPropertyHandle> Property) const;
 
+	EVisibility PolygonModeMatches(TSharedPtr<IPropertyHandle> Property, ESpritePolygonMode::Type DesiredMode) const;
+
 	static EVisibility GetAtlasGroupVisibility();
 
 	static FDetailWidgetRow& GenerateWarningRow(IDetailCategoryBuilder& WarningCategory, bool bExperimental, const FText& WarningText, const FText& Tooltip, const FString& ExcerptLink, const FString& ExcerptName);

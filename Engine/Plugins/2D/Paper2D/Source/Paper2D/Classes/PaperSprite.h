@@ -99,7 +99,7 @@ protected:
 	UMaterialInterface* DefaultMaterial;
 
 	// The alternate material to use on a sprite instance if not overridden (this is only used for Diced render geometry, and will be the opaque material in that case, slot 1)
-	UPROPERTY(Category=Sprite, EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category=Rendering, EditAnywhere, BlueprintReadOnly)
 	UMaterialInterface* AlternateMaterial;
 
 	// List of sockets on this sprite

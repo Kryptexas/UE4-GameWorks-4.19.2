@@ -97,8 +97,15 @@ void FSpriteDetailsCustomization::BuildRenderingSection(IDetailCategoryBuilder& 
 {
 	// Add the rendering geometry mode into the parent container (renamed)
 	const FString RenderGeometryTypePropertyPath = FString::Printf(TEXT("%s.%s"), GET_MEMBER_NAME_STRING_CHECKED(UPaperSprite, RenderGeometry), GET_MEMBER_NAME_STRING_CHECKED(FSpritePolygonCollection, GeometryType));
-	RenderingCategory.AddProperty(DetailLayout.GetProperty(*RenderGeometryTypePropertyPath))
+	TSharedPtr<IPropertyHandle> RenderGeometryTypeProperty = DetailLayout.GetProperty(*RenderGeometryTypePropertyPath);
+	RenderingCategory.AddProperty(RenderGeometryTypeProperty)
 		.DisplayName(LOCTEXT("RenderGeometryType", "Render Geometry Type"));
+
+	// Show the alternate material, but only when the mode is Diced
+	TAttribute<EVisibility> ShowWhenModeIsDiced = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FSpriteDetailsCustomization::PolygonModeMatches, RenderGeometryTypeProperty, ESpritePolygonMode::Diced));
+	TSharedPtr<IPropertyHandle> AlternateMaterialProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UPaperSprite, AlternateMaterial));
+	RenderingCategory.AddProperty(AlternateMaterialProperty)
+		.Visibility(ShowWhenModeIsDiced);
 
 	// Show the rendering geometry settings
 	TSharedRef<IPropertyHandle> RenderGeometry = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UPaperSprite, RenderGeometry));
@@ -366,6 +373,23 @@ EVisibility FSpriteDetailsCustomization::Get2DPhysicsNotEnabledWarningVisibility
 {
 	// Hide the warning if 2D queries are enabled, or if the collision mode is not 2D physics
 	return GetDefault<UPhysicsSettings>()->bEnable2DPhysics ? EVisibility::Collapsed : PhysicsModeMatches(Property, ESpriteCollisionMode::Use2DPhysics);
+}
+
+EVisibility FSpriteDetailsCustomization::PolygonModeMatches(TSharedPtr<IPropertyHandle> Property, ESpritePolygonMode::Type DesiredMode) const
+{
+	if (Property.IsValid())
+	{
+		uint8 ValueAsByte;
+		FPropertyAccess::Result Result = Property->GetValue(/*out*/ ValueAsByte);
+
+		if (Result == FPropertyAccess::Success)
+		{
+			return (((ESpritePolygonMode::Type)ValueAsByte) == DesiredMode) ? EVisibility::Visible : EVisibility::Collapsed;
+		}
+	}
+
+	// If there are multiple values, show all properties
+	return EVisibility::Visible;
 }
 
 #undef LOCTEXT_NAMESPACE
