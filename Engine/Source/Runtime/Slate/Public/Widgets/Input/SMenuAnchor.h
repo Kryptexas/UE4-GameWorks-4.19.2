@@ -67,7 +67,7 @@ public:
 	void SetContent(TSharedRef<SWidget> InContent);
 
 	/** See MenuContent attribute */
-	void SetMenuContent(TSharedRef<SWidget> InMenuContent);
+	virtual void SetMenuContent(TSharedRef<SWidget> InMenuContent);
 	
 	/**
 	 * Open or close the popup

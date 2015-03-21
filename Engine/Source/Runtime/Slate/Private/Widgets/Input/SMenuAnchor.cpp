@@ -309,9 +309,12 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 	{
 		if ( InIsOpen )
 		{
-			TSharedPtr< SWidget > MenuContentPtr = OnGetMenuContent.IsBound() ? OnGetMenuContent.Execute() : MenuContent;
+			if ( OnGetMenuContent.IsBound() )
+			{
+				SetMenuContent(OnGetMenuContent.Execute());
+			}
 
-			if ( MenuContentPtr.IsValid() )
+			if ( MenuContent.IsValid() )
 			{
 				// OPEN POPUP
 				if ( OnMenuOpenChanged.IsBound() )
@@ -332,7 +335,7 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 					SlatePrepass(LayoutScaleMultiplier);
 
 					// Figure out how big the content widget is so we can set the window's initial size properly
-					TSharedRef< SWidget > MenuContentRef = MenuContentPtr.ToSharedRef();
+					TSharedRef< SWidget > MenuContentRef = MenuContent.ToSharedRef();
 					MenuContentRef->SlatePrepass(LayoutScaleMultiplier);
 
 					// Combo-boxes never size down smaller than the widget that spawned them, but all
