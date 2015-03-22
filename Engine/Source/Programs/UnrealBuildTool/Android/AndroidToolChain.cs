@@ -917,7 +917,7 @@ namespace UnrealBuildTool
 								else
 								{
 									// full pathed libs are compiled by us, so we depend on linking them
-									LinkAction.CommandArguments += string.Format(" \"{0}\"", AdditionalLibrary);
+									LinkAction.CommandArguments += string.Format(" \"{0}\"", Path.GetFullPath(AdditionalLibrary));
 									LinkAction.PrerequisiteItems.Add(FileItem.GetItemByPath(AdditionalLibrary));
 								}
 							}
