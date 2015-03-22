@@ -71,6 +71,7 @@ struct TStructOpsTypeTraits<FKey> : public TStructOpsTypeTraitsBase
 		WithExportTextItem = true,
 		WithImportTextItem = true,
 		WithPostSerialize = true,
+		WithCopy = true,		// Necessary so that TSharedPtr<FKeyDetails> Data is copied around
 	};
 };
 
