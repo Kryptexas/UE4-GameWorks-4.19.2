@@ -22,6 +22,16 @@ FCrashDescription::FCrashDescription() :
 	InitializeIDs();
 }
 
+/** Unescapes a specified XML string, naive implementation. */
+FString UnescapeXMLString( const FString& Text )
+{
+	
+	return Text
+		.Replace( TEXT( "&amp;" ), TEXT( "&" ) )
+		.Replace( TEXT( "&quot;" ), TEXT( "\"" ) )
+		.Replace( TEXT( "&lt;" ), TEXT( "<" ) )
+		.Replace( TEXT( "&gt;" ), TEXT( ">" ) );
+}
 
 FCrashDescription::FCrashDescription( FString WERXMLFilepath ) :
 	// WER XML files are forced to be in the first version
@@ -88,7 +98,7 @@ FCrashDescription::FCrashDescription( FString WERXMLFilepath ) :
 
 				if( ParsedParameters8.Num() > 1 )
 				{
-					CommandLine = ParsedParameters8[1];
+					CommandLine = UnescapeXMLString( ParsedParameters8[1] );
 				}
 
 				if( ParsedParameters8.Num() > 2 )

@@ -43,14 +43,8 @@ struct FWindowsReportParser
 				TArray<FString> SeparatedParameters;
 				StringLine.ParseIntoArray( SeparatedParameters, Marker, true );
 
-				FString MatchedValue;
-				const bool bFound = FParse::Value( *StringLine, Marker, MatchedValue );
-
-				if( bFound )
-				{
-					Result = MatchedValue;
-					break;
-				}
+				Result = SeparatedParameters[SeparatedParameters.Num()-1];
+				break;
 			}
 		}
 
