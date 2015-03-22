@@ -193,6 +193,23 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 	// We need to make a copy of the events that need to be processed or we may end up processing the same messages twice
 	SDL_HWindow NativeWindow = NULL;
 
+	if (Event.type == SDL_DROPFILE)
+	{
+		FString tmp = StringUtility::UnescapeURI(UTF8_TO_TCHAR(Event.drop.file));
+		DragAndDropQueue.Add(tmp);
+		SDL_free(Event.drop.file);
+		UE_LOG(LogLinuxWindow, Verbose, TEXT("File dropped: %s"), *tmp);
+		return;
+	}
+	else if (Event.type == SDL_DROPTEXT)
+	{
+		FString tmp = UTF8_TO_TCHAR(Event.drop.file);
+		DragAndDropTextQueue.Add(tmp);
+		SDL_free(Event.drop.file);
+		UE_LOG(LogLinuxWindow, Verbose, TEXT("Text dropped: %s"), *tmp);
+		return;
+	}
+
 	// get pointer to window that received this event
 	TSharedPtr< FLinuxWindow > CurrentEventWindow = FindEventWindow(&Event);
 
@@ -792,7 +809,27 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 						UE_LOG(LogLinuxWindow, Verbose, TEXT("WM_ACTIVATE(FL),    wParam = WA_INACTIVE     : %d"), CurrentEventWindow->GetID());
 					}
 					break;
+				case SDL_WINDOWEVENT_DROPFILE_FINISH:
+					{
+						if (DragAndDropQueue.Num() > 0)
+						{
+							MessageHandler->OnDragEnterFiles(CurrentEventWindow.ToSharedRef(), DragAndDropQueue);
+							MessageHandler->OnDragDrop(CurrentEventWindow.ToSharedRef());
+							DragAndDropQueue.Empty();
+						}
 
+						if (DragAndDropTextQueue.Num() > 0)
+						{
+							for (const auto & Text : DragAndDropTextQueue)
+							{
+								MessageHandler->OnDragEnterText(CurrentEventWindow.ToSharedRef(), Text);
+								MessageHandler->OnDragDrop(CurrentEventWindow.ToSharedRef());
+							}
+							DragAndDropTextQueue.Empty();
+						}
+						UE_LOG(LogLinuxWindow, Verbose, TEXT("DragAndDrop finished for Window              : %d"), CurrentEventWindow->GetID());
+					}
+					break;
 				case SDL_WINDOWEVENT_HIDDEN:		// intended fall-through
 				case SDL_WINDOWEVENT_EXPOSED:		// intended fall-through
 				case SDL_WINDOWEVENT_MINIMIZED:		// intended fall-through

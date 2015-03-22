@@ -173,6 +173,7 @@ typedef enum
     SDL_WINDOWEVENT_TAKE_FOCUS,     /** Window is being offered a focus (should SetInputFocus() on itself or a subwindow, or ignore) */
     SDL_WINDOWEVENT_HIT_TEST,       /** Window received a mouse press outside the client area (so mouse button press won't be passed otherwise). */
     SDL_WINDOWEVENT_DESTROY,        /** Window has been destroyed (not currently sent by the library itself). */
+    SDL_WINDOWEVENT_DROPFILE_FINISH,
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
     /* EG END */    
 } SDL_WindowEventID;

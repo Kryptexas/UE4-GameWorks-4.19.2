@@ -133,6 +133,11 @@ typedef enum
 
     /* Drag and drop events */
     SDL_DROPFILE        = 0x1000, /**< The system requests a file open */
+    /* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+    SDL_DROPTEXT, /**< text/plain drag-and-drop event */
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+    /* EG END */
 
     /* Render events */
     SDL_RENDER_TARGETS_RESET = 0x2000, /**< The render targets have been reset and their contents need to be updated */

@@ -25,6 +25,12 @@
 
 extern int SDL_SendDropFile(const char *file);
 
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+extern int SDL_SendDropText(const char *text);
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
+
 #endif /* _SDL_dropevents_c_h */
 
 /* vi: set ts=4 sw=4 expandtab: */

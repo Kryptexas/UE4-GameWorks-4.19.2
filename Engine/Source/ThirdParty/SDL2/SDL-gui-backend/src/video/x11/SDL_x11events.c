@@ -116,7 +116,12 @@ static Atom X11_PickTarget(Display *disp, Atom list[], int list_count)
     for (i=0; i < list_count && request == None; i++) {
         name = X11_XGetAtomName(disp, list[i]);
         if (strcmp("text/uri-list", name)==0) request = list[i];
-        X11_XFree(name);
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+        if (strcmp("text/plain", name)==0) request = list[i];
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
+         X11_XFree(name);
     }
     return request;
 }
@@ -1050,6 +1055,25 @@ X11_DispatchEvent(_THIS)
                 SDL_x11Prop p;
                 X11_ReadProperty(&p, display, data->xwindow, videodata->PRIMARY);
 
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+                if (p.format == 8) {
+                    char* name = X11_XGetAtomName(display, target);
+                    char *token = strtok(p.data, "\r\n");
+                    while (token != NULL) {
+                        if (strcmp("text/plain", name)==0) {
+                            SDL_SendDropText(token);
+                        } else if (strcmp("text/uri-list", name)==0) {
+                            char *fn = X11_URIToLocal(token);
+                            if (fn) {
+                                SDL_SendDropFile(fn);
+                            }
+                        }
+                        token = strtok(NULL, "\r\n");
+                    }
+                    SDL_SendWindowEvent(data->window, SDL_WINDOWEVENT_DROPFILE_FINISH, 0, 0);
+                }
+#else /* !SDL_WITH_EPIC_EXTENSIONS */
                 if (p.format == 8) {
                     SDL_bool expect_lf = SDL_FALSE;
                     char *start = NULL;
@@ -1084,7 +1108,7 @@ X11_DispatchEvent(_THIS)
                         scan++;
                     }
                 }
-
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
                 X11_XFree(p.data);
 
                 /* send reply */

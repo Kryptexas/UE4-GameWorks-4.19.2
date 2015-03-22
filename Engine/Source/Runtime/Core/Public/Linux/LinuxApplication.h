@@ -124,6 +124,12 @@ private:
 	/** Window that we think has been activated last. */
 	TSharedPtr< FLinuxWindow > CurrentlyActiveWindow;
 
+	/** Stores (unescaped) file URIs received during current drag-n-drop operation. */
+	TArray<FString> DragAndDropQueue;
+
+	/** Stores text received during current drag-n-drop operation. */
+	TArray<FString> DragAndDropTextQueue;
+
 	/** Window that we think has been previously active. */
 	TSharedPtr< FLinuxWindow > PreviousActiveWindow;
 

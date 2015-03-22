@@ -43,4 +43,24 @@ SDL_SendDropFile(const char *file)
     return (posted);
 }
 
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+int
+SDL_SendDropText(const char *text)
+{
+    int posted;
+
+    /* Post the event, if desired */
+    posted = 0;
+    if (SDL_GetEventState(SDL_DROPTEXT) == SDL_ENABLE) {
+        SDL_Event event;
+        event.type = SDL_DROPTEXT;
+        event.drop.file = SDL_strdup(text);
+        posted = (SDL_PushEvent(&event) > 0);
+    }
+    return (posted);
+}
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
+
 /* vi: set ts=4 sw=4 expandtab: */
