@@ -136,12 +136,18 @@ private:
 	/** Indicates that BeginPlay has been called, but EndPlay has not yet */
 	uint32 bHasBegunPlay:1;
 
+	/** Tracks whether the component has been added to one of the world's end of frame update lists */
+	uint32 MarkedForEndOfFrameUpdateState:2;
+	friend struct FMarkComponentEndOfFrameUpdateState;
+
 	friend class FActorComponentInstanceData;
 
 	UPROPERTY()
 	TArray<FSimpleMemberReference> UCSModifiedProperties;
 
 public:
+
+	uint32 GetMarkedForEndOfFrameUpdateState() const { return MarkedForEndOfFrameUpdateState; }
 
 	void DetermineUCSModifiedProperties();
 	void GetUCSModifiedProperties(TSet<const UProperty*>& ModifiedProperties) const;
@@ -627,6 +633,3 @@ private:
 
 #endif
 };
-
-
-

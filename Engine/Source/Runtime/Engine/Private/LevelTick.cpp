@@ -706,22 +706,55 @@ static TAutoConsoleVariable<int32> CVarCollectGarbageEveryFrame(
 	0,
 	TEXT("Used to debug garbage collection...Collects garbage every frame if the value is > 0."));
 
-void UWorld::MarkActorComponentForNeededEndOfFrameUpdate(class UActorComponent* Component, bool bForceGameThread)
+namespace EComponentMarkedForEndOfFrameUpdateState
+{
+	enum Type
+	{
+		Unmarked,
+		Marked,
+		MarkedForGameThread,
+	};
+}
+
+// Utility struct to allow world direct access to UActorComponent::MarkedForEndOfFrameUpdateState without friending all of UActorComponent
+struct FMarkComponentEndOfFrameUpdateState
+{
+	friend class UWorld;
+
+private:
+	FORCEINLINE static void Set(UActorComponent* Component, const EComponentMarkedForEndOfFrameUpdateState::Type UpdateState)
+	{
+		checkSlow(UpdateState < 4); // Only 2 bits are allocated to store this value
+		Component->MarkedForEndOfFrameUpdateState = UpdateState;
+	}
+};
+
+void UWorld::MarkActorComponentForNeededEndOfFrameUpdate(UActorComponent* Component, bool bForceGameThread)
 {
 	check(!bPostTickComponentUpdate); // can't call this while we are doing the updates
-	if (!bForceGameThread)
+	if (Component->GetMarkedForEndOfFrameUpdateState() != EComponentMarkedForEndOfFrameUpdateState::MarkedForGameThread)
 	{
-		bool bAllowConcurrentUpdates = !!CVarAllowAsyncRenderThreadUpdates.GetValueOnGameThread();
-		bForceGameThread = !bAllowConcurrentUpdates;
-	}
+		if (!bForceGameThread)
+		{
+			bool bAllowConcurrentUpdates = !!CVarAllowAsyncRenderThreadUpdates.GetValueOnGameThread();
+			bForceGameThread = !bAllowConcurrentUpdates;
+		}
 
-	if (bForceGameThread)
-	{
-		ComponentsThatNeedEndOfFrameUpdate_OnGameThread.Add(Component);
-	}
-	else
-	{
-		ComponentsThatNeedEndOfFrameUpdate.Add(Component);
+		if (bForceGameThread)
+		{
+			// In this case we need to remove it from the other list
+			if (Component->GetMarkedForEndOfFrameUpdateState() == EComponentMarkedForEndOfFrameUpdateState::Marked)
+			{
+				ComponentsThatNeedEndOfFrameUpdate.RemoveSwap(Component);
+			}
+			ComponentsThatNeedEndOfFrameUpdate_OnGameThread.Add(Component);
+			FMarkComponentEndOfFrameUpdateState::Set(Component, EComponentMarkedForEndOfFrameUpdateState::MarkedForGameThread);
+		}
+		else if (Component->GetMarkedForEndOfFrameUpdateState() != EComponentMarkedForEndOfFrameUpdateState::Marked)
+		{
+			ComponentsThatNeedEndOfFrameUpdate.Add(Component);
+			FMarkComponentEndOfFrameUpdateState::Set(Component, EComponentMarkedForEndOfFrameUpdateState::Marked);
+		}
 	}
 }
 
@@ -737,31 +770,25 @@ void UWorld::SendAllEndOfFrameUpdates(FGraphEventArray* OutCompletion)
 	if (!OutCompletion)
 	{
 		// this is a viewer or something, just do everything on the gamethread
-		for (TSet<TWeakObjectPtr<UActorComponent> >::TIterator It(ComponentsThatNeedEndOfFrameUpdate); It; ++It)
-		{
-			ComponentsThatNeedEndOfFrameUpdate_OnGameThread.Add(*It);
-		}
+		ComponentsThatNeedEndOfFrameUpdate_OnGameThread.Append(ComponentsThatNeedEndOfFrameUpdate);
 		ComponentsThatNeedEndOfFrameUpdate.Empty(ComponentsThatNeedEndOfFrameUpdate.Num());
-	}
-	else
-	{
-		// remove any gamethread updates from the async update list
-		for (TSet<TWeakObjectPtr<UActorComponent> >::TIterator It(ComponentsThatNeedEndOfFrameUpdate_OnGameThread); It; ++It)
-		{
-			ComponentsThatNeedEndOfFrameUpdate.Remove(*It);
-		}
 	}
 
 	// Game thread updates need to happen before we go wide on the other threads.
 	// These updates are things that have said that they are NOT SAFE to run concurrently.
-	for (TSet<TWeakObjectPtr<UActorComponent> >::TIterator It(ComponentsThatNeedEndOfFrameUpdate_OnGameThread); It; ++It)
+	for (TArray<TWeakObjectPtr<UActorComponent> >::TIterator It(ComponentsThatNeedEndOfFrameUpdate_OnGameThread); It; ++It)
 	{
 		UActorComponent* Component = It->Get();
-		if (Component && !Component->IsPendingKill() && Component->IsRegistered() && !Component->IsTemplate())
+		if (Component)
 		{
-			FScopeCycleCounterUObject ComponentScope(Component);
-			FScopeCycleCounterUObject AdditionalScope(STATS ? Component->AdditionalStatObject() : NULL);
-			Component->DoDeferredRenderUpdates_Concurrent();
+			checkSlow(Component->GetMarkedForEndOfFrameUpdateState() != EComponentMarkedForEndOfFrameUpdateState::Unmarked);
+			if ( !Component->IsPendingKill() && Component->IsRegistered() && !Component->IsTemplate())
+			{
+				FScopeCycleCounterUObject ComponentScope(Component);
+				FScopeCycleCounterUObject AdditionalScope(STATS ? Component->AdditionalStatObject() : NULL);
+				Component->DoDeferredRenderUpdates_Concurrent();
+			}
+			FMarkComponentEndOfFrameUpdateState::Set(Component, EComponentMarkedForEndOfFrameUpdateState::Unmarked);
 		}
 	}
 
@@ -814,21 +841,26 @@ void UWorld::SendAllEndOfFrameUpdates(FGraphEventArray* OutCompletion)
 			//@todo optimization, this loop could be done on another thread
 			// First get the async transform and render data updates underway
 			FTaskArray* Array = NULL;
-			for (TSet<TWeakObjectPtr<UActorComponent> >::TIterator It(ComponentsThatNeedEndOfFrameUpdate); It; ++It)
+			for (TArray<TWeakObjectPtr<UActorComponent> >::TIterator It(ComponentsThatNeedEndOfFrameUpdate); It; ++It)
 			{
 				UActorComponent* NextComponent = It->Get();
-				if (NextComponent && !NextComponent->IsPendingKill() && NextComponent->IsRegistered() && !NextComponent->IsTemplate())
+				if (NextComponent)
 				{
-					if (!Array)
+					checkSlow(NextComponent->GetMarkedForEndOfFrameUpdateState() == EComponentMarkedForEndOfFrameUpdateState::Marked);
+					if (!NextComponent->IsPendingKill() && NextComponent->IsRegistered() && !NextComponent->IsTemplate())
 					{
-						Array = new FTaskArray;
+						if (!Array)
+						{
+							Array = new FTaskArray;
+						}
+						Array->Add(NextComponent);
+						if (Array->Num() == NUM_COMPONENTS_PER_TASK)
+						{
+							new (*OutCompletion) FGraphEventRef(TGraphTask<FDoRenderthreadUpdatesTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(Array)); 
+							Array = NULL; // Array belongs to the task
+						}
 					}
-					Array->Add(NextComponent);
-					if (Array->Num() == NUM_COMPONENTS_PER_TASK)
-					{
-						new (*OutCompletion) FGraphEventRef(TGraphTask<FDoRenderthreadUpdatesTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(Array)); 
-						Array = NULL; // Array belongs to the task
-					}
+					FMarkComponentEndOfFrameUpdateState::Set(NextComponent, EComponentMarkedForEndOfFrameUpdateState::Unmarked);
 				}
 			}
 			if (Array) // partial array if we had one
@@ -837,11 +869,12 @@ void UWorld::SendAllEndOfFrameUpdates(FGraphEventArray* OutCompletion)
 				Array = NULL; // Array belongs to the task
 			}
 		}
+		ComponentsThatNeedEndOfFrameUpdate.Empty(ComponentsThatNeedEndOfFrameUpdate.Num());
 	}
 
-	bPostTickComponentUpdate = false;
-	ComponentsThatNeedEndOfFrameUpdate.Empty(ComponentsThatNeedEndOfFrameUpdate.Num());
 	ComponentsThatNeedEndOfFrameUpdate_OnGameThread.Empty(ComponentsThatNeedEndOfFrameUpdate_OnGameThread.Num());
+
+	bPostTickComponentUpdate = false;
 }
 
 
