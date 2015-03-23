@@ -164,6 +164,10 @@ private:
 
 	/** Handler for 'Deselect All' command  */
 	void OnDeselectAllInstances();
+	
+	/** Toggle all meshes on/off */
+	ECheckBoxState GetState_AllMeshes() const;
+	void OnCheckStateChanged_AllMeshes(ECheckBoxState InState);
 
 private:
 	/** Foliage mesh tree widget  */

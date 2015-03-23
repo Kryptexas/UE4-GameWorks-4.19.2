@@ -283,8 +283,17 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 			.AutoHeight()
 			[
 				SNew(SHeaderRow)
-
+				+ SHeaderRow::Column(TEXT("ToggleMeshes"))
+				[
+					SNew(SCheckBox)
+					.IsChecked(this, &SFoliageEdit::GetState_AllMeshes)
+					.OnCheckStateChanged(this, &SFoliageEdit::OnCheckStateChanged_AllMeshes)
+				]
+				.HeaderContentPadding(FMargin(0,1,0,1))
+				.FixedWidth(24)
+				
 				+ SHeaderRow::Column(TEXT("Meshes"))
+				.HeaderContentPadding(FMargin(10,1,0,1))
 				.DefaultLabel(LOCTEXT("Meshes", "Meshes"))
 			]
 
@@ -882,6 +891,41 @@ void SFoliageEdit::OnDeselectAllInstances()
 	{
 		UFoliageType* FoliageType = MeshUIPtr->Settings;
 		FoliageEditMode->SelectInstances(FoliageType, false);
+	}
+}
+
+ECheckBoxState SFoliageEdit::GetState_AllMeshes() const
+{
+	bool bHasChecked = false;
+	bool bHasUnchecked = false;
+
+	const auto& MeshUIList = FoliageEditMode->GetFoliageMeshList();
+	for (const auto& MeshUIPtr : MeshUIList)
+	{
+		if (MeshUIPtr->Settings->IsSelected)
+		{
+			bHasChecked = true;
+		}
+		else
+		{
+			bHasUnchecked = true;
+		}
+
+		if (bHasChecked && bHasUnchecked)
+		{
+			return ECheckBoxState::Undetermined; 
+		}
+	}
+
+	return bHasChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+void SFoliageEdit::OnCheckStateChanged_AllMeshes(ECheckBoxState InState)
+{
+	auto& MeshUIList = FoliageEditMode->GetFoliageMeshList();
+	for (auto& MeshUIPtr : MeshUIList)
+	{
+		MeshUIPtr->Settings->IsSelected = (InState == ECheckBoxState::Checked);
 	}
 }
 
