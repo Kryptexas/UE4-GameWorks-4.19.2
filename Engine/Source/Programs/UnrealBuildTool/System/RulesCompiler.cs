@@ -105,6 +105,9 @@ namespace UnrealBuildTool
 			/// Code should only be optimized in non-debug builds (not in Debug).
 			InNonDebugBuilds,
 
+			/// Code should only be optimized in shipping builds (not in Debug, DebugGame, Development)
+			InShippingBuildsOnly,
+
 			/// Code should always be optimized if possible.
 			Always,
 

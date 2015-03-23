@@ -274,21 +274,32 @@ namespace UnrealBuildTool
 			{
 				if( WindowsPlatform.bUseVCCompilerArgs )
 				{ 
-					// Maximum optimizations if desired.
-					if( CompileEnvironment.Config.OptimizeCode >= ModuleRules.CodeOptimization.InNonDebugBuilds )
+					if(CompileEnvironment.Config.OptimizeCode == ModuleRules.CodeOptimization.InShippingBuildsOnly && CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Shipping)
 					{
-						Arguments.Append(" /Ox");
-					}
-				
-					// Favor code speed.
-					Arguments.Append(" /Ot");
+						// Disable compiler optimization.
+						Arguments.Append(" /Od");
 
-					// Only omit frame pointers on the PC (which is implied by /Ox) if wanted.
-					if ( BuildConfiguration.bOmitFramePointers == false
-					&& ((CompileEnvironment.Config.Target.Platform == CPPTargetPlatform.Win32) ||
-						(CompileEnvironment.Config.Target.Platform == CPPTargetPlatform.Win64)))
+						// Favor code size (especially useful for embedded platforms).
+						Arguments.Append(" /Os");
+					}
+					else
 					{
-						Arguments.Append(" /Oy-");
+						// Maximum optimizations if desired.
+						if( CompileEnvironment.Config.OptimizeCode >= ModuleRules.CodeOptimization.InNonDebugBuilds )
+						{
+							Arguments.Append(" /Ox");
+						}
+				
+						// Favor code speed.
+						Arguments.Append(" /Ot");
+
+						// Only omit frame pointers on the PC (which is implied by /Ox) if wanted.
+						if ( BuildConfiguration.bOmitFramePointers == false
+						&& ((CompileEnvironment.Config.Target.Platform == CPPTargetPlatform.Win32) ||
+							(CompileEnvironment.Config.Target.Platform == CPPTargetPlatform.Win64)))
+						{
+							Arguments.Append(" /Oy-");
+						}
 					}
 
 					// Allow inline method expansion
@@ -308,10 +319,13 @@ namespace UnrealBuildTool
 				}
 				else
 				{
-					// Maximum optimizations if desired.
-					if( CompileEnvironment.Config.OptimizeCode >= ModuleRules.CodeOptimization.InNonDebugBuilds )
+					if(CompileEnvironment.Config.OptimizeCode != ModuleRules.CodeOptimization.InShippingBuildsOnly || CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
 					{
-						Arguments.Append( " -O3");
+						// Maximum optimizations if desired.
+						if( CompileEnvironment.Config.OptimizeCode >= ModuleRules.CodeOptimization.InNonDebugBuilds )
+						{
+							Arguments.Append( " -O3");
+						}
 					}
 				}
 			}
