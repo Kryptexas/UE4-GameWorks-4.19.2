@@ -313,10 +313,6 @@ protected:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Physics)
 	uint32 bUseAsyncScene:1;
 
-	/** Whether this instance of the object has its own custom walkable slope override setting. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Physics)
-	uint32 bOverrideWalkableSlopeOnInstance:1;
-
 	/** Whether this body instance has its own custom MaxDepenetrationVelocity*/
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Physics)
 	uint32 bOverrideMaxDepenetrationVelocity : 1;
@@ -324,6 +320,10 @@ protected:
 	/** The maximum velocity used to depenetrate this object*/
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Physics, meta = (editcondition = "bOverrideMaxDepenetrationVelocity", ClampMin = "0.0", UIMin = "0.0"))
 	float MaxDepenetrationVelocity;
+
+	/** Whether this instance of the object has its own custom walkable slope override setting. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Physics)
+	uint32 bOverrideWalkableSlopeOnInstance : 1;
 
 	/**
 	* Custom walkable slope override setting for this instance.
