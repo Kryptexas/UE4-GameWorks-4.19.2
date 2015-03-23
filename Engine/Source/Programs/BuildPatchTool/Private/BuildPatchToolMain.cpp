@@ -75,6 +75,7 @@
 	Required arguments:
 	-ManifestFile=""	Specifies in quotes the file path to the manifest to enumerate from
 	-OutputFile=""		Specifies in quotes the file path to a file where the list will be saved out, \r\n separated cloud relative paths.
+	-includesizes		When specified, the size of each file will be output following the filename in the format " (xxx bytes)".
 	-dataenumerate		Must be specified to launch the tool in cloud seeder mode
 
 =============================================================================*/
@@ -183,6 +184,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 	bool bPreview = false;
 	bool bNoPatchDelete = false;
 	bool bPatchWithReuseAgeThreshold = true;
+	bool bIncludeSizes = false;
 
 	// Collect all the info from the CommandLine
 	TArray< FString > Tokens, Switches;
@@ -222,6 +224,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 		}
 		bPreview = Switches.IndexOfByPredicate(FCommandLineMatcher(TEXT("preview"))) != INDEX_NONE;
 		bNoPatchDelete = Switches.IndexOfByPredicate(FCommandLineMatcher(TEXT("nopatchdelete"))) != INDEX_NONE;
+		bIncludeSizes = Switches.IndexOfByPredicate(FCommandLineMatcher(TEXT("includesizes"))) != INDEX_NONE;
 		BuildRootIdx = Switches.IndexOfByPredicate(FCommandLineMatcher(TEXT("BuildRoot")));
 		CloudDirIdx = Switches.IndexOfByPredicate(FCommandLineMatcher(TEXT("CloudDir")));
 		AppIDIdx = Switches.IndexOfByPredicate(FCommandLineMatcher(TEXT("AppID")));
@@ -377,32 +380,32 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 			IniFile = CloudDirectory / TEXT("BuildPatchTool.ini");
 			GConfig->InitializeConfigSystem();
 
-		if (DataAgeThresholdIdx != INDEX_NONE)
-		{
-			FParse::Value(*Switches[DataAgeThresholdIdx], TEXT("DataAgeThreshold="), DataAgeThreshold);
-		}
+			if (DataAgeThresholdIdx != INDEX_NONE)
+			{
+				FParse::Value(*Switches[DataAgeThresholdIdx], TEXT("DataAgeThreshold="), DataAgeThreshold);
+			}
 			else
 			{
 				switch (ToolMode)
-		{
+				{
 				case EBuildPatchToolMode::Compactify:
-			// For compactification, if we don't pass in DataAgeThreshold, and it's not in BuildPatchTool.ini,
-			// then we set it to zero, to indicate that any unused chunks are valid for deletion
-			if (!GConfig->GetFloat(TEXT("Compactify"), TEXT("DataAgeThreshold"), DataAgeThreshold, IniFile))
-			{
-				GLog->Log(ELogVerbosity::Warning, TEXT("DataAgeThreshold not supplied, so all unreferenced data is eliglble for deletion. Note that this process is NOT compatible with any concurrently running patch generaiton processes"));
-				DataAgeThreshold = 0.0f;
-			}
+					// For compactification, if we don't pass in DataAgeThreshold, and it's not in BuildPatchTool.ini,
+					// then we set it to zero, to indicate that any unused chunks are valid for deletion
+					if (!GConfig->GetFloat(TEXT("Compactify"), TEXT("DataAgeThreshold"), DataAgeThreshold, IniFile))
+					{
+						GLog->Log(ELogVerbosity::Warning, TEXT("DataAgeThreshold not supplied, so all unreferenced data is eliglble for deletion. Note that this process is NOT compatible with any concurrently running patch generaiton processes"));
+						DataAgeThreshold = 0.0f;
+					}
 					break;
 				case EBuildPatchToolMode::PatchGeneration:
-			// For patch generation, if we don't pass in DataAgeThreshold, and it's not specified in BuildPatchTool.ini,
-			// then we set bChunkWithReuseAgeThreshold to false, which indicates that *all* patch data is valid for reuse
-			if (!GConfig->GetFloat(TEXT("PatchGeneration"), TEXT("DataAgeThreshold"), DataAgeThreshold, IniFile))
-			{
-				GLog->Log(ELogVerbosity::Warning, TEXT("DataAgeThreshold not supplied, so all existing data is eligible for reuse. Note that this process is NOT compatible with any concurrently running compactify processes"));
-				DataAgeThreshold = 0.0f;
-				bPatchWithReuseAgeThreshold = false;
-			}
+					// For patch generation, if we don't pass in DataAgeThreshold, and it's not specified in BuildPatchTool.ini,
+					// then we set bChunkWithReuseAgeThreshold to false, which indicates that *all* patch data is valid for reuse
+					if (!GConfig->GetFloat(TEXT("PatchGeneration"), TEXT("DataAgeThreshold"), DataAgeThreshold, IniFile))
+					{
+						GLog->Log(ELogVerbosity::Warning, TEXT("DataAgeThreshold not supplied, so all existing data is eligible for reuse. Note that this process is NOT compatible with any concurrently running compactify processes"));
+						DataAgeThreshold = 0.0f;
+						bPatchWithReuseAgeThreshold = false;
+					}
 					break;
 				}
 			}
@@ -451,7 +454,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 	// Run the mode!
 	switch (ToolMode)
 	{
-		case EBuildPatchToolMode::Compactify:
+	case EBuildPatchToolMode::Compactify:
 	{
 		// Split out our manifests to keep arg (if any) into an array of manifest filenames
 		TArray<FString> ManifestsArr;
@@ -492,7 +495,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 		bSuccess = BuildPatchServicesModule->CompactifyCloudDirectory(ManifestsArr, DataAgeThreshold, CompactifyMode);
 	}
 		break;
-		case EBuildPatchToolMode::PatchGeneration:
+	case EBuildPatchToolMode::PatchGeneration:
 	{
 		FBuildPatchSettings Settings;
 		Settings.RootDirectory = RootDirectory + TEXT("/");
@@ -521,18 +524,18 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 		}
 	}
 		break;
-		case EBuildPatchToolMode::DataEnumeration:
-		{
-			// Run the data enumeration routine
-			bSuccess = BuildPatchServicesModule->EnumerateManifestData(MoveTemp(ManifestFile), MoveTemp(OutputFile));
-		}
+	case EBuildPatchToolMode::DataEnumeration:
+	{
+		// Run the data enumeration routine
+		bSuccess = BuildPatchServicesModule->EnumerateManifestData(MoveTemp(ManifestFile), MoveTemp(OutputFile), bIncludeSizes);
+	}
 		break;
-		default:
+	default:
 	{
 		GLog->Log(ELogVerbosity::Error, TEXT("Unknown tool mode"));
 		BuildPatchServicesModule.Reset();
 		FCoreDelegates::OnExit.Broadcast();
-		}
+	}
 		return 3;
 	}
 

@@ -341,6 +341,10 @@ namespace EpicGames.MCP.Automation
 			/// Matches the corresponding BuildPatchTool command line argument.
 			/// </summary>
 			public string OutputFile;
+			/// <summary>
+			/// When true, the output will include the size of individual files
+			/// </summary>
+			public bool bIncludeSize;
 		}
 
         static BuildPatchToolBase Handler = null;

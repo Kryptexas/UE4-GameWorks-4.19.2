@@ -141,9 +141,10 @@ public:
 	 * Saves to file, and logs, a full list of cloud dir relative referenced data file paths
 	 * @param   ManifestFilePath     A full file path for the manifest to be loaded
 	 * @param   OutputFile           A full file path where to save the output text
+	 * @param   bIncludeSizes        If true, will include the size (in bytes) with every file output
 	 * @return  true if successful
 	 */
-	virtual bool EnumerateManifestData(FString ManifestFilePath, FString OutputFile) = 0;
+	virtual bool EnumerateManifestData(FString ManifestFilePath, FString OutputFile, const bool bIncludeSizes) = 0;
 
 #endif // WITH_BUILDPATCHGENERATION
 
