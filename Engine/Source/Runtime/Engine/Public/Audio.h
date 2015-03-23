@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #pragma once
+
+#include "Sound/SoundAttenuation.h"
 #include "Sound/SoundClass.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAudio, Warning, All);
@@ -200,7 +202,8 @@ struct ENGINE_API FWaveInstance
 	uint32				bAlreadyNotifiedHook:1;
 	/** Whether to use spatialization */
 	uint32				bUseSpatialization:1;
-
+	/** Which algorithm to use to spatialize 3d sounds. */
+	ESoundSpatializationAlgorithm SpatializationAlgorithm;
 	/** Whether to apply audio effects */
 	uint32				bEQFilterApplied:1;
 	/** Whether or not this sound plays when the game is paused in the UI */
@@ -453,6 +456,13 @@ public:
 
 	const FSoundBuffer* GetBuffer() const {return Buffer;}
 
+	/**
+	* Initializes any source effects for this sound source
+	*/
+	virtual void InitializeSourceEffects(uint32 InVoiceId)
+	{
+	}
+
 protected:
 	// Variables.	
 	class FAudioDevice*		AudioDevice;
@@ -479,7 +489,6 @@ protected:
 	int32					LastUpdate;
 	/** Last tick when this source was active *and* had a hearable volume */
 	int32					LastHeardUpdate;
-
 
 	friend class FAudioDevice;
 };

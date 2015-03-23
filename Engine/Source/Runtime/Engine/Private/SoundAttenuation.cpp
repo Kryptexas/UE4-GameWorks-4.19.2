@@ -170,16 +170,17 @@ float FAttenuationSettings::AttenuationEvalCone(const FTransform& SoundTransform
 
 bool FAttenuationSettings::operator==(const FAttenuationSettings& Other) const
 {
-	return (   bAttenuate			== Other.bAttenuate
-			&& bSpatialize			== Other.bSpatialize
-			&& dBAttenuationAtMax	== Other.dBAttenuationAtMax
-			&& DistanceAlgorithm	== Other.DistanceAlgorithm
-			&& AttenuationShape		== Other.AttenuationShape
-			&& bAttenuateWithLPF	== Other.bAttenuateWithLPF
-			&& LPFRadiusMin			== Other.LPFRadiusMin
-			&& LPFRadiusMax			== Other.LPFRadiusMax
-			&& FalloffDistance		== Other.FalloffDistance
-			&& AttenuationShapeExtents	== Other.AttenuationShapeExtents);
+	return (   bAttenuate			    == Other.bAttenuate
+			&& bSpatialize			    == Other.bSpatialize
+			&& dBAttenuationAtMax	    == Other.dBAttenuationAtMax
+			&& DistanceAlgorithm	    == Other.DistanceAlgorithm
+			&& AttenuationShape		    == Other.AttenuationShape
+			&& bAttenuateWithLPF	    == Other.bAttenuateWithLPF
+			&& LPFRadiusMin			    == Other.LPFRadiusMin
+			&& LPFRadiusMax			    == Other.LPFRadiusMax
+			&& FalloffDistance		    == Other.FalloffDistance
+			&& AttenuationShapeExtents	== Other.AttenuationShapeExtents
+			&& SpatializationAlgorithm  == Other.SpatializationAlgorithm);
 }
 
 void FAttenuationSettings::ApplyAttenuation( const FTransform& SoundTransform, const FVector ListenerLocation, float& Volume, float& HighFrequencyGain ) const

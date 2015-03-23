@@ -276,7 +276,7 @@ public:
 
 protected:
 
-	virtual FSoundSource* CreateSoundSource() override; 
+	virtual FSoundSource* CreateSoundSource(uint32 VoiceId) override; 
 
 
 	/**

@@ -615,9 +615,19 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		WaveInstance->bIsStarted = true;
 		WaveInstance->bAlreadyNotifiedHook = false;
 		WaveInstance->bUseSpatialization = ParseParams.bUseSpatialization;
+		WaveInstance->SpatializationAlgorithm = ParseParams.SpatializationAlgorithm;
 		WaveInstance->WaveData = this;
 		WaveInstance->NotifyBufferFinishedHooks = ParseParams.NotifyBufferFinishedHooks;
 		WaveInstance->LoopingMode = ((bLooping || ParseParams.bLooping) ? LOOP_Forever : LOOP_Never);
+
+		if (AudioDevice->IsHRTFEnabledForAll() && ParseParams.SpatializationAlgorithm == SPATIALIZATION_Default)
+		{
+			WaveInstance->SpatializationAlgorithm = SPATIALIZATION_HRTF;
+		}
+		else
+		{
+			WaveInstance->SpatializationAlgorithm = ParseParams.SpatializationAlgorithm;
+		}
 
 		// Don't add wave instances that are not going to be played at this point.
 		if( WaveInstance->PlayPriority > KINDA_SMALL_NUMBER )

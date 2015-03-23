@@ -137,7 +137,7 @@ bool FSLESAudioDevice::InitializeHardware( void )
 	return true;
 }
 
-FSoundSource* FSLESAudioDevice::CreateSoundSource()
+FSoundSource* FSLESAudioDevice::CreateSoundSource(uint32 VoiceId)
 {
 	return new FSLESSoundSource(this);
 }

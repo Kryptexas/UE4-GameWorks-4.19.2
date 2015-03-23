@@ -284,6 +284,11 @@ public:
 	void FreeResources( void );
 
 	/**
+	* Initializes any effects used with this source voice
+	*/
+	void InitializeSourceEffects(uint32 InVoiceId) override;
+
+	/**
 	 * Initializes a source with a given wave instance and prepares it for playback.
 	 *
 	 * @param	WaveInstance	wave instance being primed for playback
@@ -390,6 +395,12 @@ protected:
 	/** Handle obtaining more data for procedural USoundWaves. Always returns false for convenience. */
 	bool ReadProceduralData(const int32 BufferIndex);
 
+	/** Returns if the source is using the default 3d spatialization. */
+	bool IsUsingDefaultSpatializer();
+
+	/** Returns Whether or not to create this source with the 3d spatialization effect. */
+	bool CreateWithSpatializationEffect();
+
 	/**
 	 * Utility function for determining the proper index of an effect. Certain effects (such as: reverb and radio distortion) 
 	 * are optional. Thus, they may be NULL, yet XAudio2 cannot have a NULL output voice in the send list for this source voice.
@@ -399,6 +410,24 @@ protected:
 	 * @param	Effect	The effect type's (Reverb, Radio Distoriton, etc) index to find. 
 	 */
 	int32 GetDestinationVoiceIndexForEffect( SourceDestinations Effect );
+
+	/**
+	* Calculates the channel volumes for various input channel configurations.
+	*/
+	void GetMonoChannelVolumes(float ChannelVolumes[CHANNELOUT_COUNT], float AttenuatedVolume);
+	void GetStereoChannelVolumes(float ChannelVolumes[CHANNELOUT_COUNT], float AttenuatedVolume);
+	void GetQuadChannelVolumes(float ChannelVolumes[CHANNELOUT_COUNT], float AttenuatedVolume);
+	void GetHexChannelVolumes(float ChannelVolumes[CHANNELOUT_COUNT], float AttenuatedVolume);
+
+	/**
+	* Routes channel sends for various input channel configurations.
+	*/
+	void RouteMonoToDry(float ChannelVolumes[CHANNELOUT_COUNT]);
+	void RouteStereoToDry(float ChannelVolumes[CHANNELOUT_COUNT]);
+	void RouteQuadToDry(float ChannelVolumes[CHANNELOUT_COUNT]);
+	void RouteHexToDry(float ChannelVolumes[CHANNELOUT_COUNT]);
+	void RouteMonoToReverb(float ChannelVolumes[CHANNELOUT_COUNT]);
+	void RouteStereoToReverb(float ChannelVolumes[CHANNELOUT_COUNT]);
 
 	/** Owning classes */
 	FXAudio2Device*				AudioDevice;
@@ -424,6 +453,10 @@ protected:
 	uint32						bLoopCallback:1;
 	/** Set to true when we've allocated resources that need to be freed */
 	uint32						bResourcesNeedFreeing:1;
+	/** Index of this sound source in the audio device sound source array. */
+	uint32						VoiceId;
+	/** Whether or not this sound is spatializing using default spatialization algorithm. */
+	bool						bUsingDefaultSpatialization;
 
 	friend class FXAudio2Device;
 	friend class FXAudio2SoundSourceCallback;

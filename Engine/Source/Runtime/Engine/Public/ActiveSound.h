@@ -35,6 +35,9 @@ struct FSoundParseParameters
 	// At what distance from the source of the sound should spatialization begin
 	float OmniRadius;
 
+	// Which spatialization algorithm to use
+	ESoundSpatializationAlgorithm SpatializationAlgorithm;
+
 	// Whether the sound should be spatialized
 	uint32 bUseSpatialization:1;
 
@@ -51,6 +54,7 @@ struct FSoundParseParameters
 		, StartTime(-1.f)
 		, OmniRadius(0.0f)
 		, bUseSpatialization(false)
+		, SpatializationAlgorithm(SPATIALIZATION_Default)
 		, bLooping(false)
 	{
 	}

@@ -10,28 +10,32 @@
 #include "Sound/SoundCue.h"
 #include "Sound/SoundNodeWavePlayer.h"
 #include "Sound/SoundWave.h"
+#include "IAudioExtensionPlugin.h"
 
 /*-----------------------------------------------------------------------------
 	FAudioDevice implementation.
 -----------------------------------------------------------------------------*/
 
 FAudioDevice::FAudioDevice()
-	: CommonAudioPool(NULL)
+	: CommonAudioPool(nullptr)
 	, CommonAudioPoolFreeBytes(0)
 	, bGameWasTicking(true)
 	, bDisableAudioCaching(false)
 	, bStartupSoundsPreCached(false)
 	, CurrentTick(0)
-	, TestAudioComponent(NULL)
+	, TestAudioComponent(nullptr)
 	, DebugState(DEBUGSTATE_None)
 	, TransientMasterVolume(1.0f)
 	, LastUpdateTime(0.0f)
 	, NextResourceID(1)
-	, BaseSoundMix(NULL)
-	, DefaultBaseSoundMix(NULL)
-	, Effects(NULL)
-	, CurrentAudioVolume(NULL)
-	, HighestPriorityReverb(NULL)
+	, BaseSoundMix(nullptr)
+	, DefaultBaseSoundMix(nullptr)
+	, Effects(nullptr)
+	, CurrentAudioVolume(nullptr)
+	, HighestPriorityReverb(nullptr)
+	, SpatializationPlugin(nullptr)
+	, bSpatializationExtensionEnabled(true)
+	, bHRTFEnabledForAll(false)
 	, bIsDeviceMuted(false)
 {
 }
@@ -74,6 +78,22 @@ bool FAudioDevice::Init()
 
 	// create a platform specific effects manager
 	Effects = CreateEffectsManager();
+
+	// Get the audio spatialization plugin
+	// Note: there is only *one* spatialization plugin currently, but the GetModularFeatureImplementation only returns a TArray
+	// Therefore, we are just grabbing the first one that is returned (if one is returned).
+	TArray<IAudioSpatializationPlugin *> SpatializationPlugins = IModularFeatures::Get().GetModularFeatureImplementations<IAudioSpatializationPlugin>(IAudioSpatializationPlugin::GetModularFeatureName());
+	for (IAudioSpatializationPlugin* Plugin : SpatializationPlugins)
+	{
+		SpatializationPlugin = Plugin;
+
+		Plugin->Initialize();
+		SpatializeProcessor = Plugin->GetNewSpatializationAlgorithm(this);
+
+		// There should only ever be 0 or 1 spatialization plugin at the moment
+		check(SpatializationPlugins.Num() == 1);
+		break;
+	}
 
 	InitSoundSources();
 	
@@ -127,7 +147,7 @@ void FAudioDevice::Teardown()
 	Flush(NULL);
 
 	// Clear out the EQ/Reverb/LPF effects
-	if ( Effects )
+	if (Effects)
 	{
 		delete Effects;
 		Effects = NULL;
@@ -146,6 +166,18 @@ void FAudioDevice::Teardown()
 	}
 	Sources.Empty();
 	FreeSources.Empty();
+
+	if (SpatializationPlugin != nullptr)
+	{
+		if (SpatializeProcessor != nullptr)
+		{
+			delete SpatializeProcessor;
+			SpatializeProcessor = nullptr;
+		}
+
+		SpatializationPlugin->Shutdown();
+		SpatializationPlugin = nullptr;
+	}
 }
 
 void FAudioDevice::Suspend(bool bGameTicking)
@@ -677,6 +709,19 @@ bool FAudioDevice::HandleResetSoundStateCommand( const TCHAR* Cmd, FOutputDevice
 	DebugState = DEBUGSTATE_None;
 	return true;
 }
+
+bool FAudioDevice::HandleToggleSpatializationExtensionCommand(const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	bSpatializationExtensionEnabled = !bSpatializationExtensionEnabled;
+	return true;
+}
+
+bool FAudioDevice::HandleEnableHRTFForAllCommand(const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	bHRTFEnabledForAll = !bHRTFEnabledForAll;
+	return true;
+}
+
 #endif // !UE_BUILD_SHIPPING
 
 EDebugState FAudioDevice::GetMixDebugState( void )
@@ -767,6 +812,14 @@ bool FAudioDevice::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return HandleResetSoundStateCommand( Cmd, Ar );
 	}
+	else if (FParse::Command(&Cmd, TEXT("ToggleSpatExt")))
+	{
+		return HandleToggleSpatializationExtensionCommand( Cmd, Ar);
+	}
+	else if (FParse::Command(&Cmd, TEXT("ToggleHRTFForAll")))
+	{
+		return HandleEnableHRTFForAllCommand(Cmd, Ar);
+	}
 #endif // !UE_BUILD_SHIPPING
 
 	return false;
@@ -781,7 +834,7 @@ void FAudioDevice::InitSoundClasses( void )
 		FSoundClassProperties& Properties = SoundClasses.Add( SoundClass, SoundClass->Properties );
 	}
 
-	// Propagate the properties down the hierarchy
+	// Propagate the properties down the hierarchy 
 	ParseSoundClasses();
 }
 
@@ -793,6 +846,8 @@ void FAudioDevice::InitSoundSources( void )
 		for (int32 SourceIndex = 0; SourceIndex < MaxChannels; SourceIndex++)
 		{
 			FSoundSource* Source = CreateSoundSource();
+			Source->InitializeSourceEffects(SourceIndex);
+
 			Sources.Add(Source);
 			FreeSources.Add(Source);
 		}

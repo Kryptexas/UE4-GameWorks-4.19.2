@@ -2,6 +2,7 @@
 
 #pragma once 
 
+#include "Sound/AudioVolume.h"
 #include "AudioDeviceManager.h"
 
 /** 
@@ -207,6 +208,8 @@ public:
 	bool HandleDisableRadioCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleEnableRadioCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleResetSoundStateCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+	bool HandleToggleSpatializationExtensionCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+	bool HandleEnableHRTFForAllCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 #endif
 
 	/**
@@ -504,6 +507,12 @@ public:
 	/** Check if any background music or sound is playing through the audio device */
 	virtual bool IsExernalBackgroundSoundActive() { return false; }
 
+	/** Whether or not HRTF spatialization is enabled for all. */
+	bool IsHRTFEnabledForAll() const
+	{
+		return bHRTFEnabledForAll && IsSpatializationPluginEnabled();
+	}
+
 protected:
 	friend class FSoundSource;
 
@@ -700,10 +709,19 @@ protected:
 	/** Low pass filter OneOverQ value */
 	float GetLowPassFilterResonance() const;
 
+	/** Wether or not the spatialization plugin is enabled. */
+	bool IsSpatializationPluginEnabled() const
+	{
+		return bSpatializationExtensionEnabled;
+	}
+
 public:
 
 	/** The maximum number of concurrent audible sounds */
 	int32 MaxChannels;
+
+	/** The sample rate of the audio device */
+	int32 SampleRate;
 
 	/** The amount of memory to reserve for always resident sounds */
 	int32 CommonAudioPoolSize;
@@ -769,6 +787,18 @@ public:
 
 	/** The activated reverb that currently has the highest priority */
 	const FActivatedReverb*								HighestPriorityReverb;
+
+	/** Audio spatialization plugin. */
+	class IAudioSpatializationPlugin* SpatializationPlugin;
+
+	/** Audio spatialization algorithm (derived from a plugin). */
+	class IAudioSpatializationAlgorithm* SpatializeProcessor;
+
+	/** Whether or not the spatialization plugin is enabled. */
+	bool bSpatializationExtensionEnabled;
+
+	/** Whether or HRTF is enabled for all 3d sounds. */
+	bool bHRTFEnabledForAll;
 
 	/** The handle for this audio device used in the audio device manager. */
 	uint32 DeviceHandle;

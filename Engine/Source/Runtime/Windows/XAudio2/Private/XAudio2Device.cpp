@@ -75,7 +75,7 @@ bool FXAudio2Device::InitializeHardware()
 	// Load ogg and vorbis dlls if they haven't been loaded yet
 	LoadVorbisLibraries();
 
-	UINT32 SampleRate = 0;
+	SampleRate = 0;
 
 #if PLATFORM_WINDOWS
 	bComInitialized = FWindowsPlatformMisc::CoInitialize();

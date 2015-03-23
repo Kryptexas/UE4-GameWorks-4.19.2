@@ -37,6 +37,13 @@ namespace EAttenuationShape
 	};
 }
 
+UENUM()
+enum ESoundSpatializationAlgorithm
+{
+	SPATIALIZATION_Default,
+	SPATIALIZATION_HRTF,
+};
+
 /*
 The settings for attenuating.
 */
@@ -75,6 +82,10 @@ struct ENGINE_API FAttenuationSettings
 	/** At what distance we start treating the sound source as spatialized */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation, meta=(ClampMin = "0", EditCondition="bSpatialize", DisplayName="Non-Spatialized Radius"))
 	float OmniRadius;
+
+	/** Which spatialization algorithm to use if spatializing mono sources. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attenuation, meta = (ClampMin = "0", EditCondition = "bSpatialize", DisplayName = "Spatialization Algorithm"))
+	TEnumAsByte<enum ESoundSpatializationAlgorithm> SpatializationAlgorithm;
 
 	UPROPERTY()
 	float RadiusMin_DEPRECATED;
@@ -115,6 +126,7 @@ struct ENGINE_API FAttenuationSettings
 		, DistanceType_DEPRECATED(SOUNDDISTANCE_Normal)
 		, AttenuationShape(EAttenuationShape::Sphere)
 		, dBAttenuationAtMax(-60.f)
+		, SpatializationAlgorithm(ESoundSpatializationAlgorithm::SPATIALIZATION_Default)
 		, RadiusMin_DEPRECATED(400.f)
 		, RadiusMax_DEPRECATED(4000.f)
 		, AttenuationShapeExtents(400.f, 0.f, 0.f)
