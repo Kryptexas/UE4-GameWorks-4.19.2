@@ -1191,8 +1191,6 @@ void FHeightfieldLightingViewInfo::ComputeLighting(const FViewInfo& View, FRHICo
 			const FMaterialShaderMap* MaterialShaderMap = Material->GetRenderingThreadShaderMap();
 			FLightHeightfieldsPS* PixelShader = MaterialShaderMap->GetShader<FLightHeightfieldsPS>();
 
-			FLocalBoundShaderState BoundShaderState = RHICmdList.BuildLocalBoundShaderState(GScreenVertexDeclaration.VertexDeclarationRHI, VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), FGeometryShaderRHIRef());
-
 			for (TMap<FHeightfieldComponentTextures, TArray<FHeightfieldComponentDescription>>::TConstIterator It(Heightfield.ComponentDescriptions); It; ++It)
 			{
 				const TArray<FHeightfieldComponentDescription>& HeightfieldDescriptions = It.Value();
@@ -1201,6 +1199,7 @@ void FHeightfieldLightingViewInfo::ComputeLighting(const FViewInfo& View, FRHICo
 				{
 					UploadHeightfieldDescriptions(HeightfieldDescriptions, InvLightingAtlasSize, 1.0f / Heightfield.DownsampleFactor);
 
+					FLocalBoundShaderState BoundShaderState = RHICmdList.BuildLocalBoundShaderState(GScreenVertexDeclaration.VertexDeclarationRHI, VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), FGeometryShaderRHIRef());
 					RHICmdList.SetLocalBoundShaderState(BoundShaderState);
 
 					VertexShader->SetParameters(RHICmdList, View, HeightfieldDescriptions.Num());
