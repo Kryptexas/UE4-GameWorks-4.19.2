@@ -245,7 +245,8 @@ void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaTimeX)
 			// if it's not looping, just set play to be false when reached to end
 			if (!bLooping)
 			{
-				if ((NewPlayRate < 0.f && CurrentTime <= 0.f) || (NewPlayRate > 0.f && CurrentTime >= Sequence->SequenceLength))
+				const float CombinedPlayRate = NewPlayRate*Sequence->RateScale;
+				if ((CombinedPlayRate < 0.f && CurrentTime <= 0.f) || (CombinedPlayRate > 0.f && CurrentTime >= Sequence->SequenceLength))
 				{
 					SetPlaying(false);
 				}
@@ -258,7 +259,8 @@ void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaTimeX)
 			// if it's not looping, just set play to be false when reached to end
 			if (!bLooping)
 			{
-				if ((NewPlayRate < 0.f && CurrentTime <= 0.f) || (NewPlayRate > 0.f && CurrentTime >= Composite->SequenceLength))
+				const float CombinedPlayRate = NewPlayRate*Composite->RateScale;
+				if ((CombinedPlayRate < 0.f && CurrentTime <= 0.f) || (CombinedPlayRate > 0.f && CurrentTime >= Composite->SequenceLength))
 				{
 					SetPlaying(false);
 				}
