@@ -10,6 +10,7 @@
 #define ARG_CASE_SENSITIVITY_TEST			"case"
 #define ARG_MESSAGEBOX_TEST					"messagebox"
 #define ARG_DIRECTORY_WATCHER_TEST			"dirwatcher"
+#define ARG_THREAD_SINGLETON_TEST			"threadsingleton"
 
 // this module headers
 #include "Parent.h"
