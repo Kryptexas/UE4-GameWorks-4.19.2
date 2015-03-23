@@ -24,15 +24,14 @@ bool FBuildDataEnumeration::EnumerateManifestData(FString ManifestFilePath, FStr
 		FString FullList;
 		for (FGuid& DataGuid : DataList)
 		{
-			FString Path = FBuildPatchUtils::GetDataFilename(AppManifest, FString(), DataGuid);
-			FullList += Path;
+			FString OutputLine = FBuildPatchUtils::GetDataFilename(AppManifest, FString(), DataGuid);
 			if (bIncludeSizes)
 			{
 				uint64 FileSize = AppManifest->GetDataSize(DataGuid);
-				FullList += FString::Printf(TEXT(" (%u bytes)"), FileSize);
+				OutputLine += FString::Printf(TEXT("\t%u"), FileSize);
 			}
-			FullList += TEXT("\r\n");
-			GLog->Log(ELogVerbosity::Log, Path);
+			GLog->Log(ELogVerbosity::Log, OutputLine);
+			FullList += OutputLine + TEXT("\r\n");
 		}
 		if (FFileHelper::SaveStringToFile(FullList, *OutputFile))
 		{

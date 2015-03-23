@@ -75,7 +75,7 @@
 	Required arguments:
 	-ManifestFile=""	Specifies in quotes the file path to the manifest to enumerate from
 	-OutputFile=""		Specifies in quotes the file path to a file where the list will be saved out, \r\n separated cloud relative paths.
-	-includesizes		When specified, the size of each file will be output following the filename in the format " (xxx bytes)".
+	-includesizes		When specified, the size of each file (in bytes) will be output following the filename and a tab.  I.e. /path/to/chunk\t1233
 	-dataenumerate		Must be specified to launch the tool in cloud seeder mode
 
 =============================================================================*/
