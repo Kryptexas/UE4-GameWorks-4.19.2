@@ -29,6 +29,9 @@ struct ITutorialListEntry
 	 * @return true if this < OtherEntry 
 	 */
 	virtual bool SortAgainst(TSharedRef<ITutorialListEntry> OtherEntry) const = 0;
+
+	/** Return true if this entry should show up as completed (currently used to hide/show green check mark) */
+	virtual EVisibility GetCompletedVisibility() const = 0;
 };
 
 class FTutorialListEntry_Category;

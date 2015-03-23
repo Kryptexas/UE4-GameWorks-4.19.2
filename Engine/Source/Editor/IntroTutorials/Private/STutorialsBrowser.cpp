@@ -101,17 +101,30 @@ public:
 					.HAlign(HAlign_Center)
 					.Padding(8.0f)
 					[
-						SNew(SBox)
-						.WidthOverride(64.0f)
-						.HeightOverride(64.0f)
-						.VAlign(VAlign_Center)
-						.HAlign(HAlign_Center)
+						SNew(SOverlay)
+						+ SOverlay::Slot()
+						[
+							SNew(SBox)
+							.WidthOverride(64.0f)
+							.HeightOverride(64.0f)
+							.VAlign(VAlign_Center)
+							.HAlign(HAlign_Center)
+							[
+								SNew(SImage)
+								.Image(SlateBrush)
+							]
+						]
+						+ SOverlay::Slot()
+						.VAlign(VAlign_Bottom)
+						.HAlign(HAlign_Right)
 						[
 							SNew(SImage)
-							.Image(SlateBrush)
+							.ToolTipText(LOCTEXT("CompletedCheckToolTip", "This category has been completed"))
+							.Visibility(this, &FTutorialListEntry_Category::GetCompletedVisibility)
+							.Image(FEditorStyle::Get().GetBrush("Tutorials.Browser.Completed"))
 						]
 					]
-					+SHorizontalBox::Slot()
+					+ SHorizontalBox::Slot()
 					.FillWidth(1.0f)
 					.VAlign(VAlign_Center)
 					[
@@ -203,6 +216,25 @@ public:
 	EVisibility OnGetArrowVisibility() const
 	{
 		return (SubCategories.Num() > 0 || Tutorials.Num() > 0) ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+
+	EVisibility GetCompletedVisibility() const override
+	{
+		for (int32 i = 0; i < Tutorials.Num(); ++i)
+		{
+			if (Tutorials[i].IsValid() && (Tutorials[i]->GetCompletedVisibility() != EVisibility::Visible))
+			{
+				return EVisibility::Hidden;
+			}
+		}
+		for (int32 i = 0; i < SubCategories.Num(); ++i)
+		{
+			if (SubCategories[i].IsValid() && (SubCategories[i]->GetCompletedVisibility() != EVisibility::Visible))
+			{
+				return EVisibility::Hidden;
+			}
+		}
+		return EVisibility::Visible;
 	}
 
 public:
@@ -437,7 +469,7 @@ public:
 		return EVisibility::Collapsed;
 	}
 
-	EVisibility GetCompletedVisibility() const
+	EVisibility GetCompletedVisibility() const override
 	{
 		CacheProgress();
 		return bHaveCompletedTutorial ? EVisibility::Visible : EVisibility::Hidden;
