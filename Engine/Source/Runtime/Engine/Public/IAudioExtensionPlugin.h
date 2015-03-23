@@ -132,7 +132,7 @@ public:
 	*
 	* @return A new spatialization algorithm instance
 	*/
-	virtual IAudioSpatializationAlgorithm* GetNewSpatializationAlgorithm(FAudioDevice* AudioDevice)
+	virtual IAudioSpatializationAlgorithm* GetNewSpatializationAlgorithm(class FAudioDevice* AudioDevice)
 	{
 		return nullptr;
 	}
