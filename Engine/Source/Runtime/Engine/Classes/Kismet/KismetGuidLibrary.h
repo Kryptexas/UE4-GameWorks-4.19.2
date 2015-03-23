@@ -5,8 +5,8 @@
 #include "KismetGuidLibrary.generated.h"
 
 
-UCLASS(MinimalAPI)
-class UKismetGuidLibrary
+UCLASS()
+class ENGINE_API UKismetGuidLibrary
 	: public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()

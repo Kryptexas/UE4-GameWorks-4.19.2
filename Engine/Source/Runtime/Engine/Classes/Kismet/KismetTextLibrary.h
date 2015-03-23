@@ -40,8 +40,8 @@ struct FFormatTextArgument
 	FText TextValue;
 };
 
-UCLASS(MinimalAPI)
-class UKismetTextLibrary : public UBlueprintFunctionLibrary
+UCLASS()
+class ENGINE_API UKismetTextLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
 

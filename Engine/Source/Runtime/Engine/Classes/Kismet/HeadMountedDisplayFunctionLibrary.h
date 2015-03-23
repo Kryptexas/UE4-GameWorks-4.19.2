@@ -15,7 +15,7 @@ namespace EOrientPositionSelector
 }
 
 UCLASS()
-class UHeadMountedDisplayFunctionLibrary : public UBlueprintFunctionLibrary
+class ENGINE_API UHeadMountedDisplayFunctionLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
 

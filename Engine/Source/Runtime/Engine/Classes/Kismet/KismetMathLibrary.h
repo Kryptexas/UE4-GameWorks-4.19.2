@@ -55,8 +55,8 @@ namespace EEasingFunc
 	};
 }
 
-UCLASS(MinimalAPI)
-class UKismetMathLibrary : public UBlueprintFunctionLibrary
+UCLASS()
+class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
 

@@ -6,8 +6,8 @@
 typedef FKeyEvent FKeyEvent;
 #include "KismetInputLibrary.generated.h"
 
-UCLASS(MinimalAPI)
-class UKismetInputLibrary : public UBlueprintFunctionLibrary
+UCLASS()
+class ENGINE_API UKismetInputLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
 

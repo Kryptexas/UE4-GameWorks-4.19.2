@@ -4,8 +4,8 @@
 #include "BlueprintFunctionLibrary.h"
 #include "KismetStringLibrary.generated.h"
 
-UCLASS(MinimalAPI)
-class UKismetStringLibrary : public UBlueprintFunctionLibrary
+UCLASS()
+class ENGINE_API UKismetStringLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
 
