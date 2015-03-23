@@ -33,6 +33,7 @@ TGlobalResource<FVector4VertexDeclaration> GD3D11Vector4VertexDeclaration;
 	InStateCache.Get##ShaderType(&CachedShader); \
 	DYNAMIC_CAST_D3D11RESOURCE(ShaderType,ShaderType); \
 	ensureMsgf(CachedShader == ShaderType->Resource, TEXT("Parameters are being set for a %s which is not currently bound"), TEXT( #ShaderType )); \
+	if (CachedShader) { CachedShader->Release(); } \
 }
 
 DECLARE_ISBOUNDSHADER(VertexShader)
