@@ -562,7 +562,15 @@ protected:
 		else
 		{
 			check(t->HlslName);
-			if (bUsePacked && t->is_vector() && t->vector_elements < 4)
+			if (!strcmp(t->HlslName, "texture2d"))
+			{
+				ralloc_asprintf_append(buffer, "depth2d");
+			}
+			else if (!strcmp(t->HlslName, "texturecube"))
+			{
+				ralloc_asprintf_append(buffer, "depthcube");
+			}
+			else if (bUsePacked && t->is_vector() && t->vector_elements < 4)
 			{
 				ralloc_asprintf_append(buffer, "packed_%s", t->HlslName);
 			}
@@ -1085,14 +1093,14 @@ protected:
 		tex->sampler->accept(this);
 		if (tex->op == ir_tex || tex->op == ir_txl || tex->op == ir_txb)
 		{
-			ralloc_asprintf_append(buffer, ".sample(");
+			ralloc_asprintf_append(buffer, tex->shadow_comparitor ? ".sample_compare(" : ".sample(");
 			auto* Texture = tex->sampler->variable_referenced();
 			check(Texture);
 			auto* Entry = ParseState->FindPackedSamplerEntry(Texture->name);
 			ralloc_asprintf_append(buffer, "s%d, ", Entry->offset);
 			tex->coordinate->accept(this);
 
-			if (tex->op == ir_txl)
+			if (tex->op == ir_txl && !tex->shadow_comparitor)
 			{
 				ralloc_asprintf_append(buffer, ", level(");
 				tex->lod_info.lod->accept(this);
@@ -1103,6 +1111,12 @@ protected:
 				ralloc_asprintf_append(buffer, ", bias(");
 				tex->lod_info.lod->accept(this);
 				ralloc_asprintf_append(buffer, ")");
+			}
+
+			if (tex->shadow_comparitor)
+			{
+				ralloc_asprintf_append(buffer, ", ");
+				tex->shadow_comparitor->accept(this);
 			}
 
 			if (tex->offset)
