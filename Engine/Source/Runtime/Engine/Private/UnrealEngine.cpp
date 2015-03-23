@@ -975,6 +975,8 @@ void UEngine::PreExit()
 
 	if (ScreenSaverInhibitor)
 	{
+		// Resume the thread to avoid a deadlock while waiting for finish.
+		ScreenSaverInhibitor->Suspend( false );
 		delete ScreenSaverInhibitor;
 	}
 
