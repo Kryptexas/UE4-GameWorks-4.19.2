@@ -385,7 +385,7 @@ TSharedPtr<SWidget> FHittestGrid::FindFocusableWidget(FSlateRect WidgetRect, con
 				check(CurrentIndex < WidgetsCachedThisFrame->Num());
 
 				const FCachedWidget& TestCandidate = (*WidgetsCachedThisFrame)[CurrentIndex];
-				FSlateRect TestCandidateRect = TestCandidate.ClippingRect;
+				FSlateRect TestCandidateRect = TestCandidate.ClippingRect.OffsetBy(-GridOrigin);
 
 				if (CompareFunc(DestSideFunc(TestCandidateRect), CurrentSourceSide) && FSlateRect::DoRectanglesIntersect(SweptRect, TestCandidateRect))
 				{
