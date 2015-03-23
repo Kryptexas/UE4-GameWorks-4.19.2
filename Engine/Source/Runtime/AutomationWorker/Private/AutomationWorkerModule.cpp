@@ -144,10 +144,16 @@ void FAutomationWorkerModule::Initialize()
 		new(DeferredAutomationCommands) FString(FString(TEXT("Automation CommandLineTests ")) + AutomationCmds);
 	}
 
+	//If the asset registry is loading assets then we'll wait for it to stop before running our automation tests.
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	if (AssetRegistryModule.Get().IsLoadingAssets())
 	{
 		AssetRegistryModule.Get().OnFilesLoaded().AddRaw(this, &FAutomationWorkerModule::RunDeferredAutomationCommands);
+	}
+	else
+	{
+		//If the registry is not loading then we'll just go ahead and run our tests.
+		RunDeferredAutomationCommands();
 	}
 #endif // !(UE_BUILD_SHIPPING)
 }
