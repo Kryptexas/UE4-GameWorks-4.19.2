@@ -78,11 +78,29 @@ public:
 	void SaveProfiles(bool bSaveToDefaults = false);
 
 	/**
-	 * Get the selected device profile. Set by the blueprint.
+	 * Get the selected device profile
 	 *
 	 * @return The selected profile.
 	 */
 	UDeviceProfile* GetActiveProfile() const;
+
+	/**
+	* Get a list of all possible parent profiles for a given device profile
+	*
+	* @param ChildProfile				- The profile we are looking for potential parents
+	* @param PossibleParentProfiles	- The list of profiles which would be suitable as a parent for the given profile
+	*/
+	void GetAllPossibleParentProfiles(const UDeviceProfile* ChildProfile, OUT TArray<UDeviceProfile*>& PossibleParentProfiles) const;
+
+private:
+
+	/**
+	* Get the selected device profile name, either the platform name, or the name
+	* provided by a Device Profile Selector Module.
+	*
+	* @return The selected profile.
+	*/
+	static const FString UDeviceProfileManager::GetActiveProfileName();
 
 	/**
 	 * Set the active device profile - set via the device profile blueprint.
@@ -91,13 +109,8 @@ public:
 	 */
 	void SetActiveDeviceProfile( UDeviceProfile* DeviceProfile );
 
-	/**
-	 * Get a list of all possible parent profiles for a given device profile
-	 *
-	 * @param ChildProfile				- The profile we are looking for potential parents
-	 * @param PossibleParentProfiles	- The list of profiles which would be suitable as a parent for the given profile
-	 */
-	void GetAllPossibleParentProfiles( const UDeviceProfile* ChildProfile, OUT TArray<UDeviceProfile*>& PossibleParentProfiles ) const;
+
+public:
 
 	static class UDeviceProfileManager* DeviceProfileManagerSingleton;
 	static UDeviceProfileManager& Get();

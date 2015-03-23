@@ -23,11 +23,7 @@ UDeviceProfileManager& UDeviceProfileManager::Get()
 			DeviceProfileManagerSingleton->LoadProfiles();
 		}
 
-		FString DeviceProfileSelectionModule;
-		GConfig->GetString(TEXT("DeviceProfileManager"), TEXT("DeviceProfileSelectionModule"), DeviceProfileSelectionModule, GEngineIni);
-		IDeviceProfileSelectorModule& DPSelectorModule = FModuleManager::LoadModuleChecked<IDeviceProfileSelectorModule>(*DeviceProfileSelectionModule);
-
-		UDeviceProfile* ActiveProfile = &DeviceProfileManagerSingleton->FindProfile(DPSelectorModule.GetRuntimeDeviceProfileName());
+		UDeviceProfile* ActiveProfile = &DeviceProfileManagerSingleton->FindProfile(GetActiveProfileName());
 		DeviceProfileManagerSingleton->SetActiveDeviceProfile(ActiveProfile);
 
 		InitializeSharedSamplerStates();
@@ -42,18 +38,8 @@ void UDeviceProfileManager::InitializeCVarsForActiveDeviceProfile()
 	FString DeviceProfileSelectionModule;
 	GConfig->GetString( TEXT("DeviceProfileManager"), TEXT("DeviceProfileSelectionModule"), DeviceProfileSelectionModule, GEngineIni );
 
-	FString SelectedPlatformDeviceProfileName;
-#if PLATFORM_HTML5
-	SelectedPlatformDeviceProfileName = FPlatformProperties::PlatformName();
-#else
-	if ( !DeviceProfileSelectionModule.IsEmpty() )
-	{
-		// Load the module we had specified in the ini and Run our logic to select a device profile for this run
-		IDeviceProfileSelectorModule& DPSelectorModule = FModuleManager::LoadModuleChecked<IDeviceProfileSelectorModule>(*DeviceProfileSelectionModule);
-		SelectedPlatformDeviceProfileName = DPSelectorModule.GetRuntimeDeviceProfileName();
-		UE_LOG(LogInit, Log, TEXT("Applying CVar settings loaded from the selected device profile: [%s]"), *SelectedPlatformDeviceProfileName);
-	}
-#endif
+	FString SelectedPlatformDeviceProfileName = GetActiveProfileName();
+	UE_LOG(LogInit, Log, TEXT("Applying CVar settings loaded from the selected device profile: [%s]"), *SelectedPlatformDeviceProfileName);
 
 	// Load the device profile config
 	FConfigCacheIni::LoadGlobalIniFile(DeviceProfileFileName, TEXT("DeviceProfiles"));
@@ -298,6 +284,23 @@ void UDeviceProfileManager::SaveProfiles(bool bSaveToDefaults)
 
 		ManagerUpdatedDelegate.Broadcast();
 	}
+}
+
+
+const FString UDeviceProfileManager::GetActiveProfileName()
+{
+	FString ActiveProfileName = FPlatformProperties::PlatformName();
+
+	FString DeviceProfileSelectionModule;
+	if (GConfig->GetString(TEXT("DeviceProfileManager"), TEXT("DeviceProfileSelectionModule"), DeviceProfileSelectionModule, GEngineIni))
+	{
+		if (IDeviceProfileSelectorModule* DPSelectorModule = FModuleManager::LoadModulePtr<IDeviceProfileSelectorModule>(*DeviceProfileSelectionModule))
+		{
+			ActiveProfileName = DPSelectorModule->GetRuntimeDeviceProfileName();
+		}
+	}
+
+	return ActiveProfileName;
 }
 
 
