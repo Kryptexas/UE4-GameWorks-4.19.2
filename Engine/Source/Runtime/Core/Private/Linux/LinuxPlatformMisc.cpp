@@ -202,6 +202,35 @@ GenericApplication* FLinuxPlatformMisc::CreateApplication()
 	return FLinuxApplication::CreateLinuxApplication();
 }
 
+void FLinuxPlatformMisc::GetEnvironmentVariable(const TCHAR* InVariableName, TCHAR* Result, int32 ResultLength)
+{
+	FString VariableName = InVariableName;
+	VariableName.ReplaceInline(TEXT("-"), TEXT("_"));
+	ANSICHAR *AnsiResult = secure_getenv(TCHAR_TO_ANSI(*VariableName));
+	if (AnsiResult)
+	{
+		wcsncpy(Result, ANSI_TO_TCHAR(AnsiResult), ResultLength);
+	}
+	else
+	{
+		*Result = 0;
+	}
+}
+
+void FLinuxPlatformMisc::SetEnvironmentVar(const TCHAR* InVariableName, const TCHAR* Value)
+{
+	FString VariableName = InVariableName;
+	VariableName.ReplaceInline(TEXT("-"), TEXT("_"));
+	if (Value == NULL || Value[0] == TEXT('\0'))
+	{
+		unsetenv(TCHAR_TO_ANSI(*VariableName));
+	}
+	else
+	{
+		setenv(TCHAR_TO_ANSI(*VariableName), TCHAR_TO_ANSI(Value), 1);
+	}
+}
+
 void FLinuxPlatformMisc::PumpMessages( bool bFromMainLoop )
 {
 	if( bFromMainLoop )
