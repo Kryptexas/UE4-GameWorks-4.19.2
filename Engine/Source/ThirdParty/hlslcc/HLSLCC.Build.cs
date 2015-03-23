@@ -19,7 +19,7 @@ public class HLSLCC : ModuleRules
 			
 			PublicLibraryPaths.Add(LibPath);
 
-			if (Target.Configuration == UnrealTargetConfiguration.Debug)
+			if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
 			{
 				if (Target.Platform == UnrealTargetPlatform.Win64)
 				{
