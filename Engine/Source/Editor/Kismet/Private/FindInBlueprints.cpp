@@ -358,7 +358,7 @@ UBlueprint* FFindInBlueprintsResult::GetParentBlueprint() const
 	else
 	{
 		GIsEditorLoadingPackage = true;
-		UObject* Object = LoadObject<UObject>(NULL, *DisplayText.ToString(), NULL, 0, NULL); //StaticLoadObject(UObject::StaticClass(), NULL, *DisplayText.ToString());
+		UObject* Object = LoadObject<UObject>(NULL, *DisplayText.ToString(), NULL, 0, NULL);
 		GIsEditorLoadingPackage = false;
 
 		if(UBlueprint* BlueprintObj = Cast<UBlueprint>(Object))
@@ -1042,6 +1042,177 @@ void SFindInBlueprints::Construct( const FArguments& InArgs, TSharedPtr<FBluepri
 		];
 }
 
+void SFindInBlueprints::ConditionallyAddCacheBar()
+{
+	FFindInBlueprintSearchManager& FindInBlueprintManager = FFindInBlueprintSearchManager::Get();
+
+	// Do not add a second cache bar and do not add it when there are no uncached Blueprints
+	if(FindInBlueprintManager.GetNumberUncachedBlueprints() > 0 || FindInBlueprintManager.GetFailedToCacheCount() > 0)
+	{
+		if(MainVerticalBox.IsValid() && !CacheBarSlot.IsValid())
+		{
+			// Create a single string of all the Blueprint paths that failed to cache, on separate lines
+			FString PackageList;
+			TArray<FString> FailedToCacheList = FFindInBlueprintSearchManager::Get().GetFailedToCachePathList();
+			for (FString Package : FailedToCacheList)
+			{
+				PackageList += Package + TEXT("\n");
+			}
+
+			// Lambda to put together the popup menu detailing the failed to cache paths
+			auto OnDisplayCacheFailLambda = [](TWeakPtr<SWidget> InParentWidget, FString InPackageList)->FReply
+			{
+				if (InParentWidget.IsValid())
+				{
+					TSharedRef<SWidget> DisplayWidget = 
+						SNew(SBox)
+						.MaxDesiredHeight(512)
+						.MaxDesiredWidth(512)
+						.Content()
+						[
+							SNew(SBorder)
+							.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+							[
+								SNew(SScrollBox)
+								+SScrollBox::Slot()
+								[
+									SNew(SMultiLineEditableText)
+									.AutoWrapText(true)
+									.IsReadOnly(true)
+									.Text(FText::FromString(InPackageList))
+								]
+							]
+						];
+
+					FSlateApplication::Get().PushMenu(
+						InParentWidget.Pin().ToSharedRef(),
+						DisplayWidget,
+						FSlateApplication::Get().GetCursorPos(),
+						FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
+						);	
+				}
+				return FReply::Handled();
+			};
+
+			MainVerticalBox.Pin()->AddSlot()
+				.AutoHeight()
+				[
+					SAssignNew(CacheBarSlot, SBorder)
+					.Visibility( this, &SFindInBlueprints::GetCachingBarVisibility )
+					.BorderBackgroundColor( this, &SFindInBlueprints::GetCachingBarColor )
+					.BorderImage( FCoreStyle::Get().GetBrush("ErrorReporting.Box") )
+					.Padding( FMargin(3,1) )
+					[
+						SNew(SVerticalBox)
+
+						+SVerticalBox::Slot()
+						.AutoHeight()
+						[
+							SNew(SHorizontalBox)
+							+SHorizontalBox::Slot()
+							.VAlign(EVerticalAlignment::VAlign_Center)
+							.AutoWidth()
+							[
+								SNew(STextBlock)
+								.Text(this, &SFindInBlueprints::GetUncachedBlueprintWarningText)
+								.ColorAndOpacity( FCoreStyle::Get().GetColor("ErrorReporting.ForegroundColor") )
+							]
+
+							// Cache All button
+							+SHorizontalBox::Slot()
+								.AutoWidth()
+								.VAlign(EVerticalAlignment::VAlign_Center)
+								.Padding(6.0f, 2.0f, 4.0f, 2.0f)
+								[
+									SNew(SButton)
+									.Text(LOCTEXT("IndexAllBlueprints", "Index All"))
+									.OnClicked( this, &SFindInBlueprints::OnCacheAllBlueprints )
+									.Visibility( this, &SFindInBlueprints::GetCacheAllButtonVisibility )
+									.ToolTip(IDocumentation::Get()->CreateToolTip(
+									LOCTEXT("IndexAlLBlueprints_Tooltip", "Loads all non-indexed Blueprints and saves them with their search data. This can be a very slow process, feel free to cancel it whenever and benefit from the Blueprints it indexes."),
+									NULL,
+									TEXT("Shared/Editors/BlueprintEditor"),
+									TEXT("FindInBlueprint_IndexAll")))
+								]
+
+
+							// View of failed Blueprint paths
+							+SHorizontalBox::Slot()
+								.AutoWidth()
+								.Padding(4.0f, 2.0f, 0.0f, 2.0f)
+								[
+									SNew(SButton)
+									.Text(LOCTEXT("ShowFailedPackages", "Show Failed Packages"))
+									.OnClicked(FOnClicked::CreateLambda(OnDisplayCacheFailLambda, TWeakPtr<SWidget>(SharedThis(this)), PackageList))
+									.Visibility( this, &SFindInBlueprints::GetFailedToCacheListVisibility )
+									.ToolTip(IDocumentation::Get()->CreateToolTip(
+									LOCTEXT("FailedCache_Tooltip", "Displays a list of packages that failed to save."),
+									NULL,
+									TEXT("Shared/Editors/BlueprintEditor"),
+									TEXT("FindInBlueprint_FailedCache")))
+								]
+
+							// Cache progress bar
+							+SHorizontalBox::Slot()
+								.FillWidth(1.0f)
+								.Padding(4.0f, 2.0f, 4.0f, 2.0f)
+								[
+									SNew(SProgressBar)
+									.Percent( this, &SFindInBlueprints::GetPercentCompleteCache )
+									.Visibility( this, &SFindInBlueprints::GetCachingProgressBarVisiblity )
+								]
+
+							// Cancel button
+							+SHorizontalBox::Slot()
+								.AutoWidth()
+								.Padding(4.0f, 2.0f, 0.0f, 2.0f)
+								[
+									SNew(SButton)
+									.Text(LOCTEXT("CancelCacheAll", "Cancel"))
+									.OnClicked( this, &SFindInBlueprints::OnCancelCacheAll )
+									.Visibility( this, &SFindInBlueprints::GetCachingProgressBarVisiblity )
+									.ToolTipText( LOCTEXT("CancelCacheAll_Tooltip", "Stops the caching process from where ever it is, can be started back up where it left off when needed.") )
+								]
+
+							// "X" to remove the bar
+							+SHorizontalBox::Slot()
+								.HAlign(HAlign_Right)
+								[
+									SNew(SButton)
+									.ButtonStyle( FCoreStyle::Get(), "NoBorder" )
+									.ContentPadding(0)
+									.HAlign(HAlign_Center)
+									.VAlign(VAlign_Center)
+									.OnClicked( this, &SFindInBlueprints::OnRemoveCacheBar )
+									.ForegroundColor( FSlateColor::UseForeground() )
+									[
+										SNew(SImage)
+										.Image( FCoreStyle::Get().GetBrush("EditableComboBox.Delete") )
+										.ColorAndOpacity( FSlateColor::UseForeground() )
+									]
+								]
+						]
+
+						+SVerticalBox::Slot()
+							.AutoHeight()
+							.Padding(8.0f, 0.0f, 0.0f, 2.0f)
+							[
+								SNew(STextBlock)
+								.Text(this, &SFindInBlueprints::GetCurrentCacheBlueprintName)
+								.Visibility( this, &SFindInBlueprints::GetCachingBlueprintNameVisiblity )
+								.ColorAndOpacity( FCoreStyle::Get().GetColor("ErrorReporting.ForegroundColor") )
+							]
+					]
+				];
+		}
+	}
+	else
+	{
+		// Because there are no uncached Blueprints, remove the bar
+		OnRemoveCacheBar();
+	}
+}
+
 FReply SFindInBlueprints::OnRemoveCacheBar()
 {
 	if(MainVerticalBox.IsValid() && CacheBarSlot.IsValid())
@@ -1059,6 +1230,8 @@ SFindInBlueprints::~SFindInBlueprints()
 		StreamSearch->Stop();
 		StreamSearch->EnsureCompletion();
 	}
+
+	FFindInBlueprintSearchManager::Get().CancelCacheAll(this);
 }
 
 EActiveTimerReturnType SFindInBlueprints::UpdateSearchResults( double InCurrentTime, float InDeltaTime )
@@ -1090,6 +1263,9 @@ EActiveTimerReturnType SFindInBlueprints::UpdateSearchResults( double InCurrentT
 				ItemsFound.Add( FSearchResult( new FFindInBlueprintsResult( LOCTEXT( "BlueprintSearchNoResults", "No Results found" ) ) ) );
 				TreeView->RequestTreeRefresh();
 			}
+
+			// Add the cache bar if needed.
+			ConditionallyAddCacheBar();
 
 			StreamSearch->EnsureCompletion();
 			StreamSearch.Reset();
@@ -1378,6 +1554,126 @@ TOptional<float> SFindInBlueprints::GetPercentCompleteSearch() const
 EVisibility SFindInBlueprints::GetSearchbarVisiblity() const
 {
 	return StreamSearch.IsValid()? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+FReply SFindInBlueprints::OnCacheAllBlueprints()
+{
+	if(!FFindInBlueprintSearchManager::Get().IsCacheInProgress())
+	{
+		// Request from the SearchManager a delegate to use for ticking the cache system.
+		FWidgetActiveTimerDelegate WidgetActiveTimer;
+		FFindInBlueprintSearchManager::Get().CacheAllUncachedBlueprints(SharedThis(this), WidgetActiveTimer);
+		RegisterActiveTimer(0.f, WidgetActiveTimer);
+	}
+
+	return FReply::Handled();
+}
+
+FReply SFindInBlueprints::OnCancelCacheAll()
+{
+	FFindInBlueprintSearchManager::Get().CancelCacheAll(this);
+
+	// Resubmit the last search
+	OnSearchTextCommitted(SearchTextField->GetText(), ETextCommit::OnEnter);
+
+	return FReply::Handled();
+}
+
+int32 SFindInBlueprints::GetCurrentCacheIndex() const
+{
+	return FFindInBlueprintSearchManager::Get().GetCurrentCacheIndex();
+}
+
+TOptional<float> SFindInBlueprints::GetPercentCompleteCache() const
+{
+	return FFindInBlueprintSearchManager::Get().GetCacheProgress();
+}
+
+EVisibility SFindInBlueprints::GetCachingProgressBarVisiblity() const
+{
+	return IsCacheInProgress()? EVisibility::Visible : EVisibility::Hidden;
+}
+
+EVisibility SFindInBlueprints::GetCacheAllButtonVisibility() const
+{
+	return IsCacheInProgress()? EVisibility::Collapsed : EVisibility::Visible;
+}
+
+EVisibility SFindInBlueprints::GetCachingBarVisibility() const
+{
+	FFindInBlueprintSearchManager& FindInBlueprintManager = FFindInBlueprintSearchManager::Get();
+	return (FindInBlueprintManager.GetNumberUncachedBlueprints() > 0 || FindInBlueprintManager.GetFailedToCacheCount())? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+EVisibility SFindInBlueprints::GetCachingBlueprintNameVisiblity() const
+{
+	return IsCacheInProgress()? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+EVisibility SFindInBlueprints::GetFailedToCacheListVisibility() const
+{
+	return FFindInBlueprintSearchManager::Get().GetFailedToCacheCount()? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+bool SFindInBlueprints::IsCacheInProgress() const
+{
+	return FFindInBlueprintSearchManager::Get().IsCacheInProgress();
+}
+
+FSlateColor SFindInBlueprints::GetCachingBarColor() const
+{
+	// The caching bar's default color is a darkish red
+	FSlateColor ReturnColor = FSlateColor(FLinearColor(0.4f, 0.0f, 0.0f));
+	if(IsCacheInProgress())
+	{
+		// It turns yellow when in progress
+		ReturnColor = FSlateColor(FLinearColor(0.4f, 0.4f, 0.0f));
+	}
+	return ReturnColor;
+}
+
+FText SFindInBlueprints::GetUncachedBlueprintWarningText() const
+{
+	FFindInBlueprintSearchManager& FindInBlueprintManager = FFindInBlueprintSearchManager::Get();
+
+	int32 FailedToCacheCount = FindInBlueprintManager.GetFailedToCacheCount();
+
+	// The number of unindexed Blueprints is the total of those that failed to cache and those that haven't been attempted yet.
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("Count"), FindInBlueprintManager.GetNumberUncachedBlueprints() + FailedToCacheCount);
+
+	FText ReturnDisplayText;
+	if(IsCacheInProgress())
+	{
+		Args.Add(TEXT("CurrentIndex"), FindInBlueprintManager.GetCurrentCacheIndex());
+
+		ReturnDisplayText = FText::Format(LOCTEXT("CachingBlueprints", "Indexing Blueprints... {CurrentIndex}/{Count}"), Args);
+	}
+	else
+	{
+		ReturnDisplayText = FText::Format(LOCTEXT("UncachedBlueprints", "Search incomplete. {Count} Blueprints are not indexed!"), Args);
+
+		if (FailedToCacheCount > 0)
+		{
+			FFormatNamedArguments ArgsWithCacheFails;
+			Args.Add(TEXT("BaseMessage"), ReturnDisplayText);
+			Args.Add(TEXT("CacheFails"), FailedToCacheCount);
+			ReturnDisplayText = FText::Format(LOCTEXT("UncachedBlueprintsWithCacheFails", "{BaseMessage} {CacheFails} Blueprints failed to cache."), Args);
+		}
+	}
+
+	return ReturnDisplayText;
+}
+
+FText SFindInBlueprints::GetCurrentCacheBlueprintName() const
+{
+	return FText::FromString(FFindInBlueprintSearchManager::Get().GetCurrentCacheBlueprintName());
+}
+
+void SFindInBlueprints::OnCacheComplete()
+{
+	// Resubmit the last search, which will also remove the bar if needed
+	OnSearchTextCommitted(SearchTextField->GetText(), ETextCommit::OnEnter);
 }
 
 TSharedPtr<SWidget> SFindInBlueprints::OnContextMenuOpening()

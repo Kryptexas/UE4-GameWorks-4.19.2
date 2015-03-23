@@ -49,6 +49,7 @@
 	#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 	#include "Editor/UnrealEd/Classes/ThumbnailRendering/WorldThumbnailInfo.h"
 	#include "SlateBasics.h"
+	#include "Editor/Kismet/Public/FindInBlueprintManager.h"
 #endif
 
 #include "MallocProfiler.h"
@@ -5519,9 +5520,16 @@ void UWorld::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
 	if(PersistentLevel && PersistentLevel->OwningWorld)
 	{
-		for (UBlueprint* Blueprint : PersistentLevel->GetLevelBlueprints())
+		TArray<UBlueprint*> LevelBlueprints = PersistentLevel->GetLevelBlueprints();
+		for (UBlueprint* Blueprint : LevelBlueprints)
 		{
 			Blueprint->GetAssetRegistryTags(OutTags);
+		}
+
+		// If there are no Blueprints, add empty FiB data so the manager knows that the Blueprint is indexed.
+		if (LevelBlueprints.Num() == 0)
+		{
+			OutTags.Add(FAssetRegistryTag("FiB", FString(), FAssetRegistryTag::TT_Hidden));
 		}
 	}
 }
