@@ -90,6 +90,16 @@ void UScrollBox::SynchronizeProperties()
 	MyScrollBox->SetScrollBarAlwaysVisible(AlwaysShowScrollbar);
 }
 
+float UScrollBox::GetScrollOffset() const
+{
+	if ( MyScrollBox.IsValid() )
+	{
+		return MyScrollBox->GetScrollOffset();
+	}
+
+	return 0;
+}
+
 void UScrollBox::SetScrollOffset(float NewScrollOffset)
 {
 	DesiredScrollOffset = NewScrollOffset;

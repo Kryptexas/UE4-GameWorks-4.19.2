@@ -61,6 +61,12 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetScrollOffset(float NewScrollOffset);
+	
+	/**
+	 * Gets the scroll offset of the scrollbox in Slate Units.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	float GetScrollOffset() const;
 
 	/** Scrolls the ScrollBox to the top instantly */
 	UFUNCTION(BlueprintCallable, Category="Widget")
