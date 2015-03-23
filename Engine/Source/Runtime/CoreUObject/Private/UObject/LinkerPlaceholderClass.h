@@ -8,6 +8,30 @@
 class FObjectInitializer;
 class UObjectPropertyBase;
 
+/*******************************************************************************
+ *FPlaceholderContainerTracker
+ ******************************************************************************/
+/** 
+ * To track placeholder property values, we need to know the root container 
+ * instance that is set with the placeholder value (so we can reset it later). 
+ * This here is designed to track objects that are actively being preloaded
+ * (serialized in); so we have the container on hand, when a UObjectProperty 
+ * value is set with a placeholder.
+ */
+struct FScopedPlaceholderContainerTracker
+{
+public:
+	 FScopedPlaceholderContainerTracker(UObject* PerspectivePlaceholderReferencer);
+	~FScopedPlaceholderContainerTracker();
+
+private:
+	UObject* PlaceholderReferencerCandidate;
+};
+
+/*******************************************************************************
+ * ULinkerPlaceholderClass
+ ******************************************************************************/
+
 /**  
  * A utility class for the deferred dependency loader, used to stub in temporary
  * class references so we don't have to load blueprint resources for their class.
@@ -39,6 +63,17 @@ public:
 	 * @param  ReferencingProperty    A property that uses and stores this class.
 	 */
 	void AddReferencingProperty(UProperty* ReferencingProperty);
+
+	/**
+	 * Attempts to find and store the referencing container object (along with  
+	 * the specified property), so that we can replace the reference at a 
+	 * later point. Can fail if the container could not be found.
+	 * 
+	 * @param  ReferencingProperty	The property whose object-value is referencing this.
+	 * @param  DataPtr				Not saved off (as it can change), but used to verify that we pick the correct container.
+	 * @return True if we successfully found a container object and are now tracking it, otherwise false.
+	 */
+	bool AddReferencingPropertyValue(const UObjectProperty* ReferencingProperty, void* DataPtr);
 
 	/**
 	 * Records a raw pointer, directly to the UClass* script expression (so that
@@ -103,6 +138,15 @@ public:
 	int32 ImportIndex;
 
 private:
+	/**
+	 * Iterates through ReferencingContainers and replaces any (KNOWN) 
+	 * references to this placeholder (with 
+	 * 
+	 * @param  ReplacementObj    
+	 * @return 
+	 */
+	int32 ResolvePlaceholderPropertyValues(UObject* ReplacementObj);
+
 	/** Links to UProperties that are currently using this class */
 	TSet<UProperty*> ReferencingProperties;
 
@@ -111,4 +155,7 @@ private:
 
 	/** Points directly at UClass* refs that we're serialized in as part of script bytecode */
 	TSet<UClass**> ReferencingScriptExpressions;
+
+	/** Tracks container objects that have property values set to reference this placeholder (references that need to be replaced later) */
+	TMap< TWeakObjectPtr<UObject>, TSet<const UObjectProperty*> > ReferencingContainers;
 }; 
