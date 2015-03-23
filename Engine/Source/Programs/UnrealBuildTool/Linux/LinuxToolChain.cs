@@ -319,6 +319,12 @@ namespace UnrealBuildTool
 				{
 					Result += " -Wno-undefined-bool-conversion";	// hides checking if 'this' pointer is null
 				}
+
+				if (CompilerVersionGreaterOrEqual(3, 6, 0))
+				{
+					Result += " -Wno-inconsistent-missing-override";	// we may still want to fix those - tracked as UE-12341
+					Result += " -Wno-unused-local-typedef";	// clang is being overly strict here? PhysX headers trigger this.
+				}
             }
 
             Result += " -Wno-unused-variable";
