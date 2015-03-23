@@ -81,6 +81,7 @@ public:
 
 	TSharedPtr<FString> OutHeaderSourceCode;
 	TSharedPtr<FString> OutCppSourceCode;
+	FString NewCppClassName;
 
 	bool DoesRequireCppCodeGeneration() const
 	{

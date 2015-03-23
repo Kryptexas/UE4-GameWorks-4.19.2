@@ -685,7 +685,7 @@ public:
 
 #if UE_BLUEPRINT_EVENTGRAPH_FASTCALLS
 			// Store optimization data if this is a simple call into the ubergraph
-			if (FunctionContext.bIsSimpleStubGraphWithNoParams)
+			if (FunctionContext.bIsSimpleStubGraphWithNoParams && CompilerContext.NewClass->UberGraphFunction)
 			{
 				check(FunctionToCall == CompilerContext.NewClass->UberGraphFunction);
 				check(FunctionToCall->ParmsSize == sizeof(int32));

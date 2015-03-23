@@ -10,6 +10,8 @@
 
 #include "DefaultValueHelper.h"
 
+#include "SourceCodeNavigation.h"
+
 //////////////////////////////////////////////////////////////////////////
 // FKismetCppBackend
 
@@ -93,7 +95,7 @@ public:
 
 	void EmitClassProperties(FStringOutputDevice& Target, UClass* SourceClass);
 
-	void GenerateCodeFromClass(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly) override;
+	void GenerateCodeFromClass(UClass* SourceClass, FString NewClassName, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly) override;
 
 	void EmitCallStatment(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement);
 	void EmitCallDelegateStatment(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement);
@@ -433,6 +435,15 @@ struct FEmitHelper
 		return FString();
 	}
 
+	static bool MetaDataCanBeNative(const FName MetaDataName)
+	{
+		if (MetaDataName == TEXT("ModuleRelativePath"))
+		{
+			return false;
+		}
+		return true;
+	}
+
 	static FString HandleMetaData(const UField* Field, bool AddCategory = true)
 	{
 		FString MetaDataStr;
@@ -448,6 +459,10 @@ struct FEmitHelper
 		{
 			for (auto& Pair : *ValuesMap)
 			{
+				if (!MetaDataCanBeNative(Pair.Key))
+				{
+					continue;
+				}
 				if (!Pair.Value.IsEmpty())
 				{
 					MetaDataStrings.Emplace(FString::Printf(TEXT("%s=\"%s\""), *Pair.Key.ToString(), *Pair.Value));
@@ -558,7 +573,7 @@ struct FEmitHelper
 		TArray<FString> Tags;
 
 		//Pointless: BlueprintNativeEvent, BlueprintImplementableEvent
-		//Pointless: CustomThunk
+		//Pointless: CustomThunk ?
 
 		//TODO: SealedEvent
 		//TODO: Unreliable
@@ -579,6 +594,16 @@ struct FEmitHelper
 	}
 
 #undef HANDLE_CPF_TAG
+
+	static bool IsBlueprintNativeEvent(uint64 FunctionFlags)
+	{
+		return HasAllFlags(FunctionFlags, FUNC_Event | FUNC_BlueprintEvent | FUNC_Native);
+	}
+
+	static bool IsBlueprintImplementableEvent(uint64 FunctionFlags)
+	{
+		return HasAllFlags(FunctionFlags, FUNC_Event | FUNC_BlueprintEvent) && !HasAllFlags(FunctionFlags, FUNC_Native);
+	}
 
 	static FString EmitUFuntion(UFunction* Function)
 	{
@@ -660,17 +685,10 @@ struct FEmitHelper
 		return Results;
 	}
 
-	static FString MakeCppClassName(UClass* SourceClass)
-	{
-		check(SourceClass);
-		return FString(SourceClass->GetPrefixCPP()) + SourceClass->GetName();
-	}
-
-	static FString EmitLifetimeReplicatedPropsImpl(UClass* SourceClass, const TCHAR* InCurrentIndent)
+	static FString EmitLifetimeReplicatedPropsImpl(UClass* SourceClass, const FString& CppClassName, const TCHAR* InCurrentIndent)
 	{
 		FString Result;
 		bool bFunctionInitilzed = false;
-		const FString CppClassName = MakeCppClassName(SourceClass);
 		for (TFieldIterator<UProperty> It(SourceClass, EFieldIteratorFlags::ExcludeSuper); It; ++It)
 		{
 			if ((It->PropertyFlags & CPF_Net) != 0)
@@ -691,6 +709,56 @@ struct FEmitHelper
 		}
 		return Result;
 	}
+
+	static FString GatherHeadersToInclude(UClass* SourceClass)
+	{
+		TSet<FString> HeaderFiles;
+		{
+			TArray<UObject*> ReferencedObjects;
+			{
+				FReferenceFinder ReferenceFinder(ReferencedObjects, NULL, false, false, false, true);
+				TArray<UObject*> ObjectsToCheck;
+				GetObjectsWithOuter(SourceClass, ObjectsToCheck, true);
+				//CDO?
+				for (auto Obj : ObjectsToCheck)
+				{
+					ReferenceFinder.FindReferences(Obj);
+				}
+			}
+
+			auto EngineSourceDir = FPaths::EngineSourceDir();
+			auto GameSourceDir = FPaths::GameSourceDir();
+			auto CurrentPackage = SourceClass->GetTypedOuter<UPackage>();
+			for (auto Obj : ReferencedObjects)
+			{
+				auto Field = Cast<UField>(Obj);
+				FString PackPath;
+				if (Field 
+					&& (Field->GetTypedOuter<UPackage>() != CurrentPackage)
+					&& FSourceCodeNavigation::FindClassHeaderPath(Field, PackPath))
+				{
+					if (!PackPath.RemoveFromStart(EngineSourceDir))
+					{
+						if (!PackPath.RemoveFromStart(GameSourceDir))
+						{
+							PackPath = FPaths::GetCleanFilename(PackPath);
+						}
+					}
+					HeaderFiles.Add(PackPath);
+				}
+			}
+		}
+
+		FString Result;
+		for (auto HeaderFile : HeaderFiles)
+		{
+			Result += FString::Printf(TEXT("#include \"%s\"\n"), *HeaderFile);
+		}
+
+		return Result;
+	}
+
+	
 };
 
 void FKismetCppBackend::EmitClassProperties(FStringOutputDevice& Target, UClass* SourceClass)
@@ -719,15 +787,15 @@ void FKismetCppBackend::EmitClassProperties(FStringOutputDevice& Target, UClass*
 	}
 }
 
-void FKismetCppBackend::GenerateCodeFromClass(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly)
+void FKismetCppBackend::GenerateCodeFromClass(UClass* SourceClass, FString NewClassName, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly)
 {
-	CppClassName = FEmitHelper::MakeCppClassName(SourceClass);
+	auto CleanCppClassName = NewClassName.IsEmpty() ? SourceClass->GetName() : NewClassName;
+	CppClassName = FString(SourceClass->GetPrefixCPP()) + CleanCppClassName;
 
 	UClass* SuperClass = SourceClass->GetSuperClass();
 
 	Emit(Header, TEXT("#pragma once\n\n"));
-	//Emit(Header, TEXT("#inlcude \"Public/Engine.h\"\n"));
-	Emit(Header, *FString::Printf(TEXT("#include \"%s.generated.h\"\n\n"), *SourceClass->GetName()));
+	Emit(Header, *FString::Printf(TEXT("#include \"%s.generated.h\"\n\n"), *CleanCppClassName));
 
 	// MC DELEGATE DECLARATION
 	{
@@ -794,6 +862,8 @@ void FKismetCppBackend::GenerateCodeFromClass(UClass* SourceClass, TIndirectArra
 	Emit(Body, *FString::Printf(TEXT("#include \"%s.h\"\n"), FApp::GetGameName()));
 	Emit(Body, TEXT("#include \"GeneratedCodeHelpers.h\"\n\n"));
 
+	Emit(Body, *FEmitHelper::GatherHeadersToInclude(SourceClass));
+
 	//constructor
 	Emit(Body, *FString::Printf(
 		TEXT("%s::%s(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}\n\n"),
@@ -809,7 +879,7 @@ void FKismetCppBackend::GenerateCodeFromClass(UClass* SourceClass, TIndirectArra
 
 	Emit(Header, TEXT("};\n\n"));
 
-	Emit(Body, *FEmitHelper::EmitLifetimeReplicatedPropsImpl(SourceClass, TEXT("")));
+	Emit(Body, *FEmitHelper::EmitLifetimeReplicatedPropsImpl(SourceClass, CppClassName, TEXT("")));
 }
 
 void FKismetCppBackend::EmitCallDelegateStatment(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
@@ -1320,11 +1390,7 @@ void FKismetCppBackend::ConstructFunction(FKismetFunctionContext& FunctionContex
 		{
 			const FString Start = FString::Printf(TEXT("%s %s%s%s("), *ReturnType, TEXT("%s"), TEXT("%s"), *FunctionName);
 
-			const bool bUserConstructionScript = (FunctionName == TEXT("UserConstructionScript"));
-			if (!bUserConstructionScript)
-			{
-				Emit(Header, *FString::Printf(TEXT("\t%s\n"), *FEmitHelper::EmitUFuntion(Function)));
-			}
+			Emit(Header, *FString::Printf(TEXT("\t%s\n"), *FEmitHelper::EmitUFuntion(Function)));
 			Emit(Header, TEXT("\t"));
 			Emit(Header, *FString::Printf(*Start, TEXT(""), TEXT("")));
 			Emit(Body, *FString::Printf(*Start, *CppClassName, TEXT("::")));
@@ -1350,12 +1416,7 @@ void FKismetCppBackend::ConstructFunction(FKismetFunctionContext& FunctionContex
 			}
 
 			Emit(Header, TEXT(")"));
-			if (bUserConstructionScript)
-			{
-				Emit(Header, TEXT(" override"));
-			}
 			Emit(Header, TEXT(";\n"));
-			
 			Emit(Body, TEXT(")\n"));
 		}
 
