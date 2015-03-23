@@ -269,4 +269,25 @@ void UProceduralFoliageComponent::RemoveProceduralContent()
 #endif
 }
 
+bool UProceduralFoliageComponent::HasSpawnedAnyInstances()
+{
+	bool bHasSpawnedInstances = false;
+#if WITH_EDITOR
+	UWorld* World = GetWorld();
+
+	for (ULevel* Level : World->GetLevels())
+	{
+		if (Level)
+		{
+			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level);
+			if (IFA)
+			{
+				bHasSpawnedInstances |= IFA->ContainsInstancesFromProceduralFoliageComponent(this);
+			}
+		}
+	}
+#endif
+	return bHasSpawnedInstances;
+}
+
 #undef LOCTEXT_NAMESPACE

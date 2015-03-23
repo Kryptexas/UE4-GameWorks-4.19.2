@@ -8,6 +8,8 @@
 #include "InstancedFoliage.h"
 #include "FoliageEdMode.h"
 #include "ScopedTransaction.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 TSharedRef<IDetailCustomization> FProceduralFoliageComponentDetails::MakeInstance()
 {
@@ -79,6 +81,17 @@ FReply FProceduralFoliageComponentDetails::OnResimulateClicked()
 			if (Component->SpawnProceduralContent(DesiredFoliageInstances))
 			{
 				FEdModeFoliage::AddInstances(Component->GetWorld(), DesiredFoliageInstances);
+
+				// If no instance was actually spawned, inform the user
+				if (!Component->HasSpawnedAnyInstances())
+				{
+					FNotificationInfo Info(NSLOCTEXT("ProceduralFoliageComponentDetails", "NothingSpawned_Notification", "Unable to spawn instances. Ensure a large enough surface exists within the volume."));
+					Info.bUseLargeFont = false;
+					Info.bFireAndForget = true;
+					Info.bUseThrobber = false;
+					Info.bUseSuccessFailIcons = true;
+					FSlateNotificationManager::Get().AddNotification(Info);
+				}
 			}
 		}
 	}

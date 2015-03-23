@@ -30,6 +30,7 @@ class FOLIAGE_API UProceduralFoliageComponent : public UActorComponent
 
 	bool SpawnProceduralContent(TArray<FDesiredFoliageInstance>& OutFoliageInstances);
 	void RemoveProceduralContent();
+	bool HasSpawnedAnyInstances();
 	const FGuid& GetProceduralGuid() const { return ProceduralGuid;  }
 
 	UPROPERTY()

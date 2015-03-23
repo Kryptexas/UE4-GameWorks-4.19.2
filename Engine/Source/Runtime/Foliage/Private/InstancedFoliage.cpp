@@ -1365,6 +1365,26 @@ void AInstancedFoliageActor::DeleteInstancesForProceduralFoliageComponent(const 
 	}
 }
 
+bool AInstancedFoliageActor::ContainsInstancesFromProceduralFoliageComponent(const UProceduralFoliageComponent* ProceduralFoliageComponent)
+{
+	const FGuid& ProceduralGuid = ProceduralFoliageComponent->GetProceduralGuid();
+	for (auto& MeshPair : FoliageMeshes)
+	{
+		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
+		TArray<int32> InstancesToRemove;
+		for (int32 InstanceIdx = 0; InstanceIdx < MeshInfo.Instances.Num(); InstanceIdx++)
+		{
+			if (MeshInfo.Instances[InstanceIdx].ProceduralGuid == ProceduralGuid)
+			{
+				// The procedural component is responsible for an instance
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 void AInstancedFoliageActor::MoveInstancesForComponentToCurrentLevel(UActorComponent* InComponent)
 {
 	if (!HasFoliageAttached(InComponent))
