@@ -273,7 +273,7 @@ public:
 		}
 	}
 
-	IAudioSpatializationAlgorithm* GetNewSpatializationAlgorithm(FAudioDevice* AudioDevice) override
+	IAudioSpatializationAlgorithm* GetNewSpatializationAlgorithm(class FAudioDevice* AudioDevice) override
 	{
 		return new FHrtfSpatializationAlgorithm(AudioDevice);
 	}
