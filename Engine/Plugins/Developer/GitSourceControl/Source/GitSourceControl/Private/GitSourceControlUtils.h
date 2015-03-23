@@ -6,6 +6,8 @@
 #include "GitSourceControlRevision.h"
 #include "GitSourceControlCommand.h"
 
+class FGitSourceControlCommand;
+
 /**
  * Helper struct for maintaining temporary files for passing to commands
  */

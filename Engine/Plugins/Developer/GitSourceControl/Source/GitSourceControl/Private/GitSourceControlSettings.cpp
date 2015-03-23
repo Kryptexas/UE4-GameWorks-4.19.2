@@ -32,7 +32,7 @@ void FGitSourceControlSettings::LoadSettings()
 	FScopeLock ScopeLock(&CriticalSection);
 	const FString& IniFile = SourceControlHelpers::GetSettingsIni();
 	bool bLoaded = GConfig->GetString(*GitSettingsConstants::SettingsSection, TEXT("BinaryPath"), BinaryPath, IniFile);
-	if(!bLoaded)
+	if(!bLoaded || BinaryPath.IsEmpty())
 	{
 		BinaryPath = GitSourceControlUtils::FindGitBinaryPath();
 	}

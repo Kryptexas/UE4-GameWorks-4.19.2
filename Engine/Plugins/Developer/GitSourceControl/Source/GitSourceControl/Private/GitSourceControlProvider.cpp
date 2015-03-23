@@ -33,7 +33,14 @@ void FGitSourceControlProvider::CheckGitAvailability()
 {
 	FGitSourceControlModule& GitSourceControl = FModuleManager::LoadModuleChecked<FGitSourceControlModule>("GitSourceControl");
 	const FString& PathToGitBinary = GitSourceControl.AccessSettings().GetBinaryPath();
-	bGitAvailable = GitSourceControlUtils::CheckGitAvailability(PathToGitBinary);
+	if(!PathToGitBinary.IsEmpty())
+	{
+		bGitAvailable = GitSourceControlUtils::CheckGitAvailability(PathToGitBinary);
+	}
+	else
+	{
+		UE_LOG(LogSourceControl, Error, TEXT("Git not found"), *PathToGitBinary);
+	}
 }
 
 void FGitSourceControlProvider::Close()
