@@ -11,37 +11,6 @@
 class UBlueprintGeneratedClass;
 
 //////////////////////////////////////////////////////////////////////////
-// FBlueprintUnloader
-
-/** Utility struct, used to aid in unloading and replacing a specific blueprint. */
-struct UNREALED_API FBlueprintUnloader
-{
-public:
-	FBlueprintUnloader(UBlueprint* OldBlueprint);
-
-	/** 
-	 * Unloads the specified Blueprint (marking it pending-kill, and removing it 
-	 * from its outer package). Optionally, will unload the package as well.
-	 *
-	 * @param  bResetPackage	Whether or not this should unload the entire package.
-	 */
-	void UnloadBlueprint(const bool bResetPackage);
-	
-	/** 
-	 * Replaces all old references to the original blueprints (its class/CDO/etc.)
-	 * @param  NewBlueprint	The blueprint to replace old references with
-	 */
-	void ReplaceStaleRefs(UBlueprint* NewBlueprint);
-
-private:
-	TWeakObjectPtr<UBlueprint> OldBlueprint;
-	UClass*  OldGeneratedClass;
-	UObject* OldCDO;
-	UClass*  OldSkeletonClass;
-	UObject* OldSkelCDO;
-};
-
-//////////////////////////////////////////////////////////////////////////
 // FKismetEditorUtilities
 
 class UNREALED_API FKismetEditorUtilities
