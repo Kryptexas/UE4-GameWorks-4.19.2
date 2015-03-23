@@ -100,7 +100,7 @@ private:
 	*
 	* @return The selected profile.
 	*/
-	static const FString UDeviceProfileManager::GetActiveProfileName();
+	static const FString GetActiveProfileName();
 
 	/**
 	 * Set the active device profile - set via the device profile blueprint.
