@@ -730,14 +730,19 @@ FReply SPropertyBinding::HandleGotoBindingClicked(TSharedRef<IPropertyHandle> Pr
 					TArray<UEdGraph*> AllGraphs;
 					Blueprint->GetAllGraphs(AllGraphs);
 
+					FGuid SearchForGuid = Binding.MemberGuid;
+					if ( !Binding.SourcePath.IsEmpty() )
+					{
+						SearchForGuid = Binding.SourcePath.Segments.Last().GetMemberGuid();
+					}
+
 					for ( UEdGraph* Graph : AllGraphs )
 					{
-						if ( Graph->GraphGuid == Binding.MemberGuid )
+						if ( Graph->GraphGuid == SearchForGuid )
 						{
 							GotoFunction(Graph);
 						}
 					}
-
 
 					// Either way return
 					return FReply::Handled();

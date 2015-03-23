@@ -31,6 +31,7 @@ public:
 
 	FName GetMemberName() const;
 	FText GetMemberDisplayText() const;
+	FGuid GetMemberGuid() const;
 
 private:
 

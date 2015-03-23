@@ -266,6 +266,11 @@ FText FEditorPropertyPathSegment::GetMemberDisplayText() const
 	return FText::FromName(MemberName);
 }
 
+FGuid FEditorPropertyPathSegment::GetMemberGuid() const
+{
+	return MemberGuid;
+}
+
 FEditorPropertyPath::FEditorPropertyPath()
 {
 }
