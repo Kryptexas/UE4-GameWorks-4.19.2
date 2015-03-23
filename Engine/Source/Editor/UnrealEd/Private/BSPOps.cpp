@@ -521,8 +521,6 @@ void FBSPOps::csgPrepMovingBrush( ABrush* Actor )
 	check(Actor->Brush);
 	check(Actor->Brush->RootOutside);
 
-	Actor->ClearNotForClientOrServer();
-
 	RebuildBrush(Actor->Brush);
 
 	// Make sure simplified collision is up to date.
