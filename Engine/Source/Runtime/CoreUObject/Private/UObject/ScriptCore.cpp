@@ -1840,12 +1840,6 @@ void UObject::execStructConst( FFrame& Stack, RESULT_DECL )
 	
 	for( UProperty* StructProp = ScriptStruct->PropertyLink; StructProp; StructProp = StructProp->PropertyLinkNext )
 	{
-		// Const struct arrays aren't supported yet
-		if ( dynamic_cast<UArrayProperty*>(StructProp) )
-		{
-			continue;
-		}
-
 		for (int32 ArrayIter = 0; ArrayIter < StructProp->ArrayDim; ++ArrayIter)
 		{
 			Stack.Step(Stack.Object, StructProp->ContainerPtrToValuePtr<uint8>(Result, ArrayIter));
@@ -1878,6 +1872,26 @@ void UObject::execSetArray( FFrame& Stack, RESULT_DECL )
  	P_FINISH;
 }
 IMPLEMENT_VM_FUNCTION( EX_SetArray, execSetArray );
+
+void UObject::execArrayConst(FFrame& Stack, RESULT_DECL)
+{
+	UProperty* InnerProperty = CastChecked<UProperty>(Stack.ReadObject());
+	int32 Num = Stack.ReadInt();
+	check(Result);
+	FScriptArrayHelper ArrayHelper = FScriptArrayHelper::CreateHelperFormInnerProperty(InnerProperty, Result);
+	ArrayHelper.EmptyValues(Num);
+
+	int32 i = 0;
+	while (*Stack.Code != EX_EndArrayConst)
+	{
+		ArrayHelper.AddValues(1);
+		Stack.Step(Stack.Object, ArrayHelper.GetRawPtr(i++));
+	}
+	ensure(i == Num);
+
+	P_FINISH;	// EX_EndArrayConst
+}
+IMPLEMENT_VM_FUNCTION(EX_ArrayConst, execArrayConst);
 
 void UObject::execIntZero( FFrame& Stack, RESULT_DECL )
 {

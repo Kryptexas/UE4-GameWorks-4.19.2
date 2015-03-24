@@ -344,6 +344,13 @@
 			while( SerializeExpr( iCode, Ar) != EX_EndArray );
 			break;
 		}
+		case EX_ArrayConst:
+		{
+			XFERPTR(UProperty*);	// Inner property
+			XFER(int32);			// Number of elements
+			while (SerializeExpr(iCode, Ar) != EX_EndArrayConst);
+			break;
+		}
 		case EX_ByteConst:
 		case EX_IntConstByte:
 		{

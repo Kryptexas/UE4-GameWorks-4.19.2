@@ -2446,8 +2446,25 @@ public:
 	void CountBytes( FArchive& Ar  )
 	{
 		Array->CountBytes(Ar, ElementSize);
-	}		
+	}	
+
+	static FScriptArrayHelper CreateHelperFormInnerProperty(const UProperty* InInnerProperty, const void *InArray)
+	{
+		check(InInnerProperty);
+		FScriptArrayHelper ScriptArrayHelper;
+		ScriptArrayHelper.InnerProperty = InInnerProperty;
+		ScriptArrayHelper.Array = (FScriptArray*)InArray;
+		ScriptArrayHelper.ElementSize = InInnerProperty->ElementSize;
+		return ScriptArrayHelper;
+	}
+
 private:
+
+	FScriptArrayHelper()
+		: InnerProperty(nullptr)
+		, Array(nullptr)
+		, ElementSize(0)
+	{}
 
 	/**
 	 *	Internal function to call into the property system to construct / initialize elements.

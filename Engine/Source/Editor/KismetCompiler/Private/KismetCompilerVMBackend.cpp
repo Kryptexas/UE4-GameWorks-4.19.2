@@ -366,9 +366,6 @@ public:
 
 		if (Term->bIsLiteral)
 		{
-			// Can't have a literal array
-			check(!CoerceProperty->IsA(UArrayProperty::StaticClass())); 
-
 			if (CoerceProperty->IsA(UStrProperty::StaticClass()))
 			{
 				EmitStringLiteral(Term->Name);
@@ -501,12 +498,6 @@ public:
 
 					for( UProperty* Prop = Struct->PropertyLink; Prop; Prop = Prop->PropertyLinkNext )
 					{
-						// Array constants aren't yet supported, so skip them
-						if( Prop->IsA(UArrayProperty::StaticClass()) )
-						{
-							continue;
-						}
-
 						for (int32 ArrayIter = 0; ArrayIter < Prop->ArrayDim; ++ArrayIter)
 						{
 							// Create a new term for each property, and serialize it out
@@ -528,6 +519,37 @@ public:
 
 					Writer << EX_EndStructConst;
 				}
+			}
+			else if (auto ArrayPropr = Cast<UArrayProperty>(CoerceProperty))
+			{
+				UProperty* InnerProp = ArrayPropr->Inner;
+				ensure(InnerProp);
+				FScriptArray ScriptArray;
+				ArrayPropr->ImportText(*Term->Name, &ScriptArray, 0, NULL, GLog);
+				int32 ElementNum = ScriptArray.Num();
+
+				FScriptArrayHelper ScriptArrayHelper(ArrayPropr, &ScriptArray);
+
+				Writer << EX_ArrayConst;
+				Writer << InnerProp;
+				Writer << ElementNum;
+				for (int32 ElemIdx = 0; ElemIdx < ElementNum; ++ElemIdx)
+				{
+					FBPTerminal NewTerm;
+					NewTerm.bIsLiteral = true;
+					uint8* RawElemData = ScriptArrayHelper.GetRawPtr(ElemIdx);
+					InnerProp->ExportText_Direct(NewTerm.Name, RawElemData, RawElemData, NULL, PPF_None);
+					if (InnerProp->IsA(UTextProperty::StaticClass()))
+					{
+						NewTerm.TextLiteral = FText::FromString(NewTerm.Name);
+					}
+					else if (InnerProp->IsA(UObjectProperty::StaticClass()))
+					{
+						NewTerm.ObjectLiteral = Cast<UObjectProperty>(InnerProp)->GetObjectPropertyValue(RawElemData);
+					}
+					EmitTermExpr(&NewTerm, InnerProp);
+				}
+				Writer << EX_EndArrayConst;
 			}
 			else if (CoerceProperty->IsA(UDelegateProperty::StaticClass()))
 			{

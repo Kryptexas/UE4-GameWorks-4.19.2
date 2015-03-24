@@ -645,6 +645,17 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
  			}
  			break;
 		}
+	case EX_ArrayConst:
+		{
+			UProperty* InnerProp = ReadPointer<UProperty>(ScriptIndex);
+			int32 Num = ReadINT(ScriptIndex);
+			Ar.Logf(TEXT("%s $%X: set array const - elements number: %d, inner property: %s"), *Indents, (int32)Opcode, Num, *GetNameSafe(InnerProp));
+			while (SerializeExpr(ScriptIndex) != EX_EndArrayConst)
+			{
+				// Array contents
+			}
+			break;
+		}
 	case EX_ByteConst:
 		{
 			uint8 ConstValue = ReadBYTE(ScriptIndex);
