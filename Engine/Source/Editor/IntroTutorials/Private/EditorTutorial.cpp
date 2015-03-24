@@ -1,6 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "IntroTutorialsPrivatePCH.h"
+#include "LevelEditor.h"
+#include "SDockTab.h"
 #include "EditorTutorial.h"
 
 UEditorTutorial::UEditorTutorial(const FObjectInitializer& ObjectInitializer)
@@ -57,6 +59,8 @@ void UEditorTutorial::HandleTutorialStageEnded(FName StageName)
 void UEditorTutorial::HandleTutorialLaunched()
 {
 	FEditorScriptExecutionGuard ScriptGuard;
+	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+	LevelEditorModule.GetLevelEditorTabManager()->InvokeTab(FTabId("TutorialsBrowser"))->RequestCloseTab();
 	OnTutorialLaunched();
 }
 

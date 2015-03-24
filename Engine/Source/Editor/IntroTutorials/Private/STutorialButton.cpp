@@ -8,8 +8,6 @@
 #include "TutorialMetaData.h"
 #include "EngineBuildSettings.h"
 #include "AssetRegistryModule.h"
-#include "LevelEditor.h"
-#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "STutorialButton"
 
@@ -182,8 +180,6 @@ EActiveTimerReturnType STutorialButton::HandleButtonClicked_AssetRegistryChecker
 	//Sometimes, this gives a false positive because the tutorial we want to launch wasn't loaded into the asset registry when we checked. Opening and closing the tab works around that by letting the browser recheck.
 	if (ShouldLaunchBrowser())
 	{
-		FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
-		LevelEditorModule.GetLevelEditorTabManager()->InvokeTab(FTabId("TutorialsBrowser"))->RequestCloseTab();
 		RefreshStatus();
 	}
 
