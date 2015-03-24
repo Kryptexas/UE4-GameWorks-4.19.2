@@ -37,5 +37,5 @@ public:
 	virtual bool CreateDirectory(const TCHAR* Directory) override;
 	virtual bool DeleteDirectory(const TCHAR* Directory) override;
 	bool CreateDirectoriesFromPath(const TCHAR* Path);
-	bool IterateDirectory(const TCHAR* Directory, FDirectoryVisitor& Visitor);
+	bool IterateDirectory(const TCHAR* Directory, FDirectoryVisitor& Visitor) override;
 };

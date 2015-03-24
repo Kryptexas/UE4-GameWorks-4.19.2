@@ -923,7 +923,7 @@ public:
 	}
 
 	/** @return how many items there are in the TArray being observed */
-	virtual int32 GetNumItemsBeingObserved() const
+	virtual int32 GetNumItemsBeingObserved() const override
 	{
 		return ItemsSource == nullptr ? 0 : ItemsSource->Num();
 	}

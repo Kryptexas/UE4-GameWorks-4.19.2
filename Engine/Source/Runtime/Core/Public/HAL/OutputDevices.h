@@ -361,7 +361,7 @@ public:
 	/**
 	 * Passes on the flush request to all current output devices.
 	 */
-	void Flush();
+	void Flush() override;
 
 	/**
 	 * Closes output device and cleans up. This can't happen in the destructor

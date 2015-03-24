@@ -1069,12 +1069,12 @@ public:
 	 */
 	CORE_API FArchiveProxy(FArchive& InInnerArchive);
 
-	virtual FArchive& operator<<(class FName& Value)
+	virtual FArchive& operator<<(class FName& Value) override
 	{
 		return InnerArchive << Value;
 	}
 
-	virtual FArchive& operator<<(class UObject*& Value)
+	virtual FArchive& operator<<(class UObject*& Value) override
 	{
 		return InnerArchive << Value;
 	}
@@ -1084,104 +1084,104 @@ public:
 		return InnerArchive << Value;
 	}
 
-	virtual void Serialize(void* V, int64 Length)
+	virtual void Serialize(void* V, int64 Length) override
 	{
 		InnerArchive.Serialize(V, Length);
 	}
 
-	virtual void SerializeBits(void* Bits, int64 LengthBits)
+	virtual void SerializeBits(void* Bits, int64 LengthBits) override
 	{
 		InnerArchive.SerializeBits(Bits, LengthBits);
 	}
 
-	virtual void SerializeInt(uint32& Value, uint32 Max)
+	virtual void SerializeInt(uint32& Value, uint32 Max) override
 	{
 		InnerArchive.SerializeInt(Value, Max);
 	}
 
-	virtual void Preload(UObject* Object)
+	virtual void Preload(UObject* Object) override
 	{
 		InnerArchive.Preload(Object);
 	}
 
-	virtual void CountBytes(SIZE_T InNum, SIZE_T InMax)
+	virtual void CountBytes(SIZE_T InNum, SIZE_T InMax) override
 	{
 		InnerArchive.CountBytes(InNum, InMax);
 	}
 
-	CORE_API virtual FString GetArchiveName() const;
+	CORE_API virtual FString GetArchiveName() const override;
 
-	virtual class ULinker* GetLinker()
+	virtual class ULinker* GetLinker() override
 	{
 		return InnerArchive.GetLinker();
 	}
 
-	virtual int64 Tell()
+	virtual int64 Tell() override
 	{
 		return InnerArchive.Tell();
 	}
 
-	virtual int64 TotalSize()
+	virtual int64 TotalSize() override
 	{
 		return InnerArchive.TotalSize();
 	}
 
-	virtual bool AtEnd()
+	virtual bool AtEnd() override
 	{
 		return InnerArchive.AtEnd();
 	}
 
-	virtual void Seek(int64 InPos)
+	virtual void Seek(int64 InPos) override
 	{
 		InnerArchive.Seek(InPos);
 	}
 
-	virtual void AttachBulkData(UObject* Owner, FUntypedBulkData* BulkData)
+	virtual void AttachBulkData(UObject* Owner, FUntypedBulkData* BulkData) override
 	{
 		InnerArchive.AttachBulkData(Owner, BulkData);
 	}
 
-	virtual void DetachBulkData(FUntypedBulkData* BulkData, bool bEnsureBulkDataIsLoaded)
+	virtual void DetachBulkData(FUntypedBulkData* BulkData, bool bEnsureBulkDataIsLoaded) override
 	{
 		InnerArchive.DetachBulkData(BulkData, bEnsureBulkDataIsLoaded);
 	}
 
-	virtual bool Precache(int64 PrecacheOffset, int64 PrecacheSize)
+	virtual bool Precache(int64 PrecacheOffset, int64 PrecacheSize) override
 	{
 		return InnerArchive.Precache(PrecacheOffset, PrecacheSize);
 	}
 
-	virtual bool SetCompressionMap(TArray<struct FCompressedChunk>* CompressedChunks, ECompressionFlags CompressionFlags)
+	virtual bool SetCompressionMap(TArray<struct FCompressedChunk>* CompressedChunks, ECompressionFlags CompressionFlags) override
 	{
 		return InnerArchive.SetCompressionMap(CompressedChunks, CompressionFlags);
 	}
 
-	virtual void Flush()
+	virtual void Flush() override
 	{
 		InnerArchive.Flush();
 	}
 
-	virtual bool Close()
+	virtual bool Close() override
 	{
 		return InnerArchive.Close();
 	}
 
-	virtual bool GetError()
+	virtual bool GetError() override
 	{
 		return InnerArchive.GetError();
 	}
 
-	virtual void MarkScriptSerializationStart(const UObject* Obj)
+	virtual void MarkScriptSerializationStart(const UObject* Obj) override
 	{
 		InnerArchive.MarkScriptSerializationStart(Obj);
 	}
 
-	virtual void MarkScriptSerializationEnd(const UObject* Obj)
+	virtual void MarkScriptSerializationEnd(const UObject* Obj) override
 	{
 		InnerArchive.MarkScriptSerializationEnd(Obj);
 	}
 
-	virtual bool IsCloseComplete(bool& bHasError)
+	virtual bool IsCloseComplete(bool& bHasError) override
 	{
 		return InnerArchive.IsCloseComplete(bHasError);
 	}
