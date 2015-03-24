@@ -184,6 +184,8 @@ public:
 
 SAnimationEditorViewportTabBody::SAnimationEditorViewportTabBody()
 	: AnimationPlaybackSpeedMode(EAnimationPlaybackSpeeds::Normal)
+	, SelectedTurnTableSpeed(EAnimationPlaybackSpeeds::Normal)
+	, SelectedTurnTableMode(EPersonaTurnTableMode::Stopped)
 {
 }
 
@@ -232,17 +234,17 @@ bool SAnimationEditorViewportTabBody::CanUseGizmos() const
 FText SAnimationEditorViewportTabBody::GetDisplayString() const
 {
 	class UDebugSkelMeshComponent* Component = PersonaPtr.Pin()->PreviewComponent;
-	FString TargetSkeletonName = TargetSkeleton ?TargetSkeleton->GetName() : FName(NAME_None).ToString();
+	FString TargetSkeletonName = TargetSkeleton ? TargetSkeleton->GetName() : FName(NAME_None).ToString();
 
-	if ( Component!=NULL )
+	if (Component != NULL)
 	{
-		if ( Component->bForceRefpose )
+		if (Component->bForceRefpose)
 		{
 			return LOCTEXT("ReferencePose", "Reference pose");
 		}
 		else if (Component->IsPreviewOn())
 		{
-			return FText::Format( LOCTEXT("Previewing", "Previewing {0}"), FText::FromString(Component->GetPreviewText()) );
+			return FText::Format(LOCTEXT("Previewing", "Previewing {0}"), FText::FromString(Component->GetPreviewText()));
 		}
 		else if (Component->AnimBlueprintGeneratedClass != NULL)
 		{
@@ -258,16 +260,16 @@ FText SAnimationEditorViewportTabBody::GetDisplayString() const
 		}
 		else if (Component->SkeletalMesh == NULL)
 		{
-			return FText::Format( LOCTEXT("NoMeshFound", "No skeletal mesh found for skeleton '{0}'"), FText::FromString(TargetSkeletonName) );
+			return FText::Format(LOCTEXT("NoMeshFound", "No skeletal mesh found for skeleton '{0}'"), FText::FromString(TargetSkeletonName));
 		}
-		else 
+		else
 		{
 			return LOCTEXT("NothingToPlay", "Nothing to play");
 		}
 	}
 	else
 	{
-		return FText::Format( LOCTEXT("NoMeshFound", "No skeletal mesh found for skeleton '{0}'"), FText::FromString(TargetSkeletonName) );
+		return FText::Format(LOCTEXT("NoMeshFound", "No skeletal mesh found for skeleton '{0}'"), FText::FromString(TargetSkeletonName));
 	}
 }
 
@@ -392,6 +394,8 @@ void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs)
 	UpdateShowFlagForMeshEdges();
 
 	UpdateViewportClientPlaybackScale();
+	OnSetTurnTableMode(SelectedTurnTableMode);
+	OnSetTurnTableSpeed(SelectedTurnTableSpeed);
 
 	BindCommands();
 }
@@ -750,6 +754,71 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnTogglePreviewRootMotion),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsPreviewingRootMotion));
+
+	// Turn Table Controls
+	for (int32 i = 0; i < int(EAnimationPlaybackSpeeds::NumPlaybackSpeeds); ++i)
+	{
+		CommandList.MapAction(
+			ViewportPlaybackCommands.TurnTableSpeeds[i],
+			FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetTurnTableSpeed, i),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsTurnTableSpeedSelected, i));
+	}
+
+	CommandList.MapAction(
+		ViewportPlaybackCommands.PersonaTurnTablePlay,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetTurnTableMode, int32(EPersonaTurnTableMode::Playing)),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsTurnTableModeSelected, int32(EPersonaTurnTableMode::Playing)));
+
+	CommandList.MapAction(
+		ViewportPlaybackCommands.PersonaTurnTablePause,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetTurnTableMode, int32(EPersonaTurnTableMode::Paused)),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsTurnTableModeSelected, int32(EPersonaTurnTableMode::Paused)));
+
+	CommandList.MapAction(
+		ViewportPlaybackCommands.PersonaTurnTableStop,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetTurnTableMode, int32(EPersonaTurnTableMode::Stopped)),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsTurnTableModeSelected, int32(EPersonaTurnTableMode::Stopped)));
+}
+
+void SAnimationEditorViewportTabBody::OnSetTurnTableSpeed(int32 SpeedIndex)
+{
+	SelectedTurnTableSpeed = (EAnimationPlaybackSpeeds::Type)SpeedIndex;
+
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	if (PreviewComponent)
+	{
+		PreviewComponent->TurnTableSpeedScaling = EAnimationPlaybackSpeeds::Values[SelectedTurnTableSpeed];
+	}
+}
+
+bool SAnimationEditorViewportTabBody::IsTurnTableSpeedSelected(int32 SpeedIndex) const
+{
+	return (SelectedTurnTableSpeed == SpeedIndex);
+}
+
+void SAnimationEditorViewportTabBody::OnSetTurnTableMode(int32 ModeIndex)
+{
+	SelectedTurnTableMode = (EPersonaTurnTableMode::Type)ModeIndex;
+
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	if (PreviewComponent)
+	{
+		PreviewComponent->TurnTableMode = SelectedTurnTableMode;
+
+		if (SelectedTurnTableMode == EPersonaTurnTableMode::Stopped)
+		{
+			PreviewComponent->SetRelativeRotation(FRotator::ZeroRotator);
+		}
+	}
+}
+
+bool SAnimationEditorViewportTabBody::IsTurnTableModeSelected(int32 ModeIndex) const
+{
+	return (SelectedTurnTableMode == ModeIndex);
 }
 
 bool SAnimationEditorViewportTabBody::IsPreviewModeOn(int32 PreviewMode) const
@@ -1453,6 +1522,12 @@ void SAnimationEditorViewportTabBody::UpdateViewportClientPlaybackScale()
 {
 	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
 	AnimViewportClient->SetPlaybackScale(EAnimationPlaybackSpeeds::Values[AnimationPlaybackSpeedMode]);
+
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	if (PreviewComponent)
+	{
+		PreviewComponent->PlaybackSpeedScaling = EAnimationPlaybackSpeeds::Values[AnimationPlaybackSpeedMode];
+	}
 }
 
 void SAnimationEditorViewportTabBody::OnLODChanged()

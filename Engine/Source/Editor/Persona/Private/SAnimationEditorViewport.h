@@ -350,10 +350,24 @@ private:
 	/** Whether or not we are previewing root motion */
 	bool IsPreviewingRootMotion() const;
 
+private:
+	/** Selected Turn Table speed  */
+	EAnimationPlaybackSpeeds::Type SelectedTurnTableSpeed;
+	/** Selected turn table mode */
+	EPersonaTurnTableMode::Type SelectedTurnTableMode;
+
+	void OnSetTurnTableSpeed(int32 SpeedIndex);
+	void OnSetTurnTableMode(int32 ModeIndex);
+	bool IsTurnTableModeSelected(int32 ModeIndex) const;
+
+public:
+	bool IsTurnTableSpeedSelected(int32 SpeedIndex) const;
+
 #if WITH_APEX_CLOTHING
 	/** 
 	 * clothing show options 
 	*/
+private:
 	/** disable cloth simulation */
 	void OnDisableClothSimulation();
 	bool IsDisablingClothSimulation() const;
@@ -454,9 +468,6 @@ private:
 private:
 	friend class FPersona;
 
-	/** Function to replace root translation */
-	void UpdateMeshRootTranslation(const FText& NewText, ETextCommit::Type CommitInfo, int32 Dimension);
-
 	EVisibility GetViewportCornerImageVisibility() const;
 	const FSlateBrush* GetViewportCornerImage() const;
 
@@ -464,4 +475,5 @@ private:
 	FText GetViewportCornerText() const;
 	FText GetViewportCornerTooltip() const;
 	FReply ClickedOnViewportCornerText();
+
 };

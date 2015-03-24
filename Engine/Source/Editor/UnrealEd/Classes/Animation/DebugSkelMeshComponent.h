@@ -35,6 +35,17 @@ struct FSelectedSocketInfo
 
 };
 
+/** Different modes for Persona's Turn Table. */
+namespace EPersonaTurnTableMode
+{
+	enum Type
+	{
+		Stopped,
+		Playing,
+		Paused
+	};
+};
+
 UCLASS(transient, MinimalAPI)
 class UDebugSkelMeshComponent : public USkeletalMeshComponent
 {
@@ -267,6 +278,16 @@ private:
 
 	// Helper function to generate space bases for current frame
 	void GenSpaceBases(TArray<FTransform>& OutSpaceBases);
+
+public:
+	/** Current turn table mode */
+	EPersonaTurnTableMode::Type TurnTableMode;
+	/** Current turn table speed scaling */
+	float TurnTableSpeedScaling;
+	/** Current playback speed scaling. */
+	float PlaybackSpeedScaling;
+
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 };
 
 

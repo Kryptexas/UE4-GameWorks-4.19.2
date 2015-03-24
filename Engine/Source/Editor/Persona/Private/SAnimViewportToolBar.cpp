@@ -323,7 +323,20 @@ void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class 
 				SNew( SEditorViewportToolbarMenu )
 				.ParentToolBar( SharedThis( this ) )
 				.Label( this, &SAnimViewportToolBar::GetPlaybackMenuLabel )
+				.LabelIcon(FEditorStyle::GetBrush("AnimViewportMenu.PlayBackSpeed"))
 				.OnGetMenuContent( this, &SAnimViewportToolBar::GeneratePlaybackMenu ) 
+			]
+
+			// Turn table menu
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2.0f, 2.0f)
+			[
+				SNew(SEditorViewportToolbarMenu)
+				.ParentToolBar(SharedThis(this))
+				.Label(this, &SAnimViewportToolBar::GetTurnTableMenuLabel)
+				.LabelIcon(FEditorStyle::GetBrush("AnimViewportMenu.TurnTableSpeed"))
+				.OnGetMenuContent(this, &SAnimViewportToolBar::GenerateTurnTableMenu)
 			]
 				
  			+SHorizontalBox::Slot()
@@ -762,6 +775,56 @@ TSharedRef<SWidget> SAnimViewportToolBar::GeneratePlaybackMenu() const
 	return PlaybackMenuBuilder.MakeWidget();
 
 }
+
+TSharedRef<SWidget> SAnimViewportToolBar::GenerateTurnTableMenu() const
+{
+	const FAnimViewportPlaybackCommands& Actions = FAnimViewportPlaybackCommands::Get();
+
+	const bool bInShouldCloseWindowAfterMenuSelection = true;
+
+	FMenuBuilder TurnTableMenuBuilder(bInShouldCloseWindowAfterMenuSelection, Viewport.Pin()->GetCommandList());
+	{
+		TurnTableMenuBuilder.BeginSection("AnimViewportTurnTableMode", LOCTEXT("TurnTableMenu_ModeLabel", "Turn Table Mode"));
+		{
+			TurnTableMenuBuilder.AddMenuEntry(Actions.PersonaTurnTablePlay);
+			TurnTableMenuBuilder.AddMenuEntry(Actions.PersonaTurnTablePause);
+			TurnTableMenuBuilder.AddMenuEntry(Actions.PersonaTurnTableStop);
+		}
+		TurnTableMenuBuilder.EndSection();
+
+		TurnTableMenuBuilder.BeginSection("AnimViewportTurnTableSpeed", LOCTEXT("TurnTableMenu_SpeedLabel", "Turn Table Speed"));
+		{
+			for (int i = 0; i < EAnimationPlaybackSpeeds::NumPlaybackSpeeds; ++i)
+			{
+				TurnTableMenuBuilder.AddMenuEntry(Actions.TurnTableSpeeds[i]);
+			}
+		}
+		TurnTableMenuBuilder.EndSection();
+	}
+
+	return TurnTableMenuBuilder.MakeWidget();
+}
+
+FText SAnimViewportToolBar::GetTurnTableMenuLabel() const
+{
+	FText Label = LOCTEXT("TurnTableError", "Error");
+	if (Viewport.IsValid())
+	{
+		for (int i = 0; i < EAnimationPlaybackSpeeds::NumPlaybackSpeeds; ++i)
+		{
+			if (Viewport.Pin()->IsTurnTableSpeedSelected(i))
+			{
+				Label = FText::FromString(FString::Printf(
+					(i == EAnimationPlaybackSpeeds::Quarter) ? TEXT("x%.2f") : TEXT("x%.1f"),
+					EAnimationPlaybackSpeeds::Values[i]
+					));
+				break;
+			}
+		}
+	}
+	return Label;
+}
+
 
 FSlateColor SAnimViewportToolBar::GetFontColor() const
 {

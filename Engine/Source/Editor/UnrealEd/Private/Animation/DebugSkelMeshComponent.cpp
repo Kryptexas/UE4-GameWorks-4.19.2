@@ -88,6 +88,10 @@ UDebugSkelMeshComponent::UDebugSkelMeshComponent(const FObjectInitializer& Objec
 	bMeshSocketsVisible = true;
 	bSkeletonSocketsVisible = true;
 
+	TurnTableSpeedScaling = 1.f;
+	PlaybackSpeedScaling = 1.f;
+	TurnTableMode = EPersonaTurnTableMode::Stopped;
+
 #if WITH_APEX_CLOTHING
 	SectionsDisplayMode = ESectionDisplayMode::None;
 	// always shows cloth morph target when previewing in editor
@@ -192,7 +196,14 @@ void UDebugSkelMeshComponent::ConsumeRootMotion(const FVector& FloorMin, const F
 	}
 	else
 	{
-		SetWorldTransform(FTransform());
+		if (TurnTableMode == EPersonaTurnTableMode::Stopped)
+		{
+			SetWorldTransform(FTransform());
+		}
+		else
+		{
+			SetRelativeLocation(FVector::ZeroVector);
+		}
 	}
 }
 
@@ -691,3 +702,16 @@ void UDebugSkelMeshComponent::CheckClothTeleport(float DeltaTime)
 }
 
 #endif // #if WITH_APEX_CLOTHING
+
+void UDebugSkelMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
+{
+	if (TurnTableMode == EPersonaTurnTableMode::Playing)
+	{
+		FRotator Rotation = GetRelativeTransform().Rotator();
+		// Take into account PlaybackSpeedScaling, so it doesn't affect turn table turn rate.
+		Rotation.Yaw += 36.f * TurnTableSpeedScaling * DeltaTime / FMath::Max(PlaybackSpeedScaling, KINDA_SMALL_NUMBER);
+		SetRelativeRotation(Rotation);
+	}
+
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+}
