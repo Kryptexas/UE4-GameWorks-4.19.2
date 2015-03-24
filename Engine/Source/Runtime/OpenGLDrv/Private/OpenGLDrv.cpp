@@ -387,7 +387,7 @@ void FOpenGLDynamicRHI::IssueLongGPUTask()
 
 		const auto FeatureLevel = GMaxRHIFeatureLevel;
 
-		FRHICommandList_RecursiveHazardous RHICmdList;
+		FRHICommandList_RecursiveHazardous RHICmdList(this);
 		SetRenderTarget(RHICmdList, Viewport->GetBackBuffer(), FTextureRHIRef());
 		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI(), FLinearColor::Black);
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI(), 0);

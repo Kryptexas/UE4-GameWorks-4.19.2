@@ -21,7 +21,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogMetal, Display, All);
 class FMetalManager;
 
 /** The interface which is implemented by the dynamically bound RHI. */
-class FMetalDynamicRHI : public FDynamicRHI
+class FMetalDynamicRHI : public FDynamicRHI, public IRHICommandContext
 {
 public:
 

@@ -776,7 +776,7 @@ void FMetalDynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 		PixelShader = *MRTPixelShader;
 
 		{
-			FRHICommandList_RecursiveHazardous RHICmdList;
+			FRHICommandList_RecursiveHazardous RHICmdList(this);
 			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, GClearMRTBoundShaderState[0], GVector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
 			FLinearColor ShaderClearColors[MaxSimultaneousRenderTargets];
 			FMemory::Memzero(ShaderClearColors);
@@ -892,4 +892,16 @@ void FMetalDynamicRHI::RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, fl
 {
 	// not supported
 }
+
+IRHICommandContext* FMetalDynamicRHI::RHIGetDefaultContext()
+{
+	return this;
+}
+
+IRHICommandContextContainer* FMetalDynamicRHI::RHIGetCommandContextContainer()
+{
+	return nullptr;
+}
+
+
 

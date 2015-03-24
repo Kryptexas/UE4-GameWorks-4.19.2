@@ -37,17 +37,9 @@ FRenderQueryRHIRef FD3D11DynamicRHI::RHICreateRenderQuery(ERenderQueryType Query
 	return new FD3D11OcclusionQuery(Query, QueryType);
 }
 
-#if !PLATFORM_SUPPORTS_RHI_THREAD
-void FD3D11DynamicRHI::RHIResetRenderQuery(FRenderQueryRHIParamRef QueryRHI)
-{
-	DYNAMIC_CAST_D3D11RESOURCE(OcclusionQuery,Query);
-
-	Query->bResultIsCached = false;
-}
-#endif
-
 bool FD3D11DynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI,uint64& OutResult,bool bWait)
 {
+	check(IsInRenderingThread());
 	DYNAMIC_CAST_D3D11RESOURCE(OcclusionQuery,Query);
 
 	bool bSuccess = true;
@@ -81,9 +73,7 @@ void FD3D11DynamicRHI::RHIBeginRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 
 	if(Query->QueryType == RQT_Occlusion)
 	{
-#if PLATFORM_SUPPORTS_RHI_THREAD
 		Query->bResultIsCached = false;
-#endif
 		Direct3DDeviceIMContext->Begin(Query->Resource);
 	}
 	else
@@ -96,11 +86,7 @@ void FD3D11DynamicRHI::RHIBeginRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 void FD3D11DynamicRHI::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 {
 	DYNAMIC_CAST_D3D11RESOURCE(OcclusionQuery,Query);
-#if PLATFORM_SUPPORTS_RHI_THREAD
 	Query->bResultIsCached = false; // for occlusion queries, this is redundant with the one in begin
-#elif PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult
-	#error "PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult requires PLATFORM_SUPPORTS_RHI_THREAD"
-#endif
 	Direct3DDeviceIMContext->End(Query->Resource);
 
 	//@todo - d3d debug spews warnings about OQ's that are being issued but not polled, need to investigate

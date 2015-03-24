@@ -127,7 +127,7 @@ FParallelCommandListSet::FParallelCommandListSet(const FViewInfo& InView, FRHICo
 	, ParentCmdList(InParentCmdList)
 	, OutDirtyIfIgnored(false)
 	, OutDirty(InOutDirty ? *InOutDirty : OutDirtyIfIgnored)
-	, bParallelExecute(bInParallelExecute)
+	, bParallelExecute(GRHISupportsParallelRHIExecute && bInParallelExecute)
 {
 	Width = CVarRHICmdWidth.GetValueOnRenderThread();
 	CommandLists.Reserve(Width * 8);
@@ -138,14 +138,13 @@ FParallelCommandListSet::FParallelCommandListSet(const FViewInfo& InView, FRHICo
 void FParallelCommandListSet::Dispatch()
 {
 	check(CommandLists.Num() == Events.Num());
-#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
 	if (bParallelExecute && CommandLists.Num())
 	{
+		check(GRHISupportsParallelRHIExecute);
 		ParentCmdList.QueueParallelAsyncCommandListSubmit(&Events[0], &CommandLists[0], CommandLists.Num());
 		SetStateOnCommandList(ParentCmdList);
 	}
 	else
-#endif
 	{
 		for (int32 Index = 0; Index < CommandLists.Num(); Index++)
 		{

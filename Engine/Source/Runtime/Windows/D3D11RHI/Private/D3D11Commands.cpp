@@ -55,68 +55,6 @@ DECLARE_ISBOUNDSHADER(ComputeShader)
 	#include <GPUPerfAPI/Gpa.h>
 #endif
 
-#if PLATFORM_SUPPORTS_RHI_THREAD
-void FD3D11DynamicRHI::SetupRecursiveResources()
-{
-	FRHICommandList_RecursiveHazardous RHICmdList;
-	extern int32 GCreateShadersOnLoad;
-	TGuardValue<int32> Guard(GCreateShadersOnLoad, 1);
-	auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
-	TShaderMapRef<TOneColorVS<true> > VertexShader(ShaderMap);
-	GD3D11Vector4VertexDeclaration.InitRHI();
-
-	for (int32 NumBuffers = 1; NumBuffers <= MaxSimultaneousRenderTargets; NumBuffers++)
-	{
-		FOneColorPS* PixelShader = NULL;
-
-		// Set the shader to write to the appropriate number of render targets
-		// On AMD PC hardware, outputting to a color index in the shader without a matching render target set has a significant performance hit
-		if (NumBuffers <= 1)
-		{
-			TShaderMapRef<TOneColorPixelShaderMRT<1> > MRTPixelShader(ShaderMap);
-			PixelShader = *MRTPixelShader;
-		}
-		else if (NumBuffers == 2)
-		{
-			TShaderMapRef<TOneColorPixelShaderMRT<2> > MRTPixelShader(ShaderMap);
-			PixelShader = *MRTPixelShader;
-		}
-		else if (NumBuffers== 3)
-		{
-			TShaderMapRef<TOneColorPixelShaderMRT<3> > MRTPixelShader(ShaderMap);
-			PixelShader = *MRTPixelShader;
-		}
-		else if (NumBuffers == 4)
-		{
-			TShaderMapRef<TOneColorPixelShaderMRT<4> > MRTPixelShader(ShaderMap);
-			PixelShader = *MRTPixelShader;
-		}
-		else if (NumBuffers == 5)
-		{
-			TShaderMapRef<TOneColorPixelShaderMRT<5> > MRTPixelShader(ShaderMap);
-			PixelShader = *MRTPixelShader;
-		}
-		else if (NumBuffers == 6)
-		{
-			TShaderMapRef<TOneColorPixelShaderMRT<6> > MRTPixelShader(ShaderMap);
-			PixelShader = *MRTPixelShader;
-		}
-		else if (NumBuffers == 7)
-		{
-			TShaderMapRef<TOneColorPixelShaderMRT<7> > MRTPixelShader(ShaderMap);
-			PixelShader = *MRTPixelShader;
-		}
-		else if (NumBuffers == 8)
-		{
-			TShaderMapRef<TOneColorPixelShaderMRT<8> > MRTPixelShader(ShaderMap);
-			PixelShader = *MRTPixelShader;
-		}
-
-		SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, GD3D11ClearMRTBoundShaderState[NumBuffers - 1], GD3D11Vector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
-	}
-}
-#endif
-
 void FD3D11DynamicRHI::RHIGpuTimeBegin(uint32 Hash, bool bCompute)
 {
 	#if WITH_GPA
@@ -1819,7 +1757,7 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 		}
 
 		{
-			FRHICommandList_RecursiveHazardous RHICmdList;
+			FRHICommandList_RecursiveHazardous RHICmdList(this);
 			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, GD3D11ClearMRTBoundShaderState[FMath::Max(BoundRenderTargets.GetNumActiveTargets() - 1, 0)], GD3D11Vector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
 			FLinearColor ShaderClearColors[MaxSimultaneousRenderTargets];
 			FMemory::Memzero(ShaderClearColors);
@@ -1992,3 +1930,14 @@ void FD3D11DynamicRHI::RHIEnableDepthBoundsTest(bool bEnable,float MinDepth,floa
 	}
 #endif
 }
+
+IRHICommandContext* FD3D11DynamicRHI::RHIGetDefaultContext()
+{
+	return this;
+}
+
+IRHICommandContextContainer* FD3D11DynamicRHI::RHIGetCommandContextContainer()
+{
+	return nullptr;
+}
+

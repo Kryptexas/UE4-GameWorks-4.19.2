@@ -32,22 +32,12 @@ FRenderQueryRHIRef FOpenGLDynamicRHI::RHICreateRenderQuery(ERenderQueryType Quer
 	return new FOpenGLRenderQuery(QueryType);
 }
 
-void FOpenGLDynamicRHI::RHIResetRenderQuery(FRenderQueryRHIParamRef QueryRHI)
-{
-	DYNAMIC_CAST_OPENGLRESOURCE(RenderQuery,Query);
-
-	if (Query)
-	{
-		Query->bResultIsCached = false;
-	}
-}
-
 void FOpenGLDynamicRHI::RHIBeginRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 {
 	VERIFY_GL_SCOPE();
 
 	DYNAMIC_CAST_OPENGLRESOURCE(RenderQuery,Query);
-
+	Query->bResultIsCached = false;
 	if(Query->QueryType == RQT_Occlusion)
 	{
 		check(PendingState.RunningOcclusionQuery == 0);
@@ -108,6 +98,7 @@ void FOpenGLDynamicRHI::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 
 bool FOpenGLDynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI,uint64& OutResult,bool bWait)
 {
+	check(IsInRenderingThread());
 	VERIFY_GL_SCOPE();
 
 	DYNAMIC_CAST_OPENGLRESOURCE(RenderQuery,Query);

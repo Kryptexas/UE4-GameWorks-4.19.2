@@ -46,15 +46,9 @@ FRenderQueryRHIRef FMetalDynamicRHI::RHICreateRenderQuery(ERenderQueryType Query
 	return new FMetalRenderQuery(QueryType);
 }
 
-void FMetalDynamicRHI::RHIResetRenderQuery(FRenderQueryRHIParamRef QueryRHI)
-{
-	DYNAMIC_CAST_METALRESOURCE(RenderQuery,Query);
-
-//	NOT_SUPPORTED("RHIResetRenderQuery");
-}
-
 bool FMetalDynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI,uint64& OutNumPixels,bool bWait)
 {
+	check(IsInRenderingThread());
 	DYNAMIC_CAST_METALRESOURCE(RenderQuery, Query);
 
 	uint32* QueryMemory = (uint32*)((uint8*)[FMetalManager::Get()->GetQueryBuffer() contents] + Query->Offset);

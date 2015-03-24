@@ -134,14 +134,12 @@ void FGPUBaseSkinVertexFactory::ShaderDataType::UpdateBoneData(ERHIFeatureLevel:
 		}
 		if(NumBones)
 		{
-#if PLATFORM_SUPPORTS_RHI_THREAD
-			check(VectorArraySize == NumBones * sizeof(BoneMatrices[0]));
 			if (GRHIThread)
 			{
+				check(VectorArraySize == NumBones * sizeof(BoneMatrices[0]));
 				GRHICommandList.GetImmediateCommandList().UpdateVertexBuffer(BoneBuffer.VertexBufferRHI, BoneMatrices.GetData(), NumBones * sizeof(BoneMatrices[0]));
 			}
 			else
-#endif
 			{
 				float* Data = (float*)RHILockVertexBuffer(BoneBuffer.VertexBufferRHI, 0, VectorArraySize, RLM_WriteOnly);
 				checkSlow(Data);

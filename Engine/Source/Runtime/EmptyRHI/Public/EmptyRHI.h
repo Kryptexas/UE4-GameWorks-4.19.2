@@ -18,7 +18,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogEmpty, Display, All)
 #include "EmptyViewport.h"
 
 /** The interface which is implemented by the dynamically bound RHI. */
-class FEmptyDynamicRHI : public FDynamicRHI
+class FEmptyDynamicRHI : public FDynamicRHI, public IRHICommandContext
 {
 public:
 

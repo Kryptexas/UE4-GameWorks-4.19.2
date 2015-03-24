@@ -3098,23 +3098,26 @@ bool UEngine::HandleToggleRenderingThreadCommand( const TCHAR* Cmd, FOutputDevic
 
 bool UEngine::HandleToggleRHIThreadCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
-#if PLATFORM_SUPPORTS_RHI_THREAD
-	if (!GIsThreadedRendering)
+	if (GRHISupportsRHIThread)
 	{
-		check(!GRHIThread);
-		Ar.Logf( TEXT("Can't switch to RHI thread mode when we are not running a multithreaded renderer."));
+		if (!GIsThreadedRendering)
+		{
+			check(!GRHIThread);
+			Ar.Logf( TEXT("Can't switch to RHI thread mode when we are not running a multithreaded renderer."));
+		}
+		else
+		{
+			bool bWasRHIThread = !!GRHIThread;
+			StopRenderingThread();
+			GUseRHIThread = !bWasRHIThread;
+			StartRenderingThread();
+		}
+		Ar.Logf( TEXT("RHIThread is now %s."), GRHIThread ? TEXT("active") : TEXT("inactive"));
 	}
 	else
 	{
-		bool bWasRHIThread = !!GRHIThread;
-		StopRenderingThread();
-		GUseRHIThread = !bWasRHIThread;
-		StartRenderingThread();
+		Ar.Logf( TEXT("This RHI does not support the RHI thread."));
 	}
-	Ar.Logf( TEXT("RHIThread is now %s."), GRHIThread ? TEXT("active") : TEXT("inactive"));
-#else
-	Ar.Logf( TEXT("This platform does not support the RHI thread."));
-#endif
 	return true;
 }
 

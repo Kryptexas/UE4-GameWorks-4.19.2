@@ -253,14 +253,6 @@
 	#define PLATFORM_SUPPORTS_NAMED_PIPES		0
 #endif
 
-#ifndef PLATFORM_SUPPORTS_RHI_THREAD
-	#define PLATFORM_SUPPORTS_RHI_THREAD		0
-#endif
-
-#ifndef PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult
-	#define PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult		0
-#endif
-
 #ifndef PLATFORM_USES_FIXED_RHI_CLASS
 	#define PLATFORM_USES_FIXED_RHI_CLASS		0
 #endif
@@ -281,18 +273,12 @@
 	#define PLATFORM_USES_ANSI_STRING_FOR_EXTERNAL_PROFILING 1
 #endif
 
-#ifndef PLATFORM_RHI_USES_CONTEXT_OBJECT
-	#define PLATFORM_RHI_USES_CONTEXT_OBJECT 0
-#endif
+// deprecated, do not use
+#define PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult	#
+#define PLATFORM_SUPPORTS_RHI_THREAD #
+#define PLATFORM_RHI_USES_CONTEXT_OBJECT # // deprecated, do not use; all platforms must use a context object
+#define PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE # // deprecated, do not use; see GRHISupportsParallelRHIExecute
 
-#ifndef PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
-	#define PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE		0
-#endif
-
-
-#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE && !PLATFORM_RHI_USES_CONTEXT_OBJECT
-	#error "PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE requires PLATFORM_RHI_USES_CONTEXT_OBJECT"
-#endif
 
 //These are deprecated old defines that we want to make sure are not used
 #define CONSOLE (#)

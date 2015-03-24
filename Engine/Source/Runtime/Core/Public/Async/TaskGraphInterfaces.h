@@ -35,9 +35,7 @@ namespace ENamedThreads
 #if STATS
 		StatsThread, 
 #endif
-#if PLATFORM_SUPPORTS_RHI_THREAD
 		RHIThread,
-#endif
 		GameThread,
 		// The render thread is sometimes the game thread and is sometimes the actual rendering thread
 		ActualRenderingThread = GameThread + 1,

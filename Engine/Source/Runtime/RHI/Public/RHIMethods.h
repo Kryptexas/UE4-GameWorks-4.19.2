@@ -470,6 +470,7 @@ DEFINE_RHIMETHOD_GLOBAL_1(
 
 /**
  * Creates a bound shader state instance which encapsulates a decl, vertex shader, hull shader, domain shader and pixel shader
+ * CAUTION: Even though this is marked as threadsafe, it is only valid to call from the render thread or the RHI thread. Thus is need not be threadsafe on platforms that do not support or aren't using an RHIThread
  * @param VertexDeclaration - existing vertex decl
  * @param VertexShader - existing vertex shader
  * @param HullShader - existing hull shader
@@ -478,37 +479,16 @@ DEFINE_RHIMETHOD_GLOBAL_1(
  * @param PixelShader - existing pixel shader
  */
 
-#if !defined(HAS_THREADSAFE_CreateBoundShaderState)
-	#define HAS_THREADSAFE_CreateBoundShaderState PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
-#endif
-
-#if HAS_THREADSAFE_CreateBoundShaderState != PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
-	#error "HAS_THREADSAFE_CreateBoundShaderState changed meaning"
-#endif
-
-#if HAS_THREADSAFE_CreateBoundShaderState
-	DEFINE_RHIMETHOD_GLOBALTHREADSAFE_6(
-		FBoundShaderStateRHIRef,CreateBoundShaderState,
-		FVertexDeclarationRHIParamRef,VertexDeclaration,
-		FVertexShaderRHIParamRef,VertexShader,
-		FHullShaderRHIParamRef,HullShader,
-		FDomainShaderRHIParamRef,DomainShader,
-		FPixelShaderRHIParamRef,PixelShader,
-		FGeometryShaderRHIParamRef,GeometryShader,
-		return,return new FRHIBoundShaderState();
-	);
-#else
-	DEFINE_RHIMETHOD_GLOBAL_6(
-		FBoundShaderStateRHIRef,CreateBoundShaderState,
-		FVertexDeclarationRHIParamRef,VertexDeclaration,
-		FVertexShaderRHIParamRef,VertexShader,
-		FHullShaderRHIParamRef,HullShader,
-		FDomainShaderRHIParamRef,DomainShader,
-		FPixelShaderRHIParamRef,PixelShader,
-		FGeometryShaderRHIParamRef,GeometryShader,
-		return,return new FRHIBoundShaderState();
-		);
-#endif
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_6(
+	FBoundShaderStateRHIRef,CreateBoundShaderState,
+	FVertexDeclarationRHIParamRef,VertexDeclaration,
+	FVertexShaderRHIParamRef,VertexShader,
+	FHullShaderRHIParamRef,HullShader,
+	FDomainShaderRHIParamRef,DomainShader,
+	FPixelShaderRHIParamRef,PixelShader,
+	FGeometryShaderRHIParamRef,GeometryShader,
+	return,return new FRHIBoundShaderState();
+);
 
 /**
  *Sets the current compute shader.  Mostly for compliance with platforms
@@ -558,28 +538,18 @@ DEFINE_RHIMETHOD_CMDLIST_2(
 
 /**
  * Creates a uniform buffer.  The contents of the uniform buffer are provided in a parameter, and are immutable.
+ * CAUTION: Even though this is marked as threadsafe, it is only valid to call from the render thread or the RHI thread. Thus is need not be threadsafe on platforms that do not support or aren't using an RHIThread
  * @param Contents - A pointer to a memory block of size NumBytes that is copied into the new uniform buffer.
  * @param NumBytes - The number of bytes the uniform buffer should contain.
  * @return The new uniform buffer.
  */
-#if PLATFORM_SUPPORTS_RHI_THREAD
-	DEFINE_RHIMETHOD_GLOBALTHREADSAFE_3(
-		FUniformBufferRHIRef,CreateUniformBuffer,
-		const void*,Contents,
-		const FRHIUniformBufferLayout&,Layout,
-		EUniformBufferUsage,Usage,
-		return,return new FRHIUniformBuffer(Layout);
-	);
-#else
-	DEFINE_RHIMETHOD_GLOBAL_3(
-		FUniformBufferRHIRef,CreateUniformBuffer,
-		const void*,Contents,
-		const FRHIUniformBufferLayout&,Layout,
-		EUniformBufferUsage,Usage,
-		return,return new FRHIUniformBuffer(Layout);
-	);
-#endif
-
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_3(
+	FUniformBufferRHIRef,CreateUniformBuffer,
+	const void*,Contents,
+	const FRHIUniformBufferLayout&,Layout,
+	EUniformBufferUsage,Usage,
+	return,return new FRHIUniformBuffer(Layout);
+);
 
 DEFINE_RHIMETHOD_GLOBAL_4(
 	FIndexBufferRHIRef,CreateIndexBuffer,
@@ -1292,14 +1262,6 @@ DEFINE_RHIMETHOD_GLOBAL_1(
 	return,return new FRHIRenderQuery();
 	);
 
-#if !PLATFORM_SUPPORTS_RHI_THREAD
-DEFINE_RHIMETHOD_CMDLIST_1(
-	void,ResetRenderQuery,
-	FRenderQueryRHIParamRef,RenderQuery,
-	,
-	);
-#endif
-
 DEFINE_RHIMETHOD_CMDLIST_1(
 	void,BeginRenderQuery,
 	FRenderQueryRHIParamRef,RenderQuery,
@@ -1310,23 +1272,15 @@ DEFINE_RHIMETHOD_CMDLIST_1(
 	FRenderQueryRHIParamRef,RenderQuery,
 	,
 	);
-#if PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult
-	DEFINE_RHIMETHOD_GLOBALTHREADSAFE_3(
-		bool,GetRenderQueryResult,
-		FRenderQueryRHIParamRef,RenderQuery,
-		uint64&,OutResult,
-		bool,bWait,
-		return,return true;
-	);
-#else
-	DEFINE_RHIMETHOD_3(
-		bool,GetRenderQueryResult,
-		FRenderQueryRHIParamRef,RenderQuery,
-		uint64&,OutResult,
-		bool,bWait,
-		return,return true;
-	);
-#endif
+
+// CAUTION: Even though this is marked as threadsafe, it is only valid to call from the render thread. It is need not be threadsafe on platforms that do not support or aren't using an RHIThread
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_3(
+	bool,GetRenderQueryResult,
+	FRenderQueryRHIParamRef,RenderQuery,
+	uint64&,OutResult,
+	bool,bWait,
+	return,return true;
+);
 
 DEFINE_RHIMETHOD_CMDLIST_0(
 	void,BeginOcclusionQueryBatch,
@@ -1337,102 +1291,65 @@ DEFINE_RHIMETHOD_CMDLIST_0(
 	,
 	);
 
-#if PLATFORM_SUPPORTS_RHI_THREAD
-	DEFINE_RHIMETHOD_CMDLIST_2(
-		void,BeginDrawingViewport,
-		FViewportRHIParamRef,Viewport,
-		FTextureRHIParamRef,RenderTargetRHI,
-		,
-		);
-	DEFINE_RHIMETHOD_CMDLIST_3(
-		void,EndDrawingViewport,
-		FViewportRHIParamRef,Viewport,
-		bool,bPresent,
-		bool,bLockToVsync,
-		,
-		);
-	DEFINE_RHIMETHOD_GLOBALTHREADSAFE_1(
-		FTexture2DRHIRef,GetViewportBackBuffer,
-		FViewportRHIParamRef,Viewport,
-		return,return new FRHITexture2D(1,1,1,1,PF_B8G8R8A8,TexCreate_RenderTargetable);
+// This method is queued with an RHIThread, otherwise it will flush after it is queued; without an RHI thread there is no benefit to queuing this frame advance commands
+DEFINE_RHIMETHOD_CMDLIST_2(
+	void,BeginDrawingViewport,
+	FViewportRHIParamRef,Viewport,
+	FTextureRHIParamRef,RenderTargetRHI,
+	,
 	);
-	DEFINE_RHIMETHOD_CMDLIST_0(
-		void,BeginFrame,
-		return,return;
+// This method is queued with an RHIThread, otherwise it will flush after it is queued; without an RHI thread there is no benefit to queuing this frame advance commands
+DEFINE_RHIMETHOD_CMDLIST_3(
+	void,EndDrawingViewport,
+	FViewportRHIParamRef,Viewport,
+	bool,bPresent,
+	bool,bLockToVsync,
+	,
+	);
+// With RHI thread, this is the current backbuffer from the perspecitve of the render thread.
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_1(
+	FTexture2DRHIRef,GetViewportBackBuffer,
+	FViewportRHIParamRef,Viewport,
+	return,return new FRHITexture2D(1,1,1,1,PF_B8G8R8A8,TexCreate_RenderTargetable);
+);
+// This method is queued with an RHIThread, otherwise it will flush after it is queued; without an RHI thread there is no benefit to queuing this frame advance commands
+DEFINE_RHIMETHOD_CMDLIST_0(
+	void,BeginFrame,
+	return,return;
+);
+
+// This method is queued with an RHIThread, otherwise it will flush after it is queued; without an RHI thread there is no benefit to queuing this frame advance commands
+DEFINE_RHIMETHOD_CMDLIST_0(
+	void,EndFrame,
+	return,return;
+);
+/**
+	* Signals the beginning of scene rendering. The RHI makes certain caching assumptions between
+	* calls to BeginScene/EndScene. Currently the only restriction is that you can't update texture
+	* references.
+	*/
+// This method is queued with an RHIThread, otherwise it will flush after it is queued; without an RHI thread there is no benefit to queuing this frame advance commands
+DEFINE_RHIMETHOD_CMDLIST_0(
+	void,BeginScene,
+	return,return;
 	);
 
-	DEFINE_RHIMETHOD_CMDLIST_0(
-		void,EndFrame,
-		return,return;
+/**
+	* Signals the end of scene rendering. See RHIBeginScene.
+	*/
+// This method is queued with an RHIThread, otherwise it will flush after it is queued; without an RHI thread there is no benefit to queuing this frame advance commands
+DEFINE_RHIMETHOD_CMDLIST_0(
+	void,EndScene,
+	return,return;
 	);
-	/**
-	 * Signals the beginning of scene rendering. The RHI makes certain caching assumptions between
-	 * calls to BeginScene/EndScene. Currently the only restriction is that you can't update texture
-	 * references.
-	 */
-	DEFINE_RHIMETHOD_CMDLIST_0(
-		void,BeginScene,
-		return,return;
-		);
 
-	/**
-	 * Signals the end of scene rendering. See RHIBeginScene.
-	 */
-	DEFINE_RHIMETHOD_CMDLIST_0(
-		void,EndScene,
-		return,return;
-		);
-
-	DEFINE_RHIMETHOD_GLOBALTHREADSAFE_0(
-		void,AdvanceFrameForGetViewportBackBuffer,
-		return,return;
-		);
-
-#else
-	DEFINE_RHIMETHOD_2(
-		void,BeginDrawingViewport,
-		FViewportRHIParamRef,Viewport,
-		FTextureRHIParamRef,RenderTargetRHI,
-		,
-		);
-	DEFINE_RHIMETHOD_3(
-		void,EndDrawingViewport,
-		FViewportRHIParamRef,Viewport,
-		bool,bPresent,
-		bool,bLockToVsync,
-		,
-		);
-	DEFINE_RHIMETHOD_GLOBALFLUSH_1(
-		FTexture2DRHIRef,GetViewportBackBuffer,
-		FViewportRHIParamRef,Viewport,
-		return,return new FRHITexture2D(1,1,1,1,PF_B8G8R8A8,TexCreate_RenderTargetable);
+// Only relevant with an RHI thread, this advances the backbuffer for the purpose of GetViewportBackBuffer
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_0(
+	void,AdvanceFrameForGetViewportBackBuffer,
+	return,return;
 	);
-	DEFINE_RHIMETHOD_0(
-		void,BeginFrame,
-		return,return;
-	);
-	DEFINE_RHIMETHOD_0(
-		void,EndFrame,
-		return,return;
-	);
-	/**
-	 * Signals the beginning of scene rendering. The RHI makes certain caching assumptions between
-	 * calls to BeginScene/EndScene. Currently the only restriction is that you can't update texture
-	 * references.
-	 */
-	DEFINE_RHIMETHOD_0(
-		void,BeginScene,
-		return,return;
-		);
 
-	/**
-	 * Signals the end of scene rendering. See RHIBeginScene.
-	 */
-	DEFINE_RHIMETHOD_0(
-		void,EndScene,
-		return,return;
-		);
-#endif
+
 
 /**
  * Determine if currently drawing the viewport
@@ -2186,19 +2103,14 @@ DEFINE_RHIMETHOD_CMDLIST_0(
 	,
 	);
 
-#if PLATFORM_RHI_USES_CONTEXT_OBJECT
-	DEFINE_RHIMETHOD_GLOBALTHREADSAFE_0(
-		class IRHICommandContext*,GetDefaultContext,
-		return,return this
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_0(
+	class IRHICommandContext*,GetDefaultContext,
+	return,return this
 	);
 
-	#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
-			DEFINE_RHIMETHOD_GLOBALTHREADSAFE_1(
-				class IRHICommandContextContainer*,GetCommandContextContainer,
-				uint32, ClearTag,
-				return,return nullptr
-				);
-	#endif
+DEFINE_RHIMETHOD_GLOBALTHREADSAFE_0(
+	class IRHICommandContextContainer*,GetCommandContextContainer,
+	return,return nullptr
+	);
 
-#endif
 

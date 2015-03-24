@@ -106,6 +106,7 @@ FBoundShaderStateRHIRef FEmptyDynamicRHI::RHICreateBoundShaderState(
 	FGeometryShaderRHIParamRef GeometryShaderRHI
 	)
 {
+	check(IsInRenderingThread());
 	// Check for an existing bound shader state which matches the parameters
 	FCachedBoundShaderStateLink* CachedBoundShaderStateLink = GetCachedBoundShaderState(
 		VertexDeclarationRHI,

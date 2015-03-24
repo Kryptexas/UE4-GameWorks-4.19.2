@@ -286,7 +286,7 @@ struct FOpenGLGPUProfiler : public FGPUProfiler
 
 
 /** The interface which is implemented by the dynamically bound RHI. */
-class FOpenGLDynamicRHI : public FDynamicRHI
+class FOpenGLDynamicRHI : public FDynamicRHI, public IRHICommandContext
 {
 public:
 

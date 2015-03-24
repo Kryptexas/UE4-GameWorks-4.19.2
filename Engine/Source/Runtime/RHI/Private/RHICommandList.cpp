@@ -12,18 +12,6 @@ DECLARE_CYCLE_STAT(TEXT("All Command List Execute"), STAT_ImmedCmdListExecuteTim
 DECLARE_DWORD_COUNTER_STAT(TEXT("Immed. Command List memory"), STAT_ImmedCmdListMemory, STATGROUP_RHICMDLIST);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Immed. Command count"), STAT_ImmedCmdListCount, STATGROUP_RHICMDLIST);
 
-#if PLATFORM_SUPPORTS_RHI_THREAD
-/***
-Requirements for RHI thread
-* Microresources (those in RHIStaticStates.h) need to be able to be created by any thread at any time and be able to work with a radically simplified rhi resource lifecycle. CreateSamplerState, CreateRasterizerState, CreateDepthStencilState, CreateBlendState
-* CreateUniformBuffer needs to be threadsafe
-* GetRenderQueryResult should be threadsafe, if not, then PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult should be 1
-* AdvanceFrameForGetViewportBackBuffer needs be added as an RHI method and this needs to work with GetViewportBackBuffer to give the render thread the right back buffer even though many commands relating to the beginning and end of the frame are queued.
-* ResetRenderQuery does not exist; this stuff should be done in BeginQuery
-
-***/
-#endif
-
 #if !PLATFORM_USES_FIXED_RHI_CLASS
 #include "RHICommandListCommandExecutes.inl"
 #endif
@@ -45,21 +33,19 @@ TAutoConsoleVariable<int32> CVarRHICmdWidth(
 	8,
 	TEXT("Number of threads."));
 
-#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
 static TAutoConsoleVariable<int32> CVarRHICmdUseDeferredContexts(
 	TEXT("r.RHICmdUseDeferredContexts"),
 	1,
-	TEXT("True to use deferred contexts to parallelize command list execution."));
+	TEXT("True to use deferred contexts to parallelize command list execution. Only available on some RHIs."));
 static TAutoConsoleVariable<int32> CVarRHIDeferredContextWidth(
 	TEXT("r.RHIDeferredContextWidth"),
 	99999,
-	TEXT("Number of pieces to break a parallel translate task into. A very large number is one task per original cmd list."));
+	TEXT("Number of pieces to break a parallel translate task into. A very large number is one task per original cmd list. Only available on some RHIs."));
 
 static TAutoConsoleVariable<int32> CVarRHICmdFlushOnQueueParallelSubmit(
 	TEXT("r.RHICmdFlushOnQueueParallelSubmit"),
 	0,
-	TEXT("Wait for completion of parallel commandlists immediately after submitting.  Debug feature."));
-#endif
+	TEXT("Wait for completion of parallel commandlists immediately after submitting.  Debug feature. Only available on some RHIs."));
 
 RHI_API FRHICommandListExecutor GRHICommandList;
 
@@ -97,9 +83,7 @@ FRHICommandBase* GCurrentCommand = nullptr;
 void FRHICommandListExecutor::ExecuteInner_DoExecute(FRHICommandListBase& CmdList)
 {
 	CmdList.bExecuting = true;
-#if PLATFORM_RHI_USES_CONTEXT_OBJECT
 	check(CmdList.Context);
-#endif
 
 	bool bDoStats = false;
 	//STAT(bDoStats = FThreadStats::IsCollectingData() && (IsInRenderingThread() || IsInRHIThread());)
@@ -155,12 +139,8 @@ public:
 
 	ENamedThreads::Type GetDesiredThread()
 	{
-#if PLATFORM_SUPPORTS_RHI_THREAD
+		check(GRHIThread); // this should never be used on a platform that doesn't support the RHI thread
 		return ENamedThreads::RHIThread;
-#else
-		check(0); // this should never be used on a platform that doesn't support the RHI thread
-		return ENamedThreads::AnyThread;
-#endif
 	}
 
 	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
@@ -197,12 +177,8 @@ public:
 
 	ENamedThreads::Type GetDesiredThread()
 	{
-#if PLATFORM_SUPPORTS_RHI_THREAD
+		check(GRHIThread); // this should never be used on a platform that doesn't support the RHI thread
 		return ENamedThreads::RHIThread;
-#else
-		check(0); // this should never be used on a platform that doesn't support the RHI thread
-		return ENamedThreads::AnyThread;
-#endif
 	}
 
 	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
@@ -240,9 +216,7 @@ public:
 
 	ENamedThreads::Type GetDesiredThread()
 	{
-#if !PLATFORM_SUPPORTS_RHI_THREAD
-		check(0); // this should never be used on a platform that doesn't support the RHI thread
-#endif
+		check(GRHIThread); // this should never be used on a platform that doesn't support the RHI thread
 		return ENamedThreads::RenderThread_Local;
 	}
 
@@ -390,9 +364,7 @@ static FORCEINLINE bool IsInRenderingOrRHIThread()
 
 void FRHICommandListExecutor::ExecuteList(FRHICommandListBase& CmdList)
 {
-	check(&CmdList != &GetImmediateCommandList() &&
-		(PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE || IsInRenderingOrRHIThread())
-		);
+	check(&CmdList != &GetImmediateCommandList() && (GRHISupportsParallelRHIExecute || IsInRenderingOrRHIThread()));
 
 	if (IsInRenderingThread() && !GetImmediateCommandList().IsExecuting()) // don't flush if this is a recursive call and we are already executing the immediate command list
 	{
@@ -509,14 +481,12 @@ FGraphEventRef FRHICommandListExecutor::RHIThreadFence()
 		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
 	}
 
-#if PLATFORM_SUPPORTS_RHI_THREAD
 	// every task dispatched or executed through the flush creates a new RenderThreadExecutionTask that represents the 'execution' of the last dispatched
 	// set of RHI commands.
 	if (RenderThreadExecutionTask.GetReference() && RenderThreadExecutionTask->IsComplete())
 	{
 		RenderThreadExecutionTask = nullptr;
 	}		
-#endif
 	
 	return RenderThreadExecutionTask;
 }
@@ -562,12 +532,8 @@ void FRHICommandListBase::Reset()
 	NumCommands = 0;
 	Root = nullptr;
 	CommandLink = &Root;
-#if PLATFORM_RHI_USES_CONTEXT_OBJECT
-	static_assert(USE_DYNAMIC_RHI, "PLATFORM_RHI_USES_CONTEXT_OBJECT current requires a dynamic RHI");
+	static_assert(USE_DYNAMIC_RHI, "static RHIs are not supported.");
 	Context = GDynamicRHI ? RHIGetDefaultContext() : nullptr;
-#else
-	Context = nullptr;
-#endif
 #if USE_RHICOMMAND_STATE_REDUCTION
 	StateCache = nullptr;
 #endif
@@ -575,7 +541,6 @@ void FRHICommandListBase::Reset()
 }
 
 
-#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
 DECLARE_CYCLE_STAT(TEXT("Parallel Async Chain Translate"), STAT_ParallelChainTranslate, STATGROUP_RHICMDLIST);
 
 class FParallelTranslateCommandList
@@ -666,7 +631,6 @@ struct FRHICommandWaitForAndSubmitSubListParallel : public FRHICommand<FRHIComma
 		}
 	}
 };
-#endif
 
 
 
@@ -714,8 +678,6 @@ void FRHICommandListBase::QueueParallelAsyncCommandListSubmit(FGraphEventRef* An
 	{
 		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread); // we should start on the stuff before this async list
 	}
-#if PLATFORM_SUPPORTS_PARALLEL_RHI_EXECUTE
-
 #if !UE_BUILD_SHIPPING
 	// do a flush before hand so we can tell if it was this parallel set that broke something, or what came before.
 	if (CVarRHICmdFlushOnQueueParallelSubmit.GetValueOnRenderThread())
@@ -727,9 +689,9 @@ void FRHICommandListBase::QueueParallelAsyncCommandListSubmit(FGraphEventRef* An
 	if (Num && GRHIThread)
 	{
 		IRHICommandContextContainer* ContextContainer = nullptr;
-		if (CVarRHICmdUseDeferredContexts.GetValueOnAnyThread() >= 1)
+		if (GRHISupportsParallelRHIExecute && CVarRHICmdUseDeferredContexts.GetValueOnAnyThread() >= 1)
 		{
-			ContextContainer = RHIGetCommandContextContainer(0);
+			ContextContainer = RHIGetCommandContextContainer();
 		}
 		if (ContextContainer)
 		{
@@ -749,7 +711,7 @@ void FRHICommandListBase::QueueParallelAsyncCommandListSubmit(FGraphEventRef* An
 
 					if (!ContextContainer)
 					{
-						ContextContainer = RHIGetCommandContextContainer(0);
+						ContextContainer = RHIGetCommandContextContainer();
 					}
 					check(ContextContainer);
 
@@ -790,7 +752,6 @@ void FRHICommandListBase::QueueParallelAsyncCommandListSubmit(FGraphEventRef* An
 			}
 		}
 	}
-#endif
 	for (int32 Index = 0; Index < Num; Index++)
 	{
 		FGraphEventRef& AnyThreadCompletionEvent = AnyThreadCompletionEvents[Index];
@@ -905,7 +866,41 @@ void FRHICommandListBase::QueueCommandListSubmit(class FRHICommandList* CmdList)
 	new (AllocCommand<FRHICommandSubmitSubList>()) FRHICommandSubmitSubList(CmdList);
 }
 
-#if PLATFORM_SUPPORTS_RHI_THREAD
+
+void FRHICommandList::BeginScene()
+{
+	check(IsImmediate() && IsInRenderingThread());
+	if (Bypass())
+	{
+		CMD_CONTEXT(BeginScene)();
+		return;
+	}
+	new (AllocCommand<FRHICommandBeginScene>()) FRHICommandBeginScene();
+	if (!GRHIThread)
+	{
+		// if we aren't running an RHIThread, there is no good reason to buffer this frame advance stuff and that complicates state management, so flush everything out now
+		QUICK_SCOPE_CYCLE_COUNTER(BeginScene_Flush);
+		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
+	}
+}
+void FRHICommandList::EndScene()
+{
+	check(IsImmediate() && IsInRenderingThread());
+	if (Bypass())
+	{
+		CMD_CONTEXT(EndScene)();
+		return;
+	}
+	new (AllocCommand<FRHICommandEndScene>()) FRHICommandEndScene();
+	if (!GRHIThread)
+	{
+		// if we aren't running an RHIThread, there is no good reason to buffer this frame advance stuff and that complicates state management, so flush everything out now
+		QUICK_SCOPE_CYCLE_COUNTER(EndScene_Flush);
+		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
+	}
+}
+
+
 void FRHICommandList::BeginDrawingViewport(FViewportRHIParamRef Viewport, FTextureRHIParamRef RenderTargetRHI)
 {
 	check(IsImmediate() && IsInRenderingThread());
@@ -915,6 +910,12 @@ void FRHICommandList::BeginDrawingViewport(FViewportRHIParamRef Viewport, FTextu
 		return;
 	}
 	new (AllocCommand<FRHICommandBeginDrawingViewport>()) FRHICommandBeginDrawingViewport(Viewport, RenderTargetRHI);
+	if (!GRHIThread)
+	{
+		// if we aren't running an RHIThread, there is no good reason to buffer this frame advance stuff and that complicates state management, so flush everything out now
+		QUICK_SCOPE_CYCLE_COUNTER(BeginDrawingViewport_Flush);
+		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
+	}
 }
 
 void FRHICommandList::EndDrawingViewport(FViewportRHIParamRef Viewport, bool bPresent, bool bLockToVsync)
@@ -927,7 +928,7 @@ void FRHICommandList::EndDrawingViewport(FViewportRHIParamRef Viewport, bool bPr
 	else
 	{
 		new (AllocCommand<FRHICommandEndDrawingViewport>()) FRHICommandEndDrawingViewport(Viewport, bPresent, bLockToVsync);
-		// this should be started asap
+		// if we aren't running an RHIThread, there is no good reason to buffer this frame advance stuff and that complicates state management, so flush everything out now
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_EndDrawingViewport_Dispatch);
 			FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
@@ -938,25 +939,37 @@ void FRHICommandList::EndDrawingViewport(FViewportRHIParamRef Viewport, bool bPr
 
 void FRHICommandList::BeginFrame()
 {
+	check(IsImmediate() && IsInRenderingThread());
 	if (Bypass())
 	{
 		CMD_CONTEXT(BeginFrame)();
 		return;
 	}
 	new (AllocCommand<FRHICommandBeginFrame>()) FRHICommandBeginFrame();
+	if (!GRHIThread)
+	{
+		// if we aren't running an RHIThread, there is no good reason to buffer this frame advance stuff and that complicates state management, so flush everything out now
+		QUICK_SCOPE_CYCLE_COUNTER(BeginFrame_Flush);
+		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
+	}
 }
 
 void FRHICommandList::EndFrame()
 {
+	check(IsImmediate() && IsInRenderingThread());
 	if (Bypass())
 	{
 		CMD_CONTEXT(EndFrame)();
 		return;
 	}
 	new (AllocCommand<FRHICommandEndFrame>()) FRHICommandEndFrame();
+	if (!GRHIThread)
+	{
+		// if we aren't running an RHIThread, there is no good reason to buffer this frame advance stuff and that complicates state management, so flush everything out now
+		QUICK_SCOPE_CYCLE_COUNTER(EndFrame_Flush);
+		FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
+	}
 }
-
-#endif
 
 DECLARE_CYCLE_STAT(TEXT("Explicit wait for tasks"), STAT_ExplicitWait, STATGROUP_RHICMDLIST);
 DECLARE_CYCLE_STAT(TEXT("Prewait dispatch"), STAT_PrewaitDispatch, STATGROUP_RHICMDLIST);

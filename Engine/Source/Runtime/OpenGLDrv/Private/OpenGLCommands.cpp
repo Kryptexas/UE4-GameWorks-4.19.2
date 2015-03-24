@@ -3541,4 +3541,15 @@ void FOpenGLDynamicRHI::RHIEnableDepthBoundsTest(bool bEnable,float MinDepth,flo
 	}
 }
 
+IRHICommandContext* FOpenGLDynamicRHI::RHIGetDefaultContext()
+{
+	return this;
+}
+
+IRHICommandContextContainer* FOpenGLDynamicRHI::RHIGetCommandContextContainer()
+{
+	return nullptr;
+}
+
+
 #endif

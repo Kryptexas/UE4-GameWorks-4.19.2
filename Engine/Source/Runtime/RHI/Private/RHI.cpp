@@ -189,6 +189,8 @@ bool GSupportsDepthBoundsTest = false;
 bool GRHISupportsBaseVertexIndex = true;
 bool GRHISupportsFirstInstance = false;
 bool GRHIRequiresEarlyBackBufferRenderTarget = true;
+bool GRHISupportsRHIThread = false;
+bool GRHISupportsParallelRHIExecute = false;
 
 /** Whether we are profiling GPU hitches. */
 bool GTriggerGPUHitchProfile = false;

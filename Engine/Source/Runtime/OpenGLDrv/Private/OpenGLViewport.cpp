@@ -216,6 +216,11 @@ FTexture2DRHIRef FOpenGLDynamicRHI::RHIGetViewportBackBuffer(FViewportRHIParamRe
 	return Viewport->GetBackBuffer();
 }
 
+void FOpenGLDynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer()
+{
+}
+
+
 FOpenGLViewport::FOpenGLViewport(FOpenGLDynamicRHI* InOpenGLRHI,void* InWindowHandle,uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen,EPixelFormat PreferredPixelFormat)
 	: OpenGLRHI(InOpenGLRHI)
 	, OpenGLContext(NULL)

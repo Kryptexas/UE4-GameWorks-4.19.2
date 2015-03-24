@@ -66,3 +66,7 @@ FTexture2DRHIRef FEmptyDynamicRHI::RHIGetViewportBackBuffer(FViewportRHIParamRef
 
 	return FTexture2DRHIRef();
 }
+
+void FEmptyDynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer()
+{
+}

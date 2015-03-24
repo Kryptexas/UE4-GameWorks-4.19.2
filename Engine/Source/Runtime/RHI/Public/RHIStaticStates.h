@@ -64,27 +64,30 @@ public:
 
 		if (!StaticResource)
 		{
-#if PLATFORM_SUPPORTS_RHI_THREAD
-			FStaticStateResource* NewStaticResource = new FStaticStateResource();
-			FStaticStateResource* ValueWas = (FStaticStateResource*)FPlatformAtomics::InterlockedCompareExchangePointer((void**)&StaticResource, NewStaticResource, nullptr);
-			if (ValueWas)
+			if (GIsRHIInitialized && GRHISupportsRHIThread)
 			{
-				// we made a redundant one...leak it
-			}
-#else
-			if (!IsInRenderingThread())
-			{
-				check(IsInParallelRenderingThread());
+				FStaticStateResource* NewStaticResource = new FStaticStateResource();
+				FStaticStateResource* ValueWas = (FStaticStateResource*)FPlatformAtomics::InterlockedCompareExchangePointer((void**)&StaticResource, NewStaticResource, nullptr);
+				if (ValueWas)
 				{
-					FScopedEvent Event;
-					TGraphTask<FInitStaticResourceRenderThreadTask>::CreateTask().ConstructAndDispatchWhenReady(&GetRHI_WithNoReturnValue, Event);
+					// we made a redundant one...leak it
 				}
 			}
 			else
 			{
-				StaticResource = new FStaticStateResource();
+				if (!IsInRenderingThread())
+				{
+					check(IsInParallelRenderingThread());
+					{
+						FScopedEvent Event;
+						TGraphTask<FInitStaticResourceRenderThreadTask>::CreateTask().ConstructAndDispatchWhenReady(&GetRHI_WithNoReturnValue, Event);
+					}
+				}
+				else
+				{
+					StaticResource = new FStaticStateResource();
+				}
 			}
-#endif
 		}
 		return StaticResource->StateRHI;
 	};
@@ -96,47 +99,36 @@ private:
 	{
 	public:
 		RHIRefType StateRHI;
-#if PLATFORM_SUPPORTS_RHI_THREAD
 		FStaticStateResource()
 		{
-			StateRHI = InitializerType::CreateRHI();
+			if (GIsRHIInitialized && GRHISupportsRHIThread)
+			{
+				StateRHI = InitializerType::CreateRHI();
+			}
+			else
+			{
+				InitResource();
+
+			}
 		}
 
 		// FRenderResource interface.
 		virtual void InitRHI() override
 		{
-			check(0);
-		}
-		virtual void ReleaseRHI() override
-		{
-			check(0);
-		}
-
-		~FStaticStateResource()
-		{
-			check(0);
-		}
-#else
-		FStaticStateResource()
-		{
-			InitResource();
-		}
-
-		// FRenderResource interface.
-		virtual void InitRHI() override
-		{
+			check(!GIsRHIInitialized || !GRHISupportsRHIThread);
 			StateRHI = InitializerType::CreateRHI();
 		}
 		virtual void ReleaseRHI() override
 		{
+			check(!GIsRHIInitialized || !GRHISupportsRHIThread);
 			StateRHI.SafeRelease();
 		}
 
 		~FStaticStateResource()
 		{
+			check(!GIsRHIInitialized || !GRHISupportsRHIThread);
 			ReleaseResource();
 		}
-#endif
 	};
 };
 

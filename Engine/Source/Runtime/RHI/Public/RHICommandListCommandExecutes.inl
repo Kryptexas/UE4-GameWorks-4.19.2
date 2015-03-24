@@ -5,11 +5,7 @@
 =============================================================================*/
 
 #if !defined(INTERNAL_DECORATOR)
-	#if PLATFORM_RHI_USES_CONTEXT_OBJECT
-		#define INTERNAL_DECORATOR(Method) CmdList.GetContext().RHI##Method
-	#else
-		#define INTERNAL_DECORATOR(Method) Method##_Internal
-	#endif
+	#define INTERNAL_DECORATOR(Method) CmdList.GetContext().RHI##Method
 #endif
 
 // set this one to get a stat for each RHI command 
@@ -302,11 +298,7 @@ void FRHICommandBuildLocalBoundShaderState::Execute(FRHICommandListBase& CmdList
 	if (WorkArea.ComputedBSS->UseCount)
 	{
 		WorkArea.ComputedBSS->BSS = 	
-#if HAS_THREADSAFE_CreateBoundShaderState
 			RHICreateBoundShaderState(WorkArea.Args.VertexDeclarationRHI, WorkArea.Args.VertexShaderRHI, WorkArea.Args.HullShaderRHI, WorkArea.Args.DomainShaderRHI, WorkArea.Args.PixelShaderRHI, WorkArea.Args.GeometryShaderRHI);
-#else
-			CreateBoundShaderState_Internal(WorkArea.Args.VertexDeclarationRHI, WorkArea.Args.VertexShaderRHI, WorkArea.Args.HullShaderRHI, WorkArea.Args.DomainShaderRHI, WorkArea.Args.PixelShaderRHI, WorkArea.Args.GeometryShaderRHI);
-#endif
 	}
 }
 
@@ -329,11 +321,7 @@ void FRHICommandBuildLocalUniformBuffer::Execute(FRHICommandListBase& CmdList)
 	check(!IsValidRef(WorkArea.ComputedUniformBuffer->UniformBuffer) && WorkArea.Layout && WorkArea.Contents); // should not already have been created
 	if (WorkArea.ComputedUniformBuffer->UseCount)
 	{
-#if PLATFORM_SUPPORTS_RHI_THREAD
 		WorkArea.ComputedUniformBuffer->UniformBuffer = RHICreateUniformBuffer(WorkArea.Contents, *WorkArea.Layout, UniformBuffer_SingleFrame); 
-#else
-		WorkArea.ComputedUniformBuffer->UniformBuffer = CreateUniformBuffer_Internal(WorkArea.Contents, *WorkArea.Layout, UniformBuffer_SingleFrame);
-#endif
 	}
 	WorkArea.Layout = nullptr;
 	WorkArea.Contents = nullptr;
@@ -369,14 +357,6 @@ void FRHICommandEndRenderQuery::Execute(FRHICommandListBase& CmdList)
 	INTERNAL_DECORATOR(EndRenderQuery)(RenderQuery);
 }
 
-#if !PLATFORM_SUPPORTS_RHI_THREAD
-void FRHICommandResetRenderQuery::Execute(FRHICommandListBase& CmdList)
-{
-	RHISTAT(ResetRenderQuery);
-	INTERNAL_DECORATOR(ResetRenderQuery)(RenderQuery);
-}
-#endif
-
 void FRHICommandBeginOcclusionQueryBatch::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(BeginOcclusionQueryBatch);
@@ -392,21 +372,13 @@ void FRHICommandEndOcclusionQueryBatch::Execute(FRHICommandListBase& CmdList)
 void FRHICommandBeginScene::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(BeginScene);
-#if PLATFORM_SUPPORTS_RHI_THREAD
 	INTERNAL_DECORATOR(BeginScene)();
-#else
-	check(0);
-#endif
 }
 
 void FRHICommandEndScene::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(EndScene);
-#if PLATFORM_SUPPORTS_RHI_THREAD
 	INTERNAL_DECORATOR(EndScene)();
-#else
-	check(0);
-#endif
 }
 
 void FRHICommandUpdateVertexBuffer::Execute(FRHICommandListBase& CmdList)
@@ -420,24 +392,15 @@ void FRHICommandUpdateVertexBuffer::Execute(FRHICommandListBase& CmdList)
 void FRHICommandBeginFrame::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(BeginFrame);
-#if PLATFORM_SUPPORTS_RHI_THREAD
 	INTERNAL_DECORATOR(BeginFrame)();
-#else
-	check(0);
-#endif
 }
 
 void FRHICommandEndFrame::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(EndFrame);
-#if PLATFORM_SUPPORTS_RHI_THREAD
 	INTERNAL_DECORATOR(EndFrame)();
-#else
-	check(0);
-#endif
 }
 
-#if PLATFORM_SUPPORTS_RHI_THREAD
 void FRHICommandBeginDrawingViewport::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(BeginDrawingViewport);
@@ -449,7 +412,6 @@ void FRHICommandEndDrawingViewport::Execute(FRHICommandListBase& CmdList)
 	RHISTAT(EndDrawingViewport);
 	INTERNAL_DECORATOR(EndDrawingViewport)(Viewport, bPresent, bLockToVsync);
 }
-#endif
 
 void FRHICommandPushEvent::Execute(FRHICommandListBase& CmdList)
 {

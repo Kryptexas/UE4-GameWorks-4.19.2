@@ -288,7 +288,7 @@ void FD3D11DynamicRHI::IssueLongGPUTask()
 		{
 			FD3D11Viewport* Viewport = Viewports[LargestViewportIndex];
 
-			FRHICommandList_RecursiveHazardous RHICmdList;
+			FRHICommandList_RecursiveHazardous RHICmdList(this);
 
 			SetRenderTarget(RHICmdList, Viewport->GetBackBuffer(), FTextureRHIRef());
 			RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI(), FLinearColor::Black);

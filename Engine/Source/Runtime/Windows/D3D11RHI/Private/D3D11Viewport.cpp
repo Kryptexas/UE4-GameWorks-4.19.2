@@ -603,11 +603,9 @@ bool FD3D11DynamicRHI::RHIIsDrawingViewport()
 	return DrawingViewport != NULL;
 }
 
-#if PLATFORM_SUPPORTS_RHI_THREAD
 void FD3D11DynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer()
 {
 }
-#endif
 
 FTexture2DRHIRef FD3D11DynamicRHI::RHIGetViewportBackBuffer(FViewportRHIParamRef ViewportRHI)
 {

@@ -79,11 +79,6 @@ void FRenderQueryPool::ReleaseQuery(FRHICommandListImmediate& RHICmdList, FRende
 		{
 			// Return it to the pool.
 			Queries.Add( Query );
-
-#if !PLATFORM_SUPPORTS_RHI_THREAD
-			// Tell RHI we don't need the result anymore.
-			RHICmdList.ResetRenderQuery(Query);
-#endif
 		}
 
 		// De-ref without deleting.

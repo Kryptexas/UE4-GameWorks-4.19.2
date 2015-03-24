@@ -194,7 +194,7 @@ void FD3D11DynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureR
 		return;
 	}
 
-	FRHICommandList_RecursiveHazardous RHICmdList;
+	FRHICommandList_RecursiveHazardous RHICmdList(this);
 
 
 	FD3D11Texture2D* SourceTexture2D = static_cast<FD3D11Texture2D*>(SourceTextureRHI->GetTexture2D());
@@ -928,7 +928,7 @@ void FD3D11DynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI,FIntRec
 	}
 	else
 	{
-		FRHICommandList_RecursiveHazardous RHICmdList;
+		FRHICommandList_RecursiveHazardous RHICmdList(this);
 		ReadSurfaceDataMSAARaw(RHICmdList, TextureRHI, InRect, OutDataRaw, InFlags);
 	}
 

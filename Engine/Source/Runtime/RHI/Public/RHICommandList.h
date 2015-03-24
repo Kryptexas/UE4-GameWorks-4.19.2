@@ -133,9 +133,7 @@ public:
 
 	void SetContext(IRHICommandContext* InContext)
 	{
-#if PLATFORM_RHI_USES_CONTEXT_OBJECT
 		check(InContext);
-#endif
 		Context = InContext;
 	}
 
@@ -1080,19 +1078,6 @@ struct FRHICommandEndRenderQuery : public FRHICommand<FRHICommandEndRenderQuery>
 	RHI_API void Execute(FRHICommandListBase& CmdList);
 };
 
-#if !PLATFORM_SUPPORTS_RHI_THREAD
-struct FRHICommandResetRenderQuery : public FRHICommand<FRHICommandResetRenderQuery>
-{
-	FRenderQueryRHIParamRef RenderQuery;
-
-	FORCEINLINE_DEBUGGABLE FRHICommandResetRenderQuery(FRenderQueryRHIParamRef InRenderQuery)
-		: RenderQuery(InRenderQuery)
-	{
-	}
-	RHI_API void Execute(FRHICommandListBase& CmdList);
-};
-#endif
-
 struct FRHICommandBeginOcclusionQueryBatch : public FRHICommand<FRHICommandBeginOcclusionQueryBatch>
 {
 	FORCEINLINE_DEBUGGABLE FRHICommandBeginOcclusionQueryBatch()
@@ -1156,7 +1141,6 @@ struct FRHICommandEndFrame : public FRHICommand<FRHICommandEndFrame>
 	RHI_API void Execute(FRHICommandListBase& CmdList);
 };
 
-#if PLATFORM_SUPPORTS_RHI_THREAD
 struct FRHICommandBeginDrawingViewport : public FRHICommand<FRHICommandBeginDrawingViewport>
 {
 	FViewportRHIParamRef Viewport;
@@ -1184,7 +1168,6 @@ struct FRHICommandEndDrawingViewport : public FRHICommand<FRHICommandEndDrawingV
 	}
 	RHI_API void Execute(FRHICommandListBase& CmdList);
 };
-#endif
 
 struct FRHICommandPushEvent : public FRHICommand<FRHICommandPushEvent>
 {
@@ -1213,11 +1196,7 @@ struct FRHICommandDebugBreak : public FRHICommand<FRHICommandDebugBreak>
 	}
 };
 
-#if PLATFORM_RHI_USES_CONTEXT_OBJECT
 #define CMD_CONTEXT(Method) GetContext().RHI##Method
-#else
-#define CMD_CONTEXT(Method) Method##_Internal
-#endif
 
 
 class RHI_API FRHICommandList : public FRHICommandListBase
@@ -1275,11 +1254,7 @@ public:
 		FLocalBoundShaderState Result;
 		if (Bypass())
 		{
-#if HAS_THREADSAFE_CreateBoundShaderState
 			Result.BypassBSS = RHICreateBoundShaderState(VertexDeclarationRHI, VertexShaderRHI, HullShaderRHI, DomainShaderRHI, PixelShaderRHI, GeometryShaderRHI);
-#else
-			Result.BypassBSS = CreateBoundShaderState_Internal(VertexDeclarationRHI, VertexShaderRHI, HullShaderRHI, DomainShaderRHI, PixelShaderRHI, GeometryShaderRHI);
-#endif
 		}
 		else
 		{
@@ -1310,11 +1285,7 @@ public:
 		FLocalUniformBuffer Result;
 		if (Bypass())
 		{
-#if PLATFORM_SUPPORTS_RHI_THREAD
 			Result.BypassUniform = RHICreateUniformBuffer(Contents, Layout, UniformBuffer_SingleFrame);
-#else
-			Result.BypassUniform = CreateUniformBuffer_Internal(Contents, Layout, UniformBuffer_SingleFrame);
-#endif
 		}
 		else
 		{
@@ -1831,17 +1802,6 @@ public:
 		}
 		new (AllocCommand<FRHICommandEndRenderQuery>()) FRHICommandEndRenderQuery(RenderQuery);
 	}
-#if !PLATFORM_SUPPORTS_RHI_THREAD
-	FORCEINLINE_DEBUGGABLE void ResetRenderQuery(FRenderQueryRHIParamRef RenderQuery)
-	{
-		if (Bypass())
-		{
-			CMD_CONTEXT(ResetRenderQuery)(RenderQuery);
-			return;
-		}
-		new (AllocCommand<FRHICommandResetRenderQuery>()) FRHICommandResetRenderQuery(RenderQuery);
-	}
-#endif
 
 	FORCEINLINE_DEBUGGABLE void BeginOcclusionQueryBatch()
 	{
@@ -1863,30 +1823,13 @@ public:
 		new (AllocCommand<FRHICommandEndOcclusionQueryBatch>()) FRHICommandEndOcclusionQueryBatch();
 	}
 
-#if PLATFORM_SUPPORTS_RHI_THREAD
-	FORCEINLINE_DEBUGGABLE void BeginScene()
-	{
-		if (Bypass())
-		{
-			CMD_CONTEXT(BeginScene)();
-			return;
-		}
-		new (AllocCommand<FRHICommandBeginScene>()) FRHICommandBeginScene();
-	}
-	FORCEINLINE_DEBUGGABLE void EndScene()
-	{
-		if (Bypass())
-		{
-			CMD_CONTEXT(EndScene)();
-			return;
-		}
-		new (AllocCommand<FRHICommandEndScene>()) FRHICommandEndScene();
-	}
+	// These 6 are special in that they must be called on the immediate command list and they force a flush only when we are not doing RHI thread
+	void BeginScene();
+	void EndScene();
 	void BeginDrawingViewport(FViewportRHIParamRef Viewport, FTextureRHIParamRef RenderTargetRHI);
 	void EndDrawingViewport(FViewportRHIParamRef Viewport, bool bPresent, bool bLockToVsync);
 	void BeginFrame();
 	void EndFrame();
-#endif
 
 	FORCEINLINE_DEBUGGABLE void PushEvent(const TCHAR* Name)
 	{
@@ -2007,7 +1950,6 @@ public:
 
 // typedef to mark the recursive use of commandlists in the RHI implementations
 
-#if PLATFORM_RHI_USES_CONTEXT_OBJECT
 class RHI_API FRHICommandList_RecursiveHazardous : public FRHICommandList
 {
 	FRHICommandList_RecursiveHazardous()
@@ -2020,9 +1962,6 @@ public:
 		SetContext(Context);
 	}
 };
-#else
-typedef FRHICommandList FRHICommandList_RecursiveHazardous;
-#endif
 
 
 class RHI_API FRHICommandListExecutor

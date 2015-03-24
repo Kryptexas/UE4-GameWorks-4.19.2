@@ -1409,18 +1409,19 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	if (GUseThreadedRendering)
 	{
-#if PLATFORM_SUPPORTS_RHI_THREAD
-		const bool DefaultUseRHIThread = true;
-		GUseRHIThread = DefaultUseRHIThread;
-		if (FParse::Param(FCommandLine::Get(),TEXT("rhithread")))
+		if (GRHISupportsRHIThread)
 		{
-			GUseRHIThread = true;
+			const bool DefaultUseRHIThread = true;
+			GUseRHIThread = DefaultUseRHIThread;
+			if (FParse::Param(FCommandLine::Get(),TEXT("rhithread")))
+			{
+				GUseRHIThread = true;
+			}
+			else if (FParse::Param(FCommandLine::Get(),TEXT("norhithread")))
+			{
+				GUseRHIThread = false;
+			}
 		}
-		else if (FParse::Param(FCommandLine::Get(),TEXT("norhithread")))
-		{
-			GUseRHIThread = false;
-		}
-#endif
 		StartRenderingThread();
 	}
 	
