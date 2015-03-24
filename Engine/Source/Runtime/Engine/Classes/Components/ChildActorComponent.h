@@ -58,7 +58,7 @@ public:
 	ENGINE_API void CreateChildActor();
 
 	/** Kill any currently present child actor */
-	void DestroyChildActor();
+	void DestroyChildActor(const bool bRequiresRename = true);
 };
 
 
