@@ -643,7 +643,7 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags&
 			}
 
 			// validate that the function is callable here
-			const bool bCanExecute = ( ( !bIsServer || RepFlags.bNetOwner ) );		// we are client or net owner
+			const bool bCanExecute = ( !bIsServer || RepFlags.bNetOwner );		// we are client or net owner
 
 			if ( bCanExecute )
 			{

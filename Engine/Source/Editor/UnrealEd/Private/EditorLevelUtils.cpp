@@ -688,7 +688,7 @@ namespace EditorLevelUtils
 				UModelComponent* CurLevelModelCmp = Level->ModelComponents[ComponentIndex];
 				if(CurLevelModelCmp)
 				{
-					if (bShouldBeVisible && CurLevelModelCmp)
+					if (bShouldBeVisible)
 					{
 						CurLevelModelCmp->RegisterComponentWithWorld(Level->OwningWorld);
 					}

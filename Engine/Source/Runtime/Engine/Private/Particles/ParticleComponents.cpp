@@ -1666,11 +1666,8 @@ bool UParticleEmitter::CalculateMaxActiveParticleCount()
 				UParticleModuleTypeDataBeam2* BeamTD = Cast<UParticleModuleTypeDataBeam2>(LODLevel->TypeDataModule);
 				if (BeamTD)
 				{
-					if (BeamTD)
-					{
-						bForceMaxCount = true;
-						MaxCount = BeamTD->MaxBeamCount + 2;
-					}
+					bForceMaxCount = true;
+					MaxCount = BeamTD->MaxBeamCount + 2;
 				}
 			}
 

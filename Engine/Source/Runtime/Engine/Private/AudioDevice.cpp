@@ -909,7 +909,7 @@ void FAudioDevice::RecurseIntoSoundClasses( USoundClass* CurrentClass, FSoundCla
 		FSoundClassProperties* Properties = SoundClasses.Find(ChildClass);
 
 		// Should never be NULL for a properly set up tree.
-		if( ChildClass && Properties )
+		if( ChildClass )
 		{
 			if (Properties)
 			{

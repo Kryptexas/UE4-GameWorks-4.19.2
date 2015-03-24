@@ -686,10 +686,11 @@ void FWindowsPlatformSurvey::GetOSVersionLabels(const SYSTEM_INFO& SystemInfo, F
 	{
 		OSVERSIONINFOEX OsVersionInfo = {0};
 		OsVersionInfo.dwOSVersionInfoSize = sizeof( OSVERSIONINFOEX );
+#pragma warning(push)
 #pragma warning(disable : 4996) // 'function' was declared deprecated
 		CA_SUPPRESS(28159)
 		GetVersionEx( (LPOSVERSIONINFO)&OsVersionInfo );
-#pragma warning(default : 4996)
+#pragma warning(pop)
 
 		UE_LOG( LogWindows, Warning, TEXT( "FWindowsPlatformSurvey::GetOSVersionLabel() unknown Windows version info from GetVersionEx()" ) );
 		Results.ErrorCount++;

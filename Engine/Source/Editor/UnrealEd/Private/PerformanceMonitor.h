@@ -74,7 +74,7 @@ struct FMovingAverage
 				Samples.Add(AccumulatorAverage);
 			}
 
-			NextSampleIndex = ++NextSampleIndex % SampleSize;
+			NextSampleIndex = (NextSampleIndex + 1) % SampleSize;
 			ensure(NextSampleIndex >= 0 && NextSampleIndex < SampleSize);
 
 			// calculate the average

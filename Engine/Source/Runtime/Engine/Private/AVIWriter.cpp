@@ -13,11 +13,11 @@ DEFINE_LOG_CATEGORY_STATIC(LogAVIWriter, Log, All);
 
 #include "AllowWindowsPlatformTypes.h"
 typedef TCHAR* PTCHAR;
+#pragma warning(push)
 #pragma warning(disable : 4263) // 'function' : member function does not override any base class virtual member function
 #pragma warning(disable : 4264) // 'virtual_function' : no override available for virtual member function from base 'cla
 #include <streams.h>
-#pragma warning(default : 4263) // 'function' : member function does not override any base class virtual member function
-#pragma warning(default : 4264) // 'virtual_function' : no override available for virtual member function from base 'cla
+#pragma warning(pop)
 
 #include <dshow.h>
 #include <initguid.h>

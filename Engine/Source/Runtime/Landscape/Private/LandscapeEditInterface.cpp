@@ -4759,11 +4759,8 @@ FLandscapeTextureDataInfo::~FLandscapeTextureDataInfo()
 	{
 		if( MipInfo[i].MipData )
 		{
-			if( MipInfo[i].MipData )
-			{
-				Texture->Source.UnlockMip(i);
-				MipInfo[i].MipData = NULL;
-			}
+			Texture->Source.UnlockMip(i);
+			MipInfo[i].MipData = NULL;
 		}
 	}
 	Texture->ClearFlags(RF_Transactional);

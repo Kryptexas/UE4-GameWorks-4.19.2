@@ -281,7 +281,7 @@ EVisibility SGameMenuPageWidget::GetSlateVisibility() const
 
 EVisibility SGameMenuPageWidget::GetMenuTitleVisibility() const
 {
-	return CurrentMenuTitle.IsEmpty() || bMenuHidden == true ? EVisibility::Collapsed : EVisibility::Visible;
+	return (CurrentMenuTitle.IsEmpty() || bMenuHidden == true) ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 FText SGameMenuPageWidget::GetMenuTitle() const 

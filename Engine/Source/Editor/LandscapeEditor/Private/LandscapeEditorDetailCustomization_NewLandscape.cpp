@@ -1029,10 +1029,7 @@ FText FLandscapeEditorDetailCustomization_NewLandscape::GetImportHeightmapFilena
 
 	if (Result == FPropertyAccess::MultipleValues)
 	{
-		if (Result == FPropertyAccess::MultipleValues)
-		{
-			return NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values");
-		}
+		return NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values");
 	}
 
 	return FText::FromString(HeightmapFilename);

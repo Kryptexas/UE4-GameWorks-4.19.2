@@ -199,33 +199,30 @@ bool FLuaScriptCodeGenerator::CanExportClass(UClass* Class)
 	bool bCanExport = FScriptCodeGeneratorBase::CanExportClass(Class);
 	if (bCanExport)
 	{
-		if (bCanExport)
+		const FString ClassNameCPP = GetClassNameCPP(Class);
+		// No functions to export? Don't bother exporting the class.
+		bool bHasMembersToExport = false;
+		for (TFieldIterator<UFunction> FuncIt(Class); !bHasMembersToExport && FuncIt; ++FuncIt)
 		{
-			const FString ClassNameCPP = GetClassNameCPP(Class);
-			// No functions to export? Don't bother exporting the class.
-			bool bHasMembersToExport = false;
-			for (TFieldIterator<UFunction> FuncIt(Class); !bHasMembersToExport && FuncIt; ++FuncIt)
+			UFunction* Function = *FuncIt;
+			if (CanExportFunction(ClassNameCPP, Class, Function))
 			{
-				UFunction* Function = *FuncIt;
-				if (CanExportFunction(ClassNameCPP, Class, Function))
+				bHasMembersToExport = true;
+			}
+		}			
+		// Check properties too
+		if (!bHasMembersToExport)
+		{
+			for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); !bHasMembersToExport && PropertyIt; ++PropertyIt)
+			{
+				UProperty* Property = *PropertyIt;
+				if (CanExportProperty(ClassNameCPP, Class, Property))
 				{
 					bHasMembersToExport = true;
 				}
-			}			
-			// Check properties too
-			if (!bHasMembersToExport)
-			{
-				for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); !bHasMembersToExport && PropertyIt; ++PropertyIt)
-				{
-					UProperty* Property = *PropertyIt;
-					if (CanExportProperty(ClassNameCPP, Class, Property))
-					{
-						bHasMembersToExport = true;
-					}
-				}
 			}
-			bCanExport = bHasMembersToExport;
 		}
+		bCanExport = bHasMembersToExport;
 	}
 	return bCanExport;
 }

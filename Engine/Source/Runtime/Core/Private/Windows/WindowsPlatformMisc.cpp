@@ -64,10 +64,11 @@ int32 FWindowsOSVersionHelper::GetOSVersions( FString& out_OSVersionLabel, FStri
 	OsVersionInfo.dwOSVersionInfoSize = sizeof( OSVERSIONINFOEX );
 	out_OSVersionLabel = TEXT( "Windows (unknown version)" );
 	out_OSSubVersionLabel = FString();
+#pragma warning(push)
 #pragma warning(disable : 4996) // 'function' was declared deprecated
 	CA_SUPPRESS(28159)
 	if( GetVersionEx( (LPOSVERSIONINFO)&OsVersionInfo ) )
-#pragma warning(default : 4996)
+#pragma warning(pop)
 	{
 		bool bIsInvalidVersion = false;
 

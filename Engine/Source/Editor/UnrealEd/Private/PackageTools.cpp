@@ -436,16 +436,13 @@ namespace PackageTools
 			TArray<UObject*> FilteredObjects;
 			if ( FilteredClasses )
 			{
-				if ( FilteredClasses )
-				{
-					// Present the user with a warning that only the filtered types are being exported
-					FSuppressableWarningDialog::FSetupInfo Info( NSLOCTEXT("UnrealEd", "BulkExport_FilteredWarning", "Asset types are currently filtered within the Content Browser. Only objects of the filtered types will be exported."),
-						LOCTEXT("BulkExport_FilteredWarning_Title", "Asset Filter in Effect"), "BulkExportFilterWarning" );
-					Info.ConfirmText = NSLOCTEXT("ModalDialogs", "BulkExport_FilteredWarningConfirm", "Close");
+				// Present the user with a warning that only the filtered types are being exported
+				FSuppressableWarningDialog::FSetupInfo Info( NSLOCTEXT("UnrealEd", "BulkExport_FilteredWarning", "Asset types are currently filtered within the Content Browser. Only objects of the filtered types will be exported."),
+					LOCTEXT("BulkExport_FilteredWarning_Title", "Asset Filter in Effect"), "BulkExportFilterWarning" );
+				Info.ConfirmText = NSLOCTEXT("ModalDialogs", "BulkExport_FilteredWarningConfirm", "Close");
 
-					FSuppressableWarningDialog PromptAboutFiltering( Info );
-					PromptAboutFiltering.ShowModal();
-				}
+				FSuppressableWarningDialog PromptAboutFiltering( Info );
+				PromptAboutFiltering.ShowModal();
 				
 				for ( TArray<UObject*>::TConstIterator ObjIter(ObjectsInPackages); ObjIter; ++ObjIter )
 				{

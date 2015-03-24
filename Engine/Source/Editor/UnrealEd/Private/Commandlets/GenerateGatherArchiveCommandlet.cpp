@@ -426,9 +426,6 @@ void UGenerateGatherArchiveCommandlet::ConditionSource( FLocItem& LocItem )
 {
 	if( LocItem.MetadataObj.IsValid() )
 	{
-		if( LocItem.MetadataObj.IsValid() )
-		{
-			ConditionSourceMetadata( MakeShareable( new FLocMetadataValueObject( LocItem.MetadataObj ) ) );
-		}
+		ConditionSourceMetadata( MakeShareable( new FLocMetadataValueObject( LocItem.MetadataObj ) ) );
 	}
 }

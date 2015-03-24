@@ -747,10 +747,7 @@ FIntRect FSlateRHIRenderer::SetupVirtualScreenBuffer(const bool bPrimaryWorkArea
 		if( CrashTrackerResource != nullptr )
 		{
 			// Size has changed, so clear out our old resource and create a new one
-			if (CrashTrackerResource != nullptr)
-			{
-				BeginReleaseResource(CrashTrackerResource);
-			}
+			BeginReleaseResource(CrashTrackerResource);
 
 			FlushRenderingCommands();
 	

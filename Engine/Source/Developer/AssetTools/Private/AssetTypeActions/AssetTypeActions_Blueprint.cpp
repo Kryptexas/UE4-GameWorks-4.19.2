@@ -134,7 +134,7 @@ void FAssetTypeActions_Blueprint::ExecuteEditDefaults(TArray<TWeakObjectPtr<UBlu
 		if ( Object )
 		{
 			// If the blueprint is valid, allow it to be added to the list, otherwise log the error.
-			if (Object && Object->SkeletonGeneratedClass && Object->GeneratedClass )
+			if ( Object->SkeletonGeneratedClass && Object->GeneratedClass )
 			{
 				Blueprints.Add(Object);
 			}

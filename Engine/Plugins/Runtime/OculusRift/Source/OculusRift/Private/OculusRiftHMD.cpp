@@ -1250,7 +1250,7 @@ bool FOculusRiftHMD::DoEnableStereo(bool bStereo, bool bApplyToHmd)
 					SceneVP->SetViewportSize(Hmd->Resolution.w, Hmd->Resolution.h);
 				}
 			}
-			else if ((!wasFullscreenAllowed && !stereoEnabled))
+			else if (!wasFullscreenAllowed && !stereoEnabled)
 			{
 				// restoring original viewport size (to be equal to window size).
 				TSharedPtr<SWindow> Window = SceneVP->FindWindow();

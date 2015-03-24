@@ -316,29 +316,26 @@ TSharedRef<SWidget> SDetailSingleItemRow::CreateExtensionWidget(TSharedRef<SWidg
 	IDetailsViewPrivate& DetailsView = InTreeNode->GetDetailsView();
 	TSharedPtr<IDetailPropertyExtensionHandler> ExtensionHandler = DetailsView.GetExtensionHandler();
 
-	if ( ExtensionHandler.IsValid() )
+	if ( ExtensionHandler.IsValid() && InCustomization.HasPropertyNode() )
 	{
-		if ( InCustomization.HasPropertyNode() && ExtensionHandler.IsValid() )
+		TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle(InCustomization.GetPropertyNode().ToSharedRef(), nullptr, nullptr);
+
+		UClass* ObjectClass = InCustomization.GetPropertyNode()->FindObjectItemParent()->GetObjectBaseClass();
+		if ( ExtensionHandler->IsPropertyExtenable(ObjectClass, *Handle) )
 		{
-			TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle(InCustomization.GetPropertyNode().ToSharedRef(), nullptr, nullptr);
+			ValueWidget = SNew(SHorizontalBox)
 
-			UClass* ObjectClass = InCustomization.GetPropertyNode()->FindObjectItemParent()->GetObjectBaseClass();
-			if ( ExtensionHandler->IsPropertyExtenable(ObjectClass, *Handle) )
-			{
-				ValueWidget = SNew(SHorizontalBox)
-
-					+ SHorizontalBox::Slot()
-					.FillWidth(1.0f)
-					[
-						ValueWidget
-					]
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				[
+					ValueWidget
+				]
 					
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						ExtensionHandler->GenerateExtensionWidget(ObjectClass, Handle)
-					];
-			}
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					ExtensionHandler->GenerateExtensionWidget(ObjectClass, Handle)
+				];
 		}
 	}
 

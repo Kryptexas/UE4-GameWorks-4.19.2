@@ -1779,7 +1779,6 @@ private:
 		int32 NumSourceMips = InSourceMips.Num();
 
 		if (BuildSettings.MipGenSettings != TMGS_LeaveExistingMips ||
-			BuildSettings.MipGenSettings == TMGS_NoMipmaps ||
 			bLongLatCubemap)
 		{
 			NumSourceMips = 1;

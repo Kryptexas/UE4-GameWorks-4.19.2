@@ -330,8 +330,6 @@ namespace SceneOutliner
 		// We'll draw with the 'focused' look if we're either focused or we have a context menu summoned
 		const bool bShouldAppearFocused = HasKeyboardFocus();
 
-		const float DrawPositionY = ( AllottedGeometry.Size.Y / 2 ) - ( AllottedGeometry.Size.Y / 2 );
-
 		// Draw highlight targeting effect
 		const float TimeSinceHighlightInteraction = (float)( CurrentTime - LastHighlightInteractionTime );
 		if( TimeSinceHighlightInteraction <= HighlightTargetEffectDuration )

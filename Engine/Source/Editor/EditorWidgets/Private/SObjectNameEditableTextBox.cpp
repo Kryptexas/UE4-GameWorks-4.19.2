@@ -78,8 +78,6 @@ int32 SObjectNameEditableTextBox::OnPaint( const FPaintArgs& Args, const FGeomet
 
 	const double CurrentTime = FSlateApplication::Get().GetCurrentTime();
 
-	const float DrawPositionY = ( AllottedGeometry.Size.Y / 2 ) - ( AllottedGeometry.Size.Y / 2 );
-
 	// Draw highlight targeting effect
 	const float TimeSinceHighlightInteraction = (float)( CurrentTime - LastCommittedTime );
 	if( TimeSinceHighlightInteraction <= HighlightTargetEffectDuration )

@@ -44,7 +44,7 @@ public:
 	/** Gets whether we are allowed to display the engine folder or not, optional flag ignoring the override */
 	bool GetDisplayEngineFolder( bool bExcludeOverride = false ) const
 	{ 
-		return ( ( bExcludeOverride ? false : OverrideDisplayEngineFolder ) | DisplayEngineFolder );
+		return ( ( bExcludeOverride ? false : OverrideDisplayEngineFolder ) || DisplayEngineFolder );
 	}
 
 	/** Sets whether we are allowed to display the developers folder or not, optional flag for setting override instead */
