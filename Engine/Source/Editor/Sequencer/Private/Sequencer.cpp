@@ -1186,7 +1186,7 @@ void FSequencer::ZoomToSelectedSections()
 		BoundsHull = GetTimeBounds();
 	}
 
-	if (!BoundsHull.IsEmpty())
+	if (!BoundsHull.IsEmpty() && !BoundsHull.IsDegenerate())
 	{
 		OnViewRangeChanged(BoundsHull, true);
 	}

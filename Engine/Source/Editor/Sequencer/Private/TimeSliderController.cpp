@@ -83,10 +83,13 @@ float DetermineOptimalSpacing( float InPixelsPerInput, uint32 MinTick, float Min
 	// Start with the smallest spacing
 	float Spacing = MinTickSpacing;
 
-	while( Spacing * InPixelsPerInput < MinTick )
+	if (InPixelsPerInput > 0)
 	{
-		Spacing = MinTickSpacing * GetNextSpacing( CurStep );
-		CurStep++;
+		while( Spacing * InPixelsPerInput < MinTick )
+		{
+			Spacing = MinTickSpacing * GetNextSpacing( CurStep );
+			CurStep++;
+		}
 	}
 
 	return Spacing;
