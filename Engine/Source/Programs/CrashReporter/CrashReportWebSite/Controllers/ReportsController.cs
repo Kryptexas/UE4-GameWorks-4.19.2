@@ -289,6 +289,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 					}
 				}
 
+				Buggs = Buggs.OrderByDescending( b => b.NumberOfCrashes ).ToList();
+
 				return new ReportsViewModel
 				{
 					Buggs = Buggs,
