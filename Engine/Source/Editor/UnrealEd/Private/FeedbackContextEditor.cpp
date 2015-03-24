@@ -381,12 +381,15 @@ void FFeedbackContextEditor::StartSlowTask( const FText& Task, bool bShowCancelB
 				OnCancelClicked = FOnCancelClickedDelegate::CreateRaw(this, &FFeedbackContextEditor::OnUserCancel);
 			}
 
+			const bool bFocusAndActivate = FPlatformProcess::IsThisApplicationForeground();
+
 			TSharedRef<SWindow> SlowTaskWindowRef = SNew(SWindow)
 				.SizingRule(ESizingRule::Autosized)
 				.AutoCenter(EAutoCenter::PreferredWorkArea)
 				.IsPopupWindow(true)
 				.CreateTitleBar(true)
-				.ActivateWhenFirstShown(true);
+				.ActivateWhenFirstShown(bFocusAndActivate)
+				.FocusWhenFirstShown(bFocusAndActivate);
 
 			SlowTaskWindowRef->SetContent(
 				SNew(SSlowTaskWidget)
