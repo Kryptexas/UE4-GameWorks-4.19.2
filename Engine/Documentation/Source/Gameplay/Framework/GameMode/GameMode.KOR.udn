@@ -1,0 +1,83 @@
+﻿INTSourceChangelist:2321424
+Availability:Public
+Title:게임모드 (GameMode)
+Crumbs:%ROOT%, Gameplay/Framework
+Description:GameMode, 게임모드는 게임의 규칙 설정을 담당합니다.
+
+가장 제약이 없다는 게임일지라도 토대가 되는 규칙들이 있으며, 이러한 규칙들이 게임타입을 이룹니다. 가장 기본적인 레벨에서 이러한 규칙에 포함되는 것은 다음과 같습니다:
+
+* 존재하는 플레이어와 관람자의 수는 물론, 허용된 플레이어와 관람자 최대 수
+* 플레이어가 게임에 들어오는 방식에, 스폰 위치와 스폰/리스폰 동작 포함 가능
+* 게임 일시정지 가능 여부, 게임 일시정지 처리 방식
+* 게임을 시네마틱 모드에서 시작할지를 포함해서, 레벨간의 전환
+
+모든 게임타입에 일정 정도 기본적인 요소가 공통되기는 하겠지만, 개발중인 게임 장르에 따라 무한한 변형이 있습니다. 일인칭 슈팅 게임에서 익숙한 게임타입에는 데스매치, 깃발뺐기, 최후의 일인 등이 있으며, 이러한 게임타입 선택은 종종 경기 셋업 도중의 메뉴 옵션에 나오는지라 확연히 보입니다. 롤플레잉 어드벤처 게임이나 플랫포머 게임같은 장르의 경우 게임타입의 다양성이나 명확성이 떨어질 수는 있지만, 여전히 게임의 조건 설정을 해 주고는 있습니다. 예를 들어 플레이어가 제한 시간 내 특정 지점에 도달하거나 "보스" 캐릭터를 무찌르면 레벨이 완료되는 경우를 들 수 있습니다. 조금 더 복잡한 경우라면, 던전 탐험 게임같은 것입니다. 메인 월드에는 게임의 진행상황이나 조건을 기록하는 대단히 중요한 게임타입이 있을 수 있습니다. 각 던전 안에는 해당 던전에만 국한된 게임타입을 통해, 각 던전마다 완벽히 고유성을 지녀 자체적인 규칙과 목적을 설정하도록 할 수 있습니다.
+
+게임타입 관련 정보를 처리하는 클래스는 크게 GameMode 와 GameState, 두 가지 있습니다.
+
+## GameMode
+
+
+`AGameMode` 클래스는 플레이중인 게임을 정의하고, 게임 규칙을 시행합니다. `AGameMode` 의 기본적인 함수성은: 
+
+
+게임 규칙을 설정하는 새로운 함수나 변수가 있으면 `AGameMode` 클래스의 서브클래스에 추가시켜야 합니다. 플레이어가 갖고 시작하는 인벤토리 아이템이나 시간 제한 내에 몇 번의 생명이 가능한지, 게임을 끝내는 데 몇 점이나 필요한지 등이 GameMode 에 속합니다. `AGameMode` 클래스의 서브클래스를 게임이 포함시켜야 하는 각 게임타입에 대해 생성해 줘야 할 수도 있습니다. 한 게임에 게임타입 즉 `AGameMode` 클래스의 서브클래스가 다수 있을 수 있으나, 어느 때고 사용되는 게임타입은 단 하나만 가능합니다. GameMode 액터는 레벨이 `UGameEngine::LoadMap()` 를 통해 게임용으로 초기화될 때마다 인스턴싱됩니다. 이 액터가 정의하는 게임타입이 그 레벨이 지속되는 동안 사용될 것입니다.
+
+<!--
+	[/Script/Engine.GameMode]
+	+GameModeClassAliases=(ShortName="DM",GameClassName="UTGame.UTDeathmatch")
+-->
+
+### 경기 상태
+
+GameMode 에는 Match (경기), 또는 일반적인 게임플레이 흐름 상태를 기록하는 스테이트 머신이 들어있습니다. 현재 상태에 대한 질의를 위해서는 GetMatchState, 또는 HasMatchStarted, IsMatchInProgress, HasMatchEnded 와 같은 wrapper 를 사용하면 됩니다. 가능한 경기 상태는 다음과 같습니다:
+
+* EnteringMap (맵 입장중)은 초기 상태입니다. 액터 틱은 아직 진행되지 않으며, 월드 초기화도 완전히 끝나지 않았습니다. 전체 로드가 끝나면 다음 상태로 넘어갈 것입니다.
+* WaitingToStart (시작 대기중)이 다음 상태로, 들어서면 HandleMatchIsWaitingToStart (경기 시작 대기중 처리)가 호출됩니다. 액터 틱은 진행되지만, 아직 플레이어는 스폰되지 않습니다. ReadyToStartMatch (경기 시작 준비 완료)가 True 를 반환하거나 누군가 StartMatch (경기 시작)을 호출하면 다음 상태로 넘어갑니다.
+* InProgress (진행중)이 다음 상태로, 들어서면 HandleMatchHasStarted (경기 시작됨 처리)가 호출되고, 모든 액터에서 BeginPlay (플레이 시작)이 호출됩니다. 일반적인 게임플레이가 진행됩니다. ReadyToEndMatch (경기 종료 준비 완료)가 True 를 반환하거나 누군가 EndMatch (경기 종료)를 호출하는 경우 다음 상태로 넘어갑니다.
+* WaitingPostMatch (경기 후 대기중)이 다음 상태로, 들어서면 HandleMatchHasEnded (경기 종료됨 처리)가 호출됩니다. 액터 틱은 여전히 진행되지만 새로운 플레이어를 받지 않습니다. 맵 전환이 시작되면 다음 상태로 넘어갑니다.
+* LeavingMap (맵 나가기)가 마지막 상태로, 들어서면 HandleLeavingMap (맵 나가기 처리)가 호출됩니다. 새로운 맵으로 전환되는 와중에 경기는 이 상태가 유지됩니다.
+* Aborted (중단됨)은 실패 상태로, AbortMatch (경기 중단)을 통해 시작됩니다. 회복할 수 없는 오류가 있을 때 설정됩니다.
+
+기본적으로 경기 상태는 항상 InProgress (진행중)일 것입니다만, 각 게임마다 이러한 행위를 덮어써서 좀 더 복잡한 규칙의 멀티플레이어 게임을 만들 수도 있습니다.
+
+### GameMode 파생 블루프린트
+
+GameMode 는 Blueprintable, 블루프린트 가능 클래스입니다. GameMode 에서 파생시켜 _블루프린트_ 를 생성할 수 있으며, 이 블루프린트를 프로젝트나 레벨의 기본 게임 모드로 사용할 수도 있습니다.
+
+GameMode 에서 파생되는 블루프린트는 다음과 같은 기본값 설정이 가능합니다:
+* Default Pawn 클래스
+* HUD 클래스
+* Player Controller 클래스
+* Spectator 클래스
+* Game State 클래스
+* Player State 클래스
+
+
+### GameMode 설정
+
+레벨의 GameMode 설정을 위한 메소드는 여러가지 있습니다. 여기서는 우선권이 가장 낮은 것에서부터 높은 것으로 나열해 보겠습니다:
+
+* `DefaultGame.ini` 파일의 `/Script/Engine.WorldSettings/` 섹션에 `GlobalDefaultGameMode` 항목으로 설정해 주면 프로젝트의 모든 맵에 대한 기본 게임 모드를 설정합니다.
+
+		[/Script/Engine.WorldSettings]
+		GlobalDefaultGameMode="/Script/MyGame.MyGameGameMode"
+		GlobalDefaultServerGameMode="/Script/MyGame.MyGameGameMode"
+
+* 개별 맵에 대해 프로젝트 세팅을 덮어쓰려면, 에디터에서 **World Settings** 의 **Default Game Mode** 를 설정합니다.
+		
+	![](WorldSettings_GameMode.png)
+
+* URL 을 실행파일에 붙여 게임 시작시 로드할 맵을 강제 지정할 수 있습니다. `game` 옵션을 사용하여 게임 모드를 설정할 수 있습니다. 자세한 정보는 [](Programming/Basics/CommandLineArguments) 문서를 참고하시기 바랍니다.
+
+		UE4Editor.exe /Game/Maps/MyMap?game=MyGameMode -game
+
+* 마지막으로 `DefaultGame.ini` 파일의 `/Script/Engine.WorldSettings/` 섹션에 맵 접두사를 설정할 수 있습니다. 이 접두사는 접두사가 붙은 모든 맵에 대한 기본 게임 모드를 설정합니다.
+
+		[/Script/Engine.WorldSettings]
+		+DefaultMapPrefixes=(Prefix="DM",GameMode="UTGame.UTDeathmatch")
+
+
+[REGION:note]
+**Game Mode** 셋업 예제는 [](Gameplay\HowTo\SettingUpAGameMode) 문서를 참고하세요.
+[/REGION]

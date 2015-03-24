@@ -1,0 +1,46 @@
+﻿INTSourceChangelist:2286215
+Availability:Public
+Title:概要
+Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor
+Description:メッシュ ペイント モードを使い始めるためのクイックガイド
+
+
+[REGION:headerimage]
+[REGION:fullwidth]
+	![](MeshPaintMode_Active.png)
+[/REGION]
+[/REGION]
+
+[EXCERPT:Intro]
+**メッシュペイント** ツールは、レベルビューポートでスタティックメッシュの頂点カラーをインタラクティブにペイントします。固有のカラー/アルファ値でシングルメッシュの複数のインスタンスをペイントし、そのデータをマテリアルでお好きなように使用することが出来ます。  
+
+カラーデータを直接可視化することができ、複数のメッシュの編集が同時かつ簡単に出来ます。また、ツールには「ブレンドウェイト」をペイントする特別な機能があり、ピクセルごとの複数のテクスチャ間を補間することが出来ます。
+[/EXCERPT:Intro]
+
+
+ほとんどの頂点ペイント機能の使用法は、簡単に学べます。すぐに作業に取り掛かりたい場合は、以下が基本的な手順となります。
+
+* [何らかの方法で頂点カラーを利用するマテリアルを設定してメッシュにそれを適用します](Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor/MaterialSetup)
+* [Mesh Paint モードをアクティブにしてメッシュ アクタを選択します](#メッシュペイントモードを有効にする)
+* [ペイント カラーを設定し他のブラシ プロパティを適切に調整します](Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor/BrushSettings)
+* [Ctrl キーを押しながらメッシュをクリック＆ドラッグしてペイントに適用します](Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor/PaintingOnMeshes)
+
+
+以下のセクションで、様々なブラシの設定やマテリアルがどのように設定されるかなど、詳細なプロセスを説明します。
+
+##メッシュ ペイント モードを有効にする
+
+メッシュペイントツールを起動して使用するには、 **メッシュ ペイント モード** と入力します。Modあとは **[モード]** パネル上で [ペイントブラシ] ボタンをクリックするだけです。
+
+![](MeshPaintMode.png)
+
+
+これにより、 [メッシュペイント] パネルが表示され、エディタ フレームの左パネルにドックしたままになります。
+
+![](MeshPaintPanel.png)
+
+このモード時には、カメラ移動や選択など、一般的なエディタ動作も実行できますが、ある特定の機能は無効化されます。また、お使いのパースペクティブ (透視図法) ビューポートは、このシステムの必要条件となる _real-time モード_ へ強制的に切り替えられます。
+
+メッシュ ペイント モードを終了するには、 **モード** パネル内で別のエディタ モードを選択すればよいです。
+
+![](CloseMeshPaint.png)

@@ -1,0 +1,198 @@
+﻿INTSourceChangelist:2396527
+Availability:Public
+Title:FBX コンテンツ パイプライン
+Crumbs: %ROOT%, Engine, Engine/Content
+Description:メッシュ、アニメーション、マテリアル、テクスチャのために FBX フォーマットを使用したコンテンツ インポート パイプライン
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX:title%](Engine/Content/content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/FBX:title%](Engine/Content/content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:banner]
+![FBX](fbx_banner.png)
+[/REGION]
+
+[EXCERPT:Intro]
+FBX は Autodesk 社が開発し、所有するファイル形式です。Autodesk MotionBuilder、Autodesk Maya、Autodesk 3ds Max などのデジタル コンテンツ制作アプリケーション間の相互運用性を実現するために使用します。Autodesk MotionBuilder ソフトウェアは FBX をネイティブにサポートします。Autodesk Maya と Autodesk 3ds Max ソフトウェアには、FBX プラグインが含まれます。
+
+アンリアル エンジンは、FBX フォーマット対応のデジタル コンテンツ制作アプリケーションからコンテンツを簡単に転送できるようにする FBX インポートパイプラインを特徴とします。
+[/EXCERPT:Intro]
+
+以下は、アンリアル FBX インポータが他のインポート方式よりも優れている点です。
+
+* 単一のファイル形式でスタティック (静的) メッシュ、スケルタル (骨格) メッシュ、アニメーション、モーフ ターゲットに対応します。
+* 単一のファイルに複数のアセット/ コンテンツを入れることができます。
+* 一回のインポート操作で複数の LOD、Morphs/Blendshapes をインポートします。
+* マテリアルとテクスチャがメッシュと共にインポートされ、メッシュに適用されます。
+
+
+[EXCERPT:VersionWarning]
+[REGION:warning]
+UE4 の FBX インポート パイプラインでは、**FBX 2014** を使用します。エクスポート中に異なるバージョンを使用すると、互換性がなくなる場合があります。
+[/REGION]
+[/EXCERPT:VersionWarning]
+
+[EXCERPT:Reference]
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		コンテンツのインポート リファレンス
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/QuickStart "%Engine/Content/QuickStart:description%")
+		* [](Engine/Content/FBX/ImportOptions "%Engine/Content/FBX/ImportOptions:description%")
+		* [](Engine/Content/FBX/BestPractices "%Engine/Content/FBX/BestPractices:description%")
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:Reference]
+
+[EXCERPT:Guides]
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		コンテンツのインポート ガイド
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/FBX/StaticMeshes "%Engine/Content/FBX/StaticMeshes:description%")
+		* [](Engine/Content/FBX/SkeletalMeshes "%Engine/Content/FBX/SkeletalMeshes:description%")
+		* [](Engine/Content/FBX/Animations "%Engine/Content/FBX/Animations:description%")
+		* [](Engine/Content/FBX/MorphTargets "%Engine/Content/FBX/MorphTargets:description%")
+		* [](Engine/Content/FBX/Materials "%Engine/Content/FBX/Materials:description%")
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:Guides]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		追加のリソース
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/FBX/QuicktimeViewer "%Engine/Content/FBX/QuicktimeViewer:description%")
+	[/PARAM]
+[/OBJECT]
+
+<!-- Vars and Objects for INCLUDEs
+
+
+[VAR:FBX_ImportOptions]
+[](Engine/Content/FBX/ImportOptions) - %Engine/Content/FBX/ImportOptions:description%
+[/VAR]
+
+[EXCERPT:FBX_ImportOptions]
+%FBX_ImportOptions%
+[/EXCERPT:FBX_ImportOptions]
+
+[VAR:FBX_QT]
+[](Engine/Content/FBX/QuicktimeViewer) - %Engine/Content/FBX/QuicktimeViewer:description%
+[/VAR]
+
+[EXCERPT:FBX_QT]
+%FBX_QT%
+[/EXCERPT:FBX_QT]
+
+[VAR:FBX_BestPractices]
+[](Engine/Content/FBX/BestPractices) - %Engine/Content/FBX/BestPractices:description%
+[/VAR]
+
+[EXCERPT:FBX_BestPractices]
+%FBX_BestPractices%
+[/EXCERPT:FBX_BestPractices]
+
+[VAR:FBX_StaticMeshLink]
+[](Engine/Content/FBX/StaticMeshes) - %Engine/Content/FBX/StaticMeshes:description%
+[/VAR]
+
+[EXCERPT:FBX_StaticMeshLink]
+%FBX_StaticMeshLink%
+[/EXCERPT:FBX_StaticMeshLink]
+
+[VAR:FBX_SkeletalMeshLink]
+[](Engine/Content/FBX/SkeletalMeshes) - %Engine/Content/FBX/SkeletalMeshes:description%
+[/VAR]
+
+[EXCERPT:FBX_SkeletalMeshLink]
+%FBX_SkeletalMeshLink%
+[/EXCERPT:FBX_SkeletalMeshLink]
+
+[VAR:FBX_Animations]
+[](Engine/Content/FBX/Animations) - %Engine/Content/FBX/Animations:description%
+[/VAR]
+
+[EXCERPT:FBX_Animations]
+%FBX_Animations%
+[/EXCERPT:FBX_Animations]
+
+[VAR:FBX_Morph]
+[](Engine/Content/FBX/MorphTargets) - %Engine/Content/FBX/MorphTargets:description%
+[/VAR]
+
+[EXCERPT:FBX_Morph]
+%FBX_Morph%
+[/EXCERPT:FBX_Morph]
+
+[VAR:FBX_Mats]
+[](Engine/Content/FBX/Materials) - %Engine/Content/FBX/Materials:description%
+[/VAR]
+
+[EXCERPT:FBX_Mats]
+%FBX_Mats%
+[/EXCERPT:FBX_Mats]
+
+[VAR:FBX_ART]
+[](Engine/Content/Tools/MayaRiggingTool) - %Engine/Content/Tools/MayaRiggingTool:description%
+[/VAR]
+
+[EXCERPT:FBX_ART]
+%FBX_ART%
+[/EXCERPT:FBX_ART]
+
+-->

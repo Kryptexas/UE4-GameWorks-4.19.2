@@ -1,0 +1,19 @@
+﻿INTSourceChangelist:2087463
+Availability:Public
+Title:キューブマップのインポート
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
+Description: アンリアル エンジン 4 へキューブマップをインポートする方法
+
+## 概要
+
+本ページでは、アンリアル エンジン 4 へキューブマップをインポートする方法を説明します。
+
+## キューブマップのインポート
+
+キューブマップ画像をインポートするには、 **コンテンツ ブラウザ** から **[インポート]** をクリックします。ファイルを見つけて **[Open]** をクリックします。
+
+[REGION:raw]
+![](ContentBrowserImport.png)(convert:false)
+[/REGION]
+
+または、 TutorialShape.fbx を **コンテンツブラウザ** へドラッグ＆クリックします。

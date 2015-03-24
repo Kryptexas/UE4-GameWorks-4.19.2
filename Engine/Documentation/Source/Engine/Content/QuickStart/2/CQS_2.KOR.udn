@@ -1,0 +1,90 @@
+﻿INTSourceChangelist:2466505
+Availability: Public
+Title:2. FBX 를 통한 메시 임포트
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:여기서는 언리얼 엔진 4 에 메시를 임포트/익스포트하는 프로세스를 다루겠습니다.
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 단계](Engine/Content/QuickStart/1 "%Engine/Content/QuickStart/1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵 스타트 홈](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+임포트할 애셋이 있다면, 아래 [메시 준비](#메시준비) 섹션으로 넘어가세요.
+
+애셋이나 모델링 패키지가 없는 경우, 아래에서 샘플 애셋을 다운로드하면 됩니다:
+
+* [샘플 애셋](Engine/Content/QuickStart/3/QuickStartSampleAssets.zip)
+
+로컬 컴퓨터 위치에 압축을 푼 다음 **Basic_Asset1** & **Basic Asset2** 를 UE4 프로젝트의 **Content** 폴더에 끌어 놓습니다.
+
+ ![](ExplorerImport.png)(w:640)
+
+ 여기서 아래 **4 단계** 로 이어갈 수 있습니다.
+ 
+[REGION:note]
+ 여기 보이는 작명 규칙과 파일 구조가 애셋 이름과 프로젝트 위치에 따라 살짝 달라 보일 수 있습니다.
+[/REGION]
+ 
+
+## 메시 준비
+
+%Globals:DCCSelect%
+
+[INCLUDE:Engine/Content/FBX#versionwarning]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaexport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxexport]
+	[/PARAM]
+[/OBJECT]
+
+[REGION:note]
+FBX 파이프라인 관련 상세 정보는, [](Engine/Content/FBX) 문서를 참고하세요.
+[/REGION]
+
+
+
+<!--
+## Supported Image Formats
+
+[INCLUDE:Engine/Content/Types/Textures/Importing#SupportedTextureFormats]
+
+-->
+
+%Steps%

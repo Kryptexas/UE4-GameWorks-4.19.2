@@ -1,0 +1,65 @@
+INTSourceChangelist:1571365
+Availability:Public
+Title:内容类型
+Crumbs:%ROOT%, Content
+Description:在外部应用程序中创建并在虚幻引擎中使用的内容类型。
+
+[REGION:banner]
+![%Engine/Content/FBX:title%](Content/FBX/fbx_banner.png)
+[/REGION]
+
+[REGION:topics third]
+[EXCERPT:Types]
+[OBJECT:Topic]
+	[PARAMLITERAL:image]
+		![%Engine/Content/Types/Textures:title%](Engine/Content/Types/Textures/texture_topic.png)
+	[/PARAMLITERAL]
+	[PARAMLITERAL:icon]
+		![](%ROOT%/texture_icon.png)(convert:false)
+	[/PARAMLITERAL]
+	[PARAMLITERAL:title]
+		%Engine/Content/Types/Textures:title%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:description]
+		%Engine/Content/Types/Textures:description%
+	[/PARAMLITERAL]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/Textures]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAMLITERAL:image]
+		![%Engine/Content/Types/SkeletalMeshes:title%](Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAMLITERAL]
+	[PARAMLITERAL:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAMLITERAL]
+	[PARAMLITERAL:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAMLITERAL]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAMLITERAL:image]
+		![%Engine/Content/Types/SkeletalMeshes:title%](Content/Types/SkeletalMeshes/skeletalmesh_topic.png)
+	[/PARAMLITERAL]
+	[PARAMLITERAL:icon]
+		![](%ROOT%/char_icon.png)(convert:false)
+	[/PARAMLITERAL]
+	[PARAMLITERAL:title]
+		%Engine/Content/Types/SkeletalMeshes:title%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:description]
+		%Engine/Content/Types/SkeletalMeshes:description%
+	[/PARAMLITERAL]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/SkeletalMeshes]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:Types]
+[/REGION]

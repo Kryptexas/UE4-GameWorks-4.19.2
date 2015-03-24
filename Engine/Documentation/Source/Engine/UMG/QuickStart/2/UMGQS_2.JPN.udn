@@ -1,0 +1,56 @@
+﻿INTSourceChangelist:2336161
+Availability:Public
+Title:2.Widget ブループリントを作成する
+Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
+Description:UMG クイックスタートガイドの 2 番めのステップは、HUD に使用するための Widget ブループリントを作成することです。
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/UMG\QuickStart\1 "%Engine/UMG\QuickStart\1:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/UMG\QuickStart) 
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/UMG\QuickStart\3 "%Engine/UMG\QuickStart\3:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+	[/PARAM]
+	[PARAM:description]
+
+このステップでは、画面上に HUD を描画するために使用する [Widget ブループリント](Engine/UMG/UserGuide/WidgetBlueprints) を作成します。 
+
+1. プロジェクトを開いた状態でコンテンツ ブラウザ内の **「Game」** フォルダで、**[New]** ボタンをクリックします。**[New Folder]** を選択し、**UMG** と名前を付けます。 
+
+1. **「UMG」** フォルダを開いて **右クリック** し、**[User Interface]** を選択し、次に **[Widget Blueprint]** を選択し、**GameHUD** と名前を付けます。  
+
+		![](New_3.png)
+
+		**UMG** でどのタイプの HUD エレメントを作成するかに関係なく、最初に必ず **Widget ブループリント** を作成する必要があります。 
+
+次のセクションでは、画面上に表示したいエレメントを **Widget ブループリント** に追加します。 
+
+	[/PARAM]
+	[PARAM:links]
+	[/PARAM]
+[/OBJECT]
+
+
+%Steps%
+
+
+

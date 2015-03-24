@@ -1,0 +1,94 @@
+﻿Availability:Docs
+Title: 骨架网格物体细节层次
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/SkeletalMeshes
+Description:用于管理及自动生成静态网格物体的细节层次的工具。
+
+[TOC(start:2)]
+
+**Level of Detail（细节层次）** 面板提供了在 **网格物体查看器** 中管理及生成 
+完整的细节层次网格物体(LOD)链的工具。LOD可以从在外部应用程序中创建的FBX文件中导入， 
+也可以根据您设置的规则自动生成。
+
+![](lod_panel.png)
+
+[INCLUDE:Engine/UI/Tools/Simplygon#License]
+
+## LOD管理
+
+LOD是在  **Current LODs(当前LOD)** 部分进行管理的。这里列出了改 _骨架网格物体_ 当前 
+包含的所有LOD。
+
+![](lod_current.png)
+
+通过使用![](button_lod_import.png) 
+和![](button_lod_remove.png) 按钮可以删除该LOD链条中的每个单独的LOD。
+
+您可以通过使用该部分底部的按钮来导入一个新网格物体来给该链条添加新的LOD， 
+该网格物体将设置为该链条中的下一个LOD（在下面的示例中是指LOD 2）:
+
+![](lod_new.png)
+
+## LOD 生成
+
+自动生成LOD使用[](Engine/UI/Tools/Simplygon)来创建基础网格物体的简化版本， 
+并将其作为细节层次网格物体。这些算法考虑了目标复杂度、轮廓呈现及贴图坐标等这些因素， 
+以便生成可以在远处显示且没有 
+明显退化或失真的新网格物体。
+
+**要想生成LOD链:**
+
+1. 选择要生成的LOD网格物体的数量。
+
+	![](lod_number.png)
+
+1. 设置要生成的每个LOD网格物体的 [质量选项](#质量设置)。
+
+	![](lod_settings.png)
+
+1. 按下 ![Generate LOD Chain](button_lod_generate.png)来创建新的细节层次网格物体。
+
+	![](lod_generated.png)
+
+1. 可以使用工具条中的控制项来预览细节层次网格物体。
+
+	![](lod_preview.gif)(convert:false)
+
+
+### 质量设置
+
+| 设置 | 描述 |
+| ------- | ----------- |
+| [REGION:tablesection]质量[/REGION] ||
+| **简化类型** | [INCLUDE:#Type]  |
+| **Silhouette(轮廓)** |指出了网格物体的轮廓的重要程度。您可以从 _Off（关闭）_  、_Lowest（最低级）_  、  _Low(低级)_  、 _Normal（一般）_  、 _High(高级)_ 和 _Highest(最高级)_ 选项中进行选择。选择较高级别的设置将会使得简化过程中更好地保存网格物体的几何体形状，但是将会导致更多的三角形数量。|
+| **Texture(贴图)** | 指出了贴图密度的重要程度。您可以从 _Off（关闭）_  、_Lowest（最低级）_  、  _Low(低级)_  、 _Normal（一般）_  、 _High(高级)_ 和 _Highest(最高级)_ 选项中进行选择。选择较高级别的设置将会使得简化过程中避免贴图拉伸失真，但是会导致产生更多的三角形数量。|
+| **Shading（阴影）** |指出了阴影质量的重要程度。您可以从 _Off（关闭）_  、_Lowest（最低级）_  、  _Low(低级)_  、 _Normal（一般）_  、 _High(高级)_ 和 _Highest(最高级)_ 选项中进行选择。选择较高级别的设置将使得简化时保持阴影质量，但是会导致产生更多的三角形数量。|
+| **Animation（动画）** | 您可以选择动画的重要程度。您可以从 _Off（关闭）_  、_Lowest（最低级）_  、  _Low(低级)_  、 _Normal（一般）_  、 _High(高级)_ 和 _Highest(最高级)_ 选项中进行选择。选择较高级别的设置将会使得简化过程避免动画失真，但是会导致产生更多的三角形数量。|
+| [REGION:tablesection]修复选项[/REGION] ||
+| **Welding Threshold（融合阈值）** |顶点间距离在这个值之内的顶点将会自动融合。这可以帮助消除较小的面。使用太大的值将会产生较差的效果。|
+| **Recompute Normals（重新计算法线）** | 如果该项为true，将会基于简化的几何体重新计算平滑组。否则，将会从原始网格物体获得平滑组。|
+| **Hard Edge Angle Threshold（尖锐边缘角度阈值）** |当重新计算法线时，如果两个面之间的角度大于这个值将会在这两个面之间产生尖锐边缘。较小的角度值将会产生柔和边缘。|
+| [REGION:tablesection]骨架简化[/REGION] ||
+| **骨骼数量** | 和原始网格物体相比，简化后的LOD网格物体中映射到顶点的骨骼的比例。较小的值将会导致更多的骨骼被从映射中删除。|
+| **Max Bones Per Vertex（每个顶点的最多骨骼数量）** | 在简化的LOD网格物体中可以分配给每个顶点的骨骼的最大数量。|
+
+<!--
+[EXCERPT:Type]
+指出了所使用的方法，以决定最终LOD网格物体的质量或复杂度。
+
+[REGION:simpletable]
+| 类型 | 描述 |
+| ---- | ----------- |
+| _Max Deviation（最大偏离）_ | 和基础网格物体的最大偏离量，以边界球体的百分比呈现。编辑器使用期望的质量来计算网格物体的误差尺度。这个误差尺度阻止工具过度简化网格物体，以防止新的网格物体表面和源网格物体的表面偏离太远。这种方法的优点是这个工具可以智能地优化网格物体使它位于源网格物体的某特定偏离量之内，而不必在受到任何三角形限制时而停止。|
+| _Number of Triangles(三角形数量)_ | 编辑器简化网格物体直到它具有指定数量的三角形为止。|
+[/REGION]
+[/EXCERPT:Type]
+-->
+
+## Simplygon?
+
+![Simplygon](Engine/UI/Tools/Simplygon/simplygon_logo.png)
+
+Simplygon通过尽可能多地删除信息来自动生成可以在游戏中使用的具备特定像素分辨率的细节层次模型(LOD)，不会针对某特定屏幕尺寸降低LOD质量。Simplygon使用了一种获得专利的网格物体简化方法，它可以保持LOD几何完整性和LOD切换时的视觉质量，用于生成可以直接在顶级游戏中使用的AutoLODs（自动LOD） 。
+
+虚幻引擎4对Simplygon进行了一些修改，使得不必离开虚幻编辑器就可以进行高质量的网格物体简化 。开发人员可以快速地简化网格物体、生成LODs，并立即在他们的关卡中看到效果。

@@ -1,0 +1,18 @@
+﻿INTSourceChangelist:2374181
+Availability:Public
+Title: 인터페이스
+Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
+Description:인터페이스 생성 및 구현 관련 참고서입니다.
+Version: 4.5
+
+[TOC(start:2)]
+
+
+인터페이스 클래스 선언은 보통의 클래스 선언과 매우 유사합니다. 딱 한가지 문법에 큰 차이점이라면, 지시어가 `UCLASS` 매크로 대신 `UINTERFACE` 매크로로 전달된다는 점입니다.
+
+	UINTERFACE([specifier, specifier, ...], [meta(key=value, key=value, ...)])
+	class ClassName : ParentName
+
+## 인터페이스 지정자
+
+[INCLUDE:Programming/UnrealArchitecture/Reference/Interfaces/Specifiers#main(offset:1)]

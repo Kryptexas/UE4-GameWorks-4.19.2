@@ -1,0 +1,42 @@
+Availability: Public
+Title:Graph Mode
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
+Description:User guide for Graph Mode in the Persona animation editor.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/Modes/Graph:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/Modes/Graph:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/Modes/Graph:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/Modes/Graph]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+##Overview
+
+[REGION:fullwidth]
+![](AnimationGraph.png)
+[/REGION]
+
+The **Graph Mode** of **Persona** is where you specify the logic behind and hook up animations and animation states based off variables and conditions set within the **AnimGraph** and **EventGraph**. Working with the graphs, is similar to working with **Blueprint** graphs however there are some key details to **Animation Blueprints** as outlined below. 
+
+##Animation Blueprints Overview
+
+[INCLUDE:Engine/Animation/AnimBlueprints#Intro]
+
+For more information on working with **Animation Blueprints**, refer to the [Animation Blueprints](Engine/Animation/AnimBlueprints) documentation. 
+
+
+
+

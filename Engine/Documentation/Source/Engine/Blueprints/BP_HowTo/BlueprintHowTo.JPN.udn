@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:2444099
+Availability:Public
+Title:ブループリントの操作ガイド
+Crumbs: %ROOT%, Engine, Engine/Blueprints
+Description:ブループリントを操作に関して、段階ごとに簡単な説明をしていきます。 
+Related:Engine/Blueprints
+Related:Engine/Blueprints/UserGuide
+Related:Gameplay
+
+## 概要
+アンリアル エンジン 4 の **ブループリント** が初めての場合、この **ブループリン操作ガイド** シリーズが、基本的な使用方法、ノードの追加と接続、変数の作成をはじめ、以下の表に挙げられているブループリントの操作に必要な重要項目の説明となります。 
+
+ブループリントの重要項目を理解している場合は、アクタのスポーン/破壊、再スポーン (OnDestroyed) 、タイマーの使用などゲームプレイ関連エレメントを説明している [](Gameplay) の中に **ゲームプレイ** 向けの操作ガイドを用意しています。 
+
+詳細は以下の表を参照してください。各リンクをクリックすると内容が表示されます。 
+
+| 操作手順 | 説明 |
+| ------- | ------------ |
+| **[](Engine/Blueprints/BP_HowTo/BasicUsage)** | %Engine/Blueprints/BP_HowTo/BasicUsage:description% |
+| **[](Engine/Blueprints/UserGuide/Types/ClassBlueprint/Creation)** | %Engine/Blueprints/UserGuide/Types/ClassBlueprint/Creation/:description% |
+| **[](Engine/Blueprints/BP_HowTo/PlacingNodes)** | %Engine/Blueprints/BP_HowTo/PlacingNodes:description% |
+| **[](Engine/Blueprints/BP_HowTo/ConnectingNodes)** | %Engine/Blueprints/BP_HowTo/ConnectingNodes:description% |
+| **[](Engine/Blueprints/BP_HowTo/NavigatingGraphs)** | %Engine/Blueprints/BP_HowTo/NavigatingGraphs:description% |
+| **[](Engine/Blueprints/BP_HowTo/CollapsingGraphs)** | %Engine/Blueprints/BP_HowTo/CollapsingGraphs:description% |
+| **[](Engine/Blueprints/BP_HowTo/ActorReference)** | %Engine/Blueprints/BP_HowTo/ActorReference:description% |
+| **[](Engine/Blueprints/BP_HowTo/MakingFunctions)** | %Engine/Blueprints/BP_HowTo/MakingFunctions:description% |
+| **[](Engine/Blueprints/BP_HowTo/WorkingWithArrays)** | %Engine/Blueprints/BP_HowTo/WorkingWithArrays:description% |
+| **[](Engine/Blueprints/UserGuide/Variables)** | The entire user guide for Variables. |
+| **[](Engine/Blueprints/BP_HowTo/MakingMacros)** | %Engine/Blueprints/BP_HowTo/MakingMacros:description% |
+| **[](Engine/Blueprints/BP_HowTo/Debugging)** | %Engine/Blueprints/BP_HowTo/Debugging:description% |
+
+
+
+
+
+
+

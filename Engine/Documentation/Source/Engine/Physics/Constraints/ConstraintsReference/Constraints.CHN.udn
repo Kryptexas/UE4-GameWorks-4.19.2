@@ -1,0 +1,153 @@
+Availability: Public
+Title:物理约束参考
+Crumbs: %ROOT%, Engine, Engine/Subsystems/Physics
+
+[TOC(start:2)]
+
+ 
+
+
+##概述
+
+约束实际上是关节的另一个名称。它使您能够将两个刚体连接在一起，并应用限制或者力。虚幻引擎3有非常灵活的数据驱动约束系统，允许设计者简单地更改一些选项就可以制作许多不同类型的关节。该引擎有一些默认的关节类型（球窝式、hinge（铰链）式、Prismatic（棱柱）式）而它们仅仅在设置上有所不同。您应该可以从任意类型的关节入手，通过设置自己的配置进行共享的及每个实例设置实验。
+
+
+###共享的及基于每个实例的设置
+
+这些设置被分为2部分——某些设置被特定关节的所有实例所共享，某些设置仅针对于每个特定的实例。例如，有时候一个关节限制对该关节的所有实例都是相同的，但是在各个实例中驱动设置不尽相同。共享属性被存储在RB_ConstraintSetup对象中，而每个实例的属性被存储在RB_ConstraintInstance对象中。在PhAT中，您可以通过按下键盘上的"I"键（或者按下工具栏上的"i"按钮）对选定关节的各种属性进行切换。
+
+
+###硬度和阻尼
+
+您可在约束中的几个地方设置一个"硬度"与"阻尼"参数来控制弹簧行为。您可以在一个由弹簧与油缸活塞制成的汽车悬架情境中考虑这些设置。弹簧控制产生多大的力量来把物体带回其默认位置或者平衡位置；而阻尼就像用于油一样，它阻碍任意运动。如果您有硬度而没有阻尼，那么运动将前后摆动且从不停止。如果您将阻尼设置得很大，会花费很长时间到达平衡状态。
+
+
+## RB_ConstraintSetup(RB _约束设置)
+
+
+### 总体设置
+
+| --- | --- |
+| ConstraintBone1  | 在一个PhysicsAsset（物理资源）中，关节应该连接的第一块骨骼的名称。  |
+| ConstraintBone2  | 在一个PhysicsAsset（物理资源）中，关节应该连接的第二块骨骼的名称。  |
+
+
+### 线性设置
+
+有3个LinearSetup（线性设置）结构——分别对应着X、Y、Z方向。每个结构都有如下设置
+
+| --- | --- |
+| bLimited  | 是否对此程度的自由度存在限制。如果为假，线性运动没有丝毫限制。  |
+| LimitSize  | 如果bLimited为真，在此方向上允许的运动量。将此设置为0会完全"锁定"此自由度 。  |
+
+注意线性限制实际上是球状的——所以如果方向没有被限制为0（"锁定的"）那么它将使用最大的3 LimitSize值。所以如果X为0，Y为10且Z为20，它将被限制在在YZ平面上一个半径为20的圆内。如果X为0，Y为0且Z为20，它将被限制在沿着Z轴从+20到-20的线段上。
+
+| --- | --- |
+| bLinearLimitSoft  | 默认情况下线性约束是"hard（硬性的）"。如果您将此设置为真，它们将被作为具有弹性的来对待，而您可以"推"进它们内部。  |
+| LinearLimitStiffness  | 如果bLinearLimitSoft为真，它控制限制弹簧的硬度。  |
+| LinearLimitDamping  | 如果bLinearLimitSoft为真，它控制限制弹簧的阻尼。  |
+| bLinearBreakable  | 如果为真，通过在关节上作用一个线性力，该关节会损坏（主要将关节拉断）。  |
+| LinearBreakThreshold  | 如果bLinearBreakable为真，这就是破坏关节所需要的力。  |
+
+
+### 角度设置
+
+关节的角度部分在条件"swing（摆动）"与"twist（扭曲）"中指定。您可以认为摆动是围绕X轴的圆锥体，而twist（扭曲）是绕该轴的旋转。在UE4中，圆锥体的限制由两个角度决定，因此可以是一个椭圆锥体。
+
+| --- | --- |
+| bSwingLimited  | 如果为真，两个体之间的夹角为一个圆锥体。  |
+| bTwistLimited  | 如果为真，两个体之间的twist（扭曲）被限制。  |
+| bSwingLimitSoft  | 默认情况下摆动圆锥的限制为"硬性的"。如果此被设置为真，它变为弹簧性且能被推入。  |
+| bTwistLimitSoft  | 默认情况下twist（扭曲）限制为"硬"。它变为弹簧性且能被推入。  |
+| Swing1LimitAngle  | 定义摆动限制圆锥体在一个维度上的角度度数。  |
+| Swing2LimitAngle  |定义摆动限制圆锥体在另一个维度上的角度度数。  |
+| TwistLimitAngle  | 定义在两个受约束的刚体之间允许的twist（扭曲）的数量。  |
+| SwingLimitStiffness  | 如果bSwingLimitSoft为真，它控制锥体的硬度 。  |
+| SwingLimitDamping  | 如果bSwingLimitSoft为真，它控制锥体的阻尼。  |
+| TwistLimitStiffness  | 如果bTwistLimitSoft为真，它控制twist（扭曲）限制的硬度。  |
+| TwistLimitDamping  | 如果bTwistLimitSoft为真，它控制twist（扭曲）限制的阻尼。  |
+| bAngularBreakable  | 如果为真，在其上作用扭矩时候，此关节可以被破坏（主要扭断关节）。  |
+| AngularBreakThreshold  | 如果bAngularBreakable为真，这就是破坏关节所需要的扭矩大小。  |
+
+
+### 滑轮设置
+
+滑轮是一种特殊的关节，如同一个刚体上的某一点通过绳索连接到另一个刚体上的一点，而该绳索在空间上也穿过这两个点。当使用这种关节时，大部分其它关节设置将没有效果。
+
+| --- | --- |
+| bIsPulley(滑轮)  | 如果为真，该关节将被作为滑轮类型处理。  |
+| bMaintainMinDistance(维持最小距离)  | 如果为真，在"rope（绳索）"中不允许有"slack（松弛）"，它们被当做支杆那样对待，所以您可以推上一个物体而另一个将被推下。  |
+| PulleyRatio(滑轮比率)  | 滑轮上的齿轮传动比率。如果它不为1.0，拉一端将会导致另一端运动较少，但是需要的力量更多。  |
+
+
+## RB_ConstraintInstance(RB_约束实例)
+
+
+### 速度及位置驱动
+
+虚幻引擎3提供2种方法驱动一个关节——位置及速度驱动。位置驱动的作用力像弹簧，在那里关节试图使用您指定的硬度及阻尼属性来到达给定位置。速度的驱动如同一个马达，在此您指定您想要的速度以及用于达到此速度的最大的力。
+
+
+### 线性设置
+
+| --- | --- |
+| bLinearXPositionDrive  | 在线性X轴上启用位置驱动。  |
+| bLinearXVelocityDrive  | 在线性X轴上启用速度驱动。  |
+| bLinearYPositionDrive  | 在线性Y轴上启用位置驱动。  |
+| bLinearYVelocityDrive  | 在线性Y轴上启用速度驱动。  |
+| bLinearZPositionDrive  | 在线性Z轴上启用位置驱动。  |
+| bLinearZVelocityDrive  | 在线性Z轴上启用速度驱动。  |
+| LinearPositionTarget  | 如果允许线性位置驱动，这是关节试图达到的目标相对位置。  |
+| LinearVelocityTarget  | 如果允许线性速度驱动，这是关节试图达到的目标相对速度。  |
+| LinearDriveSpring  | 如果线性位置驱动被激活，这是驱动弹簧的硬度。 |
+| LinearDriveDamping  | 如果线性位置驱动被激活，这是驱动弹簧的阻尼。  |
+| LinearDriveForceLimit  | 如果线性速度驱动被允许，这是用于获得LinearVelocityTarget的最大的力。  |
+
+
+### 角度设置
+
+| --- | --- |
+| bSwingPositionDrive  | 在摆动轴上允许位置驱动。  |
+| bSwingVelocityDrive  | 在摆动轴上允许速度驱动。  |
+| bTwistPositionDrive  | 围绕twist（扭曲）轴允许位置驱动。  |
+| bTwistVelocityDrive  | 围绕twist（扭曲）轴允许速度驱动。  |
+| bAngularSlerpDrive  | 高级选项。指定将驱动作用于关节的方法。  |
+| AngularPositionTarget  | 如果角度位置驱动被激活，这是关节试图达到的目标相关四元数。  |
+| AngularVelocityTarget  | 如果角度速度驱动被激活，这是关节试图达到的目标相对角速度。  |
+| AngularDriveSpring  | 如果角度位置驱动被激活，这是驱动弹簧的硬度。  |
+| AngularDriveDamping  | 如果角度位置驱动被激活，这是驱动弹簧的阻尼。  |
+| AngularDriveForceLimit  | 如果角度速度驱动被激活，这是用于获得AngularVelocityTarget的最大扭矩。  |
+
+
+## **示例**
+
+
+### 球窝式
+
+球窝关节是一种简单的关节，它的所有线性部分被锁定且所有角度部分都是自由的。
+
+
+### Hinge（铰链）式
+
+与球窝关节一样，一个hinge（铰链）的所有线性部分是锁定的，但是其摆动部分也被锁定，故它仅能绕着它的twist（扭曲）轴旋转。
+
+
+### Prismatic（棱柱）式
+
+Prismatic（棱柱）关节3个线性自由度中有2个被锁定，且其所有角度自由度也被锁定。这允许沿着一个"轨道"滑动但不能旋转。
+
+
+### 关节摩擦
+
+您可以使用驱动设置模拟关节摩擦。打开目标速度为零的速度驱动，并使用LinearDriveForceLimit与AngularDriveForceLimit设置控制该关节阻碍运动的强度。
+
+
+### "Punchbag（沙袋）"
+
+您可以模拟出类似于Punchbag（沙袋）的东西(它是一个挂在垂直杆上的球状物，可以被敲打)。首先创建一个球窝关节，然后打开swing（摆动）位置驱动并调节AngularDriveSpring与AngularDriveDamping，直到被推动时顺利底绕着垂直位置摆动。您可以设置摆动限制，以确保它不会过度弯曲。
+ 
+
+
+
+
+

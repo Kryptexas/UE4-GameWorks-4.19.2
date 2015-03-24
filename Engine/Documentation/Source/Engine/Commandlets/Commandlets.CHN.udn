@@ -1,0 +1,56 @@
+﻿Availability: Docs
+Title: 命令行开关
+Crumbs: %ROOT%, Engine
+Description: 运行于虚幻引擎环境中的命令行程序，一般用于分析包及地图或在其上面执行操作。
+
+
+[REGION:header_img]
+![commandlets.jpg](commandlets.jpg)
+[/REGION]
+
+命令行开关是在虚幻引擎环境内部运行的命令行程序。它们大多数用于对内容进行批量修改、迭代内容来获得关于它的信息或者作为单元测试机制。默认情况下引擎包含很多命令行开关，您还可以添加新的命令行开关来执行其他功能。
+
+通过在命令行上将具有任何必需参数的命令行开关的名称传递给游戏可以执行该命令行开关，您既可以从Windows的命令提示中运行游戏，也可以通过可执行程序（也就是，UE4Editor.exe）的快捷方式的 *target（目标）* 来运行游戏。
+
+例如，您可以在命令行中使用下面的方法运行UE4 **FixupRedirects** 命令行开关：
+
+    UE4.exe -run=fixupredirects
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		参考指南
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Commandlets/CommandletList "%Engine/Commandlets/CommandletList:Description%")
+		* [](Engine/Commandlets/BatchExport "%Engine/Commandlets/CommandletList:Description%")
+		* [](Engine/Commandlets/ContentAudit "%Engine/Commandlets/CommandletList:Description%")
+		* [](Engine/Commandlets/ContentComparison "%Engine/Commandlets/ContentComparison:Description%")
+		* [](Engine/Commandlets/DeleteQuarantinedContent "%Engine/Commandlets/DeleteQuarantinedContent:Description%")
+		* [](Engine/Commandlets/FixUpRedirects "%Engine/Commandlets/CommandletList:Description%")
+		* [](Engine/Commandlets/Help "%Engine/Commandlets/CommandletList:Description%")
+		* [](Engine/Commandlets/MineCookedPackages "%Engine/Commandlets/CommandletList:Description%")
+		* [](Engine/Commandlets/SetTextureLODGroup "%Engine/Commandlets/CommandletList:Description%")
+	[/PARAM]
+[/OBJECT]
+
+[PUBLISH:Docs]
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/prog_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		技术
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Programming/Development/Tools/Commandlets/MakingACommandlet "%Programming/Development/Tools/Commandlets/MakingACommandlet:Description%")
+	[/PARAM]
+[/OBJECT]
+[/PUBLISH:Docs]

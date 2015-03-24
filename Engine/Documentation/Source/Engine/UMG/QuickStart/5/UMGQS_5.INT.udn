@@ -1,0 +1,201 @@
+Availability: Public
+Title:5. Experience Bar and Hotbar Button
+Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
+Description:The fifth step in the UMG Quick Start is to create an experience bar and hotbar button. 
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/UMG\QuickStart\4 "%Engine/UMG\QuickStart\4:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/UMG\QuickStart) 
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/UMG\QuickStart\6 "%Engine/UMG\QuickStart\6:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Adding an Experience Bar and Hot Bar Button
+	[/PARAM]
+	[PARAM:description]
+	In this section, we will update our HUD to include an experience bar, level up text, and an action bar button. 
+	[/PARAM]
+[/OBJECT]
+
+1. From the **Content Browser**, select the **UMG** folder and open the **GameHUD** Blueprint. 
+
+1. Inside the **Palette** window under **Common**, drag a **Progress Bar** onto the **CanvasPanel** in the **Hierarchy** window. 
+
+1. Move and resize the bar as you would like (we placed ours at the bottom). 
+
+	![](New_1.png)
+
+	In the **Details** panel, make sure to **Anchor** it where you would like (we Anchored it to the bottom center).
+
+1. Add a **Text Block** to the **CanvasPanel**, this text will be used to let the user know they "Leveled Up."
+
+1. Place the **Text Block** where you would like, along with the text you would like to display.
+
+	![](New_2.png)
+
+	 We used the text "Super Jump Unlocked!" and placed and Anchored it at the bottom.
+
+1. Next, add a **Button** to the **CanvasPanel**, move and resize as desired (we placed ours under our experience bar). 
+
+	![](New_4.png)
+
+1. In the **Details** panel for the button under **Behavior**, uncheck the **Is Enabled** button (as we will turn it on when the player levels up). 
+
+	![](New_3.png)
+
+1. Next to the **IsEnabled** checkbox, click the **Bind** button then **Create Binding**. 
+
+1. In the graph, create a new **Bool** variable called **H_LevelUp** and connect it to the **Return Value**. 
+
+	![](New_5.png)
+
+1. Return to the **Design** tab and click the experience bar. 
+
+1. In the **Details** panel, assign a color to the bar then click **Bind** next to **Percent** and **Create Binding**. 
+
+1. In the graph, create a new **Float** variable called **H_Experience** and connect it to the **Return Value**. 
+
+	![](New_7.png)
+
+1. In the **MyBlueprint** window, **Double-click** the **EventGraph** to jump to it. 
+
+	![](New_15.png)
+
+1. **Right-click** in the graph and add an **Event Tick** connected to a **Branch**. 
+
+1. For the condition, **Control** drag in the **H_Experience** variable and connect it to a **>=** node (set to **1.0**). 
+
+1. Create a new **Text** variable called **H_UnlockedText**. 
+
+1. Next, **Alt** drag in the **H_UnlockedText** variable and enter the text you want to display when unlocking the ability. 
+
+	![](New_13.png)
+
+1.	Return to the **Designer** tab and select your unlock text, next to the **Text** field click **Bind** and select the **H_UnlockedText** variable.
+
+	![](New_13b.png)
+
+	This will Bind the text displayed to whatever the variable is. 
+
+1. Return to the **Graph** tab. 
+
+1. Add a **Delay** node following the unlock text (set to 1 second). 
+
+1. After the **Delay**, **Set H_Experience** to **0.0**, **Set H_UnlockedText** to **Blank** and finally set **H_LevelUp** to **True**. 
+
+	[REGION:lightbox]
+	[![](New_14.png)(w:840)](New_14.png)
+	[/REGION]
+	
+	The resulting graph should look similar to above, click the image for full view. Here we are enabling the ability when enough experience is reached, displaying text that we unlocked the ability, then removing the text and resetting the experience bar.
+	
+1. **Compile** and **Save**, then close the Blueprint. 
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Generating Experience and Finishing Up
+	[/PARAM]
+	[PARAM:description]
+	In this section, we will set it up so that when you shoot a box, it generates experience and updates the HUD. 
+	[/PARAM]
+[/OBJECT]
+
+1. In the **Content Browser** under **Game/Blueprints**, open the **MyProjectile** Blueprint. 
+
+1. In the graph after the **Destroy Actor** node, **Cast To MyCharacter** by adding a **Get Player Character** node. 
+
+1. Off the **As My Character C** pin add the **Get GameHUDWidget** (our Widget Blueprint) node. 
+
+	![](New_8.png)
+
+1. Off the **GameHUDWidget**, **Set H_Experience** to **H_Experience** + **0.10** as seen below. 
+
+	![](New_9.png)
+	
+	The ending sequence should look similar to above, click the image for a full view.
+
+1. **Compile** and **Save**, then close the Blueprint.
+
+1. In the **Content Browser** under **Game/Blueprints**, open the **MyCharacter** Blueprint. 
+
+1. **Right-click** and add a **1** Key Press Event, drag in the **GameHUDWidget** variable and off it, get **H_LevelUp**. 
+
+1. Off the **Pressed** pin of the **1** Key Press Event, add a **Branch** with the condition being **H_LevelUp**. 
+
+	![](New_10.png)
+
+1. Off the **True** of the **Branch**, add a **Launch Character** node and set the **Launch Velocity** X to **50** and Z to **1000.0**. 
+
+1. **Alt** drag in the **P_Energy** variable, then **Control** drag it in and connect it to a **Float - Float** node set to **0.5**. 
+
+	![](New_11.png)
+
+	This will launch the character in the air and subtract energy from the character which will be displayed via the HUD.
+
+1. Drag off the **GameHUDWidget** node in this sequence again and **Set H_LevelUp** to **False** (unchecked). 
+
+1. Add a **Delay** node (set to **2**) following the previous step, then **Set H_LevelUp** to **True** (checked). 
+
+	[REGION:lightbox]
+	[![](New_12.png)(w:840)](New_12.png)
+	[/REGION]
+
+	_Click image for full view._
+
+	When **1** is pressed, if the player has unlocked the ability, we launch them and remove some energy, then add a 2 second cooldown to the ability.
+
+1. Next, find the section for the **F** key press event, following the **Set P_Health** node, add a **Branch** with condition being **P_Health** <= **0.0**. 
+
+1. **Control** drag in the **GameHUDWidget** variable and place it under the **Branch**, then drag off it and add the **Remove from Viewport** node. 
+
+1. Connect the **Remove from Viewport** node to the **True** of the **Branch**, then off the exit pin, add a **Print String** with text **You're Dead!**. 
+
+	[REGION:lightbox]
+	[![](New_16.png)(w:800)](New_16.png)
+	[/REGION]
+
+	The last few steps should result in the above, click for full view. This will remove the HUD when the player is out of Health (or "dead").
+
+	[REGION:note]
+	Note: If you do not see the **Remove from Viewport** option, use the **Remove from Parent** option instead.
+	[/REGION]
+
+1. **Compile** and **Save** then close the Blueprint then play in the editor.
+
+	![](Gif1.gif)(convert:false)
+
+	You should now see that when you hit 10 boxes, you level up and the text appears on screen. After a moment, you can press 1 to perform the ability and a cooldown will be applied to the button. You can also press the **F** key several times until you are out of health at which point the HUD should disappear.
+
+	
+While this is a simple example and there is plenty more to do here, you should have an understanding of how to create and implement screens using **UMG** now as well as how to pass variables to and communicate with them using different methods. The final step of this guide will provide you with additional links to more documentation on using **UMG** and **Blueprints Visual Scripting** which you can use to take this example even further on your own!
+
+---
+
+%Steps%
+
+
+
+
+

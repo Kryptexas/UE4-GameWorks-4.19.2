@@ -1,0 +1,29 @@
+﻿INTSourceChangelist:2070770
+Availability:Public
+Title:キューブマップ
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/Textures
+Description:キューブマップのランディング ページです。作成、エクスポート、インポート、アンリアル エンジン 4 での使用方法を説明します。
+
+
+キューブマップは、環境マッピングの簡単な方法です。空や周囲の環境など、距離感のある景色がパノラマ式テクスチャへマッピングされます。内部では、これらのテクスチャはキューブの内側の面にマッピングされた 6 つの画像として保存されています。 
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/texture_icon.png)
+	[/PARAM]
+	[PARAM:title]
+		テクスチャのコンテンツ作成
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Types/Textures/Cubemaps/CubemapTools) - %Engine/Content/Types/Textures/Cubemaps/CubemapTools:description%
+		* [](Engine/Content/Types/Textures/Cubemaps/CreatingCubemaps) - %Engine/Content/Types/Textures/Cubemaps/CreatingCubemaps:description%
+		* [](Engine/Content/Types/Textures/Cubemaps/ExportingCubemaps) - %Engine/Content/Types/Textures/Cubemaps/ExportingCubemaps:description%
+		* []%Engine/Content/Types/Textures/Cubemaps/ImportingCubemaps:description%
+		* [](Engine/Content/Types/Textures/Cubemaps/UsingCubemaps) - %Engine/Content/Types/Textures/Cubemaps/UsingCubemaps:description%
+	[/PARAM]
+[/OBJECT]
+
+
+

@@ -1,0 +1,11 @@
+﻿INTSourceChangelist:2099361
+Availability:Docs
+Title: 프로퍼티 리플리케이션
+Crumbs:Gameplay, Gameplay/Networking, Gameplay/Networking/Replication
+Description:프로퍼티를 네트워크에 리플리케이트되도록 지정합니다.
+
+[OBJECT:Redirect]
+[PARAM:link]
+[](Gameplay/Networking/Replication/Variables)
+[/PARAM]
+[/OBJECT]

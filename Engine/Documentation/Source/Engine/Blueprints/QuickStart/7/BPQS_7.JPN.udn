@@ -1,0 +1,36 @@
+﻿INTSourceChangelist:2449235
+Availability:Public
+Title:7.高度なブループリント
+Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
+Description:コンテンツのクイックスタートガイドで扱ったトピックに関する参考文献
+
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前の手順](Engine/Blueprints/QuickStart/6 "%Engine/Blueprints/QuickStart/6:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタートのホーム画面](Engine/Blueprints/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+
+
+* キャラクターを起動時にサウンドを再生します。
+* Launch Velocityを格納する変数を作成して、レベル内の各コピーにこの変数を設定するために公開します
+* ブループリントにパーティクルシステムコンポーネントを追加して、スターターコンテンツからパーティクルシステムのいずれかを使用します。
+
+---
+
+%Steps%

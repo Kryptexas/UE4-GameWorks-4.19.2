@@ -1,0 +1,85 @@
+Availability:Public
+Title:1. Install the Android SDK
+Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
+Description: Install the TADP Android SDK.
+
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Platforms/Android/GettingStarted)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Platforms/Android/GettingStarted/2 "%Platforms/Android/GettingStarted/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+
+%Steps%
+
+[REGION:tip]
+If you already have the Android SDK installed, but your environment variables have been lost, you can skip all of this and simply point the editor to the install locations using the **Edit Menu** -> **Project Settings** -> **Android SDK** properties in the Editor.
+[/REGION]
+
+1.	Navigate to the TADP installation folder:
+| Install Type | Location |
+| ------------ | ---------|
+| Binary | [EngineInstallLocation]\Unreal Engine\[EngineVersion]\Engine\Extras\Android |
+| GitHub | [EngineSyncLocation\UE4\Engine\Extras\Android |
+1.	**Double-click** on `tadp-2.0r8-windows.exe`.
+1.	Click **Next**.
+    
+	![](tadpinstaller_1.png)(w:450)
+1.	Select **I accept the agreement**, then click **Next**.
+
+	![](tadpinstaller_2.png)(w:450)
+1.	Click **Next**.
+
+	![](tadpinstaller_3.png)(w:450)
+1.	Select the **Express** install, then click **Next**.
+	
+	![](tadpinstaller_4.png)(w:450)
+1.	Make sure that the install location is `C:\NVPACK`.
+	
+	![](tadpinstaller_5.png)(w:450) 
+1.	Verify that the list of components to install matches this list:
+	
+	![](tadpinstaller_6.png)(w:450)
+1.	Enter a proxy if needed:
+	
+	![](tadpinstaller_7.png)(w:450)
+1.	Click **Next**. You will need an internet connection and this step may take a few minutes.
+	
+	![](tadpinstaller_8.png)(w:450)
+1.	Click **Next**.
+	
+	![](tadpinstaller_9.png)(w:450)
+1.	The installer should run, and this will take some time.
+	
+	![](tadpinstaller_10.png)(w:450)
+1.	If you are prompted with a warning about the software publisher, select **Install this driver software anyway**.
+	
+	![](tadpinstaller_11.png)
+1.	When prompted about saving files after the install, you can select either **Yes** or **No**.
+	
+	![](tadpinstaller_12.png)
+1.	Click **Next**.
+	
+	![](tadpinstaller_13.png)(w:450)
+1.	Verify that all the components have been installed correctly.
+	
+	![](tadpinstaller_14.png)(w:450)
+1.	Uncheck View Readme File, then click Finish.
+	
+	![](tadpinstaller_15.png)(w:450)
+
+%Steps%
+

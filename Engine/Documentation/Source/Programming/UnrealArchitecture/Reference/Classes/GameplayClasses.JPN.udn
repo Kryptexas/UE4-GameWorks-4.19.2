@@ -1,0 +1,267 @@
+Availability:Public
+Title:ゲームプレイ クラス
+Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
+Description:ゲームプレイ クラスの作成および実装に関する参照ページ
+
+[TOC(start:2)]
+
+アンリアルエンジンで使用する全てのゲームプレイクラスは、クラスヘッダファイル (.h) とクラス ソース ファイルで構成されています。 
+クラス実装は、クラスに属する関数を _実装_ することにによってクラスの機能が定義される一方で、 
+クラス ヘッダ ファイルにはクラスの宣言と変数や関数など、そのメンバーが 
+含まれています。
+
+アンリアルエンジンのクラスには標準化した命名スキームがあり、クラスの最初の文字 (プレフィックス) を見ただけで、 
+瞬時にクラスの種類が判断できます。以下はゲームプレイ クラスのプレフィックスです。
+
+| プレフィックス | 意味 |
+| ------ | ------- |
+| `A` | _スポーン可能_ なゲームプレイオブジェクトのベースクラスからの拡張です。これらはアクタで、ワールド内へ直接スポーンすることができます。  |
+| `U` | 全ゲームプレイオブジェクトのベースクラスからの拡張です。このクラスはワールド内へ直接インスタンス化することはできません。アクタに属さなければいけません。通常は [](Programming/UnrealArchitecture/Actors/Components) のようなオブジェクトです。|
+
+
+
+## クラスの追加
+
+[](Programming\Development\ManagingGameCode\CppClassWizard) は、新規クラスに必要なヘッダ ファイルとソース ファイルを設定し、それに応じてゲーム モジュールを更新します。 
+ヘッダ ファイルとソース ファイルは、 UCLASS() マクロのようなアンリアル エンジン固有のコードに加えて、クラス宣言とクラス コンストラクタを自動的にインクルードします。
+
+## クラス ヘッダ
+
+アンリアル エンジンのゲームプレイクラスにはそれぞれ、単独でユニークなクラス ヘッダ ファイル があります。ファイルは、その中で定義されているクラスと一致する名前を付けなければなりません。 
+`A` または `U` のプレフィックスを差し引いて「`.h` 」ファイル拡張子を使用します。例えば `AActor` クラスのクラス ヘッダ ファイルの名前は `Actor.h` となります。
+
+ゲーム プレイ クラスのクラス ヘッダ ファイルは、クラス、変数、関数の宣言プロセスを単純化するために、指定されたマクロと標準の C++ 記法を併用します。
+
+各ゲームプレイ クラスのヘッダ ファイル最上部には、以下のようにクラス用に生成されたヘッダ ファイルをインクルードしなくてはいけません。
+
+	#include "ClassName.generated.h"
+
+### クラスの宣言
+
+クラスの宣言はクラス名と継承されたクラスを定義します。 
+つまり、継承する関数とクラスや、[クラス指定子] (#クラス指定子)やメタデータ経由で望まれるエンジンやエディタのその他の特定のビヘイビアです。クラスの宣言の記法は以下の通りです。
+
+	UCLASS([specifier, specifier, ...], [meta(key=value, key=value, ...)])
+	class ClassName :ParentName
+	{
+		GENERATED_UCLASS_BODY()
+	}
+
+宣言は、クラス用の標準の C++ クラス宣言で構成されています。クラス指定子やメタデータなどの記述子が UCLASS マクロへ渡されます。 
+宣言されるクラス用に UClass を作成するために使用され、エンジンの指定されたクラス表現とみなされます。 
+また、 GENERATED_UCLASS_BODY() マクロをクラス本体の冒頭に配置しなくてはいけません。
+
+#### クラス指定子
+
+[INCLUDE:Programming/UnrealArchitecture/Reference/Classes/Specifiers#main]
+
+## クラスの実装
+
+すべてのゲームプレイ クラスは、正しく実装するために IMPLEMENT_CLASS マクロへ渡されなければなりません。この動作は、クラスとその全ての関数を実行する C++ (.cpp) ファイルであるクラス ソース ファイル内で行われます。 
+クラス ソース ファイルのベスト プラクティスは、「A」や「U」のプレフィックスを取り除いて、実行中のクラスに一致する名前をつけることです。従って、 AActor クラスのソース ファイルは「Actor.cpp」という名前になります。 
+
+
+このファイルには C++ クラス宣言をインクルードする C++ ヘッダがインクルードされていなければなりません。これは通常自動生成されますが、希望する場合は手書きのコードでも作成可能です。例えば、 AActor クラスに対する C++ 宣言は 「EngineClasses.h」ヘッダ ファイルで手書きのコードで生成されます。 
+つまり、「Actor.cpp」ファイルには、「EngineClasses.h」あるいはそれをインクルードする別のファイルがインクルードされていなければなりません。 
+一般的には、ゲーム プロジェクト用のヘッダ ファイルをインクルードし、それがゲーム プロジェクトのゲームプレイ クラス用のヘッダをインクルードします。AActor と EngineClasses.h の場合、 
+ **Engine** プロジェクト用のヘッダ ファイルである Engine.h をインクルードする EnginePrivate.h ヘッダがインクルードされ、それが EngineClasses.h ヘッダ ファイルをインクルードします。
+
+	#include "EnginePrivate.h"
+
+そのファイル 1 つだけを単にインクルードするだけではインクルードされていないクラスの関数の実装のいて、他のクラスを参照する場合、ファイルを追加でインクルードする必要があるかもしれません。
+
+### クラス コンストラクタ
+
+UObjects は **コンストラクタ** を使ってプロパティおよびその他の変数のデフォルト値の設定や、その他必要な初期化を実行します。クラス コンストラクタは通常、クラス実装ファイル内に置かれます。 
+例えば、AActor::AActor コンストラクタであれば、 Actor.cpp の中です。 
+
+[REGION:note]
+コンストラクタは、モジュール別に特別な「コンストラクタ」ファイルに置かれる場合もあります。例えば、 AActor::AActor コンストラクタは EngineConstructors.cpp 内に存在します。これは、コンストラクタの使用に対して DEFAULTS ブロックを以前に使用した自動変換プロセスの結果です。 
+時間が立てば、これらはそれぞれのクラス ソース ファイルに移動していきます。
+[/REGION]
+
+コンストラクタ インラインをクラス ヘッダ ファイルに配置することも可能ですが、コンストラクタがクラス ヘッダ ファイル内にある場合、 
+ 自動コードジェネレータがヘッダ中でコンストラクタ宣言を作成するのを阻まないように、 UClass は CustomConstructor 指定子で宣言されなければなりません。
+
+#### コンストラクタの形式
+
+以下が、 UObject コンストラクタの最も基本的な形式です。
+
+	AMyClass::AMyClass(const FObjectInitializer& ObjectInitializer)
+		:Super(ObjectInitializer)
+	{
+	}
+
+明らかに、このコンストラクタは何も初期化を行いません。それどころか、作成されるオブジェクトに対するエフェクトは何もありません。しかしながら、コンストラクタに FObjectInitializer が渡されています。 
+この構造体は、コンストラクタが返した後、アーキタイプもしくはクラス デフォルト オブジェクト (CDO) からプロパティを初期化します。 
+構築されたすべての UObject のプロパティを確実に初期化するために使用されます。FObjectInitializer は、アーキタイプまたは CDO で既に設定済みの場合、以下のコンストラクタで実演されているように、 
+コンストラクタに存在するプロパティの初期化をスキップするために使うことができます。
+
+	AUDKEmitterPool::AUDKEmitterPool(const class FObjectInitializer& ObjectInitializer)
+		:Super(ObjectInitializer)
+	{
+		// Property initialization
+		MaxActiveEffects = 200;
+		SMC_MIC_ReductionTime = 2.0;
+		IdealStaticMeshComponents = 200;
+		IdealMaterialInstanceConstants = 200;
+	}
+
+	AUTDemoHUD::AUTDemoHUD(const class FObjectInitializer& ObjectInitializer)
+		:Super(ObjectInitializer)
+		, SomeNonProperty("Hi there")
+	{
+		// Non-property initialization
+		SomeOtherNonProperty = 26;
+
+		// Property initialization
+		SomeProperty = 30;
+		SomeOtherProperty = "My message";
+	}
+
+#### Constructor Statics と Helpers
+
+さらに複雑なデータ タイプ、特にクラス リファレンス、名前、アセット リファレンスの値を設定する場合、必要とされる様々なプロパティ値を維持するためにコンストラクタ内で **ConstructorStatics** 構造体を定義およびインスタンス化することが求められます。 
+ConstructorStatics 構造体は、コンストラクタが初めて実行される時にのみ作成されます。それ以降の実行ではポインタをコピーするだけなので、かなり速くなります。 
+ConstructorStatics 構造体が作成されると、後にコンストラクタで実際のプロパティに値が割り当てる時にアクセスできるように構造体のメンバに値が割り当てられます。 
+
+
+**ContructorHelpers** は、コンストラクタ特有の共通のアクションを実行するために使用するヘルパー テンプレート を含む ObjectBase.h で定義される特別な名前空間です。例えば、ヘルパー テンプレートアには、アセットやクラスへのリファレンスを探すだけでなく、コンポーネントを作成したり探すものがあります。 
+
+
+##### アセット リファレンサー
+
+クラスにはアセット リファレンサーが存在しないのが理想です。ハードコード化されたアセット リファレンスは壊れやすく、移動はアセット プロパティのコンフィギュレーション用のブループリントを使って前方でした。しかしながら、 
+これは完全にサポートされています。オブジェクトを構築するたびにアセットの検索をしたくないので、検索は 1 回きりです。静的な構造体により、検索が必ず 1 回だけになるように実行されます。 
+
+
+ConstructorHelpers::FObjectFinder は StaticLoadObject を使って指定された UObject へのリファレンスを探します。一般的にこれはコンテント パッケージに格納されているアセットを参照するために使用します。オブジェクトが見つからない場合、レポートは失敗します。 
+
+
+	ATimelineTestActor::ATimelineTestActor(const class FObjectInitializer& ObjectInitializer)
+		:Super(ObjectInitializer)
+	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinder<UStaticMesh> Object0;
+			FConstructorStatics()
+				:Object0(TEXT("StaticMesh'/Game/UT3/Pickups/Pickups/Health_Large/Mesh/S_Pickups_Base_Health_Large.S_Pickups_Base_Health_Large'"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
+		// Property initialization
+
+		StaticMesh = ConstructorStatics.Object0.Object;
+	}
+
+##### クラス リファレンス
+
+ConstructorHelpers::FClassFinder は 指定された UClass へのリファレンスを探します。クラスが見つからない場合、レポートは失敗します。
+
+	APylon::APylon(const class FObjectInitializer& ObjectInitializer)
+		:Super(ObjectInitializer)
+	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FClassFinder<UNavigationMeshBase> Class0;
+			FConstructorStatics()
+				:Class0(TEXT("class'Engine.NavigationMeshBase'"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
+		NavMeshClass = ConstructorStatics.Class0.Class;
+	}
+
+たいていの場合、 USomeClass::StaticClass() を使って ClassFinder の複雑さをまとめてスキップすることができます。例えば、ほとんどの状況で次のメソッドが利用できます。
+
+	NavMeshClass = UNavigationMeshBase::StaticClass();
+
+クロス モジュール リファレンスの場合は、恐らく ClassFinder メソッドの方が良いかもしれません。
+
+##### 名前
+
+	APylon::APylon(const FObjectInitializer& ObjectInitializer)
+		:Super(ObjectInitializer)
+	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			FName NAME_Navigation;
+			FConstructorStatics()
+				:NAME_Navigation(TEXT("Navigation"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
+		SpriteCategoryName = ConstructorStatics.NAME_Navigation;
+	}
+	##### コンポーネントとサブ オブジェクト
+
+
+サブ オブジェクト、特にコンポーネントを作成し、親クラスに属するサブ オブジェクトを変更する時にも、コンストラクタ ヘルパーを利用できます。ConstructorHelpers::CreateComponent と ConstructorHelpers::FindComponent ヘルパーは、それぞれコンポーネントの作成と検索に利用できます。
+
+	AWindPointSource::AWindPointSource(const FObjectInitializer& ObjectInitializer)
+		:Super(ObjectInitializer)
+	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			FName NAME_Wind;
+			FConstructorStatics()
+				:NAME_Wind(TEXT("Wind"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
+		// Property initialization
+
+		//Create a new component
+		UWindPointSourceComponent* NewComponent0 = ConstructorHelpers::CreateComponent<UWindPointSourceComponent>(this, TEXT("WindPointSourceComponent0"));
+		NewComponent0->PreviewRadiusComponent = NewComponent1;
+
+		Component = NewComponent0;
+		RootComponent = NewComponent0;
+
+		//Create a new component
+		UDrawSphereComponent* NewComponent1 = ConstructorHelpers::CreateComponent<UDrawSphereComponent>(this, TEXT("DrawSphereComponent0"));
+		NewComponent1->ShapeColor.R = 173;
+
+		NewComponent1->ShapeColor.G = 239;
+		NewComponent1->ShapeColor.B = 231;
+		NewComponent1->ShapeColor.A = 255;
+
+		NewComponent1->AlwaysLoadOnClient = false;
+		NewComponent1->AlwaysLoadOnServer = false;
+		NewComponent1->bAbsoluteScale = true;
+		NewComponent1->AttachParent = NewComponent0;
+		//Find a component on the parent
+
+		USpriteComponent* NewComponent2 = ConstructorHelpers::FindComponent<USpriteComponent>(this, TEXT("Sprite"));
+		NewComponent2->SpriteCategoryName = ConstructorStatics.NAME_Wind;
+
+		NewComponent2->AttachParent = NewComponent0;
+
+		bNoDelete = true;
+	}
+
+親クラスに属するコンポーネントの検索は通常必要ありません。コンポーネントは親のコンストラクタのプロパティに対して作成され割り当てられるはずなので、コンポーネントはそのプロパティを使えば見つかります。そのようにならない場合は、親のコンストラクタを更新してそのようにするのが一番良い方法でしょう。ConstructorHelpers::FindComponent ヘルパーは、標準的な方法がふさわしくない状況のバックアップとして提供されています。
+
+#### 配列操作
+
+配列は、その配列に属している標準的なメソッドを用いて、修正および操作が可能です。 
+
+	ExampleArray.Add(NewComponent0);
+
+これが好ましくない場合、アイテムの追加、配列の展開、配列の初期化のためのヘルパー テンプレートが提供されています。例えば、 Components 配列に新規コンポーネントを追加する場合は以下のようにします。
+
+	int32 NewArrayIndex1 = ConstructorHelpers::AddArrayElement(ExampleArray);
+	ExampleArray(NewArrayIndex1) = NewComponent0;
+

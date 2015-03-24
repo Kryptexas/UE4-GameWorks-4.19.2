@@ -1,0 +1,37 @@
+Availability:Public
+Title:Texture Guidelines for Mobile Platforms
+Crumbs:%ROOT%, Platforms, Platforms/Mobile
+Description:Texture creation and properties for mobile games.
+Platform:Mobile
+
+[TOC(start:2)]
+
+## Overview
+
+Since mobile platforms use OpenGL ES2, there are restrictions imposed on textures. Some of the restrictions come into play 
+when creating textures:
+
+* A maximum size of 2048 in either dimension. This is the largest size allowed by the PVR compressor.
+* Dimensions must both be a power of 2 (i.e. 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, or 2048).
+* You should use square textures whenever possible as they make more efficient use of memory. <!-- Non-square textures are padded out to be square. (?)  -->
+
+In addition, texture settings need to be set up properly to work on mobile platforms:
+
+* Only TC_Default or TC_NormalMap (and TC_Greyscale?) values are used in the **Compression Settings**.
+* The **sRGB** property should be enabled.
+ 
+## Texture Usage in Materials
+
+Most opaque Materials should only need BaseColor, Roughness, and Normal to come from textures. Specular should not be specified 
+and Metallic can be a constant. Given that base set of Material properties, most Materials that only have one layer should use 
+the following setup which only requires two textures:
+
+* **Texture 1**
+	* BaseColor in RGB
+	* Roughness in alpha
+	* TC_Default compression
+* **Texture 2**
+	* Normal map in RGB
+	* TC_NormalMap compression
+
+Additional layers will need to use more textures, with the option of only layering in BaseColor + Roughness to avoid multiple normal map texture fetches.

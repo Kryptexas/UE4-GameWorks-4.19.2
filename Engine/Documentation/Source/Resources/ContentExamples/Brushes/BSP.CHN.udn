@@ -1,0 +1,101 @@
+﻿Availability: Docs
+Title:BSP
+Crumbs:%ROOT%, Resources, Resources/ContentExamples
+Description:BSP内容示例关卡概述
+Related: Engine/Actors/Brushes
+Related: Engine/UI/LevelEditor/Modes
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Brushes:title%](Resources/ContentExamples/Brushes/1_9_BSPHouse.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Brushes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Brushes:description%
+	[/PARAM]
+	[PARAM:path]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Brushes:title%](Resources/ContentExamples/Brushes/1_9_BSPHouse.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Brushes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Brushes:description%
+	[/PARAM]
+	[PARAM:path]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+![](BSP_Header.png)
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+BSP内容示例旨在帮助您快速熟悉使用BSP创建您关卡中几何体的方法。
+
+## BSP概念
+
+在开始工作前，您应该了解一些关于BSP的概念性内容。
+
+
+* BSP形状被称为 "画刷"。
+
+* 在大多数情况下，您将使用添加型和挖空型画刷来定义几何体区域。
+
+* BSP这个缩写的全称是 _Binary Space Partitioning_  （二进制空间划分），它表示的是一种用来分割3D空间的特殊算法。这个话题有点复杂；您只要会使用即可，不需要了解BSP的工作原理。不过，如果您需要更多信息，可参阅[BSP的维基百科页面](http://en.wikipedia.org/wiki/Binary_space_partitioning)。
+
+* 一般来说，在为您的关卡创建几何体时，更好（就性能上来说更高效）的方法是使用[静态网格物体](Engine/Content\Types\StaticMeshes)。不过，由于创建静态网格物体需要使用一些3D建模软件，因此BSP工具就便利性来说，还是有存在的必要。
+
+* BSP作为快速描画关卡轮廓的方法，仍被广泛使用，它使得关卡设计师可以及时了解关卡总体大小及关卡流程。不过，随着关卡的美术资源完成，用来创建粗略版本的大多数-假设不是全部-BSP将会被静态网格物体所取代。
+
+
+## BSP模式
+
+为能使用不同的BSP工具，您必须首先在BSP模式中放置编辑器。这是通过点击工具窗口的BSP模式图标或按下 **Shift + 2** 来完成的。
+
+
+![](BSP_mode.png)
+
+
+[EXCERPT:BSPExamples]
+## 示例
+
+[REGION:topics third]
+%Resources/ContentExamples/Brushes\1_1:Topic%
+%Resources/ContentExamples/Brushes\1_2:Topic%
+%Resources/ContentExamples/Brushes\1_3:Topic%
+%Resources/ContentExamples/Brushes\1_4:Topic%
+%Resources/ContentExamples/Brushes\1_5:Topic%
+%Resources/ContentExamples/Brushes\1_6:Topic%
+%Resources/ContentExamples/Brushes\1_7:Topic%
+%Resources/ContentExamples/Brushes\1_8:Topic%
+%Resources/ContentExamples/Brushes\1_9:Topic%
+[/REGION]
+[/EXCERPT:BSPExamples]
+
+
+
+## 相关主题
+
+[](Engine/Actors/Brushes)

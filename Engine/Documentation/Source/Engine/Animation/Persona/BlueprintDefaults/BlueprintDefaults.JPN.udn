@@ -1,0 +1,61 @@
+﻿INTSourceChangelist:2187669
+Availability:Public
+Title:ペルソナ アニメーションブループリント エディタ
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:ペルソナ (Persona) アニメーション エディタの [アニメーションブループリント エディタ] パネルに関するユーザーガイド
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/AssetBrowser:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/BlueprintDefaults:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/BlueprintDefaults:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/BlueprintDefaults]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC (start:2)]
+
+
+## 概要
+
+ペルソナ (Persona) の **[アニメーション ブループリント エディタ]** パネルは、**アニメーション ブループリント** の変数と変数カテゴリをリスト表示します。
+
+![](BlueprintDefaults.png)
+
+ブループリント変数の作成または修正時は、**[Default]** カテゴリがデフォルトで割り当てられています。アセットを構造化するには、**[Category]** 欄に新規のカテゴリ名を入力して、アセットを別のカテゴリに割り当てることができます。
+
+![](AB_Details.png)
+
+アニメーションブループリントの **[アニメーション ブループリント エディタ]** パネルは、大部分に置いて [Blueprint Editor Defaults] モードと同じ方法で修正することができます。[Blueprint Editor Defaults] モードに関する詳細は、[](Engine/Blueprints\Editor\Modes\Defaults) を参照してください。
+
+## プレビュー
+
+**[アニメーション ブループリント エディタ]** パネルで、アニメーションアセットを制御する変数の値を手動で修正して、さまざまなアニメーションアセットをプレビューをすることができます。変数の値を修正すると、新しい値に基づいた適切なアニメーションアセットがビューポートに表示されます。 
+
+![](BlueprintDefaults_Preview.png)
+
+##編集モード
+
+**[アニメーション ブループリント エディタ]** パネルの一番上に沿って、切替可能で、パネルで変数値に加えた変更の永続性に影響を与える 2 つのモードがあります。
+
+| 編集モード | 説明 | |
+| --- | ----------- | --- |
+| **プレビューを編集** | **[アニメーション ブループリント エディタ]** にある変数に加えられた変更は、ビューポートのプレビューのみに反映され、保存はされません。ブループリントがリコンパイルされると、変更はデフォルト値に戻ります。 | ![](EditPreview.png) |
+| **デフォルトを編集** | **[アニメーション ブループリント エディタ]** の変数に加えられた変更は、変数のプレビューとデフォルト値の両方に影響を及ぼし、保存されます。<br>[INCLUDE:#publicview]| ![](EditDefaults.png) |
+
+<!--
+[EXCERPT:publicview]
+* **パブリックビュー** - パブリックとマーク付けされている変数のみを表示するか否かを切り替えるオプションです。**パブリックビュー** のオンオフを切り替えた後に、変更が見えるようにするには、ブループリントを必ずリコンパイルしなければなりません。**デフォルトを編集** モードでのみ使用可能です。
+[/EXCERPT:publicview]
+-->

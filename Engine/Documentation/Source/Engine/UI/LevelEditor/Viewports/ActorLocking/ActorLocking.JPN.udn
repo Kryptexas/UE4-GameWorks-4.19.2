@@ -1,0 +1,79 @@
+﻿INTSourceChangelist:2117209
+Availability:Public
+Title:ビューポートをアクタにロック
+Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
+Description:直感的に配置するためにビューポート カメラにアクタをロックする方法の概要
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](ActorLocking_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/UI/LevelEditor/Viewports/ActorLocking:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/UI/LevelEditor/Viewports/ActorLocking:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UI/LevelEditor/Viewports/ActorLocking]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](ActorLocking_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/UI/LevelEditor/Viewports/ActorLocking:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/UI/LevelEditor/Viewports/ActorLocking:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UI/LevelEditor/Viewports/ActorLocking]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+## 概要
+
+アクタをロックすることで、レベル内でアクタ用の配置メカニズムとしてパースペクティブ ビューポート カメラを使用できます。任意のアクタをロックし、そのアクタの配置希望場所にビューを配置し、ロックを解除します。カメラの位置と方向は、任意のアクタを配置するために使用します。
+
+## ビューポートをアクタにロックする
+
+ビューをアクタにロックするには、ビューポートの左上隅のビューポートオプション メニューにある [Actor Locking] オプションをクリックします。 
+
+![](ActorLocking.png)(w:780)
+
+ロックはカメラ アクタとライトで特に役立ちます。全てのカメラとライトは [Actor Locking] サブメニューですぐに利用することができます。ただし、ロックは選択中のアクタでも機能します。アクタを選択された状態にすると、[Actor Locking] サブメニューの中にロックが表示されます。
+
+ロックがアクティブになっている間、ビューポートの左上に錠前のアイコンが表示されます。これは、ビューにアタッチされているアクタがあることを意味します。
+
+![](LockIcon.png)
+
+ロックされると、任意のオブジェクトの X 軸を見下ろすことになります。法線としてビューを移動し、アクタも自動的にそれに沿って動きます。 
+
+
+![](SpotlightLocked.png)(w:780)
+[REGION:caption]
+この画像では、SpotLight Actor をビューにロックしています。すると、ビューをどこに動かそうが、まるでビューポート カメラに貼り付けられたかのようにライトも追ってきます。
+[/REGION]
+
+ビューを使ってアクタの配置が完了したら、[Actor Locking] サブメニューの [Unlock] オプションを選択することでロックを解除できます。
+
+![](Unlocking.png)(w:780)
+
+これで作業を続行できますし、アクタはビューによって前に設定された位置に保たれます。
+
+![](LockComplete.png)(w:780)

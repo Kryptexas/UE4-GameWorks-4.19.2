@@ -1,0 +1,94 @@
+﻿INTSourceChangelist:2368927
+Availability: Public
+Title: 엔진 기본
+Crumbs: %ROOT%, Engine
+Description:엔진 사용법 관련 일반적인 정보입니다.
+
+[REGION:header_img]
+![basics.jpg](%ROOT%/ue4_main.png)
+[/REGION]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		요점
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](GettingStarted/RecommendedSpecifications "%GettingStarted/RecommendedSpecifications:description%")
+	* [](Engine/Basics/DirectoryStructure "%Engine/Basics/DirectoryStructure:description%")
+	* [](GettingStarted/Installation "%GettingStarted/Installation:description%")
+	* [](GettingStarted/DownloadingUnrealEngine "%GettingStarted/DownloadingUnrealEngine:description%")
+	* [](GettingStarted/RunningUnrealEngine "%GettingStarted/RunningUnrealEngine:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/project_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		패키지 & 프로퍼티
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/Basics/AssetsAndPackages "%Engine/Basics/AssetsAndPackages:description%")
+	* [](Engine/Basics/Redirectors "%Engine/Basics/Redirectors:description%")
+	* [](Engine/Basics/Distributions "%Engine/Basics/Distributions:description%")
+	* [](Engine/Basics/DerivedDataCache "%Engine/Basics/DerivedDataCache:description%)
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/profile_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		명령 & 환경설정
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Programming/Basics/CommandLineArguments "%Programming/Basics/CommandLineArguments:description%")
+	* [](Programming/Basics/ConfigurationFiles "%Programming/Basics/ConfigurationFiles:description%")
+	* [](Engine/Performance '%Engine/Performance:description%")
+	* [](Engine/Performance/SystemSettings "%Engine/Performance/SystemSettings:description%")
+	* [](Engine/Performance/Profiler "%Engine/Performance/Profiler:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		소스 콘트롤
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/Basics/SourceControl "%Engine/Basics/SourceControl:description%")
+	* [](Engine/Basics/SourceControl/Perforce "%Engine/Basics/SourceControl/Perforce:description%")
+	* [](Engine/Basics/SourceControl/SVN "%Engine/Basics/SourceControl/SVN:description%")
+	* [](Engine/Basics/SourceControl/InEditor "%Engine/Basics/SourceControl/InEditor:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/cine_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		캡처 & 녹화
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/Basics/Screenshots "%Engine/Basics/Screenshots:description%")
+	[/PARAM]
+[/OBJECT]
+

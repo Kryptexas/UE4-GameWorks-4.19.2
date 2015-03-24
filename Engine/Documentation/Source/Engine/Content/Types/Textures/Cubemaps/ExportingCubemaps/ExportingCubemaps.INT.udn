@@ -1,0 +1,36 @@
+Availability:Public
+Title:Exporting Cubemaps
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
+Description:How to export cubemaps out of Photoshop using the NVIDIA Texture Tools plug-in.
+
+## Overview
+
+This document goes over how to export cubemaps out of Photoshop using the NVIDIA Texture Tools plug-in.
+
+## Exporting Cubemaps (Photoshop)
+
+Once you have a series of images laid out in Photoshop and ready to use as a cubemap, then you are ready for export. In this example, we will use the NVIDIA Texture Tools plug-in for Photoshop CS6.
+
+If you have not yet installed this plug-in, you can get it [here](http://developer.nvidia.com/content/nvidia-texture-tools-adobe-photoshop).
+
+1. First, make sure your textures for the cubemap are lined up in a single document, and that they are all the same size. This size should also be a power of 2. Be sure that the frames are rotated as described [here](Engine/Content/Types/Textures/Cubemaps/CreatingCubemaps).
+
+	![ExportCubemap.png](ExportCubemap.png)(w:800)
+
+2. Under the **File** menu, choose **Save As**. 
+
+	![PhotoshopSaveAs.png](PhotoshopSaveAs.png)
+
+3. In the Save As window, choose **D3D/DDS (*.DDS; *.DDS)** and name your file.
+
+	![PhotoshopSaveAsDialog.png](PhotoshopSaveAsDialog.png)(w:600)
+
+4. In the NVIDIA dds Format window, choose **8.8.8.8  ARGB 32 bpp | unsigned** from the combobox at the top. Set the combobox underneath to **Cube Map**. Set MIP Map Generation group to **No MIP maps**.
+
+	![PhotoshopDDSDialog.png](PhotoshopDDSDialog.png)(w:600)
+
+5. Click **Save**.
+
+
+
+Images used here are derived from light probes originally from Paul Debevec's website [http://www.pauldebevec.com](http://www.pauldebevec.com/index.html).

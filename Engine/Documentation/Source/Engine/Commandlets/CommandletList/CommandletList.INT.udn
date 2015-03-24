@@ -1,0 +1,635 @@
+Availability: Docs
+Title: Commandlet List
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description:Descriptions of available commandlets and information on their usage.
+
+[REGION:todo]
+	This page is converted from Unreal Engine 3 documentation and currently being reviewed. Information may be outdated.
+[/REGION]
+
+[TOC (start:2 end:2)]
+
+## Overview
+
+Commandlets are command line programs that run inside of the Unreal Engine environment. They are most often used to make bulk changes to content, iterate over content to get information about it, or as a unit testing mechanism.
+
+They are basically little applets that have the engine initialized but are mostly just confined to Windows console output.
+
+The engine automatically tries to see whether a command you passed on the commandline is a commandlet, and if it matches, executes the associated code.
+
+This document contains a listing with description and syntax for the commandlets used by Unreal Engine 4.
+
+
+
+## Running Commandlets
+
+Commandlets are executed by passing the name of the commandlet along with any necessary parameters to the game on the command line, either by running the game from a command prompt in Windows or through the **target** of a shortcut to the game's main executable (i.e. UDK.exe).
+
+For example, the UDK **`FixupRedirects`** commandlet can be run from the command line using the following:
+
+    UDK.exe fixupredirects
+    
+
+## Help Commandlet
+
+The [help commandlet](Engine/Commandlets/Help) is used to find out which commandlets are available to run, their purpose, and what those commandlets expect for parameters. To find out which commandlets are available, run:
+
+
+### Syntax
+    
+    gamename.exe help <list | commandletname | webhelp commandletname>
+    
+
+### Parameters
+
+
+* **`list`** - Lists all commandlets that are available.
+* **`commandlet name`** - Displays help information for the specified commandlet.
+* **`webhelp`** - Launches a browser with the URL of the web page that documents the specified commandlet.
+
+
+## FixupRedirects Commandlet
+
+Fixupredirects fixes all the [Redirectors](Engine/Basics/Redirectors) in all packages, or optionally, a specified package. Self-referencing redirectors are deleted. If no package is specified, then all packages required for the game are tested for redirectors.  
+
+
+* Before attempting to save a package, it will attempt to check it out from Source Control (using the same method as the SCC in UnrealEd).
+* You have to manually check in the packages, however.
+* Only saves packages that are necessary (packages with redirectors and the packages that point to them).
+* If a package that cannot be checked out points to a redirector, that redirector will not be cleaned up.
+* You can give it a single package name, and it will fixup just the redirectors in the package (ie that package and all other packages that point to that redirector). This is useful if you want to clean up a redirector so that you import on top of it, or so that you can delete an object a redirector is pointing to.
+* If it fails to open a package, it brings up a warning letting you continue or stop. If you continue, it is possible that you will lose some object references, because the packages it cannot open could contain references to redirectors, but the commandlet assumes it does not, because there is no way to know since it cannot open the package. If you choose to stop at that point, so other packages have been saved. (Of course, if it crashes opening a package, it will obviously abort the process, leaving all packages untouched.)
+* You can give it the **`-nowarn`** option, which will simply quit if it cannot open a package (this would be for scripting or something, but it chooses the safe path if its unattended, which is to stop if it cannot open a file).
+
+
+### Syntax
+
+ 
+    game.exe fixupredirects <package.ext>
+    
+
+### Parameters
+
+
+* **`package.ext`** - Name of the package to test for redirectors. (Optional)
+
+
+## ContentAudit Commandlet
+
+(See [ContentAuditCommandlet](Engine/Commandlets/ContentAudit))
+
+
+## FindDuplicateTextures Commandlet
+
+
+## SetTextureLODGroup Commandlet
+
+(See [SetTextureLODGroupCommandlet](Engine/Commandlets/SetTextureLODGroup))
+
+
+
+## ContentComparison Commandlet
+
+(See [ContentComparisonCommandlet](Engine/Commandlets/ContentComparison).)
+
+
+
+## DeleteQuarantinedContent Commandlet
+
+(See [DeleteQuarantinedContentCommandlet](Engine/Commandlets/DeleteQuarantinedContent).)
+
+
+
+
+## BatchExport Commandlet
+
+The [BatchExport commandlet](Engine/Commandlets/BatchExport) is used for exporting resources from Unreal package files to various external file types.
+
+
+### Syntax
+
+    gamename.exe gamename.exe BatchExport <package.ext> <classname> <export_ext> [dest_path_name]
+    
+
+### Parameters
+
+
+* **`package.ext`** - Name of the package to export resources from. Path name is optional.
+* **`classname`** - The class of object to export, such as "Class", "Texture", etc.
+* **`export_ext`** - Extension for the output file. This determines which type of factory is used for exporting the resource.
+* **`dest_path_name`** - The path to save the output files to. The directory will be created if it does not exist.
+
+
+(#MakeCommandlet)
+
+
+
+## Make Commandlet
+
+The make commandlet will cause the game to compiles Unrealscript source (.uc files) into Unreal packages (.u files) for any packages that are out of date.
+
+
+### Syntax
+
+
+    
+    gamename.exe make <-switch>
+    
+
+
+
+
+### Parameters
+
+
+* **`full`** - Forces all packages to be recompiled, even if they are not out of date.
+* **`nodelete`** - Do not delete dependent packages which are not out of date. The default behavior is to rebuild any packages which occur after a package that is out of date in the EditPackages list.
+* **`debug`** - Includes debugging information in the compiled binaries. This is required in order to use the UnrealScript debugger.
+* **`auto`** - Automatically checks out any autogenerated headers that need to be updated, without prompting. Suppresses all prompts generated by the script compiler which are related to exporting autogenerated header files.
+* **`unattended`** - Suppresses all prompts generated during the build by automatically answering "Yes."
+* **`silent`** - Similar to unattended, except that all build output (logging, etc.) is also suppressed.
+* **`silentbuild`** - Suppresses all script compiler status messages from being displayed in the console output window.
+* **`noconform`** - Script packages are normally automatically conformed (see the ConformCommandlet) if a package with the same name exists in the auto-conform directory (which can be different for each game).
+* **`WarningsAsErrors`** - Treats all script compilation warnings as errors, causing the build to fail.
+* **`intermediate`** - Script preprocessor: outputs the post-processed versions of all unrealscript files to the preprocessor's intermediate directory, as specified by the ProcessedFileDirectory value in the preprocessor. Useful for debugging UnrealScript macros.
+* **`nopreprocess`** - Script Preprocessor: prevents the preprocessor from processing any UnrealScript macros. This is useful only for debugging, as it will generally cause your script to fail to compile at all.
+* **`stripsource`** - Strips script source code and cpptext blocks before saving freshly-compiled .u packages. It might be worth noting that it appears comments do not get stripped.
+
+
+
+
+## StripSource Commandlet
+
+The stripsource commandlet will load the Unreal packages (.u files), iterating through all Classes and set ScriptText to a single space, then call SavePackage() to save the package.
+
+The problem is that packages like Core.u, Engine.u, Editor.u, etc. will be in use by the executable running the commandlet and cannot be overwritten, so saving those packages will fail.
+
+The preferred method to solving this problem is cooking the packages, which strips out the ScriptText (and CppText). Calling ResetLoaders() may solve the problem of the packages being open, if you are not going to cook your data.
+
+Alternatively, you can pass the "-stripsource" argument to the ["make" commandlet](#MakeCommandlet).
+
+
+### Syntax
+
+
+    
+    gamename.exe stripsource <package.u, ...>
+    
+
+
+
+
+### Parameters
+
+
+
+## Conform Commandlet
+
+The conform commandlet will ensure network compatibility for packages by assigning the same GUID. This needs to be done everytime a package has changed.  See PackagesAndNetworking for more details about conforming.
+
+
+### Syntax
+
+
+    
+    gamename.exe conform to_package from_package
+    
+
+
+
+
+### Parameters
+
+
+
+## PkgInfo Commandlet
+
+The pkginfo commandlet will display information about the resources contained within one or more packages.
+
+
+### Syntax
+
+
+    
+    gamename.exe pkginfo <package.ext> <-switch>
+    
+
+
+
+
+### Parameters
+
+
+* **`package.ext`** - The name of the package/s to display resource information for.
+* **`names`** - Displays information about the name table for the specified package(s).
+* **`imports`** - Displays the external resources which are referenced by the objects contained in the specified package(s) (ImportTable).
+* **`exports`** - Displays the resources which are contained in the specified package(s) (ExportTable).
+* **`simple`** - Only relevant when used in combination with the -exports flag. Causes only the name and size to be displayed, rather the full information for each export.
+* **`depends`** - Shows dependencies for imports or exports, ie what that object references and recursively what its references reference.
+* **`all`** - Displays all data contained by the package - essentially the same as specifying all three types on the command-line (-imports -exports -names).
+* **`chunks`** - Displays information about the compression chunks within the package.
+* **`paths`** - Displays full path names for all the external resources which are referenced (ie. the imports).
+* **`hideoffsets`** - Does not display serialized offsets to the beginning of the UObjects contained within the package (ie. the exports).
+* **`platform=<ps3,xenon>`** - Used to specify the platform the package was cooked for.
+
+
+
+
+## WrangleContent Commandlet
+
+The wranglecontent commandlet is used for identifying which assets in packages are not being used by any level files.
+
+
+### Syntax
+
+
+    
+    gamename.exe wranglecontent <-switch>
+    
+
+
+
+
+### Parameters
+
+
+* **`reportunreferenced`** - dump out the unused content.
+* **`restore`** - Pick up from after the analyze step. This is useful if the commandlet runs out of memory, or if you ran in one mode but now want to run in another.
+* **`nosave`** - This just analyzes and can dump out a report, but will not actually do the save.
+* **`nosaveunreferenced`** - By default, the commandlet will save out unreferenced content into the NFSContent directory (Not For Ship) into NFS_ packages, renaming objects to keep internal pointers intact. This will skip this step (useful if you know you just do not ever want the content again).
+* **`reportunreferenced`** - Dump out a .csv file with a list of unreferenced content.
+* **`removeeditoronly`** - While removing unused content, this can also strip out editor only data to make the resulting packages smaller, but not very usable anymore for full content creation.
+* **`stripmips`** - Removes unused MIP levels from textures, based on texture group detail settings in engine.ini. 
+* **`allmaps`** - Wrangle using all maps rather than just the ones listed in the WrangleContent.ini. 
+
+
+
+
+## AnalyzeReferencedContent Commandlet
+
+The analyzereferencedcontent commandlet is used for identifying the data being used in packages.
+
+
+### Syntax
+
+
+    
+    gamename.exe analyzereferencedcontent <-switch>
+    
+
+
+
+
+### Parameters
+
+
+* **`mapsonly`** - use only level packages.
+* **`excludescript`** - excludes script packages.
+* **`excludenonnativescript`** - excludes non native script.
+* **`loadsublevels`** - load sub levels. You can pass only persistent maps.
+* **`ignorestaticmesh`** - Do not include StaticMesh.
+* **`ignoresmc`** - Do not include StaticMeshComponent.
+* **`ignorestaticmeshactor`** - Do not include StaticMeshActor.
+* **`ignoretexture`** - Do not include Texture.
+* **`ignorematerial`** - Do not include Material.
+* **`ignoreparticle`** - Do not include ParticleComponent and ParticleSystem.
+* **`ignoreanim`** - Do not include AnimSets/AnimSequences.
+* **`ignorelevel`** - Do not include Levels.
+* **`ignoresoundcue`** - Do not include SoundCue.
+* **`ignorebrush`** - Do not include Brush.
+* **`ignoreshadowmap`** - Do not include ShadowMap.
+
+
+
+
+## RebuildMap Commandlet
+
+The rebuildmap commandlet is used to rebuild a map, including lighting.
+
+**NOTE**: _The commandlet was never fully debugged and may produce undesirable results (like randomly remapping your Brushes with all new materials and UVs)._
+
+_This commandlet is often used to work around running out of memory (OOM) when running the editor. It is best to break down the rebuild process into stages_: 
+1. First...
+    * Build Geometry
+    * save
+    * restart
+1. Then...
+    * build pathing
+    * save
+    * restart
+1. Finally...
+    * build lighting
+    * save
+
+_Use the Tools dropdown instead of the quick buttons and you will have a full host of options that are not otherwise available._
+
+_It is also best to start from a fresh reboot with nothing running in the background until you can debug what is wrong. Internally, we were having massive OOM problems on maps until we (properly!) uninstalled and re-installed the latest video drivers._
+
+
+### Syntax
+
+
+    
+    gamename.exe rebuildmap <levelname>
+    
+
+
+
+
+### Parameters
+
+
+* **`levelname`** - name of the level (map) to be rebuilt.
+
+
+
+
+## ResavePackages Commandlet
+
+The resavepackages commandlet will cause the game to open and save packages.
+
+
+### Syntax
+
+
+    
+    gamename.exe resavepackages
+    
+
+
+
+
+### Parameters
+
+
+
+## ExportLoc Commandlet
+
+The exportloc commandlet will export localized strings in UnrealScript packages to a localized text file.
+
+
+### Syntax
+
+
+    
+    gamename.exe exportloc
+    
+
+
+
+
+### Parameters
+
+
+
+## MergePackages Commandlet
+
+The mergepackages commandlet will put the contents of a package into another package.
+
+
+### Syntax
+
+
+    
+    gamename.exe mergepackages <package> <targetpackage>
+    
+
+
+
+
+### Parameters
+
+
+
+## DiffPackages Commandlet
+
+The diffpackages commandlet will show every property difference for any two given packages.
+
+
+### Syntax
+
+
+    
+    gamename.exe diffpackages <package> <package>
+    
+
+
+
+
+### Parameters
+
+
+
+## CookPackages Commandlet
+
+The cookpackagescommandlet will process and convert package data into a format that is readable for consoles.
+
+
+### Syntax
+
+
+    
+    gamename.exe CookPackages [map1 [map2] ... ] -platform=<Platform> [options]
+    
+
+
+
+
+### Parameters
+
+
+* **`platform=PLATFORM`** - Sets the platform to cook for. PLATFORM can be one of: pc, ps3, xbox360 or xenon.
+* **`full`** - Forces all of the existing packages to be resaved. If this option is specified, the contents of the CookedYYY folder is deleted first.
+* **`recookseekfree`** - Forces all of seekfree packages to be recooked (startup, standalone seekfree, maps on commandline or .ini). Useful when the default dependency checking does not work (standalone seekfree packages in particular, because it will not recook all standalone seekfree packages when any non-seekfree packages change, unlike maps).
+* **`cookallmaps`** - Cooks all maps in the game.
+* **`mapsonly`** - Only cooks maps, will not attempt to cook anything else.
+* **`inisonly`** - Only cook the .ini and localization files (into the Coalesced.ini and Coalesced.int, etc files).
+* **`sha`** - Generate SHA hashes for the startup and coalesced files, and output to Hashes.sha.
+* **`skipsavingmaps`** - Cooks, but does not save, maps. Useful for cooking LOC data used by maps.
+* **`skipnotrequiredpackages`** - Skip loading & saving packages not required for cooking process to speed up LOC cooking.
+* **`cultureforcooking=LANG`** - Sets LANG as the language for localized cooking. Defaults to int (English).
+
+
+
+
+## ShowTaggedProps Commandlet
+
+The showtaggedprops commandlet will aid in identifying what value was actually saved into the package file for an object, as opposed to values inherited from class defaults or archetypes, set at runtime, etc. (because the only alternative would be to either run in debugger or use the `OBJ DUMP ObjectName` console command at runtime to see the object's values). You use this commandlet when tracking down anything related to serialization, as it makes it easy to see whether the problem is in the loading or the saving.
+
+
+### Syntax
+
+
+    
+    gamename.exe showtaggedprops <PackageName[.ext]> <ClassPackage.ClassName> [PropertyA[,PropertyB...]]
+    
+
+
+
+
+### Parameters
+
+
+
+## ListPackagesReferencing Commandlet
+
+The listpackagesreferencing commandlet will help find missing resources for a given package.
+
+
+### Syntax
+
+
+    
+    gamename.exe listpackagesreferencing <package.missingresource>
+    
+
+
+
+
+### Parameters
+
+
+
+## SetMaterialUsage Commandlet
+
+The setmaterialusage commandlet will identify the material usage for a given package.
+
+
+### Syntax
+
+
+    
+    gamename.exe setmaterialusage <package>
+    
+
+
+
+
+### Parameters
+
+
+
+## DumpShaders Commandlet
+
+The dumpshaders commandlet dumps out the shaders, all includes, a preprocessed version, the resulting asm and a batch file to recompile using the commandline shader compiler (.fxc) for quick iteration.
+
+If a global shader is supplied, only the matching types will be operated on. If a material is supplied, all shaders compiled by that material will be dumped.
+
+
+
+### Syntax
+
+
+    
+    gamename.exe DumpShaders platform=<platform> [globalshader=<shadertype>] [material=<materialname>]
+    
+
+
+
+
+### Parameters
+
+
+## CheckLightMapUVs Commandlet
+
+Scans static meshes and checks for problems with light map texture coordinate sets.  Detects the following issues:
+
+
+* Missing light map texture coordinate sets.
+* Light map texture coordinates outside the 0.0 - 1.0 range.
+* Light map texture coordinates that overlap each other.
+
+
+If a problem is found, a detailed warning message will be echoed.
+
+By default, all game packages are scanned for static meshes (including map packages.)  Alternatively, you can specific a set of packages on the command-line to scan.
+
+
+### Syntax
+
+
+    
+    gamename.exe CheckLightMapUVs [package1] [package2] ...
+    
+
+
+
+
+### Parameters
+
+None
+
+
+
+## FindUniqueSpecularTextureMaterials Commandlet
+
+Generates a **Content Browser** collection for all environment materials with UNIQUE specular textures. Environmental materials are determined by having a texture in the diffuse chain that is set to the WORLD LODGroup.
+
+
+### Syntax
+
+
+    
+    gamename.exe FindUniqueSpecularTextureMaterials <-ALLMATERIALS>
+    
+
+
+
+
+### Parameters
+
+-ALLMATERIALS
+This will check all materials, not just environmental, for unique specular textures.
+
+
+
+## FindDarkDiffuseTextures Commandlet
+
+Generates a **Content Browser** collection for all materials with 'dark' textures in their diffuse property chain. 
+
+
+### Syntax
+
+
+    
+    gamename.exe FindDarkDiffuseTextures <MINBRIGHT=###> <-ALLOWBLACK> <-GRAYSCALE> <UPDATE=##>
+    
+
+
+
+
+### Parameters
+
+MINBRIGHT=###
+
+Floating point number giving the percentage value of brightness which indicates 'not dark'. 
+This value is assumed to be in GammaSpace and is expected to be [0.0 .. 100.0]. 
+Default value is specified in the editor ini file as well: [DarkTextures],MinimalBrightness.
+
+-ALLOWBLACK
+
+If true, then pure black texels will be taken into account when calculating brightness.
+Default value is false, and can be specified in the ini file as well: [DarkTextures],bIgnoreBlack (false == allow).
+
+-GRAYSCALE
+
+If true, the brightness calculation will convert each pixel to grayscale using the following formula:
+    GS = R * 0.30 + G * 0.58 + B * 0.11
+If false, the brightness calculation will be Max(R, Max(G,B)).
+The default value is specified in the editor ini file as well: [DarkTextures],bUseGraySCale.
+
+UPDATE=##
+
+Integer indicating that the collection should be updated every ## packages processed.
+
+
+[PUBLISH:Docs]
+## How to Make a Commandlet
+
+Please refer to the [How to Make a Commandlet](Programming/Development/Tools/Commandlets/MakingACommandlet) page.
+[/PUBLISH:Docs]
+ 
+
+
+
+

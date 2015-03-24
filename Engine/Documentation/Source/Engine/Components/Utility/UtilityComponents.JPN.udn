@@ -1,0 +1,20 @@
+﻿INTSourceChangelist:2460163
+Availability:Public
+Title:ユーティリティ コンポーネント
+Crumbs:%ROOT%, Engine, Engine/Components
+Description:ユーティリティ ベースのコンポーネントの説明と使用方法。 
+Related:Engine/Blueprints/UserGuide/Components
+
+
+## アプリケーションのライフサイクル コンポーネント
+
+**ApplicationLifecycleComponent** は、アプリケーションのステート (起動、停止、終了など) についてOS から通知を受け取る処理をします。 
+
+## 子アクタ コンポーネント
+
+**ChildActorComponent** は、登録時にアクタをスポーンして、登録解除時にアクタを破壊するコンポーネントです。 
+
+## シーン コンポーネント
+
+**SceneComponent** は変形やアタッチメント機能をサポートしていますが、レンダリングまたはコリジョン機能はありません。他のものをオフセットするために階層で「ダミー」コンポーネントとして役立ちます。 
+

@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:2362484
+Availability:Public
+Title: Stat 명령
+Crumbs: %ROOT%, Engine
+Description:게임 통계 표시를 위한 콘솔 명령입니다.
+Navigation:topic
+
+프로파일링 보조를 위해 콘솔에 입력할 수 있는 stat, 통계 명령 목록은 이렇습니다.
+
+| 명령 | 설명 |
+| -------- | ----------- |
+| **stat Unit** | 전체 프레임 시간은 물론, 게임 스레드, 렌더링 스레드, GPU 시간이 표시됩니다. |
+| **stat UnitGraph** | stat Unit 데이터로 그래프를 확인합니다. 필터링 미적용 데이터 확인은 **stat Raw** 입니다. |
+| **stat Hitches** | 버벅임(hitch)으로 간주할 시간을 **t.HitchThreshold** 에 초 단위로 설정합니다. 로그/비주얼 스튜디오 디버그에 모든 버벅임이 덤프됩니다. 예: `[0327.87] LogEngine:Warning: HITCH @ 00m:01s:643ms,1643,72,2.`  |
+| **stat InitViews** | 비저빌리티 컬링에 걸린 시간 및 그 효율성에 대한 정보가 표시됩니다. 렌더링 스레드 퍼포먼스 관련해서 단 하나 가장 중요한 통계는 보이는 섹션 수이며, 그것은 STAT INITVIEWS 아래 Visible Static Mesh Elements 에 좌우되나, Visible Dynamic Primitives 역시도 요인이 됩니다. |
+| **stat Scenerendering** | 일반적인 렌더링 통계를 표시합니다. 렌더링 프로세스에서 일반적으로 퍼포먼스가 떨어지는 부분을 찾기 시작하기 좋은 지점입니다. |
+| **stat D3d11rhi** **stat OpenGL** | Direct3D 11 또는 OpenGL RHI 입니다.  |
+| **stat Sceneupdate** | 월드 업데이트 관련 정보가 표시되며, 여기에는 라이트 추가, 업데이트, 제거에 걸린 시간은 물론 씬에 프리미티브를 추가/제거하는 데 걸린 시간도 포함됩니다. |
+| **stat Engine** | 엔진입니다.  |
+| **stat Game** | 게임입니다. |
+| **stat Anim** | 애니메이션입니다. |
+| **stat Particles** | 파티클입니다. |
+| **stat ShadowRendering** | 섀도우 렌더링입니다. |
+| **stat LightRendering** | 라이트 렌더링입니다. |
+| **stat Memory** | 메모리입니다. |
+| **stat Streaming** | 스트리밍입니다. |
+| **stat StreamingDetails** | 스트리밍에 대한 부가 사항입니다. |
+| **stat Slow 0.012 10** | 지난 10 초간 12 ms 이상 걸린 통계를 표시합니다 (시작하기 좋은 지점입니다). |
+| **stat Grouped** | stat Slow 옵션을 끕니다. |
+
+<!--
+Note: removed until this can be checked against profiler info. StatsViewer didn't appear to be in P4 or a binary build
+| **stat StartFile** **stat StopFile** | Generates a .ue4stats file that can be analyzed offline (With the StatsViewer tool from: UE4\Engine\Binaries\DotNET\StatsViewer). A GPU stall can appear as high workload the frame before.
+
+
+
+-->

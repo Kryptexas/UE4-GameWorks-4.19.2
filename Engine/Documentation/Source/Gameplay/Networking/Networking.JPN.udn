@@ -1,0 +1,20 @@
+﻿INTSourceChangelist:2291853
+Availability:Public
+Title:ネットワーキング＆マルチプレイヤー
+Crumbs:%ROOT%, Gameplay, Gameplay/Framework
+Description:マルチプレイヤーに対応するネットワークゲームの設定
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		レプリケーション
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Gameplay\Networking\Replication "%Gameplay/Networking/Replication:Description%")
+		* [](Gameplay/Networking/Replication/Implementation/DynamicArrays "%Gameplay/Networking/Replication/Implementation/DynamicArrays:Description%")
+	[/PARAM]
+[/OBJECT]

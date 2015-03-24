@@ -1,0 +1,84 @@
+﻿INTSourceChangelist:1781834
+Availability:Public
+Title:事件
+Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
+Description: 这是从游戏性代码中进行调用的节点，用于启动执行事件图表中的一个独立的网络。
+
+[EXCERPT:Intro]
+**Events（事件）** 是从游戏性代码中调用的节点，用于启动执行 **事件图表** 中的一个独立的节点网络 
+。这允许 _蓝图_ 执行一系列的动作来对游戏中发生的 
+某些事件做出响应，比如游戏启动、关卡重置、受到伤害 
+等。您可以在 _蓝图_ 中访问这些事件，以便实现新功能、覆盖或扩展默认功能 
+。在一个 **事件图表** 中，可以使用多个 **事件** 
+；但是每种类型的事件仅能使用一个。
+[/EXCERPT:Intro]
+
+![EventsExpanded.png](EventsExpanded.png)
+
+[REGION:note]
+	每个事件仅能执行一个单独的对象。如果你想从一个事件触发多个动作， 
+	您需要线性地把它们连接到一起。
+[/REGION]
+
+## BeginGame(启动游戏)
+
+![BeginGame.png](BeginGame.png)
+
+一旦游戏加载完成并准备运行，BeginGame事件会发出一个执行信号。这对于在关卡加载完成后但在玩家开始玩游戏之前需要发生的 
+事情是 
+有用的。
+
+![BeginGame_Example.png](BeginGame_Example.png)(w:500)
+
+## LevelReset(关卡重置)
+
+![LevelReset.png](LevelReset.png)
+
+当关卡重新启动时，LevelReset（关卡重置）会发出一个执行信号。当您在重新加载关卡后需要立即触发一些动作时，这是有用的， 
+比如，玩家已死但不需要重新加载关卡 
+的游戏情形。
+
+![LevelReset_Example.png](LevelReset_Example.png)(w:500)
+
+## ReceiveGame
+
+![ReceiveBeginPlay.png](ReceiveBeginPlay.png)
+
+当游戏启动时，会为所有actor触发该事件，任何在游戏启动后生成的actor都会立即调用该事件。
+
+![ReceiveBeginPlay_Example.png](ReceiveBeginPlay_Example.png)
+
+## ReceiveRadiusDamage
+
+![ReceiveRadiusDamage.png](ReceiveRadiusDamage.png)
+
+任何时候，当这个序列的父项actor受到径向伤害时，都会调 
+用此ReceiveRadiusDamage actor 。这对于处理基于爆炸伤害或者间接伤害的事件是有用的。
+
+| 项 | 描述|
+| -------- | ----------- |
+| [REGION:tablesection] 输出引脚 [/REGION] ||
+| **Instigated by（发起者）** | 这输出了发起径向伤害的控制器，比如发射火箭的玩家。|
+| **Base Damage(基本伤害)** | 这输出了将要应用到该actor的基本伤害量。|
+| **Damage Radius（伤害半径）** |这输出了可以应用伤害的地方的外半径，这对于区分基于距离应用的伤害和基于源头应用的伤害是有用的。|
+| **Damage Type（伤害类型）** | 输出应用到actor的伤害类型。|
+| **Damage Impulse Mag（伤害冲力大小）** | 该项输出了此伤害的冲力大小，对于像一次爆炸把actor炸飞的物理特效是有用的。|
+| **Hurt Origin（伤害原点）** | 这给出了三维空间中伤害发生的起始位置。|
+| **Hit Info（碰撞数据）** | 这项输出为actor提供碰撞数据信息。|
+| **Full Damage（完全伤害）** | 这项输出一个布尔值，来判断actor是否受到完全伤害。|
+| **Damage Causer(伤害引起者)** | 这项输出了负责施加伤害的actor，比如一个炸弹。|
+
+![ReceiveRadiusDamage_Example.png](ReceiveRadiusDamage_Example.png)
+
+## ReceiveTick
+
+![ReceiveTick.png](ReceiveTick.png)
+
+这是在游戏中每帧都要调用的简单事件。
+
+| 项 | 描述|
+| -------- | ----------- |
+| [REGION:tablesection] 输出引脚 [/REGION] ||
+| **Delta Seconds（间隔秒数）** | 这输出了个帧之间的间隔时间量。|
+
+

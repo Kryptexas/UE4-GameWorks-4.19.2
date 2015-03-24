@@ -1,0 +1,76 @@
+﻿INTSourceChangelist:2414058
+Availability:Public
+Title:アンリアル エンジン 4 ドキュメント
+Crumbs:
+Description:UE4 トップレベル リンク ドキュメント
+Navigation:home
+
+[PUBLISH:Rocket]
+## 検索
+
+[REGION:frontpage]
+	[OBJECT:SearchBox]
+		[PARAM:path]
+		[RELATIVE:Search]
+		[/PARAM]
+		[PARAMLITERAL:placeholder]
+		検索したいトピックを入力
+		[/PARAMLITERAL]
+		[PARAM:message]
+		[/PARAM]
+		[PARAMLITERAL:label]
+			クイックサーチの条件:
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			クイック スタート
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			方法
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			アクタ
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			コンポーネント
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			ブループリント
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			マテリアル
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			ライティング
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			カメラ
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			UMG UI
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			C++
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			iOS
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			Android
+		[/PARAMLITERAL]
+	[/OBJECT]
+[/REGION]
+
+## トピック別に参照
+
+[/PUBLISH:Rocket]
+
+[REGION:frontpage]
+	[REGION:features third]
+	%GettingStarted:role%
+	%Engine:role%
+	%Programming:topicrole%
+	%Engine/Blueprints:role%
+	%Platforms:role%
+	%Resources:role%
+	[/REGION]
+[/REGION]

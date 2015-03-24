@@ -1,0 +1,33 @@
+﻿INTSourceChangelist:2438687
+Availability:Docs
+Title:1.3 -  Cull Distance Volume（カリング距離のボリューム）
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Volumes
+Description:ボリュームの事例概要 1.3:Cull Distance Volume（カリング距離のボリューム）
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes/1_3:title%](Resources\ContentExamples\Volumes\content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes/1_3:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes/1_3:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Volumes/1_3]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+距離とサイズに基づいてオブジェクトをカリング（描画ではありません）します。いくつもの手順を設定することができます。この例の左側にCull Distance Volume（カリング距離のボリューム）の外側に位置するオブジェクトが示されています。これらのオブジェクトはスクリーンに表示されると常に描画されます。右側にはボリュームの内側に同オブジェクトが示されます。青色の小さな球体は、最初に 500 の距離単位でカリングされます。赤色の中位の球体は、1,000 以上の距離単位でカリングされます。緑の球体は距離が 0 に設定されているため、ボリュームによってカリングされることは決してありません。
+
+これはパフォーマンス最適化のための設定です。
+
+

@@ -1,0 +1,47 @@
+INTSourceChangelist:2087454
+Availability:Public
+Title:큐브맵 툴
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
+Description:큐브맵 생성에 활용할 수 있는 Nvidia 와 AMD 툴에 대한 개요입니다.
+
+## 개요
+
+큐브맵 만들기는 제대로 된 툴만 있으면 매우 쉽습니다. 여기서는 큐브맵을 생성하는 데 사용되는 유용한 툴을 몇몇 다뤄보겠습니다.
+
+
+### Adobe Photoshop 용 NVIDIA Texture Tools
+
+가장 흔하게 쓰이는 툴은 Adobe Photoshop 용 NVIDIA Texture Tools 플러그인 입니다. 이 툴세트로 DDS 텍스처, 큐브맵, 노멀 맵을 만들 수 있습니다.
+
+이 플러그인은 [**NVIDIA**](http://developer.nvidia.com/content/nvidia-texture-tools-adobe-photoshop) 에서 받을 수 있습니다.
+
+[REGION:note]
+	현재 NVIDIA 플러그인으로 16 비트 부동소수점 (HDR) 큐브맵을 익스포트하면 오류가 납니다. 해당 맵을 만들고자 하는 분들은 지원되지 않는 ATI Cubemap Generator 를 고려해 보시기 바랍니다.
+[/REGION]
+
+![NvidiaExport.png](NvidiaExport.png)
+
+### AMD CubeMapGen
+
+다른 방법으로는 AMD CubeMapGen 을 사용하여 큐브맵을 만들 수도 있습니다. 이 툴은 16 비트 부동소수점 큐브맵을 만들 수 있습니다. 그러나 약간 주의할 점이 있습니다:
+
+1. 이 툴은 공식적으로 수명이 다해 더이상 AMD 에서 지원되지 않습니다.
+2. 이 툴은 Y-UP 월드 오리엔테이션을 사용합니다. 즉 언리얼에서 잘 돌아가는 맵을 만들려면 축을 변환해야 할 수가 있습니다.
+
+
+이 툴은 [**AMD**](http://developer.amd.com/tools-and-sdks/archive/legacy-cpu-gpu-tools/cubemapgen/) 에서 직접 내려받을 수 있습니다.
+
+![AMDCubeMapGen.png](AMDCubeMapGen.png)(w:600)
+
+### 다른 툴
+
+에픽 게임스에서는 큐브맵 이미지 제작에 다름과 같은 툴을 사용하기도 했습니다:
+
+1. HDR Light Studio: [http://www.hdrlightstudio.com/](http://www.hdrlightstudio.com/)
+
+2. VUE 에서 파노라마 HDR 이미지 출력이 가능합니다. 하늘이 포함된 HDR 에 좋습니다. [http://www.e-onsoftware.com/products/vue/vue_10.5_xstream/](http://www.e-onsoftware.com/products/vue/vue_10.5_xstream/)
+
+3. Mental Ray 에서 렌더링을 하는 경우, Wrap Around (lume) 렌즈 셰이더를 사용하면 됩니다.
+
+4. 여러 웹사이트에서 Light probe 이미지를 구매할 수 있습니다.
+

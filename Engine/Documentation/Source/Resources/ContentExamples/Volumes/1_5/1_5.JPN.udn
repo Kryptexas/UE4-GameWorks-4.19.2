@@ -1,0 +1,28 @@
+﻿Availability:Docs
+Title:1.5 - Lightmass Character Indirect Lighting Detail ボリューム 
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Volumes
+Description:ボリュームの事例概要 1.5:Lightmass Character Indirect Lighting Detail ボリューム
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes/1_5:title%](Resources\ContentExamples\Volumes\content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes/1_5:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes/1_5:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Volumes/1_5]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+Lightmass Importance Volume はサーフェスに沿ってのみサンプルを配置します。このボリュームはサンプル作成を確実に行うようにします。違いを確認するには、このコマンドを使用してください。このボリュームの典型的な用途としてはエレベータがあります。キャラクターが上までずっとサンプルを持つようにします。

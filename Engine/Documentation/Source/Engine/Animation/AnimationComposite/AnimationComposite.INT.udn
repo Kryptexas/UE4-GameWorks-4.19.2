@@ -1,0 +1,68 @@
+Availability:Public
+Title: Animation Composite
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:Animation Composites serve as a way to combine multiple animations together and treat them as a single unit.
+
+[REGION:fullwidth]
+![](AnimationCompositeHeader.png)
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+## Overview
+
+In certain circumstances, you may have a situation in which you need to take several Animation Sequences and "stitch" them together so that they can be used as if they were just one sequence instead of many. That is exactly the purpose of the **Animation Composite**. An Animation Composite is an animation asset designed to allow you to combine multiple animations together and treat them as a single unit. However, be aware that a Composite simply appends animations; it does not provide any blending ability.
+
+Animation Composites can also have their own sets of [Notifies](Engine/Animation/Sequences\Notifies) and [Curves](Engine/Animation/Sequences\Curves). For more information on these topics, please see the associated documentation for each.
+
+## Creating a Composite
+
+Creating a new Animation Composite is as simple as adding a new asset in the **Content Browser**:
+
+![](AnimationCompositeContextMenu.png)
+
+[REGION:caption]
+**Right-click** in the **Content Browser** and choose **Animation > Animation Composite** from the context menu. Alternatively, you may use the ![](button_NewAsset.png) button.
+[/REGION]
+
+You will also need to specify the [Skeleton asset](Engine/Animation/Skeleton) with which to associate your new Composite. 
+
+![](PickSkeleton.png)
+
+[REGION:caption]
+Select the Skeleton from the list of those available in your project.
+[/REGION]
+
+You will then need to name your Composite.
+
+![](NameComposite.png)
+
+Your Composite is now created and ready to edit!
+
+## Editing a Composite
+
+**Double-clicking** a Composite will open Persona in Animation Mode with the Composite selected and ready to edit.
+
+![](AnimationCompositeEdit.png)(w:500)
+
+At the top of the **Asset Editor** panel, you will see the Composite Track.
+
+![](CompositeTrack.png)(w:600)
+
+To add Animation Sequences to the Composite, simply drag and drop them into the Composite Track. As you drag more Sequences in, they will be appended automatically.
+
+![](AddingAnimationsToComposite.png)(w:700)
+
+[REGION:note]
+As you drag an asset out of the **Asset Browser**, you may notice the Asset Editor gray out and warn that you are **Currently previewing another asset**. This is expected behavior. Simply continue dragging the Animation Sequence onto the Composite track.
+[/REGION]
+
+You can move Sequences along the Composite track by dragging them, and remove them from the track by **right-clicking** them and choosing **Delete Segment** from the context menu.
+
+![](DeleteSegment.png)
+
+## Using Composites
+
+Once assembled, a Composite is treated just like an Animation Sequence in the AnimGraph of an Animation Blueprint.
+
+![](PlayComposite.png)

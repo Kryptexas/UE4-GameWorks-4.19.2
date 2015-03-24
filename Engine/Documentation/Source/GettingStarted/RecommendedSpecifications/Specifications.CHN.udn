@@ -1,0 +1,343 @@
+﻿Availability:Public
+Title: 硬件和软件的规格说明
+Crumbs: %ROOT%, Engine, Engine/Basics
+Description:使用虚幻引擎进行开发所需的最低的及推荐的硬件规格和必要软件。
+
+[PUBLISH:Rocket]
+%Globals:OSSelect%
+[/PUBLISH:Rocket]
+
+[TOC(start:2)]
+
+[EXCERPT:Main]
+[EXCERPT:Intro]
+运行游戏、编辑器或使用虚幻引擎进行开发需要满足虚幻引擎的一些特定的硬件及软件要求。 
+[/EXCERPT:Intro]
+
+## 最低硬件要求
+
+[PUBLISH:Licensee]
+[INCLUDE:#windowsminhardware]
+[/PUBLISH:Licensee]
+[PUBLISH:Rocket]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#windowsminhardware]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#macosminhardware]
+	[/PARAM]
+[/OBJECT]
+[/PUBLISH:Rocket]
+
+<!--
+[EXCERPT:WindowsMinHardware]
+| 运行引擎/使用引擎进行开发 ||
+| -------- | --- |
+| **处理器** | [INCLUDE:#CPU] |
+| **内存** |  4 GB RAM |
+| ** 显卡 ** | 1GB专用显存及DirectX 10  |
+| **显示器** | 最低分辨率1280x800 |
+[/EXCERPT:WindowsMinHardware]
+[EXCERPT:MacOSMinHardware]
+| 运行引擎/使用引擎进行开发 ||
+| -------- | --- |
+| **处理器** | [INCLUDE:#CPU] |
+| **内存** |  4 GB RAM |
+| **显卡** | [INCLUDE:#GPU] |
+| **显示器** | 最低分辨率1280x800 |
+[/EXCERPT:MacOSMinHardware]
+[EXCERPT:CPU]
+这些CPU规格中任选其一：
+* 双核> 2.5GHz （仅限于Intel-Sandy Bridge或更新）
+* 四核> 2.1 GHz
+[/EXCERPT:CPU]
+[EXCERPT:GPU]
+1 GB专用内存  
+暂时不支持HD3000 GPU
+[/EXCERPT:GPU]
+-->
+
+## 推荐硬件配置
+
+[PUBLISH:Licensee]
+[INCLUDE:#windowsrechardware]
+[/PUBLISH:Licensee]
+[PUBLISH:Rocket]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#windowsrechardware]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#macosrechardware]
+	[/PARAM]
+[/OBJECT]
+[/PUBLISH:Rocket]
+
+<!--
+[EXCERPT:WindowsRecHardware]
+| 使用引擎进行开发 ||
+| -------- | --- |
+| **处理器** | 四核 > 2.5 GHz 或更佳 |
+| **内存** |  8+ GB RAM |
+| ** 显卡 ** | 2 GB GDDR5显存及DirectX 11  |
+| **显示器** | 分辨率1680x1050的双显示器或更佳  |
+[/EXCERPT:WindowsRecHardware]
+[EXCERPT:MacOSRecHardware]
+| 使用引擎进行开发 ||
+| -------- | --- |
+| **处理器** | 四核 > 2.5 GHz 或更佳 |
+| **内存** |  8+ GB RAM |
+| ** 显卡 ** | 2 GB GDDR5显存 |
+| **显示器** | 分辨率1680x1050的双显示器或更佳  |
+[/EXCERPT:MacOSRecHardware]
+-->
+
+[PUBLISH:Licensee]
+[REGION:note]
+**注意:** 如果您使用的是网络代码，双核处理器配置将非常有效，这样您可以在同一台计算机上运行服务器和客户端，速度也相当令人满意。
+[/REGION]
+[/PUBLISH:Licensee]
+
+## 最低软件要求
+
+以下为运行编辑器或引擎的要求。
+
+(#MinSoftwareReqs)
+
+[PUBLISH:Licensee]
+| 运行引擎 ||
+| -------- | --- |
+| **操作系统** | Microsoft Windows Vista/7 64-bit |
+| **DirectX版本** | [DirectX 终端用户运行环境 (2010年6月版)](http://www.microsoft.com/download/en/details.aspx?id=8109) |
+| **VC++运行环境** | [Microsoft Visual C++ 2013 Redistributables](http://www.microsoft.com/en-us/download/details.aspx?id=40784) |
+
+[REGION:note]
+**注意:** 运行 `//depot/UE4/Engine/Extras/Redist/en-us` 目录中的 `UE4PrereqSetup.msi` 将安装运行虚幻引擎所需的软件，比如DirectX及上面提到的VC++ 运行时库。
+[/REGION]
+[/PUBLISH:Licensee]
+
+[PUBLISH:Rocket]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[INCLUDE:#windowsminsoftware]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#macosminsoftware]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:WindowsMinSoftware]
+| 运行引擎 ||
+| -------- | --- |
+| **操作系统** | Windows 7/8 64位 [INCLUDE:#WER] |
+| **DirectX版本** | [DirectX 终端用户运行环境 (2010年6月版)](http://www.microsoft.com/en-us/download/details.aspx?id=8109) |
+
+| **.NET版本** | .NET 4.0 （应该在Windows更新时已经完成安装) |
+
+[REGION:note]
+运行引擎所需的所有软件都可以通过安装包来自动安装。
+[/REGION]
+[/EXCERPT:WindowsMinSoftware]
+[EXCERPT:MacOSMinSoftware]
+| 运行引擎 ||
+| -------- | --- |
+| **操作系统** | Mac OS X 10.9  |
+| **Mono版本** | 3.2.4 (MRE安装器下载位置[](http://www.go-mono.com/mono-downloads/download.html))  |
+[/EXCERPT:MacOSMinSoftware]
+[EXCERPT:WER]
+[REGION:note]
+Rocket的崩溃报告功能要求您启用 **Windows Error Reporting** 选项，而该项默认是启用的。  如果您禁用了该功能，请启用它。 
+[/REGION]
+[/EXCERPT:WER]
+[EXCERPT:VCRuntime]
+[Visual Studio C++ 2013 Redist](http://www.microsoft.com/en-us/download/details.aspx?id=40784) |
+[/EXCERPT:VCRuntime]
+-->
+[/PUBLISH:Rocket]
+
+程序员使用引擎开发的要求列于下方。
+
+[PUBLISH:Licensee]
+
+(#DirectX)
+
+| 使用引擎进行开发 ||
+| -------- | --- |
+| **操作系统** | Microsoft Windows Vista/7 64-bit |
+| **DirectX版本** | [DirectX SDK (2010年6月版）](http://www.microsoft.com/download/en/details.aspx?id=6812) |
+| **Visual Studio版本** | [Microsoft Visual Studio 2013专业版](http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs#d-professional) 或 [Microsoft Visual Studio 2013 Windows桌面高级版](http://www.visualstudio.com/downloads/download-visual-studio-vs#d-express-windows-desktop)|
+| **VC++运行环境** | [INCLUDE:#VCRuntimeLicensee] |
+
+<!--
+[EXCERPT:VCRuntimeLicensee]
+[Visual Studio C++ 2010 SP1 Redist x64](http://www.microsoft.com/en-us/download/details.aspx?id=13523)  
+
+[Visual Studio C++ 2012 Redist](http://www.microsoft.com/en-us/download/details.aspx?id=30679) 
+ 
+[Visual Studio C++ 2013 Redist](http://www.microsoft.com/en-us/download/details.aspx?id=40784)
+[/EXCERPT:VCRuntimeLicensee]
+-->
+
+[REGION:note]
+如果您在安装DirectX SDK 2010年6月版本时收到"S1023"错误，则表示它和已经安装的Microsoft Visual C++ 2010 Redistributable版本存在冲突。 
+**您必须卸载所有版本的Visual C++ 2010 Redistributable**,  然后安装DirectX SDK的2010年6月版本，然后重新安装Visual C++ 2010 Redistributables。
+[/REGION]
+
+
+[/PUBLISH:Licensee]
+[PUBLISH:Rocket]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#windowsmindevelopment]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#macosmindevelopment]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:WindowsMinDevelopment]
+| 使用引擎进行开发 ||
+| -------- | --- |
+| **所有'运行引擎'要求（已自动安装)** ||
+| **Visual Studio版本** | [INCLUDE:#VS2013] |
+[/EXCERPT:WindowsMinDevelopment]
+[EXCERPT:MacOSMinDevelopment]
+| 使用引擎进行开发 ||
+| -------- | --- |
+| **Xcode版本** | 5.0 |
+[/EXCERPT:MacOSMinDevelopment]
+[EXCERPT:VS2013]
+可用于Windows桌面的Visual Studio 2013 Professional 或 Visual Studio 2013 Express：
+
+* [Pro](http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs#d-professional)
+* [Express](http://www.visualstudio.com/downloads/download-visual-studio-vs#d-express-windows-desktop)
+
+[REGION:note]
+[我们推荐但不强制您安装两个版本的最新Visual Studio更新。  Visual Studio将会在您安装并运行程序后，要求您更新到最新版本。
+[/REGION]
+[/EXCERPT:VS2013]
+-->
+[/PUBLISH:Rocket]
+
+
+
+[PUBLISH:Licensee]
+## 显卡驱动程序
+
+目前我们推荐使用每个显卡制造商最新出厂的可靠发行版本：
+
+* [点这里下载 NVIDIA 驱动程序](http://www.nvidia.com/Download/index.aspx?lang=en-us)
+* [点这里下载AMD驱动程序](http://support.amd.com/us/gpudownload/Pages/index.aspx)
+
+
+## 性能注意事项
+
+VTune是一款极其有效的工具，它可以发现性能方面的问题，但是只适用于 Intel CPU。
+
+以下是Epic公司的程序员和美术师所使用的典型系统。 这些配置应该可以为使用虚幻引擎4开发游戏提供一个很好的基础平台。
+
+**程序员:**
+
+* Windows 7 64位
+* 双处理器 - 六核 - Intel Xeon X5660 @ 2.8GHz
+* 24GB RAM
+* 300GB 10K SATA (OS)
+* 2X 300GB 10K SATA (RAID0存储数据)
+* Nvidia Geforce 470 - 580
+
+
+**美术师/关卡设计师:**
+
+* Windows 7 64位
+* 双处理器- 四核 - Intel Xeon X5472 @ 3.0GHz
+* 16GB RAM
+* 500GB SATA (OS)
+* 2X 500GB SATA (RAID0存储数据)
+* Nvidia Geforce 580
+
+
+[REGION:note]
+	I/O经常会遇到瓶颈，所以使用RAID 0和大容量内存会有很大帮助。
+[/REGION]
+[/PUBLISH:Licensee]
+[/EXCERPT:Main]
+

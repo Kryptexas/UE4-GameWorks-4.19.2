@@ -1,0 +1,150 @@
+﻿Availability:Public
+Title: ゲームプレイ フレームワーク システム
+Crumbs:%ROOT%, Programming
+Description: ゲームルール、プレーヤー入力や制御、カメラ、ユーザーインターフェースなど、ゲームのフレームワークを確立する入力コアシステム
+
+[EXCERPT:Intro]
+アンリアル エンジンにおいてゲームプレイの基礎を形成するシステム、ゲームプレイ フレームワークともいえますが、 3 つのカテゴリーに分類できます: 
+それは**ゲームタイプ**、**プレーヤー**、**インターフェース**です。この 3 つは、それぞれがゲームプレイの特定の部分を担当し、また 
+それぞれのカテゴリはゲームプレイのある特定の側面に関与し、 
+ゲームのさまざまな部分やその連携方法を定義する1つ以上のシステムやクラスで構成されています。同時に、システムは全て相互接続し、 
+一緒に動作しなければなりません。ゲームタイプはプレーヤーを作成します。プレーヤーはインターフェースを作成します。 
+インターフェースはゲームとプレーヤーの情報を表示します。
+[/EXCERPT:Intro]
+
+
+## 概要
+
+ゲームフレームワークでは様々なピースがどのように連結するのか、わかりやすい例を見てみましょう。ウサギとカタツムリが競争するという、 
+シンプルなコンセプトをイメージします。ゲームフレームワークのベースは**GameMode**です。**GameMode**はゲームのルールを設定します。
+ゴールラインを先に横切ったプレーヤーが勝者となる、といったルールです。また、プレーヤーのスポーンもします。 
+ 
+プレーヤーは**PlayerController**で設定され、**ポーン**を所有できます。**コントローラー** は**ポーン**を所有し動作のルールを設定でき、**ポーン**はゲームでプレーヤーを物理的に表現します。 
+この例では、**ポーン**の数は、カタツムリとウサギ、それぞれ 1 つずつの 2 つとなります。うさぎは実際は**キャラクター**で、走行やジャンプなどのビルトインされている動作機能をもつ**ポーン**の特別なサブクラスです。一方カタツムリは異なる動作のスタイルを持っており、**[Pawn]**クラスから直接拡張することができます。
+
+**ポーン**は動作と他のゲームロジックに対するルールを持ちますが、機能は**コントローラー**に含むことができます。**コントローラー**は、人間のプレーヤーからの入力を受け取る**PlayerController**か、 
+コンピューターに自動制御される**AIController**のいずれかになることができます。この例では、プレーヤーはカタツムリを制御するので、カタツムリの**ポーン**は**PlayerController**に所有されます。うさぎは、うさぎの **キャラクター**を所有する**AIController**に、
+止まる、ダッシュ、油断する時のルールを全て設定しているAIに制御されます。人間のプレーヤーだけが**Camera**が提供するビューに気をつけるので、カタツムリの CameraComponent は 1 つだけとなります。
+ポーンは PlayerCamera に使用されます。
+
+ゲームプレイの間、プレーヤーの**入力**によりカタツムリはマップの周りを動き、 
+一方**HUD**は**Camera**から提供されたビュー上にオーバーレイされ、現在の一位およびレース経過時間の情報を示されます。以上はゲーム フレームワーク要素の非常に一般的な説明です。内容、 C++ コード、ブループリント関連については以下のページのゲームプレイ フレームワーク要素の詳細をご覧ください。 
+
+##基本的なフレームワーク要素
+
+[EXCERPT:LandingBoxes]
+[REGION:topics third]
+[OBJECT:Topic]
+	[PARAM:image]
+	![](gamemode_lander.png)
+	[/PARAM]
+	[PARAM:title]
+	%Programming/Gameplay/Framework\GameMode:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Programming/Gameplay/Framework\GameMode]
+	[/PARAM]
+	[PARAM:description]
+	%Programming/Gameplay/Framework\GameMode:description%
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+	![](pawn_lander.png)
+	[/PARAM]
+	[PARAM:title]
+	ポーン
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Programming/Gameplay/Framework\Pawn]
+	[/PARAM]
+	[PARAM:description]
+	%Programming/Gameplay/Framework\Pawn:description% 
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+	![](controller_lander.png)
+	[/PARAM]
+	[PARAM:title]
+	%Programming/Gameplay/Framework\Controller:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Programming/Gameplay/Framework\Controller]
+	[/PARAM]
+	[PARAM:description]
+	%Programming/Gameplay/Framework\Controller:description%
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+	![](camera_lander.png)
+	[/PARAM]
+	[PARAM:title]
+	%Programming/Gameplay/Framework\Camera:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Programming/Gameplay/Framework\Camera]
+	[/PARAM]
+	[PARAM:description]
+	%Programming/Gameplay/Framework\Camera:description%
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+	![](input_lander.png)
+	[/PARAM]
+	[PARAM:title]
+	%Programming/Gameplay/Framework\Input:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Programming/Gameplay/Framework\Input]
+	[/PARAM]
+	[PARAM:description]
+	%Programming/Gameplay/Framework\Input:description%
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+	![](hud_lander.png)
+	[/PARAM]
+	[PARAM:title]
+	%Programming/Gameplay/Framework\UIAndHUD:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Programming/Gameplay/Framework\UIAndHUD]
+	[/PARAM]
+	[PARAM:description]
+	%Programming/Gameplay/Framework\UIAndHUD:description%
+	[/PARAM]
+[/OBJECT]
+[/REGION]
+[/EXCERPT:LandingBoxes]
+
+
+<!--
+
+* [](Programming/UnrealArchitecture/Actors/Components) - %Programming/UnrealArchitecture/Actors/Components:Description%
+* [](Programming/UnrealArchitecture) - %Programming/UnrealArchitecture:Description%
+
+[EXCERPT:Systems]
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+	![](%ROOT%/gameplay_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	[](Programming/Gameplay/Framework)
+	[/PARAM]
+	[PARAM:description]
+	[INCLUDE:Programming/Gameplay/Framework#Intro]
+	[INCLUDE:Programming/Gameplay/Framework#LandingBoxes]
+	[/PARAM]
+	[PARAM:links]
+	[/PARAM]
+[/OBJECT]
+
+
+[/EXCERPT:Systems]
+-->
+

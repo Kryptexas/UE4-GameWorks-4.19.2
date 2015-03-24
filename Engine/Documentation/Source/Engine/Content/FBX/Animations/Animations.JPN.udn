@@ -1,0 +1,201 @@
+﻿INTSourceChangelist:2385439
+Availability:Public
+Title:FBX アニメーション パイプライン
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:FBX コンテンツ パイプラインを利用してスケルタルメッシュへアニメーションを設定、エクスポート、インポートする方法
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/Animations:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/Animations:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/Animations:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/Animations]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+## 概要
+
+[EXCERPT:FBX_Animation001]
+FBX インポート パイプラインのアニメーション サポートは、 3D アプリケーションからアンリアルへ、ゲームで使用する _スケルタルメッシュ_ のアニメーションを取得する簡易なワークフローを提供します。現時点では、それぞれの _スケルタルメッシュ_ に対し、単一アニメーションのみを単一ファイルへエクスポートおよびインポートすることが可能です。
+[/EXCERPT:FBX_Animation001]
+
+このページは、 FBX コンテンツ パイプラインを使用して、アンリアルにアニメーションをインポートする方法についての専門な概要です。開発環境で FBX コンテンツ パイプラインを利用した作業に関する詳細、秘訣などは [FBX ベストプラクティス](Engine/Content/FBX/BestPractices) ページを参照してください。
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+[REGION:tip]
+このページでは、 Autodesk Maya と Autodesk 3ds Max の両方の情報を載せています。以下の表からお好きなコンテンツをお選び頂きますと、それに関連した情報のみが表示されるようになります。
+[/REGION]
+
+%Globals:DCCSelect%
+
+
+
+
+## 命名
+
+
+FBX フォーマットを利用したアンリアルへのアニメーションのインポート時は、 **AnimationSequence** はファイル名と同じ名前が付けられます。アニメーションがスケルタルメッシュと共にインポートされた時は、作成される AnimationSequence の名前は、アニメーション シーケンスのルートボーン名から名付けられます。インポートのプロセスが完了後、 **コンテンツブラウザ** から簡単に名前変更を行うことができます。
+
+
+##アニメーションの作成
+
+[EXCERPT:FBX_Animation002]
+アニメーションは、単一 _スケルタルメッシュ_ に特有、もしくはそれぞれの _スケルタルメッシュ_ が同じスケルトンを使用する限り、任意の数のスケルタルメッシュに再利用することができます。アニメーションを作成し、FBX パイプラインでアンリアルへエクスポートするために必要なのは、アニメートされたスケルトンのみです。メッシュをスケルトンに結合させることは完全に任意ですが、結合させることによりアニメーション再生中のメッシュの変形を確認することができるため、アニメーション作成プロセスが格段に容易になります。エクスポート時は、スケルトンのみが必要となります。
+[/EXCERPT:FBX_Animation002]
+
+(#ExportingAnimations)
+
+
+## 3D アプリケーションからアニメーションをエクスポートする
+
+
+アニメーションは、 _スケルタルメッシュ_ ごとに 1 つのアニメーションを 1 つのファイルへエクスポートしなければなりません。以下の手順では、単一アニメーションを単独でファイルへエクスポートしています。このスケルタルに結合されたメッシュは、アニメーションのエクスポートに必要とは限らないため非表示になっています。
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/Animations#mayaExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/Animations#maxExport]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxExport]
+1. ビューポートから、エクスポートされるアニメーションに対応するボーンを選択します。   
+
+	![max_export_1.jpg](max_export_1.jpg)(w:744 h:354)
+
+1. **[ファイル]** メニューから、 **[選択対象をエクスポート]** を選びます (選択に無関係にシーン内のすべてをエクスポートする必要がある場合は **[すべてエクスポート]** を選びます)。   
+
+	![max_export_2.jpg](max_export_2.jpg)(w:424 h:577)
+
+1. アニメーションのエクスポート先となる FBX ファイルの位置と名前を選択して、 ![max_save_button.jpg](max_save_button.jpg) ボタンをクリックします。   
+
+	![max_export_3.jpg](max_export_3.jpg)(w:616 h:452)
+
+1. **[FBX Export]** ダイアログで適切なオプションを設定します。アニメーションをエクスポートするには、 **[アニメーション]** チェックボックスを有効にしなくてはいけません。   
+
+	![max_export_4.jpg](max_export_4.jpg)(w:584 h:562)
+
+1. [![max_ok_button.jpg](max_ok_button.jpg)] ボタンをクリックして、メッシュ (複数可) を含んだ FBX ファイルを作成します。
+[/EXCERPT:maxExport]
+
+
+[EXCERPT:mayaExport]
+1. ビューポートから、エクスポートされるジョイントを選択します。   
+
+	![maya_export_1.jpg](maya_export_1.jpg)(w:769 h:376)
+
+1. **[ファイル]** メニューから、 **[選択対象をエクスポート]** を選びます (選択に無関係にシーン内のすべてをエクスポートする必要がある場合は **[すべてエクスポート]** を選びます)。   
+
+	![maya_export_2.jpg](maya_export_2.jpg)(w:184 h:446)
+
+1. アニメーションのエクスポート先となる FBX ファイルの位置と名前を選択して、 **[FBX Export]** ダイアログに適切なオプションを設定します。アニメーションをエクスポートするには、 **[アニメーション]** チェックボックスを有効にしなくてはいけません。   
+
+	![maya_export_3.jpg](maya_export_3.jpg)(w:734 h:556)
+
+1. ![maya_export_button.jpg](maya_export_button.jpg) ボタンをクリックして、メッシュ (複数可) を含んだ FBX ファイルを作成します。
+[/EXCERPT:mayaExport]
+-->
+
+(#ImportingAnimations)
+
+
+##アニメーションのインポート
+
+
+FBX アニメーション パイプラインは、 _スケルタルメッシュ_ とアニメーションを同時にインポートすることができます。もしくはそれぞれを個別にインポートすることができます。
+
+**アニメーションをするスケルタルメッシュ**
+
+
+1. **コンテンツ ブラウザ** で ![](import_button.png) ボタンをクリックします。開いているファイル ブラウザからインポートしたい FBX ファイルを選択します。**注意：** ドロップダウン リストから ![import_fbxformat.jpg](import_fbxformat.jpg) を選択することによって、不要なファイルを除去しなければならない場合があります。   
+
+	![import_file.jpg](import_file.jpg)
+	[REGION:note]
+
+		インポートしたアセットのインポート パスは、インポート中の **コンテンツ ブラウザ** がその時置かれている位置に依存します。インポートを実行する前に、必ず適切なフォルダへ移動してください。インポートが完了したら、インポートしたアセットを新規フォルダへドラッグしてください。
+	[/REGION]
+      
+1. **[FBX Import Options]** ダイアログ ボックスから適切な設定値を選択します。インポートしたメッシュの名前はデフォルトの [命名規則](Engine/Content/FBX/ImportOptions#命名規則) に従います。全設定値の詳細は、 [FBX インポート オプションのリファレンス](Engine/Content/FBX/ImportOptions) セクションを参照してください。   
+   
+	![](Engine/Content\FBX\ImportOptions\SkeletalMeshFBXOptions.png)
+   
+1. メッシュと LOD をインポートするために、 ![button_import.png](button_import.png) ボタンをクリックします。プロセスが成功した場合、最終結果のメッシュ、アニメーション (AnimationSequence) 、マテリアル、テクスチャはコンテンツブラウザに表示されます。アニメーションを保持するために作成された AnimationSequence のデフォルトの名前が、スケルトンのルートボーンの名前から命名されていることが分かります。    
+   
+	![](Engine\Content\FBX\SkeletalMeshes\ImportedCharacter.png)
+
+
+**個々のアニメーション**
+
+アニメーションをインポートするには、まず、アニメーションのインポート先となる AnimationSequence が必要です。AnimationSequence は、 **コンテンツブラウザ** から、もしくは AnimationSequence エディタから直接作成出来ます。  
+
+[REGION:note]
+	アンリアル エディタは、単一 FBX ファイルに格納されている複数のアニメーションのインポートをサポートしますが、 3ds Max や Maya など多くの DCC ツールは単一ファイルへの複数アニメーションの保存を現時点でサポートしていません。Motion Builder などのサポート アプリケーションからエクスポートした場合、アンリアルは全てのファイルをファイルにインポートします。
+[/REGION]
+
+1. **コンテンツ ブラウザ** で ![](import_button.png) ボタンをクリックします。開いているファイル ブラウザからインポートしたい FBX ファイルを選択します。**注意：** ドロップダウン リストから ![import_fbxformat.jpg](import_fbxformat.jpg) を選択することによって、不要なファイルを除去しなければならない場合があります。   
+
+	![import_file.jpg](import_file.jpg)
+   
+	[REGION:note]
+		インポートしたアセットのインポート パスは、インポート中の **コンテンツ ブラウザ** がその時置かれている位置に依存します。インポートを実行する前に、必ず適切なフォルダへ移動してください。インポートが完了したら、インポートしたアセットを新規フォルダへドラッグしてください。
+	[/REGION]
+      
+1. **[FBX Import Options]** ダイアログ ボックスから適切な設定値を選択します。インポートしたメッシュの名前はデフォルトの [命名規則](Engine/Content/FBX/ImportOptions#命名規則) に従います。全設定値の詳細は、 [FBX インポート オプションのリファレンス](Engine/Content/FBX/ImportOptions) セクションを参照してください。   
+   
+	![](Engine\Content\FBX\ImportOptions\AnimationImportOptions.png)
+
+	[REGION:Warning]
+		独自のアニメーションのインポート時は、既存スケルトンを指定しなくてはいけません！
+	[/REGION]
+   
+1. メッシュと LOD をインポートするために、 ![button_import.png](button_import.png) ボタンをクリックします。プロセスが成功した場合、最終結果のメッシュ、アニメーション (AnimationSequence) 、マテリアル、テクスチャはコンテンツブラウザに表示されます。アニメーションを保持するために作成された AnimationSequence のデフォルトの名前が、スケルトンのルートボーンの名前から命名されていることが分かります。   
+   
+	![](AnimSequenceImported.png)
+
+
+[REGION:note]
+	アンリアル エディタは一様でないスケール アニメーションをサポートします。スケールが存在する場合、アニメーションをインポートすると、追加オプションの設定をしなくてもインポートされます。メモリが原因で、エンジンは全てのアニメーションのスケールを保存するわけではなく、アニメーションが 1 以外のスケールの場合にのみ保存します。 
+	詳細は [GPU スプライト タイプ データ](Engine/Rendering/ParticleSystems\Reference\TypeData\GPUSprites) を参照してください。
+
+[/REGION]
+
+
+
+
+

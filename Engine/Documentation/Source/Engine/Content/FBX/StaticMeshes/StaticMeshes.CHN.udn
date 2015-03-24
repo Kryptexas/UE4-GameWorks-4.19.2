@@ -1,0 +1,480 @@
+Availability: Public
+Title:FBX静态网格物体通道
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:使用FBX内容通道设置、导出及导入静态网格物体。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/StaticMeshes:title%](Engine/Content/FBX/fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/fbx_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+
+## 概述
+
+[EXCERPT:FBX_StaticMesh]
+FBX导入通道中的静态网格物体支持使得将网格物体从3D应用程序中导入到虚幻引擎4中变得更加容易简单。这时不仅会导入网格物体，而且也会导入在3D应用程序中应用到这些网格物体上的任何材质中使用的贴图（仅漫反射贴图和法线贴图），将会自动创建材质并把它们应用到导入的网格物体上。
+[/EXCERPT:FBX_StaticMesh]
+
+使用FBX导入骨架网格物体所支持的功能：
+
+
+* [具有包含贴图的材质的 _静态网格物体_ ](#材质)
+* [自定义碰撞](#碰撞)
+* [多个UV集合](#UVTextureCoordinates)
+* 平滑组
+* [顶点颜色](#VertexColors)
+* [LOD](#静态网格物体LOD)
+* 多个单独的静态网格物体(也可以在导入时组合到一个单独的网格物体中)。
+
+
+[REGION:note]
+目前，当多个具有自定义碰撞的网格物体导入到一个单独的文件中时，仅导入第一个网格物体的碰撞。
+[/REGION]
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+[REGION:tip]
+本文包含了关于Autodesk Maya和Autodesk 3ds Max的信息，请在下面选择您喜欢的内容创建工具，就会仅显示和所选工具相关的信息。
+[/REGION]
+
+%Globals:DCCSelect%
+
+## 一般设置
+
+
+通常，您可以随意使用您想使用的任何工具和方法来创建 _Static Meshes（静态网格物体）_ 。为了可以将所创建的网格物体顺利地导出及导入到虚幻编辑器中并使其进行正常的工作，在设置UVs、放置网格物体等方面您需要考虑几个注意事项。
+
+### 支点
+
+虚幻引擎中，网格物体的支点决定了执行任何变换(平移、旋转、缩放)时所围绕的点。
+
+![pivot.jpg](pivot.jpg)(w:640 h:340)
+
+当从3D建模应用程序中导出网格物体时，支点总是位于原点处(0,0,0)。由于这个原因，所以最好在原点处创建网格物体，这样原点位于网格物体的一个角落上，从而当对齐到虚幻编辑器中的网格时可以进行正确的对齐。
+
+![pivot_origin.jpg](pivot_origin.jpg)(w:640 h:329)
+
+
+### 三角化
+
+虚幻引擎中的网格物体必须进行三角化处理，因为图形硬件仅处理三角形。
+
+![tris.jpg](tris.jpg)(w:744 h:382)
+
+有很多三角化网格物体的方法。
+
+
+* 仅使用三角形建模网格物体 — 最好的解决方案，提供对最终结果最大控制。
+* 在3D应用程序中三角化网格物体  -  较好的解决方案，允许在导出之前进行整理和修改。
+* 让FBX导出器三角化网格物体 - 一般解决方案，不允许进行清除整理但对于简单网格物体来说是有效的。
+* 让导入器三角化网格物体 - 一般解决方案，不允许进行清除整理但对于简单网格物体来说是有效的。
+
+
+在3D应用程序中手动地三角化网格物体将总是最好的解决方案，这样可以控制边的方向和放置位置。自动三角化处理可能会导致意想不到的结果。
+
+![tris_bad.jpg](tris_bad.jpg)(w:744 h:382)
+
+(#UVTextureCoordinates)
+
+
+### UV 贴图坐标
+
+虚幻引擎4中的FBX通道支持导入多个UV集合。对于 _静态网格物体_ 来说，这一般用于处理漫反射的一组UV集合。设置使用FBX通道的静态网格物体的UV没有特殊要求。
+
+
+###创建法线贴图
+
+在大部分建模应用程序中可以通过创建低分辨率的渲染网格物体和高分辨率的细节网格物体来直接地为您的网格物体创建法线贴图。
+
+![SideBySide.jpg](SideBySide.jpg)(w:700 h:398)
+
+高分辨率细节网格物体的几何体用于生成法线贴图的法线。Epic内部处理流程中引入了 XNormal，从而在虚幻引擎4中渲染时生成更好的法线。关于这个过程的更多详情，请参照[](Engine/Content/Types/Textures/NormalMaps/Creation)。
+
+### 材质
+
+在外部应用程序中建模的应用到网格物体上的材质将会随着网格物体一同导出，然后会一同导入到虚幻编辑器中。这简化了导入过程，因为贴图不必再单独地导入到UnrealEd中，不需要再创建及应用材质等。当使用FBX通道时导入过程可以执行所有这些动作。
+
+这些材质也需要以特殊的方式设置，尤其是当网格物体具有多个材质或者网格物体上的材质的顺序很重要时(也就是，对于一个角色模型，材质0需要用于躯体部分，材质1需要用于头部)。
+
+关于设置材质进行导出的完整细节，请参照[FBX材质通道](Engine/Content/FBX/Materials)页面。
+
+
+### 碰撞
+
+简单的碰撞几何体对于优化游戏中的碰撞检测是很重要的。虚幻引擎4在 **静态网格物体编辑器** 中提供了创建碰撞几何体的基本工具。但是，某些时候，最好还是通过在您的3D建模应用程序中创建自定义的碰撞几何体然后再将其随同渲染网格物体导出来进行处理。一般，这适用于任何不需要和具有开放区域或凹陷区域的网格物体进行碰撞的对象。
+
+比如：
+
+
+* Doorway(门口)网格物体
+* 具有窗框的墙壁。
+* 形状奇怪的网格物体。
+
+
+导入器基于碰撞网格物体的名称识别碰撞网格物体。碰撞命名语法应该是：
+
+
+| **网格物体前缀和名称** | **描述** |
+| ------ | --- |
+| **UBX_[RenderMeshName]\_##** |  在Max中使用 _Box(盒子)_ 对象来创建盒式碰撞，或者在Maya 中使用 _Cube(立方体)_ 多边形图元来创建盒式碰撞。您不能以任何方式移动顶点或者使其发生变形来使它成为不是正规图元的其它形状，否则它将不能正常工作。|
+| **USP_[RenderMeshName]\_##** | 球体可以使用 _Sphere(球体)_ 对象类型进行创建。球体根本不需要有太多的分段(分为 8 段比较合适)，它将会为碰撞转换为真正的球体。就像盒子一样，您不能到处移动单独的顶点。|
+| **UCX_[RenderMeshName]\_##** | 凸面体可以是任何完全闭合的凸面 3D 图形。比如，一个盒子可以是一个凸面物体。下面的图表解释了什么是凸面体及什么不是凸面体： ![Convex.gif](Convex.gif)
+
+
+#### 警告和注意事项
+
+* `RenderMeshName`** 名称必须同3D应用程序中和碰撞网格物体相关联的渲染网格物体的名称一样。所以，如果您在3D应用程序中渲染网格物体命名为 **`Tree_01`** ，那么在场景中和那个网格物体相关的碰撞网格物体一样，命名为 **`UCX_Tree_01`** ，然后将其随同渲染网格物体导入到FBX文件中。如果您需要为一个网格物体设置多个碰撞对象，那么您可以使用额外的修饰符扩展它们的名称，比如： `UCX_Tree_01_00` 、 `UCX_Tree_01_01` 、 `UCX_Tree_01_02`, ** 等...所有这些碰撞对象都会和那个网格物体相关联。
+
+
+* 目前球体仅应用于钢体碰撞、虚幻的零粗细踪迹（比如武器），而不应用于非零粗细踪迹（比如玩家运动）。同事，如果 _网格物体_ 不是均匀缩放的，则球体和盒体碰撞则不能正常工作。一般来说，您或许想创建  _UCX_ 图元。
+
+*  一旦您设立了碰撞对象，您便可以把图形及碰撞网格物体导入到同一个.FBX文件中。当您把 .FBX  文件导入到虚幻编辑器时，它将会找到碰撞网格物体，把它从渲染网格物体上移除，并将其转换为碰撞模型。
+
+* 把一个非凸面网格物体分解为凸面图元是一个非常复杂的操作，并且可能会产生不可预测的效果。另一个方法是在 3D MAX 或 Maya 中把碰撞模型分解为凸面块。
+
+* 当一个物体的碰撞是由多个凸面的外壳定义时，这些外壳彼此之间没有相互交叉时会获得最好的效果。比如，如果一个棒棒糖的碰撞是通过两个凸面外壳来定义的，一个用于糖果另一个用于手棒，那么在两者之间应该留有空隙，如下所示：
+
+![](CandyCollision.png)(w:400)
+
+1. _UCX_Candy_
+1. 碰撞表面间的小间隙
+1. _UCX_Stick_
+
+
+
+
+(#VertexColors)
+
+
+### 顶点颜色
+
+可以通过使用FBX通道来转换静态网格物体的顶点颜色。不需要特殊设置。
+
+![vertex_color.jpg](vertex_color.jpg)(w:769 h:376)
+
+(#ExportMesh)
+
+
+## 导出网格物体
+
+
+静态网格物体可以独立地进行导出或者也可以把多个网格物体导出到一个单独的FBX文件中。除非通过在导入时启用 **Combine Meshes（组合网格物体）** 设置指定出了组合网格物体，否则导入过程将会把多个静态网格物体划分为目标包中的多个资源，。
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxExport]
+	[/PARAM]
+[/OBJECT]
+
+
+<!--
+
+[EXCERPT:maxExport]
+1. 在视口中选中要导出的网格物体。 
+
+	![max_export_1.jpg](max_export_1.jpg)(w:744 h:382)
+
+1. 在 **文件** 菜单中，选择 **导出选中项** (或者，如果您想不管选中项为什么都到处该场景中的所有内容，那么请选择 **导出所有** )。 
+
+	![max_export_2.jpg](max_export_2.jpg)(w:424 h:577)
+
+1. 选择要将网格物体导出到的FBX文件的位置及名称，并点击![max_save_button.jpg](max_save_button.jpg) 按钮。 
+
+	![max_export_3.jpg](max_export_3.png)
+
+1. 在 **FBX Export(FBX导出)** 对话框中设置适当的选项，然后点击 ![max_ok_button.jpg](max_ok_button.jpg)按钮来创建包含网格物体的FBX文件。 
+
+	![max_export_4.jpg](max_export_4.jpg)(w:584 h:562)
+
+	_上面的几何体类目中的设置是将 _静态网格物体_ 导出到虚幻引擎4的最基本要求。_
+[/EXCERPT:maxExport]
+
+
+[EXCERPT:mayaExport]
+1. 在视口中选中要导出的网格物体。 
+
+	![](maya_export_1.jpg)(w:769 h:376)
+
+1. 在 **文件** 菜单中，选择 **导出选中项** (或者，如果您想不管选中项为什么都到处该场景中的所有内容，那么请选择 **导出所有** )。 
+
+	![](maya_export_2.jpg)(w:186 h:446)
+
+1. 选择用于导入网格物体的FBX文件的位置和名称，并在 *FBX Export(FBX导出)* 对话框中设置适当的选项，然后点击 ![](maya_export_button.jpg) 或![](exportAll_button.png) 按钮来创建包含网格物体的FBX文件。
+
+	[REGION:raw]
+	![](maya_export_3.png)
+
+	_上面的几何体类目中的设置是将 _静态网格物体_ 导出到虚幻引擎4的最基本要求。_
+	[/REGION]
+[/EXCERPT:mayaExport]
+
+-->
+
+## 导入网格物体
+
+
+1. 在内容浏览器中点击![](button_new.png)按钮。再打开的文件浏览器中导航到您想导入的文件并选中它。*注意:* 您可以在下拉菜单中选择 ![import_fbxformat.jpg](import_fbxformat.jpg)来过滤不需要的文件。 
+
+	![import_file.jpg](import_file.png)
+
+	[REGION:note]
+		所导入的资源的导入路径是由导入时 **内容浏览器** 的当前位置所决定的。请确保在执行导入之前导航到适当的文件夹。您也可以在导入完成时将导入的资源拖拽大一个新文件夹中。
+	[/REGION]
+
+1. 在 **Import(导入)** 对话框中选择适当的设置。但大部分情况下默认设置就足以满足需求。请参照[FBX导入对话框](Engine/Content/FBX/ImportOptions)部分获得关于这些设置的完整信息。 
+
+	![](Engine\Content\FBX\ImportOptions\StaticMeshImportOptions.png)
+
+1. 点击 ![button_import.png](button_import.png)按钮来导入网格物体和LOD。如果导入过程成功，那么将会在内容浏览器中显示最终的网格物体、材质和贴图。 
+
+	![](ImportedMeshAndTex.png)
+
+	[REGION:note]
+		尽管可以随同静态网格物体导入贴图和材质，但是将仅会自动连接 **Color（颜色）** 和 **Normal（法线）** 通道（假设时[在Max/Maya中使用了支持的材质](Engine/Content\FBX\Materials)）， **Specular（高光）** 贴图将会被导入但不会进行连接，其他贴图甚至都不会进行导入，比如maya材质的  **Diffuse（漫反射）** 插槽中的 **Ambient Occlusion（环境遮挡）** 贴图；所以最好检查您的材质，连接任何尚未连接的贴图，并检查没有导入哪些贴图。简单地 **双击** 新材质并将可用材质连接到它们的适当输入上。
+	[/REGION]
+
+	通过在静态网格物体编辑器中查看导入的网格物体并启用显示碰撞功能，您就可以判断该导入过程是否按照期望的方式进行了。
+	[REGION:lightbox]
+	[![](MeshInSME.png)(w:920)](MeshInSME.png)
+	[/REGION]
+	
+
+[REGION:tip]
+另外，您实际上可以在Windows中点击并拖拽一个FBX文件到 **内容浏览器** 内，这将为您调出一个导入对话框。
+[/REGION]
+
+(#MeshLODs)
+
+
+## 静态网格物体LOD
+
+
+为了限制随着骨架网格物体距离相机的距离的逐渐变远而产生的性能影响，我们可以在游戏中使用骨架网格物体的细节层次(LODs)。一般，这意味着每个细节层次级别所具有的三角形数量将会变少、或许会给该层次级别的骨架网格物体应用更简单的材质。
+
+![lods.jpg](lods.jpg)(w:744 h:382)
+
+可以使用FBX通道来 导入/导出 这些LOD网格物体。
+
+
+### LOD设置
+
+**一般**
+
+一般情况下，LODs通过创建具有不同复杂程度的模型来进行处理，包括从具有完整细节的基本网格物体到最有最低细节的LOD网格物体。这些LOD网格物体应该和同样的支点对齐并占用同样的空间。每个LOD网格物体可以分配完全不同的材质，包括不同数量的材质。这意味着基本网格物体可以使用多个材质来在近距离处产生理想的细节质量；但低细节网格物体可以使用一个单独的材质，因为细节不是那么显著。
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaLODSetup]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxLODSetup]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxLODSetup]
+1. 选中所有网格物体(基本网格物体和LODs - 选中顺序不重要)，然后从 _Group(组)_ 菜单中选择 _Group(组合)_ 命令。 
+
+	![max_lod_group.jpg](max_lod_group.jpg)(w:141 h:214)
+
+1. 在打开的对话框中输入新的组的名称，并点击 ![max_lod_ok_button.jpg](max_lod_ok_button.jpg) 按钮来创建该组。 
+
+	![max_lod_group_name.jpg](max_lod_group_name.jpg)(w:306 h:147)
+
+1. 点击 ![max_utilities_button.jpg](max_utilities_button.jpg)按钮来查看 _Utilities(工具)_ 面板，然后选择  _Level of Detail（细节层次级别）_ 工具。*注意:* 您可能需要点击 ![max_utility_more_button.jpg](max_utility_more_button.jpg) 并从列表中选择它。 
+
+	![max_lod_utility.jpg](max_lod_utility.jpg)(w:168 h:561)
+
+1. 选中该组合，点击![max_lod_create_button.jpg](max_lod_create_button.jpg)按钮来创建新的LOD集合，并将选中组中的网格物体添加到它内部。这些网格物体将会根据它们的复杂度自动地排序。 
+
+	![max_lod_contents.jpg](max_lod_contents.jpg)(w:146 h:94)
+[/EXCERPT:maxLODSetup]
+
+
+[EXCERPT:mayaLODSetup]
+1. 选中所有网格物体(基础网格物体和LODs)，按照从基础网格物体向下倒最低级LOD的书序进行选择。按顺序选择很重要，以便可以在复杂度方面以正确的顺序添加它们。然后从 _Edit(编辑)_ 菜单中选择 _Level of Detail（细节层次级别） > Group（分组）_ 命令。 
+
+	![maya_lod_group.jpg](maya_lod_group.jpg)(w:316 h:599)
+
+1. 现在所有的网格物体都应该分组到了LOD Group（LOD组）下。
+
+	![maya_lod_contents.jpg](maya_lod_contents.jpg)(w:160 h:175)
+[/EXCERPT:mayaLODSetup]
+-->
+
+### 导出LOD
+
+要想导出 _静态网格物体_ LOD：
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaLODS]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxLODS]
+	[/PARAM]
+[/OBJECT]
+
+
+<!--
+[EXCERPT:maxLODS]
+1. 在3ds Max中： 选择构成LOD集合和碰撞几何体的网格物体组。 
+
+	![max_lod_export_select.jpg](max_lod_export_select.jpg)(w:744 h:382)
+
+1. 遵循导出基本网格物体所使用的同样的导出步骤进行操作(正如在上面的[导出网格物体](#ExportMesh) 部分所描述的 )。确保在FBX导入器属性中启用了动画导出功能。这是导出LODs所需要的设置。
+[/EXCERPT:maxLODS]
+
+[EXCERPT:mayaLODS]
+1. 在Maya中: 选择LOD组和任何碰撞几何体。 
+
+	![maya_lod_export_select.jpg](maya_lod_export_select.jpg)(w:769 h:376)
+
+1. 遵循导出基本网格物体所使用的同样的导出步骤进行操作(正如在上面的[导出网格物体](#ExportMesh) 部分所描述的 )。确保在FBX导入器属性中启用了动画导出功能。这是导出LODs所需要的设置。
+[/EXCERPT:mayaLODS]
+-->
+
+
+### 导入LOD...
+
+在内容浏览器中，静态网格物体LODs可以随同基础网格物体一同导入，或者可以通过AnimSet编辑器单独地导入这些静态网格物体LODs。
+
+*具有LOD的网格物体*
+
+
+1. 在内容浏览器中点击![](button_new.png)按钮。再打开的文件浏览器中导航到您想导入的文件并选中它。*注意:* 您可以在下拉菜单中选择 ![import_fbxformat.jpg](import_fbxformat.jpg)来过滤不需要的文件。 
+
+	[REGION:lightbox]
+	[![](MeshInSME.png)(w:920)](MeshInSME.png)
+	[/REGION]
+   
+	[REGION:note]
+		所导入的资源的导入路径是由导入时 **内容浏览器** 的当前位置所决定的。请确保在执行导入之前导航到适当的文件夹。您也可以在导入完成时将导入的资源拖拽大一个新文件夹中。
+	[/REGION]
+
+1. 在 **Import(导入)** 对话框中选择适当的设置。默认设置应该足以满足需求，但同时请确保启用 _Import LODs（导入LOD）_ 项。**注意:** 当导入LOD时，导入的网格物体的名称将会遵循默认的[命名规则](Engine/Content/FBX/ImportOptions#命名规则)。请参照[FBX导入对话框](Engine/Content/FBX/ImportOptions)部分获得关于这些设置的完整信息。 
+
+	![](ImportOptions_LOD.png)
+
+1. 点击![button_import.png](button_import.png)按钮来导入网格物体和LOD。如果导入过程成功，那么将会在内容浏览器中显示最终的网格物体、材质和贴图。
+
+	![](ImportedMeshAndTex.png)
+
+	[REGION:note]
+		尽管可以随同静态网格物体导入贴图和材质，但是将仅会自动连接 **Color（颜色）** 和 **Normal（法线）** 通道（假设时[在Max/Maya中使用了支持的材质](Engine/Content\FBX\Materials)）， **Specular（高光）** 贴图将会被导入但不会进行连接，其他贴图甚至都不会进行导入，比如maya材质的  **Diffuse（漫反射）** 插槽中的 **Ambient Occlusion（环境遮挡）** 贴图；所以最好检查您的材质，连接任何尚未连接的贴图，并检查没有导入哪些贴图。简单地 **双击** 新材质并将可用材质连接到它们的适当输入上。
+	[/REGION]
+
+	通过在 **静态网格物体编辑器** 中查看导入的网格物体，您可以使用工具条最右侧的 ![](button_AutoLOD.png)下拉菜单虚幻切换LOD。
+
+	
+<!----Currently commented out. It seems this functionality no longer exists!-----------
+
+**单独的LOD**
+
+
+1. 通过在内容浏览器中双击基础网格物体或者右击并选择 _Edit Using AnimSet Viewer(使用动画集查看器编辑)_ 来在静态网格物体编辑器中打开基础网格物体。 
+
+	![lod_smeditor.jpg](lod_smeditor.jpg)(w:738 h:340)
+
+1. 在 _Mesh（网格物体）_ 菜单中，选择 _Import Mesh LOD(导入网格物体LOD)_ 。 
+
+	![lod_mesh_menu.jpg](lod_mesh_menu.jpg)(w:283 h:270)
+
+1. 在文件浏览器中导航到包含这个LOD网格物体的 FBX 文件，并选择它。**注意：**  您可能需要将文件格式设置为  ![lod_mesh_fbx_button.jpg](lod_mesh_fbx_button.jpg) 才能看到您的文件。 
+
+	![lod_mesh_file.jpg](lod_mesh_file.jpg)(w:763 h:330)
+
+1. 在 **Import LOD（导入LOD）** 对话框中，从下拉菜单中选中您想导入的网格物体的LOD级别。按下 ![lod_mesh_ok_button.jpg](lod_mesh_ok_button.jpg)按钮来导入LOD网格物体。 
+
+	![lod_mesh_dialog.jpg](lod_mesh_dialog.jpg)(w:244 h:158)
+
+1. 如果导入过程成功，那么将会通知您，并且在工具条按钮  ![lod_mesh_buttons.jpg](lod_mesh_buttons.jpg)中应该启用了刚导入的LOD对应的按钮。 
+
+	![lod_mesh_success.jpg](lod_mesh_success.jpg)(w:290 h:149)
+
+1. 针对您想导入的每个LOD网格物体重复这个过程。
+
+1. 一旦导入了所有的LOD网格物体，您可以通过使用工具条中的![lod_buttons.jpg](lod_buttons.jpg)按钮来预览这些LOD网格物体。
+
+	![lod_anim.gif](lod_anim.gif)(w:238 h:190)
+
+------------------------------------------------------------>

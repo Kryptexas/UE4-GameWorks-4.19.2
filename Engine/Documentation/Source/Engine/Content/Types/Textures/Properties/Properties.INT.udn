@@ -1,0 +1,176 @@
+Availability: Public
+Title:Texture Properties
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/Textures
+Description:Reference for the properties and settings for texture assets.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Types/Textures/Properties/:title%](Engine/Content/Types/Textures/texture_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/texture_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Texture Properties Editor
+	[/PARAM]
+	[PARAM:description]
+		Reference for the properties and settings for Texture assets.
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/Textures/Properties]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+![Texture Editor](TextureUI_banner.png)
+[/REGION]
+
+[TOC(end:2)]
+
+## Overview
+
+[EXCERPT:Intro]
+The **Texture Editor** allows you to preview Texture assets and modify their properties.  You can also apply color adjustments and modify compression and LOD settings here.
+[/EXCERPT:Intro]
+
+For more information about the Texture Editor UI, see [](Engine/Content/Types/Textures\Properties\Interface).
+
+## Opening the Texture Editor
+
+The Texture Editor is usually summoned from the [Content Browser](Engine/Content/Browser) by **double-clicking** on a Texture asset.
+
+
+## Details Panel
+
+The **Details** panel displays the Texture asset's properties, and allows you to modify them.
+
+At the top of the **Details** panel, you can see information about how the Texture is currently being displayed, statistics about the Texture such as size and compression method, and platform-specific settings for the Texture.
+
+### Level Of Detail
+
+The **Level Of Detail** section displays mip and LOD settings.
+
+Mip-map generation happens during importing of the Texture and creates a mip-map chain for the Texture. The mip-map chain consists of multiple levels of the sample image, each half the resolution of the level before. That data allows the graphic card to render faster when using the lower mips (less memory bandwidth) and also reduces the Texture aliasing (shimmering) that becomes visible when having detailed Texture in certain distances. The setting has no performance impact at runtime as it only affects the mip-map generation (during importing or when changing the setting). 
+
+In the **Mip Gen Settings** drop-down box, the **SimpleAverage** setting uses a 2x2 kernel size, and all **Sharpen** settings use a 8x8 kernel and some negative weights to sharpen. **Sharpen0** is not sharpening, but it still uses the quality down-sampling filter all **Sharpen** settings use (4x4 Gaussian kernel). Compared to **SimpleAverage**, it appears blurrier but higher quality. 
+
+When you are using color content, the sharpening is not processing the color channels independently. Then luminance is done as defined and the chrominance (color) information is down-sampled without sharpening (currently 2x2 but 4x4 Gaussian would be possible as well). This avoids a color shift in some extreme cases. Sharpening also helps to improve the DXT compressor as the compression of subtle color shades is limited.
+
+| Item | Description |
+| ---- | ----------- |
+| **Mip Gen Settings** | This option allows you to customize how the content of the mip-map chain looks. Note that the usage of mip-maps can reduce Texture details. In order to counteract the blurring the mip-mapping introduces, it is possible to sharpen the image during down-sampling to restore some of the information loss. Using a limited amount of sharpening (values up to 4 or 5) can help to increase the image quality without performance loss or memory cost. Using strong sharpening (values bigger than 6) can result in dark or bright borders around the image content, but this might be acceptable in certain situations (depending of art style and Texture content). |
+| **LOD Bias** | The number of miplevels to drop before uploading the Texture. This value can be negative to compensate for the LODGroup's LOD bias for a particular Texture. The LODBias, the LODGroup's LOD bias and the NumCinematicMipLevels are all added together to form a final LOD bias value for the Texture. Mip-levels that cannot be reached in-game because of its LOD bias are removed from the cooked data on disk by Unreal Frontend to save disk space. |
+| **LOD Group** | The Texture group this Texture belongs to for LOD bias. |
+| **Global Force Resident Mip Levels** | Global and serialized version of ForceMiplevelsToBeResident. |
+| **Preserve Border** | When _true_, the Texture's border will be preserved during mipmap generation. |
+| **Num Cinematic Mip Levels** | Specifies how many of the highest-resolution mip levels should be reserved for cinematic usage - when the Texture is forcibly streamed in with cinematic quality. While the game is running normally, this property behaves just like a regular LOD bias: A value of 1 reduces the Texture's in-game resolution by one mip-level. However, when the corresponding Texture group is set to cinematic quality, the cinematic high-resolution mip levels are streamed in. |
+
+[REGION:note]
+It is a good idea to have have some mip sharpening (for example, **Sharpen4**) defined for all color Textures. Normal maps or other Textures not storing colors might also get more detail on the first sight, but it actually might get worse (e.g. distorted surface normals, aliasing speculars).
+[/REGION]
+
+
+
+### Texture
+
+The **Texture** section displays information about the Texture asset's source file, and some additional settings.
+
+| Item | Description |
+| ---- | ----------- |
+| **Source File Path** | Displays the path of the Texture's source file. |
+| **Source File Timestamp** | Displays the timestamp of the Texture's source file. |
+| **sRGB** | Sets whether the Texture should be gamma (un)corrected or not. Regular diffuse Textures and basically anything you use for display as color values should have this set to _true_. It is usually disabled for cases where the Texture color values have a specific meaning and you rely on those values to be that way as they were set, e.g. via code. Normal maps should have this set to _false_ as their color values are to be interpreted as a direction and thus should not be gamma corrected. |
+| **X-axis Tiling Method** | Sets the addressing mode of the Texture's X axis. |
+| **Y-Axis Tiling Method** | Sets the addressing mode of the Texture's Y axis. |
+| **Dither Mip Map Alpha** | When _true_, the alpha channel of mipmaps and the base image are dithered for smooth LOD transitions. |
+| **Flip Green Channel** | When _true_, the Texture's green channel will be inverted. This is useful for some normal maps. |
+| **Never Stream** | If _true_, the Texture will never be streamed. Temporary workaround for engine limitations. |
+| **Filter** | The Texture filtering mode to use when sampling this Texture. |
+
+
+
+### Adjustments
+
+The options in the **Adjustments** section allow you to adjust the Texture's color without modifying the actual source art.  These changes are applied at compression-time.
+
+
+| Item | Description |
+| ---- | ----------- |
+| **Brightness** | Scales the brightness of the Texture by multiplying the HSV Value component by the number specified.  Values greater than 1.0 increase the brightness of the image, while values less than 1.0 will decrease the image brightness.  You can enter whatever number you want, but the final V value will be clamped between 0.0 and 1.0 (per pixel.)  The default for this setting is 1.0. |
+| **Brightness Curve** | Modifies the brightness of the Texture using a curve.  Each pixel has its HSV Value component raised to the power specified.  This scales the image brightness non-linearly using a curve defined by the power function.  Values less than 1.0 increase the brightness of the image, while values greater than 1.0 decrease the image brightness.  You can enter whatever number you want, but the final V value will be clamped between 0.0 and 1.0 (per pixel.)  The default for this setting is 1.0. |
+| **Vibrance** | Adjusts the Texture's saturation using a number between 0.0 and 1.0.  This applies a custom algorithm that attempts to increase the saturation of colors that are naturally less saturated.  This is useful when you want to bring the less-saturated parts of a Texture up to match the other already-saturated pixels.  The default for this setting is 0.0. |
+| **Saturation** | Scales the Texture's color saturation by multiplying the HSV Saturation component by the number specified.  Values greater than 1.0 increase the saturation, while values less than 1.0 decrease the image saturation.  A value of zero will result in a fully greyscale image.  You can enter whatever number you want, but the final S value will be clamped between 0.0 and 1.0 (per pixel.)  The default for this setting is 1.0. |
+| **RGBCurve** | Modifies the brightness of the Texture using a curve.  Each pixel has its linear-space RGB values raised to the power specified.  This scales the image brightness non-linearly using curve defined by the power function.  Values less than 1.0 increase the brightness of the image, while values greater than 1.0 will decrease the image brightness.  You can enter whatever number you want, but the final value will be clamped between 0.0 and 1.0 (per pixel.)  The default for this setting is 1.0. |
+| **Hue** | Modifies the image hue by shifting the HSV Hue component along the color circle by the specified number of degrees (0.0 - 360.0).  Very small numbers will slightly tint the color of your image, while large numbers may change the color radically.  If you use a number outside of the 0.0 - 360.0 range, then the hue will "wrap" to a number within that range.  The default for this setting is 0.0. |
+| **Min Alpha** | Sets the minimum value for the range the Texture gets "unpacked" to. The default is 0. Note that normal maps require the min/max range to be -1 to 1, and this is set automatically if you choose the proper compression setting.|
+| **Max Alpha** | Sets the maximum value for the range the Texture gets "unpacked" to. The default is 1. You can set the **Max Alpha** to a higher value if you want overbrightening via the Texture. |
+
+
+
+### Compression
+
+| Item | Description |
+| ---- | ----------- |
+| **Compress Without Alpha** | Whether the alpha channel can be discarded. You want to enable this in case your alpha channel contains data you do not care about as it allows the Texture to consume only half the memory required otherwise. | 
+| **Defer Compression** | Whether to defer compression till save time to allow faster iteration times when importing/ tweaking Textures. | 
+| **Compression Settings** | The compression settings to use when building the texture. | 
+
+### Compositing
+
+| Item | Description |
+| ---- | ----------- |
+| **Composite Texture** | The Texture asset used to modify the roughness based on the normal map variation (mostly from mip maps). Make sure the normal map has at least as many mips as this Texture asset. | 
+| **Composite Texture Mode** | Defines how the **Composite Texture** is applied. | 
+| **Composite Power** | Sets the strength of the effect of the **Composite Texture**. Higher values result in a stronger effect. The default is 1. | 
+
+
+
+
+
+<!----------- old content
+
+### CompressionFullDynamicRange
+
+If enabled, RGBE Textures will not be range limit but will use much more memory to store.
+
+
+### CompressionSettings
+
+
+#### TC_Default
+
+Regular Texture, diffuse, ...
+
+
+#### TC_Displacementmap
+
+Terrain displacement map
+
+
+#### TC_Grayscale
+
+Grayscale Texture
+
+
+#### TC_HighDynamicRange
+
+High dynamic range Texture, needs to be imported as RGBE via .float importer.
+
+
+#### TC_Normalmap
+
+
+
+---------->
+
+
+
+
+
+
+
+
+

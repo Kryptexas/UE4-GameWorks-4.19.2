@@ -94,7 +94,11 @@
 
 # Ignore various other dependencies that are never checked in
 /Engine/Content/**
-/Engine/Documentation/**
+/Engine/Documentation/**/*.psd
+/Engine/Documentation/**/*.png
+/Engine/Documentation/**/*.cur
+/Engine/Documentation/**/*.gif
+/Engine/Documentation/**/*.jpg
 
 # Ignore all binary types in the extras folder
 /Engine/Extras/*/**

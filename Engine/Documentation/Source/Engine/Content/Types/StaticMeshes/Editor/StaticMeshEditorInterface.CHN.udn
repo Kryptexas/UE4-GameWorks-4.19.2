@@ -1,0 +1,146 @@
+﻿INTSourceChangelist:2108300
+Availability: Public
+Title:静态网格物体编辑器用户指南
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types/StaticMeshes
+Description:用于预览静态网格物体资源的外观、碰撞及UV，以及设置和操作静态网格物体资源的工具。
+
+[TOC(start:2)]
+
+## 概述
+
+**静态网格物体编辑器** 由四部分组成：
+
+[REGION:fullwidth]
+![](StaticMeshEditorUI.png)
+[/REGION]
+1. [菜单栏](#菜单栏)
+1. [工具栏](#工具栏)
+1. [预览面板](#预览面板)
+1. [详细信息面板](#详细信息面板)
+
+[Include:Shared/Editors/Common/EditorMenuItems/#UITabTips]
+
+<!-- For more information about the Static Mesh Editor, see [](Engine/Content\Types\StaticMeshes\Editor). -->
+
+## 菜单栏
+
+### 文件
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuFileSave]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuFileSaveOptions]
+
+### 编辑
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuEditUndo]
+* **Delete Socket（删除插槽）** - 从网格中删除选定的插槽。
+* **Duplicate Socket（复制插槽）** - 复制选中的插槽。
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuEditSettings]
+
+### 资源
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetContentBrowser]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetReimport]
+
+
+### 网格物体
+
+* **Find Source（查找源）** - 在内容浏览器中打开该静态网格物体的最初源文件所在的地方。
+* *Change Mesh（更改网格物体）* - 将静态网格物体编辑器中加载的静态网格物体资源更改为当前在内容浏览器中选择的资源。
+
+### 碰撞
+
+* **6DOP Simplified Collision（6DOP 简化碰撞）** - 生成一个包围该静态网格物体的新盒式碰撞网格物体，该碰撞网格物体沿着坐标轴对齐（总共 6 个面）。
+* **10DOP-X Simplified Collision（10DOP-X 简化的碰撞）** - 生成一个包含这个静态网格物体的沿坐标轴对齐的新盒碰撞网格物体（总共 10 个面），其中有 4 个沿X-轴对齐的边进行了倒角处理。
+* **10DOP-Y Simplified Collision（10DOP-Y 简化的碰撞）** - 生成一个包含这个静态网格物体的沿坐标轴对齐的新盒碰撞网格物体（总共 10 个面），其中有 4 个沿Y-轴对齐的边进行了倒角处理。
+* **10DOP-Z Simplified Collision（10DOP-Z 简化的碰撞）** - 生成一个包含这个静态网格物体的沿坐标轴对齐的新盒碰撞网格物体（总共 10 个面），其中有 4 个沿Z-轴对齐的边进行了倒角处理。
+* **18DOP Simplified Collision（18DOP 简化的碰撞）**  - 生成一个包含这个静态网格物体的沿坐标轴对齐的新盒碰撞网格物体（总共 18 个面），其中所有的边都进行了倒角处理。
+* **26DOP Simplified Collision（26DOP 简化的碰撞）** - 生成一个包含这个静态网格物体的沿坐标轴对齐的新盒碰撞网格物体（总共 26 个面），其中所有的边和角都进行了倒角处理。
+* **Auto Convex Collision（自动凸面碰撞）** - 基于静态网格物体资源的形状生成一个新的凸面碰撞网格物体。
+* **Sphere Simplified Collision（球体型简化碰撞）** - 生成一个包围这个静态网格物体的新球体碰撞网格物体。
+* **Remove Collision（删除碰撞）** - 删除任何赋给这个静态网格物体的简化碰撞。
+* **Convert Boxes to Convex（将盒转换为凸面）** - 将任何简单的盒碰撞网格物体转换为凸面碰撞网格物体。
+* **Copy Collision from Selected Static Mesh（从选中的网格物体复制碰撞）** - 复制在原生3D应用程序中创建的任何碰撞网格物体，并将其随同该网格物体进行保存。
+
+要了解关于虚幻引擎中的静态网格物体碰撞的更多信息，请查看[碰撞参考指南](Engine/Physics/Collision/Reference)页面。
+
+
+### 窗口
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowToolbar]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowViewport]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowDetails]
+* **Socket Manager（插槽管理器）** - 显示 **Socket Manager（插槽管理器）** 面板，默认该面板是不显示的。
+* **Convex Decomposition（凸面分解）** - 显示 **Convex Decomposition（凸面分解）** 面板，该面板默认是不显示的。
+* **Generate Unique UVs（生成唯一UV）** - 显示 **Generate Unique UVs（生成唯一UV）** 面板，该面板默认是不显示的。
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindow]
+
+
+
+### 帮助
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuHelp]
+
+
+## 工具栏
+
+| 项目| 描述|
+| ---- | ----------- |
+| ![button_realtime.png](button_realtime.png)| 切换是开启视图实时更新还是只在鼠标点击或悬停其上方时更新。默认情况下，它是关闭状态，您可能需要在网格物体加载完成后在视口中点击，这样才能使动态加载的贴图以高分辨率显示。|
+| ![button_sockets.png](button_sockets.png) | 显示该网格物体应用的任何插槽。关于插槽的更多信息，请参照[](Engine/Content\Types\SkeletalMeshes\Sockets)。|
+| ![button_wireframe.png](button_wireframe.png)| 在带光照视图和线框视图之间切换预览面板的视图模式。|
+| ![button_vertcolor.png](button_vertcolor.png) | 切换顶点颜色的可见性。|
+| ![button_grid.png](button_grid.png) |切换 **预览** 面板中网格的可见性。|
+| ![button_bounds.png](button_bounds.png)| 切换静态网格物体边界的显示状态。|
+| ![button_collision.png](button_collision.png)| 如果已经给静态网格物体分配了一个简化的碰撞网格物体，该项则用于切换该碰撞网格物体的可见性。|
+| ![button_showPivot.png](button_showPivot.png) | 切换该网格物体的支点的可见性。|
+| ![button_normals.png](button_normals.png) | 切换 **预览** 面板中顶点法线的可见性。|
+| ![button_tangents.png](button_tangents.png) | 切换 **预览** 面板中顶点切线的可见性。|
+| ![button_binormals.png](button_binormals.png) | 切换 **预览** 面板中顶点副法线(同法线和切线正交的向量)的可见性。|
+| ![button_uv.png](button_uv.png)| 切换是否在 **预览** 面板中显示静态网格物体资源的 LightMapCoordinateIndex  属性指定的通道的静态网格物体的UV。|
+| ![button_uvChannel.png](button_uvChannel.png) | 弹出一个包含该网格物体所有可用UV通道的下拉菜单。仅当UV覆盖层可见时有效。|
+| ![StaticMesh_ResetCamera_button](StaticMesh_ResetCamera_button.png) | 重新聚焦相机到静态网格物体上。|
+| ![button_autoLOD.png](button_autoLOD.png) | 打开一个包含当前网格物体上具有的所有LOD的下拉列表。|
+
+## 预览面板
+
+ **预览** 面板会显示这个静态网格资源的渲染（或者可以选择使用边框）视图。它允许您就像在游戏中进行渲染那样检查该静态网格物体。这个视口还允许您预览静态网格物体资源的边界以及它的碰撞网格物体，前提是已经分配了一个网格物体。此外，可以显示这个静态网格物体的 UV。
+
+在 **预览** 面板上显示了一系列有关这个网格物体资源的统计数据或信息。
+
+![Static Mesh Editor Preview panel](StaticMesh_Preview.png)
+
+在这些信息中，您将会了解到以下内容：
+
+* **LOD** - 显示了该静态网格物体的LOD (细节层次)的数量。
+* **Triangles（三角形）** - 显示该个静态网格物体中的三角形数量。
+* **Vertices（顶点）** -  显示该网格物体中的顶点数量。
+* **UV channels（UV通道）** -  UV 通道的数量。阴影贴图需要具有唯一的、不重叠的UV。
+* **Approx Size（近似大小）** - 显示该静态网格物体的近似大小（长度 x 宽度 x 高度），所有坐标轴的缩放比例都是 1，以虚幻单位为单位。
+
+
+
+##  详细信息面板
+
+**详细信息** 面板显示了该静态网格物体Actor相关的特定属性，比如应用到表面上的材质、LOD选项 及网格物体简化选项。
+
+关于应用该面板的基本信息，请参照[编辑器详细信息](Engine/UI/LevelEditor\Details) 面板文档。
+
+## 操作
+
+
+###鼠标操作
+
+**预览面板**
+
+
+* **鼠标左击+ 拖拽** - 如果锁定了相机，则绕网格物体的Z轴旋转该网格物体，并朝向或背离原点运动。否则，围绕它的 Z 轴旋转相机并沿着它的本地 X-轴移动相机。
+* **RMB + Drag（鼠标右击+拖拽）** - 如果锁定了相机，则旋转这个网格物体。否则，旋转相机。
+* **LMB + RMB + Drag** - 如果锁定了相机，那么沿着它的本地 YZ-平面移动相机。
+
+
+
+### 键盘操作
+
+
+* **Ctrl + R** - 切换 **预览** 面板中实时显示功能。
+* **L + Mouse Move(L+移动鼠标)**  - 在  **预览 ** 面板中旋转预览光源。
+

@@ -1,0 +1,68 @@
+﻿INTSourceChangelist:2465567
+Availability: Public
+Title:아티스트 퀵 스타트
+Crumbs:%ROOT%, GettingStarted
+Description:콘텐츠 제작자로 언리얼 엔진 4 시작하기 입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/QuickStart:title%](artist_qs_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/QuickStart:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/QuickStart]
+	[/PARAM]
+	[PARAM:description]
+	%Engine/Content/QuickStart:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/QuickStart:title%](artist_qs_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/QuickStart:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/QuickStart]
+	[/PARAM]
+	[PARAM:description]
+	%Engine/Content/QuickStart:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+![](MaterialsHeader.png)
+
+이 퀵 스타트 가이드에서는, 메시와 텍스처를 임포트하고, 머티리얼을 만들어 **스태틱 메시 액터** 에 적용해 봅니다. 이 튜토리얼은 기본적인 부분을 집중 안내해드리는 튜토리얼이지만, 중간중간 들 수도 있는 추가 질문에 대해 답이 될 수 있도록 자세한 문서 링크도 제공해 드리겠습니다.
+
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		단계
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/Content/QuickStart/1 "%Engine/Content/QuickStart/1:description%")
+	* [](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:description%")
+	* [](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:description%")
+	* [](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:description%")
+	* [](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:description%")
+	* [](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:description%")
+	[/PARAM]
+[/OBJECT]
+
+
+

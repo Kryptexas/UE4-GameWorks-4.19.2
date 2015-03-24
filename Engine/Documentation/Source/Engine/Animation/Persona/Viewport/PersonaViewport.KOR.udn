@@ -1,0 +1,250 @@
+﻿INTSourceChangelist:2420314
+Availability:Public
+Title:페르소나 뷰포트
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:페르소나 애니메이션 에디터의 뷰포트 미리보기 사용 안내서입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/Viewport:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/Viewport:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/Viewport:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/Viewport]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC (start:2 end:3)]
+
+## 개요
+
+[EXCERPT:Overview]
+**뷰포트** 패널에서는 애니메이션 시퀀스, Blendspace , 기타 _애니메이션 블루프린트_ 부분을 특정 스켈레탈 메시상에서 미리볼 수 있습니다. 이 패널은 3D 원근 뷰포트, 이동 툴바, 뷰 옵션 툴바, 미리보기 재생기능 제어를 위한 타임라인/콘트롤 바로 구성됩니다.
+[/EXCERPT:Overview]
+
+![Viewport Panel with Callouts](ViewportPanel.png)(w:720)
+
+1. **이동 툴바**
+1. **뷰 옵션 툴바** 
+1. **뷰포트** 
+1. **타임라인 및 콘트롤 바**
+
+## 이동 툴바
+[EXCERPT:movement]
+이동 툴바에는 본의 이동, 회전, 스케일 조절은 물론 그리드 스내핑으로 어떻게 이동, 회전, 스케일 조절할지에 대한 툴 모음이 들어있습니다. 이 툴바에는 이동 또는 회전에 대한 상대 좌표계 설정을 위한 옵션은 물론 뷰포트 이동시의 카메라 이동 속도 설정을 위한 옵션도 들어있습니다.
+
+| 옵션 | 설명 |
+| ---- | ---- |
+| ![](Persona_Translate.png)| 스켈레탈 본을 이동합니다. |
+| ![](Persona_Rotate.png)| 스켈레탈 본을 회전합니다. |
+| ![](Persona_Scale.png) | 마지막 옵션은 스켈레탈 본 스케일을 조절합니다 (기본적으로는 회색으로 탈색되어 있습니다). |
+| ![](button_Persona_Local.png) ![](Persona_World.png)| 메시 이동 및 회전의 상대 좌표계를 설정합니다 (**월드** 또는 **로컬**).|
+| ![](Persona_GridSnap.png) | 오브젝트를 끌어 이동할 때 그리드 단위로 이동하는 기능 및 Position Grid Snap 값을 켜거나 끕니다. |
+| ![](Persona_RotationSnap.png)| 오브젝트를 끌어 회전시킬 때 그리드 단위로 회전하는 기능 및 Rotation Grid Snap 값을 켜거나 끕니다.  |
+| ![](Persona_ScaleSnapping.png) | 오브젝트를 끌어 스케일을 조절할 때 그리드 단위로 스케일 조절하는 기능 및 Scale Grid Snap 값을 켜거나 끕니다. |
+| ![](Persona_CameraMoveSpeed.png) | 뷰포트에서 이동할 때의 카메라 속도를 조절합니다. |
+
+[/EXCERPT:movement]
+
+## 뷰 옵션 툴바
+
+[EXCERPT:viewoptions]
+뷰 옵션 툴바에는 뷰포트에 무엇이 표시되는가에 대한 옵션이 담긴 버튼 시리즈가 들어있습니다.
+
+### 프리뷰 모드
+
+프리뷰 모드 버튼 ![](Persona_PreviewMode1.png) 에는 다음과 같은 옵션이 제공됩니다:
+
+| 옵션 | 설명 |
+| ---- | ---- |
+| **Auto** | 자동 - 뷰포트에 현재 활성인 것을 미리봅니다. |
+| **Lock** | 고정 - 뷰포트에 현재 프리보기중인 것을 고정시킵니다. 무언가를 미리보면서 다른 것을 편집할 수 있습니다. |
+| **Camera Follow** | 카메라 따라가기 - 메시의 바운드를 따라갑니다. |
+| **In-game Bound** | 게임내 바운드 - 프리뷰 메시에 게임내 바운드를 사용합니다. |
+
+### 원근
+
+원근 버튼 ![](Persona_Perspective.png) 에는 다음과 같은 옵션이 제공됩니다:
+
+| 옵션 | 설명 |
+| ------ | ----------- |
+| **Perspective** | 원근 - 뷰포트를 원근 뷰로 전환합니다 (기본 세팅입니다). |
+| **Top** | 상단 - 뷰포트를 상단 뷰로 전환합니다. |
+| **Side** | 측면 - 뷰포트를 측면 뷰로 전환합니다. |
+| **Front** | 정면 - 뷰포트를 정면 뷰로 전환합니다. |
+
+
+### 뷰 모드
+
+뷰 모드 버튼 ![](Persona_LitOptions.png) 에는 다음과 같은 옵션이 제공됩니다:
+
+| 옵션 | 설명 |
+| ------ | ----------- |
+| **Lit** | 라이팅포함 - 씬을 보통의 라이팅으로 렌더링합니다 (기본 세팅입니다). |
+| **Unlit** | 라이팅제외 - 씬을 라이팅 없이 렌더링합니다. |
+| **Wireframe** | 와이어프레임 - 씬을 브러시 와이어프레임으로 렌더링합니다. |
+| **Detail Lighting** | 디테일 라이팅 - 씬을 디테일 라이팅으로만 렌더링합니다. |
+| **Lighting Only** | 라이팅만 - 씬을 텍스처 없이 라이팅만 렌더링합니다. |
+| **Light Complexity** | 라이트 복잡도 - 씬을 라이트 복잡도 시각화로 렌더링합니다. |
+| **Shader Complexity** | 셰이더 복잡도 - 씬을 셰이더 복잡도 시각화로 렌더링합니다. |
+| **Stationary Light Overlap** | 스테이셔너리 라이트 오버랩 - 스테이셔너리 라이트의 겹침을 시각화합니다. |
+| **Lightmap Density** | 라이트맵 밀도 - 씬을 라이트맵 밀도 시각화로 렌더링합니다. |
+| **Reflections** | 리플렉션 - 씬을 리플렉션으로만 렌더링합니다. |
+| **Exposure** | 노출 - 자동 노출 또는 고정 노출값 설정을 사용합니다. |
+
+
+### 표시
+
+표시 버튼 ![](Persona_Show.png) 에는 다음과 같은 옵션이 제공됩니다:
+
+| 옵션 | 설명 |
+| ---- | ---- |
+| **Field of View** | 시야 - 뷰포트 시야를 조절합니다. |
+| **Mute Audio** | 오디오 음소거 - 프리뷰의 오디오를 음소거합니다. |
+| **Reference Pose** | - 레퍼런스 포즈 - 프리뷰 메시에 레퍼런스 포즈를 표시합니다. |
+| **Bound** | 바운드 - 프리뷰 메시에 바운드를 표시합니다. |
+| **Mesh** | 메시 - 프리뷰 메시를 표시합니다. |
+| **Uncompressed Animation** | 미압축 애니메이션 - 미압축 애니메이션 데이터로 스켈레톤을 표시합니다. |
+| **NonRetargeted Animation** | 리타게팅되지않은 애니메이션 - 리타게팅되지 않은 애니메이션 데이터로 스켈레톤을 표시합니다.|
+| **Additive Base** | 애디티브 베이스 - 스켈레톤을 애디티브 베이스 포즈로 표시합니다. |
+| **Sockets** | 소켓 - 소켓 히트포인트를 표시합니다. |
+| **Bones** | 본 - 뷰포트에 스켈레톤을 표시합니다. |
+| **Bone Names** | 본 이름 - 뷰포트에 스켈레톤의 본 이름을 표시합니다. |
+| **View Selected Bone Weight** | 선택된 본 웨이트 보기 - 뷰포트에 선택된 본의 웨이트를 표시합니다. |
+| **Display Info** | 정보 표시 - 뷰포트에 메시 관련 정보를 표시합니다. |
+
+**씬 셋업**
+
+| 옵션 | 설명 |
+| ------ | ----------- |
+| **Floor** | 바닥 - 바닥 표시를 토글합니다. |
+| **Sky** | 하늘 - 하늘 표시를 토글합니다. |
+| **Floor Height Offset** | 바닥 높이 오프셋 - (메시별로 저장되는) 바닥 메시에 대한 높이 오프셋입니다. |
+| **Grid** | 그리드 - 그리드 표시를 토글합니다. |
+| **Highlight Origin** | 원점 강조 - 그리드에 원점 선을 강조합니다. |
+| **Background Brightness** | 배경 밝기 - 배경색을 바꾸고 밝기값을 할당합니다. |
+
+**고급**
+
+| 옵션 | 설명 |
+| ------ | ----------- |
+| **UV Visualization** | UV 시각화 - 지정된 채널에 대한 메시의 UV 표시를 토글합니다. |
+| **Normals** | 노멀 - 프리뷰 패널에 버텍스 노멀 표시를 토글합니다. |
+| **Tangents** | 탄젠트 - 프리뷰 패널에 버텍스 탄젠트 표시를 토글합니다. |
+| **Binormals** | 바이노멀 - 프리뷰 패널에 버텍스 (노멀과 탄젠트에 직교 벡터인) 바이노멀 표시를 토글합니다. |
+| **Hierarchy Local Axes** | 계층구조 로컬 축 - 로컬 본 축을 표시 또는 숨깁니다 (모두, 선택된 계층구조, 없음). |
+
+
+<!--
+[EXCERPT:ShowBones]
+[REGION:imagetable]
+| ![](viewport_wire.png)(h:256 convert:false) | ![](viewport_wire_show_bones.png)(h:256) |
+| ------ | ------ |
+| 본이 표시된 와이어프레임 | 본 표시되지 않은 와이어프레임 |
+[/REGION]
+[/EXCERPT:ShowBones]
+
+[EXCERPT:Lit]
+![](viewport_lit.png)(h:256)
+[/EXCERPT:Lit]
+
+[EXCERPT:Unlit]
+![](viewport_unlit.png)(h:256)
+[/EXCERPT:Unlit]
+
+[EXCERPT:Wireframe]
+![](viewport_wire.png)(h:256)
+[/EXCERPT:Wireframe]
+-->
+
+### 프리뷰 LOD
+
+프리뷰 LOD 버튼 ![](Persona_LODAuto.png) 에는 다음과 같은 옵션이 제공됩니다:
+
+| 옵션 | 설명 |
+| ---- | ---- |
+| **LOD Auto** | LOD 자동 - 레벨 오브 디테일(LOD)을 자동 선택합니다 (기본 세팅입니다). |
+| **LOD 0** | LOD 0 - LOD 0 을 LOD 로 선택합니다. |
+| **Level of Detail Settings** | 레벨 오브 디테일 세팅 - LOD 세팅을 조절할 수 있는 (아래 그림과 같은) 대화창을 엽니다. |
+
+![](LODSettingsMenu.png)
+
+LOD 세팅 메뉴에는 두 개의 섹션이 있는데, 먼저 **현재 LOD** 섹션에는 현재 적용된 LOD 에 대한 정보가 표시되거나, LOD 에 대한 FBX 애셋 임포트가 가능합니다.
+
+두 번째 **LOD 체인 생성** 섹션에서는 LOD 에 관계된 세팅을 조절하여 LOD 생성 (또는 다수의 LOD 연쇄 생성)이 가능합니다.
+
+**LOD 임포트** 옵션 또는 **LOD 생성** 옵션을 통해 LOD 가 적용되면, 아래 그림과 같이 **현재 LOD** 섹션에 추가됩니다.
+
+![](LODAdded.png)
+
+_추가된 LOD 는 제거하거나, FBX 애셋을 LOD 에 임포트할 수 있습니다._
+
+
+### 재생 속도
+
+재생 속도 버튼 ![](Persona_PlaybackSpeed.png) 에는 다음과 같은 옵션이 제공됩니다:
+
+| 옵션 | 설명 |
+| ---- | ---- |
+| **x0.1** | 재생 속도를 0.1 배속으로 설정합니다. |
+| **x0.25** | 재생 속도를 0.25 배속으로 설정합니다. |
+| **x0.5** | 재생 속도를 0.5 배속으로 설정합니다. |
+| **x1.0** | 재생 속도를 1.0 배속으로 설정합니다. (기본값) |
+| **x2.0** | 재생 속도를 2.0 배속으로 설정합니다. |
+| **x5.0** | 재생 속도를 5.0 배속으로 설정합니다. |
+| **x10.0** | 재생 속도를 10.0 배속으로 설정합니다. |
+[/EXCERPT:viewoptions]
+
+## 뷰포트
+
+뷰포트에는 스켈레탈 메시 미리보기, 툴바와 메뉴 바에서 설정된 옵션, 선택된 애니메이션이 표시됩니다.
+
+![Viewport Panel](ViewportPanel_Viewport.png)
+
+## 타임라인 및 콘트롤 바
+
+[EXCERPT:PreviewControls]
+타임라인 및 콘트롤 바는 다음과 같은 콘트롤이 가능합니다:
+
+| 콘트롤 | 설명 |
+| ------ | ---- |
+| ![콘트롤 바 - 타임라인](CE_button_timeline.png) | 타임라인 입니다. 여기에는 _애님 시퀀스_ 또는 _애니메이션 몽타주_ 의 프레임이 표시되며, 스크러빙(scrubbing, 문지르기)도 가능합니다. 현재 위치는 빨강 막대로 표시되며, 그 바를 **드래그** 하면 스크러빙됩니다. |
+| ![콘트롤 바 - 처음으로 넘어가기](CE_button_beginning.png) | 애니메이션 시퀀스나 애니메이션 몽타주의 첫 프레임으로 넘어갑니다. |
+| ![콘트롤 바 - 프레임 뒤로](CE_button_step_back.png) | 애니메이션 시퀀스나 애니메이션 몽타주의 지난 프레임으로 이동합니다. |
+| ![콘트롤 바 - 역재생](CE_button_play_back.png) ![콘트롤 바 - 일시정지](CE_button_pause.png) | 애니메이션 시퀀스나 Blendspace 를 역방향으로 재생 시작합니다. 재생중일 땐 일시정지 버튼이 표시됩니다. |
+| ![콘트롤 바 - 정재생](CE_button_play_forward.png) ![콘트롤 바 - 일시정지](CE_button_pause.png) | 애니메이션 시퀀스나 애니메이션 몽타주의 재생을 시작합니다. 재생중일 땐 일시정지 버튼이 표시됩니다. |
+| ![콘트롤 바 - 프레임 앞으로](CE_button_step_forward.png) | 애니메이션 시퀀스나 애니메이션 몽타주의 다음 프레임으로 이동합니다. |
+| ![콘트롤 바 - 마지막으로 넘어가기](CE_button_end.png) | 애니메이션 시퀀스나 애니메이션 몽타주의 마지막 프레임으로 넘어갑니다. |
+| ![콘트롤 바 - 루핑 켜기](CE_button_loop.png) ![콘트롤 바 - 루핑 끄기](CE_button_loop_enabled.png) | 한 번 재생과 반복 재생 사이를 토글합니다. 루핑이 켜지면 버튼은 빨갛게 변합니다. |
+
+[REGION:note]
+_블렌드 스페이스_ 또는 _에임 오프셋_ 을 열면, **Preview** 옵션이 켜진 경우 애니메이션이 자동 재생됩니다. 일시정지하거나, _애니메이션 몽타주_ 또는 _애니메이션 시퀀스_ 의 루핑 옵션을 끄고서 _블렌드 스페이스_ 또는 _에임 오프셋_ 을 열면, 애니메이션은 자동 재생되지 않습니다. _블렌드 스페이스_ 또는 _에임 오프셋_ 을 열 때 애니메이션이 자동 시작되도록 하려면 재생/루핑 설정을 해 줘야 합니다. 
+[/REGION]
+
+[/EXCERPT:PreviewControls]
+
+
+
+<!---- I don't see this in the viewport or anywhere else. 
+### 애님 미리보기 셋업 패널
+
+![페르소나: 애님 미리보기 셋업 패널](CE_anim_preview_setup_panel.png)
+
+**애님 미리보기 셋업** 패널은 미리보기 뷰포트를 환경설정하는 데 사용됩니다. 
+편집중인 _VimBlueprint_ 를 만들어낸 스켈레톤을 사용하는 모든 스켈레탈 메시 목록을 표시합니다. 
+어느 한 메시를 미리보기 뷰포트에서 사용되는 프리뷰 메시로 설정하려면, 목록에서 메시를 선택한 다음 
+**프리뷰 메시로 사용** 을 선택합니다. 현재 미리보기 뷰포트에서 사용중인 메시를 제거하려면, 
+**미리보기 지우기** 버튼을 누릅니다. 스켈레탈 메시 목록은 그 위의 글상자를 통해 필터링 가능합니다.
+
+----------->
+

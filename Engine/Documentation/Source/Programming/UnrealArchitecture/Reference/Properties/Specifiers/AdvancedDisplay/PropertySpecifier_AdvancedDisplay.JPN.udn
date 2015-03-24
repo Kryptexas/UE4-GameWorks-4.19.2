@@ -1,0 +1,7 @@
+﻿INTSourceChangelist:2102190
+Title:AdvancedDisplay
+Crumbs: %ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/Reference/Properties/Specifiers
+Description: 
+Availability:Public
+
+プロパティは **[詳細]** パネルの拡張ドロップダウンリストに表示されます。

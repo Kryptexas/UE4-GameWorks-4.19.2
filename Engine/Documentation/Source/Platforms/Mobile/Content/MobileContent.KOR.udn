@@ -1,0 +1,25 @@
+INTSourceChangelist:2075791
+Availability:Public
+Title:모바일 플랫폼용 콘텐츠 제작
+Crumbs:%ROOT%, Platforms, Platforms/Mobile
+Description:모바일 게임용 콘텐츠 제작 지침서입니다.
+Platform:Mobile
+
+## 메시 유형
+
+모바일 플랫폼에서 지원되는 모든 메시 유형은 아래 목록과 같습니다. **그 이외의 메시는 지원되지 않습니다.**
+
+* [스켈레탈 메시](Engine/Content/Types/SkeletalMeshes)
+* [스태틱 메시](Engine/Content/Types/StaticMeshes)
+* [랜드스케이프](Engine/Landscape)
+* [CPU 파티클 스프라이트, 파티클 메시](Engine/Rendering/ParticleSystems)
+
+모바일에서 이러한 유형의 애셋에 대한 [임포트 프로세스](Engine/Content/FBX) 또는 제작 프로세스는 
+다른 플랫폼에서와 동일합니다.
+
+## 메시 제약
+
+모바일 플랫폼 하드웨어 상의 한계로 인해 지원되는 메시 유형에 제약이 있습니다.
+
+* 모바일 하드웨어에는 32 비트 인덱스가 지원되지 않아 모든 메시 유형의 버텍스 최대 갯수는 65k 입니다.
+* 스켈레탈 메시의 본 최대 갯수는 75 개입니다.

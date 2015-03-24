@@ -1,0 +1,66 @@
+INTSourceChangelist:2074246
+Availability: Docs
+Title:헤어 만들기: 머티리얼과 메시
+Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
+Description:반투명, 비등방성 라이팅을 사용하여 헤어를 만드는 기법에 대한 안내서입니다.
+
+[REGION:todo]
+	언리얼 엔진 3 에서 이식해 온 문서로 현재 검토중에 있습니다. 정보가 맞지 않을 수 있습니다.
+[/REGION]
+
+[TOC(start:2)]
+
+
+
+## 개요
+
+Translucent(반투명) 블렌드 모드와 Anisotropic(이방성) 라이팅 모델을 사용한 헤어 머티리얼 제작용 최신 기법입니다.
+
+
+
+## 스크린샷
+
+[REGION:fullwidth]
+![Hair_01.jpg](Hair_01.jpg)
+[/REGION]
+
+
+[REGION:fullwidth]
+![Hair_02.jpg](Hair_02.jpg)
+[/REGION]
+
+
+[REGION:fullwidth]
+![Hair_03.jpg](Hair_03.jpg)
+[/REGION]
+
+
+[REGION:fullwidth]
+![Hair_04.jpg](Hair_04.jpg)
+[/REGION]
+
+
+[REGION:fullwidth]
+![Hair_05.jpg](Hair_05.jpg)
+[/REGION]
+
+
+[REGION:fullwidth]
+![Hair_06.jpg](Hair_06.jpg)
+[/REGION]
+
+
+[REGION:fullwidth]
+![updatedHairMaterial.jpg](updatedHairMaterial.jpg)
+[/REGION]
+
+
+[REGION:fullwidth]
+![Hair_07.jpg](Hair_07.jpg)
+[/REGION]
+
+ 
+
+
+
+

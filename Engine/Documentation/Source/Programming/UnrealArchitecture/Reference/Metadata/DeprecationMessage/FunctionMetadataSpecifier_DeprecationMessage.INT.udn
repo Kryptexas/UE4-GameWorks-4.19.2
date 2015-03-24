@@ -1,0 +1,7 @@
+Title: DeprecationMessage
+Crumbs: %ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Functions, Programming/UnrealArchitecture/Reference/Functions/Specifiers
+Description: 
+Availability:Public
+Version: 4.5
+
+Supplies the custom message to use for deprecation.

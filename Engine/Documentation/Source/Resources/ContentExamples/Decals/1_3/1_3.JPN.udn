@@ -1,0 +1,65 @@
+﻿INTSourceChangelist:2410153
+Availability:Public
+Title:1.3 - マスク処理がされたデカール
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Decals
+Description:デカールの事例概要、例 1.3：マスク処理がされたデカール
+Related: Engine/Actors/DecalActor
+Related: Engine/Rendering/Materials/PhysicallyBased
+Related: Engine/Rendering/Materials
+Related: Engine/Rendering/Materials/MaterialProperties/BlendModes
+Related: Engine/Rendering/Materials/ExpressionReference
+Related: Engine/Rendering/Materials/MaterialInputs
+Related: Engine/Rendering/Materials/LayeredMaterials
+Related: Engine/Rendering/Materials/MaterialInstances
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Decals/1_3:title%](Resources\ContentExamples\Decals\Decals_3.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Decals/1_3:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Decals/1_3:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Decals/1_3]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Decals/1_3:title%](Resources\ContentExamples\Decals\Decals_3.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Decals/1_3:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Decals/1_3:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Decals/1_3]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+
+![%Resources/ContentExamples/Decals/1_1:title%](Resources\ContentExamples\Decals\Decals_3.png)
+
+## 概要
+
+この例では、デカールでオパシティ マスクと法線マップの両方を利用できることを示しています。デカールマテリアルは、 _透過_ の **デカール ブレンドモード** を使用します。つまり、透過処理に対する値を受け入れられることを意味します。テクスチャにフィードすることで、この場合はアンリアルのロゴですが、デカールの形状を制御します。しかし、法線マップを追加する機能もあります。これによりデカールは、投影サーフェス上のペイントのようなものではなく、重厚感があるものになります。 
+
+これは、レベル内である種のディテールや装飾を制作するうえで役に立つテクニックです。
+
+
+[/REGION]

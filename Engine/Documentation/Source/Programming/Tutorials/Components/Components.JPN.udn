@@ -1,0 +1,61 @@
+﻿INTSourceChangelist:2465675
+Availability:Public
+Title:コンポーネントとコリジョン
+Crumbs:%ROOT%, GettingStarted, Programming/Tutorials
+Description:パーティクルエフェクトなどを使用してコンポーネントでポーンに物理的なインタラクションを有効にする方法を学ぶ
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](newclass_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Programming\Tutorials\Components:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming\Tutorials\Components]
+	[/PARAM]
+	[PARAM:description]
+		%Programming\Tutorials\Components:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](newclass_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Programming\Tutorials\Components:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming\Tutorials\Components]
+	[/PARAM]
+	[PARAM:description]
+		%Programming\Tutorials\Components:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+このチュートリアルは、コンポーネントの作成、コンポーネントを階層へ配置、ゲームプレイ中のコントロール、またソリッドなバリアが存在するワールド内でコンポーネントを使用してポーンをあちこちへ移動させる方法を紹介します。
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		手順
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Programming\Tutorials\Components\1 "%Programming\Tutorials\Components\1:description%")
+	* [](Programming\Tutorials\Components\2 "%Programming\Tutorials\Components\2:description%")
+	* [](Programming\Tutorials\Components\3 "%Programming\Tutorials\Components\3:description%")
+	* [](Programming\Tutorials\Components\4 "%Programming\Tutorials\Components\4:description%")
+	* [](Programming\Tutorials\Components\5 "%Programming\Tutorials\Components\5:description%")
+	[/PARAM]
+[/OBJECT]
+
+
+

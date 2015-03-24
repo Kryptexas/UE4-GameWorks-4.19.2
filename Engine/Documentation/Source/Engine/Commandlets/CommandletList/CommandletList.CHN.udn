@@ -1,0 +1,635 @@
+﻿Availability: Docs
+Title: 命令行开关列表
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description: 介绍了可用的命令行开关及如何使用它们。
+
+[REGION:todo]
+	本文从虚幻引擎3中转换而来，目前正在审阅中。有些信息可能过期了。
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+## 概述
+
+命令行开关是在虚幻引擎环境内部运行的命令行程序。它们大多数用于对内容进行批量修改、迭代内容来获得关于它的信息或者作为单元测试机制。
+
+通常有很多初始化引擎的小应用程序，但是它们大多数都受到 Windows 控制台输出的限制。
+
+引擎自动尝试判断您传入到命令行的命令是否是一个命令行开关，如果匹配，它将执行相关代码。
+
+本文档包含了关于虚幻引擎 4 使用的命令开关的介绍和语法。
+
+
+
+## 运行命令行开关
+
+通过在命令行上将具有任何必需参数的命令行开关的名称传递给游戏执行命令行开关，从Windows的命令提示中或通过修改游戏主程序（例如，UDK.exe）的快捷方式的 *target* 运行游戏。
+
+例如，可以在命令行中使用下面的方法运行UDK **`FixupRedirects`** 命令行开关：
+
+    UDK.exe fixupredirects
+    
+
+## Help 命令行开关
+
+[help命令行开关](Engine/Commandlets/Help)用于查找您可以运行哪些命令行开关、它们的作用以及这些命令行开关的参数。如果想查找可用的命令行开关，请运行：
+
+
+### 语法
+    
+    gamename.exe help <list | commandletname | webhelp commandletname>
+    
+
+### 参数
+
+
+* **`list`** - 列出所有可用的命令行开关。
+* **`commandlet name`** - 显示特定命令行开关的帮助信息。
+* * **`webhelp`** - 使用记录特定命令行开关的网页的 URL 启动浏览器。
+
+
+## FixupRedirects 命令行开关
+
+Fixupredirect 修复所有包或者可选的指定包中的[重定向器](Engine/Basics/Redirectors)。删除自引用的重定向器。如果没有指定包，那么将会测试游戏需要的所有的包来查找重定向器。
+
+
+* 在尝试保存包之前，它将尝试从 Source Control 中迁出这个包（使用和 UnrealEd 中的 SCC 相同的方法）。
+* 但是，您必须手动地迁入包。
+* 仅保存必要的包（即具有重定向器的包及那些有其他包指向它们的包）。
+* 如果一个不能被迁出的包指向了一个重定向器，那么则不能清除重定向器。
+* 您可以为它取一个单独的包名称，它将会修复包中的重定向器(也就是，这个软件包和所有指向该重定向器的其它包）。如果您想清除重定向器以便您可以在它们的基础上导入东西或者您要删除一个重定向器指向的对象，那么这是有用的。
+* 如果它不能打开一个包，它将会弹出一个警告，告诉您应该继续或者停止。如果您继续，那么您可能会丢失一些对象引用，因为那些不能打开的包可能包含着到重定向器的引用，但是由于不能打开那些包，以至于命令行开关不知道它们是否包含了到重定向器的引用，所以它假设没有包含。如果在那时选择停止，将会保存其它的包。（当然，如果您在打开包时发生崩溃，那么很明显过程将会中断，不会触及任何包）
+* 您可以给它一个 **`--nowarn**`- 选项，这样如果它不能打开一个包时它将会进行简单的退出（这是供书写脚本或其它东西使用的，但是如果您不书写这个选项，它将会选择安全路径，即如果打不开文件时停止）。
+
+
+### 语法
+
+ 
+    game.exe fixupredirects <package.ext>
+    
+
+### 参数
+
+
+* **`package.ext`** - 检查是否具有的重定向器的包的名称。(Optional)
+
+
+## ContentAudit命令行开关
+
+(请参照[ContentAuditCommandlet](Engine/Commandlets/ContentAudit))
+
+
+## FindDuplicateTextures命令行开关
+
+
+## SetTextureLODGroup 命令行开关
+
+(请参照[SetTextureLODGroupCommandlet](Engine/Commandlets/SetTextureLODGroup))
+
+
+
+## ContentComparison 命令行开关
+
+(请参照[ContentComparisonCommandlet](Engine/Commandlets/ContentComparison)。)
+
+
+
+## DeleteQuarantinedContent 命令行开关
+
+(请参照[DeleteQuarantinedContentCommandlet](Engine/Commandlets/DeleteQuarantinedContent)。)
+
+
+
+
+## BatchExport命令行开关
+
+[BatchExport 命令行开关](Engine/Commandlets/BatchExport)用于将Unreal包文件中的资源导出为各种外部文件类型。
+
+
+### 语法
+
+    gamename.exe gamename.exe BatchExport <package.ext> <classname> <export_ext> [dest_path_name]
+    
+
+### 参数
+
+
+* **`package.ext`** - 从中导出资源的包的名称。路径名称是可选的。
+* **`classname`**  - 要导出的对象的名称，比如 "Class", "Texture" 等。
+* **`export_ext`** - 导出文件的扩展名。这决定了导出资源所使用的工厂类型。
+* **`dest_path_name`** - 保存导出文件的路径名称。如果目录不存在，则创建该目录。
+
+
+(#MakeCommandlet)
+
+
+
+## Make 命令行开关
+
+Make 命令行开关将会导致游戏将任何已经过期的包的 Unrealscript 源文件（.uc 文件）编译为 Unreal 包（.u 文件）。
+
+
+### 语法
+
+
+    
+    gamename.exe make <-switch>
+    
+
+
+
+
+### 参数
+
+
+* **`full`** - 强制重新编译所有的包，即使它们没有过期。
+* **`nodelete`** - 不删除没有过期的依赖包。默认的行为是重新编译在 EditPackage 列表中的包过期之前出现的任何包。
+* **`debug`** - 在编译后的二进制文件中包含调试信息。这是使用 UnrealScript 调试器时所需要的。
+* **`auto`** -  自动检查任何需要更新的自动生成的头文件，且没有提示。禁用脚本编译器生成的和导出自动生成的头文件相关的所有提示。
+* **`unattended`** - 禁用通过自动地回答“Yes（是）”进行的编译过程中生成的所有提示。
+* **`silent`** - 与 unattended 类似，除了它也会禁用所有的编译提示（日志等）。
+* **`silentbuild`** - 禁止在控制台输出窗口显示的所有脚本编译器状态信息。
+* **`noconform`** - 如果有一个和脚本包具有相同名称的包存在于 auto-conform（自动统一）目录中（不同的游戏可能不同），那么通常那个脚本包将会自定地保持一致（请参照 Conform 命令行开关）。
+* **`WarningsAsErrors`** - 将所有的脚本编译警告作为错误对待，从而导致编译失败。
+* **`intermediate`** - 脚本预处理器： 将所有 UnrealScript 文件的后期处理版本输出到预处理器的中间文件目录，正如在预处理器的 ProcessedFileDirectory 值中所指定的目录。这对于调试 UnrealScript 宏是有用的。
+* **`intermediate`** - 脚本预处理器： 阻止预处理短期处理任何 UnrealScript 宏指令。这仅用于调试，因为它通常会导致脚本编译失败。
+* **`stripsource`** - 在保存刚刚编译完的 .u 软件包之前剥离脚本源代码和 cpptext 块。显示不会被剥离的注释，这毫无意义。
+
+
+
+
+## StripSource命令行开关
+
+Stripsource 命令行开关将会加载 Unreal 包（.u 文件），迭代所有类，并设置 ScriptText 为单倍行距，然后调用 SavePackage() 来保存包。
+
+问题是像 Core.u, Engine.u, Editor.u 等包，它们会被可执行的运行中的命令开关所使用，所以将会导致保存包失败。
+
+解决这个问题比较好的方法是烘焙包，这将会剥离 ScriptText（和 CppText）。如果您不想烘焙数据，那么调用 ResetLoaders() 函数可以解决所有正在打开着的包的问题。
+
+另外，您可以将 "-stripsource" 参数传递给 ["make" 命令行开关](#Make命令行开关)。
+
+
+### 语法
+
+
+    
+    gamename.exe stripsource <package.u, ...>
+    
+
+
+
+
+### 参数
+
+
+
+## Conform命令行开关
+
+Conform 命令行开关通过分配同样的 GUID 来保证网络兼容性。每次包改变时都要执行这个命令。请参照 PackagesAndNetworking 了解关于兼容性的更多信息。
+
+
+### 语法
+
+
+    
+    gamename.exe conform to_package from_package
+    
+
+
+
+
+### 参数
+
+
+
+## PkgInfo命令行开关
+
+Pkginfo 命令行开关将会显示关于一个或多个包中包含的资源的信息。
+
+
+### 语法
+
+
+    
+    gamename.exe pkginfo <package.ext> <-switch>
+    
+
+
+
+
+### 参数
+
+
+* **`package.ext`** - 为其显示资源信息的包的名称。
+* **`names`** - 显示特定包的名称列表中的信息。
+* **`imports`** - 显示特定包（ImportTable（导入表））中包含的对象所引用的外部资源。
+* **`exports`** - 显示特定包（ExportTable（导出表））中包含的资源。
+* **`simple`** - 仅当和-export 标记结合使用时才有效。它将导致仅显示每次导出的资源的名称和大小，而不会显示所有信息。
+* **`depends`** - 显示导入内容或导出内容的依赖项，也就是那个对象的引用，及其引用递归引用的内容。
+* **`all** - 显示包中包含的所有数据-从本质上讲，和在命令行中指定所有三个类型 (-imports -exports -names) 一样。
+* **`chunks`** - 显示关于包中的压缩块的信息。
+* **`paths`** - 显示引用的所有外部资源的全路径名称（例如，导入的资源）
+* **`hideoffsets`** - 不要显示相对于包的 UObject 开始处的序列化的偏移量（例如，导出的资源）
+* **`platform=<ps3,xenon>`** - 用于指定烘焙包的目标平台。
+
+
+
+
+## WrangleContent命令行开关
+
+Wranglecontent 命令行开关用于指出包中没有被任何关卡使用的文件。
+
+
+### 语法
+
+
+    
+    gamename.exe wranglecontent <-switch>
+    
+
+
+
+
+### 参数
+
+
+* **`reportunreferenced`** - 转存出未使用的内容。
+* **`restore`** - 在分析步骤后重新获得资源。如果命令行开关用光了所有内存时或者如果您正在一个模式中运行但现在您想在另一个模式中运行时这是有用的。
+* **`nosave`** - 它仅分析并转存出一份报告，但不会真正地保存它。
+* **`nosaveunreferenced`** - 默认情况下，命令行开关会将未被引用的内容保存到 NFSContent 目录的 NFS_ package 包中（不是出于发行目的），剩余的对象用于保持相互的引用。这将跳过该步(如果您知道您永远都不再需要该内容时这是有用的)。
+* **`reportunreferenced`** - 转存出一个 .csv 文件，它包含了未引用的内容的列表。
+* **`removeeditoronly`** - 当删除未使用的内容时，为了是最终的包变得更小，这个操作也会剥离出仅供编辑器使用的数据，但是对于完全内容创建来说不是那么有用。
+* **`stripmips`** - 根据 engine.ini 文件中的贴图组的细节设置从贴图中删除所有没有使用的 MIP 层次。
+* **`allmaps`** - 尝试使用所有地图而不仅是使用 WrangleContent.ini 文件中列出的地图。
+
+
+
+
+## AnalyzeReferencedContent命令行开关
+
+Analyzereferencedcontent 命令行开关用于识别包中使用的数据。
+
+
+### 语法
+
+
+    
+    gamename.exe analyzereferencedcontent <-switch>
+    
+
+
+
+
+### 参数
+
+
+* **`mapsonly`** - 仅使用关卡包。
+* **`excludescript`** - 排除脚本包。
+* **`excludenonnativescript`** - 排除非 native 脚本。
+* **`loadsublevels`** - 加载二级关卡。您可以只传入永久性地图。
+* **`ignorestaticmesh`** - 不包括 StaticMesh（静态网格物体）。
+* **`ignoresmc`** - 不包括 StaticMesh（静态网格物体）。
+* **`ignorestaticmeshactor`** - 不包括 StaticMesh（静态网格物体）。
+* **`ignoretexture`** - 不包括 StaticMesh（静态网格物体）。
+* **`ignorematerial`** - 不包括 StaticMesh（静态网格物体）。
+* **`ignoreparticle`** - 不包括 ParticleComponent（粒子组件）和 ParticleSystem（粒子系统）。
+* **`ignoreanim`** - 不包括 AnimSet（动画集）/AnimSequences（动画序列）。
+* **`ignorelevel`** - 不包括关卡。
+* **`ignoresoundcue`** - 不包括SoundCue。
+* **`ignorestaticmesh`** - 不包括Brush（画刷）。
+* **`ignoreshadowmap`** - 不包括阴影贴图。
+
+
+
+
+## RebuildMap命令行开关
+
+Rebuildmap 命令行开关用于重新构建地图，包括光照。
+
+**注意**： _没有对命令行开关进行完全的调试，所以可能会有一些意想不到的结果（比如使用新的材质和 UV 重新映射您的 画刷）。_
+
+_这个命令行开关通常用于解决当运行编辑器时出现的内存不足问题。最好将重新编译的过程划分为几步_ ： 
+1. 首先
+    * 构建几何体
+    * 保存
+    * 重新启动
+1. 然后...
+    * 构建路径
+    * 保存
+    * 重新启动
+1. 最后...
+    * 构建光照
+    * 保存
+
+_使用工具下拉列表而不是快捷按钮，您可以获得在快捷按钮终不能获得的完整的选项。_
+
+_在您调试出是什么出现了错误之前，最好重新启动电脑，使得没有任何东西在幕后运行。在我们内部，我们已经遇到了很多内存不足问题，直到我们卸载并重新按照最新的显卡驱动后才解决。_
+
+
+### 语法
+
+
+    
+    gamename.exe rebuildmap <levelname>
+    
+
+
+
+
+### 参数
+
+
+* **`levelname`** - 要重新构建的关卡（地图）的名称。
+
+
+
+
+## ResavePackages命令行开关
+
+Resavepackage 命令行开关将会导致游戏打开并保存包。
+
+
+### 语法
+
+
+    
+    gamename.exe resavepackages
+    
+
+
+
+
+### 参数
+
+
+
+## ExportLoc 命令行开关
+
+Exportloc 命令行开关会将 UnrealScript 包中的本地化的字符串导出到本地化文件中。
+
+
+### 语法
+
+
+    
+    gamename.exe exportloc
+    
+
+
+
+
+### 参数
+
+
+
+## MergePackages 命令行开关
+
+Mergepackages 命令行开关将会把一个包中的内容融合到另一个包中。
+
+
+### 语法
+
+
+    
+    gamename.exe mergepackages <package> <targetpackage>
+    
+
+
+
+
+### 参数
+
+
+
+## DiffPackages 命令行开关
+
+Diffpackage 命令行开关将会显示任何两个给定包之间的每个属性差异。
+
+
+### 语法
+
+
+    
+    gamename.exe diffpackages <package> <package>
+    
+
+
+
+
+### 参数
+
+
+
+## CookPackages命令行开关
+
+Cookpackages 命令行开关将会处理包数据并将它转换为游戏机平台可以读取的格式。
+
+
+### 语法
+
+
+    
+    gamename.exe CookPackages [map1 [map2] ... ] -platform=<Platform> [options]
+    
+
+
+
+
+### 参数
+
+
+* **`platform=PLATFORM`** - 设置烘焙的目标平台。平台可以使以下其中之一： pc、ps3、xbox360 或 xenon。
+* **`full`** - 强制重新保存所有现有的包。如果指定了这个选项，则首先会删除CookedYYY文件夹的内容。
+* **`recookseekfree`** - 强制重新烘焙所有的 seekfree（不用寻道查找）的包（启动包、独立平台的不需要查找的包、命令行或 .ini 上的地图）。当默认的依赖性检查不能正常工作时，这个功能是有用的(尤其是对独立的免搜索的包来说，因为当任何非免搜索的包改变时，它将不会重新烘焙所有的独立的免搜索的包，这个地图是不一样的)。
+* **`cookallmaps`** - 烘焙游戏中的所有地图。
+* **`mapsonly`** - 只烘焙地图，不烘焙其它任何东西。
+* **`inisonly`** - 只烘焙 .ini 文件和本地化文件（将其烘焙到 Coalesced.ini 和 Coalesced.int 等文件中）。
+* **`sha`** - 为启动文件和结合文件生成 SHA 哈希表，并把它输出到 Hashes.sha 中。
+* **`skipsavingmaps`** -  烘焙但不保存地图。这对于烘焙地图使用的LOC数据是有用的。
+* **`skipnotrequiredpackages`** - 跳过烘焙过程不需要进行 加载&保存 的包，来加速 LOC 烘焙。
+* **`cultureforcooking=LANG`** - 设置 LANG 为本地化烘焙的语言。默认值为int（英语）。
+
+
+
+
+## ShowTaggedProps 命令行开关
+
+Showtaggedprop 命令行开关将会帮助识别哪个值被真正地保存到对象的包文件中，这和从类的默认值或原型继承的值以及在运行时设置的值是相对的。（因为仅可替换值会在调试器中运行或者在运行时使用 `OBJ DUMP ObjectName` 来查看对象的值）。当在跟踪任何和序列化相关的问题时您可以使用这个命令行开关，因为它使得查看在加载或保存时存在的问题变得更加简单。
+
+
+### 语法
+
+
+    
+    gamename.exe showtaggedprops <PackageName[.ext]> <ClassPackage.ClassName> [PropertyA[,PropertyB...]]
+    
+
+
+
+
+### 参数
+
+
+
+## ListPackagesReferencing命令行开关
+
+Listpackagesreferencing 命令行开关将会帮助我们找到指定的包中丢失的资源。
+
+
+### 语法
+
+
+    
+    gamename.exe listpackagesreferencing <package.missingresource>
+    
+
+
+
+
+### 参数
+
+
+
+## SetMaterialUsage命令行开关
+
+Setmaterialusage 命令行开关将会识别给定包的材质应用情况。
+
+
+### 语法
+
+
+    
+    gamename.exe setmaterialusage <package>
+    
+
+
+
+
+### 参数
+
+
+
+## DumpShaders 命令行开关
+
+dumpshader 命令行开关通过使用快速迭代的命令行着色器编译器 (.fxc) 可以转存出着色器、所有的包含文件、预处理版本、最终的 asm 以及要重新编译的批处理文件
+
+如果提供了一个全局着色器，那么将只在匹配的类型上进行操作。如果提供了一个材质，那么该材质编译的所有着色器都将被转存出来。
+
+
+
+### 语法
+
+
+    
+    gamename.exe DumpShaders platform=<platform> [globalshader=<shadertype>] [material=<materialname>]
+    
+
+
+
+
+### 参数
+
+
+## CheckLightMapUVs命令行开关
+
+扫描静态网格物体并检查光照贴图的贴图坐标设置存在的问题。可以发现以下问题：
+
+
+* 丢失了光照贴图的贴图坐标设置。
+* 光照贴图的贴图坐标超出了 0.0 - 1.0 的范围。
+* 光照贴图的贴图坐标彼此重叠。
+
+
+如果发现了问题，将会返回一个详细的警告信息。
+
+默认情况下，会扫描所有的游戏包来获得静态网格物体（包括地图包）。可替换地，您可以在命令行中指出一组包来进行扫描。
+
+
+### 语法
+
+
+    
+    gamename.exe CheckLightMapUVs [package1] [package2] ...
+    
+
+
+
+
+### 参数
+
+无
+
+
+
+## FindUniqueSpecularTextureMaterials 命令行开关
+
+为所有具有 UNIQUE（唯一）高光贴图的环境材质生成一个内容浏览器的收藏夹。环境材质是通过把一个贴图放到设置为 WORLD LODGroup 中的漫反射链中来决定的。
+
+
+### 语法
+
+
+    
+    gamename.exe FindUniqueSpecularTextureMaterials <-ALLMATERIALS>
+    
+
+
+
+
+### 参数
+
+-ALLMATERIALS
+这将会检测所有材质不仅是环境材质来查找唯一的高光贴图。
+
+
+
+## FindDarkDiffuseTextures 命令行开关
+
+为漫反射属性链中带有 'dark（黑色）' 黑色贴图的所有材质创建一个内容浏览器收藏夹。
+
+
+### 语法
+
+
+    
+    gamename.exe FindDarkDiffuseTextures <MINBRIGHT=###> <-ALLOWBLACK> <-GRAYSCALE> <UPDATE=##>
+    
+
+
+
+
+### 参数
+
+MINBRIGHT=###
+
+浮点值给出了使得材质不那么黑的亮度百分比。
+假设这个值在 GammaSpace（伽马空间）内，范围是[0.0 .. 100.0]。100.0]. 
+默认值之在编辑器的 ini 文件中进行了指定： [DarkTextures]、MinimalBrightness。
+
+-ALLOWBLACK
+
+如果为真，那么当计算亮度时将会考虑纯黑色的贴图像素。
+默认值为假，并且这个值也可以在 ini 文件中进行指定： [DarkTextures]、bIgnoreBlack（false == 允许）。
+
+-GRAYSCALE
+
+如果为真，亮度计算将会使用以下公式将每个像素转换为灰度化。
+    GS = R * 0.30 + G * 0.58 + B * 0.11
+如果为假，亮度计算是 Max(R, Max(G,B))。
+默认值在编辑器的 ini 文件中进行了指定： [DarkTextures]、bUseGraySCale。
+
+UPDATE=##
+
+整数意味着每处理##个包就应该更新一次收藏夹。
+
+
+[PUBLISH:Docs]
+## 如何制作命令行开关
+
+请参照 [如何制作命令行开关](Programming/Development/Tools/Commandlets/MakingACommandlet)页面。
+[/PUBLISH:Docs]
+ 
+
+
+
+

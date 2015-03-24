@@ -1,0 +1,69 @@
+﻿INTSourceChangelist:2465567
+Availability:Public
+Title:アーティスト向けクイックスタート
+Crumbs:%ROOT%, GettingStarted
+Description:コンテンツ クリエイター向けアンリアルエンジン入門
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/QuickStart:title%](artist_qs_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/QuickStart:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/QuickStart]
+	[/PARAM]
+	[PARAM:description]
+	%Engine/Content/QuickStart:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/QuickStart:title%](artist_qs_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/QuickStart:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/QuickStart]
+	[/PARAM]
+	[PARAM:description]
+	%Engine/Content/QuickStart:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+![](MaterialsHeader.png)
+
+
+このクイックスタートガイドでは、メッシュやテクスチャをインポートし、マテリアルを作成し、それを **スタティックメッシュ アクタ** に適用します。これは焦点を絞ったチュートリアルであり、基本を段階的に説明します。途中の多くの場面で、掘り下げた質問に対応するページへのリンクもご利用いただけます。
+
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		ステップ
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/Content/QuickStart/1 "%Engine/Content/QuickStart/1:description%")
+	* [](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:description%")
+	* [](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:description%")
+	* [](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:description%")
+	* [](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:description%")
+	* [](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:description%")
+	[/PARAM]
+[/OBJECT]
+
+
+

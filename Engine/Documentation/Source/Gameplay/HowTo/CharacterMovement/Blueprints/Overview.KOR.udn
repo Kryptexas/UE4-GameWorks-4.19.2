@@ -1,0 +1,41 @@
+﻿INTSourceChangelist:2428435
+Availability: Public
+Title:블루프린트로 캐릭터 무브먼트 셋업 비법
+Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement
+Description:블루프린트로 캐릭터 무브먼트를 셋업하는 비법 안내입니다.
+
+ 
+여기서는 **블루프린트** 를 통해 제대로 플레이가능한 캐릭터를 만드는 데 필요한 방법을 알아보겠습니다. 이 비법 시리즈 마지막에서는 걷기, 달리기, 웅크리기, 웅크려 걷기, 엎드리기, 정지 자세에서 점프, 이동중 점프가 가능한 캐릭터가 생길 것입니다.
+
+완성된 제품 예제는 아래 비디오 샘플을 클릭하세요.
+
+[![](CharacterMovement_Thumbnail.png)(w:640)](CharaterMovement.mp4)
+ 
+이 시리즈에서는 **마켓플레이스** 에서 무료로 받을 수 있는 **Animation Starter Pack** 을 사용합니다. 캐릭터 동작을 만드는 데 사용할 수 있는 애니메이션이 여럿 들어있기 때문입니다. 애니메이션 팩을 다운로드한 이후에는, 런처의 **프로젝트에 추가** 버튼을 누른 다음 애셋을 추가하고자 하는 프로젝트를 지정하여 기존 프로젝트( 또는 새로운 빈 프로젝트)에 팩을 추가할 수 있습니다.
+
+![](Characters_1.png)
+
+시작을 위한 단계는 다음과 같습니다.
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		단계
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Gameplay\HowTo\CharacterMovement\Blueprints\Setup_1 "%Gameplay\HowTo\CharacterMovement\Blueprints\Setup_1:description%")
+	* [](Gameplay\HowTo\CharacterMovement\Blueprints\Input "%Gameplay\HowTo\CharacterMovement\Blueprints\Input:description%")
+	* [](Gameplay\HowTo\CharacterMovement\Blueprints\Setup_2 "%Gameplay\HowTo\CharacterMovement\Blueprints\Setup_2:description%")
+	* [](Gameplay\HowTo\CharacterMovement\Blueprints\BlendSpace "%Gameplay\HowTo\CharacterMovement\Blueprints\BlendSpace:description%")
+	* [](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Walk "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Walk:description%")
+	* [](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Crouch "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Crouch:description%")
+	* [](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jog "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jog:description%")
+	* [](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Jump:description%")
+	* [](Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Prone "%Gameplay\HowTo\CharacterMovement\Blueprints\AnimBlueprint_Prone\:description%")
+	[/PARAM]
+[/OBJECT]
+

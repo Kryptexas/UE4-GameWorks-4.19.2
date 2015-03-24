@@ -1,0 +1,210 @@
+Availability: Public
+Title:FBX材质通道
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description: 关于使用FBX内容通道随同网格物体转移材质和贴图的指南。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/Materials:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/Materials:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/Materials:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/Materials]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+## 概述
+
+FBX通道可以把在3D应用程序中应用到网格物体(静态网格物体和骨架网格物体)上的材质和贴图转换到虚幻引擎中。简单的材质可以通过导入应用到这些材质上的贴图来转换，然后在UnrealEd中将这些贴图连接到适当的通道上来创建材质，最后把材质应用到导入的网格物体上。这通过自动化以前的冗繁的手动过程简化了网格物体导入过程。
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+[REGION:tip]
+本文包含了关于Autodesk Maya和Autodesk 3ds Max的信息，在下面选择您喜欢的内容创建工具，就会仅显示和所选工具相关的信息。
+[/REGION]
+
+%Globals:DCCSelect%
+
+## 材质支持
+
+通过FBX通道导入仅支持基本材质。可以转换的材质类型有：
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	* Surface(表面)
+    * Anisotropic(各向异性)
+    * Blinn
+    * Lambert
+    * Phong
+    * Phone E
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	* Standard(标准)
+	* Multi/Sub-Object(多重/子对象)
+	[/PARAM]
+[/OBJECT]
+
+
+除了可以转换材质类型外，同时也仅能转换这些材质的特定功能。FBX材质通道不能转换单独的设置，但是它确实支持转换在材质中使用的某些贴图或纹理。
+
+[REGION:warning]
+	目前，所支持的随同网格物体导入的贴图将会添加到材质上，并且有几个贴图甚至可以连接到材质的默认输入上，但是有些贴图则需要手动进行连接。另外，将不会导入比较不常见的贴图类型，比如Maya中为 **环境遮挡** 使用 **Diffuse（漫反射）** 通道的贴图。
+[/REGION]
+
+## 多个材质
+
+网格物体可以应用多个材质，每个材质覆盖网格物体的某个表面。FBX通道可以处理导入具有多个材质的网格物体，假设它们已经在3D应用程序中进行了正确设置。
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/Materials#mayaMultiMat]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/Materials#maxMultiMat]
+	[/PARAM]
+[/OBJECT]
+
+
+<!--
+[EXCERPT:maxMultiMat]
+在3dsMax中，可以使用 *Multi/Sub-Object(多重/子对象)* 材质来处理多个材质。网格物体的每个面具有一个 _Material ID_ ，并且Multi/Sub-Object材质中的每个Standard（标准材质）会应用到相应的 _Material ID_ 上。
+
+![mat_multi_max.jpg](mat_multi_max.jpg)(w:359 h:444)
+
+![mat_multi_max_result.jpg](mat_multi_max_result.jpg)(w:744 h:382)
+
+将会在虚幻编辑器中为Multi/Sub-Object材质中的每个Standard（标准）材质创建一个材质，导入的网格物体将具有针对这些材质的插槽。当材质应用到网格物体时，这些材质将仅影响网格物体的对应多边形，就像让它们在3dsMax那样。
+[/EXCERPT:maxMultiMat]
+
+[EXCERPT:mayaMultiMat]
+当涉及到在网格物体上应用多个材质时，Maya是非常简单的。您可以简单地选择你想向其应用材质的网格物体的面，然后应用材质即可。
+
+![mat_mult_maya.jpg](mat_mult_maya.jpg)(w:827 h:442)
+
+![mat_mult_maya_result.jpg](mat_mult_maya_result.jpg)(w:827 h:442)
+
+在虚幻编辑器中将会为每个在Maya中应用到网格物体上的材质创建一个对应材质，并且导入的网格物体将会具有针对每个材质的插槽。当材质应用到网格物体时，这些材质将仅影响网格物体的对应多边形，就像让它们在Maya中那样。
+[/EXCERPT:mayaMultiMat]
+-->
+
+
+## 材质命名
+
+在虚幻编辑器中创建的材质的名称应该和在3D应用程序中的材质名称一样。从哪里提取名称取决于您从中导出网格物体的应用程序。
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	对于Maya来说，虚幻编辑器中的材质名称直接从 Maya中应用到网格物体上的着色引擎的名称转换而来。
+
+	![mat_name_maya.jpg](mat_name_maya.jpg)(w:423 h:448)
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	对于3dsMax来说，虚幻编辑器中的材质名称直接从3dsMax中应用到网格物体上的材质名称转换而来。
+
+	![mat_name_max.jpg](mat_name_max.jpg)(w:359 h:438)
+	[/PARAM]
+[/OBJECT]
+
+
+
+### 材质排序
+
+应用到网格物体上的材质的顺序是非常重要的，您可以通过使用材质的特殊命名规则来指定特定的顺序。默认情况下，虚幻编辑器中创建的材质是随机的，所以不能保证材质的顺序。这可能是个问题，比如，当处理角色时，您的角色系统什么时候认为躯干上的材质作是第一个材质、头部材质是第二个材质等。
+
+虚幻引擎使用 `skin##`  命名规则来指定材质的顺序。这可以是材质的完整名称或者可以将其附加到材质的现有名称上。只要可以在材质的名称中能找到它即可。
+
+所以，如果您具有两个需要遵循一致顺序的材质，您或许将它们命名为：
+
+* `M_ExampleMesh_skin00`
+* `M_ExampleMesh_skin01`
+
+
+![mat_order_max.jpg](mat_order_max.jpg)(w:320 h:92)
+
+## 贴图导入
+
+如果在3D应用程序中材质具有一个分配为漫反射贴图或法线贴图的贴图，那么只要在 [FBX导入属性](Engine/Content/FBX/ImportOptions)中启用 *Import Textures(导入贴图)* 设置，这些贴图就可以导入到虚幻编辑器中。
+
+![](Engine/Content/FBX/StaticMeshes/ImportedMeshAndTex.png)
+
+在虚幻编辑器中新建的材质中将会创建一个Texture Sample(贴图样本)表达式，并且会将导入的贴图分配给该 Texture Sample（贴图样本）。同时会向材质中添加Texture Coordinate(贴图坐标)表达式，并且会将其连接到Texture Sample的 _UVs_ 输入端。但是，您需要将给它们的材质插槽连接一些贴图。
+
+![](FBXMaterial.png)
+
+如果在3D应用程序中给该材质应用的贴图的格式和虚幻引擎不兼容，或者这些贴图连接到了一个未知的材质属性上（比如，Maya中的 **Diffuse(漫反射)** )，那么则不会导入这些贴图。在这种情况下，如果材质中没有要呈现的初始贴图，那么虚幻编辑器中的材质将会填充为随机的颜色Vector Parameter(向量参数)。
+
+![](NoTexture.png)
+
+ 
+
+
+

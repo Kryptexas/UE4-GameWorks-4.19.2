@@ -1,0 +1,119 @@
+Availability: Public
+Title:Reference Tree Tool
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser, Engine/Content/Browser/ReferenceViewer
+Description:Tool that displays a list of all objects that reference a particular asset as a hierarchical tree view.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Browser/ReferenceTreeTool:title%](ReferenceTreeTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/ReferenceTreeTool:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Browser/ReferenceTreeTool:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/ReferenceTreeTool]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Browser/ReferenceTreeTool:title%](ReferenceTreeTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/ReferenceTreeTool:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Browser/ReferenceTreeTool:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/ReferenceTreeTool]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![](ReferenceTreeBanner.png)
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+
+
+## Overview
+
+The Reference Tree is a tool that allows you to list the reference chains for a specific asset. A reference chain is a list of references in which each object in the list references the objects below it in the list.  The Reference Tree Tool allows you to easily find how objects are being referenced.
+
+In the following image, you can see that the root of the tree is a Material named M_RTS_Env_Lava_01.  The root of the tree is always the object being examined.  You can see that the Material is referenced by six Static Mesh Actors.
+
+![ReferenceTree2.PNG](ReferenceTree2.PNG)
+
+
+## Using the Reference Tree
+
+You can access the Reference Tree from the Reference Viewer, which is a tool that displays a graph of asset dependencies. To open the Reference Viewer, **right-click** an asset in the **Content Browser**, and then click **Reference Viewer**.
+
+In the Reference Viewer, if you **right-click** an asset in the graph to display its context menu, you can then click **Show Reference Tree**, which will display the Reference Tree for that asset.
+
+For more information about the Reference Viewer, see [](Engine/Content/Browser\ReferenceViewer).
+
+[REGION:note]
+The initial load of the Reference Tree window may take several seconds, depending on how complex your game is and how many objects you have. Although the Reference Tree can be a useful tool, if you want to see the dependencies between assets, you may be able to find the information you want in the Reference Viewer itself, which typically loads more quickly than the Reference Tree.
+[/REGION]
+
+
+
+## Options
+
+
+### View Menu
+
+
+* **Rebuild Tree** - Regenerates the tree and examines all loaded objects.  This may take some time, but it is useful if you have changed references to the asset being examined.
+* **Expand All** - Expands all nodes in the tree.
+* **Collapse All** - Collapses all nodes in the tree.
+
+
+### Options Menu
+
+* **Show Script Objects** - Displays script objects (references to assets in script), which are not displayed by default.
+
+
+### Context Menu
+
+If you **right-click** an item in the Reference Tree, you will see a context menu with the available options.
+
+
+* **Open Editor** - Opens the asset in the appropriate asset editor.  (For example, a Static Mesh would be opened in the Static Mesh Editor.)
+* **Show in Content Browser** - Browses to the asset's location in the **Content Browser**, and selects it.
+
+[REGION:tip]
+**Double-clicking** the asset in the Reference Tree also browses to the asset's location in the **Content Browser** and selects it.
+[/REGION]
+
+
+
+## Notes
+
+
+* The Reference Tree Tool only shows browsable Objects or Actors.
+* Due to performance reasons with the tree, only the first 100 items in each leaf of the tree are shown.  If there are more than 100 items, a node will be added saying how much more there are.
+* This tool is currently a work in progress. 
+
+
+ 
+
+
+
+
+

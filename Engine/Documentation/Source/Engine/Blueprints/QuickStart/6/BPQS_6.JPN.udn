@@ -1,0 +1,54 @@
+﻿INTSourceChangelist:2449235
+Availability:Public
+Title:6.キャラクターの起動
+Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
+Description:多数のアクタを配置したカスタマイズ状態でレベルを作成する最終ステップの 1 つは、ビルド プロセスです。
+
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前の手順](Engine/Blueprints/QuickStart/5 "%Engine/Blueprints/QuickStart/5:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/Blueprints/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[次の手順](Engine/Blueprints/QuickStart/7 "%Engine/Blueprints/QuickStart/7:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+まず、PawnがCharacterであることを確かめる必要があります。
+
+1. **Get Player Pawn** の出力ピンを引き出します。 
+1. 検索ボックスに「Cast」と入力します。
+1. コンテクストメニューから **Cast to Character** を選択します。
+
+
+1. **Cast** ノードの **As Character** ピンを引き出します。  
+1. 検索ボックスに「Launch」と入力します。
+1. コンテクストメニューから **Launch Character** を選択します。
+
+出力実行ピン（キャストを成功させるため）が **Launch Character** の入力実行ピンと自動的に接続することに注目してください 
+
+1. **Launch Character** ノードのZフィールドに「3000」と入力します。
+1. 最後に、 **Branch** ノードの **True** 実行ピンを **Cast to Character** ノードの入力実行ピンと接続します。結果としてオーバーラップしているアクタが独自のPawnの場合のみCastとLaunchが発生します。
+
+この時点で保存とコンパイルを行って、ブループリントエディタを閉じます。
+
+1. コンテンツ ブラウザ からプラットフォームをいくつかレベルに ドラッグします。 
+1. 再生を押して、WASDキーでレベルを走り回ってスペースバーでジャンプします。飛行しながらプラットフォームのどれかに降り立って観察してみてください！ 
+
+
+
+---
+
+%Steps%

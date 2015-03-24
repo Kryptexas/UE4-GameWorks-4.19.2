@@ -1,0 +1,84 @@
+Availability: Public
+Title:Physical Materials Reference
+Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
+Description:Assets applied to physically simulated primitives directly or via materials used to configure and control physical properties used by the simulation.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/PhysicalMaterials/PhysMatReference:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhysicalMaterials/PhysMatReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhysicalMaterials/PhysMatReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/PhysicalMaterials/PhysMatReference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Physics/PhysicalMaterials/PhysMatReference:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhysicalMaterials/PhysMatReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhysicalMaterials/PhysMatReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/PhysicalMaterials/PhysMatReference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+## Overview
+
+[INCLUDE:Shared/Glossary/P/#Glossary_Physical_Material]
+
+![PhysicalMaterialProperties.png](PhysicalMaterialProperties.png)
+
+## Properties
+
+| Property | Description |
+| ---- | ----- |
+|[REGION:tablesection]Physical Material[/REGION]||
+| **Friction** | %doxygen:UPhysicalMaterial::Friction% |
+| **Restitution** | %doxygen:UPhysicalMaterial::Restitution% |
+| **Density** | %doxygen:UPhysicalMaterial::Density% |
+|[REGION:tablesection]Advanced[/REGION]||
+| **RaiseMassToPower** | %doxygen:UPhysicalMaterial::RaiseMassToPower% |
+|[REGION:tablesection]Destruction[/REGION]||
+| **DestructibleDamageThresholdScale** | %doxygen:UPhysicalMaterial::DestructibleDamageThresholdScale% |
+|[REGION:tablesection]Physical Properties[/REGION]||
+| **SurfaceType** | %doxygen:UPhysicalMaterial::SurfaceType% [INCLUDE:#one]|
+|[REGION:tablesection]Vehicles[/REGION]||
+| **TireFrictionScale** | %doxygen:UPhysicalMaterial::TireFrictionScale% |
+| **TireFrictionScales** | %doxygen:UPhysicalMaterial::TireFrictionScales% |
+
+<!--
+[EXCERPT:one]
+Surface Types are set in the `DefaultEngine.ini` file for your project. They define an enum to be used in the engine for defining any number of things, from what sound plays as a character walks across a surface, to the type of decal an explosion should leave on different surfaces.
+
+You can use ProjectSetting/Physics/Physical Surfaces
+
+This data can be pulled in code or Blueprint:
+
+![](SurfaceType.png)
+
+By default, without editing the source code, you are limited to 30 Surface Types, labeled SurfaceType1 through SurfaceType30.
+
+[/EXCERPT:one]
+-->

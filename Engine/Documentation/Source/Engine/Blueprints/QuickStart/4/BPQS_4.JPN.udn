@@ -1,0 +1,73 @@
+﻿INTSourceChangelist:2449235
+Availability:Public
+Title:4.開始点を作成
+Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
+Description:レベル作成の基礎となるアクタの配置と操作
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前の手順](Engine/Blueprints/QuickStart/3 "%Engine/Blueprints/QuickStart/3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタートのホーム画面](Engine/Blueprints/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[次の手順](Engine/Blueprints/QuickStart/5 "%Engine/Blueprints/QuickStart/5:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+Blueprint クラスにビヘイビアを追加するには、このクラスをブループリントで開きます。  
+
+1. コンテンツブラウザで **Blueprint Class** をダブルクリックします。
+
+1. ブループリントエディタが開いて、ビューポートに **キューブ** と **ボックス** コンポーネントが表示されます。  
+
+	[REGION:tip]
+	この時点で **Box** コンポーネントの配置を調整すると、このBlueprint クラスから作成されるすべてのLaunchpadに変更が適用されます。LaunchPad アクタのコンポーネントの作業同様に、 
+	**コンポーネント** リストから **Box** コンポーネントを選択して位置を修正することができます。**Location** を（0.0、0.0、500.0）に設定してください。
+
+	![](AdjustedTrigger.png)
+	[/REGION]
+
+1. **ビューポート** タブの隣にドッキングされているのは **コンストラクションスクリプト** タブと **イベントグラフ** タブです。これからゲームプレイビヘイビアを作成するので、 **イベントグラフ** から開始します。イベントグラフタブをクリックします。
+
+	![](EventGraphStart.png)(w:500)
+
+	イベントはブループリントグラフ実行の開始点です。さまざまなゲームプレイシチュエーションと関連付けることができます。 
+	最も一般的に使用するイベントの選択肢がただちに表示されます。透明なEvent ノードとして表示されます。多くのブループリントグラフに有益ですが、 
+	独自のイベントを作成してみます。 
+
+1. **ボックス** コンポーネントに何かがオーバーラップした時に実行するイベントを作成します。まず、**コンポーネント** タブの **ボックス** コンポーネントを選択ます。
+
+1. グラフに追加するノードのコンテキストメニューを呼び出すために、グラフの空の領域を右クリックします。
+
+	[REGION:tip]
+	右クリック+ドラッグでグラフ内を移動します。この時点でグラフを左へドラッグ、事前配置したイベントノードをスクリーンの左側へ移動して、 
+	launchpadのロジックを作成する空のスペースを追加作成することができます。
+	[/REGION]
+
+	![](RightClickContext.png)
+
+1. このコンポーネントにイベントを追加するために、 **Add Event for Box** ドロップダウンメニューを展開して **Collision** を選択します。検索ボックスに「Component Begin Overlap」と入力してメニューをフィルタリングすることも出来ます。
+
+1. **On Component Begin Overlap** を選択します。 
+
+	![](AddEvent.png)
+
+グラフに **OnComponentBeginOverlap** ノードが表示されます。このイベントに接続したすべてのノードは、launchpadのBox コンポーネントと何かがオーバーラップした時に実行します。
+
+![](EventNode.png)
+
+次のステップで、このノードの出力ピンへノードを接続して、ブループリント上のノードと連携させる方法について学んでいきます。
+
+---
+
+%Steps%

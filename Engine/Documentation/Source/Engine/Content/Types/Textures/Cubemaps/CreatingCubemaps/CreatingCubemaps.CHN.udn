@@ -1,0 +1,84 @@
+﻿INTSourceChangelist:2087447
+Availability:Public
+Title:创建立方体贴图
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
+Description:在Photoshop中创建立方体贴图的过程。
+
+## 概述
+
+%Description%
+
+## 创建立方体贴图
+
+要想创建立方体贴图，您所需要的就是6张图片，分别代表沿着X、Y和Z坐标轴的正方向和负方向查看时所看到的视图。但是，这些图片需要进行适当的组合，并且组合时还需要考虑一些事项，才能创建出立方体贴图。
+
+当使用Photoshop 的NVIDIA Texture Tools插件 [**(32bits/Channel, 8.8.8.8 ARGB 32 bpp, unsigned)**](Engine/Content/Types/Textures\Cubemaps\CubemapTools)时，您需要以特定形式排列这六张图片才能生成立方体贴图。该插件将在同一文件中查找这6张图片，将它们像下面这样并排排列：
+
+**正X-轴、负X-轴、正Y-轴、负Y-轴、正Z-轴、负Z-轴**
+
+[![CubeMapNvidiaLayout.png](CubeMapNvidiaLayout.png)(w:600)](CubeMapNvidiaLayout.png)
+
+一旦将该图片从Photoshop中导出并导入到虚幻引擎中，编辑器会把它们合成为一张很好的立方体贴图。但是，您会发现在这个实例中其中某些图片应用了非常有趣的旋转。这是由NVIDIA插件从每个图片组合该立方体贴图的方式所决定的。
+
+当将其导入为立方体贴图，并在虚幻编辑器的贴图编辑器窗口中展开时，结果如下所示：
+
+[![CubeMapNvidiaLayout_cubemapped.png](CubeMapNvidiaLayout_cubemapped.png)(w:600)](CubeMapNvidiaLayout_cubemapped.png)
+
+由于给某些图片应用了特殊的旋转，从而使得立方体的面可以保持竖立。
+
+查看该旋转机制的快速方法如下所示：
+
+| 坐标轴| 旋转度 |
+| ---|---|
+| **正X轴** | 逆时针旋转90度 |
+| **负X轴** | 顺时针旋转90度 |
+| **正Y轴** | 旋转180度 |
+| **负Y轴** | 不旋转 |
+| **正Z轴** | 顶部必须和正Y轴对齐的面 |
+| **负Z轴** | 顶部必须和正Y轴对齐的面|
+
+## 可视化立方体贴图图片的旋转
+
+当第一次创建一张立方体贴图时，查看如何布局该立方体贴图的图片并不是那么简单。这个方法可以帮助您查看如何正确地布局您的图片，以便同Photoshop的NVIDIA贴图工具结合使用。
+
+或许，可视化立方体贴图图片的旋转情形的最简单的方法是: 想象您身体沿着笛卡尔坐标轴躺在地上，朝上盯着看。这意味着，您正看到正Z-轴方向(向上)，X-轴指向右侧，Y轴指向您头顶上方，如下所示：
+
+![CubeMapOrientation.png](CubeMapOrientation.png)(w:360)
+
+但是，要想查看这个朝向是如何影响立方体的布局的，那么我们可以把这六张图片看成代表在6个方向上的视图。
+
+![Cubemap_PositiveX.png](Cubemap_PositiveX.png)(w:115) ![Cubemap_NegativeX.png](Cubemap_NegativeX.png)(w:115) ![Cubemap_PositiveY.png](Cubemap_PositiveY.png)(w:115) ![Cubemap_NegativeY.png](Cubemap_NegativeY.png)(w:115) ![Cubemap_PositiveZ.png](Cubemap_PositiveZ.png)(w:115) ![Cubemap_NegativeZ.png](Cubemap_NegativeZ.png)(w:115) 
+
+目前，所有图片都是竖直向上及向下旋转的。某些图片需要进行适当的旋转才能正确地排列。所以，回到刚才那张图片，我们可以想象我们正像上面那样躺着。
+
+现在，想象把您的头向右转。这意味着您会看沿着X-轴向下看。但是由于您在躺着，所以所看到的视图会相对您的头部逆时针旋转90度，如下所示：
+
+![Cubemap_PositiveX_Vis.png](Cubemap_PositiveX_Vis.png)
+
+如果您将您的头部向左转，您将看到负X-轴视图：
+
+![Cubemap_NegativeX_Vis.png](Cubemap_NegativeX_Vis.png)
+
+要想查看正Y-轴图片，您必须在把您的头旋转回来。这会使得视图看上去是上下颠倒的，如下所示：
+
+![Cubemap_PositiveY_Vis.png](Cubemap_PositiveY_Vis.png)
+
+要想查看负Y-轴的图片，您可以向下朝您的脚部看，您将会看到这样的视图：
+
+![Cubemap_NegativeY_Vis.png](Cubemap_NegativeY_Vis.png)
+
+正Z-轴图片的很容易就可以看到，因为您从一开始就在向上盯着看：
+
+![Cubemap_PositiveZ_Vis.png](Cubemap_PositiveZ_Vis.png)
+
+要想查看负Z-轴的图片，您必须超肚子方向弯曲身体，盯着地面看，所以您将看到：
+
+![Cubemap_NegativeZ_Vis.png](Cubemap_NegativeZ_Vis.png)
+
+一旦创建了所有这些图片，并进行了适当的旋转，那么您需要按照以下顺序把它们排列到一个文件中：
+
+**X+, X-, Y+, Y-, Z+, Z-**
+
+最终，您将获得一张类似于这样的图片：
+
+![Uffizi_Cubemapped.png](Uffizi_Cubemapped.png)(w:800)

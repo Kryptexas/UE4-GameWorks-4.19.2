@@ -1,0 +1,10 @@
+Availability:Public
+Title:Blueprints Only
+Crumbs: %ROOT%, Gameplay, Gameplay/ClassCreation
+Description:Introductory information for gameplay programmers getting started with Unreal Engine.
+
+[OBJECT:Redirect]
+[PARAM:link]
+[](Gameplay/ClassCreation/BlueprintOnly)
+[/PARAM]
+[/OBJECT]

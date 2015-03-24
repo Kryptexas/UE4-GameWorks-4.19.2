@@ -1,0 +1,175 @@
+Availability:Public
+Title: Dynamic Array Replication
+Crumbs:%ROOT%, Gameplay, Gameplay/Networking
+Description:Replicating dynamic arrays across multiple clients on a network.
+Version: 4.5
+
+[TOC(start:2 end:3)]
+
+Replicating dynamic arrays (`TArrays`) poses certain difficulties that require a specialized implementation in 
+order to make the replication efficient. This is done by determining what has changed within the array and only 
+sending the minimal amount of data across the network in order to keep the array in synch on all clients.
+
+The process for replicating dynamic arrays is more complex than that of regular `UProperties`. See the 
+[Implementation](#Implementation) section for details.
+
+## Setting Up Dynamic Array Replication
+
+In order to have a dynamic array replicate, simply declare a replicated `TArray` variable like you would any 
+other variable:
+	
+	/** A replicated TArray of integers */
+	UPROPERTY(ReplicatedUsing=OnRep_MyArray)
+	TArray<int32> MyArray;
+
+[REGION:note]
+`OnRep` functions are supported via the `ReplicatedUsing` keyword. You will not know which elements have 
+changed however. 
+[/REGION]
+
+Then, add a `DOREPTARRAY` statement in the `::GetReplicationList()` function for the class containing the 
+dynamic array:
+
+	int32* AMyActor::GetReplicationList( uint8* Recent, FPropertyRetirement* Retire, int32* Ptr, UPackageMap* Map, UActorChannel* Channel, FReplicationFlags RepFlags )
+	{
+		Ptr = Super::GetReplicationList(Recent, Retire, Ptr, Map, Channel, RepFlags);
+
+		DOREPTARRAY(AMyActor, MyArray);
+	
+		return Ptr;
+	}
+
+
+## Implementation
+
+Replicating dynamic arrays poses certain difficulties that require a specialized implementation 
+in order to make the replication efficient. Outside of large packet replication, finding out _what has changed_ 
+in each new `::ReplicateActor` call and finding out _what to resend_ when a packet is dropped are the main 
+challenges.
+
+### Changed Data
+ 
+The process of determining what has changed for standard `UProperties` is:
+
+* Change of _normal_ `UProperties` is tracked with a _Recent_ Buffer (just a byte array, i.e. `TArray<uint8>`). 
+* Buffer was the size of all `UProperties` on the Actor. 
+* Easy to map property offset into buffer. 
+* Used `CopySingleValue` to write values to this array. 
+* Passed raw pointer into buffer for `GetReplicatedProperty` (function which used NEQ functions to do direct `!=`
+comparison with new/old values). 
+
+
+This works great for everything but dynamic arrays. The solution to efficiently replicate dynamic arrays is to:
+
+* Keep separate buffers for dynamic properties. `TMap<PropertyID, Byte Buffer >` 
+* Special case dynamic properties: do not read or write to Recent buffer (fixed size), use dynamic buffer instead (can be any size). 
+* Do not compare new/old values directly with NEQ. 
+	* Would need to keep full copies of old object states around (gets messy) .
+* Instead, keep `NetSerialized` copy; e.g., the buffer we got when we `NetSerialized` the object. 
+* Always serialize the dynamic array, then compare the serialized data byte-for-byte with the previous state. 
+	* If it changed, then send it; if not, ignore it. 
+  
+[REGION:note]
+There is a CPU cost for the extra serializing, but it is not that bad compared to the benefits (plus non dynamic array 
+properties stay the same speed).
+[/REGION]
+  
+The concept is sound, but this still needs to happen per-element in the dynamic array instead of on the whole thing:
+
+* First, make `UArrayProperty::NetSerialize` serialize indexes of each element. Now it is ok to skip elements in the serialize.
+* Need a new function, `NetSerializeItemDelta`, that will write an optimized delta that can be serialized by `NetSerializeItem`. 
+`::ReplicateActor` special cases `UArrayProperties` and calls this instead of `NetSerializeItem` directly. 
+
+
+#### NetSerializeItemDelta
+
+The `NetSerializeItemDelta()` function serializes data that can be read from `NetSerializeItem`, but has 
+two outputs: a bit writer for _full_ state and a bit writer for _changed_ state. It also has a new bit reader input for 
+_old state_, so it has something to compare to.
+
+The `UProperty` implementation simply performs the following:
+
+* Serialize property via NetSerializeItem to _full_ writer.
+* Compare with old state reader - if changed, copy written state to _changed_ writer. 
+
+
+The `UArrayProperty` implementation is more complex:
+
+* Serialize array num and elements with `NetSerializeDelta` call - if element changed, keep it, if stayed the same, 
+pop it (along with element index we wrote) and continue to next element.
+* Put _changed_ state into the outgoing bunch and send it to the client.
+* Save _full_ state on the server so we can use it for diffing in the next `::Replicate` Actor. 
+
+
+### Resending Data
+
+For normal properties, if a packet is dropped, the server gets a nAck and sees if that packet was the last packet that 
+updated any properties. Any properties that were updated (and not updated since) are marked dirty and resent on the next 
+replicate. This will not work for array properties since updates are sent based only on what elements changed and we only 
+keep track of last packet id that updated the property and do not know what changed on that update or what was updated since.
+
+While there are many ways this could be handled, the chosen approach will minimize bandwidth and server CPU under normal, 
+_non-droppy_, conditions:
+  
+* After we create a new delta bunch, save the old base state that was used to make that diff into the retirement records. 
+* If we get a nAck, we see if we updated the dynamic property in that packet. If we did, we replace the current base state 
+with the one we saved in the retirement record. On the next update, we will make a diff from the basestate we used when we 
+made the diff that was lost. 
+* The next update will contain all updates since the dropped packet. 
+
+
+[REGION:note]
+For this to work, we need to keep a linked list of retirement records for the dynamic properties. As we write new updates to 
+the arrays, we free up the retirement records that we know were acknowledged (Ack'd) properly.
+[/REGION]
+  
+There are more complex solutions that could build out an optimal delta based on what packets were dropped and what was Ack'd. 
+Aside from the increase in code complexity, it is also an additional CPU load on the server to possibly save bandwidth in these 
+rare cases. This may be addressed in the future, but is not currently not worth the added complexity. 
+
+### Cost
+
+The cost of replicating dynamic arrays can vary depending on the array, what operations are being performed on it, and the quality 
+of the network. The main points to keep in mind are:
+
+* **Only elements of the array that change are sent over.** This helps to minimize bandwidth requirements for replicating dynamic 
+arrays which could contain large numbers of items. 
+* **When packets are dropped, all elements that changed since the dropped packet are resent.** This keeps data from being lost due 
+to network issues, but can result in a lot more data being sent overall.
+* **If the server adds or removes an element in the middle of the array, all elements after it have changed and will be resent**. 
+The cost here can be severe depending on the size of the array and where the element is added.
+* **There is more CPU overhead on the server for sending a dynamic array vs. a static array**. This is due to how deltas work 
+requiring the server to do more work to see if the elements in the dynamic array changed.
+
+
+## Issues and Gotchas
+ 
+* **Clients should not add or remove elements on replicated arrays.** There is no mechanism for detecting this and arrays will 
+get out of sync fast. The update for `TArrays` is very straight forward. The server says: 
+	* This is how many elements are in the array now (client resizes as necessary). 
+	* **Element X** changed to this value, **Element Y** change to this value, etc. (client sets these values). 
+* **If you shift the array around on the client, elements will not re-sync until the server writes totally new values to the array.**
+* **Atomic Updates are atomically replicated. Non Atomic Updates could be received out of order**. Due to property replication 
+being unreliable, it is possible for sequential updates to happen out of order. Atomic writes to arrays will replicate automatically. 
+If you write to **N** elements of the array at once,  the client will get all **N** updates	at once. However, if over several 
+frames you are touching random elements, it is possible for those random updates to be out of order:  
+	
+	For example, if update 1 says `"Array[0]=X"`  and update 2 says `"Array[1]=Y"`, if update 1 is dropped, the 
+	client will 	still receive Update 2 and set `Array[1]=Y` immediately. `Array[0]` will remain at its old value. 
+	Then a **negative acknowledgement (nAck)** will be triggered on the server due to the dropped packet. The server 
+	will see the client 	missed update 1 and will basically send a new update that says `"Array[0]=X and Array[1]=Y"`. 
+	(Why it needs to 	send both values and not just resend update 1 is explained in the [implementation details](#Implementation) above.) 
+  
+	[REGION:note]
+	This really is the same as any other set of replicated properties. The key is to just understand that each element 
+	of 	the array can be thought of as a separate property.
+	[/REGION]
+
+
+In short, you need to: 
+
+* **Be aware of unreliable nature of property updates.** They apply to arrays in the same way. 
+* **Do not go overboard.** Patterns of frequent random updates to the array can exacerbate bandwidth issues in cases of 
+really bad packet loss. It is probably unlikely, but just do not do things like make an array with 1000 elements that 
+you update 100 random elements in every frame. 
+

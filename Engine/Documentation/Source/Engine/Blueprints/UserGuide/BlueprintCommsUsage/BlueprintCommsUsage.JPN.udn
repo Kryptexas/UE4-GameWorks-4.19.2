@@ -1,0 +1,162 @@
+﻿INTSourceChangelist:2422946
+Availability:Public
+Title:ブループリント通信の使用方法
+Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
+Description:ブループリント通信の様々な方法の使用事例の概要 
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\Blueprints\UserGuide\BlueprintCommsUsage:title%](Engine\Blueprints\UserGuide\bp_comms_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\UserGuide\BlueprintCommsUsage:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\UserGuide\BlueprintCommsUsage:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Blueprints\UserGuide\BlueprintCommsUsage]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine\Blueprints\UserGuide\BlueprintCommsUsage:title%](Engine\Blueprints\UserGuide\bp_comms_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\UserGuide\BlueprintCommsUsage:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\UserGuide\BlueprintCommsUsage:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Blueprints\UserGuide\BlueprintCommsUsage]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+
+[TOC(start:2 end:2)]
+
+## 概要
+
+**ブループリント** で作業する場合、他の **ブループリント** に含まれる関数、イベント、変数にアクセスしたいと考えることがあるかもしれません。**ブループリント通信** では、複数の **ブループリント** にアクセスし、複数間で通信できるいくつかの方法があります
+
+以下では、様々な通信方法と使用例の概要を示し、詳しいドキュメントについて各セクションでリンクを参照します。 
+
+## ダイレクト ブループリント通信
+
+![](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo\2_9.png)
+
+**ダイレクト ブループリント通信** (すなわち **Blueprint Comms**) は、非常に一般的な通信方法であり、任意のポイントで対話させたい 2 つの **Blueprint Actors** を持つ場合に優れた手段です。 
+
+このタイプの通信は常に 1 対 1 です。つまり、あるブループリント (**Working Blueprint (作業ブループリント)**) が、別のブループリント (**Target Blueprint** (ターゲット ブループリント)) にアクセスするリクエストをします。**Blueprint Comms** の最も簡単な使用方法は、公開されているオブジェクト変数を通して **ターゲット ブループリント** を参照し、次に使用したいブループリント インスタンスを指定するものです。
+
+詳しい情報については [](Engine\Blueprints\UserGuide\BlueprintComms) をご覧ください。 
+
+### いつ使用するのか
+
+以下は **Blueprint Comms** のいくつかの使用例です。 
+
+*	**レベルにレベル内の他のアクタと通信させたいアクタがある**
+	*	レベル内のスイッチとインタラクションすることで特定のドアを開いたり、特定の照明を点灯します (それぞれ別のブループリント)。 
+
+セットアップ方法については、[ダイレクト ブループリント通信のセットアップ](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#ダイレクトブループリント通信) をご覧ください。 
+
+##ブループリントのキャスティング
+
+![](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo\Event6.png)
+
+上記のダイレクト ブループリント通信の方法は、レベル内に配置された 2 つのアクタの通信でうまく機能します。**ターゲット ブループリント** になるインスタンスをレベル内で選択できるからです。しかし、レベル内のアクタとプレイヤー キャラクター間で通信させたい場合はどうでしょうか？または、アクタ内の情報にアクセスしたいが、アクタ自体が変数である場合はどうでしょう (例、レベルに配置した炎に入ってくるアクタに応じて異なる影響を与える)？ 
+
+例えば、プレイヤー キャラクターの場合、レベルに配置された炎にプレイヤーが入ってきたらダメージを受けるようにしたいとします。プレイヤーにダメージを適用したいため、プレイヤー キャラクターのブループリントは、アクセスしたい **ターゲット ブループリント** になります。しかし、これは公開されたオブジェクト変数ではなく、ゲームを開始するまでワールドに存在しないため、「ターゲット」としては指定できません。 
+
+こうした状況では、**ブループリント キャスティング** を使用してプレイ可能なキャラクターを **ターゲット ブループリント** (Character ブループリント) に **Cast To** します。すなわち、**X として扱います**。この場合の X はアクセスしたい **ターゲット ブループリント** になります。 
+
+### いつ使用するのか
+
+以下は、**ブループリント キャスティング** のいくつかの使用例です。 
+
+[EXCERPT:Castusage]
+*	**レベル内にアクタとインタラクションするキャラクターがあり、結果として、キャラクターに何らかの変化が生じる**
+	*	プレイヤーがレベルでヘルスパックをピックアップし、プレイヤー キャラクターのヘルスを回復する 
+	*	敵が雪や泥の中を歩き、移動速度を遅くさせる 
+*	**HUD や UI Widget、Save Game、Controller、または Game Mode に変数を渡したい** 
+	*	Character  ブループリントからプレイヤーまたは敵のヘルスをHUD またはWidget ブループリントに渡して値を画面に表示する 
+	*	後で復元できるように、Save Game ブループリントに変数 (現在のヘルス、エネルギー、お金、アイテム、能力) を渡す 
+*	**別のブループリントの子であるブループリントが複数あり、子のひとつにアクセスしたい**
+	*	Animal ブループリントからの機能を共有するCat、Dog、Bird のブループリントがあるAnimal ブループリントを使用して、「Flying」関数を実行するように Bird ブループリントに **Cast To** します。 
+*	**別のブループリントの変数、イベント、関数に依存するブループリントがある** 
+	*	懐中電灯にバッテリを入れるとライトが点灯し、明るさはバッテリの値によって決まる 
+*	**同じクラスの複数のブループリントにアクセスし、同じ方法で一度に修正したい場合**
+	*	レベルにいくつか照明があり、イベント発生時に一度に点灯、消灯したい場合 
+[/EXCERPT:Castusage]
+
+セットアップ方法については、 [ブループリント キャストのセットアップ方法](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#ブループリントのキャスティング) をご覧ください。 
+
+## イベント ディスパッチャー
+
+![](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo\InterfaceExample2_7.png)
+
+1 つ以上のイベントを **イベントディスパッチャー** へ結合すると、イベントディスパッチャーが呼び出された時に、結合されたイベントを一度に発行することができます。 
+
+例えば、プレイヤー キャラクター ブループリント内で、"SpawnEnemy" という **イベントディスパッチャー** を作成し、プレイヤーが **F** キーを押すと実行されるようにします。レベル内で、敵がスポーンできるいくつかのスポーン ポイントを配置します。次に、 Level ブループリントでcharacter ブループリントからの SpawnEnemy **イベントディスパッチャー** を、ランダムにスポーン位置を選択し、敵をスポーンする "ExecuteSpawn" と呼ばれるLevel ブループリントにあるイベントと結合します。 
+
+プレイヤーが **F** キーを押すたびに、この **イベントディスパッチャー** が呼び出され、Level ブループリントにある "ExecuteSpawn" イベントに結合しているため、そのイベントも呼び出され、敵がスポーンされることになります。 
+
+詳しい情報については [](Engine/Blueprints/UserGuide/EventDispatcher) をご覧ください。 
+
+### いつ使用するのか
+ 
+以下は、**イベントディスパッチャー** を使用可能な例です。 
+
+*	**キャラクター ブループリントから Level ブループリントに通信したい場合**
+	*	プレイヤー キャラクターがレベルアップし、以前にロックしたエリアを開けたい場合 
+	*	プレイヤー キャラクターが、レベルで何かを行うアクション ボタンを押した場合 
+*	**スポーンしたアクタが何かを行った場合にイベントを発行したい場合** 
+	*	ボスをスポーンし、ボスが殺され、その結果ワールドで報酬がスポーンするときにイベントが発行する場合
+	*	レベルでアイテム (武器ヘルス、ブーストなど) をスポーンし、イベントを通して、ピックアップされた場合にアイテムとキャラクターを通知する場合
+
+セットアップ方法については、[イベントディスパッチャーのセットアップ](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#イベントディスパッチャー) をご覧ください。 
+
+
+## ブループリント インターフェース
+
+![](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo\InterfaceExample2_5.png)
+
+**ブループリントインターフェース** では、ある特有の機能性を共有する複数タイプのオブジェクトのインタラクションについて共通のメソッドが可能になります。つまり、武器で狙撃されてダメージを受けるといったある特定の共通項がある車や木などの全く異なるタイプのオブジェクトを持つことができます。 
+
+「OnTakeWeaponFire」 関数を格納する **ブループリント インターフェース** を作成し、車と木の両方にその **ブループリントインターフェース** を実装することで、車と木を同様に扱い、どちらかが狙撃されたときに「OnTakeWeaponFire」 関数を呼び出し、異なる反応をさせることができます。
+
+詳しい情報については [](Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces) をご覧ください。 
+
+### いつ使用するのか
+
+以下の各例は、**ブループリント インターフェース** が最良の通信方法であろうシナリオです。 
+
+*	**定義した他の変数とインタラクションする、または他の変数に基づいている場合に異なる結果を生じるいくつかの関数がブループリントにある**
+	*	プレイヤーはフレームスロワー (火災放射器) を持っており、使用すると **ElementalDamage** というイベントが発行するTree ブループリントが呼び出され、Snowman ブループリントが雪だるまを溶かす一方で、木を燃やします。 
+	*	プレイヤーが "use" ボタンを持ち、ボタンを押すとドアが開く、照明をオフにする、アイテムをピックアップするなどを行います。 
+	*	敵がプレイヤーのヘルスに応じて変化する特殊能力を持ちます。 
+
+セットアップ方法については、[ブループリント インタフェースのセットアップ](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#ブループリントインターフェース) をご覧ください。 
+
+
+
+
+
+
+
+
+
+
+

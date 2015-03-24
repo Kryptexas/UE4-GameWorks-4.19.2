@@ -1,0 +1,49 @@
+﻿INTSourceChangelist:2429044
+Availability:Public
+Title:1.ビューポートのナビゲーション
+Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
+Description:最も一般的に用いられるビューポートのナビゲーション制御の概要
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Engine/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Engine/QuickStart/2 "%Engine/QuickStart/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+[REGION:note]
+このチュートリアル シリーズでは **Starter Content** を有効にした新規の **ブランク** のプロジェクトを使用しています。新規プロジェクトの作成、プロジェクト テンプレートの使用およびプロジェクト設置の定義 (**Starter Content** を含む) については、 [](Engine/Basics/Projects/Browser) ページを参照してください。 
+[/REGION]
+
+(**Starter Content** を使って) **ブランクの** プロジェクトを作成すると、読み込み時の最初のレベルは以下のようになります。
+
+![](Engine/QuickStart/2/TableAndChairs.png)
+
+この小さな領域を基準点として、 **ビューポートのカメラ制御** に慣れてください。以下は、アンリアル エンジン 4 でビューポートをナビゲーションする場合に使う、非常に一般的な 3 通りの方法です。レベルのナビゲーションに慣れたら、このガイドの次のページの **アクタの配置** に進んでください。
+
+## 標準の制御
+
+[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#StandardControls]
+
+## WASD 飛行制御
+
+[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#GameControls]
+
+##周回、ドリー 、トラック
+
+[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#MayaLikeControls]
+
+ビューポートのナビゲーションについては [ビューポートの制御](Engine\UI\LevelEditor\Viewports\ViewportControls) を参照してください。
+
+%Steps%

@@ -1,0 +1,8 @@
+INTSourceChangelist:2075845
+Availability:Public
+Title:모바일 프리뷰어
+Crumbs:%ROOT%, Platforms, Platforms/Mobile
+Description:모바일 플랫폼에서 게임 미리보기 입니다.
+
+현재 에디터에서 미리볼 수 있는 방법은 없습니다. 'Enable Mobile Preview' (모바일 프리뷰 켜기) 옵션을 설정하고 독립형 게임을 실행시켜야 합니다.
+모바일 프리뷰어는 디바이스에 가급적 가까이 일치시키기 위한 목적입니다.

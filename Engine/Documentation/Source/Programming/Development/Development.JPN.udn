@@ -1,0 +1,49 @@
+﻿INTSourceChangelist:2291853
+Availability:Public
+Title:開発の設定
+Crumbs: %ROOT%, Programming
+Description:コード環境の設定、コード プロジェクトの作成、アンリアル エンジン ソースでの作業
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		デベロッパー向け一般情報
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Programming/Development/VisualStudioSetup "%Programming/Development/VisualStudioSetup:description%")
+		* [](Programming/Development/Tools "%Programming/Development/Tools:description%")
+		* [](Programming/Development/CodingStandard "%Programming/Development/CodingStandard:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		コード プロジェクトでの作業
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Programming/Development/ManagingGameCode "%Programming/Development/ManagingGameCode:description%")
+			* [](Programming/Development/ManagingGameCode/CppClassWizard) - %Programming/Development/ManagingGameCode/CppClassWizard:description%
+		* [](Programming/Development/CompilingProjects "%Programming/Development/CompilingProjects:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		エンジン ソースでの作業
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](GettingStarted/DownloadingUnrealEngine "%GettingStarted/DownloadingUnrealEngine:description%")
+		* [](Programming/Development/BuildingUnrealEngine "%Programming/Development/BuildingUnrealEngine:description%")
+	[/PARAM]
+[/OBJECT]

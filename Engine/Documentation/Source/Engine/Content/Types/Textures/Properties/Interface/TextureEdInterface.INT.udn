@@ -1,0 +1,119 @@
+Availability: Public
+Title:Texture Editor UI
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/Textures, Engine/Content/Types/Textures/Properties
+Description:Description of the Texture Editor UI.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](TextureTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/texture_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/Textures/Properties/Interface:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/Textures/Properties/Interface:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/Textures/Properties/Interface]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](TextureTopicCompact.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/texture_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/Textures/Properties/Interface:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/Textures/Properties/Interface:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[TOC(end:2)]
+
+
+## Overview
+
+[EXCERPT:Intro]
+The **Texture Properties Editor** allows you to preview a Texture asset and edit its properties.  You can also apply color adjustments and modify compression and LOD settings here.
+
+[/EXCERPT:Intro]
+
+You can open the Texture Editor by **double-clicking** a Texture asset in the **Content Browser**, or by **right-clicking** a Texture asset, and then clicking **Edit** on the context menu.
+
+![Texture Editor UI](Texture_UI.png)
+
+1. **Menu Bar**
+1. **Toolbar**
+1. **Viewport**
+1. **Details Panel**
+
+## Menu Bar
+
+### File
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuFileSave]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuFileSaveOptions]
+
+### Edit
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuEditUndo]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuEditSettings]
+
+### Asset
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetContentBrowser]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetReimport]
+
+
+### Window
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowToolbar]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowViewport]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowDetails]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindow]
+
+## Toolbar
+
+
+| Item | Description |
+| ---- | ----------- |
+| [INCLUDE:Shared/Editors/Common/EditorToolbarItems/#ToolbarSaveIcon] | [INCLUDE:Shared/Editors/Common/EditorToolbarItems/#ToolbarSaveDescription] |
+| [INCLUDE:Shared/Editors/Common/EditorToolbarItems/#ToolbarCBIcon] | [INCLUDE:Shared/Editors/Common/EditorToolbarItems/#ToolbarCBDescription] |
+| ![](TextureUI_Toolbar_Compress.png) | Compresses the Texture according to the settings in the **Compression** section of the **Details** panel. |
+| ![](TextureUI_Toolbar_Reimport.png) | Reimports the current asset from its original location on disk. |
+| ![](TextureUI_Toolbar_Mip.png) | Enables you to change the mip level of the Texture by clicking the check box and dragging the slider bar (or clicking the plus or minus buttons). |
+
+
+## Viewport
+
+![](Texture_UI_Viewport.png)
+
+The viewport displays a preview of the Texture asset.
+
+The upper-left corner of the viewport contains a drop-down **View** menu that gives you options to toggle various channels and settings, and change how the Texture is displayed.
+
+![](TextureUI_Viewport_ViewMenu.png)
+
+You can resize the Texture asset being previewed by dragging the **Zoom** slider in the lower-right corner of the viewport, or by changing the **Fill** setting with the drop-down menu.
+
+## Details Panel
+
+The **Details** panel displays the Texture's various properties, and enables you to modify them. For more information about the specific properties in the Texture Editor's **Details** panel, see [](Engine/Content/Types/Textures\Properties).
+
+For more information about Unreal Engine **Details** panels, see [](Engine/UI/LevelEditor\Details).

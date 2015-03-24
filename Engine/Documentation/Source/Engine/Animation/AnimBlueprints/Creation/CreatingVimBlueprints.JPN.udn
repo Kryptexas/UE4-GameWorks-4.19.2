@@ -1,0 +1,48 @@
+﻿INTSourceChangelist:2181738
+Availability:Public
+Title:Animation ブループリントの作成
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
+Description:スケルトン アセットから新規に Animation ブループリントを作成するためのガイド
+
+
+[TOC (start:2 end:3)]
+
+## 概要
+
+下記 2 通りのいずれかの方法で _Animation ブループリント_ を作成します。
+* 特定のスケルタル メッシュ アセットをターゲットにする。
+* 特定のスケルタル メッシュ アセットには関連づけない。
+
+## スケルタル メッシュをターゲットにして Animation ブループリントを作成する
+
+特定のスケルタル メッシュ アセットをターゲットにした _Animation ブループリント_ を作成するには、以下の作業を行ってください。
+
+1. _Animation ブループリント_ のターゲットとしたいスケルトン アセットを右クリックをして、 **[作成]** > **[アニメーションアセットを作成]** > **[Animブループリントを作成]** を選択します。
+
+	![Create Animation Blueprint - Menu](CE_create_menu.png)
+
+1. 2. ターゲットのスケルタル メッシュ アセットと同じフォルダに、名前変更が準備された状態で _Animation ブループリント_ が作成されます。
+
+	![Create Animation Blueprint - New](CE_create_new.png)
+
+1. 新しい _Animation ブループリント_ の名前を設定して、 **[Enter]** を押します。
+
+	![Create Animation Blueprint - Rename](CE_create_name.png)
+
+1. デフォルト位置に満足がいかない場合は、新しい _Animation ブループリント_ を別のフォルダへドラッグしてください。
+
+	![Create Animation Blueprint - Change Location](CE_create_move.png)(convert:false)
+
+## スケルタル メッシュには関連づけないで Animation ブループリントを作成する
+
+特定のスケルタル メッシュ アセットに関連づけずに _Animation ブループリント_ を作成するには、以下を行います。そのためには、以下の作業を行ってください。
+
+1. **コンテンツ ブラウザ** の空白のスペースを右クリックするか、 **[新規アセット]** ボタンをクリックします。
+
+1. コンテクスト メニューが表示されたら、 **[アニメーション]** をクリックします。
+
+1. **[Animationブループリント]** をクリックします。
+
+	![](CE_create_NoSkel.png)
+
+本ページで前述した手順に従って、新規の _Animation ブループリント_ の名前変更または移動が可能になります。

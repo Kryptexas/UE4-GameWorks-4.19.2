@@ -1,0 +1,71 @@
+﻿Availability: Public
+Title:引用查看器
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:介绍了内容浏览器中的文件夹引用查看器。
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](CB_ReferenceViewer_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/ReferenceViewer:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Browser/ReferenceViewer:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/ReferenceViewer]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+## 概述
+
+_Reference Viewer（引用查看器）_ 显示了一个资源图表，其中有的资源引用了内容浏览器中当前选中的资源，有的资源是内容浏览器中当前选中资源所引用的资源。
+
+要想显示引用查看器，请在内容浏览器中右击选中的一个资源(或多个资源)，然后再出现的关联菜单中，点击 **Reference Viewer（引用查看器）** 。
+
+![Reference Viewer](CB_ReferenceViewer.png)(w:800)
+
+1. 引用选中资源的其他资源。
+1. 选中的资源。
+1. 选中的资源所引用的其他资源。
+
+[REGION:tip]
+您也可以通过在 **资源树** 中右击一个文件夹来访问引用查看器。引用查看器将会显示那个文件夹中所有资源的引用图表。
+[/REGION]
+
+关于 **内容浏览器** 的更多信息，请参照 [](Engine/Content/Browser)。
+
+
+## 搜索选项
+
+在引用查看器的左上角，您可以看到两个和虚幻编辑器使用的搜索相关的选项，以用于构建该图表。
+
+![Search Options](CB_RefViewer2.png)
+
+
+| 项目| 描述|
+| ---- | ----------- |
+| **Search Depth Limit（搜索深度限制）** | 引擎搜索引用时可达到的深度。比如，值为2，意思是该图表不仅显示和选中资源相关的资源，而且还会显示和这些相关资源有关的资源。|
+| **Search Breadth Limit（搜索广度限制）** |特定列（引用或被引用）中可列出的引用的数量。比如，如果一个资源引用了20个资源，但是 **Search Breadth Limit** 的值设为10，那么将仅在那列中显示10个资源。|
+
+
+## 关联菜单选项
+
+要想在图表中查看一个资源的选项，请右击该资源。此时关联菜单将会出现。
+
+| 项目| 描述|
+| ---- | ----------- |
+| **Find in Content Browser（在内容浏览器中查找）** | 在内容浏览器中查找选中的资源。|
+| **Re-Center Graph（重新聚焦图表）** | 围绕选中的资源，使用该资源引用的资源或被该资源引用的资源来重新创建该图表。|
+| **List Referenced Objects（列出被引用的对象）** | 列出被选中资源引用的资源列表。|
+| **List Objects That Reference（列出引用该资源的对象）** | 显示引用选中资源的资源列表。|
+| **Make Collection With Referenced Assets（使用引用的资源创建收藏夹）** | 使用引用该选中资源的资源及被该选中资源引用的资源创建一个收藏夹。|
+| **Show Reference Tree（显示引用树）** |显示选中资源的引用树。注意，根据您的游戏的复杂度不同，这个操作可能要花费一些时间。关于引用树的更多信息，请参照[](Engine/Content/Browser\ReferenceTreeTool).|
+
+

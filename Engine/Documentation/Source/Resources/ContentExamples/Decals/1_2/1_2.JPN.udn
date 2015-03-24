@@ -1,0 +1,72 @@
+﻿INTSourceChangelist:2410153
+Availability:Public
+Title:1.2 - デカールのブレンドモード
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Decals
+Description:デカールの事例概要、例 1.2：デカールのブレンドモード
+Related: Engine/Actors/DecalActor
+Related: Engine/Rendering/Materials/PhysicallyBased
+Related: Engine/Rendering/Materials
+Related: Engine/Rendering/Materials/MaterialProperties/BlendModes
+Related: Engine/Rendering/Materials/ExpressionReference
+Related: Engine/Rendering/Materials/MaterialInputs
+Related: Engine/Rendering/Materials/LayeredMaterials
+Related: Engine/Rendering/Materials/MaterialInstances
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Decals/1_2:title%](Resources\ContentExamples\Decals\Decals_2.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Decals/1_2:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Decals/1_2:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Decals/1_2]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Decals/1_2:title%](Resources\ContentExamples\Decals\Decals_2.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Decals/1_2:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Decals/1_2:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Decals/1_2]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+
+![%Resources/ContentExamples/Decals/1_1:title%](Resources\ContentExamples\Decals\Decals_2.png)
+
+## 概要
+
+この例では、デカールが使用できるブレンドモードを示します。様々なブレンドモードによって、デカールがどのようにサーフェスに影響を及ぼすかが変わります。これは、マテリアル内にある **Decal Blend Mode** プロパティを使用して設定されます。
+
+![](DecalBlendMode.png)
+
+デカールには 4 つのブレンドモードがあります：
+
+* **Translucent** （透過）-Diffuse（ディフューズ）、Metallic（メタリック）、Specular（鏡面反射）、Roughness（ラフネス）、Emissive（エミッシブ）、Opacity（オパシティ）、Normal（法線）を使用できます。 
+* **Stain** - Diffuse と Opacity とチャンネルをブレンドする調整タイプです。
+* **Normal** - Opacity と Normal チャンネルを使用して投影している法線マップレイヤーのみに影響を及ぼします。
+* **Emissive** - Emissive と Opacity チャンネルのみを使用します。
+
+
+[/REGION]

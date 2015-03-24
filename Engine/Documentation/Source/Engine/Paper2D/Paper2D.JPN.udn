@@ -1,0 +1,34 @@
+﻿INTSourceChangelist:2412968
+Title:Paper 2D
+Crumbs: %ROOT%, Engine
+Description:Paper 2D は 2D および 2D/3D のハイブリッドなゲームをアンリアル エンジン 4 で作成するためのスプライト ベースのシステムです。
+Availability:Public
+
+[REGION:banner]
+![](paper2d_banner.png)
+[/REGION]
+
+アンリアル エンジン 4 (UE4) の **Paper 2D** は、2D および 2D/3D のハイブリッドなゲームを完全にエディタ内で作成するためのスプライト ベースのシステムです。Paper 2D の中心部は **スプライト** です (Texture Mapped Planar Mesh と関連するマテリアルになります)。**スプライト エディタ** を使って UE4 内でスプライトを編集し、 **Flipbooks** を使ってスプライト ベースのアニメーション (キーフレームを使って一連のスプライトを順番にアニメートし、フレーム単位で継続時間を指定してそれらを表示) を作成することが可能です。 
+
+詳細およびサンプルについては、 **コンテンツ サンプル** プロジェクトにある **Paper 2D** マップを参照してください。 
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/project_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	Paper 2D topics
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Paper2D/Sprites "%Engine/Paper2D/Sprites:description%")
+			* [](Engine/Paper2D/Sprites/Editor "%Engine/Paper2D/Sprites/Editor:description%")
+			* [](Engine/Paper2D/Sprites/RenderGeometry "%Engine/Paper2D/Sprites/RenderGeometry:description%")
+			* [](Engine\Paper2D\Sprites\Collision "%Engine\Paper2D\Sprites\Collision:description%")
+		* [](Engine\Paper2D\Flipbooks"%Engine\Paper2D\Flipbooks:description%")
+			* [](Engine/Paper2D/Flipbooks/Editor "%Engine/Paper2D/Flipbooks/Editor:description%")
+			* [](Engine\Paper2D\Flipbooks\Components "%Engine\Paper2D\Flipbooks\Components:description%")
+		* [](Resources/ContentExamples/Paper2D "%Resources/ContentExamples/Paper2D:description%")
+		* [Pater 2D 動画チュートリアル](https://docs.unrealengine.com/latest/INT/Videos/index.html?category=2D)
+	[/PARAM]
+[/OBJECT]
+

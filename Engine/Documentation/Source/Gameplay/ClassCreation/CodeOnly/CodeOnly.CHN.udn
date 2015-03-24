@@ -1,0 +1,175 @@
+��Availability:Public
+Title:仅使用C++
+Crumbs: %ROOT%, Programming
+Description:为使用虚幻引擎的游戏开发入门人员提供的入门信息。
+
+## 概述
+
+通过使用[](Programming\Development\ManagingGameCode\CppClassWizard)，您可以轻松地向您的项目中添加新的C++类。当您选择完想让新类继承的父类后，该向导将
+创建必要的头文件和源文件。如果这是您添加到您的项目中的第一段代码，那么该项目会被转换成代码项目，将创建 
+包含您的源码的游戏模块。该向导还会让虚幻编辑器知道存在该游戏模块，以便它可以从Visual Studio 或 Xcode中加载您的C++代码改变，任何微小的改变都可以在虚幻编辑器中进行编译。
+
+仅使用C++代码创建的LightSwitch类的名称是 **LightSwitchCodeOnly** ，以下进行了解释。
+
+## 类设置
+
+使用  [](Programming\Development\ManagingGameCode\CppClassWizard) 创建 **LightSwitchCodeOnly** 类，且选择 **Actor** 作为父类。
+
+头文件 `LightSwitchCodeOnly.h` 中包含了该类的声明。
+
+		UCLASS()
+		class ALightSwitchCodeOnly : public AActor
+		{
+			GENERATED_UCLASS_BODY()
+	
+		};
+
+使用 **C++ 类向导** 创建的类声明自动通过  `UCLASS()`  宏进行处理。
+`UCLASS()` 宏使得引擎意识到这个类的存在，并且还可以同键盘修饰符结合使用来在引擎中设置该类的行为。
+
+类声明包含很多属性 和/或 函数声明。这些可以通过  `UPROPERTY()` 和 `UFUNCTION()` 分别进行处理，这些宏的功能和 
+`UCLASS()` 宏类似。组件也设置为属性。
+
+在 `LightSwitchCodeOnly.h` 中， C++用于：
+* 声明PointLightComponent 和 SphereComponent， 并将二者都设置为 `VisibleAnywhere（随处可见）` 。
+这意味着可以在LightSwitchCodeOnly  Actor的 **Details（详细信息）** 选卡中修改它们的属性。
+
+		/** point light component */
+		UPROPERTY(VisibleAnywhere, Category="Switch Components")
+		TSubobjectPtr<UPointLightComponent> PointLight1;
+
+		/** sphere component */
+		UPROPERTY(VisibleAnywhere, Category="Switch Components")
+		TSubobjectPtr<USphereComponent> Sphere1;
+* 声明 `OnOverlap` 函数, 当另一个Actor和SphereComponent相重叠时将调用该函数。
+
+		/** called when something overlaps the sphere component */
+		UFUNCTION()
+		void OnOverlap(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+* 声明 `DesiredBrightness` 属性，并使用 `VisibleAnywhere` 修饰符设置该属性为在任何地方都可见。此属性将显示在 LightSwitchCodeOnly Actor的 **Details（详细信息）** 选卡中的  **Switch Properties（切换属性）** 类目中。
+对于不是子对对象的属性，比如这个浮点值，  `VisibleAnywhere` 修饰符将使得该属性显示在 **详细信息** 选卡中。您还可以使用  `EditAnywhere`  
+修饰符，但是由于 `DesiredBrightness`  属性仅在把Actor添加到关卡中时使用，所以不需要设置成为可编辑的。
+
+		/** the desired brightness for the light */
+		UPROPERTY(VisibleAnywhere, Category="Switch Properties")
+		float DesiredBrightness;
+
+
+最终的头文件如下所示：
+
+[REGION:codetitlebar]
+LightSwitchCodeOnly.h
+[/REGION:codetitlebar]
+
+		// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+		#pragma once
+
+		#include "LightSwitchCodeOnly.generated.h"
+
+		/**
+		 * 
+		 */
+		UCLASS()
+		class ALightSwitchCodeOnly : public AActor
+		{
+			GENERATED_UCLASS_BODY()
+
+			/** point light component */
+			UPROPERTY(VisibleAnywhere, Category="Switch Components")
+			TSubobjectPtr<UPointLightComponent> PointLight1;
+
+			/** sphere component */
+			UPROPERTY(VisibleAnywhere, Category="Switch Components")
+			TSubobjectPtr<USphereComponent> Sphere1;
+
+			/** called when something overlaps the sphere component */
+			UFUNCTION()
+			void OnOverlap(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+			/** the desired brightness for the light */
+			UPROPERTY(VisibleAnywhere, Category="Switch Properties")
+			float DesiredBrightness;
+	
+		};
+
+
+**C++ 类向导** 还会创建类的源文件，在这个示例中，就是 `LightSwitchCodeOnly.cpp` 文件。默认情况下，源文件具有基本的包含文件设置及类构造器。
+
+		ALightSwitchCodeOnly::ALightSwitchCodeOnly(const FObjectInitializer& ObjectInitializer)
+			: Super(ObjectInitializer)
+		{
+
+		}
+
+在 `LightSwitchCodeOnly` 构造器中, C++代码用于: 
+* 设置Desired Brightness（期望的亮度）属性的值为15。
+	
+		DesiredBrightness = 15.0f;
+* 创建PointLightComponent，设置其属性 (包括设置其亮度为 `DesiredBrightness` 的值), 并使它成为根组件。
+
+		PointLight1 = ObjectInitializer.CreateDefaultSubobject<UPointLightComponent>(this, "PointLight1");
+		PointLight1->Brightness = DesiredBrightness;
+		PointLight1->bVisible = true;
+		RootComponent = PointLight1;
+		Components.Add(PointLight1);
+* 创建SphereComponent、设置其属性，并将其附加到PointLightComponent上。
+
+		Sphere1 = ObjectInitializer.CreateDefaultSubobject<USphereComponent>(this, TEXT("Sphere1"));
+		Sphere1->InitSphereRadius(250.0f);
+		Sphere1->AttachParent = RootComponent;
+		Components.Add(Sphere1);
+* 当一个Actor和SphereComponent相重叠或者离开SphereComponent时，指定OnOverlap函数作为代理进行调用。
+
+		Sphere1->OnComponentBeginOverlap.AddDynamic(this, &ALightSwitchCodeOnly::OnOverlap);		// set up a notification for when this component overlaps something
+		Sphere1->OnComponentEndOverlap.AddDynamic(this, &ALightSwitchCodeOnly::OnOverlap);		// set up a notification for when this component overlaps something
+
+源文件中也可以定义您的类声明中的函数。比如， `LightSwitchCodeOnly.cpp` 中有 `OnOverlap` 函数的实现，该函数 
+用于切换PointLightComponent的可见性。这些定义和类构造器组合到一起，最终源码文件如下所示：
+[REGION:codetitlebar]
+LightSwitchCodeOnly.cpp
+[/REGION:codetitlebar]
+
+	// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+	#include "BasicClasses.h"
+	#include "LightSwitchCodeOnly.h"
+
+	ALightSwitchCodeOnly::ALightSwitchCodeOnly(const FObjectInitializer& ObjectInitializer)
+		: Super(ObjectInitializer)
+	{
+		DesiredBrightness = 15.0f;
+
+		PointLight1 = ObjectInitializer.CreateDefaultSubobject<UPointLightComponent>(this, "PointLight1");
+		PointLight1->Brightness = DesiredBrightness;
+		PointLight1->bVisible = true;
+		RootComponent = PointLight1;
+		Components.Add(PointLight1);
+
+		Sphere1 = ObjectInitializer.CreateDefaultSubobject<USphereComponent>(this, TEXT("Sphere1"));
+		Sphere1->InitSphereRadius(250.0f);
+		Sphere1->OnComponentBeginOverlap.AddDynamic(this, &ALightSwitchCodeOnly::OnOverlap);		// set up a notification for when this component overlaps something
+		Sphere1->OnComponentEndOverlap.AddDynamic(this, &ALightSwitchCodeOnly::OnOverlap);		// set up a notification for when this component overlaps something
+		Sphere1->AttachParent = RootComponent;
+		Components.Add(Sphere1);
+
+	}
+
+	void ALightSwitchCodeOnly::OnOverlap(AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+	{
+		if ( OtherActor && (OtherActor != this) && OtherComp )
+		{
+			PointLight1->ToggleVisibility();
+		}
+	}
+
+当创建类时，新的 `UCLASS()` 、`UFUNCTION()` 和/或 `UPROPERTY()` 宏意味着该代码必须在Visual Studio 或Xcode中进行编译，然后使用虚幻编辑器重新加载它们。
+关闭虚幻编辑器，在Visual Studio 或Xcode中编译该项目，然后打开编辑器并重新加载该项目，以确保正确地重新加载该游戏模块。同时，需要注意的一点是，
+要确保 **Build Configuration（版本配置）** 和您打开该项目使用的虚幻编辑器可执行文件的版本一致。 请在 
+[](Programming\Development\CompilingProjects)文档中阅读关于编译配置及编译项目的更多信息。
+
+C++类既即可以通过C++类进行扩展也可以通过类蓝图进行扩展。在  **C++类向导** 中及在类蓝图创建过程中 
+的 **Pick Parent Class（选择父类）** 窗口的 **Custom Classes（自定义类）** 部分中选中 **Show All Classes（显示所有类）** 复选框，  便可以显示这两种扩展选项。
+
+LightSwitchCodeOnly类位于 [](Engine/UI/ClassViewer)中，可以从那里将其拖拽到关卡中。关于使用 **类查看器** 在关卡放置Actor的更多信息，请参照[](Engine/Actors/Placement) 文档。
+ 

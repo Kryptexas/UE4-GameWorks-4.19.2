@@ -1,0 +1,221 @@
+Availability:Public
+Title:FBX Import Options Reference
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:Explanations of the options available in the FBX Import Options dialog.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/ImportOptions:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/ImportOptions:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/ImportOptions:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/ImportOptions]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC (start:2 end:3)]
+
+## Overview
+
+While importing FBX files into Unreal Engine 4 is a relatively simple procedure, there are quite a few options available for tweaking the imported asset. This document will cover those options.
+
+When you import content through the **Content Browser** using the FBX pipeline, the **FBX Import Options** dialog appears. The importer will automatically detect what kind of file you are attempting to import and adjust its interface accordingly.
+
+
+[EXCERPT:staticMeshes]
+## Static Mesh Options
+
+The options available when importing a _StaticMesh_ using FBX are explained below.
+
+![](StaticMeshImportOptions.png)
+
+| Option | Description |
+| ------ | ----------- |
+| [REGION:tablesection]Mesh[/REGION] ||
+| **Import as Skeletal** | For Static Meshes: This will attempt to import the FBX file as a Skeletal Mesh. The import options will switch to handle importing the FBX file as a Skeletal Mesh. |
+| **Auto Generate Collision** | This will automatically generate collision for your Static Mesh. This will not be used if custom collision is detected in the FBX file. |
+| **Static Mesh LODGroup** | This dropdown allows you to choose the LOD group to which the mesh will be assigned. Mesh LOD groups define default level-of-detail settings, light map resolution, and permit global overrides (e.g. reduce all _SmallProp_ LODs by 10%). Mesh LOD group settings may be overridden per-platform / device profile. You may select an LOD group at import time and change it at any time in the **Static Mesh Editor**.| 
+| **Replace Vertex Colors** | If enabled, vertex colors on an existing mesh are replaced with the vertex colors from the FBX file. Disable this to preserve vertex colors painted within the editor using the [Mesh Paint](Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor) tool. |
+| **Remove Degenerates** | If enabled, degenerate triangles found during import will be removed. Disabling this option will keep degenerate triangles found. In general, this option should be enabled. |
+| **Generate Lightmap UVs** | If enabled, the importer will generate a set of unique, non-overlapping, UVs for use with static lighting.  |
+| **One Convex Hull per UCX** | This option forces all UCX meshes to receive one convex hull. If disabled, then a UCX mesh could be decomposed by the engine into a series of convex hulls to get the appropriate shape. |
+| **Import Mesh LODs** | [INCLUDE:#FBX_LODs] |
+| **Normals** | [INCLUDE:#NormalsImport] [INCLUDE:#NormalsDesc] |
+| **Combine Meshes** | If enabled, all Static Meshes contained in the FBX scene are combined into a single Static Mesh. | 
+| [REGION:tablesection]Material[/REGION] ||
+| **Import Materials** | [INCLUDE:#FBX_ImportMaterials] |
+| **Import Textures** | If enabled, Textures referenced in the FBX file are imported into Unreal. If **Import Materials** is _true_, textures are always imported regardless of this setting. |
+| **Invert Normal Maps** | If enabled and textures are being imported, normal maps values will be inverted. |
+| [REGION:tablesection]Miscellaneous[/REGION] ||
+| **Override FullName** | If enabled and the FBX file only contains one mesh, the name specified in the import path field will be used as the full name for the imported mesh. Otherwise, the [Naming Rules](#NamingConventions) will be used. |
+| **Convert Scene** | If enabled, this will convert the scene FBX scene coordinate system to the Unreal Engine 4 coordinate system. |
+
+[/EXCERPT:staticMeshes]
+
+## Skeletal Mesh Options
+
+The options available when importing a _SkeletalMesh_ using FBX are explained below.
+
+![](SkeletalMeshFBXOptions.png)
+
+
+| Option | Description |
+| ------ | ----------- |
+| [REGION:tablesection]Mesh[/REGION] ||
+| **Import Mesh** | For Skeletal Meshes, disabling this will have the importer attempt to import the FBX file as an Animation. |
+| **Import as Skeletal** | For Skeletal Meshes, disabling this will have the importer attempt to import the FBX file as a Static Mesh. |
+| **Skeleton** | The [Skeleton](Engine/Animation/Overview#Skeleton) the SkeletalMesh should target. If no existing Skeleton is selected, a new one will be created from the SkeletalMesh being imported. The new Skeleton's name will be that of the SkeletalMesh with _Skeleton_ appended. |
+| **Update Skeleton Reference Pose** | If enabled, this will update the Reference Pose of Skeleton Asset of the Skeletal Mesh/Animation being imported, to the reference pose in the FBX file being imported. |
+| **Use T0As Ref Pose** | If enabled, the first frame (frame 0) of the animation track will be used to replace the Skeletal Mesh's reference pose. |
+| **Preserve Smoothing Group** | If enabled, triangles with non-matching smoothing groups will be physically split, duplicating shared vertices. |
+| **Import Meshes in Bone Hierarchy** | If enabled, meshes nested in bone hierarchies will be imported instead of being converted to bones. |
+| **Import Morph Targets** | If enabled, [MorphTargets](Engine/Content/FBX/MorphTargets) will be imported from the FBX files along with the SkeletalMesh. |
+| **Import Mesh LODs** | If enabled, creates LOD models for Unreal meshes from LODs defined in the file. Otherwise, only the base mesh from the LOD group is imported. For skeletal meshes, the LOD models can be skinned to the same skeleton, or a different skeleton. If the LOD model is skinned to a different skeleton, it must meet the Unreal LOD requirements, with the exception that the name of the root bones can be different since the FBX importer renames the root bones automatically. |
+| **Normal Import Method** | Allows for control of how Normals will be handled. The options are as follows: [INCLUDE:#NormalsDesc] |
+| **Create PhysicsAsset** | If enabled, this will generate a new PhysicsAsset for the imported Skeletal Mesh. The PhysicsAsset will be composed of mostly spheres (with the exception being the root which will be a capsule/SphrL object), with the constraints being completely free on all rotational axis and completely locked on positional axis.|
+| **Select PhysicsAsset** | If Create PhysicsAsset is disabled, you will be able to choose a PhysicsAsset that already exists or **none** to simply not have the Skeletal Mesh associated with a PhysicsAsset. |
+| [REGION:tablesection]Animation[/REGION] ||
+| **Import Animation** | If enabled, [Animations](Engine/Content/FBX/Animations) will be imported from the FBX files along with the SkeletalMesh. A name for the Animation can be entered in the text box to override the default naming. |
+| **Animation Length** | [INCLUDE:#animlength] |
+| **Start Frame** | When _Set Range_ is used in **Animation Length**, this will enable you to set the start frame of the animation you wish to import. |
+| **End Frame** | When _Set Range_ is used in **Animation Length**, this will enable you to set the end frame of the animation you wish to import. |
+| **Import Custom Attribute** | This will import Custom Attributes as animation curves. |
+| **Animation Name** | The name to assign the animation. If nothing is entered here, the [Naming Rules](#NamingConventions) will be used. |
+| **Use Default Sample Rate** | If _true_, the default sample rate of 30 frames-per-second is used for the animation. If unchecked, the system determines the sample rate from the FBX file. |
+| [REGION:tablesection]Material[/REGION] ||
+| **Import Materials** | [INCLUDE:#FBX_ImportMaterials] |
+| **Import Textures** | If enabled, Textures referenced in the FBX file are imported into Unreal. If **Import Materials** is _true_, textures are always imported regardless of this setting. |
+| **Invert Normal Maps** | If enabled and textures are being imported, normal maps values will be inverted. |
+| [REGION:tablesection]Miscellaneous[/REGION] ||
+| **Override FullName** | If enabled and the FBX file only contains one mesh, the name specified in the import path field will be used as the full name for the imported mesh. Otherwise, the [Naming Rules](#NamingConventions) will be used. |
+| **Convert Scene** | If enabled, this will convert the scene FBX scene coordinate system to the Unreal Engine 4 coordinate system. |
+
+## Animation Options
+
+The options available when importing an Animation using FBX are explained below.
+
+![](AnimationImportOptions.png)
+
+
+| Option | Description |
+| ------ | ----------- |
+| [REGION:tablesection]Mesh[/REGION] ||
+| **Skeleton** | The [Skeleton](Engine/Animation/Overview#Skeleton) the SkeletalMesh should target. If no existing Skeleton is selected, a new one will be created from the SkeletalMesh being imported. The new Skeleton's name will be that of the SkeletalMesh with _Skeleton_ appended. |
+| [REGION:tablesection]Animation[/REGION] ||
+| **Animation Length** | [INCLUDE:#animlength] |
+| **Start Frame** | When _Set Range_ is used in **Animation Length**, this will enable you to set the start frame of the animation you wish to import. |
+| **End Frame** | When _Set Range_ is used in **Animation Length**, this will enable you to set the end frame of the animation you wish to import. |
+| **Import Custom Attribute** | This will import Custom Attributes as animation curves. |
+| **Animation Name** | The name to assign the animation. If nothing is entered here, the [Naming Rules](#NamingConventions) will be used. |
+| **Use Default Sample Rate** | If _true_, the default sample rate of 30 frames-per-second is used for the animation. If unchecked, the system determines the sample rate from the FBX file. |
+| [REGION:tablesection]Miscellaneous[/REGION] ||
+| **Override FullName** | If enabled and the FBX file only contains one mesh, the name specified in the import path field will be used as the full name for the imported mesh. Otherwise, the [Naming Rules](#NamingConventions) will be used. |
+| **Convert Scene** | If enabled, this will convert the scene FBX scene coordinate system to the Unreal Engine 4 coordinate system. |
+
+
+(#NamingConventions)
+## Naming Rules
+
+The table below shows how the various content types will be named when **Override FullName** is enabled.
+
+[REGION:note]
+The table assumes the following:
+* **%1** is the name of the asset being imported, i.e. the last part of the **Import Path**.
+* **%2** is the mesh node name in the FBX file. For SkeletalMesh, if it is composed of multiple FBX meshes, the first FBX mesh name is used as the part of FBX node name.
+[/REGION]
+
+| Content Type | Naming Rules |
+| ------------ | ------------ |
+|  **StaticMesh**  | [INCLUDE:#StaticMeshNaming] |
+|  **SkeletalMesh**  | [INCLUDE:#SkeletalMeshNaming] |
+|  **AnimationSequence**  | [INCLUDE:#AnimationNaming] |
+|  **MorphTarget**  | [INCLUDE:#MorphTargetNaming] |
+
+
+
+<!--
+[EXCERPT:StaticMeshNaming]
+If **Override FullName** is:
+* **Enabled**
+	* If single mesh in file - Named as _%1_
+	* If multiple meshes in file and **Combine Meshes** is:
+		* **Enabled** - Named as _%1_
+		* **Disabled** - Named as _%1\_%2_
+* **Disabled**
+	* If single mesh in file - Named as _%1\_%2_
+	* If multiple meshes in file and **Combine Meshes** is:
+		* **Enabled** - Named as _%1_
+		* **Disabled** - Named as _%1\_%2_
+[/EXCERPT:StaticMeshNaming]
+
+[EXCERPT:SkeletalMeshNaming]
+If **Override FullName** is:
+* **Enabled**
+	* If single mesh in file - Named as _%1_
+	* If multiple meshes in file - Named as _%1\_%2_
+* **Disabled** - Named as _%1\_%2_
+[/EXCERPT:SkeletalMeshNaming]
+
+[EXCERPT:AnimationNaming]
+If importing Animation with SkeletalMesh:
+* If animation name entered (considered %1 in this case):
+	* If single sequences in file - Named as _%1_
+	* If multiple sequences in file - Named as _%1\_%2_
+* If no name entered - Named as _%1\_%2_
+
+
+If importing only Animation:
+* If single sequences in file - Named as _%1_
+* If multiple sequences in file - Named as _%1\_%2_
+[/EXCERPT:AnimationNaming]
+
+[EXCERPT:MorphTargetNaming]
+Uses the names of the MorphTarget nodes in the FBX file.
+[/EXCERPT:MorphTargetNaming]
+
+
+[EXCERPT:NormalsImport]
+This import option adjusts how Normals will be handled. The options are as follows:
+[/EXCERPT:NormalsImport]
+
+[EXCERPT:NormalsDesc]
+[REGION:simpletable]
+	| **Option** | **Description** |
+	| ---- | ---- |
+	| **Calculate Normals** | The engine computes normals and tangents. Smoothing group and normal info is discarded from the FBX info. |
+	| **Import Normals** | The normals are imported from the FBX file, tangents are computed by the engine. |
+	| **Import Normals and Tangents** | The normals and tangents are imported from the FBX file and nothing is computed by the engine. |
+[/REGION]
+[/EXCERPT:NormalsDesc]
+
+
+[EXCERPT:FBX_ImportMaterials]
+[REGION:raw]
+Materials are created in Unreal for each of the materials found in the FBX file. Above and beyond this, textures referenced in the FBX material will automatically be imported and if an equivalent property exists, they will be connected to those properties. Those that are not supported will be left floating free, awaiting hook up to the Unreal Material Editor. 
+[/REGION]
+[/EXCERPT:FBX_ImportMaterials]
+
+[EXCERPT:FBX_LODs]
+Creates LOD models for Unreal meshes from LODs defined in the file. Otherwise, only the base mesh from the LOD group is imported. For Skeletal Meshes, the LOD models can be skinned to the same skeleton, or a different skeleton. If the LOD model is skinned to a different skeleton, it must meet the Unreal LOD requirements, with the exception that the name of the root bones can be different since the FBX importer renames the root bones automatically.
+[/EXCERPT:FBX_LODs]
+
+[EXCERPT:AnimLength]
+[REGION:simpletable]
+	| **Option** | **Description** |
+	| ---- | ---- |
+	| **Exported Time** | This option imports animation frames based on what is defined at the time of export. |
+	| **Animated Time** | Will import the range of frames that have animation. Can be useful if the exported range is longer than the actual animation in the FBX file. |
+	| **Set Range** | This will enable the Start Frame and End Frame properties for you to define the frames of animation to import. |
+[/REGION]
+[/EXCERPT:AnimLength]
+-->

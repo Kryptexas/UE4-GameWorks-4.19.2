@@ -1,0 +1,102 @@
+﻿INTSourceChangelist:2362600
+Availability:Public
+Title:3.キャラクターの変数を設定する
+Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
+Description:UMG クイックスタート ガイドの 3 番めのステップでは、HUD で表示されるキャラクターと変数をセットアップします。 
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/UMG\QuickStart\2 "%Engine/UMG\QuickStart\2:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/UMG\QuickStart) 
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/UMG\QuickStart\4 "%Engine/UMG\QuickStart\4:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+	[/PARAM]
+	[PARAM:description]
+
+以下の手順では、HUD に表示するいくつかの変数をキャラクターに追加します。 
+
+1. **「ゲーム / ブループリント」** フォルダで **MyCharacter** ブループリントを開きます。 
+
+1. **MyBlueprint** ウィンドウで 2 つの **Float** 変数 (**P_Health**、**P_Energy**) を作成します。 
+
+1.  [詳細] パネルで **Compile** をクリックして、**デフォルト値** をそれぞれ **1.0** に設定します。 
+
+1. さらに、2 つの **Int** 変数 (**P_AmmoMax**、**P_CurrentAmmo**) を作成し、両方とも **25** に設定します。
+
+		![](New_1.png)
+
+1. グラフ ウィンドウで、 "Jump" セクションを探します。次に、**Alt** キーを押しながら、**P_Energy** 変数をドラッグしてそれを **Jump** の後に入れます。 
+
+		![](New_2.png)(w:800)
+
+		これで **Set** ノードが作成され、ジャンプの後にこの変数を設定できるようになり、エネルギーを減らすことができます。
+		1. **Control** キーを押しながら、**P_Energy** 変数を再度ドラッグして、それを **Float - Float** ノード (**.25** に設定) に接続してから以下のように接続します。
+
+		![](New_3.png)
+
+		これで現在のエネルギー値を **Get** し、ジャンプが実行されるたびにそこから 0.25 を差し引いて、HUD に表示されます。
+
+1. ジャンプ セクションの任意の場所で **右クリック** して、**F** キーイベントの追加を検索します。 
+
+		![](New_4.png)
+
+		**F** キーが押されるたびに、ダメージを受け、ヘルス値を差し引くシミュレーションをしてみましょう。
+
+1. **Alt** キーを押しながら **P_Health** をドラッグし、**Control** キーを押しながら **P_Health** をドラッグし、上記でエネルギーを取得するために使用した方法のように変数を **Set**/**Get** します。
+
+1. 以下のようにノードを **F** キー **Pressed** ピンに接続します。 
+
+		![](New_5.png)
+
+		**Random Float in Range** ノードを追加して、適用される多様なダメージに対して 0.025 から 0.075 の間のランダムな値を差し引くようにしました。
+
+1. "Spawn projectile" セクションを探して **InputActionFire** ノードの後に **Branch** ノードを追加し、**True** を **Montage Play** ノードに接続します。
+
+1. **Branch** 条件では、**Control** キーを押しながら **P_CurrentAmmo** 変数をドラッグし、それを **>** ノード (0 に設定) に接続し、それを **Condition** に接続します。 
+
+		![](New_6.png)(w:800)
+
+		上記の結果、現在の弾薬が 0 よりも大きい場合に限りプレイヤーが発射物を発砲できるようにします。
+
+1. さらに、"Spawn projectile" では、**Play Sound** ノードのコードの終わりで **P_CurrentAmmo** を **P_CurrentAmmo - 1** に、**Set** します。 
+
+		![](New_7.png)
+
+		上記の結果、発砲するたびに弾薬から 1 を差し引き、その情報を HUD で伝えます。
+
+1. **[Compile]** ボタンと **[Save]** ボタンをクリックし、ブループリントを閉じます。 
+
+	[/PARAM]
+	[PARAM:links]
+	[/PARAM]
+[/OBJECT]
+
+次のセクションでは、Ammo、Health、Energy を **Widget ブループリント** に接続し、インゲームの HUD で表示するようにします。 
+
+---
+
+%Steps%
+
+
+
+

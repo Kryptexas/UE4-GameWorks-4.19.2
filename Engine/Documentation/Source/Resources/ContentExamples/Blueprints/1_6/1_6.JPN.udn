@@ -1,0 +1,61 @@
+﻿Availability:Public
+Title:1.6 - 簡単な計算
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
+Description:ブループリントの事例概要、例1.6：簡単な計算
+Related: Engine/Blueprints/Overview 
+Related: Engine/Blueprints/UserGuide/Components
+Related: Engine/Blueprints/UserGuide/Variables
+Related: Engine/Blueprints/UserGuide/BlueprintComms
+Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
+Related: Engine/Animation/AnimBlueprints/EventGraph
+Related: Engine/Blueprints/UserGuide/UserConstructionScript
+Related: Gameplay/HowTo/SetUpInput/Blueprints
+
+
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\Blueprints\1_6:title%](blueprint_1_6_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\Blueprints\1_6:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\Blueprints\1_6:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\Blueprints\1_6]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+
+## 概要
+
+この例はブループリント内のデータで実行する簡易な数学方程式を実演します。ゲームの実行時間を加算して、Text Render コンポーネントへ秒数を適用します。 
+
+## コンポーネント
+この例のコンポーネントは、2つのText Render コンポーネントで構成されています。片方のコンポーネントは単に経過した秒数を表示し、もう片方はテキストのラベルを提供します。
+
+![](1.6Components.png)(w:500)
+
+## コンストラクションスクリプト
+このゲームプレイのコンストラクションスクリプトは、Text Render コンポーネントのテキストを、プライベート変数 IntegerVariable の値に設定します。データは、Text Render コンポーネントの _Text_ プロパティと互換性をもたせるために、文字列型に変換します。
+
+![](1.6ConstructionScript.png)
+
+##EventGraph (イベントグラフ)
+
+このブループリントのイベントグラフは加算処理をします。
+
+![](1.6EventGraph.png)
+
+
+1. ティックごと (Event Tick)
+	1. 1秒遅れて開始
+	1. 遅延の最後に、IntegerVariable の現在の値に 1 を加算して、合計値をIntegerVariableの新しい値として設定します。
+	1. TextRenderComponent のテキストを IntegerVariable の値に設定します。この値は、文字列型へ変換されます。
+
+[/REGION]

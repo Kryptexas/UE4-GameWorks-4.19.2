@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:1903621
+Availability: Docs
+Title:1.2 -自定义可破坏物体
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Destructables
+Description: 破坏性示例关卡概述，示例1.2： 自定义可破坏物体
+
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Destructables/1_2:title%](Resources/ContentExamples/Destructables/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Destructables/1_2:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Destructables/1_2:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Destructables/1_2]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth raw]
+![](Resources/ContentExamples/Destructables/physics_banner.png)
+[/REGION]
+
+在虚幻引擎4中，可以从诸如Max或Maya的第三方程序中导入自定义可破坏物体。 只要您最终能将该物体导出为FBX格式，您可以使用任意种类的插件来创建可破坏网格物体。 该FBX文件可以随后作为Destructible（可破坏）编辑器窗口内的首个 **Destruction Depth** （可破坏深度）来导入到虚幻引擎4中。 然后我们可使用Voronoi来创建第二个 **Destruction Depth** （可破坏深度） 当前要创建超过2个 **Destruction Depths** （可破坏深度）必须要借助于Nvidia Physix Lab，若仅仅使用虚幻引擎4，您可以通过导入自定义可破坏物体的FBX格式文件，然后对其运行Voronoi来获得第一和第二层的可破坏深度。
+
+[REGION:lightbox]
+[![](1_2_solid.png)(w:300)](1_2_solid.png) [![](1_2_fractured.png)(w:300)](1_2_fractured.png) [![](1_2_blown.png)(w:300)](1_2_blown.png)
+[/REGION]

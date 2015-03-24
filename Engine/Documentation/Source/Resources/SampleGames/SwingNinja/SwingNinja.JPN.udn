@@ -1,0 +1,12 @@
+﻿INTSourceChangelist:2422269
+Availability:Docs
+Title:Swing Ninja のサンプル
+Crumbs:%ROOT%, Resources
+Description: Swing Ninja ゲームに関するドキュメント
+
+[REGION:banner]
+![](SwingNinjaBanner.png)
+[/REGION]
+
+**Swing Ninja** は簡易版のデモサンプルゲームです。プレイヤーが忍者のキャラクターをコントロールし、忍者が鉤縄 (grappling rope) を使用してレベルをあちこちと吊るされて、コインを集めるゲームです。このゲームは全体的にブループリント ビジュアル スクリプティングを使用して構築され、プログラマではなく、一名のアーティストによって開発されました。このプロジェクトの目標は、モバイル プラットフォーム向けの小規模チーム開発に焦点をあてた簡易版の概念実証ゲームを制作することでした。
+

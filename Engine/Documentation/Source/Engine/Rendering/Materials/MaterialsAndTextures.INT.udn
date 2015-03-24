@@ -1,0 +1,319 @@
+Availability:Public
+Title:Materials 
+Crumbs: %ROOT%, Engine
+Description:Controlling the appearance of surfaces in the world using shaders.
+Navigation:topic
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/Materials:title%](%ROOT%/Engine/Rendering/Materials/Materials_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials:title%](%ROOT%/Engine/Rendering/Materials/Materials_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:banner]
+![Materials](materials.png)
+[/REGION]
+
+[INCLUDE:Shared/Glossary/M/#Glossary_Material]
+
+
+[REGION:topics third]
+%Engine/Rendering/Materials/IntroductionToMaterials:topiccompact%
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials\Editor:title%](MatEditorUserGuideTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		Material Editor Reference
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials\Editor:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials\Editor]
+	[/PARAM]  
+[/OBJECT]
+
+%Engine/Rendering/Materials/HowTo:topiccompact%
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials\MaterialProperties:title%](MatProps.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials\MaterialProperties:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials\MaterialProperties:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials\MaterialProperties]
+	[/PARAM]  
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials\MaterialInputs:title%](MaterialInputsTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials\MaterialInputs:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials\MaterialInputs:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials\MaterialInputs]
+	[/PARAM]  
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials\MaterialInstances:title%](InstanceTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials\MaterialInstances:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials\MaterialInstances:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials\MaterialInstances]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials\LayeredMaterials:title%](LayeredMaterialsTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials\LayeredMaterials:title%
+	[/PARAM]c
+	[PARAM:description]
+		%Engine/Rendering/Materials\LayeredMaterials:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials\LayeredMaterials]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference:title%](Engine/Rendering/Materials/ExpressionReference/exp_ref_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials/ExpressionReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials/ExpressionReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/ExpressionReference]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference:title%](FunctionTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials/Functions:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials/Functions:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/Functions]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ParameterCollections:title%](ParamCollectTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials/ParameterCollections:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials\ParameterCollections:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials\ParameterCollections]
+	[/PARAM]  
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/CustomizedUVs:title%](Engine/Rendering/Materials/CustomizedUVs/CUVs_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/tech_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials/CustomizedUVs:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials/CustomizedUVs:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/CustomizedUVs]
+	[/PARAM]
+[/OBJECT]
+[/REGION]
+
+## Physically-Based Shading
+
+Unreal Engine 4 utilizes a _physically based shading model_. This means that rather than defining a Material using arbitrary properties (such as Diffuse Color and Specular Power), you instead use properties more easily relatable to the real world. These include Base Color, Metallic, Specular, and Roughness. For more information, please see the page below.
+
+[REGION:topics third]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials\PhysicallyBased:title%](Engine/Rendering/Materials/PhysicallyBased/physically_based_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials\PhysicallyBased:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials\PhysicallyBased:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials\PhysicallyBased]
+	[/PARAM]
+[/OBJECT]
+[/REGION]
+
+_The above page is designed to provide in-depth details about our shift to this model, along with some of the technical considerations for it._
+
+## Introductory Tutorials
+
+[REGION:topics third]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](Engine/Content/Types/Textures/Importing/ImportingTextures.png)
+	[/PARAM]
+	[PARAM:title]
+		Importing Textures
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/Textures\Importing]
+	[/PARAM]
+[/OBJECT]
+[/REGION]
+
+
+
+<!---
+
+[REGION:topics third]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/PhysicallyBased:title%](Engine/Rendering/Materials/PhysicallyBased/physically_based_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials/PhysicallyBased:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials/PhysicallyBased:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/PhysicallyBased]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference:title%](Engine/Rendering/Materials/ExpressionReference/exp_ref_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		Quick Start: Physically-Based Materials
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials/ExpressionReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/ExpressionReference]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference:title%](Engine/Rendering/Materials/Functions/matfunc_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials/Functions:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials/Functions:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/Functions]
+	[/PARAM]
+[/OBJECT]
+
+
+[/REGION]
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)
+	[/PARAM]
+	[PARAM:title]
+		Materials Essentials
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [Material Editor User Guide](Engine/Rendering/Materials/Editor) - Overview of the node-based Material Editor in UE4.
+		* [Material Instance Editor User Guide](Engine/Rendering/Materials/MaterialInstances/Editor) - Overview of the editor for Material Instances in UE4.
+		* [Instanced Materials](Engine/Rendering/Materials/MaterialInstances) - Overview of the material instancing system in UE4.
+		* Material Layers - How to use the power of Material Functions to apply multiple Materials to a single object on a pixel-by-pixel basis.
+
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/texture_icon.png)
+	[/PARAM]
+	[PARAM:title]
+		Materials Content Creation
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [Creating Hair Using Alpha](Engine/Rendering/Materials/CreatingHairUsingAlpha) - Creating hair using materials and meshes in UE4.
+		* [World Position Offset](Engine/Rendering/Materials/WorldPositionOffset) - How to use the WorldPositionOffset material input.
+		* [Material Masks](Engine/Rendering/Materials/Masks) - Creating masks and gradients algorithmically using material expressions.
+	[/PARAM]
+[/OBJECT]
+
+--->
+

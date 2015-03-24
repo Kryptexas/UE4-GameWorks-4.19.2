@@ -1,0 +1,7 @@
+﻿INTSourceChangelist:2061061
+Title:BlueprintNativeEvent
+Crumbs:%ROOT%, Programming,  Programming/UnrealArchitecture/Reference,  Programming/UnrealArchitecture/Reference/Functions, Programming/UnrealArchitecture/Reference/Functions/Specifiers
+Description: 
+Availability:Public
+
+この関数はブループリントに無効にされる設計となっていますが、ネイティブの実装もあります。ボディの名前は [FunctionName] ではなく [FunctionName]_Implementation としてください。自動生成コードには実装メソッドを呼び出すサンクが必要に応じて格納されます。

@@ -1,0 +1,167 @@
+﻿Availability: Public
+Title:应用资源
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:本文介绍了如何在内容浏览器内应用资源。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Browser/UserGuide/BrowserAssetCreation:title%](Engine/Content/content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/BrowserAssetCreation:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Browser/UserGuide/BrowserAssetCreation:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/BrowserAssetCreation]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](AssetTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/BrowserAssetCreation:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/BrowserAssetCreation]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:2)]
+
+## 概述
+
+我们设计内容浏览器时有一个目标就是可以快速、轻松、简单地创建资源。仅当虚幻编辑器确实需要进一步的信息时资源创建过程才会产生一个对话框。除此之外，您只需指定名称就可以了。
+
+
+## 添加资源
+
+
+通过点击 **New Asset（新建资源）** 按钮或者在 **内容浏览器** 的空白区域 **右击** ，则可以创建新资源。
+
+![NewAsset.png](NewAsset.png)
+
+
+## 删除资源
+
+从内容浏览器中删除资源也非常简单。简单地 **右击** 您想删除的资源，然后从关联菜单中选择 **删除** 即可。
+
+![DeleteMenu.png](DeleteMenu.png)
+
+这将会调出一个确认窗口以确认删除操作，如下所示：
+
+![DeleteConfirm.png](DeleteConfirm.png)(w:500)
+
+如果您正在关卡中使用该资源，或者如果其他资源依赖于或引用该资源，那么您可能会收到一个警告窗口阻止该删除操作：
+
+![DeletionReferences.png](DeletionReferences.png)(w:500)
+
+如果出现这种情形，那么您需要跟踪那个资源的引用，并防止在删除操作发生之前加载该资源。请参照下面的引用处理部分获得更多信息。
+
+## 引用处理
+
+当您使用 **内容浏览器** 中的资源时，编辑器会产生一个到每个资源的引用的列表。知道如何处理这些引用是非常重要的。如果您由于一个资源正在被其他对象引用而不能删除或移除该资源，那么这些工具将可以帮助您快速地跟踪这些引用并删除它们。
+
+当您在内容浏览器中右击一个资源，在弹出的关联菜单的 **References(引用)** 部分，您将看到以下命令：
+
+
+| 项目| 描述|
+| --- | --- |
+| **Copy Reference（复制引用）** | 这将复制所有选中对象的引用到剪切板。当您需要将一个资源的路径粘帖到文本域中时或者您需要一个外部列表时，这是非常有用的。|
+| **Reference Viewer（引用查看器）** | 这将打开引用查看器，该引用查看器显示了该资源及其引用的图表。关于更多信息，请参照 [](Engine/Content/Browser\ReferenceViewer)。|
+
+
+
+
+## 资源操作
+
+当您在内容浏览器中右击一个资源，在弹出的关联菜单的 **资源操作** 部分，您将看到以下命令：
+
+| 项目| 描述|
+| --- | --- |
+| **Find in Asset Tree（在资源树种查找）** |在源视图的资源树中选择选中资源所在的文件夹。对于查找集合中的资源的真实位置是非常有用的。|
+| **Select Actors Using This Asset（选择使用该资源的Actor）** | 选择关卡中基于该资源的所有Actor。|
+| **Details（详细信息）** | 打开显示选中资源属性的 **详细信息** 面板。|
+| **Property Matrix（属性矩阵）** | 打开属性编辑器，这里以矩阵的形式显示了选中资源的属性，右侧带有下拉列表。<br/>关于更多信息，请参照[](Engine/UI/PropertyMatrix)。|
+| **Create Copy（创建副本）** | 在当前位置创建一个选中资源的副本。要想重新调整该副本的位置，您可以将其拖拽到Source View（源视图）中的一个新文件夹内。|
+| **Rename（重命名）** |允许快速地重命名一个资源。同时更新到该重命名资源的所有引用。|
+| **Delete（删除）** |只要该资源没有未处理的引用阻止此次删除操作，就会执行删除处理。|
+| **Consolidate（合并）** | 将两个或多个可合并的资源合并成一个。合并后的资源 *必须* 是同种类型。<br/> 关于更多信息，请参照 [资源合并工具](Engine/Content/Browser/AssetConsolidationTool)。|
+| **Export（导出）** | 允许您将一个资源导出为外部文件格式。根据选中资源的类型的不同，可用的格式也会发生改变。|
+| **Migrate（移植）** | 打开Migrate（移植）工具，您可以使用该工具来移动资源及其所有依赖资源到一个新的游戏文件夹内。<br/> 关于更多信息，请参照[](Engine/Content/Browser\UserGuide\Migrate)。|
+| **Show In Explorer（在浏览器中显示）** |在Windows浏览器中打开存储该资源的  ._uasset_ 文件所在的文件夹。|
+| **Save（保存）** | 这将会把该资源保存到一个  ._uasset_ 文件中。|
+
+
+
+## 资源管理
+
+在内容浏览器中，可以轻松地管理资源及其包含这些资源的文件夹。您可以将资源从 
+一个文件夹移动或复制到另一个文件夹，可以创建新文件夹，可以在 **资源树** 内移动整个文件夹接口， 
+并且支持使用 _拖拽并放置_ 操作。
+
+[REGION:imagetable]
+| ![](folder_manage.png)(h:350) | ![](asset_manage.png)(h:350) |
+| ------ | ------ |
+|移动文件夹| 移动资源 |
+[/REGION]
+
+
+## 拖拽并放置式的Actor创建
+
+![DragAndDrop.png](DragAndDrop.png)(w:600)
+
+**内容浏览器** 支持将基于资源创建的Actor拖拽并放置到您的关卡中， 
+并且支持通过拖拽并放置操作来在不同的文件夹间移动资源。
+
+当您将一个资源拖拽到关卡中时，将会出现基于那个资源的Actor的预览，允许您精确地查看 
+将该Actor放置到关卡中的哪里及如何进行放置。
+
+[REGION:note]
+这些资源将会根据需要被加载到内存中。
+[/REGION]
+
+## 实时渲染的缩略图预览
+
+[EXCERPT:RealTimeThumb]
+
+**内容浏览器** 中的大部分资源都有缩略图，且这些缩略图都可以实时地渲染。这允许您快速地预览某个特定的资源，而不必在其各自的编辑器中打开它。
+
+以下类型的资源可以进行实时预览：
+
+* 静态网格物体
+* 骨架网格物体
+* 材质
+* 包含一个静态或骨架网格物体组件的蓝图
+
+
+
+要想实时预览一个缩略图，请点击位于 **内容浏览器** 右下方的  ![](button_ViewOptions.png)按钮。在出现的弹出菜单中，选择 **Thumbnail Edit Mode（缩略图编辑模式）** 。**内容浏览器** 的底部将显示以下内容：
+
+![](button_ThumbnailEditMode.png)
+
+当该项激活后，您可以拖拽上面列出的任何资源类型来在三维环境中查看它们。操作如下所示：
+
+| **按钮** | **操作** |
+| --- | --- |
+| **鼠标左键拖拽** | 旋转该资源。|
+| **鼠标右键拖拽** | 拉伸相机。|
+
+[REGION:note]
+	当实时预览一个材质时，您可以点击该缩略图左上方的小的图元图标来修改显示的图元。
+[/REGION]
+
+![](Thumbnails.png)
+
+当完成预览资源时，请简单地点击 ![](button_DoneEditing.png)按钮。
+
+[/EXCERPT:RealTimeThumb]

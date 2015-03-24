@@ -1,0 +1,143 @@
+Availability: Public
+Title: 配置文件 
+Crumbs: %ROOT%, Engine, Programming, Programming/Basics
+Description:配置游戏或引擎行为的属性设置的文本文件。
+
+
+[TOC (start:2 end:3)]
+
+## 概述
+
+配置文件可以被用来对项目载入时将被初始化的属性设置值。配置是由成对的键值来决定的，他们咱找部分排列。一个键可以和一个或多个值相关联。
+
+引擎配置文件用来作为项目和变量的默认值。用户输入配置可被用于按键绑定。默认情况下，当您使用 **项目向导** 创建新建空白项目时，将会创建`DefaultEngine.ini`和`DefaultGame.ini`。使用模板来创建的新项目在需要的情况下可能也会生成`DefaultEditor.ini`和`DefaultInput.ini`配置文件。
+
+`SaveConfig()`函数可以对使用[](Programming\UnrealArchitecture\Reference\Classes\Specifiers\Config)类修饰符的类进行调用。这样可以保存使用[](Programming\UnrealArchitecture\Reference\Properties\Specifiers\Config)属性修饰符来标记的任意属性到合适的配置文件中。一般来说，由`SaveConfig()`保存的变量位于按照格式 **[(package).(classname)]** 的每项的标题中。例如，`DefaultEngine.ini` 中的 **[/Script/Engine.Engine]** 项指向存储在 Engine 软件包内部的 Engine 类。硬编码的项名将会有一些例外。
+
+之前仅通过编辑配置文件可用的一些设置现在可以在[](Engine\UI\ProjectSettings)编辑器的虚幻编辑器中使用。
+
+## 定义可配置变量
+
+为指定从配置文件中应读取哪个变量，包含这些变量的类应在其`UCLASS`宏中赋予`Config`标识符。
+
+	UCLASS(Config=Game)
+	class AExampleClass : public AActor
+
+[REGION:tip]
+	请注意必须对 `Config` 标识符提供分类（比如游戏）。这确定了类变量读取和保存的配置文件。所有可能的分类都在`FConfigCacheIni`中进行定义。如需获得所有配置文件分类的列表，请参阅[配置分类](#配置分类)。
+[/REGION]
+
+使用`Config`标识符来修饰类表明此类可以从配置文件中读取变量，并且定义了配置所读取的文件。为指定读取和保存到配置文件中的某个变量，也必须为`UPROPERTY()`宏提供`Config`标识符。
+
+	UCLASS(Config=Game)
+	class AExampleClass : public AActor
+	{
+	GENERATED_UCLASS_BODY()
+
+	UPROPERTY(Config)
+	float ExampleVariable;
+
+	};
+
+对属性的`Config`标识符不提供任何分类。`ExampleVariable`属性现在可以从[配置文件结构](#文件层次结构)的任意`Game`配置文件中读取，只要信息由以下语法所指定：
+
+	[/Script/ModuleName.ExampleClass]
+	ExampleVariable=0.0f
+
+### 配置文件和继承
+
+`Config` `UCLASS`和`UPROPERTY`标识符都被继承。这表示子类可以读取或保存父类中指定为`Config`的所有变量，并且它们将会位于相同的配置文件分类中。变量都会位于具有子类名称的每项的标题下。例如，继承于以上的`ExampleClass` 的`ChildExampleClass`的配置文件信息看起来如下方的代码行，并且将被保存在同一个`Game`配置文件中。
+
+	[/Script/ModuleName.ChildExampleClass]
+	ExampleVariable=0.0f
+
+
+### 每个实例的配置
+
+虚幻引擎 4 可以把一个对象的配置文件保存到任何所需的配置文件中。如果`PerObjectConfig`标识符被用于`UCLASS`宏，此类的配置信息将会对每个实例进行存储，每个实例在 `.ini`文件中都有按照格式`[ObjectName ClassName]`的对象所命名的部分。将这个关键字传递给子类。
+
+
+## 配置文件结构
+
+每个配置分类都有文件层次结构，它指定了特定引擎、项目和平台的配置。
+
+### 配置分类
+
+* Compat
+* DeviceProfiles
+* Editor
+* EditorGameAgnostic
+* EditorKeyBindings
+* EditorUserSettings
+* Engine
+* Game
+* Input
+* Lightmass
+* Scalability
+
+### 文件层次结构
+
+起始为`Base.ini`的配置文件层次结构被读取，层次结构中后续文件的值会覆盖先前的值。`Engine`文件夹中的所有文件都将被应用于所有项目，项目特定设置应存储于项目目录的文件中。最后，所有项目和平台特定的差异都被保存到`[ProjectDirectory]/Saved/Config/[Platform]/[Category].ini`。
+
+以下文件层次结构示例被用于配置文件的`Engine`分类。
+
+1. `Engine/Config/Base.ini`
+	[REGION:tip]
+	`Base.ini` is usually empty.
+	[/REGION]
+1. `Engine/Config/BaseEngine.ini`
+1. `Engine/Config/[Platform]/[Platform]Engine.ini`
+1. `[ProjectDirectory]/Config/DefaultEngine.ini`
+1. `[ProjectDirectory]/Config/[Platform]/[Platform]Engine.ini`
+1. `[ProjectDirectory]/Saved/Config/[Platform]/Engine.ini`
+	[REGION:tip]
+	`Saved`目录中的配置文件仅仅存储项目和平台特定的区别到配置文件堆栈中。
+	[/REGION]
+	
+
+
+## 与配置文件共同发挥作用
+
+
+### 文件格式
+
+
+#### 部分和键-值对
+
+一般的配置文件由成块的 键-值 对组成，如下所示：
+    
+    [Section]
+    Key=Value
+
+####  特殊字符
+
+* *+* - 如果该属性还不存在则添加一行（从前一个 .ini 文件或者同一个 .ini 文件的前面的部分）。
+* *-* - 删除一行（但是它必须是精确匹配）。
+* *.* - 添加一个新属性。
+* *!* - 删除一个属性；但是不必是精确匹配，仅需要匹配属性的名称即可。
+
+[REGION:note]
+**注意** ： **.*  和 *+** 类似，只是 *.* 可以添加一个重复的行。这对绑定是有用的（正如在 `DefaultInput.ini` 中所看到的），比如，其中最底部的绑定生效，所以如果您添加了类似于以下的东西：
+    
+    [/Script/Engine.PlayerInput]
+    Bindings=(Name="Q",Command="Foo")
+    .Bindings=(Name="Q",Command="Bar")
+    .Bindings=(Name="Q",Command="Foo")
+
+它将可以正确地工作。但是如果使用 *+* 则不能添加最后一行，且您的绑定将是错误的。由于配置文件绑定，将会发生上面的应用形式。
+[/REGION]
+
+#### 注释
+
+大多数人似乎都会觉得配置文件中的分号表示注释，但是实际上不是 (`FConfigFile::ProcessInputFileContents` 并不会真正地处理它们，或者任何其它作为注释分界符的字符串）。这种行为是故意设计的。从技术上讲，任何字符都可以代表任何一种不同的键值对。通常，会在新的一行的行首放置一个分号。它的功能像是注释，但事实上它不是。
+     
+    ; 这是一条注释
+	; 这条也是！
+
+
+
+
+
+
+
+

@@ -1,0 +1,27 @@
+﻿INTSourceChangelist:2438587
+Availability:Public
+Title:ビネット効果
+Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
+Description:ビューポート中心からの距離に応じて画像輝度を低下させるエフェクト
+
+[REGION:fullwidth]
+![Vignette Effect](vignette.png)
+[/REGION]
+
+[EXCERPT:Vignette_Desc]
+**ビネット** は、実際のカメラレンズがだんだん暗くなっていく様子をシミュレートする効果です。高品質レンズはこの効果を補正しようと試みます。エフェクトは、主に画像の輪郭に顕著に現れます。
+[/EXCERPT:Vignette_Desc]
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Vignette Intensity** | スクリーンの端がだんだん暗くなります。ブルームには影響しません (パフォーマンスが理由ですが、変更する可能性があります)。活用例：輪郭のぼかし (カメラ機能の不完全性) をシミュレートします。 [INCLUDE:#Intensity] |
+
+<!--
+[EXCERPT:Intensity]
+[REGION:imagetable]
+| ![Vignette Intensity - 0](vignette_off.png)(w:375) | ![Vignette Intensity - 1](vignette_on.png)(w:375) |
+| ------ | ------ |
+| 0.0 | 1.0 |
+[/REGION]
+[/EXCERPT:Intensity]
+-->

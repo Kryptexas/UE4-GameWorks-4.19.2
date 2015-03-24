@@ -1,0 +1,155 @@
+Availability:Public
+Title:Persona Toolbar
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:User guide for the Toolbar in the Persona animation editor.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/Toolbar:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/Toolbar:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/Toolbar:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/Toolbar]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+![](PersonaToolbar.png)
+
+[TOC(start:2)]
+
+## Overview
+
+[EXCERPT:Overview]
+The **Toolbar** is displayed along the top of the Persona interface window by default. It contains a variety of common functions you will need when editing animation assets.
+[/EXCERPT:Overview]
+
+[REGION:tip]
+If you do not see the Toolbar, you can show it using the **Window** menu within Persona.
+[/REGION]
+
+## Toolbar Modes
+
+As you may know, Persona has four different _modes_ that it uses to selectively display aspects of its interface based on what the user is currently doing. This also means that the common commands you will use within Persona will change along with the modes. The Toolbar intuitively updates to hide away any commands that would not be useful in the current mode. For instance:
+
+When in **Skeleton**, **Mesh**, or **Animation** modes, the Toolbar will look something like this:
+
+
+![](Toolbar_01.png)
+
+ However, when in **Graph** mode, the toolbar expands with further features, looking like this:
+
+![](Toolbar_2.png)
+
+You may notice that many of the additional buttons are the same as those used in the Blueprint Editor window. 
+
+
+## Toolbar Buttons
+
+Persona toolbar buttons provide easy access to switching between asset modes, such as Skeleton, Mesh, and Animations. It also contains common commands needed when editing Animation Blueprints.
+
+
+| Button																						| Description														|
+| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | 
+| ![Compile Successful Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_compile_successful.png)	| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#compilesuccessful]	|
+| ![Compile Needed Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_needs_compile.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#compileneeded]		|
+| ![Compile Warning Button](Engine/Blueprints/Editor/UIComponents/Toolbar/compile_warning.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#compilewarning]		|
+| ![Compile Failed Button](Engine/Blueprints/Editor/UIComponents/Toolbar/compile_failed.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#compilefailed]		|
+| ![Save Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_save.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#save]					|
+| ![Find in Content Browser Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_in_cb.png)		| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#findincb]				| 
+| ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_properties.png)			| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#blueprintprops]		|
+| ![Search Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_search.png)							| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#search]				|
+| ![Simulate Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_simulate.png)						| [INCLUDE:Engine/UI/LevelEditor/Toolbar#simulate]			|
+| ![Play In Editor Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_play_in.png)					| [INCLUDE:Engine/UI/LevelEditor/Toolbar#playin]				|
+| ![Pause Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_pause.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#pause]				|
+| ![Resume Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_resume.png)							| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#resume]				|
+| ![Frame Skip Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_frameskip.png)						| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#frameskip]			|
+| ![Stop Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_stop.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#stop]					|
+| ![Possess Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_possess.png)							| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#possess]				|
+| ![Eject Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_eject.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#eject]				|
+| ![Find Node Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_node.png)						| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#findnode]				|
+| ![Step Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_step.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#step]					|
+| ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png)					| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#debugobject]			| 
+
+
+## Mode Switching Tabs
+
+![](Engine/Animation/Persona\ModeSelector.gif)(convert:false)
+
+The Persona Toolbar also contains buttons to switch between each of its four modes. These buttons have some functionality in and of themselves that can be useful when trying to track down a particular animation asset. You change Persona modes by simply clicking on the button for the desired mode.
+
+| Button | Description |
+|-------|------|
+| ![](button_SkeletonMode.png)| [INCLUDE:#skeletonbutton] |
+| ![](button_MeshMode.png) | [INCLUDE:#meshbutton] |
+| ![](button_AnimationMode.png) | [INCLUDE:#animationbutton] |
+| ![](button_GraphMode.png) | [INCLUDE:#graphbutton] |
+
+
+
+
+
+<!--
+[EXCERPT:SkeletonButton]
+This switches Persona to [Skeleton mode](Engine/Animation/Persona#PersonaModesandUserInterface).
+
+[REGION:simpletable]
+| Element | Description |
+|---|---|
+|![](button_SkeletonField.png)| Shows the name of the Skeleton asset currently used by Persona. |
+%search%
+[/REGION]
+[/EXCERPT:SkeletonButton]
+
+
+[EXCERPT:MeshButton]
+This switches Persona to [Mesh mode](Engine/Animation/Persona#PersonaModesandUserInterface).
+
+[REGION:simpletable]
+| Element | Description |
+|---|---|
+|![](button_MeshField.png)| Shows the name of the Skeletal Mesh asset currently being edited by Persona. |
+%pickasset%
+%search%
+[/REGION]
+[/EXCERPT:MeshButton]
+
+[EXCERPT:AnimationButton]
+This switches Persona to [Animation mode](Engine/Animation/Persona#PersonaModesandUserInterface).
+
+[REGION:simpletable]
+| Element | Description |
+|---|---|
+|![](button_AnimationField.png)| Shows the name of the animation asset currently being edited within Persona. |
+%pickasset%
+%search%
+[/REGION]
+[/EXCERPT:AnimationButton]
+
+[EXCERPT:GraphButton]
+This switches Persona to [Graph mode](Engine/Animation/Persona#PersonaModesandUserInterface).
+
+[REGION:simpletable]
+| Element | Description |
+|---|---|
+|![](button_GraphField.png)| Shows the name of the Animation Blueprint asset currently being edited by Persona. |
+%search%
+[/REGION]
+[/EXCERPT:GraphButton]
+
+[VAR:PickAsset]|![](button_AssetSelection.png)|Allows you to quickly select any compatible assets in the current project. |[/VAR]
+[VAR:Search]|![](button_Search.png)| Clicking this brings up the **Content Browser** and shows and highlights the asset currently shown in the respective field. |[/VAR]
+
+-->
+
+[/REGION]

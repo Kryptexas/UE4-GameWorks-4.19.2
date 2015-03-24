@@ -1,0 +1,38 @@
+﻿Title: 1. 创建一个新项目
+Crumbs:%ROOT%, Engine, Engine/AI/BehaviorTrees/QuickStart
+Description:步骤 1. 创建一个新项目
+Availability:Public
+
+[VAR:Steps]
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		步骤
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* **%Engine/AI/BehaviorTrees/QuickStart/1:Title%**
+		* [下一步 - %Engine/AI/BehaviorTrees/QuickStart/2:Title%](Engine/AI/BehaviorTrees/QuickStart/2 "%Engine/AI/BehaviorTrees/QuickStart/2:description%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+1. 打开虚幻编辑器4。
+
+1. 基 **Blueprint Top Down（蓝图自上而下）** 模板生成一个新项目。
+
+	对于本快速指南来说， **Starter Assets（初学者资源）** 是可选的。
+
+
+如果您需要更深入地了解创建一个新项目的过程，请参照[编辑器快速指南](Engine/QuickStart/1)的第一步。
+
+---
+
+%Steps%

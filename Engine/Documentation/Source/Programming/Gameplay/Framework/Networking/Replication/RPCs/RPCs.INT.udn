@@ -1,0 +1,10 @@
+Availability:Public
+Title: RPCs
+Crumbs:Gameplay, Gameplay/Networking, Gameplay/Networking/Replication
+Description:Designating function replication across the network
+
+[OBJECT:Redirect]
+[PARAM:link]
+[](Gameplay/Networking/Replication/RPCs)
+[/PARAM]
+[/OBJECT]

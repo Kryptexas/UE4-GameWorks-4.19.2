@@ -1,0 +1,65 @@
+﻿INTSourceChangelist:2481863
+Availability:Public
+Title:모바일 플랫폼용 머티리얼
+Crumbs:%ROOT%, Platforms, Platforms/Mobile
+Description:모바일 게임용 머티리얼 셋업하기 입니다.
+Platform:Mobile
+Related: Platforms/Mobile/Performance
+Related: Platforms/Mobile/Textures
+Related: Engine/Rendering/Materials/CustomizedUVs
+Related: Engine/Rendering/Materials/MaterialProperties/BlendModes
+Related: Engine/Rendering/Materials/ExpressionReference/Utility
+Related: Platforms/Mobile/Lighting
+
+[TOC(start:2)]
+
+## 개요
+
+모바일 플랫폼(피처 레벨 ES2)에서의 머티리얼은 다른 플랫폼에서와 마찬가지로 동일한 노드 기반 생성 프로세스를 사용합니다. 모바일 머티리얼에는 거의 모든 머티리얼 입력이 사용 가능하며, 
+머티리얼의 모양이나 동작도 다른 플랫폼과 마찬가지로 모바일 플랫폼에서와 일반적으로 동일합니다. 예를 들어, 다음의 머티리얼 입력은 전부 PC 에서나 모바일 플랫폼에서나 
+동일하게 작동합니다:
+
+* **BaseColor** 베이스 컬러
+* **Roughness** 러프니스
+* **Metallic** 메탈릭
+* **Specular** 스페큘러
+* **Normal** 노멀
+* **Emissive** 이미시브
+
+그러나 모바일 플랫폼에서 사용할 머티리얼을 제작할 때는 고려해야 하는 사항이 몇 가지 있습니다:
+
+* 하드웨어 제약으로 인해 텍스처 샘플러는 최대 5 개까지만 사용할 수 있습니다.
+* 디폴트와 라이팅제외 셰이딩 모델만 사용할 수 있습니다.
+* 의존 텍스처 펫치를 피하기 위해서는 (텍스처 UV 관련 연산 없음) [](Engine/Rendering/Materials/CustomizedUVs) 를 사용해야 합니다.
+* 반투명 및 마스크드 머티리얼은 매우 비쌉니다. 가급적 [오파크(불투명)](Engine/Rendering/Materials/MaterialProperties/BlendModes#불투명) 머티리얼만 사용할 것을 추천합니다.
+* 뎁스 페이드는 **iOS 플랫폼** 에서 반투명 머티리얼에 사용할 수 있습니다. 뎁스 버퍼에서의 펫치를 하드웨어에서 지원하지 않는 플랫폼에서는 지원되지 _**않으며**_, 
+	에뮬레이션을 하려 했다가는 엄청난 퍼포먼스 비용이 발생할 것입니다.
+
+
+추가적으로, 모바일 플랫폼에서는 아예 사용할 수 없는 기능도 있습니다.
+
+* **Scene Color** (씬 컬러) 표현식
+* **Refraction** (굴절) 입력
+* **Tessellation** (테셀레이션) 입력
+* **Subsurface Scattering** (서브서피스 스캐터링) 셰이딩 모델
+
+
+## 피처 레벨 ES 3.1
+
+피처 레벨 ES 3.1 은 (Metal 호환 디바이스처럼) 고사양 모바일 디바이스를 위해 존재합니다. 머티리얼에서 최대 16 개 까지의 샘플러를 사용할 수 있습니다.
+구형 디바이스와의 호환성 유지를 위해서는, [Feature Level Switch](Engine/Rendering/Materials/ExpressionReference/Utility#featurelevelswitch) 노드를 사용합니다.
+
+
+## 모바일 전용 머티리얼 세팅
+
+| 프로퍼티 | 설명 |
+| -------- | ---------- |
+| bFullyRough | 완전히 러프 - 켜면, 다수의 셰이더 ALU 인스트럭션과 하나의 샘플러를 절약합니다. 실질적으로 전체적인 반사성 에너지는 유지하면서 스페큘러를 끄는 효과를 냅니다. |
+| bUseLightmapDirectionality | 라이트맵 방향성 사용 - 끄면, 라이트맵의 라이팅이 밋밋해 지지만 비용이 줄어듭니다. |
+
+## 모바일용 머티리얼 문제해결
+
+| 문제 | 해법 |
+| ----- | -------- |
+| 모바일 프리뷰어에 디폴트 머티리얼이 표시됩니다. | **Engine\Saved** 안의 [로그 파일](Engine/Basics/DirectoryStructure) 을 열어 오류 메시지를 검색해 보면 머티리얼을 고치는 방법을 알 수 있습니다. |
+| 다른 데는 괜찮은데 Time 표현식이 있는 머티리얼 애니메이션이 뚝뚝 끊어집니다. | Period 가 있는 **Time** 표현식에서 Period 프로퍼티가 활성화되어 있는지 확인하세요. 그러면 계산이 CPU 로 이동되어 절반이 아닌 최대 정밀도로 실행됩니다. |

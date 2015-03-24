@@ -1,0 +1,33 @@
+﻿INTSourceChangelist:2456362
+Availability:Public
+Title:アンリアル エンジン ソースコードのダウンロード
+Crumbs:%ROOT%, Programming, Programming/Development
+Description:ソースコード レポジトリへの接続およびアンリアル エンジンの最新ビルドのダウンロード手順
+
+[TOC (start:2 end:3)]
+
+## 概要
+
+[EXCERPT:Main]
+[PUBLISH:Licensee]
+ライセンシーの方は Epic の Perforce サーバーから直接アンリアル エンジン 4 のダウンロードが可能です。サーバーへ接続する前に、安全な VPN 接続が確立されていなければなりません。VPN 及び Perforce サーバーへのログイン認証情報は Epic が発行する UDN のウェルカムメールでチームのテクニカルリード宛に送信されます。ログイン認証情報は各チームに 1 セットのみの発行となっています。
+[/PUBLISH:Licensee]
+[PUBLISH:Rocket]
+契約者は、アンリアル エンジン 4 のソースコードを Unreal Engine GitHub レポジトリからダウンロードできます。ソースコードへアクセスが可能になることで、ご自身のプロジェクトのニーズに合わせたカスタマイズ仕様とするために、エンジンやツールを修正することができます。Windows や Mac 向けにエディタをビルドや、 Android や iOS 向けのゲームをコンパイルすることができます。Unreal Lightmass や Unreal Frontend など、全ツールのソースコードも格納されています。
+
+[REGION:note]
+[レポジトリ](https://github.com/EpicGames/UnrealEngine) へアクセスする前に、アンリアル エンジンと契約を結び、 GitHub アカウントをアンリアル エンジン用のアカウントと関連付けなくてはいけません。
+
+アカウントを関連付けるための説明書は (https://www.unrealengine.com/ue4-on-github) ページを参照してください。
+[/REGION]
+[/PUBLISH:Rocket]
+
+[PUBLISH:Licensee]
+[INCLUDE:GettingStarted/DownloadingUnrealEngine/Perforce/Basics]
+[/PUBLISH:Licensee]
+
+[PUBLISH:Rocket]
+[INCLUDE:GettingStarted/DownloadingUnrealEngine/GitHub]
+[/PUBLISH:Rocket]
+
+[/EXCERPT:Main]

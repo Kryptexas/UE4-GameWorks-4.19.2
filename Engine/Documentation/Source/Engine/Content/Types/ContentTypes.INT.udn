@@ -1,0 +1,20 @@
+Availability:Public
+Title:Content Asset Types
+Crumbs:%ROOT%, Engine/Content
+Description:Content types created in external applications and used by Unreal Engine.
+
+[REGION:banner]
+![%Engine/Content/FBX:title%](Engine/Content/FBX/fbx_banner.png)
+[/REGION]
+
+[REGION:topics third]
+[EXCERPT:Types]
+%Engine/Content/Types/Textures:Topic%
+%Engine/Content/Types/StaticMeshes:Topic%
+%Engine/Content/Types/SkeletalMeshes:Topic%
+%Engine/Rendering/LightingAndShadows/IESLightProfiles:Topic%
+%Engine/Audio/WAV:Topic%
+%Engine/Physics/Apex/ApexTypes:Topic%
+[/EXCERPT:Types]
+[/REGION]
+

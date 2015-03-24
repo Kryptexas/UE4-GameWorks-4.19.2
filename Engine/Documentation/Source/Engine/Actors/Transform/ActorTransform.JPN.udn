@@ -1,0 +1,252 @@
+﻿INTSourceChangelist:2425316
+Availability:Public
+Title:アクタの変形
+Crumbs: %ROOT%, Engine, Engine/Actors
+Description:レベルに配置されたアクタの位置、回転、スケーリングを修正する
+
+[VAR:playlistnav]
+[OBJECT:PlaylistNavigation]
+	[PARAMLITERAL:id]
+		LevelDesign_Beginner
+	[/PARAMLITERAL]
+	[PARAM:previous]
+		[前のトピック](Engine/Actors/Selection "%Engine/Actors/Selection:title%")
+	[/PARAM]
+	[PARAM:next]
+		[次のトピック](Engine/Actors/Mobility "%Engine/Actors/Mobility:title%")
+	[/PARAM]
+	[PARAM:home]
+		[](Tracks/LevelDesign/Beginner)
+		%Tracks/LevelDesign/Beginner:menu%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Actors/Transform:title%](Engine/Actors/Transform/actortransform_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Actors/Transform:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Actors/Transform:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Actors/Transform]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Actors/Transform:title%](Engine/Actors/Transform/actortransform_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Actors/Transform:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Actors/Transform:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Actors/Transform]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%playlistnav%
+
+
+[TOC(start:2)]
+
+## 概要
+
+アクタの変形とは、レベルの編集プロセスの重要な部分である移動、回転、スケーリングを意味します。アンリアル エディタでは、2 種類の基本的な方法でアクタを変形する事ができます。両方の方法とも、選択中であれば全てのアクタに変形を適用できます。
+
+## 手作業による変形
+
+[INCLUDE:Engine/UI/LevelEditor/Details/Customizations/Transform#Transform]
+
+##インタラクティブな変形
+
+もう 1 つは、ビューポートにビジュアル ツールもしくはウィジェットを表示して使用する方法です。ウィジェットの場合、マウスを使ってビューポートで直接アクタを移動、回転、スケールすることができます。手作業と比べると、この方法には良い点と悪い点があります。この方法は非常に直観的ですが、正確さとはかけ離れる場合がありますが、時として正確さは必要となります。正確さを確実に高めるには、ドラッググリッド、回転グリッド、スケーリンググリッドが役立つ場合があります。既知の値や増分にスナップできる機能によって、より正確な制御ができます。
+
+ビューポートでアクタを操作するために使用するビジュアルツールは、変形ウィジェットと呼ばれます。通常、変形ウィジェットは、いくつかのパーツから構成され、それらのパーツは有効となる軸にしたがって色分けされています。
+
+* 赤は X 軸が影響されていることを表します。
+* 緑は Y 軸が影響されていることを表します。
+* 青は Z 軸が影響されていることを表します。
+
+変形ウィジェットは、どのタイプの変換が行われているかに応じて平行移動、回転、スケーリングという様々な形態をとります。ビューポートの右上のセクションにあるツールバーでアイコンをクリックして使用したい平行移動ウィジェットのタイプを選択できます。
+
+![](LE_Trans_WidgetIcons.png)
+
+[REGION:tip]
+キーボード上でスペースバーを押せば、平行移動ウィジェットの様々なタイプの間の切り替えができます。
+[/REGION]
+
+### 変形ウィジェット
+
+[EXCERPT:TranslateWidget]
+
+平行移動ウィジェットは、色分けされた矢印のセットから構成されていて、これらの矢印は、ワールドにおける各軸の正方向を指しています。基本的には、これらの矢印が、特定の軸に沿って選択したアクタを移動させるためにドラッグできるハンドルとなります。カーソルをハンドル上にあてると、ハンドルが黄色になり、ドラッグでオブジェクトが軸に沿っ移動することを示します。
+
+![Translation Widget - Axis](LE_Trans_Widget.png)
+
+また、各ハンドルからは線が伸びており、他の軸から出ている線同士がつながります。そしてそれぞれのプレーン (XY、XZ、YZ) 上の 1 つと並んで四角形を作ります。その四角形上にカーソルを当てると、四角形と四角形を形成している矢印が黄色に変わります。黄色く変わった 2 本の軸で定義されたプレーンに沿ってアクタをドラッグして移動させます。
+
+![Translation Widget - Plane](LE_Trans_Plane.png)
+
+3 本すべての軸が交わる場所に白い小さな球があります。この球上にカーソルを当てると黄色に変わり、ドラッグできることを示します。中央の球をドラッグするとアクタは、3 本の軸に沿って潜在的に位置の値を変えながら、シーン カメラと相対的に空間を自由に移動します。
+
+![Translation Widget - All](LE_Trans_All.png)
+
+[/EXCERPT:TranslateWidget]
+
+### 回転ウィジェット
+
+**回転ウィジェット** は、それぞれの軸に関連づいている、色分けされた 3 つの円弧のセットです。円弧の 1 つをドラッグすると、選択中のアクタが軸の周りを回転します。**回転ウィジェット** の場合、関係する円弧の 1 つの影響を受ける軸は、その軸に対して垂直な軸です。つまり、XY プレーンに並ぶ円弧が実際はアクタを Z 軸の周りに回転させます。
+
+![Rotation Widget](Transform_Rotate.png)
+
+特定の円弧上にカーソルを当てるとカーソルが黄色になり、アクタをドラッグして回転の変更が可能なことを示します。
+
+![Rotation Widget](Transform_Rotate_Axis.png)
+
+選択中のアクタを回転するためにドラッグを開始すると、ウィジェットの形が変化し、アクタの回転の中心となる軸のみが表示されます。回転量がリアルタイムで表示されるので、進捗がわかりやすくなります。
+
+![Rotation Widget](Transform_Rotate_Offset.png)
+
+###スケーリング ウィジェット
+
+**スケーリング ウィジェット** は端にキューブが付いた色分けされたハンドルです。これらのハンドルのうち 1 つでウィジェットをドラッグすると、関連付けられた軸に沿ってのみ選択中のアクタはスケールします。**変形ウィジェット** や **回転ウィジェット** と同様、ハンドルは軸ごとに色分けされています。 
+
+![Scaling Widget](LE_Trans_ScaleWidget.png)
+
+**変形ウィジェット** を使用して 2 本の軸で定義されたプレーンに同時に沿わせてアクタを動かすことができるように、 2 本の軸に同時に合わせてアクタをスケールすることができます。**Scaling Widget** の各ハンドルからは線が延びていて、それぞれが別の軸の線とつながります。これらが、3 つのプレーン (XY、XZ、YZ) のうちの 1 つに合わせて三角形を作ります。そのうちの 1 つの三角形をドラッグすると、そのプレーンを定義している両方の軸の中でアクタがスケールされます。どれか三角形の上にカーソルを当てると、関連づいているハンドルが黄色になります。
+
+![Scaling Widget - Plane](LE_Trans_Scale2Axes.png)
+
+3 本すべての軸に合わせてアクタをスケールすることも可能なので、オリジナルの比率を維持できます。3 本の軸がすべて重なるキューブ上にカーソルを当てると、3 つ全てのハンドルが黄色になります。中央にあるキューブをドラッグするとアクタが比例的にスケールされます。
+
+![Scaling Widget - All](LE_Trans_ScaleAll.png)
+
+### アクタのピボット (回転軸) の調整
+
+オブジェクトを変形する時は、オブジェクトの基本ピボットから変形を行うこと場合が多いです。ただし、このピボット位置を調整した方がよい変形操作もあります。
+
+![](DefaultPivot.png)(w:500)
+
+**変形ウィジェット** の中心点からマウスボタンをクリックしドラッグすれば、ピボットを一時的に動かすことができます。その後は普通にスペースバーで各種変形ツールを切り替えることができます。
+
+![](AdjustedPivot.png)(w:500)
+
+新規ピボットを使ってアクタの変更が可能になりました。
+
+![](TransformAroundNewPivot.png)(w:500)
+
+どれかオブジェクトをクリック (選択) すれば、ピボットはすぐにデフォルト位置に戻ります。
+
+### World と Local Transformation Mode
+
+インタラクティブな変形方法の場合、変形を行う時に利用する座標系を選ぶことができます。つまり、ワールド軸に合わせてワールド空間でアクタを変形したり、ローカル軸に合わせてローカル空間でアクタを変形することができます。柔軟性はぐんと広がりますが、手動で値を設定するだけではほぼ無理で、まず最初にかなりの数の複雑な計算を行うことが必要になります。
+[REGION:imagetable]
+| ![](Transform_World.png)(w:400) | ![](Transform_Local.png)(w:400) |
+| ------ | ------ |
+| ワールド | ローカル |
+[/REGION]
+
+アンリアル エンジンはデフォルトで World Transformation モードで開始します。Local transformation モードに切り替えるには、ビューポートの右上にあるツールバーの [Globe] アイコンをクリックします。[Globe] アイコンから [Cube] アイコンになったら、Local transformation モードに変わったことを表します。
+
+![](LE_Trans_CubeIcon.png)
+
+[Cube] アイコンをクリックすると、World transformation モードに戻ります。
+
+
+## スナップ機能
+
+3 種類の各手動変形ツールには、その値を一定の増分にスナップする機能があります。レベル内にオブジェクトを正確に配置する場合に便利です。スナッピングの方法は 4 通りあります。
+
+* Drag Grid 
+* Rotation Grid 
+* Scale Grid
+* Vertex Snapping
+
+
+
+### Drag Grid、Rotation Grid、Scale Grid
+
+[VAR:GridImage]
+w:300
+[/VAR]
+
+[REGION:imagetable]
+|![](DragGrid.png)(%GridImage%)|![](RotationGrid.png)(%GridImage%)|![](ScaleGrid.png)(%GridImage%)|
+|:---:|:---:|:---:|
+|Drag Grid|Rotation Grid|Scale Grid|
+
+[/REGION]
+
+**Drag Grid** は、シーン内部で暗黙的な 3 次元グリッドへのスナップを可能にします。**Rotation Grid** では、インクリメンタル回転スナップが可能です。**Scale Grid** は、スケール ウィジェットに追加インクリメントに対しスナップさせますが、スナップの環境設定のパーセント値に設定することができます。
+
+ビューポート ツールバー内のアイコンをクリックすると、スナッピング グリッドが立ち上がります。立ち上がると、アイコンがハイライトされます。各グリッドのインクリメントの変更は、それぞれのアクティベーションボタンの右にあるドロップダウンで行います。
+
+
+### スナッピングの環境設定
+
+Drag Grid、Rotation Grid、Scale Grid の全ての設定は [Editor Preferences] パネルから行います。スナップ動作も一緒に設定できるものも幾つかあります。 
+
+これらの環境設定は、メインのメニューバーから **[編集] > [エディタの環境設定] > [ビューポート]** を選択してから **[スナップ]** カテゴリまでスクロールします。
+
+![](SnapSettings.png)
+
+
+#### ユーザー定義のインクリメント
+
+Drag Grid、Rotation Grid、Scale Grid を使用する場合、それぞれのツールのドロップダウンには現在のインクリメント カラムとユーザー定義のインクリメント カラムが含まれていることに気付くでしょう。
+
+![](UserDefinedIncrementsShown.png)
+
+ユーザー定義リストを追加するには、 [スナップの環境設定] の [array] プロパティを使用します。
+
+![](UserDefinedArrays.png)
+
+* **Grid Sizes** - 変形ウィジェットに対しユーザー定義のスナップ インクリメントを維持します。
+* **Rotation Snap Intervals** - 回転ウィジェットに対しユーザー定義のスナップ インクリメントを維持します。
+* **Scale Grid Sizes** - スケール ウィジェットに対しユーザー定義のスナップ インクリメントを維持します。
+
+### 頂点のスナッピング
+
+メッシュのポリゴンの頂点を使って別のオブジェクトにスナップしたい場合があると思います。その時は、変形ウィジェットの使用中に、 **[V] キー** を押下するだけで実行できます。**[V]** を押しながらオブジェクトの移動を開始すると、利用できるポリゴンの頂点がすべてハイライトされます。
+
+![](VertexSnapping.png)(w:500)
+
+ピボットを直接頂点にスナップした後で、それを別のオブジェクト上の頂点にスナップする手段として使用するので、ピボット調整と一緒に使用する時に特に便利です。この方法を用いて、2 つのピースを正確にパイピングしてスナップする方法を次の画像で説明します。
+
+![](VertexSnappedPivot.png)(w:500)
+[REGION:caption]
+[V] + マウスホイールで、既存の頂点に対してオブジェクトのピボットをスナップします。
+[/REGION]
+
+ピボットが移動したら、ピボットの移動先の位置を使って別のメッシュ上の対応する頂点にオブジェクトをスナップします。
+
+![](VertexSnappingObjects.png)(w:500)
+[REGION:caption]
+ドラッグしながら [V] キーを使って、別のメッシュの正しい頂点にオブジェクトをスナップします。
+[/REGION]
+
+これを繰り返すと、メッシュをきれいに配置することができます。ウォークアウェイ、ドアなど、別のメッシュやオブジェクトに対して正確な配置を要する場合に便利な技です。
+
+![](snappedMeshes.png)(w:500)
+
+
+
+%playlistnav%

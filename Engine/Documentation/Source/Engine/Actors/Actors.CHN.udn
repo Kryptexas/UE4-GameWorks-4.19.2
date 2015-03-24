@@ -1,0 +1,80 @@
+﻿INTSourceChangelist:2054619
+Availability:Public
+Title: Actors & 几何体
+Crumbs:%ROOT%, Engine
+Description: Actor的定义，及如何在关卡设计中应用它们，包括actor的放置及操作技术。
+Navigation:topic
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Actors/Placement:title%](Engine/Actors/Placement/actorplacement_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Editor/Actors:title%
+	[/PARAM]
+	[PARAM:description]
+		%Editor/Actors:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Actors/Placement:title%](Engine/Actors/Placement/actorplacement_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Editor/Actors:title%
+	[/PARAM]
+	[PARAM:description]
+		%Editor/Actors:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+无论您在关卡中使用哪种类型的Actor - 光源、静态网格物体、粒子系统发射器 
+还是其他类型的Actor - 您都需要了解一些如何在您的场景中创建及操作这些Actor的基本知识。
+
+这涉及到几部分操作： 放置Actor、选择Actor、调整Actor位置、修改Actor。换句话说， 
+要想创建一个关卡，就必须将Actor放置到地图中，到处移动它们来创建场景，并修改它们的属性 
+使得它们产生适当的行为及外观。
+
+## 应用Actor
+
+[REGION:topics half]
+%Engine/Actors/Placement:topiccompact%
+%Engine/Actors/Selection:topiccompact%
+%Engine/Actors/Transform:topiccompact%
+%Engine/Actors/Grouping:topiccompact%
+[/REGION]
+
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/levels_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	Actor类型
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/Actors/Types "%Engine/Actors/Types:description%")
+		* [静态网格物体Actors](Engine/Actors/StaticMeshActor "%Engine/Actors/StaticMeshActor:description%")
+		* [几何体画刷 Actors](Engine/Actors/Brushes "%Engine/Actors/Brushes:description%")
+		* [](Engine/Actors/Volumes "%Engine/Actors/Volumes:description%")
+		* [](Engine/Actors/Triggers "%Engine/Actors/Triggers:description%")
+		* [](Engine/Actors/DecalActor "%Engine/Actors/DecalActor:description%")
+		* [](Engine/Actors/FogEffects "%Engine/Actors/FogEffects:description%")
+	[/PARAM]
+[/OBJECT]

@@ -1,0 +1,29 @@
+﻿INTSourceChangelist:2033300
+Availability: Docs
+Title:1.5 - 라이트매스 캐릭터 간접광 디테일 볼륨
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Volumes
+Description:Volumes 예제 레벨에 대한 개요로, 예제 1.5: Lightmass Character Indirect Lighting Detail Volume (라이트매스 캐릭터 간접광 디테일 볼륨)입니다.
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes/1_5:title%](Resources\ContentExamples\Volumes\content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes/1_5:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes/1_5:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Volumes/1_5]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+라이트매스 임포턴스 볼륨은 표면에 샘플을 놓기만 할 뿐이며, 이 볼륨은 확실히 샘플을 생성해 줍니다. 명령을 사용해 보면 차이점을 알 수 있습니다. 이 볼륨은 보통 엘리베이터에 사용되는데, 오르는 길 내내 캐릭터가 샘플을 갖게 됩니다.

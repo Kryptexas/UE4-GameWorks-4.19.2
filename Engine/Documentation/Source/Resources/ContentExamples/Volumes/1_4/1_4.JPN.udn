@@ -1,0 +1,29 @@
+﻿INTSourceChangelist:2438689
+Availability:Docs
+Title:1.4 - Lightmass Importance Volume
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Volumes
+Description:ボリュームの事例概要 1.4:Lightmass Importance Volume
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes/1_4:title%](Resources\ContentExamples\Volumes\content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes/1_4:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes/1_4:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Volumes/1_4]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+ライトマスでライティングを再構築する際に使用します。ボリュームの内側は全て最大限の間接反射光を取り込みます。その際に動的オブジェクトにサンプルを作成します。ボリューム外側に位置する動的オブジェクトは間接光を受け取りません。ボリューム外側のスタティックジオメトリは、間接反射光を一筋のみ受け取ります。

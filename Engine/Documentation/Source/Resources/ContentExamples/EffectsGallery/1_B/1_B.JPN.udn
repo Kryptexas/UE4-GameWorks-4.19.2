@@ -1,0 +1,83 @@
+﻿INTSourceChangelist:2346406
+Availability:Public
+Title:1.2 -  Velocity Cone モジュールを使用した GPU パーティクル 
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
+Description:エフェクト ギャラリーの事例概要
+Related: Engine/Rendering/ParticleSystems/Overview
+Related: Engine/Rendering/ParticleSystems/Reference
+Related: Engine/Rendering/ParticleSystems/Optimization
+Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
+Related: Engine/Rendering/ParticleSystems/ParticleLights
+Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\EffectsGallery\1_B:title%](%ROOT%\Resources\ContentExamples\EffectsGallery\1_B\1_BTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\EffectsGallery\1_B:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\EffectsGallery\1_B:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\EffectsGallery\1_B]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources\ContentExamples\EffectsGallery\1_B:title%](%ROOT%\Resources\ContentExamples\EffectsGallery\1_B\1_BTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\EffectsGallery\1_B:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\EffectsGallery\1_B:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\EffectsGallery\1_B]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+![](image010.png)
+[/REGION]
+
+
+[INCLUDE:Resources\ContentExamples\ExampleLevelOverview#PlaySim]
+
+
+次に紹介する事例は、コーン (円錐) 形状のパーティクルを出力する Velocity Cone モジュールの使用を示したものです。パーティクルシステムには実際には 3 つのエミッタが含まれています：
+
+* コーン形状の火花を出力する 2 つのエミッタ - 1 つは上方へ発射し、もう 1 つは下方へ発射します。
+* もう 1 つは Mesh TypeData モジュール経由で単一スタティックメッシュを出力するエミッタです。
+
+[REGION:fullwidth]
+![](VelocityConeEmitters.png)
+[/REGION]
+
+最初の 2 つのエミッタは、GPU スプライトエミッタです。エフェクトに最も重要なモジュールは、放出形状を処理する _Velocity Cone_ モジュールです。各エミッタには重力の感覚をもたらす _Constant Acceleration_ モジュールに加え、コリジョンシミュレーションを有効にするために Z バッファ情報を使用する _Collision (Scene Depth)_ モジュールがあります。
+
+3 番目のエミッタはパーティクル システムへスタティックメッシュへインスタンスを放出する際に Mesh TypeData モジュールを使用します。この場合はシンプルな球体形状です。パーティクルを効率よく長く利用するために、エミッタのライフタイムは 0 に設定されています。
+
+パーティクル エフェクトを作成するために、パーティクル エフェクト全部を別の一連のサブシステムと考えると大抵の場合役立ちます。ここでは中央にメッシュがある二つの噴水へエフェクトを分割します。キャップファイヤなどその他のエフェクトは、エレメントを火の中心、外部の炎、火花、煙、そして発生しうる熱変形として単一パーティクルシステム内の別のエミッタへ切り離しが適しています。
+  
+Velocity モジュールに関する詳細は、 [Velocity モジュールのドキュメント](Engine/Rendering/ParticleSystems\Reference\Modules\Velocity) を参照してください。 
+
+### ブループリントとパーティクル
+
+この例に関して特筆すべきことは、この例は単なるパーティクルシステムではない点です。エフェクトはブループリントを用いてレベルへ追加されました (_BP_sway_cube_) 。ブループリントはコンポーネントとしてパーティクルシステムを持ち、ループする回転アニメーションを定義する簡易なノードグラフを使用します。エフェクトはゆっくりとブループリントアクタをスピンさせます。これはパーティクルをベースとしたエフェクトへ生気を加えるためにブループリントの使用を紹介した素晴らしい例です。回転エフェクトを実現するための数多くある方法の 1 つであることに留意してください。
+
+[REGION:fullwidth]
+![](SwayCube.png)
+[/REGION]

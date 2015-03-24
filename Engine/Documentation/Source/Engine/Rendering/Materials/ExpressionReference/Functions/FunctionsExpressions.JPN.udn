@@ -1,0 +1,100 @@
+﻿INTSourceChangelist:2090084
+Availability:Public
+Title:マテリアル関数の表現式
+Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
+Description:マテリアル関数の作成または実行に使用する表現式
+
+[EXCERPT:TOC]
+[TOC(start:2)]
+[/EXCERPT:TOC]
+
+## FunctionInput
+
+FunctionInput 表現式は、関数の入力値の1つを定義するマテリアル関数のみに置かれます。
+
+| アイテム | 説明 |
+| -------- | ----------- |
+| [REGION:tablesection]プロパティ[/REGION] ||
+| **Input Name** | MaterialFunctionCall 式に表示される入力名で、この式は、この入力値を格納するマテリアル関数を使用します。 |
+| **Description** | 入力値の説明は、MaterialFunction Call 式の入力用コネクター上にマウスが重なると、ツールヒントとして表示されます。 |
+| **Input Type** | 入力が求めるデータのタイプです。入力用に渡されたデータはこのデータタイプに型変換され、データに互換性がないため型変換に失敗するとコンパイラーエラーを表示します。|
+| **Preview Value** | 入力値を含んだマテリアル関数を編集する時、入力のプレビューに使用する値です。 |
+| **Use Preview Value As Default** | 有効化されている場合、データが渡されないと入力デフォルト値として **Preview Value** が使用されます。 |
+| **Sort Priority** | MaterialFunctionCall 式に表示する入力の順番を決定する際に、入力のプライオリティを指定します。 |
+
+
+このノードは[](Engine/Rendering/Materials/Functions) と一緒に使用します。
+
+
+## FunctionOutput
+
+FunctionOutput 表現式は、関数の出力値の1つを定義するマテリアル関数のみに置かれます。
+
+| アイテム | 説明 |
+| -------- | ----------- |
+| [REGION:tablesection]プロパティ[/REGION] ||
+| **Output Name** | MaterialFunctionCall 式に表示される出力名で、この式は、この出力値を格納するマテリアル関数を使用します。 |
+| **Description** | 出力値の説明は、MaterialFunction Call 式の出力用コネクター上にマウスが重なると、ツールヒントとして表示されます。 |
+| **Sort Priority** | MaterialFunctionCall 式に表示する出力の順番を決定する際に、出力のプライオリティを指定します。 |
+
+
+このノードは[](Engine/Rendering/Materials/Functions) と一緒に使用します。
+
+
+## MaterialFunctionCall
+
+MaterialFunctionCall 表現式は、他のマテリアルまたは関数から外部の[MaterialFunction](Engine/Rendering/Materials/Functions) の使用を可能にします。外部関数の入力と出力ノードは、関数呼び出しノードの入力および出力になります。これらの関数の1つをセットしている時に **コンテンツブラウザ** で MaterialFunction が選択されると、自動的に割り当てられます。
+
+**ショートカット** _Fキーとマウスを左クリック_
+
+| アイテム | 説明 |
+| -------- | ----------- |
+| [REGION:tablesection]プロパティ[/REGION] ||
+| **Material Function** | 使用する[MaterialFunction](Engine/Rendering/Materials/Functions) を指定します。 |
+
+
+このノードは[](Engine/Rendering/Materials/Functions) と一緒に使用します。
+
+
+## StaticBool
+
+StaticBool 表現式は、関数内で静的 bool 関数入力のデフォルト bool 値を渡すために使用されます。このノードはテクスチャ間の切り替えをしないため、StaticSwitch ノードを併用しなくてはいけません。
+
+| アイテム | 説明 |
+| -------- | ----------- |
+| [REGION:tablesection]プロパティ[/REGION] ||
+| **Value** | bool値は、_True_ （チェック済）または _False_ です。 |
+
+
+このノードは[](Engine/Rendering/Materials/Functions) と一緒に使用します。
+
+
+## StaticSwitch
+
+StaticSwitch 式は、スイッチを実装するのみでパラメータを作成しないという点を除いてStaticSwitchParameter のような機能を持ちます。
+
+| アイテム | 説明 |
+| -------- | ----------- |
+| [REGION:tablesection]プロパティ[/REGION] ||
+| **Default Value** | どの入力がアクティブになるかを決定するパラメータのデフォルト bool 値、True （チェック済）または False です。 |
+| [REGION:tablesection]入力値[/REGION] ||
+| **True** | switch の **Value** が _True_ の時に使用される入力値です。 |
+| **False** | switch の **Value** が _False_ の時に使用される入力値です。 |
+| **Value** | アクティブな入力値を決定する bool 値を受け取ります。 |
+
+
+このノードは[](Engine/Rendering/Materials/Functions) と一緒に使用します。
+
+
+[EXCERPT:TextureObject]
+## TextureObject
+
+TextureObject表現式は、関数内のテクスチャ関数入力にデフォルトテクスチャを渡す際に使用されます。このノードは実際にテクスチャをサンプル化しないので、TextureSample ノードと併せて使用しなくてはいけません。
+
+| アイテム | 説明 |
+| -------- | ----------- |
+| [REGION:tablesection]プロパティ[/REGION] ||
+| **Texture** | このノードに適用される **コンテンツブラウザ** からのテクスチャです。 |
+| **Sampler Type** | ノードから出力されるデータ タイプです。 |
+
+[/EXCERPT:TextureObject]

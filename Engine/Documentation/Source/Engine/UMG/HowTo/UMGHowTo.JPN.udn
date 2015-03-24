@@ -1,0 +1,18 @@
+﻿INTSourceChangelist:2368765
+Availability:Public
+Title:UMG UI デザイナの操作方法
+Crumbs: %ROOT%, Engine, Engine\UMG
+Description:アンリアル モーション グラフィックス UI デザイナ (UMG) でUI エレメントを作成するためのガイド 
+Related:Engine\UMG
+Related:Engine\UMG\UserGuide
+
+## 概要
+**アンリアル モーション グラフィックス UI デザイナ (UMG) - 操作方法...** のページでは UMG を使用して様々な UI エレメントを作成する方法について説明します。各例には、段階を追った指示といくつかの画像があり、上記のコンテンツを作成するためのプロセスを説明する支援をします。各ガイドで説明している UMG システムとコンテンツの詳細なドキュメントへの参照リンクもあります。 
+
+詳細は以下の表を参照してください。各リンクをクリックすると内容が表示されます。 
+
+| 操作手順 | 説明 |
+| ------- | ------------ |
+| **[](Engine\UMG\HowTo\Create3DWidgets)** | %Engine\UMG\HowTo\Create3DWidgets:description% |
+
+

@@ -1,0 +1,120 @@
+INTSourceChangelist:2214958
+Availability: Public
+Title:레퍼런스 트리 툴
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser, Engine/Content/Browser/ReferenceViewer
+Description:특정 애셋을 레퍼런싱하는 모든 오브젝트를 계층형 트리 구조로 나타내 주는 툴입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Browser/ReferenceTreeTool:title%](ReferenceTreeTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/ReferenceTreeTool:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Browser/ReferenceTreeTool:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/ReferenceTreeTool]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Browser/ReferenceTreeTool:title%](ReferenceTreeTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/ReferenceTreeTool:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Browser/ReferenceTreeTool:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/ReferenceTreeTool]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![](ReferenceTreeBanner.png)
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+
+
+## 개요
+
+레퍼런스 트리는 특정 애셋에 대한 레퍼런스 체인을 나열해 볼 수 있는 툴입니다. 레퍼런스 체인이란, 목록 내의 각 오브젝트가 목록에서 그 아래 오브젝트로 레퍼런스됨을 나타내는 목록을 말합니다. 레퍼런스 트리 툴로 오브젝트가 어떻게 레퍼런스되었는지를 쉽게 알아볼 수 있습니다. 
+
+다음 이미지에서 트리의 루트는 M_RTS_Env_Lava_01 라는 이름의 머티리얼임을 알 수 있습니다. 트리의 루트는 항상 조사 대상 오브젝트입니다. 해당 머티리얼이 여섯 개의 스태틱 메시 액터에서 참조하고 있음을 알 수 있습니다.
+
+![ReferenceTree2.PNG](ReferenceTree2.PNG)
+
+
+## 레퍼런스 트리 사용하기
+
+레퍼런스 트리는 애셋 종속성이 그래프로 표시되는 툴인 레퍼런스 뷰어에서 열어볼 수 있습니다. 레퍼런스 뷰어를 열려면, 콘텐츠 브라우저에서 애셋에 우클릭한 다음 **레퍼런스 뷰어** 를 선택하면 됩니다.
+
+레퍼런스 뷰어에서, 애셋에 우릭하여 맥락 메뉴를 띄운 다음 **Show Reference Tree** (레퍼런스 트리 표시) 옵션을 클릭하면 해당 애셋에 대한 레퍼런스 트리가 표시됩니다.
+
+레퍼런스 뷰어 관련 상세 정보는, [](Engine/Content/Browser\ReferenceViewer) 문서를 참고하세요.
+
+[REGION:note]
+레퍼런스 트리 대화창의 초기 로드시간은 게임의 복잡도와 객체 수에 따라 몇 초 정도 걸릴 수 있습니다. 레퍼런스 트리가 유용한 툴이 될 수도 있지만, 애셋간의 종속성을 확인하고자 하는 것이라면, 보통 레퍼런스 트리보다 훨씬 빨리 로드되는 레퍼런스 뷰어 자체에서도 원하는 정보를 찾을 수 있을 것입니다.
+[/REGION]
+
+
+
+### 옵션
+
+
+#### 뷰 메뉴
+
+
+* **트리 리빌드** - 트리를 재생성하고 로드된 객체를 전부 검사합니다. 시간은 좀 걸리겠지만, 애셋으로의 레퍼런스를 변경한 뒤 검사할 때 좋습니다.
+* **전부 펼침** - 트리의 노드 전부를 펼칩니다.
+* **전부 접기** - 트리의 노드 전부를 접습니다.
+
+
+#### 옵션 메뉴
+
+* **스크립트 레퍼런스 표시** - 기본값으로 스크립트 내 애셋으로의 레퍼런스는 표시되지 않습니다. 그런 것들도 표시하려면 이 옵션을 켜면 됩니다.
+
+
+#### 맥락 메뉴
+
+레퍼런스 트리의 항목에 우클릭하면, 다음과 같은 옵션이 있는 맥락 메뉴가 뜹니다:
+
+
+* **에디터 열기** - 애셋에 적합한 에디터를 엽니다. (예로 스태틱 메시는 스태틱 메시 에디터에서 열립니다.)
+* **콘텐츠 브라우저에서 표시** - 콘텐츠 브라우저에서 해당 애셋의 위치로 이동하여 선택합니다.
+
+[REGION:tip]
+레퍼런스 트리에서 애셋에 더블클릭해도 콘텐츠 브라우저가 열려 해당 애셋이 선택됩니다.
+[/REGION]
+
+
+
+## 주
+
+
+* 레퍼런스 트리 툴은 둘러볼 수 있는 오브젝트나 액터만 표시합니다.
+* 트리 성능상의 이유로, 각 가지의 100 개까지만 표시됩니다. 항목이 100개 이상 되면, 몇 개나 더 있는지 알려주는 노드가 추가됩니다.
+* 이 툴은 현재 작업중입니다.
+
+
+ 
+
+
+
+
+

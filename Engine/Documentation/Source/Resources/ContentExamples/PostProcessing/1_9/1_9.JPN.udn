@@ -1,0 +1,60 @@
+﻿INTSourceChangelist:2402210
+Availability:Public
+Title:1.9 - Screenspace Reflection (スクリーン空間の反射)
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
+Description:ポストプロセスの事例概要、例 1.9：Screenspace Reflection (スクリーン空間の反射)
+Related:Engine/Rendering/PostProcessEffects/ScreenSpaceReflection
+Related:Engine/Rendering/Overview
+Related:Engine/Rendering/PostProcessEffects
+Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
+
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/PostProcessing/1_9:title%](Resources/ContentExamples/PostProcessing/PP_9.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/PostProcessing/1_9:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/PostProcessing/1_9:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/PostProcessing/1_9]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/PostProcessing/1_9:title%](Resources/ContentExamples/PostProcessing/PP_9.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/PostProcessing/1_9:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/PostProcessing/1_9:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/PostProcessing/1_9]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+![](1_9_01.png)
+[/REGION]
+
+
+**Screen Space Reflection** (スクリーン空間の反射) は、デフォルトで有効になっているエフェクトであり、 **マテリアル** サーフェス上のオブジェクトの外観を変更します。このエフェクトについて微調整できるオプションはほんの一握りしかありません。Intensity 、Quality 、Max Roughness です。このオプションに関する詳細は、以下のリンクからスクリーン空間の反射を参照してください。  
+
+
+

@@ -1,0 +1,212 @@
+﻿INTSourceChangelist:2385991
+Availability: Public
+Title:FBX 머티리얼 파이프라인
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:FBX 콘텐츠 파이프라인을 사용하여 메시와 함께 기본 머티리얼과 텍스처를 전송하는 방법 안내서입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/Materials:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/Materials:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/Materials:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/Materials]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+## 개요
+
+FBX 파이프라인에는 3D 어플리케이션의 (스태틱/스켈레탈) 메시에 적용된 머티리얼과 텍스처를 언리얼로 전송할 수 있는 기능이 있습니다. 단순한 머티리얼 변환이 이루어지는 방식은, 머티리얼에 사용된 텍스처를 임포트하고, 언리얼 에디터에서 그 텍스처를 적합한 채널에 걸어 주어 머티리얼을 만든 다음, 그 머티리얼을 임포트한 메시에 적용해 주는 식입니다. 예전엔 지루한 수작업으로 처리되던 것을 자동화시켜 메시 임포트 프로세스를 효율적으로 단순화시킬 수 있게 된 것입니다.
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+[REGION:tip]
+이 페이지에는 Autodesk Maya 와 Autodesk 3ds Max 모두에 대한 정보가 포함되어 있습니다. 아래에서 선호하는 툴을 선택하시면 그 툴에 관련된 정보만 표시됩니다:
+[/REGION]
+
+%Globals:DCCSelect%
+
+## 머티리얼 지원
+
+FBX 파이프라인을 통한 임포트는 기본 머티리얼만 지원됩니다. 전송 가능한 머티리얼 종류는:
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	* Surface
+    * Anisotropic
+    * Blinn
+    * Lambert
+    * Phong
+    * Phone E
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	* Standard
+	* Multi/Sub-Object
+	[/PARAM]
+[/OBJECT]
+
+
+전송 가능한 머티리얼 타입에 더해, 그 머티리얼의 특정 기능만 전송됩니다. FBX 머티리얼 파이프라인은 개별 세팅을 전송하지 않으나, 머티리얼 내에서 사용된 맵이나 텍스처는 전송합니다.
+
+[REGION:warning]
+	현재, 메시와 함께 임포트가 지원되는 맵 (텍스처) 의 경우 머티리얼에 추가가 되거나, 심지어 머티리얼의 기본 입력에 연결되는 것도 있지만, 일부는 수동으로 연결해 줘야 합니다. 게다가 **앰비언트 오클루전** 에 대해 마야에서 **디퓨즈** 채널을 사용하는 등의 흔하지 않은 맵 유형은 임포트되지도 않습니다.
+[/REGION]
+
+## 멀티 머티리얼
+
+메시에는 머티리얼 여러 개가 일정 면을 각각 따로 덮는 식으로 적용될 수도 있습니다. 3D 어플리케이션에서 올바르게 셋업한 상태기만 하면야 멀티 머티리얼 메시도 FBX 파이프라인으로 임포트할 수 있습니다.
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/Materials#mayaMultiMat]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/Materials#maxMultiMat]
+	[/PARAM]
+[/OBJECT]
+
+
+<!--
+[EXCERPT:maxMultiMat]
+3dsMax 에서 멀티 머티리얼은 **Multi/Sub-Object** (멀티/서브-오브젝트) 머티리얼로 처리됩니다. 메시의 각 면에는 _Material ID_ (머티리얼 ID)가 있으며, 멀티/서브-오브젝트 안의 각 Standard (스탠다드) 머티리얼이 상응하는 _머티리얼 ID_ 에 적용됩니다.
+
+![mat_multi_max.jpg](mat_multi_max.jpg)(w:359 h:444)
+
+![mat_multi_max_result.jpg](mat_multi_max_result.jpg)(w:744 h:382)
+
+멀티/서브-오브젝트 머티리얼 내의 각 스탠다드 머티리얼마다 언리얼 에디터에 하나의 머티리얼이 생성되며, 임포트된 메시에는 이들 각각의 머티리얼에 대한 머티리얼 슬롯이 생깁니다. 메시에 적용될 때, 머티리얼은 3dsMax 에서와 마찬가지로 메시의 해당 폴리곤에만 영향을 끼칩니다.
+[/EXCERPT:maxMultiMat]
+
+[EXCERPT:mayaMultiMat]
+마야의 경우 한 메시에 여러 머티리얼을 사용하는 것은 꽤나 간단합니다. 머티리얼을 적용하려는 메시 면을 선택한 다음 그냥 적용하기만 하면 됩니다.
+
+![mat_mult_maya.jpg](mat_mult_maya.jpg)(w:827 h:442)
+
+![mat_mult_maya_result.jpg](mat_mult_maya_result.jpg)(w:827 h:442)
+
+마야의 메시에 적용된 각 머티리얼마다 언리얼 에디터에 머티리얼이 하나 생성되며, 임포트된 메시에는 이들 각각의 머티리얼에 대한 머티리얼 슬롯이 생깁니다. 메시에 적용될 때, 머티리얼은 마야에서와 마찬가지로 메시의 해당 폴리곤에만 영향을 끼칩니다.
+[/EXCERPT:mayaMultiMat]
+-->
+
+
+## 머티리얼 이름
+
+언리얼 에디터에서 생성되는 머티리얼은 3D 어플리케이션의 머티리얼 이름과 같은 이름으로 생성됩니다. 이름을 어디서 끌어오는가는 메시를 익스포트하는 어플리케이션에 따라 달라집니다.
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	마야의 경우, 언리얼 에디터의 머티리얼 이름은 마야의 메시에 적용된 셰이딩 엔진의 이름에서 따옵니다.
+
+	![mat_name_maya.jpg](mat_name_maya.jpg)(w:423 h:448)
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	3dsMax 의 경우, 언리얼 에디터의 머티리얼 이름은 3dsMax 에서 메시에 적용된 머티리얼 이름에서 직접 따옵니다.
+
+	![mat_name_max.jpg](mat_name_max.jpg)(w:359 h:438)
+	[/PARAM]
+[/OBJECT]
+
+
+
+### 머티리얼 순서
+
+메시에 머티리얼을 적용하는 순서가 중요할 때는 머티리얼에 특수한 방식으로 이름을 지어 순서를 정할 수 있습니다. 디폴트로 언리얼 에디터에는 랜덤하게 머티리얼이 생성되기에 머티리얼 순서를 보장할 길이 없습니다. 예를 들어 캐릭터 시스템에서 첫 머티리얼은 바디를, 둘째 머티리얼은 머리를 담당한다던가 하는 경우 문제가 될 수 있습니다.
+
+언리얼에서는 머티리얼 순서 지정용으로 `skin##` 식의 이름을 사용합니다. 머티리얼의 전체 이름이어도 되고, 기존 이름에 덧붙인 것이어도 되고, 그저 머티리얼 이름 안에서 찾을 수 있기만 하면 됩니다.
+
+즉 순서를 지켜야 하는 머티리얼이 둘 있다면, 이런 식으로 이름을 지어야 합니다:
+
+* `M_ExampleMesh_skin_00`
+* `M_ExampleMesh_skin_01`
+
+
+![mat_order_max.jpg](mat_order_max.jpg)(w:320 h:92)
+
+## 텍스처 임포트
+
+머티리얼에 3D 어플리케이션에서 디퓨즈든 노멀맵이든 텍스처가 할당되어 있는 경우, [FBX Import 프로퍼티](Engine/Content/FBX/ImportOptions)의 **Import Textures** 세팅이 켜져 있는 한, 텍스처는 언리얼 에디터로 임포트됩니다.
+
+![](Engine/Content/FBX/StaticMeshes/ImportedMeshAndTex.png)
+
+언리얼 에디터에 새로 생성된 머티리얼 안에 Texture Sample 표현식이 생성되며, 임포트된 텍스처는 그 Texture Sample 에 할당됩니다. Texture Coordinate 표현식 역시도 머티리얼에 추가되어 Texture Sample 의 UV 입력에 연결됩니다. 하지만 약간의 텍스처를 머티리얼 슬롯에 연결해 줄 필요가 있습니다.
+
+![](FBXMaterial.png)
+
+3D 어플리케이션에서 머티리얼에 적용된 텍스처가 언리얼과 호환되지 않는 포맷이라거나, (마야에서의 **Diffuse** 처럼) 알려지지 않은 머티리얼 특성에 연결된 경우라면 임포트되지 않습니다. 이 경우와 애시당초 머티리얼 안에 텍스처를 건네주지도 않은 경우, 언리얼 에디터의 머티리얼은 아무 색의 Vector Parameter 로 채웁니다.
+
+![](NoTexture.png)
+
+ 
+
+
+
+

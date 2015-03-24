@@ -1,0 +1,41 @@
+﻿INTSourceChangelist:2430227
+Availability:Docs
+Title:7.参考文献
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:アーティスト向けクイックスタートガイドで扱ったトピックに関する参考文献
+
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+コンテンツ クイック スタートガイドおよびエディタ全般に渡り取り扱ったトピックスに関しては、 [アンリアル エディタのマニュアル](Engine) をご覧ください。
+
+クイック スタートガイドで取り扱った詳細は以下でご覧いただけます。
+
+* FBX パイプラインの情報に関しては、 [**%Engine/Content/FBX:title%**](Engine/Content/FBX) を参照してください。
+
+* サポート対象の画像ファイルの情報については、 [**%Engine/Content/Types/Textures/Importing:title%**](Engine/Content/Types/Textures/Importing) をご覧ください。
+
+* マテリアルに関する詳細は [**マテリアル ランディング**](Engine/Rendering/Materials) をご覧ください。
+
+* **コンテンツブラウザ** に関する詳細は、 [**コンテンツ ブラウザ**](Engine\Content\Browser) を参照してください。
+
+* スタティック メッシュ エディタの情報については、 [**スタティックメッシュ エディタ**](Engine/Content\Types\StaticMeshes\Editor) を参照してください。
+
+
+%Steps%

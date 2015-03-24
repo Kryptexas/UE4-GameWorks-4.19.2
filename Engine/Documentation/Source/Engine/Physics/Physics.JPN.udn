@@ -1,0 +1,113 @@
+﻿INTSourceChangelist:2424242
+Availability:Public
+Title:物理のシミュレーション
+Crumbs: %ROOT%, Engine
+Description:コリジョンを計算し、物理アクタをシミュレートするために使用するシステム
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Physics:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:banner]
+![Physics](physics_landing_banner.png)
+[/REGION]
+
+[EXCERPT:Intro]
+アンリアル エンジン 4 では、PhysX 3.3 物理エンジンを使用し、物理シミュレーションの演算を行い、すべてのコリジョンの計算を行います。PhysX には、正確なコリジョン検知だけでなく、ワールド内にあるオブジェクト間の物理的な相互作用をシミュレートする機能があります。ゲームに物理を利用すれば、あらゆるシーンにおいて没入感の価値が高まり、プレイヤーは、シーンと相互作用をもつことができ、シーンから何らかの反応が返ってくると信じ込むことができるようになります。
+[/EXCERPT:Intro]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		必須情報
+	[/PARAM]
+	[PARAM:links]
+		* [コリジョン反応](Engine/Physics/Collision "%Engine/Physics/Collision:description%")
+		* [コリジョン リファレンス](Engine/Physics/Collision/Reference) - %Engine/Physics/Collision/Reference:description%
+		* [物理オブジェクトのコンストレイント](Engine/Physics/Constraints/ConstraintsUserGuide "%Engine/Physics/Constraints/ConstraintsUserGuide:description%")
+		* [](Engine/Physics/Constraints/ConstraintsBlueprints "%Engine/Physics/Constraints/ConstraintsBlueprints:description%")
+		* [](Engine/Physics/Constraints/ConstraintsReference "%Engine/Physics/Constraints/ConstraintsReference:description%")
+		* [物理減衰](Engine/Physics/Constraints/DampingAndFriction "%Engine/Physics/Constraints/DampingAndFriction:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/vehicle_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Vehicles
+	[/PARAM]
+	[PARAM:links]
+		* [ビークル ユーザーガイド](Engine/Physics/Vehicles/VehicleUserGuide "%Engine/Physics/Vehicles/VehicleUserGuide:description%")
+		* [ビークルコンテンツ ユーザーガイド](Engine/Physics/Vehicles/VehcileContentCreation "%Engine/Physics/Vehicles/VehcileContentCreation:description%")
+		* [高度なビークル テンプレート](Engine/Physics/Vehicles/DoubleWishboneVehicle "%Engine/Physics/Vehicles/DoubleWishboneVehicle:description%")
+		* [ビークル API リファレンス](API:AWheeledVehicle)
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		コンテンツ作成
+	[/PARAM]
+	[PARAM:links]
+		* [物理ボディ](Engine/Physics/PhysicsBodies "%Engine/Physics/PhysicsBodies:description%")
+		* [物理マテリアル](Engine/Physics/PhysicalMaterials "%Engine/Physics/PhysicalMaterials:description%")
+		* [PhAT ユーザーガイドとリファレンス](Engine/Physics/PhAT "%Engine/Physics/PhAT:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/related_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		関連リンク
+	[/PARAM]
+	[PARAM:links]
+		* [スタティックメッシュ エディタ](Engine/Content/Types/StaticMeshes/Editor) - %Engine/Physics/PhAT:description%
+		* [FBX パイプライン：スタティックメッシュ](Engine/Content/FBX/StaticMeshes "%Engine/Physics/PhAT:description%")
+	[/PARAM]
+[/OBJECT]
+

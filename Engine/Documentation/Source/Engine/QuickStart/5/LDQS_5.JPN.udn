@@ -1,0 +1,57 @@
+﻿INTSourceChangelist:2467433
+Availability:Public
+Title:5.ビルド プロセスを実行する
+Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
+Description:多くのアクタを配置し、カスタマイズした状態で、レベルを作成するための最終ステップの 1 つは、ビルド プロセスです。
+
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Engine/QuickStart/4 "%Engine/QuickStart/4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Engine/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Engine/QuickStart/6 "%Engine/QuickStart/6:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+![](Engine\QuickStart\5\beforeBake.png)(w:940)
+
+シャドウに "Preview というラベルが見え、ライトが壁の下から漏れていることが分かります。これは、シーン内のすべてのライトは静的で、事前計算、すなわちベイクされた光源処理を使用しているものの、この光源処理がまだ計算されていないためです。この「プレビュー」テキストは、現在ビューポートで見ているものはゲーム内で見えるものとは異なることを気付かせるためのものです。シーンの見栄えをよくするためには、 **[Build]** プロセスを実行する必要があります。
+
+アンリアル エディタで **ビルドする** ことは非常に簡単です。ご利用のクオリティ設定を選択し、 ![**Build**](Engine\QuickStart\6\build_button.png) ボタンをクリックします。
+
+
+
+1. クオリティレベルを選択するには、 [**Build**](Engine\QuickStart\6\build_button.png) ボタンの隣にある ![**Down Arrow**](Engine\QuickStart\6\downArrow_button.png) をクリックします。 **[Build Options]** を展開し、次に **[Lighting Quality]** メニューを展開します。
+
+	![](Engine\QuickStart\6\buildSettings.png)
+
+1. **[Quality Level]** を **[Production]** に設定します。
+
+	[REGION:note]
+	**ビルド** を開始する前に、大きなレベルでは長時間かかるということを覚えておいてください。この例の小部屋では、あまり時間はかからないでしょう。しかし、平方キロメートル単位の広い範囲をカバーする数百のライトがあるシーンでは、相当長い時間がかかるでしょう。
+	[/REGION]
+
+1. ![**Build**](Engine\QuickStart\6\build_button.png) ボタンをクリックします。
+1. **ビルド** が完了するまでお待ちください。
+
+	![](Engine\QuickStart\6\wait.png)
+
+1. 光源処理が完了すると、自動的に更新されます。
+
+![](Engine\QuickStart\6\built.png)(w:940)
+
+
+最後になりますが、配置した **Player Start** を覚えていますか？![**Play**](Engine\QuickStart\6\play_button.png) ボタンを押すと、 **マウス** と **WASD** キーを使用してレベルを飛び回ることができます。プレイモード中は、実際にゲームが実行し、スタンドアロンのクライアントで見るものと全く同じレンダラーになります。
+
+%Steps%

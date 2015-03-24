@@ -1,0 +1,66 @@
+Availability: Public
+Title:6. On Your Own!
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:Create and apply your own Material as well as links to additional topics covered in the Artist Quick Start Guide.
+
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+Now using what you know, create a new **Material** similar to this graph:
+
+![](Engine/Content/QuickStart/5/PlasticMaterialNetwork.png)
+
+There is nothing fancy set on the Main Material node, this is just a simple plastic Material. 
+
+Add the _Basic_Asset1_ to the level and apply the Material to it and update the Material to add a "Brick" Normal Map Texture. 
+
+![](NormalMapAdded.png)
+
+
+
+
+For more information on the topics covered in this quick start guide, and across the entire editor, see the [Unreal Editor Manual](Engine).
+
+For information on importing different types of content: 
+
+* For information on the FBX pipeline in general, see: [%Engine/Content/FBX:title%](Engine/Content/FBX)
+
+* For information on the FBX Skeletal Mesh pipeline, see: [%Engine/Content/FBX/SkeletalMeshes:title%](Engine/Content/FBX/SkeletalMeshes)
+
+* For information on the FBX Animation pipeline, see: [%Engine/Content/FBX/Animations:title%](Engine/Content/FBX/Animations)
+
+* For information on the FBX Morph Target pipeline, see: [%Engine/Content/FBX/MorphTargets:title%](Engine/Content/FBX/MorphTargets)
+
+* For information on the FBX Material pipeline, see: [%Engine/Content/FBX/Materials:title%](Engine/Content/FBX/Materials)
+
+* For information on importing Audio, see: [](Engine/Audio/WAV)
+
+As for specifics covered in this quick start:
+
+* For more information on supported image types, see: [%Engine/Content/Types/Textures/Importing:title%](Engine/Content/Types/Textures/Importing)
+
+* For more information on Materials, see: [Materials Landing Page](Engine/Rendering/Materials)
+
+* For more information on the **Content Browser**, see: [Content Browser](Engine\Content\Browser)
+
+* For more information on the Static Mesh Editor, see: [Static Mesh Editor](Engine/Content/Types/StaticMeshes/Editor)
+
+
+
+%Steps%

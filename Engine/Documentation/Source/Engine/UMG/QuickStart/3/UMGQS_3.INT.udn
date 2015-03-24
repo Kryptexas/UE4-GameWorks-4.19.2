@@ -1,0 +1,102 @@
+Availability: Public
+Title:3. Setting Up the Character Variables
+Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
+Description:The third step in the UMG Quick Start is to setup our character and variables that will be displayed through the HUD. 
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/UMG\QuickStart\2 "%Engine/UMG\QuickStart\2:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/UMG\QuickStart) 
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/UMG\QuickStart\4 "%Engine/UMG\QuickStart\4:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+	[/PARAM]
+	[PARAM:description]
+
+In the following steps, we will add some variables to our character that we want to display on our HUD. 
+
+1. In the **Game/Blueprints** folder, open the **MyCharacter** Blueprint. 
+
+1. Inside the **MyBlueprint** window, create two **Float** variables (**P_Health**, **P_Energy**). 
+
+1. Click **Compile** then in the **Details** panel, set the **Default Value** for each **1.0**. 
+
+1. Also create two **Int** variables (**P_AmmoMax**, **P_CurrentAmmo**), **Compile** and set them both to **25**.
+
+		![](New_1.png)
+
+1. In the graph window, locate the "Jump" section, then while holding down the **Alt** key, drag in the **P_Energy** variable and place it following **Jump**. 
+
+		![](New_2.png)(w:800)
+
+		This creates a **Set** node which will allow us to set this variable following the jump, thus reducing energy.
+		
+1. While holding down the **Control** key, drag in the **P_Energy** variable again and connect it to a **Float - Float** node (set to **.25**), then connect as shown.
+
+		![](New_3.png)
+		
+		This will **Get** the current energy value and subtract 0.25 from it each time jump is executed, which we will display on the HUD.
+
+1. **Right-click** somewhere under the jump section, search for an add an **F** key event. 
+
+		![](New_4.png)
+
+		We are going to simulate taking damage and subtract health whenever the **F** key is pressed.
+								
+1. **Alt** drag in **P_Health**, then **Control** drag in **P_Health** to **Set**/**Get** the variable similar to the method used to get energy above.
+
+1. Connect the nodes as shown below to the **F** key **Pressed** pin. 
+
+		![](New_5.png)
+
+		We added the **Random Float in Range** node to subtract a random value between **0.025** and **0.075** for variety in damage applied.
+
+1. Find the "Spawn projectile" section and following the **InputActionFire** node, add a **Branch** node and connect the **True** to the **Montage Play** node.
+
+1. For the **Branch** condition, **Control** drag in the **P_CurrentAmmo** variable and connect it to a **>** node (set to **0**), then connect to the **Condition**. 
+
+		![](New_6.png)(w:800)
+
+		This will only allow the player to fire a projectile if their current ammo is greater than 0.
+
+1. Also in "Spawn projectile", at the end of the code following the **Play Sound** node, **Set** the **P_CurrentAmmo** to **P_CurrentAmmo - 1**. 
+
+		![](New_7.png)
+
+		This will subtract one from our ammo each time a shot is fired, which we will convey through our HUD.
+
+1. Click the **Compile** and **Save** buttons, then close the Blueprint. 
+
+	[/PARAM]
+	[PARAM:links]
+	[/PARAM]
+[/OBJECT]
+
+In the next section, we will hook up the Ammo, Health, and Energy to our **Widget Blueprint** to display it on our in-game HUD. 
+
+---
+
+%Steps%
+
+
+
+

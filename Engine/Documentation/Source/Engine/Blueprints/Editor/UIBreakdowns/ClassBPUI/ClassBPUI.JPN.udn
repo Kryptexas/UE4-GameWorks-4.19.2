@@ -1,0 +1,74 @@
+﻿INTSourceChangelist:2445787
+Availability:Public
+Title:ブループリントのクラスの UI
+Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
+Description:ブループリントのクラスで作業する際のブループリント エディタの UI エレメントの分類
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/Editor/UIBreakdowns/ClassBPUI:title%](Engine/Blueprints\UserGuide\Types\class_blueprint_test_image.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/Editor/UIBreakdowns/ClassBPUI:title%
+	[/PARAM]
+	[PARAM:description]
+		%description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/Editor/UIBreakdowns/ClassBPUI]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+## 概要
+
+![](ClassBlueprint.png)
+
+ **Blueprint Class** エディタには、デフォルトでいくつかのタブがあります。
+
+
+|デフォルトで表示される UI コンポーネント| [Window] メニューで利用可能な機能|
+|-----------------------------|-----------------------------|
+|[INCLUDE:#visible]			  |[INCLUDE:#invisible]			|
+
+
+
+<!----------
+[EXCERPT:Visible]
+1. [メニュー](Engine/Blueprints/Editor/UIComponents/Menu)
+1. [ツールバー](Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions)
+1. [コンポーネント](Engine/Blueprints/UserGuide/Components)
+1. [My Blueprint](Engine/Blueprints/Editor/UIComponents/MyBlueprint)
+1. [グラフ エディタ](Engine/Blueprints/Editor/UIComponents/GraphEditor)
+ 
+[/EXCERPT:Visible]
+
+[EXCERPT:Invisible]
+* [デバッグ](Engine/Blueprints/Editor/UIComponents/Debug)
+* [クラスのデフォルト](Engine/Blueprints/Editor/Modes/Defaults/DefaultsTab)
+* [コンパイラの結果](Engine/Blueprints/Editor/UIComponents/CompilerResults)
+* [Find Results](Engine/Blueprints/Editor/UIComponents/FindResults)
+* [ビューポート](Engine/Blueprints/Editor/UIComponents/Viewport)
+[/EXCERPT:Invisible]
+------------->
+
+<!--
+[REGION:fullwidth]
+![](ClassBlueprint.png)
+[/REGION]
+-->
+
+
+
+
+
+
+ブループリントのクラスの作成に関する情報は、 [](Engine/Blueprints\UserGuide\Types\ClassBlueprint\Creation) を参照してください。
+
+ブループリントのクラスの詳細情報は [ブループリントのクラス](Engine/Blueprints\UserGuide\Types\ClassBlueprint) を参照してください。
+

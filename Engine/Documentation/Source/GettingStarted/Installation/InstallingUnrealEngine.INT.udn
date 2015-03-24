@@ -1,0 +1,96 @@
+Availability:Public
+Title:Installing Unreal Engine
+Crumbs: %ROOT%, GettingStarted
+Description:Steps for installing Unreal Engine.
+
+%Globals:OSSelect%
+
+## Download the Installer
+
+You can download the installer from the [UnrealEngine.com](http://unrealengine.com) website:
+
+1. Go to [UnrealEngine.com](http://unrealengine.com) and sign in. 
+
+	[REGION:note]
+	You need to create an account and subscribe in order to download Unreal Engine. If you do not already have an account, click the orange **Get Unreal** button at the top of the page and follow the instructions.
+	[/REGION]
+
+1. From your account page, click one of the download buttons, depending on your operating system:
+
+	![](ue4_install_downlader.png)
+
+
+## Basic Installation
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#Windows]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#MacOS]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:Windows]
+1. Run the installer you downloaded and choose a location to install Unreal Engine to:
+
+	![](ue4_install_location.png)
+
+	[REGION:warning]
+	[REGION:largetitle]
+	Space Requirements
+	[/REGION]
+	Unreal Engine uses approximately 8GB of disk space for each version, and all of the versions will be stored in the location you choose during this step of installation. Please choose a location to install to that has plenty of space.
+	[/REGION]
+
+1. Click **Install** to continue the installation process. When Unreal Engine is installed, the Unreal Engine Launcher will open.
+
+[/EXCERPT:Windows]
+[EXCERPT:MacOS]
+1. Double click the `Rocket.dmg` icon in Finder to open it. After you accept the **License Agreement** it will open a new **Finder Window**.
+1. Drag the **RocketEditor** icon to the **Applications** folder.
+
+	![](ue4_mac_install.png)
+
+1. Once Finder finishes copying the files, Unreal Engine will be available in the **Launchpad**. Run it from there. 
+
+[/EXCERPT:MacOS]
+-->
+
+## Sign-In and Download
+
+Once you have the Unreal Engine Launcher running, you must sign in and download the current version of the engine.
+
+1. Sign in with your account credentials.
+
+	[REGION:fullwidth]
+	![](ue4_installer_login.png)
+	[/REGION]
+
+1. The current version of Unreal Engine 4 will begin downloading:
+
+	![](ue4_installer_download.png)
+
+1. Once the download is completed, you can launch Unreal Engine using the **Launch** button:
+
+	![](launch.png)

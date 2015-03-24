@@ -1,0 +1,257 @@
+﻿INTSourceChangelist:2222719
+Availability: Public
+Title:피직스 컨스트레인트 참고서
+Crumbs: %ROOT%, Engine, Engine/Physics
+Description:언리얼 에디터의 피직스 컨스트레인트에서 볼 수 있는 모든 프로퍼티에 대한 참고서입니다.
+
+[TOC(start:2)]
+
+## 개요
+
+[EXCERPT:PhysXConstraints_001]
+Constraint(제약, 컨스트레인트)란 기본적으로 Joint(관절, 조인트)의 한 종류입니다. 두 액터를 (하나는 물리적으로 시뮬레이팅한다 가정하고) 서로 연결시키거나, 제약 또는 포스를 가하는 것이 가능합니다. 언리얼 엔진 4 는 매우 유연한 데이터-주도형 컨스트레인트 시스템을 통해, 디자이너도 다양한 유형의 조인트를 옵션 변경만을 통해 쉽게 만들어 낼 수 있습니다. 엔진에 다양한 조인트 유형이 (볼-앤-소켓, 힌지(경첩), 프리즈매틱(직선축)) 내장되어 있기는 합니다만, 근본적인 차이점은 세팅 뿐입니다. 고로 아무 조인트 유형으로든 시작해서 자체 환경설정을 통해 만들어 가면 됩니다.
+[/EXCERPT:PhysXConstraints_001]
+
+## 프로퍼티 참고서
+
+피직스 컨스트레인트를 만드는 방법은 세 가지: **블루프린트**, **액터**, 그리고 **피직스 애셋 툴** (**PhAT**) 에서 입니다.
+
+### 액터 컨스트레인트
+
+| 프로퍼티 | 설명 |
+| -------- | ----------- |
+|[REGION:tablesection]Constraint[/REGION]||
+| **Constraint Actor 1** | %doxygen:UPhysicsConstraintComponent::ConstraintActor1% |
+| **Component Name 1** | %doxygen:UPhysicsConstraintComponent::ComponentName1% |
+| **Constraint Actor 2** | %doxygen:UPhysicsConstraintComponent::ConstraintActor2% |
+| **Component Name 2** | %doxygen:UPhysicsConstraintComponent::ComponentName2%  |
+| **Joint Name** | %doxygen:FConstraintInstance::JointName% |
+| **Constraint Bone 1** | %doxygen:FConstraintInstance::ConstraintBone1% |
+| **Constraint Bone 2** | %doxygen:FConstraintInstance::ConstraintBone2% |
+| **Disable Collision** | %doxygen:FConstraintInstance::bDisableCollision% |
+
+![](PhysCon_JointPresets.png)(convert:false) 
+
+[INCLUDE:#presetTable]
+
+* **피직스 컨스트레인트 액터** 관련 정보: [**%Engine/Physics\Constraints\ConstraintsUserGuide:title%**](Engine/Physics\Constraints\ConstraintsUserGuide)
+<!--
+[EXCERPT:presetTable]
+| 조인트 프리셋 | 설명 |
+| --- | ---- |
+| **Hinge** | 힌지(경첩) - **Linear Motions** (선형 모션)과 **Swing Motions** (스윙 모션) 고정(Lock), **Angular Twist Motion** (각형 트위스트 모션) 자유(Free). 예: 고전적인 문의 경첩이나 무릎 관절. |
+| **Prismatic** | 프리즈매틱(직선축) **Swing Motions** (스윙 모션), **Angular Twist Motion** (각형 트위스트 모션), **Linear Y/Z Motion** (선형 Y/Z 모션) 고정, **Linear Z Motion** (선형 Z 모션)만 자유. 예: 유압식 피스톤. |
+| **Ball and Socket** | 볼 앤 소켓 - 모든 **Linear Motion** (선형 모션) 고정, **Swing Motions** (스윙 모션)과 **Twist Motions** (트위스트 모션) 자유. 회전은 완전히 자유. 예: 펀치 백, 철거용 쇠공 |
+[/EXCERPT:presetTable]
+-->
+
+### 블루프린트 컨스트레인트
+
+| 프로퍼티 | 설명 |
+| -------- | ----------- |
+|[REGION:tablesection]Constraint[/REGION]||
+| **Component Name 1** | %doxygen:UPhysicsConstraintComponent::ComponentName1% |
+| **Component Name 2** | %doxygen:UPhysicsConstraintComponent::ComponentName2%  |
+| **Joint Name** | %doxygen:FConstraintInstance::JointName% |
+| **Constraint Bone 1** | %doxygen:FConstraintInstance::ConstraintBone1% |
+| **Constraint Bone 2** | %doxygen:FConstraintInstance::ConstraintBone2% |
+| **Disable Collision** | %doxygen:FConstraintInstance::bDisableCollision% |
+
+* 블루프린트 컴포넌트로 **피직스 컨스트레인트** 를 사용하는 방법 관련 정보: [**%Engine/Physics\Constraints\ConstraintsBlueprints:title%**](Engine/Physics\Constraints\ConstraintsBlueprints)
+
+### 피직스 애셋 툴 컨스트레인트
+
+| 프로퍼티 | 설명 |
+| -------- | ----------- |
+|[REGION:tablesection]Constraint[/REGION]||
+| **Joint Name** | %doxygen:FConstraintInstance::JointName% |
+| **Constraint Bone 1** | %doxygen:FConstraintInstance::ConstraintBone1% |
+| **Constraint Bone 2** | %doxygen:FConstraintInstance::ConstraintBone2% |
+| **Disable Collision** | %doxygen:FConstraintInstance::bDisableCollision% |
+
+* **피직스 애셋 툴** (**PhAT**) 관련 자세한 정보: [**%Engine/Physics\PhAT\Reference:title%**](Engine/Physics\PhAT\Reference)
+
+* **피직스 애셋 툴** (**PhAT**) 에서의 **피직스 컨스트레인트** 사용 관련 정보: [**%Engine/Physics\PhAT\UserGuide:title%**](Engine/Physics\PhAT\UserGuide)
+
+* **피직스 애셋 툴** (**PhAT**) 사용법 관련 정보: [**%Engine/Physics\PhAT:title%**](Engine/Physics\PhAT)
+
+### 공유 프로퍼티
+
+| 프로퍼티 | 설명 |
+| -------- | ----------- |
+|[REGION:tablesection]Linear Limits[/REGION]||
+| **Linear XMotion** | %doxygen:FConstraintInstance::LinearXMotion% |
+| **Linear YMotion** | %doxygen:FConstraintInstance::LinearYMotion% |
+| **Linear ZMotion** | %doxygen:FConstraintInstance::LinearZMotion% |
+| **Linear Limit Types** | [INCLUDE:#linearMotionEnum] |
+| **Linear Limit Size** | %doxygen:FConstraintInstance::LinearLimitSize% |
+| **Linear Limit Soft** | %doxygen:FConstraintInstance::bLinearLimitSoft% |
+| **Linear Limit Stiffness** | %doxygen:FConstraintInstance::LinearLimitStiffness% |
+| **Linear Limit Damping** | %doxygen:FConstraintInstance::LinearLimitDamping% |
+| **Linear Breakable** | %doxygen:FConstraintInstance::bLinearBreakable% |
+| **Linear Break Threshold** | %doxygen:FConstraintInstance::LinearBreakThreshold% |
+|[REGION:tablesection]Projection[/REGION]||
+| **Enable Projection** | %doxygen:FConstraintInstance::bEnableProjection% |
+| **Projection Linear Tolerance** | %doxygen:FConstraintInstance::ProjectionLinearTolerance% |
+| **Projection Angular Tolerance** | %doxygen:FConstraintInstance::ProjectionAngularTolerance% |
+|[REGION:tablesection]Angular Limits[/REGION]||
+| **Angular Swing 1Motion** | %doxygen:FConstraintInstance::AngularSwing1Motion% |
+| **Angular Swing 2Motion** | %doxygen:FConstraintInstance::AngularSwing2Motion% |
+| **Angular Twist Motion** | %doxygen:FConstraintInstance::AngularTwistMotion% |
+| **Angular Limit Types** | [INCLUDE:#angularMotionEnum] |
+| **Swing 1Limit Angle** | %doxygen:FConstraintInstance::Swing1LimitAngle% |
+| **Swing 2Limit Angle** | %doxygen:FConstraintInstance::Swing2LimitAngle% |
+| **Twist Limit Angle** | %doxygen:FConstraintInstance::TwistLimitAngle% |
+| **Swing Limit Soft** | %doxygen:FConstraintInstance::bSwingLimitSoft% |
+| **Swing Limit Stiffness** | %doxygen:FConstraintInstance::SwingLimitStiffness% |
+| **Swing Limit Damping** | %doxygen:FConstraintInstance::SwingLimitDamping% |
+| **Twist Limit Soft** | %doxygen:FConstraintInstance::bTwistLimitSoft% |
+| **Twist Limit Stiffness** | %doxygen:FConstraintInstance::TwistLimitStiffness% |
+| **Twist Limit Damping** | %doxygen:FConstraintInstance::TwistLimitDamping% |
+| **Angular Breakable** | %doxygen:FConstraintInstance::bAngularBreakable% |
+| **Angular Break Threshold** | %doxygen:FConstraintInstance::AngularBreakThreshold% |
+|[REGION:tablesection]Linear Motor[/REGION]||
+| **Linear Position Drive** | %doxygen:FConstraintInstance::bLinearPositionDrive% |
+| **Linear XPosition Drive** | %doxygen:FConstraintInstance::bLinearXPositionDrive% |
+| **Linear YPosition Drive** | %doxygen:FConstraintInstance::bLinearYPositionDrive% |
+| **Linear ZPosition Drive** | %doxygen:FConstraintInstance::bLinearZPositionDrive% |
+| **Linear Position Target** | %doxygen:FConstraintInstance::LinearPositionTarget% |
+| **Linear Velocity Drive** | %doxygen:FConstraintInstance::bLinearVelocityDrive% |
+| **Linear Velocity Target** | %doxygen:FConstraintInstance::LinearVelocityTarget% |
+| **Linear Drive Spring** | %doxygen:FConstraintInstance::LinearDriveSpring% |
+| **Linear Drive Damping** | %doxygen:FConstraintInstance::LinearDriveDamping% |
+| **Linear Drive Force Limit** | %doxygen:FConstraintInstance::LinearDriveForceLimit% |
+|[REGION:tablesection]Angular Motor[/REGION]||
+| **Angular Orientation Drive** | %doxygen:FConstraintInstance::bAngularOrientationDrive% |
+| **Angular Orientation Target** | %doxygen:FConstraintInstance::AngularOrientationTarget% |
+| **Angular Velocity Drive** | %doxygen:FConstraintInstance::bAngularVelocityDrive% |
+| **Angular Velocity Target** | %doxygen:FConstraintInstance::AngularVelocityTarget% |
+| **Angular Drive Force Limit** | %doxygen:FConstraintInstance::AngularDriveForceLimit% |
+| **Angular Drive Spring** | %doxygen:FConstraintInstance::AngularDriveSpring% |
+| **Angular Drive Damping** | %doxygen:FConstraintInstance::AngularDriveDamping% |
+
+<!--
+
+[EXCERPT:linearMotionEnum]
+| **유형** | **설명** |
+| --- | ---- |
+| **LCM_Limited** | 제한 - 이 축에 대한 자유도를 제한합니다. 모든 축에 대한 제한치는 **Linear Limit Size** 프로퍼티로 정의됩니다. |
+| **LCM_Locked** | 고정 - 이 축에 대해 완전히 제약시킵니다. |
+| **LCM_Free** | 자유 - 이 축에 대해 제약이 없습니다. |
+[/EXCERPT:linearMotionEnum]
+
+[EXCERPT:angularMotionEnum]
+| **유형** | **설명** |
+| --- | ---- |
+| **ACM_Limited** | 제한 - 이 축에 대한 자유도를 제한합니다. 각각의 Angular Motion 에 대한 제한은 상응하는 이름이 붙은 Limit 프로퍼티로 정의됩니다: **Swing 1Limit Angle**, **Swing 2Limit Angle**, **Twist Limit Angle**. |
+| **ACM_Locked** | 고정 - 이 축에 대해 완전히 제약시킵니다. |
+| **ACM_Free** | 자유 - 이 축에 대해 제약이 없습니다. |
+[/EXCERPT:angularMotionEnum]
+
+-->
+
+## 추가 정보
+
+### 조인트 셋업
+
+조인트 프리셋을 사용하여 대부분의 조인트 유형에 대한 기본적인 세팅을 빠르게 생성할 수 있습니다.
+
+![](PhysCon_JointPresets.png)
+
+피직스 컨스트레인트의 아이콘이 조인트 유형에 따라 바뀌는 것을 볼 수 있습니다.
+
+[REGION:lightbox]
+[![](PhysCon_Hinge.png)(w:300)](PhysCon_Hinge.png) [![](PhysCon_Prismatic.png)(w:300)](PhysCon_Prismatic.png) [![](PhysCon_BallNJoint.png)(w:300)](PhysCon_BallNJoint.png) 
+[/REGION]
+
+_왼쪽에서 오른쪽 순: 힌지, 프리즈매틱, 볼 앤 소켓 아이콘 입니다._
+
+### 선형 자유 및 제한
+
+![](PhysCon_LinearProps.png)
+
+대부분의 상황에서 선형 모션의 자유도는 고정됩니다. 그러나 한 축의 선형 모션은 자유롭거나 제한된 조인트가 어울리는 경우도 있습니다. 선형 모션을 제한 또는 자유로 설정했을 때의 피직스 컨스트레인트 모습은 이렇습니다:
+
+[REGION:lightbox]
+[![](PhysCon_Linear_15uu.png)(w:453)](PhysCon_Linear_15uu.png) [![](PhysCon_Linear_Free.png)(w:453)](PhysCon_Linear_Free.png)
+[/REGION]
+
+_왼쪽에서 오른쪽 순 (피직스 컨스트레인트에 4 배 스케일 적용): 선형 모션 15 유닛으로 제한, 선형 모션은 자유로 설정._
+
+<!-- 선형 자유 및 제한 관련 모든 프로퍼티에 대한 정보: [%Engine/Physics\Constraints\ConstraintsReferencetitle%](Engine/Physics\Constraints\ConstraintsReference -->
+
+### 각형 자유 및 제한
+
+![](PhysCon_AngularLimitsProps.png)
+
+피직스 컨스트레인트는 세 개의 회전축을 **Locked**, **Free**, **Limited** (고정, 자유, 제한)으로 설정할 수 있습니다. 한 축으로만 90 도 회전이 가능한 힌지(경첩)같은 조인트를 이루는 기반이 됩니다. 액터의 위치는 조인트의 위치를 정의하고, 따라서 제약된 액터가 어느 축을 중심으로 회전할지를 정의합니다.
+
+피직스 컨스트레인트는 **피직스 컨스트레인트 액터** 의 Y 와 Z 축에 대한 회전을 **스윙 모션** 으로, X 축에 대한 회전을 **트위스트** 로 정의하며, 제약된 액터의 것을 기준으로 하지 않습니다. 즉 피직스 컨스트레인트 액터를 회전시키면 결과가 크게 달라질 수 있습니다. **스윙 제한** 은 녹색 원뿔(, 하나만 사용되거나 다른 것이 0 으로 제한된 경우 원호)로 표시되며, **트위스트 제한** 은 X 축에 대한 원호로 표시됩니다.
+
+[REGION:lightbox]
+[![](PhysCon_Swing1_45.png)(w:300)](PhysCon_Swing1_45.png) [![](PhysCon_Swing2_45.png)(w:300)](PhysCon_Swing2_45.png) [![](PhysCon_Twist_135.png)(w:300)](PhysCon_Twist_135.png) 
+[/REGION]
+
+_왼쪽에서 오른쪽 순: Swing 1 과 2 는 45 도 제한, Twist 는 135 도 제한입니다._
+
+추가로, 조인트의 위치는 컨스트레인트 액터의 위치이므로, 움직이면 다른 결과가 날 것입니다.
+
+[REGION:lightbox]
+[![](PhysCon_AngPos1.png)(h:312)](PhysCon_AngPos1.png) [![](PhysCon_AngPos2.png)(h:312)](PhysCon_AngPos2.png) 
+[/REGION]
+
+<!-- 각형 자유 및 제한 관련 모든 프로퍼티 정보: [%Engine/Physics\Constraints\ConstraintsReferencetitle%](Engine/Physics\Constraints\ConstraintsReference -->
+
+### 방향
+
+피직스 컨스트레인트 액터의 축은 피직스 컨스트레인트 액터의 회전 방향에 맞춰지며, 두 오브젝트 사이로 맞춰지지 않습니다. 원하는 효과를 내고자 할 때는, 컨스트레인트의 방향이 어떻게 되는지 알고 있어야 합니다.
+
+**선형 모션** 의 경우, 중력이 제약된 액터를 끌어 내립니다.
+
+[REGION:lightbox]
+[![](PhysCon_Flat.png)(w:453)](PhysCon_Flat.png) [![](PhysCon_Angled.png)(w:453)](PhysCon_Angled.png)
+[/REGION]
+
+어느 셋업에서든, 피직스 컨스트레인트는 Linear X Motion 이 자유로 설정되어 있기에, 컨스트레인트를 위로 이동시켜 효과를 강화시키고 있습니다. 왼쪽의 셋업에서는 외부의 힘이 제약된 파랑 큐브에 영향을 끼치기 전까지는 그대로 있을 것이나, 오른쪽의 경우는 피직스 컨스트레인트의 방향때문에 바로 중력의 효과를 받아, 파랑 (Constrained Actor 2) 큐브가 X 축 아래, 큐브가 쌓인 쪽으로 미끄러지게 됩니다.
+
+[REGION:lightbox]
+[![](PhysCon_SimFlat.png)(w:453)](PhysCon_SimFlat.png) [![](PhysCon_SimAngled.png)(w:453)](PhysCon_SimAngled.png)
+[/REGION]
+
+각형 제한을 사용할 때는, Twist (양수 X) 축의 방향이 파랑 제약된 액터 (Constrained Actor 2)를 향해 맞춰져 있다 가정합니다. <!---정말 중요한 부분입니다. --->
+
+[REGION:lightbox]
+[![](PhysCon_Angular.png)(w:453)](PhysCon_Angular.png) [![](PhysCon_AngularSim.png)(w:453)](PhysCon_AngularSim.png)
+[/REGION]
+
+또한 시뮬레이션 도중, 각형 제한을 나타내는 원뿔이 파랑 제약된 액터 (Constrained Actor 2) 와 함께 회전하여 노랑 선이 보이는 것을 볼 수 있습니다 (에디터에서 보이지만 파랑 선 뒤로 그려집니다). 이 노랑 선은 컨스트레인트의 중립 위치를 나타내며, 녹색 원뿔 (, 트위스트 제한이 켜졌을 때는 녹색 원호) 안에 유지됩니다.
+
+![](PhysCon_AngularCone_2.png)(h:300 convert:false) ![](PhysCon_Arc.png)(h:300 convert:false)
+
+<!--
+
+### 볼-앤-소켓
+볼-앤-소켓 조인트는 단순히 선형 부분은 고정되어 있고 각형 부분만 자유로이 돌아다니는 조인트입니다.
+
+
+### 힌지
+Hinge(경첩, 힌지)는 잠긴 선형 부분은 볼-앤-소켓과 같으나 흔들리는 부분 또한 잠겨 있으며, 뒤틀리는 축을 통한 회전만 가능한 것입니다.
+
+
+### 프리즈매틱
+prismatic joint(직선축, 프리즈매틱 조인트)는 선형 부분의 2/3 정도가 잠겨 있으며, 각형 부분도 잠겨 있습니다. '철길'같은 식으로 쭈욱 내려보낼 수는 있으나 회전시킬 수는 없습니다.
+
+
+### 조인트 마찰
+드라이브 세팅을 통해 조인트 마찰(friction)을 흉내낼 수 있습니다. 목표 속도를 0으로 설정한 속도 드라이브를 켜고, LinearDriveForceLimit (선형 드라이브 힘 제한) 및 AngularDriveForceLimit (각형 드라이브 힘 제한) 세팅을 사용하여 조인트가 이동에 저항하는 정도를 조절하면 됩니다.
+
+
+### '펀치백'
+펀치백(쳐서 넘어뜨릴 수 있는 수직 막대 위에 달린 공 모양)같은 것을 흉내낼 수도 있습니다. 먼저 볼-앤-소켓 조인트를 만듭니다. 흔들기 위치 드라이브를 켜고서 쳐서 넘어뜨렸을 때 멋지게 튀어올라올 때까지 AngularDriveSpring (각형 드라이브 스프링) 및 AngularDriveDamping (각형 드라이브 제동)를 조절합니다. 흔들기 제한을 켜서 너무 크게 굽어지지 않게 할 수도 있겠습니다.
+
+-->
+ 
+
+
+
+

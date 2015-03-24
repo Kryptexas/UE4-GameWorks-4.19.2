@@ -1,0 +1,51 @@
+﻿INTSourceChangelist:1939815
+Availability: Public
+Title:文件夹
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description: 本文介绍了内容浏览器中文件夹的概念及应用。
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Browser/UserGuide/Folders:title%](FoldersTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/Folders:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Browser/UserGuide/Folders:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/Folders]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![](FoldersBanner.png)
+[/REGION]
+
+## 概述
+
+您可以自定义内容浏览器，从而在资源视图中显示文件夹。这是在默认资源视图行为基础上进行的扩展，使得可以更加轻松地管理文件夹。
+
+要想在资源视图中显示文件夹，则必须打开“编辑器偏好设置”中的这个选项，可以在 **Edit（编辑器） > Editor Preferences（编辑器偏好设置） > Preferences（偏好设置）** 下找到该选项。
+
+![](EditorPreferences.png)
+
+在 **内容浏览器** 类目中，选中 **Display Folders（显示文件夹）** 选项。
+
+![](ContentBrowserPreferences.png)
+
+[REGION:note]
+当选中 **显示文件夹** 选项时，将会自动激活 **Show Only Assets in Selected Folders（仅显示选中文件夹中的资源）** 选项，无论该选项是否成呈现为选中状态。
+[/REGION]
+
+一旦激活该选项，内容浏览器将会在资源视图中显示文件夹和当前文件夹中存在的任何资源。
+
+![](ContentBrowserFolders.png)
+
+和在资源树中一样，您可以通过在资源视图中拖拽文件夹，来把它们拖拽并放置到您的项目中的新位置处。这使得显示文件夹成为项目文件夹管理的一个有用的工具。

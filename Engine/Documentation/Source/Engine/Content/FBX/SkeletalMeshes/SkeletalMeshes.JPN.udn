@@ -1,0 +1,681 @@
+﻿INTSourceChangelist:2386033
+Availability:Public
+Title:FBX スケルタル メッシュ パイプライン
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:FBX コンテンツ パイプラインを使ったスケルタル メッシュの設定、エクスポート、インポート
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/SkeletalMeshes:title%](Engine/Content/content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/SkeletalMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/SkeletalMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/SkeletalMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+## 概要
+
+[EXCERPT:FBX_SkeletalMeshes]
+FBX インポート パイプラインでは _スケルタル メッシュ_ がサポートされています。 
+そのため、アニメートされたメッシュを 3D アプリケーションからアンリアルに取り込んでゲームに使用するワークフローが簡単になっています。メッシュをインポートする他に、必要に応じて、アニメーションとモーフターゲットも、 
+すべて同一ファイル内に FBX 形式を使用して転送することができます。また、 3D アプリケーションのこれらのメッシュに適用するマテリアル内で使用するテクスチャ (ディフューズと法線マップのみ) がインポートされ、 
+3D アプリケーションでメッシュに適用されたマテリアルで使用されるテクスチャ (ディフューズと法線マップのみ) がインポートされるとともに、 
+マテリアルが自動的に作成され、インポートされたメッシュに適用されます。
+[/EXCERPT:FBX_SkeletalMeshes]
+
+FBX を使用してスタティック メッシュをインポートするための機能は、つぎのようになります。
+
+
+* [テクスチャを含むマテリアルを使用したスケルタルメッシュ](#マテリアル)
+* [アニメーション](#アニメーション)
+*  [モーフターゲット](#モーフターゲット)
+* Multiple UV sets
+* スムージング グループ
+* [頂点カラー](#頂点カラー)
+* [LODs](#スケルタルメッシュのLOD)
+
+
+[REGION:note]
+現時点では、それぞれの _スケルタルメッシュ_ に対し、単一アニメーションのみを単一ファイルへインポートすることが可能です。ただし、複数のモーフターゲットをひとつのファイルで、 _スケルタル メッシュ_ に対し、 
+転送可能です。
+[/REGION]
+
+このページでは、スケルタル メッシュをアンリアル エディタにインポートする FBX コンテンツ パイプラインの使用法についてテクニカルな概説を行います。 
+開発環境において FBX コンテンツ パイプラインを使用する場合に役立つ情報および秘訣については 
+ [FBX ベストプラクティス](Engine/Content/FBX/BestPractices) のページを参照してください。
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+
+[REGION:tip]
+本ドキュメントの中で、 **[Import Asset]** ボタンを使用するという記述が出てきた場合は、OS ファイル ブラウザから FBX ファイルをクリックしてドラックにも当てはまります。
+[/REGION]
+
+[REGION:tip]
+このページでは、 Autodesk Maya と Autodesk 3ds Max の両方の情報を載せています。以下の表からお好きなコンテンツをお選び頂きますと、それに関連した情報のみが表示されるようになります。
+[/REGION]
+
+%Globals:DCCSelect%
+
+## 一般設定
+
+
+
+### 単一のメッシュと複数パーツのメッシュ
+
+_スケルタル メッシュ_ は、切れ目のない単一のメッシュで構成するか、 
+または、同一のスケルタルにすべてスキニングされた複数の独立したメッシュで構成することが可能です。 
+
+![multipart.png](multipart.png)(w:750 convert:false)
+
+複数のメッシュを使用すると、 LOD をそれぞれ独立して処理することができるとともに、 
+モジュラー キャラクター システムで使用するために各部分を独立してエクスポートすることができます。このようなやり方で _スケルタル メッシュ_ を作成してもパフォーマンスに負荷はかかりません。 
+個々のパーツは、アンリアル エディタにインポートされるとすべて統合されます。
+
+
+### リグ構築
+
+リグ構築とは、メッシュをボーン / ジョイント (関節) のスケルタル階層にバインディングする (結びつける) ことを言います。これによって、基礎となるスケルトンのボーン / ジョイントが、メッシュの頂点に影響を与え、動くとメッシュを変形させることができるようになります。
+
+Maya の場合、お持ちの UE4 Install Path\Engine\Extras\Maya_AnimationRiggingTools\MayaTools に [アニメーション＆リグツール](Engine/Content\Tools\MayaRiggingTool) があります。これらのツールには、 Maya 向けの徹底したキャラクターのリグ構築およびアニメーション ソリューションが含まれています。
+
+
+#### スケルトン
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaSkeleton]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxSkeleton]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxSkeleton]
+3dsMax でどのようにスケルタル階層を作成するかは、ユーザー次第です。標準的な _Bones Tools_ も充分機能するので使用できますし、 
+あるいは、オブジェクトの階層を独自に作成して、完全にカスタマイズしたジオメトリと制御を実現することもできます。 
+とにかく、いろいろな方法があるため、ゲームキャラクターのためにアニメーション リグを作成する方法について 
+解説しているチュートリアルは、多数出回っています。3dsMax のヘルプを参照しても、このツールがどのように機能するかについて詳細に知ることができます。
+
+![max_rig.png](max_rig.png)(w:769)
+[/EXCERPT:maxSkeleton]
+
+
+[EXCERPT:mayaSkeleton]
+Maya を使用する場合、 Joint Tool (ジョイント ツール) を利用すると、 _スケルタル メッシュ_ のためのスケルトンを作成することができます。Maya での本ツールの使用とリグの作成に関しては、 
+数限りなくチュートリアルが存在します。Maya help もテーマに応じて様々な情報を提供します。 
+クック オンザフライ
+
+[REGION:lightbox]
+[![maya_rig.png](maya_rig.png)(w:769)](maya_rig.png)
+
+_アンリアル 3 以降、スケルタルの密度が飛躍的に増えました_
+[/REGION]
+[/EXCERPT:mayaSkeleton]
+-->
+
+####バインディング
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaBind]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxBind]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxBind]
+3dsMax では、 _Skin_ モディファイアを使用してメッシュをバインディングしなければなりません。プロセスは、 
+ _スケルタル メッシュ_ が単一の完結したメッシュで構成されているか、複数のメッシュ パーツから構成されているかにかかわらず同一です。
+
+
+1. バインディングするメッシュを選択します。   
+
+    ![max_skin_1.png](max_skin_1.png)(w:744)
+
+1. _Modifier List_ から_Skin_ モディファイアを追加します。   
+
+    ![max_skin_2.jpg](max_skin_2.jpg)(w:175 h:202)
+
+1. _Skin_ モディファイアのパラメータ欄で、 ![skin_add_button.jpg](skin_add_button.jpg) ボタンをクリックして、メッシュに影響を与えるボーンを追加します。**[Select Bones]** ウィンドウが開きます。   
+
+    ![max_skin_3.jpg](max_skin_3.jpg)(w:468 h:513)
+
+1. **[Select Bones]** ウインドウからボーンを選択し、 **[Select]** ボタンをクリックしてボーンを追加します。   
+
+    ![max_skin_4.jpg](max_skin_4.jpg)(w:468 h:513)
+
+1. モディファイアの _Bones_ リストにボーンが表示されます。   
+
+    ![max_skin_5.jpg](max_skin_5.jpg)(w:156 h:182)
+
+1. これで、各ボーンのためのメッシュの頂点がもつウェイトを調整することによって、どの頂点がどのボーンによってどの程度影響を受けるかを決めることができるようになりました。これにはエンベロープを使用して、直接頂点のためのウェイトを入力するか、他の好みの方法を用いることができます。   
+
+    ![max_skin_6.png](max_skin_6.png)(w:744)
+[/EXCERPT:maxBind]
+
+
+[EXCERPT:mayaBind]
+Maya では、 _Smooth Bind_ コマンドを使用してメッシュを骨格にバインディングします。プロセスは、 
+ _スケルタル メッシュ_ が単一の完結したメッシュで構成されているか、複数のメッシュ パーツから構成されているかにかかわらず同一です。
+
+
+1. バインディングするメッシを選択します。   
+	[REGION:lightbox]
+
+	[![maya_skin_1.png](maya_skin_1.png)(w:769)](maya_skin_1.png)
+	[/REGION]
+	    
+1. **Shift** キーを押しながらスケルトンのルートジョイントを選択します。   
+
+    [REGION:lightbox]
+	[![maya_skin_2.png](maya_skin_2.png)(w:769)](maya_skin_1.png)
+	[/REGION]
+
+1. _Skin > Bind Skin_ メニューから _[Smooth Bind]_ を選びます。   
+
+    ![maya_skin_3.jpg](maya_skin_3.jpg)(w:287 h:130)
+
+1. これで、各ジョイントのためのメッシュの頂点がもつウェイトを調整することによって、どの頂点がどのボーンによってどの程度影響を受けるかを決めることができるようになりました。これには _Paint Skin Weights Tool_ を使用するか、他の好みの方法を用いることができます。    
+
+    [REGION:lightbox]
+	[![maya_skin_4.png](maya_skin_4.png)(w:769)](maya_skin_1.png)
+	[/REGION]
+[/EXCERPT:mayaBind]
+-->
+
+### 回転軸
+
+アンリアル エンジンにおけるメッシュの回転軸は、あらゆる変形 (平行移動、回転、スケーリング) が 
+実行される際の中心点を決定します。  
+
+![pivot.png](pivot.png)(w:769)
+
+_スケルタル メッシュ_ の回転軸はつねにスケルトンのルートボーン / ジョイントに位置します。つまり、 
+スケルトンのルートがシーン内のどこに位置しているかは問題になりません。3D モデリング アプリケーションからエクスポートされると、 
+回転軸の原点は常に (0、0、0) となります。
+
+![pivot_root.png](pivot_root.png)(w:769)
+
+
+###三角分割
+
+アンリアル エンジンのメッシュは、三角分割されなければなりません。これは、グラフィックスのハードウェアがトライアングルしか扱わないためです。
+
+![tris.jpg](tris.jpg)(w:744 h:382)
+
+メッシュを確実に三角分割する方法はいくつかあります。
+
+
+* トライアングルのみを使用してメッシュをモデリングする - これは、仕上がりを最大限に制御できるため、最善の方法です。
+* 3D アプリケーションでメッシュを三角分割する - エクスポートする前にクリーンアップおよび変形させることができるため良い方法です。
+* インポーターがメッシュを三角分割できるようにする - クリーンアップはできませんが単純なメッシュには機能するため、悪くはない方法です。
+* インポーターがメッシュを三角分割できるようにする - クリーンアップはできませんが単純なメッシュには機能するため、悪くはない方法です。
+
+
+**注記：**FBX エクスポーターがメッシュを三角分割できるようにすることによって、Split Non-Matching Triangles (不一致なトライアングルの分割) にチェックが入っている場合、完全にランダムなスムージングとなります。 
+トライアングルにチェックが入ります。FBX による三角分割されたメッシュを Maya にインポートして戻し、さらに再エクスポートすることによって、正しいスムージングが表示されるようになります。 
+
+どのような場合でも、 3D アプリケーション内でメッシュを手動で三角分割することによって、 
+エッジの方向と配置を制御する方法が最善となります。自動的に三角分割を実行させると、望ましくない結果になることがあります。
+
+![tris_bad.jpg](tris_bad.jpg)
+
+
+###法線マップの作成
+
+メッシュのための法線マップは、たいていのモデリング アプリケーションの内部で直接作成することができます。そのためには、低解像度のレンダリング メッシュと高解像度の詳細メッシュを作成します。
+
+![SideBySide.jpg](SideBySide.jpg)
+
+高解像度の詳細メッシュのジオメトリは、法線マップのための法線を生成するために使用します。Epic 社内では XNormal をプロセスに導入するワークフローを採り入れていますが、アンリアル エンジン 4 でレンダリング処理すると結果的に法線の質がはるかに良い場合が多いです。詳細は [](Engine/Content/Types/Textures/NormalMaps/Creation) をご覧ください。
+
+
+###マテリアル
+
+外部アプリケーションでモデリングされたメッシュに適用されるマテリアルは、メッシュとともにエクスポートされて、 
+アンリアル エディタの中にインポートされます。これによって、プロセスは簡略化されます。テクスチャを別個にアンリアル エディタにインポートする必要がなく、 
+マテリアルを作成したり適用したりする必要もありません。FBX パイプラインを使用すると、インポート プロセスによってこれらの動作すべてが実行可能となります。
+
+また、これらのマテリアルは特殊な方法でセットアップする必要があります。特に、メッシュが複数のマテリアルをもつ場合や、メッシュ上でマテリアルの順序が重要となる場合にその必要が生じます。 
+(マテリアルの順序が重要となる場合には、マテリアル 0 を胴体にして、マテリアル 1 を頭部にしなければならない 
+キャラクター モデルの場合などがあります)。
+
+エクスポートのためにマテリアルをセットアップする場合の詳細については、 [FBX マテリアル パイプライン](Engine/Content/FBX/Materials) ページをご覧ください。
+
+(#頂点カラー)
+
+
+###頂点カラー
+
+スケルタル メッシュのための頂点カラー (1 セットのみ) を、 FBX パイプラインを使用して転送することができます。特別な設定は必要ありません。
+
+![vertex_color.jpg](vertex_color.jpg)(w:769 h:376)
+
+(#メッシュのエクスポート)
+
+
+## 3D アプリケーションからメッシュをエクスポートする
+
+
+_スケルタルメッシュ_ は、個別にエクスポート、もしくは複数のメッシュを単一の FBX ファイルにエクスポートすることができます。複数の _スケルタル メッシュ_ が、目的のパッケージ内にある複数のアセットに分離されます。
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxExport]
+	[/PARAM]
+[/OBJECT]
+
+
+<!--
+[EXCERPT:maxExport]
+1. ビューポートでエクスポートすべきメッシュとボーンを選択します。   
+
+    ![max_export_1.png](max_export_1.png)(w:769)
+
+1. _[File]_ メニューから _[Export Selected]_ を選択します (選択に関係なくシーンの全てをエクスポートする場合は _[Export All]_ )。   
+
+    ![max_export_2.jpg](max_export_2.jpg)(w:424 h:577)
+
+1. メッシュをエクスポートする FBX ファイルの位置と名前を選択し、 ![max_save_button.jpg](max_save_button.jpg) ボタンをクリックします。   
+
+    ![max_export_3.jpg](max_export_3.jpg)(w:616 h:452)
+
+1. **[FBX Export]** ダイアログボックスで、適切なオプションをセットし、 ![max_ok_button.jpg](max_ok_button.jpg) ボタンをクリックして、メッシュを含む FBX ファイルを作成します。   
+
+    ![max_export_4.jpg](max_export_4.jpg)(w:584 h:562)
+[/EXCERPT:maxExport]
+
+
+[EXCERPT:mayaExport]
+1. ビューポートでエクスポートすべきメッシュとジョイントを選択します。 
+  
+    ![meshAndJointsSel.png](meshAndJointsSel.png)(w:769)
+
+1. [File] メニューから [_Export Selection_] を選択します (選択に関係なくシーンの全てをエクスポートする場合は [_Export All_ ])。   
+
+    ![maya_export_2.jpg](maya_export_2.jpg)(w:184 h:446)
+
+1. メッシュをエクスポートする FBX ファイルの位置と名前を選択するとともに、 **FBX Export** ダイアログボックスで、適切なオプションをセットし、さらに、 ![maya_export_button.jpg](max_ok_button.jpg) ボタンをクリックして、メッシュを含む FBX ファイルを作成します。   
+
+    ![maya_export_3.jpg](maya_export_3.jpg)(w:734 h:556)
+[/EXCERPT:mayaExport]
+
+-->
+
+(#メッシュのインポート)
+
+
+## メッシュのインポート  
+
+
+
+1. **コンテンツ ブラウザ** で ![](import_button.png) ボタンをクリックします。開いているファイル ブラウザで、インポートすべき FBX ファイルに進み、それを選択します。 **注意：** ドロップダウン リストから ![import_fbxformat.jpg](import_fbxformat.jpg) を選択することによって、不要なファイルを除去しなければならない場合があります。   
+	![import_file.jpg](import_file.jpg)(w:764 h:362)
+  
+	[REGION:note]
+		インポートしたアセットのインポート パスは、インポート中の **コンテンツ ブラウザ** の現行位置に依存します。インポートを実行する前に、必ず適切なフォルダへ移動してください。インポートが完了したら、インポートしたアセットを新規フォルダへドラッグしてください。
+	[/REGION]
+   
+1. **FBX Import Options** ダイアログから適切な設定値を選択します。既存のスケルトンを共有しないメッシュをインポートする場合は、デフォルト値で十分です。全設定値の詳細は、 [FBX インポート オプションのリファレンス](Engine/Content/FBX/ImportOptions) セクションを参照してください。  
+ 
+	![](Engine/Content\FBX\ImportOptions\SkeletalMeshFBXOptions.png)
+
+	インポート中のスケルタル メッシュが既存のスケルトンを共有する場合は、**[Select Skeleton]**ドロップダウン メニューをクリックして、リストからそのスケルトン アセットを選択します。
+
+	![FBX Skeletal Mesh Skeleton Browser](import_settings_skeletonbrowser.png)(h:480)
+ 
+1. ![Import Button](button_import.png) ボタンをクリックしてメッシュをインポートします。プロセスが成功すると、その結果として得られたメッシュ、マテリアル、テクスチャがコンテンツ ブラウザ内に表示されます。   
+   
+	![](ImportedCharacter.png)
+   
+	インポートされたメッシュをペルソナ内で表示することにより、プロセスが期待したとおりに実行されたか否かを判断することができるようになります。 
+   
+	[REGION:lightbox]
+	[![](CharacterInPersona.png)(w:600)](CharacterInPersona.png)
+	[/REGION]
+
+
+(#MeshLODs)
+##スケルタルメッシュのLOD
+
+
+_スケルタル メッシュ_ では、 LOD がインゲームで使用されることによって、カメラから遠ざかるにつれてメッシュの影響が制限されます。 
+カメラから遠ざかるにつれてメッシュの影響が制限されます。つまり、一般的に、各 LOD のトライアングル数が減少すればするほど、 
+適用されるスケルトンおよびマテリアルは単純になっていきます。
+
+FBX パイプラインを使用してこれらの LOD メッシュをエクスポート / インポートすることができます。
+
+
+### LOD 設定
+
+通常、 LOD を扱うには、完全な詳細度をもつベースメッシュから最も低い詳細度をもつ LOD メッシュまで、 
+さまざまな複雑度のモデルを作成します。これらのモデルはすべて一列に並び、同一の回転軸をもつ同一の空間を占めなければなりません。 
+また、同一のスケルトンにスキニングされる必要があります。また、 3D アプリケーション内にある複数の独立したメッシュを使用して、スケルタル メッシュを作ることが可能です。 
+これらのパーツそれぞれは、他のメッシュとは別の LOD をもつことができます。したがって、各種 LOD における単純なバージョンを使用するパーツもあれば、 
+高詳細バージョンを使用し続けるパーツもあるということになります。各 LOD メッシュでは、マテリアル量が異なるなど、 
+完全に異なるマテリアルを割り当てることができます。したがって、ベースメッシュでは複数のマテリアルを使用して、カメラの近くにおいて望ましい詳細度を実現し、 
+低い詳細度のメッシュでは、あまり目立たないため単一のマテリアルを使用することができます。
+
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaLODSetup]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxLODSetup]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxLODSetup]
+1. メッシュをすべて選択して (ベースと LODs - 順番は重要ではありません) _[Group]_ メニューから _[Group]_ コマンドを選択します。   
+
+    ![max_lod_group.jpg](max_lod_group.jpg)(w:141 h:234)
+
+1. ダイアログ ボックスが開くので、新たなグループの名前を入力し、 [max_lod_ok_button.jpg](max_lod_ok_button.jpg) ボタンをクリックしてグループを作成します。   
+
+    ![max_lod_group_name.jpg](max_lod_group_name.jpg)(w:306 h:147)
+
+1. ![max_utilities_button.jpg](max_utilities_button.jpg) ボタンをクリックして、 _[Utilities]_ パネルを表示し、 _[Level of Detail]_ ユーティリティを選択します。 **注記：**![max_utility_more_button.jpg](max_utility_more_button.jpg) をクリックして、リストから選択しなければならない場合があります。   
+
+    ![max_lod_utility.jpg](max_lod_utility.jpg)(w:170 h:561)
+
+1. グループが選択されたら、 ![max_lod_create_button.jpg](max_lod_create_button.jpg) ボタンをクリックして、新たな LOD セットを作成し、選択されたグループ内にあるメッシュをそれに追加します。メッシュは、その複雑度に応じて自動的に序列化されます。   
+
+    ![max_lod_contents.jpg](max_lod_contents.jpg)(w:146 h:94)
+[/EXCERPT:maxLODSetup]
+
+
+
+[EXCERPT:mayaLODSetup]
+1. ベースとなる LOD から最後の LOD まで、順番にメッシュをすべて (ベースに加えてLOD) 選択します。これは重要なため、複雑度に応じて正しい順序で追加します。[_Edit_] メニューから _[Level of Detail] > [Group]_ コマンドを選択します。   
+
+    ![maya_lod_group.jpg](maya_lod_group.jpg)(w:316 h:599)
+
+1. これで、すべてのメッシュが LOD グループのもとにグループ化されているはずです。   
+
+    ![maya_lod_contents.jpg](maya_lod_contents.jpg)(w:213 h:150)
+[/EXCERPT:mayaLODSetup]
+-->
+
+####マルチパーツ LOD
+
+マルチパーツ スケルタル メッシュのために LOD を設定するには、フルのメッシュのために LOD を設定する場合と同じ方法をとります。 
+ただし、LOD を有する各パーツのために、LOD グループが作成されることになります。これら個々の LOD グループを設定するプロセスは、 
+上記で概観したプロセスと同じです。
+
+
+###LOD のエクスポート
+
+_スケルタル メッシュの LOD_ をエクスポートするには、次のようにします。
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaLODExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxLODExport]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxLODExport]
+1. エクスポートすべき LOD セットとボーンを含むメッシュのグループを選択します。   
+
+    ![max_export_1.png](max_export_1.png)(w:769)
+
+1. ベースメッシュに使用したエクスポート手順と同じ手順に従います (上記の[メッシュのエクスポート](#メッシュのエクスポート) セクションで記述しています)。
+[/EXCERPT:maxLODExport]
+
+
+[EXCERPT:mayaLODExport]
+1. エクスポートすべき LOD グループとジョイントを選択します。   
+
+    ![meshAndJointsSel.png](meshAndJointsSel.png)(w:769)
+
+1. ベースメッシュに使用したエクスポート手順と同じ手順に従います (上記の[メッシュのエクスポート](#メッシュのエクスポート) セクションで記述しています)。
+[/EXCERPT:mayaLODExport]
+-->
+
+###LOD のインポート
+
+**スケルタル メッシュ** の LOD は、**LOD Settings** の **Persona** にある **[Mesh Details]** パネルから簡単にインポートできます。 
+
+1. LOD を適用する **スケルタル メッシュ** を開き、**[メッシュ]** タブに進みます。 
+1. **[Mesh Details]** パネルでスクロールダウンし、**[LOD Settings]** セクションを探して**[LOD Import]** オプションをクリックします。 
+
+	![](LOD_Import.png)
+1. 開いているファイル ブラウザで、インポートすべき FBX ファイルに進み、それを選択します。  
+
+	![](ImportFileBrowser.png)
+
+1. インポートされた LOD が **[Mesh Details]** パネルに追加されます。
+
+ 	![](LOD_Added.png)
+1. 各 LOD で、**Display Factor** 設定に LOD の使用時期が示されます。 
+
+	![](LODs_Set.png)
+
+	**注記：**値が小さくなるほど、遠く離れた時に LOD を使用し、値が大きくなるほど近くで LOD を使用します。 
+
+	上の画像では、**Skeletal Mesh** に近いときに LOD 0 が使用しています。さらに離れたときには、 LOD1 を使用しています。
+
+1. LOD をインポートまたは追加するときは、その LOD に対して **Reduction Settings** も調整できます。 
+
+	![](LOD_ReductionSettings.png)
+
+
+<!-- Old Method, updated for TTP 340109 ----
+
+_スタティック メッシュ_ の LOD は、 **コンテンツ ブラウザ** においてベースメッシュとともにインポートすることができます。
+
+**LOD をともなったメッシュ**
+
+
+1. **コンテンツ ブラウザ** で ![](import_button.png) ボタンをクリックし、 _[Import]_ を選択します。開いているファイル ブラウザで、インポートすべき FBX ファイルに進み、それを選択します。 **注意：** ドロップダウン リストから ![import_fbxformat.jpg](import_fbxformat.jpg) を選択することによって、不要なファイルを除去しなければならない場合があります。   
+	![import_file.jpg](import_file.jpg)(w:764 h:362)
+
+  
+	[REGION:note]
+		インポートしたアセットのインポート パスは、インポート中の **コンテンツ ブラウザ** の現行位置に依存します。インポートを実行する前に、必ず適切なフォルダへ移動してください。インポートが完了したら、インポートしたアセットを新規フォルダへドラッグしてください。
+	[/REGION]
+
+1. **Import** ダイアログボックスから適切な設定値を選択します。_Import Mesh LODs_ を有効にします。**注記：**インポートされるメッシュの名前はデフォルトの命名規則 [命名規則](Engine/Content/FBX/ImportOptions#命名規則) に従います。全設定値の詳細は、 [FBX インポート オプションのリファレンス](Engine/Content/FBX/ImportOptions) セクションを参照してください。   
+
+    ![](SkelMeshImportOptions.png)
+
+1. メッシュと LOD をインポートするために、 ![Import Button](button_import.png) ボタンをクリックします。プロセスが成功すると、その結果として得られたメッシュ、マテリアル、テクスチャがコンテンツ ブラウザ内に表示されます。   
+
+    ![](ImportedCharacter.png)
+
+    インポートしたメッシュを **ペルソナ** で表示することによって、ビューポートの上部にある ![](LODButton.png) ボタンを使って LOD を循環表示させることができます。
+	**個々の LOD**
+
+
+1. コンテンツ ブラウザでベース メッシュをダブルクリックして **ペルソナ** で開きます。または _Edit_ を選択しても自動的に **ペルソナ** エディタが開きます。   
+
+1. **Persona** の _[File]_ メニューから _[Import Mesh LOD]_ を選択します。   
+
+    ![lod_mesh_menu.jpg](lod_mesh_menu.jpg)(w:352 h:262)
+
+1. ファイル ブラウザで、 LOD メッシュが含まれている FBX ファイルに進み、それを選択します。**注記：**ファイルを見るには、ファイル形式を ![lod_mesh_fbx_button.jpg](lod_mesh_fbx_button.jpg) にセットしなければならない場合があります。   
+
+    ![lod_mesh_file.jpg](lod_mesh_file.jpg)(w:611 h:363)
+
+1. **Import LOD** ダイアログボックスにおいて、ドロップダウン メニューからインポートしたいメッシュの LOD レベルを選択します。![lod_mesh_ok_button.jpg](lod_mesh_ok_button.jpg) をクリックして LOD メッシュをインポートします。   
+
+    ![lod_mesh_dialog.jpg](lod_mesh_dialog.jpg)(w:248 h:158)
+
+1. インポートのプロセスが成功した場合は通知があり、インポートされた LOD のためのボタンが ![lod_mesh_buttons.jpg](lod_mesh_buttons.jpg) ツールバー ボタン内で有効化されます。   
+
+    ![lod_mesh_success.jpg](lod_mesh_success.jpg)(w:294 h:111)
+
+1. インポートしたい LOD メッシュそれぞれについてこのプロセスを繰り返します。 
+
+1. すべての LOD メッシュがインポートされると、ツールバー内の ![lod_mesh_buttons.jpg](lod_mesh_buttons.jpg) ボタンを使用して LOD メッシュをプレビューすることができるようになります。
+
+--------->
+
+(#FbxExport)
+
+
+## アンリアル エディタから FBX をエクスポートする
+
+
+アンリアル エディタにすでにインポートされている _スケルタル メッシュ_ は、 **コンテンツ ブラウザ** から FBX ファイルに再度エクスポートすることができます。
+
+[REGION:note]
+クックされたパッケージに含まれているアセットは、エクスポートすることができません。これは、クックアウトされているソースデータが、エクスポートのプロセスを必要とするためです。
+[/REGION]
+
+1. **コンテンツ ブラウザ** 内で、エクスポートする _SkeletalMesh_ を選択します。   
+
+    ![](SelectSkeletalMesh.png)
+
+1. _SkeletalMesh_ を右クリックし **[Export]** を選択します。   
+
+    ![](ExportMenu.png)
+
+1. ファイル ブラウザが表示されるので、そこから、エクスポートするファイルの場所と名前を選択します。**注記：** _FBX File (*.FBX)_ がファイルタイプとして選ばれるようにします。   
+
+    ![export_file.jpg](export_file.jpg)(w:625 h:434)
+
+
+
+## 物理アセット
+
+Physics Asset Tool (PhAT) の使用方法に関する詳細は、 [物理アセット ツール](Engine/Physics\PhAT) を参照してください。
+
+## アニメーション
+
+
+FBX コンテンツ パイプラインを使用してアニメーションを作成、インポートする方法の詳細については、 [FBX アニメーション パイプライン](Engine/Content/FBX/Animations) のページを参照してください。
+
+
+(#モーフターゲット)
+
+##モーフターゲット
+
+
+FBX コンテンツ パイプラインを使用してモーフターゲットを作成、インポートする方法の詳細については、 [FBX モーフターゲット パイプライン](Engine/Content/FBX/MorphTargets) のページを参照してください。
+
+ 
+
+
+ 
+

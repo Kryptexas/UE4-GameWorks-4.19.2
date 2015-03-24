@@ -1,0 +1,36 @@
+Availability: Docs
+Title:1.1 -  Voronoi
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Destructables
+Description:An overview of the Destructibility example level, example 1.1: Voronoi
+
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Destructables/1_1:title%](Resources/ContentExamples/Destructables/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Destructables/1_1:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Destructables/1_1:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Destructables/1_1]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth raw]
+![](Resources/ContentExamples/Destructables/physics_banner.png)
+[/REGION]
+
+This is automatically created destruction using an algorithm. It can be done in the editor. Just click the fracture button inside Destructible mesh editor. And it will fracture the mesh depending on the setting in the lower right corner.
+
+[REGION:lightbox]
+[![](1_1_solid.png)(w:300)](1_1_solid.png) [![](1_1_fractured.png)(w:300)](1_1_fractured.png) [![](1_1_blown.png)(w:300)](1_1_blown.png)
+[/REGION]

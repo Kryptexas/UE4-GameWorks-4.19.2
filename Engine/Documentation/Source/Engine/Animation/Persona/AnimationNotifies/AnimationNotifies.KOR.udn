@@ -1,0 +1,41 @@
+﻿INTSourceChangelist:2187648
+Availability:Public
+Title:페르소나 애니메이션 노티파이
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:페르소나 애니메이션 에디터의 애니메이션 노티파이 창 사용 안내서입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/AssetBrowser:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/AnimationNotifies:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/AnimationNotifies:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/AnimationNotifies]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+페르소나 애니메이션 노티파이 창에는 애셋 에디터에서 만든 커스텀 애니메이션 노티파이가 표시됩니다.
+
+애니메이션 노티파이 창은 기본적으로 보이지 않습니다. 보이도록 하려면, 페르소나의 **창** 메뉴에서 **애니메이션 노티파이** 를 클릭합니다.
+
+![Animation Notifies Window](AnimationNotifies.png)
+
+[REGION:note]
+애니메이션 노티파이 창에서 커스텀 애니메이션 노티파이를 선택하면 그 프로퍼티가 페르소나의 **디테일 패널** 에 표시됩니다.
+[/REGION]
+
+커스텀 애니메이션 노티파이를 삭제하려면, 우클릭한 다음 **Delete** (삭제)를 클릭합니다.
+
+커스텀 애니메이션 노티파이 이름을 변경하려면, 우클릭한 다음 **Rename** (이름변경)을 클릭합니다.
+
+페르소나의 애셋 에디터 관련 상세 정보는 [](Engine/Animation\Persona\AssetEditor) 문서를 참고해 주시기 바랍니다.

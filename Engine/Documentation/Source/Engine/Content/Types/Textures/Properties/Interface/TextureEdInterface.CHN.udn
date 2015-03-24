@@ -1,0 +1,120 @@
+﻿INTSourceChangelist:2087504
+Availability: Public
+Title:贴图编辑器用户指南
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/Textures, Engine/Content/Types/Textures/Properties
+Description: 关于贴图编辑器用户指南的介绍。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](TextureTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/texture_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/Textures/Properties/Interface:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/Textures/Properties/Interface:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/Textures/Properties/Interface]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](TextureTopicCompact.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/texture_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/Textures/Properties/Interface:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/Textures/Properties/Interface:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[TOC(end:2)]
+
+
+## 概述
+
+[EXCERPT:Intro]
+**Texture Properties Editor(贴图属性编辑器)** 允许您预览贴图资源及编辑贴图的属性。您也可以在这里应用颜色调整、修改压缩方式及 LOD 设置。
+
+[/EXCERPT:Intro]
+
+您可以通过在 **内容浏览器** 中双击一个贴图资源来打开贴图编辑器，或者通过右击一个贴图资源，然后在关联菜单中点击 **Edit（编辑）** 来打开编辑器。
+
+![Texture Editor UI](Texture_UI.png)
+
+1. **菜单条**
+1. **工具条**
+1. **视口**
+1. **详细信息面板**
+
+## 菜单栏
+
+### 文件
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuFileSave]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuFileSaveOptions]
+
+### 编辑
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuEditUndo]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuEditSettings]
+
+### 资源
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetContentBrowser]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetReimport]
+
+
+### 窗口
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowToolbar]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowViewport]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowDetails]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindow]
+
+## 工具栏
+
+
+| 项目| 描述|
+| ---- | ----------- |
+| [INCLUDE:Shared/Editors/Common/EditorToolbarItems/#ToolbarSaveIcon] | [INCLUDE:Shared/Editors/Common/EditorToolbarItems/#ToolbarSaveDescription] |
+| [INCLUDE:Shared/Editors/Common/EditorToolbarItems/#ToolbarCBIcon] | [INCLUDE:Shared/Editors/Common/EditorToolbarItems/#ToolbarCBDescription] |
+| ![](TextureUI_Toolbar_Compress.png) |根据 **Details（详细信息）** 面板中 **Compression（压缩）** 部分的设置来压缩该贴图。|
+| ![](TextureUI_Toolbar_Reimport.png) | 从当前资源的原始磁盘位置处重新导入该资源。|
+| ![](TextureUI_Toolbar_Mip.png) |使您可以通过点击复选框并拖拽滑动条 (或点击加号或减号按钮)来修改贴图的mip级别。|
+
+
+## 视口
+
+![](Texture_UI_Viewport.png)
+
+该视口显示了贴图资源的预览效果。
+
+视口左上角包含一个下拉菜单 **View(视图)** ，该菜单为您提供了切换各种通道及设置的选项，可以修改贴图的显示方式。
+
+![](TextureUI_Viewport_ViewMenu.png)
+
+您可以通过拖拽视口右下角的 **Zoom(缩放)** 滑条，或者通过使用下拉菜单修改 **Fill（填充）** 设置，您可以重新调整所预览的贴图资源的大小。
+
+##  详细信息面板
+
+**Details（详细信息）** 面板显示了贴图的各种属性，使您可以修改这些属性。关于贴图编辑器的  **Details（详细信息）** 面板中各个属性的信息，请参照[](Engine/Content/Types/Textures\Properties)。
+
+关于虚幻引擎的 **Details（详细信息）** 面板的信息，请参照  [](Engine/UI/LevelEditor\Details)。

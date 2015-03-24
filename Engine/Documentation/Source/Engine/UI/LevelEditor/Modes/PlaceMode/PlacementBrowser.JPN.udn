@@ -1,0 +1,94 @@
+﻿INTSourceChangelist:2228446
+Availability:Public
+Title:Place モード
+Crumbs:%ROOT%, Engine
+Description:配置可能なアクタをレベルへ迅速にデプロイする Place モードのガイド
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/UI/LevelEditor/Modes/PlaceMode:title%](topic_PBUI.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/UI/LevelEditor/Modes/PlaceMode:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/UI/LevelEditor/Modes/PlaceMode:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UI/LevelEditor/Modes/PlaceMode]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/UI/LevelEditor/Modes/PlaceMode:title%](topic_PBUI.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/UI/LevelEditor/Modes/PlaceMode:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/UI/LevelEditor/Modes/PlaceMode:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UI/LevelEditor/Modes/PlaceMode]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+	![](PlacementBrowser_Title.png)
+[/REGION]
+
+## 概要
+
+**Place モード** は、アンリアル エンジン 4 で迅速かつ簡略に環境を作成するための専門ツールです。**コンテンツ ブラウザ** と似た機能をもつ Place モードは、ユーザーがレベルに直接配置が可能なアセットのみに重点をおく機能です（例えば _アクタ_）。**コンテンツ ブラウザ** で特定のプロジェクト フォルダへ移動してアクセスをするのとは異なり、プレースメントブラウザがアクティブである間は、ユーザーはプロジェクト内にある配置可能な全てのオブジェクトに即時アクセスができます。
+
+Place モードは、**[クラスビューア]** ウィンドウの階層内の検索を必要とせずにライトなど特別なタイプのアクターの追加も容易にしました。更に、選択したスタティック メッシュから物理アクタの作成など、アクタの特別なサブタイプの作成も簡素化されました。
+
+Place モードは効率性と利便性を促進するツールであり、コンテンツ ブラウザを _置き換える_ ツールでは **ない** ことに注意してください。そうではなくて、むしろレベルへ様々なプロップや別のエレメントを追加する際のデザイン時間を大幅に迅速化します。共通の環境アセットへの即時アクセスの利便性を提供する傍ら、迅速にアクタを配置する機能が最適化されています。特定のプロジェクトフォルダ内のアセットやネイティブに配置できないアセットタイプ (マテリアルなど) などにアクセスしたい時は、コンテンツ ブラウザを使用します。
+
+このモードはレベルエディタのデフォルト状態であり、**モード** パネルで有効化できます。デフォルトでは、エディタのメインインターフェースの左上隅に位置します。もしくは **Shift + 1** キーを押してモードをいつでも切り替えることもできます。
+
+## インターフェース
+
+![](interface_PlacementBrowser.png)
+
+1. [フィルタ](#フィルタ)
+1. [アセットビュー](#アセットビュー)
+
+##フィルタ
+
+![](button_Filters.png)
+
+これらのボタンによって、必要なアセットタイプのみを素早くフィルタリングすることができます。
+
+|**名前**|**説明**|
+| --- | --- |
+| Recently Places | 配置された直近 20 タイプまでの回転する履歴を含みます。|
+| Geometry | ブラシのプリミティブ タイプを含みます。 |
+| Lights | すべてのライト タイプを含みます。 |
+| Visual | 共通の _ビジュアル_、またはレンダリング関連のタイプ、例えばフォグ、デカールなどを含みます。 |
+| Basic | トリガー、カメラなどの一般的な共通のタイプを含みます。 |
+| Volumes | すべての配置可能なボリューム タイプを含みます。 |
+| All Classes | 全ての配置可能なアクタ タイプを含みます。 |
+
+## アセットビュー
+
+![](AssetView.png)
+
+アセットビューは、フィルタリングと検索基準が設定されると、現時点で配置が可能なさまざまなアセットのアイコンを表示します。この領域は右マウスのドラッグ、またはパネルの右側にあるスクロールバーでスクロールできます。
+
+## [Place]モードでアクタを配置する
+
+[INCLUDE:Engine/Actors/Placement#placemode]
+
+このパネルからアイテムをドラッグしてビューポートに入れると、そのインスタンスを配置します。アクタを配置する他の方法については、以下をご覧ください。 [](Engine/Actors/Placement)

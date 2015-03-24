@@ -1,0 +1,162 @@
+﻿INTSourceChangelist:2372968
+Availability:Public
+Title:スケルタル制御
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
+Description:ターゲットスケルトンのボーンの直接操作とソルバを適用するアニメーションノード
+
+[REGION:banner]
+![Skeletal Control](skelcontrol_banner.png)(convert:false)
+[/REGION]
+
+[EXCERPT:Intro]
+**_SkeletalControls_** ( _SkelControls_ とも呼ばれます) で、スケルトン内のボーンを直接制御することができます。単一ボーンの制御、IK チェーンの作成などのために 
+_Animation Blueprints_ 内で使用します。下層 _スケルトン_ の直接制御により、 
+プロシージャルで動的に動くアニメーションを作成することができます。あるボーンの _変形_ を別のボーンを動かすために使用したり、 
+通常の歩くアニメーションの再生中に、キャラクターの足と地面を同調させるための 
+トレースとして使用します。 _AnimationSequences_ で適用したボーン _変形_ の 
+微調整やボーンを完全にオーバーライドするために、いかなる種類の修正でも使用できます。
+[/EXCERPT:Intro]
+
+## コンポーネント空間
+
+[INCLUDE:Engine/Animation/NodeReference/SpaceConversion#intro]
+
+SpaceConversion (空間変換) ノードに関する詳細は、[](Engine/Animation/NodeReference/SpaceConversion) を参照してください。
+
+## 共通のピンとプロパティ
+
+全 _SkeletalControls_ に共通のピンとプロパティがいくつかあります。以下に説明します。
+
+| ピン | 説明 |
+| --- | ----------- |
+| [REGION:tablesection]**入力ピン**[/REGION] ||
+| Component Pose | 変換させるための入力ポーズ |
+| Alpha | _SkeletalControl_ で適用した「変換」の重みづけを決定するためのアルファ値として使用する **[0.0, 1.0]** 範囲の`浮動小数` 値です。 **0.0** の値は入力ポーズに最大限の重みづけをし、**1.0** の値は制御に計算された「変換」に対し最大限の重みづけをします。|
+| [REGION:tablesection]**出力ピン**[/REGION] ||
+| ポーズ（ブランク） | 「変換」 適用後の最終ポーズ |
+
+## 回転の割合の適用
+
+ **Apply a Percentage of Rotation** 制御は、別のボーンの「回転」 に指定した割合で、 
+ターゲットボーンの「回転」を _スケルトン_ 内で動かします。
+
+![Apply Percentage of Rotation](node_applypercent.png)
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| [REGION:tablesection]**Multiplier**[/REGION] ||
+| Target Bone | 制御するターゲットボーンの名前です。修正をするメインのボーンチェーンです。 |
+| Source Bone | 「Transform」データを受け取るソースボーンの名前です。 |
+| Rotation Axis To Refer | 「回転」を制御する（`X`、 `Y`、 または`Z`）軸です。|
+
+| ピン | 説明 |
+| --- | ----------- |
+| [REGION:tablesection]**入力ピン**[/REGION] ||
+| Multiplier | ターゲットボーンに適用するソースボーンの「回転」の割合を表す「浮動小数」値です。 [INCLUDE:#Multiplier] |
+
+<!--
+[EXCERPT:Multiplier]
+[REGION:simpletable]
+| 値 | 効果 |
+| ----- | ------ |
+| **0.0** | ソースボーンの「回転」データはターゲットボーンに何も適用しません。 |
+| **1.0** | ソースボーンのすべての「回転」データがターゲットボーンに適用されます。 |
+[/REGION] 
+[/EXCERPT:Multiplier]
+-->
+
+## Copy Bone
+
+ **Copy Bone** 制御は、「変換」データまたはそのコンポーネントをコピーします。例えばあるボーンから別のボーンへ 
+「平行移動」、 「回転」、または「スケーリング」データをコピーします。
+
+![Apply Percentage of Rotation](node_copybone.png)
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| [REGION:tablesection]**コピー**[/REGION] ||
+| Target Bone | 「変換」データをコピーするターゲットボーンの名前です。| 
+| Source Bone | 「変換」データを受け取るソースボーンの名前です。 |
+
+| ピン | 説明 |
+| --- | ----------- |
+| [REGION:tablesection]**入力ピン**[/REGION] ||
+| Copy Translation | ソースボーンの「変換」データの「平行移動」コンポーネントをコピーするか否かを指定する「bool」値です。 |
+| Copy Rotation | ソースボーンの変換」データの「回転」コンポーネントをコピーするか否かを指定する「bool」値です。 |
+| Copy Scale | ソースボーンの「変換」データの「スケーリング」コンポーネントをコピーするか否かを指定する「bool」値です。 |
+
+## ボーンの変換 (修正) 
+
+![Apply Percentage of Rotation](node_modifybone.png)
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| [REGION:tablesection]**スケルタル制御**[/REGION] ||
+| Bone To Modify | 修正する「変換」データを持つ対象ボーンの名前です。 |
+
+| ピン | 説明 |
+| --- | ----------- |
+| [REGION:tablesection]**入力ピン**[/REGION] ||
+| Translation |ターゲットボーンに適用する「平行移動」データを指定する「ベクター」値です。 |
+| Rotation | ターゲットボーンに適用する「回転」データを指定する「ベクター」値です。 |
+| Scale | ターゲットボーンに適用する「スケーリング」データを指定する「ベクター」値です。 |
+
+## スプリングコントローラー
+
+ **スプリングコントローラー** は、ボーンが参照ポーズ位置から伸縮できる距離の制限や、 
+反対方向へ力を加えるスプリングソルバを適用します。
+
+![Apply Percentage of Rotation](node_springcontroller.png)
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| [REGION:tablesection]**Spring**[/REGION] ||
+| Spring Bone | スプリングソルバを適用するボーンの名前です。 |
+| Limit Displacement | 有効時は、スプリングソルバが適用されます。|
+| Max Displacement | ボーンが伸縮できる最大距離です。 |
+| Spring Stiffness | スプリングで適用する力の量の乗数です。より大きい値はボーンを移動させるためにより多くのボーンベロシティを必要とし、最終的により大きな力を適用します。
+| Spring Damping | スプリングで取り除いたボーンのベロシティの量です。 |
+| Error Reset Thresh | 変位の閾値。スプリングがこの値以上に伸縮した場合、アクタのテレポートなど突然発生する大きな変位を避けるためにリセットします。 |
+| No ZSpring | 有効になると、「Z」軸のディスプレースメントは無視されて、常に正確となります。|
+
+## Two Bone IK
+
+**Two Bone IK** 制御はキャラクターの手足など、 3 つの関節チェーンへ IK (Inverse kinematic) ソルバを適用します。
+
+![Apply Percentage of Rotation](node_twobone.png)
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| [REGION:tablesection]**IK**[/REGION] ||
+| IK Bone | IK ソルバを適用するボーンの名前です。これはボーンチェーンの最終ボーンになります。例えば _足首_ または _手首_ のボーンです。 |
+| [REGION:tablesection]**伸縮制限 **[/REGION] ||
+| X | 手足の最大強度 (Max Limb Length) の比率。ボーンをいつスケーリングするかを設定する場合に使用します。 |
+| Y | 平行移動コンポーネントの最大スケーリング許容量。 |
+| Allow Stretching | _true_ の場合、ボーンは伸縮可能になります。 |
+| [REGION:tablesection]**エンド エフェクタ**[/REGION] ||
+| Effector Space Bone Name | **Effector Location Space** が _BCS_BoneSpace_ に設定されると、エフェクタの位置として使用するボーンの名前です。 |
+| Take Rotation from Effector Space | 有効になると、エフェクタ ( コンポーネント、親、またはボーン) の「回転」は　**IK Bone**　へ適用されます。 |
+| Maintain Effector Rel Rot | 有効になると、**IK Bone** はエフェクタと相対的な「回転」を維持します。 [REGION:note]この設定は **Take Rotation from Effector Space** が有効になるとオーバーライドされます。[/REGION] |
+| Effector Location Space | **Effector Location** の参照フレームです。 [INCLUDE:#LocationSpace] |
+| [REGION:tablesection]**Join Target**[/REGION] ||
+| Joint Target Location Space |  **Joint Target Location** の参照フレームです。 [INCLUDE:#LocationSpace] |
+| Joint Target Space Bone Name | **Joint Target Location Space** が _BCS_BoneSpace_　に設定された時、ジョイントのターゲット位置として使用するボーンの名前です。 |
+
+<!--
+[EXCERPT:LocationSpace]
+[REGION:simpletable]
+| 値 | 効果 |
+| ----- | ------ |
+| BCS_WorldSpace | 位置はワールド空間に対して相対すると仮定されます。 |
+| BCS_ComponentSpace | 位置は _SkeletalMeshComponent_ に対して相対すると仮定されます。|
+| BCS_ParentSpace | 位置は親ボーンに対して相対すると仮定されます。 |
+| BCS_BoneSpace | 位置は任意のボーンに対して相対すると仮定されます (別プロパティの値として名前で指定) 。 |
+[/REGION] 
+[/EXCERPT:LocationSpace]
+-->
+
+| ピン | 説明 |
+| --- | ----------- |
+| [REGION:tablesection]**入力ピン**[/REGION] ||
+| Effector Location | **Effector Location Space** でエフェクタの位置を指定する「ベクタ」値です。 |
+| Joint Target Location | **Joint Target Location Space** でジョイントターゲットの位置を指定する「ベクタ」 値です。 |

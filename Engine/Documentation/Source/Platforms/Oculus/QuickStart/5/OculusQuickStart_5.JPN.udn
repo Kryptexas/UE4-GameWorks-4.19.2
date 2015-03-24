@@ -1,0 +1,53 @@
+﻿INTSourceChangelist:2318890
+Title:5.バーチャル リアリティのコンテンツをテストする
+Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
+Description:アンリアル エンジン 4 を使って Oculus Rift 用に作成されたコンテンツをロードし再生する
+Availability:Public
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Platforms/Oculus/QuickStart/4 "%Platforms/Oculus/QuickStart/4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Platforms/Oculus/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Platforms/Oculus/QuickStart/6 "%Platforms/Oculus/QuickStart/6:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+1. まだお持ちでない場合は、 [](Resources\ContentExamples) プロジェクトからダウンロードしてください。
+1. **Content Examples** プロジェクトを開きます。
+	![](CE_Start.png)(w:500)
+
+1. **[ファイル] > [レベルを開く]** をクリックします。
+1. `VR.umap` を選択して **[開く]** をクリックします。
+
+	![](VRmap.png)
+1. **レベル エディタ ツールバー** の **[再生]** の横にあるドロップダウン矢印をクリックして、 **Play In Editor** オプションを開きます。
+
+	![](PlayDropdown.png)
+1. **Standalone Game** を選択してゲームを起動します。**Standalone Game** は Oculus との互換性を持つ唯一の **Play In Editor** ゲームです。
+
+	![](StandAloneGame.png)
+
+	[REGION:tip]
+	プロジェクトに **Standalone Game** を 1 回選択すると、別のものを選択するまでずっとそのモードのままになります。つまり、 **[再生]** アイコンをクリックすれば、テストを再開することができます。
+	[/REGION]
+
+1. **Alt+Enter** を押して VR モードにします。これにより、画面上のビューがステレオビューに変更され、ゲームの表示が Oculus に送信されます。
+
+	![](VRMode.png)(w:800)
+1. この段階で、 Oculus に入り、レベル周辺を移動することができます。ゲームプレイを終了するには、以下の操作を行います。
+	* **~** を押し、コンソールに `quit` と入力するか、または 
+	* **Shift+F1** を押して、マウス カーソルを復活させてウィンドウを閉じます。
+
+
+%Steps%

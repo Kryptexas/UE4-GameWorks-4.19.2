@@ -1,0 +1,179 @@
+Availability:Public
+Title: Editing Blend Spaces
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Blendspaces
+Description:Guide to setting up sample parameter and animation samples in Blendspaces for complex, multi-input animation blending.
+
+
+[VAR:topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Blendspaces/Editor:title%](Engine/Animation/Blendspaces/edit.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Blendspaces/Editor:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Blendspaces/Editor:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Blendspaces/Editor]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+[REGION:banner]
+![Blendspace Editor](bs_editor_banner.png)(convert:false)
+[/REGION]
+
+[EXCERPT:overview]
+The **Blend Space Editor** provides the ability to set up the Blend Parameters of the _BlendSpace_ as 
+well as graphically edit the positions of Sample poses and interactively see the results of blending 
+between those Sample poses.
+[/EXCERPT:overview]
+
+[TOC(start:2)]
+
+##Interface
+
+![](TestBlendShape.png)(w:720)
+
+1. **Parameters** - Blend Parameters property section for setting up the _BlendSpace_.
+1. **Samples** - Editable list of all Samples in the _BlendSpace_.
+1. **Options** - Preview options for the _BlendSpace_.
+1. **Graph** - 2D graph for placing Samples and previewing blending between them.
+
+
+## Setting up Parameters
+
+Parameters for the _BlendSpace_ are set up in the **Parameters** section of the UI.
+
+![Blendspace Parameters](bs_params.png)
+
+[INCLUDE:Engine/Animation/Blendspaces#BlendParameters]
+
+Once the appropriate values have been set for each of the Blend Parameters, pressing the ![Apply Parameter Changes](button_apply_changes.png) 
+button will apply the values to the _BlendSpace_, updating the **Graph**.
+
+![](BlendSpaceSetup.png)
+
+## Working with Sample Poses
+
+[INCLUDE:Engine/Animation/Blendspaces#SampleData]
+
+### Adding Samples
+
+Samples are added to a _BlendSpace_ by dragging an _AnimationSequence_ from the **Asset Browser** 
+into the **Graph**.
+
+[REGION:note]
+When working with _AimOffset BlendSpaces_, the _AnimationSequences_ must have **Additive Anim Type** 
+set to _AAT_RotationOffsetMeshSpace_ in order to be added as Samples.
+[/REGION]
+
+![](BlendShapeDragDrop.png)(w:720)
+
+A node is placed at the location in the **Graph**:
+
+![Sample node](bs_sample_node.png)
+
+### Positioning Samples
+
+Samples can be moved to different positions interactively or manually. Moving Samples interactively 
+is very intuitive, but does not provide the preciseness of manually setting the Sample's position.
+
+**To interactively move a sample:**
+
+Click and dragging the node in the **Graph**:
+
+![Move Sample by Dragging](bs_sample_move_drag.png)(convert:false)
+ 
+**To move a sample manually:**
+
+Click the node and then specify the  **X** and **Y** values to place the node at:
+
+![Move Node Manually](bs_sample_move_manual.png)
+
+### Replacing Samples
+
+Samples placed in the _BlendSpace_ can be replaced with another Sample in the **Graph** via _drag and drop_ or using the 
+**Samples** section of the UI.
+
+**To replace by _drag and drop_:**
+
+To replace a sample in the **Graph**, drag a new _AnimationSequence_ from the **Asset Browser** directly on 
+to the existing node.
+
+[REGION:fullwidth]
+![Replace Sample by Dragging](bs_sample_replace_drag.png)(convert:false)
+[/REGION]
+
+[REGION:imagetable]
+| ![Original Sample](bs_sample_replace_before.png)(h:220) |  ![Replaced Sample](bs_sample_replace_after.png)(w:175 h:220) |
+| ------ | ------ |
+| Original Sample | Replaced Sample |
+[/REGION]
+
+**To replace manually:**
+
+To replace a sample in the **Samples** section, select a new _AnimationSequence_ in the **Content Browser** 
+and press the ![Use Selected Asset](button_use_selected.png) button for the Sample in the list.
+
+[REGION:note]
+	In this case, you must select your _AnimationSequence_ from the **Content Browser**. This operation will _not_ read any assets selected in Persona's **Asset Browser**.
+[/REGION]
+
+![Select New Animation](bs_sample_replace_manual_select.png)(convert:false)
+
+![Replace Sample Manually](bs_sample_replace_manual.png)(convert:false)
+
+### Removing Samples
+
+Samples can be deleted directly in the **Graph** or using the **Samples** section of the UI.
+
+**To delete in the Graph:**
+
+Select the Sample node in the **Graph** to display the edit dialog and press the ![Delete](button_delete.png) 
+button to remove the Sample.
+
+![Remove Sample in Graph](bs_sample_remove.png)(convert:false)
+
+**To delete in the Samples section:**
+
+Press the ![Remove Sample](button_clear_reference.png) button for the Sample to be removed from the list.
+
+![Remove Sample Manually](bs_sample_remove_manual.png)(convert:false)
+
+## Previewing
+
+The result of the blending between poses can be previewed interactively in the **Viewport** panel of **Persona** 
+using the **Graph**. The position of the cursor determines the values of the **X** and **Y** parameters used for 
+performing the blending and the resulting pose is displayed in the **Viewport** panel.
+
+To enable previewing for the _BlendSpace_, check the **Enable Preview BlendSpace** option in the **Options** 
+section of the UI.
+
+![Enable Preview Blendspace Option](bs_options_preview.png)
+
+Once previewing is enabled, moving the cursor around in the **Graph** will cause the **Viewport** panel to display 
+the blended pose corresponding to the position of the cursor. The grid block the cursor is within is shaded and 
+values representing the blending between the sample points making up the block are displayed.
+
+![Graph Grid Block](bs_samples_block.png)
+
+Detailed information about the cursor location and the Samples being blended can be viewed by checking the **Enable 
+Tooltip Display** option.
+
+![Enable Tooltip Display Option](bs_options_tooltip.png)
+
+![Graph Tooltip](bs_samples_tooltip.png)
+
+[REGION:caption]
+**Right-click and Save As to download a video**
+[/REGION]
+
+[![](PlayBlendSpaceVideo.png)(w:640)](BlendSpace.mp4)

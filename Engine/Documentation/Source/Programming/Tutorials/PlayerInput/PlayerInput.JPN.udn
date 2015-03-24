@@ -1,0 +1,59 @@
+﻿INTSourceChangelist:2465675
+Availability:Public
+Title:プレイヤー入力とPawn クラス
+Crumbs:%ROOT%, GettingStarted
+Description:Pawn クラスを拡張してプレイヤーの入力に反応する
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](newclass_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Programming\Tutorials\PlayerInput:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming\Tutorials\PlayerInput]
+	[/PARAM]
+	[PARAM:description]
+		%Programming\Tutorials\PlayerInput:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](newclass_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Programming\Tutorials\PlayerInput:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming\Tutorials\PlayerInput]
+	[/PARAM]
+	[PARAM:description]
+		%Programming\Tutorials\PlayerInput:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+チュートリアルを通じて、Pawn クラスを拡張してプレイヤーの入力に反応する方法を学びます。
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		手順
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Programming\Tutorials\PlayerInput\1 "%Programming\Tutorials\PlayerInput\1:description%")
+	* [](Programming\Tutorials\PlayerInput\2 "%Programming\Tutorials\PlayerInput\2:description%")
+	* [](Programming\Tutorials\PlayerInput\3 "%Programming\Tutorials\PlayerInput\3:description%")
+	[/PARAM]
+[/OBJECT]
+
+
+

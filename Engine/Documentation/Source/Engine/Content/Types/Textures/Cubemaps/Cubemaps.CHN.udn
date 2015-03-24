@@ -1,0 +1,28 @@
+﻿INTSourceChangelist:2070770
+Availability:Public
+Title:立方体贴图
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/Textures
+Description:立方体贴图的主页： 介绍了如何在虚幻引擎4中创建、导出、导入及使用立方体贴图。
+
+
+立方体贴图提供了一种进行环境映射的简单方法，通过这种方法，像天空、周围环境这样的远景可以映射到一个全景贴图上。在底层，这些贴图存储为6张图片，映射到立方体的内表面上。
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/texture_icon.png)
+	[/PARAM]
+	[PARAM:title]
+		贴图内容创建
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Types/Textures/Cubemaps/CubemapTools) - %Engine/Content/Types/Textures/Cubemaps/CubemapTools:description%
+		* [](Engine/Content/Types/Textures/Cubemaps/CreatingCubemaps) - %Engine/Content/Types/Textures/Cubemaps/CreatingCubemaps:description%
+		* [](Engine/Content/Types/Textures/Cubemaps/ExportingCubemaps) - %Engine/Content/Types/Textures/Cubemaps/ExportingCubemaps:description%
+		* [](Engine/Content/Types/Textures/Cubemaps/ImportingCubemaps) - %Engine/Content/Types/Textures/Cubemaps/ImportingCubemaps:description%
+		* [](Engine/Content/Types/Textures/Cubemaps/UsingCubemaps) - %Engine/Content/Types/Textures/Cubemaps/UsingCubemaps:description%
+	[/PARAM]
+[/OBJECT]
+
+

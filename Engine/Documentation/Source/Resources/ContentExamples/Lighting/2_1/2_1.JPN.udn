@@ -1,0 +1,86 @@
+﻿INTSourceChangelist:2346368
+Availability:Public
+Title:2.1 - 静的ライト
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
+Description:ライティングの事例概要、例 2.1：静的ライト
+Related:Engine/Rendering/LightingAndShadows/Basics
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
+Related:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Directional
+Related:Engine/Rendering/LightingAndShadows/Lightmass
+Related:Engine/Rendering/LightingAndShadows/Shadows
+Related:Engine/Rendering/LightingAndShadows/IndirectLightingCache
+Related:Engine/Rendering/LightingAndShadows/LightMobility
+
+[VAR:2xSize]456[/VAR]
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\Lighting\2_1:title%](Resources\ContentExamples\Lighting\Lighting_2_1.png)(w:192)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\Lighting\2_1:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\Lighting\2_1:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\Lighting\2_1]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+![%Resources\ContentExamples\Lighting\2_1:title%](Resources\ContentExamples\Lighting\Lighting_2_1.png)
+[/REGION]
+
+[EXCERPT:StaticLighting01]
+
+[INCLUDE:Shared/Glossary/S/#Glossary_Static_Lights]
+
+静的ライトはライトマップのみを使用するため、このライトのシャドウはゲームプレイ開始前にベイク処理されます。つまり例にあるような移動 (動的) オブジェクトにシャドウを表現することはできません。しかしライティング オブジェクトも静的な場合は、エリア (コンタクト) シャドウを生成することができます。これは **Source Radius** プロパティを調整して実行します。この時、ソフトシャドウを受け取る表面に自然なシャドウを生成するにはライトマップの解像度を正しく設定する必要があることに留意してください。 
+[/EXCERPT:StaticLighting01]
+
+[EXCERPT:StaticLighting02]
+スタティックメッシュ コンポーネント ライトマップの解像度は、 Static Mesh アセット、または _[Override Lightmap Res]_ チェックボックスにチェックを入れて値を設定することにより設定できます。より大きな値は、より高い解像度を意味しますが、より長いビルド時間とメモリ容量も必要となります。
+
+ブラシ サーフェスのライトマップ解像度は、_Lightmap Resolution_ プロパティ経由で設定しています。これは実際に密度を設定しているため、値が低ければ低いほど高い解像度となります。
+
+[REGION:imagetable]
+|![](LightmapRes_4.png)(w:%2XSize%)  |![](LightmapRes_16.png)(w:%2XSize%)  |
+|------------------------|-------------------------|
+|ライトマップの解像度:4.0|ライトマップの解像度:16.0|
+[/REGION]
+[/EXCERPT:StaticLighting02]
+
+[EXCERPT:ILC]
+静的ライトは _Indirect Lighting Cache のサンプル グリッド_ が原因で動的オブジェクトにも影響を及ぼします。これはシーンへ焼き付けられるライティング サンプルの 3D グリッドで、静的ライティングが動的オブジェクトに与える効果を決定するためにレンダリング エンジンで使用します。エディタの右上部隅にあるコンソールバーへ以下のコマンドを入力すると、グリッドがビューポートへ表示されます。
+
+`r.Cache.DrawLightingSamples 1`
+
+シーンの至る箇所に散在するサンプルが見れます。
+
+![](IndirectLightingCache.png)
+
+[REGION:note]
+Indirect lighting Cache のサンプルを存在させるには、シーン周りに _[Lightmass Importance Volume]_ を設定し、ライティングはライトマスで構築しなくてはいけません。
+[/REGION]
+
+
+動的オブジェクトは Indirect Lighting Cache を利用しているため、ライトの実際の位置を知るすべはありません。従ってこの例の動的オブジェクト上のシャドウ生成が不足しているのがわかります。
+
+[/EXCERPT:ILC] 
+
+
+これに加えて、静的ライトは後に [事例 3.1](Resources\ContentExamples\Lighting\3_1) で説明する IES ライティング プロファイルを使用する場合もありますが、プロファイルのデータはライトマップへベイクされます。つまり、品質はライトマップの解像度に依存します。静的ライトは Light 関数をサポートしません。後に [事例 3.2](Resources\ContentExamples\Lighting\3_2)で説明します。
+
+
+
+
+

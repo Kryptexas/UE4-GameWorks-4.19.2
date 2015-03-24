@@ -1,0 +1,36 @@
+﻿INTSourceChangelist:2346177
+Availability:Public
+Title:1 - メッシュ評価
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/LevelDesign
+Description:レベルデザインの事例概要、例 2：メッシュ評価
+Related: Engine/Content/Types/StaticMeshes
+Related: Engine/Rendering/Materials
+Related:Engine/UI/LevelEditor
+Related: Engine/UI/LevelEditor/Modes
+
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\LevelDesign\2:title%](leveldesign_2_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\LevelDesign\2:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\LevelDesign\2:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\LevelDesign\2]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+
+![](leveldesign_2.png)
+
+ブラシを使用したジオメトリ設定またはプロトタイプ評価で作成した簡易なスタティックメッシュは、メッシュ評価の段階で完成形もしくはほぼ完成形のメッシュアセットと置き換えられます。この評価は、アセットの改良時にアートアセットを
+再インポートすることによって改善することができます。レベルデザイン作業のこの時点では、まだ簡易なライティングを使用します。 
+[/REGION]

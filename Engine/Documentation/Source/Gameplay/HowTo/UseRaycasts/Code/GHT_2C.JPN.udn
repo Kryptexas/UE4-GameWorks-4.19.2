@@ -1,0 +1,67 @@
+﻿INTSourceChangelist:2320316
+Availability:Docs
+Title:コードでレイキャスト（トレーシング）を使用する方法
+Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/UseRaycasts
+Description:コードでレイキャスト（トレーシング） を使用ためのガイド
+
+[TOC (start:2 end:2)]
+
+## 概要
+
+このページでは、 **シングル** レイキャストと **マルチ** レイキャストの違い、およびコリジョン情報を引き出すための設定方法を学習します。 
+
+## Single Line Trace
+
+### Single Line Trace by Channel
+
+**Single Line Trace by Channel** は、所定の行に沿ってコリジョン トレースを実行しトレースがヒットした (トレース チャネルに反応した) 最初のオブジェクトを返します。 
+
+**Single Line Trace by Channel** を設定するには、以下を行います。 
+
+
+上の例では、提供されている Trace Channel へ反応する設定のすべてのオブジェクトを返しますが、所定のオブジェクトだけを返したい場合もあると思います。上の例では、トレースに無視されるアクタの **Array** を受け取る **Actors to Ignore** ピンを使うことができますが、無視する個々のアクタを指定しなければなりません。 
+
+指定された **ObjectTypes** が返された場合のみ **Single Line Trace by Object** を実行することもできます。こうすると、特定のオブジェクト対象のみをトレースに含むことができます。 
+
+### Single Line Trace by Object
+
+**Single Line Trace by Object** は、所定の行に沿ってコリジョン トレースを実行し、トレースがヒットした (ObjectType に反応した) 最初のオブジェクトを返します。 
+
+**Single Line Trace by Object** を設定するには、以下を行います。 
+
+
+## Multi Line Trace
+
+### Multi Line Trace by Channel
+
+**Multi Line Trace by Channel** は、所定の行に沿ってコリジョン トレースを実行し、最初にブロックするヒットを含めて、指定した Trace Channel に反応するオブジェクトのみを返しながら、遭遇するすべてのヒットを返します。 
+
+**Multi Line Trace by Channel** を設定するのは、以下を行います。 
+
+
+### Multi Line Trace by Object
+
+**Single Line Trace by Object** は、所定の行に沿ってコリジョン トレースを実行し、トレースがヒットした ( ObjectType に反応した) 最初のオブジェクトを返します。 
+
+**Multi Line Trace by Object** を設定するのは、以下を行います。 
+
+
+
+## Shape Traces
+
+Line Trace では不十分な場合は、その後で **Shape Trace** を使ってみると結果が出る場合があります。例えば、敵に対して "視覚的なコーン" を作成して、そこに入ったプレイヤーを探知しようとしても、プレイヤーは Line Trace の下を潜り抜ければ探知されないので、 Line Trace では不十分です。 
+
+そのような場合は、 **Box Trace** 、 **Capsule Trace** 、 **Sphere Trace** を使うことができます。それぞれの Shape Trace は Line Trace と同様に、開始ポイントから終了ポイントまでコリジョンに対するスイープとチェックを行います。ただし、 レイキャストで形状をボリュームの種類として使用している、 Shape Traces はチェックするレイヤーを追加します。 
+
+Shape Trace を **Single Trace** または **Multi Trace** として使用し、それぞれを Line Trace として同じ方法で設定することができます。ただし、使用する形状のサイズまたは方向に関して追加の詳細を与える必要があります。 
+
+
+
+
+
+
+
+
+
+
+

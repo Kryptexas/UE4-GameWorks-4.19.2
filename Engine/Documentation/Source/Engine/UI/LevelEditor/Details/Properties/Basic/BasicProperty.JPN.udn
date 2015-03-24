@@ -1,0 +1,51 @@
+﻿Availability:Public
+Title:基本制御
+Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/Details
+Description:数値の入力欄やスピナー、テキスト欄、チェックボックス、ラジオボタン、コンボボックスなど基本的なプロパティタイプ　
+
+**Unreal Editor** は、ユーザーになじみ深い数値やテキストを編集するための基本的な制御タイプがたくさんあります。
+
+| 制御 | 説明 |
+| ------- | ----------- |
+| **Text Box** | 「FString」や「FName」などのテキストプロパティに使用します。 [INCLUDE:#TypeString] |
+| **Numeric Box** | 「Integer」や「Float」などの数値プロパティの編集に使用します。 [INCLUDE:#TypeNumericBox] |
+| **Numeric Spinner** | 「Integer」や「Float」などの数値プロパティの編集に使用します。 [INCLUDE:#TypeNumericSpinner] |
+| **Checkbox** | 「Bool」などの基本的なトグルプロパティの編集に使用します。 [INCLUDE:#TypeBool] |
+| **Dropdown** | 利用可能な値のリストを提供する「Enum」やその他のプロパティの編集に使用します。 [INCLUDE:#TypeEnum] |
+
+<!--
+[EXCERPT:TypeString]
+[REGION:none]
+**例**  
+![Text Box control](text_box.png)
+[/REGION]
+[/EXCERPT:TypeString]
+
+[EXCERPT:TypeNumericBox]
+[REGION:none]
+**例**  
+![Numeric Box control](numeric_box.png)
+[/REGION]
+[/EXCERPT:TypeNumericBox]
+
+[EXCERPT:TypeNumericSpinner]
+[REGION:none]
+**例**  
+![Spinner control](spinner_box.png)
+[/REGION]
+[/EXCERPT:TypeNumericSpinner]
+
+[EXCERPT:TypeBool]
+[REGION:none]
+**例**  
+![Checkbox control](check_box.png)
+[/REGION]
+[/EXCERPT:TypeBool]
+
+[EXCERPT:TypeEnum]
+[REGION:none]
+**例**  
+![Dropdown control](enum.png)
+[/REGION]
+[/EXCERPT:TypeEnum]
+-->

@@ -1,0 +1,154 @@
+﻿INTSourceChangelist:2473872
+Availability:Public
+Title:スタティック メッシュ エディタ UI
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types/StaticMeshes
+Description:外観、コリジョン、 UV のプレビューに加え、スタティック メッシュ アセットのプロパティを設定および操作するツール
+
+[TOC(start:2)]
+
+## 概要
+
+**スタティック メッシュ エディタ** は 4 つの領域で構成されています。
+
+[REGION:fullwidth]
+![](StaticMeshEditorUI.png)
+[/REGION]
+1. [メニュー バー](#メニューバー)
+1. [ツール バー](#ツールバー)
+1. [ビューポート パネル](#ビューポートパネル)
+1. [詳細パネル](#詳細パネル)
+
+[Include:Shared/Editors/Common/EditorMenuItems/#UITabTips]
+
+<!-- スタティック メッシュ エディタの詳細については、[](Engine/Content\Types\StaticMeshes\Editor) をご覧ください。 -->
+
+##メニュー バー
+
+### ファイル
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuFileSave]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuFileSaveOptions]
+
+###編集
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuEditUndo]
+* **Delete Socket** - 選択したソケットをメッシュから削除します。
+* **Duplicate Socket** - 選択したソケットを複製します。
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuEditSettings]
+
+###アセット
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetContentBrowser]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetReimport]
+
+
+###メッシュ
+
+* **Find Source** - スタティック メッシュの元となるソースファイルが格納されているフォルダで Windows Explorer を開きます。
+* **Change Mesh** - スタティック メッシュ エディタにロードされたスタティック メッシュ アセットを、**コンテンツ ブラウザ** で現在選択されているアセットに変更します。
+
+### コリジョン
+
+* **6DOP Simplified Collision** - スタティック メッシュを囲む、軸に平行な新たなボックス コリジョン メッシュ (全部で 6 面) を生成します
+* **10DOP-X Simplified Collision** - スタティック メッシュを囲み、X 軸に平行な 4 つのエッジが面取りされた、軸に平行な新たなボックス コリジョン メッシュ (全部で 10 面) を生成します
+* **10DOP-Y Simplified Collision** - スタティック メッシュを囲み、Y 軸に平行な 4 つのエッジが面取りされた、軸に平行な新たなボックス コリジョン メッシュ (全部で 10 面) を生成します
+* **10DOP-Z Simplified Collision** - スタティック メッシュを囲み、Z 軸に平行な 4 つのエッジが面取りされた、軸に平行な新たなボックス コリジョン メッシュ (全部で 10 面) を生成します
+* **18DOP Simplified Collision** - スタティック メッシュを囲み、すべてのエッジが面取りされた、軸に平行な新たなボックス コリジョン メッシュ (全部で 18 面) を生成します
+* **26DOP Simplified Collision** - スタティック メッシュを囲み、すべてのエッジとコーナーが面取りされた、軸に平行な新たなボックス コリジョン メッシュ (全部で 26 面) を生成します
+* **Auto Convex Collision** - スタティック メッシュ アセットの形状に基いて、凸型コリジョン メッシュ を新規に作成します
+* **Sphere Simplified Collision** - スタティック メッシュを囲む、球体コリジョン メッシュを生成します
+* **Remove Collision** - 対象スタティック メッシュにアサインされている単純化されたコリジョンを取り除きます
+* **Convert Boxes to Convex** - シンプルなボックス コリジョン メッシュを凸型コリジョン メッシュに変換します
+* **Copy Collision from Selected Static Mesh** - ネイティブ 3D アプリケーションで作成され、スタティック メッシュで保存されたコリジョン メッシュをコピーします。
+
+アンリアル エンジンのスタティック メッシュのコリジョンの詳細は、 [Collision Reference](Engine/Physics/Collision/Reference) をご覧ください。
+
+
+### ウィンドウ
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowToolbar]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowViewport]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowDetails]
+* **Socket Manager** - **[Socket Manager]** パネルを表示します。デフォルトでは表示されません。
+* **Convex Decomposition** - **[Convex Decomposition]** パネルを表示します。デフォルトでは表示されません。
+* **Generate Unique UVs** - **[Generate Unique UVs]** パネルを表示します。デフォルトでは表示されません。
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindow]
+
+
+
+### ヘルプ
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuHelp]
+
+
+## ツールバー
+
+| アイテム | 説明 |
+| ---- | ----------- |
+| ![button_realtime.png](button_realtime.png)| ビューポートをリアルタイムに更新するか、クリック / マウスオーバー時に更新するかを切り替えますデフォルトはオフです。メッシュのロード後にビューポートをクリックして、高解像度で表示されるストリーム化テクスチャの取得が必要な場合があります。|
+| ![button_sockets.png](button_sockets.png) | このメッシュに適用されているソケットを表示します。ソケットに関する詳細については、[](Engine/Content\Types\SkeletalMeshes\Sockets) をご覧ください。|
+| ![button_wireframe.png](button_wireframe.png)| **[Preview]** パネルの表示モードをリットビュー / ワイヤーフレームビュー間で切り替えます。|
+| ![button_vertcolor.png](button_vertcolor.png) | 頂点カラーの表示を切り替えます。 |
+| ![button_grid.png](button_grid.png) | **[Preview]** パネルでグリッドの表示を切り替えます。 |
+| ![button_bounds.png](button_bounds.png)| スタティック メッシュの境界の表示 / 非表示を切り替えます。|
+| ![button_collision.png](button_collision.png)| スタティック メッシュに単純化されたコリジョン メッシュがアサインされている場合に、その表示 / 非表示を切り替えます。|
+| ![button_showPivot.png](button_showPivot.png) | メッシュの回転軸の表示を切り替えます。 |
+| ![button_normals.png](button_normals.png) | **[Preview]** パネルで頂点の法線を表示するかどうかを切り替えます。 |
+| ![button_tangents.png](button_tangents.png) | **[Preview]** パネルで頂点の接線を表示するかどうかを切り替えます。 |
+| ![button_binormals.png](button_binormals.png) | **[Preview]** パネルで頂点の従法線 (法線と接線に対して垂直なベクトル) を表示するかどうかを切り替えます。 |
+| ![button_uv.png](button_uv.png)| **[Preview]** パネルでスタティック メッシュ アセットのLightMapCoordinateIndex プロパティで指定されたチャンネルに対してスタティック メッシュの UV 表示 / 非表示を切り替えます。 |
+|![button_additionalInfo.png](button_additonalInfo.png) | アセットと関連付けした追加のユーザーデータを描画するか否かを切り替えます。 |
+| ![button_uvChannel.png](button_uvChannel.png) | メッシュに対して使用できる全ての UV チャネルのドロップダウンを表示します。UV オーバーレイが表示されている場合のみ関係します。|
+| ![StaticMesh_ResetCamera_button](StaticMesh_ResetCamera_button.png) | スタティック メッシュにカメラを再フォーカスします。 |
+| ![button_autoLOD.png](button_autoLOD.png) | 現在のメッシュで利用できる全ての LOD のドロップダウン リストを開きます。 |
+
+## ビューポート パネル
+
+**[Viewport]** パネルは、スタティック メッシュ アセットがレンダリングされたビュー (またはオプションのワイヤーフレームビュー) を表示します。これにより、インゲームでレンダリングされるかスタティック メッシュを調査できます。このビューポートは、コリジョン メッシュのみならずスタティック メッシュの境界をプレビューすることができます。さらに、スタティック メッシュの UV は表示可能です。 
+
+スタティック メッシュ アセットに関する統計または情報が **[Viewport]** パネル上へオーバーレイされます。
+
+![Static Mesh Editor Preview panel](StaticMesh_Preview.png)
+
+この情報には次のものが含まれています。
+
+* **LOD** - スタティック メッシュの LOD (Level of Detail) の数を表示します。
+* **Triangles** - スタティック メッシュのトライアングルの数を表示します。
+* **Vertices** -  スタティック メッシュの頂点の数を表示します。
+* **UV channels** -  UV チャネルの数です。ユニークな、オーバーラップしない UV がシャドウ マッピングに必要とされます。
+* **Approx Size** - 全ての軸の 1 のスケールでアンリアル単位でスタティック メッシュのおおよそのサイズ (長さ x 幅 x 高さ) を表示します。
+
+
+
+## 詳細パネル
+
+**[Details]** パネルは、表面、 LOD オプション、メッシュ削減オプションに適用されたマテリアルなど、スタティック メッシュ アクタに関する特定のプロパティが表示されます。 
+
+このパネルの基本的な操作に関する詳細は、 [エディタの詳細パネル](Engine/UI/LevelEditor\Details) ドキュメントを参照してください。
+
+## 制御
+
+
+### マウスの操作
+
+**ビューポートパネル**
+
+
+* **LMB + Drag** - カメラがロックされている場合、Z 軸の周りでメッシュを回転し、元の場所に向かって、または元の場所から離れて移動します。それ以外の場合、カメラを Z 軸の周りで回転させ、カメラをローカルの X 軸にそって移動させます。
+* **RMB + Drag** - カメラがロックされている場合、メッシュを回転させます。それ以外の場合、カメラを回転させます。
+* **LMB + RMB + Drag** - カメラがロックされていない場合、ローカルの YZ プレーンに沿ってカメラを移動します。
+
+
+### キーボードの操作
+
+
+* **Ctrl + R** - **[Preview]** パネルでリアルタイムに切り替えます。
+* **L + Mouse Move** - **[Preview]** パネルでプレビュー ライトを回転させます。
+
+**Camera Hotkeys**
+
+* **Alt+H** - カメラを正投影の正面視点に配置します。
+* **Alt+J** - カメラを正投影の上面視点に配置します。 
+* **Alt+K** - カメラを正投影の側面視点に配置します。 
+* **Alt+G** - カメラを透視投影視点に配置します。
+
+

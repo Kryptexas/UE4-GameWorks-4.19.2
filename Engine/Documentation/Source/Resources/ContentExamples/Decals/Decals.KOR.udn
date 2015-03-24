@@ -1,0 +1,74 @@
+﻿INTSourceChangelist:2410153
+Availability: Public
+Title:데칼
+Crumbs:%ROOT%, Resources, Resources/ContentExamples
+Description:Decals 예제 레벨에 대한 개요입니다.
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Decals:title%](Decals_3.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Decals:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Decals:description%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/Decals]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Decals:title%](Decals_3.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Decals:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/Decals]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+## 개요
+
+[REGION:fullwidth]
+
+[/REGION]
+
+**Decals** (데칼) 예제 레벨에 오신 것을 환영합니다! 이 레벨은 데칼이 레벨에서 어떻게 활용되는지에 대한 데모입니다.
+
+데칼 액터를 만드는 방법은, **클래스 뷰어** 패널에서 끌어 놓는 방식으로 간단히 만들 수 있습니다.
+
+![](DecalActorList.png)
+
+그런 다음 Decal Material (데칼 머티리얼)을 적용해 주기만 하면 되는데, 이는 일반 머티리얼에서 **Material Domain** (머티리얼 영역) 프로퍼티가 _Deferred Decal_ (디퍼드 데칼)로 설정된 것을 말합니다.
+
+![](DeferredDecalSetting.png)
+
+[INCLUDE:Resources\ContentExamples\ExampleLevelOverview#ExampleLevel]
+
+## 예제
+
+[REGION:topics third]
+%Resources/ContentExamples/Decals/1_1:TopicCompact%
+%Resources/ContentExamples/Decals/1_2:TopicCompact%
+%Resources/ContentExamples/Decals/1_3:TopicCompact%
+%Resources/ContentExamples/Decals/1_4:TopicCompact%
+%Resources/ContentExamples/Decals/1_5:TopicCompact%
+%Resources/ContentExamples/Decals/1_6:TopicCompact%
+%Resources/ContentExamples/Decals/1_7:TopicCompact%
+[/REGION]
+
+
+## 관련 글타래 및 추가 참고자료
+
+* [데칼](Engine/Actors/DecalActor)

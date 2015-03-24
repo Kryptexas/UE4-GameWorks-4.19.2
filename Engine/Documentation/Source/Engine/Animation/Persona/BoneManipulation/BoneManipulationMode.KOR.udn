@@ -1,0 +1,43 @@
+﻿INTSourceChangelist:2346177
+Availability:Public
+Title:본 조작 모드
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:애니메이션 애셋을 미리보면서 본의 이동이나 회전이 가능한 페르소나 모드입니다.
+Related: Engine/Content/FBX/Animations
+Related: Engine/Content/Types/SkeletalMeshes
+Related: Engine/Animation/PhysicallyDrivenAnimation
+Related: Engine/Content/Tools/MayaRiggingTool
+
+**본 조작 모드** 는 테크니컬 아티스트가 애니메이션을 미리보면서 본을 임시로 이동 및 회전해 가며 스켈레탈 메시의 스키닝 문제를 찾아보는 데 사용할 수 있는 페르소나의 한 모드입니다.
+
+![Bone Manipulation Mode](Bones_TwoViews.png)
+
+**본 조작 방법은:**
+1. 페르소나에서 스켈레탈 메시를 엽니다.
+1. **애셋 브라우저** 의 목록에서 애니메이션 애셋을 선택하여 본 조작 모드를 켭니다. 이 작업은 **스켈레톤**, **메시**, **애니메이션** 모드에서 가능합니다. (본 조작 전 애니메이션을 일시정지시키는 편이 좋습니다.)
+
+	![](Bones_SelectAnimation.png)
+1. **스켈레톤 트리** 패널에서 조작하고자 하는 본을 선택합니다.
+
+	![](Bones_SelectBone.png)
+1. **뷰포트** 패널 상단에서 이동 또는 회전 아이콘을 선택하여 위젯을 띄웁니다.
+
+	![Translation Widgets](Bones_Widgets.png)
+1. 뜨는 위젯을 사용하여 본을 이동 또는 회전시킵니다.
+1. 애니메이션을 재생하여 스키닝 문제를 찾아봅니다.
+
+이동 및 회전 위젯 사용 관련 상세 정보는 [](Engine/Actors/Transform) 문서를 참고해 주시기 바랍니다.
+
+[REGION:note]
+본을 조작한 이후에는 다른 애니메이션 애셋을 선택해도 조작한 내용이 유지되므로, 다른 애니메이션을 가지고도 변경 내용을 미리볼 수 있습니다.
+[/REGION]
+
+**본의 기본 이동 및 회전값으로 되돌리려면:**
+
+* **스켈레톤 트리** 에서 다른 본을 선택합니다.
+
+[REGION:tip]
+캐릭터에 적용된 **본 스케일링** 예제는, [애니메이션 콘텐츠 예제](Resources\ContentExamples\Animation) 문서의 1.7 섹션을 참고해 주시기 바랍니다.
+[/REGION]
+
+

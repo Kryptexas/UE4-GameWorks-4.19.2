@@ -1,0 +1,91 @@
+﻿INTSourceChangelist:2291853
+Availability: Public
+Title:스태틱 메시
+Crumbs:%ROOT%, Engine, Engine/Content
+Description:비디오 메모리에 캐시되어 그래픽 카드가 렌더링할 수 있는 스태틱 지오메트리에 대한 내용입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Types/StaticMeshes:title%](Engine/Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Types/StaticMeshes:title%](Engine/Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![Static Meshes](staticmesh_banner.png)
+[/REGION]
+
+[INCLUDE:Shared/Glossary/S/#Glossary_Static_Mesh]
+
+[REGION:topics half]
+%Engine/Content/FBX/StaticMeshes:Topic%
+[/REGION]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		콘텐츠 제작
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Types/StaticMeshes/LOD "%Engine/Content/Types/StaticMeshes/LOD:Description%")
+		* [](Engine/Content/Types/StaticMeshes/LightmapUnwrapping "%Engine/Content/Types/StaticMeshes/LightmapUnwrapping:Description%")
+		* [](Engine/Physics/Collision/Reference "%Engine/Physics/Collision/Reference:Description%")
+		* [](Engine/Content/Types/StaticMeshes/MorphTargets "%Engine/Content/Types/StaticMeshes/MorphTargets:Description%")
+		* [](Engine/Content/Types/StaticMeshes/Editor "%Engine/Content/Types/StaticMeshes/Editor:Description%")
+	[/PARAM]
+[/OBJECT]
+
+
+<!--
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/user_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		사용 안내서
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [StaticMesh Actor](Engine/Actors/StaticMeshActor "%Engine/Actors/StaticMeshActor:Description%")
+		
+	[/PARAM]
+[/OBJECT]
+-->

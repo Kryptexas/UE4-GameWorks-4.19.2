@@ -1,0 +1,44 @@
+﻿INTSourceChangelist:2299868
+Availability:Public
+Title:VR 虎の巻
+Crumbs:%ROOT%, Platforms, Platforms/VR
+Description:VR 開発のクイックガイドとヒント
+Navigation:platform
+
+
+[TOC(start:2)]
+
+## キーボード ショートカット
+
+| ショートカット | 説明 |
+| --------| -------------|
+| **Control+R** | ゲームプレイ中にビューをリセットします。これは、ヘッドセット着用前にゲームを起動した場合のゲームプレイ開始直後に役立ちます。 |
+| **Alt+Enter** | VR モードを切り替えます。スタンドアローンのゲームのプレビュー ウィンドウをフル画面のステレオ モードにし、ゲーム ディスプレイをヘッドセットに送信します。|
+
+## スタンドアローン ゲームを実行する
+
+VR ヘッドセットでゲームを見るために、**Play In Editor** のスタンドアローン モードを使用することができます。パフォーマンスを向上させるために、エディタとは別にゲームを実行することができます。
+
+コンソールを使用、または`UE4Editor.exe` のショートカットを作成し、以下の引数を入れます。
+	UE4Editor.exe [MyProject] [MyMap] -game
+
+
+[REGION:tip]
+[MyProject] は、`.uproject` ファイルへの絶対パスまたは相対パスになることにご注意ください。
+[/REGION]
+
+## 役立つ VR コンソール コマンド
+
+UE4 には、多くの役立つ [コンソール コマンド](https://docs.unrealengine.com/latest/INT/GettingStarted/RunningUnrealEngine/index.html#usefulin-gamecommands) があります。 
+こうしたコマンドは VR デバイスを使用する際に生じうる問題をデバッグするうえで役立ちます。以下は非常に一般的に使用するコマンドのリストです。 
+
+| コマンド | 説明 |
+| ------- | ----------- |
+| `Stereo Show` | 設定のリストをログにプリントします。 |
+| `Stereo On/Off` | ヘッドマウント ディスプレイ (HMD) デバイスのステレオ レンダリングを有効または無効にします。 |
+| `Stereo Reset` | 瞳孔間距離 (IPD) をリセットし、IPD と Stereo のオーバーライドをクリアします。 |
+| `HMD [Enable|Disable]` | HMD デバイスを有効または無効にします。 |
+| `HMD sp [30-3oka00]` | 画面のパーセンテージを設定します。クオリティを高めるには大きな数字を使用し、パフォーマンスを高めるには小さな数字を使用します。 |
+| `HMD Vsync [On|Off|Reset]` | VR デバイスでvsync (垂直同期信号) を制御またはリセットします。 |
+| `Ovrversion` | LibOVR バージョンとビルドの日付をログにプリントします。 |
+

@@ -1,0 +1,79 @@
+Availability: Docs
+Title: BatchExport Commandlet
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description:Commandlet for exporting resource from packages to various file types.
+
+[REGION:todo]
+	This page is converted from Unreal Engine 3 documentation and currently being reviewed. Information may be outdated.
+[/REGION]
+
+[TOC(start:2)]
+
+## Overview
+
+The batchexport commandlet is used for exporting resources from Unreal package files to various external file types.
+
+
+
+## Operation
+
+To run this commandlet, from a command prompt window, navigate to the _UnrealEngine3\Binaries_ directory.
+
+
+### Syntax
+
+The syntax is as follows:
+
+    [GameName].exe BatchExport <package.ext> <classname> <export_ext> [dest_path_name]
+    
+
+Each resource in the package will be saved to path specified by _dest_path_name_.  Each resource is saved to its own file, using the name of the resource as the filename, and the extension specified by _export_ext_ as the file extension.
+
+
+### Parameters
+
+$ **package.ext**: Name of the package to export resources from.  Path name is optional.
+$ **classname**: The class of object to export, such as "Class", "Texture", etc.
+$ **export_ext**: Extension for the output file.  This determines which type of factory is used for exporting the resource.  Valid values are:
+    * Text resource types
+        * TXT - Exports all text buffers in the specified package.  Currently, the only usage of text buffers is for storing UnrealScript source into a package file, and for this type of export, it is better to use the uc as the extension.
+        * UC - Exports the UnrealScript source for each class in the specified package.  (Will not work if the source has been removed from the package using the via the StripSource commandlet).
+        * T3D - Exports all objects in the specified package formatted as subobject definitions (Begin Object/End Object blocks).  There is a general object exporter as well as several specialized object exporters.  Depending on the resource type you are exporting, it may be more appropriate to use one of the specialized exporters.  Which exporter is used is determined by the value specified for _classname_.  By default, the most specialized exporter is used for the resource type you have specified.  So even if you specify "Object" as the class, UModel objects will be exported using the model exporter, rather than the general object exporter.  By specifying "Model" as the value for _classname_, only UModel objects will be exported.  Valid values are:
+            * Poly - Used to export polygon data for the specified package.
+            * Model - Used to export models for the specified package.
+            * World - Used to export map packages.
+            * Sequence - Used to export Blueprint sequences.
+            * Terrain - Used for exporting terrain data.
+        * STL - Exports all triangle data for the specified package in a format which can imported into 3DMax.
+        * OBJ - Exports all poly data for the specified package in a format which can imported into Lightwave.
+    * Audio resource types
+        * WAV - Exports all sounds in the specified package to .wav format.
+    * Image resource types
+        * PCX - Exports all textures in the specified package to .pcx format.  When using this value for _export_ext_, _classname_ must be a Texture2D (or derived) class.
+        * BMP - Exports all textures in the specified package to .bmp format.  When using this value for _export_ext_, _classname_ must be a Texture2D (or derived) class.
+        * TGA - Exports all textures in the specified package to .tga format.  When using this value for _export_ext_, _classname_ must be a Texture2D (or derived) class.
+$ **dest_path_name**: The path to save the output files to. The directory will be created if it does not exist.
+
+
+
+## Examples
+
+
+* The following command generates a single .T3D file for each component stored in the Engine.u package to the UnrealEngine3\ExportedObjects\Engine directory:  
+   
+		gamename.exe batchexport Engine.u Component T3D ..\ExportedObjects\Engine
+
+* The following command generates a single .wav file for each sound node resource stored in the ExampleSounds.upk package to the UnrealEngine3\ExportedSounds\ directory:  
+   
+		gamename.exe batchexport ExampleSounds.upk SoundNodeWave .WAV ..\ExportedObjects\ExportedSounds\
+
+* The following command generates a single .bmp file for each texture stored in the EditorResources.upk package to the C:\ExportedTextures\ directory:  
+   
+		gamename.exe batchexport EditorResources.upk Texture2D BMP C:\ExportedTextures\
+
+ 
+
+
+
+
+

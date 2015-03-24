@@ -1,0 +1,46 @@
+﻿INTSourceChangelist:2222449
+Availability:Public
+Title:ビルド
+Crumbs:%ROOT%
+Description:アンリアル エンジン ビルドのリリースノート
+
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+	2014
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Support/Builds/ReleaseNotes/2014/4_3)
+	* [](Support/Builds/ReleaseNotes/2014/4_2)
+	* [](Support/Builds/ReleaseNotes/2014/4_1)
+	[PUBLISH:Licensee]
+	* [](Support/Builds/ReleaseNotes/2014/March)
+	* [](Support/Builds/ReleaseNotes/2014/January)
+	[/PUBLISH:Licensee]
+	[/PARAM]
+[/OBJECT]
+
+[PUBLISH:Licensee]
+[OBJECT:TopicList]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+	2013
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Support/Builds/ReleaseNotes/2013/Dec)
+	* [](Support/Builds/ReleaseNotes/2013/Oct)
+	* [](Support/Builds/ReleaseNotes/2013/Sept)
+	* [](Support/Builds/ReleaseNotes/2013/August)
+	* [](Support/Builds/ReleaseNotes/2013/July)
+	* [](Support/Builds/ReleaseNotes/2013/June)
+	* [](Support/Builds/ReleaseNotes/2013/May)
+	[/PARAM]
+[/OBJECT]
+[/PUBLISH:Licensee]

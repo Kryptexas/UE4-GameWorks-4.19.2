@@ -1,0 +1,40 @@
+﻿Availability:Docs
+Title:1.6 - 破壊パーティクル エフェクト
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Destructables
+Description:破壊性能事例レベルの概要、例 1.6:破壊パーティクル エフェクト
+
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Destructables/1_4:title%](Resources/ContentExamples/Destructables/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Destructables/1_4:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Destructables/1_4:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Destructables/1_4]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth raw]
+![](Resources/ContentExamples/Destructables/physics_banner.png)
+[/REGION]
+
+メッシュ破壊時にパーティクル エフェクトをスポーンします。
+
+[REGION:todo]
+エミッタをスポーンする場所について、ある程度ルールがあると便利です。コンテンツの例には、このセクション用のパーティクル エフェクトがありません。
+[/REGION]
+
+[REGION:lightbox]
+[![](1_4_solid.png)(w:300)](1_4_solid.png) [![](1_4_fractured.png)(w:300)](1_4_fractured.png) [![](1_4_blown.png)(w:300)](1_4_blown.png)
+[/REGION]

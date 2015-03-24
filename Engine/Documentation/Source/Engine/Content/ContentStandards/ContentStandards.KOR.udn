@@ -1,0 +1,89 @@
+﻿INTSourceChangelist:2087154
+Availability:Public
+Title:외부 콘텐츠 개발 표준
+Crumbs: %ROOT%, Engine/Content
+Description:HUD 의 화면상이나 표면에 적용할 머티리얼에 사용되는 이미지 애셋에 대한 글입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/ContentStandards:title%](Engine/Content/ContentStandards/ContentCreation.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/ContentStandards:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/ContentStandards:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/ContentStandards]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/ContentStandards:title%](Engine/Content/ContentStandards/ContentCreation.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/ContentStandards:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/ContentStandards:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/ContentStandards]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[TOC(start:2 end:2)]
+
+## 개요
+
+다음 목록은 언리얼 엔진 콘텐츠 제작에 있어서의 표준으로 간주되어야 할 것입니다. _개인_ 프로젝트라면 자신의 방법이 표준이겠지만, 대포하고자 하는 콘텐츠라면 다음과 같은 표준을 따라야 할 것입니다.
+
+## 스태틱 메시 (3D 모델) 표준
+
+* **파일 포맷:** FBX
+* **스케일:** 1 언리얼 유닛 (uu) = 1 센티미터 (cm)
+* **원점 (피벗):** 배치에 편한 위치, 일반적으로 오브젝트 하단 중앙에 위치해야 합니다.
+* **방향:** 모든 모델은 _앞쪽_ 부분이 **양수 X 축** 방향으로 향해 있어야 합니다.
+* **UV 레이아웃 (텍스처 좌표):** 메시는 텍스처를 최대한으로 활용하기 위해 겹치는 UV 패치를 사용할 수 있습니다. 하지만 별도의 UV 채널이 있어야 하며, 특히나 라이트 맵의 경우는 모든 UV 패치가 겹침 없이 균일하게 레이아웃 되어야 합니다. 참고로 라이트맵 UV 는 [스태틱 메시 에디터](Engine\Content\Types\StaticMeshes\Editor) 안에서 생성 가능은 하나, 외부 3D 프로그램에서와 같은 편집 기능은 기대할 수 없습니다.
+* **머티리얼:** 모든 메시에는 올바른 머티리얼이 적용되어 있어야 합니다.
+* **버텍스 노멀:** 모델의 비주얼 퀄리티에 커스텀 버텍스 노멀 (다른 말로 스무딩 그룹)이 필요한 경우, 3D 프로그램에서 스무딩 그룹을 익스포트 시켰는데, 콘텐츠 임포트할 때도 UE4 에 스무딩 그룹을 임포트 했는지 확인하시기 바랍니다.
+* **최대 버텍스 수:** 모바일 디바이스의 경우, 각 메시의 최대 버텍스 수는 **65,535** 개입니다. PC 등의 다른 플랫폼에서는 제한이 달라질 수 있으니, 알맞게 테스트해야 합니다.
+* **콜리전:** 가급적이면 메시에는 콜리전이 적용되어 있어야 합니다. 자세한 것은 [](Engine\Physics\Collision\Reference) 문서를 참고하세요.
+
+
+## 스켈레탈 메시 (스켈레톤을 통해 애니메이션이 적용되는 메시) 표준
+
+* **파일 포맷:** FBX
+* **스켈레톤:** 모든 스켈레탈 메시에는 호환되는 스켈레톤 애셋이 있어야 합니다. 본 계층구조가 같은 스켈레탈 메시는 하나의 스켈레톤 애셋을 공유할 수는 있습니다.
+* **스케일:** 1 언리얼 유닛 (uu) = 1 센티미터 (cm)
+* **원점 (피벗):** 배치에 편한 지점이어야 합니다. 스켈레탈 메시의 경우 전형적으로 발 사이입니다.
+* **방향:** 모든 모델은 _앞쪽_ 부분이 **양수 X 축** 방향으로 향해 있어야 합니다.
+* **UV 레이아웃 (텍스처 좌표):** 메시는 텍스처를 최대한으로 활용하기 위해 겹치는 UV 패치를 사용할 수 있습니다. 하지만 별도의 UV 채널이 있어야 하며, 특히나 라이트 맵의 경우는 모든 UV 패치가 겹침 없이 균일하게 레이아웃 되어야 합니다. 참고로 라이트맵 UV 는 [스태틱 메시 에디터](Engine\Content\Types\StaticMeshes\Editor) 안에서 생성 가능은 하나, 외부 3D 프로그램에서와 같은 편집 기능은 기대할 수 없습니다.
+* **머티리얼:** 모든 메시에는 올바른 머티리얼이 적용되어 있어야 합니다.
+* **버텍스 노멀:** 모델의 비주얼 퀄리티에 커스텀 버텍스 노멀 (다른 말로 스무딩 그룹)이 필요한 경우, 3D 프로그램에서 스무딩 그룹을 익스포트 시켰는데, 콘텐츠 임포트할 때도 UE4 에 스무딩 그룹을 임포트 했는지 확인하시기 바랍니다.
+* **최대 버텍스 수:** 모바일 디바이스의 경우, 각 메시의 최대 버텍스 수는 **65,535** 개입니다. PC 등의 다른 플랫폼에서는 제한이 달라질 수 있으니, 알맞게 테스트해야 합니다.
+* **콜리전:** 모든 스켈레탈 메시에는 피직스 애셋이 있어야 합니다. 피직스 애셋은 UE4 에 임포트 도중 생성 가능합니다. 자세한 정보는 [](Engine\Physics\PhAT\UserGuide) 문서를 참고하세요.
+
+## 텍스처
+
+* **포맷:**
+	[INCLUDE:Engine/Content/Types/Textures/Importing#supportedtextureformats]
+* **치수:** 
+	* 모든 텍스처의 치수는 2 제곱수(32, 62, 1024, 2048)여야 합니다.
+	* 미니맵을 활용하려는 경우, 텍스처 크기는 4096 (4K) 픽셀을 초과해서는 안됩니다.
+	* 일부 GPU 에는 8192 (8K) 픽셀 하드웨어 제한이 있습니다.
+	* **에픽에서는 대부분의 콘텐츠를 2048 픽셀로 저작합니다.**
+* **꼼수:**
+	* 텍스처의 알파 채널에 마스킹 정보를 저장하는 것이 종종 유용하고 효율적입니다.

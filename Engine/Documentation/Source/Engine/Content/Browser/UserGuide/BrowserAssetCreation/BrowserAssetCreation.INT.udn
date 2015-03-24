@@ -1,0 +1,176 @@
+Availability: Public
+Title:Working with Assets
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:This document covers how to work with assets within the Content Browser.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Browser/UserGuide/BrowserAssetCreation:title%](Engine/Content/content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/BrowserAssetCreation:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Browser/UserGuide/BrowserAssetCreation:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/BrowserAssetCreation]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](AssetTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/BrowserAssetCreation:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/BrowserAssetCreation]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:2)]
+
+## Overview
+
+Creation of assets within the **Content Browser** is designed to be fast, easy, and as streamlined as possible. Only if Unreal needs further information will asset creation produce a dialog. Apart from that, you simply specify the name and you are ready to go.
+
+
+## Adding Assets
+
+
+New assets can be created by clicking the **New Asset** button or **right-clicking** in a blank area of the **Content Browser**, and then choosing the desired asset from the context menu.
+
+![NewAsset.png](NewAsset.png)
+
+
+## Deleting Assets
+
+Deleting assets from Unreal Editor is also quite easy. Simply **right-click** on the asset you want to delete, and then choose **Delete** from the context menu.
+
+![DeleteMenu.png](DeleteMenu.png)
+
+This will bring up a confirmation window to verify the deletion action, like so:
+
+![DeleteConfirm.png](DeleteConfirm.png)(w:500)
+
+If you are already using the asset in your level, or if other assets have dependences on it or reference it, you may receive a warning window preventing the deletion action:
+
+![DeletionReferences.png](DeletionReferences.png)(w:500)
+
+If this is the case, you will need to track down the references of that asset and prevent it from loading before deletion can occur. See the Reference Handling section below for more information.
+
+## Common Actions
+
+In the context menu you see when you **right-click** an asset in the **Content Browser**, in the **Common** section, you will see the following options:
+
+| Item | Description |
+| --- | --- |
+| **Edit** | Opens the selected asset in its respective editor. |
+| **Rename** | Allows you to quickly rename an asset. Also updates all references to the renamed asset. |
+| **Duplicate** | Creates a copy of the selected asset at the current location. To relocate the copy, drag it into a new folder in the Source View. |
+| **Select Actors Using This Asset** | Selects all Actors in your level that are based on this asset. |
+| **Save** | This saves the asset to a ._uasset_ file. |
+| **Delete** | Allows for deletion, so long as the asset has no outstanding references that would prevent its removal. |
+| **Asset Actions** | Opens another drop down menu with more commands. |
+
+
+## Asset Actions
+
+In the context menu you see when you **right-click** an asset in the **Content Browser**, in the **Asset Actions** section, you will see the following commands:
+
+| Item | Description |
+| --- | --- |
+| **Create Blueprints Using This** | Creates a Blueprint and adds this asset as a component to the Blueprint. |
+| **Select Actors Using This Asset** | Selects all Actors in your level that are based on this asset. |
+| **Select Containing Folder** | Selects the folder in the Source View's Asset Tree where the selected asset exists. Useful for finding the true location of assets that are in collections. |
+| **Show In Explorer** | Opens the Windows Explorer folder that contains the ._uasset_ file that the asset is stored in. |
+| **Export** | Allows you to export an asset into an external file format. The available formats will change depending on the type of asset selected. |
+| **Migrate** | Opens the Migrate tool, which you can use to move the asset and all its dependent assets to a new game folder. <br/> For more information, see [](Engine/Content/Browser\UserGuide\Migrate).|
+| **Replace References** | Combines multiple assets into one asset.  <br/> For more information, see [](Engine/Content/Browser\AssetConsolidationTool). |
+| **Property Matrix** | Opens up the Property Matrix Editor for the selected assets.  <br/> For more information, see [](Engine/UI/PropertyMatrix). |
+
+
+## Reference Handling
+
+As you use assets from the **Content Browser**, the editor produces a list of references to each one. It is important to know how to work with these references. If you are unable to delete or remove an asset because it is being referenced by other objects, these tools will help you quickly track down those references and remove them, as well.
+
+In the context menu you see when you **right-click** an asset in the **Content Browser**, in the **References** section, you will see the following commands:
+
+
+| Item | Description |
+| --- | --- |
+| **Copy Reference** | This copies the references for all selected objects to the clipboard. This is useful when you need to paste the path to an asset into a text field, or if you require an external list. |
+| **Reference Viewer** | This opens the Reference Viewer, which displays a graph of the asset and its references. For more information, see [](Engine/Content/Browser\ReferenceViewer). |
+
+
+
+## Asset Management
+
+Assets and the folders that contain them can easily be managed from the **Content Browser**. Assets can 
+be moved or copied from one folder to another, new folders can be created, and entire folder structures 
+can be moved all within the **Asset Tree**, including through the use of _drag and drop_.
+
+[REGION:imagetable]
+| ![](folder_manage.png)(h:350) | ![](asset_manage.png)(h:350) |
+| ------ | ------ |
+| Move Folder | Move Asset |
+[/REGION]
+
+
+## Drag and Drop Actor Creation
+
+![DragAndDrop.png](DragAndDrop.png)(w:600)
+
+The **Content Browser** supports drag and drop behavior for creating Actors based on assets into your levels, as well as for 
+moving assets around in between folders.
+
+When you drag an asset into the level, a preview of the Actor based on that asset will appear, allowing you to see exactly 
+where and how the Actor will be placed in the level. 
+
+[REGION:note]
+These assets are loaded into memory on demand.
+[/REGION]
+
+## Real-Time Rendered Thumbnail Previews
+
+[EXCERPT:RealTimeThumb]
+
+Many of the assets available within the **Content Browser** have thumbnails that can be rendered in real-time. This allows for quick preview of the given asset without having to open it up in its respective editor.
+
+The following types of assets can be viewed in real-time:
+
+* Static Meshes
+* Skeletal Meshes
+* Materials
+* Blueprints that include a Static or Skeletal Mesh component
+
+
+
+To preview a thumbnail in real-time, click on the ![](button_ViewOptions.png) button located at the bottom right of the **Content Browser**. In the pop-up menu that appears, choose **Thumbnail Edit Mode**. The bottom of the **Content Browser** will display the following:
+
+![](button_ThumbnailEditMode.png)
+
+While this is active, you can drag on any of the above listed asset types to see them within a 3D environment. The controls are as follows:
+
+| **Button** | **Control** |
+| --- | --- |
+| **Left mouse-button drag** | Rotates around the asset. |
+| **Right mouse-button drag** | Zooms (dollies) the camera in and out. |
+
+[REGION:note]
+	When previewing a material in real-time, you can click on the small primitive icon in the upper-left corner of the thumbnail to change the display primitive.
+[/REGION]
+
+![](Thumbnails.png)
+
+When finished previewing your assets, simply click the ![](button_DoneEditing.png) button.
+
+[/EXCERPT:RealTimeThumb]

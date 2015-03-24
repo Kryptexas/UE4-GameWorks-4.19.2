@@ -1,0 +1,92 @@
+﻿INTSourceChangelist:2219625
+Availability:Public
+Title:스태틱 메시 모프 타겟
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types/StaticMeshes
+Description:모프 타겟과 WorldPositionOffset 을 사용하여 스태틱 메시를 변형시키는 방법입니다.
+
+[TOC(start:2)]
+
+모프 타겟(morph target)은 기본 형태에서 목표 형태로 메시를 변형(deform)시키는 수단입니다.
+보통 애니메이션 시스템의 일부로써 스켈레탈 메시와 함께 사용되나, 
+`StaticMeshMorpher.ms` 맥스스크립트와 **StaticMeshMorphtarget** 
+[머티리얼 함수](Engine/Rendering/Materials/Functions) 를 통해,
+스태틱 메시 역시도 모프 타겟을 사용하여 변형시킬 수 있도록 구성하는 것이 가능해 졌습니다.
+
+이 방법은 다중 UV 채널, 버텍스 컬러, **WorldPositionOffset** 을 사용하여 변형을 합니다.
+각 모프 타겟에 대한 버텍스의 오프셋은 UV 채널의 버텍스 컬러로 저장됩니다.
+그 후 **StaticMeshMorphTarget** 머티리얼 함수로 추출한 다음 머티리얼에서 사용할 수 있게끔 
+만들어 줍니다. 그걸 머티리얼의 **WorldPositionOffset** 입력으로 전달해 줌으로써 
+메시의 버텍스를 모프 타겟에 있는 버텍스 위치로 변형시킬 수 있는 것입니다.
+
+## 스크립트 셋업과 설치
+
+`StaticMeshMorpher.ms` 맥스스크립트의 위치는 `UE4/Engine/Extras/FX_tools/3DSMax2012_x64/` 입니다.
+
+**`StaticMeshMorpher.ms` 맥스스크립트를 실행하려면:**
+
+1. 3dsmax 에서, **MAXScript** 메뉴의 **Run Script...** 를 선택합니다.
+
+1. 자신의 `StaticMeshMorpher.ms` 맥스스크립트 위치로 이동하여 엽니다.
+
+1. 스크립트의 인터페이스가 표시되어 사용할 수 있습니다.
+
+
+[REGION:tip]
+스크립트에 키 조합을 지정하거나 커스텀 메뉴에 추가하여 쉽고 빠르게 실행시킬 수 있습니다.
+[/REGION]
+
+## 모프 타겟 만들기
+
+모프 타겟은 같은 메시에 버텍스가 변형된 인스턴스가 다수 필요합니다. 예를 들어, 
+녹는 눈덩이는 세 가지 형태가 있을 수 있습니다:
+
+[REGION:imagetable]
+| ![Game Model](game_model_table.png) | ![Morph target 1](morph_1_table.png) | ![Morph target 1](morph_2_table.png) |
+| ------ | ------ | ------ |
+| 게임 모델 | 모프 타겟 1 | 모프 타겟 2 |
+[/REGION]
+
+모프 타겟은 (두 개의 모프 타겟을 패킹한다 가정하고) UV 채널 2 번과 3 번에 패킹되며, 
+원한다면 모프 타겟 1 에 대한 노멀 역시도 메시의 버텍스 컬러에 저장할 수 있습니다.
+
+**모프 타겟을 패킹하려면:**
+
+1. ![Pick Game Mesh](button_pick_gamemesh.png) 버튼을 누른 다음 씬의 게임 모델 메시를 선택합니다.
+
+	![Game Mesh Selected](game_mesh_selected.png)
+
+1. ![Pick Morph Target 1](button_pick_morph1.png) 버튼을 누른 다음 씬의 첫 모프 타겟에 대한 메시를 선택합니다.
+
+	![Morph Target 2 Selected](morph_1_selected.png)
+
+1. 씬의 둘째 모프 타겟이 있는 경우, 위의 과정을 반복합니다.
+
+	![Morph Target 2 Selected](morph_2_selected.png)
+
+1. 원한다면 **Store Morph 1 Normals** (모프 1 노멀 저장) 체크박스를 선택합니다.
+
+1. ![Pack Morph Targets](button_pack_morphs.png) 버튼을 눌러 모프 타겟을 UV 채널에 패킹하는 프로세스를 시작시킵니다.
+
+	![Morph Packing Progress](processing_progress.png)
+
+1. 메시는 평소처럼 3dsMax 에서 익스포트하여 언리얼로 임포트할 수 있습니다. 이 프로세스 관련 자세한 내용은 [](Engine/Content/FBX/StaticMeshes) 페이지를 확인하시기 바랍니다.
+
+
+## 머티리얼 셋업
+
+_StaticMeshMorphTargets_ 함수는 _스태틱 메시_ 에 적용된 _머티리얼_ 내 모프 타겟과 노멀에 접근할 수 있습니다.
+이 함수에는 모프 타겟 둘에 해당하는 출력이 둘, 노멀에 해당하는 출력이 하나 있습니다. 모프 타겟 출력은 
+_머티리얼_ 노드의 **WorldPositionOffset** 입력 채널에 연결할 수 있는 값을 내 주는 반면, 노멀 출력은 예상대로 
+_머티리얼_ 노드의 _Normal_ 입력 채널에 연결할 수 있습니다.
+
+베이스 메시와 모프 타겟의 _모프_ 작업을 위해, 하나 이상의 _LinearInterpolate_ 표현식에 **Alpha** 입력을 돌리는 
+_ScalarParameter_ 를 같이 사용합니다. 이를 통해 게임플레이 코드나 마티네에서 모프 타겟을 실시간으로 
+구동시킬 수 있습니다.
+
+구성 예제는 다음과 같습니다 (모프 네트워크만):
+
+![](morph_material_setup.png)
+
+위의 네트워크에서 _Time_ 파라미터가 0 에서 1 로 이동할 때의 결과는 다음과 같습니다:
+
+![](morph_result.png)

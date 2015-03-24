@@ -1,0 +1,67 @@
+﻿INTSourceChangelist:2444099
+Availability:Public
+Title:グラフ エディタ タブ
+Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
+Description:ブループリントでノードのネットワークを編集可能で視覚的に表現する
+
+
+[TOC(start:2 end:3)]
+
+## 概要
+
+
+[EXCERPT:Intro]
+**Graph Editor** パネルは、ブループリント システムの中心部です。ノードとスクリプト化したビヘイビアを定義するワイヤーのネットワークはここでを作成します。ノードはクリックして迅速に選択し、ドラッグして再配置できます。
+
+[/EXCERPT:Intro]
+
+[EXCERPT:Interface]
+
+[REGION:fullwidth]
+![](GraphEditor.png)
+[/REGION:fullwidth]
+
+1. **Graph Area** - すべてのノードが実際に配置される領域です。
+1. **Forward and Back Buttons** - ウェブ ブラウザを遷移する場合に、別のグラフへジャンプします。
+1. **Tabs area** - 別のグラフを開いている時、それぞれのグラフのタブを使ってグラフ間の迅速な切り替えが可能になります。
+1. **Breadcrumbs** - グラフとサブ グラフの進行を表示します。関数や折りたたみグラフの使用へ切り替えた時、ネットワーク内のユーザー位置を表示します。
+1. **Zoom Factor** - グラフ エディタの現在のズーム倍率を表示します。
+1. **Blueprint label** - 編集中のブループリントのタイプを表示します。ブループリント インターフェース、Animation ブループリント、マクロ、またはその他のタイプの編集時にラベルが更新されます。
+
+[/EXCERPT:Interface]
+
+[EXCERPT:Main]
+###グラフ エディタの制御
+
+**[Graph Editor]** タブは、以下の制御を使用してナビゲートします。
+
+[EXCERPT:Controls]
+
+| 制御 | アクション |
+| --- | --- |
+| **右クリック + ドラッグ** | グラフをパンします |
+| **マウスのスクロールボタン** | グラフをズームします |
+| **右クリック** | コンテキストメニューを呼び出します |
+| **ノードをクリック** | ノードを選択します |
+| **クリック + 空きスペースへドラッグ** | マーキー選択ボックス内のノードを選択します |
+| **Ctrl キー + クリック + 空きスペースへドラッグ** | マーキー選択ボックス内のノードの選択をトグルします |
+| **Shift キー + クリック + 空きスペースへドラッグ** | マーキー選択ボックス内のノードを現選択内容へ追加します |
+| **クリック + ノードをドラッグ** | ノードを移動します |
+| **クリック + ピンから他のピンへドラッグ** | ピンとピンを接続します |
+| **Ctrl キー + クリック + ピンから他のピンへドラッグ** | 元のピンから目的のピンへワイヤーを移動します |
+| **クリック + ピンから空きスペースへドラッグ** | 関連ノードのみを表示するコンテキストメニューを呼び出します。作成したノードの元のピンを互換性のあるピンへ接続します |
+
+[/EXCERPT:Controls]
+
+
+[REGION:tip]
+新規の AddComponent 関数呼び出しを自動的に割り当てられたアセットを作成するために、StaticMesh (スタティックメッシュ)、 SoundCue (サウンドキュー)、 SkeletalMesh (スケルタルメッシュ)、 
+そして ParticleSystem (パーティクル システム) アセットを **コンテンツ ブラウザ** からドラッグして **[グラフ エディタ]** タブへドロップすることができます。
+
+[REGION:raw]
+![Blueprints - Drag and Drop Component](k2_component_graph_drag.png)(w:900 convert:false)
+[/REGION:raw]
+
+[/REGION:tip]
+[/EXCERPT:Main]
+

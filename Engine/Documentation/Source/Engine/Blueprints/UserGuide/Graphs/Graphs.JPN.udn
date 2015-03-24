@@ -1,0 +1,132 @@
+﻿INTSourceChangelist:2422946
+Availability:Public
+Title:グラフ
+Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
+Description:ブループリントに関連するイベントに応じたアクションを実行するためにイベントと関数呼び出しを利用するノードグラフ
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\Blueprints\UserGuide\Graphs:title%](Engine\Blueprints\UserGuide\graph_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\UserGuide\Graphs:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\UserGuide\Graphs:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Blueprints\UserGuide\Graphs]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine\Blueprints\UserGuide\Graphs:title%](Engine\Blueprints\UserGuide\graph_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\UserGuide\Graphs:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\UserGuide\Graphs:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Blueprints\UserGuide\Graphs]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+
+[EXCERPT:GraphIntro]
+ **グラフ** は、ネットワーク上の実行フローを定義するために相互接続ができるノードのネットワークのことです。グラフは、ブループリントに機能性を実装するための基礎となります。 
+ブループリントのタイプにもよりますが、各ブループリントは 1 つ以上のグラフを使用できます。グラフで、ブループリントの特殊な側面の実装を定義します。ブループリント内のそれぞれのグラフは、 
+サブグラフを使用することも出来ます。サブグラフは、本質的にグラフ内の別グラフへ折り畳んだノードのコレクションで、主に構成目的のために存在します。ユニークなプロパティを所有する特殊化したタイプのグラフもありますが、 
+参照変数の追加、ノードの追加および接続、そしてデバッグ作業の基本原理は、全タイプにわたって適用されます。
+[/EXCERPT:GraphIntro]
+
+
+##グラフのタイプの概要
+
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![%Engine/Blueprints/UserGuide/EventGraph:title%](Engine/Blueprints/UserGuide/EventGraph/eventgraph_topic.png)(w:300)](Engine/Blueprints\UserGuide\EventGraph)
+	[/PARAM]
+	[PARAM:title]
+		[%Engine/Blueprints/UserGuide/EventGraph:title%](Engine/Blueprints\UserGuide\EventGraph)
+	[/PARAM]
+	[PARAM:description]
+		**EventGraphs** は最も一般的な _ブループリント_ グラフのタイプです。各新規の _ブループリントのクラス_ には、作成時に 1 つの **EventGraph** が含まれますが、さらに追加することができます。こうした追加の **EventGraphs** は、
+ _ブループリント_ ネットワークの整理に役立つ場合があります。**EventGraphs** には、一般的に _ブループリント_ のゲームプレイ ビヘイビアに対するネットワークがあり、[**Events**](Engine/Blueprints\UserGuide\Events) と、 
+[**CustomEvents**](Engine/Blueprints\UserGuide\Events\Custom) と **入力** ノードが、**EventGraph** を介して実行のフローを開始する役割を果たします。
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/EventGraph]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![%Engine/Blueprints/UserGuide/UserConstructionScript:title%](Engine/Blueprints/UserGuide/UserConstructionScript/ucs_topic.png)(w:300)](Engine/Blueprints\UserGuide\UserConstructionScript)
+	[/PARAM]
+	[PARAM:title]
+		[%Engine/Blueprints/UserGuide/UserConstructionScript:title%](Engine/Blueprints\UserGuide\UserConstructionScript)
+	[/PARAM]
+	[PARAM:description]
+		 **ConstructionScript** は、 _ブループリントのクラス_ 固有のものであり、各 _ブループリントのクラス_ に **ConstructionScript** グラフが 1 つだけ存在します。 **ConstructionScript** は、 _ブループリント クラス_ の初期化に役立ちます。
+なぜなら、 **ConstructionScript** は、 _ブループリントのクラス_ に対してComponents リストがセットアップされた後に実行されるからです。  
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/UserConstructionScript]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![%Engine/Blueprints/UserGuide/Functions:title%](Engine/Blueprints/UserGuide/Functions/function_topic.png)(w:300)](Engine/Blueprints\UserGuide\Functions)
+	[/PARAM]
+	[PARAM:title]
+		[%Engine/Blueprints/UserGuide/Functions:title%](Engine/Blueprints\UserGuide\Functions)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Blueprints/UserGuide/Functions#Intro]
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/Functions]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![](Engine/Blueprints/UserGuide/macro_topic_2.png)(w:300)](Engine/Blueprints\UserGuide\Macros)
+	[/PARAM]
+	[PARAM:title]
+		[%Engine/Blueprints/UserGuide/Macros:title%](Engine/Blueprints\UserGuide\Macros)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Blueprints/UserGuide/Macros#Intro]
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/Macros]
+	[/PARAM]
+[/OBJECT]
+
+
+
+
+
+
+
+
+
+## グラフで作業する
+
+ _グラフ_ が _コンストラクション スクリプト_ 、 _EventGraph_、 _関数_、または _マクロ_ のいずれであっても、[](Engine/Blueprints\Editor) の [グラフ](Engine/Blueprints\Editor\Modes\GraphPanel) モードで編集します。基本的に、
+すべての _グラフ_ には、 _ワイヤー_ によって接続される _ノード_ のネットワークがあります。
+
+
+

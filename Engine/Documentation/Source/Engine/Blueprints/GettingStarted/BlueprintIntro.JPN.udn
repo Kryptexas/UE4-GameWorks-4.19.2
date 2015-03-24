@@ -1,0 +1,155 @@
+﻿INTSourceChangelist:2419450
+Availability:Public
+Title:ブループリント入門
+Crumbs: %ROOT%, Engine, Engine/Blueprints
+Description:ブループリントを始めて間もないユーザー向けに、何がどのような機能をするのかを記述した概要。 
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/GettingStarted:title%](blueprint_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/anim_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/GettingStarted:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/GettingStarted:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/GettingStarted]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[TOC (start:2)]
+
+## 概要
+
+[EXCERPT:BlueprintIntro]
+**ブループリント** は特別なアセットで、アクタの新タイプとスクリプト レベルのイベントを新規に作成する直観的かつノードベースのインターフェースを提供します。 
+デザイナーとゲームプレイプログラマーは新たなコード書かずに、ブループリントを利用してアンリアルエディタから 
+ゲームプレイの作成およびイタレーションをすぐに実行することができます。
+[/EXCERPT:BlueprintIntro]
+
+_ブループリント_ のタイプや _ブループリント_ アナトミーを含む  _ブループリント_ の概要と、 _ブループリント_ と UE3 の Kismet およびアンリアル スクリプトとの関係に関する議論については [](Engine/Blueprints\Overview) で詳細をご覧いただけます。
+
+
+## ブループリントの仕組み
+ブループリントの基本形は、ユーザーのゲームに付加される視覚化されたスクリプトです。_ノード_ 、 _イベント_ 、 _関数_ 、 そして _変数_ を _ワイヤー_ と接続して複雑なゲームプレイ要素を作成します。
+
+_ブループリント_ は、オブジェクト構築、個々の関数、一般的なゲームプレイ イベントなど、動作とその他の機能性を実装するために _ブループリント_ の各インスタンスに特有な、様々な目的のための _ノード_ のグラフを使って機能します。
+
+
+## よく使用されるブループリントのタイプ
+
+_Level ブループリント_ と _ブループリント Class_ という、最も一般的なブループリントのタイプで作業することになると思います。  
+
+これらは [ブループリントのタイプ](Engine/Blueprints/UserGuide/Types) の中の 2 つで、 [Blueprint Macros](Engine/Blueprints/UserGuide/Types/MacroLibrary) と [Blueprint Interfaces](Engine/Blueprints/UserGuide/Types/Interface) も含みます。
+
+[OBJECT:TopicList]
+	[PARAM:title]
+		[Level Blueprint](Engine/Blueprints/UserGuide/Types/LevelBlueprint)
+	[/PARAM]
+	[PARAM:description]
+		[REGION:lightbox]
+		[![](Engine/Blueprints/GettingStarted/Level_Blueprint_Main.png)(w:640)](Engine/Blueprints/UserGuide/Types/LevelBlueprint) 
+		[/REGION]
+		_Level ブループリント_ はアンリアル エンジン 3 における Kismet と同じ役目を果たし、同じ性能を持っています。レベルごとに専用の _Level ブループリント_ が存在し、レベル内でのアクタへの参照と操作、Matinee アクタを使用したシネマティックスの制御、レベル ストリーミングやチェックポイントやその他のレベル関連システムの管理が可能になります。さらに _Level ブループリント_ は、レベル内に配置された _ブループリント Class_ (次のセクションで例を紹介します) と相互作用し、例えば変数の読み取り / 設定や中に含まれるカスタム イベントのトリガーなどが可能です。
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:title]
+		[Blueprint Class](Engine/Blueprints/UserGuide/Types/ClassBlueprint)
+	[/PARAM]
+	[PARAM:description]
+		[REGION:lightbox]
+		[![](Engine/Blueprints/GettingStarted/Blueprint_Main.png)(w:640)](Engine/Blueprints/UserGuide/Types/ClassBlueprint)
+		[/REGION]
+		_ブループリント Class_ はドア、スイッチ、収集アイテム、破壊される景色などのインタラクティブなセットの作成に理想的です。上の画像では、ボタンとドアのセットがそれぞれ別の _ブループリント_ で、各ブループリントにはプレイヤー オーバーラップ イベントに反応し、アニメートさせ、サウンド エフェクトを再生し、マテリアルを変更するために必要なスクリプトが含まれています (例えば、ボタンは押されると光ります)。
+		この場合、ボタンを押すとドア _ブループリント_ 内部のイベントがアクティブになり、ドアを開きます。ただし、ドアは他のタイプの _ブループリント_ 、あるいは _Level ブループリント_ シーケンスでも簡単にアクティブにすることができます。_ブループリント_ は独立した性質なので、レベルの中にドロップして必要最低限の設定で単純に作業する方法で構築することができます。つまり、プロジェクト全般にわたって使用している _ブループリント_ を編集すると、インスタンスごとに更新されるということでもあります。
+
+	[/PARAM]
+[/OBJECT]
+
+## ブループリントで他にできること
+_Level ブループリント_ と _ブループリント Class_ について学習しましたが、以下は _ブループリント_ システムで達成できる様々な例の一覧です。 
+
+[OBJECT:TopicList]
+	[PARAM:title]
+		コンストラクション スクリプトを使用したカスタマイズ可能な Prefab の作成
+	[/PARAM]
+	[PARAM:description]
+		![](Construction_Script.png)
+
+		_コンストラクション スクリプト_ は、ゲームプレイ中でない場合にエディタにアクタが配置あるいは更新されると実行する _ブループリント Class_ 内のグラフのタイプです。マテリアルをポイントライト コンポーネントの色や輝度に一致させるために自動更新する照明設備、あるいはエリア上のフォーリッジ メッシュをランダムに散らす _ブループリント_ など、簡単にカスタマイズできて背景アーティストの作業を早める props を作成するのに便利です。
+
+		コンテンツ実例マップでは、それぞれの実例を含んだ長い部屋 (上図) が実は多数のコンポーネントからなる 1 つの _ブループリント_ で構成されています。_ブループリントのコンストラクション スクリプト_ は _ブループリントの_ **[詳細]** パネルにエクスポーズされるパラメータに基いて様々なスタティック メッシュやライトを作成し調整します。コンテンツ事例マップを作成するたび、ﾃﾞﾓルーム _ブループリント_ に入り、長さ、高さ、作成する部屋の数の値 (その他いくつかのオプション) を設定し、あっという間に部屋の設定を完了させることができます。
+
+		このような _ブループリント_ は初期の作成に時間がかかりますが、もしこれを頻繁に使うことがわかっていれば、レベルのビルド時間を短縮でき、変更しやすい点は
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:title]
+		プレイ可能なゲーム キャラクターの作成
+	[/PARAM]
+	[PARAM:description]
+		![](Game_Characters.png)
+
+		_Pawns_ もまた _ブループリント Class_ のタイプのうちの 1 つで、 _ブループリント_ グラフでプレイ可能なキャラクターに必要なそれぞれののエレメントを一緒にまとめることができます。カメラのビヘイビアを操作し、マウス、コントローラ、タッチスクリーン用に入力イベントを設定し、スケルタル メッシュ アニメーションを処理するための _Animation ブループリント_ アセットを作成することができます。
+
+		新規作成された _Character ブループリント_ には、動き回り、ジャンプし、泳ぎ、落ちるために必要なビヘイビアのほとんどがビルトインされたキャラクター コンポーネントが付いているので、あとは希望するキャラクターの制御方法にあった入力イベントを追加することだけが必要になります。
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:title]
+		HUD の作成
+	[/PARAM]
+	[PARAM:description]
+		![](Create_HUDs.png)
+
+		ゲームの HUD の作成には _ブループリント スクリプト_ を使用することができます。イベント シーケンスと変数を含むことができる点で _ブループリント Class_ と似ていますが、直接レベルに追加されるのではなくプロジェクトの _GameMode_ アセットに割り当てられます。
+
+		別の _ブループリント_ から変数を読み取るように HUD を設定し、ヘルス値バーの表示、スコア値の更新、オブジェクティブ マーカーの表示などに使用することができます。HUD は、クリックできる、またはモバイル ゲームであればタッチ入力に反応するボタンのようなエレメント用のヒットボックスの追加にも使用できますし、
+
+		上のサンプル写真はすべて UE4 で使用できるサンプル コンテンツに入っています。 **Content Examples** 、 **First Person Shooter** 、 **Swing Ninja** プロジェクトでじっくりご覧いただけます。
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+	![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		ブループリントのサンプルとチュートリアル
+	[/PARAM]
+	[PARAM:description]
+		_ブループリント_ システムについて更に学べるリソースを以下に紹介します。 
+	[/PARAM]
+	[PARAM:links]
+		* [](Resources/Showcases/BlueprintExamples)
+		* [Blueprint Lift Tutorial](http://wiki.unrealengine.com/Blueprint_Lift_Tutorial)
+		* [Blueprint Power-Up Tutorial](http://wiki.unrealengine.com/Blueprint_Power_Up_Tutorial)
+	[/PARAM]
+[/OBJECT]
+
+
+## ブループリント エディタとグラフ
+
+_Level ブループリント_ または _Blueprint クラス_ の作成に関わらず、[ブループリント エディタ](Engine/Blueprints/Editor) に組み込まれた [ブループリント エレメント](Engine/Blueprints\UserGuide) を使用します。  
+
+[REGION:lightbox]
+	[![](Engine/Blueprints/Editor/blueprint_editor_example.png)(w:480)](Engine/Blueprints/Editor/blueprint_editor_example.png)
+[/REGION]
+
+
+作業している _ブループリント_ に応じて違うタイプの **ブループリント エディタ** が利用可能になります。**ブループリント エディタ** のメイン機能は **Graph** モードです。 
+中央に **[Graph]** タブがあり、 _ブループリント_ のネットワークをレイアウトします。  
+
+

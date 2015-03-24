@@ -1,0 +1,30 @@
+﻿Availability:Public
+Title:Blending Animations  (アニメーション ブレンディング) 
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:UE4 で複数のアニメーションをブレンドする各種方法の概要
+
+## 概要
+
+アニメーション ブレンディングの概念は、単一のキャラクターもしくはスケルトン メッシュ上の 2 つ以上のアニメーション間を滑らかに変形させる、ということです。アンリアル エンジン 4 では、そのようなブレンディングをさまざまな方法で処理しています。このページはそれぞれの方法およびその適用方法の概要を説明します。
+
+## Blend Spaces
+
+[REGION:fullwidth]
+![](Engine/Animation/Blendspaces/BlendSpaceDirection.png)
+[/REGION]
+
+アニメーションのブレンドでは、Blend Space を使用する場合が多いです。
+
+[INCLUDE:Engine/Animation/Blendspaces#intro]
+
+Blend Space に関する詳細は、[](Engine/Animation/Blendspaces) のページを参照してください。
+
+## ブループリントでブレンドする
+
+[REGION:fullwidth]
+![](PersonaBlendAnimGraph.png)
+[/REGION]
+
+アニメーション ブレンディングは Animation ブループリント内の AnimGraph を使って直接処理することもできます。AnimGraph とは、ポーズやモーションの最終的な外見の構成に何かしら関与する各種ノードを経由するアニメーションのポーズデータのフローチャートです。複数のポーズを何かしらの方法でまとめてブレンドするために特別に作成されたノードもあります。重み付けによるバイアスまたはアルファ値に基いて 2 つのアニメーションを加算的に組み合わせたり、既存のポーズに直接オーバーライドすることができます。アニメーションをスケルトンおよびその全ての子供の特定のボーンに直接送ることもできます。例えば、キャラクターが走っているアニメーションから開始しても、手を振るアニメーションを右手だけ選択して適用することもできます。最終的に、キャラクターは走りながら手を振っています。
+
+ブループリントでアニメーション ブレンディングを処理する方法については、[](Engine/Animation/AnimBlueprints) および [](Engine/Animation/NodeReference/Blend) をご覧ください。

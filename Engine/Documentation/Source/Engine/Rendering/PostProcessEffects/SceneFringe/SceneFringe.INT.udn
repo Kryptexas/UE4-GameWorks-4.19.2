@@ -1,0 +1,30 @@
+Availability:Public
+Title:Scene Fringe
+Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
+Description:Chromatic aberration effect that simulates the color shifts near the edges of real-world camera lenses.
+
+[EXCERPT:SceneFringe_Desc]
+**Scene Fringe** is a chromatic aberration effect that simulates the color shifts in real-world camera lenses. The effect is mostly noticable near the edges of the image.
+[/EXCERPT:SceneFringe_Desc]
+
+[REGION:imagetable]
+| ![Without Scene Fringe](scenefringe_0.png)(w:455) | ![With Scene Fringe](scenefringe_2.png)(w:455) |
+| :----: | :----: |
+| Without Scene Fringe | With Scene Fringe (extreme settings) |
+[/REGION]
+
+
+| Property | Description |
+| -------- | ----------- |
+| **Fringe Intensity** | A scaling factor that controls how much shifting occurs. [INCLUDE:#Intensity] |
+| **Fringe Saturation** | A scaling factor that controls the saturation of the shifted colors. Lower values produce a more blurred result, while higher values make the color shifting much more pronounced. |
+
+<!--
+[EXCERPT:Intensity]
+[REGION:imagetable]
+| ![Scene Fringe Intensity - 0](scenefringe_0.png)(w:240) | ![Scene Fringe Intensity - 1](scenefringe_1.png)(w:240) | ![Scene Fringe Intensity - 5](scenefringe_2.png)(w:240)
+| ------ | ------ | ------ |
+| 0.0 | 1.0 | 5.0 |
+[/REGION]
+[/EXCERPT:Intensity]
+-->

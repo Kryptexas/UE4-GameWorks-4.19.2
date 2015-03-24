@@ -1,0 +1,54 @@
+﻿INTSourceChangelist:2251647
+Availability:Docs
+Title:1.1 - トリガーボックス
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/LevelScripting
+Description:レベル スクリプトの事例概要 1.1:ドアを開くために用いるトリガーボックス
+
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\LevelScripting\1_1:title%](levelscripting_1_1_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\LevelScripting\1_1:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\LevelScripting\1_1:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\LevelScripting\1_1]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+
+![](levelscripting_1_1.png)
+
+## 概要
+
+トリガーボックス アクタは 2 枚扉を収容するブループリントの前に配置します。プレイヤーがトリガーボックスに触れるとドアが開き、プレイヤーがトリガーボックスから抜け出すとドアが閉まります。ドアのブループリントは、接続したカスタム イベントのアニメートに必要な全てのスクリプトを収容します。レベル スクリプトはこれらカスタム イベントを呼び出すことができます。
+
+## レベル スクリプト
+
+![](LevelScript_1_1_LS.png)
+
+ブループリントアクタへの参照が提供されると (ここでは小さな青い変数ノードとして表示されていますが) レベル スクリプトはブループリント内にある全てのカスタムイベントの呼び出しに加え、レベルスクリプト内のイベントと特定条件を接続することができます。この場合、プレイヤーが Trigger Volume (ドアを囲む緑色のボックス) に出入りする際にアクティベートするオーバーラップ イベントを使用します。オーバーラップ イベントがアクティベートすると、 _BP_Double_Doors_ ブループリントアクタ上で対応するカスタム イベントをトリガーします。
+
+
+[EXCERPT:bpDoubleDoors]
+## BP_Double_Doors イベントグラフ
+
+[REGION:lightbox]
+[![](DoubleDoorsBlueprint.png)](DoubleDoorsBlueprint.png)
+[/REGION]
+[REGION:caption]
+フルサイズ表示するには、 **右クリック** または [名前をつけて保存] を選択します。
+[/REGION]
+
+BP_Double_Doors ブループリントアクタには、幾分洗練されたドアの設定が含まれています。各ドアの場所、ボルト構造の回転、ボルトに使用するマテリアルなどいくつかの物を操作するために [タイムライン](Engine/Blueprints\UserGuide\Timelines) がどのように使用されるかがわかります。このブループリントに対して作成されたカスタム イベントである **Open Doors** イベントまたは **Close Doors** イベントをブループリントが受け取るたびにネットワークがアクティベートします。
+
+[/EXCERPT:bpDoubleDoors]
+[/REGION]

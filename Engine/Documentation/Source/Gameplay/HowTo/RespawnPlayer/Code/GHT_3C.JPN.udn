@@ -1,0 +1,15 @@
+﻿INTSourceChangelist:2300047
+Availability:Docs
+Title:コードでプレイヤーを再スポーンするための操作ガイド
+Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/RespawnPlayer
+Description:アンリアル エンジン 4 のコードでプレイヤー キャラクターを再スポーンするための操作ガイド 
+
+[TOC (start:2)]
+
+## 概要
+
+ ここでは、**コード** を使用してシングル プレイヤー ゲームでプレイヤー キャラクターを再スポーンする方法について学習します。 
+
+##アクタをスポーンする
+
+以下では、キーを押してレベル内でアクタをスポーンする手順について説明します。 

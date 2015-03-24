@@ -1,0 +1,93 @@
+﻿INTSourceChangelist:2181912
+Availability:Public
+Title:ブレンド スペースの使用
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Blendspaces
+Description:Animation ブループリントのブレンド スペースを使用してアニメーション ポーズのデータを入力しサンプルを出力するためのガイド
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Blendspaces/UserGuide:title%](Engine/Animation/Blendspaces/Using.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Blendspaces/UserGuide:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Blendspaces/UserGuide:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Blendspaces/UserGuide]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+## 概要
+
+[EXCERPT:Intro]
+_ブレンド スペース_ は _Animation ブループリント_ の **AnimGraphs** にノードを設置して使用します。これらのノードは、最終的にブレンドしたポーズを _ブレンド スペース_ が作成するために使うアニメーションを操作するための値を受け取ります。
+[/EXCERPT:Intro]
+
+##Blend Space ノードの追加
+
+_Blendspace_ ノードは、サンプルのパラメータ データへのアクセスとブレンド スペースのポーズの出力をします。
+ 
+**ドラッグ＆ドロップ操作で _BlendSpace_ ノードを設置する**
+
+1. **アセット ブラウザ** でサンプル化したい _ブレンド スペース_ を **ペルソナ** で探します。
+
+	![](SelectBlendSpace.png)
+
+1. その上で左クリックをして、マウスを **AnimGraph** へドラッグします。 
+
+	![](DragDropBlendSpace.png)(w:720)
+
+1. **左のマウスボタン** を放して、_BlendSpace_ ノードを設置します。
+
+	![](BlendSpaceNodeAdded.png)
+
+
+**コンテクスト メニューを使用して _BlendSpace_ ノードを設置する**
+
+1. **AnimGraph** で右クリックをして、 **アニメーション** を展開して、互換性のある全てのブレンド スペースのリスト表示します。
+
+	![](AnimationContextMenu.png)
+
+1. サンプル化したい _ブレンド スペース_ をクリックします。
+
+	![](BlendSpaceContextSelection.png)
+
+1. _BlendSpace_ ノードが設置されました。
+
+	![](BlendSpaceNodeAdded.png)
+
+
+##データを入力する
+
+アニメーションのブレンドを実行するために、ブレンド スペースはサンプル パラメータに渡されたデータに依存します。各 _BlendSpace_ ノードは各サンプル パラメータに対し、入力データ ピンを持ちます。他ノードからの変数もしくは出力は、 _BlendSpace_ へ必要なデータを送信するため、これらのピンを線で結びます。
+
+![Variable Input Data](bs_input_variables.png)
+
+[REGION:note]
+_BlendSpace_ の編集は現在 2 つの入力ピンの使用に制限されているため、 3 番目の入力ピンの使用はできません。
+[/REGION]
+
+_Blend Space_ に渡される値は、通常は **EventGraph** での更新サイクル中に計算された変数、またはゲームプレイコードで計算された変数です。_Animation Blueprint_ の **EventGraph** で計算された Direction 変数と Speed 変数の例が以下となります。
+
+[REGION:fullwidth]
+![Variable Input Data - Update Cycle](bs_input_calc.png)
+[/REGION]
+
+## 出力ポーズ
+
+最も簡単なケースでは、 _Blend Space_ ノードの **Pose** を出力するピンを、 **AnimGraph** で **Result** ノードの **Pose** 入力ピンと線で結ぶことが出来ます。
+
+![Output Pose - Result](bs_output_result.png)
+
+より複雑なアニメーション チェーンが必要とされる場合、アニメーション ポーズを入力として受け取る他の入力ピンと線で結ぶことも出来ます。
+
+![Output Pose - Blend](bs_output_blend.png)

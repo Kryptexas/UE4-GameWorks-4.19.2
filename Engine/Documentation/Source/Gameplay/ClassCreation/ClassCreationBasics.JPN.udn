@@ -1,0 +1,63 @@
+﻿Availability:Public
+Title:クラス作成の基本
+Crumbs: %ROOT%, Programming
+Description:ブループリントのみ、C++コードのみ、またはC++とブループリントの併用してクラスを作成する例
+
+![](LightSwitchActor.png)(w:500 convert:false) 
+
+
+## 概要
+
+この例は、ループリントのみ、C++コードのみ、またはC++とブループリントを併用して新規クラスを作成する方法を紹介します。3つのワークフロー全てを使用して、同一プロパティおよび動作を行うLightSwitchクラスを新規に作成することを目的とします。
+その後それぞれの新規クラスのインスタンスをレベルに追加して、3つの新しいLightSwitchアクタを作成します。 
+
+LightSwitchクラスはAActorから直接継承します。　 
+このクラスはルートコンポーネントとしてPointLightComponentとPointLightComponentの子であるSphereComponentを格納します。それぞれのLightSwitchクラスにはDesiredBrightnessと呼ばれるプロパティもあります。このプロパティは、PointLightComponentの輝度の設定に使用します。 
+　最後に、プレイヤーがSphereComponentへ立ち入った時または退出した時に、PointLightComponentの可視性をトグルする動作をデフォルト設定とします。  
+
+
+## 例
+[REGION:topics third]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](BP_Only_Topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Programming\Basics\ClassCreation\BlueprintOnly:title%
+	[/PARAM]
+	[PARAM:description]
+		%Programming\Basics\ClassCreation\BlueprintOnly:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming\Basics\ClassCreation\BlueprintOnly]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](Code_Only_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Programming\Basics\ClassCreation\CodeOnly:title%
+	[/PARAM]
+	[PARAM:description]
+		%Programming\Basics\ClassCreation\CodeOnly:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming\Basics\ClassCreation\CodeOnly]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](Both_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Programming\Basics\ClassCreation\CodeAndBlueprints:title%
+	[/PARAM]
+	[PARAM:description]
+		%Programming\Basics\ClassCreation\CodeAndBlueprints:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming\Basics\ClassCreation\CodeAndBlueprints]
+	[/PARAM]
+[/OBJECT]
+[/REGION]

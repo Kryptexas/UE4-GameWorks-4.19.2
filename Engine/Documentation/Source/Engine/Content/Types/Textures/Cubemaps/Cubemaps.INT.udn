@@ -1,0 +1,28 @@
+Availability:Public
+Title:Cubemaps
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/Textures
+Description:The landing page for cubemaps: creation, export, import, and usage within Unreal Engine 4.
+
+
+Cubemaps provide a simple method of environment mapping, in which distant scenery - such as skies and surrounding environments - is mapped to a panoramic texture. Under the hood, these textures are stored as a series of six images mapped to the inside faces of a cube. 
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/texture_icon.png)
+	[/PARAM]
+	[PARAM:title]
+		Textures Content Creation
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Types/Textures/Cubemaps/CubemapTools) - %Engine/Content/Types/Textures/Cubemaps/CubemapTools:description%
+		* [](Engine/Content/Types/Textures/Cubemaps/CreatingCubemaps) - %Engine/Content/Types/Textures/Cubemaps/CreatingCubemaps:description%
+		* [](Engine/Content/Types/Textures/Cubemaps/ExportingCubemaps) - %Engine/Content/Types/Textures/Cubemaps/ExportingCubemaps:description%
+		* [](Engine/Content/Types/Textures/Cubemaps/ImportingCubemaps) - %Engine/Content/Types/Textures/Cubemaps/ImportingCubemaps:description%
+		* [](Engine/Content/Types/Textures/Cubemaps/UsingCubemaps) - %Engine/Content/Types/Textures/Cubemaps/UsingCubemaps:description%
+	[/PARAM]
+[/OBJECT]
+
+
+

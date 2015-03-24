@@ -1,0 +1,175 @@
+Availability:Public
+Title:Persona Skeleton Tree
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:User guide for the Skeleton Tree in the Persona animation editor.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/SkeletonTree:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/SkeletonTree:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/SkeletonTree:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/SkeletonTree]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+![](SkeletonTree.png)  
+
+## Overview
+
+[EXCERPT:Overview]
+The **Skeleton Tree** panel shows the skeletal hierarchy of the current skeletal mesh. Within it, you can perform the following functions:
+
+* Select and view specific bones in the skeletal hierarchy.
+* Create and edit [Sockets](Engine/Content\Types\SkeletalMeshes\Sockets), which are bone-offset attachment points for props and other items.
+* Create preview assets, which are temporarily attached assets; these are good for previewing how a weapon will look on a character, for example.
+* Control settings for animation retargeting. 
+[/EXCERPT:Overview]
+
+## Interface Breakdown
+
+![](SkeletonTree_UIBreakdown.png)
+
+1. Search Line and Bone and Socket Buttons
+1. Bone Hierarchy List
+1. Translation Retargeting Controls
+
+
+## Search Line and Bone and Socket Buttons
+
+![](SearchLine.png)
+
+The Search line allows for quick and easy searching of an skeletal hierarchy. Simply type in some part of the name of the bone, Socket, or Preview  Object. and the list will filter to what you want to see.
+
+![](SeachFiltering.png)
+
+
+
+### Bone and Socket Buttons
+
+![](button_BoneAndSocketButtons.png)
+
+The Bone and Socket buttons are used to control visibility over various bone and Socket types. Each button opens a menu allowing you to select the types of bones or Sockets you want to see.
+
+[REGION:raw]
+![](BonesMenu.png)
+[/REGION]
+
+| Option					| Description														|
+|---------------------------|-------------------------------------------------------------------|
+|**Show All Bones**			| Shows all bones available in the skeleton.						|
+|**Show Mesh Bones**		| Shows only those bones that are exclusive to this Skeletal Mesh.	|
+|**Show Weighted Bones**	| Shows only those bones which have vertices weighted to them.		|
+|**Hide Bones**				| Hides all bones, showing only Sockets and preview assets.			|
+
+[REGION:raw]
+![](SocketsMenu.png)
+[/REGION]
+
+
+| Option | Description |
+|---|---|
+|**Show Active Sockets**	| Shows only active Sockets. When you _customize_ a Socket (**right-click** and choose _Customize Socket_), the Socket is copied from the Skeleton onto the mesh, making a special socket that is exclusive to this Skeletal Mesh and not shared by any other Skeletal Meshes using the same Skeleton. When you do that, the new customized Socket - also known as a _Mesh Socket_ - becomes active and the original Socket, which remains a part of the Skeleton asset, is considered inactive. In effect, this will hide away any Sockets on the Skeleton that have a customized Mesh Socket counterpart. |
+|**Show Mesh Sockets**		| Shows only _customized_ Sockets, which are those Sockets that are exclusive to this Skeletal Mesh and are not used by any other Skeletal Mesh that shares a Skeleton asset with this one.  |
+|**Show Skeleton Sockets**	| Shows only those Sockets which are _non-customized_, meaning those which are part of the Skeleton asset and are not exclusive to this Skeletal Mesh. |
+|**Show All Sockets**		|Shows all Sockets available on the Skeletal Mesh. |
+|**Hide Sockets**			| Hides all Sockets. |
+
+## Context Menus
+
+The context menu - accessible by **right-clicking** within the **Skeleton Tree** - has multiple forms depending on what you are clicking: one for bones, one for Sockets, and one for Preview Assets
+
+### Bone Context Menu
+
+When **right-clicking** on a bone, you will see the following context menu:
+
+![](SkeletonContextMenu_Bone.png)
+
+| **Name** | **Description** |
+|---|---|
+|[REGION:tablesection]Socket Actions[/REGION]||
+|**Add Socket** | Adds a new Socket to the currently selected bone. Note that if you have hidden Sockets using the button near the top of the **Skeleton Tree**, then this option will be grayed out. |
+|**Paste Selected Socket** | If you have copied a Socket to the clipboard (**right-click** and choose _Copy Selected Socket_), then this will paste that socket onto the selected bone.|
+|[REGION:tablesection]Selected Bone Actions[/REGION]||
+|**Copy Selected Bone Names**|Copies the selected bone names to the clipboard. This is useful if you should need to enter a complex bone name into a property field.|
+| [REGION:tablesection]Bone Translation Retargeting[/REGION]||
+|**Recursively Set Translation Retargeting Skeleton**|This recursively sets the bone and all of its children to use Translation Retargeting based off the Skeleton. See the [Translation Retargeting Controls](#translationretargetingcontrols)
+|**Recursively Set Translation Retargeting Animation**|This recursively sets the bone and all of its children to use Translation Retargeting based off the Animation. See the [Translation Retargeting Controls](#translationretargetingcontrols)
+|**Recursively Set Translation Retargeting AnimationScaled**|This recursively sets the bone and all of its children to use Translation Retargeting based off the scaled Aniamtion. See the [Translation Retargeting Controls](#translationretargetingcontrols)
+| [REGION:tablesection]LOD Bone Reduction[/REGION]||
+|**Remove Selected Bone from...**| Places the selected bone and its children on the _Bones to Remove_ list for a certain LOD level within the LOD settings. See LOD Settings for more information.|
+|**Add Remove Selected Bone to...**| Removes the selected bone from the _Bones to Remove_ list for the specified LOD level. See LOD Settings for more information.|
+| [REGION:tablesection]Attached Assets Actions[/REGION]||
+|**Add Preview Asset**| Opens a menu of all eligible assets that can be temporarily attached to a bone for previewing purposes. For instance, if you want to see what a certain piece of armor would look like attached a bone, this is the option you would use. Note, however, that this is not a permanent attachment and will only be visible in Persona. |
+
+### Socket Context Menu
+
+When **right-clicking** on a [Socket](Engine/Content\Types\SkeletalMeshes\Sockets), you  will see the following context menu:
+
+![](SkeletonContextMenu_Socket.png)
+
+| **Name** | **Description** |
+|---|---|
+|[REGION:tablesection]Selected Socket Actions[/REGION]||
+| **Rename Socket** | Allows you to rename a selected Socket.  |
+| **Delete** | Deletes a selected Socket.  |
+|**Customize Socket**| Copies the Socket from the Skeleton asset onto the specific Skeletal mesh being used. In this way, a Socket can be edited slighting for characters using the same Skeleton asset, but having different mesh proportions.|
+|**Remove Socket Customization** | This is only available when **right-clicking** on a Socket that has been _customized_. This removes the customized copy of the socket, leaving only the original Socket on the Skeleton asset.|
+|**Copy Selected Sockets**| Copies the selected socket to the clipboard for pasting on to other bones.|
+| [REGION:tablesection]Bone Translation Retargeting[/REGION]||
+|**Recursively Set Translation Retargeting Skeleton**|This recursively sets the bone and all of its children to use Translation Retargeting based off the Skeleton. See the [Translation Retargeting Controls](#translationretargetingcontrols)
+|**Recursively Set Translation Retargeting Animation**|This recursively sets the bone and all of its children to use Translation Retargeting based off the Aniamtion. See the [Translation Retargeting Controls](#translationretargetingcontrols)
+|**Recursively Set Translation Retargeting AnimationScaled**|This recursively sets the bone and all of its children to use Translation Retargeting based off the scaled Aniamtion. See the [Translation Retargeting Controls](#translationretargetingcontrols)
+| [REGION:tablesection]Attached Assets Actions[/REGION]||
+|**Add Preview Asset**| Opens a menu of all eligible assets that can be temporarily attached to a bone for previewing purposes. For instance, if you want to see what a certain piece of armor would look like attached a bone, this is the option you would use. Note, however, that this is not a permanent attachment and will only be visible in Persona. |
+
+
+### Preview Asset Context Menu
+
+A **Preview Asset** is an asset, such as a Static Mesh or Skeletal Mesh, that has been temporarily attached to a bone or Socket for Previewing purposes.
+
+When **right-clicking** on a Preview Asset, you will see the following context menu:
+
+
+![](SkeletonContextMenu_PreviewAsset.png)
+
+| **Name** | **Description** |
+| --- | --- |
+| [REGION:tablesection]Selected Asset Actions[/REGION]||
+|**Delete**|Removes the selected Preview Asset.|
+| [REGION:tablesection]Attached Asset Actions[/REGION]||
+|**Add Preview Asset**| Opens a menu of all eligible assets that can be temporarily attached to a bone for previewing purposes. For instance, if you want to see what a certain piece of armor would look like attached to a bone, this is the option you would use. Note, however, that this is not a permanent attachment and will only be visible in Persona. |
+|**Remove All Preview Assets**|Deletes all Preview Assets currently on the mesh.|
+
+
+
+## Sockets
+
+For more information on Sockets, please see the [Skeletal Mesh Sockets documentation](Engine/Content\Types\SkeletalMeshes\Sockets).
+
+
+## Translation Retargeting Controls
+
+The right column of buttons in the **Skeleton Tree** controls how you want to handle translation retargeting on your skeletal mesh. The dropdowns allow you to specify what will be used as the basis for retargeting: the skeleton's bone information, the animation rotation data, or the animation as applied to a scaled character.
+
+Each dropdown allows you to control how that specific bone will handle retargeting and what will be used as the basis for that retarget. You can learn more about animation retargeting in the [](Engine/Animation/AnimationRetargeting) documentation.
+
+![](RetargetingControls.png)
+
+Each button contains the following three options. Note that you can change these settings recursively on each child of a selected bone by **right-clicking** and choosing the recursive commands in the context menu.
+
+|Name|Description|
+|---|---|
+|**Animation**|Use translation from animation.|
+|**Skeleton**|Use translation from skeleton.|
+|**AnimationScaled**|Use translation from animation, scale length by skeleton's proportions. |

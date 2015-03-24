@@ -1,0 +1,64 @@
+﻿INTSourceChangelist:2445736
+Availability:Public
+Title:マクロライブラリ UI
+Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
+Description:ブループリント クラス エディタ インターフェースの概要
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/Editor/UIBreakdowns/MacroLibraryUI:title%](Engine/Blueprints\UserGuide\Types\macro_blueprint.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/Editor/UIBreakdowns/MacroLibraryUI:title%
+	[/PARAM]
+	[PARAM:description]
+		%description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/Editor/UIBreakdowns/MacroLibraryUI]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC (start:2)]
+
+## 概要
+
+[INCLUDE:Engine/Blueprints/UserGuide/Types/MacroLibrary#intro]
+
+マクロ ライブラリおよびこれらの使用法に関する詳細は、 [](Engine/Blueprints/UserGuide\Types\MacroLibrary) ページを参照してください。
+
+## インターフェース
+
+マクロ ライブラリのためにブループリント エディタを初めて開くと、ブループリント インターフェースとよく似た、グラフが無いシンプルな UI が表示されます。
+
+![](MacroLibraryUIClean.png)
+
+
+
+
+|デフォルトで表示される UI コンポーネント|  [Window] メニューで利用可能なパネルやタブ|
+|-----------------------------|-----------------------------|
+|[INCLUDE:#visible]			  |[INCLUDE:#invisible]			|
+
+
+
+<!----------
+[EXCERPT:Visible]
+1. [メニュー](Engine/Blueprints/Editor\UIComponents\Menu)
+1. [ツールバー](Engine/Blueprints/Editor\UIComponents\Toolbar\ToolbarOptions)
+1. [My Blueprint](Engine/Blueprints/Editor\UIComponents\MyBlueprint)
+1. [詳細](Engine/Blueprints/Editor\UIComponents\Details)
+1. [グラフ エディタ](Engine/Blueprints/Editor\UIComponents\GraphEditor)
+[/EXCERPT:Visible]
+
+[EXCERPT:Invisible]
+* [デバッグ](Engine/Blueprints/Editor\UIComponents\Debug)
+* [Find Results](Engine/Blueprints/Editor\UIComponents\FindResults)
+* [パレット](Engine/Blueprints/Editor\UIComponents\Palette)
+[/EXCERPT:Invisible]
+------------->

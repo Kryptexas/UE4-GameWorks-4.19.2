@@ -1,0 +1,100 @@
+﻿INTSourceChangelist:2346368
+Availability:Public
+Title:1.1 - HUD の事例
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
+Description:ブループリントHUD の事例概要、例1.1：HUD の事例
+Related: Engine/Blueprints/Overview 
+Related: Engine/Blueprints/UserGuide/Variables
+Related: Engine/Blueprints/UserGuide/BlueprintComms
+Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
+Related: Engine/Animation/AnimBlueprints/EventGraph
+Related: Engine/Blueprints/UserGuide/UserConstructionScript
+Related: Gameplay/HowTo/SetUpInput/Blueprints
+
+
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples\Blueprints_HUD\1_1:title%](blueprint_hud_1_1_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples\Blueprints_HUD\1_1:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples\Blueprints_HUD\1_1:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples\Blueprints_HUD\1_1]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+
+この事例はゲーム内の簡易な HUD を実演するもので、簡単なポーズ (一時停止) メニュー形式でクリック可能なボタンを含んでいます。オブジェクト名とプレイヤーからの距離と共にオブジェクト上にオブジェクティブマーカーが描画されると同時に、HUD にはヘルスバーマテリアルが描画されて、キャラクターからのヘルス値の受け取りに Blueprint Interface 関数を使用します。
+HUD ブループリントの検索は **[コンテンツ ブラウザ]** で **BP_HUD_Example** を検索してください。
+
+## GameMode
+
+**Game Mode** はデフォルトの Pawn クラス、HUD クラス、PlayerController クラスの設定に加え、ゲーム固有のゲームプレイ動作や設定を格納します。例に含まれる
+**GameInfo_HUD** ブループリントは、HUD クラスとして **BP_HUD_Example** ブループリントを設定する GameMode ブループリントです。**[World Settings]** タブで **GameMode Override** として設定しなくてはいけません。
+ 
+![](gamemode_hud.png)
+
+
+## HUD ( Heads Up Display:ヘッドアップディスプレイ)
+
+HUD の各エレメントを描画する **ReceiveDrawHUD** イベントはスクリーンサイズを表す X と Y 値を提供します。この値はゲームのスクリーンサイズに比例して、
+ さまざまな HUD エレメントのスケーリングまたは再配置を可能にするためブループリント全体へ取り込まれます。解像度に関係なく、ボタンを常にスクリーン中央へ表示させます。
+
+
+### ヘルスバー
+![](BP_HUD_healthbar.png)
+
+ヘルスバーは HUD ブループリントのコンストラクションスクリプトで作成する動的マテリアルインスタンスです。マテリアルは **Current Health** と **Maximum Health** のパラメータに準じてヘルスバーの長さを変更するノードを格納します。 
+HUD ブループリントはキャラクターの現在のヘルス状態に基づいて **Current Health** パラメータを更新します。
+
+### ピックアップアイテム
+![](BP_HUD_pickup.png)
+
+このレベルで対象となるピックアップアイテムは **BP_Pickup_Child_Health** で、 [高度なブループリント、子ブループリント](Resources\ContentExamples\Blueprints_Advanced\2_5) のコンテンツ事例でも取り上げています。レベル ブループリントで
+ **Objective** 変数として設定します。 
+
+HUD ブループリントで **Current Objective** が NULL ではない場合、
+-	オブジェクティブマーカーは **Project** 関数を使用して、3D 位置ベクター (オブジェクトの位置を表す) を 2D スクリーン座標へ変換します。 
+これにより座標上に描画されるオブジェクトのラベルとアイコンは、画面上で常にオブジェクトアクタ周辺に表示されます。
+-	テキストは **Get Text Size** ノードを利用してオブジェクトの中央に表示されます。このノードは、文字列が HUD 上に描かれると、使用するフォントとテキストのスケーリングを考慮しながら予想される文字列の高さと幅を計測します。 
+テキストは左寄せがデフォルト設定で座標は左上となるため、テキストを中央揃えにするためにこれらの座標へオフセットを追加するにはこのノードが有用です。
+
+###一時停止メニュー
+![](BP_HUD_menu.png)
+
+プレイヤーが**[M]** を押すと一時停止メニューが開きます。その後PlayerController ブループリントが **Toggle Menu** 関数のインターフェースメッセージを実行します。この関数は、
+オブジェクトのピックアップアイテムとプレイヤーキャラクターのヘルスを設定する関数と一緒に **BPI_HUD_Interface_Events** ブループリントインターフェースで定義されます。 
+
+一時停止メニュー表示には以下の重要な特徴があります：
+-	カスタム関数： **Draw Button** という名前のカスタム関数は、ボタンに必要な全コンポーネントの描画に便利な方法です (ボタンのテクスチャ、ボタンのテキスト、ヒットボックス) 。
+ 単一の関数ノードで何度でも必要なだけ再利用出来ます。スクリーン座標値やオフセットの決定に多くの計算ノードを必要とするため、HUDには特に有益な方法です。
+  この関数は値やオフセットを格納し、簡単に再利用できます。 
+-	 ヒットボックス： **DrawButton** 関数内の **Add Hit Box** 関数は、マウスのクリック動作やスクリーン上のある特定領域でマウスが解放された動作を検知する簡易な方法です。ヒットボックスの位置とサイズに加え、 
+名前の指定も可能です。メインイベントグラフの一般的な **ReceiveHitBoxClick** イベントはヒットボックスがクリックされると発行し、ヒットボックスの名前を出力します。その後出力された名前に従って
+ **Switch on Name** ノードが実行フローを命令します。  
+
+
+
+## プレイヤー コントローラー
+
+![](BP_HUD_pressM.png)
+
+ **BP_PlayerController_HUD** ブループリントはこの例で使用するデフォルト PlayerController クラスです。 **GameInfo_HUD** GameMode ブループリントにも設定します。**「Press "M" for Menu」** の文字列は **BP_HUD_Example** ブループリントで設定されますが、
+実際には **[M]** キー押下時の最初の応答は、PlayerController ブループリントが設定します。
+
+**[M]** キーを押すと、ターゲットとして HUD ブループリントと一緒に **Toggle Menu** インターフェースメッセージが実行されます。その後 PlayerController は：
+
+* **Show Mouse Cursor** を _true_ に設定
+* **Enable Click Events** を _true_ に設定
+* PlayerController を有効にして HUD へ入力データを送信 
+* ゲームを一時停止
+
+[/REGION]

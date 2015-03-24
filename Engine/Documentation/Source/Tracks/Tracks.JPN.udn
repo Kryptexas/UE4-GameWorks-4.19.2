@@ -1,0 +1,28 @@
+﻿Title:学習トラック
+Crumbs:%ROOT%
+Description:
+Availability:Docs
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+	![](%ROOT%/levels_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	レベル デザイン トラック
+	[/PARAM]
+	[PARAM:links]
+	* [](Tracks/LevelDesign/Beginner "%Tracks/LevelDesign/Beginner:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+	![](%ROOT%/prog_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	プログラミング トラック
+	[/PARAM]
+	[PARAM:links]
+	* [](Tracks/Programming/Beginner "%Tracks/Programming/Beginner:description%")
+	[/PARAM]
+[/OBJECT]

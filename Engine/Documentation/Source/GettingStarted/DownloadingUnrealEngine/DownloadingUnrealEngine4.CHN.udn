@@ -1,0 +1,32 @@
+﻿Availability:Public
+Title:下载虚幻引擎源代码
+Crumbs: %ROOT%, Programming, Programming/Development
+Description:关于连接到源代码库并下载最新版本虚幻引擎的步骤
+
+[TOC (start:2 end:3)]
+
+## 概述
+
+[EXCERPT:Main]
+[PUBLISH:Licensee]
+授权用户可以直接从Epic的Perforce服务器上下载虚幻引擎4。在您连接到服务器之前，必须建立安全的VPN连接。Epic Games已经在UDN欢迎邮件中向您团队的技术主管提供了VPN和Perforce服务器的登录证书。仅为每个团队提供一组登录证书。
+[/PUBLISH:Licensee]
+[PUBLISH:Rocket]
+虚幻引擎4的订购者可以从[虚幻引擎GitHub库](https://github.com/EpicGames/UnrealEngine)下载源代码。通过对源代码的访问，您可以修改引擎和工具来对其进行自定义，以达到您项目的需求。您可以为Windows和Mac构建编辑器并为Android和iOS编译游戏。所有工具的源代码都被包含在其中，例如虚幻Lightmass和虚幻前端。
+
+[REGION:note]
+在您接触库前，您必须是虚幻引擎的订购者并将您的GitHub账户与您的虚幻引擎账户关联。
+
+如需获得关于如何关联您的账户的指南，请访问[GitHub的虚幻引擎4](https://www.unrealengine.com/ue4-on-github) 页面。
+[/REGION]
+[/PUBLISH:Rocket]
+
+[PUBLISH:Licensee]
+[INCLUDE:GettingStarted/DownloadingUnrealEngine/Perforce/Basics]
+[/PUBLISH:Licensee]
+
+[PUBLISH:Rocket]
+[INCLUDE:GettingStarted/DownloadingUnrealEngine/GitHub]
+[/PUBLISH:Rocket]
+
+[/EXCERPT:Main]

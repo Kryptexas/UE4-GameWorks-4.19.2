@@ -1,0 +1,7 @@
+﻿INTSourceChangelist:2061112
+Title:EditInline
+Crumbs: %ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/Reference/Properties/Specifiers
+Description: 
+Availability:Public
+
+ユーザーはこの変数に参照されたオブジェクトのプロパティを、アンリアル エディタのプロパティ インスペクタ内で編集できるようになります (オブジェクト参照の配列を含むオブジェクト参照のみ有用です)。 

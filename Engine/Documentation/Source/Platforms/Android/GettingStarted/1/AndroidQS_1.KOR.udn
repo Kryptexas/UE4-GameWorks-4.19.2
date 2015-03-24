@@ -1,0 +1,86 @@
+﻿INTSourceChangelist:2464839
+Availability:Public
+Title:1. 안드로이드 SDK 설치
+Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
+Description: TADP 안드로이드 SDK 설치입니다.
+
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵스타트 홈](Platforms/Android/GettingStarted)
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Platforms/Android/GettingStarted/2 "%Platforms/Android/GettingStarted/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+
+%Steps%
+
+[REGION:tip]
+이미 안드로이드 SDK 가 설치되어 있는데 환경 변수는 없어진 경우, 이 단계는 전부 건너뛰고 에디터의 **편집 메뉴** -> **프로젝트 세팅** -> **Android SDK** 프로퍼티에서 설치 위치를 지정해 주기만 해도 됩니다.
+[/REGION]
+
+1.	TADP 설치 폴더로 이동합니다:
+| 설치 유형 | 위치 |
+| ------------ | ---------|
+| Binary | [EngineInstallLocation]\Unreal Engine\[EngineVersion]\Engine\Extras\Android |
+| GitHub | [EngineSyncLocation\UE4\Engine\Extras\Android |
+1.	tadp-2.0r8-windows.exe 에 더블클릭합니다.
+1.	Next 를 클릭합니다.
+    
+	![](tadpinstaller_1.png)(w:450)
+1.	"I accept the agreement" 를 선택한 다음 Next 를 클릭합니다.
+
+	![](tadpinstaller_2.png)(w:450)
+1.	Next 를 클릭합니다.
+
+	![](tadpinstaller_3.png)(w:450)
+1.	Express install 을 선택한 다음 Next 를 클릭합니다.
+	
+	![](tadpinstaller_4.png)(w:450)
+1.	설치 위치가 `C:\NVPACK` 인지 확인합니다.
+	
+	![](tadpinstaller_5.png)(w:450) 
+1.	설치할 컴포넌트 목록과 이 목록이 일치하는지 확인합니다:
+	
+	![](tadpinstaller_6.png)(w:450)
+1.	필요한 경우 프록시를 입력합니다:
+	
+	![](tadpinstaller_7.png)(w:450)
+1.	Next 를 클릭합니다. 인터넷 접속이 필요하며, 몇 분 걸릴 수 있습니다.
+	
+	![](tadpinstaller_8.png)(w:450)
+1.	Next 를 클릭합니다.
+	
+	![](tadpinstaller_9.png)(w:450)
+1.	인스톨러가 실행되며, 시간이 조금 걸립니다.
+	
+	![](tadpinstaller_10.png)(w:450)
+1.	소프트웨어 퍼블리셔 관련 경고가 뜨는 경우, "Install this driver software anyway" 를 선택합니다.
+	
+	![](tadpinstaller_11.png)
+1.	설치 후 파일 저장에 관해 묻는 경우, Yes 든 No 든 아무거나 선택해도 됩니다.
+	
+	![](tadpinstaller_12.png)
+1.	Next 를 클릭합니다.
+	
+	![](tadpinstaller_13.png)(w:450)
+1.	모든 컴포넌트가 올바르게 설치되었는지 확인합니다.
+	
+	![](tadpinstaller_14.png)(w:450)
+1.	View Readme File 체크를 해제한 다음 Finish 를 클릭합니다.
+	
+	![](tadpinstaller_15.png)(w:450)
+
+%Steps%
+

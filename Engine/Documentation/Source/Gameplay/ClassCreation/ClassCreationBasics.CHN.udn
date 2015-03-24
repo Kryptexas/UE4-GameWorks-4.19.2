@@ -1,0 +1,64 @@
+﻿INTSourceChangelist:1997499
+Availability:Public
+Title:创建类的基础知识
+Crumbs: %ROOT%, Programming
+Description:一些示例，展示了如何单独使用蓝图、单独使用C++及同时使用二者来创建类。
+
+![](LightSwitchActor.png)(w:500 convert:false) 
+
+
+## 概述
+
+这些示例展示了如何仅使用蓝图、仅使用C++及同时使用二者来创建一个新类。目标是分别使用这三种流程来创建一个
+具有同样属性和行为的新LightSwitch类，然后把每个新类的实例添加到关卡中，这样就有三个全新的LightSwitch Actor了。
+
+LightSwitch类直接继承AActor。它们包含了一个PointLightComponent和SphereComponent，PointLightComponent作为根组件， 
+SphereComponent是PointLightComponent的子项。每个LightSwitch类都还包含一个DesiredBrightness属性，用于设置 
+PointLightComponent的亮度。最后，这些类的默认行为是：当玩家或离开SphereComponent时，切换PointLightComponent的可见性。
+
+
+## 示例
+[REGION:topics third]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](BP_Only_Topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Programming\Basics\ClassCreation\BlueprintOnly:title%
+	[/PARAM]
+	[PARAM:description]
+		%Programming\Basics\ClassCreation\BlueprintOnly:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming\Basics\ClassCreation\BlueprintOnly]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](Code_Only_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Programming\Basics\ClassCreation\CodeOnly:title%
+	[/PARAM]
+	[PARAM:description]
+		%Programming\Basics\ClassCreation\CodeOnly:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming\Basics\ClassCreation\CodeOnly]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](Both_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Programming\Basics\ClassCreation\CodeAndBlueprints:title%
+	[/PARAM]
+	[PARAM:description]
+		%Programming\Basics\ClassCreation\CodeAndBlueprints:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming\Basics\ClassCreation\CodeAndBlueprints]
+	[/PARAM]
+[/OBJECT]
+[/REGION]

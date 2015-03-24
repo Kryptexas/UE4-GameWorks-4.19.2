@@ -1,0 +1,10 @@
+Availability:Public
+Title: Component Replication
+Crumbs:Gameplay, Gameplay/Networking, Gameplay/Networking/Replication
+Description:Setting up components for replication across the network
+
+[OBJECT:Redirect]
+[PARAM:link]
+[](Gameplay/Networking/Replication/Components)
+[/PARAM]
+[/OBJECT]

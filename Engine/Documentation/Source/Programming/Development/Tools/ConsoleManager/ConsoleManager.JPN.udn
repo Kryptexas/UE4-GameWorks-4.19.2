@@ -1,0 +1,226 @@
+Availability: Public
+Title:コンソールマネージャ : C++ によるコンソール変数のセットアップ
+Crumbs:%ROOT%, Engine, Programming, Programming/Basics
+
+[TOC(start:2)] 
+
+
+## 概要 
+
+
+「Unreal Engine」には、かなり以前からコンソールコマンドが備わっています。コマンドとは、ユーザーが入力する文字列であり、エンジンに送られます。エンジンは何らかの方法でこれに対して反応します。(例 : コンソールテキストの反応。内部状態の変更)。 
+
+新たなコンソールマネージャによって、共通するパターンが統一され、単純化されます。これがコンソール変数です。 
+
+
+## コンソール変数とはどのようなものか? 
+
+
+コンソール変数は、エンジン全体に及ぶ状態を保持する単純なデータ型 (例 : float 型、int 型、string 型) です。ユーザーは、この状態を読み取ったり、セットしたりすることができます。コンソール変数は名前をもちます。コンソールに名前をタイプし始めるとオートコンプリートされます。  例 : 
+
+|**ユーザーによるコンソール入力**|**コンソールの出力**|**説明**| 
+| --- | --- | --- |
+|`MyConsoleVar`|`MyConsoleVar = 0`|変数の現在の状態がコンソールに表示されます。 | 
+|`MyConsoleVar 123`|`MyConsoleVar = 123`|変数の状態が変更されて、新たな状態がコンソールに表示されます。 | 
+|`MyConsoleVar ?`|`おそらくはヘルプ用テキストが複数行`|コンソール変数のヘルプ用テキストがコンソールに表示されます。  | 
+
+
+## コンソール変数の作成 / 登録 
+
+
+変数は、エンジンが作成される際に早期に登録される必要があります。例: 
+
+
+      GConsoleManager->RegisterConsoleVariable(TEXT("r.TonemapperType"),
+         -1,
+         TEXT("Allows to override which tonemapper function (during the post processing stage to transform HDR to LDR colors) is used:\n")
+         TEXT("  -1 = use what is specified elsewhere\n")
+         TEXT("   0 = off (no tonemapper)\n")
+         TEXT("   1 = filmic approximation (s-curve, contrast enhances, changes saturation and hue)\n")
+         TEXT("   2 = neutral soft white clamp (experimental)"),
+         ECVF_Cheat);
+    
+
+`GConsoleManager` は、グローバルなアクセスポイントです。ここで、コンソール変数を登録したり既存の変数を検索したりできます。  最初のパラメータは、コンソール変数の名前です。(Unicode)。2 番目のパラメータはデフォルトの値です。この定数の型に基づいて、さまざまなコンソール変数の型が作成されます。すなわち、int 型、float 型、string 型 (!Fstring) です。 
+
+`RegisterConsoleVariableRef` によって、既存の float 型または int 型を登録するとともに、その状態を保存するためにそれを直接使用するコンソール変数をもてるようにもなります。 
+
+次のパラメータは、ユーザーがコンソール変数の後に ? を使用したときに表示されるヘルプ用テキストを定義します。 
+
+他のオプションのパラメータによって、ECVF_Cheat のようなフラグを指定することができます。詳細については、 `IConsoleManager.h` で解説されています。 
+
+
+## コンソール変数の状態を取得する 
+
+
+`RegisterConsoleVariableRef` を使用して作成されたコンソール変数の状態を効率的に取得するには、その状態とともに登録された変数を使用します。 
+
+わずかに遅くなるものの (仮想関数呼び出し、あるいはキャッシュ化の失敗の可能性) より簡便に状態を取得するには、get 関数を使用します。( !GetInt(), !GetFloat(), !GetString())。 
+最善のパフォーマンスを目指すならば、変数を登録したときに使用した型と同じ型を使用すべきです。変数へのポインターを取得するには、登録関数の戻り値の引数を保存するか、変数が必要となる直前に `FindConsoleVariable` を呼び出します。例: 
+
+
+       static IConsoleVariable* CVar = GConsoleManager->FindConsoleVariable(TEXT("TonemapperType")); 
+    
+       int32 Value = CVar->GetInt();
+    
+
+静的にすることによって、名前の検索 (マップとして実装されている) が、初めてコードが呼び出された時にのみ実行されるようになります。これが正しいのは、変数が決して移動せず、エンジンがシャットダウンした時にのみ破壊されるからです。 
+
+
+## 状態が変化したときに反応する 
+
+
+ECVF_Changed フラグを使用することによって、Set() メソッドまたはユーザーによる入力を通じて状態が変更されたか否かを検知することができます。(なお、変数への参照は、このフラグをトリガーすることなく変更される可能性があります)。例: 
+
+
+       if(CVar->TestFlags(ECVF_Changed))
+       {
+          CVar->ClearFlags(ECVF_Changed);
+          ... 
+       }
+    
+
+
+## 意図されたコンソール変数のビヘイビアとスタイル 
+ 
+
+
+* コンソール変数は、必ずしもシステムの状態ではなく、ユーザーによる入力を反映すべきです。(例 : !MotionBlur 0/1 をサポートしていないプラットフォームがあることも考えられます)。変数の状態は、コードによって変更されるべきではありません。そうでなければ、指定した状態を変数がもたないために、ミスタイプしたとユーザーが考えてしまうかもしれません。あるいは、他の変数の状態のせいでコンソール変数をユーザーが変更することができなくなるかもしれません。 
+* 常に、有用なヘルプを提供することによって、変数が何のために使用され、どのような値を指定すると良いのかということについて説明すべきです。 
+* 大半のコンソール変数は開発用にのみ向けられたものです。したがって、 `ECVF_Cheat` フラグを初期の段階で指定するのが良いでしょう。 
+* 変数名はできる限り最小にすべきです。同時に、説明的な名前や意味のないものは避けるべきです。(例 : 不適当な名前としては、次のようなものがあげられます。!EnableMotionBlur 、 !MotionBlurDisable 、 MBlur 、 !HideMotionBlur )  大文字と小文字を使用することによって、可読性を高め一貫性をもたせます。(例 : !MotionBlur) 
+* インデント付けのために、一定の幅のフォント (非比例フォント) の出力を想定することができます。 
+
+
+この詳細については、 `IConsoleManager.h` を参照してください。 
+
+
+## コンソール変数のロード 
+
+エンジン起動時に、コンソール変数の状態を Engine/Config/ConsoleVariables.ini ファイルからロードすることができます。詳細は、そのファイル自体の中に次のように書かれています。 
+
+    ; このファイルによって、エンジン起動時にコンソール変数をセットすることができます。(順序は不定)。 
+    ; 現在のところ、このファイルをオーバーライドする他のファイルはありません。 
+    ; このファイルは、ソースコントロール データベースに置かれなければなりません。(コメントのためと、場所を特定できるようにするために)。 
+    ; ただし、変数が入っていないようにしなければなりません。 
+    ; 開発者は、このファイルをローカルに変更することによって、変数設定を繰り返しタイプしなくても済むようにして時間を節約することができます。 
+    ; 変数は、[Startup] というセクションに置かれる必要があります。 
+    ; 後に、複数の命名されたセクションが、セクション名によって参照されるようにする場合があります。 
+    ; これによって、プラットフォーム専用またはレベル専用のオーバーライドが可能になります。 
+    ; 名前の比較はケースセンシティブではありません。また、変数が存在しない場合は、そのまま無視されます。 
+    ; 
+    ; ファイルの中身の例 : 
+    ; 
+    ; [Startup] 
+    ; FogDensity = 0.9 
+    ; ImageGrain = 0.5 
+    ; FreezeAtPosition = 2819.5520 416.2633 75.1500 65378 -25879 0 
+    
+    [Startup] 
+    
+
+
+## 特色 
+
+
+
+* 現在のシステムを使いやすくすることは明らかに容易です。私たちはこれを拡張して、ini ファイルまたはテキストファイルからコンソール変数の状態をロードするつもりです。 
+* また、コンソールコマンドの実行も検討しています。(統一したインターフェース、コールバックまたはデリゲートの使用、オートコンプリート、ヘルプ)。 
+* すべての解像度で見やすいヘルプを作成するには、最大行幅を調べるとともに、常に一定の幅のフォントを使用しなければなりません。  
+* 現在のところ、コンソール変数は、C++ でしか作成することができませんが、これは変更される可能性もあります。 
+* 変数のグループ化について検討すべきです。他のシステムでは、グループ化のために先頭に文字または文字列を配置しています。(例 : MusicBufferSize)。 
+* コンソールコマンドを追加して、ヘルプをともなったコンソール変数を出力するつもりです。(ソート化、グループ化)。  
+* 列挙型変数または bool 型変数を追加することを検討しましたが、これには問題が多々あります。現在は、int 型を使用するのが良いと考えています。(必要な場合は、文字列を使用することも)。 
+* ヘルプ用テキストは便利ですが、実行ファイルのサイズ抑制やチーター対策のために、定義を追加することによって、ヘルプ用テキストが実行ファイルに入らないようにすることを検討しています。 
+* 現在のオートコンプリート機能は、コマンドのために一行ヘルプも表示します。これはコンソール変数のために無効にされています。理由は、他の一行ヘルプを指定すべきではなく、また、複数行のヘルプを短縮すべきではないからです。変更される可能性があります。 
+
+
+
+## コンソール変数の登録削除 
+
+`UnregisterConsoleVariable` メソッドによって、変数を削除することが可能です。少なくとも、ユーザーの視点からはそのように見えます。変数は依然として保持されています (登録削除のフラグをともなって)。これは、ポインタがデータにアクセスした場合にクラッシュしないようにするための措置です。新たな変数が同じ名前で登録されると、古い変数がリストアされ、ヘルプとフラグが新変数からコピーされます。このようにして、変数の状態を失うことすらなしに、DLL (ダイナミック リンクライブラリ) のロードとアンロードが機能します。なお、コンソール変数の参照については機能しません。これを修正するには、次のどれかに見切りをつけます。すなわち、ポインタの格納、登録削除、参照の使用から 1 つをあきらめます。 
+
+
+## 手動によるコンソール変数の実装との比較 
+*** 
+
+**例 :** 
+
+_何らかの .cpp ファイル、グローバル_ 
+
+
+	// for documentation see "MotionBlurSoftEdge" console command
+    float GMotionBlurSoftEdge = -1;
+    
+
+
+
+_他の何らかの .cpp ファイル, Exec() メソッド_ 
+
+    
+       else if (ParseCommand(&Cmd, TEXT("MotionBlurSoftEdge")))
+       {
+          extern float GMotionBlurSoftEdge;
+          FString Parameter(ParseToken(Cmd, 0));
+          if(Parameter.Len())
+          {
+             GMotionBlurSoftEdge = appAtof(*Parameter);
+          }
+          else
+          {
+             Ar.Logf(TEXT("Allows to override the motion blur soft edge amount.\n"));
+             Ar.Logf(TEXT("<0: use post process settings (default: -1)"));
+             Ar.Logf(TEXT(" 0: override post process settings, feature is off"));
+             Ar.Logf(TEXT(">0: override post process settings by the given value"));
+          }
+          Ar.Logf( TEXT("MotionBlurSoftEdge = %g"), GMotionBlurSoftEdge );
+          return true;
+       } 
+    
+
+_!BaseInput.ini において_ 
+
+    
+       ManualAutoCompleteList=(Command="MotionBlurSoftEdge",Desc="")
+    
+
+
+_ある関数における使用 :_ 
+
+
+    
+       extern float GMotionBlurSoftEdge;
+       ... use GMotionBlurSoftEdge ...
+    
+
+
+*次のようになる : * 
+
+_ある .cpp ファイルに置いて、エンジン起動時_ 
+
+
+       GConsoleManager->RegisterConsoleVariable(TEXT("MotionBlurSoftEdge"),
+          -1.0f,
+          TEXT("Allows to override the motion blur soft edge amount.\n")
+          TEXT("<0: use post process settings (default: -1)\n")
+          TEXT(" 0: override post process settings, feature is off\n")
+          TEXT(">0: override post process settings by the given value"),
+          ECVF_Cheat);
+    
+
+_ある関数における使用 :_ 
+
+
+    
+       {
+          static IConsoleVariable* CVar = GConsoleManager->FindConsoleVariable(TEXT("MotionBlurSoftEdge")); 
+          float Value = CVar->GetFloat();
+          ... use Value ...
+       }
+    
+      
+
+レンダリングする直前にコンソール変数を作成する場合さらに小さくすることができます。ただし、エンジンの初期化中に変数を登録することによってオートコンプリートが機能するようにすることが大切です。また、ヘルプをともなったコンソール変数をすべて出力できるようにすることも重要です。(私たちが計画している機能です)。 
+
+
+

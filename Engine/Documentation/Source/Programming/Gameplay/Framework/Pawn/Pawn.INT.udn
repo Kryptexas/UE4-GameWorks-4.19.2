@@ -1,0 +1,10 @@
+Availability:Public
+Title:Pawn
+Crumbs:%ROOT%, Gameplay, Gameplay/Framework
+Description:The **Pawn** is the physical representation of a player within the world.
+
+[OBJECT:Redirect]
+[PARAM:link]
+[](Gameplay/Framework/Pawn)
+[/PARAM]
+[/OBJECT]

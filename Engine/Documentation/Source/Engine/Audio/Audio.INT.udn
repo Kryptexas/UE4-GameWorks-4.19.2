@@ -1,0 +1,73 @@
+Availability: Public
+Title: Audio & Sound
+Crumbs: %ROOT%, Engine
+Description:System for playing in-game sounds, including the use of SoundCue node-based audio assets.
+Navigation:topic
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Audio:title%](Engine/Audio/audio_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/audio_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Audio:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Audio:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Audio]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Audio:title%](Engine/Audio/audio_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/audio_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Audio:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Audio:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Audio]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![Audio](audio_landing_banner.png)
+[/REGION]
+
+[EXCERPT:Intro]
+Sound is immensely important to creating believable and immersive environments. From ambient sounds in the level, to interactive sounds from vehicles or weapons, to 
+spoken dialog from the characters, the audio in the game can make or break the user's experience. Making the audio in the game actually sound like it should sound
+ can be a difficult task. Unreal Engine 4's audio system provides tools and features to mold the sounds in the game to give them the desired feel. This is important 
+ because it means that a clean version of the sound can be produced once in an external application, imported, and then crafted within the engine to create the 
+ appropriate result.
+[/EXCERPT:Intro]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/audio_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Audio/Overview "%Engine/Audio/Overview:description%")
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Audio/WAV "%Engine/Audio/WAV:description%")
+		* [](Engine/Audio/SoundCues/Editor "%Engine/Audio/SoundCues/Editor:description%")
+		* [](Engine/Audio/SoundCues/NodeReference "%Engine/Audio/SoundCues/NodeReference:description%")
+		* [](Engine/Audio/SoundActors "%Engine/Audio/SoundActors:description%")
+		* [](Engine/Audio/DistanceModelAttenuation "%Engine/Audio/DistanceModelAttenuation:description%")
+	[/PARAM]
+[/OBJECT]
+

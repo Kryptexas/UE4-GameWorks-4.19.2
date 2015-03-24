@@ -1,0 +1,132 @@
+﻿INTSourceChangelist:2260967
+Availability:Public
+Title:サウンド キュー エディタ
+Crumbs: %ROOT%, Engine, Engine/Audio
+Description:サウンドキュー ベースのオーディオ アセットの設定と編集に使用するツールの使用ガイド
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Audio/SoundCues/Editor:title%](Engine/Audio/SoundCues/Editor/soundcue_editor_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/audio_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Audio/SoundCues/Editor:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Audio/SoundCues/Editor:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Audio/SoundCues/Editor]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Audio/SoundCues/Editor:title%](Engine/Audio/SoundCues/Editor/soundcue_editor_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/audio_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Audio/SoundCues/Editor:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Audio/SoundCues/Editor:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Audio/SoundCues/Editor]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+![](SoundCueEditor_plain.png)(w:900)
+
+[TOC(start:2)]
+
+
+
+## 概要
+
+アンリアル エンジンにおけるオーディオの再生動作は SoundCues で定義されています。サウンド キュー エディタはオーディオと機能するために使用するノードベースのエディタです。
+
+サウンドキューの UI に関する詳細は、 [](Engine/Audio\SoundCues\Editor\Interface) を参照してください。
+
+###サウンド キュー
+
+サウンドキュー エディタで生成されたノードの組み合わせのオーディイオ出力は、 SoundCue として保存されます。
+
+デフォルトでは、サウンドキューのオーディオ グラフ ノードには、スピーカーのアイコンが付いている Output ノードが含まれています。Output ノードのデフォルト値は、 **Volume Multiplier** の場合は 0.75 、 **Pitch Multiplier** の場合は 1.00 です。* これらの値は **[詳細]** パネルで修正できます。
+
+ボリュームとピッチの設定で、サウンド キューのボリューム関連を管理します。この設定は、サウンドキュー内に含まれるすべてのオーディオの出力に影響します。Mixer ノードあるいは Random ノードがある Sound wave (音声波形) を複数使用する場合は、Modulator ノードを追加すればボリュームとピッチを独立して制御することができます。
+
+
+### Sound Wave (サウンド ウェーブ)
+
+サウンド ウェーブは、サウンド キュー エディタにインポートされたオーディオ ファイルを表します。**コンテンツ ブラウザ** のサウンド ウェーブ アセットを選択し、サウンド キュー エディタのどこかをクリックして編集中のサウンド キューに追加します。そして、コンテクスト メニューの **[From Selected]** カテゴリで [Sound Wave] を選択します。
+
+同じサウンド ウェーブを別のサウンド キューが使用している場合もあるので、サウンド キュー エディタ内でのサウンド ウェーブのボリュームやピッチ値の修正はできません。ただし、サウンド ウェーブのプロパティをインポートするか、 **ダブルクリック** して **コンテンツ ブラウザ** で開けば、修正が可能です。
+
+
+##サウンドのインポート
+
+サウンドをインポートするには、アンリアル エディタで以下の作業をしてください。
+1. **コンテンツ ブラウザ** の空白のスペースを **右クリック** するか、 ![New Asset button](button_CB_NewAsset.png) ボタンをクリックすると、 [New Asset] メニューが表示されます。
+1. **[Import Assets]** から、 **[Import to _folder name_]** をクリックします。
+1. ダイアログ ボックスの **[インポート]** で、インポートしたい .wav ファイルを参照し、選択して **[開く]** をクリックします。この操作で、.wave ファイルがサウンド キュー アセットとしてインポートされます。 
+
+[REGION:note]
+この段階で可能な事は、WAV ファイルをサウンド ファイルとしてインポートすることのみです。
+[/REGION]
+
+
+##サウンド キューの作成
+
+サウンド キューを作成するには、以下の作業をしてください。
+1. **コンテンツ ブラウザ** の空白のスペースを **右クリック** するか、 ![New Asset button](button_CB_NewAsset.png) ボタンをクリックすると、 [New Asset] メニューが表示されます。
+1. **[Other Assets]** から、 **[Sounds]** をクリックし、 **[Sound Cue]** をクリックします。
+1. 新規のサウンド キューの名前を入力します。
+
+
+##サウンド キュー エディタを開く
+
+**コンテンツ ブラウザ** のサウンド キュー アセットを右クリックし、表示されるコンテクスト メニューの**[編集]** をクリックするか、サウンド キュー アセットをダブルクリックすれば、サウンド キュー エディタを開くことができます。
+
+
+ 
+## Audio Node Graph (オーディオ ノード グラフ)
+
+[EXCERPT:AudioNodeGraph]
+オーディオ ノード グラフは **[ビューポート]** パネルにあります。このインターフェースは、オーディオ制御モジュールとオーディオファイルを示す相互に接続されたブロックノードを使って、オーディオの信号経路を右から左に表示します。スピーカーアイコンは、ゲーム中に聴くオーディオの最終的な出力を示し、いつでも信号パスの左端に位置しています。ソース オーディオ ファイル (Sound Node Wave) は、常に信号パスの右端に位置しています。ワイヤーを使用してノードに接続します。
+[/EXCERPT:AudioNodeGraph]
+
+![](SoundCueEditor_Viewport.png)
+
+再生を試行したい場合は、 [サウンドキュー エディタ] ウィンドウの上部にあるプレイボタンを使用してください。ツールバーに関する詳細は、 [ツールバー](Engine/Audio\SoundCues\Editor\Interface\#ツールバー) を参照してください。
+
+**[キューを再生]** ボタンはサウンド キュー全体を再生し、 **[ノードを再生]** ボタンは選択したノードからサウンドを再生します。(複数のノードが選択されると、 **[ノードを再生]** ボタンはグレーアウト表示になり、使用できません)。サウンド キューの再生中、デバッグの支援として、アクティブになっているノードが赤に変わります。これにより、サウンド キューの作成をリアルタイムで簡単に追いかけることができます。
+
+![](SoundCueEditor_TracePlaying.png)
+
+オーディオ ノードは **パレット** からグラフにドラッグして追加することができます。
+
+![](SoundCueEditor_Looping3.png)
+
+グラフ内を **右クリック** し、表示されるコンテクスト メニューからノードを選択しても追加が可能です。
+
+![](SoundCueEditor_ContextMenu.png)
+
+アンリアル エディタの他のノードベースのエディタと同様に、検索ボックスにテキストを入力すれば、コンテクスト メニューに表示されるノード リストを動的にフィルタすることができます。
+ 
+![](SoundCueEditor_ContextMenu_filter.png)
+ 
+グラフにノードがある場合は、既存のノードのピンから出ているワイヤをドラッグして、表示されるコンテクスト メニューから新規ノードを選択すると、新規ノードを追加することができます。
+
+![](SoundCueEditor_PinDrag.png)
+
+サウンド キュー エディタ内で使用できるノードの説明については、[サウンドキュー リファレンス](Engine/Audio/SoundCues\NodeReference) をご覧ください。
+

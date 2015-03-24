@@ -1,0 +1,81 @@
+Availability:Public
+Title:Composite Texture
+Crumbs:
+Description:
+
+The **Composite Texture** feature provides the ability to combine one _Texture_ with the content of another.
+
+This is currently used to adjust the roughness of one _Texture_ with the normal map details of another.
+This is useful for fighting a common artifact in real-time 3d rendering: Aliasing or shimmering of normal
+maps in the distance. It also maintains the specular size for a _Material_ whose normal map is detailed
+when near to the camera, but uses the mip maps of the normalmap that might appear flat when farther away.
+
+## Setting up the Composite Texture to Modify the Roughness Depending on Normalmap Details
+
+To configure a _Texture_ to use the **Composite Texture**, assign the normal map (same size or higher res) to 
+the **Composite Texture** property in your diffuse _Texture_. We often store the roughness in the diffuse alpha
+channel, but you can adjust any channel by changing the default settings. 
+
+The process assumes the _Texture_ already contained a roughness value and adjusts the channel depending on the 
+variation in the normal map to a rougher value (brighter).
+
+![](properties.png)
+
+[REGION:tip]
+If the _Texture_ does not already contain info in the alpha channel, the process of modifying that particular 
+channel will not work as no alpha channel means white. Instead, you must first adjust the **Max Alpha** property 
+to set the source alpha to a constant value. If you directly hook up the alpha channel of the texture to the material
+roughness and your alpha channel was white (1, which is the default), then you can directly specify the roughness value
+as **Max Alpha**. The adjustment will be done to the texture content. The roughness adjustment will be done on top of that.
+[/REGION]
+
+[REGION:imagetable]
+| ![](map_normal.png) | ![](map_roughness.png) |
+| ------ | ------ |
+| Normal Map | Composited Roughness Map |
+[/REGION]
+
+[REGION:note]
+You can set the **Texture Editor** to only show the alpha channel to verify your adjustments.
+[/REGION]
+
+### Compositing Properties
+
+There are some additional properties that affect how the **Composite Texture** modifies the _Texture_'s channel.
+
+| Property | Description |
+| -------- | ----------- |
+| Composite Texture Mode | Specifies which channel of the _Texture_ (_R_, _G_, _B_, or _A_) the **Composite Texture** is used to modify. |
+| Composite Power | Determines how much influence the **Composite Texture** has on the target channel. [1:default, <1 less influence, >1 more influence] |
+
+## Using the Composited Roughness Map
+
+The _Material_ makes use of the roughness map by sampling the alpha channel of the _Texture_. 
+
+![](mat_roughness.png)
+
+[REGION:tip]
+You can combine multiple roughness in the shader by adding them and they should combine naturally.
+[/REGION]
+
+## Results
+
+[REGION:imagetable]
+| ![](comp_off_aa_off.png) | ![](comp_on_aa_off.png) |
+| ------ | ------ |
+| Normal Map Only | With Composited Roughness Map |
+[/REGION]
+
+[REGION:imagetable]
+| ![](comp_off_aa_on.png) | ![](comp_on_aa_on.png) |
+| ------ | ------ |
+| Normal Map with PostProcessAA | Composited Roughness Map with PostProcessAA |
+[/REGION]
+
+## Issues
+
+This feature only works if the UV layout of your normal map and the roughness map is the same.
+Note that this approximates the correct result. The result is isotropic, meaning any directionality of
+the normal map is not taken into account. Make sure you have large enough UV borders otherwise wrong content might creep in.
+
+

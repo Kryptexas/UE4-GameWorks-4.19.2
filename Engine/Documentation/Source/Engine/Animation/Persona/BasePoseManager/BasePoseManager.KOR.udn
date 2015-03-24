@@ -1,0 +1,38 @@
+﻿INTSourceChangelist:2182145
+Availability:Public
+Title:페르소나 리타겟 소스 매니저
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:페르소나 애니메이션 에디터의 리타겟 소스 매니저 사용 안내서입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/AssetBrowser:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/BasePoseManager:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/BasePoseManager:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/BasePoseManager]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+페르소나의 리타겟 소스 매니저는 특정 스켈레톤에 대해 베이스 포즈가 될 수 있는 후보 목록을 만들어 주어, 다수의 스켈레탈 메시에 사용할 수 있는 스켈레톤 리타게팅에 도움이 됩니다.
+
+![](BasePoseManager.png)
+
+**레퍼런스용 새 리타겟 소스를 추가하려면:**
+
+1. 리타겟 소스 매니저에서 우클릭한 다음 **Add** (추가)를 선택합니다.
+1. 목록에서 사용하고자 하는 베이스 포즈를 가진 스켈레탈 메시를 선택합니다.
+
+[region:note]
+리타겟 소스 매니저에서 베이스 포즈를 추가한 이후에는 **애님 애셋 디테일** 패널의 **Animation** (애니메이션) 아래 **리타겟 소스** 드롭다운 목록에서 애니메이션 애셋을 선택할 수 있습니다.
+[/region]

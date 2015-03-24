@@ -1,0 +1,51 @@
+Availability:Public
+Title:资源库
+Crumbs:%ROOT%
+Navigation:topic
+Description:
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources:title%](Resources/resource_depot_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/download_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:header_img]
+![depot.jpg](depot.jpg)
+[/REGION]
+
+资源库包含了到各种指南、示例代码、下载文件及其他各种信息的链接。
+
+
+[REGION:feature_list]
+    [REGION:feature_horiz]
+        [REGION:feature_img]
+        [![downloads.jpg](downloads.jpg)](Resources/Downloads)
+		[/REGION]
+		[REGION:feature_content_horiz]
+			[REGION:feature_title]
+				[下载](Resources/Downloads)
+			[/REGION]
+			[REGION:feature_content]
+				可以和虚幻引擎3及UDK协同使用的各种可下载资源集合。FBX角色示例 - 商标 - 源码示例。
+			[/REGION]
+		[/REGION]
+    [/REGION]
+[/REGION]
+[REGION:clear]  
+[/REGION]
+

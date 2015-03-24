@@ -1,0 +1,10 @@
+Availability:Public
+Title:Gameplay Framework Quick Reference
+Crumbs:%ROOT%, Gameplay, Gameplay/Framework
+Description:Short overview of classes for game rules, characters, controllers, user interfaces, etc., that make up the framework for the game.
+
+[OBJECT:Redirect]
+[PARAM:link]
+[](Gameplay/Framework/QuickReference)
+[/PARAM]
+[/OBJECT]

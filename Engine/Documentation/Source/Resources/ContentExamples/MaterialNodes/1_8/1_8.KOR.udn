@@ -1,0 +1,55 @@
+﻿INTSourceChangelist:2094639
+Availability: Public
+Title:1.8 - 오파시티 마스크
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
+Description:Material Nodes 예제 레벨에 대한 개요로, 예제 1.8: Opacity Mask 입니다.
+
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/MaterialNodes/1_8:title%](Resources\ContentExamples\MaterialNodes\Topic_1_8_OpacityMask.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/MaterialNodes/1_8:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/MaterialNodes/1_8:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/MaterialNodes/1_8]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/MaterialNodes/1_8:title%](Resources\ContentExamples\MaterialNodes\Topic_1_8_OpacityMask.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/MaterialNodes/1_8:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/MaterialNodes/1_8:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/MaterialNodes/1_8]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+![](1_8_OpacityMask.png)
+[/REGION]
+
+[INCLUDE:Engine/Rendering/Materials\MaterialInputs#OpacityMask]
+
+

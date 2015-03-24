@@ -1,0 +1,69 @@
+﻿INTSourceChangelist:2409311
+Availability:Public
+Title:アニメーション合成
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:アニメーション合成は複数のアニメーションを結合し、単一ユニットとして扱います。
+
+[REGION:fullwidth]
+![](AnimationCompositeHeader.png)
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+## 概要
+
+一定の状況下では、いくつかのアニメーション シーケンスをつなぎ合わせて、多数のシーケンスではなく、単一シーケンスとして使用できるようにする必要があるかもしれません。まさにこれが **アニメーション合成** の用途です。アニメーション合成は複数のアニメーションを結合し、単一ユニットとして扱えるように設計されたアニメーション アセットです。しかし、合成はアニメーションを単につなげるだけで、ブレンド機能はないことに注意してください。
+
+アニメーション合成は、[Notifies](Engine/Animation/Sequences\Notifies) と [Curves](Engine/Animation/Sequences\Curves) の独自のセットを持つこともできます。こうしたトピックに関する詳細は、各トピックの関連ドキュメントを参照してください。
+
+## 合成を作成する
+
+アニメーション合成を新規作成することは、新規アセットを **コンテンツ ブラウザ** に追加するのと同じくらい簡単です。
+
+![](AnimationCompositeContextMenu.png)
+
+[REGION:caption]
+**コンテンツ ブラウザ** を **右クリック** して、コンテキスト メニューから **Animation > Animation Composite** の順に選択します。あるいは ![](button_NewAsset.png) ボタンを使用することもできます。
+[/REGION]
+
+新規に作成した合成を関連付けるための [スケルトン アセット](Engine/Animation/Skeleton) を指定する必要もあります。 
+
+![](PickSkeleton.png)
+
+[REGION:caption]
+プロジェクトで使用可能なもののリストからスケルトンを選択します。
+[/REGION]
+
+次に合成に名前を付ける必要があります。
+
+![](NameComposite.png)
+
+これで合成が作成され、編集できるようになりました。
+
+## 合成を編集する
+
+合成を **ダブルクリック** すると、その合成が選択され、編集できる状態でアニメーション モードでペルソナが開きます。
+
+![](AnimationCompositeEdit.png)(w:500)
+
+**[アセットエディタ]** パネル上部に Composite Track が表示されます。
+
+![](CompositeTrack.png)(w:600)
+
+合成にアニメーション シーケンスを追加するには、Composite Track にドラッグ & ドロップするだけでできます。さらにシーケンスをドラッグすると、自動的に追加されます。
+
+![](AddingAnimationsToComposite.png)(w:700)
+
+[REGION:note]
+**アセット ブラウザ** からアセットをドラッグして出すと、アセット エディタがグレー表示され、**Currently previewing another asset ** (現在、他のアセットをプレビューしています) という警告が表示されることがあります。これは、想定内の挙動です。そのままアニメーション シーケンスの Composite track へのドラッグを継続します。
+[/REGION]
+
+シーケンスをドラッグして Composite track で移動できます。また、**右クリック** してコンテキスト メニューから **[Delete Segment]** を選択して削除することができます。
+
+![](DeleteSegment.png)
+
+## 合成を使用する
+
+一度まとめられると、合成はアニメーションブループリントの AnimGraph にあるアニメーション シーケンスと同じように扱われます。
+
+![](PlayComposite.png)

@@ -1,0 +1,50 @@
+﻿INTSourceChangelist:2346368
+Availability:Public
+Title:6.1 - Self Shadowing Accuracy
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
+Description:ライティングの事例概要、例 6.1：Self Shadowing Accuracy
+Related:Engine/Rendering/LightingAndShadows/Basics
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
+Related:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Directional
+Related:Engine/Rendering/LightingAndShadows/Lightmass
+Related:Engine/Rendering/LightingAndShadows/Shadows
+Related:Engine/Rendering/LightingAndShadows/IndirectLightingCache
+Related:Engine/Rendering/LightingAndShadows/LightMobility
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\Lighting\6_1:title%](Resources\ContentExamples\Lighting\Lighting_6_1.png)(w:192)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\Lighting\6_1:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\Lighting\6_1:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\Lighting\6_1]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+![%Resources\ContentExamples\Lighting\6_1:title%](Resources\ContentExamples\Lighting\Lighting_6_1.png)
+[/REGION]
+
+
+この例では Self Shadowing Accuracy プロパティを紹介します。このプロパティは、主にオブジェクトに表面との接地感を持たせるために存在します。しかしオブジェクトの接地感を増すために値を高く設定すると、場合によっては以下の画像のようにセルフシャドウイングのアーティファクトの要因となってしまいます。
+
+![](SelfShadowingArtifacts.png)
+
+表面上の斜めのストリークは、Self Shadowing Accuracy に高い値を設定したためアーティファクトが生じた結果です。大抵の場合はデフォルト値が機能するため、このプロパティの変更は必要がないことに注意してください。 
+
+
+
+

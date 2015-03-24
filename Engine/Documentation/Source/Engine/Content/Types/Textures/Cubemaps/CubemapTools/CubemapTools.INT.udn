@@ -1,0 +1,46 @@
+Availability:Public
+Title:Cubemap Tools
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
+Description:An overview of the Nvidia and AMD tools available for the creation of Cubemaps.
+
+## Overview
+
+Building a cubemap is very easy if you have the right tools. This document covers some useful tools used to generate cubemaps.
+
+
+### NVIDIA Texture Tools for Adobe Photoshop
+
+One of the more common tools available is the NVIDIA Texture Tools plug-in for Adobe Photoshop. This tool set allows for the creation of DDS textures, cubemaps, and normal maps. 
+
+The plug-in can be acquired from [**NVIDIA**](http://developer.nvidia.com/content/nvidia-texture-tools-adobe-photoshop).
+
+[REGION:note]
+	At this time, the NVidia plug-in will produce errors when trying to export a 16-bit floating point (HDR) cubemap. Those wanting to create such a map might consider the unsupported ATI Cubemap Generator.
+[/REGION]
+
+![NvidiaExport.png](NvidiaExport.png)
+
+### AMD CubeMapGen
+
+Alternatively, you may use AMD CubeMapGen to produce cubemaps. This tool is capable of producing 16-bit floating point cubemaps. There are, however, some caveats to consider:
+
+1. This tool has officially reached the end of its life and is no longer supported by AMD.
+2. The tool uses a Y-Up world orientation, meaning that you will have to consider some axis shifting to make maps that work well in Unreal.
+
+
+The tool is available for download directly from [**AMD**](http://developer.amd.com/tools-and-sdks/archive/legacy-cpu-gpu-tools/cubemapgen/).
+
+![AMDCubeMapGen.png](AMDCubeMapGen.png)(w:600)
+
+### Other Tools
+
+Epic Games has also made use of other tools to create the cubemap image, including:
+
+1. HDR Light Studio, available at [http://www.hdrlightstudio.com/](http://www.hdrlightstudio.com/)
+
+2. VUE can output a panoramic HDR image, this is useful for HDRs that contain skies. [http://www.e-onsoftware.com/products/vue/vue_10.5_xstream/](http://www.e-onsoftware.com/products/vue/vue_10.5_xstream/)
+
+3. If rendering out of Mental Ray, you can use the Wrap Around (lume) lens shader.
+
+4. Light probe images can be purchased from a variety of websites.
+

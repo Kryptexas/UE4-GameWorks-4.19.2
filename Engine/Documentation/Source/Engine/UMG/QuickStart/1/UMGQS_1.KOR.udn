@@ -1,0 +1,46 @@
+﻿INTSourceChangelist:2335911
+Availability: Public
+Title:1. 새 프로젝트 생성
+Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
+Description:UMG 퀵 스타트의 첫 단계는 새 프로젝트 생성입니다.
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵 스타트 홈](Engine/UMG\QuickStart) 
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Engine/UMG\QuickStart\2 "%Engine/UMG\QuickStart\2:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+
+
+
+1. 언리얼 엔진 런처에서, **Unreal Engine 실행** 버튼을 클릭합니다.
+
+1. [언리얼 프로젝트 브라우저](Engine/Basics/Projects/Browser) 가 뜹니다. **새 프로젝트** 탭을 클릭합니다.
+
+1. 이 가이드에서는 **블루프린트 일인칭** 템플릿을 사용하겠습니다. **블루프린트** 탭에서 (1 아래의) **일인칭** 을 선택합니다. 
+
+	![](UMGQS_1.png)(w:600)
+	
+1. **시작용 콘텐츠 포함** 옵션을 선택했는지 확인하고 (2), **Name** 칸에 프로젝트 이름을 입력한 다음 (3) **프로젝트 생성** 을 선택합니다 (4).
+
+1. 언리얼 에디터에 새 프로젝트가 열립니다.
+
+[REGION: note]
+에디터 첫 실행인 경우, 언리얼 에디터 4 **환영 튜토리얼** 이 반겨줍니다. 이는 인터페이스 길잡이로, 에디터에 대한 개념이나 조작법을 배우기에 정말 좋습니다.
+[/REGION]
+
+
+
+%Steps%

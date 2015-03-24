@@ -1,0 +1,61 @@
+﻿INTSourceChangelist:2251654
+Availability:Docs
+Title:1.3 - スポーンしたアクタ
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/LevelScripting
+Description:レベルスクリプトの事例概要 1.3:イベント ディスパッチャで生み出した (スポーン) アクタ
+
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\LevelScripting\1_3:title%](levelscripting_1_3_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\LevelScripting\1_3:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\LevelScripting\1_3:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\LevelScripting\1_3]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+
+![](levelscripting_1_3.png)
+
+## 概要
+
+この例では、プレイヤーがトリガー ボックスへ入ると、ピックアップ可能な 8 つのコインがスポーンされます。各コインはプレイヤーのコイン収集時に使用するディスパッチ関数を格納しています。次の 2 枚扉を開くためには、プレイヤーは 8 つのコインを収集しなくてはいけません。 
+
+##レベル スクリプト
+
+[REGION:lightbox]
+[![](LevelScript_1_3_LS.png)](LevelScript_1_3_LS.png)
+[/REGION]
+[REGION:caption]
+フルサイズ表示するには、**右クリック** または [Save As] を選択します。
+[/REGION]
+
+
+コインのブループリントはゲームプレイ中にスポーンされるため、ボタンのブループリントと同じ方法でレベルスクリプトから参照することはできません。さらに、スクリプトは全コインの収集時を知る必要がありますが、たくさんのイベントを使用するため混乱を招く場合もあります。そこでスポーンする各コインのディスパッチ関数を単一カスタムイベントと接続します。これによって、コインのブループリントの収集時にディスパッチ関数を呼び出して、カスタムイベントをトリガーすることができます。スクリプトはイベント数がスポーンされたコイン数と一致するまで、イベントが発行された回数を数えます。
+
+複数の関数とカスタムイベントの接続は、多くの典型的なゲームプレイシナリオに有効です。例えば敵グループをスポーンして、その後敵全員が消滅した時に何かをトリガーするシナリオなどです。この例は、スポーンしたそれぞれの敵を単一「OnEndPlay」イベントと接続します。敵が破壊される度にこのイベントが発行されます。
+
+[INCLUDE:Resources\ContentExamples\LevelScripting\1_1#bpDoubleDoors]
+
+## コインの設定
+
+この例のコインは以下でも使用されています。[Example 2.5 of the Blueprints_Advanced level](Resources\ContentExamples\Blueprints_Advanced\2_5)
+
+### 親の設定
+
+[INCLUDE:Resources\ContentExamples\Blueprints_Advanced\2_5#CoinParent]
+
+
+[INCLUDE:Resources\ContentExamples\Blueprints_Advanced\2_5#CoinChild]
+
+[/REGION]

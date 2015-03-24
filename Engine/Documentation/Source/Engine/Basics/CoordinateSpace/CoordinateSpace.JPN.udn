@@ -1,0 +1,58 @@
+﻿INTSourceChangelist:2485252
+Availability:Public
+Title:座標空間の用語
+Crumbs:%ROOT%, Programming, Programming/Rendering
+Description:アンリアル・エンジンで使用するさまざまな座標空間の説明
+
+##空間
+
+| アンリアルの空間 | その他の名称 | 説明 |
+| --------------- | ----------- | ----------- |
+| **Tangent** | | 直交 (補間後に外転可能)、反時計回りまたは時計回りです。TangentToLocal 変換は回転のみを格納するため、OrthoNormal です (転置することによって反転することができます)|
+| **Local** | **Object Space** | 直交、反時計回りまたは時計回りです (トライアングル カリングの順序は調整が必要です)。LocalToWorld 変換は、回転、不均等なスケーリング (ワインディング順序を変更する負の不均等なスケーリングを含みます)、移動を格納します。|
+| **World** | | WorldToView 変換は回転と移動のみを格納します。ビュー空間の距離はワールド空間の距離と同一になります。|
+| **TranslatedWorld** | | [INCLUDE:#TranslatedWorld] 変換されたマトリックスは、結合された変換マトリックスからカメラ位置を取り除くために使用されます。これにより、頂点を変換する際の精度が向上します。 |
+| **View** | **CameraSpace** | ViewToClip 変換は、X と Y 座標のスケールを格納しますが、平行移動は含みません (中心から外れた投影となります)。Z 座標をスケーリングして平行移動します。均質 ClipSpace へ変換する投影も適用します。|
+| **Clip** | **HomogeniousCoordinates**、 **PostProjectionSpace**、 **ProjectionSpace** | 透視投影マトリクスの適用後。Clip space にある W は View Space Z と同じであることに注意してください。 |
+| **Screen** | OpenGL からの **NormalizedDeviceCoordinates** | [INCLUDE:#Screen] |
+| **Viewport** | **ViewportCoordinates**, **WindowCoordinates** | [INCLUDE:#Viewport] |
+
+
+<!--
+[EXCERPT:TranslatedWorld]
+[REGION:simpletable]
+| ------ | ------ |
+| World | TranslatedWorld - PreViewTranslation |
+| TranslatedWorld | World + PreViewTranslation |
+[/REGION]
+[/EXCERPT:TranslatedWorld]
+
+[EXCERPT:Screen]
+パースペクティブ分割後：
+[REGION:simpletable]
+| ------ | ------ |
+| 左/右 | -1,1 |
+| 最上部/最下部 | 1,-1 |
+| 近接/遠方 | 0,1 (OpenGL RHIはこれを -1、1 へ変換する必要があります)  |
+[/REGION]
+[/EXCERPT:Screen]
+
+[EXCERPT:Viewport]
+ピクセル単位 :
+[REGION:simpletable]
+| ------ | ------ |
+| 左/右 | 0、幅 -1 |
+| 最上部/最下部 | 0、高さ -1 |
+[/REGION]
+[/EXCERPT:Viewport]
+-->
+
+##空間移動
+
+ある空間から別空間への移動は、常に **_X To Y_** の形式の名前を利用します。
+
+**例**
+
+* WorldToView
+* TranslatedWorldToView
+* TangentToWorld 

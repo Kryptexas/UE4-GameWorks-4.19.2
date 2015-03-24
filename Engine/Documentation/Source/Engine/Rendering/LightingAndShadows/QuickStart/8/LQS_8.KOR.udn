@@ -1,0 +1,53 @@
+﻿INTSourceChangelist:2438964
+Availability: Docs
+Title:8. 추가 참고자료
+Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
+Description:라이팅 퀵스타트 안내서에서 다룬 주제에 대한 추가 참고자료입니다.
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 단계](Engine/Rendering/LightingAndShadows/QuickStart/7 "%Engine/Rendering/LightingAndShadows/QuickStart/7:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵스타트 홈](Engine/Rendering/LightingAndShadows/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+
+
+이 퀵스타트 가이드에서 다룬 주제 및 전체 에디터 관련 상세 정보는 [**언리얼 에디터 매뉴얼**](Engine) 을 참고해 주시기 바랍니다.
+
+이 가이드의 주제에 관련된 부분에 대해서는:
+
+* 라이팅 기본 관련: [](Engine\Rendering\LightingAndShadows\Basics)
+
+* 배경 라이팅 관련: [](Engine\Rendering\LightingAndShadows)
+
+* IES 프로파일 관련: [](Engine/Rendering/LightingAndShadows/IESLightProfiles) 
+
+* 라이트 함수 관련: [](Engine/Rendering/LightingAndShadows/LightFunctions)
+
+* 언리얼 엔진 4 에서의 렌더링 관련: [](Engine\Rendering\Overview)
+
+* 라이팅 예제 관련: [](Resources\ContentExamples\Lighting)
+
+* 브러시로 레벨 제작 관련: [](Engine\Actors\Brushes)
+
+* 머티리얼 관련: [](Engine/Rendering/Materials/IntroductionToMaterials)
+
+* 블루프린트 관련: [](Engine\Blueprints)
+
+
+
+%Steps%
+
+

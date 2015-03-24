@@ -1,0 +1,63 @@
+﻿INTSourceChangelist:2438154
+Availability:Public
+Title:1.4 - グループ
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
+Description:マテリアル インスタンスのサンプル レベルの概要、サンプル 1.4：グループ
+Related:Engine/Rendering/Materials/PhysicallyBased
+Related:Engine/Rendering/Materials
+Related:Engine/Rendering/Materials/ExpressionReference
+Related:Engine/Rendering/Materials/MaterialInputs
+Related:Engine/Rendering/Materials/LayeredMaterials
+Related:Engine/Rendering/Materials/MaterialInstances
+Related:Engine/Actors/DecalActor
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/MaterialInstances/1_4:title%](Resources\ContentExamples\MaterialInstances\rendering_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/MaterialInstances/1_4:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/MaterialInstances/1_4:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/MaterialInstances/1_4]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/MaterialInstances/1_4:title%](Resources\ContentExamples\MaterialInstances\rendering_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/MaterialInstances/1_4:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/MaterialInstances/1_4:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/MaterialInstances/1_4]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+<div align="center">
+[REGION:lightbox]
+[![](MI_1_4_001.png)(w:900)](MI_1_4_001.png)
+[/REGION]
+</div>
+
+**マテリアル** は急激に非常に複雑化する場合があります。 **Groups (グループ)** は、**マテリアル インスタンス** エディタで **パラメータ** をリスト表示する方法を管理します。
+
+パラメータのグループ化は **マテリアル** のレンダリング方法には影響はなく、単にワークフローを最適化するものです。
+

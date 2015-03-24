@@ -1,0 +1,208 @@
+﻿INTSourceChangelist:2467511
+Availability:Public
+Title:加算アニメーションを使用する
+Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
+Description:アニメーションのブレンド方法の実演。ここの事例では、移動し、武器を発砲できるキャラクター。 
+Related:Engine/Animation/AnimBlueprints
+Related:Engine/Animation/AnimMontage
+Related:Engine/Animation/NodeReference/Blend
+Related:Engine/Animation/AnimationBlending
+
+アニメーション ブレンディングの概念は、単一のキャラクターもしくはスケルタル メッシュ上の 2 つ以上のアニメーション間を滑らかに変形させる、というものです。アンリアル エンジン 4 では、こうしたブレンディングを適用するための様々な方法があります。すなわち、[](Engine/Animation/Blendspaces) を使用するか、重み付けによるバイアスまたはアルファ値に基づいて文字通り 2 つのアニメーションを加算的に組み合わせたり、既存のポーズに直接オーバーライドすることもします。 
+
+アニメーションをスケルトンおよびその全ての子供の特定のボーンに直接送ることもできます。例えば、キャラクターが走っているアニメーションから開始し、射撃するアニメーションをキャラクターの上半身に選択的に適用することもできます。最終結果では、キャラクターが走りながら射撃します。これを以下の手順で説明します。 
+
+[TOC(start:2 end:2)]
+
+[EXCERPT:Intro]
+[REGION:note]
+このガイドでは、**Starter Content** を有効にした状態で（スターターコンテンツを含める） **Blueprint Third Person** テンプレートを使用して新規プロジェクトを作成しました。 
+
+ここでも、 **Animation Starter Pack** を使用します。**マーケットプレイス** から無料でダウンロードしてご利用いただけます。 
+
+![](AnimationAssetPack.png)
+
+Animation Starter Pack をダウンロードしたら、ランチャーの **[プロジェクトに追加する]** ボタンで自分のプロジェクトに追加することができます。
+[/REGION]
+[/EXCERPT:Intro]
+
+## ブレンドするアニメーションを設定する
+
+このセクションでは、プレイヤー キャラクターを割り当て、動きのアニメーションとブレンドするアニメーションに変更を加えます。 
+
+1. ご自身のプロジェクトが開いた状態で、**コンテンツ ブラウザ** の **「ゲーム / ブループリント」** フォルダで **MyGame** ブループリントを開きます。 
+
+1.	**Default Pawn Class** でドロップダウン メニューをクリックし、**ASP_Character** を選択します。 
+
+	![](Animations1.png)
+
+1.	**コンパイル** し **保存** してから、ブループリントを閉じます。 
+
+1.	**コンテンツ ブラウザ** で、 **Game/AnimStarterPack** フォルダを開きます。 
+
+1.	**Fire_Shotgun_Ironsights** アニメーション上で右クリックし、**Create** を選択し、次に **Create AnimMontage** を選択します。
+  
+	![](Animations2.png)
+
+	上の画面のように検索ウィンドウ内で **Fire** と入力してこのウィンドウをフィルタリングできます。 
+
+1.	必要に応じて Montage の名前を変更し、それを開いて虫眼鏡アイコンをクリックします。 
+
+	![](Animations3.png)
+
+	**Anim Slot Manager** が開きます。これはスロットを名前で呼び出す場合にブレンド対象として使用可能な **スロット** を作成するために使用します。 
+
+1.	**[Add Slot]** ボタンをクリックし、スロットに **UpperBody** と名前を付け、**Save** してウィンドウを閉じます。 
+
+	![](Animations4.png)
+
+1.	**Montage Group** セクション内のドロップダウン メニューをクリックして、それを **DefaultGroup.UpperBody** に変更してウィンドウを閉じます。 
+
+	![](Animations5.png)
+
+	これで、モンタージュが **DefaultGroup.UpperBody** に関連付けられ、このスロットが呼び出されると再生されるようになります。  
+
+## Character ブループリントを更新する
+
+次に Character ブループリントを更新し、射撃ボタンを押した場合に判定できるようにします。 
+
+1.	**コンテンツ ブラウザ** 内の **Game/AnimStarterPack/Character** で、**ASP_Character** ブループリントを開きます。 
+
+1.	**Crouching** セクションを探して、**InputAction Crouch** イベント (Warning! 付き) 記号を削除します。 
+
+	![](Animations6.png)
+
+	このノードには警告があります。プロジェクトが InputAction イベント "Crouch" を使用するようにセットアップされていないからです。 
+
+1.	グラフ内を **右クリック** して、 **C** キー イベントを追加し、以下のように接続します。 
+
+	![](Animations7.png)
+
+	これで crouch を **C** キー押下に関連付けました。この入力は必要に応じて何にでも変更できます。 
+
+1.	**[MyBlueprint]** ウィンドウで、 **[変数を追加]** ボタンをクリックし、 **Boolean** 変数を作成します。 
+
+1.	変数に **Fire Button Down** と名前を付けて、目の形のアイコンをクリックして変数を公開します。 
+
+	![](Animations8.png)
+
+1.	グラフ内を **右クリック** して、 **Left Mouse Button** キー イベントを追加します。 
+
+1.	**Alt** を押したまま、グラフ内の **Fire Button Down** 変数をドラッグし、**Set** ノードを作成します。 
+
+1.	ひとつ前の手順を繰り返し (または **Set** ノードをコピー)、以下のように接続します。 
+
+	![](Animations9.png)
+
+	**左マウスボタン** が押されると (**Pressed**)、**Fire Button Down** が **True** になるようにします。**左マウスボタン** が 解放されると (**Released**)、 **False** になるようにします。 
+
+1.	**コンパイル** し **保存** してから、ブループリントを閉じます。 
+
+## アニメーション グラフを設定する
+
+ここでは、アニメーション グラフをセットアップし、現在のポーズと武器発砲アニメーションとをブレンドするために必要なノードを配置します。 
+
+1.	**Game/AnimStarterPack/Character** で **ASP_HeroTPP_AnimBlueprint** Animation ブループリントを開きます。 
+
+1.	**MyBlueprint** ウィンドウ内で **AnimGraph** を開きます。 
+
+	![](Animations9b.png)
+
+1.	**Locomotion** State Machine からドラッグして **New Save cached pose** を追加します。 
+
+	![](Animations10.png)
+
+	ここでは、Locomotion State Machine から結果のポーズを取得し、それをどこでも使用可能なキャッシュされたポーズに格納します。 
+
+1.	キャッシュされたポーズに **LocomotionCache** などの名前を付けます。 
+
+	![](Animations11.png)
+
+1.	グラフ内を **右クリック** して、 **Use cached pose 'LocomotionCache'** (またはキャッシュされたポーズに付けた任意の名前) を追加します。 
+
+	![](Animations12.png)
+
+1.	**Use cached pose** ノードからドラッグして、**Layered blend per bone** ノードを検索して追加します。 
+
+	![](Animations13.png)
+
+	**Layered Blend Per Bone** ノードでは、スケルトン上の指定されたボーンからのアニメーションをまとめてブレンドすることができます。
+
+1.	**Use cached pose 'LocomotionCache'** ノードをコピー/貼り付けし、ドラッグして、**Slot 'DefaultSlot'** ノードを追加します。 
+
+	![](Animations14.png)
+
+1.	**Slot** ノードの **Settings** で、ドロップダウン メニューをクリックし、**DefaultGroup.UpperBody** を選択します。 
+
+	![](Animations15.png)
+
+1.	**Slot** を **Layered blend per bone** 上の **Blend Poses 0** ピンに接続します。次にその出力を **Result** に接続します。 
+
+	![](Animations16.png)
+
+	AnimGraph が完了しましたが、**Layered blend per bone** ノードの一部の設定を変更する必要があります。 
+
+## ブレンドの設定を調整する
+
+最後に、アニメーション間でブレンドし、上半身がひとつのアニメーションを再生しているときに下半身が別のアニメーションを再生するようにします。 
+
+1.	**Layered blend per bone** ノードをクリックします。次に、 **Layer Setup** セクションを展開し、**+** 記号をクリックします。 
+
+	![](Animations17.png)
+
+1.	**Bone Name** で **spine_01** と入力します。次に **Blend Depth** を **1** に設定し、**Mesh Space Rotation Blend** にチェックを入れます。 
+
+	![](Animations18.png)
+
+	このような設定で、射撃する AnimMontage を **spine_01** から開始してスケルトンにブレンドすることができます。 
+
+1.	**MyBlueprint** ウィンドウ内で **EventGraph** を開きます。 
+
+	![](Animations18b.png)
+
+1.	**Cast To ASP_Character** ノードの **As ASP Character** ピンをドラッグして **Get Fire Button Down** ノードを追加します。 
+
+	![](Animations19.png)
+
+	これで、プレイヤーが発射ボタンを押しているか否かがわかります。 
+
+1.	**B** を押したまま、グラフ内で **左クリック** して、**Branch** ノードを作成し、それを **Set Crouching** の後に接続します。 
+
+	![](Animations20.png)
+
+	**Condition** に対して、**FireButtonDown** ピンを差し込みます。 
+
+1.	グラフ内を **右クリック** して、 **Montage Is Playing** ノードを追加します。 
+
+	![](Animations21.png)
+
+1.	**Montage Is Playing** ノードを **Branch** の **True** に接続します。 
+
+	![](Animations22.png)
+
+	**Montage** で、Montage (**Fire_Shotgun_Ironsights_Montage**) を選択します。 
+
+1.	**Montage Is Playing** ノードの **Return Value** から、 **Branch** を追加します。 
+
+1.	新しい **Branch** ノードの **False** から、**Montage to Play** がご自身のモンタージュに設定されている **Montage Play** ノードを 追加します。 
+
+	![](Animations23.png)
+
+	これで、モンタージュが現在再生しているかをチェックし、再生している場合はそれを再生しないようにします (再生していなければモンタージュを再生します)。 
+
+1.	**コンパイル** し **保存** してから、**ブループリント** を閉じてエディタで再生します。 
+
+	![](AdditiveGIF.gif)(convert:false)
+
+左マウスボタンを押したままにすると、キャラクターが射撃する AnimMontage を再生します。射撃中に歩き回ったり、しゃがんで射撃することもできます ( **C** を押した状態で)。 
+
+同じ方法を使用してメレー (近接) 攻撃を再生したり、アニメーションを再読み込みできます。これは、動きのアニメーション セットとブレンドするアニメーションの **AnimMontage** を作成し、それを上記の手順 8 で行ったように **UpperBody** スロットに割り当てて行います。スロットはキャラクターの Animation ブループリントの AnimGraph でセットアップされているため、その特定スロットを使用するように設定されているアニメーションはアニメーション グラフに渡され、呼び出されたときにブレンドされます。 
+
+
+
+
+
+
+
+
+

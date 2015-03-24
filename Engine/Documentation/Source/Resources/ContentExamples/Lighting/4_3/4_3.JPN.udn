@@ -1,0 +1,49 @@
+﻿INTSourceChangelist:2346368
+Availability:Public
+Title:4.3 - 間接ライティング
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
+Description:ライティングの事例概要、例 4.3：間接ライティング
+Related:Engine/Rendering/LightingAndShadows/Basics
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
+Related:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Directional
+Related:Engine/Rendering/LightingAndShadows/Lightmass
+Related:Engine/Rendering/LightingAndShadows/Shadows
+Related:Engine/Rendering/LightingAndShadows/IndirectLightingCache
+Related:Engine/Rendering/LightingAndShadows/LightMobility
+
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\Lighting\4_3:title%](Resources\ContentExamples\Lighting\Lighting_4_3.png)(w:192)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\Lighting\4_3:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\Lighting\4_3:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\Lighting\4_3]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+![%Resources\ContentExamples\Lighting\4_3:title%](Resources\ContentExamples\Lighting\Lighting_4_3.png)
+[/REGION]
+
+この例は間接ライティングがシーン内のオブジェクトに及ぼす影響を示します。壁から跳ね返るライトが静的及び動的オブジェクトにぶつかっている狭い空間は、赤いライトで包み込まれています。間接ライティングは事前計算されて静的ライトマップへ焼き付けられているため、静的オブジェクトのライティングとシャドウイングがより正確になります。一方で動的オブジェクトに関しては、ライティングは間接ライティングのキャッシュに依存します。
+
+[INCLUDE:Resources\ContentExamples\Lighting\2_1#ILC]
+
+
+
+
+

@@ -1,0 +1,60 @@
+Availability:Public
+Title: Transition Rules
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
+Description:Guide to rules that govern State Machine Transitions
+
+
+**Transition Rules** are method of controlling flow inside a **State Machine**. 
+**Transition Rules** are created automatically along the wires that connect **States** and **Conduits** and can perform any number of checks and tests against variable values, all with the purpose of outputting a _True_ or _False_ value. 
+This **Boolean** output determines whether the animation can move through the transition or not. 
+
+Visually, a **Transition Rule** appears as a small circular directional icon inside the **AnimationGraph**, like so: 
+
+![](TransitionRule.png)
+
+When you mouse over the icon, a visual indication of what the rule is will be displayed: 
+
+![](TransitionRuleMouseOver.png)
+
+_In this example, in order for **JumpLoop** to transition to **JumpEnd**, the variable **IsInAir?** must be **NOT** true._ 
+
+Rules can also be set to determine flow for a transition in both directions as well: 
+
+![](RulesBothWays.png)
+
+This means that a rule can be set to exit one state to move to another and a rule can be applied to transition back to that state. 
+
+When **left-clicking** on the **Transition Rule**, the **Details** panel will update and additional options will become available. 
+
+![](TransitionDetails.png)
+
+| **Property** | **Description** |
+| --- | --- |
+| **Transition Priority Order** | The priority order of the transition. If multiple transitions out of a state are _true_ at the same time, the one with the smallest priority order will take precedent. |
+| **Bidirectional** | Determines if the transition can go both directions. |
+| **Blend Logic** | Specifies what transition logic to use: Standard Blend or Custom Blend. Selecting Custom will enable you to enter the Blend Graph to set a custom Blend Transition. |
+| **Transition Rule Sharing** | This option allows you to set whether or not the rule can be shared with other transitions or to use rule from another transition.  |
+| **Transition Interrupt** | Set the **Trigger Weight Threshold** and specify a **Notify State Class**.  |
+| **Transition Crossfade Sharing** | Use an existing **Transition Crossfade Blend** or promote the existing **Transition Crossfade** to shared.  |
+| **Duration** | The duration to apply to the cross-fade. |
+| **Mode** | The type of blending applied to the cross-fade. |
+| **Start Transition Event / Custom Blueprint Event** | Call and execute an **Event** from within the notified **Blueprint** at the start of the transition. |
+| **Blueprint Notify** | **Blueprint** that is notified when the transition starts.  |
+| **End Transition Event / Custom Blueprint Event** | Call and execute an **Event** from within the notified **Blueprint** at the end of the transition. |
+| **Blueprint Notify** | **Blueprint** that is notified when the transition ends.  |
+| **Interrupt Transition Event / Custom Blueprint Event** | Call and execute an **Event** from within the notified **Blueprint** when the transition is interrupted. |
+| **Blueprint Notify** |  **Blueprint** that is notified when the transition is interrupted. |
+
+When **Double-Clicking** on the **Transition Rule**, a window will open where you can define the variables that must be met in order for the transition to occur. 
+
+[REGION:lightbox]
+[![](EditRule.png)(w:480)](EditRule.png)
+[/REGION]
+
+_click for full view_
+
+Similar to **Blueprints**, you can specify variables in the **My Blueprint** window and drag them into the graph. By connecting the variables to various conditions which are then connected to the **Result** node, you can define what must be _true_ in order for the transition to occur. 
+
+For information on getting started with **Blueprints**, refer to the [Introduction to Blueprints](Engine/Blueprints/GettingStarted) documentation. 
+
+

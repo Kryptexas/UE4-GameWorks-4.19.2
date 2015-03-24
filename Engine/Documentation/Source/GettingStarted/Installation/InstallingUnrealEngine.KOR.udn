@@ -1,0 +1,97 @@
+﻿INTSourceChangelist:2467017
+Availability:Public
+Title:언리얼 엔진 설치하기
+Crumbs: %ROOT%, GettingStarted
+Description:언리얼 엔진 설치법 단계별 안내입니다.
+
+%Globals:OSSelect%
+
+## 인스톨러 내려받기
+
+인스톨러는 [UnrealEngine.com](http://unrealengine.com) 웹사이트에서 내려받을 수 있습니다:
+
+1. [UnrealEngine.com](http://unrealengine.com) 으로 이동하여 로그인(sign in)합니다:
+
+	[REGION:note]
+	언리얼 엔진을 내려받기 위해서는 계정을 생성하고 멤버쉽에 가입(subscribe)해야 합니다. 만들어 둔 계정이 없는 경우, 페이지 상단의 주황색 **Get Unreal** 버튼을 누른 다음 지시에 따릅니다.
+	[/REGION]
+
+1. 계정 페이지에서, 운영체제에 따라 내려받기 버튼 중 하나를 클릭합니다:
+
+	![](ue4_install_downlader.png)
+
+
+## 기본 설치
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#Windows]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#MacOS]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:Windows]
+1. 내려받은 인스톨러를 실행하여 언리얼 엔진을 설치할 위치를 선택합니다:
+
+	![](ue4_install_location.png)
+
+	[REGION:warning]
+	[REGION:largetitle]
+	필요 공간
+	[/REGION]
+	언리얼 엔진은 각 버전마다 8GB 정도의 디스크 공간을 사용하며, 모든 버전은 이 설치 단계에서 선택한 위치에 저장됩니다. 여유 공간이 많이 있는 설치 위치를 선택해 주세요.
+	[/REGION]
+
+1. **Install** (설치)를 클릭하여 설치 프로세스를 계속합니다. 언리얼 엔진이 설치되면, 언리얼 엔진 런처가 열립니다.
+
+[/EXCERPT:Windows]
+[EXCERPT:MacOS]
+1. Finder 에서 `Rocket.dmg` 아이콘을 더블클릭하여 엽니다. **License Agreement** 에 동의하면 새로운 **Finder** 창이 열립니다.
+1. **RocketEditor** 아이콘을 **Applications** 폴더로 끌어옵니다.
+
+	![](ue4_mac_install.png)
+
+1. Finder 가 파일 복사를 끝내면, **Launchpad** 에서 언리얼 엔진을 사용할 수 있습니다. 거기서 실행시킵니다.
+
+[/EXCERPT:MacOS]
+-->
+
+## 로그인 및 내려받기
+
+언리얼 엔진 런처가 실행되었으면, 로그인하여 현재 엔진 버전을 내려받아야 합니다.
+
+1. 자신의 계정으로 로그인합니다.
+
+	[REGION:fullwidth]
+	![](ue4_installer_login.png)
+	[/REGION]
+
+1. 언리얼 엔진 4 현재 버전 내려받기가 시작됩니다:
+
+	![](ue4_installer_download.png)
+
+1. 내려받기가 끝나면, **Launch** (실행) 버튼으로 언리얼 엔진을 실행할 수 있습니다:
+
+	![](launch.png)

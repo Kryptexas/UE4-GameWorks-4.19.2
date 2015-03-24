@@ -1,0 +1,69 @@
+﻿Availability:Public
+Title:1.5 - 物理コンストレイント
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
+Description: 物理事例レベルの概要 例 1.5:物理コンストレイント
+
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\Physics\1_5:title%](physics_1_5_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\Physics\1_5:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\Physics\1_5:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\Physics\1_5]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources\ContentExamples\Physics\1_5:title%](physics_1_5_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\Physics\1_5:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\Physics\1_5:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\Physics\1_5]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+	![](physics_1_5_001.png)
+[/REGION]
+
+
+[INCLUDE:Engine/Physics\Constraints\ConstraintsUserGuide#PhysXConstraints_001]
+
+コンテンツの例では、左から右へ動きます。
+
+1. 最初の軸上ではフリーに揺れ、 2 番目の軸では 45 度に制限され、 twist axis (ひねり軸) でロックされます。
+
+1. このキューブは **2 番目の角度のある揺れ** でのモーションはフリーで、それ以外ではロックされます。
+
+1. **Txist (ひねり軸)** 上ではフリーで、それ以外ではロックされます。
+
+1. 最後のキューブは全ての軸でフリーです。
+
+
+
+
+
+

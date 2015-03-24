@@ -1,0 +1,239 @@
+Availability:Public
+Title:Building Unreal Engine
+Crumbs: %ROOT%, Programming, Programming/Development
+Description:Compiling the Unreal Engine.
+Version: 4.5
+
+%Globals:OSSelect%
+
+[TOC (start:2 end:3)]
+
+## Setting Up Unreal Engine
+
+[EXCERPT:Main]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+		[REGION:note]
+		Please make sure you are running Microsoft Visual Studio 2013 before proceeding.
+		[/REGION]
+
+		Before you dive right in and start getting your hands dirty with the engine, there are a few basic setup steps to perform:
+
+		1.	Run the `GenerateProjectFiles.bat` batch file located in the root directory.
+
+			[REGION:warning]
+				All of the project files and even the UE4 solution are intermediate files - located in `[UE4Root]\Engine\Intermediate\ProjectFiles`. You must generate them each time you sync a new build to ensure they exist and are up to date. This also means if you delete your `Intermediate` folder, you must regenerate the project files using the above-mentioned batch file.
+			[/REGION]
+
+		1.	Open the `UE4.sln` Visual Studio solution located in the root directory. This is the main Visual Studio solution for the entire engine. The projects for the engine core and games are contained within this solution. 
+
+		1.	**Right-click** the **UE4** project and choose **Set As StartUp Project**.
+
+		1.	Save the `UE4.sln`. Make sure to save the changes you have made so the next time you open the solution you will not have to go through the process all over again.
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+		[REGION:note]
+		Please make sure you are running Xcode 5.1 before proceeding.
+		[/REGION]
+
+		Before you dive right in and start getting your hands dirty with the engine, you will need project files in order to compile: 
+		
+		1. Run `GenerateProjectFiles.command` located in the root directory. It should take less than a minute to complete. 
+		
+		1. Close the Terminal window once the operation has completed.
+
+		1. Open the `UE4.xcodeproj` Xcode project located in the root directory. This is the main project for the entire engine. All of the projects for the engine core, tools, and games are contained within this project.
+
+		1. in Xcode, choose **UE4Editor - Mac** and **My Mac 64-bit** for the active scheme.
+
+	[/PARAM]
+[/OBJECT]
+
+
+## Compiling Unreal Engine
+
+Unreal Engine 4 uses a custom building method via the UnrealBuildTool. This tool handles all the complex aspects of compiling the engine and all of its parts. 
+
+### Build Configuration
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+		Not all configurations will appear by default. Edit the [GenerateProjectFiles.bat](Programming/UnrealBuildSystem/ProjectFileGenerator) file in the main UE4 directory to generate the project files for additional configurations as needed.
+
+		Unreal Engine 4 and the UnrealBuildTool use different build configurations to determine how the engine is compiled. Which configuration you use will be determined by the purposes of the build you want to create.
+
+		The available configurations:
+
+		| Build Configuration | Description |
+		|-------------|-------------|
+		| **Debug** | This configuration builds both engine and game code in debug configuration.|
+		| **DebugGame** | This configuration builds the engine as optimized, but leaves the game code debuggable. This configuration is ideal for debugging only game modules. |
+		| **Development** | This configuration is equivalent to Release.  Both engine and game code will be built in this configuration. |
+		| **Shipping** | This is the configuration for optimal performance and shipping your game.  This configuration strips out console commands, stats, and profiling tools. |
+		| **Test** | This configuration is the **Shipping** configuration, but with some console commands, stats, and profiling tools enabled. |
+
+		The build configuration can be set in the Visual Studio toolbar.
+
+		![UE4 Solution - Configuration Menu](configuration_menu.png)
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+		The available configurations:
+
+		| Build Configuration | Description |
+		| ------------------- | ----------- |
+		| **Product > Build For > Running** | This configuration builds both engine and game code in debug configuration.|
+		| **Product > Build For > Profiling** | This configuration is equivalent to Release.  Both engine and game code will be built in this configuration. |
+		
+	[/PARAM]
+[/OBJECT]
+
+### Target Platforms
+
+Unreal Engine 4 currently supports the following platforms:
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+		* **Windows 32-bit**
+		* **Windows 64-bit**
+
+
+		When building the engine itself, you will use the **Win64** platform.
+
+		![UE4 Solution - Platform Menu](platform_menu.png)
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+		* **Mac 64-bit**
+		* **iOS Device**
+
+
+		When building the engine itself, you will use the **Mac 64-bit** platform.
+	[/PARAM]
+[/OBJECT]
+
+(#BinaryNamingConvention)
+### Binary Naming Conventions
+
+The name of the binaries generated will vary depending on the configuration used when building. The general naming convention is:
+
+|Engine Mode | Naming Convention |
+|----------- | ------------------|
+| Editor	  | UE4Editor-Platform-Configuration.extension |
+| Uncooked Game | UE4-Platform-Configuration.extension |
+
+The exception to the rule is that for PC platforms, the platform and configuration are omitted when building the Development configuration. For example, the names of the editor executable files generated for the Win64 platform include:
+
+| Configuration | EXE Name |
+| ------------- | -------- |
+| Debug | UE4Editor-Win64-Debug.exe |
+| DebugGame | UE4Editor-Win64-DebugGame.exe |
+| Development | UE4Editor.exe |
+
+
+### Building the Engine
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+		1.	Set the **Build Configuration** to the configuration you want to build. In this example, it is set to **Development**. Refer to the [Build Configuration](#BuildConfiguration) section for descriptions of each available configuration.
+
+			![UE4 Solution - Set Configuration to Development](config_development_menu.png)
+
+		1.	**Right-click** the **UE4** project: 
+
+			1. Choose **Clean** to remove any compiled or temporary files. This will ensure the next build is a full rebuild.
+
+			1.	Choose **Rebuild** to recompile the engine.
+
+		Alternatively, if the **UE4** project is still set as your startup project:
+
+		1. Set your **Build Configuration**.
+
+		1. From the **Build** menu:
+
+			1. **Clean UE4**.
+	
+			1. **Rebuild UE4**.
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+		1. Make sure the active scheme is set to **UE4Editor - Mac > My Mac 64-bit**.
+
+		1. From the **product** menu, choose **Build For > Running**.
+	[/PARAM]
+[/OBJECT]
+
+[/EXCERPT:Main]

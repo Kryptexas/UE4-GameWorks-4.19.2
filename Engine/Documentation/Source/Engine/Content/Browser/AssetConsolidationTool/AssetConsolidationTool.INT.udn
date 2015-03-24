@@ -1,0 +1,142 @@
+Availability: Public
+Title:Replace References Tool
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:Tool that removes duplicate assets by consolidating multiple assets into a single asset and fixing up references.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Browser/AssetConsolidationTool:title%](Engine/Content/content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/AssetConsolidationTool:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Browser/AssetConsolidationTool:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/AssetConsolidationTool]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Browser/AssetConsolidationTool:title%](ConsolidateTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/AssetConsolidationTool:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Browser/AssetConsolidationTool:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/AssetConsolidationTool]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+
+
+## Overview
+
+The Replace References Tool provides a simple way within the editor to combine multiple assets into one asset. As an example, consider a texture that has become duplicated numerous times over the course of development, resulting in a waste of resources by storing multiple copies of what amounts to the exact same texture. The Replace References Tool allows the user to select all such uses as desired and have them all point to one particular instance of the texture instead.
+
+While this has been greatly reduced by the Unreal Engine's ability to just re-import the source asset, if you attempt to add the exact same file twice (same name and path), it can still happen with multiple people working on a game.
+
+## Using the Replace References Tool
+
+The asset consolidation is fairly simple to use, but caution must be exercised to utilize it properly.
+
+
+### Invoking the Replace References Tool
+
+To gain access to the tool, you simply select at least one asset you wish to use in the consolidation process within the **Content Browser**. Afterwards, **right-click**, and within the context menu that appears, click "**Replace References**." The **Replace References** dialog will appear, populated with all of the assets that were selected while summoning the tool. You can add additional assets by dragging them from the **Content Browser** into the main part of the dialog.
+
+[REGION:note]
+Consolidation is generally restricted to selected objects of the same type, with some exceptions allowed for Textures and Materials. If you do not see the **Replace References** option, or a drag-drop operation was not allowed, you should make sure you have only selected assets of the same type! If you have accidentally added an asset that you did not intend, you can remove it from the dialog by selecting it and pressing the **Delete** key on your keyboard.
+[/REGION]
+
+![Consolidate1.png](Consolidate1.png)
+
+Here a texture has been duplicated many times! Selecting them all and **right-clicking** grants the option to **Replace References**.
+
+
+### Consolidating Assets
+
+Once you have populated the dialog with all of the assets you would like to use in the consolidation process, select one of the assets to serve as the "asset to consolidate to" and then click **Consolidate Assets**. All references to the assets you did not choose from the list will be replaced with references to the asset you did, deleting the non-chosen assets in the process.
+
+[REGION:note]
+The **Consolidate Assets** button is grayed out (and unavailable) until at least two assets are in the dialog and at least one is selected.
+[/REGION]
+
+![Consolidate2.PNG](Consolidate2.PNG)
+
+Inside the **Replace References** dialog, selecting an asset marks it as the "asset to consolidate to."
+
+![Consolidate2.1.PNG](Consolidate2.1.PNG)
+
+Upon clicking **Consolidate Assets**, you will be prompted with a **Delete Assets** dialog, which enables you to remove assets that are no longer referenced and thus no longer necessary.  Click **Delete**.
+
+![Consolidate3.png](Consolidate3.png)
+
+All of the duplicates have been consolidated to the chosen asset!
+
+### Saving Dirtied Packages
+
+The consolidation dialog provides the option to **Save dirtied packages**, in the lower-left corner. If you check this option, you will be prompted upon the completion of a consolidation operation to save any of the UAssets dirtied by the process. This is a handy way to ensure that all of the UAssets affected by consolidation are properly saved without having to find them all in the **Content Browser** yourself. If, for whatever reason, a consolidation is unsuccessful or an error occurs, the UAssets will not be saved and you will be warned appropriately.
+
+
+## How the Replace References Tool Works
+
+The actual consolidation process occurs in multiple steps. First, for any valid objects that are to be consolidated, the tool attempts to replace all references of those objects with references to the "object to be consolidated to" within objects/UAssets that are already loaded and in memory. What this means is if you have a map or UAsset already open that is referring to one of the objects to be consolidated, the tool will attempt to update it immediately. Next, the tool attempts to delete the objects to be consolidated directly (there is a potential for this to fail, see [Limitations and Caveats](#LimitationsandCaveats)). Finally, if the deletion was successful, the tool leaves behind [object redirectors](Engine/Basics/Redirectors) in the place of the deleted objects. These will redirect unloaded UAssets with references to the deleted objects to the object you consolidated them to.
+
+
+(#BestPractices)
+
+
+
+## Best Practices
+
+
+* Improper use of the Replace References Tool can be extremely dangerous given the nature of what it does. Users of the tool should always think carefully about what they are about to do and decide if the resulting operation would make sense in the context of their assets. The tool attempts to guard against some obviously incorrect consolidations, but users should still always exercise caution in order to avoid ruining UAssets. Keep in mind that the tool will delete consolidated assets and route previous uses of them to the selected Object; it is not an alternative method of doing a "replace Actor"-type operation. 
+
+* While the Replace References Tool will attempt to forcibly replace references to Objects to consolidate in UAssets/maps that are currently loaded and in memory, it is best to maximize the chance of a successful consolidation by having as few things referencing the Objects to consolidate as possible while using the tool. In particular, it is extremely ill-advised to have sub-editors (such as the Blueprint Editor or the Static Mesh Editor) open and utilizing assets that are about to be consolidated.
+
+* The Replace References Tool makes heavy use of [object redirectors](Engine/Basics/Redirectors), meaning it is a good idea to occasionally make use of the Fixup Redirects Commandlet some time after the use of the Replace References Tool.
+
+
+
+(#LimitationsandCaveats)
+
+
+
+## Limitations and Caveats
+
+While useful, the Replace References Tool does have some limitations and caveats, outlined below:
+
+* To prevent the user from accidentally destroying their work, the Replace References Tool can only be invoked on assets that share the same class/type, with an exception made if all objects are a type of Material or a type of Texture (meaning that a Material could be consolidated to a Decal Material, even though they are not strictly the same type). This restriction is in place to prevent consolidations that would certainly cause crashes, such as consolidating a Material into a Static Mesh. Even where cross-type consolidation is allowed, the tool presents a clearly visible warning that multiple types have been chosen for consolidation.
+
+* The Replace References Tool cannot always consolidate the assets the user has selected. If a user selects an "asset to consolidate to" that contains references to one of the assets to consolidate, that particular asset to consolidate will not be consolidated. Allowing such an operation would make the "asset to consolidate to" refer to itself, which would certainly lead to trouble. At the end of a consolidation operation, the user is warned which, if any, of their assets were skipped for consolidation.
+
+* The Replace References Tool can sometimes fail to consolidate an otherwise valid asset if not all of its references could be cleared, or it could not be deleted for some reason. This type of failure is critical, resulting in "partial consolidation," in which some uses of an asset have been consolidated and some have not. This type of failure should be quite rare, but should the situation arise, the user is warned with a dialog showing the affected assets and potentially affected UAssets. The user should **NOT** save any of the affected UAssets or they will be accepting a potentially disastrous partial consolidation.
+
+* As mentioned in [Best Practices](#BestPractices), it is extremely ill-advised to utilize the Replace References Tool while potentially affected assets are being used in various sub-editors, such as Persona or the Blueprint Editor. Ultimately, most sub-editors as of yet do not respond well to having references swapped from under them, so using the sub-editors while consolidating can lead to the sub-editors being put into invalid states and/or potentially crashing.
+
+* The Replace References Tool only replaces references to the consolidated objects in UAssets that were already loaded at the time of the operation. It relies on [object redirectors](Engine/Basics/Redirectors) to fix up the remaining references in unloaded UAssets. This means care should be taken to not perform an action that will trample on, overwrite, delete, etc. the redirectors, unless specifically desired. Otherwise, some UAssets will correctly be fixed up and some will not. As outlined earlier, making use of the Fixup Redirects Commandlet can alleviate this issue.
+
+* For now, once a consolidation operation has been successfully performed, it is advised to save the relevant UAssets before attempting to load into memory any unloaded UAssets that also reference one of the consolidated objects. A currently outstanding **Content Browser**/Object Redirector bug can cause consolidated assets to reappear in the browser if a referencing UAsset is loaded before saving.
+
+
+
+
+
+

@@ -1,0 +1,41 @@
+﻿INTSourceChangelist:2187648
+Availability:Public
+Title:ペルソナ アニメーション通知
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:ペルソナ (Persona) アニメーション エディタのアニメーション通知のユーザーガイド
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/AssetBrowser:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/AnimationNotifies:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/AnimationNotifies:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/AnimationNotifies]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+Personal **[Animation Notifies]** ウィンドウは、アセットエディタで作成したカスタム仕様のアニメーション通知を表示します。
+
+**[Animation Notifies] ** ウィンドウはデフォルトで表示されません。ウィンドウを表示するには、ペルソナ(Persona) の **[Window]** メニューから **[Animation Notifies]** をクリックします。
+
+![Animation Notifies Window](AnimationNotifies.png)
+
+[REGION:note]
+**[Animation Notifies]** ウィンドウでカスタム仕様のアニメーション通知を選択すると、ペルソナの **[Details]** パネルでそのプロパティが公開されます。
+[/REGION]
+
+カスタム仕様のアニメーション通知を削除するには、これを **右クリック** してから **[Delete]** をクリックします。
+
+カスタム仕様のアニメーション通知に名前を付けるには、これを **右クリック** してから **[Rename]** をクリックします。
+
+ペルソナ (Persona) の **アセットエディタ** に関する詳細は、 [](Engine/Animation/Persona\AssetEditor) を参照してください。

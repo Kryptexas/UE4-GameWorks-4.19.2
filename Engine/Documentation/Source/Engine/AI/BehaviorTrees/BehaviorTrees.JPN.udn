@@ -1,0 +1,61 @@
+﻿INTSourceChangelist:2477330
+Availability:Public
+Title:ビヘイビアツリー
+Crumbs:%ROOT%, Engine, Gameplay/AI
+Description:ビヘイビアツリーに関連する全ドキュメントへのランディング ページ
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/AI/BehaviorTrees:title%](AI_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/AI/BehaviorTrees:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/AI/BehaviorTrees:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/AI/BehaviorTrees]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/AI/BehaviorTrees:title%](AI_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/AI/BehaviorTrees:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/AI/BehaviorTrees:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/AI/BehaviorTrees]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/tech_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		ビヘイビアツリーのトピックス
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/AI/BehaviorTrees/QuickStart "%Engine/AI/BehaviorTrees/QuickStart:description%")
+	* [](Engine/AI/BehaviorTrees/UserGuide "%Engine/AI/BehaviorTrees/UserGuide:description%")
+	* [](Engine/AI/BehaviorTrees/NodeReference "%Engine/AI/BehaviorTrees/NodeReference:description%")
+	* [](Engine/AI/BehaviorTrees/HowUE4BehaviorTreesDiffer "%Engine/AI/BehaviorTrees/HowUE4BehaviorTreesDiffer:description%")
+	[/PARAM]
+[/OBJECT]
+

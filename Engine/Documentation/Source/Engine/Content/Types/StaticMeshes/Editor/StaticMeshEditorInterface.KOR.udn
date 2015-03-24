@@ -1,0 +1,153 @@
+﻿INTSourceChangelist:2473872
+Availability: Public
+Title:스태틱 메시 에디터 UI
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types/StaticMeshes
+Description:스태틱 메시 애셋의 모양, 콜리전, UV 미리보기는 물론 그 프로퍼티 설정과 조작에 사용되는 툴입니다.
+
+[TOC(start:2)]
+
+## 개요
+
+**스태틱 메시 에디터** 는 네 영역으로 이루어져 있습니다.
+
+[REGION:fullwidth]
+![](StaticMeshEditorUI.png)
+[/REGION]
+1. [메뉴 바](#메뉴바)
+1. [툴바](#툴바)
+1. [뷰포트 패널](#뷰포트패널)
+1. [디테일 패널](#디테일패널)
+
+[Include:Shared/Editors/Common/EditorMenuItems/#UITabTips]
+
+<!-- For more information about the Static Mesh Editor, see [](Engine/Content\Types\StaticMeshes\Editor). -->
+
+## 메뉴 바
+
+### 파일
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuFileSave]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuFileSaveOptions]
+
+### 편집
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuEditUndo]
+* **소켓 삭제** - 메시에서 선택된 소켓을 삭제합니다.
+* **소켓 복제** - 선택된 소켓을 복제합니다.
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuEditSettings]
+
+### 애셋
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetContentBrowser]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetReimport]
+
+
+### 메시
+
+* **원본 찾기** - 윈도우 탐색기를 열어 스태틱 메시의 원본 파일이 있는 곳으로 이동합니다.
+* **메시 변경** - 스태틱 메시 애디터에 로드된 스태틱 메시 애셋을 콘텐츠 브라우저에 현재 선택된 애셋으로 변경합니다.
+
+### 콜리전
+
+* **6면체 단순화 콜리전** - 스태틱 메시를 에두르는 축 평행 박스(총 6면체) 콜리전 메시를 새로 만듭니다.
+* **X축 10면체 단순화 콜리전** - 스태틱 메시를 에두르는 X축 에지 넷을 각지게 깎은 축 평행 박스(총 10면체) 콜리전 메시를 새로 만듭니다.
+* **Y축 10면체 단순화 콜리전** - 스태틱 메시를 에두르는 Y축 에지 넷을 각지게 깎은 축 평행 박스(총 10면체) 콜리전 메시를 새로 만듭니다.
+* **Z축 10면체 단순화 콜리전** - 스태틱 메시를 에두르는 Z축 에지 넷을 각지게 깎은 축 평행 박스(총 10면체) 콜리전 메시를 새로 만듭니다.
+* **18면체 단순화 콜리전** - 스태틱 메시를 에두르는 모든 에지를 각지게 깎은 축 평행 박스(총 18면체) 콜리전 메시를 새로 만듭니다.
+* **26면체 단순화 콜리전** - 스태틱 메시를 에두르는 모든 에지와 코너를 각지게 깎은 축 평행 박스(총 26면체) 콜리전 메시를 새로 만듭니다.
+* **자동 컨벡스 콜리전** - 스태틱 메시 애셋의 모양을 기반으로 컨벡스 콜리전 메시를 새로 만듭니다.
+* **구체 단순화 콜리전** - 스태틱 메시를 에두르는 구형 콜리전 메시를 새로 만듭니다.
+* **콜리전 제거** - 스태틱 메시에 지정된 단순화 콜리전은 모두 제거합니다.
+* **박스를 컨벡스로 변환** - 간단한 박스 콜리전 메시는 모두 컨벡스 콜리전 메시로 변환합니다.
+* **선택된 스태틱 메시에서 콜리전 복사** - 3D 어플리케이션에서 만들어 스태틱 메시로 저장된 콜리전 메시를 복사합니다.
+
+언리얼 엔진의 스태틱 메시에 대한 콜리전 관련 상세 정보는, [콜리전 참고서](Engine/Physics/Collision/Reference) 확인을 바랍니다.
+
+
+### 창
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowToolbar]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowViewport]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowDetails]
+* **소켓 매니저** - 기본적으로 표시되지는 않는 **소켓 매니저** 패널을 표시합니다.
+* **컨벡스 분해** - 기본적으로 표시되지는 않는 **컨벡스 분해** 패널을 표시합니다.
+* **고유 UV 생성** - 기본적으로 표시되지는 않는 **고유 UV 생성** 패널을 엽니다.
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindow]
+
+
+
+### 도움말
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuHelp]
+
+
+## 툴바
+
+| 항목 | 설명 |
+| ---- | ---- |
+| ![button_realtime.png](button_realtime.png)| 뷰포트 업데이트를 실시간으로 할 지, 클릭/마우스 오버시에만 할 지를 토글합니다. 기본으로 꺼져 있는데, 스트리밍된 텍스처를 고해상도로 표시되게 하려면 메시가 로드된 다음 뷰포트에서 한 번 클릭해 줘야 할 것입니다. |
+| ![button_sockets.png](button_sockets.png) | 이 메시에 적용된 소켓을 표시합니다. 소켓 관련 상세 정보는 [](Engine/Content\Types\SkeletalMeshes\Sockets) 문서를 참고해 주세요. |
+| ![button_wireframe.png](button_wireframe.png)| 뷰포트 패널의 뷰모드를 릿 / 와이어프레임 모드 토글합니다. |
+| ![button_vertcolor.png](button_vertcolor.png) | 버텍스 컬러 표시를 토글합니다. |
+| ![button_grid.png](button_grid.png) | 뷰포트 패널의 그리드 표시를 토글합니다. |
+| ![button_bounds.png](button_bounds.png)| 스태틱 메시의 바운드 표시를 토글합니다. |
+| ![button_collision.png](button_collision.png)| 스태틱 메시에 단순화된 콜리전 메시 표시를 (적용된 것이 있으면) 토글합니다. |
+| ![button_showPivot.png](button_showPivot.png) | 메시의 피벗 포인트 표시를 토글합니다. |
+| ![button_normals.png](button_normals.png) | 뷰포트 패널의 버텍스 노멀 표시를 토글합니다. |
+| ![button_tangents.png](button_tangents.png) | 뷰포트 패널의 버텍스 탄젠트 표시를 토글합니다. |
+| ![button_binormals.png](button_binormals.png) | 뷰포트 패널의 버텍스 바이노멀 (노멀과 탄젠트에 직교 벡터) 표시를 토글합니다. |
+| ![button_uv.png](button_uv.png)| 미리보기 채널에서 스태틱 메시 애셋의 LightMapCoordinateIndex 프로퍼티에 지정된 채널에 대한 스태틱 메시의 UV 표시를 토글합니다. |
+|![button_additionalInfo.png](button_additonalInfo.png) | 애셋에 연관된 부가 사용자 데이터를 그릴지 말지 토글합니다. |
+| ![button_uvChannel.png](button_uvChannel.png) | 메시에 사용할 수 있는 모든 UV 채널을 드롭다운 메뉴에 펼칩니다. UV 오버레이가 보일 때만 관계가 있습니다. |
+| ![StaticMesh_ResetCamera_button](StaticMesh_ResetCamera_button.png) | 카메라 포커스를 스태틱 메시에 다시 맞춥니다. |
+| ![button_autoLOD.png](button_autoLOD.png) | 현재 메시에서 사용할 수 있는 모든 LOD 목록 드롭다운을 엽니다. |
+
+## 뷰포트 패널
+
+뷰포트 패널에는 스태틱 메시 애셋의 렌더링된( 또는 옵션으로 와이어프레임) 뷰가 표시됩니다. 이를 통해 게임내 렌더링되는 스태틱 메시의 모습을 관찰해 볼 수 있습니다. 이 뷰포트를 통해 스태틱 메시 애셋의 경계는 물론 지정된 경우 그 콜리전 메시도 미리볼 수 있습니다. 게다가 스태틱 메시의 UV 까지도요.
+
+뷰포트 패널에 겹쳐 표시되는 것은 스태틱 메시 애셋에 관한 통계 또는 정보 세트입니다.
+
+![Static Mesh Editor Preview panel](StaticMesh_Preview.png)
+
+여기서 찾아볼 수 있는 정보는 다음과 같습니다:
+
+* **LOD** - 스태틱 메시에 대한 LOD (레벨 오브 디테일) 갯수를 표시합니다.
+* **Triangles** - 스태틱 메시의 트라이앵글 수를 나타냅니다.
+* **Vertices** -  스태틱 메시의 버텍스 수를 나타냅니다.
+* **UV channels** - UV 채널 수입니다. 섀도우 매핑에는 고유의 겹치지 않는 UV가 필요합니다. 
+* **Approx Size** - 스태틱 메시의 측정 크기(길이 x 폭 x 높이)를 모든 축의 스케일 값이 1인 상태의 언리얼 단위로 나타냅니다.
+
+
+
+## 디테일 패널
+
+**디테일** 패널에는 표면에 적용된 머티리얼, LOD 옵션, 메시 감소 옵션 등 스태틱 메시에 관련된 구체적인 프로퍼티가 표시됩니다.
+
+이 패널의 기본적인 사용법 관련 정보는 [](Engine/UI/LevelEditor\Details) 문서를 참고해 주시기 바랍니다.
+
+## 콘트롤
+
+
+### 마우스 콘트롤
+
+**뷰포트 패널**
+
+
+* **좌클릭 + 끌기** - 카메라가 잠긴 경우, 메시를 Z 축 주변으로 회전시키고 원점 가까이 또는 멀리로 이동합니다. 잠기지 않은 경우, Z 축 주변으로 회전시키고 카메라를 로컬 X 축 따라 이동시킵니다.
+* **우클릭 + 끌기** - 카메라가 잠긴 경우, 메시를 회전시킵니다. 잠기지 않은 경우, 카메라를 회전시킵니다.
+* **좌클릭 + 우클릭 + 끌기** - 카메라가 잠기지 않은 경우, 카메라를 로컬 YZ 면 따라 이동시킵니다.
+
+
+### 키보드 콘트롤
+
+
+* **Ctrl + R** - 뷰포트 패널의 실시간 모드를 토글시킵니다.
+* **L + 마우스 이동** - 뷰포트 패널의 미리보기용 라이트를 회전시킵니다.
+
+**카메라 단축키**
+
+* **Alt+H** - 카메라를 정면 직교 뷰로 위치시킵니다.
+* **Alt+J** - 카메라를 상단 직교 뷰로 위치시킵니다.
+* **Alt+K** - 카메라를 측면 직교 뷰로 위치시킵니다.
+* **Alt+G** - 카메라를 원근 뷰로 위치시킵니다.
+

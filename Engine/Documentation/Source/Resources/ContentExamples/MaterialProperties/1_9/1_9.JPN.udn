@@ -1,0 +1,64 @@
+﻿INTSourceChangelist:2346368
+Availability:Public
+Title:1.9 - オパシティ マスク クリップ値
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
+Description:マテリアル インスタンスの事例概要、例 1.9：オパシティ マスク クリップ値
+Related: Engine/Rendering/Materials/Functions/Reference/Opacity
+Related: Engine/Rendering/Materials/PhysicallyBased
+Related: Engine/Rendering/Materials
+Related: Engine/Rendering/Materials/MaterialProperties/LightingModels
+Related: Engine/Rendering/Materials/MaterialProperties/BlendModes
+Related: Engine/Rendering/Materials/ExpressionReference
+Related: Engine/Rendering/Materials/MaterialInputs
+Related: Engine/Rendering/Materials/LayeredMaterials
+Related: Engine/Rendering/Materials/MaterialInstances
+Related: Engine/Actors/DecalActor
+Related: Engine/Rendering/Materials/MaterialProperties
+
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/MaterialProperties/1_9:title%](Resources/ContentExamples/MaterialProperties/rendering_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/MaterialProperties/1_9:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/MaterialProperties/1_9:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/MaterialProperties/1_9]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/MaterialProperties/1_9:title%](Resources/ContentExamples/MaterialProperties/rendering_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/MaterialProperties/1_9:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/MaterialProperties/1_9:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/MaterialProperties/1_9]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+![](MP_1_9_001.png)
+[/REGION]
+
+**Masked BlendMode (マスクされたブレンドモード)** では、ピクセルは完全に不透明、または完全に半透明であることを学習しました。グレースケール テクスチャまたはテクスチャの 1 つのチャネルをマスクとして使用することができます。ピクセルが不透明または半透明の場合に **Clip Value (クリップ値)** でしきい値を設定できます。薄い部分があるテクスチャの場合は、それが遠ざかればミップマップからそれを白く消すので消滅します。**Clip Value (クリップ値)** で調節して、その発生時期を調節することができます。
+

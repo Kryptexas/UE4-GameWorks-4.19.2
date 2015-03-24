@@ -1,0 +1,164 @@
+Availability: Public
+Title:Material Instance Editor User Guide
+Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/MaterialInstances
+Description:Guide to using the Material Instance Editor for modifying MaterialInstanceConstants.
+
+[TOC(start:2)]
+
+
+
+## Overview
+
+The material instance editor is used for modifying parameters for material instances. If you are unfamiliar with material instances, please see the [Instanced Materials](Engine/Rendering/Materials/MaterialInstances) page for more information.
+
+
+
+## Opening the Material Instance Editor
+
+The Material Instance Editor can be opened by **Double-Clicking** any Material Instance asset or through the **Right-Click** context menu of a Material Instance asset in the 
+**Content Browser**. Either of these will open up that particular Material Instance in the Material Instance Editor for editing. Another way to open the Material Instance Editor is by 
+**Right-Clicking** on an Actor and selecting **Edit Material Instance** from the **Material Name** sub menu of the **Materials** menu.
+
+
+
+## Material Instance Editor Interface
+
+The Material Instance Editor is comprised of these regions:
+
+![materialinstanceeditor.png](materialinstanceeditor.png)(w:900 h:662)
+
+
+1. [Toolbar](#ToolBar) - Allows you to Save, Locate, and Display rendering statics of you Material instance
+1. [Viewport Display Options](#ViewportDisplayOptions) - Allows you to change the mesh that is used in the viewport.
+1. [Details Pane](#DetailsPane) - Properties of the Material instance.
+1. [Parent List](#ParentList) - A list of the chain of parents for the current Material instance.
+1. [Viewport](#Viewport) - Previews the current Material instance.
+
+
+
+### Tool Bar
+
+| **Icon** | **Description** | 
+| --- | --- |
+| ![](button_MIE_Save.png) | Saves the current asset. |
+| ![](button_MIE_Find.png) | Finds the Material Instance Constant in the **Content Browser**. |
+| ![](button_MIE_Params.png) | Makes all material parameters in the parent material visible in the **Properties** Pane. |
+| ![](button_MIE_Mobile_Stats.png) | Toggles the Material stats and compilation errors for mobile. |
+
+
+### Viewport Display Options
+| **Icon** | **Description** | 
+| --- | --- |
+| ![](button_MIE_Cylinder.png) | Previews the Material Instance on a Cylinder. |
+| ![](button_MIE_Sphere.png) | Previews the Material Instance on a Sphere. |
+| ![](button_MIE_Plane.png) | Previews the Material Instance on a Plane.  |
+| ![](button_MIE_Cube.png) | Previews the Material Instance on a Cube.  |
+| ![](button_MIE_Mesh.png) | Previews the Material Instance on a custom Static Mesh.  |
+| ![](button_MIE_Grid.png) |  Toggles the background grid in the material instance Viewport. |
+| ![](button_MIE_Realtime.png) |  If enabled, the Material on the preview mesh will update in real-time.  Disable this flag for editor performance. |
+
+### Details Pane
+
+![](MIE_Properties.png)
+
+The **Details** pane in the Material Instance editor is where all of the 'work' should take place. Anyone using the Material Instance will override or change parameters through the details
+ window. Each parameter that exists in the Parent Material for this Material Instance is listed in the **Parameter Groups** array under the [group](Engine/Rendering/Materials/MaterialInstances#ParameterGroups) 
+ assigned to the parameter in the Parent Material. By default, none of the parent's parameters values are overridden and have to be enabled in order to be used. 
+ To enable a parameter, use the **Left Mouse Button** and click on the **Grayed Out Box** that is next to the name of the parameter you want to enable. When you do this, the box will
+ no longer be grayed out and you will be able to adjust the parameter to your liking. 
+
+* **Parameter Groups** - In this sectio,n you can adjust all of the values that have been exposed to the Material Instance from the Parent Material. 
+* **General** - The General section allows you to change the Parent Material, Phys Material, and also adjust how this Material Instance will influence the Lightmass build. 
+* **Material Overrides** - Material Overrides allows you you to adjust Material base values 
+
+
+### Parent List
+
+![](MIE_Parent.png)
+
+Since Material Instances can have other Material Instances as their parent, sometimes its difficult to find the original Material that the Material Instance is based off of.
+The parent list solves that problem by displaying the chain of parents of the current Material Instance all the way up to the root Material that is the start of the chain.
+For example, the parent list displayed above shows a Material Instance named **Instance_Metallic_Medium** that has the Material Instance **MasterDemoMaterial_Parent** as its parent.
+We can see in the parent list that **MasterDemoMaterial_Parent** has **MasterDemoMaterial** as its parent. The instance currently being edited is shown in **bold**.
+
+Furthermore, by **Double-Clicking** on any of the items in the parent list, the editor for that parent will be launched.  Parents can also be located in the generic browser 
+by **Right-Clicking** on the parent's item and then choosing **Sync Generic Browser**.
+
+
+### Viewport
+
+![](MIE_Preview.png)
+
+The Material Viewport displays the Material being edited applied to a mesh. You can interact with the Viewport in the following manner.
+
+* Rotate the mesh by dragging with the **Left Mouse Button**. 
+* Pan by dragging with the **Middle Mouse Button**, and zoom by dragging with the **Right Mouse Button**.  
+* Rotate the light direction by holding down the **L** key and dragging with the **Left Mouse Button**.
+
+
+The preview mesh can be changed by using the associated button controls (the shape buttons, **Select Preview Mesh** combo, and **Use Selected StaticMesh** button).
+The preview mesh is saved with the material so that the next time the material is opened in a material editor, it will be previewed on the same mesh.
+
+
+![](MIE_Change_Shapes.png)
+
+The Viewport of the Material Instance Editor also displays statistics about the Material, such as instruction counts for the various shader types as well as the number of Texture 
+samples being used by the Material.
+
+![](MIE_Ins_Count.png)
+
+If your Material has some kind of movement in it you and you want to preview it, you can can enable Real - Time preview by clicking on the stop watch icon.
+
+![](MIE_Real_Time.png)
+
+
+## Creating Instances
+
+[INCLUDE:Engine/Rendering/Materials\MaterialInstances#MakingAnInstance]
+
+## Overriding Parameters
+
+The checkboxes to the left side of each of the parameter names specify whether or not an overridden value should be used. So below **Base Metal, Base Roughness, Chrome Roughness,** and **OPACITY Chrome** are being 
+used while **Base Scratch Roughness, Base UV Tile,** and **Chrome Metal** are not.  Only checked values are stored for memory conservation reasons, so unchecked values will be lost when 
+the Material Instance Editor window is closed.
+
+![](MIE_Overriding.png)
+
+
+
+## Workflow
+
+With these features, we are hoping to establish a consistent workflow for authoring new Material Instances.  
+
+
+### Artist Workflow
+
+The most common usage case for artist of this editor would be something like this:
+
+
+1. Artist creates new Material with parameters to alter the appearance.
+1. Artist creates a new Material Instance constant in a package by **Right-Clicking** in the **Content Browser**.
+1. Artist assigns previously created Material as the parent of the new Material Instance constant.
+1. Artist modifies Material Instance parameters to change the way the Material looks.
+1. Artist and LDs can now use the new Material Instance constant throughout the editor.
+
+
+
+### Level Designer Workflow
+
+The most common usage case for Level Designers of this editor would be something like this:
+
+
+1. Artist creates new material with parameters to alter the appearance.
+1. Level Designers place the material throughout the level.  
+1. Level Designer feels that the material needs to be tweaked and creates a new material Instance by **right-clicking** on the Actor and using the menu option described above.
+1. Level Designer checks the box next to the Instance parameter they want to replace and modifies the look of the material.
+1. (Optional) Since material Instances created this way are stored in the level package, the Level Designer can optionally apply the material Instance that was created to other Actors. 
+  The material Instance will appear in the level package in the generic browser.
+
+ 
+
+
+
+
+

@@ -1,0 +1,322 @@
+Availability: Public
+Title:物理材质
+Crumbs: %ROOT%, Engine, Engine/Subsystems/Physics
+
+[TOC(start:2)]
+
+
+## 物理材质系统概述
+
+在 UE4 中，您可以将 PhysicalMaterial 赋给 Material 或 MaterialInstanceConstant。 相对于只有一个其他属性的材质，再附加一个属性会使您可以在多个材质上重新使用您的 PhysicalMaterialSystem。
+
+下面是一个快速示例：
+
+您有一个 gravelRoad Material，它已经被您应用于游戏中的砾石路。该 gravelRoad 材质具有一个名为砾石的 PhysicalMaterial。
+
+在该砾石 PhysicalMaterial 中，您已经设置了各种可以基于正在迈步的 PawnType 播放的声音。
+
+当 PawnTypeOne 走路的时候，它会从 SoundCue A 中发出一个声音。
+
+当 PawnTypeOne 走路的时候，它会从 SoundCue B 中发出一个声音。
+
+**现在，在同一个材质上的两个物理材质在每个单个的材质上都受支持。 当某个碰撞发生线检查代码发现一个三角形点击时，可以在点击位置获取贴图 UV 并查看蒙板贴图来确定点击像素是黑色的还是白色的。 将会返回对应的物理材质。
+
+
+### 供程序员参考的详细信息
+
+详细信息：
+
+查看 PhysicalMaterial.uc
+
+详细说明：
+
+	var(PhysicalProperties) export editinline PhysicalMaterialPropertyBase PhysicalMaterialProperty;
+
+
+PhysicalMaterialPropertyBase.uc 有您希望读到的评论！
+
+
+为了获得符合情境的脚步声，也为了拥有其他整洁的基于 PhysicalMaterial 的特效而放置框架，您可能要建立一个类：
+
+	class MyGamePhysicalMaterialProperty extends PhysicalMaterialPropertyBase
+	collapsecategories
+	editinlinenew
+	hidecategories(Object);
+
+
+	var(FootSteps) editinline MyGamePhysicalMaterialFootSteps MyGamePhysicalMaterialFootSteps;
+
+
+然后在类 MyGamePhysicalMaterialFootSteps 中，您有：
+
+	var() SoundCue ProtagonistFootSteps;
+
+	var() SoundCue NPCTypeOneFootSteps;
+
+	var() SoundCue NPCTypeTwoFootSteps;
+
+etc
+
+
+所以现在当 Pawn 行走（通过 AnimNotify_Footstep 或一些其他方法）时，您可以调用 eventPlayFootStepSound，然后它会将该事件发送给正确的 pawn。现在，该 pawn 可以基于它的类型和物理材质确定要播放什么声音！
+
+例如，NPC Ogre 正走过砾石路。如果它行走并已经调用 eventPlayFootStepSound，那么会跟踪，查找物理材质，获取基于该 pawn 类型的 SoundCue 并播放。
+
+注意： 当前您将必须进行跟踪才能获得该物理材质。我们可能会将 eventPlayFootStepSound 更新为一个物理材质，因为这样它将会更有效率地直接在 c++ 环境进行跟踪，而且大多数用户都希望在他们的游戏中可以有这个功能。符合情境的脚步声非常棒！
+
+很明显，使用 PhysicalMaterial 系统和一个属性框架，如上所述，您可以进行所有类型的真正令人敬畏的符合情境的功能（例如，撞击声音，攻击效果、贴花、脚步等等）
+
+
+## 物理材质的层次结构  
+
+只要您负责编程的员工创建了以上特定的游戏类，您的内容团队就可以开始建立物理材质的层次结构并开始为它们填充您的游戏设计中要求的特效。
+
+
+### 供内容创建者参考的详细信息
+
+PhysicalMaterial 有一个 var(Parent)PhysicalMaterial Parent；它允许您创建物理材质的层次结构和其中（在我们的示例中）FootStep 声的层次结构。
+
+所以您可以有：
+
+
+	Default
+	^
+	|
+	|
+
+	Clay
+	^
+	|
+	|
+
+	Wet Clay
+
+
+所以，现在您的内容团队实际上可以在他们在游戏世界中具有的物理材质中指定。如果您想要有一个 Wet Clay（湿粘土）脚步声也可以。如果您没有 Wet Clay（湿粘土）脚步声，那么您可以查找层次结构直到找到一个或者最后使用 Default，它应该有您的默认脚步声。
+
+
+### 使用层次结构
+
+所以既然您具有代码支持和参数化的 Physical Material Hierarchy（物理材质层次结构），您就可以将 Physical Materials 赋值给 Materials！  只要您已经为它们赋值，那么您应该会在游戏中听到它们播放的声音。
+
+
+## 内容建议
+
+在制作脚步时（上接我们的示例），您应该让您的声音团队使用随机的脚步制作 SoundCues，一个源声，然后进行音调和衰减处理。 这就会产生更多可信的脚步声。 此外，它会为 Physical Material 系统提供正确的提取方法。
+
+
+## 示例代码  
+
+
+	/***
+	**  来自 c++ 环境中的事件会通知我们播放一个脚步声
+	**/
+	event PlayFootStepSound(int FootDown)
+	{
+	   local vector PawnLoc;
+	   local float CurrHeight;
+
+	   local Actor TraceActor;
+
+	   local vector out_HitLocation;
+	   local vector out_HitNormal;
+	   local vector TraceDest;
+	   local vector TraceStart;
+	   local vector TraceExtent;
+	   local TraceHitInfo HitInfo;
+
+	   // kk here we need to do a tracez0r down down into the ground baby!
+	   // 注意： 它最终将会被移动至 c++ 环境
+	   PawnLoc = self.Location;
+	   CurrHeight = self.GetCollisionHeight();
+
+	   TraceStart = PawnLoc;
+	   TraceDest = PawnLoc - ( Vect(0, 0, 1 ) * CurrHeight ) - Vect(0, 0, 15 );
+
+	   // 跟踪并看到我们正站立的地方
+	   TraceActor = Trace( out_HitLocation, out_HitNormal, TraceDest, TraceStart, false, TraceExtent, HitInfo, true );
+
+	   //DrawPersistentDebugLine( TraceStart, TraceDest, 255, 0, 0 );
+
+	   if( TraceActor != none )
+	   {
+		  // 现在播放实际声音
+		  ActuallyPlayFootStepSound( FootDown, HitInfo );
+		  MakeNoise( 0.1f, 'NOISETYPE_FootStep' );
+	   }
+	   // 否则我们什么都没有击中而是在空中
+	   else
+	   {
+	   //   Log( " We are in the air" );
+	   }
+
+	}
+
+	/***
+	** 它将会计算出我们正站在哪一种材质上，然后播放
+
+	* 正确的脚步声。
+	* 它会查找 PhysicalMaterial 树形结构直到它找到一个可以生成的有效特效。
+	* 如果它一个也没有找到，那么它会默认为 .uc 文件中编码的特效。
+	* 为该特定武器
+
+	**/
+	function ActuallyPlayFootStepSound( int FootDown, TraceHitInfo HitInfo )
+	{
+	   local PhysicalMaterial ParentPhysMaterial;
+	   local SoundCue SC;
+	   local SoundCue FootStepSound;
+
+	   // XO5 HAX0R
+	   // 假设我们在雨中，然后播放水中的脚步声
+	   // 注意： 现在地形能够不返回材质进行跟踪，所以我们需要进行以下的操作
+	   //if( IsTimerActive( 'DropRainDropsOnToPawn' ) == true )
+	   if( bShouldPlayWetFootSteps == true )
+	   {
+		  Self.PlaySound( SoundCue'FootSteps.SoundCues.Footsteps_Marcus_Water', false, true );
+		  return;
+	   }
+
+
+	   // 如果我们没有 PhysicalMaterial 
+	   if( HitInfo.PhysMaterial != none )
+	   {
+		  FootStepSound = GetFootStepSound( HitInfo.PhysMaterial, FootDown );
+	   }
+	   else
+	   {
+		  // 检查看看是否有材质
+		  // 如果没有材质，那么我们必须使用默认的 PS_DefaultImpactEffect
+		  if( HitInfo.Material != none )
+		  {
+			 FootStepSound = GetFootStepSound( HitInfo.Material.PhysMaterial, FootDown );
+		  }
+		  else
+		  {
+			 // 通常播放是土路上行走的"默认脚步声"
+			 Self.PlaySound( SoundCue'FootSteps.SoundCues.Footsteps_Marcus_Dirt', false, true );
+			 return;
+		  }
+	   }
+
+
+	   // 所以如果在我们需要的属性中没有，那么我们可以在这里查看"层次结构"
+	   // 而我们可能希望使一段代码依靠播放一些默认
+	   // 如果内容没有使用数据提供我们的饥饿嘴
+
+	   // 如果我们没有物理材质
+	   if( HitInfo.PhysMaterial != none )
+	   {
+		  ParentPhysMaterial = HitInfo.PhysMaterial.Parent;
+	   }
+	   // 在这里设置父代物理材质
+	   else
+	   {
+		  // 检查材质是否具有物理材质
+		  if( HitInfo.Material.PhysMaterial != none )
+		  {
+			 ParentPhysMaterial = HitInfo.Material.PhysMaterial.Parent;   
+		  }
+		  else
+		  {
+			 ParentPhysMaterial = none;
+		  }
+	   }
+
+
+	   // 这会走在树上直到我们的父代为空或我们有一个脚步声
+	   // 我们会爆发的一点（基本上是一个特例）
+	   // 但是在 .uc 环境中没有特例
+	   while( ( FootStepSound != none )
+		  && ( ParentPhysMaterial != none )
+		  )
+	   {
+		  // 查看我们父代的数据
+		  FootStepSound = GetFootStepSound( ParentPhysMaterial, FootDown );
+		  ParentPhysMaterial = ParentPhysMaterial.Parent;
+	   }
+
+
+	   // 使用基于材质的特效
+	   if( FootStepSound != none )
+	   {
+		  //Log( " Playing Sound: " $ FootStepSound );
+		  SC = FootStepSound;
+	   }
+	   // 进行默认操作
+	   else
+	   {
+		  //Log( " Playing Default Sound" );
+		  SC = SoundCue'FootSteps.SoundCues.Footsteps_Marcus_Dirt';
+	   }
+
+	   Self.PlaySound( SC, false, true );
+	}
+
+
+	/***
+	** 查看在当前 PhysicalMaterial(物理材质)上的 Sound(声音)是否有效
+	**/
+	function SoundCue GetFootStepSound( PhysicalMaterial PMaterial, int FootDown )
+	{
+	   local SoundCue Retval;
+
+	   Retval = none;
+
+	   // 现在我们的特定属性存在，我们需要调用我们的函数完成
+	   // specificProperty（特定属性）
+	   if( ( none != PMaterial )
+		  && ( none != PMaterial.PhysicalMaterialProperty )
+		  && ( none != WarPhysicalMaterialProperty(PMaterial.PhysicalMaterialProperty) )
+		  && ( none != WarPhysicalMaterialProperty(PMaterial.PhysicalMaterialProperty).WarPhysicalMaterialFootSteps )
+		  )
+	   {
+		  Retval = GetSpecificFootStepSound( WarPhysicalMaterialProperty(PMaterial.PhysicalMaterialProperty).WarPhysicalMaterialFootSteps, FootDown );
+	   }
+	   else
+	   {
+		  Retval = none;
+	   }
+
+	   return Retval;
+	}
+
+
+	/***
+	** 每个对象都将会覆盖这个函数，并返回基于传入对象的数据。
+
+	* Object.  （例如，  一个调用 marcus 的 GetSpecificFootStepSound 函数，将会查找 
+	* marcus 脚步声，调用 locust(蝉)将会查找 locust(蝉)的声音)
+
+	**/
+	function SoundCue GetSpecificFootStepSound( WarPhysicalMaterialFootSteps FootStepSounds, int FootDown )
+	{
+	   local SoundCue Retval;
+
+	   // 进行可能的计算或不可能的计算。
+	   Retval = None;
+
+	   return Retval;
+	}
+
+
+	例如， 在类 BigOgre 中
+
+
+	function SoundCue GetSpecificFootStepSound( MyGamePhysicalMaterialFootSteps FootStepSounds, int FootDown )
+	{
+	   local SoundCue Retval;
+
+	   // 进行可能的计算或不可能的计算。
+	   Retval = SoundCue'FootSteps.SoundCues.Footsteps_Player_Dirt';  //或者把这设置为配置文件并把值存储在一个.ini 文件中，提供给非程序员进行编辑。
+
+	   return Retval;
+	}
+
+
+
+
+
+
+
+

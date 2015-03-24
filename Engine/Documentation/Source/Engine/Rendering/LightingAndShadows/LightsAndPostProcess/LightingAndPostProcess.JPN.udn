@@ -1,0 +1,84 @@
+﻿INTSourceChangelist:2420636
+Availability:Docs
+Title:ポストプロセス エフェクトを用いたライティング
+Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
+Description: ライトとポストプロセス チェーンの相互作用の仕組み
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:title%](LO_VFX_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/LightsAndPostProcess]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:title%](LO_VFX_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/LightsAndPostProcess]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth raw]
+![](Engine/Rendering/LightingAndShadows/lighting_overview_banner_001.png)(convert:false)
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+## 概要
+
+ポストプロセス パイプラインはシーンでライトを受け取り、ライトやカメラの様々な屈折レンズによる変化に対する自然な自動露光のシミュレーションなど、様々な方法で使用します。シーンのライティングは最初のステップですが、ポストプロセスは実際に多くのエフェクトを機能させるステップということになります。
+
+ポストプロセス エフェクトの使用方法の詳しい情報については、[ポストプロセス エフェクト](Engine/Rendering/PostProcessEffects) ページをご覧ください。 
+
+## ライトの順応 （Light Adaptation）
+
+暗い部屋から陽の降り注ぐ中へ歩いていく場合など、ライトの状態の変化にカメラまたは人間の目の順応をシミュレーションするために使用します。
+
+[REGION:lightbox]
+[![](LO_Adapt_003.png)(w:302)](LO_Adapt_003.png) [![](LO_Adapt_001.png)(w:302)](LO_Adapt_001.png) [![](LO_Adapt_002.png)(w:302)](LO_Adapt_002.png) 
+[/REGION]
+
+## ブルーム （Bloom）
+
+[EXCERPT:LightingAndPostProcess_Bloom]
+ブルームは発光現象のエフェクトをシミュレートします。ブルーム設定に関する詳細は、[ポストプロセス エフェクト ドキュメントのブルームのセクション](Engine/Rendering\PostProcessEffects\Bloom) をご覧ください。
+[/EXCERPT:LightingAndPostProcess_Bloom]
+
+[REGION:lightbox]
+[![](LO_Bloom_001.png)(w:450)](LO_Bloom_001.png) [![](LO_Bloom_002.png)(w:450)](LO_Bloom_002.png)
+[/REGION]
+
+## レンズフレア
+
+レンズフレアは、レンズの表面で 1 方向以上に広がる反射の道筋を光が追う場合、通常レンズを絞った形状で形成される「可視のアーティファクト」です。フレアは、非常に明るいサーフェスまたはエフェクトであれば発生させることが可能です。
+
+![](LI_LFnBloom.png)
+
+
+
+

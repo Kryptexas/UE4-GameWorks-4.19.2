@@ -1,0 +1,245 @@
+﻿INTSourceChangelist:2426079
+Availability:Public
+Title:4.Ammo、Health、Energy を表示する
+Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
+Description:UMG クイックスタートガイドの 4 番めのステップでは、ゲーム内で表示されるように Ammo、Health、Energy を接続します。 
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/UMG\QuickStart\3 "%Engine/UMG\QuickStart\3:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/UMG\QuickStart) 
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/UMG\QuickStart\5 "%Engine/UMG\QuickStart\5:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		HUD エレメントを作成する
+	[/PARAM]
+	[PARAM:description]
+
+このセクションでは、HUD に表示するエレメントを追加します。 
+
+1. 作成した **「UMG」** フォルダ内で、**GameHUD** ブループリントを開いて **Widget ブループリント エディタ** (以下に表示) で開くようにします。 
+	
+		![](New_1.png)(w:720)
+
+1. **[パレット]** ウィンドウの**[パネル]** で **Horizontal Box** を **[Hierarchy]** (階層) ウィンドウの **[キャンバスパネル]** にドラッグします。 
+
+		![](UMG_Update1.png)
+
+1. **[パネル]** で 2 つの **Vertical Boxes** を **[Hierarchy]** (階層) ウィンドウの **Horizontal Box** にドラッグします。 
+
+		![](UMG_Update2.png)
+
+1. **Common** で、2 つの **テキスト ブロック** を 1 つめの **Vertical Box** に、2 つの **Progress Bars** を 2 つめの **Vertical Box** にドラッグします。 
+
+		![](UMG_Update3.png)
+
+1. **Horizontal Box** を選択した状態で、ボックスをサイズ調整して配置し、ウィンドウの左上隅に表示されるようにします。 
+
+		![](UMG_Update4.png)
+
+		進捗バーは非常に小さく見えますが、次のステップで修正します。
+
+1. **Progress Bars** のひとつをクリックして、**[詳細]** パネルの **Layout** / **Size** で **[Fill]** ボタンをクリックします。 
+
+		![](UMG_Update5.png)
+
+1. もうひとつの **Progress Bar** をクリックして、前の手順のように、それを **Size** で **Fill** に設定します。 
+
+1. **Progress Bars** が含まれている **Vertical Box** をクリックします。その **サイズ** も **Fill** に設定します。 
+
+		![](UMG_Update6.png)
+
+1. 上記を行ったら、以下のように **Visual Designer** でボックスをサイズ調整します。 
+
+		![](UMG_Update7.png)
+
+1. 一番上の **Text Block** 上をクリックして、**[詳細]** パネルでそのテキストを **Health :** に変更し、右揃えにします。 
+
+		![](UMG_Update8.png)
+
+1. もうひとつの **Text Block** に対して同じ操作を行いますが、テキストには **Energy :** と入力します。 
+
+1. 参考までに、**Horizontal Box** を選択し、**[詳細]** パネルで、その名前を **PlayerCondition** に変更します。 
+
+		![](UMG_Update9.png)
+
+1. **[パレット]** で **Horizontal Box** を  **[キャンバスパネル]** の **[Hierarchy]** (階層)にドラッグします。 
+
+1. 4 つの **Text Blocks** を新規 **Horizontal Box** にドラッグします。それぞれについて以下の順序でテキストを設定します。**Ammo :**, **25**, **/** および **25** 
+
+		![](UMG_Update10.png)
+
+1. **Appearance** と **Font** で、各テキストのフォントサイズを変更できます (ここでは各 32 に設定しました)。 
+
+		![](UMG_Update11.png)
+
+1. Ammo Display の **Horizontal Box** を画面の右上部分にドラッグします。必要に応じてサイズ調整します。 
+
+		![](UMG_Update12.png)
+
+1. **Horizontal Box** を選択した状態で、**[詳細]** パネルで **[Anchors]** ボタンをクリックして画面右上に固定するように選択します。 
+
+		![](UMG_Update13.png)(w:800)
+
+		ウィジェットを **固定する** と、指定位置または画面サイズに基づいた相対位置にウィジェットが表示されることを示します。これを確認するには、**Resolution** ドロップダウン メニューをクリックし、**Visual Designer** をクリックして、アスペクト比を変更します。ウィジェットがその相対位置を維持しているのがわかるはずです。 
+
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		変数値を読み出す
+	[/PARAM]
+	[PARAM:description]
+
+このセクションでは、**MyCharacter** ブループリントから変数を接続し、HUD に渡されるようにします。 
+
+1. ヘルスを表す **[Progress Bar]** をクリックします。 
+
+1. **[詳細]** パネルの **Appearance** で、**Percent** オプションの隣にある **Bind** をクリックします。次に **Create Binding** をクリックします。 
+
+		![](UMG_Update14.png)
+
+		ここでは、進捗バーのパーセント値を Character ブループリントの値にバインドします。 
+
+1. 開いているグラフで **右クリック** し、**Get Player Character** ノードを検索し、追加します。 
+
+1. **Get Player Character** から、以下のように **Cast To MyCharacter** ノードを追加します。 
+
+		![](UMG_Update15.png)
+
+1. **As MyCharacter C** ピンから、**Get P Health** を検索し、以下のように接続します。 
+
+		![](UMG_Update16.png)(w:820)
+
+		これは常にプレイヤーのヘルスに関する値を取得し、それを自動的に HUD に渡します。 
+
+1. **Designer** タブで Energy Progress Bar をクリックして Health で行ったように Percent に対する Binding を作成します。 
+
+1. 開いているグラフで、**Get Player Character**、**Cast To MyCharacter**、続いて P Energy を取得し、以下のように接続します。 
+
+		![](UMG_Update17.png)(w:820)
+
+1. **Designer** タブに戻り、Ammo 表示の 1 番めの数をクリックします。次に、**[詳細]** パネルで **Text**、**Create Binding** をクリックします。 
+
+		![](UMG_Update18.png)
+
+1. 開いているグラフで、**Get Player Character**、**Cast To MyCharacter**、続いて P Current Ammo を取得し、以下のように接続します。 
+
+		![](UMG_Update19.png)(w:820)
+
+		Ammo を ReturnNode の Return Value に接続すると、変換ノードが自動的に作成されます。 
+
+1. **Graph** タブ内で、**[MyBlueprint ]** ウィンドウから新規 **Integer** 変数を作成します。 
+
+1. 変数の詳細パネルで、この変数に **H_MaxAmmo** と名前を付け、**Editable** と **Expose on Spawn** のチェックボックスにチェックを入れます。 
+
+		![](UMG_Update20.png)
+
+		この例では、Max Ammo Count 値を変更しないため、HUD 作成時に初期化します。 
+
+1. **[Designer]** タブに戻ります。 
+
+1. Ammo 表示の2 番めの数をクリックします。次に、**[詳細]** パネルの **Text** で、**Bind** をクリックし、次に **Create Binding** をクリックします。 
+
+1. グラフが開いたら、**H_MaxAmmo** 変数をグラフの **Return Value** にドラッグします。 
+
+		![](UMG_Update21.png)
+
+		これで変換ノードが作成されます。このノードを Return Value 入力ピンに接続します。 
+
+1. **Designer** タブに戻り、ヘルスの進捗バーを再度クリックします。 
+
+1. **[詳細]** パネルの **Appearance** で、ヘルスバーの色として使用する色を選択します。 
+
+		![](UMG_Update22.png)
+
+1. **Energy** 進捗バーに対しても同じ操作を行い、エネルギー バーの色を設定します。 
+
+1. パーセント値を 1.0 に設定することでバーの色を確認できます (色を選択後に必ずこの値を 0.0 に合わせてください)。 
+
+		![](UMG_Update23.png)
+
+1. **コンパイル** し **保存** してから、**GameHUD** ブループリントを閉じます。 
+
+[REGION:note]
+注記:お好みの色がない場合、**Style** の下にオプションがありますが、変更する必要があるかもしれません。 
+
+![](UMG_Update24.png)
+
+エンジンのバージョン 4.5 時点では、**Fill Image** はデフォルトでオレンジになります。プレーンの白いテクスチャを Fill Image として割り当てることによって、誤った色が表示されることに関する問題を修正することができます。この特定の問題については今後のバージョンの更新で対応します。 
+
+[/REGION]  
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		HUD を表示する
+	[/PARAM]
+	[PARAM:description]
+
+この最終セクションでは、表示する HUD を **MyCharacter** から呼び出し、表示するデフォルトの **MaxAmmo** を割り当てます。 
+
+1. **「ゲーム / ブループリント」** フォルダで **MyCharacter** ブループリントを開きます。 
+
+1. グラフの任意の場所で **右クリック** して、**Event Begin Play** ノードを追加します。 
+
+1.	出力ピンからドラッグして、**Create Widget** ノードを追加し、**Class** を **GameHUD_C** に設定します。 
+
+		![](UMG_Update25.png)
+
+1.	P Ammo Max 変数をドラッグしてそれを H Max Ammo 入力ピンに接続します。 
+
+1.	Create Widget ノードの **Return Value** と **GameHUDWidget** と呼ばれる **Promote to Variable** からドラッグします。 
+
+1.	**Return Value** から再度ドラッグし、**Add to Viewport** ノードを追加します。 
+
+		![](UMG_Update26.png)
+
+		後でアクセスできるように、Game HUD Widget の **変数** を作成します。 
+
+1. **コンパイル** し **保存** してから、エディタで再生します。
+
+		![](GIF1.gif)(convert:false)
+
+		**F** を押すと、ダメージを受け、ヘルスを失い、ジャンプはエネルギーを消耗させ、弾薬カウントはあと何発撃てるかを表します(この場合、残りの弾薬数が 0 であれば発砲できません)。
+
+	[/PARAM]
+[/OBJECT]
+
+次のセクションでは、"Experience Bar" を追加します。この場合、ブロックをシューティングするとエクスペリエンスが増えます (おそらく、これをキル カウントやその他の意味があるゲームプレイの状況に結び付けたいでしょうが、次のセクションではセットアップ方法を説明します)。「レベルアップ」すると、キャラクターがスーパージャンプできるようにする「アクションバー」ボタン機能を使用する能力のロックを解除します。 
+
+
+---
+
+%Steps%
+
+
+
+
+

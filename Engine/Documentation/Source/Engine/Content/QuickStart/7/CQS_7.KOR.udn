@@ -1,0 +1,41 @@
+﻿INTSourceChangelist:2430227
+Availability: Docs
+Title:7. 추가 자료
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:콘텐츠 퀵 스타트 가이드에서 다룬 내용에 대한 추가 참고 자료입니다.
+
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 단계](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵스타트 홈](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+이 퀵 스타트 가이드에서 다룬 주제에 대해서나 전체 에디터에 대한 상세 정보는 [**언리얼 에디터 매뉴얼**](Engine) 을 참고하세요.
+
+이 퀵 스타트에서 다룬 부분에 대한 상세 내용은:
+
+* FBX 파이프 라인 관련: [**%Engine/Content/FBX:title%**](Engine/Content/FBX)
+
+* 지원되는 이미지 유형 관련: [**%Engine/Content/Types/Textures/Importing:title%**](Engine/Content/Types/Textures/Importing)
+
+* 머티리얼 관련: [**머티리얼 홈 페이지**](Engine/Rendering/Materials)
+
+* 콘텐츠 브라우저 관련: [**콘텐츠 브라우저**](Engine\Content\Browser)
+
+* 스태틱 메시 에디터 관련: [**스태틱 메시 에디터**](Engine/Content/Types/StaticMeshes/Editor)
+
+
+%Steps%

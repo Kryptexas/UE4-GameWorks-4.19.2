@@ -1,0 +1,72 @@
+Availability: Docs
+Title:中的VFX优化
+Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/ParticleSystems
+
+[TOC]
+
+
+
+## 概述
+
+本文假设您先前已经了解Cascade、材质编辑器、Kismet、Matinee及常见的相关性能问题的效果。 用很多种途径可以获得性能问题的解决方案，本文尝试概述了Epic的特效团队通过使用UE4中提供的工具来解决这些性能问题的方法。
+
+
+* [我有GPU方面的问题](Engine/Rendering/ParticleSystems/Optimization/Results#OverdrawGraphics)
+* [我有游戏线程方面的问题](Engine/Rendering/ParticleSystems/Optimization/Results#GameThread)
+* [我有渲染线程方面的问题](Engine/Rendering/ParticleSystems/Optimization/Results#RenderThread)
+
+
+[REGION:titlebar]
+VFX优化主题
+[/REGION]
+[REGION:contentsection]
+
+* [VFX 优化: 在视觉效果和性能之间寻求平衡](Engine/Rendering/ParticleSystems/Optimization/Balance)
+* [VFX 优化: 核心概念](Engine/Rendering/ParticleSystems/Optimization/Concepts)
+* [VFX 优化: 获得结果](Engine/Rendering/ParticleSystems/Optimization/Results)
+* [VFX 优化: 分割屏幕](Engine/Rendering/ParticleSystems/Optimization/SplitScreen)
+
+[/REGION]
+
+
+
+##术语
+
+$ **Emitter(发射器)** : cascade中的一堆模块。
+$ **Module(模块)** : 用于决定粒子行为的一个发射器组件。
+$ **Particle System（粒子系统）** : 一个单独的发射器或多个发射器的组合物。
+$ **Particle System Component（粒子系统组件）** : 一个粒子系统实例。
+$ **Emitter Actor（发射器Actor）** : 放置在场景中的Actor，该Actor引用粒子系统组件。
+
+
+
+## 降低特效性能的常见因素
+
+$ **Overdraw(过度描画)** : 粒子所覆盖的屏幕空间量和这些粒子上的指令的数量。Overdraw（过度描画量） = 层数量 * 所影响的像素的数量。(GPU)
+$ **Tick Time（更新时间）** : 更新所有粒子占用游戏线程的时间量（游戏线程）。
+$ **Draw Calls(描画调用)** : 为GPU准备的状态设置(渲染线程)。
+$ **Bounds Calculation（边界计算）** : 更新特效的边界所花费的时间量，该边界用于基于相机平头截体来决定可见性。(特效边界是否可见?)
+
+这些主要问题还有很多可以导致出现问题的子集，对于每个子集，通常有一个工具供我们管理性能问题。
+
+
+
+## 特效性能的核心系统
+
+$ **GPU** : 在屏幕上描画像素所花费的时间量(过度描画)。
+$ **Game Thread（游戏线程）** : 更新粒子系统行为所花费的时间量(更新时间)。
+$ **Render Thread（渲染线程）** : 打包粒子几何体和相关描画调用所花费的时间量(描画调用)。
+
+一旦您找到了问题的所在之处，您可以使用以下方法开始进行优化：
+
+
+* [我有GPU方面的问题](Engine/Rendering/ParticleSystems/Optimization/Results#OverdrawGraphics)
+* [我有游戏线程方面的问题](Engine/Rendering/ParticleSystems/Optimization/Results#GameThread)
+* [我有渲染线程方面的问题](Engine/Rendering/ParticleSystems/Optimization/Results#RenderThread)
+
+ 
+
+
+
+
+

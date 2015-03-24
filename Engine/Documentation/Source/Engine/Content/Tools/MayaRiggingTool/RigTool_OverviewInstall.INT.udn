@@ -1,0 +1,101 @@
+Availability: Public
+Title:Maya Animation Rigging Toolset
+Crumbs: %ROOT%, Engine, Engine/Content
+Description:Overview of the Maya Animation Rigging Toolset.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Tools/MayaRiggingTool:title%](Rigging_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/anim_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Tools/MayaRiggingTool:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Tools/MayaRiggingTool:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Tools/MayaRiggingTool]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:raw]
+![](CharacterSetupImage.jpg)
+[/REGION]
+
+
+## Overview
+
+[EXCERPT:Intro]
+The Animation and Riggings Toolset (A.R.T) is a comprehensive toolset that takes a character through skeleton creation, skeleton placement, and rig creation, as well as many animation tools to speed up your animators' workflow, currently tested and confirmed in Maya 2013 and up. Features include:
+
+* Intuitive user interfaces guide the user through every process.
+* Complete skeletal creation.
+* Custom skeleton placement via an intuitive positioning rig.
+* An entire rig can be published and sent to the animation team **in under a minute!**
+* Ability to provide simple skinning to your final character.
+* A full suite of animation tools complete with user interface, including importing mocap or animation data, exporting to FBX, pose tools, mirroring, space switching, and more!
+[/EXCERPT:Intro]
+
+[REGION:note]
+The ART originally started as an in-house tool set for Epic's animation team. Currently, it is optimized primarily for bipedal humanoid characters. However, the toolset will continue to grow allowing for a wider range of characters.
+[/REGION]
+
+
+## Installation Instructions
+
+
+1. Locate the file in your UE4 install, typically under **UE4/Engine/Extras/Maya_AnimationRiggingTools**. 
+
+1. Copy the **userSetup.py** file (located in _Engine\Extras\Maya_AnimationRiggingTools\MayaTools_) into your **Maya scripts directory** (typically _C:\Users\user.name\Documents\maya\scripts_). You will most likely be asked to overwrite the existing file. Unless you have modified something yourself, then overwriting is fine. If you have any other instances of userSetup.py in any of your other scripts folders, please delete them.
+
+	[REGION:warning]
+	If you are already using a custom userSetup.py file, have your TD merge the contents of the one supplied with this toolset with your own.
+	[/REGION]
+
+1. Launch Maya.
+
+1. The first time through, you will be presented with a Maya Tools Install dialog asking you to locate your MayaTools directory. This is the same place you found the _userSetup.py_ file: _UE4/Engine/Extras/Maya_AnimationRiggingTools_.
+
+	![](MayaToolInstallWindow.png)
+
+1. You will now see an Epic Games menu at the top of your maya menu bar. Enjoy!
+
+	![](MayaMenu.png)
+
+
+[PUBLISH:licensee]
+[REGION:warning]
+If you are using source control, like Perforce, you will need to edit your client spec line endings setting to be unix instead of local. For some reason, having it set to local will break the text file formatting which will result in an error. You can force sync afterwards to apply those changes.
+
+To do this in P4V, use **Connection -> Edit Current Workspace**.
+
+![](PerforceSetting.png)
+
+
+[/REGION]
+[/PUBLISH:licensee]
+
+## Using the Toolset
+
+The ART is split into two modes: Rigging and Animation, each with their own distinct interfaces. For a character to use the ART Animation interface, it must be produced from the Rigging interface.
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/anim_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Animation & Rigging Tools
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Tools/MayaRiggingTool/RigTool_Rigging) - %Engine/Content/Tools/MayaRiggingTool/RigTool_Rigging:Description%
+		* [](Engine/Content/Tools/MayaRiggingTool/RigTool_Animation) - %Engine/Content/Tools/MayaRiggingTool/RigTool_Animation:Description%
+		
+	[/PARAM]
+[/OBJECT]

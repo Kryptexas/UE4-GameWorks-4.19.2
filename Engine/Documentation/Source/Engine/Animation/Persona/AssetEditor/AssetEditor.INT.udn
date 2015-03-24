@@ -1,0 +1,40 @@
+Availability:Public
+Title:Asset Editor
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:User guide for the Asset Editor in the Persona animation editor.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/AssetBrowser:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/AssetBrowser:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/AssetBrowser:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/AssetBrowser]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+Persona's **Asset Editor** opens when you **double-click** an animation asset in the **Asset Browser**. For more information about the **Asset Browser**, see [](Engine/Animation/Persona\AssetBrowser).
+
+You can use the **Asset Editor** to add Notifies, including Particle Systems, Sound Cues, and Animation Notifies, to specific points in time on the tracks of animation assets.
+
+![](AssetEditor.png)
+
+To add a Notify to an animation track, **right-click** the track, click **Add Notify**, and do one of the following:
+* To add a new Particle System, click **PlayParticleEffect**.
+* To add a new Sound Cue, click **PlaySound**.
+* To add a new custom Animation Notify, click **New Notify**, and give your new Animation Notify a name.
+
+![](AssetEditor_AddNotify.png)
+
+For more information about Animation Notifies, see [](Engine/Animation/Sequences\Notifies).
+

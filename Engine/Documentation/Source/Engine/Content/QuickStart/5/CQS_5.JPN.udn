@@ -1,0 +1,113 @@
+﻿INTSourceChangelist:2466505
+Availability:Public
+Title:5.手動でコンテンツをインポートする
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:このセクションでは、アンリアル エンジン 4 に手動でコンテンツをインポートするオプションを説明します。 
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+アンリアル エンジン 4 にコンテンツを手動でインポートする方法は 4 通りあります。
+* **コンテンツ ブラウザの** インポート機能 
+* ファイルをハードドライブから **コンテンツ ブラウザ** へドラッグする
+
+アンリアル エンジン 4 はインポートしているファイルのタイプをきちんと認識し、アセットをバッチ インポートします。
+
+
+## コンテンツ ブラウザでインポートする
+
+プロジェクトのエディタ インターフェースの左隅下の **コンテンツ ブラウザ** を見つけます。 
+
+![](ContentBrowser.png)
+
+**コンテンツブラウザの** ![](ImportButton.png) ボタンを使用するとファイル ダイアログが開き、アセットをアンリアル エンジン 4 へインポートすることが可能になります。 
+
+サンプル アセットをダウンロードまたは独自のアセットを用意している場合、以下の手順でそれらをインポートすることができます。 
+
+1. **コンテンツ ブラウザ** で [Import] ボタンをクリックします。
+1. ダウンロードした [サンプル アセット](Engine/Content/QuickStart/3/QuickStartSampleAssets.zip) を展開した位置を表示します。
+1. **Basic_Asset2.fbx** ファイルと **T_Rock_04_n.tga** ファイルを選択して **[Open]** をクリックします。 
+
+	![](ImportManual1.png)
+
+	[REGION:note]
+	このガイドで既にサンプル アセットをインポートしている場合は、オーバーライトするように促されます。 
+	[/REGION]
+
+1. FBX インポート ダイアログが表示されます。
+
+	![](ImportManual2.png)
+
+1. デフォルト設定を使用して ![](ImportAll.png) ボタンをクリックして両方のアセットをインポートします。
+
+1. **コンテンツ ブラウザ** の中には、トーラスノットの形をしたもの、 **blinn2** Material 、 Normal Map Texture の 3 つのアセットがあるはずです。 
+
+	![](ImportManual3.png)
+
+	 **blinn2** マテリアルは、トーラスノット スタティックメッシュと一緒にインポートしました。インポートされた Normal Map テクスチャは、マテリアルの外見をさらに細かくするためにインポートした rock テクスチャと一緒に使うことができます。 
+
+	[REGION:note]
+	マテリアルへの詳細の追加に関しては、 [](Engine/Rendering/Materials/HowTo/DetailTexturing) ページを参照してください。 
+	[/REGION]
+
+1. ![](SaveAllButton.png) ボタンをクリックして、全てのアセットを保存します。 
+
+
+## クリック＆ドラッグでインポートする
+
+アセットを OS から **コンテンツ ブラウザ** 内の空きスペースにドラッグするだけでもインポートが可能です。FBX ファイルごとにインポート オプションを定義するよう促されますが、テクスチャは単純にバッチ インポートされます。**コンテンツ ブラウザ** にドラッグすると、アセットをインポート中であることを反映するために、マウス カーソルも変化します。 
+
+![](CnD_importAll.png)
+
+[REGION:note]
+アセットのインポート後に ![](saveAllbutton.png) ボタンを必ずクリックしてアセットを保存するようにしてください。
+[/REGION]
+
+次のステップでは、自分でマテリアルを作成 / 適用していきます。関連するドキュメントへのリンクも紹介します。 
+
+<!--
+**マテリアル** を **スタティック メッシュ** に適用するには、以下の操作を行います。
+
+1. **コンテンツ ブラウザ** 内で、_Basic_Asset1_ を **ダブルクリック** して **スタティック メッシュ エディタ** を開きます。
+
+	![](Engine/Content/QuickStart/6/SMEditor.png)
+
+1. エディタの右側の **[詳細]** パネル の **LOD0** カテゴリで、プルダウンをクリックしてマテリアルを「Rock」マテリアルに変えることで **Element 0** Material プロパティを変更します。
+
+	![](Engine/Content/QuickStart/6/SMEditor2.png)
+
+	_新規マテリアルを選択すると、プレビュー ウィンドウが更新され、新規マテリアルが適用されます。_
+
+	![](assignedMaterial.png)
+
+マテリアルをクリックして **コンテンツ ブラウザ** から **スタティックメッシュ アクタ** へドラッグしても、マテリアルをレベル内のスタティック メッシュへ適用することもできます。
+
+[REGION:note]
+レベル内に **スタティック メッシュ アクタ** を配置するには、 スタティック メッシュ をクリックして **コンテンツ ブラウザ** から **レベル ビューポート** にドラッグします。
+[/REGION]
+
+![](draganddropMaterial.png)
+
+_スタティックメッシュ アクタ上でマウスボタンを放すと、選択したマテリアルに更新されます。_
+
+![](appliedMaterial.png)
+
+-->
+
+%Steps%
+

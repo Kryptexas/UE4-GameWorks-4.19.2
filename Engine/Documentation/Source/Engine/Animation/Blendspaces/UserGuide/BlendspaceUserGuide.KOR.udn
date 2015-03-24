@@ -1,0 +1,93 @@
+INTSourceChangelist:2181912
+Availability:Public
+Title: 블렌드 스페이스 사용하기
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Blendspaces
+Description:애니메이션 블루프린트 애셋에서 블렌드 스페이스를 사용하여 데이터를 입력하고 애니메이션 포즈 출력 샘플을 뽑는 법 안내서입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Blendspaces/UserGuide:title%](Engine/Animation/Blendspaces/Using.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Blendspaces/UserGuide:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Blendspaces/UserGuide:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Blendspaces/UserGuide]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+## 개요
+
+[EXCERPT:Intro]
+Blend Space (블렌드 스페이스)는 애니메이션 블루프린트의 AnimGraph (애님 그래프)에 노드를 배치하는 방식으로 사용됩니다. 이 노드는 블렌드 스페이스가 최종 블렌딩 포즈를 만드는 데 사용되는 애니메이션을 결정하는 데이터를 받습니다.
+[/EXCERPT:Intro]
+
+## 블렌드 스페이스 노드 추가하기
+
+블렌드 스페이스 노드는 샘플 파라미터 데이터에 대한 접근과 블렌드 스페이스의 포즈 출력을 제공합니다.
+ 
+**드래그 앤 드롭으로 블렌드 스페이스 노드 놓기:**
+
+1. 애님블루프린트 에디터에서, 샘플링하려는 블렌드 스페이스를 **애셋 브라우저** 에서 찾습니다.
+
+	![](SelectBlendSpace.png)
+
+1. 그 위에 좌클릭한 후 애님그래프 속으로 드래그 합니다.
+
+	![](DragDropBlendSpace.png)(w:720)
+
+1. 왼쪽 마우스 버튼을 놓아 블렌드 스페이스를 놓습니다.
+
+	![](BlendSpaceNodeAdded.png)
+
+
+**맥락 메뉴로 블렌드 스페이스 노드 놓기:**
+
+1. 애님그래프에 우클릭한 후 **Animation** 을 펼쳐 호환 블렌드 스페이스 목록을 전부 확인합니다.
+
+	![](AnimationContextMenu.png)
+
+1. 샘플링하려는 블렌드 스페이스에 클릭합니다.
+
+	![](BlendSpaceContextSelection.png)
+
+1. 블렌드 스페이스 노드가 놓입니다.
+
+	![](BlendSpaceNodeAdded.png)
+
+
+## 데이터 입력하기
+
+블렌드 스페이스는 샘플 파라미터에 전달되는 데이터에 의존하여 애니메이션 블렌딩을 합니다. 각 블렌드 스페이스 노드에는 각 샘플 파라미터에 대한 입력 데이터 핀이 있습니다. 다른 노드에서의 변수나 출력을 이 핀에 연결하여 블렌드 스페이스에 필요한 데이터를 전해줄 수 있습니다.
+
+![변수 입력 데이터](bs_input_variables.png)
+
+[REGION:note]
+블렌드 스페이스 편집은 현재 사용할 수 있는 입력이 두 개로 제한되어 있어서, 셋째 입력 핀은 사용되지 않습니다.
+[/REGION]
+
+블렌드 스페이스로 전달되는 값은 보통 이벤트그래프의 업데이트 사이클 도중이나 게임플레이 코드를 통해 계산되는 변수입니다. 애니메이션 블루프린트의 이벤트그래프 안에서 계산되고 있는 Direction 과 Speed 변수 예제는 아래와 같습니다.
+
+[REGION:fullwidth]
+![Variable Input Data - Update Cycle](bs_input_calc.png)
+[/REGION]
+
+## 출력 포즈
+
+가장 간단한 경우, 블렌드 스페이스 노드의 **Pose** 출력 핀을 애님그래프 내 **Result** 노드의 **Pose** 입력 핀에 연결할 수 있습니다.
+
+![출력 포즈 - 결과](bs_output_result.png)
+
+아니면 좀 더 복잡한 애니메이션 체인이 필요할 때 애니메이션 포즈를 입력으로 받는 다른 입력 핀으로 연결할 수도 있습니다.
+
+![출력 포즈 - 블렌드](bs_output_blend.png)

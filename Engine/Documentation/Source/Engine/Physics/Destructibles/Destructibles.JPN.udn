@@ -1,0 +1,72 @@
+﻿Availability:Docs
+Title: 非破壊性アクタ
+Crumbs: %ROOT%, Engine
+Description:
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/Destructibles:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/Destructibles:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/Destructibles:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Destructibles]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Physics/Destructibles:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/Destructibles:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/Destructibles:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Destructibles]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![Physics](Engine/Physics/physics_landing_banner.png)
+[/REGION]
+
+## 概要
+
+戦いの不正者に対して何かを粉々にする、壊す、倒壊させる、倒す必要がある場合、**Destructible Actors ** (被破壊性アクタ) が良い手段です。内臓エディタツールにあるホストと**PhysX APEX Destruction**アセットに対するサポートにより、アンリアル エンジン 4 はコンテンツ クリエーターがワールドを作成しては最終的に壊す多種多様な方法を提供しています。
+
+## トピックス
+
+[REGION:topics third]
+%Engine/Physics\Destructibles\Intro:topic%
+%Engine/Physics\Destructibles\DestructibleTutorial:topic%
+%Engine/Physics\Destructibles\FractureFX:topic%
+%Engine/Physics\Destructibles\Support:topic%
+%Engine/Physics\Destructibles\DestructibleProperties:topic%
+[/REGION]
+
+[PUBLISH:docs]
+## 例
+
+[REGION:todo]
+コンテンツ事例のリンクは、ここに貼ります。
+[/REGION]
+
+[/PUBLISH:docs]
+

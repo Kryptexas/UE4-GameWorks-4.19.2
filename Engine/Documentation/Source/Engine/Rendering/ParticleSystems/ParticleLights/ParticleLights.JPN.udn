@@ -1,0 +1,111 @@
+﻿INTSourceChangelist:2227015
+Availability:Public
+Title:パーティクル ライト
+Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
+Description:パーティクル ライトは VFX アーティストの保管庫にあるもう 1 つの武器です。
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/ParticleSystems/ParticleLights:title%](particleLights_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/ParticleLights:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/ParticleSystems/ParticleLights:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/ParticleLights]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/ParticleSystems/ParticleLights:title%](particleLights_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/ParticleSystems/ParticleLights:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/ParticleSystems/ParticleLights:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/ParticleSystems/ParticleLights]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:2)]
+
+## 概要
+
+[EXCERPT:PL001]
+_CPU Particle Emitters_ は **カスケード** の **Particle Light Module** を追加して、それぞれのパーティクルに適用されたライトでレンダリングするために作成することができます。ライトを十分にエミットして周りの環境より目立たせる火花や花火などのエフェクトに便利です。
+[/EXCERPT:PL001]
+
+## 準備全般
+
+パーティクル ライトのパフォーマンス負荷はほぼ完全と言っていいほど、画面上で発生するオーバードローの量に依存しています。オーバードローは、ライト数 X 影響を受けるピクセル数です。  
+
+パーティクル ライトを設定する際には、大きいパーティクル ライトは少なく、小さいパーティクル ライトを多くするのが一般的な戦略です。パーティクル ライトの負荷はあっという間に手に負えなくなるので、 _ProfileGPU_ コンソール コマンドで調整およびプロファイルすることが重要です。負荷は _ライト_ の下に表示されます。
+
+![](PL_Sparks_2.gif)(convert:false) ![](PL_flow_2.gif)(convert:false)
+
+パーティクル ライト エミッタのみを使って上のアニメーションをした静止画像がこちらです。
+
+![](PL_system_01_still.png)(h:407) ![](PL_system_02_still.png)(h:407)
+
+最初の画像では、パーティクル ライトは既にソリッドなパーティクル システムである火花や炎により物理感を出すためのアクセントに使用されています。さらに、パーティクル ライトはどの瞬間でもほとんど存在しません。2 つ目の画像では、ライトはボリュームと位置をシステムに追加しますが、エフェクト効果を出すためにかなり多くのパーティクル (200 以上) を使用します。
+
+## 使用方法
+
+ライトをパーティクル システムに追加する方法は単刀直入です。
+
+1. カスケードでパーティクル システムを開きます。
+1. エミッタへライトを配置する位置でエミッタを **右クリック** をします。
+1. マウスを使用してモジュール リストから **Lights -> Light** を選択します。
+	[REGION:lightbox]
+	[![](PL_addLightModule.png)(w:830)](PL_addLightModule.png)
+	[/REGION]
+1. 最高のライトモジュールを新規に設定します。
+	[REGION:lightbox]
+	[![](PL_lightModuleAdded.png)(w:830)](PL_lightModuleAdded.png)
+	[/REGION]
+
+
+[REGION:note]
+注記： **Light** モジュールは CPU パーティクル上のみで使用できます。 GPU パーティクルはどれもこのモジュールとは機能しません。GPU エミッタへモジュールを追加してもシステムを壊すようなことはありませんが、実際には何も起こらずリストのモジュール上に巨大な赤い _X_ マークが表示されます。
+[/REGION]
+
+###プロパティ
+
+![](PL_lightModuleProperties.png)
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| Use Inverse Squared Falloff | 有効になると、ライトの半径に基づいてより現実味のあるフォールオフとするために **Light Exponent** は無視されます。 |
+| **Affects Translucency** | 有効になると、それぞれのパーティクル ライトは lit 透過に影響します。煙を通過するロケットのエミッシブ トレイルに便利です。このプロパティは、レンダリングされるそれぞれのパーティクルに対してかなりの負荷がかかるので、この設定を有効にするパーティクルは少なめにすることを推奨します。 |
+| **Preview Light Radius** |  **[Preview]** ウィンドウに球体のワイヤーフレームでライトの半径を表示します。 |
+| Spawn Fraction | ライトをアタッチするパーティクルの割合を定義します。値が 1.0 だと全てのパーティクル、値が 0.5 だとパーティクルの 50 ％、値が 0.1 だと 10 ％のパーティクルの割合になります。これを使って最適化時の負荷を減らします。 |
+| **Color Scale Over Life** | Radius Scale 同様に、パーティクルの色に基づいてライトの色をオフセットするために、ここで入力した値でライトの色を乗算します。 |
+| **Brightness Over Life** | ライフタイムを通じてライトの輝度の変更を有効にします。 |
+| **Radius Scale** | パーティクルのサイズに基づいてライトの範囲を定義する乗数です。X 軸上で値 1 でスケーリングされたパーティクルは **Radius Scale** と同等の半径になりますが、 X 軸上で値 10 でスケーリングされたパーティクルは **Radius Scale** の半径の 10 倍になります。 |
+| **Light Exponent** | **Use Inverse Squared Falloff** を無効にすると、このプロパティがライトのフォールオフを制御します。大きい数値は、ライトがライトの半径に近づくにつれてより緩やかなフォールオフとなるのに対して、数値が小さくなるとライトの半径付近でライトが突然落下します。 |
+
+
+
+<!--
+## 関連
+
+[INCLUDE:Engine/Rendering/LightingAndShadows/LightProperties#LightRef005]
+
+[INCLUDE:Engine/Rendering/LightingAndShadows/LightProperties#LightRef007]
+-->

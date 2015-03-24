@@ -1,0 +1,118 @@
+﻿INTSourceChangelist:2077918
+Availability: Public
+Title:피직스 바디 참고서
+Crumbs: %ROOT%, Engine, Engine/Physics
+Description:대부분의 물리 상호작용의 기반, 피직스 바디 입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/PhysicsBodies:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhysicsBodies:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhysicsBodies:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/PhysicsBodies]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Physics/PhysicsBodies:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhysicsBodies:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhysicsBodies:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/PhysicsBodies]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[TOC(start:2)]
+
+## 개요
+
+갈수록 복잡해져 가기만 하는 3D 메시를 볼 때, 실시간 3D 렌더링 프로그램에서 물리 시뮬레이션을 돌리기 위해서는 프록시 형태를 사용해야만 합니다. Physics Body (피직스 바디)는 언리얼 엔진 4 에서 물리 시뮬레이션에 사용하는 단순화된 형태의 3D 메시입니다. 박스, 구체, 캡슐, 컨벡스 헐 등의 모양이 가능합니다.
+
+다음은 피직스 바디 생성 및 작업을 위한 여러가지 에디터와 작업방식 관련 정보 링크입니다:
+
+
+### 스태틱 메시
+
+3D 아트 프로그램을 사용한 피직스 바디 제작 관련: [](Engine/Content/FBX/StaticMeshes)
+
+스태틱 메시 에디터를 사용한 피직스 바디 제작 관련: [](Engine/Physics/Collision/Reference)
+
+
+### 피직스 애셋 / 스켈레탈 메시
+
+스켈레탈 메시용 피직스 애셋 제작 관련: [](Engine/Physics\PhAT)
+
+
+### 모양 컴포넌트
+
+Box, Sphere, Capsule (박스, 구체, 캡슐) 컴포넌트는 콜리전, 오버랩, 기타 물리 시뮬레이션 이벤트에 설정되는 경우 피직스 바디가 자동으로 설정됩니다.
+
+
+## 레퍼런스
+
+모든 피직스 바디에는 프로퍼티 공유 풀이 있습니다. 아래는 피직스 바디와 나타나는 프로퍼티 주요 카테고리입니다. 모든 액터와 컴포넌트에 모든 프로퍼티가 나타나는 것은 아니며, 프로퍼티의 맥락에 따라 달라집니다.
+
+
+### 피직스
+
+| 프로퍼티 | 설명 |
+| --- | --- |
+|[REGION:tablesection]피직스[/REGION]||
+| **Mass in KG** | KG 단위 질량 - 바디의 KG 단위 질량입니다. |
+| **Start Awake** | 깬 상태로 시작 - %doxygen:FBodyInstance::bStartAwake% |
+| **Physics Type** | 피직스 유형 - %doxygen:UBodySetup::PhysicsType% |
+| **Phys Material** | 피직 머티리얼 - %doxygen:UBodySetup::PhysMaterial% |
+| **Walkable Slope Override** | 보행가능 경사 덮어쓰기 - %doxygen:UBodySetup::WalkableSlopeOverride% |
+| **Walkable Slope Behavior** | 보행가능 경사 동작 - %doxygen:FWalkableSlopeOverride::WalkableSlopeBehavior% |
+| **Walkable Slope Angle** | 보행가능 경사 각도 - %doxygen:FWalkableSlopeOverride::WalkableSlopeAngle% |
+| **Enable Gravity** | 중력 켜기 - %doxygen:FBodyInstance::bEnableGravity% |
+| **Use Async Scene** | 비동기 씬 사용 - %doxygen:FBodyInstance::bUseAsyncScene% |
+| **Phys Material Override** | 피직 머티리얼 덮어쓰기 - %doxygen:FBodyInstance::PhysMaterialOverride% |
+| **COMNudge** | 질량중심 넛지 - %doxygen:FBodyInstance::COMNudge% |
+| **Sleep Family** | 잠든 패밀리 - %doxygen:FBodyInstance::SleepFamily% |
+| **Mass Scale** | 질량 스케일 - %doxygen:FBodyInstance::MassScale% |
+| **Angular Damping** | 각형 제동 - %doxygen:FBodyInstance::AngularDamping% |
+| **Linear Damping** | 선형 제동 - %doxygen:FBodyInstance::LinearDamping% |
+| **Position Solver Iteration Count** | 위치 솔버 반복처리 횟수 - %doxygen:FBodyInstance::PositionSolverIterationCount% |
+| **Velocity Solver Iteration Count** | 속도 솔버 반복처리 횟수 - %doxygen:FBodyInstance::VelocitySolverIterationCount% |
+
+
+### 콜리전
+
+| 프로퍼티 | 설명 |
+| --- | --- |
+|[REGION:tablesection]콜리전[/REGION]||
+| **Notify Rigid Body Collision** | 리짓 바디 콜리전 통지 - %doxygen:FBodyInstance::bNotifyRigidBodyCollision% |
+| **Always Create Physics State** | 항상 피직스 스테이트 생성 - %doxygen:UPrimitiveComponent::bAlwaysCreatePhysicsState% |
+| **Generate Overlap Events** | 오버랩 이벤트 생성 - %doxygen:UPrimitiveComponent::bGenerateOverlapEvents% |
+| **Multi Body Overlap** | 멀티 바디 오버랩 - %doxygen:UPrimitiveComponent::bMultiBodyOverlap% | 
+| **Trace Complex On Move** | 이동시 복잡한 트레이스 - %doxygen:UPrimitiveComponent::bTraceComplexOnMove% |
+| **Return Material On Move** | 이동시 머티리얼 반환 - %doxygen:UPrimitiveComponent::bReturnMaterialOnMove% |
+|[REGION:tablesection]콜리전 반응 [/REGION]||
+| | 자세한 정보는 [](Engine/Physics\Collision) 문서를 참고하세요. |
+|[REGION:tablesection]기타[/REGION]||
+| **Use CCD** | CCD 사용 - %doxygen:FBodyInstance::bUseCCD% |
+| **Check Async Scene On Move** | 이동시 비동기 씬 점검 - %doxygen:UPrimitiveComponent::bCheckAsyncSceneOnMove% |
+| **Can Ever Affect Navigation** | 내비게이션 영향 가능 - %doxygen:UPrimitiveComponent::bCanEverAffectNavigation% |

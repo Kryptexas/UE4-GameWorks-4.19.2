@@ -1,0 +1,94 @@
+﻿INTSourceChangelist:2274181
+Availability: Public
+Title:소스 패널 상세
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:콘텐츠 브라우저 소스 패널에서 소스 폴더 작업에 관련된 작업시의 미묘한 부분을 다룬 문서입니다.
+	
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](SourcesPaneltopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/WorkingWithSources:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/WorkingWithSources]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:3)]
+
+
+## 개요
+
+소스 패널에서는 프로젝트의 모든 폴더를 계층구조로 표현해 주기 때문에, 콘텐츠 브라우저에서 그 폴더의 애셋에 접근하는 방식을 아는 것이 중요합니다.
+
+
+![SourcesPanel.png](Engine/Content/Browser/UserGuide/WorkingWithSources/SourcesPanel.png)(h:400)
+
+**Developers** 폴더 관련 상세 정보는 [](Engine/Content/Browser\UserGuide\DevelopersFolder) 문서를 참고해 주세요.
+
+## 소스 패널 토글하기
+
+원한다면 콘텐츠 브라우저 작업시 소스 패널을 닫을 수 있습니다. 창 상단의 ![Collapse Button](Engine/Content/Browser/UserGuide/WorkingWithSources/icon_CollapseButton.png) 버튼을 누르면 소스 패널을 필요에 따라 보이고 숨길 수 있습니다. 화면 공간이 더 필요할 때라든가 여러 콘텐츠 브라우저 작업을 할 때 매우 좋습니다.
+
+[REGION:note]
+	소스 패널을 숨기면 **콜렉션** 패널도 같이 숨깁니다.
+[/REGION]
+
+
+## 소스 선택하기
+
+애셋 뷰에서는 소스를 선택한 상태에서 필터와 검색 범주에 따라서만 애셋이 표시됩니다. 그렇기에 올바른 소스 폴더를 선택해 둬야 그 안에 있는 애셋을 확인할 수 있다는 점이 중요합니다.
+
+[REGION:note]
+	여러 폴더에 있는 애셋을 검색하기 위해서는, 대상 폴더를 모두 선택해야 합니다. 애셋 뷰는 선택되지 않은 폴더에 있는 애셋은 표시하지 않습니다. 즉 프로젝트 내 모든 애셋을 대상으로 검색하기 위해서는, 소스 뷰에서 모든 프로젝트 폴더( 또는 그 전부가 들어있는 부모 폴더)를 선택해 둬야 합니다.
+[/REGION]
+
+여러 프로그램과 운영체제의 폴더와 파일 목록에서처럼, 다음과 같은 키 조합이 적용됩니다:
+
+* **마우스 클릭** - 현재 선택을 클릭된 폴더로 대체합니다.
+* **Shift+클릭** - 폴더의 선택 상태를 토글하거나, 시작점과 끝점 사이의 모든 폴더를 범위 선택합니다.
+* **Ctrl+클릭** - 폴더의 선택 상태를 토글하나, 클릭되지 않은 폴더에는 아무런 작업도 하지 않습니다.
+
+
+## 우클릭 맥락 메뉴
+
+소스 패널 내 아무 폴더에나 **우클릭** 하면 다음과 같은 맥락 메뉴가 나타납니다:
+
+
+| 이름 | 설명 |
+| -------- | ----------- |
+| **[New Folder](Engine/Content/Browser\UserGuide\Folders)** | 새 폴더 - 현재 선택된 것 아래 새로운 폴더를 만드는 옵션입니다. |
+| [REGION:tablesection]폴더 옵션[/REGION] ||
+| **[New Asset](Engine/Content/Browser\UserGuide\BrowserAssetCreation)** | 새 애셋 > - 만들 수 있는 여러가지 유형의 애셋을 표시하는 하위메뉴를 엽니다. |
+| **Show in Explorer** | 탐색기에 표시 - 윈도우 탐색기에서 이 폴더를 엽니다. 아래 윈도우에서 애셋 둘러보기 부분을 참고하세요. |
+| **Rename** | 이름변경 - 선택된 폴더 이름을 변경합니다. |
+| **Set Color** | 컬러 설정 - 체계 정리 목적으로 선택된 폴더에 대한 컬러 설정이 가능합니다. |
+| [REGION:tablesection]대량 작업[/REGION] ||
+| **Save** | 저장 - 새로 추가되거나 변경된 애셋은 물론 새로운 폴더도 모두 저장합니다. 변경 작업을 할 때는 자주 저장! 잊지 마세요. |
+| **Delete** | 삭제 - 현재 선택된 폴더와 그 내용물 전부를 삭제합니다. |
+| **[레퍼런스 뷰어](Engine/Content/Browser\ReferenceViewer)** | 폴더에 대한 레퍼런스 그래프를 표시합니다. |
+| **Fixed Up Redirectors in Folder** | 폴더의 리디렉터 고치기 - 선택된 폴더의 모든 리디렉터에 대한 레퍼런스를 찾은 다음 가능하면 재저장한 후, 모든 레페런서가 수정된 리디렉터를 삭제합니다. |
+| [REGION:tablesection]소스 콘트롤 (옵션은 레벨 에디터의 [개인설정](Engine/UI/EditorSettings) 에서 소스 콘트롤 세팅이 켜져 있어야만 보입니다.)[/REGION] ||
+| **Check Out** | 체크 아웃 - 선택된 폴더를 "체크 아웃" 상태로 설정, 다른 사용자가 수정하지 못하도록 잠급니다. |
+| **Mark For Add** | 추가 등록 - 선택된 폴더를 소스 콘트롤 서버에 추가하도록 등록합니다. |
+| **Check In** | 체크 인 - 모든 편집 및 추가 내용을 제출하고, 체크아웃된 폴더의 잠금을 풉니다. |
+| **Sync** | 이 폴더의 모든 애셋을 최신 버전으로 동기화시킵니다. |
+
+소스 콘트롤 셋업 및 사용법 관련 정보는 [](Engine/UI/SourceControl) 문서를 참고하세요.
+
+## 이동과 복사
+
+소스 패널 안에서 선택된 폴더를 끌어 놓아 한 위치에서 다른 위치로 폴더를 이동 또는 복사할 수 있습니다. 이 작업을 할 때는 다음과 같은 맥락 메뉴가 나타납니다:
+
+
+
+| 이름 | 설명 |
+| ---- | ---- |
+| [REGION:tablesection]이동/복사[/REGION] ||
+| **Copy Folder Here** | 여기에 폴더 복사 - 선택된 폴더의 사본을 대상 폴더에 만듭니다. |
+| **Move Folder Here** | 여기에 폴더 이동 - 폴더를 새 위치로 이동, 즉 원래 위치에는 남아있지 않게 됩니다. |
+

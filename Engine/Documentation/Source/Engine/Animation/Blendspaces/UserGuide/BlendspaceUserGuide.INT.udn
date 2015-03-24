@@ -1,0 +1,92 @@
+Availability:Public
+Title: Using Blend Spaces
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Blendspaces
+Description:Guide to using Blend Spaces in Animation Blueprints to input data and sample output animation poses.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Blendspaces/UserGuide:title%](Engine/Animation/Blendspaces/Using.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Blendspaces/UserGuide:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Blendspaces/UserGuide:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Blendspaces/UserGuide]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+## Overview
+
+[EXCERPT:Intro]
+_Blend Spaces_ are used by placing nodes in the **AnimGraphs** of _Animation Blueprints_. These nodes take in value data that is used to drive which animations the _Blend Space_ uses to create the final blended pose.
+[/EXCERPT:Intro]
+
+## Adding Blend Space Nodes
+
+_Blend Space_ nodes provide access to the sample parameter data and output pose of the _Blend Space_.
+ 
+**To place a _Blend Space_ node using drag and drop:**
+
+1. In **Persona**, find the _Blend Space_ you want to sample in the **Asset Browser**.
+
+	![](SelectBlendSpace.png)
+
+1. **Left-click** on it and drag the mouse into the **AnimGraph**.
+
+	![](DragDropBlendSpace.png)(w:720)
+
+1. Release the **Left Mouse Button** to place the _Blend Space_ node.
+
+	![](BlendSpaceNodeAdded.png)
+
+
+**To place a _Blend Space_ node using the context menu:**
+
+1. **Right-click** in the **AnimGraph** and expand **Animation** to see a list of all compatible _Blend Spaces_.
+
+	![](AnimationContextMenu.png)
+
+1. Click on the _Blend Space_ you want to sample.
+
+	![](BlendSpaceContextSelection.png)
+
+1. The _Blend Space_ node is placed.
+
+	![](BlendSpaceNodeAdded.png)
+
+
+## Inputting Data
+
+_Blend Spaces_ rely on data being passed into the sample parameters in order to perform the animation blending. Each _Blend Space_ node has input data pins for each sample parameter. Variables or outputs from other nodes can be wired to these pins to pass the necessary data to the _Blend Space_.
+
+![Variable Input Data](bs_input_variables.png)
+
+[REGION:note]
+Since _Blend Space_ editing is currently limited to using two inputs, the third input pin is not used.
+[/REGION]
+
+The values passed to the _Blend Space_ are generally variables calculated during the update cycle in the **EventGraph** or through gameplay code. An example of the Direction and Speed variables being calculated in the **EventGraph** of an _Animation Blueprint_ is shown below.
+
+[REGION:fullwidth]
+![Variable Input Data - Update Cycle](bs_input_calc.png)
+[/REGION]
+
+## Output Pose
+
+The **Pose** output pin of the _Blend Space_ node can be wired to the **Pose** input pin of the **Result** node in the **AnimGraph** in the simplest case.
+
+![Output Pose - Result](bs_output_result.png)
+
+Or, it can be wired to any other input pin that accepts an animation pose as an input when a more complex animation chain is necessary.
+
+![Output Pose - Blend](bs_output_blend.png)

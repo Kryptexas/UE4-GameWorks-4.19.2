@@ -1,0 +1,7 @@
+﻿INTSourceChangelist:2033300
+Title:BlueprintReadWrite
+Crumbs: %ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/Reference/Properties/Specifiers
+Description: 
+Availability:Public
+
+このプロパティはブループリントから読んだり書き込んだりすることができます。

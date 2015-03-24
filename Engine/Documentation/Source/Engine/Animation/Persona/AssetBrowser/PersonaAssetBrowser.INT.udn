@@ -1,0 +1,40 @@
+Availability:Public
+Title:Persona Asset Browser
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:User guide for the Asset Browser in the Persona animation editor.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/AssetBrowser:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/AssetBrowser:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/AssetBrowser:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/AssetBrowser]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[EXCERPT:Overview]
+![](AssetBrowser.png)
+
+The **Asset Browser** panel displays the _AnimSequences_, _BlendSpaces_, _AnimMontages_, and _AimOffsetBlendSpaces_ 
+that are valid for the target _Skeleton_ in a mini **Content Browser**-style interface. 
+[/EXCERPT:Overview]
+
+The **Asset Browser** panel is visible only when **Persona** is in **Animation** mode.
+
+| Action | Description |
+| ------ | ----------- |
+| **Click Asset** | Selects the asset and enables it in the preview Viewport. |
+| **Double-click Asset** | Selects the asset and displays its properties in the **Anim Asset Details** panel and the **Asset Editor**. For more information, see [](Engine/Animation/Persona\AnimAssetDetails) and [](Engine/Animation/Persona\AssetEditor).|
+| **Drag Asset into Level Editor viewport** | Creates an instance of the asset as a Skeletal Mesh Actor in the Level Editor Viewport. |
+

@@ -1,0 +1,32 @@
+﻿INTSourceChangelist:2419450
+Availability:Public
+Title:ブループリントのクラスを開く
+Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types/ClassBlueprint
+Description:コンテンツブラウザおよびレベルエディタからの編集用にブループリントのクラスを開くためのガイド
+
+**コンテンツ ブラウザ** でアセットと直接インタラクションするか、またはレベルにおかれている _ブループリントのクラス_ のインスタンスとインタラクションすることで、
+**ブループリント エディタ** で _ブループリントのクラス_ を開くことができます。
+
+##コンテンツ ブラウザ
+* **コンテンツ ブラウザ** でアイコンを **ダブルクリック** します。
+
+	![](Content_browser_blueprints.png)
+
+* **コンテンツ ブラウザ** でアイコンを **右クリック** し、 **[Blueprint Actions]** の **[Open in Full Editor]** を選びます。
+
+	![](Content_browser_open_bp.png)
+
+
+##レベル ビューポート
+* レベルの _ブループリント_ のインスタンスを **右クリック** し、 **[ブループリント]** の **[Edit Blueprint]** を選びます。
+
+	![](level_editor_open_blueprint.png)
+
+* ブループリントのインスタンスを選択した状態で、 **[詳細]** タブで、テキスト ** [ブループリント名] extends [親クラス]** の隣にある **[編集]** ボタンをクリックします。 
+
+	![](details_panel_edit_blueprint.png)
+
+[REGION:warning]
+こうした方法では、 _ブループリント_ の各インスタンスに適用されるメニューがありますが、 **Blueprint Editor** で加えられた変更は、_ブループリント_ アセットにも適用されます。 
+結果として、変更は _ブループリント_ の全てのインスタンスに適用されることになります。
+[/REGION]

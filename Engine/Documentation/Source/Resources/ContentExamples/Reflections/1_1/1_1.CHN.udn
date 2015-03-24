@@ -1,0 +1,56 @@
+﻿INTSourceChangelist:1941792
+Availability: Docs
+Title:1.1 -非金属
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
+Description:反射示例关卡概述，示例1.1： 非金属
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Reflections/1_1:title%](Reflections_1_1_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Reflections/1_1:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Reflections/1_1:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Reflections/1_1]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Reflections/1_1:title%](Reflections_1_1_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Reflections/1_1:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Reflections/1_1:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Reflections/1_1]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+![](Reflections_1_1_Header.png)
+
+## 概述
+
+无论是盒体还是球体的 **反射捕获** actor，都会在其特效空间内或半径内对反射进行投射。 非金属材质（即 **金属** 属性值为0.0的材质）将基于其 **粗糙** 值及 **高光** 值进行反射。 粗糙值的升高及高光值的降低都会降低材质的反射属性。 **粗糙** 值及 **高光** 值会对表面的反射属性造成不同的影响，您可按想要的效果来进行调整。
+
+另一个值得关注的点是，非金属材质会从 **Base Color** （基色）属性中获取其主色。
+
+[/REGION]

@@ -1,0 +1,52 @@
+Availability:Public
+Title:景观(Landscape)
+Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/Tools
+
+[TOC(start:2)]
+
+
+## 景观概述
+
+景观是虚幻引擎3中的新地形系统，目前正在开发中。开发它的目的是替换旧的Terrian（地形）系统，当Landscape（尽管）功能完整后将废弃旧的系统。
+
+景观系统功能：
+
+* 大的地形尺寸。
+* 静态渲染数据存储在贴图的GPU内存中。
+* 使用贴图动态载入来载出高度图和权重数据，从而最小化内存占用量。
+* 连续的没有突兀显示的geo-mipmap LOD。
+* 高分辨率的独立于LOD的光照。
+* 矢量场的可选支持。
+* 用于碰撞的PhysX.
+
+
+
+## 景观编辑模式
+
+所有的景观编辑函数都可以在景观编辑模式窗口中找到。在12月份的经过QA验证的版本中，这个模式默认是隐藏的，除非当启动xxGame.exe时指定了 **-landscapeedit** 命令行参数。
+
+请按下 **景观编辑模式** 按钮来切换弹出这个窗口：
+
+![landscape_edit_button.png](landscape_edit_button.png)(w:85 h:175)
+
+![landscape_edit_window.png](landscape_edit_window.png)(w:284 h:531)
+
+景观编辑窗口提供了对以下任务的支持。请参照连链接文档获得详细信息。
+
+
+### 创建及导入新的景观和把旧的地形转换为景观
+
+* 请参照[景观创建](Landscape/Creation)文档。
+
+
+
+###编辑现有的景观
+
+* 请参照[景观编辑](Landscape/Editing)文档。
+
+ 
+
+
+
+
+

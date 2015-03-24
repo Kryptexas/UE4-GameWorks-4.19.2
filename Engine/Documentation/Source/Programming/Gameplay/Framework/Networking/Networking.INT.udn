@@ -1,0 +1,10 @@
+Availability:Public
+Title: Networking & Multiplayer
+Crumbs:%ROOT%, Gameplay
+Description:Setting up networked games for multiplayer.
+
+[OBJECT:Redirect]
+[PARAM:link]
+[](Gameplay/Networking)
+[/PARAM]
+[/OBJECT]

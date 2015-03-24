@@ -1,0 +1,97 @@
+Availability:Public
+Title:Animation Sequences
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:individual assets containing all of the transform data making up a single animation.
+Related: Engine/Content/FBX/Animations
+Related: Engine/Content/Types/SkeletalMeshes
+Related: Engine/Animation/PhysicallyDrivenAnimation
+Related: Engine/Animation/StateMachines
+Related: Gameplay/AI
+Related: Engine/Content/Tools/MayaRiggingTool
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Sequences:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Sequences:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Sequences:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Sequences]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:2)]
+
+[EXCERPT:Intro]
+An **Animation Sequence** is a single animation asset that can be played on a _Skeletal Mesh_. These contain keyframes that specify the position, rotation, and scale of a bone at a specific point in time. By playing these keyframes back in sequence, with blending between them, the bones of a _Skeletal Mesh_ can be smoothly animated. 
+[/EXCERPT:Intro]
+
+![](HuskRun2.gif)(w:720 convert:false)
+
+Each **Animation Sequence** asset targets a specific _Skeleton_ and can only be played on that _Skeleton_. This means, in order to share animations between multiple _Skeletal Meshes_, each of the meshes must use the same _Skeleton_ asset.
+
+[REGION:tip]
+An example of a **Skeleton** using an **Animation Sequence** can also be found on the [Animation Content Examples](Resources\ContentExamples\Animation) page under section 1.1. 
+[/REGION]
+
+## Editing
+
+[INCLUDE:Engine/Animation/Sequences/Editor#overview]
+
+See [](Engine/Animation/Sequences/Editor) for more details.
+
+## Playback
+
+[INCLUDE:Engine/Animation/Sequences/UserGuide#Intro]
+
+See the [](Engine/Animation/Sequences/UserGuide) for instructions on using **Animation Sequences** within **Animation Blueprints**.
+
+## Notifies
+
+[INCLUDE:Engine/Animation/Sequences/Notifies#Intro]
+
+See [](Engine/Animation/Sequences/Notifies) for descriptions and usage information for the various types of notifications available.
+
+Creation and editing of notifies is performed using the [Animation Sequence Editor](Engine/Animation/Sequences/Editor) in Persona.
+
+## Curves
+
+[INCLUDE:Engine/Animation/Sequences/Curves#Intro]
+
+See [](Engine/Animation/Sequences/Curves) for descriptions and usage information on how to set up and apply curves in Persona. 
+
+
+## Compression
+
+**Animation Sequence** assets when opened up in **Persona** can have compression applied to them. 
+
+To do this, from the **Menu Bar** select **Asset** then select **Apply Compression** (as seen below). 
+
+![](ApplyCompression.png)
+
+When choosing to apply compression, the **Animation Compression** window will open. 
+
+![](AnimationCompressionWindow.png)
+
+Each option provides a different compression method as outlined in the table below: 
+
+| Compression Type | Description |
+| --- | --- |
+| **Automatic** | Animation compression algorithm that is just a shell for trying the range of other compression schemes and picking the smallest result within a configurable error threshold. |
+| **Bitwise Compress Only** | Bitwise animation compression only; performs no key reduction. |
+| **Least Destructive** | Reverts any animation compression, restoring the animation to the raw data. |
+| **Remove Every Second Key** | Keyframe reduction algorithm that simply removes every second key. |
+| **Remove Linear Keys** | Keyframe reduction algorithm that simply removes keys which are linear interpolations of surrounding keys. |
+| **Compress each track independently** | Keyframe reduction algorithm that removes keys which are linear interpolations of surrounding keys, as well as choosing the best bitwise compression for each track independently. |
+| **Remove Trivial Keys** | Removes trivial frames of tracks when position or orientation is constant over the entire animation from the raw animation data. |
+
+

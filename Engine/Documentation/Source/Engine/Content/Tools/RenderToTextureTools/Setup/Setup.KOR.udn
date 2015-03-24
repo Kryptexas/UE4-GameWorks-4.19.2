@@ -1,0 +1,81 @@
+﻿INTSourceChangelist:2390113
+Availability: Public
+Title:렌더 투 텍스처 툴세트 셋업
+Crumbs:%ROOT%, Engine, Engine/Content
+Description:
+
+RenderToTexture 블루프린트는 **GameMode** 셋업 기본 뼈대를 사용하는 식으로 작동합니다. **RenderToTexture_Pawn** 을 레퍼런싱하는 **RenderToTexture_Game** 라는 동반 애셋이 있습니다. 폰은 매우 기본적인 블루프린트로, 단순히 **Camera Component** 가 직교로 설정되어 있으며 약간의 이벤트 그래프 노드로 콘솔 명령을 렌더링하도록 구성되어 있습니다.
+
+렌더 투 텍스처 툴을 사용하는 기본 셋업은 다음과 같습니다:
+
+1. 빈 레벨을 새로 만듭니다.
+1. **모드** 패널 **기본** 카테고리에서 **플레이어 스타트** 를 0,0,0 위치에 배치합니다. **플레이어 스타트** 의 회전이 0,0,0 으로 설정되었는지 확인합니다.
+
+	![](ZeroedTrans.png)
+
+1. **콘텐츠 브라우저** 의 **뷰 옵션** 에서 **엔진 콘텐츠 표시** 를 켭니다.
+
+	[REGION:raw]
+	![](viewOptions.png)
+	[/REGION]
+
+1. **콘텐츠 브라우저** 에서 **Engine** -> **ArtTools** -> **RenderToTexture** -> **Blueprints** 로 탐색합니다.
+1. 월드의 0,0,0 위치에 **RenderToTexture_LevelBP** 블루프린트를 배치합니다.
+
+	[REGION:raw]
+	![](placeRTT_LBP.png)(w:880 convert:false)
+	[/REGION]
+
+1. **월드 세팅** 버튼을 클릭합니다. (기본적으로) 디테일 패널이 도킹된 곳에 **월드 세팅** 패널이 열립니다.
+
+	![](worldSettingsBar.png)
+
+1. (RenderToTexture/Blueprints/ 에서 찾은) **RenderToTexture_GameMode** 블루프린트를 **월드 세팅** 의 **GameMode** 로 할당합니다.
+
+	[REGION:raw]
+	![](worldSettings.png)
+	[/REGION]
+
+1. [INCLUDE:Engine/Content/Tools/RenderToTextureTools/1#hrss1]
+
+1. **고해상도 스크린샷** 대화창을 열어둡니다.
+1. **에디터** -> **개인설정** -> **플레이** 의 **New Window Size** 프로퍼티를 2 의 제곱 크기로 설정합니다. 512x512 정도면 적당하며, 출력 이미지의 품질에 영향을 끼치지 않을 것입니다.
+
+	[REGION:lightbox]
+	[![](windowSize.png)(w:880)](windowSize.png)(convert:false)
+	[/REGION]
+
+수행할 기본 함수 유형을 선택하는 세팅은 **Default** 카테고리 아래 있습니다:
+
+![](defaultCat.png)
+
+그 아래 **Render Type** 프로퍼티의 값에 해당하는 카테고리를 찾을 수 있습니다.
+
+Default 이외에 모든 함수에 관련이 있는 유일한 프로퍼티 카테고리는 **Capture Settings** 카테고리입니다. 이 카테고리에서 저장하고자 하는 버퍼 타겟을 선택할 수 있습니다. 대부분의 경우 **베이스 컬러** 와 **노멀** 로 충분합니다. 오파시티 마스크 렌더링해 내기 위해 **Decal Mask** 옵션도 정상 작동합니다.
+
+![](captureSettings.png)
+ 
+해상도 배수는 에디터 개인설정에서 **New Window Size** 에 입력한 세팅을 곱합니다. 즉 512x512 를 입력한 경우, 배수가 2 이면 1024x1024 텍스처 크기가 됩니다. 배수가 4 이면 2048x2048 텍스처 크기가 됩니다. 원하는 결과에 따라, Adobe Photoshop 에서 다운샘플링하기 위해 렌더 텍스처를 4096 이나 8192 만큼 높이고 싶을 수가 있습니다. 그럴 때는 보통, Post Process Volume 을 추가한 다음 Anti Aliasing 세팅을 "none" 으로 설정하면 좀 더 빠삭한 결과를 얻을 수 있습니다.
+
+ 이 방법은 현재 `.bmp` 포맷 이미지를 저장하며, 이미지 처리 툴을 사용하여 `.tga` 로 다시 저장할 필요가 있습니다. 이 부분은 사실상 그리 큰 문제가 되지 않는데, 대부분의 경우 고해상도로 렌더링한 다음 나중에 이미지 처리 패스를 사용하여 다운샘플링하기 때문입니다.
+
+ 마지막으로, 원한다면 씬에 라이트를 추가하면 되며, 렌더링되는 시각화 버퍼에는 영향을 끼치지 않습니다.
+
+## 구체적인 안내
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	[](Engine/Content/Tools/RenderToTextureTools "%Engine/Content/Tools/RenderToTextureTools:description%")
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/Content/Tools/RenderToTextureTools/1 "%Engine/Content/Tools/RenderToTextureTools/1:description%")
+	* [](Engine/Content/Tools/RenderToTextureTools/2 "%Engine/Content/Tools/RenderToTextureTools/2:description%")
+	* [](Engine/Content/Tools/RenderToTextureTools/3 "%Engine/Content/Tools/RenderToTextureTools/3:description%")
+	* [](Engine/Content/Tools/RenderToTextureTools/4 "%Engine/Content/Tools/RenderToTextureTools/4:description%")
+	* [](Engine/Content/Tools/RenderToTextureTools/5 "%Engine/Content/Tools/RenderToTextureTools/5:description%")
+	[/PARAM]
+[/OBJECT]
+

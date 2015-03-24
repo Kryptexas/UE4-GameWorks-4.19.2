@@ -1,0 +1,467 @@
+Availability: Public
+Title:虚幻物理资源工具用户指南
+Crumbs: %ROOT%, Engine, Engine/Subsystems/Physics
+Crumbs:%ROOT%, Engine
+ 
+
+[TOC(start:2)]
+
+
+
+## 概述
+
+虚幻物理资源工具 - PhAT(物理资源工具) - 是虚幻编辑器中的一个集成工具，它专门用于操作骨架物体的物理设置。
+
+
+
+##打开PhAT
+
+可以通过双击任何物理资源或者通过在内容浏览器中物理资源的关联菜单来打开动画树编辑器。无论使用哪种方法，都可以在 PhAT物理编辑器中打开指定的物理资源，以便进行编辑。
+
+ **注意** ： 尽管同时打开多个PhAT窗口是可以的(有时候是需要的)，但是我们推荐您不要同时使用多个窗口进行仿真处理，因为这会大大地降低性能。
+
+
+
+## PhAT 界面
+
+PhAT 物理编辑器分为以下几个区域：
+
+![phateditor.jpg](phateditor.jpg)
+
+
+1. [菜单条](#MenuBar)
+1. [工具条](#ToolBar)
+1. [预览面板](#PreviewPane)
+1. [属性面板](#PropertiesPane)
+1. [树形结构面板](#TreePane)
+
+
+
+###菜单条
+
+
+#### 编辑
+
+
+* **Undo(取消)** - 取消上一个完成动作。
+* **Redo(重复)** - 执行上一次取消的操作。
+* **Change Default Skeletal Mesh(修改默认骨架网格物体)** - 在内容浏览器中设置当前选中的骨架网格物体资源为物理资源的默认骨架网格物体。
+
+
+
+####  工具
+
+
+* **Reset Entire Asset(重置整个资源)** - 打开初始刚体创建对话框，并使用新的设置替换整个物理资源。
+* **Reset Selected Bone Collision(重置选中的骨骼碰撞)** - 清除对骨架网格物体的选中刚体所进行了的任何碰撞修改。
+* **Apply Selected Physical Material to All Bodies(应用选中的物理材质到所有刚体)** - 将内容浏览器中当前选中的物理资源分配给物理资源中的所有刚体。如果没有选中物理材质则禁用此项。
+* **Copy Joint Settings to All Joints(复制关节设置到所有关节)** - 复制当前选中约束的属性到物理资源中的所有约束。如果没有选中约束则此项无效。
+
+
+
+#### 窗口
+
+
+* **Properties(属性)** - 切换属性面板的显示状态。
+* **Tree(树形结构)** - 切换树形结构面板的显示状态。
+
+
+
+###工具条
+
+以下是工具条上每个按钮的描述，按照它们在工具条上的出现顺序从左到右介绍。
+
+|  **图标**  |  **描述**  | 
+| --- | --- |
+| ![PhAT_BodyMode.jpg](PhAT_BodyMode.jpg)![PhAT_ConstraintMode.jpg](PhAT_ConstraintMode.jpg)|在编辑物理刚体或约束之间进行切换。|
+| ![PhAT_WorldSpace.jpg](PhAT_WorldSpace.jpg)![PhAT_LocalSpace.jpg](PhAT_LocalSpace.jpg)| 切换平移工具是在世界控件坐标系中工作还是在本地空间坐标系中工作。|
+| ![PhAT_TransMode.jpg](PhAT_TransMode.jpg)|设置平移控件为活动状态。|
+| ![PhAT_RotMode.jpg](PhAT_RotMode.jpg)| 设置旋转控件为活动状态。|
+| ![PhAT_ScaleMode.jpg](PhAT_ScaleMode.jpg)| 设置缩放控件为活动状态 |
+| ![PhAT_Snap.jpg](PhAT_Snap.jpg)| 切换平移工具的对齐方式。平移以0.25个单位的增量移动,不会对齐；以2.0个单位移动对齐。旋转工具以1.0个单位的增量旋转,不会对齐；以15.0个单位增量旋转并对齐。|
+| ![PhAT_CopyProps.jpg](PhAT_CopyProps.jpg)| 复制当前选中的 刚体/约束的属性给下一个选中的 刚体/约束。|
+| ![PhAT_InstanceProps.jpg](PhAT_InstanceProps.jpg)|当处于刚体编辑模式时，切换属性面板中显示刚体属性还是实例属性。|
+| ![PhAT_StartSim.jpg](PhAT_StartSim.jpg)![PhAT_StopSim.jpg](PhAT_StopSim.jpg)| 在预览面板中切换物理资源的物理仿真预览。|
+| ![PhAT_ShowMesh.jpg](PhAT_ShowMesh.jpg)![PhAT_WireMesh.jpg](PhAT_WireMesh.jpg)![PhAT_HideMesh.jpg](PhAT_HideMesh.jpg)| 在带光照渲染网格物体、线框、隐藏之间循环网格物体的渲染模式。|
+| ![PhAT_ShowColl.jpg](PhAT_ShowColl.jpg)![PhAT_WireColl.jpg](PhAT_WireColl.jpg)![PhAT_HideColl.jpg](PhAT_HideColl.jpg)| 在几何体、线框和隐藏之间循环碰撞渲染模式。|
+| ![PhAT_ConPos.jpg](PhAT_ConPos.jpg)![PhAT_ConLimit.jpg](PhAT_ConLimit.jpg)![PhAT_ConHide.jpg](PhAT_ConHide.jpg)| 在位置、限制和隐藏之间循环约束的渲染模式。|
+| ![Lock.jpg](Lock.jpg)| 切换是否以红色显示固定刚体。|
+| ![PhAT_ShowFloor.jpg](PhAT_ShowFloor.jpg)| 切换预览面板中地面网格物体的显示状态。|
+| ![PhAT_ShowSkel.jpg](PhAT_ShowSkel.jpg)| 切换预览面板中默认骨架网格物体的骨架和骨骼的显示状态。|
+| ![PhAT_ShowContacts.jpg](PhAT_ShowContacts.jpg)|  |
+| ![PhAT_HighlightVert.jpg](PhAT_HighlightVert.jpg)| 切换预览面板中受到当前选中的 骨骼/刚体 权重影响的顶点的显示状态。|
+| ![PhAT_ShowCOM.jpg](PhAT_ShowCOM.jpg)| 当启用仿真预览时，该项用于切换物力资源的刚体的质量属性的显示状态。|
+| ![PhAT_DisablePair.jpg](PhAT_DisablePair.jpg)|禁用树型结构面板中当前选中的刚体和下一个选中的刚体之间的碰撞。|
+| ![PhAT_EnablePair.jpg](PhAT_EnablePair.jpg)| 启用树型结构面板中当前选中的刚体和下一个选中的刚体之间的碰撞。|
+| ![PhAT_Weld.jpg](PhAT_Weld.jpg)|融合树型结构面板中当前选中的刚体到下一个选中的刚体。|
+| ![PhAT_AddBone.jpg](PhAT_AddBone.jpg)|向树形结构面板上的下一个选中的骨骼添加新的刚体。需要双击。默认会创建一个盒子。|
+| ![PhAT_AddSphere.jpg](PhAT_AddSphere.jpg)| 向树形结构面板中当前选中的节点添加新的球形刚体。|
+| ![PhAT_AddSphyl.jpg](PhAT_AddSphyl.jpg)| 向树形结构面板中当前选中的节点添加新的胶囊型刚体。|
+| ![PhAT_AddBox.jpg](PhAT_AddBox.jpg)| 向树形结构面板中当前选中的节点添加新的盒型刚体。|
+| ![PhAT_DelPrim.jpg](PhAT_DelPrim.jpg)| 删除树形结构面板中当前选中的刚体。|
+| ![PhAT_DupPrim.jpg](PhAT_DupPrim.jpg)| 创建树形结构面板中当前选中的刚体的副本。|
+| ![PhAT_ConFrame.jpg](PhAT_ConFrame.jpg)|  |
+| ![PhAT_BSJoint.jpg](PhAT_BSJoint.jpg)| 将树形结构面板中当前选中的约束转换为球窝式关节。|
+| ![PhAT_Hinge.jpg](PhAT_Hinge.jpg)| 将树形结构面板中当前选中的约束转换为铰链式关节。|
+| ![PhAT_Prismatic.jpg](PhAT_Prismatic.jpg)| 将树形结构面板中当前选中的约束转换为菱柱关节。|
+| ![PhAT_Skel.jpg](PhAT_Skel.jpg)| 将树形结构面板中当前选中的约束转换为骨架关节。|
+| ![PhAT_DelJoint.jpg](PhAT_DelJoint.jpg)| 删除树形结构面板中当前选中的约束。|
+| ![PhAT_PlaySpecial.jpg](PhAT_PlaySpecial.jpg)|当启用仿真预览时，该项允许您从预览动画集中选择一个动画并在骨架网格物体播放。|
+| ![PhAT_ShowAnimSkel.jpg](PhAT_ShowAnimSkel.jpg)| 当启用仿真预览时，该项切换由预览动画所驱动的骨架网格物体的骨骼的显示状态。|
+
+
+###预览面板
+
+![previewpane.jpg](previewpane.jpg)
+
+预览面板显示了和该物理资源相关联的默认骨架网格物体资源的渲染视图。它也显示了和默认网格物体的骨架中的刚体相关的任何物理刚体、这些刚体间的任何约束、用于操作这些刚体和约束的可视化工具及关于这些刚体和约束的信息。网格物体的渲染模式、刚体、约束，所有这些都可以进行单独的调整，以便获得对于当前来说更加合适的预览效果。或许，更加重要的是，可以在视口中直接预览刚体和约束的物理仿真，并且可以操作(调整或获取网格物体并移动)网格物体来查看它们如何对特定的动作做出反应。
+
+
+###属性面板
+
+![propertiespane.jpg](propertiespane.jpg)
+
+属性面板就是标准的虚幻属性窗口，如果没有选中任何对象，它将显示基本的编辑器属性；否则根据编辑器所处的模式的不同，将会显示树形结构面板中当前选中的刚体或约束的属性。当处于刚体编辑模式时，属性面板可以在显示刚体属性和显示实例属性之间切换。当处于约束编辑模式时，属性面板可以在显示约束属性和显示实例属性间切换。
+
+
+####编辑器属性
+
+**Anim(动画)**
+
+
+* **Preview Anim Set(预览动画集)** - 在仿真预览过程中，用于在预览面板中预览动画的动画集。
+* **Physics Blend(物理混合)** - 设置驱动骨架的物理和驱动骨架的预览动画之间进行混合。
+* **Blend On Poke(受到外力戳弄时混合)** - 如果该项为true，那么预览面板中的预览网格物体直到受到拨弄之前都将由预览动画驱动。然后它会跳转到物理仿真，停顿  _Poke Pause Time(戳弄停止时间量)__ 这么长时间，并在 _Poke Blend Time(戳弄混合时间)_ 这个时间段内混合回动画。
+* **Poke Pause Time(戳弄停顿时间量)** - 设置当 _Blend On Poke_ 为true时，显示物理仿真的时间量。
+* **Poke Blend Time(戳弄混合时间)** - 设置当 _Blend On Poke_ 为true时，设置网格物体混合回动画所需的时间。
+* **Angular Spring Scale(角度弹力缩放比例)** - 设置应用到所有核心驱动部分的整体弹力的缩放比例乘数。
+* **Angular Damping Scale(角度阻尼缩放比例)** - 设置应用到所有核心驱动部分的阻尼比例乘数。
+
+
+**Simulation(仿真)**
+
+
+* **Draw Contacts** -
+* **Sim Speed(仿真速度)** - 设置预览时的播放速度(物理仿真或物理动画)。
+* **Floor Gap(地面间隔)** - 设置当骨架网格物体静止放置时它位于地面上多高的距离处。
+* **Grav Scale(重力缩放比例)** - 设置仿真预览的重力的乘数。
+
+* **Advanced(高级)**
+
+* **Prompt On Bone Delete(骨骼删除时产生提示)** -
+* **Show Constraints As Points(将约束显示为点)** - 如果该项为true，那么在预览面板中约束将会显示为点。否则，它们将会显示为十字线。
+* **Show Names In Hierarchy(在层次结构中显示名称)** - 如果该项为true，那么当显示骨架网格物体的骨架时，将会在预览面板中显示骨骼的名称。
+
+
+**Mouse Spring(鼠标弹力)**
+
+
+* **Handle Linear Damping(处理线性阻尼)** -设置在仿真预览过程中当获取 (Ctrl + RMB + 拖拽鼠标)物理资源时所使用的弹力的线性阻尼。
+* **Handle Linear Stiffness(处理线性强度)** - 设置在仿真预览过程中当获取 (Ctrl + RMB + 拖拽鼠标)物理资源时所使用的弹力的线性强度。
+* **Handle Angular Damping(处理角度阻尼)** - 设置在仿真预览过程中当获取 (Ctrl + RMB + 拖拽鼠标)物理资源时所使用的弹力的角度阻尼。
+* **Handle Angular Stiffness(处理角度强度)** - 设置在仿真预览过程中当获取 (Ctrl + RMB + 拖拽鼠标)物理资源时所使用的弹力的角度强度。
+
+
+**Poking(外力戳弄)**
+
+
+* **Poke Strength(戳弄强度)** - 设置在仿真预览过程中戳弄 (Ctrl + LMB)物理资源时所应用的冲力强度。
+
+
+**Lighting(光照)**
+
+
+* **Sky Brightness（天空亮度）** - 设置预览面板中的环境光照的亮度。
+* **Brightness(亮度)** - 设置预览面板中定向光源的亮度。
+
+
+**Snap(对齐)**
+
+
+* **Angular Snap(角度对齐)** - 当启用对齐功能时，该项用于设置在预览面板中旋转量的对齐跳转增量。
+* **Linear Snap(线性对齐)** - 当启用对齐功能时，该项用于设置在预览面板中平移时的对齐跳转增量。
+
+
+**Drawing(描画)**
+
+
+* **Constraint Draw Size(约束的描画尺寸)** - 设置在预览面板中描画的约束的尺寸。
+
+
+
+###树形结构面板
+
+![treepane.jpg](treepane.jpg)
+
+树形结构面板显示了物力资源的刚体或约束的层次结构视图，根据编辑器所处的模式不同显示不同的内容。树形视图显示了同刚体或约束相关联的所有骨骼，或者显示了这些刚体或约束相关联的骨骼骨骼子项。直接和刚体或约束相关联的骨骼以粗体显示，以便区分它们。在树形面板中选中刚体或约束将会在预览面板中选中它们，从而允许您使用平移控件平移它们，并且将会在属性面板中显示选中的刚体或约束的属性，以便进行编辑。
+
+
+### 控制
+
+
+####鼠标控制
+
+| **LMB** |选择 肢体/关节 或控件轴|
+| --- | --- |
+| **SHIFT + LMB** | 如果可能，将会进行非同一缩放变换(沿着一个坐标轴进行缩放)。|
+| *X* | 锁定选中项。|
+| **CTRL + LMB** |戳弄物理资源 (仅在仿真过程中)。|
+| **CTRL + RMB + 鼠标拖拽** | 获得物理资源 (仅在仿真过程中)。|
+
+
+####键盘控制
+
+| --- | --- |
+| *W* | 移动模式 |
+| *E* | 旋转模式 |
+| *R* | 缩放模式 |
+| **Spacebar** | 循环控件模式 |
+| *B* |在刚体模式和约束模式间进行切换|
+|  *A* |打开对齐|
+| *C* |从某处复制属性/复制属性到 |
+| *S* |仿真开始/停止|
+| *H* |循环切换资源的渲染模式 |
+| *J* |循环切换刚体的渲染模式 |
+| *K* | 循环切换刚体的渲染模式 |
+| *D* |把刚体融合到一起(必须父项—子项成对) |
+| *Q*  |循环切换约束X -> Y -> Z |
+| **DEL** |删除 约束/刚体|
+| **HOME** |使选中的刚体或者约束居中显示 |
+| **L + 鼠标拖拽** | 围绕定向光源运行 |
+| *[* |启用选中的刚体和另一个刚体之间的碰撞 |
+| *]* |禁用选中的刚体和另一个刚体之间的碰撞|
+
+
+####热键
+
+
+
+##创建物理资源
+
+为了创建物理资源，导航到[内容浏览器](Engine/Content/Browser)，并找到您需要为其设置物理的骨架网格物体。右击该骨架网格物体并从关联菜单中选择 _Create Physics Asset(创建物理资源)_ 。这将会打开一个对话框，为您提供了一些基于网格物体骨架结构和顶点权重创建物理资源的选项。这个对话框可以在PhAT中通过使用工具菜单中的 _Reset Entire Asset(重置整个资源)_ 来重新获得。
+
+
+
+##修改物理资源
+
+一旦打开PhAT，您将会看到您的资源悬浮在空间中的一个默认 _地面_ 上。根据在 _Create physics asset(创建物理资源)_ 对话框的碰撞图元部分所选择的选项，物体将会被几个方形盒子或者球形/胶囊型包裹起来。大多数情况下，这些碰撞图元并不是按照最佳的方式来放置的，它们或许会以某种我们并不希望的方式进行相互的交叉。如果是这种情况，PhAT有几个工具来操作这些图元。关于这些方面的例子，我们使用Phys_Capsule3_Physics举例，它在PhysicsObjects.upk包中，应该可以在包的文件夹中找到。
+
+
+
+##碰撞 图元/刚体
+
+在PhAT中可以创建及修改三种不同的碰撞图元。这三种图元是盒子(可以进行统一及非统一缩放)，胶囊形可以统一缩放或者沿着它们的长和宽进行缩放)，以及球体(仅可以进行统一缩放)。使用PhAT修改物理资源的碰撞图元是非常容易的。在PhAT中打开Phys_Capsule3_Physics，你会注意到物体的周围有球体线框及胶囊体线框。这些线框物体是这个物体中的骨骼的碰撞图元。为了看到这些图元是如何应用的，按下 _仿真_ 按钮并观察物体的行为。当您准备好了时，再次押下 _仿真_ 按钮来使它停止。通过左击碰撞图元其中的一个来选中它，这是它应该高亮显示为桔黄色，然而它的邻接图元立即变为白色。这意味着在这些碰撞刚体间的碰撞已经被禁用，因为约束正在处理它们之间的相互作用。按下 _X_ 键来锁定选项，以防我们无意地没有选择那个图元而选择了另一个。此时单词 **LOCK(锁定)** 将会出现在窗口的左下角。
+
+![Fig1_1.jpg](Fig1_1.jpg)
+
+在这个图元的中心有一个坐标轴小工具，它可以用于移动、旋转以及缩放碰撞刚体。请确保您或者通过按下 _W_ 键或者点击移动模式按钮来处于 _移动_ 模式。现在左击并拖拽那个蓝色的小工具的线(Z轴)，这样刚体应该沿着那个坐标轴移动了。正如前面所提到的，同样的控制也可以用于旋转及缩放刚体。为了旋转一个刚体，或者按下 _E_ 键来进入旋转模式或者通过点击工具条上的 _旋转_ 按钮进入。具有三个线形环状物的平移小工具将变为旋转小工具，这三个线形环状物代表着每个坐标轴。如果您看不到那个小工具，那么您可以循环网格物体渲染模式(或者按下 _H_ )来变换到线框模式或隐藏模式。
+
+![Fig1_2.jpg](Fig1_2.jpg)
+
+通过点击并拖拽，这三个环状物按照移动完成的方式沿着那个坐标轴来进行旋转。当旋转一个球形刚体是这种现象不是很明显，但是当应用于盒子或者胶囊刚体时这种现象是非常明显的。
+
+缩放的完成方式和平移一样；然而它也支持非统一缩放。通过按下 _R_ 键或者点击 _缩放_ 按钮来切换 _缩放_ 模式。小工具的显示和在 _移动_ 中一样，然而左击它将会根据您所拖拽的方向来上下地缩放整个刚体。但是按住Shift+左击将会沿着您选择的坐标轴进行缩放。请注意尝试非同一地缩放一个球形刚体将会导致球形刚体进行统一缩放，意识到这一点是很重要的。
+
+添加及删除刚体也很简单。选择一个刚体然后点击任何 _Add Primitive(添加图元)_ 按钮将会把那个图元放置在骨骼的原点处。一旦那个过程已经完成，便可以把刚体移动、旋转及缩放到您想放置的位置。对于每个骨骼上的碰撞刚体的数量是没有限制的，但是当在一个单独的物理资源上有多个骨骼及刚体时，性能便成了问题。
+
+
+### 刚体属性
+
+**RB_BodySetup**
+
+
+* **Sleep Family(休眠方法)** - 设置用于决定什么时候让刚体处于休眠状态的方法。
+* **Bone Name(骨骼名称)** - 显示了和刚体相关联的骨骼的名称。
+* **Fixed(固定的)** - 如果该项为true，那么刚体将不会应用物理。它将会相对于世界处于固定状态。
+* **No Collision(没有碰撞)** - 如果该项为true，刚体将不会和任何东西进行碰撞。
+* **Block Zero Extent(组织零粗细检测)** - 如果该项为true，那么刚体将会组织零粗细检测，比如立即碰撞武器踪迹。
+* **Block Non Zero Extent(阻止零粗细检测)** - 如果该项为true，那么刚体将会阻止零出席检测，比如玩家碰撞。
+* **Enable Continuous Collision Detection(启用连续的碰撞检测)** - 如果该项为true，那么将会使用连续碰撞检测系统。这对于防止以高速运动的刚体穿过几何体是非常有用的，但是所带来的代价便是较慢的计算速度。
+* **Always Full Anim Weight(总是应用完全的动画权重）** - 如果该项为true，那么无论 _Physics Weight(物理权重)_ 的值为多少，刚体将总是应用物理。这对于那些总是应该由物理驱动的刚体是有用的，比如布料或马尾辫。
+* **Consider For Bounds(用于考虑边界)** - 如果该项为true，在决定边界时将会考虑入该刚体。在决定边界时使用的刚体越少，每帧中计算速度就会越快。
+* **Phys Material(物理材质)** - 设置这个刚体所使用的物理材质。请参照[物理材质](Engine/Subsystems/Physics/PhysicalMaterials/Overview)页面获得更多信息。
+* **Mass Scale(质量缩放比例)** - 设置刚体质量的乘数。这个值将会和基于刚体体积的默认质量相乘。
+* **Pre Cached Phys Scale(预缓冲物理缩放比例)** - 设置一系列这个刚体进行预缓冲是所使用的比例因数。
+
+
+**KMeshProps**
+
+
+* **COMNudge** - 应用到刚体上面的通过PhysX计算出的质量中心的偏移量。
+* **Agg Geom**
+    * **No RBCollision(没有刚体碰撞)** - 如果为真，物理将完全地忽略这个图形。它将不会有碰撞，但是也不会对刚体的 质量/惯性 张量产生影响。这只这项为打开状态，则刚体中的所有图形都是无效的。
+    * **Per Poly Shape(每个多边形图形)** - 如果为真，Unreal的线性跟踪将会考虑这个图形，即时这个骨骼使用PerPolyCollisionBones选项定义为使用基于每个多边形的碰撞也不例外。
+
+
+
+### 刚体实例属性
+
+**Bone Spring(骨骼弹力)**
+
+
+* **Enable Bone Spring Linear(启用骨骼线性弹力)** - 如果该项为true，那么则在这个骨骼的物理刚体和动画骨骼的世界位置之间启用线性'弹力'。
+* **Enable Bone Spring Angular(启用骨骼角度弹力)** - 如果该项为true，那么则在这个骨骼的物理刚体和动画骨骼的世界位置之间启用角度'弹力'。
+* **Disable On Overextension(在超过弹力最大张力时禁用弹力)** - 如果该项为true，那么如果骨骼弹力超出了 _Overextension Threshold(最大张力阈值)_ 时将会自动禁用该弹力。
+* **Notify Owner On Overextension(当超过最大张力时通知其拥有者)** - 如果该项为true，那么当弹力超出最大张力阈值时则通过调用 _Actor::OnRigidBody_ 给拥有者Actor发送通知。
+* **Teleport On Overextension(到超出最大张力时电传)** - 如果该项为true，那么如果这个弹簧变得太长以至于不能把误差降低为0时将会电传所有物理资源实例。**注意:** 在一个单独的物理资源中的多个刚体上启用该项将会导致不可预知的效果。
+* **Use Kin Actor For Bone Spring(为骨骼弹簧使用Kin Actor)** - 如果该项为true，那么当使用骨骼弹簧时，把它们连接到运动学刚体上并使让且产生动画，而不是使得世界中的附加位置产生动画。这增加了一些性能消耗，但是跟踪更快，从而可以更好地移动目标。
+* **Make Spring To Base Collision Component(使弹簧连接到基本碰撞组件上)** - 如果该项为true，当使用骨骼弹簧时，将会把它们连接到基本碰撞组件的物理刚体上。当使用这个选项时，必须相对于其他骨骼为这个骨骼的SetBoneSpringTarget提供一个矩阵，而不是相对于世界提供。
+* **Bone Linear Spring(骨骼线性弹簧)** -  设置使得骨骼产生动画的线性弹簧的强度。
+* **Bone Linear Damping(骨骼线性阻尼)** - 设置使得骨骼产生动画的线性弹簧的阻尼。
+* **Bone Angular Spring(骨骼角度弹簧)** - 设置使得骨骼产生动画的角度弹簧的强度
+* **Bone Angular Damping(骨骼角度阻尼)** - 设置使得骨骼产生动画的角度弹簧的阻尼。
+* **Overextension Threshold(最大张力阈值)** - 如果 _Disable On Overextension_ 为true，那么当骨骼弹簧的拉伸程度超过这个值时将会禁用该弹簧。
+
+
+**物理**
+
+
+* **Only Collide With Pawns(仅和Pawn碰撞)** - 如果该项为true，那么这个刚体仅和其组件标记 _bConsiderPawnForRBCollision_ 为true的其他刚体进行碰撞。这对于那些不和世界进行碰撞的飞扬的碎片是有用的。
+* **Enable Collision Repsonse(启用碰撞姿势)** - 如果该项为true，那么将为这个刚体启用一个物理响应。如果为false，那么仍然会生成并报告连接。这对于感应刚体是有用的。
+* **Push Body(推力刚体)** - 如果该项为true，那么标识该刚体为"推力"刚体。这会禁用碰撞响应。
+* **Phys Material Override(物理材质覆盖)** - 设置这个刚体要使用的物理材质，可以使用物理资源或者分配给它的材质来覆盖这个actor的材质。
+* **Contact Report Force Threshold(接触报告力度阈值)** - 设置基于力的碰撞系统所使用的阈值。如果这个值是负数，那么将为这个刚体禁用这个系统。
+* **Instance Mass Scale(实例质量缩放比例)** -用于缩放质量的基于每个实例的乘数。
+* **Instance Damping Scale(实例阻尼缩放比例)** - 这个刚体的每个实例的 线性/角度 阻尼的缩放比例。
+
+
+**RB_BodyInsatnce**
+
+
+* **Custom Gravity Factor(自定义重力因数)** - 应用到刚体上的自定义重力的乘数，可以使得各个刚体独立地控制自定义重力设置如何影响它们。
+
+
+
+
+## 约束
+
+切换Body(刚体)模式按钮将可以切换到 _Constraint(约束)_ 模式，并且物理资源的渲染将会改变，将在骨骼位置处显示紫色的交叉线框。这些约束说明了当运行仿真时这些骨骼是如何相互结合到一起的。
+
+![Constr_1.jpg](Constr_1.jpg)
+
+像选择一个刚体一样选择一个约束，您将会看到那个约束的限制。默认情况下，约束是没有限制的，并且它仅表现为正常的小工具，但是一旦设置了限制，约束便可以反映用户输入的值。对于twist(扭曲)限制，沿着twist(扭曲)的轴创建一条线，如果没有设置限制值，可以在末端设置为X，但是如果设置了限制，将会在显得末端出现一个绿色的弧同时有一个黄色的线把那个弧分为两半。这个黄色的线显示了在twist(扭曲)限制中骨骼的当前位置。对于swing(摇摆)限制，当没有在 _Swing1LimitAngle_ 或 _Swing2LimitAngle_ 中设置值时，所展现的是一条绿色的线，这个现在沿着约束的两个方向上均匀地延伸。当选中一个约束的情况下，按下 _Q_ 键，则将会循环切换到下一个坐标轴，您可以根据需要进行改变。如果输入到 _SwingLimit_ 中其中一个的设置了值，绿色的线将会变为一个绿色的圆锥，在它内部的黄色线再次显示了骨骼的当前位置。如果两个Swing(摇摆)和twist(扭曲)限制都进行了设置，那么twist(扭曲)将会出现在绿色圆锥内部的黄色线的末端。
+
+选择一个约束，改变值，这样您可以看到限制的改变。一旦您已经完成了那个操作，可以使您的资源进行仿真来查看您的调整的效果。通过点击循环切换约束渲染模式按钮或者按下 _K_ 键，您可以打开渲染约束(或者选中一个约束或者全部选中)。当启用这个功能时，您便可以看到黄色的线在限制内到处移动，当它到达限制时则会停止。
+
+约束可以像刚体一样进行逆光旋转和移动，然而，它们的不同之处是按下shift键来移动约束时将会把开始位置从约束的位置分离开来(当仿真开始时，将导致约束再次对齐到一起)，旋转一个约束将会旋转限制而不是关节的当前旋转，这对于设置非对称性的关节是有用的，比如肘。请注意如果您旋转一个约束，来使得限制可以超出关节的当前位置，当资源在进行仿真时，在第一帧所有的关节将会移动来满足限制，因此会导致一旦进行仿真将会立即导致产生运动。
+
+![RotatedConstraint.jpg](RotatedConstraint.jpg)
+
+
+### 约束属性
+
+**RB_ConstraintSetup**
+
+
+* **Joine Name(关节名称)** - 关节的名称。这将和物理资源中的 _Constraint Bone 1_ 一样。
+* **Constraint Bone 1** - 关节应该连接的第一个骨骼的名称。
+* **Constraint Bone 2** - 关节应该连接的第二个骨骼的名称。
+* **Enable Projection(启用投射)** - 如果该项为true，那么当刚体之间的距离误差超过0.1个单位或者旋转量超过10度时，将会投射刚体修复这个问题。
+
+
+**Linear(线性)**
+
+
+* **Linear Limit Soft** - 默认情况下线性约束是"hard（硬性的）"。如果您将此设置为真，它们将被作为具有弹性的来对待，而您可以"推"进它们内部。
+* **Linear Breakable** - 如果为真，通过在关节上作用一个线性力，该关节会损坏（主要将关节拉断）。
+* **Linear X/Y/ZSetup**
+    * **b Limited** - 如果该项为true, 那么将对这个程度的自由度产生限制。如果为false，线性运动没有丝毫限制。
+    * **Limit Size(限制大小)** - 如果bLimited为真，在此方向上允许的运动量。将此设置为0会完全"锁定"此自由度 。
+* **Linear Limit Stiffness(线性限制强度)** - 如果 _Linear Limit Soft_ 为true, 那么这项用于控制限制弹簧的强度。
+* **Linear Limit Damping(线性限制阻尼)** - 如果 _Linear Limit Soft_ 为true, 该项用于控制限制弹簧的阻尼。
+* **Linear Break Threshold(线性断开阈值)** - 如果 _Linear Breakable_ 为true, 这项用于设置断开关节所需的力的大小。
+
+
+**Angular(角度)**
+
+
+* **Swing Limited(摇摆限制)** - 如果为真，两个刚体之间的夹角限制为锥形。
+* **Twist Limited(扭曲限制)** -  如果为If ，限制两个刚体之间的twist（扭曲）。
+* **Swing Limit Soft(软性摇摆限制)** - 默认情况下摇摆锥角限制是"hard（硬性的）"。如果该项为true，那么该摇摆锥角是有弹性的，摇摆时可以进一步向内推入。
+* **Twist Limit Soft(软性扭曲限制)** - 默认情况下扭曲限制是"hard（硬性的）"。如果该项为true，那么该扭曲是有弹性的，可以进一步向内推入。
+* **Angular Breakable** - 如果为true，在其此关节作用扭矩可以破裂关节（主要扭断关节）。
+* **Swing 1LImit Angle(摇摆角度限制1)** - 定义了一个摇摆锥角限制的维度，以度数为单位。
+* **Swing 2Limit Angle(摇摆角度限制2)** - 定义了另一个摇摆锥角限制的维度，以度数为单位。
+* **Twist Limit Angle(扭曲角度限制)** - 定义在两个受约束的刚体之间允许的twist（扭曲）的数量。
+* **Swing Limit Stiffness(摇摆强度限制)** - 如果 _Swing Limit Soft_ 为true, 那么这项用于控制锥角的强度。
+* **Swing Limit Damping(摇摆限制阻尼)** - 如果 _Swing Limit Soft_ 为true，这项控制锥角的阻尼。
+* **Twist Limit Stiffness(扭曲强度限制)** - 如果 _Twist Limit Soft_ 为true, 那么这项用于控制扭曲限制的强度。
+* **Twist Limit Damping(扭曲限制阻尼)** - 如果 _Twist Limit Soft_ 为true, 那么这项用于控制扭曲限制的阻尼。
+* **Angular Break Threshold(角度断开阈值)** - 如果 _Angular Breakable_ 为true, 这项用于设置断开关节所需的扭矩。
+
+
+**Pulley(滑轮)**
+
+
+* **Is Pulley(是否为滑轮)** -  如果为true，该关节将被作为滑轮类型处理。
+* **Maintain Min Distance(维持最小距离)** -   如果为true，在"rope（绳索）"中不允许有"slack（松弛）"，而是把这些绳索当做棍杆对单，以便您讲一个物体拉上去另一个iecede物体会被拉下来。
+* **Pulley Ratio(滑轮比率)** - 滑轮上的齿轮传动比率。如果它不为1.0，拉一端将会导致另一端运动较少，但是需要的力量更多。
+
+
+
+### 约束实例属性
+
+**Linear(线性)**
+
+
+* **Linear XPosition Drive(线性X轴位置驱动)** -  在线性X轴上启用位置驱动。
+* **Linear XPosition Drive(线性X轴位置驱动)** -  在线性X轴上启用速度驱动。
+* **Linear YPosition Drive(线性Y轴位置驱动)** -  在线性Y轴上启用位置驱动。
+* **Linear YVelocity Drive(线性Y轴速度驱动)** -  在线性Y轴上启用速度驱动。
+* **Linear ZPosition Drive(线性Z轴位置驱动)** -  在线性Z轴上启用位置驱动。
+* **Linear ZVelocity Drive(线性Z轴速度驱动)** -  在线性Z轴上启用速度驱动。
+* **Linear Position Target(线性位置目标)** -如果启用线性位置驱动，这是关节试图达到的相对位置目标。
+* **Linear Velocity Target(线性速度目标)** -如果启用线性速度驱动，这是关节试图达到的相对线性速度目标。
+* **Linear Drive Spring(线性驱动弹簧)** - 如果启用了线性位置驱动，这项是驱动弹簧的强度。
+* **Linear Drive Damping(线性驱动阻尼)** - 如果启用了线性位置驱动，这项是驱动弹簧的阻尼。
+* **Linear Drive Force Limit(线性驱动力限制)** - 如果启用线性速度驱动，这是用于获得LinearVelocityTarget的最大的力。
+
+
+**Angular(角度)**
+
+
+* **Swing Position Drive(摇摆位置驱动)** - 在摇摆轴上启用位置驱动。
+* **Swing Velocity Drive(摇摆速度驱动)** - 在摇摆轴上启用速度驱动。
+* **Twist Position Drive(扭曲位置驱动)** - 在扭曲轴上启用位置驱动。
+* **Twist Velocity Drive（扭曲速度驱动)** - 在扭曲轴周围启用速度驱动。
+* **Angular Slerp Drive(角度四元数插值驱动)** - 高级选项。指定了用于给关节应用驱动的方法。
+* **Angular Position Target(角度位置目标)** -如果启用了角度位置驱动，那么这项是关节将要达到的目标相对四元数。
+* **Angular Velocity Target(角速度目标)** - 如果启用了角速度驱动，那么这项是指关节将要达到的相对角速度目标。
+* **Angular Drive Spring(角度驱动弹簧)** - 如果启用角度位置驱动，那么这项是指驱动弹簧的强度。
+* **Angular Drive Damping(线性驱动阻尼)** - 如果启用角度位置驱动，那么这项是指驱动弹簧的阻尼。
+* **Angular Drive Force Limit(角度驱动力限制)** - 如果启用了角速度驱动，那么这项是获得AngularVelocityTarget将应用的最大扭矩。
+
+
+您可以在[物理约束参考](Engine/Subsystems/Physics/Physx/Constraints)页面获得关于各种约束设置的更多信息。
+
+
+
+## 其它
+
+当创建物理资源时，禁用两个邻接图元间的碰撞是自动完成的，因为依赖于约束来把它们分离比使用碰撞来使它们分离的速度更快。
+
+删除给定骨骼的所有的碰撞刚体将会导致骨骼及约束从资源中被删除。一个进行删除的较好的方法是使用Weld(融合)按钮(或者通过按下 _D_ 按钮)来把刚体融合到一起。
+
+
+
+##预览动画
+
+在默认骨架网格物体上预览骨架动画并混合动画和物理资源刚体的物理仿真是可以实现的。要想完成这个处理，首先您必须给编辑器属性中的 _Preview Anim Set_ 项分配一个包含您想预览的动画的动画集。可以通过在内容浏览器中选中动画集，然后按下 _Preview Anim Set_ 属性旁边的 ![useselected.jpg](useselected.jpg)按钮来完成。一旦分配了动画集后，工具条上的列表框应该从空白状态变为显示 _-None_。
+
+此时，列表框仍然为禁用状态，因为没有可以选中的动画集。要想选择一个动画进行播放，您必须通过按下工具条上 ![simstart.jpg](simstart.jpg)按钮开始进行物理仿真预览。现在列表框应该处于启用状态，显示了  _Preview Anim Set(预览动画集)_ 中包含的所有动画的列表。
+
+![animlist.jpg](animlist.jpg)
+
+现在您可以从列表中选择一个动画，然后按下 ![animplay.jpg](animplay.jpg)按钮，从而使得骨架网格物体开始播放动画。当然，首先要启动物理仿真，否则您在预览面板中将不能看到更多的效果。要想查看播放的动画，您可以调整编辑器属性中的 _Physics Blend(物理混合)_ 属性。
+
+![physweight.jpg](physweight.jpg)
+
+另一个选项是启用 _Blend On Poke(在受到外力戳弄时混合)_ 。这将会使得在预览面板中直到物理资源受到'戳弄'之前动画具有完全权重。
+
+![blendpoke.jpg](blendpoke.jpg)
+
+ 
+
+
+
+

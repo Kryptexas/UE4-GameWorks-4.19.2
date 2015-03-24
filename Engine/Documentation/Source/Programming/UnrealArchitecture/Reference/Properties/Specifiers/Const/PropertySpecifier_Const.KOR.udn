@@ -1,0 +1,8 @@
+﻿INTSourceChangelist:2374181
+Title: Const
+Crumbs: %ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/Reference/Properties/Specifiers
+Description: 
+Availability:Public
+Version: 4.5
+
+이 변수는 const 이며, 항상 const 로 익스포트 됩니다.

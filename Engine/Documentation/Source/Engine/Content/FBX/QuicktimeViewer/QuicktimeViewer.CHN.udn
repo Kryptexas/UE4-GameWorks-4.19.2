@@ -1,0 +1,77 @@
+﻿Availability: Public
+Title:使用 QuickTime 查看 FBX
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description: 关于使用Quicktime FBX查看器预览骨架网格物体及动画的指南。
+ 
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/QuicktimeViewer:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/QuicktimeViewer:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/QuicktimeViewer:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/QuicktimeViewer]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+
+## 概述
+
+
+查看 FBX 文件通常需要将该文件导入到您最常用的 3D 内容创建包中，然后在这个包中查看它。但是，如果您平时不应用3D模型就可能会很麻烦(也就是，如果您是个程序员)。幸运的是，Autodesk制作了一款 Quick Time 插件，它允许您在没有安装这些 3D 内容创建包的情况下查看 FBX 文件。
+
+
+## 下载该插件和QuickTime
+
+您可以从 [Autodesk网站](http://usa.autodesk.com/adsk/servlet/pc/item?siteID=123112&id=22694824)下载最新的插件。该插件在 Windows 和 Mac 上都可以使用。
+
+如果您没有安装 QuickTime，那么您将需要从[Apple网站](http://www.apple.com/quicktime/download/)上下载，然后进行安装。
+
+
+## 打开FBX文件
+
+该插件没有将扩展名添加到 QuickTime 可以查看的文件的列表中。为了避免这个问题，请选择 "All Files(<literal>*.*</literal>)" 选项。现在您的 FBX 文件应该会显示了，然后双击您的 FBX 文件或选择您的 FBX 文件然后按下 Open（打开）。
+
+![QTFBX_OpeningFiles.jpg](QTFBX_OpeningFiles.jpg)(w:664 h:636)
+
+
+## 播放动画
+
+在 QuickTime 内查看 FBX 还允许您通过拖拽时间轴或通过按下 Play（播放）按钮回放动画。
+
+![QTFBX_PlayingAnimations.png](QTFBX_PlayingAnimations.png)
+
+
+## 其他操作
+
+在这个插件的自述文件中可以找到操作相关的更多信息。不过为了给您提供方便，我们在这里列出了其中一些控件。
+
+![QTFBX_OpenedFBX.png](QTFBX_OpenedFBX.png)
+
+
+* **Rotating the camera（旋转相机）**- 在视口中用鼠标左击然后按住不放。拖动鼠标将会旋转相机。
+* **Panning the camera（平移相机）** - 按住 Shift 键，然后在视口中使用鼠标左击按住不放。拖动鼠标将会平移相机。
+* **Zooming the camera（缩放相机）** -  - 按住 Z 键，然后在视口中使用鼠标左击按住不放。向前或向后拖动鼠标将会缩放相机。
+* **Cycling between camera views（在相机视图之间来回切换）** - 按下 C 键就可以在相机视图模式之间进行切换。
+* **Getting more help（获取更多帮助）** - 按下 H 键调出更多帮助选项。
+
+
+![QTFBX_PressHForHelp.png](QTFBX_PressHForHelp.png)
+
+ 
+
+
+
+
+ 

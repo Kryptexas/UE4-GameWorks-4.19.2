@@ -1,0 +1,36 @@
+Availability:Public
+Title:Persona Mesh Details
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:User guide for the Mesh Details panel in the Persona animation editor.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/MeshDetails:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/MeshDetails:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/MeshDetails:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/MeshDetails]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[EXCERPT:Overview]
+![](MeshDetails.png)
+
+
+The **Mesh Details** panel shows specific properties pertaining to the mesh of a Skeletal Mesh, such as the Materials applied to the surface, as well as skinning and LOD options. This panel is only visible when Persona is in **Mesh** mode. 
+[/EXCERPT:Overview]
+
+Outside the fact that this panel is reserved for specific mesh editing actions within Persona, it is functionally identical to the standard **Details** panel of the main editor. 
+
+For more information about the basics of using this panel, please see the [Editor Details Panel](Engine/UI/LevelEditor\Details) documentation.
+

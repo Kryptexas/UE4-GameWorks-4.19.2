@@ -1,0 +1,202 @@
+﻿Availability:Public
+Title:ゲームプロジェクトのコンパイル
+Crumbs:%ROOT%, Programming, Programming/Development
+Description:Windows 上で Visual Studio を使用、または Mac 上でXcodeを使用した個々のゲームプロジェクトのコンパイル
+
+[TOC (start:2 end:3)]
+
+[EXCERPT:Main]
+
+アンリアル・エンジンは UnrealBuildTool を経由したカスタムビルド手法を使用します。 
+UnrealBuildTool は、プロジェクトのコンパイルとこれらをエンジンとリンクさせる複雑な面を全て処理します。標準の Visual Studio ビルドワークフローを使用してプロジェクトのビルドを有効にする 
+透過的なプロセスです。
+
+UnrealBuildTool はゲームプロジェクトのビルドに「`*.Build.cs`」 と 「`*.Target.cs`」ファイルを使用します。これらのファイルは、以下の場合に自動的に生成されます。 
+すなわち、プロジェクトが C++ テンプレートを使用して作成された、または [](Programming\Development\ManagingGameCode\CppClassWizard) を使用して、Blueprints Only テンプレートから作成されたプロジェクトにコードを追加する場合に自動的に生成されます。 
+
+
+## ビルド コンフィギュレーション
+
+エンジンのコンパイル方法を決定する際に、アンリアル・エンジン 4 と UnrealBuildTool は異なるビルド コンフィギュレーションを使用します。使用するコンフィギュレーションは、作成するビルドの目的によって決定されます。
+
+[PUBLISH:Rocket]
+各ビルド コンフィギュレーションには、2 つのキーワードがあります。最初のキーワードは、エンジンとゲームプロジェクトのステートを表します。例えば、**Debug** コンフィギュレーションを使用してコンパイルすると、
+ゲームのコードをデバッグすることができます。2 つめのキーワードは、ビルドしているターゲットを示します。アンリアルでプロジェクトを開きたい場合、
+**Editor** をターゲットとするキーワードでビルドする必要がありますが、ゲームの実行可能版をビルドしている場合、**empty** をターゲットとするキーワードを使用してビルドする必要があります。
+
+| ビルド コンフィギュレーション - ステート | 説明 |
+|-------------|-------------|
+| **Debug** | このコンフィギュレーションはデバッグ作業に使用するシンボルを含みます。**Debug** コンフィギュレーションを使用してプロジェクトをコンパイルし、アンリアル エディタでプロジェクトを開きたい場合、プロジェクトでコード変更が反映されているかを見るには、"-debug" フラグを使用しなければなりません。 |
+| **Development** | Releaseと同等のコンフィギュレーションです。後でアンリアル エディタでプロジェクトを開き、プロジェクトのコード変更が反映されているかを見るには、**Development** コンフィギュレーションでコンパイルしなければなりません。
+| **Shipping** | 最適なパフォーマンスでゲームを出荷するためのコンフィギュレーションです。コンソール コマンド、統計情報、プロファイリング ツールが取り除かれます。|
+
+| ビルド コンフィギュレーション -ターゲット | 説明 |
+| ------------------| ----------|
+|  [empty]      | このコンフィギュレーションは、プロジェクトのスタンドアロンの実行可能バージョンをビルドしますが、プラットフォーム固有にクックされたコンテンツが必要です。   |
+| **Editor**        | アンリアル エディタでプロジェクトを開き、反映されたすべてのコード変更を見ることができます。プロジェクトは、**Editor** コンフィギュレーションでビルドしなければなりません。  |  
+| **Uncooked**      | **Uncooked** タイプを持つコンフィギュレーションを使用してビルドされたプロジェクトは、"-game" フラグでアンリアル エディタで開きます。これにより、クックされていないコンテンツでゲームを新しいウィンドウで実行します。エディタの [**Play in > New Window at Default Player Start**] に相当します。| 
+[/PUBLISH:Rocket]
+[PUBLISH:Licensee]
+各ビルド コンフィギュレーションには、2 つのキーワードがあります。最初のキーワードは、エンジンとゲームプロジェクトのステートを表します。例えば、**DebugGame** コンフィギュレーションを使用してコンパイルすると、
+ゲームコードはデバッグできますが、エンジン コードはデバッグできません。2 つめのキーワードは、ビルドしているターゲットを示します。アンリアル エディタでプロジェクトを開きたい場合、
+**Editor** をターゲットとするキーワードでビルドする必要がありますが、サーバー上で実行するプロジェクトの実行可能版をビルドしている場合、**Server** をターゲットとするキーワードを使用してビルドする必要があります。
+
+| ビルド コンフィギュレーション - ステート | 説明 |
+|-------------|-------------|
+| **Debug** | デバッグ コンフィギュレーションでエンジンとゲームコードの両方をビルドします。|
+| **DebugGame** | エンジンを最適化してビルドしますが、ゲームコードはデバッグできる状態のままにします。ゲーム モジュールのみをデバッグする場合に理想的なコンフィギュレーションです。|
+| **Development** | Releaseと同等のコンフィギュレーションです。エンジンとゲームコードの両方がこのコンフィギュレーションでビルドされます。 |
+| **Shipping** | 最適なパフォーマンスでゲームを出荷するためのコンフィギュレーションです。コンソール コマンド、統計情報、プロファイリング ツールが取り除かれます。|
+| **Test** | **Shipping** コンフィギュレーションですが、コンソール コマンド、統計情報、プロファイリング ツールが有効なものがあります。 |
+
+| ビルド コンフィギュレーション -ターゲット | 説明 |
+| ------------------| ----------|
+|  [empty]      | このコンフィギュレーションは、プロジェクトのスタンドアロンの実行可能バージョンをビルドしますが、プラットフォーム固有にクックされたコンテンツが必要です。   |
+| **Client**        | `<Game>Client.Target.cs` ファイルがある場合、 **Client** ビルド コンフィギュレーションは有効になります。   |
+| **Editor**        | アンリアル エディタでプロジェクトを開き、反映されたすべてのコード変更を見ることができます。プロジェクトは、**Editor** コンフィギュレーションでビルドしなければなりません。  |  
+| **Server**        | `<Game>Server.Target.cs` ファイルがある場合、**Server** ビルド コンフィギュレーションは有効です。  |
+| **Uncooked**      | **Uncooked** タイプを持つコンフィギュレーションを使用してビルドされたプロジェクトは、"-game" フラグでアンリアル エディタで開きます。これにより、クックされていないコンテンツでゲームを新しいウィンドウで実行します。エディタの [**Play in > New Window at Default Player Start**] に相当します。| 
+[/PUBLISH:Licensee]
+[/EXCERPT:Main]
+
+[EXCERPT:VS]
+## Visual Studio でビルドする
+
+### ビルド コンフィギュレーションを設定する
+
+ビルド コンフィギュレーションは、Visual Studio のツールバーから設定が出来ます。
+
+[PUBLISH:Rocket]
+![Project - Configuration Menu](rocket_configuration_menu.png)
+[/PUBLISH:Rocket]
+[PUBLISH:Licensee]
+![UE4 Solution - Configuration Menu](configuration_menu.png)
+[/PUBLISH:Licensee]
+
+### ソリューション プラットフォームを設定する
+
+[PUBLISH:Rocket]
+アンリアル エンジンは現在、以下のプラットフォームをサポートしています。
+
+* **Windows 64-bit**
+
+
+![Project - Platform Menu](rocket_platform_menu.png)
+[/PUBLISH:Rocket]
+
+[PUBLISH:Licensee]
+現在アンリアル・エンジン 4 は、以下のプラットフォームをサポートしています。
+
+* **Windows 32-bit**
+* **Windows 64-bit**
+
+
+アンリアル・エンジン 4 で作業をする場合、通常ご使用になるのが **Win64** プラットフォームです。これはプロジェクト ファイルを生成する場合デフォルトで含まれる唯一のものです。[](Programming/UnrealBuildSystem/ProjectFileGenerator) ページには、
+追加のプラットフォームでプロジェクト ファイルを生成するための手順があります。
+
+![UE4 Solution - Platform Menu](platform_menu.png)
+[/PUBLISH:Licensee]
+
+### プロジェクトのビルド
+
+[PUBLISH:Rocket]
+[REGION:note]
+作業を開始する前に、インストールされている Windows Desktop に対してVisual Studio 2013 Professional、または Visual Studio Express 2013 を実行していることを確認してください。Mac を使用する場合、Xcode がンストール済みであることを確認してください。
+[/REGION]
+[REGION:tip]
+Visual Studio でビルドする場合、ゲーム プロジェクトのみをコンパイルしますが、アンリアル エディタはコンパイルしません。  
+[/REGION]
+[/PUBLISH:Rocket]
+[PUBLISH:Licensee]
+[REGION:tip]
+Visual Studio でビルドする場合、ゲーム プロジェクトに加えてエンジンをコンパイルします。  
+[/REGION]
+[/PUBLISH:Licensee]
+
+**プロジェクトのコンパイル方法**
+
+[PUBLISH:Licensee]
+1.	 **[Solution Configuration]** にビルドのコンフィギュレーション方法を設定します。この例では、**Development Editor** に設定されています。有効なコンフィギュレーションのそれぞれの詳細は [ビルド コンフィギュレーション](#ビルドコンフィギュレーション) セクションを参照してください。
+
+	![Project - Set Configuration to Development](config_development_menu.png)
+
+1. ゲームプロジェクトで右クリックして、「**Rebuild**」を選んで再コンパイルします。
+
+	![](rebuild_project_outside.png)
+
+[/PUBLISH:Licensee]
+[PUBLISH:Rocket]
+1.	 **[Solution Configuration]** にビルドのコンフィギュレーション方法を設定します。この例では、**Development** に設定されています。有効なコンフィギュレーションのそれぞれの詳細は [ビルド コンフィギュレーション](#ビルドコンフィギュレーション) セクションを参照してください。
+
+	![](rocket_config_development_menu.png)
+
+1. ゲームプロジェクトで右クリックして、「**Rebuild**」を選んで再コンパイルします。
+
+	![](rebuild_project_rocket.png)
+[/PUBLISH:Rocket]
+
+これで、コンパイルしたプロジェクトで [エンジンを実行](GettingStarted/RunningUnrealEngine) することができます。  
+
+
+[EXCERPT:MatchEXE]
+[PUBLISH:Licensee]
+[REGION:note]
+エンジンを実行する場合、プロジェクトをリビルドしたビルド コンフィギュレーションと一致するアンリアル エンジンの実行ファイルを使用することが重要です。例えば、プロジェクトを **DebugGame Uncooked** ビルド コンフィギュレーションでコンパイルした場合、
+ゲーム情報を引数として `UE4-Win64-DebugGame.exe` 実行ファイルを実行します。バイナリの命名規則に関する詳細は、 [Building Unreal Engine](Programming/Development/BuildingUnrealEngine) ページを参照してください。
+[/REGION:note]
+[/PUBLISH:Licensee]	
+
+[PUBLISH:Rocket]
+[REGION:note]
+アンリアル エンジンを実行する場合、**Uncooked** コンフィギュレーションでプロジェクトをリビルドした場合、`-game` フラグを付け加えることが重要です。**Debug** コンフィギュレーションでプロジェクトをリビルドした場合は、`-debug` フラグを付けることが重要です。  
+[/REGION:note]
+[/PUBLISH:Rocket]	
+[/EXCERPT:MatchEXE]
+
+[PUBLISH:Rocket]
+### Visual Studio の既知の問題
+
+
+| 問題 | 解決法 |
+| ----- | -------- |
+| "Project is out of date" (プロジェクトが無効です) と常にメッセージが表示される | プロジェクトが最新状態であっても Visual Studio がプロジェクトを無効と解釈しています。 [**Do not show this dialog again**] ボックスにチェックを入れて **[いいえ]** を選択することによってこのメッセージが非表示になります。 |
+| **No Debugging Information (デバッグ情報がありません)** と表示したウィンドウが _デバッグ_ コンフィギュレーション使用時に表示される | 「UE4editor.exe」 ファイルを _Development_ コンフィギュレーションでコンパイルしたためこのメッセージが表示されます。警告表示に関係なく、_Debug_ コンフィギュレーションでゲームプロジェクトをコンパイル時にデバッグすることができます。 [**Do not show this dialog again**] ボックスにチェックを入れて **[はい]** を選択することによってこのメッセージが非表示になります。 |
+[/PUBLISH:Rocket]
+[/EXCERPT:VS]
+
+[EXCERPT:Xcode]
+[PUBLISH:Rocket]
+## Xcodeを使用してビルドする
+
+[REGION:tip]
+Xcode でビルドする場合、ゲーム プロジェクトのみをコンパイルしますが、エディタはコンパイルしません。  
+[/REGION]
+
+**プロジェクトのコンパイル方法**
+
+アンリアル エンジンの Xcode プロジェクトは、Xcode の **Product > Build** オプションを使用する場合にDebug コンフィギュレーションをビルドし、**Product > Build For > Profiling** を使用する場合は Development コンフィギュレーションをビルドするように設定されています。ターゲット スキームを編集することで、この挙動を編集できます。
+
+これで、コンパイルしたプロジェクトで [エンジンを実行](GettingStarted/RunningUnrealEngine) することができます。  
+
+[EXCERPT:MatchDMG]
+[REGION:note]
+バイナリ エディタを実行する場合、**Uncooked** コンフィギュレーションでプロジェクトをリビルドした場合、`-game` フラグを付け加えることが重要です。**Debug** コンフィギュレーションでプロジェクトをリビルドした場合は、`-debug` フラグを付けることが重要です。  
+[/REGION:note]	
+[/EXCERPT:MatchDMG]
+
+### Xcode の既知の問題
+
+
+| 問題 | 解決法 |
+| ----- | -------- |
+|Xcode は、ブレークポイントでは停止しません。|[INCLUDE:#XcodeDebug] |
+
+<!--
+[EXCERPT:XcodeDebug]
+アンリアル エンジン プロジェクトで、ブレークポイントを正確に処理するには、Xcode の LLDB デバッガを設定する必要があります。ホームフォルダで .lldbinit ファイルを作成 (または、既にある場合は、編集) し、以下の行を追加する必要があります。
+
+	settings set target.inline-breakpoint-strategy always
+[/EXCERPT:XcodeDebug]
+-->
+[/PUBLISH:Rocket]
+[/EXCERPT:Xcode]

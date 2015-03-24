@@ -1,0 +1,40 @@
+﻿INTSourceChangelist:2444099
+Availability:Public
+Title:詳細パネル
+Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
+Description:ブループリントエディタ内の詳細パネルの概要
+
+
+
+
+## 概要
+
+[EXCERPT:Intro]
+**[詳細]** パネルは、コンテキスト依存のエリアで、ブループリント エディタ内で選択したアイテムのプロパティを編集するためのアクセスを提供します。特定プロパティへ迅速にアクセスする検索バーで構成されていて、収容されているプロパティを構造化するために折りたたみ可能なカテゴリが 1 つ以上含まれています。
+
+**[詳細]** パネルもまた、ブループリントで編集する以下に示す多くのタスクを処理する場所です。
+
+* 名前、タイプそして配列への変数の格納の変更を含めた [変数](Engine/Blueprints/UserGuide\Variables) の編集プロセス。 
+* [Blueprint Props] ボタンをクリック後に [ブループリント インターフェース](Engine/Blueprints/UserGuide\Types\Interface) を実装。
+* [ブループリント関数](Engine/Blueprints/UserGuide\Functions) の入出力値の追加。
+* 選択した [コンポーネント](Engine/Blueprints/UserGuide\Components) に [イベント](Engine/Blueprints/UserGuide\Events) を追加。
+
+ 
+[/EXCERPT:Intro]
+
+## インターフェース
+
+
+[REGION:raw]
+![](BlueprintDetails2.png)
+[/REGION]
+
+1. **Search Filter** - 必要なプロパティ名とその下にあるプロパティ名を入力します。 
+1. **Property Matrix** - 有効なプロパティをスプレッドシートのように編集するために [Property Matrix] パネルを開きます。
+1. **Visibility Filter** - 編集済みまたは高度なプロパティの表示 / 非表示の切り替えだけでなく全カテゴリの折りたたみ / 展開も切り替えます。
+1. **Collapsible Categories** - 関連のあるプロパティをグループ化するためにこの領域を使用します。名前の横にある白くて小さな三角アイコンを利用して展開したり折りたたむことができます。
+
+[REGION:note]
+	それぞれの領域はコンテキスト依存領域です。現在選択されているアイテムに適用しない領域があった場合、この領域は単に表示されません。例えば、 Blueprint ノードの多くは、主にブランクの **[Details]** パネルが表示されることは普通のことです。
+[/REGION]
+

@@ -1,0 +1,6 @@
+﻿Title:VisibleDefaultsOnly
+Crumbs: %ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/Reference/Properties/Specifiers
+Description: 
+Availability:Public
+
+このプロパティはアーキタイプからプロパティウィンドウのみで可視化できることを示しますが、編集は一切できません。

@@ -1,0 +1,64 @@
+Availability:Public
+Title:Level Designer Quick Start
+Crumbs: %ROOT%, GettingStarted
+Description: Getting up and running with the basics of the Unreal Editor.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](engine_qs_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/QuickStart:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/QuickStart]
+	[/PARAM]
+	[PARAM:description]
+	%Engine/QuickStart:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](engine_qs_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/QuickStart:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/QuickStart]
+	[/PARAM]
+	[PARAM:description]
+	%Engine/QuickStart:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+![](Engine\QuickStart\6\built.png)(w:940)
+
+The Unreal Editor Quick Start Guide walks you through the basics of working with Unreal Engine 4 including: navigating the viewports, creating a new level, placing and editing Actors in your level, as well as the process of building and running your levels. At the end of this guide, you will have a room similar to the one pictured above. The final step of this guide will give you some ideas to take it and make it your own as well as provide links to related documentation. 
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Steps
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/QuickStart/1 "%Engine/QuickStart/1:description%")
+	* [](Engine/QuickStart/2 "%Engine/QuickStart/2:description%")
+	* [](Engine/QuickStart/3 "%Engine/QuickStart/3:description%")
+	* [](Engine/QuickStart/4 "%Engine/QuickStart/4:description%")
+	* [](Engine/QuickStart/5 "%Engine/QuickStart/5:description%")
+	* [](Engine/QuickStart/6 "%Engine/QuickStart/6:description%")
+	[/PARAM]
+[/OBJECT]
+
+
+

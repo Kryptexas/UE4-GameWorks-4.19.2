@@ -1,0 +1,33 @@
+﻿INTSourceChangelist:2438687
+Availability: Docs
+Title:1.3 - 컬 디스턴스 볼륨
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Volumes
+Description:Volumes 예제 레벨에 대한 개요로, 예제 1.3: Cull Distance Volume, 컬 디스턴스 볼륨입니다.
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes/1_3:title%](Resources\ContentExamples\Volumes\content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes/1_3:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes/1_3:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Volumes/1_3]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+거리와 크기에 따라서 오브젝트를 컬링(그리기를 생략)합니다. 단계는 얼마든지 나눌 수 있습니다. 왼쪽에 보이는 예제에서는 컬 디스턴스 볼륨 밖에 오브젝트가 있습니다. 오른쪽에는 볼륨 안에 같은 오브젝트가 보입니다. 작은 파랑 구체는 500 유닛 거리에서 처음 컬링됩니다. 중간 빨강 구체는 1000 유닛 이상의 거리에서 컬링됩니다. 초록 구체는 거리가 0 으로 설정되어 있어서 볼륨에 의해 컬링되지 않습니다.
+
+퍼포먼스 최적화용 볼륨입니다.
+
+

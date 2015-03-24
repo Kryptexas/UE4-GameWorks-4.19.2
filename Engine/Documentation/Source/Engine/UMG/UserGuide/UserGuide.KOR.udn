@@ -1,0 +1,226 @@
+﻿INTSourceChangelist:2373757
+Availability:Public
+Title: UMG UI 디자이너 사용 안내서
+Crumbs:%ROOT%, Engine, Engine/UMG
+Description:UI 요소 제작을 위한 언리얼 모션 그래픽 사용 안내서입니다.
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/UMG:title%](UMG_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/UMG:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/UMG:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UMG]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/UMG:title%](UMG_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/UMG:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/UMG:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UMG]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth raw]
+![](UserGuideHeader.png)(w:940 h:160 convert:false)
+[/REGION]
+
+## 개요
+
+[EXCERPT:umgheader]
+**언리얼 모션 그래픽 UI 디자이너 (UMG)** 는 게임내 HUD, 메뉴, 기타 인터페이스 관련 그래픽 요소로 사용자에게 보여주고픈 것들을 만드는 데 사용할 수 있는 비주얼 UI 저작 툴입니다. **UMG** 의 핵심에는 **위젯** 이라는 것이 있는데, 이는 미리 만들어진 (버튼, 체크박스, 슬라이더, 진행상황 바 등의) 함수 시리즈로, 이들을 조립해서 UI 를 만들 수 있습니다. 이러한 **위젯** 은 전용 **위젯 블루프린트** 에서 편집되는데, 두 가지 탭으로 구성됩니다. **디자이너** 탭에서는 인터페이스의 시각적인 레이아웃과 기본적인 함수가 제공되며, **그래프** 탭에는 사용되는 **위젯** 배후의 함수성이 제공됩니다.
+[/EXCERPT:umgheader]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		시작하기
+	[/PARAM]
+	[PARAM:links]
+		[REGION:topics third]
+		[INCLUDE:#topics]
+		[/REGION]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:Topics]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/UMG/UserGuide/WidgetBlueprints:title%](WidgetBlueprintTopic.png)(w:291 h:120)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/UMG/UserGuide/WidgetBlueprints:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/UMG/UserGuide/WidgetBlueprints:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UMG/UserGuide/WidgetBlueprints]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/UMG/UserGuide/CreatingWidgets:title%](CreateWidgetTopic.png)(w:291 h:120)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/UMG/UserGuide/CreatingWidgets:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/UMG/UserGuide/CreatingWidgets:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UMG/UserGuide/CreatingWidgets]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/UMG/UserGuide/WidgetTypeReference:title%](WidgetTypeRefTopic.png)(w:291 h:120)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/UMG/UserGuide/WidgetTypeReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/UMG/UserGuide/WidgetTypeReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UMG/UserGuide/WidgetTypeReference]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:Topics]
+		-->
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/related_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		추가 자료
+	[/PARAM]
+	[PARAM:links]
+	[REGION:topics third]
+	[OBJECT:TopicCompact]
+		[PARAM:image]
+			![](AnchorsTopic.png)(w:283 h:117)
+		[/PARAM]
+		[PARAM:title]
+			앵커
+		[/PARAM]
+		[PARAM:path]
+		[RELATIVE:Engine/UMG/UserGuide/Anchors]
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:TopicCompact]
+		[PARAM:image]
+			![](AnimationTopic.png)(w:283 h:117)
+		[/PARAM]
+		[PARAM:title]
+			애니메이션
+		[/PARAM]
+		[PARAM:path]
+		[RELATIVE:Engine/UMG/UserGuide/Animation]
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:TopicCompact]
+		[PARAM:image]
+			![](EventsTopic.png)(w:283 h:117)
+		[/PARAM]
+		[PARAM:title]
+			이벤트
+		[/PARAM]
+		[PARAM:path]
+		[RELATIVE:Engine/UMG/UserGuide/Events]
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:TopicCompact]
+		[PARAM:image]
+			![](PropertyBindingTopic.png)(w:283 h:117)
+		[/PARAM]
+		[PARAM:title]
+			프로퍼티 바인딩
+		[/PARAM]
+		[PARAM:path]
+		[RELATIVE:Engine/UMG/UserGuide/PropertyBinding]
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:TopicCompact]
+		[PARAM:image]
+			![](ScalingTopic.png)(w:283 h:117)
+		[/PARAM]
+		[PARAM:title]
+			DPI 스케일링
+		[/PARAM]
+		[PARAM:path]
+		[RELATIVE:Engine/UMG/UserGuide/DPIScaling]
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:TopicCompact]
+		[PARAM:image]
+			![](FontsTopic.png)(w:283 h:117)
+		[/PARAM]
+		[PARAM:title]
+			폰트
+		[/PARAM]
+		[PARAM:path]
+		[RELATIVE:Engine/UMG/UserGuide/Fonts]
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:TopicCompact]
+		[PARAM:image]
+			![](StylingTopic.png)(w:283 h:117)
+		[/PARAM]
+		[PARAM:title]
+			스타일링
+		[/PARAM]
+		[PARAM:path]
+		[RELATIVE:Engine/UMG/UserGuide/Styling]
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:TopicCompact]
+		[PARAM:image]
+			![](SlotTopic.png)(w:283 h:117)
+		[/PARAM]
+		[PARAM:title]
+			슬롯
+		[/PARAM]
+		[PARAM:path]
+		[RELATIVE:Engine/UMG/UserGuide/Slots]
+		[/PARAM]
+	[/OBJECT]
+	[/REGION]
+	[/PARAM]
+[/OBJECT]

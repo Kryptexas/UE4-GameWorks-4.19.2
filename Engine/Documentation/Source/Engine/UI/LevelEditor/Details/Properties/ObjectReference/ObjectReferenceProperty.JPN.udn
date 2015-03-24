@@ -1,0 +1,29 @@
+﻿INTSourceChangelist:2117037
+Availability:Public
+Title:オブジェクト参照の制御
+Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/Details
+Description:オブジェクトとアクタに関連する参照を格納するプロパティ
+
+ 「オブジェクト」参照のプロパティは、レベルでアクタへの参照を格納するプロパティです。**[詳細]** パネルでは、 
+Object reference プロパティは修正用の制御一式と一緒にドロップダウン ボックスとして表示されます。 
+
+![Object reference control](Details_ObjRef.png)
+
+| 制御 | 説明 |
+| ------- | ----------- |
+| ![Object Reference thumbnail](Details_ObjRef_Image_button.png)| 必要に応じて、アクタのサムネイルを表示します。 **ダブルクリック** して適切なエディタのアセットを開きます (例えばスタティック メッシュ アクタの場合はサムネイルを **ダブルクリック** してスタティック メッシュ エディタのアセットを開きます)。|
+| ![](Details_ObjRef_Dropdown_button.png)| アセット名を表示します。ボックスをクリックしてコンテンツ メニューを開きます。 <br/> ![](Details_ObjRef_DropdownPicker.png) <br/> [INCLUDE:#AssetPickerList]|
+| ![Use Selected Asset button](button_use_selected.png) | 現在 **コンテンツブラウザ** で選択されているアセットをプロパティに割り当てます。 |
+| ![Find in Content Browser button](button_find_prop.png) | 現在 **コンテンツブラウザ** に割り当てられているアセットを検索します。アセットが割り当てられていない場合は機能しません。|
+| ![Reset button](button_reset.png) |プロパティをデフォルトアセットにリセットします。|
+
+<!-- Table Includes
+[EXCERPT:AssetPickerList]
+コンテクスト メニューでは以下の事ができます。
+* **[編集]** をクリックして、修正用の適切なエディタでアセットを開きます。
+* **[コピー]** をクリックして、アセットの参照情報 (ハードコードされたパス情報) をクリップボードへコピーします。
+* **[ペースト]** をクリックして、クリップボードから新規アセット情報を貼り付けます。
+* **[クリア]** をクリックして、アセット情報を削除してブランクのままにします。
+* リストから新規アセットを選択します。オプションで、 **[ブラウズ]** ボックスにテキストを入力してリストをフィルタします。 
+[/EXCERPT:AssetPickerList]
+-->

@@ -1,0 +1,68 @@
+Availability: Public
+Title:Artist Quick Start
+Crumbs:%ROOT%, GettingStarted
+Description:Get started with Unreal Engine 4 as a Content Creator.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/QuickStart:title%](artist_qs_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/QuickStart:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/QuickStart]
+	[/PARAM]
+	[PARAM:description]
+	%Engine/Content/QuickStart:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/QuickStart:title%](artist_qs_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/QuickStart:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/QuickStart]
+	[/PARAM]
+	[PARAM:description]
+	%Engine/Content/QuickStart:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+![](MaterialsHeader.png)
+
+
+Over the course of this quick start guide, you will import meshes and textures, make a material and apply it to a **Static Mesh Actor**. This will be a focused tutorial, walking you through the basics. At many points however, links to more documentation will be available to answer any deeper questions you may have.
+
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Steps
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/Content/QuickStart/1 "%Engine/Content/QuickStart/1:description%")
+	* [](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:description%")
+	* [](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:description%")
+	* [](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:description%")
+	* [](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:description%")
+	* [](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:description%")
+	[/PARAM]
+[/OBJECT]
+
+
+

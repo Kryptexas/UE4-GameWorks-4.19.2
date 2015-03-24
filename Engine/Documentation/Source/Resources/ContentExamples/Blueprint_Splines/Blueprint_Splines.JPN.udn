@@ -1,0 +1,79 @@
+﻿INTSourceChangelist:2346120
+Availability:Public
+Title:ブループリント スプライン コンテンツ事例
+Crumbs:%ROOT%, Resources, Resources/ContentExamples
+Description:ブループリント スプライン コンテンツ事例で提供されるサンプルの概要
+Related:Engine/Rendering/Materials
+
+[REGION:banner]
+![](blueprintSplines_ce_header.png)(convert:false)
+[/REGION]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Blueprint_Splines:title%](blueprintSplines_ce_compact.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Blueprint_Splines:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Blueprint_Splines:description%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/Blueprint_Splines]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Blueprint_Splines:title%](blueprintSplines_ce_compact.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Blueprint_Splines:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/Blueprint_Splines]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:2)]
+
+
+## 概要
+**ブループリント スプライン コンテンツ事例** では、 **ブループリント** と **スプライン コンポーネント** を使用して様々な方法で使用できるパスの作成方法を説明します。**ブループリント** に **スプライン コンポーネント** を追加し、その **ブループリント** のインスタンスを選択するだけで、レベル内でのスプライン編集が可能になり、ビューポート内でスプライン キーを選択し、 **Translation** 、 **Rotation** 、 **Scale** ウィジェットを使って操作できるようになります。 
+
+**ブループリント スプライン** を **コンストラクションスクリプト** と一緒に使って **スタティックメッシュ** オブジェクトのパスを作成する方法、またゲーム中にスプライン パスや **スプライン メッシュ** を変えてコンテンツやアニメーションを作成する方法を、このページの **コンテンツ事例** で説明します。 
+
+ 
+## コンストラクション スクリプトのサンプル
+
+![](blueprintSplines_topic_construction.png)(w:640)
+
+次のショーケースでは、 ビューポート内のパスやスケール可能な **スタティックメッシュ** に対して **スプライン コンポーネント** を **ブループリントのコンストラクションスクリプト** とリアルタイムで併用されているかを実演しています。 
+
+| 例 | 実演内容 |
+| ------- | ------------ |
+| **1.1 ブループリント スプライン コンポーネント** | **スプライン コンポーネント** がビューポート内でいかに簡単に編集できるかを実演します (例えば、ビューポート内で **スプライン コンポーネント** を 4 スプライン ポイント移動する、など)。 |
+| **1.2 スプライン方向のコンポーネントの配置** | **ブループリント** が **スプライン コンポーネント** から様々な種類の情報を抽出する方法を実演します (配置されているスプラインの向きによって方向が決定される場合、 **スタティックメッシュ コンポーネント** はスプラインの長さに沿って配置する方法を実演します)。 |
+| **1.3 スプライン メッシュ コンポーネント** | **スプライン コンポーネント** の別のタイプである **スプライン メッシュ** は **スタティックメッシュ** アセットの伸縮および屈折に使用されます (ビューポート内のウィジェットを使って伸縮および方向付けができるパイプなど)。 |
+
+
+## 動的処理のサンプル
+
+![](blueprintSplines_topic_dynamic.png)(w:640)
+
+**動的処理のサンプル** では、ゲーム中に **スプライン コンポーネント** を動的に更新して、オブジェクトの環境バックグラウンド移動の提供、あるいはオブジェクトやプレイ可能なキャラクターをアニメートする方法を紹介します。 
+
+| 例 | 実演内容 |
+| ------- | ------------ |
+| **2.1 スプラインをパスとして使用** | **パーティクル エフェクト** が辿るパスとして使用される **スプライン コンポーネント** の例です。 |
+| **2.2 シミュレーション中にスプラインを変更する** | ゲームプレイ中に **スプライン コンポーネント** を動的に作成する方法を紹介します (プレイ時またはシミュレーション時にスプラインにそってアニメートするランタンの列)。 |
+| **2.3 スプライン メッシュをアニメートする** | **スプライン コンポーネント** は **スプラインメッシュ** が動き回るパスとしても使用することができます (スプライン パスに沿って地面から伸びるつる)。 |
+| **2.4 ポーンのアニメーション用のスプライン メッシュ** | **スプライン メッシュ** を使ってポーンをアニメートする方法です (**スプライン メッシュ** はプレイ可能な泳ぐ魚をアニメートするために使用します)。 |
+
+
+

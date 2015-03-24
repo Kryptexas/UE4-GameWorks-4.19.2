@@ -1,0 +1,142 @@
+Availability:Public
+Title:Setting Up Visual Studio for UE4
+Crumbs: %ROOT%, Programming, Programming\Development
+Description:Tips, tricks, and techniques for setting up Visual Studio for development with Unreal Engine 4.
+Version: 4.5
+
+[TOC(start:2)]
+
+
+## Overview
+
+[EXCERPT:Intro]
+
+Unreal Engine 4 is designed to integrate smoothly with Visual Studio 2013. This allows you to quickly and easily make code changes in your projects and see the results immediately upon compilation. 
+Setting up Visual Studio to work with Unreal Engine 4 can help to improve efficiency and the overall user experience for developers using Unreal Engine 4.
+[/EXCERPT:Intro]
+
+In this document, we will cover the basics for setting up your UE4-to-VS2013 workflow.
+
+
+## Recommended Settings
+
+The following are recommended settings for developers using Visual Studio with Unreal Engine 4.
+
+[EXCERPT:BasicVSFormat]
+
+1. **Increase the width of the Solution Configurations dropdown menu:**
+	1. **Right-click** on the toolbar and select **Customize** at the bottom of the menu that appears.
+	1. Click on the **Commands** tab.
+	1. Select the **Toolbar** radio button.
+	1. In the dropdown next to **Toolbar**, choose **Standard**.
+	1. In the **Controls** list at the bottom, select the **Solution Configurations** control.
+	1. Click **Modify Selection** on the right.  Set the **Width** to "200".
+	1. Click **Close**.  Your toolbar should update immediately.
+1. **Add the Solution Platforms dropdown:**
+	1. Find the right-most button on the Standard toolbar, which opens a dropdown menu that will allow you to add and remove buttons from the toolbar.
+	
+		![](menu_dropdown.png)
+	1. Click the dropdown button, hover over **Add or Remove Buttons**, and then click on **Solution Platforms** to add the menu to the toolbar.
+1. **Turn off the Error List window**. If enabled, the **Error List** window pops up automatically when you get a legitimate error in your code. However, when working with Unreal Engine, the **Error List** can display false error information. It is best to disable this window and use the **Output** window to see your code errors instead. This window will only show your real errors. 
+	1. Close the **Error List** window if it is open. 
+	1. From the **Tools** menu, open the **Options** dialog.
+	1. Select **Projects and Solutions** and uncheck **Always show error list if build finishes with error**.
+	1. Click **OK**.
+
+[/EXCERPT:BasicVSFormat]
+
+Other configuration steps you may find useful are:
+
+* Turn off **Show Inactive Blocks**.  If you do not, many chunks of code may appear grayed out in the text editor.  (_Tools > Options > Text Editor > C/C++ > View)_.
+* Set **Disable External Dependencies Folders** to _True_ to hide unneeded folders in the **Solution Explorer**.  (**Disable External Dependencies Folder** in _Tools > Options > Text Editor > C/C++ > Advanced_)
+* Turn off **Edit & Continue** features, you do not need them.  (_Tools > Options > Debugging > Edit and Continue_)
+
+* Turn on IntelliSense. (See [Intellisense, Live Errors, and Squiggles](#Intellisense))
+
+**If you have Visual Assist X installed:**
+* Turn off **Format After Paste**.  It does weird things sometimes.  (_VAssistX > Visual Assist X Options > Advanced > Corrections_)
+
+
+(#Intellisense)
+## Intellisense, Live Errors, and Squiggles
+
+UE4 projects now have proper IntelliSense support, including a live Error List and "squiggles"! 
+(See below for how to enable it.)
+
+IntelliSense recompiles C++ as you type. This is a lot more powerful than only VAX's syntax 
+checking, as it uses a full C++ compiler that verifies every line of code. It is awesome and it will 
+speed up your workflow!
+
+![VC++ Intellisense Squiggles](squiggle.png)
+
+Along with squiggles, you will also see IntelliSense errors in the Error List for any file you are looking at. 
+You can turn this on or off in the **right-click** menu in the Error List.
+
+![Error List](error_list.png)
+
+You may have already disabled Squiggles because they did not work with UE4 projects. Make sure to hit the 
+C/C++ Advanced tab and use settings similar to below.
+
+![VC++ Advanced Options](intellisense_options.png)
+
+When you open a C++ file, you can see the IntelliSense compiler "working" by looking for this icon:
+
+![Intellisense Progress Indicator](intellisense_progress.png)
+
+### Implementation Details
+
+* It sometimes takes a few seconds for squiggles to appear when you edit code.
+    * This is just because we have tons of include files, and IntelliSense does not use PCHs currently.
+* Sometimes you will see "false positive" IntelliSense errors.  There are a few possible reasons.
+    * The IntelliSense compiler (EDG) is more strict than the MSVC compiler.
+    * Some #defines are setup differently for IntelliSense than when building normally.
+    * C++ compiled by IntelliSense is always treated as 32-bit. 
+* You can wrap code in `#ifdef __INTELLISENSE__` to eliminate squiggles if absolutely necessary.
+* The IntelliSense errors are phrased a bit differently than the VC++ compiler's errors.  That is just how it is.
+* Squiggles in header files work by compiling the header against a known `.cpp` that includes it.
+    * Sometimes IntelliSense screws this up and you will see squiggles in headers.
+* There is a **Max Cached Translation Units** setting (shown above) that you can increase if you want.
+    * It uses more memory, but might increase responsiveness a bit.
+* A few C++ files still are not compatible with IntelliSense yet.
+* Unreal Build Tool has a new `-IntelliSense` option.
+    * This will spit out IntelliSense property sheets for all of our project files.
+    * This only needs to be re-run when new modules are added, or project includes are changed.
+
+
+## UnrealVS Extension
+
+[INCLUDE:Programming/Development/VisualStudioSetup/UnrealVS#Overview]
+
+
+See the [](Programming/Development/VisualStudioSetup/UnrealVS) page for information on setting up 
+and using the extension.
+
+
+## Debugging
+
+Visual Studio has support for extending the debugger with visualizers that allow easy inspection of common Unreal types such as FNames and dynamic arrays.
+
+
+### Visualizer Setup for Visual Studio 2013
+
+[PUBLISH:Licensee]
+You can find the file that contains the visualizer logic as part of the UE4 distribution:
+
+	//depot/UE4/Engine/Extras/VisualStudioDebugging/UE4.natvis
+[/PUBLISH:Licensee]
+
+[PUBLISH:Rocket]
+You can find the file that contains the visualizer logic as part of your installation:
+
+	[UE4Root]/Engine/Extras/VisualStudioDebugging/UE4.natvis
+[/PUBLISH:Rocket]
+
+Copy this file to one of the following locations:
+
+	[VSINSTALLDIR]/Common7/Packages/Debugger/Visualizers/UE4.natvis
+	[USERPROFILE]/My Documents/Visual Studio 2013/Visualizers/UE4.natvis
+
+[REGION:warning]
+Copying the file to your Visual Studio install directory may require administrator permissions.
+[/REGION]
+

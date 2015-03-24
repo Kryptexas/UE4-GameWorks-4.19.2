@@ -1,0 +1,69 @@
+INTSourceChangelist:2087004
+Availability: Docs
+Title: Set Texture LOD Group 커맨드렛
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description:모든 텍스처를 대상으로 적합한 LODGroup 을 사용중인지 확인하는 커맨드렛입니다.
+
+[REGION:todo]
+	언리얼 엔진 3 에서 이식해 온 문서로 현재 검토중에 있습니다. 정보가 맞지 않을 수 있습니다.
+[/REGION]
+
+[TOC(start:2)]
+
+## 한 줄 목적
+
+텍스처가 올바른 LOD 그룹에 있는지 확인하고, 잘못된 텍스처 설정을 고칩니다.
+
+
+
+## 상세 동기
+
+모든 텍스처는 TextureGroup의 일부입니다. TextureGroup은 다음과 같은 것들을 지정합니다: 최소/최대 크기, LODBias, 필터링
+
+텍스처가 올바른 그룹에 있는지 확인하여 텍스처 풀을 남용하지 않게 하면 좋을 겁니다.
+
+보통 오분류된 텍스처는 **많이** 있습니다. 게다가 가끔 텍스처 유형 설정도 잘못된 경우가 있습니다. (노멀맵인데 압축이 안되어 있다든가!)
+
+이런 문제 대부분의 해결책으로 SetTextureLODGroup 커맨드렛을 사용합니다. TextureLODGroups, LODBias 등을 설정해 주고, 텍스처의 (노멀맵과 같은) 유형에 따라 잘못된 설정을 고쳐 줍니다.
+
+
+
+## 실행
+
+이 커맨드렛을 사용하려면, cmd 창에서 _UnrealEngine3\Binaries_ 디렉토리로 이동해야 합니다.
+
+
+### 구문
+
+구문은 다음과 같습니다:
+
+    [GameName].exe SetTextureLODGroup 
+    
+
+## 사용 / 작동법
+
+주:  TextureGroup에 어떤 간접 영향을 끼칠지 프로그래머에게 커맨드렛 코드를 살펴보도록 하는 게 좋습니다.
+
+TextureGroup을 더 상세히 살펴볼 곳은:
+
+
+* DefaultEngine.ini  SystemSettings
+* Texture.uc  enum TextureGroup
+
+
+
+기본적으로 콘텐츠 구조를 잘 정의해 놓은 경우, 텍스처의 위치만으로도 의미적인 세부사항을 많이 얻어낼 수 있습니다. 특정 텍스처가 올바른 TextureGruop에 있는지 확인하는데 그런 방법을 활용할 것입니다.
+
+
+
+## 상세 예제
+
+탄피 입자 효과에 사용될 텍스처를 누군가 새로 가져왔습니다. 기본값으로 TextureGroup은 World 입니다만, 그 누군가가 TextureGroup 설정을 깜빡했습니다. 게다가 그 텍스처는 1024x1024 크기인데, 탄피 파티클 이펙트가 **엄청나기** o_O 때문입니다! 이게 텍스처 풀을 1024x1024 차지하게 됩니다. T_T
+
+SetTextureLODGroupCommandlet이 실행될 때 해당 텍스처를 1024보다 작은 MaxLODSize를 가질 것 같은 Effects Group으로 설정하게 됩니다. 그를 통해 별다른 노력 없이도 텍스처 풀 공간이 절약됩니다.
+
+ 
+
+
+
+

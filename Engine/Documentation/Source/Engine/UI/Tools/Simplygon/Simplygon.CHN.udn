@@ -1,0 +1,31 @@
+﻿INTSourceChangelist:1560606
+Availability:Licensee
+Title:Simplygon
+Crumbs:%ROOT%, Engine
+Description:用于网格物体简化和融合的第三方工具，该工具已经集成到虚幻引擎4中。
+
+[REGION:raw]
+![](SimplygonLogo.png)
+[/REGION]
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAMLITERAL:title]
+		要点阅读
+	[/PARAMLITERAL]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/UI/Tools/Simplygon/Compiling) - %Engine/UI/Tools/Simplygon/Compiling:description%
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:License]
+[REGION:warning]
+尽管随同虚幻引擎发行了Simplygon,但是授权用户必须从Donya Labs ([](http://simplygon.com/)) 获得授权才能使用这个功能。请联系它们了解关于获得授权的详细信息。请查看[编译Simplygon](Engine/UI/Tools/Simplygon/Compiling)获得更多信息。
+[/REGION]
+[/EXCERPT:License]
+-->

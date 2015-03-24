@@ -1,0 +1,303 @@
+﻿INTSourceChangelist:2298466
+Availability:Public
+Title:ハードウェア＆ソフトウェアの仕様
+Crumbs: %ROOT%, GettingStarted
+Description:アンリアル エンジンを用いた開発に必要なハードウェアの最低限スペックと推奨スペック及び必須のソフトウェア
+
+[PUBLISH:Rocket]
+%Globals:OSSelect%
+[/PUBLISH:Rocket]
+
+[TOC(start:2)]
+
+[EXCERPT:Main]
+[EXCERPT:Intro]
+アンリアル エンジン 4 でゲームやエディタの実行、またエンジンを用いた開発には特定のハードウェアとソフトウェアが必要条件となります。
+[/EXCERPT:Intro]
+
+## 推奨ハードウェア
+
+[PUBLISH:Licensee]
+[INCLUDE:#windowsminhardware]
+[/PUBLISH:Licensee]
+[PUBLISH:Rocket]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	アクティブな_ボタン_コンテンツ
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#windowsminhardware]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#macosminhardware]
+	[/PARAM]
+[/OBJECT]
+[/PUBLISH:Rocket]
+
+<!--
+[EXCERPT:WindowsMinHardware]
+| エンジンの実行およびエンジンを用いた開発 ||
+| -------- | --- |
+| **プロセッサ** | クアッドコア Intel または AMD、 2.5 GHz またはそれ以上のプロセッサ |
+| **メモリ** | 8 GB RAM |
+| **ビデオカード** | NVIDIA GeForce 470 GTX または AMD Radeon 6870 HD シリーズ、またはそれ以上のビデオカード |
+[/EXCERPT:WindowsMinHardware]
+[EXCERPT:MacOSMinHardware]
+| エンジンの実行およびエンジンを用いた開発 ||
+| -------- | --- |
+| **プロセッサ** | クアッドコア Intel または AMD、 2.5 GHz またはそれ以上のプロセッサ |
+| **メモリ** | 8 GB RAM |
+| **ビデオカード** | NVIDIA GeForce 470 GTX または AMD Radeon 6870 HD シリーズ、またはそれ以上のビデオカード |
+[/EXCERPT:MacOSMinHardware]
+-->
+
+[PUBLISH:Licensee]
+## 推奨ハードウェア
+
+[INCLUDE:#windowsrechardware]
+[/PUBLISH:Licensee]
+
+<!--
+[EXCERPT:WindowsRecHardware]
+| エンジンで開発を行う ||
+| -------- | --- |
+| **プロセッサ** | 4 コア > 2.5 GHz もしくはそれ以上の CPU |
+| **メモリ** | 8+ GB RAM |
+| **ビデオカード** | 2GB の GDDR5 メモリを搭載した DirectX 11 |  
+| **モニター** | 1680x1050 かそれ以上のスペックのモニター 2 つ |
+[/EXCERPT:WindowsRecHardware]
+[EXCERPT:MacOSRecHardware]
+| エンジンで開発を行う ||
+| -------- | --- |
+| **プロセッサ** | 4 コア > 2.5 GHz もしくはそれ以上の CPU |
+| **メモリ** | 8+ GB RAM |
+| **ビデオカード** | 2GB の GDDR5 メモリ |  
+| **モニター** | 1680x1050 かそれ以上のスペックのモニター 2 つ |
+[/EXCERPT:MacOSRecHardware]
+-->
+
+[PUBLISH:Licensee]
+[REGION:note]
+**注記：**ネットワーキング コードの作業にはデュアル プロセッサ設定が大変便利です。同一 PC 上でサーバーとクライアントを高速で実行することができます。
+[/REGION]
+[/PUBLISH:Licensee]
+
+##ソフトウェアの必要最低条件
+
+以下はエンジンまたはエディタを実行するための必要条件です。
+
+(#MinSoftwareReqs)
+
+[PUBLISH:Licensee]
+| エンジンを実行する ||
+| -------- | --- |
+| **オペレーティングシステム** | Microsoft Windows Vista/7 64 ビット |
+| **DirectX バージョン** | [DirectX End-User Runtimes (June 2010)](http://www.microsoft.com/download/en/details.aspx?id=8109) |
+| **Visual C++ ランタイム** | [Microsoft Visual C++ 2013 Redistributables](http://www.microsoft.com/en-us/download/details.aspx?id=40784) |
+
+[REGION:note]
+**注記：**「//depot/UE4/Engine/Extras/Redist/en-us」 に格納されている 「UE4PrereqSetup.msi」 ファイルを実行すると、上記で言及した DirectX や VC++ ランタイムなど、アンリアル エンジン 4 の実行に必要なソフトウェアがインストールされます。
+[/REGION]
+[/PUBLISH:Licensee]
+
+[PUBLISH:Rocket]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	アクティブな_ボタン_コンテンツ
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#windowsminsoftware]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#macosminsoftware]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:WindowsMinSoftware]
+| エンジンを実行する ||
+| -------- | --- |
+| **オペレーティング システム** | Windows 7/8 64 ビット [INCLUDE:#WER] |
+| **DirectX バージョン** | [DirectX End-User Runtimes (June 2010)](http://www.microsoft.com/en-us/download/details.aspx?id=8109) |
+| **.NET バージョン** | .NET 4.0 (Windows Update から既にインストールされてるはずです) |
+
+[REGION:note]
+エンジンの実行に必要な全てのソフトウェアは、インストーラが自動的にインストールします。
+[/REGION]
+[/EXCERPT:WindowsMinSoftware]
+
+[EXCERPT:MacOSMinSoftware]
+| エンジンを実行する ||
+| -------- | --- |
+| **オペレーティング システム** | Mac OS X 10.9.2  |
+[/EXCERPT:MacOSMinSoftware]
+
+[EXCERPT:WER]
+[REGION:note]
+UE4 のクラッシュ レポート機能を使用するには、 **[Windows Error Reporting]** を有効にしなくてはいけません。この機能はデフォルトで有効に設定されています。この機能を無効にした場合は、再度有効にしてください。
+[/REGION]
+[/EXCERPT:WER]
+
+[EXCERPT:VCRuntime]
+[Visual Studio C++ 2013 Redist](http://www.microsoft.com/en-us/download/details.aspx?id=40784)
+[/EXCERPT:VCRuntime]
+
+-->
+
+[/PUBLISH:Rocket]
+
+エンジンで開発を行うプログラマに必要な条件は以下となります。
+
+[PUBLISH:Licensee]
+
+(#DirectX)
+
+| エンジンで開発を行う ||
+| -------- | --- |
+| **オペレーティング システム** | Microsoft Windows Vista/7 64 ビット |
+| **Visual Studio バージョン** | [Microsoft Visual Studio 2013 Professional](http://www.microsoft.com/en-us/download/details.aspx?id=43730) または[Microsoft Visual Studio 2013 Express for Windows Desktop](http://www.microsoft.com/en-us/download/details.aspx?id=43733)|
+| **Visual C++ ランタイム** | [INCLUDE:#VCRuntimeLicensee] |
+
+<!--
+[EXCERPT:VCRuntimeLicensee]
+[Visual Studio C++ 2010 SP1 Redist x64](http://www.microsoft.com/en-us/download/details.aspx?id=13523)  
+
+[Visual Studio C++ 2012 Redist](http://www.microsoft.com/en-us/download/details.aspx?id=30679) 
+ 
+[Visual Studio C++ 2013 Redist](http://www.microsoft.com/en-us/download/details.aspx?id=40784)
+[/EXCERPT:VCRuntimeLicensee]
+-->
+
+
+[/PUBLISH:Licensee]
+[PUBLISH:Rocket]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	アクティブな_ボタン_コンテンツ
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#windowsmindevelopment]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#macosmindevelopment]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:WindowsMinDevelopment]
+| エンジンで開発を行う ||
+| -------- | --- |
+| **「エンジンの実行」に必要な全ての条件 (自動インストール)** ||
+| **Visual Studio バージョン** | [INCLUDE:#VS2013] |
+| [REGION:tablesection]iOS Development[/REGION] ||
+| **iTunes バージョン** | [iTunes 11 以上](http://www.apple.com/itunes/) |
+[/EXCERPT:WindowsMinDevelopment]
+[EXCERPT:MacOSMinDevelopment]
+| エンジンで開発を行う ||
+| -------- | --- |
+| **Xcode バージョン** | 5.0 |
+[/EXCERPT:MacOSMinDevelopment]
+[EXCERPT:VS2013]
+Widnows デスクトップ用の Visual Studio 2013 Professional または Visual Studio 2013 Express
+
+* [Pro](http://www.microsoft.com/en-us/download/details.aspx?id=43730)
+* [Express](http://www.microsoft.com/en-us/download/details.aspx?id=43733)
+
+[REGION:note]
+最新のいずれかのバージョンの Visual Studio Update のインストールが推奨されていますが、必須ではありません。ユーザーがプログラムをインストールおよび実行後に、Visual Studio が最新のバージョンへの更新を促します。
+[/REGION]
+[/EXCERPT:VS2013]
+-->
+[/PUBLISH:Rocket]
+
+
+
+[PUBLISH:Licensee]
+## グラフィック カード ドライバ
+
+現時点では、各カードメーカーがリリースしている最新の安定した、以下のバージョンを推奨しています。
+
+* [NVDIA ドライバのダウンロードはこちらから](http://www.nvidia.com/Download/index.aspx?lang=en-us)
+* [AMD のダウンロードはこちらから](http://support.amd.com/us/gpudownload/Pages/index.aspx)
+
+
+## パフォーマンス ノート
+
+VTune はパフォーマンスの問題特定に大変便利なツールですが、 Intel CPU のみにしか機能しません。
+
+下記に示すのは、 Epic のプログラマーやアーティストが使用する標準的なシステム例です。アンリアル エンジン 4 でゲーム開発を行う際の基準にしてください。
+
+**プログラマー**
+
+* Windows 7 64 ビット
+* デュアル プロセッサ - 6 コア - Intel Xeon X5660 @ 2.8GHz
+* 24GB RAM
+* 300GB 10K SATA (OS)
+* 2X 300GB 10K SATA (RAID0 for DATA)
+* Nvidia Geforce 470 - 580
+
+
+**Artist/LD:**
+
+* Windows 7 64 ビット
+* デュアル プロセッサ - クアッド コア - Intel Xeon X5472 @ 3.0GHz
+* 16GB RAM
+* 500GB SATA (OS)
+* 2X 500GB SATA (RAID0 for DATA)
+* Nvidia Geforce 580
+
+
+[REGION:note]
+	I/O はしばしボトルネックとなるので、RAID レベルを 0 にしたり、 RAM の大量確保が大いに役立ちます。
+[/REGION]
+[/PUBLISH:Licensee]
+[/EXCERPT:Main]

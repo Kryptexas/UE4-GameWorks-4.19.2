@@ -1,0 +1,154 @@
+Availability:Public
+Title: Introduction to Blueprints
+Crumbs: %ROOT%, Engine, Engine/Blueprints
+Description:If you are just getting started with Blueprints, this provides a high-level overview of what they are and what they can do. 
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/GettingStarted:title%](blueprint_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/anim_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/GettingStarted:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/GettingStarted:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/GettingStarted]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[TOC (start:2)]
+
+## Overview
+
+[EXCERPT:BlueprintIntro]
+**Blueprints** are special assets that provide an intuitive, node-based interface that can be used to create new types of Actors 
+and script level events; giving designers and gameplay programmers the tools to quickly create and iterate gameplay from within 
+Unreal Editor without ever needing to write a line of code.
+[/EXCERPT:BlueprintIntro]
+
+For more detailed overview information about _Blueprints_, including types of _Blueprints_, _Blueprint_ anatomy, and a discussion of how _Blueprints_ relate to UE3's Kismet and UnrealScript, see [](Engine/Blueprints\Overview).
+
+
+## How Do Blueprints Work?
+In their basic form, _Blueprints_ are visually scripted additions to your game. By connecting _Nodes_, _Events_, _Functions_, and _Variables_ with _Wires_, it is possible to create complex gameplay elements.
+
+_Blueprints_ work by using graphs of _Nodes_ for various purposes - object construction, individual functions, and general gameplay events - that are specific to each instance of the _Blueprint_ in order to implement behavior and other functionality.
+
+
+## Commonly Used Blueprint Types
+
+The most common _Blueprint_ types you will be working with are _Level Blueprints_ and _Blueprint Classes_.  
+
+These are just two of the [Types of Blueprints](Engine/Blueprints/UserGuide/Types), which also include [Blueprint Macros](Engine/Blueprints/UserGuide/Types/MacroLibrary) and [Blueprint Interfaces](Engine/Blueprints/UserGuide/Types/Interface).
+
+[OBJECT:TopicList]
+	[PARAM:title]
+		[Level Blueprint](Engine/Blueprints/UserGuide/Types/LevelBlueprint)
+	[/PARAM]
+	[PARAM:description]
+		[REGION:lightbox]
+		[![](Engine/Blueprints/GettingStarted/Level_Blueprint_Main.png)(w:640)](Engine/Blueprints/UserGuide/Types/LevelBlueprint) 
+		[/REGION]
+		The _Level Blueprint_ fills the same role that Kismet did in Unreal Engine 3, and has the same capabilities. Each level has its own _Level Blueprint_, and this can reference and manipulate Actors within the level, control cinematics using Matinee Actors, and manage things like level streaming, checkpoints, and other level-related systems. The _Level Blueprint_ can also interact with _Blueprint Classes_ (see the next section for examples of these) placed in the level, such as reading/setting any variables or triggering custom events they might contain.
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:title]
+		[Blueprint Class](Engine/Blueprints/UserGuide/Types/ClassBlueprint)
+	[/PARAM]
+	[PARAM:description]
+		[REGION:lightbox]
+		[![](Engine/Blueprints/GettingStarted/Blueprint_Main.png)(w:640)](Engine/Blueprints/UserGuide/Types/ClassBlueprint)
+		[/REGION]
+		_Blueprint Classes_ are ideal for making interactive assets such as doors, switches, collectible items, and destructible scenery.  In the image above, the button and the set of doors are each separate _Blueprints_ that contain the necessary script to respond to player overlap events, make them animate, play sound effects, and change their materials (the button lights up when pressed, for example).
+		
+		In this case, pressing the button activates an event inside the door _Blueprint_, causing it to open - but the doors could just as easily be activated by another type of _Blueprint_, or by a _Level Blueprint_ sequence. Because of the self-contained nature of _Blueprints_, they can be constructed in such a way that you can drop them into a level and they will simply work, with minimal setup required. This also means that editing a _Blueprint_ that is in use throughout a project will update every instance of it.
+	[/PARAM]
+[/OBJECT]
+
+## What Else Can Blueprints Do?
+You have read about _Level Blueprints_ and _Blueprint Classes_, listed below are a handful of examples that can be accomplished with the _Blueprint_ system. 
+
+[OBJECT:TopicList]
+	[PARAM:title]
+		Create Customizable Prefabs with Construction Scripts
+	[/PARAM]
+	[PARAM:description]
+		![](Construction_Script.png)
+
+		The _Construction Script_ is a type of graph within _Blueprint Classes_ that executes when that Actor is placed or updated in the editor, but not during gameplay. It is useful for creating easily customizable props that allow environment artists to work faster, such as a light fixture that automatically updates its material to match the color and brightness of its point light component, or a _Blueprint_ that randomly scatters foliage meshes over an area.
+
+		In the Content Examples maps, the long rooms that contain each example (pictured above) are actually a single _Blueprint_ made up of many components. The _Blueprint's Construction Script_ creates and arranges the various Static Meshes and lights according to parameters exposed in the _Blueprint's_ **Details** panel. With each Content Example map we created, we were able to drop in the demo room _Blueprint_, set values for the length, height, and number of rooms that would be generated (and a few other options), and have a complete set of rooms ready in moments.
+
+		A _Blueprint_ like this can be time-consuming to create initially, but if you know you will use it often, the time saved when building a level and the ease of making changes can make it very worthwhile.
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:title]
+		Create A Playable Game Character
+	[/PARAM]
+	[PARAM:description]
+		![](Game_Characters.png)
+
+		_Pawns_ are also a type of _Blueprint Class_, and it is possible to put together every element you need for a playable character in the _Blueprint_ graph. You can manipulate camera behavior, set up input events for mouse, controller, and touch screens, and create an _Animation Blueprint_ asset for handling skeletal mesh animations.
+
+		When you create a new _Character Blueprint_, it comes with a character component that has much of the behavior needed for moving around, jumping, swimming, and falling built-in, and all that is required is to add some input events in accordance with how you want your character to be controlled.
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:title]
+		Create A HUD
+	[/PARAM]
+	[PARAM:description]
+		![](Create_HUDs.png)
+
+		_Blueprint_ script can be used to create a game's HUD as well, which is similar to _Blueprint Classes_ in that it can contain event sequences and variables, but is assigned to your project's _GameMode_ asset instead of being added directly to a level.
+
+		You can set up a HUD to read variables from other _Blueprints_ and use them to display a health bar, update a score value, display objective markers, and so on. It is also possible to use the HUD to add hit-boxes for elements like buttons that can be clicked on or, in the case of mobile games, can respond to touch input.
+
+		All of the examples pictured above exist in the sample content available with UE4, so if you want to get a closer look, they can be found in the **Content Examples**, **First Person Shooter** and **Swing Ninja** projects.
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+	![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Blueprint Samples and Tutorials
+	[/PARAM]
+	[PARAM:description]
+		Below are additional resources you can use to learn more about the _Blueprint_ system. 
+	[/PARAM]
+	[PARAM:links]
+		* [](Resources/Showcases/BlueprintExamples)
+		* [Blueprint Lift Tutorial](http://wiki.unrealengine.com/Blueprint_Lift_Tutorial)
+		* [Blueprint Power-Up Tutorial](http://wiki.unrealengine.com/Blueprint_Power_Up_Tutorial)
+	[/PARAM]
+[/OBJECT]
+
+
+## Blueprint Editors and Graphs
+
+Whether you are building a _Level Blueprint_ or a _Blueprint Class_, you will be using [Blueprint Elements](Engine/Blueprints\UserGuide) assembled in a [Blueprint Editor](Engine/Blueprints/Editor).  
+
+[REGION:lightbox]
+	[![](Engine/Blueprints/Editor/blueprint_editor_example.png)(w:480)](Engine/Blueprints/Editor/blueprint_editor_example.png)
+[/REGION]
+
+
+Different types of **Blueprint Editor** are available depending on the type of _Blueprint_ you are working with. The core feature of most **Blueprint Editors** is the **Graph** mode, with its central **Graph** tab 
+for laying out the network of your _Blueprint_.  
+
+

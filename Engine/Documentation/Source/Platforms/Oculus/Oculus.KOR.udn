@@ -1,0 +1,29 @@
+﻿INTSourceChangelist:2319976
+Title:오큘러스 리프트 개발
+Crumbs:%ROOT%, Platforms
+Description:
+Availability:Public
+Navigation:platform
+Platform:Oculus
+
+[EXCERPT:warning]
+[REGION:warning]
+맥에서 오큘러스 개발을 하려면 현재 언리얼 엔진 4.3 이 필요합니다.
+[/REGION]
+[/EXCERPT:warning]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/vr_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		오큘러스 리프트 개발
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Platforms/Oculus/BestPractices "%Platforms/Oculus/BestPractices:description%")
+		* [](Platforms/Oculus/QuickStart "%Platforms/Oculus/QuickStart:description%")
+		* [언리얼 엔진 4 에 오큘러스 리프트를 통합하면서 얻은 교훈](https://de45xmedrsdbp.cloudfront.net/Resources/files/UE4-Integration-and-Demos_OC-100270768.pptx "오큘러스 리프트 2014 프리젠테이션")
+	[/PARAM]
+[/OBJECT]

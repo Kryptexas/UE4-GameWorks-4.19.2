@@ -1,0 +1,55 @@
+﻿INTSourceChangelist:2321693
+Availability:Public
+Title:レベル エディタ ツールバー
+Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
+Description:共通で使用するツールと操作へ素早くアクセスできるコマンドのコレクション
+
+[VAR:playlistnav]
+[OBJECT:PlaylistNavigation]
+	[PARAMLITERAL:id]
+		LevelDesign_Beginner
+	[/PARAMLITERAL]
+	[PARAM:previous]
+		[Previous Topic](Engine/UI/LevelEditor "%Engine/UI/LevelEditor:title%")
+	[/PARAM]
+	[PARAM:next]
+		[Next Topic](Engine/UI/LevelEditor/Modes "%Engine/UI/LevelEditor/Modes:title%")
+	[/PARAM]
+	[PARAM:home]
+		[](Tracks/LevelDesign/Beginner)
+		%Tracks/LevelDesign/Beginner:menu%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%playlistnav%
+
+大抵のアプリケーション同様に、**[ツールバー]** パネルは頻繁に使用するツールや操作へ素早いアクセスを提供するコマンドのグループです。
+
+[REGION:fullwidth]
+![](toolbar.png)
+[/REGION]
+
+| コマンド | 説明 |
+| ------- | ----------- |
+|![](button_Toolbar_Save.png)| 現在のレベルを保存します。|
+| ![](button_Toolbar_Content.png)| ゲームに含まれる全コンテンツ アセットを表示する [コンテンツ ブラウザ] (Engine/Content/Browser) を開きます。ここで、全てのコンテンツを作成、インポート、編集します。 |
+| ![](button_Toolbar_marketplace.png) |マーケットプレイスのセクションへのアンリアル エンジンのランチャーを開きます。  |
+| ![](button_Toolbar_View.png) | レベル エディタの選択、編集、プレビューをコントロールするために一般的に使用されるオプションがある [Quick Settings](Engine/UI/LevelEditor/QuickSettings) メニューを表示します。 |
+| ![](button_Toolbar_blueprints.png) | ワールドでブループリントを作成、編集するためのアクセスを提供します。 [ブループリント エディタ] (Engine/Blueprints/Editor\UIBreakdowns\LevelBPUI) で、現在のレベルの [レベル ブループリント](Engine/Blueprints/UserGuide/Types/LevelBlueprint) を開くことを含みます。このメニューでは、ゲームのルール、プレイヤーのタイプ、HUD などのゲームのフレームワークのセットアップにエディタ内から迅速にアクセスできます。
+| ![](button_Toolbar_matinee.png)| レベル内で新規 [マチネ](Engine/Matinee) シーケンスを作成したり、既存の **[マチネ]** シーケンスを編集できるようにします。 |
+| ![](button_toolbar_build.png) | エディタで開くすべてのレベル (パーシスタントおよびストリーミング) で _ビルド_ オペレーションを行います。ビルドは、レベルの様々な側面に関連する可能な限り多くのデータを事前計算します。例えば、静的ライト - ライトマップ、シャドウ、グローバル イルミネーション - およびジオメトリはこのプロセス中に計算されます。矢印をクリックすると **[Build Options]** メニューが表示されます。 |
+| ![](button_Toolbar_PlayIn.png) | [INCLUDE:#playin] |
+| ![](button_Toolbar_launch.png) | サポートしているプラットフォーム上で現在のマップを起動します。接続されているデバイスは、矢印をクリックしてアクセスするメニューに一覧表示されます。
+
+<!--
+[EXCERPT:simulate]
+シミュレーション モードでゲームを開始します。詳細は [SimulateInEditor](Engine/UI/LevelEditor/InEditorTesting#SimulateInEditor) セクションを参照してください。
+[/EXCERPT:simulate]
+[EXCERPT:playin]
+通常のプレイ モードでゲームを開始します。矢印をクリックすると **[Play Options]** メニューが表示されます。詳細は [PlayInEditor](Engine/UI/LevelEditor/InEditorTesting#PlayInEditor) を参照してください。
+[/EXCERPT:playin]
+-->
+
+
+%playlistnav%

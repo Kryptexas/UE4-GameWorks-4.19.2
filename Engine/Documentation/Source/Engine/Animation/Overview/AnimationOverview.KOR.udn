@@ -1,0 +1,243 @@
+﻿INTSourceChangelist:2227436
+Availability:Public
+Title:애니메이션 시스템 개요
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:애니메이션 블루프린트, 블렌드 스페이스, 애니메이션 시퀀스를 사용해서 애니메이션 데이터 기반 스켈레탈 메시를 변형하는 시스템에 대한 개요입니다.
+
+[TOC(start:2 end:2)]
+
+## 개요
+
+[EXCERPT:Intro]
+언리얼 엔진 4 의 애니메이션 시스템은 캐릭터와 스켈레탈 메시에 대해 심오한 수준의 제어가 가능합니다. 이 문서에서는 UE4 에선의 애니메이션 작동 원리와 그 바탕 개념을 하이 레벨에서 개괄적으로 살펴보도록 하겠습니다.
+
+
+
+**애니메이션** 시스템은 스켈레탈 기반 메시 변형 정보를 모프 기반 버텍스 변형 정보와 혼합시켜 복잡한 
+애니메이션을 내는 시스템으로, 미리 녹화된 _애니메이션 시퀀스_ 를 재생하고 블렌딩하여 기본 플레이어 움직임에 
+사실감을 더해주거나, _애님 몽타주_ 를 사용한 벽이나 돌출부의 스케일 작업같은 맞춤형 특수 동작을 
+제작하거나, _모프 타겟_ 을 통해 대미지 이펙트 또는 얼굴 표정을 적용하거나, 
+_스켈레탈 콘트롤_ 을 사용하여 본의 트랜스폼을 직접 제어하도록 만들 수도 있습니다.
+[/EXCERPT:Intro]
+
+
+이 문서는 언리얼 엔진 4 의 애니메이션 시스템에 대한 하이 레벨 개요서로써 쓰여졌으며, 언리얼의 애니메이션을 새로 접하신 분들을 주요 대상으로 합니다. 그렇다고 언리얼 엔진에서 스켈레탈 애셋에 애니메이션을 적용하는 방법을 완벽하게 설명해 주는 안내서가 되지는 못합니다. 그보다는 애니메이션 시스템의 여러 부분에 대한 개념을 잡은 다음, 그 부분들이 어떻게 조합되는가, UE4 의 애니메이션이 전보다 얼마나 강력하고 유연해 졌는가 살펴보는 입문서 정도로 생각해 주시기 바랍니다.
+
+먼저 UE4 의 애니메이션 시스템에 대한 주요 용어와 개념을 알아보는 것으로 시작하겠습니다:
+
+
+(#Skeleton)
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![](PersonaIcon.png)(w:192)](Engine/Animation/Persona)
+	[/PARAM]
+	[PARAM:title]
+		[Persona](Engine/Animation/Persona)
+	[/PARAM]
+	[PARAM:description]
+	[INCLUDE:Engine/Animation/Persona#Intro]
+		
+	[/PARAM]
+[/OBJECT]
+
+
+
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![](SkeletonImage.png)(w:192)](Engine/Content\Types\SkeletalMeshes)
+	[/PARAM]
+	[PARAM:title]
+		[스켈레톤](Engine/Content\Types\SkeletalMeshes)
+	[/PARAM]
+	[PARAM:description]
+		**Skeleton** (스켈레톤) 이란 계층으로 나타낸 본의 위치와 회전값으로, 스켈레탈 메시의 변형(deform)에 사용됩니다. UE4 에서의 스켈레톤은 스켈레탈 메시에서 별도의 애셋으로 추출해 내었습니다. 즉 애니메이션은 스켈레탈 메시가 아니라 스켈레톤에 저장된다는 뜻입니다. 같은 스켈레톤을 사용하면 다수의 스켈레탈 메시에 애니메이션을 공유할 수 있습니다.
+		
+		
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![Animation Sequence](Engine/Animation/Sequences/HuskRun2.gif)(w:192 convert:false)](Engine/Animation/Sequences)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Animation/Sequences)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/Sequences#Intro]
+		
+
+		
+		**애디티브 애니메이션**
+		
+		애니메이션은 언제고 절대식(absolute)으로도 더하기식(additive)으로도 사용 가능합니다. 데이터를 변환시킬 때 필요한 오프셋 
+		계산은 시스템에서 알아서 해 줍니다. 이 애니메이션은 애디티브로 해 줘야 겠다 미리사 지정할 필요가 없으니
+		예전 버전 엔진보다 시스템이 훨씬 유연해 졌습니다.
+		
+		**애니메이션 블렌딩**
+		
+		[](Engine/Animation/NodeReference/Blend) 와 [](Engine/Animation/Blendspaces) 의 사용을 통해 애니메이션을 블렌딩하여 좀 더 복잡한 
+		최종 포즈를 만들 수 있습니다. 예를 들어 달리기 애니메이션을 조준 포즈나 표정 애니메이션과 블렌딩하여 
+		달리면서 동시에 조준하거나 대화하는 플레이어 애니메이션 결과물을 만들어낼 수 있습니다.
+		소스 애니메이션을 별도로 유지하면서요. 이런 식으로 여러 상황에서 하나의 소스 애니메이션을 재사용할 수 
+		있습니다.
+
+		**애니메이션 포즈**
+
+		**애니메이션 포즈** 는 본질적으로 스켈레톤을, 그 그 본 전부의 위치와 방향을 포함하여 찍어놓은 스냅샷입니다. 
+		포즈(pose)란 애니메이션을 일시정지시켰을 때 보이는 것을 떠올리면 됩니다. 예를 들어 달리기 애니메이션을 
+		중간쯤에서 일시정지시켜 보면 이렇게 보일 것입니다:
+
+		![](AnimationPose_Running.png)(w:600)
+
+		마치 메시가 그 아래 놓인 스켈레톤을 통해 **포즈** 를 잡은 것처럼 보입니다. 실제 _애니메이션 포즈_ 를 
+		구성하는 데이터는 _스켈레톤_ 내 모든 본의 트랜스폼 정보입니다.
+
+		어떤 _애니메이션 시퀀스_ 는 순전히 포즈로만 사용되도록 디자인됩니다. 예를 들어 단순히 하나의 포즈를 
+		정의하는 한 두 프레임짜리 짧은 애니메이션 시리즈를 만들 수도 있습니다. 아래 포즈는 이러한 애니메이션 
+		시퀀스 유형의 것인데, 플레이어가 보고있는 곳을 메시의 무기로 조준하도록 만든 것입니다.
+
+		![](AnimationPose_Aiming.png)(w:600)
+
+		애니메이션 시스템은 _애님 그래프_ (AnimGraph) 안에서 이러한 애니메이션 포즈 개념을 사용합니다. _애니메이션 시퀀스_, 
+		_블렌드스페이스_, 단순 블렌드 노드에서의 데이터 결과물이 _스켈레탈 메시_ 에 적용할 애니메이션 포즈, 
+		또는 해당 시점까지의 애니메이션 스냅샷입니다.
+
+		**컴포넌트 vs 로컬 스페이스**
+
+		[INCLUDE:Engine/Animation/NodeReference/SpaceConversion#intro]
+
+		**모프 타겟**
+
+		[INCLUDE:Engine/Content\FBX\MorphTargets#Intro]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![Animation Sequence](Engine/Animation/Sequences/HuskRun2.gif)(w:192 convert:false)](Engine/Animation/Sequences)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Animation/Sequences/Notifies)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/Sequences/Notifies#Intro]
+	[/PARAM]
+[/OBJECT]
+
+
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![Vim Blueprint](Engine/Animation/AnimBlueprints/EventGraph/eventgraph_thumb.png)(w:192)](Engine/Animation/AnimBlueprints)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Animation/AnimBlueprints)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/AnimBlueprints#Intro]
+
+		
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![Blendspace](Engine/Animation/Blendspaces/edit.png)(w:192)](Engine/Animation/Blendspaces)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Animation/Blendspaces)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/Blendspaces#Intro]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![](MontageIcon.png)(w:192)](Engine/Animation/AnimMontage)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Animation/AnimMontage)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/AnimMontage#Intro]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![SkelControl](Engine/Animation/NodeReference/SkeletalControls/skelcontrol.png)(w:192)](Engine/Animation/NodeReference/SkeletalControls)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Animation/NodeReference/SkeletalControls)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#Intro]
+	[/PARAM]
+[/OBJECT]
+
+
+<!--
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![](StateMachines.png)(w:192)](Engine/Animation/StateMachines)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Animation/StateMachines)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/StateMachines#Intro]
+	[/PARAM]
+[/OBJECT]
+-->
+
+
+## 시스템 분해도
+
+다음은 애니메이션 시스템의 특정 부분이 어디서 생성되고 편집되는가에 대한 단순 분해도입니다.
+
+[REGION:raw]
+![](CreationDiagram.png)
+[/REGION] 
+
+이 도표는 언리얼에서의 전형적인 애니메이션 캐릭터에 대한 데이터 흐름과 소유를 나타냅니다.
+
+[REGION:raw]
+![](AnimationDiagram.png)
+[/REGION] 
+## 애니메이션 콘텐츠 예제
+
+애니메이션 시스템의 실제 적용 및 기능이 [애니메이션 콘텐츠 예제](Resources\ContentExamples\Animation) 페이지에 표시됩니다.
+
+여기서는 각 기능에 대해 적당한 크기로 따라할 수 있는 예제와 함께 부가 설명도 확인해 볼 수 있습니다.
+
+콘텐츠 예제 및 그 사용법 관련 상세 정보는 [](Resources\ContentExamples) 문서를 참고하세요.
+
+
+## 애니메이션 디버그 기능
+
+디버그 기능은 플레이 모드시 ` 키를 눌러 콘솔을 띄워 접할 수 있습니다.
+
+### 스켈레탈 메시 본 렌더링
+
+![](ShowDebugBones.png)(h:320)
+
+**스켈레탈 메시 본** 을 표시하려면, 콘솔에 `ShowDebug Bones` 명령을 입력합니다. 위 그림에서 보듯이 본은 개별적인 흰 선으로 나타납니다.
+
+콘솔에 `ShowDebugToggleSubCategory 3DBones` 를 입력하면 **페르소나** 에 표시되는 본과 일치하는 다른 모양을 켤 수 있습니다.
+
+### 애니메이션 디버그 출력
+
+![](ShowDebugAnimation.png)
+
+**애니메이션 디버그 출력** 정보는 `ShowDebug Animation` 콘솔 명령으로 켤 수 있습니다.
+
+표시되는 정보는 다섯 부분으로 나뉘어 있으며, 그 각각은 `ShowDebugToggleSubCategory` 명령에 아래의 카테고리 이름을 붙여 토글시킬 수 있습니다 (예: `ShowDebugToggleSubCategory SyncGroups`). 
+
+| 버튼 | 설명 |
+|-------|------|
+| **SyncGroups** | 현재 최종 포즈에 공헌하고 있는 애니메이션 애셋 싱크 그룹별로 (그룹에 속해있지 않으면 Ungrouped 로) 체계 정리하여 보여줍니다. 기본적으로 이 섹션에 표시된 블렌드 스페이스는 모든 공헌 애니메이션/웨이트를 표시합니다. `ShowDebugToggleSubCategory FullBlendspaceDisplay` 명령으로 이 칸을 토글시켜 출력이 차지하는 화면 공간을 줄일 수 있습니다. |
+| **Montages** | 현재 캐릭터에 사용중인 몽타주를 나열합니다. 활성 몽타주는 초록으로 강조됩니다. |
+| **Curves** | 애니메이션 재생으로 활성화된 커브 값을 (이름 : 값 짝으로) 나열합니다. |
+| **Notifies** | 현재 발효중인 노티파이 스테이트를 표시합니다. |
+| **Graph** | 활성 포즈 그래프를 표시합니다. 최종 포즈를 나타내는 마지막 (루트) 노드로 시작해서 그 최종 포즈를 이루는 모든 노드가 나열됩니다. 노드는 계층구조가 유지되는 방식으로 표현되어, 사용자는 원본 블루프린트 애셋을 확인할 필요 없이 어떤 노드가 연결되었는지 확인할 수 있습니다. 활성 노드는 (`ShowDebugToggleSubCategory FullGraph` 명령으로 표시되도록 토글된 경우) 초록색, 비활성 노드는 회색으로 표시됩니다. |

@@ -1,0 +1,23 @@
+﻿INTSourceChangelist:2418825
+Availability:Public
+Title:OnHit Eventの使用法
+Crumbs: %ROOT%, Gameplay
+Description:ブループリントまたはコードでOnHit Event を使用するための操作ガイド 
+
+
+## 概要
+
+プレイヤー、敵、またはオブジェクトに対し何かしらのダメージを与えるゲームを作成中であれば、何かでヒットされるのか、その場合実際何でヒットするのか、その場合の衝撃点、またはヒット検知に関するその他の情報の判断が必要になるかもしれません。**Event Hit** Event はコリジョン発生時にこれらの情報を提供します。データを使用してヘルスに及ぼす影響、オブジェクトの破壊、または別のゲームプレイに関連するアクションなどゲーム進行の変更を操作します。 
+
+
+## 設定
+
+ブループリントで **OnHit Event** を使用する方法については、以下のリンクを参照してください。
+
+[REGION:buttonlist]
+* [](Gameplay\HowTo\UseOnHit\Blueprints)
+[/REGION]
+
+
+
+

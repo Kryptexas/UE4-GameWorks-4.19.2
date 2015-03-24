@@ -1,0 +1,83 @@
+Availability:Public
+Title:Creating Cubemaps
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
+Description:The process for assembling cubemaps in Photoshop.
+
+## Overview
+
+%Description%
+
+## Creating Cubemaps
+
+To create a cubemap, all you need is a series of six images that represent the view down the positive and negative directions of the X, Y, and Z coordinates. However, these images will need to be properly assembled and there are some things to consider to make that happen.
+
+When using the NVIDIA Texture Tools plug-in for Photoshop [**(32bits/Channel, 8.8.8.8 ARGB 32 bpp, unsigned)**](Engine/Content/Types/Textures\Cubemaps\CubemapTools), you will need to arrange your six images in a very particular fashion to generate a cubemap. The plug-in looks for all six images to be in the same document, side-by-side, and arranged like so:
+
+**Positive X-Axis, Negative X-Axis, Positive Y-Axis, Negative Y-Axis, Positive Z-Axis, Negative Z-Axis**
+
+[![CubeMapNvidiaLayout.png](CubeMapNvidiaLayout.png)(w:600)](CubeMapNvidiaLayout.png)
+
+Once exported from Photoshop and imported into Unreal, the editor composites them into a nice cubemap. However, you will notice that in this example some of the images have very interesting rotation applied. This is because of the way the NVIDIA plug-in assembles the cubemap from each image.
+
+When imported as a cubemap and laid out flat in Unreal's Texture Editor window, the result looks something like this:
+
+[![CubeMapNvidiaLayout_cubemapped.png](CubeMapNvidiaLayout_cubemapped.png)(w:600)](CubeMapNvidiaLayout_cubemapped.png)
+
+It is the special rotation applied to some of the images that allows the sizes of the cube to remain right-side-up.
+
+The quick-and-dirty way to look at this rotation scheme is as follows:
+
+| Axis | Rotation |
+| ---|---|
+| **Positive X** | Rotated 90 degrees CCW |
+| **Negative X** | Rotated 90 degrees CW |
+| **Positive Y** | Rotated 180 degrees |
+| **Negative Y** | No Rotation |
+| **Positive Z** | The side that must align with positive Y should be at the top |
+| **Negative Z** | The side that must align with positive Y should be at the top |
+
+## Visualizing Cubemap Image Rotation
+
+It is not always easy to see how to lay out the images of a cubemap when it is first being created. This method can help you see how to properly lay out the images for use with NVIDIA's Texture Tools plug-in for Photoshop.
+
+Probably the easiest way to visualize the rotation of images for a cubemap is to imagine yourself lying in the ground staring up with your body aligned to the Cartesian axes. This means you would be looking in the positive Z-Axis direction (up), with the X-Axis pointing to your right, and the Y-Axis pointing upward from the top of your head, like this:
+
+![CubeMapOrientation.png](CubeMapOrientation.png)(w:360)
+
+But to see how this orientation plays into the layout of a cubemap, let us consider these six images that represent a view in six directions.
+
+![Cubemap_PositiveX.png](Cubemap_PositiveX.png)(w:115) ![Cubemap_NegativeX.png](Cubemap_NegativeX.png)(w:115) ![Cubemap_PositiveY.png](Cubemap_PositiveY.png)(w:115) ![Cubemap_NegativeY.png](Cubemap_NegativeY.png)(w:115) ![Cubemap_PositiveZ.png](Cubemap_PositiveZ.png)(w:115) ![Cubemap_NegativeZ.png](Cubemap_NegativeZ.png)(w:115) 
+
+Currently, all of these images are rotated straight up and down. Some will need to be rotated in order to line up properly. So let us go back to the example where we can imagine ourselves lying down as above.
+Now, imagine turning your head to your right. This would mean you would be looking down the X-Axis. However, because you are still lying on your back, the view would appear rotated 90 degrees counterclockwise relative to your head, like so:
+
+![Cubemap_PositiveX_Vis.png](Cubemap_PositiveX_Vis.png)
+
+If you then rotated your head back to the left, you would see this for X-Axis negative:
+
+![Cubemap_NegativeX_Vis.png](Cubemap_NegativeX_Vis.png)
+
+To look at the positive Y-Axis image, you would have to rotate your head back. This would cause the view to appear upside-down, like so:
+
+![Cubemap_PositiveY_Vis.png](Cubemap_PositiveY_Vis.png)
+
+To see the negative Y-Axis image, you could look downward toward your feet, and you would see this:
+
+![Cubemap_NegativeY_Vis.png](Cubemap_NegativeY_Vis.png)
+
+The positive Z-Axis image is fairly easy to visualize, since you were staring up at it when we started:
+
+![Cubemap_PositiveZ_Vis.png](Cubemap_PositiveZ_Vis.png)
+
+To view the negative Z-Axis image, you would have to roll yourself over onto your stomach and stare straight down at the floor, so you would see this:
+
+![Cubemap_NegativeZ_Vis.png](Cubemap_NegativeZ_Vis.png)
+
+Once you had all of those images created and rotated accordingly, you then need to line them up in a single file in the following order:
+
+**X+, X-, Y+, Y-, Z+, Z-**
+
+And so you would have an image that looked something like this:
+
+![Uffizi_Cubemapped.png](Uffizi_Cubemapped.png)(w:800)
+

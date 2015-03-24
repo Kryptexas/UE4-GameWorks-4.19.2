@@ -1,0 +1,55 @@
+Availability: Public
+Title:Redirectors
+Crumbs:%ROOT%, Engine, Engine/Basics
+Description:Objects that are placed in packages to redirect references to moved assets to their current locations.
+
+[TOC (start:2 end:3)]
+
+ 
+
+
+## Overview
+
+Moving or renaming an asset in UE4 leaves a 'Redirector' in its old location. This is so that packages that are not currently loaded, but reference this asset, will know where to find it in its new location. Choosing a naming system early on and sticking with it will avoid many of the problems experienced with redirectors.
+
+
+## FixupRedirects Commandlet
+
+Be sure to run the 'fixupredirects' commandlet on a regular basis. On previous projects, our Level Designers ran this commandlet on all packages every two weeks. It will clean up as much as it can (so it does not require that everyone check in every package). 
+
+
+## Gotchas
+
+
+### Renaming
+
+If you create an object, rename it, and then create a new object with the same name as the original, an error will occur. This is because a Redirector was created when the first object was renamed, and a Redirector and a resource cannot have the same name. To solve this, try the FixupRedirects commandlet.
+
+
+### Dangling Redirector
+
+There are a few known issues with Redirectors that can be reproduced as follows:
+
+**Scenario 1**
+
+* Rename object A to B.
+* Delete B.
+* An error message will say that B could not be deleted because it is in use. This happens because the Redirector created during the rename will still point to B.
+
+
+**Scenario 2**
+
+* Rename object A to B.
+* Rename object B back to A.
+* Delete A.
+* The redirector that was created for the first rename will be destroyed, but a new one will be created at B. As a result, A  will not be able to be deleted because it is being referenced.
+
+
+Running the FixupRedirects commandlet before deleting should solve these problems.
+
+ 
+
+
+
+
+

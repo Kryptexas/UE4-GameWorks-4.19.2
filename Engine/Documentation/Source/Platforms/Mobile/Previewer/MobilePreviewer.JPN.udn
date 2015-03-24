@@ -1,0 +1,9 @@
+﻿INTSourceChangelist:2075845
+Availability:Public
+Title:モバイル プレビュア
+Crumbs:%ROOT%, Platforms, Platforms/Mobile
+Description:モバイル プラットフォーム上でゲームをプレビューする
+Platform:Mobile
+
+現在のところ、インエディタでのプレビューはありません。[Enable Mobile Preview] オプションセットでスタンドアローンでゲームを起動する必要があります。 
+モバイル プレビュアは可能な限りデバイスがマッチするように意図されています。

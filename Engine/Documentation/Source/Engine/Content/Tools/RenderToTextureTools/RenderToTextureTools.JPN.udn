@@ -1,0 +1,41 @@
+﻿INTSourceChangelist:2330086
+Availability:Public
+Title:Render To Texture ブループリント ツールセット
+Crumbs:%ROOT%, Engine, Engine/Content
+Description:
+
+
+Texture ブループリントは、幾つかの異なるテクスチャ焼付け関数が組みこまれているツールです。**基本色** や **ワールド法線** などのビジュアル化のバッファを含む高解像度のスクリーンショットの保存が可能なエディタの機能を利用しています。
+
+このツールを使用するには、まずセットアップガイドを読んだ上で、Render to Texture ツールセットに含まれる関数を個別に見ていくことが望ましいです。
+
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	[Render to Texture ツールセットのセットアップはこちらから](Engine/Content/Tools/RenderToTextureTools/Setup "%Engine/Content/Tools/RenderToTextureTools:description%")
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/Content/Tools/RenderToTextureTools/Setup "%Engine/Content/Tools/RenderToTextureTools/Setup:description%")
+	[/PARAM]
+[/OBJECT]
+
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	[](Engine/Content/Tools/RenderToTextureTools "%Engine/Content/Tools/RenderToTextureTools:description%")
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/Content/Tools/RenderToTextureTools/1 "%Engine/Content/Tools/RenderToTextureTools/1:description%")
+	* [](Engine/Content/Tools/RenderToTextureTools/2 "%Engine/Content/Tools/RenderToTextureTools/2:description%")
+	* [](Engine/Content/Tools/RenderToTextureTools/3 "%Engine/Content/Tools/RenderToTextureTools/3:description%")
+	* [](Engine/Content/Tools/RenderToTextureTools/4 "%Engine/Content/Tools/RenderToTextureTools/4:description%")
+	* [](Engine/Content/Tools/RenderToTextureTools/5 "%Engine/Content/Tools/RenderToTextureTools/5:description%")
+	[/PARAM]
+[/OBJECT]
+

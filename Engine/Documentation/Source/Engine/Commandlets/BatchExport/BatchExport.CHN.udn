@@ -1,0 +1,79 @@
+Availability: Docs
+Title: BatchExport (批量导出)命令行开关
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+
+[TOC(start:2)]
+
+
+## 概述
+
+BatchExport 命令行开关用于将Unreal包文件中的资源导出为各种外部文件类型。
+
+
+
+## 操作
+
+要通过一个命令提示窗口运行这个命令行开关，请浏览到  _UnrealEngine3\Binaries_ 目录。
+
+
+### 语法
+
+语法如下所示：
+
+    [GameName].exe BatchExport <package.ext> <classname> <export_ext> [dest_path_name]
+    
+
+包中的每个资源都会被保存到 _dest_path_name_ 指定的路径中。每个资源保存到它自己的文件中，使用资源的名称作为文件名，使用 _export_ext_ 指定的扩展名作为文件扩展名。
+
+
+### 参数
+
+$ **package.ext**: 从中导出资源的包的名称。路径名称是可选的。
+$ **classname**: 要导出的对象的类，比如"Class", "Texture"等。
+$ **export_ext**: 导出文件的扩展名。这决定了导出资源所使用的工厂类型。有效值是： 
+    * 文本资源类型
+        * TXT - 导出所有特定包中的文本缓存。目前，文本缓存的唯一用途是把UnrealScript源文件存储到包文件中，并且当导出这种类型的文件时，最好使用.uc作为扩展名。
+        * UC - 导出指定包中的每个类的UrealScript脚本源文件。(如果已经使用StripSource命令行开关将源文件从包中删除，那么这个命令将无效。) 
+        * T3D - 导出指定包中格式为子对象定义(Begin Object/End Object代码块)的所有对象。有通用对象的导出器和几个专用对象导出器。根据您正在导出的资源类型的不同，使用其中一个特定的导出器或许是更加适合的。使用哪个导出器是由 _classname_ 的值决定的。默认情况下，为您指定的资源类型使用最专用的导出器。所以，即使您指定"Object"作为类，UModel对象将仍然使用模型导出器进行导出，而不是使用通用对象导出器。通过指定"Model"最为 _classname_ 的值，则只导出UModel对象。有效值是： 
+            * Poly - 用于导出指定包的多边形数据。
+            * Model -  用于导出指定包的模型数据。
+            * World - 用于导出地图包。
+            * Sequence - 用于导出Kismet序列。
+            * Terrain - 用于导出地形数据。
+        * STL - 把指定包的所有三角形数据导出为可以导入到3DMax中的格式的文件。
+        * OBJ - 把指定包中的所有多边形数据导出为可以导入到Lightwave中的格式。
+    * 音频资源类型
+        * WAV - 导出所有指定包中的声音为.wav格式。
+    * 图片资源类型
+        * PCX - 导出所有指定包中的贴图为.pcx格式。当 _export_ext_ 使用这个值时， _classname_ 必须是一个Texture2D类(或它的子类)。
+        * BMP - 导出所有指定包中的贴图为. bmp格式。当 _export_ext_ 使用这个值时， _classname_ 必须是一个Texture2D类(或它的子类)。
+        * TGA - 导出所有指定包中的贴图为.tga格式。当 _export_ext_ 使用这个值时， _classname_ 必须是一个Texture2D类(或它的子类)。
+$ **dest_path_name**: 保存输出文件的路径。如果目录不存在，则创建该目录。
+
+
+
+##示例
+
+
+* 以下命令将为Engine.u包中存储的每个组件生成一个单独的.T3D文件，并将该文件放到UnrealEngine3\ExportedObjects\Engine目录中：  
+   
+		gamename.exe batchexport Engine.u Component T3D ..\ExportedObjects\Engine
+
+* 以下命令将为ExampleSounds.upk 包中存储的每个节点资源单独的 .wav文件，并将该文件放到UnrealEngine3\ExportedSounds\目录中：  
+   
+		gamename.exe batchexport ExampleSounds.upk SoundNodeWave .WAV ..\ExportedObjects\ExportedSounds\
+
+* 以下命令把Core.u包中的所有类的所有UnrealScript源文件导出到UnrealEngine3\Development\Src\Core\Classes目录中。
+   
+		gamename.exe batchexport Core.u Class UC ..\Development\Src\Core\Classes\
+
+* 以下命令将为EditorResources.upk包中存储的每个贴图生成一个单独的.bmp文件，并将该文件放到C:\ExportedTextures\目录中：  
+   
+		gamename.exe batchexport EditorResources.upk Texture2D BMP C:\ExportedTextures\
+
+ 
+
+
+
+
+

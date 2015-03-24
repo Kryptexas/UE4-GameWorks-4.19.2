@@ -1,0 +1,100 @@
+Availability: Public
+Title:Skeletal Meshes
+Crumbs:%ROOT%, Engine, Engine/Content
+Description:Meshes bound to a hierarchical skeleton of bones which can be animated for the purpose of deforming the mesh.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Types/SkeletalMeshes:title%](Engine/Content/Types/SkeletalMeshes/skeletalmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/char_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/SkeletalMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/SkeletalMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/SkeletalMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Types/SkeletalMeshes:title%](Engine/Content/Types/SkeletalMeshes/skeletalmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/char_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/SkeletalMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/SkeletalMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/SkeletalMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![Skeletal Mesh](skelmesh_banner.png)
+[/REGION]
+
+Skeletal Meshes are built up of two parts; a set of polygons composed to make up the surface of the Skeletal Mesh, and a hierarchical set of interconnected bones which can be used to animate the polygons. 
+
+Skeletal Meshes are often used in Unreal Engine 4 to represent characters or other animating objects. The 3D models, rigging and animations are created in an external modeling and animation application (3DSMax, Maya, Softimage, etc), and are then imported into Unreal Engine 4 and saved into packages by using Unreal Editor's **Content Browser**.
+
+[REGION:topics half]
+	[OBJECT:Topic]
+		[PARAM:image]
+			![%Engine/Content/FBX/SkeletalMeshes:title%](Engine/Content/FBX/fbx_topic.png)
+		[/PARAM]
+		[PARAM:icon]
+			![](%ROOT%/fbx_icon.png)(convert:false)
+		[/PARAM]
+		[PARAM:title]
+			%Engine/Content/FBX/SkeletalMeshes:title%
+		[/PARAM]
+		[PARAM:description]
+			%Engine/Content/FBX/SkeletalMeshes:description%
+		[/PARAM]
+		[PARAM:path]
+			[RELATIVE:Engine/Content/FBX/SkeletalMeshes]
+		[/PARAM]
+	[/OBJECT]
+[/REGION]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Content Creation
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Types/SkeletalMeshes/Sockets "%Engine/Content/Types/SkeletalMeshes/Sockets:Description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/anim_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Extras
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [%Engine/Content/Tools/MayaRiggingTool:title%](Engine/Content/Tools/MayaRiggingTool "%Engine/Content/Tools/MayaRiggingTool:description%")
+	[/PARAM]
+[/OBJECT]

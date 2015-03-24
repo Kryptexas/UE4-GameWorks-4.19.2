@@ -1,0 +1,40 @@
+﻿INTSourceChangelist:2291853
+Title:9.追加のリソース
+Crumbs:%ROOT%, Platforms, Platforms/iOS, Platforms/iOS/QuickStart
+Description:アンリアル エンジンによる iOS 開発についての追加情報
+Availability:Public
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Platforms/iOS/QuickStart/8 "%Platforms/iOS/QuickStart/8:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Platforms/iOS/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+%Steps%
+
+互換性およびパフォーマンスに関する詳細です。
+* [](Platforms\iOS\DeviceCompatibility)
+* [](Platforms\DeviceProfiles)
+* [](Platforms\Mobile\Performance)
+
+モバイル デバイス用ゲームコンテンツおよびレベルのデザインに関する詳細です。
+* [](Platforms\Mobile\Content)
+* [](Platforms\Mobile\Lighting)
+* [](Platforms\Mobile\Materials)
+* [](Platforms\Mobile\PostProcessEffects)
+* [](Platforms\Mobile\Textures)
+
+[](Platforms\Mobile\Previewer) を使用すれば、デバイスにデプロイせずにご自分のモバイルゲームをプレビューすることもできます。
+
+
+%Steps%

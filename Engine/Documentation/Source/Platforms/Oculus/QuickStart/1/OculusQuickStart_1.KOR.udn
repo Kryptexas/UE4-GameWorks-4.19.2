@@ -1,0 +1,42 @@
+﻿INTSourceChangelist:2385999
+Title:1. 오큘러스 개발자 등록
+Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
+Description:오큘러스 개발자로 등록하여 필수 프로그램 및 문서 접근 권한을 획득합니다.
+Availability:Public
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵스타트 홈](Platforms/Oculus/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Platforms/Oculus/QuickStart/2 "%Platforms/Oculus/QuickStart/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+1. [오큘러스 개발자 센터](https://developer.oculus.com/) 를 방문하여 [다운로드](https://developer.oculus.com/downloads/) 를 클릭합니다. 
+
+	![](Oculus_Downloads.png)
+
+[오큘러스 개발자 센터](https://developer.oculus.com/) 에서 로그인 링크를 클릭하여 계정 생성 또는 기존 계정 접근도 가능합니다. 계정을 생성하면 
+포럼에 게시물 작성, 오큘러스 공유실에 게임 제출 등이 가능합니다.
+
+* 오큘러스 계정이 있는 경우, 이메일과 암호를 입력한 다음 **Log In** 버튼을 클릭합니다.
+
+	![](2-2-click-the-log-in-link.jpg)
+
+* 오큘러스 계정이 없는 경우, **Create a free account** 을 클릭합니다.
+	1. 페이지의 안내에 따라 등록 양식을 채웁니다.
+	1. 오큘러스에서 귀하의 이메일로 이메일 검증 및 등록 확인을 위한 링크를 보낼 것입니다.
+	1. [오큘러스 개발 센터](https://developer.oculus.com/) 로 돌아와서 **Log In** 링크를 클릭합니다.
+
+
+%Steps%

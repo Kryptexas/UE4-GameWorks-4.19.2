@@ -1,0 +1,222 @@
+﻿INTSourceChangelist:2385966
+Availability:Public
+Title:FBX 임포트 옵션 참고서
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:FBX 임포트 옵션 대화창에서 사용할 수 있는 옵션에 대한 설명입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/ImportOptions:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/ImportOptions:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/ImportOptions:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/ImportOptions]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC (start:2 end:3)]
+
+## 개요
+
+언리얼 엔진 4 에 FBX 파일을 임포트하는 작업은 상대적으로 간단한 절차이긴 하지만, 임포트되는 애셋의 미세조정을 위한 옵션이 몇 가지 있습니다. 이 문서에서는 그 옵션에 대해 다루겠습니다.
+
+콘텐츠 브라우저를 통해 FBX 파이프라인을 사용하여 콘텐츠를 임포트할 때, **FBX 임포트 옵션** 대화창이 나타납니다. 임포터는 임포트하려는 파일을 자동 감지하여 인터페이스를 알맞게 조절합니다.
+
+
+[EXCERPT:staticMeshes]
+## 스태틱 메시 옵션
+
+FBX 를 사용하여 스태틱 메시를 임포트할 때 사용할 수 있는 옵션은 다음과 같습니다.
+
+![](StaticMeshImportOptions.png)
+
+| 옵션 | 설명 |
+| ---- | ---- |
+| [REGION:tablesection]메시[/REGION] ||
+| **Import as Skeletal** | 스켈레탈로 임포트 - FBX 파일을 스켈레탈 메시로 임포트 시도합니다. 임포트 옵션이 FBX 파일을 스켈레탈 메시로 임포트 처리하는 것으로 전환됩니다. |
+| **Auto Generate Collision** | 콜리전 자동 생성 - 스태틱 메시에 대한 콜리전을 자동 생성합니다. FBX 파일에 커스텀 콜리전이 감지되지 않으면 사용되지 않습니다. |
+| **Static Mesh LOD Group** | 스태틱 메시 LOD 그룹 - 이 드롭다운으로 메시를 할당시킬 LOD 그룹을 선택할 수 있습니다. 메시 LOD 그룹은 기본 레벨-오브-디테일 세팅, 라이트맵 해상도를 정의하며, (모든 _SmallProp_ LOD 들을 10% 줄인다든가 하는) 글로벌 오버라이드가 가능합니다. 메시 LOD 그룹 세팅은 플랫폼 / 디바이스 프로파일 별로 덮어쓸 수 있습니다. LOD 그룹 선택은 임포트할 때 할 수 있으며, 언제든지 스태틱 메시 에디터에서 바꿀 수 있습니다. | 
+| **Replace Vertex Colors** | 버텍스 컬러 대체 - 켜면 기존 메시의 버텍스 컬러는 FBX 파일의 것으로 대체됩니다. 끄면 에디터 안에서 [메시 페인트](Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor) 툴로 칠한 버텍스 컬러를 유지합니다. |
+| **Remove Degenerates** | 디제너레이트 제거 - 켜면 임포트 도중 퇴화된 트라이앵글을 찾으면 제거합니다. 이 옵션을 끄면 퇴화된 트라이앵글을 찾아도 유지시킵니다. 일반적으로는 이 옵션을 켜는 것이 좋습니다. |
+| **Generate Lightmap UVs** | 라이트맵 UV 생성 - 켜면, 임포터는 스태틱 라이팅에 사용할 겹치지 않는 고유 UV 세트를 생성합니다. |
+| **One Convex Hull per UCX** | UCX 별 하나의 컨벡스 헐 - 이 옵션은 모든 UCX 메시에 컨벡스 헐을 하나씩 받도록 합니다. 끄면 엔진이 하나의 UCX 메시를 컨벡스 헐 시리즈로 분해하여 적합한 모양을 냅니다. |
+| **Import Mesh LODs** | 메시 LOD 임포트 - [INCLUDE:#FBX_LODs] |
+| **Normals** | 노멀 - [INCLUDE:#NormalsImport] [INCLUDE:#NormalsDesc] |
+| **Combine Meshes** | 메시 합침 - 켜면 FBX 씬에 포함된 모든 스태틱 메시는 하나의 스태틱 메시로 합쳐집니다. | 
+| [REGION:tablesection]머티리얼[/REGION] ||
+| **Import Materials** | 머티리얼 임포트 - [INCLUDE:#FBX_ImportMaterials] |
+| **Import Textures** | 텍스처 임포트 - 켜면 FBX 파일에 레퍼런스된 텍스처는 언리얼로 임포트됩니다. **Import Materials** 가 _True_ 인 경우, 텍스처는 이 세팅과 무관하게 항상 임포트됩니다. |
+| **Invert Normal Maps** | 노멀 맵 반전 - 켜고서 텍스처를 임포트한다면, 노멀 맵 값이 반전됩니다. |
+| [REGION:tablesection]기타[/REGION] ||
+| **Override FullName** | 전체이름 덮어쓰기 - 켜고서 FBX 파일에 메시가 하나 뿐이라면, 임포트 경로 필드에 지정된 이름이 임포트되는 메시의 전체 이름으로 사용됩니다. 끄면 [작명 규칙](#NamingConventions) 이 사용됩니다. |
+| **Convert Scene** | 씬 변환 - 켜면, 씬의 FBX 씬 좌표계를 언리얼 엔진 4 좌표계로 변환합니다. |
+
+[/EXCERPT:staticMeshes]
+
+## 스켈레탈 메시 옵션
+
+FBX 를 사용하여 스켈레탈 메시를 임포트할 때 사용할 수 있는 옵션은 다음과 같습니다.
+
+![](SkeletalMeshFBXOptions.png)
+
+
+| 옵션 | 설명 |
+| ---- | ---- |
+| [REGION:tablesection]메시[/REGION] ||
+| **Import Mesh** | 메시 임포트 - 스켈레탈 메시의 경우, 이 옵션을 끄면 임포터가 FBX 파일을 애니메이션으로 임포트 시도합니다. |
+| **Import as Skeletal** | 스켈레탈로 임포트 - 스켈레탈 메시의 경우, 이 옵션을 끄면 임포터가 FBX 파일을 스태틱 메시로 임포트 시도합니다. |
+| **Skeleton** | 스켈레톤 - 스켈레탈 메시가 타겟으로 삼을 [스켈레톤](Engine/Animation/Overview#Skeleton) 입니다. 기존 스켈레톤이 선택되지 않은 경우, 임포트하려는 스켈레탈 메시에서 새로 만듭니다. 새 스켈레톤의 이름은 스켈레탈 메시 이름에 _Skeleton_ 을 덧붙인 것이 됩니다. |
+| **Update Skeleton Reference Pose** | 스켈레톤 레퍼런스 포즈 업데이트 - 켜면 임포트하려는 스켈레탈 메시/애니메이션의 스켈레톤 애셋의 레퍼런스 포즈를 임포트하려는 FBX 파일의 레퍼런스 포즈로 업데이트합니다. |
+| **Use T0As Ref Pose** | T0As Ref Pose 사용 - 켜면 애니메이션의 첫 (0 번) 프레임을 사용하여 스켈레탈 메시의 레퍼런스 포즈를 대체합니다. |
+| **Preserve Smoothing Group** | 스무딩 그룹 보존 - 켜면 스무딩 그룹이 일치하지 않는 트라이앵글은 물리적으로 분할되어 공유 버텍스를 복제합니다. |
+| **Import Meshes in Bone Hierarchy** | 본 계층구조의 메시 임포트 - 켜면 본 계층구조에 중첩된 메시를 본으로 변환하는 대신 임포트합니다. |
+| **Import Morph Targets** | 모프 타겟 임포트 - 켜면 FBX 파일에서 스켈레탈 메시와 함께 [모프 타겟](Engine/Content/FBX/MorphTargets) 을 임포트합니다. |
+| **Import Mesh LODs** | 메시 LOD 임포트 - 켜면, 파일에 정의된 LOD 에서 언리얼 메시에 대한 LOD 모델을 생성합니다. 켜지 않으면, LOD 그룹에 대한 베이스 메시만 임포트됩니다. 스켈레탈 메시의 경우, LOD 모델은 같은 스켈레톤 또는 다른 스켈레톤에도 스키닝 가능합니다. LOD 모델이 다른 스켈레톤에 스키닝된 경우, 언리얼 LOD 요건을 갖춰야 하나, FBX 임포터가 루트 본 이름을 자동으로 변경하므로 루트 본 이름은 달라도 됩니다. |
+| **Normal Import Method** | 노멀 임포트 방법 - 노멀 처리 방식에 대한 제어가 가능합니다. 옵션은 다음과 같습니다: [INCLUDE:#NormalsDesc] |
+| **Create PhysicsAsset** | 피직스 애셋 생성 - 켜면 임포트된 스켈레탈 메시에 대해 _피직스 애셋_ 을 새로 생성합니다. 이 _피직스 애셋_ 은 거의 구체로 구성되며 (루트는 예외로, 캡슐/스필 오브젝트), 컨스트레인트는 모든 회전축에 대해 완전히 자유롭고 위치축은 완전히 고정되어 있습니다. |
+| **Select PhysicsAsset** | 피직스 애셋 선택 - **피직스 애셋 생성** 옵션이 꺼지면 이미 존재하는 _피직스 애셋_ 을 선택하거나 그냥 **없음** 을 선택하여 스켈레탈 메시에 _피직스 애셋_ 을 지정하지 않을 수 있습니다. |
+| [REGION:tablesection]애니메이션[/REGION] ||
+| **Import Animation** | 애니메이션 임포트 - 켜면 FBX 파일에서 스켈레탈 메시와 함께 [애니메이션](Engine/Content/FBX/Animations) 을 임포트합니다. 글상자에 애니메이션 이름을 입력하여 기본 이름을 덮어쓸 수 있습니다. |
+| **Animation Length** | 애니메이션 길이 - [INCLUDE:#animlength] |
+| **Start Frame** | 시작 프레임 - **Animation Length** 의 _Set Range_ 가 사용되면, 임포트하려는 애니메이션의 시작 프레임을 설정할 수 있습니다. |
+| **End Frame** | 끝 프레임 - **Animation Length** 의 _Set Range_ 가 사용되면, 임포트하려는 애니메이션의 끝 프레임을 설정할 수 있습니다. |
+| **Import Custom Attribute** | 커스텀 특성 임포트 - 커스텀 특성을 애니메이션 커브로 임포트합니다. |
+| **Animation Name** | 애니메이션 이름 - 애니메이션에 할당할 이름입니다. 여기에 아무것도 입력하지 않으면, [작명 규칙](#작명규칙) 이 사용됩니다. |
+| **Use Default Sample Rate** | 기본 샘플링 속도 사용 - _true_ 면 기본 초당 30 프레임 속도로 애니메이션을 샘플링합니다. 체크하지 않으면, 시스템은 FBX 파일에서 샘플링 속도를 결정합니다. |
+| [REGION:tablesection]머티리얼[/REGION] ||
+| **Import Materials** | 머티리얼 임포트 - [INCLUDE:#FBX_ImportMaterials] |
+| **Import Textures** | 텍스처 임포트 - 켜면 FBX 파일에 레퍼런스된 텍스처는 언리얼로 임포트됩니다. **Import Materials** 가 _True_ 인 경우, 텍스처는 이 세팅과 무관하게 항상 임포트됩니다. |
+| **Invert Normal Maps** | 노멀 맵 반전 - 켜고서 텍스처를 임포트한다면, 노멀 맵 값이 반전됩니다. |
+| [REGION:tablesection]기타[/REGION] ||
+| **Override FullName** | 전체이름 덮어쓰기 - 켜고서 FBX 파일에 메시가 하나 뿐이라면, 임포트 경로 필드에 지정된 이름이 임포트되는 메시의 전체 이름으로 사용됩니다. 끄면 [작명 규칙](#작명규칙) 이 사용됩니다. |
+| **Convert Scene** | 씬 변환 - 켜면, 씬의 FBX 씬 좌표계를 언리얼 엔진 4 좌표계로 변환합니다. |
+
+## 애니메이션 옵션
+
+FBX 를 사용하여 애니메이션을 임포트할 때 사용할 수 있는 옵션은 다음과 같습니다.
+
+![](AnimationImportOptions.png)
+
+
+| 옵션 | 설명 |
+| ---- | ---- |
+| [REGION:tablesection]메시[/REGION] ||
+| **Skeleton**  | 스켈레톤 - 스켈레탈 메시가 타겟으로 삼을 [스켈레톤](Engine/Animation/Overview#Skeleton) 입니다. 기존 스켈레톤이 선택되지 않은 경우, 임포트중인 스켈레탈 메시에서 하나 새로 만듭니다. 새로운 스켈레톤의 이름은 스켈레탈 메시의 이름에 _Skeleton_ 을 덧붙인 것이 됩니다. |
+| [REGION:tablesection]애니메이션[/REGION] ||
+| **Animation Length** | 애니메이션 길이 - [INCLUDE:#animlength] |
+| **Start Frame** | 시작 프레임 - **Animation Length** 에 _Set Range_ 가 사용되면, 이 옵션을 통해 임포트하고자 하는 애니메이션의 시작 프레임을 설정할 수 있습니다. |
+| **End Frame** | 끝 프레임 - **Animation Length** 에 _Set Range_ 가 사용되면, 이 옵션을 통해 임ㄹ포트하고자 하는 애니메이션의 끝 프레임을 설정할 수 있습니다. |
+| **Import Custom Attribute** | 커스텀 특성 임포트 - 커스텀 특성을 애니메이션 커브로 임포트합니다. |
+| **Animation Name** | 애니메이션 이름 - 애니메이션에 할당항 이름입니다. 여기에 아무것도 입력하지 않으면, [작명 규칙](#작명규칙) 이 사용됩니다. |
+| **Use Default Sample Rate** | 기본 샘플링 속도 사용 - _True_ 면 애니메이션에 기본 샘플링 속도인 초당 30 프레임을 사용합니다. 체크하지 않으면 시스템은 FBX 파일에서 샘플링 속도를 결정합니다. |
+| [REGION:tablesection]기타[/REGION] ||
+| **Override FullName** | 전체이름 덮어쓰기 - 켜고서 FBX 파일에 메시가 하나 뿐이라면, 임포트 경로 필드에 지정된 이름이 임포트되는 메시의 전체 이름으로 사용됩니다. 끄면 [작명 규칙](#작명규칙) 이 사용됩니다. |
+| **Convert Scene** | 씬 변환 - 켜면, 씬의 FBX 씬 좌표계를 언리얼 엔진 4 좌표계로 변환합니다. |
+
+
+(#NamingConventions)
+## 작명 규칙
+
+**Override FullName** 옵션이 켜졌을 때 여러가지 콘텐츠 유형의 이름을 짓는 방식은 아래 표와 같습니다.
+
+[REGION:note]
+이 표에서 가정하는 내용은 이렇습니다:
+* **%1** - 임포트중인 애셋 이름, 즉 **Import Path** 의 마지막 부분입니다.
+* **%2** - FBX 파일의 메시 노드 이름입니다. 스켈레탈 메시의 경우 여러 FBX 메시로 이루어지며, 첫 FBX 메시 이름이 FBX 노드 이름 일부로 사용됩니다.
+[/REGION]
+
+| 콘텐츠 유형 | 작명 규칙 |
+| ------------ | ------------ |
+|  **StaticMesh**  | [INCLUDE:#StaticMeshNaming] |
+|  **SkeletalMesh**  | [INCLUDE:#SkeletalMeshNaming] |
+|  **AnimationSequence**  | [INCLUDE:#AnimationNaming] |
+|  **MorphTarget**  | [INCLUDE:#MorphTargetNaming] |
+
+
+
+<!--
+[EXCERPT:StaticMeshNaming]
+**Override FullName** 옵션이:
+* **Enabled** 인 경우
+	* 파일에 메시가 하나면 - 이름은 _%1_
+	* 파일에 메시가 여럿이고 **Combine Meshes** 옵션이:
+		* **Enabled** 이면 - 이름은 _%1_
+		* **Disabled** 이면 - 이름은 _%1\_%2_
+* **Disabled** 인 경우
+	* 파일에 메시가 하나면 - 이름은 _%1\_%2_
+	* 파일에 메시가 여럿이고 **Combine Meshes** 옵션이:
+		* **Enabled** 이면 - 이름은 _%1_
+		* **Disabled** 이면 - 이름은 _%1\_%2_
+[/EXCERPT:StaticMeshNaming]
+
+[EXCERPT:SkeletalMeshNaming]
+**Override FullName** 옵션이:
+* **Enabled** 인 경우
+	* 메시에 파일이 하나면 - 이름은 _%1_
+	* 메시에 파일이 여럿이면 - 이름은 _%1\_%2_
+* **Disabled** 인 경우 - 이름은 _%1\_%2_
+[/EXCERPT:SkeletalMeshNaming]
+
+[EXCERPT:AnimationNaming]
+스켈레탈 메시와 애니메이션을 같이 임포트하는 경우:
+* 애니메이션 이름이 입력된 경우 (여기서는 %1 이라 간주):
+	* 파일에 시퀀스가 하나면 - 이름은 _%1_
+	* 파일에 시퀀스가 여럿이면 - 이름은 _%1\_%2_
+* 입력된 이름이 없으면 - 이름은 _%1\_%2_
+
+
+애니메이션만 임포트하는 경우:
+* 파일에 시퀀스가 하나면 - 이름은 _%1_
+* 파일에 시퀀스가 여럿이면 - 이름은 _%1\_%2_
+[/EXCERPT:AnimationNaming]
+
+[EXCERPT:MorphTargetNaming]
+FBX 파일에 있는 MorphTarget 노드 이름을 사용합니다.
+[/EXCERPT:MorphTargetNaming]
+
+
+[EXCERPT:NormalsImport]
+이 임포트 옵션은 노멀 처리 방식을 조절합니다. 옵션은 다음과 같습니다:
+[/EXCERPT:NormalsImport]
+
+[EXCERPT:NormalsDesc]
+[REGION:simpletable]
+	| **옵션** | **설명** |
+	| ---- | ---- |
+	| **Calculate Normals** | 노멀 계산 - 엔진에서 노멀과 탄젠트를 계산합니다. 그무딩 그룹과 노멀 정보는 FBX 정보에서 버립니다. |
+	| **Import Normals** | 노멀 임포트 - FBX 파일에서 노멀을 임포트하며, 탄젠트는 엔진에서 계산합니다. |
+	| **Import Normals and Tangents** | 노멀과 탄젠트 임포트 - 노멀과 탄젠트를 FBX 파일에서 임포트하며, 엔진에서는 아무것도 계산하지 않습니다. |
+[/REGION]
+[/EXCERPT:NormalsDesc]
+
+
+[EXCERPT:FBX_ImportMaterials]
+[REGION:raw]
+FBX 파일에서 찾은 머티리얼 각각에 대해 언리얼에서 머티리얼을 생성합니다. 그 이상에 대해서, FBX 머티리얼에 레퍼런싱된 텍스처는 자동으로 임포트되며, 그에 상응하는 프로퍼티가 존재하는 경우 해당 프로퍼티에 연결됩니다. 지원되지 않는 것들은 떠다니는 상태로 남아있어, 언리얼 머티리얼 에디터에서 연결할 수 있습니다.
+[/REGION]
+[/EXCERPT:FBX_ImportMaterials]
+
+[EXCERPT:FBX_LODs]
+파일에 정의된 LOD 로부터 언리얼 메시에 대한 LOD 모델을 생성합니다. 아니면, LOD 그룹으로부터의 베이스 메시만 임포트합니다. 스켈레탈 메시의 경우, LOD 모델은 같은 스켈레톤 또는 다른 스켈레톤에도 스키닝 가능합니다. LOD 모델이 다른 스켈레톤에 스키닝된 경우, 언리얼 LOD 요건을 갖춰야 하며, FBX 임포터가 루트 본 이름은 자동 변경하기에 루트 본 이름은 달라도 됩니다.
+[/EXCERPT:FBX_LODs]
+
+[EXCERPT:AnimLength]
+[REGION:simpletable]
+	| **옵션** | **설명** |
+	| ---- | ---- |
+	| **Exported Time** | 익스포트된 시간 - 익스포트 시점에 정의된 내용에 따라 애니메이션 프레임을 임포트하는 옵션입니다. |
+	| **Animated Time** | 애니메이션 시간 - 애니메이션이 있는 프레임 범위를 임포트합니다. 익스포트된 범위가 FBX 파일의 실제 애니메이션보다 길면 유용할 수 있습니다. |
+	| **Set Range** | 범위 설정 - 임포트할 애니메이션 프레임을 정의할 시작 프레임과 끝 프레임 프로퍼티를 설정할 수 있습니다. |
+[/REGION]
+[/EXCERPT:AnimLength]
+-->

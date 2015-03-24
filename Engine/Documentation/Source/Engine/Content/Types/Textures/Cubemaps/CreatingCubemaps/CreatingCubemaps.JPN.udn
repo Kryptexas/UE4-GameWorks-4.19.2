@@ -1,0 +1,84 @@
+﻿INTSourceChangelist:2276191
+Availability:Public
+Title:キューブマップを作成する
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
+Description:Photoshop でキューブマップをアセンブルするプロセス
+
+## 概要
+
+%Description%
+
+## キューブマップの作成
+
+キューブマップの作成に必要なのは、X、Y、Z 座標の正と負の方向のビューを表す 6 つの一連の画像です。これらの画像は適切にアセンブルする必要があり、そのために考慮する点がいくつかあります。
+
+「NVIDIA Texture Tools plug-in for Photoshop」 [32bitws/Channel, 8.8.8.8 ARGB 32bpp, unsigned](Engine/Content/Types/Textures\Cubemaps\CubemapTools)の使用時は、キューブマップを生成する特別な方法で 6 つの画像をアセンブルしなくてはいけません。プラグインは、画像を同一ドキュメントへ一列に配列するために 6 つの画像を検索し、以下の様にアセンブルします。
+
+**X 軸の正の方向、X 軸の負の方向、Y 軸の正の方向、Y 軸の負の方向、Z 軸の正の方向、Z 軸の負の方向 **
+
+[![CubeMapNvidiaLayout.png](CubeMapNvidiaLayout.png)(w:600)](CubeMapNvidiaLayout.png)
+
+Photoshopからエクスポートされてアンリアルへインポートされると、画像はエディタでキューブマップとして構成されます。例の中に、面白い回転が適用されている画像に注目してください。これは NVIDIA プラグインが、各画像をキューブマップへアセンブルする方法に起因します。
+
+キューブマップとしてインポートされ、アンリアルのテクスチャ エディタウィンドウに平らに配置されると、以下のような結果となります。
+
+[![CubeMapNvidiaLayout_cubemapped.png](CubeMapNvidiaLayout_cubemapped.png)(w:600)](CubeMapNvidiaLayout_cubemapped.png)
+
+いくつかの画像に特別な回転を適用することによって、キューブのサイズを回転させずに維持します。
+
+回転スキームを理解する応急措置は以下の通りです。
+
+| 軸 | 回転 |
+| ---|---|
+| **Positive X** | 左回りに90度回転 |
+| **Negative X** | 右周りに90度回転 |
+| **Positive Y** | 180度回転 |
+| **Negative Y** | 回転無し |
+| **Positive Z** | Yの正の方向と整列させなくてはいけない側面は上部 |
+| **Positive Z** | Yの正の方向と整列させなくてはいけない側面は上部 |
+
+## キューブマップ画像の回転を視覚化する
+
+初めて作成するキューブマップの画像の配置方法は必ずしも簡単ではありません。このメソッドは、「NVIDIA's Texture Tools plug-in for Photoshop」を使用して画像の適切な配置を手助けします。
+
+キューブマップの画像の回転を最も簡単に思い描く方法は、自分自身がデカルト軸と一直線になって地面に横たわる姿を想像してください。つまり、X 軸を右手に、Y 軸は頭上を指して、Z 軸の正の方向（上方）を向いています。
+
+![CubeMapOrientation.png](CubeMapOrientation.png)(w:360)
+
+この配置がキューブマップのレイアウトにどのように関わってくるか理解するために、6方向のビューを表す6つの画像を見ていきましょう。
+
+![Cubemap_PositiveX.png](Cubemap_PositiveX.png)(w:115) ![Cubemap_NegativeX.png](Cubemap_NegativeX.png)(w:115) ![Cubemap_PositiveY.png](Cubemap_PositiveY.png)(w:115) ![Cubemap_NegativeY.png](Cubemap_NegativeY.png)(w:115) ![Cubemap_PositiveZ.png](Cubemap_PositiveZ.png)(w:115) ![Cubemap_NegativeZ.png](Cubemap_NegativeZ.png)(w:115) 
+
+現時点で全ての画像は完全に垂直に回転されています。きちんと整列させるためにはいくつかの画像を回転する必要があります。ここで、上述の自分自身が地面に横たわっている姿を想像する例に戻ります。
+まず、自分の頭を右へ向けてください。これは X 軸を見下ろしていることを意味します。しかし今はまだ背中を地面につけて横たわっているため、頭に対して左回りに 90 度回転したビューとなります。
+
+![Cubemap_PositiveX_Vis.png](Cubemap_PositiveX_Vis.png)
+
+頭を左へ回転させると、X 軸の負の方向を見ることになります。
+
+![Cubemap_NegativeX_Vis.png](Cubemap_NegativeX_Vis.png)
+
+Y 軸の正の方向を向くには、頭を元の方向へ回転させなくてはいけません。結果として以下の様に逆さまのビューになります。
+
+![Cubemap_PositiveY_Vis.png](Cubemap_PositiveY_Vis.png)
+
+Y 軸の負の方向を示す画像は、自分の足を見下ろした形になります。
+
+![Cubemap_NegativeY_Vis.png](Cubemap_NegativeY_Vis.png)
+
+Z軸の正の方向の画像は、始めは上を向いているため比較的簡単に思い描くことができます。
+
+![Cubemap_PositiveZ_Vis.png](Cubemap_PositiveZ_Vis.png)
+
+Z 軸の負の方向を見るには、お腹を地面につける形で転がって、以下の画像のように地面をみつめます。
+
+![Cubemap_NegativeZ_Vis.png](Cubemap_NegativeZ_Vis.png)
+
+これらの画像を作成し状況に応じた回転が終了したら、以下の順序で画像を単一ファイルに整列させます。
+
+**X+, X-, Y+, Y-, Z+, Z-**
+
+結果として、以下のような画像が出来ます。
+
+![Uffizi_Cubemapped.png](Uffizi_Cubemapped.png)(w:800)
+

@@ -1,0 +1,6 @@
+﻿Title:Atomic
+Crumbs:%ROOT%, Programming,  Programming/UnrealArchitecture/Reference,  Programming/UnrealArchitecture/Reference/Structs, Programming/UnrealArchitecture/Reference/Structs/Specifiers
+Description: 
+Availability:Public
+
+構造体は常に単一ユニットとしてシリアル化されるべきであることを表します。

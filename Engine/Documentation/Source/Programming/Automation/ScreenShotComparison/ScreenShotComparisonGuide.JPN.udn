@@ -1,0 +1,56 @@
+﻿INTSourceChangelist:2374181
+Availability:Public
+Title:スクリーンショット比較機能のユーザーガイド
+Crumbs: %ROOT%, Programming, Programming/Automation
+Description:デベロッパーを対象としたスクリーンショットの作成と比較に関するガイド
+Version:4.5
+
+スクリーンショット ブラウザ ツールで、QA は素早く簡単にスクリーンショットの比較ができます。スクリーンショットは自動化テストの際に作成され、後に UnrealFrontend ツールで表示することが出来ます。 
+スクリーンショットの履歴は保持されますので、QA で最新と過去のスクリーンショットの比較が可能となり、最新のビルドで明らかなレンダリングエラーを特定することができます。
+
+## スクリーンショットの作成
+
+$ スタンドアローンのゲームインスタンスを開始する：
+
+例として、次のコマンドライン パラメータで **EmptyGameEditor** を開始します。 **EmptyGame -Game**.　この時に、スタンドアローン型のゲームがどれでも機能します。
+
+$ Unreal Frontend アプリをロードする：
+
+これは外部アプリケーションで、「UE4/Engine/Binaries/Win64」に格納されています。
+
+$  [Session Frontend] タブからセッションを選択する：
+
+下記で示すように、開始したばかりのローカルゲームは、「Unnamed Session」と名付けられます。
+
+$ テストの実行：
+他のテストの選択を全て解除して、 **Performance Capture** テストを選択します。
+実行ボタンをクリックして、テストを実行します。AutomationTest マップ内のさまざまな位置から撮ったスクリーンショットの自動化テストが開始します。
+
+[REGION:fullwidth]
+![Automation](CaptureScreenShots.png)
+[/REGION]
+
+## スクリーンショットの表示
+
+スクリーンショットは、キャプチャされるとテストを要求した「UnrealFrontend」へ送信されます。その後新規のスクリーンショットを受け取った時に、UI が自動的に更新されます。
+
+$ Session Frontend の *Window* メニューから **[Screen Comparison]** を選択する：
+
+画像の受け取り時に更新される UI を表示します。
+
+$ UI ナビゲーション :
+
+スクリーンショットはチェンジリスト番号に基づいたキャプチャ順に表示されます。この番号は画像の生成時に使用します。最新のスクリーンは左に表示され、所定の位置にロックされます。スクロールバーを使用して、 
+それぞれの表示の履歴をスクロールすることができます。
+
+$ UI フィルタリング :
+
+上部のフィルタバーを使用して、スクリーンショット名 / プラットフォームタイプでフィルタリングすることができます。
+[REGION:fullwidth]
+![Automation](ScreenShotComparison.png)
+[/REGION]
+
+[REGION:note]
+* スクリーンショットは、 「Engine\Programs\UnrealFrontend\Saved\Automation\AutomationTest」ディレクトリに格納されて、ビューアーから削除したい場合は、手動で削除しなくてはいけません。 
+[/REGION]
+

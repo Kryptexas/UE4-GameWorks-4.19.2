@@ -1,0 +1,11 @@
+Availability:Public
+Title:Gameplay Framework
+Crumbs:%ROOT%, Programming
+Description:Core systems, such as game rules, player input and controls, cameras, and user interfaces.
+
+
+[OBJECT:Redirect]
+[PARAM:link]
+[](Gameplay/Framework)
+[/PARAM]
+[/OBJECT]

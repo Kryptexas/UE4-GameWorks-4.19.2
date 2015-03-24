@@ -1,0 +1,48 @@
+﻿Availability:Public
+Title:タイムラインの編集
+Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/Timelines
+Description:このドキュメントは、ブループリント内での Timeline ノード編集方法に関する概要です。
+
+_Timelines_ を編集するには、**[Graph]** タブの _Timeline_ 上、または **My Blueprint** 内の _Timeline_ 上を単に **ダブルクリック** して行います。これにより新規タブ内で **タイムライン エディタ** が開きます。
+
+## タイムライン エディタ
+
+![Blueprint Timeline Editor](k2_timeline_editor.png)
+
+| ボタン / チェックボックス | 説明 |
+| --- | --- |
+|![](add_float_track_button.png) | スカラー浮動小数点値をアニメートするために浮動トラックを _Timeline_ に新規に追加します。|
+|![](add_float_track_button.png) | 回転や平行移動などのベクター浮動小数点値をアニメートするためにベクター トラックを _Timeline_ に新規に追加します。|
+|![](add_event_track_button.png) | イベント トラックを追加することで、トラック上でキーフレーム時間でトリガーされる別の実行出力ピンを提供します。|
+|![](add_float_track_button.png) | 色をアニメートするために線形カラー トラックを _Timeline_ に新規に追加します。|
+| ![](add_external_curve_button.png)| 外部カーブを _Timeline_ に追加します。このボタンは外部カーブが **コンテンツ ブラウザ** で選択されている場合のみアクティブになります。 
+| ![](timeline_length_button.png) | この _Timeline_　に対して再生時間の長さの設定ができます。 |
+| ![](last_keyframe_button.png) | これがアクティブでない場合は、シーケンスの最後のキーフレームは無視されます。アニメーションがループする場合にスキップしにくくなります。|
+|![](autoplay_button.png) | アクティブの場合、この _Timeline_ ノードは実行入力に開始を要求せず、レベルの開始と同時に再生を開始します。 |
+| ![](loop_button.png)| アクティブの場合、 _Timeline_ アニメーションは Stop 入力ピン経由で停止しない限り、無制限に繰り返します。|
+| ![](replicated_button.png) | アクティブの場合、 _Timeline_ アニメーションはクライアント中にレプリケートされます。|
+
+## トラックの追加
+
+_Timelines_ は **トラック** を使ってデータの 1 つ 1 つの構成要素のアニメーションを定義します。浮動小数点値、ベクター値、カラー値、イベントなどです。トラックは、 **[Add Track]** ボタンの 1 つをクリックすると _Timeline_ に追加することができます。例えば、![Blueprint Timeline - Add Float Track Button](add_float_track_button.png) ボタンをクリックして、新規トラックの名前を入力します。
+**[Enter]** を押して新規浮動トラックの名前を保存します。
+
+![Blueprint Timeline - Add Float Track](k2_timeline_track_float.png)
+
+1.  **トラック名** - この欄にいつでも新規トラック名を入力することができます。
+2. **外部カーブ グループ** - 自分のカーブを作成する代わりに、 **コンテンツ ブラウザ** から外部カーブ アセットを選択することができます。
+3. **トラック タイムライン** - このトラック用のキーフレームのグラフです。ここにキーフレームを置いて、補間曲線の結果を確認します。
+
+
+##キーの追加
+
+トラックの用意ができたら、アニメーションを定義するためにキーの追加を開始できます。 
+
+_Timelines_ 内でキーとカーブを使った作業に関する詳細は、 [キーと曲線](Engine/Blueprints/UserGuide\Timelines\KeysAndCurves) を参照してください。
+
+[![](Engine/Blueprints/UserGuide\Timelines\KeysAndCurves\k2_timeline_track_key_add.png)](Engine/Blueprints/UserGuide\Timelines\KeysAndCurves)
+
+
+トラックの修正が完了したら、トラックからのデータまたはイベントがデータ ピンまたはトラック ピンからトラックと同じ名前で出力されます。
+
+![Blueprint Timelines - Track Data Output](Engine/Blueprints/UserGuide\Timelines\k2_timeline_node.png)

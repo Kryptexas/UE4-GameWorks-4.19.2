@@ -1,0 +1,111 @@
+﻿INTSourceChangelist:2465567
+Availability:Public
+Title:スタイライズド レンダリングのショーケース
+Crumbs:%ROOT%, Resources
+Description: UE4に同梱されているスタイライズド レンダリングのショーケースの概要 
+Related:Engine/Rendering/PostProcessEffects
+Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
+Related:Resources/ContentExamples/PostProcessing
+Related:Engine/Rendering/Materials
+Related:Engine/Rendering/Materials/Functions
+Related:Engine/Rendering/Materials/MaterialInstances
+Related:Engine/Landscape
+Related:Engine/Landscape/Editing/Splines
+Related:Engine/Landscape/Materials
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/Showcases/Stylized:title%](Stylized_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/Showcases/Stylized:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/Showcases/Stylized:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/Showcases/Stylized]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/Showcases/Stylized:title%](Stylized_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/Showcases/Stylized:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/Showcases/Stylized:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/Showcases/Stylized]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+[REGION:fullwidth]
+![](StylizedHeader.png)
+[/REGION]
+
+このショーケースはスタイライズド、すなわち漫画のような環境を作成します。レベルに手描きのような効果を出すために、ポストプロセス エフェクト、ランドスケープ ツール、そして丁寧にデザインされたマテリアルをフル活用します。このような環境の作成方法は、さまざまな手法があることを覚えておいてください。ここで紹介する例は 1 つの可能性にすぎません。
+
+この環境に生命を吹き込んでいるさまざまな要素が多数あります。エンジン機能の技術的なアプリケーションからアーティストのテクスチャへのアプローチ方法など多岐に渡ります。このドキュメントの目的上、設定の技術的な側面に焦点をあてます。ポストプロセス、ランドスケープ オブジェクト、いくつかの特別なマテリアルに注目していきます。各オブジェクトのマテリアルやテクスチャ設定も試してみることをお勧めしています。このシーンにアーティストがどのように取り組むかに応じて得られるものが多いからです。
+
+[REGION:topics third]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/Showcases/Stylized/PostProcessing:title%](PostProcess.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/Showcases/Stylized/PostProcessing:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/Showcases/Stylized/PostProcessing]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/Showcases/Stylized/Landscape:title%](LandscapeStylized.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/Showcases/Stylized/Landscape:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/Showcases/Stylized/Landscape]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/Showcases/Stylized/Materials:title%](MaterialsStylized.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/Showcases/Stylized/Materials:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/Showcases/Stylized/Materials]
+	[/PARAM]
+[/OBJECT]
+[/REGION]
+
+
+<!--
+[EXCERPT:InstanceNote]
+[REGION:note]
+このシーンのために作成したほとんどのマテリアルは、実際に [マテリアル インスタンス定数](Engine/Rendering/Materials/MaterialInstances) を用いて適用されています。マテリアルの再コンパイルを待たずにプロパティの調整や微調整を迅速に行うことができます。
+[/REGION]
+[/EXCERPT:InstanceNote]
+
+--->

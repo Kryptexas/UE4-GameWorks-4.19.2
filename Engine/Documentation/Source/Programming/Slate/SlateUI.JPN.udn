@@ -1,0 +1,44 @@
+﻿INTSourceChangelist:2390426
+Availability:Public
+Title:スレート UI フレームワーク
+Crumbs:%ROOT%, Programming
+Description:ツールとインゲーム UI の作成用のクロス プラットフォーム ユーザー インターフェース
+Navigation:topic
+Version:4.4
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Programming/Slate:title%](Engine/UI/editor_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/prog_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Programming/Slate:title%
+	[/PARAM]
+	[PARAM:description]
+		%Programming/Slate:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming/Slate]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+スレートとは、アンリアルのカスタム仕様の UI プログラミング フレームワークの名称です。エディタの大部分はスレートを使ってビルドされます。スレートは、画像 UI にも使用が可能ですが、 インゲーム UI の作成には [](Engine/UMG) の方が好ましいです。  
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)
+	[/PARAM]
+	[PARAM:title]
+		スレートに関するトピック
+	[/PARAM]
+	[PARAM:links]
+		* [](Programming/Slate/Architecture "%Programming/Slate/Architecture:Description%")
+		* [](Programming/Slate/DetailsCustomization "%Programming/Slate/DetailsCustomization:Description%")
+		* [](Programming/Slate/Overview "%Programming/Slate/Overview:Description%")
+		* [](Programming/Slate/Widgets "%Programming/Slate/Widgets:Description%")
+	[/PARAM]
+[/OBJECT]

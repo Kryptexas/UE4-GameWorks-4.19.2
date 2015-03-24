@@ -1,0 +1,10 @@
+Availability:Docs
+Title: Property Replication
+Crumbs:Gameplay, Gameplay/Networking, Gameplay/Networking/Replication
+Description:Designating properties for replication across the network
+
+[OBJECT:Redirect]
+[PARAM:link]
+[](Gameplay/Networking/Replication/Variables)
+[/PARAM]
+[/OBJECT]

@@ -1,0 +1,45 @@
+Availability:Public
+Title: Unreal Engine User Manual
+Crumbs: %ROOT%
+Description:Information about the engine and its subsystems, including details for programmers developing with and building the engine.
+Navigation:topic
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine:title%](Engine/Rendering/rendering_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/engine_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine:title%](Engine/Rendering/rendering_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/engine_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine]
+	[/PARAM]
+[/OBJECT]
+[/VAR]

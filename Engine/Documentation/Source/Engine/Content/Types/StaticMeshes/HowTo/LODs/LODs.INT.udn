@@ -1,0 +1,104 @@
+Availability: Public
+Title:Static Meshes - How To Create and Use LODs
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes, Engine/Content/Types/StaticMeshes/HowTo
+Description: How To Create and Use LODs.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Types/StaticMeshes:title%](Engine/Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Types/StaticMeshes:title%](Engine/Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+## Overview
+
+When a player is up close to a Static Mesh you have placed in your level, you want the mesh to look very detailed.  However, you may not need that mesh to be very detailed and complex once the player moves far away from the mesh.  There is no point in having a very complex and detailed mesh if it is only taking up a fex pixels on the screen and the player can barely see it.  But the mesh needs to be detailed when the player is up close to the mesh and can see it clearly.  Inside UE4, you can take a mesh and put it in your level and have it so that as the player moves farther away from the mesh, the mesh can switch to a less complex mesh and make your level more performant.  You can do this through the use of **Level of Details**, or simply **LODs**.  This How-To will show you how you can import a less detailed version of a mesh into UE4 and have your mesh seamlessly swap from one mesh to the other as the player moves closer and farther away.
+
+## Set Up
+
+This How To does require that you have some sort of mesh saved as a **.FBX** that you can import into UE4 already.  It does not have to be a complicated mesh.  In this example, we will be using just a simple polygon sphere made in Maya.
+
+Once you have your mesh and have it saved somewhere easily accessable, go to the launcher and launch UE4.  If you have a project you are working on that you would like to work with, you are more than welcome to use that project for this How To.  If not, go ahead to the **New Project** tab and select the Blueprint Frist Person Template.  After you have done that, make sure that **Starter Content** is enabled.  If it is not, you may not have some of the assets we will be using later on in this How To and may find it harder to follow along.
+
+![](NewProjectWithStarterContent.png)
+
+After you have done that, give your project a name and location, and click the **Create Project** button.
+
+## Creating a LOD
+
+Once your project has loaded, go ahead and browse to the **Meshes** folder inside the **Content Browser** and find the asset named **TemplateCube_Rounded**.
+
+![](CubeInContentBrowser.png)
+
+Once you have found that asset, open it up inside the Static Mesh Editor by either **double-clicking** or by **right-clicking** and selecting **Edit** from the context menu that appears.  Once you do so, you should have something that looks similar to what is shown below.
+
+![](CubeInStaticMeshEditor.png)
+
+Once you have the asset opened up in the Static Mesh Editor, go ahead and locate the **Details** panel.  It is in the upper right corner by default.  Once you find it, it should like what is shown below.
+
+![](DetailsLOD0.png)
+
+The top section is labeled **LOD0**.  LOD is a zero-based system, so LOD0 will be the first entry, LOD1 would be the second, and so on.  LOD0 is the base LOD of the mesh and will be the only one that is used if the mesh only has 1 LOD, which this mesh does right now.  Next, we are going to change that.
+
+The section directly under that one is named **LOD Settings**.  In this section, there are a few options we are going to go over.  The first one we are going to go over is **Number of LODs**.  It is at 1 by default and will increase as you import LODs.  This value also can be editable if auto mesh reduction is available.  However, in order to use this feature, you must first obtain a license from [**Simplygon**.](https://www.simplygon.com/)
+
+The next option we will go over is **LOD Import**.  This option will give you a drop down menu simlar to this. ![](ImportLODLevel1.png)  Go ahead and select **Import LOD Level 1**.  This should open up a window that allows you to browse to the **.FBX** file mentioned earlier in this How To.  Browsing to and selecting the **.FBX** file will import that mesh LOD1, or the second LOD.  Once you have done this, you will see a pop-up notification at the bottom right of your screen that should look similar to what is below.
+
+![](SuccessfulImport.png)
+
+In this example, we are only importing 1 LOD, which will give us a total of 2, but you can import more if you wish.  To do so, simply click again on the drop down menu for **LOD Import** and select **Import LOD Level X** where **X** equals whichever LOD was next that you wanted to Import.  You could also reimport any LOD you already imported.  If you wanted to import another mesh for LOD1 instead of the one you already imported, just click on the drop down menu for **LOD Import** and select  **Reimport LOD Level 1**.  If you clicked on the drop down menu now, your options would look like this.
+
+![](ImportLODLevel2.png)
+
+Now that the mesh for LOD1 has been imported, we are going to mess around with a few of the values to demonstrate the power of LODs.  We are going to take a look at one more option inside the **LOD Settings** section of the **Details** panel, **Auto Compute LOD Distances**.  What this does is tell when to switch from one LOD to another by equally dividing the percent of screen size by the amount of LODs.  For example, in this case, we have two LODs, so when the mesh takes up 50 percent or more of the screen, LOD0 will appear.  When the mesh takes up less than 50 percent of the screen, LOD1 will appear.  If there are three LODs, than LOD0 will appear when the mesh takes up 66.7 percent of the screen or more, LOD1 will appear between that value and 33.3 percent, and LOD2 will appear if the mesh takes up less than 33.3 percent of the screen.  This may not be very helpful in this case however as the mesh we are using will more often than not take up less than 50 percent of the screen.  We can manually change these values however by unchecking **Auto Compute LOD Distances**, in green below, and manually adjust the **Screen Size** value for the individual LODs, in yellow below.
+
+![](AutoComputeLODDist.png)
+
+For the purposes of this demonstration, we are going to go ahead and uncheck **Auto Compute LOD Distances**.  Once we have done that, go ahead and find the **Screen Size** value under **LOD1** and change it to **0.01**.  This means that when the cube mesh that we have in our level takes up less than 1 percent of the screen size, our cube will switch to whatever mesh you imported as LOD1, in this example, a sphere.  We can also change the material for each LOD as well.  Just to further demonstrate the power and usefulness of LODs, we will change the material of LOD1 to **M_Metal_Gold**.
+
+![](ChangeMaterial1.png)
+
+## LODs in Use
+
+After you have done this, go ahead and save your mesh and go back to the **Level Editor**.  You will see that whenever you are closer to the mesh, it is the rounded cube.  As you back away from the mesh, it becomes the other mesh you imported.  Also note that it is not calculated by distance, but by screen size, so if you place a larger instance of the mesh beside a smaller instance of the mesh and start moving an equal distance away from both of them, the smaller instance will switch to the next LOD before the larger instance does.  Take a look at the example below.
+
+![](LODExampleFar.png)
+![](LODExampleNear.png)
+
+Note that as we moved farther away, only the cube in the foreground took up more than 1 percent of the screen, so it was still at LOD0, or the cube.  However, the meshes in the back became smaller as we moved away and thus took less than 1 percent, and switched to LOD1, or the golden spheres in this example.  Also note that this scales with screen size, if you detach the Viewport and scale it, the percentage of what the mesh covers will scale with the size of the Viewport, and thus change which LOD it uses.
+
+Obviously changing a cube to a sphere is not the most practical use of LODs, but this gives you a starting point on how to use them.  Now you are ready to apply LODs to the meshes in your level and have them look good up close and still be very performant from far away.

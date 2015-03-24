@@ -1,0 +1,80 @@
+﻿Availability: Public
+Title:1. 创建新项目
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:美术师快速入门指南的第一步是创建一个新项目。
+
+
+[VAR:Steps]
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		步骤
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* **当前步骤 - %Engine/Content/QuickStart/1:Title%**
+		* [下一步 - %Engine/Content/QuickStart/2:Title%](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:description%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+
+1. 打开虚幻编辑器4![](ue4icon.png)。
+
+1. [](Engine/Basics/Projects/Browser)将会出现。点击  **New Project(新建项目)** 选卡。
+
+	[REGION:lightbox]
+	[![](Programming/QuickStart/2/NewProject.png)(w:600)](Programming/QuickStart/2/NewProject.png)
+	[/REGION]
+
+1. 选择 **Blank（空白）** 模板。
+
+1. 然后 _启用_ **复制初学者内容到项目** ,输入您的项目名称，选择您要保存项目的位置。
+
+	[REGION:lightbox]
+	[![](CCQSG_03.png)(w:600)](CCQSG_03.png)
+	[/REGION]
+	
+1. 点击 **Create Project（创建项目）** 。然后，将在虚幻编辑器中打开您的项目。
+
+1. 这将在编辑器中加载该项目。如果这是您第一次运行该编辑器，那么您将会看到虚幻编辑器4的  **欢迎指南** 。这是一个界面简介，是快速入门的好方法。
+
+
+---
+
+%Steps%
+
+
+<!--
+
+[VAR:p1]
+[REGION:lightbox]
+[![](Programming/QuickStart/2/NewProject.png)(w:600)](Programming/QuickStart/2/NewProject.png)
+[/REGION]
+[/VAR]
+
+[VAR:p2]
+[REGION:lightbox]
+[![](Programming/QuickStart/2/blank_projectbrowser.png)(w:600)](Programming/QuickStart/2/blank_projectbrowser.png)
+[/REGION]
+[/VAR]
+
+[VAR:p3]
+[REGION:lightbox]
+[![](CCQSG_03.png)(w:600)](CCQSG_03.png)
+[/REGION]
+[/VAR]
+
+	[REGION:tip]
+	这里提供了很多模板。有些模板有C++标签，有些则没有。然而，这仅应用于模板中包含的初学者内容和功能。无论您使用什么模板创建项目，
+该项目中都可以添加C++代码。
+	[/REGION]
+
+-->

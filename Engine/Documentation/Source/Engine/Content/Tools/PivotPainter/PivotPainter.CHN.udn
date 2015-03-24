@@ -1,0 +1,110 @@
+Availability: Public
+Title:支点描画器工具
+Crumbs:%ROOT%, Engine, Engine/Content
+Description:关于支点描画器MAXScript的指南, 该工具为交互动画存储模型支点和顶点中的旋转数据。
+
+[TOC(start:2)]
+
+## 概述
+
+[REGION:header_img]
+[![splash_demo.jpg](splash_demo.jpg)](PivotPainterFoliageExamples.mp4)
+[/REGION]
+
+[REGION:caption]
+(点击来观看视频)
+[/REGION]
+
+Pivot Painter(支点描画器)时存储模型支点和模型顶点数据中的旋转信息的MaxScript。这些信息可以在虚幻着色系统中引用，从而创建互动效果。
+
+在示例视频中所示的运动是使用顶点着色器实时生成的。每片草围绕它的根旋转弯曲。树枝和叶子形成一个层次结构，并根据它们个自的支点摇晃，同时在继承了父项的运动。子对象旋转也要进行存储，这样就能对风进行真实的动态反应。
+
+随着支点描画器材质函数的添加，创建这些着色器变得更加容易。示例内容同样展示如何生成类似如上所示的动画的方法。获得子对象支点现在只需在3D Studio Max中使用Pivot Painter script(支点描画脚本)对网格物体进行处理，导入该文件并使用Pivot Painter(支点描画器)函数创建一个材质即可。这个材质函数既包含了针对两层结构的支点输出，也包含了针对单层结构的支点输出。
+
+这样创建运动有其优势。使用这种技术来处理模型在内存方面只比一个标准静态网格物体多占用18%。动画比骨架动画在性能上要节省很多，因为系统不需要存储动画，系统在运行过程中对它们进行计算。根据一个模型上的顶点数量同屏幕上的像素数量的比较，顶点着色的指令数通常在性能方面的涉及比像素指令数少。
+
+以下着色器的示例仅仅是可能发生情况中的的冰山一角。根据现有的信息进行试验可以引导一个人去挖掘其他潜在用途。在允许访问子对象关卡信息时，玩家互动、有趣的风、非植被相关运动和其他因素都是可能实现的。
+
+## 安装 
+
+您可以在以下位置处找到 **Pivot Painter（顶点描画器）** 脚本：
+
+	[UE4Directory]/Engine/Extras/3dsMaxScripts/PivotPainter.ms
+
+这个视频涵盖了脚本的安装、键盘快捷方式的创建和用来打开Pivot Painter tool(支点绘图工具)的菜单。
+
+[![splash_installing.jpg](splash_installing.jpg)(w:640 h:327)](InstallingPivotPainter.mp4)
+
+[REGION:caption]
+(点击来观看视频)
+[/REGION]
+
+## Prep Tools（准备工具） 
+
+这个视频同样涵盖了脚本的"Prep Tools"(准备工具)选项、工作流程小提示和关于整个工作流程的信息。Prep Tools(准备工具)包含了将模型元素分拆为单独物体的选项以及协助方便地创建新支点的若干工具。
+
+[![splash_preptools.jpg](splash_preptools.jpg)(w:640 h:327)](FinalPrepTools.mp4)
+
+[REGION:caption]
+(点击来观看视频)
+[/REGION]
+
+[REGION:note]
+**Prep Tools（准备工具）** 的作用是将一个特定模型元素分为一系列的新模型，并将它们的支点移动到理想位置处。您也可以不使用这些工具。这些工具仅是为了给您提供方便。如果正在处理的模型已经分割了，那么它的支点将位于其开始旋转的位置点处，模型X轴朝下朝向模型长度，然后您的模型就可以进行下一步处理了。
+ 
+**示例:** 一簇草丛应该分割为单独的草叶。当风吹过一个特定草叶时，它应该围绕它的底部旋转。所以它的支点应该位于草模型的底部，指点的X轴应该向下指向模型长度，大部分情况下草应该向上直立。
+[/REGION]
+
+## Hierarchy Painter(层次描画器) 
+
+这个视频涵盖了脚本的"Hierarchy Painter(层次描画器)"部分。该工具的这部分是用来存储父子关系的，举个例子说，就象树枝和叶子的关系，它同样存储网格物体中的模型支点和旋转信息。
+
+[![splash_hierarchy.jpg](splash_hierarchy.jpg)(w:640 h:327)](HierarchyPainter.mp4)
+
+[REGION:caption]
+(点击来观看视频)
+[/REGION]
+
+[REGION:note]
+如果模型需要层次，那么它应该仅通过脚本的 "Hierarchy Painter（层次描画器）" 部分处理。一个有树叶的树就是个很好的应用示例，而草却不是。草应该使用"Per Object Painter（基于每个对象的描画器）"进行描画。
+
+同时，分支/父项 节点需要放置在一个盒体内，正如"父项支点的最大距离"所描述的。比如： 如果在描画模型时 "Max dist for parent piv（父项支点的最大距离）" 设置为4096，那么 分支/父项 对象支点则可以位于X、Y轴的正负2028之间、Z轴从0到4096之间的任何位置处。另外，如果在模型处理阶段将“父项支点的最大距离”设置为大于4096的任何数值，那么在虚幻引擎的模型着色器中也应该使用相同的数值。
+
+![](pivotpainter_hierarchydata.png)
+[/REGION]
+
+## Per Object Painter（基于每个对象的描画器） 
+
+这个视频重复了在"Per Object Painter(每个对象描绘工具)"脚本部分下的现有选项。它也讨论了一些可用的方法和一些关于怎样在模型上存储数据的信息。
+
+[![splash_perpainter.jpg](splash_perpainter.jpg)(w:640 h:327)](perpainter.mp4)
+
+[REGION:caption]
+(点击来观看视频)
+[/REGION]
+
+
+## 3D Studio Max 示例文件 
+
+这个文件包含在视频教程中所用到的树的复本。
+
+* [Tree.max](Tree.max) (**右击** 并另存为来进行下载)
+
+
+## 要求 
+
+
+* 3D Studio Max - 已经使用3D Studio Max2010及2012版本对该脚本进行了测试。
+* 支点描画器材质函数。没有这些函数也可以使用脚本，但有这个函数会使数据使用变得更加容易。
+
+ 
+## 其它注意   
+
+您仅能使用脚本的  "Hierarchy Painter" 或 "Per Object Painter" 部分处理您的模型，但不能同时使用。如果您使用  "Hierarchy Painter" 描画您的函数，那么在对象材质中则应该使用 "PivotPainter_HierarchyData" 材质函数。如果使用了脚本的 "Per Object Painter" 部分，那么则应该使用 "PivotPainter_PerObjectData" 来解码材质中的支点信息。
+  
+在描述时，3DS Max的世界单位设置应该设置为厘米，并且在到处时不能进行缩放或修改。保持 3ds Max和虚幻引擎之间的比例关系是非常重要的。不这样做将会产生不好的结果。
+ 
+目前，在虚幻引擎4中删除了Wind（风） Actor ，您可以使用Material Parameter Collection(材质参数集）和蓝图来替换它。您可以使用一个浮点型4Wind Actor Parameter更新Material Parameter Collection(材质参数集)的蓝图。然后可以在特定植被材质中引用该Material Parameter Collection，以替换Wind Actor。
+
+
+

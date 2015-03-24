@@ -1,0 +1,29 @@
+﻿INTSourceChangelist:2438686
+Availability: Docs
+Title:1.2 - 블로킹 볼륨
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Volumes
+Description:Volumes 예제 레벨에 대한 개요로, 예제 1.2: Blocking Volume, 블로킹 볼륨입니다.
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes/1_2:title%](Resources\ContentExamples\Volumes\content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes/1_2:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes/1_2:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Volumes/1_2]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+이는 간단한 투명 콜리전으로, 플레이어의 접근을 막기 위한 구역을 설정하는 데, 또는 스태틱 메시의 심플 콜리전만으로는 충분치 않은 배경 부분의 콜리전을 부드럽게 만드는 데 사용됩니다.

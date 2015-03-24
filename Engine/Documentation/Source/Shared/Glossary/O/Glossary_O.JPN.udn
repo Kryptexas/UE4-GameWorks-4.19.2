@@ -1,0 +1,27 @@
+﻿INTSourceChangelist:2416125
+Title:O
+Crumbs:Shared/Glossary
+Description:
+Availability:Public
+
+[EXCERPT:Glossary_O]
+
+[OBJECT:GlossaryItem]
+	[PARAM:Term]
+オブジェクト
+	[/PARAM]
+	[PARAM:Definition]
+
+[EXCERPT:Glossary_Object]
+**オブジェクト** は、アクタを含め、アンリアル エンジンの全てのオブジェクトの基本クラスである UObject クラスから継承されるクラスのインスタンスです。 
+[/EXCERPT:Glossary_Object]
+
+	[/PARAM]
+[/OBJECT]
+
+
+
+
+
+[/EXCERPT:Glossary_O]
+

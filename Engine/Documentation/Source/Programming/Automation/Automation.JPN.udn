@@ -1,0 +1,110 @@
+﻿Availability:Public
+Title:自動化システムの概要
+Crumbs: %ROOT%, Programming
+Description:ユニットテスト、機能テスト、コンテンツ負荷テストのために使用する自動化システムの概要
+Navigation:topic
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Programming/Automation:title%](automation_ui.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/gear_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Programming/Automation:title%
+	[/PARAM]
+	[PARAM:description]
+		%Programming/Automation:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming/Automation]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Programming/Automation:title%](automation_ui.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/gear_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Programming/Automation:title%
+	[/PARAM]
+	[PARAM:description]
+		%Programming/Automation:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming/Automation]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[EXCERPT:Intro]
+**自動化システム** には、 _ユニット テスト_ 、_機能テスト_ 、および _コンテンツ負荷テスト_ を行うための機能があります。 
+これらは **Unreal Message Bus** のパワーを活用し、 
+安定性を高めます。
+
+自動化システムは、**自動化テスト** を一回以上行うことで機能します。自動化テストは次のように分類できます。 
+すなわち目的または機能に応じてカテゴリに分類します。
+[/EXCERPT:Intro]
+
+$ ユニットテスト :API レベルの検証テスト。たとえば、「TimespanTest.cpp」または「DateTimeTest.cpp」を参照してください。
+$ 機能テスト :PIE 作業などのシステムレベルの検証テストでは、インゲームの統計作業、 
+解像度の変更作業を検証します。たとえば、「EditorAutomationTests.cpp」 または「EngineAutomationTests.cpp 」を参照してください。 
+$ スモークテスト :スモーク テストは、実装者による速度の裏付けのみが考慮されます。高速なテストであることを意図しており、 
+エディタ、ゲーム、またはコマンドレットが開始すると _いつでも_ 実行されます。デフォルトで、 
+[ユーザーインターフェース](Programming/Automation/UserGuide#ユーザーインターフェース) から選択することもできます。
+	[REGION:warning]
+
+		全てのスモークテストは、**1 秒** 以内の終了を目的としています。ユニットテストもしくは高速な機能テストのみをマークしてください。
+	[/REGION]
+
+$ コンテンツ負荷テスト :クラッシュを避けるためのより徹底した特定のシステムのテスト。 
+たとえば、全てのマップの読み込みや、全てのブループリントの読み込みやコンパイルなどがあります。たとえば「EditorAutomationTests.cpp」 または「EngineAutomationTests.cpp 」を 
+参照してください。
+
+$ スクリーンショットの比較：スクリーンショットの比較ツールは、潜在的なレンダリングの問題を特定するために 
+すばやくスクリーンショットを比較し、QAを有効化します。[Screen Shot tool reference](Programming/Automation/ScreenShotComparison)
+
+[REGION:topics half]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Programming/Automation/TechnicalGuide:title%](automation_tech.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/gear_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Programming/Automation/TechnicalGuide:title%
+	[/PARAM]
+	[PARAM:description]
+		%Programming/Automation/TechnicalGuide:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming/Automation/TechnicalGuide]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Programming/Automation/UserGuide:title%](automation_ui.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/gear_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Programming/Automation/UserGuide:title%
+	[/PARAM]
+	[PARAM:description]
+		%Programming/Automation/UserGuide:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming/Automation/UserGuide]
+	[/PARAM]
+[/OBJECT]
+[/REGION]

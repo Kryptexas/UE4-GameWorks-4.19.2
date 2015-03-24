@@ -1,0 +1,7 @@
+﻿INTSourceChangelist:1996588
+Title:Reliable
+Crumbs:%ROOT%, Programming,  Programming/UnrealArchitecture/Reference,  Programming/UnrealArchitecture/Reference/Functions, Programming/UnrealArchitecture/Reference/Functions/Specifiers
+Description: 
+Availability:Public
+
+この関数はネットワーク上でレプリケートされ、帯域幅やネットワーク エラーに関係なく実行されることが保証されます。クライアントまたはサーバーと併用時のみ有効です。

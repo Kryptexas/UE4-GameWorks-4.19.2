@@ -1,0 +1,19 @@
+Availability: Public
+Title:Matinee & 过场动画
+Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/Tools
+
+[REGION:header_img]
+![matinee.jpg](matinee.jpg)
+[/REGION]
+
+Matinee动画工具提供了使actor属性随着时间变化的功能，也提供了创建动态游戏性或游戏中过场动画序列的功能。该系统是基于专用的动画轨迹的，可以在该轨迹上放置关键帧来设置关卡中actor的某些属性的值。Matinee编辑器和用于视频编辑的非线性编辑器类似，这使得它对于那些视频制作专业人员来说很熟悉。
+
+[REGION:titlebar]
+关卡创建 主题
+[/REGION]
+[REGION:contentsection]
+
+* [Matinee用户指南](Engine/Matinee/UserGuide) - Matinee编辑器的用户指南。
+* [曲线编辑器用户指南](Engine/UI/UserGuide/CurveEditor) - 虚幻引擎3中的曲线编辑器的用户指南。
+
+[/REGION]

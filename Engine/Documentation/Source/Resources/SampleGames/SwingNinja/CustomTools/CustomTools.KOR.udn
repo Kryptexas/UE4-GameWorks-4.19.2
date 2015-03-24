@@ -1,0 +1,47 @@
+﻿INTSourceChangelist:2422269
+Availability: Docs
+Title:커스텀 툴
+Crumbs:%ROOT%, Resources, Resources/SampleGames/SwingNinja
+Description:스윙 닌자 게임 제작에 사용된 커스텀 툴에 대해 다루는 문서입니다.
+
+
+[REGION:banner]
+![](CustomToolsBanner.png)
+[/REGION]
+
+
+[TOC(start:2 end:3)]
+[REGION:fullwidth]
+## 개요
+
+블루프린트 비주얼 스크립팅 시스템의 매우 유용한 기능 중 하나는, 레벨 디자이너가 필요한 디자인 작업을 보다 빠르게 할 수 있도록 커스텀 툴을 만들 수 있다는 것입니다. 스윙 닌자의 보다 효율적인 제작을 위해, 블루프린트를 사용하여 디자인 툴을 만들었습니다. 각 툴에 대한 개요, 만든 이유, 만든 방법에 대한 것은 아래와 같습니다.
+
+
+## 동전 배치 시스템
+
+레벨에 동전줄을 배치하는 작업을 돕기 위해, 동전을 순차적으로 일렬 배치하는 특수한 블루프린트를 만들었습니다. 이 블루프린트 작동방식은, 자신의 위치를 시작점으로 삼고, 지정한 점을 끝점으로 삼아, 그 경로가 직선인지 곡선인지 옵션으로 지정하고, 전체 길이에 걸쳐 몇 개의 동전을 놓을 것인지 제어할 수 있도록 했습니다.
+
+
+### 컨스트럭션 스크립트
+
+[REGION:lightbox]
+[![](Coins_CS.png)](Coins_CS.png)
+[/REGION]
+[REGION:caption]
+클릭하거나 우클릭 - 다른 이름으로 저장하여 크게 볼 수 있습니다.
+[/REGION]
+
+
+
+### 이벤트 그래프
+
+
+[REGION:lightbox]
+[![](Coins_EG.png)](Coins_EG.png)
+[/REGION]
+[REGION:caption]
+클릭하거나 우클릭 - 다른 이름으로 저장하여 크게 볼 수 있습니다.
+[/REGION]
+
+
+[/REGION]

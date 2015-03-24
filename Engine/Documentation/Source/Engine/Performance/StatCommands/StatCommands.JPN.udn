@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:2329088
+Availability:Public
+Title:Stat コマンド
+Crumbs: %ROOT%, Engine
+Description:ゲームの統計情報を表示するコンソール コマンド
+Navigation:topic
+
+以下は、プロファイリングをサポートするために、コンソールに入力できる、現在利用可能な stat コマンドのリストです。
+
+| コマンド | 説明 |
+| -------- | ----------- |
+| **stat Unit** | 全体的なフレーム時間、およびゲームスレッド、レンダリング スレッド、 GPU の時間です。 |
+| **stat UnitGraph** | stat unit データ付きのグラフを見るためのものです。フィルタリングされていないデータを見るには、**stat Raw** を表示します。 |
+| **stat Hitches** | **t.HitchThreshold** を設定し、処理落ちと考えられる時間を秒単位で定義します。すべての処理落ちをログ/ビジュアル スタジオのデバッグにダンプします。例、[0327.87] LogEngine:Warning:HITCH @ 00m:01s:643ms,1643,72,2.`  |
+| **stat InitViews** | 可視性のカリングの所要時間と、どれくらい効果的であるかについての情報を表示します。可視セクション カウントは、レンダリング スレッド パフォーマンスに関して唯一最も重要な統計です。可視セクション カウントは、 STAT INITVIEWS (統計の初期ビュー) にある Visible Static Mesh Elements が主要なものですが、 Visible Dynamic Primitives も計算に入れます。
+| **stat Scenerendering** | 一般的なレンダリング統計を示します。これは、レンダリング プロセスでパフォーマンスが遅い一般的なエリアを見つけるのに良い開始点です。 |
+| **stat D3d11rhi** **stat OpenGL** | Direct3D 11 または OpenGL RHI.  |
+| **stat Sceneupdate** | ワールド更新に関する情報を表示します。ライトの追加、更新、削除にかかった時間、およびシーンにプリミティブを追加、削除にかかった時間が含まれます。  |
+| **stat Engine** | エンジン |
+| **stat Game** | ゲーム |
+| **stat Anim** | アニメーション |
+| **stat Particles** | パーティクル |
+| **stat ShadowRendering** | シャドウ レンダリング |
+| **stat LightRendering** | ライト レンダリング |
+| **stat Memory** | メモリ |
+| **stat Streaming** | ストリーミング. |
+| **stat StreamingDetails** | ストリーミングの詳細 |
+| **stat Slow 0.012 10** | 直近 10 秒 (開始値として最適) で 12ms より大きかった stat をすべて表示。 |
+| **stat Grouped** | stat Slow を無効にします。|
+
+<!--
+注記：プロファイラ情報との照合に使用できるまでは削除されます。StatsViewer は P4 またはバイナリ ビルドでは表示されません。
+| **stat StartFile** **stat StopFile** | オフラインで分析可能な .ue4stats ファイルを生成します (UE4\Engine\Binaries\DotNET\StatsViewer から  StatsViewer ツールを使用)前のフレームの作業負荷が高いと、GPU 遅延が発生することがあります。
+
+
+
+-->

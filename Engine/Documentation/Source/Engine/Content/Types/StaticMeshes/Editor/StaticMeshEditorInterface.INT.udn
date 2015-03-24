@@ -1,0 +1,153 @@
+﻿Availability: Public
+Title:Static Mesh Editor UI
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types/StaticMeshes
+Description:Tool used to preview the look, collision, and UVs as well as set and manipulate the properties of StaticMesh assets.
+
+[TOC(start:2)]
+
+## Overview
+
+The **Static Mesh Editor** consists of four areas:
+
+[REGION:fullwidth]
+![](StaticMeshEditorUI.png)
+[/REGION]
+1. [Menu Bar](#MenuBar)
+1. [Toolbar](#ToolBar)
+1. [Viewport Panel](#ViewportPanel)
+1. [Details Panel](#DetailsPanel)
+
+[Include:Shared/Editors/Common/EditorMenuItems/#UITabTips]
+
+<!-- For more information about the Static Mesh Editor, see [](Engine/Content\Types\StaticMeshes\Editor). -->
+
+## Menu Bar
+
+### File
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuFileSave]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuFileSaveOptions]
+
+### Edit
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuEditUndo]
+* **Delete Socket** - Deletes the selected socket from the mesh.
+* **Duplicate Socket** - Duplicates the selected socket.
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuEditSettings]
+
+### Asset
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetContentBrowser]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetReimport]
+
+
+### Mesh
+
+* **Find Source** - Opens Windows Explorer at the folder where the Static Mesh's original source file resides.
+* **Change Mesh** - Changes the Static Mesh asset loaded in the Static Mesh Editor to the asset currently selected in the **Content Browser**.
+
+### Collision
+
+* **6DOP Simplified Collision** - Generates a new axis-aligned box collision mesh (6 total sides) encompassing the Static Mesh.
+* **10DOP-X Simplified Collision** - Generates a new axis-aligned box collision mesh with the 4 X-axis aligned edges beveled (10 total sides) encompassing the Static Mesh.
+* **10DOP-Y Simplified Collision** - Generates a new axis-aligned box collision mesh with the 4 Y-axis aligned edges beveled (10 total sides) encompassing the Static Mesh.
+* **10DOP-Z Simplified Collision** - Generates a new axis-aligned box collision mesh with the 4 Z-axis aligned edges beveled (10 total sides) encompassing the Static Mesh.
+* **18DOP Simplified Collision** - Generates a new axis-aligned box collision mesh with all edges beveled (18 total sides) encompassing the Static Mesh.
+* **26DOP Simplified Collision** - Generates a new axis-aligned box collision mesh with all edges and corners beveled (26 total sides) encompassing the Static Mesh.
+* **Auto Convex Collision** - Generates a new convex collision mesh based on the shape of the Static Mesh asset.
+* **Sphere Simplified Collision** - Generates a new sphere collision mesh encompassing the Static Mesh.
+* **Remove Collision** - Removes any simplified collision assigned to the Static Mesh.
+* **Convert Boxes to Convex** - Converts any simple box collision meshes to convex collision meshes.
+* **Copy Collision from Selected Static Mesh** - Copies any collision meshes that were created in the native 3D application and saved with the Static Mesh.
+
+For more information about collision for Static Meshes in Unreal Engine, see the [Collision Reference](Engine/Physics/Collision/Reference).
+
+
+### Window
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowToolbar]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowViewport]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowDetails]
+* **Socket Manager** - Displays the **Socket Manager** panel, which is not displayed by default.
+* **Convex Decomposition** - Displays the **Convex Decomposition** panel, which is not displayed by default.
+* **Generate Unique UVs** - Displays the **Generate Unique UVs** panel, which is not displayed by default.
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindow]
+
+
+
+### Help
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuHelp]
+
+
+## Toolbar
+
+| Item | Description |
+| ---- | ----------- |
+| ![button_realtime.png](button_realtime.png)| Toggles whether the viewport updates in realtime, or only when clicked on / moused over.  By default, it is turned off, and you may need to click in the viewport once after the mesh is loaded in order to get streamed textures displaying at high resolution. |
+| ![button_sockets.png](button_sockets.png) | Displays any sockets that have been applied to this mesh. For more information about sockets, see [](Engine/Content\Types\SkeletalMeshes\Sockets). |
+| ![button_wireframe.png](button_wireframe.png)| Toggles the viewmode of the **Preview** panel between a lit view and a wireframe view. |
+| ![button_vertcolor.png](button_vertcolor.png) | Toggles visibility of vertex colors. |
+| ![button_grid.png](button_grid.png) | Toggles visibility of the grid in the **Preview** panel. |
+| ![button_bounds.png](button_bounds.png)| Toggles display of the bounds of the Static Mesh. |
+| ![button_collision.png](button_collision.png)| Toggles display of the simplified collision mesh of the Static Mesh, if one has been assigned. |
+| ![button_showPivot.png](button_showPivot.png) | Toggles visibility of the mesh's pivot point. |
+| ![button_normals.png](button_normals.png) | Toggles display of vertex normals in the **Preview** panel. |
+| ![button_tangents.png](button_tangents.png) | Toggles display of vertex tangents in the **Preview** panel. |
+| ![button_binormals.png](button_binormals.png) | Toggles display of vertex binormals (orthogonal vector to normal and tangent) in the **Preview** panel. |
+| ![button_uv.png](button_uv.png)| Toggles display of the Static Mesh's UVs for the channel specified in the LightMapCoordinateIndex property of the Static Mesh asset in the **Preview** panel. |
+|![button_additionalInfo.png](button_additonalInfo.png) | Toggles whether or not to draw additional user data associated with the asset. |
+| ![button_uvChannel.png](button_uvChannel.png) | Brings up a dropdown of all the available UV channels for the mesh. Only pertinent when the UV overlay is visible. |
+| ![StaticMesh_ResetCamera_button](StaticMesh_ResetCamera_button.png) | Refocuses the camera on the Static Mesh. |
+| ![button_autoLOD.png](button_autoLOD.png) | Opens up a drop-down list with all of the available LODs on the current mesh. |
+
+## Viewport Panel
+
+The **Viewport** panel shows a rendered (or optionally wireframe) view of the Static Mesh asset. This allows you to examine the Static Mesh as it would be rendered in-game. This viewport also allows you to preview the bounds of the Static Mesh asset as well as its collision mesh, if one has been assigned. In addition, the UVs of the Static Mesh can be displayed. 
+
+Overlaid onto the **Viewport** panel is a set of statistics or information about the Static Mesh asset.
+
+![Static Mesh Editor Preview panel](StaticMesh_Preview.png)
+
+In this information you will find the following:
+
+* **LOD** - Displays the number of LOD (Levels of Detail) for the Static Mesh.
+* **Triangles** - Displays the number of triangles in the Static Mesh.
+* **Vertices** -  Displays the number of vertices in the Static Mesh.
+* **UV channels** -  Number of UV channels.  Unique, non-overlapping UVs are required for shadow mapping.
+* **Approx Size** - Displays the approximate size (Length x Width x Height) of the Static Mesh in Unreal units with a scale of 1 in all axes.
+
+
+
+## Details Panel
+
+The **Details** panel shows specific properties pertaining to the Static Mesh Actor, such as the Materials applied to the surface, LOD options, and mesh reduction options. 
+
+For information about the basics of using this panel, see the [Editor Details Panel](Engine/UI/LevelEditor\Details) documentation.
+
+## Controls
+
+
+### Mouse Controls
+
+**Viewport Panel**
+
+
+* **LMB + Drag** - If the camera is locked, rotates the mesh around its Z axis and moves towards or away from the origin. Otherwise, rotates the camera around its Z axis and moves the camera along its local X axis.
+* **RMB + Drag** - If the camera is locked, rotates the mesh. Otherwise, rotates the camera.
+* **LMB + RMB + Drag** - If the camera is not locked, moves the camera along its local YZ plane.
+
+
+### Keyboard Controls
+
+
+* **Ctrl + R** - Toggles realtime in the **Preview** panel.
+* **L + Mouse Move** - Rotates the preview light in the **Preview** panel.
+
+**Camera Hotkeys**
+
+* **Alt+H** - Position camera to the Front Orthographic view.
+* **Alt+J** - Position camera to the Top Orthographic view. 
+* **Alt+K** - Position camera to the Side Orthographic view. 
+* **Alt+G** - Position camera to the Perspective view.
+
+

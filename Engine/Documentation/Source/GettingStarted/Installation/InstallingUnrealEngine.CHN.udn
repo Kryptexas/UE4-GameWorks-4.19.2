@@ -1,0 +1,96 @@
+﻿Availability:Public
+Title:安装虚幻引擎
+Crumbs: %ROOT%, GettingStarted
+Description:安装虚幻引擎的步骤。
+
+%Globals:OSSelect%
+
+## 下载安装程序
+
+您可以从[UnrealEngine.com](http://unrealengine.com)网站下载安装程序：
+
+1. 转到[UnrealEngine.com](http://unrealengine.com)并登入。
+
+	[REGION:note]
+	为下载虚幻引擎，您需要创建一个账户并订购引擎。如您没有账户，请点击页面顶部的橘黄色 **获取虚幻引擎** 按钮并遵从指南。
+	[/REGION]
+
+1. 在您的账户页面，根据您的操作系统，点击下载按钮之一：
+
+	![](ue4_install_downlader.png)
+
+
+## 基础安装
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	操作系统
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#Windows]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	操作系统
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#MacOS]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:Windows]
+1. 运行您下载的安装程序，并选择安装虚幻引擎的路径：
+
+	![](ue4_install_location.png)
+
+	[REGION:warning]
+	[REGION:largetitle]
+	空间需求
+	[/REGION]
+	虚幻引擎的每个版本使用大约8G的硬盘空间，并且所有版本都会被存储在这个安装步骤中您所选择的位置。请选择一个有足够空间的位置来安装引擎。
+	[/REGION]
+
+1. 请点击 **Install（安装）** 来继续安装过程。虚幻引擎被安装完成后，将会打开虚幻引擎启动程序。
+
+[/EXCERPT:Windows]
+[EXCERPT:MacOS]
+1. 双击查找器中的`Rocket.dmg`图标来打开它。在您同意 **授权协议** 后，它将会打开新建的 **查找器窗口** 。
+1. 拖曳 **RocketEditor** 图标到 **Applications** （应用程序）文件夹。
+
+	![](ue4_mac_install.png)
+
+1. 当查找器完成对文件的复制后，虚幻引擎将会出现在 **Launchpad** 中。在此位置运行该程序。
+
+[/EXCERPT:MacOS]
+-->
+
+## 登入和下载
+
+在您运行虚幻引擎启动程序后，您必须登入并下载引擎的当前版本。
+
+1. 使用您的账户凭据登入。
+
+	[REGION:fullwidth]
+	![](ue4_installer_login.png)
+	[/REGION]
+
+1. 此时将会开始下载虚幻引擎4的当前版本：
+
+	![](ue4_installer_download.png)
+
+1. 当下载完成后，您可以使用 **Launch（启动）** 按钮来启动虚幻引擎：
+
+	![](launch.png)

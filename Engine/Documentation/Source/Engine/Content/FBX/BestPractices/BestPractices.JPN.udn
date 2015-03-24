@@ -1,0 +1,190 @@
+﻿INTSourceChangelist:2087185
+Availability:Public
+Title:FBX ベスト プラクティス
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:アンリアル エンジン 4 のFBX コンテンツ パイプラインの操作に関するヒント、秘策、ベスト プラクティス
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/BestPractices:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/BestPractices:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/BestPractices:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/BestPractices]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+
+## 概要
+
+
+Description:このページには、Epic Games 社のアーティストたちが FBX コンテンツ パイプラインを扱うときに用いる秘訣およびベストプラクティスが掲載されています。 
+
+
+##スタティック メッシュのワークフロー
+
+
+
+* 3D アプリケーションから FBX ファイルにメッシュをエクスポートする。
+    * Epic のアーティストによって一般的に用いられるエクスポートの設定は、次のようになります。
+        * **Smoothing Groups** を有効にする。 
+        * **Tangents and Binormals** を有効にする。
+        * **Preserve Edge Orientation** を有効にする。
+* アンリアルの **コンテンツ ブラウザ** を使用して FBX ファイルをインポートする。
+
+
+![](BestPracticesOptions.png)(w:594 h:572 convert:false)
+
+
+### 便利なリンク
+
+* [メッシュのエクスポート](Engine/Content/FBX/StaticMeshes#メッシュのエクスポート)
+* [メッシュのインポート] (Engine/Content/FBX/StaticMeshes#メッシュのインポート)
+
+
+
+## スケルタル メッシュのワークフロー
+
+
+
+* メッシュとスケルトンを FBX ファイルにエクスポートする。
+    エクスポートすべきアイテムを選択し (メッシュおよびジョイントチェーンルート)、選択したものをエクスポートします
+    * Epic のアーティストによって一般的に用いられるエクスポートの設定は、次のようになります。
+        * **Smooth Mesh** は無効にする。 
+        * **Smoothing Groups** を有効にする。 
+* アンリアルの **コンテンツ ブラウザ** を使用して FBX ファイルをインポートする。
+
+
+
+### 便利なリンク
+
+
+* [メッシュのエクスポート](Engine/Content/FBX/SkeletalMeshes#メッシュのエクスポート)
+* [メッシュのインポート](Engine/Content/FBX/SkeletalMeshes#メッシュのインポート)
+
+
+
+##アニメーションのワークフロー
+
+
+
+* アニメーションを FBX ファイルにエクスポートする。
+    * エクスポートすべきアイテムを選択し (必要に応じてメッシュ、ジョイントチェーンルートを)、選択したものをエクスポートする。
+    * エクスポートの設定は次のようになります。
+        * **Animation** を有効にする。 
+* アンリアルの **コンテンツ ブラウザ** を使用して FBX ファイルをインポートする。
+
+
+
+### 便利なリンク
+
+
+* [Exporting Animations](Engine/Content/FBX/Animations#ExportingAnimations)
+* [Importing Animations](Engine/Content/FBX/Animations#ImportingAnimations)
+
+
+
+## モーフターゲットのワークフロー 
+
+
+
+* モーフターゲットを FBX ファイルにエクスポートする。
+    * エクスポートすべきアイテムを選択し (ブレンドシェイプをともなったメッシュ / モーファーモディファイア)、選択したものをエクスポートする。
+    * エクスポートの設定は次のようになります。
+        * **Animation** を有効にする。 
+        * **Deformed Models/Deformations** のすべてのオプションを有効にする。
+* アンリアルの **コンテンツ ブラウザ** を使用して FBX ファイルをインポートする。
+
+
+
+### 便利なリンク
+
+
+* [Exporting Morph Targets](Engine/Content/FBX/MorphTargets#ExportingMorphs)
+* [Importing Morph Targets](Engine/Content/FBX/MorphTargets#ImportingMorphs)
+
+
+
+## 命名スキーム 
+
+エクスポートされるファイルについて、Epic のアーティストは通常、次の命名スキームに従います。 
+
+* **スタティック メッシュ** SM\_**&lt;PackageName&gt;\_&lt;AssetName&gt;\_&lt;Index&gt;**
+* **スケルタル メッシュ** SK\_**&lt;PackageName&gt;\_&lt;AssetName&gt;\_&lt;Index&gt;**
+
+
+プロジェクト全体に適用される命名スキームを用いることによって、アセットファイルの整理と特定が簡単になります。 
+
+ただし、アンリアルのユーザーの皆さんが長年慣れ親しんできたパッケージの概念は、前身と比べてアンリアル 4 では劇的に変わっています。パッケージに含まれるファイルは 1 つのみとなり、ゲームのディレクトリ構造は前の.upk file 内にあるような様々なレベルを定義します。詳細は [Assets and Packages](Engine/Basics/AssetsAndPackages) を参照してください。
+
+![](FBXBestPractices_packages.png)
+
+_この画像では、アセット (**StoneBox**) を含む (**Meshes**) をグループ化してパッケージをもつUE3 と同じ方法で **StoneBox** は **Meshes** と呼ばれるフォルダに入っています。 _
+
+
+##シーンの管理
+
+
+Epic のアーティストはたいてい同様のアセットを単一のファイルに保存します。たとえば、 **スタティック メッシュ** に異なる 3 つの状態 (normal: 通常、damaged: 破損、broken: 破壊) がある場合、それらすべてを同一のファイルに入れます。ただし、各メッシュは1 つの FBX ファイルとしてエクスポートされます。 
+
+![FBXBestPractices_MultipleColumn.jpg](FBXBestPractices_MultipleColumn.jpg)(w:410 h:810)
+
+スケルトンにバインドされたメッシュのクリーンなエクスポートファイルを作る方が容易です。このメッシュは、エクスポート専用に使用されることになります。リグは、そのファイルから作成されますが、独立したリグファイルに保存されます。 
+
+![FBXBestPractices_Character.jpg](FBXBestPractices_Character.png)(convert:false)
+
+独立したリグファイル。
+
+![FBXBestPractices_CharacterRig.jpg](FBXBestPractices_CharacterRig.png)(convert:false)
+
+各アニメーションも普通、それ自身のファイルに保存されます。そのため、ファイルシステムにおいて各種アニメーションを管理するのが容易になります。
+
+
+## アンリアル エディタにおいてコンテンツ名を変更する
+
+**F2** 名前を変更したいアイテムを選んで **F2** をたたくか、アイテムを **右クリック** して **Rename** を選択するか、いずれかの方法により **コンテンツ ブラウザ** でオブジェクトの名前を変更することができます。これにより **コンテンツ ブラウザ** 内でオブジェクト名がハイライトされ、Windows でファイル名を編集するように、新しい名前を入力することが可能になります。
+
+![FBXBestPractices_MoveOrRename.jpg](FBXBestPractices_MoveOrRename.png)
+
+undo キャッシュについて通知を受け取ると思いますが、キャッシュのオブジェクトが古い名前でリストされているためであり問題ありません。今後問題を起こさないようにクリアする必要があります。
+
+### 便利なリンク
+
+
+* [Naming conventions when importing FBX](Engine/Content/FBX/ImportOptions#NamingConventions)
+
+
+
+## シーン全体のインポート / エクスポート
+
+これが便利であるのは、Matinee で作成されたカメラや、Matinee でアニメートされたビークルのパスをエクスポートする場合です。さらに、3D コンテンツ作成パッケージにおいてシネマティックを再現するには、情報すべてが必要となります。3D コンテンツ作成パッケージ内部において調整が完了すると、FBX としてエクスポートすることができるようになるとともに、アンリアル エンジン 3 にインポートすることができるようになります。 
+
+Matinee からエクスポートしています。 
+
+![](FBXBestPractices_MatineeExportAll.png)
+
+FBX は現在 **Export All** に対してサポートしている唯一のエクスポート タイプですので、名前を付けて [OK] をクリックします。
+
+![](FBXBestPractices_MatineeExportDiag.png)
+
+Matinee インターフェース内からも、 FBX データをインポートすることができます (恐らくサードパーティ パッケージ内での調整完了です)。
+
+![](FBXBestPractices_MatineeImport.png)
+
+ 
+
+
+
+

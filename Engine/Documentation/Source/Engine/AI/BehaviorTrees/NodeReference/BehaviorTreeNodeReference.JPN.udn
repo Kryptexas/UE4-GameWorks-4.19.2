@@ -1,0 +1,356 @@
+﻿INTSourceChangelist:2423960
+Title:Behavior Tree ノードのリファレンス
+Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
+Description:Behavior Tree ノードのリファレンス
+Availability:Public
+
+[TOC(start:2 end:2)]
+
+## ノードのタイプ
+
+このページでは、ビヘイビアツリー エディタで使用できるノードの使用方法を説明します。ノードは大きく 5 つに分類されます。
+
+* **Root** - ビヘイビアツリーの実行開始ノードです。各ビヘイビアツリーに 1 つずつ付いています。
+* **Composite** - ブランチのルートを定義し、そのブランチの実行方法の基本的なルールを定義するノードです。
+* **Task** - ツリーの葉で、何かを実行するノードです。
+* **Decorator** - 条件式としても知られています。別のノードにアタッチされ、ツリーのブランチあるいはノード 1 つでも実行可能かどうかの判断をするノードです。
+* **Service** - Composite ノードにアタッチされ、ブランチの実行中は定義された頻度で実行されるノードです。確認してブラックボードを更新するために頻繁に使用されます。他のビヘイビアツリー システムの通常の Parallel ノードの代わりになります。
+
+
+##デフォルト
+
+###Root
+
+![](Root.png)
+
+Root ノードは、ビヘイビアツリーの開始ポイントです。接続は 1 つだけで、 Decorators または Services をアタッチすることはできません。
+
+## Composites
+
+### Selector
+
+![](Selector.png)
+
+Selector ノードは子ノードを左から右へ評価し、そのうちの 1 つが **Succeeds** を返すと評価を終了します。Selector の子ノードのどれかが成功を返した時点で、制御が Selector ノードに戻ります。Selector の子ノードがすべて失敗すると、 Selector は失敗します。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+### Sequence
+
+![](Sequence.png)
+
+Sequence ノードは子ノードを左から右へ評価し、そのうちの 1 つが **Fails** を返すと評価を終了します。子ノードが失敗すると、 Sequence は失敗します。Sequence の子ノードがすべて成功すると、 Sequence は成功します。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+### Simple Parallel
+
+![](SimpleParallel.png)
+
+Simple Parallel ノードにより、 1 つのメインタスクのノードがツリー全体に沿って実行できるようになります。メインタスクが終了すると、セカンダリ ツリーを中止するためにノードを **すぐに** 終了するか、またはセカンダリ ツリーの終了を **遅らせる** かを **Finish Mode** の設定で指示されます。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Finish Mode** | [INCLUDE:#subprop1] |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+<!--
+[EXCERPT:subprop1]
+| --- | --- |
+| **Immediate** | メインタスクが終了すると、バックグラウンド ツリーが中止されます。 |
+| **Delayed** | メインタスクが終了すると、バックグラウンド ツリーは終了を許可されます。 |
+[/EXCERPT:subprop1]
+-->
+
+
+## Tasks
+
+### Make Noise
+
+![](MakeNoise.png)
+
+制御されたポーンに **PawnNoiseEmitter** コンポーネントがある場合、 Make Noise タスクに、 **PawnSensing** コンポーネントのある別のポーンが聞こえる (メッセージを受信できる) ような「音を作成」 (メッセージを送付) させます。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Loudness** | 作成される音の音量。 |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+### Move To
+
+![](MoveTo.png)
+
+Move To ノードは Character Movement コンポーネントのあるポーンを NavMesh を使って ベクター ブラックボード キーへ移動させます。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Acceptable Radius** | **Move To** Task が成功するために必要な、ポーンとターゲットの接近距離。 |
+| **Filter Class** | どのナビゲーション データを使用すべきか？None に設定されていると、デフォルトのナビゲーション データが使用されます。 |
+| **Allow Strafe** | ポーンに攻撃を許可するか？ |
+| **Blackboard Key** | 移動先の位置 (Vector3)。 |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+### Play Sound
+
+![](PlaySound.png)
+
+**Sound to Play** プロパティで与えられたサウンドを再生するノードです。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Sound to Play** | 再生する Sound Cue アセットです。 |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+### Run Behavior
+
+![](RunBehavior.png)
+
+Run Behavior ノードにより、別のビヘイビアツリーを実行することができます。 
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Behavior Asset** | Behavior Tree アセットを実行します。 |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+
+### Run EQS Query
+
+![](RunEQSQuery.png)
+
+Run EQS Query ノード
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Query Template** | (コンテンツ ブラウザで作成した) この EQS Query に使用する Environment Query。 |
+| **Query Params** | マテリアルのパラメータの持ち方と同じように、Environment Query は Generator にプロパティを持ち、Tests がパラメータとして設定します。従って、これらのパラメータ名を入力し、その値をここで設定することにより、1 つの Environment Query で広範囲のシナリオに対応できるようになります。
+| **Blackboard Key**| ベクター |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+
+### Wait
+
+![](Wait.png)
+
+ビヘイビアツリーは、待ち時間が終わるまで、このノード上で待機します。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Wait Time** | 秒単位の待ち時間。 |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+### Wait Blackboard Time
+
+待ち時間の長さの Blackboard 値を引き出す以外は、機能は Wait Task ノードと同じです。
+
+![](waitBBTime.png)
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Blackboard Key**| 待ち時間の長さを参照するためのフロート型の Blackboard Key です。
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+## Services
+
+### Default Focus
+
+![](SetDefaultFocus.png)
+
+Default Focus は、 AI コントローラーのフォーカスを設定することにより、アクタとブループリントへのショートカットを作成します。AI コントローラーのフォーカスをアクタに設定すると、 Blackboard Key にアクセスせずに AI コントローラーに直接アクセスできるようになります。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Blackboard Key**| GetFocusActor を使って、 Actor Key (基本クラスがアクタに設定されたオブジェクト キー) が AI コントローラーからすぐに参照されるようにします。 |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+[REGION:note]
+4.4 では、 Vector Blackboard Key を受け取るために Blackboard Key が表示されますが、 Set/Clear/Get Focus Actor 関数がアクタ上で機能するため、何も行いません。
+[/REGION]
+
+## Decorators
+
+### Blackboard
+
+![](Blackboard.png)
+
+Blackboard ノードは、任意の Blackboard Key に値が設定されているかを確認します。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Notify Observer** | [INCLUDE:#subprop2] |
+| **Observer Aborts** | [INCLUDE:#subprop3] |
+| **Key Query** | [INCLUDE:#subprop4] |
+| **Blackboard Key**| 確認するためのキーです。他のタイプが初期化された値 (0, false, {0,0,0}, etc...) を返すので、 Objects などの None を返すことができるデータタイプの場合に非常に便利です。
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+<!--
+[EXCERPT:subprop2]
+| --- | --- |
+| **On Result Change** | 条件が変更された時のみ再評価されます。 |
+| **On Value Change** | 測定された Blackboard Key が変更された時のみ再評価されます。 |
+[/EXCERPT:subprop2]
+
+[EXCERPT:subprop3]
+| --- | --- |
+| **None** | 何も中止しません。 |
+| **Self** | このノード自体、および配下で動くサブツリーをすべて中止します。 |
+| **Lower Priority** | このノードの右側にあるノードをすべて中止します。 |
+| **Both** | このノード自体、および配下で動くすべてのサブツリー、ノードの右側にあるノードをすべて中止します。 |
+[/EXCERPT:subprop3]
+
+[EXCERPT:subprop4]
+| --- | --- |
+| **Is Set** | 値は設定されているかどうか。 |
+| **Is Set** | 値が設定されていないかどうか。 |
+[/EXCERPT:subprop4]
+-->
+
+### Compare Blackboard Entries
+
+![](CompareBBEntries.png)
+
+Compare Blackboard Entries ノードは 2 つのブラックボード キーの値を比較し、その結果 (「等しい」か「等しくない」か) 次第でノードの実行をブロックあるいは許可します。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Operator** | [INCLUDE:#subprop5] |
+| **Blackboard Key A**| この比較で使用される最初のキーです。 |
+| **Blackboard Key B**| この比較で使用される 2 番目のキーです。 |
+| **Observer Aborts** | [INCLUDE:#subprop3] |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+<!--
+[EXCERPT:subprop5]
+| --- | --- |
+| **Is Equal To** | 2 つのキーが等しいかどうか。 |
+| **Is Not Equal To** | 2 つのキーが異なるかどうか。 |
+[/EXCERPT:subprop5]
+-->
+
+### Composite
+
+![](Composite.png)
+
+Composite Decorator ノードは、内臓されているノードよりもさらに高度ではあるけれどブループリント全体ほど複雑ではないロジックの設定ができます。Composite Decorator をノードに追加して Composite Decorator を **ダブルクリック** すると、 Composite のグラフが呼び出されます。グラフ領域を **右クリック** すると、 Decorator Node をスタンドアローン型のノードとして追加し、 AND ノード、 OR ノード、 NOT ノードでまとめて接続して、さらに高度なロジックを作成することができます。
+
+![](CompositeGraph.png)(w:940)
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Composite Name** | Behavior Tree グラフでノードが表示すべき名前です。 |
+| **Show Operations** | 操作がプレーンテキストでノード上にリスト表示されます。 |
+
+
+### Cone Check
+
+![](ConeCheck.png)
+
+Cone Check デコレーターは 3 つのベクター キーを受け取ります。 1 つ目がコーンの開始位置のキー、 2 つ目がコーン ポイントの向きを定義するキー、 3 つ目は位置がコーンの内部にあるか確認するキーです。**Cone Half Angle** プロパティを使って、コーンの角度を定義します。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Cone Half Angle** | コーンの半分の角度です。つまり、 90 度のコーンの場合、値は 45 度に設定されます。 |
+| **Observer Aborts** | [INCLUDE:#subprop3] |
+| **Cone Origin** | コーンの開始位置 (コーンの先端) です。 |
+| **Cone Direction** | コーンの底面が指す方向です。 |
+| **Observed** | コーン内部にあるかどうか確認するために使われる位置あるいはアクタです。 |
+| **Inverse Condition** | 結果を反転するかどうか (_true_ から _false_ 、 _false_ から _true)_ |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+### Cooldown
+
+![](Cooldown.png)
+
+クールダウン時間が切れるまで、ノードまたはブランチの実行をロックするノードです。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Cool Down time** | Cooldown デコレーターがこのノードの実行をロックする秒時間。 |
+| **Observer Aborts** | [INCLUDE:#subprop3] |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+### Does Path Exist
+
+![](DoesPathExist.png)
+
+パスが Blackboard Key A と Blackboard Key B の 2 つのベクターから構成できるかどうかを確認します。Blackboard Key A と Blackboard Key B です。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Blackboard Key A**| パスの最初の位置です。 |
+| **Blackboard Key B**| パスの 2 番目の位置です。 |
+| **Path Query Type** | [INCLUDE:#subprop6] |
+| **Inverse Condition** | 結果を反転するかどうか (_true_ から _false_ 、 _false_ から _true)_ |
+| **Observer Aborts** | [INCLUDE:#subprop3] |
+| **Filter Class** | どのナビゲーション データを使用すべきか？None に設定されていると、デフォルトのナビゲーション データが使用されます。 |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+<!--
+[EXCERPT:subprop6]
+| --- | --- |
+| **NavMesh Raycast 2D** | 非常に速い。 |
+| **Hierarchical Query** | 速い。 |
+| **Regular Path Finding** | 遅い。 |
+[/EXCERPT:subprop6]
+-->
+
+### Force Success
+
+![](ForceSuccess.png)
+
+Force Success デコレーターはノード結果を成功に変更します。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+
+### Keep in Cone
+
+![](KeepInCone.png)
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Cone Half Angle** | コーンの半分の角度です。つまり、 90 度のコーンの場合、値は 45 度に設定されます。 |
+| **Observer Aborts** | [INCLUDE:#subprop3] |
+| **Cone Origin** | コーンの開始位置 (コーンの先端) です。 |
+| **Observed** | コーン内部に保持する位置あるいはアクタです。 |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+### Loop 
+
+![](Loop.png)
+
+ノードあるいはブランチを回数分、あるいは無限にループさせます。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Num Loops** | 実行するループ回数です。 |
+| **Infinite Loop** | このループを無限にループさせるかどうか。 |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+### Reached Move Goal
+
+![](ReachedMoveGoal.png)
+
+(Character Movement コンポーネントのある) ポーンのパスを確認し、ポーンが移動ゴールに到達すると成功を返します。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Inverse Condition** | 結果を反転するかどうか (_true_ から _false_ 、 _false_ から _true)_ |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+### Time Limit
+
+![](TimeLimit.png)
+
+ブランチまたはノードに、停止する前または失敗する前に終了する時間量を設定するデコレーターです。ノードがフォーカスを取得する都度、タイマーはリセットされます。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Time Limit** | ノードが失敗する前の秒時間リミットです。 |
+| **Observer Aborts** | [INCLUDE:#subprop3] |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |

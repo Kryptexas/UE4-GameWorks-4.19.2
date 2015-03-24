@@ -1,0 +1,10 @@
+﻿Availability:Public
+Title:コンポーネントのレプリケーション
+Crumbs:Gameplay, Gameplay/Networking, Gameplay/Networking/Replication
+Description:ネットワーク上にレプリケーションするためのコンポーネントを設定する
+
+[OBJECT:Redirect]
+[PARAM:link]
+[](Gameplay/Networking/Replication/Components)
+[/PARAM]
+[/OBJECT]

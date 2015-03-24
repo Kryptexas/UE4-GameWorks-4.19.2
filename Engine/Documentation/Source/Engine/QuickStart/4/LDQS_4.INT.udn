@@ -1,0 +1,54 @@
+﻿Availability: Public
+Title:4. Edit Placed Actors
+Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
+Description:With some Actors in the Level, it's now time to add some variation.
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/QuickStart/3 "%Engine/QuickStart/3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/QuickStart/5 "%Engine/QuickStart/5:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+![](Engine\QuickStart\4\placeThings.png)
+
+With a number of Actors placed, it is time to edit a few of them. With the first being the **Directional Light Actor**.
+
+1. Select the **Directional Light Actor** by **Left-clicking** on it in the Viewport.
+
+	![](Engine\QuickStart\5\selectDL.png)
+
+1. In the **Details Panel** under the **Light** category, enable **Used as Atmosphere Sun Light**:
+
+	![](Engine\QuickStart\5\enableSun.png)
+
+	Depending on the rotation of your **Directional Light Actor** the sky color will change, and if you rotate the Viewport around you will see that the sun now aligns with the **Directional Light Actor**. This is a real time process so you can rotate the **Directional Light Actor** (press **E** to switch to **Rotation Mode**) and the sky will change color from night, sunrise, day time, and sunset.
+
+Now change the **Material** on one of your placed **Static Mesh Actors** by first selecting it. 
+
+1. With your Actor selected, in the **Details** panel under **Materials**, click the drop-down box under **Element 0**. 
+
+	![](material_1.png)(w:900)
+
+	In the pop-up window, select the new **Material** for the Static Mesh to use (below we selected **M_Brick_Clay_New**. 
+
+	![](material_2.png)(w:900)
+	
+1.	All **Actors** in your level have many properties for you to adjust. Explore, and when you are ready to continue, click **Next Step**. 
+
+	![](Engine\QuickStart\5\beforeBake.png)(w:900)
+
+	_Try changing the color of your lights and adding more Materials to your Actors._
+
+%Steps%

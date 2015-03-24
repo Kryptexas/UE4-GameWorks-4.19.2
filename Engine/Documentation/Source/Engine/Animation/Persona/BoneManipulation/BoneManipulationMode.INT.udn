@@ -1,0 +1,42 @@
+Availability:Public
+Title:Bone Manipulation Mode
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:Mode in Persona that allows you to translate or rotate bones while previewing animation assets.
+Related: Engine/Content/FBX/Animations
+Related: Engine/Content/Types/SkeletalMeshes
+Related: Engine/Animation/PhysicallyDrivenAnimation
+Related: Engine/Content/Tools/MayaRiggingTool
+
+**Bone Manipulation Mode** is a mode in Persona in which technical artists can temporarily translate or rotate bones in order to look for skinning issues in a Skeletal Mesh while previewing animations.
+
+![Bone Manipulation Mode](Bones_TwoViews.png)
+
+**To manipulate bones:**
+1. Open a Skeletal Mesh asset in Persona.
+1. Select an animation asset from the list in the **Asset Browser** to make Bone Manipulation Mode available. You can do this in **Skeleton**, **Mesh**, or **Animation** mode. (You may want to pause the animation before manipulating the bone.)
+
+	![](Bones_SelectAnimation.png)
+1. Select the bone you want to manipulate in the **Skeleton Tree** panel.
+
+	![](Bones_SelectBone.png)
+1. At the top of the **Viewport** panel, select the translation or rotation icon to activate its widget.
+
+	![Translation Widgets](Bones_Widgets.png)
+1. Using the widget that appears, translate or rotate the bone.
+1. Play the animation and look for any skinning issues.
+
+For more information about using translation and rotation widgets, see [Interactive Transformation](Engine/Actors/Transform\#InteractiveTransformation).
+
+[REGION:note]
+After you have manipulated the bone, the manipulation persists when you select different animation assets, so you can preview the change with different animations.
+[/REGION]
+
+**To return a bone to its default translation and rotation values:**
+
+* Select a different bone in the **Skeleton Tree**.
+
+[REGION:tip]
+For an example of **Bone Scaling** applied to a character, you can reference the [Animation Content Examples](Resources\ContentExamples\Animation) page under section 1.7.
+[/REGION]
+
+

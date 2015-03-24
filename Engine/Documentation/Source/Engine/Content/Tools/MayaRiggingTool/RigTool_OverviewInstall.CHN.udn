@@ -1,0 +1,101 @@
+﻿Availability: Public
+Title:Maya动画绑定工具集
+Crumbs: %ROOT%, Engine, Engine/Content
+Description:Maya动画绑定工具集概述
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Tools/MayaRiggingTool:title%](Rigging_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/anim_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Tools/MayaRiggingTool:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Tools/MayaRiggingTool:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Tools/MayaRiggingTool]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:raw]
+![](CharacterSetupImage.jpg)
+[/REGION]
+
+
+## 概述
+
+[EXCERPT:Intro]
+动画绑定工具集 (A.R.T)是一个全面的工具集，可以处理角色的骨架创建、骨架放置、rig(定位标尺)创建，同时还包含很多动画工具，从而可以加速动画师的工作流程，目前针对Maya 2013版本进行的测试及确认。功能包括：
+
+* 直观的用户界面引导用户操作每一步
+* 完成骨架创建。
+* 通过直观地控制rig（定位标尺）的位置来自定义骨架的放置位置。
+* **用不到一分钟的时间** 就可以发布整个rig（定位标尺），并将其发送给动画团队
+* 提供了给最终角色进行简单贴图的功能。
+* 具有用户界面的完整的动画工具，包括导入运动捕获数据或动画数据、导出数据到FBX、姿势工具、镜像、空间切换等！
+[/EXCERPT:Intro]
+
+[REGION:note]
+ART最初是Epic动画团队的内部工具。目前，它主要针对类人的两足角色进行优化。然而，该工具集将不断地改进，以处理更广泛的角色。
+[/REGION]
+
+
+## 安装说明
+
+
+1. 在您的UE4安装目录中定位这个文件，一般位于 **UE4/Engine/Extras/Maya_AnimationRiggingTools** 。
+
+1. 将 **userSetup.py** 文件(位于 _Engine\Extras\Maya_AnimationRiggingTools\MayaTools_ 中)复制到您的 **Maya脚本目录**  (一般是 _C:\Users\user.name\Documents\maya\scripts_) 。很可能会要求您覆盖现有文件。除非你自己进行了修改，否则覆盖就好。如果在您的任何其他脚本文件夹中有任何其他的userSetup.py实例，请删除它们。
+
+	[REGION:warning]
+	如果您已经使用了一个自定义的userSetup.py文件，请让您的技术总监把此工具中提供的文件的内容同您自己的文件融合起来。
+	[/REGION]
+
+1. 启动Maya。
+
+1. 初次使用时，将提示一个Maya工具安装对话框，要求您定位MayaTools目录的位置。该目录和您放置 _userSetup.py_ 文件的目录一样： _UE4/Engine/Extras/Maya_AnimationRiggingTools_.
+
+	![](MayaToolInstallWindow.png)
+
+1. 现在，您将会在您的maya菜单条的顶部看到一个Epic Games菜单。享用吧！
+
+	![](MayaMenu.png)
+
+
+[PUBLISH:licensee]
+[REGION:warning]
+如果您正在使用源码控制工具，比如Perforce，那么您需要把您的客户端规格文件行尾结束符号设置为unix而不是local。因为由于某些原因，把它设置为local将会中断文本文件格式化，这将会导致产生错误。您可以稍后强制进行同步来应用这些修改。
+
+要想在P4Ｖ上进行这个处理，请使用 **Connection（连接） -> Edit Current Workspace（编辑当前工作区）** 。
+
+![](PerforceSetting.png)
+
+
+[/REGION]
+[/PUBLISH:licensee]
+
+## 使用该工具集
+
+ART分为两种模式：Rigging（绑定） 和Animation（动画）, 每种模式具有不同的界面。如果一个角色要使用ART Animation界面，那么则必须使用Rigging界面来制作该角色。
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/anim_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		动画 & 绑定工具
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Tools/MayaRiggingTool/RigTool_Rigging) - %Engine/Content/Tools/MayaRiggingTool/RigTool_Rigging:Description%
+		* [](Engine/Content/Tools/MayaRiggingTool/RigTool_Animation) - %Engine/Content/Tools/MayaRiggingTool/RigTool_Animation:Description%
+		
+	[/PARAM]
+[/OBJECT]

@@ -1,0 +1,68 @@
+﻿Availability: Docs
+Title: 设置贴图LOD组的命令行开关
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description:该命令行开关将迭代应用的所有贴图，并确保它们都正在使用适当的LODGroup（LOD组）。
+
+[REGION:todo]
+	本文从虚幻引擎3中转换而来，目前正在审阅中。有些信息可能过期了。
+[/REGION]
+
+[TOC(start:2)]
+
+## 主旨概述
+
+确保贴图在正确的LOD组中，并修复错误的贴图设置。
+
+
+
+## 详细动机
+
+所有的贴图都是TextureGroup的一部分。TextureGroup指定的很多事情包括：  Min/Max(最小/最大)尺寸, LODBias(LOD偏移)和Filtering(过滤)。
+
+您应该确保贴图在正确的组中以便它们不会乱用贴图池。
+
+通常，会有很多贴图并且通常对它们的分类都错误的。另外，有时候它们的贴图类型设置也是错误的。(比如，它们是法线贴图，但是没有压缩！)
+
+要想修复这些大量的问题，我可以使用SetTextureLODGroup命令行开关，该命令行开关将设置TextureLODGroups、LODBias并根据贴图的类型修复贴图的错误设置(比如，法线贴图)。
+
+
+
+## 操作
+
+要通过一个命令提示窗口运行这个命令行开关，请浏览到  _UnrealEngine3\Binaries_ 目录。
+
+
+### 语法
+
+语法如下所示：
+
+    [GameName].exe SetTextureLODGroup 
+
+
+## 如何 使用/打开 
+
+注意：  您可以让程序员查看一下这个命令行开关的代码，看一下它是如何推断出贴图组的。
+
+请查找一些关于贴图组的更多信息:
+
+
+* DefaultEngine.ini  SystemSettings
+* Texture.uc  enum TextureGroup
+
+
+
+一般，如果您以良好的方式定义您的内容结构，那么您会从贴图的存放位置获得很多语义提供的细节信息。我们将使用它来确保贴图放置在正确的TextureGroup(贴图组)中。
+
+
+
+##  详细示例
+
+某个人已经导入了一个将要用于手枪子弹粒子特效的新贴图。默认情况下它的贴图组是World。那个人忘记了正确地设置那个贴图的TextureGroup(贴图组)。贴图将还是1024x1024的大小，因为那个炮弹粒子特效看上去很酷！ 但是在贴图池中我们需要付出1024x1024大小的内存。
+
+当运行SetTextureLODGroupCommandlet时，它将会把贴图设置到Effects组中，该组具有小于1024的MaxLODSize。这会导致基本上不需要花费任何努力便可以节约贴图池。
+
+ 
+
+
+
+

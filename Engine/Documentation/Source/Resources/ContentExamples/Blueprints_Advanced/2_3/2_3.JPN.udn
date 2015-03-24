@@ -1,0 +1,78 @@
+﻿INTSourceChangelist:2346368
+Availability:Public
+Title:2.3 - ブループリント インターフェース
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
+Description:高度なブループリント事例レベルの概要 例 2.3:ブループリント インターフェース
+Related: Engine/Blueprints/Overview 
+Related: Engine/Blueprints/UserGuide/Types/Interface
+Related: Engine/Blueprints/UserGuide/Variables
+Related: Engine/Blueprints/UserGuide/BlueprintComms
+Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
+Related: Engine/Animation/AnimBlueprints/EventGraph
+Related: Engine/Blueprints/UserGuide/UserConstructionScript
+Related: Gameplay/HowTo/SetUpInput/Blueprints
+
+
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\Blueprints_Advanced\2_3:title%](blueprint_advanced_2_3_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\Blueprints_Advanced\2_3:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\Blueprints_Advanced\2_3:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\Blueprints_Advanced\2_3]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+
+![](blueprint_advanced_2_3.png)
+
+## 概要
+
+[ブループリントインターフェース](Engine/Blueprints\UserGuide\Types\Interface) は、 1 つの _ブループリント_ が別の _ブループリント_ のイベントや関数をトリガできるようにします。この 2 つの _ブループリント_ は両方とも、 **Blueprint Properties** の中に _ブループリント インターフェース_ を実装していなければなりません。
+この例では、 **BP_Button** _ブループリント_ が **BP_Gears** _ブループリント_ のギアのスピンを開始または停止させます。
+
+
+2 つの独立した _ブループリント_ について説明します。トリガーとして使用するボックス コンポーネントのあるボタン _ブループリント_ と、ギアのコレクションで構成されていてボタンの押下中に回転を開始する _ブループリント_ という 2 つの別々のブループリントがあります。3 つ目のアセットである _ブループリント インターフェース_ は、ある _ブループリント_ から別のブループリントへ情報を送る手段として使用します。 
+
+
+## Button ブループリント
+
+[REGION:lightbox]
+[![](AdvBP_2_3_Btn_EventGraph.png)](AdvBP_2_3_Btn_EventGraph.png)
+[/REGION]
+[REGION:caption]
+フルサイズ表示するには、**右クリック** または [Save As] を選択します。
+[/REGION]
+
+Shape コンポーネントは、ボックス、カプセル、または球のいずれかで、主にコリジョン検知に使用されるシンプルな形状のコンポーネントです。**BP_Button** のボックス コンポーネントはポーンをオーバーラップするためだけに設定されるので、スクリプトの **OnComponentBeginOverlap** イベントはポーンがボックスに触れた時に発行のみします。
+
+**Toggle** interface message ノードには、 **Target** ピンに接続された **Target Blueprint** _アクタ_ 変数があります。**Target Blueprint** 変数はパブリックで、レベル内に配置されたボタンのインスタンスに対し **BP_Gears** を設定します。その結果、これらの Interface message ノードは **BP_Gears** _ブループリント_ にある **Toggle** イベントを実行します。
+
+
+## BP_Gears
+
+
+[REGION:lightbox]
+[![](AdvBP_2_3_Grs_EventGraph.png)](AdvBP_2_3_Grs_EventGraph.png)
+[/REGION]
+[REGION:caption]
+フルサイズ表示するには、**右クリック** または [Save As] を選択します。
+[/REGION]
+
+ギア _ブループリント_ は、ギア _Static Mesh Components_ の回転を開始または終了させるノードに接続された、特別な **Toggle** インターフェース イベントの形でインターフェースを実装します。このイベントは、 **BP_Button** の **Toggle** interface message によりトリガされます。
+
+Interface 変数は、これらの _ブループリント_ に使用するインターフェースはまた BOOL 変数の出力もします。インターフェース イベントの発行時における回転の中止または開始の指示をギア _ブループリント_に出すために使用します。インターフェースは、 _ブループリント_ 間での双方向の情報の受け渡しに便利なイベントと呼ばれる _ブループリント_ へ変数も返します。
+
+このケースでは、 **Target** _ブループリント_ の実装はイベントではなく関数で行われます。
+
+[/REGION]

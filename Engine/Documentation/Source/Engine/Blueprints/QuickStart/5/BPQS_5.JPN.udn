@@ -1,0 +1,55 @@
+﻿INTSourceChangelist:2449235
+Availability:Public
+Title:5.オーバーラップ アクタのテスト
+Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
+Description:レベルにアクタがいくつか作成されたのでバリエーションを追加してみましょう。
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/Blueprints/QuickStart/4 "%Engine/Blueprints/QuickStart/4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/Blueprints/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/Blueprints/QuickStart/6 "%Engine/Blueprints/QuickStart/6:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+ボックストリガーとオーバーラップしているものを確認します。Other Actorが独自のPlayer Pawn かどうかを確認します。
+
+1. Other Actor ピンを引き出します。
+1. **Equals (Object)** を選択します。
+
+**Equals** ノードの別の入力として **Side Scroller Char** を設定することもできますが、Characterを変更した場合にこれを手動で更新しなくてはいけません。代わりに
+現在のPlayer Pawn への参照を取得します。
+
+1. グラフの空の領域を右クリックします。
+1. 検索バーに「Pawn」と入力します。
+1. コンテクストメニューから **Get Player Pawn** を選択します。
+1. **Get Player Pawn** の **Return Value** 出力を **Equals** ノードの2番目の入力と接続します。
+
+Other Actor が自身のPlayer Pawn であった場合にその由を伝えるノードを作成したので、答えに基づいてグラフの実行フローを変更します。つまりOn Component Begin Overlapノードから去る時に
+実行フローを管理します。
+
+そのためFlow Control ノードを使用します。具体的には **Branch** ノードを使用します。 
+
+1. **OnComponentBeginOverlap** ノードの実行ピンをドラッグして引き出します。 
+1. 検索バーに「Branch」と入力します。
+1. コンテクストメニューから **Branch** を選択します。
+1. **Equals** ノードの出力ピンを **Branch** ノードの出力Booleanピンと接続します。
+
+次にボックスコンポーネントにオーバーラップしているアクタを仮定して、キャラクターを起動するBlueprintノードを設定します。
+
+
+---
+
+%Steps%

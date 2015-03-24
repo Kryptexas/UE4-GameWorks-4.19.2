@@ -1,0 +1,71 @@
+﻿INTSourceChangelist:2346120
+Availability:Public
+Title:モーフターゲットのコンテンツ事例
+Crumbs: %ROOT%, Resources, Resources/ContentExamples
+Description:モーフターゲットのコンテンツ事例で提供されるサンプルの概要
+Related:Engine/Content/Types/StaticMeshes/MorphTargets
+Related:Engine/Content/FBX/MorphTargets
+Related:Engine/Animation/Persona/MorphTargetPreviewer
+Related:Engine/Content/FBX
+
+[REGION:banner]
+![](MorphTargets_Header.png)(convert:false)
+[/REGION]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/MorphTargets:title%](MorphTargets_Compact.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/MorphTargets:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/MorphTargets:description%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/MorphTargets]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/MorphTargets:title%](MorphTargets_Compact.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/MorphTargets:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/MorphTargets]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:2)]
+
+
+## 概要
+
+**モーフ ターゲット** マップの中にあるコンテンツ事例では **スタティック メッシュ** を使って **モーフ ターゲット** で **スケルタル メッシュ** のオブジェクト間のブレンドあるいは **スケルタル メッシュ** のアスペクトのスケールが可能かを実演します。 
+このマップには、基本的な **モーフ ターゲット** 設定から、 **モーフ ターゲット** に一致させるための **マテリアル** の操作、 **スケルタル メッシュ** の顔の特徴の縮小拡大に関する 5 つのサンプルが含まれています。 
+
+
+## モーフターゲット マップ
+
+![](MorphTargets_Topic.png)(w:640)
+
+**モーフターゲット** マップで提供されているサンプルは以下の通りです。
+
+| 例 | 実演内容 |
+| ------- | ------------ |
+| **1.1 Basic Morph Target** | アニメーション シーケンスのついた非常に基本的な **モーフ ターゲット** のサンプル (球体にモーフィングするキューブ)。 |
+| **1.2 Morph Target Assets** | **モーフ ターゲット** を使う必要のあるアセット(**FBX Skeletal Mesh** 、 **スケルトン** 、 **物理アセット** 、 **アニメーション シーケンス** 、プロパティの **Used with Morph Targets** にチェックが入っている **マテリアル**)。 |
+| **1.3 Morphing Material Settings** | マテリアル間でのモーフィング方法を実演します (球体にモーフィングしそのマテリアルを変更するキューブ)。 |
+| **1.4 Vertex Normals** | カスタム化された **Vertex Normals** の **Morph Targets** での使用方法の説明です。 |
+| **1.5 Morph Targets on Skeletal Mesh** | **スケルタル メッシュ** が **モーフ ターゲット** を使用して顔の特徴を操作する方法を説明します (Owen character の鼻のサイズを縮小 / 拡大する)。 |
+
+
+
+

@@ -1,0 +1,32 @@
+Availability:Public
+Title: Blueprint Editor Defaults Tab
+Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/Modes
+Description:An overview of the Blueprints Defaults tab
+
+[TOC (start:2)]
+
+## Overview
+
+The **Class Defaults** tab contains information about the Blueprint's default settings and properties, and about any variables the Blueprint contains. You can modify these settings to suit your needs.
+
+[REGION:raw]
+![](BP_DefaultsTab.png)
+[/REGION]
+
+The **Class Defaults** tab contains the following sections:
+
+| Item | Description |
+| ---- | ----------- |
+| **Default** | Lists any variables and their values if you do not specify a different category than **Default** when you create them. Note that you must compile the Blueprint in order to display its variables on the **Class Defaults** tab. |
+| **Rendering** | Contains information about properties related to how (and whether) an Actor based on the Blueprint is rendered in the game. |
+| **Replication** | Contains information about properties that dictate how your Actor behaves in a networked game, such as its network priority and relevancy to other clients. |
+| **Input** | Contains information about how Actors based on this Blueprint respond to input. |
+| **Actor** | Contains information about Actors based on this Blueprint, such as whether they can be damaged. Note that for Level Blueprints, only the **Tags** properties are relevant in this section. |
+
+
+[REGION:note]
+If you create custom categories for variables, the **Class Defaults** tab will display those categories too, after the Blueprint is compiled.
+[/REGION]
+
+
+

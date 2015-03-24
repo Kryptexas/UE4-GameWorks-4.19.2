@@ -1,0 +1,83 @@
+﻿INTSourceChangelist:1806519
+Title: 材质参数集合
+Availability: Public
+Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/Materials
+Description:存储了可在任何材质中被引用的任意标量和向量参数的资源。
+
+名称为 **MaterialParameterCollection** 的资源存储了可以在任何材质中被引用的任意[标量参数和向量参数](Engine/Rendering/Materials\MaterialInstances#CreatingParameterizedMaterials)。 这是一个强有力的工具，美工可以用来得到全局数据并一次输入到多种材质中。 同时可被用来驱动每个关卡的特效，例如雪量，销毁量，湿度等，否则需要在您的关卡中对许多不同的MaterialInstances（材质实例）设置单独的参数值。
+
+![](GlobalParams1.png)(w:465) ![](GlobalParams2.png)(w:465)
+
+在以上实例中，全局变量被用来控制场景的以下内容：
+
+* 控制花的顶点变形状态以及风速和风的强度。
+* 追溯玩家的位置并将其注入植被。 此位置信息被用来移动花和草，当玩家在附近走动时使其远离玩家。 
+* 同时追溯太阳角度和颜色，并将其用来正确地对水芥进行上色，并仅在光照直射水芥时限制特效(此时玩家转向阳光方向）。 
+* 同时控制整个白天的特效上色和水面的总体漫发射光照颜色。 
+
+## 创建参数集合
+
+MaterialParameterCollections通过 **新建** 菜单的[**内容浏览器**](Engine/Content/Browser)来创建 
+或右键点击关联菜单。
+
+**创建材质参数集合:**
+
+1. 在 **内容浏览器** 中右击鼠标并选择 **新建材质参数集合** 。 
+1. 双击资源来为此打开属性窗口。  
+
+	![](properties.png)
+
+1. 点击标量参数或向量参数旁的![Plus Button](button_add_param.png)来创建您想要在材质中访问的新参数。  
+
+	![](properties_add.png)
+
+## 连接参数集合到材质
+
+通过把内容浏览器的资源拖动到材质编辑器来打开材质并放置新的 **集合参数** 节点。 您也可以在材质编辑器节点区域右击，选择 **参数>集合参数** 。
+
+现在使用资源拾取器或选择 **内容浏览器** 中的资源来为新节点定义MaterialParameterCollection资源，然后在 **集合** 属性下点击![Use Selected](button_use_selected.png)按键来分配。 这是对您想要访问的参数资源的引用。
+
+当您分配了MaterialParameterCollection（材质参数集合)后，您需要定义您想要访问的参数。 **ParameterName** (参数名称）下拉菜单会自动弹出，可设置引用集合的所有包含的参数。 从列表中选择参数即可。
+
+现在连接参数来进行创作！ 在下方的简单示例中，材质已设置好，这样 **GlobalDesaturation** （全局去饱和度）函数会降低漫反射颜色的饱和度。 当所有材质均被如此设置后，美工可以很容易对场景中所有材质的漫反射的不同去饱和度设置进行可视化。
+
+[REGION:fullwidth]
+![](hookup.png)
+[/REGION]
+
+## 通过蓝图更新参数
+
+在蓝图中，相关函数可以在调色板的 **材质集合** 中找到。
+
+![](pallette.png)
+
+在此示例中我们会放置一个 **设置标量参数值**  节点。 我们随后可以对之前创建的材质参数集合资源的 **集合** 引脚设置默认值。
+
+[REGION:fullwidth]
+![](set_reference.png)
+[/REGION]
+
+下一步我们需要定义ParameterName(参数名称）。 现在集合已被设定，ParameterName(参数名称）拥有仅带效选项的下拉框：
+
+[REGION:fullwidth]
+![](set_param.png)
+[/REGION]
+
+蓝图已经设置为在游戏开始时，分配蓝图的 **Desaturation** （去饱和度）变量到集合的 **GlobalDesaturation** （全局去饱和度） 参数。
+
+通过蓝图设置的值仅存在于当前被模拟的世界中。 这意味着在编辑器对话中进行游戏会修改集合参数，但不会对编辑器中所显示的材质进行修改。
+
+[REGION:note]
+从同一蓝图中设置所有的材质参数集合通常是个好主意，否则要记住在哪里设置值是比较困难的，因为这些值是全局变量。
+[/REGION]
+
+## 限制及性能特征 
+
+同一材质可以引用最多2种不同的MaterialParameterCollections(材质参数集合）。 一种主要用来作为游戏范围内的值，另一种作为关卡特定参数。 一个集合最多可以有1024个标量参数和1024个向量参数。
+
+在集合中修改参数的数字将会导致所有引用此集合的材质进行重新编译。 
+如果您需要添加许多参数，则可以在空白的地图中添加多种参数，这样更快一些。
+
+如果您重命名一个参数，任何引用该参数的材质会继续按预期运作。 但是，任何引用该参数的蓝图会被销毁。 您必须重新分配集合中的蓝图函数的ParameterName（参数名称）来修复这个问题。 
+
+在MaterialParameterCollection（材质参数集合）中更新值是非常有效的，比起在诸多材质实例中设置许多不同的参数要高效多了。

@@ -1,0 +1,38 @@
+﻿INTSourceChangelist:2182145
+Availability:Public
+Title:ペルソナのリターゲット ソース マネージャ
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:ペルソナ アニメーションエディタのリターゲット ソース マネージャーのユーザーガイド
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/AssetBrowser:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/BasePoseManager:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/BasePoseManager:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/BasePoseManager]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+ペルソナ (Persona) のリターゲット ソース マネージャーは、特定スケルトンの潜在的なベースポーズのリスト作成を有効にします。複数のスケルタルメッシュと使用するスケルトンのリターゲットに役立ちます。
+
+![](BasePoseManager.png)
+
+**リファレンスにリターゲット ソースを追加する方法**
+
+1. リターゲット ソース マネージャを **右クリック** して、 **[追加]** をクリックします。
+1. リストから使用するベースポーズのスケルタルメッシュを選択します。
+
+[region:note]
+**リターゲット ソース マネージャー** にベースポーズを追加した後に、 **[Base Pose]** ドロップダウンリストの **[アニメーション]** 配下の **[アニメーションアセットの詳細]** パネルで、これを特定のアニメーションアセットに選択することができます。
+[/region]

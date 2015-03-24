@@ -1,0 +1,88 @@
+Availability: Docs
+Title: Content Audit Commandlet
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description:Commandlet for analyzing content used int he game to find questionable assets.
+
+[REGION:todo]
+	This page is converted from Unreal Engine 3 documentation and currently being reviewed. Information may be outdated.
+[/REGION]
+
+[TOC(start:2)]
+
+## Purpose One Liner
+
+Finds "questionable" content that should be looked at and probably fixed.
+
+
+
+## Detailed Motivation
+
+In optimizing our content to get the biggest bang for the cost, we have come up with a number of "rules" that content should follow/adhere to.   The ContentAudit Commandlet will look at the content for an entire game and then report (via tags) which content is questionable/has broken the rules.
+
+
+
+## Operation
+
+To run this commandlet, from a command prompt window, navigate to the _UnrealEngine3\Binaries_ directory.
+
+
+### Syntax
+
+The syntax is as follows:
+
+    [GameName].exe ContentAuditCommandlet
+    
+
+## How to use / turn on
+
+Running GAMENAME ContentAuditCommandlet each night is probably the best method for making certain that the tags are up to date.
+
+The content that is not following the "rules" is exposed in the **Content Browser** via tags.
+
+For each "rule", we have a tag that represents that "rule".  Each tag also has a _whitelist tag.  The idea is that some "questionable" content is actually valid.  
+
+ContentAuditCommandlet will also output a list of all of the Audit tags and their count.  This allows for trending via your production staff.  The goal is to have a ZERO count in each section.
+
+Further notes:  Over time the _whitelist will probably gain more and more "entries".  So you will want to do an "audit" of each _whitelist to make certain that things in there are actually should be.   If you find your _whitelist with a huge amount of entries then you will probably want to look at why so many assets are tagged that way (perhaps a better "rule" needs to exist to remove the always whitelisted objects).
+
+
+
+## Detailed Example(s)
+
+Example:  G8 textures are really expensive in terms of memory.  G8 textures can usually be replaced by DXT1 with no loss of quality.
+
+Example:  A texture is a G8 and is using a bunch of memory, but it actually needs to be a G8.  So we will "whitelist" that asset by tagging it with Texture_G8_Whitelist.  Basically, that means someone has looked at that texture and deemed it valid.
+
+Here are some of the things that that ContentAuditCommandlet checks for:
+
+
+* Texture_NormalmapNonDXT1CompressionNoAlphaIsTrue
+* Texture_LODBiasIsNegative
+* Texture_NeverStream
+* Texture_G8
+
+* Material_MissingPhysicalMaterial
+
+* PhysAsset_MissingPhysicalMaterial
+
+* Particle_BadFixedRelativeBoundingBox
+* Particle_MissingFixedRelativeBoundingBox
+
+* SoundCue_DiconnectedSoundNodes
+* SoundCue_MoreThan3Waves
+* SoundCue_HasMixerWithMoreThan2Children
+* SoundCue_NoSoundClass
+* SoundCue_IncorrectAmbientSoundClass
+
+* SoundWave_QualityHigherThan40
+
+* StaticMesh_WithMissingUVSets
+* StaticMesh_WithBadUVSets
+* StaticMesh_EmptySections
+
+ 
+
+
+
+
+

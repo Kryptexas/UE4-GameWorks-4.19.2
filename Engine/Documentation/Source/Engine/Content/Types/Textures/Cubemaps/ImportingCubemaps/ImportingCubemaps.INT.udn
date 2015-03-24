@@ -1,0 +1,18 @@
+Availability:Public
+Title:Importing Cubemaps
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
+Description:How to import cubemaps into Unreal Engine 4.
+
+## Overview
+
+This document goes over how to import cubemaps into Unreal Engine 4.
+
+## Importing Cubemaps
+
+To import your Cubemap image, go to the **Content Browser** and click **Import**. Find your file and click **Open**.
+
+[REGION:raw]
+![](ContentBrowserImport.png)(convert:false)
+[/REGION]
+
+Alternatively, you can click and drag images directly into the **Content Browser**.

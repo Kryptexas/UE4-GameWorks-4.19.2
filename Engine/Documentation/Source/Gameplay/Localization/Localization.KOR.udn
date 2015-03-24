@@ -1,0 +1,35 @@
+﻿INTSourceChangelist:2342809
+Availability:Public
+Title: 현지화
+Crumbs:%ROOT%, Gameplay
+Description:프로젝트를 현지화하는 방법에 대한 정보입니다.
+Related: Programming/UnrealArchitecture/StringHandling/FText
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/font_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	텍스트 현지화
+	[/PARAM]
+	[PARAM:links]
+	* [개요](Gameplay/Localization/Overview "%Gameplay/Localization/Overview:description%")
+	* [셋업](Gameplay/Localization/Setup "%Gameplay/Localization/Setup:description%")
+	* [커맨드렛](Gameplay/Localization/Commandlets "%Gameplay/Localization/Commandlets:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/cb_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	애셋 현지화
+	[/PARAM]
+	[PARAM:links]
+	[REGION:tip]
+	애셋 현지화는 제대로 된 오디오 현지화 지원 직전 추후 도입될 예정입니다.
+	전체 uasset 패키지를 현지화 적용 버전으로 교환하는 식으로 구현될 것입니다.
+	[/REGION:tip]
+	[/PARAM]
+[/OBJECT]

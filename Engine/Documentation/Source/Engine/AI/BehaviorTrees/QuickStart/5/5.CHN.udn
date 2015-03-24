@@ -1,0 +1,44 @@
+﻿Title: 5. 设置黑板资源
+Crumbs:%ROOT%, Engine, Engine/AI/BehaviorTrees/QuickStart
+Description:Step 5. 设置黑板资源
+Availability:Public
+
+[VAR:Steps]
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		步骤
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [前一步 - %Engine/AI/BehaviorTrees/QuickStart/4:Title%](Engine/AI/BehaviorTrees/QuickStart/4 "%Engine/AI/BehaviorTrees/QuickStart/4:description%")
+		* **%Engine/AI/BehaviorTrees/QuickStart/5:Title%**
+		* [下一步 - %Engine/AI/BehaviorTrees/QuickStart/6:Title%](Engine/AI/BehaviorTrees/QuickStart/6 "%Engine/AI/BehaviorTrees/QuickStart/6:description%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+**Blackboard（黑板）** 资源存储了一个特定AI控制器实例所需的所有数据，该AI控制器将由 **行为树** 引用。
+
+![](BBAsset.png)
+
+1. 在内容浏览器中双击黑板资源。
+1. 使用 **New Key（新建关键帧）** 按钮![](newKey_button.png)，添加一个 **Object** 值，命名为 **TargetToFollow** 。
+1. 添加一个 **Vector（向量）** 值， 命名为  **HomeLocation** 。
+1. 添加一个 **Vector（向量）** 值， 命名为  **TargetLocation** 。
+
+	![](finalBB.png)
+
+1. 保存您的 **Blackboard（黑板）** 资源。
+
+
+---
+
+%Steps%

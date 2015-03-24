@@ -1,0 +1,85 @@
+﻿INTSourceChangelist:2291853
+Availability:Public
+Title:マチネ & シネマティクス
+Crumbs: %ROOT%, Engine
+Description:動的なゲームプレイあるいはシネマティックなインゲームを作成するために、時間の経過と共にアクタのプロパティをアニメートすることができるアニメーション ツールです。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Matinee:title%](Engine/Matinee/matinee_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/cine_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Matinee:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Matinee:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Matinee]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Matinee:title%](Engine/Matinee/matinee_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/cine_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Matinee:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Matinee:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Matinee]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![matinee.jpg](matinee_landing_banner.png)
+[/REGION]
+
+[EXCERPt:Intro]
+[INCLUDE:Shared/Glossary/M/#Glossary_Matinee]
+[/EXCERPT:Intro]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		必須情報
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [Matinee ツールの使用](Engine/Matinee/UserGuide "%Engine/Matinee/UserGuide:description%")
+		* [](Engine/Matinee/UserGuide/BlueprintComponents "%Engine/Matinee/UserGuide/BlueprintComponents:description%")
+		* [](Engine/Matinee/UI "%Engine/Matinee/UI:description%")
+		* [](Engine/Matinee/TrackReference) - %Engine/Matinee/TrackReference:description%
+		* [](Engine/Matinee/UI "%Engine/Matinee/HowTo:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/related_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		関連リンク
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/UI/CurveEditor "%Engine/UI/CurveEditor:description%")
+	[/PARAM]
+[/OBJECT]
+

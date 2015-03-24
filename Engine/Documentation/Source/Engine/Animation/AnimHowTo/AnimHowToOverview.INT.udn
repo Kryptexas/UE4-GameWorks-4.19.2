@@ -1,0 +1,27 @@
+Availability: Public
+Title:Animation - How To...
+Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
+Description:Examples of different aspects of the Animation system in Unreal Engine 4 are demonstrated through several step-by-step How To guides.
+
+The **Animation - How To...** pages provide several step-by-step examples of how to work with and use different aspects of the Animation system in Unreal Engine 4. Whether you are new to Animation in UE4 or want to learn how to work with certain aspects of the Animation system, the How To pages below cover a broad range of topics and should give you a place to start or expand upon your current knowledge. 
+
+Refer to the table below for more information and click each link to view its contents. 
+
+|How To... | Description |
+| ------- | ------------ |
+| **[](Engine\Animation\AnimHowTo\PreviewingAnimations)** | %Engine\Animation\AnimHowTo\PreviewingAnimations:description% |
+| **[](Engine\Animation\AnimHowTo\Retargeting)** | %Engine\Animation\AnimHowTo\Retargeting:description% |
+| **[](Engine\Animation\AnimHowTo\AdditiveAnimations)** | %Engine\Animation\AnimHowTo\AdditiveAnimations:description% |
+| **[](Engine\Animation\AnimHowTo\AimOffset)** | %Engine\Animation\AnimHowTo\AimOffset:description% |
+| **[](Engine\Animation\AnimHowTo\BlendSpace)** | %Engine\Animation\AnimHowTo\BlendSpace:description% |
+<!-- Add this for 4.7 release as it is a 4.7 feature. 
+| **[](Engine\Animation\AnimHowTo\LayerEditing)** | %Engine\Animation\AnimHowTo\LayerEditing:description% |
+-->
+
+
+
+
+
+
+
+

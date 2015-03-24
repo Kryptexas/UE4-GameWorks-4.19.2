@@ -1,0 +1,24 @@
+﻿INTSourceChangelist:1547582
+Availability: Public
+Title:Developers 文件夹
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description: 本文介绍了内容浏览器源面板中的Developers文件夹的用途。
+
+
+## 概述
+
+![DevelopersFolder.png](DevelopersFolder.png)(w:220)
+
+%Description%
+
+在资源区域下面的Game文件夹中，您将会看到Developers文件夹。该文件夹包含了研发人员当前正在处理的所有资源。当尝试新技术和资源时，这创造了一个非常有用的合作环境。但是，请务必记住以下这些规则：
+
+1. %RED%**这个文件夹仅用于您自己个人研究、实验及测试工作**%ENDCOLOR%, 因为这允许您在不干扰游戏其他方面的情况下进行测试。
+ 
+2. 由于这个文件夹严格限制为个人工作内容，所以请不要在该文件夹之外的任何地方引用这个文件夹中的内容。
+
+3. 可以把您的开发者文件夹想象成为一种必须同您的游戏制作的其他部分相隔离的沙箱环境。
+ 
+4. 您的开发者文件夹的名称和您的Windows用户名一致，去除了任何非法字符，比如空格或句号。
+ 
+5. **仅当你正在使用Source Control(源码控制)且其他开发者激活了 "Show Other Developers（显示其他开发者）" 复选框** 时，其他开发者才能看到您的文件夹中的资源。"Show Other Developers（显示其他开发者）" 复选框位于内容浏览器右侧的Status（状态）过滤器中。

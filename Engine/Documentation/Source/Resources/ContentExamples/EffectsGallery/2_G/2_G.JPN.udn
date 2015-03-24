@@ -1,0 +1,64 @@
+﻿INTSourceChangelist:2346406
+Availability:Public
+Title:2.7 - CPU パーティクルから動的ライトの放出
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
+Description:エフェクト ギャラリーの事例概要
+Related: Engine/Rendering/ParticleSystems/ParticleLights
+Related: Engine/Rendering/ParticleSystems/Overview
+Related: Engine/Rendering/ParticleSystems/Reference
+Related: Engine/Rendering/ParticleSystems/Optimization
+Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
+Related: Engine/Rendering/ParticleSystems/ParticleLights
+Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\EffectsGallery\2_G:title%](%ROOT%\Resources\ContentExamples\EffectsGallery\2_G\2_GTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\EffectsGallery\2_G:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\EffectsGallery\2_G:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\EffectsGallery\2_G]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources\ContentExamples\EffectsGallery\2_G:title%](%ROOT%\Resources\ContentExamples\EffectsGallery\2_G\2_GTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\EffectsGallery\2_G:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\EffectsGallery\2_G:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\EffectsGallery\2_G]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+![](image074.png)
+[/REGION]
+
+アンリアル エンジンの極めて有益なパーティクル機能の 1 つに CPU パーティクルからライトを放出させる能力があります。エミッタに Light モジュールを追加することにより、エミッタから放出されるパーティクルは動的ライトをスポーンすることもできます。モジュールのプロパティを使用してライトの明度や半径などを制御できます。
+
+![](image076.png)
+
+[REGION:warning]
+独自のライトを作成するパーティクルの割合を制御することはできますが (つまりたった 50％ のパーティクルで実際にライトを作成することができます) 、この効果は急速にコストが高くなります。もっと少ないパーティクルをスポーンし、その際に Light モジュールを使用する別 (複写) のエミッタを設定することは珍しくありません。 
+[/REGION]
+

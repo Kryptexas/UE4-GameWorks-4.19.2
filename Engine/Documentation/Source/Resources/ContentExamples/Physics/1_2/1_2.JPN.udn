@@ -1,0 +1,63 @@
+﻿INTSourceChangelist:2346368
+Availability:Public
+Title:1.2 - SkeletalMesh RigidBody
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
+Description: 物理事例レベルの概要 例 1.2:スケルタルメッシュ 剛体のシミュレーション物理
+Related:Engine/Physics/PhysicsBodies
+Related:Engine/Physics/PhAT/UserGuide
+Related:Engine/Physics/Constraints/ConstraintsReference
+Related:Engine/Physics/Constraints/ConstraintsUserGuide
+Related:Engine/Physics/Collision
+Related:Engine/Physics/PhysicalMaterials/PhysMatReference
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\Physics\1_2:title%](physics_1_2_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\Physics\1_2:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\Physics\1_2:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\Physics\1_2]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources\ContentExamples\Physics\1_2:title%](physics_1_2_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\Physics\1_2:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\Physics\1_2:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\Physics\1_2]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+	![](physics_1_2_001.png)
+[/REGION]
+
+
+**スケルタル メッシュ** は 3D Studio Max や Maya などの外部ソフトウェアでのみ作成することができますが、コリジョンはアンリアル エンジンでセットアップします。**Create Physics Asset** にチェックが入っていると、インポート時に物理アセットは自動的に作成することができます。ただし、作成されるアセットはジョイントとそのジョイントに適用される皮の重量に基づいた概算となるため、 **Physics Asset Tool** や **PhAT** を使用して編集をする必要があります。
+
+![](physics_1_2_002.png)(h:335) ![](physics_1_2_003.png)(h:335)
+
+
+

@@ -1,0 +1,23 @@
+﻿INTSourceChangelist:2305620
+Title:プログラミング トラックを開始する
+Crumbs:%ROOT%, Tracks
+Description:
+Availability:Docs
+
+[OBJECT:TrackButtonList]
+	[PARAM:icon]
+		![](%ROOT%/prog_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		レベル デザインを開始する
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAMLITERAL:id]
+	Programming_Beginner
+	[/PARAMLITERAL]
+	[PARAM:links]
+		* [](Engine/UI/LevelEditor "%Engine/UI/LevelEditor:description%")
+		* [](Engine/Actors "%Engine/Actors:description%")
+	[/PARAM]
+[/OBJECT]

@@ -1,0 +1,23 @@
+﻿INTSourceChangelist:2275007
+Availability: Public
+Title:펼쳐진 스태틱 메시 머티리얼을 텍스처에 렌더
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Tools/RenderToTextureTools
+Description:
+
+
+이 함수는 메시 UV 를 사용하여 커스텀 머티리얼 결과를 굽기 위해 스태틱 메시를 펼칩니다. 가끔은 애셋 텍스처 작업에 유용할 수 있는 복잡한 머티리얼 인스트럭션을 최적화시키는 데 유용하게 쓰일 수 있습니다.
+
+레벨에 배치된 스태틱 메시 애셋을 펼칩니다. 메시에는 동반 머티리얼 함수 "UnwrapUVsforRender" 가 WorldPositionOffset 입력에 연결된 머티리얼이 있어야 합니다. 머티리얼 함수에 연결된 파라미터도 몇 개 있어야 합니다. "Size" 라는 이름의 스칼라 파라미터를 Size 입력에 연결해야 하며, "RenderLocation" 이라는 이름의 벡터 파라미터를 렌더 위치에 연결해야 하고, "Unwrap" 이라는 이름의 스칼라 파라미터를 Unwrap 입력에 연결해야 합니다.
+
+추가로 UV 입력을 통해 펼칠 UV 채널을 지정할 수 있습니다. 기본값 1 은 대부분 스태틱 메시에 대한 라이트맵 UV 채널입니다.
+
+메시를 펼치려면, 아래 표시된 스포이드 아이콘을 클릭한 다음 월드 안에서 원하는 메시를 선택하기만 하면 됩니다 (처음에 메시를 어디 배치했는가는 중요치 않습니다). 그런 다음 "unwrap" (펼침) 박스를 체크하면 됩니다.
+
+![](07.JPG) 
+
+![](08.JPG)(w:920)
+ 
+
+## 텍스처 렌더링하기
+
+[INCLUDE:Engine/Content/Tools/RenderToTextureTools/1#rt1]

@@ -1,0 +1,31 @@
+﻿INTSourceChangelist:2291853
+Availability:Public
+Title:씬 프린지 (Scene Fringe)
+Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
+Description:실제 카메라 렌즈의 가장자리 부근에서 색이 전환되는 것을 시뮬레이션하는 색수차 효과입니다.
+
+[EXCERPT:SceneFringe_Desc]
+**Scene Fringe** (씬 프린지) 이펙트는 실제 카메라 렌즈에서 볼 수 있는 색 변환 효과를 시뮬레이션해 보여주는 색수차 효과입니다. 이 이펙트는 이미지 가장자리 근처에서 가장 두드러집니다.
+[/EXCERPT:SceneFringe_Desc]
+
+[REGION:imagetable]
+| ![Without Scene Fringe](scenefringe_0.png)(w:455) | ![With Scene Fringe](scenefringe_2.png)(w:455) |
+| :----: | :----: |
+| 씬 프린지 없음 | 씬 프린지 있음 (극단 세팅) |
+[/REGION]
+
+
+| 프로퍼티 | 설명 |
+| -------- | ---- |
+| **Fringe Intensity** | 프린지 강도 - 색 변환 정도를 조절하는 스케일 인수입니다. [INCLUDE:#Intensity] |
+| **Fringe Saturation** | 프린지 채도 - 변환된 색의 채도를 조절하는 스케일 인수입니다. 값이 낮을 수록 결과물이 무뎌지고, 높을 수록 색 변환이 훨씬 도드라집니다. |
+
+<!--
+[EXCERPT:Intensity]
+[REGION:imagetable]
+| ![Scene Fringe Intensity - 0](scenefringe_0.png)(w:240) | ![Scene Fringe Intensity - 1](scenefringe_1.png)(w:240) | ![Scene Fringe Intensity - 5](scenefringe_2.png)(w:240)
+| ------ | ------ | ------ |
+| 0.0 | 1.0 | 5.0 |
+[/REGION]
+[/EXCERPT:Intensity]
+-->

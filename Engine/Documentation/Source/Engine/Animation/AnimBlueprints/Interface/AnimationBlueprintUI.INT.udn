@@ -1,0 +1,190 @@
+Availability:Public
+Title:Animation Blueprint UI
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
+Description:An overview of the Animation Blueprint UI.
+
+[TOC(start:2 end:2)]
+
+## Overview
+
+The following sections describe the areas of the Animation Blueprint UI.
+
+
+![](AnimGraphUI.png)(w:900)
+
+1. **Menu bar**
+1. **Toolbar**
+1. **Viewport**
+1. **Class Defaults panel**
+1. **Graph**
+1. **Asset Browser tab**
+1. **My Blueprint tab**
+1. **Details panel**
+1. **Palette**
+
+## Menu Bar
+
+### File
+
+[INCLUDE:Engine/Blueprints/Editor/UIComponents/Menu/#FileMenu]
+
+### Edit
+
+[INCLUDE:Engine/Blueprints/Editor/UIComponents/Menu/#EditMenu]
+
+### Asset
+| Command | Description |
+| --- | --- |
+| [REGION:tablesection]**Actions**[/REGION] ||
+|Find in Content Browser... | Summons the **Content Browser** and navigates to this asset. |
+|View References | Launces the reference viewer showing the selected assets' references. |
+|Reimport... | Reimports the current asset. |
+| [REGION:tablesection]**Animation**[/REGION] ||
+|Set Preview Mesh as Default | Changes the skeletons default preview mesh to the current open preview mesh. The skeleton will require saving after this action. |
+|Remove Unused Bones from Skeleton | Removes any bones from the skeleton that are not used by any of its meshes. The skeleton and associated animations will require saving after this action. |
+|Record to new Animation | Create new animation from currently playing animation. |
+
+### View
+
+[INCLUDE:Engine/Blueprints/Editor/UIComponents/Menu/#ViewMenu]
+
+### Debug
+
+[INCLUDE:Engine/Blueprints/Editor/UIComponents/Menu/#DebugMenu]
+
+### Window
+
+| Command | Description |
+| --- | --- |
+| Toolbar | Shows the Toolbar if it is currently not visible. |
+| Details | Shows the [Details](Engine/Blueprints\Editor/UIComponents\Details) panel if it is currently not visible. |
+| Debug | Shows the **Debug** panel if if it currently not visible. |
+| Palette | Shows the [](Engine/Blueprints\Editor/UIComponents\Palette) panel if it is not currently visible. |
+| My Blueprint | Shows the [](Engine/Blueprints\Editor/UIComponents\MyBlueprint) panel if it is not currently visible. |
+| Compiler Results | Shows the **Compiler Results** panel if it is not currently visible.  |
+| Find Results | Shows the **Find Results** panel if it is not currently visible.  | 
+| Skeleton Tree | Shows the **Skeleton Tree** panel, which displays all the bones in the Skeletal Mesh associated with the Animation Blueprint. |
+| Asset Browser | Shows the **Asset Browser** panel if it is currently closed, and changes focus to it if it is open. |
+| Viewport | Shows the **Preview Viewport** panel if it is not currently visible.  |
+| Animation Notifies | Opens the **Animation Notifies** window, which lists all Animation Notifies currently associated with the Skeletal Mesh's animation assets. |
+| Animation Blueprint Editor | Opens the **Animation Blueprint Editor** window if it is currenlty not visible. |
+| Asset Override Editor | Opens the **Asset Override Editor** window if it is currenlty not visible. |
+| Animation SlotName | Opens the **Animation SlotName** window if it is currenlty not visible. |
+| Animation Slot Group Name | Opens the **Animation Slot Group Name** window if it is currenlty not visible. |
+| Content Browser | Opens a sub-menu with access to all four **Content Browsers**. |
+| Developer Tools | Opens a sub-menu with access to **Camera Debugger**, **Collision Analyzer**, **Debug Tools**, **Modules**, and **Widget Reflector**. |
+| Blueprint Debugger | Opens the **Blueprint Debugger**. |
+| Class Viewer | Opens the **Class Viewer**.|
+| Device Profile Editor | Opens the **Device Profile Editor**.|
+| Output Log | Opens the **Output Log**. |
+| Undo History | Opens the **Undo History** window. |
+| [REGION:tablesection]**Unreal Frontend**[/REGION] ||
+| Device Manager | Opens the **Device Manager**.|
+| Session Frontend | Opens the **Session Frontend**. |
+| [REGION:tablesection]**Layout**[/REGION] ||
+| Reset Layout | Resets the layout to the default setting (requires automatic restart of the editor). |
+| Save Layout | Saves the current panel layout. |
+| Enable Fullscreen | Enables/Disables the display of the edtior in Fullscreen mode. |
+
+
+
+## Toolbar
+
+The Animation Blueprint toolbar contains many of the same options as other Blueprint toolbars.
+
+![](AnimGraphUI_Toolbar.png)(w:900)
+
+[EXCERPT:Toolbar]
+| Item | Description |
+| ---- | ----------- |
+| ![Compile Successful Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_compile_successful.png) | Compiles the Blueprint. | 
+| ![Save Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_save.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#Save] |
+| ![Find in Content Browser Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_in_cb.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#FindInCB] | 
+| ![Search Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_search.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#Search] | 
+| ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_properties.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#BlueprintProps] | 
+| ![Simulate Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_simulate.png) | Starts the game in simulation mode. |
+| ![Play In Editor Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_play_in.png) | Starts the game in normal play mode in the Level Editor. Clicking the arrow displays the **Launch Options** menu. | 
+| ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#DebugObject]  | 
+[/EXCERPT:Toolbar]
+
+For more information about Blueprint toolbars, see [](Engine/Blueprints\Editor/UIComponents\Toolbar).
+
+In addition to those options, the Animation Blueprint toolbar also contains tabs for the various modes of Persona.
+
+| Item | Description |
+| ---- | ----------- |
+|  ![](button_AnimGraphUI_Skeleton.png) | Opens the Persona tab that contains Skeleton properties. |
+|  ![](button_AnimGraphUI_Mesh.png) | Opens the Persona tab that contains Skeletal Mesh properties. |
+|  ![](button_AnimGraphUI_Animation.png) | Opens the Persona tab that contains properties of animation assets. |
+|  ![](button_AnimGraphUI_Graph.png) | Opens the Animation Blueprint tab. |
+
+
+
+## Viewport
+The viewport displays the Skeletal Mesh with any animations activated by current variable values.
+
+![](AnimGraphUI_Viewport.png)
+
+## Class Defaults
+
+The **Class Defaults** panel displays all of your Animation Blueprint's variables, in their assigned categories. You can manually modify the variable values here to preview and test different animations in the viewport.
+
+![](AnimGraphUI_BPDefaults.png)
+
+For more information, see [](Engine/Animation/Persona\BlueprintDefaults).
+
+## Graph
+
+The tabbed graph panel displays whichever graph is currently selected.
+
+### EventGraph Tab
+
+The **EventGraph** tab contains any animation event nodes that trigger the updates of the Skeletal Mesh poses.  It can also contain animation nodes that set variable values that determine which animation asset is played when.
+
+![](AnimGraphUI_Graph.png)(w:900)
+
+### AnimGraph Tab
+
+The **AnimGraph** tab contains the State Machine that hooks up all the actual animations and States, along with any other animation nodes you want.
+
+![](AnimGraphUI_AnimGraph.png)
+
+For more information about State Machines, see [](Engine/Animation/StateMachines).
+
+[REGION:note]
+Although you could put all your animation nodes directly into the **AnimGraph** tab, it is more efficient to organize them into a State Machine, States, and Transitions (Rules), for ease of upkeep and simplicity.
+[/REGION]
+
+## Asset Browser Tab
+
+The **Asset Browser** tab contains a list of all the animation assets in your Animation Blueprint.
+
+![](AnimGraphUI_AssetBrowser.png)
+
+By default, you can find the **Asset Browser** tab next to the **My Blueprint** tab, underneath the graph.
+
+
+## My Blueprint Tab
+
+The **My Blueprint** tab contains a list of all the graphs and variables in your Animation Blueprint.
+
+![](AnimGraphUI_MyBP.png)
+
+By default, you can find the **My Blueprint** tab next to the **Asset Browser** tab, underneath the graph.
+
+
+## Details Panel
+
+The **Details** panel displays the properties of selected elements.
+
+![](AnimGraphUI_Details.png)
+
+## Palette
+
+The **Palette** panel contains all the nodes available for use in the Animation Blueprint's various graphs.
+
+![](AnimGraphUI_Palette.png)
+
+[REGION:note]
+The **Palette** may not be visible by default.  If it is not, you can open it by clicking **Palette** on the **Window** menu.
+[/REGION]

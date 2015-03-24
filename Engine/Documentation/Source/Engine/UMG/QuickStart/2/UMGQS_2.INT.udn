@@ -1,0 +1,55 @@
+Availability: Public
+Title:2. Creating a Widget Blueprint
+Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
+Description:The second step in the UMG Quick Start is to create a Widget Blueprint used for our HUD.
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/UMG\QuickStart\1 "%Engine/UMG\QuickStart\1:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/UMG\QuickStart) 
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/UMG\QuickStart\3 "%Engine/UMG\QuickStart\3:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+	[/PARAM]
+	[PARAM:description]
+
+This step involves creating a [Widget Blueprint](Engine/UMG/UserGuide/WidgetBlueprints) which will be used to draw the HUD on screen. 
+
+1. With project open, inside the **Game** folder of the **Content Browser**, click the **New** button and select **New Folder** and call it **UMG**. 
+
+1. Open the **UMG** folder, then **Right-click** and select **User Interface** then **Widget Blueprint** and name it **GameHUD**.  
+
+		![](New_3.png)
+
+		No matter what type of HUD elements you wish to create in **UMG**, you will always first need to create a **Widget Blueprint**. 
+
+In the next section, we will begin adding elements to the **Widget Blueprint** that we want to display on screen. 
+
+	[/PARAM]
+	[PARAM:links]
+	[/PARAM]
+[/OBJECT]
+
+
+%Steps%
+
+
+

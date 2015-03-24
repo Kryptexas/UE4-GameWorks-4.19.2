@@ -1,0 +1,114 @@
+Availability: Public
+Title:Persona Editing Modes
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:User guide for the editing modes available in the Persona animation editor.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/Modes:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/Modes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/Modes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/Modes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+## Overview
+
+[EXCERPT:Overview]
+It is important to remember that Persona is actually a collection of various animation tools and editors, rather than just a single tool unto itself. It allows for editing of Skeletons, Meshes, Animation, and Animation Blueprints. As such, Persona contains a variety of different _modes_ in which it can operate in order to optimally handle the editing task at hand. 
+
+In each mode, Persona's UI updates to show a different layout of tools and editors.
+[/EXCERPT:Overview]
+
+[REGION:note]
+	Not all of the modes are available at all times. For instance, Animation Blueprint mode is _only_ available when a Animation Blueprint is opened from the **Content Browser**. 
+
+	Also, be aware that changes made to editing layouts will be maintained. As an example, if you move a panel while in Skeleton editing mode, then switch away to Animation, when you switch back to Skeleton, the moved panel will keep the position you gave it.
+[/REGION]
+
+
+[EXCERPT:SkeletonMode]
+## Skeleton Editing Mode
+
+[![](Persona_Mode_Skeleton.png)(w:800)](Engine/Animation/Persona/Modes/Skeleton)
+
+(Click the image to visit the **Skeleton Editing Mode** page.)
+
+[EXCERPT:SkeletonModeUI]
+1. [Toolbar](Engine/Animation/Persona\Toolbar) 
+1. [Skeleton Tree](Engine/Animation/Persona\SkeletonTree)
+1. [Viewport](Engine/Animation/Persona\Viewport)
+1. [Details](Engine/UI/LevelEditor\Details) 
+1. [Asset Browser](Engine/Animation/Persona\AssetBrowser)
+[/EXCERPT:SkeletonModeUI]
+[/EXCERPT:SkeletonMode]
+
+[REGION:note]
+The **Details** panel in Persona will only show properties pertaining to animation assets. Functionally, however, it is the same as the standard **Details** panel in the main editor window.
+[/REGION]
+
+[EXCERPT:MeshMode]
+## Mesh Editing Mode
+
+[![](Persona_Mode_Mesh.png)(w:800)](Engine/Animation/Persona/Modes/Mesh)
+
+(Click the image to visit the **Mesh Editing Mode** page.)
+
+[EXCERPT:MeshModeUI]
+1. [Toolbar](Engine/Animation/Persona\Toolbar) 
+1. [Skeleton Tree](Engine/Animation/Persona\SkeletonTree)
+1. [Mesh Details](Engine/Animation/Persona\MeshDetails)
+1. [Viewport](Engine/Animation/Persona\Viewport)
+1. [Details](Engine/UI/LevelEditor\Details)/[Asset Browser](Engine/Animation/Persona\AssetBrowser)
+1. [Morph Target Previewer](Engine/Animation/Persona\MorphTargetPreviewer)
+[/EXCERPT:MeshModeUI]
+[/EXCERPT:MeshMode]
+
+
+[EXCERPT:AnimationMode]
+## Animation Editing Mode
+
+[![](Persona_Mode_Anmation.png)(w:800)](Engine/Animation/Persona/Modes/Animation)
+
+(Click the image to visit the **Animation Editing Mode** page.)
+
+[EXCERPT:AnimationModeUI]
+1. [Toolbar](Engine/Animation/Persona\Toolbar) 
+1. [Skeleton Tree](Engine/Animation/Persona\SkeletonTree)
+1. [Anim Asset Details](Engine/Animation/Persona\AnimAssetDetails)
+1. [Viewport](Engine/Animation/Persona\Viewport)
+1. [Anim Sequence Editor](Engine/Animation/Sequences\Editor)
+1. [Details](Engine/UI/LevelEditor\Details)
+1. [Asset Browser](Engine/Animation/Persona\AssetBrowser)
+[/EXCERPT:AnimationModeUI]
+[/EXCERPT:AnimationMode]
+
+
+[EXCERPT:GraphMode]
+## Graph Editing Mode
+
+[![](Persona_Mode_Vim.png)(w:800)](Engine/Animation/Persona/Modes/Graph)
+
+(Click the image to visit the **Graph Editing Mode** page.)
+
+[EXCERPT:GraphModeUI]
+1. [Toolbar](Engine/Animation/Persona\Toolbar) 
+1. [Viewport](Engine/Animation/Persona\Viewport)
+1. [Preview Settings (Class Defaults)](Engine/Blueprints\Editor\Modes\Defaults)
+1. [Blueprint Graph Panel](Engine/Animation/AnimBlueprints)
+1. [Asset Browser](Engine/Animation/Persona\AssetBrowser)/[My Blueprint](Engine/Blueprints\Editor\UIComponents\MyBlueprint)
+1. [Details](Engine/UI/LevelEditor\Details)
+[/EXCERPT:GraphModeUI]
+[/EXCERPT:GraphMode]

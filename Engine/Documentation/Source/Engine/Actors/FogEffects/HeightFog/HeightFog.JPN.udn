@@ -1,0 +1,141 @@
+﻿INTSourceChangelist:2427207
+Availability:Public
+Title:Exponential Height Fog のユーザーガイド
+Crumbs: %ROOT%, Engine, Engine/Actors, Engine/Actors/FogEffects
+Description:レベル内で高さベースの距離のフォグを作成するためのガイド。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Actors/FogEffects/HeightFog:title%](Engine/Actors/FogEffects/HeightFog/heightfog_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/tech_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Actors/FogEffects/HeightFog:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Actors/FogEffects/HeightFog:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Actors/FogEffects/HeightFog]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Actors/FogEffects/HeightFog:title%](Engine/Actors/FogEffects/HeightFog/heightfog_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/tech_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Actors/FogEffects/HeightFog:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Actors/FogEffects/HeightFog:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Actors/FogEffects/HeightFog]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:banner]
+![Height Fog](heightfog_banner.png)
+[/REGION]
+
+[TOC (start:2 end:3)]
+
+
+
+## 概要
+
+このドキュメントでは、指数関数的ハイトフォグ (Exponential Height Fog) とその用途について説明します。この説明は、指数関数的ハイトフォグを加えたいレベルをセットアップ済みであることを前提とします。
+
+[EXCERPT:intro]
+指数関数的ハイトフォグでは、マップ内の低い場所では濃度がより濃くなり、高い場所では薄くなります。遷移がスムーズなため、高度が高くなるにつれて、はっきりと分断されることは決してありません。指数関数的なハイトフォグには、2 つのフォグ カラーがあります。1 つは、ドミナント平行光源に面した領域のためのものです (存在しない場合は真っ直ぐ上になります)。もう 1 つはそれと反対の領域のためのものです。  
+
+![ExponHeightFog.png](ExponHeightFog.png)
+[/EXCERPT:intro]
+
+
+## Exponential Height Fog を使用する
+
+クラスビューアで _Fog_ の下にある **Exponential Height Fog** アクタを選択します。ワールドで **右クリック** し、_Add ExponentialHeightFog Here_ を選択します。 
+
+Exponential Height Fog のアクタを配置すると、フォグの高さが決まります。
+
+
+###Exponential Height Fog のプロパティ
+
+_Height Fog_ セクションで、このコンポーネントに関する次のプロパティを編集できます。
+
+|**プロパティ** | **説明** |
+|---|---|
+| **Fog Density** | グローバル密度係数であり、フォグレイヤーの濃さと考えることができます。|
+| **Fog Inscattering Color** | フォグのインスキャッタリングカラーを設定します。基本的に、これはフォグの主要カラーです。
+| **Fog Height Falloff** | 高さ密度係数で、高さが低くなるにしたがい密度をどのように増やすかを制御します。値が小さいほど、遷移は大きくなります。
+| **Fog Max Opacity** | フォグの最大オパシティを制御します。値 1 では、フォグは完全に不透明であり、0 ではフォグは事実上見えません。
+| **Start Distance** | フォグが開始するカメラからの距離です。|
+| **Directional Inscattering Exponent** |平行光源からのインスキャッタリングを概算するために使用する指向性インスキャッタリングの円錐サイズを制御します。|
+| **Directional Inscattering Start Distance** | 指向性インスキャッタリング  のビューアからの開始距離を制御し、この開始距離は平行光源からのインスキャッタリングを概算するために使用します。|
+| **Directional Inscattering Color** | 平行光源からの インスキャッタリングを概算するために使用する指向性 インスキャッタリングのカラーを設定します。これは、平行光源のシミュレート カラーの調整と似ています。
+| **Visible** | 主要なフォグの可視性を制御します。 |
+| **Actor Hidden in Game** |ゲームでフォグを非表示にするかを設定します。 |
+| **Editor Billboard Scale** | エディタのビルドでビルボード コンポーネントに適用するスケール |
+
+
+
+
+
+
+##Exponential Height Fog のアニメーション化
+
+Exponential Height Fog をアニメートするには、マチネを使用してExponentialHeightFog Actor 値をアニメーション化します。詳細は、[Matinee User Guide](Engine/Matinee/UserGuide) ページを参照してください。
+
+タイムラインまたはフォグ アクタの関数とプロパティを動かすノードのネットワークによって、レベルのブループリントで直接 Exponential Height Fog をアニメーション化することもできます。
+
+### カラー
+
+Height Fog Color は、マチネの Linear Color Property Track を使用してランタイムに変更可能になりました。次に、インゲームで Height Fog カラー を変更できるように、 マチネをセットアップする方法を説明します。
+
+1. マチネのアクタを作成し、それをエディタ ツールバーのマチネ ボタンを使用して開きます。
+1. HeightFog アクタを作成します。
+1. そのアクタが適用された状態でマチネでグループを作成します。
+1. 作成したグループで線形カラー プロパティ トラックを作成します。
+1. どのカラー プロパティを補間するかを選ぶダイアログが表示されます。以下の 2 つのオプションのみが表示されます。FogInscatteringColor と DirectionalInscatteringColor
+1. このトラックがセットアップされると、キーフレームを配置し、コンテクスト メニュー (右クリック) または [Curve Editor](Engine/UI/CurveEditor) を使用して、各キーに対してカラーを設定することができます。
+
+
+
+
+## パフォーマンス
+
+Exponential Height Fog のレンダリング負荷は、さらに最適化する一定濃度のハイトフォグの 2 つのレイヤーの負荷と同等です。
+
+FogStartDistance を使用して、人工的にビューアーの前にある定義されたエリアを、フォグをともなわないようにすることができます。これは、パフォーマンス面でも役立ちます。ピクセルが z バッファによってカリングされるからです。
+
+次の画像は、これが適用されたものです。
+
+[REGION:imagetable]
+| ![FogStart_0.png](FogStart_0.png)(w:300) | ![FogStart_1000.png](FogStart_1000.png)(w:300) | ![FogStart_1000_high.png](FogStart_1000_high.png)(w:300) |
+| --- | --- | --- |
+| フォグ開始距離 = 0 | フォグ開始距離 = 1000 | フォグ開始距離 = 1000、高 Fog Density 値 |
+[/REGION]
+
+
+
+遠方フォグ開始距離を使用する場合、シーン コンテンツによっては、レンダリング負荷が 50% 以下になることがあります。
+この最適化を実装するには、z 値と深度テストが有効になっているフルスクリーン クアッドをレンダリングします。 
+
+
+ 
+
+
+
+

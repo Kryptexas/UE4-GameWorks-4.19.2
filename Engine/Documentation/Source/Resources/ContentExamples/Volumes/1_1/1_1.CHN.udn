@@ -1,0 +1,35 @@
+﻿Availability: Docs
+Title:1.1 -放置
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Volumes
+Description:体积示例关卡的概述,示例1.1: 放置
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes/1_1:title%](Resources\ContentExamples\Volumes\content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes/1_1:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes/1_1:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Volumes/1_1]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+体积可以通过使用Place Mode > All Content（放置模式 > 所有内容）来进行添加，然后只需拖放体积到场景中即可。
+
+
+放置完成后，可使用画刷编辑模式来缩放或修改体积。
+
+本示例使用阻挡体积，但其他任何体积都可以按照这种方式放置。
+
+

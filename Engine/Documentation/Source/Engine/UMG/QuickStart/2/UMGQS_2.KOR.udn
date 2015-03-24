@@ -1,0 +1,56 @@
+﻿INTSourceChangelist:2336161
+Availability: Public
+Title:2. 위젯 블루프린트 만들기
+Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
+Description:UMG 퀵스타트의 두 번째 단계는 HUD 에 사용할 위젯 블루프린트를 만드는 것입니다.
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 단계](Engine/UMG\QuickStart\1 "%Engine/UMG\QuickStart\1:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵 스타트 홈](Engine/UMG\QuickStart) 
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Engine/UMG\QuickStart\3 "%Engine/UMG\QuickStart\3:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+	[/PARAM]
+	[PARAM:description]
+
+이번 단계는 화면에 HUD 를 그릴 때 쓸 [위젯 블루프린트](Engine/UMG/UserGuide/WidgetBlueprints) 를 만드는 작업이 포함됩니다.
+
+1. 프로젝트를 연 상태로, **콘텐츠 브라우저** 의 **Game** 폴더 안에서, **추가** 버튼을 클릭한 다음 **새 폴더** 를 선택하고 **UMG** 라 짓습니다.
+
+1. **UMG** 폴더를 연 다음 **우클릭** - **유저 인터페이스** - **위젯 블루프린트** 를 선택, 이름을 **GameHUD** 라고 짓습니다.
+
+		![](New_3.png)
+
+		**UMG** 에서 만들려는 HUD 요소의 유형이 무엇이든, 항상 **위젯 블루프린트** 를 먼저 만들어야 합니다.
+
+다음 섹션에서는 화면에 표시하고자 하는 **위젯 블루프린트** 에 요소를 추가하도록 하겠습니다.
+
+	[/PARAM]
+	[PARAM:links]
+	[/PARAM]
+[/OBJECT]
+
+
+%Steps%
+
+
+

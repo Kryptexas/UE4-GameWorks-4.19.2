@@ -1,0 +1,49 @@
+﻿INTSourceChangelist:2429044
+Availability: Public
+Title:1. 뷰포트 조작법
+Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
+Description:가장 자주 사용되는 뷰포트 조작법에 대한 개요입니다.
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵스타트 홈](Engine/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Engine/QuickStart/2 "%Engine/QuickStart/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+[REGION:note]
+이 튜토리얼 시리즈에서는 **시작용 콘텐츠** 포함 **공백** 프로젝트를 새로 만들어서 사용합니다. 새 프로젝트 생성, 템플릿 사용, (**시작용 콘텐츠** 를 포함한) 프로젝트 세팅 정의 관련 정보는 [](Engine/Basics/Projects/Browser) 문서를 참고하세요.
+[/REGION]
+
+**시작용 콘텐츠** 가 포함된 **공백** 프로젝트를 만든 후 처음 로드된 레벨의 모습은 다음과 같습니다:
+
+![](Engine/QuickStart/2/TableAndChairs.png)
+
+이 작은 영역을 기준점으로 하여 **뷰포트 카메라 조작법** 에 익숙해져 봅시다. 언리얼 엔진 4 에서 뷰포트 조작시 가장 자주 사용되는 세 가지 방법은 다음과 같습니다. 레벨을 편하게 돌아다닐 수 있게 되면, 가이드 다음 페이지: **액터 배치** 로 넘어가세요.
+
+## 표준 조작
+
+[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#StandardControls]
+
+## WASD 비행 조작
+
+[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#GameControls]
+
+## 오빗, 달리, 트랙
+
+[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#MayaLikeControls]
+
+뷰포트 조작법 관련 상세 정보: [**뷰포트 조작법**](Engine\UI\LevelEditor\Viewports\ViewportControls)
+
+%Steps%

@@ -1,0 +1,69 @@
+﻿INTSourceChangelist:2409311
+Availability:Public
+Title: 애니메이션 컴포짓
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:Animation Composite, 애니메이션 컴포짓은 다수의 애니메이션을 합쳐 하나의 단위로 취급할 수 있도록 해 주는 역할을 합니다.
+
+[REGION:fullwidth]
+![](AnimationCompositeHeader.png)
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+## 개요
+
+어떤 경우에는, 다수의 애니메이션 시퀀스를 "붙여서" 하나의 시퀀스인 것처럼 사용할 수 있었으면 하는 상황이 있을 수 있습니다. Animation Composite (애니메이션 컴포짓)이 바로 그 용도입니다. 애니메이션 컴포짓은 다수의 애니메이션을 합쳐 하나의 단위로 취급할 수 있도록 하기 위해 고안된 애니메이션 애셋입니다. 그러나 컴포짓은 단순히 애니메이션을 덧붙일 뿐, 블렌딩은 적용되지 않는다는 점 주의하시기 바랍니다.
+
+애니메이션 컴포짓은 자체적인 [노티파이](Engine/Animation\Sequences\Notifies) 와 [커브](Engine/Animation\Sequences\Curves) 세트를 가질 수 있습니다. 그에 관한 상세 정보는 각각의 문서를 참고해 주시기 바랍니다.
+
+## 컴포짓 만들기
+
+애니메이션 컴포짓은 콘텐츠 브라우저에서 새 애셋을 추가하는 것으로 간단히 만들 수 있습니다:
+
+![](AnimationCompositeContextMenu.png)
+
+[REGION:caption]
+콘텐츠 브라우저에 우클릭한 다음 맥락 메뉴에서 **애니메이션 > 애니메이션 컴포짓** 을 선택합니다. 다른 방법으로는 ![](button_NewAsset.png) 버튼을 사용해도 됩니다.
+[/REGION]
+
+새 컴포짓에 연관시켜줄 [스켈레톤 애셋](Engine/Animation\Skeleton) 도 지정해 줘야 합니다.
+
+![](PickSkeleton.png)
+
+[REGION:caption]
+프로젝트 내 사용가능한 스켈레톤 목록에서 하나를 선택합니다.
+[/REGION]
+
+그 후 컴포짓 이름을 지어줘야 합니다.
+
+![](NameComposite.png)
+
+이제 컴포짓이 생성되었으니 편집할 준비가 되었습니다!
+
+## 컴포짓 편집하기
+
+컴포짓을 더블클릭하면 페르소나의 애니메이션 모드에 해당 컴포짓이 선택된 상태로 열려 바로 편집할 수 있습니다.
+
+![](AnimationCompositeEdit.png)(w:500)
+
+애셋 에디터 패널 상단에는 컴포짓 트랙이 보입니다.
+
+![](CompositeTrack.png)(w:600)
+
+컴포짓에 애니메이션 시퀀스를 추가하려면, 그냥 컴포짓 트랙에 끌어 놓으면 됩니다. 시퀀스를 끌어 놓으면 자동으로 덧붙여집니다.
+
+![](AddingAnimationsToComposite.png)(w:700)
+
+[REGION:note]
+애셋 브라우저에서 애셋을 끌어올 때, 애셋 에디터가 탈색되며 **현재 다른 애셋을 미리보는 중** 이라는 경고가 뜰 수도 있습니다. 이는 정상으로, 그냥 계속해서 애니메이션 시퀀스를 컴포짓 트랙에 끌어 놓으면 됩니다.
+[/REGION]
+
+컴포짓 트랙에서 시퀀스를 끌어 이동시킬 수 있으며, 우클릭한 후 맥락 메뉴에서 **세그먼트 삭제** 를 선택하여 제거할 수도 있습니다.
+
+![](DeleteSegment.png)
+
+## 컴포짓 사용하기
+
+합치고나면, 컴포짓은 애니메이션 블루프린트의 애님 그래프에 있는 애니메이션 시퀀스처럼 취급됩니다.
+
+![](PlayComposite.png)

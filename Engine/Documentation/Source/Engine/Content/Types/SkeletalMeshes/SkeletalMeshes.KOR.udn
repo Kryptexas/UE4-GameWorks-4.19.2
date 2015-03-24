@@ -1,0 +1,101 @@
+﻿INTSourceChangelist:2291853
+Availability: Public
+Title:스켈레탈 메시
+Crumbs:%ROOT%, Engine, Engine/Content
+Description:애니메이션을 적용하여 메시를 변형시킬 수 있도록, 계층형 본 스켈레톤에 묶인 메시입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Types/SkeletalMeshes:title%](Engine/Content/Types/SkeletalMeshes/skeletalmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/char_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/SkeletalMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/SkeletalMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/SkeletalMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Types/SkeletalMeshes:title%](Engine/Content/Types/SkeletalMeshes/skeletalmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/char_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/SkeletalMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/SkeletalMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/SkeletalMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![Skeletal Mesh](skelmesh_banner.png)
+[/REGION]
+
+스켈레탈 메시(Skeletal Mesh)는 두 부분으로 이루어져 있습니다. 스켈레탈 메시의 표면을 구성하는 폴리곤 세트와, 폴리곤을 애니메이트하는 데 사용되는 계층형 상호연결 본 세트입니다.
+
+언리얼 엔진 3 에서 스켈레탈 메시의 주 용도는 캐릭터나 기타 애니메이트 오브젝트를 나타내는 데 쓰입니다. 3D 모델, 리깅, 애니메이션은 (3DSMax, Maya, Softimage 등) 외부 모델링 / 애니메이션 어플리케이션으로 만든 다음, 언리얼 에디터의 콘텐츠 브라우저를 사용하여 언리얼 엔진 4로 임포트한 뒤 패키지에 저장합니다.
+
+[REGION:topics half]
+	[OBJECT:Topic]
+		[PARAM:image]
+			![%Engine/Content/FBX/SkeletalMeshes:title%](Engine/Content/FBX/fbx_topic.png)
+		[/PARAM]
+		[PARAM:icon]
+			![](%ROOT%/fbx_icon.png)(convert:false)
+		[/PARAM]
+		[PARAM:title]
+			%Engine/Content/FBX/SkeletalMeshes:title%
+		[/PARAM]
+		[PARAM:description]
+			%Engine/Content/FBX/SkeletalMeshes:description%
+		[/PARAM]
+		[PARAM:path]
+			[RELATIVE:Engine/Content/FBX/SkeletalMeshes]
+		[/PARAM]
+	[/OBJECT]
+[/REGION]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		콘텐츠 제작
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Types/SkeletalMeshes/Sockets "%Engine/Content/Types/SkeletalMeshes/Sockets:Description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/anim_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		기타
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [%Engine/Content/Tools/MayaRiggingTool:title%](Engine/Content/Tools/MayaRiggingTool "%Engine/Content/Tools/MayaRiggingTool:description%")
+	[/PARAM]
+[/OBJECT]

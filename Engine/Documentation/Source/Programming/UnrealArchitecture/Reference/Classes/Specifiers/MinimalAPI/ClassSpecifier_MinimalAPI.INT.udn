@@ -1,0 +1,11 @@
+Title: MinimalAPI
+Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Classes, Programming/UnrealArchitecture/Reference/Classes/Specifiers
+Description:
+Availability:Public
+Version: 4.5
+
+Causes only the class's type information to be exported for use by other modules. The class can be cast to, but the functions of the class cannot be called (with the exception of inline methods). This improves compile times of exporting everything for classes that do not need all of their functions accessible in other modules.
+
+[REGION:note]
+The **RequiredAPI** function specifier can be used with individual functions to make them accessible in other modules. This can be used in combination with the `MinimalAPI` class specifier to make the class and a subset of its functions available while still keeping compile times as low as possible.
+[/REGION]

@@ -1,0 +1,64 @@
+﻿INTSourceChangelist:2410153
+Availability:Public
+Title:1.6 - ソート順序
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Decals
+Description:デカールの事例概要、例 1.6：ソート順序
+Related: Engine/Actors/DecalActor
+Related: Engine/Rendering/Materials/PhysicallyBased
+Related: Engine/Rendering/Materials
+Related: Engine/Rendering/Materials/MaterialProperties/BlendModes
+Related: Engine/Rendering/Materials/ExpressionReference
+Related: Engine/Rendering/Materials/MaterialInputs
+Related: Engine/Rendering/Materials/LayeredMaterials
+Related: Engine/Rendering/Materials/MaterialInstances
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Decals/1_6:title%](Resources\ContentExamples\Decals\Decals_6.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Decals/1_6:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Decals/1_6:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Decals/1_6]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Decals/1_6:title%](Resources\ContentExamples\Decals\Decals_6.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Decals/1_6:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Decals/1_6:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Decals/1_6]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+
+![%Resources/ContentExamples/Decals/1_1:title%](Resources\ContentExamples\Decals\Decals_6.png)
+
+この例では、デカールにソートの優先度を割り当て、あるデカールを他のデカールの上に投影できるようにする方法を示しています。 **Sort Order** プロパティを使用して互いに重なり合っている時、デカールが描画される順序をコントロールすることができます。ソート順序が _高い_ ほどデカールは最前部へ配置されます。
+
+![](DecalSortOrder.png)
+
+[/REGION]

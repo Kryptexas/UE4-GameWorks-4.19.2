@@ -1,0 +1,72 @@
+﻿INTSourceChangelist:1941792
+Availability: Docs
+Title: 蓝图概述
+Crumbs:%ROOT%, Resources, Resources/ContentExamples
+Description:蓝图示例关卡概述
+
+
+
+
+[REGION:banner]
+![](blueprint_ce_header.png)(convert:false)
+[/REGION]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Blueprints:title%](blueprint_ce_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Blueprints:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Blueprints:description%
+	[/PARAM]
+	[PARAM:path]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Blueprints:title%](blueprint_ce_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Blueprints:title%
+	[/PARAM]
+	[PARAM:path]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+<!--Insert path when complete		[RELATIVE:Resources/ContentExamples/Blueprints]-->
+
+[TOC(start:2 end:2)]
+
+
+欢迎来到 **Blueprints** （蓝图）示例关卡！
+
+[INCLUDE:Resources/ContentExamples\ExampleLevelOverview#ExampleLevel]
+
+[EXCERPT:BlueprintsCEInstructions]
+您可以打开内容示例中的[打开蓝图](Engine/Blueprints/UserGuide/Types/ClassBlueprint/Opening)并查看如何设置[默认值](Engine/Blueprints\Editor\Modes\Defaults), [组件](Engine/Blueprints\UserGuide\Components), 及[图表](Engine/Blueprints\Editor\Modes\GraphPanel)以创建每个蓝图。
+[/EXCERPT:BlueprintsCEInstructions]
+
+## 示例
+
+[REGION:topics fourth]
+%Resources/ContentExamples/Blueprints/1_1:TopicCompact%
+%Resources/ContentExamples/Blueprints/1_2:TopicCompact%
+%Resources/ContentExamples/Blueprints/1_3:TopicCompact%
+%Resources/ContentExamples/Blueprints/1_4:TopicCompact%
+%Resources/ContentExamples/Blueprints/1_5:TopicCompact%
+%Resources/ContentExamples/Blueprints/1_6:TopicCompact%
+%Resources/ContentExamples/Blueprints/1_7:TopicCompact%
+[/REGION]
+
+
+## 相关主题及扩展阅读
+* [蓝图](Engine/Blueprints)
+* [变量](Engine/Blueprints\UserGuide\Variables)
+* [流程控制](Engine/Blueprints\UserGuide\FlowControl)

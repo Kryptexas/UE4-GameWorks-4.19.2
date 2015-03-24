@@ -1,0 +1,256 @@
+Availability:Public
+Title:Viewport Show Flags
+Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
+Description:Descriptions of all of the available Show Flags for the viewports.
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](ShowFlags_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/UI/LevelEditor/Viewports/ShowFlags:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/UI/LevelEditor/Viewports/ShowFlags:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UI/LevelEditor/Viewports/ShowFlags]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](ShowFlags_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/UI/LevelEditor/Viewports/ShowFlags:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/UI/LevelEditor/Viewports/ShowFlags:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UI/LevelEditor/Viewports/ShowFlags]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+![](ShowFlagHeader.png)
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+
+## Overview
+
+The Show Flags are found under the Viewport **Show** menu. They are a means by which you can show and hide many of the items that are viewed within the viewport. For example, you can hide all particles, all landscape objects, or something a bit more advanced like turning off all of the sprite icons.
+
+
+## Common
+
+|**Common**||
+|---|---|
+|[REGION:tablesection]Name[/REGION]|[REGION:tablesection]Description[/REGION]|
+|**Anti-aliasing**|Shows/hides the effect of anti-aliasing.|
+|**Atmosphere**|Shows/hides any Atmospheric Fog in the level.|
+|**BSP** |Shows/hides any Brushes in the level. _(**Alt + Q**)_ |
+|**Collision**|Shows/hides collision objects in the level. _(**Alt + C**)_ |
+|**Decals**|Shows/hides decals in the scene.|
+|**Fog**|Shows/hides the effects of Height Fog. _(**Alt + F**)_ |
+|**Grid**|Shows/hides the grid.|
+|**Landscape**|Shows/hides any Landscape objects.  _(**T**)_ |
+|**Navigation**|Shows/hides any Nav Meshes or other navigation Actors. _(**P**)_|
+|**Particles Sprite**|Shows/hides any particles in the scene.|
+|**Skeletal Meshes**|Shows/hides any Skeletal Meshes in the scene.|
+|**Static Meshes**|Shows/hides any Static Meshes in the scene. _(**Alt + W**)_|
+|**Translucency**|Shows/hides all objects with translucent Materials. Incidentally, this includes all billboard icons.|
+
+
+## Post Processing
+
+
+|Post Processing||
+|---|---|
+|[REGION:tablesection]Name[/REGION]|[REGION:tablesection]Description[/REGION]|
+|**Bloom**|Shows/hides the effect bloom.|
+|**Camera Imperfections**|Shows/hides the effect of Camera Imperfections.|
+|**Color Grading** |Shows/hides the effect of Color Grading. |
+|**Depth of Field**|Shows/hides the effect of Depth of Field. |
+|**Eye Adaptation**|Shows/hides the effect of Eye Adaptation.|
+|**Grain**|Shows/hides the effects of Grain. |
+|**HMD Distortion**|Shows/hides the effects of head-mounted display distortion, such as that used for Oculus Rift.|
+|**Lens Flares**|Shows/hides the effect of Lens Flares.|
+|**Motion Blur**|Shows/hides the effect of Motion Blur. |
+|**Post Process Material**|Shows/hides the effect of any blendable post process Materials in the scene.|
+|**Scene Color Fringe**|Shows/hides the result of any Scene Color Fringe effects.|
+|**Screen Percentage**|Shows/hides the result of Screen Percentage post effects.|
+|**Tonemapper**|Shows/hides Tonemapper effects. |
+|**Vignette**|Shows/hides Vignette effects.|
+
+## Lighting Components
+
+|Lighting Components||
+|---|---|
+|[REGION:tablesection]Name[/REGION]|[REGION:tablesection]Description[/REGION]|
+|**Ambient Occlusion**|Shows/hides ambient occlusion in the scene.|
+|**Diffuse**|Shows/hides the result of diffuse lighting in the scene, which contains most of the scene color.|
+|**Direct Lighting**|Shows/hides the result of direct lighting, which contains most of the scene specularity.|
+|**Directional Lights**|Shows/hides the result of directional lights in the scene.|
+|**Dynamic Shadows**|Shows/hides dynamic shadows in the scene.|
+|**Global Illumination**|Shows/hides the result of global illumination in the scene.|
+|**Point Lights**|Shows/hides the result of point lights in the scene.|
+|**Sky Lighting**|Shows/hides the result of sky lights in the scene.|
+|**Specular**|Shows/Hides the result of specularity in the scene.|
+|**Spot Lights**|Shows/hides the result of spot lights in the scene.|
+
+
+## Lighting Features
+
+|Lighting Components||
+|---|---|
+|[REGION:tablesection]Name[/REGION]|[REGION:tablesection]Description[/REGION]|
+|**Ambient Cubemap**|Shows/hides the result of the ambient cubemap.|
+|**Indirect Lighting Cache**|Shows/hides the result of indirect lighting on dynamic objects.|
+|**Light Functions**|Shows/hides the result of light function materials on lights.|
+|**Light Shafts**|Shows/hides the result of light shafts.|
+|**Reflection Environment**|Shows/hides the result of the reflection environment.|
+|**Reflection Environment Lightmap Mixing**|Shows/hides the result of any lightmap data that is the result of the reflection environment.|
+|**Screen Space Reflections**|Shows/hides the result of screen space reflections.|
+|**Textured Light Profiles (IES Textures)**|Shows/hides the result of IES lighting profiles.|
+
+
+## Developer
+
+|Developer||
+|---|---|
+|[REGION:tablesection]Name[/REGION]|[REGION:tablesection]Description[/REGION]|
+|**AI Debug**|This shows the paths an AI-driven pawn is using to navigate along a Nav Mesh.|
+|**Blur GBuffer**|Shows/hides the results of **Blue GBuffer Intensity**, a property found on Post Process Volumes. This feature blurs the GBuffer normals and adjusts the GBuffer roughness to reduce specular aliasing. It is, however, a high performance cost for the result and you should generally consider just using Temporal AA.  |
+|**GBuffer Hints (material attributes)**|Colorizes objects that have improper Materials. Yellow for objects that are impossibly non-reflective, red for objects that emit more light than they receive.|
+|**Hit Proxies**|Shows/hides the proxy shapes used by hit detection.|
+|**Log Visualizer**|Draws any data to the screen that is required by the Log Visualizer system.|
+|**On Screen Debug**|This is to hide things like VisualizeTexture or stats printout. |
+|**Refraction**|Shows/hides the results of refraction on Materials.|
+|**Shadows of Editor-Hidden Actors**|Shows dynamic shadows for objects that are hidden in the editor, such as those hidden by pressing the **H** key.|
+|**Test Image**|Shows a test image for configuration of monitor and graphics settings.|
+|**Vector Fields**|Shows/hides any vector fields in the scene.|
+
+
+## Visualize
+
+|Visualize||
+|---|---|
+|[REGION:tablesection]Name[/REGION]|[REGION:tablesection]Description[/REGION]|
+|**Adaptive Depth of Field**|Applies a color coding filter to the view such that objects that are blurred by Depth of Field are tinted green and only the area in focus receives its normal color.|
+|**Depth of Field Layers**|Applies a color coding filter to the view such that objects blurred by near DOF are green, objects blurred by far DOF are blue. Objects in focus appear black. |
+|**HDR**|Shows a visualization window that expresses the scene histogram, as well as how exposure settings are affecting brightness. |
+|**Motion Blur**|When Motion Blur is on, this changes the view to a Motion Blur visualizer, allowing you to see the motion vectors being used to calculate blur.|
+| [**Out of Bounds Pixels**](Engine/Performance/Visualizers/OutOfBoundsPixels) | If a pixel of an object exists outside that object's bounding volume, it can lead to flickering or the object disapearing when the bounding volume (but not the mesh) is off camera. This visualizer colorizes those pixels in blue, yellow, and white. |
+
+
+## Advanced
+
+|Advanced||
+|---|---|
+|[REGION:tablesection]Name[/REGION]|[REGION:tablesection]Description[/REGION]|
+|**Audio Radius**|Shows/hides the radius of any audio Actors in the scene.|
+|**Billboard Sprites**|Shows/hides any billboard sprites in the level. This does not extend to sprite particles, only Billboard Components.|
+|**Bounds**|Shows/hides bounds on selected objects.|
+|**BSP Split**|Shows/hides Brush surface splits on world geometry.|
+|**Builder Brush**|Shows/hides the builder brush.|
+|**Camera Frustums**|Shows/hides view frustums of any cameras in the scene.|
+|**Constraints**|Shows/hides rigid body constraints. TODO|
+|**High Res Screenshot Mask**|TODO|
+|**Instanced Static Meshes**|Shows/hides any instanced Static Meshes in the scene.|
+|**Large Vertices**|Shows/hides larger-than-usual vertices on any selected Brushes or Static Meshes.|
+|**Level Coloration**|Color codes the scene such that each streamed level gets another color. Irrelevant if not using level streaming.|
+|**Light Influences**|Shows orange lines which point out what lights are influencing selected objects.|
+|**Light Radius**|Shows/hides light radius shapes.|
+|**LOD Parenting**|Use LOD parenting, MinDrawDistance, etc. If disabled, will show LOD parenting lines.|
+|**Mesh Edges**|This overlays the mesh wireframe on top of the view.|
+|**Mode Widgets**|Shows/hides the transform widgets, such as the Move tool.|
+|**Render (3D) Text**|Whether or not to render any Text Actors or Components that may be in the scene.|
+|**Safe Frames**|When looking through a Camera Actor, this shows the safe frames for that camera. Safe frames are areas a set distance from the edge of the screen where you can guarantee the image will be visible. |
+|**Selection**|Shows/hides the result of the Selection Highlight.|
+|**Separate Translucency**|This shows/hides any objects that are making use of Separate Translucency in their Materials.|
+|**Shadow Frustums**|Shows/hides a selection of color-coded boxes which represent the shadow frustums used to cast shadows from each light.|
+|**Splines**|Shows/hides any Spline Actors that exist in the level.|
+|**Streaming Bounds**|Shows/hides spherical radii for each streaming level.|
+|**Temporal AA (instead FXAA)**|Activates/deactivates Temporal Anti-aliasing. When unchecked, the viewport shows fast approximation anti-aliasing (FXAA).|
+|**Tessellation**|Shows/hides the result of tessellation in Materials. |
+|**Vertex Colors**|Shows/hides any vertex colors applied to meshes in the scene.|
+|**Volumes**|Shows/hides any volumes in the scene. (**Alt-O**)|
+
+
+
+## Volumes
+
+|Volumes||
+|---|---|
+|[REGION:tablesection]Name[/REGION]|[REGION:tablesection]Description[/REGION]|
+|**Show All**|Shows all types of volumes in the scene.|
+|**Hide All**|Hides all types of volumes in the scene.|
+|**Audio**|Shows/hides Audio Volumes.|
+|**Blocking**|Shows/hides Blocking Volumes.|
+|**Cull Distance**|Shows/hides Cull Distance Volumes.|
+|**Level Streaming**|Shows/hides Level Streaming Volumes.|
+|**Lightmass Character Indirect Detail**|Shows/hides Lightmass Character Indirect Detail Volumes.|
+|**Lightmass Importance**|Shows/hides Lightmass Importance Volumes.|
+|**NavMesh Bounds**|Shows/hides NavMesh Bounds Volumes.|
+|**Nav Modifier**|Shows/hides Nav Modifier Volumes.|
+|**Pain Causing**|Shows/hides Pain Causing Volumes.|
+|**Physics**|Shows/hides Physics Volumes.|
+|**Post Process**|Shows/hides Post Process Volumes.|
+|**Precomputed Visibility Override**|Shows/hides Precomputed Visibility Override Volumes.|
+|**Precomputed Visibility**|Shows/hides Precomputed Visibility Volumes.|
+|**Trigger**|Shows/hides Trigger Volumes.|
+
+
+## Layers
+
+|Layers||
+|---|---|
+|[REGION:tablesection]Name[/REGION]|[REGION:tablesection]Description[/REGION]|
+|**Show All**|Sets all Layers in the scene to be visible.|
+|**Hide All**|Hides all Layers in the scene.|
+|**Layer Names**|This will populate with the names of any Layers you have created in your scene, so that you may show/hide each one individually.|
+
+
+## Sprites
+
+[REGION:note]
+Billboard sprites are generally in-editor icons used for placement of various object types. In this case, they do not refer to sprite particles.
+[/REGION]
+
+|Billboard Sprites||
+|---|---|
+|[REGION:tablesection]Name[/REGION]|[REGION:tablesection]Description[/REGION]|
+|**Show All**|Shows all types of billboard sprites.|
+|**Hide All**|Hides all types of billboard sprites.|
+|**Decals**|Shows/hides Decal billboard sprites.|
+|**Effects**|Shows/hides Effects billboard sprites, which represent the location of Emitter Actors.|
+|**Fog**|Shows/hides Fog Actor billboard sprites.|
+|**Info**|Shows/hides Info billboard sprites.|
+|**Landscape**|Shows/hides Landscape billboard sprites.|
+|**Lighting**|Shows/hides Light Actor billboard sprites.|
+|**Materials**|Shows/hides Materials billboard sprites.|
+|**Misc**|Shows/hides miscellaneous billboard sprites which do not fall into the other categories.|
+|**Navigation**|Shows/hides Navigation billboard sprites.|
+|**Notes**|Shows/hides Notes billboard sprites.|
+|**Physics**|Shows/hides Physics billboard sprites.|
+|**Player Start**|Shows/hides Player Start billboard sprites.|
+|**Sounds**|Shows/hides Sounds billboard sprites.|
+|**Target Points**|Shows/hides Target Points billboard sprites.|
+|**Triggers**|Shows/hides Triggers billboard sprites.|
+|**Unreal Matinee**|Shows/hides Unreal Matinee billboard sprites.|
+|**Wind**|Shows/hides Wind billboard sprites.|

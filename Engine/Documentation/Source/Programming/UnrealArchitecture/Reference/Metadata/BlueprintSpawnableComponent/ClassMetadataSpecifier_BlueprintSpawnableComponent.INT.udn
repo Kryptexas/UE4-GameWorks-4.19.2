@@ -1,0 +1,7 @@
+Title: BlueprintSpawnableComponent
+Crumbs: %ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Classes, Programming/UnrealArchitecture/Reference/Classes/Specifiers
+Description: 
+Availability:Public
+Version: 4.5
+
+ If present, the component class can be spawned by a Blueprint.

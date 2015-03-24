@@ -1,0 +1,177 @@
+﻿INTSourceChangelist:2409504
+Availability: Public
+Title:애셋 작업하기
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:콘텐츠 브라우저에서 애셋 작업에 관련된 것을 다루는 문서입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Browser/UserGuide/BrowserAssetCreation:title%](Engine/Content/content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/BrowserAssetCreation:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Browser/UserGuide/BrowserAssetCreation:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/BrowserAssetCreation]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](AssetTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/BrowserAssetCreation:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/BrowserAssetCreation]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:2)]
+
+## 개요
+
+콘텐츠 브라우저는 애셋을 가급적 빠르고 쉽고 효율적으로 만들 수 있도록 디자인되어 있습니다. 언리얼에서 추가 정보가 필요할 때만 애셋 생성시 대화창이 생성됩니다. 그 외에는 그저 이름만 지정해 주면 됩니다.
+
+
+## 애셋 추가하기
+
+
+새 애셋의 생성은 콘텐츠 브라우저의 빈 공간에 우클릭하여 뜨는 맥락 메뉴에서 **새 애셋** 버튼을 클릭하고 원하는 애셋을 선택하면 됩니다.
+
+![NewAsset.png](NewAsset.png)
+
+
+## 애셋 삭제하기
+
+언리얼 에디터에서 애셋을 지우는 것 역시 꽤나 쉽습니다. 지우려는 애셋에 우클릭한 다음 맥락 메뉴에서 **삭제** 를 선택하기만 하면 됩니다.
+
+![DeleteMenu.png](DeleteMenu.png)
+
+그러면 정말로 삭제하겠냐고 확인하는 창이 뜹니다:
+
+![DeleteConfirm.png](DeleteConfirm.png)(w:500)
+
+이미 레벨에 있는 애셋을 사용중이거나, 다른 애셋이 거기에 종속되어 있거나 레퍼런싱하는 경우, 삭제 동작을 막는 경고창이 뜨게 됩니다.
+
+![DeletionReferences.png](DeletionReferences.png)(w:500)
+
+이런 경우 해당 애셋의 레퍼런스를 찾아 로드되지 않도록 해야 지울 수 있습니다. 자세한 것은 아래 레퍼런스 처리 부분을 참고하세요.
+
+## 일반 액션
+
+**콘텐츠 브라우저** 에서 애셋에 **우클릭** 하면 보이는 맥락 메뉴의 **일반** 섹션에는 다음과 같은 옵션이 보입니다:
+
+| 항목 | 설명 |
+| --- | --- |
+| **Edit** | 편집 - 선택된 애셋을 전용 에디터에서 엽니다. |
+| **Rename** | 이름변경 - 애셋 이름을 빠르게 변경할 수 있습니다. 이름이 변경된 애셋으로의 레퍼런스도 전부 업데이트됩니다. |
+| **Duplicate** | 복제 - 현재 위치에 선택된 애셋의 사본을 만듭니다. 사본 위치를 변경하려면, 소스 뷰에서 새 폴더로 끌어 놓으면 됩니다. |
+| **Select Actors Using This Asset** | 이 애셋을 사용하는 액터 선택 - 이 애셋을 기반으로 한 레벨의 모든 액터를 선택합니다. |
+| **Save** | 저장 - 애셋을 ._uasset_ 파일로 저장합니다. |
+| **Delete** | 삭제 - 애셋에 현존하는 레퍼런스가 있어 방해받지 않는 한, 삭제합니다. |
+| **Asset Actions** | 애셋 액션 - 다른 명령이 더 있는 드롭다운 메뉴를 엽니다. |
+
+
+## 애셋 액션
+
+콘텐츠 브라우저에서 애셋에 우클릭하면 보이는 맥락 메뉴의 **Asset Actions** (애셋 액션) 부분에서는 다음과 같은 명령을 확인할 수 있습니다:
+
+| 항목 | 설명 |
+| --- | --- |
+| **Create Blueprints Using This** | 다음을 사용하여 블루프린트 생성 - 블루프린트를 생성한 다음 이 애셋을 컴포넌트로 추가합니다. |
+| **Select Actors Using This Asset** | 이 애셋을 사용하는 액터 선택 - 레벨에 있는 액터 중 이 애셋을 기반으로 한 모든 액터를 선택합니다. |
+| **Select Containing Folder** | 포함된 폴더 선택 - 소스 뷰의 애셋 트리에서 선택된 애셋이 존재하는 폴더를 선택합니다. 콜렉션에 있는 애셋의 실제 위치를 찾는 데 좋습니다. |
+| **Show In Explorer** | 탐색기에서 표시 - 윈도우 탐색기에서 애셋이 저장된 ._uasset_ 파일 위치를 엽니다. |
+| **Export...** | 익스포트 - 애셋을 외부 파일 포맷으로 익스포트할 수 있습니다. 가능한 포맷은 선택된 애셋 유형에 따라 바뀝니다. |
+| **Migrate** | 이주 - 애셋과 그 종속성 애셋 전부를 새로운 게임 폴더로 옮기는 데 사용할 수 있는 이주 툴을 엽니다. <br/> 자세한 정보는 [](Engine/Content/Browser\UserGuide\Migrate) 문서를 참고하세요.|
+| **Replace References** | 레퍼런스 대체 - 다수의 애셋을 하나로 합칩니다. <br/> 자세한 정보는 [](Engine/Content/Browser\AssetConsolidationTool) 문서를 참고하세요. |
+| **Property Matrix** | 프로퍼티 매트릭스 - 선택된 애셋들에 대한 프로퍼티 매트릭스 에디터를 엽니다. <br/>자세한 정보는 [](Engine/UI/PropertyMatrix) 문서를 참고하세요. |
+
+
+## 레퍼런스 처리
+
+콘텐츠 브라우저에서 애셋을 활용해 가면서, 에디터는 그 각각에 대해서 레퍼런스 목록을 만듭니다. 이러한 레퍼런스가 어떻게 작동하는지를 아는 것이 중요한데요. 한 애셋이 다른 애셋에 레퍼런스되어 있어 지우거나 옮길 수가 없다면, 그 레퍼런스를 빠르게 찾아 지우는데도 이 툴이 도움이 될 것입니다.
+
+콘텐츠 브라우저에서 애셋에 우클릭하면 보이는 맥락 메뉴의 **Reference** (레퍼런스) 섹션에서는, 다음과 같은 명령을 확인할 수 있습니다:
+
+
+| 항목 | 설명 |
+| --- | --- |
+| **Copy Reference** | 레퍼런스 복사 - 선택된 모든 오브젝트에 대한 레퍼런스를 클립보드에 복사합니다. 텍스트 필드에 애셋 경로를 붙여넣거나 외부 목록이 필요한 경우에 좋습니다. |
+| **Reference Viewer** | 레퍼런스 뷰어 - 애셋과 그 레퍼런스로 된 그래프가 표시되는 레퍼런스 뷰어를 엽니다. 자세한 정보는 [](Engine/Content/Browser\ReferenceViewer) 문서를 참고하세요. |
+
+
+
+## 애셋 관리
+
+애셋과 애셋이 들어있는 폴더의 관리는 **콘텐츠 브라우저** 를 통해 쉽게 가능합니다. 한 폴더에 있는 애셋을 
+다른 폴더로 이동 또는 복사하거나, 새로운 폴더를 만들거나, 전체 폴더 구조를 옮기거나 하는 작업 모두 
+**애셋 트리** 안에서 가능하며, _드래그 앤 드롭_ 역시 지원됩니다.
+
+[REGION:imagetable]
+| ![](folder_manage.png)(h:350) | ![](asset_manage.png)(h:350) |
+| ------ | ------ |
+| 폴더 이동 | 애셋 이동 |
+[/REGION]
+
+
+## 드래그 앤 드롭과 액터 생성
+
+![DragAndDrop.png](DragAndDrop.png)(w:600)
+
+콘텐츠 브라우저에는 드래그 앤 드롭으로 레벨에 애셋을 기반으로 한 액터를 만드는 기능은 물론, 
+폴더에서 폴더로 애셋을 이동하는 기능도 지원됩니다.
+
+애셋을 레벨에 끌어놓을 때, 해당 애셋을 기반으로 한 액터를 미리볼 수 있어서, 액터를 정확히 레벨의 
+어디에 어떻게 놓을 것인지 확인할 수 있습니다.
+
+[REGION:note]
+이러한 애셋은 요청시 메모리에 로드됩니다.
+[/REGION]
+
+### 실시간 렌더링되는 썸네일 미리보기
+
+[EXCERPT:RealTimeThumb]
+
+콘텐츠 브라우저 안에서 사용할 수 있는 다수의 애셋에는 실시간 렌더링되는 썸네일이 있습니다. 이를 통해 어떤 애셋을 각각의 에디터에서 열어볼 필요 없이 빠르게 미리볼 수 있습니다.
+
+실시간으로 확인할 수 있는 애셋 유형은 다음과 같습니다:
+
+* 스태틱 메시
+* 스켈레탈 메시
+* 머티리얼
+* 스태틱 / 스켈레탈 메시 컴포넌트가 포함된 블루프린트
+
+
+
+썸네일을 실시간 미리보기 위해서는, 콘텐츠 브라우저 오른쪽 아래 위치한 ![](button_ViewOptions.png) 버튼을 클릭합니다. 뜨는 팝업 메뉴에서 **썸네일 편집 모드** 를 선택합니다. 콘텐츠 브라우저의 아랫 부분에 다음과 같이 표시됩니다:
+
+![](button_ThumbnailEditMode.png)
+
+이 기능이 활성화 도중 위에 나열된 애셋 유형에 드래그해 보면 3D 환경에서 확인해 볼 수 있습니다. 콘트롤은 다음과 같습니다:
+
+| **버튼** | **콘트롤** |
+| --- | --- |
+| **좌클릭 드래그** | 애셋을 중심으로 회전합니다. |
+| **우클릭 드래그** | 카메라 줌 인 / 아웃 합니다. |
+
+[REGION:note]
+	머티리얼을 실시간으로 미리볼 때는 썸네일 왼쪽 윗 구석의 작은 프리미티브 아이콘을 클릭하여 표시되는 프리미티브를 바꿀 수 있습니다.
+[/REGION]
+
+![](Thumbnails.png)
+
+애셋 미리보기가 끝나면 그냥 ![](button_DoneEditing.png) 버튼을 클릭합니다.
+
+[/EXCERPT:RealTimeThumb]

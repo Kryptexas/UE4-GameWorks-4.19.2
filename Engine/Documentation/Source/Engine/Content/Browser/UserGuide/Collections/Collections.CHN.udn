@@ -1,0 +1,45 @@
+﻿INTSourceChangelist:1675162
+Availability: Public
+Title:收藏夹
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:本文介绍了内容浏览器中的收藏夹的用途。
+
+## 概述
+
+![CB_Collections.png](CB_Collections.png)
+
+%Description%
+
+[EXCERPT:Collections]
+收藏夹是一种将成套的资源组织放到自定义的组（比如文件夹）中的方法。比如，您可能会发现创建一个收藏夹来存放符合某种特定视觉风格的场景中的所有静态网格物体是非常有用的，以便稍后进行快速地获得它们。
+
+在底层，收藏夹实际上仅是到给定资源的引用的列表。资源本身不会被移入到收藏夹中。这意味着，某个单独的资源可以存在于很多个收藏夹中，且您可以根据需要创建很多收藏夹。
+[/EXCERPT:Collections]
+
+## 创建收藏夹
+
+![Collections_New.png](Collections_New.png)
+
+创建收藏夹非常简单，仅需在收藏夹面板中右击并输入新收藏夹的名称即可。
+
+## 收藏夹类型
+
+收藏夹有三种不同的类型，正如它们名称右边的小字母所定义的。
+
+* **L** - 本地收藏夹；这些收藏夹仅供您的本地计算机使用。
+* %BLUE%**S** - 共享收藏夹；这些是其他用户可以看到的收藏夹。%ENDCOLOR%
+* %BLUE%**P** - 私有收藏夹;这些收藏夹仅那些特邀用户可以使用。%ENDCOLOR%
+
+[REGION:note]
+	列为 %BLUE%**蓝色**%ENDCOLOR% 的收藏夹类型仅当启用主编辑器偏好设置下的源码控制时才可见。
+[/REGION]
+
+## 重命名及销毁收藏夹
+
+![Collections_Rename.png](Collections_Rename.png)
+
+可以通过右击给定收藏夹并选择 **Rename（重命名）** 来重命名收藏夹。仅需输入您要设置的新名称即可。
+
+![Collections_Destroy.png](Collections_Destroy.png)
+
+要想销毁或删除收藏夹，仅需从右击菜单中选择 **Destroy（销毁）** 即可。注意，因为收藏夹仅是到实际资源的引用，所以删除您的收藏夹将不会删除收藏夹中的资源。

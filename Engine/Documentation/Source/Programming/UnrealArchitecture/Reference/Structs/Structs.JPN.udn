@@ -1,0 +1,16 @@
+﻿Availability:Public
+Title:構造体
+Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
+Description:ゲームプレイ クラス用構造体の作成および実装に関する参照ページ
+
+ゲームプレイ クラスの **Structs** には、 Uproperty 変数、関数、演算子を含むことができます。構造体はクラス宣言に先立って宣言されます。
+
+	USTRUCT([Specifier, Specifier, ...])
+	struct StructName
+	{
+		GENERATED_USTRUCT_BODY()
+	};
+
+#### 構造体指定子
+
+[INCLUDE:Programming/UnrealArchitecture/Reference/Structs/Specifiers#main(offset:2)]

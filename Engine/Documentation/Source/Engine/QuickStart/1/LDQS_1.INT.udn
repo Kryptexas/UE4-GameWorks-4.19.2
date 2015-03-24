@@ -1,0 +1,48 @@
+Availability: Public
+Title:1. Navigating the Viewport
+Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
+Description:An overview on the most commonly used viewport navigation controls.
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/QuickStart/2 "%Engine/QuickStart/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+[REGION:note]
+For this tutorial series, we are using a new **Blank** project with **Starter Content** enabled. Please see the [](Engine/Basics/Projects/Browser) page for information on creating new projects, using templates and defining project settings (including **Starter Content**). 
+[/REGION]
+
+Once you have created your **Blank** project (with **Starter Content**), the initial level upon load will look something like this:
+
+![](Engine/QuickStart/2/TableAndChairs.png)
+
+Using this little area as a point of reference, get used to the **Viewport Camera Controls**. Below are the 3 most commonly used methods of navigating the Viewport in Unreal Engine 4. Once you are comfortable with navigating around the level, head to the next page of the guide: **Place Actors**.
+
+## Standard Controls
+
+[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#StandardControls]
+
+## WASD Fly Controls
+
+[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#GameControls]
+
+## Orbit, Dolly, and Track
+
+[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#MayaLikeControls]
+
+For more information on Viewport Navigation, see: [**Viewport Controls**](Engine\UI\LevelEditor\Viewports\ViewportControls)
+
+%Steps%

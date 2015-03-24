@@ -1,0 +1,55 @@
+﻿INTSourceChangelist:2467427
+Availability:Public
+Title:4.配置したアクタの編集
+Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
+Description:アクタがレベル内にある状態で、バリエーションを加えます。
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Engine/QuickStart/3 "%Engine/QuickStart/3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Engine/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Engine/QuickStart/5 "%Engine/QuickStart/5:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+![](Engine\QuickStart\4\placeThings.png)
+
+多くののアクタを配置した状態で、そのいくつかを編集してみましょう。最初に、 **Directional Light (平行光源) アクタ** を編集します。
+
+1. ビューポート内で **左クリック** して、 **Directional Light アクタ** を選択します。
+
+	![](Engine\QuickStart\5\selectDL.png)
+
+1. **Light** カテゴリの **[Details] パネル** で、 **[Used as Atmosphere Sun Light]** を有効にします。
+
+	![](Engine\QuickStart\5\enableSun.png)
+
+	**Directional Light アクタ** の回転に応じて空の色が変わります。ビューポートを回転させると太陽が **Directional Light アクタ** の位置に合わせされるのがわかります。これはリアルタイム プロセスです。そのため、(**E** を押して **Rotation モード** に切り替えて) **Directional Light Actor** を回転させると、空の色が夜、日の出、日中、日没と変化するのがわかります。
+
+配置した **Static Mesh アクタ** のどれかの上にある **マテリアル** を最初に選択して、変えてみましょう。  
+
+1. レベル内でアクタを選択し、**[Materials]** の **[Details]** パネルで **Element 0** の下にあるドロップダウン ボックスをクリックします。 
+
+	![](material_1.png)(w:900)
+
+	ポップアップ ウィンドウで、使用するスタティック メッシュ用の **マテリアル** を選択します (下図では **M_Brick_Clay_New** を選択しました)。 
+
+	![](material_2.png)(w:900)
+
+1.	シーン内のすべての **アクタ** には、調整するためのプロパティが数多く付いています。続ける準備ができたら、 **「次のステップ」** をクリックしてください。 
+
+	![](Engine\QuickStart\5\beforeBake.png)(w:900)
+
+	_ライトのカラーを変更し、アクタにマテリアルを追加してみましょう。_
+
+%Steps%

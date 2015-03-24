@@ -1,0 +1,200 @@
+﻿INTSourceChangelist:2299858
+Availability:Docs
+Title:マテリアル レイヤー:ロケット
+Crumbs:%ROOT%, Resources
+Description:UE4 に同梱されているマテリアル レイヤー例の概要
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/Showcases/MaterialLayers:title%](LayeredMaterials_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/Showcases/MaterialLayers:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/Showcases/MaterialLayers:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/Showcases/MaterialLayers]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/Showcases/MaterialLayers:title%](LayeredMaterials_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/Showcases/MaterialLayers:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/Showcases/MaterialLayers:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/Showcases/MaterialLayers]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+![](MaterialLayerRockets.png)
+[/REGION]
+
+[TOC(start:2)]
+
+## 概要
+
+この例はマテリアル レイヤーのコンセプトを重視しています。これは一連の Material 関数を互いに重ねているテクニックです。さまざまなマテリアルから構成される単一のブレンド マテリアルを作成することができます。特に、これらの各レイヤーの分離はポリゴン 1 つずつがベースではなく、複数のマテリアルを単一オブジェクトに適用する場合と同様にテクスチャ (ピクセル当たり) 経由で可能となります。 
+
+例は、幅広いプラットフォーム上で起動の用意が整っている 6 つのロケットのスタティックメッシュで構成されています。6 つのロケットそれぞれは、異なるマテリアルまたは Material 関数を紹介します。最初の 4 つのロケットは、プラスチックやさまざまなメタルなど、現実世界のさまざまなマテリアルを定義します。右側の最後のロケット 2 つは、実際のブレンドマテリアル関数です。最終結果を表示するために 4 つのベースマテリアルが 1 つにブレンドされます。
+
+[REGION:fullwidth]
+![](RocketBreakdown.png)
+[/REGION]
+
+1. 赤色のプラスティック（マテリアル）
+1. クロム（マテリアル）
+1. アルミニウム（マテリアル）
+1. 銅（マテリアル）
+1. ブレンド結果 1 (Material 関数)
+1. ブレンド結果 2 (Material 関数)
+
+
+
+##結合テクスチャ
+
+
+この例で使用する各ロケットは、それ自体がいくつかのグレースケールレイヤーから構成される RGB テクスチャを使用しています。各レイヤーは別々の関数を実行します。このテクスチャの内訳は以下となります。
+
+![](RocketGrimeTex.png)(w:500)
+
+1. **赤チャンネル** - 木材
+1. **緑 Channel** - Scratches (スクラッチ) と damages (ダメージ)
+1. **青 Channel** - Ambient occlusion (アンビエントオクルージョン)
+1. **RGB Combined** - 最終結果
+
+この手法は、別々のテクスチャとして各チャンネルをインポートためにメモリを節約することによって、1 つのテクスチャをさまざまな方法で使用することができます。
+
+
+##基本マテリアル
+
+最初の 4 つの各ロケットは、異なる物理プロパティを作成するためにある代替値を使用して、同一とみなされるマテリアル関数を使用しています。 
+
+1. 左から 4 つのロケットのどれかを選択します。
+
+	![](BaseRocketSelected.png)(w:500)
+
+1. **[詳細]** パネルで _マテリアル_ カテゴリを検索します。
+
+	![](BaseRocketMaterialDetails.png)
+
+1. **ダブルクリック** すると、マテリアル エディタでロケットの Material 関数が開きます。Material 関数は以下の通りです：
+
+
+**クリックして画像をフルサイズで表示**
+
+[REGION:lightbox]
+	[REGION:fullwidth]
+	[![](RocketMLFunction2.png)](RocketMLFunction2.png)
+	[/REGION]
+[/REGION]
+
+この例では、 **Make Material Properties** ノード経由で実際のマテリアルを定義するために、 _ML_Plastic01_ マテリアル関数が設定されています。_ML_Plastic01_ ノードを **ダブルクリック** すると、ジャンプしてプラスチックマテリアルを定義するネットワークをこのように見ることができます。
+
+
+**フルサイズ表示にはここをクリック (超拡大)** 
+
+[REGION:lightbox]
+[![](BaseMaterialML.png)(w:700)](BaseMaterialML.png)
+[/REGION]
+
+Material 関数を通常のマテリアル同様に扱うために、**Make Material Properties** ノードの使用方法に対する理解が深まります。その後、ロケットの5番目と6番目の例で紹介されるマテリアルブレンドの下準備をします。
+
+##ブレンドマテリアル
+
+シーンの左から 5 番目のロケットにはブレンド マテリアルが含まれます。シーンの左側の銅、アルミニウム、クロムロケットからの Material 関数に Material 関数をブレンドしています。 
+
+1. 左から 5 番目のロケットを選択します。
+
+	![](FifthRocketSelected.png)(w:500)
+
+1. **[詳細]** パネルで _マテリアル_ カテゴリを検索します。
+
+	![](BlendedMaterialDetails.png)
+
+1. **ダブルクリック** すると、マテリアル エディタでロケットの Material 関数が開きます。Material 関数は以下の通りです：
+
+	**フルサイズ表示にはここをクリック (超拡大)**
+
+	[REGION:lightbox]
+		[REGION:fullwidth]
+		[![](BlendedMaterialNetwork.png)](BlendedMaterialNetwork.png)
+		[/REGION]
+	[/REGION]
+
+
+### 初期マテリアルの設定
+
+ここでは、何が行われるのでしょうか？これまでに銅、アルミニウム、クロムの 3 つのマテリアルが設定されました。この Material 関数で、結合したテクスチャ経由でそれぞれのマテリアルに汚れとスクラッチを適用していきます。 
+
+![](GrimeAndScratches.png)
+
+
+### モジュール化したプロパティでマテリアルを再利用する
+
+次に銅マテリアルの色調を実際に弱めて、Roughness プロパティを 150 ％強めます。4 番目のマテリアルタイプと、シンプルな鏡面クロムの 5 番目のマテリアルを形成します。
+
+![](AdditionalBlendedMaterials.png)
+
+### テクスチャ チャンネルとのブレンド
+
+これで一緒にブレンドする合計 5 つのマテリアルが揃いました。ブレンドは、 **MatLayerBlend_Standard** ノードと RGBA 結合テクスチャを使用して実行します。テクスチャとそのチャンネルの内訳は以下のとおりです：
+
+[REGION:fullwidth]
+![](RocketBlendingTextureBreakdown.png)
+[/REGION]
+
+| **Number** | **チャンネル** | **目的** |
+| --- | --- | --- |
+| **1** | RGBA | 未使用 |
+| **2** | Red | ロケットのノーズコーン |
+| **3** | Green | ロケットの排気エンジン |
+| **4** | Blue | ロケットのスタビライザー |
+| **5** | Alpha | リベットやヒンジなどロケットのアクセント |
+| [REGION:tablesection]_黒のピクセルはロケットのメイン胴体を定義します。_ [/REGION]|||
+
+
+このテクスチャを使用してマテリアルはノード設定とブレンドされます：
+
+![](LayerBlending.png)(w:600)
+
+
+### 法線マップの適用
+
+ブレンドが終了すると、法線マップテクスチャと一緒に **MatLayerBlend_GlobalNormal** ノードを使用して、サーフェス全体へ法線マップを適用することができます。
+
+![](NormalMapGlobal.png)
+
+### キャビティとアンビエント オクルージョンの追加
+
+上記に示す結合テクスチャは、ブルーチャンネル内にアンビエント オクルージョンとキャビティ マップデータを格納しています。マテリアルの最終手順は、 **MatLayerBlend_TintAllChannels** ノード経由でサーフェス全体にこれを適用します。このノードはテクスチャ値で受信結果を乗算します。この場合、淡彩色にテクスチャのブルーチャンネルを使用しその後アンビエント オクルージョンマップを使用します。
+
+
+![](AmbientOcclusionApplied.png)
+
+
+## 関連トピック
+
+* [](Engine/Rendering/Materials)
+* [](Engine/Rendering/Materials\IntroductionToMaterials)
+* [](Engine/Rendering/Materials\Functions)

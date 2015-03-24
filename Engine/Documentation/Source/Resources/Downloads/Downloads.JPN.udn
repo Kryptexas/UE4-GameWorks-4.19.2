@@ -1,0 +1,32 @@
+﻿Availability:Licensee
+Title:リソースのダウンロード
+Crumbs:%ROOT%, Resources
+Description: UE4 を使用してゲームを開発する際に使用するダウンロード可能なコンテンツとマテリアル例のリポジトリ
+
+[TOC]
+
+## 概要
+
+このページは、UE4 を使用してゲームを開発する際に使用するダウンロード可能なコンテンツとマテリアル例のリポジトリです。
+
+## チュートリアル コンテンツ
+
+エディタ内チュートリアルは、いくつかのアセットを必要とします。以下の場所にあります。
+
+* [](TutorialShape.zip)
+
+
+
+## キャラクター例
+
+**スケルトン例** 
+
+このスケルトン例を使用して、UE4 に同梱される既存のアニメーション セットを利用した新しいキャラクターを作ることができます。スケルトンは FBX ファイルとして提供されるため、あらゆる 3D アプリケーションに簡単にインポートすることができます。
+
+
+* [ExampleSkeleton.fbx](ExampleSkeleton.fbx)
+
+
+[REGION:header_img]
+![exampleskeleton.jpg](exampleskeleton.jpg)
+[/REGION]

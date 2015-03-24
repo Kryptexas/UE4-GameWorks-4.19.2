@@ -1,0 +1,103 @@
+﻿INTSourceChangelist:2362600
+Availability: Public
+Title:3. 캐릭터 변수 셋업하기
+Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
+Description:UMG 퀵스타트의 세 번째 단계는 캐릭터와 HUD 를 통해 표시할 변수 셋업하기 입니다.
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 단계](Engine/UMG\QuickStart\2 "%Engine/UMG\QuickStart\2:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵 스타트 홈](Engine/UMG\QuickStart) 
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Engine/UMG\QuickStart\4 "%Engine/UMG\QuickStart\4:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+	[/PARAM]
+	[PARAM:description]
+
+다음 단계에서는 HUD 에 표시하려는 캐릭터에 변수를 조금 추가하겠습니다.
+
+1. **Game/Blueprints** 폴더에서 **MyCharacter** 블루프린트를 엽니다.
+
+1. **내 블루프린트** 창 안에서 **플로트** 변수를 둘 (**P_Health**, **P_Energy**) 생성합니다.
+
+1. **컴파일** 클릭 후 **디테일** 패널에서 각각에 대한 **Default Value** 를 **1.0** 으로 설정합니다. 
+
+1. **인티저** 변수도 둘 (**P_AmmoMax**, **P_CurrentAmmo**) 생성 후 **컴파일** 한 뒤 둘 다 **25** 로 설정합니다.
+
+		![](New_1.png)
+
+1. 그래프 창에서 **Jump** 섹션을 찾은 다음, **Alt** 키를 누른 상태로 **P_Energy** 변수를 끌어 놓아 **Jump** 옆에 놓습니다.
+
+		![](New_2.png)(w:800)
+
+		그러면 **Set** 노드가 생기며, 이 변수 설정을 통해 점프 이후 에너지를 감소시키면 됩니다.
+		
+1. **Ctrl** 키를 누른 상태로 **P_Energy** 변수를 다시 끌어놓고 (**.25** 로 설정된) **Float - Float** 노드에 연결한 뒤 표시된 대로 연결합니다.
+
+		![](New_3.png)
+		
+		그러면 현재 에너지 값을 **Get** (구)해서 점프를 할 때마다 거기서 0.25 씩 뺍니다. 그 내용이 HUD 에 표시되겠지요.
+
+1. 점프 섹션 아래 부분에 **우클릭** 한 다음, **F** 키 이벤트를 검색하여 추가합니다.
+
+		![](New_4.png)
+
+		**F** 키가 눌릴 때마다 대미지를 받아 생명력을 깎는 시뮬레이션을 해 보겠습니다.
+								
+1. **Alt** 를 누르고 **P_Health** 를 끌어놓은 다음, **Ctrl** 키를 누르고 **P_Health** 를 끌어놓아 위 에너지에 했던 것과 비슷한 방식으로 변수를 **Set**/**Get** 합니다.
+
+1. 아래 표시된 노드를 **F** 키 **Pressed** 핀에 연결합니다.
+
+		![](New_5.png)
+
+		임의의 대미지를 적용하기 위해 **0.025** 에서 **0.075** 사이의 난수를 빼도록 **Random Float in Range** 노드를 추가했습니다.
+
+1. "Spawn projectile" 섹션에서 **InputActionFire** 노드 다음에 **Branch** (분기) 노드를 추가한 다음 **True** 를 **Montage Play** 노드에 연결합니다.
+
+1. **Branch** (분기) 조건에 대해서는 **Ctrl** 을 누르고 **P_CurrentAmmo** 변수를 드래그한 다음 (**0** 으로 설정된) **>** 노드에 연결하고서, **Condition** 에 연결합니다. 
+
+		![](New_6.png)(w:800)
+
+		그러면 현재 Ammo 가 0 초과일 때만 플레이어가 탄환을 발사할 수 있게 됩니다.
+
+1. 또 "Spawn projectile" 부분의 코드 마지막 **Play Sound** 노드 다음에, **P_CurrentAmmo** 를 **P_CurrentAmmo - 1** 로 **Set** 합니다. 
+
+		![](New_7.png)
+
+		그러면 한 번 발사할 때마다 Ammo 를 하나씩 줄이고, 그 내용이 HUD 에 반영됩니다.
+
+1. **컴파일** 이후 **저장** 버튼을 클릭한 다음 블루프린트를 닫습니다.
+
+	[/PARAM]
+	[PARAM:links]
+	[/PARAM]
+[/OBJECT]
+
+다음 단계에서는 Ammo, Health, Energy 를 우리 **위젯 블루프린트** 에 걸어줘서 게임내 HUD 에 표시되도록 하겠습니다.
+
+---
+
+%Steps%
+
+
+
+

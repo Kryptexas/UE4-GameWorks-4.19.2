@@ -1,0 +1,59 @@
+﻿INTSourceChangelist:2215054
+Availability:Public
+Title:アセットを移行する 
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:コンテンツ ブラウザ内の別のプロジェクトへのアセットの移行方法を説明するドキュメントです。
+
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](MigrateTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/Migrate:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/Migrate]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![](MigrateBanner.png)
+[/REGION]
+
+## 概要
+
+[INCLUDE:Shared/Glossary/M/#Glossary_Migrate_Tool]
+
+## 使用法
+
+Migrate Tool (移行ツール) の使い方:
+
+1. 移行対象アセットを **コンテンツ ブラウザ** 上で選択した状態にします。
+
+	![](SelectedAssetsForMigration.png)(w:400)
+
+1. 選択中のアセットをどれか **右クリック** し、コンテキスト メニューから **[Migrate]** を選びます。
+
+	![](MigrateContextMenu.png)
+
+1. **[Asset Report]** が表示され、すべてのアセットと依存関連物が移行されることを示します。確認して **Ok** をクリックします。
+
+	![](AssetReport.png)
+
+1. 別のアンリアル・エンジン プロジェクトから適切なコンテンツ フォルダを選択します。これが移行先の位置になります。
+
+	![](ChooseFolderForMigration.png)
+
+1. 正常に移行された場合、アセットが移行先フォルダにコピーされたことを示す確認メッセージが出ます。
+
+	![](AssetsMigrated.png)
+
+
+ゲームコンテンツ フォルダ以外の場所へ移行しようとすると、以下のメッセージが表示されます。
+
+![](assetMigrationWarning.png)
+
+このメッセージが表示された場合は、場所を確認して **[Yes]** か **[No]** をクリックしてください。

@@ -1,0 +1,28 @@
+Availability: Docs
+Title:1.5 - Lightmass Character Indirect Lighting Detail Volume
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Volumes
+Description:An overview of the Volumes example level, example 1.5: Lightmass Character Indirect Lighting Detail Volume
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes/1_5:title%](Resources\ContentExamples\Volumes\content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes/1_5:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes/1_5:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Volumes/1_5]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+The Lightmass Importance Volume only places the samples along surfaces. This Volume ensures the creation of Samples. Use the command to see the difference. The typical usage for this volume would be an elevator so the character has samples all the way up.

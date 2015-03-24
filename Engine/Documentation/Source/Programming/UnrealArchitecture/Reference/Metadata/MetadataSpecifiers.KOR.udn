@@ -1,0 +1,34 @@
+﻿INTSourceChangelist:2004247
+Title: 메타데이터 지정자
+Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
+Description: Metadata 키워드는 클래스, 함수, 인터페이스 선언시 엔진과 에디터의 다양한 부분과 어떻게 작동하는지를 나타내기 위해 사용됩니다.
+Availability:Public
+
+클래스, 함수, 인터페이스 선언시, 메타데이터 지정자를 붙여 엔진과 에디터의 다양한 부분과 어떻게 작동하는지를 
+제어할 수 있습니다.
+
+[EXCERPT:MetadataUsage]
+메타데이터 지정자 사용법은 일반적인 클래스, 함수, 인터페이스 지정자와는 다릅니다.
+[/EXCERPT:MetadataUsage]
+
+
+## 클래스 메타데이터 지정자
+[EXCERPT:ClassMetadata]
+* [](Programming\UnrealArchitecture\Reference\Metadata\BlueprintSpawnableComponent)
+[/EXCERPT:ClassMetadata]
+
+
+## 함수 메타데이터 지정자
+[EXCERPT:FunctionMetadata]
+* [](Programming\UnrealArchitecture\Reference\Metadata\BlueprintInternalUseOnly)
+* [](Programming\UnrealArchitecture\Reference\Metadata\BlueprintProtected)
+* [](Programming\UnrealArchitecture\Reference\Metadata\DeprecatedFunction)
+* [](Programming\UnrealArchitecture\Reference\Metadata\DeprecationMessage)
+* [](Programming\UnrealArchitecture\Reference\Metadata\UnsafeDuringActorConstruction)
+[/EXCERPT:FunctionMetadata]
+
+
+## 인터페이스 메타데이터 지정자
+[EXCERPT:InterfaceMetadata]
+* [](Programming\UnrealArchitecture\Reference\Metadata\CannotImplementInterfaceBlueprint)
+[/EXCERPT:InterfaceMetadata]

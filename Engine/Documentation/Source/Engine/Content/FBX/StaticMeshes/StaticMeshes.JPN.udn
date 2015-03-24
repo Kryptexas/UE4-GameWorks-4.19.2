@@ -1,0 +1,515 @@
+﻿INTSourceChangelist:2465039
+Availability: Public
+Title:FBX スタティック メッシュ パイプライン
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:FBX コンテンツ パイプラインを使ったスタティック メッシュの設定、エクスポート、インポート
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/StaticMeshes:title%](Engine/Content/FBX/fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/fbx_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+
+## 概要
+
+[EXCERPT:FBX_StaticMesh]
+FBX インポート パイプラインの _スタティック メッシュ_ サポートは、シンプルなパイプラインタスクで、 3D アプリケーションからアンリアル エンジン 4 へメッシュを取り入れます。インポートされたメッシュのみならず、 3D アプリケーションでメッシュに適用されたマテリアルで使用されるテクスチャ (ディフューズと法線マップのみ) も一緒にインポートして、自動的にマテリアルを作成してインポートしたメッシュへ適用します。
+[/EXCERPT:FBX_StaticMesh]
+
+FBX を使用して _スタティック メッシュ_ をインポートするための機能は、つぎのようになります。
+
+
+* [テクスチャを含むマテリアルのある_スタティックメッシュ_](#マテリアル)
+* [カスタムコリジョン](#コリジョン)
+* [複数の UV セット](#UVテクスチャ座標)
+* スムージング グループ
+* [頂点カラー](#頂点カラー)
+* [LOD](#スタティックメッシュLOD)
+* 複数の独立したスタティックメッシュ (インポート時に単一メッシュへ結合することも出来ます)
+
+
+[REGION:note]
+現時点では、単一ファイルで複数のメッシュをカスタムコリジョンと一緒にインポートすると、最初のメッシュのコリジョンのみがインポートされます。
+[/REGION]
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+[REGION:tip]
+このページでは、 Autodesk Maya と Autodesk 3ds Max の両方の情報を載せています。以下の表からお好きなコンテンツを選択すると、それに関連した情報のみが表示されるようになります。
+[/REGION]
+
+%Globals:DCCSelect%
+
+## 一般設定
+
+
+一般的に、好きなツールとメソッドを使用して _スタティック メッシュ_ を作成することができます。円滑なエクスポートやインポート処理、およびアンリアルエディタでメッシュを適切に処理するためには、 UV の設定やメッシュの配置関しては考慮すべき条件が幾つかあります。
+
+### 回転軸
+
+アンリアル エンジンにおけるメッシュの回転軸は、あらゆる変形 (平行移動、回転、スケーリング) を実行する際の中心点を決定します。 
+
+![pivot.jpg](pivot.jpg)(w:640 h:340)
+
+3D モデリング アプリケーションからエクスポート時は、回転軸の原点は常に (0、0、0) となります。これが理由で、原点は通常、アンリアルエディタ内側のグリッドにスナップしている際に、正確なアライメントを有効にするためにメッシュの片隅に位置させながらメッシュの原点を作成するのが一番です。
+
+![pivot_origin.jpg](pivot_origin.jpg)(w:640 h:329)
+
+
+###三角分割
+
+アンリアル エンジンのメッシュは、三角分割されなければなりません。これは、グラフィックスのハードウェアがトライアングルしか扱わないためです。
+
+![tris.jpg](tris.jpg)(w:744 h:382)
+
+メッシュを確実に三角分割する方法はいくつかあります。
+
+
+* トライアングルのみを使用してメッシュをモデリングする - これは、仕上がりを最大限に制御できるため、最善の方法です。
+* 3D アプリケーションでメッシュを三角分割する - エクスポートする前にクリーンアップおよび変形させることができるため良い方法です。
+* FBX エクスポーターがメッシュを三角分割できるようにする - クリーンアップはできませんが単純なメッシュには機能するため、悪くはない方法です。
+* インポーターがメッシュを三角分割できるようにする - クリーンアップはできませんが単純なメッシュには機能するため、悪くはない方法です。
+
+
+3D アプリケーション内でメッシュを手動で三角分割することによって、エッジの方向と配置を制御する方法が常に最善となります。自動的に三角分割を実行させると、望ましくない結果となる場合があります。
+
+![tris_bad.jpg](tris_bad.jpg)(w:744 h:382)
+
+(#UVテクスチャ座標)
+
+
+### UV テクスチャ座標
+
+アンリアル エンジン 4 は、複数の UV セットのインポートを FBX パイプラインでサポートしています。 _スタティック メッシュ_ の場合、これは通常ディフューズの UV の一式の処理に使用します。FBX パイプラインを使用した _スタティック メッシュ_ の UV の設定には、特別な条件はありません。
+
+
+###法線マップの作成
+
+メッシュのための法線マップは、たいていのモデリング アプリケーションの内部で直接作成することができます。そのためには、低解像度のレンダリング メッシュと高解像度の詳細メッシュを作成します。
+
+![SideBySide.jpg](SideBySide.jpg)(w:700 h:398)
+
+高解像度の詳細メッシュのジオメトリは、法線マップに法線を作成するために使用します。Epic 社内では XNormal をプロセスに導入するワークフローを採り入れていますが、アンリアル エンジン 4 でレンダリング処理すると結果的に法線の質がはるかに良くなる場合が多いです。詳細は [](Engine/Content/Types/Textures/NormalMaps/Creation) をご覧ください。
+
+###マテリアル
+
+外部アプリケーションでモデリングされたメッシュに適用されるマテリアルは、メッシュとともにエクスポートされて、アンリアルの中にインポートされます。これによって、プロセスは簡略化されます。テクスチャを単独でアンリアル エディタへインポートする必要がなく、マテリアルを作成したり適用したりする必要もありません。FBX パイプラインを使用すると、インポートプロセスによってこれらの動作すべてが実行可能となります。
+
+マテリアルの設定方法も特殊です。メッシュに複数のマテリアルがある場合、またはメッシュ上のマテリアルの順序が重要な場合は、特にそうです (例えばマテリアル 0 を胴体にして、マテリアル 1 を頭部にしなければならないキャラクター モデルの場合など）。
+
+エクスポートのためにマテリアルをセットアップする場合の詳細については、[FBX スタティック メッシュ パイプライン] (Engine/Content/FBX/Materials) ページをご覧ください。
+
+
+### コリジョン
+
+簡易化したコリジョン ジオメトリは、ゲーム内のコリジョン検知の最適化に重要です。**アンリアル エンジン 4** は、スタティック メッシュ エディタ内でコリジョン ジオメトリを作成するための基本ツールを提供します。ある状況に置いては、ユーザーが使用している 3D モデリング アプリケーションでカスタムのコリジョン ジオメトリを作成して、これをレンダーメッシュでエクスポートするのが最善の処理となる場合もあります。オブジェクトが衝突しなくてもよい解放、または 凹 んだ領域などのメッシュが例に挙げられます。
+
+例：
+
+
+* ドアウェイ (入口) メッシュ
+* 切り抜き窓がある壁
+* 奇妙な形状をしたメッシュ
+
+
+コリジョン メッシュは名前に基づいてインポータによって特定されます。コリジョンの命名記法は、以下に従ってください。
+
+
+| **メッシュのプレフィックスと名前** | **説明** |
+| ------ | --- |
+| **UBX_[RenderMeshName]\_##** | ボックスは Max を使用して _Box_ オブジェクトタイプで作成、または Maya の _Cube_ 多角形プリミティブで作成します。長方形のプリズム以外の形状を作成するためと、頂点を移動したり、変形することはできません。さもなければ機能しません。 |
+| **USP_[RenderMeshName]\_##** | 球体は _Sphere_ オブジェクトタイプで作成されます。コリジョンのために実際の球体へ変換されるため、たくさんのセグメント (8 が理想的) は球体に全く必要ありません。ボックス同様に、頂点を移動することはできません。|
+| **UCX_[RenderMeshName]\_##** | 凸型オブジェクトは、完全に閉鎖型の凸型 3D 形状に出来ます。例えば、ボックスを凸型オブジェクトにすることも出来ます。以下の図表は、凸型と凸型ではない例を示しています。![Convex.gif](Convex.gif)
+
+
+#### 注意事項と考慮事項
+
+* **`RenderMeshName`** は、 3D アプリケーションでコリジョン メッシュが関連しているレンダリング メッシュと同名でなくてはいけません。例えば、使用している 3D アプリケーションに **`Tree_01`** という名前のレンダリング メッシュがある場合、コリジョン メッシュをシーン内に置いて、 **`UCX_Tree_01`** と名前を付けなくてはいけません。そして、同じ FBX ファイルへレンダリング メッシュと一緒にエクスポートします。メッシュ用に 1 つ以上のコリジョン オブジェクトが必要な場合、追加の識別子、例えば **`UCX_Tree_01_00` 、 `UCX_Tree_01_01` 、 `UCX_Tree_01_02`** などを使用して名前を拡張することができます。こうすることにより、メッシュに対応するコリジョンとして関連付けがされます。
+
+
+* 現在は、球体は剛体コリジョンとアンリアルのゼロ エクステント トレース (例えば武器) のみに使用し、非ゼロ エクステント トレースには使用しません (例えばプレイヤーの移動)。また _スタティック メッシュ_ が不均等にスケーリングされると、球体とボックスは機能しません。通常は恐らく _UCX_ プリミティブを作成します。  
+
+* コリジョン オブジェクトを一度設定したら、レンダリングおよびコリジョン メッシュ両方を同じ「.FBX」ファイルへエクスポートすることができます。アンリアル エディタへ「.FBX」ファイルをインポートすると、ファイルはコリジョン メッシュを検索し、これをレンダリング メッシュから削除して、コリジョン モデルへ変化させます。
+
+* 非凸型メッシュを凸型プリミティブへ分解するのは複雑な操作であるため、予期しない結果となる場合があります。その他のアプローチ方法として、自身で Max か Maya を使用してコリジョン モデルを 凸 型のかけらに分解することもできます。
+
+* 複数の凸包によって定義されたコリジョンを持つオブジェクトの場合、凸包がお互いに交差しない時に最高の結果が得られます。例えば、ロリポップ チェーンソーのコリジョンを、 1 つはキャンディ、もう片方はキャンディの棒の 2 つの凸法で定義した場合、以下の図のようなギャップが残るはずです。
+
+![](CandyCollision.png)(w:400)
+
+1. _UCX_Candy_
+1. コリジョン サーフェス間の小さなギャップ
+1. _UCX_Stick_
+
+
+
+
+(#頂点カラー)
+
+
+###頂点カラー
+
+スタティック メッシュ用の頂点カラーは FBX パイプラインを使用して転送することができます。特別な設定は必要ありません。
+
+![vertex_color.jpg](vertex_color.jpg)(w:769 h:376)
+
+(#メッシュのエクスポート)
+
+
+## メッシュのエクスポート
+
+
+_スタティック メッシュ_ は、個別にエクスポート、もしくは複数のメッシュを単一の FBX ファイルにエクスポートすることができます。インポート パイプラインは、インポート時に **Combine Meshes** 設定を有効にしてメッシュの結合を指定しない限り、送り先パッケージ内に複数の _スタティック メッシュ_ を複数のアセットへ分割してしまいます。
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxExport]
+	[/PARAM]
+[/OBJECT]
+
+
+<!--
+[EXCERPT:maxExport]
+1. ビューポートでエクスポートするメッシュを選択します。   
+
+	![max_export_1.png](max_export_1.png)(w:720 h:480)
+
+1. **[File]** メニューから、 **[Export Selected]** を選びます (選択に無関係にシーン内のすべてをエクスポートする必要がある場合は **[Export]** を選びます)。   
+
+	![max_export_2.png](max_export_2.png)(w:424 h:577)
+
+1. UE4 Project (1) から「 **Content** 」フォルダ、そして FBX file (2) 用の名前を選択し、 ![max_save_button.jpg](max_save_button.jpg) ボタンをクリックします。   
+
+	![max_export_3.jpg](max_export_3.png)
+
+1. **[FBX Export]** ダイアログボックスでオプションをセットし、 ![max_ok_button.jpg](max_ok_button.jpg) ボタンをクリックして、メッシュを含む FBX ファイルを作成します。   
+
+	![max_export_4.png](max_export_4.png)
+
+	_上記の Geometry カテゴリの設定は、 _スタティック メッシュ_ をアンリアル エンジン 4 へエクスポートする最も基本的な要求事項です。_
+
+1.	ディスクで、プロジェクトの「 **Content** 」フォルダをブラウズします。FBX ファイルが追加されているのが分かります。 
+
+	![max_export_5.png](max_export_5.png)
+
+1.	UE4 エディタが開いていれば (または次回実行すると)、 **[FBX Import Options]** ダイアログが表示されるので、 **[Import]** または **[Import All]** をクリックします。 
+
+	![](max_export_6.png)
+
+	_インポートをデフォルト オプションのままにしておくこともできます。各オプションの詳細については、 [](Engine/Content/FBX/ImportOptions) を参照してください。_
+
+1.	アセットがインポートされたので、 **コンテンツ ブラウザ** からレベル内へドラッグ＆ドロップすることができます。 
+
+	![](max_export_7.png)
+
+	_(インポート オプションの一部として) 上の例では、 **マテリアル** と **テクスチャ** をインポートしました。_
+
+[/EXCERPT:maxExport]
+
+
+[EXCERPT:mayaExport]
+1. ビューポートでエクスポートするメッシュを選択します。   
+
+	![](maya_export_1.png)(w:720)
+
+1. **[File]** メニューから、 **[Export Selection]** を選びます (選択に無関係にシーン内のすべてをエクスポートする必要がある場合は **[Export All]** を選びます)。   
+
+	![](maya_export_2.png)
+
+1. **Export** ダイアログ ボックスで以下の操作を行います。 
+*	UE4 Project (1) 内の「 **Content** 」フォルダを選択します。
+*	ファイル名を入力し、それを FBX Export (2) に設定します。
+*	Export Options (3) を設定します。
+*	**Export All** (4) をクリックします。
+
+	![](maya_export_3.png)
+
+	_上記の Geometry カテゴリの設定は、 _スタティック メッシュ_ をアンリアル エンジン 4 へエクスポートする最も基本的な要求事項です。_
+
+	1.	ディスクで、プロジェクトの「 **Content** 」フォルダをブラウズします。FBX ファイルが追加されているのが分かります。 
+
+	![](maya_export_4.png)
+
+1.	UE4 エディタが開いていれば (または次回実行すると)、 **[FBX Import Options]** ダイアログが表示されるので、 **[Import]** または **[Import All]** をクリックします。 
+
+	![](max_export_6.png)
+
+	_インポートをデフォルト オプションのままにしておくこともできます。各オプションの詳細については、 [](Engine/Content/FBX/ImportOptions) を参照してください。_
+
+1.	アセットがインポートされたので、 **コンテンツ ブラウザ** からレベル内へドラッグ＆ドロップすることができます。 
+
+	![](max_export_7.png)
+
+	_(インポート オプションの一部として) 上の例では、 **マテリアル** と **テクスチャ** をインポートしました。_
+
+[/EXCERPT:mayaExport]
+
+-->
+
+## メッシュのインポート
+
+
+1. **コンテンツ ブラウザ** の中で ![](button_new.png) ボタンをクリックし、 _Import_ を選びます。開いているファイル ブラウザからインポートしたい FBX ファイルを選択します。**注意：** ドロップダウン リストから ![import_fbxformat.jpg](import_fbxformat.jpg) を選択することによって、不要なファイルを除去しなければならない場合があります。   
+
+	![import_file.jpg](import_file.png)
+
+	[REGION:note]
+		インポートしたアセットのインポート パスは、インポート中の **コンテンツ ブラウザ** の現行位置に依存します。インポートを実行する前に、必ず適切なフォルダへ移動してください。インポートが完了したら、インポートしたアセットを新規フォルダへドラッグしてください。
+	[/REGION]
+
+1. **Import** ダイアログボックスから適切な設定値を選択します。大抵の場合、デフォルト設定をそのまま使用します。全設定値の詳細は、 [FBX インポート オプションのリファレンス](Engine/Content/FBX/ImportOptions) セクションを参照してください。   
+
+	![](Engine\Content\FBX\ImportOptions\StaticMeshImportOptions.png)
+
+1. ![button_import.png](button_import.png) ボタンをクリックしてメッシュをインポートします。プロセスが成功した場合、最終結果のメッシュ、マテリアル、テクスチャは **コンテンツブラウザ** に表示されます。   
+
+	![](ImportedMeshAndTex.png)
+
+	[REGION:note]
+		テクスチャとマテリアルはスタティックメッシュと一緒にインポートすることができますが、 **Color** と **Normal** は自動的に接続されます ([supported material was used in Max/Maya (サポートしているマテリアルはMax/Mayaで使用)] (Engine/Content\FBX\Materials) と仮定)。 **Specular** マップはインポートされますが、接続はされません。例えば Maya マテリアルの **[Diffuse]** スロットの **Ambient Occlusion** マップなどその他のマップは、インポートさえされません。自身が作業しているマテリアルをチェックして、非接続になっているマップを接続したり、インポートされなかったマップをチェックしてください。新しいマテリアルを **ダブルクリック** して、これらの適切な入力値に対して利用可能なテクスチャを接続するのみです。
+	[/REGION]
+
+	**スタティック メッシュ エディタ** でインポートされたメッシュを表示させてコリジョンの表示を有効にすると、プロセスが期待通りに機能したか判断することができます。
+	[REGION:lightbox]
+	[![](MeshInSME.png)(w:920)](MeshInSME.png)
+	[/REGION]
+
+
+[REGION:tip]
+あるいは、 Windows から FBX ファイルを単にクリックして **コンテンツブラウザ** へドラッグすると、インポートダイアログが呼び出されます。
+[/REGION]
+
+(#スタティックメッシュLOD)
+
+
+##スタティックメッシュ LOD
+
+
+_スタティックメッシュ_ は、カメラから遠ざかるにつれてメッシュの影響を制限するために、ゲーム内のLOD (Level of Detail) を使用することができます。通常は、各 LOD のトライアングル数が減少するとともに、より単純なマテリアル (あるいはトライアングル) が適用されることを意味します。
+
+![lods.jpg](lods.jpg)(w:744 h:382)
+
+FBX パイプラインを使用してこれらの LOD メッシュをエクスポート / インポートすることができます。
+
+
+### LOD 設定
+
+**全般**
+
+一般に LOD は、完全な詳細度をもつベースメッシュから最も低い詳細度をもつ LOD メッシュまで、さまざまな複雑度のモデルを作成して処理します。これらはすべて同一の回転軸で、全てアラインされて同一空間を使用しなければなりません。各 LOD メッシュには、異なるマテリアルの量などを含めて、完全に異なるマテリアルを割り当てることができます。つまり、ベースメッシュは間近に好みの詳細量を与えるために複数のマテリアルを使用することができますが、低い詳細度のメッシュではあまり目立たないため単一のマテリアルを使用します。
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaLODSetup]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxLODSetup]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxLODSetup]
+1. メッシュをすべて選択して (ベースと LOD - 順番は重要ではありません) 、 _[Group]_ メニューから _[Group]_ コマンドを選択します。   
+
+	![max_lod_group.jpg](max_lod_group.jpg)(w:141 h:214)
+
+1. ダイアログ ボックスが開くので、新たなグループの名前を入力し、 [max_lod_ok_button.jpg](max_lod_ok_button.jpg) ボタンをクリックしてグループを作成します。   
+
+	![max_lod_group_name.jpg](max_lod_group_name.jpg)(w:306 h:147)
+
+1. ![max_utilities_button.jpg](max_utilities_button.jpg) ボタンをクリックして _[Utilities]_ パネルを表示し _[Level of Detail]_ ユーティリティを選択します。**注記：** [max_utility_more_button.jpg](max_utility_more_button.jpg) をクリックして、リストから選択しなければならない場合があります。   
+
+	![max_lod_utility.jpg](max_lod_utility.jpg)(w:168 h:561)
+
+1. グループが選択されたら、 ![max_lod_create_button.jpg](max_lod_create_button.jpg) ボタンをクリックして、新たな LOD セットを作成し、選択されたグループ内にあるメッシュをそれに追加します。メッシュは、その複雑度に応じて自動的に序列化されます。   
+
+	![max_lod_contents.jpg](max_lod_contents.jpg)(w:146 h:94)
+[/EXCERPT:maxLODSetup]
+
+
+[EXCERPT:mayaLODSetup]
+1. ベースとなる LOD から最後の LOD まで、順番にメッシュをすべて (ベースに加えてLOD) 選択します。これは重要なため、複雑度に応じて正しい順序で追加します。_[Edit]_ メニューから _[Level of Detail] > [Group]_ コマンドを選択します。   
+
+	![maya_lod_group.jpg](maya_lod_group.jpg)(w:316 h:599)
+
+1. これで、すべてのメッシュが LOD グループのもとにグループ化されているはずです。
+
+	![maya_lod_contents.jpg](maya_lod_contents.jpg)(w:160 h:175)
+[/EXCERPT:mayaLODSetup]
+-->
+
+###LOD のエクスポート
+
+_スタティックメッシュ_ LOD のエクスポートは以下の通りです。
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaLODS]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxLODS]
+	[/PARAM]
+[/OBJECT]
+
+
+<!--
+[EXCERPT:maxLODS]
+1. 3ds Max の場合、 LOD セットと任意のコリジョン ジオメトリを構成するメッシュのグループを選択します。   
+
+	![max_lod_export_select.jpg](max_lod_export_select.jpg)(w:744 h:382)
+
+1. ベースメッシュに使用したエクスポート手順と同じ手順に従います (上記の[メッシュのエクスポート](#メッシュのエクスポート) セクションで記述しています)。FBX エクスポーター プロパティで、アニメーションのエクスポートを必ず有効にしてください。この設定は LOD のエクスポートに必須です。
+[/EXCERPT:maxLODS]
+
+[EXCERPT:mayaLODS]
+1. Maya の場合、 LOD グループと任意のコリジョン ジオメトリを選択します。   
+
+	![maya_lod_export_select.jpg](maya_lod_export_select.jpg)(w:769 h:376)
+
+1. ベースメッシュに使用したエクスポート手順と同じ手順に従います (上記の[メッシュのエクスポート](#メッシュのエクスポート) セクションで記述しています)。FBX エクスポーター プロパティで、アニメーションのエクスポートを必ず有効にしてください。この設定は LOD のエクスポートに必須です。
+[/EXCERPT:mayaLODS]
+-->
+
+
+###LOD のインポート
+
+スタティックメッシュの LOD は、 **コンテンツ ブラウザ** からベース メッシュとともにインポートすることができます。または、スタティック メッシュ エディタを通じて個別にインポートします。
+
+**LOD をともなったメッシュ**
+
+
+1. **コンテンツ ブラウザ** の中で ![](button_new.png) ボタンをクリックし、 _Import_ を選びます。開いているファイル ブラウザからインポートしたい FBX ファイルを選択します。**注意：** ドロップダウン リストから ![import_fbxformat.jpg](import_fbxformat.jpg) を選択することによって、不要なファイルを除去しなければならない場合があります。   
+
+	[REGION:lightbox]
+	[![](MeshInSME.png)(w:920)](MeshInSME.png)
+	[/REGION]
+   
+	[REGION:note]
+		インポートしたアセットのインポート パスは、インポート中の **コンテンツ ブラウザ** の現行位置に依存します。インポートを実行する前に、必ず適切なフォルダへ移動してください。インポートが完了したら、インポートしたアセットを新規フォルダへドラッグしてください。
+	[/REGION]
+
+1. **Import** ダイアログボックスから適切な設定値を選択します。デフォルト設定で十分です。そして、必ず _Import LODs_ を有効にしてください。**注記：** インポートされるメッシュの名前はデフォルトの命名規則 [命名規則](Engine/Content/FBX/ImportOptions#命名規則) に従います。全設定値の詳細は、 [FBX インポート オプションのリファレンス](Engine/Content/FBX/ImportOptions) セクションを参照してください。   
+
+	![](ImportOptions_LOD.png)
+
+1. メッシュと LOD をインポートするために、 ![button_import.png](button_import.png) ボタンをクリックします。プロセスが成功した場合、最終結果のメッシュ、マテリアル、テクスチャは **コンテンツブラウザ** に表示されます。  
+
+	![](ImportedMeshAndTex.png)
+
+	[REGION:note]
+		テクスチャとマテリアルはスタティックメッシュと一緒にインポートすることができますが、 **Color** と **Normal** は自動的に接続されます ([supported material was used in Max/Maya (サポートしているマテリアルはMax/Mayaで使用)] (Engine/Content\FBX\Materials) と仮定)。 **Specular** マップはインポートされますが、接続はされません。例えば Maya マテリアルの **[Diffuse]** スロットの **Ambient Occlusion** マップなどその他のマップは、インポートさえされません。自身が作業しているマテリアルをチェックして、非接続になっているマップを接続したり、インポートされなかったマップをチェックしてください。新しいマテリアルを **ダブルクリック** して、これらの適切な入力値に対して利用可能なテクスチャを接続するのみです。
+	[/REGION]
+
+	インポートしたメッシュを **スタティック メッシュ エディタ** で表示して、ツールバーの右側にある ![](button_AutoLOD.png) ボタンを使って LOD を循環表示させることができます。
+
+	<!----現時点ではコメントアウトしています。この機能はもう存在していないようです！-----------
+
+**個々の LOD**
+
+
+1. コンテンツ ブラウザでベース メッシュをダブルクリックして **スタティック メッシュ エディタ** で開きます。または右クリックして _[Edit Using Static Mesh Editor]_ を選択します。   
+
+	![lod_smeditor.jpg](lod_smeditor.jpg)(w:738 h:340)
+
+1. _[Mesh]_ メニューから_[Import Mesh LOD]_ を選択します。   
+
+	![lod_mesh_menu.jpg](lod_mesh_menu.jpg)(w:283 h:270)
+
+1. ファイル ブラウザで、LOD メッシュが含まれている FBX ファイルに進み、それを選択します。**注記：** ファイルを見るには、ファイル形式を ![lod_mesh_fbx_button.jpg](lod_mesh_fbx_button.jpg) にセットしなければならない場合があります。   
+
+	![lod_mesh_file.jpg](lod_mesh_file.jpg)(w:763 h:330)
+
+1. **Import LOD** ダイアログボックスにおいて、ドロップダウン メニューからインポートしたいメッシュの LOD レベルを選択します。![lod_mesh_ok_button.jpg](lod_mesh_ok_button.jpg) をクリックして LOD メッシュをインポートします。   
+
+	![lod_mesh_dialog.jpg](lod_mesh_dialog.jpg)(w:244 h:158)
+
+1. インポートのプロセスが成功した場合は通知があり、インポートされた LOD のためのボタンが ![lod_mesh_buttons.jpg](lod_mesh_buttons.jpg) ツールバー ボタン内で有効化されます。   
+
+	![lod_mesh_success.jpg](lod_mesh_success.jpg)(w:290 h:149)
+
+1. インポートしたい LOD メッシュそれぞれに、このプロセスを繰り返します。 
+
+1. すべての LOD メッシュがインポートされたら、ツールバー内の ![lod_buttons.jpg](lod_buttons.jpg) ボタンを使用すれば LOD メッシュのプレビューが可能になります。</p>
+
+	![lod_anim.gif](lod_anim.gif)(w:238 h:190)
+
+------------------------------------------------------------>

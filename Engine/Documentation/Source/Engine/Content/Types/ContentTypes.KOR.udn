@@ -1,0 +1,21 @@
+INTSourceChangelist:2033300
+Availability:Public
+Title:콘텐츠 애셋 유형
+Crumbs:%ROOT%, Engine/Content
+Description:외부 어플리케이션에서 만들어 언리얼 엔진에서 사용하는 콘텐츠 유형입니다.
+
+[REGION:banner]
+![%Engine/Content/FBX:title%](Engine/Content/FBX/fbx_banner.png)
+[/REGION]
+
+[REGION:topics third]
+[EXCERPT:Types]
+%Engine/Content/Types/Textures:Topic%
+%Engine/Content/Types/StaticMeshes:Topic%
+%Engine/Content/Types/SkeletalMeshes:Topic%
+%Engine/Rendering/LightingAndShadows/IESLightProfiles:Topic%
+%Engine/Audio/WAV:Topic%
+%Engine/Physics/Apex/ApexTypes:Topic%
+[/EXCERPT:Types]
+[/REGION]
+

@@ -1,0 +1,184 @@
+﻿Availability: Public
+Title:蓝图内容示例
+Crumbs:%ROOT%, Resources, Resources/ContentExamples
+Description:在蓝图内容示例中提供的实例概述。
+Related: Engine/Blueprints/Overview 
+Related: Engine/Blueprints/UserGuide/Variables
+Related: Engine/Blueprints/UserGuide/BlueprintComms
+Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
+Related: Engine/Animation/AnimBlueprints/EventGraph
+Related: Engine/Blueprints/UserGuide/UserConstructionScript
+Related: Gameplay/HowTo/SetUpInput/Blueprints
+
+
+[REGION:banner]
+![](BlueprintInput_Header.png)(convert:false)
+[/REGION]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Blueprints:title%](blueprint_ce_compact.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Blueprints:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Blueprints:description%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/Blueprints]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Blueprints:title%](blueprint_ce_compact.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Blueprints:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/Blueprints]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:2)]
+
+
+## 概述
+
+在 **内容实例** 项目中有多个 **蓝图地图** ，可用来展示 **蓝图** 系统的作用和灵活性。无论您是希望定义玩家控制，实现生命值/拾取物系统，或是希望让门在玩家接近时执行简单的打开动作，这些地图中展现的实例都可以让您了解如何完成您所需要的操作。
+
+本页面展示了在每张地图中包含了哪几个示例，以及在哪里可以找到这些示例，这样您可以跳转到感兴趣的地方并马上开始脚本制作。不过如果您刚开始使用 **蓝图** ，我们建议您开始使用 **Blueprints_Overview** （蓝图概述）地图，因为这个地图涵盖了系统的核心部分并能帮助您开始使用它们。
+
+[region:note]
+您可以通过点击各表格中示例的名称来找到关于如何构建示例(如可能)的额外资源。
+[/region]
+ 
+## Blueprints_Overview地图
+
+![](blueprint_ce_header.png)(w:640)
+
+**Blueprints_Overview** 地图包含了 **蓝图** 的核心部分，其中包括： **组件** ，使用 **构建脚本** 和 **事件图表** ， **变量** 以及如何编辑/设置它们，简单运算，以及通过使用不同类型的 **Flow Control** （流程控制）节点来控制 **蓝图** 的流程。请随意浏览这些部分，因为您在今后使用 **蓝图** 时会大量使用这些元素。
+
+| 示例 |  展示的内容 |
+| ------- | ------------ |
+| **[1.1 Hello World示例](Resources\ContentExamples\Blueprints\1_1)** | 基础 **蓝图** 被用来显示关卡中的漂浮文本（例如，当玩家在关卡中游戏时，会显示漂浮文本"Hello World"）。|
+| **[1.2 组件示例](Resources\ContentExamples\Blueprints\1_2)** | **组件** 示例以及如何将多个 **组件** 用于单个 **蓝图** 中（例如，平面粒子，静态网格物体以及在单个 **蓝图** 中使用的所有光源）。|
+| **[1.3 变量示例](Resources\ContentExamples\Blueprints\1_3)** | 显示如何将 **变量** 设置为`公共`或`私有`以及如何编辑它们（例如，可通过 **细节** 面板进行变更或仅能在 **蓝图** 中变更的光照颜色）。|
+| **[1.4 构建脚本示例](Resources\ContentExamples\Blueprints\1_4)** | 显示如何将 **构建脚本** 与 **蓝图** 的 **组件** 共同禁用/启用（例如，使用选项框来启用/关闭 **蓝图** 中的 **组件** ）。|
+| **[1.5 事件图表示例](Resources\ContentExamples\Blueprints\1_5)** | **构建脚本** 和 **事件图表** 被用来启用网格物体的自定义颜色，而不必编辑材质（例如，用户通过 **细节** 面板来定义火箭的颜色）。 |
+| **[1.6 简单运算示例](Resources\ContentExamples\Blueprints\1_6)** | 在此 **蓝图** 中使用了 **事件更新** 来随时间而执行简单的相加操作（例如，从0往上计算的每秒中都会显示在计时器中）。 |
+| **[1.7 流程示例](Resources\ContentExamples\Blueprints\1_7)** | 使用不同类型的 **流程控制** 的 **蓝图** 来修改对象的移动，颜色和效果（例如，硬币移动的方向，硬币的颜色，以及特效是否通过 **细节** 面板来应用）。|
+
+
+## Blueprints_Advanced地图
+
+![](BlueprintAdvanced_Header.png)(w:640)
+
+**Blueprints_Advanced** 地图对于使用 **构建脚本** 和 **事件图表** 来生成内容给予了更为深入的阐述。
+
+### 构建脚本示例
+**构建脚本** 部分展示了如何： 在特定半径内随机生成网格物体，基于Actor的支点自动生成网格物体，对称地生成网格物体，或为可自定义的聚光源生成所有组件。
+
+| 示例 |  展示的内容 |
+| ------- | ------------ |
+| **[1.1 随机散射的网格物体示例](Resources\ContentExamples\Blueprints_Advanced\1_1)** | 如何在指定半径内随机生成静态网格物体（例如，在半径内随机生成地面杂物或石头）。|
+| **[1.2 自动墙体示例](Resources\ContentExamples\Blueprints_Advanced\1_2)** | 如何从Actor的支点扩展网格物体行（例如可用来在长度上缩放的栅栏）。|
+| **[1.3 自动环形示例](Resources\ContentExamples\Blueprints_Advanced\1_3)** | 如何在圆圈中加宽特定数量的网格物体，旋转由每个网格物体的位置所决定（例如，均匀分布和朝向的网格物体环）。|
+| **[1.4 可自定义的聚光源示例](Resources\ContentExamples\Blueprints_Advanced\1_4)** | 如何使用 **构建脚本** 来组合聚光源的所有组件到一个Actor上（例如，可用来自定义包括开/关状态，光源颜色，朝向和半径的聚光源）。 |
+
+
+### 事件图表示例
+**事件图表** 示例将会向您展示如何进行以下操作： 在有时间轴的情况下对静态网格物体进行动画处理，自动旋转Actor以追溯玩家移动，如何在 **蓝图** 间传递变量，创建在触发时自动打开的门，或创建不同类型的拾取物品。
+
+| 示例 |  展示的内容 |
+| ------- | ------------ |
+| **[2.1 时间轴动画示例](Resources\ContentExamples\Blueprints_Advanced\2_1)** | 如何使用 **时间轴** 来对具有 **事件轨迹** 的静态网格物体进行动画处理，从而在特定点生成发射器（例如，创建动画处理的反弹球体）。|
+| **[2.2 Actor追溯示例](Resources\ContentExamples\Blueprints_Advanced\2_2)** | 如何让Actor在到达指定范围内时面向玩家（例如，对玩家响应并跟随玩家的聚光源）。 |
+| **[2.3 按钮触发器 (蓝图接口) 示例](Resources\ContentExamples\Blueprints_Advanced\2_3)** | 如何使用 **蓝图接口** 把变量从一个 **蓝图** 传递到另一个 **蓝图** （例如，从一个按钮传递启用/禁用的变量到动画处理的多个齿轮）。|
+| **[2.4 开门 (触发器) 示例](Resources\ContentExamples\Blueprints_Advanced\2_4)** | 如何使用 **触发器** 和 **时间轴** 来自动开启/关闭门。|
+| **[2.5 子蓝图示例](Resources\ContentExamples\Blueprints_Advanced\2_5)** | 如何应用来源于同一 **父类** 中不同类型的拾取物品（例如，在拾取时具有不同功能的生命值，硬币和纸杯蛋糕的拾取物品）。|
+
+
+## Blueprint_Communication地图
+
+![](BlueprintCommunication_Header.png)(w:640)
+
+在使用 **蓝图** 工作时，您需要执行函数，或者从另一个 **蓝图** 中访问特定变量，并且取决于您的不同需要，会提供不同的通信方式。**Blueprint_Communication** 地图向您提供了供您通过 **直接蓝图通信** 、 **事件调度器** 或者 **蓝图接口** 从一个 **蓝图** 向另一个 **蓝图** 传递信息的不同方式。
+
+### 蓝图通信示例
+**直接蓝图通信** 或 **蓝图通信** 部分显示了供您通过指定或投射到 **蓝图** 来在 **蓝图** 间访问和提供信息的基础方式。
+
+| 示例 |  展示的内容 |
+| ------- | ------------ |
+| **1.1 基础通信 (目标蓝图)** | 通过自定义事件来切换光源 **蓝图** 的开启和关闭的按钮 **蓝图** 的示例。|
+| **1.2 基础通信 (Actor投射)** | 如何使用探测特定类的 **蓝图** 的重叠事件（例如，灯泡通过连接电池来开启/关闭）。|
+| **1.3 通信 (Actor投射到子蓝图)** | 如何使用共享其父蓝图的功能但同时具有独立功能的 **子蓝图** （例如，通过将电池与不同的能量值连接来开启/关闭光源）。 |
+| **1.4 与特定类的所有Actor通信** | 如何与特定类的不同Actor通信（例如，同时开启每个都具有不同功能的多个光照）。 |
+
+
+### 事件调度器示例
+**事件调度器** 示例涵盖了另一个供您在 **蓝图** 和 **关卡蓝图** 间通信的方式。另外，通过 **绑定** 一个或多个事件到 **事件调度器** ，您可以使用绑定到此事件的多个事件来在调用 **事件调度器** 时同时触发。
+
+| 示例 |  展示的内容 |
+| ------- | ------------ |
+| **2.1 使用事件调度器** | 如何使用 **事件调度器** 来调用在 **关卡蓝图** 内的某个事件 （例如，使用 **事件调度器** 来切换光源的开/关）。|
+| **2.2 绑定事件调度器到自定义事件** | 解释绑定 **事件调度器** 到 **关卡蓝图** 内的自定义事件（例如，切换随时间而旋转对象的按钮）。|
+| **2.3 在生成时绑定事件调度器到自定义事件** | 解释如何启用/禁用具有 **事件调度器** 的触发器，它会在生成的Actor被销毁时进行调用（例如，按下按钮来生成炸弹，只有在前一炸弹爆炸后才会生成新的炸弹）。|
+
+
+### 蓝图接口示例
+可能有一些共享基础共通性的多个 **蓝图** 的实例存在（例如被射弹击中并受到某种形式的损伤），但这些实例是完全不同的条目（比如车或树）。**蓝图接口** 将使得您可以让车和树能在受损时通信并共享如何响应，并且其本身具有不同的组件及功能。
+
+| 示例 |  展示的内容 |
+| ------- | ------------ |
+| **3.1 蓝图接口 (蓝图数组)** | 解释了如何通过数组在多个 **蓝图** 间的不同类间进行通信（例如，开启/关闭不同的光照并使用一个开关来旋转对象）。|
+| **3.2 蓝图接口 (可互动蓝图)** | 如何基于输入在玩家 **蓝图** 和 Actor **蓝图** 间通信（例如，可互动的开关，曲柄或具有滑轮链条的杠杆）。|
+| **3.3 蓝图接口 (射弹碰撞)** | 如何使用 **蓝图接口** 来检查特定类型的Actor所受的撞击（例如，当使用火或水发射时，三个对象的响应不同）。|
+
+## Blueprint_Input_Examples地图
+
+![](BlueprintInput_Header.png)(w:640)
+
+**Blueprint_Input_Examples** 地图通过三种不同类型的游戏中的 **蓝图** 给予您创建玩家输入的三种示例： 二维横向卷轴游戏，自上而下的二维太空射击游戏，以及三维的飞行UFO。
+
+
+| 示例 |  展示的内容 |
+| ------- | ------------ |
+| **1.1 二维输入(横向卷轴角色)** | 展示具有左/右移动和跳跃的二维横向卷轴游戏的示例。 |
+| **1.2 二维输入 (太空射击游戏)** | 展示了具有左/右移动和可射击的射弹的二维太空射击游戏。 |
+| **1.3 物理驱动的输入 (UFO示例)** | 展示了具有WASD移动方式，能起飞和降落，加速以及具有绑架光束机制的太空飞行器样式的游戏的示例。|
+
+
+## Blueprint_Mouse_Interaction地图
+
+![](BlueprintMouse_Header.png)(w:640)
+
+**Blueprint_Mouse_Interaction** 地图展示了如何整合鼠标输入（或者移动平台上的触摸输入），以及如何让对象通过 **蓝图** 来对鼠标或触摸输入进行响应。这个示例让您可以在与移动组件进行互动时，在屏幕上到处点击和拖曳对象。
+
+您可以在以下位置找到更多关于此地图的详细信息： 
+
+* [1.1 蓝图鼠标互动](Resources\ContentExamples\MouseInterface)
+
+
+## Blueprint_HUD地图
+
+![](BlueprintHUD_Header.png)(w:640)
+
+**Blueprint_HUD** 地图提供了如何生成具有 **HUD蓝图** 以及创建基础Pause（暂停）菜单的HUD元素的示例。此示例还显示了如何创建生命值/损伤和拾取物品系统，以及Waypoint Objective Marking（路径点对象标记）系统。
+
+您可以在以下位置找到更多关于此地图的详细信息： 
+
+* [1.1 蓝图HUD示例](Resources\ContentExamples\Blueprints_HUD\1_1)
+
+<!--
+[EXCERPT:BlueprintsCEInstructions]
+您可以打开内容示例中的[打开蓝图](Engine/Blueprints/UserGuide/Types/ClassBlueprint/Opening)并查看如何设置[默认值](Engine/Blueprints/Editor\Modes\Defaults), [组件](Engine/Blueprints/UserGuide\Components), 及[图表](Engine/Blueprints/Editor\Modes\GraphPanel)以创建每个蓝图。
+[/EXCERPT:BlueprintsCEInstructions]
+
+-->

@@ -1,0 +1,74 @@
+﻿Availability:Public
+Title:キャラクター
+Crumbs:%ROOT%, Gameplay, Gameplay/Framework, Gameplay/Framework/Pawn
+Description:**キャラクター** iとは、デフォルト設定で基本的な二足歩行の動作機能を持つポーンです。
+
+
+CharacterMovementComponent、CapsuleComponent、SkeletalMeshが加わり、Pawnクラスは注目のCharacterクラスに拡張されました。
+キャラクターは、ワールド内で歩行、走行、ジャンプ、飛行、水泳が可能なプレイヤーを垂直方向に表現するために設計されています。クラスには、 
+基本的なネットワークの構築や入力モデルの実装も含まれます。  
+
+### SkeletalMeshComponent
+ポーンとは違って、キャラクターにはスケルトンを使用する高度なアニメーションを有効にするためのSkeletalMeshComponentが含まれています。キャラクターから派生したクラスへ他のスケルタルメッシュを追加できますが、
+これはキャラクターに関連付いたメインのスケルタルメッシュです。スケルタルの制御やアニメーションに関する詳細は、[](Engine/Animation)を参照してください。
+
+### CapsuleComponent
+CapsuleComponentは移動コリジョンに使用します。 CharacterMovementComponentの複雑なジオメトリを計算するために、Characterクラスのコリジョンコンポ―ネントは垂直方向のカプセルであると仮定します。
+
+### キャラクターの機能性とプロパティ
+
+$ Falling() :キャラクターが落下移動を開始すると呼ばれます。
+
+$ NotifyJumpApex() :キャラクターのジャンプがApexに到達すると呼ばれます。 CharacterMovement->bNotifyApex = true が必要です。
+
+$ Landed() :Hitの結果に基づいたアクションを実行するために、落下後に着地すると呼ばれます。OnLandedイベントをトリガーします。
+
+$ MoveBlockedBy() :ポーンの移動がブロックされると呼ばれます。衝撃はHitしたブロックを表します。
+
+#### 便利なブループリント 
+
+$ Jump() :次会更新時にキャラクターをジャンプ可能な設定にします。
+	 
+$ LaunchCharacter() :LaunchVelocityでキャラクターを起動します。
+	* LaunchVelocityはポーンに伝えるベロシティ（速度）です
+	* Trueの場合のbXYOverrideは、ポーンのベロシティのXY部分へ追加する代わりにこれを置換します。 　
+	* Trueの場合のbXYOverrideは、ポーンのベロシティのZコンポーネントへ追加する代わりにこれを置換します。 　
+
+$ OnLanded() :Hitの結果に基づいたアクションを実行するために、落下後に着地すると呼ばれます。BlueprintImplementableEvent
+
+$ Crouch() :キャラクターがかがみ込む動作をします。
+
+$ UnCrouch() :キャラクターはかがみ込んだ動作を中止します。
+
+
+### CharacterMovementComponent
+
+CharacterMovementComponentは、歩行、走行、ジャンプ、飛行、落下、水泳によるアバタ―の移動を可能とするために剛体物理を使用しません。 
+これはキャラクター特有のもので、その他のクラスには実装できません。CharacterMovementComponent に設定可能なプロパティには、
+落下や歩行時の摩擦力、大気、水中、陸地を移動中の速度、浮力、重力スケール、またキャラクターが物理オブジェクトに与える物理的力の
+値が含まれます。CharacterMovementComponentはアニメーションに由来するルートモーションパラメータを含み、
+ワールド空間で既に変換されて物理的な使用の準備が整っています。詳細は [](Engine/Animation\RootMotion) を参照してください。
+
+
+ CharacterMovementComponent内の関数とプロパティの大部分はブループリントへ公開されています。 例えば上記の機能の大部分と、厳選された下記のプロパティ全ては、コードによる変更に加えてブループリント上での編集が
+ 可能です。
+
+$ bEnablePhysicsInteraction :有効になると、プレイヤーは近づいている物理オブジェクトと交流します。 
+
+$ EMovementMode :ユーザのキャラクターの現MovementModeを以下から特定します：None、 Walking、 Falling、 Swimming、 Flying、またはCustom。BlueprintType （オンにすることができます）
+
+$ MaxStepHeight :キャラクターに設定可能な最大高さ
+
+$ JumpZ :ジャンプ時は初期ベロシティ（瞬時の垂直加速度）
+
+$ JumpOffJumpZFactor:キャラクターのベースにはならないベースアクタからの自動的な「飛び降り」時は、わずかなJumpZを使用します。（例えば、別のプレイヤーに依存できない場合）
+
+$ WalkableFloorZ:フロア法線の最少Z値（より小さい値はキャラクターが歩行できるフロアではありません）
+
+$ PerchRadiusThreshold :接触がカプセルの端付近の場合は、キャラクターをサーフェスの端に位置させてはいけません。キャラクターが下記の歩行可能なサーフェスのMaxStepHeight 内にいるときは転落しません。
+
+
+###入力
+CharacterクラスはXboxのアナログスティック、WASDキー、そしてマウスに対してデフォルト入力値で有効になります。
+
+

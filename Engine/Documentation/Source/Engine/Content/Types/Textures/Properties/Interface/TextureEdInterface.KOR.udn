@@ -1,0 +1,120 @@
+﻿INTSourceChangelist:2219885
+Availability: Public
+Title:텍스처 에디터 UI
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/Textures, Engine/Content/Types/Textures/Properties
+Description:텍스처 에디터 UI 에 대한 설명입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](TextureTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/texture_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/Textures/Properties/Interface:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/Textures/Properties/Interface:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/Textures/Properties/Interface]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](TextureTopicCompact.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/texture_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/Textures/Properties/Interface:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/Textures/Properties/Interface:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[TOC(end:2)]
+
+
+## 개요
+
+[EXCERPT:Intro]
+**텍스처 프로퍼티 에디터** 에서는 텍스처 애셋을 미리보기 그 프로퍼티를 편집할 수 있습니다. 여기서 색을 조절하고 압축과 LOD 세팅을 변경할 수도 있습니다.
+
+[/EXCERPT:Intro]
+
+텍스처 에디터는 콘텐츠 브라우저에서 텍스처 애셋에 더블클릭하거나, 우클릭한 다음 맥락 메뉴에서 **편집** 을 선택하여 열 수 있습니다.
+
+![Texture Editor UI](Texture_UI.png)
+
+1. **메뉴 바**
+1. **툴바**
+1. **뷰포트**
+1. **디테일 패널**
+
+## 메뉴 바
+
+### 파일
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuFileSave]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuFileSaveOptions]
+
+### 편집
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuEditUndo]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuEditSettings]
+
+### 애셋
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetContentBrowser]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetReimport]
+
+
+### 창
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowToolbar]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowViewport]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowDetails]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindow]
+
+## 툴바
+
+
+| 항목 | 설명 |
+| ---- | ----------- |
+| [INCLUDE:Shared/Editors/Common/EditorToolbarItems/#ToolbarSaveIcon] | [INCLUDE:Shared/Editors/Common/EditorToolbarItems/#ToolbarSaveDescription] |
+| [INCLUDE:Shared/Editors/Common/EditorToolbarItems/#ToolbarCBIcon] | [INCLUDE:Shared/Editors/Common/EditorToolbarItems/#ToolbarCBDescription] |
+| ![](TextureUI_Toolbar_Compress.png) | **디테일** 패널의 **Compression** (압축) 섹션에 있는 세팅에 따라 텍스처를 압축합니다. |
+| ![](TextureUI_Toolbar_Reimport.png) | 현재 애셋을 디스크 상의 원래 위치에서 리임포트합니다. |
+| ![](TextureUI_Toolbar_Mip.png) | 체크박스를 클릭하고 슬라이더 바를 드래그( 또는 더하기 빼기 버튼을 클릭)하는 것으로 텍스처의 밉 레벨을 변경할 수 있습니다. |
+
+
+## 뷰포트
+
+![](Texture_UI_Viewport.png)
+
+뷰포트에는 텍스처 애셋 미리보기가 표시됩니다.
+
+뷰포트 좌상단 구석의 **뷰** 드롭다운 메뉴에는 다양한 채널 및 세팅 토글과 텍스처 표시 방식을 변경을 위한 옵션이 있습니다.
+
+![](TextureUI_Viewport_ViewMenu.png)
+
+미리보기중인 텍스처 애셋의 크기는 뷰포트 우하단 구석의 **Zoom** (줌) 슬라이더를 드래그하거나, 드롭다운 메뉴의 **Fill** (채우기) 세팅을 변경하여 조절할 수 있습니다.
+
+## 디테일 패널
+
+**디테일** 패널에는 텍스처의 여러가지 프로퍼티가 표시되며, 편집도 가능합니다. 텍스처 에디터의 **디테일** 패널에서 볼 수 있는 프로퍼티 관련 상세 정보는 [](Engine/Content/Types/Textures\Properties) 문서를 참고해 주세요.
+
+언리얼 엔진의 **디테일** 패널 관련 상세 정보는 [](Engine/UI/LevelEditor\Details) 문서를 참고해 주시기 바랍니다.

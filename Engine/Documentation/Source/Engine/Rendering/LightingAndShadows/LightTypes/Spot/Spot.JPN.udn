@@ -1,0 +1,144 @@
+﻿INTSourceChangelist:2485959
+Availability:Public
+Title:スポットライト
+Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
+Description:スポットライトの基礎
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/LightTypes/Spot:title%](SpotLight_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/LightTypes/Spot:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/LightTypes/Spot:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/LightTypes/Spot]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/LightTypes/Spot:title%](SpotLight_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/LightTypes/Spot:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/LightTypes/Spot:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/LightTypes/Spot]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth raw]
+![](Spotlight_Header.png)
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+## 概要
+[EXCERPT:Intro]
+**スポットライト** はライトを一点からコーン (円錐) 形状に放射します。ユーザーは **Inner Cone Angle** と **Outer Cone Angle** の 2 つのライト形状を使用できます。ライトは _Inner Cone Angle_ 内で最大輝度になります。内半径の範囲から _Outer Cone Angle_ の範囲へ移動するとフォールオフが発生し、半暗部を作成したりスポットライトの円盤型イルミネーション周りをソフトにします。ライトの半径によって、コーンの長さが決まります。簡単にいうと、懐中電灯のように機能する、またはステージを照らします。 
+
+**スポットライト** を配置する場合、以下の3 つの可動設定のいずれかを設定できます。 
+[/EXCERPT:Intro]
+
+
+[OBJECT:topiclistnotitle]
+	[PARAM:icon]
+	![](Spotlight_Stationary.png)(w:150 convert:false)
+	[/PARAM]
+	[PARAM:description]
+	**Static** 静的 - (左側の図) ゲーム内でライトは変更できません。これは、レンダリングが最速になる方法であり、ベイクしたライティングを使用することができます。
+
+	**Stationary** (固定) - (これも左側の図) このライトは **ライトマス** によってベイクされた静的ジオメトリからのシャドウイングとバウンスしたライトのみを持ち、他のすべてのライティングは動的になります。この設定では、ライトの色と強度をゲーム内で変更可能ですが、ライトは動かず、部分的にベイクされたライティングになります。 
+	[/PARAM]
+[/OBJECT]
+
+[REGION:raw]
+![](spacer.png)
+[/REGION]
+
+[OBJECT:topiclistnotitle]
+	[PARAM:icon]
+		![](Spotlight_Movable.png)(w:150 convert:false)
+	[/PARAM]
+	[PARAM:description]
+	**Moveable** - (左側の図) ライトは完全に動的で動的シャドウイングを使用できます。これはレンダリングという点では最も処理が遅くなりますが、ゲームプレイ中のフレキシビリティは最も高くなります。 
+	[/PARAM]
+[/OBJECT]
+
+[REGION:raw]
+![](spacer.png)
+[/REGION]
+
+以下は、レベル内に配置された **スポットライト** の 2 つの例であり、ライトの半径とコーン エフェクタを決定する方法を示しています。
+
+![](spotlight_example.png)
+
+左側はライトの半径を示すコーンのない **スポットライト** です。右側は、同じスポットライトでコーン エフェクタが表示されているものです。
+
+
+## スポットライトのプロパティ
+
+**スポットライト** のプロパティは、**Light**、**Light Profiles**、**Lightmass**、および **Light Function** の 4 つのカテゴリに分類されます。 
+
+###Light
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Intensity** | ライトが放射するエネルギーの合計 |
+| **Light Color** | ライトが放射する色 |
+| **Inner Cone Angle** | **スポットライト** の内側のアングルの度数を設定します。 |
+| **Outer Cone Angle** | **スポットライト** の外側のアングルの度数を設定します。 |
+| **Attenuation Radius** | ライトの可視範囲の境界 |
+| **Source Radius** | ライトソース形状の半径 |
+| **Source Length** | ライトソース形状の長さ |
+| **Affects World** | ライトを完全に無効にします。ランタイム時に設定することはできません。ランタイム中にライトのエフェクトを無効にするには、**Visibility** プロパティを変更します。 |
+| **Casts Shadows** | ライトにシャドウをキャストさせる場合に使用します。 |
+| **Indirect Lighting Intensity** | ライトからの間接光の寄与をスケーリングします。 |
+| **Use Inverse Squared Falloff** | **AttenuationRadius** がライトの寄与のみをクランプしている場合に、物理ベースの逆 2 乗フォールオフを使用するか否かを設定するプロパティです。 |
+| **Light Falloff Exponent** | **UseInverseSquaredFalloff** が無効になっている場合にライトの放射状フォールオフを制御します。 |
+| **Min Roughness** | ライトに有効なラフネス (粗さ) の最低値です。スペキュラ ハイライトをソフトにする際に使用します。 |
+| **Shadow Bias** | ライトが作成するシャドウの精度を制御します。 |
+| **Shadow Filter Sharpen** | ライトのシャドウ フィルタリングをシャープにする度合いです。 |
+| **Cast Translucent Shadows** | ライトが透過オブジェクトを通過して動的シャドウをキャストさせるか否かを設定するプロパティです。 |
+| **Affect Dynamic Indirect Lighting** | **Light Propagation Volume** にライトを注入するか否かを指定します。 |
+| **Cast Static Shadows** | ライトに静的シャドウをキャストさせるか否かを設定するプロパティです。 |
+| **Cast Dynamic Shadows** | ライトに動的シャドウをキャストさせるか否かを設定するプロパティです。 |
+| **Affect Translucent Lighting** | ライトが透過に影響を与えるか否かを設定するプロパティです。 |
+
+
+### Light Profiles
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **IES Texture** | ライトプロファイルに使用した IES 「テクスチャ」です。アンリアルでは IES ファイルは ASCII ファイルで格納し、テクスチャを表現します。これらは画像ファイルではありません。 |
+| **Use IES Brightness** | _false_ の場合、ライトの明るさ決定するためにライトの **Brightness (輝度)** を使用します。_true_ の場合、ルーメン単位の IES ファイルの輝度を使用します (アンリアルのライトのデフォルト値よりもはるかに大きな数値です)。 |
+| **IES Brightness Scale** |シーンを大幅に超えることもあるため、IES 輝度の寄与をスケーリングします。 |
+
+### Lightmass
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Indirect Lighting Saturation** | 値 0 はライトマスのライトを完全に減じます。値 1 は何も変わりません。 |
+| **Shadow Exponent** | シャドウ暗部のフォールオフを制御します。 |
+
+
+### Light Function
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Light Function Material** | ライトに適用するライト関数マテリアルです。 |
+| **Light Function Scale** | ライト関数プロジェクションをスケーリングします。 |
+| **Light Function Fade Distance** | ライト関数が **Disabled Brightness** の値で完全に弱まる距離です。 |
+| **Disabled Brightness** | ライト関数が指定されていながら無効になっている時ライトに適用する輝度係数です。仮に上記のプロパティをあげるなら **Light Function Fade Distance** です。 |

@@ -1,0 +1,42 @@
+﻿INTSourceChangelist:2291853
+Availability:Public
+Title:3.プロジェクトを作成
+Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
+Description:テンプレート プロジェクトを開始する
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Platforms/Android/GettingStarted/2 "%Platforms/Android/GettingStarted/2:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Platforms/Android/GettingStarted)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Platforms/Android/GettingStarted/4 "%Platforms/Android/GettingStarted/4:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+
+%Steps%
+
+
+1.	新規プロジェクトを作成します。今ここではブループリント ベースのプロジェクトをテストしますが、 C++ プロジェクトで開始してからコンパイルする場合でもエディタ内で開かれるので、次のステップは同じになります。  
+
+![](new_android_project.png)
+
+
+[REGION:tip]
+このプロジェクトにはスターター コンテンツは含まれないことにご注意ください。
+[/REGION]
+
+
+
+
+
+%Steps%

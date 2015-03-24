@@ -1,0 +1,147 @@
+﻿INTSourceChangelist:2346368
+Availability:Public
+Title:ライティングのコンテンツ例
+Crumbs:%ROOT%, Resources, Resources/ContentExamples
+Description:ライティングのコンテンツ例で提供されるサンプルの概要
+Related:Engine/Rendering/LightingAndShadows/Basics
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Point/
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
+Related:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Directional
+Related:Engine/Rendering/LightingAndShadows/Lightmass
+Related:Engine/Rendering/LightingAndShadows/Shadows
+Related:Engine/Rendering/LightingAndShadows/IndirectLightingCache
+Related:Engine/Rendering/LightingAndShadows/LightMobility
+
+[REGION:banner]
+![](Lighting_Header.png)(convert:false)
+[/REGION]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Lighting:title%](Lighting_Compact.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Lighting:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Lighting:description%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/Lighting]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Lighting:title%](Lighting_Compact.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Lighting:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/Lighting]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:2)]
+
+
+## 概要
+
+コンテンツ例プロジェクトの中にある **Lighting** マップでは、アンリアル エンジン 4 で使用できる様々なライトのタイプに加え lit 環境をより現実的に作成しやすく調整する設定も説明します。 
+マップは幾つかのセクションに分かれています。最初の 2 セクションではライトの種類と可動性、そして残りのセクションではシャドウイング、フォールオフ、高度なテクニックを紹介しています。 
+
+各サンプルの詳細は、それぞれの表の中にあるリンクを参照してください。 
+
+
+## ライティング マップ
+
+**ライティング** マップで提供されているセクションは以下の通りです。 
+
+### 基本的なライトの種類
+
+![](lighting_01.png)(w:640)
+
+| 例 | 実演内容 |
+| ------- | ------------ |
+| ** [1.1 ポイントライト](Resources\ContentExamples\Lighting\1_1)** | ポイントライトは一点からあらゆる方向へ球状に放射する基本的なライトのタイプです。|
+| ** [1.2 スポットライト](Resources\ContentExamples\Lighting\1_2)** | ライトを一点からコーン (円錐) 形状に放射するライトです。|
+| ** [1.3 指向性ライト](Resources\ContentExamples\Lighting\1_3)** | はるか遠くにある大量の光源から放出されるライトをシミュレートされるライトです (太陽光のシミュレーションに最適です)。|
+
+
+### ライトの可動性
+
+![](lighting_02.png)(w:640)
+
+| 例 | 実演内容 |
+| ------- | ------------ |
+| ** [2.1 静的ライト](Resources\ContentExamples\Lighting\2_1)** | 実行時の変更または移動は不可能で、 **Lightmaps** 内でのみ計算されるライトです。|
+| ** [2.2 固定ライト](Resources\ContentExamples\Lighting\2_2)** |  は一ヶ所に固定されるライトですが、**Static Lights** とは異なり、ライトの輝度や色などは変更することが可能です。|
+| ** [2.3 可動ライト](Resources\ContentExamples\Lighting\2_3)** | ゲーム内で移動や変更が可能なライトです (車のヘッドライトや懐中電灯)。|
+
+### ライト機能＆ IES プロファイル
+
+![](lighting_03.png)(w:640)
+
+| 例 | 実演内容 |
+| ------- | ------------ |
+| ** [3.1 IES ライトプロファイル](Resources\ContentExamples\Lighting\3_1)** | Illuminating Engineering Society (IES) プロファイルは、現実のライティング結果を作成するための輝度やフォールオフのダイアグラム (照度データ) を作成する北米照明学会の標準手法です。
+| ** [3.2 ライト機能](Resources\ContentExamples\Lighting\3_2)** | ライトの密度をフィルタするために適用できるマテリアルです (アンリアル エンジン 4 は **ライト機能** を使用するウォール上に投影されます)。|
+
+
+### フォールオフ＆間接ライティング
+
+![](lighting_04.png)(w:640)
+
+| 例 | 実演内容 |
+| ------- | ------------ |
+| ** [4.1 フォールオフ指数](Resources\ContentExamples\Lighting\4_1)** | **Falloff Exponent** 設定でライトのフォールオフを制御する方法。 |
+| ** [4.2 逆 2 乗フォールオフ](Resources\ContentExamples\Lighting\4_2)** | 光源に最接近するとライトはとても明るくなり、光源から離れるとたちまち減光することで現実の世界の光源に似せたフォールオフです。 |
+| ** [4.3 間接ライティング](Resources\ContentExamples\Lighting\4_3)** | 近くの光源から出ている間接ライティングからのオブジェクトの影響の受け方を実演します。 |
+
+###Source Radius 効果とハイライト
+
+![](lighting_05.png)(w:640)
+
+| 例 | 実演内容 |
+| ------- | ------------ |
+| **[5.1 Source Radius (Static Lights)](Resources\ContentExamples\Lighting\5_1)** | ソフトあるいはハード シャドウが **Static Light** の **Source Radius** の調整によりどのように作成されるかを説明します。 |
+| **[5.2 Lightsource Radius](Resources\ContentExamples\Lighting\5_2)** | この例は **固定** または **可動** ライト上に及ぼす **Source Radius** の影響とスペキュラ反射に与える影響を紹介します。 |
+| **[5.3 Lightsource Length](Resources\ContentExamples\Lighting\5_3)** |  **Source Length** を使用してどのようにライトの反射形状が変更されるのかを説明します(蛍光照明器具からの反射)。 |
+| **[5.4 Min Roughness](Resources\ContentExamples\Lighting\5_4)** | 反射が強すぎるハイライトを **Min Roughness** 設定の調整でぼかす方法を実演します。 |
+
+### 高度なシャドウ パラメータ
+
+![](lighting_06.png)(w:640)
+
+| 例 | 実演内容 |
+| ------- | ------------ |
+| **[6.1 Self Shadowing Accuracy](Resources\ContentExamples\Lighting\6_1)** | 表面との接地感を持たせるようなオブジェクトのシャドウのキャスト方法を説明します。 |
+| **[6.2 Shadow Filter Sharpen](Resources\ContentExamples\Lighting\6_2)** | シャドウのエッジのシャープネスを強化する際に使用する設定です。 |
+
+<!--
+[EXCERPT:RadiusNote]
+[REGION:note]
+ライトの半径または形状のインジケーターを表示するには、ライトを選択しなくてはいけません。
+
+ライトの半径や形状を表すインジケーターが表示されない場合、ビューポートの **[表示]** メニューを必ずクリックして **Use Defaults** を選択してください。
+[/REGION]
+[/EXCERPT:RadiusNote]
+
+
+
+
+
+
+[EXCERPT:LightMobility]
+オブジェクトでは次の 3 種類の可動性、 **Static (静的)** 、 **Stationary (固定)** 、そして **Movable (可動)** が利用できます。可動性はオブジェクトの選択時に **[詳細]** パネルの上部で設定可能です。
+
+![](MobilitySetting.png)
+[/EXCERPT:LightMobility]
+
+-->

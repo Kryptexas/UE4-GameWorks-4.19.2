@@ -1,0 +1,11 @@
+﻿INTSourceChangelist:2099361
+Availability:Public
+Title: 리플리케이션
+Crumbs:Gameplay, Gameplay/Networking
+Description:멀티플레이어 네트워크 게임 셋업하기입니다.
+
+[OBJECT:Redirect]
+[PARAM:link]
+[](Gameplay/Networking/Replication)
+[/PARAM]
+[/OBJECT]

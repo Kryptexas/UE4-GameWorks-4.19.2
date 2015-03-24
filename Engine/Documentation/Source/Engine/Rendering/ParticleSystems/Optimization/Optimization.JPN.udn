@@ -1,0 +1,91 @@
+﻿INTSourceChangelist:2112101
+Availability:Public
+Title:VFX の最適化ガイド
+Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
+Description:パーティクル システムを最適化し、パフォーマンスの問題を解決します。
+
+
+[TOC (start:2 end:3)]
+
+
+
+## 概要
+
+このドキュメントは、以下に関する知識があることを前提として書かれています。カスケード、マテリアルエディタ、マチネ、一般的なエフェクトに関連したパフォーマンス問題。パフォーマンス問題を解決する方法は複数あります。このドキュメントでは、利用可能なツールを使ってこれらの問題を解決するために Epic のエフェクトチームが取っている方法の概略を示します。
+
+
+## 劣悪なエフェクト パフォーマンスを引き起こす一般的な原因
+
+$ **Overdraw** (オーバードロー) :パーティクルが覆うスクリーン空間の量、および、それらのパーティクル上にあるインストラクションの数です。(オーバードロー)＝(レイヤー数)×(影響を受けるピクセル数)(GPU)
+$ **Tick Time** (ティック時間) :ゲームスレッドが、すべてのパーティクルシステムを更新するのに要する時間です。(ゲーム スレッド)
+$ **Draw Calls** (描画コール)：GPU のために準備するステート設定です。(レンダリング スレッド) 
+$ **Bounds Calculation** (境界計算) :エフェクトの境界を更新するのに要する時間です。この境界は、カメラの視錘台に基づいてビジビリティを決定するために使用されるものです。(エフェクトの境界が見えるか?) 
+
+これらの主要な問題には、問題発生の原因となる下位の問題が多数含まれます。通常、下位の問題それぞれについて、パフォーマンス問題を処理するためのツールが用意されています。 
+
+
+##エフェクトパフォーマンスのためのコアシステム
+
+$ **GPU** :スクリーン上にピクセルを描画するのに要する時間です。(オーバードロー)
+$ **Game Thread** (ゲームスレッド):パーティクルシステムの動作を更新するのに要する時間です。(ティック時間) 
+$ **Render Thread** (レンダリングスレッド)：パーティクル ジオメトリおよび関連する描画コールをパック化するために要する時間です。(描画コール)
+
+## パフォーマンスへの配慮
+
+パフォーマンスの観点から見ると、あらゆる要素が絡み合う壮大なスキームにおいては、パーティクル数の役割は取るに足らないものです。任意のシステムの全体的な負荷に関しては、画面を分割するかどうかにかかわらず、マテリアルの複雑度と画面の適用範囲 (オーバードロー) が真の敵となります。テクスチャ頂点のカラーに対してテクスチャを乗算し、アンリット状態のマテリアル内のエミッシブ インプットにつなげただけの簡単な放射スパークの場合には、インストラクションもわずかで済みます。これらを一日中溢れるほどスポーンしても、パフォーマンス全体への影響はおそらく非常に小さなものでしょう。スプライトは小さいので画面への適用率も低く、マテリアルの複雑さの面でも負荷がかからず、かつ迅速に描画できます。頂点数は、長期的に見て、極端な数に達しない限り (数百 ～数千以上) 特に気を使う必要はありません。
+
+全般的なパフォーマンスへの影響がより顕著なのは、マテリアル上のインストラクション数です。火炎や煙などのマテリアルの場合、基本的に 2 通りの方法があります。1 つめの方法は、より複雑なマテリアルをエフェクトに対して作成することです。例として火炎を使用し、スポーンするスプライトの数を少なくし、拡張したマテリアルのランダム度と複雑度に委ねてエミッタを生き生きとしたものにします。2 つ目の方法としては、負荷が低いマテリアルを使い、スポーンするスプライトの数を多くします。全体的な負荷は同じぐらいに保ちながら、より複雑なマテリアルとは対照的にパーティクル数を高く設定してランダム度を調節します。距離を短縮することで、マテリアルの負荷を飛躍的に削減できる点に留意してください (画面でカメラから 2 倍離れた位置に描画されたクワッドは、ピクセル領域合計が距離と共に指数関数的に減少し、オーバードローされるピクセル数が減少するため、負荷は 4 分の 1 になります)。 
+
+使用するマテリアルの負荷、スポーンするスプライトの数、さらに画面上でこれらのエフェクトの位置までの距離を分析する必要があります。これら 3 つの特性はエミッタの複雑度を決定する主な要因であり、それぞれにバランスを保つ必要があります。また、パーティクル システムの近くに、またはシステムから離れて移動する場合には LOD システムを巧みに利用して、スプライト数、マテリアルの複雑度、その他の要因を調整します。
+
+通常は、パフォーマンスの向上手段としてマテリアルの複雑度を削減し、一般的にエミッタで作業する際にはオーバードローの可能性に常に気を付けてください。極端な数のパーティクルをスポーンする場合、または頂点数が非常に多いメッシュ エミッタを使用してメッシュをスポーンする場合を除き、パーティクル数は心配しなくてもかまいません。 
+
+問題の所在がはっきりしたら、次の方法を用いて最適化を開始することができます。
+
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/fx_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		トラブルシューティングのリンク
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [I am having trouble on the GPU.](Engine/Rendering/ParticleSystems/Optimization/Results#OverdrawGraphics)
+		* [I am having trouble on the Game Thread.](Engine/Rendering/ParticleSystems/Optimization/Results#GameThread)
+		* [I am having trouble on the Render Thread.](Engine/Rendering/ParticleSystems/Optimization/Results#RenderThread)
+	[/PARAM]
+[/OBJECT]
+
+ 
+
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/fx_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		パーティクル システムの一般的なトピックス
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [VFX Optimization: Balancing Visual Effects with Performance](Engine/Rendering/ParticleSystems/Optimization/Balance)
+		* [VFX Optimization: Core Optimization Concepts](Engine/Rendering/ParticleSystems/Optimization/Concepts)
+		* [VFX Optimization: Getting Results](Engine/Rendering/ParticleSystems/Optimization/Results)
+		* [VFX Optimization: Split Screen](Engine/Rendering/ParticleSystems/Optimization/SplitScreen)
+	[/PARAM]
+[/OBJECT]
+
+
+
+
+
+ 
+
+
+
+
+

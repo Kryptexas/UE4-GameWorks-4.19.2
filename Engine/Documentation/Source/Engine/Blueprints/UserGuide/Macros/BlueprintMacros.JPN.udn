@@ -1,0 +1,182 @@
+﻿INTSourceChangelist:2449375
+Availability:Public
+Title:マクロ
+Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
+Description:別のグラフからの実行または呼び出しが可能な、折りたたまれたネットワークのノード
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\Blueprints\UserGuide\Macros:title%](Engine\Blueprints\UserGuide\macro_topic_2.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\UserGuide\Macros:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\UserGuide\Macros:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Blueprints\UserGuide\Macros]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine\Blueprints\UserGuide\Macros:title%](Engine\Blueprints\UserGuide\macro_topic_2.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\UserGuide\Macros:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\UserGuide\Macros:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Blueprints\UserGuide\Macros]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+[EXCERPT:Intro]
+**ブループリン トマクロ** または **マクロ** は、本質的にノードの折り畳まれたグラフと同一です。トンネルノードで指定される 
+エントリーポイントと出口点があります。それぞれのトンネルは、別の _ブループリント_ やグラフに使用されるとマクロノード上で可視化できる 
+実行またはデータピンがいくつもあります。
+
+[/EXCERPT:Intro]
+
+[TOC(start:2 end:3)]
+
+
+## ブループリントマクロの作成
+
+[EXCERPT:MacroCreationLib]
+_ブループリントマクロ_ は _Blueprint 関数_ 同様に、 _Blueprint クラス_ または _Level ブループリント_ 内で作成することができます。これらを _ブループリント マクロ ライブラリ_ としてまとめることもできます。
+
+以下の方法で _ブループリント クラス_ 、 _Level ブループリント_ 、 _ブループリント マクロ ライブラリ_ 内に _ブループリント マクロ_ を作成します。
+
+1. 関数リストヘッダー ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\myblueprint_macro.png) の **[Add] ボタン** ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\plus_Button.png) をクリックして、**[My Blueprint]** タブで新規マクロを作成します。
+
+1. _ブループリント マクロ_ の名前を入力します。
+
+	[REGION:raw]
+	![](name_macro_blueprint.png)
+	[/REGION]
+
+	ブループリント エディタの **[Graph]** タブで、 _ブループリント マクロ_ が新規のタブとして開きます。
+
+_ブループリント マクロ_ は、 **[My Blueprint]** タブを右クリックして、 **[Macro]** を選択して作成することも出来ます。
+
+![](add_macro_rtclick.png)
+
+[/EXCERPT:MacroCreationLib]
+
+## ブループリント マクロの構築
+[EXCERPT:BuildingMacros]
+_ブループリント マクロ_ を初めて作成すると、 **Inputs** トンネルノードと **Outputs** トンネルノードが格納された新規のグラフが開きます。
+
+![](input_output_macro.png)
+
+_ブループリント マクロ_ の **[Details]** ペインで、実行およびデータの入出力ピンを追加することができます。_ブループリント マクロ_ の **詳細** 、 **カテゴリ** 、 **インスタンスカラー** を設定することもできます。 
+
+[REGION:raw]
+![](new_macro_details.png)
+[/REGION]
+
+以下の手順で、入力または出力パラメータを追加します。
+
+1. **[Details]** ペインの **[Inputs]** または **[Outputs]** セクションいずれかの**[New]** ボタンをクリックします。
+
+1. 新パラメータに名前をつけて、ドロップダウン メニューを使用してタイプを設定します。この例は、 **Score** という _Integer_ データの入力パラメータ、 **Test** という入力実行ピン、そして **Win** と **Lose** と名前がついた 2 つの出力実行ピンがあります。 
+
+	[REGION:raw]
+	![](macro_details.png)
+	[/REGION]
+
+	_[ブループリント マクロ]_ グラフのトンネルノードは、自動的に正確なピンで更新されます。
+
+	![](macro_tunnels_with_pins.png)
+
+1. パラメータの入力を拡大することによって、デフォルト値を設定することも出来ます。
+
+	[REGION:raw]
+	![](macro_details_expanded.png)
+	[/REGION]
+
+ノード端にあるパラメータのピンの位置を変更したい場合、拡大された **[Details]** ペイン入力で上下の矢印キーを使用します。
+
+_ブループリント マクロ_ に機能性を持たせるには、データと実行ワイヤーを **Inputs** と **Outputs** トンネルノードのピンと接続して、間にネットワークを作成します。
+
+![](score_comparison_example_macro.png)
+
+この例の _ブループリント マクロ_ は、 _Macro_ に入力されるスコアが勝つために必要なスコアを上回る大きさであるかをチェックし、 
+比較結果に基づいて、別の出力実行フローをトリガーします。**Test** と **Score** ピンは、_ブループリントマクロ_グラフでワイヤーが交差するのを防ぐために **[Details]** ペインで上下矢印キーを使用してフリップされることに留意してください。 
+	 
+![](move_pin_arrows.png)
+
+
+_Functions_ とは異なり、 _Macros_ は 1 つ以上の実行ピンを持つことができます。つまり、別の出力実行ピンを、グラフロジックの結果に基づいてアクティベートするというような
+実行フローを使用することができます。また、 _Macro_ 内のノードが実行ノードではない限り、単にデータを操作する実行ピンを持たない _Macro_ を持つことができます。
+
+[REGION:fullwidth]
+![](data_macro.png)
+[/REGION:fullwidth]
+[/EXCERPT:BuildingMacros]
+
+###マクロの実装
+
+[EXCERPT:UniversalImplement]
+_マクロ_ ノードを別の _ブループリント_ グラフへ追加する方法はいくつかあります。_Function_ ノードや _Custom Event_ Call ノードのように、 _ブループリント_ のグラフから
+複数の _Macro_ ノードのコピーを追加することができます。
+
+_マクロ_ を追加するには、グラフを **右クリック** して、表示されるコンテクストメニューで _Macro_ を選択します。
+
+![](right_click_add_macro.png)
+
+または、別のノードのピンをドラッグ、ドロップします。対応する変数タイプとフロー方向のパラメータピンがある場合、コンテクストメニューに _Macro_ が表示されます。 
+
+[REGION:raw]
+![](pin_macro_summon.png)
+[/REGION]
+
+[/EXCERPT:UniversalImplement]
+別の方法として、 **[My Blueprint]** タブから _Macro_ をドラッグして、グラフへドロップすることも出来ます。
+
+[REGION:raw]
+![](macro_drag_1.png)
+[/REGION]
+
+_Macro_ ノードがグラフへ追加されると、その他のノード同様に動作して入出力ピンは状況に応じてワイヤー接続されます。 _Macro_ ノードを **ダブルクリック** すると _Macro_ のグラフが開きます。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

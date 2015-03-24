@@ -1,0 +1,147 @@
+Crumbs:%ROOT%
+Title:入门指南: 开发Apple iOS项目
+Availability:Public
+ 
+
+
+
+[TOC]
+
+
+## 概述
+
+本文档解释了如何设置开发环境来编译针对iOS设备的游戏，同时也介绍了部署及调试在移动平台上运行的Unreal项目的一般流程。
+
+
+## 推荐的机器设置
+
+
+### 计算机
+为了进行编译，您或许需要有一台计算机(它是一个16核的强大机器)，尽管实际上可以使用最近的Mac Minis而且Mac Pro价格更加昂贵（我们让Epic的员工在Mac Pro上进行开发）。为了进行调试，您需要有一个具有插入设备的苹果电脑。如果您想要，您可以使用VNC从您的电脑连接到苹果电脑（在苹果电脑上启用屏幕共享后）。
+
+您通常需要在Windows中使用移动设备仿真器（使用 -simmobile 运行PC游戏）通过更快的迭代测试渲染和触摸输入。
+
+
+### 设备/ SDK
+UE3可以在iPhone 3GS及以上版本，iPod Touch 3rd Generation及以上版本以及所有iPad上运行。其中一些iPod Touch很难确定是哪一个版本，任何8GB及低于8GB的设备都属于第二代，如果您不确定您的iPod是不是第三代，您可以根据序列号在网站上查找确认。
+
+UE3当前支持iOS 4.0及以上。
+
+
+## Mac系统设置
+
+_注意_ ： 下面的指令最近发生了更改！
+
+
+### 受支持的配置
+我们现在支持的Mac设置是Mac OS X Lion（10.7及以上），使用通过从App Store下载的Xcode。Snow Leopard很可能可以使用，但是Epic已经不使用它了。
+
+
+### 设置步骤
+
+* 安装OS X Lion
+* 通过App Store安装最新的Xcode
+* 使用Terminal（终端）应用程序创建需要的目录结构
+    * 制作一些您可以写入的目录：
+        * sudo mkdir /UnrealEngine3
+        * sudo chmod 777 /UnrealEngine3
+        * sudo mkdir -p /Library/MobileDevice/Provisioning\ Profiles
+        * sudo chmod 777 /Library/MobileDevice/Provisioning\ Profiles
+    * 您还可以在您的主目录中生成这些目录，然后创建一个到它们的链接：
+        * 在 -s ~/UnrealEngine3 /UnrealEngine3 中
+* 安装并运行UnrealRemoteTool (URT)
+    * 将程序安装到您的Mac。A或B：
+        * A)
+            * 将UnrealRemoteTool从您的(UnrealEngine3/Binaries/UnrealRemoteTool)复制到您的Mac
+            * chmod a+x UnrealRemoteTool
+        * B)
+            * 通过p4v直接同步到Mac
+    * 通过Terminal（终端）运行UnrealRemoteTool（在URT中很少有没有在调试器中被捕获的罕见崩溃现象，所以我们在一个循环中运行它）
+        * for (( ;; )) do ./UnrealRemoteTool; done;
+    * 注意在Lion中，Terminal（终端）将会记住工作目录和命令历史记录，所以如果您重启，向上箭头应该会重新调用这个命令。
+
+
+
+## 签署设置(需要在iOS设备上运行)
+
+当您创建一个苹果设备账户时，您必须执行以下操作(使用它们的指令)：
+
+
+* 创建一个凭证。
+* 创建一个App ID (可以在用户指定的部分使用 * ).
+* 创建一个provisioning profile（服务提供概述介绍）。
+* 添加您的设备。
+* 把您的所有设备添加到provisioning profile（服务提供概述）中。
+
+
+现在您需要在您的Mac安装凭证，正如在网站上所介绍的那样。您也需要在您工作室中需要用于签署应用程序的所有Mac上安装凭证。有两种方式可以到达这个目的:
+
+
+* 使用Keychain Access（密码链访问）应用程序。
+    * 选择登陆密码链。
+    * 在Category（类别)部分选中My Certificates（我的凭证）。
+    * 选中新的凭证 (它以 "iPhone Developer"开头)。
+    * 右击它然后选择Export（导出）。
+    * 按照提示操作 (包括输入密码 - 使用您可以和您的团队共享的密码)。
+    * 把 .p12 分发给其他人。
+    * 然后他们可以把.p12拖拽到Keychain Access（密码链）中，以便在他们的登录密码链中安装凭证。
+* 选中Xcode。
+    * 跳转到Organizer(组织者)。
+    * 跳转到左下角的Developer Profile(开发者概述)。
+    * 选中Export Developer Profile（导出开发者概述）。
+    * 按照提示操作 (包括输入密码 - 使用您可以和您的团队共享的密码)。
+    * 把概述文件分发给其他人。
+    * 然后可以在它们的Xcode的组织器中导入Developer Profile（开发者概述）。
+
+
+最后，最重要的是每个人在它们的登录密码链中都具有相同的"iPhone Developer（iPhone开发者）:"。凭证。
+
+接下来，从Apple网站下载 .mobileprovision。它将会下载 &lt;ProfileName&gt;.mobileprovision 文件。您需要复制它并把它重命名为&lt;MyGame&gt;\Build\IPhone\&lt;MyGame&gt;.mobileprovision。把这文件迁入到P4中，因为任何需要签署一个应用程序的人都需要它。无论何时当您在网站上向一个 provisioning profile(服务提供概述)中添加设备时，您都将需要更新MyGame.mobileprovision文件并将其迁入到P4中。
+
+
+## Windows系统设置
+
+
+* 设置环境变量。
+    * ue3.iPhone_CompileServerName = 编译时所使用的DNS名称或IP地址 (比如a1012)。
+    * ue3.iPhone_SigningServerName =  Mac签署时所使用的DNS名称或IP地址 (比如 a1012)。
+
+
+如果您修改UnrealBuildTool (IPhoneToolChain.cs)，您可以为您的工作室设置默认值，这样就不必让每个人都设置这些环境变量了。
+
+使用这两组环境变量的原因是启用完全独立的编译和签署服务器。您需要重启您的计算机，这些修改才能生效。
+
+
+##基本的iOS工作流程
+
+由于移动设备的特性所决定(以Mac为中心，外部设备),它的工作流程也和其他平台稍有不同。
+
+
+### 编译
+一旦您已经完成了上面的设置您的Windows和Mac系统的步骤后，编译就非常简单了，因为它使用UnrealBuildTool(虚幻编译工具)来执行编译。简单地在Visual Studio选择启动项目(比如MobileGame  IPhone)，然后选择Build（编译）。这将会通过网络把命令发送到Mac，UnrealRemoteTool将会接受那个命令并在Mac上运行并执行那个命令。
+
+您可以查看您的Mac驱动器上的/UnrealEngine3/Builds目录，您会看到有一个以您的PC的计算机名称命名的目录。在那里有一个和您的PC目录结构相匹配的镜像目录。当编译完成时，可执行文件将位于镜像目录结构的Binaries\IPhone目录内。
+
+当您使用UnrealBuildTool编译完您的游戏后，可执行信息及调试信息就都在Mac上了，便可以等待打包它们了。
+
+
+###打包和签署
+可以在PC或Mac上打包及签署（这是在设备上运行所需要的)iOS应用程序。这可以在UnrealFrontend中通过Packaging Mode(打包模式)下拉菜单进行选择(请参照 [UnrealFrontend#Mobile](Engine/Deployment/UnrealFrontend#Mobile))。如果您想要通过Xcode进行运行/调试，那么请使用Xcode调试，在这里您可以使用Xcode在设备上安装及运行游戏。
+
+
+### 在Mac上调试
+您可以使用Xcode来在Mac上运行及调试您的游戏。简单地打开您的Mac上的/UnrealEngine3/Builds/.../Binaries/IPhone目录中的 UE3.xcodeproj文件。如果您制作了您自己的游戏(而不是使用UDKGame)，那么您将需要把您自己的游戏添加到一个空工程中。您可以使用您的PC上的文本编辑器完成这个处理，仅需要将其中一个游戏（即ExoGame）替换为您的游戏名称。您也可以使用Xcode来复制一个目标，但是您将需要手动修复.xcodeproj文件中的一系列.plist和其他设置，所以最简单的方法就是替换其中一个Epic的游戏。
+
+
+#### 调试
+既然您已经正确地设置了Xcode项目，那么您可以使用它来调试您的应用程序了。在Xcode中，在左上方的下拉菜单中，选择您的游戏以及您的设备名称。
+
+点击Run（运行）启动您的游戏。第一次运行的时候，您将需要选择点击Run（运行），然后在对话框中，选择您的配置(Release/Debug/etc)与您在UFE中编译和大宝的内容匹配。
+
+现在您可以点击Run(运行）（或则如果启用了断点则点击Debug（调试））来在连接的设备上启动应用程序。崩溃会把您带入到源码中，您可以放置断点(如果您使用调试信息进行编译等)。您可以打开源文件，或者通过使用Command-O或通过向项目添加源代码。要进行这些操作，请将Src目录从Finder拖入到Xcode中，但是要确保您在添加文件对话框中取消勾选了所有目标。否则，运行游戏的时候将会尝试编译源代码，但是没有设置项目进行编译（只进行签署和运行）。
+
+ 
+
+
+
+

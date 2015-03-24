@@ -1,0 +1,652 @@
+キーワードKeywords: メタデータはセミコロンと一緒にドキュメント上部に追加されます　Metadata is added at the top of the document with semi-colon's
+タイトルTitle: EpicによるMarkdownの活用とシンタックスの拡張　　Epic's Use of Markdown and Extensions to Syntax
+Crumbs:DocumentationGuidelines
+説明:EpicのカスタムMarkdown拡張機能を使用して新規ドキュメンテーションソースファイルを作成する方法　How to create new documentation source files using Epic's custom Markdown extensions.
+DoIndex:false
+
+[TOC] (start:2 end:3)
+
+[REGION:note]
+**注釈:** このドキュメント自体がEpicのMarkdownを使用して作成されています。 [ここからソースを参照](DocumentationGuidelines\SyntaxSource)出来ます。　
+[/REGION]
+
+##概要
+
+MarkdownのEpicバージョンは、[MarkdownSharp](http://code.google.com/p/markdownsharp/)に基づいています。MarkdownSharpは、[PHP Markdown Extra](http://michelf.com/projects/php-markdown/)のある機能を備えた[Markdown](http://daringfireball.net/projects/markdown/)に基づいています。
+このドキュメントはEpicの機能性をサポートするために作成された拡張と、Markdown Extraから実際にサポートされている機能のガイドとして作成されました。このシンタックスガイドは、オリジナルの[Markdown Syntax](http://daringfireball.net/projects/markdown/syntax)を補完するものです。　
+## Epicの機能性
+
+### 目次とヘッダの自動生成
+
+ヘッダの生成は、スペースが削除されたヘッダをブックマークとして含まれるよう変更されました。同じ名前を持つ後続ヘッダの複数ヘッダサポートが、2から始まるインデックスに追加されました。
+タグの代わりに、ドキュメントの上部に正しいインデントでヘッダリストが生成されます \[TOC\]
+
+\[TOC\] (start:HeadingStartLevel end:HeadingEndLevel)を指定することによって、ヘッダレベルを設定できます。目次の始まりと終わりの変数は任意ですが、指定がない場合は始まりには1が、終わりには6が変数として与えられます。始まり、終わりの変数が両方設定された場合は、終わりの変数は始まりに従わなくてはいけません。　
+
+ヘッダの最初の文字が！！の場合、ヘッダは目次に含まれません。　
+
+#### Markdown記法
+	#Heading
+	[TOC]
+
+#### HTML出力
+	<h1 id="Heading1">Heading</h1>
+	<ul><li><a href="#Heading">Heading</a></ul>
+
+
+#### 結果
+このページ上部にある目次は、こちら \[TOC\] (start:2 end:3)でまとめられた概要に沿った方法で生成されていました
+
+### ドキュメント内にブックマークをリンクする方法
+
+ユーザーはドキュメント内のヘッダへリンク付けが出来ます。また、ドキュメント内にリンク付されるブックマークを配置することも可能となりました。
+
+#### Markdown記法
+	こちらがファイル内のヘッダへのリンク例になります[目次の自動生成](#AutogenerationofTableofContents)。ヘッダテキストはテキスト内のスペースを削除することによってリンク付されます。または、同じ名前を持つ後続ヘッダが一つ以上ある場合、スペース無しで2、3等を名前に追加して参照することが出来ます。[Markdown記法1](#MarkdownSyntax) [Markdown記法2](#MarkdownSyntax2) [Markdown記法3](#MarkdownSyntax3) 
+	こちらがユーザーが定義したブックマークのドキュメントへのリンク例となります[ブックマーク1](#Bookmark1)。
+	(#Bookmark1) ブックマークのテキストは、行の先頭文字でなくてはいけません。
+
+#### HTML出力
+	<p>こちらがファイル内のヘッダへのリンク例となります <a href="#AutogenerationofTableofContents">目次の自動生成</a>。 ヘッダテキストはテキスト内のスペースを削除することによってリンク付されます。または、同じ名前を持つ後続ヘッダが一つ以上ある場合、スペース無しで2、3等を名前に追加して参照することが出来ます。<a href="#MarkdownSyntax">Markdown Syntax 1</a> <a href="#MarkdownSyntax2">Markdown Syntax 2</a> <a href="#MarkdownSyntax3">Markdown Syntax 3</a> </p>　
+	<p>こちらがユーザーが定義したブックマークのドキュメントへのリンク例となります<a href="#Bookmark1">Bookmark 1</a>。</p>
+	<p><a id="Bookmark1"/> ブックマークのテキストは行の先頭文字でなくてはいけません。</p>　
+	
+#### 結果
+
+こちらがファイル内のヘッダへのリンク例になります　[目次の自動生成](#AutogenerationofTableofContents)ヘッダテキストはテキスト内のスペースを削除することによってリンク付されます。または、同じ名前を持つ後続ヘッダが一つ以上ある場合、スペース無しで2、3等を名前に追加して参照することが出来ます。[Markdown記法1](#MarkdownSyntax) [Markdown記法2](#MarkdownSyntax2) [Markdown記法3](#MarkdownSyntax3) 
+
+こちらがユーザーが定義したブックマークのドキュメントへのリンク例となります[ブックマーク1](#Bookmark1)。
+
+(#Bookmark1) ブックマークのテキストは、行の先頭文字でなくてはいけません。
+
+### Epicのドキュメントと他のページをリンクする方法
+
+相対リンクで他のページへリンク付けをします。ドキュメントがマークダウンフォルダのルートに格納されている場合、　参照に \%ROOT\%　を使用します。リンクに言語は指定されてなく、現在表示されている言語のファイルへリンクされることが想定されています。
+
+#### Markdown記法
+	[UE4ホーム](%ROOT%)
+	[Unreal Editor ユーザーガイド](Editor\UserGuide)
+
+#### HTML出力
+	<a href="./../../../INT\index.html">UE4 Home</a>
+	<a href="./../../../INT\Editor\UserGuide\index.html">Unreal Editor User Guide</a>
+
+#### 結果
+[UE4ホーム](%ROOT%)
+
+[Unreal Editor ユーザーガイド](Editor\UserGuide)
+
+### ローカル画像へのリンク方法
+
+画像フォルダを参照する必要はありません。　画像が他ページのドキュメントに属する場合のみパスの参照が必要となります。リンクに言語指定はなく、最初に画像ディレクトリにある言語フォルダの画像、次にデフォルトのINT画像フォルダが検索されます。
+
+#### Markdown記法
+	![ロゴ](Logo_Epic-New.jpg)
+	![Editorビューポート](Editor\UserGuide\LevelEditor\Viewports\viewport.png) 
+
+#### HTML出力
+	<img alt="Logo" src="./../../../images\EpicMarkdownDocGuides\EpicMarkdownExtension\Logo_Epic-New.jpg"/>
+	<img alt="Editor Viewport" src="./../../../images\Editor\UserGuide\viewport.png"/>
+
+#### 結果
+![ロゴ](Logo_Epic-New.jpg)
+
+![Editorビューポート](Editor\UserGuide\LevelEditor\Viewports\viewport.png)
+
+### 画像のプロパティ
+
+画像のフォーマット設定や変換に関する情報提供は以前から所望されていました。
+
+	(w: h: a: convert: type: quality: fill: )
+
+* 	**w:** 画像の表示幅。　省略された場合、高さが指定されていない限りソース画像の幅が適用されます。その場合、ソース画像のアスペクト比に割り当てられた高さに対応する正確な幅が使用されます。
+*	**h:** 画像の表示高さ。省略された場合、幅が指定されていない限りソース画像の高さが適用されます。その場合、ソース画像のアスペクト比に割り当てられた幅に対応する正確な高さが使用されます。
+*	**a:** 左、右、そしてnoneに設定された、画像に適用されるfloatスタイルを表します。デフォルトはnoneです。
+*   **convert:** `false` or `true`の値、画像が圧縮または異なるファイルタイプへ変換されるべきかを表します。デフォルトはtrueです。品質維持のため、またはGIFアニメ化されたファイルなどソースのフォーマットが重要な場合はfalseに設定出来ます。
+*	**type:** 変換する画像フォーマット。`jpg`、 `png`、 `gif`　のどれかになります。デフォルトは、 `jpg` です。
+*	**quality:** jpegファイルの圧縮品質（`1`-`100`）。圧縮品質のデフォルトは `80` です。高い数値を使用することによって、デフォルト圧縮が画像の質を落とすことになるアーティファクトへ繋がります。
+*	**fill:** 変換するフォーマットがjpgファイルの場合、画像の背景カラーが表示するhexカラー（`#0088FF`のフォーマットを使用）。デフォルトは `#FFFFFF`　です。
+
+[REGION:note]
+	* オプションの順序は重要ですが、任意で省略も可能です。または、画像情報の後のブラケットスタイルを全て省略することも出来ます。
+	* 変換パラメータが欠落している場合、「app.config」ファイルのデフォルト値が使用されます。
+	* 既存のMarkdownで表示する画像のインクルージョンメソッドであるInlineやReferenceは、書式設定のサポートが拡張されました。
+	* 画像を左や右へfloat（浮動化）させることによって、関係のないコンテンツによって画像が囲まれるなど予期しない結果に陥ることがあります。例えば、新しいセクションへ移動する際に、ヘッダが関連のない画像の横に表示されるのは避けたいものです。このテキストは画像に並行したパラグラフ内にあります。スタイルシートのエレメントは、"clear" [region](#Regions)を追加してfloatスタイルをクリアする際のコントロールに使用され、レベル1、2、hrエレメントのヘッダは、floatを停止します。
+[/REGION]
+
+
+#### Markdown記法
+    これは右![Epicロゴ](Logo_Epic-New.jpg "Here's a title")(a:right)にfloatを指定、高さと幅がブランクのインライン画像です。
+    これは幅、高さ、左をfloatとした参照画像 ![Epicロゴ][RefEpicLogo] です。
+    [RefEpicLogo]: Logo_Epic-New.jpg "Here's a title"(w:50 h:50 a:left convert:true quality:75 fill:#000000)
+	このテキストは画像に並行したパラグラフ内にあります。特別なdivエレメントは、最終floatに続きます。
+	[REGION:clear]
+		<!-- clear float -->
+	[/REGION]    
+	
+#### HTML出力
+	<p>これは右 <img style="float: right;" title="Here's a title" alt="Epic Logo" src="./../../../images\EpicMarkdownDocGuides\EpicMarkdownExtension\Logo_Epic-New.jpg"/> のfloatを指定、高さと幅がブランクのインライン画像です。</p>　
+	<p>これは幅、高さ、左をfloat指定した参照画像 <img width="50" height="50" style="float: left;" title="Here's a title" alt="Epic Logo" src="./../../../images\EpicMarkdownDocGuides\EpicMarkdownExtension\Logo_Epic-New.jpg"/> です。</p>
+	<p>このテキストは画像に並行したパラグラフ内にあります。特別なdivエレメントは、floatに続きます。</p>
+	[REGION:clear]
+		<!-- clear float -->
+	[/REGION]
+    
+#### 結果
+これは右![Epicロゴ](Logo_Epic-New.jpg "Here's a title")(a:right) にfloatを指定、高さと幅がブランクのインライン画像です。
+
+これは幅、高さ、左をfloat指定した参照画像![Epicロゴ][RefEpicLogo]です。
+
+[RefEpicLogo]: Logo_Epic-New.jpg "Here's a title"(w:50 h:50 a:left convert:true quality:75 fill:#000000)
+
+このテキストは画像に並行したパラグラフ内にあります。特別なdivエレメントは、floatに続きます。
+
+[REGION:clear]
+	<!-- clear float -->
+[/REGION]
+
+### テーブル
+テーブルはサポートされています。MultiMarkdownのシンタックスで利用可能だった書式形式は、柔軟性に優れ、Epicの基礎作成に選択されました。
+
+*	コロンはヘッダ列にあるテーブルデータのアライメント表示に使用されています。
+*	行はじめと終わりにパイプ記号を使用することが出来ますが、省略することも可能です。
+*	キャプションを追加出来ます。
+*	スパンカラムの利用が出来ます。
+*	「^」シンボルをセルで使用することによって、スパン列がサポートされます。
+
+
+#### Markdown記法
+	[Table 1 - Headers to top]				    
+	|             | Grouping                      ||   
+	 First Header | Second Header  | Third Header  |  
+	 ------------ | :------------: | ------------: |  
+	 Content      |          *Long Cell*          ||  
+	 Content      |      **Cell**  |         Cell  |  
+	 New section  |     More       |         Data  |  
+	     ^        |            And more           || 
+
+
+	 ------------ | :------------: | ------------: |  
+	 Content      |          *Long Cell*          ||  
+	 Content      |      **Cell**  |         Cell  |  
+	 New section  |     More       |         Data  |  
+	     ^        |            And more           || 
+	
+	[Table 2 - Headers to the right]				    
+	| ------------ | :------------: | ------------: |  
+	|  Content      |          *Long Cell*          ||  
+	|  Content      |      **Cell**  |         Cell  |  
+	|  New section  |     More       |         Data  |  
+	| 	 ^        |            And more           || 
+
+
+#### HTML 出力
+
+	<table>
+	<caption>Table 1 - Headers to top</caption>
+	<colgroup><col/>
+	<col align="center"/>
+	<col align="right"/>
+	</colgroup><thead>
+	<tr>
+		<th colspan="1"/>
+		<th colspan="2">Grouping</th>
+	</tr>
+	<tr>
+		<th colspan="1">First Header</th>
+
+		<th colspan="1">Second Header</th>
+		<th colspan="1">Third Header</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td colspan="1">Content</td>
+		<td align="center" colspan="2"><em>Long Cell</em></td>
+	</tr>
+
+	<tr>
+		<td colspan="1">Content</td>
+		<td align="center" colspan="1"><strong>Cell</strong></td>
+		<td align="right" colspan="1">Cell</td>
+	</tr>
+	<tr>
+		<td rowspan="2" colspan="1">New section</td>
+		<td align="center" colspan="1">More</td>
+
+		<td align="right" colspan="1">Data</td>
+	</tr>
+	<tr>
+		<td align="center" colspan="2">And more</td>
+	</tr>
+	</tbody>
+	</table>
+	
+	<table>
+	<caption>Table 2 - Headers to the right</caption>
+	<colgroup><col/>
+	<col align="center"/>
+	<col align="right"/>
+	</colgroup><tbody>
+	<tr>
+		<th colspan="1">Content</th>
+		<td align="center" colspan="2"><em>Long Cell</em></td>
+	</tr>
+	<tr>
+
+		<th colspan="1">Content</th>
+		<td align="center" colspan="1"><strong>Cell</strong></td>
+		<td align="right" colspan="1">Cell</td>
+	</tr>
+	<tr>
+		<th rowspan="2" colspan="1">New section</th>
+		<td align="center" colspan="1">More</td>
+
+		<td align="right" colspan="1">Data</td>
+	</tr>
+	<tr>
+		<td align="center" colspan="2">And more</td>
+	</tr>
+	</tbody>
+	</table>	
+
+#### 結果
+
+[Table 1 - Headers to top]			    
+|	          | Grouping                      ||   
+ First Header | Second Header  | Third Header  |  
+ ------------ | :-----------:  | -----------:  |  
+ Content      |          *Long Cell*          ||  
+ Content      |      **Cell**  |         Cell  |  
+ New section  |     More       |         Data  |  
+     ^        |            And more           || 
+
+アライメント列の上にヘッダ情報がない場合、一番左のコラムがヘッダとして扱われます。
+
+[Table 2 - Headers to the right]
+| ------------ | :------------: | ------------: |  
+|  Content      |          *Long Cell*          ||  
+|  Content      |      **Cell**  |         Cell  |  
+|  New section  |     More       |         Data  |  
+| 	 ^        |            And more           || 
+
+### メタデータ
+以下のルールに従って、メタデータのMultiMarkdowns記法と似た方法で実装することができます。
+
+*	メタデータはドキュメントの最上部から始まらなくてはいけません。ブランクラインを先行することは出来ません。
+*	メタデータは、キーと値の両方から構成されます。
+*	メタデータのキーは行の先頭から始まらなくてはいけません。文字または数字で始めて、その後文字、数字、スペース、ハイフン、またはアンダースコアで構成します。
+*	メタデータのキー最後尾はコロンを指定します。
+*	メタデータ値にコロンが追加された後、全ての文字ほとんどで構成が可能です（改行を除く）。 
+*	メタデータが終了すると、ブランク行によってドキュメントの残りが始まります。
+
+
+全てのメタデータは、ドキュメントのヘッダにあるブロックに格納<meta name="Key" content="Value"/> htmlされます。
+上記以外の幾つかのキーは特別な機能性があります。
+
+* タイトルメタデータはヘッダブロックで使用されます　`<title>Title</title>`
+* HtmlDocumentTypeメタデータは、html生成に使用するテンプレートをinclude/templatesフォルダから定義する際に使用します。　これらが無い場合、default.htmlテンプレートが使用されます。
+* DoIndex:false は、インデックスから除外するドキュメント、つまり検索結果をインデクサーに伝達します。全てのドキュメントに対してtrueがデフォルト値となっています。
+* ForcePublishFiles: はhtmlフォルダに添付と画像のパブリッシュを強制する際に使用されます。
+
+
+#### Markdown記法
+	キーワード: メタデータはドキュメントの最上部にセミコロンと一緒に追加されます
+	タイトル: ドキュメントタイトルを指定しますが、メタデータが欠落している場合は、ドキュメントへのパスがタイトルとして使用されます。
+
+
+#### HTML出力
+	<title>ドキュメントタイトルを指定しますが、メタデータが欠落している場合は、ドキュメントへのパスがタイトルとして使用されます。</title>
+	<meta name="Keywords" content="Metadata is added at the top of the document with semi-colon's" />
+	<meta name="Title" content="This specifies the document title, however the path to the document will be used as a title if this metadata is missing." />
+
+#### 結果
+ドキュメントのタイトルバーが、タイトルのメタタグへ更新されたのがわかります。
+ドキュメントソースを表示すると、ドキュメントヘッドにメタデータを表示します。
+
+### 定義リスト
+
+定義リストをサポートする記法が変更に追加されました。定義リストは同じアライメントで、Markdown標準リストとして埋め込むルールで処理します。
+
+#### Markdown記法
+	Defintion list elements at top level:
+	$ Definition 1 : Description 1
+	$ Definition 2 : Description 2
+		* List element 1
+			1. Ordered
+			1. Ordered
+		* List element 2
+	$ Definition 3: Description 3
+
+
+	Definition list elements embeded:
+	* List element 1
+		$ Definition 1 : Description 1
+		$ Definition 2 : Description 2
+	* List element 2
+
+#### HTML出力
+
+	<dl>
+	<dt>Definition 1 </dt>
+	<dd>Description 1</dd>
+	<dt>Definition 2 </dt>
+	<dd>Description 2
+
+	<br/>
+	<ul>
+	<li>List element 1
+	<br/>
+	<ol>
+	<li>Ordered</li>
+	<li>Ordered</li>
+	</ol></li>
+	<li>List element 2</li>
+	</ul></dd>
+	<dt>Definition 3</dt>
+	<dd>Description 3</dd>
+
+	</dl>
+
+	<ul>
+	<li>List element 1
+	<br/>
+	<dl>
+	<dt>Definition 1 </dt>
+	<dd>Description 1</dd>
+	<dt>Definition 2 </dt>
+	<dd>Description 2</dd>
+
+	</dl></li>
+	<li>List element 2</li>
+	</ul>
+
+#### 結果
+
+Defintion list elements at top level:
+$ Definition 1 : Description 1
+$ Definition 2 : Description 2
+	* List element 1
+		1. Ordered
+		1. Ordered
+	* List element 2
+$ Definition 3: Description 3
+
+
+Definition list elements embeded:
+* List element 1
+	$ Definition 1 : Description 1
+	$ Definition 2 : Description 2
+* List element 2
+
+
+### テキスト色の指定
+
+特別な記法を使用することによって、ビルトインカラーのセットを駆使してテキストの表示に適用出来ます。
+
+#### Markdown記法
+	%PURPLE%Colored text%ENDCOLOR% 
+	%YELLOW%Colored text%ENDCOLOR% 
+	%ORANGE%Colored text%ENDCOLOR% 
+	%RED%Colored text%ENDCOLOR% 
+	%PINK%Colored text%ENDCOLOR% 
+	%PURPLE%Colored text%ENDCOLOR% 
+	%TEAL%Colored text%ENDCOLOR% 
+	%NAVY%Colored text%ENDCOLOR% 
+	%BLUE%Colored text%ENDCOLOR% 
+	%AQUA%Colored text%ENDCOLOR% 
+	%LIME%Colored text%ENDCOLOR% 
+	%GREEN%Colored text%ENDCOLOR% 
+	%OLIVE%Colored text%ENDCOLOR% 
+	%MAROON%Colored text%ENDCOLOR% 
+	%BROWN%Colored text%ENDCOLOR% 
+	%BLACK%Colored text%ENDCOLOR% 
+	%GRAY%Colored text%ENDCOLOR% 
+	%SILVER%Colored text%ENDCOLOR% 
+	%WHITE%Colored text%ENDCOLOR% 
+
+#### HTML出力
+	<span id="PURPLE">Colored text</span> 
+	<span id="YELLOW">Colored text</span> 
+	<span id="ORANGE">Colored text</span> 
+	<span id="RED">Colored text</span> 
+	<span id="PINK">Colored text</span> 
+	<span id="PURPLE">Colored text</span> 
+	<span id="TEAL">Colored text</span> 
+	<span id="NAVY">Colored text</span> 
+	<span id="BLUE">Colored text</span> 
+	<span id="AQUA">Colored text</span> 
+	<span id="LIME">Colored text</span> 
+	<span id="GREEN">Colored text</span> 
+	<span id="OLIVE">Colored text</span> 
+	<span id="MAROON">Colored text</span> 
+	<span id="BROWN">Colored text</span> 
+	<span id="BLACK">Colored text</span> 
+	<span id="GRAY">Colored text</span> 
+	<span id="SILVER">Colored text</span> 
+	<span id="WHITE">Colored text</span>
+
+#### 結果
+%PURPLE%Colored text%ENDCOLOR% 
+
+%YELLOW%Colored text%ENDCOLOR% 
+
+%ORANGE%Colored text%ENDCOLOR% 
+
+%RED%Colored text%ENDCOLOR% 
+
+%PINK%Colored text%ENDCOLOR% 
+
+%PURPLE%Colored text%ENDCOLOR% 
+
+%TEAL%Colored text%ENDCOLOR% 
+
+%NAVY%Colored text%ENDCOLOR% 
+
+%BLUE%Colored text%ENDCOLOR% 
+
+%AQUA%Colored text%ENDCOLOR% 
+
+%LIME%Colored text%ENDCOLOR% 
+
+%GREEN%Colored text%ENDCOLOR% 
+
+%OLIVE%Colored text%ENDCOLOR% 
+
+%MAROON%Colored text%ENDCOLOR% 
+
+%BROWN%Colored text%ENDCOLOR% 
+
+%BLACK%Colored text%ENDCOLOR% 
+
+%GRAY%Colored text%ENDCOLOR% 
+
+%SILVER%Colored text%ENDCOLOR% 
+
+%WHITE%Colored text%ENDCOLOR% 
+
+### アイコン
+
+ノート、ヒント、警告等をドキュメント内に書き込む際に使用するアイコンがいくつか提供されています。
+
+#### Markdown記法
+| Icon Shortcut | Description 	|
+| :-----------: | ----------- 	|
+|    \%H\%      | Help			|
+|    \%I\%      | Idea			|
+|    \%M\%      | Moved To		|
+|    \%N\%      | New			|
+|    \%P\%      | Refactor		|
+|    \%Q\%      | Question		|
+|    \%S\%      | Pick			|
+|    \%T\%      | Tip			|
+|    \%U\%      | Updated		|
+|    \%X\%      | Alert			|
+|    \%Y\%      | Done			|
+
+
+#### HTML出力
+	<img src="./../../../include\images\help.gif" alt="HELP"/>
+	<img src="./../../../include\images\idea.gif" alt="IDEA!"/>
+	<img src="./../../../include\images\arrowright.gif" alt="MOVED TO..."/>
+	<img src="./../../../include\images\new.gif" alt="NEW"/>
+	<img src="./../../../include\images\pencil.gif" alt="REFACTOR"/>
+	<img src="./../../../include\images\question.gif" alt="QUESTION?"/>
+	<img src="./../../../include\images\starred.gif" alt="PICK"/>
+	<img src="./../../../include\images\tip.gif" alt="TIP"/>
+	<img src="./../../../include\images\updated.gif" alt="UPDATED"/>
+	<img src="./../../../include\images\warning.gif" alt="ALERT!"/>
+	<img src="./../../../include\images\choice-yes.gif" alt="DONE"/>
+
+
+#### 結果
+|      Icon     | Description 	|
+| :-----------: | ----------- 	|
+|      %H%      | Help			|
+|      %I%      | Idea			|
+|      %M%      | Moved To		|
+|      %N%      | New			|
+|      %P%      | Refactor		|
+|      %Q%      | Question		|
+|      %S%      | Pick			|
+|      %T%      | Tip			|
+|      %U%      | Updated		|
+|      %X%      | Alert			|
+|      %Y%      | Done			|
+
+### バックスラッシュエスケープ処理の追加　
+
+Markdownでエスケープ処理が可能な文字に加えて、以下のエスケープ処理も可能です。
+
+    >   greater than
+    |	pipe
+    %	percent
+
+## 使用されたMarkdownの追加機能
+
+### 太字　イタリックの厳密な使用法
+
+ `_イタリック_` と `__太字__` の始まりと終わりの左右にはスペースを設けなくてはいけません。 これは、ファイル名にアンダースコアが使用された際に、誤検出を防ぐためです。　File_names_including_underscores内で使用された際に誤検出を防ぐためです。There must be spaces to the left and right of the opening and closing `_italics_` and `__bold__` syntax this is to stop the false positive detection of these when used within File_names_including_underscores.
+
+### 囲まれたコードのブロック
+
+#### Markdown記法
+`~~~`
+
+3またはそれ以上の「~」文字に囲われたコード　
+
+`~~~`
+
+#### HTML出力
+	<pre class="prettyprint"><code>3またはそれ以上の「~」文字に囲われたコード
+	</code></pre>
+	
+#### 結果
+~~~
+3またはそれ以上の「~」文字に囲われたコード
+~~~
+
+### 領域
+
+領域とは、基本的にスタイルを適用できるエリアのことです　例：　HTMLのdiv。　以下のシンタックスを使用して領域の指定が出来ます。
+
+	[REGION:stylename]
+	...
+	[/REGION]
+
+HTMLの生成では、以下のように変換されます：　
+
+	<div class="stylename">
+	...
+	</div>
+
+対応するスタイルルールをcssファイルに作成しなくてはいけません：
+
+	.stylename
+	{
+		background:#123456;
+		border:1px solid #654321;
+	}
+
+#### ビルトイン領域
+
+ノート、ヒント、警告、引用等の共通スタイルは、領域内に既に存在します。　
+
+	[REGION:note]
+	これはノートです。黄色いボックス内に表示されて、左上部にノートアイコンが見えているはずです。
+	[/REGION]
+
+[REGION:note]
+これはノートです。黄色いボックス内に表示されて、左上部にノートアイコンが見えているはずです。　
+[/REGION]
+
+	[REGION:tip]
+	これはヒントです。緑のボックス内に表示されて、左上部にヒントアイコンが見えているはずです。
+	[/REGION]
+
+[REGION:tip]
+これはヒントです。緑のボックス内に表示されて、左上部にヒントアイコンが見えているはずです。
+[/REGION]
+
+	[REGION:warning]
+	これは警告です。赤のボックス内に表示されて、左上部に警告アイコンが見えているはずです。　
+	[/REGION]
+
+[REGION:warning]
+これは警告です。赤のボックス内に表示されて、左上部に警告アイコンが見えているはずです。　
+[/REGION]
+
+	[REGION:quote]
+	これは引用テキストです。青のボックス内に表示されて、左上部に引用アイコンが見えているはずです。
+	[/REGION]
+
+[REGION:quote]
+これは引用テキストです。青のボックス内に表示されて、左上部に引用アイコンが見えているはずです。　
+[/REGION]
+
+
+### ライトボックス
+
+画像やその他のコンテンツは、 `lightbox` [領域](#Regions)内にリンクを埋め込むことによって、ページにlightboxのオーバーレイ表示が出来ます。
+
+### 画像のライトボックス
+
+リンクの  _テキスト_ が縮小またはサムネイルバージョンで表示される一方で、ページに画像をオーバーレイするためには、リンクはフルサイズの画像を示さなくてはいけません。表示される画像のサイズを [画像のプロパティ](#ImageProperties)で制限することによって、同じ画像が両方の用途に使用出来ます。　
+
+シンタックス:
+
+	[REGION:lightbox]
+		[![](Editor/UserGuide/LevelEditor/Editor.png)(w:480)](Editor/UserGuide/LevelEditor/Editor.png)
+	[/REGION]
+
+結果:
+
+[REGION:lightbox]
+	[![](Editor/UserGuide/LevelEditor/Editor.png)(w:480)](Editor/UserGuide/LevelEditor/Editor.png)
+[/REGION]
+
+### ファイルや引用を組み込む
+
+あるページの全てのコンテンツ、またはサブセクションを他ページで表示することが出来ます。
+
+全てのページを表示するシンタックスは：　
+
+	[INCLUDE:Editor/Tools/Landscape]
+
+これによってフルのランドスケープページが変換されて、行が埋め込まれているページに挿入されます。
+
+以下のシンタックスを使用して引用を定義することが出来ます：
+
+	[EXCERPT:TerrainLayerCoords]
+	...
+	[/EXCERPT:TerrainLayerCoords]
+
+この引用は以下のシンタックスを使用してページに表示することが出来ます：
+
+	[INCLUDE:Editor/Tools/Landscape/Materials#TerrainLayerCoords]
+
+結果は以下の通りです（引用した領域に表示されます）　：　
+
+[REGION:quote]
+[INCLUDE:Editor/Tools/Landscape/Materials#TerrainLayerCoords]
+[/REGION]

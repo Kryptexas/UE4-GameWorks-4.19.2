@@ -1,0 +1,41 @@
+﻿INTSourceChangelist:2187667
+Availability:Public
+Title:애셋 에디터
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:페르소나 애니메이션 에디터에 있는 애셋 에디터 사용 안내서입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/AssetBrowser:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/AssetBrowser:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/AssetBrowser:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/AssetBrowser]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+페르소나의 애셋 에디터는 애셋 브라우저에서 애니메이션 애셋을 더블클릭하면 열립니다. 애셋 브라우저 관련 상세 정보는 [](Engine/Animation/Persona\AssetBrowser) 문서를 참고하세요.
+
+애셋 에디터를 사용하면, 파티클 시스템, 사운드 큐, 애니메이션 노티파이를 포함한 노티파이(Notify)를 애니메이션 애셋 트랙상의 특정 시간 지점에 추가할 수 있습니다.
+
+![](AssetEditor.png)
+
+애니메이션 트랙에 노티파이를 추가하기 위해서는, 트랙에 우클릭한 다음 **Add Notify** (노티파이 추가)를 선택하고, 다음 중 한 가지 작업을 합니다:
+* 새 파티클 시스템을 추가하려면, **PlayParticleEffect** 를 선택합니다.
+* 새 사운드 큐를 추가하려면, **PlaySound** 를 선택합니다.
+* 새 커스텀 애니메이션 노티파이를 추가하려면, **New Notify** (새 노티파이)를 선택하고 이름을 짓습니다.
+
+![](AssetEditor_AddNotify.png)
+
+애니메이션 노티파이 관련 상세 정보는, [](Engine/Animation\Sequences\Notifies) 문서를 참고하세요.
+

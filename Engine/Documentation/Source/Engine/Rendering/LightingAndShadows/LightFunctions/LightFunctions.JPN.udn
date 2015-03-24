@@ -1,0 +1,75 @@
+﻿INTSourceChangelist:2109466
+Availability:Public
+Title:Light の機能
+Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
+Description:マテリアルをソースとして使用して投影されたライティング
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/LightFunctions:title%](VFXL_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/LightFunctions:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/LightFunctions:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/LightFunctions]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/LightFunctions:title%](VFXL_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/LightFunctions:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/LightFunctions:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/LightFunctions]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth raw]
+![](Engine/Rendering/LightingAndShadows/lighting_overview_banner_001.png)(convert:false)
+[/REGION]
+
+## 概要
+
+[EXCERPT:LightFunctions]
+**ライトの機能** は、本質的に、ライトの強度をフィルタするために適用する **マテリアル** です。  
+
+しかし、 **ライトの機能** はライトの色の変更はできないことに留意してください。ライトの色を変更は **ライト色** 設定でしか行えません。 
+[/EXCERPT:LightFunctions]
+
+次の画像 (_クリックしてフルサイズに拡大_) では、 **マテリアル** は明滅エフェクトを生成しながら **Panner** と **ScalarParameter** ノードを使ってテクスチャを移動します。 
+[REGION:lightbox]
+[![](LI_LightFunction.png)(w:900)](LI_LightFunction.png)
+[/REGION]
+
+
+## ライトの機能の作成 
+
+**ライトの機能** は **マテリアル** の **マテリアル ドメイン** が **ライトの機能** の属性を使用するように設定することで作成できます。
+
+![](MAT_LightFunction.png)(w:520)
+
+
+## ライトの機能の適用 
+
+**ライトの機能マテリアル** 設定の **[詳細]** パネルから **ライトの機能** を適用することができます。 
+
+![](AddLightFunction.png)(w:640)

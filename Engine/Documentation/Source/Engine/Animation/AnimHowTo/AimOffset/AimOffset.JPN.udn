@@ -1,0 +1,411 @@
+﻿INTSourceChangelist:2467660
+Availability:Public
+Title:Aim Offset を作成する
+Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
+Description:Aim Offset を使用して、キャラクターはマウスまたはコントローラの方向に武器の照準を合わせます。 
+Related:Engine\Animation\AimOffset
+Related:Engine/Animation/AnimBlueprints
+Related:Engine\Content\Types\SkeletalMeshes\Sockets
+Related:Engine\Animation\AnimHowTo\AdditiveAnimations
+
+このガイドでは [Aim Offset](Engine/Animation/AimOffset) を作成します。これは、キャラクターが武器の照準を合わせることを支援するブレンド可能な一連のポーズを格納しているアセットです。アニメーション シーケンスを使って、Aim Offset 用に利用可能なポーズに分けます。プレイヤーのマウスの pitch/yaw の位置を取得し、それを使ってどのブレンドされたポーズを使用するかを決めて、以下の例のようにマウスの位置でキャラクターが移動し、照準を合わせるようにします (一部制約有り)。 
+
+![](AimGIF.gif)(convert:false)
+
+[TOC(start:2 end:2)]
+
+[INCLUDE:Engine\Animation\AnimHowTo\AdditiveAnimations#intro]
+
+## 照準ポーズを作成する
+
+このセクションでは、アニメーション シーケンスを分けて、Aim Offsetで必要な照準ポーズを作成します。 
+
+1. ご自身のプロジェクトが開いた状態で、**コンテンツ ブラウザ** の **「ゲーム / ブループリント」** フォルダで **MyGame** ブループリントを開きます。 
+
+1.	**Default Pawn Class** でドロップダウン メニューをクリックし、**ASP_Character** を選択します。 
+
+	![](Engine\Animation\AnimHowTo\AdditiveAnimations\Animations1.png)
+
+1.	**コンパイル** し **保存** してから、ブループリントを閉じます。 
+
+1.	**コンテンツ ブラウザ** で、 **Game/AnimStarterPack** フォルダを開きます。 
+
+1.	**Create** ボタンをクリックし、 **AimPoses** というフォルダを作成します。 
+
+	![](AimOffset1.png)
+
+1.	**Aim_Space_Ironsights** アセットを **AimPoses** フォルダにドラッグし、**Copy** を選択します。 
+
+	![](AimOffset2.png)
+
+	これは武器の照準を合わせるための一定範囲の動きを含むアニメーション シーケンスであり、これをポーズに分けます。 
+
+1.	**AimPoses** フォルダ内で、**Aim_Space_Ironsights** を選択した状態で **Ctrl+W** を押して複製し、**Aim_Center** と名前を付けます。 
+
+	![](AimOffset3.png)
+
+1.	**Aim_Center** アセットを開き、再生コントロールの中から **Pause** ボタンをクリックし、続いて **ToFront** ボタンをクリックします。 
+
+	![](AimOffset4.png)
+
+	これで、アニメーションが現在 102 あるフレームのうちの 0 になるようにします。 
+
+1.	タイムラインのスクラブバーで **右クリック** し、**Remove from frame 1 to frame 102** オプションを選択します。 
+
+	![](AimOffset5.png)
+
+1.	タイムラインのスクラブバーで再度 **右クリック** し、 **Remove from frame 1 to frame 2** オプションを選択します。 
+
+	![](AimOffset6.png)
+
+	タイムラインは、以下のようになります。 
+
+	![](AimOffset7.png)
+
+	この状態で、Aim Offset で使用可能なポーズを含む単一フレームが存在します。 
+
+1.	**[Save]** をクリックして、 **Aim_Center** アニメーションを閉じます。 
+
+1.	**AimPoses** 内で、**Aim_Space_Ironsights** を選択した状態で **Ctrl+W** を押して複製し、 **Aim_CenterDown** と名前を付けます。  
+
+	![](AimOffset8.png)
+
+1.	**Aim_CenterDown** を開いて、フレーム **0** になるようにし、**ToNext** ボタンをクリックし、フレーム **20** に進みます。 
+
+	![](AimOffset9.png)
+
+	これでキャラクターがビューポートで下方向に照準を合わせます。これは、下方に照準を合わせるために使用するポーズです。 
+
+1.	タイムラインのスクラブバーで **右クリック** し、**Remove frame 0 to frame 19** オプションを選択します。 
+
+	![](AimOffset10.png)
+
+	スクラブバーのどこを **右クリック** するかに応じてフレームの範囲は変わりますが、キャラクターが下方に照準を合わせるようにしてください。 
+
+1.	タイムラインのスクラブバーで再度 **右クリック** し、 **Remove from frame 1 to frame 83** オプションを選択します。 
+
+	![](AimOffset11.png)
+
+	**Aim_CenterDown** アニメーションはタイムラインで以下の画面のようになるはずです。キャラクターがビューポートで下方に照準を合わせます。 
+
+	![](AimOffset12.png)
+
+1.	**AimPoses** 内で、**Aim_Space_Ironsights** を選択した状態で **Ctrl+W** を押して複製し、 **Aim_CenterUp** と名前を付けます。  
+
+	![](AimOffset13.png)
+
+1.	**Aim_CenterUp** を開いて、フレーム **0** になるようにし、**ToNext** ボタンをクリックし、フレーム **10** に進みます。 
+
+1.	タイムラインのスクラブバーで **右クリック** し、**Remove frame 0 to frame 10** オプションを選択します。 
+
+	![](AimOffset14.png)
+
+	繰り返しになりますが、スクラブバーでどこを **右クリック** するかに応じてフレームの範囲は変わりますが、キャラクターが上方に照準を合わせるようにしてください。
+
+1.	タイムラインのスクラブバーで再度 **右クリック** し、 **Remove from frame 1 to frame 92** オプションを選択します。 
+
+	![](AimOffset15.png)
+
+	**Aim_CenterUp** アニメーションはタイムラインで以下の画面のようになるはずです。キャラクターがビューポートで上方に照準を合わせます。 
+
+	![](AimOffset16.png)
+
+	ここまでで Aim Center、Aim Down、 Aim Up のポーズを作成しました。上記の手順を繰り返してAim Left (Cente、Up、Down) と Aim Right (Center、Up、Down) を作成してください。以下の表を使用してポーズを生成するキーフレームを切り取るための推奨開始点と終了点を特定できます。 
+
+1.	**Aim_Space_Ironsights** アセットを毎回 **複製** し、以下の表に基づき残りの各ポーズを作成します。
+	| Anim Name | Start At Keyframe | Remove Frames 1 | Remove Frames 2 |
+
+	| ------- | ------ | ------ | ------ |
+	| **Aim_LeftCenter** | 35 | 0 - 34 | 1 - 68 |
+	| **Aim_LeftUp** | 40 | 0 - 39 | 1 - 63 |
+	| **Aim_LeftDown** | 50 | 0 - 49 | 1 - 53 |
+	| **Aim_RightCenter** | 65 | 0 - 64 | 1 - 38 |
+	| **Aim_RightUp** | 71 | 0 - 70 | 1 - 32 |
+	| **Aim_RightDown** | 81 | 0 - 80 | 1 - 32 |
+
+	各アニメーションについて推奨 **Start At Keyframe** フレームから開始し、スクラブバー上で **右クリック** し、**Remove Frames 1** を、再度スクラブバー上で **右クリック** し、**Remove Frames 2** を選びます。各アニメーションは、対応する名前の方向にキャラクターが照準を合わせた単一フレームになるはずです。 
+
+	各アニメーションを作成すると、 **AimPoses** フォルダには各照準方向のポーズが入っているはずです。 
+
+	![](AimOffset17.png)
+
+1.	**AimPoses** フォルダから **Aim_Center** アニメーションを開きます。 
+
+1.	**Anim Asset Details** ウィンドウの **Additive Settings**  で **No additive** オプションをクリックし、それを **Mesh Space** に変更します。 
+
+	![](AimOffset18.png)
+
+	[REGION:note]
+	アニメーションが Aim Offset と互換性があるようにするには、必ず **Mesh Space** のAdditive Anim Type を使用するように設定しなければなりません。 
+	[/REGION:note]
+
+1.	**Reference Pose** オプションをクリックし、それを **Selected animation frame** に変更します。 
+
+	![](AimOffset19.png)
+
+1.	**None** ドロップダウン オプションをクリックし、**Idle_Rifle_Ironsights** アニメーションを探して選択し、ベース ポーズとして使用します。 
+
+	![](AimOffset20.png)
+
+1.	**Asset Browser** で、ひとつづつ、各照準ポーズを開いて 22 から 24 の手順を繰り返します。 
+
+	![](AimOffset21.png)
+
+	それぞれ、**Mesh Space** の **Additive Anim Type** を使用するように設定し、**Idle_Rifle_Ironsights** Base Pose を割り当てるようにしてください。 
+
+1.	上記を行ったら **コンテンツ ブラウザ** に戻り、**[Save All]** ボタンをクリックします。 
+
+	![](AimOffset22.png)
+
+## Aim Offset を作成する
+
+ポーズを作成したら次に Aim Offset アセットを作成し、ブレンドのためにポーズをセットアップします。 
+
+1.	**コンテンツ ブラウザ** で、**[Create]** ボタンをクリックします。次に **[Animation]** で **[Aim Offset]** を選択します。 
+
+	![](AimOffset23.png)
+
+1.	**[Pick Skeleton]** ウィンドウで、 **Game/AnimStarterPack/Character** フォルダにある **HeroTPP_Skeleton** を選択するようにしてください。 
+
+	![](AimOffset24.png)
+
+	この Aim Offset に **Hero_AimOffset** と名前を付けて開いてください。 
+
+1.	**Hero_AimOffset** 内の **Anim Asset Details** パネルで **Additive Settings** にある **Preview Base Pose** をクリックします。 
+
+1.	ポップアップ ウィンドウで、**Idle_Rifle_Ironsights** アニメーション シーケンスを探して追加します。 
+
+	![](AimOffset25.png)
+
+	これは、照準ポーズを Aim Offset に追加し始めるとブレンド元になる Preview Base Pose として使用されます。 
+
+1.	**Hero_AimOffset** ウィンドウ (中央ウィンドウ) の **パラメータ** で以下のパラメータを入力します。 
+
+	![](AimOffset26.png)
+
+	**X Axis Label** を **Yaw** (左右回転) に、**Y Axis Label** を **Pitch** (上下動) に設定します。次に両方の Axis Ranges を **-90 から 90** に設定し、**Apply Parameter Changes** をクリックします。 
+
+	[REGION:note]
+	**Blend Spaces** がどのように機能するかについての情報は、 [](Engine/Animation/Blendspaces) (Aim Offsets の元になっているもの)をご覧ください。 
+	[/REGION]
+
+1.	**Asset Browser** で **Aim** を検索し、**Aim_Center** アニメーションを以下の画面のようにグラフの中央部にドラッグします。 
+
+	![](AimOffset27.png)
+
+1.	以下のように **Aim_CenterUp** を位置 **1** に、 **Aim_CenterDown** を位置 **2** にドラッグします。 
+
+	![](AimOffset28.png)
+
+1.	 **Aim_LeftCenter** を位置 **1** に、以下のように **Aim_RightCenter** を位置 **2** にドラッグします。 
+
+	![](AimOffset29.png)
+
+	マウスをグリッド内で移動すると、キャラクターが照準を合わせ、ポーズ間のブレンドが開始します。 
+
+1.	**Aim_LeftUp** (1)、**Aim_RightUp** (2)、**Aim_LeftDown** (3)、および **Aim_RightDown** (4) のポーズを追加して Aim Offset を終了します。 
+
+	![](AimOffset30.png)
+
+	これで Aim Offset がセットアップされました。**Animation ブループリント** 内で使用するために接続する必要があります。 
+
+
+## Aim Offset を実装する
+
+このセクションではキャラクターの **Animation ブループリント** 内で Aim Offset を実装し、アニメーション セットの一部になるようにします。 
+
+1.	**コンテンツ ブラウザ** 内の **Game/AnimStarterPack/Character** で、 **ASP_HeroTPP_AnimBlueprint** ブループリントを開きます。 
+
+	![](AimOffset31.png)
+
+	これは、プレイ可能なキャラクターに割り当てられるもので、キャラクターのアニメーションのロジックを規定する Animation ブループリントです。 
+
+	[REGION:note]
+	**Animation ブループリント** がどのように機能するかについては、[](Engine/Animation/AnimBlueprints) のドキュメントをご覧ください。 
+	[/REGION]
+
+1.	Animation ブループリント内で、中央下部にあるウィンドウで **MyBlueprint** タブをクリックします。次に **AnimGraph** を **ダブルクリック** します。 
+
+	![](AimOffset32.png)
+
+	これで [](Engine/Animation/AnimBlueprints/AnimGraph) タブが開きます。このタブに Aim Offset を実装します。 
+
+1.	**[MyBlueprint]** ウィンドウで、 **[変数を追加]** ボタンをクリックし、新しい変数を作成します。 
+
+	![](AimOffset33.png)
+
+1.	右側の **[詳細]** パネルで **Variable Name** を **PlayerAimYaw** に、**Variable Type** を **Float** に設定します。 
+
+	![](AimOffset34.png)
+
+1.	**[MyBlueprint]** ウィンドウで、 **[変数を追加]** ボタンを再度クリックします。新規変数に **PlayerAimPitch** (**Float** も設定) と名前を付けます。 
+
+1.	**[Asset Browser]** タブをクリックし、 **Hero** を探して **Hero_AimOffset** をグラフにドラッグします。 
+
+	![](AimOffset35.png)
+
+1.	**[My Blueprint]** タブをクリックし、**PlayerAimYaw** 変数を **Hero_AimOffset** ノードの **Yaw** にドラッグします。 
+
+	![](AimOffset36.png)
+
+	**PlayerAimPitch** 変数を **Hero_AimOffset** ノードの **Pitch** にドラッグします。
+	 
+1.	**Locomotion** ポーズを **Hero_AimOffset** の **Base Pose** に接続し、出力のポーズを **Result** に接続します。
+
+	![](AimOffset37.png)
+
+	これで **Locomotion** State Machine からのポーズが何であれそれを使用し、最終ポーズとしてその上に **Aim Offset** を適用します。 
+
+1.	中央下部にあるウィンドウで **MyBlueprint** タブをクリックします。次に **EventGraph** を **ダブルクリック** して開きます。 
+
+	![](AimOffset38.png)
+
+	これで [](Engine/Animation/AnimBlueprints/EventGraph) タブが開きます。このタブは、インゲームで発生している状態に対してキャラクター アニメーションを最新の状態にし続けるために使用します。
+
+1.	**EventGraph** でグラフにある **Sequence** ノードを探します。 
+
+	![](AimOffset39.png)
+
+	**Sequence** ノードの **Add pin** ボタンをクリックします。 
+
+	![](AimOffset40.png)
+
+1.	**MyBlueprint** ウィンドウから **Alt** を押したまま **PlayerAimYaw** 変数をグラフにドラッグします。 
+
+	![](AimOffset41.png)
+
+	これで **Set** ノードが作成されます。これは、プレイヤーの現在の Yaw を取得し、Aim Offset のブレンド ポイントを決めるために使用します。 
+
+1.	**Alt** を押したまま、**PlayerAimPitch** をドラッグして、両方を **Sequence** ノードの **Then 2** ピンに接続します。 
+
+	![](AimOffset42.png)
+
+1.	**Cast To ASP_Character** ノードの **As ASP Character** ピンをドラッグして **Get Control Rotation** ノードを探して追加します。 
+
+	![](AimOffset43.png)
+
+1.	前のステップを繰り返します。しかし、今回は **Get Actor Rotation** を探して選択します。 
+
+	![](AimOffset44.png)
+
+1.	グラフ内を **右クリック** して、 **Delta (Rotator)** ノードを探して追加します。 
+
+	![](AimOffset45.png)
+
+1.	**Get Control Rotation** を **A** に接続し、**Get Actor Rotation** を **Delta(Rotator)** ノードの **B** に接続します。 
+
+1.	グラフ内を **右クリック** して、**RInterp To** ノードを探して追加します。 
+
+	![](AimOffset46.png)
+
+1.	グラフ内を **右クリック** して、**MakeRot** (Make Rotation) ノードを探して追加します。 
+
+	![](AimOffset47.png)
+
+1.	**PlayerAimPitch** 変数と **PlayerAimYaw** 変数を **MakeRot** ノードの **Pitch/Yaw** に **ドラッグ&ドロップ** します。 
+
+	![](AimOffset48.png)
+
+	上の画面のようにノードを接続します。 
+	**PlayerAimPitch** と **PlayerAimYaw** の現在の値を取得し、プレイヤーの実際の Pitch/Yaw に滑らかに移行します。 
+
+1.	**Movement** セクションの始まりで、**Event Blueprint Update Animation** の **Delta Time X** をドラッグし、**Promote to variable** を追加します。 
+
+	![](AimOffset49.png)
+
+	これは、**RInterp** ノードで使用するための Delta Time の変数を格納するために使用します。 
+
+1.	変数に **Time** と名前を付けて以下のように接続します。 
+
+	![](AimOffset50.png)
+
+1.	**Time** 変数を **RInterp To** ノードの **DeltaTime** ピンにドラッグ&ドロップし、**Interp Speed** を **15** に設定します。 
+
+	![](AimOffset51.png)
+
+	時間への参照を割り当て、プレイヤーの古い pitch/yaw の位置から新しい位置に移動する速度を設定しました。
+
+1.	**RInterp To** ノードの **Return Value** をドラッグして、**Break Rot** (Break Rotation) ノードを追加します。 
+
+	![](AimOffset52.png)
+
+1.	**Pitch** から **Clamp Angle** ノードを追加します。 
+
+	![](AimOffset53.png)
+
+	**Min Angle** を **-90** に、**Max Angle** を **90** にそれぞれ設定します。 
+
+1.	**Clamp Angle** ノードを **コピー/貼り付け** し、それを **Yaw** に接続し、両方を **PlayerAimYaw** ノードと **PlayerAimPitch** ノードに接続します。 
+
+	![](AimOffset54.png)
+
+	このロジックは、プレイヤーの pitch/yaw を Aim Offset で使用するためのセットアップであり、仕上げるために、あともう少しやるべきことがあります。 
+
+## 仕上げ
+
+この最終セクションでは、デフォルトのアイドル ポーズを変更し、Aim Offset で正しく使用するために Character ブループリントを更新します。  
+
+1.	前のセクションから引き続き、**[MyBlueprint]** タブをクリックし、**Locomotion** をダブルクリックして開きます。 
+
+	![](AimOffset55.png)
+
+1.	 **Locomotion** グラフ内で **Idle** ステートを **ダブルクリック** します。 
+
+	![](AimOffset56.png)
+
+1.	**Asset Browser** から **Idle_Rifle_Ironsights** をドラッグし、それを **Result** ピンに接続します。 
+
+	![](AimOffset57.png)
+
+	後でこのノードに戻る場合、**Play Idle_Rifle_Hip** ノードをそのままにすることができます。 
+
+1.	**コンパイル** し、**保存** してから、Animation ブループリントを閉じます。 
+
+1.	**コンテンツ ブラウザ** 内の **Game/AnimStarterPack/Character** で、**ASP_Character** ブループリントを開きます。 
+
+	![](AimOffset58.png)
+
+1.	**Defaults** タブで **Rotation** を検索します。次に **Use Controller Rotation Yaw** オプションのチェックを外します。 
+
+	![](AimOffset59.png)
+
+	その結果、キャラクターが自動的にコントローラのヨーの位置に向くのを防ぎます。 
+
+1.	**[Graph]** タブをクリックします。**Crouching** セクションを見つけて、**InputAction Crouch** ノードを **C** Key イベントに置き換えます。 
+
+	![](AimOffset60.png)
+
+	これでウィンドウの左上隅にあるコンパイル ボタン上の黄色の警告記号が取り除かれます。プロジェクトはデフォルトでしゃがむためのアクション マッピングをもっていないため、しゃがむ (Crouch ) ために **C** ボタンを使用します (これについて必要に応じてどの Key イベントでも使用可能)。 
+
+1.	**コンパイル** し **保存** してから、ブループリントを閉じます。メイン エディタ ツールバーから **Play** をクリックしてゲームを再生します。 
+
+エディタで再生する場合、キャラクターは静止状態で照準を合わせ、マウスの動きに反応し、マウスの方向を指し示します。マウスがキャラクターの背後にある場合、およびキャラクターが走っている間、キャラクターが後ろを向かないようにいくつかの制約があります。マウスを動かすとキャラクターの胴もポイントしている方向に向きます。 
+
+さらに、複数のアニメーションをまとめてブレンドする方法について学ぶための [](Engine\Animation\AnimHowTo\AdditiveAnimations) の操作ガイドを参照し、手を加えて以下を行うことができます。すなわち、キャラクターがある方向に照準を合わせ、その方向に射撃アニメーションを再生、および (または) キャラクターがある方向に移動またはしゃがんでいる間に射撃アニメーションを再生します。または、[スケルタルメッシュのソケット](Engine\Content\Types\SkeletalMeshes\Sockets) を参照して、照準できるようになったキャラクターの手に武器をアタッチする例を見ることができます。 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,46 @@
+Availability: Docs
+Title:Custom Tools
+Crumbs:%ROOT%, Resources, Resources/SampleGames/SwingNinja
+Description:Documentation covering the custom tools created for the Swing Ninja Game.
+
+
+[REGION:banner]
+![](CustomToolsBanner.png)
+[/REGION]
+
+
+[TOC(start:2 end:3)]
+[REGION:fullwidth]
+## Overview
+
+One of the most useful features of the Blueprint visual scripting system is how it can be used by level designers to construct customized tools which allow them to perform necessary design operations more quickly. To help make the creation of Swing Ninja more efficient, certain design tools were built using Blueprints. Below is an overview of each tool, why it was created, and how it was built.
+
+
+## Coin Placement System
+
+To help position trails of coins around the level, a specialized Blueprint was created that allowed for procedural coin placement along a line. The Blueprint works by using its location as a start point, allowing for a custom designated end point, and providing options for whether the path will be straight or curved, and controls for the number of coins that are placed along its length.
+
+
+### Construction Script
+
+[REGION:lightbox]
+[![](Coins_CS.png)](Coins_CS.png)
+[/REGION]
+[REGION:caption]
+Click for full size or **right-click** and Save As.
+[/REGION]
+
+
+
+### Event Graph
+
+
+[REGION:lightbox]
+[![](Coins_EG.png)](Coins_EG.png)
+[/REGION]
+[REGION:caption]
+Click for full size or **right-click** and Save As.
+[/REGION]
+
+
+[/REGION]

@@ -1,0 +1,254 @@
+﻿INTSourceChangelist:2393706
+Availability:Public
+Title:ランドスケープ UI のリファレンス
+Crumbs:%ROOT%, Engine, Engine/Landscape
+Description:ランドスケープツールのユーザーインターフェースの説明
+
+[VAR:Topic]
+[OBJECT:Topiccompact]
+	[PARAM:image]
+		![](Landscape_UI_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/landscape_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/UI:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Landscape/UI:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/UI]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[EXCERPT:LandscapeReference001]
+このドキュメントには **ランドスケープ** のシステムとエディタの全てのアイコンのリファレンスが含まれています。
+[/EXCERPT:LandscapeReference001]
+
+[VAR:NoIn]
+| 
+[/VAR]
+
+[VAR:Ind]
+| ![](Engine/Landscape\LS_TableSpacer.png)(convert:false)
+[/VAR]
+
+[VAR:CirBrush]
+![](Engine/Landscape\icon_Landscape_Brush_Circle_smooth_40x.png)(convert:false) | **Circle Brush** | シンプルな円形のブラシです。このブラシで 0 より大きいフォールオフを使用するとペイント処理やスカルプト処理中に作成されるエッジがよりソフトになります。 |
+[/VAR]
+
+[VAR:AplhaBrush]
+![](Engine/Landscape\icon_Landscape_Brush_Alpha_40x.png)(convert:false) | **Alpha Brush** | 筆さばきで、マスクイメージを配置します。マスクとなる選択イメージの中から使用するチャネルを選ぶことができます。 |
+[/VAR]
+
+[VAR:PatBrush]
+![](Engine/Landscape\icon_Landscape_Brush_Pattern_40x.png)(convert:false) | **Pattern Brush** | テレイン全体にわたりマスクを繰り返します。 |
+[/VAR]
+
+[VAR:CompBrush]
+![](Engine/Landscape\icon_Landscape_Brush_Component_40x.png)(convert:false) | **Component Brush** | これは全コンポーネントを上下に動かすことでランドスケープ コンポーネントでのみ機能します。ブラシのサイズは一回で影響を受けるセクション数を定義します。
+[/VAR]
+
+[VAR:GizBrush]
+![](Engine/Landscape\icon_Landscape_Brush_Gizmo_40x.png)(convert:false)  | **Gizmo Brush** | コピーあるいは貼り付け領域を定義します。通常のコピー/貼り付けと異なり、「.raw」 と 「.r16」 ファイルからギズモ内に貼り付けるデータをインポートすることもできます。 |
+[/VAR]
+
+[VAR:SmoothFalloff]
+![](Engine/Landscape\icon_Landscape_Brush_Circle_smooth_40x.png)(convert:false) | **Smooth Falloff** | 滑らかに始まり、滑らかに終わるフォールオフです。 |
+[/VAR]
+
+[VAR:LinFalloff]
+![](Engine/Landscape\icon_Landscape_Brush_Circle_linear_40x.png)(convert:false) | **Linear Falloff** | 一定のフォールオフです。 |
+[/VAR]
+
+[VAR:SphFalloff]
+![](Engine/Landscape\icon_Landscape_Brush_Circle_spherical_40x.png)(convert:false) | **Spherical Falloff** | 遅い速度で開始し、ブラシのエッジに近づくにつれ速くなって終了するフォールオフです。 |
+[/VAR]
+
+[VAR:TipFalloff]
+![](Engine/Landscape\icon_Landscape_Brush_Circle_tip_40x.png)(convert:false) | **Tip Falloff** | 一気に落ちた後一定になり、最後は若干滑らかなグラディエントがかかるフォールオフです。正確かつ若干オーバーペイントしたい場合に最適です。 |
+[/VAR]
+
+[VAR:SculptTool]
+![](Engine/Landscape\icon_Landscape_Tool_Sculpt_40x.png)(convert:false) | **Sculpt Tool** | ブラシの影響範囲内でランドスケープの上げ下げを行います。**[左マウスボタン]** でランドスケープを上げ、**[Shift + 左マウスボタン]** でランドスケープを下げます。 |
+[/VAR]
+
+[VAR:SmoothTool]
+![](Engine/Landscape\icon_Landscape_Tool_Smooth_40x.png)(convert:false) | **Smooth Tool** | ランドスケープ頂点の Z ポジションを平均化して、ブラシの影響範囲内でランドスケープを滑らかにします。 |
+[/VAR]
+
+[VAR:SmoothPTool]
+![](Engine/Landscape\icon_Landscape_Tool_Smooth_40x.png)(convert:false) | **Smooth Tool** | ランドスケープのマテリアルのレイヤーの重み付けをならして、ゾーン間の移行を滑らかにします。 |
+[/VAR]
+
+[VAR:FlattenTool]
+![](Engine/Landscape\icon_Landscape_Tool_Flatten_40x.png)(convert:false) | **Flatten Tool** | Z の高さがツール使用開始位置と同じになるように、影響範囲内でランドスケープを上下するツールです。 |
+[/VAR]
+
+[VAR:RampTool]
+![](Engine/Landscape/icon_Landscape_Tool_Ramp_40x.png)(convert:false) | **Ramp Tool** | 設定に従ったフォールオフを追加して、指定した 2 つのポイント間に傾斜を作成するツールです。このツールではブラシを使用できないことにご注意ください。 |
+[/VAR]
+
+[VAR:FlattenPTool]
+![](Engine/Landscape\icon_Landscape_Tool_Flatten_40x.png)(convert:false) | **Flatten Tool** | ツールの開始位置から、ユーザーがなぞるところへこれらのレイヤーの重みを広げていきます。 |
+[/VAR]
+
+[VAR:ErosionTool]
+![](Engine/Landscape\icon_Landscape_Tool_Erosion_40x.png)(convert:false) | **Erosion Tool** | このツールは、高さマップの高さを調整するために熱による浸食のシミュレーションを使用します。高度が高いところから低いところまでの土壌の動きをシミュレートします。高度の差異が大きくなると、浸食が大きくなります。このツールでは、より自然でランダムな外観を作成するために、必要に応じて、浸食に加えてノイズ エフェクトを適用することもできます。 |
+[/VAR]
+
+[VAR:HydroTool]
+![](Engine/Landscape\icon_Landscape_Tool_HydraulicErosion_40x.png)(convert:false) | **Hydro Erosion** | このツールは、高さマップの高さを調整するために、例えば水の侵食など、水による浸食のシミュレーションを使用します。ノイズ フィルターで、最初に降る雨を分布させる位置を決定します。その後、最初に降る雨に加え雨の消滅、水の移動や蒸発までの水のフローを決定するためにシミュレーションを計算します。計算結果は、高さマップを下げるために使用する実際の値となります。 |
+[/VAR]
+
+[VAR:NoiseTool]
+![](Engine/Landscape\icon_Landscape_Tool_Noise_40x.png)(convert:false) | **Noise Tool** | このツールは、高さマップまたはレイヤーのウェイトにノイズ フィルターを適用します。強度によって、ノイズ量が決まります。 |
+[/VAR]
+
+[VAR:RetoptTool]
+![](Engine/Landscape\icon_Landscape_Tool_Retopologize_40x.png)(convert:false) | **Retopologize** | Smooth Tool と同様、Retopologize は三角を押したり引いたりしてテレインの移行を滑らかにします。ただし、Z 方向の変更は最低限に抑え、テレインの基本形状はできるだけ保とうとします。**_X/Y オフセット マップは、ランドスケープのレンダリングを遅くし、他のツールでペイントし、必要があるときのみ Retopologize ツールを使用します。_** |
+[/VAR]
+
+[VAR:VisTool]
+![](Engine/Landscape\icon_Landscape_Tool_Visibility_40x.png)(convert:false) | **Visibility** | このツールは、[**Landscape Hole Material**](Engine/Landscape/Materials/) と併用する場合に、ランドスケープのエリアのビジビリティとコリジョンをマスクアウトします。 |
+[/VAR]
+
+[VAR:SelectTool]
+![](Engine/Landscape\icon_Landscape_Tool_Mask_40x.png)(convert:false) | **Selection** | ランドスケープにマスクを被せてスカルプトやペイント操作をより正確に行うことができます。ランドスケープのセクションを編集されないように保護します。 |
+[/VAR]
+
+[VAR:CopyTool]
+![](Engine/Landscape\icon_Landscape_Tool_Copy_40x.png)(convert:false) | **Copy/Paste** | ランドスケープのあるエリアのテレイン データをコピーして他のエリアに貼り付けることができます。他のランドスケープで使用するために、このコピー貼り付けデータを保存することもできます。
+[/VAR]
+
+[VAR:NewLand]
+![](Engine/Landscape\icon_Landscape_New_Landscape_40x.png)(convert:false) | **New Landscape** | [New Landscape] カテゴリのパラメータを使用してランドスケープを新規作成します。 |
+[/VAR]
+
+[VAR:SelectLand]
+![](Engine/Landscape\icon_Landscape_Tool_Selection_40x.png)(convert:false) | **Selection** | ランドスケープのセクションを選択します。マテリアルや光源プロパティをセクション単位でオーバーライドすることができます。 |
+[/VAR]
+
+[VAR:AddLand]
+![](Engine/Landscape\icon_Landscape_Tool_AddComponent_40x.png)(convert:false) | **Add** | 現在のランドスケープにランドスケープのセクションを追加します。あるいは、ブラシサイズの値に合わせてセクション数を追加します。 |
+[/VAR]
+
+[VAR:DeleteLand]
+![](Engine/Landscape\icon_Landscape_Tool_DeleteComponent_40x.png)(convert:false) | **Delete** | ランドスケープのセクションを削除します。Visibility Tool とは異なり、データを削除することで、ランドスケープデータのセクションを完全に削除します。 |
+[/VAR]
+
+[VAR:MoveLand]
+![](Engine/Landscape\icon_Landscape_Tool_MoveToLevel_40x.png)(convert:false) | **Move Level** | 選択したコンポーネントを、指定したストリーミングレベルへ移動します。|
+[/VAR]
+
+[VAR:ComponentSize]
+![](Engine/Landscape\icon_Landscape_Tool_Copy_40x.png)(convert:false) | **Change Component Size** | 設定に従って、コンポーネントサイズやランドスケープのサイズを変更します。 |
+[/VAR]
+
+[VAR:EditSplines]
+![](Engine/Landscape\icon_Landscape_Tool_Splines_40x.png)(convert:false) | **Edit Splines** | このツールの使用中に、ランドスケープを **Ctrl + 左クリック** するとスプラインのためのノードを配置します。あるノードを選択して別のノードを配置すると、ツールは新しいノードを前のノードに接続します。ノードが何も選択されていない場合、新規開始ノードが配置されます。 |
+[/VAR]
+
+[VAR:PaintTool]
+![](Engine/Landscape\icon_Landscape_Tool_Paint_40x.png)(convert:false) | **Paint Tool** | ペイント ツールは、ランドスケープに適用しているマテリアル レイヤーのウエイトを増減させます。 |
+[/VAR]
+
+[EXCERPT:LSREF001]
+[REGION:raw]
+| ----- | ----- | ---- |
+| ![](Engine/Landscape\icon_Landscape_Mode_Manage_40x.png)(convert:false) | [**Manage**](Engine/Landscape/Editing/ManageMode) | ランドスケープの新規作成、既存ランドスケープからのセクションの追加/削除、ランドスケープの移動、ランドスケープへのスプラインの追加を可能にします。
+| ^ |  |  |
+%Ind% %NewLand%
+%Ind% %SelectLand%
+%Ind% %AddLand%
+%Ind% %DeleteLand%
+%Ind% %MoveLand%
+%Ind% %componentSize%
+%Ind% %EditSplines%
+[/REGION]
+[/EXCERPT:LSREF001]
+
+[EXCERPT:LSREF002]
+[REGION:raw]
+| ----- | ----- | ---- |
+| ![](Engine/Landscape\icon_Landscape_Mode_Sculpt_40x.png)(convert:false) | [**Sculpt**](Engine/Landscape/Editing/SculptMode) | このモードは、ランドスケープの高さマップの外観をスカルプト処理し、プロジェクトのニーズに合うようにします。 
+| ^ |  |  |
+%Ind% %SculptTool%
+%Ind% %SmoothTool%
+%Ind% %FlattenTool%
+%Ind% %RampTool%
+%Ind% %ErosionTool%
+%Ind% %HydroTool%
+%Ind% %NoiseTool%
+%Ind% %RetoptTool%
+%Ind% %VisTool%
+%Ind% %SelectTool%
+%Ind% %CopyTool%
+[/REGION]
+[/EXCERPT:LSREF002]
+
+[EXCERPT:LSREF003]
+[REGION:raw]
+| ----- | ----- | ---- |
+| ![](Engine/Landscape\icon_Landscape_Mode_Paint_40x.png)(convert:false) | [**Paint**](Engine/Landscape/Editing/PaintMode) |ランドスケープの各部に様々なマテリアルを選択して適用することで、ランドスケープの外観を修正できます。  |
+| ^ |  |  |
+%Ind% %PaintTool%
+%Ind% %SmoothPTool%
+%Ind% %FlattenPTool%
+%Ind% %NoiseTool%
+[/REGION]
+[/EXCERPT:LSREF003]
+
+[EXCERPT:LSREF004]
+[REGION:raw]
+| ----- | ----- | ---- |
+| ![](Engine/Landscape\icon_Landscape_Mode_Paint_40x.png)(convert:false) | [**Brushes**](Engine/Landscape/Editing/Brushes) |このセクションでは、ランドスケープをペイントまたはスカルプトする際に使用するブラシの外観とエフェクトを修正できます。  |
+| ^ |  |  |
+%Ind% %CirBrush%
+%Ind% %AplhaBrush%
+%Ind% %PatBrush%
+%ind% %compbrush%
+[/REGION]
+[/EXCERPT:LSREF004]
+
+
+
+[EXCERPT:LSREF005]
+[REGION:raw]
+| ----- | ----- | ---- |
+| ![](Engine/Landscape\icon_Landscape_Mode_Paint_40x.png)(convert:false) | [**Brush Falloff**](Engine/Landscape/Editing/Brushes) |ブラシがどのようにフォールオフするかを修正できます。  |
+| ^ |  |  |
+%Ind% %SmoothFalloff%
+%Ind% %LinFalloff%
+%Ind% %SphFalloff%
+%ind% %TipFalloff%
+[/REGION]
+[/EXCERPT:LSREF005]
+
+<!--
+
+[EXCERPT:Table0001]
+|  &nbsp;  |    |    |
+| ----- | ----- | ---- |
+| ![](Engine/Landscape\icon_Landscape_Brush_Circle_linear_40x.png)(convert:false) | **Something** | words words words words words words words words words words words words words words words words words words words words words words words words words words words words words words  |
+[/EXCERPT:Table0001]
+
+| ----- | ----- | ---- |
+%CirBrush%
+%AplhaBrush%
+%PatBrush%
+%CompBrush%
+%GizBrush%
+%SmoothFalloff%
+%LinFalloff%
+%SphFalloff%
+%TipFalloff%
+
+-->
+
+
+
+

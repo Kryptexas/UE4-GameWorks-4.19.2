@@ -1,0 +1,7 @@
+﻿INTSourceChangelist:2123602
+Title:Immutable
+Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties
+Description: 
+Availability:Public
+
+Immutable は `Object.h` でのみ有効で、現在使用されなくなりました。新しい構造体では使用しないようにしてください！

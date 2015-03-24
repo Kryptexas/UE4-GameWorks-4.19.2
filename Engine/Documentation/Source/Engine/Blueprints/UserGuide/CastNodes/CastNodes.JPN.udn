@@ -1,0 +1,85 @@
+﻿INTSourceChangelist:2422946
+Availability:Public
+Title:キャスティング
+Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
+Description:様々なキャスティング ノードと使用例 
+Related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
+Related:Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo
+Related:Engine/Blueprints/HowTo
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\Blueprints\UserGuide\CastNodes:title%](Engine\Blueprints\UserGuide\CastToNode.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\UserGuide\CastNodes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\UserGuide\CastNodes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Blueprints\UserGuide\CastNodes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine\Blueprints\UserGuide\CastNodes:title%](Engine\Blueprints\UserGuide\CastToNode.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\UserGuide\CastNodes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\UserGuide\CastNodes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Blueprints\UserGuide\CastNodes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[TOC (start:2 end:2)]
+
+## 概要
+
+**ブループリント** で **Cast To** ノードを使用する場合、簡単に言うと、キャストしているオブジェクトが **Cast To** する特定のオブジェクトであるかをチェックしようとしています。つまり、その中に変数または他のカスタム機能を持つ特殊な Character ブループリント (例えば、MyCharacter と呼ばれるもの) を作成し、それをデフォルトのPawn クラス (またはすべてのプレイヤー キャラクターがデフォルトで使用するCharacter ブループリント) として割り当てたとします。 
+
+プレイヤー キャラクターのプロパティに別のブループリントからアクセスしたい場合は、**Get Player Character** ノードを使用し、ごく一般的な方法 (位置、回転などを設定/取得するなど) でプレイヤー キャラクターに影響を及ぼすことができます。しかし、セットアップしたMyCharacter ブループリントに追加したカスタム機能にはアクセスできません。プレイヤー キャラクターは get していますが、特定のタイプのキャラクター タイプを get していないからです。 
+
+**Get Player Character** ノードを使用し、次に **Cast To MyCharacter** ノード (特殊な Character ブループリント) を使用すると、プレイヤー キャラクターは MyCharacter であり、ブループリント内の変数、関数、イベント、その他の特殊な機能にアクセスしたい旨を示すことができます。
+
+このページでは、キャスティングの使用例について学習します。Cast To node の使用例、ターゲット ブループリントのキャスティング、他のタイプのキャスティングについても参照してください。 
+
+
+
+## 使用例
+
+以下は **ブループリントキャスト** の使用例です。
+
+[INCLUDE:Engine\Blueprints\UserGuide\BlueprintCommsUsage#castusage]
+
+## Cast To の例をセットアップする
+
+以下の例では、Cast To ノードを使用して別のブループリント内からあるブループリントにアクセス可能な方法を示しています。 
+
+[INCLUDE:Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#castexample]
+
+## ターゲット ブループリントのキャスティング
+
+[INCLUDE:Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#targetcasting]
+
+## 他のタイプのキャスティング
+
+[INCLUDE:Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#othercasting]
+
+
+
+

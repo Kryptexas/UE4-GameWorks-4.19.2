@@ -1,0 +1,46 @@
+﻿INTSourceChangelist:2335911
+Availability:Public
+Title:1.プロジェクトの新規作成
+Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
+Description:UMG クイックスタートガイドの最初のステップは、新規プロジェクトを作成することです。
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/UMG\QuickStart) 
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/UMG\QuickStart\2 "%Engine/UMG\QuickStart\2:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+
+
+
+1. アンリアル エンジンのランチャーから **Launch Unreal Engine** ボタンをクリックします。 
+
+1. [Unreal Project Browser](Engine/Basics/Projects/Browser) が表示されます。**[New Project]** タブをクリックします。
+
+1. このガイドでは、 **Blueprint First Person** テンプレートを使います。**ブループリント** タブで、**First Person** (以下の 1) を選択します。 
+
+	![](UMGQS_1.png)(w:600)
+
+1. **Include starter content** を有効にして (2)、 **名前** フィールド (3) にプロジェクト名を入力し、**[プロジェクトを作成]** (4) を選択します。
+
+1. 新規プロジェクトがアンリアル エディタで開きます。 
+
+[REGION: note]
+初めてエディタを起動する場合はアンリアル エディタ 4 の **Welcome Tutorial** から始まります。これはインターフェースのウォークスルーであるため、理解を深め、エディタのナビゲート方法を学習するためには非常に良い方法です。
+[/REGION]
+
+
+
+%Steps%

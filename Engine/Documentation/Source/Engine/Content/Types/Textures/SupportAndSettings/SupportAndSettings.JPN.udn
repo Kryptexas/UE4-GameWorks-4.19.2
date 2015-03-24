@@ -1,0 +1,204 @@
+﻿INTSourceChangelist:2087537
+Availability:Public
+Title:テクスチャのサポートと設定
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/Textures
+Description:エンジンとハードウェアの両方でのテクスチャのサポートに関する情報
+
+[TOC (start:2 end:3)]
+
+
+## 概要
+
+エンジンとハードウェアの両方でのテクスチャのサポートに関する情報について詳しく説明します。
+
+
+
+## テクスチャ解像度
+
+アンリアル エンジン 4 では、1x1 から 4096x4096 までのテクスチャ解像度をサポートします。
+
+現在の DirectX ビデオ アダプタとゲーム コンソールは、1x1 から 2048x2048、最高 8192x8192 まで様々なテクスチャ解像度をサポートしています。特定のハードウェア デバイスがサポートするテクスチャの最高解像度はメーカーやモデルによって変わります。利用可能なテクスチャ メモリのプールの量もハードウェアによって変わります。
+
+アンリアル エンジン 4 には、ワールド ジオメトリやユーザーインターフェース (UI) などの様々な領域でレンダリングされたテクスチャ解像度を管理するための機能や設定が数多くあります。
+
+
+
+## エンジンのテクスチャ解像度の制限
+
+アンリアル エンジン 4 では、テクスチャ ミップマップの最大数の限界をデフォルトで 13 に設定しており、これはレンダリングされたテクスチャ数の限界を効果的に4096 (1x1 から 4096x4096 は 13 ミップマップ)に設定します。ただ、これには、インポートされた 8192 のテクスチャは、最高 4096 の mip1 しかレンダリングしないという不都合な部分もあります。定数 MAX_TEXTURE_MIP_COUNT は、エンジンソースファイルでデフォルト設定が 13 になっているので、8192 テクスチャ レンダリングをサポートするよう値をこの値を 14 に変更することもできます。この定数は次のソースファイル (2009年 QA3 月版において。他の QA バージョンに対しては確認すること)で定義されています。
+
+	Src\D3D10Drv\Src\D3D10Device.cpp   
+	Src\Engine\Inc\RHI.h   
+	Src\Engine\Inc\UnTex.h   
+	Src\Engine\Src\RHI.cpp   
+	Src\Engine\Src\TextureCube.cpp
+
+
+
+## 圧縮テクスチャメモリ要件
+
+DXT は、パレットカラーおよび補間カラーの 4x4 ブロック内のピクセルのパッキングを基にした不可逆圧縮です。これは、8:1 DXT1 および 4:1 DXT5 を一定な圧縮ファイルサイズにします。ビデオメモリおよびテクスチャプール リソースは特定のプラットフォームやハードウェア用に修正されていることから、テクスチャ解像度とリソース使用においての 2 者間の均衡をとらなければなりません。次の表は、フルのミップマップ(1x1 最高フルのネイティブ mip0 まで)でのさまざまな共通した解像度での DXT1 および DXT5 テクスチャのメモリ要件です。メモリ要件はテクスチャ解像度率の定数倍数に近く、DXT5 テクスチャはDXT1 の2倍近くのメモリを要求しますので注意してください。
+
+解像度から圧縮率までが一定なことから、ここにリストされていないテクスチャ解像度のメモリ要件を算出するには、解像度率を倍数計算するだけです。   例えば、1024x512テクスチャは1024x1024の2分の1のメモリ要求となります。 
+
+この表データは、ボックスフィルタミップマップ生成およびDirectX Texture Compressionを使用したATIのCompressonator で作成されたテクスチャからコンパイルされました。
+
+| 解像度| 1x1からの総ミップマップ数  | DXT1  | DXT5  |
+| --- | --- | --- | --- |
+| 16x16  | 5 mips  | 312 bytes  | 496 bytes  |
+| 32x32  | 6 mips  | 824 bytes  | 1.48kb  (1,520 bytes)  |
+| 64x64  | 7 mips  | 2.80kb  (2,872 bytes)  | 5.48kb  (5,616 bytes)  |
+| 128x128  | 8 mips  | 10.8kb  (11,064 bytes)  | 21.4kb  (22,000 bytes)  |
+| 256x256  | 9 mips  | 42.8kb  (43,832 bytes)  | 85.4kb  (87,536 bytes)  |
+| 512x512  | 10 mips  | 170kb  (174,904 bytes)  | 341kb  (349,680 bytes)  |
+| 1024x1024  | 11 mips  | 682kb  (699,192 bytes)  | 1.33MB  (1,398,256 bytes)  |
+| 2048x2048  | 12 mips  | 2.66MB  (2,796,344 bytes)  | 5.33MB  (5,592,560 bytes)  |
+| 4096x4096  | 13 mips  | 10.6MB  (11,184,952 bytes)  | 21.3MB  (22,369,776 bytes)  |
+| 8192x8192  | 14 mips  | 42.6MB  (44,739,384 bytes)  | 85.3MB  (89,478,640 bytes)  |
+
+
+
+
+## Engine Config TextureGroup プロパティ
+
+特定のゲームTextureGroups にサポートされている最小および最大LOD(ミップマップ)数は、エンジンコンフィギュレーションファイル数で定義されます。   
+コンフィギュレーション設定ファイルの一連のソースは、[SystemSettings] セクションの [Unreal Engine 4 Install Location]\Engine\Config\BaseEngine.ini` ファイルにあります。
+
+ゲームの開発をするにあたり、`[your_game]\Config\DefaultEngine.ini`ファイルは、`Engine\Config\` フォルダにある基本プロパティのミラーセットを含み、通常ゲームの特定の設定を変更したコピーとなっています。
+
+それらはアンリアル エディタおよびゲーム内のTextureGroup エントリの独立したセットとなっていますのでご注意ください。また、それらの2つのセットは各自、コンフィギュレーションファイルの[SystemSettingsEditor] と [SystemSettings] セクションに設置されています。
+
+`BaseEngine.ini` ファイルにある TextureGroup 設定エントリはこれに似ています。古いQAバージョンは、各設定用にMinMagFilter およびMipFilter プロパティを含んでいない恐れがありますのでご注意ください。
+
+	[SystemSettings]
+	; NOTE THAT ANY ITEMS IN THIS SECTION WILL AFFECT ALL PLATFORMS!!!
+
+	TEXTUREGROUP_World=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+	TEXTUREGROUP_WorldNormalMap=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+	TEXTUREGROUP_WorldSpecular=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+	TEXTUREGROUP_Character=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+	TEXTUREGROUP_CharacterNormalMap=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+	TEXTUREGROUP_CharacterSpecular=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+	TEXTUREGROUP_Weapon=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+	TEXTUREGROUP_WeaponNormalMap=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+	TEXTUREGROUP_WeaponSpecular=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+	TEXTUREGROUP_Vehicle=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+	TEXTUREGROUP_VehicleNormalMap=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+	TEXTUREGROUP_VehicleSpecular=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+	TEXTUREGROUP_Cinematic=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+	TEXTUREGROUP_Effects=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=linear,MipFilter=point)
+	TEXTUREGROUP_EffectsNotFiltered=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+	TEXTUREGROUP_Skybox=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+	TEXTUREGROUP_UI=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+	TEXTUREGROUP_Lightmap=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+	TEXTUREGROUP_Shadowmap=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point,NumStreamedMips=3)
+	TEXTUREGROUP_RenderTarget=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+	TEXTUREGROUP_MobileFlattened=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+	TEXTUREGROUP_Terrain_Heightmap=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+	TEXTUREGROUP_Terrain_Weightmap=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+	TEXTUREGROUP_Bokeh=(MinLODSize=1,MaxLODSize=256,LODBias=0,MinMagFilter=linear,MipFilter=linear)
+
+
+
+`[your_game]\Config\DefaultEngine.ini` の TextureGroup 設定は通常これに似ています。LOD設定は、通常ゲームデザインおよび対象のプラットフォームにより要求された範囲の限界に設定されますのでご注意ください。
+
+	[SystemSettings]
+	TEXTUREGROUP_Character=(MinLODSize=256,MaxLODSize=1024,LODBias=0)
+	TEXTUREGROUP_CharacterNormalMap=(MinLODSize=256,MaxLODSize=1024,LODBias=0)
+	TEXTUREGROUP_CharacterSpecular=(MinLODSize=256,MaxLODSize=1024,LODBias=0)
+	TEXTUREGROUP_Cinematic=(MinLODSize=256,MaxLODSize=4096,LODBias=0)
+	TEXTUREGROUP_Effects=(MinLODSize=128,MaxLODSize=512,LODBias=1)
+	TEXTUREGROUP_Lightmap=(MinLODSize=512,MaxLODSize=4096,LODBias=0)
+	TEXTUREGROUP_Shadowmap=(MinLODSize=512,MaxLODSize=4096,LODBias=0,NumStreamedMips=3)
+	TEXTUREGROUP_RenderTarget=(MinLODSize=1,MaxLODSize=4096,LODBias=0)
+	TEXTUREGROUP_Skybox=(MinLODSize=512,MaxLODSize=2048,LODBias=0)
+	TEXTUREGROUP_UI=(MinLODSize=512,MaxLODSize=1024,LODBias=1)
+	TEXTUREGROUP_Vehicle=(MinLODSize=512,MaxLODSize=1024,LODBias=0)
+	TEXTUREGROUP_VehicleNormalMap=(MinLODSize=512,MaxLODSize=1024,LODBias=0)
+	TEXTUREGROUP_VehicleSpecular=(MinLODSize=512,MaxLODSize=1024,LODBias=0)
+	TEXTUREGROUP_Weapon=(MinLODSize=256,MaxLODSize=1024,LODBias=0)
+	TEXTUREGROUP_WeaponNormalMap=(MinLODSize=256,MaxLODSize=1024,LODBias=0)
+	TEXTUREGROUP_WeaponSpecular=(MinLODSize=256,MaxLODSize=1024,LODBias=0)
+	TEXTUREGROUP_World=(MinLODSize=256,MaxLODSize=1024,LODBias=1)
+	TEXTUREGROUP_WorldNormalMap=(MinLODSize=256,MaxLODSize=1024,LODBias=1)
+	TEXTUREGROUP_WorldSpecular=(MinLODSize=256,MaxLODSize=1024,LODBias=1)
+	TEXTUREGROUP_MobileFlattened=(MinLODSize=8,MaxLODSize=256,LODBias=0)
+	r.setres=1024x768
+
+
+
+## PC AppCompat バケット
+
+AppCompat は、目的および起動時に収集される実証的証拠を基に、さまざまなSystemSettings をオーバーライドするのに使用されます。AppCompat が有効(PCのみ)にされると、システムはマシンの許容量を計測し、5つのバケットの一つからプリセット値でEngine.ini 値を上書きします。この使用例についてはUTGame のDefaultCompat.ini をご覧ください。
+
+AppCompat はゲームが初めて実行 (エディタではなく) された時に、「一度のみ」チェックされることになっています。[game]Engine.ini の[AppCompat] セクションの存在をチェックすることでこれを検出します。これは、マシン用に事前演算されたスコアを含んでいます。AppCompat がすでに一度適用されている場合は、その都度上書きされることなく、ユーザーによりカスタム変更ができるようには変更されることはありません。
+
+AppCompat は特にエディタのために無効になっているため、開発時にさまざまなマシンでのアセットの表示について、マシンスペックが影響を与えることはありません。そのため、SystemSettings およびSystemSettingsEditor間が分割されているのです。
+
+ゲーム(例はUTGameを参照)に空のDefaultCompat.ini を与えることで、AppCompat を無効にすることができますが、これはEngine.iniの[SystemSettingsJP] からすべてのバケットを初期化する原因となります。この場合、システムは AppCompat が導入される前の動作とまったく同じに動作します。
+
+
+
+##TEXTUREGROUP プロパティ
+
+各TextureGroup エントリは、ゲームレンダリングで使用されるため、特定のテクスチャセットのテクスチャプロパティを定義します。共通のセットにテクスチャをグループ化することは、さまざまなゲームテクスチャリソースで使用されているテクスチャメモリプールでの制御をより良くします。
+
+| プロパティ | 説明 |
+| --- | --- |
+| MinLODSize  | レンダーされる最小のミップマップサイズ。ピクセルで指定されている。1から8192の範囲で2の累乗で表示。MaxLODSize 以下でなければならない。 |
+| MaxLODSize  | レンダーされる最大のミップマップサイズ。ピクセルで指定されている。1から8192の範囲で2の累乗で表示。MinLODSize 以上でなければならない。 |
+| LODBias  | レンダー用のアップロードに優先してオフセットするためのミップマップレベル数を決定する正または負の値。MinLODSize および MaxLODSizeの範囲内で数値を制限。 |
+| MinMagFilter  | テクスチャが GPU によって縮小または拡大される場合のテクスチャ フィルタータイプを指定します。下記のチャートを参照。 |
+| MipFilter  | テクスチャを離れた場所またはグレージング角から見る場合に GPU が 2 つのミップをブレンドすべきかを指定します。下記のチャートを参照。 |
+| NumStreamedMips | 指定数のミップレベルをストリーミングさせます。テクスチャが10段階のミップレベルを持っている場合に NumStreamedMips が 2 だった場合、最上位の2つのミップレベルのみがストリーミングされます。残りの8～10段階のミップレベルは必要な時間中はメモリに常駐します。NumStreamedMipsが 0 の場合は、このLODグループはストリーミングされず、全て読み込まれます。NumStreamedMipsが -1 の場合は、全てのミップレベルがストリーミングされることを許可します（引き続きその他の制限も適用されます）。デフォルト値は -1 となります。 |
+
+### フィルタリング
+
+| MinMagFilter  | MipFilter  | フィルタタイプ  |
+| --- | --- | --- |
+| point  | -  | Point  |
+| linear  | point  | Bilinear  |
+| linear  | -  | Trilinear  |
+| aniso  | point  | Anisotropic Point  |
+| aniso  | -  | Anisotropic Linear  |
+
+
+
+## TextureGroup, LODGroup および LODBias
+
+config ini ファイルにて指定されたTextureGroupおよびLODBias 、Texture プロパティで指定されたLODGroup およびLODBias は、 各テクスチャに使用されるテクスチャミップマップの最終セットを決定します。
+
+[your_game]Engine.ini にあるTextureGroup エントリの例はこれに似たような感じです。
+
+	TEXTUREGROUP_World=(MinLODSize=256,MaxLODSize=1024,LODBias=0,MinMagFilter=aniso,MipFilter=point,NumStreamedMips=3)
+
+TEXTUREGROUP_World LODGroup に割り当てられたテクスチャは、レンダリングに使用されたミップマップの範囲を決定するためそれらの設定を使用します。    Texture プロパティの追加のLODBias 設定は、config ini ファイルTextureGroupで指定されたLODBias でアディティブとなっています。   
+Texture プロパティの追加のLODBias 設定は、config ini ファイルTextureGroupで指定されたLODBias でアディティブとなっています。
+
+LODBias は、 レンダリング用にどのミップマップが選択されるかを _バイアス_ またはオフセットします。LODBias は、LODGroup が最小/最大する前に演算されます。Texture プロパティにあるLODBias は、最終LODBias 値を決定するため、TextureGroup でLODBias に追加されます。   
+0のLODBias は主要(ネイティブ)のテクスチャ解像度です。1のLODBias はテクスチャの最初のミップマップで、2のLODBias は、第二のミップマップです。例えば、1のLODBias を持つ1024x1024テクスチャでは、512x512のミップマップがレンダリング用に選択されます。
+
+各テクスチャ用のTexture プロパティで指定されたLODBias は、正にも負にもなるためTextureGroupのデフォルトLODBias をより高い、またはより低いミップマップ値にオフセットしてしまうことがあるのです。   
+例えば、
+
+* 値0のTextureGroup LODBias および値0のTexture Properties LODBias では、最終のLODBias 値は0になります。   
+* 値0のTextureGroup LODBias および値1のTexture Properties LODBiasでは、最終のLODBias 値は1になります。   
+* 値1のTextureGroup LODBias および値1のTexture Properties LODBiasでは、最終のLODBias 値は2になります。   
+* 例えば、値1のTextureGroup LODBias および値-1のTexture Properties LODBias は、最終のLODBias 値は0になります。
+
+最終のLODBias が計算されると、TextureGroupの最小/最大LODSize 範囲内に適合するかどうか、テクスチャミップマップをチェックします。そして必要があればそれを調整します。これは、セットの最小/最大LOD 範囲内に特定のTextureGroup をクランプする、簡単なconfig ini ファイル変更を可能にします。例えば、512x512ミップマップを使う値1のLODBias の1024x1024テキスチャが、上記のTEXTUREGROUP_World LODGroupにある場合、TextureGroupの最小および最大のLODSize 範囲内に適合しているかどうかをチェックします。この場合だと、最小値が256で最大値が1024です。
+
+各ゲームタイトルが独自のTextureGroup 設定を持つため、アーティストおよびレベルデザイナーの方は各グループのMinLODSize およびMaxLODSize に気をつけてください。   
+MaxLODSize が1024のTextureGroup に割り当てられた値2048のテクスチャでゲームを出荷した場合、レンダリングクオリティにおいてなにも利益がなく、ディストリビュートパッケージサイズを増加します。
+
+
+
+## テクスチャのプロパティ
+
+さまざまなテクスチャプロパティの意味の説明については、 [**テクスチャ プロパティ**](Engine/Content/Types/Textures/Properties) を参照してください。
+
+ 
+
+
+
+

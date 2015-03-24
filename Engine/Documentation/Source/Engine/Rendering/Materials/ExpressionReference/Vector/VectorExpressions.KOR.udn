@@ -1,0 +1,142 @@
+INTSourceChangelist:2116766
+Availability:Public
+Title:Vector 표현식
+Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
+Description:위치나 노멀같은 벡터값을 출력하는 표현식입니다.
+
+[EXCERPT:TOC]
+[TOC(start:2)]
+[/EXCERPT:TOC]
+
+[EXCERPT:ActorPositionWS]
+## ActorPositionWS
+
+ActorPositionWS 는 월드 스페이스에서 이 머티리얼을 가진 오브젝트의 위치를 나타내는 3벡터 (RGB) 데이터를 출력합니다.
+
+![](ActorPositionColors.png)(w:434) ![](ActorPositionNetwork.png)(w:490)
+
+이 예제에서는 ActorPositionWS 가 Material 의 베이스 컬러에 바로 물리는 것을 볼 수 있습니다. 그 결과 이 머티리얼이 적용된 각각의 구체는 3D 공간의 다른 위치로 이동함에 따라 다른 색을 내는 것을 볼 수 있습니다. 참고로 ActorPositionWS 노드의 결과에 1600 을 나눠서 색이 그냥 튀지 않고 멋지게 블렌딩되고 있습니다.
+
+[/EXCERPT:ActorPositionWS]
+
+
+[EXCERPT:CameraPositionWS]
+## CameraPositionWS
+
+
+CameraWorldPosition 는 월드 스페이스에서의 카메라 위치를 나타내는 3채널 벡터값을 출력하는 표현식입니다.
+
+미리보기 구체는 카메라가 회전하면서 색이 바뀝니다.
+
+![CameraPositionWSExample.png](CameraPositionWSExample.png)(w:476) ![](CameraPositionWSNetwork.png)(w:450)
+[/EXCERPT:CameraPositionWS]
+
+
+## CameraVectorWS
+
+CameraVector 는 표면에 대한 카메라의 방향, 다른 말로 픽셀에서 카메라로의 방향을 나타내는 3채널 벡터값을 출력하는 표현식입니다.
+
+**사용 예:** CameraVector 는 ComponentMask 에 연결한 뒤 CameraVector 의 X, Y 채널을 텍스처 좌표로 사용하는 식으로 인바이언먼트 맵을 속이는 데 사용됩니다.
+
+[REGION:fullwidth]
+![CameraVectorWSExample.png](CameraVectorWSExample.png)
+[/REGION:fullwidth]
+
+
+[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Constant#Constant2Vector]
+
+
+[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Constant#Constant3Vector]
+
+
+[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Constant#Constant4Vector]
+
+
+## LightVector
+
+**언리얼 엔진 4 에서 라이팅 계산이 디퍼드 방식으로 바뀌어서 이 표현식은 폐기상태가 되었습니다.**
+
+<!--
+LightVector 는 표면에 대한 빛의 방향을 나타내는 3채널 벡터 값 표현식입니다.
+
+**사용 예:** LightVector 는 단순한 램버트(Lambert) 라이팅 모델같은 커스텀 라이팅 알고리즘 계산에 사용 가능합니다.
+
+![LightVectorExample.jpg](LightVectorExample.jpg)
+
+[REGION:note]
+LightVector 표현식은 Emissive 출력 계산시에는 사용할 수 없으며, LightFunction 이나 DeferredDecal 머티리얼에서만 사용할 수 있습니다.
+[/REGION]
+-->
+
+
+
+## Object Bounds
+
+Object Bounds (오브젝트 바운드)는 오브젝트 각 축의 크기를 출력하는 표현식입니다. 컬러로 사용되는 경우 X Y Z 축은 각각 R G B 에 해당합니다.
+
+![](ObjectBoundsScene.png)(w:411) ![](ObjectBoundsNetwork.png)
+
+위 예제에서 보면, 오브젝트의 컬러가 오브젝트의 가장 긴 축에 해당하는 것을 볼 수 있습니다.
+
+[EXCERPT:ObjectOrientation]
+## ObjectOrientation
+
+
+ObjectOrientation 는 오브젝트의 월드 스페이스 업 벡터를 출력하는 표현식입니다. 다른 말로 머티리얼이 적용된 오브젝트의 로컬 양수 Z 축이 가리키고 있는 방향입니다.
+
+![ObjectOrientationExample.png](ObjectOrientationExample.png)
+[/EXCERPT:ObjectOrientation]
+
+
+[EXCERPT:ObjectPositionWS]
+## ObjectPositionWS
+
+
+ObjectPositionWS 는 오브젝트 바운드의 월드 스페이스 중심 위치를 출력하는 표현식입니다. 예로 포울리지에 대한 구체형 라이팅을 만든다든가 할 때 좋습니다.
+
+
+![](WorldPositionWSScene.png)(w:460) ![](WorldPositionNetwork.png)(w:470)
+
+[/EXCERPT:ObjectPositionWS]
+
+
+[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Particles#ParticlePositionWS]
+
+
+[EXCERPT:PixelNormalWS]
+## PixelNormalWS
+
+PixelNormalWS 는 현재 노멀에 따라 픽셀이 향하고 있는 방향을 나타내는 벡터 데이터를 출력합니다.
+
+![PixelNormalWSExample.png](PixelNormalWSExample.png)
+
+이 예제에서 PixelNormalWS 는 베이스 컬러에 물려 있습니다. 픽셀별 결과를 내기 위해 노멀 맵을 어찌 사용했는지 눈여겨 보세요.
+
+[/EXCERPT:PixelNormalWS]
+
+
+## ReflectionVectorWS
+
+ReflectionVectorWS 는 [CameraVectorWS](#CameraVectorWS) 와 내면은 비슷하나, 표면 노멀에 반사된 카메라 방향을 나타내는 3채널 벡터값을 출력한다는 차이점이 있습니다.
+
+**사용 예:** ReflectionVector 는 인바이언먼트 맵에 흔히 사용되며, 리플렉션 벡터의 x/y 컴포넌트는 큐브맵 텍스처로 들어가는 UV 로 사용됩니다.
+
+[REGION:fullwidth]
+![ReflectionVectorWSExample.png](ReflectionVectorWSExample.png)
+[/REGION]
+
+[EXCERPT:VertexNormalWS]
+## VertexNormalWS
+
+
+VertexNormalWS 는 월드 스페이스 버텍스 노멀을 출력하는 표현식입니다. WorldPositionOffset 처럼 버텍스 셰이더에서 실행되는 머티리얼 입력에서만 사용 가능합니다. 메시를 키우거나 줄이거나 할 때 좋습니다. 노멀을 따라 위치를 오프셋시키면 UV 이음새를 따라 지오메트리가 떨어져 나가게 됨에 유의하시기 바랍니다.
+
+[REGION:fullwidth]
+![VertexNormalWSExample.png](VertexNormalWSExample.png)
+[/REGION]
+
+위 예제에서 미리보기 구체는 사인 곡선과 같은 상하 움직임으로 스케일이 적용되는 것처럼 보이는데, 버텍스 각각이 자신의 노멀 방향으로 움직이기 때문입니다.
+
+[/EXCERPT:VertexNormalWS]
+
+

@@ -1,0 +1,120 @@
+Availability:Public
+Title:Color Grading
+Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
+Description:Tonemapping and color correction effects for adjusting scene colors.
+
+Within the Unreal engine, the term **Color Grading** covers the **Tone Mapping** function (HDR to LDR transformation) and the further **Color Correction** (LDR color to screen color transformation).
+
+## Tone Mapping
+
+[EXCERPT:ToneMapping_Desc]
+The purpose of the **Tone Mapping** function is to map the wide range of HDR (high dynamic range) colors into the small LDR (low dynamic range) so a monitor can display the color. This is done after normal rendering during post processing. A global tone mapper is a function with three inputs (RGB) and three outputs (RGB). A local tone mapper also takes into account the neighborhood of the pixel but is much more computationally intensive (means slower). A good tone mapper function tries to preserve the color of a pixel even if the color is very bright.
+[/EXCERPT:ToneMapping_Desc]
+
+The following graph shows how each channel in the range from 0 to 5 is mapped to the new range of 0 to 1:
+
+![Tone Mapping Graphs](newtone.jpg)
+
+This is the used function:
+
+	GammaColor = LinearColor / (LinearColor + 0.187) * 1.035;
+
+Note that bright colors become gradually brighter but much less than dark ones. Black remains black and there is a mostly linear part of the curve that is a bit steeper than the non tone-mapped curve would be. That results in some contrast enhancing. It is normal and expected to get a different look when using a tone mapper and in order to get a good result, the source image needs to have more dynamic in the brightness (more HDR). This can pay off in a more realistic film like look.
+
+The presented tone mapper formula already has two tweakable constants and more math would allow further tweaking, but finding a good function is not easy as quality/flexibility/performance needs to be considered. We decided to stick to a simple formula and modify the resulting LDR color with a simple color lookup. As we already mapped the HDR color into a limited range, we get a lot of expressibility for the dark colors and still can modify the bright colors. This method is simple to understand, offers a lot of flexibility with local control and almost constant performance. 
+
+| Property | Description |
+| -------- | ----------- |
+| **Scene Color Tint** | A color that is a filter color (multiply) that is applied to the HDR scene color. [INCLUDE:#SceneColorTint] |
+| **Tonemapper Toe Factor** | Allows the dark colors in the tonemapper to be tweaked. Value is in the range [0.0, 1.0]. [INCLUDE:#TonemapperToeFactor] |
+
+<!--
+[EXCERPT:SceneColorTint]
+[REGION:imagetable]
+| ![Scene Color Tint - (1.0, 1.0, 1.0)](scene_tint_full_small.png)(w:365) | ![Scene Color Tint - (0.25, 0.25, 0.25)](scene_tint_quarter_small.png)(w:365)
+| ------ | ------ |
+| (1.0, 1.0, 1.0) | (0.25, 0.25, 0.25) |
+[/REGION]
+[/EXCERPT:SceneColorTint]
+
+[EXCERPT:TonemapperToeFactor]
+[REGION:imagetable]
+| ![Toe Factor - 0](toe_factor_0_small.png)(w:365) | ![Toe Factor - 1](toe_factor_1_small.png)(w:365)
+| ------ | ------ |
+| 0.0 | 1.0 |
+[/REGION]
+[/EXCERPT:TonemapperToeFactor]
+-->
+
+## Color Correction
+
+[EXCERPT:LookupTexture]
+Color correction is implemented through lookup tables (LUTs). Instead of using three 1d lookup tables, a single 3d lookup table is used as this offers more sophisticated color transformations (e.g. desaturation). The following image shows the 16x16x16 color neutral LUT unwrapped to a 256x16 texture (how it is currently visible in the texture browser):
+
+[REGION:raw]
+![Neutral LUT](RGBTable16x1.png)
+[/REGION]
+
+[REGION:note]
+You can use the RGBTable16x1.png image from this page, but do not copy and paste as the image displayed on the monitor is not necessarily representative of the source. 
+
+* [LUT Texture Example](RGBTable16x1.png) - **right-click** and **Save as**
+
+[/REGION]
+
+A modified texture might look like this one:
+
+[REGION:raw]
+![Sepia Tone LUT](LUT_Sepia.png)
+[/REGION]
+
+To make use of a LUT, you need to assign the LUT texture in the post process volume you want to use it. 
+
+| Property | Description |
+| -------- | ----------- |
+| **Color Grading Intensity** | A scaling factor that controls the effect of the color correction. |
+| **Color Grading LUT** | The LUT texture to use as a lookup table for color correction. [INCLUDE:Engine/Rendering/PostProcessEffects/ColorGrading#ColorGradingLUT] |
+
+<!--
+[EXCERPT:ColorGradingLUT]
+[REGION:imagetable]
+| ![Natural Scene](lut_none.png)(w:265) | ![Greenish Scene](lut_green.png)(w:265) | ![Reddish Scene](lut_red.png)(w:265) |
+| ------ | ------ | ------ |
+| ![Neutral LUT](RGBTable16x1.png) | ![Greenish LUT](LUT_Greenish.png) | ![Reddish LUT](LUT_Reddish.png) |
+[/REGION:imagetable]
+[/EXCERPT:ColorGradingLUT]
+-->
+
+### LUT Texture Creation
+
+The procedure:
+
+1. Make representative screen shots of the scenes you want to adjust and put them in one Photoshop document.
+1. Load a neutral 256x16 LUT into Photoshop.
+
+	[REGION:note]
+	You can use the RGBTable16x1.png image from this page, but do not copy and paste as the image displayed on the monitor is not necessarily representative of the source. 
+
+	* [LUT Texture Example](RGBTable16x1.png) - **right-click** and **Save as**
+
+	[/REGION]
+
+1. Insert the LUT into the Photoshop document with the screenshots (Select All in the LUT document, copy, switch to screenshot document, paste).
+1. Apply color manipulations (best by adding adjustment layers, otherwise you need to flatten everything before and cutting out the 256x16 later gets more tricky).
+1. Select the 256x16 LUT (Select the LUT layer in the layer panel, Menu: Select/Load Selection, Ok).
+1. Copy merged the content of the LUT (Menu: Edit/Copy Merged).
+1. Paste and save the 256x16 texture in some uncompressed format that the engine can read (Menu: File/New, Menu: Edit/Paste, Menu: File/Save As).
+1. Import the texture in the editor and specify the ColorLookupTable Texture Group. 
+
+
+Various color corrections are possible. Here are a few examples:
+
+* Brightness
+* Saturation
+* Simple contrast (linear with clamping)
+* Higher quality contrast (e.g. curves with a steeper linear part in the middle)
+* Selective changes to the darks, midtones, and bright areas of an image (e.g. curves)
+* Selective changes to specific colors (best expressed in some color space where the brightness is in a separate channel e.g. LAB)
+* Adjustments can be even done in a different color space (e.g. LAB keeps brightness and color independent which can be very useful) 
+
+[/EXCERPT:LookupTexture]

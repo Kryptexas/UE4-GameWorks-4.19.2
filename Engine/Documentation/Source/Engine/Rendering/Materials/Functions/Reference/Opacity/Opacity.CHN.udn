@@ -1,0 +1,32 @@
+﻿INTSourceChangelist:1890655
+Availability: Public
+title:Opacity(不透明度)
+Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
+Description:材质网络中处理不透明度值的函数。
+
+[TOC (start:2 end:3)]
+
+## 概述
+
+不透明度函数用于加速处理复杂的不透明度计算。
+
+## 不透明度函数
+
+以下是Opacity类目下所有的函数的列表。
+
+### SoftOpacity
+
+SoftOpacity函数取入一个Opacity值，然后对其进行各种计算，从而让它呈现一种柔和的感觉。它应用一个菲涅耳效应、深度偏移alpha、及像素深度。最终的结果会导致物体随着相机接近它而逐渐消失。
+
+| 项 | 描述|
+| -------- | -------- |
+|[REGION:tablesection]输入[/REGION] ||
+| **DepthFadeDistance (标量)** | 物体完全消失时的深度。仅当使用了 *OutputUsesDepthBias* 输出时才有效。|
+| **OpacityIn (标量)** | 这是传入的不透明度的值。|
+| **FadeDistance (标量)** | 当你距离表面多近时该表面开始淡出。|
+|[REGION:tablesection]输出[/REGION] ||
+| **OutputUsesDepthBias** |当物体的距离达到 *DepthFadeDistance* 输入设置的值时，该输出使得物体完全淡出，成为完全透明的状态，|
+| **OutputNoDepthBias** | 当物体到达相机处时该输出使得物体完全地淡出，意味着没有偏移。这个输出比 *OutputUsesDepthBias* 少12个指令。|
+
+
+![Soft Opacity](SoftOpacity_Demo.png)(w:800 h:259)

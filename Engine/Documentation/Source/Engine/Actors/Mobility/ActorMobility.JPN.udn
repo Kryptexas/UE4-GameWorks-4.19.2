@@ -1,0 +1,67 @@
+﻿INTSourceChangelist:2305753
+Availability:Public
+Title:アクタの可動性
+Crumbs: %ROOT%, Engine, Engine/Actors
+Description:ゲームプレイ中にアクタを移動または変更できるようにするか否かを制御します。
+
+
+[VAR:playlistnav]
+[OBJECT:PlaylistNavigation]
+	[PARAMLITERAL:id]
+		LevelDesign_Beginner
+	[/PARAMLITERAL]
+	[PARAM:previous]
+		[Previous Topic](Engine/Actors/Transform "%Engine/Actors/Transform:title%")
+	[/PARAM]
+	[PARAM:next]
+		[Next Topic](Engine/Actors/Grouping "%Engine/Actors/Grouping:title%")
+	[/PARAM]
+	[PARAM:home]
+		[](Tracks/LevelDesign/Beginner)
+		%Tracks/LevelDesign/Beginner:menu%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%playlistnav%
+
+[EXCERPT:Intro]
+![](TransformMobility.png)
+
+可動性設定では、ゲームプレイ中にアクタを移動または変更できるようにするか否かを制御します。主に、スタティックメッシュ アクタ、ライトアクタに適用されます。
+[/EXCERPT:Intro]
+
+利用可能な場合は、可動性のプロパティには以下の 3 つの状態があります。
+
+| 可動性の状態 | 説明 |
+|--- | --- |
+| **静的** | _静的_ は、ゲームプレイ中に移動または更新を目的としないアクタ用のものです。 [INCLUDE:#Static] |
+| **固定** | [INCLUDE:#Stationary]  |
+| **可動** | _可動_ は、ゲームプレイ中にアクタが移動する必要がある場合のみ使用するようにします。 [INCLUDE:#Movable] |
+
+
+
+<!-----
+
+[EXCERPT:Static]
+* 可動性が _静的_ である **スタティックメッシュ アクタ** は、そのシャドウが事前計算されるライトマップ (ライトマスが焼付けたライティング) に寄与します。これは、ゲームプレイ中に再配置する必要が決してない構造的メッシュや装飾的メッシュにとって理想的です。しかし、そのマテリアルはアニメートできることにご注意ください。
+* 可動性が _静的_ である **ライト アクタ** は、事前計算されるライトマップ (ライトマスが焼付けたライティング) に寄与します。こうしたライトアクタは、[Indirect Lighting Cache](Engine/Rendering/LightingAndShadows/IndirectLightingCache) によって動的オブジェクトをなおも照らします。これはモバイル ワークフローにとって理想的な光源処理パスです。ゲームプレイのパフォーマンスの観点からみて実質的にコストがかからないからです。
+
+
+[/EXCERPT:Static]
+
+
+[EXCERPT:Stationary]
+_固定_ は、移動しない **ライト アクタ** に対して使用されます。しかし、オン、オフが切り替えられる、カラーが変更されるなどゲームプレイ中に何らかの方法で更新される場合があります。こうした方法でセットアップされたライトは、ライトマスの事前計算されたライトマップに寄与しますが、移動オブジェクトに対して動的シャドウを投射します。しかし、特定のアクタに影響を及ぼしすぎないように配慮しなければなりません。詳細は [固定ライトのドキュメント](Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights) を参照してください。 **スタティックメッシュ アクタ** は、 _固定_ の可動性を持つことはできません。
+[/EXCERPT:Stationary]
+
+
+[EXCERPT:Movable]
+* 可動性が _可動_ の **スタティックメッシュ アクタ** は、事前計算されたシャドウをライトマップに投射しません。スタティックメッシュ アクタは、 [Indirect Lighting Cache](Engine/Rendering/LightingAndShadows/IndirectLightingCache) で Static Light Actors によってライティングできます。静的ライトまたは可動性ライトによって照らされる場合、スタティックメッシュ アクタは動的シャドウを投射します。これは、ドア、リフトなどシーン内で移動する必要がある非変形メッシュ エレメントでは典型的な設定です。
+* 可動性が _可動_ である **ライト アクタ** は、動的シャドウのみを投射できます。このため、こうしたライトにシャドウを投射させる場合、そのシャドウイング方法は非常にパフォーマンスに負荷がかかるため配慮が必要です。	しかし、 _シャドウイング無し_ の可動性ライトは、アンリアル エンジンのディファード レンダリング システムによって非常に安価に計算できることを覚えておいてください。
+[/EXCERPT:Movable]
+
+-->
+
+
+%playlistnav%

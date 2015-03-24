@@ -1,0 +1,140 @@
+﻿INTSourceChangelist:2415526
+Availability:Public
+Title:スタティックメッシュ コリジョン リファレンス
+Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
+Description:コリジョン ジオメトリの作成および設定のコンテンツ ガイド
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/Collision/Reference:title%](Engine/Physics/Collision/Reference/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/Collision:/Reference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/Collision/Reference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Collision/Reference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:2)]
+
+## 概要
+
+グラフィックの詳細が増えてきたため、ゲームにおけるコリジョンが必ずシンプルになるようにすることが重要です。これには理由が 2 つあります。いくつかのポリゴンの計算が大幅に早くなり、プレイヤーは格段にスムーズな体験をします。そして、プレイヤーは小さなジオメトリの構成要素につまづかなくなります。 
+
+[REGION:tip]
+**スタティック メッシュ エディタ** で作成されるすべてのコリジョン形状は、作成された後、移動、回転、スケールが可能です。1 つのスタティックメッシュにつき 1 つ以上のコリジョン形状を作成できるので、スタティックメッシュのコリジョンにおいて必要な忠実度を守ることができます。
+
+これはシンプルなコリジョン形状 (ボックス、球体、カプセル) に最も便利ですが、 凸包ジェネレーターと K-DOP モデルで作成できます。
+[/REGION]
+
+## スケルタルメッシュ コリジョン モデルの作成
+
+スケルタルメッシュが使用するコリジョン モデルの作成方法については、 [PhAT ユーザーガイド](Engine/Physics/PhAT) を参照してください。
+
+## スタティックメッシュ エディタでスタティックメッシュ コリジョン モデルを作成する
+
+![](COLREF_collisionMenu.png)
+
+### K-DOP
+
+
+
+[REGION:raw]
+![](COLREF_collisionMenu_KDOP.png)
+[/REGION]
+
+**[コリジョン]** メニュー項目にある **スタティックメッシュ エディタ** には様々はメニュー オプションがあります。名前に _##DOP_ と付くものの中に、 **K-DOP** というシンプルなコリジョン用のジェネレーターがあります。 **K-DOP** はバウンディング ボリュームの一種で、 _K discrete oriented polytope_ の略語です (K は軸方向に並べられた平面の数です)。基本的に **K-DOP** は、K 座標軸に平行なプレーンをメッシュにできる限り近づけます。結果として出来上がった形状は、コリジョン ハルとして使用されます。**スタティックメッシュ エディタ** で K は次の値を取ることができます。
+
+
+* **10** -  4 つのエッジで面取りされたボックス。エッジを並べる軸を X、Y、Z から選ぶことができます。
+* **18** - すべてのエッジが面取りされたボックス。
+* **26** - すべてのエッジと角で面取りされたボックス。
+
+以下の例を見てください。このツールは、パイプ、柱、レールの数がかなり多いパッケージに非常に便利です。
+
+![kdop_sizes.jpg](kdop_sizes.jpg)
+
+
+### 自動凸型コリジョン ツールを使ってコリジョン モデルを作成する
+
+[REGION:raw]
+![](COLREF_collisionMenu_Auto.png)
+[/REGION]
+
+**スタティックメッシュ エディタ** は、多数の凸型ハルを使ってコリジョンを生成する機能があります。
+
+![Collision_CreateCollisionHullWithAutoConvex_0.jpg](Collision_CreateCollisionHullWithAutoConvex_0.png)(convert:false)
+
+丸みを帯びたこのキューブは、 **6DOP Simplified Collision** で問題なく動作すると思われますが、それ以上が必要だと仮定します。
+
+**[Collision] メニュー -> [Auto Convex Collision]** を選択すると、右下にこのようなパネルが表示されます。
+
+![Collision_CreateCollisionHullWithAutoConvex_1.jpg](Collision_CreateCollisionHullWithAutoConvex_1.png)(convert:false)
+
+* **Max Hulls** - オブジェクトの形状に最も一致するハルの作成数を判断します。
+* **Max Hull Verts** - コリジョン モデル 頂点の最大数。この値が高くなると、とコリジョン モデルの許容複雑度が増します。
+* **Apply** - 上記の設定に基いてコリジョンをオブジェクトに追加します。
+* **Defaults** - **Max Hulls** と **Max Hull Verts** の値を上の画像で表示された値にリセットします。
+
+![Collision_CreateCollisionHullWithAutoConvex_2.jpg](Collision_CreateCollisionHullWithAutoConvex_2.png)(convert:false)
+
+ご覧の通り、自動凸型コリジョンはかなり正確です。
+
+### シンプルな形状を使ってコリジョンを作成する
+
+[REGION:raw]
+![](COLREF_collisionMenu_BuildYourOwn.png)
+[/REGION]
+
+これらのオプションで基本的なコリジョン形状が作成されます。
+
+[REGION:raw]
+![](COLREF_BuildYourOwn_01.png)(convert:false)
+[/REGION]
+
+シンプルなコリジョン形状が作成されたら、それを好きな位置に移動、回転、スケーリングしていくことができます。複雑なスタティックメッシュの場合は、コリジョン形状を 1 つ以上作成することが可能です。
+
+| **制御** | **アクション** |
+| --- | --- |
+| **W, E, R** | 平行移動、回転、スケーリング ツールを切り替えます。 |
+| **Delete** | 現在選択中の物理ボディまたはボディを削除します。 |
+| **F** | 現在選択中の物理ボディまたはボディをフォーカスします。 |
+| **Ctrl + Left Click** | 物理ボディを選択内容に追加します。 |
+| **Alt + Left Drag (操作ウェジェット上で)** | 物理ボディを複製します。 |
+
+
+### 3D コンテンツ作成パッケージを使ってコリジョン モデルを作成する
+
+3D コンテンツ作成パッケージ内でのスタティックメッシュ コリジョン モデルの作成方法については [FBX スタティックメッシュ パイプライン](Engine/Content/FBX/StaticMeshes#コリジョン) を参照してください。
+
+
+## コリジョン反応
+
+アンリアル エンジン 4 は、コリジョン オブジェクトをお互いに相互作用させる方法という点で劇的に異なります。オブジェクトはそれぞれ任意のオブジェクト タイプ (例えば **スタティックメッシュ** は **WorldDynamic** コリジョン反応グループに入れることができます) で、別の反応グループからのオブジェクトに対して、 **無視する** 、 **ブロックする** 、 **オーバーラップする** ことを選択できます。
+
+要は、「衝突すると設定されたすべてのものと衝突する」ようになっているオブジェクトを、「_ポーン_ であるオブジェクトのみと衝突し、 _WorldDynamic_ とだけオーバーラップしてその他を全て無視する」ように設定することができます。さらに、 _ポーン_ とだけ衝突するオブジェクトと _ポーン_ 反応グループのオブジェクトを使えば、ポーンと衝突するものが存在するグループを **無視する** ことができます。
+
+かなり複雑になりますが、ツールを自由に使いこなせるようになれば対処が楽になります。詳しい情報については、 [コリジョン反応](Engine/Physics\Collision) ドキュメントを参照してください。
+
+
+## コリジョンをインゲームでレビューする
+
+コリジョン設定のレビューをするためにインゲームで使用できるコンソール コマンドがあります。いくつか例を紹介します。これらの入力で、オンオフが切り替わります。
+
+* **show COLLISION** - レベルで使用するコリジョン モデルおよびブロック ボリュームを描画します。 
+
+![](COLREF_showCollision.png)(w:900)
+
+* **stat game** - 受け取っているコリジョンのタイプと時間に関する様々な便利な情報を表示します。
+
+![](Collision_StatGame.png)(w:900)
+

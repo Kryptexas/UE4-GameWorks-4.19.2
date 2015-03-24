@@ -1,0 +1,187 @@
+﻿INTSourceChangelist:1555586
+Availability:Public
+Title:细节层次(LOD) 
+Crumbs:%ROOT%, Engine, Content/Types/StaticMeshes/Editor
+Crumbs:%ROOT%, Content, Content/Types/StaticMeshes, Content/Types/StaticMeshes/Editor
+Description:管理及自动生成静态网格物体的细节层次的流程及工具。
+
+[TOC(start:2)]
+
+_静态网格物体_ 通道提供了创建预制及自动生成完整的细节层次(LOD)链 
+的核心功能。这允许美术工作人员创建一个网格物体，将其导入，并且可以在远处渲染网格物体时为其创建优化版本，从而提升渲染性能， 
+而所有这些操作都不需要 
+美工人员付出额外精力。
+
+主要功能包括：
+
+* LOD组，它定义了默认的细节层次设置、光照分辨率并允许进行全局设置覆盖 
+(比如把所有SmallProp细节层次降低10%)。您可以在导入网格物体时选择一个LOD组，之后可以随时 
+在静态网格物体编辑器中进行修改。
+* 基于每个平台或者设备定义及覆盖LOD组的设置。
+* 法线和切线一般都是从FBX文件中导入的。任何时候，您都可以选择是否使用导入的 
+法线/切线，或者可以让虚幻引擎重新计算它们。
+* 简单轻松地在[**静态网格物体编辑器**](Content/Types/StaticMeshes/Editor)中设置及调整细节层次。
+* 使用Simplygon自动生成细节层次网格物体。
+
+
+[INCLUDE:Engine/UI/Tools/Simplygon#License]
+
+## LOD管理
+
+[**静态网格物体编辑器**](Content/Types/StaticMeshes/Editor)中的 **细节层次** (LOD) 面板提供了 
+根据您设置的规则，以[LOD 组](#LODGroups)或基于每个网格物体及基于每个细节层次的形式，管理及生成 
+完整的细节层次网格物体链的功能。
+
+![Level of Detail Panel](lod_panel.png)
+
+### LOD 生成
+
+自动生成LOD使用 [](Engine/UI/Tools/Simplygon)来创建基础网格物体的简化版本，并将其作为细节层次网格物体 
+。这些算法考虑了目标复杂度、轮廓呈现及贴图坐标等这些因素， 
+以便生成可以在远处显示且没有 
+明显退化或失真的新网格物体。
+
+**要想应用LOD组:**
+
+1. 在 [LOD设置](#LODSettings)选择要使用的 **LOD组** 。
+
+![](group_select.png)
+
+1. 按下 ![Apply](button_apply.png) 来创建新的细节层次网格物体。
+
+
+**要想生成自定义的LOD链:**
+
+1. 在 [LOD设置](#LODSettings)中选择要生成的LOD网格物体的数量 。
+
+	[REGION:tip]
+		您也可以选择一个 **LOD 组** 作为起点，然后在此基础上修改各项设置。
+	[/REGION]
+
+	![](lod_number.png)
+
+1. 设置要生成的每个LOD网格物体的[简化设置（Reduction Settings）](#ReductionSettings)。
+
+	![](lod_settings.png)
+
+1. 按下 ![Apply](button_apply.png) 来创建新的细节层次网格物体。
+
+
+### LOD预览
+
+可以使用工具条中的控制项来预览细节层次网格物体。
+
+![](lod_preview.gif)(convert:false)
+
+
+### LOD 设置
+
+| 设置 | 描述 |
+| ------- | ----------- |
+| **LOD Group(LOD组)** | 指出了该网格物体要使用的[LOD 组](#LODGroups)。|
+| **Number of LODs（LOD数量）** |设置该网格物体的LOD数量。LOD列表随着这个值的修改而更新，但是直到按下 ![Apply](button_apply.png) 按钮之前不会有任何真正的改变。|
+| **Auto compute LOD Distance（自动计算LOD距离）** |如果启用该项，则应用一个简单的误差尺度来决定距离多远时两个LOD之间发生转换。否则，将使用每个LOD的 **Distance（属性）** 来决定该LOD变换什么时候发生。|
+| **LOD Distance Error(LOD距离误差)** | 当使用自动计算时，该项用于缩放两个LOD间发生变换的距离。|
+
+### 编译设置
+
+| 设置 | 描述 |
+| ------- | ----------- |
+| **Recompute Normals(重新计算法线)** | 如果启用该项，虚幻引擎将会重新计算平滑组。否则，将会从FBX文件获得平滑组。|
+| **Recompute Tangents（重新计算切线）** |如果启用该项，虚幻引擎将会重新计算切线。否则，将会从FBX文件获得切线。|
+| **Remove Degenerates（删除退化的三角形）** | 如果启用该项，将会在导入过程中删除所发现的退化的三角形。禁用该项将会保留所发现的退化的三角形。一般，应该启用该选项。|
+| **Use Full Precision UVs（使用全精度UV）** | 如果启用该项，网格物体的UV将会被存储为32-位浮点型，而不是16-位。|
+
+### 简化设置
+
+| 设置 | 描述 |
+| ------- | ----------- |
+| **Percent Triangles(三角形百分比)** | 编辑器简化网格物体，直到该网格物体的三角形数量达到指定数量为止。|
+| **Max Deviation（最大偏离）** | 和基础网格物体的最大偏离量，以边界球体的百分比呈现。编辑器使用期望的质量来计算网格物体的误差尺度。这个误差尺度阻止工具过度简化网格物体，以防止新的网格物体表面和源网格物体的表面偏离太远。这种方法的优点是这个工具可以智能地优化网格物体使它位于源网格物体的某特定偏离量之内，而不必在受到任何三角形限制时而停止。|
+| **Silhouette(轮廓)** |指出了网格物体的轮廓的重要程度。您可以从 _Off（关闭）_  、_Lowest（最低级）_  、  _Low(低级)_  、 _Normal（一般）_  、 _High(高级)_ 和 _Highest(最高级)_ 选项中进行选择。选择较高级别的设置将会使得简化过程中更好地保存网格物体的几何体形状，但是将会导致更多的三角形数量。|
+| **Texture(贴图)** | 指出了贴图密度的重要程度。您可以从 _Off（关闭）_  、_Lowest（最低级）_  、  _Low(低级)_  、 _Normal（一般）_  、 _High(高级)_ 和 _Highest(最高级)_ 选项中进行选择。选择较高级别的设置将会使得简化过程中避免贴图拉伸失真，但是会导致产生更多的三角形数量。|
+| **Shading（阴影）** |指出了阴影质量的重要程度。您可以从 _Off（关闭）_  、_Lowest（最低级）_  、  _Low(低级)_  、 _Normal（一般）_  、 _High(高级)_ 和 _Highest(最高级)_ 选项中进行选择。选择较高级别的设置将使得简化时保持阴影质量，但是会导致产生更多的三角形数量。|
+| **Welding Threshold（融合阈值）** |顶点间距离在这个值之内的顶点将会自动融合。这可以帮助消除较小的面。使用太大的值将会产生较差的效果。|
+| **Hard Edge Angle Threshold（尖锐边缘角度阈值）** |当重新计算法线时，如果两个面之间的角度大于这个值将会在这两个面之间产生尖锐边缘。较小的角度值将会产生柔和边缘。|
+
+<!--
+[EXCERPT:Type]
+指出了所使用的方法，以决定最终LOD网格物体的质量或复杂度。
+
+[REGION:simpletable]
+| 类型 | 描述 |
+| ---- | ----------- |
+| **Max Deviation（最大偏离）** | 和基础网格物体的最大偏离量，以边界球体的百分比呈现。编辑器使用期望的质量来计算网格物体的误差尺度。这个错误尺度阻止工具简化网格物体，以防止新的网格物体表面和源网格物体的表面偏离太远。这种方法的优点是这个工具可以智能地优化网格物体使它位于源网格物体的某特定偏离量之内，而不必在受到任何三角形限制时而停止。|
+| **Percent Triangles(三角形百分比)** | 编辑器简化网格物体，直到该网格物体的三角形数量达到指定数量为止。|
+[/REGION]
+[/EXCERPT:Type]
+-->
+
+## LOD 组
+
+LOD组定义了细节层次设置及用于全局范围内修改静态网格物体的某些选项 
+。
+
+LOD组定义在 `Engine.ini` 文件的 `[StaticMeshLODSettings]` 部分。比如:
+
+	[StaticMeshLODSettings]
+	LevelArchitecture=(NumLODs=4,LightMapResolution=32,LODPercentTriangles=0.5,SilhouetteImportance=4)
+	SmallProp=(NumLODs=4,LODPercentTriangles=0.5)
+	LargeProp=(NumLODs=4,LODPercentTriangles=0.5)
+	Vista=(NumLODs=1)
+	Foliage=(NumLODs=1)
+
+这些设置定义了5个LOD组:
+
+* LevelArchitecture
+* SmallProp
+* LargeProp
+* Vista
+* Foliage. 
+
+
+通过编辑INI文件可以简单地添加或删除LOD组，不需要修改代码。额外添加的LOD组将会 
+自动地出现在编辑器用户界面中。LOD组中已经删除的网格物体将会使用由代码决定的 
+默认设置。这些默认设置可以通过在INI文件中定义None LOD组进行覆盖。
+
+### 组的默认设置
+
+以下设置为每个组定义了默认值。仅当导入了一个网格物体时或者 
+某个网格物体的LOD发生改变时才应用这些设置。
+
+| 设置 | 描述 |
+| ------- | ----------- |
+| **NumLODs（LOD数量）** | 要生成的LOD的默认数量。这个值的范围是1到4之间。
+| **LightMapResolution(光照贴图分辨率)** | 要使用的光照贴图分辨率。|
+| **BasePercentTriangles（基础LOD的三角形数量百分比）** |基础LOD网格物体中要保留的三角形数量的比例，数值在 0.0-1.0之间。|
+| **LODPercentTriangles** | 每个LOD要减少的三角形的数量。比如，如果某个网格物体具有4个LOD且 LOD0具有5000个三角形,它将该项设置为0.5，那么其余的LOD所具有的三角形数量分别是2500、1250和 625。|
+| **MaxDeviation（最大偏离量）** | 局部空间内一个LOD网格物体的表面和基础LOD网格物体的最大偏移距离。|
+| **WeldingThreshold（融合阈值）** | 如果两个顶点间距离小于这个值，那么它们将会自动到一起。|
+| **HardAngleThreshold（尖锐边缘角度阈值）** |如果两个三角形之间的角度大于这值(以度数为单位)，那么这两个三角形之间的边将不是平滑的。|
+| **SilhouetteImportance（轮廓重要度）** |该项设置的值越高，就会在生成LOD时会尝试保留该对象的轮廓。|
+| **TextureImportance（贴图重要度）** | 较高的值将会在生成LOD时防止贴图拉伸。|
+| **ShadingImportance（阴影重要度）** | 较高的值将会在生成LOD时尝试最小化对法线的修改。|
+
+### 组的全局设置
+
+以下设置可以用于修改组中的所有网格物体。这些设置既可以影响新网格物体也可以影响现有网格物体：
+
+| 设置 | 描述 |
+| ------- | ----------- |
+| **BasePercentTrianglesMult** |进一步简化基础LOD网格物体。比如，如果将这项设置为0.9，那么该组中所有网格物体的基础LOD网格物体的三角形数量会减少10%。|
+| **LODPercentTrianglesMult** | 进一步降低每个LOD网格物体的三角形数量。和BasePercentTrianglesMult类似，但它不会应用到基础LOD网格物体上。|
+| **MaxDeviationBias（最大偏离量调整）** | 调整在简化所有网格物体过程中使用的最大偏移量。|
+| **WeldingThreshold（融合阈值）** | 调整在简化所有网格物体过程中使用的融合阈值。|
+| **HardAngleThreshold（尖锐边缘角度阈值）** | 调整在简化所有网格物体过程中使用的尖锐边缘角度阈值。|
+| **SilhouetteImportance（轮廓重要度）** | 调整在简化所有网格物体过程中使用的轮廓重要度。|
+| **TextureImportance（贴图重要度）** | 调整在简化所有网格物体过程中使用的贴图重要度。|
+| **ShadingImportance（阴影重要度）** | 调整在简化所有网格物体过程中使用的阴影重要度。|
+
+
+## Simplygon?
+
+![Simplygon](Engine/UI/Tools/Simplygon/simplygon_logo.png)
+
+Simplygon通过尽可能多地删除信息来自动生成可以在游戏中使用的具备特定像素分辨率的细节层次模型(LOD)，不会针对某特定屏幕尺寸降低LOD质量。Simplygon使用了一种获得专利的网格物体简化方法，它可以保持LOD几何完整性和LOD切换时的视觉质量，用于生成可以直接在顶级游戏中使用的AutoLODs（自动LOD） 。
+
+虚幻引擎4对Simplygon进行了一些修改，使得不必离开虚幻编辑器就可以进行高质量的网格物体简化 。开发人员可以快速地简化网格物体、生成LODs，并立即在他们的关卡中看到效果。

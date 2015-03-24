@@ -1,0 +1,161 @@
+﻿INTSourceChangelist:2420314
+Availability: Public
+Title:애니메이션 미리보기
+Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
+Description:애니메이션을 미리보고, 애니메이션 미리보기 제어 및 애니메이션 정보 토글 방법을 보여줍니다.
+Related: Engine/Animation/Overview
+Related: Engine/Animation/Persona/Viewport
+Related: Engine/Animation/Sequences
+Related: Engine/Animation/AnimMontage
+Related: Engine/Animation/Blendspaces
+Related: Engine/Animation/AimOffset
+
+
+여기서는 언리얼 엔진 4 의 애니메이션 편집 툴인 [페르소나 애니메이션 에디터](Engine/Animation/Persona) 안에서 애니메이션 애셋을 로드하고 미리보는 여러가지 방법에 대해 다루겠습니다. 재생 조작에 사용되는 콘트롤 또는 현재 미리보는 중인 애니메이션에 대해 표시되는 정보 역시도 다루면서, 자세한 정보에 대한 부가 링크도 제공됩니다.
+
+
+[TOC(start:2 end:2)]
+
+## 콘텐츠 브라우저에서 미리보기
+
+애니메이션 애셋을 열어 미리보는 가장 흔한 방법은 **콘텐츠 브라우저** 에서 **더블클릭** 하는 방법입니다.
+
+![](Preview1.png)
+
+그러면 선택된 애셋이 **페르소나 애니메이션 에디터** 안에 열립니다.
+
+![](Preview2.png)
+
+선택된 애셋이 [](Engine/Animation/Persona/Viewport) 안에 자동으로 재생 시작되며, 모션 재생이 자동 반복됩니다.
+
+## 페르소나에서 미리보기
+
+**페르소나** 가 이미 열려있는 경우, **애니메이션** 탭에서, **애셋 브라우저** 의 애셋에 **더블클릭** 하면 뷰포트에서 미리볼 수 있습니다.
+
+[REGION:lightbox]
+[![](Preview3.png)](Preview3.png)
+[/REGION:lightbox]
+
+_클릭하면 원래 크기로 봅니다._
+
+또 **페르소나** 의 **애니메이션** 탭에 있을 때, 애셋 팝업 메뉴에서 프리뷰 애니메이션을 설정할 수 있습니다.
+
+![](Preview6.png)
+
+애셋 선택 버튼을 클릭한 이후, 미리볼 애니메이션 애셋을 선택할 수 있는 팝업창이 뜹니다.
+
+![](Preview7.png)
+
+**페르소나** 의 다른 탭에 있는 경우, **메뉴 툴바** / **창** 옵션에서 **애셋 브라우저** 창을 켤 수 있습니다.
+
+[REGION:lightbox]
+[![](Preview4.png)](Preview4.png)
+[/REGION:lightbox]
+
+_클릭하면 원래 크기로 봅니다._
+
+그러면 **애셋 브라우저** 창이 나타나, 다른 창에 붙일 수 있습니다.
+
+[REGION:lightbox]
+[![](Preview5.png)](Preview5.png)
+[/REGION:lightbox]
+
+_클릭하면 원래 크기로 봅니다._
+
+애니메이션 애셋을 선택하면 **애셋 브라우저** 안에서 바로 작은 반복 미리보기를 볼 수도 있습니다.
+
+![](Preview8.png)
+
+
+## 페르소나 뷰포트 콘트롤
+
+아래는 페르소나 뷰포트를 조작하여 카메라를 움직일 수 있도록 하는 콘트롤입니다.
+
+### 표준
+
+이 콘트롤은 다른 키나 버튼을 누르지 않은 채로 뷰포트를 클릭하고 끌었을 때의 기본 동작을 나타냅니다. 직교 뷰포트 조작에만 사용할 수 있는 콘트롤도 있습니다.
+
+| 콘트롤 | 동작 |
+| ------- | ------- |
+| **좌클릭 + 드래그** | 카메라를 앞뒤 이동 / 좌우 회전시킵니다. |
+| **우클릭 + 드래그** | 뷰포트 카메라를 회전시킵니다. |
+| **좌클릭 + 우클릭 + 드래그** | 위아래로 이동시킵니다. |
+| **F** | 뷰포트의 메시에 카메라 포커스를 맞춥니다. |
+
+### 게임 스타일
+
+PC 의 슈팅 게임에 익숙하신 분들은 WASD 콘트롤이 자연스럽게 느껴질 것입니다. 이는 기본적으로 활성화된 콘트롤로, **우클릭** 상태면 언제든 사용 가능합니다. 즉 **우클릭** 으로 카메라를 회전시키면서 이런 식의 조작도 가능하다는 뜻입니다.
+
+이 콘트롤은 방향키와 숫자패드에도 적용되어 보조 입력이 가능합니다.
+
+| 콘트롤 | 동작 |
+| ------- | ------ |
+| **W** &#124; **Numpad8** &#124; **Up** | 카메라를 앞으로 움직입니다. |
+| **S** &#124; **Numpad2** &#124; **Down** | 카메라를 뒤로 움직입니다. |
+| **A** &#124; **Numpad4** &#124; **Left** | 카메라를 왼쪽으로 움직입니다. |
+| **D** &#124; **Numpad6** &#124; **Right** | 카메라를 오른쪽으로 움직입니다. |
+| **E** &#124; **Numpad9** &#124; **Page Up** | 카메라를 위로 움직입니다. |
+| **Q** &#124; **Numpad7** &#124; **Page Dn** | 카메라를 아래로 움직입니다. |
+| **Z** &#124; **Numpad1** | 카메라를 줌아웃 시킵니다 (FOV 를 높입니다). |
+| **C** &#124; **Numpad3** | 카메라를 줌인 시킵니다 (FOV 를 낮춥니다). |
+
+### 패닝, 오빗, 줌
+
+[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#mayalikecontrols]
+
+
+## 페르소나 뷰포트 옵션
+
+**페르소나 뷰포트** 안에 있는 옵션에 대한 설명입니다.
+
+![](Preview13.png)
+
+1.	**뷰 옵션 툴바**
+2.	**이동 툴바**
+3.	**애니메이션 표시 정보**
+
+### 뷰 옵션 툴바
+
+[INCLUDE:Engine/Animation/Persona/Viewport#viewoptions]
+
+### 이동 툴바
+
+[INCLUDE:Engine/Animation/Persona/Viewport#movement]
+
+### 애니메이션 표시 정보
+
+**디스플레이 정보** 아래 **표시** 옵션에서 뷰포트에 표시되는 정보를 토글시킬 수 있습니다.
+
+![](Preview14.png)
+
+**Basic** (기본)은 디스플레이 정보의 압축 버전이 표시되는 반면, **Detailed** (상세)는 보다 자세한 정보가 표시되고, **None** (없음) 은 디스플레이 정보를 숨깁니다.
+
+## 페르소나 재생 콘트롤
+
+**애님 시퀀스** 또는 **애님 몽타주** 를 열면, 가운데 창 하단에 애니메이션 애셋의 재생 제어에 사용되는 **타임라인** 및 **콘트롤 바** 가 보입니다. 아래에서 노랑색으로 강조된 타임라인 및 콘트롤 바 옵션으로 애니메이션을 재생, 일시정지, 건너뛰기, 스크러빙, 루핑 등의 조작이 가능합니다.
+
+![](Preview9.png)
+
+[INCLUDE:Engine\Animation\Persona\Viewport#previewcontrols]
+
+## 블렌드 스페이스 & 에임 오프셋
+
+**Enable Preview BlendSpace** (블렌드 스페이스 미리보기 활성화** 옵션이 체크되어 있는 한 **페르소나** 안에서 [블렌드 스페이스](Engine/Animation/Blendspaces) 또는 [](Engine/Animation/AimOffset) 에 적용되는 애니메이션 블렌딩을 미리볼 수 있습니다.
+
+![](Preview10.png)
+
+애니메이션 사이의 블렌딩을 확인하려면, **파라미터** 그리드 안으로 **마우스 커서** 를 옮기세요.
+
+![](Preview11.png)
+
+**Enable Tooltip Display** (툴팁 표시 활성화) 옵션 체크를 해제하여 툴팁 표시를 제거합니다.
+
+![](Preview12.png)
+
+위에서 언급한 것처럼 **블렌드 스페이스** 와 **에임 오프셋** 둘 다 같은 방식으로 미리보기 가능합니다.
+
+
+
+
+
+

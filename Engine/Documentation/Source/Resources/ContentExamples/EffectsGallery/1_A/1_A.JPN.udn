@@ -1,0 +1,69 @@
+﻿INTSourceChangelist:2346406
+Availability:Public
+Title:1.1 - CPU と GPU スプライトパーティクルの比較 
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
+Description:エフェクト ギャラリーの事例概要
+Related: Engine/Rendering/ParticleSystems/Overview
+Related: Engine/Rendering/ParticleSystems/Reference
+Related: Engine/Rendering/ParticleSystems/Optimization
+Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
+Related: Engine/Rendering/ParticleSystems/ParticleLights
+Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\EffectsGallery\1_A:title%](%ROOT%\Resources\ContentExamples\EffectsGallery\1_A\1_ATopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\EffectsGallery\1_A:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\EffectsGallery\1_A:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\EffectsGallery\1_A]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources\ContentExamples\EffectsGallery\1_A:title%](%ROOT%\Resources\ContentExamples\EffectsGallery\1_A\1_ATopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\EffectsGallery\1_A:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\EffectsGallery\1_A:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\EffectsGallery\1_A]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+![](image006.png)
+[/REGION]
+
+
+
+アンリアル・エンジン 4 で利用可能なパーティクルタイプの1つに **GPUスプライト** があります。最初にCPU上でスポーンされるパーティクルですが、その後全てグラフィックカードで処理及び演算処理されます。GPUで演算処理をするため、何千ものより多くのパーティクルを一度に処理できるのが利点です。高密度でより詳細なパーティクルシステムを有効にします。
+
+最初にとてもシンプルな2つのパーティクルの噴水をお見せします。それぞれ一般的なCPUパーティクルスプライトと、GPUスプライトで作成したパーティクルです。GPUパーティクルを使用した右側の噴水は、別の噴水よりもはるかに多くのパーティクルを出力していることに気付かれると思います。 
+
+CPUとGPUスプライトの挙動は似ていますが、いくつかの重要な違いがあります。CPUパーティクルで利用できるいくつかの機能は（2、3例挙げるとライトエミッション、Materialパラメータの制御、Attractionモジュールなど）、GPUパーティクルでサポートされていません。しかし数字を見る限りでは、GPUでサポートが無い機能を補って余りあるほどです。 GPUSprite TypeData は数万から数十万のパーティクルをパフォーマンスに深刻な影響を与えることなくスポーンします。これにより、降雪、雨、火花等のエフェクトをもたらす方法が大きく変化します。
+これらのパーティクルを使用するにはエミッタヘッダ下の空スペースを **右クリック** して、 **Type Data > New GPU Sprites** を選択します。
+
+![](image008.png)
+ 
+GPUパーティクルをサポートしないモジュールがいくつかあることを忘れないでください。エミッタで互換性のないモジュールを使用している場合、モジュールは赤でハイライト表示されます。詳細は、[GPU スプライト タイプのドキュメント](Engine/Rendering/ParticleSystems\Reference\TypeData\GPUSprites) をご覧ください。
+
+

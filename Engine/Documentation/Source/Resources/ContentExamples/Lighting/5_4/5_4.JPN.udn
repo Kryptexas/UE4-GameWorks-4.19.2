@@ -1,0 +1,50 @@
+﻿INTSourceChangelist:2346368
+Availability:Public
+Title:5.4 - Min Roughness
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
+Description:ライティングの事例概要、例 5.4：Min Roughness
+Related:Engine/Rendering/LightingAndShadows/Basics
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
+Related:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Directional
+Related:Engine/Rendering/LightingAndShadows/Lightmass
+Related:Engine/Rendering/LightingAndShadows/Shadows
+Related:Engine/Rendering/LightingAndShadows/IndirectLightingCache
+Related:Engine/Rendering/LightingAndShadows/LightMobility
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\Lighting\5_4:title%](Resources\ContentExamples\Lighting\Lighting_5_4.png)(w:192)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\Lighting\5_4:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\Lighting\5_4:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\Lighting\5_4]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+![%Resources\ContentExamples\Lighting\5_4:title%](Resources\ContentExamples\Lighting\Lighting_5_4.png)
+[/REGION]
+
+この例はライトの反射上に Min Roughness (最少ラフネス値) の効果を示します。カテゴリを拡張する必要がありますが (小さな白い三角をクリック)、Min Roughnessは **[詳細]** パネルの [Light] カテゴリから利用できます。
+
+![](MinRoughness.png)
+
+Min Roughness は、強調しすぎと思われるハイライト部分をぼかす手段として使用します。通常はライトに Min Roughness を設定する代わりに Roughness 値やマテリアルのテクスチャ自体を使用しますが、不定期に発生する強調表示された迷光の修正に便利です。
+
+
+
+
+

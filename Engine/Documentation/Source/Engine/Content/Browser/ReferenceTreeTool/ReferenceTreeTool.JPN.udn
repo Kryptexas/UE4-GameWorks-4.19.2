@@ -1,0 +1,120 @@
+﻿INTSourceChangelist:2214958
+Availability:Public
+Title:参照ツリーツール
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser, Engine/Content/Browser/ReferenceViewer
+Description:階層ツリー表示で特定のアセットを参照する全オブジェクトのリストを表示するツール
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Browser/ReferenceTreeTool:title%](ReferenceTreeTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/ReferenceTreeTool:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Browser/ReferenceTreeTool:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/ReferenceTreeTool]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Browser/ReferenceTreeTool:title%](ReferenceTreeTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/ReferenceTreeTool:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Browser/ReferenceTreeTool:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/ReferenceTreeTool]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![](ReferenceTreeBanner.png)
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+
+
+## 概要
+
+参照ツリーは、特定アセットの参照チェーンのリスト表示を有効にするツールです。参照チェーンとは、リスト内の各オブジェクトが、リスト内でそれよりも下に位置するオブジェクトを参照するときに使用される参照リストのことです。参照ツリーツールによって、どのようにオブジェクトが参照されているのか簡単に見つけることができます。
+
+以下の画像は、ツリーのルートが「M_RTS_Env_Lava_01」という名前のマテリアルになっていることが分かります。ツリーのルートは、常に調査中のオブジェクトになります。マテリアルが 6 つのスタティックメッシュアクタから参照されているのが分かります。
+
+![ReferenceTree2.PNG](ReferenceTree2.PNG)
+
+
+## 参照ツリーを使用する
+
+参照ツリーは、 [Reference Viewer] からアクセス出来ます。 [Reference Viewer] はアセット依存のグラフを表示するツールです。[Reference Viewer] を開くには、**コンテンツ ブラウザ** でアセットを右クリックしてから、 **[Reference Viewer]** をクリックします。
+
+[Reference Viewer] から、コンテクストメニューを表示するためにグラフでアセットを **右クリック** します。その後対象アセットの参照ツリーを表示する **[Show Reference Tree]** をクリックします。
+
+[Reference Viewer] に関する詳細は、[](Engine/Content/Browser\ReferenceViewer)を参照してください。
+
+[REGION:note]
+参照ツリーウィンドウを初めてロードする場合は、数秒かかる場合があります。ロード時間はゲームの複雑度とオブジェクト数に依存します。参照ツリーは実用的なツールですが、アセット間の依存関係を知りたい場合は、 [Reference Viewer] 自体からこれを探すことも出来ます。この方法は、通常は参照ツリーよりも速くロードすることができます。
+[/REGION]
+
+
+
+##オプション
+
+
+### [表示] メニュー
+
+
+* **Rebuild Tree** - ツリーを再生成してロードした全オブジェクトを調べます。この方法は多少時間を要するかもしれませんが、調査中のアセットに対する参照を変更した際に実用的です。
+* **Expand All** - ツリーにある全ノードを展開します。
+* **Collapse All** - ツリーにある全ノードを折りたたみます。
+
+
+### オプション メニュー
+
+* **Show Script Objects** - デフォルトでは表示されない、スクリプトオブジェクトを表示します（スクリプトでアセットへの参照）。
+
+
+### コンテキストメニュー
+
+参照ツリーでアイテムを **右クリック** すると、使用できるオプションと一緒にコンテクストメニューが表示されます。
+
+
+* **Open Editor** - 適切なアセットエディタでアセットが開きます。(例えば、スタティックメッシュはスタティックメッシュエディタで開きます)
+* **Show in Content Browser** - **コンテンツ ブラウザ** でアセットの位置へブラウズして、アセットを選択します。
+
+[REGION:tip]
+参照ツリーでアセットを **ダブルクリック** しても、**コンテンツ ブラウザ** でアセットの位置へブラウズして、このアセットを選択します。
+[/REGION]
+
+
+
+##注記
+
+
+* 参照ツリーツールは、ブラウズが可能なオブジェクトまたはアクタのみを表示します。
+* ツリーとパフォーマンスの関係上、各階層の最初の 100 アイテムのみが表示されます。100 以上のアイテムがある場合、残りのアイテム数を示すノードが追加されます。
+このツールは、現在作業進行中です。 
+
+
+ 
+
+
+
+
+

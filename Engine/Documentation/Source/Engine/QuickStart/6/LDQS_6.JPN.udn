@@ -1,0 +1,61 @@
+﻿INTSourceChangelist:2467434
+Availability:Public
+Title:6.仕上げ
+Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
+Description:学んだことを活用してレベルを仕上げてみます。関連するトピックスのリンクの照会です。 
+
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Engine/QuickStart/5 "%Engine/QuickStart/5:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Engine/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+クイックスタートガイドを通じて学んだ知識を活かして、以下の操作をしてみましょう。 
+
+![](update1.png)(w:830)
+
+* レベルのライトを夜のシーンの月光に変更する 
+* 最初の部屋に別の部屋をくっつけて追加する 
+
+![](update2.png)(h:380) ![](update4.png)(h:380)
+
+* 追加した部屋を高くして、階段でつなげる 
+* 低木、長いす、棚、玄関のドアを追加する 
+
+![](update6.png)(w:830)
+
+* 異なるカラーの異なるライトを追加する 
+* アクタ上で異なるマテリアルを使用する 
+
+コンテンツ クイック スタートガイドおよびエディタ全般で説明したトピックスに関しては、 [アンリアル エディタのマニュアル](Engine) をご覧ください。
+
+クイック スタートガイドで取り扱った詳細は以下でご覧いただけます。
+
+* レベル エディタに関する詳細は、 以下を参照してください。 [レベルエディタ](Engine\UI\LevelEditor)
+
+* ビューポートのナビゲーションに関する詳細は以下を参照してください。 [ビューポート](Engine\UI\LevelEditor\Viewports)
+
+* アンリアル エディタ 4 で利用可能な編集モードに関する詳細は、 以下を参照してください。 [レベルエディタのモード](Engine\UI\LevelEditor\Modes)
+
+* **コンテンツブラウザ** に関する詳細は、以下を参照してください。 [**コンテンツ ブラウザ**](Engine\Content\Browser)
+
+* **[詳細]** パネルに関する詳細は、以下を参照してください。 [詳細パネル](Engine\UI\LevelEditor\Details)
+
+* ビルドに関する詳細は以下を参照してください。 [Lightmass](Engine\Rendering\LightingAndShadows\Lightmass)
+
+* ライティングの基礎に関する詳細は以下を参照してください。 [**ライティング クイックスタート ガイド**](Engine/Rendering/LightingAndShadows/QuickStart) をご覧ください。
+
+%Steps%

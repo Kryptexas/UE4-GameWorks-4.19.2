@@ -1,0 +1,52 @@
+﻿INTSourceChangelist:2449128
+Availability:Public
+Title:Timeline ノードの作成
+Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/Timelines
+Description:このドキュメントは、ブループリントで Timeline ノードを作成する方法の概要です。
+
+## 概要
+
+%Description%
+
+## タイムラインの作成
+
+1. _Timeline_ は _ブループリント_ で非常に簡単に作成できます。**[グラフ]** タブで右クリックをし、コンテクストメニューから **[タイムラインを追加]** を選びます。
+
+	![](Add_Timeline.png)
+
+1. 新規の _Timeline_ ノードがグラフに追加されます。
+
+	![](Timeline_Created.png)
+
+
+_Timeline_ が追加されると、 **[My Blueprint]** タブでそれを確認することができます。 
+
+![](Timeline_In_Explorer.png)
+
+## Timeline 変数
+
+Timeline を作成すると、 **[My Blueprint]** タブで変数として利用できることが分かるようになります。それにより _Timeline_ コンポーネントへの参照が可能になり、 _Timeline_ ノードを利用しなければいけない時に特に便利です。これらのノードは、再生レートなどの Timeline の一定の機能へアクセスするために存在します。
+
+![](Timeline_Variable.png)
+
+このサンプルでは、 Get _Timeline_ 0 変数を使って、そのタイムラインの現在の Play Rate 値をクエリします。 
+
+![](Timeline_Get_PlayRate.png)
+
+多種に渡って存在するこのようなノードを使って、値をクエリし _Timeline_ ノードのビヘイビアを制御することができます。利用可能な _Timeline_ ノードおよび機能の一覧は、 [Timeline ノード](Engine/Blueprints/UserGuide\Timelines\TimelineNodes) をご覧ください。
+
+## Timeline の名前変更
+
+_Blueprints_ で複数の _Timelines_ を使用する場合は、それぞれの _Timeline_ に適切な名前を付けることが重要です。すべての _Timelines_ には、デフォルトで「Timeline_X」の最後に連番が付いた名前になっています。**[グラフ]** タブあるいは**[My Blueprint]** タブで _Timeline_ を右クリックして **[名前変更]** を選べば、名前の変更ができます。
+
+![](Rename_Timeline.png)
+
+[REGION:raw]
+![](Rename_Timeline2.png)
+[/REGION]
+
+## タイムライン エディタを開く 
+
+もちろん、何かをするための設定をしない限り、 _Timeline_ を作成しても意味がありません。**タイムライン エディタ** を開くには、 **[グラフ]** タブまたは **My Blueprint** 内の一覧の _Timeline_ ノードを単にダブルクリックします。
+
+Timelines の編集に関する詳細は、 [タイムラインの編集](Engine/Blueprints/UserGuide\Timelines\Editor) を参照してください。

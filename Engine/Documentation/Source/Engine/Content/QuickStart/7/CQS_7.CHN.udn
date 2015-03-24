@@ -1,0 +1,46 @@
+﻿INTSourceChangelist:2108140
+Availability: Public
+Title:7. 扩展阅读
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:关于美术师快速入门指南中介绍的主题的扩展阅读。
+
+
+
+[VAR:Steps]
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		步骤
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [前一步 - %Engine/Content/QuickStart/6:Title%](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:description%")
+		* **当前步骤 - %Engine/Content/QuickStart/7:Title%**
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+关于本快速指南涵盖的主题及整个编辑器的更多信息，请参照[**虚幻编辑器手册**](Engine)。
+
+关于本快速指南中介绍的详细信息：
+
+* 关于FBX工作流程的更多信息，请参照： [**%Engine/Content/FBX:title%**](Engine/Content/FBX)
+
+* 关于所支持的图像类型的更多信息，请参照： [**%Engine/Content/Types/Textures/Importing:title%**](Engine/Content/Types/Textures/Importing)
+
+*  关于材质的更多信息，请参阅： [**材质主页**](Engine/Rendering/Materials)
+
+* 关于 **内容浏览器** 的更多信息，请参照： [**内容浏览器**](Engine\Content\Browser)
+
+* 关于静态网格物体编辑器的更多信息，请参照： [**静态网格物体编辑器**](Engine/Content/Types/StaticMeshes/Editor)
+
+---
+
+%Steps%

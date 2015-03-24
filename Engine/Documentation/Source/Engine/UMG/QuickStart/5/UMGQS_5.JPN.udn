@@ -1,0 +1,202 @@
+﻿INTSourceChangelist:2362600
+Availability:Public
+Title:5.エクスペリエンスバーとホットバーボタン
+Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
+Description:UMG クイックスタートガイドの 5 番目のステップでは、エクスペリエンスバーとホットバー ボタンを作成します。 
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/UMG\QuickStart\4 "%Engine/UMG\QuickStart\4:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/UMG\QuickStart) 
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/UMG\QuickStart\6 "%Engine/UMG\QuickStart\6:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		エクスペリエンスバーとホットバーボタンを追加する
+	[/PARAM]
+	[PARAM:description]
+	このセクションでは、HUD を更新し、エクスペリエンスバー、レベルアップ テキスト、アクションバー ボタンを用意します。 
+	[/PARAM]
+[/OBJECT]
+
+1. **コンテンツ ブラウザ** で、**UMG** フォルダを選択し、**GameHUD** ブループリントを開きます。 
+
+1. **[Common]** の **[Palette]** ウィンドウ内から **Progress Bar** を **[Hierarchy]** (階層) ウィンドウの **キャンバスパネル** にドラッグします。 
+
+1. お好きな場所にバーを移動し、リサイズします (ここでは一番下に配置しました)。 
+
+	![](New_1.png)
+
+	**[詳細]** パネルで、必要な場所にバーを **固定** します。 (ここでは、中央下部に固定しました)。
+
+1. **テキスト ブロック** を **キャンバスパネル** に追加します。このテキストはユーザーに「レベルアップ」したことを伝えるために使用します。
+
+1. **テキスト ブロック** を表示するテキストと共にお好みの場所に配置します。
+
+	![](New_2.png)
+
+	 ここでは、"Super Jump Unlocked!" というテキストを使用し、下部に固定しました。
+
+1. 次に、**キャンバスパネル** に **ボタン** を追加し、必要に応じて移動およびサイズ調整してください (ここでは、エクスペリエンスバーの下に配置しました)。 
+
+	![](New_4.png)
+
+1. **Behavior** にあるボタンの **[詳細]** パネルで、**[Is Enabled]** ボタンのチェックを外します (プレイヤーがレベルアップするとオンにするため)。 
+
+	![](New_3.png)
+
+1. **[IsEnabled]**チェックボックスの隣で、**Bind** ボタンをクリックし、**[Create Binding]** を選択します。 
+
+1. グラフ内で、**H_LevelUp** という新規 **Bool** 変数を作成してそれを **Return Value** に接続します。 
+
+	![](New_5.png)
+
+1. **Design** タブに戻り、エクスペリエンスバーをクリックします。 
+
+1. **[詳細]** パネルで、バーに色を割り当てます。次に、**Percent** の隣にある **Bind** をクリックし、**Create Binding** (バインディングを作成する) を選択します。 
+
+1. グラフ内で、**H_Experience** という新規 **Float** 変数を作成してそれを **Return Value** に接続します。 
+
+	![](New_7.png)
+
+1. **[MyBlueprint]** ウィンドウで、**イベントグラフ** を **ダブルクリック** してイベントグラフにジャンプします。 
+
+	![](New_15.png)
+
+1. グラフ内で **右クリック** して、**Branch** に接続された **Event Tick** ノードを追加します。 
+
+1. その条件に対して、**Control** キーを押しながら **H_Experience** 変数内をドラッグし、それを **>=** ノード (**1.0** に設定) に接続します。 
+
+1. **H_UnlockedText** と呼ばれる新規 **Text** 変数を作成します。 
+
+1. 次に **Alt** キーを押しながら **H_UnlockedText** 変数内でドラッグして、能力をアンロックしたときに表示するテキストを入力します。 
+
+	![](New_13.png)
+
+1. 	**Designer** タブに戻り、**Text** 欄の隣でアンロック テキストを選択します。**Bind** をクリックし、**H_UnlockedText** 変数を選択します。
+
+	![](New_13b.png)
+
+	これで、表示されるテキストを変数が何であってもバインドします。 
+
+1. **[グラフ]** タブに戻ります。 
+
+1. アンロックのテキストの後に、**Delay** ノードを追加します (1 秒に設定)。 
+
+1. **Delay** の後に、**Set H_Experience** を **0.0** に、**Set H_UnlockedText** を **Blank** に設定し、最後に **H_LevelUp** を **True** に設定します。 
+
+	[REGION:lightbox]
+	[![](New_14.png)(w:840)](New_14.png)
+	[/REGION]
+	完成したグラフは上の画面のように見えるはずです。フルサイズ表示にするには画像をクリックしてください。エクスペリエンスが十分になったら、能力をアンロックした旨のテキストを表示し、その後、テキストを取り除き、エクスペリエンス バーをリセットします。
+
+	1. **コンパイル** し **保存** してから、ブループリントを終了します。 
+
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		エクスペリエンスの生成と仕上げ
+	[/PARAM]
+	[PARAM:description]
+	このセクションでは、ボックスを撃つとエクスペリエンスを生成し、HUD を更新するようにセットアップします。 
+	[/PARAM]
+[/OBJECT]
+
+1. **ゲーム / ブループリント** の **コンテンツ ブラウザ** から **MyProjectile** ブループリントを開きます。 
+
+1. グラフ内で、**Destroy Actor** ノードの後に、**Get Player Character** ノードを追加し、**Cast To MyCharacter** にします。 
+
+1. **As My Character C** ピンから、**Get GameHUDWidget** (Widget ブループリント) ノードを追加します。 
+
+	![](New_8.png)
+
+1. 以下のように、**GameHUDWidget** ピンから、**Set H_Experience** を **H_Experience** + **0.10** に接続します。 
+
+	![](New_9.png)
+	完成したシーケンスは上の画面のようになるはずです。フルサイズ表示にするには画像をクリックしてください。
+
+
+1. **コンパイル** し **保存** してから、ブループリントを終了します。
+
+1. **ゲーム / ブループリント** の **コンテンツ ブラウザ** から **MyCharacter** ブループリントを開きます。 
+
+1. **右クリック** して **1** Key Press イベントを追加して、**GameHUDWidget** 変数内をドラッグして、そこから ****H_LevelUp** をget します。 
+
+1. **1** Key Press イベントの **Pressed** ピンから条件が **H_LevelUp** である **Branch** を追加します。 
+
+	![](New_10.png)
+
+1. **Branch** の **True** から、**Launch Character** ノードを追加し、**Launch Velocity** X を **50** に設定し、Z を **1000.0** に設定します。 
+
+1. **Alt** キーを押しながら、**P_Energy** 変数内をドラッグして、それを **Control** キーを押しながら 0.5 に設定された **Float - Float** ノードに接続します。 
+
+	![](New_11.png)
+
+	これで、空中のキャラクターを起動し、キャラクターからエネルギーを差し引き、それが HUD に表示されるようになります。
+
+1. このシーケンスの **GameHUDWidget** ノードから再度ドラッグして、**Set H_LevelUp** を **False** (未チェック) に接続します。 
+
+1. 上記の手順に続いて、**Delay** ノード (**2** に設定) を追加し、次に **Set H_Levelup** を **True** (チェック済み) に接続します。 
+
+	[REGION:lightbox]
+	[![](New_12.png)(w:840)](New_12.png)
+	[/REGION]
+
+	_画像をクリックしてフルサイズで表示_
+
+	**1** を押すと、プレイヤーがアンロックされた能力を持つ場合、それを起動し、一部のエネルギーを取り除き、2 秒のクールダウンを能力に加えます。
+
+1. 次に **F** key press イベントを探し、**Set P_Health** ノードの後に condition が **P_Health** <= **0.0** である **Branch** を追加します。 
+
+1. **Control** キーを押しながら、**GameHUDWidget** 変数をドラッグし、**Branch** の下に配置し、そこからドラッグして **Remove from Viewport** ノードを追加します。 
+
+1. **Remove from Viewport** ノードを **Branch** の **True** に接続し、出口ピンから **You're Dead!** というテキストを持つ **Print String** を追加します。 
+
+	[REGION:lightbox]
+	[![](New_16.png)(w:800)](New_16.png)
+	[/REGION]
+
+	最後のいくつかの手順は、上のような結果になるはずです。フルサイズ表示にするにはクリックしてください。プレイヤーのヘルスがなくなると (すなわち死亡) 、HUD が取り除かれます。
+
+	[REGION:note]
+	注記:**Remove from Viewport** オプションが表示されない場合は、代わりに **Remove from Parent** オプションを使用してください。
+	[/REGION]
+
+1. **コンパイル** し **保存** してから、エディタで再生します。
+
+	![](Gif1.gif)(convert:false)
+
+	これで、10 個のボックスをヒットするとレベルアップし、画面上にテキストが表示されるはずです。少し経ったら、1 を押して能力を遂行し、ボタンにクールダウンを適用することができます。また、ヘルスがなくなるまで **F** キーを何回か押すとその時点で HUD が消えるはずです。
+
+	これは簡単な例であり、さらに数多くのことが行えますが、**UMG** を使用して画面を作成し、実装する方法、さらに様々な方法を使用して変数を渡し、やりとりする方法について理解したことでしょう。このガイドの最終ステップでは、**UMG** と **ブループリント ビジュアル スクリプティング** を使用するうえでのさらに詳しいドキュメントのリンク先を追加で提示します。これを使用して、ガイドで取り上げた例をさらに深めて独自のものにすることができます !
+
+
+---
+
+%Steps%
+
+
+
+
+

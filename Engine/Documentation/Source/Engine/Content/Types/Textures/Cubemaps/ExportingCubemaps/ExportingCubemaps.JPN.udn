@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:2276197
+Availability:Public
+Title:キューブマップをエクスポートする
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
+Description:NVIDIA のテクスチャツール プラグインを使用して、 Photoshop からキューブマップをエクスポートする方法
+
+## 概要
+
+本ページでは、 NVIDIA のテクスチャツール プラグインを使用して、 Photoshop からキューブマップをエクスポートする方法を説明します。
+
+## キューブマップのエクスポート (Photoshop)
+
+Photoshop で一連の画像のレイアウトが整うと、キューブマップとして使用する準備が完了です。次にエクスポートを行います。この例では、 Photoshop CS6 に対して NVIDIA のテクスチャツール プラグインを使用します。
+
+このプラグインがまだインストールされていない場合、 [こちら](http://developer.nvidia.com/content/nvidia-texture-tools-adobe-photoshop) から取得出来ます。
+
+1. 最初に、キューブマップ用のテクスチャは単一の文書に揃っていること、そして全てが同サイズであることを確認します。サイズは 2 のべき乗でなくてはいけません。フレームが [こちら](Engine/Content/Types/Textures/Cubemaps/CreatingCubemaps) で説明されている通りに回転するようにしてください。
+
+	![ExportCubemap.png](ExportCubemap.png)(w:800)
+
+2. **[ファイル]** メニューで **[名前をつけて保存]** を選択します。 
+
+	![PhotoshopSaveAs.png](PhotoshopSaveAs.png)
+
+3. [名前をつけて保存] ウィンドウで、 **D3D/DDS (*.DDS; *.DDS)** を選択してファイルに名前を付けます。
+
+	![PhotoshopSaveAsDialog.png](PhotoshopSaveAsDialog.png)(w:600)
+
+4. [NVIDIA dds Format] ウィンドウで、上部のコンボボックスから **8.8.8.8  ARGB 32 bpp | unsigned** を選択します。コンボボックスの下部を **Cube Map** に設定します。[MIP Map Generation] グループを、 **No MIP maps** に設定します。
+
+	![PhotoshopDDSDialog.png](PhotoshopDDSDialog.png)(w:600)
+
+5. **[保存]** をクリックします。
+
+
+
+使用画像は、 Paul Debevec 氏のウェブサイト [http://www.pauldebevec.com](http://www.pauldebevec.com/probes) のプローブ光から派生したものです。

@@ -1,0 +1,135 @@
+Availability: Public
+Title:实例化材质
+Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/Materials
+
+[TOC(start:2)]
+
+
+## 概述
+
+在虚幻引擎3中，材质实例化可以用于不会导致重新编译材质的材质外观改变。在不进行材质重新编译的情况下，不支持材质的一般修改，所以实例仅限于修改预定义的材质 **参数** 的值。参数在编译后的材质中通过唯一的名称、类型和默认值进行静态地定义。 材质实例可以动态地为这些参数提供一个新值，仅需要非常少的性能消耗。
+
+为了允许应用未实例化的材质到图元上，使用了抽象基类 MaterialInterface(材质接口)。 这个类是已应用的材质的表达式和参数值的接口。 Material(材质)类是定义了表达式和默认参数值的 MaterialInterface(材质接口)的子类。  这些类型都会从它们的父类中继承它们的表达式和参数值，可以选择重新载入某些参数值或对其进行动画处理。
+
+[材质示例常量](Engine/Rendering/Materials/MaterialInstances/Constant)是一个明确定义了参数值的材质实例。
+
+然后可以使用材质实例编辑器来编辑材质实例。 请参阅[材质实例编辑器用户指南](Engine/Rendering/Materials/MaterialInstances/Editor)了解更多信息。
+
+
+
+## 在编辑器中实例化材质
+
+可以使用两种主要方法在编辑器中创建材质实例。
+
+在[内容浏览器](Engine/Content/Browser)中点击 **新建** 按钮，然后在 **新建** 对话框中将 **工厂** 选项设置为 MaterialInstanceConstant.
+
+![create_newdialog.jpg](create_newdialog.jpg)(w:510 h:510)
+
+然后为该材质赋值，将其实例化为这个新材质实例的 **父类** 属性。
+
+![create_parentprop.jpg](create_parentprop.jpg)(w:786 h:414)
+
+在您希望实例的材质上右击，然后选择 **创建新的材质实例（常量）** （或者 **创建新的材质实例（随时间变化）** 根据您需要的实例类型进行选择）。
+
+![create_contextmenu.jpg](create_contextmenu.jpg)(w:282 h:483)
+
+(#ParameterGroups)
+
+
+
+## 参数组
+
+参数表达式有一个 *组* 属性，可以在材质实例编辑器中组织安排它们。可以将相关的参数添加到同一个组，这样可以更加便于快速查找并修改所有控制特定效果或父类材质部分的参数。不属于某个组的参数将会默认为是 _None（无）_ 组，并显示在这个组中。
+
+![groups.jpg](groups.jpg)(w:745 h:450)
+
+
+
+## 创建参数化的材质
+
+为了给材质添加一个参数，可以在材质编辑器中使用其中一个参数表达式类型。这里有几种参数类型可以使用，包括 ScalarParameter、VectorParameter、各种贴图参数以及静态参数。
+
+赋予这个参数一个唯一的名称，将其分配给一个[组](#ParameterGroups)，然后赋给它一个默认值。
+
+![param_edit.jpg](param_edit.jpg)(w:878 h:614)
+
+
+
+## 标量参数
+
+ScalarParameter是一个可以包含一个单独的浮点值的参数。可以使用这些参数根据单独的值驱动效果，例如，高光强度，线性插值的alpha、不透明度等等。
+
+请参阅[材质概要](Engine/Rendering/Materials/ExpressionReference)了解所有表达式的完整列表和描述。
+
+
+
+## 向量参数
+
+VectorParameter是一个包含一个 4 通道向量值或 4 浮点值的参数。这些通常用于提供可配置颜色，但是同时也可以使用它们表示位置数据或驱动任何需要多个值的效果。
+
+请参阅[材质概要](Engine/Rendering/Materials/ExpressionReference)了解所有表达式的完整列表和描述。
+
+
+
+## 贴图参数
+
+这里提供了一些贴图参数。每个参数针对可以接受的贴图类型或者使用它的方式。因为根据不同的贴图类型会生成不同的着色器代码，所以每个特定的贴图类型需要一个单独的表达式。
+
+
+* TextureSampleParameter2D 可以接受基本的 Texture2D
+* TextureSampleParameterCube 可以接受 TextureCube 或立方体贴图。
+* TextureSampleParameterFlipbook 可以接受 FlipbookTexture。
+* TextureSampleParameterMeshSubUV 可以接受通过使用网格物体发射器制作 uv 细分效果的 Texture2D。
+* TextureSampleParameterMeshSubUV 可以接受通过使用网格物体发射器制作 uv 细分混合效果的 Texture2D。
+* TextureSampleParameterMovie 可以接受 MovieTexture（bink 视频格式）。
+* TextureSampleParameterNormal 可以接受作为法线贴图使用的 Texture2D。
+* TextureSampleParameterSubUV 可以接受通过使用平面实例发射器制作 uv 细分效果的 Texture2D。
+
+
+请参阅[材质概要](Engine/Rendering/Materials/ExpressionReference)了解所有表达式的完整列表和描述。
+
+
+
+## 静态参数
+
+静态参数在编译时应用，所以它们能产生更加优化的代码，因为被静态参数隐藏的材质的全部分支都将被编译完成，并且在运行时不会执行。 因为它们是在编译时应用的，所以它们仅能从[材质实例编辑器](Engine/Rendering/Materials/MaterialInstances/Editor)中改变，而不能从脚本中改变。
+
+**警告： 对于实例所应用的基础材质中的每次静态参数的结合都将编译出一个新的材质！**
+
+这将会导致大量的昂贵的着色器被编译。 请尝试最小化材质中静态参数及真正使用的这些静态参数排列的数量。 请参阅[静态切换参数](MaterialsAndTextures\Materials\Compendium#Static Switch Parameter) and [静态组件蒙板参数](MaterialsAndTextures\Materials\Compendium#Static Component Mask Parameter)了解更多有关特定静态参数类型的信息。
+
+请参阅[材质概要](Engine/Rendering/Materials/ExpressionReference)了解所有表达式的完整列表和描述。
+
+
+
+## 在脚本中实例化一个材质
+
+为了创建一个脚本控制的材质实例，请在 UnrealScript 中使用新关键字来创建一个新的 MaterialInstanceConstant(材质实例常量)对象。 使用 SetParent 函数来设置定义了实例的表达式和默认参数值的材质，并使用 SetScalarParameterValue 或 SetVectorParameterValue 函数来改变那个实例的参数值。
+
+这里的代码示范了如何使用 UnrealScript 控制参数来创建并应用一个材质实例。
+    
+    var MeshComponent Mesh;
+    var MaterialInstanceConstant MatInst;
+    
+    var float TanPercent;
+    
+    function InitMaterialInstance()
+    {
+       MatInst = new(None) Class'MaterialInstanceConstant';
+       MatInst.SetParent(Mesh.GetMaterial(0));
+       Mesh.SetMaterial(0, MatInst);
+       UpdateMaterialInstance();
+    }
+    
+    function UpdateMaterialInstance()
+    {
+       MatInst.SetScalarParameterValue('TanPercent',TanPercent);
+    }
+    
+    function Timer()
+    {
+       if(/*character is outside*/)
+          TanPercent = Lerp(/*tanning rate*/,TanPercent,1.0);
+       UpdateMaterialInstance();
+    }
+    

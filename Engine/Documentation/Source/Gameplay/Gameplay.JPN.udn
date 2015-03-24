@@ -1,0 +1,141 @@
+﻿INTSourceChangelist:2426283
+Title:ゲームプレイ ガイド
+Crumbs:%ROOT%
+Description:プログラマおよびビジュアル スクリプタ向けのゲームプレイ機能の概要とサンプル
+Availability:Public
+
+[VAR:Params]
+[PARAM:image]
+	![](%ROOT%/placeholder_topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/gameplay_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Gameplay:title%
+[/PARAM]
+[PARAM:description]
+	%Gameplay:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Gameplay]
+[/PARAM]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:Role]
+[OBJECT:Role]
+%params%
+[PARAMLITERAL:id]
+ゲームプレイ
+[/PARAMLITERAL]
+[/OBJECT]
+[/VAR]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/gameplay_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		ゲームプレイの基本概念
+	[/PARAM]
+	[PARAM:description]
+		このページでは、主要なアンリアル用語を紹介します。ゲームプレイ オブジェクトに新規タイプを追加するためには、通常新規クラスを作成します。 
+		クラスは、新規オブジェクト用のテンプレートあるいはルールのコレクションなので、プロパティとビヘイビアがテンプレートに設定して、 
+		好きな数だけ複製を作成することができます。
+	[/PARAM]
+	[PARAM:links]
+		* [](Gameplay/UnrealTerminology "%Gameplay/UnrealTerminology:description%")
+		* [](Gameplay/ClassCreation "%Gameplay/ClassCreation:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/gameplay_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Framework
+	[/PARAM]
+	[PARAM:description]
+		アンリアル エンジン 4 には、ビヘイビアがプリセットされたクラスがたくさん付いていますので、ゲームの着手が容易です。これらのビルディング ブロックや、それらがどのように関わりあって機能するかについては、 
+		フレームワークの概要やクイック リファレンス、あるいは 
+		特定のクラスの詳細ページに直接アクセスして参照することができます。
+	[/PARAM]
+	[PARAM:links]
+		* [フレームワークの概要](Gameplay/Framework "%Gameplay/Framework:description%")
+		* [クイック リファレンス](Gameplay/Framework/QuickReference "%Gameplay/Framework/QuickReference:description%")
+		* [](Gameplay/Framework/Pawn "%Gameplay/Framework/Pawn:description%")
+		* [](Gameplay/Framework/Controller "%Gameplay/Framework/Controller:description%")
+		* [](Gameplay/Framework/GameMode "%Gameplay/Framework/GameMode:description%")
+		* [](Gameplay/Framework/Camera "%Gameplay/Framework/Camera:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/gameplay_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		ゲームプレイ エレメント
+	[/PARAM]
+	[PARAM:description]
+		キャラクター、ルール、ビジュアル スタイルはゲームによって異なりますが、中核となるエレメントはゲーム共通です。 
+		このページでは、入力から保存、これらのトピックスの概要の探し方、 C++ とブループリントでの設定例を紹介します。
+	[/PARAM]
+	[PARAM:links]
+		* [](Gameplay/Input "%Gameplay/Input:description%")
+		* [](Gameplay/Networking "%Gameplay/Networking:description%")
+		* [](Gameplay/SaveGame "%Gameplay/SaveGame:description%")
+		* [](Gameplay/DataDriven "%Gameplay/DataDriven:description%")
+		* [](Gameplay/AI "%Gameplay/AI:description%")
+		* [](Gameplay/Localization "%Gameplay/Localization:description%")
+		* [](Gameplay/Analytics "%Gameplay/Analytics:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/gameplay_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		ゲームプレイの How To
+	[/PARAM]
+	[PARAM:description]
+		このページは、最も一般的なゲームプレイ シナリオの生成方法について、ステップごとに説明します。 
+		ゲームの中で敵やピックアップをスポーンする方法、カメラ角度を変更する方法、プレイヤー入力の設定方法は、ブループリントと C++ 向けの設定例を紹介しています。
+	[/PARAM]
+	[PARAM:links]
+		* [アクタをスポーン/破壊する](Gameplay\HowTo\SpawnAndDestroyActors)
+		* [Respawning (OnDestroyed)](Gameplay\HowTo\RespawnPlayer)
+		* [ポーンを所有する](Gameplay\HowTo\PossessPawns)
+		* [レイキャストを使用する (トレーシング)](Gameplay\HowTo\UseRaycasts\Code)
+		* [アセットを参照する](Gameplay\HowTo\ReferenceAssets)
+		* [タイマーを使用する](Gameplay\HowTo\UseTimers)
+		* [ゲームモードを設定する](Gameplay\HowTo\SettingUpAGameMode)
+		* [入力を設定する](Gameplay\HowTo\SetUpInput)
+		* [アクタに入力を設定する](Gameplay\HowTo\ActorInput\Code)
+		* [キャラクター移動の設定](Gameplay\HowTo\CharacterMovement)
+		* [シーンでアクタを見つける](Gameplay\HowTo\FindingActors\Code)
+		* [カメラを使用する](Gameplay\HowTo\UseTimers)
+		* [コンポーネントを追加する](Gameplay\HowTo\AddingComponents\Code)
+		* [OnHit イベントを使用する](Gameplay\HowTo\UseOnHit)
+			* **ネットワーキング**
+			* [アクタをレプリケートする](Gameplay\HowTo\Networking\ReplicateActor)
+			* [関数をレプリケートする](Gameplay\HowTo\Networking\ReplicateFunction)
+			* [変数をレプリケートする](Gameplay\HowTo\Networking\ReplicateVariable)
+			* [マルチプレイヤーをテストする](Gameplay\HowTo\Networking\TestMultiplayer)
+	[/PARAM]
+[/OBJECT]
+

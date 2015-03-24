@@ -1,0 +1,90 @@
+﻿INTSourceChangelist:2373753
+Availability:Public
+Title:모프 타겟 프리뷰어
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:페르소나 애니메이션 에디터에서 사용가능한 편집 모드 사용 안내서입니다.
+Related: Engine/Content/FBX/Animations
+Related: Engine/Content/FBX/MorphTargets
+Related: Engine/Content/Types/SkeletalMeshes
+Related: Engine/Content/Tools/MayaRiggingTool
+Related: Engine/Content/Types/StaticMeshes/MorphTargets
+Related: Engine/Animation/AnimBlueprints
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/MorphTargetPreviewer:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/MorphTargetPreviewer:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/MorphTargetPreviewer:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/MorphTargetPreviewer]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC (start:2 end:3)]
+
+
+## 개요
+
+[EXCERPT:Overview]
+
+![](MorphGif.gif)(w:720 convert:false)
+
+**모프 타겟 프리뷰어** 로 스켈레탈 메시에 적용된 모프 타겟(, 사용하는 3D 애니메이션 프로그램에 따라 "모프", "블렌드 셰이프" 라고도 하는 것)을 미리볼 수 있습니다. 각 모프 타겟은 기존의 스켈레탈 메시 지오메트리에 첨가식 블렌딩됩니다. 이를 통해 여러 개의 모프 타겟을 합쳐 복잡한 버텍스 주도형 애니메이션으로 만들어 낼 수 있는데, 표정을 표현하는 데 자주 쓰입니다.
+[/EXCERPT:Overview]
+
+**모프 타겟 프리뷰어** 는 기본적으로 페르소나의 **메시** 모드에서 보입니다.
+
+[REGION:tip]
+캐릭터에 적용된 **모프 타겟** 예제를 확인하려면, [애니메이션 콘텐츠 예제](Resources\ContentExamples\Animation) 문서의 1.6 섹션을 참고하시기 바랍니다.
+[/REGION]
+
+
+## 인터페이스
+
+**모프 타겟 프리뷰어** 패널의 인터페이스는 꽤나 직관적입니다:
+
+![](MorphTargetPreviewerInterface.png)
+
+1. 검색 바
+1. 모프 타겟 리스트
+
+검색 바를 통해 모프 타겟 리스트를 걸러내어 필요한 것을 빠르게 찾아낼 수 있습니다. 원하는 대상의 처음 몇 글자만 입력하면 리스트가 걸러지기 시작합니다.
+
+**모프 타겟** 에 우클릭해도 **삭제** 와 같은 추가적인 작업이 가능한 대화상자가 뜹니다.
+
+![](RightClickDelete.png)
+
+## 모프 타겟 만들기
+
+모프 타겟은 스켈레탈 메시의 일부로 또는 독립적인 메시로 임포트할 수 있습니다. 지원되는 파일 포맷은 FBX 입니다. 그 셋업 절차는 물론 언리얼에 모프 타겟을 임포트하는 방법에 대해서는 [](Engine/Content\FBX\MorphTargets) 문서를 참고해 주시기 바랍니다.
+
+[REGION:tip]
+모프 타겟을 지우려면, **모프 타겟 프리뷰어** 창에서 그 이름에 우클릭하면 뜨는 맥락 메뉴에서 **삭제** 를 클릭합니다.
+[/REGION]
+
+## 모프 타겟 사용하기
+
+모프 타겟이 준비된 후 사용을 위해서는 애니메이션 블루프린트를 구성해 줘야 합니다. 그 작업은 이벤트 그래프에서 **Set Morph Target** 노드를 통해 가능합니다.
+
+![](SetMorphTarget.png)
+
+| 핀 | 설명 |
+| --- | --- |
+| [REGION:tablesection] 입력 핀 [/REGION] ||
+| 실행 | 노드의 이펙트를 트리거시킬 실행 선을 받습니다. |
+| 타겟 | 대상 스켈레탈 메시입니다. 대부분의 경우 **Self** 를 가리키게 됩니다. |
+| 모프 타겟 이름 | 편집중인 모프 타겟 이름을 받습니다. |
+| 값 | (0 과 1 사이의) 실수 값을 받아 편집중인 모프 타겟 값을 설정하는 데 사용합니다. |
+| [REGION:tablesection] 출력 핀 [/REGION] ||
+| 실행 | 실행을 다음 노드로 넘겨줍니다. |
+

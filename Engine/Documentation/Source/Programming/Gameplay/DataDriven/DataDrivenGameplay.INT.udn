@@ -1,0 +1,11 @@
+Availability:Public
+Title: Data Driven Gameplay Elements
+Crumbs:%ROOT%, Programming
+Description:Driving gameplay elements using externally stored data.
+
+[OBJECT:Redirect]
+[PARAM:link]
+[](Gameplay/DataDriven)
+[/PARAM]
+[/OBJECT]
+
