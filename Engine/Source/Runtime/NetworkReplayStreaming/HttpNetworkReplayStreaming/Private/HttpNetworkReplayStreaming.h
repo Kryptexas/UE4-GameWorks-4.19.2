@@ -123,7 +123,7 @@ public:
 	FString					SessionName;			// Name of the session on the http replay server
 	FString					SessionVersion;			// Version of the session
 	FString					ServerURL;				// The address of the server
-	int32					StreamFileCount;		// Used as a counter to increment the stream.x extension count
+	int32					StreamChunkIndex;		// Used as a counter to increment the stream.x extension count
 	double					LastChunkTime;			// The last time we uploaded/downloaded a chunk
 	double					LastRefreshViewerTime;	// The last time we refreshed ourselves as an active viewer
 	EStreamerState			StreamerState;			// Overall state of the streamer
@@ -132,6 +132,9 @@ public:
 	bool					bStreamIsLive;			// If true, we are viewing a live stream
 	int32					NumDownloadChunks;
 	uint32					TotalDemoTimeInMS;
+	uint32					LastTotalDemoTimeInMS;
+	uint32					StreamTimeRangeStart;
+	uint32					StreamTimeRangeEnd;
 	FString					ViewerName;
 	uint32					HighPriorityEndTime;
 
