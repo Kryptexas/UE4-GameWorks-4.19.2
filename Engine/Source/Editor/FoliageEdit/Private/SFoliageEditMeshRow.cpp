@@ -133,23 +133,7 @@ TSharedRef<SWidget> SFoliageEditMeshRow::GenerateWidgetForColumn(const FName& Co
 
 FText SFoliageEditMeshRow::GetMeshRowText() const
 {
-	const UFoliageType* FoliageType = MeshInfo->Settings;
-	if (FoliageType->IsAsset())
-	{
-		return FText::FromString(FoliageType->GetName());
-	}
-	else
-	{
-		UStaticMesh* Mesh = FoliageType->GetStaticMesh();
-		if (Mesh)
-		{
-			return FText::FromString(Mesh->GetName());
-		}
-		else
-		{
-			return LOCTEXT("EmptyMeshName", "[Empty Mesh]");
-		}
-	}
+	return MeshInfo->GetNameText();
 }
 	
 void SFoliageEditMeshRow::OnMeshCheckStateChanged(const ECheckBoxState NewCheckedState)

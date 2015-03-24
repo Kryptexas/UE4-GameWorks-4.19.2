@@ -118,6 +118,8 @@ struct FFoliageMeshUIInfo
 	{
 		return Settings == Other.Settings;
 	}
+
+	FText GetNameText() const;
 };
 
 typedef TSharedPtr<FFoliageMeshUIInfo> FFoliageMeshUIInfoPtr;
@@ -282,7 +284,13 @@ public:
 	/** Populate mesh with foliage mesh settings found across world */
 	void PopulateFoliageMeshList();
 
-	/**  */
+	/** Handler for mesh list sort mode changes */
+	void OnFoliageMeshListSortModeChanged(EColumnSortMode::Type InSortMode);
+
+	/** Returns foliage mesh list sort mode */
+	EColumnSortMode::Type GetFoliageMeshListSortMode() const;
+
+	/** Handler for foliage mesh instance count changes */
 	void OnInstanceCountUpdated(const UFoliageType* FoliageType);
 
 	/** Whether any of the selected foliage types can be painted into level */
@@ -399,6 +407,7 @@ private:
 	bool bToolActive;
 	bool bCanAltDrag;
 
-	TArray<FFoliageMeshUIInfoPtr> FoliageMeshList;
+	TArray<FFoliageMeshUIInfoPtr>	FoliageMeshList;
+	EColumnSortMode::Type			FoliageMeshListSortMode; 
 };
 

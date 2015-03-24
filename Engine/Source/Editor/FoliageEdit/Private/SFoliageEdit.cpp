@@ -291,10 +291,12 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 				]
 				.HeaderContentPadding(FMargin(0,1,0,1))
 				.FixedWidth(24)
-				
+								
 				+ SHeaderRow::Column(TEXT("Meshes"))
 				.HeaderContentPadding(FMargin(10,1,0,1))
-				.DefaultLabel(LOCTEXT("Meshes", "Meshes"))
+				.DefaultLabel(this, &SFoliageEdit::GetMeshesHeaderText)
+				.SortMode(this, &SFoliageEdit::GetMeshColumnSortMode)
+				.OnSort(this, &SFoliageEdit::OnMeshesColumnSortModeChanged)
 			]
 
 			+ SVerticalBox::Slot()
@@ -927,6 +929,22 @@ void SFoliageEdit::OnCheckStateChanged_AllMeshes(ECheckBoxState InState)
 	{
 		MeshUIPtr->Settings->IsSelected = (InState == ECheckBoxState::Checked);
 	}
+}
+
+FText SFoliageEdit::GetMeshesHeaderText() const
+{
+	int32 NumMeshes = FoliageEditMode->GetFoliageMeshList().Num();
+	return FText::Format(LOCTEXT("FoliageMeshCount", "Meshes - {0}"), FText::AsNumber(NumMeshes));
+}
+
+EColumnSortMode::Type SFoliageEdit::GetMeshColumnSortMode() const
+{
+	return FoliageEditMode->GetFoliageMeshListSortMode();
+}
+
+void SFoliageEdit::OnMeshesColumnSortModeChanged(EColumnSortPriority::Type InPriority, const FName& InColumnName, EColumnSortMode::Type InSortMode)
+{
+	FoliageEditMode->OnFoliageMeshListSortModeChanged(InSortMode);
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -39,6 +39,30 @@
 #define FOLIAGE_SNAP_TRACE (10000.f)
 
 //
+// FFoliageMeshUIInfo
+//
+FText FFoliageMeshUIInfo::GetNameText() const
+{
+	const UFoliageType* FoliageType = Settings;
+	if (FoliageType->IsAsset())
+	{
+		return FText::FromString(FoliageType->GetName());
+	}
+	else
+	{
+		UStaticMesh* Mesh = FoliageType->GetStaticMesh();
+		if (Mesh)
+		{
+			return FText::FromString(Mesh->GetName());
+		}
+		else
+		{
+			return LOCTEXT("EmptyMeshName", "[Empty Mesh]");
+		}
+	}
+}
+
+//
 // FFoliageMeshInfo iterator
 //
 class FFoliageMeshInfoIterator
@@ -129,6 +153,7 @@ FEdModeFoliage::FEdModeFoliage()
 	: FEdMode()
 	, bToolActive(false)
 	, bCanAltDrag(false)
+	, FoliageMeshListSortMode(EColumnSortMode::None)
 {
 	// Load resources and construct brush component
 	UMaterial* BrushMaterial = nullptr;
@@ -2080,14 +2105,30 @@ void FEdModeFoliage::PopulateFoliageMeshList()
 		}
 	}
 
-	auto CompareDisplayOrder = [](const FFoliageMeshUIInfoPtr& A, const FFoliageMeshUIInfoPtr& B)
+	if (FoliageMeshListSortMode != EColumnSortMode::None)
 	{
-		return A->Settings->DisplayOrder < B->Settings->DisplayOrder;
-	};
+		EColumnSortMode::Type SortMode = FoliageMeshListSortMode;
+		auto CompareFoliageType = [SortMode](const FFoliageMeshUIInfoPtr& A, const FFoliageMeshUIInfoPtr& B)
+		{
+			bool CompareResult = (A->GetNameText().CompareToCaseIgnored(B->GetNameText()) <= 0);
+			return SortMode == EColumnSortMode::Ascending ? CompareResult : !CompareResult;
+		};
 
-	FoliageMeshList.Sort(CompareDisplayOrder);
+		FoliageMeshList.Sort(CompareFoliageType);
+	}
 
 	StaticCastSharedPtr<FFoliageEdModeToolkit>(Toolkit)->RefreshFullList();
+}
+
+void FEdModeFoliage::OnFoliageMeshListSortModeChanged(EColumnSortMode::Type InSortMode)
+{
+	FoliageMeshListSortMode = InSortMode;
+	PopulateFoliageMeshList();
+}
+
+EColumnSortMode::Type FEdModeFoliage::GetFoliageMeshListSortMode() const
+{
+	return FoliageMeshListSortMode;
 }
 
 void FEdModeFoliage::OnInstanceCountUpdated(const UFoliageType* FoliageType)
