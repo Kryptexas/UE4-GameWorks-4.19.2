@@ -162,6 +162,16 @@ namespace UnrealBuildTool
 			return Default;
 		}
 
+		[Serializable]
+		public struct EnvVar
+		{
+			[XmlAttribute("Key")]
+			public string Key;
+
+			[XmlAttribute("Value")]
+			public string Value;
+		}
+
 		/**
 		 * Sets the environment variables from the passed in batch file
 		 * 
@@ -183,8 +193,11 @@ namespace UnrealBuildTool
 					// Run 'vcvars32.bat' (or similar x64 version) to set environment variables
 					EnvReaderBatchFileContent.Add( String.Format( "call \"{0}\"", BatchFileName ) );
 
-					// Pipe all environment variables to a file where we can read them in
-					EnvReaderBatchFileContent.Add( String.Format( "set >\"{0}\"", EnvOutputFileName ) );
+					// Pipe all environment variables to a file where we can read them in.
+					// We use a separate executable which runs after the batch file because we want to capture
+					// the environment after it has been set, and there's no easy way of doing this, and parsing
+					// the output of the set command is problematic when the vars contain non-ASCII characters.
+					EnvReaderBatchFileContent.Add( String.Format( Path.Combine( GetExecutingAssemblyDirectory(), "EnvVarsToXML.exe" ) + " \"{0}\"", EnvOutputFileName ) );
 
 					ResponseFile.Create( EnvReaderBatchFileName, EnvReaderBatchFileContent );
 				}
@@ -196,6 +209,7 @@ namespace UnrealBuildTool
 				{
 					// Run the batch file using cmd.exe with the /U option, to force Unicode output. Many locales have non-ANSI characters in system paths.
 					var StartInfo = BatchFileProcess.StartInfo;
+
 					StartInfo.FileName = Path.Combine(Environment.SystemDirectory, "cmd.exe");
 					StartInfo.Arguments = String.Format("/U /C \"{0}\"", EnvReaderBatchFileName);
 					StartInfo.CreateNoWindow = true;
@@ -221,23 +235,16 @@ namespace UnrealBuildTool
 					Log.TraceVerbose( "Finished launching {0}.", StartInfo.FileName );
 				}
 
-				// Load environment variables (the file will be encoded without a BOM, so we need to manually specify the encoding)
-				var EnvStringsFromFile = File.ReadAllLines( EnvOutputFileName, Encoding.Unicode ).Where( Line => !String.IsNullOrEmpty( Line ) );
-				foreach( var EnvString in EnvStringsFromFile )
+				List<EnvVar> EnvVars;
+				var Serializer = new XmlSerializer(typeof(List<EnvVar>));
+				using (var Stream = new StreamReader(EnvOutputFileName))
 				{
-					// Parse the environment variable name and value from the string ("name=value")
-					int EqualSignPos = EnvString.IndexOf( '=' );
-					// Guard against strange cases where File.ReadAllLines splits a line in half
-					if (EqualSignPos >= 0)
-					{
-						var EnvironmentVariableName = EnvString.Substring(0, EqualSignPos);
-						var EnvironmentVariableValue = EnvString.Substring(EqualSignPos + 1);
+					EnvVars = (List<EnvVar>)Serializer.Deserialize(Stream);
+				}
 
-						Log.TraceVerbose("Setting environment variable: {0}={1}", EnvironmentVariableName, EnvironmentVariableValue);
-
-						// Set the environment variable
-						Environment.SetEnvironmentVariable(EnvironmentVariableName, EnvironmentVariableValue);
-					}
+				foreach (var EnvVar in EnvVars)
+				{
+					Environment.SetEnvironmentVariable(EnvVar.Key, EnvVar.Value);
 				}
 
 				// Clean up the temporary files we created earlier on, so the temp directory doesn't fill up
