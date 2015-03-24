@@ -897,6 +897,21 @@ FKismetDebugUtilities::EWatchTextResult FKismetDebugUtilities::GetWatchText(FStr
 			{
 				PropertyBase = ActiveObject;
 			}
+			else
+			{
+				// Try and locate the propertybase in actors components
+				if( AActor* Actor = Cast<AActor>( ActiveObject ))
+				{
+					for( auto ComponentIter : Actor->GetComponents() )
+					{
+						if( ComponentIter->GetClass()->IsChildOf(PropertyClass))
+						{
+							PropertyBase = ComponentIter;
+							break;
+						}
+					}
+				}
+			}
 
 			// Now either print out the variable value, or that it was out-of-scope
 			if (PropertyBase != nullptr)
