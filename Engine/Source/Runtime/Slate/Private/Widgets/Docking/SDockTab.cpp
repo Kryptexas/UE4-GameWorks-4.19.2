@@ -673,7 +673,7 @@ FReply SDockTab::OnCloseButtonClicked()
 
 EVisibility SDockTab::HandleIsCloseButtonVisible() const
 {
-	return MyTabManager.Pin()->IsTabCloseable(SharedThis(this)) ? EVisibility::Visible : EVisibility::Hidden;
+	return CanCloseTab() ? EVisibility::Visible : EVisibility::Hidden;
 }
 
 bool SDockTab::CanCloseTab() const

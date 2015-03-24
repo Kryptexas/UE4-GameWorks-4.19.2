@@ -2,7 +2,7 @@
 
 #include "SlatePrivatePCH.h"
 #include "DockingPrivate.h"
-
+#include "TabCommands.h"
 
 #define LOCTEXT_NAMESPACE "DockTabStack"
 
@@ -34,6 +34,8 @@ public:
 
 void SDockingTabStack::Construct( const FArguments& InArgs, const TSharedRef<FTabManager::FStack>& PersistentNode  )
 {
+	BindTabCommands();
+
 	Tabs = PersistentNode->Tabs;
 	this->SetSizeCoefficient(PersistentNode->GetSizeCoefficient());
 
@@ -414,6 +416,15 @@ FReply SDockingTabStack::OnMouseButtonDown( const FGeometry& MyGeometry, const F
 	}
 }
 
+FReply SDockingTabStack::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
+{
+	if (ActionList->ProcessCommandBindings(InKeyEvent))
+	{
+		return FReply::Handled();
+	}
+
+	return SDockingNode::OnKeyDown(MyGeometry, InKeyEvent);
+}
 
 FReply SDockingTabStack::OnUserAttemptingDock( SDockingNode::RelativeDirection Direction, const FDragDropEvent& DragDropEvent )
 {
@@ -1017,5 +1028,57 @@ FString SDockingTabStack::ShowPersistentTabs() const
 
 #endif
 
+void SDockingTabStack::BindTabCommands()
+{
+	check(!ActionList.IsValid());
+
+	ActionList = MakeShareable(new FUICommandList);
+
+	const FTabCommands& Commands = FTabCommands::Get();
+	ActionList->MapAction(Commands.CloseTab, FExecuteAction::CreateSP(this, &SDockingTabStack::ExecuteCloseTabCommand), FCanExecuteAction::CreateSP(this, &SDockingTabStack::CanExecuteCloseTabCommand));
+}
+
+void SDockingTabStack::ExecuteCloseTabCommand()
+{
+	auto DockArea = GetDockArea();
+	if (DockArea.IsValid())
+	{
+		TSharedPtr<FGlobalTabmanager> GlobalTabManager = FGlobalTabmanager::Get();
+		TSharedPtr<SDockTab> ActiveTab = GlobalTabManager->GetActiveTab();
+		if (ActiveTab.IsValid())
+		{
+			if (ActiveTab->GetParentWindow() == DockArea->GetParentWindow())
+			{
+				// Close the global active (minor) tab
+				ActiveTab->RequestCloseTab();
+				return;
+			}
+		}
+	}
+
+	// Close this stack's foreground tab
+	CloseForegroundTab();
+}
+
+bool SDockingTabStack::CanExecuteCloseTabCommand()
+{
+	auto DockArea = GetDockArea();
+	if (DockArea.IsValid())
+	{
+		TSharedPtr<FGlobalTabmanager> GlobalTabManager = FGlobalTabmanager::Get();
+		TSharedPtr<SDockTab> ActiveTab = GlobalTabManager->GetActiveTab();
+		if (ActiveTab.IsValid())
+		{
+			if (ActiveTab->GetParentWindow() == DockArea->GetParentWindow())
+			{
+				// Can close the global active (minor) tab because it's in the same window as this tab stack
+				return true;
+			}
+		}
+	}
+
+	// Not closing the global active tab - can we close this stack's foreground tab?
+	return CanCloseForegroundTab();
+}
 
 #undef LOCTEXT_NAMESPACE

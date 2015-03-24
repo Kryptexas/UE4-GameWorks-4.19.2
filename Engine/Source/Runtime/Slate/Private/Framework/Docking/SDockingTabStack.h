@@ -99,6 +99,8 @@ public:
 
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
+
 	virtual bool SupportsKeyboardFocus() const override { return true; }
 
 protected:
@@ -222,19 +224,26 @@ private:
 	/** @return Gets the visibility state for spacers that pad out the tab well to make room for title bar widgets */
 	EVisibility GetTitleAreaSpacerVisibility();
 
-	/** The tab in this dock stack that is active */
-	TSharedPtr<SDockTab> ActiveTab;
-
 	/** Visibility of TitleBar spacer based on maximize/restore status of the window.
 	 ** This gives us a little more space to grab the title bar when the window is not maximized
 	*/
 	EVisibility GetMaximizeSpacerVisibility() const;
 
+	/** Bind tab commands into the ActionList */
+	void BindTabCommands();
+
+	/** Attempts to close a tab when the CloseTab command is executed */
+	void ExecuteCloseTabCommand();
+
+	/** Attempts to find a tab that can be closed by the CloseTab command */
+	bool CanExecuteCloseTabCommand();
 
 #if DEBUG_TAB_MANAGEMENT
 	FString ShowPersistentTabs() const;
 #endif
 
+	/** Tab command list */
+	TSharedPtr<FUICommandList> ActionList;
 };
 
 

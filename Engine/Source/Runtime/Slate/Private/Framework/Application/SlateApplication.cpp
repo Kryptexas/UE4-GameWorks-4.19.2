@@ -11,7 +11,7 @@
 #include "NotificationManager.h"
 #include "IInputProcessor.h"
 #include "ToolboxModule.h"
-
+#include "TabCommands.h"
 
 class FEventRouter
 {
@@ -759,6 +759,7 @@ FSlateApplication::FSlateApplication()
 	FInputCoreModule& InputCore = FModuleManager::LoadModuleChecked<FInputCoreModule>(TEXT("InputCore"));
 
 	FGenericCommands::Register();
+	FTabCommands::Register();
 
 	NormalExecutionGetter.BindRaw( this, &FSlateApplication::IsNormalExecution );
 	PointerIndexLastPositionMap.Add(CursorPointerIndex, FVector2D::ZeroVector);
@@ -766,6 +767,9 @@ FSlateApplication::FSlateApplication()
 
 FSlateApplication::~FSlateApplication()
 {
+	FTabCommands::Unregister();
+	FGenericCommands::Unregister();
+	
 	if (SlateTextField != nullptr)
 	{
 		delete SlateTextField;
