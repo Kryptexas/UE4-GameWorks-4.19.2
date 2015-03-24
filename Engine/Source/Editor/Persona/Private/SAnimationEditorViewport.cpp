@@ -183,9 +183,9 @@ public:
 // SAnimationEditorViewportTabBody
 
 SAnimationEditorViewportTabBody::SAnimationEditorViewportTabBody()
-	: AnimationPlaybackSpeedMode(EAnimationPlaybackSpeeds::Normal)
-	, SelectedTurnTableSpeed(EAnimationPlaybackSpeeds::Normal)
+	: SelectedTurnTableSpeed(EAnimationPlaybackSpeeds::Normal)
 	, SelectedTurnTableMode(EPersonaTurnTableMode::Stopped)
+	, AnimationPlaybackSpeedMode(EAnimationPlaybackSpeeds::Normal)
 {
 }
 
