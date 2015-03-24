@@ -281,7 +281,7 @@ int32 AndroidMain(struct android_app* state)
 	InitCommandLine();
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Final commandline: %s\n"), FCommandLine::Get());
 
-	EventHandlerEvent = FPlatformProcess::CreateSynchEvent();
+	EventHandlerEvent = FPlatformProcess::GetSynchEventFromPool(false);
 	FPlatformMisc::LowLevelOutputDebugString(L"Created sync event");
 	FAppEventManager::GetInstance()->SetEventHandlerEvent(EventHandlerEvent);
 
@@ -292,6 +292,16 @@ int32 AndroidMain(struct android_app* state)
 	// We need to do this really early for Android so that files in the
 	// OBBs and APK are found.
 	IPlatformFile::GetPlatformPhysical().Initialize(nullptr, FCommandLine::Get());
+
+#if 0
+	for (int32 i = 0; i < 10; i++)
+	{
+		sleep(1);
+		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("[Patch %d]"), i);
+
+	}
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("[Patch] : Dont Patch \n"));
+#endif
 
 	// initialize the engine
 	GEngineLoop.PreInit(0, NULL, FCommandLine::Get());

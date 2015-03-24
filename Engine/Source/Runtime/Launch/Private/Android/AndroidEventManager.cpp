@@ -269,9 +269,9 @@ void FAppEventManager::PauseAudio()
 {
 	bAudioPaused = true;
 
-	if (GEngine->GetAudioDevice())
+	if (GEngine->GetMainAudioDevice())
 	{
-		GEngine->GetAudioDevice()->Suspend(false);
+		GEngine->GetMainAudioDevice()->Suspend(false);
 	}
 }
 
@@ -280,9 +280,9 @@ void FAppEventManager::ResumeAudio()
 {
 	bAudioPaused = false;
 
-	if (GEngine->GetAudioDevice())
+	if (GEngine->GetMainAudioDevice())
 	{
-		GEngine->GetAudioDevice()->Suspend(true);
+		GEngine->GetMainAudioDevice()->Suspend(true);
 	}
 }
 
