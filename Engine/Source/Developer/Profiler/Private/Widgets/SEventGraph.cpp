@@ -1493,7 +1493,7 @@ static EEventCompareOps::Type EColumnSortModeToEventCompareOp( const EColumnSort
 
 void SEventGraph::SortEvents()
 {
-	PROFILER_SCOPE_LOG_TIME( TEXT( "SEventGraph::SortEvents" ), );
+	PROFILER_SCOPE_LOG_TIME( TEXT( "SEventGraph::SortEvents" ), nullptr );
 
 	if( ColumnBeingSorted != NAME_None )
 	{
@@ -2919,7 +2919,7 @@ TSharedRef<SHorizontalBox> SEventGraph::GetContentForEvent( FEventGraphSamplePtr
 
 void SEventGraph::SetNewEventGraphState( const FEventGraphDataRef AverageEventGraph, const FEventGraphDataRef MaximumEventGraph, bool bInitial )
 {
-	PROFILER_SCOPE_LOG_TIME( TEXT( "SEventGraph::UpdateEventGraph" ), );
+	PROFILER_SCOPE_LOG_TIME( TEXT( "SEventGraph::UpdateEventGraph" ), nullptr );
 
 	// Store current operation.
 	SaveCurrentEventGraphState();
@@ -3193,7 +3193,7 @@ bool SEventGraph::ClearHistory_CanExecute() const
 
 void SEventGraph::FilterOutByProperty_Execute( const FEventGraphSamplePtr EventPtr, const FName PropertyName, const bool bReset )
 {
-	PROFILER_SCOPE_LOG_TIME( TEXT( "SEventGraph::FilterOutByProperty_Execute" ), );
+	PROFILER_SCOPE_LOG_TIME( TEXT( "SEventGraph::FilterOutByProperty_Execute" ), nullptr );
 
 	// Store current operation.
 	SaveCurrentEventGraphState();
@@ -3217,7 +3217,7 @@ bool SEventGraph::FilterOutByProperty_CanExecute( const FEventGraphSamplePtr Eve
 
 void SEventGraph::CullByProperty_Execute( const FEventGraphSamplePtr EventPtr, const FName PropertyName, const bool bReset )
 {
-	PROFILER_SCOPE_LOG_TIME( TEXT( "SEventGraph::CullByProperty_Execute" ), );
+	PROFILER_SCOPE_LOG_TIME( TEXT( "SEventGraph::CullByProperty_Execute" ), nullptr );
 
 	// Store current operation.
 	SaveCurrentEventGraphState();

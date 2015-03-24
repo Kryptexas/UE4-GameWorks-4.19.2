@@ -214,7 +214,7 @@ public:
 		return ProfilerLoadedMetaDataDelegate;
 	}
 
-	static const int32 MaxFramesPerTick = 60;
+	static const int32 MaxFramesPerTick = 30;
 
 private:
 

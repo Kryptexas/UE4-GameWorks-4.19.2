@@ -1114,10 +1114,7 @@ bool FServiceConnection::ReadAndConvertStatMessages( FArchive& Reader, bool bUse
 						{
 							if( DataFrames.Num() > FProfilerClientManager::MaxFramesPerTick )
 							{
-								while( DataFrames.Num() )
-								{
-									FPlatformProcess::Sleep( 0.001f );
-								}
+								FPlatformProcess::Sleep( 0.1f );
 							}
 						}
 

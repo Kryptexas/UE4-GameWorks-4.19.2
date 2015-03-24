@@ -243,6 +243,9 @@ void FProfilerSession::UpdateAggregatedEventGraphData( const uint32 FrameIndex )
 
 bool FProfilerSession::HandleTicker( float DeltaTime )
 {
+	static FTotalTimeAndCount Current( 0.0f, 0 );
+	PROFILER_SCOPE_LOG_TIME( TEXT( "FProfilerSession::HandleTicker" ), &Current );
+
 	// Update metadata if needed
 	if( bRequestStatMetadataUpdate )
 	{
@@ -250,17 +253,23 @@ bool FProfilerSession::HandleTicker( float DeltaTime )
 		bRequestStatMetadataUpdate = false;
 	}
 
-	const int32 FramesNumToProcess = SessionType == EProfilerSessionTypes::StatsFile ? 240 : 2;
-
-	for( int32 FrameNumber = 0; FrameNumber < FMath::Min(FrameToProcess.Num(),FramesNumToProcess); FrameNumber++ )
+	// Limit processing to 30ms per frame.
+	const double TimeLimit = 30 / 1000.0;
+	double Seconds = 0;
+	
+	for( int32 FrameNumber = 0; FrameNumber < FrameToProcess.Num(); FrameNumber++ )
 	{	
+		if( Seconds > TimeLimit )
+		{
+			break;
+		}
+
+		FScopeSecondsCounter SecondsCounter(Seconds);
+
 		const uint32 FrameIndex = FrameToProcess[0];
 		FrameToProcess.RemoveAt( 0 );
 
 		FProfilerDataFrame& CurrentProfilerData = FrameToProfilerDataMapping.FindChecked( FrameIndex );
-
-		static FTotalTimeAndCount Current(0.0f, 0);
-		PROFILER_SCOPE_LOG_TIME( TEXT( "FProfilerSession::HandleTicker" ), &Current );
 
 		const FProfilerStatMetaDataRef MetaData = GetMetaData();
 		TMap<uint32, float> ThreadMS;
@@ -840,7 +849,7 @@ void FRawProfilerSession::PrepareLoading()
 
 void FProfilerStatMetaData::Update( const FStatMetaData& ClientStatMetaData )
 {
-	PROFILER_SCOPE_LOG_TIME( TEXT( "FProfilerStatMetaData.Update" ), );
+	PROFILER_SCOPE_LOG_TIME( TEXT( "FProfilerStatMetaData.Update" ), nullptr );
 
 	FStatMetaData LocalCopy;
 	{
