@@ -53,8 +53,8 @@ struct FSoundParseParameters
 		, HighFrequencyGain(1.f)
 		, StartTime(-1.f)
 		, OmniRadius(0.0f)
-		, bUseSpatialization(false)
 		, SpatializationAlgorithm(SPATIALIZATION_Default)
+		, bUseSpatialization(false)
 		, bLooping(false)
 	{
 	}
