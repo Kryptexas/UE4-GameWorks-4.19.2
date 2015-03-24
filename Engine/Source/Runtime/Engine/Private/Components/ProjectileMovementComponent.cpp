@@ -93,7 +93,7 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	QUICK_SCOPE_CYCLE_COUNTER( STAT_ProjectileMovementComponent_TickComponent );
 
 	// skip if don't want component updated when not rendered or updated component can't move
-	if (ShouldSkipUpdate(DeltaTime))
+	if (HasStoppedSimulation() || ShouldSkipUpdate(DeltaTime))
 	{
 		return;
 	}
@@ -112,11 +112,11 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	}
 
 	float RemainingTime	= DeltaTime;
-	int32 NumBounces = 0;
+	uint32 NumBounces = 0;
 	int32 Iterations = 0;
 	FHitResult Hit(1.f);
 	
-	while( RemainingTime >= MIN_TICK_TIME && (Iterations < MaxSimulationIterations) && !ActorOwner->IsPendingKill() && UpdatedComponent )
+	while( RemainingTime >= MIN_TICK_TIME && (Iterations < MaxSimulationIterations) && !ActorOwner->IsPendingKill() && !HasStoppedSimulation() )
 	{
 		Iterations++;
 
@@ -126,9 +126,9 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 
 		Hit.Time = 1.f;
 		const FVector OldVelocity = Velocity;
-		FVector MoveDelta = ComputeMoveDelta(OldVelocity, TimeTick);
+		const FVector MoveDelta = ComputeMoveDelta(OldVelocity, TimeTick);
 
-		const FRotator NewRotation = (bRotationFollowsVelocity && !OldVelocity.IsNearlyZero()) ? OldVelocity.Rotation() : ActorOwner->GetActorRotation();
+		const FRotator NewRotation = (bRotationFollowsVelocity && !OldVelocity.IsNearlyZero(0.01f)) ? OldVelocity.Rotation() : ActorOwner->GetActorRotation();
 
 		// Move the component
 		if (bShouldBounce)
@@ -144,7 +144,7 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 		}
 		
 		// If we hit a trigger that destroyed us, abort.
-		if( ActorOwner->IsPendingKill() || !UpdatedComponent )
+		if( ActorOwner->IsPendingKill() || HasStoppedSimulation() )
 		{
 			return;
 		}
@@ -170,63 +170,31 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 				Velocity = (Hit.Time > KINDA_SMALL_NUMBER) ? ComputeVelocity(OldVelocity, TimeTick * Hit.Time) : OldVelocity;
 			}
 
-			if (HandleHitWall(Hit, TimeTick, MoveDelta))
+			// Handle blocking hit
+			float SubTickTimeRemaining = TimeTick * (1.f - Hit.Time);
+			const EHandleBlockingHitResult HandleBlockingResult = HandleBlockingHit(Hit, TimeTick, MoveDelta, SubTickTimeRemaining);
+			if (HandleBlockingResult == EHandleBlockingHitResult::Abort || HasStoppedSimulation())
 			{
 				break;
 			}
-
-			NumBounces++;
-			float SubTickTimeRemaining = TimeTick * (1.f - Hit.Time);
-			FVector Normal = ConstrainNormalToPlane(Hit.Normal);
-
-			// Multiple hits within very short time period?
-			const bool bMultiHit = (PreviousHitTime < 1.f && Hit.Time <= KINDA_SMALL_NUMBER);
-
-			// if velocity still into wall (after HandleHitWall() had a chance to adjust), slide along wall
-			const float DotTolerance = 0.01f;
-			bIsSliding = (bMultiHit && FVector::Coincident(PreviousHitNormal, Normal)) ||
-						 ((Velocity.GetSafeNormal() | Normal) <= DotTolerance);
-			
-			if (bIsSliding)
+			else if (HandleBlockingResult == EHandleBlockingHitResult::Deflect)
 			{
-				if (bMultiHit && (PreviousHitNormal | Normal) <= 0.f)
-				{
-					//90 degree or less corner, so use cross product for direction
-					FVector NewDir = (Normal ^ PreviousHitNormal);
-					NewDir = NewDir.GetSafeNormal();
-					Velocity = Velocity.ProjectOnToNormal(NewDir);
-					if ((OldVelocity | Velocity) < 0.f)
-					{
-						Velocity *= -1.f;
-					}
-					Velocity = ConstrainDirectionToPlane(Velocity);
-				}
-				else 
-				{
-					//adjust to move along new wall
-					Velocity = ComputeSlideVector(Velocity, 1.f, Normal, Hit);
-				}
-
-				// Check min velocity.
-				if (Velocity.SizeSquared() < FMath::Square(BounceVelocityStopSimulatingThreshold))
-				{
-					StopSimulating(Hit);
-					break;
-				}
-				
-				// Velocity is now parallel to the impact surface.
-				if (SubTickTimeRemaining > KINDA_SMALL_NUMBER)
-				{
-					if (!HandleSliding(Hit, SubTickTimeRemaining))
-					{
-						break;
-					}
-					Normal = ConstrainNormalToPlane(Hit.Normal);
-				}
+				NumBounces++;
+				HandleDeflection(Hit, OldVelocity, NumBounces, SubTickTimeRemaining);
+				PreviousHitTime = Hit.Time;
+				PreviousHitNormal = ConstrainNormalToPlane(Hit.Normal);
 			}
-
-			PreviousHitTime = Hit.Time;
-			PreviousHitNormal = Normal;
+			else if (HandleBlockingResult == EHandleBlockingHitResult::AdvanceNextSubstep)
+			{
+				// Reset deflection logic to ignore this hit
+				PreviousHitTime = 1.f;
+			}
+			else
+			{
+				// Unhandled EHandleBlockingHitResult
+				checkNoEntry();
+			}
+			
 			
 			// A few initial bounces should add more time and iterations to complete most of the simulation.
 			if (NumBounces <= 2 && SubTickTimeRemaining >= MIN_TICK_TIME)
@@ -241,6 +209,59 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 }
 
 
+bool UProjectileMovementComponent::HandleDeflection(FHitResult& Hit, const FVector& OldVelocity, const uint32 NumBounces, float& SubTickTimeRemaining)
+{
+	const FVector Normal = ConstrainNormalToPlane(Hit.Normal);
+
+	// Multiple hits within very short time period?
+	const bool bMultiHit = (PreviousHitTime < 1.f && Hit.Time <= KINDA_SMALL_NUMBER);
+
+	// if velocity still into wall (after HandleBlockingHit() had a chance to adjust), slide along wall
+	const float DotTolerance = 0.01f;
+	bIsSliding = (bMultiHit && FVector::Coincident(PreviousHitNormal, Normal)) ||
+					((Velocity.GetSafeNormal() | Normal) <= DotTolerance);
+
+	if (bIsSliding)
+	{
+		if (bMultiHit && (PreviousHitNormal | Normal) <= 0.f)
+		{
+			//90 degree or less corner, so use cross product for direction
+			FVector NewDir = (Normal ^ PreviousHitNormal);
+			NewDir = NewDir.GetSafeNormal();
+			Velocity = Velocity.ProjectOnToNormal(NewDir);
+			if ((OldVelocity | Velocity) < 0.f)
+			{
+				Velocity *= -1.f;
+			}
+			Velocity = ConstrainDirectionToPlane(Velocity);
+		}
+		else
+		{
+			//adjust to move along new wall
+			Velocity = ComputeSlideVector(Velocity, 1.f, Normal, Hit);
+		}
+
+		// Check min velocity.
+		if (Velocity.SizeSquared() < FMath::Square(BounceVelocityStopSimulatingThreshold))
+		{
+			StopSimulating(Hit);
+			return false;
+		}
+
+		// Velocity is now parallel to the impact surface.
+		if (SubTickTimeRemaining > KINDA_SMALL_NUMBER)
+		{
+			if (!HandleSliding(Hit, SubTickTimeRemaining))
+			{
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+
 bool UProjectileMovementComponent::HandleSliding(FHitResult& Hit, float& SubTickTimeRemaining)
 {
 	FHitResult InitialHit(Hit);
@@ -250,10 +271,19 @@ bool UProjectileMovementComponent::HandleSliding(FHitResult& Hit, float& SubTick
 	// Perform the move now, before adding gravity/accel again, so we don't just keep hitting the surface.
 	SafeMoveUpdatedComponent(Velocity * SubTickTimeRemaining, UpdatedComponent->GetComponentRotation(), true, Hit);
 
+	if (HasStoppedSimulation())
+	{
+		return false;
+	}
+
 	// A second hit can deflect the velocity (through the normal bounce code), for the next iteration.
 	if (Hit.bBlockingHit)
 	{
-		if (HandleHitWall(Hit, SubTickTimeRemaining, Velocity * SubTickTimeRemaining))
+		const float TimeTick = SubTickTimeRemaining;
+		SubTickTimeRemaining = TimeTick * (1.f - Hit.Time);
+		
+		if (HandleBlockingHit(Hit, TimeTick, Velocity * TimeTick, SubTickTimeRemaining) == EHandleBlockingHitResult::Abort ||
+			HasStoppedSimulation())
 		{
 			return false;
 		}
@@ -285,9 +315,10 @@ bool UProjectileMovementComponent::HandleSliding(FHitResult& Hit, float& SubTick
 			StopSimulating(InitialHit);
 			return false;
 		}
+
+		SubTickTimeRemaining = 0.f;
 	}
 
-	SubTickTimeRemaining = SubTickTimeRemaining * (1.f - Hit.Time);
 	return true;
 }
 
@@ -379,22 +410,23 @@ void UProjectileMovementComponent::StopSimulating(const FHitResult& HitResult)
 }
 
 
-bool UProjectileMovementComponent::HandleHitWall(const FHitResult& Hit, float TimeTick, const FVector& MoveDelta)
+UProjectileMovementComponent::EHandleBlockingHitResult UProjectileMovementComponent::HandleBlockingHit(const FHitResult& Hit, float TimeTick, const FVector& MoveDelta, float& SubTickTimeRemaining)
 {
 	AActor* ActorOwner = UpdatedComponent ? UpdatedComponent->GetOwner() : NULL;
-	if ( !CheckStillInWorld() || !ActorOwner || ActorOwner->IsPendingKill() )
+	if (!CheckStillInWorld() || !ActorOwner || ActorOwner->IsPendingKill())
 	{
-		return true;
+		return EHandleBlockingHitResult::Abort;
 	}
 	
 	HandleImpact(Hit, TimeTick, MoveDelta);
 	
-	if( ActorOwner->IsPendingKill() || !UpdatedComponent )
+	if (ActorOwner->IsPendingKill() || HasStoppedSimulation())
 	{
-		return true;
+		return EHandleBlockingHitResult::Abort;
 	}
 
-	return false;
+	SubTickTimeRemaining = TimeTick * (1.f - Hit.Time);
+	return EHandleBlockingHitResult::Deflect;
 }
  
 FVector UProjectileMovementComponent::ComputeBounceResult(const FHitResult& Hit, float TimeSlice, const FVector& MoveDelta)
