@@ -25,6 +25,8 @@ public:
 
 	virtual TSharedRef< FGenericWindow > MakeWindow() override;
 
+	virtual void AddExternalInputDevice(TSharedPtr<class IInputDevice> InputDevice);
+
 protected:
 	virtual void InitializeWindow( const TSharedRef< FGenericWindow >& Window, const TSharedRef< FGenericWindowDefinition >& InDefinition, const TSharedPtr< FGenericWindow >& InParent, const bool bShowImmediately ) override;
 
@@ -36,6 +38,10 @@ private:
 private:
 
 	TSharedPtr< class FIOSInputInterface > InputInterface;
+
+	/** List of input devices implemented in external modules. */
+	TArray< TSharedPtr<class IInputDevice> > ExternalInputDevices;
+	bool bHasLoadedInputPlugins;
 
 	TArray< TSharedRef< FIOSWindow > > Windows;
 };
