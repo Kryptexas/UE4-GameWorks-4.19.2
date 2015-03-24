@@ -151,6 +151,9 @@ void FPackageAutoSaver::AttemptAutoSave()
 		const bool bCanAutosave = CanAutoSave();
 		if (bCanAutosave)
 		{
+			FScopedSlowTask SlowTask(100.f, NSLOCTEXT("AutoSaveNotify", "PerformingAutoSave_Caption", "Auto-saving out of date packages..."));
+			SlowTask.MakeDialog();
+
 			bAutosaveHandled = true;
 
 			bIsAutoSaving = true;
@@ -168,6 +171,8 @@ void FPackageAutoSaver::AttemptAutoSave()
 			bool bLevelSaved = false;
 			auto AssetsSaveResults = EAutosaveContentPackagesResult::NothingToDo;
 
+			SlowTask.EnterProgressFrame(50);
+
 			if (LoadingSavingSettings->bAutoSaveMaps)
 			{
 				// If we weren't saving worlds when we last ran an auto-save, we need to forcibly save any that are dirty
@@ -175,6 +180,8 @@ void FPackageAutoSaver::AttemptAutoSave()
 				const bool bForceSaveWorlds = !bWasAutoSavingMaps && LoadingSavingSettings->bAutoSaveMaps;
 				bLevelSaved = FEditorFileUtils::AutosaveMap(AutoSaveDir, NewAutoSaveIndex, bForceSaveWorlds, DirtyPackagesForAutoSave);
 			}
+
+			SlowTask.EnterProgressFrame(50);
 
 			if (LoadingSavingSettings->bAutoSaveContent && UnrealEdMisc.GetAutosaveState() != FUnrealEdMisc::EAutosaveState::Cancelled)
 			{
