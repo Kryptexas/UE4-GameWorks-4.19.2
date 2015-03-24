@@ -43,7 +43,7 @@ namespace UnrealBuildTool
 
 		/** Which version of the iOS to allow at build time */
 		[XmlConfig]
-		public static string BuildIOSVersion = "6.1";
+		public static string BuildIOSVersion = "7.0";
 
 		/** Which developer directory to root from */
 		[XmlConfig]
@@ -210,6 +210,9 @@ namespace UnrealBuildTool
 		
 		string GetCompileArguments_Global(CPPEnvironment CompileEnvironment)
 		{
+			IOSPlatform BuildPlat = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS) as IOSPlatform;
+			BuildPlat.SetUpProjectEnvironment(UnrealTargetPlatform.IOS);
+
 			string Result = "";
 
 			Result += " -fmessage-length=0";
@@ -253,7 +256,7 @@ namespace UnrealBuildTool
 				Result += " -isysroot " + BaseSDKDir + "/iPhoneOS" + IOSSDKVersion + ".sdk";
 			}
 
-			Result += " -miphoneos-version-min=" + BuildIOSVersion;
+			Result += " -miphoneos-version-min=" + BuildPlat.GetRunTimeVersion();
 
 			// Optimize non- debug builds.
 			if (CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
@@ -406,7 +409,10 @@ namespace UnrealBuildTool
 
 		string GetLinkArguments_Global( LinkEnvironment LinkEnvironment )
 		{
-			string Result = "";
+			IOSPlatform BuildPlat = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS) as IOSPlatform;
+			BuildPlat.SetUpProjectEnvironment(UnrealTargetPlatform.IOS);
+
+						string Result = "";
 			if (LinkEnvironment.Config.Target.Architecture == "-simulator")
 			{
 				Result += " -arch i386";
@@ -418,7 +424,7 @@ namespace UnrealBuildTool
 				Result += " -isysroot " + XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS" + IOSSDKVersion + ".sdk";
 			}
 			Result += " -dead_strip";
-			Result += " -miphoneos-version-min=" + BuildIOSVersion;
+			Result += " -miphoneos-version-min=" + BuildPlat.GetRunTimeVersion();
 			Result += " -Wl,-no_pie";
 			//			Result += " -v";
 

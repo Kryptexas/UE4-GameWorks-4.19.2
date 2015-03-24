@@ -114,7 +114,20 @@ int32 FTurnBasedMatchIOS::GetLocalPlayerIndex() const
 	NSArray* participantArray = Match.participants;
 	for (GKTurnBasedParticipant* participant in participantArray)
 	{
-		if ([playerID isEqualToString : participant.playerID])
+        NSString* PlayerIDString = nil;
+#ifdef __IPHONE_8_0
+        if ([GKTurnBasedParticipant respondsToSelector:@selector(player)] == YES)
+        {
+            PlayerIDString = participant.player.playerID;
+        }
+        else
+#endif
+        {
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_8_0
+            PlayerIDString = participant.playerID;
+#endif
+        }
+		if ([playerID isEqualToString : PlayerIDString])
 		{
 			return PlayerIndex;
 		}
@@ -151,7 +164,20 @@ int32 FTurnBasedMatchIOS::GetPlayerIndexForPlayer(NSString* PlayerID) const
 	int32 playerIndex = 0;
 	for (GKTurnBasedParticipant* participant in Match.participants)
 	{
-		if ([participant.playerID isEqualToString : PlayerID])
+        NSString* PlayerIDString = nil;
+#ifdef __IPHONE_8_0
+        if ([GKTurnBasedParticipant respondsToSelector:@selector(player)] == YES)
+        {
+            PlayerIDString = participant.player.playerID;
+        }
+        else
+#endif
+        {
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_8_0
+            PlayerIDString = participant.playerID;
+#endif
+        }
+		if ([PlayerIDString isEqualToString : PlayerID])
 		{
 			return playerIndex;
 		}
@@ -538,11 +564,24 @@ NSArray* FOnlineTurnBasedIOS::GetPlayerIdentifierArrayForMatch(GKTurnBasedMatch*
 	NSMutableArray* result = [NSMutableArray array];
 	for (GKTurnBasedParticipant* participant in match.participants)
 	{
-		if (!participant.playerID)
+        NSString* PlayerIDString = nil;
+#ifdef __IPHONE_8_0
+        if ([GKTurnBasedParticipant respondsToSelector:@selector(player)] == YES)
+        {
+            PlayerIDString = participant.player.playerID;
+        }
+        else
+#endif
+        {
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_8_0
+            PlayerIDString = participant.playerID;
+#endif
+        }
+		if (!PlayerIDString)
 		{
 			break;
 		}
-		[result addObject : participant.playerID];
+		[result addObject : PlayerIDString];
 	}
 	return result;
 }

@@ -1,15 +1,15 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include <GameKit/GKLocalPlayer.h>
 
 #include "OnlineSessionInterface.h"
 #include "OnlineSubsystemIOSTypes.h"
 
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_7_0
 #include <GameKit/GKSession.h>
-#include <GameKit/GKLocalPlayer.h>
 
-
-@interface FGameCenterSessionDelegate : UIViewController<GKSessionDelegate>
+@interface FGameCenterSessionDelegateGK : UIViewController<GKSessionDelegate>
 {
 };
 
@@ -17,6 +17,45 @@
 
 -(void) initSessionWithName:(NSString*) sessionName;
 -(void) shutdownSession;
+-(bool) sessionsAvailable;
+-(void)joinSession;
+
+@end
+#endif
+
+#ifdef __IPHONE_7_0
+#include <MultipeerConnectivity/MultipeerConnectivity.h>
+
+@interface FGameCenterSessionDelegateMC : UIViewController<MCSessionDelegate>
+{
+};
+
+@property (nonatomic, strong) MCPeerID *PeerID;
+@property (nonatomic, strong) MCSession *Session;
+
+-(void) initSessionWithName:(NSString*) sessionName;
+-(void) shutdownSession;
+-(bool) sessionsAvailable;
+-(void)joinSession;
+
+@end
+#endif
+
+@interface FGameCenterSessionDelegate : NSObject
+{
+};
+
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_7_0
+@property (nonatomic, strong) FGameCenterSessionDelegateGK *SessionGK;
+#endif
+#ifdef __IPHONE_7_0
+@property (nonatomic, strong) FGameCenterSessionDelegateMC *SessionMC;
+#endif
+
+-(void) initSessionWithName:(NSString*) sessionName;
+-(void) shutdownSession;
+-(bool) sessionsAvailable;
+-(void)joinSession;
 
 @end
 

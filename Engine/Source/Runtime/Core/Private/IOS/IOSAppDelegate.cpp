@@ -60,6 +60,9 @@ void InstallSignalHandlers()
 
 #if !UE_BUILD_SHIPPING
 	@synthesize ConsoleAlert;
+#ifdef __IPHONE_8_0
+    @synthesize ConsoleAlertController;
+#endif
 	@synthesize ConsoleHistoryValues;
 	@synthesize ConsoleHistoryValuesIndex;
 #endif
@@ -654,7 +657,18 @@ void InstallSignalHandlers()
 	// create the leaderboard display object 
 	GKGameCenterViewController* GameCenterDisplay = [[[GKGameCenterViewController alloc] init] autorelease];
 	GameCenterDisplay.viewState = GKGameCenterViewControllerStateLeaderboards;
-	GameCenterDisplay.leaderboardCategory = Category;
+#ifdef __IPHONE_7_0
+    if ([GameCenterDisplay respondsToSelector:@selector(leaderboardIdentifier)] == YES)
+    {
+        GameCenterDisplay.leaderboardIdentifier = Category;
+    }
+    else
+#endif
+    {
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_7_0
+        GameCenterDisplay.leaderboardCategory = Category;
+#endif
+    }
 	GameCenterDisplay.gameCenterDelegate = self;
 
 	// show it 

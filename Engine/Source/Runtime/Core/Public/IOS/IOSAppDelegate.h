@@ -60,6 +60,9 @@ UITextFieldDelegate>
 #if !UE_BUILD_SHIPPING
 	/** Properties for managing the console */
 	@property (nonatomic, retain) UIAlertView*		ConsoleAlert;
+#ifdef __IPHONE_8_0
+	@property (nonatomic, assign) UIAlertController* ConsoleAlertController;
+#endif
 	@property (nonatomic, retain) NSMutableArray*	ConsoleHistoryValues;
 	@property (nonatomic, assign) int				ConsoleHistoryValuesIndex;
 #endif

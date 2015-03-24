@@ -16,7 +16,7 @@ namespace UnrealBuildTool
         public static string IOSArchitecture = "";
 
 		/** Which version of the iOS to allow at run time */
-		public static string RunTimeIOSVersion = "6.1";
+		public static string RunTimeIOSVersion = "7.0";
 
 		/** which devices the game is allowed to run on */
 		public static string RunTimeIOSDevices = "1,2";
@@ -297,6 +297,11 @@ namespace UnrealBuildTool
 
             InBuildTarget.GlobalLinkEnvironment.Config.AdditionalFrameworks.Add( new UEBuildFramework( "GameKit" ) );
             InBuildTarget.GlobalLinkEnvironment.Config.AdditionalFrameworks.Add( new UEBuildFramework( "StoreKit" ) );
+
+			if (RunTimeIOSVersion != "6.1")
+			{
+				InBuildTarget.GlobalLinkEnvironment.Config.AdditionalFrameworks.Add (new UEBuildFramework ("MultipeerConnectivity"));
+			}
         }
 
         /**
