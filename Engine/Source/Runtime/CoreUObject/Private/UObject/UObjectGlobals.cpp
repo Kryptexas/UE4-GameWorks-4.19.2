@@ -2551,42 +2551,33 @@ private:
 		ObjectsToSerialize.Add( Object );
 	}
 
-	virtual void HandleObjectReference( UObject*& InObject, const UObject* InReferencingObject, const UObject* InReferencingProperty ) override
+	virtual void HandleObjectReference(UObject*& InObject, const UObject* InReferencingObject, const UProperty* InReferencingProperty) override
 	{
-		checkSlow( !InObject || InObject->IsValidLowLevel() );		
-		if( InObject )
+		checkSlow(!InObject || InObject->IsValidLowLevel());
+		if (InObject)
 		{
-			UObject* Object = const_cast<UObject*>(InObject);
-			if ( Object )
+			if (InObject->HasAnyFlags(ReferenceSearchFlags))
 			{
-				// Remove references to pending kill objects if we're allowed to do so.
-				UObject* ObjectToAdd = Object->HasAnyFlags(RF_Unreachable) ? Object : NULL;
-				if (Object->HasAnyFlags(ReferenceSearchFlags))
+				// Stop recursing, and add to the list of references
+				if (FoundReferencesList)
 				{
-					// Stop recursing, and add to the list of references
-					if (FoundReferencesList)
+					if (!CurrentReferenceInfo)
 					{
-						if (!CurrentReferenceInfo)
-						{
-							CurrentReferenceInfo = new(FoundReferencesList->ExternalReferences) FReferencerInformation(CurrentObject);
-						}
-						if (InReferencingObject != NULL)
-						{
-							CurrentReferenceInfo->ReferencingProperties.AddUnique(dynamic_cast<const UProperty*>(InReferencingObject));
-						}
-						CurrentReferenceInfo->TotalReferences++;
+						CurrentReferenceInfo = new(FoundReferencesList->ExternalReferences) FReferencerInformation(CurrentObject);
 					}
-					if (ObjectToAdd)
+					if (InReferencingProperty)
 					{
-						// Mark it as reachable.
-						Object->ClearFlags(RF_Unreachable);
+						CurrentReferenceInfo->ReferencingProperties.AddUnique(InReferencingProperty);
 					}
+					CurrentReferenceInfo->TotalReferences++;
 				}
-				else if (ObjectToAdd)
-				{
-					// Add encountered object reference to list of to be serialized objects if it hasn't already been added.
-					AddToObjectList(InReferencingObject, InReferencingProperty, ObjectToAdd);
-				}
+				// Mark it as reachable.
+				InObject->ClearFlags(RF_Unreachable);
+			}
+			else if (InObject->HasAnyFlags(RF_Unreachable))
+			{
+				// Add encountered object reference to list of to be serialized objects if it hasn't already been added.
+				AddToObjectList(InReferencingObject, InReferencingProperty, InObject);
 			}
 		}
 	}

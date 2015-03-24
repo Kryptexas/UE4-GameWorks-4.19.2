@@ -77,7 +77,7 @@ int32 FReferenceChainSearch::FFindReferencerCollector::FindReferencedObjectIndex
 	return Result;
 }
 #endif // !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
-void FReferenceChainSearch::FFindReferencerCollector::HandleObjectReference( UObject*& InObject, const UObject* RefObject, const UObject* ReferencingProperty )
+void FReferenceChainSearch::FFindReferencerCollector::HandleObjectReference(UObject*& InObject, const UObject* RefObject, const UProperty* ReferencingProperty)
 {
 	UObject* RefSrc = RefObject != NULL ? const_cast<UObject*>(RefObject) : ReferencingObject;
 	int32 ReferencedObjectIndex = INDEX_NONE;

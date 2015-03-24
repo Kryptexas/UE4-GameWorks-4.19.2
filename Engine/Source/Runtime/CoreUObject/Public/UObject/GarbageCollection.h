@@ -456,7 +456,7 @@ protected:
 		{
 			auto OldCollectorSerializedProperty = Collector.GetSerializedProperty();
 			Collector.SetSerializedProperty(GetSerializedProperty());
-			Collector.AddReferencedObject(Object, SerializingObject, (UObject*)GetSerializedProperty());
+			Collector.AddReferencedObject(Object, SerializingObject, GetSerializedProperty());
 			Collector.SetSerializedProperty(OldCollectorSerializedProperty);
 		}
 		return *this;
