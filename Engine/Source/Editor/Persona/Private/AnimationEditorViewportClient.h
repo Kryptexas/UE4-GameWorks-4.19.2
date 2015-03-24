@@ -104,6 +104,12 @@ public:
 	/** Function to check whether grid is displayed or not */
 	bool IsShowingFloor() const;
 
+	/** Function to enable/disable floor auto align */
+	void OnToggleAutoAlignFloor();
+
+	/** Function to check whether floor is auto align or not */
+	bool IsAutoAlignFloor() const;
+
 	/** Function to show/hide Sky in the viewport */
 	void OnToggleShowSky();
 
@@ -239,6 +245,9 @@ private:
 
 	/** add follow option @todo change to enum later - we share editorviewportclient, which is only problem*/
 	bool bCameraFollow;
+
+	/** Should we auto align floor to mesh bounds */
+	bool bAutoAlignFloor;
 
 	/** True when we're in an editor transaction (moving/rotating sockets) */
 	bool bInTransaction;

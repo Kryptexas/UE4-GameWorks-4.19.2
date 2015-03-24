@@ -539,7 +539,8 @@ void SAnimViewportToolBar::FillShowSceneMenu(FMenuBuilder& MenuBuilder) const
 	{
 		MenuBuilder.AddMenuEntry(Actions.ToggleFloor);
 		MenuBuilder.AddMenuEntry(Actions.ToggleSky);
-		}
+		MenuBuilder.AddMenuEntry(Actions.AutoAlignFloorToMesh);
+	}
 	MenuBuilder.EndSection();
 
 	MenuBuilder.BeginSection("AnimViewportFloorOffset", LOCTEXT("Viewport_FloorOffsetLabel", "Floor Height Offset"));

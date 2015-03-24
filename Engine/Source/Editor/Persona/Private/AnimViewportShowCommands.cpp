@@ -12,6 +12,7 @@ void FAnimViewportShowCommands::RegisterCommands()
 	UI_COMMAND( ToggleFloor, "Floor", "Display Floor", EUserInterfaceActionType::ToggleButton, FInputChord() );
 	UI_COMMAND( ToggleSky, "Sky", "Display Sky", EUserInterfaceActionType::ToggleButton, FInputChord() );
 
+	UI_COMMAND( AutoAlignFloorToMesh, "Auto Align Floor To Mesh", "Auto aligns floor to mesh bounds", EUserInterfaceActionType::ToggleButton, FInputChord() );
 	UI_COMMAND( MuteAudio, "Mute Audio", "Mutes audio from the preview", EUserInterfaceActionType::ToggleButton, FInputChord() );
 
 	UI_COMMAND(ProcessRootMotion, "Process Root Motion", "Moves preview based on animation root motion", EUserInterfaceActionType::ToggleButton, FInputChord());

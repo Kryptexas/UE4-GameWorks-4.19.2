@@ -714,6 +714,12 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingFloor));
 
+	CommandList.MapAction(
+		ViewportShowMenuCommands.AutoAlignFloorToMesh,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnToggleAutoAlignFloor),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsAutoAlignFloor));
+
 	CommandList.MapAction( 
 		ViewportShowMenuCommands.ToggleSky,
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowSky),
@@ -991,6 +997,18 @@ bool SAnimationEditorViewportTabBody::IsShowingFloor() const
 {
 	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
 	return AnimViewportClient->IsShowingFloor();
+}
+
+void SAnimationEditorViewportTabBody::OnToggleAutoAlignFloor()
+{
+	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	AnimViewportClient->OnToggleAutoAlignFloor();
+}
+
+bool SAnimationEditorViewportTabBody::IsAutoAlignFloor() const
+{
+	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	return AnimViewportClient->IsAutoAlignFloor();
 }
 
 void SAnimationEditorViewportTabBody::OnShowSky()

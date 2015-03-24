@@ -139,6 +139,8 @@ FAnimationViewportClient::FAnimationViewportClient(FAnimationEditorPreviewScene&
 	bDrawUVs = false;
 	UVChannelToDraw = 0;
 
+	bAutoAlignFloor = true;
+
 	// Set audio mute option
 	UWorld* World = PreviewScene->GetWorld();
 	if(World)
@@ -238,6 +240,17 @@ void FAnimationViewportClient::OnToggleShowFloor()
 bool FAnimationViewportClient::IsShowingFloor() const
 {
 	return (GetAnimPreviewScene()->EditorFloorComp) ? GetAnimPreviewScene()->EditorFloorComp->bVisible : false;
+}
+
+void FAnimationViewportClient::OnToggleAutoAlignFloor()
+{
+	bAutoAlignFloor = !bAutoAlignFloor;
+	UpdateCameraSetup();
+}
+
+bool FAnimationViewportClient::IsAutoAlignFloor() const
+{
+	return bAutoAlignFloor;
 }
 
 void FAnimationViewportClient::OnToggleShowSky()
@@ -2044,7 +2057,12 @@ void FAnimationViewportClient::UpdateCameraSetup()
 
 		if (GetAnimPreviewScene()->EditorFloorComp)
 		{
-			GetAnimPreviewScene()->EditorFloorComp->SetWorldTransform(FTransform(FQuat::Identity, FVector(0.0f, 0.0f, Bottom.Z + GetFloorOffset()), FVector(3.0f, 3.0f, 1.0f)));
+			FVector FloorPos(0.f, 0.f, 0.f);
+			if (bAutoAlignFloor)
+			{
+				FloorPos.Z = GetFloorOffset() + Bottom.Z;
+			}
+			GetAnimPreviewScene()->EditorFloorComp->SetWorldTransform(FTransform(FQuat::Identity, FloorPos, FVector(3.0f, 3.0f, 1.0f)));
 		}
 	}
 }

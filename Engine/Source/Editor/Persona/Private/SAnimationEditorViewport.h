@@ -159,6 +159,9 @@ public:
 	/** Function to check whether floor is displayed or not */
 	bool IsShowingFloor() const;
 
+	/** Function to check whether floor is auto aligned or not */
+	bool IsAutoAlignFloor() const;
+
 	/** Clears our reference to Persona, also cleaning up anything that depends on Persona first */
 	void CleanupPersonaReferences();
 
@@ -273,6 +276,9 @@ private:
 
 	/** Function to show/hide floor in the viewport */
 	void OnShowFloor();
+
+	/** Function to enable/disable floor auto align */
+	void OnToggleAutoAlignFloor();
 
 	/** Function to show/hide floor in the viewport */
 	void OnShowSky();

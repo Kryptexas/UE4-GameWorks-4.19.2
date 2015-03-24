@@ -30,6 +30,9 @@ public:
 	/** Option to show floor */
 	TSharedPtr< FUICommandInfo > ToggleSky;
 
+	/** Option to align floor to Mesh */
+	TSharedPtr< FUICommandInfo > AutoAlignFloorToMesh;
+
 	/** Option to mute audio in the viewport */
 	TSharedPtr< FUICommandInfo > MuteAudio;
 
