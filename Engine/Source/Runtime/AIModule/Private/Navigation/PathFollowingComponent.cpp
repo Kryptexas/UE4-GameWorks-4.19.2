@@ -711,6 +711,8 @@ int32 UPathFollowingComponent::OptimizeSegmentVisibility(int32 StartIndex)
 		{
 			Path->ShortcutNodeRefs.Reserve(RaycastResult.CorridorPolysCount);
 			Path->ShortcutNodeRefs.SetNumUninitialized(RaycastResult.CorridorPolysCount);
+
+			FPlatformMemory::Memcmp(Path->ShortcutNodeRefs.GetData(), RaycastResult.CorridorPolys, RaycastResult.CorridorPolysCount * sizeof(NavNodeRef));
 		}
 #else
 		const bool RaycastHitResult = NavData->Raycast(PawnLocation, AdjustedDestination, HitLocation, QueryFilter);
