@@ -1110,7 +1110,12 @@ void FFindInBlueprintSearchManager::AddOrUpdateBlueprintSearchMetadata(UBlueprin
 
 	// Build the search data
 	SearchArray[Index].BlueprintPath = BlueprintPath;
-	SearchArray[Index].Value = GatherBlueprintSearchMetadata(InBlueprint);
+
+	// Cannot successfully gather most searchable data if there is no SkeletonGeneratedClass, so don't try, leave it as whatever it was last set to
+	if(InBlueprint->SkeletonGeneratedClass != nullptr)
+	{
+		SearchArray[Index].Value = GatherBlueprintSearchMetadata(InBlueprint);
+	}
 	SearchArray[Index].bMarkedForDeletion = false;
 }
 
