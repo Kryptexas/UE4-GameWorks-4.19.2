@@ -123,6 +123,11 @@ void UBlueprintGeneratedClass::GetRequiredPreloadDependencies(TArray<UObject*>& 
 
 UClass* UBlueprintGeneratedClass::GetAuthoritativeClass()
 {
+	if (nullptr == ClassGeneratedBy) // to track UE-11597 and UE-11595
+	{
+		UE_LOG(LogBlueprint, Fatal, TEXT("UBlueprintGeneratedClass::GetAuthoritativeClass: ClassGeneratedBy is null. class '%s'"), *GetPathName());
+	}
+
 	UBlueprint* GeneratingBP = CastChecked<UBlueprint>(ClassGeneratedBy);
 
 	check(GeneratingBP);
