@@ -1541,6 +1541,26 @@ void ALandscape::PreSave()
 	//}
 }
 
+ALandscapeProxy* ULandscapeInfo::GetLandscapeProxyForLevel(ULevel* Level) const
+{
+	ALandscape* Landscape = LandscapeActor.Get();
+
+	if (Landscape && Landscape->GetLevel() == Level)
+	{
+		return Landscape;
+	}
+
+	for (ALandscapeProxy* LandscapeProxy : Proxies)
+	{
+		if (LandscapeProxy && LandscapeProxy->GetLevel() == Level)
+		{
+			return LandscapeProxy;
+		}
+	}
+
+	return nullptr;
+}
+
 ALandscapeProxy* ULandscapeInfo::GetCurrentLevelLandscapeProxy(bool bRegistered) const
 {
 	ALandscape* Landscape = LandscapeActor.Get();

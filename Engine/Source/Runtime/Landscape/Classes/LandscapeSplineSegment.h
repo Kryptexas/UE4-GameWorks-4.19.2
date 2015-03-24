@@ -159,7 +159,7 @@ class ULandscapeSplineSegment : public UObject
 
 	/** Spline meshes from this list are used in random order along the spline. */
 	UPROPERTY(EditAnywhere, Category=LandscapeSplineMeshes)
-	TArray<struct FLandscapeSplineMeshEntry> SplineMeshes;
+	TArray<FLandscapeSplineMeshEntry> SplineMeshes;
 
 	/** Random seed used for choosing which spline meshes to use. */
 	UPROPERTY(EditAnywhere, Category=LandscapeSplineMeshes)
@@ -186,6 +186,10 @@ class ULandscapeSplineSegment : public UObject
 	/** If the spline is below the terrain, whether to lower the terrain down to the level of the spline when applying it to the landscape. */
 	UPROPERTY(EditAnywhere, Category=LandscapeSplineSegment)
 	uint32 bLowerTerrain:1;
+
+	/** Whether spline meshes should be placed in landscape proxy streaming levels (true) or the spline's level (false) */
+	UPROPERTY(EditAnywhere, Category = LandscapeSplineMeshes)
+	uint32 bPlaceSplineMeshesInStreamingLevels : 1;
 
 	/** Whether to generate collision for the Spline Meshes. */
 	UPROPERTY(EditAnywhere, Category=LandscapeSplineMeshes)
@@ -219,7 +223,17 @@ protected:
 
 	/** Spline meshes */
 	UPROPERTY(TextExportTransient)
-	TArray<class USplineMeshComponent*> MeshComponents;
+	TArray<USplineMeshComponent*> LocalMeshComponents;
+
+#if WITH_EDITORONLY_DATA
+	/** World references for mesh components stored in other streaming levels */
+	UPROPERTY(TextExportTransient, NonPIEDuplicateTransient)
+	TArray<TAssetPtr<UWorld>> ForeignWorlds;
+
+	/** Key for tracking whether this segment has been modified relative to the mesh components stored in other streaming levels */
+	UPROPERTY(TextExportTransient, NonPIEDuplicateTransient)
+	FGuid ModificationKey;
+#endif
 
 public:
 	const FBox& GetBounds() const { return Bounds; }
@@ -230,12 +244,19 @@ public:
 	virtual void SetSplineSelected(bool bInSelected);
 
 	virtual void AutoFlipTangents();
+
+	TMap<ULandscapeSplinesComponent*, TArray<USplineMeshComponent*>> GetForeignMeshComponents();
+
 	virtual void UpdateSplinePoints(bool bUpdateCollision = true);
+
 	void UpdateSplineEditorMesh();
 	virtual void DeleteSplinePoints();
+
+	const TArray<TAssetPtr<UWorld>>& GetForeignWorlds() const { return ForeignWorlds; }
+	FGuid GetModificationKey() const { return ModificationKey; }
 #endif
 
-	virtual void FindNearest( const FVector& InLocation, float& t, FVector& OutLocation, FVector& OutTangent );
+	virtual void FindNearest(const FVector& InLocation, float& t, FVector& OutLocation, FVector& OutTangent);
 
 	// Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
@@ -252,10 +273,5 @@ protected:
 public:
 	// End UObject Interface
 
-	void RegisterComponents();
-	void UnregisterComponents();
-
-	virtual bool OwnsComponent(const class USplineMeshComponent* SplineMeshComponent) const;
-
-	friend class FEdModeLandscape;
+	friend class FLandscapeToolSplines;
 };

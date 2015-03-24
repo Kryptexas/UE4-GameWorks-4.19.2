@@ -2,11 +2,15 @@
 
 #pragma once
 
+// for FLandscapeSplineInterpPoint
 #include "LandscapeSplineSegment.h"
 
 #include "LandscapeSplineControlPoint.generated.h"
 
-struct FLandscapeSplineInterpPoint;
+// forward declarations
+class ULandscapeSplineSegment;
+class UControlPointMeshComponent;
+struct FLandscapeSplineSegmentConnection;
 
 USTRUCT()
 struct FLandscapeSplineConnection
@@ -15,7 +19,7 @@ struct FLandscapeSplineConnection
 
 	FLandscapeSplineConnection() {}
 
-	FLandscapeSplineConnection(class ULandscapeSplineSegment* InSegment, int32 InEnd)
+	FLandscapeSplineConnection(ULandscapeSplineSegment* InSegment, int32 InEnd)
 		: Segment(InSegment)
 		, End(InEnd)
 	{
@@ -28,14 +32,14 @@ struct FLandscapeSplineConnection
 
 	// Segment connected to this control point
 	UPROPERTY()
-	class ULandscapeSplineSegment* Segment;
+	ULandscapeSplineSegment* Segment;
 
 	// Which end of the segment is connected to this control point
 	UPROPERTY()
 	uint32 End:1;
 
-	LANDSCAPE_API struct FLandscapeSplineSegmentConnection& GetNearConnection() const;
-	LANDSCAPE_API struct FLandscapeSplineSegmentConnection& GetFarConnection() const;
+	LANDSCAPE_API FLandscapeSplineSegmentConnection& GetNearConnection() const;
+	LANDSCAPE_API FLandscapeSplineSegmentConnection& GetFarConnection() const;
 };
 
 UCLASS(Within=LandscapeSplinesComponent,autoExpandCategories=LandscapeSplineControlPoint,MinimalAPI)
@@ -67,11 +71,11 @@ class ULandscapeSplineControlPoint : public UObject
 #if WITH_EDITORONLY_DATA
 	/** Mesh to use on the control point */
 	UPROPERTY(EditAnywhere, Category=Mesh)
-	class UStaticMesh* Mesh;
+	UStaticMesh* Mesh;
 
 	/** Overrides mesh's materials */
 	UPROPERTY(EditAnywhere, Category=Mesh)
-	TArray<class UMaterialInterface*> MaterialOverrides;
+	TArray<UMaterialInterface*> MaterialOverrides;
 
 	/** Scale of the control point mesh */
 	UPROPERTY(EditAnywhere, Category=Mesh)
@@ -106,6 +110,10 @@ class ULandscapeSplineControlPoint : public UObject
 	UPROPERTY(EditAnywhere, Category=LandscapeSplineControlPoint)
 	uint32 bLowerTerrain:1;
 
+	/** Whether control point mesh should be placed in landscape proxy streaming level (true) or the spline's level (false) */
+	UPROPERTY(EditAnywhere, Category=Mesh)
+	uint32 bPlaceSplineMeshesInStreamingLevels : 1;
+
 	/** Whether to enable collision for the Control Point Mesh. */
 	UPROPERTY(EditAnywhere, Category=Mesh)
 	uint32 bEnableCollision:1;
@@ -128,22 +136,33 @@ public:
 	TArray<FLandscapeSplineConnection> ConnectedSegments;
 
 protected:
-	/** Control point mesh */
-	UPROPERTY(TextExportTransient)
-	class UControlPointMeshComponent* MeshComponent;
-
 	/** Spline points */
 	UPROPERTY()
-	TArray<struct FLandscapeSplineInterpPoint> Points;
+	TArray<FLandscapeSplineInterpPoint> Points;
 
 	/** Bounds of points */
 	UPROPERTY()
 	FBox Bounds;
 
+	/** Control point mesh */
+	UPROPERTY(TextExportTransient)
+	UControlPointMeshComponent* LocalMeshComponent;
+
+#if WITH_EDITORONLY_DATA
+	/** World reference for if mesh component is stored in another streaming level */
+	UPROPERTY(TextExportTransient, NonPIEDuplicateTransient)
+	TAssetPtr<UWorld> ForeignWorld;
+
+	/** Key for tracking whether this segment has been modified relative to the mesh component stored in another streaming level */
+	UPROPERTY(TextExportTransient, NonPIEDuplicateTransient)
+	FGuid ModificationKey;
+#endif
+
 public:
 	const FBox& GetBounds() const { return Bounds; }
-	const TArray<struct FLandscapeSplineInterpPoint>& GetPoints() const { return Points; }
+	const TArray<FLandscapeSplineInterpPoint>& GetPoints() const { return Points; }
 
+#if WITH_EDITOR
 	// Get the name of the best connection point (socket) to use for a particular destination
 	virtual FName GetBestConnectionTo(FVector Destination) const;
 
@@ -153,7 +172,6 @@ public:
 	// Get the location and rotation of a connection point (socket) in spline space
 	virtual void GetConnectionLocationAndRotation(FName SocketName, OUT FVector& OutLocation, OUT FRotator& OutRotation) const;
 
-#if WITH_EDITOR
 	bool IsSplineSelected() const { return bSelected; }
 	virtual void SetSplineSelected(bool bInSelected);
 
@@ -165,14 +183,20 @@ public:
 
 	virtual void AutoSetConnections(bool bIncludingValid);
 
+	TMap<ULandscapeSplinesComponent*, UControlPointMeshComponent*> GetForeignMeshComponents();
+
 	/** Update spline points */
 	virtual void UpdateSplinePoints(bool bUpdateCollision = true, bool bUpdateAttachedSegments = true);
 
 	/** Delete spline points */
 	virtual void DeleteSplinePoints();
+
+	const TAssetPtr<UWorld>& GetForeignWorld() const { return ForeignWorld; }
+	FGuid GetModificationKey() const { return ModificationKey; }
 #endif // WITH_EDITOR
 
 	// Begin UObject Interface
+	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 #if WITH_EDITOR
 	virtual void PostEditUndo() override;
@@ -182,10 +206,5 @@ public:
 	// End UObject Interface
 #endif // WITH_EDITOR
 
-	void RegisterComponents();
-	void UnregisterComponents();
-
-	virtual bool OwnsComponent(const class UControlPointMeshComponent* ControlPointMeshComponent) const;
-
-	friend class FEdModeLandscape;
+	friend class FLandscapeToolSplines;
 };

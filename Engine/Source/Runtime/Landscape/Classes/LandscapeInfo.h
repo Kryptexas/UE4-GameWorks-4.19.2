@@ -189,7 +189,14 @@ public:
 	LANDSCAPE_API int32 GetLayerInfoIndex(ULandscapeLayerInfoObject* LayerInfo, ALandscapeProxy* Owner = NULL) const;
 	LANDSCAPE_API bool UpdateLayerInfoMap(ALandscapeProxy* Proxy = NULL, bool bInvalidate = false);
 
-	/** 
+	/**
+	 *  Returns the landscape proxy of this landscape info in the given level (if it exists)
+	 *  @param  Level  Level to look in
+	 *	@return        Landscape or landscape proxy found in the given level, or null if none
+	 */
+	LANDSCAPE_API ALandscapeProxy* GetLandscapeProxyForLevel(ULevel* Level) const;
+
+	/**
 	 *  Returns landscape which is spawned in the current level that was previously added to this landscape info object
 	 *  @param	bRegistered		Whether to consider only registered(visible) landscapes
 	 *	@return					Landscape or landscape proxy found in the current level 
