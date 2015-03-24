@@ -1048,6 +1048,16 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 #endif //WITH_EDITOR
 
+	FRunnableThread::InitializeTls();
+
+	// initialize task graph sub-system with potential multiple threads
+	FTaskGraphInterface::Startup( FPlatformMisc::NumberOfCores() );
+	FTaskGraphInterface::Get().AttachToThread( ENamedThreads::GameThread );
+
+#if STATS
+	FThreadStats::StartThread();
+#endif
+
 	if (FPlatformProcess::SupportsMultithreading())
 	{
 		GThreadPool	= FQueuedThreadPool::Allocate();
@@ -2753,14 +2763,6 @@ bool FEngineLoop::AppInit( )
 	FApp::InitializeSession();
 #endif
 
-	// initialize task graph sub-system with potential multiple threads
-	FTaskGraphInterface::Startup(FPlatformMisc::NumberOfCores());
-	FTaskGraphInterface::Get().AttachToThread(ENamedThreads::GameThread);
-
-#if STATS
-	FThreadStats::StartThread();
-#endif
-
 #if WITH_ENGINE
 	// Earliest place to init the online subsystems
 	// Code needs GConfigFile to be valid
@@ -2835,7 +2837,7 @@ void FEngineLoop::AppPreExit( )
 	FCoreDelegates::OnExit.Broadcast();
 
 	// Clean up the thread pool
-	if (GThreadPool != NULL)
+	if (GThreadPool != nullptr)
 	{
 		GThreadPool->Destroy();
 	}

@@ -131,10 +131,6 @@ private:
 	}
 };
 
-#if 0
-DECLARE_THREAD_SINGLETON(FJNIHelper);
-#endif
-
 void FAndroidApplication::InitializeJavaEnv( JavaVM* VM, jint Version, jobject GlobalThis )
 {
 	if (CurrentJavaVM == nullptr)

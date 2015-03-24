@@ -6,8 +6,6 @@
 	Global
 -----------------------------------------------------------------------------*/
 
-DECLARE_THREAD_SINGLETON( FThreadIdleStats );
-
 struct FStats2Globals
 {
 	static void Get()

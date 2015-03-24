@@ -173,6 +173,8 @@ class FTypeContainer
 				FRunnableThread::GetThreadRegistry().Unlock();*/
 
 				FPlatformTLS::SetTlsValue(TlsSlot, Instance);
+				// @see ITlsAutoCleanup
+				//Instance->Register();
 			}
 
 			return *((TSharedPtr<void>*)Instance);

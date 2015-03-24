@@ -337,7 +337,7 @@ public:
 	 */
 	FEvent* TaskGraphBoundSyncEvent;
 
-	FRenderingThread() : FRunnable()
+	FRenderingThread()
 	{
 		TaskGraphBoundSyncEvent	= FPlatformProcess::GetSynchEventFromPool(true);
 		RHIFlushResources();
@@ -350,7 +350,7 @@ public:
 	}
 
 	// FRunnable interface.
-	virtual bool Init(void) 
+	virtual bool Init(void) override
 	{ 
 		GRenderThreadId = FPlatformTLS::GetCurrentThreadId();
 
@@ -360,7 +360,7 @@ public:
 		return true; 
 	}
 
-	virtual void Exit(void) 
+	virtual void Exit(void) override
 	{
 		// Release rendering context ownership on the current thread
 		RHIReleaseThreadOwnership();
@@ -368,11 +368,7 @@ public:
 		GRenderThreadId = 0;
 	}
 
-	virtual void Stop(void)
-	{
-	}
-
-	virtual uint32 Run(void)
+	virtual uint32 Run(void) override
 	{
 		FPlatformProcess::SetupGameOrRenderThread(true);
 

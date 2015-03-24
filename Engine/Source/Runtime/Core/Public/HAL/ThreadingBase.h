@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "Function.h"
+
+class ITlsAutoCleanup;
+class FRunnableThread;
 
 /**
  * The list of enumerated thread priorities we support
@@ -214,8 +218,6 @@ public:
 		return nullptr;
 	}
 
-public:
-
 	/** Virtual destructor */
 	virtual ~FRunnable() { }
 };
@@ -226,9 +228,18 @@ public:
  *
  * This interface specifies the methods used to manage a thread's life cycle.
  */
-class FRunnableThread
+class CORE_API FRunnableThread
 {
+	friend class FThreadSingletonInitializer;
+	friend class ITlsAutoCleanup;
+
+	/** Index of TLS slot for FRunnableThread pointer. */
+	static uint32 RunnableTlsSlot;
+
 public:
+
+	/** Initializes a Tls slot for storing the runnable thread pointer. */
+	static void InitializeTls();
 
 	/**
 	* Factory method to create a thread with the specified stack size and thread priority.
@@ -242,7 +253,7 @@ public:
 	* @return The newly created thread or nullptr if it failed
 	*/
 	DEPRECATED(4.3, "Function deprecated. Use FRunnableThread::Create without bAutoDeleteSelf and bAutoDeleteRunnable params and delete thread and runnable manually.")
-	CORE_API static FRunnableThread* Create(
+	static FRunnableThread* Create(
 		class FRunnable* InRunnable,
 		const TCHAR* ThreadName,
 		bool bAutoDeleteSelf,
@@ -260,7 +271,7 @@ public:
 	 * @param InThreadPri Tells the thread whether it needs to adjust its priority or not. Defaults to normal priority
 	 * @return The newly created thread or nullptr if it failed
 	 */
-	CORE_API static FRunnableThread* Create(
+	static FRunnableThread* Create(
 		class FRunnable* InRunnable,
 		const TCHAR* ThreadName,
 		uint32 InStackSize = 0,
@@ -303,7 +314,10 @@ public:
 	 * @return ID that was set by CreateThread
 	 * @see GetThreadName
 	 */
-	virtual uint32 GetThreadID() = 0;
+	const uint32 GetThreadID() const
+	{
+		return ThreadID;
+	}
 
 	/**
 	 * Retrieves the given name of the thread
@@ -311,85 +325,16 @@ public:
 	 * @return Name that was set by CreateThread
 	 * @see GetThreadID
 	 */
-	virtual FString GetThreadName() = 0;
-
-	struct FThreadRegistry
+	const FString& GetThreadName() const
 	{
-		void Add( uint32 ID, FRunnableThread* Thread )
-		{
-			Lock();
-			Registry.FindOrAdd( ID ) = Thread;
-			Updated = true;
-			Unlock();
-		}
-
-		void Remove( uint32 ID )
-		{
-			Lock();
-			Registry.Remove(ID);
-			Updated = true;
-			Unlock();
-		}
-
-		int32 GetThreadCount()
-		{
-			Lock();
-			int32 RetVal = Registry.Num();
-			Unlock();
-			return RetVal;
-		}
-
-		bool IsUpdated()
-		{
-			return Updated;
-		}
-
-		void Lock()
-		{
-			CriticalSection.Lock();
-		}
-
-		void Unlock()
-		{
-			CriticalSection.Unlock();
-		}
-
-		void ClearUpdated()
-		{
-			Updated = false;
-		}
-
-		TMap<uint32, FRunnableThread*>::TConstIterator CreateConstIterator()
-		{
-			return Registry.CreateConstIterator();
-		}
-
-		FRunnableThread* GetThread( uint32 ID )
-		{
-			return Registry.FindRef(ID);
-		}
-
-	private:
-
-		TMap<uint32, FRunnableThread*> Registry;
-		bool Updated;
-		FCriticalSection CriticalSection;
-	};
-
-	static CORE_API FThreadRegistry& GetThreadRegistry()
-	{
-		static FThreadRegistry ThreadRegistry;
-		return ThreadRegistry;
+		return ThreadName;
 	}
 
-	/** @return a delegate that is called when this runnable has been destroyed. */
-	FSimpleMulticastDelegate& OnThreadDestroyed()
-	{
-		return ThreadDestroyedDelegate;
-	}
+	/** Default constructor. */
+	FRunnableThread();
 
 	/** Virtual destructor */
-	virtual ~FRunnableThread();
+	virtual ~FRunnableThread(){}
 
 protected:
 
@@ -406,8 +351,41 @@ protected:
 		uint32 InStackSize = 0,
 		EThreadPriority InThreadPri = TPri_Normal, uint64 InThreadAffinityMask = 0 ) = 0;
 
-	/** Called when the this runnable has been destroyed, so we should clean-up memory allocated by misc classes. */
-	FSimpleMulticastDelegate ThreadDestroyedDelegate;
+	/** Stores this instance in the runnable thread TLS slot. */
+	void SetTls();
+
+	/** Deletes all ITlsAutoCleanup objects created for this thread. */
+	void FreeTls();
+
+	/**
+	 * @return a runnable thread that is executing this runnable, if return value is nullptr, it means the running thread can be game thread or a thread created outside the runnable interface
+	 */
+	static FRunnableThread* GetRunnableThread()
+	{
+		FRunnableThread* RunnableThread = (FRunnableThread*)FPlatformTLS::GetTlsValue( RunnableTlsSlot );
+		return RunnableThread;
+	}
+
+	/** Holds the name of the thread. */
+	FString ThreadName;
+
+	/** The runnable object to execute on this thread. */
+	FRunnable* Runnable;
+
+	/** Sync event to make sure that Init() has been completed before allowing the main thread to continue. */
+	FEvent* ThreadInitSyncEvent;
+
+	/** The Affinity to run the thread with. */
+	uint64 ThreadAffinityMask;
+
+	/** An array of ITlsAutoCleanup based instances that needs to be deleted before the thread will die. */
+	TArray<ITlsAutoCleanup*> TlsInstances;
+
+	/** The priority to run the thread at. */
+	EThreadPriority ThreadPriority;
+
+	/** ID set during thread creation. */
+	uint32 ThreadID;
 };
 
 
@@ -946,20 +924,17 @@ extern CORE_API bool IsInRHIThread();
 /** Thread used for RHI */
 extern CORE_API FRunnableThread* GRHIThread;
 
-
-/**
- * Minimal base class for the thread singleton.
- */
-struct FThreadSingleton
+/** Interface required for auto-cleanup of instances of classes stored in the TLS. */
+class CORE_API ITlsAutoCleanup
 {
-	typedef FThreadSingleton* (*TCreateSingletonFuncPtr)();
-	typedef void (FThreadSingleton::*TDestroySingletonFuncPtr)();
+public:
+	/** Virtual destructor. */
+	virtual ~ITlsAutoCleanup()
+	{}
 
-	CORE_API virtual ~FThreadSingleton() { }
-
-	virtual void DeleteThis() = 0;
+	/** Register this instance to be auto-cleanup. */
+	void Register();
 };
-
 
 /**
  * Thread singleton initializer.
@@ -969,19 +944,18 @@ class FThreadSingletonInitializer
 public:
 
 	/**
-	 * @return an instance of a singleton for the current thread.
-	 */
-	static CORE_API FThreadSingleton* Get( const FThreadSingleton::TCreateSingletonFuncPtr CreateFunc, const FThreadSingleton::TDestroySingletonFuncPtr DestroyFunc, uint32& TlsSlot );
+	* @return an instance of a singleton for the current thread.
+	*/
+	static CORE_API ITlsAutoCleanup* Get( const TFunctionRef<ITlsAutoCleanup*()>& CreateInstance, uint32& TlsSlot );
 };
 
 
 /**
  * This a special version of singleton. It means that there is created only one instance for each thread.
- * Calling Get() method is thread-safe, but first call should be done on the game thread.
- * @see DECLARE_THREAD_SINGLETON usage.
+ * Calling Get() method is thread-safe.
  */
 template < class T >
-class TThreadSingleton : public FThreadSingleton
+class TThreadSingleton : public ITlsAutoCleanup
 {
 	/**
 	 * @return TLS slot that holds a TThreadSingleton.
@@ -997,21 +971,14 @@ protected:
 	/** Default constructor. */
 	TThreadSingleton()
 		: ThreadId(FPlatformTLS::GetCurrentThreadId())
-	{ }
+	{}
 
 	/**
 	 * @return a new instance of the thread singleton.
 	 */
-	static FThreadSingleton* Create()
+	static ITlsAutoCleanup* CreateInstance()
 	{
 		return new T();
-	}
-
-	/**	Deletes this instance of the thread singleton.  */
-	virtual void DeleteThis()
-	{
-		T* This = (T*)this;
-		delete This;
 	}
 
 	/** Thread ID of this thread singleton. */
@@ -1024,10 +991,9 @@ public:
 	 */
 	FORCEINLINE static T& Get()
 	{
-		return *(T*)FThreadSingletonInitializer::Get(&T::Create, &FThreadSingleton::DeleteThis, T::GetTlsSlot());
+		return *(T*)FThreadSingletonInitializer::Get( [](){ return (ITlsAutoCleanup*)new T(); }, T::GetTlsSlot() );
 	}
 };
 
-
 #define DECLARE_THREAD_SINGLETON(ClassType) \
-	static auto& GForceInitAtBoot_ThreadSingletonInitializer_##ClassType = ClassType::Get();
+	EMIT_DEPRECATED_WARNING_MESSAGE("DECLARE_THREAD_SINGLETON is deprecated in 4.8. It's no longer needed and can be removed.")

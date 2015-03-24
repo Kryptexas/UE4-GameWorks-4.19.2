@@ -62,14 +62,8 @@ class FFakeThread : public FRunnableThread
 	/** Thread is suspended. */
 	bool bIsSuspended;
 
-	/** Name of this thread. */
-	FString Name;
-
 	/** Runnable object associated with this thread. */
 	FSingleThreadRunnable* Runnable;
-
-	/** Thread Id. */
-	uint32 ThreadId;
 
 public:
 
@@ -77,8 +71,8 @@ public:
 	FFakeThread()
 		: bIsSuspended(false)
 		, Runnable(nullptr)
-		, ThreadId(ThreadIdCounter++)
 	{
+		ThreadID = ThreadIdCounter++;
 		// Auto register with single thread manager.
 		FSingleThreadManager::Get().AddThread(this);
 	}
@@ -122,16 +116,6 @@ public:
 	virtual void WaitForCompletion() override
 	{
 		FSingleThreadManager::Get().RemoveThread(this);
-	}
-
-	virtual uint32 GetThreadID() override
-	{
-		return ThreadId;
-	}
-
-	virtual FString GetThreadName() override
-	{
-		return Name;
 	}
 
 	virtual bool CreateInternal(FRunnable* InRunnable, const TCHAR* ThreadName,
@@ -188,9 +172,26 @@ FScopedEvent::~FScopedEvent()
 	Event = nullptr;
 }
 
-FRunnableThread::~FRunnableThread()
+/*-----------------------------------------------------------------------------
+	FRunnableThread
+-----------------------------------------------------------------------------*/
+
+uint32 FRunnableThread::RunnableTlsSlot = 0;
+
+void FRunnableThread::InitializeTls()
 {
-	ThreadDestroyedDelegate.Broadcast();
+	check( IsInGameThread() );
+	RunnableTlsSlot = FPlatformTLS::AllocTlsSlot();
+	check( FPlatformTLS::IsValidTlsSlot( RunnableTlsSlot ) );
+}
+
+FRunnableThread::FRunnableThread()
+	: Runnable(nullptr)
+	, ThreadInitSyncEvent(nullptr)
+	, ThreadAffinityMask(FPlatformAffinity::GetNoAffinityMask())
+	, ThreadPriority(TPri_Normal)
+	, ThreadID(0)
+{
 }
 
 FRunnableThread* FRunnableThread::Create(
@@ -241,17 +242,42 @@ FRunnableThread* FRunnableThread::Create(
 		}
 	}
 
+#if	STATS
 	if( NewThread )
 	{
-		FRunnableThread::GetThreadRegistry().Add( NewThread->GetThreadID(), NewThread );
-#if	STATS
 		FStartupMessages::Get().AddThreadMetadata( FName( *NewThread->GetThreadName() ), NewThread->GetThreadID() );
-#endif // STATS
 	}
+#endif // STATS
 
 	return NewThread;
 }
 
+void FRunnableThread::SetTls()
+{
+	// Make sure it's called from the owning thread.
+	check( ThreadID == FPlatformTLS::GetCurrentThreadId() );
+	check( RunnableTlsSlot );
+	FPlatformTLS::SetTlsValue( RunnableTlsSlot, this );
+}
+
+void FRunnableThread::FreeTls()
+{
+	// Make sure it's called from the owning thread.
+	check( ThreadID == FPlatformTLS::GetCurrentThreadId() );
+	check( RunnableTlsSlot );
+	FPlatformTLS::SetTlsValue( RunnableTlsSlot, nullptr );
+
+	// Delete all ITlsAutoCleanup objects created for this thread.
+	for( auto& Instance : TlsInstances )
+	{
+		delete Instance;
+		Instance = nullptr;
+	}
+}
+
+/*-----------------------------------------------------------------------------
+	FQueuedThread
+-----------------------------------------------------------------------------*/
 
 /**
  * This is the interface used for all poolable threads. The usage pattern for
@@ -594,28 +620,33 @@ FQueuedThreadPool* FQueuedThreadPool::Allocate()
 	FThreadSingletonInitializer
 -----------------------------------------------------------------------------*/
 
-FThreadSingleton* FThreadSingletonInitializer::Get( const FThreadSingleton::TCreateSingletonFuncPtr CreateFunc, const FThreadSingleton::TDestroySingletonFuncPtr DestroyFunc, uint32& TlsSlot )
+ITlsAutoCleanup* FThreadSingletonInitializer::Get( const TFunctionRef<ITlsAutoCleanup*()>& CreateInstance, uint32& TlsSlot )
 {
-	check( CreateFunc != nullptr );
-	check( DestroyFunc != nullptr );
 	if( TlsSlot == 0 )
 	{
-		check( IsInGameThread() );
-		TlsSlot = FPlatformTLS::AllocTlsSlot();
+		const uint32 ThisTlsSlot = FPlatformTLS::AllocTlsSlot();
+		check( FPlatformTLS::IsValidTlsSlot( ThisTlsSlot ) );
+		const uint32 PrevTlsSlot = FPlatformAtomics::InterlockedCompareExchange( (int32*)&TlsSlot, (int32)ThisTlsSlot, 0 );
+		if( PrevTlsSlot != 0 )
+		{
+			FPlatformTLS::FreeTlsSlot( ThisTlsSlot );
+		}
 	}
-	FThreadSingleton* ThreadSingleton = (FThreadSingleton*)FPlatformTLS::GetTlsValue( TlsSlot );
+	ITlsAutoCleanup* ThreadSingleton = (ITlsAutoCleanup*)FPlatformTLS::GetTlsValue( TlsSlot );
 	if( !ThreadSingleton )
 	{
-		const uint32 ThreadId = FPlatformTLS::GetCurrentThreadId();
-		ThreadSingleton = (*CreateFunc)();
-		FRunnableThread::GetThreadRegistry().Lock();
-		FRunnableThread* RunnableThread = FRunnableThread::GetThreadRegistry().GetThread( ThreadId );
-		if( RunnableThread )
-		{
-			RunnableThread->OnThreadDestroyed().AddRaw( ThreadSingleton, DestroyFunc );
-		}
-		FRunnableThread::GetThreadRegistry().Unlock();
+		ThreadSingleton = CreateInstance();
+		ThreadSingleton->Register();
 		FPlatformTLS::SetTlsValue( TlsSlot, ThreadSingleton );
 	}
 	return ThreadSingleton;
+}
+
+void ITlsAutoCleanup::Register()
+{
+	FRunnableThread* RunnableThread = FRunnableThread::GetRunnableThread();
+	if( RunnableThread )
+	{
+		RunnableThread->TlsInstances.Add( this );
+	}
 }
