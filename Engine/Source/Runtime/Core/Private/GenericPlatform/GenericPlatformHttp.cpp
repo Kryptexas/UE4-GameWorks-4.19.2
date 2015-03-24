@@ -20,7 +20,7 @@ public:
 	virtual TArray<FString> GetAllHeaders() override { return TArray<FString>(); }
 	virtual FString GetContentType() override { return TEXT(""); }
 	virtual int32 GetContentLength() override { return 0; }
-	virtual const TArray<uint8>& GetContent() { static TArray<uint8> Temp; return Temp; }
+	virtual const TArray<uint8>& GetContent() override { static TArray<uint8> Temp; return Temp; }
 
 	// IHttpRequest
 	virtual FString GetVerb() override { return TEXT(""); }

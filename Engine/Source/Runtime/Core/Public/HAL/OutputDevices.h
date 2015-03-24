@@ -368,7 +368,7 @@ public:
 	 * as we might have to call "delete" which cannot be done for static/ global
 	 * objects.
 	 */
-	void TearDown();
+	void TearDown() override;
 };
 
 /*-----------------------------------------------------------------------------
@@ -400,13 +400,13 @@ public:
 	 * as we have to call "delete" which cannot be done for static/ global
 	 * objects.
 	 */
-	void TearDown();
+	void TearDown() override;
 
 	/**
 	 * Flush the write cache so the file isn't truncated in case we crash right
 	 * after calling this function.
 	 */
-	void Flush();
+	void Flush() override;
 
 	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 
@@ -514,7 +514,7 @@ public:
 	 * Error handling function that is being called from within the system wide global
 	 * error handler, e.g. using structured exception handling on the PC.
 	 */
-	void HandleError();
+	void HandleError() override;
 
 private:
 

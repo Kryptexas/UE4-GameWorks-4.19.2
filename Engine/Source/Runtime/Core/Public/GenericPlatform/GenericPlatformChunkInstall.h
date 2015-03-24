@@ -224,7 +224,7 @@ public:
 	 * Does nothing in a shipping build.
 	 * @return				true if the opreation succeeds.
 	 **/
-	virtual bool DebugStartNextChunk()
+	virtual bool DebugStartNextChunk() override
 	{
 		return true;
 	}
@@ -235,7 +235,7 @@ public:
 	* @param Delegate		The delegate when the chunk is installed.
 	* @return				False if the delegate was not registered or the chunk is already installed. True on success.
 	*/
-	virtual bool SetChunkInstallDelgate(uint32 ChunkID, FPlatformChunkInstallCompleteDelegate Delegate)
+	virtual bool SetChunkInstallDelgate(uint32 ChunkID, FPlatformChunkInstallCompleteDelegate Delegate) override
 	{
 		return false;
 	}
@@ -246,7 +246,7 @@ public:
 	* @param Delegate		The delegate to remove.
 	* @return				False if the delegate was not registered with a call to SetChunkInstallDelgate. True on success.
 	*/
-	virtual void RemoveChunkInstallDelgate(uint32 ChunkID, FPlatformChunkInstallCompleteDelegate Delegate)
+	virtual void RemoveChunkInstallDelgate(uint32 ChunkID, FPlatformChunkInstallCompleteDelegate Delegate) override
 	{
 		return;
 	}

@@ -69,9 +69,9 @@ public:
 	bool SetTimeStamp( const TCHAR* Filename, FDateTime Timestamp ) override;
 	virtual FString GetFilenameOnDisk(const TCHAR* Filename) override;
 
-	virtual uint32	Copy( const TCHAR* InDestFile, const TCHAR* InSrcFile, bool ReplaceExisting, bool EvenIfReadOnly, bool Attributes, FCopyProgress* Progress );
-	virtual bool	MakeDirectory( const TCHAR* Path, bool Tree=0 );
-	virtual bool	DeleteDirectory( const TCHAR* Path, bool RequireExists=0, bool Tree=0 );
+	virtual uint32	Copy( const TCHAR* InDestFile, const TCHAR* InSrcFile, bool ReplaceExisting, bool EvenIfReadOnly, bool Attributes, FCopyProgress* Progress ) override;
+	virtual bool	MakeDirectory( const TCHAR* Path, bool Tree=0 ) override;
+	virtual bool	DeleteDirectory( const TCHAR* Path, bool RequireExists=0, bool Tree=0 ) override;
 
 	/** 
 	 * Call the Visit function of the visitor once for each file or directory in a single directory. This function does not explore subdirectories.

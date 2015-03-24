@@ -227,7 +227,7 @@ public:
 		LowerLevel = Inner;
 		return !!LowerLevel;
 	}
-	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const
+	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override
 	{
 		return FPlatformProperties::RequiresCookedData();
 	}

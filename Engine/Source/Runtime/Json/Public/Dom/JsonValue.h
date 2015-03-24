@@ -92,7 +92,7 @@ public:
 protected:
 	FString Value;
 
-	virtual FString GetType() const {return TEXT("String");}
+	virtual FString GetType() const override {return TEXT("String");}
 };
 
 
@@ -108,7 +108,7 @@ public:
 protected:
 	double Value;
 
-	virtual FString GetType() const {return TEXT("Number");}
+	virtual FString GetType() const override {return TEXT("Number");}
 };
 
 
@@ -124,7 +124,7 @@ public:
 protected:
 	bool Value;
 
-	virtual FString GetType() const {return TEXT("Boolean");}
+	virtual FString GetType() const override {return TEXT("Boolean");}
 };
 
 
@@ -138,7 +138,7 @@ public:
 protected:
 	TArray< TSharedPtr<FJsonValue> > Value;
 
-	virtual FString GetType() const {return TEXT("Array");}
+	virtual FString GetType() const override {return TEXT("Array");}
 };
 
 
@@ -152,7 +152,7 @@ public:
 protected:
 	TSharedPtr<FJsonObject> Value;
 
-	virtual FString GetType() const {return TEXT("Object");}
+	virtual FString GetType() const override {return TEXT("Object");}
 };
 
 
@@ -163,5 +163,5 @@ public:
 	FJsonValueNull() {Type = EJson::Null;}
 
 protected:
-	virtual FString GetType() const {return TEXT("Null");}
+	virtual FString GetType() const override {return TEXT("Null");}
 };

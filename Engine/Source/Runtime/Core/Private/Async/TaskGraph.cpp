@@ -544,7 +544,7 @@ public:
 	 *
 	 * @return True if initialization was successful, false otherwise
 	 */
-	virtual bool Init()
+	virtual bool Init() override
 	{
 		InitializeForCurrentThread();
 		return true;
@@ -556,7 +556,7 @@ public:
 	 *
 	 * @return The exit code of the runnable object
 	 */
-	virtual uint32 Run()
+	virtual uint32 Run() override
 	{
 		ProcessTasksUntilQuit(0);
 		return 0;
@@ -565,7 +565,7 @@ public:
 	/**
 	 * This is called if a thread is requested to terminate early
 	 */
-	virtual void Stop()
+	virtual void Stop() override
 	{
 		RequestQuit(0);
 	}
@@ -573,7 +573,7 @@ public:
 	/**
 	 * Called in the context of the aggregating thread to perform any cleanup.
 	 */
-	virtual void Exit()
+	virtual void Exit() override
 	{
 	}
 
@@ -989,7 +989,7 @@ public:
 		}
 	}
 
-	virtual void TriggerEventWhenTasksComplete(FEvent* InEvent, const FGraphEventArray& Tasks, ENamedThreads::Type CurrentThreadIfKnown = ENamedThreads::AnyThread)
+	virtual void TriggerEventWhenTasksComplete(FEvent* InEvent, const FGraphEventArray& Tasks, ENamedThreads::Type CurrentThreadIfKnown = ENamedThreads::AnyThread) override
 	{
 		check(InEvent);
 		bool bAnyPending = false;
