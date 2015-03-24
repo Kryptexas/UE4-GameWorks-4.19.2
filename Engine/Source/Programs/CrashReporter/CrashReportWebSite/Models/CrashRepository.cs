@@ -117,7 +117,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A container of all known crashes.</returns>
 		public IQueryable<Crash> ListAll()
 		{
-			return Context.Crashes.AsQueryable().Where( c => c.Branch != null );
+			return Context.Crashes.AsQueryable();
 		}
 
 		/// <summary>
@@ -192,7 +192,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			{
 				UsersMapping UniqueUser = null;
 
-				IEnumerable<Crash> Results = null;
+				//IEnumerable<Crash> Results = null;
 				int Skip = ( FormData.Page - 1 ) * FormData.PageSize;
 				int Take = FormData.PageSize;
 
@@ -219,7 +219,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				}			
 
 				// Filter by data and get as enumerable.
-				Results = FilterByDate( ResultsAll, FormData.DateFrom, FormData.DateTo );
+                IQueryable<Crash> Results = FilterByDate(ResultsAll, FormData.DateFrom, FormData.DateTo);
 
 				// Grab Results 
 				if( !string.IsNullOrEmpty( FormData.SearchQuery ) )
@@ -254,14 +254,30 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 							}
 							else
 							{
-								Results = Search( Results, DecodedQuery );
+                                Results = Results.Where(CrashInstance => CrashInstance.UserName == DecodedQuery);
 							}
 						}
 					}
 				}
 
 				// Start Filtering the results
+                if (!string.IsNullOrEmpty(FormData.EpicIdQuery))
+                {
+                    var DecodedQuery = HttpUtility.HtmlDecode(FormData.EpicIdQuery).ToLower();
+                    Results = Results.Where(crashInstance => crashInstance.EpicAccountId == DecodedQuery);
+                }
 
+                if (!string.IsNullOrEmpty(FormData.MachineIdQuery))
+                {
+                    var DecodedQuery = HttpUtility.HtmlDecode(FormData.MachineIdQuery).ToLower();
+                    Results = Results.Where(crashInstance => crashInstance.ComputerName == DecodedQuery);
+                }
+
+                if (!string.IsNullOrEmpty(FormData.JiraQuery))
+                {
+                    var DecodedQuery = HttpUtility.HtmlDecode(FormData.JiraQuery).ToLower();
+                    Results = Results.Where(crashInstance => crashInstance.TTPID == DecodedQuery);
+                }
 				// Filter by BranchName
 				if( !string.IsNullOrEmpty( FormData.BranchName ) )
 				{
@@ -335,11 +351,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 						}
 					}
 
-					Results = NewResults;
+					//Results = NewResults;
 				}
 
 				// Pass in the results and return them sorted properly
-				Results = GetSortedResults( Results, FormData.SortTerm, ( FormData.SortOrder == "Descending" ) );
+				//Results = GetSortedResults( Results, FormData.SortTerm, ( FormData.SortOrder == "Descending" ) );
 
 				// Get the Count for pagination
 				int ResultCount = 0;
@@ -368,9 +384,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					PagingInfo = new PagingInfo { CurrentPage = FormData.Page, PageSize = FormData.PageSize, TotalResults = ResultCount },
 					SortOrder = FormData.SortOrder,
 					SortTerm = FormData.SortTerm,
+                    BranchNames = DatabaseHelper.GetBranches(),
 					UserGroup = FormData.UserGroup,
 					CrashType = FormData.CrashType,
 					SearchQuery = FormData.SearchQuery,
+                    EpicIdQuery = FormData.EpicIdQuery,
+                    MachineIdQuery = FormData.MachineIdQuery,
+                    JiraQuery = FormData.JiraQuery,
 					DateFrom = (long)( FormData.DateFrom - CrashesViewModel.Epoch ).TotalMilliseconds,
 					DateTo = (long)( FormData.DateTo - CrashesViewModel.Epoch ).TotalMilliseconds,
 					BranchName = FormData.BranchName,
@@ -435,14 +455,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <param name="DateFrom">The earliest date to filter by.</param>
 		/// <param name="DateTo">The latest date to filter by.</param>
 		/// <returns>The set of crashes between the earliest and latest date.</returns>
-		public IEnumerable<Crash> FilterByDate( IQueryable<Crash> Results, DateTime DateFrom, DateTime DateTo )
+		public IQueryable<Crash> FilterByDate( IQueryable<Crash> Results, DateTime DateFrom, DateTime DateTo )
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + " SQL" ) )
 			{
 				IQueryable<Crash> CrashesInTimeFrame = Results
 					.Where( MyCrash => MyCrash.TimeOfCrash >= DateFrom && MyCrash.TimeOfCrash <= DateTo.AddDays( 1 ) );
-				IEnumerable<Crash> CrashesInTimeFrameEnumerable = CrashesInTimeFrame.ToList();
-				return CrashesInTimeFrameEnumerable;
+                return CrashesInTimeFrame;
 			}
 		}
 
