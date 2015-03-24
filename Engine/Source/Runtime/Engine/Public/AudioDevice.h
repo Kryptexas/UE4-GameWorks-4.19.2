@@ -806,6 +806,9 @@ public:
 	/** Whether the audio device is active (current audio device in-focus in PIE) */
 	uint32 bIsDeviceMuted:1;
 
+	/** Whether the audio device has been initialized */
+	uint32 bIsInitialized:1;
+
 private:
 
 	TArray<struct FActiveSound*> ActiveSounds;

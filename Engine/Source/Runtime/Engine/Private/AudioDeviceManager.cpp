@@ -17,6 +17,12 @@ static const uint16 AUDIO_DEVICE_MINIMUM_FREE_AUDIO_DEVICE_INDICES = 32;
 // Invalid handle used for initializing audio device handles
 static const uint32 AUDIO_DEVICE_HANDLE_INVALID			= ~0u;
 
+// The number of multiple audio devices allowed by default
+static const uint32 AUDIO_DEVICE_DEFAULT_ALLOWED_DEVICE_COUNT = 2;
+
+// The max number of audio devices allowed
+static const uint32 AUDIO_DEVICE_MAX_DEVICE_COUNT = 8;
+
 /*-----------------------------------------------------------------------------
 FAudioDeviceManager implementation.
 -----------------------------------------------------------------------------*/
@@ -25,6 +31,8 @@ FAudioDeviceManager::FAudioDeviceManager()
 	: AudioDeviceModule(nullptr)
 	, FreeIndicesSize(0)
 	, NumActiveAudioDevices(0)
+	, NumWorldsUsingMainAudioDevice(0)
+	, InFocusDeviceHandle(INDEX_NONE)
 	, NextResourceID(1)
 {
 }
@@ -48,7 +56,7 @@ void FAudioDeviceManager::RegisterAudioDeviceModule(IAudioDeviceModule* AudioDev
 	AudioDeviceModule = AudioDeviceModuleInput;
 }
 
-FAudioDevice* FAudioDeviceManager::CreateAudioDevice(uint32& HandleOut)
+FAudioDevice* FAudioDeviceManager::CreateAudioDevice(uint32& HandleOut, bool bCreateNewDevice)
 {
 	// If we don't have an audio device module, then we can't create new audio devices.
 	if (AudioDeviceModule == nullptr)
@@ -57,45 +65,61 @@ FAudioDevice* FAudioDeviceManager::CreateAudioDevice(uint32& HandleOut)
 		return nullptr;
 	}
 
-	// Create the new audio device and make sure it succeeded
-	FAudioDevice* NewAudioDevice = AudioDeviceModule->CreateAudioDevice();
-	if (NewAudioDevice == nullptr)
+	FAudioDevice* NewAudioDevice = nullptr;
+
+	if (NumActiveAudioDevices < AUDIO_DEVICE_DEFAULT_ALLOWED_DEVICE_COUNT || (bCreateNewDevice && NumActiveAudioDevices < AUDIO_DEVICE_MAX_DEVICE_COUNT))
 	{
-		HandleOut = AUDIO_DEVICE_HANDLE_INVALID;
-		return nullptr;
-	}
+		// Create the new audio device and make sure it succeeded
+		NewAudioDevice = AudioDeviceModule->CreateAudioDevice();
+		if (NewAudioDevice == nullptr)
+		{
+			HandleOut = AUDIO_DEVICE_HANDLE_INVALID;
+			return nullptr;
+		}
 
-	// Now generation a new audio device handle for the device and store the
-	// ptr to the new device in the array of audio devices.
+		// Now generation a new audio device handle for the device and store the
+		// ptr to the new device in the array of audio devices.
 
-	uint32 AudioDeviceIndex(AUDIO_DEVICE_HANDLE_INVALID);
+		uint32 AudioDeviceIndex(AUDIO_DEVICE_HANDLE_INVALID);
 
-	// First check to see if we should start recycling audio device indices, if not
-	// then we add a new entry to the Generation array and generate a new index
-	if (FreeIndicesSize > AUDIO_DEVICE_MINIMUM_FREE_AUDIO_DEVICE_INDICES)
-	{
-		FreeIndices.Dequeue(AudioDeviceIndex);
-		--FreeIndicesSize;
-		check(int32(AudioDeviceIndex) < Devices.Num());
-		check(Devices[AudioDeviceIndex] == nullptr);
-		Devices[AudioDeviceIndex] = NewAudioDevice;
+		// First check to see if we should start recycling audio device indices, if not
+		// then we add a new entry to the Generation array and generate a new index
+		if (FreeIndicesSize > AUDIO_DEVICE_MINIMUM_FREE_AUDIO_DEVICE_INDICES)
+		{
+			FreeIndices.Dequeue(AudioDeviceIndex);
+			--FreeIndicesSize;
+			check(int32(AudioDeviceIndex) < Devices.Num());
+			check(Devices[AudioDeviceIndex] == nullptr);
+			Devices[AudioDeviceIndex] = NewAudioDevice;
+		}
+		else
+		{
+			// Add a zeroth generation entry in the Generation array, get a brand new
+			// index and append the created device to the end of the Devices array
+
+			Generations.Add(0);
+			AudioDeviceIndex = Generations.Num() - 1;
+			check(AudioDeviceIndex < (1 << AUDIO_DEVICE_HANDLE_INDEX_BITS));
+			Devices.Add(NewAudioDevice);
+		}
+
+		HandleOut = CreateHandle(AudioDeviceIndex, Generations[AudioDeviceIndex]);
+
+		// Store the handle on the audio device itself
+		NewAudioDevice->DeviceHandle = HandleOut;
 	}
 	else
 	{
-		// Add a zeroth generation entry in the Generation array, get a brand new
-		// index and append the created device to the end of the Devices array
-
-		Generations.Add(0);
-		AudioDeviceIndex = Generations.Num() - 1;
-		check(AudioDeviceIndex < (1 << AUDIO_DEVICE_HANDLE_INDEX_BITS));
-		Devices.Add(NewAudioDevice);
+		++NumWorldsUsingMainAudioDevice;
+		FAudioDevice* MainAudioDevice = GEngine->GetMainAudioDevice();
+		if (MainAudioDevice)
+		{
+			HandleOut = MainAudioDevice->DeviceHandle;
+			NewAudioDevice = MainAudioDevice;
+		}
 	}
 
 	++NumActiveAudioDevices;
-	HandleOut = CreateHandle(AudioDeviceIndex, Generations[AudioDeviceIndex]);
-
-	// Store the handle on the audio device itself
-	NewAudioDevice->DeviceHandle = HandleOut;
 
 	return NewAudioDevice;
 }
@@ -127,12 +151,29 @@ bool FAudioDeviceManager::ShutdownAudioDevice(uint32 Handle)
 	check(NumActiveAudioDevices > 0);
 	--NumActiveAudioDevices;
 
-	// If we only have one audio device left, then set the active
-	// audio device to be the main audio device
-	if (NumActiveAudioDevices == 1)
+	// If there are more than 1 device active, check to see if this handle is the main audio device handle
+	if (NumActiveAudioDevices >= 1)
 	{
-		uint32 ActiveDeviceHandle = GEngine->GetAudioDeviceHandle();
-		SetActiveDevice(ActiveDeviceHandle);
+		uint32 MainDeviceHandle = GEngine->GetAudioDeviceHandle();
+
+		if (NumActiveAudioDevices == 1)
+		{
+			// If we only have one audio device left, then set the active
+			// audio device to be the main audio device
+			SetActiveDevice(MainDeviceHandle);
+		}
+
+		if (MainDeviceHandle == Handle)
+		{
+			// This was a handle to the main audio device using the main audio device
+			check(NumWorldsUsingMainAudioDevice > 0);
+			--NumWorldsUsingMainAudioDevice;
+
+			// If this is the main device handle, don't shut it down until it's the very last handle to get shut down
+			// this is because it's possible for some PIE sessions to be using the main audio device as a fallback to 
+			// preserve CPU performance on low-performance machines
+			return true;
+		}
 	}
 
 	uint32 Index = GetIndex(Handle);
@@ -172,6 +213,10 @@ bool FAudioDeviceManager::ShutdownAllAudioDevices()
 			ShutdownAudioDevice(AudioDevice->DeviceHandle);
 		}
 	}
+
+	check(NumActiveAudioDevices == 0);
+	check(NumWorldsUsingMainAudioDevice == 0);
+
 	return true;
 }
 
@@ -289,6 +334,11 @@ void FAudioDeviceManager::SetActiveDevice(uint32 InAudioDeviceHandle)
 uint8 FAudioDeviceManager::GetNumActiveAudioDevices() const
 {
 	return NumActiveAudioDevices;
+}
+
+uint8 FAudioDeviceManager::GetNumMainAudioDeviceWorlds() const
+{
+	return NumWorldsUsingMainAudioDevice;
 }
 
 uint32 FAudioDeviceManager::GetIndex(uint32 Handle) const

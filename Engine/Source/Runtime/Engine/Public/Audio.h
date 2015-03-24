@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include "Sound/SoundAttenuation.h"
 #include "Sound/SoundClass.h"
+#include "Sound/SoundAttenuation.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAudio, Warning, All);
 

@@ -29,7 +29,7 @@ public:
 	* Creates and audio device instance internally and returns a
 	* handle to the audio device. Returns true on success.
 	*/
-	class FAudioDevice* CreateAudioDevice(uint32 & HandleOut);
+	class FAudioDevice* CreateAudioDevice(uint32 & HandleOut, bool bCreateNewDevice);
 
 	/**
 	* Returns whether the audio device handle is valid (i.e. points to
@@ -56,6 +56,9 @@ public:
 
 	/** Returns the current number of active audio devices. */
 	uint8 GetNumActiveAudioDevices() const;
+
+	/** Returns the number of worlds (e.g. PIE viewports) using the main audio device. */
+	uint8 GetNumMainAudioDeviceWorlds() const;
 
 	/** Updates all active audio devices */
 	void UpdateActiveAudioDevices(bool bGameTicking);
@@ -125,25 +128,28 @@ private:
 	/** Array for generation counts of audio devices in indices */
 	TArray<uint8> Generations;
 
-    /** Audio device module which creates audio devices. */
-    IAudioDeviceModule* AudioDeviceModule;
+	/** Audio device module which creates audio devices. */
+	IAudioDeviceModule* AudioDeviceModule;
 
-    /** Count of the number of free slots in the audio device array. */
-    uint32 FreeIndicesSize;
+	/** Count of the number of free slots in the audio device array. */
+	uint32 FreeIndicesSize;
 
-    /** Number of actively created audio device instances. */
-    uint8 NumActiveAudioDevices;
+	/** Number of actively created audio device instances. */
+	uint8 NumActiveAudioDevices;
 
-    /** Queue for free indices */
-    TQueue<uint32> FreeIndices;
+	/** Number of worlds using the main audio device instance. */
+	uint8 NumWorldsUsingMainAudioDevice;
 
-    /**
+	/** Queue for free indices */
+	TQueue<uint32> FreeIndices;
+
+	/**
 	* Array of audio device pointers. If the device has been free, then
 	* the device ptr at the array index will be null.
 	*/
 	TArray<FAudioDevice* > Devices;
 
-    /** The audio device handle currently in focus */
+	/** The audio device handle currently in focus */
 	int32 InFocusDeviceHandle;
 
 	/** Next resource ID to assign out to a wave/buffer */

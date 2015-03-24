@@ -127,7 +127,7 @@ public:
 	/* Returns the relevant game instance for this viewport */
 	UGameInstance* GetGameInstance() const;
 
-	virtual void Init(struct FWorldContext& WorldContext, UGameInstance* OwningGameInstance);
+	virtual void Init(struct FWorldContext& WorldContext, UGameInstance* OwningGameInstance, bool bCreateNewAudioDevice = true);
 
 public:
 	// Begin UObject Interface
@@ -795,6 +795,9 @@ private:
 
 	/** Handle to the audio device created for this viewport. Each viewport (for multiple PIE) will have its own audio device. */
 	uint32 AudioDeviceHandle;
+
+	/** Whether or not this audio device is in audio-focus */
+	bool bHasAudioFocus;
 };
 
 

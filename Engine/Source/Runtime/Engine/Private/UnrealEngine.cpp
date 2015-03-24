@@ -1687,7 +1687,7 @@ bool UEngine::InitializeAudioDeviceManager()
 					bool bSucceeded = false;
 
 					// Create a new audio device.
-					FAudioDevice* NewAudioDevice = AudioDeviceManager->CreateAudioDevice(MainAudioDeviceHandle);
+					FAudioDevice* NewAudioDevice = AudioDeviceManager->CreateAudioDevice(MainAudioDeviceHandle, true);
 					if (NewAudioDevice)
 					{
 						// Initialize the audio device

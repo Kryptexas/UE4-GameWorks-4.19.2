@@ -102,6 +102,8 @@ UGameViewportClient::UGameViewportClient(const FObjectInitializer& ObjectInitial
 	, bIgnoreInput(false)
 	, MouseCaptureMode(EMouseCaptureMode::CapturePermanently)
 	, bHideCursorDuringCapture(false)
+	, AudioDeviceHandle(INDEX_NONE)
+	, bHasAudioFocus(false)
 {
 
 	TitleSafeZone.MaxPercentX = 0.9f;
@@ -235,7 +237,7 @@ FString UGameViewportClient::ConsoleCommand( const FString& Command)
 	return *ConsoleOut;
 }
 
-void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance* OwningGameInstance)
+void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance* OwningGameInstance, bool bCreateNewAudioDevice)
 {
 	// set reference to world context
 	WorldContext.AddRef(World);
@@ -251,14 +253,14 @@ void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance
 		FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
 		if (AudioDeviceManager)
 		{
-			FAudioDevice* NewAudioDevice = AudioDeviceManager->CreateAudioDevice(AudioDeviceHandle);
+			FAudioDevice* NewAudioDevice = AudioDeviceManager->CreateAudioDevice(AudioDeviceHandle, bCreateNewAudioDevice);
 			if (NewAudioDevice)
 			{
 				if (NewAudioDevice->Init())
 				{
 					// Set the base mix of the new device based on the world settings of the world
 					if (World)
-					{ 
+					{
 						NewAudioDevice->SetDefaultBaseSoundMix(World->GetWorldSettings()->DefaultBaseSoundMix);
 
 						// Set the world's audio device handle to use so that sounds which play in that world will use the correct audio device
@@ -936,31 +938,52 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 						// Update the listener.
 						if (AudioDevice != NULL && PlayerController != NULL)
 						{
-							FVector Location;
-							FVector ProjFront;
-							FVector ProjRight;
-							PlayerController->GetAudioListenerPosition(/*out*/ Location, /*out*/ ProjFront, /*out*/ ProjRight);
+							bool bUpdateListenerPosition = true;
 
-							FTransform ListenerTransform(FRotationMatrix::MakeFromXY(ProjFront, ProjRight));
-							ListenerTransform.SetTranslation(Location);
-							ListenerTransform.NormalizeRotation();
-
-							bReverbSettingsFound = true;
-
-							FReverbSettings PlayerReverbSettings;
-							FInteriorSettings PlayerInteriorSettings;
-							class AAudioVolume* PlayerAudioVolume = GetWorld()->GetAudioSettings(Location, &PlayerReverbSettings, &PlayerInteriorSettings);
-
-							if (AudioVolume == nullptr || (PlayerAudioVolume != nullptr && PlayerAudioVolume->Priority > AudioVolume->Priority))
+							// If the main audio device is used for multiple PIE viewport clients, we only
+							// want to update the main audio device listener position if it is in focus
+							if (GEngine)
 							{
-								AudioVolume = PlayerAudioVolume;
-								ReverbSettings = PlayerReverbSettings;
+								FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
+
+								// If there is more than one world referencing the main audio device
+								if (AudioDeviceManager->GetNumMainAudioDeviceWorlds() > 1)
+								{
+									uint32 MainAudioDeviceHandle = GEngine->GetAudioDeviceHandle();
+									if (AudioDevice->DeviceHandle == MainAudioDeviceHandle && !bHasAudioFocus)
+									{
+										bUpdateListenerPosition = false;
+									}
+								}
 							}
 
-							uint32 ViewportIndex = PlayerViewMap.Num() - 1;
-							AudioDevice->SetListener(ViewportIndex, ListenerTransform, (View->bCameraCut ? 0.f : GetWorld()->GetDeltaSeconds()), PlayerAudioVolume, PlayerInteriorSettings);
-						}
+							if (bUpdateListenerPosition)
+							{
+								FVector Location;
+								FVector ProjFront;
+								FVector ProjRight;
+								PlayerController->GetAudioListenerPosition(/*out*/ Location, /*out*/ ProjFront, /*out*/ ProjRight);
 
+								FTransform ListenerTransform(FRotationMatrix::MakeFromXY(ProjFront, ProjRight));
+								ListenerTransform.SetTranslation(Location);
+								ListenerTransform.NormalizeRotation();
+
+								bReverbSettingsFound = true;
+
+								FReverbSettings PlayerReverbSettings;
+								FInteriorSettings PlayerInteriorSettings;
+								class AAudioVolume* PlayerAudioVolume = GetWorld()->GetAudioSettings(Location, &PlayerReverbSettings, &PlayerInteriorSettings);
+
+								if (AudioVolume == nullptr || (PlayerAudioVolume != nullptr && PlayerAudioVolume->Priority > AudioVolume->Priority))
+								{
+									AudioVolume = PlayerAudioVolume;
+									ReverbSettings = PlayerReverbSettings;
+								}
+
+								uint32 ViewportIndex = PlayerViewMap.Num() - 1;
+								AudioDevice->SetListener(ViewportIndex, ListenerTransform, (View->bCameraCut ? 0.f : GetWorld()->GetDeltaSeconds()), PlayerAudioVolume, PlayerInteriorSettings);
+							}
+						}
 					}
 
 					// Add view information for resource streaming.
@@ -1386,6 +1409,11 @@ void UGameViewportClient::LostFocus(FViewport* InViewport)
 			}
 		}
 	}
+
+	if (GEngine && GEngine->GetAudioDeviceManager())
+	{
+		bHasAudioFocus = false;
+	}
 }
 
 void UGameViewportClient::ReceivedFocus(FViewport* InViewport)
@@ -1398,6 +1426,7 @@ void UGameViewportClient::ReceivedFocus(FViewport* InViewport)
 	if (GEngine && GEngine->GetAudioDeviceManager())
 	{ 
 		GEngine->GetAudioDeviceManager()->SetActiveDevice(AudioDeviceHandle);
+		bHasAudioFocus = true;
 	}
 }
 

@@ -38,6 +38,7 @@ FAudioDevice::FAudioDevice()
 	, bSpatializationExtensionEnabled(false)
 	, bHRTFEnabledForAll(false)
 	, bIsDeviceMuted(false)
+	, bIsInitialized(false)
 {
 }
 
@@ -49,6 +50,11 @@ FAudioEffectsManager* FAudioDevice::CreateEffectsManager()
 
 bool FAudioDevice::Init()
 {
+	if (bIsInitialized)
+	{
+		return true;
+	}
+
 	bool bDeferStartupPrecache = false;
 	// initialize config variables
 	verify(GConfig->GetInt(TEXT("Audio"), TEXT("MaxChannels"), MaxChannels, GEngineIni));
@@ -107,6 +113,8 @@ bool FAudioDevice::Init()
 	}
 
 	UE_LOG(LogInit, Log, TEXT("FAudioDevice initialized." ));
+
+	bIsInitialized = true;
 
 	return true;
 }
