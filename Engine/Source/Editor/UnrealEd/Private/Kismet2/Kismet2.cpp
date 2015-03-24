@@ -746,6 +746,19 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 
 	ReinstanceHelper->UpdateBytecodeReferences();
 
+	const bool bIsInterface = FBlueprintEditorUtils::IsInterfaceBlueprint(BlueprintObj);
+	static const FBoolConfigValueHelper FirstCompileChildrenThenReinstance(TEXT("Kismet"), TEXT("bFirstCompileChildrenThenReinstance"), GEngineIni);
+	const bool bLetReinstancerRefreshDependBP = !bIsRegeneratingOnLoad && (OldClass != NULL)
+		&& FirstCompileChildrenThenReinstance && !bIsInterface;
+	if (bLetReinstancerRefreshDependBP)
+	{
+		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_RefreshDependentBlueprints);
+
+		TArray<UBlueprint*> DependentBPs;
+		FBlueprintEditorUtils::GetDependentBlueprints(BlueprintObj, DependentBPs);
+		ReinstanceHelper->ListDependentBlueprintsToRefresh(DependentBPs);
+	}
+
 	if (!bIsRegeneratingOnLoad && (OldClass != NULL))
 	{
 		// Strip off any external components from the CDO, if needed because of reparenting, etc
@@ -795,7 +808,8 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		BlueprintObj->NewVariables[VarIndex].DefaultValue.Empty();
 	}
 
-	{ 
+	if (!bLetReinstancerRefreshDependBP && (bIsInterface || !BlueprintObj->bIsRegeneratingOnLoad))
+	{
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_RefreshDependentBlueprints);
 
 		TArray<UBlueprint*> DependentBPs;
@@ -806,7 +820,7 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		{
 			// for interface changes, auto-refresh nodes on any dependent blueprints
 			// note: RefreshAllNodes() will internally send a change notification event to the dependent blueprint
-			if (FBlueprintEditorUtils::IsInterfaceBlueprint(BlueprintObj))
+			if (bIsInterface)
 			{
 				bool bPreviousRegenValue = Dependent->bIsRegeneratingOnLoad;
 				Dependent->bIsRegeneratingOnLoad = Dependent->bIsRegeneratingOnLoad || BlueprintObj->bIsRegeneratingOnLoad;

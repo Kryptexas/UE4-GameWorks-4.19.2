@@ -123,6 +123,8 @@ struct FReplaceReferenceHelper
 /////////////////////////////////////////////////////////////////////////////////
 // FBlueprintCompileReinstancer
 
+TSet<TWeakObjectPtr<UBlueprint>> FBlueprintCompileReinstancer::DependentBlueprintsToRefresh = TSet<TWeakObjectPtr<UBlueprint>>();
+
 FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToReinstance, bool bIsBytecodeOnly, bool bSkipGC)
 	: ClassToReinstance(InClassToReinstance)
 	, DuplicatedClass(NULL)
@@ -396,6 +398,16 @@ void FBlueprintCompileReinstancer::ReinstanceInner(bool bForceAlwaysReinstance)
 	}
 }
 
+void FBlueprintCompileReinstancer::ListDependentBlueprintsToRefresh(const TArray<UBlueprint*>& DependentBPs)
+{
+	static const FBoolConfigValueHelper FirstCompileChildrenThenReinstance(TEXT("Kismet"), TEXT("bFirstCompileChildrenThenReinstance"), GEngineIni);
+	check(FirstCompileChildrenThenReinstance);
+	for (auto& Element : DependentBPs)
+	{
+		DependentBlueprintsToRefresh.Add(Element);
+	}
+}
+
 void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance)
 {
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ReinstanceObjects);
@@ -419,6 +431,26 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 
 			if (QueueToReinstance.Num() && (QueueToReinstance[0] == SharedThis))
 			{
+				{
+					BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_RefreshDependentBlueprints);
+					for (auto Reinst : QueueToReinstance)
+					{
+						UBlueprint* BP = Reinst->ClassToReinstance ? Cast<UBlueprint>(Reinst->ClassToReinstance->ClassGeneratedBy) : nullptr;
+						if (BP)
+						{
+							DependentBlueprintsToRefresh.Remove(BP);
+						}
+					}
+					for (auto BPPtr : DependentBlueprintsToRefresh)
+					{
+						if (BPPtr.IsValid())
+						{
+							BPPtr->BroadcastChanged();
+						}
+					}
+					DependentBlueprintsToRefresh.Empty();
+				}
+
 				// All children were recompiled. It's safe to reinstance.
 				for (int32 Idx = 0; Idx < QueueToReinstance.Num(); ++Idx)
 				{
