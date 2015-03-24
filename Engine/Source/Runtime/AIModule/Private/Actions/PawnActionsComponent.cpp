@@ -162,6 +162,22 @@ UPawnActionsComponent::UPawnActionsComponent(const FObjectInitializer& ObjectIni
 	ActionStacks.AddZeroed(EAIRequestPriority::MAX);
 }
 
+void UPawnActionsComponent::OnUnregister()
+{
+	Super::OnUnregister();
+
+	// call for every regular priority 
+	for (int32 PriorityIndex = 0; PriorityIndex < EAIRequestPriority::MAX; ++PriorityIndex)
+	{
+		UPawnAction* Action = ActionStacks[PriorityIndex].GetTop();
+		while (Action)
+		{
+			Action->Abort(EAIForceParam::Force);
+			Action = Action->ParentAction;
+		}
+	}
+}
+
 void UPawnActionsComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
