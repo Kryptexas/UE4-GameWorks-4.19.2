@@ -4,6 +4,7 @@
 #include "EnginePrivate.h"
 #include "Engine/NiagaraActor.h"
 #include "Components/NiagaraComponent.h"
+#include "Engine/NiagaraEffect.h"
 
 ANiagaraActor::ANiagaraActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -68,3 +69,18 @@ UBillboardComponent* ANiagaraActor::GetSpriteComponent() const { return SpriteCo
 /** Returns ArrowComponent subobject **/
 UArrowComponent* ANiagaraActor::GetArrowComponent() const { return ArrowComponent; }
 #endif
+
+#if WITH_EDITOR
+bool ANiagaraActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
+{
+	Super::GetReferencedContentObjects(Objects);
+
+	if (UNiagaraEffect* Effect = NiagaraComponent->GetAsset())
+	{
+		Objects.Add(Effect);
+	}
+
+	return true;
+}
+#endif // WITH_EDITOR
+

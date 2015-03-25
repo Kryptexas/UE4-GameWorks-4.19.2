@@ -24,7 +24,7 @@ FNiagaraSceneProxy::FNiagaraSceneProxy(const UNiagaraComponent* InComponent)
 	UpdateEffectRenderers(InComponent->GetEffectInstance());
 }
 
-void FNiagaraSceneProxy::UpdateEffectRenderers(FNiagaraEffectInstance *InEffect)
+void FNiagaraSceneProxy::UpdateEffectRenderers(FNiagaraEffectInstance* InEffect)
 {
 	EffectRenderers.Empty();
 	if (InEffect)
@@ -44,7 +44,7 @@ FNiagaraSceneProxy::~FNiagaraSceneProxy()
 /** Called on render thread to assign new dynamic data */
 void FNiagaraSceneProxy::SetDynamicData_RenderThread(FNiagaraDynamicDataBase* NewDynamicData)
 {
-	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
+	for (NiagaraEffectRenderer* Renderer : EffectRenderers)
 	{
 		if (Renderer)
 		{
@@ -57,7 +57,7 @@ void FNiagaraSceneProxy::SetDynamicData_RenderThread(FNiagaraDynamicDataBase* Ne
 
 void FNiagaraSceneProxy::ReleaseRenderThreadResources()
 {
-	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
+	for (NiagaraEffectRenderer* Renderer : EffectRenderers)
 	{
 		if (Renderer)
 		{
@@ -70,7 +70,7 @@ void FNiagaraSceneProxy::ReleaseRenderThreadResources()
 // FPrimitiveSceneProxy interface.
 void FNiagaraSceneProxy::CreateRenderThreadResources()
 {
-	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
+	for (NiagaraEffectRenderer* Renderer : EffectRenderers)
 	{
 		if (Renderer)
 		{
@@ -95,7 +95,7 @@ FPrimitiveViewRelevance FNiagaraSceneProxy::GetViewRelevance(const FSceneView* V
 	FPrimitiveViewRelevance Relevance;
 	Relevance.bDynamicRelevance = true;
 
-	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
+	for (NiagaraEffectRenderer* Renderer : EffectRenderers)
 	{
 		if (Renderer)
 		{
@@ -114,7 +114,7 @@ uint32 FNiagaraSceneProxy::GetMemoryFootprint() const
 uint32 FNiagaraSceneProxy::GetAllocatedSize() const
 { 
 	uint32 DynamicDataSize = 0;
-	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
+	for (NiagaraEffectRenderer* Renderer : EffectRenderers)
 	{
 		if (Renderer)
 		{
@@ -127,7 +127,7 @@ uint32 FNiagaraSceneProxy::GetAllocatedSize() const
 
 void FNiagaraSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const
 {
-	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
+	for (NiagaraEffectRenderer* Renderer : EffectRenderers)
 	{
 		if (Renderer)
 		{
@@ -146,7 +146,7 @@ UNiagaraComponent::UNiagaraComponent(const FObjectInitializer& ObjectInitializer
 }
 
 
-void UNiagaraComponent::TickComponent(float DeltaSeconds, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
+void UNiagaraComponent::TickComponent(float DeltaSeconds, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 //	EmitterAge += DeltaSeconds;
 
@@ -173,6 +173,11 @@ void UNiagaraComponent::TickComponent(float DeltaSeconds, enum ELevelTick TickTy
 
 	UpdateComponentToWorld();
 	MarkRenderDynamicDataDirty();
+}
+
+const UObject* UNiagaraComponent::AdditionalStatObject() const
+{
+	return Asset;
 }
 
 void UNiagaraComponent::OnRegister()
@@ -214,11 +219,11 @@ void UNiagaraComponent::SendRenderDynamicData_Concurrent()
 {
 	if (EffectInstance && SceneProxy)
 	{
-		FNiagaraSceneProxy *NiagaraProxy = static_cast<FNiagaraSceneProxy*>(SceneProxy);
+		FNiagaraSceneProxy* NiagaraProxy = static_cast<FNiagaraSceneProxy*>(SceneProxy);
 		for (int32 i = 0; i < EffectInstance->GetEmitters().Num(); i++)
 		{
-			TSharedPtr<FNiagaraSimulation>Emitter = EffectInstance->GetEmitters()[i];
-			NiagaraEffectRenderer *Renderer = Emitter->GetEffectRenderer();
+			TSharedPtr<FNiagaraSimulation> Emitter = EffectInstance->GetEmitters()[i];
+			NiagaraEffectRenderer* Renderer = Emitter->GetEffectRenderer();
 			if (Renderer)
 			{
 				FNiagaraDynamicDataBase* DynamicData = Renderer->GenerateVertexData(Emitter->GetData());
@@ -264,7 +269,7 @@ FBoxSphereBounds UNiagaraComponent::CalcBounds(const FTransform& LocalToWorld) c
 
 FPrimitiveSceneProxy* UNiagaraComponent::CreateSceneProxy()
 {
-	FNiagaraSceneProxy *Proxy = new FNiagaraSceneProxy(this);
+	FNiagaraSceneProxy* Proxy = new FNiagaraSceneProxy(this);
 	Proxy->UpdateEffectRenderers(EffectInstance);
 	return Proxy;
 }
@@ -280,7 +285,7 @@ void UNiagaraComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 
 
-void UNiagaraComponent::SetAsset(UNiagaraEffect *InAsset)
+void UNiagaraComponent::SetAsset(UNiagaraEffect* InAsset)
 {
 	Asset = InAsset;
 

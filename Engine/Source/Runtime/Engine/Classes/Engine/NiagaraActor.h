@@ -36,4 +36,11 @@ public:
 	/** Returns ArrowComponent subobject **/
 	class UArrowComponent* GetArrowComponent() const;
 #endif
+
+#if WITH_EDITOR
+	// AActor interface
+	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const override;
+	// End of AActor interface
+#endif // WITH_EDITOR
+
 };

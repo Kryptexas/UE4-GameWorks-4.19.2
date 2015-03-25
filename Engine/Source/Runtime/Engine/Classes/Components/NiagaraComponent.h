@@ -38,13 +38,13 @@ public:
 		CurrentBuffer = 0;
 	}
 
-	const FVector4 *GetAttributeData(const FNiagaraVariableInfo& AttrID) const
+	const FVector4* GetAttributeData(const FNiagaraVariableInfo& AttrID) const
 	{
 		const uint32* Offset = AttrMap.Find(AttrID);
 		return Offset ? ParticleBuffers[CurrentBuffer].GetData() + (*Offset * ParticleAllocation) : NULL;
 	}
 
-	FVector4 *GetAttributeDataWrite(const FNiagaraVariableInfo& AttrID)
+	FVector4* GetAttributeDataWrite(const FNiagaraVariableInfo& AttrID)
 	{
 		const uint32* Offset = AttrMap.Find(AttrID);
 		return Offset ? ParticleBuffers[CurrentBuffer].GetData() + (*Offset * ParticleAllocation) : NULL;
@@ -73,8 +73,8 @@ public:
 	void SetNumParticles(uint32 Num)	{ NumParticles = Num;  }
 	void SwapBuffers()					{ CurrentBuffer ^= 0x1; }
 
-	FVector4 *GetCurrentBuffer()		{ return ParticleBuffers[CurrentBuffer].GetData(); }
-	FVector4 *GetPreviousBuffer()		{ return ParticleBuffers[CurrentBuffer^0x1].GetData(); }
+	FVector4* GetCurrentBuffer()		{ return ParticleBuffers[CurrentBuffer].GetData(); }
+	FVector4* GetPreviousBuffer()		{ return ParticleBuffers[CurrentBuffer^0x1].GetData(); }
 
 	int GetBytesUsed()	{ return (ParticleBuffers[0].Num() + ParticleBuffers[1].Num()) * 16 + AttrMap.Num() * 4; }
 private:
@@ -96,9 +96,9 @@ class ENGINE_API UNiagaraComponent : public UPrimitiveComponent
 	GENERATED_UCLASS_BODY()
 private:
 	UPROPERTY()
-	//class UNiagaraEffect *Effect;
-	class UNiagaraEffect *Asset;
-	class FNiagaraEffectInstance *EffectInstance;
+	class UNiagaraEffect* Asset;
+
+	class FNiagaraEffectInstance* EffectInstance;
 
 	// Begin UActorComponent interface.
 protected:
@@ -106,7 +106,8 @@ protected:
 	virtual void OnUnregister()  override;
 	virtual void SendRenderDynamicData_Concurrent() override;
 public:
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	virtual const UObject* AdditionalStatObject() const override;
 	// End UActorComponent interface.
 
 	// Begin UPrimitiveComponent Interface
@@ -115,11 +116,11 @@ public:
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	// End UPrimitiveComponent Interface
 
-	void SetAsset(UNiagaraEffect *InAsset);
-	UNiagaraEffect *GetAsset() const { return Asset; }
+	void SetAsset(UNiagaraEffect* InAsset);
+	UNiagaraEffect* GetAsset() const { return Asset; }
 
-	FNiagaraEffectInstance *GetEffectInstance()	const { return EffectInstance; }
-	void SetEffectInstance(FNiagaraEffectInstance *InInstance)	{ EffectInstance = InInstance; }
+	FNiagaraEffectInstance* GetEffectInstance()	const { return EffectInstance; }
+	void SetEffectInstance(FNiagaraEffectInstance* InInstance)	{ EffectInstance = InInstance; }
 
 	// Begin UObject interface.
 #if WITH_EDITOR
@@ -148,9 +149,9 @@ public:
 
 	/** Called on render thread to assign new dynamic data */
 	void SetDynamicData_RenderThread(struct FNiagaraDynamicDataBase* NewDynamicData);
-	TArray<class NiagaraEffectRenderer*> &GetEffectRenderers() { return EffectRenderers; }
-	void AddEffectRenderer(NiagaraEffectRenderer *Renderer)	{ EffectRenderers.Add(Renderer); }
-	ENGINE_API void UpdateEffectRenderers(FNiagaraEffectInstance *InEffect);
+	TArray<class NiagaraEffectRenderer*>& GetEffectRenderers() { return EffectRenderers; }
+	void AddEffectRenderer(NiagaraEffectRenderer* Renderer)	{ EffectRenderers.Add(Renderer); }
+	ENGINE_API void UpdateEffectRenderers(FNiagaraEffectInstance* InEffect);
 
 private:
 	void ReleaseRenderThreadResources();
@@ -177,6 +178,6 @@ private:
 
 
 private:
-	//class NiagaraEffectRenderer *EffectRenderer;
-	TArray<class NiagaraEffectRenderer *>EffectRenderers;
+	//class NiagaraEffectRenderer* EffectRenderer;
+	TArray<class NiagaraEffectRenderer*>EffectRenderers;
 };
