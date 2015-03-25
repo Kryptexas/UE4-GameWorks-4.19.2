@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2390426
-Title:Slate インゲームの UI のクイックスタート
+﻿INTSourceChangelist:2481343
+Title:Slate インゲーム UI のクイックスタート
 Crumbs:
 Description:
 Availability:Docs
@@ -7,7 +7,7 @@ Version:4.4
 
 ## プロジェクト設定
 
-まず初めに、基本的なコード プロジェクトを作成します。
+まず初めに、基本的なコード (Basic Code) プロジェクトを作成します。
 
 [REGION:fullwidth]
 ![](image001.png)
@@ -133,7 +133,7 @@ GameMode は Uclass であり、ヘッダーの UCLASS() macro はクラス定�
 
 ![](image005.png)
 
-あるいは、 [プロジェクト設定] > [Maps & Modes] の [Default GameMode] でも指定できます。
+あるいは、 [Project Settings] > [Maps & Modes] の [Default GameMode] でも指定できます。
 
 [REGION:fullwidth]
 ![](image007.png)
@@ -153,7 +153,7 @@ GameMode は Uclass であり、ヘッダーの UCLASS() macro はクラス定�
 
 ![](image011.png)
 
-これらの 3 つのボタンを広い領域に入れます。ゲームを開始する [Play] ボタン、アプリケーションを終了する [Exit] ボタン、別メニューへ移動する [Option] です。そのためには、このような感じに ConstructMenu 関数を変更します。
+これらの 3 つのボタンを広い領域に入れます。ゲームを開始する [Play] ボタン、アプリケーションを終了する [Exit] ボタン、別メニューへ移動する [Option] です。そのためには、 ConstructMenu 関数をこのように変更します。
 
 	#include "StyleDefaults.h"
 
@@ -383,7 +383,7 @@ MainMenuGameMode は最初の PlayerController を MainMenu などにパスし�
 
 ![](image015.png)
 
-美しくはないですが、簡単に繰り返して見た目を治せます。
+美しくはないですが、見た目を修正するために簡単に繰り返すことができます。
 
 セカンド メニューの追加
 
@@ -542,14 +542,14 @@ Style Combo Box 選択を変更するとメニューがリビルドされるの�
  
 ## ウィジェット リフレクタの使用
 
-スレート メニューの作成時に特に便利なツールが、ウィジェット リフレクタです。 [デベロッパー ツール] メニューから利用できます。
+スレート メニューの作成時に特に便利なツールが、ウィジェット リフレクタです。 [Developer Tools] メニューから利用できます。
 
 [REGION:fullwidth]
 ![](image027.png)
 ![](image029.png)
 [/REGION]
  
-存在するスレート ウィジェット、存在している階層、そして可視性や作成したコードファイルやライン位置まで表示します。このような情報はメニューのデバッグ時、あるいはどのように作成されたか確認するために他のメニューを調べる際に、非常に便利です。また、[ウィジェットを選択] ボタンで、ウィジェット階層内でカーソルを当てたウィジェットをすべて見つけることができるようなります。
+存在するスレート ウィジェット、存在している階層、そして可視性や作成したコードファイルやライン位置まで表示します。このような情報はメニューのデバッグ時、あるいはどのように作成されたか確認するために他のメニューを調べる際に、非常に便利です。また、[Pick Widget] ボタンで、ウィジェット階層内でカーソルを当てたウィジェットをすべて見つけることができるようなります。
 
 [REGION:fullwidth]
 ![](image031.png)
