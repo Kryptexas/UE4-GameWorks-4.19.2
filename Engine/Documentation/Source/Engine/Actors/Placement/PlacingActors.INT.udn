@@ -2,7 +2,6 @@ Availability:Public
 Title:Placing Actors
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:Shows how you can place Actors such as props, lights, cameras, etc. in your levels. 
-Related: Engine/Actors/Placement
 Related: Engine/UI/ClassViewer
 Related: GettingStarted\HowTo
 
