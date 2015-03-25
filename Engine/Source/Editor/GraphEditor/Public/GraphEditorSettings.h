@@ -64,11 +64,11 @@ public:
 
 	/** If enabled, allows splines to be Alt+Clicked to break them or Ctrl+Dragged to move them as if these actions were taking place on the associated pin. */
 	UPROPERTY(EditAnywhere, config, Category=Splines)
-	bool bTreatSplinesLikePinsEXPERIMENTAL;
+	bool bTreatSplinesLikePins;
 
 	/** The distance threshold controlling how close the mouse has to be to the spline in order to trigger a hover response */ 
-	UPROPERTY(EditAnywhere, config, Category=Splines, meta=(EditCondition=bTreatSplinesLikePinsEXPERIMENTAL))
-	float SplineHoverToleranceEXPERIMENTAL;
+	UPROPERTY(EditAnywhere, config, Category=Splines, meta=(EditCondition=bTreatSplinesLikePins))
+	float SplineHoverTolerance;
 
 	/** The maximum value to clamp the absolute value of the horizontal distance between endpoints when calculating tangents (when the wire is moving forward) */
 	UPROPERTY(config, EditAnywhere, Category=Splines, AdvancedDisplay)

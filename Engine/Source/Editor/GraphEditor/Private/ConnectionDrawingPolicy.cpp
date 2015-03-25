@@ -237,10 +237,10 @@ void FConnectionDrawingPolicy::DrawConnection(int32 LayerId, const FVector2D& St
 	const FVector2D P0Tangent = (Params.StartDirection == EGPD_Output) ? SplineTangent : -SplineTangent;
 	const FVector2D P1Tangent = (Params.EndDirection == EGPD_Input) ? SplineTangent : -SplineTangent;
 
-	if (Settings->bTreatSplinesLikePinsEXPERIMENTAL)
+	if (Settings->bTreatSplinesLikePins)
 	{
 		// Distance to consider as an overlap
-		const float QueryDistanceTriggerThresholdSquared = FMath::Square(Settings->SplineHoverToleranceEXPERIMENTAL + Params.WireThickness * 0.5f);
+		const float QueryDistanceTriggerThresholdSquared = FMath::Square(Settings->SplineHoverTolerance + Params.WireThickness * 0.5f);
 
 		// Distance to pass the bounding box cull test (may want to expand this later on if we want to do 'closest pin' actions that don't require an exact hit)
 		const float QueryDistanceToBoundingBoxSquared = QueryDistanceTriggerThresholdSquared;
