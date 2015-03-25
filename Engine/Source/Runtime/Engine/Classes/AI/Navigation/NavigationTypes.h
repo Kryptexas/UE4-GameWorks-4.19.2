@@ -255,8 +255,7 @@ struct ENGINE_API FNavPathType
 	
 	bool operator==(const FNavPathType& Other) const
 	{
-		return Id == Other.Id || (ParentType != nullptr && *ParentType == Other)
-			|| (Other.ParentType != nullptr && *Other.ParentType == *this);
+		return Id == Other.Id || (ParentType != nullptr && *ParentType == Other);
 	}
 
 private:
