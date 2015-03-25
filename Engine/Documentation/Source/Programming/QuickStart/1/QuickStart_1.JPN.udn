@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2466236
-Availability: Public
-Title:1. プロジェクトの新規作成
+﻿INTSourceChangelist:2478927
+Availability:Public
+Title:1.基本プロジェクト設定
 Crumbs:%ROOT%, Programming, Programming/QuickStart
-Description:C++ プロジェクトの作成 
+Description:必要な仕様を使って新規プロジェクトを作成する。
 
 [VAR:Steps]
 [OBJECT:Navigation]
