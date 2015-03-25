@@ -1,7 +1,7 @@
 Availability: Public
 Title:Collapsing Graphs
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
-Description:Collapsing nodes to a new Graph, a Function or a Macro. 
+Description:Collapsing nodes to a new Graph, a Function, or a Macro. 
 Related: Engine/Blueprints/UserGuide
 Related: Engine/Blueprints/UserGuide/Functions
 Related: Engine/Blueprints/UserGuide/Macros
