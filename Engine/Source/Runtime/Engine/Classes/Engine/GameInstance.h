@@ -84,7 +84,7 @@ public:
 	/* Called to initialize the game instance for PIE instances of the game */
 	bool InitializePIE(bool bAnyBlueprintErrors, int32 PIEInstance);
 
-	bool StartPIEGameInstance(ULocalPlayer* LocalPlayer, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode);
+	virtual bool StartPIEGameInstance(ULocalPlayer* LocalPlayer, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode);
 #endif
 
 	class UEngine* GetEngine() const;
