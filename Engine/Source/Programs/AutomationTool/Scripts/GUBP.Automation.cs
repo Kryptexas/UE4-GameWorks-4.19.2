@@ -1405,7 +1405,7 @@ public class GUBP : BuildCommand
         {
 			Projects = new List<BranchInfo.BranchUProject>(InProjects);
 			AddDependency(ToolsNode.StaticGetFullName(InHostPlatform)); // for UnrealPak
-            AgentSharingGroup = "FeaturePacks"  + StaticGetHostPlatformSuffix(InHostPlatform);
+			AgentSharingGroup = "BuildInstall" + StaticGetHostPlatformSuffix(HostPlatform);
         }
 
 		public static string GetOutputFile(BranchInfo.BranchUProject Project)

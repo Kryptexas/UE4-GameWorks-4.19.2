@@ -9,6 +9,15 @@ using System.Text;
 using System.Text.RegularExpressions;
 
 /// <summary>
+/// Indicates whether files which match a pattern should be included or excluded
+/// </summary>
+public enum FileFilterType
+{
+	Include,
+	Exclude,
+}
+
+/// <summary>
 /// Stores a set of rules, similar to p4 path specifications, which can be used to efficiently filter files in or out of a set.
 /// The rules are merged into a tree with nodes for each path fragments and rule numbers in each leaf, allowing tree traversal in an arbitrary order 
 /// to how they are applied.
@@ -42,7 +51,7 @@ public class FileFilter
 	{
 		foreach (FileFilterNode OtherRule in Other.Rules)
 		{
-			AddRule(OtherRule.ToString(), OtherRule.bInclude);
+			AddRule(OtherRule.ToString(), OtherRule.Type);
 		}
 	}
 
@@ -55,13 +64,103 @@ public class FileFilter
 	{
 		foreach (string Line in Lines)
 		{
-			if (Line.StartsWith("-"))
+			AddRule(Line);
+		}
+	}
+
+	/// <summary>
+	/// Adds an include or exclude rule to the filter
+	/// </summary>
+	/// <param name="Pattern">Pattern to match. See CreateRegex() for details.</param>
+	public void AddRule(string Rule)
+	{
+		if (Rule.StartsWith("-"))
+		{
+			Exclude(Rule.Substring(1).TrimStart());
+		}
+		else
+		{
+			Include(Rule);
+		}
+	}
+
+	/// <summary>
+	/// Adds an include or exclude rule to the filter. The rule may be 
+	/// </summary>
+	/// <param name="Pattern">Pattern to match. See CreateRegex() for details.</param>
+	public void AddRule(string Rule, params string[] AllowTags)
+	{
+		string CleanRule = Rule.Trim();
+		if(CleanRule.StartsWith("{"))
+		{
+			// Find the end of the condition
+			int ConditionEnd = CleanRule.IndexOf('}');
+			if(ConditionEnd == -1)
 			{
-				Exclude(Line.Substring(1).TrimStart());
+				throw new Exception(String.Format("Missing closing parenthesis in rule: {0}", CleanRule));
 			}
-			else
+
+			// Check there's a matching tag
+			string[] RuleTags = CleanRule.Substring(1, ConditionEnd - 1).Split(',').Select(x => x.Trim()).ToArray();
+			if(!RuleTags.Any(x => AllowTags.Contains(x)))
 			{
-				Include(Line);
+				return;
+			}
+
+			// Strip the condition from the rule
+			CleanRule = CleanRule.Substring(ConditionEnd + 1).TrimStart(); 
+		}
+		AddRule(CleanRule);
+	}
+
+	/// <summary>
+	/// Adds several rules to the filter
+	/// </summary>
+	/// <param name="Patterns">List of patterns to match.</param>
+	public void AddRules(IEnumerable<string> Rules)
+	{
+		foreach(string Rule in Rules)
+		{
+			AddRule(Rule);
+		}
+	}
+
+	/// <summary>
+	/// Adds several rules in the given lines. Rules may be prefixed with conditions of the syntax {Key=Value, Key2=Value2}, which
+	/// will be evaluated using variables in the given dictionary before being added.
+	/// </summary>
+	/// <param name="Lines"></param>
+	/// <param name="Variables">Lookup for variables to test against</param>
+	public void AddRules(IEnumerable<string> Rules, params string[] Tags)
+	{
+		foreach(string Rule in Rules)
+		{
+			AddRule(Rule, Tags);
+		}
+	}
+
+	/// <summary>
+	/// Reads a configuration file split into sections
+	/// </summary>
+	/// <param name="Filter"></param>
+	/// <param name="RulesFileName"></param>
+	/// <param name="Conditions"></param>
+	public void AddRulesFromFile(string FileName, string SectionName, params string[] AllowTags)
+	{
+		bool bInSection = false;
+		foreach(string Line in File.ReadAllLines(FileName))
+		{
+			string TrimLine = Line.Trim();
+			if(!TrimLine.StartsWith(";") && TrimLine.Length > 0)
+			{
+				if(TrimLine.StartsWith("["))
+				{
+					bInSection = (TrimLine == "[" + SectionName + "]");
+				}
+				else if(bInSection)
+				{
+					AddRule(Line, AllowTags);
+				}
 			}
 		}
 	}
@@ -72,7 +171,7 @@ public class FileFilter
 	/// <param name="Pattern">Pattern to match. See CreateRegex() for details.</param>
 	public void Include(string Pattern)
 	{
-		AddRule(Pattern, true);
+		AddRule(Pattern, FileFilterType.Include);
 	}
 
 	/// <summary>
@@ -102,7 +201,7 @@ public class FileFilter
 	/// <param name="Pattern">Mask to match. See CreateRegex() for details.</param>
 	public void Exclude(string Pattern)
 	{
-		AddRule(Pattern, false);
+		AddRule(Pattern, FileFilterType.Exclude);
 	}
 
 	/// <summary>
@@ -131,7 +230,7 @@ public class FileFilter
 	/// </summary>
 	/// <param name="Pattern">The pattern which the rule should match</param>
 	/// <param name="bInclude">Whether to include or exclude files matching this rule</param>
-	void AddRule(string Pattern, bool bInclude)
+	public void AddRule(string Pattern, FileFilterType Type)
 	{
 		string NormalizedPattern = Pattern.Replace('\\', '/');
 
@@ -188,12 +287,12 @@ public class FileFilter
 		// We've reached the end of the pattern, so mark it as a leaf node
 		Rules.Add(LastNode);
 		LastNode.RuleNumber = Rules.Count - 1;
-		LastNode.bInclude = bInclude;
+		LastNode.Type = Type;
 
 		// Update the maximums along that path
 		for (FileFilterNode UpdateNode = LastNode; UpdateNode != null; UpdateNode = UpdateNode.Parent)
 		{
-			if (bInclude)
+			if (Type == FileFilterType.Include)
 			{
 				UpdateNode.MaxIncludeRuleNumber = LastNode.RuleNumber;
 			}
@@ -215,7 +314,7 @@ public class FileFilter
 
 		FileFilterNode MatchingNode = FindMatchingNode(RootNode, Tokens, 0, RootNode);
 
-		return MatchingNode.bInclude;
+		return MatchingNode.Type == FileFilterType.Include;
 	}
 
 	/// <summary>
@@ -229,7 +328,7 @@ public class FileFilter
 
 		FileFilterNode MatchingNode = FindMatchingNode(RootNode, Tokens, 0, RootNode);
 
-		return MatchingNode.bInclude || HighestPossibleIncludeMatch(RootNode, Tokens, 0, MatchingNode.RuleNumber) > MatchingNode.RuleNumber;
+		return MatchingNode.Type == FileFilterType.Include || HighestPossibleIncludeMatch(RootNode, Tokens, 0, MatchingNode.RuleNumber) > MatchingNode.RuleNumber;
 	}
 
 	/// <summary>
@@ -296,7 +395,7 @@ public class FileFilter
 		}
 
 		// If there is no rule under the current node which is better than the current best node, early out
-		if (CurrentBestNode.bInclude)
+		if (CurrentBestNode.Type == FileFilterType.Include)
 		{
 			if (CurrentNode.MaxExcludeRuleNumber < CurrentBestNode.RuleNumber)
 			{
@@ -411,9 +510,9 @@ class FileFilterNode
 	public int RuleNumber;
 
 	/// <summary>
-	/// True if the rule terminating in this node was an include node.
+	/// Whether a rule terminating in this node should include files or exclude files.
 	/// </summary>
-	public bool bInclude;
+	public FileFilterType Type;
 
 	/// <summary>
 	/// Default constructor.
@@ -423,7 +522,7 @@ class FileFilterNode
 		Parent = InParent;
 		Pattern = InPattern;
 		RuleNumber = -1;
-		bInclude = false;
+		Type = FileFilterType.Exclude;
 	}
 
 	/// <summary>
