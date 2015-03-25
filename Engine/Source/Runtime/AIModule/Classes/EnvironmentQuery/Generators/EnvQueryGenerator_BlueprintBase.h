@@ -29,7 +29,7 @@ class AIMODULE_API UEnvQueryGenerator_BlueprintBase : public UEnvQueryGenerator
 	virtual UWorld* GetWorld() const;
 
 	UFUNCTION(BlueprintImplementableEvent, Category = Generator)
-	virtual void DoItemGeneration(const TArray<FVector>& ContextLocations) const;
+	void DoItemGeneration(const TArray<FVector>& ContextLocations) const;
 
 	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const override;
 

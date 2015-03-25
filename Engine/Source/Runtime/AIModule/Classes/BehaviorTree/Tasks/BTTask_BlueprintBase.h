@@ -72,40 +72,40 @@ protected:
 	 *	@Note that if both generic and AI event versions are implemented only the more 
 	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
 	UFUNCTION(BlueprintImplementableEvent)
-	virtual void ReceiveExecute(AActor* OwnerActor);
+	void ReceiveExecute(AActor* OwnerActor);
 
 	/** if blueprint graph contains this event, task will stay active until FinishAbort is called
 	 *	@Note that if both generic and AI event versions are implemented only the more
 	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
 	UFUNCTION(BlueprintImplementableEvent)
-	virtual void ReceiveAbort(AActor* OwnerActor);
+	void ReceiveAbort(AActor* OwnerActor);
 
 	/** tick function
 	 *	@Note that if both generic and AI event versions are implemented only the more
 	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
 	UFUNCTION(BlueprintImplementableEvent)
-	virtual void ReceiveTick(AActor* OwnerActor, float DeltaSeconds);
+	void ReceiveTick(AActor* OwnerActor, float DeltaSeconds);
 
 	/** Alternative AI version of ReceiveExecute
 	*	@see ReceiveExecute for more details
 	 *	@Note that if both generic and AI event versions are implemented only the more
 	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
 	UFUNCTION(BlueprintImplementableEvent, Category = AI)
-	virtual void ReceiveExecuteAI(AAIController* OwnerController, APawn* ControlledPawn);
+	void ReceiveExecuteAI(AAIController* OwnerController, APawn* ControlledPawn);
 
 	/** Alternative AI version of ReceiveAbort
 	 *	@see ReceiveAbort for more details
 	 *	@Note that if both generic and AI event versions are implemented only the more
 	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
 	UFUNCTION(BlueprintImplementableEvent, Category = AI)
-	virtual void ReceiveAbortAI(AAIController* OwnerController, APawn* ControlledPawn);
+	void ReceiveAbortAI(AAIController* OwnerController, APawn* ControlledPawn);
 
 	/** Alternative AI version of tick function.
 	 *	@see ReceiveTick for more details
 	 *	@Note that if both generic and AI event versions are implemented only the more
 	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
 	UFUNCTION(BlueprintImplementableEvent, Category = AI)
-	virtual void ReceiveTickAI(AAIController* OwnerController, APawn* ControlledPawn, float DeltaSeconds);
+	void ReceiveTickAI(AAIController* OwnerController, APawn* ControlledPawn, float DeltaSeconds);
 
 	/** finishes task execution with Success or Fail result */
 	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")

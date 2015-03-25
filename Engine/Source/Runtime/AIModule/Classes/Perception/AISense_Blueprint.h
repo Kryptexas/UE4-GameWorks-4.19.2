@@ -35,25 +35,25 @@ public:
 	/** returns requested amount of time to pass until next frame. 
 	 *	Return 0 to get update every frame (WARNING: hits performance) */
 	UFUNCTION(BlueprintImplementableEvent)
-	virtual float OnUpdate(const TArray<UAISenseEvent*>& EventsToProcess);
+	float OnUpdate(const TArray<UAISenseEvent*>& EventsToProcess);
 
 	/**
 	 *	@param PerceptionComponent is ActorListener's AIPerceptionComponent instance
 	 */
 	UFUNCTION(BlueprintImplementableEvent)
-	virtual void OnListenerRegistered(AActor* ActorListener, UAIPerceptionComponent* PerceptionComponent);
+	void OnListenerRegistered(AActor* ActorListener, UAIPerceptionComponent* PerceptionComponent);
 
 	/**
 	 *	@param PerceptionComponent is ActorListener's AIPerceptionComponent instance
 	 */
 	UFUNCTION(BlueprintImplementableEvent)
-	virtual void OnListenerUpdated(AActor* ActorListener, UAIPerceptionComponent* PerceptionComponent);
+	void OnListenerUpdated(AActor* ActorListener, UAIPerceptionComponent* PerceptionComponent);
 
 	/** called when a listener unregistered from this sense. Most often this is called due to actor's death
 	 *	@param PerceptionComponent is ActorListener's AIPerceptionComponent instance
 	 */
 	UFUNCTION(BlueprintImplementableEvent)
-	virtual void OnListenerUnregistered(AActor* ActorListener, UAIPerceptionComponent* PerceptionComponent);
+	void OnListenerUnregistered(AActor* ActorListener, UAIPerceptionComponent* PerceptionComponent);
 	
 	UFUNCTION(BlueprintCallable, Category = "AI|Perception")
 	void GetAllListenerActors(TArray<AActor*>& ListenerActors) const;

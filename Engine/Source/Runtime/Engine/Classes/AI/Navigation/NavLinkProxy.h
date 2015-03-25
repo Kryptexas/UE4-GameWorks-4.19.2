@@ -73,7 +73,7 @@ public:
 
 	/** called when agent reaches smart link during path following, use ResumePathFollowing() to give control back */
 	UFUNCTION(BlueprintImplementableEvent)
-	virtual void ReceiveSmartLinkReached(AActor* Agent, const FVector& Destination);
+	void ReceiveSmartLinkReached(AActor* Agent, const FVector& Destination);
 
 	/** resume normal path following */
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation")

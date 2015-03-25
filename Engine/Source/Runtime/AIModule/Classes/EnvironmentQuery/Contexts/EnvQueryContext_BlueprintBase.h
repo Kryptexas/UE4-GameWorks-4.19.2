@@ -31,14 +31,14 @@ class UEnvQueryContext_BlueprintBase : public UEnvQueryContext
 	virtual void ProvideContext(FEnvQueryInstance& QueryInstance, FEnvQueryContextData& ContextData) const override;
 
 	UFUNCTION(BlueprintImplementableEvent)
-	virtual void ProvideSingleActor(AActor* QuerierActor, AActor*& ResultingActor) const;
+	void ProvideSingleActor(AActor* QuerierActor, AActor*& ResultingActor) const;
 
 	UFUNCTION(BlueprintImplementableEvent)
-	virtual void ProvideSingleLocation(AActor* QuerierActor, FVector& ResultingLocation) const;
+	void ProvideSingleLocation(AActor* QuerierActor, FVector& ResultingLocation) const;
 
 	UFUNCTION(BlueprintImplementableEvent)
-	virtual void ProvideActorsSet(AActor* QuerierActor, TArray<AActor*>& ResultingActorsSet) const;
+	void ProvideActorsSet(AActor* QuerierActor, TArray<AActor*>& ResultingActorsSet) const;
 
 	UFUNCTION(BlueprintImplementableEvent)
-	virtual void ProvideLocationsSet(AActor* QuerierActor, TArray<FVector>& ResultingLocationSet) const;
+	void ProvideLocationsSet(AActor* QuerierActor, TArray<FVector>& ResultingLocationSet) const;
 };
