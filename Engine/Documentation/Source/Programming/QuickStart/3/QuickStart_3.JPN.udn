@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2466236
+﻿INTSourceChangelist:2481542
 Availability:Public
 Title:3.C++ コードの記述とコンパイル
 Crumbs:%ROOT%, Programming, Programming/QuickStart
@@ -22,17 +22,17 @@ Description:アンリアル エンジンで C++ クラスを記述しコンパ�
 
 %Steps%
 
-1. **Visual Studio** では、**[Solution Explorer]** ペインを使って、新規に作成した C++ ファイルを検索します。このサンプルでは、ファイル名は "MyActor.cpp" と "MyActor.h" 、保存場所は「QuickStart」プロジェクトです。
+1. **Visual Studio** では、**[Solution Explorer]** ペインを使って、新規に作成した C++ ファイルを検索します。このサンプルでは、ファイル名は "FloatingActor.cpp" と "FloatingActor.h" 、保存場所は「QuickStart」プロジェクトです。
 
 	[![](SolutionExplorer_Files.png)](SolutionExplorer_Files.png)
 
-	[REGION:note]コードを追加するところです。このチュートリアルで使用するすべてのコードは、ページの説明を完了した時点の現在のステートで、ページの下に表示されます。[/REGION]
+	[REGION:note] コードを追加するところです。このチュートリアルで使用するすべてのコードは、ページの説明を完了した時点の現在のステートで、ページの下に表示されます。[/REGION]
 
-2. "MyActor.h" に対して、ファイルの終わりの右中括弧とセミコロンの直前に、以下のコードを追加します。
+2. "FloatingActor.h" に対して、ファイルの終わりの右中括弧とセミコロンの直前に、以下のコードを追加します。
 
 		float RunningTime;
 
-3. "MyActor.cpp" へ切り替えて、以下のコードを **AMyActor::Tick** の右中括弧の直前に追加します。
+3. "FloatingActor.cpp" へ切り替えて、以下のコードを **AFloatingActor::Tick** の右中括弧の直前に追加します。
 
 		FVector NewLocation = GetActorLocation();
 		float DeltaHeight = (FMath::Sin(RunningTime + DeltaTime) - FMath::Sin(RunningTime));
@@ -40,7 +40,7 @@ Description:アンリアル エンジンで C++ クラスを記述しコンパ�
 		RunningTime += DeltaTime;
 		SetActorLocation(NewLocation);
 
-	[REGION:tip] 記述したこのコードにより、時間経過に伴う移動の追跡のために作成した "RunningTime" 変数を使って、"MyActor" アクタが現れたり消えたりします。 [/REGION] 
+	[REGION:tip] 記述したこのコードにより、時間経過に伴う移動の追跡のために作成した _RunningTime_ 変数を使って、**FloatingActors** が現れたり消えたりします。 [/REGION] 
 
 4. コーディングが終わったので、**Solution Browser** のプロジェクトを右クリックして **Build** コマンドを選択するか、 **アンリアル エディタ** の**[Compile]** ボタンをクリックします。正常にコンパイルされたら、 **アンリアル エンジン** が自動的に変更をロードします。
 
@@ -64,40 +64,40 @@ Description:アンリアル エンジンで C++ クラスを記述しコンパ�
     Finished Code
     [/PARAM]
     [PARAM:content]
-		**MyActor.h**
+		**FloatingActor.h**
 			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
 
 			#pragma once
 
 			#include "GameFramework/Actor.h"
-			#include "MyActor.generated.h"
+			#include "FloatingActor.generated.h"
 
 			UCLASS()
-			class QUICKSTART_API AMyActor : public AActor
+			class QUICKSTART_API AFloatingActor : public AActor
 			{
 				GENERATED_BODY()
 
-			public:
+	public:
 				// Sets default values for this actor's properties
-				AMyActor();
+				AFloatingActor();
 
 				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
 
-				// Called every frame
+	// Called every frame
 				virtual void Tick( float DeltaSeconds ) override;
 
-				float RunningTime;
+	float RunningTime;
 			};
 
-		**MyActor.cpp**
+		**FloatingActor.cpp**
 			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
 
 			#include "QuickStart.h"
-			#include "MyActor.h"
+			#include "FloatingActor.h"
 
 			// Sets default values
-			AMyActor::AMyActor()
+			AFloatingActor::AFloatingActor()
 			{
  				// Set this actor to call Tick() every frame.You can turn this off to improve performance if you don't need it.
 				PrimaryActorTick.bCanEverTick = true;
@@ -105,14 +105,14 @@ Description:アンリアル エンジンで C++ クラスを記述しコンパ�
 			}
 
 			// Called when the game starts or when spawned
-			void AMyActor::BeginPlay()
+			void AFloatingActor::BeginPlay()
 			{
 				Super::BeginPlay();
 
 	}
 
 			// Called every frame
-			void AMyActor::Tick( float DeltaTime )
+			void AFloatingActor::Tick( float DeltaTime )
 			{
 				Super::Tick( DeltaTime );
 
