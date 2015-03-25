@@ -69,6 +69,11 @@ void UAudioComponent::OnUnregister()
 	}
 }
 
+const UObject* UAudioComponent::AdditionalStatObject() const
+{
+	return Sound;
+}
+
 void UAudioComponent::SetSound( USoundBase* NewSound )
 {
 	const bool bPlay = IsPlaying();

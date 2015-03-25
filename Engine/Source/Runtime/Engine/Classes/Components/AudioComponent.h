@@ -278,6 +278,7 @@ public:
 	virtual void OnRegister() override;
 #endif
 	virtual void OnUnregister() override;
+	virtual const UObject* AdditionalStatObject() const override;
 	// End ActorComponent interface.
 
 	/** Returns a pointer to the attenuation settings to be used (if any) for this audio component dependent on the SoundAttenuation asset or overrides set. */
