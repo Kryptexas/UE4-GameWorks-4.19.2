@@ -1170,6 +1170,7 @@ private:
 
 	bool ShouldBlendPhysicsBones();	
 	void ClearAnimScriptInstance();
+	virtual void RefreshActiveVertexAnims() override;
 
 	//Data for parallel evaluation of animation
 	FAnimationEvaluationContext AnimEvaluationContext;

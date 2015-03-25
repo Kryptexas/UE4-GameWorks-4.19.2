@@ -2105,3 +2105,15 @@ void USkeletalMeshComponent::SetRootBodyIndex(int32 InBodyIndex)
 		RootBodyData.TransformToRoot = FTransform::Identity;
 	}
 }
+
+void USkeletalMeshComponent::RefreshActiveVertexAnims()
+{
+	if (SkeletalMesh && AnimScriptInstance)
+	{
+		ActiveVertexAnims = UpdateActiveVertexAnims(SkeletalMesh, AnimScriptInstance->MorphTargetCurves, AnimScriptInstance->VertexAnims);
+	}
+	else
+	{
+		ActiveVertexAnims.Empty();
+	}
+}

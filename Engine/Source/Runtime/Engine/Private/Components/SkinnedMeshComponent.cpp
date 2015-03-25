@@ -283,9 +283,8 @@ void USkinnedMeshComponent::CreateRenderState_Concurrent()
 				UseLOD = FMath::Clamp(PredictedLODLevel, 0, MeshObject->GetSkeletalMeshResource().LODModels.Num()-1);
 			}
 
-			// We just recreated RenderState, that means it could be new mesh or different mesh
-			// Clear ActiveVertexAnims, so that it doesn't use from previous state
-			ActiveVertexAnims.Empty();
+			// verifies vertex animations are valid
+			RefreshActiveVertexAnims();
 			MeshObject->Update(UseLOD,this,ActiveVertexAnims);  // send to rendering thread
 		}
 

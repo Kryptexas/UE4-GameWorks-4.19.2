@@ -890,6 +890,11 @@ private:
 	template <bool bExtraBoneInfluencesT, bool bCachedMatrices>
 	FVector GetTypedSkinnedVertexPosition(const FSkelMeshChunk& Chunk, const FSkeletalMeshVertexBuffer& VertexBufferGPUSkin, int32 VertIndex, bool bSoftVertex, const TArray<FMatrix> & RefToLocals = TArray<FMatrix>()) const;
 
+	/**
+	 * Gets called when register, verifies all ActiveVertexAnimation is still valid 
+	 */
+	virtual void RefreshActiveVertexAnims() {};
+
 	// Animation update rate control.
 public:
 	/** Animation Update Rate optimization parameters. */
