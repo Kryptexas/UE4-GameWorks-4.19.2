@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2421168
+﻿INTSourceChangelist:2488425
 Availability:Public
-Title:エディタ解説
+Title:アンリアル エディタのマニュアル
 Crumbs:%ROOT%
 Description:ゲーム制作でよく使う機能を見てみましょう
 Navigation:topic
@@ -103,7 +103,7 @@ engine
 		![](%ROOT%/project_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-	[Working with Projects](Engine/Basics/Projects "%Engine/Basics/Projects:description%")
+	[プロジェクトで作業する](Engine/Basics/Projects "%Engine/Basics/Projects:description%")
 	[/PARAM]
 	[PARAM:links]
 	* [プロジェクトを作成し開く](Engine/Basics/Projects/Browser "%Engine/Basics/Projects/Browser:description%")
@@ -116,7 +116,7 @@ engine
 		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-	[アンリアル エディタ ワークスルー](Engine/UI "%Engine/UI:description%")
+	[アンリアル エディタ ウォークスルー](Engine/UI "%Engine/UI:description%")
 	[/PARAM]
 	[PARAM:links]
 	* [](Engine/UI/InterfaceOverview "%Engine/UI/InterfaceOverview:description%")
@@ -266,7 +266,7 @@ engine
 	* [](Engine/Blueprints/GettingStarted "%Engine/Blueprints/GettingStarted:description%")
 	* [](Engine/Blueprints/Overview "%Engine/Blueprints/Overview:description%")
 	* [](Engine/Blueprints/Editor "%Engine/Blueprints/Editor:description%")
-	* [ブループリントの種類と構成要素](Engine/Blueprints/UserGuide "%Engine/Blueprints/UserGuide:description%")
+	* [](Engine/Blueprints/UserGuide "%Engine/Blueprints/UserGuide:description%")
 	* [ブループリント ノード リファレンス](https://docs.unrealengine.com/latest/INT/BlueprintAPI/index.html "関数コール、イベント、その他のブループリント ノードを全部網羅して総括的なリファレンス")
 	* [](Gameplay "%Gameplay:description%")
 	[/PARAM]
@@ -312,7 +312,7 @@ engine
 		![](%ROOT%/anim_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-	[ペルソナ：スケルタルメッシュ アニメーション](Engine/Animation "%Engine/Animation:description%")
+	[](Engine/Animation "%Engine/Animation:description%")
 	[/PARAM]
 	[PARAM:links]
 	* [](Engine/Animation/Overview "%Engine/Animation/Overview:description%")
@@ -353,7 +353,7 @@ engine
 	[PARAM:links]
 	* [](Engine/Physics/PhAT "%Engine/Physics/PhAT:description%")
 	* [](Engine/Physics/Collision "%Engine/Physics/Collision:description%")
-	* [物理オブジェクトのコンストレイント](Engine/Physics/Constraints "%Engine/Physics/Constraints:description%")
+	* [](Engine/Physics/Constraints "%Engine/Physics/Constraints:description%")
 	* [](Engine/Physics/PhysicalMaterials "%Engine/Physics/PhysicalMaterials:description%")
 	* [](Engine/Physics/PhysicsBodies "%Engine/Physics/PhysicsBodies:description%")
 	[/PARAM]
