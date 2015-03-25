@@ -33,7 +33,7 @@ struct FSupportedAreaData
 
 struct FNavPathRecalculationRequest
 {
-	FNavPathSharedRef Path;
+	FNavPathWeakPtr Path;
 	ENavPathUpdateType::Type Reason;
 
 	FNavPathRecalculationRequest(const FNavPathSharedPtr& InPath, ENavPathUpdateType::Type InReason)
