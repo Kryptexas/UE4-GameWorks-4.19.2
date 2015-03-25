@@ -47,7 +47,7 @@ Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 
 
 ## 블루프린트 분석
-**BP_Relevancy_Replication_None** 블루프린트의 이벤트 그래프에서, 권위자가 누군가 트리거에 겹쳤다는 신호를 받았을 때 **OnChestTouched** 함수가 호출되어 **DoOnce** 노드에 의해 한 번만 실행되는 것을 볼 수 있습니다.
+**BP_Relevancy_Replication_None** 블루프린트의 이벤트 그래프에서, 오쏘리티가 누군가 트리거에 겹쳤다는 신호를 받았을 때 **OnChestTouched** 함수가 호출되어 **DoOnce** 노드에 의해 한 번만 실행되는 것을 볼 수 있습니다.
 
 **클릭하면 크게 볼 수 있습니다.**
 [REGION:lightbox]

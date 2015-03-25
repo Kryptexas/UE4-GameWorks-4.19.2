@@ -412,7 +412,7 @@ Loading Screen 이 표시된 이후, 스크립트는 **HostGameEvent** 와 **Cre
 
 ![](Gameplay1.png)
 
-**Event Post Login** 이 발동되면, 먼저 **Switch Has Authority** (1) 라는 엔진 매크로를 실행, 현재 실행중인 스크립트가 네트워크 권위자(서버)에서 실행되었는지 아니면 원격 머신(클라이언트)에서 실행되었는지 검사합니다. 이 프로세스는 게임을 호스팅하든 참가하든 서버에서 일어나기 때문에, **Remote** 핀은 아무데도 가지 않지만, **Authority** 핀은 계속해서 Post Login 스크립트를 이어갑니다.
+**Event Post Login** 이 발동되면, 먼저 **Switch Has Authority** (1) 라는 엔진 매크로를 실행, 현재 실행중인 스크립트가 네트워크 오쏘리티(서버)에서 실행되었는지 아니면 원격 머신(클라이언트)에서 실행되었는지 검사합니다. 이 프로세스는 게임을 호스팅하든 참가하든 서버에서 일어나기 때문에, **Remote** 핀은 아무데도 가지 않지만, **Authority** 핀은 계속해서 Post Login 스크립트를 이어갑니다.
 
 [REGION:note]
 **Switch Has Authority** 에 대한 또다른 예제는, [](Resources/ContentExamples/Networking/1_2) 페이지를 참고하세요.

@@ -1,4 +1,5 @@
-﻿Availability: Public
+﻿INTSourceChangelist:2474065
+Availability: Public
 Title:1. Character Setup
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:Here we will set up our character and create some assets that we will need later in this guide. 

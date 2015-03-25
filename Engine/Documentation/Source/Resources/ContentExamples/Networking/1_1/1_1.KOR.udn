@@ -53,7 +53,7 @@ Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 ![](1_1_LevelBlueprint.png)
 [/REGION]
 
-**Switch Has Authority** 노드를 사용하여 스크립트가 네트워크 권위자 머신(대부분의 경우 서버)에서 실행중인지, 아니면 원격 머신(대부분의 경우 클라이언트)에서 실행중인지 검사합니다.
+**Switch Has Authority** 노드를 사용하여 스크립트가 네트워크 오쏘리티 머신(대부분의 경우 서버)에서 실행중인지, 아니면 원격 머신(대부분의 경우 클라이언트)에서 실행중인지 검사합니다.
 
 이 예제의 경우, 서버에서만 실행되고 있으며, 스폰되는 두 액터 중 하나는 Replicate 설정된 반면 다른 하나는 그렇지 않습니다. 아래 그림에서 보듯이, 서버에서는 두 액터 모두 보이지만 클라이언트에서는 Replicate 설정된 것만 보입니다.
 

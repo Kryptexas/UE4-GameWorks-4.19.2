@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2418603
+﻿INTSourceChangelist:2489703
 Availability:Public
 Title: 액터 & 지오메트리
 Crumbs:%ROOT%, Engine
@@ -109,7 +109,7 @@ Navigation:topic
 	[/PARAM]
 	[PARAM:links]	
 	* [스태틱 메시 액터](Engine/Actors/StaticMeshActor "%Engine/Actors/StaticMeshActor:description%")
-	* [스켈레탈 메시 액터](Engine/Actors/SkeletalMeshActors "%Engine/Actors/SkeletalMeshActors:description%")
+	* [](Engine/Actors/SkeletalMeshActors "%Engine/Actors/SkeletalMeshActors:description%")
 	* [지오메트리 브러시 액터](Engine/Actors/Brushes "%Engine/Actors/Brushes:description%")
 	* [](Engine/Actors/Volumes "%Engine/Actors/Volumes:description%")
 	* [](Engine/Actors/Triggers "%Engine/Actors/Triggers:description%")
