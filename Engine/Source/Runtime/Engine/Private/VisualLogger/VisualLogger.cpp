@@ -4,7 +4,6 @@
 #include "VisualLogger/VisualLogger.h"
 #include "VisualLogger/VisualLogger.h"
 #include "VisualLogger/VisualLoggerBinaryFileDevice.h"
-#include "VisualLogger/VisualLoggerCircularBufferDevice.h"
 #if WITH_EDITOR
 #	include "Editor/UnrealEd/Public/EditorComponents.h"
 #	include "Editor/UnrealEd/Public/EditorReimportHandler.h"
@@ -27,10 +26,6 @@ FVisualLogger::FVisualLogger()
 {
 	BlockAllCategories(false);
 	AddDevice(&FVisualLoggerBinaryFileDevice::Get());
-	if (FVisualLoggerCircularBufferDevice::Get().GetCircularBufferSize() > 0)
-	{
-		AddDevice(&FVisualLoggerCircularBufferDevice::Get());
-	}
 	SetIsRecording(GEngine ? !!GEngine->bEnableVisualLogRecordingOnStart : false);
 	SetIsRecordingOnServer(false);
 
@@ -39,25 +34,6 @@ FVisualLogger::FVisualLogger()
 		SetIsRecording(true);
 		SetIsRecordingToFile(true);
 	}
-}
-
-bool FVisualLogger::IsUsingCircularBuffer()
-{
-	return GetDevices().Find(&FVisualLoggerCircularBufferDevice::Get()) != INDEX_NONE;
-}
-
-FVisualLogDevice* FVisualLogger::GetCircularBuffer()
-{
-	return FVisualLoggerCircularBufferDevice::Get().GetCircularBufferSize() > 0 ? & FVisualLoggerCircularBufferDevice::Get() : NULL;
-}
-
-bool FVisualLogger::DumpCircularBuffer()
-{
-	if (FVisualLoggerCircularBufferDevice::Get().GetCircularBufferSize() > 0)
-	{
-		FVisualLoggerCircularBufferDevice::Get().DumpBuffer();
-	}
-	return true;
 }
 
 UWorld* FVisualLogger::GetWorld(const class UObject* Object)
@@ -77,7 +53,7 @@ UWorld* FVisualLogger::GetWorld(const class UObject* Object)
 		World = GEngine->GetWorld();
 	}
 
-	return World != NULL ? World : GWorld;
+	return World;
 }
 
 void FVisualLogger::Shutdown()
@@ -175,8 +151,10 @@ void FVisualLogger::SetIsRecordingToFile(bool InIsRecording)
 		SetIsRecording(true);
 	}
 
+	UWorld* World = GEngine->GetWorld();
+
 	const FString BaseFileName = LogFileNameGetter.IsBound() ? LogFileNameGetter.Execute() : TEXT("VisualLog");
-	const FString MapName = GWorld.GetReference() ? GWorld->GetMapName() : TEXT("");
+	const FString MapName = World ? World->GetMapName() : TEXT("");
 
 	FString OutputFileName = FString::Printf(TEXT("%s_%s"), *BaseFileName, *MapName);
 
@@ -187,13 +165,13 @@ void FVisualLogger::SetIsRecordingToFile(bool InIsRecording)
 			if (Device->HasFlags(EVisualLoggerDeviceFlags::CanSaveToFile))
 			{
 				Device->SetFileName(OutputFileName);
-				Device->StopRecordingToFile(GWorld.GetReference() ? GWorld->TimeSeconds : StartRecordingToFileTime);
+				Device->StopRecordingToFile(World ? World->TimeSeconds : StartRecordingToFileTime);
 			}
 		}
 	}
 	else if (!bIsRecordingToFile && InIsRecording)
 	{
-		StartRecordingToFileTime = GWorld.GetReference() ? GWorld->TimeSeconds : 0;
+		StartRecordingToFileTime = World ? World->TimeSeconds : 0;
 		for (auto* Device : OutputDevices)
 		{
 			if (Device->HasFlags(EVisualLoggerDeviceFlags::CanSaveToFile))
@@ -255,13 +233,6 @@ public:
 #else
 			UE_LOG(LogVisual, Warning, TEXT("Unable to open LogVisualizer - logs are disabled"));
 #endif
-			} 
-		}
-		else if (FParse::Command(&Cmd, TEXT("dumpvislog")))
-		{
-			if (FVisualLogger::Get().IsUsingCircularBuffer())
-			{
-				FVisualLogger::Get().DumpCircularBuffer();
 			}
 		}
 		return false;

@@ -427,16 +427,6 @@ bool SVisualLogger::HandleStartRecordingCommandCanExecute() const
 
 void SVisualLogger::HandleStartRecordingCommandExecute()
 {
-	if (FVisualLogger::Get().IsRecording() == false && FVisualLogger::Get().IsUsingCircularBuffer())
-	{
-		TArray<FVisualLogDevice::FVisualLogEntryItem> OutLogs;
-		FVisualLogger::Get().GetCircularBuffer()->GetRecordedLogs(OutLogs);
-		for (auto& CurrentLog : OutLogs)
-		{
-			OnNewLogEntry(CurrentLog);
-		}
-		FVisualLogger::Get().GetCircularBuffer()->Cleanup(true);
-	}
 	FVisualLogger::Get().SetIsRecording(true);
 }
 

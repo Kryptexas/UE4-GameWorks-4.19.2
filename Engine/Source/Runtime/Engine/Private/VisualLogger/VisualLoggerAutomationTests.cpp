@@ -6,11 +6,32 @@
 #include "VisualLogger/VisualLoggerAutomationTests.h"
 #include "VisualLogger/VisualLoggerBinaryFileDevice.h"
 
+namespace
+{
+	UWorld* GetSimpleEngineAutomationTestWorld(const int32 TestFlags)
+	{
+		// Accessing the game world is only valid for game-only 
+		if (((TestFlags & EAutomationTestFlags::ATF_Editor) || (TestFlags & EAutomationTestFlags::ATF_Game)) == false)
+		{
+			return NULL;
+		}
+		if (GEngine->GetWorldContexts().Num() == 0)
+		{
+			return NULL;
+		}
+		if (GEngine->GetWorldContexts()[0].WorldType != EWorldType::Game && GEngine->GetWorldContexts()[0].WorldType != EWorldType::Editor)
+		{
+			return NULL;
+		}
+
+		return GEngine->GetWorldContexts()[0].World();
+	}
+}
+
 UVisualLoggerAutomationTests::UVisualLoggerAutomationTests(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 
 }
-
 
 #if ENABLE_VISUAL_LOG
 
@@ -87,12 +108,15 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVisualLogTest, "Engine.VisualLogger.Logging si
 
 bool FVisualLogTest::RunTest(const FString& Parameters)
 {
+	UWorld* World = GetSimpleEngineAutomationTestWorld(GetTestFlags());
+	CHECK_SUCCESS(World != NULL);
+
 	FTestDeviceContext<FVisualLoggerTestDevice> Context;
 
 	FVisualLogger::Get().SetIsRecording(false);
 	CHECK_FAIL(FVisualLogger::Get().IsRecording());
 
-	UE_VLOG(GWorld, LogVisual, Log, TEXT("Simple text line to test vlog"));
+	UE_VLOG(World, LogVisual, Log, TEXT("Simple text line to test vlog"));
 	CHECK_SUCCESS(Context.Device.LastObject == NULL);
 	CHECK_SUCCESS(Context.Device.LastEntry.TimeStamp == -1);
 
@@ -101,11 +125,11 @@ bool FVisualLogTest::RunTest(const FString& Parameters)
 
 	{
 		const FString TextToLog = TEXT("Simple text line to test if UE_VLOG_UELOG works fine");
-		float CurrentTimestamp = GWorld->TimeSeconds;
-		UE_VLOG_UELOG(GWorld, LogVisual, Log, TEXT("%s"), *TextToLog);
-		CHECK_SUCCESS(Context.Device.LastObject != GWorld);
+		float CurrentTimestamp = World->TimeSeconds;
+		UE_VLOG_UELOG(World, LogVisual, Log, TEXT("%s"), *TextToLog);
+		CHECK_SUCCESS(Context.Device.LastObject != World);
 		CHECK_SUCCESS(Context.Device.LastEntry.TimeStamp == -1);
-		FVisualLogEntry* CurrentEntry = FVisualLogger::Get().GetEntryToWrite(GWorld, GWorld->TimeSeconds, ECreateIfNeeded::DontCreate);
+		FVisualLogEntry* CurrentEntry = FVisualLogger::Get().GetEntryToWrite(World, World->TimeSeconds, ECreateIfNeeded::DontCreate);
 		
 		{
 			CHECK_SUCCESS(CurrentEntry != NULL);
@@ -115,7 +139,7 @@ bool FVisualLogTest::RunTest(const FString& Parameters)
 			CHECK_SUCCESS(CurrentEntry->LogLines[0].Line == TextToLog);
 
 			const float NewTimestamp = CurrentTimestamp + 0.1;
-			FVisualLogEntry* NewEntry = FVisualLogger::Get().GetEntryToWrite(GWorld, NewTimestamp); //generate new entry and serialize old one
+			FVisualLogEntry* NewEntry = FVisualLogger::Get().GetEntryToWrite(World, NewTimestamp); //generate new entry and serialize old one
 			CurrentEntry = &Context.Device.LastEntry;
 			CHECK_SUCCESS(CurrentEntry != NULL);
 			CHECK_SUCCESS(CurrentEntry->TimeStamp == CurrentTimestamp);
@@ -138,12 +162,15 @@ bool FVisualLogTest::RunTest(const FString& Parameters)
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVisualLogSegmentsTest, "Engine.VisualLogger.Logging segment shape", EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_Editor)
 bool FVisualLogSegmentsTest::RunTest(const FString& Parameters)
 {
+	UWorld* World = GetSimpleEngineAutomationTestWorld(GetTestFlags());
+	CHECK_SUCCESS(World != NULL);
+
 	FTestDeviceContext<FVisualLoggerTestDevice> Context;
 
 	FVisualLogger::Get().SetIsRecording(false);
 	CHECK_FAIL(FVisualLogger::Get().IsRecording());
 
-	UE_VLOG_SEGMENT(GWorld, LogVisual, Log, FVector(0, 0, 0), FVector(1, 0, 0), FColor::Red, TEXT("Simple segment log to test vlog"));
+	UE_VLOG_SEGMENT(World, LogVisual, Log, FVector(0, 0, 0), FVector(1, 0, 0), FColor::Red, TEXT("Simple segment log to test vlog"));
 	CHECK_SUCCESS(Context.Device.LastObject == NULL);
 	CHECK_SUCCESS(Context.Device.LastEntry.TimeStamp == -1);
 
@@ -152,12 +179,12 @@ bool FVisualLogSegmentsTest::RunTest(const FString& Parameters)
 	{
 		const FVector StartPoint(0, 0, 0);
 		const FVector EndPoint(1, 0, 0);
-		UE_VLOG_SEGMENT(GWorld, LogVisual, Log, StartPoint, EndPoint, FColor::Red, TEXT("Simple segment log to test vlog"));
+		UE_VLOG_SEGMENT(World, LogVisual, Log, StartPoint, EndPoint, FColor::Red, TEXT("Simple segment log to test vlog"));
 		CHECK_SUCCESS(Context.Device.LastObject == NULL);
 		CHECK_SUCCESS(Context.Device.LastEntry.TimeStamp == -1);
-		FVisualLogEntry* CurrentEntry = FVisualLogger::Get().GetEntryToWrite(GWorld, GWorld->TimeSeconds, ECreateIfNeeded::DontCreate);
+		FVisualLogEntry* CurrentEntry = FVisualLogger::Get().GetEntryToWrite(World, World->TimeSeconds, ECreateIfNeeded::DontCreate);
 
-		float CurrentTimestamp = GWorld->TimeSeconds;
+		float CurrentTimestamp = World->TimeSeconds;
 		{
 			CHECK_SUCCESS(CurrentEntry != NULL);
 			CHECK_SUCCESS(CurrentEntry->TimeStamp == CurrentTimestamp);
@@ -168,7 +195,7 @@ bool FVisualLogSegmentsTest::RunTest(const FString& Parameters)
 			CHECK_SUCCESS(CurrentEntry->ElementsToDraw[0].Points[1] == EndPoint);
 
 			const float NewTimestamp = CurrentTimestamp + 0.1;
-			FVisualLogEntry* NewEntry = FVisualLogger::Get().GetEntryToWrite(GWorld, NewTimestamp); //generate new entry and serialize old one
+			FVisualLogEntry* NewEntry = FVisualLogger::Get().GetEntryToWrite(World, NewTimestamp); //generate new entry and serialize old one
 			CurrentEntry = &Context.Device.LastEntry;
 			CHECK_SUCCESS(CurrentEntry != NULL);
 			CHECK_SUCCESS(CurrentEntry->TimeStamp == CurrentTimestamp);
@@ -195,6 +222,9 @@ DEFINE_VLOG_EVENT(EventTest3, All, "Third simple event for vlog tests")
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVisualLogEventsTest, "Engine.VisualLogger.Logging events", EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_Editor)
 bool FVisualLogEventsTest::RunTest(const FString& Parameters)
 {
+	UWorld* World = GetSimpleEngineAutomationTestWorld(GetTestFlags());
+	CHECK_SUCCESS(World != NULL);
+
 	FTestDeviceContext<FVisualLoggerTestDevice> Context;
 	FVisualLogger::Get().SetIsRecording(true);
 
@@ -207,15 +237,15 @@ bool FVisualLogEventsTest::RunTest(const FString& Parameters)
 	CHECK_SUCCESS(EventTest3.Name == TEXT("EventTest3"));
 	CHECK_SUCCESS(EventTest3.FriendlyDesc == TEXT("Third simple event for vlog tests"));
 
-	FVisualLogEntry* CurrentEntry = FVisualLogger::Get().GetEntryToWrite(GWorld, GWorld->TimeSeconds, ECreateIfNeeded::DontCreate);
-	float CurrentTimestamp = GWorld->TimeSeconds;
-	UE_VLOG_EVENTS(GWorld, NAME_None, EventTest);
+	FVisualLogEntry* CurrentEntry = FVisualLogger::Get().GetEntryToWrite(World, World->TimeSeconds, ECreateIfNeeded::DontCreate);
+	float CurrentTimestamp = World->TimeSeconds;
+	UE_VLOG_EVENTS(World, NAME_None, EventTest);
 	CHECK_SUCCESS(CurrentEntry != NULL);
 	CHECK_SUCCESS(CurrentEntry->TimeStamp == CurrentTimestamp);
 	CHECK_SUCCESS(CurrentEntry->Events.Num() == 1);
 	CHECK_SUCCESS(CurrentEntry->Events[0].Name == TEXT("EventTest"));
 
-	UE_VLOG_EVENTS(GWorld, NAME_None, EventTest, EventTest2);
+	UE_VLOG_EVENTS(World, NAME_None, EventTest, EventTest2);
 	CHECK_SUCCESS(CurrentEntry != NULL);
 	CHECK_SUCCESS(CurrentEntry->TimeStamp == CurrentTimestamp);
 	CHECK_SUCCESS(CurrentEntry->Events.Num() == 2);
@@ -224,8 +254,8 @@ bool FVisualLogEventsTest::RunTest(const FString& Parameters)
 	CHECK_SUCCESS(CurrentEntry->Events[1].Counter == 1);
 	CHECK_SUCCESS(CurrentEntry->Events[1].Name == TEXT("EventTest2"));
 
-	CurrentTimestamp = GWorld->TimeSeconds;
-	UE_VLOG_EVENTS(GWorld, NAME_None, EventTest, EventTest2, EventTest3);
+	CurrentTimestamp = World->TimeSeconds;
+	UE_VLOG_EVENTS(World, NAME_None, EventTest, EventTest2, EventTest3);
 
 	{
 		CHECK_SUCCESS(CurrentEntry != NULL);
@@ -243,7 +273,7 @@ bool FVisualLogEventsTest::RunTest(const FString& Parameters)
 		CHECK_SUCCESS(CurrentEntry->Events[2].UserFriendlyDesc == TEXT("Third simple event for vlog tests"));
 
 		const float NewTimestamp = CurrentTimestamp + 0.1;
-		FVisualLogEntry* NewEntry = FVisualLogger::Get().GetEntryToWrite(GWorld, NewTimestamp); //generate new entry and serialize old one
+		FVisualLogEntry* NewEntry = FVisualLogger::Get().GetEntryToWrite(World, NewTimestamp); //generate new entry and serialize old one
 		CurrentEntry = &Context.Device.LastEntry;
 		CHECK_SUCCESS(CurrentEntry != NULL);
 		CHECK_SUCCESS(CurrentEntry->TimeStamp == CurrentTimestamp);
@@ -268,9 +298,9 @@ bool FVisualLogEventsTest::RunTest(const FString& Parameters)
 	const FName EventTag2 = TEXT("ATLAS_C_1");
 	const FName EventTag3 = TEXT("ATLAS_C_2");
 
-	CurrentTimestamp = GWorld->TimeSeconds + 0.2;
-	CurrentEntry = FVisualLogger::Get().GetEntryToWrite(GWorld, CurrentTimestamp); //generate new entry and serialize old one
-	UE_VLOG_EVENT_WITH_DATA(GWorld, EventTest, EventTag1);
+	CurrentTimestamp = World->TimeSeconds + 0.2;
+	CurrentEntry = FVisualLogger::Get().GetEntryToWrite(World, CurrentTimestamp); //generate new entry and serialize old one
+	UE_VLOG_EVENT_WITH_DATA(World, EventTest, EventTag1);
 	CHECK_SUCCESS(CurrentEntry != NULL);
 	CHECK_SUCCESS(CurrentEntry->TimeStamp == CurrentTimestamp);
 	CHECK_SUCCESS(CurrentEntry->Events.Num() == 1);
@@ -278,10 +308,10 @@ bool FVisualLogEventsTest::RunTest(const FString& Parameters)
 	CHECK_SUCCESS(CurrentEntry->Events[0].EventTags.Num() == 1);
 	CHECK_SUCCESS(CurrentEntry->Events[0].EventTags[EventTag1] == 1);
 
-	CurrentTimestamp = GWorld->TimeSeconds + 0.3;
-	CurrentEntry = FVisualLogger::Get().GetEntryToWrite(GWorld, CurrentTimestamp); //generate new entry and serialize old one
-	UE_VLOG_EVENT_WITH_DATA(GWorld, EventTest, EventTag1, EventTag2, EventTag3);
-	UE_VLOG_EVENT_WITH_DATA(GWorld, EventTest, EventTag3);
+	CurrentTimestamp = World->TimeSeconds + 0.3;
+	CurrentEntry = FVisualLogger::Get().GetEntryToWrite(World, CurrentTimestamp); //generate new entry and serialize old one
+	UE_VLOG_EVENT_WITH_DATA(World, EventTest, EventTag1, EventTag2, EventTag3);
+	UE_VLOG_EVENT_WITH_DATA(World, EventTest, EventTag3);
 	CHECK_SUCCESS(CurrentEntry != NULL);
 	CHECK_SUCCESS(CurrentEntry->TimeStamp == CurrentTimestamp);
 	CHECK_SUCCESS(CurrentEntry->Events.Num() == 1);
