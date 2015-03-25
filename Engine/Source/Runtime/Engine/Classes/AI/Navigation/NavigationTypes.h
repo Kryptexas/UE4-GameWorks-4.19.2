@@ -250,17 +250,19 @@ struct FNavPathPoint : public FNavLocation
 /** path type data */
 struct ENGINE_API FNavPathType
 {
-	FNavPathType() : Id(++NextUniqueId) {}
-	FNavPathType(const FNavPathType& Src) : Id(Src.Id) {}
+	explicit FNavPathType(const FNavPathType* Parent = nullptr) : Id(++NextUniqueId), ParentType(Parent) {}
+	FNavPathType(const FNavPathType& Src) : Id(Src.Id), ParentType(Src.ParentType) {}
 	
 	bool operator==(const FNavPathType& Other) const
 	{
-		return Id == Other.Id;
+		return Id == Other.Id || (ParentType != nullptr && *ParentType == Other)
+			|| (Other.ParentType != nullptr && *Other.ParentType == *this);
 	}
 
 private:
 	static uint32 NextUniqueId;
 	uint32 Id;
+	const FNavPathType* ParentType;
 };
 
 UENUM()
