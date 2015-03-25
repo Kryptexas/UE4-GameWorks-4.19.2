@@ -158,6 +158,10 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 	GLog->Logf(TEXT("BuildPatchToolMain ran with: %s"), CommandLine);
 
 	FPlatformProcess::SetCurrentWorkingDirectoryToBaseDir();
+
+	// Init TLS for runnable threads.
+	FRunnableThread::InitializeTls();
+
 	bool bSuccess = false;
 
 	FString RootDirectory;
