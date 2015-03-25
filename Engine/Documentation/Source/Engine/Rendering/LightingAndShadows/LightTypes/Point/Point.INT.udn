@@ -52,7 +52,6 @@ Description:The basics of Point Lights.
 
 [EXCERPT:Intro]
 **Point Lights** work much like a real world light bulb, emitting light in all directions from the light bulb's tungsten filament. However, for the sake of performance, Point Lights are simplified down emitting light equally in all directions from just a single point in space.  The **Point Light** when placed can be set to one of three **Mobility** settings:
-[/EXCERPT:Intro]
 
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
@@ -77,6 +76,7 @@ Description:The basics of Point Lights.
 	**Moveable** - (pictured left) which means the light is totally dynamic and allows for dynamic shadowing. This is the slowest in terms of rendering but allows for the most flexibility during gameplay. 
 	[/PARAM]
 [/OBJECT]
+[/EXCERPT:Intro]
 
 [REGION:raw]
 ![](spacer.png)
