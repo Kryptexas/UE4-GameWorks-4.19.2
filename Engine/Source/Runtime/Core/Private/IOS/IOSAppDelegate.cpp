@@ -122,7 +122,7 @@ void InstallSignalHandlers()
 
 	while(!self.bCommandLineReady)
 	{
-		FPlatformProcess::Sleep(.01f);
+		usleep(100);
 	}
 
 
