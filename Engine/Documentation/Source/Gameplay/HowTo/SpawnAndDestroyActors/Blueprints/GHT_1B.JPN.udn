@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2321379
+﻿INTSourceChangelist:2450650
 Availability:Public
 Title:ブループリントでアクタをスポーン/ 破壊する方法
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/SpawnAndDestroyActors
@@ -16,27 +16,25 @@ Description:アンリアル エンジン 4 においてブループリントで�
 
 1. エディタ内でどれかプロジェクトを一旦開き、 **[ブループリント]** ボタンと **Open Level Blueprint** をクリックします。  
 
+	[REGION:raw]
 	![](GHT1_1.png)
+	[/REGION]
 
 1. こうるすと、(以下のような) **[ブループリント エディタ]** ウィンドウが開きます。 
 
 	[REGION:lightbox]
-	[![](GHT1_2.png)(w:640)](GHT1_2.png)
+	[![](Engine\Blueprints\UserGuide\Types\LevelBlueprint\level_blueprint_editor.png)](Engine\Blueprints\UserGuide\Types\LevelBlueprint\level_blueprint_editor.png)
 	[/REGION]
 
 	_画像をクリックしてフルサイズで表示_
 
 	アクタをスポーンするには、 **Spawn Actor from Class** ノードを使う必要があります。この例では **Level ブループリント** を使用しますが、以下に示すような **Palette** ウィンドウに存在するほとんどの **ブループリント** で **Spawn Actor from Class** ノードを使用することもできます。
 
-1. [Palette] ウィンドウで **左クリック** して **Spawn Actor from Class** ノードをグラフへドラッグします。 
-
-	![](GHT1_3.png)
-
-	または、グラフとコンテクスト メニューのどこかを **右クリック** して、 **Spawn Actor from Class** ノードを追加することもできます。 
+1. または、グラフとコンテキスト メニューのどこかを **右クリック** して、 **Spawn Actor from Class** ノードを追加することもできます。 
 
 	![](GHT1_5.png)
 
-1. いずれのケースも、 **Spawn Actor from Class** ノードはグラフに追加されます (省略して **SpawnActor**)。 
+1. **Spawn Actor from Class** ノードはグラフに追加されます (省略して **SpawnActor**)。 
 
 	![](GHT1_4.png)
 
@@ -65,7 +63,7 @@ Description:アンリアル エンジン 4 においてブループリントで�
 
 	**Instigator** はオプションで、スポーンされたアクタによるダメージに責任のあるポーンです。
 
-1. Spawn Transform** ピンを **左クリック** して左にドラッグし、コンテクスト メニューから **Get Actor Transform** を見つけて追加します。 
+1. **Spawn Transform** ピンを **左クリック** して左にドラッグし、コンテクスト メニューから **Get Actor Transform** を見つけて追加します。 
 
 	![](GHT1_9.png)
 
@@ -99,9 +97,11 @@ Description:アンリアル エンジン 4 においてブループリントで�
 
 	緑のチェックマークがない場合は、すべてのノードが接続されて、 **Actor Class** が **SpawnActor** ノード上に指定されていることを確認してください。
 
-1. メイン ウィンドウで **[再生]** ボタンをクリックしてエディタで再生します。 
+1. メイン ウィンドウで **[Play]** ボタンをクリックしてエディタで再生します。 
 
+	[REGION:raw]
 	![](GHT1_15.png)
+	[/REGION]
 
 	**F** を押すと、プレイヤー キャラクターがいるワールドの位置に選択されたアクタがスポーンされます。
 
@@ -117,7 +117,9 @@ Transform を手動で設定する方法およびアクタの Transform を参�
 
 1. エディタ内でどれかプロジェクトを一旦開き、 **[ブループリント]** ボタンと **Open Level Blueprint** をクリックします。  
 
+	[REGION:raw]
 	![](GHT1_1.png)
+	[/REGION]
 
 1.	グラフとコンテクスト メニューを **右クリック ** して、 **Spawn Actor from Class** ノードを検索し追加します。 
 
@@ -131,7 +133,9 @@ Transform を手動で設定する方法およびアクタの Transform を参�
 
 1. メインのエディタ ウィンドウの **Modes** で **Target** を探して **ターゲット ポイント** をレベル内にドラッグします。 
 
+	[REGION:raw]
 	![](GHT1_16.png)
+	[/REGION]
 
 1. **Level ブループリント** へ戻り、グラフを **右クリック** し、 **[Add Reference to TargetPoint]** を選択します。
 
@@ -157,7 +161,7 @@ Transform を手動で設定する方法およびアクタの Transform を参�
 
 	![](GHT1_21.png)
 
-1.	すると、 **Location**, **Rotation** and **Scale** を手動で入力した場所に **Make Transform** ができます。 
+1.	すると、 **Location** 、 **Rotation** 、 **Scale** を手動で入力した場所に **Make Transform** ができます。 
 
 	![](GHT1_22.png)
 
@@ -169,7 +173,9 @@ Transform を手動で設定する方法およびアクタの Transform を参�
 
 1. エディタ内でどれかプロジェクトを一旦開き、 **[ブループリント]** ボタンと **Open Level Blueprint** をクリックします。  
 
+	[REGION:raw]
 	![](GHT1_1.png)
+	[/REGION]
 
 1.	グラフとコンテクスト メニューを **右クリック ** して、 **Spawn Actor from Class** ノードを検索し追加します。 
 
@@ -183,7 +189,7 @@ Transform を手動で設定する方法およびアクタの Transform を参�
 
 1.	**Get Actor Transform** ノードを **左クリック** してドラッグし **Get Player Character** ノードを追加します。 
 
-1.	グラフ内の空の部分を **右クリック** して **F** キー イベントを追加して、  **SpawnActor** へ接続します。 
+1.	グラフ内の空の部分を **右クリック** して **F** キー イベントを追加して、 **SpawnActor** へ接続します。 
 
 	![](GHT1_12.png)
 
@@ -199,7 +205,7 @@ Transform を手動で設定する方法およびアクタの Transform を参�
 
 	_画像をクリックしてフルサイズで表示_
 
-1.	hen close the **ブループリント** を**コンパイル** して終了し、エディタで再生すると、プレイヤーの位置でスポーンされたアクタを確認した 3 秒後でスポーンされます。 
+1.	**ブループリント** を **コンパイル** して終了し、エディタで再生すると、プレイヤーの位置でスポーンされたアクタを確認した 3 秒後でスポーンされます。 
 
 **SpawnActor** ノードを実行してアクタをスポーンすると、アクタの破壊が必要に応じた **イベント** の種類でトリガーされます。 
 
