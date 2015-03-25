@@ -129,6 +129,11 @@ void UDecalComponent::SendRenderTransform_Concurrent()
 	Super::SendRenderTransform_Concurrent();
 }
 
+const UObject* UDecalComponent::AdditionalStatObject() const
+{
+	return DecalMaterial;
+}
+
 void UDecalComponent::DestroyRenderState_Concurrent()
 {
 	Super::DestroyRenderState_Concurrent();

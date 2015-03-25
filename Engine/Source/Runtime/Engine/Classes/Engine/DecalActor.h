@@ -60,6 +60,7 @@ public:
 
 	// Begin AActor interface.
 	virtual void EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown) override;
+	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const override;
 	// End AActor interface.
 #endif // WITH_EDITOR
 

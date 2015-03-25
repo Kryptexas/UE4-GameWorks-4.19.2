@@ -16,7 +16,6 @@ class ENGINE_API UDecalComponent : public USceneComponent
 	GENERATED_UCLASS_BODY()
 
 	/** Decal material. */
-	//editable(Decal) private{private} const MaterialInterface	DecalMaterial;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Decal)
 	class UMaterialInterface* DecalMaterial;
 
@@ -93,6 +92,7 @@ public:
 	virtual void CreateRenderState_Concurrent() override;
 	virtual void DestroyRenderState_Concurrent() override;
 	virtual void SendRenderTransform_Concurrent() override;
+	virtual const UObject* AdditionalStatObject() const override;
 	// End UActorComponent Interface
 
 	// Begin USceneComponent Interface

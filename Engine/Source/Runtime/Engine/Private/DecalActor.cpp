@@ -115,6 +115,19 @@ void ADecalActor::EditorApplyScale(const FVector& DeltaScale, const FVector* Piv
 
 	Super::EditorApplyScale(ModifiedScale, PivotLocation, bAltDown, bShiftDown, bCtrlDown);
 }
+
+bool ADecalActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
+{
+	Super::GetReferencedContentObjects(Objects);
+
+	if (Decal->DecalMaterial != nullptr)
+	{
+		Objects.Add(Decal->DecalMaterial);
+	}
+
+	return true;
+}
+
 #endif // WITH_EDITOR
 
 void ADecalActor::SetDecalMaterial(class UMaterialInterface* NewDecalMaterial)
