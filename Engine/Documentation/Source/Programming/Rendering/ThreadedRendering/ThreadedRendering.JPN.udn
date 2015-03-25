@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2292470
+﻿INTSourceChangelist:2374181
 Availability:Public
 Title:レンダリングのスレッド化
 Crumbs:%ROOT%, Programming, Programming/Rendering
-Description:スレッド化されたレンダラーで作業するプログラマー向けの情報
+Description:スレッド化したレンダラーを使用するプログラマー向けの情報
+Version:4.5
 
 ## レンダリング スレッド
 
