@@ -5,6 +5,7 @@
 #include "ObjectBase.h"
 #include "WorldCompositionUtility.h"
 
+
 /**
  * Structure to hold information about an external packages objects used in cross-level references
  */
@@ -98,10 +99,11 @@ public:
 	 * Called after the C++ constructor and after the properties have been initialized, but before the config has been loaded, etc.
 	 * mainly this is to emulate some behavior of when the constructor was called after the properties were intialized.
 	 */
-	virtual void PostInitProperties();
+	virtual void PostInitProperties() override;
 
 	/** Serializer */
-	virtual void Serialize( FArchive& Ar );
+	virtual void Serialize( FArchive& Ar ) override;
+
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 	/** Packages are never assets */
@@ -182,7 +184,7 @@ public:
 	/**
 	 * Tags the Package's metadata
 	 */
-	virtual void TagSubobjects(EObjectFlags NewFlags);
+	virtual void TagSubobjects(EObjectFlags NewFlags) override;
 
 	/**
 	 * Sets whether exports should be found in memory first or  not.

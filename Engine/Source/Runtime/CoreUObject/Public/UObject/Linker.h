@@ -1,13 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Linker.h: Unreal object linker.
-=============================================================================*/
-
 #pragma once
 
 #include "ObjectBase.h"
 #include "EngineVersion.h"
+
 
 DECLARE_LOG_CATEGORY_EXTERN(LogLinker, Log, All);
 
@@ -17,6 +14,7 @@ extern TMap<class UPackage*, class ULinkerLoad*>		GObjLoaders;
 extern TMap<class UPackage*, class ULinkerLoad*>		GObjPendingLoaders;
 /** List of loaders that have new imports **/
 extern TSet<class ULinkerLoad*>							GObjLoadersWithNewImports;
+
 
 /**
  * Wrapper for index into a ULnker's ImportMap or ExportMap.
@@ -1692,14 +1690,14 @@ private:
 	 * @param	Owner		UObject owning the bulk data
 	 * @param	BulkData	Bulk data object to associate
 	 */
-	virtual void AttachBulkData( UObject* Owner, FUntypedBulkData* BulkData );
+	virtual void AttachBulkData( UObject* Owner, FUntypedBulkData* BulkData ) override;
 	/**
 	 * Detaches the passed in bulk data object from the linker.
 	 *
 	 * @param	BulkData	Bulk data object to detach
 	 * @param	bEnsureBulkDataIsLoaded	Whether to ensure that the bulk data is loaded before detaching
 	 */
-	virtual void DetachBulkData( FUntypedBulkData* BulkData, bool bEnsureBulkDataIsLoaded );
+	virtual void DetachBulkData( FUntypedBulkData* BulkData, bool bEnsureBulkDataIsLoaded ) override;
 	/**
 	 * Detaches all attached bulk  data objects.
 	 *

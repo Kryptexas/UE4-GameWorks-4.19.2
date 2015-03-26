@@ -1,12 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UObject.h: Unreal object base class
-=============================================================================*/
-
 #pragma once
 
+
 DECLARE_LOG_CATEGORY_EXTERN(LogObj, Log, All);
+
 
 namespace ECastCheckedType
 {

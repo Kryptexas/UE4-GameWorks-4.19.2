@@ -1,14 +1,12 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	CoreNet.h: Core networking support.
-=============================================================================*/
-
 #pragma once
 
 #include "ObjectBase.h"
 
+
 DECLARE_DELEGATE_RetVal_OneParam( bool, FNetObjectIsDynamic, const UObject*);
+
 
 //
 // Information about a field.
@@ -24,6 +22,7 @@ public:
 	: Field(InField), FieldNetIndex(InFieldNetIndex)
 	{}
 };
+
 
 //
 // Information about a class, cached for network coordination.
@@ -69,6 +68,7 @@ private:
 	TMap< UObject *, FFieldNetCache * > FieldMap;
 };
 
+
 class COREUOBJECT_API FClassNetCacheMgr
 {
 public:
@@ -79,6 +79,7 @@ public:
 private:
 	TMap< TWeakObjectPtr< UClass >, FClassNetCache * > ClassFieldIndices;
 };
+
 
 //
 // Maps objects and names to and from indices for network communication.
@@ -129,6 +130,7 @@ protected:
 	FString					DebugContextString;
 };
 
+
 /** Represents a range of PacketIDs, inclusive */
 struct FPacketIdRange
 {
@@ -143,6 +145,7 @@ struct FPacketIdRange
 		return (First <= PacketId && PacketId <= Last);
 	}
 };
+
 
 /** Information for tracking retirement and retransmission of a property. */
 struct FPropertyRetirement
@@ -166,6 +169,7 @@ struct FPropertyRetirement
 	{}
 };
 
+
 /** Secondary condition to check before considering the replication of a lifetime property. */
 enum ELifetimeCondition
 {
@@ -181,11 +185,13 @@ enum ELifetimeCondition
 	COND_Max				= 9,
 };
 
+
 enum ELifetimeRepNotifyCondition
 {
 	REPNOTIFY_OnChanged		= 0,		// Only call the property's RepNotify function if it changes from the local value
 	REPNOTIFY_Always		= 1,		// Always Call the property's RepNotify function when it is received from the server
 };
+
 
 /** FLifetimeProperty
  *	This class is used to track a property that is marked to be replicated for the lifetime of the actor channel.
@@ -219,6 +225,7 @@ public:
 
 template <> struct TIsZeroConstructType<FLifetimeProperty> { enum { Value = true }; };
 
+
 /**
  * FNetBitWriter
  *	A bit writer that serializes FNames and UObject* through
@@ -233,10 +240,11 @@ public:
 
 	class UPackageMap * PackageMap;
 
-	FArchive& operator<<( FName& Name );
-	FArchive& operator<<( UObject*& Object );
-	FArchive& operator<<(FStringAssetReference& Value) override;
+	virtual FArchive& operator<<(FName& Name) override;
+	virtual FArchive& operator<<(UObject*& Object) override;
+	virtual FArchive& operator<<(FStringAssetReference& Value) override;
 };
+
 
 /**
  * FNetBitReader
@@ -251,9 +259,9 @@ public:
 
 	class UPackageMap * PackageMap;
 
-	FArchive& operator<<( FName& Name );
-	FArchive& operator<<( UObject*& Object );
-	FArchive& operator<<(FStringAssetReference& Value) override;
+	virtual FArchive& operator<<(FName& Name) override;
+	virtual FArchive& operator<<(UObject*& Object) override;
+	virtual FArchive& operator<<(FStringAssetReference& Value) override;
 };
 
 
@@ -272,6 +280,7 @@ public:
 private:
 };
 
+
 class INetSerializeCB
 {
 public:
@@ -280,6 +289,7 @@ public:
 	virtual void NetSerializeStruct( UScriptStruct* Struct, FArchive& Ar, UPackageMap* Map, void* Data, bool& bHasUnmapped ) = 0;
 };
 
+
 class IRepChangedPropertyTracker
 {
 public:
@@ -287,6 +297,7 @@ public:
 
 	virtual void SetCustomIsActiveOverride( const uint16 RepIndex, const bool bIsActive ) = 0;
 };
+
 
 /**
  * FNetDeltaSerializeInfo
@@ -341,12 +352,14 @@ struct FNetDeltaSerializeInfo
 	FString							DebugName;
 };
 
+
 /**
  * Checksum macros for verifying archives stay in sync
  */
 COREUOBJECT_API void SerializeChecksum(FArchive &Ar, uint32 x, bool ErrorOK);
 
 #define NET_ENABLE_CHECKSUMS 0
+
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && NET_ENABLE_CHECKSUMS
 
@@ -382,6 +395,7 @@ COREUOBJECT_API void SerializeChecksum(FArchive &Ar, uint32 x, bool ErrorOK);
 
 
 #endif
+
 
 /**
  * Functions to assist in detecting errors during RPC calls

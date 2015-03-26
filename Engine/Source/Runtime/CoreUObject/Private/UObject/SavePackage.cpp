@@ -1,18 +1,14 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SavePackage.cpp: File saving support.
-=============================================================================*/
-
 #include "CoreUObjectPrivate.h"
 #include "UObject/UTextProperty.h"
 #include "Interface.h"
 #include "TargetPlatform.h"
 
+
 DEFINE_LOG_CATEGORY_STATIC(LogSavePackage, Log, All);
 
 static const int32 MAX_MERGED_COMPRESSION_CHUNKSIZE = 1024 * 1024;
-
 static const FName WorldClassName = FName("World");
 
 
@@ -558,7 +554,7 @@ public:
 	 *
 	 * This is overridden for the specific Archive Types
 	 **/
-	virtual FString GetArchiveName() const;
+	virtual FString GetArchiveName() const override;
 
 };
 
