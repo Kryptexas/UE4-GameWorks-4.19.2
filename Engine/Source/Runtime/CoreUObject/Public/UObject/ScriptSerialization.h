@@ -182,6 +182,7 @@
 		case EX_EndFunctionParms:
 		case EX_EndStructConst:
 		case EX_EndArray:
+		case EX_EndArrayConst:
 		case EX_IntZero:
 		case EX_IntOne:
 		case EX_True:

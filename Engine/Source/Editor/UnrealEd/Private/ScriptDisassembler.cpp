@@ -426,6 +426,11 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 			Ar.Logf(TEXT("%s $%X: EX_EndArray"), *Indents, (int32)Opcode);
 			break;
 		}
+	case EX_EndArrayConst:
+		{
+			Ar.Logf(TEXT("%s $%X: EX_EndArrayConst"), *Indents, (int32)Opcode);
+			break;
+		}
 	case EX_IntZero:
 		{
 			Ar.Logf(TEXT("%s $%X: EX_IntZero"), *Indents, (int32)Opcode);
