@@ -623,6 +623,12 @@ private:
 	//////////////////////////////////////////////////////////////////////////
 	// General cook options
 	TArray<UClass*> FullGCAssetClasses;
+	/** Number of packages to load before performing a garbage collect. Set to 0 to never GC based on number of loaded packages */
+	uint32 PackagesPerGC;
+	/** Amount of time that is allowed to be idle before forcing a garbage collect. Set to 0 to never force GC due to idle time */
+	double IdleTimeToGC;
+	/** Max memory the cooker should use before forcing a gc */
+	uint64 MaxMemoryAllowance;
 
 	ECookInitializationFlags CookFlags;
 	TAutoPtr<class FSandboxPlatformFile> SandboxFile;
@@ -832,6 +838,15 @@ public:
 	 *   When one of these classes is saved it will return COSR_RequiresGC
 	 */
 	void SetFullGCAssetClasses( const TArray<UClass*>& InFullGCAssetClasses );
+
+	/** Returns the configured number of packages to process before GC */
+	uint32 GetPackagesPerGC() const;
+
+	/** Returns the configured amount of idle time before forcing a GC */
+	double GetIdleTimeToGC() const;
+
+	/** Returns the configured amount of memory allowed before forcing a GC */
+	uint64 GetMaxMemoryAllowance() const;
 
 	/**
 	 * Callbacks from editor 

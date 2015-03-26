@@ -1595,6 +1595,21 @@ void UCookOnTheFlyServer::SetFullGCAssetClasses( const TArray<UClass*>& InFullGC
 	FullGCAssetClasses = InFullGCAssetClasses;
 }
 
+uint32 UCookOnTheFlyServer::GetPackagesPerGC() const
+{
+	return PackagesPerGC;
+}
+
+double UCookOnTheFlyServer::GetIdleTimeToGC() const
+{
+	return IdleTimeToGC;
+}
+
+uint64 UCookOnTheFlyServer::GetMaxMemoryAllowance() const
+{
+	return MaxMemoryAllowance;
+}
+
 void UCookOnTheFlyServer::BeginDestroy()
 {
 	EndNetworkFileServer();
@@ -1940,6 +1955,21 @@ void UCookOnTheFlyServer::Initialize( ECookMode::Type DesiredCookMode, ECookInit
 		// default to UWorld
 		FullGCAssetClasses.Add( UWorld::StaticClass() );
 	}
+
+	PackagesPerGC = 50;
+	int32 ConfigPackagesPerGC = 0;
+	if (GConfig->GetInt( TEXT("CookSettings"), TEXT("PackagesPerGC"), ConfigPackagesPerGC, GEditorIni ))
+	{
+		// Going unsigned. Make negative values 0
+		PackagesPerGC = ConfigPackagesPerGC > 0 ? ConfigPackagesPerGC : 0;
+	}
+
+	IdleTimeToGC = 20.0;
+	GConfig->GetDouble( TEXT("CookSettings"), TEXT("IdleTimeToGC"), IdleTimeToGC, GEditorIni );
+
+	int32 MaxMemoryAllowanceInMB = 8 * 1024;
+	GConfig->GetInt( TEXT("CookSettings"), TEXT("MaxMemoryAllowance"), MaxMemoryAllowanceInMB, GEditorIni );
+	MaxMemoryAllowance = MaxMemoryAllowanceInMB * 1024LL * 1024LL;
 	
 	if ( IsCookByTheBookMode() )
 	{

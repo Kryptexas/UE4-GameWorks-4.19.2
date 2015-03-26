@@ -111,18 +111,19 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 	}
 
 	// Garbage collection should happen when either
-	//	1. We have cooked a map
+	//	1. We have cooked a map (configurable asset type)
 	//	2. We have cooked non-map packages and...
-	//		a. we have accumulated 50 of these since the last GC.
-	//		b. we have been idle for 20 seconds.
+	//		a. we have accumulated 50 (configurable) of these since the last GC.
+	//		b. we have been idle for 20 (configurable) seconds.
 	bool bShouldGC = true;
 
 	// megamoth
 	uint32 NonMapPackageCountSinceLastGC = 0;
 	
-	const int32 PackagesPerGC = 50;
-	
-	const double IdleTimeToGC = 20.0;
+	const uint32 PackagesPerGC = CookOnTheFlyServer->GetPackagesPerGC();
+	const double IdleTimeToGC = CookOnTheFlyServer->GetIdleTimeToGC();
+	const uint64 MaxMemoryAllowance = CookOnTheFlyServer->GetMaxMemoryAllowance();
+
 	double LastCookActionTime = FPlatformTime::Seconds();
 
 	FDateTime LastConnectionTime = FDateTime::UtcNow();
@@ -143,13 +144,13 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 
 		if (NonMapPackageCountSinceLastGC > 0)
 		{
-			if ( NonMapPackageCountSinceLastGC > PackagesPerGC)
+			if ((PackagesPerGC > 0) && (NonMapPackageCountSinceLastGC > PackagesPerGC))
 			{
 				UE_LOG(LogCookCommandlet, Display, TEXT("Cooker has exceeded max number of non map packages since last gc"));
 				bShouldGC |= true;
 			}
 
-			if (((FPlatformTime::Seconds() - LastCookActionTime) >= IdleTimeToGC))
+			if ((IdleTimeToGC > 0) && ((FPlatformTime::Seconds() - LastCookActionTime) >= IdleTimeToGC))
 			{
 				UE_LOG(LogCookCommandlet, Display, TEXT("Cooker has been idle for long time gc"));
 				bShouldGC |= true;
@@ -162,7 +163,7 @@ bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForce
 			bShouldGC |= true;
 		}
 
-		if ( !bShouldGC && HasExceededMaxMemory() )
+		if ( !bShouldGC && HasExceededMaxMemory(MaxMemoryAllowance) )
 		{
 			UE_LOG(LogCookCommandlet, Display, TEXT("Cooker has exceeded max memory usage collecting garbage"));
 			bShouldGC |= true;
@@ -521,8 +522,6 @@ int32 UCookCommandlet::Main(const FString& CmdLineParams)
 	bCompressed = Switches.Contains(TEXT("COMPRESSED"));
 	bIterativeCooking = Switches.Contains(TEXT("ITERATE"));
 	bSkipEditorContent = Switches.Contains(TEXT("SKIPEDITORCONTENT")); // This won't save out any packages in Engine/COntent/Editor*
-
-	MaxMemoryAllowance = 8LL * 1024LL * 1024LL * 1024LL;
 
 	if (bLeakTest)
 	{
@@ -1187,18 +1186,19 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	CookOnTheFlyServer->StartCookByTheBook( StartupOptions );
 
 	// Garbage collection should happen when either
-	//	1. We have cooked a map
+	//	1. We have cooked a map (configurable asset type)
 	//	2. We have cooked non-map packages and...
-	//		a. we have accumulated 50 of these since the last GC.
-	//		b. we have been idle for 20 seconds.
+	//		a. we have accumulated 50 (configurable) of these since the last GC.
+	//		b. we have been idle for 20 (configurable) seconds.
 	bool bShouldGC = true;
 
 	// megamoth
 	uint32 NonMapPackageCountSinceLastGC = 0;
 
-	const int32 PackagesPerGC = 50;
+	const uint32 PackagesPerGC = CookOnTheFlyServer->GetPackagesPerGC();
+	const double IdleTimeToGC = CookOnTheFlyServer->GetIdleTimeToGC();
+	const uint64 MaxMemoryAllowance = CookOnTheFlyServer->GetMaxMemoryAllowance();
 
-	const double IdleTimeToGC = 20.0;
 	double LastCookActionTime = FPlatformTime::Seconds();
 
 	FDateTime LastConnectionTime = FDateTime::UtcNow();
@@ -1221,13 +1221,14 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 		if (NonMapPackageCountSinceLastGC > 0)
 		{
 			// We should GC if we have packages to collect and we've been idle for some time.
-			bShouldGC |= (NonMapPackageCountSinceLastGC > PackagesPerGC) || 
-				((FPlatformTime::Seconds() - LastCookActionTime) >= IdleTimeToGC);
+			const bool bExceededPackagesPerGC = (PackagesPerGC > 0) && (NonMapPackageCountSinceLastGC > PackagesPerGC);
+			const bool bExceededIdleTimeToGC = (IdleTimeToGC > 0) && ((FPlatformTime::Seconds() - LastCookActionTime) >= IdleTimeToGC);
+			bShouldGC |= bExceededPackagesPerGC || bExceededIdleTimeToGC;
 		}
 
 		bShouldGC |= (TickResults & UCookOnTheFlyServer::COSR_RequiresGC)!=0;
 
-		bShouldGC |= HasExceededMaxMemory();
+		bShouldGC |= HasExceededMaxMemory(MaxMemoryAllowance);
 
 
 		// don't clean up if we are waiting on cache of cooked data
@@ -1255,7 +1256,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	return true;
 }
 
-bool UCookCommandlet::HasExceededMaxMemory() const
+bool UCookCommandlet::HasExceededMaxMemory(uint64 MaxMemoryAllowance) const
 {
 	const FPlatformMemoryStats MemStats = FPlatformMemory::GetStats();
 
