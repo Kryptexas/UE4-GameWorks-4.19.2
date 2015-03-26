@@ -78,7 +78,7 @@ void UChildActorComponent::OnComponentDestroyed()
 {
 	Super::OnComponentDestroyed();
 
-	DestroyChildActor(!GetWorld()->IsGameWorld());
+	DestroyChildActor(GetWorld() && !GetWorld()->IsGameWorld());
 }
 
 class FChildActorComponentInstanceData : public FSceneComponentInstanceData

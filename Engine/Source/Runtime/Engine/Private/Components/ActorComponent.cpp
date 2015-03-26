@@ -179,7 +179,7 @@ void UActorComponent::PostLoad()
 		}
 	}
 
-	if (GetLinkerUE4Version() < VER_UE4_TRACK_UCS_MODIFIED_PROPERTIES)
+	if ((GetLinkerUE4Version() < VER_UE4_TRACK_UCS_MODIFIED_PROPERTIES) && !HasAnyFlags(RF_ClassDefaultObject))
 	{
 		DetermineUCSModifiedProperties();
 	}
