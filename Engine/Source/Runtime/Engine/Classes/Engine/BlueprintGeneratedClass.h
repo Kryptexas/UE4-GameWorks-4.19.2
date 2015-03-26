@@ -208,13 +208,6 @@ protected:
 	TMap<TWeakObjectPtr<UObject>, UProperty*> DebugPinToPropertyMap;
 
 public:
-	void Clear()
-	{
-		DebugNodeLineNumbers.Empty();
-		DebugNodeIndexLookup.Empty();
-		DebugNodesAllocatedUniqueIDsMap.Empty();
-		DebugPinToPropertyMap.Empty();
-	}
 
 	// Returns the UEdGraphNode associated with the UUID, or nullptr if there isn't one.
 	UEdGraphNode* FindNodeFromUUID(int32 UUID) const
@@ -392,27 +385,6 @@ public:
 				PropertySourceMap.Add(MapIt.Value(), SourceObj);
 			}
 		}
-	}
-
-	/**
-	 * Retrieves the most recently executed node (created to help pinpoint 
-	 * runtime errors).
-	 * 
-	 * @returns The most recently executed node (nullptr if there is not one).
-	 */
-	UEdGraphNode* GetLastExecutedNode()
-	{
-		UEdGraphNode* LastExecutedNode = nullptr;
-		if (IsValid())
-		{
-			TWeakObjectPtr<UEdGraphNode> NodePtr = DebugNodeLineNumbers.Top().Node;
-			if (NodePtr.IsValid())
-			{
-
-				LastExecutedNode = NodePtr.Get();
-			}
-		}
-		return LastExecutedNode;
 	}
 #endif
 };
