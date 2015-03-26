@@ -273,7 +273,7 @@ public:
 	}
 
 protected:
-
+	friend class UStaticMeshComponent;
 	friend struct FLightMapPendingTexture;
 
 	FLightMap2D(const TArray<FGuid>& InLightGuids);
