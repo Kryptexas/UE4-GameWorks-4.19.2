@@ -239,7 +239,12 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 			IESTexture = IESTextureObject;
 		}
 	}
+
 	Color = FLinearColor(InLightComponent->LightColor) * LightBrightness;
+	if( InLightComponent->bUseTemperature )
+	{
+		Color *= FLinearColor::MakeFromColorTemperature(InLightComponent->Temperature);
+	}
 
 	if(LightComponent->LightFunctionMaterial &&
 		LightComponent->LightFunctionMaterial->GetMaterial()->MaterialDomain == MD_LightFunction )
@@ -305,6 +310,8 @@ ULightComponentBase::ULightComponentBase(const FObjectInitializer& ObjectInitial
 ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	Temperature = 6500.0f;
+	bUseTemperature = false;
 	ShadowMapChannel = INDEX_NONE;
 	PreviewShadowMapChannel = INDEX_NONE;
 	IndirectLightingIntensity = 1.0f;
@@ -501,6 +508,11 @@ bool ULightComponent::CanEditChange(const UProperty* InProperty) const
 		{
 			return bEnableLightShaftBloom;
 		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, Temperature))
+		{
+			return bUseTemperature;
+		}
 	}
 
 	return Super::CanEditChange(InProperty);
@@ -560,7 +572,8 @@ void ULightComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, LightShaftOverrideDirection) &&
 		// Properties that should only unbuild lighting for a Static light (can be changed dynamically on a Stationary light)
 		(PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, Intensity) || Mobility == EComponentMobility::Static) &&
-		(PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, LightColor) || Mobility == EComponentMobility::Static))
+		(PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, LightColor) || Mobility == EComponentMobility::Static) &&
+		(PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, Temperature) || Mobility == EComponentMobility::Static) )
 	{
 		InvalidateLightingCache();
 	}
@@ -714,6 +727,24 @@ void ULightComponent::SetLightColor(FLinearColor NewLightColor)
 		&& LightColor != NewColor)
 	{
 		LightColor	= NewColor;
+
+		// Use lightweight color and brightness update 
+		if( World && World->Scene )
+		{
+			//@todo - remove from scene if brightness or color becomes 0
+			World->Scene->UpdateLightColorAndBrightness( this );
+		}
+	}
+}
+
+/** Set color temperature of the light */
+void ULightComponent::SetTemperature(float NewTemperature)
+{
+	// Can't set color on a static light
+	if (AreDynamicDataChangesAllowed()
+		&& Temperature != NewTemperature)
+	{
+		Temperature = NewTemperature;
 
 		// Use lightweight color and brightness update 
 		if( World && World->Scene )
@@ -996,12 +1027,14 @@ void ULightComponent::PostInterpChange(UProperty* PropertyThatChanged)
 	static FName IntensityName(TEXT("Intensity"));
 	static FName BrightnessName(TEXT("Brightness"));
 	static FName IndirectLightingIntensityName(TEXT("IndirectLightingIntensity"));
+	static FName TemperatureName(TEXT("Temperature"));
 
 	FName PropertyName = PropertyThatChanged->GetFName();
 	if (PropertyName == LightColorName
 		|| PropertyName == IntensityName
 		|| PropertyName == BrightnessName
-		|| PropertyName == IndirectLightingIntensityName)
+		|| PropertyName == IndirectLightingIntensityName
+		|| PropertyName == TemperatureName)
 	{
 		// Old brightness tracks will animate the deprecated value
 		if (PropertyName == BrightnessName)

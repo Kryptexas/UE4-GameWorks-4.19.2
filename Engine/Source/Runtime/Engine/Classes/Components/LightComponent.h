@@ -44,6 +44,17 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 {
 	GENERATED_UCLASS_BODY()
 
+	/**
+	* Color temperature in Kelvin of the blackbody illuminant.
+	* White (D65) is 6500K.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, interp, Category = Light, meta = (UIMin = "1700.0", UIMax = "12000.0"))
+	float Temperature;
+	
+	/** false: use white (D65) as illuminant. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, meta=(DisplayName = "Use Temperature"))
+	uint32 bUseTemperature : 1;
+
 	/** 
 	 * Shadow map channel which is used to match up with the appropriate static shadowing during a deferred shading pass.
 	 * This is generated during a lighting build.
@@ -180,6 +191,9 @@ public:
 	/** Set color of the light */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
 	void SetLightColor(FLinearColor NewLightColor);
+
+	UFUNCTION(BlueprintCallable, Category = "Rendering|Components|Light")
+	void SetTemperature(float NewTemperature);
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
 	void SetLightFunctionMaterial(UMaterialInterface* NewLightFunctionMaterial);

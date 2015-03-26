@@ -153,6 +153,11 @@ void Copy( const ULightComponent* In, Lightmass::FLightData& Out )
 	Out.Position = In->GetLightPosition();
 	Out.Direction = In->GetDirection();
 
+	if( In->bUseTemperature )
+	{
+		Out.Color *= FLinearColor::MakeFromColorTemperature(In->Temperature);
+	}
+
 	FMemory::Memset(Out.LightProfileTextureData, 0xff, sizeof(Out.LightProfileTextureData));
 
 	if(In->IESTexture)

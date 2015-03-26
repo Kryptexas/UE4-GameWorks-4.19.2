@@ -1271,6 +1271,11 @@ void FScene::UpdateLightColorAndBrightness(ULightComponent* Light)
 		FUpdateLightColorParameters NewParameters;
 		NewParameters.NewColor = FLinearColor(Light->LightColor) * Light->ComputeLightBrightness();
 		NewParameters.NewIndirectLightingScale = Light->IndirectLightingIntensity;
+
+		if( Light->bUseTemperature )
+		{
+			 NewParameters.NewColor *= FLinearColor::MakeFromColorTemperature(Light->Temperature);
+		}
 	
 		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 			UpdateLightColorAndBrightness,

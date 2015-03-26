@@ -214,6 +214,11 @@ struct FLinearColor
 	static CORE_API FLinearColor MakeRandomColor();
 
 	/**
+	* Converts temperature in Kelvins of a black body radiator to RGB chromaticity.
+	*/
+	static CORE_API FLinearColor MakeFromColorTemperature( float Temp );
+
+	/**
 	 * Euclidean distance between two points.
 	 */
 	static inline float Dist( const FLinearColor &V1, const FLinearColor &V2 )
@@ -435,6 +440,11 @@ public:
 	 * Makes a color red->green with the passed in scalar (e.g. 0 is red, 1 is green)
 	 */
 	static CORE_API FColor MakeRedToGreenColorFromScalar(float Scalar);
+
+	/**
+	* Converts temperature in Kelvins of a black body radiator to RGB chromaticity.
+	*/
+	static CORE_API FColor MakeFromColorTemperature( float Temp );
 
 	/**
 	 *	@return a new FColor based of this color with the new alpha value.
