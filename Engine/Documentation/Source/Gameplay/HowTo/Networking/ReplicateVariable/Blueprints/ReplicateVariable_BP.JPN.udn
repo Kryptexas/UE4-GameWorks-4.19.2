@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2390077
+﻿INTSourceChangelist:2420249
 Availability:Public
 Title:ブループリントで変数をレプリケーションする方法
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\Networking\ReplicateVariable
@@ -13,11 +13,11 @@ Related:Resources/ContentExamples/Networking
 
 [INCLUDE:Gameplay/HowTo/Networking/ReplicateVariable#overview]
 
-このページでは、**Replicated** 変数と **RepNotify** 変数の両方の使用例について説明します。 
+このページでは、**Replicated** 変数と **RepNotify** 変数の使用例について説明します。 
 
 ## Replicated
 
- _ここでは **Blueprint Third Person Template with Starter Content** を使います。_
+ _この例では、 **Blueprint Third Person Template with Starter Content** を使用します。_
 
 この例では、**Replicated** 変数を作成します。これは、サーバーとクライアントの双方で参照できるカウントダウン タイマーで使用されます。 
 
