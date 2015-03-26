@@ -1077,7 +1077,8 @@ bool FFriendsAndChatManager::IsInJoinableGameSession() const
 				bool bPublicJoinable = false;
 				bool bFriendJoinable = false;
 				bool bInviteOnly = false;
-				if (Session->GetJoinability(bPublicJoinable, bFriendJoinable, bInviteOnly))
+				bool bAllowInvites = false;
+				if (Session->GetJoinability(bPublicJoinable, bFriendJoinable, bInviteOnly, bAllowInvites))
 			{
 					// User's game is joinable in some way if any of this is true (context needs to be handled outside this function)
 					bIsJoinable = bPublicJoinable || bFriendJoinable || bInviteOnly;

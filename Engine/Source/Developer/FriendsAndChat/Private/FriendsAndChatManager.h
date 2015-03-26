@@ -173,8 +173,10 @@ public:
 
 	/**
 	 * Get if the current player is in a session and that game is joinable.
+	 * The context here is from the local perspective, it should not be interpreted by or given to external recipients
+	 * (ie, the game is invite only and therefore joinable via invite, but it is not "joinable" from another user's perspective)
 	 *
-	 * @return True if we are in a game session.
+	 * @return true if the local user considers their game joinable, otherwise false
 	 */
 	bool IsInJoinableGameSession() const;
 

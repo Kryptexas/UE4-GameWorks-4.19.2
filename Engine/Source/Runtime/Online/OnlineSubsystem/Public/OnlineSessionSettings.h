@@ -399,12 +399,14 @@ public:
 	 * @param bPublicJoinable [out] is the game joinable by anyone at all
 	 * @param bFriendJoinable [out] is the game joinable by friends via presence (doesn't require invite)
 	 * @param bInviteOnly [out] is the game joinable via explicit invites
+	 * @param bAllowInvites [out] are invites possible (use with bInviteOnly to determine if invites are available right now)
 	 *
 	 * @return true if the out params are valid, false otherwise
 	 */
-	bool GetJoinability(bool& bPublicJoinable, bool& bFriendJoinable, bool& bInviteOnly) const
+	bool GetJoinability(bool& bPublicJoinable, bool& bFriendJoinable, bool& bInviteOnly, bool& bAllowInvites) const
 	{
-		if (SessionState != EOnlineSessionState::NoSession && SessionState != EOnlineSessionState::Destroying)
+		// Only states that have a valid session are considered
+		if (SessionState != EOnlineSessionState::NoSession && SessionState != EOnlineSessionState::Creating && SessionState != EOnlineSessionState::Destroying)
 		{
 			bool bAllowJIP = SessionSettings.bAllowJoinInProgress || (SessionState != EOnlineSessionState::Starting && SessionState != EOnlineSessionState::InProgress);
 			if (bAllowJIP)
@@ -412,10 +414,21 @@ public:
 				bPublicJoinable = SessionSettings.bShouldAdvertise || SessionSettings.bAllowJoinViaPresence;
 				bFriendJoinable = SessionSettings.bAllowJoinViaPresenceFriendsOnly;
 				bInviteOnly = !bPublicJoinable && !bFriendJoinable && SessionSettings.bAllowInvites;
-				return true;
+				bAllowInvites = SessionSettings.bAllowInvites;
 			}
-		}
+			else
+			{
+				bPublicJoinable = false;
+				bFriendJoinable = false;
+				bInviteOnly = false;
+				bAllowInvites = false;
+			}
 
+			// Valid session, joinable or otherwise
+			return true;
+		}
+		
+		// Invalid session
 		return false;
 	}
 };
@@ -429,11 +442,11 @@ class FOnlineSessionSearchResult
 public:
 	/** All advertised session information */
 	FOnlineSession Session;
-	/** Ping to the search result, -1 is unreachable */
+	/** Ping to the search result, MAX_QUERY_PING is unreachable */
 	int32 PingInMs;
 
 	FOnlineSessionSearchResult() : 
-		PingInMs(-1)
+		PingInMs(MAX_QUERY_PING)
 	{}
 
 	~FOnlineSessionSearchResult() {}
@@ -450,7 +463,7 @@ public:
 	 */
 	bool IsValid() const
 	{
-		return (Session.OwningUserId.IsValid() && Session.SessionInfo.IsValid());
+		return (Session.OwningUserId.IsValid() && Session.SessionInfo.IsValid() && Session.SessionInfo->IsValid());
 	}
 };
 
