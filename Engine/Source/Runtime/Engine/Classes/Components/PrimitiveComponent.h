@@ -1550,7 +1550,7 @@ private:
 	bool CheckStaticMobilityAndWarn(const FText& ActionText) const;
 
 	/** Check if mobility is set to non-static. If BodyInstanceRequiresSimulation is non-null we check that it is simulated. Triggers a PIE warning if conditions fails */
-	void WarnInvalidPhysicsOperations(const FText& ActionText, const FBodyInstance* BodyInstanceRequiresSimulation = nullptr) const;
+	void WarnInvalidPhysicsOperations_Internal(const FText& ActionText, const FBodyInstance* BodyInstanceRequiresSimulation = nullptr) const;
 
 public:
 
