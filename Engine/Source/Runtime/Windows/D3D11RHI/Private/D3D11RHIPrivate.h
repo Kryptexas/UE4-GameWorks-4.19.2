@@ -313,7 +313,7 @@ public:
 	TMap<FD3D11LockedKey,FD3D11LockedData> OutstandingLocks;
 
 	/** Initialization constructor. */
-	FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL InFeatureLevel,int32 InChosenAdapter);
+	FD3D11DynamicRHI(IDXGIFactory1* InDXGIFactory1,D3D_FEATURE_LEVEL InFeatureLevel,int32 InChosenAdapter);
 
 	/** Destructor */
 	virtual ~FD3D11DynamicRHI() {}
@@ -350,9 +350,9 @@ public:
 		return Direct3DDeviceIMContext;
 	}
 
-	IDXGIFactory* GetFactory() const
+	IDXGIFactory1* GetFactory() const
 	{
-		return DXGIFactory;
+		return DXGIFactory1;
 	}
 private:
 	template <EShaderFrequency ShaderFrequency>
@@ -401,7 +401,7 @@ public:
 
 protected:
 	/** The global D3D interface. */
-	TRefCountPtr<IDXGIFactory> DXGIFactory;
+	TRefCountPtr<IDXGIFactory1> DXGIFactory1;
 
 	/** The global D3D device's immediate context */
 	TRefCountPtr<FD3D11DeviceContext> Direct3DDeviceIMContext;

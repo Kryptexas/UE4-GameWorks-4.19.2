@@ -34,8 +34,8 @@ TAutoConsoleVariable<int32> CVarD3D11ZeroBufferSizeInMB(
 	ECVF_ReadOnly
 	);
 
-FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL InFeatureLevel, int32 InChosenAdapter) :
-	DXGIFactory(InDXGIFactory),
+FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory1* InDXGIFactory1,D3D_FEATURE_LEVEL InFeatureLevel, int32 InChosenAdapter) :
+	DXGIFactory1(InDXGIFactory1),
 	bDeviceRemoved(false),
 	FeatureLevel(InFeatureLevel),
 	bUsingTessellation(false),
@@ -235,7 +235,7 @@ void FD3D11DynamicRHI::RHIGetSupportedResolution( uint32 &Width, uint32 &Height 
 	{
 		HRESULT hr = S_OK;
 		TRefCountPtr<IDXGIAdapter> Adapter;
-		hr = DXGIFactory->EnumAdapters(ChosenAdapter,Adapter.GetInitReference());
+		hr = DXGIFactory1->EnumAdapters(ChosenAdapter,Adapter.GetInitReference());
 		if( DXGI_ERROR_NOT_FOUND == hr )
 		{
 			return;
