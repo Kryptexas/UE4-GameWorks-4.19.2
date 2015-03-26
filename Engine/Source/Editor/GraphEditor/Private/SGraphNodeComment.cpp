@@ -280,7 +280,6 @@ void SGraphNodeComment::HandleSelection(bool bSelected, bool bUpdateNodesUnderCo
 				FChildren* PanelChildren = Panel->GetAllChildren();
 				int32 NumChildren = PanelChildren->Num();
 				CommentNode->ClearNodesUnderComment();
-				int32 MinDepth = 0;
 
 				for ( int32 NodeIndex=0; NodeIndex < NumChildren; ++NodeIndex )
 				{
@@ -294,19 +293,12 @@ void SGraphNodeComment::HandleSelection(bool bSelected, bool bUpdateNodesUnderCo
 						const FVector2D SomeNodeSize = SomeNodeWidget->GetDesiredSize();
 
 						const FSlateRect NodeGeometryGraphSpace( SomeNodePosition.X, SomeNodePosition.Y, SomeNodePosition.X + SomeNodeSize.X, SomeNodePosition.Y + SomeNodeSize.Y );
-						if( FSlateRect::DoRectanglesIntersect( CommentRect, NodeGeometryGraphSpace ) )
+						if( FSlateRect::IsRectangleContained( CommentRect, NodeGeometryGraphSpace ) )
 						{
-							MinDepth = FMath::Min( MinDepth, SomeNodeWidget->GetSortDepth() - 1 );
-
-							if ( FSlateRect::IsRectangleContained( CommentRect, NodeGeometryGraphSpace ) )
-							{
-								CommentNode->AddNodeUnderComment(GraphObject);
-							}
+							CommentNode->AddNodeUnderComment(GraphObject);
 						}
 					}
 				}
-				// Fix Depth to include any overlapped comments
-				CommentNode->CommentDepth = FMath::Min( CommentNode->CommentDepth, MinDepth );
 			}
 		}
 		bIsSelected = bSelected;
