@@ -1048,8 +1048,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 #endif //WITH_EDITOR
 
-	FRunnableThread::InitializeTls();
-
 	// initialize task graph sub-system with potential multiple threads
 	FTaskGraphInterface::Startup( FPlatformMisc::NumberOfCores() );
 	FTaskGraphInterface::Get().AttachToThread( ENamedThreads::GameThread );

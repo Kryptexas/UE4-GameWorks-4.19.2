@@ -176,13 +176,14 @@ FScopedEvent::~FScopedEvent()
 	FRunnableThread
 -----------------------------------------------------------------------------*/
 
-uint32 FRunnableThread::RunnableTlsSlot = 0;
+uint32 FRunnableThread::RunnableTlsSlot = FRunnableThread::GetTlsSlot();
 
-void FRunnableThread::InitializeTls()
+uint32 FRunnableThread::GetTlsSlot()
 {
 	check( IsInGameThread() );
-	RunnableTlsSlot = FPlatformTLS::AllocTlsSlot();
+	uint32 RunnableTlsSlot = FPlatformTLS::AllocTlsSlot();
 	check( FPlatformTLS::IsValidTlsSlot( RunnableTlsSlot ) );
+	return RunnableTlsSlot;
 }
 
 FRunnableThread::FRunnableThread()

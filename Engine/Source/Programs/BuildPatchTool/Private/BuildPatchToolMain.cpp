@@ -159,9 +159,6 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 
 	FPlatformProcess::SetCurrentWorkingDirectoryToBaseDir();
 
-	// Init TLS for runnable threads.
-	FRunnableThread::InitializeTls();
-
 	bool bSuccess = false;
 
 	FString RootDirectory;

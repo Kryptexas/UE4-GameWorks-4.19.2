@@ -238,8 +238,8 @@ class CORE_API FRunnableThread
 
 public:
 
-	/** Initializes a Tls slot for storing the runnable thread pointer. */
-	static void InitializeTls();
+	/** Gets a new Tls slot for storing the runnable thread pointer. */
+	static uint32 GetTlsSlot();
 
 	/**
 	* Factory method to create a thread with the specified stack size and thread priority.
