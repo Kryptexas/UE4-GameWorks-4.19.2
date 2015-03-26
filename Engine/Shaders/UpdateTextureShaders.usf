@@ -7,8 +7,9 @@
 #include "Common.usf"
 
 Buffer<int4> SrcBuffer;
-RWTexture2D<int4> DestTexture;
+RWTexture2D<int4> DestTexture;  
 int SrcPitch;
+
 
 uint4 DestPosSize; // xy = pos, zw = Size of the destination sub rect
 
@@ -17,7 +18,21 @@ void UpdateTexture2DSubresourceCS( uint2 ThreadId : SV_DispatchThreadID )
 {
 	if( all( ThreadId.xy < DestPosSize.zw ) )
 	{
-		DestTexture[ ThreadId.xy + DestPosSize.xy ] = SrcBuffer[ ThreadId.x + ThreadId.y * SrcPitch ];
+		DestTexture[ThreadId.xy + DestPosSize.xy] = SrcBuffer[ThreadId.x + ThreadId.y * SrcPitch];
+	}
+}
+
+RWTexture3D<int4> DestTexture3D;
+int SrcDepthPitch;
+uint4 DestPos;
+uint4 DestSize;
+
+[numthreads(8, 8, 8)]
+void UpdateTexture3DSubresourceCS(uint3 ThreadId : SV_DispatchThreadID)
+{
+	if (all(ThreadId.xyz < DestSize.xyz))
+	{
+		DestTexture3D[ThreadId.xyz + DestPos.xyz] = SrcBuffer[ThreadId.x + (ThreadId.y * SrcPitch) + (ThreadId.z * SrcDepthPitch)];
 	}
 }
 
@@ -26,5 +41,5 @@ Texture2D<int4> SrcTexture;
 [numthreads(8,8,1)]
 void CopyTexture2DCS( uint3 ThreadId : SV_DispatchThreadID )
 {
-	DestTexture[ ThreadId.xy ] = SrcTexture.Load( int3( ThreadId.x, ThreadId.y, 0 ) );
+	DestTexture[ThreadId.xy] = SrcTexture.Load(int3(ThreadId.x, ThreadId.y, 0));
 }
