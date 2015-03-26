@@ -496,6 +496,8 @@ void APawn::UnPossessed()
 	{
 		ReceiveUnpossessed(OldController);
 	}
+
+	ConsumeMovementInputVector();
 }
 
 
@@ -656,6 +658,7 @@ void APawn::Restart()
 	{
 		GetMovementComponent()->StopMovementImmediately();
 	}
+	ConsumeMovementInputVector();
 	RecalculateBaseEyeHeight();
 }
 
