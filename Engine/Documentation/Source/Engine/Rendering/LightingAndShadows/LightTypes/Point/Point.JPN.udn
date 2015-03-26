@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2420658
+﻿INTSourceChangelist:2490853
 Availability:Public
 Title:ポイントライト
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
@@ -53,7 +53,6 @@ Description:ポイントライトの基礎
 
 [EXCERPT:Intro]
 **ポイントライト** は、電球のタングステン フィラメントから全方向に光を放射する現実世界の電球のように機能します。しかし、ポイントライトは、パフォーマンス上の理由から単純化されて、単に空間内のひとつのポイントから全方向に均一に光を放射するようになっています。**ポイントライト** を配置する場合、以下の3 つの可動設定のいずれかを設定できます。
-[/EXCERPT:Intro]
 
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
@@ -78,6 +77,7 @@ Description:ポイントライトの基礎
 	**Moveable** - (左側の図) ライトは完全に動的で動的シャドウイングを使用できます。これはレンダリングという点では最も処理が遅くなりますが、ゲームプレイ中のフレキシビリティは最も高くなります。 
 	[/PARAM]
 [/OBJECT]
+[/EXCERPT:Intro]
 
 [REGION:raw]
 ![](spacer.png)
@@ -124,7 +124,7 @@ _左側の図は、半径が表示されていない **ポイントライト** �
 | プロパティ | 説明 |
 | -------- | ----------- |
 | **IES Texture** | ライトプロファイルに使用した IES 「テクスチャ」です。アンリアルでは IES ファイルは ASCII ファイルで格納し、テクスチャを表現します。これらは画像ファイルではありません。 |
-| **Use IES Brightness** | _false_ の場合、ライトの生産量を決定するためにライトの **Brightness (輝度)** を使用します。_true_ の場合、ルーメン単位の IES ファイルの輝度を使用します (アンリアルのライトのデフォルト値よりもはるかに大きな数値です)。 |
+| **Use IES Brightness** | _false_ の場合、ライトの生成量を決定するためにライトの **Brightness (輝度)** を使用します。_true_ の場合、ルーメン単位の IES ファイルの輝度を使用します (アンリアルのライトのデフォルト値よりもはるかに大きな数値です)。 |
 | **IES Brightness Scale** | シーンを大幅に超えることもあるため、IES 輝度の寄与をスケーリングします。 |
 
 ### Lightmass
@@ -138,7 +138,7 @@ _左側の図は、半径が表示されていない **ポイントライト** �
 | プロパティ | 説明 |
 | -------- | ----------- |
 | **Light Function Material** | ライトに適用するライト関数マテリアルです。 |
-| **Light Function Scale** | ライト関数プロジェクションをスケーリングします。 |
+| **Light Function Scale** | ライト関数のプロジェクションをスケーリングします。 |
 | **Light Function Fade Distance** | ライト関数が **Disabled Brightness** の値で完全に弱まる距離です。 |
-| **Disabled Brightness** | ライト関数が指定されていながら無効になっている時ライトに適用する輝度係数です。仮に上記のプロパティをあげるなら **Light Function Fade Distance** です。 |
+| **Disabled Brightness** | ライト関数が指定されていながら無効になっている時、ライトに適用する輝度係数です。仮に上記のプロパティをあげるなら **Light Function Fade Distance** です。 |
 
