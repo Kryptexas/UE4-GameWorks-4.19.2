@@ -1883,7 +1883,8 @@ public:
 				if ( ClassObject != NULL )
 				{
 					UObject* CDO = ClassObject->GetDefaultObject();
-					if ( ProcessedObjects.Find(CDO) == INDEX_NONE )
+					ensureMsgf(nullptr != CDO, TEXT("Error: Invalid CDO in class %s"), *GetPathNameSafe(ClassObject));
+					if ((ProcessedObjects.Find(CDO) == INDEX_NONE) && (nullptr != CDO))
 					{
 						ProcessedObjects.Add(CDO);
 
