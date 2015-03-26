@@ -58,7 +58,7 @@ Description:In this step we are using the Level Blueprint to get the location of
 	This is the **Event Dispatcher** we created. When you select this, two additional nodes will be added. 
 	
 	[REGION:note]
-	Don't see this node in the list? Make sure that you clicked **Compile** inside the **FirstPersonCharacter** Blueprint and try again. 
+	If you do not see this node in the list, make sure that you clicked **Compile** inside the **FirstPersonCharacter** Blueprint and try again. 
 	[/REGION]
 
 1. Make sure you connect the newly added nodes from the **Bind Event**. 
