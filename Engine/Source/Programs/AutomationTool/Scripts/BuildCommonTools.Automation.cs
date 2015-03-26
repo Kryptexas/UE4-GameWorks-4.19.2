@@ -89,6 +89,7 @@ public class BuildCommonTools : BuildCommand
 		Agenda.DotNetProjects.Add(@"Engine/Source/Programs/DotNETCommon/DotNETUtilities/DotNETUtilities.csproj");
 		Agenda.DotNetProjects.Add(@"Engine/Source/Programs/RPCUtility/RPCUtility.csproj");
 		Agenda.DotNetProjects.Add(@"Engine/Source/Programs/UnrealControls/UnrealControls.csproj");
+		Agenda.DotNetProjects.Add(@"Engine/Source/Programs/EnvVarsToXML/EnvVarsToXML/EnvVarsToXML.csproj");
 
 		// Windows binaries
 		if(Platforms.Contains(UnrealBuildTool.UnrealTargetPlatform.Win64))
