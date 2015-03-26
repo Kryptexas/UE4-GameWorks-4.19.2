@@ -101,6 +101,8 @@ public:
 	/** Finishes the view family rendering. */
 	void RenderFinish(FRHICommandListImmediate& RHICmdList);
 
+	void RenderOcclusion(FRHICommandListImmediate& RHICmdList, bool bRenderQueries, bool bRenderHZB);
+
 	/** Renders the view family. */
 	virtual void Render(FRHICommandListImmediate& RHICmdList) override;
 
@@ -116,6 +118,8 @@ public:
 	static FGlobalBoundShaderState OcclusionTestBoundShaderState;
 
 private:
+
+	static FGraphEventRef OcclusionSubmittedFence;
 
 	/** Creates a per object projected shadow for the given interaction. */
 	void CreatePerObjectProjectedShadow(
@@ -172,7 +176,7 @@ private:
 	bool RenderPrePass(FRHICommandListImmediate& RHICmdList);
 
 	/** Issues occlusion queries. */
-	void BeginOcclusionTests(FRHICommandListImmediate& RHICmdList);
+	void BeginOcclusionTests(FRHICommandListImmediate& RHICmdList, bool bRenderQueries, bool bRenderHZB);
 
 	/** Renders the scene's fogging. */
 	bool RenderFog(FRHICommandListImmediate& RHICmdList, FLightShaftsOutput LightShaftsOutput);

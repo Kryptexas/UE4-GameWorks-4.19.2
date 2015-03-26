@@ -603,6 +603,8 @@ DECLARE_CYCLE_STAT(TEXT("Velocity"), STAT_CLM_Velocity, STATGROUP_CommandListMar
 DECLARE_CYCLE_STAT(TEXT("AfterVelocity"), STAT_CLM_AfterVelocity, STATGROUP_CommandListMarkers);
 DECLARE_CYCLE_STAT(TEXT("AfterFrame"), STAT_CLM_AfterFrame, STATGROUP_CommandListMarkers);
 
+FGraphEventRef FDeferredShadingSceneRenderer::OcclusionSubmittedFence;
+
 /**
  * Returns true if the depth Prepass needs to run
  */
@@ -624,10 +626,48 @@ static void SetAndClearViewGBuffer(FRHICommandListImmediate& RHICmdList, FViewIn
 	GSceneRenderTargets.BeginRenderingGBuffer(RHICmdList, ERenderTargetLoadAction::EClear, DepthLoadAction, ClearColor);
 }
 
+static TAutoConsoleVariable<int32> CVarOcclusionQueryLocation(
+	TEXT("r.OcclusionQueryLocation"),
+	0,
+	TEXT("Controls when occlusion queries are rendered.  Rendering before the base pass may give worse occlusion (because not all occluders generally render in the earlyzpass).  ")
+	TEXT("However, it may reduce CPU waiting for query result stalls on some platforms and increase overall performance.")
+	TEXT("0: After BasePass.")
+	TEXT("1: After EarlyZPass, but before BasePass."));
+
+void FDeferredShadingSceneRenderer::RenderOcclusion(FRHICommandListImmediate& RHICmdList, bool bRenderQueries, bool bRenderHZB)
+{		
+	if (bRenderQueries || bRenderHZB)
+	{
+		{
+			// Update the quarter-sized depth buffer with the current contents of the scene depth texture.
+			// This needs to happen before occlusion tests, which makes use of the small depth buffer.
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_UpdateDownsampledDepthSurface);
+			UpdateDownsampledDepthSurface(RHICmdList);
+		}
+
+		if (bRenderHZB)
+		{
+			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+			{
+				BuildHZB(RHICmdList, Views[ViewIndex]);
+			}
+		}
+
+		// Issue occlusion queries
+		// This is done after the downsampled depth buffer is created so that it can be used for issuing queries
+		BeginOcclusionTests(RHICmdList, bRenderQueries, bRenderHZB);
+
+		if (bRenderQueries && GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_OcclusionSubmittedFence_Dispatch);
+			OcclusionSubmittedFence = FRHICommandListExecutor::RHIThreadFence();
+		}
+	}
+}
+
 void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 {
-	bool bDBuffer = IsDBufferEnabled();
-	static FGraphEventRef OcclusionSubmittedFence;
+	bool bDBuffer = IsDBufferEnabled();	
 	if (GRHIThread)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_OcclusionSubmittedFence_Wait);
@@ -746,7 +786,8 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	// Draw the scene pre-pass / early z pass, populating the scene depth buffer and HiZ
 	bool bDepthWasCleared = false;
-	if (NeedsPrePass(this))
+	const bool bNeedsPrePass = NeedsPrePass(this);
+	if (bNeedsPrePass)
 	{
 		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_PrePass));
 		RenderPrePass(RHICmdList);
@@ -754,6 +795,11 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		bDepthWasCleared = true;
 	}
 	RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterPrePass));
+
+	//occlusion can't run before basepass if there's no prepass to fill in some depth to occlude against.
+	bool bOcclusionBeforeBasePass = (CVarOcclusionQueryLocation.GetValueOnRenderThread() == 1) && bNeedsPrePass;	
+	bool bHZBBeforeBasePass = false;
+	RenderOcclusion(RHICmdList, bOcclusionBeforeBasePass, bHZBBeforeBasePass);
 	
 	const bool bShouldRenderVelocities = ShouldRenderVelocities();
 	const bool bUseVelocityGBuffer = FVelocityRendering::OutputsToGBuffer();
@@ -870,30 +916,9 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			);
 	}
 
-	// Update the quarter-sized depth buffer with the current contents of the scene depth texture.
-	// This needs to happen before occlusion tests, which makes use of the small depth buffer.
-	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_UpdateDownsampledDepthSurface);
-		UpdateDownsampledDepthSurface(RHICmdList);
-	}
-
-	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
-	{
-		BuildHZB( RHICmdList, Views[ ViewIndex ] );
-	}
-
-	// Issue occlusion queries
-	// This is done after the downsampled depth buffer is created so that it can be used for issuing queries
-	if ( bIsOcclusionTesting )
-	{
-		BeginOcclusionTests(RHICmdList);
-	}
-
-	if (GRHIThread)
-	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_OcclusionSubmittedFence_Dispatch);
-		OcclusionSubmittedFence = FRHICommandListExecutor::RHIThreadFence();
-	}
+	bool bOcclusionAfterBasePass = bIsOcclusionTesting && !bOcclusionBeforeBasePass;
+	bool bHZBAfterBasePass = true;
+	RenderOcclusion(RHICmdList, bOcclusionAfterBasePass, bHZBAfterBasePass);
 
 	TRefCountPtr<IPooledRenderTarget> VelocityRT;
 
