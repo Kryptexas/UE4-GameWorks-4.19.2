@@ -1,15 +1,15 @@
-﻿INTSourceChangelist:2374074
+﻿INTSourceChangelist:2419450
 Availability:Public
-Title:C++ 限定
+Title:C++ 専用
 Crumbs: %ROOT%, Gameplay, Gameplay/ClassCreation
-Description:ゲームプレイ プログラマ向けのアンリアル エンジン入門書
+Description:ゲームプレイ プログラマ向けのアンリアル エンジン入門
 バージョン4.6
 
 ## 概要
 
- [](Programming\Development\ManagingGameCode\CppClassWizard )を使用して、C++ クラスをプロジェクトへ簡単に追加することができます。新規クラスを派生させるクラスを選択した後に、
+[](Programming\Development\ManagingGameCode\CppClassWizard ) を使用して、C++ クラスをプロジェクトへ簡単に追加できます。新規クラスを派生させるクラスを選択した後に、
 ウィザードが必要なヘッダファイルとソースファイルを設定します。プロジェクトに初めて追加するコードの場合、プロジェクトはコードプロジェクトに変換されます。コードプロジェクトは、 
-ユーザーのソースコードを格納するゲームモジュールを作成します。またアンリアルエディタにゲームモジュールが存在することを伝達するため、Visual Studio または Xcode から C++ コードの変更を読み込むことができます。マイナー変更はアンリアルエディタ内部でコンパイルすることができます。
+ソースコードを含むゲームモジュールを作成します。またアンリアルエディタにゲームモジュールが存在することを伝えるため、Visual Studio または Xcode から C++ の変更を読み込むことができます。マイナー変更はアンリアルエディタ内部でコンパイルすることができます。
 
 C++ コードのみを使用した「LightSwitch」クラスは **LightSwitchCodeOnly** と名付けられます。以下に説明します。
 
@@ -26,14 +26,14 @@ C++ コードのみを使用した「LightSwitch」クラスは **LightSwitchCod
 	};
 
 
-**[C++ Class Wizard]** で作成されたクラス宣言は、自動的に`UCLASS()`マクロに先行します。
-`UCLASS()` マクロはエンジンにクラスの存在を知らせることができます。また、エンジン内のクラスの動作を設定するために、キーワード指定子と併用することも出来ます。
+**[C++ Class Wizard]** で作成されたクラス宣言は、自動的に`UCLASS()`マクロが前にきます。
+`UCLASS()` マクロはエンジンにクラスの存在を知らせます。また、エンジン内のクラスの動作を設定するために、キーワード指定子と併用することも出来ます。
 
-クラス宣言は、変数および/または関数宣言を格納します。これらはそれぞれ `UPROPERTY()` と `UFUNCTION()` マクロに先行します。 
-マクロは `UCLASS()` マクロと似たような役割をします。コンポーネントは`UPROPERTY()` マクロでも設定されます。
+クラス宣言は、変数および/または関数宣言を格納します。これらはそれぞれ `UPROPERTY()` と `UFUNCTION()` マクロが前にきます。 
+こうしたマクロは `UCLASS()` マクロと似たような役割をします。コンポーネントは`UPROPERTY()` マクロでも設定されます。
 
 `LightSwitchCodeOnly.h` ファイルでは、C++ は以下のように利用されます。
-* PointLight コンポーネントと Sphere コンポーネントの宣言PointLight コンポーネントと Sphere コンポーネントを `VisibleAnywhere` に設定
+* PointLight コンポーネントと Sphere コンポーネントの宣言PointLight コンポーネントと Sphere コンポーネントを `VisibleAnywhere` に設定します。
 つまりこれらのプロパティは LightSwitchCodeOnly アクタの **[詳細] **タブで見ることができます。
 
 		public:
@@ -48,7 +48,7 @@ C++ コードのみを使用した「LightSwitch」クラスは **LightSwitchCod
 
 		ALightSwitchCodeOnly(const FObjectInitializer& ObjectInitializer);
 
-*  `OnOverlapBegin` と `OnOverlapEnd`を宣言します。別のアクタがSphereコンポーネントに入るまたは離れる時に呼ばれる関数です。これらは異なるシグネチャを持つことに注意してください。
+* `OnOverlapBegin` と `OnOverlapEnd`を宣言します。こうした関数は別のアクタがSphereコンポーネントに入るまたは離れる時に呼ばれます。これらは異なるシグネチャを持つことに注意してください。
 
 		/** 球体コンポーネントに何かが入ると呼び出されます。 */
 		UFUNCTION()
@@ -79,7 +79,7 @@ C++ コードのみを使用した「LightSwitch」クラスは **LightSwitchCod
 LightSwitchCodeOnly.h
 [/REGION:codetitlebar]
 
-		// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+		// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 		#pragma once
 
@@ -137,7 +137,7 @@ LightSwitchCodeOnly.h
 * `DesiredIntensity` 変数の値を 3000 に設定します。
 	DesiredIntensity = 3000.0f;
 
-* PointLightコンポーネントの作成、変数の設定（輝度に `DesiredIntensity` の値設定も含む）、そしてこれをルートコンポーネントとして利用します。
+* PointLightコンポーネントの作成、変数の設定（強度に `DesiredIntensity` の値設定も含む）、そしてこれをルートコンポーネントとして利用します。
 
 		PointLight1 = ObjectInitializer.CreateDefaultSubobject<UPointLightComponent>(this, "PointLight1");
 		PointLight1->Intensity = DesiredIntensity;
@@ -150,18 +150,18 @@ LightSwitchCodeOnly.h
 		Sphere1->InitSphereRadius(250.0f);
 		Sphere1->AttachParent = RootComponent;
 
-* `OnOverlap` 関数をアクタのオーバーラップ時、または Sphere コンポーネントからの退出時に呼ばれるデリゲートとして指定します。
+* `OnOverlap` 関数をアクタがSphere コンポーネントにオーバーラップした時、または Sphere コンポーネントから離れた時に呼ばれるデリゲートとして指定します。
 
-		Sphere1->OnComponentBeginOverlap.AddDynamic(this, &ALightSwitchCodeOnly::OnOverlapBegin);		// このコンポーネントが何かとオーバーラップした時に通知を設定します
-		Sphere1->OnComponentEndOverlap.AddDynamic(this, &ALightSwitchCodeOnly::OnOverlapEnd);		// このコンポーネントが何かとオーバーラップした時に通知を設定します
+		Sphere1->OnComponentBeginOverlap.AddDynamic(this, &ALightSwitchCodeOnly::OnOverlapBegin);		// このコンポーネントが何かとオーバーラップした時の通知を設定します。
+		Sphere1->OnComponentEndOverlap.AddDynamic(this, &ALightSwitchCodeOnly::OnOverlapEnd);		// このコンポーネントが何かとオーバーラップした時の通知を設定します。
 
-ソースファイルにも、ユーザーがクラスのために宣言した関数を定義することができます。例えば、`LightSwitchCodeOnly.cpp` には、PointLightコンポーネントの表示をトグルする `OnOverlapBegin` と `OnOverlapEnd` が実装されています。 
+ソースファイルにも、クラスのために宣言した関数を定義することができます。例えば、`LightSwitchCodeOnly.cpp` には、PointLightコンポーネントの可視性を切り替える `OnOverlapBegin` と `OnOverlapEnd` が実装されています。 
 これは `ToggleLight` を呼び出すことで PointLightComponent の可視性を切り替えます。クラス コンストラクタと組み合わせたソースファイルは以下の通りです。
 [REGION:codetitlebar]
 LightSwitchCodeOnly.cpp
 [/REGION:codetitlebar]
 
-	// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+	// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 	#include "BasicClasses.h"
 	#include "LightSwitchCodeOnly.h"
@@ -180,8 +180,8 @@ LightSwitchCodeOnly.cpp
 		Sphere1->InitSphereRadius(250.0f);
 		Sphere1->AttachParent = RootComponent;
 
-		Sphere1->OnComponentBeginOverlap.AddDynamic(this, &ALightSwitchCodeOnly::OnOverlap);		// このコンポーネントが何かとオーバーラップした時に通知を設定します
-		Sphere1->OnComponentEndOverlap.AddDynamic(this, &ALightSwitchCodeOnly::OnOverlap);		// このコンポーネントが何かとオーバーラップした時に通知を設定します
+		Sphere1->OnComponentBeginOverlap.AddDynamic(this, &ALightSwitchCodeOnly::OnOverlap);		// このコンポーネントが何かとオーバーラップした時の通知を設定します
+		Sphere1->OnComponentEndOverlap.AddDynamic(this, &ALightSwitchCodeOnly::OnOverlap);		// このコンポーネントが何かとオーバーラップした時の通知を設定します
 
 	}
 
@@ -207,13 +207,13 @@ LightSwitchCodeOnly.cpp
 	}
 
 これがブランク オブジェクトに追加した最初のコード クラスである場合は、アンリアル エディタを閉じて、Visual Studio または Xcode でプロジェクトをコンパイルした後に、
- アンリアルエディタを開いてプロジェクトを再び開きゲームモジュールが適切に作成され再ロードされていることを確認します。プロジェクトを開くために使用しているアンリアルエディタの実行ファイルのバージョンが **Build Configuration** と同じであることの確認も重要となります。[](Programming\Development\CompilingProjects) ページで 
-ビルド設定とプロジェクトのコンパイルに関する情報を参照してください。
+ アンリアルエディタを開いてプロジェクトを再び開きゲームモジュールが適切に作成され再ロードされていることを確認します。プロジェクトを開くために使用しているアンリアル エディタの実行ファイルのバージョンが **Build Configuration** と同じであることの確認も重要となります。[](Programming\Development\CompilingProjects) のドキュメントで 
+Build Configuration とプロジェクトのコンパイルに関する情報を参照してください。
 
 コードを既存の C++ プロジェクトに追加する場合は、ホットリロード機能を使用してアンリアル エディタ内で新規コードをコンパイルすることができます。 
 
-C++クラスは、C++クラスに加えてクラスブループリントで拡張することができます。クラスブループリントは、 **[C++ Class Wizard]** の **[Show All Classes]** チェックボックスのチェック後、およびクラスブループリントの作成時に、 
-**[Pick Parent Class]** ウィンドウの **[Custom Classes]** セクションに表示されます。
+C++ クラスは、C++ クラスに加えてブループリント クラスで拡張することができます。**[C++ Class Wizard]** の **[Show All Classes]** チェックボックスのチェックを入れた後、およびブループリント クラスの作成時に、 
+**[Pick Parent Class]** ウィンドウの **[Custom Classes]** セクションにチェックを入れた後に表示されます。
 
 「LightSwitchCodeOnly」クラスは、[](Engine/UI/ClassViewer) に格納されて、ここからレベルへドラッグすることができます。**クラスビューア** を使用したレベルでのアクタの配置については、[](Engine/Actors/Placement) のドキュメントをご覧ください。
  
