@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2420658
+﻿INTSourceChangelist:2490853
 Availability: Public
 Title:포인트 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
@@ -53,7 +53,6 @@ Description:포인트 라이트 기초입니다.
 
 [EXCERPT:Intro]
 **Point Light** (포인트 라이트)는 현실에서의 백열전구가 텅스텐 필라멘트에서 모든 방향을 빛을 뿜듯이 작동하는 라이트입니다. 그러나 퍼포먼스상의 이유로, 포인트 라이트는 공간의 딱 한 지점에서 모든 방향으로 동등하게 빛을 뿜도록 단순화되어 있습니다.   The **Point Light** when placed can be set to one of three **Mobility** settings:
-[/EXCERPT:Intro]
 
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
@@ -78,6 +77,7 @@ Description:포인트 라이트 기초입니다.
 	**무버블** - (왼쪽 그림) 완전히 동적인 라이트로, 다이내믹 섀도잉이 가능합니다. 렌더링 속도는 가장 느리지만 게임플레이 도중 유연성은 가장 높습니다.
 	[/PARAM]
 [/OBJECT]
+[/EXCERPT:Intro]
 
 [REGION:raw]
 ![](spacer.png)

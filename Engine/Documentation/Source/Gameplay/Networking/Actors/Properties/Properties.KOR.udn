@@ -1,0 +1,45 @@
+﻿INTSourceChangelist:2491917
+Availability:Public
+Title:프로퍼티 리플리케이션
+Crumbs:%ROOT%, Gameplay, Gameplay/Networking, Gameplay/Networking/Actors
+Description:액터 프로퍼티 리플리케이션 방법에 대한 상세 정보입니다.
+Related: Gameplay/Networking/Actors/Properties/ObjectReferences
+Related: Gameplay/Networking/Actors/Properties/Conditions
+Related: Gameplay/Networking/Actors/RPCs
+
+[TOC (start:2 end:3)]
+
+## 개요
+
+각 액터는 프로퍼티 목록을 유지하며, 각 프로퍼티마다 클라이언트로 리플리케이트하라고 마킹 가능합니다. 서버측에서 변수 값이 바뀔 때마다, 서버는 클라이언트에 업데이트된 값을 보냅니다. 클라이언트측에서도 변수가 변경되었을 수 있는데, 그러한 경우 새 값으로 덮어씁니다. 프로퍼티 업데이트는 서버로부터만 오며, 클라이언트는 절대 서버에 프로퍼티 업데이트를 보내지 않습니다.
+
+일부 (Location, Rotation, Owner 등의) 프로퍼티는 기본으로 리플리케이트됩니다. 이 프로퍼티는 기본적인 멀티플레이어 작동을 위해 프레임워크가 일반적으로 의존하는 프로퍼티입니다. 거기서, 추가적인 프로퍼티를 필요한 대로 리플리케이트하도록 마킹할 수 있습니다.
+
+액터 프로퍼티 리플리케이션은 신뢰성입니다. 액터의 클라이언트 버전 프로퍼티는 결국 서버의 값을 반영한다는 뜻이지만, 몇몇 프로퍼티 값 변화를 생략하는 것이 가능합니다.
+
+## 리플리케이션용 프로퍼티 구성하기
+
+프로퍼티를 리플리케이트하려면 몇 가지 작업이 필요합니다:
+프로퍼티가 정의되는 액터 클래스의 헤더에서, UPROPERTY 선언에 파라미터의 하나로 `replicated` 키워드를 넣어줘야 합니다:
+
+	class ENGINE_API AActor : public UObject
+	{
+		UPROPERTY( replicated )
+		AActor * Owner;
+	};
+
+액터 클래스의 구현에서 GetLifetimeReplicatedProps 함수를 구현해 줘야 합니다:
+
+	void AActor::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
+	{
+		DOREPLIFETIME( AActor, Owner );
+	}
+
+액터의 생성자에서, bReplicates 플래그가 true 로 설정되었는지 확인합니다:
+
+	AActor::AActor( const class FPostConstructInitializeProperties & PCIP ) : Super( PCIP )
+	{ 
+		bReplicates = true;
+	}
+
+다 됐습니다. `Owner` 멤버 변수는 이제 현재 인스턴싱된 이 액터 유형 (이 경우, 베이스 액터 클래스) 모든 사본에 대해 접속된 모든 클라이언트에 동기화될 것입니다.
