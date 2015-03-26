@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2419154
+﻿INTSourceChangelist:2491062
 Availability:Public
 Title:ブループリントのデバッグ
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
-Description:ブループリントのデバッグ方法の説明。 
+Description:ブループリントのデバッグ方法について説明します。 
 Related:Engine/Blueprints/UserGuide/Debugging
 Related:Engine/Blueprints
 
