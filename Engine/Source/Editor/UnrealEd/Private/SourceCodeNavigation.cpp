@@ -175,8 +175,6 @@ FSourceFileDatabase::FSourceFileDatabase()
 {
 	// Register to be notified when new .Build.cs files are added to the project
 	FSourceCodeNavigation::AccessOnNewModuleAdded().AddRaw(this, &FSourceFileDatabase::OnNewModuleAdded);
-
-	UpdateIfNeeded();
 }
 
 FSourceFileDatabase::~FSourceFileDatabase()
@@ -680,6 +678,10 @@ void FSourceCodeNavigationImpl::NavigateToFunctionSource( const FString& Functio
 }
 
 
+FCriticalSection FSourceCodeNavigation::CriticalSection;
+FSourceFileDatabase FSourceCodeNavigation::Instance;
+
+
 void FSourceCodeNavigation::Initialize()
 {
 	class FAsyncInitializeSourceFileDatabase : public FNonAbandonableTask
@@ -711,11 +713,9 @@ void FSourceCodeNavigation::Initialize()
 const FSourceFileDatabase& FSourceCodeNavigation::GetSourceFileDatabase()
 {
 	// Lock so that nothing may proceed while the AsyncTask is constructing the FSourceFileDatabase for the first time
-	static FCriticalSection CriticalSection;
 	FScopeLock Lock(&CriticalSection);
-
-	static FSourceFileDatabase Instance;
 	Instance.UpdateIfNeeded();
+
 	return Instance;
 }
 

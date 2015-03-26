@@ -200,6 +200,14 @@ public:
 
 	/** Call this to access the multi-cast delegate that you can register a callback with */
 	UNREALED_API static FOnNewModuleAdded& AccessOnNewModuleAdded();
+
+private:
+
+	/** Critical section for locking access to the source file database. */
+	static FCriticalSection CriticalSection;
+
+	/** Source file database instance. */
+	static FSourceFileDatabase Instance;
 };
 
 
