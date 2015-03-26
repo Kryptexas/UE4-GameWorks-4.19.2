@@ -960,8 +960,9 @@ namespace GitDependencies
 				using(FileStream CacheStream = File.Open(IncomingFileName, FileMode.Create, FileAccess.Write, FileShare.None))
 				{
 					CacheStream.SetLength(CompressedSize);
+
 					ForkReadStream ForkedInputStream = new ForkReadStream(InputStream, CacheStream);
-					using(GZipStream DecompressedStream = new GZipStream(InputStream, CompressionMode.Decompress, true))
+					using(GZipStream DecompressedStream = new GZipStream(ForkedInputStream, CompressionMode.Decompress, true))
 					{
 						ExtractFilesFromRawStream(DecompressedStream, Files, Hasher);
 					}
