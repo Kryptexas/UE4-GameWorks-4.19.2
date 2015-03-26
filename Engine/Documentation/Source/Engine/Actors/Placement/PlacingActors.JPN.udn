@@ -1,9 +1,8 @@
-﻿INTSourceChangelist:2436813
+﻿NTSourceChangelist:2490749
 Availability:Public
 Title:アクタの配置
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:プロップ、ライト、カメラなどのアクタをレベルに配置する方法を説明します。 
-Related:Engine/Actors/Placement
 Related:Engine/UI/ClassViewer
 Related:GettingStarted\HowTo
 
@@ -74,14 +73,14 @@ Related:GettingStarted\HowTo
 ## 概要
 
 [EXCERPT:Place01]
-新規にプロジェクトを作成する場合、プロジェクトを開いた時にロードされたレベルは、通常ブランクのスレートです。要望にあった環境やワールドを構築するには、アクタがレベルに配置されなくてはいけません。2 通りの方法がありますが、どちらも **コンテンツ ブラウザ** を使用し、結果としてアクタのインスタンスが新規に作成されます。そのレベルのインスタンスは、移動やプロパティの変更が可能です。
+新規にプロジェクトを作成する場合、プロジェクトを開いた時にロードされたレベルは、通常ブランクのスレートです。望ましい背景やワールドを構築するには、アクタをレベルに配置しなくてはいけません。2 通りの方法がありますが、どちらも **コンテンツ ブラウザ** を使用し、結果としてアクタのインスタンスが新規作成されます。そのレベルのインスタンスは、移動やプロパティの変更が可能です。
 [/EXCERPT:Place01]
 
 [REGION:note]
-レベルに追加されたアクタは、デフォルトではアンリアル エンジンの右上隅の **[World Outliner]** パネルのリストにも自動的に追加されます。シーンアウトライナー に関する詳細は、 [ワールド アウトライナー](Engine/UI/LevelEditor\SceneOutliner) を参照してください。
+レベルに追加されたアクタは、デフォルトではアンリアル エンジンの右上隅の **[ワールド アウトライナー]** パネルのリストにも自動的に追加されます。ワールド アウトライナーに関する詳細は、 [ワールド アウトライナー](Engine/UI/LevelEditor\SceneOutliner) を参照してください。
 [/REGION]
 
-## [Place] モードでアクタを配置する
+## 配置モードでアクタを配置する
 
 [EXCERPT:PlaceMode]
 このセクションでは [配置モード](Engine/UI/LevelEditor/Modes/PlaceMode) で **モード** メニューからアクタを配置する方法について説明します。 
@@ -134,7 +133,7 @@ Related:GettingStarted\HowTo
 
 	![](Place2.png)
 
-1.	追加したいセットを見つけたら **左クリック** して **drag-and-drop** レベル ビューポートへドラッグ＆ドロップします。 
+1.	追加したいセットを見つけたら **左クリック** してレベル ビューポートへ **ドラッグ＆ドロップ** します。 
 
 	![](Place5.png)
 
@@ -166,7 +165,7 @@ Related:GettingStarted\HowTo
 
 	![](Place8.png)
 
-クラス ビューアを使った作業の詳細については、 [](Engine/UI/ClassViewer) ドキュメントを参照してください。 
+クラス ビューアを使った作業の詳細については、 [](Engine/UI/ClassViewer) のドキュメントを参照してください。 
 
 
 %playlistnav%
