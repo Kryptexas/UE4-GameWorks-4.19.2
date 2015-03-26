@@ -123,16 +123,16 @@
     </When>
   </Choose>
   <ItemGroup>
-	<Compile Include="Mac\MacToolChain.cs" />
-	<Compile Include="Mac\UEBuildMac.cs" />
-	<Compile Include="Mac\MacProjectGenerator.cs" />
-	<Compile Include="Mac\UEDeployMac.cs" />
+    <Compile Include="Mac\MacToolChain.cs" />
+    <Compile Include="Mac\UEBuildMac.cs" />
+    <Compile Include="Mac\MacProjectGenerator.cs" />
+    <Compile Include="Mac\UEDeployMac.cs" />
   </ItemGroup>
   <ItemGroup>
-	<Compile Include="Android\UEBuildAndroid.cs" />
-	<Compile Include="Android\UEDeployAndroid.cs" />
-	<Compile Include="Android\AndroidToolChain.cs" />
-	<Compile Include="Android\AndroidProjectGenerator.cs" />
+    <Compile Include="Android\UEBuildAndroid.cs" />
+    <Compile Include="Android\UEDeployAndroid.cs" />
+    <Compile Include="Android\AndroidToolChain.cs" />
+    <Compile Include="Android\AndroidProjectGenerator.cs" />
   </ItemGroup>
   <Choose>
     <When Condition="Exists('WinRT\UEBuildWinRT.cs')">
@@ -145,21 +145,21 @@
     </When>
   </Choose>
   <ItemGroup>
-	<Compile Include="IOS\IOSProjectGenerator.cs" />
-	<Compile Include="IOS\IOSToolChain.cs" />
-	<Compile Include="IOS\UEBuildIOS.cs" />
-	<Compile Include="IOS\UEDeployIOS.cs" />
+    <Compile Include="IOS\IOSProjectGenerator.cs" />
+    <Compile Include="IOS\IOSToolChain.cs" />
+    <Compile Include="IOS\UEBuildIOS.cs" />
+    <Compile Include="IOS\UEDeployIOS.cs" />
   </ItemGroup>
   <ItemGroup>
-	<Compile Include="HTML5\HTML5ProjectGenerator.cs" />
-	<Compile Include="HTML5\HTML5ToolChain.cs" />
-	<Compile Include="HTML5\UEBuildHTML5.cs" />
-	<Compile Include="HTML5\HTML5SDKInfo.cs" />
+    <Compile Include="HTML5\HTML5ProjectGenerator.cs" />
+    <Compile Include="HTML5\HTML5ToolChain.cs" />
+    <Compile Include="HTML5\UEBuildHTML5.cs" />
+    <Compile Include="HTML5\HTML5SDKInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-	<Compile Include="Linux\LinuxProjectGenerator.cs" />
-	<Compile Include="Linux\LinuxToolChain.cs" />
-	<Compile Include="Linux\UEBuildLinux.cs" />
+    <Compile Include="Linux\LinuxProjectGenerator.cs" />
+    <Compile Include="Linux\LinuxToolChain.cs" />
+    <Compile Include="Linux\UEBuildLinux.cs" />
   </ItemGroup>
   <Choose>
     <When Condition="Exists('System\NotForLicensees\TelemetryProviderET.cs')">
@@ -282,6 +282,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\EnvVarsToXML\EnvVarsToXML\EnvVarsToXML.csproj">
+      <Project>{66e423eb-ffa3-4ce4-bca3-75bdb6a8318d}</Project>
+      <Name>EnvVarsToXML</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

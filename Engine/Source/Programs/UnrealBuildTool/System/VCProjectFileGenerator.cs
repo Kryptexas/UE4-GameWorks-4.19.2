@@ -360,29 +360,26 @@ namespace UnrealBuildTool
 					// freshly compiled before kicking off any build operations on this target project
 					if ( !CurProject.IsStubProject )
 					{
-						// Don't add self as a project dependency!
-						if ((CurProject != UBTProject) && (CurProject.IsGeneratedProject || (CurProject.DependsOnProjects.Count > 0)))
+						var Dependencies = new List<ProjectFile>();
+						if (CurProject.IsGeneratedProject && UBTProject != null && CurProject != UBTProject)
 						{
-							VCSolutionFileContent.Append(
-									"	ProjectSection(ProjectDependencies) = postProject" + ProjectFileGenerator.NewLine);
+							Dependencies.Add(UBTProject);
+							Dependencies.AddRange(UBTProject.DependsOnProjects);
+						}
+						Dependencies.AddRange(CurProject.DependsOnProjects);
 
-							if (CurProject.IsGeneratedProject && UBTProject != null)
-							{
-								var UBTProjectGUID = ((MSBuildProjectFile)UBTProject).ProjectGUID.ToString("B").ToUpperInvariant();
-								VCSolutionFileContent.Append(
-										"		" + UBTProjectGUID + " = " + UBTProjectGUID + ProjectFileGenerator.NewLine);
-							}
+						if (Dependencies.Count > 0)
+						{
+							VCSolutionFileContent.Append("\tProjectSection(ProjectDependencies) = postProject" + ProjectFileGenerator.NewLine);
 
 							// Setup any addition dependencies this project has...
-							foreach (var DependsOnProject in CurProject.DependsOnProjects)
+							foreach (var DependsOnProject in Dependencies)
 							{
 								var DependsOnProjectGUID = ((MSBuildProjectFile)DependsOnProject).ProjectGUID.ToString("B").ToUpperInvariant();
-								VCSolutionFileContent.Append(
-									"		" + DependsOnProjectGUID + " = " + DependsOnProjectGUID + ProjectFileGenerator.NewLine);
+								VCSolutionFileContent.Append("\t\t" + DependsOnProjectGUID + " = " + DependsOnProjectGUID + ProjectFileGenerator.NewLine);
 							}
 
-							VCSolutionFileContent.Append(
-									"	EndProjectSection" + ProjectFileGenerator.NewLine);
+							VCSolutionFileContent.Append("\tEndProjectSection" + ProjectFileGenerator.NewLine);
 						}
 					}
 

@@ -492,8 +492,12 @@ namespace UnrealBuildTool
 				{
 					MasterProjectFolder ProgramsFolder = RootFolder.AddSubFolder( "Programs" );
 
+					// Add EnvVarsToXML to the master project
+					var EnvVarsToXMLProjectFile = AddSimpleCSharpProject("EnvVarsToXML/EnvVarsToXML", bShouldBuildForAllSolutionTargets: true, bForceDevelopmentConfiguration: true);
+					ProgramsFolder.ChildProjects.Add(EnvVarsToXMLProjectFile);
+
 					// Add UnrealBuildTool to the master project
-					AddUnrealBuildToolProject( ProgramsFolder );
+					AddUnrealBuildToolProject( ProgramsFolder, new ProjectFile[] { EnvVarsToXMLProjectFile } );
 
 					// Add AutomationTool to the master project
 					ProgramsFolder.ChildProjects.Add(AddSimpleCSharpProject("AutomationTool", bShouldBuildForAllSolutionTargets: true, bForceDevelopmentConfiguration: true));
@@ -1157,11 +1161,16 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Adds UnrealBuildTool to the master project
 		/// </summary>
-		private void AddUnrealBuildToolProject( MasterProjectFolder ProgramsFolder )
+		private void AddUnrealBuildToolProject( MasterProjectFolder ProgramsFolder, IEnumerable<ProjectFile> Dependencies )
 		{
 			var ProjectFileName = Utils.MakePathRelativeTo( Path.Combine( Path.Combine( EngineRelativePath, "Source" ), "Programs", "UnrealBuildTool", "UnrealBuildTool.csproj" ), MasterProjectRelativePath );
 			var UnrealBuildToolProject = new VCSharpProjectFile( ProjectFileName );
 			UnrealBuildToolProject.ShouldBuildForAllSolutionTargets = true;
+
+			foreach (var Dependent in Dependencies)
+			{
+				UnrealBuildToolProject.AddDependsOnProject( Dependent );
+			}
 
 			// Store it off as we need it when generating target projects.
 			UBTProject = UnrealBuildToolProject;
