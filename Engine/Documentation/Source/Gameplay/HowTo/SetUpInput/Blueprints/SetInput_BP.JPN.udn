@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2321225
+﻿INTSourceChangelist:2452581
 Availability:Public
 Title:ブループリントで入力をセットアップする操作手順
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\SetUpInput
@@ -8,7 +8,7 @@ Description:ブループリントで入力をセットアップする操作手�
 
 ## 概要
 
-このページでは、単純なキャラクターを作成し、入力を受信するようにセットアップします。その後、キャラクターを **GameMode** に割り当て、ゲームプレイ中にデフォルトのポーンになるようにします。キャラクターのセットアップに慣れている場合、または入力を設定するキャラクターを持っている場合 (およびキャラクターを使用するために **GameMode** をセットアップしている場合)、キャラクター作成のセクションはスキップして、新規入力の作成とその実装の手順にジャンプすることができます。 
+このページでは、単純なキャラクターを作成し、入力を受けとるようにセットアップします。その後、キャラクターを **GameMode** に割り当て、ゲームプレイ中にデフォルトのポーンになるようにします。キャラクターのセットアップに慣れている場合、または入力を設定するキャラクターを持っている場合 (およびキャラクターを使用するために **GameMode** をセットアップしている場合)、キャラクター作成のセクションはスキップして、新規入力の作成とその実装の手順に進むことができます。 
 
 ## 単純なキャラクターを作成する
 
@@ -16,15 +16,19 @@ Description:ブループリントで入力をセットアップする操作手�
 
 _この例では、**Starter Content** を有効にした状態で **ブランク** プロジェクトのテンプレートを使用しています。_
 
-1.	プロジェクト内の **Shapes** で **Shape_NarrowCapsule** 形状上で **右クリック** して **Create Blueprint Using** を選択します。 
+1.	プロジェクト内の **Shapes** で **Shape_NarrowCapsule** 形状上で **右クリック** して **Asset Actions** - **Create Blueprint Using** の順に選択します。 
 
+	[REGION:raw]
 	![](Input_1.png)
+	[/REGION]
 
-	これは、制御対象の単純なキャラクターになります。 
+	これは、制御する単純なキャラクターになります。 
 
 1.	**Blueprints** フォルダー内で、新規作成したブループリントを開きます。**[ファイル]** をクリックし、**[Reparent Blueprint]** オプションをクリックします。 
 
+	[REGION:raw]
 	![](Input_2.png)
+	[/REGION]
 
 	ブループリントのクラスを **Actor** から **Character** に変更する必要があります。 
 
@@ -34,17 +38,21 @@ _この例では、**Starter Content** を有効にした状態で **ブラン�
 
 1.	**[コンポーネント]** ウィンドウの **[コンポーネント]** タブで、**[Add Component]** をクリックし、**Spring Arm** を追加します。 
 
+	[REGION:raw]
 	![](Input_3.png)
-
+	[/REGION]
 	[REGION:note]
+
 	この **Spring Arm** コンポーネントは、子を親から固定距離に保とうとしますが、コリジョンがあると収縮し、コリジョンがないと戻ります。この場合の子は **カメラ** であり、サードパーソンの視点を持つようにします。 
 	[/REGION]
 
 1.	**Spring Arm** を選択した状態で、**Details** で **rotation** を検索します。
 
-1.	**Camera Settings** で、**Use Controller View Rotation** ボックスにチェックを入れます。 
+1.	**Camera Settings** で **Use Pawn Controller Rotation** ボックスにチェックを入れます。 
 
+	[REGION:raw]
 	![](Input_4.png)
+	[/REGION]
 
 1.	**Add Component** ボタンを再度クリックして **Camera** を追加します。次に、それをドラッグして **Spring Arm** コンポーネントにドロップします。 
 
@@ -74,7 +82,7 @@ _この例では、**Starter Content** を有効にした状態で **ブラン�
 
 1.	名前を付けて、その **GameMode** ブループリントを開き、** [デフォルト]** タブでクリックします。 
 
-1.	**[デフォルト]** タブの **Game Mode** セクションで **Default Pawn Class** ドロップダウンをクリックして新規のキャラクターを開きます。 
+1.	**[デフォルト]** タブの **Classes** セクションで **Default Pawn Class** ドロップダウンをクリックして新規のキャラクターを開きます。 
 
 	![](Input_9.png)
 
@@ -173,9 +181,10 @@ _この例では、**Starter Content** を有効にした状態で **ブラン�
 1.	**Get Forward Vector** を、**MoveForward** に結合された **World Direction** に接続します。 
 
 1.	**Get Right Vector** を、**MoveRight** イベントに結合された **World Direction** に接続します。
+
 	![](Input_23.png)(w:860)
 
-	_シーケンスは上の画面のようになっているはずです。_ 
+	_シーケンスは上の画面のようになります。_ 
 
 1. 	**コンパイル** し **保存** してから、ブループリントを終了します。 
 
