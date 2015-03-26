@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2374843
+﻿INTSourceChangelist:2476977
 Availability:Public
 Title:ブループリントでポーンを所有する方法
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/PossessPawns
-Description:ブループリントでキャラクター間の切替えまたは様々なタイプのポーンを所有するためのガイド
+Description:ブループリントでキャラクター間の切替えや様々なタイプのポーンを所有する方法のガイド
 
 [TOC (start:2)]
 
@@ -89,7 +89,7 @@ _この例は、**Blueprint 3rd Person and Vehicle Template** プロジェクト
 
 1.	**Blueprint Vehicle Template** と **Blueprint 3rd Person Template** プロジェクトを作成します。 
 
-1.	**Blueprint 3rd Person** プロジェクト内の **Game/Blueprints** で **MyCharacter** ブループリント上で **右クリック** し、**Migrate** を選択します。 
+1.	**Blueprint 3rd Person** プロジェクト内の **Game/Blueprints** で **MyCharacter** ブループリント上で **右クリック** し、**Migrate** (**Asset Actions** 内にあります) を選択します。 
 
 	![](GHT4B_12.png)
 
@@ -107,7 +107,7 @@ _この例は、**Blueprint 3rd Person and Vehicle Template** プロジェクト
 
 	![](Bindings.png)
 
-	これらはサードパーソン キャラクターを制御するために使用された必要なバインディングです。**Scale** 値を表示されているように設定したことを確認してください (お好みの制御方法に適合させたい場合は、これらは後で変更できます)。 
+	これらはサードパーソン キャラクターを制御するために使用された必要なバインディングです。**Scale** 値を画面のように設定したことを確認してください (お好みの制御方法に合わせたい場合は、これらは後で変更できます)。 
 
 1.	**コンテンツ ブラウザ** の **Game/Sedan** で **Sedan** ブループリントを開きます。 
 
@@ -165,7 +165,7 @@ _この例は、**Blueprint 3rd Person and Vehicle Template** プロジェクト
 
 	![](GHT4B_22.png)
 
-1.	**MyBlueprint** ウィンドウで、**Control** キーを押しながら、**SpawnLocation** 変数と **Player** 変数をドラッグします。. 
+1.	**MyBlueprint** ウィンドウで、**Control** キーを押しながら、**SpawnLocation** 変数と **Player** 変数をドラッグします。 
 
 	![](GHT4B_29.png)
 
@@ -180,6 +180,7 @@ _この例は、**Blueprint 3rd Person and Vehicle Template** プロジェクト
 	![](GHT4B_23.png)
 
 	最後のいくつかの手順は上記に類似した結果になります (プレイヤー ノードにワイヤーが追加されることについてはまだ気にしないでください)。 
+
 1.	**Player** 変数からドラッグして、**Set Actor Hidden in Game** ノードを追加します (チェックボックスにチェックを入れないままにします)。 
 
 1.	再度、**Player** 変数からドラッグして、**Set Actor Enable Collision** ノードを追加します (コリジョンを有効にするには、チェックボックスにチェックを入れます)。 
@@ -214,7 +215,7 @@ _この例は、**Blueprint 3rd Person and Vehicle Template** プロジェクト
 
 1.	**Possess** ノードの後に **Set Actor Hidden in Game** ノード (_True_ に設定) を追加します。続いて **Set Actor Enable Collision** (_False_ に設定) を追加します。 
 
-1.	**Car**変数からドラッグして **Context Senstive** オプションに再度チェックを入れます。 
+1.	**Car** 変数からドラッグして **Context Senstive** オプションに再度チェックを入れます。 
 
 1.	 **Cast To Sedan** ノードを探して **Set Actor Enable Collision** ノードの後に追加します。 
 
@@ -228,7 +229,7 @@ _この例は、**Blueprint 3rd Person and Vehicle Template** プロジェクト
 
 	_画像をクリックしてフルサイズで表示_
 
-	ここでは、**E** を押すと (**NearCar** が _True_ の場合。これは **Sedan** ブループリントでトリガーボックスを入力して設定)、車を 所有し、**MyCharacter** アクタをインゲームで非表示にし、コリジョンを取り除きます。これで **Sedan** ブループリントに対して、ブループリントの **Player** 変数が **MyCharacter** ブループリントを参照し、ビークルから出るときに **MyCharacter** に戻ることができるように指示します。 
+	ここでは、**E** を押すと (**NearCar** が _True_ の場合。これは **Sedan** ブループリントでトリガーボックスを入力して設定)、車を 所有し、**MyCharacter** アクタをゲーム内で非表示にし、コリジョンを取り除きます。これで **Sedan** ブループリントに対して、ブループリントの **Player** 変数が **MyCharacter** ブループリントを参照し、ビークルから出るときに **MyCharacter** に戻ることができるように指示します。 
 
 1. **コンテンツ ブラウザ** から **Sedan** ブループリントをレベルにドラッグします。 
 
@@ -240,7 +241,7 @@ _この例は、**Blueprint 3rd Person and Vehicle Template** プロジェクト
 	この例は、ビークルに出入りするアプローチ方法を実演する開始点となることを意図したものです。こうした実装では、斜面のビークルを出たり、ジャンプしてビークルから出る際に問題が生じる場合があります。
 	[/REGION]
 
-	**Sedan** ブループリント内で、**Break Transform** にスクリプトのセクションを追加し、**Spawn Location** マーカーの **Pitch** と **Roll** をゼロアウトします。これは、傾斜していたり、飛行中のビークルを出るときのキャラクターの向きを調整するのに役立ちます。 
+	**Sedan** ブループリント内で、**Break Transform** にスクリプトのセクションを追加し、**Spawn Location** マーカーの **Pitch** と **Roll** をゼロにします。これは、傾斜していたり、飛行中のビークルを出るときのキャラクターの向きを調整するのに役立ちます。 
 
 	[REGION:lightbox]
 	[![](GHT4B_Add.png)(w:780)](GHT4B_Add.png)
