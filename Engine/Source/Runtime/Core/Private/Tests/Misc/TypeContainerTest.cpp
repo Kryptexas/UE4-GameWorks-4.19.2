@@ -175,7 +175,7 @@ bool FTypeContainerTest::RunTest(const FString& Parameters)
 	}
 
 	// factory test
-	{/* @todo gmp: temporarily disabled due to Clang compile errors
+	{
 		struct FLocal
 		{
 			static TSharedRef<IBerry> MakeStrawberry()
@@ -203,7 +203,7 @@ bool FTypeContainerTest::RunTest(const FString& Parameters)
 		auto Berry = Container.GetInstance<IBerry>();
 		auto Fruit = Container.GetInstance<IFruit>();
 		auto Smoothie = Container.GetInstance<ISmoothie>();
-	*/}
+	}
 
 	// delegate test
 	{
