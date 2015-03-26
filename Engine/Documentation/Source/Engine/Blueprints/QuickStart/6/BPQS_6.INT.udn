@@ -55,7 +55,7 @@ and it will succeed. However, not everything in your level is the Pawn represent
 
 	At this point, **Compile** and **Save** the Blueprint using the toolbar buttons, then close the Blueprint Editor.
 
-1. Drag several of the launchpads into your level from the Content Browser. 
+1. Drag several of the launchpads into your level from the **Content Browser**. 
 
 	![](MultipleLaunchpads.png)
 
