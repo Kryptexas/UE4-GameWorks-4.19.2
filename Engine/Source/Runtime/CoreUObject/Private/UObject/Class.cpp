@@ -2323,10 +2323,24 @@ void UClass::PostInitProperties()
 	}
 }
 
-UObject* UClass::GetDefaultSubobjectByName(FName ToFind)
+static void GetDefaultSubobjects_Internal(UObject* Object, TArray<UObject*>& OutDefaultSubobjects)
+{
+	OutDefaultSubobjects.Empty();
+	GetObjectsWithOuter(Object, OutDefaultSubobjects, false);
+	for (int32 SubobjectIndex = 0; SubobjectIndex < OutDefaultSubobjects.Num(); SubobjectIndex++)
+	{
+		UObject* PotentialSubobject = OutDefaultSubobjects[SubobjectIndex];
+		if (!PotentialSubobject->IsDefaultSubobject())
+		{
+			OutDefaultSubobjects.RemoveAtSwap(SubobjectIndex--);
+		}
+	}
+}
+
+UObject* GetDefaultSubobjectByName_Internal(UObject* Object, FName ToFind)
 {
 	TArray<UObject*> SubObjects;
-	GetDefaultObjectSubobjects(SubObjects);
+	GetDefaultSubobjects_Internal(Object, SubObjects);
 	for (int32 Index = 0; Index < SubObjects.Num(); ++Index)
 	{
 		if (SubObjects[Index]->GetFName() == ToFind)
@@ -2334,20 +2348,30 @@ UObject* UClass::GetDefaultSubobjectByName(FName ToFind)
 			return SubObjects[Index];
 		}
 	}
-	return NULL;
+	return nullptr;
+}
+
+UObject* UClass::GetDefaultSubobjectByName(FName ToFind)
+{
+	UObject* DefaultObj = GetDefaultObject();
+	UObject* DefaultSubobject = nullptr;
+	if (DefaultObj)
+	{
+		DefaultSubobject = GetDefaultSubobjectByName_Internal(DefaultObj, ToFind);
+	}
+	return DefaultSubobject;
 }
 
 void UClass::GetDefaultObjectSubobjects(TArray<UObject*>& OutDefaultSubobjects)
 {
-	OutDefaultSubobjects.Empty();
-	GetObjectsWithOuter(GetDefaultObject(), OutDefaultSubobjects, false);
-	for ( int32 SubobjectIndex = 0; SubobjectIndex < OutDefaultSubobjects.Num(); SubobjectIndex++ )
+	UObject* DefaultObj = GetDefaultObject();
+	if (DefaultObj)
 	{
-		UObject* PotentialComponent = OutDefaultSubobjects[SubobjectIndex];
-		if (!PotentialComponent->IsDefaultSubobject())
-		{
-			OutDefaultSubobjects.RemoveAtSwap(SubobjectIndex--);
-		}
+		GetDefaultSubobjects_Internal(DefaultObj, OutDefaultSubobjects);
+	}
+	else
+	{
+		OutDefaultSubobjects.Empty();
 	}
 }
 
