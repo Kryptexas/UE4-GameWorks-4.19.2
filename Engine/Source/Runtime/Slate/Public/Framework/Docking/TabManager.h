@@ -841,7 +841,7 @@ protected:
 	virtual void UpdateStats() override;
 
 public:
-	virtual void OnTabManagerClosing();
+	virtual void OnTabManagerClosing() override;
 
 
 private:
