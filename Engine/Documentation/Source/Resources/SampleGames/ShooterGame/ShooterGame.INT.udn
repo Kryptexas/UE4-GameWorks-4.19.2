@@ -5,8 +5,8 @@ Description:Documentation for the C++ example game project ShooterGame
 Related: Programming/Basics
 Related: Gameplay/ClassCreation/CodeOnly
 Related: Programming/UnrealArchitecture/Reference/Functions
-Related: Gameplay/Networking/Replication/Components
-Related: Gameplay/Networking/Replication/RPCs
+Related: Gameplay/Networking/Actors/Components
+Related: Gameplay/Networking/Actors/RPCs
 Related: Engine/Blueprints/Editor
 Related: Engine/Animation/AnimMontage
 Related: Engine/Animation/Blendspaces

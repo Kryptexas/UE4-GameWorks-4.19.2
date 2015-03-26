@@ -3,9 +3,9 @@ Title:2.2 - Network Relevancy (Part 2 - Function Replication Solution Attempt)
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
 Description:An overview of the Network Features example level, example 2.2: Network Relevancy (Part 2 - Function Replication Solution Attempt).
 Related: Gameplay/Networking
-Related: Gameplay/Networking/Replication/Components
-Related: Gameplay/Networking/Replication
-Related: Gameplay/Networking/Replication/RPCs
+Related: Gameplay/Networking/Actors/Components
+Related: Gameplay/Networking/Actors
+Related: Gameplay/Networking/Actors/RPCs
 Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 
 

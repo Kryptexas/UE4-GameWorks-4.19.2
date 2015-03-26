@@ -4,7 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:Describes the different kinds of Online and Error Related Blueprint Nodes.
 Related: Engine/Blueprints
 Related: Programming/Online
-Related: Gameplay/Networking/Replication
+Related: Gameplay/Networking/Actors
 Related: Resources/ContentExamples/Networking
 
 
