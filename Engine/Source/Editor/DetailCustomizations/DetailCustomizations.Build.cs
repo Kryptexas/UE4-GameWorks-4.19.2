@@ -41,7 +41,8 @@ public class DetailCustomizations : ModuleRules
                 "MediaAssets",
                 "HardwareTargeting",
 				"SharedSettingsWidgets",
-                "AIModule"
+                "AIModule", 
+                "MeshUtilities"
 			}
 		);
 

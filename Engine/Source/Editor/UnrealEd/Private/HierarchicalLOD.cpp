@@ -568,7 +568,7 @@ void FLODCluster::BuildActor(class UWorld* InWorld, class ULevel* InLevel, const
 				IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
 				// should give unique name, so use level + actor name
 				const FString PackageName = FString::Printf(TEXT("LOD_%s_%s"), *InLevel->GetName(), *FirstActor->GetName());
-				if (LODSetup.bSimplifyMesh)
+				if (MeshUtilities.GetMeshMergingInterface() && LODSetup.bSimplifyMesh)
 				{
 					MeshUtilities.CreateProxyMesh(Actors, ProxySetting, AssetsOuter, PackageName, OutAssets, OutProxyLocation);
 				}
