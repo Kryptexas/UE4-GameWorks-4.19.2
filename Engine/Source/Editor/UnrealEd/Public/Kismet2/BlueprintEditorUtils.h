@@ -88,6 +88,9 @@ public:
 	 */
 	static void PatchCDOSubobjectsIntoExport(UObject* PreviousCDO, UObject* NewCDO);
 
+	/** Recreates class meta data */
+	static void RecreateClassMetaData(UBlueprint* Blueprint, UClass* Class, bool bRemoveExistingMetaData);
+
 	/**
 	 * Copies the default properties of all parent blueprint classes in the chain to the specified blueprint's skeleton CDO
 	 */

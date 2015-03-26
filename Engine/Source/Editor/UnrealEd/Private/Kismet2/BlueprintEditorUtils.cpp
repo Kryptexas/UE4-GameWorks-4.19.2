@@ -49,6 +49,8 @@
 #include "Editor/Blutility/Public/IBlutilityModule.h"
 
 #include "Engine/InheritableComponentHandler.h"
+
+#include "EditorCategoryUtils.h"
 #define LOCTEXT_NAMESPACE "Blueprint"
 
 DEFINE_LOG_CATEGORY(LogBlueprintDebug);
@@ -1241,6 +1243,11 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 			// No actual compilation work to be done, but try to conform the class and fix up anything that might need to be updated if the native base class has changed in any way
 			FKismetEditorUtilities::ConformBlueprintFlagsAndComponents(Blueprint);
 
+			if (Blueprint->GeneratedClass)
+			{
+				FBlueprintEditorUtils::RecreateClassMetaData(Blueprint, Blueprint->GeneratedClass, true);
+			}
+
 			// Flag data only blueprints as being up-to-date
 			Blueprint->Status = BS_UpToDate;
 		}
@@ -1375,6 +1382,88 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 
 	return bRegenerated ? Blueprint->GeneratedClass : NULL;
 }
+
+void FBlueprintEditorUtils::RecreateClassMetaData(UBlueprint* Blueprint, UClass* Class, bool bRemoveExistingMetaData)
+{
+	if (!ensure(Blueprint && Class))
+	{
+		return;
+	}
+
+	UClass* ParentClass = Class->GetSuperClass();
+	TArray<FString> AllHideCategories;
+
+	if (bRemoveExistingMetaData)
+	{
+		Class->RemoveMetaData("HideCategories");
+		Class->RemoveMetaData("ShowCategories");
+		Class->RemoveMetaData("HideFunctions");
+		Class->RemoveMetaData("AutoExpandCategories");
+		Class->RemoveMetaData("AutoCollapseCategories");
+		Class->RemoveMetaData("ClassGroupNames");
+		Class->RemoveMetaData("Category");
+		Class->RemoveMetaData(FBlueprintMetadata::MD_AllowableBlueprintVariableType);
+	}
+
+	if (ensure(ParentClass != NULL))
+	{
+		if (!ParentClass->HasMetaData(FBlueprintMetadata::MD_IgnoreCategoryKeywordsInSubclasses))
+		{
+			FEditorCategoryUtils::GetClassHideCategories(ParentClass, AllHideCategories);
+			if (ParentClass->HasMetaData(TEXT("ShowCategories")))
+			{
+				Class->SetMetaData(TEXT("ShowCategories"), *ParentClass->GetMetaData("ShowCategories"));
+			}
+			if (ParentClass->HasMetaData(TEXT("AutoExpandCategories")))
+			{
+				Class->SetMetaData(TEXT("AutoExpandCategories"), *ParentClass->GetMetaData("AutoExpandCategories"));
+			}
+			if (ParentClass->HasMetaData(TEXT("AutoCollapseCategories")))
+			{
+				Class->SetMetaData(TEXT("AutoCollapseCategories"), *ParentClass->GetMetaData("AutoCollapseCategories"));
+			}
+		}
+
+		if (ParentClass->HasMetaData(TEXT("HideFunctions")))
+		{
+			Class->SetMetaData(TEXT("HideFunctions"), *ParentClass->GetMetaData("HideFunctions"));
+		}
+
+		if (ParentClass->IsChildOf(UActorComponent::StaticClass()))
+		{
+			static const FName NAME_ClassGroupNames(TEXT("ClassGroupNames"));
+			Class->SetMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent, TEXT("true"));
+
+			FString ClassGroupCategory = NSLOCTEXT("BlueprintableComponents", "CategoryName", "Custom").ToString();
+			if (!Blueprint->BlueprintCategory.IsEmpty())
+			{
+				ClassGroupCategory = Blueprint->BlueprintCategory;
+			}
+
+			Class->SetMetaData(NAME_ClassGroupNames, *ClassGroupCategory);
+		}
+	}
+
+	// Add a category if one has been specified
+	if (Blueprint->BlueprintCategory.Len() > 0)
+	{
+		Class->SetMetaData(TEXT("Category"), *Blueprint->BlueprintCategory);
+	}
+
+	if ((Blueprint->BlueprintType == BPTYPE_Normal) ||
+		(Blueprint->BlueprintType == BPTYPE_Const) ||
+		(Blueprint->BlueprintType == BPTYPE_Interface))
+	{
+		Class->SetMetaData(FBlueprintMetadata::MD_AllowableBlueprintVariableType, TEXT("true"));
+	}
+
+	AllHideCategories.Append(Blueprint->HideCategories);
+	if (AllHideCategories.Num())
+	{
+		Class->SetMetaData(TEXT("HideCategories"), *FString::Join(AllHideCategories, TEXT(" ")));
+	}
+}
+
 
 void FBlueprintEditorUtils::PatchCDOSubobjectsIntoExport(UObject* PreviousCDO, UObject* NewCDO)
 {

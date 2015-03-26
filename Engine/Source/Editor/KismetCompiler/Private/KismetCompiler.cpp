@@ -18,7 +18,6 @@
 #include "MovieSceneBindings.h"
 #include "Kismet2/Kismet2NameValidators.h"
 #include "UserDefinedStructureCompilerUtils.h"
-#include "EditorCategoryUtils.h"
 #include "K2Node_EnumLiteral.h"
 #include "K2Node_SetVariableOnPersistentFrame.h"
 #include "EdGraph/EdGraphNode_Documentation.h"
@@ -1663,7 +1662,7 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 {
 	UClass* ParentClass = Class->GetSuperClass();
 
-	TArray<FString> AllHideCategories;
+	FBlueprintEditorUtils::RecreateClassMetaData(Blueprint, Class, false);
 
 	if (ParentClass != NULL)
 	{
@@ -1689,56 +1688,11 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 
 		// Copy the category info from the parent class
 #if WITH_EDITORONLY_DATA
-		if (!ParentClass->HasMetaData(FBlueprintMetadata::MD_IgnoreCategoryKeywordsInSubclasses))
-		{
-			FEditorCategoryUtils::GetClassHideCategories(ParentClass, AllHideCategories);
-			if (ParentClass->HasMetaData(TEXT("ShowCategories")))
-			{
-				Class->SetMetaData(TEXT("ShowCategories"), *ParentClass->GetMetaData("ShowCategories"));
-			}
-			if (ParentClass->HasMetaData(TEXT("AutoExpandCategories")))
-			{
-				Class->SetMetaData(TEXT("AutoExpandCategories"), *ParentClass->GetMetaData("AutoExpandCategories"));
-			}
-			if (ParentClass->HasMetaData(TEXT("AutoCollapseCategories")))
-			{
-				Class->SetMetaData(TEXT("AutoCollapseCategories"), *ParentClass->GetMetaData("AutoCollapseCategories"));
-			}
-		}
-
-		if (ParentClass->HasMetaData(TEXT("HideFunctions")))
-		{
-			Class->SetMetaData(TEXT("HideFunctions"), *ParentClass->GetMetaData("HideFunctions"));
-		}
 		
 		// Blueprinted Components are always Blueprint Spawnable
 		if (ParentClass->IsChildOf(UActorComponent::StaticClass()))
 		{
-			static const FName NAME_ClassGroupNames(TEXT("ClassGroupNames"));
-			Class->SetMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent, TEXT("true"));
-
-			FString ClassGroupCategory = NSLOCTEXT("BlueprintableComponents", "CategoryName", "Custom").ToString();
-			if (!Blueprint->BlueprintCategory.IsEmpty())
-			{
-				ClassGroupCategory = Blueprint->BlueprintCategory;
-			}
-
-			Class->SetMetaData(NAME_ClassGroupNames, *ClassGroupCategory);
-
 			FComponentTypeRegistry::Get().InvalidateClass(Class);
-		}
-
-		// Add a category if one has been specified
-		if(Blueprint->BlueprintCategory.Len() > 0)
-		{
-			Class->SetMetaData(TEXT("Category"), *Blueprint->BlueprintCategory);
-		}
-
-		if ((Blueprint->BlueprintType == BPTYPE_Normal) || 
-			(Blueprint->BlueprintType == BPTYPE_Const)  || 
-			(Blueprint->BlueprintType == BPTYPE_Interface))
-		{
-			Class->SetMetaData(FBlueprintMetadata::MD_AllowableBlueprintVariableType, TEXT("true"));
 		}
 #endif
 
@@ -1754,12 +1708,6 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 		}
 
 		//@TODO: Might want to be able to specify some of these here too
-	}
-
-	AllHideCategories.Append(Blueprint->HideCategories);
-	if (AllHideCategories.Num())
-	{
-		Class->SetMetaData(TEXT("HideCategories"), *FString::Join(AllHideCategories, TEXT(" ")));
 	}
 
 	// Add in any other needed flags
