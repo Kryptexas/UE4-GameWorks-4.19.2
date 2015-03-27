@@ -263,20 +263,20 @@ UPaperSprite::UPaperSprite(const FObjectInitializer& ObjectInitializer)
 	
 	AlternateMaterialSplitIndex = INDEX_NONE;
 
-#if WITH_EDITOR
+#if WITH_EDITORONLY_DATA
 	PivotMode = ESpritePivotMode::Center_Center;
 	bSnapPivotToPixelGrid = true;
 
 	CollisionGeometry.GeometryType = ESpritePolygonMode::TightBoundingBox;
 	CollisionThickness = 10.0f;
 
-	PixelsPerUnrealUnit = 2.56f;
-
 	bTrimmedInSourceImage = false;
 	bRotatedInSourceImage = false;
 
 	SourceTextureDimension.Set(0, 0);
 #endif
+
+	PixelsPerUnrealUnit = 2.56f;
 
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaskedMaterialRef(TEXT("/Paper2D/MaskedUnlitSpriteMaterial"));
 	DefaultMaterial = MaskedMaterialRef.Object;
@@ -470,6 +470,7 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 
 void UPaperSprite::RescaleSpriteData(const UTexture2D* Texture)
 {
+	const_cast<UTexture2D*>(Texture)->ConditionalPostLoad();
 	FVector2D PreviousTextureDimension = SourceTextureDimension;
 	FVector2D NewTextureDimension(Texture->GetImportedSize().X, Texture->GetImportedSize().Y);
 
@@ -560,6 +561,7 @@ bool UPaperSprite::NeedRescaleSpriteData()
 {
 	if (UTexture2D* Texture = GetSourceTexture())
 	{
+		Texture->ConditionalPostLoad();
 		FIntPoint TextureSize = Texture->GetImportedSize();
 		bool bTextureSizeIsZero = TextureSize.X == 0 || TextureSize.Y == 0;
 		return !SourceTextureDimension.IsZero() && !bTextureSizeIsZero && (TextureSize.X != SourceTextureDimension.X || TextureSize.Y != SourceTextureDimension.Y);
