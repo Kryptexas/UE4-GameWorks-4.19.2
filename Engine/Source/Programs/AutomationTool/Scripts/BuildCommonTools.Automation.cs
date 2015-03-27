@@ -25,7 +25,7 @@ public class BuildCommonTools : BuildCommand
 		foreach(string PlatformName in PlatformNames)
 		{
 			UnrealBuildTool.UnrealTargetPlatform Platform;
-			if(!UnrealBuildTool.UnrealTargetPlatform.TryParse(PlatformName, out Platform))
+			if(!UnrealBuildTool.UnrealTargetPlatform.TryParse(PlatformName, true, out Platform))
 			{
 				throw new AutomationException("Unknown platform specified on command line - '{0}' - valid platforms are {1}", PlatformName, String.Join("/", Enum.GetNames(typeof(UnrealBuildTool.UnrealTargetPlatform))));
 			}
