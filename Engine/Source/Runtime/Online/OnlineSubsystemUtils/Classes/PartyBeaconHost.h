@@ -145,6 +145,14 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
 	virtual int32 GetMaxPlayersPerTeam() const { return State->GetMaxPlayersPerTeam(); }
 
 	/**
+	 * Determine the maximum team size that can be accommodated based
+	 * on the current reservation slots occupied.
+	 *
+	 * @return maximum team size that is currently available
+	 */
+	virtual int32 GetMaxAvailableTeamSize() const { return State->GetMaxAvailableTeamSize(); }
+
+	/**
 	 * Swap the parties between teams, parties must be of same size
 	 *
 	 * @param PartyLeader party 1 to swap

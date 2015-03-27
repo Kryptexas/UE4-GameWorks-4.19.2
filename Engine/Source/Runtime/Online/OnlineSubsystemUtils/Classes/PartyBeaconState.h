@@ -311,6 +311,14 @@ class ONLINESUBSYSTEMUTILS_API UPartyBeaconState : public UObject
 	virtual int32 GetMaxPlayersPerTeam() const { return NumPlayersPerTeam; }
 
 	/**
+	 * Determine the maximum team size that can be accommodated based
+	 * on the current reservation slots occupied.
+	 *
+	 * @return maximum team size that is currently available
+	 */
+	virtual int32 GetMaxAvailableTeamSize() const;
+
+	/**
 	 * Get the number of current players on a given team.
 	 *
 	 * @param TeamIdx team of interest
