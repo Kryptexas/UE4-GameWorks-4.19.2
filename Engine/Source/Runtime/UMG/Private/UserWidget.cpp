@@ -201,176 +201,6 @@ void UUserWidget::SetIsDesignTime(bool bInDesignTime)
 	});
 }
 
-void UUserWidget::Construct_Implementation()
-{
-
-}
-
-void UUserWidget::Tick_Implementation(FGeometry MyGeometry, float InDeltaTime)
-{
-
-}
-
-void UUserWidget::OnPaint_Implementation(FPaintContext& Context) const
-{
-
-}
-
-FEventReply UUserWidget::OnFocusReceived_Implementation(FGeometry MyGeometry, FFocusEvent InFocusEvent)
-{
-	return UWidgetBlueprintLibrary::Unhandled();
-}
-
-void UUserWidget::OnFocusLost_Implementation(FFocusEvent InFocusEvent)
-{
-
-}
-
-FEventReply UUserWidget::OnKeyChar_Implementation(FGeometry MyGeometry, FCharacterEvent InCharacterEvent)
-{
-	return UWidgetBlueprintLibrary::Unhandled();
-}
-
-FEventReply UUserWidget::OnPreviewKeyDown_Implementation(FGeometry MyGeometry, FKeyEvent InKeyEvent)
-{
-	return UWidgetBlueprintLibrary::Unhandled();
-}
-
-FEventReply UUserWidget::OnKeyDown_Implementation(FGeometry MyGeometry, FKeyEvent InKeyEvent)
-{
-	return UWidgetBlueprintLibrary::Unhandled();
-}
-
-FEventReply UUserWidget::OnKeyUp_Implementation(FGeometry MyGeometry, FKeyEvent InKeyEvent)
-{
-	return UWidgetBlueprintLibrary::Unhandled();
-}
-
-FEventReply UUserWidget::OnAnalogValueChanged_Implementation(FGeometry MyGeometry, FAnalogInputEvent InAnalogInputEvent)
-{
-	return UWidgetBlueprintLibrary::Unhandled();
-}
-
-FEventReply UUserWidget::OnMouseButtonDown_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
-{
-	return UWidgetBlueprintLibrary::Unhandled();
-}
-
-FEventReply UUserWidget::OnPreviewMouseButtonDown_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
-{
-	return UWidgetBlueprintLibrary::Unhandled();
-}
-
-FEventReply UUserWidget::OnMouseButtonUp_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
-{
-	return UWidgetBlueprintLibrary::Unhandled();
-}
-
-FEventReply UUserWidget::OnMouseMove_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
-{
-	return UWidgetBlueprintLibrary::Unhandled();
-}
-
-void UUserWidget::OnMouseEnter_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
-{
-
-}
-
-void UUserWidget::OnMouseLeave_Implementation(const FPointerEvent& MouseEvent)
-{
-
-}
-
-FEventReply UUserWidget::OnMouseWheel_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
-{
-	return UWidgetBlueprintLibrary::Unhandled();
-}
-
-FEventReply UUserWidget::OnMouseButtonDoubleClick_Implementation(FGeometry InMyGeometry, const FPointerEvent& InMouseEvent)
-{
-	return UWidgetBlueprintLibrary::Unhandled();
-}
-
-void UUserWidget::OnDragDetected_Implementation(FGeometry MyGeometry, const FPointerEvent& PointerEvent, UDragDropOperation*& Operation)
-{
-
-}
-
-void UUserWidget::OnDragCancelled_Implementation(const FPointerEvent& PointerEvent, UDragDropOperation* Operation)
-{
-
-}
-
-void UUserWidget::OnDragEnter_Implementation(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation)
-{
-
-}
-
-void UUserWidget::OnDragLeave_Implementation(FPointerEvent PointerEvent, UDragDropOperation* Operation)
-{
-
-}
-
-bool UUserWidget::OnDragOver_Implementation(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation)
-{
-	return false;
-}
-
-bool UUserWidget::OnDrop_Implementation(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation)
-{
-	return false;
-}
-
-FEventReply UUserWidget::OnControllerButtonPressed_Implementation(FGeometry MyGeometry, FControllerEvent ControllerEvent)
-{
-	return UWidgetBlueprintLibrary::Unhandled();
-}
-
-FEventReply UUserWidget::OnControllerButtonReleased_Implementation(FGeometry MyGeometry, FControllerEvent ControllerEvent)
-{
-	return UWidgetBlueprintLibrary::Unhandled();
-}
-
-FEventReply UUserWidget::OnControllerAnalogValueChanged_Implementation(FGeometry MyGeometry, FControllerEvent ControllerEvent)
-{
-	return UWidgetBlueprintLibrary::Unhandled();
-}
-
-FEventReply UUserWidget::OnTouchGesture_Implementation(FGeometry MyGeometry, const FPointerEvent& GestureEvent)
-{
-	return UWidgetBlueprintLibrary::Unhandled();
-}
-
-FEventReply UUserWidget::OnTouchStarted_Implementation(FGeometry MyGeometry, const FPointerEvent& InTouchEvent)
-{
-	return UWidgetBlueprintLibrary::Unhandled();
-}
-
-FEventReply UUserWidget::OnTouchMoved_Implementation(FGeometry MyGeometry, const FPointerEvent& InTouchEvent)
-{
-	return UWidgetBlueprintLibrary::Unhandled();
-}
-
-FEventReply UUserWidget::OnTouchEnded_Implementation(FGeometry MyGeometry, const FPointerEvent& InTouchEvent)
-{
-	return UWidgetBlueprintLibrary::Unhandled();
-}
-
-FEventReply UUserWidget::OnMotionDetected_Implementation(FGeometry MyGeometry, FMotionEvent InMotionEvent)
-{
-	return UWidgetBlueprintLibrary::Unhandled();
-}
-
-void UUserWidget::OnAnimationStarted_Implementation( const UWidgetAnimation* Animation )
-{
-
-}
-
-void UUserWidget::OnAnimationFinished_Implementation( const UWidgetAnimation* Animation )
-{
-	
-}
-
 void UUserWidget::PlayAnimation( const UWidgetAnimation* InAnimation, float StartAtTime, int32 NumberOfLoops, EUMGSequencePlayMode::Type PlayMode)
 {
 	if( InAnimation )
@@ -465,7 +295,7 @@ void UUserWidget::OnWidgetRebuilt()
 	if (!IsDesignTime())
 	{
 		// Notify the widget that it has been constructed.
-		Construct();
+		NativeConstruct();
 	}
 }
 
@@ -558,38 +388,6 @@ void UUserWidget::SetContentForSlot(FName SlotName, UWidget* Content)
 	}
 }
 
-void UUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime )
-{
-	GInitRunaway();
-
-	// Update active movie scenes
-	for( UUMGSequencePlayer* Player : ActiveSequencePlayers )
-	{
-		Player->Tick( InDeltaTime );
-	}
-
-	// The process of ticking the players above can stop them so we remove them after all players have ticked
-	for( UUMGSequencePlayer* StoppedPlayer : StoppedSequencePlayers )
-	{
-		ActiveSequencePlayers.Remove( StoppedPlayer );	
-	}
-
-	StoppedSequencePlayers.Empty();
-
-	if ( !bDesignTime )
-	{
-		UWorld* World = GetWorld();
-		if ( World )
-		{
-			// Update any latent actions we have for this actor
-			FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
-			LatentActionManager.ProcessLatentActions(this, InDeltaTime);
-		}
-	}
-
-	Tick( MyGeometry, InDeltaTime );
-}
-
 TSharedRef<SWidget> UUserWidget::MakeViewportWidget(TSharedPtr<SWidget>& UserSlateWidget)
 {
 	UserSlateWidget = TakeWidget();
@@ -647,17 +445,29 @@ void UUserWidget::AddToScreen(ULocalPlayer* Player, int32 ZOrder)
 		{
 			if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
 			{
-				ZOrder = 10 + ZOrder;
 				if ( Player )
 				{
 					ViewportClient->AddViewportWidgetForPlayer(Player, RootWidget, ZOrder);
 				}
 				else
 				{
-					ViewportClient->AddViewportWidgetContent(RootWidget, ZOrder);
+					// We add 10 to the zorder when adding to the viewport to avoid 
+					// displaying below any built-in controls, like the virtual joysticks on mobile builds.
+					ViewportClient->AddViewportWidgetContent(RootWidget, ZOrder + 10);
 				}
+
+				FWorldDelegates::LevelRemovedFromWorld.AddUObject(this, &UUserWidget::OnLevelRemovedFromWorld);
 			}
 		}
+	}
+}
+
+void UUserWidget::OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld)
+{
+	if ( InLevel == nullptr && InWorld == GetWorld() )
+	{
+		RemoveFromParent();
+		MarkPendingKill();
 	}
 }
 
@@ -686,6 +496,8 @@ void UUserWidget::RemoveFromParent()
 				{
 					ViewportClient->RemoveViewportWidgetForPlayer(LocalPlayer, WidgetHostRef);
 				}
+
+				FWorldDelegates::LevelRemovedFromWorld.RemoveAll(this);
 			}
 		}
 	}
@@ -840,7 +652,59 @@ const FText UUserWidget::GetPaletteCategory()
 
 #endif
 
+void UUserWidget::OnAnimationStarted_Implementation(const UWidgetAnimation* Animation)
+{
+
+}
+
+void UUserWidget::OnAnimationFinished_Implementation(const UWidgetAnimation* Animation)
+{
+
+}
+
 // Native handling for SObjectWidget
+
+void UUserWidget::NativeConstruct()
+{
+	Construct();
+}
+
+void UUserWidget::NativeDestruct()
+{
+	Destruct();
+}
+
+void UUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	GInitRunaway();
+
+	// Update active movie scenes
+	for ( UUMGSequencePlayer* Player : ActiveSequencePlayers )
+	{
+		Player->Tick(InDeltaTime);
+	}
+
+	// The process of ticking the players above can stop them so we remove them after all players have ticked
+	for ( UUMGSequencePlayer* StoppedPlayer : StoppedSequencePlayers )
+	{
+		ActiveSequencePlayers.Remove(StoppedPlayer);
+	}
+
+	StoppedSequencePlayers.Empty();
+
+	if ( !bDesignTime )
+	{
+		UWorld* World = GetWorld();
+		if ( World )
+		{
+			// Update any latent actions we have for this actor
+			FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
+			LatentActionManager.ProcessLatentActions(this, InDeltaTime);
+		}
+	}
+
+	Tick(MyGeometry, InDeltaTime);
+}
 
 void UUserWidget::NativePaint( FPaintContext& InContext ) const 
 {
@@ -975,6 +839,157 @@ FReply UUserWidget::NativeOnTouchEnded( const FGeometry& InGeometry, const FPoin
 FReply UUserWidget::NativeOnMotionDetected( const FGeometry& InGeometry, const FMotionEvent& InMotionEvent )
 {
 	return OnMotionDetected( InGeometry, InMotionEvent ).NativeReply;
+}
+
+/////////////////////////////////////////////////////
+//
+// DEPRECATED
+//
+/////////////////////////////////////////////////////
+
+void UUserWidget::Construct_Implementation()
+{
+
+}
+
+void UUserWidget::Tick_Implementation(FGeometry MyGeometry, float InDeltaTime)
+{
+
+}
+
+void UUserWidget::OnPaint_Implementation(FPaintContext& Context) const
+{
+
+}
+
+FEventReply UUserWidget::OnFocusReceived_Implementation(FGeometry MyGeometry, FFocusEvent InFocusEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+void UUserWidget::OnFocusLost_Implementation(FFocusEvent InFocusEvent)
+{
+
+}
+
+FEventReply UUserWidget::OnKeyChar_Implementation(FGeometry MyGeometry, FCharacterEvent InCharacterEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnPreviewKeyDown_Implementation(FGeometry MyGeometry, FKeyEvent InKeyEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnKeyDown_Implementation(FGeometry MyGeometry, FKeyEvent InKeyEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnKeyUp_Implementation(FGeometry MyGeometry, FKeyEvent InKeyEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnAnalogValueChanged_Implementation(FGeometry MyGeometry, FAnalogInputEvent InAnalogInputEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnMouseButtonDown_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnPreviewMouseButtonDown_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnMouseButtonUp_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnMouseMove_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+void UUserWidget::OnMouseEnter_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
+{
+
+}
+
+void UUserWidget::OnMouseLeave_Implementation(const FPointerEvent& MouseEvent)
+{
+
+}
+
+FEventReply UUserWidget::OnMouseWheel_Implementation(FGeometry MyGeometry, const FPointerEvent& MouseEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnMouseButtonDoubleClick_Implementation(FGeometry InMyGeometry, const FPointerEvent& InMouseEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+void UUserWidget::OnDragDetected_Implementation(FGeometry MyGeometry, const FPointerEvent& PointerEvent, UDragDropOperation*& Operation)
+{
+
+}
+
+void UUserWidget::OnDragCancelled_Implementation(const FPointerEvent& PointerEvent, UDragDropOperation* Operation)
+{
+
+}
+
+void UUserWidget::OnDragEnter_Implementation(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation)
+{
+
+}
+
+void UUserWidget::OnDragLeave_Implementation(FPointerEvent PointerEvent, UDragDropOperation* Operation)
+{
+
+}
+
+bool UUserWidget::OnDragOver_Implementation(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation)
+{
+	return false;
+}
+
+bool UUserWidget::OnDrop_Implementation(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation)
+{
+	return false;
+}
+
+FEventReply UUserWidget::OnTouchGesture_Implementation(FGeometry MyGeometry, const FPointerEvent& GestureEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnTouchStarted_Implementation(FGeometry MyGeometry, const FPointerEvent& InTouchEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnTouchMoved_Implementation(FGeometry MyGeometry, const FPointerEvent& InTouchEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnTouchEnded_Implementation(FGeometry MyGeometry, const FPointerEvent& InTouchEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
+}
+
+FEventReply UUserWidget::OnMotionDetected_Implementation(FGeometry MyGeometry, FMotionEvent InMotionEvent)
+{
+	return UWidgetBlueprintLibrary::Unhandled();
 }
 
 /////////////////////////////////////////////////////
