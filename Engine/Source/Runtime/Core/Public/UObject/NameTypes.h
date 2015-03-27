@@ -551,7 +551,7 @@ public:
 	 */
 	FORCEINLINE bool operator<( const FName& Other ) const
 	{
-		return ToString() < Other.ToString();
+		return Compare(Other) < 0;
 	}
 
 	FORCEINLINE bool IsNone() const
