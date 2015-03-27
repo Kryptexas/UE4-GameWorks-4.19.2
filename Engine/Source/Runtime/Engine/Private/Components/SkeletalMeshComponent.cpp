@@ -242,7 +242,6 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
         TickAnimation(0.f); 
 
 		RefreshBoneTransforms();
-		FlipEditableSpaceBases();
 		UpdateComponentToWorld();
 	}
 }
@@ -1101,6 +1100,12 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 		}
 
 		PostAnimEvaluation(AnimEvaluationContext);
+	}
+
+	if (TickFunction == NULL)
+	{
+		//Since we aren't doing this through the tick system, assume we want the buffer flipped now
+		FlipEditableSpaceBases();
 	}
 }
 
