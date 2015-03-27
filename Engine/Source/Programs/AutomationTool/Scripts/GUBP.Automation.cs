@@ -198,6 +198,7 @@ public class GUBP : BuildCommand
 			public List<UnrealTargetPlatform> ExcludePlatformsForEditor = new List<UnrealTargetPlatform>();
 			public bool bNoAutomatedTesting = false;
 			public bool bNoDocumentation = false;
+			public bool bNoInstalledEngine = false;
 			public bool bMakeFormalBuildWithoutLabelPromotable = false;
 			public int QuantumOverride = 0;
         }
@@ -1405,7 +1406,7 @@ public class GUBP : BuildCommand
         {
 			Projects = new List<BranchInfo.BranchUProject>(InProjects);
 			AddDependency(ToolsNode.StaticGetFullName(InHostPlatform)); // for UnrealPak
-			AgentSharingGroup = "BuildInstall" + StaticGetHostPlatformSuffix(HostPlatform);
+            AgentSharingGroup = "FeaturePacks"  + StaticGetHostPlatformSuffix(InHostPlatform);
         }
 
 		public static string GetOutputFile(BranchInfo.BranchUProject Project)
@@ -1455,7 +1456,7 @@ public class GUBP : BuildCommand
 
 		public override int CISFrequencyQuantumShift(GUBP bp)
 		{
-			return base.CISFrequencyQuantumShift(bp) + 3;
+			return base.CISFrequencyQuantumShift(bp) + 2;
 		}
 		public override void DoBuild(GUBP bp)
         {
