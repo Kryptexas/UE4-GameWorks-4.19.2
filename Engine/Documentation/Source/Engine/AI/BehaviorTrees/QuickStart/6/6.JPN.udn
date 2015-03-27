@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2482628
+﻿INTSourceChangelist:2490420
+Availability:Public
 Title:6.AI Controller ブループリントの設定
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:ステップ 6AI Controller ブループリントの設定
-Availability:Public
 
 [VAR:Steps]
 [OBJECT:Navigation]
