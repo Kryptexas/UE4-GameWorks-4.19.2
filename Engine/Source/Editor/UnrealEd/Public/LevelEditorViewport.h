@@ -497,6 +497,9 @@ protected:
 	/** Called when editor cleanse event is triggered */
 	void OnEditorCleanse();
 
+	/** Called before the editor tries to begin PIE */
+	void OnPreBeginPIE(const bool bIsSimulating);
+
 	/** Callback for when an editor user setting has changed */
 	void HandleViewportSettingChanged(FName PropertyName);
 

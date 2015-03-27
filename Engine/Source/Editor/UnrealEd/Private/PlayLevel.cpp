@@ -1885,7 +1885,33 @@ bool UEditorEngine::SpawnPlayFromHereStart( UWorld* World, AActor*& PlayerStart,
 
 void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 {
+	// Broadcast PreBeginPIE before checks that might block PIE below (BeginPIE is broadcast below after the checks)
+	FEditorDelegates::PreBeginPIE.Broadcast(bInSimulateInEditor);
+
 	double PIEStartTime = FPlatformTime::Seconds();
+
+	// Block PIE when there is a transaction recording into the undo buffer
+	if (GEditor->IsTransactionActive())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("TransactionName"), GEditor->GetTransactionName());
+
+		FText NotificationText;
+		if (bInSimulateInEditor)
+		{
+			NotificationText = FText::Format(NSLOCTEXT("UnrealEd", "SIECantStartDuringTransaction", "Can't Simulate when performing {TransactionName} operation"), Args);
+		}
+		else
+		{
+			NotificationText = FText::Format(NSLOCTEXT("UnrealEd", "PIECantStartDuringTransaction", "Can't Play In Editor when performing {TransactionName} operation"), Args);
+		}
+
+		FNotificationInfo Info(NotificationText);
+		Info.ExpireDuration = 5.0f;
+		Info.bUseLargeFont = true;
+		FSlateNotificationManager::Get().AddNotification(Info);
+		return;
+	}
 
 	// Prompt the user that Matinee must be closed before PIE can occur.
 	if( GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) )
@@ -1903,6 +1929,7 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 
 	FBlueprintEditorUtils::FindAndSetDebuggableBlueprintInstances();
 
+	// Broadcast BeginPIE after checks that might block PIE above (PreBeginPIE is broadcast above before the checks)
 	FEditorDelegates::BeginPIE.Broadcast(bInSimulateInEditor);
 
 	// let navigation know PIE starts so it can avoid any blueprint creation/deletion/instantiation affect editor map's navmesh changes

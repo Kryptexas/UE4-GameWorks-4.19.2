@@ -135,6 +135,8 @@ struct UNREALED_API FEditorDelegates
 	static FOnEditorModeTransitioned EditorModeEnter;
 	/** Called when an editor mode is being exited */
 	static FOnEditorModeTransitioned EditorModeExit;
+	/** Sent when a PIE session is beginning (before we decide if PIE can run - allows clients to avoid blocking PIE) */
+	static FOnPIEEvent PreBeginPIE;
 	/** Sent when a PIE session is beginning */
 	static FOnPIEEvent BeginPIE;
 	/** Sent when a PIE session is ending */

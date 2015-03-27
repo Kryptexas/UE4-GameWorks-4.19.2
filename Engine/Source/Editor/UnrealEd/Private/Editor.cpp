@@ -120,6 +120,7 @@ FSimpleMulticastDelegate								FEditorDelegates::LoadSelectedAssetsIfNeeded;
 FSimpleMulticastDelegate								FEditorDelegates::DisplayLoadErrors;
 FEditorDelegates::FOnEditorModeTransitioned				FEditorDelegates::EditorModeEnter;
 FEditorDelegates::FOnEditorModeTransitioned				FEditorDelegates::EditorModeExit;
+FEditorDelegates::FOnPIEEvent							FEditorDelegates::PreBeginPIE;
 FEditorDelegates::FOnPIEEvent							FEditorDelegates::BeginPIE;
 FEditorDelegates::FOnPIEEvent							FEditorDelegates::EndPIE;
 FEditorDelegates::FOnPIEEvent							FEditorDelegates::PausePIE;

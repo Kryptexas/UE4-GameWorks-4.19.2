@@ -1506,6 +1506,9 @@ FLevelEditorViewportClient::FLevelEditorViewportClient(const TSharedPtr<SLevelVi
 	// Register for editor cleanse events so we can release references to hovered actors
 	FEditorSupportDelegates::CleanseEditor.AddRaw(this, &FLevelEditorViewportClient::OnEditorCleanse);
 
+	// Register for editor PIE event that allows you to clean up states that might block PIE
+	FEditorDelegates::PreBeginPIE.AddRaw(this, &FLevelEditorViewportClient::OnPreBeginPIE);
+
 	// Add a delegate so we get informed when an actor has moved.
 	GEngine->OnActorMoved().AddRaw(this, &FLevelEditorViewportClient::OnActorMoved);
 
@@ -1526,6 +1529,7 @@ FLevelEditorViewportClient::~FLevelEditorViewportClient()
 {
 	// Unregister for all global callbacks to this object
 	FEditorSupportDelegates::CleanseEditor.RemoveAll(this);
+	FEditorDelegates::PreBeginPIE.RemoveAll(this);
 
 	// Remove our move delegate
 	GEngine->OnActorMoved().RemoveAll(this);
@@ -4192,6 +4196,12 @@ void FLevelEditorViewportClient::ClearHoverFromObjects()
 void FLevelEditorViewportClient::OnEditorCleanse()
 {
 	ClearHoverFromObjects();
+}
+
+void FLevelEditorViewportClient::OnPreBeginPIE(const bool bIsSimulating)
+{
+	// Called before PIE attempts to start, allowing the viewport to cancel processes, like dragging, that will block PIE from beginning
+	AbortTracking();
 }
 
 bool FLevelEditorViewportClient::GetSpriteCategoryVisibility( const FName& InSpriteCategory ) const
