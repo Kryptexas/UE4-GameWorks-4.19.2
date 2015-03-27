@@ -308,14 +308,37 @@ FComputeShaderRHIRef FShaderCache::GetComputeShader(EShaderPlatform Platform, TA
 
 void FShaderCache::InternalLogShader(EShaderPlatform Platform, EShaderFrequency Frequency, FSHAHash Hash, TArray<uint8> const& Code)
 {
-	FShaderCacheKey Key;
-	Key.Hash = Hash;
-	Key.Platform = Platform;
-	Key.Frequency = Frequency;
-	Key.bActive = true;
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(LogShader, FShaderCacheKey,Key,Key, TArray<uint8>,Code,Code, {
-		FShaderCache::GetShaderCache()->SubmitShader(Key, Code);
-	});
+	bool bUsable = FShaderResource::ArePlatformsCompatible(GMaxRHIShaderPlatform, Platform);
+	switch (Frequency)
+	{
+		case SF_Geometry:
+			bUsable &= RHISupportsGeometryShaders(GMaxRHIShaderPlatform);
+			break;
+			
+		case SF_Hull:
+		case SF_Domain:
+			bUsable &= RHISupportsTessellation(GMaxRHIShaderPlatform);
+			break;
+			
+		case SF_Compute:
+			bUsable &= RHISupportsComputeShaders(GMaxRHIShaderPlatform);
+			break;
+			
+		default:
+			break;
+	}
+	
+	if ( bUsable )
+	{
+		FShaderCacheKey Key;
+		Key.Hash = Hash;
+		Key.Platform = Platform;
+		Key.Frequency = Frequency;
+		Key.bActive = true;
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(LogShader, FShaderCacheKey,Key,Key, TArray<uint8>,Code,Code, {
+			FShaderCache::GetShaderCache()->SubmitShader(Key, Code);
+		});
+	}
 }
 
 void FShaderCache::InternalLogVertexDeclaration(const FVertexDeclarationElementList& VertexElements, FVertexDeclarationRHIParamRef VertexDeclaration)
