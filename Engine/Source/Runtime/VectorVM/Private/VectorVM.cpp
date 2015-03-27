@@ -2,7 +2,6 @@
 
 #include "VectorVMPrivate.h"
 #include "ModuleManager.h"
-#include <omp.h>
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, VectorVM);
 
