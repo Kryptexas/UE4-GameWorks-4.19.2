@@ -260,7 +260,7 @@ void UCrowdManager::Tick(float DeltaTime)
 					if (AgentData.bIsSimulated && AgentData.IsValid())
 					{
 						UCrowdFollowingComponent* CrowdComponent = Cast<UCrowdFollowingComponent>(It.Key());
-						if (CrowdComponent && CrowdComponent->IsCrowdSimulationActive())
+						if (CrowdComponent && CrowdComponent->IsCrowdSimulationEnabled())
 						{
 							ApplyVelocity(CrowdComponent, AgentData.AgentIndex);
 						}
