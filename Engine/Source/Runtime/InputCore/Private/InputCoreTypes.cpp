@@ -229,8 +229,12 @@ const FKey EKeys::Global_Pause("Global_Pause");
 const FKey EKeys::Global_Play("Global_Play");
 const FKey EKeys::Global_Back("Global_Back");
 
+// Android-specific
 const FKey EKeys::Android_Back("Android_Back");
- 
+const FKey EKeys::Android_Volume_Up("Android_Volume_Up");
+const FKey EKeys::Android_Volume_Down("Android_Volume_Down");
+const FKey EKeys::Android_Menu("Android_Menu");
+
 const FKey EKeys::Invalid(NAME_None);
 
 bool EKeys::bInitialized = false;
@@ -464,7 +468,11 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::Global_Play, LOCTEXT("Global_Play", "Global Play"), FKeyDetails::GamepadKey));
 	AddKey(FKeyDetails(EKeys::Global_Back, LOCTEXT("Global_Back", "Global Back"), FKeyDetails::GamepadKey));
 
+	// Android-specific
 	AddKey(FKeyDetails(EKeys::Android_Back, LOCTEXT("Android_Back", "Android Back"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Android_Volume_Up, LOCTEXT("Android_Volume_Up", "Android Volume Up"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Android_Volume_Down, LOCTEXT("Android_Volume_Down", "Android Volume Down"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Android_Menu, LOCTEXT("Android_Menu", "Android Menu"), FKeyDetails::GamepadKey));
 
 	// Initialize the input key manager.  This will cause any additional OEM keys to get added
 	FInputKeyManager::Get();

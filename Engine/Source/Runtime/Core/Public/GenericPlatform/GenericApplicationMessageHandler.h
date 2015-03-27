@@ -81,6 +81,9 @@ namespace EControllerButtons
 		GlobalBack,
 
 		AndroidBack,
+		AndroidVolumeUp,
+		AndroidVolumeDown,
+		AndroidMenu,
 
 		Invalid,
 	};

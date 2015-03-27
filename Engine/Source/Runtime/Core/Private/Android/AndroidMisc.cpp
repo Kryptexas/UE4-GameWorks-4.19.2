@@ -706,6 +706,9 @@ uint32 FAndroidMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxM
 		//ADDKEYMAP( VK_RWIN, TEXT("RightCommand") );
 
 		ADDKEYMAP(AKEYCODE_BACK, TEXT("Android_Back"));
+		ADDKEYMAP(AKEYCODE_VOLUME_UP, TEXT("Android_Volume_Up"));
+		ADDKEYMAP(AKEYCODE_VOLUME_DOWN, TEXT("Android_Volume_Down"));
+		ADDKEYMAP(AKEYCODE_MENU, TEXT("Android_Menu"));
 
 	}
 

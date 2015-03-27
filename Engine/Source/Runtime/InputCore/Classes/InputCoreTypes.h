@@ -386,7 +386,11 @@ struct INPUTCORE_API EKeys
 	static const FKey Global_Play;
 	static const FKey Global_Back;
 
+	// Android-specific
 	static const FKey Android_Back;
+	static const FKey Android_Volume_Up;
+	static const FKey Android_Volume_Down;
+	static const FKey Android_Menu;
 
 	static const FKey Invalid;
 

@@ -4648,6 +4648,9 @@ FKey TranslateControllerButtonToKey( EControllerButtons::Type Button )
 	case EControllerButtons::GlobalBack: Key = EKeys::Global_Back; break;
 
 	case EControllerButtons::AndroidBack: Key = EKeys::Android_Back; break;
+	case EControllerButtons::AndroidVolumeUp: Key = EKeys::Android_Volume_Up; break;
+	case EControllerButtons::AndroidVolumeDown: Key = EKeys::Android_Volume_Down; break;
+	case EControllerButtons::AndroidMenu: Key = EKeys::Android_Menu; break;
 
 	case EControllerButtons::Invalid: Key = EKeys::Invalid; break;
 	}
