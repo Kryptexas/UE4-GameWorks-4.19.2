@@ -2120,8 +2120,8 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 		// no depth test or writes, Test stencil for non-zero.
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
 			false,CF_Always,
-			true,CF_NotEqual,SO_Zero,SO_Zero,SO_Zero,
-			false,CF_Always,SO_Zero,SO_Zero,SO_Zero,
+			true,CF_NotEqual,SO_Keep,SO_Keep,SO_Keep,
+			false,CF_Always,SO_Keep,SO_Keep,SO_Keep,
 			0xff,0xff
 			>::GetRHI());
 	}
@@ -2228,6 +2228,11 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 	{
 		// Disable depth bounds testing
 		RHICmdList.EnableDepthBoundsTest(false, 0, 1);
+	}
+	else
+	{
+		// Clear the stencil buffer to 0.
+		RHICmdList.Clear(false, FColor(0, 0, 0), false, 0, true, 0, FIntRect());
 	}
 }
 
