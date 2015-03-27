@@ -13,6 +13,9 @@
 #include "Manifest.h"
 #include "UnitConversion.h"
 
+double GPluginOverheadTime = 0.0;
+double GHeaderCodeGenTime = 0.0;
+
 /*-----------------------------------------------------------------------------
 	Constants & declarations.
 -----------------------------------------------------------------------------*/
@@ -6760,23 +6763,28 @@ ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(
 			// from the feedback context.
 			Warn->SetContext(NULL);
 
-			ExportNativeHeaders(
-				CurrentPackage,
-				ModuleClasses,
-				Module.SaveExportedHeaders
+			double ExportTime = 0.0;
+			{
+				FScopedDurationTimer Timer(ExportTime);
+				ExportNativeHeaders(
+					CurrentPackage,
+					ModuleClasses,
+					Module.SaveExportedHeaders
 #if WITH_HOT_RELOAD_CTORS
-				, bExportVTableConstructors
+					, bExportVTableConstructors
 #endif // WITH_HOT_RELOAD_CTORS
-			);
+				);
+			}
+			GHeaderCodeGenTime += ExportTime;
 
 			// Done with header generation
 			if (HeaderParser.LinesParsed > 0)
 			{
-				UE_LOG(LogCompile, Log,  TEXT("Success: Parsed %i line(s), %i statement(s).\r\n"), HeaderParser.LinesParsed, HeaderParser.StatementsParsed );
+				UE_LOG(LogCompile, Log, TEXT("Success: Parsed %i line(s), %i statement(s) in %.2f secs.\r\n"), HeaderParser.LinesParsed, HeaderParser.StatementsParsed, ExportTime);
 			}
 			else
 			{
-				UE_LOG(LogCompile, Log,  TEXT("Success: Everything is up to date") );
+				UE_LOG(LogCompile, Log, TEXT("Success: Everything is up to date (in %.2f secs)"), ExportTime);
 			}
 		}
 	}
@@ -6792,6 +6800,8 @@ ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(
 
 	if (Result == ECompilationResult::Succeeded && ScriptPlugins.Num())
 	{
+		FScopedDurationTimer PluginTimeTracker(GPluginOverheadTime);
+
 		auto RootNode = &ModuleClasses.GetClassTree();
 		for (auto Plugin : ScriptPlugins)
 		{

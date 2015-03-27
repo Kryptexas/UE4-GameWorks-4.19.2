@@ -5,10 +5,13 @@
 #include "ParserHelper.h"
 #include "BaseParser.h"
 #include "CompilationResult.h"
+#include "ScopedTimers.h"
 
 class FClass;
 class FClasses;
 
+extern double GPluginOverheadTime;
+extern double GHeaderCodeGenTime;
 
 /*-----------------------------------------------------------------------------
 	Constants & types.
