@@ -1673,6 +1673,12 @@ namespace UnrealBuildTool
 					IsEngineTarget = true;
 				}
 
+				if (IsEngineTarget && bGeneratingRocketProjectFiles)
+				{
+					// Rocket project file must never include engine targets.
+					continue;
+				}
+
 				bool WantProjectFileForTarget = true;
 				if(TargetFileRelativeToEngineDirectory.StartsWith(Path.Combine("Source", "Programs"), StringComparison.InvariantCultureIgnoreCase))
 				{
