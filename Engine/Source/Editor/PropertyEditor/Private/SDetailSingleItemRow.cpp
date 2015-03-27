@@ -110,7 +110,6 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 		if( bHasMultipleColumns )
 		{
 			NameWidget->SetEnabled(IsPropertyEditingEnabled);
-			KeyFrameButton->SetEnabled(IsPropertyEditingEnabled);
 			Widget = 
 				SNew( SSplitter )
 				.Style( FEditorStyle::Get(), "DetailsView.Splitter" )
@@ -164,7 +163,6 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 		else
 		{
 			Row.WholeRowWidget.Widget->SetEnabled(IsPropertyEditingEnabled);
-			KeyFrameButton->SetEnabled(IsPropertyEditingEnabled);
 			Widget =
 				SNew( SHorizontalBox )
 				+ SHorizontalBox::Slot()
@@ -359,21 +357,24 @@ TSharedRef<SWidget> SDetailSingleItemRow::CreateKeyframeButton( FDetailLayoutCus
 		
 	}
 
-	return 
+	return
 		SNew(SButton)
 		.HAlign(HAlign_Left)
 		.VAlign(VAlign_Center)
 		.ContentPadding(0.0f)
 		.ButtonStyle(FEditorStyle::Get(), "Sequencer.AddKey.Details")
 		.Visibility(SetKeyVisibility)
-		.IsEnabled( this, &SDetailSingleItemRow::IsKeyframeButtonEnabled )
+		.IsEnabled( this, &SDetailSingleItemRow::IsKeyframeButtonEnabled, InTreeNode )
 		.ToolTipText( NSLOCTEXT("PropertyView", "AddKeyframeButton_ToolTip", "Adds a keyframe for this property to the current animation") )
 		.OnClicked( this, &SDetailSingleItemRow::OnAddKeyframeClicked );
 }
 
-bool SDetailSingleItemRow::IsKeyframeButtonEnabled() const
+bool SDetailSingleItemRow::IsKeyframeButtonEnabled(TSharedRef<IDetailTreeNode> InTreeNode) const
 {
-	return KeyframeHandler.IsValid() ? KeyframeHandler.Pin()->IsPropertyKeyingEnabled() : false;
+	return
+		InTreeNode->IsPropertyEditingEnabled().Get() &&
+		KeyframeHandler.IsValid() &&
+		KeyframeHandler.Pin()->IsPropertyKeyingEnabled();
 }
 
 FReply SDetailSingleItemRow::OnAddKeyframeClicked()
