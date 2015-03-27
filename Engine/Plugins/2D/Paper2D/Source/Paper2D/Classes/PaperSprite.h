@@ -196,7 +196,7 @@ public:
 	FVector2D GetPivotPosition() const;
 
 	// Rescale properties to handle source texture size change
-	void RescaleSpriteData(const UTexture2D* Texture);
+	void RescaleSpriteData(UTexture2D* Texture);
 	bool NeedRescaleSpriteData();
 
 	void RebuildCollisionData();
