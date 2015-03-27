@@ -214,7 +214,7 @@ FString FPaths::GameUserDeveloperDir()
 		for (int32 CharIdx = 0; CharIdx < InvalidChars.Len(); ++CharIdx)
 		{
 			const FString Char = InvalidChars.Mid(CharIdx, 1);
-			UserFolder = UserFolder.Replace(*Char, TEXT("_"));
+			UserFolder = UserFolder.Replace(*Char, TEXT("_"), ESearchCase::CaseSensitive);
 		}
 	}
 
@@ -571,12 +571,10 @@ bool FPaths::IsRelative(const FString& InPath)
 {
 	// The previous implementation of this function seemed to handle normalized and unnormalized paths, so this one does too for legacy reasons.
 
-	const bool IsRooted =	InPath.StartsWith(TEXT("\\\\"), ESearchCase::CaseSensitive)	||												// "\\" for UNC or "network" paths.
-							InPath.StartsWith(TEXT("//"), ESearchCase::CaseSensitive)	||												// Equivalent to "\\", considering normalization replaces "\\" with "//".
-							InPath.StartsWith(TEXT("\\"), ESearchCase::CaseSensitive)	||												// Root of the current directory on Windows
-							InPath.StartsWith(TEXT("/"), ESearchCase::CaseSensitive)	||												// Root of the current directory on Windows, root on UNIX-likes.
-							InPath.StartsWith(TEXT("root:/")) ||											// Feature packs use this
-							(InPath.Len() >= 2 && FChar::IsAlpha(InPath[0]) && InPath[1] == TEXT(':'));	// Starts with "<DriveLetter>:"
+	const bool IsRooted = InPath.StartsWith(TEXT("\\"), ESearchCase::CaseSensitive)	||					// Root of the current directory on Windows. Also covers "\\" for UNC or "network" paths.
+						  InPath.StartsWith(TEXT("/"), ESearchCase::CaseSensitive)	||					// Root of the current directory on Windows, root on UNIX-likes.  Also covers "\\", considering normalization replaces "\\" with "//".						
+						  InPath.StartsWith(TEXT("root:/")) |											// Feature packs use this
+						  (InPath.Len() >= 2 && FChar::IsAlpha(InPath[0]) && InPath[1] == TEXT(':'));	// Starts with "<DriveLetter>:"
 
 	return !IsRooted;
 }
@@ -847,7 +845,7 @@ bool FPaths::ValidatePath( const FString& InPath, FText* OutReason )
 	RemoveDuplicateSlashes(Standardized);
 
 	// The loop below requires that the path not end with a /
-	if(Standardized.EndsWith(TEXT("/")))
+	if(Standardized.EndsWith(TEXT("/"), ESearchCase::CaseSensitive))
 	{
 		Standardized = Standardized.LeftChop(1);
 	}
@@ -939,7 +937,7 @@ const FString& FPaths::GetRelativePathToRoot()
 			FPaths::MakePathRelativeTo(RelativePathToRoot, *BaseDirectory);
 
 			// Ensure that the path ends w/ '/'
-			if ((RelativePathToRoot.Len() > 0) && (RelativePathToRoot.EndsWith(TEXT("/")) == false) && (RelativePathToRoot.EndsWith(TEXT("\\")) == false))
+			if ((RelativePathToRoot.Len() > 0) && (RelativePathToRoot.EndsWith(TEXT("/"), ESearchCase::CaseSensitive) == false) && (RelativePathToRoot.EndsWith(TEXT("\\"), ESearchCase::CaseSensitive) == false))
 			{
 				RelativePathToRoot += TEXT("/");
 			}

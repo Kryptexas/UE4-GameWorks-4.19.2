@@ -4368,7 +4368,7 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::FixupExportMap()
 				StrRedirectName = RedirectName->ToString();
 
 				// Accepts either "PackageName.ClassName" or just "ClassName"
-				int32 Offset = StrRedirectName.Find(TEXT("."));
+				int32 Offset = StrRedirectName.Find(TEXT("."), ESearchCase::CaseSensitive);
 				if ( Offset >= 0 )
 				{
 					// A package class name redirect
@@ -4429,7 +4429,7 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::FixupExportMap()
 					StrRedirectName = RedirectName->ToString();
 
 					// Accepts either "PackageName.ClassName" or just "ClassName"
-					int32 Offset = StrRedirectName.Find(TEXT("."));
+					int32 Offset = StrRedirectName.Find(TEXT("."), ESearchCase::CaseSensitive);
 					if ( Offset >= 0 )
 					{
 						// A package class name redirect

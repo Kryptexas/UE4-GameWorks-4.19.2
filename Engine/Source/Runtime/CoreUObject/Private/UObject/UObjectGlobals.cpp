@@ -144,9 +144,9 @@ UObject* StaticFindObject( UClass* ObjectClass, UObject* InObjectPackage, const 
 		if (s_bCurrentlyLoading == false)
 		{
 			FString NameCheck = OrigInName;
-			if (NameCheck.Contains(TEXT(".")) && 
-				!NameCheck.Contains(TEXT("'")) && 
-				!NameCheck.Contains(TEXT(":")) )
+			if (NameCheck.Contains(TEXT("."), ESearchCase::CaseSensitive) && 
+				!NameCheck.Contains(TEXT("'"), ESearchCase::CaseSensitive) && 
+				!NameCheck.Contains(TEXT(":"), ESearchCase::CaseSensitive) )
 			{
 				s_bCurrentlyLoading = true;
 				MatchingObject = StaticLoadObject(ObjectClass, NULL, OrigInName, NULL,  LOAD_NoWarn, NULL);
@@ -472,7 +472,7 @@ UPackage* CreatePackage( UObject* InOuter, const TCHAR* PackageName )
 		UE_LOG(LogUObjectGlobals, Fatal, TEXT("Attempted to create a package with name containing double slashes. PackageName: %s"), PackageName);
 	}
 
-	if( InName.EndsWith( TEXT( "." ) ) )
+	if( InName.EndsWith( TEXT( "." ), ESearchCase::CaseSensitive ) )
 	{
 		FString InName2 = InName.Left( InName.Len() - 1 );
 		UE_LOG(LogUObjectGlobals, Log,  TEXT( "Invalid Package Name entered - '%s' renamed to '%s'" ), *InName, *InName2 );
@@ -2385,7 +2385,7 @@ void ConstructorHelpers::CheckFoundViaRedirect(UObject *Object, const FString& P
 	if (Redir && Redir->DestinationObject == Object)
 	{
 		FString NewString = Object->GetFullName();
-		NewString.ReplaceInline(TEXT(" "), TEXT("'"));
+		NewString.ReplaceInline(TEXT(" "), TEXT("'"), ESearchCase::CaseSensitive);
 		NewString += TEXT("'");
 
 		auto CurrentInitializer = FTlsObjectInitializers::Top();

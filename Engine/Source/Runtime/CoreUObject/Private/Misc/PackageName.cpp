@@ -148,7 +148,7 @@ struct FLongPackagePathsSingleton
 		FString RelativeContentPath = IFileManager::Get().ConvertToRelativePath( *ContentPath );
 
 		// Make sure the path ends in a trailing path separator.  We are expecting that in the InternalFilenameToLongPackageName code.
-		if( !RelativeContentPath.EndsWith( TEXT( "/" ) ) )
+		if( !RelativeContentPath.EndsWith( TEXT( "/" ), ESearchCase::CaseSensitive ) )
 		{
 			RelativeContentPath += TEXT( "/" );
 		}
@@ -169,7 +169,7 @@ struct FLongPackagePathsSingleton
 		FString RelativeContentPath = IFileManager::Get().ConvertToRelativePath(*ContentPath);
 
 		// Make sure the path ends in a trailing path separator.  We are expecting that in the InternalFilenameToLongPackageName code.
-		if (!RelativeContentPath.EndsWith(TEXT("/")))
+		if (!RelativeContentPath.EndsWith(TEXT("/"), ESearchCase::CaseSensitive))
 		{
 			RelativeContentPath += TEXT("/");
 		}
@@ -384,7 +384,7 @@ bool FPackageName::SplitLongPackageName(const FString& InLongPackageName, FStrin
 	OutPackagePath = FPaths::GetPath(RemainingPackageName) / "";
 	OutPackageName = FPaths::GetCleanFilename(RemainingPackageName);
 
-	if(bStripRootLeadingSlash && OutPackageRoot.StartsWith("/"))
+	if(bStripRootLeadingSlash && OutPackageRoot.StartsWith(TEXT("/"), ESearchCase::CaseSensitive))
 	{
 		OutPackageRoot.RemoveAt(0);
 	}
@@ -817,7 +817,7 @@ bool FPackageName::ParseExportTextPath(const FString& InExportTextPath, FString*
 		if ( OutObjectPath )
 		{
 			FString& OutObjectPathRef = *OutObjectPath;
-			if ( OutObjectPathRef.EndsWith(TEXT("'")) )
+			if ( OutObjectPathRef.EndsWith(TEXT("'"), ESearchCase::CaseSensitive) )
 			{
 				OutObjectPathRef = OutObjectPathRef.LeftChop(1);
 			}

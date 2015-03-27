@@ -187,7 +187,7 @@ void FModuleManager::AddModule( const FName InModuleName )
 									// need to reject some files here that are not numbered...release executables, do have a suffix, so we need to make sure we don't find the debug version
 									check(FoundFilePath.Len() > Prefix.Len() + Suffix.Len());
 									FString Center = FoundFilePath.Mid(Prefix.Len(), FoundFilePath.Len() - Prefix.Len() - Suffix.Len());
-									check(Center.StartsWith(TEXT("-"))); // a minus sign is still considered numeric, so we can leave it.
+									check(Center.StartsWith(TEXT("-"), ESearchCase::CaseSensitive)); // a minus sign is still considered numeric, so we can leave it.
 									if (!Center.IsNumeric())
 									{
 										// this is a debug DLL or something, it is not a numbered hot DLL
