@@ -296,7 +296,7 @@ void FAutomationReport::ClustersUpdated(const int32 NumClusters)
 			Results.Add( AutomationTestResult );
 		}
 	}
-	else if( NumClusters > Results.Num() )
+	else if( NumClusters < Results.Num() )
 	{
 		Results.RemoveAt(NumClusters, Results.Num() - NumClusters);
 	}
