@@ -829,11 +829,11 @@ void FCanvasTextItem::Draw( class FCanvas* InCanvas )
 		return;
 	}
 
-	bool bHasShadow = ShadowOffset.Size() != 0.0f;
-	if( ( FontRenderInfo.bEnableShadow == true ) && ( bHasShadow == false ) )
+	bool bHasShadow = FontRenderInfo.bEnableShadow;
+	if( bHasShadow && ShadowOffset.Size() == 0.0f )
 	{
+		// EnableShadow will set a default ShadowOffset value
 		EnableShadow( FLinearColor::Black );
-		bHasShadow = true;
 	}
 	if (Font->ImportOptions.bUseDistanceFieldAlpha)
 	{
@@ -841,16 +841,11 @@ void FCanvasTextItem::Draw( class FCanvas* InCanvas )
 		switch(BlendMode)
 		{
 		case SE_BLEND_Translucent:
-			BlendMode = (FontRenderInfo.bEnableShadow) ? SE_BLEND_TranslucentDistanceFieldShadowed : SE_BLEND_TranslucentDistanceField;
+			BlendMode = (bHasShadow) ? SE_BLEND_TranslucentDistanceFieldShadowed : SE_BLEND_TranslucentDistanceField;
 			break;
 		case SE_BLEND_Masked:
-			BlendMode = (FontRenderInfo.bEnableShadow) ? SE_BLEND_MaskedDistanceFieldShadowed : SE_BLEND_MaskedDistanceField;
+			BlendMode = (bHasShadow) ? SE_BLEND_MaskedDistanceFieldShadowed : SE_BLEND_MaskedDistanceField;
 			break;
-		}
-		// Disable the show if the blend mode is not suitable
-		if (BlendMode != SE_BLEND_TranslucentDistanceFieldShadowed && BlendMode != SE_BLEND_MaskedDistanceFieldShadowed)
-		{
-			bHasShadow = false;
 		}
 	}
 	if (GetFontCacheType() == EFontCacheType::Runtime)

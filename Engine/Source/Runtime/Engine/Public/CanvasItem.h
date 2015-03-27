@@ -359,7 +359,8 @@ public:
 	void EnableShadow( const FLinearColor& InColor, const FVector2D& InOffset = FVector2D( 1.0f, 1.0f ) )
 	{
 		ShadowOffset = InOffset;
-		ShadowColor = InColor;		
+		ShadowColor = InColor;
+		FontRenderInfo.bEnableShadow = ShadowOffset.Size() != 0.0f;
 	}
 	
 	/** 
@@ -368,6 +369,7 @@ public:
 	void DisableShadow() 
 	{
 		ShadowOffset = FVector2D::ZeroVector;
+		FontRenderInfo.bEnableShadow = false;
 	}
 
 	/** 
