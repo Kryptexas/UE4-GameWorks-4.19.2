@@ -61,6 +61,9 @@ public:
 	GKTurnBasedMatch* GetGKMatch() const { return Match; }
 	void SetGKMatch(GKTurnBasedMatch* GKMatch);
 
+	// Ends the match
+	virtual void EndMatch(FEndMatchSignature QuitMatchCallback, EMPMatchOutcome::Outcome LocalPlayerOutcome, EMPMatchOutcome::Outcome OtherPlayersOutcome);
+
 private:
 
 	// Helper functions for QuitMatch, depending on whether it is the current player's turn or not.

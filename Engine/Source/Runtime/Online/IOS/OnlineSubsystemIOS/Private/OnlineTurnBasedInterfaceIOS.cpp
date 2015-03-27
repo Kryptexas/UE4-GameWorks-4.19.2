@@ -68,7 +68,7 @@ bool FTurnBasedMatchIOS::HasMatchData() const
 
 bool FTurnBasedMatchIOS::GetMatchData(TArray<uint8>& OutMatchData) const
 {
-	if (!Match.matchData || Match.matchData.length == 0)
+	if (!HasMatchData())
 	{
 		return false;
 	}
@@ -321,13 +321,45 @@ void FTurnBasedMatchIOS::SetGKMatch(GKTurnBasedMatch* GKMatch)
 	[Match release];
 	Match = [GKMatch retain];
 }
+
+void FTurnBasedMatchIOS::EndMatch(FEndMatchSignature EndMatchCallback, EMPMatchOutcome::Outcome LocalPlayerOutcome, EMPMatchOutcome::Outcome OtherPlayersOutcome)
+{
+	FString MatchID = GetMatchID();
+
+	for (int32 i = 0; i < Match.participants.count; ++i)
+	{
+		GKTurnBasedParticipant* participant = Match.participants[i];
+		GKTurnBasedMatchOutcome GKOutcome = participant.matchOutcome;
+		if (GKOutcome == GKTurnBasedMatchOutcomeNone)
+		{
+            if (GetLocalPlayerIndex() == i)
+            {
+				participant.matchOutcome = GetGKTurnBasedMatchOutcomeFromMatchOutcome(LocalPlayerOutcome);
+            }
+            else
+            {
+				participant.matchOutcome = GetGKTurnBasedMatchOutcomeFromMatchOutcome(OtherPlayersOutcome);
+            }
+			
+		}
+	}
+
+	[Match endMatchInTurnWithMatchData : Match.matchData completionHandler : ^ (NSError* error)
+	{
+		if (EndMatchCallback.IsBound())
+		{
+			EndMatchCallback.Execute(MatchID, error == nil);
+		}
+	}];
+}
+
 FOnlineTurnBasedIOS::FOnlineTurnBasedIOS()
 	: IOnlineTurnBased()
 	, FTurnBasedMatchmakerDelegate()
 	, Matchmaker(*this)
-	, MatchmakerDelegate(NULL)
+	, MatchmakerDelegate(nullptr)
 	, EventListener(nil)
-	, EventDelegate(NULL)
+	, EventDelegate(nullptr)
 	, NumberOfMatchesBeingLoaded(0)
 {
 	EventListener = [[FTurnBasedEventListenerIOS alloc] initWithOwner:*this];
@@ -452,12 +484,11 @@ FTurnBasedMatchPtr FOnlineTurnBasedIOS::GetMatchWithID(FString MatchID) const
 			return *It;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 void FOnlineTurnBasedIOS::RemoveMatch(FTurnBasedMatchRef Match, FRemoveMatchSignature RemoveMatchCallback)
 {
-	// AGC: There's almost certainly a better way to do this cast
 	FTurnBasedMatchIOS& MatchIOS = static_cast<FTurnBasedMatchIOS&>(Match.Get());
 
 	FString MatchID = MatchIOS.GetMatchID();
@@ -473,20 +504,18 @@ void FOnlineTurnBasedIOS::RemoveMatch(FTurnBasedMatchRef Match, FRemoveMatchSign
 
 void FOnlineTurnBasedIOS::OnMatchmakerCancelled()
 {
-	if (!MatchmakerDelegate.IsValid())
+	if (MatchmakerDelegate.IsValid())
 	{
-		return;
+		MatchmakerDelegate.Pin()->OnMatchmakerCancelled();
 	}
-	MatchmakerDelegate.Pin()->OnMatchmakerCancelled();
 }
 
 void FOnlineTurnBasedIOS::OnMatchmakerFailed()
 {
 	if (!MatchmakerDelegate.IsValid())
 	{
-		return;
+		MatchmakerDelegate.Pin()->OnMatchmakerFailed();
 	}
-	MatchmakerDelegate.Pin()->OnMatchmakerFailed();
 }
 
 void FOnlineTurnBasedIOS::OnMatchFound(FTurnBasedMatchRef Match)
@@ -509,10 +538,21 @@ void FOnlineTurnBasedIOS::OnMatchFound(FTurnBasedMatchRef Match)
 
 void FOnlineTurnBasedIOS::OnMatchEnded(FString MatchID)
 {
-	if (EventDelegate.IsValid())
+	dispatch_async(dispatch_get_main_queue(), ^
 	{
-		EventDelegate.Pin()->OnMatchEnded(MatchID);
-	}
+        [FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
+        {
+            if (TurnBasedMatchInterfaceObject)
+            {
+                   ITurnBasedMatchInterface::Execute_OnMatchEnded(TurnBasedMatchInterfaceObject, MatchID);
+            }
+            if (EventDelegate.IsValid())
+            {
+                EventDelegate.Pin()->OnMatchEnded(MatchID);
+            }
+            return true;
+         }];
+	});
 }
 
 void FOnlineTurnBasedIOS::OnMatchReceivedTurnEvent(FString MatchID, bool BecameActive, void* Match)

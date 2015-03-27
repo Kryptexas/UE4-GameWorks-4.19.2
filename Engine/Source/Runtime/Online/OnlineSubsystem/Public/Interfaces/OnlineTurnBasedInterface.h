@@ -57,6 +57,7 @@ DECLARE_DELEGATE_TwoParams(FQuitMatchSignature, FString, bool);   // bool Succes
 DECLARE_DELEGATE_TwoParams(FRemoveMatchSignature, FString, bool);   // bool Success
 DECLARE_DELEGATE_TwoParams(FUploadMatchDataSignature, FString, bool);   // bool Success
 DECLARE_DELEGATE_TwoParams(FDownloadMatchDataSignature, FString, bool);  // bool Success
+DECLARE_DELEGATE_TwoParams(FEndMatchSignature, FString, bool);   // bool Success
 
 /**
 * EMPMatchOutcome represents all the possible outcomes for this player in a match
@@ -122,6 +123,9 @@ public:
 
     /* Leave the match, providing an outcome for the player */
     virtual void QuitMatch(EMPMatchOutcome::Outcome Outcome, int32 TurnTimeoutInSeconds, FQuitMatchSignature QuitMatchCallback) {}
+
+	/* Ends the match while setting the match outcome (win/loss/tie) for all players */
+	virtual void EndMatch(FEndMatchSignature QuitMatchCallback, EMPMatchOutcome::Outcome LocalPlayerOutcome, EMPMatchOutcome::Outcome OtherPlayersOutcome) {}
 };
 
 typedef TSharedRef<FTurnBasedMatch, ESPMode::ThreadSafe> FTurnBasedMatchRef;

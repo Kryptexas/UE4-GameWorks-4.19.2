@@ -19,4 +19,7 @@ class ITurnBasedMatchInterface
 public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Online|TurnBased")
 	void OnMatchReceivedTurn(const FString& Match, bool bDidBecomeActive);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Online|TurnBased")
+	void OnMatchEnded(const FString& Match);
 };
