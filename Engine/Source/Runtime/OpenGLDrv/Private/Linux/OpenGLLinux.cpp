@@ -392,8 +392,9 @@ bool PlatformBlitToViewport(FPlatformOpenGLDevice* Device,
 		glReadBuffer( GL_COLOR_ATTACHMENT0 );
 		glDisable(GL_FRAMEBUFFER_SRGB);
 
-		int WinW, WinH;
-		SDL_GetWindowSize(Context->hWnd, &WinW, &WinH);
+		int WinW = 0;
+		int WinH = 0;
+		SDL_GL_GetDrawableSize(Context->hWnd, &WinW, &WinH);
 		GLenum BlitFilter;
 		GLint DestX0, DestY0, DestX1, DestY1;
 
@@ -928,18 +929,18 @@ EOpenGLCurrentContext PlatformOpenGLCurrentContext( FPlatformOpenGLDevice* Devic
 
 void PlatformGetBackbufferDimensions( uint32& OutWidth, uint32& OutHeight )
 {
-	SDL_HWindow h_cwnd = SDL_GL_GetCurrentWindow();
+	SDL_HWindow CurrentWindow = SDL_GL_GetCurrentWindow();
 
-	if	( h_cwnd )
+	int Width = 0;
+	int Height = 0;
+
+	if (CurrentWindow)
 	{
-		SDL_Surface *p_surf = SDL_GetWindowSurface( h_cwnd );
-
-		if	( p_surf )
-		{
-			OutWidth  = p_surf->w;
-			OutHeight = p_surf->h;
-		}
+		SDL_GL_GetDrawableSize(CurrentWindow, &Width, &Height);
 	}
+
+	OutWidth = Width;
+	OutHeight = Height;
 }
 
 // =============================================================
