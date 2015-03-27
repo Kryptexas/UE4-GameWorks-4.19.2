@@ -71,6 +71,16 @@ public:
 	/** Launches the process. */
 	bool Launch();
 
+	/**
+	 * Sets the sleep interval to be used in the main thread loop.
+	 *
+	 * @param InSleepInterval The Sleep interval to use.
+	 */
+	void SetSleepInterval( float InSleepInterval )
+	{
+		SleepInterval = InSleepInterval;
+	}
+
 public:
 
 	/**
@@ -180,6 +190,9 @@ private:
 
 	// Holds if we should create pipes
 	bool bCreatePipes;
+
+	// Sleep interval to use
+	float SleepInterval;
 
 private:
 

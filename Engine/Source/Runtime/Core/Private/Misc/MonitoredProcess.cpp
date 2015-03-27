@@ -19,6 +19,7 @@ FMonitoredProcess::FMonitoredProcess( const FString& InURL, const FString& InPar
 	, URL(InURL)
 	, WritePipe(nullptr)
 	, bCreatePipes(InCreatePipes)
+	, SleepInterval(0.0f)
 { }
 
 
@@ -102,7 +103,7 @@ uint32 FMonitoredProcess::Run()
 	{
 		do
 		{
-			FPlatformProcess::Sleep(0.0);
+			FPlatformProcess::Sleep(SleepInterval);
 
 			ProcessOutput(FPlatformProcess::ReadPipe(ReadPipe));
 
