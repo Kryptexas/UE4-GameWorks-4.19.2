@@ -8,7 +8,7 @@ Description: The User Guide is the go-to source to learn the different parts of 
 
 [INCLUDE:Engine\Blueprints#intro]
 
-This page outlines the various types of Blueprints and Graph Types, Blueprint Elements (such as _Variables_, _Components_ and _Graphs_), Communication Methods and how to pass information between Blueprints, as well as a breakdown of the different types of Graph Nodes you will be working with as you create your Blueprints. 
+This page outlines the various types of Blueprints and Graph Types, Blueprint Elements (such as _Variables_, _Components_, and _Graphs_), Communication Methods and how to pass information between Blueprints, as well as a breakdown of the different types of Graph Nodes you will be working with as you create your Blueprints. 
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
