@@ -154,9 +154,13 @@ private:
 	ECheckBoxState GetFavoritedState() const
 	{
 		ECheckBoxState FavoriteState = ECheckBoxState::Unchecked;
-		if (GEditor->EditorUserSettings->BlueprintFavorites->IsFavorited(ActionPtr.Pin()))
+		if (ActionPtr.IsValid() && (GEditor != nullptr))
 		{
-			FavoriteState = ECheckBoxState::Checked;
+			const UEditorUserSettings& EditorSettings = GEditor->GetEditorUserSettings();
+			if (UBlueprintPaletteFavorites* BlueprintFavorites = EditorSettings.BlueprintFavorites)
+			{
+				FavoriteState = BlueprintFavorites->IsFavorited(ActionPtr.Pin()) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			}
 		}
 		return FavoriteState;
 	}

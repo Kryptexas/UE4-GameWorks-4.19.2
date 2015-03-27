@@ -258,8 +258,11 @@ bool UBlueprintPaletteFavorites::CanBeFavorited(TSharedPtr<FEdGraphSchemaAction>
 bool UBlueprintPaletteFavorites::IsFavorited(TSharedPtr<FEdGraphSchemaAction> PaletteAction) const
 {
 	bool bIsFavorited = false;
-
-	if (PaletteAction->GetTypeId() == FBlueprintDragDropMenuItem::StaticGetTypeId())
+	if (!PaletteAction.IsValid())
+	{
+		bIsFavorited = false;
+	}
+	else if (PaletteAction->GetTypeId() == FBlueprintDragDropMenuItem::StaticGetTypeId())
 	{
 		FBlueprintDragDropMenuItem* CollectionMenuItem = (FBlueprintDragDropMenuItem*)PaletteAction.Get();
 
