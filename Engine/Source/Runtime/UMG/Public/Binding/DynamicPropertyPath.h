@@ -204,7 +204,10 @@ public:
 
 private:
 
-	/** */
+	/**
+	 * Evaluates the dynamic property path, and gets the value or calls the function at the end of the evaluation if possible.
+	 * Otherwise returns false.
+	 */
 	template<typename T>
 	bool GetValueRecursive(UStruct* InStruct, void* InContainer, int32 ArrayIndex, int32 SegmentIndex, T& OutValue, UProperty*& OutProperty) const
 	{
@@ -217,7 +220,7 @@ private:
 			{
 				if ( SegmentIndex < ( Segments.Num() - 1 ) )
 				{
-					// Check first to see if this is a simple object (i.e. not an array of objects)
+					// Check first to see if this is a simple object (eg. not an array of objects)
 					if ( UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Property) )
 					{
 						// If it's an object we need to get the value of the property in the container first before we 
@@ -227,7 +230,19 @@ private:
 							return GetValueRecursive(CurrentObject->GetClass(), CurrentObject, ArrayIndex, SegmentIndex + 1, OutValue, OutProperty);
 						}
 					}
-					// Check to see if this is a simple structure (i.e. not an array of structures)
+					// Check to see if this is a simple weak object property (eg. not an array of weak objects).
+					if ( UWeakObjectProperty* WeakObjectProperty = Cast<UWeakObjectProperty>(Property) )
+					{
+						FWeakObjectPtr WeakObject = WeakObjectProperty->GetPropertyValue_InContainer(InContainer);
+
+						// If it's an object we need to get the value of the property in the container first before we 
+						// can continue, if the object is null we safely stop processing the chain of properties.
+						if ( UObject* CurrentObject = WeakObject.Get() )
+						{
+							return GetValueRecursive(CurrentObject->GetClass(), CurrentObject, ArrayIndex, SegmentIndex + 1, OutValue, OutProperty);
+						}
+					}
+					// Check to see if this is a simple structure (eg. not an array of structures)
 					else if ( UStructProperty* StructProp = Cast<UStructProperty>(Property) )
 					{
 						// Recursively call back into this function with the structure property and container value
