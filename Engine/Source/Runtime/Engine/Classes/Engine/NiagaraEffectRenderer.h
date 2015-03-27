@@ -101,7 +101,7 @@ public:
 	virtual UClass *GetPropertiesClass() = 0;
 
 	float GetCPUTimeMS() { return CPUTimeMS; }
-
+	FBox GetBounds()	{ return CachedBounds;  }
 protected:
 	mutable float CPUTimeMS;
 
@@ -111,6 +111,7 @@ protected:
 	}
 
 	UMaterial* Material;
+	FBox CachedBounds;
 
 private:
 	FMaterialRelevance MaterialRelevance;

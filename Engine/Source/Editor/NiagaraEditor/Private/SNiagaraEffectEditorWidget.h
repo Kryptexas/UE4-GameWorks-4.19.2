@@ -8,6 +8,7 @@
 #include "WorkflowOrientedApp/SContentReference.h"
 #include "SCheckBox.h"
 #include "SNameComboBox.h"
+#include "SCurveEditor.h"
 #include "AssetThumbnail.h"
 #include "SNiagaraEffectEditorViewport.h"
 #include "Components/NiagaraComponent.h"
@@ -221,7 +222,7 @@ public:
 		this->ChildSlot
 		[
 			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot().VAlign(VAlign_Center).Padding(4)[SNew(STextBlock).Text(FText::FromName(ConstantName))]
+			+ SHorizontalBox::Slot().VAlign(VAlign_Center).AutoWidth().Padding(4)[SNew(STextBlock).Text(FText::FromName(ConstantName))]
 			+ SHorizontalBox::Slot().VAlign(VAlign_Center).Padding(4)
 			[
 				SNew(SContentReference)
@@ -388,6 +389,35 @@ public:
 };
 
 
+class SNiagaraTimeline : public SCompoundWidget, public FNotifyHook
+{
+private:
+	TSharedPtr<FNiagaraSimulation> Emitter;
+	UNiagaraEffect *Effect;
+	FNiagaraEffectInstance *EffectInstance;
+	TSharedPtr<SCurveEditor>CurveEditor;
+
+public:
+	SLATE_BEGIN_ARGS(SNiagaraTimeline) :
+	_Emitter(nullptr)
+	{
+	}
+	SLATE_ARGUMENT(TSharedPtr<FNiagaraSimulation>, Emitter)
+		SLATE_ARGUMENT(FNiagaraEffectInstance*, EffectInstance)
+		SLATE_ARGUMENT(UNiagaraEffect*, Effect)
+		SLATE_END_ARGS()
+
+	virtual void Construct(const FArguments& InArgs);
+
+	void SetCurve(UCurveBase *Curve)
+	{
+		CurveEditor->SetCurveOwner(Curve);
+	}
+
+};
+
+
+
 
 
 class SNiagaraEffectEditorWidget : public SCompoundWidget, public FNotifyHook
@@ -403,6 +433,7 @@ private:
 	
 	TSharedPtr< SListView<TSharedPtr<FNiagaraSimulation> > > ListView;
 
+	TSharedPtr< SNiagaraTimeline > TimeLine;
 public:
 	SLATE_BEGIN_ARGS(SNiagaraEffectEditorWidget)
 		: _EffectObj(nullptr)
@@ -441,7 +472,17 @@ public:
 			];
 	}
 
-
+	void OnSelectionChanged( TSharedPtr<FNiagaraSimulation> SelectedItem, ESelectInfo::Type SelType)
+	{
+		if ( SelectedItem.Get() != nullptr )
+		{
+			if (SelectedItem->GetProperties()->ExternalConstants.GetDataConstants().Num())
+			{
+				FNiagaraDataObject *DataObj = SelectedItem->GetProperties()->ExternalConstants.GetDataConstants().CreateConstIterator().Value();
+				TimeLine->SetCurve(static_cast<FNiagaraCurveDataObject*>(DataObj)->GetCurveObject());
+			}
+		}
+	}
 
 	void Construct(const FArguments& InArgs);
 

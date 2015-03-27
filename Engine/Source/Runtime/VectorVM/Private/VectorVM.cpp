@@ -2,7 +2,7 @@
 
 #include "VectorVMPrivate.h"
 #include "ModuleManager.h"
-
+#include <omp.h>
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, VectorVM);
 
@@ -101,6 +101,13 @@ static /*VM_FORCEINLINE*/ const FNiagaraDataObject *DecodeDataObjConstant(FVecto
 	return Obj;
 }
 
+/** Decode a constant from the bytecode. */
+static /*VM_FORCEINLINE*/ FNiagaraDataObject *DecodeWritableDataObjConstant(FVectorVMContext& Context)
+{
+	FNiagaraDataObject* Obj = Context.DataObjConstantTable[*Context.Code++];
+	return Obj;
+}
+
 
 static VM_FORCEINLINE uint8 DecodeSrcOperandTypes(FVectorVMContext& Context)
 {
@@ -133,6 +140,17 @@ struct FDataObjectConstantHandler
 	{}
 	VM_FORCEINLINE const FNiagaraDataObject *Get(){ return Constant; }
 };
+
+/** Handles reading of a data object constant. */
+struct FWritableDataObjectConstantHandler
+{
+	FNiagaraDataObject *Constant;
+	FWritableDataObjectConstantHandler(FVectorVMContext& Context)
+		: Constant(DecodeWritableDataObjConstant(Context))
+	{}
+	VM_FORCEINLINE FNiagaraDataObject *Get(){ return Constant; }
+};
+
 
 /** Handles reading of a register, advancing the pointer with each read. */
 struct FRegisterHandler
@@ -245,6 +263,25 @@ struct TBinaryVectorKernelData
 		switch (SrcOpTypes)
 		{
 		case SRCOP_RRRB:	VectorBinaryLoop<Kernel, FDataObjectConstantHandler, FRegisterHandler>(Context, Dst, NumVectors); break;
+		default: check(0); break;
+		};
+	}
+};
+
+
+
+/** Base class of Vector kernels with 2 operands, one of which can be a data object. */
+template <typename Kernel>
+struct TTrinaryVectorKernelData
+{
+	static void Exec(FVectorVMContext& Context)
+	{
+		VectorRegister* RESTRICT Dst = DecodeRegister(Context);
+		uint32 SrcOpTypes = DecodeSrcOperandTypes(Context);
+		int32 NumVectors = Context.NumVectors;
+		switch (SrcOpTypes)
+		{
+		case SRCOP_RRRB:	VectorTrinaryLoop<Kernel, FWritableDataObjectConstantHandler, FRegisterHandler, FRegisterHandler>(Context, Dst, NumVectors); break;
 		default: check(0); break;
 		};
 	}
@@ -377,12 +414,7 @@ struct FVectorKernelSqrt : public TUnaryVectorKernel<FVectorKernelSqrt>
 	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst,VectorRegister Src0)
 	{
 		// TODO: Need a SIMD sqrt!
-		float* RESTRICT FloatDst = reinterpret_cast<float* RESTRICT>(Dst);
-		float const* FloatSrc0 = reinterpret_cast<float const*>(&Src0);
-		FloatDst[0] = FMath::Sqrt(FloatSrc0[0]);
-		FloatDst[1] = FMath::Sqrt(FloatSrc0[1]);
-		FloatDst[2] = FMath::Sqrt(FloatSrc0[2]);
-		FloatDst[3] = FMath::Sqrt(FloatSrc0[3]);
+		*Dst = VectorReciprocal(VectorReciprocalSqrt(Src0));
 	}
 };
 
@@ -562,7 +594,21 @@ struct FVectorKernelSample : public TBinaryVectorKernelData<FVectorKernelSample>
 		if (Src0)
 		{
 			float const* FloatSrc1 = reinterpret_cast<float const*>(&Src1);
-			FVector4 Tmp = Src0->Sample(FloatSrc1[0]);
+			FVector4 Tmp = Src0->Sample(FVector4(FloatSrc1[0], FloatSrc1[1], FloatSrc1[2], FloatSrc1[3]));
+			*Dst = VectorLoad(&Tmp);
+		}
+	}
+};
+
+struct FVectorKernelBufferWrite : public TTrinaryVectorKernelData<FVectorKernelBufferWrite>
+{
+	static void FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, FNiagaraDataObject *Src0, VectorRegister Src1, VectorRegister Src2)
+	{
+		if (Src0)
+		{
+			float const* FloatSrc1 = reinterpret_cast<float const*>(&Src1);	// Coords
+			float const* FloatSrc2 = reinterpret_cast<float const*>(&Src2);	// Value
+			FVector4 Tmp = Src0->Write(FVector4(FloatSrc1[0], FloatSrc1[1], FloatSrc1[2], FloatSrc1[3]), FVector4(FloatSrc2[0], FloatSrc2[1], FloatSrc2[2], FloatSrc2[3]));
 			*Dst = VectorLoad(&Tmp);
 		}
 	}
@@ -855,6 +901,7 @@ void VectorVM::Exec(
 			case EOp::composew: FVectorKernelCompose<3, 3, 3, 3>::Exec(Context); break;
 			case EOp::lessthan: FVectorKernelLessThan::Exec(Context); break;
 			case EOp::sample: FVectorKernelSample::Exec(Context); break;
+			case EOp::bufferwrite: FVectorKernelBufferWrite::Exec(Context); break;
 			case EOp::output: FVectorKernelOutput::Exec(Context); break;
 
 			// Execution always terminates with a "done" opcode.

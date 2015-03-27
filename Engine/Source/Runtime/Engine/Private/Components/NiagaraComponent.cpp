@@ -155,6 +155,7 @@ void UNiagaraComponent::TickComponent(float DeltaSeconds, enum ELevelTick TickTy
 		static FNiagaraVariableInfo Const_Zero(TEXT("ZERO"), ENiagaraDataType::Vector);
 		static FNiagaraVariableInfo Const_DeltaTime(TEXT("Delta Time"), ENiagaraDataType::Vector);
 		static FNiagaraVariableInfo Const_EmitterPos(TEXT("Emitter Position"), ENiagaraDataType::Vector);
+		static FNiagaraVariableInfo Const_EmitterAge(TEXT("Emitter Age"), ENiagaraDataType::Vector);
 		static FNiagaraVariableInfo Const_EmitterX(TEXT("Emitter X Axis"), ENiagaraDataType::Vector);
 		static FNiagaraVariableInfo Const_EmitterY(TEXT("Emitter Y Axis"), ENiagaraDataType::Vector);
 		static FNiagaraVariableInfo Const_EmitterZ(TEXT("Emitter Z Axis"), ENiagaraDataType::Vector);
@@ -300,6 +301,7 @@ const TArray<FNiagaraVariableInfo>& UNiagaraComponent::GetSystemConstants()
 		static FNiagaraVariableInfo Const_Zero(TEXT("ZERO"), ENiagaraDataType::Vector);
 		static FNiagaraVariableInfo Const_DeltaTime(TEXT("Delta Time"), ENiagaraDataType::Vector);
 		static FNiagaraVariableInfo Const_EmitterPos(TEXT("Emitter Position"), ENiagaraDataType::Vector);
+		static FNiagaraVariableInfo Const_EmitterAge(TEXT("Emitter Age"), ENiagaraDataType::Vector);
 		static FNiagaraVariableInfo Const_EmitterX(TEXT("Emitter X Axis"), ENiagaraDataType::Vector);
 		static FNiagaraVariableInfo Const_EmitterY(TEXT("Emitter Y Axis"), ENiagaraDataType::Vector);
 		static FNiagaraVariableInfo Const_EmitterZ(TEXT("Emitter Z Axis"), ENiagaraDataType::Vector);
@@ -307,7 +309,7 @@ const TArray<FNiagaraVariableInfo>& UNiagaraComponent::GetSystemConstants()
 		SystemConstants.Add(Const_Zero);
 		SystemConstants.Add(Const_DeltaTime);
 		SystemConstants.Add(Const_EmitterPos);
-		SystemConstants.Add(Const_EmitterPos);
+		SystemConstants.Add(Const_EmitterAge);
 		SystemConstants.Add(Const_EmitterX);
 		SystemConstants.Add(Const_EmitterY);
 		SystemConstants.Add(Const_EmitterZ);

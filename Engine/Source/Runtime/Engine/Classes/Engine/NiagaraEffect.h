@@ -132,13 +132,20 @@ public:
 
 	void Tick(float DeltaSeconds)
 	{
+		Constants.SetOrAdd(FName(TEXT("EffectGrid")), &VolumeGrid); 
+
 		// pass the constants down to the emitter
 		// TODO: should probably just pass a pointer to the table
+		FBox EffectBounds;
+		EffectBounds.Init();
+
 		for (TSharedPtr<FNiagaraSimulation>&it : Emitters)
 		{
 			it->SetConstants(Constants);
 			it->GetConstants().Merge(it->GetProperties()->ExternalConstants);
 			it->Tick(DeltaSeconds);
+
+			EffectBounds += it->GetEffectRenderer()->GetBounds();
 		}
 	}
 
@@ -169,5 +176,6 @@ private:
 
 	TArray< TSharedPtr<FNiagaraSimulation> > Emitters;
 
+	FNiagaraSparseVolumeDataObject VolumeGrid;
 
 };

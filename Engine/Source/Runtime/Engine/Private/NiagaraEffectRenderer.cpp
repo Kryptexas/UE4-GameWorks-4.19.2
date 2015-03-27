@@ -215,12 +215,13 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererSprites::GenerateVertexData(const 
 	SCOPE_CYCLE_COUNTER(STAT_NiagaraGenSpriteVertexData);
 
 	SimpleTimer VertexDataTimer;
+	FVector MaxSize;
 
 	FNiagaraDynamicDataSprites *DynamicData = new FNiagaraDynamicDataSprites;
 	TArray<FParticleSpriteVertex>& RenderData = DynamicData->VertexData;
 
 	RenderData.Reset(Data.GetNumParticles());
-	//CachedBounds.Init();
+	CachedBounds.Init();
 
 	const FVector4 *PosPtr = Data.GetAttributeData(FNiagaraVariableInfo(FName(TEXT("Position")), ENiagaraDataType::Vector));
 	const FVector4 *ColPtr = Data.GetAttributeData(FNiagaraVariableInfo(FName(TEXT("Color")), ENiagaraDataType::Vector));
@@ -257,10 +258,10 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererSprites::GenerateVertexData(const 
 		FPlatformMisc::Prefetch(RotPtr + ParticleIndex + 1);
 		FPlatformMisc::Prefetch(ColPtr + ParticleIndex + 1);		
 		FPlatformMisc::Prefetch(AgePtr + ParticleIndex + 1);
-
-		//CachedBounds += NewVertex.Position;
+		MaxSize = MaxSize.ComponentMax(FVector(NewVertex.Size.GetMax()));
+		CachedBounds += NewVertex.Position;
 	}
-	//CachedBounds.ExpandBy(MaxSize);
+	CachedBounds.ExpandBy(MaxSize);
 
 	CPUTimeMS = VertexDataTimer.GetElapsedMilliseconds();
 

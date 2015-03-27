@@ -11,7 +11,8 @@
 class FNiagaraDataObject
 {
 public:
-	virtual FVector4 Sample(float InTime) const = 0;
+	virtual FVector4 Sample(FVector4 InCoords) const = 0;
+	virtual FVector4 Write(FVector4 InCoords, FVector4 Value) = 0;
 };
 
 /* Curve object; encapsulates a curve for the VectorVM
@@ -25,7 +26,7 @@ public:
 	{
 	}
 
-	virtual FVector4 Sample(float InTime) const override
+	virtual FVector4 Sample(FVector4 InCoords) const override
 	{
 		// commented out for the time being; until Niagara is in its own module, we can't depend on curve objects here
 		// because they're part of engine
@@ -34,8 +35,53 @@ public:
 		return FVector4(1.0f, 0.0f, 0.0f, 1.0f);
 	}
 
+	virtual FVector4 Write(FVector4 InCoords, FVector4 Value) override
+	{
+		return FVector4(1.0f, 0.0f, 0.0f, 1.0f);
+	}
+
 	UCurveVector *GetCurveObject()	{ return CurveObj; }
 	void SetCurveObject(UCurveVector *InCurve)	{ CurveObj = InCurve; }
+};
+
+
+/* Curve object; encapsulates sparse volumetric data for the VectorVM
+*/
+class FNiagaraSparseVolumeDataObject : public FNiagaraDataObject
+{
+private:
+	TArray<FVector4> Data;
+public:
+	FNiagaraSparseVolumeDataObject()
+	{
+		Data.AddZeroed(32768);
+	}
+
+	uint32 MakeHash(FVector4 Coords) const
+	{
+		const uint32 P1 = 73856093; // some large primes
+		const uint32 P2 = 19349663;
+		const uint32 P3 = 83492791;
+		Coords += FVector4(500.0f, 500.0f, 500.0f, 500.0f);
+		Coords *= 0.02f;
+		Coords = FVector4(FMath::Max(Coords.X, 0.0f), FMath::Max(Coords.Y, 0.0f), FMath::Max(Coords.Z, 0.0f), FMath::Max(Coords.W, 0.0f));
+		int N = (P1*static_cast<uint32>(Coords.X)) ^ (P2*static_cast<uint32>(Coords.Y)) ^ (P3*static_cast<uint32>(Coords.Z));
+		N %= 32768;
+		return FMath::Clamp(N, 0, 32768);
+	}
+
+	virtual FVector4 Sample(FVector4 Coords) const override
+	{
+		int32 Index = MakeHash(Coords);
+		Index = FMath::Clamp(Index, 0, Data.Num() - 1);
+		return Data[Index];
+	}
+
+	virtual FVector4 Write(FVector4 InCoords, FVector4 Value) override
+	{
+		Data[MakeHash(InCoords)] = Value;
+		return Value;
+	}
 };
 
 
@@ -117,6 +163,8 @@ namespace VectorVM
 			output,
 			lessthan,
 			sample,
+			bufferwrite,
+			eventbroadcast,
 			NumOpcodes
 	};
 

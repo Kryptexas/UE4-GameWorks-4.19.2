@@ -63,6 +63,8 @@
 	NiagaraOp(Inverse)\
 	NiagaraOp(LessThan)\
 	NiagaraOp(Sample)\
+	NiagaraOp(Write)\
+	NiagaraOp(EventBroadcast)\
 
 enum class ENiagaraExpressionResultLocation
 {

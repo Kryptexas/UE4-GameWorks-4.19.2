@@ -115,6 +115,11 @@ public:
 		}
 	}
 
+	const TMap<FNiagaraVariableInfo, class FNiagaraDataObject*> &GetDataConstants()	const
+	{ 
+		return DataConstants; 
+	}
+
 
 	virtual bool Serialize(FArchive &Ar)
 	{
