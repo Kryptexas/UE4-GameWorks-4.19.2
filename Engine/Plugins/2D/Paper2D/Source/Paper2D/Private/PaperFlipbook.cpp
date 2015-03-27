@@ -148,7 +148,7 @@ FBoxSphereBounds UPaperFlipbook::GetRenderBounds() const
 
 bool UPaperFlipbook::FindSocket(FName SocketName, int32 KeyFrameIndex, FTransform& OutLocalTransform)
 {
-	if (KeyFrames.IsValidIndex(KeyFrameIndex))
+	if (KeyFrames.IsValidIndex(KeyFrameIndex) && (SocketName != NAME_None))
 	{
 		if (UPaperSprite* SpriteFrame = KeyFrames[KeyFrameIndex].Sprite)
 		{
