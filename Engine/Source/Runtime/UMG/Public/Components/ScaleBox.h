@@ -27,11 +27,16 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Stretching")
 	TEnumAsByte<EStretch::Type> Stretch;
 
+	/** Optional scale that can be specified by the User. Isn't used if Stretch != EStretch::UserSpecified */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Stretching")
+	float UserSpecifiedScale;
+
 public:
 
 	//TODO UMG Add Set Stretch
 	//TODO UMG Add Set Stretch DIrection
-
+	//TODO UMG Add Set UserSpecifiedScale
+	
 public:
 
 	// UWidget interface

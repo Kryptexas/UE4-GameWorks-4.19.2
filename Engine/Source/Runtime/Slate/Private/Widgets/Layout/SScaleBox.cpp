@@ -13,6 +13,7 @@ void SScaleBox::Construct( const SScaleBox::FArguments& InArgs )
 {
 	Stretch = InArgs._Stretch;
 	StretchDirection = InArgs._StretchDirection;
+	UserSpecifiedScale = InArgs._UserSpecifiedScale;
 
 	ChildSlot
 	.HAlign(InArgs._HAlign)
@@ -51,6 +52,9 @@ void SScaleBox::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedC
 				break;
 			case EStretch::ScaleToFill:
 				FinalScale = FMath::Max(AllottedGeometry.Size.X / DesiredSize.X, AllottedGeometry.Size.Y / DesiredSize.Y);
+				break;
+			case EStretch::UserSpecified:
+				FinalScale = UserSpecifiedScale.Get(1.0f);
 				break;
 			}
 
@@ -117,4 +121,9 @@ void SScaleBox::SetStretchDirection(EStretchDirection::Type InStretchDirection)
 void SScaleBox::SetStretch(EStretch::Type InStretch)
 {
 	Stretch = InStretch;
+}
+
+void SScaleBox::SetUserSpecifiedScale(float InUserSpecifiedScale)
+{
+	UserSpecifiedScale = InUserSpecifiedScale;
 }
