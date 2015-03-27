@@ -63,6 +63,7 @@ APlayerController::APlayerController(const FObjectInitializer& ObjectInitializer
 	LastRetryPlayerTime = 0.f;
 	DefaultMouseCursor = EMouseCursor::Default;
 	DefaultClickTraceChannel = ECollisionChannel::ECC_Visibility;
+	HitResultTraceDistance = 100000.f;
 
 	bCinemaDisableInputMove = false;
 	bCinemaDisableInputLook = false;
@@ -1948,7 +1949,7 @@ bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosit
 			FVector WorldDirection;
 			SceneView->DeprojectFVector2D(ScreenPosition, WorldOrigin, WorldDirection);
 
-			return GetWorld()->LineTraceSingleByChannel(HitResult, WorldOrigin, WorldOrigin + WorldDirection * 100000.f, TraceChannel, CollisionQueryParams);
+			return GetWorld()->LineTraceSingleByChannel(HitResult, WorldOrigin, WorldOrigin + WorldDirection * HitResultTraceDistance, TraceChannel, CollisionQueryParams);
 		}
 	}
 
@@ -2000,7 +2001,7 @@ bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosit
 
 			FCollisionObjectQueryParams ObjParam(ObjectTypes);
 			
-			return GetWorld()->LineTraceSingleByObjectType(HitResult, WorldOrigin, WorldOrigin + WorldDirection * 100000.f, ObjParam, FCollisionQueryParams("ClickableTrace", bTraceComplex));
+			return GetWorld()->LineTraceSingleByObjectType(HitResult, WorldOrigin, WorldOrigin + WorldDirection * HitResultTraceDistance, ObjParam, FCollisionQueryParams("ClickableTrace", bTraceComplex));
 		}
 	}
 
