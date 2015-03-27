@@ -759,7 +759,9 @@ void FLandscapeEditorDetailCustomization_NewLandscape::OnNewLandscapeModeChanged
 FReply FLandscapeEditorDetailCustomization_NewLandscape::OnCreateButtonClicked()
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode != NULL)
+	if (LandscapeEdMode != nullptr && 
+		LandscapeEdMode->GetWorld() != nullptr && 
+		LandscapeEdMode->GetWorld()->GetCurrentLevel()->bIsVisible)
 	{
 		FScopedTransaction Transaction(LOCTEXT("Undo", "Creating New Landscape"));
 
