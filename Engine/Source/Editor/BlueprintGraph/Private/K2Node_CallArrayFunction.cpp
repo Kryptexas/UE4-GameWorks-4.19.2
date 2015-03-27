@@ -39,8 +39,14 @@ void UK2Node_CallArrayFunction::AllocateDefaultPins()
 
 void UK2Node_CallArrayFunction::PostReconstructNode()
 {
-	for (UEdGraphPin* Pin : Pins)
+	// cannot use a ranged for here, as PinConnectionListChanged() might end up 
+	// collapsing split pins (subtracting elements from Pins)
+	// 
+	// @TODO: this breaks connections to split outputs (by collapsing them), 
+	//        that is obviously a bug
+	for (int32 PinIndex = 0; PinIndex < Pins.Num(); ++PinIndex)
 	{
+		UEdGraphPin* Pin = Pins[PinIndex];
 		if (Pin->LinkedTo.Num() > 0)
 		{
 			PinConnectionListChanged(Pin);
