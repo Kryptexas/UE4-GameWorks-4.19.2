@@ -3507,7 +3507,7 @@ ENGINE_API const FString GetMapNameStatic()
 	{
 		Retval = ContextToUse->World()->GetMapName();
 	}
-	else if ( Internal::GObjInitialized )
+	else if( UObjectInitialized() )
 	{
 		Retval = appGetStartupMap( FCommandLine::Get() );
 	}
