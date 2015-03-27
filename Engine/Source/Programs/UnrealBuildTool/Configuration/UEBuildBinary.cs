@@ -41,7 +41,7 @@ namespace UnrealBuildTool
 		public string[] OutputFilePaths;
 
 		/// <summary>
-		/// Returns the OutputFilePath is there is only one entry in OutputFilePaths
+		/// Returns the OutputFilePath if there is only one entry in OutputFilePaths
 		/// </summary>
 		public string OutputFilePath
 		{
@@ -61,17 +61,17 @@ namespace UnrealBuildTool
 		public string[] OriginalOutputFilePaths;
 
 		/// <summary>
-		/// Returns the OutputFilePath is there is only one entry in OutputFilePaths
+		/// Returns the OriginalOutputFilePath if there is only one entry in OriginalOutputFilePaths
 		/// </summary>
 		public string OriginalOutputFilePath
 		{
 			get
 			{
-				if (OutputFilePaths.Length != 1)
+				if (OriginalOutputFilePaths.Length != 1)
 				{
-					throw new BuildException("Attempted to use UEBuildBinaryConfiguration.OutputFilePath property, but there are multiple (or no) OutputFilePaths. You need to handle multiple in the code that called this (size = {0})", OutputFilePaths.Length);
+					throw new BuildException("Attempted to use UEBuildBinaryConfiguration.OriginalOutputFilePath property, but there are multiple (or no) OriginalOutputFilePaths. You need to handle multiple in the code that called this (size = {0})", OriginalOutputFilePaths.Length);
 				}
-				return OutputFilePaths[0];
+				return OriginalOutputFilePaths[0];
 			}
 		}
 
@@ -303,6 +303,51 @@ namespace UnrealBuildTool
 		public static string GetAdditionalConsoleAppPath(string BinaryPath)
 		{
 			return Path.Combine(Path.GetDirectoryName(BinaryPath), Path.GetFileNameWithoutExtension(BinaryPath) + "-Cmd" + Path.GetExtension(BinaryPath));
+		}
+
+		/**
+		 * Checks whether the binary output paths are appropriate for the distribution
+		 * level of its direct module dependencies
+		 */
+		public void CheckOutputDistributionLevelAgainstDependencies()
+		{
+			// Find maximum distribution level of its direct dependencies
+			var DistributionLevel = UEBuildModuleDistribution.Public;
+			var DependantModules = GetAllDependencyModules(false, false);
+			List<string>[] DependantModuleNames = new List<string>[Enum.GetNames(typeof(UEBuildModuleDistribution)).Length];
+			foreach (var Module in DependantModules)
+			{
+				if (Module.DistributionLevel != UEBuildModuleDistribution.Public)
+				{
+					// Make a list of non-public dependant modules so that exception
+					// message can be more helpful
+					int DistributionIndex = (int)Module.DistributionLevel;
+					if (DependantModuleNames[DistributionIndex] == null)
+					{
+						DependantModuleNames[DistributionIndex] = new List<string>();
+					}
+					DependantModuleNames[DistributionIndex].Add(Module.Name);
+
+					DistributionLevel = Utils.Max(DistributionLevel, Module.DistributionLevel);
+				}
+			}
+
+			// Check Output Paths if dependencies shouldn't be distributed to everyone
+			if (DistributionLevel != UEBuildModuleDistribution.Public)
+			{
+				foreach (var OutputFilePath in Config.OutputFilePaths)
+				{
+					var OutputDistributionLevel = UEBuildModule.GetModuleDistributionLevelBasedOnLocation(OutputFilePath);
+
+					// Throw exception if output path is not appropriate
+					if (OutputDistributionLevel < DistributionLevel)
+					{
+						var JoinedModuleNames = String.Join(",", DependantModuleNames[(int)DistributionLevel]);
+						throw new BuildException("Output file \"{0}\" has distribution level of \"{1}\" but has direct dependencies on modules with distribution level of \"{2}\" ({3}).\nEither change to dynamic dependencies, set BinariesSubFolder/ExeBinariesSubFolder to \"{2}\" or set bOutputPubliclyDistributable to true in the target.cs file.",
+							OutputFilePath, OutputDistributionLevel.ToString(), DistributionLevel.ToString(), JoinedModuleNames);
+					}
+				}
+			}
 		}
 	};
 
@@ -758,7 +803,7 @@ namespace UnrealBuildTool
 
 			Action LinkAction = new Action(ActionType.Compile);
 			LinkAction.WorkingDirectory = Path.GetFullPath(".");
-			LinkAction.CommandPath = System.IO.Path.Combine(LinkAction.WorkingDirectory, @"..", @"Binaries", @"Win32", @"UnrealCodeAnalyzer.exe");
+			LinkAction.CommandPath = System.IO.Path.Combine(LinkAction.WorkingDirectory, @"..", @"Binaries", @"Win32", @"NotForLicensees", @"UnrealCodeAnalyzer.exe");
 			LinkAction.bIsVCCompiler = false;
 			LinkAction.ProducedItems.Add(OutputFile);
 			LinkAction.PrerequisiteItems.AddRange(BinaryLinkEnvironment.InputFiles);

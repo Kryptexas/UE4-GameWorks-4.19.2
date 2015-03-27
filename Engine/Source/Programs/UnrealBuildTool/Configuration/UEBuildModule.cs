@@ -29,6 +29,25 @@ namespace UnrealBuildTool
 			return ModuleType != UEBuildModuleType.Game;
 		}
 	}
+	/**
+	 * Distribution level of module.
+	 * Note: The name of each entry is used to search for/create folders
+	 */
+	public enum UEBuildModuleDistribution
+	{
+		/// Binaries can be distributed to everyone
+		Public,
+
+		/// Can be used by UE4 but not required
+		CarefullyRedist,
+
+		/// Epic Employees and Contractors
+		NotForLicensees,
+
+		/// Epic Employees only
+		NoRedist,
+	}
+
 	
 	/** A unit of code compilation and linking. */
 	public abstract class UEBuildModule
@@ -98,6 +117,61 @@ namespace UnrealBuildTool
 			return ModuleType;
 		}
 
+		/**
+		 * Checks what distribution level a particular path should have by checking for key folders anywhere in it
+		 */
+		public static UEBuildModuleDistribution GetModuleDistributionLevelBasedOnLocation(string FilePath)
+		{
+			// Get full path to ensure all folder separators are the same
+			FilePath = Path.GetFullPath(FilePath);
+
+			// Check from highest to lowest (don't actually need to check 'Everyone')
+			for (var DistributionLevel = UEBuildModuleDistribution.NoRedist; DistributionLevel > UEBuildModuleDistribution.Public; DistributionLevel--)
+			{
+				var DistributionFolderName = String.Format("{0}{1}{0}", Path.DirectorySeparatorChar, DistributionLevel.ToString());
+				if (FilePath.IndexOf(DistributionFolderName, StringComparison.InvariantCultureIgnoreCase) >= 0)
+				{
+					return DistributionLevel;
+				}
+
+				if (DistributionLevel == UEBuildModuleDistribution.NotForLicensees)
+				{
+					// Extra checks for PS4 and XboxOne folders, which are equivalent to NotForLicensees
+					var PS4FolderName = String.Format("{0}ps4{0}", Path.DirectorySeparatorChar);
+					var XboxFolderName = String.Format("{0}xboxone{0}", Path.DirectorySeparatorChar);
+					if (FilePath.IndexOf(PS4FolderName, StringComparison.InvariantCultureIgnoreCase) >= 0
+					|| FilePath.IndexOf(XboxFolderName, StringComparison.InvariantCultureIgnoreCase) >= 0)
+					{
+						return UEBuildModuleDistribution.NotForLicensees;
+					}
+				}
+			}
+
+			return UEBuildModuleDistribution.Public;
+		}
+
+		/**
+		 * Determines the distribution level of a module based on its directory and includes.
+		 */
+		private void SetupModuleDistributionLevel()
+		{
+			List<string> PathsToCheck = new List<string>();
+			PathsToCheck.Add(ModuleDirectory);
+			PathsToCheck.AddRange(PublicIncludePaths);
+			PathsToCheck.AddRange(PrivateIncludePaths);
+			// Not sure if these two are necessary as paths will usually be in basic includes too
+			PathsToCheck.AddRange(PublicSystemIncludePaths);
+			PathsToCheck.AddRange(PublicLibraryPaths);
+
+			DistributionLevel = UEBuildModuleDistribution.Public;
+
+			// Keep checking as long as we haven't reached the maximum level
+			for (int PathIndex = 0; PathIndex < PathsToCheck.Count && DistributionLevel != UEBuildModuleDistribution.NoRedist; ++PathIndex)
+			{
+				DistributionLevel = Utils.Max(DistributionLevel, UEBuildModule.GetModuleDistributionLevelBasedOnLocation(PathsToCheck[PathIndex]));
+			}
+		}
+
 		/** Converts an optional string list parameter to a well-defined hash set. */
 		protected static HashSet<string> HashSetFromOptionalEnumerableStringParameter(IEnumerable<string> InEnumerableStrings)
 		{
@@ -112,6 +186,9 @@ namespace UnrealBuildTool
 
 		/** The type of module being built. Used to switch between debug/development and precompiled/source configurations. */
 		public UEBuildModuleType Type;
+
+		/** The distribution level of the module being built. Used to check where build products are placed. */
+		public UEBuildModuleDistribution DistributionLevel;
 
 		/** Path to the module directory */
 		public readonly string ModuleDirectory;
@@ -233,6 +310,8 @@ namespace UnrealBuildTool
 			DynamicallyLoadedModuleNames = HashSetFromOptionalEnumerableStringParameter( InDynamicallyLoadedModuleNames );
             PlatformSpecificDynamicallyLoadedModuleNames = HashSetFromOptionalEnumerableStringParameter(InPlatformSpecificDynamicallyLoadedModuleNames);
 			IsRedistributableOverride = InIsRedistributableOverride;
+
+			SetupModuleDistributionLevel();
 
 			Target.RegisterModule(this);
 		}

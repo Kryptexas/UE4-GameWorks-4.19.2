@@ -1785,6 +1785,15 @@ namespace UnrealBuildTool
 				}
 			}
 
+			if (ShouldCheckOutputDistributionLevel())
+			{
+				// Check the distribution level of all binaries based on the dependencies they have
+				foreach (var Binary in AppBinaries)
+				{
+					Binary.CheckOutputDistributionLevelAgainstDependencies();
+				}
+			}
+
 			return SpecialRocketLibFilesThatAreBuildProducts;
 		}
 
@@ -2456,7 +2465,7 @@ namespace UnrealBuildTool
 			}
 			
 			string ModuleBinariesSubDir = "";
-            if (BinaryType == UEBuildBinaryType.DynamicLinkLibrary && (string.IsNullOrEmpty(ModuleName) == false))
+			if ((BinaryType == UEBuildBinaryType.DynamicLinkLibrary || BinaryType == UEBuildBinaryType.StaticLibrary) && (string.IsNullOrEmpty(ModuleName) == false))
 			{
 				// Allow for modules to specify sub-folders in the Binaries folder
 				var RulesFilename = RulesCompiler.GetModuleFilename(ModuleName);
@@ -3354,6 +3363,24 @@ namespace UnrealBuildTool
 			}
 
 			return FilteredFileItems;
+		}
+
+		/// <summary>
+		/// Determines whether we should check binary output paths for this target are
+		/// appropriate for the distribution level of their direct module dependencies
+		/// </summary>
+		private bool ShouldCheckOutputDistributionLevel()
+		{
+			if (Rules != null)
+			{
+				// We don't want to check this for true game projects (but do want to include UE4Game)
+				bool bIsUProjectGame = UnrealBuildTool.HasUProjectFile() && Rules.Type == TargetRules.TargetType.Game;
+				if (!bIsUProjectGame && !Rules.bOutputPubliclyDistributable)
+				{
+					return true;
+				}
+			}
+			return false;
 		}
 	}
 }

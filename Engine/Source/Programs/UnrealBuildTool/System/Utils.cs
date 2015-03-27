@@ -894,6 +894,18 @@ namespace UnrealBuildTool
 				return Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
 			}
 		}
+
+		/** Helper function to get the minimum of two comparable objects */
+		public static T Min<T>(T a, T b) where T : IComparable
+		{
+			return a.CompareTo(b) < 0 ? a : b;
+		}
+
+		/** Helper function to get the maximum of two comparable objects */
+		public static T Max<T>(T a, T b) where T : IComparable
+		{
+			return a.CompareTo(b) > 0 ? a : b;
+		}
 	}
 
 	/// <summary>

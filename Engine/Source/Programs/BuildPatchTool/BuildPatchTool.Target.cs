@@ -8,6 +8,7 @@ public class BuildPatchToolTarget : TargetRules
 	public BuildPatchToolTarget( TargetInfo Target )
 	{
 		Type = TargetType.Program;
+		bOutputPubliclyDistributable = true;
 	}
 
 	//

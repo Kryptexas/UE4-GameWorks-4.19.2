@@ -432,6 +432,13 @@ namespace UnrealBuildTool
         public bool bDebugBuildsActuallyUseDebugCRT = false;
 
 		/// <summary>
+		/// Whether the output from this target can be publicly distributed, even if it has
+		/// dependencies on modules that are not (i.e. CarefullyRedist, NotForLicensees, NoRedist).
+		/// This should be used when you plan to release binaries but not source.
+		/// </summary>
+		public bool bOutputPubliclyDistributable = false;
+
+		/// <summary>
 		/// A list of additional plugins which need to be built for this target. Game and editor targets can use the EnabledPlugins 
 		/// setting in their config files to control this.
 		/// </summary>
