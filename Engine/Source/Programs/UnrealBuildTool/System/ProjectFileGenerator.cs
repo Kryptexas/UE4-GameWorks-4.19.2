@@ -141,6 +141,9 @@ namespace UnrealBuildTool
 		/// True if all documentation languages should be included in generated projects, otherwise only "INT" will be included
 		bool bAllDocumentationLanguages = false;
 
+		/// True if build targets should pass the -useprecompiledmodules argument
+		public static bool bUsePrecompiledModules = false;
+
 		/// True if we should include engine source in the generated solution
 		protected bool IncludeEngineSource = true;
 
@@ -755,6 +758,10 @@ namespace UnrealBuildTool
 
 						case "-ALLLANGUAGES":
 							bAllDocumentationLanguages = true;
+							break;
+
+						case "-USEPRECOMPILEDMODULES":
+							bUsePrecompiledModules = true;
 							break;
 					}
 				}
