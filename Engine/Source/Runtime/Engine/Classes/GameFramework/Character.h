@@ -617,7 +617,7 @@ public:
 	 * @note C++ code should override UCharacterMovementComponent::PhysCustom() instead.
 	 * @see UCharacterMovementComponent::PhysCustom()
 	 */
-	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName= "UpdateCustomMovement"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "UpdateCustomMovement"))
 	void K2_UpdateCustomMovement(float DeltaTime);
 
 	/**
