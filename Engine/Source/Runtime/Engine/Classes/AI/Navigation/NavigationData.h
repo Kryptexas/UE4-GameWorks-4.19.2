@@ -480,8 +480,8 @@ public:
 	virtual bool SupportsRuntimeGeneration() const;
 	virtual bool SupportsStreaming() const;
 	virtual void OnNavigationBoundsChanged();
-	virtual void OnStreamingLevelAdded(ULevel* InLevel) {};
-	virtual void OnStreamingLevelRemoved(ULevel* InLevel) {};
+	virtual void OnStreamingLevelAdded(ULevel* InLevel, UWorld* InWorld) {};
+	virtual void OnStreamingLevelRemoved(ULevel* InLevel, UWorld* InWorld) {};
 	
 	//----------------------------------------------------------------------//
 	// Generation & data access                                                      

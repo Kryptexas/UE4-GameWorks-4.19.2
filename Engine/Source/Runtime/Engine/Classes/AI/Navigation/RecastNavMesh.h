@@ -694,8 +694,8 @@ public:
 	/** Called on world origin changes **/
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 
-	virtual void OnStreamingLevelAdded(ULevel* InLevel) override;
-	virtual void OnStreamingLevelRemoved(ULevel* InLevel) override;
+	virtual void OnStreamingLevelAdded(ULevel* InLevel, UWorld* InWorld) override;
+	virtual void OnStreamingLevelRemoved(ULevel* InLevel, UWorld* InWorld) override;
 	// End ANavigationData Interface
 
 protected:

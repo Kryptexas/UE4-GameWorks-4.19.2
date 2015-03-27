@@ -619,7 +619,7 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 				{
 					for (ANavigationData* NavData : NavDataSet)
 					{
-						NavData->OnStreamingLevelAdded(Level);
+						NavData->OnStreamingLevelAdded(Level, World);
 					}
 				}
 			}
@@ -3141,7 +3141,7 @@ void UNavigationSystem::OnLevelAddedToWorld(ULevel* InLevel, UWorld* InWorld)
 		{
 			for (ANavigationData* NavData : NavDataSet)
 			{
-				NavData->OnStreamingLevelAdded(InLevel);
+				NavData->OnStreamingLevelAdded(InLevel, InWorld);
 			}
 		}
 	}
@@ -3157,7 +3157,7 @@ void UNavigationSystem::OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld
 		{
 			for (ANavigationData* NavData : NavDataSet)
 			{
-				NavData->OnStreamingLevelRemoved(InLevel);
+				NavData->OnStreamingLevelRemoved(InLevel, InWorld);
 			}
 		}
 	}

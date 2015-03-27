@@ -1550,13 +1550,13 @@ void ARecastNavMesh::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
 	RequestDrawingUpdate();
 }
 
-void ARecastNavMesh::OnStreamingLevelAdded(ULevel* InLevel)
+void ARecastNavMesh::OnStreamingLevelAdded(ULevel* InLevel, UWorld* InWorld)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_RecastNavMesh_OnStreamingLevelAdded);
 	
 	bWantsUpdate = true;
 
-	if (SupportsStreaming() && GetWorld()->IsGameWorld())
+	if (SupportsStreaming() && InWorld->IsGameWorld())
 	{
 		URecastNavMeshDataChunk* NavDataChunk = GetNavigationDataChunk(InLevel);
 		if (NavDataChunk)
@@ -1571,11 +1571,11 @@ void ARecastNavMesh::OnStreamingLevelAdded(ULevel* InLevel)
 	}
 }
 
-void ARecastNavMesh::OnStreamingLevelRemoved(ULevel* InLevel)
+void ARecastNavMesh::OnStreamingLevelRemoved(ULevel* InLevel, UWorld* InWorld)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_RecastNavMesh_OnStreamingLevelRemoved);
 	
-	if (SupportsStreaming() && GetWorld()->IsGameWorld())
+	if (SupportsStreaming() && InWorld->IsGameWorld())
 	{
 		URecastNavMeshDataChunk* NavDataChunk = GetNavigationDataChunk(InLevel);
 		if (NavDataChunk)
