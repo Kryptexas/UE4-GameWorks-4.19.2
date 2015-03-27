@@ -7,6 +7,7 @@
 #include "CorePrivatePCH.h"
 #include "LinuxPlatformMisc.h"
 #include "LinuxApplication.h"
+#include "LinuxPlatformCrashContext.h"
 
 #include <sys/sysinfo.h>
 #include <sched.h>
