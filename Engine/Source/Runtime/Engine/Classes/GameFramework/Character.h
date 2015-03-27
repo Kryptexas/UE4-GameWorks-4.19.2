@@ -612,9 +612,13 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "OnMovementModeChanged"))
 	void K2_OnMovementModeChanged(EMovementMode PrevMovementMode, EMovementMode NewMovementMode, uint8 PrevCustomMode, uint8 NewCustomMode);
 
-	/** Event for implementing custom character movement mode. Called by CharacterMovement if MovementMode is set to Custom. */
+	/**
+	 * Event for implementing custom character movement mode. Called by CharacterMovement if MovementMode is set to Custom.
+	 * @note C++ code should override UCharacterMovementComponent::PhysCustom() instead.
+	 * @see UCharacterMovementComponent::PhysCustom()
+	 */
 	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName= "UpdateCustomMovement"))
-	virtual void K2_UpdateCustomMovement(float DeltaTime);
+	void K2_UpdateCustomMovement(float DeltaTime);
 
 	/**
 	 * Event triggered at the end of a CharacterMovementComponent movement update.
