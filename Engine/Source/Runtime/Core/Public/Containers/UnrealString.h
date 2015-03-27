@@ -280,6 +280,17 @@ public:
 	}
 
 	/**
+	 * Empties the string, but doesn't change memory allocation, unless the new size is larger than the current string.
+	 *
+	 * @param NewReservedSize The expected usage size (in characters, not including the terminator) after calling this function.
+	 */
+	FORCEINLINE void Reset(int32 NewReservedSize = 0)
+	{
+		const int32 NewSizeIncludingTerminator = (NewReservedSize > 0) ? (NewReservedSize + 1) : 0;
+		Data.Reset(NewSizeIncludingTerminator);
+	}
+
+	/**
 	 * Remove unallocated empty character space from the end of this string
 	 */
 	FORCEINLINE void Shrink()
