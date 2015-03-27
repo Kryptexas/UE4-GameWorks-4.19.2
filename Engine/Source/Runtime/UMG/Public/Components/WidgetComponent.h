@@ -78,7 +78,7 @@ public:
 	UUserWidget* GetUserWidgetObject() const;
 
 	/** @return List of widgets with their geometry and the cursor position transformed into this Widget component's space. */
-	TArray<FWidgetAndPointer> GetHitWidgetPath( const FHitResult& HitResult, bool bIgnoreEnabledStatus );
+	TArray<FWidgetAndPointer> GetHitWidgetPath( const FHitResult& HitResult, bool bIgnoreEnabledStatus, float CursorRadius = 0.0f );
 
 	/** @return The render target to which the user widget is rendered */
 	UTextureRenderTarget2D* GetRenderTarget() const { return RenderTarget; }
