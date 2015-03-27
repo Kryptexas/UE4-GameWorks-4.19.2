@@ -4825,6 +4825,7 @@ void GetScriptPlugins(TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins)
 			auto GeneratorInterface = FModuleManager::LoadModulePtr<IScriptGeneratorPluginInterface>(*PluginStatus.Name);
 			if (GeneratorInterface)
 			{
+				UE_LOG(LogCompile, Log, TEXT("Detected script generator plugin (%d): %s"), ScriptPlugins.Num(), *PluginStatus.Name);
 				ScriptPlugins.Add(GeneratorInterface);
 			}
 		}
@@ -4862,6 +4863,7 @@ void GetScriptPlugins(TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins)
 		}
 		if (!bSupportedPlugin)
 		{
+			UE_LOG(LogCompile, Log, TEXT("Script generator plugin %d not supported for target: %s"), PluginIndex, *GManifest.TargetName);
 			ScriptPlugins.RemoveAt(PluginIndex);
 		}
 	}
