@@ -881,7 +881,7 @@ private:
 	FScopeLock();
 
 	/** Copy constructor( hidden on purpose). */
-	FScopeLock( FScopeLock* InScopeLock);
+	FScopeLock(const FScopeLock& InScopeLock);
 
 	/** Assignment operator (hidden on purpose). */
 	FScopeLock& operator=( FScopeLock& InScopeLock )

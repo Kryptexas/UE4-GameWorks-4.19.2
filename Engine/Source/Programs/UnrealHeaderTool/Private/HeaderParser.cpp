@@ -2834,7 +2834,7 @@ void FHeaderParser::GetVarType
 			// Struct keyword in front of a struct is legal, we 'consume' it
 			bUnconsumedStructKeyword = false;
 		}
-		else if (UScriptStruct* Struct = FindObject<UScriptStruct>( ANY_PACKAGE, *IdentifierStripped ))
+		else if ( FindObject<UScriptStruct>( ANY_PACKAGE, *IdentifierStripped ) != nullptr)
 		{
 			bHandledType = true;
 

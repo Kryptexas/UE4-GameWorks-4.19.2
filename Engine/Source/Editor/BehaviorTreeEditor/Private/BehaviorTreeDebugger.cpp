@@ -411,11 +411,11 @@ void FBehaviorTreeDebugger::SetCompositeDecoratorFlags(const struct FBehaviorTre
 				Node->bDebuggerMarkSearchFailedTrigger = SearchStep.bDiscardedTrigger;
 				bTriggerOnly = true;
 			}
-			else if (bMatchesNodeIndex)
-			{
-				SearchPathIdx = i;
-				bTriggerOnly = false;
-			}
+		}
+		else if (bMatchesNodeIndex)
+		{
+			SearchPathIdx = i;
+			bTriggerOnly = false;
 		}
 	}
 

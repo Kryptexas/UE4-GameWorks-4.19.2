@@ -520,6 +520,7 @@ struct FXAudioDeviceProperties
 	// These variables are non-static to support multiple audio device instances
 	struct IXAudio2*					XAudio2;
 	struct IXAudio2MasteringVoice*		MasteringVoice;
+	HMODULE								XAudio2Dll;
 
 	// These variables are static because they are common across all audio device instances
 	static int32						NumSpeakers;
@@ -527,6 +528,13 @@ struct FXAudioDeviceProperties
 #if XAUDIO_SUPPORTS_DEVICE_DETAILS
 	static XAUDIO2_DEVICE_DETAILS		DeviceDetails;
 #endif	//XAUDIO_SUPPORTS_DEVICE_DETAILS
+
+	FXAudioDeviceProperties()
+		: XAudio2(nullptr)
+		, MasteringVoice(nullptr)
+		, XAudio2Dll(nullptr)
+	{
+	}
 };
 
 #if XAUDIO_SUPPORTS_DEVICE_DETAILS

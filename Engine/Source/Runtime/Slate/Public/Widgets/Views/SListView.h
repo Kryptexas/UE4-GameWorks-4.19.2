@@ -43,17 +43,6 @@ public:
 	typedef typename TSlateDelegates< ItemType >::FOnMouseButtonDoubleClick FOnMouseButtonDoubleClick;
 
 public:
-
-	class FColumnHeaderSlot
-	{
-	public:
-		FColumnHeaderSlot& operator[]( const TSharedRef< SHeaderRow >& InColumnHeaders )
-		{
-			HeaderRow = InColumnHeaders;
-		}			
-		TSharedPtr<SHeaderRow> HeaderRow;
-	};
-
 	SLATE_BEGIN_ARGS( SListView<ItemType> )
 		: _OnGenerateRow()
 		, _ListItemsSource( static_cast<const TArray<ItemType>*>(nullptr) ) //@todo Slate Syntax: Initializing from nullptr without a cast

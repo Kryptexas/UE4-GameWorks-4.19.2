@@ -948,7 +948,7 @@ EAsyncPackageState::Type FAsyncPackage::FinishObjects()
 	if (!bLoadHasFailed)
 	{
 		// Mark package as having been fully loaded and update load time.
-		if( Linker->LinkerRoot )
+		if (Linker && Linker->LinkerRoot)
 		{
 			Linker->LinkerRoot->MarkAsFullyLoaded();
 			Linker->LinkerRoot->SetLoadTime( FPlatformTime::Seconds() - LoadStartTime );
@@ -964,8 +964,11 @@ EAsyncPackageState::Type FAsyncPackage::FinishObjects()
 		FIOSystem::Get().HintDoneWithFile(Linker->Filename);
 
 	#if WITH_ENGINE
-		// Cancel all texture allocations that haven't been claimed yet.
-		Linker->Summary.TextureAllocations.CancelRemainingAllocations( true );
+		if (Linker != nullptr)
+		{
+			// Cancel all texture allocations that haven't been claimed yet.
+			Linker->Summary.TextureAllocations.CancelRemainingAllocations(true);
+		}
 	#endif		// WITH_ENGINE
 
 		// Flush cache to free memory

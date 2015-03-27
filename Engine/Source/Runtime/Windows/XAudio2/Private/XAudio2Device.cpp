@@ -82,7 +82,18 @@ bool FXAudio2Device::InitializeHardware()
 #if PLATFORM_64BITS
 	// Work around the fact the x64 version of XAudio2_7.dll does not properly ref count
 	// by forcing it to be always loaded
-	LoadLibraryA( "XAudio2_7.dll" );
+
+	// Load the xaudio2 library and keep a handle so we can free it on teardown
+	// Note: windows internally ref-counts the library per call to load library so 
+	// when we call FreeLibrary, it will only free it once the refcount is zero
+	DeviceProperties->XAudio2Dll = LoadLibraryA("XAudio2_7.dll");
+
+	// returning null means we failed to load XAudio2, which means everything will fail
+	if (DeviceProperties->XAudio2Dll == nullptr)
+	{
+		UE_LOG(LogInit, Warning, TEXT("Failed to load XAudio2 dll"));
+		return false;
+	}
 #endif	//PLATFORM_64BITS
 #endif	//PLATFORM_WINDOWS
 
@@ -206,10 +217,20 @@ void FXAudio2Device::TeardownHardware()
 			DeviceProperties->XAudio2->Release();
 			DeviceProperties->XAudio2 = NULL;
 		}
+
+#if PLATFORM_WINDOWS && PLATFORM_64BITS
+		if (DeviceProperties->XAudio2Dll)
+		{
+			if (!FreeLibrary(DeviceProperties->XAudio2Dll))
+			{
+				UE_LOG(LogAudio, Warning, TEXT("Failed to free XAudio2 Dll"));
+			}
+		}
+#endif
+
 		delete DeviceProperties;
 		DeviceProperties = nullptr;
 	}
-
 
 #if PLATFORM_WINDOWS
 	if (bComInitialized)
