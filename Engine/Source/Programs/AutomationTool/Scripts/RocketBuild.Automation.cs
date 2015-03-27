@@ -121,10 +121,10 @@ namespace Rocket
 			}
 		}
 
-		public static List<UnrealTargetPlatform> GetTargetPlatforms(BuildCommand Cmd, UnrealTargetPlatform HostPlatform)
+		public static List<UnrealTargetPlatform> GetTargetPlatforms(GUBP bp, UnrealTargetPlatform HostPlatform)
 		{
 			List<UnrealTargetPlatform> TargetPlatforms = new List<UnrealTargetPlatform>();
-			if(!Cmd.ParseParam("NoPlatforms"))
+			if(!bp.ParseParam("NoPlatforms"))
 			{
 				TargetPlatforms.Add(HostPlatform);
 
@@ -132,22 +132,24 @@ namespace Rocket
 				{
 					TargetPlatforms.Add(UnrealTargetPlatform.Win32);
 				}
-				if(!Cmd.ParseParam("NoAndroid"))
+				if(!bp.ParseParam("NoAndroid"))
 				{
 					TargetPlatforms.Add(UnrealTargetPlatform.Android);
 				}
-				if(!Cmd.ParseParam("NoIOS"))
+				if(!bp.ParseParam("NoIOS"))
 				{
 					TargetPlatforms.Add(UnrealTargetPlatform.IOS);
 				}
-				if(!Cmd.ParseParam("NoLinux") && HostPlatform == UnrealTargetPlatform.Win64)
+				if(!bp.ParseParam("NoLinux") && HostPlatform == UnrealTargetPlatform.Win64)
 				{
 					TargetPlatforms.Add(UnrealTargetPlatform.Linux);
 				}
-				if (!Cmd.ParseParam("NoHTML5") && HostPlatform == UnrealTargetPlatform.Win64)
+				if(!bp.ParseParam("NoHTML5") && HostPlatform == UnrealTargetPlatform.Win64)
 				{
 					TargetPlatforms.Add(UnrealTargetPlatform.HTML5);
 				}
+
+				TargetPlatforms.RemoveAll(x => !bp.ActivePlatforms.Contains(x));
 			}
 			return TargetPlatforms;
 		}
@@ -368,6 +370,28 @@ namespace Rocket
 			CommandUtils.ThreadedCopyFiles(SourceFileNames, TargetFileNames);
 			return TargetFileNames;
 		}
+
+		public static void StripSymbols(UnrealTargetPlatform TargetPlatform, IEnumerable<string> FileNames)
+		{
+			if(TargetPlatform == UnrealTargetPlatform.Win32 || TargetPlatform == UnrealTargetPlatform.Win64)
+			{
+				string PDBCopyPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "MSBuild", "Microsoft", "VisualStudio", "v12.0", "AppxPackage", "PDBCopy.exe");
+				foreach(string FileName in FileNames)
+				{
+					string TempFileName = FileName + ".stripped";
+					CommandUtils.Run(PDBCopyPath, String.Format("{0} {1} -p", CommandUtils.MakePathSafeToUseWithCommandLine(FileName), CommandUtils.MakePathSafeToUseWithCommandLine(TempFileName)));
+					CommandUtils.DeleteFile(FileName);
+					CommandUtils.RenameFile(TempFileName, FileName);
+				}
+			}
+			else
+			{
+				if(FileNames.Any())
+				{
+					throw new AutomationException("Symbol stripping has not been implemented for {0}", TargetPlatform.ToString());
+				}
+			}
+		}
 	}
 
 	public class CopyInstalledEditorNode : CopyNode
@@ -430,6 +454,11 @@ namespace Rocket
 			// Copy everything over and add the result as build products
 			string[] TargetFileNames = CopyFolder(CommandUtils.CmdEnv.LocalRoot, TargetDir, Filter);
 			BuildProducts = new List<string>(TargetFileNames);
+
+			// Strip symbols from all the debug files
+			FileFilter StripFilter = new FileFilter();
+			StripFilter.AddRulesFromFile(RulesFileName, "StripEditor", HostPlatform.ToString());
+			StripSymbols(HostPlatform, StripFilter.ApplyTo(TargetDir, TargetFileNames));
 
 			// Write the default command line to the root of the output directory
 			string CommandLinePath = Path.Combine(TargetDir, "UE4CommandLine.txt");
@@ -544,7 +573,8 @@ namespace Rocket
 			// Custom rules for each target platform
 			foreach(UnrealTargetPlatform TargetPlaform in TargetPlatforms)
 			{
-				Filter.AddRulesFromFile(RulesFileName, String.Format("CopyTargetPlatform.{0}", TargetPlaform.ToString()), HostPlatform.ToString());
+				string SectionName = String.Format("CopyTargetPlatform.{0}", TargetPlaform.ToString());
+				Filter.AddRulesFromFile(RulesFileName, SectionName, HostPlatform.ToString());
 			}
 
 			// Exclude any the files which have already been added by the CopyInstalledEditor node
@@ -556,6 +586,14 @@ namespace Rocket
 			// Copy all the files over
 			string[] TargetFileNames = CopyFolder(CommandUtils.CmdEnv.LocalRoot, InstallDir, Filter);
 			BuildProducts = new List<string>(TargetFileNames);
+
+			// Strip symbols from any of the build products
+			foreach(UnrealTargetPlatform TargetPlatform in TargetPlatforms)
+			{
+				FileFilter StripFilter = new FileFilter();
+				StripFilter.AddRulesFromFile(RulesFileName, String.Format("StripTargetPlatform.{0}", TargetPlatform.ToString()), HostPlatform.ToString());
+				StripSymbols(TargetPlatform, StripFilter.ApplyTo(InstallDir, TargetFileNames));
+			}
 		}
 
 		public override string RootIfAnyForTempStorage() // this saves a bit of path space for temp storage

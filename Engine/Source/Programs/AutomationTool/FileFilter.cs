@@ -342,6 +342,17 @@ public class FileFilter
 	}
 
 	/// <summary>
+	/// Applies the filter to each element in a sequence, and returns the list of files that match
+	/// </summary>
+	/// <param name="FileNames">List of filenames</param>
+	/// <returns>List of filenames which match the filter</returns>
+	public IEnumerable<string> ApplyTo(string BaseDirectory, IEnumerable<string> FileNames)
+	{
+		string FullBaseDirectory = Path.GetFullPath(BaseDirectory);
+		return FileNames.Where(x => Matches(AutomationTool.CommandUtils.StripBaseDirectory(Path.GetFullPath(x), FullBaseDirectory)));
+	}
+
+	/// <summary>
 	/// Finds a list of files within a given directory which match the filter.
 	/// </summary>
 	/// <param name="FolderName">File to match</param>
