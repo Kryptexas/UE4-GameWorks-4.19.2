@@ -48,7 +48,7 @@ Static variables from the early init
 int32 FXAudioDeviceProperties::NumSpeakers = 0;
 const float* FXAudioDeviceProperties::OutputMixMatrix = NULL;
 #if XAUDIO_SUPPORTS_DEVICE_DETAILS
-XAUDIO2_DEVICE_DETAILS FXAudioDeviceProperties::DeviceDetails = { 0 };
+XAUDIO2_DEVICE_DETAILS FXAudioDeviceProperties::DeviceDetails;
 #endif	//XAUDIO_SUPPORTS_DEVICE_DETAILS
 
 /*------------------------------------------------------------------------------------
@@ -299,7 +299,7 @@ class ICompressedAudioInfo* FXAudio2Device::CreateCompressedAudioInfo(USoundWave
 /**  
  * Check for errors and output a human readable string 
  */
-bool FXAudio2Device::ValidateAPICall( const TCHAR* Function, int32 ErrorCode )
+bool FXAudio2Device::ValidateAPICall( const TCHAR* Function, uint32 ErrorCode )
 {
 	if( ErrorCode != S_OK )
 	{

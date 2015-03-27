@@ -38,12 +38,7 @@ namespace ELaunchVerb
 
 
 /** Generic implementation for the process handle. */
-#if PLATFORM_WINDOWS && defined(__clang__)	// @todo clang: Clang on Windows has a bug with non-type template arguments
-static void* InvalidHandleValue = nullptr;
-template< typename T >
-#else
 template< typename T, T InvalidHandleValue >
-#endif
 struct TProcHandle
 {
 	typedef T HandleType;

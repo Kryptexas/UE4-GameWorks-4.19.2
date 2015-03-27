@@ -7,6 +7,10 @@
 #include "D3D11RHIPrivate.h"
 #if WITH_D3DX_LIBS
 #include "AllowWindowsPlatformTypes.h"
+	#if defined(__clang__)
+		#define XM_NO_OPERATOR_OVERLOADS 1		// @todo clang: These xnamath operators don't compile correctly under clang
+		#define _XM_NO_INTRINSICS_ 1	// @todo clang: Clang has issues with __m128 intrinsics in xnamathvector.inl
+	#endif
 	#include <xnamath.h>
 #include "HideWindowsPlatformTypes.h"
 #endif
@@ -803,7 +807,7 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 	for(uint32 RenderTargetIndex = 0;RenderTargetIndex < MaxSimultaneousRenderTargets;++RenderTargetIndex)
 	{
 		ID3D11RenderTargetView* RenderTargetView = NULL;
-		if(RenderTargetIndex < NewNumSimultaneousRenderTargets && IsValidRef(NewRenderTargetsRHI[RenderTargetIndex].Texture))
+		if(RenderTargetIndex < NewNumSimultaneousRenderTargets && NewRenderTargetsRHI[RenderTargetIndex].Texture != nullptr)
 		{
 			int32 RTMipIndex = NewRenderTargetsRHI[RenderTargetIndex].MipIndex;
 			int32 RTSliceIndex = NewRenderTargetsRHI[RenderTargetIndex].ArraySliceIndex;
@@ -902,7 +906,7 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 	if (NewRenderTargetViews[0])
 	{
 		// check target 0 is valid
-		check(0 < NewNumSimultaneousRenderTargets && IsValidRef(NewRenderTargetsRHI[0].Texture));
+		check(0 < NewNumSimultaneousRenderTargets && NewRenderTargetsRHI[0].Texture != nullptr);
 		FRTVDesc RTTDesc = GetRenderTargetViewDesc(NewRenderTargetViews[0]);
 		RHISetViewport(0, 0, 0.0f, RTTDesc.Width, RTTDesc.Height, 1.0f);
 	}

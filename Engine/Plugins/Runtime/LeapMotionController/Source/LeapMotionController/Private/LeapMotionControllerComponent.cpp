@@ -175,7 +175,8 @@ void ULeapMotionControllerComponent::OnHandAddedImpl(int32 HandId)
 		SpawnRotation = (SpawnRotation.Quaternion() * Roll.Quaternion() * ForwardTilt.Quaternion()).Rotator();
 	}
 
-	ALeapMotionHandActor* handActor = GetWorld()->SpawnActor<ALeapMotionHandActor>(HandBlueprint ? HandBlueprint : ALeapMotionHandActor::StaticClass(), SpawnLocation, SpawnRotation, SpawnParams);
+	UClass* HandBlueprintClass = HandBlueprint;
+	ALeapMotionHandActor* handActor = GetWorld()->SpawnActor<ALeapMotionHandActor>(HandBlueprintClass != nullptr ? HandBlueprintClass : ALeapMotionHandActor::StaticClass(), SpawnLocation, SpawnRotation, SpawnParams);
 
 	if (handActor)
 	{

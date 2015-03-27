@@ -469,7 +469,7 @@ private:
 	/**
 	 * Serializer - if Obj is one of the objects we're looking for, increments the reference count for that object
 	 */
-	FArchive& operator<<( class UObject*& Obj );
+	COREUOBJECT_API FArchive& operator<<( class UObject*& Obj );
 };
 
 /**
@@ -575,7 +575,7 @@ protected:
 	class TArray<const UProperty*>	Referencers;
 
 private:
-	FArchive& operator<<( class UObject*& Obj );
+	COREUOBJECT_API FArchive& operator<<( class UObject*& Obj );
 };
 
 struct FTraceRouteRecord

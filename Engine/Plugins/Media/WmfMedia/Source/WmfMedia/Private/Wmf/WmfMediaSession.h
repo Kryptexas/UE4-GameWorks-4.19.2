@@ -56,6 +56,10 @@ public:
 	 */
 	FWmfMediaSession( const FTimespan& InDuration, const TComPtr<IMFTopology>& InTopology );
 
+	virtual ~FWmfMediaSession()
+	{
+	}
+
 public:
 
 	/**

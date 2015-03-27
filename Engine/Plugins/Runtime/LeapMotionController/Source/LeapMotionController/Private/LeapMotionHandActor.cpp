@@ -120,7 +120,8 @@ void ALeapMotionHandActor::CreateBones(const TSubclassOf<class ALeapMotionBoneAc
 				Position = RefQuat * Position * CombinedScale + GetRootComponent()->GetComponentLocation();
 				Orientation = (RefQuat * Orientation.Quaternion()).Rotator();
 
-				ALeapMotionBoneActor* BoneActor = GetWorld()->SpawnActor<ALeapMotionBoneActor>(BoneBlueprint ? BoneBlueprint : ALeapMotionBoneActor::StaticClass(), Position, Orientation, SpawnParams);
+				UClass* BoneBlueprintClass = BoneBlueprint;
+				ALeapMotionBoneActor* BoneActor = GetWorld()->SpawnActor<ALeapMotionBoneActor>(BoneBlueprintClass != nullptr ? BoneBlueprintClass : ALeapMotionBoneActor::StaticClass(), Position, Orientation, SpawnParams);
 				if (BoneActor) 
 				{
 					BoneActors.Add(BoneActor);

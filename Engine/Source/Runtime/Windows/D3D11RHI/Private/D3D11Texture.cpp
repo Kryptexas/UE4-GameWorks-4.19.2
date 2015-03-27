@@ -987,7 +987,10 @@ FTexture2DRHIRef FD3D11DynamicRHI::RHIAsyncCreateTexture2D(uint32 SizeX,uint32 S
 	TRefCountPtr<ID3D11ShaderResourceView> ShaderResourceView;
 	D3D11_TEXTURE2D_DESC TextureDesc = {0};
 	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
-	D3D11_SUBRESOURCE_DATA SubResourceData[MAX_TEXTURE_MIP_COUNT] = {0};
+
+	D3D11_SUBRESOURCE_DATA SubResourceData[ MAX_TEXTURE_MIP_COUNT ];
+	FPlatformMemory::Memzero( SubResourceData, sizeof( D3D11_SUBRESOURCE_DATA ) * MAX_TEXTURE_MIP_COUNT );
+
 	uint32 InvalidFlags = TexCreate_RenderTargetable | TexCreate_ResolveTargetable | TexCreate_DepthStencilTargetable | TexCreate_GenerateMipCapable | TexCreate_UAV | TexCreate_Presentable | TexCreate_CPUReadback;
 	TArray<TRefCountPtr<ID3D11RenderTargetView> > RenderTargetViews;
 	

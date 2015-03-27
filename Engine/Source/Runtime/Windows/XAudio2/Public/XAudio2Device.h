@@ -127,7 +127,7 @@ class FXAudio2Device : public FAudioDevice
 	/** 
 	 * Check for errors and output a human readable string 
 	 */
-	virtual bool ValidateAPICall(const TCHAR* Function, int32 ErrorCode) override;
+	virtual bool ValidateAPICall(const TCHAR* Function, uint32 ErrorCode) override;
 
 	/**
 	 * Exec handler used to parse console commands.

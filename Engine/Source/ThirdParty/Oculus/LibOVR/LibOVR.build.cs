@@ -16,7 +16,7 @@ public class LibOVR : ModuleRules
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
 
-            PublicIncludePaths.Add(OculusThirdPartyDirectory + "/Include");
+            PublicSystemIncludePaths.Add(OculusThirdPartyDirectory + "/Include");
 
             string LibraryPath = OculusThirdPartyDirectory + "/Lib/";
 			string LibraryName = "libovr";
@@ -42,7 +42,7 @@ public class LibOVR : ModuleRules
 		}
 		else if ((Target.Platform == UnrealTargetPlatform.Mac))
 		{
-            PublicIncludePaths.Add(OculusThirdPartyDirectory + "/Include");
+            PublicSystemIncludePaths.Add(OculusThirdPartyDirectory + "/Include");
 
             string LibraryPath = OculusThirdPartyDirectory + "/Lib/MacOS/Release/";
 			string LibraryName = "libovr";

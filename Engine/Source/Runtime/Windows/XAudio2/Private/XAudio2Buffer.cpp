@@ -80,10 +80,10 @@ struct FXMAInfo
  * @param AudioDevice	audio device this sound buffer is going to be attached to.
  */
 FXAudio2SoundBuffer::FXAudio2SoundBuffer( FAudioDevice* InAudioDevice, ESoundFormat InSoundFormat )
-:	SoundFormat( InSoundFormat ),
+:	FSoundBuffer(InAudioDevice),
+	SoundFormat( InSoundFormat ),
 	DecompressionState( NULL ),
-	bDynamicResource( false ),
-	FSoundBuffer(InAudioDevice)
+	bDynamicResource( false )
 {
 	PCM.PCMData = NULL;
 	PCM.PCMDataSize = 0;

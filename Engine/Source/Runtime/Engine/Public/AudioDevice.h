@@ -488,7 +488,7 @@ public:
 	/**
 	 * Check for errors and output a human readable string
 	 */
-	virtual bool ValidateAPICall( const TCHAR* Function, int32 ErrorCode )
+	virtual bool ValidateAPICall( const TCHAR* Function, uint32 ErrorCode )
 	{
 		return( true );
 	}

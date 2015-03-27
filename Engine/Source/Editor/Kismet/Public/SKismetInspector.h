@@ -43,7 +43,14 @@ public:
 		bool bShowComponents;
 		bool bHideFilterArea;
 
-		FShowDetailsOptions(const FText& InForcedTitle = FText::GetEmpty(), bool bInForceRefresh = false)
+		FShowDetailsOptions()
+			:ForcedTitle()
+			,bForceRefresh(false)
+			,bShowComponents(true)
+			,bHideFilterArea(false)
+		{}
+
+		FShowDetailsOptions(const FText& InForcedTitle, bool bInForceRefresh = false)
 			:ForcedTitle(InForcedTitle)
 			,bForceRefresh(bInForceRefresh)
 			,bShowComponents(true)

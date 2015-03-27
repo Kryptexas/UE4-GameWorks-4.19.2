@@ -17,9 +17,9 @@
 
 FXAudio2HRTFEffect::FXAudio2HRTFEffect(uint32 InVoiceId, FAudioDevice* InAudioDevice)
 	: CXAPOParametersBase(&Registration, (uint8*)HRTFEffectParameters, sizeof(FAudioHRTFEffectParameters), false)
-	, bPassThrough(false)
 	, VoiceId(InVoiceId)
 	, AudioDevice(InAudioDevice)
+	, bPassThrough(false)
 {
 	FAudioHRTFEffectParameters DefaultParameters;
 	SetParameters(&DefaultParameters, sizeof(DefaultParameters));
@@ -80,7 +80,7 @@ void FXAudio2HRTFEffect::Process(UINT32 InputProcessParameterCount, const XAPO_P
 
 	// We better not have default set at this point because default means "no HRTF processing". We also
 	// better thave the plugin because this XAPO code is inside the plugin
-	check(SpatializationAlgorithm != SPATIALIZATION_Default);
+	check(SpatializationAlgorithm != SPATIALIZATION_TYPE_DEFAULT);
 	check(AudioDevice->SpatializationPlugin != nullptr);
 
 	XAPO_BUFFER_FLAGS InFlags = pInputProcessParameters[0].BufferFlags;

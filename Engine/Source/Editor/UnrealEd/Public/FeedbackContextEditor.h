@@ -10,7 +10,7 @@
 /**
  * A FFeedbackContext implementation for use in UnrealEd.
  */
-class FFeedbackContextEditor : public FFeedbackContext
+class UNREALED_API FFeedbackContextEditor : public FFeedbackContext
 {
 	/** Slate slow task widget */
 	TWeakPtr<class SWindow> SlowTaskWindow;
@@ -23,7 +23,7 @@ class FFeedbackContextEditor : public FFeedbackContext
 
 public:
 
-	UNREALED_API FFeedbackContextEditor();
+	FFeedbackContextEditor();
 
 	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 

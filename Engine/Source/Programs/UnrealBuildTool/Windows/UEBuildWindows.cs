@@ -58,7 +58,7 @@ namespace UnrealBuildTool
         public static readonly bool bCompileWithClang = false;
 
         /// When using Clang, enabling enables the MSVC-like "clang-cl" wrapper, otherwise we pass arguments to Clang directly
-		public static readonly bool bUseVCCompilerArgs = !bCompileWithClang || true;
+		public static readonly bool bUseVCCompilerArgs = !bCompileWithClang || false;
 
 		/// True if we should use the Clang linker (LLD) when bCompileWithClang is enabled, otherwise we use the MSVC linker
 		public static readonly bool bAllowClangLinker = bCompileWithClang && true;
@@ -362,12 +362,17 @@ namespace UnrealBuildTool
 
         public override void ValidateBuildConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)
         {
-            // @todo clang: PCH files aren't supported by "clang-cl" yet (no /Yc support, and "-x c++-header" cannot be specified)
-			// @todo clang: PCH files with regular Clang on Windows have bugs with pack alignment and segfaults occasionally
             if( WindowsPlatform.bCompileWithClang )
             {
-                BuildConfiguration.bUsePCHFiles = false;
+				// @todo clang: Shared PCHs don't work on clang yet because the PCH will have definitions assigned to different values
+				// than the consuming translation unit.  Unlike the warning in MSVC, this is a compile in Clang error which cannot be suppressed
                 BuildConfiguration.bUseSharedPCHs = false;
+
+	            // @todo clang: PCH files aren't supported by "clang-cl" yet (no /Yc support, and "-x c++-header" cannot be specified)
+ 				if( WindowsPlatform.bUseVCCompilerArgs )
+				{
+                	BuildConfiguration.bUsePCHFiles = false;
+				}
             }
         }
 
