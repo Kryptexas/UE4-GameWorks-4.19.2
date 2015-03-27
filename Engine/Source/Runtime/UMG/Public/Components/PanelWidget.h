@@ -106,6 +106,12 @@ public:
 		return bCanHaveMultipleChildren;
 	}
 
+	/** @returns true if the panel can accept another child widget. */
+	bool CanAddMoreChildren() const
+	{
+		return CanHaveMultipleChildren() || GetChildrenCount() == 0;
+	}
+
 	/** Sets that this widget is being designed sets it on all children as well. */
 	virtual void SetIsDesignTime(bool bInDesignTime) override;
 

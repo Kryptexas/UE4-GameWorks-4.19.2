@@ -205,7 +205,7 @@ TOptional<EItemDropZone> ProcessHierarchyDragDrop(const FDragDropEvent& DragDrop
 				return TOptional<EItemDropZone>();
 			}
 
-			if ( !NewParent->CanHaveMultipleChildren() && NewParent->GetChildrenCount() > 0 )
+			if ( !NewParent->CanAddMoreChildren() )
 			{
 				HierarchyDragDropOp->SetCursorOverride(EMouseCursor::SlashedCircle);
 				HierarchyDragDropOp->CurrentHoverText = LOCTEXT("NoAdditionalChildren", "Widget can't accept additional children.");

@@ -363,17 +363,16 @@ void FWidgetBlueprintEditorUtils::BuildWrapWithMenu(FMenuBuilder& Menu, UWidgetB
 			UClass* WidgetClass = *ClassIt;
 			if ( FWidgetBlueprintEditorUtils::IsUsableWidgetClass(WidgetClass) )
 			{
-				if ( WidgetClass->IsChildOf(UPanelWidget::StaticClass()) && WidgetClass->HasAnyClassFlags(CLASS_Abstract) == false )
+				if ( WidgetClass->IsChildOf(UPanelWidget::StaticClass()) )
 				{
 					Menu.AddMenuEntry(
 						WidgetClass->GetDisplayNameText(),
 						FText::GetEmpty(),
 						FSlateIcon(),
 						FUIAction(
-						FExecuteAction::CreateStatic(&FWidgetBlueprintEditorUtils::WrapWidgets, BP, Widgets, WidgetClass),
-						FCanExecuteAction()
-						)
-						);
+							FExecuteAction::CreateStatic(&FWidgetBlueprintEditorUtils::WrapWidgets, BP, Widgets, WidgetClass),
+							FCanExecuteAction()
+						));
 				}
 			}
 		}
@@ -387,22 +386,35 @@ void FWidgetBlueprintEditorUtils::WrapWidgets(UWidgetBlueprint* BP, TSet<FWidget
 
 	TSharedPtr<FWidgetTemplateClass> Template = MakeShareable(new FWidgetTemplateClass(WidgetClass));
 
-	UPanelWidget* NewWrapperWidget = CastChecked<UPanelWidget>(Template->Create(BP->WidgetTree));
+	// Old Parent -> New Parent Map
+	TMap<UPanelWidget*, UPanelWidget*> OldParentToNewParent;
 
 	for ( FWidgetReference& Item : Widgets )
 	{
 		int32 OutIndex;
 		UPanelWidget* CurrentParent = BP->WidgetTree->FindWidgetParent(Item.GetTemplate(), OutIndex);
-		if ( CurrentParent )
-		{
-			CurrentParent->Modify();
-			CurrentParent->ReplaceChildAt(OutIndex, NewWrapperWidget);
-		}
-		else if ( Item.GetTemplate() == BP->WidgetTree->RootWidget )
-		{
-			BP->WidgetTree->Modify();
 
-			BP->WidgetTree->RootWidget = NewWrapperWidget;
+		// If the widget doesn't currently have a parent, and isn't the root, ignore it.
+		if ( CurrentParent == nullptr && Item.GetTemplate() != BP->WidgetTree->RootWidget )
+		{
+			continue;
+		}
+
+		UPanelWidget*& NewWrapperWidget = OldParentToNewParent.FindOrAdd(CurrentParent);
+		if ( NewWrapperWidget == nullptr || !NewWrapperWidget->CanAddMoreChildren() )
+		{
+			NewWrapperWidget = CastChecked<UPanelWidget>(Template->Create(BP->WidgetTree));
+
+			if ( CurrentParent )
+			{
+				CurrentParent->Modify();
+				CurrentParent->ReplaceChildAt(OutIndex, NewWrapperWidget);
+			}
+			else // Root Widget
+			{
+				BP->WidgetTree->Modify();
+				BP->WidgetTree->RootWidget = NewWrapperWidget;
+			}
 		}
 
 		NewWrapperWidget->AddChild(Item.GetTemplate());
@@ -420,7 +432,7 @@ void FWidgetBlueprintEditorUtils::BuildReplaceWithMenu(FMenuBuilder& Menu, UWidg
 			UClass* WidgetClass = *ClassIt;
 			if ( FWidgetBlueprintEditorUtils::IsUsableWidgetClass(WidgetClass) )
 			{
-				if ( WidgetClass->IsChildOf(UPanelWidget::StaticClass()) && WidgetClass->HasAnyClassFlags(CLASS_Abstract) == false )
+				if ( WidgetClass->IsChildOf(UPanelWidget::StaticClass()) )
 				{
 					// Only allow replacement with panels that accept multiple children
 					if ( WidgetClass->GetDefaultObject<UPanelWidget>()->CanHaveMultipleChildren() )
@@ -430,10 +442,9 @@ void FWidgetBlueprintEditorUtils::BuildReplaceWithMenu(FMenuBuilder& Menu, UWidg
 							FText::GetEmpty(),
 							FSlateIcon(),
 							FUIAction(
-							FExecuteAction::CreateStatic(&FWidgetBlueprintEditorUtils::ReplaceWidgets, BP, Widgets, WidgetClass),
-							FCanExecuteAction()
-							)
-							);
+								FExecuteAction::CreateStatic(&FWidgetBlueprintEditorUtils::ReplaceWidgets, BP, Widgets, WidgetClass),
+								FCanExecuteAction()
+							));
 					}
 				}
 			}
@@ -448,12 +459,12 @@ void FWidgetBlueprintEditorUtils::ReplaceWidgets(UWidgetBlueprint* BP, TSet<FWid
 
 	TSharedPtr<FWidgetTemplateClass> Template = MakeShareable(new FWidgetTemplateClass(WidgetClass));
 
-	UPanelWidget* NewReplacementWidget = CastChecked<UPanelWidget>(Template->Create(BP->WidgetTree));
-
 	for ( FWidgetReference& Item : Widgets )
 	{
 		if ( UPanelWidget* ExistingPanel = Cast<UPanelWidget>(Item.GetTemplate()) )
 		{
+			UPanelWidget* NewReplacementWidget = CastChecked<UPanelWidget>(Template->Create(BP->WidgetTree));
+
 			ExistingPanel->Modify();
 
 			if ( UPanelWidget* CurrentParent = ExistingPanel->GetParent() )
