@@ -213,7 +213,7 @@ FVector2D SDockingTabWell::ComputeChildSize( const FGeometry& AllottedGeometry )
 	FVector2D MaxTabSize(0,0);
 	if ( FirstTab.IsValid() )
 	{
-		const ETabRole RoleToUse = FirstTab->IsNomadTabWithMajorTabStyle() ? ETabRole::MajorTab : FirstTab->GetTabRole();
+		const ETabRole RoleToUse = FirstTab->GetVisualTabRole();
 		MaxTabSize = FDockingConstants::GetMaxTabSizeFor(RoleToUse);
 	}
 	else

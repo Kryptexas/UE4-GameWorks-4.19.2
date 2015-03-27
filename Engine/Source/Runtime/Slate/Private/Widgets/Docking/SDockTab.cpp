@@ -3,7 +3,7 @@
 #include "SlatePrivatePCH.h"
 #include "SDockTab.h"
 #include "DockingPrivate.h"
-
+#include "TabCommands.h"
 
 namespace SDockTabDefs
 {
@@ -193,26 +193,34 @@ ETabRole SDockTab::GetTabRole() const
 	return TabRole;
 }
 
-bool SDockTab::IsNomadTabWithMajorTabStyle() const
+ETabRole SDockTab::GetVisualTabRole() const
 {
-	if ( this->TabRole == ETabRole::NomadTab )
+	// If the tab role is NomadTab but is being visualized as a major tab
+	if (this->TabRole == ETabRole::NomadTab)
 	{
-		if ( DraggedOverDockingArea.IsValid() )
+		bool bNomadMajorStyle = false;
+
+		if (DraggedOverDockingArea.IsValid())
 		{
-			return DraggedOverDockingArea->GetTabManager() == FGlobalTabmanager::Get();
+			bNomadMajorStyle = DraggedOverDockingArea->GetTabManager() == FGlobalTabmanager::Get();
 		}
-		else if ( GetParent().IsValid() && GetParent()->GetDockArea().IsValid() )
+		else if (GetParent().IsValid() && GetParent()->GetDockArea().IsValid())
 		{
-			return GetParent()->GetDockArea()->GetTabManager() == FGlobalTabmanager::Get();
+			bNomadMajorStyle = GetParent()->GetDockArea()->GetTabManager() == FGlobalTabmanager::Get();
 		}
 		else
 		{
 			// We are dragging or have no parent, but we are not dragging over anything, assume major
-			return true;
+			bNomadMajorStyle = true;
+		}
+
+		if (bNomadMajorStyle)
+		{
+			return ETabRole::MajorTab;
 		}
 	}
 
-	return false;
+	return GetTabRole();
 }
 
 const FSlateBrush* SDockTab::GetContentAreaBrush() const
@@ -522,6 +530,7 @@ void SDockTab::Construct( const FArguments& InArgs )
 					.ButtonStyle( CloseButtonStyle )
 					.OnClicked( this, &SDockTab::OnCloseButtonClicked )
 					.ContentPadding( 0 )
+					.ToolTipText(this, &SDockTab::GetCloseButtonToolTipText)
 					.Visibility(this, &SDockTab::HandleIsCloseButtonVisible)
 					[
 						SNew(SSpacer)
@@ -541,11 +550,7 @@ EActiveTimerReturnType SDockTab::TriggerActivateTab( double InCurrentTime, float
 
 const FDockTabStyle& SDockTab::GetCurrentStyle() const
 {
-	if ( this->TabRole == ETabRole::MajorTab )
-	{
-		return *MajorTabStyle;
-	}
-	else if ( IsNomadTabWithMajorTabStyle() )
+	if ( GetVisualTabRole() == ETabRole::MajorTab )
 	{
 		return *MajorTabStyle;
 	}
@@ -669,6 +674,27 @@ FReply SDockTab::OnCloseButtonClicked()
 	RequestCloseTab();
 
 	return FReply::Handled();
+}
+
+FText SDockTab::GetCloseButtonToolTipText() const
+{
+	TSharedPtr<FUICommandInfo> CloseCommand =
+		GetVisualTabRole() == ETabRole::MajorTab ? FTabCommands::Get().CloseMajorTab : FTabCommands::Get().CloseMinorTab;
+
+	FFormatNamedArguments Arguments;
+	Arguments.Add(TEXT("Label"), CloseCommand->GetLabel());
+
+	FText InputText = CloseCommand->GetInputText();
+	if (InputText.IsEmptyOrWhitespace())
+	{
+		Arguments.Add(TEXT("InputText"), InputText);
+	}
+	else
+	{
+		Arguments.Add(TEXT("InputText"), FText::Format(NSLOCTEXT("DockTab", "CloseButtonInputText", " ({0})"), InputText));
+	}
+
+	return FText::Format(NSLOCTEXT("DockTab", "CloseButtonToolTip", "{Label}{InputText}"), Arguments);
 }
 
 EVisibility SDockTab::HandleIsCloseButtonVisible() const

@@ -232,11 +232,17 @@ private:
 	/** Bind tab commands into the ActionList */
 	void BindTabCommands();
 
-	/** Attempts to close a tab when the CloseTab command is executed */
-	void ExecuteCloseTabCommand();
+	/** Attempts to close the foreground tab when the CloseMajorTab command is executed */
+	void ExecuteCloseMajorTabCommand();
 
-	/** Attempts to find a tab that can be closed by the CloseTab command */
-	bool CanExecuteCloseTabCommand();
+	/** Attempts to find the foreground tab that can be closed by the CloseMajorTab command */
+	bool CanExecuteCloseMajorTabCommand();
+
+	/** Attempts to close the active tab when the CloseMinorTab command is executed */
+	void ExecuteCloseMinorTabCommand();
+
+	/** Attempts to find the active tab that can be closed by the CloseMinorTab command */
+	bool CanExecuteCloseMinorTabCommand();
 
 #if DEBUG_TAB_MANAGEMENT
 	FString ShowPersistentTabs() const;

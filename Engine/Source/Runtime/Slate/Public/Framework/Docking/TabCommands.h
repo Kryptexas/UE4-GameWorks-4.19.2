@@ -17,5 +17,6 @@ public:
 
 	virtual void RegisterCommands() override;
 
-	TSharedPtr<FUICommandInfo> CloseTab;
+	TSharedPtr<FUICommandInfo> CloseMajorTab;
+	TSharedPtr<FUICommandInfo> CloseMinorTab;
 };

@@ -831,7 +831,7 @@ FReply SDockingTabStack::UnhideTabWell()
 
 bool SDockingTabStack::CanHideTabWell() const
 {
-	return GetNumTabs() == 1 && (GetTabs()[0]->GetTabRole() != ETabRole::MajorTab && !GetTabs()[0]->IsNomadTabWithMajorTabStyle());
+	return GetNumTabs() == 1 && FGlobalTabmanager::Get()->CanSetAsActiveTab(GetTabs()[0]);
 }
 
 bool SDockingTabStack::CanCloseForegroundTab() const
@@ -1035,32 +1035,36 @@ void SDockingTabStack::BindTabCommands()
 	ActionList = MakeShareable(new FUICommandList);
 
 	const FTabCommands& Commands = FTabCommands::Get();
-	ActionList->MapAction(Commands.CloseTab, FExecuteAction::CreateSP(this, &SDockingTabStack::ExecuteCloseTabCommand), FCanExecuteAction::CreateSP(this, &SDockingTabStack::CanExecuteCloseTabCommand));
+	ActionList->MapAction(Commands.CloseMajorTab, FExecuteAction::CreateSP(this, &SDockingTabStack::ExecuteCloseMajorTabCommand), FCanExecuteAction::CreateSP(this, &SDockingTabStack::CanExecuteCloseMajorTabCommand));
+	ActionList->MapAction(Commands.CloseMinorTab, FExecuteAction::CreateSP(this, &SDockingTabStack::ExecuteCloseMinorTabCommand), FCanExecuteAction::CreateSP(this, &SDockingTabStack::CanExecuteCloseMinorTabCommand));
 }
 
-void SDockingTabStack::ExecuteCloseTabCommand()
+void SDockingTabStack::ExecuteCloseMajorTabCommand()
 {
-	auto DockArea = GetDockArea();
-	if (DockArea.IsValid())
+	// Close this stack's foreground tab (if it's a major tab)
+	if (CanExecuteCloseMajorTabCommand())
 	{
-		TSharedPtr<FGlobalTabmanager> GlobalTabManager = FGlobalTabmanager::Get();
-		TSharedPtr<SDockTab> ActiveTab = GlobalTabManager->GetActiveTab();
-		if (ActiveTab.IsValid())
-		{
-			if (ActiveTab->GetParentWindow() == DockArea->GetParentWindow())
-			{
-				// Close the global active (minor) tab
-				ActiveTab->RequestCloseTab();
-				return;
-			}
-		}
+		TabWell->GetForegroundTab()->RequestCloseTab();
 	}
-
-	// Close this stack's foreground tab
-	CloseForegroundTab();
 }
 
-bool SDockingTabStack::CanExecuteCloseTabCommand()
+bool SDockingTabStack::CanExecuteCloseMajorTabCommand()
+{
+	// Can we close this stack's foreground tab (if it's a major tab)?
+	TSharedPtr<SDockTab> ForegroundTab = TabWell->GetForegroundTab();
+	return ForegroundTab.IsValid() && !FGlobalTabmanager::Get()->CanSetAsActiveTab(ForegroundTab);
+}
+
+void SDockingTabStack::ExecuteCloseMinorTabCommand()
+{
+	if (CanExecuteCloseMinorTabCommand())
+	{
+		// Close the global active (minor) tab
+		FGlobalTabmanager::Get()->GetActiveTab()->RequestCloseTab();
+	}
+}
+
+bool SDockingTabStack::CanExecuteCloseMinorTabCommand()
 {
 	auto DockArea = GetDockArea();
 	if (DockArea.IsValid())
@@ -1076,9 +1080,7 @@ bool SDockingTabStack::CanExecuteCloseTabCommand()
 			}
 		}
 	}
-
-	// Not closing the global active tab - can we close this stack's foreground tab?
-	return CanCloseForegroundTab();
+	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

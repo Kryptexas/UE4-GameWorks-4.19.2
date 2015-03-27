@@ -272,7 +272,7 @@ FDockingDragOperation::FDockingDragOperation( const TSharedRef<SDockTab>& InTabT
 /** @return The offset into the tab where the user grabbed in Slate Units. */
 const FVector2D FDockingDragOperation::GetDecoratorOffsetFromCursor()
 {
-	const ETabRole RoleToUse = TabBeingDragged->IsNomadTabWithMajorTabStyle() ? ETabRole::MajorTab : TabBeingDragged->GetTabRole();
+	const ETabRole RoleToUse = TabBeingDragged->GetVisualTabRole();
 	const FVector2D TabDesiredSize = TabBeingDragged->GetDesiredSize();
 	const FVector2D MaxTabSize = FDockingConstants::GetMaxTabSizeFor(RoleToUse);
 

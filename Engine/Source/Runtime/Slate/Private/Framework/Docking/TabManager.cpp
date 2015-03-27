@@ -1588,13 +1588,16 @@ TSharedPtr<class SDockTab> FGlobalTabmanager::GetActiveTab() const
 	return ActiveTabPtr.Pin();
 }
 
+bool FGlobalTabmanager::CanSetAsActiveTab(const TSharedPtr<SDockTab>& Tab)
+{
+	// Setting NULL wipes out the active tab; always apply that change.
+	// Major tabs are ignored for the purposes of active-tab tracking. We do not care about their
+	return !Tab.IsValid() || Tab->GetVisualTabRole() != ETabRole::MajorTab;
+}
+
 void FGlobalTabmanager::SetActiveTab( const TSharedPtr<class SDockTab>& NewActiveTab )
 {
-	const bool bShouldApplyChange =
-		// Setting NULL wipes out the active tab; always apply that change.
-		!NewActiveTab.IsValid() ||
-		// Major tabs are ignored for the purposes of active-tab tracking. We do not care about their 
-		(NewActiveTab->GetTabRole() != ETabRole::MajorTab && !NewActiveTab->IsNomadTabWithMajorTabStyle());
+	const bool bShouldApplyChange = CanSetAsActiveTab(NewActiveTab);
 	
 	TSharedPtr<SDockTab> CurrentlyActiveTab = GetActiveTab();
 

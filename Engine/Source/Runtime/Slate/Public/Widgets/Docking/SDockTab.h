@@ -106,8 +106,12 @@ public:
 	/** Is this an MajorTab? A tool panel tab? */
 	ETabRole GetTabRole() const;
 
-	/** Returns true if the tab role is NomadTab, but is being visualized as a major tab. */
-	bool IsNomadTabWithMajorTabStyle() const;
+	/** Similar to GetTabRole() but returns the correct role for UI style and user input purposes */
+	ETabRole SDockTab::GetVisualTabRole() const;
+
+	/** Returns true if the tab role is NomadTab, but is being visualized as a major tab */
+	DEPRECATED(4.8, "Use GetVisualTabRole(), which will return ETabRole::MajorTab for nomads with major tab style.")
+	bool IsNomadTabWithMajorTabStyle() const { return GetTabRole() == ETabRole::NomadTab && GetVisualTabRole() == ETabRole::MajorTab; }
 
 	/**
 	 * What should the content area look like for this type of tab?
@@ -274,6 +278,9 @@ protected:
 
 	/** Called when the close button is clicked on the tab. */
 	FReply OnCloseButtonClicked();
+
+	/** The close button tooltip showing the appropriate close command shortcut */
+	FText GetCloseButtonToolTipText() const;
 
 	/** Specify the TabId that was used to spawn this tab. */
 	void SetLayoutIdentifier( const FTabId& TabId );

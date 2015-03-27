@@ -777,6 +777,9 @@ public:
 	/** @return the currently active tab; NULL pointer if there is no active tab */
 	TSharedPtr<SDockTab> GetActiveTab() const;
 
+	/** Can the manager activate this Tab as the new active tab? */
+	bool CanSetAsActiveTab(const TSharedPtr<SDockTab>& Tab);
+
 	/** Activate the NewActiveTab. If NewActiveTab is NULL, the active tab is cleared. */
 	void SetActiveTab( const TSharedPtr<SDockTab>& NewActiveTab );
 

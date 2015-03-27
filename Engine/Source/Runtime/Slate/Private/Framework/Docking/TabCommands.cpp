@@ -7,7 +7,8 @@
 
 void FTabCommands::RegisterCommands()
 {
-	UI_COMMAND(CloseTab, "Close Tab", "Closes the current window's active minor tab or the current focussed major tab if no minor tab is active.)", EUserInterfaceActionType::Button, FInputChord())
+	UI_COMMAND(CloseMajorTab, "Close Major Tab", "Closes the focused major tab", EUserInterfaceActionType::Button, FInputChord(EModifierKey::Control | EModifierKey::Alt, EKeys::F4))
+	UI_COMMAND(CloseMinorTab, "Close Minor Tab", "Closes the current window's active minor tab", EUserInterfaceActionType::Button, FInputChord())
 }
 
 #undef LOCTEXT_NAMESPACE
