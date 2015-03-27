@@ -8,7 +8,8 @@
 #include "LocalizationConfigurationScript.h"
 
 FLocalizationTargetSettings::FLocalizationTargetSettings()
-	: ConflictStatus(ELocalizationTargetConflictStatus::Unknown)
+	: Guid(FGuid::NewGuid())
+	, ConflictStatus(ELocalizationTargetConflictStatus::Unknown)
 {
 }
 

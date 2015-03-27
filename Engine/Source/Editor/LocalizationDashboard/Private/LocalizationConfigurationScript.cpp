@@ -94,7 +94,7 @@ namespace LocalizationConfigurationScript
 			FConfigSection& ConfigSection = Script.CommonSettings();
 
 			const ULocalizationTargetSet* const LocalizationTargetSet = GetDefault<ULocalizationTargetSet>(ULocalizationTargetSet::StaticClass());
-			for (const FString& TargetDependencyName : Target->Settings.TargetDependencies)
+			for (const FGuid& TargetDependencyGuid : Target->Settings.TargetDependencies)
 			{
 				TArray<ULocalizationTarget*> AllLocalizationTargets;
 				ULocalizationTargetSet* EngineTargetSet = FindObjectChecked<ULocalizationTargetSet>(ANY_PACKAGE, *ULocalizationTargetSet::EngineTargetSetName.ToString());
@@ -104,7 +104,7 @@ namespace LocalizationConfigurationScript
 				}
 				AllLocalizationTargets.Append(LocalizationTargetSet->TargetObjects);
 
-				ULocalizationTarget* const * OtherTarget = AllLocalizationTargets.FindByPredicate([&TargetDependencyName](ULocalizationTarget* const OtherTarget)->bool{return OtherTarget->Settings.Name == TargetDependencyName;});
+				ULocalizationTarget* const * OtherTarget = AllLocalizationTargets.FindByPredicate([&TargetDependencyGuid](ULocalizationTarget* const OtherTarget)->bool{return OtherTarget->Settings.Guid == TargetDependencyGuid;});
 				if (OtherTarget)
 				{
 					ConfigSection.Add( TEXT("ManifestDependencies"), MakePathRelativeForCommandletProcess(GetManifestPath(*OtherTarget), !Target->IsMemberOfEngineTargetSet()) );

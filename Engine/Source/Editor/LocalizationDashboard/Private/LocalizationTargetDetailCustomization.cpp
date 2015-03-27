@@ -547,19 +547,33 @@ void FLocalizationTargetDetailCustomization::RebuildTargetDependenciesBox()
 		}
 		TargetDependenciesWidgets.Empty();
 
-		for (const FString& TargetDependency : LocalizationTarget->Settings.TargetDependencies)
+		TArray<ULocalizationTarget*> AllLocalizationTargets;
+		ULocalizationTargetSet* EngineTargetSet = FindObjectChecked<ULocalizationTargetSet>(ANY_PACKAGE, *ULocalizationTargetSet::EngineTargetSetName.ToString());
+		if (EngineTargetSet != TargetSet)
 		{
-			const TSharedRef<SWidget> Widget = SNew(SBorder)
+			AllLocalizationTargets.Append(EngineTargetSet->TargetObjects);
+		}
+		AllLocalizationTargets.Append(TargetSet->TargetObjects);
+
+		for (const FGuid& TargetDependencyGuid : LocalizationTarget->Settings.TargetDependencies)
+		{
+			ULocalizationTarget** const TargetDependency = AllLocalizationTargets.FindByPredicate([TargetDependencyGuid](ULocalizationTarget* SomeLocalizationTarget)->bool{return SomeLocalizationTarget->Settings.Guid == TargetDependencyGuid;});
+			if (TargetDependency)
+			{
+				TWeakObjectPtr<ULocalizationTarget> TargetDependencyPtr = *TargetDependency;
+				const auto& GetTargetDependencyName = [TargetDependencyPtr] {return FText::FromString(TargetDependencyPtr->Settings.Name);};
+				const TSharedRef<SWidget> Widget = SNew(SBorder)
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString(TargetDependency))
+					.Text_Lambda(GetTargetDependencyName)
 				];
 
-			TargetDependenciesWidgets.Add(Widget);
-			TargetDependenciesHorizontalBox->AddSlot()
+				TargetDependenciesWidgets.Add(Widget);
+				TargetDependenciesHorizontalBox->AddSlot()
 				[
 					Widget
 				];
+			}
 		}
 	}
 }
@@ -570,14 +584,14 @@ void FLocalizationTargetDetailCustomization::RebuildTargetsList()
 	TFunction<bool (ULocalizationTarget* const)> DoesTargetDependOnUs;
 	DoesTargetDependOnUs = [&, this](ULocalizationTarget* const OtherTarget) -> bool
 	{
-		if (OtherTarget->Settings.TargetDependencies.Contains(LocalizationTarget->Settings.Name))
+		if (OtherTarget->Settings.TargetDependencies.Contains(LocalizationTarget->Settings.Guid))
 		{
 			return true;
 		}
 
-		for (const FString& OtherTargetDependencyName : OtherTarget->Settings.TargetDependencies)
+		for (const FGuid& OtherTargetDependencyGuid : OtherTarget->Settings.TargetDependencies)
 		{
-			ULocalizationTarget** const OtherTargetDependency = TargetSet->TargetObjects.FindByPredicate([OtherTargetDependencyName](ULocalizationTarget* SomeLocalizationTarget)->bool{return SomeLocalizationTarget->Settings.Name == OtherTargetDependencyName;});
+			ULocalizationTarget** const OtherTargetDependency = TargetSet->TargetObjects.FindByPredicate([OtherTargetDependencyGuid](ULocalizationTarget* SomeLocalizationTarget)->bool{return SomeLocalizationTarget->Settings.Guid == OtherTargetDependencyGuid;});
 			if (OtherTargetDependency && DoesTargetDependOnUs(*OtherTargetDependency))
 			{
 				return true;
@@ -646,10 +660,10 @@ void FLocalizationTargetDetailCustomization::OnTargetDependencyCheckStateChanged
 	switch (State)
 	{
 	case ECheckBoxState::Checked:
-		LocalizationTarget->Settings.TargetDependencies.Add(OtherLocalizationTarget->Settings.Name);
+		LocalizationTarget->Settings.TargetDependencies.Add(OtherLocalizationTarget->Settings.Guid);
 		break;
 	case ECheckBoxState::Unchecked:
-		LocalizationTarget->Settings.TargetDependencies.Remove(OtherLocalizationTarget->Settings.Name);
+		LocalizationTarget->Settings.TargetDependencies.Remove(OtherLocalizationTarget->Settings.Guid);
 		break;
 	}
 
@@ -663,7 +677,7 @@ void FLocalizationTargetDetailCustomization::OnTargetDependencyCheckStateChanged
 
 ECheckBoxState FLocalizationTargetDetailCustomization::IsTargetDependencyChecked(ULocalizationTarget* const OtherLocalizationTarget) const
 {
-	return LocalizationTarget->Settings.TargetDependencies.Contains(OtherLocalizationTarget->Settings.Name) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	return LocalizationTarget->Settings.TargetDependencies.Contains(OtherLocalizationTarget->Settings.Guid) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 FText FLocalizationTargetDetailCustomization::GetNativeCultureName() const

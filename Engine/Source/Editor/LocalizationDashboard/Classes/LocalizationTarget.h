@@ -112,11 +112,14 @@ struct FLocalizationTargetSettings
 	UPROPERTY(config, EditAnywhere, Category = "Target")
 	FString Name;
 
+	UPROPERTY(config)
+	FGuid Guid;
+
 	UPROPERTY(Transient, EditAnywhere, Category = "Target")
 	ELocalizationTargetConflictStatus ConflictStatus;
 
 	UPROPERTY(config, EditAnywhere, Category = "Gather Configuration")
-	TArray<FString> TargetDependencies;
+	TArray<FGuid> TargetDependencies;
 
 	UPROPERTY(config, EditAnywhere, Category = "Gather Configuration", AdvancedDisplay, meta=(FilePathFilter="manifest"))
 	TArray<FFilePath> AdditionalManifestDependencies;
