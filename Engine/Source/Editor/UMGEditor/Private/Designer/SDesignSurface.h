@@ -27,6 +27,8 @@ public:
 	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual FReply OnTouchGesture(const FGeometry& MyGeometry, const FPointerEvent& GestureEvent) override;
+	virtual FReply OnTouchEnded(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent) override;
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual bool SupportsKeyboardFocus() const override { return true; }
 	// End of Swidget interface
@@ -95,6 +97,9 @@ protected:
 	FVector2D ZoomTargetTopLeft;
 	FVector2D ZoomTargetBottomRight;
 	FVector2D ZoomToFitPadding;
+
+	/** Cumulative magnify delta from trackpad gesture */
+	float TotalGestureMagnify;
 
 	/** Does the user need to press Control in order to over-zoom. */
 	bool bRequireControlToOverZoom;

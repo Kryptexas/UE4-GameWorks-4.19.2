@@ -135,6 +135,7 @@ void SDesignSurface::Construct(const FArguments& InArgs)
 	ZoomTargetBottomRight = FVector2D::ZeroVector;
 
 	ZoomToFitPadding = FVector2D(100, 100);
+	TotalGestureMagnify = 0.0f;
 
 	ChildSlot
 	[
@@ -248,6 +249,38 @@ FReply SDesignSurface::OnMouseWheel(const FGeometry& MyGeometry, const FPointerE
 	ChangeZoomLevel(ZoomLevelDelta, WidgetSpaceCursorPos, !bRequireControlToOverZoom || MouseEvent.IsControlDown());
 
 	return FReply::Handled();
+}
+
+FReply SDesignSurface::OnTouchGesture(const FGeometry& MyGeometry, const FPointerEvent& GestureEvent)
+{
+	const EGestureEvent::Type GestureType = GestureEvent.GetGestureType();
+	const FVector2D& GestureDelta = GestureEvent.GetGestureDelta();
+	if ( GestureType == EGestureEvent::Magnify )
+	{
+		TotalGestureMagnify += GestureDelta.X;
+		if ( FMath::Abs(TotalGestureMagnify) > 0.07f )
+		{
+			// We want to zoom into this point; i.e. keep it the same fraction offset into the panel
+			const FVector2D WidgetSpaceCursorPos = MyGeometry.AbsoluteToLocal(GestureEvent.GetScreenSpacePosition());
+			const int32 ZoomLevelDelta = TotalGestureMagnify > 0.0f ? 1 : -1;
+			ChangeZoomLevel(ZoomLevelDelta, WidgetSpaceCursorPos, GestureEvent.IsControlDown());
+			TotalGestureMagnify = 0.0f;
+		}
+		return FReply::Handled();
+	}
+	else if ( GestureType == EGestureEvent::Scroll )
+	{
+		this->bIsPanning = true;
+		ViewOffset -= GestureDelta / GetZoomAmount();
+		return FReply::Handled();
+	}
+	return FReply::Unhandled();
+}
+
+FReply SDesignSurface::OnTouchEnded(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent)
+{
+	TotalGestureMagnify = 0.0f;
+	return FReply::Unhandled();
 }
 
 inline float FancyMod(float Value, float Size)
