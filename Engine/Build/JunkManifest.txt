@@ -58,6 +58,7 @@ Engine\Plugins\Script\ScriptPlugin\Binaries\Win64\*
 Engine\Plugins\Experimental\SteamVR\Binaries\Win64\*
 Engine\Plugins\Experimental\Paper2D\Binaries
 Engine\Plugins\Experimental\Paper2D\Intermediate
+Engine\Plugins\Runtime\Analytics\Apsalar\IOSApsalar\Binaries\Mac\*-IOSApsalar.*
 Engine\Plugins\Runtime\TwitchLiveStreaming\Binaries\Win32\TwitchLiveStreaming*.*
 Engine\Plugins\Runtime\TwitchLiveStreaming\Binaries\Win32\*-TwitchLiveStreaming*.*
 Engine\Plugins\Runtime\TwitchLiveStreaming\Binaries\Win64\TwitchLiveStreaming*.*
