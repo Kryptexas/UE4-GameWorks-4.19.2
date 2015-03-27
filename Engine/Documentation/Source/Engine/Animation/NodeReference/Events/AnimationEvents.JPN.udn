@@ -1,5 +1,6 @@
-﻿Availability:Public
-Title:アニメーション イベント
+﻿INTSourceChangelist:2061375
+Availability:Public
+Title:Animation Events
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
 Description:Animation ブループリントを初期化し、更新するためにアニメーションシステムによって呼び出されるイベント
 
@@ -16,28 +17,28 @@ Description:Animation ブループリントを初期化し、更新するため�
 ## BlueprintInitializeAnimation
 
 [EXCERPT:Initialize]
-**Blueprint Initialize Animation** イベントは、初期化処理を行うために _Animation Blueprint_ インスタンスが作成されると一度だけ実行されます。
+**Blueprint Initialize Animation** Event は、初期化処理を行うために _Animation Blueprint_ インスタンスが作成されると一度だけ実行されます。
 
 ![Initialize Anim Event](event_initializeanim.png)
 
 | ピン | 説明 |
 | --- | ----------- |
 | [REGION:tablesection]**出力ピン**[/REGION] ||
-| Exec (Blank) | `BlueprintInitializeAnimation()` イベントがコードで実行されると、各フレームで一回発行されます。 |
+| Exec (Blank) | `BlueprintInitializeAnimation()` Event がコードで実行されると、各フレームで一回発行されます。 |
 
 [/EXCERPT:Initialize]
 
 ## BlueprintUpdateAnimation
 
 [EXCERPT:Update]
-**Blueprint Update Animation** イベントは、フレーム毎に実行され、 _Animation Blueprint_ が必要な値の計算と更新をできるようにします。このイベントは EventGraph の更新ループへのエントリ ポイントです。最終更新されてからの経過時間は **DeltaTimeX** ピンから利用可能であり、時間依存の補間や増分更新を実行することができます。
+**Blueprint Update Animation** Event は、フレーム毎に実行され、 _Animation Blueprint_ が必要な値の計算と更新をできるようにします。このイベントは EventGraph の更新ループへのエントリ ポイントです。最終更新されてからの経過時間は **DeltaTimeX** ピンから利用可能であり、時間依存の補間や増分更新を実行することができます。
 
 ![Update Anim Event](event_updateanim.png)
 
 | ピン | 説明 |
 | --- | ----------- |
 | [REGION:tablesection]**出力ピン**[/REGION] ||
-| Exec (Blank) | `BlueprintUpdateAnimation()` イベントがコードで実行されると、各フレームで一回発行されます。 |
+| Exec (Blank) | `BlueprintUpdateAnimation()` Event がコードで実行されると、各フレームで一回発行されます。 |
 | Delta Time X | 最終実行サイクルからの時間経過を出力します |
 
 [/EXCERPT:Update]
