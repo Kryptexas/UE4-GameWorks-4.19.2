@@ -860,7 +860,13 @@ void APlayerController::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
 
 void APlayerController::GetPlayerViewPoint( FVector& out_Location, FRotator& out_Rotation ) const
 {
-	if (PlayerCameraManager != NULL && 
+	if (IsInState(NAME_Spectating) && HasAuthority() && !IsLocalController())
+	{
+		// Server uses the synced location from clients. Important for view relevancy checks.
+		out_Location = LastSpectatorSyncLocation;
+		out_Rotation = LastSpectatorSyncRotation;
+	}
+	else if (PlayerCameraManager != NULL && 
 		PlayerCameraManager->CameraCache.TimeStamp > 0.f) // Whether camera was updated at least once)
 	{
 		PlayerCameraManager->GetCameraViewPoint(out_Location, out_Rotation);
@@ -1516,6 +1522,7 @@ void APlayerController::UpdatePing(float InPing)
 void APlayerController::SetSpawnLocation(const FVector& NewLocation)
 {
 	SpawnLocation = NewLocation;
+	LastSpectatorSyncLocation = NewLocation;
 }
 
 
@@ -2542,21 +2549,23 @@ void APlayerController::SafeServerUpdateSpectatorState()
 	{
 		if (GetWorld()->TimeSince(LastSpectatorStateSynchTime) > RetryServerCheckSpectatorThrottleTime)
 		{
-			ServerSetSpectatorLocation(GetFocalLocation());
+			ServerSetSpectatorLocation(GetFocalLocation(), GetControlRotation());
 			LastSpectatorStateSynchTime = GetWorld()->TimeSeconds;
 		}
 	}
 }
 
-bool APlayerController::ServerSetSpectatorLocation_Validate(FVector NewLoc)
+bool APlayerController::ServerSetSpectatorLocation_Validate(FVector NewLoc, FRotator NewRot)
 {
 	return true;
 }
 
-void APlayerController::ServerSetSpectatorLocation_Implementation(FVector NewLoc)
+void APlayerController::ServerSetSpectatorLocation_Implementation(FVector NewLoc, FRotator NewRot)
 {
 	if ( IsInState(NAME_Spectating) )
 	{
+		LastSpectatorSyncLocation = NewLoc;
+		LastSpectatorSyncRotation = NewRot;
 		if ( GetWorld()->TimeSeconds - LastSpectatorStateSynchTime > 2.f )
 		{
 			ClientGotoState(GetStateName());
@@ -2579,6 +2588,29 @@ void APlayerController::ServerSetSpectatorLocation_Implementation(FVector NewLoc
 		LastSpectatorStateSynchTime = GetWorld()->TimeSeconds;
 	}
 }
+
+
+bool APlayerController::ServerSetSpectatorWaiting_Validate(bool bWaiting)
+{
+	return true;
+}
+
+void APlayerController::ServerSetSpectatorWaiting_Implementation(bool bWaiting)
+{
+	if (IsInState(NAME_Spectating))
+	{
+		bPlayerIsWaiting = true;
+	}
+}
+
+void APlayerController::ClientSetSpectatorWaiting_Implementation(bool bWaiting)
+{
+	if (IsInState(NAME_Spectating))
+	{
+		bPlayerIsWaiting = true;
+	}
+}
+
 
 bool APlayerController::ServerViewNextPlayer_Validate()
 {
@@ -3937,6 +3969,15 @@ void APlayerController::SetSpectatorPawn(class ASpectatorPawn* NewSpectatorPawn)
 		SpectatorPawn = NewSpectatorPawn;
 		AttachToPawn(SpectatorPawn);
 		AddPawnTickDependency(SpectatorPawn);
+
+		if (NewSpectatorPawn)
+		{
+			AutoManageActiveCameraTarget(NewSpectatorPawn);
+		}
+		else
+		{
+			AutoManageActiveCameraTarget(this);
+		}
 	}
 }
 
@@ -3957,6 +3998,7 @@ ASpectatorPawn* APlayerController::SpawnSpectatorPawn()
 			SpawnedSpectator = GetWorld()->SpawnActor<ASpectatorPawn>(GameState->SpectatorClass, GetSpawnLocation(), GetControlRotation(), SpawnParams);
 			if (SpawnedSpectator)
 			{
+				SpawnedSpectator->SetReplicates(false); // Client-side only
 				SpawnedSpectator->PossessedBy(this);
 				SpawnedSpectator->PawnClientRestart();
 				SpawnedSpectator->SetActorTickEnabled(true);
