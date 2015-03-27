@@ -73,6 +73,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 						MachineID = Crash.ComputerName,
 						Branch = Crash.Branch,
 						Description = Crash.Description,
+						RawCallStack = Crash.RawCallStack,
 					} )
 					.ToList();
 				int NumCrashes = Crashes.Count;
@@ -167,6 +168,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 									MachineID = Anon.MachineID,
 									Branch = Anon.Branch,
 									Description = Anon.Description,
+									RawCallStack = Anon.RawCallStack,
 								} );
 							}
 

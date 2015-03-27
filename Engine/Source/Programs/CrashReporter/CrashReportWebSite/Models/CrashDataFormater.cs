@@ -458,5 +458,23 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 			return Result;
 		}
+
+		/// <returns>A list of functions calls.</returns>
+		public List<string> GetFunctionCallsForJira()
+		{
+			var Result = new List<string>();
+			foreach( CallStackEntry CurrentEntry in CallStackEntries )
+			{
+				if( CurrentEntry.FileName != null && CurrentEntry.FileName.Length > 3 )
+				{
+					Result.Add( string.Format( "{0}!{1} [{2}]", CurrentEntry.ModuleName, CurrentEntry.FunctionName, CurrentEntry.FileName ) );
+				}
+				else
+				{
+					Result.Add( string.Format( "{0}!{1}", CurrentEntry.ModuleName, CurrentEntry.FunctionName ) );
+				}
+			}
+			return Result;
+		}
 	}
 }
