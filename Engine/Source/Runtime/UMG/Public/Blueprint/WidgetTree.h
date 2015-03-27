@@ -3,6 +3,7 @@
 #pragma once
 
 #include "UserWidget.h"
+#include "Components/PanelWidget.h"
 
 #include "WidgetTree.generated.h"
 
