@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:2324403
+﻿INTSourceChangelist:2464839
 Title:1.インストールの前提条件
 Crumbs:%ROOT%, Platforms, Platforms/iOS, Platforms/iOS/QuickStart
-Description:iOS デバイス向けのゲーム開発をするために必要なすべてのソフトウェアを入手してインストールする
+Description:iOS デバイス向けのゲーム開発をするために必要なすべてのソフトウェアを入手してインストールします。
 Availability:Public
 
 
@@ -22,6 +22,8 @@ Availability:Public
 
 %Steps%
 
+
+
 %Globals:OSSelect%
 
 [OBJECT:ToggleButtonContent]
@@ -35,7 +37,7 @@ Availability:Public
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	[INCLUDE:#windows]
+	%windows%
 	[/PARAM]
 [/OBJECT]
 [OBJECT:ToggleButtonContent]
@@ -48,26 +50,44 @@ Availability:Public
 	[PARAMLITERAL:active]
 	[/PARAMLITERAL]
 	[PARAM:content]
-	[INCLUDE:#macos]
+	%macos%
 	[/PARAM]
 [/OBJECT]
 
-<!--
-[EXCERPT:windows]
-iOS プロジェクトをパッケージ化し、Windows のデバイスに配備するには、iTunes をインストールしなければなりません。
+
+
+
+[VAR:windows]
+
+[REGION:note]
+iTunes のインストールはお済みですか？[このセクションはスキップできます。](Platforms/iOS/QuickStart/2)
+[/REGION]
+
+iOS プロジェクトをパッケージ化し、Windows のデバイスに配備するには、**iTunes** をインストールしなければなりません。
 
 Apple 社のリンク、[Install iTunes](http://www.apple.com/itunes/) から iTunes をインストールすることができます。
 
 [![](itunes.png)](http://www.apple.com/itunes/)
 
-[/EXCERPT:windows]
-[EXCERPT:macos]
-iOS プロジェクトをパッケージ化し、Mac OS のデバイスに配備するには、Xcode をインストールしなければなりません。
+インストールを終了したら、**iTunes** を実行します。
+
+[/VAR]
+
+[VAR:macos]
+
+[REGION:note]
+XCode のインストールはお済みですか？[このセクションはスキップできます。](Platforms/iOS/QuickStart/2)
+[/REGION]
+
+iOS プロジェクトをパッケージ化し、Mac OS のデバイスに配備するには、**Xcode** をインストールしなければなりません。
 
 Apple 社のリンク、[Install XCode](https://developer.apple.com/xcode/) から XCode をインストールすることができます。
 
 [![](DownloadXCode.png)](https://developer.apple.com/xcode/)
-[/EXCERPT:macos]
--->
+
+インストールを終了したら、**Xcode** を実行します。
+
+[/VAR]
+
 
 %Steps%
