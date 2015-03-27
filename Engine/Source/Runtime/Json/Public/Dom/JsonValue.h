@@ -38,6 +38,9 @@ public:
 	/** Tries to convert this value to an integer, returning false if not possible */
 	bool TryGetNumber(uint32& OutNumber) const;
 
+	/** Tries to convert this value to an integer, returning false if not possible */
+	bool TryGetNumber(int64& OutNumber) const;
+
 	/** Tries to convert this value to a string, returning false if not possible */
 	virtual bool TryGetString(FString& OutString) const { return false; }
 
