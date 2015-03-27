@@ -179,23 +179,8 @@ void FSourceControlModule::OnSourceControlDialogClosed(const TSharedRef<SWindow>
 #endif
 }
 
-void FSourceControlModule::RefreshSourceControlProviders() const
-{
-	TArray<FName> ModuleNames;
-	FModuleManager::Get().FindModules(TEXT("*SourceControl"), ModuleNames);
-	ModuleNames.Remove(FName(TEXT("SourceControl")));
-
-	for(int32 ModuleIndex = 0; ModuleIndex < ModuleNames.Num(); ModuleIndex++)
-	{
-		FModuleManager::Get().LoadModule(ModuleNames[ModuleIndex]);
-	}
-}
-
 void FSourceControlModule::InitializeSourceControlProviders()
 {
-	// Look for valid SourceControl modules - they will register themselves as editor features
-	RefreshSourceControlProviders();
-
 	int32 SourceControlCount = IModularFeatures::Get().GetModularFeatureImplementationCount(SourceControlFeatureName);
 	if( SourceControlCount > 0 )
 	{
