@@ -6580,7 +6580,7 @@ void FHeaderParser::ExportNativeHeaders(
 {
 	// Build a list of header filenames
 	TArray<FString>	ClassHeaderFilenames;
-	new(ClassHeaderFilenames) FString(TEXT(""));
+	new (ClassHeaderFilenames) FString();
 
 	auto SourceFiles = GetSourceFilesWithInheritanceOrdering(CurrentPackage, AllClasses);
 
