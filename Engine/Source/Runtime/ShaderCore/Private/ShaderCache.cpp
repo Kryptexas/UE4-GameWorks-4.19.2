@@ -6,6 +6,7 @@
 
 #include "ShaderCore.h"
 #include "ShaderCache.h"
+#include "Shader.h"
 #include "RHI.h"
 #include "RenderingThread.h"
 
