@@ -15,7 +15,7 @@ struct SHADERCORE_API FShaderCacheCustomVersion
 {
 	static const FGuid Key;
 	static const FGuid GameKey;
-	enum Type {	Initial, PreDraw, CacheHashes, Latest = CacheHashes };
+	enum Type {	Initial, PreDraw, CacheHashes, OptimisedHashes, Latest = OptimisedHashes };
 };
 
 enum EShaderCacheTextureType
@@ -42,7 +42,6 @@ struct SHADERCORE_API FShaderTextureKey
 	uint32 Samples;
 	uint8 Format;
 	TEnumAsByte<EShaderCacheTextureType> Type;
-
 	
 	FShaderTextureKey()
 	: Hash(0)
@@ -66,18 +65,18 @@ struct SHADERCORE_API FShaderTextureKey
 	{
 		if(!Key.Hash)
 		{
-			Key.Hash = Key.X;
-			Key.Hash ^= Key.Y;
+			Key.Hash = Key.X * 3;
+			Key.Hash ^= Key.Y * 2;
 			Key.Hash ^= Key.Z;
 			Key.Hash ^= Key.Flags;
-			Key.Hash ^= Key.MipLevels;
-			Key.Hash ^= Key.Samples;
-			Key.Hash ^= Key.Format;
+			Key.Hash ^= (Key.Format << 24);
+			Key.Hash ^= (Key.MipLevels << 16);
+			Key.Hash ^= (Key.Samples << 8);
 			Key.Hash ^= Key.Type;
 		}
 		return Key.Hash;
 	}
-		
+	
 	friend FArchive& operator<<( FArchive& Ar, FShaderTextureKey& Info )
 	{
 		return Ar << Info.Format << Info.Type << Info.Samples << Info.MipLevels << Info.Flags << Info.X << Info.Y << Info.Z << Info.Hash;
@@ -112,9 +111,9 @@ struct SHADERCORE_API FShaderResourceKey
 		if(!Key.Hash)
 		{
 			Key.Hash = GetTypeHash(Key.Tex);
-			Key.Hash ^= Key.BaseMip;
-			Key.Hash ^= Key.MipLevels;
-			Key.Hash ^= Key.Format;
+			Key.Hash ^= (Key.BaseMip << 24);
+			Key.Hash ^= (Key.MipLevels << 16);
+			Key.Hash ^= (Key.Format << 8);
 			Key.Hash ^= (uint32)Key.bSRV;
 		}
 		return Key.Hash;
@@ -151,7 +150,7 @@ struct SHADERCORE_API FShaderRenderTargetKey
 		if(!Key.Hash)
 		{
 			Key.Hash = GetTypeHash(Key.Texture);
-			Key.Hash ^= Key.MipLevel;
+			Key.Hash ^= (Key.MipLevel << 8);
 			Key.Hash ^= Key.ArrayIndex;
 		}
 		return Key.Hash;
@@ -168,7 +167,7 @@ class SHADERCORE_API FShaderCache
 	struct SHADERCORE_API FShaderCacheKey
 	{
 		FShaderCacheKey() : Platform(SP_NumPlatforms), Frequency(SF_NumFrequencies), Hash(0), bActive(false) {}
-	
+		
 		FSHAHash SHAHash;
 		EShaderPlatform Platform;
 		EShaderFrequency Frequency;
@@ -179,14 +178,14 @@ class SHADERCORE_API FShaderCache
 		{
 			return A.SHAHash == B.SHAHash && A.Platform == B.Platform && A.Frequency == B.Frequency && A.bActive == B.bActive;
 		}
-
+		
 		friend uint32 GetTypeHash(const FShaderCacheKey &Key)
 		{
 			if(!Key.Hash)
 			{
 				uint32 TargetFrequency = Key.Frequency;
 				uint32 TargetPlatform = Key.Platform;
-				Key.Hash = FCrc::MemCrc_DEPRECATED((const void*)&Key.SHAHash, sizeof(Key.SHAHash)) ^ GetTypeHash(TargetPlatform) ^ GetTypeHash(TargetFrequency) ^ GetTypeHash(Key.bActive);
+				Key.Hash = FCrc::MemCrc_DEPRECATED((const void*)&Key.SHAHash, sizeof(Key.SHAHash)) ^ GetTypeHash(TargetPlatform) ^ (GetTypeHash(TargetFrequency) << 16) ^ GetTypeHash(Key.bActive);
 			}
 			return Key.Hash;
 		}
@@ -263,8 +262,18 @@ class SHADERCORE_API FShaderCache
 				Ar << RasterizerStateInitializer.bEnableLineAA;
 				return Ar;
 			}
+			
+			friend uint32 GetTypeHash(const FShaderRasterizerState &Key)
+			{
+				uint32 Hash = (*((uint32*)&Key.DepthBias) ^ *((uint32*)&Key.SlopeScaleDepthBias));
+				Hash ^= (Key.FillMode << 8);
+				Hash ^= Key.CullMode;
+				Hash ^= Key.bAllowMSAA ? 2 : 0;
+				Hash ^= Key.bEnableLineAA ? 1 : 0;
+				return Hash;
+			}
 		};
-	
+		
 		FBlendStateInitializerRHI BlendState;
 		FShaderRasterizerState RasterizerState;
 		FDepthStencilStateInitializerRHI DepthStencilState;
@@ -278,13 +287,13 @@ class SHADERCORE_API FShaderCache
 		friend bool operator ==(const FShaderDrawKey& A,const FShaderDrawKey& B)
 		{
 			bool Compare = A.IndexType == B.IndexType &&
-							A.DepthStencilTarget == B.DepthStencilTarget &&
-							FMemory::Memcmp(&A.BlendState, &B.BlendState, sizeof(FBlendStateInitializerRHI)) == 0 &&
-							FMemory::Memcmp(&A.RasterizerState, &B.RasterizerState, sizeof(FShaderRasterizerState)) == 0 &&
-							FMemory::Memcmp(&A.DepthStencilState, &B.DepthStencilState, sizeof(FDepthStencilStateInitializerRHI)) == 0 &&
-							FMemory::Memcmp(&A.RenderTargets, &B.RenderTargets, sizeof(A.RenderTargets)) == 0 &&
-							FMemory::Memcmp(&A.SamplerStates, &B.SamplerStates, sizeof(A.SamplerStates)) == 0 &&
-							FMemory::Memcmp(&A.Resources, &B.Resources, sizeof(A.Resources)) == 0;
+			A.DepthStencilTarget == B.DepthStencilTarget &&
+			FMemory::Memcmp(&A.Resources, &B.Resources, sizeof(A.Resources)) == 0 &&
+			FMemory::Memcmp(&A.SamplerStates, &B.SamplerStates, sizeof(A.SamplerStates)) == 0 &&
+			FMemory::Memcmp(&A.BlendState, &B.BlendState, sizeof(FBlendStateInitializerRHI)) == 0 &&
+			FMemory::Memcmp(&A.RasterizerState, &B.RasterizerState, sizeof(FShaderRasterizerState)) == 0 &&
+			FMemory::Memcmp(&A.DepthStencilState, &B.DepthStencilState, sizeof(FDepthStencilStateInitializerRHI)) == 0 &&
+			FMemory::Memcmp(&A.RenderTargets, &B.RenderTargets, sizeof(A.RenderTargets)) == 0;
 			return Compare;
 		}
 		
@@ -292,14 +301,47 @@ class SHADERCORE_API FShaderCache
 		{
 			if(!Key.Hash)
 			{
-				Key.Hash = FCrc::MemCrc32(&Key.BlendState, sizeof(FBlendStateInitializerRHI));
-				Key.Hash ^= FCrc::MemCrc32(&Key.RasterizerState, sizeof(FShaderRasterizerState));
-				Key.Hash ^= FCrc::MemCrc32(&Key.DepthStencilState, sizeof(FDepthStencilStateInitializerRHI));
-				Key.Hash ^= FCrc::MemCrc32(&Key.RenderTargets, sizeof(Key.RenderTargets));
-				Key.Hash ^= FCrc::MemCrc32(&Key.SamplerStates, sizeof(Key.SamplerStates));
-				Key.Hash ^= FCrc::MemCrc32(&Key.Resources, sizeof(Key.Resources));
+				Key.Hash ^= (Key.BlendState.bUseIndependentRenderTargetBlendStates ? (1 << 31) : 0);
+				for( uint32 i = 0; i < MaxSimultaneousRenderTargets; i++ )
+				{
+					Key.Hash ^= (Key.BlendState.RenderTargets[i].ColorBlendOp << 24);
+					Key.Hash ^= (Key.BlendState.RenderTargets[i].ColorSrcBlend << 16);
+					Key.Hash ^= (Key.BlendState.RenderTargets[i].ColorDestBlend << 8);
+					Key.Hash ^= (Key.BlendState.RenderTargets[i].ColorWriteMask << 0);
+					Key.Hash ^= (Key.BlendState.RenderTargets[i].AlphaBlendOp << 24);
+					Key.Hash ^= (Key.BlendState.RenderTargets[i].AlphaSrcBlend << 16);
+					Key.Hash ^= (Key.BlendState.RenderTargets[i].AlphaDestBlend << 8);
+					Key.Hash ^= Key.RenderTargets[i];
+				}
+				
+				for( uint32 i = 0; i < SF_NumFrequencies; i++ )
+				{
+					for( uint32 j = 0; j < MaxTextureSamplers; j++ )
+					{
+						Key.Hash ^= Key.SamplerStates[i][j];
+						Key.Hash ^= Key.Resources[i][j];
+					}
+				}
+				
+				Key.Hash ^= (Key.DepthStencilState.bEnableDepthWrite ? (1 << 31) : 0);
+				Key.Hash ^= (Key.DepthStencilState.DepthTest << 24);
+				Key.Hash ^= (Key.DepthStencilState.bEnableFrontFaceStencil ? (1 << 23) : 0);
+				Key.Hash ^= (Key.DepthStencilState.FrontFaceStencilTest << 24);
+				Key.Hash ^= (Key.DepthStencilState.FrontFaceStencilFailStencilOp << 16);
+				Key.Hash ^= (Key.DepthStencilState.FrontFaceDepthFailStencilOp << 8);
+				Key.Hash ^= (Key.DepthStencilState.FrontFacePassStencilOp);
+				Key.Hash ^= (Key.DepthStencilState.bEnableBackFaceStencil ? (1 << 15) : 0);
+				Key.Hash ^= (Key.DepthStencilState.BackFaceStencilTest << 24);
+				Key.Hash ^= (Key.DepthStencilState.BackFaceStencilFailStencilOp << 16);
+				Key.Hash ^= (Key.DepthStencilState.BackFaceDepthFailStencilOp << 8);
+				Key.Hash ^= (Key.DepthStencilState.BackFacePassStencilOp);
+				Key.Hash ^= (Key.DepthStencilState.StencilReadMask << 8);
+				Key.Hash ^= (Key.DepthStencilState.StencilWriteMask);
+				
 				Key.Hash ^= GetTypeHash(Key.DepthStencilTarget);
 				Key.Hash ^= GetTypeHash(Key.IndexType);
+				
+				Key.Hash ^= GetTypeHash(Key.RasterizerState);
 			}
 			return Key.Hash;
 		}
@@ -321,15 +363,15 @@ class SHADERCORE_API FShaderCache
 			return Ar << Info.BlendState << Info.RasterizerState << Info.DepthStencilState << Info.DepthStencilTarget << Info.IndexType << Info.Hash;
 		}
 	};
-		
+	
 public:
 	FShaderCache();
 	~FShaderCache();
-
+	
 	// Called by the game to set the game specific shader cache version, only caches of this version will be loaded.
 	// Must be called before RHI initialisation, as InitShaderCache will load any existing cache.
 	static void SetGameVersion(int32 InGameVersion);
-
+	
 	// Called by the RHI implementation, not to be called by the game.
 	static void InitShaderCache();
 	static void ShutdownShaderCache();
@@ -338,7 +380,7 @@ public:
 	{
 		return bUseShaderCaching ? Cache : nullptr;
 	}
-
+	
 	FVertexShaderRHIRef GetVertexShader(EShaderPlatform Platform, FSHAHash Hash, TArray<uint8> const& Code);
 	FPixelShaderRHIRef GetPixelShader(EShaderPlatform Platform, FSHAHash Hash, TArray<uint8> const& Code);
 	FGeometryShaderRHIRef GetGeometryShader(EShaderPlatform Platform, FSHAHash Hash, TArray<uint8> const& Code);
@@ -540,7 +582,7 @@ public:
 			Cache->InternalPreDrawShaders(RHICmdList);
 		}
 	}
-		
+	
 	friend FArchive& operator<<( FArchive& Ar, FShaderCache& Info );
 	
 private:
@@ -571,7 +613,7 @@ private:
 			}
 			return false;
 		}
-
+		
 		friend uint32 GetTypeHash(const FShaderCacheBoundState &Key)
 		{
 			if(!Key.Hash)
@@ -613,7 +655,7 @@ private:
 		/** Calculates a hash index for a key. */
 		static uint32 GetKeyHash(KeyInitType Key);
 	};
-
+	
 	struct FShaderPlatformCache
 	{
 		TSet<FShaderCacheKey> Shaders;
@@ -630,9 +672,9 @@ private:
 			return Ar << Info.Shaders << Info.BoundShaderStates << Info.DrawStates << Info.RenderTargets << Info.Resources << Info.SamplerStates << Info.ShaderStateMembership << Info.ShaderDrawStates;
 		}
 	};
-
+	
 	typedef TMap<uint32, FShaderPlatformCache> FShaderCaches;
-
+	
 	struct FShaderResourceViewBinding
 	{
 		FShaderResourceViewBinding()
@@ -651,7 +693,7 @@ private:
 		FVertexBufferRHIParamRef VertexBuffer;
 		FTextureRHIParamRef Texture;
 	};
-
+	
 	struct FShaderTextureBinding
 	{
 		FShaderTextureBinding() {}
@@ -685,19 +727,19 @@ private:
 		FVertexBufferRHIRef VertexBuffer;
 		FTextureRHIRef Texture;
 	};
-
+	
 private:
 	void InternalLogShader(EShaderPlatform Platform, EShaderFrequency Frequency, FSHAHash Hash, TArray<uint8> const& Code);
 	
 	void InternalLogVertexDeclaration(const FVertexDeclarationElementList& VertexElements, FVertexDeclarationRHIParamRef VertexDeclaration);
 	
 	void InternalLogBoundShaderState(EShaderPlatform Platform, FVertexDeclarationRHIParamRef VertexDeclaration,
-								FVertexShaderRHIParamRef VertexShader,
-								FPixelShaderRHIParamRef PixelShader,
-								FHullShaderRHIParamRef HullShader,
-								FDomainShaderRHIParamRef DomainShader,
-								FGeometryShaderRHIParamRef GeometryShader,
-								FBoundShaderStateRHIParamRef BoundState);
+									 FVertexShaderRHIParamRef VertexShader,
+									 FPixelShaderRHIParamRef PixelShader,
+									 FHullShaderRHIParamRef HullShader,
+									 FDomainShaderRHIParamRef DomainShader,
+									 FGeometryShaderRHIParamRef GeometryShader,
+									 FBoundShaderStateRHIParamRef BoundState);
 	
 	void InternalLogBlendState(FBlendStateInitializerRHI const& Init, FBlendStateRHIParamRef State);
 	void InternalLogRasterizerState(FRasterizerStateInitializerRHI const& Init, FRasterizerStateRHIParamRef State);
@@ -751,8 +793,8 @@ private:
 	TMap<FBlendStateRHIParamRef, FBlendStateInitializerRHI> BlendStates;
 	TMap<FRasterizerStateRHIParamRef, FRasterizerStateInitializerRHI> RasterizerStates;
 	TMap<FDepthStencilStateRHIParamRef, FDepthStencilStateInitializerRHI> DepthStencilStates;
-	TMap<FSamplerStateRHIParamRef, FSamplerStateInitializerRHI> SamplerStates;
-	TMap<FTextureRHIParamRef, FShaderTextureKey> Textures;
+	TMap<FSamplerStateRHIParamRef, int32> SamplerStates;
+	TMap<FTextureRHIParamRef, int32> Textures;
 	TMap<FShaderResourceViewRHIParamRef, FShaderResourceKey> SRVs;
 	
 	// Shaders we need to predraw

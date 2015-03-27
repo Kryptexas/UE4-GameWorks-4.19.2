@@ -472,10 +472,9 @@ void FShaderCache::InternalLogSamplerState(FSamplerStateInitializerRHI const& In
 {
 	if ( bUseShaderDrawLog )
 	{
-		SamplerStates.Add(State, Init);
-		
 		FShaderPlatformCache& PlatformCache = Caches.FindOrAdd(GMaxRHIShaderPlatform);
-		PlatformCache.SamplerStates.Add(Init);
+		FSetElementId ID = PlatformCache.SamplerStates.Add(Init);
+		SamplerStates.Add(State, ID.AsInteger());
 	}
 }
 
@@ -483,14 +482,14 @@ void FShaderCache::InternalLogTexture(FShaderTextureKey const& Init, FTextureRHI
 {
 	if ( bUseShaderPredraw || bUseShaderDrawLog )
 	{
-		Textures.Add(State, Init);
-		CachedTextures.Add(Init, State);
-		
 		FShaderPlatformCache& PlatformCache = Caches.FindOrAdd(GMaxRHIShaderPlatform);
 		FShaderResourceKey Key;
 		Key.Tex = Init;
 		Key.Format = Init.Format;
-		PlatformCache.Resources.Add(Key);
+		FSetElementId ID = PlatformCache.Resources.Add(Key);
+		
+		Textures.Add(State, ID.AsInteger());
+		CachedTextures.Add(Init, State);
 	}
 }
 
@@ -498,8 +497,13 @@ void FShaderCache::InternalLogSRV(FShaderResourceViewRHIParamRef SRV, FTextureRH
 {
 	if ( bUseShaderPredraw || bUseShaderDrawLog )
 	{
+		FShaderPlatformCache& PlatformCache = Caches.FindOrAdd(GMaxRHIShaderPlatform);
+		
+		FSetElementId ID = FSetElementId::FromInteger(Textures.FindChecked(Texture));
+		FShaderResourceKey TexKey = PlatformCache.Resources[ID];
+		
 		FShaderResourceKey Key;
-		Key.Tex = Textures.FindChecked(Texture);
+		Key.Tex = TexKey.Tex;
 		Key.BaseMip = StartMip;
 		Key.MipLevels = NumMips;
 		Key.Format = Format;
@@ -507,7 +511,6 @@ void FShaderCache::InternalLogSRV(FShaderResourceViewRHIParamRef SRV, FTextureRH
 		SRVs.Add(SRV, Key);
 		CachedSRVs.Add(Key, FShaderResourceViewBinding(SRV, nullptr, Texture));
 		
-		FShaderPlatformCache& PlatformCache = Caches.FindOrAdd(GMaxRHIShaderPlatform);
 		PlatformCache.Resources.Add(Key);
 	}
 }
@@ -545,8 +548,12 @@ void FShaderCache::InternalRemoveTexture(FTextureRHIParamRef Texture)
 {
 	if ( bUseShaderPredraw || bUseShaderDrawLog )
 	{
-		auto Key = Textures.FindRef(Texture);
-		CachedTextures.Remove(Key);
+		FShaderPlatformCache& PlatformCache = Caches.FindOrAdd(GMaxRHIShaderPlatform);
+		
+		FSetElementId ID = FSetElementId::FromInteger(Textures.FindChecked(Texture));
+		FShaderResourceKey TexKey = PlatformCache.Resources[ID];
+		
+		CachedTextures.Remove(TexKey.Tex);
 		Textures.Remove(Texture);
 	}
 }
@@ -600,7 +607,9 @@ void FShaderCache::InternalSetRenderTargets( uint32 NumSimultaneousRenderTargets
 			if ( Target.Texture )
 			{
 				FShaderRenderTargetKey Key;
-				Key.Texture = Textures.FindChecked(Target.Texture);
+				FSetElementId ID = FSetElementId::FromInteger(Textures.FindChecked(Target.Texture));
+				FShaderResourceKey TexKey = PlatformCache.Resources[ID];
+				Key.Texture = TexKey.Tex;
 				check(Key.Texture.MipLevels == Target.Texture->GetNumMips());
 				Key.MipLevel = Key.Texture.MipLevels > Target.MipIndex ? Target.MipIndex : 0;
 				Key.ArrayIndex = Target.ArraySliceIndex;
@@ -615,7 +624,9 @@ void FShaderCache::InternalSetRenderTargets( uint32 NumSimultaneousRenderTargets
 		if ( NewDepthStencilTargetRHI && NewDepthStencilTargetRHI->Texture )
 		{
 			FShaderRenderTargetKey Key;
-			Key.Texture = Textures.FindChecked(NewDepthStencilTargetRHI->Texture);
+			FSetElementId ID = FSetElementId::FromInteger(Textures.FindChecked(NewDepthStencilTargetRHI->Texture));
+			FShaderResourceKey TexKey = PlatformCache.Resources[ID];
+			Key.Texture = TexKey.Tex;
 			CurrentDrawKey.DepthStencilTarget = PlatformCache.RenderTargets.Add(Key).AsInteger();
 		}
 		else
@@ -633,10 +644,7 @@ void FShaderCache::InternalSetSamplerState(EShaderFrequency Frequency, uint32 In
 		check(Index < GetFeatureLevelMaxTextureSamplers(GMaxRHIFeatureLevel));
 		if ( State )
 		{
-			FSamplerStateInitializerRHI Key = SamplerStates.FindChecked(State);
-			
-			FShaderPlatformCache& PlatformCache = Caches.FindOrAdd(GMaxRHIShaderPlatform);
-			CurrentDrawKey.SamplerStates[Frequency][Index] = PlatformCache.SamplerStates.FindId(Key).AsInteger();
+			CurrentDrawKey.SamplerStates[Frequency][Index] = SamplerStates.FindChecked(State);
 		}
 		else
 		{
@@ -661,11 +669,9 @@ void FShaderCache::InternalSetTexture(EShaderFrequency Frequency, uint32 Index, 
 				Tex = State->GetTextureReference()->GetReferencedTexture();
 			}
 			
-			Key.Tex = Textures.FindChecked(Tex);
-			Key.Format = Key.Tex.Format;
-			
 			FShaderPlatformCache& PlatformCache = Caches.FindOrAdd(GMaxRHIShaderPlatform);
-			CurrentDrawKey.Resources[Frequency][Index] = PlatformCache.Resources.FindId(Key).AsInteger();
+			FSetElementId ID = FSetElementId::FromInteger(Textures.FindChecked(Tex));
+			CurrentDrawKey.Resources[Frequency][Index] = ID.AsInteger();
 		}
 		else
 		{
@@ -729,12 +735,20 @@ void FShaderCache::InternalLogDraw(uint8 IndexType)
 	{
 		FShaderPlatformCache& PlatformCache = Caches.FindOrAdd(GMaxRHIShaderPlatform);
 		CurrentDrawKey.IndexType = IndexType;
-		FSetElementId Id = PlatformCache.DrawStates.Add(CurrentDrawKey);
+		FSetElementId Id = PlatformCache.DrawStates.FindId(CurrentDrawKey);
+		if ( !Id.IsValidId() )
+		{
+			Id = PlatformCache.DrawStates.Add(CurrentDrawKey);
+		}
+		
 		TSet<int32>& ShaderDrawSet = PlatformCache.ShaderDrawStates.FindOrAdd(BoundShaderState);
-		ShaderDrawSet.Add(Id.AsInteger());
+		if( !ShaderDrawSet.Contains(Id.AsInteger()) )
+		{
+			ShaderDrawSet.Add(Id.AsInteger());
+		}
 		
 		// No need to predraw this shader draw key - we've already done it
-		ShadersToDraw.FindRef(BoundShaderState).Remove(PlatformCache.DrawStates.FindId(CurrentDrawKey).AsInteger());
+		ShadersToDraw.FindRef(BoundShaderState).Remove(Id.AsInteger());
 	}
 }
 
