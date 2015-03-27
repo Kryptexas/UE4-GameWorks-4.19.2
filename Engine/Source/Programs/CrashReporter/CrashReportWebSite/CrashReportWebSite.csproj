@@ -89,7 +89,6 @@
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\ReportsController.cs" />
     <Compile Include="Controllers\UsersController.cs" />
-    <Compile Include="DatabaseHelper.cs" />
     <Compile Include="Models\BuggsViewModel.cs" />
     <Compile Include="Models\CachedDataService.cs" />
     <Compile Include="Models\BuggRepository.cs" />

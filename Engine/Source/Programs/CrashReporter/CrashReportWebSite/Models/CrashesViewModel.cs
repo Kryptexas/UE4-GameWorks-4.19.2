@@ -38,13 +38,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>The query for advanced crash filtering.</summary>
 		public string SearchQuery { get; set; }
 
-        public string UsernameQuery { get; set; }
+		public string UsernameQuery { get; set; }
 
-        public string EpicIdQuery { get; set; }
+		public string EpicIdQuery { get; set; }
 
-        public string MachineIdQuery { get; set; }
+		public string MachineIdQuery { get; set; }
 
-        public string JiraQuery { get; set; }
+		public string JiraQuery { get; set; }
 
 		/// <summary>The date of the earliest crash to display.</summary>
 		public long DateFrom { get; set; }
@@ -64,8 +64,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>The user supplied parameters.</summary>
 		public FormCollection FormCollection { get; set; }
 
-        /// <summary>A collection of Branch Names used in the drop down on the main search form</summary>
-        public List<SelectListItem> BranchNames { get; set; }
+		/// <summary>A collection of Branch Names used in the drop down on the main search form</summary>
+		public List<SelectListItem> BranchNames { get; set; }
 
 		/// <summary>The set of statuses a crash could have its status set to.</summary>
 		public IEnumerable<string> SetStatus { get { return new List<string>( new string[] { "Unset", "Reviewed", "New", "Coder", "EngineQA", "GameQA" } ); } }
@@ -76,13 +76,13 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary></summary>
 		public string GenerationTime { get; set; }
 
-        public CrashesViewModel()
-        {
-            DateTime FromDate = DateTime.Today.AddDays(-7);
-            DateTime ToDate = DateTime.Today;
-            BranchNames = DatabaseHelper.GetBranches();
-            DateTo = (long)(ToDate - Epoch).TotalMilliseconds;
-            DateFrom = (long)(FromDate - Epoch).TotalMilliseconds;
-        }
+		public CrashesViewModel()
+		{
+			DateTime FromDate = DateTime.Today.AddDays(-7);
+			DateTime ToDate = DateTime.Today;
+			BranchNames = CrashRepository.GetBranches();
+			DateTo = (long)(ToDate - Epoch).TotalMilliseconds;
+			DateFrom = (long)(FromDate - Epoch).TotalMilliseconds;
+		}
 	}
 }
