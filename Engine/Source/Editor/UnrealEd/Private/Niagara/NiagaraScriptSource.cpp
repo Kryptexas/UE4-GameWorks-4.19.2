@@ -114,6 +114,7 @@ void UNiagaraScriptSource::Compile()
 			{
 				EditorExposedVectorConstant *Const = new EditorExposedVectorConstant();
 				Const->ConstName = Node->Input.Name;
+				Const->Value = Node->VectorDefault;
 				ExposedVectorConstants.Add( MakeShareable(Const) );
 			}
 			else if (Node->Input.Type == ENiagaraDataType::Curve)
