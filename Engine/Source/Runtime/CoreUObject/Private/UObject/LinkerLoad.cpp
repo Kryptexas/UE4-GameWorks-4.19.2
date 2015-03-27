@@ -3545,7 +3545,7 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 			LoadClass,
 			ThisParent,
 			NewName,
-			EObjectFlags(ObjectLoadFlags | (GIsInitialLoad ? RF_RootSet : 0)),
+			EObjectFlags(ObjectLoadFlags | ((FPlatformProperties::RequiresCookedData() && GIsInitialLoad) ? RF_RootSet : 0)),
 			Template
 		);
 		LoadClass = Export.Object->GetClass(); // this may have changed if we are overwriting a CDO component
