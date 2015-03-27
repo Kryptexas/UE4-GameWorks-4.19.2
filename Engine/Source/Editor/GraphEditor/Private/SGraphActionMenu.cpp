@@ -1126,11 +1126,7 @@ void SGraphActionMenu::OnItemSelected( TSharedPtr< FGraphActionNode > InSelected
 {
 	if (!bIgnoreUIUpdate)
 	{
-		// Filter out selection changes that should not trigger execution
-		if( ( SelectInfo == ESelectInfo::OnMouseClick )  || ( SelectInfo == ESelectInfo::OnKeyPress ) || !InSelectedItem.IsValid())		
-		{
-			HandleSelection(InSelectedItem);
-		}
+		HandleSelection(InSelectedItem, SelectInfo);
 	}
 }
 
@@ -1201,7 +1197,7 @@ bool SGraphActionMenu::OnMouseButtonDownEvent( TWeakPtr<FEdGraphSchemaAction> In
 		{
 			if( SelectedNode->GetPrimaryAction().Get() == InAction.Pin().Get() )
 			{				
-				bResult = HandleSelection( SelectedNode );
+				bResult = HandleSelection( SelectedNode, ESelectInfo::OnMouseClick );
 			}
 		}
 	}
@@ -1288,19 +1284,19 @@ void SGraphActionMenu::AddReferencedObjects( FReferenceCollector& Collector )
 	}
 }
 
-bool SGraphActionMenu::HandleSelection( TSharedPtr< FGraphActionNode > &InSelectedItem )
+bool SGraphActionMenu::HandleSelection( TSharedPtr< FGraphActionNode > &InSelectedItem, ESelectInfo::Type InSelectionType )
 {
 	bool bResult = false;
 	if( OnActionSelected.IsBound() )
 	{
 		if ( InSelectedItem.IsValid() && InSelectedItem->IsActionNode() )
 		{
-			OnActionSelected.Execute(InSelectedItem->Actions);
+			OnActionSelected.Execute(InSelectedItem->Actions, InSelectionType);
 			bResult = true;
 		}
 		else
 		{
-			OnActionSelected.Execute(TArray< TSharedPtr<FEdGraphSchemaAction> >());
+			OnActionSelected.Execute(TArray< TSharedPtr<FEdGraphSchemaAction> >(), InSelectionType);
 			bResult = true;
 		}
 	}

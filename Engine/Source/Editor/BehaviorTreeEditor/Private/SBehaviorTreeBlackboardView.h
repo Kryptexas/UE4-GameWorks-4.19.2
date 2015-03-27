@@ -106,7 +106,7 @@ protected:
 	FText HandleGetSectionTitle(int32 SectionID) const;
 
 	/** Delegate handler used when an action is selected */
-	void HandleActionSelected(const TArray< TSharedPtr<FEdGraphSchemaAction> >& SelectedActions) const;
+	void HandleActionSelected(const TArray< TSharedPtr<FEdGraphSchemaAction> >& SelectedActions, ESelectInfo::Type InSelectionType) const;
 
 	/** Delegate handler used to generate an action's context menu */
 	TSharedPtr<SWidget> HandleContextMenuOpening(TSharedRef<FUICommandList> ToolkitCommands) const;

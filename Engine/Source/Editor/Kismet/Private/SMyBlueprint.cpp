@@ -1497,9 +1497,12 @@ FReply SMyBlueprint::OnCategoryDragged(const FString& InCategory, const FPointer
 	return FReply::Handled().BeginDragDrop(DragOperation);
 }
 
-void SMyBlueprint::OnGlobalActionSelected(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions)
+void SMyBlueprint::OnGlobalActionSelected(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions, ESelectInfo::Type InSelectionType)
 {
-	OnActionSelected(InActions);
+	if (InSelectionType == ESelectInfo::OnMouseClick  || InSelectionType == ESelectInfo::OnKeyPress || InSelectionType == ESelectInfo::OnNavigation || InActions.Num() == 0)
+	{
+		OnActionSelected(InActions);
+	}
 }
 
 void SMyBlueprint::OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions )

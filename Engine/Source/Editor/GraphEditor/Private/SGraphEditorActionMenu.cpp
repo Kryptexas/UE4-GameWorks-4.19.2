@@ -61,25 +61,28 @@ TSharedRef<SEditableTextBox> SGraphEditorActionMenu::GetFilterTextBox()
 }
 
 
-void SGraphEditorActionMenu::OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaAction> >& SelectedAction )
+void SGraphEditorActionMenu::OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaAction> >& SelectedAction, ESelectInfo::Type InSelectionType )
 {
-	bool bDoDismissMenus = true;
-
-	if ( GraphObj != NULL )
+	if (InSelectionType == ESelectInfo::OnMouseClick  || InSelectionType == ESelectInfo::OnKeyPress || SelectedAction.Num() == 0)
 	{
-		for ( int32 ActionIndex = 0; ActionIndex < SelectedAction.Num(); ActionIndex++ )
+		bool bDoDismissMenus = true;
+
+		if ( GraphObj != NULL )
 		{
-			TSharedPtr<FEdGraphSchemaAction> CurrentAction = SelectedAction[ActionIndex];
-
-			if ( CurrentAction.IsValid() )
+			for ( int32 ActionIndex = 0; ActionIndex < SelectedAction.Num(); ActionIndex++ )
 			{
-				if ( bDoDismissMenus )
-				{
-					FSlateApplication::Get().DismissAllMenus();
-					bDoDismissMenus = false;
-				}
+				TSharedPtr<FEdGraphSchemaAction> CurrentAction = SelectedAction[ActionIndex];
 
-				CurrentAction->PerformAction(GraphObj, DraggedFromPins, NewNodePosition);
+				if ( CurrentAction.IsValid() )
+				{
+					if ( bDoDismissMenus )
+					{
+						FSlateApplication::Get().DismissAllMenus();
+						bDoDismissMenus = false;
+					}
+
+					CurrentAction->PerformAction(GraphObj, DraggedFromPins, NewNodePosition);
+				}
 			}
 		}
 	}

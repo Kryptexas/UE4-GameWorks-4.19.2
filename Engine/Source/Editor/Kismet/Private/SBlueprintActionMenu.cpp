@@ -504,24 +504,27 @@ TSharedRef<SWidget> SBlueprintActionMenu::OnCreateWidgetForAction(FCreateWidgetF
 	return SNew(SBlueprintPaletteItem, InCreateData, EditorPtr.Pin()); 
 }
 
-void SBlueprintActionMenu::OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaAction> >& SelectedAction )
+void SBlueprintActionMenu::OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaAction> >& SelectedAction, ESelectInfo::Type InSelectionType )
 {
-	for ( int32 ActionIndex = 0; ActionIndex < SelectedAction.Num(); ActionIndex++ )
+	if (InSelectionType == ESelectInfo::OnMouseClick  || InSelectionType == ESelectInfo::OnKeyPress || SelectedAction.Num() == 0)
 	{
-		if ( SelectedAction[ActionIndex].IsValid() && GraphObj != NULL )
+		for ( int32 ActionIndex = 0; ActionIndex < SelectedAction.Num(); ActionIndex++ )
 		{
-			// Don't dismiss when clicking on dummy action
-			if ( !bActionExecuted && (SelectedAction[ActionIndex]->GetTypeId() != FEdGraphSchemaAction_Dummy::StaticGetTypeId()))
+			if ( SelectedAction[ActionIndex].IsValid() && GraphObj != NULL )
 			{
-				FSlateApplication::Get().DismissAllMenus();
-				bActionExecuted = true;
-			}
+				// Don't dismiss when clicking on dummy action
+				if ( !bActionExecuted && (SelectedAction[ActionIndex]->GetTypeId() != FEdGraphSchemaAction_Dummy::StaticGetTypeId()))
+				{
+					FSlateApplication::Get().DismissAllMenus();
+					bActionExecuted = true;
+				}
 
-			UEdGraphNode* ResultNode = SelectedAction[ActionIndex]->PerformAction(GraphObj, DraggedFromPins, NewNodePosition);
+				UEdGraphNode* ResultNode = SelectedAction[ActionIndex]->PerformAction(GraphObj, DraggedFromPins, NewNodePosition);
 
-			if ( ResultNode != NULL )
-			{
-				NewNodePosition.Y += UEdGraphSchema_K2::EstimateNodeHeight( ResultNode );
+				if ( ResultNode != NULL )
+				{
+					NewNodePosition.Y += UEdGraphSchema_K2::EstimateNodeHeight( ResultNode );
+				}
 			}
 		}
 	}

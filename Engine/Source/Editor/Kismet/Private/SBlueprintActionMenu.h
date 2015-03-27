@@ -45,7 +45,7 @@ protected:
 	ECheckBoxState ContextToggleIsChecked() const;
 	void OnContextTargetsChanged(uint32 ContextTargetMask);
 
-	void OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaAction> >& SelectedAction );
+	void OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaAction> >& SelectedAction, ESelectInfo::Type InSelectionType );
 
 	TSharedRef<SWidget> OnCreateWidgetForAction(struct FCreateWidgetForActionData* const InCreateData);
 

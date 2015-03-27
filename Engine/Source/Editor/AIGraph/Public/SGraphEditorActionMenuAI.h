@@ -42,7 +42,7 @@ protected:
 	SGraphEditor::FActionMenuClosed OnClosedCallback;
 	TSharedPtr<SGraphActionMenu> GraphActionMenu;
 
-	void OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaAction> >& SelectedAction );
+	void OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaAction> >& SelectedAction, ESelectInfo::Type InSelectionType );
 
 	/** Callback used to populate all actions list in SGraphActionMenu */
 	void CollectAllActions(FGraphActionListBuilderBase& OutAllActions);
