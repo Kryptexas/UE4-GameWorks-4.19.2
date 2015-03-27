@@ -1186,6 +1186,7 @@ public:
 	{
 	public:
 		FActorTransactionAnnotation(const AActor* Actor);
+		virtual ~FActorTransactionAnnotation() {}
 
 		virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
