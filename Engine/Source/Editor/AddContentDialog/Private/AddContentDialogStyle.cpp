@@ -86,6 +86,13 @@ TSharedRef< FSlateStyleSet > FAddContentDialogStyle::Create()
 	Style->Set("AddContentDialog.ContentPackCategory", new IMAGE_BRUSH( "ContentPack", FVector2D(32.0f, 32.0f)));
 	Style->Set("AddContentDialog.UnknownCategory", new FSlateNoResource());
 
+	Style->Set("AddContentDialog.AddButton.TextStyle", FTextBlockStyle(NormalText)
+		.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 11))
+		.SetColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f))
+		.SetHighlightColor(FLinearColor(1.0f, 1.0f, 1.0f))
+		.SetShadowOffset(FVector2D(1, 1))
+		.SetShadowColorAndOpacity(FLinearColor(0, 0, 0, 0.9f)));
+
 	return Style;
 }
 
