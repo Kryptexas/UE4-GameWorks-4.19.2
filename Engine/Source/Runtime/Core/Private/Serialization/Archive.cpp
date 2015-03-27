@@ -675,7 +675,7 @@ void FArchive::SerializeCompressed( void* V, int64 Length, ECompressionFlags Fla
 
 		// Overrwrite chunk infos by seeking to the beginning, serializing the data and then
 		// seeking back to the end.
-		int32 EndPosition = Tell();
+		auto EndPosition = Tell();
 		// Seek to the beginning.
 		Seek( StartPosition );
 		// Serialize chunk infos.
