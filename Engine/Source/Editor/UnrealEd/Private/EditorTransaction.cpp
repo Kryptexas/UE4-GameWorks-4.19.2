@@ -197,6 +197,10 @@ void FTransaction::FObjectRecord::AddReferencedObjects( FReferenceCollector& Col
 	{
 		ReferencedObject.AddReferencedObjects(Collector);
 	}
+	if (ObjectAnnotation.IsValid())
+	{
+		ObjectAnnotation->AddReferencedObjects(Collector);
+	}
 }
 
 void FTransaction::AddReferencedObjects( FReferenceCollector& Collector )

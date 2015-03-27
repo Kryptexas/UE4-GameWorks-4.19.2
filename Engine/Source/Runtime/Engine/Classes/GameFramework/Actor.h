@@ -1187,6 +1187,8 @@ public:
 	public:
 		FActorTransactionAnnotation(const AActor* Actor);
 
+		virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
+
 		bool HasInstanceData() const;
 
 		FComponentInstanceDataCache ComponentInstanceData;

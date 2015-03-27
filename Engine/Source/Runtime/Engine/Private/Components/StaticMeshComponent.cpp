@@ -39,6 +39,24 @@ public:
 		CastChecked<UStaticMeshComponent>(Component)->ApplyComponentInstanceData(this);
 	}
 
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
+	{
+		FSceneComponentInstanceData::AddReferencedObjects(Collector);
+
+		Collector.AddReferencedObject(StaticMesh);
+		if (bHasCachedStaticLighting)
+		{
+			for (FLightMapRef& LightMapRef : CachedStaticLighting.LODDataLightMap)
+			{
+				LightMapRef->AddReferencedObjects(Collector);
+			}
+			for (FShadowMapRef& ShadowMapRef : CachedStaticLighting.LODDataShadowMap)
+			{
+				ShadowMapRef->AddReferencedObjects(Collector);
+			}		
+		}
+	}
+
 	/** Add vertex color data for a specified LOD before RerunConstructionScripts is called */
 	void AddVertexColorData(const struct FStaticMeshComponentLODInfo& LODInfo, uint32 LODIndex)
 	{

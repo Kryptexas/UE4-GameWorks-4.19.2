@@ -1205,6 +1205,12 @@ void FSceneComponentInstanceData::ApplyToComponent(UActorComponent* Component, c
 	}
 }
 
+void FSceneComponentInstanceData::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	FActorComponentInstanceData::AddReferencedObjects(Collector);
+	Collector.AddReferencedObjects(AttachedInstanceComponents);
+}
+
 void FSceneComponentInstanceData::FindAndReplaceInstances(const TMap<UObject*, UObject*>& OldToNewInstanceMap)
 {
 	for (USceneComponent*& ChildComponent : AttachedInstanceComponents)

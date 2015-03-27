@@ -733,6 +733,24 @@ public:
 		CastChecked<UInstancedStaticMeshComponent>(Component)->ApplyComponentInstanceData(this);
 	}
 
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
+	{
+		FSceneComponentInstanceData::AddReferencedObjects(Collector);
+
+		Collector.AddReferencedObject(StaticMesh);
+		if (bHasCachedStaticLighting)
+		{
+			for (FLightMapRef& LightMapRef : CachedStaticLighting.LODDataLightMap)
+			{
+				LightMapRef->AddReferencedObjects(Collector);
+			}
+			for (FShadowMapRef& ShadowMapRef : CachedStaticLighting.LODDataShadowMap)
+			{
+				ShadowMapRef->AddReferencedObjects(Collector);
+			}		
+		}
+	}
+
 	/** Used to store lightmap data during RerunConstructionScripts */
 	struct FLightMapInstanceData
 	{

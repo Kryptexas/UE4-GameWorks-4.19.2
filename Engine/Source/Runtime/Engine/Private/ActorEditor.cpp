@@ -299,6 +299,11 @@ AActor::FActorTransactionAnnotation::FActorTransactionAnnotation(const AActor* A
 	}
 }
 
+void AActor::FActorTransactionAnnotation::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	ComponentInstanceData.AddReferencedObjects(Collector);
+}
+
 bool AActor::FActorTransactionAnnotation::HasInstanceData() const
 {
 	return (bRootComponentDataCached || ComponentInstanceData.HasInstanceData());

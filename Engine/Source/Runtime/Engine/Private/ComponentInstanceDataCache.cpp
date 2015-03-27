@@ -126,6 +126,11 @@ void FActorComponentInstanceData::ApplyToComponent(UActorComponent* Component, c
 	}
 }
 
+void FActorComponentInstanceData::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	Collector.AddReferencedObject(SourceComponentClass);
+}
+
 FComponentInstanceDataCache::FComponentInstanceDataCache(const AActor* Actor)
 {
 	if(Actor != NULL)
@@ -224,7 +229,7 @@ void FComponentInstanceDataCache::FindAndReplaceInstances(const TMap<UObject*, U
 		}
 	}
 	TArray<USceneComponent*> SceneComponents;
-	InstanceComponentTransformToRootMap.GetKeys(SceneComponents);
+	InstanceComponentTransformToRootMap.GenerateKeyArray(SceneComponents);
 
 	for (USceneComponent* SceneComponent : SceneComponents)
 	{
@@ -238,6 +243,22 @@ void FComponentInstanceDataCache::FindAndReplaceInstances(const TMap<UObject*, U
 			{
 				InstanceComponentTransformToRootMap.Remove(SceneComponent);
 			}
+		}
+	}
+}
+
+void FComponentInstanceDataCache::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	TArray<USceneComponent*> SceneComponents;
+	InstanceComponentTransformToRootMap.GenerateKeyArray(SceneComponents);
+
+	Collector.AddReferencedObjects(SceneComponents);
+
+	for (auto ComponentInstanceDataPair : TypeToDataMap)
+	{
+		if (ComponentInstanceDataPair.Value)
+		{
+			ComponentInstanceDataPair.Value->AddReferencedObjects(Collector);
 		}
 	}
 }
