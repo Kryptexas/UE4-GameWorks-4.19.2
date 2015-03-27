@@ -4017,7 +4017,7 @@ bool FMeshUtilities::ConstructRawMesh(
 	}
 
 	// Compute any missing tangents.
-	if (bRecomputeTangents)
+	if (bRecomputeNormals || bRecomputeTangents)
 	{
 		float ComparisonThreshold = GetComparisonThreshold(BuildSettings);
 		TMultiMap<int32,int32> OverlappingCorners;
