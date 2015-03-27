@@ -1930,6 +1930,8 @@ void UMaterialInstance::SetTextureParameterValueInternal(FName ParameterName, UT
 	// Don't enqueue an update if it isn't needed
 	if (ParameterValue->ParameterValue != Value)
 	{
+		checkf(!Value || Value->IsA(UTexture::StaticClass()), TEXT("Expecting a UTexture! Value='%s' class='%s'"), *Value->GetName(), *Value->GetClass()->GetName());
+
 		ParameterValue->ParameterValue = Value;
 		// Update the material instance data in the rendering thread.
 		GameThread_UpdateMIParameter(this, *ParameterValue);
