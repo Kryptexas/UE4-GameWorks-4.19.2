@@ -3364,7 +3364,7 @@ bool UCharacterMovementComponent::CanWalkOffLedges() const
 	return bCanWalkOffLedges;
 }
 
-bool UCharacterMovementComponent::CheckFall(FHitResult &Hit, FVector Delta, FVector subLoc, float remainingTime, float timeTick, int32 Iterations, bool bMustJump)
+bool UCharacterMovementComponent::CheckFall(const FFindFloorResult& OldFloor, const FHitResult& Hit, const FVector& Delta, const FVector& OldLocation, float remainingTime, float timeTick, int32 Iterations, bool bMustJump)
 {
 	if (!HasValidData())
 	{
@@ -3373,11 +3373,11 @@ bool UCharacterMovementComponent::CheckFall(FHitResult &Hit, FVector Delta, FVec
 
 	if (bMustJump || CanWalkOffLedges())
 	{
-		CharacterOwner->OnWalkingOffLedge();
+		CharacterOwner->OnWalkingOffLedge(OldFloor.HitResult.ImpactNormal, OldFloor.HitResult.Normal, OldLocation, timeTick);
 		if (IsMovingOnGround())
 		{
 			// If still walking, then fall. If not, assume the user set a different mode they want to keep.
-			StartFalling(Iterations, remainingTime, timeTick, Delta, subLoc);
+			StartFalling(Iterations, remainingTime, timeTick, Delta, OldLocation);
 		}
 		return true;
 	}
@@ -3393,7 +3393,6 @@ void UCharacterMovementComponent::StartFalling(int32 Iterations, float remaining
 					? 0.f
 					: remainingTime + timeTick * (1.f - FMath::Min(1.f,ActualDist/DesiredDist));
 
-	Velocity.Z = 0.f;			
 	if ( IsMovingOnGround() )
 	{
 		// This is to catch cases where the first frame of PIE is executed, and the
@@ -3699,7 +3698,7 @@ void UCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterations)
 				// see if it is OK to jump
 				// @todo collision : only thing that can be problem is that oldbase has world collision on
 				bool bMustJump = bZeroDelta || (OldBase == NULL || (!OldBase->IsCollisionEnabled() && MovementBaseUtility::IsDynamicBase(OldBase)));
-				if ( (bMustJump || !bCheckedFall) && CheckFall(CurrentFloor.HitResult, Delta, OldLocation, remainingTime, timeTick, Iterations, bMustJump) )
+				if ( (bMustJump || !bCheckedFall) && CheckFall(OldFloor, CurrentFloor.HitResult, Delta, OldLocation, remainingTime, timeTick, Iterations, bMustJump) )
 				{
 					return;
 				}
@@ -3718,7 +3717,7 @@ void UCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterations)
 			{
 				if (ShouldCatchAir(OldFloor, CurrentFloor))
 				{
-					CharacterOwner->OnWalkingOffLedge();
+					CharacterOwner->OnWalkingOffLedge(OldFloor.HitResult.ImpactNormal, OldFloor.HitResult.Normal, OldLocation, timeTick);
 					if (IsMovingOnGround())
 					{
 						// If still walking, then fall. If not, assume the user set a different mode they want to keep.
@@ -3751,7 +3750,7 @@ void UCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterations)
 			if (!CurrentFloor.IsWalkableFloor() && !CurrentFloor.HitResult.bStartPenetrating)
 			{
 				const bool bMustJump = bJustTeleported || bZeroDelta || (OldBase == NULL || (!OldBase->IsCollisionEnabled() && MovementBaseUtility::IsDynamicBase(OldBase)));
-				if ((bMustJump || !bCheckedFall) && CheckFall(CurrentFloor.HitResult, Delta, OldLocation, remainingTime, timeTick, Iterations, bMustJump) )
+				if ((bMustJump || !bCheckedFall) && CheckFall(OldFloor, CurrentFloor.HitResult, Delta, OldLocation, remainingTime, timeTick, Iterations, bMustJump) )
 				{
 					return;
 				}

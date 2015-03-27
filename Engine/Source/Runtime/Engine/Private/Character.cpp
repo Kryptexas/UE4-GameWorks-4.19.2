@@ -209,7 +209,7 @@ UActorComponent* ACharacter::FindComponentByClass(const TSubclassOf<UActorCompon
 	return Super::FindComponentByClass(ComponentClass);
 }
 
-void ACharacter::OnWalkingOffLedge_Implementation()
+void ACharacter::OnWalkingOffLedge_Implementation(const FVector& PreviousFloorImpactNormal, const FVector& PreviousFloorContactNormal, const FVector& PreviousLocation, float TimeDelta)
 {
 }
 

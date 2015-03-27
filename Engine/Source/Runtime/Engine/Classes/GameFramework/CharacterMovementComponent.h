@@ -357,11 +357,11 @@ public:
 	UPROPERTY()
 	uint32 bShrinkProxyCapsule:1;
 
-	/** if true, Character can walk off a ledge. */
+	/** If true, Character can walk off a ledge. */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	uint32 bCanWalkOffLedges:1;
 
-	/** if true, Character can walk off a ledge when crouching. */
+	/** If true, Character can walk off a ledge when crouching. */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	uint32 bCanWalkOffLedgesWhenCrouching:1;
 
@@ -577,7 +577,7 @@ public:
 	uint32 bImpartBaseAngularVelocity:1;
 
 	/** Used by movement code to determine if a change in position is based on normal movement or a teleport. If not a teleport, velocity can be recomputed based on the change in position. */
-	UPROPERTY(Transient)
+	UPROPERTY(Category="Character Movement", Transient, VisibleInstanceOnly, BlueprintReadWrite)
 	uint32 bJustTeleported:1;
 
 	/** True when a network replication update is received for simulated proxies. */
@@ -1185,7 +1185,7 @@ public:
 	FVector GetLedgeMove(const FVector& OldLocation, const FVector& Delta, const FVector& GravDir);
 
 	/** Check if pawn is falling */
-	bool CheckFall(FHitResult &Hit, FVector Delta, FVector subLoc, float remainingTime, float timeTick, int32 Iterations, bool bMustJump);
+	bool CheckFall(const FFindFloorResult& OldFloor, const FHitResult& Hit, const FVector& Delta, const FVector& OldLocation, float remainingTime, float timeTick, int32 Iterations, bool bMustJump);
 	
 	/** 
 	 *  Revert to previous position OldLocation, return to being based on OldBase.

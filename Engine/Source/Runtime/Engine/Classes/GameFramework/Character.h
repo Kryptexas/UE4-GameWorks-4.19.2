@@ -516,11 +516,27 @@ public:
 
 	/**
 	 * Event fired when the Character is walking off a surface and is about to fall because CharacterMovement->CurrentFloor became unwalkable.
-	 * If CharacterMovement->MovementMode does not change (from Walking) during this event then the character will start falling.
+	 * If CharacterMovement->MovementMode does not change during this event then the character will automatically start falling afterwards.
+	 * @note Z velocity is zero during walking movement, and will be here as well. Another velocity can be computed here if desired and will be used when starting to fall.
+	 *
+	 * @param  PreviousFloorImpactNormal Normal of the previous walkable floor.
+	 * @param  PreviousFloorContactNormal Normal of the contact with the previous walkable floor.
+	 * @param  PreviousLocation	Previous character location before movement off the ledge.
+	 * @param  TimeTick	Time delta of movement update resulting in moving off the ledge.
 	 */
 	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character")
-	void OnWalkingOffLedge();
-	virtual void OnWalkingOffLedge_Implementation();
+	void OnWalkingOffLedge(const FVector& PreviousFloorImpactNormal, const FVector& PreviousFloorContactNormal, const FVector& PreviousLocation, float TimeDelta);
+	virtual void OnWalkingOffLedge_Implementation(const FVector& PreviousFloorImpactNormal, const FVector& PreviousFloorContactNormal, const FVector& PreviousLocation, float TimeDelta);
+
+
+	// Deprecated, use the new version that takes multiple parameters.
+	DEPRECATED(4.8, "OnWalkingOffLedge() is deprecated and will not be called, use the new version that takes multiple parameters.")
+	void OnWalkingOffLedge() {}
+
+	// Deprecated, use the new version that takes multiple parameters.
+	DEPRECATED(4.8, "OnWalkingOffLedge_Implementation() is deprecated and will not be called, use the new version that takes multiple parameters.")
+	virtual void OnWalkingOffLedge_Implementation() {}
+
 
 	/** Called when pawn's movement is blocked
 		@PARAM Impact describes the blocking hit. */
