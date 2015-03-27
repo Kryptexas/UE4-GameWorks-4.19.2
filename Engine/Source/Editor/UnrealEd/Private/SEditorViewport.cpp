@@ -41,7 +41,7 @@ void SEditorViewport::Construct( const FArguments& InArgs )
 		SAssignNew( ViewportWidget, SViewport )
 		.ShowEffectWhenDisabled( false )
 		.EnableGammaCorrection( false ) // Scene rendering handles this
-		.AddMetaData(InArgs.MetaData.Num() > 0 ? InArgs.MetaData[0] : MakeShareable(new FTagMetaData(TEXT("EditorViewports"))))
+		.AddMetaData(InArgs.MetaData.Num() > 0 ? InArgs.MetaData[0] : MakeShareable(new FTagMetaData(TEXT("LevelEditorViewport"))))
 		[
 			SAssignNew( ViewportOverlay, SOverlay )
 			+SOverlay::Slot()

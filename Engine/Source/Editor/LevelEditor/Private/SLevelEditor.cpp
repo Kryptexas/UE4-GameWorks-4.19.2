@@ -560,7 +560,7 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 			.Icon( FEditorStyle::GetBrush("ToolBar.Icon") )
 			[
 				SNew(SHorizontalBox)
-				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("LevelToolbar")))
+				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("LevelEditorToolbar")))
 				+SHorizontalBox::Slot()
 				.FillWidth(1)
 				.VAlign(VAlign_Bottom)
