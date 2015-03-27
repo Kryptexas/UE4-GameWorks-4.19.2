@@ -139,11 +139,8 @@ public:
 };
 TGlobalResource<FTileMesh> GTileMesh;
 
-void FTileRenderer::DrawTile(FRHICommandListImmediate& RHICmdList, const class FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, bool bNeedsToSwitchVerticalAxis, float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, bool bIsHitTesting, const FHitProxyId HitProxyId, const FColor InVertexColor)
+static void CreateTileVerices(FMaterialTileVertex DestVertex[4], const class FSceneView& View, bool bNeedsToSwitchVerticalAxis, float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, const FColor InVertexColor)
 {
-	FMaterialTileVertex DestVertex[4];
-
-	// create verts
 	if (bNeedsToSwitchVerticalAxis)
 	{
 		DestVertex[0].Initialize(X + SizeX, View.ViewRect.Height() - (Y + SizeY), U + SizeU, V + SizeV);
@@ -163,6 +160,38 @@ void FTileRenderer::DrawTile(FRHICommandListImmediate& RHICmdList, const class F
 	DestVertex[1].Color = InVertexColor.DWColor();
 	DestVertex[2].Color = InVertexColor.DWColor();
 	DestVertex[3].Color = InVertexColor.DWColor();
+}
+
+void FTileRenderer::DrawTile(FRHICommandListImmediate& RHICmdList, const class FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, bool bNeedsToSwitchVerticalAxis, float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, bool bIsHitTesting, const FHitProxyId HitProxyId, const FColor InVertexColor)
+{
+	// create verts
+	FMaterialTileVertex DestVertex[4];
+	CreateTileVerices(DestVertex, View, bNeedsToSwitchVerticalAxis, X, Y, SizeX, SizeY, U, V, SizeU, SizeV, InVertexColor);
+
+	// update the FMeshBatch
+	FMeshBatch& Mesh = GTileMesh.MeshElement;
+	Mesh.UseDynamicData = true;
+	Mesh.DynamicVertexData = DestVertex;
+	Mesh.MaterialRenderProxy = MaterialRenderProxy;
+
+	GetRendererModule().DrawTileMesh(RHICmdList, View, Mesh, bIsHitTesting, HitProxyId);
+}
+
+void FTileRenderer::DrawRotatedTile(FRHICommandListImmediate& RHICmdList, const class FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, bool bNeedsToSwitchVerticalAxis, const FQuat& Rotation, float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, bool bIsHitTesting, const FHitProxyId HitProxyId, const FColor InVertexColor)
+{
+	// create verts
+	FMaterialTileVertex DestVertex[4];
+	CreateTileVerices(DestVertex, View, bNeedsToSwitchVerticalAxis, X, Y, SizeX, SizeY, U, V, SizeU, SizeV, InVertexColor);
+	
+	// rotate tile using view center as origin
+	FIntPoint ViewRectSize = View.ViewRect.Size();
+	FVector ViewRectOrigin = FVector(ViewRectSize.X*0.5f, ViewRectSize.Y*0.5f, 0.f);
+	for (int32 i = 0; i < 4; ++i)
+	{
+		DestVertex[i].Position = Rotation.RotateVector(DestVertex[i].Position - ViewRectOrigin) + ViewRectOrigin;
+		DestVertex[i].TangentX = Rotation.RotateVector(DestVertex[i].TangentX);
+		DestVertex[i].TangentZ = Rotation.RotateVector(DestVertex[i].TangentZ);
+	}
 
 	// update the FMeshBatch
 	FMeshBatch& Mesh = GTileMesh.MeshElement;

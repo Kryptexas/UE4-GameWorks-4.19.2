@@ -3668,6 +3668,7 @@ void FMeshUtilities::CreateProxyMesh(
 	
 	const FString AssetBaseName = FPackageName::GetShortName(ProxyBasePackageName);
 	const FString AssetBasePath = InOuter ? TEXT("") : FPackageName::GetLongPackagePath(ProxyBasePackageName) + TEXT("/");
+	UWorld* InWorld = SourceActors.Num() ? SourceActors[0]->GetWorld() : nullptr;
 	
 	TArray<UStaticMeshComponent*> ComponentsToMerge;
 	
@@ -3731,7 +3732,7 @@ void FMeshUtilities::CreateProxyMesh(
 		for (UMaterialInterface* Material : StaticMeshMaterials)
 		{
 			UniqueMaterials.Add(FlattenMaterial);
-			MaterialExportUtils::ExportMaterial(Material, UniqueMaterials.Last());
+			MaterialExportUtils::ExportMaterial(InWorld, Material, UniqueMaterials.Last());
 		}
 	}
 		

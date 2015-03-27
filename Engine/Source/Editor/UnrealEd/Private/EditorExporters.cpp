@@ -37,6 +37,7 @@
 #include "Engine/TextureCube.h"
 #include "EngineUtils.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
+#include "TileRendering.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorExporters, Log, All);
 
@@ -2447,19 +2448,87 @@ UExportTextContainer::UExportTextContainer(const FObjectInitializer& ObjectIniti
 {
 }
 
-
-
-
 /*-----------------------------------------------------------------------------
 	Material export utilities
 -----------------------------------------------------------------------------*/
 namespace MaterialExportUtils
 {
+	void RenderMaterialTile(UWorld* InWorld, FMaterialRenderProxy* InMaterialProxy, UTextureRenderTarget2D* InRenderTarget)
+	{
+		float CurrentRealTime = 0.f;
+		float CurrentWorldTime = 0.f;
+		float DeltaWorldTime = 0.f;
+
+		if (InWorld)
+		{
+			CurrentRealTime = InWorld->GetRealTimeSeconds();
+			CurrentWorldTime = InWorld->GetTimeSeconds();
+			DeltaWorldTime = InWorld->GetDeltaSeconds();
+		}
+		else
+		{
+			CurrentRealTime = FApp::GetCurrentTime() - GStartTime;
+			CurrentWorldTime = FApp::GetDeltaTime();
+			DeltaWorldTime = FApp::GetCurrentTime() - GStartTime;
+		}
+
+		const FRenderTarget* RenderTargetResource = InRenderTarget->GameThread_GetRenderTargetResource();
+		FSceneViewFamily* ViewFamily = new FSceneViewFamily(FSceneViewFamily::ConstructionValues(
+			RenderTargetResource,
+			InWorld ? InWorld->Scene : nullptr,
+			FEngineShowFlags(ESFIM_Game))
+			.SetWorldTimes(CurrentWorldTime, DeltaWorldTime, CurrentRealTime)
+			.SetGammaCorrection(RenderTargetResource->GetDisplayGamma()));
+
+		FIntPoint ViewSize = RenderTargetResource->GetSizeXY();
+		FIntRect ViewRect(FIntPoint(0, 0), ViewSize);
+		// YZ - Front view
+		FMatrix ViewMatrix = FMatrix(
+						FPlane(1, 0, 0, 0),
+						FPlane(0, 0, -1, 0),
+						FPlane(0, 1, 0, 0),
+						FPlane(0, 0, 0, 1));
+					
+		// make a temporary view
+		FSceneViewInitOptions ViewInitOptions;
+		ViewInitOptions.ViewFamily = ViewFamily;
+		ViewInitOptions.SetViewRectangle(ViewRect);
+		ViewInitOptions.ViewOrigin = FVector(ViewSize.X/2.f, ViewSize.Y/2.f, 0.0f);
+		ViewInitOptions.ViewRotationMatrix = ViewMatrix;
+		ViewInitOptions.ProjectionMatrix = FReversedZOrthoMatrix(ViewSize.X/2.f, ViewSize.Y/2.f, 0.5f/HALF_WORLD_MAX, HALF_WORLD_MAX);
+		ViewInitOptions.BackgroundColor = FLinearColor::Black;
+		ViewInitOptions.OverlayColor = FLinearColor::White;
+				
+		FSceneView* View = new FSceneView(ViewInitOptions);
+						
+		ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
+			RenderMaterialTileCommand,
+			FSceneView*, InView, View,
+			FMaterialRenderProxy*, InProxy, InMaterialProxy,
+			const FRenderTarget*, InRenderTarget, RenderTargetResource,
+			FIntPoint, InSize, ViewSize,
+			{
+				::SetRenderTarget(RHICmdList, InRenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
+				FIntRect ViewportRect = FIntRect(FIntPoint::ZeroValue, InSize);
+				RHICmdList.SetViewport(ViewportRect.Min.X, ViewportRect.Min.Y, 0.0f, ViewportRect.Max.X, ViewportRect.Max.Y, 1.0f);
+				
+				// We want to render material into tile that has vertices on YZ plane
+				// By default tile mesh created on XY plane, so rotate it
+				FQuat Rotation = FRotator(0.f, 0.f, 90).Quaternion();
+				FTileRenderer::DrawRotatedTile(RHICmdList, *InView, InProxy, false, Rotation, 0.f, 0.f, InSize.X, InSize.Y,  0.f, 0.f, 1.f, 1.f);
+			});
+
+		FlushRenderingCommands();
+
+		delete View;
+	}
 	
-	bool ExportMaterialProperty(UMaterialInterface* InMaterial, 
-								EMaterialProperty InMaterialProperty, 
-								UTextureRenderTarget2D* InRenderTarget, 
-								TArray<FColor>& OutBMP)
+	bool ExportMaterialProperty(UMaterialInterface* InMaterial,	EMaterialProperty InMaterialProperty, UTextureRenderTarget2D* InRenderTarget, TArray<FColor>& OutBMP)
+	{
+		return ExportMaterialProperty(nullptr, InMaterial, InMaterialProperty, InRenderTarget, OutBMP);
+	}
+		
+	bool ExportMaterialProperty(UWorld* InWorld, UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty, UTextureRenderTarget2D* InRenderTarget, TArray<FColor>& OutBMP)
 	{
 		TScopedPointer<FExportMaterialProxy> MaterialProxy(new FExportMaterialProxy(InMaterial, InMaterialProperty));
 		if (MaterialProxy == NULL)
@@ -2475,31 +2544,25 @@ namespace MaterialExportUtils
 			OutBMP.Add(UniformValue);
 			return true;
 		}
-	
-		check(InRenderTarget);
-		FTextureRenderTargetResource* RTResource = InRenderTarget->GameThread_GetRenderTargetResource();
 
-		{
-			// Create a canvas for the render target and clear it to black
-			FCanvas Canvas(RTResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime, GMaxRHIFeatureLevel);
-			Canvas.Clear(FLinearColor::Black);
-			FCanvasTileItem TileItem(FVector2D(0.0f, 0.0f), MaterialProxy, FVector2D(InRenderTarget->SizeX, InRenderTarget->SizeY));
-			TileItem.bFreezeTime = true;
-			Canvas.DrawItem( TileItem );
-			Canvas.Flush_GameThread();
-			FlushRenderingCommands();
-			Canvas.SetRenderTarget_GameThread(NULL);
-			FlushRenderingCommands();
-		}
-				
+		check(InRenderTarget);
+		
+		RenderMaterialTile(InWorld, MaterialProxy, InRenderTarget);
+		
 		bool bNormalmap = (InMaterialProperty == MP_Normal);
 		FReadSurfaceDataFlags ReadPixelFlags(bNormalmap ? RCM_SNorm : RCM_UNorm);
 		ReadPixelFlags.SetLinearToGamma(false);
-
+		
+		FTextureRenderTargetResource* RTResource = InRenderTarget->GameThread_GetRenderTargetResource();
 		return RTResource->ReadPixels(OutBMP, ReadPixelFlags);
 	}
 	
 	bool ExportMaterial(UMaterialInterface* InMaterial, FFlattenMaterial& OutFlattenMaterial)
+	{
+		return ExportMaterial(nullptr, InMaterial, OutFlattenMaterial);
+	}
+	
+	bool ExportMaterial(UWorld* InWorld, UMaterialInterface* InMaterial, FFlattenMaterial& OutFlattenMaterial)
 	{
 		// Render diffuse property
 		if (OutFlattenMaterial.DiffuseSize.X > 0 && 

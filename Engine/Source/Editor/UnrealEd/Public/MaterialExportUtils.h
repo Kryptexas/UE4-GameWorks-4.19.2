@@ -35,23 +35,25 @@ namespace MaterialExportUtils
 	/**
 	 * Renders specified material property into texture
 	 *
+	 * @param InWorld				World object to use for material property rendering
 	 * @param InMaterial			Target material
 	 * @param InMaterialProperty	Material property to render
 	 * @param InRenderTarget		Render target to render to
 	 * @param OutBMP				Output array of rendered samples 
 	 * @return						Whether operation was successful
 	 */
-	UNREALED_API bool ExportMaterialProperty(UMaterialInterface* InMaterial, 
-												EMaterialProperty InMaterialProperty, 
-												UTextureRenderTarget2D* InRenderTarget, 
-												TArray<FColor>& OutBMP);
+	UNREALED_API bool ExportMaterialProperty(UWorld* InWorld, UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty, UTextureRenderTarget2D* InRenderTarget, TArray<FColor>& OutBMP);
+	UNREALED_API bool ExportMaterialProperty(UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty, UTextureRenderTarget2D* InRenderTarget, TArray<FColor>& OutBMP);
+
 	/**
 	 * Flattens specified material
 	 *
+	 * @param InWorld				World object to use for material rendering
 	 * @param InMaterial			Target material
 	 * @param OutFlattenMaterial	Output flattened material
 	 * @return						Whether operation was successful
 	 */
+	UNREALED_API bool ExportMaterial(UWorld* InWorld, UMaterialInterface* InMaterial, FFlattenMaterial& OutFlattenMaterial);
 	UNREALED_API bool ExportMaterial(UMaterialInterface* InMaterial, FFlattenMaterial& OutFlattenMaterial);
 	
 	/**
