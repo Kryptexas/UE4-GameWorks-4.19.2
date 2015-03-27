@@ -217,6 +217,7 @@ void UWorld::StartClothSim()
 
 void FStartPhysicsTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(FStartPhysicsTickFunction_ExecuteTick);
 	check(Target);
 	Target->StartPhysicsSim();
 }
@@ -228,6 +229,8 @@ FString FStartPhysicsTickFunction::DiagnosticMessage()
 
 void FEndPhysicsTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(FEndPhysicsTickFunction_ExecuteTick);
+
 	check(Target);
 	FPhysScene* PhysScene = Target->GetPhysicsScene();
 	if (PhysScene == NULL)
@@ -263,6 +266,8 @@ FString FEndPhysicsTickFunction::DiagnosticMessage()
 
 void FStartClothSimulationFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(FStartClothSimulationFunction_ExecuteTick);
+
 	check(Target);
 	Target->StartClothSim();
 }
@@ -274,6 +279,8 @@ FString FStartClothSimulationFunction::DiagnosticMessage()
 
 void FEndClothSimulationFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(FEndClothSimulationFunction_ExecuteTick);
+
 	//We currently have nothing to do in this tick group, but we still want to wait on cloth simulation so that PostPhysics is ensured this is done
 	check(Target);
 	FPhysScene* PhysScene = Target->GetPhysicsScene();

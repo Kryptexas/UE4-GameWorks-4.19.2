@@ -38,6 +38,8 @@
 
 void FSkeletalMeshComponentPreClothTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(FSkeletalMeshComponentPreClothTickFunction_ExecuteTick);
+
 	if ((TickType == LEVELTICK_All) && Target && !Target->HasAnyFlags(RF_PendingKill | RF_Unreachable))
 	{
 		Target->PreClothTick(DeltaTime);
