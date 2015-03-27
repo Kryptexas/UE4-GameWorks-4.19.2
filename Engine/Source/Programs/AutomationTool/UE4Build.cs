@@ -1405,6 +1405,8 @@ namespace AutomationTool
 					{
 						"UnrealBuildTool.exe",
 						"UnrealBuildTool.exe.config",
+						"EnvVarsToXML.exe",
+						"EnvVarsToXML.exe.config"
 					});
 
 			foreach (var UBTFile in UBTFiles)
