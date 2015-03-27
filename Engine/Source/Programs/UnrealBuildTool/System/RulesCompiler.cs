@@ -668,7 +668,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Allows the target to specify modules which can be precompiled with the -PrecompileModules/-UsePrecompiledModules arguments to UBT. 
+		/// Allows the target to specify modules which can be precompiled with the -Precompile/-UsePrecompiled arguments to UBT. 
 		/// All dependencies of the specified modules will be included.
 		/// </summary>
 		/// <param name="Target">The target information, such as platform and configuration</param>

@@ -148,7 +148,7 @@ public class GUBP : BuildCommand
 		string Args = "";
         if (bBuildRocket)
         {
-            Args = (bUseRocketInsteadOfBuildRocket ? "-Rocket" : "-BuildRocket -PrecompileModules");
+            Args = (bUseRocketInsteadOfBuildRocket ? "-Rocket" : "-BuildRocket -Precompile");
         }
         return Args;
     }
@@ -826,7 +826,7 @@ public class GUBP : BuildCommand
         {
             var Agenda = new UE4Build.BuildAgenda();
 
-            string AddArgs = "-nobuilduht -precompilemodules";
+            string AddArgs = "-nobuilduht -precompile";
             if (bp.bOrthogonalizeEditorPlatforms)
             {
                 AddArgs += " -skipnonhostplatforms";
@@ -1504,7 +1504,7 @@ public class GUBP : BuildCommand
         BranchInfo.BranchUProject GameProj;
         UnrealTargetPlatform TargetPlatform;
 		bool WithXp;
-		bool Precompiled; // If true, just builds targets which generate static libraries for the -UsePrecompiledModules option to UBT. If false, just build those that don't.
+		bool Precompiled; // If true, just builds targets which generate static libraries for the -UsePrecompiled option to UBT. If false, just build those that don't.
 
         public GamePlatformMonolithicsNode(GUBP bp, UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform, bool InWithXp = false, bool InPrecompiled = false)
             : base(InHostPlatform)
@@ -1677,7 +1677,7 @@ public class GUBP : BuildCommand
 
 			if(Precompiled)
 			{
-				Args += " -precompilemodules";
+				Args += " -precompile";
 			}
 
 			if (WithXp)

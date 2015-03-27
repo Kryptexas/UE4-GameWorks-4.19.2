@@ -166,8 +166,8 @@ namespace UnrealBuildTool
 		public bool bIsEditorRecompile;
 		public string RemoteRoot;
 		public List<OnlyModule> OnlyModules;
-		public bool bPrecompileModules;
-		public bool bUsePrecompiledModules;
+		public bool bPrecompile;
+		public bool bUsePrecompiled;
 	}
 
 
@@ -222,8 +222,8 @@ namespace UnrealBuildTool
 			bool bIsEditorRecompile = false;
 
 			// Settings for creating/using static libraries for the engine
-			bool bPrecompileModules = false;
-			bool bUsePrecompiledModules = UnrealBuildTool.RunningRocket();
+			bool bPrecompile = false;
+			bool bUsePrecompiled = UnrealBuildTool.RunningRocket();
 
 			// Combine the two arrays of arguments
 			List<string> Arguments = new List<string>(SourceArguments.Length);
@@ -384,17 +384,17 @@ namespace UnrealBuildTool
 							}
 							break;
 
-						case "-PRECOMPILEMODULES":
+						case "-PRECOMPILE":
 							{
 								// Make static libraries for all engine modules as intermediates for this target
-								bPrecompileModules = true;
+								bPrecompile = true;
 							}
 							break;
-							
-						case "-USEPRECOMPILEDMODULES":
+
+						case "-USEPRECOMPILED":
 							{
 								// Use existing static libraries for all engine modules in this target
-								bUsePrecompiledModules = true;
+								bUsePrecompiled = true;
 							}
 							break;
 
@@ -458,8 +458,8 @@ namespace UnrealBuildTool
 							bIsEditorRecompile = bIsEditorRecompile,
 							RemoteRoot = RemoteRoot,
 							OnlyModules = OnlyModules,
-							bPrecompileModules = bPrecompileModules,
-							bUsePrecompiledModules = bUsePrecompiledModules,
+							bPrecompile = bPrecompile,
+							bUsePrecompiled = bUsePrecompiled,
 						} );
 					break;
 				}
@@ -692,11 +692,11 @@ namespace UnrealBuildTool
 		/** Remote path of the binary if it is to be synced with CookerSync */
 		public string RemoteRoot;
 
-		/** Whether to build engine modules that can be used without compiling */
-		public bool bPrecompileModules;
+		/** Whether to build target modules that can be reused for future builds */
+		public bool bPrecompile;
 
-		/** Whether to use precompiled engine modules */
-		public bool bUsePrecompiledModules;
+		/** Whether to use precompiled target modules */
+		public bool bUsePrecompiled;
 
 		/** The C++ environment that all the environments used to compile UE-based modules are derived from. */
 		[NonSerialized]
@@ -765,8 +765,8 @@ namespace UnrealBuildTool
 			Configuration = InDesc.Configuration;
 			Rules = InRulesObject;
 			bEditorRecompile = InDesc.bIsEditorRecompile;
-			bPrecompileModules = InDesc.bPrecompileModules;
-			bUsePrecompiledModules = InDesc.bUsePrecompiledModules;
+			bPrecompile = InDesc.bPrecompile;
+			bUsePrecompiled = InDesc.bUsePrecompiled;
 
 			{
 				bCompileMonolithic = (Rules != null) ? Rules.ShouldCompileMonolithic(InDesc.Platform, InDesc.Configuration) : false;
@@ -1319,7 +1319,7 @@ namespace UnrealBuildTool
 				// Don't add static library files to the manifest as we do not check them into perforce.
 				// However, add them to the manifest when cleaning the project as we do want to delete 
 				// them in that case.
-				if (UEBuildConfiguration.bCleanProject == false && !bPrecompileModules)
+				if (UEBuildConfiguration.bCleanProject == false && !bPrecompile)
 				{
                     if (Binary.Config.Type == UEBuildBinaryType.StaticLibrary)
 					{
@@ -2212,7 +2212,7 @@ namespace UnrealBuildTool
 			else
 			{
 				OutputFilePaths = MakeBinaryPaths(Module.Name, GetAppName() + "-" + Module.Name, BinaryType, TargetType, Plugin, AppName);
-				if (bPrecompileModules)
+				if (bPrecompile)
 				{
 					SpecialRocketLibFilesThatAreBuildProducts.AddRange(OutputFilePaths);
 				}
@@ -2297,13 +2297,13 @@ namespace UnrealBuildTool
 		/// </summary>
 		protected void AddPrecompiledModules()
 		{
-			if(bPrecompileModules || bUsePrecompiledModules)
+			if(bPrecompile || bUsePrecompiled)
 			{
 				// Find all the precompiled module names.
 				List<string> PrecompiledModuleNames = new List<string>();
 				Rules.GetModulesToPrecompile(new TargetInfo(Platform, Configuration, TargetTypeOrNull), PrecompiledModuleNames);
 
-				// Add all the enabled plugins to the precompiled module list. Plugins are always precompiled, even if bPrecompileModules is not set, so we should precompile their dependencies.
+				// Add all the enabled plugins to the precompiled module list. Plugins are always precompiled, even if bPrecompile is not set, so we should precompile their dependencies.
 				foreach(PluginInfo Plugin in BuildPlugins)
 				{
 					foreach(PluginInfo.PluginModuleInfo Module in Plugin.Modules)
@@ -2365,7 +2365,7 @@ namespace UnrealBuildTool
 				{
 					if(PrecompiledModule is UEBuildModuleCPP && !BoundModuleNames.Contains(PrecompiledModule.Name))
 					{
-						UEBuildBinary Binary = AddBinaryForModule(PrecompiledModule.Name, bCompileMonolithic? UEBuildBinaryType.StaticLibrary : UEBuildBinaryType.DynamicLinkLibrary, bUsePrecompiledModules);
+						UEBuildBinary Binary = AddBinaryForModule(PrecompiledModule.Name, bCompileMonolithic? UEBuildBinaryType.StaticLibrary : UEBuildBinaryType.DynamicLinkLibrary, bUsePrecompiled);
 						PrecompiledBinaries.Add(Binary);
 						BoundModuleNames.Add(PrecompiledModule.Name);
 					}
@@ -2408,7 +2408,7 @@ namespace UnrealBuildTool
 			}
 
 			// Get the binary configuration
-			UEBuildBinaryConfiguration BinaryConfig = new UEBuildBinaryConfiguration(BinaryType, OutputFilePaths, IntermediateDirectory, true, bInAllowCompilation: bPrecompileModules, bInCompileMonolithic: bCompileMonolithic, InModuleNames: new List<string>{ ModuleName });
+			UEBuildBinaryConfiguration BinaryConfig = new UEBuildBinaryConfiguration(BinaryType, OutputFilePaths, IntermediateDirectory, true, bInAllowCompilation: bPrecompile, bInCompileMonolithic: bCompileMonolithic, InModuleNames: new List<string>{ ModuleName });
 
 			// Create the binary
 			UEBuildBinaryCPP Binary = new UEBuildBinaryCPP(this, BinaryConfig);
@@ -2634,7 +2634,7 @@ namespace UnrealBuildTool
 			DependentPlugins.AddRange(EnabledPlugins);
 
 			// Set the list of plugins that should be built
-			if (bPrecompileModules && TargetType != TargetRules.TargetType.Program)
+			if (bPrecompile && TargetType != TargetRules.TargetType.Program)
 			{
 				BuildPlugins.AddRange(ValidPlugins);
 			}

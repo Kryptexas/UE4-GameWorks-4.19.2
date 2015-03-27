@@ -1025,9 +1025,9 @@ namespace UnrealBuildTool
 					//	ie ..\..\Build\BatchFiles\Build.bat BlankProgram Win64 Debug
 
 					string BuildArguments = " " + TargetName + " " + UBTPlatformName + " " + UBTConfigurationName;
-					if(ProjectFileGenerator.bUsePrecompiledModules)
+					if(ProjectFileGenerator.bUsePrecompiled)
 					{
-						BuildArguments += " -useprecompiledmodules";
+						BuildArguments += " -useprecompiled";
 					}
 					if (IsForeignProject)
 					{
