@@ -462,7 +462,7 @@ namespace Rocket
 
 			// Write the default command line to the root of the output directory
 			string CommandLinePath = Path.Combine(TargetDir, "UE4CommandLine.txt");
-			File.WriteAllText(CommandLinePath, "-engineinstalled -rocket");
+			File.WriteAllText(CommandLinePath, "-installedengine -rocket");
 			AddBuildProduct(CommandLinePath);
 		}
 	}
