@@ -137,7 +137,7 @@ public:
 	virtual void PostParameterPinCreated(UEdGraphPin *Pin) {}
 
 	/** Gets the user-facing name for the function */
-	static FString GetUserFacingFunctionName(const UFunction* Function);
+	static FText GetUserFacingFunctionName(const UFunction* Function);
 
 	/** Set up a pins tooltip from a function's tooltip */
 	static void GeneratePinTooltipFromFunction(UEdGraphPin& Pin, const UFunction* Function);

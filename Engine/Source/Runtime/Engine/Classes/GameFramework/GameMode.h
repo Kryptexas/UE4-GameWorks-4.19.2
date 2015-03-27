@@ -436,7 +436,7 @@ public:
 	virtual void PostLogin( APlayerController* NewPlayer );
 
 	/** Notification that a player has successfully logged in, and has been given a player controller */
-	UFUNCTION(BlueprintImplementableEvent, Category="Game", meta=(FriendlyName="PostLogin"))
+	UFUNCTION(BlueprintImplementableEvent, Category="Game", meta=(DisplayName="PostLogin"))
 	void K2_PostLogin( APlayerController* NewPlayer );
 
 	/** 
@@ -523,7 +523,7 @@ public:
 	 */
 	virtual class AActor* FindPlayerStart( AController* Player, const FString& IncomingName = TEXT("") );
 
-	UFUNCTION(BlueprintPure, Category=Game, meta=(FriendlyName="FindPlayerStart"))
+	UFUNCTION(BlueprintPure, Category=Game, meta=(DisplayName="FindPlayerStart"))
 	AActor* K2_FindPlayerStart(AController* Player);
 
 	/** 

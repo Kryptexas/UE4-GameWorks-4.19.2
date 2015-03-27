@@ -32,7 +32,7 @@ class AIMODULE_API UBTDecorator_TagCooldown : public UBTDecorator
 	bool bAddToExistingDuration;
 
 	/** Whether or not we are adding/setting to the cooldown tag's value when the decorator deactivates. */
-	UPROPERTY(Category = Decorator, EditAnywhere, meta = (FriendlyName = "Adds/Sets Cooldown on Deactivation"))
+	UPROPERTY(Category = Decorator, EditAnywhere, meta = (DisplayName = "Adds/Sets Cooldown on Deactivation"))
 	bool bActivatesCooldown;
 
 	// Begin UObject Interface

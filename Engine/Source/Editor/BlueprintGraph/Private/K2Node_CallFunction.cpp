@@ -455,7 +455,7 @@ FString UK2Node_CallFunction::GetFunctionContextString() const
 
 FText UK2Node_CallFunction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FString FunctionName;
+	FText FunctionName;
 	FString ContextString;
 	FString RPCString;
 
@@ -467,24 +467,24 @@ FText UK2Node_CallFunction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	}
 	else
 	{
-		FunctionName = FunctionReference.GetMemberName().ToString();
+		FunctionName = FText::FromName(FunctionReference.GetMemberName());
 		if ((GEditor != NULL) && (GetDefault<UEditorStyleSettings>()->bShowFriendlyNames))
 		{
-			FunctionName = FName::NameToDisplayString(FunctionName, false);
+			FunctionName = FText::FromString(FName::NameToDisplayString(FunctionName.ToString(), false));
 		}
 	}
 
 	if(TitleType == ENodeTitleType::FullTitle)
 	{
 		FFormatNamedArguments Args;
-		Args.Add(TEXT("FunctionName"), FText::FromString(FunctionName));
+		Args.Add(TEXT("FunctionName"), FunctionName);
 		Args.Add(TEXT("ContextString"), FText::FromString(ContextString));
 		Args.Add(TEXT("RPCString"), FText::FromString(RPCString));
 		return FText::Format(LOCTEXT("CallFunction_FullTitle", "{FunctionName}{ContextString}{RPCString}"), Args);
 	}
 	else
 	{
-		return FText::FromString(FunctionName);
+		return FunctionName;
 	}
 }
 
@@ -1260,20 +1260,9 @@ void UK2Node_CallFunction::GeneratePinTooltipFromFunction(UEdGraphPin& Pin, cons
 	GetDefault<UEdGraphSchema_K2>()->ConstructBasicPinTooltip(Pin, FText::FromString(Pin.PinToolTip), Pin.PinToolTip);
 }
 
-FString UK2Node_CallFunction::GetUserFacingFunctionName(const UFunction* Function)
+FText UK2Node_CallFunction::GetUserFacingFunctionName(const UFunction* Function)
 {
-	FString FunctionName = Function->GetMetaData(TEXT("FriendlyName"));
-	
-	if (FunctionName.IsEmpty())
-	{
-		FunctionName = Function->GetName();
-	}
-
-	if( GEditor && GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )
-	{
-		FunctionName = FName::NameToDisplayString(FunctionName, false);
-	}
-	return FunctionName;
+	return Function->GetDisplayNameText();
 }
 
 FString UK2Node_CallFunction::GetDefaultTooltipForFunction(const UFunction* Function)
@@ -1309,7 +1298,7 @@ FString UK2Node_CallFunction::GetDefaultTooltipForFunction(const UFunction* Func
 	}
 	else
 	{
-		return GetUserFacingFunctionName(Function);
+		return GetUserFacingFunctionName(Function).ToString();
 	}
 }
 
@@ -1340,7 +1329,7 @@ FString UK2Node_CallFunction::GetKeywordsForFunction(const UFunction* Function)
 {
 	// If the friendly name and real function name do not match add the real function name friendly name as a keyword.
 	FString Keywords;
-	if( Function->GetName() != GetUserFacingFunctionName(Function) )
+	if( Function->GetName() != GetUserFacingFunctionName(Function).ToString() )
 	{
 		Keywords = Function->GetName();
 	}

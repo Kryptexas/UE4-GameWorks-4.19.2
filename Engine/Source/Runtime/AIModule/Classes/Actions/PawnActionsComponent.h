@@ -99,7 +99,7 @@ public:
 	// blueprint interface
 	//----------------------------------------------------------------------//
 
-	UFUNCTION(BlueprintCallable, Category = "AI|PawnActions", meta = (FriendlyName = "PerformAction"))
+	UFUNCTION(BlueprintCallable, Category = "AI|PawnActions", meta = (DisplayName = "PerformAction"))
 	static bool K2_PerformAction(APawn* Pawn, UPawnAction* Action, TEnumAsByte<EAIRequestPriority::Type> Priority = EAIRequestPriority::HardScript);
 	static bool PerformAction(APawn& Pawn, UPawnAction& Action, TEnumAsByte<EAIRequestPriority::Type> Priority = EAIRequestPriority::HardScript);
 
@@ -117,17 +117,17 @@ public:
 
 	bool OnEvent(UPawnAction& Action, EPawnActionEventType::Type Event);
 
-	UFUNCTION(BlueprintCallable, Category = PawnAction, meta = (FriendlyName = "PushAction"))
+	UFUNCTION(BlueprintCallable, Category = PawnAction, meta = (DisplayName = "PushAction"))
 	bool K2_PushAction(UPawnAction* NewAction, EAIRequestPriority::Type Priority, UObject* Instigator = NULL);
 	bool PushAction(UPawnAction& NewAction, EAIRequestPriority::Type Priority, UObject* Instigator = NULL);	
 
 	/** Aborts given action instance */
-	UFUNCTION(BlueprintCallable, Category = PawnAction, meta = (FriendlyName = "AbortAction"))
+	UFUNCTION(BlueprintCallable, Category = PawnAction, meta = (DisplayName = "AbortAction"))
 	EPawnActionAbortState::Type K2_AbortAction(UPawnAction* ActionToAbort);
 	EPawnActionAbortState::Type AbortAction(UPawnAction& ActionToAbort);
 
 	/** Aborts given action instance */
-	UFUNCTION(BlueprintCallable, Category = PawnAction, meta = (FriendlyName = "ForceAbortAction"))
+	UFUNCTION(BlueprintCallable, Category = PawnAction, meta = (DisplayName = "ForceAbortAction"))
 	EPawnActionAbortState::Type K2_ForceAbortAction(UPawnAction* ActionToAbort);
 	EPawnActionAbortState::Type ForceAbortAction(UPawnAction& ActionToAbort);
 

@@ -343,7 +343,7 @@ public:
 	 * Blueprint implementable event for when the component is beginning play, called before its Owner's BeginPlay on Actor BeginPlay 
 	 * or when the component is dynamically created if the Actor has already BegunPlay. 
 	 */
-	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "Begin Play"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "Begin Play"))
 	void ReceiveBeginPlay();
 
 	/**
@@ -359,7 +359,7 @@ public:
 	virtual void UninitializeComponent();
 
 	/** Blueprint implementable event for when the component ends play, generally via destruction or its Actor's EndPlay. */
-	UFUNCTION(BlueprintImplementableEvent, meta=(Keywords = "delete", FriendlyName = "End Play"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(Keywords = "delete", DisplayName = "End Play"))
 	void ReceiveEndPlay(EEndPlayReason::Type EndPlayReason);
 	
 	/**
@@ -587,7 +587,7 @@ public:
 	/**
 	 * Unregister and mark for pending kill a component.  This may not be used to destroy a component is owned by an actor other than the one calling the function.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components", meta=(Keywords = "Delete", HidePin="Object", DefaultToSelf="Object", FriendlyName = "DestroyComponent"))
+	UFUNCTION(BlueprintCallable, Category="Components", meta=(Keywords = "Delete", HidePin="Object", DefaultToSelf="Object", DisplayName = "DestroyComponent"))
 	void K2_DestroyComponent(UObject* Object);
 
 	/** Unregisters and immediately re-registers component.  Handles bWillReregister properly. */
@@ -613,7 +613,7 @@ public:
 	virtual void RemoveTickPrerequisiteComponent(UActorComponent* PrerequisiteComponent);
 
 	/** Event called every frame */
-	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "Tick"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "Tick"))
 	void ReceiveTick(float DeltaSeconds);
 	
 	/** 

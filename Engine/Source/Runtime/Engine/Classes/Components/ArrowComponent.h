@@ -53,7 +53,7 @@ class UArrowComponent : public UPrimitiveComponent
 	virtual void SetArrowColor_DEPRECATED(FColor NewColor);
 
 	/** Updates the arrow's colour, and tells it to refresh */
-	UFUNCTION(BlueprintCallable, FriendlyName="SetArrowColor", Category="Components|Arrow")
+	UFUNCTION(BlueprintCallable, DisplayName="SetArrowColor", Category="Components|Arrow")
 	virtual void SetArrowColor_New(FLinearColor NewColor);
 
 	// Begin UPrimitiveComponent interface.

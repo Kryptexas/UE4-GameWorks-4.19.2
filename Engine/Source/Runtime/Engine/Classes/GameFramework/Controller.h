@@ -161,7 +161,7 @@ public:
 	void ClientSetRotation(FRotator NewRotation, bool bResetCamera = false);
 
 	/** Return the Pawn that is currently 'controlled' by this PlayerController */
-	UFUNCTION(BlueprintCallable, Category="Pawn", meta=(FriendlyName="Get Controlled Pawn"))
+	UFUNCTION(BlueprintCallable, Category="Pawn", meta=(DisplayName="Get Controlled Pawn"))
 	class APawn* K2_GetPawn() const;
 
 	DEPRECATED(4.4, "Use GetPawn() instead of GetControlledPawn()")

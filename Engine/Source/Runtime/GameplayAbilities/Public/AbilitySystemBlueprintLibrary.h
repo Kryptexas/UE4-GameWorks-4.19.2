@@ -102,29 +102,29 @@ class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFu
 	//		GameplayEffectContext
 	// -------------------------------------------------------------------------------
 
-	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (FriendlyName = "IsInstigatorLocallyControlled"))
+	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (DisplayName = "IsInstigatorLocallyControlled"))
 	static bool EffectContextIsInstigatorLocallyControlled(FGameplayEffectContextHandle EffectContext);
 
-	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (FriendlyName = "GetHitResult"))
+	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (DisplayName = "GetHitResult"))
 	static FHitResult EffectContextGetHitResult(FGameplayEffectContextHandle EffectContext);
 
-	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (FriendlyName = "HasHitResult"))
+	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (DisplayName = "HasHitResult"))
 	static bool EffectContextHasHitResult(FGameplayEffectContextHandle EffectContext);
 
 	/** Gets the location the effect originated from */
-	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (FriendlyName = "GetOrigin"))
+	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (DisplayName = "GetOrigin"))
 	static FVector EffectContextGetOrigin(FGameplayEffectContextHandle EffectContext);
 
 	/** Gets the instigating actor (that holds the ability system component) of the EffectContext */
-	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (FriendlyName = "GetInstigatorActor"))
+	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (DisplayName = "GetInstigatorActor"))
 	static AActor* EffectContextGetInstigatorActor(FGameplayEffectContextHandle EffectContext);
 
 	/** Gets the original instigator actor that started the chain of events to cause this effect */
-	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (FriendlyName = "GetOriginalInstigatorActor"))
+	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (DisplayName = "GetOriginalInstigatorActor"))
 	static AActor* EffectContextGetOriginalInstigatorActor(FGameplayEffectContextHandle EffectContext);
 
 	/** Gets the physical actor that caused the effect, possibly a projectile or weapon */
-	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (FriendlyName = "GetEffectCauser"))
+	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (DisplayName = "GetEffectCauser"))
 	static AActor* EffectContextGetEffectCauser(FGameplayEffectContextHandle EffectContext);
 
 	// -------------------------------------------------------------------------------

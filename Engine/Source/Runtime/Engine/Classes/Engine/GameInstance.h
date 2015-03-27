@@ -60,22 +60,22 @@ public:
 	virtual void Init();
 
 	/** Opportunity for blueprints to handle the game instance being initialized. */
-	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "Init"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "Init"))
 	void ReceiveInit();
 
 	/** virtual function to allow custom GameInstances an opportunity to do cleanup when shutting down */
 	virtual void Shutdown();
 
 	/** Opportunity for blueprints to handle the game instance being shutdown. */
-	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "Shutdown"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "Shutdown"))
 	void ReceiveShutdown();
 
 	/** Opportunity for blueprints to handle network errors. */
-	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "NetworkError"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "NetworkError"))
 	virtual void HandleNetworkError(ENetworkFailure::Type FailureType, bool bIsServer);
 
 	/** Opportunity for blueprints to handle travel errors. */
-	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "TravelError"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "TravelError"))
 	virtual void HandleTravelError(ETravelFailure::Type FailureType);
 
 	/* Called to initialize the game instance for standalone instances of the game */

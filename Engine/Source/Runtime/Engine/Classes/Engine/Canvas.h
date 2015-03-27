@@ -376,7 +376,7 @@ public:
 	 * @param Thickness				How many pixels thick this line should be.
 	 * @param RenderColor			Color to render the line.
 	 */
-	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(FriendlyName="Draw Line"))
+	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(DisplayName="Draw Line"))
 	void K2_DrawLine(FVector2D ScreenPositionA=FVector2D::ZeroVector, FVector2D ScreenPositionB=FVector2D::ZeroVector, float Thickness=1.0f, FLinearColor RenderColor=FLinearColor::White);
 
 	/**
@@ -392,7 +392,7 @@ public:
 	 * @param Rotation					Rotation, in degrees, to render the texture.
 	 * @param PivotPoint				Normalized pivot point to use when rotating the texture.
 	 */
-	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(FriendlyName="Draw Texture"))
+	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(DisplayName="Draw Texture"))
 	void K2_DrawTexture(UTexture* RenderTexture, FVector2D ScreenPosition, FVector2D ScreenSize, FVector2D CoordinatePosition, FVector2D CoordinateSize=FVector2D::UnitVector, FLinearColor RenderColor=FLinearColor::White, EBlendMode BlendMode=BLEND_Translucent, float Rotation=0.f, FVector2D PivotPoint=FVector2D(0.5f,0.5f));
 
 	/**
@@ -406,7 +406,7 @@ public:
 	 * @param Rotation					Rotation, in degrees, to render the texture.
 	 * @param PivotPoint				Normalized pivot point to use when rotating the texture.
 	 */
-	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(FriendlyName="Draw Material"))
+	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(DisplayName="Draw Material"))
 	void K2_DrawMaterial(UMaterialInterface* RenderMaterial, FVector2D ScreenPosition, FVector2D ScreenSize, FVector2D CoordinatePosition, FVector2D CoordinateSize=FVector2D::UnitVector, float Rotation=0.f, FVector2D PivotPoint=FVector2D(0.5f,0.5f));
 
 	/**
@@ -424,7 +424,7 @@ public:
 	 * @param bOutlined					If true, then the text should be rendered with an outline.
 	 * @param OutlineColor				Color to render the outline for the text.
 	 */	
-	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(FriendlyName="Draw Text"))
+	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(DisplayName="Draw Text"))
 	void K2_DrawText(UFont* RenderFont, const FString& RenderText, FVector2D ScreenPosition, FLinearColor RenderColor=FLinearColor::White, float Kerning=0.0f, FLinearColor ShadowColor=FLinearColor::Black, FVector2D ShadowOffset=FVector2D::UnitVector, bool bCentreX=false, bool bCentreY=false, bool bOutlined=false, FLinearColor OutlineColor=FLinearColor::Black);
 	
 	/**
@@ -447,7 +447,7 @@ public:
 	 * @param PivotPoint				Normalized pivot point to use when rotating the texture.
 	 * @param CornerSize				Frame corner size in percent of frame texture (should be < 0.5f).
 	 */
-	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(FriendlyName="Draw Border"))
+	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(DisplayName="Draw Border"))
 	void K2_DrawBorder(UTexture* BorderTexture, UTexture* BackgroundTexture, UTexture* LeftBorderTexture, UTexture* RightBorderTexture, UTexture* TopBorderTexture, UTexture* BottomBorderTexture, FVector2D ScreenPosition, FVector2D ScreenSize, FVector2D CoordinatePosition, FVector2D CoordinateSize=FVector2D::UnitVector, FLinearColor RenderColor=FLinearColor::White, FVector2D BorderScale=FVector2D(0.1f,0.1f), FVector2D BackgroundScale=FVector2D(0.1f,0.1f), float Rotation=0.0f, FVector2D PivotPoint=FVector2D(0.5f,0.5f), FVector2D CornerSize=FVector2D::ZeroVector);
 
 	/**
@@ -457,7 +457,7 @@ public:
 	 * @param ScreenSize				Screen space size to render the texture.
 	 * @param Thickness					How many pixels thick the box lines should be.
 	 */
-	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(FriendlyName="Draw Box"))
+	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(DisplayName="Draw Box"))
 	void K2_DrawBox(FVector2D ScreenPosition, FVector2D ScreenSize, float Thickness=1.0f);
 
 	/**
@@ -466,7 +466,7 @@ public:
 	 * @param RenderTexture				Texture to use when rendering the triangles. If no texture is set, then the default white texture is used.
 	 * @param Triangles					Triangles to render.
 	 */
-	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(FriendlyName="Draw Triangles"))
+	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(DisplayName="Draw Triangles"))
 	void K2_DrawTriangle(UTexture* RenderTexture, TArray<FCanvasUVTri> Triangles);
 
 	/**
@@ -475,7 +475,7 @@ public:
 	 * @param RenderMaterial			Material to use when rendering. Remember that only the emissive channel is able to be rendered as no lighting is performed when rendering to the Canvas.
 	 * @param Triangles					Triangles to render.
 	 */
-	UFUNCTION(BlueprintCallable, Category = Canvas, meta = (FriendlyName = "Draw Material Triangles"))
+	UFUNCTION(BlueprintCallable, Category = Canvas, meta = (DisplayName = "Draw Material Triangles"))
 	void K2_DrawMaterialTriangle(UMaterialInterface* RenderMaterial, TArray<FCanvasUVTri> Triangles);
 	/**
 	 * Draws a polygon on the Canvas.
@@ -486,7 +486,7 @@ public:
 	 * @param NumberOfSides				How many sides this polygon should have. This should be above or equal to three.
 	 * @param RenderColor				Color to tint the polygon.
 	 */
-	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(FriendlyName="Draw Polygon"))
+	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(DisplayName="Draw Polygon"))
 	void K2_DrawPolygon(UTexture* RenderTexture, FVector2D ScreenPosition, FVector2D Radius=FVector2D::UnitVector, int32 NumberOfSides=3, FLinearColor RenderColor=FLinearColor::White);
 
 	/**
@@ -495,7 +495,7 @@ public:
 	 * @param WorldLocation				World space location to project onto the Canvas rendering plane.
 	 * @return							Returns a vector where X, Y defines a screen space position representing the world space location.
 	 */
-	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(FriendlyName="Project"))
+	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(DisplayName="Project"))
 	FVector K2_Project(FVector WorldLocation);
 
 	/**
@@ -505,7 +505,7 @@ public:
 	 * @param WorldOrigin				Vector which is the world position of the screen space position.
 	 * @param WorldDirection			Vector which can be used in a trace to determine what is "behind" the screen space position. Useful for object picking.
 	 */
-	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(FriendlyName="Deproject"))
+	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(DisplayName="Deproject"))
 	void K2_Deproject(FVector2D ScreenPosition, FVector& WorldOrigin, FVector& WorldDirection);
 
 	/**
@@ -515,7 +515,7 @@ public:
 	 * @param RenderText				Text to determine the size of.
 	 * @return							Returns the screen space size of the text.
 	 */
-	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(FriendlyName="Wrapped Text Size"))
+	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(DisplayName="Wrapped Text Size"))
 	FVector2D K2_StrLen(UFont* RenderFont, const FString& RenderText);
 
 	/**
@@ -526,6 +526,6 @@ public:
 	 * @param Scale						Scale of the font to use when determining the size of the text.
 	 * @return							Returns the screen space size of the text.
 	 */
-	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(FriendlyName="Clipped Text Size"))
+	UFUNCTION(BlueprintCallable, Category=Canvas, meta=(DisplayName="Clipped Text Size"))
 	FVector2D K2_TextSize(UFont* RenderFont, const FString& RenderText, FVector2D Scale=FVector2D::UnitVector);
 };

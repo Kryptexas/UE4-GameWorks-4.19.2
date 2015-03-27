@@ -18,7 +18,7 @@ class UAbilityTask_WaitVelocityChange: public UAbilityTask
 	virtual void TickTask(float DeltaTime) override;
 
 	/** Wait for the actor's movement component velocity to be of minimum magnitude when projected along given direction */
-	UFUNCTION(BlueprintCallable, Category = "Ability|Tasks", meta = (FriendlyName="WaitVelocityChange",HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
+	UFUNCTION(BlueprintCallable, Category = "Ability|Tasks", meta = (DisplayName="WaitVelocityChange",HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
 	static UAbilityTask_WaitVelocityChange* CreateWaitVelocityChange(UObject* WorldContextObject, FVector Direction, float MinimumMagnitude);
 		
 	virtual void Activate() override;

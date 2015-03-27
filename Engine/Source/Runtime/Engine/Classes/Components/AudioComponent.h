@@ -205,11 +205,11 @@ class ENGINE_API UAudioComponent : public USceneComponent
 	void SetWaveParameter(FName InName, class USoundWave* InWave);
 
 	/** Set a boolean instance parameter for use in sound cues played by this audio component */
-	UFUNCTION(BlueprintCallable, Category="Audio|Components|Audio", meta=(FriendlyName="Set Boolean Parameter"))
+	UFUNCTION(BlueprintCallable, Category="Audio|Components|Audio", meta=(DisplayName="Set Boolean Parameter"))
 	void SetBoolParameter(FName InName, bool InBool);
 	
 	/** Set an integer instance parameter for use in sound cues played by this audio component */
-	UFUNCTION(BlueprintCallable, Category="Audio|Components|Audio", meta=(FriendlyName="Set Integer Parameter"))
+	UFUNCTION(BlueprintCallable, Category="Audio|Components|Audio", meta=(DisplayName="Set Integer Parameter"))
 	void SetIntParameter(FName InName, int32 InInt);
 
 	/** Set a new volume multiplier */

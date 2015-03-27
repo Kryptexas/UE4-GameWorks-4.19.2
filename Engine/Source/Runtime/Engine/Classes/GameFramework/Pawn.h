@@ -266,11 +266,11 @@ public:
 	virtual void PossessedBy(AController* NewController);
 
 	/** Event called when the Pawn is possessed by a Controller (normally only occurs on the server/standalone). */
-	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "Possessed"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "Possessed"))
 	void ReceivePossessed(AController* NewController);
 
 	/** Event called when the Pawn is no longer possessed by a Controller. */
-	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "Unpossessed"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "Unpossessed"))
 	void ReceiveUnpossessed(AController* OldController);
 
 	/** @return true if controlled by a local (not network) Controller.	 */
@@ -442,7 +442,7 @@ public:
 	FVector GetMovementInputVector() const;
 
 	/** (Deprecated) Return the input vector in world space. */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Input", meta=(DeprecatedFunction, FriendlyName="GetMovementInputVector", DeprecationMessage="GetMovementInputVector has been deprecated, use either GetPendingMovementInputVector or GetLastMovementInputVector"))
+	UFUNCTION(BlueprintCallable, Category="Pawn|Input", meta=(DeprecatedFunction, DisplayName="GetMovementInputVector", DeprecationMessage="GetMovementInputVector has been deprecated, use either GetPendingMovementInputVector or GetLastMovementInputVector"))
 	FVector K2_GetMovementInputVector() const;	
 };
 

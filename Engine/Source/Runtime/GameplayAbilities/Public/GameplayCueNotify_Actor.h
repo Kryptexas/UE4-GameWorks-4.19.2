@@ -40,7 +40,7 @@ class GAMEPLAYABILITIES_API AGameplayCueNotify_Actor : public AActor
 #endif // WITH_EDITOR
 
 	/** Generic Event Graph event that will get called for every event type */
-	UFUNCTION(BlueprintImplementableEvent, Category = "GameplayCueNotify", FriendlyName = "HandleGameplayCue")
+	UFUNCTION(BlueprintImplementableEvent, Category = "GameplayCueNotify", DisplayName = "HandleGameplayCue")
 	void K2_HandleGameplayCue(TWeakObjectPtr<AActor> MyTarget, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
 
 	UFUNCTION(BlueprintNativeEvent, Category = "GameplayCueNotify")

@@ -254,11 +254,11 @@ public:
 	virtual FVector GetFocalPointOnActor(const AActor *Actor) const;
 
 	/** Set the position that controller should be looking at. */
-	UFUNCTION(BlueprintCallable, Category="AI", meta=(FriendlyName="SetFocalPoint"))
+	UFUNCTION(BlueprintCallable, Category="AI", meta=(DisplayName="SetFocalPoint"))
 	void K2_SetFocalPoint(FVector FP);
 
 	/** Set Focus for actor, will set FocalPoint as a result. */
-	UFUNCTION(BlueprintCallable, Category="AI", meta=(FriendlyName="SetFocus"))
+	UFUNCTION(BlueprintCallable, Category="AI", meta=(DisplayName="SetFocus"))
 	void K2_SetFocus(AActor* NewFocus);
 
 	/** Get the focused actor. */
@@ -268,7 +268,7 @@ public:
 	FORCEINLINE AActor* GetFocusActorForPriority(EAIFocusPriority::Type InPriority) const {  return FocusInformation.Priorities.IsValidIndex(InPriority) ? FocusInformation.Priorities[InPriority].Actor.Get() : nullptr; }
 
 	/** Clears Focus, will also clear FocalPoint as a result */
-	UFUNCTION(BlueprintCallable, Category="AI", meta=(FriendlyName="ClearFocus"))
+	UFUNCTION(BlueprintCallable, Category="AI", meta=(DisplayName="ClearFocus"))
 	void K2_ClearFocus();
 
 

@@ -225,7 +225,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
 	void SetBloomTint(FColor NewValue);
 
-	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light", meta=(FriendlyName = "Set IES Texture"))
+	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light", meta=(DisplayName = "Set IES Texture"))
 	void SetIESTexture(UTextureLightProfile* NewValue);
 
 public:

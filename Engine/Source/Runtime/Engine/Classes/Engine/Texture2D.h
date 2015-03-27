@@ -411,13 +411,13 @@ public:
 	/**
 	 * Gets the X size of the texture, in pixels
 	 */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetSizeX"), Category="Rendering|Texture")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetSizeX"), Category="Rendering|Texture")
 	int32 Blueprint_GetSizeX() const;
 
 	/**
 	 * Gets the Y size of the texture, in pixels
 	 */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetSizeY"), Category="Rendering|Texture")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetSizeY"), Category="Rendering|Texture")
 	int32 Blueprint_GetSizeY() const;
 
 	/**

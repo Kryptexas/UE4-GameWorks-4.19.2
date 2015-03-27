@@ -784,7 +784,7 @@ bool UEdGraphSchema_K2::FunctionCanBeUsedInDelegate(const UFunction* InFunction)
 	return true;
 }
 
-FString UEdGraphSchema_K2::GetFriendlySignatureName(const UFunction* Function)
+FText UEdGraphSchema_K2::GetFriendlySignatureName(const UFunction* Function)
 {
 	return UK2Node_CallFunction::GetUserFacingFunctionName( Function );
 }

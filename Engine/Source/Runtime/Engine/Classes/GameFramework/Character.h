@@ -425,7 +425,7 @@ protected:
 	 * @Return Whether the character can jump in the current state. 
 	 */
 
-	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character|InternalEvents", meta=(FriendlyName="CanJump"))
+	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character|InternalEvents", meta=(DisplayName="CanJump"))
 	bool CanJumpInternal() const;
 	virtual bool CanJumpInternal_Implementation() const;
 
@@ -559,7 +559,7 @@ public:
 	 * @param	HalfHeightAdjust		difference between default collision half-height, and actual crouched capsule half-height.
 	 * @param	ScaledHalfHeightAdjust	difference after component scale is taken in to account.
 	 */
-	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "OnEndCrouch"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "OnEndCrouch"))
 	void K2_OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
 
 	/**
@@ -574,7 +574,7 @@ public:
 	 * @param	HalfHeightAdjust		difference between default collision half-height, and actual crouched capsule half-height.
 	 * @param	ScaledHalfHeightAdjust	difference after component scale is taken in to account.
 	 */
-	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "OnStartCrouch"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "OnStartCrouch"))
 	void K2_OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust);
 
 	/**
@@ -593,7 +593,7 @@ public:
 	 * @param	PrevCustomMode		Custom mode before the change (applicable if PrevMovementMode is Custom)
 	 * @param	NewCustomMode		New custom mode (applicable if NewMovementMode is Custom)
 	 */
-	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "OnMovementModeChanged"))
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "OnMovementModeChanged"))
 	void K2_OnMovementModeChanged(EMovementMode PrevMovementMode, EMovementMode NewMovementMode, uint8 PrevCustomMode, uint8 NewCustomMode);
 
 	/** Event for implementing custom character movement mode. Called by CharacterMovement if MovementMode is set to Custom. */

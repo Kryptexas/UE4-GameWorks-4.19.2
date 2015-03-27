@@ -605,8 +605,8 @@ void FK2ActionMenuBuilder::AddEventForFunction(FGraphActionListBuilderBase& Acti
 	if (Function != NULL)
 	{
 		check(!Function->HasAnyFunctionFlags(FUNC_Delegate));
-		const FString SigName   = UEdGraphSchema_K2::GetFriendlySignatureName(Function);
-		const FString EventName = FText::Format( LOCTEXT("EventWithSignatureName", "Event {0}"), FText::FromString(SigName)).ToString();
+		const FText SigName   = UEdGraphSchema_K2::GetFriendlySignatureName(Function);
+		const FString EventName = FText::Format( LOCTEXT("EventWithSignatureName", "Event {0}"), SigName).ToString();
 
 		UK2Node_Event* EventNodeTemplate = ActionMenuBuilder.CreateTemplateNode<UK2Node_Event>();
 		EventNodeTemplate->EventReference.SetFromField<UFunction>(Function, false);
@@ -641,7 +641,7 @@ void FK2ActionMenuBuilder::AttachMacroGraphAction(FGraphActionListBuilderBase& A
 void FK2ActionMenuBuilder::AddSpawnInfoForFunction(const UFunction* Function, bool bIsParentContext, const FFunctionTargetInfo& TargetInfo, const FMemberReference& CallOnMember, const FString& BaseCategory, int32 const ActionGrouping, FGraphActionListBuilderBase& ListBuilder, bool bCalledForEach, bool bPlaceOnTop)
 {
 	FString Tooltip = UK2Node_CallFunction::GetDefaultTooltipForFunction(Function);
-	FString Description = UK2Node_CallFunction::GetUserFacingFunctionName(Function);
+	FString Description = UK2Node_CallFunction::GetUserFacingFunctionName(Function).ToString();
 	FString Keywords = UK2Node_CallFunction::GetKeywordsForFunction(Function);
 
 	if (bIsParentContext)

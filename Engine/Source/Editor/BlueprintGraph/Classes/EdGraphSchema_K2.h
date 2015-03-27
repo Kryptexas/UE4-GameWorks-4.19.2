@@ -700,7 +700,7 @@ public:
 	static bool CanKismetOverrideFunction(const UFunction* Function);
 
 	/** returns friendly signature name if possible or Removes any mangling to get the unmangled signature name of the function */
-	static FString GetFriendlySignatureName(const UFunction* Function);
+	static FText GetFriendlySignatureName(const UFunction* Function);
 
 	static bool IsAllowableBlueprintVariableType(const class UEnum* InEnum);
 	static bool IsAllowableBlueprintVariableType(const class UClass* InClass);
