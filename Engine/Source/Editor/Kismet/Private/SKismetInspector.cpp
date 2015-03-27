@@ -496,9 +496,6 @@ void SKismetInspector::UpdateFromObjects(const TArray<UObject*>& PropertyObjects
 		EnableComponentDetailsCustomization(bEnableComponentCustomization);
 	}
 
-	PropertyView->OnFinishedChangingProperties().Clear();
-	PropertyView->OnFinishedChangingProperties().Add( UserOnFinishedChangingProperties );
-
 	if (!Options.bForceRefresh)
 	{
 		// Early out if the PropertyObjects and the SelectedObjects are the same
@@ -521,6 +518,9 @@ void SKismetInspector::UpdateFromObjects(const TArray<UObject*>& PropertyObjects
 			return;
 		}
 	}
+
+	PropertyView->OnFinishedChangingProperties().Clear();
+	PropertyView->OnFinishedChangingProperties().Add( UserOnFinishedChangingProperties );
 
 	// Proceed to update
 	SelectedObjects.Empty();
