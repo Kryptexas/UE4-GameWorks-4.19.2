@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2447095
+﻿INTSourceChangelist:2491100
 Availability:Public
 Title:関数の作成
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -8,13 +8,13 @@ Related:Engine/Blueprints/UserGuide/Functions/FunctionCalls
 
 [INCLUDE:Engine/Blueprints/UserGuide/Functions#intro]
 
-ボタンが押されると画面上にテキストを出力する関数は、以下のステップで作成します。 
+ボタンが押されると画面上にテキストを出力する関数の作成は、以下の手順で行います。 
 
-1. **コンテンツ ブラウザ** で、 **[New]** ボタンをクリックし、 **[ブループリント]** をクリックします。 
+1. **コンテンツ ブラウザ** で、 **[New]** ボタンをクリックし、 **[Blueprint]** をクリックします。 
 
 	![](NewBlueprint.png)
 
-1. **[Pick Parent Class]** ウィンドウから **アクタ** を選択します。 
+1. **[Pick Parent Class]** ウィンドウから **[Actor]** を選択します。 
 
 	![](ActorBlueprint.png)
 
@@ -22,7 +22,7 @@ Related:Engine/Blueprints/UserGuide/Functions/FunctionCalls
 
 	![](FunctionBlueprint.png)
 
-1.	再びグラフ内を **右クリック** して、 **Event Begin Play** イベントを見つけて追加します。 
+1.	再びグラフ内を **右クリック** して、 **Event Begin Play** Event を見つけて追加します。 
 
 	![](EventBeginPlay.png)
 
@@ -46,11 +46,11 @@ Related:Engine/Blueprints/UserGuide/Functions/FunctionCalls
 
 	ゲームが開始されると、ゲーム コントローラーを取得し、このブループリントでコントローラーからの入力を有効にします。 
 
-1.	**[MyBlueprint]** ウィンドウで、 **[関数を追加]** ボタンをクリックします。 
+1.	**[MyBlueprint]** ウィンドウで、 **[Add New Function]** ボタンをクリックします。 
 
 	![](AddFunctionButton.png)
 
-1.	**[My Blueprint]** ウィンドウで新規関数を選択し、 **F2** を押して名前を変更jします。 
+1.	**[My Blueprint]** ウィンドウで新規関数を選択し、 **F2** を押して名前を変更します。 
 
 	![](RenameFunction.png)
 
@@ -79,18 +79,18 @@ Related:Engine/Blueprints/UserGuide/Functions/FunctionCalls
 	**F** が押されると、 Print String を使って画面上にテキストを出力するように設定する Print Text 関数が呼び出されます。 
 
 	[REGION:note]
-	関数が見えない場合は、ツールバーの **[Compile]** ボタンをクリックして、再検索してください。 
+	ツールバーの **[Compile]** ボタンをクリックして、再検索してください。 
 	[/REGION]
 
 1.	シーケンスはこのようになっているはずです。 
 
 	![](FinishedGraph.png)
 
-1.	**[Compile]** ボタンをクリックし、 ブループリント を閉じます。 
+1.	**[Compile]** ボタンをクリックし、ブループリントを閉じます。 
 
 	![](CompileButton.png)
 
-1.	ブループリントをレベルにドラッグし、 **[再生]** ボタンをクリックしてエディタで再生します。 
+1.	ブループリントをレベルにドラッグし、 **[Play]** ボタンをクリックしてエディタで再生します。 
 
 	![](DragIntoLevel.png)
 
