@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2468110
+﻿INTSourceChangelist:2492313
 Availability: Public
 Title:4. 레벨에서 캐릭터로 정보 전달하기
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
@@ -59,7 +59,7 @@ Description:이번 단계에서는 레벨 블루프린트를 사용해서 스폰
 	생성한 **이벤트 디스패처** 입니다. 이것을 선택하면 두 개의 노드가 추가됩니다.
 	
 	[REGION:note]
-	목록에 이 노드가 보이지 않나요? **FirstPersonCharacter** 블루프린트에서 **컴파일** 버튼을 누르고 재시도해 보세요.
+	목록에 이 노드가 보이지 않는다면, **FirstPersonCharacter** 블루프린트에서 **컴파일** 버튼을 누르고 재시도해 보세요.
 	[/REGION]
 
 1. **Bind Event** 에서 새로 추가된 노드를 연결했는지 확인합니다.

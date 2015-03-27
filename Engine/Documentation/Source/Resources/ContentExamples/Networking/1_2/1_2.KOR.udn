@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2492260
 Availability: Public
 Title:1.2 - 블루프린트로 네트워크 오쏘리티 및 원격 클라이언트 감지
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
 Description:Network Feature 예제 레벨에 대한 개요로, 예제 1.2: Detecting Network Authority and Remote Clients in Blueprints, 블루프린트로 네트워크 오쏘리티 및 원격 클라이언트 감지 입니다.
 Related: Gameplay/Networking
-Related: Gameplay/Networking/Replication/Components
-Related: Gameplay/Networking/Replication
-Related: Gameplay/Networking/Replication/RPCs
+Related: Gameplay/Networking/Actors/Components
+Related: Gameplay/Networking/Actors
+Related: Gameplay/Networking/Actors/RPCs
 Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 
 

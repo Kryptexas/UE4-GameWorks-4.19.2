@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2371171
+﻿INTSourceChangelist:2493175
+Availability:Public
 Title: 비헤이비어 트리 사용 안내서
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:비헤이비어 트리 에디터 사용 안내서 입니다.
-Availability:Public
 
 [TOC(start:2 end:2)]
 
@@ -41,19 +41,19 @@ Availability:Public
 
 ### 태스크 만들기 (블루프린트)
 
-1. 비헤이비어 트리 에디터(의 비헤이비어 트리 편집 모드)에서 새 태스크 ![](Engine/AI/BehaviorTrees/QuickStart/10/newTask_button.png) 버튼을 클릭합니다.
+1. 비헤이비어 트리 에디터(의 비헤이비어 트리 편집 모드)에서 새 태스크 ![](Engine/AI/BehaviorTrees/QuickStart/12/newTask_button.png) 버튼을 클릭합니다.
 1. 상속받을 비헤이비어 트리 태스크 클래스를 선택합니다. `BTTask_BlueprintBase` 가 기본 "공백" 클래스입니다.
 1. 새 태스크 블루프린트가 비헤이비어 트리 애셋과 같은 폴더에 생성됩니다.
 
 ### 데코레이터 만들기 (블루프린트)
 
-1. 비헤이비어 트리 에디터(의 비헤이비어 트리 편집 모드)에서 새 데코레이터 ![](Engine/AI/BehaviorTrees/QuickStart/11/newDecorator_button.png) 버튼을 클릭합니다.
+1. 비헤이비어 트리 에디터(의 비헤이비어 트리 편집 모드)에서 새 데코레이터 ![](Engine/AI/BehaviorTrees/QuickStart/13/newDecorator_button.png) 버튼을 클릭합니다.
 1. 상속받을 비헤이비어 트리 데코레이터 클래스를 선택합니다. `BTDecorator_BlueprintBase` 가 기본 "공백" 클래스입니다.
 1. 비헤이비어 트리 애셋과 같은 폴더에 새 데코레이터 블루프린트가 생성됩니다.
 
 ### 서비스 만들기 (블루프린트)
 
-1. 비헤이비어 트리 에디터(의 비헤이비어 트리 편집 모드)에서 새 서비스 ![](Engine/AI/BehaviorTrees/QuickStart/9/newService_button.png) 버튼을 클릭합니다.
+1. 비헤이비어 트리 에디터(의 비헤이비어 트리 편집 모드)에서 새 서비스 ![](Engine/AI/BehaviorTrees/QuickStart/11/newService_button.png) 버튼을 클릭합니다.
 1. 상속받을 비헤이비어 트리 서비스 클래스를 선택합니다. `BTService_BlueprintBase` 가 기본 "공백" 클래스입니다.
 1. 비헤이비어 트리 애셋과 같은 폴더에 새 서비스 블루프린트가 생성됩니다.
 
@@ -102,7 +102,7 @@ Availability:Public
 
 아니면 현재 열린 비헤이비어 트리 에디터를 비헤이비어 트리 편집 모드로 전환하면 됩니다:
 
-![](Engine/AI/BehaviorTrees/QuickStart/12/btMode.png)(convert:false)
+![](Engine/AI/BehaviorTrees/QuickStart/14/btMode.png)(convert:false)
 
 ### 사용할 블랙보드 애셋 설정하기
 
@@ -135,7 +135,7 @@ Availability:Public
 1. 커서를 끌어 입력 바로 옮깁니다.
 1. 왼쪽 마우스 버튼을 놓습니다.
 
-![](Engine/AI/BehaviorTrees/QuickStart/12/connectNodes.png)
+![](Engine/AI/BehaviorTrees/QuickStart/14/connectNodes.png)
 
 ### 연결 끊기
 

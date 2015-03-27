@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2481595
+﻿INTSourceChangelist:2492264
 Availability: Public
 Title:멀티플레이어 슈팅
 Crumbs:%ROOT%, Resources, Resources/Showcases
@@ -7,7 +7,7 @@ Related: Engine/Blueprints
 Related: Engine/UMG
 Related: Programming/Online
 Related: Programming/Online/Steam
-Related: Gameplay/Networking/Replication
+Related: Gameplay/Networking/Actors
 Related: Resources/ContentExamples/Networking
 
 
