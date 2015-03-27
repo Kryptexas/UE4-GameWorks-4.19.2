@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2422946
+﻿INTSourceChangelist:2492260
 Availability:Public
 Title:Online Session ノード
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:様々な種類のオンライン Blueprint ノードおよびエラー関連 Blueprint ノードの説明
 Related:Engine/Blueprints
 Related:Programming/Online
-Related:Gameplay/Networking/Replication
+Related:Gameplay/Networking/Actors
 Related:Resources/ContentExamples/Networking
 
 
@@ -59,7 +59,7 @@ Related:Resources/ContentExamples/Networking
 
 それぞれのノード操作は _レイテンシ_ 、つまりバックグラウンドで操作を行い (多くの場合、ネットワーク上での通信が必要な操作であるため)、その後どこかで終了します。ノードの右上端の時計アイコンで表示されます。
 
-### Create Session
+### Create Session ノード
 
 ![](CreateSession.png)
 
@@ -69,19 +69,19 @@ Related:Resources/ContentExamples/Networking
 オンライン サブシステムとセッション インターフェースの概要は、 [](Programming/Online) ページを参照してください。
 [/REGION]
 
-### Find Sessions
+### Find Sessions ノード
 
 ![](FindSessions.png)
 
 **Find Sessions** ノードを使って、現在宣伝中そして参加可能なゲーム セッションのリストを取得します。正常なコールから返された **BlueprintSessionResult** オブジェクトからサーバーの名前、ping、プレイヤー数を取得することができます。 
 
-### Join Session
+### Join Session ノード
 
 ![](JoinSession.png)
 
 参加したい **BlueprintSessionResult** を決めたら、 **Join Session** にそれをパスします。ゲームは正常にサーバーに接続されると、自動的にサーバーのマップにつながり、ゲームプレイに参加します。 
 
-### Destroy Session
+### Destroy Session ノード
 
 ![](DestroySession.png)
 
@@ -103,11 +103,11 @@ Related:Resources/ContentExamples/Networking
 
 **Network Error** イベントは、ゲームがイベントに応答し、エラータイプを表す列挙型変数を受け取り、適切に応答する、例えば、ユーザーにダイアログボックスを表示することができるようにします。 
 
-### Travel Error イベント
+### Travel Error Event
 
 ![](EventTravelError.png)
 
-**Travel Error** イベントは、 **Network Error** イベントほど一般的ではありませんが、無効なマップのロードの試みなど、 **Network Error** が対応しないケースをゲームが処理できるようにします。 
+**Travel Error** Event は、 **Network Error** Event ほど一般的ではありませんが、無効なマップのロードの試みなど、 **Network Error** が対応しないケースをゲームが処理できるようにします。 
 
 [/EXCERPT:OnlineNodes]
 
