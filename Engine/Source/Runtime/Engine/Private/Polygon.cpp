@@ -497,8 +497,8 @@ void FPoly::Scale
 	Base = PreSubtract + (Base - PreSubtract) * Scale;
 
 	// Scale the texture vectors.
-	TextureU *= Scale;
-	TextureV *= Scale;
+	TextureU /= Scale;
+	TextureV /= Scale;
 
 	// Renormalize the normal.
 	Normal = Normal.GetSafeNormal();
