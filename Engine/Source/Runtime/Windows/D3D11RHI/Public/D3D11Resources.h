@@ -554,8 +554,8 @@ inline FD3D11TextureBase* GetD3D11TextureFromRHITexture(FRHITexture* Texture)
 	}
 }
 
-/** D3D11 occlusion query */
-class FD3D11OcclusionQuery : public FRHIRenderQuery
+/** D3D11 render query */
+class FD3D11RenderQuery : public FRHIRenderQuery
 {
 public:
 
@@ -572,7 +572,7 @@ public:
 	ERenderQueryType QueryType;
 
 	/** Initialization constructor. */
-	FD3D11OcclusionQuery(ID3D11Query* InResource, ERenderQueryType InQueryType):
+	FD3D11RenderQuery(ID3D11Query* InResource, ERenderQueryType InQueryType):
 		Resource(InResource),
 		Result(0),
 		bResultIsCached(false),
