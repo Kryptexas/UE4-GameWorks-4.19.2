@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2390426
+﻿INTSourceChangelist:2433802
 Availability:Public
 Title:スレート UI フレームワーク
 Crumbs:%ROOT%, Programming
@@ -26,7 +26,11 @@ Version:4.4
 [/OBJECT]
 [/VAR]
 
-スレートとは、アンリアルのカスタム仕様の UI プログラミング フレームワークの名称です。エディタの大部分はスレートを使ってビルドされます。スレートは、画像 UI にも使用が可能ですが、 インゲーム UI の作成には [](Engine/UMG) の方が好ましいです。  
+[Region:tip]
+インゲーム UI を作成しようとしていますか？UI の作成には [Unreal Motion Graphics (UMG)](Engine/UMG) を使う方法がお勧めです。
+[/Region:tip]
+
+スレートとは、アンリアルのカスタム仕様の UI プログラミング フレームワークの名称です。エディタ インターフェースはスレートを使ってビルドされます。 
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
