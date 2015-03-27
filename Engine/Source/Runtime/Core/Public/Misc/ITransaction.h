@@ -20,6 +20,7 @@ typedef void(*STRUCT_DTOR)( void* TPtr );					// destruct
 class ITransactionObjectAnnotation 
 { 
 public:
+	virtual ~ITransactionObjectAnnotation() {}
 	virtual void AddReferencedObjects(class FReferenceCollector& Collector) = 0;
 };
 
