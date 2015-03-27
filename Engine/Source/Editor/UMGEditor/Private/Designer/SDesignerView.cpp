@@ -87,7 +87,7 @@ TSharedRef<FSelectedWidgetDragDropOp> FSelectedWidgetDragDropOp::New(TSharedPtr<
 	bool bStayInParent = false;
 	if ( UPanelWidget* PanelTemplate = InWidget.GetTemplate()->GetParent() )
 	{
-		bStayInParent = PanelTemplate->LockToPanelOnDrag();
+		bStayInParent = PanelTemplate->LockToPanelOnDrag() || GetDefault<UWidgetDesignerSettings>()->bLockToPanelOnDragByDefault;
 	}
 
 	TSharedRef<FSelectedWidgetDragDropOp> Operation = MakeShareable(new FSelectedWidgetDragDropOp());

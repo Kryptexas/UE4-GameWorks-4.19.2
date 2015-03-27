@@ -19,6 +19,11 @@
 #include "DesignerCommands.h"
 #include "WidgetBlueprint.h"
 
+#include "Settings/WidgetDesignerSettings.h"
+#include "ISettingsModule.h"
+
+#define LOCTEXT_NAMESPACE "UMG"
+
 const FName UMGEditorAppIdentifier = FName(TEXT("UMGEditorApp"));
 
 class FUMGEditorModule : public IUMGEditorModule, public IBlueprintCompiler
@@ -56,6 +61,17 @@ public:
 		ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");
 		MarginTrackEditorCreateTrackEditorHandle    = SequencerModule.RegisterTrackEditor_Handle(FOnCreateTrackEditor::CreateStatic(&FMarginTrackEditor::CreateTrackEditor));
 		TransformTrackEditorCreateTrackEditorHandle = SequencerModule.RegisterTrackEditor_Handle(FOnCreateTrackEditor::CreateStatic(&F2DTransformTrackEditor::CreateTrackEditor));
+
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+		if ( SettingsModule != nullptr )
+		{
+			// Designer settings
+			SettingsModule->RegisterSettings("Editor", "ContentEditors", "WidgetDesigner",
+				LOCTEXT("WidgetDesignerSettingsName", "Widget Designer"),
+				LOCTEXT("WidgetDesignerSettingsDescription", "Configure options for the Widget Designer."),
+				GetMutableDefault<UWidgetDesignerSettings>()
+				);
+		}
 	}
 
 	/** Called before the module is unloaded, right before the module object is destroyed. */
@@ -74,6 +90,14 @@ public:
 			}
 		}
 		CreatedAssetTypeActions.Empty();
+
+		// Unregister the setting
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
+		if ( SettingsModule != nullptr )
+		{
+			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "WidgetDesigner");
+		}
 	}
 
 	bool CanCompile(const UBlueprint* Blueprint)
@@ -149,3 +173,5 @@ private:
 };
 
 IMPLEMENT_MODULE(FUMGEditorModule, UMGEditor);
+
+#undef LOCTEXT_NAMESPACE
