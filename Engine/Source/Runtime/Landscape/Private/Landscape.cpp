@@ -1958,6 +1958,8 @@ void ULandscapeInfo::RecreateLandscapeInfo(UWorld* InWorld, bool bMapCheck)
 	{
 		ALandscapeProxy* Proxy = *It;
 		if (Proxy
+			&& Proxy->GetLevel()
+			&& Proxy->GetLevel()->bIsVisible
 			&& Proxy->HasAnyFlags(RF_BeginDestroyed) == false
 			&& Proxy->IsPendingKill() == false
 			&& Proxy->IsPendingKillPending() == false)
