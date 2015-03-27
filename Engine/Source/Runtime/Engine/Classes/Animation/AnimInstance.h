@@ -444,11 +444,11 @@ public:
 
 	/** Executed when the Animation is initialized */
 	UFUNCTION(BlueprintImplementableEvent)
-	virtual void BlueprintInitializeAnimation();
+	void BlueprintInitializeAnimation();
 
 	/** Executed when the Animation is updated */
 	UFUNCTION(BlueprintImplementableEvent)
-	virtual void BlueprintUpdateAnimation(float DeltaTimeX);
+	void BlueprintUpdateAnimation(float DeltaTimeX);
 
 	bool CanTransitionSignature() const;
 	
