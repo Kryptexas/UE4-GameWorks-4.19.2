@@ -16,7 +16,7 @@ UWidgetLayoutLibrary::UWidgetLayoutLibrary(const FObjectInitializer& ObjectIniti
 {
 }
 
-bool UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPosition(APlayerController* PlayerController, FVector WorldLocation, FVector2D& ScreenPosition, FVector2D& ScreenPositionInvDPI)
+bool UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPosition(APlayerController* PlayerController, FVector WorldLocation, FVector2D& ScreenPosition)
 {
 	if ( PlayerController )
 	{
@@ -39,8 +39,7 @@ bool UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPosition(APlayerControlle
 			const float Scale = UWidgetLayoutLibrary::GetViewportScale(PlayerController);
 
 			// Apply inverse DPI scale so that the widget ends up in the expected position
-			ScreenPositionInvDPI.X = ScreenPosition.X / Scale;
-			ScreenPositionInvDPI.Y = ScreenPosition.Y / Scale;
+			ScreenPosition = ScreenPosition / Scale;
 
 			return true;
 		}

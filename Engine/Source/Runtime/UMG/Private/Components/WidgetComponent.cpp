@@ -587,16 +587,16 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 			{
 				FVector WorldLocation = GetComponentLocation();
 
-				FVector2D ScreenPosition, ScreenPositionInvDPI;
+				FVector2D ScreenPosition;
 				const bool bProjected = UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPosition(
-					PlayerController, WorldLocation, ScreenPosition, ScreenPositionInvDPI);
+					PlayerController, WorldLocation, ScreenPosition);
 
 				if ( bProjected )
 				{
 					Widget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 					
 					Widget->SetDesiredSizeInViewport(DrawSize);
-					Widget->SetPositionInViewport(ScreenPositionInvDPI, false);
+					Widget->SetPositionInViewport(ScreenPosition, false);
 					Widget->SetAlignmentInViewport(Pivot);
 				}
 				else
