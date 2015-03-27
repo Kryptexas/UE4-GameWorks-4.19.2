@@ -6,6 +6,7 @@
 #include "PropertyEditorModule.h"
 #include "IStructureDetailsView.h"
 #include "IDetailsView.h"
+#include "DataTableUtils.h"
 #include "DataTableEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "SRowEditor"
@@ -246,7 +247,7 @@ FReply SRowEditor::OnAddClicked()
 {
 	if (DataTable.IsValid())
 	{
-		FName NewName = DataTable->MakeValidName(TEXT("NewRow"));
+		FName NewName = DataTableUtils::MakeValidName(TEXT("NewRow"));
 		const TArray<FName> ExisitngNames = DataTable->GetRowNames();
 		while (ExisitngNames.Contains(NewName))
 		{
@@ -272,7 +273,7 @@ void SRowEditor::OnRowRenamed(const FText& Text, ETextCommit::Type CommitType)
 {
 	if (!GetCurrentNameAsText().EqualTo(Text) && DataTable.IsValid())
 	{
-		const FName NewName = DataTable->MakeValidName(Text.ToString());
+		const FName NewName = DataTableUtils::MakeValidName(Text.ToString());
 		for (auto Name : CachedRowNames)
 		{
 			if (Name.IsValid() && (*Name == NewName))

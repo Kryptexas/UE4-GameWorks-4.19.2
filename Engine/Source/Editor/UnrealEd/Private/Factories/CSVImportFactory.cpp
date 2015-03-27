@@ -157,7 +157,7 @@ UObject* UCSVImportFactory::FactoryCreateText( UClass* InClass, UObject* InParen
 			NewTable->RowStruct = ImportRowStruct;
 			NewTable->ImportPath = FReimportManager::SanitizeImportFilename(CurrentFilename, NewTable);
 			// Go ahead and create table from string
-			Problems = NewTable->CreateTableFromCSVString(String);
+			Problems = DoImportDataTable(NewTable, String);
 
 			// Print out
 			UE_LOG(LogCSVImportFactory, Log, TEXT("Imported DataTable '%s' - %d Problems"), *InName.ToString(), Problems.Num());
@@ -176,7 +176,7 @@ UObject* UCSVImportFactory::FactoryCreateText( UClass* InClass, UObject* InParen
 			NewTable->ImportPath = FReimportManager::SanitizeImportFilename(CurrentFilename, NewTable);
 
 			// Go ahead and create table from string
-			Problems = NewTable->CreateTableFromCSVString(String, ImportCurveInterpMode);
+			Problems = DoImportCurveTable(NewTable, String, ImportCurveInterpMode);
 
 			// Print out
 			UE_LOG(LogCSVImportFactory, Log, TEXT("Imported CurveTable '%s' - %d Problems"), *InName.ToString(), Problems.Num());
@@ -189,7 +189,7 @@ UObject* UCSVImportFactory::FactoryCreateText( UClass* InClass, UObject* InParen
 			// Create/reset curve
 			UCurveBase* NewCurve = NewObject<UCurveBase>(InParent, CurveClass, InName, Flags);
 
-			Problems = NewCurve->CreateCurveFromCSVString(String);
+			Problems = DoImportCurve(NewCurve, String);
 
 			UE_LOG(LogCSVImportFactory, Log, TEXT("Imported Curve '%s' - %d Problems"), *InName.ToString(), Problems.Num());
 			NewCurve->ImportPath = FReimportManager::SanitizeImportFilename(CurrentFilename, NewCurve);
@@ -254,11 +254,27 @@ bool UCSVImportFactory::Reimport( UObject* Obj, const FString& Path )
 	return false;
 }
 
+TArray<FString> UCSVImportFactory::DoImportDataTable(UDataTable* TargetDataTable, const FString& DataToImport)
+{
+	return TargetDataTable->CreateTableFromCSVString(DataToImport);
+}
+
+TArray<FString> UCSVImportFactory::DoImportCurveTable(UCurveTable* TargetCurveTable, const FString& DataToImport, const ERichCurveInterpMode ImportCurveInterpMode)
+{
+	return TargetCurveTable->CreateTableFromCSVString(DataToImport, ImportCurveInterpMode);
+}
+
+TArray<FString> UCSVImportFactory::DoImportCurve(UCurveBase* TargetCurve, const FString& DataToImport)
+{
+	return TargetCurve->CreateCurveFromCSVString(DataToImport);
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 UReimportDataTableFactory::UReimportDataTableFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	Formats.Add(TEXT("json;JavaScript Object Notation"));
 }
 
 bool UReimportDataTableFactory::CanReimport( UObject* Obj, TArray<FString>& OutFilenames )
@@ -296,6 +312,19 @@ EReimportResult::Type UReimportDataTableFactory::Reimport( UObject* Obj )
 int32 UReimportDataTableFactory::GetPriority() const
 {
 	return ImportPriority;
+}
+
+TArray<FString> UReimportDataTableFactory::DoImportDataTable(UDataTable* TargetDataTable, const FString& DataToImport)
+{
+	// Are we importing JSON data?
+	const bool bIsJSON = CurrentFilename.EndsWith(TEXT(".json"));
+	if (bIsJSON)
+	{
+		return TargetDataTable->CreateTableFromJSONString(DataToImport);
+	}
+
+	// Fallback to CSV
+	return UCSVImportFactory::DoImportDataTable(TargetDataTable, DataToImport);
 }
 
 ////////////////////////////////////////////////////////////////////////////

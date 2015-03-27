@@ -14,6 +14,10 @@ class UReimportDataTableFactory : public UCSVImportFactory, public FReimportHand
 	virtual EReimportResult::Type Reimport( UObject* Obj ) override;
 	virtual int32 GetPriority() const override;
 	// End FReimportHandler interface
+
+	// Begin UCSVImportFactory interface
+	virtual TArray<FString> DoImportDataTable(class UDataTable* TargetDataTable, const FString& DataToImport) override;
+	// End UCSVImportFactory interface
 };
 
 

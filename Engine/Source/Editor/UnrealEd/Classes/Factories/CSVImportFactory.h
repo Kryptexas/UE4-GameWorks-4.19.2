@@ -24,10 +24,14 @@ class UNREALED_API UCSVImportFactory : public UFactory
 	/* Reimport an object that was created based on a CSV */
 	bool ReimportCSV(UObject* Obj);
 
+protected:
+	virtual TArray<FString> DoImportDataTable(class UDataTable* TargetDataTable, const FString& DataToImport);
+	virtual TArray<FString> DoImportCurveTable(class UCurveTable* TargetCurveTable, const FString& DataToImport, const ERichCurveInterpMode ImportCurveInterpMode);
+	virtual TArray<FString> DoImportCurve(class UCurveBase* TargetCurve, const FString& DataToImport);
+
 private:
 	/* Reimport object from the given path*/
 	bool Reimport(UObject* Obj, const FString& Path  );
-
 };
 
 /** Enum to indicate what to import CSV as */

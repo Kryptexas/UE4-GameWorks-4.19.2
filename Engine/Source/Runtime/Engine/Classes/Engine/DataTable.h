@@ -145,7 +145,10 @@ public:
 	ENGINE_API void RestoreAfterStructChange();
 
 	/** Output entire contents of table as a string */
-	ENGINE_API FString GetTableAsString();
+	ENGINE_API FString GetTableAsString() const;
+
+	/** Output entire contents of table as CSV */
+	ENGINE_API FString GetTableAsCSV() const;
 
 	/** Output entire contents of table as JSON */
 	ENGINE_API FString GetTableAsJSON() const;
@@ -178,16 +181,6 @@ public:
 	/** Get array for each row in the table. The first row is the titles*/
 	ENGINE_API TArray< TArray<FString> > GetTableData() const;
 #endif //WITH_EDITOR
-
-	ENGINE_API static FString AssignStringToProperty(const FString& InString, const UProperty* InProp, uint8* InData);
-
-	ENGINE_API static FString GetPropertyValueAsString(const UProperty* InProp, uint8* InData);
-
-	ENGINE_API static TArray<FName> GetStructPropertyNames(UStruct* InStruct);
-
-	ENGINE_API static FName MakeValidName(const FString& InString);
-
-	ENGINE_API static bool IsSupportedTableProperty(const UProperty* InProp);
 
 	// End UDataTable interface
 

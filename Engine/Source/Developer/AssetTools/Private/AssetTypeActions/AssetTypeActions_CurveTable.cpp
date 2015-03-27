@@ -22,16 +22,18 @@ void FAssetTypeActions_CurveTable::GetActions( const TArray<UObject*>& InObjects
 		}
 	}
 
-	TArray<FString> XLSExtensions;
-	XLSExtensions.Add(TEXT(".xls"));
-	XLSExtensions.Add(TEXT(".xlsm"));
+	TArray<FString> PotentialFileExtensions;
+	PotentialFileExtensions.Add(TEXT(".xls"));
+	PotentialFileExtensions.Add(TEXT(".xlsm"));
+	PotentialFileExtensions.Add(TEXT(".csv"));
+	PotentialFileExtensions.Add(TEXT(".json"));
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("CurveTable_OpenSourceXLS", "Open Source (.xls/.xlsm)"),
-		LOCTEXT("CurveTable_OpenSourceXLSTooltip", "Opens the curve table's source XLS/XLSM file in an external editor."),
+		LOCTEXT("CurveTable_OpenSourceData", "Open Source Data"),
+		LOCTEXT("CurveTable_OpenSourceDataTooltip", "Opens the data table's source data file in an external editor. It will search using the following extensions: .xls/.xlsm/.csv/.json"),
 		FSlateIcon(),
 		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_CurveTable::ExecuteFindExcelFileInExplorer, ImportPaths, XLSExtensions ),
-			FCanExecuteAction::CreateSP(this, &FAssetTypeActions_CurveTable::CanExecuteFindExcelFileInExplorer, ImportPaths, XLSExtensions)
+			FExecuteAction::CreateSP( this, &FAssetTypeActions_CurveTable::ExecuteFindSourceFileInExplorer, ImportPaths, PotentialFileExtensions ),
+			FCanExecuteAction::CreateSP(this, &FAssetTypeActions_CurveTable::CanExecuteFindSourceFileInExplorer, ImportPaths, PotentialFileExtensions)
 			)
 		);
 }
