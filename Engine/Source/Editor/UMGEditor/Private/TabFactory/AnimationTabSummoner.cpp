@@ -369,11 +369,17 @@ private:
 
 	void OnSelectionChanged( TSharedPtr<FWidgetAnimationListItem> InSelectedItem, ESelectInfo::Type SelectionInfo )
 	{
+		UWidgetBlueprint* WidgetBlueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
+		UWidgetAnimation* WidgetAnimation;
 		if( InSelectedItem.IsValid() )
 		{
-			UWidgetBlueprint* WidgetBlueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
-			BlueprintEditor.Pin()->ChangeViewedAnimation( *InSelectedItem->Animation );
+			WidgetAnimation = InSelectedItem->Animation;
 		}
+		else
+		{
+			WidgetAnimation = UWidgetAnimation::GetNullAnimation();
+		}
+		BlueprintEditor.Pin()->ChangeViewedAnimation( *WidgetAnimation );
 	}
 
 	TSharedPtr<SWidget> OnContextMenuOpening() const
@@ -479,16 +485,7 @@ private:
 
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(WidgetBlueprint);
 
-		if(Animations.Num() > 0)
-		{
-			// Ensure we are viewing a valid animation
-			WidgetBlueprintEditorPin->ChangeViewedAnimation(*Animations[0]->Animation);
-			AnimationListView->SetSelection( Animations[0] );
-		}
-		else
-		{
-			WidgetBlueprintEditorPin->ChangeViewedAnimation(*UWidgetAnimation::GetNullAnimation());
-		}
+		WidgetBlueprintEditorPin->ChangeViewedAnimation(*UWidgetAnimation::GetNullAnimation());
 	}
 
 	void OnRenameAnimation()

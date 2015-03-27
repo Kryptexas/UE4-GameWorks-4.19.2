@@ -689,6 +689,7 @@ void FSequencer::UpdateRuntimeInstances()
 
 	// Refresh the current root instance
 	RootMovieSceneInstance->RefreshInstance( *this );
+	RootMovieSceneInstance->Update(ScrubPosition, ScrubPosition, *this);
 }
 
 void FSequencer::DestroySpawnablesForAllMovieScenes()
