@@ -87,7 +87,6 @@ Crash Reports
 </asp:Content>
 
 <asp:Content ID="AboveMainContent"  ContentPlaceHolderID="AboveMainContent" runat="server" >
-    <div style="clear:both;"><small style="color: lightgray;">Generated in <%=Model.GenerationTime%> second(s)</small><br /></div>
 	<div id='SearchForm' style="clear:both">
 	<div id="titleBar" style="width:960px; border: 1px solid rgba(128, 128, 128, 0.44); padding:10px;">
         <h4 id="titleText">SEARCH OPTIONS</h4>
@@ -154,90 +153,4 @@ Crash Reports
         </div>
 	<% } %>
 	</div>
-</asp:Content>
-
-<asp:Content ID="MainContent" ContentPlaceHolderID="MainContent" runat="server">
-
-<div id='CrashesTableContainer'>
-	<div id='UserGroupBar'>
-		<%foreach( var GroupCount in Model.GroupCounts ){%>
-			<span class=<%if( Model.UserGroup == GroupCount.Key ) { %> "UserGroupTabSelected" <%} else {%> "UserGroupTab"<%} %> id="<%=GroupCount.Key%>Tab">
-				<%=Url.UserGroupLink( GroupCount.Key, Model )%> 
-				<span class="UserGroupResults">
-					(<%=GroupCount.Value%>)
-				</span>
-			</span>
-		<%} %>
-	</div>
-
-	<div id='CrashesForm'>
-		<form action="/" method="POST" >
-			<div style="background-color: #E8EEF4; margin-bottom: 0px; width: 19.7em;">
-				<div style="background-color: #E8EEF4; margin-bottom: 10px; width: 19.7em; padding-bottom:0px;">
-				<span style="background-color: #E8EEF4; font-size: medium; padding-left: 1em;"><%=Html.ActionLink(
-					"Crashes", "Index", "Crashes",
-					new 
-					{
-						SearchQuery = Model.SearchQuery,
-                        UsernameQuery = Model.UsernameQuery,
-                        EpicIdQuery = Model.EpicIdQuery,
-                        MachineIdQuery = Model.MachineIdQuery,
-                        JiraQuery = Model.JiraQuery, 
-						SortTerm = Model.SortTerm, 
-						SortOrder = Model.SortOrder, 
-						UserGroup = Model.UserGroup, 
-						DateFrom = Model.DateFrom, 
-						DateTo = Model.DateTo, 
-						CrashType = Model.CrashType,
-						RealUserName = Model.RealUserName
-					}
-					, 
-					new { style = "color:black; text-decoration:none;" }
-				)%></span>
-				<span style="background-color: #C3CAD0; font-size: medium; margin-left: 1em; padding:0 1em;"
-					  title="<%= BuggsViewModel.Tooltip %>"><%=Html.ActionLink( "CrashGroups", "Index", "Buggs", 
-					new 
-					{ 
-						SearchQuery = Model.SearchQuery,
-                        UsernameQuery = Model.UsernameQuery,
-                        EpicIdQuery = Model.EpicIdQuery,
-                        MachineIdQuery = Model.MachineIdQuery,
-                        JiraQuery = Model.JiraQuery, 
-						SortTerm = Model.SortTerm, 
-						SortOrder = Model.SortOrder, 
-						UserGroup = Model.UserGroup, 
-						DateFrom = Model.DateFrom, 
-						DateTo = Model.DateTo, 
-						CrashType = Model.CrashType
-					}
-					, 
-					new { style = "color:black; text-decoration:none;" } )%></span>
-			</div>
-			<%Html.RenderPartial( "/Views/Crashes/ViewCrash.ascx" );%>
-		</form>
-	</div>
-</div>
-
-<div class="PaginationBox">
-	<%=Html.PageLinks( Model.PagingInfo, i => Url.Action( "", 
-		new 
-		{ 
-			page = i, 
-			SearchQuery = Model.SearchQuery, 
-            UsernameQuery = Model.UsernameQuery,
-            EpicIdQuery = Model.EpicIdQuery,
-            MachineIdQuery = Model.MachineIdQuery,
-            JiraQuery = Model.JiraQuery,
-			SortTerm = Model.SortTerm, 
-			SortOrder = Model.SortOrder, 
-			UserGroup = Model.UserGroup, 
-			DateFrom = Model.DateFrom, 
-			DateTo = Model.DateTo, 
-			CrashType = Model.CrashType,
-			RealUserName = Model.RealUserName
-		} 
-	) )%>
-	<div id="clear"></div>
-</div>
-
 </asp:Content>

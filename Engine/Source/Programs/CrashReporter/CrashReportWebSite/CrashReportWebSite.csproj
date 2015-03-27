@@ -86,8 +86,10 @@
     </Compile>
     <Compile Include="Controllers\DashboardController.cs" />
     <Compile Include="Controllers\ErrorController.cs" />
+    <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\ReportsController.cs" />
     <Compile Include="Controllers\UsersController.cs" />
+    <Compile Include="DatabaseHelper.cs" />
     <Compile Include="Models\BuggsViewModel.cs" />
     <Compile Include="Models\CachedDataService.cs" />
     <Compile Include="Models\BuggRepository.cs" />
@@ -196,6 +198,7 @@
     <Content Include="Scripts\jquery.validate.unobtrusive.min.js" />
     <Content Include="Scripts\modernizr-1.7.js" />
     <Content Include="Scripts\modernizr-1.7.min.js" />
+    <Content Include="Scripts\searchCollapse.js" />
     <Content Include="Views\Buggs\Index.aspx" />
     <Content Include="Views\Buggs\Show.aspx" />
     <Content Include="Views\Buggs\ViewBuggs.ascx" />
@@ -203,6 +206,7 @@
     <Content Include="Views\Crashes\Index.aspx" />
     <Content Include="Views\Crashes\Show.aspx" />
     <Content Include="Views\Crashes\ViewCrash.ascx" />
+    <Content Include="Views\Home\Index.aspx" />
     <Content Include="Views\Reports\Index.aspx" />
     <Content Include="Views\Reports\ViewReports.ascx" />
     <Content Include="Views\Users\Index.aspx" />

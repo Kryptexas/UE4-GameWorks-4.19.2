@@ -134,7 +134,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		List<string> ToJiraDescriptions = new List<string>();
 
 		List<string> ToJiraFunctionCalls = null;
-		List<string> GenericFunctionCalls = null;
 
 		/// <summary> Helper method, display this Bugg as a human readable string. Debugging purpose. </summary>
 		public override string ToString()
@@ -244,7 +243,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			this.LatestOSAffected = LatestOSAffected;			// Latest Environment Affected
 
 			// ToJiraSummary
-			var FunctionCalls = CrashesForBugg.First().GetCallStack().GetFunctionCallsForJira();
+			var FunctionCalls = this.GetFunctionCalls();
 			if( FunctionCalls.Count > 0 )
 			{
 				this.ToJiraSummary = FunctionCalls[0];
@@ -252,8 +251,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 			else
 			{
-				this.ToJiraSummary = "No valid callstack found";
-				this.ToJiraFunctionCalls = new List<string>();
+				this.ToJiraSummary = "No valid callstack found"; 
 			}
 
 			// ToJiraVersions
@@ -479,7 +477,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(Id=" + this.Id + ")" ) )
 			{
-				if( GenericFunctionCalls == null )
+				if( ToJiraFunctionCalls == null )
 				{
 					CrashRepository CrashRepo = new CrashRepository();
 
@@ -492,14 +490,14 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 					if( Crash != null )
 					{
-						GenericFunctionCalls = Crash.GetCallStack().GetFunctionCalls();
+						ToJiraFunctionCalls = Crash.GetCallStack().GetFunctionCalls();
 					}
 					else
 					{
-						GenericFunctionCalls = new List<string>();
+						ToJiraFunctionCalls = new List<string>();
 					}
 				}
-				return GenericFunctionCalls;
+				return ToJiraFunctionCalls;
 			}
 		}
 	}
