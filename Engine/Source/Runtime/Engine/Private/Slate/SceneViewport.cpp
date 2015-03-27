@@ -1010,7 +1010,13 @@ void FSceneViewport::SetViewportSize(uint32 NewViewportSizeX, uint32 NewViewport
 
 TSharedPtr<SWindow> FSceneViewport::FindWindow()
 {
-	return FSlateApplication::Get().FindWidgetWindow(ViewportWidget.Pin().ToSharedRef());
+	if ( ViewportWidget.IsValid() )
+	{
+		TSharedPtr<SViewport> PinnedViewportWidget = ViewportWidget.Pin();
+		return FSlateApplication::Get().FindWidgetWindow(PinnedViewportWidget.ToSharedRef());
+	}
+
+	return TSharedPtr<SWindow>();
 }
 
 bool FSceneViewport::IsStereoRenderingAllowed() const
