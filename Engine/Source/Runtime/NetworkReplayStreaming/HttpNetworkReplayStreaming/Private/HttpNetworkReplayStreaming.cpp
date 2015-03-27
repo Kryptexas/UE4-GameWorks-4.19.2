@@ -1,7 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "HttpNetworkReplayStreaming.h"
-#include "OnlineJsonSerializer.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogHttpReplay, Log, All );
 
@@ -105,6 +104,7 @@ FHttpNetworkReplayStreamer::FHttpNetworkReplayStreamer() :
 	StreamChunkIndex( 0 ), 
 	LastChunkTime( 0 ), 
 	LastRefreshViewerTime( 0 ),
+	LastRefreshCheckpointTime( 0 ),
 	StreamerState( EStreamerState::Idle ), 
 	bStopStreamingCalled( false ), 
 	bNeedToUploadHeader( false ),
@@ -114,7 +114,9 @@ FHttpNetworkReplayStreamer::FHttpNetworkReplayStreamer() :
 	StreamTimeRangeStart( 0 ),
 	StreamTimeRangeEnd( 0 ),
 	HighPriorityEndTime( 0 ),
-	StreamerLastError( ENetworkReplayError::None )
+	StreamerLastError( ENetworkReplayError::None ),
+	DownloadCheckpointIndex( -1 ),
+	LastGotoTimeInMS( -1 )
 {
 	// Initialize the server URL
 	GConfig->GetString( TEXT( "HttpNetworkReplayStreaming" ), TEXT( "ServerURL" ), ServerURL, GEngineIni );
@@ -181,9 +183,14 @@ void FHttpNetworkReplayStreamer::StartStreaming( const FString& StreamName, bool
 
 		HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpStartDownloadingFinished );
 	
+		// Add the request to start downloading
 		AddRequestToQueue( EQueuedHttpRequestType::StartDownloading, HttpRequest );
 
+		// Download the header (will add to queue)
 		DownloadHeader();
+
+		// Download the first set of checkpoints (will add to queue)
+		EnumerateCheckpoints();
 	}
 	else
 	{
@@ -362,30 +369,106 @@ void FHttpNetworkReplayStreamer::FlushCheckpoint( const uint32 TimeInMS )
 	
 	// Flush any existing stream, we need checkpoints to line up with the next chunk
 	FlushStream();
+
 	// Flush the checkpoint
 	FlushCheckpointInternal( TimeInMS );
 }
 
-void FHttpNetworkReplayStreamer::GotoCheckpoint( const uint32 TimeInMS, const FOnCheckpointReadyDelegate& Delegate )
+void FHttpNetworkReplayStreamer::GotoCheckpointIndex( const int32 CheckpointIndex, const FOnCheckpointReadyDelegate& Delegate )
 {
 	if ( GotoCheckpointDelegate.IsBound() )
 	{
 		// If we're currently going to a checkpoint now, ignore this request
-		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::GotoCheckpoint. Busy processing another checkpoint." ) );
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::GotoCheckpointIndex. Busy processing another checkpoint." ) );
+		Delegate.ExecuteIfBound( false, -1 );
+		return;
+	}
+
+	check( DownloadCheckpointIndex == -1 );
+
+	if ( CheckpointIndex == -1 )
+	{
+		// Make sure to reset the checkpoint archive (this is how we signify that the engine should start from the beginning of the steam (we don't need a checkpoint for that))
+		CheckpointArchive.Buffer.Empty();
+		CheckpointArchive.Pos = 0;
+
+		// Completely reset our stream (we're going to start downloading from the start of the checkpoint)
+		StreamArchive.Buffer.Empty();
+		StreamArchive.Pos				= 0;
+		StreamArchive.bAtEndOfReplay	= false;
+
+		// Reset our stream range
+		StreamTimeRangeStart	= 0;
+		StreamTimeRangeEnd		= 0;
+
+		StreamChunkIndex		= 0;
+
+		Delegate.ExecuteIfBound( true, LastGotoTimeInMS );
+		LastGotoTimeInMS = -1;
+		return;
+	}
+
+	if ( !CheckpointList.Checkpoints.IsValidIndex( CheckpointIndex ) )
+	{
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::GotoCheckpointIndex. Invalid checkpoint index." ) );
+		Delegate.ExecuteIfBound( false, -1 );
 		return;
 	}
 
 	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
 	// Download the next stream chunk
-	HttpRequest->SetURL( FString::Printf( TEXT( "%sdownload?Version=%s&Session=%s&Filename=checkpoint.%i" ), *ServerURL, *SessionVersion, *SessionName, TimeInMS ) );
+	HttpRequest->SetURL( FString::Printf( TEXT( "%sdownloadevent?Version=%s&Session=%s&ID=%s" ), *ServerURL, *SessionVersion, *SessionName, *CheckpointList.Checkpoints[CheckpointIndex].ID ) );
 	HttpRequest->SetVerb( TEXT( "GET" ) );
 
 	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpDownloadCheckpointFinished );
 
-	GotoCheckpointDelegate = Delegate;
+	GotoCheckpointDelegate	= Delegate;
+	DownloadCheckpointIndex = CheckpointIndex;
 
 	AddRequestToQueue( EQueuedHttpRequestType::DownloadingCheckpoint, HttpRequest );
+}
+
+void FHttpNetworkReplayStreamer::GotoTimeInMS( const uint32 TimeInMS, const FOnCheckpointReadyDelegate& Delegate )
+{
+	if ( GotoCheckpointDelegate.IsBound() )
+	{
+		// If we're currently going to a checkpoint now, ignore this request
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::GotoTimeInMS. Busy processing another checkpoint." ) );
+		Delegate.ExecuteIfBound( false, -1 );
+		return;
+	}
+
+	UE_LOG( LogHttpReplay, Verbose, TEXT( "FHttpNetworkReplayStreamer::GotoTimeInMS. TimeInMS: %i" ), (int)TimeInMS );
+
+	check( DownloadCheckpointIndex == -1 );
+	check( LastGotoTimeInMS == -1 );
+
+	int32 CheckpointIndex = -1;
+
+	LastGotoTimeInMS = TimeInMS;
+
+	if ( CheckpointList.Checkpoints.Num() > 0 && TimeInMS >= CheckpointList.Checkpoints[ CheckpointList.Checkpoints.Num() - 1 ].Time1 )
+	{
+		// If we're after the very last checkpoint, that's the one we want
+		CheckpointIndex = CheckpointList.Checkpoints.Num() - 1;
+	}
+	else
+	{
+		// Checkpoints should be sorted by time, return the checkpoint that exists right before the current time
+		// For fine scrubbing, we'll fast forward the rest of the way
+		// NOTE - If we're right before the very first checkpoint, we'll return -1, which is what we want when we want to start from the very beginning
+		for ( int i = 0; i < CheckpointList.Checkpoints.Num(); i++ )
+		{
+			if ( TimeInMS < CheckpointList.Checkpoints[i].Time1 )
+			{
+				CheckpointIndex = i - 1;
+				break;
+			}
+		}
+	}
+
+	GotoCheckpointIndex( CheckpointIndex, Delegate );
 }
 
 void FHttpNetworkReplayStreamer::FlushCheckpointInternal( uint32 TimeInMS )
@@ -406,10 +489,7 @@ void FHttpNetworkReplayStreamer::FlushCheckpointInternal( uint32 TimeInMS )
 
 	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpUploadCheckpointFinished );
 
-	// Save the chunk to the checkpoint
-	CheckpointArchive << StreamChunkIndex;
-
-	HttpRequest->SetURL( FString::Printf( TEXT( "%supload?Version=%s&Session=%s&NumChunks=%i&Time=%i&Filename=checkpoint.%i" ), *ServerURL, *SessionVersion, *SessionName, StreamChunkIndex, TotalDemoTimeInMS, TimeInMS ) );
+	HttpRequest->SetURL( FString::Printf( TEXT( "%suploadevent?Version=%s&Session=%s&Group=checkpoint&Time1=%i&Time2=%i&Meta=%i" ), *ServerURL, *SessionVersion, *SessionName, TimeInMS, TimeInMS, StreamChunkIndex ) );
 	HttpRequest->SetVerb( TEXT( "POST" ) );
 	HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
 	HttpRequest->SetContent( CheckpointArchive.Buffer );
@@ -582,6 +662,14 @@ bool FHttpNetworkReplayStreamer::IsDataAvailable() const
 		return false;
 	}
 
+	if ( HighPriorityEndTime > 0 )
+	{
+		// If we are waiting for a high priority portion of the stream, pretend like we don't have any data so that game code waits for the entire portion
+		// of the high priority stream to download.
+		// We do this because we assume the game wants to race through this high priority portion of the stream in a single frame
+		return false;
+	}
+
 	// If we are loading, and we have more data
 	if ( StreamArchive.IsLoading() && StreamArchive.Pos < StreamArchive.Buffer.Num() && NumDownloadChunks > 0 )
 	{
@@ -593,6 +681,8 @@ bool FHttpNetworkReplayStreamer::IsDataAvailable() const
 
 void FHttpNetworkReplayStreamer::SetHighPriorityTimeRange( const uint32 StartTimeInMS, const uint32 EndTimeInMS )
 {
+	// Set the amount of stream we should download before saying we have anymore data available
+	// We will also put a high priority on this portion of the stream so that it downloads as fast as possible
 	HighPriorityEndTime = EndTimeInMS;
 }
 
@@ -638,6 +728,38 @@ void FHttpNetworkReplayStreamer::EnumerateStreams( const FString& VersionString,
 
 	AddRequestToQueue( EQueuedHttpRequestType::EnumeratingSessions, HttpRequest );
 }
+
+void FHttpNetworkReplayStreamer::EnumerateCheckpoints()
+{
+	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+
+	// Enumerate all of the sessions
+	HttpRequest->SetURL( FString::Printf( TEXT( "%senumevents?Version=%s&Session=%s&Group=checkpoint" ), *ServerURL, *SessionVersion, *SessionName ) );
+	HttpRequest->SetVerb( TEXT( "GET" ) );
+
+	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpEnumerateCheckpointsFinished );
+
+	AddRequestToQueue( EQueuedHttpRequestType::EnumeratingCheckpoints, HttpRequest );
+
+	LastRefreshCheckpointTime = FPlatformTime::Seconds();
+}
+
+void FHttpNetworkReplayStreamer::ConditionallyEnumerateCheckpoints()
+{
+	if ( !bStreamIsLive )
+	{
+		// We don't need to enumerate more than once for non live streams
+		return;
+	}
+
+	// During live games, check for new checkpoints every 30 seconds
+	const double REFRESH_CHECKPOINTS_IN_SECONDS = 30;
+
+	if ( FPlatformTime::Seconds() - LastRefreshCheckpointTime > REFRESH_CHECKPOINTS_IN_SECONDS )
+	{
+		EnumerateCheckpoints();
+	}
+};
 
 void FHttpNetworkReplayStreamer::RequestFinished( EStreamerState ExpectedStreamerState, EQueuedHttpRequestType ExpectedType, FHttpRequestPtr HttpRequest )
 {
@@ -863,55 +985,64 @@ void FHttpNetworkReplayStreamer::HttpDownloadFinished( FHttpRequestPtr HttpReque
 
 void FHttpNetworkReplayStreamer::HttpDownloadCheckpointFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
 {
+	UE_LOG( LogHttpReplay, Verbose, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadCheckpointFinished." ) );
+
 	RequestFinished( EStreamerState::StreamingDown, EQueuedHttpRequestType::DownloadingCheckpoint, HttpRequest );
 
 	check( StreamArchive.IsLoading() );
 	check( GotoCheckpointDelegate.IsBound() );
+	check( DownloadCheckpointIndex >= 0 );
 
 	if ( bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok )
 	{
 		if ( HttpResponse->GetContent().Num() == 0 )
 		{
 			UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadCheckpointFinished. Checkpoint empty." ) );
-			GotoCheckpointDelegate.ExecuteIfBound( true );
+			GotoCheckpointDelegate.ExecuteIfBound( false, -1 );
 			return;
 		}
 
+		// Get the checkpoint data
+		CheckpointArchive.Buffer	= HttpResponse->GetContent();
+		CheckpointArchive.Pos		= 0;
+
+		// Completely reset our stream (we're going to start downloading from the start of the checkpoint)
 		StreamArchive.Buffer.Empty();
-		StreamArchive.Pos = 0;
-		StreamArchive.bAtEndOfReplay = false;
+		StreamArchive.Pos				= 0;
+		StreamArchive.bAtEndOfReplay	= false;
 
-		CheckpointArchive.Buffer = HttpResponse->GetContent();
-		CheckpointArchive.Pos = 0;
+		// Reset our stream range
+		StreamTimeRangeStart	= 0;
+		StreamTimeRangeEnd		= 0;
 
-		StreamTimeRangeStart = 0;
-		StreamTimeRangeEnd = 0;
+		// Set the next chunk to be right after this checkpoint (which was stored in the metadata)
+		StreamChunkIndex = FCString::Atoi( *CheckpointList.Checkpoints[ DownloadCheckpointIndex ].Metadata );
 
-		// Seek to the end, where we added our internal meta data
-		CheckpointArchive.Seek( CheckpointArchive.Buffer.Num() - 4 );
-		
-		// Set the next chunk to be the first chunk that represents the start of the stream after the checkpoint
-		CheckpointArchive << StreamChunkIndex;
+		if ( LastGotoTimeInMS >= 0 )
+		{
+			// If we are fine scrubbing, make sure to wait on the part of the stream that is needed to do this in one frame
+			SetHighPriorityTimeRange( CheckpointList.Checkpoints[ DownloadCheckpointIndex ].Time1, LastGotoTimeInMS );
+			
+			// Subtract off checkpoint time so we pass in the leftover to the engine to fast forward through for the fine scrubbing part
+			LastGotoTimeInMS -= CheckpointList.Checkpoints[ DownloadCheckpointIndex ].Time1;
+		}
 
-		// Make sure we read to the very end
-		check( CheckpointArchive.Pos == CheckpointArchive.Buffer.Num() );
-
-		// Remove the data we serialized from the end of the checkpoint
-		CheckpointArchive.Buffer.SetNum( CheckpointArchive.Buffer.Num() - 4 );
-
-		CheckpointArchive.Pos = 0;
-
-		GotoCheckpointDelegate.ExecuteIfBound( true );
+		// Notify game code of success
+		GotoCheckpointDelegate.ExecuteIfBound( true, LastGotoTimeInMS );
 
 		UE_LOG( LogHttpReplay, Verbose, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadCheckpointFinished. SUCCESS. StreamChunkIndex: %i" ), StreamChunkIndex );
 	}
 	else
 	{
+		// Oops, something went wrong, notify game code of failure
 		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadCheckpointFinished. FAILED." ) );
-		GotoCheckpointDelegate.ExecuteIfBound( false );
+		GotoCheckpointDelegate.ExecuteIfBound( false, -1 );
 	}
 
-	GotoCheckpointDelegate = FOnCheckpointReadyDelegate();
+	// Reset things
+	GotoCheckpointDelegate	= FOnCheckpointReadyDelegate();
+	DownloadCheckpointIndex = -1;
+	LastGotoTimeInMS		= -1;
 }
 
 void FHttpNetworkReplayStreamer::HttpRefreshViewerFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
@@ -973,6 +1104,32 @@ void FHttpNetworkReplayStreamer::HttpEnumerateSessionsFinished( FHttpRequestPtr 
 	}
 
 	EnumerateStreamsDelegate = FOnEnumerateStreamsComplete();
+}
+
+void FHttpNetworkReplayStreamer::HttpEnumerateCheckpointsFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
+{
+	RequestFinished( EStreamerState::StreamingDown, EQueuedHttpRequestType::EnumeratingCheckpoints, HttpRequest );
+
+	if ( bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok )
+	{		
+		UE_LOG( LogHttpReplay, Verbose, TEXT( "FHttpNetworkReplayStreamer::HttpEnumerateCheckpointsFinished." ) );
+
+		FString JsonString = HttpResponse->GetContentAsString();
+
+		CheckpointList.Checkpoints.Empty();
+
+		if ( !CheckpointList.FromJson( JsonString ) )
+		{
+			UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpEnumerateCheckpointsFinished. FromJson FAILED" ) );
+			SetLastError( ENetworkReplayError::ServiceUnavailable );
+			return;
+		}
+	}
+	else
+	{
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpEnumerateCheckpointsFinished. FAILED" ) );
+		SetLastError( ENetworkReplayError::ServiceUnavailable );
+	}
 }
 
 bool FHttpNetworkReplayStreamer::ProcessNextHttpRequest()
@@ -1049,13 +1206,23 @@ void FHttpNetworkReplayStreamer::Tick( const float DeltaTime )
 	}
 	else if ( StreamerState == EStreamerState::StreamingDown )
 	{
+		// Check to see if we're done downloading the high priority portion of the strema
+		// If so, we can cancel the request
+		if ( HighPriorityEndTime > 0 && StreamTimeRangeEnd >= HighPriorityEndTime )
+		{
+			HighPriorityEndTime = 0;
+		}
+
+		// Check to see if we're at the end of non live streams
 		if ( StreamChunkIndex >= NumDownloadChunks && !bStreamIsLive )
 		{
+			// Make note of when we reach the end of non live stream
 			StreamArchive.bAtEndOfReplay = true;
 		}
 
 		ConditionallyRefreshViewer();
 		ConditionallyDownloadNextChunk();
+		ConditionallyEnumerateCheckpoints();
 	}
 }
 

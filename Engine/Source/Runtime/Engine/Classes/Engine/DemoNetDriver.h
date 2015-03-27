@@ -57,16 +57,25 @@ class UDemoNetDriver
 	double		MaxRecordTime;
 	int32		RecordCountSinceFlush;
 	float		TimeToSkip;
+	float		LastGotoTimeInSeconds;
 
 	bool		bSavingCheckpoint;
 	double		LastCheckpointTime;
-	int32		CurrentCheckpointIndex;
 
 	void		SaveCheckpoint();
 
+	bool		bRestoreSpectatorPosition;
+	FVector		SpectatorLocation;
+	FRotator	SpectatorRotation;
+
+	FArchive*	GotoCheckpointArchive;
+	int64		GotoCheckpointSkipExtraTimeInMS;
+
+	void		LoadCheckpoint();
+
+
 private:
 	bool		bIsFastForwarding;
-	double		FastForwardStartSeconds;
 
 public:
 
@@ -81,7 +90,8 @@ public:
 	virtual void TickFlush( float DeltaSeconds ) override;
 	virtual void ProcessRemoteFunction( class AActor* Actor, class UFunction* Function, void* Parameters, struct FOutParmRec* OutParms, struct FFrame* Stack, class UObject* SubObject = nullptr ) override;
 	virtual bool IsAvailable() const override { return true; }
-	ENGINE_API void SkipTime(float InTimeToSkip);
+	ENGINE_API void SkipTime(const float InTimeToSkip);
+	ENGINE_API void GotoTimeInSeconds( const float TimeInSeconds );
 	bool InitConnectInternal( FString& Error );
 	virtual bool ShouldClientDestroyTearOffActors() const override;
 	virtual bool ShouldSkipRepNotifies() const override;
@@ -114,5 +124,5 @@ public:
 	void StopDemo();
 
 	void ReplayStreamingReady( bool bSuccess, bool bRecord );
-	void CheckpointReady( bool bSuccess );
+	void CheckpointReady( const bool bSuccess, const int64 SkipExtraTimeInMS );
 };

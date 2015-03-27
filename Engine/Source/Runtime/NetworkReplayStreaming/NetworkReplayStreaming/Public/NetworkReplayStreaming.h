@@ -63,21 +63,21 @@ namespace ENetworkReplayError
  * @param bWasSuccessful Whether streaming was started.
  * @param bRecord Whether streaming is recording or not (vs playing)
  */
-DECLARE_DELEGATE_TwoParams( FOnStreamReadyDelegate, bool, bool );
+DECLARE_DELEGATE_TwoParams( FOnStreamReadyDelegate, const bool, const bool );
 
 /**
- * Delegate called when GotoCheckpoint() completes.
+ * Delegate called when GotoCheckpointIndex() completes.
  *
  * @param bWasSuccessful Whether streaming was started.
  */
-DECLARE_DELEGATE_OneParam( FOnCheckpointReadyDelegate, bool );
+DECLARE_DELEGATE_TwoParams( FOnCheckpointReadyDelegate, const bool, const int64 );
 
 /**
  * Delegate called when DeleteFinishedStream() completes.
  *
  * @param bWasSuccessful Whether the stream was deleted.
  */
-DECLARE_DELEGATE_OneParam( FOnDeleteFinishedStreamComplete, bool );
+DECLARE_DELEGATE_OneParam( FOnDeleteFinishedStreamComplete, const bool );
 
 /**
  * Delegate called when EnumerateStreams() completes.
@@ -98,7 +98,8 @@ public:
 	virtual FArchive* GetStreamingArchive() = 0;
 	virtual FArchive* GetCheckpointArchive() = 0;
 	virtual void FlushCheckpoint( const uint32 TimeInMS ) = 0;
-	virtual void GotoCheckpoint( const uint32 TimeInMS, const FOnCheckpointReadyDelegate& Delegate ) = 0;
+	virtual void GotoCheckpointIndex( const int32 CheckpointIndex, const FOnCheckpointReadyDelegate& Delegate ) = 0;
+	virtual void GotoTimeInMS( const uint32 TimeInMS, const FOnCheckpointReadyDelegate& Delegate ) = 0;
 	virtual FArchive* GetMetadataArchive() = 0;
 	virtual void UpdateTotalDemoTime( uint32 TimeInMS ) = 0;
 	virtual uint32 GetTotalDemoTime() const = 0;

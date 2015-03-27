@@ -4,6 +4,44 @@
 #include "NetworkReplayStreaming.h"
 #include "Http.h"
 #include "Runtime/Engine/Public/Tickable.h"
+#include "OnlineJsonSerializer.h"
+
+class FCheckpointListItem : public FOnlineJsonSerializable
+{
+public:
+	FCheckpointListItem() {}
+	virtual ~FCheckpointListItem() {}
+
+	FString		ID;
+	FString		Group;
+	FString		Metadata;
+	uint32		Time1;
+	uint32		Time2;
+
+	// FOnlineJsonSerializable
+	BEGIN_ONLINE_JSON_SERIALIZER
+		ONLINE_JSON_SERIALIZE( "id",			ID );
+		ONLINE_JSON_SERIALIZE( "group",			Group );
+		ONLINE_JSON_SERIALIZE( "meta",			Metadata );
+		ONLINE_JSON_SERIALIZE( "time1",			Time1 );
+		ONLINE_JSON_SERIALIZE( "time2",			Time2 );
+	END_ONLINE_JSON_SERIALIZER
+};
+
+class FCheckpointList : public FOnlineJsonSerializable
+{
+public:
+	FCheckpointList()
+	{}
+	virtual ~FCheckpointList() {}
+
+	TArray< FCheckpointListItem > Checkpoints;
+
+	// FOnlineJsonSerializable
+	BEGIN_ONLINE_JSON_SERIALIZER
+		ONLINE_JSON_SERIALIZE_ARRAY_SERIALIZABLE( "events", Checkpoints, FCheckpointListItem );
+	END_ONLINE_JSON_SERIALIZER
+};
 
 /**
  * Archive used to buffer stream over http
@@ -35,6 +73,7 @@ enum class EQueuedHttpRequestType
 	DownloadingStream,			// We are in the process of downloading the replay stream
 	RefreshingViewer,			// We are refreshing the server to let it know we're still viewing
 	EnumeratingSessions,		// We are in the process of downloading the available sessions
+	EnumeratingCheckpoints,		// We are in the process of downloading the available checkpoints
 	UploadingCheckpoint,		// We are uploading a checkpoint
 	DownloadingCheckpoint		// We are downloading a checkpoint
 };
@@ -63,7 +102,8 @@ public:
 	virtual FArchive*	GetStreamingArchive() override;
 	virtual FArchive*	GetCheckpointArchive() override;
 	virtual void		FlushCheckpoint( const uint32 TimeInMS ) override;
-	virtual void		GotoCheckpoint( const uint32 TimeInMS, const FOnCheckpointReadyDelegate& Delegate ) override;
+	virtual void		GotoCheckpointIndex( const int32 CheckpointIndex, const FOnCheckpointReadyDelegate& Delegate ) override;
+	virtual void		GotoTimeInMS( const uint32 TimeInMS, const FOnCheckpointReadyDelegate& Delegate ) override;
 	virtual FArchive*	GetMetadataArchive() override;
 	virtual void		UpdateTotalDemoTime( uint32 TimeInMS ) override;
 	virtual uint32		GetTotalDemoTime() const override { return TotalDemoTimeInMS; }
@@ -87,6 +127,8 @@ public:
 	void SetLastError( const ENetworkReplayError::Type InLastError );
 	void FlushCheckpointInternal( uint32 TimeInMS );
 	void AddRequestToQueue( const EQueuedHttpRequestType Type, TSharedPtr< class IHttpRequest >	Request );
+	void EnumerateCheckpoints();
+	void ConditionallyEnumerateCheckpoints();
 
 	/** EStreamerState - Overall state of the streamer */
 	enum class EStreamerState
@@ -110,6 +152,7 @@ public:
 	void HttpUploadStreamFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 	void HttpUploadCheckpointFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 	void HttpEnumerateSessionsFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
+	void HttpEnumerateCheckpointsFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 
 	bool ProcessNextHttpRequest();
 	void Tick( const float DeltaTime );
@@ -126,6 +169,7 @@ public:
 	int32					StreamChunkIndex;		// Used as a counter to increment the stream.x extension count
 	double					LastChunkTime;			// The last time we uploaded/downloaded a chunk
 	double					LastRefreshViewerTime;	// The last time we refreshed ourselves as an active viewer
+	double					LastRefreshCheckpointTime;
 	EStreamerState			StreamerState;			// Overall state of the streamer
 	bool					bStopStreamingCalled;
 	bool					bNeedToUploadHeader;	// We're waiting on session name so we can upload header
@@ -143,6 +187,10 @@ public:
 	FOnStreamReadyDelegate			StartStreamingDelegate;		// Delegate passed in to StartStreaming
 	FOnEnumerateStreamsComplete		EnumerateStreamsDelegate;
 	FOnCheckpointReadyDelegate		GotoCheckpointDelegate;
+	int32							DownloadCheckpointIndex;
+	int64							LastGotoTimeInMS;
+
+	FCheckpointList					CheckpointList;
 
 	TQueue< TSharedPtr< FQueuedHttpRequest > >	QueuedHttpRequests;
 	TSharedPtr< FQueuedHttpRequest >			InFlightHttpRequest;

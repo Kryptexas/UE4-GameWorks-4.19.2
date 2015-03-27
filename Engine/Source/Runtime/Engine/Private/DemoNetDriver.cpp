@@ -26,8 +26,9 @@ DEFINE_LOG_CATEGORY_STATIC( LogDemo, Log, All );
 static TAutoConsoleVariable<float> CVarDemoRecordHz( TEXT( "demo.RecordHz" ), 10, TEXT( "Number of demo frames recorded per second" ) );
 static TAutoConsoleVariable<float> CVarDemoTimeDilation( TEXT( "demo.TimeDilation" ), -1.0f, TEXT( "Override time dilation during demo playback (-1 = don't override)" ) );
 static TAutoConsoleVariable<float> CVarDemoSkipTime( TEXT( "demo.SkipTime" ), 0, TEXT( "Skip fixed amount of network replay time (in seconds)" ) );
-static TAutoConsoleVariable<int32> CVarEnableCheckpoints( TEXT( "demo.EnableCheckpoints" ), 0, TEXT( "Whether or not checkpoints save on the server" ) );
-static TAutoConsoleVariable<int32> CVarTestCheckpoint( TEXT( "demo.TestCheckpoint" ), -1, TEXT( "For testing only, jump to a particular checkpoint" ) );
+static TAutoConsoleVariable<int32> CVarEnableCheckpoints( TEXT( "demo.EnableCheckpoints" ), 1, TEXT( "Whether or not checkpoints save on the server" ) );
+static TAutoConsoleVariable<int32> CVarGotoCheckpointIndex( TEXT( "demo.GotoCheckpointIndex" ), -2, TEXT( "For testing only, jump to a particular checkpoint" ) );
+static TAutoConsoleVariable<float> CVarGotoTimeInSeconds( TEXT( "demo.GotoTimeInSeconds" ), -1, TEXT( "For testing only, jump to a particular time" ) );
 static TAutoConsoleVariable<int32> CVarDemoFastForwardDestroyTearOffActors( TEXT( "demo.FastForwardDestroyTearOffActors" ), 1, TEXT( "If true, the driver will destroy any torn-off actors immediately while fast-forwarding a replay." ) );
 static TAutoConsoleVariable<int32> CVarDemoFastForwardSkipRepNotifies( TEXT( "demo.FastForwardSkipRepNotifies" ), 1, TEXT( "If true, the driver will optimize fast-forwarding by deferring calls to RepNotify functions until the fast-forward is complete. " ) );
 
@@ -55,8 +56,8 @@ bool UDemoNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, con
 		bChannelsArePaused		= false;
 		TimeToSkip				= 0.0f;
 		bIsFastForwarding		= false;
-		FastForwardStartSeconds	= 0.0;
-		CurrentCheckpointIndex	= 0;
+		GotoCheckpointSkipExtraTimeInMS = -1;
+		LastGotoTimeInSeconds	= -1.0f;
 
 		ResetDemoState();
 
@@ -500,17 +501,6 @@ void UDemoNetDriver::TickFlush( float DeltaSeconds )
 			}
 		}
 
-		if ( CVarTestCheckpoint.GetValueOnGameThread() >= 0 )
-		{
-			ReplayStreamer->GotoCheckpoint( CVarTestCheckpoint.GetValueOnGameThread(), FOnCheckpointReadyDelegate::CreateUObject( this, &UDemoNetDriver::CheckpointReady ) );
-			CVarTestCheckpoint.AsVariable()->Set( TEXT( "-1" ), ECVF_SetByConsole );
-		}
-
-		if ( bDemoPlaybackDone )
-		{
-			return;
-		}
-
 		if ( World->GetWorldSettings()->Pauser == NULL )
 		{
 			TickDemoPlayback( DeltaSeconds );
@@ -834,7 +824,7 @@ void UDemoNetDriver::SaveCheckpoint()
 
 	if ( CheckpointArchive->TotalSize() > 0 )
 	{
-		ReplayStreamer->FlushCheckpoint( CurrentCheckpointIndex++ );
+		ReplayStreamer->FlushCheckpoint( SavedAbsTimeMS );
 	}
 
 	const double EndCheckpointTime = FPlatformTime::Seconds();
@@ -929,7 +919,7 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 	// Save a checkpoint if it's time
 	if ( CVarEnableCheckpoints.GetValueOnGameThread() == 1 )
 	{
-		const double CHECKPOINT_DELAY = 10.0;
+		const double CHECKPOINT_DELAY = 30.0;
 
 		if ( CurrentSeconds - LastCheckpointTime > CHECKPOINT_DELAY )
 		{
@@ -947,6 +937,7 @@ void UDemoNetDriver::PauseChannels( const bool bPause )
 	}
 
 	// Pause all non player controller actors
+	// FIXME: Would love a more elegant way of handling this at a more global level
 	for ( int32 i = ServerConnection->OpenChannels.Num() - 1; i >= 0; i-- )
 	{
 		UChannel* OpenChannel = ServerConnection->OpenChannels[i];
@@ -997,6 +988,7 @@ bool UDemoNetDriver::ConditionallyReadDemoFrame()
 		return false;
 	} 
 
+	// We're going to read a frame, unpause channels
 	PauseChannels( false );
 
 	const int32 OldFilePos = FileAr->Tell();
@@ -1116,9 +1108,14 @@ bool UDemoNetDriver::ReadDemoFrame( FArchive* Archive )
 	return true;
 }
 
-void UDemoNetDriver::SkipTime(float InTimeToSkip)
+void UDemoNetDriver::SkipTime(const float InTimeToSkip)
 {
 	TimeToSkip = InTimeToSkip;
+}
+
+void UDemoNetDriver::GotoTimeInSeconds( const float TimeInSeconds )
+{
+	LastGotoTimeInSeconds = TimeInSeconds;
 }
 
 void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
@@ -1129,6 +1126,38 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 		return;
 	}
 
+	if ( GotoCheckpointArchive == NULL )
+	{
+		// Check checkpoint debug cvars
+		check( GotoCheckpointSkipExtraTimeInMS == -1 );
+
+		if ( CVarGotoCheckpointIndex.GetValueOnGameThread() >= -1 )
+		{
+			ReplayStreamer->GotoCheckpointIndex( CVarGotoCheckpointIndex.GetValueOnGameThread(), FOnCheckpointReadyDelegate::CreateUObject( this, &UDemoNetDriver::CheckpointReady ) );
+			CVarGotoCheckpointIndex.AsVariable()->Set( TEXT( "-2" ), ECVF_SetByConsole );
+		}
+
+		if ( CVarGotoTimeInSeconds.GetValueOnGameThread() >= 0.0f )
+		{
+			ReplayStreamer->GotoTimeInMS( CVarGotoTimeInSeconds.GetValueOnGameThread() * 1000, FOnCheckpointReadyDelegate::CreateUObject( this, &UDemoNetDriver::CheckpointReady ) );
+			CVarGotoTimeInSeconds.AsVariable()->Set( TEXT( "-1" ), ECVF_SetByConsole );
+		}
+
+		if ( LastGotoTimeInSeconds >= 0.0f )
+		{
+			ReplayStreamer->GotoTimeInMS( LastGotoTimeInSeconds * 1000, FOnCheckpointReadyDelegate::CreateUObject( this, &UDemoNetDriver::CheckpointReady ) );
+			LastGotoTimeInSeconds = -1.0f;
+		}
+	}
+
+	if ( CVarDemoSkipTime.GetValueOnGameThread() > 0 )
+	{
+		// Just overwrite existing value, cvar wins in this case
+		SkipTime( CVarDemoSkipTime.GetValueOnGameThread() );		
+		CVarDemoSkipTime.AsVariable()->Set( TEXT( "0" ), ECVF_SetByConsole );
+	}
+
+	// Update total demo time
 	const uint32 TotalDemoTimeInMS = ReplayStreamer->GetTotalDemoTime();
 
 	if ( TotalDemoTimeInMS > 0 )
@@ -1136,50 +1165,59 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 		DemoTotalTime = (float)TotalDemoTimeInMS / 1000.0f;
 	}
 
-	if ( CVarDemoSkipTime.GetValueOnGameThread() > 0 )
-	{
-		SkipTime( CVarDemoSkipTime.GetValueOnGameThread() );		// Just overwrite existing value, cvar wins in this case
-		CVarDemoSkipTime.AsVariable()->Set( TEXT( "0" ), ECVF_SetByConsole );
-	}
-	
+	// See if we have time to skip
 	if ( TimeToSkip > 0.0f )
 	{
 		const uint32 TimeInMSToCheck = FMath::Clamp( GetDemoCurrentTimeInMS() + (uint32)( TimeToSkip * 1000 ), (uint32)0, TotalDemoTimeInMS );
 
-		ReplayStreamer->SetHighPriorityTimeRange( TimeInMSToCheck, TimeInMSToCheck );
-
-		if ( !ReplayStreamer->IsDataAvailableForTimeRange( TimeInMSToCheck, TimeInMSToCheck ) )
-		{
-			PauseChannels( true );
-			return;
-		}
-
-		ReplayStreamer->SetHighPriorityTimeRange( 0, 0 );
-
-		PauseChannels( false );
+		ReplayStreamer->SetHighPriorityTimeRange( GetDemoCurrentTimeInMS(), TimeInMSToCheck );
 
 		DemoCurrentTime += TimeToSkip;
 
-		TimeToSkip = 0.0f;
-
 		bIsFastForwarding = true;
 
-		FastForwardStartSeconds = FPlatformTime::Seconds();
+		TimeToSkip = 0.0f;
 	}
 
+	// Make sure there is data available to read
+	if ( !ReplayStreamer->IsDataAvailable() )
+	{
+		PauseChannels( true );
+		return;
+	}
+
+	// Check to see if we have a pending checkpoint to read from
+	if ( GotoCheckpointArchive != NULL )
+	{
+		LoadCheckpoint();
+	}
+
+	// If we're at the end of the demo, just pause channels and return
+	if ( bDemoPlaybackDone )
+	{
+		PauseChannels( true );
+		return;
+	}
+
+	// Advance demo time by seconds passed
 	DemoCurrentTime += DeltaSeconds;
 
+	// Clamp time
 	if ( DemoCurrentTime > DemoTotalTime )
 	{
 		DemoCurrentTime = DemoTotalTime;
 	}
 
-	// Read demo frames until we are caught up
+	// Speculatively grab seconds now in case we need it to get the time it took to fast forward
+	const double FastForwardStartSeconds = FPlatformTime::Seconds();
+
+	// Read demo frames until we are caught up (this implicitly handles fast forward if DemoCurrentTime past many frames)
 	while ( ConditionallyReadDemoFrame() )
 	{
 		DemoFrameNum++;
 	}
 
+	// Finalize any fast forward stuff that needs to happen
 	if ( bIsFastForwarding )
 	{
 		bIsFastForwarding = false;
@@ -1257,36 +1295,44 @@ void UDemoNetDriver::ReplayStreamingReady( bool bSuccess, bool bRecord )
 	}
 }
 
-void UDemoNetDriver::CheckpointReady( bool bSuccess )
+void UDemoNetDriver::CheckpointReady( const bool bSuccess, const int64 SkipExtraTimeInMS )
 {
+	check( GotoCheckpointArchive == NULL );
+	check( GotoCheckpointSkipExtraTimeInMS == -1 );
+
 	if ( !bSuccess )
 	{
 		UE_LOG( LogDemo, Warning, TEXT( "UDemoNetConnection::CheckpointReady: Failed to go to checkpoint." ) );
 		return;
 	}
 
-	FArchive* CheckpointArchive = ReplayStreamer->GetCheckpointArchive();
+	GotoCheckpointArchive			= ReplayStreamer->GetCheckpointArchive();
+	GotoCheckpointSkipExtraTimeInMS = SkipExtraTimeInMS;
+}
 
-	if ( CheckpointArchive->TotalSize() == 0 )
+void UDemoNetDriver::LoadCheckpoint()
+{
+	if ( GotoCheckpointArchive == NULL )
 	{
-		UE_LOG( LogDemo, Warning, TEXT( "UDemoNetConnection::CheckpointReady: Checkpoint is empty." ) );
+		UE_LOG( LogDemo, Warning, TEXT( "UDemoNetConnection::LoadCheckpoint: GotoCheckpointArchive == NULL." ) );
 		return;
 	}
 
 	if ( SpectatorController == NULL )
 	{
-		UE_LOG( LogDemo, Warning, TEXT( "UDemoNetConnection::CheckpointReady: No spectator player controller." ) );
+		UE_LOG( LogDemo, Warning, TEXT( "UDemoNetConnection::LoadCheckpoint: No spectator player controller." ) );
 		return;
 	}
 
 	if ( SpectatorController->GetSpectatorPawn() == NULL )
 	{
-		UE_LOG( LogDemo, Warning, TEXT( "UDemoNetConnection::CheckpointReady: No spectator pawn." ) );
+		UE_LOG( LogDemo, Warning, TEXT( "UDemoNetConnection::LoadCheckpoint: No spectator pawn." ) );
 		return;
 	}
 
-	const FVector OldLocation = SpectatorController->GetSpectatorPawn()->GetActorLocation();
-	const FRotator OldRotation = SpectatorController->GetControlRotation();//GetSpectatorPawn()->GetActorRotation();
+	bRestoreSpectatorPosition = true;
+	SpectatorLocation = SpectatorController->GetSpectatorPawn()->GetActorLocation();
+	SpectatorRotation = SpectatorController->GetControlRotation();//GetSpectatorPawn()->GetActorRotation();
 
 	FURL ConnectURL;
 	ConnectURL.Map = DemoFilename;
@@ -1329,27 +1375,43 @@ void UDemoNetDriver::CheckpointReady( bool bSuccess )
 	GuidCache->ObjectLookup.Empty();
 	GuidCache->NetGUIDLookup.Empty();
 
+	if ( GotoCheckpointArchive->TotalSize() == 0 )
+	{
+		// This is the very first checkpoint, we'll read the stream from the very beginning in this case
+		DemoCurrentTime			= 0;
+		bDemoPlaybackDone		= false;
+
+		if ( GotoCheckpointSkipExtraTimeInMS != -1 )
+		{
+			DemoCurrentTime += (float)GotoCheckpointSkipExtraTimeInMS / 1000;
+		}
+
+		GotoCheckpointArchive			= NULL;
+		GotoCheckpointSkipExtraTimeInMS = -1;
+		return;
+	}
+
 	int32 NumValues = 0;
-	*CheckpointArchive << NumValues;
+	*GotoCheckpointArchive << NumValues;
 
 	for ( int32 i = 0; i < NumValues; i++ )
 	{
 		FNetworkGUID Guid;
 		
-		*CheckpointArchive << Guid;
+		*GotoCheckpointArchive << Guid;
 		
 		FNetGuidCacheObject CacheObject;
 
 		FString PathName;
 
-		*CheckpointArchive << CacheObject.OuterGUID;
-		*CheckpointArchive << PathName;
-		*CheckpointArchive << CacheObject.PackageGuid;
+		*GotoCheckpointArchive << CacheObject.OuterGUID;
+		*GotoCheckpointArchive << PathName;
+		*GotoCheckpointArchive << CacheObject.PackageGuid;
 
 		CacheObject.PathName = FName( *PathName );
 
 		uint8 Flags = 0;
-		*CheckpointArchive << Flags;
+		*GotoCheckpointArchive << Flags;
 
 		CacheObject.bNoLoad = ( Flags & ( 1 << 0 ) ) ? true : false;
 		CacheObject.bIgnoreWhenMissing = ( Flags & ( 1 << 1 ) ) ? true : false;		
@@ -1359,22 +1421,27 @@ void UDemoNetDriver::CheckpointReady( bool bSuccess )
 	}
 
 	uint32 SavedAbsTimeMS = 0;
-	*CheckpointArchive << SavedAbsTimeMS;
+	*GotoCheckpointArchive << SavedAbsTimeMS;
 
 	DemoCurrentTime = (float)SavedAbsTimeMS / 1000.0f;
 
-	ReadDemoFrame( CheckpointArchive );
+	ReadDemoFrame( GotoCheckpointArchive );
 
-	bDemoPlaybackDone = false;
-
-	// Persist location and rotation from previous spectator
-	if ( SpectatorController != NULL )
+	// If we need to skip more time for fine scrubbing, set that up now
+	if ( GotoCheckpointSkipExtraTimeInMS != -1 )
 	{
-		SpectatorController->SetInitialLocationAndRotation( OldLocation, OldRotation );
+		DemoCurrentTime += (float)GotoCheckpointSkipExtraTimeInMS / 1000;
+		bIsFastForwarding = true;
 	}
-	else
+
+	GotoCheckpointSkipExtraTimeInMS = -1;
+	GotoCheckpointArchive			= NULL;
+	bDemoPlaybackDone				= false;
+
+	// Make sure we reset the bRestoreSpectatorPosition. If not, we didn't receive the spectator, which should be replicated in every frame
+	if ( bRestoreSpectatorPosition )
 	{
-		UE_LOG( LogDemo, Warning, TEXT( "UDemoNetConnection::CheckpointReady: No spectator controller after checkpoint." ) );
+		UE_LOG( LogDemo, Warning, TEXT( "UDemoNetConnection::LoadCheckpoint: Spectator wasn't restored." ) );
 	}
 }
 
@@ -1489,6 +1556,14 @@ void UDemoNetConnection::HandleClientPlayer( APlayerController* PC, UNetConnecti
 
 	// Assume this is our special spectator controller
 	GetDriver()->SpectatorController = PC;
+
+	// Persist location and rotation from previous spectator
+	if ( GetDriver()->bRestoreSpectatorPosition )
+	{
+		GetDriver()->SpectatorController->SetInitialLocationAndRotation( GetDriver()->SpectatorLocation, GetDriver()->SpectatorRotation );
+		GetDriver()->bRestoreSpectatorPosition = false;
+		return;
+	}
 
 	for ( FActorIterator It( Driver->World ); It; ++It)
 	{
