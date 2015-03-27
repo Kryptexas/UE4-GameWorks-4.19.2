@@ -3212,7 +3212,6 @@ FText UEdGraphSchema_K2::GetCategoryText(const FString& Category, const bool bFo
 	}
 	else
 	{
-		ensureMsgf(false, TEXT("Unhandled blueprint type ('%s'), failed to find type description."), *Category);
 		return FText::FromString(Category);
 	}
 }
