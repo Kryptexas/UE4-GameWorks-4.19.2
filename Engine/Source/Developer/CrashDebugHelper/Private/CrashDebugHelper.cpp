@@ -689,27 +689,20 @@ void ICrashDebugHelper::FindSymbolsAndBinariesStorage()
 		UE_LOG( LogCrashDebugHelper, Log, TEXT( "Branch not found: %s" ), *CrashInfo.DepotName );
 		return;
 	}
-
-	// %ENGINE_VERSION% - Engine versions ie.: 4.7.0-2449961+UE4-Releases+4.7
-	// %PLATFORM_NAME% - Platform name ie.: WindowsNoEditor, Win64 etc.
-	// %UT_ENGINE_VERSION% - UT ie.: ++depot+UE4-UT-CL-2454691
-	//\\epicgames.net\root\Builds\UnrealTournament\++depot+UE4-UT-CL-2417639
-	//\\epicgames.net\root\Builds\Rocket\Automated\4.7.0-2449961+++depot+UE4-Releases+4.7
-	//\\epicgames.net\root\Builds\UnrealEngineLauncher
 	
 	const FString StrENGINE_VERSION = CrashInfo.EngineVersion;
 	const FString StrPLATFORM_NAME = TEXT( "" ); // Not implemented yet
-	const FString StrUT_ENGINE_VERSION = FString::Printf( TEXT( "++depot+UE4-UT-CL-%i" ), CrashInfo.BuiltFromCL );
+	const FString StrOLD_ENGINE_VERSION = FString::Printf( TEXT( "++depot+%s-CL-%i" ), *CrashInfo.DepotName.Replace( P4_DEPOT_PREFIX, TEXT("") ), CrashInfo.BuiltFromCL );
 
 	const FString TestExecutablesPath = ExecutablePathPattern
 		.Replace( TEXT( "%ENGINE_VERSION%" ), *StrENGINE_VERSION )
 		.Replace( TEXT( "%PLATFORM_NAME%" ), *StrPLATFORM_NAME )
-		.Replace( TEXT( "%UT_ENGINE_VERSION%" ), *StrUT_ENGINE_VERSION );
+		.Replace( TEXT( "%OLD_ENGINE_VERSION%" ), *StrOLD_ENGINE_VERSION );
 
 	const FString TestSymbolsPath = SymbolPathPattern
 		.Replace( TEXT( "%ENGINE_VERSION%" ), *StrENGINE_VERSION )
 		.Replace( TEXT( "%PLATFORM_NAME%" ), *StrPLATFORM_NAME )
-		.Replace( TEXT( "%UT_ENGINE_VERSION%" ), *StrUT_ENGINE_VERSION );
+		.Replace( TEXT( "%OLD_ENGINE_VERSION%" ), *StrOLD_ENGINE_VERSION );
 
 	// Try to find the network path by using the pattern supplied via ini.
 	// If this step successes, we will grab the executable from the network path instead of P4.
