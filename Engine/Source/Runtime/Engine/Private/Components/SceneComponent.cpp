@@ -1778,7 +1778,7 @@ void USceneComponent::SetVisibility(bool bNewVisibility, bool bPropagateToChildr
 
 		while (ComponentStack.Num() > 0)
 		{
-			USceneComponent* const CurrentComp = ComponentStack.Pop();
+			USceneComponent* const CurrentComp = ComponentStack.Pop(/*bAllowShrinking=*/ false);
 			if (CurrentComp)
 			{
 				ComponentStack.Append(CurrentComp->AttachChildren);
@@ -1811,7 +1811,7 @@ void USceneComponent::SetHiddenInGame(bool NewHiddenGame, bool bPropagateToChild
 
 		while (ComponentStack.Num() > 0)
 		{
-			USceneComponent* const CurrentComp = ComponentStack.Pop();
+			USceneComponent* const CurrentComp = ComponentStack.Pop(/*bAllowShrinking=*/ false);
 			if (CurrentComp)
 			{
 				ComponentStack.Append(CurrentComp->AttachChildren);

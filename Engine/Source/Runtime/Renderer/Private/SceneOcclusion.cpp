@@ -67,7 +67,7 @@ FRenderQueryRHIRef FRenderQueryPool::AllocateQuery()
 		return RHICreateRenderQuery(QueryType);
 	}
 
-	return Queries.Pop();
+	return Queries.Pop(/*bAllowShrinking=*/ false);
 }
 
 void FRenderQueryPool::ReleaseQuery(FRHICommandListImmediate& RHICmdList, FRenderQueryRHIRef &Query)

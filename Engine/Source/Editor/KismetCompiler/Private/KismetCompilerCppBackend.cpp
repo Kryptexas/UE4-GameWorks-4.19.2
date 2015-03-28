@@ -1246,7 +1246,7 @@ void FKismetCppBackend::EmitGotoStatement(FKismetFunctionContext& FunctionContex
 		if (Statement.Type == KCST_EndOfThreadIfNot)
 		{
 			ensure(FunctionContext.bUseFlowStack);
-			Emit(Body, TEXT("\t\t\t\tCurrentState = (StateStack.Num() > 0) ? StateStack.Pop() : -1;\n"));
+			Emit(Body, TEXT("\t\t\t\tCurrentState = (StateStack.Num() > 0) ? StateStack.Pop(/*bAllowShrinking=*/ false) : -1;\n"));
 		}
 		else if (Statement.Type == KCST_GotoReturnIfNot)
 		{
@@ -1280,7 +1280,7 @@ void FKismetCppBackend::EmitPushStateStatement(FKismetFunctionContext& FunctionC
 void FKismetCppBackend::EmitEndOfThreadStatement(FKismetFunctionContext& FunctionContext, const FString& ReturnValueString)
 {
 	ensure(FunctionContext.bUseFlowStack);
-	Emit(Body, TEXT("\t\t\tCurrentState = (StateStack.Num() > 0) ? StateStack.Pop() : -1;\n"));
+	Emit(Body, TEXT("\t\t\tCurrentState = (StateStack.Num() > 0) ? StateStack.Pop(/*bAllowShrinking=*/ false) : -1;\n"));
 	Emit(Body, TEXT("\t\t\tbreak;\n"));
 }
 

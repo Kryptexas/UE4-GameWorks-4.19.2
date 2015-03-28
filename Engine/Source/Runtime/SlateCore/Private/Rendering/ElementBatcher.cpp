@@ -1463,7 +1463,7 @@ FSlateElementBatch& FSlateElementBatcher::FindBatchForElement(
 		// Get a free vertex array
 		if( VertexArrayFreeList.Num() > 0 )
 		{
-			ElementBatch->VertexArrayIndex = VertexArrayFreeList.Pop();
+			ElementBatch->VertexArrayIndex = VertexArrayFreeList.Pop(/*bAllowShrinking=*/ false);
 			BatchVertexArrays[ElementBatch->VertexArrayIndex].Reserve(200);		
 		}
 		else
@@ -1478,7 +1478,7 @@ FSlateElementBatch& FSlateElementBatcher::FindBatchForElement(
 		// Get a free index array
 		if( IndexArrayFreeList.Num() > 0 )
 		{
-			ElementBatch->IndexArrayIndex = IndexArrayFreeList.Pop();
+			ElementBatch->IndexArrayIndex = IndexArrayFreeList.Pop(/*bAllowShrinking=*/ false);
 			BatchIndexArrays[ElementBatch->IndexArrayIndex].Reserve(200);		
 		}
 		else

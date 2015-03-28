@@ -196,9 +196,10 @@ void UEdGraph::NotifyGraphChanged(const FEdGraphEditAction& InAction)
 void UEdGraph::MoveNodesToAnotherGraph(UEdGraph* DestinationGraph, bool bIsLoading, bool bInIsCompiling/* = false*/)
 {
 	// Move one node over at a time
+	DestinationGraph->Nodes.Reserve(DestinationGraph->Nodes.Num() + Nodes.Num());
 	while (Nodes.Num())
 	{
-		if (UEdGraphNode* Node = Nodes.Pop())
+		if (UEdGraphNode* Node = Nodes.Pop(/*bAllowShrinking=*/ false))
 		{
 #if WITH_EDITOR
 			// During compilation, do not move ghost nodes, they are not used during compilation.

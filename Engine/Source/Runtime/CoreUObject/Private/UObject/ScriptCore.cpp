@@ -1226,7 +1226,7 @@ void UObject::execPopExecutionFlow( FFrame& Stack, RESULT_DECL )
 	// Try to pop an entry off the stack and go there
 	if (Stack.FlowStack.Num())
 	{
-		CodeSkipSizeType Offset = Stack.FlowStack.Pop();
+		CodeSkipSizeType Offset = Stack.FlowStack.Pop(/*bAllowShrinking=*/ false);
 		Stack.Code = &Stack.Node->Script[ Offset ];
 	}
 	else
@@ -1251,7 +1251,7 @@ void UObject::execPopExecutionFlowIfNot( FFrame& Stack, RESULT_DECL )
 		// Try to pop an entry off the stack and go there
 		if (Stack.FlowStack.Num())
 		{
-			CodeSkipSizeType Offset = Stack.FlowStack.Pop();
+			CodeSkipSizeType Offset = Stack.FlowStack.Pop(/*bAllowShrinking=*/ false);
 			Stack.Code = &Stack.Node->Script[ Offset ];
 		}
 		else

@@ -664,7 +664,7 @@ void PaperGeomTools::RemoveRedundantTriangles(TArray<FVector2D>& OutTriangles, c
 	{
 		TArray<FVector2D> PolygonVertices;
 
-		const FLocalTriangle InitialTriangle = Triangles.Pop();
+		const FLocalTriangle InitialTriangle = Triangles.Pop(/*bAllowShrinking=*/ false);
 		PolygonVertices.Add(InTriangleVertices[InitialTriangle.VertexA]);
 		PolygonVertices.Add(InTriangleVertices[InitialTriangle.VertexB]);
 		PolygonVertices.Add(InTriangleVertices[InitialTriangle.VertexC]);
@@ -721,7 +721,7 @@ void PaperGeomTools::GenerateConvexPolygonsFromTriangles(TArray<TArray<FVector2D
 	{
 		TArray<FVector2D> PolygonVertices;
 
-		const FLocalTriangle InitialTriangle = Triangles.Pop();
+		const FLocalTriangle InitialTriangle = Triangles.Pop(/*bAllowShrinking=*/ false);
 		PolygonVertices.Add(InTriangleVertices[InitialTriangle.VertexA]);
 		PolygonVertices.Add(InTriangleVertices[InitialTriangle.VertexB]);
 		PolygonVertices.Add(InTriangleVertices[InitialTriangle.VertexC]);
