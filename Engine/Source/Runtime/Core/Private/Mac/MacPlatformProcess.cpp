@@ -975,7 +975,7 @@ bool FMacPlatformProcess::ReadPipeToArray(void* ReadPipe, TArray<uint8>& Output)
 
 	if (ReadPipe)
 	{
-		Output.Init(READ_SIZE);
+		Output.SetNumUninitialized(READ_SIZE);
 		int32 BytesRead = 0;
 		BytesRead = read([(NSFileHandle*)ReadPipe fileDescriptor], Output.GetData(), READ_SIZE);
 		if (BytesRead > 0)

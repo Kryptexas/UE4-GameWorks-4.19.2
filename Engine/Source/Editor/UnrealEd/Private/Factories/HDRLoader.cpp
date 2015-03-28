@@ -211,7 +211,7 @@ void FHDRLoadHelper::OldDecompressScanline(uint8* Out, const uint8*& In, uint32 
 void FHDRLoadHelper::ExtractDDSInRGBE(TArray<uint8>& OutDDSFile) const
 {
 	// header, one uint32 per texel, no mips
-	OutDDSFile.Init(4 + sizeof(FDDSFileHeader) + GetWidth() * GetHeight() * sizeof(uint32));
+	OutDDSFile.SetNumUninitialized(4 + sizeof(FDDSFileHeader) + GetWidth() * GetHeight() * sizeof(uint32));
 
 	// create the dds header
 	{

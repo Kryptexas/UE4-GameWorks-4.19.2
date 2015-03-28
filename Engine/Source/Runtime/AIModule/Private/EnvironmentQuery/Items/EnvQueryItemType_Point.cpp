@@ -42,7 +42,7 @@ void UEnvQueryItemType_Point::SetContextHelper(FEnvQueryContextData& ContextData
 {
 	ContextData.ValueType = UEnvQueryItemType_Point::StaticClass();
 	ContextData.NumValues = 1;
-	ContextData.RawData.Init(sizeof(FNavLocation));
+	ContextData.RawData.SetNumUninitialized(sizeof(FNavLocation));
 
 	UEnvQueryItemType_Point::SetValue((uint8*)ContextData.RawData.GetData(), SinglePoint);
 }
@@ -51,7 +51,7 @@ void UEnvQueryItemType_Point::SetContextHelper(FEnvQueryContextData& ContextData
 {
 	ContextData.ValueType = UEnvQueryItemType_Point::StaticClass();
 	ContextData.NumValues = MultiplePoints.Num();
-	ContextData.RawData.Init(sizeof(FNavLocation)* MultiplePoints.Num());
+	ContextData.RawData.SetNumUninitialized(sizeof(FNavLocation)* MultiplePoints.Num());
 
 	uint8* RawData = (uint8*)ContextData.RawData.GetData();
 	for (int32 PointIndex = 0; PointIndex < MultiplePoints.Num(); PointIndex++)

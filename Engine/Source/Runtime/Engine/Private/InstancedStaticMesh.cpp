@@ -961,7 +961,7 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 	if (BodySetup)
 	{
 	    int32 NumBodies = PerInstanceSMData.Num();
-	    InstanceBodies.Init(NumBodies);
+	    InstanceBodies.SetNumUninitialized(NumBodies);
     
 	    TArray<FTransform> Transforms;
 	    Transforms.Reserve(NumBodies);

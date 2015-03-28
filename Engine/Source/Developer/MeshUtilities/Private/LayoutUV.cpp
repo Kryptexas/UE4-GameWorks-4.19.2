@@ -27,8 +27,8 @@ void FLayoutUV::FindCharts( const TMultiMap<int32,int32>& OverlappingCorners )
 	uint32 NumTris = NumIndexes / 3;
 
 	TArray< int32 > TranslatedMatches;
-	TranslatedMatches.Init( NumIndexes );
-	TexCoords.Init( NumIndexes );
+	TranslatedMatches.SetNumUninitialized( NumIndexes );
+	TexCoords.SetNumUninitialized( NumIndexes );
 	for( uint32 i = 0; i < NumIndexes; i++ )
 	{
 		TranslatedMatches[i] = -1;
@@ -125,7 +125,7 @@ void FLayoutUV::FindCharts( const TMultiMap<int32,int32>& OverlappingCorners )
 	}
 
 	// Sort tris by chart
-	SortedTris.Init( NumTris );
+	SortedTris.SetNumUninitialized( NumTris );
 	for( uint32 i = 0; i < NumTris; i++ )
 	{
 		// Flatten disjoint set path
@@ -997,7 +997,7 @@ void FLayoutUV::RasterizeChart( const FMeshChart& Chart, uint32 RectW, uint32 Re
 void FLayoutUV::CommitPackedUVs()
 {
 	// Alloc new UV channel
-	RawMesh->WedgeTexCoords[ DstChannel ].Init( TexCoords.Num() );
+	RawMesh->WedgeTexCoords[ DstChannel ].SetNumUninitialized( TexCoords.Num() );
 
 	// Commit chart UVs
 	for( int32 i = 0; i < Charts.Num(); i++ )

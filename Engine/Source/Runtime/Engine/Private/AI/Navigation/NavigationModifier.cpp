@@ -143,7 +143,7 @@ FAreaNavModifier::FAreaNavModifier(float Radius, float Height, const FTransform&
 	Radius *= FMath::Max(Scale3D.X, Scale3D.Y);
 	Height *= Scale3D.Z;
 
-	Points.Init(2);
+	Points.SetNumUninitialized(2);
 	Points[0] = LocalToWorld.GetLocation();
 	Points[1].X = Radius;
 	Points[1].Z = Height;
@@ -275,7 +275,7 @@ void FAreaNavModifier::SetBox(const FBox& Box, const FTransform& LocalToWorld)
 			Bounds += Corners[i];
 		}
 
-		Points.Init(2);
+		Points.SetNumUninitialized(2);
 		Points[0] = Bounds.GetCenter();
 		Points[1] = Bounds.GetExtent();
 		ShapeType = ENavigationShapeType::Box;

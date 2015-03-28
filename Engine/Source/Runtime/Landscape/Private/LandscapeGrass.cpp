@@ -431,7 +431,7 @@ public:
 	void ApplyResults()
 	{
 		TArray<FColor> Samples;
-		Samples.Init(TargetSize.X*TargetSize.Y);
+		Samples.SetNumUninitialized(TargetSize.X*TargetSize.Y);
 
 		// Copy the contents of the remote texture to system memory
 		FReadSurfaceDataFlags ReadSurfaceDataFlags;

@@ -1438,7 +1438,7 @@ static bool ReadRawFile(TArray<DataType>& Result, const FString& Filename, uint3
 		}
 		return 0;
 	}
-	Result.Init(Reader->TotalSize()/Result.GetTypeSize());
+	Result.SetNumUninitialized(Reader->TotalSize()/Result.GetTypeSize());
 	Reader->Serialize(Result.GetData(), Result.Num()*Result.GetTypeSize());
 	return Reader->Close();
 }

@@ -2122,8 +2122,8 @@ void FRecastTileGenerator::AppendGeometry(const TNavStatArray<uint8>& RawCollisi
 	const int32 NumCoords = CollisionCache.Header.NumVerts * 3;
 	const int32 NumIndices = CollisionCache.Header.NumFaces * 3;
 	
-	GeometryElement.GeomCoords.Init(NumCoords);
-	GeometryElement.GeomIndices.Init(NumIndices);
+	GeometryElement.GeomCoords.SetNumUninitialized(NumCoords);
+	GeometryElement.GeomIndices.SetNumUninitialized(NumIndices);
 
 	FMemory::Memcpy(GeometryElement.GeomCoords.GetData(), CollisionCache.Verts, sizeof(float) * NumCoords);
 	FMemory::Memcpy(GeometryElement.GeomIndices.GetData(), CollisionCache.Indices, sizeof(int32) * NumIndices);
@@ -2203,7 +2203,7 @@ static void RasterizeGeometry(
 	const TArray<float>& Coords, const TArray<int32>& Indices, const FTransform& LocalToWorld, FTileRasterizationContext& RasterContext)
 {
 	TArray<float> WorldRecastCoords;
-	WorldRecastCoords.Init(Coords.Num());
+	WorldRecastCoords.SetNumUninitialized(Coords.Num());
 	
 	FMatrix LocalToRecastWorld = LocalToWorld.ToMatrixWithScale()*Unreal2RecastMatrix();
 	// Convert geometry to recast world space

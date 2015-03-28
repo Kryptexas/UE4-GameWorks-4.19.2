@@ -492,7 +492,7 @@ bool ULandscapeHeightfieldCollisionComponent::CookCollisionData(const FName& For
 
 	if (Result)
 	{
-		OutCookedData.Init(OutData.Num());
+		OutCookedData.SetNumUninitialized(OutData.Num());
 		FMemory::Memcpy(OutCookedData.GetData(), OutData.GetData(), OutData.Num());
 
 		if (bShouldSaveCookedDataToDDC[CookedDataIndex])
@@ -574,7 +574,7 @@ bool ULandscapeMeshCollisionComponent::CookCollisionData(const FName& Format, bo
 	}
 
 	// Scale all verts into temporary vertex buffer.
-	Vertices.Init(NumVerts);
+	Vertices.SetNumUninitialized(NumVerts);
 	for (int32 i = 0; i < NumVerts; i++)
 	{
 		int32 X = i % CollisionSizeVerts;
@@ -583,10 +583,10 @@ bool ULandscapeMeshCollisionComponent::CookCollisionData(const FName& Format, bo
 	}
 
 	const int32 NumTris = FMath::Square(CollisionSizeQuads) * 2;
-	Indices.Init(NumTris);
+	Indices.SetNumUninitialized(NumTris);
 	if (DominantLayers)
 	{
-		MaterialIndices.Init(NumTris);
+		MaterialIndices.SetNumUninitialized(NumTris);
 	}
 
 	int32 TriangleIdx = 0;
@@ -680,7 +680,7 @@ bool ULandscapeMeshCollisionComponent::CookCollisionData(const FName& Format, bo
 
 	if (Result)
 	{
-		OutCookedData.Init(OutData.Num());
+		OutCookedData.SetNumUninitialized(OutData.Num());
 		FMemory::Memcpy(OutCookedData.GetData(), OutData.GetData(), OutData.Num());
 
 		if (bShouldSaveCookedDataToDDC[CookedDataIndex])

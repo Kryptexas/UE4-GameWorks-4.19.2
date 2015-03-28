@@ -83,7 +83,7 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<FEnvQuerySpatialD
 		const uint16 DefTypeValueSize = DefTypeOb->GetValueSize();
 		uint8* RawData = ContextData.RawData.GetData();
 
-		Data.Init(ContextData.NumValues);
+		Data.SetNumUninitialized(ContextData.NumValues);
 		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
 		{
 			Data[ValueIndex].Location = DefTypeOb->GetItemLocation(RawData);
@@ -111,7 +111,7 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<FVector>& Data)
 		const uint16 DefTypeValueSize = DefTypeOb->GetValueSize();
 		uint8* RawData = (uint8*)ContextData.RawData.GetData();
 
-		Data.Init(ContextData.NumValues);
+		Data.SetNumUninitialized(ContextData.NumValues);
 		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
 		{
 			Data[ValueIndex] = DefTypeOb->GetItemLocation(RawData);
@@ -138,7 +138,7 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<FRotator>& Data)
 		const uint16 DefTypeValueSize = DefTypeOb->GetValueSize();
 		uint8* RawData = ContextData.RawData.GetData();
 
-		Data.Init(ContextData.NumValues);
+		Data.SetNumUninitialized(ContextData.NumValues);
 		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
 		{
 			Data[ValueIndex] = DefTypeOb->GetItemRotation(RawData);

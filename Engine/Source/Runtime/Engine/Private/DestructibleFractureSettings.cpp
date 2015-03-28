@@ -70,7 +70,7 @@ static void BuildApexRenderMesh(NxRenderMeshAssetAuthoring& RenderMeshAssetAutho
 		SubmeshDesc.m_numVertexBuffers = 1;
 		SubmeshDesc.m_vertexBuffers = &vb;
 
-		PartIndices.Init(HMesh.partCount());
+		PartIndices.SetNumUninitialized(HMesh.partCount());
 		for(uint32 PartIndex = 0; PartIndex < HMesh.partCount(); ++PartIndex)
 		{
 			TArray<NxVertex> PartVertices;
@@ -104,7 +104,7 @@ static void BuildApexRenderMesh(NxRenderMeshAssetAuthoring& RenderMeshAssetAutho
 			if (PartVertices.Num() > 0)
 			{
 				TArray<PxU32> Map;
-				Map.Init(PartVertices.Num());
+				Map.SetNumUninitialized(PartVertices.Num());
 				const PxU32 ReducedPartVertexCount = RenderMeshAssetAuthor.createReductionMap(Map.GetData(), PartVertices.GetData(), NULL, (PxU32)PartVertices.Num(), PxVec3( 0.0001f ), 0.001f, 1.0f/256.01f);
 				const PxU32 VertexPartStart = (PxU32)Vertices.Num();
 				Resize(Vertices, NxVertex(), VertexPartStart + ReducedPartVertexCount);

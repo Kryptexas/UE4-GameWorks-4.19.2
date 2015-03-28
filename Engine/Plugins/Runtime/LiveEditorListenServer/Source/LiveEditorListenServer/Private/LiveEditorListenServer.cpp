@@ -329,7 +329,7 @@ void FLiveEditorListenServer::Tick( float DeltaTime )
 		while ( Client->HasPendingData(DataSize) )
 		{
 			FArrayReaderPtr Datagram = MakeShareable(new FArrayReader(true));
-			Datagram->Init(FMath::Min(DataSize, 65507u));
+			Datagram->SetNumUninitialized(FMath::Min(DataSize, 65507u));
 
 			int32 BytesRead = 0;
 			if ( Client->Recv(Datagram->GetData(), Datagram->Num(), BytesRead) )

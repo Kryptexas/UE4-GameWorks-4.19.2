@@ -936,13 +936,13 @@ UNREALED_API bool BuildDestructibleMeshFromFractureSettings(UDestructibleMesh& D
 	if (DestructibleMesh.FractureSettings != NULL)
 	{
 		TArray<UMaterialInterface*> OverrideMaterials;
-		OverrideMaterials.Init(DestructibleMesh.Materials.Num());	//save old materials
+		OverrideMaterials.SetNumUninitialized(DestructibleMesh.Materials.Num());	//save old materials
 		for (int32 MaterialIndex = 0; MaterialIndex < DestructibleMesh.Materials.Num(); ++MaterialIndex)
 		{
 			OverrideMaterials[MaterialIndex] = DestructibleMesh.Materials[MaterialIndex].MaterialInterface;
 		}
 
-		DestructibleMesh.Materials.Init(DestructibleMesh.FractureSettings->Materials.Num());
+		DestructibleMesh.Materials.SetNumUninitialized(DestructibleMesh.FractureSettings->Materials.Num());
 
 		for (int32 MaterialIndex = 0; MaterialIndex < DestructibleMesh.Materials.Num(); ++MaterialIndex)
 		{

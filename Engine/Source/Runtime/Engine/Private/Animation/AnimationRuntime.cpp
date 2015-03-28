@@ -1563,7 +1563,7 @@ void FA2CSPose::LocalBlendCSBoneTransforms
 		BoneMask.AddZeroed( Bones.Num() );
 
 		TArray<struct FBoneTransform> LocalBoneTransforms;
-		LocalBoneTransforms.Init( BoneTransforms.Num() );
+		LocalBoneTransforms.SetNumUninitialized( BoneTransforms.Num() );
 
 		const TArray<FBoneIndexType> & RequiredBoneIndices = BoneContainer->GetBoneIndicesArray();
 		// First, convert BoneTransforms to local space for blending.

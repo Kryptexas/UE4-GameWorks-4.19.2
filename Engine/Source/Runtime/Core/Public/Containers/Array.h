@@ -1844,6 +1844,7 @@ public:
 	 * @param Number The number of elements that the array should be able to
 	 *               contain after allocation.
 	 */
+	DEPRECATED(4.8, "Init is deprecated - please use SetNumUninitialized(Number) instead.")
 	void Init(int32 Number)
 	{
 		Empty(Number);

@@ -555,7 +555,7 @@ public:
 	{
 		const int32 NumVerts = 8;
 		TResourceArray<FVector4, VERTEXBUFFER_ALIGNMENT> Verts;
-		Verts.Init(NumVerts);
+		Verts.SetNumUninitialized(NumVerts);
 
 		for (uint32 Z = 0; Z < 2; Z++)
 		{

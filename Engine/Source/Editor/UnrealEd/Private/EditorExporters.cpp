@@ -2775,7 +2775,7 @@ namespace MaterialExportUtils
 		GetRendererModule().BeginRenderingViewFamily(&Canvas, &ViewFamily);
 
 		// Copy the contents of the remote texture to system memory
-		OutSamples.Init(TargetSize.X*TargetSize.Y);
+		OutSamples.SetNumUninitialized(TargetSize.X*TargetSize.Y);
 		FReadSurfaceDataFlags ReadSurfaceDataFlags;
 		ReadSurfaceDataFlags.SetLinearToGamma(false);
 		RenderTargetResource->ReadPixelsPtr(OutSamples.GetData(), ReadSurfaceDataFlags, FIntRect(0, 0, TargetSize.X, TargetSize.Y));
