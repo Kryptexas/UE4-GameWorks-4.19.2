@@ -42,7 +42,6 @@ public class LocalizationDashboard : ModuleRules
 			new string[]
 			{
 				"Editor/LocalizationDashboard/Public",
-				"Editor/LocalizationDashboard/Classes",
 			}
 		);
 	}
