@@ -5512,7 +5512,7 @@ void UEdGraphSchema_K2::SplitPin(UEdGraphPin* Pin) const
 			SubPin->ParentPin = Pin;
 
 			// CreatePin puts the Pin in the array, but we are going to insert it later, so pop it back out
-			GraphNode->Pins.Pop();
+			GraphNode->Pins.Pop(/*bAllowShrinking=*/ false);
 
 			Pin->SubPins.Add(SubPin);
 		}

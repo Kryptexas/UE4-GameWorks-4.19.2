@@ -244,7 +244,7 @@ void SPaperExtractSpritesDialog::PreviewExtractedSprites()
 				DominatedSprites.Empty(SpritesLeft.Num());
 				while (SpritesLeft.Num())
 				{
-					FIntRect DominatingSprite = SpritesLeft.Pop();
+					FIntRect DominatingSprite = SpritesLeft.Pop(/*bAllowShrinking=*/ false);
 					DominatedSprites.Add(DominatingSprite);
 
 					// Find the sprites that are dominated (intersect the infinite horizontal band described by the dominating sprite)

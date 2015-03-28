@@ -770,7 +770,7 @@ ERenamePinResult UK2Node::RenameUserDefinedPin(const FString& OldName, const FSt
 
 			while (PinsToUpdate.Num() > 0)
 			{
-				UEdGraphPin* PinToRename = PinsToUpdate.Pop();
+				UEdGraphPin* PinToRename = PinsToUpdate.Pop(/*bAllowShrinking=*/ false);
 				if (PinToRename->SubPins.Num() > 0)
 				{
 					PinsToUpdate.Append(PinToRename->SubPins);
