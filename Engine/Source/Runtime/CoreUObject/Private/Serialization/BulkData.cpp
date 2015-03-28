@@ -638,7 +638,7 @@ bool FUntypedBulkData::ShouldFreeOnEmpty() const
 
 void FUntypedBulkData::StartSerializingBulkData(FArchive& Ar, UObject* Owner, int32 Idx, bool bPayloadInline)
 {
-	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FUntypedBulkData::StartSerializingBulkData"), STAT_UBD_Serialize, STATGROUP_Memory);
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("FUntypedBulkData::StartSerializingBulkData"), STAT_UBD_StartSerializingBulkData, STATGROUP_Memory);
 	check(SerializeFuture.IsValid() == false);	
 
 	// Async
