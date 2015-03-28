@@ -2,7 +2,7 @@
 #pragma once
 
 #include "SCompoundWidget.h"
-#include "LocalizationTarget.h"
+#include "LocalizationTargetTypes.h"
 #include "LocalizationConfigurationScript.h"
 
 class SLocalizationTargetStatusButton : public SButton

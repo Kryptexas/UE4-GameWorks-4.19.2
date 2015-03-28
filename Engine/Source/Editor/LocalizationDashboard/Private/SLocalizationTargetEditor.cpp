@@ -3,7 +3,7 @@
 #include "LocalizationDashboardPrivatePCH.h"
 #include "SLocalizationTargetEditor.h"
 #include "IDetailsView.h"
-#include "LocalizationTarget.h"
+#include "LocalizationTargetTypes.h"
 #include "PropertyEditorModule.h"
 
 void SLocalizationTargetEditor::Construct(const FArguments& InArgs, ULocalizationTargetSet* const InProjectSettings, ULocalizationTarget* const InLocalizationTarget)

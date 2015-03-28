@@ -4,7 +4,7 @@
 #include "STableRow.h"
 #include "IPropertyUtilities.h"
 #include "PropertyHandle.h"
-#include "LocalizationTarget.h"
+#include "LocalizationTargetTypes.h"
 
 class SLocalizationTargetEditorCultureRow : public SMultiColumnTableRow<FCulturePtr>
 {

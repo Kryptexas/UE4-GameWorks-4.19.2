@@ -1,11 +1,10 @@
 ﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LocalizationDashboardPrivatePCH.h"
-#include "Classes/LocalizationTarget.h"
-#include "Classes/LocalizationTarget.h"
-#include "ISourceControlModule.h"
+#include "LocalizationTargetTypes.h"
 #include "CsvParser.h"
 #include "LocalizationConfigurationScript.h"
+#include "LocalizationDashboardSettings.h"
 
 FLocalizationTargetSettings::FLocalizationTargetSettings()
 	: Guid(FGuid::NewGuid())
@@ -156,48 +155,22 @@ namespace
 	};
 }
 
-ULocalizationTarget::ULocalizationTarget(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-	, SettingsSource(nullptr)
-{
-
-}
-
 void ULocalizationTarget::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
-
-	// Copy change back to source.
-	if (PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULocalizationTarget,Settings))
-	{
-		if (SettingsSource)
-		{
-			*SettingsSource = Settings;
-		}
-	}
 
 	// Notify parent of change.
 	ULocalizationTargetSet* const LocalizationTargetSet = Cast<ULocalizationTargetSet>(GetOuter());
 	if (LocalizationTargetSet)
 	{
-		UClass* ParentClass = LocalizationTargetSet ? LocalizationTargetSet->GetClass() : nullptr;
-		UProperty* ChangedParentProperty = ParentClass ? ParentClass->FindPropertyByName(GET_MEMBER_NAME_CHECKED(ULocalizationTargetSet,TargetObjects)) : nullptr;
-
-		FPropertyChangedEvent PropertyChangedEventForParent(ChangedParentProperty);
-		LocalizationTargetSet->PostEditChangeProperty(PropertyChangedEventForParent);
+		LocalizationTargetSet->PostEditChange();
 	}
-}
-
-void ULocalizationTarget::SetSettingsSource(FLocalizationTargetSettings& InSettingsSource)
-{
-	SettingsSource = &InSettingsSource;
-	Settings = *SettingsSource;
 }
 
 bool ULocalizationTarget::IsMemberOfEngineTargetSet() const
 {
 	ULocalizationTargetSet* const TargetSet = CastChecked<ULocalizationTargetSet>(GetOuter());
-	return TargetSet == FindObjectChecked<ULocalizationTargetSet>(GetTransientPackage(), *ULocalizationTargetSet::EngineTargetSetName.ToString());
+	return TargetSet == ULocalizationDashboardSettings::GetEngineTargetSet();
 }
 
 bool ULocalizationTarget::UpdateWordCountsFromCSV()
@@ -476,54 +449,14 @@ bool ULocalizationTarget::DeleteFiles(const FString* const Culture) const
 	return HasCompletelySucceeded;
 }
 
-FName ULocalizationTargetSet::EngineTargetSetName = TEXT("EngineLocalizationTargetSet");
-FName ULocalizationTargetSet::ProjectTargetSetName = TEXT("ProjectLocalizationTargetSet");
-
-void ULocalizationTargetSet::PostInitProperties()
-{
-	Super::PostInitProperties();
-
-	// Create UObjects used for details views and associate them with their backing config settings.
-	TargetObjects.Empty(TargetsSettings.Num());
-	for (FLocalizationTargetSettings& TargetSettings : TargetsSettings)
-	{
-		ULocalizationTarget* const NewTargetObject = NewObject<ULocalizationTarget>(this);
-		NewTargetObject->SetSettingsSource(TargetSettings);
-		TargetObjects.Add(NewTargetObject);
-	}
-}
-
 void ULocalizationTargetSet::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	//if (PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULocalizationTargetSet,TargetObjects))
-	//{
-	//	TargetsSettings.Empty(TargetObjects.Num());
-	//	for (ULocalizationTarget* const& TargetObject : TargetObjects)
-	//	{
-	//		TargetsSettings.Add(TargetObject ? TargetObject->Settings : FLocalizationTargetSettings());
-	//	}
-	//}
-
-	ISourceControlModule& SourceControl = ISourceControlModule::Get();
-	ISourceControlProvider& SourceControlProvider = SourceControl.GetProvider();
-	const bool CanUseSourceControl = SourceControl.IsEnabled() && SourceControlProvider.IsEnabled() && SourceControlProvider.IsAvailable();
-
-	if (CanUseSourceControl)
+	// Notify parent of change.
+	ULocalizationDashboardSettings* const LocalizationDashboardSettings = Cast<ULocalizationDashboardSettings>(GetOuter());
+	if (LocalizationDashboardSettings)
 	{
-		const FString Path = GetConfigFilename(this);
-		const FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(*Path, EStateCacheUsage::Use);
-
-		// Should only use source control if the file is actually under source control.
-		if (CanUseSourceControl && SourceControlState.IsValid() && !SourceControlState->CanAdd())
-		{
-			if (!SourceControlState->CanEdit())
-			{
-				SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), *Path);
-			}
-		}
+		LocalizationDashboardSettings->PostEditChange();
 	}
-
-	SaveConfig();
 }

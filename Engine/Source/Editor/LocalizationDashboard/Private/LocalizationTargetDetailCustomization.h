@@ -2,7 +2,7 @@
 
 #pragma once
 #include "IDetailCustomization.h"
-#include "LocalizationTarget.h"
+#include "LocalizationTargetTypes.h"
 
 class SCulturePicker;
 class IPropertyHandle;

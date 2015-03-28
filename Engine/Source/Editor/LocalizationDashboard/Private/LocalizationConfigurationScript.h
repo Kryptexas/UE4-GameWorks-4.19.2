@@ -3,7 +3,7 @@
 #pragma once
 
 #include "ConfigCacheIni.h"
-#include "Classes/LocalizationTarget.h"
+#include "LocalizationTargetTypes.h"
 
 struct FLocalizationConfigurationScript : public FConfigFile
 {

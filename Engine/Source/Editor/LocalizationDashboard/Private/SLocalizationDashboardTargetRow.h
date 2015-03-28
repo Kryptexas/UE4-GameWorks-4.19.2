@@ -4,8 +4,8 @@
 #include "STableRow.h"
 #include "IPropertyUtilities.h"
 #include "PropertyHandle.h"
-#include "LocalizationTarget.h"
-#include "LocalizationTarget.h"
+#include "LocalizationTargetTypes.h"
+#include "LocalizationTargetTypes.h"
 #include "SDockTab.h"
 
 class SLocalizationDashboardTargetRow : public SMultiColumnTableRow< TSharedPtr<IPropertyHandle> >

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "Engine/EngineTypes.h"
-#include "LocalizationTarget.generated.h"
+#include "LocalizationTargetTypes.generated.h"
 
 UENUM()
 enum class ELocalizationTargetConflictStatus : uint8
@@ -175,21 +175,13 @@ class ULocalizationTarget : public UObject
 	GENERATED_BODY()
 
 public:
-	ULocalizationTarget(const FObjectInitializer& ObjectInitializer);
-
-public:
 	UPROPERTY(EditAnywhere, Category = "Target")
 	FLocalizationTargetSettings Settings;
-
-private:
-	FLocalizationTargetSettings* SettingsSource;
 
 public:
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
-
-	void SetSettingsSource(FLocalizationTargetSettings& SettingsSource);
 
 	bool IsMemberOfEngineTargetSet() const;
 	bool UpdateWordCountsFromCSV();
@@ -198,7 +190,7 @@ public:
 	bool DeleteFiles(const FString* const Culture = nullptr) const;
 };
 
-UCLASS(Config=Localization, perObjectConfig, defaultconfig)
+UCLASS(Within=LocalizationDashboardSettings)
 class ULocalizationTargetSet : public UObject
 {
 	GENERATED_BODY()
@@ -207,16 +199,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Targets")
 	TArray<ULocalizationTarget*> TargetObjects;
 
-	static FName EngineTargetSetName;
-	static FName ProjectTargetSetName;
-
-private:
-	UPROPERTY(config)
-	TArray<FLocalizationTargetSettings> TargetsSettings;
-
 public:
 #if WITH_EDITOR
-	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 };

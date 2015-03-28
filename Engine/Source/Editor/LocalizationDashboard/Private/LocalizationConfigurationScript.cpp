@@ -2,7 +2,8 @@
 
 #include "LocalizationDashboardPrivatePCH.h"
 #include "LocalizationConfigurationScript.h"
-#include "Classes/LocalizationTarget.h"
+#include "LocalizationTargetTypes.h"
+#include "LocalizationDashboardSettings.h"
 
 namespace
 {
@@ -97,7 +98,7 @@ namespace LocalizationConfigurationScript
 			for (const FGuid& TargetDependencyGuid : Target->Settings.TargetDependencies)
 			{
 				TArray<ULocalizationTarget*> AllLocalizationTargets;
-				ULocalizationTargetSet* EngineTargetSet = FindObjectChecked<ULocalizationTargetSet>(ANY_PACKAGE, *ULocalizationTargetSet::EngineTargetSetName.ToString());
+				ULocalizationTargetSet* EngineTargetSet = ULocalizationDashboardSettings::GetEngineTargetSet();
 				if (EngineTargetSet != LocalizationTargetSet)
 				{
 					AllLocalizationTargets.Append(EngineTargetSet->TargetObjects);

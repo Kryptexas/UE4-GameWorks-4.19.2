@@ -2,7 +2,7 @@
 
 #include "LocalizationDashboardPrivatePCH.h"
 #include "LocalizationCommandletExecution.h"
-#include "Classes/LocalizationTarget.h"
+#include "LocalizationTargetTypes.h"
 #include "LocalizationConfigurationScript.h"
 #include "ISourceControlModule.h"
 #include "DesktopPlatformModule.h"

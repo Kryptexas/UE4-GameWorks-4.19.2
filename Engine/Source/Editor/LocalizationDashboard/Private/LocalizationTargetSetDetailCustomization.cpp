@@ -3,7 +3,7 @@
 #include "LocalizationDashboardPrivatePCH.h"
 #include "LocalizationTargetSetDetailCustomization.h"
 #include "DetailLayoutBuilder.h"
-#include "LocalizationTarget.h"
+#include "LocalizationTargetTypes.h"
 #include "DetailWidgetRow.h"
 #include "SLocalizationDashboardTargetRow.h"
 #include "DetailCategoryBuilder.h"

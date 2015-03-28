@@ -8,7 +8,8 @@
 #include "IMainFrameModule.h"
 #include "ModuleManager.h"
 #include "SLocalizationTargetEditor.h"
-#include "LocalizationTarget.h"
+#include "LocalizationDashboardSettings.h"
+#include "LocalizationTargetTypes.h"
 
 #define LOCTEXT_NAMESPACE "LocalizationDashboard"
 
@@ -54,12 +55,12 @@ void SLocalizationDashboard::Construct(const FArguments& InArgs, const TSharedPt
 		if (SpawnTabArgs.GetTabId() == EngineTargetSetDetailsTabName)
 		{
 			DockTabLabel = LOCTEXT("EngineTargetsTabLabel", "Engine Targets");
-			TargetSet = FindObjectChecked<ULocalizationTargetSet>(GetTransientPackage(), TEXT("EngineLocalizationTargetSet"));
+			TargetSet = ULocalizationDashboardSettings::GetEngineTargetSet();
 		}
 		else if (SpawnTabArgs.GetTabId() == ProjectTargetSetDetailsTabName)
 		{
 			DockTabLabel = LOCTEXT("ProjectTargetsTabLabel", "Project Targets");
-			TargetSet = FindObjectChecked<ULocalizationTargetSet>(GetTransientPackage(), TEXT("ProjectLocalizationTargetSet"));
+			TargetSet = ULocalizationDashboardSettings::GetGameTargetSet();
 		}
 
 		const TSharedRef<SDockTab> DockTab = SNew(SDockTab)

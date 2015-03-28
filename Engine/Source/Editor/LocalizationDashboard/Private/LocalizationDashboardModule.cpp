@@ -3,7 +3,7 @@
 #include "LocalizationDashboardPrivatePCH.h"
 #include "ILocalizationDashboardModule.h"
 #include "LocalizationDashboard.h"
-#include "LocalizationTarget.h"
+#include "LocalizationTargetTypes.h"
 #include "SDockTab.h"
 #include "Features/IModularFeatures.h"
 #include "ILocalizationServiceProvider.h"
@@ -19,21 +19,6 @@ public:
 	// Begin IModuleInterface interface
 	virtual void StartupModule() override
 	{
-		EngineTargetSet = NewObject<ULocalizationTargetSet>(GetTransientPackage(), ULocalizationTargetSet::EngineTargetSetName, RF_RootSet);
-		ProjectTargetSet = NewObject<ULocalizationTargetSet>(GetTransientPackage(), ULocalizationTargetSet::ProjectTargetSetName, RF_RootSet);
-		
-		for (ULocalizationTarget*& Target : EngineTargetSet->TargetObjects)
-		{
-			Target->UpdateStatusFromConflictReport();
-			Target->UpdateWordCountsFromCSV();
-		}
-
-		for (ULocalizationTarget*& Target : ProjectTargetSet->TargetObjects)
-		{
-			Target->UpdateStatusFromConflictReport();
-			Target->UpdateWordCountsFromCSV();
-	}
-
 		ServiceProviders = IModularFeatures::Get().GetModularFeatureImplementations<ILocalizationServiceProvider>("LocalizationService");
 		ServiceProviders.Insert(nullptr, 0); // "None"
 
@@ -94,9 +79,6 @@ public:
 	}
 
 private:
-	TWeakObjectPtr<ULocalizationTargetSet> EngineTargetSet;
-	TWeakObjectPtr<ULocalizationTargetSet> ProjectTargetSet;
-
 	TArray<ILocalizationServiceProvider*> ServiceProviders;
 	FName CurrentServiceProviderName;
 };

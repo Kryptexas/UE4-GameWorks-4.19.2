@@ -6,7 +6,7 @@
 #include "EditorStyleSet.h"
 #include "PropertyHandle.h"
 #include "DetailCategoryBuilder.h"
-#include "LocalizationTarget.h"
+#include "LocalizationTargetTypes.h"
 
 /**
  * Interface to talking with localization service providers.

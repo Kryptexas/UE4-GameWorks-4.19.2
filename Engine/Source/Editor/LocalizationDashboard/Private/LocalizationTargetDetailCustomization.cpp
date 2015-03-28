@@ -3,7 +3,7 @@
 #include "LocalizationDashboardPrivatePCH.h"
 #include "LocalizationTargetDetailCustomization.h"
 #include "DetailLayoutBuilder.h"
-#include "LocalizationTarget.h"
+#include "LocalizationTargetTypes.h"
 #include "DetailWidgetRow.h"
 #include "SLocalizationTargetStatusButton.h"
 #include "SLocalizationTargetEditorCultureRow.h"
@@ -13,6 +13,7 @@
 #include "IDetailsView.h"
 #include "LocalizationCommandletTasks.h"
 #include "ObjectEditorUtils.h"
+#include "LocalizationDashboardSettings.h"
 
 #define LOCTEXT_NAMESPACE "LocalizationTargetEditor"
 
@@ -404,7 +405,7 @@ FText FLocalizationTargetDetailCustomization::GetTargetName() const
 bool FLocalizationTargetDetailCustomization::IsTargetNameUnique(const FString& Name) const
 {
 	TArray<ULocalizationTarget*> AllLocalizationTargets;
-	ULocalizationTargetSet* EngineTargetSet = FindObjectChecked<ULocalizationTargetSet>(ANY_PACKAGE, *ULocalizationTargetSet::EngineTargetSetName.ToString());
+	ULocalizationTargetSet* EngineTargetSet = ULocalizationDashboardSettings::GetEngineTargetSet();
 	if (EngineTargetSet != TargetSet)
 	{
 		AllLocalizationTargets.Append(EngineTargetSet->TargetObjects);
@@ -548,7 +549,7 @@ void FLocalizationTargetDetailCustomization::RebuildTargetDependenciesBox()
 		TargetDependenciesWidgets.Empty();
 
 		TArray<ULocalizationTarget*> AllLocalizationTargets;
-		ULocalizationTargetSet* EngineTargetSet = FindObjectChecked<ULocalizationTargetSet>(ANY_PACKAGE, *ULocalizationTargetSet::EngineTargetSetName.ToString());
+		ULocalizationTargetSet* EngineTargetSet = ULocalizationDashboardSettings::GetEngineTargetSet();
 		if (EngineTargetSet != TargetSet)
 		{
 			AllLocalizationTargets.Append(EngineTargetSet->TargetObjects);
@@ -602,7 +603,7 @@ void FLocalizationTargetDetailCustomization::RebuildTargetsList()
 	};
 
 	TArray<ULocalizationTarget*> AllLocalizationTargets;
-	ULocalizationTargetSet* EngineTargetSet = FindObjectChecked<ULocalizationTargetSet>(ANY_PACKAGE, *ULocalizationTargetSet::EngineTargetSetName.ToString());
+	ULocalizationTargetSet* EngineTargetSet = ULocalizationDashboardSettings::GetEngineTargetSet();
 	if (EngineTargetSet != TargetSet)
 	{
 		AllLocalizationTargets.Append(EngineTargetSet->TargetObjects);
