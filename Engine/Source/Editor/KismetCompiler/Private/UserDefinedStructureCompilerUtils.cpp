@@ -26,6 +26,8 @@ struct FUserDefinedStructureCompilerInner
 				TGuardValue<bool> IsDuplicatingClassForReinstancing(GIsDuplicatingClassForReinstancing, true);
 				DuplicatedStruct = (UUserDefinedStruct*)StaticDuplicateObject(StructureToReinstance, GetTransientPackage(), *UniqueName.ToString(), ~RF_Transactional); 
 			}
+
+			DuplicatedStruct->Guid = StructureToReinstance->Guid;
 			DuplicatedStruct->Bind();
 			DuplicatedStruct->StaticLink(true);
 			DuplicatedStruct->PrimaryStruct = StructureToReinstance;
