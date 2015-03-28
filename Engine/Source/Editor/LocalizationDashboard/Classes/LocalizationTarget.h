@@ -175,13 +175,21 @@ class ULocalizationTarget : public UObject
 	GENERATED_BODY()
 
 public:
+	ULocalizationTarget(const FObjectInitializer& ObjectInitializer);
+
+public:
 	UPROPERTY(EditAnywhere, Category = "Target")
 	FLocalizationTargetSettings Settings;
+
+private:
+	FLocalizationTargetSettings* SettingsSource;
 
 public:
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
+
+	void SetSettingsSource(FLocalizationTargetSettings& SettingsSource);
 
 	bool IsMemberOfEngineTargetSet() const;
 	bool UpdateWordCountsFromCSV();
@@ -204,7 +212,7 @@ public:
 
 private:
 	UPROPERTY(config)
-	TArray<FLocalizationTargetSettings> Targets;
+	TArray<FLocalizationTargetSettings> TargetsSettings;
 
 public:
 #if WITH_EDITOR
