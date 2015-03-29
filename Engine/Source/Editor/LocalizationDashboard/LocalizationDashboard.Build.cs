@@ -27,7 +27,8 @@ public class LocalizationDashboard : ModuleRules
 				"DesktopPlatform",
                 "TranslationEditor",
                 "MainFrame",
-                "SourceControl"
+                "SourceControl",
+                "SharedSettingsWidgets",
 			}
 		);
 

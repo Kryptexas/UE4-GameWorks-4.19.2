@@ -10,6 +10,7 @@
 #include "SLocalizationTargetEditor.h"
 #include "LocalizationDashboardSettings.h"
 #include "LocalizationTargetTypes.h"
+#include "SSettingsEditorCheckoutNotice.h"
 
 #define LOCTEXT_NAMESPACE "LocalizationDashboard"
 
@@ -26,12 +27,16 @@ public:
 	TWeakPtr<SDockTab> ShowTargetEditor(ULocalizationTarget* const LocalizationTarget);
 
 private:
+	bool CanMakeEdits() const;
+
+private:
 	static const FName EngineTargetSetDetailsTabName;
 	static const FName ProjectTargetSetDetailsTabName;
 	static const FName DocumentsTabName;
 
 	TSharedPtr<FTabManager> TabManager;
 	TMap< TWeakObjectPtr<ULocalizationTarget>, TWeakPtr<SDockTab> > TargetToTabMap;
+	TSharedPtr<SSettingsEditorCheckoutNotice> SettingsEditorCheckoutNotice;
 };
 
 const FName SLocalizationDashboard::EngineTargetSetDetailsTabName("EngineTargets");
@@ -48,7 +53,7 @@ void SLocalizationDashboard::Construct(const FArguments& InArgs, const TSharedPt
 	};
 	TabManager->SetOnPersistLayout(FTabManager::FOnPersistLayout::CreateLambda(PersistLayout));
 
-	const auto& CreateDetailsTab = [](const FSpawnTabArgs& SpawnTabArgs) -> TSharedRef<SDockTab>
+	const auto& CreateDetailsTab = [this](const FSpawnTabArgs& SpawnTabArgs) -> TSharedRef<SDockTab>
 	{
 		FText DockTabLabel;
 		ULocalizationTargetSet* TargetSet = nullptr;
@@ -69,6 +74,7 @@ void SLocalizationDashboard::Construct(const FArguments& InArgs, const TSharedPt
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		FDetailsViewArgs DetailsViewArgs(false, false, false, FDetailsViewArgs::ENameAreaSettings::HideNameArea, false, nullptr, false, NAME_None);
 		TSharedRef<IDetailsView> DetailsView = PropertyModule.CreateDetailView(DetailsViewArgs);
+		DetailsView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateSP(this, &SLocalizationDashboard::CanMakeEdits));
 
 		DetailsView->SetObject(TargetSet, true);
 
@@ -110,6 +116,10 @@ void SLocalizationDashboard::Construct(const FArguments& InArgs, const TSharedPt
 	IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>( "MainFrame" );
 	const TSharedRef<SWidget> MenuWidget = MainFrameModule.MakeMainMenu( TabManager, MenuExtender );
 
+	FString ConfigFilePath;
+	ConfigFilePath = GetDefault<ULocalizationDashboardSettings>()->GetDefaultConfigFilename();
+	ConfigFilePath = FPaths::ConvertRelativePathToFull(ConfigFilePath);
+
 	ChildSlot
 		[
 			SNew(SVerticalBox)
@@ -119,9 +129,16 @@ void SLocalizationDashboard::Construct(const FArguments& InArgs, const TSharedPt
 				MenuWidget
 			]
 			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0.0f, 8.0f)
+			[
+				SAssignNew(SettingsEditorCheckoutNotice, SSettingsEditorCheckoutNotice)
+				.ConfigFilePath(ConfigFilePath)
+			]
+			+SVerticalBox::Slot()
 			.FillHeight(1.0f)
 			[
-			TabManager->RestoreFrom(Layout, OwningWindow).ToSharedRef()
+				TabManager->RestoreFrom(Layout, OwningWindow).ToSharedRef()
 			]
 		];
 }
@@ -135,7 +152,7 @@ TWeakPtr<SDockTab> SLocalizationDashboard::ShowTargetEditor(ULocalizationTarget*
 	{
 		ULocalizationTargetSet* const TargetSet = LocalizationTarget->GetTypedOuter<ULocalizationTargetSet>();
 
-		const TSharedRef<SLocalizationTargetEditor> OurTargetEditor = SNew(SLocalizationTargetEditor, TargetSet, LocalizationTarget);
+		const TSharedRef<SLocalizationTargetEditor> OurTargetEditor = SNew(SLocalizationTargetEditor, TargetSet, LocalizationTarget, FIsPropertyEditingEnabled::CreateSP(this, &SLocalizationDashboard::CanMakeEdits));
 		const TSharedRef<SDockTab> NewTargetEditorTab = SNew(SDockTab)
 			.TabRole(ETabRole::DocumentTab)
 			.Label_Lambda( [LocalizationTarget]
@@ -156,6 +173,11 @@ TWeakPtr<SDockTab> SLocalizationDashboard::ShowTargetEditor(ULocalizationTarget*
 	}
 
 	return TargetEditorDockTab;
+}
+
+bool SLocalizationDashboard::CanMakeEdits() const
+{
+	return SettingsEditorCheckoutNotice.IsValid() && SettingsEditorCheckoutNotice->IsUnlocked();
 }
 
 FLocalizationDashboard* FLocalizationDashboard::Instance = nullptr;

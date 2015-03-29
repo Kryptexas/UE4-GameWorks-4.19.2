@@ -13,6 +13,6 @@ public:
 	SLATE_BEGIN_ARGS(SLocalizationTargetEditor) {}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, ULocalizationTargetSet* const InProjectSettings, ULocalizationTarget* const InTarget);
+	void Construct(const FArguments& InArgs, ULocalizationTargetSet* const InProjectSettings, ULocalizationTarget* const InTarget, const FIsPropertyEditingEnabled& IsPropertyEditingEnabled);
 };
 

@@ -70,26 +70,6 @@ void ULocalizationDashboardSettings::PostEditChangeProperty(FPropertyChangedEven
 		}
 	}
 
-	// Handle source control operations before saving to config.
-	ISourceControlModule& SourceControl = ISourceControlModule::Get();
-	ISourceControlProvider& SourceControlProvider = SourceControl.GetProvider();
-	const bool CanUseSourceControl = SourceControl.IsEnabled() && SourceControlProvider.IsEnabled() && SourceControlProvider.IsAvailable();
-
-	if (CanUseSourceControl)
-	{
-		const FString Path = GetDefaultConfigFilename();
-		const FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(*Path, EStateCacheUsage::Use);
-
-		// Should only use source control if the file is actually under source control.
-		if (CanUseSourceControl && SourceControlState.IsValid() && !SourceControlState->CanAdd())
-		{
-			if (!SourceControlState->CanEdit())
-			{
-				SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), *Path);
-			}
-		}
-	}
-
 	UpdateDefaultConfigFile();
 }
 #endif
