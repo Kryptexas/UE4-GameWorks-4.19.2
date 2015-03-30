@@ -1,204 +1,12 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	KismetCompilerBackend.cpp
-=============================================================================*/
+#include "BlueprintCompilerCppBackendModulePrivatePCH.h"
+#include "BlueprintCompilerCppBackend.h"
+#include "BlueprintCompilerCppBackendUtils.h"
 
-#include "KismetCompilerPrivatePCH.h"
-
-#include "KismetCompilerBackend.h"
-
-#include "DefaultValueHelper.h"
-
-#include "SourceCodeNavigation.h"
-
-//////////////////////////////////////////////////////////////////////////
-// FKismetCppBackend
-
-class FKismetCppBackend : public IKismetCppBackend
+FString FBlueprintCompilerCppBackend::TermToText(const FBPTerminal* Term, const UProperty* CoerceProperty)
 {
-protected:
-	UEdGraphSchema_K2* Schema;
-	FCompilerResultsLog& MessageLog;
-	FKismetCompilerContext& CompilerContext;
-
-	struct FFunctionLabelInfo
-	{
-		TMap<FBlueprintCompiledStatement*, int32> StateMap;
-		int32 StateCounter;
-
-		FFunctionLabelInfo()
-		{
-			StateCounter = 0;
-		}
-
-		int32 StatementToStateIndex(FBlueprintCompiledStatement* Statement)
-		{
-			int32& Index = StateMap.FindOrAdd(Statement);
-			if (Index == 0)
-			{
-				Index = ++StateCounter;
-			}
-
-			return Index;
-		}
-	};
-
-	TArray<FFunctionLabelInfo> StateMapPerFunction;
-	TMap<FKismetFunctionContext*, int32> FunctionIndexMap;
-
-	FString CppClassName;
-
-	// Pointers to commonly used structures (found in constructor)
-	UScriptStruct* VectorStruct;
-	UScriptStruct* RotatorStruct;
-	UScriptStruct* TransformStruct;
-	UScriptStruct* LatentInfoStruct;
-	UScriptStruct* LinearColorStruct;
-public:
-	FStringOutputDevice Header;
-	FStringOutputDevice Body;
-	FString TermToText(const FBPTerminal* Term, const UProperty* SourceProperty = NULL);
-
-	const FString& GetBody()	const override { return Body; }
-	const FString& GetHeader()	const override { return Header; }
-
-protected:
-	FString LatentFunctionInfoTermToText(FBPTerminal* Term, FBlueprintCompiledStatement* TargetLabel);
-
-	int32 StatementToStateIndex(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement* Statement)
-	{
-		int32 Index = FunctionIndexMap.FindChecked(&FunctionContext);
-		return StateMapPerFunction[Index].StatementToStateIndex(Statement);
-	}
-public:
-
-	FKismetCppBackend(UEdGraphSchema_K2* InSchema, FKismetCompilerContext& InContext)
-		: Schema(InSchema)
-		, MessageLog(InContext.MessageLog)
-		, CompilerContext(InContext)
-	{
-		extern UScriptStruct* Z_Construct_UScriptStruct_FVector();
-		VectorStruct = Z_Construct_UScriptStruct_FVector();
-		RotatorStruct = GetBaseStructure(TEXT("Rotator"));
-		TransformStruct = GetBaseStructure(TEXT("Transform"));
-		LinearColorStruct = GetBaseStructure(TEXT("LinearColor"));
-		LatentInfoStruct = FLatentActionInfo::StaticStruct();
-	}
-
-	UEdGraphSchema_K2* GetSchema() const { return Schema; }
-
-	void Emit(FStringOutputDevice& Target, const TCHAR* Message)
-	{
-		Target += Message;
-	}
-
-	void EmitClassProperties(FStringOutputDevice& Target, UClass* SourceClass);
-
-	void GenerateCodeFromClass(UClass* SourceClass, FString NewClassName, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly) override;
-
-	void EmitCallStatment(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement);
-	void EmitCallDelegateStatment(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement);
-	void EmitAssignmentStatment(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement);
-	void EmitCastObjToInterfaceStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement);
-	void EmitCastBetweenInterfacesStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement);
-	void EmitCastInterfaceToObjStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement);
-	void EmitDynamicCastStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement);
-	void EmitObjectToBoolStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement);
-	void EmitAddMulticastDelegateStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement);
-	void EmitBindDelegateStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement);
-	void EmitClearMulticastDelegateStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement);
-	void EmitCreateArrayStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement);
-	void EmitGotoStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement);
-	void EmitPushStateStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement);
-	void EmitEndOfThreadStatement(FKismetFunctionContext& FunctionContext, const FString& ReturnValueString);
-	void EmitReturnStatement(FKismetFunctionContext& FunctionContext, const FString& ReturnValueString);
-	void EmitRemoveMulticastDelegateStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement);
-	void EmitMetaCastStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement);
-
-	/** Emits local variable declarations for a function */
-	void DeclareLocalVariables(FKismetFunctionContext& FunctionContext, TArray<UProperty*>& LocalVariables);
-
-	/** Emits the internal execution flow state declaration for a function */
-	void DeclareStateSwitch(FKismetFunctionContext& FunctionContext);
-	void CloseStateSwitch(FKismetFunctionContext& FunctionContext);
-
-	/** Builds both the header declaration and body implementation of a function */
-	void ConstructFunction(FKismetFunctionContext& FunctionContext, bool bGenerateStubOnly);
-};
-
-IKismetCppBackend* IKismetCppBackend::Create(UEdGraphSchema_K2* InSchema, FKismetCompilerContext& InContext)
-{
-	return new FKismetCppBackend(InSchema, InContext);
-}
-
-// Generates single if scope. It's condition checks context of given term.
-struct FSafeContextScopedEmmitter
-{
-private:
-	FStringOutputDevice& Body;
-	bool bSafeContextUsed;
-	const TCHAR* CurrentIndent;
-public:
-	FString GetAdditionalIndent() const
-	{
-		return bSafeContextUsed ? TEXT("\t") : FString();
-	}
-
-	bool IsSafeContextUsed() const
-	{
-		return bSafeContextUsed;
-	}
-
-	FSafeContextScopedEmmitter(FStringOutputDevice& InBody, const FBPTerminal* Term, FKismetCppBackend& CppBackend, const TCHAR* InCurrentIndent)
-		: Body(InBody), bSafeContextUsed(false), CurrentIndent(InCurrentIndent)
-	{
-		TArray<FString> SafetyConditions;
-		for (; Term; Term = Term->Context)
-		{
-			if (!Term->bIsStructContext && (Term->Type.PinSubCategory != CppBackend.GetSchema()->PSC_Self))
-			{
-				ensure(!Term->bIsLiteral);
-				SafetyConditions.Add(CppBackend.TermToText(Term));
-			}
-		}
-
-		if (SafetyConditions.Num())
-		{
-			bSafeContextUsed = true;
-			Body += CurrentIndent;
-			Body += TEXT("if (");
-			for (int32 Iter = SafetyConditions.Num() - 1; Iter >= 0; --Iter)
-			{
-				Body += FString(TEXT("IsValid("));
-				Body += SafetyConditions[Iter];
-				Body += FString(TEXT(")"));
-				if (Iter)
-				{
-					Body += FString(TEXT(" && "));
-				}
-			}
-			Body += TEXT(")\n");
-			Body += CurrentIndent;
-			Body += TEXT("{\n");
-		}
-	}
-
-	~FSafeContextScopedEmmitter()
-	{
-		if (bSafeContextUsed)
-		{
-			Body += CurrentIndent;
-			Body += TEXT("}\n");
-		}
-	}
-};
-
-//////////////////////////////////////////////////////////////////////////
-// FKismetCppBackend
-
-FString FKismetCppBackend::TermToText(const FBPTerminal* Term, const UProperty* CoerceProperty)
-{
+	const FString PSC_Self(TEXT("self"));
 	if (Term->bIsLiteral)
 	{
 		//@TODO: Must have a coercion type if it's a literal, because the symbol table isn't plumbed in here and the literals don't carry type information either, yay!
@@ -208,7 +16,7 @@ FString FKismetCppBackend::TermToText(const FBPTerminal* Term, const UProperty* 
 		{
 			return FString::Printf(TEXT("TEXT(\"%s\")"), *(Term->Name));
 		}
-		else if(CoerceProperty->IsA(UTextProperty::StaticClass()))
+		else if (CoerceProperty->IsA(UTextProperty::StaticClass()))
 		{
 			return FString::Printf(TEXT("FText::FromString(TEXT(\"%s\"))"), *(Term->Name));
 		}
@@ -265,7 +73,7 @@ FString FKismetCppBackend::TermToText(const FBPTerminal* Term, const UProperty* 
 			else if (StructProperty->Struct == TransformStruct)
 			{
 				FTransform Trans = FTransform::Identity;
-				Trans.InitFromString( Term->Name );
+				Trans.InitFromString(Term->Name);
 
 				const FQuat Rot = Trans.GetRotation();
 				const FVector Translation = Trans.GetTranslation();
@@ -308,7 +116,7 @@ FString FKismetCppBackend::TermToText(const FBPTerminal* Term, const UProperty* 
 		}
 		else if (CoerceProperty->IsA(UObjectPropertyBase::StaticClass()))
 		{
-			if (Term->Type.PinSubCategory == Schema->PSC_Self)
+			if (Term->Type.PinSubCategory == PSC_Self)
 			{
 				return TEXT("this");
 			}
@@ -333,19 +141,19 @@ FString FKismetCppBackend::TermToText(const FBPTerminal* Term, const UProperty* 
 		}
 		else if (CoerceProperty->IsA(UInterfaceProperty::StaticClass()))
 		{
-			if (Term->Type.PinSubCategory == Schema->PSC_Self)
+			if (Term->Type.PinSubCategory == PSC_Self)
 			{
 				return TEXT("this");
 			}
-			else 
+			else
 			{
 				ensureMsg(false, TEXT("It is not possible to express this interface property as a literal value!"));
 				return Term->Name;
 			}
 		}
 		else
-		// else if (CoerceProperty->IsA(UMulticastDelegateProperty::StaticClass()))
-		// Cannot assign a literal to a multicast delegate; it should be added instead of assigned
+			// else if (CoerceProperty->IsA(UMulticastDelegateProperty::StaticClass()))
+			// Cannot assign a literal to a multicast delegate; it should be added instead of assigned
 		{
 			ensureMsg(false, TEXT("It is not possible to express this type as a literal value!"));
 			return Term->Name;
@@ -354,7 +162,7 @@ FString FKismetCppBackend::TermToText(const FBPTerminal* Term, const UProperty* 
 	else
 	{
 		FString Prefix(TEXT(""));
-		if ((Term->Context != NULL) && (Term->Context->Name != Schema->PSC_Self))
+		if ((Term->Context != NULL) && (Term->Context->Name != PSC_Self))
 		{
 			Prefix = TermToText(Term->Context);
 
@@ -373,7 +181,7 @@ FString FKismetCppBackend::TermToText(const FBPTerminal* Term, const UProperty* 
 	}
 }
 
-FString FKismetCppBackend::LatentFunctionInfoTermToText(FBPTerminal* Term, FBlueprintCompiledStatement* TargetLabel)
+FString FBlueprintCompilerCppBackend::LatentFunctionInfoTermToText(FBPTerminal* Term, FBlueprintCompiledStatement* TargetLabel)
 {
 	check(LatentInfoStruct);
 
@@ -381,7 +189,8 @@ FString FKismetCppBackend::LatentFunctionInfoTermToText(FBPTerminal* Term, FBlue
 	FString FixupTermName;
 	for (UProperty* Prop = LatentInfoStruct->PropertyLink; Prop; Prop = Prop->PropertyLinkNext)
 	{
-		if (Prop->GetBoolMetaData(FBlueprintMetadata::MD_NeedsLatentFixup))
+		static const FName NeedsLatentFixup(TEXT("NeedsLatentFixup"));
+		if (Prop->GetBoolMetaData(NeedsLatentFixup))
 		{
 			FixupTermName = Prop->GetName();
 			break;
@@ -401,367 +210,7 @@ FString FKismetCppBackend::LatentFunctionInfoTermToText(FBPTerminal* Term, FBlue
 	return FString(TEXT("F")) + LatentInfoStruct->GetName() + StructValues;
 }
 
-struct FEmitHelper
-{
-	static void ArrayToString(const TArray<FString>& Array, FString& String, const TCHAR* Separator)
-	{
-		if (Array.Num())
-		{
-			String += Array[0];
-		}
-		for (int32 i = 1; i < Array.Num(); ++i)
-		{
-			String += TEXT(", ");
-			String += Array[i];
-		}
-	}
-
-	static bool HasAllFlags(uint64 Flags, uint64 FlagsToCheck)
-	{
-		return FlagsToCheck == (Flags & FlagsToCheck);
-	}
-
-	static FString HandleRepNotifyFunc(const UProperty* Property)
-	{
-		check(Property);
-		if (HasAllFlags(Property->PropertyFlags, CPF_Net | CPF_RepNotify))
-		{
-			return FString::Printf(TEXT("ReplicatedUsing=%s"), *Property->RepNotifyFunc.ToString());
-		}
-		else if (HasAllFlags(Property->PropertyFlags, CPF_Net))
-		{
-			return TEXT("Replicated");
-		}
-		return FString();
-	}
-
-	static bool MetaDataCanBeNative(const FName MetaDataName)
-	{
-		if (MetaDataName == TEXT("ModuleRelativePath"))
-		{
-			return false;
-		}
-		return true;
-	}
-
-	static FString HandleMetaData(const UField* Field, bool AddCategory = true)
-	{
-		FString MetaDataStr;
-
-		check(Field);
-		UPackage* Package = Field->GetOutermost();
-		check(Package);
-		const UMetaData* MetaData = Package->GetMetaData();
-		check(MetaData);
-		const TMap<FName, FString>* ValuesMap = MetaData->ObjectMetaDataMap.Find(Field);
-		TArray<FString> MetaDataStrings;
-		if (ValuesMap && ValuesMap->Num())
-		{
-			for (auto& Pair : *ValuesMap)
-			{
-				if (!MetaDataCanBeNative(Pair.Key))
-				{
-					continue;
-				}
-				if (!Pair.Value.IsEmpty())
-				{
-					MetaDataStrings.Emplace(FString::Printf(TEXT("%s=\"%s\""), *Pair.Key.ToString(), *Pair.Value));
-				}
-				else
-				{
-					MetaDataStrings.Emplace(Pair.Key.ToString());
-				}
-			}
-		}
-		if (AddCategory && (!ValuesMap || !ValuesMap->Find(TEXT("Category"))))
-		{
-			MetaDataStrings.Emplace(TEXT("Category"));
-		}
-		MetaDataStrings.Remove(FString());
-		if (MetaDataStrings.Num())
-		{
-			MetaDataStr += TEXT("meta=(");
-			ArrayToString(MetaDataStrings, MetaDataStr, TEXT(", "));
-			MetaDataStr += TEXT(")");
-		}
-		return MetaDataStr;
-	}
-
-#ifdef HANDLE_CPF_TAG
-	static_assert(false, "Macro HANDLE_CPF_TAG redefinition.");
-#endif
-#define HANDLE_CPF_TAG(TagName, CheckedFlags) if (HasAllFlags(Flags, (CheckedFlags))) { Tags.Emplace(TagName); }
-
-	static TArray<FString> ProperyFlagsToTags(uint64 Flags)
-	{
-		TArray<FString> Tags;
-
-		// EDIT FLAGS
-		if (HasAllFlags(Flags, (CPF_Edit | CPF_EditConst | CPF_DisableEditOnInstance)))
-		{
-			Tags.Emplace(TEXT("VisibleDefaultsOnly"));
-		}
-		else if (HasAllFlags(Flags, (CPF_Edit | CPF_EditConst | CPF_DisableEditOnTemplate)))
-		{
-			Tags.Emplace(TEXT("VisibleInstanceOnly"));
-		}
-		else if (HasAllFlags(Flags, (CPF_Edit | CPF_EditConst)))
-		{
-			Tags.Emplace(TEXT("VisibleAnywhere"));
-		}
-		else if (HasAllFlags(Flags, (CPF_Edit | CPF_DisableEditOnInstance)))
-		{
-			Tags.Emplace(TEXT("EditDefaultsOnly"));
-		}
-		else if (HasAllFlags(Flags, (CPF_Edit | CPF_DisableEditOnTemplate)))
-		{
-			Tags.Emplace(TEXT("EditInstanceOnly"));
-		}
-		else if (HasAllFlags(Flags, (CPF_Edit)))
-		{
-			Tags.Emplace(TEXT("EditAnywhere"));
-		}
-
-		// BLUEPRINT EDIT
-		if (HasAllFlags(Flags, (CPF_BlueprintVisible | CPF_BlueprintReadOnly)))
-		{
-			Tags.Emplace(TEXT("BlueprintReadOnly"));
-		}
-		else if (HasAllFlags(Flags, (CPF_BlueprintVisible)))
-		{
-			Tags.Emplace(TEXT("BlueprintReadWrite"));
-		}
-
-		// CONFIG
-		if (HasAllFlags(Flags, (CPF_GlobalConfig | CPF_Config)))
-		{
-			Tags.Emplace(TEXT("GlobalConfig"));
-		}
-		else if (HasAllFlags(Flags, (CPF_Config)))
-		{
-			Tags.Emplace(TEXT("Config"));
-		}
-
-		// OTHER
-		HANDLE_CPF_TAG(TEXT("Transient"), CPF_Transient)
-		HANDLE_CPF_TAG(TEXT("DuplicateTransient"), CPF_DuplicateTransient)
-		HANDLE_CPF_TAG(TEXT("TextExportTransient"), CPF_TextExportTransient)
-		HANDLE_CPF_TAG(TEXT("NonPIEDuplicateTransient"), CPF_NonPIEDuplicateTransient)
-		HANDLE_CPF_TAG(TEXT("Export"), CPF_ExportObject)
-		HANDLE_CPF_TAG(TEXT("NoClear"), CPF_NoClear)
-		HANDLE_CPF_TAG(TEXT("EditFixedSize"), CPF_EditFixedSize)
-		HANDLE_CPF_TAG(TEXT("NotReplicated"), CPF_RepSkip)
-		HANDLE_CPF_TAG(TEXT("RepRetry"), CPF_RepRetry)
-		HANDLE_CPF_TAG(TEXT("Interp"), CPF_Edit | CPF_BlueprintVisible | CPF_Interp)
-		HANDLE_CPF_TAG(TEXT("NonTransactional"), CPF_NonTransactional)
-		HANDLE_CPF_TAG(TEXT("BlueprintAssignable"), CPF_BlueprintAssignable)
-		HANDLE_CPF_TAG(TEXT("BlueprintCallable"), CPF_BlueprintCallable)
-		HANDLE_CPF_TAG(TEXT("BlueprintAuthorityOnly"), CPF_BlueprintAuthorityOnly)
-		HANDLE_CPF_TAG(TEXT("AssetRegistrySearchable"), CPF_AssetRegistrySearchable)
-		HANDLE_CPF_TAG(TEXT("SimpleDisplay"), CPF_SimpleDisplay)
-		HANDLE_CPF_TAG(TEXT("AdvancedDisplay"), CPF_AdvancedDisplay)
-		HANDLE_CPF_TAG(TEXT("SaveGame"), CPF_SaveGame)
-
-		//TODO:
-		//HANDLE_CPF_TAG(TEXT("Instanced"), CPF_PersistentInstance | CPF_ExportObject | CPF_InstancedReference)
-
-		return Tags;
-	}
-
-	static TArray<FString> FunctionFlagsToTags(uint64 Flags)
-	{
-		TArray<FString> Tags;
-
-		//Pointless: BlueprintNativeEvent, BlueprintImplementableEvent
-		//Pointless: CustomThunk ?
-
-		//TODO: SealedEvent
-		//TODO: Unreliable
-		//TODO: ServiceRequest, ServiceResponse
-		
-		HANDLE_CPF_TAG(TEXT("Exec"), FUNC_Exec)
-		HANDLE_CPF_TAG(TEXT("Server"), FUNC_Net | FUNC_NetServer)
-		HANDLE_CPF_TAG(TEXT("Client"), FUNC_Net | FUNC_NetClient)
-		HANDLE_CPF_TAG(TEXT("NetMulticast"), FUNC_Net | FUNC_NetMulticast)
-		HANDLE_CPF_TAG(TEXT("Reliable"), FUNC_NetReliable)
-		HANDLE_CPF_TAG(TEXT("BlueprintCallable"), FUNC_BlueprintCallable)
-		HANDLE_CPF_TAG(TEXT("BlueprintPure"), FUNC_BlueprintCallable | FUNC_BlueprintPure)
-		HANDLE_CPF_TAG(TEXT("BlueprintAuthorityOnly"), FUNC_BlueprintAuthorityOnly)
-		HANDLE_CPF_TAG(TEXT("BlueprintCosmetic"), FUNC_BlueprintCosmetic)
-		HANDLE_CPF_TAG(TEXT("WithValidation"), FUNC_NetValidate)
-
-		return Tags;
-	}
-
-#undef HANDLE_CPF_TAG
-
-	static bool IsBlueprintNativeEvent(uint64 FunctionFlags)
-	{
-		return HasAllFlags(FunctionFlags, FUNC_Event | FUNC_BlueprintEvent | FUNC_Native);
-	}
-
-	static bool IsBlueprintImplementableEvent(uint64 FunctionFlags)
-	{
-		return HasAllFlags(FunctionFlags, FUNC_Event | FUNC_BlueprintEvent) && !HasAllFlags(FunctionFlags, FUNC_Native);
-	}
-
-	static FString EmitUFuntion(UFunction* Function)
-	{
-		TArray<FString> Tags = FEmitHelper::FunctionFlagsToTags(Function->FunctionFlags);
-		const bool bMustHaveCategory = (Function->FunctionFlags & (FUNC_BlueprintCallable | FUNC_BlueprintPure)) != 0;
-		Tags.Emplace(FEmitHelper::HandleMetaData(Function, bMustHaveCategory));
-		Tags.Remove(FString());
-
-		FString AllTags;
-		FEmitHelper::ArrayToString(Tags, AllTags, TEXT(", "));
-
-		return FString::Printf(TEXT("UFUNCTION(%s)"), *AllTags);
-	}
-
-	static int32 ParseDelegateDetails(UFunction* Signature, FString& OutParametersMacro, FString& OutParamNumberStr)
-	{
-		int32 ParameterNum = 0;
-		FStringOutputDevice Parameters;
-		for (TFieldIterator<UProperty> PropIt(Signature); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
-		{
-			Parameters += ", ";
-			PropIt->ExportCppDeclaration(Parameters, EExportedDeclaration::MacroParameter, NULL, EPropertyExportCPPFlags::CPPF_CustomTypeName);
-			++ParameterNum;
-		}
-
-		FString ParamNumberStr;
-		switch (ParameterNum)
-		{
-		case 0: ParamNumberStr = TEXT("");				break;
-		case 1: ParamNumberStr = TEXT("_OneParam");		break;
-		case 2: ParamNumberStr = TEXT("_TwoParams");	break;
-		case 3: ParamNumberStr = TEXT("_ThreeParams");	break;
-		case 4: ParamNumberStr = TEXT("_FourParams");	break;
-		case 5: ParamNumberStr = TEXT("_FiveParams");	break;
-		case 6: ParamNumberStr = TEXT("_SixParams");	break;
-		case 7: ParamNumberStr = TEXT("_SevenParams");	break;
-		case 8: ParamNumberStr = TEXT("_EightParams");	break;
-		default: ParamNumberStr = TEXT("_TooMany");		break;
-		}
-
-		OutParametersMacro = Parameters;
-		OutParamNumberStr = ParamNumberStr;
-		return ParameterNum;
-	}
-
-	static TArray<FString> EmitSinglecastDelegateDeclarations(const TArray<UDelegateProperty*>& Delegates)
-	{
-		TArray<FString> Results;
-		for (auto It : Delegates)
-		{
-			check(It);
-			auto Signature = It->SignatureFunction;
-			check(Signature);
-
-			FString ParamNumberStr, Parameters;
-			ParseDelegateDetails(Signature, Parameters, ParamNumberStr);
-
-			Results.Add(*FString::Printf(TEXT("DECLARE_DYNAMIC_DELEGATE%s(%s%s)"),
-				*ParamNumberStr, *It->GetCPPType(NULL, EPropertyExportCPPFlags::CPPF_CustomTypeName), *Parameters));
-		}
-		return Results;
-	}
-
-	static TArray<FString> EmitMulticastDelegateDeclarations(UClass* SourceClass)
-	{
-		TArray<FString> Results;
-		for (TFieldIterator<UMulticastDelegateProperty> It(SourceClass, EFieldIteratorFlags::ExcludeSuper); It; ++It)
-		{
-			auto Signature = It->SignatureFunction;
-			check(Signature);
-
-			FString ParamNumberStr, Parameters;
-			ParseDelegateDetails(Signature, Parameters, ParamNumberStr);
-
-			Results.Add(*FString::Printf(TEXT("DECLARE_DYNAMIC_MULTICAST_DELEGATE%s(%s%s)"),
-				*ParamNumberStr, *It->GetCPPType(NULL, EPropertyExportCPPFlags::CPPF_CustomTypeName), *Parameters));
-		}
-
-		return Results;
-	}
-
-	static FString EmitLifetimeReplicatedPropsImpl(UClass* SourceClass, const FString& CppClassName, const TCHAR* InCurrentIndent)
-	{
-		FString Result;
-		bool bFunctionInitilzed = false;
-		for (TFieldIterator<UProperty> It(SourceClass, EFieldIteratorFlags::ExcludeSuper); It; ++It)
-		{
-			if ((It->PropertyFlags & CPF_Net) != 0)
-			{
-				if (!bFunctionInitilzed)
-				{
-					Result += FString::Printf(TEXT("%svoid %s::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const\n"), InCurrentIndent, *CppClassName);
-					Result += FString::Printf(TEXT("%s{\n"), InCurrentIndent);
-					Result += FString::Printf(TEXT("%s\tSuper::GetLifetimeReplicatedProps(OutLifetimeProps);\n"), InCurrentIndent);
-					bFunctionInitilzed = true;
-				}
-				Result += FString::Printf(TEXT("%s\tDOREPLIFETIME( %s, %s);\n"), InCurrentIndent, *CppClassName, *It->GetNameCPP());
-			}
-		}
-		if (bFunctionInitilzed)
-		{
-			Result += FString::Printf(TEXT("%s}\n"), InCurrentIndent);
-		}
-		return Result;
-	}
-
-	static FString GatherHeadersToInclude(UClass* SourceClass)
-	{
-		TSet<FString> HeaderFiles;
-		{
-			TArray<UObject*> ReferencedObjects;
-			{
-				FReferenceFinder ReferenceFinder(ReferencedObjects, NULL, false, false, false, true);
-				TArray<UObject*> ObjectsToCheck;
-				GetObjectsWithOuter(SourceClass, ObjectsToCheck, true);
-				//CDO?
-				for (auto Obj : ObjectsToCheck)
-				{
-					ReferenceFinder.FindReferences(Obj);
-				}
-			}
-
-			auto EngineSourceDir = FPaths::EngineSourceDir();
-			auto GameSourceDir = FPaths::GameSourceDir();
-			auto CurrentPackage = SourceClass->GetTypedOuter<UPackage>();
-			for (auto Obj : ReferencedObjects)
-			{
-				auto Field = Cast<UField>(Obj);
-				FString PackPath;
-				if (Field 
-					&& (Field->GetTypedOuter<UPackage>() != CurrentPackage)
-					&& FSourceCodeNavigation::FindClassHeaderPath(Field, PackPath))
-				{
-					if (!PackPath.RemoveFromStart(EngineSourceDir))
-					{
-						if (!PackPath.RemoveFromStart(GameSourceDir))
-						{
-							PackPath = FPaths::GetCleanFilename(PackPath);
-						}
-					}
-					HeaderFiles.Add(PackPath);
-				}
-			}
-		}
-
-		FString Result;
-		for (auto HeaderFile : HeaderFiles)
-		{
-			Result += FString::Printf(TEXT("#include \"%s\"\n"), *HeaderFile);
-		}
-
-		return Result;
-	}
-
-	
-};
-
-void FKismetCppBackend::EmitClassProperties(FStringOutputDevice& Target, UClass* SourceClass)
+void FBlueprintCompilerCppBackend::EmitClassProperties(FStringOutputDevice& Target, UClass* SourceClass)
 {
 	// Emit class variables
 	for (TFieldIterator<UProperty> It(SourceClass, EFieldIteratorFlags::ExcludeSuper); It; ++It)
@@ -787,7 +236,7 @@ void FKismetCppBackend::EmitClassProperties(FStringOutputDevice& Target, UClass*
 	}
 }
 
-void FKismetCppBackend::GenerateCodeFromClass(UClass* SourceClass, FString NewClassName, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly)
+void FBlueprintCompilerCppBackend::GenerateCodeFromClass(UClass* SourceClass, FString NewClassName, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly)
 {
 	auto CleanCppClassName = NewClassName.IsEmpty() ? SourceClass->GetName() : NewClassName;
 	CppClassName = FString(SourceClass->GetPrefixCPP()) + CleanCppClassName;
@@ -859,10 +308,11 @@ void FKismetCppBackend::GenerateCodeFromClass(UClass* SourceClass, FString NewCl
 		Emit(Header, TEXT("\n"));
 	}
 
-	Emit(Body, *FString::Printf(TEXT("#include \"%s.h\"\n"), FApp::GetGameName()));
-	Emit(Body, TEXT("#include \"GeneratedCodeHelpers.h\"\n\n"));
-
-	Emit(Body, *FEmitHelper::GatherHeadersToInclude(SourceClass));
+	TArray<FString> PersistentHeaders;
+	PersistentHeaders.Add(FString(FApp::GetGameName()) + TEXT(".h"));
+	PersistentHeaders.Add(CleanCppClassName + TEXT(".h"));
+	PersistentHeaders.Add(TEXT("GeneratedCodeHelpers.h"));
+	Emit(Body, *FEmitHelper::GatherHeadersToInclude(SourceClass, PersistentHeaders));
 
 	//constructor
 	Emit(Body, *FString::Printf(
@@ -882,7 +332,7 @@ void FKismetCppBackend::GenerateCodeFromClass(UClass* SourceClass, FString NewCl
 	Emit(Body, *FEmitHelper::EmitLifetimeReplicatedPropsImpl(SourceClass, CppClassName, TEXT("")));
 }
 
-void FKismetCppBackend::EmitCallDelegateStatment(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+void FBlueprintCompilerCppBackend::EmitCallDelegateStatment(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
 	check(Statement.FunctionContext && Statement.FunctionContext->AssociatedVarProperty);
 	FSafeContextScopedEmmitter SafeContextScope(Body, Statement.FunctionContext->Context, *this, TEXT("\t\t\t"));
@@ -908,17 +358,17 @@ void FKismetCppBackend::EmitCallDelegateStatment(FKismetFunctionContext& Functio
 			ensure(Term != NULL);
 
 			// See if this is a hidden array param term, which needs to be fixed up with the final generated UArrayProperty
-			if( FBPTerminal** ArrayParmTerm = Statement.ArrayCoersionTermMap.Find(Term) )
+			if (FBPTerminal** ArrayParmTerm = Statement.ArrayCoersionTermMap.Find(Term))
 			{
 				Term->ObjectLiteral = (*ArrayParmTerm)->AssociatedVarProperty;
 			}
 
-			if( (Statement.TargetLabel != NULL) && (Statement.UbergraphCallIndex == NumParams) )
+			if ((Statement.TargetLabel != NULL) && (Statement.UbergraphCallIndex == NumParams))
 			{
 				// The target label will only ever be set on a call function when calling into the Ubergraph or
 				// on a latent function that will later call into the ubergraph, either of which requires a patchup
 				UStructProperty* StructProp = Cast<UStructProperty>(FuncParamProperty);
-				if( StructProp && StructProp->Struct == LatentInfoStruct )
+				if (StructProp && StructProp->Struct == LatentInfoStruct)
 				{
 					// Latent function info case
 					VarName = LatentFunctionInfoTermToText(Term, Statement.TargetLabel);
@@ -947,9 +397,9 @@ void FKismetCppBackend::EmitCallDelegateStatment(FKismetFunctionContext& Functio
 	Emit(Body, TEXT(");\n"));
 }
 
-void FKismetCppBackend::EmitCallStatment(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+void FBlueprintCompilerCppBackend::EmitCallStatment(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
-	const bool bCallOnDifferentObject = ((Statement.FunctionContext != NULL) && (Statement.FunctionContext->Name != Schema->PSC_Self));
+	const bool bCallOnDifferentObject = (Statement.FunctionContext != NULL) && (Statement.FunctionContext->Name != TEXT("self"));
 	const bool bStaticCall = Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Static);
 
 	const bool bUseSafeContext = bCallOnDifferentObject && !bStaticCall;
@@ -989,7 +439,7 @@ void FKismetCppBackend::EmitCallStatment(FKismetFunctionContext& FunctionContext
 	// Emit method name
 	FString FunctionNameToCall;
 	Statement.FunctionToCall->GetName(FunctionNameToCall);
-	if( Statement.bIsParentContext )
+	if (Statement.bIsParentContext)
 	{
 		FunctionNameToCall = TEXT("Super::") + FunctionNameToCall;
 	}
@@ -1017,17 +467,17 @@ void FKismetCppBackend::EmitCallStatment(FKismetFunctionContext& FunctionContext
 				ensure(Term != NULL);
 
 				// See if this is a hidden array param term, which needs to be fixed up with the final generated UArrayProperty
-				if( FBPTerminal** ArrayParmTerm = Statement.ArrayCoersionTermMap.Find(Term) )
+				if (FBPTerminal** ArrayParmTerm = Statement.ArrayCoersionTermMap.Find(Term))
 				{
 					Term->ObjectLiteral = (*ArrayParmTerm)->AssociatedVarProperty;
 				}
 
-				if( (Statement.TargetLabel != NULL) && (Statement.UbergraphCallIndex == NumParams) )
+				if ((Statement.TargetLabel != NULL) && (Statement.UbergraphCallIndex == NumParams))
 				{
 					// The target label will only ever be set on a call function when calling into the Ubergraph or
 					// on a latent function that will later call into the ubergraph, either of which requires a patchup
 					UStructProperty* StructProp = Cast<UStructProperty>(FuncParamProperty);
-					if( StructProp && StructProp->Struct == LatentInfoStruct )
+					if (StructProp && StructProp->Struct == LatentInfoStruct)
 					{
 						// Latent function info case
 						VarName = LatentFunctionInfoTermToText(Term, Statement.TargetLabel);
@@ -1057,7 +507,7 @@ void FKismetCppBackend::EmitCallStatment(FKismetFunctionContext& FunctionContext
 	Emit(Body, TEXT(");\n"));
 }
 
-void FKismetCppBackend::EmitAssignmentStatment(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+void FBlueprintCompilerCppBackend::EmitAssignmentStatment(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
 	FString DestinationExpression = TermToText(Statement.LHS);
 	FString SourceExpression = TermToText(Statement.RHS[0], Statement.LHS->AssociatedVarProperty);
@@ -1069,7 +519,7 @@ void FKismetCppBackend::EmitAssignmentStatment(FKismetFunctionContext& FunctionC
 	Emit(Body, *FString::Printf(TEXT("%s = %s;\n"), *DestinationExpression, *SourceExpression));
 }
 
-void FKismetCppBackend::EmitCastObjToInterfaceStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+void FBlueprintCompilerCppBackend::EmitCastObjToInterfaceStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
 	FString InterfaceClass = TermToText(Statement.RHS[0], (UProperty*)(GetDefault<UClassProperty>()));
 	FString ObjectValue = TermToText(Statement.RHS[1], (UProperty*)(GetDefault<UObjectProperty>()));
@@ -1087,10 +537,10 @@ void FKismetCppBackend::EmitCastObjToInterfaceStatement(FKismetFunctionContext& 
 	Emit(Body, *FString::Printf(TEXT("\t\t\t}\n")));
 }
 
-void FKismetCppBackend::EmitCastBetweenInterfacesStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+void FBlueprintCompilerCppBackend::EmitCastBetweenInterfacesStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
-	FString ClassToCastTo   = TermToText(Statement.RHS[0], (UProperty*)(GetDefault<UClassProperty>()));
-	FString InputInterface  = TermToText(Statement.RHS[1], (UProperty*)(GetDefault<UInterfaceProperty>()));
+	FString ClassToCastTo = TermToText(Statement.RHS[0], (UProperty*)(GetDefault<UClassProperty>()));
+	FString InputInterface = TermToText(Statement.RHS[1], (UProperty*)(GetDefault<UInterfaceProperty>()));
 	FString ResultInterface = TermToText(Statement.LHS, (UProperty*)(GetDefault<UInterfaceProperty>()));
 
 	FString InputObject = FString::Printf(TEXT("%s.GetObjectRef()"), *InputInterface);
@@ -1107,19 +557,19 @@ void FKismetCppBackend::EmitCastBetweenInterfacesStatement(FKismetFunctionContex
 	Emit(Body, *FString::Printf(TEXT("\t\t\t}\n")));
 }
 
-void FKismetCppBackend::EmitCastInterfaceToObjStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+void FBlueprintCompilerCppBackend::EmitCastInterfaceToObjStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
 	FString ClassToCastTo = TermToText(Statement.RHS[0], (UProperty*)(GetDefault<UClassProperty>()));
 	FString InputInterface = TermToText(Statement.RHS[1], (UProperty*)(GetDefault<UInterfaceProperty>()));
 	FString ResultObject = TermToText(Statement.LHS, (UProperty*)(GetDefault<UInterfaceProperty>()));
 
 	FString InputObject = FString::Printf(TEXT("%s.GetObjectRef()"), *InputInterface);
-	
+
 	Emit(Body, *FString::Printf(TEXT("\t\t\t%s = Cast<%s>(%s);\n"),
 		*ResultObject, *ClassToCastTo, *InputObject));
 }
 
-void FKismetCppBackend::EmitDynamicCastStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+void FBlueprintCompilerCppBackend::EmitDynamicCastStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
 	FString TargetClass = TermToText(Statement.RHS[0], (UProperty*)(GetDefault<UClassProperty>()));
 	FString ObjectValue = TermToText(Statement.RHS[1], (UProperty*)(GetDefault<UObjectProperty>()));
@@ -1129,17 +579,17 @@ void FKismetCppBackend::EmitDynamicCastStatement(FKismetFunctionContext& Functio
 		*CastedValue, *TargetClass, *ObjectValue));
 }
 
-void FKismetCppBackend::EmitMetaCastStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+void FBlueprintCompilerCppBackend::EmitMetaCastStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
-	FString DesiredClass	= TermToText(Statement.RHS[0], (UProperty*)(GetDefault<UClassProperty>()));
-	FString SourceClass		= TermToText(Statement.RHS[1], (UProperty*)(GetDefault<UClassProperty>()));
-	FString Destination		= TermToText(Statement.LHS, (UProperty*)(GetDefault<UClassProperty>()));
+	FString DesiredClass = TermToText(Statement.RHS[0], (UProperty*)(GetDefault<UClassProperty>()));
+	FString SourceClass = TermToText(Statement.RHS[1], (UProperty*)(GetDefault<UClassProperty>()));
+	FString Destination = TermToText(Statement.LHS, (UProperty*)(GetDefault<UClassProperty>()));
 
 	Emit(Body, *FString::Printf(TEXT("\t\t\t%s = DynamicMetaCast(%s, %s);\n"),
 		*Destination, *DesiredClass, *SourceClass));
 }
 
-void FKismetCppBackend::EmitObjectToBoolStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+void FBlueprintCompilerCppBackend::EmitObjectToBoolStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
 	FString ObjectTarget = TermToText(Statement.RHS[0]);
 	FString DestinationExpression = TermToText(Statement.LHS);
@@ -1147,7 +597,7 @@ void FKismetCppBackend::EmitObjectToBoolStatement(FKismetFunctionContext& Functi
 	Emit(Body, *FString::Printf(TEXT("\t\t\t%s = (%s != NULL);\n"), *DestinationExpression, *ObjectTarget));
 }
 
-void FKismetCppBackend::EmitAddMulticastDelegateStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+void FBlueprintCompilerCppBackend::EmitAddMulticastDelegateStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
 	check(Statement.LHS && Statement.LHS->AssociatedVarProperty);
 	FSafeContextScopedEmmitter SafeContextScope(Body, Statement.LHS->Context, *this, TEXT("\t\t\t"));
@@ -1161,7 +611,7 @@ void FKismetCppBackend::EmitAddMulticastDelegateStatement(FKismetFunctionContext
 	Emit(Body, *FString::Printf(TEXT("%s.Add(%s);\n"), *Delegate, *DelegateToAdd));
 }
 
-void FKismetCppBackend::EmitRemoveMulticastDelegateStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+void FBlueprintCompilerCppBackend::EmitRemoveMulticastDelegateStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
 	check(Statement.LHS && Statement.LHS->AssociatedVarProperty);
 	FSafeContextScopedEmmitter SafeContextScope(Body, Statement.LHS->Context, *this, TEXT("\t\t\t"));
@@ -1175,7 +625,7 @@ void FKismetCppBackend::EmitRemoveMulticastDelegateStatement(FKismetFunctionCont
 	Emit(Body, *FString::Printf(TEXT("%s.Remove(%s);\n"), *Delegate, *DelegateToAdd));
 }
 
-void FKismetCppBackend::EmitBindDelegateStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+void FBlueprintCompilerCppBackend::EmitBindDelegateStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
 	check(2 == Statement.RHS.Num());
 	check(Statement.LHS);
@@ -1192,7 +642,7 @@ void FKismetCppBackend::EmitBindDelegateStatement(FKismetFunctionContext& Functi
 	Emit(Body, *FString::Printf(TEXT("%s.BindUFunction(%s,%s);\n"), *Delegate, *ObjectTerm, *NameTerm));
 }
 
-void FKismetCppBackend::EmitClearMulticastDelegateStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+void FBlueprintCompilerCppBackend::EmitClearMulticastDelegateStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
 	check(Statement.LHS);
 	FSafeContextScopedEmmitter SafeContextScope(Body, Statement.LHS->Context, *this, TEXT("\t\t\t"));
@@ -1205,7 +655,7 @@ void FKismetCppBackend::EmitClearMulticastDelegateStatement(FKismetFunctionConte
 	Emit(Body, *FString::Printf(TEXT("%s.Clear();\n"), *Delegate));
 }
 
-void FKismetCppBackend::EmitCreateArrayStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+void FBlueprintCompilerCppBackend::EmitCreateArrayStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
 	FBPTerminal* ArrayTerm = Statement.LHS;
 	const FString Array = TermToText(ArrayTerm);
@@ -1213,19 +663,19 @@ void FKismetCppBackend::EmitCreateArrayStatement(FKismetFunctionContext& Functio
 	UArrayProperty* ArrayProperty = CastChecked<UArrayProperty>(ArrayTerm->AssociatedVarProperty);
 	UProperty* InnerProperty = ArrayProperty->Inner;
 
-	for(int32 i = 0; i < Statement.RHS.Num(); ++i)
+	for (int32 i = 0; i < Statement.RHS.Num(); ++i)
 	{
 		FBPTerminal* CurrentTerminal = Statement.RHS[i];
-		Emit(Body, 
+		Emit(Body,
 			*FString::Printf(
-				TEXT("\t\t\t%s[%d] = %s;"),
-				*Array,
-				i,
-				*TermToText(CurrentTerminal, (CurrentTerminal->bIsLiteral ? InnerProperty : NULL))));
+			TEXT("\t\t\t%s[%d] = %s;"),
+			*Array,
+			i,
+			*TermToText(CurrentTerminal, (CurrentTerminal->bIsLiteral ? InnerProperty : NULL))));
 	}
 }
 
-void FKismetCppBackend::EmitGotoStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+void FBlueprintCompilerCppBackend::EmitGotoStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
 	if (Statement.Type == KCST_ComputedGoto)
 	{
@@ -1271,25 +721,25 @@ void FKismetCppBackend::EmitGotoStatement(FKismetFunctionContext& FunctionContex
 	}
 }
 
-void FKismetCppBackend::EmitPushStateStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+void FBlueprintCompilerCppBackend::EmitPushStateStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
 	ensure(FunctionContext.bUseFlowStack);
 	Emit(Body, *FString::Printf(TEXT("\t\t\tStateStack.Push(%d);\n"), StatementToStateIndex(FunctionContext, Statement.TargetLabel)));
 }
 
-void FKismetCppBackend::EmitEndOfThreadStatement(FKismetFunctionContext& FunctionContext, const FString& ReturnValueString)
+void FBlueprintCompilerCppBackend::EmitEndOfThreadStatement(FKismetFunctionContext& FunctionContext, const FString& ReturnValueString)
 {
 	ensure(FunctionContext.bUseFlowStack);
 	Emit(Body, TEXT("\t\t\tCurrentState = (StateStack.Num() > 0) ? StateStack.Pop(/*bAllowShrinking=*/ false) : -1;\n"));
 	Emit(Body, TEXT("\t\t\tbreak;\n"));
 }
 
-void FKismetCppBackend::EmitReturnStatement(FKismetFunctionContext& FunctionContext, const FString& ReturnValueString)
+void FBlueprintCompilerCppBackend::EmitReturnStatement(FKismetFunctionContext& FunctionContext, const FString& ReturnValueString)
 {
 	Emit(Body, *FString::Printf(TEXT("\treturn%s;\n"), *ReturnValueString));
 }
 
-void FKismetCppBackend::DeclareLocalVariables(FKismetFunctionContext& FunctionContext, TArray<UProperty*>& LocalVariables)
+void FBlueprintCompilerCppBackend::DeclareLocalVariables(FKismetFunctionContext& FunctionContext, TArray<UProperty*>& LocalVariables)
 {
 	for (int32 i = 0; i < LocalVariables.Num(); ++i)
 	{
@@ -1297,7 +747,7 @@ void FKismetCppBackend::DeclareLocalVariables(FKismetFunctionContext& FunctionCo
 
 		Emit(Body, TEXT("\t"));
 		LocalVariable->ExportCppDeclaration(Body, EExportedDeclaration::Local, NULL, EPropertyExportCPPFlags::CPPF_CustomTypeName);
-		Emit(Body, TEXT(";\n"));
+		Emit(Body, TEXT("{};\n"));
 	}
 
 	if (LocalVariables.Num() > 0)
@@ -1306,7 +756,7 @@ void FKismetCppBackend::DeclareLocalVariables(FKismetFunctionContext& FunctionCo
 	}
 }
 
-void FKismetCppBackend::DeclareStateSwitch(FKismetFunctionContext& FunctionContext)
+void FBlueprintCompilerCppBackend::DeclareStateSwitch(FKismetFunctionContext& FunctionContext)
 {
 	if (FunctionContext.bUseFlowStack)
 	{
@@ -1320,7 +770,7 @@ void FKismetCppBackend::DeclareStateSwitch(FKismetFunctionContext& FunctionConte
 	Emit(Body, TEXT("\t\tcase 0:\n"));
 }
 
-void FKismetCppBackend::CloseStateSwitch(FKismetFunctionContext& FunctionContext)
+void FBlueprintCompilerCppBackend::CloseStateSwitch(FKismetFunctionContext& FunctionContext)
 {
 	// Default error-catching case 
 	Emit(Body, TEXT("\t\tdefault:\n"));
@@ -1335,7 +785,7 @@ void FKismetCppBackend::CloseStateSwitch(FKismetFunctionContext& FunctionContext
 	Emit(Body, TEXT("\t} while( CurrentState != -1 );\n"));
 }
 
-void FKismetCppBackend::ConstructFunction(FKismetFunctionContext& FunctionContext, bool bGenerateStubOnly)
+void FBlueprintCompilerCppBackend::ConstructFunction(FKismetFunctionContext& FunctionContext, bool bGenerateStubOnly)
 {
 	if (FunctionContext.IsDelegateSignature())
 	{
@@ -1346,7 +796,7 @@ void FKismetCppBackend::ConstructFunction(FKismetFunctionContext& FunctionContex
 
 	UProperty* ReturnValue = NULL;
 	TArray<UProperty*> LocalVariables;
-	
+
 	{
 		FString FunctionName;
 		Function->GetName(FunctionName);
@@ -1392,6 +842,10 @@ void FKismetCppBackend::ConstructFunction(FKismetFunctionContext& FunctionContex
 
 			Emit(Header, *FString::Printf(TEXT("\t%s\n"), *FEmitHelper::EmitUFuntion(Function)));
 			Emit(Header, TEXT("\t"));
+			if (Function->HasAllFunctionFlags(FUNC_Static))
+			{
+				Emit(Header, TEXT("static "));
+			}
 			Emit(Header, *FString::Printf(*Start, TEXT(""), TEXT("")));
 			Emit(Body, *FString::Printf(*Start, *CppClassName, TEXT("::")));
 
@@ -1426,7 +880,7 @@ void FKismetCppBackend::ConstructFunction(FKismetFunctionContext& FunctionContex
 
 	const FString ReturnValueString = ReturnValue ? (FString(TEXT(" ")) + ReturnValue->GetName()) : TEXT("");
 
-	if( !bGenerateStubOnly )
+	if (!bGenerateStubOnly)
 	{
 		// Emit local variables
 		DeclareLocalVariables(FunctionContext, LocalVariables);
@@ -1595,6 +1049,6 @@ void FKismetCppBackend::ConstructFunction(FKismetFunctionContext& FunctionContex
 	}
 
 	EmitReturnStatement(FunctionContext, ReturnValueString);
-	
+
 	Emit(Body, TEXT("}\n\n"));
 }
