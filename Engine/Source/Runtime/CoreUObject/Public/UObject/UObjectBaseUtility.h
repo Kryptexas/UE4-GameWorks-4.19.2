@@ -6,8 +6,6 @@
 
 #pragma once
 
-DECLARE_CYCLE_STAT_EXTERN(TEXT("UObjectBaseUtility::IsA"), STAT_UObjectIsA, STATGROUP_Engine, COREUOBJECT_API);
-
 class COREUOBJECT_API UObjectBaseUtility : public UObjectBase
 {
 public:

@@ -7,7 +7,6 @@
 #include "CoreUObjectPrivate.h"
 #include "Interface.h"
 
-DEFINE_STAT(STAT_UObjectIsA);
 
 /***********************/
 /******** Names ********/
