@@ -223,6 +223,7 @@ void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor
 	{
 		AddNewMenu = SNew(SComboButton)
 			.ComboButtonStyle(FEditorStyle::Get(), "ToolbarComboButton")
+			.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
 			.ForegroundColor(FLinearColor::White)
 			.ToolTipText(LOCTEXT("AddNewToolTip", "Add a new Variable, Graph, Function, Macro, or Event Dispatcher."))
 			.OnGetMenuContent(this, &SMyBlueprint::CreateAddNewMenuWidget)
