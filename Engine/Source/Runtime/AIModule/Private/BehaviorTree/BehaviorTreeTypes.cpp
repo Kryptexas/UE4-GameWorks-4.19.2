@@ -160,9 +160,7 @@ void FBehaviorTreeSearchData::AddUniqueUpdate(const FBehaviorTreeSearchUpdate& U
 		if (Info.AuxNode == UpdateInfo.AuxNode && Info.TaskNode == UpdateInfo.TaskNode)
 		{
 			// duplicate, skip
-			// special case: AddForLowerPri replacing Add
-			if ((Info.Mode == UpdateInfo.Mode) ||
-				(Info.Mode == EBTNodeUpdateMode::Add && UpdateInfo.Mode == EBTNodeUpdateMode::AddForLowerPri))
+			if (Info.Mode == UpdateInfo.Mode)
 			{
 				bSkipAdding = true;
 				break;
@@ -401,7 +399,7 @@ FString UBehaviorTreeTypes::DescribeTaskStatus(EBTTaskStatus::Type TaskStatus)
 
 FString UBehaviorTreeTypes::DescribeNodeUpdateMode(EBTNodeUpdateMode::Type UpdateMode)
 {
-	static FString UpdateModeDesc[] = { TEXT("Add"), TEXT("AddForLowerPri"), TEXT("Remove") };
+	static FString UpdateModeDesc[] = { TEXT("Add"), TEXT("Remove") };
 	return (UpdateMode < ARRAY_COUNT(UpdateModeDesc)) ? UpdateModeDesc[UpdateMode] : FString();
 }
 

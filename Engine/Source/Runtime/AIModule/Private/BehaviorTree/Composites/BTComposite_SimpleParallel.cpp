@@ -119,12 +119,12 @@ void UBTComposite_SimpleParallel::NotifyNodeDeactivation(FBehaviorTreeSearchData
 	const FBTNodeIndex LastBackgroundIndex(ActiveInstanceIdx, GetLastExecutionIndex());
 	SearchData.OwnerComp.UnregisterAuxNodesUpTo(FirstBackgroundIndex);
 
-	// remove all pending updates "AddForLowerPri" from background tree 
+	// remove all pending updates "Add" from background tree 
 	// it doesn't make sense for decorators to reactivate themselves there
 	for (int32 Idx = SearchData.PendingUpdates.Num() - 1; Idx >= 0; Idx--)
 	{
 		const FBehaviorTreeSearchUpdate& UpdateInfo = SearchData.PendingUpdates[Idx];
-		if (UpdateInfo.Mode == EBTNodeUpdateMode::AddForLowerPri)
+		if (UpdateInfo.Mode == EBTNodeUpdateMode::Add)
 		{
 			const uint16 UpdateNodeIdx = UpdateInfo.AuxNode ? UpdateInfo.AuxNode->GetExecutionIndex() : UpdateInfo.TaskNode->GetExecutionIndex();
 			const FBTNodeIndex UpdateIdx(UpdateInfo.InstanceIndex, UpdateNodeIdx);

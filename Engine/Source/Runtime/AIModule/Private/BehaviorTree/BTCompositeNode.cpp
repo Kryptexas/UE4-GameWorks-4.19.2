@@ -211,7 +211,7 @@ void UBTCompositeNode::NotifyDecoratorsOnDeactivation(FBehaviorTreeSearchData& S
 			else if (DecoratorOb->GetFlowAbortMode() == EBTFlowAbortMode::LowerPriority)
 			{
 				// - observers with mode "Lower Priority" will try to reactivate themselves ("Both" is not removed on node activation)
-				SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(DecoratorOb, SearchData.OwnerComp.GetActiveInstanceIdx(), EBTNodeUpdateMode::AddForLowerPri));
+				SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(DecoratorOb, SearchData.OwnerComp.GetActiveInstanceIdx(), EBTNodeUpdateMode::Add));
 			}
 		}
 	}

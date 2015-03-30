@@ -144,7 +144,6 @@ namespace EBTNodeUpdateMode
 	enum Type
 	{
 		Add,				// add node
-		AddForLowerPri,		// add node only when new task has lower priority
 		Remove,				// remove node
 	};
 }
