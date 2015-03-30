@@ -465,7 +465,7 @@ void FNativeCodeGenerationTool::Open(UBlueprint& Blueprint, TSharedRef< class FB
 bool FNativeCodeGenerationTool::CanGenerate(const UBlueprint& Blueprint)
 {
 	return (Blueprint.Status == EBlueprintStatus::BS_UpToDate)
-		&& (Blueprint.BlueprintType == EBlueprintType::BPTYPE_Normal)
+		&& (Blueprint.BlueprintType == EBlueprintType::BPTYPE_Normal || Blueprint.BlueprintType == EBlueprintType::BPTYPE_FunctionLibrary)
 		&& (Blueprint.GeneratedClass->GetClass() == UBlueprintGeneratedClass::StaticClass());
 }
 
