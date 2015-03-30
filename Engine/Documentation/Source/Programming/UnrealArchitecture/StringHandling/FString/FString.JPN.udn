@@ -1,16 +1,17 @@
-﻿INTSourceChangelist:2102317
+﻿INTSourceChangelist:2374181
 Availability:Public
 Title:FString
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/StringHandling
 Description:
+Version:4.5
 
 [TOC (start:2 end:3)]
 
 ## 概要
 
 [EXCERPT:Overview]
-FName や FText と違って FString は操作可能な唯一の文字列クラスです。大文字小文字の変更、サブ文字列の引用、反転など、様々な種類の文字列操作があります。 
-FStrings は、検索や修正、他の文字列との比較を行うことが可能です。ただし、これらの操作をすると、 FStrings の負荷は不変文字列クラスに比べてが大きくなｒます。    
+FName や FText と違って FString は操作可能な唯一の文字列クラスです。大文字小文字の変更、サブ文字列の引用、反転など、 
+様々な種類の文字列操作があります。FStrings は、検索や修正、他の文字列との比較を行うことが可能です。ただし、これらの操作をすると、 FStrings の負荷は不変文字列クラスに比べてが大きくなｒます。    
 [/EXCERPT:Overview]
 
 ## FStrings の作成
@@ -74,13 +75,13 @@ FStrings は、検索や修正、他の文字列との比較を行うことが�
 ## 検索
 
 FString の検索には 2 種類あります。1 つ目は `FString::Contains()` です。サブストリングが見つかると _true_ を、そうでない場合は _false_ を返します。 
- `FString` または `TCHAR* のサブストリングのいずれかを検索できます。`ESearchCase` 列挙型変数と使うと、検索時に大文字 / 小文字を区別するかどうかを指定できます。また、 `ESearchDir` 列挙型変数と使うと、検索方向を指定できます。
-検索のデフォルト設定は、大文字 / 小文字の区別なし、開始は最初からになります。
+ `FString` または `TCHAR* のサブストリングのいずれかを検索できます。`ESearchCase` 列挙型変数と使うと、検索時に大文字 / 小文字を区別するかどうかを指定できます。また、 `ESearchDir` 列挙型変数と使うと、
+検索方向を指定できます。検索のデフォルト設定は、大文字 / 小文字の区別なし、開始は最初からになります。
 
 	TestHUDString.Contains(TEXT("Test"), ESearchCase::CaseSensitive, ESearchDir::FromEnd);
 
-2 つ目は `FString::Find()` です。最初に見つけたサブストリングのインスタンスのインデックスを返します。 `FString` または `TCHAR* のサブストリングのいずれかを検索できます。 
-`FString::Contains()` とちょうど同じように、大文字 / 小文字の区別、検索方向の指定が可能です。検索のデフォルト設定は、大文字 / 小文字の区別なし、開始はストリングの最初からになります。また、オプションで 
+2 つ目は `FString::Find()` です。最初に見つけたサブストリングのインスタンスのインデックスを返します。 `FString` または `TCHAR* のサブストリングのいずれかを検索できます。`FString::Contains()` とちょうど同じように、 
+大文字 / 小文字の区別、検索方向の指定が可能です。検索のデフォルト設定は、大文字 / 小文字の区別なし、開始はストリングの最初からになります。また、オプションで 
 検索開始地点のストリング内にインデックスを設定することもできます。`FString::Find()` がサブストリングを見つけられない場合、 -1 を返します。
 
 	TestHUDString.Find(TEXT("test"), ESearchCase::CaseSensitive, ESearchDir::FromEnd, 10);
@@ -90,8 +91,8 @@ FString の検索には 2 種類あります。1 つ目は `FString::Contains()`
 
 ## FString のビルド
 
-サブストリングあるいは他の種類の変数からストリングをビルドする方法は 2 通りあります。1 つ目は結合です。 FString のみを引数として受け取ります。他の種類の変数は、結合前に FSting へ変換する必要があります。
-2 つ目は `Printf` です。int や float などの数値入力を受け取り、ストリングへの追加時に入力のフォーマット化を設定することもできます。
+サブストリングあるいは他の種類の変数からストリングをビルドする方法は 2 通りあります。1 つ目は結合です。 FString のみを引数として受け取ります。他の種類の変数は、
+結合前に FSting へ変換する必要があります。2 つ目は `Printf` です。int や float などの数値入力を受け取り、ストリングへの追加時に入力のフォーマット化を設定することもできます。
 
 
 ### 連結
@@ -106,8 +107,8 @@ FString の検索には 2 種類あります。1 つ目は `FString::Contains()`
 
 ### Printf
 
-`FString::Printf` で作成された FString は FString へ格納するだけでなく [UE_LOG デバッグ メッセージ](#デバッグメッセージ) を使って画面へ表示することもできます。フォーマット引数には、次の例のように C++ の `printf` 関数と同じ指定子があります。
-
+`FString::Printf` で作成された FString は FString へ格納するだけでなく [UE_LOG デバッグ メッセージ](#デバッグメッセージ) を使って画面へ表示することもできます。フォーマット引数には、次の例のように C++ の
+ `printf` 関数と同じ指定子があります。
 	FString AShooterHUD::GetTimeString(float TimeSeconds)
 
 	{
@@ -205,5 +206,3 @@ FString クラスは TCHAR の TArray 上にビルドされます。アプリケ
 使用方法: `SomeApi(TCHAR_TO_ANSI(SomeUnicodeString));`
 
 [/REGION]
-
-
