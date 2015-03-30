@@ -637,17 +637,24 @@ public:
 	/** 
 	 * Plays a camera shake on this camera.
 	 * @param Shake - The class of camera shake to play.
-	 * @param Scale - Scalar defining how "intense" to play the anim. 1.0 is normal or as authored.
-	 * @param PlaySpace - Which coordinate system to play the shake in.
+	 * @param Scale - Scalar defining how "intense" to play the shake. 1.0 is normal (as authored).
+	 * @param PlaySpace - Which coordinate system to play the shake in (affects oscillations and camera anims)
 	 * @param UserPlaySpaceRot - Coordinate system to play shake when PlaySpace == CAPS_UserDefined.
 	 */
-	virtual void PlayCameraShake(TSubclassOf<class UCameraShake> Shake, float Scale, enum ECameraAnimPlaySpace::Type PlaySpace=ECameraAnimPlaySpace::CameraLocal, FRotator UserPlaySpaceRot = FRotator::ZeroRotator);
+	UFUNCTION(BlueprintCallable, Category = "Camera Shakes")
+	virtual class UCameraShake* PlayCameraShake(TSubclassOf<class UCameraShake> ShakeClass, float Scale=1.f, enum ECameraAnimPlaySpace::Type PlaySpace = ECameraAnimPlaySpace::CameraLocal, FRotator UserPlaySpaceRot = FRotator::ZeroRotator);
 	
-	/** Stops playing CameraShake of the given class. */
-	virtual void StopCameraShake(TSubclassOf<class UCameraShake> Shake);
+	/** Immediately stops the given shake instance and invalidates it. */
+	UFUNCTION(BlueprintCallable, Category = "Camera Shakes")
+	virtual void StopCameraShake(class UCameraShake* ShakeInstance);
 
-	/** Stops playing all camera shakes. */
-	virtual void ClearAllCameraShakes();
+	/** Stops playing CameraShake of the given class. */
+	UFUNCTION(BlueprintCallable, Category = "Camera Shakes")
+	virtual void StopAllInstancesOfCameraShake(TSubclassOf<class UCameraShake> Shake);
+
+	/** Stops all active camera shakes on this camera. */
+	UFUNCTION(BlueprintCallable, Category = "Camera Shakes")
+	virtual void StopAllCameraShakes();
 
 	//
 	//  CameraAnim fades.
@@ -662,20 +669,20 @@ public:
 	 * @param bShouldFadeAudio - True to fade audio volume along with the alpha of the solid color.
 	 * @param bHoldWhenFinished - True for fade to hold at the ToAlpha until explicitly stopped (e.g. with StopCameraFade)
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Camera")
+	UFUNCTION(BlueprintCallable, Category = "Camera Fades")
 	virtual void StartCameraFade(float FromAlpha, float ToAlpha, float Duration, FLinearColor Color, bool bShouldFadeAudio = false, bool bHoldWhenFinished = false);
 
 	/** 
 	 * Stops camera fading.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Camera")
+	UFUNCTION(BlueprintCallable, Category = "Camera Fades")
 	virtual void StopCameraFade();
 
 	/** 
 	 * Turns on camera fading at the given opacity. Does not auto-animate, allowing user to animate themselves.
 	 * Call StopCameraFade to turn fading back off.
 	*/
-	UFUNCTION(BlueprintCallable, Category = "Camera")
+	UFUNCTION(BlueprintCallable, Category = "Camera Fades")
 	virtual void SetManualCameraFade(float InFadeAmount, FLinearColor Color, bool bInFadeAudio);
 
 

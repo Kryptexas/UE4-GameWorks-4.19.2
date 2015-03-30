@@ -3588,7 +3588,7 @@ void APlayerController::ClientStopCameraShake_Implementation( TSubclassOf<class 
 {
 	if (PlayerCameraManager != NULL)
 	{
-		PlayerCameraManager->StopCameraShake(Shake);
+		PlayerCameraManager->StopAllInstancesOfCameraShake(Shake);
 	}
 }
 

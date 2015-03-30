@@ -1088,28 +1088,46 @@ void APlayerCameraManager::ClearCameraLensEffects()
  *  Camera Shakes
  *  ------------------------------------------------------------ */
 
-void APlayerCameraManager::PlayCameraShake(TSubclassOf<UCameraShake> Shake, float Scale, ECameraAnimPlaySpace::Type PlaySpace, FRotator UserPlaySpaceRot)
+UCameraShake* APlayerCameraManager::PlayCameraShake(TSubclassOf<UCameraShake> ShakeClass, float Scale, ECameraAnimPlaySpace::Type PlaySpace, FRotator UserPlaySpaceRot)
 {
-	if ((Shake != nullptr) && (Scale > 0.0f))
+	if (ShakeClass && CameraShakeCamMod && (Scale > 0.0f) )
 	{
-		CameraShakeCamMod->AddCameraShake(Shake, Scale, PlaySpace, UserPlaySpaceRot);
+		return CameraShakeCamMod->AddCameraShake(ShakeClass, Scale, PlaySpace, UserPlaySpaceRot);
 	}
-}
 
-void APlayerCameraManager::StopCameraShake(TSubclassOf<class UCameraShake> Shake)
-{
-	if (Shake != NULL)
-	{
-		CameraShakeCamMod->RemoveCameraShake(Shake);
-	}
+	return nullptr;
 }
 
 
-float APlayerCameraManager::CalcRadialShakeScale(APlayerCameraManager* Cam, FVector Epicenter, float InnerRadius, float OuterRadius, float Falloff)
+void APlayerCameraManager::StopCameraShake(UCameraShake* ShakeInst)
+{
+	if (ShakeInst && CameraShakeCamMod)
+	{
+		CameraShakeCamMod->RemoveCameraShake(ShakeInst);
+	}
+}
+
+void APlayerCameraManager::StopAllInstancesOfCameraShake(TSubclassOf<class UCameraShake> ShakeClass)
+{
+	if (ShakeClass && CameraShakeCamMod)
+	{
+		CameraShakeCamMod->RemoveAllCameraShakesOfClass(ShakeClass);
+	}
+}
+
+void APlayerCameraManager::StopAllCameraShakes()
+{
+	if (CameraShakeCamMod)
+	{
+		CameraShakeCamMod->RemoveAllCameraShakes();
+	}
+}
+
+float APlayerCameraManager::CalcRadialShakeScale(APlayerCameraManager* Camera, FVector Epicenter, float InnerRadius, float OuterRadius, float Falloff)
 {
 	// using camera location so stuff like spectator cameras get shakes applied sensibly as well
 	// need to ensure server has reasonably accurate camera position
-	FVector POVLoc = Cam->GetActorLocation();
+	FVector POVLoc = Camera->GetActorLocation();
 
 	if (InnerRadius < OuterRadius)
 	{
@@ -1149,11 +1167,6 @@ void APlayerCameraManager::PlayWorldCameraShake(UWorld* InWorld, TSubclassOf<cla
 	}
 }
 
-void APlayerCameraManager::ClearAllCameraShakes()
-{
-	CameraShakeCamMod->RemoveAllCameraShakes();
-//	StopAllCameraAnims(true);
-}
 
 /** ------------------------------------------------------------
  *  Camera fades

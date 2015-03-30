@@ -31,7 +31,7 @@ namespace ECameraAnimPlaySpace
  	};
 }
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FMinimalViewInfo
 {
 	GENERATED_USTRUCT_BODY()
@@ -77,11 +77,11 @@ struct FMinimalViewInfo
 	TEnumAsByte<ECameraProjectionMode::Type> ProjectionMode;
 
 	/** Indicates if PostProcessSettings should be applied. */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category = Camera)
 	float PostProcessBlendWeight;
 
 	/** Post-process settings to use if PostProcessBlendWeight is non-zero. */
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category = Camera)
 	struct FPostProcessSettings PostProcessSettings;
 
 	FMinimalViewInfo()
