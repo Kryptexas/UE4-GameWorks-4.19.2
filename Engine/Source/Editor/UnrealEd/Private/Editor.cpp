@@ -962,6 +962,11 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		}
 	}
 
+	// Rebuild the BSPs this frame, providing we're not in the middle of a transaction
+	if( ABrush::NeedsRebuild() && GUndo == NULL )
+	{
+		RebuildAlteredBSP();
+	}
 
 	// Potentially rebuilds the streaming data.
 	EditorContext.World()->ConditionallyBuildStreamingData();

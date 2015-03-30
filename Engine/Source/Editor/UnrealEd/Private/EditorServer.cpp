@@ -1609,79 +1609,71 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 
 void UEditorEngine::RebuildAlteredBSP()
 {
-	if( GUndo && !GIsTransacting )
+	// Early out if BSP auto-updating is disabled
+	if (!GetDefault<ULevelEditorMiscSettings>()->bBSPAutoUpdate)
 	{
-		// Early out if BSP auto-updating is disabled
-		if (!GetDefault<ULevelEditorMiscSettings>()->bBSPAutoUpdate)
+		return;
+	}
+
+	FlushRenderingCommands();
+
+	// A list of all the levels that need to be rebuilt
+	TArray< TWeakObjectPtr< ULevel > > LevelsToRebuild;
+	ABrush::NeedsRebuild( &LevelsToRebuild );
+
+	// Determine which levels need to be rebuilt
+	for (FSelectionIterator It(GetSelectedActorIterator()); It; ++It)
+	{
+		AActor* Actor = static_cast<AActor*>(*It);
+		checkSlow( Actor->IsA(AActor::StaticClass()) );
+
+		ABrush* SelectedBrush = Cast< ABrush >( Actor );
+		if (SelectedBrush && !FActorEditorUtils::IsABuilderBrush(Actor))
 		{
-			return;
-		}
-
-		FlushRenderingCommands();
-
-		// A list of all the levels that need to be rebuilt
-		TArray< TWeakObjectPtr< ULevel > > LevelsToRebuild;
-		ABrush::NeedsRebuild(&LevelsToRebuild);
-
-		// Determine which levels need to be rebuilt
-		for (FSelectionIterator It(GetSelectedActorIterator()); It; ++It)
-		{
-			AActor* Actor = static_cast<AActor*>(*It);
-			checkSlow(Actor->IsA(AActor::StaticClass()));
-
-			ABrush* SelectedBrush = Cast< ABrush >(Actor);
-			if (SelectedBrush && !FActorEditorUtils::IsABuilderBrush(Actor))
+			ULevel* Level = SelectedBrush->GetLevel();
+			if (Level)
 			{
-				ULevel* Level = SelectedBrush->GetLevel();
-				if (Level)
-				{
-					LevelsToRebuild.AddUnique(Level);
-				}
+				LevelsToRebuild.AddUnique(Level);
 			}
-			else
-			{
-				// In addition to any selected brushes, any brushes attached to a selected actor should be rebuilt
-				TArray<AActor*> AttachedActors;
-				Actor->GetAttachedActors(AttachedActors);
+		}
+		else
+		{
+			// In addition to any selected brushes, any brushes attached to a selected actor should be rebuilt
+			TArray<AActor*> AttachedActors;
+			Actor->GetAttachedActors( AttachedActors );
 
-				const bool bExactClass = true;
-				TArray<AActor*> AttachedBrushes;
-				// Get any brush actors attached to the selected actor
-				if (ContainsObjectOfClass(AttachedActors, ABrush::StaticClass(), bExactClass, &AttachedBrushes))
+			const bool bExactClass = true;
+			TArray<AActor*> AttachedBrushes;
+			// Get any brush actors attached to the selected actor
+			if( ContainsObjectOfClass( AttachedActors, ABrush::StaticClass(), bExactClass, &AttachedBrushes ) )
+			{
+				for( int32 BrushIndex = 0; BrushIndex < AttachedBrushes.Num(); ++BrushIndex )
 				{
-					for (int32 BrushIndex = 0; BrushIndex < AttachedBrushes.Num(); ++BrushIndex)
+					ULevel* Level = CastChecked<ABrush>( AttachedBrushes[BrushIndex] )->GetLevel();
+					if (Level)
 					{
-						ULevel* Level = CastChecked<ABrush>(AttachedBrushes[BrushIndex])->GetLevel();
-						if (Level)
-						{
-							LevelsToRebuild.AddUnique(Level);
-						}
+						LevelsToRebuild.AddUnique(Level);
 					}
 				}
-
 			}
 
 		}
 
-		// Rebuild the levels
-		for (int32 LevelIdx = 0; LevelIdx < LevelsToRebuild.Num(); ++LevelIdx)
-		{
-			TWeakObjectPtr< ULevel > LevelToRebuild = LevelsToRebuild[LevelIdx];
-			if (LevelToRebuild.IsValid())
-			{
-				RebuildLevel(*LevelToRebuild.Get());
-			}
-		}
-
-		RedrawLevelEditingViewports();
-
-		ABrush::OnRebuildDone();
 	}
-	else
+
+	// Rebuild the levels
+	for (int32 LevelIdx = 0; LevelIdx < LevelsToRebuild.Num(); ++LevelIdx)
 	{
- 		ensureMsgf(0, TEXT("Rebuild BSP ignored. Not in a transaction") );
-		ABrush::OnRebuildDone();
+		TWeakObjectPtr< ULevel > LevelToRebuild = LevelsToRebuild[LevelIdx];
+		if ( LevelToRebuild.IsValid() )
+		{
+			RebuildLevel(*LevelToRebuild.Get());
+		}
 	}
+
+	RedrawLevelEditingViewports();
+
+	ABrush::OnRebuildDone();
 }
 
 void UEditorEngine::BSPIntersectionHelper(UWorld* InWorld, ECsgOper Operation)

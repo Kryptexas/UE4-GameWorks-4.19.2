@@ -292,6 +292,13 @@ void FTransaction::Apply()
 			ChangedObject->PostEditUndo();
 		}
 	}
+	
+	// Rebuild BSP here instead of waiting for the next tick since
+	// multiple transaction events can occur in a single tick
+	if (ABrush::NeedsRebuild())
+	{
+		GEditor->RebuildAlteredBSP();
+	}
 
 	// Flip it.
 	if (bFlip)
