@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:2346370
+﻿INTSourceChangelist:2492260
 Availability:Public
 Title:1.5 - 関数のレプリケーション
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
 Description:ネットワーク機能の事例レベルの概要 事例 1.5:関数のレプリケーション (リモート プロシージャ コール)
 Related:Gameplay/Networking
-Related:Gameplay/Networking/Replication/Components
-Related:Gameplay/Networking/Replication
-Related:Gameplay/Networking/Replication/RPCs
+Related:Gameplay/Networking/Actors/Components
+Related:Gameplay/Networking/Actors
+Related:Gameplay/Networking/Actors/RPCs
 Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 
 [VAR:TopicCompact]
