@@ -16,12 +16,14 @@
 #include "EngineAnalytics.h"
 #include "STextComboBox.h"
 
-const int32 DefaultHullCount = 4;
-const int32 DefaultVertsPerHull = 12;
-const int32 MaxHullCount = 24;
-const int32 MinHullCount = 1;
+const float MaxHullAccuracy = 1.f;
+const float MinHullAccuracy = 0.f;
+const float DefaultHullAccuracy = 0.5f;
+const float HullAccuracyDelta = 0.01f;
+
 const int32 MaxVertsPerHullCount = 32;
 const int32 MinVertsPerHullCount = 6;
+const int32 DefaultVertsPerHull = 16;
 
 #define LOCTEXT_NAMESPACE "StaticMeshEditor"
 DEFINE_LOG_CATEGORY_STATIC(LogStaticMeshEditorTools,Log,All);
@@ -109,7 +111,7 @@ void SConvexDecomposition::Construct(const FArguments& InArgs)
 {
 	StaticMeshEditorPtr = InArgs._StaticMeshEditorPtr;
 
-	CurrentMaxHullCount = DefaultHullCount;
+	CurrentHullAccuracy = DefaultHullAccuracy;
 	CurrentMaxVertsPerHullCount = DefaultVertsPerHull;
 
 	this->ChildSlot
@@ -125,18 +127,19 @@ void SConvexDecomposition::Construct(const FArguments& InArgs)
 			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Text( LOCTEXT("MaxNumHulls_ConvexDecomp", "Max Hulls") )
+				.Text( LOCTEXT("HullAccuracy_ConvexDecomp", "Accuracy") )
 			]
 
 			+SHorizontalBox::Slot()
 			.FillWidth(3.0f)
 			[
-				SAssignNew(MaxHull, SSpinBox<int32>)
-				.MinValue(MinHullCount)
-				.MaxValue(MaxHullCount)
-				.Value( this, &SConvexDecomposition::GetHullCount )
-				.OnValueCommitted( this, &SConvexDecomposition::OnHullCountCommitted )
-				.OnValueChanged( this, &SConvexDecomposition::OnHullCountChanged )
+				SAssignNew(HullAccuracy, SSpinBox<float>)
+				.MinValue(MinHullAccuracy)
+				.MaxValue(MaxHullAccuracy)
+				.Delta(HullAccuracyDelta)
+				.Value( this, &SConvexDecomposition::GetHullAccuracy )
+				.OnValueCommitted( this, &SConvexDecomposition::OnHullAccuracyCommitted )
+				.OnValueChanged( this, &SConvexDecomposition::OnHullAccuracyChanged )
 			]
 		]
 
@@ -230,32 +233,32 @@ SConvexDecomposition::~SConvexDecomposition()
 
 FReply SConvexDecomposition::OnApplyDecomp()
 {
-	StaticMeshEditorPtr.Pin()->DoDecomp(CurrentMaxHullCount, CurrentMaxVertsPerHullCount);
+	StaticMeshEditorPtr.Pin()->DoDecomp(CurrentHullAccuracy, CurrentMaxVertsPerHullCount);
 
 	return FReply::Handled();
 }
 
 FReply SConvexDecomposition::OnDefaults()
 {
-	CurrentMaxHullCount = DefaultHullCount;
+	CurrentHullAccuracy = DefaultHullAccuracy;
 	CurrentMaxVertsPerHullCount = DefaultVertsPerHull;
 
 	return FReply::Handled();
 }
 
-void SConvexDecomposition::OnHullCountCommitted(int32 InNewValue, ETextCommit::Type CommitInfo)
+void SConvexDecomposition::OnHullAccuracyCommitted(float InNewValue, ETextCommit::Type CommitInfo)
 {
-	OnHullCountChanged(InNewValue);
+	OnHullAccuracyChanged(InNewValue);
 }
 
-void SConvexDecomposition::OnHullCountChanged(int32 InNewValue)
+void SConvexDecomposition::OnHullAccuracyChanged(float InNewValue)
 {
-	CurrentMaxHullCount = InNewValue;
+	CurrentHullAccuracy = InNewValue;
 }
 
-int32 SConvexDecomposition::GetHullCount() const
+float SConvexDecomposition::GetHullAccuracy() const
 {
-	return CurrentMaxHullCount;
+	return CurrentHullAccuracy;
 }
 void SConvexDecomposition::OnVertsPerHullCountCommitted(int32 InNewValue,  ETextCommit::Type CommitInfo)
 {

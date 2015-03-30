@@ -20,6 +20,8 @@ void FPhysAssetCreateParams::Initialize()
 	bWalkPastSmall = true;
 	bBodyForAll = false;
 	AngularConstraintMode = ACM_Limited;
+	HullAccuracy = 0.5;
+	MaxHullVerts = 16;
 }
 
 namespace FPhysicsAssetUtils
@@ -511,7 +513,7 @@ bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 			bs->RemoveSimpleCollision();
 #endif
 			// Create the convex hull from the data we got from the skeletal mesh
-			DecomposeMeshToHulls( bs, Verts, Indices, Params.MaxHullCount, Params.MaxHullVerts );
+			DecomposeMeshToHulls( bs, Verts, Indices, Params.HullAccuracy, Params.MaxHullVerts );
 		}
 		else
 		{

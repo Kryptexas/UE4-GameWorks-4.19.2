@@ -1640,7 +1640,7 @@ void FStaticMeshEditor::OnSaveGeneratedLODs()
 	}
 }
 
-void FStaticMeshEditor::DoDecomp(int32 InMaxHullCount, int32 InMaxHullVerts)
+void FStaticMeshEditor::DoDecomp(float InAccuracy, int32 InMaxHullVerts)
 {
 	// Check we have a selected StaticMesh
 	if(StaticMesh && StaticMesh->RenderData)
@@ -1682,7 +1682,7 @@ void FStaticMeshEditor::DoDecomp(int32 InMaxHullCount, int32 InMaxHullVerts)
 		}
 
 		// Run actual util to do the work
-		DecomposeMeshToHulls(bs, Verts, Indices, InMaxHullCount, InMaxHullVerts);		
+		DecomposeMeshToHulls(bs, Verts, Indices, InAccuracy, InMaxHullVerts);		
 
 		// Enable collision, if not already
 		if( !Viewport->GetViewportClient().IsSetShowWireframeCollisionChecked() )

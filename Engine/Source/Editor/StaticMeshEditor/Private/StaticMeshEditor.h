@@ -89,9 +89,7 @@ public:
 
 	virtual void RefreshTool() override;
 	virtual void RefreshViewport() override;
-
-	/** This is called when Apply is pressed in the dialog. Does the actual processing. */
-	virtual void DoDecomp(int32 InMaxHullCount, int32 InMaxHullVerts) override;
+	virtual void DoDecomp(float InAccuracy, int32 InMaxHullVerts) override;
 
 	virtual TSet< int32 >& GetSelectedEdges() override;
 	// End of IStaticMeshEditor

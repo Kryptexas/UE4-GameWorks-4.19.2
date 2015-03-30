@@ -243,8 +243,9 @@ public class UnrealEd : ModuleRules
             PublicDependencyModuleNames.Add("HTML5Audio");
         }
 
-		AddThirdPartyPrivateStaticDependencies(Target, 
-			"HACD",
+		AddThirdPartyPrivateStaticDependencies(Target,
+            "HACD",
+            "VHACD",
 			"FBX",
 			"FreeType2"
 		);
