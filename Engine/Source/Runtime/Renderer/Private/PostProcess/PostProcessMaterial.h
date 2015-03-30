@@ -16,7 +16,7 @@ class FRCPassPostProcessMaterial : public TRenderingCompositePassBase<3,1>
 {
 public:
 	// constructor
-	FRCPassPostProcessMaterial(UMaterialInterface* InMaterialInterface, EPixelFormat OutputFormatIN = PF_Unknown);
+	FRCPassPostProcessMaterial(UMaterialInterface* InMaterialInterface, ERHIFeatureLevel::Type InFeatureLevel, EPixelFormat OutputFormatIN = PF_Unknown);
 
 	// interface FRenderingCompositePass ---------
 

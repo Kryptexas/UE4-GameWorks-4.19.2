@@ -92,9 +92,18 @@ private:
 
 IMPLEMENT_MATERIAL_SHADER_TYPE(,FPostProcessMaterialPS,TEXT("PostProcessMaterialShaders"),TEXT("MainPS"),SF_Pixel);
 
-FRCPassPostProcessMaterial::FRCPassPostProcessMaterial(UMaterialInterface* InMaterialInterface, EPixelFormat OutputFormatIN)
+FRCPassPostProcessMaterial::FRCPassPostProcessMaterial(UMaterialInterface* InMaterialInterface, ERHIFeatureLevel::Type InFeatureLevel, EPixelFormat OutputFormatIN)
 : MaterialInterface(InMaterialInterface), OutputFormat(OutputFormatIN)
 {
+	FMaterialRenderProxy* Proxy = MaterialInterface->GetRenderProxy(false);
+	check(Proxy);
+
+	const FMaterial* Material = Proxy->GetMaterialNoFallback(InFeatureLevel);
+	
+	if (!Material || Material->GetMaterialDomain() != MD_PostProcess)
+	{
+		MaterialInterface = UMaterial::GetDefaultMaterial(MD_PostProcess);
+	}
 }
 
 void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context)
