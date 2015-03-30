@@ -256,7 +256,8 @@ DEFINE_STAT(STAT_SkeletalMeshMotionBlurSkinningMemory);
 DEFINE_STAT(STAT_VertexShaderMemory);
 DEFINE_STAT(STAT_PixelShaderMemory);
 DEFINE_STAT(STAT_NavigationMemory);
-DEFINE_STAT(STAT_PhysSceneLock);
+DEFINE_STAT(STAT_PhysSceneReadLock);
+DEFINE_STAT(STAT_PhysSceneWriteLock);
 
 DEFINE_STAT(STAT_ReflectionCaptureTextureMemory);
 DEFINE_STAT(STAT_ReflectionCaptureMemory);

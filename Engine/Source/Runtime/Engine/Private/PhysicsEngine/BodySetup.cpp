@@ -313,7 +313,7 @@ PxMaterial* GetDefaultPhysMaterial()
 	return GEngine->DefaultPhysMaterial->GetPhysXMaterial();
 }
 
-void UBodySetup::AddSpheresToRigidActor(PxRigidActor* PDestActor, const FTransform& RelativeTM, float MinScale, float MinScaleAbs, TArray<PxShape*>* NewShapes) const
+void UBodySetup::AddSpheresToRigidActor_AssumesLocked(PxRigidActor* PDestActor, const FTransform& RelativeTM, float MinScale, float MinScaleAbs, TArray<PxShape*>* NewShapes) const
 {
 	float ContactOffsetFactor, MaxContactOffset;
 	GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
@@ -333,15 +333,19 @@ void UBodySetup::AddSpheresToRigidActor(PxRigidActor* PDestActor, const FTransfo
 			PLocalPose.p *= MinScale;
 
 			ensure(PLocalPose.isValid());
-			PxShape* NewShape = PDestActor->createShape(PSphereGeom, *PDefaultMat, PLocalPose);
-
-			if (NewShapes)
 			{
-				NewShapes->Add(NewShape);
-			}
+				PxShape* NewShape = PDestActor->createShape(PSphereGeom, *PDefaultMat, PLocalPose);
+				if (NewShapes)
+				{
+					NewShapes->Add(NewShape);
+				}
 
-			const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PSphereGeom.radius);
-			NewShape->setContactOffset(ContactOffset);
+				const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PSphereGeom.radius);
+				NewShape->setContactOffset(ContactOffset);
+			}
+			
+
+			
 		}
 		else
 		{
@@ -350,7 +354,7 @@ void UBodySetup::AddSpheresToRigidActor(PxRigidActor* PDestActor, const FTransfo
 	}
 }
 
-void UBodySetup::AddBoxesToRigidActor(PxRigidActor* PDestActor, const FTransform& RelativeTM, const FVector& Scale3D, const FVector& Scale3DAbs, TArray<PxShape*>* NewShapes) const
+void UBodySetup::AddBoxesToRigidActor_AssumesLocked(PxRigidActor* PDestActor, const FTransform& RelativeTM, const FVector& Scale3D, const FVector& Scale3DAbs, TArray<PxShape*>* NewShapes) const
 {
 	float ContactOffsetFactor, MaxContactOffset;
 	GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
@@ -374,15 +378,20 @@ void UBodySetup::AddBoxesToRigidActor(PxRigidActor* PDestActor, const FTransform
 			PLocalPose.p.z *= Scale3D.Z;
 
 			ensure(PLocalPose.isValid());
-			PxShape* NewShape = PDestActor->createShape(PBoxGeom, *PDefaultMat, PLocalPose);
-
-			if (NewShapes)
 			{
-				NewShapes->Add(NewShape);
-			}
+				PxShape* NewShape = PDestActor->createShape(PBoxGeom, *PDefaultMat, PLocalPose);
 
-			const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PBoxGeom.halfExtents.minElement());
-			NewShape->setContactOffset(ContactOffset);
+				if (NewShapes)
+				{
+					NewShapes->Add(NewShape);
+				}
+
+				const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PBoxGeom.halfExtents.minElement());
+				NewShape->setContactOffset(ContactOffset);
+			}
+			
+
+			
 		}
 		else
 		{
@@ -391,7 +400,7 @@ void UBodySetup::AddBoxesToRigidActor(PxRigidActor* PDestActor, const FTransform
 	}
 }
 
-void UBodySetup::AddSphylsToRigidActor(PxRigidActor* PDestActor, const FTransform& RelativeTM, const FVector& Scale3D, const FVector& Scale3DAbs, TArray<PxShape*>* NewShapes) const
+void UBodySetup::AddSphylsToRigidActor_AssumesLocked(PxRigidActor* PDestActor, const FTransform& RelativeTM, const FVector& Scale3D, const FVector& Scale3DAbs, TArray<PxShape*>* NewShapes) const
 {
 	float ContactOffsetFactor, MaxContactOffset;
 	GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
@@ -426,15 +435,20 @@ void UBodySetup::AddSphylsToRigidActor(PxRigidActor* PDestActor, const FTransfor
 			PLocalPose.p.z *= Scale3D.Z;
 
 			ensure(PLocalPose.isValid());
-			PxShape* NewShape = PDestActor->createShape(PCapsuleGeom, *PDefaultMat, PLocalPose);
-
-			if (NewShapes)
 			{
-				NewShapes->Add(NewShape);
-			}
+				PxShape* NewShape = PDestActor->createShape(PCapsuleGeom, *PDefaultMat, PLocalPose);
 
-			const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PCapsuleGeom.radius);
-			NewShape->setContactOffset(ContactOffset);
+				if (NewShapes)
+				{
+					NewShapes->Add(NewShape);
+				}
+
+				const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PCapsuleGeom.radius);
+				NewShape->setContactOffset(ContactOffset);
+			}
+			
+
+			
 		}
 		else
 		{
@@ -443,7 +457,7 @@ void UBodySetup::AddSphylsToRigidActor(PxRigidActor* PDestActor, const FTransfor
 	}
 }
 
-void UBodySetup::AddConvexElemsToRigidActor(PxRigidActor* PDestActor, const FTransform& RelativeTM, const FVector& Scale3D, const FVector& Scale3DAbs, TArray<PxShape*>* NewShapes) const
+void UBodySetup::AddConvexElemsToRigidActor_AssumesLocked(PxRigidActor* PDestActor, const FTransform& RelativeTM, const FVector& Scale3D, const FVector& Scale3DAbs, TArray<PxShape*>* NewShapes) const
 {
 	float ContactOffsetFactor, MaxContactOffset;
 	GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
@@ -480,15 +494,20 @@ void UBodySetup::AddConvexElemsToRigidActor(PxRigidActor* PDestActor, const FTra
 					PxVec3 PBoundsExtents = PConvexGeom.convexMesh->getLocalBounds().getExtents();
 
 					ensure(PLocalPose.isValid());
-					PxShape* NewShape = PDestActor->createShape(PConvexGeom, *PDefaultMat, PLocalPose);
-
-					if (NewShapes)
 					{
-						NewShapes->Add(NewShape);
-					}
+						PxShape* NewShape = PDestActor->createShape(PConvexGeom, *PDefaultMat, PLocalPose);
 
-					const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PBoundsExtents.minElement());
-					NewShape->setContactOffset(ContactOffset);
+						if (NewShapes)
+						{
+							NewShapes->Add(NewShape);
+						}
+
+						const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PBoundsExtents.minElement());
+						NewShape->setContactOffset(ContactOffset);
+					}
+					
+
+					
 				}
 				else
 				{
@@ -507,7 +526,7 @@ void UBodySetup::AddConvexElemsToRigidActor(PxRigidActor* PDestActor, const FTra
 	}
 }
 
-void UBodySetup::AddTriMeshToRigidActor(PxRigidActor* PDestActor, const FVector& Scale3D, const FVector& Scale3DAbs, TArray<PxShape*>* NewShapes) const
+void UBodySetup::AddTriMeshToRigidActor_AssumesLocked(PxRigidActor* PDestActor, const FVector& Scale3D, const FVector& Scale3DAbs, TArray<PxShape*>* NewShapes) const
 {
 	float ContactOffsetFactor, MaxContactOffset;
 	GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
@@ -543,21 +562,25 @@ void UBodySetup::AddTriMeshToRigidActor(PxRigidActor* PDestActor, const FVector&
 				ensure(PLocalPose.isValid());
 
 				// Create without 'sim shape' flag, problematic if it's kinematic, and it gets set later anyway.
-				PxShape* NewShape = PDestActor->createShape(PTriMeshGeom, *PDefaultMat, PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eVISUALIZATION);
-				if (NewShape)
 				{
-					NewShape->setLocalPose(PLocalPose);
-					NewShape->setContactOffset(MaxContactOffset);
+					PxShape* NewShape = PDestActor->createShape(PTriMeshGeom, *PDefaultMat, PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eVISUALIZATION);
 
-					if(NewShapes)
+					if (NewShape)
 					{
-						NewShapes->Add(NewShape);
+						NewShape->setLocalPose(PLocalPose);
+						NewShape->setContactOffset(MaxContactOffset);
+
+						if (NewShapes)
+						{
+							NewShapes->Add(NewShape);
+						}
+					}
+					else
+					{
+						UE_LOG(LogPhysics, Log, TEXT("Can't create new mesh shape in AddShapesToRigidActor"));
 					}
 				}
-				else
-				{
-					UE_LOG(LogPhysics, Log, TEXT("Can't create new mesh shape in AddShapesToRigidActor"));
-				}
+				
 			}
 			else
 			{
@@ -567,7 +590,7 @@ void UBodySetup::AddTriMeshToRigidActor(PxRigidActor* PDestActor, const FVector&
 	}
 }
 
-void UBodySetup::AddShapesToRigidActor(FBodyInstance* OwningInstance, physx::PxRigidActor* PDestActor, EPhysicsSceneType SceneType, FVector& Scale3D, physx::PxMaterial* SimpleMaterial, TArray<UPhysicalMaterial*>& ComplexMaterials, FShapeData& ShapeData, const FTransform& RelativeTM, TArray<physx::PxShape*>* NewShapes)
+void UBodySetup::AddShapesToRigidActor_AssumesLocked(FBodyInstance* OwningInstance, physx::PxRigidActor* PDestActor, EPhysicsSceneType SceneType, FVector& Scale3D, physx::PxMaterial* SimpleMaterial, TArray<UPhysicalMaterial*>& ComplexMaterials, FShapeData& ShapeData, const FTransform& RelativeTM, TArray<physx::PxShape*>* NewShapes)
 {
 #if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 	// in editor, there are a lot of things relying on body setup to create physics meshes
@@ -598,81 +621,84 @@ void UBodySetup::AddShapesToRigidActor(FBodyInstance* OwningInstance, physx::PxR
 	// for simple queries as well
 	if (CollisionTraceFlag != ECollisionTraceFlag::CTF_UseComplexAsSimple)
 	{
-		AddSpheresToRigidActor(PDestActor, RelativeTM, MinScale, MinScaleAbs, &Shapes);
-		AddBoxesToRigidActor(PDestActor, RelativeTM, Scale3D, Scale3DAbs, &Shapes);
-		AddSphylsToRigidActor(PDestActor, RelativeTM, Scale3D, Scale3DAbs, &Shapes);
-		AddConvexElemsToRigidActor(PDestActor, RelativeTM, Scale3D, Scale3DAbs, &Shapes);
+		AddSpheresToRigidActor_AssumesLocked(PDestActor, RelativeTM, MinScale, MinScaleAbs, &Shapes);
+		AddBoxesToRigidActor_AssumesLocked(PDestActor, RelativeTM, Scale3D, Scale3DAbs, &Shapes);
+		AddSphylsToRigidActor_AssumesLocked(PDestActor, RelativeTM, Scale3D, Scale3DAbs, &Shapes);
+		AddConvexElemsToRigidActor_AssumesLocked(PDestActor, RelativeTM, Scale3D, Scale3DAbs, &Shapes);
 	}
 
 	// Create tri-mesh shape, when we are not using simple collision shapes for 
 	// complex queries as well
 	if( CollisionTraceFlag != ECollisionTraceFlag::CTF_UseSimpleAsComplex )
 	{
-		AddTriMeshToRigidActor(PDestActor, Scale3D, Scale3DAbs, &Shapes);
+		AddTriMeshToRigidActor_AssumesLocked(PDestActor, Scale3D, Scale3DAbs, &Shapes);
 	}
 
-	for(PxShape* Shape : Shapes)
 	{
-		FShapeFilterData& Filters = ShapeData.FilterData;
-		// Apply provided materials
-		// If a triangle mesh, need to get array of materials...
-		if(Shape->getGeometryType() == PxGeometryType::eTRIANGLEMESH)
+		for (PxShape* Shape : Shapes)
 		{
-			TArray<PxMaterial*> PComplexMats;
-			PComplexMats.AddUninitialized(ComplexMaterials.Num());
-			for(int MatIdx = 0; MatIdx < ComplexMaterials.Num(); MatIdx++)
+			FShapeFilterData& Filters = ShapeData.FilterData;
+			// Apply provided materials
+			// If a triangle mesh, need to get array of materials...
+			if (Shape->getGeometryType() == PxGeometryType::eTRIANGLEMESH)
 			{
-				check(ComplexMaterials[MatIdx] != NULL);
-				PComplexMats[MatIdx] = ComplexMaterials[MatIdx]->GetPhysXMaterial();
-				check(PComplexMats[MatIdx] != NULL);
-			}
+				TArray<PxMaterial*> PComplexMats;
+				PComplexMats.AddUninitialized(ComplexMaterials.Num());
+				for (int MatIdx = 0; MatIdx < ComplexMaterials.Num(); MatIdx++)
+				{
+					check(ComplexMaterials[MatIdx] != NULL);
+					PComplexMats[MatIdx] = ComplexMaterials[MatIdx]->GetPhysXMaterial();
+					check(PComplexMats[MatIdx] != NULL);
+				}
 
-			if(PComplexMats.Num())
-			{
-				Shape->setMaterials(PComplexMats.GetData(), PComplexMats.Num());
+				if (PComplexMats.Num())
+				{
+					Shape->setMaterials(PComplexMats.GetData(), PComplexMats.Num());
+				}
+				else
+				{
+					UE_LOG(LogPhysics, Warning, TEXT("FBodyInstance::UpdatePhysicalMaterials : PComplexMats is empty - falling back on simple physical material."));
+					Shape->setMaterials(&SimpleMaterial, 1);
+				}
+
+				Shape->setQueryFilterData(Filters.QueryComplexFilter);
+
+				if (SceneType == PST_Sync)
+				{
+					Shape->setFlags(ShapeData.SyncShapeFlags | ShapeData.ComplexShapeFlags);
+				}
+				else
+				{
+					Shape->setFlags(ShapeData.AsyncShapeFlags | ShapeData.ComplexShapeFlags);
+				}
 			}
+			// Simple shape, 
 			else
 			{
-				UE_LOG(LogPhysics, Warning, TEXT("FBodyInstance::UpdatePhysicalMaterials : PComplexMats is empty - falling back on simple physical material."));
 				Shape->setMaterials(&SimpleMaterial, 1);
-			}
+				Shape->setQueryFilterData(Filters.QuerySimpleFilter);
 
-			Shape->setQueryFilterData(Filters.QueryComplexFilter);
-			
-			if(SceneType == PST_Sync)
-			{
-				Shape->setFlags(ShapeData.SyncShapeFlags | ShapeData.ComplexShapeFlags);
+				if (SceneType == PST_Sync)
+				{
+					Shape->setFlags(ShapeData.SyncShapeFlags | ShapeData.SimpleShapeFlags);
+				}
+				else
+				{
+					Shape->setFlags(ShapeData.AsyncShapeFlags | ShapeData.SimpleShapeFlags);
+				}
 			}
-			else
-			{
-				Shape->setFlags(ShapeData.AsyncShapeFlags | ShapeData.ComplexShapeFlags);
-			}
-		}
-		// Simple shape, 
-		else
-		{
-			Shape->setMaterials(&SimpleMaterial, 1);
-			Shape->setQueryFilterData(Filters.QuerySimpleFilter);
+			Shape->setSimulationFilterData(Filters.SimFilter);
 
-			if(SceneType == PST_Sync)
+			if (OwningInstance)
 			{
-				Shape->setFlags(ShapeData.SyncShapeFlags | ShapeData.SimpleShapeFlags);
-			}
-			else
-			{
-				Shape->setFlags(ShapeData.AsyncShapeFlags | ShapeData.SimpleShapeFlags);
-			}
-		}
-		Shape->setSimulationFilterData(Filters.SimFilter);
-
-		if(OwningInstance)
-		{
-			if(PxRigidBody* RigidBody = OwningInstance->GetPxRigidActor()->is<PxRigidBody>())
-			{
-				RigidBody->setRigidBodyFlags(ShapeData.SyncBodyFlags);
+				if (PxRigidBody* RigidBody = OwningInstance->GetPxRigidBody_AssumesLocked())
+				{
+					RigidBody->setRigidBodyFlags(ShapeData.SyncBodyFlags);
+				}
 			}
 		}
 	}
+	
 
 	if(NewShapes)
 	{

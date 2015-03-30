@@ -228,7 +228,9 @@ void ULandscapeHeightfieldCollisionComponent::CreatePhysicsState()
 				}
 
 				// Add to scenes
-				PhysScene->GetPhysXScene(PST_Sync)->addActor(*HeightFieldActorSync);
+				PxScene* SyncScene = PhysScene->GetPhysXScene(PST_Sync);
+				SCOPED_SCENE_WRITE_LOCK(SyncScene);
+				SyncScene->addActor(*HeightFieldActorSync);
 
 				if (PhysScene->HasAsyncScene())
 				{

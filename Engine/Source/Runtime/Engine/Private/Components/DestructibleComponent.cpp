@@ -558,7 +558,7 @@ void UDestructibleComponent::AddRadialImpulse(FVector Origin, float Radius, floa
 					LockedScene->lockWrite();
 					LockedScene->lockRead();
 				}
-				AddRadialImpulseToPxRigidBody(*PActor, Origin, Radius, Strength, Falloff, bVelChange);
+				AddRadialImpulseToPxRigidBody_AssumesLocked(*PActor, Origin, Radius, Strength, Falloff, bVelChange);
 			}
 		}
 
@@ -601,7 +601,7 @@ void UDestructibleComponent::AddRadialForce(FVector Origin, float Radius, float 
 					LockedScene->lockRead();
 				}
 
-				AddRadialForceToPxRigidBody(*PActor, Origin, Radius, Strength, Falloff, bAccelChange);
+				AddRadialForceToPxRigidBody_AssumesLocked(*PActor, Origin, Radius, Strength, Falloff, bAccelChange);
 			}
 
 			if (LockedScene)

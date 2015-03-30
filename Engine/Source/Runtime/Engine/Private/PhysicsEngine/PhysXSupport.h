@@ -33,7 +33,7 @@ public:
 	FPhysXSceneReadLock(PxScene* PInScene)
 		: PScene(PInScene)
 	{
-		SCOPE_CYCLE_COUNTER(STAT_PhysSceneLock);
+		SCOPE_CYCLE_COUNTER(STAT_PhysSceneReadLock);
 		if(PScene)
 		{
 			PScene->lockRead();
@@ -42,7 +42,6 @@ public:
 
 	~FPhysXSceneReadLock()
 	{
-		SCOPE_CYCLE_COUNTER(STAT_PhysSceneLock);
 		if(PScene)
 		{
 			PScene->unlockRead();
@@ -60,7 +59,7 @@ public:
 	FPhysXSceneWriteLock(PxScene* PInScene)
 		: PScene(PInScene)
 	{
-		SCOPE_CYCLE_COUNTER(STAT_PhysSceneLock);
+		SCOPE_CYCLE_COUNTER(STAT_PhysSceneWriteLock);
 		if(PScene)
 		{
 			PScene->lockWrite();
@@ -69,7 +68,6 @@ public:
 
 	~FPhysXSceneWriteLock()
 	{
-		SCOPE_CYCLE_COUNTER(STAT_PhysSceneLock);
 		if(PScene)
 		{
 			PScene->unlockWrite();
@@ -85,10 +83,10 @@ private:
 #define SCOPED_SCENE_READ_LOCK( _scene ) FPhysXSceneReadLock SCOPED_SCENE_TOKENPASTE(_rlock,__LINE__)(_scene)
 #define SCOPED_SCENE_WRITE_LOCK( _scene ) FPhysXSceneWriteLock SCOPED_SCENE_TOKENPASTE(_wlock,__LINE__)(_scene)
 
-#define SCENE_LOCK_READ( _scene )		{ SCOPE_CYCLE_COUNTER(STAT_PhysSceneLock); if((_scene) != NULL) { (_scene)->lockRead(); } }
-#define SCENE_UNLOCK_READ( _scene )		{ SCOPE_CYCLE_COUNTER(STAT_PhysSceneLock); if((_scene) != NULL) { (_scene)->unlockRead(); } }
-#define SCENE_LOCK_WRITE( _scene )		{ SCOPE_CYCLE_COUNTER(STAT_PhysSceneLock); if((_scene) != NULL) { (_scene)->lockWrite(); } }
-#define SCENE_UNLOCK_WRITE( _scene )	{ SCOPE_CYCLE_COUNTER(STAT_PhysSceneLock); if((_scene) != NULL) { (_scene)->unlockWrite(); } }
+#define SCENE_LOCK_READ( _scene )		{ SCOPE_CYCLE_COUNTER(STAT_PhysSceneReadLock); if((_scene) != NULL) { (_scene)->lockRead(); } }
+#define SCENE_UNLOCK_READ( _scene )		{ if((_scene) != NULL) { (_scene)->unlockRead(); } }
+#define SCENE_LOCK_WRITE( _scene )		{ SCOPE_CYCLE_COUNTER(STAT_PhysSceneWriteLock); if((_scene) != NULL) { (_scene)->lockWrite(); } }
+#define SCENE_UNLOCK_WRITE( _scene )	{ if((_scene) != NULL) { (_scene)->unlockWrite(); } }
 #else
 #define SCOPED_SCENE_READ_LOCK_INDEXED( _scene, _index )
 #define SCOPED_SCENE_READ_LOCK( _scene )
@@ -99,6 +97,172 @@ private:
 #define SCENE_LOCK_WRITE( _scene )
 #define SCENE_UNLOCK_WRITE( _scene )
 #endif
+
+/** Get a pointer to the PxScene from an SceneIndex (will be NULL if scene already shut down) */
+PxScene* GetPhysXSceneFromIndex(int32 InSceneIndex);
+
+#if WITH_APEX
+/** Get a pointer to the NxApexScene from an SceneIndex (will be NULL if scene already shut down) */
+NxApexScene* GetApexSceneFromIndex(int32 InSceneIndex);
+#endif
+
+/** Obtains the appropriate PhysX scene lock for READING and executes the passed in lambda.
+ *  If SceneType < 0, the Sync actor is used, otherwise the async.
+ *  Note: The lambda is only executed if the physx actor requested is non-null.
+ *  returns true if the requested actor is non-null
+ */
+template <typename LambdaType, bool NeedsLock = true>
+bool ExecuteOnPxRigidActorReadOnly(const FBodyInstance* BI, const LambdaType& Func, int32 SceneType = -1)
+{
+	if (const PxRigidActor* PRigidActor = BI->GetPxRigidActor_AssumesLocked(SceneType))
+	{
+		const int32 SceneIndex = (PRigidActor == BI->RigidActorSync ? BI->SceneIndexSync : BI->SceneIndexAsync);
+		PxScene* PScene = GetPhysXSceneFromIndex(SceneIndex);
+		if (NeedsLock)
+		{
+			SCENE_LOCK_READ(PScene);
+		}
+
+		Func(PRigidActor);
+
+		if (NeedsLock)
+		{
+			SCENE_UNLOCK_READ(PScene);
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+/** Obtains the appropriate PhysX scene lock for READING and executes the passed in lambda.
+ *  Note: The lambda is only executed if the physx actor is a non-null RigidBody
+ *  returns true if found a non-null RigidBody
+ */
+template <typename LambdaType, bool NeedsLock = true>
+bool ExecuteOnPxRigidBodyReadOnly(const FBodyInstance* BI, const LambdaType& Func)
+{
+	bool bSuccess = false;
+	if (const physx::PxRigidActor* RigidActor = BI->GetPxRigidActor_AssumesLocked())
+	{
+		const int32 SceneIndex = (RigidActor == BI->RigidActorSync ? BI->SceneIndexSync : BI->SceneIndexAsync);
+		PxScene* PScene = GetPhysXSceneFromIndex(SceneIndex);
+		if (NeedsLock)
+		{
+			SCENE_LOCK_READ(PScene);
+		}
+
+		if (const physx::PxRigidBody* PRigidBody = RigidActor->isRigidBody())
+		{
+			Func(PRigidBody);
+			bSuccess = true;
+		}
+
+		if (NeedsLock)
+		{
+			SCENE_UNLOCK_READ(PScene);
+		}
+	}
+
+	return bSuccess;
+}
+
+/** Obtains the appropriate PhysX scene lock for WRITING and executes the passed in lambda.
+ *  Note: The lambda is only executed if the physx actor is a non-null RigidBody
+ *  returns true if found a non-null RigidBody.
+ */
+template <typename LambdaType, bool NeedsLock = true>
+bool ExecuteOnPxRigidBodyReadWrite(const FBodyInstance* BI, const LambdaType& Func)
+{
+	bool bSuccess = false;
+	if (physx::PxRigidActor* RigidActor = BI->GetPxRigidActor_AssumesLocked())
+	{
+		const int32 SceneIndex = (RigidActor == BI->RigidActorSync ? BI->SceneIndexSync : BI->SceneIndexAsync);
+		PxScene* PScene = GetPhysXSceneFromIndex(SceneIndex);
+		if(NeedsLock)
+		{
+			SCENE_LOCK_WRITE(PScene);
+		}
+			
+		if (physx::PxRigidBody* PRigidBody = RigidActor->isRigidBody())
+		{
+			Func(PRigidBody);
+			bSuccess = true;
+		}
+
+		if(NeedsLock)
+		{
+			SCENE_UNLOCK_WRITE(PScene);
+		}
+	}
+
+	return bSuccess;
+}
+
+/** Obtains the appropriate PhysX scene lock for READING and executes the passed in lambda.
+ *  Note: The lambda is only executed if the physx actor is a non-null RigidDynamic
+ *  returns true if found a non-null RigidDynamic.
+ */
+template <typename LambdaType, bool NeedsLock = true>
+bool ExecuteOnPxRigidDynamicReadOnly(const FBodyInstance* BI, const LambdaType& Func)
+{
+	bool bSuccess = false;
+	if (physx::PxRigidActor* RigidActor = BI->GetPxRigidActor_AssumesLocked())
+	{
+		const int32 SceneIndex = (RigidActor == BI->RigidActorSync ? BI->SceneIndexSync : BI->SceneIndexAsync);
+		PxScene* PScene = GetPhysXSceneFromIndex(SceneIndex);
+		if (NeedsLock)
+		{
+			SCENE_LOCK_READ(PScene);
+		}
+
+		if (physx::PxRigidDynamic* PRigidDynamic = RigidActor->isRigidDynamic())
+		{
+			Func(PRigidDynamic);
+			bSuccess = true;
+		}
+
+		if (NeedsLock)
+		{
+			SCENE_UNLOCK_READ(PScene);
+		}
+	}
+
+	return bSuccess;
+}
+
+/** Obtains the appropriate PhysX scene lock for WRITING and executes the passed in lambda.
+ *  Note: The lambda is only executed if the physx actor is a non-null RigidDynamic
+ *  returns true if found a non-null RigidDynamic.
+ */
+template <typename LambdaType, bool NeedsLock = true>
+bool ExecuteOnPxRigidDynamicReadWrite(const FBodyInstance* BI, const LambdaType& Func)
+{
+	bool bSuccess = false;
+	if (physx::PxRigidActor* RigidActor = BI->GetPxRigidActor_AssumesLocked())
+	{
+		const int32 SceneIndex = (RigidActor == BI->RigidActorSync ? BI->SceneIndexSync : BI->SceneIndexAsync);
+		PxScene* PScene = GetPhysXSceneFromIndex(SceneIndex);
+		if (NeedsLock)
+		{
+			SCENE_LOCK_WRITE(PScene);
+		}
+
+		if (physx::PxRigidDynamic* PRigidDynamic = RigidActor->isRigidDynamic())
+		{
+			Func(PRigidDynamic);
+			bSuccess = true;
+		}
+
+		if (NeedsLock)
+		{
+			SCENE_UNLOCK_WRITE(PScene);
+		}
+	}
+
+	return bSuccess;
+}
 
 //////// BASIC TYPE CONVERSION
 
@@ -153,26 +317,38 @@ const bool bGlobalCCD = true;
 
 /////// UTILS
 
-/** Get a pointer to the PxScene from an SceneIndex (will be NULL if scene already shut down) */
-PxScene* GetPhysXSceneFromIndex(int32 InSceneIndex);
-
-#if WITH_APEX
-/** Get a pointer to the NxApexScene from an SceneIndex (will be NULL if scene already shut down) */
-NxApexScene* GetApexSceneFromIndex(int32 InSceneIndex);
-#endif
-
 
 /** Perform any deferred cleanup of resources (GPhysXPendingKillConvex etc) */
 void DeferredPhysResourceCleanup();
 
 /** Calculates correct impulse at the body's center of mass and adds the impulse to the body. */
-ENGINE_API void AddRadialImpulseToPxRigidBody(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bVelChange);
+ENGINE_API void AddRadialImpulseToPxRigidBody_AssumesLocked(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bVelChange);
+
+
+/** Calculates correct impulse at the body's center of mass and adds the impulse to the body. */
+DEPRECATED(4.8, "Please call AddRadialImpulseToPxRigidBody_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
+inline void AddRadialImpulseToPxRigidBody(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bVelChange)
+{
+	AddRadialImpulseToPxRigidBody_AssumesLocked(PRigidBody, Origin, Radius, Strength, Falloff, bVelChange);
+}
+
+ENGINE_API void AddRadialForceToPxRigidBody_AssumesLocked(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bAccelChange);
 
 /** Calculates correct force at the body's center of mass and adds force to the body. */
-ENGINE_API void AddRadialForceToPxRigidBody(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bAccelChange);
+DEPRECATED(4.8, "Please call AddRadialImpulseToPxRigidBody_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
+inline void AddRadialForceToPxRigidBody(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bAccelChange)
+{
+	AddRadialForceToPxRigidBody_AssumesLocked(PRigidBody, Origin, Radius, Strength, Falloff, bAccelChange);
+}
+
+bool IsRigidBodyNonKinematic_AssumesLocked(const PxRigidBody* PRigidBody);
 
 /** Util to see if a PxRigidActor is non-kinematic */
-bool IsRigidBodyNonKinematic(PxRigidBody* PRigidBody);
+DEPRECATED(4.8, "Please call IsRigidBodyNonKinematic_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
+inline bool IsRigidBodyNonKinematic(PxRigidBody* PRigidBody)
+{
+	return IsRigidBodyNonKinematic_AssumesLocked(PRigidBody);
+}
 
 
 /////// GLOBAL POINTERS

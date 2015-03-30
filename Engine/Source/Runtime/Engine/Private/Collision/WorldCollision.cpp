@@ -503,11 +503,8 @@ bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrim
 	bool bHaveBlockingHit = false;
 
 #if WITH_PHYSX
-	if (PxRigidActor* PRigidActor = PrimComp->BodyInstance.GetPxRigidActor())
+	ExecuteOnPxRigidActorReadOnly(&PrimComp->BodyInstance, [&] (const PxRigidActor* PRigidActor)
 	{
-		PxScene* const PScene = PRigidActor->getScene();
-		SCOPED_SCENE_READ_LOCK(PScene);
-
 		// Get all the shapes from the actor
 		TArray<PxShape*, TInlineAllocator<32>> PShapes;
 		{
@@ -548,7 +545,7 @@ bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrim
 				OutHits.Append(Hits);
 			}
 		}
-	}
+	});
 #endif //WITH_PHYSX
 
 	//@TODO: BOX2D: Implement UWorld::ComponentSweepMulti

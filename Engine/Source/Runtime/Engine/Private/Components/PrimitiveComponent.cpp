@@ -1744,8 +1744,6 @@ bool UPrimitiveComponent::SweepComponent(struct FHitResult& OutHit, const FVecto
 
 bool UPrimitiveComponent::ComponentOverlapComponent(class UPrimitiveComponent* PrimComp, const FVector Pos, const FRotator Rot, const struct FCollisionQueryParams& Params)
 {
-	//@TODO: BOX2D: Implement UPrimitiveComponent::ComponentOverlapComponent
-
 	// if target is skeletalmeshcomponent and do not support singlebody physics
 	USkeletalMeshComponent * OtherComp = Cast<USkeletalMeshComponent>(PrimComp);
 	if (OtherComp)
@@ -1753,63 +1751,14 @@ bool UPrimitiveComponent::ComponentOverlapComponent(class UPrimitiveComponent* P
 		UE_LOG(LogCollision, Log, TEXT("ComponentOverlapMulti : (%s) Does not support skeletalmesh with Physics Asset"), *PrimComp->GetPathName());
 		return false;
 	}
-#if WITH_PHYSX
-	// will have to do per component - default single body or physicsinstance 
-	const PxRigidActor* TargetRigidBody = (PrimComp)? PrimComp->BodyInstance.GetPxRigidActor():NULL;
-	if (TargetRigidBody==NULL || TargetRigidBody->getNbShapes()==0)
+
+	if(FBodyInstance* BI = PrimComp->GetBodyInstance())
 	{
-		return false;
+		TArray<FBodyInstance*> Bodies;
+		Bodies.Add(GetBodyInstance());
+		return BI->OverlapTestForBodies(Pos, Rot.Quaternion(), Bodies);
 	}
 
-	// calculate the test global pose of the actor
-	PxTransform PTestGlobalPose = U2PTransform(FTransform(Rot, Pos));
-	// Get all the shapes from the actor
-	TArray<PxShape*> PTargetShapes;
-	PTargetShapes.AddZeroed(TargetRigidBody->getNbShapes());
-	int32 NumTargetShapes = TargetRigidBody->getShapes(PTargetShapes.GetData(), PTargetShapes.Num());
-
-	bool bHaveOverlap = false;
-
-	for (int32 TargetShapeIdx=0; TargetShapeIdx<PTargetShapes.Num(); ++TargetShapeIdx)
-	{
-		const PxShape * PTargetShape = PTargetShapes[TargetShapeIdx];
-		check (PTargetShape);
-
-		// Calc shape global pose
-		PxTransform PShapeGlobalPose = PTestGlobalPose.transform(PTargetShape->getLocalPose());
-
-		GET_GEOMETRY_FROM_SHAPE(PGeom, PTargetShape);
-
-		if(PGeom != NULL)
-		{
-			bHaveOverlap = BodyInstance.OverlapPhysX(*PGeom, PShapeGlobalPose);
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			if((GetWorld()->DebugDrawTraceTag != NAME_None) && (GetWorld()->DebugDrawTraceTag == Params.TraceTag))
-			{
-				TArray<FOverlapResult> Overlaps;
-				if (bHaveOverlap)
-				{
-					FOverlapResult Result;
-					Result.Actor = PrimComp->GetOwner();
-					Result.Component = PrimComp;
-					Result.bBlockingHit = true;
-					Overlaps.Add(Result);
-				}
-
-				DrawGeomOverlaps(GetWorld(), *PGeom, PShapeGlobalPose, Overlaps, DebugLineLifetime);
-			}
-#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-
-			if (bHaveOverlap)
-			{
-				break;
-			}
-		}
-	}
-
-	return bHaveOverlap;
-#endif //WITH_PHYSX
 	return false;
 }
 

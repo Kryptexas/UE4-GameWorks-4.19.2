@@ -114,6 +114,10 @@ class ENGINE_API UPhysicsSettings
 	UPROPERTY(config, EditAnywhere, AdvancedDisplay, Category=Simulation)
 	bool bEnableAsyncScene;
 
+	/** Whether to warn when physics locks are used incorrectly. Turning this off is not recommended and should only be used by very advanced users. */
+	UPROPERTY(config, EditAnywhere, AdvancedDisplay, Category = Simulation)
+	bool bWarnMissingLocks;
+
 	/** Can 2D physics be used (Box2D)? */
 	UPROPERTY(config, EditAnywhere, Category = Simulation)
 	bool bEnable2DPhysics;

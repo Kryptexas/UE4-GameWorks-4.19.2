@@ -213,7 +213,7 @@ PxScene* GetPhysXSceneFromIndex(int32 InSceneIndex)
 #endif	// #if WITH_APEX
 
 
-void AddRadialImpulseToPxRigidBody(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bVelChange)
+void AddRadialImpulseToPxRigidBody_AssumesLocked(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bVelChange)
 {
 #if WITH_PHYSX
 	if (!(PRigidBody.getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC))
@@ -249,7 +249,7 @@ void AddRadialImpulseToPxRigidBody(PxRigidBody& PRigidBody, const FVector& Origi
 #endif // WITH_PHYSX
 }
 
-void AddRadialForceToPxRigidBody(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bAccelChange)
+void AddRadialForceToPxRigidBody_AssumesLocked(PxRigidBody& PRigidBody, const FVector& Origin, float Radius, float Strength, uint8 Falloff, bool bAccelChange)
 {
 #if WITH_PHYSX
 	if (!(PRigidBody.getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC))
@@ -284,9 +284,9 @@ void AddRadialForceToPxRigidBody(PxRigidBody& PRigidBody, const FVector& Origin,
 #endif // WITH_PHYSX
 }
 
-bool IsRigidBodyNonKinematic(PxRigidBody* PRigidBody)
+bool IsRigidBodyNonKinematic_AssumesLocked(const PxRigidBody* PRigidBody)
 {
-	if (PRigidBody != NULL)
+	if (PRigidBody)
 	{
 		return !(PRigidBody->getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC);
 	}

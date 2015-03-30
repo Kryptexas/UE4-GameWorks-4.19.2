@@ -356,10 +356,10 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 						ensure(!BoneTransform.ContainsNaN());
 
 						// If kinematic and not teleporting, set kinematic target
-						PxRigidDynamic* PRigidDynamic = BodyInst->GetPxRigidDynamic();
-						if (!IsRigidBodyNonKinematic(PRigidDynamic) && !bTeleport)
+						PxRigidDynamic* PRigidDynamic = BodyInst->GetPxRigidDynamic_AssumesLocked();
+						if (!IsRigidBodyNonKinematic_AssumesLocked(PRigidDynamic) && !bTeleport)
 						{
-							PhysScene->SetKinematicTarget(BodyInst, BoneTransform, true);
+							PhysScene->SetKinematicTarget_AssumesLocked(BodyInst, BoneTransform, true);
 						}
 						// Otherwise, set global pose
 						else

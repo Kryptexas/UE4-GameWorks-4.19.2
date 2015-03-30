@@ -498,10 +498,13 @@ public:
 
 private:
 #if WITH_PHYSX 
-	bool CreatePxJoint(physx::PxRigidActor* PActor1, physx::PxRigidActor* PActor2, physx::PxScene* PScene, const float Scale);
-	void UpdateConstraintFlags();
-	void UpdateAverageMass(const physx::PxRigidActor* PActor1, const physx::PxRigidActor* PActor2);
-	physx::PxD6Joint* GetUnbrokenJoint() const;
+	bool CreatePxJoint_AssumesLocked(physx::PxRigidActor* PActor1, physx::PxRigidActor* PActor2, physx::PxScene* PScene, const float Scale);
+	void UpdateConstraintFlags_AssumesLocked();
+	void UpdateAverageMass_AssumesLocked(const physx::PxRigidActor* PActor1, const physx::PxRigidActor* PActor2);
+	physx::PxD6Joint* GetUnbrokenJoint_AssumesLocked() const;
+
+	bool ExecuteOnUnbrokenJointReadOnly(TFunctionRef<void(const physx::PxD6Joint*)> Func) const;
+	bool ExecuteOnUnbrokenJointReadWrite(TFunctionRef<void(physx::PxD6Joint*)> Func) const;
 #endif
 
 	void UpdateBreakable();

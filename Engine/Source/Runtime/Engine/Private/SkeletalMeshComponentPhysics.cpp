@@ -825,16 +825,16 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 	SetRootBodyIndex(RootBodyIndex);
 
 #if WITH_PHYSX
+
+		// Get the scene type from the SkeletalMeshComponent's BodyInstance
+		const uint32 SceneType = (bHasBodiesInAsyncScene && PhysScene->HasAsyncScene()) ? PST_Async : PST_Sync;
+			PxScene* PScene = PhysScene->GetPhysXScene(SceneType);
+			SCOPED_SCENE_WRITE_LOCK(PScene);
+
 	// add Aggregate into the scene
 	if(Aggregate && Aggregate->getNbActors() > 0 && PhysScene)
 	{
-		// Get the scene type from the SkeletalMeshComponent's BodyInstance
-		const uint32 SceneType = (bHasBodiesInAsyncScene && PhysScene->HasAsyncScene()) ? PST_Async : PST_Sync;
-		{
-			PxScene* PScene = PhysScene->GetPhysXScene(SceneType);
-			SCOPED_SCENE_WRITE_LOCK(PScene);
 			PScene->addAggregate(*Aggregate);
-		}
 		
 		// If we've used an aggregate, InitBody would not be able to set awake status as we *must* have a scene
 		// to do that, so we reconcile this here.
@@ -849,7 +849,7 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 			// Set to sleep if necessary
 			if(bShouldSleep)
 			{
-				Body->GetPxRigidDynamic()->putToSleep();
+				Body->GetPxRigidDynamic_AssumesLocked()->putToSleep();
 			}
 		}
 	}
@@ -899,6 +899,12 @@ void USkeletalMeshComponent::TermArticulated()
 	{
 		PhysScene->DeferredRemoveCollisionDisableTable(SkelMeshCompID);
 	}
+
+	// Get the scene type from the SkeletalMeshComponent's BodyInstance
+	const uint32 SceneType = BodyInstance.UseAsyncScene() ? PST_Async : PST_Sync;
+	PxScene* PScene = PhysScene->GetPhysXScene(SceneType);
+	SCOPED_SCENE_WRITE_LOCK(PScene);
+
 #endif	//#if WITH_PHYSX
 
 	// We shut down the physics for each body and constraint here. 
@@ -1843,73 +1849,18 @@ bool USkeletalMeshComponent::SweepComponent( FHitResult& OutHit, const FVector S
 
 bool USkeletalMeshComponent::ComponentOverlapComponent(class UPrimitiveComponent* PrimComp,const FVector Pos,const FRotator Rot,const struct FCollisionQueryParams& Params)
 {
-	//@TODO: BOX2D: USkeletalMeshComponent::ComponentOverlapComponent is not supported.  Try to rephrase this in terms of agnostic operations on a set of FBodyInstances, reducing the amount of PhysX-specific code
-#if WITH_PHYSX
-	// will have to do per component - default single body or physicsinstance 
-	const PxRigidActor* TargetRigidBody = (PrimComp)? PrimComp->BodyInstance.GetPxRigidActor():NULL;
-	if (TargetRigidBody==NULL || TargetRigidBody->getNbShapes()==0)
-	{
-		return false;
-	}
-
-	// if target is skeletalmeshcomponent and do not support singlebody physics
-	USkeletalMeshComponent * OtherComp = Cast<USkeletalMeshComponent>(PrimComp);
-	if (OtherComp)
+	//we do not support skeletal mesh vs skeletal mesh overlap test
+	if (PrimComp->IsA<USkeletalMeshComponent>())
 	{
 		UE_LOG(LogCollision, Log, TEXT("ComponentOverlapComponent : (%s) Does not support skeletalmesh with Physics Asset"), *PrimComp->GetPathName());
 		return false;
 	}
 
-	// calculate the test global pose of the actor
-	PxTransform PTestGlobalPose = U2PTransform(FTransform(Rot, Pos));
-
-	// Get all the shapes from the actor
-	TArray<PxShape*> PTargetShapes;
-	PTargetShapes.AddZeroed(TargetRigidBody->getNbShapes());
-	int32 NumTargetShapes = TargetRigidBody->getShapes(PTargetShapes.GetData(), PTargetShapes.Num());
-
-	bool bHaveOverlap = false;
-
-	for (int32 TargetShapeIdx=0; TargetShapeIdx<PTargetShapes.Num(); ++TargetShapeIdx)
+	if(FBodyInstance* BI = PrimComp->GetBodyInstance())
 	{
-		const PxShape * PTargetShape = PTargetShapes[TargetShapeIdx];
-		check (PTargetShape);
-
-		// Calc shape global pose
-		PxTransform PShapeGlobalPose = PTestGlobalPose.transform(PTargetShape->getLocalPose());
-
-		GET_GEOMETRY_FROM_SHAPE(PGeom, PTargetShape);
-
-		if(PGeom != NULL)
-		{
-			for (int32 BodyIdx=0; BodyIdx < Bodies.Num(); ++BodyIdx)
-			{
-				bHaveOverlap = Bodies[BodyIdx]->OverlapPhysX(*PGeom, PShapeGlobalPose);
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-				if((GetWorld()->DebugDrawTraceTag != NAME_None) && (GetWorld()->DebugDrawTraceTag == Params.TraceTag))
-				{
-					TArray<FOverlapResult> Overlaps;
-					if (bHaveOverlap)
-					{
-						FOverlapResult Result;
-						Result.Component = PrimComp;
-						Result.Actor = PrimComp->GetOwner();
-						Result.bBlockingHit = true;
-						Overlaps.Add(Result);
+		return BI->OverlapTestForBodies(Pos, Rot.Quaternion(), Bodies);
 					}
 
-					DrawGeomOverlaps(GetWorld(), *PGeom, PShapeGlobalPose, Overlaps, DebugLineLifetime);
-				}
-#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-				if (bHaveOverlap)
-				{
-					break;
-				}
-			}
-		}
-		return bHaveOverlap;
-	}
-#endif //WITH_PHYSX
 	return false;
 }
 
@@ -2503,24 +2454,26 @@ bool USkeletalMeshComponent::GetClothCollisionDataFromStaticMesh(UPrimitiveCompo
 		return false;
 	}
 
-	int32 NumSyncShapes = 0;
-
-	TArray<PxShape*> AllShapes = PrimComp->BodyInstance.GetAllShapes(NumSyncShapes);
-
-	if(NumSyncShapes == 0 || NumSyncShapes > 3) //skipping complicated object because of collision limitation
+	bool bSuccess = false;
+	PrimComp->BodyInstance.ExecuteOnPhysicsReadOnly([&]
 	{
-		return false;
+		TArray<PxShape*> AllShapes;
+		const int32 NumSyncShapes = PrimComp->BodyInstance.GetAllShapes_AssumesLocked(AllShapes);
+
+		if (NumSyncShapes == 0 || NumSyncShapes > 3) //skipping complicated object because of collision limitation
+	{
+			return;
 	}
 
 	FVector Center = PrimComp->Bounds.Origin;
 	FTransform Transform = PrimComp->ComponentToWorld;
 	FMatrix TransMat = Transform.ToMatrixWithScale();
 
-	for(int32 ShapeIdx=0; ShapeIdx < NumSyncShapes; ShapeIdx++)
+		for (int32 ShapeIdx = 0; ShapeIdx < NumSyncShapes; ShapeIdx++)
 	{
 		PxGeometryType::Enum GeomType = AllShapes[ShapeIdx]->getGeometryType();
 
-		switch(GeomType)
+			switch (GeomType)
 		{
 		case PxGeometryType::eSPHERE:
 			{
@@ -2570,27 +2523,27 @@ bool USkeletalMeshComponent::GetClothCollisionDataFromStaticMesh(UPrimitiveCompo
 
 				ClothPrimData.ConvexPlanes.Empty(6); //box has 6 planes
 
-				FPlane UPlane1(1,0,0,Center.X + BoxGeom.halfExtents.x);
+				FPlane UPlane1(1, 0, 0, Center.X + BoxGeom.halfExtents.x);
 				UPlane1 = UPlane1.TransformBy(TransMat);
 				ClothPrimData.ConvexPlanes.Add(UPlane1);
 
-				FPlane UPlane2(-1,0,0,Center.X - BoxGeom.halfExtents.x);
+				FPlane UPlane2(-1, 0, 0, Center.X - BoxGeom.halfExtents.x);
 				UPlane2 = UPlane2.TransformBy(TransMat);
 				ClothPrimData.ConvexPlanes.Add(UPlane2);
 
-				FPlane UPlane3(0,1,0,Center.Y + BoxGeom.halfExtents.y);
+				FPlane UPlane3(0, 1, 0, Center.Y + BoxGeom.halfExtents.y);
 				UPlane3 = UPlane3.TransformBy(TransMat);
 				ClothPrimData.ConvexPlanes.Add(UPlane3);
 
-				FPlane UPlane4(0,-1,0,Center.Y - BoxGeom.halfExtents.y);
+				FPlane UPlane4(0, -1, 0, Center.Y - BoxGeom.halfExtents.y);
 				UPlane4 = UPlane4.TransformBy(TransMat);
 				ClothPrimData.ConvexPlanes.Add(UPlane4);
 
-				FPlane UPlane5(0,0,1,Center.Z + BoxGeom.halfExtents.z);
+				FPlane UPlane5(0, 0, 1, Center.Z + BoxGeom.halfExtents.z);
 				UPlane5 = UPlane5.TransformBy(TransMat);
 				ClothPrimData.ConvexPlanes.Add(UPlane5);
 
-				FPlane UPlane6(0,0,-1,Center.Z - BoxGeom.halfExtents.z);
+				FPlane UPlane6(0, 0, -1, Center.Z - BoxGeom.halfExtents.z);
 				UPlane6 = UPlane6.TransformBy(TransMat);
 				ClothPrimData.ConvexPlanes.Add(UPlane6);
 
@@ -2604,7 +2557,7 @@ bool USkeletalMeshComponent::GetClothCollisionDataFromStaticMesh(UPrimitiveCompo
 
 				AllShapes[ShapeIdx]->getConvexMeshGeometry(ConvexGeom);
 
-				if(ConvexGeom.convexMesh)
+				if (ConvexGeom.convexMesh)
 				{
 					FClothCollisionPrimitive ClothPrimData;
 					ClothPrimData.Origin = Center;
@@ -2614,11 +2567,11 @@ bool USkeletalMeshComponent::GetClothCollisionDataFromStaticMesh(UPrimitiveCompo
 
 					ClothPrimData.ConvexPlanes.Empty(NumPoly);
 
-					for(uint32 Poly=0; Poly < NumPoly; Poly++)
+					for (uint32 Poly = 0; Poly < NumPoly; Poly++)
 					{
 						PxHullPolygon HullData;
-						ConvexGeom.convexMesh->getPolygonData(Poly, HullData);						
-						physx::PxPlane PPlane(HullData.mPlane[0],HullData.mPlane[1],HullData.mPlane[2],HullData.mPlane[3]);
+						ConvexGeom.convexMesh->getPolygonData(Poly, HullData);
+						physx::PxPlane PPlane(HullData.mPlane[0], HullData.mPlane[1], HullData.mPlane[2], HullData.mPlane[3]);
 						FPlane UPlane = P2UPlane(PPlane);
 						UPlane = UPlane.TransformBy(TransMat);
 						ClothPrimData.ConvexPlanes.Add(UPlane);
@@ -2631,7 +2584,10 @@ bool USkeletalMeshComponent::GetClothCollisionDataFromStaticMesh(UPrimitiveCompo
 			break;
 		}
 	}
-	return true;
+		bSuccess = true;
+	});
+
+	return bSuccess;
 }
 
 void USkeletalMeshComponent::FindClothCollisions(TArray<FApexClothCollisionVolumeData>& OutCollisions)
