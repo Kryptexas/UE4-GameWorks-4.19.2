@@ -87,7 +87,7 @@ When you first open up a new Interface, the editor looks like this:
 
 ![](InterfaceEditor.png)
 
-If you have just created your Interface, you'll see that the Editor has created a new blank Function for you named `NewFunction_0` and it will be highlighted for you to rename it.
+If you have just created your Interface, you will see that the Editor has created a new blank Function for you named `NewFunction_0` and it will be highlighted for you to rename it.
 
 ### Adding Functions
 
