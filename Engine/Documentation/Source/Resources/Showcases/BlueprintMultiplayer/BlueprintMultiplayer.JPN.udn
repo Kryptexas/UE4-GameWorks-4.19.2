@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2481595
+﻿INTSourceChangelist:2492264
 Availability:Public
 Title:マルチプレイヤー シュートアウト
 Crumbs:%ROOT%, Resources, Resources/Showcases
@@ -7,7 +7,7 @@ Related:Engine/Blueprints
 Related:Engine/UMG
 Related:Programming/Online
 Related:Programming/Online/Steam
-Related:Gameplay/Networking/Replication
+Related:Gameplay/Networking/Actors
 Related:Resources/ContentExamples/Networking
 
 
@@ -350,7 +350,7 @@ Loading Screen が表示されたら、スクリプトは **HostGameEvent** ノ�
 
 ![](Findgames1.png)
 
-**OnClicked** イベントは、 **MainMenu** Widget ブループリントの **[Designer]** タブ上の [Find games] ボタンとして割り当てた **ボタン** にここで結合されます。発行された時、ゲームインスタンスは **Cast to MyGameInstance** ブループリントとなることで、内部の **Show Server List Event** へのアクセスと呼び出しが可能になります。 
+**OnClicked** Event は、 **MainMenu** Widget ブループリントの **[Designer]** タブ上の [Find games] ボタンとして割り当てた **ボタン** にここで結合されます。発行された時、ゲームインスタンスは **Cast to MyGameInstance** ブループリントとなることで、内部の **Show Server List Event** へのアクセスと呼び出しが可能になります。 
 
 ![](Findgames2.png)
 
@@ -398,7 +398,7 @@ Loading Screen が表示されたら、スクリプトは **HostGameEvent** ノ�
 
 ![](Findgames8.png)
 
-**ServerRow** ウィジェットの **OnClicked** イベントは、ゲームインスタンスを受け取り **Cast To MyGameInstance** ノードを使って、その中の **Join from Server List Event** を呼び出します。**SearchResult** 変数が **MyGameInstance** ブループリントにもパスされて、プレイヤーはクリックしたサーバーへの参加の試みが可能になります。 
+**ServerRow** ウィジェットの **OnClicked** Event は、ゲームインスタンスを受け取り **Cast To MyGameInstance** ノードを使って、その中の **Join from Server List Event** を呼び出します。**SearchResult** 変数が **MyGameInstance** ブループリントにもパスされて、プレイヤーはクリックしたサーバーへの参加の試みが可能になります。 
 
 **MyGameInstance** ブループリント内の **JoinFromServerListEvent** (下図参照) は、呼び出されるとまず最初に **ShowLoadingScreen** カスタム イベントを実行します (説明は [ゲームをホストする](#ゲームをホストする) セクションを参照)。 
 
