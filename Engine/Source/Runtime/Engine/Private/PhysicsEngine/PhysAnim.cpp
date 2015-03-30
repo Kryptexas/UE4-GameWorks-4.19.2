@@ -194,11 +194,16 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 
 
 
-bool USkeletalMeshComponent::ShouldBlendPhysicsBones()
+bool USkeletalMeshComponent::ShouldBlendPhysicsBones() const
 {
-	for (int32 BodyIndex = 0; BodyIndex < Bodies.Num(); ++BodyIndex)
+	return Bodies.Num() > 0 && (DoAnyPhysicsBodiesHaveWeight() || bBlendPhysics);
+}
+
+bool USkeletalMeshComponent::DoAnyPhysicsBodiesHaveWeight() const
+{
+	for (const FBodyInstance* Body : Bodies)
 	{
-		if (Bodies[BodyIndex]->PhysicsBlendWeight > 0.f)
+		if (Body->PhysicsBlendWeight > 0.f)
 		{
 			return true;
 		}

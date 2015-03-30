@@ -3150,8 +3150,7 @@ void USkeletalMeshComponent::PreClothTick(float DeltaTime)
 	// and run this if that is true or rendered
 	// that will at least reduce the chance of mismatch
 	// generally if you move your actor position, this has to happen to approximately match their bounds
-	bool bShouldBlendPhys = ShouldBlendPhysicsBones() || bBlendPhysics;
-	if (bShouldBlendPhys)
+	if (ShouldBlendPhysicsBones())
 	{
 		if (IsRegistered())
 		{

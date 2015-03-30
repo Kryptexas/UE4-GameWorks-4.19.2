@@ -1168,7 +1168,9 @@ private:
 
 	void RenderAxisGizmo(const FTransform& Transform, class UCanvas* Canvas) const;
 
-	bool ShouldBlendPhysicsBones();	
+	bool ShouldBlendPhysicsBones() const;
+	bool DoAnyPhysicsBodiesHaveWeight() const;
+
 	void ClearAnimScriptInstance();
 	virtual void RefreshActiveVertexAnims() override;
 
