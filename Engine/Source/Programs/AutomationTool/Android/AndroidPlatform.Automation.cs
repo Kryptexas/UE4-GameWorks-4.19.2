@@ -576,6 +576,9 @@ public class AndroidPlatform : Platform
 
 			if (Params.IterativeDeploy)
 			{
+				// always send UE4CommandLine.txt (it was written above after delta checks applied)
+				EntriesToDeploy.Add(IntermediateCmdLineFile);
+
 				// Add non UFS files if any to deploy
 				String NonUFSManifestPath = SC.GetNonUFSDeploymentDeltaPath();
 				if (File.Exists(NonUFSManifestPath))
