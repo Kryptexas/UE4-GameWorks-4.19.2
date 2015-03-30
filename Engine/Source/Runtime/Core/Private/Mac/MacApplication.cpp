@@ -722,7 +722,7 @@ void FMacApplication::ProcessMouseMovedEvent(const FDeferredMacEvent& Event)
 		}
 	}
 
-	if (Event.Window.IsValid() && !DraggedWindow && !GetCapture())
+	if (Event.Window.IsValid() && EventWindow->GetWindowHandle() && !DraggedWindow && !GetCapture())
 	{
 		MessageHandler->OnCursorSet();
 	}
@@ -754,24 +754,23 @@ void FMacApplication::ProcessMouseDownEvent(const FDeferredMacEvent& Event)
 	{
 		if (Button == LastPressedMouseButton && (Event.ClickCount % 2) == 0)
 		{
-			MessageHandler->OnMouseDoubleClick(EventWindow, Button);
-
-			if (Event.Window.IsValid())
+			bool IsMouseOverTitleBar = false;
+			const bool IsMovable = IsWindowMovable(EventWindow.ToSharedRef(), &IsMouseOverTitleBar);
+			if (IsMouseOverTitleBar)
 			{
-				bool IsMouseOverTitleBar = false;
-				const bool IsMovable = IsWindowMovable(EventWindow.ToSharedRef(), &IsMouseOverTitleBar);
-				if (IsMouseOverTitleBar)
+				const bool bShouldMinimize = [[NSUserDefaults standardUserDefaults] boolForKey:@"AppleMiniaturizeOnDoubleClick"];
+				if (bShouldMinimize)
 				{
-					const bool bShouldMinimize = [[NSUserDefaults standardUserDefaults] boolForKey:@"AppleMiniaturizeOnDoubleClick"];
-					if (bShouldMinimize)
-					{
-						MainThreadCall(^{ [EventWindow->GetWindowHandle() performMiniaturize:nil]; }, NSDefaultRunLoopMode, true);
-					}
-					else if (!FPlatformMisc::IsRunningOnMavericks())
-					{
-						MainThreadCall(^{ [EventWindow->GetWindowHandle() zoom:nil]; }, NSDefaultRunLoopMode, true);
-					}
+					MainThreadCall(^{ [EventWindow->GetWindowHandle() performMiniaturize:nil]; }, NSDefaultRunLoopMode, true);
 				}
+				else if (!FPlatformMisc::IsRunningOnMavericks())
+				{
+					MainThreadCall(^{ [EventWindow->GetWindowHandle() zoom:nil]; }, NSDefaultRunLoopMode, true);
+				}
+			}
+			else
+			{
+				MessageHandler->OnMouseDoubleClick(EventWindow, Button);
 			}
 		}
 		else
@@ -779,7 +778,7 @@ void FMacApplication::ProcessMouseDownEvent(const FDeferredMacEvent& Event)
 			MessageHandler->OnMouseDown(EventWindow, Button);
 		}
 
-		if (EventWindow->GetWindowHandle() && !DraggedWindow && !GetCapture())
+		if (Event.Window.IsValid() && EventWindow->GetWindowHandle() && !DraggedWindow && !GetCapture())
 		{
 			MessageHandler->OnCursorSet();
 		}
@@ -840,7 +839,8 @@ void FMacApplication::ProcessScrollWheelEvent(const FDeferredMacEvent& Event)
 		MessageHandler->OnMouseWheel(DeltaY);
 	}
 
-	if (Event.Window.IsValid() && !DraggedWindow && !GetCapture())
+	TSharedPtr<FMacWindow> EventWindow = Event.Window.Pin();
+	if (Event.Window.IsValid() && EventWindow->GetWindowHandle() && !DraggedWindow && !GetCapture())
 	{
 		MessageHandler->OnCursorSet();
 	}
