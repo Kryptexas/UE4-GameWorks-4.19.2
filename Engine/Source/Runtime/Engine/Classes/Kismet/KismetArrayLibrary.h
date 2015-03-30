@@ -177,11 +177,11 @@ class ENGINE_API UKismetArrayLibrary : public UBlueprintFunctionLibrary
 	static bool GenericArray_RemoveItem(void* TargetArray, const UArrayProperty* ArrayProp, const void* Item);
 	static void GenericArray_Clear(void* TargetArray, const UArrayProperty* ArrayProp);
 	static void GenericArray_Resize(void* TargetArray, const UArrayProperty* ArrayProp, int32 Size);
-	static int32 GenericArray_Length(void* TargetArray, const UArrayProperty* ArrayProp);
-	static int32 GenericArray_LastIndex(void* TargetArray, const UArrayProperty* ArrayProp);
+	static int32 GenericArray_Length(const void* TargetArray, const UArrayProperty* ArrayProp);
+	static int32 GenericArray_LastIndex(const void* TargetArray, const UArrayProperty* ArrayProp);
 	static void GenericArray_Get(void* TargetArray, const UArrayProperty* ArrayProp, int32 Index, void* Item);
 	static void GenericArray_Set(void* TargetArray, const UArrayProperty* ArrayProp, int32 Index, const void* NewItem, bool bSizeToFit);
-	static int32 GenericArray_Find(void* TargetArray, const UArrayProperty* ArrayProperty, const void* ItemToFind);
+	static int32 GenericArray_Find(const void* TargetArray, const UArrayProperty* ArrayProperty, const void* ItemToFind);
 	static void GenericArray_SetArrayPropertyByName(UObject* OwnerObject, FName ArrayPropertyName, const void* SrcArrayAddr);
 
 private:
