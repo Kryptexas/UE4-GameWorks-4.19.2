@@ -12,18 +12,18 @@
 
 struct FObjectCullVertexOutput
 {
-	float4 Position : SV_POSITION;
 	nointerpolation float4 PositionAndRadius : TEXCOORD0;
 	nointerpolation uint ObjectIndex : TEXCOORD1;
 };
-
+ 
 float ConservativeRadiusScale;
 
 /** Used when culling objects into screenspace tile lists */
 void ObjectCullVS(
 	float4 InPosition : ATTRIBUTE0,
 	uint ObjectIndex : SV_InstanceID,
-	out FObjectCullVertexOutput Output
+	out FObjectCullVertexOutput Output,
+	out float4 OutPosition : SV_POSITION
 	)
 {
 	//@todo - implement ConservativelyBoundSphere
@@ -31,7 +31,7 @@ void ObjectCullVS(
 	//@todo - expand to handle conservative rasterization
 	float EffectiveRadius = (ObjectPositionAndRadius.w + AOMaxDistance) * ConservativeRadiusScale;
 	float3 WorldPosition = InPosition.xyz * EffectiveRadius + ObjectPositionAndRadius.xyz;
-	Output.Position = mul(float4(WorldPosition, 1), View.WorldToClip);
+	OutPosition = mul(float4(WorldPosition, 1), View.WorldToClip);
 	Output.PositionAndRadius = ObjectPositionAndRadius;
 	Output.ObjectIndex = ObjectIndex;
 } 
@@ -48,7 +48,7 @@ float2 NumGroups;
 void ObjectCullPS(
 	FObjectCullVertexOutput Input, 
 	in float4 SVPos : SV_POSITION,
-	out float4 OutColor : COLOR0)
+	out float4 OutColor : SV_Target0)
 {
 	OutColor = 0;
 	
@@ -86,7 +86,7 @@ void ObjectCullPS(
 	if (SmallestGroupIndex >= 0)
 	{
 		uint ArrayIndex;
-		InterlockedAdd(RWTileHeadDataUnpacked[TileIndex * 4 + 1 + SmallestGroupIndex], 1U, ArrayIndex);
+		InterlockedAdd(RWTileHeadDataUnpacked[TileIndex * 4 + 1 + (uint)SmallestGroupIndex], 1U, ArrayIndex);
 
 		if (ArrayIndex < MAX_OBJECTS_PER_TILE)
 		{
@@ -131,7 +131,7 @@ void ComputeDistanceFieldNormalCS(
 void WriteDownsampledDepthPS(
 	in float4 UVAndScreenPos : TEXCOORD0, 
 	out float4 OutColor : SV_Target0,
-	out float OutDepth : SV_Depth)
+	out float OutDepth : SV_DEPTH)
 {
 	float2 DistanceFieldUVs = UVAndScreenPos.xy;
 
@@ -150,7 +150,6 @@ void WriteDownsampledDepthPS(
 
 struct FIrradianceCacheSplatVertexOutput
 {
-	float4 Position : SV_POSITION;
 	nointerpolation float4 PositionRadius : TEXCOORD0;
 	nointerpolation float4 NormalAndFade : TEXCOORD1;
 #if FINAL_INTERPOLATION_PASS
@@ -178,21 +177,26 @@ void IrradianceCacheSplatVS(
 	float2 InPosition : ATTRIBUTE0,
 	float2 InUV       : ATTRIBUTE1,
 	uint JobIndex : SV_InstanceID,
-	out FIrradianceCacheSplatVertexOutput Output
+	out FIrradianceCacheSplatVertexOutput Output,
+	out float4 OutPosition : SV_POSITION
 	)
 {
-	float4 PositionAndRadius = IrradianceCachePositionRadius.Load(JobIndex);
-	float OccluderRadius = IrradianceCacheOccluderRadius.Load(JobIndex);
-	PositionAndRadius.w = min(abs(PositionAndRadius.w), OccluderRadius);
+	float4 PositionAndPackedRadius = IrradianceCachePositionRadius[JobIndex];
 
-	float ViewToCenterLength = length(PositionAndRadius.xyz - View.ViewOrigin.xyz);
-	float3 NormalizedViewToCenter = (PositionAndRadius.xyz - View.ViewOrigin.xyz) / ViewToCenterLength;
+	float3 RecordPosition = PositionAndPackedRadius.xyz;
+	float RecordRadius = abs(PositionAndPackedRadius.w);
+
+	float OccluderRadius = IrradianceCacheOccluderRadius[JobIndex];
+	RecordRadius = min(RecordRadius, OccluderRadius);
+
+	float ViewToCenterLength = length(RecordPosition - View.ViewOrigin.xyz);
+	float3 NormalizedViewToCenter = (RecordPosition - View.ViewOrigin.xyz) / ViewToCenterLength;
 
 	// Only allow full interpolation expanding for small samples, it won't be noticeable for large samples but adds a lot of splatting cost
-	float EffectiveInterpolationRadiusScale = lerp(InterpolationRadiusScale, 1, max(saturate(PositionAndRadius.w / 80), .2f));
-	PositionAndRadius.w = max(PositionAndRadius.w, ViewToCenterLength * .01f) * EffectiveInterpolationRadiusScale;
+	float EffectiveInterpolationRadiusScale = lerp(InterpolationRadiusScale, 1, max(saturate(RecordRadius / 80), .2f));
+	RecordRadius = max(RecordRadius, ViewToCenterLength * .01f) * EffectiveInterpolationRadiusScale;
 
-	float OffsetFromCenter = InterpolationBoundingDirection * PositionAndRadius.w;
+	float OffsetFromCenter = InterpolationBoundingDirection * RecordRadius;
 	// Distance from the camera position that NormalizedViewToCenter will intersect the near plane
 	float NearPlaneDistance = View.NearPlane / dot(View.ViewForward, NormalizedViewToCenter);
 
@@ -205,43 +209,60 @@ void IrradianceCacheSplatVS(
 	}
 
 	// Construct a virtual sample position that won't be near plane clipped and will have a positive z after projection
-	float3 VirtualPosition = PositionAndRadius.xyz + OffsetFromCenter * NormalizedViewToCenter;
+	float3 VirtualPosition = RecordPosition + OffsetFromCenter * NormalizedViewToCenter;
 	// Clipping the edge of the circle a bit can save perf, but introduces artifacts in the interpolation
 	float RadiusSlack = 1.0f;
 	// Compute new radius since we moved the center away from the camera, approximate as similar triangles
 	// This is really incorrect because it's not taking into account perspective correction on a sphere - the widest part in screenspace is not at the world space center
-	float VirtualRadius = RadiusSlack * PositionAndRadius.w * (ViewToCenterLength + OffsetFromCenter) / ViewToCenterLength;
+	float VirtualRadius = RadiusSlack * RecordRadius * (ViewToCenterLength + OffsetFromCenter) / ViewToCenterLength;
 
 #if !FINAL_INTERPOLATION_PASS
 	// Combat the mysterious bug where samples from last frame do not cover this frame's pixel even with no camera movement, seems to be a precision issue
 	VirtualRadius += HackExpand * ViewToCenterLength * 4;
 #endif
 
-	float3 RecordNormal = IrradianceCacheNormal.Load(JobIndex).xyz;
+	float4 RecordNormalAndFade = IrradianceCacheNormal[JobIndex];
 
 	float2 CornerUVs = InUV;
 	float3 CornerPosition = VirtualPosition + (View.ViewRight * CornerUVs.x + View.ViewUp * CornerUVs.y) * VirtualRadius;
 
-	Output.Position = mul(float4(CornerPosition.xyz, 1), View.WorldToClip);
+	OutPosition = mul(float4(CornerPosition.xyz, 1), View.WorldToClip);
 
 #if USE_SCREENVECTOR_WORLD_POSITION
-	Output.ScreenVector = mul(float4(Output.Position.xy / Output.Position.w, 1, 0), View.ScreenToWorld).xyz;
+	Output.ScreenVector = mul(float4(OutPosition.xy / OutPosition.w, 1, 0), View.ScreenToWorld).xyz;
 #endif
 
 	// Move the vertex over to compensate for the difference between the low res pixel center and the high res pixel center where shading is done
-	Output.Position.xy += NormalizedOffsetToPixelCenter * Output.Position.w;
+	OutPosition.xy += NormalizedOffsetToPixelCenter * OutPosition.w;
 
-	Output.PositionRadius = PositionAndRadius; 
+	Output.PositionRadius = float4(RecordPosition, RecordRadius); 
 
+#if FADE_RECORDS_OVER_TIME
+	float Fade = 1 - (abs(RecordNormalAndFade.w) - 1);
+	/*
+	FLATTEN
+	if (PositionAndPackedRadius.w < 0)
+	{
+		// Fading out
+		Fade = 1 - Fade;
+	}
+	else
+	{
+		Fade = max(Fade, .001f);
+	}
+	*/
+#else
 	float Fade = 1;
-	Output.NormalAndFade = float4(RecordNormal, Fade);
+#endif
+
+	Output.NormalAndFade = float4(RecordNormalAndFade.xyz, Fade);
 
 #if FINAL_INTERPOLATION_PASS
-	Output.BentNormal = IrradianceCacheBentNormal.Load(JobIndex).xyz;
+	Output.BentNormal = IrradianceCacheBentNormal[JobIndex].xyz;
 	#if SUPPORT_IRRADIANCE
-		float ViewDistance = length(View.ViewOrigin.xyz - PositionAndRadius.xyz);
+		float ViewDistance = length(View.ViewOrigin.xyz - RecordPosition);
 		float FadeAlpha = saturate(.001f * (.95f * AOMaxViewDistance - ViewDistance));
-		Output.Irradiance = IrradianceCacheIrradiance.Load(JobIndex).xyz * FadeAlpha;
+		Output.Irradiance = IrradianceCacheIrradiance[JobIndex].xyz * FadeAlpha;
 	#endif
 #endif
 } 
@@ -253,9 +274,9 @@ float InvMinCosPointBehindPlane;
 void IrradianceCacheSplatPS(
 	FIrradianceCacheSplatVertexOutput Input, 
 	in float4 SVPos : SV_POSITION
-	, out float4 OutBentNormal : COLOR0
+	,out float4 OutBentNormal : SV_Target0
 #if FINAL_INTERPOLATION_PASS && SUPPORT_IRRADIANCE
-	, out float4 OutIrradiance : COLOR1
+	, out float4 OutIrradiance : SV_Target1
 #endif
 	)
 {
@@ -500,6 +521,7 @@ SamplerState BentNormalHistorySampler;
 Texture2D IrradianceHistoryTexture;
 SamplerState IrradianceHistorySampler;
 float HistoryWeight;
+float HistoryDistanceThreshold;
 
 Texture2D VelocityTexture;
 SamplerState VelocityTextureSampler;
@@ -573,7 +595,7 @@ void UpdateHistoryPS(
 	if (any(OldUV > MaxUV) 
 		|| any(OldUV < MinUV)
 		// Discard history if we are shading a new position (newly revealed)
-		|| length(PrevWorldPosition - WorldPosition) > 100)
+		|| length(PrevWorldPosition - WorldPosition) > HistoryDistanceThreshold)
 	{
 		EffectiveHistoryWeight = 0;
 	}
@@ -743,6 +765,7 @@ void AOUpsamplePS(
 
 #if OUTPUT_AO
 	OutBentNormal = float4(length(BentNormal).xxx, 1);
+	//OutBentNormal = float4(BentNormal, 1);
 #else
 	#if OUTPUT_BENT_NORMAL
 		OutBentNormal = float4(BentNormal, 1);

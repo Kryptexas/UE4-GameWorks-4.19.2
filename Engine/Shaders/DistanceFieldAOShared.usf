@@ -30,6 +30,8 @@ float AOMaxViewDistance;
 
 #define NUM_CULLED_OBJECT_LISTS 3
 
+#define FADE_RECORDS_OVER_TIME 0
+
 void GetPhaseParameters(uint Phase, out uint StartIndex, out uint EndIndex)
 {
 	if (Phase == 0)
@@ -97,10 +99,10 @@ void GetDownsampledGBuffer(float2 ScreenUV, out float3 OutNormal, out float OutD
 	OutNormal.z *= abs(TextureValue.z) > .75f ? -1 : 1;
 }
 
-int CurrentLevelDownsampleFactor;
+uint CurrentLevelDownsampleFactor;
 float2 AOBufferSize;
 
-int DownsampleFactorToBaseLevel;
+uint DownsampleFactorToBaseLevel;
 float2 BaseLevelTexelSize;
 
 bool SphereIntersectCone(float4 SphereCenterAndRadius, float3 ConeVertex, float3 ConeAxis, float ConeAngleCos, float ConeAngleSin)

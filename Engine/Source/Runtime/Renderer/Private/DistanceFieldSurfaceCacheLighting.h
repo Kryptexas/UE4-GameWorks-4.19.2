@@ -212,7 +212,7 @@ private:
 
 inline bool DoesPlatformSupportDistanceFieldAO(EShaderPlatform Platform)
 {
-	return Platform == SP_PCD3D_SM5;
+	return Platform == SP_PCD3D_SM5 || Platform == SP_PS4;
 }
 
 template<bool bOneGroupPerRecord>

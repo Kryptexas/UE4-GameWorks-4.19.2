@@ -200,7 +200,7 @@ float4x4 LoadObjectLocalToWorld(uint ObjectIndex)
 // x = Offset in global buffer, y = NumLOD0, z = NumSurfels (all LODs), W = instance index
 uint4 LoadObjectSurfelCoordinate(uint ObjectIndex)
 {
-	return CulledObjectData.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 15);
+	return (uint4)CulledObjectData.Load(ObjectIndex * CULLED_OBJECT_DATA_STRIDE + 15);
 }
 
 void LoadObjectViewSpaceBox(uint ObjectIndex, out float3 ObjectViewSpaceMin, out float3 ObjectViewSpaceMax)

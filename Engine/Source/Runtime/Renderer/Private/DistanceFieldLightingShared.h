@@ -21,6 +21,18 @@ extern uint32 UpdateObjectsGroupSize;
 
 extern int32 GDistanceFieldGI;
 
+inline bool DoesPlatformSupportDistanceFieldGI(EShaderPlatform Platform)
+{
+	return Platform == SP_PCD3D_SM5;
+}
+
+inline bool SupportsDistanceFieldGI(ERHIFeatureLevel::Type FeatureLevel, EShaderPlatform ShaderPlatform)
+{
+	return GDistanceFieldGI 
+		&& FeatureLevel >= ERHIFeatureLevel::SM5
+		&& DoesPlatformSupportDistanceFieldGI(ShaderPlatform);
+}
+
 extern FIntPoint GetBufferSizeForAO();
 
 class FDistanceFieldObjectBuffers
@@ -382,7 +394,7 @@ public:
 		if (MaxElements > 0 && Stride > 0)
 		{
 			FRHIResourceCreateInfo CreateInfo;
-			Buffer = RHICreateVertexBuffer(MaxElements * Stride * GPixelFormats[Format].BlockBytes, BUF_Volatile | BUF_ShaderResource, CreateInfo);
+			Buffer = RHICreateVertexBuffer(MaxElements * Stride * GPixelFormats[Format].BlockBytes, BUF_Dynamic | BUF_ShaderResource, CreateInfo);
 			BufferSRV = RHICreateShaderResourceView(Buffer, GPixelFormats[Format].BlockBytes, Format);
 		}
 	}

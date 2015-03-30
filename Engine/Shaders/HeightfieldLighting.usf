@@ -29,11 +29,11 @@ Buffer<float4> HeightfieldDescriptions;
 
 float4 GetHeightfieldScaleBias(uint Index, out bool bHasSubsections)
 {
-	float4 Vector = HeightfieldDescriptions[Index * HEIGHTFIELD_DATA_STRIDE + 0];
+	float4 HeightfieldVector = HeightfieldDescriptions[Index * HEIGHTFIELD_DATA_STRIDE + 0];
 	// Sign bit stored presence of subsections
-	bHasSubsections = Vector.x < 0;
-	Vector.x = abs(Vector.x);
-	return Vector;
+	bHasSubsections = HeightfieldVector.x < 0;
+	HeightfieldVector.x = abs(HeightfieldVector.x);
+	return HeightfieldVector;
 }
 
 float4 GetHeightfieldMinMaxUV(uint Index)
@@ -452,16 +452,15 @@ void CalculateHeightfieldOcclusionCS(
 	uint NumRecords = ScatterDrawParameters[1];
 	uint RecordIndex = StartIndex + DispatchThreadId.x;
 
-	float4 PositionAndRadius = IrradianceCachePositionRadius[RecordIndex];
+	float3 WorldPosition = IrradianceCachePositionRadius[RecordIndex].xyz;
 	float4 WorldNormalAndHasHeightfieldRepresentation = IrradianceCacheNormal[RecordIndex];
 
 	// Only compute heightfield occlusion contribution for samples created on a distance field, 
 	// Otherwise we are potentially self-shadowing, the heightfield is not accurate enough for that
 	BRANCH
-	if (RecordIndex < NumRecords && WorldNormalAndHasHeightfieldRepresentation.w == 0)
+	if (RecordIndex < NumRecords && WorldNormalAndHasHeightfieldRepresentation.w < 0)
 	{
 		float3 WorldNormal = WorldNormalAndHasHeightfieldRepresentation.xyz;
-		float3 WorldPosition = PositionAndRadius.xyz;
 
 		float3 TangentX;
 		float3 TangentY;
@@ -670,14 +669,12 @@ void CalculateHeightfieldIrradianceCS(
 	uint RelativeRecordIndex = GroupId.x;
 	uint ThreadIndex = GroupThreadId.x;
 
-	float4 PositionAndRadius = IrradianceCachePositionRadius[RecordIndex];
+	float3 WorldPosition = IrradianceCachePositionRadius[RecordIndex].xyz;
 	float3 Lighting = 0;
 	
 	BRANCH
 	if (RecordIndex < NumRecords)
 	{
-		float3 WorldPosition = PositionAndRadius.xyz;
-
 		//@todo - constant time grid lookup
 		LOOP
 		for (uint HeightfieldIndex = 0; HeightfieldIndex < NumHeightfields; HeightfieldIndex++)

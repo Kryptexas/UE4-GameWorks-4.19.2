@@ -207,7 +207,7 @@ void VPLPlacementCS(
 				float3 IntersectionNormal = ComputeDistanceFieldNormal(IntersectionPosition, ObjectIndex);
 
 				uint VPLArrayStartIndex;
-				InterlockedAdd(RWVPLParameterBuffer[1], 1, VPLArrayStartIndex);
+				InterlockedAdd(RWVPLParameterBuffer[1], 1U, VPLArrayStartIndex);
 
 				float3 DiffuseColor = .5f;
 				float CellExtent = VPLPlacementCameraRadius * InvPlacementGridSize.x;
@@ -277,7 +277,7 @@ void CullVPLsForViewCS(
 			&& ViewFrustumIntersectSphere(BoundingSphere.xyz, BoundingSphere.w + AOMaxDistance))
 		{
 			uint DestStartVPLIndex;
-			InterlockedAdd(RWCulledVPLParameterBuffer[1], 1, DestStartVPLIndex);
+			InterlockedAdd(RWCulledVPLParameterBuffer[1], 1U, DestStartVPLIndex);
 
 			uint DestIndex = DestStartVPLIndex * VPL_DATA_STRIDE;
 			RWCulledVPLData[DestIndex + 0] = BoundingSphere;
@@ -994,9 +994,7 @@ void ComputeIrradianceCS(
 	if (RecordIndex < NumRecords)
 	{
 		float3 RecordWorldNormal = IrradianceCacheNormal[RecordIndex].xyz;
-
-		float4 PositionAndRadius = IrradianceCachePositionRadius[RecordIndex];
-		float3 RecordWorldPosition = PositionAndRadius.xyz;
+		float3 RecordWorldPosition = IrradianceCachePositionRadius[RecordIndex].xyz;
 		Irradiance = GatherIrradianceFromVPLs(RecordWorldPosition, RecordWorldNormal, RelativeRecordIndex, RecordIndex, ThreadIndex);
 	}
 

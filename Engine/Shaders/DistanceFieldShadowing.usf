@@ -128,7 +128,7 @@ void CullObjectsForShadowCS(
 			|| ShadowBoundingSphere.w > 0 && dot(ShadowBoundingSphere.xyz - ObjectBoundingSphere.xyz, ShadowBoundingSphere.xyz - ObjectBoundingSphere.xyz) < Square(ShadowBoundingSphere.w + ObjectBoundingSphere.w))
 		{
 			uint DestIndex;
-			InterlockedAdd(RWObjectIndirectArguments[1], 1, DestIndex);
+			InterlockedAdd(RWObjectIndirectArguments[1], 1U, DestIndex);
 			CopyCulledObjectData(DestIndex, SourceIndex);
 		}
 	}
@@ -179,7 +179,6 @@ void ClearTilesCS(
 
 struct FShadowObjectCullVertexOutput
 {
-	float4 Position : SV_POSITION;
 	nointerpolation float4 PositionAndRadius : TEXCOORD0;
 	nointerpolation uint ObjectIndex : TEXCOORD1;
 };
@@ -191,7 +190,8 @@ float MinRadius;
 void ShadowObjectCullVS(
 	float4 InPosition : ATTRIBUTE0,
 	uint ObjectIndex : SV_InstanceID,
-	out FShadowObjectCullVertexOutput Output
+	out FShadowObjectCullVertexOutput Output,
+	out float4 OutPosition : SV_POSITION
 	)
 {
 	float4 ObjectPositionAndRadius = LoadObjectPositionAndRadius(ObjectIndex);
@@ -199,7 +199,7 @@ void ShadowObjectCullVS(
 	// MinRadius is for conservative rasterization
 	float EffectiveRadius = (ObjectPositionAndRadius.w + MinRadius) * ConservativeRadiusScale;
 	float3 WorldPosition = InPosition.xyz * EffectiveRadius + ObjectPositionAndRadius.xyz;
-	Output.Position = mul(float4(WorldPosition, 1), WorldToShadow);
+	OutPosition = mul(float4(WorldPosition, 1), WorldToShadow);
 	Output.PositionAndRadius = ObjectPositionAndRadius;
 	Output.ObjectIndex = ObjectIndex;
 } 
@@ -208,7 +208,7 @@ void ShadowObjectCullVS(
 void ShadowObjectCullPS(
 	FShadowObjectCullVertexOutput Input, 
 	in float4 SVPos : SV_POSITION,
-	out float4 OutColor : COLOR0)
+	out float4 OutColor : SV_Target0)
 {
 	OutColor = 0;
 	

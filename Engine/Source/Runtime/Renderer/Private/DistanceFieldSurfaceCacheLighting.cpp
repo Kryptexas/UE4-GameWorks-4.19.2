@@ -30,7 +30,8 @@ FAutoConsoleVariableRef CVarDistanceFieldAO(
 
 bool IsDistanceFieldGIAllowed(const FViewInfo& View)
 {
-	return View.Family->EngineShowFlags.VisualizeDistanceFieldGI || (View.Family->EngineShowFlags.DistanceFieldGI && GDistanceFieldGI && View.Family->EngineShowFlags.GlobalIllumination);
+	return DoesPlatformSupportDistanceFieldGI(View.GetShaderPlatform())
+		&& (View.Family->EngineShowFlags.VisualizeDistanceFieldGI || (View.Family->EngineShowFlags.DistanceFieldGI && GDistanceFieldGI && View.Family->EngineShowFlags.GlobalIllumination));
 }
 
 int32 GAOPowerOfTwoBetweenLevels = 2;
@@ -98,6 +99,14 @@ FAutoConsoleVariableRef CVarAOHistoryWeight(
 	TEXT("r.AOHistoryWeight"),
 	GAOHistoryWeight,
 	TEXT("Amount of last frame's AO to lerp into the final result.  Higher values increase stability, lower values have less streaking under occluder movement."),
+	ECVF_Cheat | ECVF_RenderThreadSafe
+	);
+
+float GAOHistoryDistanceThreshold = 20;
+FAutoConsoleVariableRef CVarAOHistoryDistanceThreshold(
+	TEXT("r.AOHistoryDistanceThreshold"),
+	GAOHistoryDistanceThreshold,
+	TEXT("World space distance threshold needed to discard last frame's DFAO results.  Lower values reduce ghosting from characters when near a wall but increase flickering artifacts."),
 	ECVF_Cheat | ECVF_RenderThreadSafe
 	);
 
@@ -1094,6 +1103,7 @@ public:
 	{
 		DrawParameters.Bind(Initializer.ParameterMap, TEXT("DrawParameters"));
 		DispatchParameters.Bind(Initializer.ParameterMap, TEXT("DispatchParameters"));
+		ScatterDrawParameters.Bind(Initializer.ParameterMap, TEXT("ScatterDrawParameters")); 
 		TrimFraction.Bind(Initializer.ParameterMap, TEXT("TrimFraction"));
 	}
 
@@ -1112,12 +1122,15 @@ public:
 		SetSRVParameter(RHICmdList, ShaderRHI, DrawParameters, SurfaceCacheResources.Level[DepthLevel]->ScatterDrawParameters.SRV);
 
 		DispatchParameters.SetBuffer(RHICmdList, ShaderRHI, SurfaceCacheResources.DispatchParameters);
+		ScatterDrawParameters.SetBuffer(RHICmdList, ShaderRHI, SurfaceCacheResources.TempResources->ScatterDrawParameters);
+
 		SetShaderValue(RHICmdList, ShaderRHI, TrimFraction, GAOTrimOldRecordsFraction);
 	}
 
 	void UnsetParameters(FRHICommandList& RHICmdList)
 	{
 		DispatchParameters.UnsetUAV(RHICmdList, GetComputeShader());
+		ScatterDrawParameters.UnsetUAV(RHICmdList, GetComputeShader());
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -1125,6 +1138,7 @@ public:
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << DrawParameters;
 		Ar << DispatchParameters;
+		Ar << ScatterDrawParameters;
 		Ar << TrimFraction;
 		return bShaderHasOutdatedParameters;
 	}
@@ -1133,6 +1147,7 @@ private:
 
 	FShaderResourceParameter DrawParameters;
 	FRWShaderParameter DispatchParameters;
+	FRWShaderParameter ScatterDrawParameters;
 	FShaderParameter TrimFraction;
 };
 
@@ -2335,6 +2350,7 @@ public:
 		IrradianceHistorySampler.Bind(Initializer.ParameterMap, TEXT("IrradianceHistorySampler"));
 		CameraMotion.Bind(Initializer.ParameterMap);
 		HistoryWeight.Bind(Initializer.ParameterMap, TEXT("HistoryWeight"));
+		HistoryDistanceThreshold.Bind(Initializer.ParameterMap, TEXT("HistoryDistanceThreshold"));
 		VelocityTexture.Bind(Initializer.ParameterMap, TEXT("VelocityTexture"));
 		VelocityTextureSampler.Bind(Initializer.ParameterMap, TEXT("VelocityTextureSampler"));
 	}
@@ -2398,6 +2414,7 @@ public:
 		CameraMotion.Set(RHICmdList, View, ShaderRHI);
 
 		SetShaderValue(RHICmdList, ShaderRHI, HistoryWeight, GAOHistoryWeight);
+		SetShaderValue(RHICmdList, ShaderRHI, HistoryDistanceThreshold, GAOHistoryDistanceThreshold);
 
 		SetTextureParameter(
 			RHICmdList,
@@ -2423,6 +2440,7 @@ public:
 		Ar << IrradianceHistorySampler;
 		Ar << CameraMotion;
 		Ar << HistoryWeight;
+		Ar << HistoryDistanceThreshold;
 		Ar << VelocityTexture;
 		Ar << VelocityTextureSampler;
 		return bShaderHasOutdatedParameters;
@@ -2441,6 +2459,7 @@ private:
 	FShaderResourceParameter IrradianceHistorySampler;
 	FCameraMotionParameters CameraMotion;
 	FShaderParameter HistoryWeight;
+	FShaderParameter HistoryDistanceThreshold;
 	FShaderResourceParameter VelocityTexture;
 	FShaderResourceParameter VelocityTextureSampler;
 };
