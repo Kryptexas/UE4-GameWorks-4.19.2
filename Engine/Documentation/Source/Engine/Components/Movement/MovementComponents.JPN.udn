@@ -1,8 +1,7 @@
-﻿INTSourceChangelist:2460163
-Availability:Public
+﻿Availability:Public
 Title:移動コンポーネント
 Crumbs:%ROOT%, Engine, Engine/Components
-Description:キャラクターやプロジェクタイル (発射物) に関係なく移動では、Movement コンポーネントを使用します。 
+Description:キャラクターや発射物に関係なく移動では、Movement コンポーネントを使用します。 
 Related:Gameplay/Framework/Pawn/Character
 Related:Engine/Animation
 Related:Engine/Blueprints/UserGuide/Components
