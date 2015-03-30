@@ -186,6 +186,17 @@ public:
 						);
 				}
 			}
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+			{
+				if (VisibilityMap & (1 << ViewIndex))
+				{
+					const FSceneView* View = Views[ViewIndex];
+					RenderBounds(Collector.GetPDI(ViewIndex), View->Family->EngineShowFlags, GetBounds(), IsSelected());
+				}
+			}
+#endif
 		}
 	}
 
