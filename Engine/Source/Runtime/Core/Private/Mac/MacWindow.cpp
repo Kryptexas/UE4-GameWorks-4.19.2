@@ -68,7 +68,7 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 		{
 			WindowStyle |= NSMiniaturizableWindowMask;
 		}
-		if( Definition->SupportsMaximize )
+		if( Definition->SupportsMaximize || Definition->HasSizingFrame )
 		{
 			WindowStyle |= NSResizableWindowMask;
 		}
