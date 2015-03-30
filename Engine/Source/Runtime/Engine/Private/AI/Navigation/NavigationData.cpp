@@ -109,7 +109,7 @@ ANavigationData::ANavigationData(const FObjectInitializer& ObjectInitializer)
 	, NavDataUniqueID(GetNextUniqueID())
 {
 	PrimaryActorTick.bCanEverTick = true;
-	bNetLoadOnClient = false;
+	bNetLoadOnClient = (HasAnyFlags(RF_ClassDefaultObject) == false) && (*GEngine->NavigationSystemClass != nullptr) && (GEngine->NavigationSystemClass->GetDefaultObject<UNavigationSystem>()->ShouldLoadNavigationOnClient());
 	bCanBeDamaged = false;
 	DefaultQueryFilter = MakeShareable(new FNavigationQueryFilter());
 	ObservedPathsTickInterval = 0.5;

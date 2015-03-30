@@ -2000,7 +2000,8 @@ UNavigationSystem* UNavigationSystem::CreateNavigationSystem(UWorld* WorldOwner)
 
 #if WITH_SERVER_CODE || WITH_EDITOR
 	// create navigation system for editor and server targets, but remove it from game clients
-	if (WorldOwner && (WorldOwner->GetNetMode() != NM_Client) && (*GEngine->NavigationSystemClass != nullptr))
+	if (WorldOwner && (*GEngine->NavigationSystemClass != nullptr) 
+		&& (GEngine->NavigationSystemClass->GetDefaultObject<UNavigationSystem>()->bAllowClientSizeNavigation_Experimental || WorldOwner->GetNetMode() != NM_Client))
 	{
 		AWorldSettings* WorldSettings = WorldOwner->GetWorldSettings();
 		if (WorldSettings == NULL || WorldSettings->bEnableNavigationSystem)
