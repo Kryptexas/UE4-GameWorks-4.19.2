@@ -1,8 +1,9 @@
-﻿SourceChangelist:2080398
+﻿INTSourceChangelist:2374181
 Availability:Public
 Title:ゲームプレイ タイマー
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Functions
 Description:指定したインターバルで実行アクションを作成するタイマー
+Version:4.5
 
 [EXCERPT:Overview]
 タイマーを使用して、指定したインターバルでアクションを一度もしくは繰り返し実行することができます。タイマーは 
@@ -20,8 +21,8 @@ Description:指定したインターバルで実行アクションを作成す�
 タイマーデリゲート内のこれらの関数を使用しても問題は起きません。つまり、タイマーデリゲート内の 
 タイマーを設定もしくはクリアしても問題ありません。
 
-AActor::GetWorldTimerManager() を使って、現在のワールドのタイム マネージャ インスタンスにアクセスします。 
-
+AActor::GetWorldTimerManager() を使って、 
+現在のワールドのタイム マネージャ インスタンスにアクセスします。
 
 ### タイマーの作成とクリア
 
