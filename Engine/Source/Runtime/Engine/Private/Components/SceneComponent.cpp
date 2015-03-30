@@ -1639,10 +1639,8 @@ void USceneComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps
 	}
 }
 
-
-bool USceneComponent::MoveComponent( const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit, EMoveComponentFlags MoveFlags )
+bool USceneComponent::CheckStaticMobilityAndWarn(const FText& ActionText) const
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	// make sure mobility is movable, otherwise you shouldn't try to move
 	if (Mobility != EComponentMobility::Movable)
 	{
@@ -1653,13 +1651,30 @@ bool USceneComponent::MoveComponent( const FVector& Delta, const FRotator& NewRo
 			// It's only a problem if we're in gameplay, and the owning level is visible
 			if (World->HasBegunPlay() && IsRegistered() && Level && Level->bIsVisible)
 			{
-				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidMove", "Mobility of {0} : {1} has to be 'Movable' if you'd like to move. "),
-					FText::FromString(GetNameSafe(GetOwner())), FText::FromString(GetName())));
-				return false;
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidMove", "Mobility of {0} : {1} has to be 'Movable' if you'd like to {2}. "),
+					FText::FromString(GetNameSafe(GetOwner())), FText::FromString(GetName()), ActionText));
+#endif
+				return true;
 			}
 		}
 	}
-#endif
+
+	return false;
+}
+
+bool USceneComponent::MoveComponent( const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit, EMoveComponentFlags MoveFlags )
+{
+	// static things can move before they are registered (e.g. immediately after streaming), but not after.
+	static const FText WarnText = LOCTEXT("InvalidMove", "move");
+	if (CheckStaticMobilityAndWarn(WarnText))
+	{
+		if (OutHit)
+		{
+			*OutHit = FHitResult();
+		}
+		return false;
+	}
 
 	// Fill in optional output param. SceneComponent doesn't sweep, so this is just an empty result.
 	if (OutHit)

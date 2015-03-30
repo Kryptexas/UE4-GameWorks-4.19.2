@@ -541,6 +541,9 @@ protected:
 
 	virtual void OnUpdateTransform(bool bSkipPhysicsMove);
 
+	/** Check if mobility is set to non-static. If it's static we trigger a PIE warning and return true*/
+	bool CheckStaticMobilityAndWarn(const FText& ActionText) const;
+
 private:
 
 	void PropagateTransformUpdate(bool bTransformChanged, bool bSkipPhysicsMove = false);
