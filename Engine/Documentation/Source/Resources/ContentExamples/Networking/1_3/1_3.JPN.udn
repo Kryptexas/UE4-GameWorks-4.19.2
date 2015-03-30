@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2492260
 Availability:Public
 Title:1.3 - 変数のレプリケーション
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
 Description:ネットワーク機能の事例レベルの概要 事例 1.3:変数のレプリケーション
 Related:Gameplay/Networking
-Related:Gameplay/Networking/Replication/Components
-Related:Gameplay/Networking/Replication
-Related:Gameplay/Networking/Replication/RPCs
+Related:Gameplay/Networking/Actors/Components
+Related:Gameplay/Networking/Actors
+Related:Gameplay/Networking/Actors/RPCs
 Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 
 
@@ -59,7 +59,7 @@ Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 	[![](Resources/ContentExamples/Networking/1_3/1_3_Rep_EventGraph.png)(w:480)](Resources/ContentExamples/Networking/1_3/1_3_Rep_EventGraph.png)
 [/REGION]
 
-以下のように、変数の **[詳細]** パネル内のチェックボックスを有効にすると、 **Health** の変数の **Replication** が可能になります。 
+以下のように、変数の **[Details]** パネル内のチェックボックスを有効にすると、 **Health** の変数の **Replication** が可能になります。 
 
  ![](1_3_Rep_Variables.png)
 
