@@ -1,7 +1,9 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2395048
+Availability:Public
 Title:文字列の取り扱い
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties
 Description:UE4 で利用可能な文字列クラスの概要と FName、FText、FString の参照ガイド
+Version:4.5
 
 ## 概要
 
@@ -14,14 +16,14 @@ Description:UE4 で利用可能な文字列クラスの概要と FName、FText�
 ### FText 
 
 [INCLUDE:Programming/UnrealArchitecture/StringHandling/FText#overview]
-	* [FText リファレンス ガイド](Programming/UnrealArchitecture/StringHandling\FText)
 
+* [FText リファレンス ガイド](Programming/UnrealArchitecture/StringHandling\FText)
 
 ### FString 
 
 [INCLUDE:Programming/UnrealArchitecture/StringHandling/FString#overview]
-	* [FString リファレンス ガイド](Programming/UnrealArchitecture/StringHandling\FString)
 
+* [FString リファレンス ガイド](Programming/UnrealArchitecture/StringHandling\FString)
 
 
 
@@ -50,7 +52,7 @@ Description:UE4 で利用可能な文字列クラスの概要と FName、FText�
 [/VAR]
 
 [VAR:FStringToFText]
-|FString | FText |  `TestHUDText = FText::FromString(TestHUDString);`  [REGION:warning] FString -> FText が有効な場合はありますが、FNames のコンテンツは FText の「自動ローカライゼーション」 の効果がないことに注意してください。 [/REGION] | 
+|FString | FText |  `TestHUDText = FText::FromString(TestHUDString);`  [REGION:warning] FString -> FText が有効な場合はありますが、FStrings のコンテンツは FText の「自動ローカライゼーション」 の効果がないことに注意してください。 [/REGION] | 
 [/VAR]
 
 
