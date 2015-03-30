@@ -134,7 +134,6 @@ void UCameraShake::PlayShake(APlayerCameraManager* Camera, float Scale, ECameraA
 		}
 	}
 
-	PlaySpace = PlaySpace;
 	if (PlaySpace == ECameraAnimPlaySpace::UserDefined)
 	{
 		UserPlaySpaceMatrix = FRotationMatrix(UserPlaySpaceRot);
