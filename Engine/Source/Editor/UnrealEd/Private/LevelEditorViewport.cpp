@@ -2134,9 +2134,6 @@ void FLevelEditorViewportClient::ProjectActorsIntoWorld(const TArray<AActor*>& A
 
 			const auto* Factory = GEditor->FindActorFactoryForActorClass(Actor->GetClass());
 			
-			const auto ActorLocation = Actor->GetActorLocation();
-			const auto ActorRotation = Actor->GetActorRotation().Quaternion();
-
 			const FTransform* PreDragActorTransform = PreDragActorTransforms.Find(Actor);
 			check(PreDragActorTransform);
 
