@@ -139,7 +139,6 @@ public:
 	virtual TSharedPtr<IChatViewModel> GetChatViewModel() override;
 	virtual void InsertNetworkChatMessage(const FString& InMessage) override;
 	virtual void JoinPublicChatRoom(const FString& RoomName) override;
-	virtual void SetPublicChatRoomPermission(bool Allow) override;
 	virtual void OnChatPublicRoomJoined(const FString& ChatRoomID) override;
 
 	/**
@@ -195,11 +194,6 @@ public:
 	 * @return if we are logged into global chat
 	 */
 	bool IsInGlobalChat() const;
-
-	/**
-	 * @return if user has permission to join Global chat
-	 */
-	bool HasGlobalChatPermission();
 
 	/**
 	 * Set the chat friend.
@@ -808,8 +802,6 @@ private:
 	TSharedPtr<class FChatViewModel> ChatViewModel;
 	// Joined Global Chat
 	bool bJoinedGlobalChat;
-	// Has Permission to use global chat
-	bool bHasGlobalChatPermission;
 
 	enum class EChatWindowMode : uint8
 	{

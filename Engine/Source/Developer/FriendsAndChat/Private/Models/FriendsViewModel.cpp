@@ -55,16 +55,16 @@ public:
 	{
 		if (FriendsAndChatManager.IsValid())
 		{
-			return FriendsAndChatManager.Pin()->HasGlobalChatPermission() ? EVisibility::Visible : EVisibility::Collapsed;
+			return FriendsAndChatManager.Pin()->IsInGlobalChat() ? EVisibility::Visible : EVisibility::Collapsed;
 		}
 		return EVisibility::Collapsed;
 	}
 
-	virtual void JoinGlobalChat() const override
+	virtual void DisplayGlobalChatWindow() const override
 	{
 		if (FriendsAndChatManager.IsValid())
 		{
-			FriendsAndChatManager.Pin()->JoinPublicChatRoom(TEXT("Fortnite"));
+			FriendsAndChatManager.Pin()->OpenGlobalChat();
 		}
 	}
 

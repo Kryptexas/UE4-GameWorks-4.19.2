@@ -38,7 +38,6 @@ FFriendsAndChatManager::FFriendsAndChatManager( )
 	: OnlineSub(nullptr)
 	, MessageManager(FFriendsMessageManagerFactory::Create())
 	, bJoinedGlobalChat(false)
-	, bHasGlobalChatPermission(false)
 	, ChatWindowMode(EChatWindowMode::MultiWindow)
 	, ManagerState ( EFriendsAndManagerState::OffLine )
 	, bIsInited( false )
@@ -268,15 +267,6 @@ void FFriendsAndChatManager::JoinPublicChatRoom(const FString& RoomName)
 			MessageManager->JoinPublicRoom(RoomName);
 		}
 	}
-	else
-	{
-		OpenGlobalChat();
-	}	
-}
-
-void FFriendsAndChatManager::SetPublicChatRoomPermission(bool Allow)
-{
-	bHasGlobalChatPermission = Allow;
 }
 
 void FFriendsAndChatManager::OnChatPublicRoomJoined(const FString& ChatRoomID)
@@ -284,18 +274,12 @@ void FFriendsAndChatManager::OnChatPublicRoomJoined(const FString& ChatRoomID)
 	if (ChatRoomstoJoin.Contains(ChatRoomID))
 	{
 		bJoinedGlobalChat = true;
-		OpenGlobalChat();
 	}
 }
 
 bool FFriendsAndChatManager::IsInGlobalChat() const
 {
 	return bJoinedGlobalChat;
-}
-
-bool FFriendsAndChatManager::HasGlobalChatPermission()
-{
-	return bHasGlobalChatPermission;
 }
 
 // UI Creation
@@ -471,7 +455,7 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChatWidget(const FFriendsA
 
 	// todo - NDavies = find a better way to do this
 	TSharedRef<FChatDisplayOptionsViewModel> ChatDisplayOptionsViewModel = StaticCastSharedRef<FChatDisplayOptionsViewModel>(ViewModel);
-
+	ChatDisplayOptionsViewModel->GetChatViewModel()->SetDisplayGlobalChat(true);
 	ChatDisplayOptionsViewModel->SetCaptureFocus(true);
 
 	TSharedPtr<SChatWindow> ChatWidget;
@@ -825,7 +809,7 @@ void FFriendsAndChatManager::SetChatWindowContents(TSharedPtr<SWindow> Window, T
 	{
 		DisplayViewModel->GetChatViewModel()->LockChatChannel(true);
 
-		// @todo - Antony Need a better way for checking for multu window global chat
+		// @todo - Antony Need a better way for checking for multi window global chat
 		if (!FriendItem.IsValid() && bJoinedGlobalChat)
 		{
 			DisplayViewModel->GetChatViewModel()->SetDisplayGlobalChat(true);

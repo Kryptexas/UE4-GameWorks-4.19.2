@@ -365,7 +365,7 @@ private:
 
 	FReply OnGlobalChatButtonClicked()
 	{
-		FFriendsAndChatManager::Get()->JoinPublicChatRoom(TEXT("Fortnite"));
+		ViewModel->DisplayGlobalChatWindow();
 		return FReply::Handled();
 	}
 
