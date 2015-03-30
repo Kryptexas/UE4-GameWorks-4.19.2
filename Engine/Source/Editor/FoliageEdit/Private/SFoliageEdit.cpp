@@ -641,19 +641,20 @@ EVisibility SFoliageEdit::GetVisibility_NonEmptyList() const
 FReply SFoliageEdit::OnDrop_ListView(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
 	TArray<FAssetData> DroppedAssetData = AssetUtil::ExtractAssetDataFromDrag(DragDropEvent);
-
-	for (int32 AssetIdx = 0; AssetIdx < DroppedAssetData.Num(); ++AssetIdx)
 	{
-		GWarn->BeginSlowTask(LOCTEXT("OnDrop_LoadPackage", "Fully Loading Package For Drop"), true, false);
-		UObject* Asset = DroppedAssetData[AssetIdx].GetAsset();
-		GWarn->EndSlowTask();
+		const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "FoliageMode_AddMeshTransaction", "Foliage Editing: Add Mesh"));
 
-		UFoliageType* FoliageType = FoliageEditMode->AddFoliageAsset(Asset);
-		if (FoliageType)
+		for (int32 AssetIdx = 0; AssetIdx < DroppedAssetData.Num(); ++AssetIdx)
 		{
-			MeshTreeWidget->RequestTreeRefresh();
+			GWarn->BeginSlowTask(LOCTEXT("OnDrop_LoadPackage", "Fully Loading Package For Drop"), true, false);
+			UObject* Asset = DroppedAssetData[AssetIdx].GetAsset();
+			GWarn->EndSlowTask();
+
+			FoliageEditMode->AddFoliageAsset(Asset);
 		}
 	}
+
+	MeshTreeWidget->RequestTreeRefresh();
 
 	return FReply::Handled();
 }

@@ -1626,7 +1626,7 @@ UFoliageType* AInstancedFoliageActor::AddFoliageType(const UFoliageType* InType,
 		auto* MeshInfoPtr = FoliageMeshes.Find(FoliageType);
 		if (!MeshInfoPtr)
 		{
-			MarkPackageDirty();
+			Modify();
 			MeshInfo = &FoliageMeshes.Add(FoliageType).Get();
 		}
 		else
@@ -1641,8 +1641,8 @@ UFoliageType* AInstancedFoliageActor::AddFoliageType(const UFoliageType* InType,
 		FoliageType = GetSettingsForMesh(FoliageType->GetStaticMesh(), &MeshInfo);
 		if (FoliageType == nullptr)
 		{
+			Modify();
 			FoliageType = DuplicateObject<UFoliageType>(InType, this);
-			MarkPackageDirty();
 			MeshInfo = &FoliageMeshes.Add(FoliageType).Get();
 		}
 	}
@@ -1690,7 +1690,7 @@ FFoliageMeshInfo* AInstancedFoliageActor::AddMesh(UFoliageType* InType)
 {
 	check(FoliageMeshes.Find(InType) == nullptr);
 
-	MarkPackageDirty();
+	Modify();
 
 	if (InType->DisplayOrder == 0)
 	{

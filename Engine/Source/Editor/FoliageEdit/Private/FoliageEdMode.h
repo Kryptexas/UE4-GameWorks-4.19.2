@@ -300,7 +300,7 @@ public:
 	static bool CanPaint(const UFoliageType* FoliageType, const ULevel* InLevel);
 
 	/** Add a new asset (FoliageType or StaticMesh) */
-	UFoliageType* AddFoliageAsset(UObject* InAssset);
+	UFoliageType* AddFoliageAsset(UObject* InAsset);
 	
 	/** Remove a list of Foliage types */
 	bool RemoveFoliageType(UFoliageType** FoliageTypes, int32 Num);

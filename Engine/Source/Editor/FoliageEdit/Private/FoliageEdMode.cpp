@@ -2187,11 +2187,13 @@ bool FEdModeFoliage::CanPaint(const UFoliageType* FoliageType, const ULevel* InL
 	return false;
 }
 
-UFoliageType* FEdModeFoliage::AddFoliageAsset(UObject* InAssset)
+UFoliageType* FEdModeFoliage::AddFoliageAsset(UObject* InAsset)
 {
 	UFoliageType* FoliageType = nullptr;
+
+	const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "FoliageMode_AddMeshTransaction", "Foliage Editing: Add Mesh"));
 	
-	UStaticMesh* StaticMesh = Cast<UStaticMesh>(InAssset);
+	UStaticMesh* StaticMesh = Cast<UStaticMesh>(InAsset);
 	if (StaticMesh)
 	{
 		AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(GetWorld(), true);
@@ -2203,7 +2205,7 @@ UFoliageType* FEdModeFoliage::AddFoliageAsset(UObject* InAssset)
 	}
 	else 
 	{
-		FoliageType = Cast<UFoliageType>(InAssset);
+		FoliageType = Cast<UFoliageType>(InAsset);
 		if (FoliageType)
 		{
 			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(GetWorld(), true);
