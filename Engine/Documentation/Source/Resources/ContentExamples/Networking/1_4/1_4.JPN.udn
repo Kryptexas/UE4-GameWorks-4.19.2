@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2492260
 Availability:Public
 Title:1.4 - 変数のレプリケーション (RepNotify)
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
 Description:ネットワーク機能の事例レベルの概要 事例 1.4:変数のレプリケーション (RepNotify)
 Related:Gameplay/Networking
-Related:Gameplay/Networking/Replication/Components
-Related:Gameplay/Networking/Replication
-Related:Gameplay/Networking/Replication/RPCs
+Related:Gameplay/Networking/Actors/Components
+Related:Gameplay/Networking/Actors
+Related:Gameplay/Networking/Actors/RPCs
 Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 
 [VAR:TopicCompact]
@@ -37,7 +37,7 @@ Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 
 
 ## 概要
-レプリケートされた変数の値に対応してロジックを実行することが望ましいです。**RepNotify** とマークされている変数には、ネットワーク権限のあるマシンとリモートマシンの両方で変数が変更されると自動的に呼び出される特別な関数があります。 
+レプリケートされた変数の値に対応してロジックを実行させたい場合がしばしばあります。**RepNotify** とマークされている変数には、ネットワーク権限のあるマシンとリモートマシンの両方で変数が変更されると自動的に呼び出される特別な関数があります。 
 
 このサンプルでは、ネットワーク権限のあるマシンが、街頭が **RepNotify** 変数を使って何色を表示するかを示すスカラー値の変更を制御します。値が変更されると、自動生成 OnRep 関数が呼び出され、このサンプルではマテリアル パラメータが更新されます。 
 
@@ -51,7 +51,7 @@ Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 
 **OnRep_StreetlightScalar** 関数はその後、街頭の外見の更新処理するので、すべてのマシン上で有効になります。 
 
-**RepNotify** への変数の設定は、 **[Replication]** ドロップダウン メニューの変数の **[詳細]** パネルで行えます。 
+**RepNotify** への変数の設定は、 **[Replication]** ドロップダウン メニューの変数の **[Details]** パネルで行えます。 
 
 ![](1_4_RepNotify.png)
 
