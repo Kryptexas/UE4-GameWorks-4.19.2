@@ -1,0 +1,36 @@
+﻿INTSourceChangelist:2486695
+Availability:Public
+Title:6.応用編
+Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
+Description:さらなる調査のためのアイデア
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前の手順](Programming\Tutorials\Components\4 "%Programming\Tutorials\Components\4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[プログラミングチュートリアルのホームページ](Programming\Tutorials\)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+これまでに学んだ知識を活かして、以下の操作をしてみましょう。
+
+* 親の周りを自動的に軌道する **コンポーネント** を作成します。
+* 最大3つの子供までスポーンする **コンポーネント** をビルドします。それぞれのコンポーネントは一定時間後に独自でスポーンします。
+* コンポーネントを用いて完全な **アクタ** を別の **アクタ** へ親子付けする方法を学びます。
+
+以下はこのチュートリアルで取り扱った詳細です。
+
+* **コンポーネント** に関する詳細は、 [%Engine/Components:title%](Engine/Components) ページも参照してください。
+* さらなるチュートリアルページは [%Programming/Tutorials:title%](Programming/Tutorials) を参照してください。
+
+
+%Steps%
