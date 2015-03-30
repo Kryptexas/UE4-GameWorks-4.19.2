@@ -7,6 +7,7 @@
 #include "EngineVersion.h"
 #include "LinkerPlaceholderClass.h"
 #include "LinkerPlaceholderExportObject.h"
+#include "LinkerPlaceholderFunction.h"
 
 #define LOCTEXT_NAMESPACE "LinkerLoad"
 
@@ -3619,7 +3620,15 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 			{
 				if ( !Export.SuperIndex.IsNull() )
 				{
-					Struct->SetSuperStruct( (UStruct*)IndexToObject( Export.SuperIndex ) );
+					UStruct* SuperStruct = (UStruct*)IndexToObject(Export.SuperIndex);
+					if (ULinkerPlaceholderFunction* Function = Cast<ULinkerPlaceholderFunction>(SuperStruct))
+					{
+						Function->AddDerivedFunction(Struct);
+					}
+					else
+					{
+						Struct->SetSuperStruct((UStruct*)IndexToObject(Export.SuperIndex));
+					}
 				}
 
 				// If it's a class, bind it to C++.

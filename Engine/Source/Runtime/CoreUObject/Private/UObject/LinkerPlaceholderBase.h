@@ -164,6 +164,19 @@ public:
 	 */
 	void AddReferencingScriptExpr(PlaceholderType** ExpressionPtr);
 
+	/** 
+	 * Records a child placeholder object. Not needed except for validiation purposes,
+	 * since both the child object and this are placeholders:
+	 */
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+	void AddChildObject(UObject* Child);
+#endif //USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+
+	/**
+	 * Records a derived function, which will have a reference back to its (placeholder) parent function.
+	 * We need to update the derived function when the parent finishes loading.
+	 */
+	void AddDerivedFunction(UStruct* DerivedFunctionType);
 private:
 	/**
 	 * Iterates through all known ReferencingProperties and replaces references
@@ -188,6 +201,15 @@ private:
 
 	/** Points directly at UObject* refs that were serialized in as part of script bytecode */
 	TSet<PlaceholderType**> ReferencingScriptExpressions;
+
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+	/** References to us that are equally transient, this is used in the case where we make a placeholder 
+		that requires an outer that is also a placeholder. E.g. when we make a placeholder function it will 
+		have a placeholder outer. */
+	TArray<UObject*> ChildObjects;
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+
+	TSet<UStruct*> DerivedFunctions;
 };
 
 // Templatized implementation

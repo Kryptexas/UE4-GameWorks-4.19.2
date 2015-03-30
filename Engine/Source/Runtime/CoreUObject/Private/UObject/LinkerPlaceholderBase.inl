@@ -14,6 +14,19 @@ int32 TLinkerImportPlaceholder<PlaceholderType>::ResolveAllPlaceholderReferences
 
 	int32 ReplacementCount = ResolvePropertyReferences(TypeCheckedReplacement);
 	ReplacementCount += ResolveScriptReferences(TypeCheckedReplacement);
+
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+	ReplacementCount += ChildObjects.Num();
+	ChildObjects.Empty();
+#endif//USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+
+	ReplacementCount += DerivedFunctions.Num();
+	for (auto Entry : DerivedFunctions)
+	{
+		Entry->SetSuperStruct(TypeCheckedReplacement);
+	}
+	DerivedFunctions.Empty();
+
 	ReplacementCount += FLinkerPlaceholderBase::ResolveAllPlaceholderReferences(ReplacementObj);
 
 	return ReplacementCount;
@@ -23,7 +36,14 @@ int32 TLinkerImportPlaceholder<PlaceholderType>::ResolveAllPlaceholderReferences
 template<class PlaceholderType>
 bool TLinkerImportPlaceholder<PlaceholderType>::HasKnownReferences() const
 {
-	return FLinkerPlaceholderBase::HasKnownReferences() || (ReferencingProperties.Num() > 0) || (ReferencingScriptExpressions.Num() > 0);
+
+	return FLinkerPlaceholderBase::HasKnownReferences() || 
+		(ReferencingProperties.Num() > 0) || 
+		(ReferencingScriptExpressions.Num() > 0) ||
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+		ChildObjects.Num() > 0 || 
+#endif //USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+		DerivedFunctions.Num() > 0;
 }
 
 //------------------------------------------------------------------------------
@@ -54,6 +74,22 @@ void TLinkerImportPlaceholder<PlaceholderType>::AddReferencingProperty(UProperty
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 	ReferencingProperties.Add(ReferencingProperty);
+}
+
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+//------------------------------------------------------------------------------
+template<class PlaceholderType>
+void TLinkerImportPlaceholder<PlaceholderType>::AddChildObject(UObject* Child)
+{
+	ChildObjects.Push(Child);
+}
+#endif //USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+
+//------------------------------------------------------------------------------
+template<class PlaceholderType>
+void TLinkerImportPlaceholder<PlaceholderType>::AddDerivedFunction(UStruct* DerivedFunctionType)
+{
+	DerivedFunctions.Add(DerivedFunctionType);
 }
 
 //------------------------------------------------------------------------------

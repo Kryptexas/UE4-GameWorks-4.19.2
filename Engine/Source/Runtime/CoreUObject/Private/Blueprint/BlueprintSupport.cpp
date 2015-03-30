@@ -341,7 +341,10 @@ bool ULinkerLoad::DeferPotentialCircularImport(const int32 Index)
 			{
 				UObject* PlaceholderOuter = LinkerRoot;
 				FString  PlaceholderNamePrefix = TEXT("PLACEHOLDER_");
-				UClass*  PlaceholderType  = nullptr;
+				UClass*  PlaceholderType = nullptr;
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+				ULinkerPlaceholderClass* Outer = nullptr;
+#endif //USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 				FLinkerPlaceholderBase* (*PlaceholderCastFunc)(UObject* RawUObject) = nullptr;
 
 				bool const bIsBlueprintClass = ImportClass->IsChildOf<UClass>();
@@ -370,6 +373,10 @@ bool ULinkerLoad::DeferPotentialCircularImport(const int32 Index)
 							PlaceholderOuter = ImportMap[OuterImportIndex].XObject;
 							PlaceholderType  = ULinkerPlaceholderFunction::StaticClass();
 							PlaceholderCastFunc = &PlaceholderCast<ULinkerPlaceholderFunction>;
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+							Outer = dynamic_cast<ULinkerPlaceholderClass*>(PlaceholderOuter);
+							check(Outer);
+#endif //USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 						}
 					}
 				}
@@ -396,6 +403,12 @@ bool ULinkerLoad::DeferPotentialCircularImport(const int32 Index)
 					// ClassAddReferencedObjects/ClassConstructor members set)
 					PlaceholderObj->Bind();
 					PlaceholderObj->StaticLink(/*bRelinkExistingProperties =*/true);
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+					if (Outer)
+					{
+						Outer->AddChildObject(PlaceholderObj);
+					}
+#endif //USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 					Import.XObject = PlaceholderObj;
 				}
