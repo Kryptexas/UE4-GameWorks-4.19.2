@@ -1678,6 +1678,13 @@ public class GUBP : BuildCommand
 			if(Precompiled)
 			{
 				Args += " -precompile";
+
+				// MSVC doesn't provide a way to strip symbols from static libraries - you have to use PDBs, but that causes random OOM 
+				// exceptions with the /FS arg because mspdbsrv is 32-bit. Just disable compiler debug info manually for now.
+				if(TargetPlatform == UnrealTargetPlatform.Win32 || TargetPlatform == UnrealTargetPlatform.Win64)
+				{
+	                Args += " -nodebuginfo";
+				}
 			}
 
 			if (WithXp)
