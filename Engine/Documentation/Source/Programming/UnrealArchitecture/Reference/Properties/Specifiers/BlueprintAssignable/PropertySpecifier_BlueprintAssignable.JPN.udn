@@ -1,6 +1,8 @@
-﻿Title:BlueprintAssignable
+﻿INTSourceChangelist:2374181
+Title:BlueprintAssignable
 Crumbs: %ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/Reference/Properties/Specifiers
 Description: 
 Availability:Public
+Version:4.5
 
 マルチキャスト デリゲートのみです。ブループリントへ割り当てるためにプロパティは公開されなければいけません。
