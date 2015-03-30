@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:2486582
+
+Availability:Public
+Title:4.応用編
+Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/AutoCamera
+Description:さらなる調査のためのアイデア
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前の手順](Programming\Tutorials\AutoCamera\3 "%Programming\Tutorials\AutoCamera\3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[プログラミングチュートリアルのホームページ](Programming\Tutorials\)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+これまでに学んだ知識を活かして、以下の操作をしてみましょう。
+
+* クレーンまたはドリーショットを作成するために **カメラ** を移動中の **アクタ** に親子付けします。
+* 2つだけでなく任意の数のカメラシーケンスを移動できるように、 _CameraOne_ と _CameraTwo_ ではなく、カメラを保存するために単一 [配列](Programming/UnrealArchitecture/TArrays) 変数を使用します。
+* カメラの保存に [アクタ](Programming/UnrealArchitecture/Actors) ポインタを使用する代わりに、ポインタだけでなく表示を変更する前の時間と新しいビューへのブレンドタイムポインタを保持する [構造体](Programming/UnrealArchitecture/Reference/Structs) を作成します。
+
+以下はこのチュートリアルで取り扱った詳細です。
+
+* **カメラ** とカメラをコントロールする方法に関しては、 [カメラ](Gameplay/Framework/Camera) フレームワーク ページを参照するか、 [%Programming/Tutorials/PlayerCamera:title%](Programming/Tutorials/PlayerCamera) チュートリアルを参照してください。
+* より詳細なチュートリアルは、 [%Programming/Tutorials:title%](Programming/Tutorials) ページを参考にしてください。
+
+
+%Steps%
