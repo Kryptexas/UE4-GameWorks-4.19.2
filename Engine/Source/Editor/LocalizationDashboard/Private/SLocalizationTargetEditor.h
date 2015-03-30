@@ -3,6 +3,7 @@
 #pragma once
 
 #include "SCompoundWidget.h"
+#include "PropertyEditorDelegates.h"
 
 class ULocalizationTargetSet;
 class ULocalizationTarget;
