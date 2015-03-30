@@ -372,6 +372,35 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 				UATCommand += TEXT(" -pak");
 			}
 
+			if ( InProfile->IsCreatingReleaseVersion() )
+			{
+				UATCommand += TEXT(" -createreleaseversion=");
+				UATCommand += InProfile->GetCreateReleaseVersionName();
+				
+			}
+
+			if ( InProfile->IsCreatingDLC() )
+			{
+				UATCommand += TEXT(" -dlcname=");
+				UATCommand += InProfile->GetDLCName();
+			}
+
+			if ( InProfile->IsGeneratingPatch() )
+			{
+				UATCommand += TEXT(" -generatepatch");
+			}
+
+			if ( InProfile->IsGeneratingPatch() || 
+				InProfile->IsCreatingReleaseVersion() || 
+				InProfile->IsCreatingDLC() )
+			{
+				if ( InProfile->GetBasedOnReleaseVersionName().IsEmpty() == false )
+				{
+					UATCommand += TEXT(" -basedonreleaseversion=");
+					UATCommand += InProfile->GetBasedOnReleaseVersionName();
+				}
+			}
+
 			FCommandDesc Desc;
 			FText Command = FText::Format(LOCTEXT("LauncherCookDesc", "Cook content for {0}"), FText::FromString(Platforms.RightChop(1)));
 			Desc.Name = "Cook Task";
@@ -423,6 +452,7 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 	{
 		UATCommand += TEXT(" -iterativecooking");
 	}
+
 
 	if ( InProfile->IsCompressed() )
 	{

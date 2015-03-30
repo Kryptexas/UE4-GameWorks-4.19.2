@@ -198,6 +198,7 @@ namespace AutomationTool
             this.CulturesToCook = InParams.CulturesToCook;
             this.BasedOnReleaseVersion = InParams.BasedOnReleaseVersion;
             this.CreateReleaseVersion = InParams.CreateReleaseVersion;
+            this.GeneratePatch = InParams.GeneratePatch;
             this.DLCName = InParams.DLCName;
             this.NewCook = InParams.NewCook;
             this.OldCook = InParams.OldCook;
@@ -341,6 +342,7 @@ namespace AutomationTool
             string AdditionalCookerOptions = null,
             string BasedOnReleaseVersion = null,
             string CreateReleaseVersion = null,
+            bool? GeneratePatch = null,
             string DLCName = null,
             bool? NewCook = null,
             bool? OldCook = null,
@@ -442,6 +444,7 @@ namespace AutomationTool
             this.OldCook = GetParamValueIfNotSpecified(Command, OldCook, this.OldCook, "OldCook");
             this.CreateReleaseVersion = ParseParamValueIfNotSpecified(Command, CreateReleaseVersion, "createreleaseversion", String.Empty);
             this.BasedOnReleaseVersion = ParseParamValueIfNotSpecified(Command, BasedOnReleaseVersion, "basedonreleaseversion", String.Empty);
+            this.GeneratePatch = GetParamValueIfNotSpecified(Command, GeneratePatch, this.GeneratePatch, "GeneratePatch");
             this.AdditionalCookerOptions = ParseParamValueIfNotSpecified(Command, AdditionalCookerOptions, "AdditionalCookerOptions", String.Empty);
             this.DLCName = ParseParamValueIfNotSpecified(Command, DLCName, "DLCName", String.Empty);
 			this.SkipCook = GetParamValueIfNotSpecified(Command, SkipCook, this.SkipCook, "skipcook");
@@ -1010,6 +1013,13 @@ namespace AutomationTool
         public string BasedOnReleaseVersion;
 
         /// <summary>
+        /// Are we generating a patch, generate a patch from a previously released version of the game (use CreateReleaseVersion to create a release). 
+        /// this requires BasedOnReleaseVersion
+        /// see also CreateReleaseVersion, BasedOnReleaseVersion
+        /// </summary>
+        public bool GeneratePatch;
+
+        /// <summary>
         /// Name of dlc to cook and package (if this paramter is supplied cooks the dlc and packages it into the dlc directory)
         /// </summary>
         public string DLCName;
@@ -1038,6 +1048,7 @@ namespace AutomationTool
         /// 
         /// </summary>
         public bool UnversionedCookedContent;
+
 
 		/// <summary>
 		/// Cook: Uses the iterative cooking, command line: -iterativecooking or -iterate
@@ -1711,6 +1722,14 @@ namespace AutomationTool
 		}
 		private string ProjectBinariesPath;
 
+        /// <summary>
+        /// True if we are generating a patch
+        /// </summary>
+        public bool IsGeneratingPatch
+        {
+            get { return GeneratePatch; }
+        }
+
 		/// <summary>
 		/// Filename of the target game exe (or program exe).
 		/// </summary>
@@ -1893,8 +1912,23 @@ namespace AutomationTool
 
 			if (Cook && CookOnTheFly)
 			{
-				throw new AutomationException("Don't use both -cook and -cookonthefly.");
+				throw new AutomationException("Can't use both -cook and -cookonthefly.");
 			}
+
+            if ((IsGeneratingPatch || HasDLCName) && !HasBasedOnReleaseVersion)
+            {
+                throw new AutomationException("Require based on release version to build patches or dlc");
+            }
+
+            if (HasCreateReleaseVersion && (IsGeneratingPatch || HasDLCName))
+            {
+                throw new AutomationException("Can't create a release version at the same time as creating dlc.");
+            }
+
+            if (HasBasedOnReleaseVersion && (IterativeCooking || IterativeDeploy))
+            {
+                throw new AutomationException("Can't use iterative cooking / deploy on dlc or patching or creating a release");
+            }
 
             /*if (Compressed && !Pak)
             {
@@ -1934,6 +1968,7 @@ namespace AutomationTool
 				CommandUtils.Log("CookOnTheFly={0}", CookOnTheFly);
                 CommandUtils.Log("CookOnTheFlyStreaming={0}", CookOnTheFlyStreaming);
                 CommandUtils.Log("UnversionedCookedContent={0}", UnversionedCookedContent);
+                CommandUtils.Log("GeneratePatch={0}", GeneratePatch);
                 CommandUtils.Log("CreateReleaseVersion={0}", CreateReleaseVersion);
                 CommandUtils.Log("BasedOnReleaseVersion={0}", BasedOnReleaseVersion);
                 CommandUtils.Log("DLCName={0}", DLCName);

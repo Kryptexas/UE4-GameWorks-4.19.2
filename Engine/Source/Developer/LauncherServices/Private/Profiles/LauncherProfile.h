@@ -3,6 +3,9 @@
 #pragma once
 
 #define LAUNCHERSERVICES_ADDEDINCREMENTALDEPLOYVERSION 11
+#define LAUNCHERSERVICES_ADDEDPATCHSOURCECONTENTPATH 12
+#define LAUNCHERSERVICES_ADDEDRELEASEVERSION 13
+#define LAUNCHERSERVICES_REMOVEDPATCHSOURCECONTENTPATH 14
 
 /**
 * Implements a simple profile which controls the desired output of the Launcher for simple
@@ -273,6 +276,64 @@ public:
 		return DeployedDeviceGroup;
 	}
 
+	virtual bool IsGeneratingPatch() const override
+	{
+		return GeneratePatch;
+	}
+
+
+	virtual bool IsCreatingDLC() const override
+	{
+		return CreateDLC;
+	}
+
+	virtual FString GetDLCName() const override
+	{
+		return DLCName;
+	}
+
+	virtual void SetCreateDLC(bool InBuildDLC) override
+	{
+		CreateDLC = InBuildDLC;
+	}
+	virtual void SetDLCName(const FString& InDLCName) override
+	{
+		DLCName = InDLCName;
+	}
+
+	virtual bool IsCreatingReleaseVersion() const override
+	{
+		return CreateReleaseVersion;
+	}
+
+	virtual void SetCreateReleaseVersion(bool InCreateReleaseVersion) override
+	{
+		CreateReleaseVersion = InCreateReleaseVersion;
+	}
+
+	virtual FString GetCreateReleaseVersionName() const override
+	{
+		return CreateReleaseVersionName;
+	}
+
+	virtual void SetCreateReleaseVersionName(const FString& InCreateReleaseVersionName) override
+	{
+		CreateReleaseVersionName = InCreateReleaseVersionName;
+	}
+
+
+	virtual FString GetBasedOnReleaseVersionName() const override
+	{
+		return BasedOnReleaseVersionName;
+	}
+
+	virtual void SetBasedOnReleaseVersionName(const FString& InBasedOnReleaseVersionName) override
+	{
+		BasedOnReleaseVersionName = InBasedOnReleaseVersionName;
+	}
+
+
+
 	virtual ELauncherProfileDeploymentModes::Type GetDeploymentMode( ) const override
 	{
 		return DeploymentMode;
@@ -542,6 +603,36 @@ public:
 			Archive << DeployIncremental;
 		}
 
+		if ( Version >= LAUNCHERSERVICES_REMOVEDPATCHSOURCECONTENTPATH )
+		{
+			Archive << GeneratePatch;
+		}
+		else if ( Version >= LAUNCHERSERVICES_ADDEDPATCHSOURCECONTENTPATH)
+		{
+			FString Temp;
+			Archive << Temp;
+			Archive << GeneratePatch;
+		}
+		else if ( Archive.IsLoading() )
+		{
+			GeneratePatch = false;
+		}
+
+		if ( Version >= LAUNCHERSERVICES_ADDEDRELEASEVERSION )
+		{
+			Archive << CreateReleaseVersion;
+			Archive << CreateReleaseVersionName;
+			Archive << BasedOnReleaseVersionName;
+			
+			Archive << CreateDLC;
+			Archive << DLCName;
+		}
+		else if ( Archive.IsLoading() )
+		{
+			CreateReleaseVersion = false;
+			CreateDLC = false;
+		}
+
 		DefaultLaunchRole->Serialize(Archive);
 
 		// serialize launch roles
@@ -630,6 +721,10 @@ public:
 		DeployedDeviceGroupId = FGuid();
 		HideFileServerWindow = false;
 		DeployIncremental = false;
+
+		
+		GeneratePatch = false;
+		CreateDLC = false;
 
 		// default launch settings
 		LaunchMode = ELauncherProfileLaunchModes::DefaultRole;
@@ -928,6 +1023,11 @@ public:
 		}
 	}
 
+	virtual void SetGeneratePatch( bool InGeneratePatch ) override
+	{
+		GeneratePatch = InGeneratePatch;
+	}
+
 	virtual bool SupportsEngineMaps( ) const override
 	{
 		return false;
@@ -1028,6 +1128,12 @@ protected:
 		if ( CookUnversioned && CookIncremental )
 		{
 			ValidationErrors.Add(ELauncherProfileValidationErrors::UnversionedAndIncrimental);
+		}
+
+
+		if ( IsGeneratingPatch() && (CookMode != ELauncherProfileCookModes::ByTheBook) )
+		{
+			ValidationErrors.Add(ELauncherProfileValidationErrors::GeneratingPatchesCanOnlyRunFromByTheBookCookMode);
 		}
 
 		// Launch: when launching, all devices that the build is launched on must have content cooked for their platform
@@ -1167,6 +1273,28 @@ private:
 
 	// Holds a flag indicating whether content should be packaged with UnrealPak.
 	bool DeployWithUnrealPak;
+
+	// create a release version of the content (this can be used to base dlc / patches from)
+	bool CreateReleaseVersion;
+
+	// name of the release version
+	FString CreateReleaseVersionName;
+
+	// name of the release version to base this dlc / patch on
+	FString BasedOnReleaseVersionName;
+
+	// This build generate a patch based on some source content seealso PatchSourceContentPath
+	bool GeneratePatch;
+
+	// This build will cook content for dlc See also DLCName
+	bool CreateDLC;
+
+	// name of the dlc we are going to build (the name of the dlc plugin)
+	FString DLCName;
+
+	
+
+
 
 	// Holds a flag indicating whether to use incremental deployment
 	bool DeployIncremental;

@@ -171,13 +171,15 @@ public partial class Project : CommandUtils
                 {
                     CommandletParams += " -createreleaseversion=" + Params.CreateReleaseVersion;
                 }
-                if (Params.HasBasedOnReleaseVersion)
-                {
-                    CommandletParams += " -basedonreleaseversion=" + Params.BasedOnReleaseVersion;
-                }
                 if (Params.HasDLCName)
                 {
                     CommandletParams += " -dlcname=" + Params.DLCName;
+                }
+                // don't include the based on release version unless we are cooking dlc or creating a new release version
+                // in this case the based on release version is used in packaging
+                if (Params.HasBasedOnReleaseVersion && (Params.HasDLCName || Params.HasCreateReleaseVersion))
+                {
+                    CommandletParams += " -basedonreleaseversion=" + Params.BasedOnReleaseVersion;
                 }
                 // if we are not going to pak but we specified compressed then compress in the cooker ;)
                 // otherwise compress the pak files
@@ -188,6 +190,7 @@ public partial class Project : CommandUtils
                 if (Params.HasAdditionalCookerOptions)
                 {
                     string FormatedAdditionalCookerParams = Params.AdditionalCookerOptions.TrimStart(new char[] { '\"', ' ' }).TrimEnd(new char[] { '\"', ' ' });
+                    CommandletParams += " ";
                     CommandletParams += FormatedAdditionalCookerParams;
                 }
                 CookCommandlet(Params.RawProjectPath, Params.UE4Exe, Maps, Dirs, InternationalizationPreset, Cultures, CombineCommandletParams(PlatformsToCook.ToArray()), CommandletParams);

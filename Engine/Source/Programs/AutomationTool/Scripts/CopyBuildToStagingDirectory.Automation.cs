@@ -92,7 +92,7 @@ public partial class Project : CommandUtils
 		return Result;
 	}
 
-	static public void RunUnrealPak(Dictionary<string, string> UnrealPakResponseFile, string OutputLocation, string EncryptionKeys, string PakOrderFileLocation, string PlatformOptions, bool Compressed)
+    static public void RunUnrealPak(Dictionary<string, string> UnrealPakResponseFile, string OutputLocation, string EncryptionKeys, string PakOrderFileLocation, string PlatformOptions, bool Compressed, String PatchSourceContentPath)
 	{
 		if (UnrealPakResponseFile.Count < 1)
 		{
@@ -119,6 +119,10 @@ public partial class Project : CommandUtils
 		{
 			CmdLine += " -UTF8Output";
 		}
+        if (!String.IsNullOrEmpty(PatchSourceContentPath))
+        {
+            CmdLine += " -generatepatch=" + CommandUtils.MakePathSafeToUseWithCommandLine(PatchSourceContentPath);
+        }
 		CmdLine += PlatformOptions;
 		RunAndLog(CmdEnv, UnrealPakExe, CmdLine, Options: ERunOptions.Default | ERunOptions.UTF8Output);
 		Log("UnrealPak Done *******");
@@ -622,6 +626,14 @@ public partial class Project : CommandUtils
 		return UnrealPakResponseFile;
 	}
 
+
+    private static string GetReleasePakFilePath(DeploymentContext SC, ProjectParams Params, string ReleaseVersion, string PakName)
+    {
+        string ReleaseVersionPath = CombinePaths(SC.ProjectRoot, "Releases", ReleaseVersion, SC.StageTargetPlatform.GetCookPlatform(Params.DedicatedServer, false, Params.CookFlavor), PakName);
+        return ReleaseVersionPath;
+    }
+
+
 	/// <summary>
 	/// Creates a pak file using response file.
 	/// </summary>
@@ -631,7 +643,12 @@ public partial class Project : CommandUtils
 	/// <param name="PakName"></param>
 	private static void CreatePak(ProjectParams Params, DeploymentContext SC, Dictionary<string, string> UnrealPakResponseFile, string PakName)
 	{
-		var OutputRelativeLocation = CombinePaths(SC.RelativeProjectRootForStage, "Content/Paks/", PakName + "-" + SC.FinalCookPlatform + ".pak");
+        string PostFix = "";
+        if (Params.IsGeneratingPatch)
+        {
+            PostFix += "_P";
+        }
+		var OutputRelativeLocation = CombinePaths(SC.RelativeProjectRootForStage, "Content/Paks/", PakName + "-" + SC.FinalCookPlatform + PostFix + ".pak");
 		if (SC.StageTargetPlatform.DeployLowerCaseFilenames(true))
 		{
 			OutputRelativeLocation = OutputRelativeLocation.ToLowerInvariant();
@@ -653,7 +670,7 @@ public partial class Project : CommandUtils
 		{
 			// Check to see if we have an existing pak file we can use
 
-			var SourceOutputRelativeLocation = CombinePaths(SC.RelativeProjectRootForStage, "Content/Paks/", PakName + "-" + SC.CookPlatform + ".pak");
+			var SourceOutputRelativeLocation = CombinePaths(SC.RelativeProjectRootForStage, "Content/Paks/", PakName + "-" + SC.CookPlatform + PostFix + ".pak");
 			if (SC.CookSourcePlatform.DeployLowerCaseFilenames(true))
 			{
 				SourceOutputRelativeLocation = SourceOutputRelativeLocation.ToLowerInvariant();
@@ -677,10 +694,39 @@ public partial class Project : CommandUtils
 			}
 		}
 
+        string PatchSourceContentPath = null;
+        if (Params.HasBasedOnReleaseVersion && Params.IsGeneratingPatch)
+        {
+            // don't include the post fix in this filename because we are looking for the source pak path
+            string PakFilename = PakName + "-" + SC.FinalCookPlatform + ".pak";
+            PatchSourceContentPath = GetReleasePakFilePath(SC, Params, Params.BasedOnReleaseVersion, PakFilename);
+            
+
+            /*PatchSourceContentPath = Params.BasedOnReleaseVersion;
+            if (PatchSourceContentPath.EndsWith(PakName) == false)
+            {
+                string Temp = Path.GetDirectoryName(PatchSourceContentPath) + PakName;
+                if ( File.Exists(Temp))
+                {
+                    PatchSourceContentPath = Temp;
+                }
+            }*/
+        }
+
 		if (!bCopiedExistingPak)
 		{
-			RunUnrealPak(UnrealPakResponseFile, OutputLocation, Params.SignPak, PakOrderFileLocation, SC.StageTargetPlatform.GetPlatformPakCommandLine(), Params.Compressed);
+			RunUnrealPak(UnrealPakResponseFile, OutputLocation, Params.SignPak, PakOrderFileLocation, SC.StageTargetPlatform.GetPlatformPakCommandLine(), Params.Compressed, PatchSourceContentPath );
 		}
+
+
+        if (Params.HasCreateReleaseVersion)
+        {
+            // copy the created pak to the release version directory we might need this later if we want to generate patches
+            //string ReleaseVersionPath = CombinePaths( SC.ProjectRoot, "Releases", Params.CreateReleaseVersion, SC.StageTargetPlatform.GetCookPlatform(Params.DedicatedServer, false, Params.CookFlavor), Path.GetFileName(OutputLocation) );
+            string ReleaseVersionPath = GetReleasePakFilePath(SC, Params, Params.CreateReleaseVersion, Path.GetFileName(OutputLocation));
+
+            File.Copy(OutputLocation, ReleaseVersionPath);
+        }
 
 		if (Params.CreateChunkInstall)
 		{

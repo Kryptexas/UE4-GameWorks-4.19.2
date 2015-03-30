@@ -159,6 +159,9 @@ namespace ELauncherProfileValidationErrors
 
 		/** The profile has unversioned and incrimental specified these are not compatible together */
 		UnversionedAndIncrimental,
+
+		/** generating patch requires cook by the book mode*/
+		GeneratingPatchesCanOnlyRunFromByTheBookCookMode,
 	};
 }
 
@@ -553,7 +556,13 @@ public:
      * @see SetTimeout
      */
     virtual uint32 GetTimeout() const = 0;
-    
+	
+	/**
+	 * Are we going to generate a patch (Source content patch needs to be specified)
+	 * @Seealso GetPatchSourceContentPath	 * @Seealso SetPatchSourceContentPath
+	 */
+	virtual bool IsGeneratingPatch() const = 0;
+
 	/**
 	 * Checks whether the game should be built.
 	 *
@@ -809,6 +818,39 @@ public:
 	 */
 	virtual void SetDeploymentMode( ELauncherProfileDeploymentModes::Type Mode ) = 0;
 
+	/**
+	 * Creating a release version of the cooked content 
+	 */
+	virtual bool IsCreatingReleaseVersion() const = 0;
+
+	virtual void SetCreateReleaseVersion(bool InCreateReleaseVersion) = 0;
+
+	virtual FString GetCreateReleaseVersionName() const = 0;
+
+	virtual void SetCreateReleaseVersionName(const FString& InCreateReleaseVersionName) = 0;
+
+	virtual FString GetBasedOnReleaseVersionName() const = 0;
+
+	virtual void SetBasedOnReleaseVersionName(const FString& InBasedOnReleaseVersion) = 0;
+
+
+	/**
+	 * Sets if we are going to generate a patch 
+	 * 
+	 * @param InShouldGeneratePatch enable generating patch
+	 * @seealso IsGeneratingPatch
+	 */
+	virtual void SetGeneratePatch( bool InShouldGeneratePatch ) = 0;
+
+	virtual bool IsCreatingDLC() const = 0;
+
+	virtual void SetCreateDLC(bool InBuildDLC) = 0;
+
+	virtual FString GetDLCName() const = 0;
+
+	virtual void SetDLCName(const FString& InDLCName) = 0;
+
+
     /**
      * Sets the cook on the fly close mode
      *
@@ -927,3 +969,4 @@ public:
 	/** Virtual destructor. */
 	virtual ~ILauncherProfile( ) { }
 };
+
