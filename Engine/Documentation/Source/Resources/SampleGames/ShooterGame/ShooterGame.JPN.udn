@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2480492
+﻿INTSourceChangelist:2492260
 Availability:Public
 Title:シューティング ゲーム
 Crumbs:%ROOT%, Resources
@@ -6,8 +6,8 @@ Description:C++ で作成したファーストパーソンシューティング 
 Related:Programming/Basics
 Related:Gameplay/ClassCreation/CodeOnly
 Related:Programming/UnrealArchitecture/Reference/Functions
-Related:Gameplay/Networking/Replication/Components
-Related:Gameplay/Networking/Replication/RPCs
+Related:Gameplay/Networking/Actors/Components
+Related:Gameplay/Networking/Actors/RPCs
 Related:Engine/Blueprints/Editor
 Related:Engine/Animation/AnimMontage
 Related:Engine/Animation/Blendspaces
