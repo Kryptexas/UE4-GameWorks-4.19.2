@@ -1,11 +1,12 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2492260
+Availability:Public
 Title:ネットワーク機能のコンテンツ サンプル
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
 Description: ネットワーク機能のコンテンツ サンプル マップにあるサンプルの概要
 Related:Gameplay/Networking
-Related:Gameplay/Networking/Replication/Components
-Related:Gameplay/Networking/Replication
-Related:Gameplay/Networking/Replication/RPCs
+Related:Gameplay/Networking/Actors/Components
+Related:Gameplay/Networking/Actors
+Related:Gameplay/Networking/Actors/RPCs
 Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 
 [REGION:banner]
