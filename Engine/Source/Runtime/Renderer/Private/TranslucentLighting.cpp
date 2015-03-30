@@ -863,7 +863,7 @@ public:
 			FShadowCascadeSettings ShadowCascadeSettings;
 
 			// todo: optimize, not all computed data is needed
-			InnerBounds = LightSceneInfo->Proxy->GetShadowSplitBounds(View, (uint32)InnerSplitIndex, &ShadowCascadeSettings);
+			InnerBounds = LightSceneInfo->Proxy->GetShadowSplitBounds(View, (uint32)InnerSplitIndex, LightSceneInfo->IsPrecomputedLightingValid(), &ShadowCascadeSettings);
 
 			// near cascade plane
 			{
@@ -871,7 +871,7 @@ public:
 				Planes[0] = FVector4((FVector)(ShadowCascadeSettings.NearFrustumPlane),  -ShadowCascadeSettings.NearFrustumPlane.W);
 			}
 
-			uint32 CascadeCount = LightSceneInfo->Proxy->GetNumViewDependentWholeSceneShadows(View);
+			uint32 CascadeCount = LightSceneInfo->Proxy->GetNumViewDependentWholeSceneShadows(View, LightSceneInfo->IsPrecomputedLightingValid());
 
 			// far cascade plane
 			if(InnerSplitIndex != CascadeCount - 1)
@@ -880,7 +880,7 @@ public:
 				Planes[1] = FVector4((FVector)(ShadowCascadeSettings.FarFrustumPlane), -ShadowCascadeSettings.FarFrustumPlane.W);
 			}
 
-			const FVector2D FadeParams = LightSceneInfo->Proxy->GetDirectionalLightDistanceFadeParameters(View.GetFeatureLevel());
+			const FVector2D FadeParams = LightSceneInfo->Proxy->GetDirectionalLightDistanceFadeParameters(View.GetFeatureLevel(), LightSceneInfo->IsPrecomputedLightingValid());
 
 			// setup constants for the MAD in shader
 			ShadowInjectParamValue.Z = FadeParams.Y;
@@ -929,7 +929,7 @@ public:
 		}
 
 		const FStaticShadowDepthMap* StaticShadowDepthMap = LightSceneInfo->Proxy->GetStaticShadowDepthMap();
-		const uint32 bStaticallyShadowedValue = LightSceneInfo->bPrecomputedLightingIsValid && StaticShadowDepthMap && StaticShadowDepthMap->TextureRHI ? 1 : 0;
+		const uint32 bStaticallyShadowedValue = LightSceneInfo->IsPrecomputedLightingValid() && StaticShadowDepthMap && StaticShadowDepthMap->TextureRHI ? 1 : 0;
 		FTextureRHIParamRef StaticShadowDepthMapTexture = bStaticallyShadowedValue ? StaticShadowDepthMap->TextureRHI : GWhiteTexture->TextureRHI;
 		const FMatrix WorldToStaticShadow = bStaticallyShadowedValue ? StaticShadowDepthMap->WorldToLight : FMatrix::Identity;
 

@@ -529,7 +529,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 				bUsedLightAttenuation |= bLightFunctionRendered;
 
 				if (ViewFamily.EngineShowFlags.PreviewShadowsIndicator
-					&& !LightSceneInfo.bPrecomputedLightingIsValid 
+					&& !LightSceneInfo.IsPrecomputedLightingValid() 
 					&& LightSceneInfo.Proxy->HasStaticShadowing())
 				{
 					RenderPreviewShadowsIndicator(RHICmdList, &LightSceneInfo, bUsedLightAttenuation);

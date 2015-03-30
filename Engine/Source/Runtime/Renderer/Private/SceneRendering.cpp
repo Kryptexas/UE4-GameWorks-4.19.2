@@ -718,7 +718,7 @@ void FViewInfo::CreateForwardLightDataUniformBuffer(FForwardLightData &OutForwar
 
 			if(!LightSceneInfoCompact.Color.IsAlmostBlack()
 				// Only render lights with dynamic lighting or unbuilt static lights
-				&& (!LightSceneInfo->Proxy->HasStaticLighting() || !LightSceneInfo->bPrecomputedLightingIsValid))
+				&& (!LightSceneInfo->Proxy->HasStaticLighting() || !LightSceneInfo->IsPrecomputedLightingValid()))
 			{
 				const ELightComponentType LightType = (const ELightComponentType)LightSceneInfoCompact.LightType;
 

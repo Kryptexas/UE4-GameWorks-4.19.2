@@ -595,7 +595,12 @@ void FProjectedShadowInfo::SetupWholeSceneProjection(
 		if (CascadeSettings.ShadowSplitIndex >= 0 && bDirectionalLight)
 		{
 			checkSlow(InDependentView);
-			ShadowBounds = InLightSceneInfo->Proxy->GetShadowSplitBounds(*InDependentView, CascadeSettings.bRayTracedDistanceField ? INDEX_NONE : CascadeSettings.ShadowSplitIndex, 0);
+
+			ShadowBounds = InLightSceneInfo->Proxy->GetShadowSplitBounds(
+				*InDependentView, 
+				CascadeSettings.bRayTracedDistanceField ? INDEX_NONE : CascadeSettings.ShadowSplitIndex, 
+				InLightSceneInfo->IsPrecomputedLightingValid(), 
+				0);
 		}
 		else
 		{
@@ -1144,7 +1149,7 @@ bool FSceneRenderer::ShouldCreateObjectShadowForStationaryLight(const FLightScen
 {
 	const bool bCreateObjectShadowForStationaryLight = 
 		LightSceneInfo->bCreatePerObjectShadowsForDynamicObjects 
-		&& LightSceneInfo->bPrecomputedLightingIsValid
+		&& LightSceneInfo->IsPrecomputedLightingValid()
 		&& LightSceneInfo->Proxy->GetShadowMapChannel() != INDEX_NONE
 		// Create a per-object shadow if the object does not want static lighting and needs to integrate with the static shadowing of a stationary light
 		// Or if the object wants static lighting but does not have a built shadowmap (Eg has been moved in the editor)
@@ -1463,7 +1468,7 @@ void FDeferredShadingSceneRenderer::CreatePerObjectProjectedShadow(
 			for (int32 i = 0; i < ViewDependentWholeSceneShadows.Num(); i++)
 			{
 				const FProjectedShadowInfo* WholeSceneShadow = ViewDependentWholeSceneShadows[i];
-				const FVector2D DistanceFadeValues = WholeSceneShadow->GetLightSceneInfo().Proxy->GetDirectionalLightDistanceFadeParameters(Scene->GetFeatureLevel());
+				const FVector2D DistanceFadeValues = WholeSceneShadow->GetLightSceneInfo().Proxy->GetDirectionalLightDistanceFadeParameters(Scene->GetFeatureLevel(), WholeSceneShadow->GetLightSceneInfo().IsPrecomputedLightingValid());
 				const float DistanceFromShadowCenterSquared = (WholeSceneShadow->ShadowBounds.Center - Bounds.Origin).SizeSquared();
 				//@todo - if view dependent whole scene shadows are ever supported in splitscreen, 
 				// We can only disable the preshadow at this point if it is inside a whole scene shadow for all views
@@ -1950,7 +1955,7 @@ inline void FSceneRenderer::GatherShadowsForPrimitiveInner(
 
 				// Include all primitives for movable lights, but only statically shadowed primitives from a light with static shadowing,
 				// Since lights with static shadowing still create per-object shadows for primitives without static shadowing.
-				if( (!LightProxy->HasStaticLighting() || !ProjectedShadowInfo->GetLightSceneInfo().bPrecomputedLightingIsValid)
+				if( (!LightProxy->HasStaticLighting() || !ProjectedShadowInfo->GetLightSceneInfo().IsPrecomputedLightingValid())
 					// Check if this primitive is in the shadow's cylinder
 					&& PrimitiveDistanceFromCylinderAxisSq < FMath::Square(ProjectedShadowInfo->ShadowBounds.W + PrimitiveBounds.SphereRadius)
 					// Check if the primitive is closer than the cylinder cap toward the light
@@ -2129,9 +2134,9 @@ void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(
 		// If rendering in stereo mode we render shadow depths only for the left eye, but project for both eyes!
 		if (View.StereoPass != eSSP_RIGHT_EYE)
 		{
-			const bool bExtraDistanceFieldCascade = LightSceneInfo.Proxy->ShouldCreateRayTracedCascade(View.GetFeatureLevel());
+			const bool bExtraDistanceFieldCascade = LightSceneInfo.Proxy->ShouldCreateRayTracedCascade(View.GetFeatureLevel(), LightSceneInfo.IsPrecomputedLightingValid());
 
-			const int32 ProjectionCount = LightSceneInfo.Proxy->GetNumViewDependentWholeSceneShadows(View) + (bExtraDistanceFieldCascade?1:0);
+			const int32 ProjectionCount = LightSceneInfo.Proxy->GetNumViewDependentWholeSceneShadows(View, LightSceneInfo.IsPrecomputedLightingValid()) + (bExtraDistanceFieldCascade?1:0);
 
 			checkSlow(INDEX_NONE == -1);
 
@@ -2148,7 +2153,7 @@ void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(
 					LocalIndex = INDEX_NONE;
 				}
 
-				if (LightSceneInfo.Proxy->GetViewDependentWholeSceneProjectedShadowInitializer(View, LocalIndex, ProjectedShadowInitializer))
+				if (LightSceneInfo.Proxy->GetViewDependentWholeSceneProjectedShadowInitializer(View, LocalIndex, LightSceneInfo.IsPrecomputedLightingValid(), ProjectedShadowInitializer))
 				{
 					const FIntPoint ShadowBufferResolution = GSceneRenderTargets.GetShadowDepthTextureResolution();
 					// Create the projected shadow info.
@@ -2371,14 +2376,14 @@ void FDeferredShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate&
 					const bool bCreateShadowToPreviewStaticLight = 
 						LightSceneInfo->Proxy->HasStaticShadowing()
 						&& LightSceneInfoCompact.bCastStaticShadow 
-						&& !LightSceneInfo->bPrecomputedLightingIsValid;
+						&& !LightSceneInfo->IsPrecomputedLightingValid();
 
 					// Create a whole scene shadow for lights that want static shadowing but didn't get assigned to a valid shadowmap channel due to overlap
 					const bool bCreateShadowForOverflowStaticShadowing =
 						LightSceneInfo->Proxy->HasStaticShadowing()
 						&& !LightSceneInfo->Proxy->HasStaticLighting()
 						&& LightSceneInfoCompact.bCastStaticShadow 
-						&& LightSceneInfo->bPrecomputedLightingIsValid
+						&& LightSceneInfo->IsPrecomputedLightingValid()
 						&& LightSceneInfo->Proxy->GetShadowMapChannel() == INDEX_NONE;
 
 					if (bCreateShadowForMovableLight || bCreateShadowToPreviewStaticLight || bCreateShadowForOverflowStaticShadowing)

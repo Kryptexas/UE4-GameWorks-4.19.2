@@ -670,7 +670,7 @@ public:
 	/** Accesses parameters needed for rendering the light. */
 	virtual void GetParameters(FVector4& LightPositionAndInvRadius, FVector4& LightColorAndFalloffExponent, FVector& NormalizedLightDirection, FVector2D& SpotAngles, float& LightSourceRadius, float& LightSourceLength, float& LightMinRoughness) const {}
 
-	virtual FVector2D GetDirectionalLightDistanceFadeParameters(ERHIFeatureLevel::Type InFeatureLevel) const
+	virtual FVector2D GetDirectionalLightDistanceFadeParameters(ERHIFeatureLevel::Type InFeatureLevel, bool bPrecomputedLightingIsValid) const
 	{
 		return FVector2D(0, 0);
 	}
@@ -696,14 +696,11 @@ public:
 		return false;
 	}
 
-	/** Called when precomputed lighting has been determined to be invalid */
-	virtual void InvalidatePrecomputedLighting(bool bIsEditor) {}
-
 	/** Whether this light should create per object shadows for dynamic objects. */
 	virtual bool ShouldCreatePerObjectShadowsForDynamicObjects() const;
 
 	/** Returns the number of view dependent shadows this light will create, not counting distance field shadow cascades. */
-	virtual uint32 GetNumViewDependentWholeSceneShadows(const FSceneView& View) const { return 0; }
+	virtual uint32 GetNumViewDependentWholeSceneShadows(const FSceneView& View, bool bPrecomputedLightingIsValid) const { return 0; }
 
 	/**
 	 * Sets up a projected shadow initializer that's dependent on the current view for shadows from the entire scene.
@@ -712,7 +709,8 @@ public:
 	 */
 	virtual bool GetViewDependentWholeSceneProjectedShadowInitializer(
 		const class FSceneView& View, 
-		int32 InCascadeIndex,
+		int32 InCascadeIndex, 
+		bool bPrecomputedLightingIsValid,
 		class FWholeSceneProjectedShadowInitializer& OutInitializer) const
 	{
 		return false;
@@ -743,7 +741,7 @@ public:
 
 	// @param InCascadeIndex cascade index or INDEX_NONE for the distance field cascade
 	// @param OutCascadeSettings can be 0
-	virtual FSphere GetShadowSplitBounds(const class FSceneView& View, int32 InCascadeIndex, FShadowCascadeSettings* OutCascadeSettings) const { return FSphere(FVector::ZeroVector, 0); }
+	virtual FSphere GetShadowSplitBounds(const class FSceneView& View, int32 InCascadeIndex, bool bPrecomputedLightingIsValid, FShadowCascadeSettings* OutCascadeSettings) const { return FSphere(FVector::ZeroVector, 0); }
 	virtual FSphere GetShadowSplitBoundsDepthRange(const FSceneView& View, FVector ViewOrigin, float SplitNear, float SplitFar, FShadowCascadeSettings* OutCascadeSettings) const { return FSphere(FVector::ZeroVector, 0); }
 
 	virtual bool GetScissorRect(FIntRect& ScissorRect, const FSceneView& View) const
@@ -756,7 +754,7 @@ public:
 	{
 	}
 
-	virtual bool ShouldCreateRayTracedCascade(ERHIFeatureLevel::Type Type) const { return false; }
+	virtual bool ShouldCreateRayTracedCascade(ERHIFeatureLevel::Type Type, bool bPrecomputedLightingIsValid) const { return false; }
 
 	// Accessors.
 	float GetUserShadowBias() const { return ShadowBias; }

@@ -8,6 +8,14 @@
 #include "ScenePrivate.h"
 #include "DistanceFieldLightingShared.h"
 
+int32 GWholeSceneShadowUnbuiltInteractionThreshold = 500;
+static FAutoConsoleVariableRef CVarWholeSceneShadowUnbuiltInteractionThreshold(
+	TEXT("r.Shadow.WholeSceneShadowUnbuiltInteractionThreshold"),
+	GWholeSceneShadowUnbuiltInteractionThreshold,
+	TEXT("How many unbuilt light-primitive interactions there can be for a light before the light switches to whole scene shadows"),
+	ECVF_RenderThreadSafe
+	);
+
 void FLightSceneInfoCompact::Init(FLightSceneInfo* InLightSceneInfo)
 {
 	LightSceneInfo = InLightSceneInfo;
@@ -43,11 +51,6 @@ FLightSceneInfo::FLightSceneInfo(FLightSceneProxy* InProxy, bool InbVisible)
 {
 	// Only visible lights can be added in game
 	check(bVisible || GIsEditor);
-
-	if (!bPrecomputedLightingIsValid)
-	{
-		Proxy->InvalidatePrecomputedLighting(InProxy->GetLightComponent()->GetScene()->IsEditorScene());
-	}
 
 	BeginInitResource(this);
 
@@ -174,6 +177,11 @@ bool FLightSceneInfo::ShouldRenderLight(const FViewInfo& View) const
 	return bLocalVisible
 		// Only render lights with static shadowing for reflection captures, since they are only captured at edit time
 		&& (!View.bStaticSceneOnly || Proxy->HasStaticShadowing());
+}
+
+bool FLightSceneInfo::IsPrecomputedLightingValid() const
+{
+	return (bPrecomputedLightingIsValid && NumUnbuiltInteractions < GWholeSceneShadowUnbuiltInteractionThreshold) || !Proxy->HasStaticShadowing();
 }
 
 void FLightSceneInfo::ReleaseRHI()

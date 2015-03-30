@@ -55,7 +55,7 @@ void SetDeferredLightParameters(
 	DeferredLightUniformsValue.LightColor = LightColorAndFalloffExponent;
 	DeferredLightUniformsValue.LightFalloffExponent = LightColorAndFalloffExponent.W;
 
-	const FVector2D FadeParams = LightSceneInfo->Proxy->GetDirectionalLightDistanceFadeParameters(View.GetFeatureLevel());
+	const FVector2D FadeParams = LightSceneInfo->Proxy->GetDirectionalLightDistanceFadeParameters(View.GetFeatureLevel(), LightSceneInfo->IsPrecomputedLightingValid());
 
 	// use MAD for efficiency in the shader
 	DeferredLightUniformsValue.DistanceFadeMAD = FVector2D(FadeParams.Y, -FadeParams.X * FadeParams.Y);

@@ -121,8 +121,11 @@ public:
 	/** Tile intersection buffer for distance field shadowing, stored on the light to avoid reallocating each frame. */
 	mutable TScopedPointer<class FLightTileIntersectionResources> TileIntersectionResources;
 
+protected:
 	/** True if the light is built. */
 	uint32 bPrecomputedLightingIsValid : 1;
+
+public:
 
 	/** 
 	 * True if the light is visible.  
@@ -192,7 +195,7 @@ public:
 	{
 		return !Proxy->GetColor().IsAlmostBlack()
 			// Only render lights with dynamic lighting or unbuilt static lights
-			&& (!Proxy->HasStaticLighting() || !bPrecomputedLightingIsValid);
+			&& (!Proxy->HasStaticLighting() || !IsPrecomputedLightingValid());
 	}
 
 	/** Encapsulates all View-Independent reasons to render ViewIndependentWholeSceneShadows for this light */
@@ -205,11 +208,13 @@ public:
 		const bool bCreateShadowToPreviewStaticLight =
 			Proxy->HasStaticShadowing()
 			&& bCastDynamicShadow
-			&& !bPrecomputedLightingIsValid;
+			&& !IsPrecomputedLightingValid();
 
 		bool bShouldRenderShadow = bShouldRenderLight && bCastDynamicShadow && (!Proxy->HasStaticLighting() || bCreateShadowToPreviewStaticLight);
 		return bShouldRenderShadow;
 	}
+
+	bool IsPrecomputedLightingValid() const;
 
 	/** Hash function. */
 	friend uint32 GetTypeHash(const FLightSceneInfo* LightSceneInfo)

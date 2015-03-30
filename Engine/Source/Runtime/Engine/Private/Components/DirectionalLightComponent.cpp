@@ -181,18 +181,6 @@ public:
 
 	// FLightSceneInfo interface.
 
-	/** Called when precomputed lighting has been determined to be invalid */
-	virtual void InvalidatePrecomputedLighting(bool bIsEditor) 
-	{
-		// If the light is unbuilt and is not already using CSM, setup CSM settings to preview unbuilt lighting
-		if (HasStaticShadowing())
-		{
-			CascadeDistributionExponent = 4;
-			DynamicShadowCascades = FMath::Max(0, CVarUnbuiltNumWholeSceneDynamicShadowCascades.GetValueOnAnyThread());
-			WholeSceneDynamicShadowRadius = CVarUnbuiltWholeSceneDynamicShadowRadius.GetValueOnAnyThread();
-		}
-	}
-
 	virtual bool ShouldCreatePerObjectShadowsForDynamicObjects() const 
 	{
 		return FLightSceneProxy::ShouldCreatePerObjectShadowsForDynamicObjects()
@@ -204,9 +192,9 @@ public:
 	}
 
 	/** Returns the number of view dependent shadows this light will create, not counting distance field shadow cascades. */
-	virtual uint32 GetNumViewDependentWholeSceneShadows(const FSceneView& View) const
+	virtual uint32 GetNumViewDependentWholeSceneShadows(const FSceneView& View, bool bPrecomputedLightingIsValid) const
 	{ 
-		uint32 TotalCascades = GetNumShadowMappedCascades(View.MaxShadowCascades) + FarShadowCascadeCount;
+		uint32 TotalCascades = GetNumShadowMappedCascades(View.MaxShadowCascades, bPrecomputedLightingIsValid) + FarShadowCascadeCount;
 
 		return TotalCascades;
 	}
@@ -216,15 +204,15 @@ public:
 	 * @param InCascadeIndex ShadowSplitIndex or INDEX_NONE for the the DistanceFieldCascade
 	 * @return True if the whole-scene projected shadow should be used.
 	 */
-	virtual bool GetViewDependentWholeSceneProjectedShadowInitializer(const FSceneView& View, int32 InCascadeIndex, FWholeSceneProjectedShadowInitializer& OutInitializer) const
+	virtual bool GetViewDependentWholeSceneProjectedShadowInitializer(const FSceneView& View, int32 InCascadeIndex, bool bPrecomputedLightingIsValid, FWholeSceneProjectedShadowInitializer& OutInitializer) const
 	{
 		const FMatrix& WorldToLight = GetWorldToLight();
 
 		const bool bRayTracedCascade = (InCascadeIndex == INDEX_NONE);
 
-		FSphere Bounds = FDirectionalLightSceneProxy::GetShadowSplitBounds(View, InCascadeIndex, &OutInitializer.CascadeSettings);
+		FSphere Bounds = FDirectionalLightSceneProxy::GetShadowSplitBounds(View, InCascadeIndex, bPrecomputedLightingIsValid, &OutInitializer.CascadeSettings);
 
-		uint32 NumNearCascades = GetNumShadowMappedCascades(View.MaxShadowCascades);
+		uint32 NumNearCascades = GetNumShadowMappedCascades(View.MaxShadowCascades, bPrecomputedLightingIsValid);
 
 		// Last cascade is the ray traced shadow, if enabled
 		OutInitializer.CascadeSettings.ShadowSplitIndex = bRayTracedCascade ? NumNearCascades : InCascadeIndex;
@@ -289,11 +277,11 @@ public:
 		return true;
 	}
 
-	virtual FVector2D GetDirectionalLightDistanceFadeParameters(ERHIFeatureLevel::Type InFeatureLevel) const
+	virtual FVector2D GetDirectionalLightDistanceFadeParameters(ERHIFeatureLevel::Type InFeatureLevel, bool bPrecomputedLightingIsValid) const
 	{
-		float FarDistance = GetCSMMaxDistance();
+		float FarDistance = GetCSMMaxDistance(bPrecomputedLightingIsValid);
 		{
-			if (ShouldCreateRayTracedCascade(InFeatureLevel))
+			if (ShouldCreateRayTracedCascade(InFeatureLevel, bPrecomputedLightingIsValid))
 			{
 				FarDistance = GetDistanceFieldShadowDistance();
 			}
@@ -321,30 +309,36 @@ public:
 		return true;
 	}
 
-	virtual bool ShouldCreateRayTracedCascade(ERHIFeatureLevel::Type InFeatureLevel) const
+	virtual bool ShouldCreateRayTracedCascade(ERHIFeatureLevel::Type InFeatureLevel, bool bPrecomputedLightingIsValid) const
 	{
 		//@todo - handle View.MaxShadowCascades properly
-		const uint32 NumCascades = GetNumShadowMappedCascades(10);
+		const uint32 NumCascades = GetNumShadowMappedCascades(10, bPrecomputedLightingIsValid);
 		const float RaytracedShadowDistance = GetDistanceFieldShadowDistance();
-		const bool bCreateWithCSM = NumCascades > 0 && RaytracedShadowDistance > GetCSMMaxDistance();
+		const bool bCreateWithCSM = NumCascades > 0 && RaytracedShadowDistance > GetCSMMaxDistance(bPrecomputedLightingIsValid);
 		const bool bCreateWithoutCSM = NumCascades == 0 && RaytracedShadowDistance > 0;
 		return DoesPlatformSupportDistanceFieldShadowing(GShaderPlatformForFeatureLevel[InFeatureLevel]) && (bCreateWithCSM || bCreateWithoutCSM);
 	}
 
 private:
 
-	uint32 GetNumShadowMappedCascades(uint32 MaxShadowCascades) const
+	float GetEffectiveWholeSceneDynamicShadowRadius(bool bPrecomputedLightingIsValid) const
 	{
-		uint32 NumCascades = WholeSceneDynamicShadowRadius > 0.0f ? DynamicShadowCascades : 0;
+		return bPrecomputedLightingIsValid ? WholeSceneDynamicShadowRadius : CVarUnbuiltWholeSceneDynamicShadowRadius.GetValueOnAnyThread();
+	}
+
+	uint32 GetNumShadowMappedCascades(uint32 MaxShadowCascades, bool bPrecomputedLightingIsValid) const
+	{
+		const int32 EffectiveNumDynamicShadowCascades = bPrecomputedLightingIsValid ? DynamicShadowCascades : FMath::Max(0, CVarUnbuiltNumWholeSceneDynamicShadowCascades.GetValueOnAnyThread());
+		const int32 NumCascades = GetEffectiveWholeSceneDynamicShadowRadius(bPrecomputedLightingIsValid) > 0.0f ? EffectiveNumDynamicShadowCascades : 0;
 		return FMath::Min<int32>(NumCascades, MaxShadowCascades);
 	}
 
-	float GetCSMMaxDistance() const
+	float GetCSMMaxDistance(bool bPrecomputedLightingIsValid) const
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.Shadow.DistanceScale"));
 		 
 		float Scale = FMath::Clamp(CVar->GetValueOnRenderThread(), 0.1f, 2.0f);
-		float Distance = WholeSceneDynamicShadowRadius * Scale;
+		float Distance = GetEffectiveWholeSceneDynamicShadowRadius(bPrecomputedLightingIsValid) * Scale;
 		return Distance;
 	}
 
@@ -481,14 +475,20 @@ private:
 		return Ret / TotalScale;
 	}
 	
+	float GetEffectiveCascadeDistributionExponent(bool bPrecomputedLightingIsValid) const
+	{
+		return bPrecomputedLightingIsValid ? CascadeDistributionExponent : 4;
+	}
+
 	// @param SplitIndex 0: near, 1:end of 1st cascade, ...
-	inline float GetSplitDistance(const FSceneView& View, uint32 SplitIndex, bool bDistanceFieldShadows) const
+	inline float GetSplitDistance(const FSceneView& View, uint32 SplitIndex, bool bPrecomputedLightingIsValid, bool bDistanceFieldShadows) const
 	{
 		// near cascade means non far and non distance field cascade
-		uint32 NumNearCascades = GetNumShadowMappedCascades(View.MaxShadowCascades);
+		uint32 NumNearCascades = GetNumShadowMappedCascades(View.MaxShadowCascades, bPrecomputedLightingIsValid);
 
-		float CascadeDistanceWithoutFar = GetCSMMaxDistance();
+		float CascadeDistanceWithoutFar = GetCSMMaxDistance(bPrecomputedLightingIsValid);
 		float ShadowNear = View.NearClippingDistance;
+		const float EffectiveCascadeDistributionExponent = GetEffectiveCascadeDistributionExponent(bPrecomputedLightingIsValid);
 
 		// non near cascades are split differently for distance field shadow
 		if(SplitIndex > NumNearCascades)
@@ -502,12 +502,12 @@ private:
 			else
 			{
 				// the far cascades start at the after the near cascades
-				return CascadeDistanceWithoutFar + ComputeAccumulatedScale(CascadeDistributionExponent, SplitIndex - NumNearCascades, FarShadowCascadeCount) * (FarShadowDistance - CascadeDistanceWithoutFar);
+				return CascadeDistanceWithoutFar + ComputeAccumulatedScale(EffectiveCascadeDistributionExponent, SplitIndex - NumNearCascades, FarShadowCascadeCount) * (FarShadowDistance - CascadeDistanceWithoutFar);
 			}
 		}
 		else
 		{
-			return ShadowNear + ComputeAccumulatedScale(CascadeDistributionExponent, SplitIndex, NumNearCascades) * (CascadeDistanceWithoutFar - ShadowNear);
+			return ShadowNear + ComputeAccumulatedScale(EffectiveCascadeDistributionExponent, SplitIndex, NumNearCascades) * (CascadeDistanceWithoutFar - ShadowNear);
 		}
 	}
 
@@ -584,14 +584,14 @@ private:
 	}
 
 	// @param InShadowSplitIndex cascade index or InShadowSplitIndex == INDEX_NONE for the distance field cascade
-	virtual FSphere GetShadowSplitBounds(const FSceneView& View, int32 InCascadeIndex, FShadowCascadeSettings* OutCascadeSettings) const
+	virtual FSphere GetShadowSplitBounds(const FSceneView& View, int32 InCascadeIndex, bool bPrecomputedLightingIsValid, FShadowCascadeSettings* OutCascadeSettings) const
 	{
-		uint32 NumNearCascades = GetNumShadowMappedCascades(View.MaxShadowCascades);
+		uint32 NumNearCascades = GetNumShadowMappedCascades(View.MaxShadowCascades, bPrecomputedLightingIsValid);
 
-		const bool bHasRayTracedCascade = ShouldCreateRayTracedCascade(View.GetFeatureLevel());
+		const bool bHasRayTracedCascade = ShouldCreateRayTracedCascade(View.GetFeatureLevel(), bPrecomputedLightingIsValid);
 
 		// this checks for WholeSceneDynamicShadowRadius and DynamicShadowCascades
-		uint32 NumNearAndFarCascades = GetNumViewDependentWholeSceneShadows(View);
+		uint32 NumNearAndFarCascades = GetNumViewDependentWholeSceneShadows(View, bPrecomputedLightingIsValid);
 
 		uint32 NumTotalCascades = FMath::Max(NumNearAndFarCascades, NumNearCascades + (bHasRayTracedCascade ? 1 : 0));
 
@@ -600,8 +600,8 @@ private:
 
 		// Determine start and end distances to the current cascade's split planes
 		// Presence of the ray traced cascade does not change depth ranges for the shadow-mapped cascades
-		float SplitNear = GetSplitDistance(View, ShadowSplitIndex, bIsRayTracedCascade);
-		float SplitFar = GetSplitDistance(View, ShadowSplitIndex + 1, bIsRayTracedCascade);
+		float SplitNear = GetSplitDistance(View, ShadowSplitIndex, bPrecomputedLightingIsValid, bIsRayTracedCascade);
+		float SplitFar = GetSplitDistance(View, ShadowSplitIndex + 1, bPrecomputedLightingIsValid, bIsRayTracedCascade);
 		float FadePlane = SplitFar;
 
 		float LocalCascadeTransitionFraction = CascadeTransitionFraction * GetShadowTransitionScale();
@@ -624,8 +624,8 @@ private:
 			{
 				// only used to fade the translucency lighting volume
 
-				float BeforeSplitNear = GetSplitDistance(View, ShadowSplitIndex - 1, bIsRayTracedCascade);
-				float BeforeSplitFar = GetSplitDistance(View, ShadowSplitIndex, bIsRayTracedCascade);
+				float BeforeSplitNear = GetSplitDistance(View, ShadowSplitIndex - 1, bPrecomputedLightingIsValid, bIsRayTracedCascade);
+				float BeforeSplitFar = GetSplitDistance(View, ShadowSplitIndex, bPrecomputedLightingIsValid, bIsRayTracedCascade);
 
 				OutCascadeSettings->SplitNearFadeRegion = (BeforeSplitFar - BeforeSplitNear) * LocalCascadeTransitionFraction;
 			}
