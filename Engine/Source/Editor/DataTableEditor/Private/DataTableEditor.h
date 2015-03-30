@@ -9,6 +9,7 @@
 #include "DataTableEditorUtils.h"
 
 class UDataTable;
+class FJsonObject;
 
 DECLARE_DELEGATE_OneParam(FOnRowHighlighted, FName /*Row name*/);
 
@@ -38,8 +39,8 @@ public:
 	/** Destructor */
 	virtual ~FDataTableEditor();
 
-	/* Create the uniform grid panel */
-	TSharedPtr<SUniformGridPanel> CreateGridPanel();
+	/* Create the grid panel */
+	TSharedRef<SWidget> CreateGridPanel();
 
 	/** IToolkit interface */
 	virtual FName GetToolkitFName() const override;
@@ -77,13 +78,27 @@ private:
 
 	FReply OnRowClicked(const FGeometry&, const FPointerEvent&, FName RowName);
 
+	float GetColumnWidth(const int32 ColumnIndex);
+
+	void OnColumnResized(const float NewWidth, const int32 ColumnIndex);
+
+	void LoadLayoutData();
+
+	void SaveLayoutData();
+
 private:
 
 	/** Cached table data */
 	TArray<TArray<FString> > CachedDataTable;
 
+	/** Cached raw column names */
+	TArray<FString> CachedRawColumnNames;
+
 	/** Visibility of data table rows */
 	TArray<bool> RowsVisibility;
+
+	/** Widths of data table columns */
+	TArray<float> ColumnWidths;
 
 	/** Search box */
 	TSharedPtr<SWidget> SearchBox;
@@ -96,6 +111,9 @@ private:
 
 	/* The DataTable that is active in the editor */
 	TAssetPtr<UDataTable> DataTable;
+
+	/** The layout data for the currently loaded data table */
+	TSharedPtr<FJsonObject> LayoutData;
 
 	FName HighlightedRowName;
 

@@ -419,6 +419,20 @@ TArray<FString> UDataTable::GetColumnTitles() const
 	return Result;
 }
 
+TArray<FString> UDataTable::GetUniqueColumnTitles() const
+{
+	TArray<FString> Result;
+	Result.Add(TEXT("Name"));
+	for (TFieldIterator<UProperty> It(RowStruct); It; ++It)
+	{
+		UProperty* Prop = *It;
+		check(Prop != NULL);
+		const FString DisplayName = Prop->GetName();
+		Result.Add(DisplayName);
+	}
+	return Result;
+}
+
 TArray< TArray<FString> > UDataTable::GetTableData() const
 {
 	 TArray< TArray<FString> > Result;

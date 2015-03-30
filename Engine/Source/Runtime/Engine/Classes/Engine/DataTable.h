@@ -173,8 +173,11 @@ public:
 	*/
 	ENGINE_API TArray<FString> CreateTableFromJSONString(const FString& InString);
 
-	/** Get array of all the column titles */
+	/** Get an array of all the column titles, using the friendly display name from the property */
 	ENGINE_API TArray<FString> GetColumnTitles() const;
+
+	/** Get an array of all the column titles, using the unique name from the property */
+	ENGINE_API TArray<FString> GetUniqueColumnTitles() const;
 
 	TArray<UProperty*> GetTablePropertyArray(const TArray<const TCHAR*>& Cells, UStruct* RowStruct, TArray<FString>& OutProblems);
 
