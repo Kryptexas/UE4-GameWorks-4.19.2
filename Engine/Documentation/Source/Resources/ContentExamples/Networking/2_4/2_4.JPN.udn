@@ -1,12 +1,12 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2492260
 Availability:Public
 Title:2.4 - ネットワークの関連性 (パート 4 - 組み合わせてみる方法)
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
 Description:ネットワーク機能の事例レベルの概要 事例 2.4:ネットワークの関連性 (パート 4 - 組み合わせてみる方法)
 Related:Gameplay/Networking
-Related:Gameplay/Networking/Replication/Components
-Related:Gameplay/Networking/Replication
-Related:Gameplay/Networking/Replication/RPCs
+Related:Gameplay/Networking/Actors/Components
+Related:Gameplay/Networking/Actors
+Related:Gameplay/Networking/Actors/RPCs
 Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 
 
