@@ -26,7 +26,9 @@ public:
 		/** Get the DesiredSize() of the content */
 		SizeToContent,
 		/** Use a fraction of the parent's size */
-		FractionOfParent
+		FractionOfParent,
+		/** Use the SizeValue of the slot as an absolute size */
+		AbsoluteSize,
 	};
 
 	DECLARE_DELEGATE_OneParam(
