@@ -50,7 +50,7 @@ void DrawDebugPoint(const UWorld* InWorld, FVector const& Position, float Size, 
 	}
 }
 
-void DrawDebugDirectionalArrow(const UWorld* InWorld, FVector const& LineStart, FVector const& LineEnd, float ArrowSize, FColor const& Color, bool bPersistentLines, float LifeTime, uint8 DepthPriority)
+void DrawDebugDirectionalArrow(const UWorld* InWorld, FVector const& LineStart, FVector const& LineEnd, float ArrowSize, FColor const& Color, bool bPersistentLines, float LifeTime, uint8 DepthPriority, float Thickness)
 {
 	// no debug line drawing on dedicated server
 	if (GEngine->GetNetMode(InWorld) != NM_DedicatedServer)
@@ -60,7 +60,7 @@ void DrawDebugDirectionalArrow(const UWorld* InWorld, FVector const& LineStart, 
 			ArrowSize = 10.f;
 		}
 
-		DrawDebugLine(InWorld, LineStart, LineEnd, Color, bPersistentLines, LifeTime);
+		DrawDebugLine(InWorld, LineStart, LineEnd, Color, bPersistentLines, LifeTime, DepthPriority, Thickness);
 
 		FVector Dir = (LineEnd-LineStart);
 		Dir.Normalize();
@@ -78,8 +78,8 @@ void DrawDebugDirectionalArrow(const UWorld* InWorld, FVector const& LineStart, 
 		// since dir is x direction, my arrow will be pointing +y, -x and -y, -x
 		float ArrowSqrt = FMath::Sqrt(ArrowSize);
 		FVector ArrowPos;
-		DrawDebugLine(InWorld, LineEnd, LineEnd + TM.TransformPosition(FVector(-ArrowSqrt, ArrowSqrt, 0)), Color, bPersistentLines, LifeTime, DepthPriority);
-		DrawDebugLine(InWorld, LineEnd, LineEnd + TM.TransformPosition(FVector(-ArrowSqrt, -ArrowSqrt, 0)), Color, bPersistentLines, LifeTime, DepthPriority);
+		DrawDebugLine(InWorld, LineEnd, LineEnd + TM.TransformPosition(FVector(-ArrowSqrt, ArrowSqrt, 0)), Color, bPersistentLines, LifeTime, DepthPriority, Thickness);
+		DrawDebugLine(InWorld, LineEnd, LineEnd + TM.TransformPosition(FVector(-ArrowSqrt, -ArrowSqrt, 0)), Color, bPersistentLines, LifeTime, DepthPriority, Thickness);
 	}
 }
 
