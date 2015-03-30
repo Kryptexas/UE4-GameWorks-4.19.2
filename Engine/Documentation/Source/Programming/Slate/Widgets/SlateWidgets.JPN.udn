@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2390426
+﻿INTSourceChangelist:2434013
 Availability:Public
 Title:スレート ウィジェットの例
 Crumbs:%ROOT%, Programming, Programming/Slate, Programming/Slate/Widgets
@@ -22,7 +22,7 @@ Version:4.4
 
 * Text - 該当する場合、ウィジェットが使用するテキストを指定します。
 * Content - 該当する場合、ウィジェットのコンテンツ セクションに配置できるウィジェットを指定します。
-* ReadOnly - true の場合、このウィジェットを編集不可にします。
+* ReadOnly - _true_ の場合、このウィジェットを編集不可にします。
 * Style - 画像のスタイルまたはウィジェットが使用するテキストのフォントを指定します。適用方法はウィジェットによって異なります。
 * [...]ColorAndOpacity - ウィジェットのカラーやオパシティ、またはウィジェットの指定システムです。
 * Padding - ウィジェットのパディングです。親内のウィジェットの上部、左、右、そして下部周りに設定するパディングの間隔をスレート単位で表します。単一の値を 4 ヶ所に指定することができます。もしくは、水平や垂直値、またはそれぞれ異なる 4 つの値を指定できます。
@@ -204,11 +204,11 @@ SWrapBox は、横幅を超えるまでウィジットを水平に配列する�
 	FMenuBarBuilder MenuBarBuilder( CommandList );
 	{
 		MenuBarBuilder.AddPullDownMenu( TEXT("Menu 1"), TEXT("Opens Menu 1"), FNewMenuDelegate::CreateRaw( &FMenus::FillMenu1Entries ) );
-
 		MenuBarBuilder.AddPullDownMenu( TEXT("Menu 2"), TEXT("Opens Menu 2"), FNewMenuDelegate::CreateRaw( &FMenus::FillMenu2Entries ) );
-	}
 
+	}
 	return MenuBarBuilder.MakeWidget();
+
 
 メニューヘッダ、エントリー、セパレーター、サブメニュー、編集可能なテキスト、またはカスタムウィジェットを作成されたメニューへ追加することができます。
 
@@ -226,8 +226,7 @@ SWrapBox は、横幅を超えるまでウィジットを水平に配列する�
 	}
 
 ### コンテキスト メニュー
-
-コンテクスト メニューとしてこれらのメニューのどれかを呼び出すには、 FMenuBuilder から生成したウィジェットを取得して、PushMenu 関数へ渡します。このようになります。
+	コンテクスト メニューとしてこれらのメニューのどれかを呼び出すには、 FMenuBuilder から生成したウィジェットを取得して、PushMenu 関数へ渡します。このようになります。
 
 
 	FSlateApplication::Get().PushMenu(
@@ -257,8 +256,8 @@ SWrapBox は、横幅を超えるまでウィジットを水平に配列する�
 			FText(),
 			LOCTEXT("PIEComboToolTip", "Play-In-Editor options") );
 	}
-
 	return GameToolBarBuilder.MakeWidget();
+
 
 ##アイテム表示
 
