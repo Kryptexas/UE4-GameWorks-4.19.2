@@ -24,6 +24,20 @@ public:
 	UFUNCTION()
 	void CodeGenTestForEnumClasses(ECppEnum Val);
 
+	UFUNCTION()
+	int32 InlineFunc()
+	{
+		return FString("Hello").Len();
+	}
+
+	UFUNCTION()
+	int32 InlineFuncWithCppMacros()
+#if CPP
+	{
+		return FString("Hello").Len();
+	}
+#endif
+
 #if 0
 	UPROPERTY()
 	ITestInterface* ShouldGiveAMeaningfulErrorAboutTScriptInterface;
