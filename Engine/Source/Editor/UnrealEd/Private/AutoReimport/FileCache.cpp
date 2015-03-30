@@ -105,12 +105,12 @@ static const uint32 CacheFileMagicNumber = 0x03DCCB00;
 /** Single runnable thread used to parse file cache directories without blocking the main thread */
 struct FAsyncTaskThread : public FRunnable
 {
-	typedef TArray<TWeakPtr<IAsyncTask, ESPMode::ThreadSafe>> FTaskArray;
+	typedef TArray<TWeakPtr<IAsyncFileCacheTask, ESPMode::ThreadSafe>> FTaskArray;
 
 	FAsyncTaskThread() : Thread(nullptr) {}
 
 	/** Add a reader to this thread which will get ticked periodically until complete */
-	void AddTask(TSharedPtr<IAsyncTask, ESPMode::ThreadSafe> InTask)
+	void AddTask(TSharedPtr<IAsyncFileCacheTask, ESPMode::ThreadSafe> InTask)
 	{
 		FScopeLock Lock(&TaskArrayMutex);
 		Tasks.Add(InTask);
@@ -220,7 +220,7 @@ bool FAsyncFileHasher::IsComplete() const
 	return CurrentIndex.GetValue() == Data.Num();
 }
 
-IAsyncTask::EProgressResult FAsyncFileHasher::Tick(const FTimeLimit& Limit)
+IAsyncFileCacheTask::EProgressResult FAsyncFileHasher::Tick(const FTimeLimit& Limit)
 {
 	for (; CurrentIndex.GetValue() < Data.Num(); )
 	{

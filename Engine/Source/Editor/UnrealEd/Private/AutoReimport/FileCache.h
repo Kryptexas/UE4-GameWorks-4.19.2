@@ -146,15 +146,15 @@ enum EPathType
 	Absolute
 };
 
-struct IAsyncTask : public TSharedFromThis<IAsyncTask, ESPMode::ThreadSafe>
+struct IAsyncFileCacheTask : public TSharedFromThis<IAsyncFileCacheTask, ESPMode::ThreadSafe>
 {
 	enum class EProgressResult
 	{
 		Finished, Pending
 	};
 
-	IAsyncTask() : StartTime(FPlatformTime::Seconds()) {}
-	virtual ~IAsyncTask() {}
+	IAsyncFileCacheTask() : StartTime(FPlatformTime::Seconds()) {}
+	virtual ~IAsyncFileCacheTask() {}
 	
 	/** Tick this task. Only to be called on the task thread. */
 	virtual EProgressResult Tick(const FTimeLimit& TimeLimit) = 0;
@@ -182,7 +182,7 @@ struct FFilenameAndHash
 };
 
 /** Async task responsible for MD5 hashing a number of files, reporting completed hashes to the client when done */
-struct FAsyncFileHasher : public IAsyncTask
+struct FAsyncFileHasher : public IAsyncFileCacheTask
 {
 	/** Constructor */
 	FAsyncFileHasher(TArray<FFilenameAndHash> InFilesThatNeedHashing);
@@ -223,7 +223,7 @@ protected:
  *		}
  *		TOptional<FDirectoryState> State = Reader.GetFinalState();
  */
-struct FAsyncDirectoryReader : public IAsyncTask
+struct FAsyncDirectoryReader : public IAsyncFileCacheTask
 {
 	/** Constructor that sets up the directory reader to the specified directory */
 	FAsyncDirectoryReader(const FString& InDirectory, EPathType InPathType);
