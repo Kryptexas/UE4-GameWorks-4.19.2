@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2444099
+﻿INTSourceChangelist:2493873
 Availability:Public
 Title: 블루프린트 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -346,16 +346,10 @@ Description: Blueprint, 블루프린트의 다양한 부분과 그 그래프 안
 [/REGION]
 [/EXCERPT:GraphTypes]
 
-
-
-
-
 ## 그래프 노드
 
 [EXCERPT:NodeIntro]
 Node(노드)란 블루프린트 그래프 제작시 사용되는 기본 구성 요소입니다. 각 노드에는 설정할 수 있는 프로퍼티가 있으며, 입력 및 출력 _핀_ 도 있습니다. 이러한 핀을 실행 및 데이터 와이어로 연결하여 원하는 블루프린트 함수성을 프로그래밍합니다.
-
- 
 [/EXCERPT:NodeIntro]
 
 
@@ -427,6 +421,22 @@ Node(노드)란 블루프린트 그래프 제작시 사용되는 기본 구성 �
 [/OBJECT]
 [OBJECT:TopicCompact]
 	[PARAM:image]
+		![](CastToNode.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/CastNodes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/CastNodes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/CastNodes]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
 		![%Engine/Blueprints/UserGuide/FlowControl:title%](FlowControl.png)
 	[/PARAM]
 	[PARAM:icon]
@@ -471,6 +481,22 @@ Node(노드)란 블루프린트 그래프 제작시 사용되는 기본 구성 �
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/Blueprints/UserGuide/Timelines]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](OnlineNodesTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/OnlineNodes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/OnlineNodes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/OnlineNodes]
 	[/PARAM]
 [/OBJECT]
 [OBJECT:TopicCompact]
@@ -523,5 +549,4 @@ Node(노드)란 블루프린트 그래프 제작시 사용되는 기본 구성 �
 [/OBJECT]
 [/REGION]
 [/EXCERPT:Nodes]
-
-
+-->
