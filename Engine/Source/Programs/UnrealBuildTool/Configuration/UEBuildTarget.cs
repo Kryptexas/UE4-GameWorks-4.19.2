@@ -3373,9 +3373,8 @@ namespace UnrealBuildTool
 		{
 			if (Rules != null)
 			{
-				// We don't want to check this for true game projects (but do want to include UE4Game)
-				bool bIsUProjectGame = UnrealBuildTool.HasUProjectFile() && Rules.Type == TargetRules.TargetType.Game;
-				if (!bIsUProjectGame && !Rules.bOutputPubliclyDistributable)
+				// We don't want to check this for uprojects (but do want to include UE4Game)
+				if (!UnrealBuildTool.HasUProjectFile() && !Rules.bOutputPubliclyDistributable)
 				{
 					return true;
 				}
