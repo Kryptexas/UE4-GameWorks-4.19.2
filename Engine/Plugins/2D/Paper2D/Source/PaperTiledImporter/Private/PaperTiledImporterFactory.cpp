@@ -384,7 +384,7 @@ UObject* UPaperTiledImporterFactory::CreateNewAsset(UClass* AssetClass, const FS
 	FString DefaultSuffix;
 	FString AssetName;
 	FString PackageName;
-	AssetToolsModule.Get().CreateUniqueAssetName(TentativePackagePath, /*out*/ DefaultSuffix, /*out*/ PackageName, /*out*/ AssetName);
+	AssetToolsModule.Get().CreateUniqueAssetName(TentativePackagePath, DefaultSuffix, /*out*/ PackageName, /*out*/ AssetName);
 
 	// Create a package for the asset
 	UObject* OuterForAsset = CreatePackage(nullptr, *PackageName);

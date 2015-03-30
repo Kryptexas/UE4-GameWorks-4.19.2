@@ -506,7 +506,7 @@ bool FPaperJsonSpriteSheetImporter::PerformImport(const FString& LongPackagePath
 			FString DefaultSuffix;
 			FString AssetName;
 			FString PackageName;
-			AssetToolsModule.Get().CreateUniqueAssetName(TentativePackagePath, /*out*/ DefaultSuffix, /*out*/ PackageName, /*out*/ AssetName);
+			AssetToolsModule.Get().CreateUniqueAssetName(TentativePackagePath, DefaultSuffix, /*out*/ PackageName, /*out*/ AssetName);
 
 			// Create a unique package name and asset name for the frame
 			if (OuterForFrame == nullptr)
