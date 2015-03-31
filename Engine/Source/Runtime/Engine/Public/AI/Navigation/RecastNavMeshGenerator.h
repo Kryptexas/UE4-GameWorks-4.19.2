@@ -509,9 +509,6 @@ private:
 	/** */
 	FRecastNavMeshCachedData AdditionalCachedData;
 
-	/** */
-	TMapBase<const AActor*, FBox, false> ActorToAreaMap;
-
 	uint32 bInitialized:1;
 
 	uint32 bRestrictBuildingToActiveTiles:1;
