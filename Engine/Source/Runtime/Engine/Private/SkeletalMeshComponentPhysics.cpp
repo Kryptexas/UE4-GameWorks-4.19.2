@@ -810,7 +810,7 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 #endif //WITH_PHYSX
 
 			// Remember if we have bodies in sync/async scene, so we know which scene(s) to lock when moving bodies
-			if(BodyInst->UseAsyncScene())
+			if(BodyInst->UseAsyncScene(PhysScene))
 			{
 				bHasBodiesInAsyncScene = true;
 			}
@@ -901,7 +901,7 @@ void USkeletalMeshComponent::TermArticulated()
 	}
 
 	// Get the scene type from the SkeletalMeshComponent's BodyInstance
-	const uint32 SceneType = BodyInstance.UseAsyncScene() ? PST_Async : PST_Sync;
+	const uint32 SceneType = BodyInstance.UseAsyncScene(PhysScene) ? PST_Async : PST_Sync;
 	PxScene* PScene = PhysScene->GetPhysXScene(SceneType);
 	SCOPED_SCENE_WRITE_LOCK(PScene);
 

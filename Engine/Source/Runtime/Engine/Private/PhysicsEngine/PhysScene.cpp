@@ -27,12 +27,12 @@
 static int32 PhysXSceneCount = 1;
 static const int PhysXSlowRebuildRate = 10;
 
-FORCEINLINE EPhysicsSceneType SceneType_AssumesLocked(const FBodyInstance* BodyInstance)
+EPhysicsSceneType FPhysScene::SceneType_AssumesLocked(const FBodyInstance* BodyInstance) const
 {
 #if WITH_PHYSX
 	//This is a helper function for dynamic actors - static actors are in both scenes
 	check(BodyInstance->GetPxRigidBody_AssumesLocked());
-	return UPhysicsSettings::Get()->bEnableAsyncScene && BodyInstance->UseAsyncScene() ? PST_Async : PST_Sync;
+	return UPhysicsSettings::Get()->bEnableAsyncScene && BodyInstance->UseAsyncScene(this) ? PST_Async : PST_Sync;
 #endif
 
 	return PST_Sync;

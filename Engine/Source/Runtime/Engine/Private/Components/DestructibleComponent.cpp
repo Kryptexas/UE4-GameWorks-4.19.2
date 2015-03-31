@@ -343,7 +343,7 @@ void UDestructibleComponent::CreatePhysicsState()
 	
 
 	// Destructibles are always dynamic or kinematic, and therefore only go into one of the scenes
-	const uint32 SceneType = BodyInstance.UseAsyncScene() ? PST_Async : PST_Sync;
+	const uint32 SceneType = BodyInstance.UseAsyncScene(PhysScene) ? PST_Async : PST_Sync;
 	NxApexScene* ApexScene = PhysScene->GetApexScene(SceneType);
 	check(ApexScene);
 
@@ -401,7 +401,7 @@ void UDestructibleComponent::DestroyPhysicsState()
 		{
 			if (FPhysScene * PhysScene = World->GetPhysicsScene())
 			{
-				const uint32 SceneType = BodyInstance.UseAsyncScene() ? PST_Async : PST_Sync;
+				const uint32 SceneType = BodyInstance.UseAsyncScene(PhysScene) ? PST_Async : PST_Sync;
 				PxScene * PScene = PhysScene->GetPhysXScene(SceneType);
 				SCOPED_SCENE_WRITE_LOCK(PScene);
 				ApexDestructibleActor->release();
@@ -1260,8 +1260,11 @@ void UDestructibleComponent::SetupFakeBodyInstance( physx::PxRigidActor* NewRigi
 		PrevState->InstanceIndex = BodyInstance.InstanceBodyIndex;
 	}
 
-	BodyInstance.RigidActorSync = BodyInstance.UseAsyncScene() ? NULL : NewRigidActor;
-	BodyInstance.RigidActorAsync = BodyInstance.UseAsyncScene() ? NewRigidActor : NULL;
+	const UWorld* World = GetWorld();
+	const FPhysScene* PhysScene = World ? World->GetPhysicsScene() : nullptr;
+
+	BodyInstance.RigidActorSync = BodyInstance.UseAsyncScene(PhysScene) ? NULL : NewRigidActor;
+	BodyInstance.RigidActorAsync = BodyInstance.UseAsyncScene(PhysScene) ? NewRigidActor : NULL;
 	BodyInstance.BodyAggregate = NULL;
 	BodyInstance.InstanceBodyIndex = InstanceIdx;
 }

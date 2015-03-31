@@ -574,6 +574,9 @@ private:
 	/** Called when all subscenes of a given scene are complete, calls  ProcessPhysScene*/
 	void SceneCompletionTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, EPhysicsSceneType SceneType);
 
+	/** Helper function for determining which scene a dyanmic body is in*/
+	EPhysicsSceneType SceneType_AssumesLocked(const FBodyInstance* BodyInstance) const;
+
 #if WITH_SUBSTEPPING
 	/** Task created from TickPhysScene so we can substep without blocking */
 	bool SubstepSimulation(uint32 SceneType, FGraphEventRef& InOutCompletionEvent);

@@ -638,7 +638,10 @@ public:
 	void SetWalkableSlopeOverride(const FWalkableSlopeOverride& NewOverride);
 
 	/** Returns whether this body wants (and can) use the async scene. */
+	DEPRECATED(4.8, "Please call UseAsyncScene and pass in the PhysScene of the owning component (GetWorld()->GetPhysicsScene()).")
 	bool UseAsyncScene() const;
+
+	bool UseAsyncScene(const FPhysScene* PhysScene) const;
 
 	/** Indicates whether this body should use the async scene. Must be called before body is init'd, will assert otherwise. Will have no affect if there is no async scene. */
 	void SetUseAsyncScene(bool bNewUseAsyncScene);

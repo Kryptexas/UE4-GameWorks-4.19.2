@@ -1275,7 +1275,7 @@ void FBodyInstance::InitBodies(TArray<FBodyInstance*>& Bodies, TArray<FTransform
 			PNewDynamic = GPhysXSDK->createRigidDynamic(PTransform);
 
 			// Put the dynamic actor in one scene or the other
-			if(!Instance->UseAsyncScene())
+			if(!Instance->UseAsyncScene(InRBScene))
 			{
 				PNewActorSync = PNewDynamic;
 				PSceneForNewDynamic = PSceneSync;
@@ -1365,7 +1365,7 @@ void FBodyInstance::InitBodies(TArray<FBodyInstance*>& Bodies, TArray<FTransform
 		{
 			if(PNewDynamic)
 			{
-				InRBScene->DeferAddActor(Instance, PNewDynamic, Instance->UseAsyncScene() ? PST_Async : PST_Sync);
+				InRBScene->DeferAddActor(Instance, PNewDynamic, Instance->UseAsyncScene(InRBScene) ? PST_Async : PST_Sync);
 			}
 			else
 			{
@@ -4095,12 +4095,19 @@ void FBodyInstance::FixupData(class UObject* Loader)
 
 bool FBodyInstance::UseAsyncScene() const
 {
-	bool bHasAsyncScene = true;
 	UPrimitiveComponent* OwnerComponentInst = OwnerComponent.Get();
-	if (OwnerComponentInst)
+	UWorld* World = OwnerComponentInst ? OwnerComponentInst->GetWorld() : nullptr;
+	return UseAsyncScene(World ? World->GetPhysicsScene() : nullptr);
+}
+
+bool FBodyInstance::UseAsyncScene(const FPhysScene* PhysScene) const
+{
+	bool bHasAsyncScene = true;
+	if (PhysScene)
 	{
-		bHasAsyncScene = OwnerComponentInst->GetWorld()->GetPhysicsScene()->HasAsyncScene();
+		bHasAsyncScene = PhysScene->HasAsyncScene();
 	}
+
 	return bUseAsyncScene && bHasAsyncScene;
 }
 

@@ -1018,7 +1018,7 @@ void UInstancedStaticMeshComponent::CreatePhysicsState()
 	const int32 NumAggregates = (Mobility == EComponentMobility::Movable) ? FMath::DivideAndRoundUp<int32>(NumBodies, AggregateMaxSize) : 0;
 
 	// Get the scene type from the main BodyInstance
-	const uint32 SceneType = BodyInstance.UseAsyncScene() ? PST_Async : PST_Sync;
+	const uint32 SceneType = BodyInstance.UseAsyncScene(PhysScene) ? PST_Async : PST_Sync;
 
 	for (int32 i = 0; i < NumAggregates; i++)
 	{
@@ -1481,10 +1481,10 @@ void UInstancedStaticMeshComponent::SetupNewInstanceData(FInstancedStaticMeshIns
 			if (AggregateIndex >= Aggregates.Num())
 			{
 				// Get the scene type from the main BodyInstance
-				const uint32 SceneType = BodyInstance.UseAsyncScene() ? PST_Async : PST_Sync;
-
 				FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
 				check(PhysScene);
+
+				const uint32 SceneType = BodyInstance.UseAsyncScene(PhysScene) ? PST_Async : PST_Sync;
 
 				auto* Aggregate = GPhysXSDK->createAggregate(AggregateMaxSize, false);
 				const int32 AddedIndex = Aggregates.Add(Aggregate);
