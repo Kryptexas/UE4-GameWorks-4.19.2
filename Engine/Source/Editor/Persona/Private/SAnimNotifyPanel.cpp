@@ -3253,13 +3253,39 @@ void SAnimNotifyPanel::Construct(const FArguments& InArgs)
 			.AddMetaData<FTagMetaData>(TEXT("AnimNotify.Notify"))
 			.BodyContent()
 			[
-				SAssignNew( PanelArea, SBorder )
-				.BorderImage( FEditorStyle::GetBrush("NoBorder") )
-				.Padding( FMargin(2.0f, 2.0f) )
-				.ColorAndOpacity( FLinearColor::White )
+				SNew(SVerticalBox)
+				+SVerticalBox::Slot()
+				.FillHeight(1)
+				[
+					SAssignNew(PanelArea, SBorder)
+					.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+					.Padding(FMargin(2.0f, 2.0f))
+					.ColorAndOpacity(FLinearColor::White)
+				]
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot()
+					.FillWidth(1)
+					[
+						SAssignNew(NotifyTrackScrollBar, SScrollBar)
+						.Orientation(EOrientation::Orient_Horizontal)
+						.AlwaysShowScrollbar(true)
+						.OnUserScrolled(this, &SAnimNotifyPanel::OnNotifyTrackScrolled)
+					]
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SBox)
+						.WidthOverride(WidgetWidth)
+					]
+				]
 			]
 		]
 	];
+
+	InputViewRangeChanged(ViewInputMin.Get(), ViewInputMax.Get());
 
 	OnPropertyChangedHandle = FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate::CreateSP(this, &SAnimNotifyPanel::OnPropertyChanged);
 	OnPropertyChangedHandleDelegateHandle = FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
@@ -3447,7 +3473,7 @@ void SAnimNotifyPanel::RefreshNotifyTracks()
 			.OnDeselectAllNotifies(this, &SAnimNotifyPanel::DeselectAllNotifies)
 			.OnCopyNotifies(this, &SAnimNotifyPanel::CopySelectedNotifiesToClipboard)
 			.OnPasteNotifies(this, &SAnimNotifyPanel::OnPasteNotifies)
-			.OnSetInputViewRange(OnSetInputViewRange)
+			.OnSetInputViewRange(this, &SAnimNotifyPanel::InputViewRangeChanged)
 		];
 
 		NotifyAnimTracks.Add(EdTrack->NotifyTrack);
@@ -4009,6 +4035,28 @@ void SAnimNotifyPanel::OnNotifyObjectChanged(UObject* EditorBaseObj, bool bRebui
 			NotifyAnimTracks[WidgetTrackIdx]->Update();
 		}
 	}
+}
+
+void SAnimNotifyPanel::OnNotifyTrackScrolled(float InScrollOffsetFraction)
+{
+	float Ratio = (ViewInputMax.Get() - ViewInputMin.Get()) / Sequence->SequenceLength;
+	float MaxOffset = (Ratio < 1.0f) ? 1.0f - Ratio : 0.0f;
+	InScrollOffsetFraction = FMath::Clamp(InScrollOffsetFraction, 0.0f, MaxOffset);
+
+	// Calculate new view ranges
+	float NewMin = InScrollOffsetFraction * Sequence->SequenceLength;
+	float NewMax = (InScrollOffsetFraction + Ratio) * Sequence->SequenceLength;
+	
+	InputViewRangeChanged(NewMin, NewMax);
+}
+
+void SAnimNotifyPanel::InputViewRangeChanged(float ViewMin, float ViewMax)
+{
+	float Ratio = (ViewMax - ViewMin) / Sequence->SequenceLength;
+	float OffsetFraction = ViewMin / Sequence->SequenceLength;
+	NotifyTrackScrollBar->SetState(OffsetFraction, Ratio);
+
+	SAnimTrackPanel::InputViewRangeChanged(ViewMin, ViewMax);
 }
 
 #undef LOCTEXT_NAMESPACE

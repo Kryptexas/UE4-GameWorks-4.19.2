@@ -211,6 +211,7 @@ public:
 
 private:
 	TSharedPtr<SBorder> PanelArea;
+	TSharedPtr<SScrollBar> NotifyTrackScrollBar;
 	class UAnimSequenceBase* Sequence;
 	float WidgetWidth;
 	TAttribute<float> CurrentPosition;
@@ -274,6 +275,10 @@ private:
 	 *	@param OutAllowedBlueprintClassNames list of class names to add the native class names to
 	 */
 	void OnGetNativeNotifyData(TArray<UClass*>& OutClasses, UClass* NotifyOutermost, TArray<FString>* OutAllowedBlueprintClassNames);
+
+	void OnNotifyTrackScrolled(float InScrollOffsetFraction);
+
+	virtual void InputViewRangeChanged(float ViewMin, float ViewMax) override;
 
 	/** Persona reference **/
 	TWeakPtr<FPersona> PersonaPtr;
