@@ -10,7 +10,7 @@ class USlateBrushAsset;
 /**
  * A Throbber widget that shows several zooming circles in a row.
  */
-UCLASS(ClassGroup=UserInterface)
+UCLASS()
 class UMG_API UThrobber : public UWidget
 {
 	GENERATED_UCLASS_BODY()

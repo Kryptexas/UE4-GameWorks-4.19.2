@@ -7,7 +7,7 @@
 /**
  * Allows thousands of items to be displayed in a list.  Generates widgets dynamically for each item.
  */
-UCLASS(Experimental, ClassGroup=UserInterface)
+UCLASS(Experimental)
 class UMG_API UListView : public UTableViewBase
 {
 	GENERATED_UCLASS_BODY()

@@ -7,7 +7,7 @@
 /**
  * A flow panel that presents the contents as a set of tiles all uniformly sized.
  */
-UCLASS(Experimental, ClassGroup=UserInterface)
+UCLASS(Experimental)
 class UMG_API UTileView : public UTableViewBase
 {
 	GENERATED_UCLASS_BODY()

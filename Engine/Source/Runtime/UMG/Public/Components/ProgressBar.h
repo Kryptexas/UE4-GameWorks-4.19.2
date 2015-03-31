@@ -11,7 +11,7 @@
  *
  * ● No Children
  */
-UCLASS(ClassGroup=UserInterface)
+UCLASS()
 class UMG_API UProgressBar : public UWidget
 {
 	GENERATED_UCLASS_BODY()

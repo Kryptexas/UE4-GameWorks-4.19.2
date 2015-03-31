@@ -216,7 +216,7 @@ protected:
 /**
  * 
  */
-UCLASS(Experimental, ClassGroup=UserInterface)
+UCLASS(Experimental)
 class UMG_API UViewport : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()

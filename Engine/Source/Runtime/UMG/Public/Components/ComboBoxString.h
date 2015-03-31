@@ -9,7 +9,7 @@
 /**
  * The combobox allows you to display a list of options to the user in a dropdown menu for them to select one.
  */
-UCLASS( meta=( DisplayName="ComboBox (String)"), ClassGroup=UserInterface)
+UCLASS(meta=( DisplayName="ComboBox (String)"))
 class UMG_API UComboBoxString : public UWidget
 {
 	GENERATED_UCLASS_BODY()
