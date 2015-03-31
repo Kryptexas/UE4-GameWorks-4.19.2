@@ -116,7 +116,7 @@ void ALeapMotionHandActor::CreateBones(const TSubclassOf<class ALeapMotionBoneAc
 			Success &= Device->GetBoneWidthAndLength(HandId, LeapBone, Width, Length);
 			if (Success)
 			{
-				FQuat RefQuat = GetRootComponent()->GetComponentRotation().Quaternion();
+				const FQuat RefQuat = GetRootComponent()->GetComponentQuat();
 				Position = RefQuat * Position * CombinedScale + GetRootComponent()->GetComponentLocation();
 				Orientation = (RefQuat * Orientation.Quaternion()).Rotator();
 
@@ -165,7 +165,7 @@ void ALeapMotionHandActor::UpdateBones(float DeltaSeconds)
 			if (Success)
 			{
 				// Offset target position & rotation by the SpawnReference actor's transform
-				FQuat RefQuat = GetRootComponent()->GetComponentRotation().Quaternion();
+				const FQuat RefQuat = GetRootComponent()->GetComponentQuat();
 				TargetPosition = RefQuat * TargetPosition * CombinedScale + GetRootComponent()->GetComponentLocation();
 				TargetOrientation = (RefQuat * TargetOrientation.Quaternion()).Rotator();
 
