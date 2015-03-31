@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Camera/PlayerCameraManager.h"
+#include "Camera/CameraAnimInst.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FFOscillator
