@@ -14,7 +14,7 @@ provided Blueprint, or swapping the Skeletal Mesh and Animation Blueprint in oth
 
 ## Third-Person Blueprint Character
 [REGION:fullwidth]
-1. Create a new project based on the Blueprint Third Person template.
+1. Create a new  project based on the Blueprint Third Person template.
 
 	![](MixamoExampleProject.png)(w:700)
 1. Open the **MixamoAnimPack** sample project.
