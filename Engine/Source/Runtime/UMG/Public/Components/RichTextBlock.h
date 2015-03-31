@@ -13,9 +13,10 @@
 UCLASS(Experimental)
 class UMG_API URichTextBlock : public UWidget
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
 public:
+	URichTextBlock(const FObjectInitializer& ObjectInitializer);
 	
 	// UWidget interface
 	virtual void SynchronizeProperties() override;
