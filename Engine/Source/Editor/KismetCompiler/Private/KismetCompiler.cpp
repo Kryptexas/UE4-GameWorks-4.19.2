@@ -1587,16 +1587,14 @@ void FKismetCompilerContext::FinishCompilingFunction(FKismetFunctionContext& Con
 				Function->ReturnValueOffset = Property->GetOffset_ForUFunction();
 			}
 		}
-
-		if (!Property->HasAnyPropertyFlags(CPF_ZeroConstructor) && !Function->FirstPropertyToInit)
+		else
 		{
-			Function->FirstPropertyToInit = Property;
-			Function->FunctionFlags |= FUNC_HasDefaults;
-		}
-
-		if (!Property->HasAnyPropertyFlags(CPF_Parm) && Function->FirstPropertyToInit)
-		{
-			break;
+			if (!Property->HasAnyPropertyFlags(CPF_ZeroConstructor))
+			{
+				Function->FirstPropertyToInit = Property;
+				Function->FunctionFlags |= FUNC_HasDefaults;
+				break;
+			}
 		}
 	}
 

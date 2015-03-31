@@ -3747,7 +3747,6 @@ void UFunction::InitializeDerivedMembers()
 	ParmsSize = 0;
 	ReturnValueOffset = MAX_uint16;
 
-	const bool bRequiresInitialization = (FunctionFlags & FUNC_HasDefaults) != 0;
 	for (UProperty* Property = dynamic_cast<UProperty*>(Children); Property; Property = dynamic_cast<UProperty*>(Property->Next))
 	{
 		if (Property->PropertyFlags & CPF_Parm)
@@ -3759,15 +3758,15 @@ void UFunction::InitializeDerivedMembers()
 				ReturnValueOffset = Property->GetOffset_ForUFunction();
 			}
 		}
-		
-		if (bRequiresInitialization
-			&& !Property->HasAnyPropertyFlags(CPF_ZeroConstructor)
-			&& !FirstPropertyToInit)
+		else if ((FunctionFlags & FUNC_HasDefaults) != 0)
 		{
-			FirstPropertyToInit = Property;
+			if (!Property->HasAnyPropertyFlags(CPF_ZeroConstructor))
+			{
+				FirstPropertyToInit = Property;
+				break;
+			}
 		}
-
-		if (!Property->HasAnyPropertyFlags(CPF_Parm) && (FirstPropertyToInit || !bRequiresInitialization))
+		else
 		{
 			break;
 		}
