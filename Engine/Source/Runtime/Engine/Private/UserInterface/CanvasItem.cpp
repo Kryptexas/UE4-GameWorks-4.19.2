@@ -1362,6 +1362,7 @@ void FCanvasTriangleItem::SetColor( const FLinearColor& InColor )
 
 void FCanvasNGonItem::Draw( class FCanvas* InCanvas )
 {
+	TriListItem->BlendMode = BlendMode;
 	TriListItem->Draw( InCanvas );
 }
 
