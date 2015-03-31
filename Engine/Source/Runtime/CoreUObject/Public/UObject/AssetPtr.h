@@ -50,15 +50,6 @@ public:
 template <> struct TIsPODType<FAssetPtr> { enum { Value = TIsPODType<TPersistentObjectPtr<FStringAssetReference> >::Value }; };
 template <> struct TIsWeakPointerType<FAssetPtr> { enum { Value = TIsWeakPointerType<TPersistentObjectPtr<FStringAssetReference> >::Value }; };
 
-// VS2012 doesn't support defaulted function template arguments, so we need a workaround for that.
-// The workaround technically changes the signature of the constructors, but we assume that the modified
-// signature will not be used.
-#if defined(_MSC_VER) && _MSC_VER < 1800
-	#define ENABLE_TASSETPTR_CONSTRUCTOR_ENABLE_IF_WORKAROUND 1
-#else
-	#define ENABLE_TASSETPTR_CONSTRUCTOR_ENABLE_IF_WORKAROUND 0
-#endif
-
 /***
 * 
 * TAssetPtr is templatized version of the generic FAssetPtr
@@ -81,7 +72,7 @@ public:
 	 * Construct from another lazy pointer
 	 * @param Other lazy pointer to copy from
 	 */
-#if ENABLE_TASSETPTR_CONSTRUCTOR_ENABLE_IF_WORKAROUND
+#if !PLATFORM_COMPILER_HAS_DEFAULT_FUNCTION_TEMPLATE_ARGUMENTS
 	template <class U>
 	FORCEINLINE TAssetPtr(const TAssetPtr<U>& Other, typename TEnableIf<TPointerIsConvertibleFromTo<U, T>::Value>::Type* = nullptr)
 #else
