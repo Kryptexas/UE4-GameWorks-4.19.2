@@ -12,6 +12,7 @@ AGameplayCueNotify_Actor::AGameplayCueNotify_Actor(const FObjectInitializer& Obj
 	IsOverride = true;
 	PrimaryActorTick.bCanEverTick = true;
 	bAutoDestroyOnRemove = false;
+	AutoDestroyDelay = 0.f;
 }
 
 #if WITH_EDITOR
@@ -98,7 +99,14 @@ void AGameplayCueNotify_Actor::HandleGameplayCue(AActor* MyTarget, EGameplayCueE
 
 			if (bAutoDestroyOnRemove)
 			{
-				Destroy();
+				if (AutoDestroyDelay > 0.f)
+				{
+					SetLifeSpan(AutoDestroyDelay);
+				}
+				else
+				{
+					Destroy();
+				}
 			}
 			break;
 		};
