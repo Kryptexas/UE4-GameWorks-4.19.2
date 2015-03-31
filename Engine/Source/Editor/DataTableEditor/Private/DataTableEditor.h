@@ -88,6 +88,21 @@ private:
 
 private:
 
+	/** Struct holding information about the current column widths */
+	struct FColumnWidth
+	{
+		FColumnWidth()
+			: bIsAutoSized(true)
+			, CurrentWidth(0.0f)
+		{
+		}
+
+		/** True if this column is being auto-sized rather than sized by the user */
+		bool bIsAutoSized;
+		/** The width of the column, either sized by the user, or auto-sized */
+		float CurrentWidth;
+	};
+
 	/** Cached table data */
 	TArray<TArray<FString> > CachedDataTable;
 
@@ -98,7 +113,7 @@ private:
 	TArray<bool> RowsVisibility;
 
 	/** Widths of data table columns */
-	TArray<float> ColumnWidths;
+	TArray<FColumnWidth> ColumnWidths;
 
 	/** Search box */
 	TSharedPtr<SWidget> SearchBox;
