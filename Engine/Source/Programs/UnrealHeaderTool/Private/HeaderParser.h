@@ -744,9 +744,6 @@ protected:
 	 */
 	EFindName GetFindFlagForPropertyName(const TCHAR* PropertyName);
 
-	// Check to see if anything in the class hierarchy passed in has CLASS_DefaultToInstanced
-	static bool DoesAnythingInHierarchyHaveDefaultToInstanced(UClass* TestClass);
-
 	static void ValidatePropertyIsDeprecatedIfNecessary(FPropertyBase& VarProperty, FToken* OuterPropertyType);
 
 private:
