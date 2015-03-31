@@ -370,7 +370,14 @@ void UWidgetBlueprintLibrary::GetAllWidgetsOfClass(UObject* WorldContextObject, 
 	{
 		UUserWidget* LiveWidget = *Itr;
 
+		// Skip any widget that's not in the current world context.
 		if ( LiveWidget->GetWorld() != World )
+		{
+			continue;
+		}
+
+		// Skip any widget that is not a child of the class specified.
+		if ( !LiveWidget->IsChildOf(WidgetClass) )
 		{
 			continue;
 		}
