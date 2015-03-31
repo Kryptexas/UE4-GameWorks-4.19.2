@@ -49,6 +49,17 @@ void AGameplayCueNotify_Actor::Serialize(FArchive& Ar)
 	}
 }
 
+void AGameplayCueNotify_Actor::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// Most likely case for this is the target actor is no longer net relevant to us and has been destroyed, so this should be destroyed too
+	if (GetOwner())
+	{
+		GetOwner()->OnDestroyed.AddDynamic(this, &AGameplayCueNotify_Actor::OnOwnerDestroyed);
+	}
+}
+
 void AGameplayCueNotify_Actor::PostInitProperties()
 {
 	Super::PostInitProperties();
@@ -102,7 +113,6 @@ void AGameplayCueNotify_Actor::OnOwnerDestroyed()
 {
 	// May need to do extra cleanup in child classes
 	Destroy();
-	//MarkPendingKill();
 }
 
 bool AGameplayCueNotify_Actor::OnExecute_Implementation(AActor* MyTarget, FGameplayCueParameters Parameters)
