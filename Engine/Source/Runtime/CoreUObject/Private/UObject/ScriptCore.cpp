@@ -501,6 +501,8 @@ void UObject::CallFunction( FFrame& Stack, RESULT_DECL, UFunction* Function )
 				uint8* Param = Property->ContainerPtrToValuePtr<uint8>(NewStack.Locals);
 				checkSlow(Param);
 
+				Property->InitializeValue_InContainer(NewStack.Locals);
+
 				Stack.Step(Stack.Object, Param);
 			}
 		}

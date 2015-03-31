@@ -314,6 +314,7 @@ struct TStructOpsTypeTraits<FButtonStyle> : public TStructOpsTypeTraitsBase
 	enum 
 	{
 		WithPostSerialize = true,
+		WithCopy = true,
 	};
 };
 
