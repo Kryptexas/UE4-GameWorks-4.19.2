@@ -1185,37 +1185,40 @@ FORCEINLINE FVector FTransform::TransformPositionNoScale(const FVector& V) const
 
 FORCEINLINE FVector FTransform::TransformVector(const FVector& V) const
 {
-	return TransformFVector4(FVector4(V.X,V.Y,V.Z,0.0f));
+	DiagnosticCheckNaN_Rotate();
+	DiagnosticCheckNaN_Scale3D();
+	return Rotation.RotateVector(Scale3D*V);
 }
 
 FORCEINLINE FVector FTransform::TransformVectorNoScale(const FVector& V) const
 {
-	return TransformFVector4NoScale(FVector4(V.X,V.Y,V.Z,0.0f));
+	DiagnosticCheckNaN_Rotate();
+	return Rotation.RotateVector(V);
 }
 
 // do backward operation when inverse, translation -> rotation -> scale
 FORCEINLINE FVector FTransform::InverseTransformPosition(const FVector &V) const
 {
-	return ( Rotation.Inverse() * (V-Translation) ) * GetSafeScaleReciprocal(Scale3D);
+	return ( Rotation.UnrotateVector(V-Translation) ) * GetSafeScaleReciprocal(Scale3D);
 }
 
 // do backward operation when inverse, translation -> rotation
 FORCEINLINE FVector FTransform::InverseTransformPositionNoScale(const FVector &V) const
 {
-	return ( Rotation.Inverse() * (V-Translation) );
+	return ( Rotation.UnrotateVector(V-Translation) );
 }
 
 
 // do backward operation when inverse, translation -> rotation -> scale
 FORCEINLINE FVector FTransform::InverseTransformVector(const FVector &V) const
 {
-	return ( Rotation.Inverse() * V ) * GetSafeScaleReciprocal(Scale3D);
+	return ( Rotation.UnrotateVector(V) ) * GetSafeScaleReciprocal(Scale3D);
 }
 
 // do backward operation when inverse, translation -> rotation
 FORCEINLINE FVector FTransform::InverseTransformVectorNoScale(const FVector &V) const
 {
-	return ( Rotation.Inverse() * V );
+	return ( Rotation.UnrotateVector(V) );
 }
 
 FORCEINLINE FTransform FTransform::operator*(const FTransform& Other) const
