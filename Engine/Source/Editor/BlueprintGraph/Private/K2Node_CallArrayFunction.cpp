@@ -207,7 +207,7 @@ void UK2Node_CallArrayFunction::PropagateArrayTypeInfo(const UEdGraphPin* Source
 {
 	if( SourcePin )
 	{
-		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+		const UEdGraphSchema_K2* Schema = CastChecked<UEdGraphSchema_K2>(GetSchema());
 		const FEdGraphPinType& SourcePinType = SourcePin->PinType;
 
 		TArray<UEdGraphPin*> DependentPins;
@@ -240,9 +240,10 @@ void UK2Node_CallArrayFunction::PropagateArrayTypeInfo(const UEdGraphPin* Source
 				CurrentPinType.PinSubCategoryObject = SourcePinType.PinSubCategoryObject;
 
 				// Reset default values
-				CurrentPin->DefaultValue = FString();
-				CurrentPin->DefaultTextValue = FText();
-				CurrentPin->DefaultObject = NULL;
+				if (!Schema->IsPinDefaultValid(CurrentPin, CurrentPin->DefaultValue, CurrentPin->DefaultObject, CurrentPin->DefaultTextValue).IsEmpty())
+				{
+					CurrentPin->ResetDefaultValue();
+				}
 
 				// Verify that all previous connections to this pin are still valid with the new type
 				for (TArray<UEdGraphPin*>::TIterator ConnectionIt(CurrentPin->LinkedTo); ConnectionIt; ++ConnectionIt)
