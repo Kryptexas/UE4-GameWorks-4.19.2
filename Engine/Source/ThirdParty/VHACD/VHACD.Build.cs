@@ -15,7 +15,15 @@ public class VHACD : ModuleRules
 		{
             VHACDLibPath = VHACDLibPath + "lib/Win64/VS" + WindowsPlatform.GetVisualStudioCompilerVersionName() + "/";
             PublicLibraryPaths.Add(VHACDLibPath);
-            PublicAdditionalLibraries.Add("VHACD.lib");
+
+            if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+            {
+                PublicAdditionalLibraries.Add("VHACDd.lib");
+            }
+            else
+            {
+                PublicAdditionalLibraries.Add("VHACD.lib");
+            }
 		}
         else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
