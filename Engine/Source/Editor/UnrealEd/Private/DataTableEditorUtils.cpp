@@ -24,6 +24,9 @@ bool FDataTableEditorUtils::RemoveRow(UDataTable* DataTable, FName Name)
 			DataTable->RowStruct->DestroyStruct(RowData);
 			FMemory::Free(RowData);
 			bResult = true;
+
+			// Compact the map so that a subsequent add goes at the end of the table
+			DataTable->RowMap.Compact();
 		}
 		BroadcastPostChange(DataTable, EDataTableChangeInfo::RowList);
 	}
