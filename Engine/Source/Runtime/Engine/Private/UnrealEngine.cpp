@@ -2742,7 +2742,7 @@ bool UEngine::HandleMergeMeshCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 			return true;
 		}
 
-		FVector SpawnLocation = PlayerPawn->GetActorLocation() + PlayerPawn->GetActorRotation().Vector()*50.f;
+		FVector SpawnLocation = PlayerPawn->GetActorLocation() + PlayerPawn->GetActorForwardVector()*50.f;
 
 		// set the new composite mesh in the existing skeletal mesh component
 		ASkeletalMeshActor* const SMA = PlayerPawn->GetWorld()->SpawnActor<ASkeletalMeshActor>( SpawnLocation, PlayerPawn->GetActorRotation()*-1);

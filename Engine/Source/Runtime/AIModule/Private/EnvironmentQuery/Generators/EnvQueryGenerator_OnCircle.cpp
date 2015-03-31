@@ -135,7 +135,7 @@ FVector UEnvQueryGenerator_OnCircle::CalcDirection(FEnvQueryInstance& QueryInsta
 	if (bDefineArc)
 	{
 		// By default, use Querier rotation for arc direction.
-		Direction = Querier->GetActorRotation().Vector();
+		Direction = Querier->GetActorForwardVector();
 		if (ArcDirection.DirMode == EEnvDirection::TwoPoints)
 		{
 			TArray<FVector> Start;

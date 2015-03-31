@@ -452,7 +452,7 @@ bool UAbilitySystemBlueprintLibrary::GetGameplayCueEndLocationAndNormal(AActor* 
 	else if(TargetActor)
 	{
 		Location = TargetActor->GetActorLocation();
-		Normal = TargetActor->GetActorRotation().Vector();
+		Normal = TargetActor->GetActorForwardVector();
 		return true;
 	}
 

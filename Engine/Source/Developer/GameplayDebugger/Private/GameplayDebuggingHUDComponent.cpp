@@ -648,7 +648,7 @@ void AGameplayDebuggingHUDComponent::DrawPerception(APlayerController* PC, class
 				BTAI->GetAIPerceptionComponent()->DrawDebugInfo(DefaultContext.Canvas);
 
 				const FVector AILocation = MyPawn->GetActorLocation();
-				const FVector Facing = MyPawn->GetActorRotation().Vector();
+				const FVector Facing = MyPawn->GetActorForwardVector();
 
 				UAIPerceptionSystem* PerceptionSys = UAIPerceptionSystem::GetCurrent(this);
 				if (PerceptionSys)

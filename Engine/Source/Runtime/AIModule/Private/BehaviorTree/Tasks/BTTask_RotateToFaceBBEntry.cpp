@@ -65,7 +65,7 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeCompon
 
 		if (ActorValue != NULL)
 		{
-			const float AngleDifference = CalculateAngleDifferenceDot(Pawn->GetActorRotation().Vector()
+			const float AngleDifference = CalculateAngleDifferenceDot(Pawn->GetActorForwardVector()
 				, (ActorValue->GetActorLocation() - PawnLocation).GetSafeNormal2D());
 			
 			if (AngleDifference >= PrecisionDot)
@@ -87,7 +87,7 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeCompon
 		
 		if (FAISystem::IsValidLocation(KeyValue))
 		{
-			const float AngleDifference = CalculateAngleDifferenceDot(Pawn->GetActorRotation().Vector()
+			const float AngleDifference = CalculateAngleDifferenceDot(Pawn->GetActorForwardVector()
 				, (KeyValue - PawnLocation).GetSafeNormal2D());
 
 			if (AngleDifference >= PrecisionDot)
@@ -109,7 +109,7 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeCompon
 		if (FAISystem::IsValidRotation(KeyValue))
 		{
 			const FVector DirectionVector = KeyValue.Vector();
-			const float AngleDifference = CalculateAngleDifferenceDot(Pawn->GetActorRotation().Vector(), DirectionVector);
+			const float AngleDifference = CalculateAngleDifferenceDot(Pawn->GetActorForwardVector(), DirectionVector);
 
 			if (AngleDifference >= PrecisionDot)
 			{
@@ -139,7 +139,7 @@ void UBTTask_RotateToFaceBBEntry::TickTask(UBehaviorTreeComponent& OwnerComp, ui
 	}
 	else
 	{
-		const FVector PawnDirection = AIController->GetPawn()->GetActorRotation().Vector();				
+		const FVector PawnDirection = AIController->GetPawn()->GetActorForwardVector();				
 		const FVector FocalPoint = AIController->GetFocalPointForPriority(EAIFocusPriority::Gameplay);
 
 		if (CalculateAngleDifferenceDot(PawnDirection, (FocalPoint - AIController->GetPawn()->GetActorLocation()).GetSafeNormal2D()) >= PrecisionDot)
@@ -192,7 +192,7 @@ void UBTTask_RotateToFaceBBEntry::DescribeRuntimeValues(const UBehaviorTreeCompo
 
 	if (AIController != NULL && AIController->GetPawn() != NULL)
 	{
-		const FVector PawnDirection = AIController->GetPawn()->GetActorRotation().Vector();
+		const FVector PawnDirection = AIController->GetPawn()->GetActorForwardVector();
 		const FVector FocalPoint = AIController->GetFocalPointForPriority(EAIFocusPriority::Gameplay);
 
 		if (FocalPoint != FAISystem::InvalidLocation)
