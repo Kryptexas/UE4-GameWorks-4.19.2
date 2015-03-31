@@ -240,61 +240,54 @@ static const TCHAR* ImportProperties(
 		}
 		else if (GetBEGIN(&Str, TEXT("Foliage")))
 		{
-			UStaticMesh* StaticMesh;
+			UFoliageType* SourceFoliageType;
 			FName ComponentName;
 			if (SubobjectRoot &&
-				ParseObject<UStaticMesh>(Str, TEXT("StaticMesh="), StaticMesh, ANY_PACKAGE) &&
+				ParseObject<UFoliageType>(Str, TEXT("FoliageType="), SourceFoliageType, ANY_PACKAGE) &&
 				FParse::Value(Str, TEXT("Component="), ComponentName) )
 			{
 				UPrimitiveComponent* ActorComponent = FindObjectFast<UPrimitiveComponent>(SubobjectRoot, ComponentName);
 
-				if (ActorComponent)
+				if (ActorComponent && ActorComponent->GetComponentLevel())
 				{
-					ULevel* ComponentLevel = CastChecked<ULevel>(SubobjectRoot->GetOuter());
-					if (ComponentLevel->IsCurrentLevel())
+					AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(ActorComponent->GetComponentLevel(), true);
+
+					FFoliageMeshInfo* MeshInfo = nullptr;
+					UFoliageType* FoliageType = IFA->AddFoliageType(SourceFoliageType, &MeshInfo);
+
+					const TCHAR* StrPtr;
+					FString TextLine;
+					while (MeshInfo && FParse::Line(&SourceText, TextLine))
 					{
-						AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(ComponentLevel->OwningWorld, true);
-
-						const TCHAR* StrPtr;
-						FString TextLine;
-						while (FParse::Line(&SourceText, TextLine))
+						StrPtr = *TextLine;
+						if (GetEND(&StrPtr, TEXT("Foliage")))
 						{
-							StrPtr = *TextLine;
-							if (GetEND(&StrPtr, TEXT("Foliage")))
-							{
-								break;
-							}
-
-							// Parse the instance properties
-							FFoliageInstance Instance;
-							FString Temp;
-							if (FParse::Value(StrPtr, TEXT("Location="), Temp, false))
-							{
-								GetFVECTOR(*Temp, Instance.Location);
-							}
-							if (FParse::Value(StrPtr, TEXT("Rotation="), Temp, false))
-							{
-								GetFROTATOR(*Temp, Instance.Rotation, 1);
-							}
-							if (FParse::Value(StrPtr, TEXT("PreAlignRotation="), Temp, false))
-							{
-								GetFROTATOR(*Temp, Instance.PreAlignRotation, 1);
-							}
-							if (FParse::Value(StrPtr, TEXT("DrawScale3D="), Temp, false))
-							{
-								GetFVECTOR(*Temp, Instance.DrawScale3D);
-							}
-							FParse::Value(StrPtr, TEXT("Flags="), Instance.Flags);
-
-							// Add the instance
-							FFoliageMeshInfo* MeshInfo;
-							UFoliageType* Type = IFA->GetSettingsForMesh(StaticMesh, &MeshInfo);
-							if (Type == NULL)
-							{
-								MeshInfo = IFA->AddMesh(StaticMesh, &Type);
-							}
-							MeshInfo->AddInstance(IFA, Type, Instance, ActorComponent);
+							break;
 						}
+
+						// Parse the instance properties
+						FFoliageInstance Instance;
+						FString Temp;
+						if (FParse::Value(StrPtr, TEXT("Location="), Temp, false))
+						{
+							GetFVECTOR(*Temp, Instance.Location);
+						}
+						if (FParse::Value(StrPtr, TEXT("Rotation="), Temp, false))
+						{
+							GetFROTATOR(*Temp, Instance.Rotation, 1);
+						}
+						if (FParse::Value(StrPtr, TEXT("PreAlignRotation="), Temp, false))
+						{
+							GetFROTATOR(*Temp, Instance.PreAlignRotation, 1);
+						}
+						if (FParse::Value(StrPtr, TEXT("DrawScale3D="), Temp, false))
+						{
+							GetFVECTOR(*Temp, Instance.DrawScale3D);
+						}
+						FParse::Value(StrPtr, TEXT("Flags="), Instance.Flags);
+
+						// Add the instance
+						MeshInfo->AddInstance(IFA, FoliageType, Instance, ActorComponent);
 					}
 				}
 			}

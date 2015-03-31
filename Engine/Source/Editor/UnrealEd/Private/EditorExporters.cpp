@@ -516,19 +516,18 @@ void ULevelExporterT3D::ExportComponentExtra(const FExportObjectInnerContext* Co
 {
 	for (UActorComponent* ActorComponent : Components)
 	{
-		if (ActorComponent != NULL)
+		if (ActorComponent != nullptr && ActorComponent->GetWorld() != nullptr)
 		{
-			AActor* ActorOwner = ActorComponent->GetOwner();
-			if (ActorOwner != NULL)
+			// Go through all FoliageActors in the world, since we support cross-level bases
+			for (TActorIterator<AInstancedFoliageActor> It(ActorComponent->GetWorld()); It; ++It)
 			{
-				ULevel* ComponentLevel = Cast<ULevel>(ActorOwner->GetOuter());
-				AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(ComponentLevel);
-				if (IFA)
+				AInstancedFoliageActor* IFA = *It;
+				if (!IFA->IsPendingKill())
 				{
 					auto FoliageInstanceMap = IFA->GetInstancesForComponent(ActorComponent);
 					for (const auto& MapEntry : FoliageInstanceMap)
 					{
-						Ar.Logf(TEXT("%sBegin Foliage StaticMesh=%s Component=%s%s"), FCString::Spc(TextIndent), *MapEntry.Key->GetPathName(), *ActorComponent->GetName(), LINE_TERMINATOR);
+						Ar.Logf(TEXT("%sBegin Foliage FoliageType=%s Component=%s%s"), FCString::Spc(TextIndent), *MapEntry.Key->GetPathName(), *ActorComponent->GetName(), LINE_TERMINATOR);
 						for (const FFoliageInstancePlacementInfo* Inst : MapEntry.Value)
 						{
 							Ar.Logf(TEXT("%sLocation=%f,%f,%f Rotation=%f,%f,%f PreAlignRotation=%f,%f,%f DrawScale3D=%f,%f,%f Flags=%u%s"), FCString::Spc(TextIndent+3),

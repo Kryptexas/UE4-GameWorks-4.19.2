@@ -1863,6 +1863,8 @@ void AInstancedFoliageActor::PostEditUndo()
 
 bool AInstancedFoliageActor::ShouldExport()
 {
+	// We don't support exporting/importing InstancedFoliageActor itself
+	// Instead foliage instances exported/imported together with components it's painted on
 	return false;
 }
 
