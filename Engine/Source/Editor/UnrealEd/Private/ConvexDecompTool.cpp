@@ -5,7 +5,7 @@
 =============================================================================*/
 
 // Only enabling on windows until other platforms can test!
-#define USE_VHACD (PLATFORM_WINDOWS)
+#define USE_VHACD (PLATFORM_WINDOWS || PLATFORM_LINUX)
 
 #include "UnrealEd.h"
 

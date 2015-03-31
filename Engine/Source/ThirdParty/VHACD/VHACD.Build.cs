@@ -38,6 +38,17 @@ public class VHACD : ModuleRules
 			}
 			PublicFrameworks.AddRange(new string[] { "OpenCL" });
 		}
+		else if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			if (Target.IsMonolithic)
+			{
+				PublicAdditionalLibraries.Add(VHACDDirectory + "Lib/Linux/" + Target.Architecture + "/libVHACD.a");
+			}
+			else
+			{
+				PublicAdditionalLibraries.Add(VHACDDirectory + "Lib/Linux/" + Target.Architecture + "/libVHACD_fPIC.a");
+			}
+		}
 	}
 }
 
