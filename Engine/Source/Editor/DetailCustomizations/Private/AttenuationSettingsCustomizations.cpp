@@ -78,7 +78,12 @@ void FAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, bAttenuate)).ToSharedRef());
 	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, bSpatialize)).ToSharedRef());
 	ChildBuilder.AddChildProperty(DistanceAlgorithmHandle.ToSharedRef() );
-	ChildBuilder.AddChildProperty(SpatializationAlgorithmHandle.ToSharedRef());
+
+	// Check to see if a spatialization plugin is enabled
+	if (IsAudioPluginEnabled(EAudioPlugin::SPATIALIZATION))
+	{
+		ChildBuilder.AddChildProperty(SpatializationAlgorithmHandle.ToSharedRef());
+	}
 
 	IDetailPropertyRow& dbAttenuationRow = ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, dBAttenuationAtMax)).ToSharedRef());
 	dbAttenuationRow.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsNaturalSoundSelected));

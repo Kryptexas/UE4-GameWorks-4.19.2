@@ -17,6 +17,7 @@
 #include "EngineAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "ContentStreaming.h"
+#include "IAudioExtensionPlugin.h"
 
 DEFINE_LOG_CATEGORY(LogAudio);
 
@@ -51,6 +52,19 @@ DEFINE_STAT(STAT_AudioStartSources);
 DEFINE_STAT(STAT_AudioGatherWaveInstances);
 DEFINE_STAT(STAT_AudioUpdateTime);
 DEFINE_STAT(STAT_AudioFindNearestLocation);
+
+
+bool IsAudioPluginEnabled(EAudioPlugin::Type PluginType)
+{
+	if (PluginType == EAudioPlugin::SPATIALIZATION)
+	{
+		TArray<IAudioSpatializationPlugin *> SpatializationPlugins = IModularFeatures::Get().GetModularFeatureImplementations<IAudioSpatializationPlugin>(IAudioSpatializationPlugin::GetModularFeatureName());
+		return SpatializationPlugins.Num() > 0;
+	}
+
+	return false;
+}
+
 
 /*-----------------------------------------------------------------------------
 	FSoundBuffer implementation.

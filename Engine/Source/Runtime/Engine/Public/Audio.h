@@ -149,6 +149,23 @@ private:
 	TArray<FNotifyBufferDetails> Notifies;
 };
 
+
+/**
+* Enumeration of audio plugin types
+*
+*/
+struct EAudioPlugin
+{
+	enum Type
+	{
+		SPATIALIZATION,
+	};
+};
+
+/** Queries if a plugin of the given type is enabled. */
+ENGINE_API bool IsAudioPluginEnabled(EAudioPlugin::Type PluginType);
+
+
 /**
  * Structure encapsulating all information required to play a USoundWave on a channel/source. This is required
  * as a single USoundWave object can be used in multiple active cues or multiple times in the same cue.
@@ -559,3 +576,5 @@ ENGINE_API void SetCompressedAudioFormatsToBuild(const TCHAR* Platform = NULL);
  * @param	Platform				Name of platform to cook for, or NULL if all platforms
  */
 ENGINE_API const TArray<FName>& GetCompressedAudioFormatsToBuild();
+
+

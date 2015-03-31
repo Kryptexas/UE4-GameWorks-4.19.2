@@ -96,6 +96,7 @@ bool FAudioDevice::Init()
 
 		Plugin->Initialize();
 		SpatializeProcessor = Plugin->GetNewSpatializationAlgorithm(this);
+		bSpatializationExtensionEnabled = true;
 
 		// There should only ever be 0 or 1 spatialization plugin at the moment
 		check(SpatializationPlugins.Num() == 1);
