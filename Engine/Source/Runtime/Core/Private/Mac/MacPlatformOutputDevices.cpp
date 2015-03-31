@@ -150,7 +150,7 @@ void FOutputDeviceMacError::HandleError()
 {
 	if (!MacApplication && [[NSApp orderedWindows] count] == 1)
 	{
-		exit(0);
+		_Exit(0);
 	}
 }
 @end
