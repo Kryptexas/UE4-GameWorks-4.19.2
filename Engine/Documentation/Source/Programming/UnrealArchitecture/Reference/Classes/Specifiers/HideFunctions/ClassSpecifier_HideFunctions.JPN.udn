@@ -1,6 +1,8 @@
-﻿Title:HideFunctions
+﻿INTSourceChangelist:2374181
+Title:HideFunctions
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Classes, Programming/UnrealArchitecture/Reference/Classes/Specifiers
 Description:
 Availability:Public
+Version:4.5
 
-指定した関数をプロパティビューアーで非表示にします。利用法： hideFunctions=FunctionName または hideFunctions=(category0、 category1、・・・)
+指定した関数をプロパティビューアーで非表示にします。使用方法： hideFunctions=FunctionName または hideFunctions=(category0、 category1、・・・)
