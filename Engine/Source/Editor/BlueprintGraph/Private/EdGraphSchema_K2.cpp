@@ -5701,6 +5701,108 @@ UK2Node_VariableSet* UEdGraphSchema_K2::SpawnVariableSetNode(const FVector2D Gra
 	return FEdGraphSchemaAction_K2NewNode::SpawnNodeFromTemplate<UK2Node_VariableSet>(ParentGraph, NodeTemplate, GraphPosition);
 }
 
+UEdGraphPin* UEdGraphSchema_K2::DropPinOnNode(UEdGraphNode* InTargetNode, const FString& InSourcePinName, const FEdGraphPinType& InSourcePinType, EEdGraphPinDirection InSourcePinDirection) const
+{
+	UEdGraphPin* ResultPin = nullptr;
+	if (UK2Node_EditablePinBase* EditablePinNode = Cast<UK2Node_EditablePinBase>(InTargetNode))
+	{
+		EditablePinNode->Modify();
+
+		if (InSourcePinDirection == EGPD_Output && Cast<UK2Node_FunctionEntry>(InTargetNode))
+		{
+			if (UK2Node_EditablePinBase* ResultNode = FBlueprintEditorUtils::FindOrCreateFunctionResultNode(EditablePinNode))
+			{
+				EditablePinNode = ResultNode;
+			}
+			else
+			{
+				// If we did not successfully find or create a result node, just fail out
+				return nullptr;
+			}
+		}
+		else if (InSourcePinDirection == EGPD_Input && Cast<UK2Node_FunctionResult>(InTargetNode))
+		{
+			TArray<UK2Node_FunctionEntry*> FunctionEntryNode;
+			InTargetNode->GetGraph()->GetNodesOfClass(FunctionEntryNode);
+
+			if (FunctionEntryNode.Num() == 1)
+			{
+				EditablePinNode = FunctionEntryNode[0];
+			}
+			else
+			{
+				// If we did not successfully find the entry node, just fail out
+				return nullptr;
+			}
+		}
+
+		FString NewPinName = InSourcePinName;
+		ResultPin = EditablePinNode->CreateUserDefinedPin(NewPinName, InSourcePinType, (InSourcePinDirection == EGPD_Input)? EGPD_Output : EGPD_Input);
+
+		FParamsChangedHelper ParamsChangedHelper;
+		ParamsChangedHelper.ModifiedBlueprints.Add(FBlueprintEditorUtils::FindBlueprintForNode(InTargetNode));
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(FBlueprintEditorUtils::FindBlueprintForNode(InTargetNode));
+
+		ParamsChangedHelper.Broadcast(FBlueprintEditorUtils::FindBlueprintForNode(InTargetNode), EditablePinNode, InTargetNode->GetGraph());
+
+		for (auto GraphIt = ParamsChangedHelper.ModifiedGraphs.CreateIterator(); GraphIt; ++GraphIt)
+		{
+			if(UEdGraph* ModifiedGraph = *GraphIt)
+			{
+				ModifiedGraph->NotifyGraphChanged();
+			}
+		}
+
+		// Now update all the blueprints that got modified
+		for (auto BlueprintIt = ParamsChangedHelper.ModifiedBlueprints.CreateIterator(); BlueprintIt; ++BlueprintIt)
+		{
+			if(UBlueprint* Blueprint = *BlueprintIt)
+			{
+				FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+				Blueprint->BroadcastChanged();
+			}
+		}
+	}
+	return ResultPin;
+}
+
+bool UEdGraphSchema_K2::SupportsDropPinOnNode(UEdGraphNode* InTargetNode, const FEdGraphPinType& InSourcePinType, EEdGraphPinDirection InSourcePinDirection, FText& OutErrorMessage) const
+{
+	bool bIsSupported = false;
+	if (UK2Node_EditablePinBase* EditablePinNode = Cast<UK2Node_EditablePinBase>(InTargetNode))
+	{
+		if (InSourcePinDirection == EGPD_Output && Cast<UK2Node_FunctionEntry>(InTargetNode))
+		{
+			// Just check with the Function Entry and see if it's legal, we'll create/use a result node if the user drops
+			bIsSupported = EditablePinNode->CanCreateUserDefinedPin(InSourcePinType, InSourcePinDirection, OutErrorMessage);
+
+			if (bIsSupported)
+			{
+				OutErrorMessage = LOCTEXT("AddConnectResultNode", "Add Pin to Result Node");
+			}
+		}
+		else if (InSourcePinDirection == EGPD_Input && Cast<UK2Node_FunctionResult>(InTargetNode))
+		{
+			// Just check with the Function Result and see if it's legal, we'll create/use a result node if the user drops
+			bIsSupported = EditablePinNode->CanCreateUserDefinedPin(InSourcePinType, InSourcePinDirection, OutErrorMessage);
+
+			if (bIsSupported)
+			{
+				OutErrorMessage = LOCTEXT("AddPinEntryNode", "Add Pin to Entry Node");
+			}
+		}
+		else
+		{
+			bIsSupported = EditablePinNode->CanCreateUserDefinedPin(InSourcePinType, (InSourcePinDirection == EGPD_Input)? EGPD_Output : EGPD_Input, OutErrorMessage);
+			if (bIsSupported)
+			{
+				OutErrorMessage = LOCTEXT("AddPinToNode", "Add Pin to Node");
+			}
+		}
+	}
+	return bIsSupported;
+}
+
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

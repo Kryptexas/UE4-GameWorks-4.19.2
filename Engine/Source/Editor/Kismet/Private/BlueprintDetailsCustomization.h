@@ -258,10 +258,6 @@ public:
 	
 	FReply OnAddNewInputClicked();
 
-	/** Utility functions for pin names */
-	bool IsPinNameUnique(const FString& TestName) const;
-	void GenerateUniqueParameterName( const FString &BaseName, FString &Result ) const;
-
 protected:
 	/** Tries to create the result node (if there are output args) */
 	bool AttemptToCreateResultNode();

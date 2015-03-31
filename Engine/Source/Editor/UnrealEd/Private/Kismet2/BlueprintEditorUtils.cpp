@@ -274,6 +274,158 @@ static void RenameVariableReferences(UBlueprint* Blueprint, UClass* VariableClas
 	}
 }
 
+//////////////////////////////////////
+// FBasePinChangeHelper
+
+void FBasePinChangeHelper::Broadcast(UBlueprint* InBlueprint, UK2Node_EditablePinBase* InTargetNode, UEdGraph* Graph)
+{
+	if (UK2Node_Tunnel* TunnelNode = Cast<UK2Node_Tunnel>(InTargetNode))
+	{
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(Graph);
+
+		const bool bIsTopLevelFunctionGraph = Blueprint->MacroGraphs.Contains(Graph);
+
+		if (bIsTopLevelFunctionGraph)
+		{
+			// Editing a macro, hit all loaded instances (in open blueprints)
+			for (TObjectIterator<UK2Node_MacroInstance> It(RF_Transient); It; ++It)
+			{
+				UK2Node_MacroInstance* MacroInstance = *It;
+				if (NodeIsNotTransient(MacroInstance) && (MacroInstance->GetMacroGraph() == Graph))
+				{
+					EditMacroInstance(MacroInstance, FBlueprintEditorUtils::FindBlueprintForNode(MacroInstance));
+				}
+			}
+		}
+		else if(NodeIsNotTransient(TunnelNode))
+		{
+			// Editing a composite node, hit the single instance in the parent graph		
+			EditCompositeTunnelNode(TunnelNode);
+		}
+	}
+	else if (UK2Node_FunctionTerminator* FunctionDefNode = Cast<UK2Node_FunctionTerminator>(InTargetNode))
+	{
+		// Reconstruct all function call sites that call this function (in open blueprints)
+		for (TObjectIterator<UK2Node_CallFunction> It(RF_Transient); It; ++It)
+		{
+			UK2Node_CallFunction* CallSite = *It;
+			if (NodeIsNotTransient(CallSite))
+			{
+				UBlueprint* CallSiteBlueprint = FBlueprintEditorUtils::FindBlueprintForNode(CallSite);
+
+				const bool bNameMatches = (CallSite->FunctionReference.GetMemberName() == FunctionDefNode->SignatureName);
+				const UClass* MemberParentClass = CallSite->FunctionReference.GetMemberParentClass(CallSite->GetBlueprintClassFromNode());
+				const bool bClassMatchesEasy = (MemberParentClass != NULL) && (MemberParentClass->IsChildOf(FunctionDefNode->SignatureClass));
+				const bool bClassMatchesHard = (CallSiteBlueprint != NULL) && (CallSite->FunctionReference.IsSelfContext()) && (FunctionDefNode->SignatureClass == NULL) && (CallSiteBlueprint == InBlueprint);
+				const bool bValidSchema = CallSite->GetSchema() != NULL;
+
+				if (bNameMatches && bValidSchema && (bClassMatchesEasy || bClassMatchesHard))
+				{
+					EditCallSite(CallSite, CallSiteBlueprint);
+				}
+			}
+		}
+
+		if(FBlueprintEditorUtils::IsDelegateSignatureGraph(Graph))
+		{
+			FName GraphName = Graph->GetFName();
+			for (TObjectIterator<UK2Node_BaseMCDelegate> It(RF_Transient); It; ++It)
+			{
+				if(NodeIsNotTransient(*It) && (GraphName == It->GetPropertyName()))
+				{
+					UBlueprint* CallSiteBlueprint = FBlueprintEditorUtils::FindBlueprintForNode(*It);
+					EditDelegates(*It, CallSiteBlueprint);
+				}
+			}
+		}
+
+		for (TObjectIterator<UK2Node_CreateDelegate> It(RF_Transient); It; ++It)
+		{
+			if(NodeIsNotTransient(*It))
+			{
+				EditCreateDelegates(*It);
+			}
+		}
+	}
+}
+
+//////////////////////////////////////
+// FParamsChangedHelper
+
+void FParamsChangedHelper::EditCompositeTunnelNode(UK2Node_Tunnel* TunnelNode)
+{
+	if (TunnelNode->InputSinkNode != NULL)
+	{
+		TunnelNode->InputSinkNode->ReconstructNode();
+	}
+
+	if (TunnelNode->OutputSourceNode != NULL)
+	{
+		TunnelNode->OutputSourceNode->ReconstructNode();
+	}
+}
+
+void FParamsChangedHelper::EditMacroInstance(UK2Node_MacroInstance* MacroInstance, UBlueprint* Blueprint)
+{
+	MacroInstance->ReconstructNode();
+	if (Blueprint)
+	{
+		ModifiedBlueprints.Add(Blueprint);
+	}
+}
+
+void FParamsChangedHelper::EditCallSite(UK2Node_CallFunction* CallSite, UBlueprint* Blueprint)
+{
+	CallSite->Modify();
+	CallSite->ReconstructNode();
+	if (Blueprint != NULL)
+	{
+		ModifiedBlueprints.Add(Blueprint);
+	}
+}
+
+void FParamsChangedHelper::EditDelegates(UK2Node_BaseMCDelegate* CallSite, UBlueprint* Blueprint)
+{
+	CallSite->Modify();
+	CallSite->ReconstructNode();
+	if (auto AssignNode = Cast<UK2Node_AddDelegate>(CallSite))
+	{
+		if (auto DelegateInPin = AssignNode->GetDelegatePin())
+		{
+			for(auto DelegateOutPinIt = DelegateInPin->LinkedTo.CreateIterator(); DelegateOutPinIt; ++DelegateOutPinIt)
+			{
+				UEdGraphPin* DelegateOutPin = *DelegateOutPinIt;
+				if (auto CustomEventNode = (DelegateOutPin ? Cast<UK2Node_CustomEvent>(DelegateOutPin->GetOwningNode()) : NULL))
+				{
+					CustomEventNode->ReconstructNode();
+				}
+			}
+		}
+	}
+	if (Blueprint != NULL)
+	{
+		ModifiedBlueprints.Add(Blueprint);
+	}
+}
+
+void FParamsChangedHelper::EditCreateDelegates(UK2Node_CreateDelegate* CallSite)
+{
+	UBlueprint* Blueprint = NULL;
+	UEdGraph* Graph = NULL;
+	CallSite->HandleAnyChange(Graph, Blueprint);
+	if(Blueprint)
+	{
+		ModifiedBlueprints.Add(Blueprint);
+	}
+	if(Graph)
+	{
+		ModifiedGraphs.Add(Graph);
+	}
+}
+
+//////////////////////////////////////
+// FBlueprintEditorUtils
+
 void FBlueprintEditorUtils::RefreshAllNodes(UBlueprint* Blueprint)
 {
 	if (!Blueprint || !Blueprint->HasAllFlags(RF_LoadCompleted))
@@ -4142,27 +4294,36 @@ void FBlueprintEditorUtils::RemoveLocalVariable(UBlueprint* InBlueprint, const U
 	}
 }
 
-FFunctionFromNodeHelper::FFunctionFromNodeHelper(UObject* Obj) : Function(FunctionFromNode(Cast<UK2Node>(Obj))), Node(Cast<UK2Node>(Obj))
+FFunctionFromNodeHelper::FFunctionFromNodeHelper(const UObject* Obj) : Function(FunctionFromNode(Cast<UK2Node>(Obj))), Node(Cast<UK2Node>(Obj))
 {
 
 }
 
-UFunction* FFunctionFromNodeHelper::FunctionFromNode(UK2Node* Node)
+UFunction* FFunctionFromNodeHelper::FunctionFromNode(const UK2Node* Node)
 {
 	UFunction* Function = NULL;
 	UBlueprint* Blueprint = Node ? Node->GetBlueprint() : NULL;
 	const UClass* SearchScope = Blueprint ? Blueprint->SkeletonGeneratedClass : NULL;
 	if (SearchScope)
 	{
-		if (UK2Node_Event* EventNode = Cast<UK2Node_Event>(Node))
+		if (const UK2Node_FunctionResult* ResultNode = Cast<UK2Node_FunctionResult>(Node))
 		{
-			// We need to search up the class hierachy by name or functions like CanAddParentNode will fail:
-			Function = SearchScope->FindFunctionByName(EventNode->EventReference.GetMemberName());
+			// Function result nodes cannot resolve the UFunction, so find the entry node and use that for finding the UFunction
+			TArray<UK2Node_FunctionEntry*> EntryNodes;
+			ResultNode->GetGraph()->GetNodesOfClass(EntryNodes);
+
+			check(EntryNodes.Num() == 1);
+			Node = EntryNodes[0];
 		}
-		else if (UK2Node_FunctionEntry* FunctionNode = Cast<UK2Node_FunctionEntry>(Node))
+		else if (const UK2Node_FunctionEntry* FunctionNode = Cast<UK2Node_FunctionEntry>(Node))
 		{
 			const FName FunctionName = (FunctionNode->CustomGeneratedFunctionName != NAME_None) ? FunctionNode->CustomGeneratedFunctionName : FunctionNode->GetGraph()->GetFName();
 			Function = SearchScope->FindFunctionByName(FunctionName);
+		}
+		else if (const UK2Node_Event* EventNode = Cast<UK2Node_Event>(Node))
+		{
+			// We need to search up the class hierachy by name or functions like CanAddParentNode will fail:
+			Function = SearchScope->FindFunctionByName(EventNode->EventReference.GetMemberName());
 		}
 	}
 
@@ -7343,6 +7504,52 @@ FString FBlueprintEditorUtils::GetClassNameWithoutSuffix(const UClass* Class)
 	{
 		return LOCTEXT("ClassIsNull", "None").ToString();
 	}
+}
+
+UK2Node_FunctionResult* FBlueprintEditorUtils::FindOrCreateFunctionResultNode(UK2Node_EditablePinBase* InFunctionEntryNode)
+{
+	UK2Node_FunctionResult* FunctionResult = nullptr;
+
+	if (InFunctionEntryNode)
+	{
+		UEdGraph* Graph = InFunctionEntryNode->GetGraph();
+
+		TArray<UK2Node_FunctionResult*> ResultNode;
+		Graph->GetNodesOfClass(ResultNode);
+
+		if (Graph && ResultNode.Num() == 0)
+		{
+			FGraphNodeCreator<UK2Node_FunctionResult> ResultNodeCreator(*Graph);
+			FunctionResult = ResultNodeCreator.CreateNode();
+
+			const UEdGraphSchema_K2* Schema = Cast<const UEdGraphSchema_K2>(FunctionResult->GetSchema());
+			FunctionResult->NodePosX = InFunctionEntryNode->NodePosX + InFunctionEntryNode->NodeWidth + 256;
+			FunctionResult->NodePosY = InFunctionEntryNode->NodePosY;
+			FunctionResult->bIsEditable = true;
+			UEdGraphSchema_K2::SetNodeMetaData(FunctionResult, FNodeMetadata::DefaultGraphNode);
+			ResultNodeCreator.Finalize();
+
+			// Connect the function entry to the result node, if applicable
+			UEdGraphPin* ThenPin = Schema->FindExecutionPin(*InFunctionEntryNode, EGPD_Output);
+			UEdGraphPin* ReturnPin = Schema->FindExecutionPin(*FunctionResult, EGPD_Input);
+
+			if(ThenPin->LinkedTo.Num() == 0) 
+			{
+				ThenPin->MakeLinkTo(ReturnPin);
+			}
+			else
+			{
+				// Bump the result node up a bit, so it's less likely to fall behind the node the entry is already connected to
+				FunctionResult->NodePosY -= 100;
+			}
+		}
+		else
+		{
+			FunctionResult = ResultNode[0];
+		}
+	}
+
+	return FunctionResult;
 }
 
 #undef LOCTEXT_NAMESPACE

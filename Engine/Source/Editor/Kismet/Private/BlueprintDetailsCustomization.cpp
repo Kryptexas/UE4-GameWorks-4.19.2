@@ -2735,40 +2735,11 @@ bool FBaseBlueprintGraphActionDetails::ConditionallyCleanUpResultNode()
 
 bool FBaseBlueprintGraphActionDetails::AttemptToCreateResultNode()
 {
-	UEdGraph* Graph = GetGraph();
-	
-	if( !FunctionResultNodePtr.IsValid() && Graph && GetBlueprintObj() )
+	if (!FunctionResultNodePtr.IsValid())
 	{
-		FGraphNodeCreator<UK2Node_FunctionResult> ResultNodeCreator(*Graph);
-		UK2Node_FunctionResult* FunctionResult = ResultNodeCreator.CreateNode();
-
-		UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
-		check(FunctionEntryNode);
-
-		const UEdGraphSchema_K2* Schema = Cast<const UEdGraphSchema_K2>(FunctionResult->GetSchema());
-		FunctionResult->NodePosX = FunctionEntryNode->NodePosX + FunctionEntryNode->NodeWidth + 256;
-		FunctionResult->NodePosY = FunctionEntryNode->NodePosY;
-		UEdGraphSchema_K2::SetNodeMetaData(FunctionResult, FNodeMetadata::DefaultGraphNode);
-		ResultNodeCreator.Finalize();
-		
-		// Connect the function entry to the result node, if applicable
-		UEdGraphPin* ThenPin = Schema->FindExecutionPin(*FunctionEntryNode, EGPD_Output);
-		UEdGraphPin* ReturnPin = Schema->FindExecutionPin(*FunctionResult, EGPD_Input);
-
-		if(ThenPin->LinkedTo.Num() == 0) 
-		{
-			ThenPin->MakeLinkTo(ReturnPin);
-		}
-		else
-		{
-			// Bump the result node up a bit, so it's less likely to fall behind the node the entry is already connected to
-			FunctionResult->NodePosY -= 100;
-		}
-
-		FunctionResultNodePtr = FunctionResult;
+		FunctionResultNodePtr = FBlueprintEditorUtils::FindOrCreateFunctionResultNode(FunctionEntryNodePtr.Get());
 	}
-
-	return (FunctionResultNodePtr.IsValid());
+	return FunctionResultNodePtr.IsValid();
 }
 
 void FBaseBlueprintGraphActionDetails::SetRefreshDelegate(FSimpleDelegate RefreshDelegate, bool bForInputs)
@@ -3111,183 +3082,14 @@ void FBlueprintDelegateActionDetails::OnFunctionSelected(TSharedPtr<FString> Fun
 				UProperty* FuncParam = *PropIt;
 				FEdGraphPinType TypeOut;
 				Schema->ConvertPropertyToPinType(FuncParam, TypeOut);
-				FunctionEntryNode->CreateUserDefinedPin(FuncParam->GetName(), TypeOut);
+				UEdGraphPin* EdGraphPin = FunctionEntryNode->CreateUserDefinedPin(FuncParam->GetName(), TypeOut, EGPD_Output);
+				ensure(EdGraphPin);
 			}
 
 			OnParamsChanged(FunctionEntryNode);
 		}
 	}
 }
-
-struct FBasePinChangeHelper
-{
-	static bool NodeIsNotTransient(const UK2Node* Node)
-	{
-		return (NULL != Node)
-			&& !Node->HasAnyFlags(RF_Transient) 
-			&& (NULL != Cast<UEdGraph>(Node->GetOuter()));
-	}
-
-	virtual void EditCompositeTunnelNode(UK2Node_Tunnel* TunnelNode) {}
-
-	virtual void EditMacroInstance(UK2Node_MacroInstance* MacroInstance, UBlueprint* Blueprint) {}
-
-	virtual void EditCallSite(UK2Node_CallFunction* CallSite, UBlueprint* Blueprint) {}
-
-	virtual void EditDelegates(UK2Node_BaseMCDelegate* CallSite, UBlueprint* Blueprint) {}
-
-	virtual void EditCreateDelegates(UK2Node_CreateDelegate* CallSite) {}
-
-	void Broadcast(UK2Node_EditablePinBase* InTargetNode, FBaseBlueprintGraphActionDetails& BlueprintGraphActionDetails, UEdGraph* Graph)
-	{
-		if (UK2Node_Tunnel* TunnelNode = Cast<UK2Node_Tunnel>(InTargetNode))
-		{
-			UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(Graph);
-
-			const bool bIsTopLevelFunctionGraph = Blueprint->MacroGraphs.Contains(Graph);
-
-			if (bIsTopLevelFunctionGraph)
-			{
-				// Editing a macro, hit all loaded instances (in open blueprints)
-				for (TObjectIterator<UK2Node_MacroInstance> It(RF_Transient); It; ++It)
-				{
-					UK2Node_MacroInstance* MacroInstance = *It;
-					if (NodeIsNotTransient(MacroInstance) && (MacroInstance->GetMacroGraph() == Graph))
-					{
-						EditMacroInstance(MacroInstance, FBlueprintEditorUtils::FindBlueprintForNode(MacroInstance));
-					}
-				}
-			}
-			else if(NodeIsNotTransient(TunnelNode))
-			{
-				// Editing a composite node, hit the single instance in the parent graph		
-				EditCompositeTunnelNode(TunnelNode);
-			}
-		}
-		else if (UK2Node_FunctionTerminator* FunctionDefNode = Cast<UK2Node_FunctionTerminator>(BlueprintGraphActionDetails.GetFunctionEntryNode().Get()))
-		{
-			// Reconstruct all function call sites that call this function (in open blueprints)
-			for (TObjectIterator<UK2Node_CallFunction> It(RF_Transient); It; ++It)
-			{
-				UK2Node_CallFunction* CallSite = *It;
-				if (NodeIsNotTransient(CallSite))
-				{
-					UBlueprint* CallSiteBlueprint = FBlueprintEditorUtils::FindBlueprintForNode(CallSite);
-
-					const bool bNameMatches = (CallSite->FunctionReference.GetMemberName() == FunctionDefNode->SignatureName);
-					const UClass* MemberParentClass = CallSite->FunctionReference.GetMemberParentClass(CallSite->GetBlueprintClassFromNode());
-					const bool bClassMatchesEasy = (MemberParentClass != NULL) && (MemberParentClass->IsChildOf(FunctionDefNode->SignatureClass));
-					const bool bClassMatchesHard = (CallSiteBlueprint != NULL) && (CallSite->FunctionReference.IsSelfContext()) && (FunctionDefNode->SignatureClass == NULL) && (CallSiteBlueprint == BlueprintGraphActionDetails.GetBlueprintObj());
-					const bool bValidSchema = CallSite->GetSchema() != NULL;
-
-					if (bNameMatches && bValidSchema && (bClassMatchesEasy || bClassMatchesHard))
-					{
-						EditCallSite(CallSite, CallSiteBlueprint);
-					}
-				}
-			}
-
-			if(FBlueprintEditorUtils::IsDelegateSignatureGraph(Graph))
-			{
-				FName GraphName = Graph->GetFName();
-				for (TObjectIterator<UK2Node_BaseMCDelegate> It(RF_Transient); It; ++It)
-				{
-					if(NodeIsNotTransient(*It) && (GraphName == It->GetPropertyName()))
-					{
-						UBlueprint* CallSiteBlueprint = FBlueprintEditorUtils::FindBlueprintForNode(*It);
-						EditDelegates(*It, CallSiteBlueprint);
-					}
-				}
-			}
-
-			for (TObjectIterator<UK2Node_CreateDelegate> It(RF_Transient); It; ++It)
-			{
-				if(NodeIsNotTransient(*It))
-				{
-					EditCreateDelegates(*It);
-				}
-			}
-		}
-	}
-};
-
-struct FParamsChangedHelper : public FBasePinChangeHelper
-{
-	TSet<UBlueprint*> ModifiedBlueprints;
-	TSet<UEdGraph*> ModifiedGraphs;
-
-	virtual void EditCompositeTunnelNode(UK2Node_Tunnel* TunnelNode) override
-	{
-		if (TunnelNode->InputSinkNode != NULL)
-		{
-			TunnelNode->InputSinkNode->ReconstructNode();
-		}
-
-		if (TunnelNode->OutputSourceNode != NULL)
-		{
-			TunnelNode->OutputSourceNode->ReconstructNode();
-		}
-	}
-
-	virtual void EditMacroInstance(UK2Node_MacroInstance* MacroInstance, UBlueprint* Blueprint) override
-	{
-		MacroInstance->ReconstructNode();
-		if (Blueprint)
-		{
-			ModifiedBlueprints.Add(Blueprint);
-		}
-	}
-
-	virtual void EditCallSite(UK2Node_CallFunction* CallSite, UBlueprint* Blueprint) override
-	{
-		CallSite->Modify();
-		CallSite->ReconstructNode();
-		if (Blueprint != NULL)
-		{
-			ModifiedBlueprints.Add(Blueprint);
-		}
-	}
-
-	virtual void EditDelegates(UK2Node_BaseMCDelegate* CallSite, UBlueprint* Blueprint) override
-	{
-		CallSite->Modify();
-		CallSite->ReconstructNode();
-		if (auto AssignNode = Cast<UK2Node_AddDelegate>(CallSite))
-		{
-			if (auto DelegateInPin = AssignNode->GetDelegatePin())
-			{
-				for(auto DelegateOutPinIt = DelegateInPin->LinkedTo.CreateIterator(); DelegateOutPinIt; ++DelegateOutPinIt)
-				{
-					UEdGraphPin* DelegateOutPin = *DelegateOutPinIt;
-					if (auto CustomEventNode = (DelegateOutPin ? Cast<UK2Node_CustomEvent>(DelegateOutPin->GetOwningNode()) : NULL))
-					{
-						CustomEventNode->ReconstructNode();
-					}
-				}
-			}
-		}
-		if (Blueprint != NULL)
-		{
-			ModifiedBlueprints.Add(Blueprint);
-		}
-	}
-
-	virtual void EditCreateDelegates(UK2Node_CreateDelegate* CallSite) override
-	{
-		UBlueprint* Blueprint = NULL;
-		UEdGraph* Graph = NULL;
-		CallSite->HandleAnyChange(Graph, Blueprint);
-		if(Blueprint)
-		{
-			ModifiedBlueprints.Add(Blueprint);
-		}
-		if(Graph)
-		{
-			ModifiedGraphs.Add(Graph);
-		}
-	}
-
-};
 
 void FBaseBlueprintGraphActionDetails::OnParamsChanged(UK2Node_EditablePinBase* TargetNode, bool bForceRefresh)
 {
@@ -3305,7 +3107,7 @@ void FBaseBlueprintGraphActionDetails::OnParamsChanged(UK2Node_EditablePinBase* 
 		ParamsChangedHelper.ModifiedBlueprints.Add(GetBlueprintObj());
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprintObj());
 
-		ParamsChangedHelper.Broadcast(TargetNode, *this, Graph);
+		ParamsChangedHelper.Broadcast(GetBlueprintObj(), TargetNode, Graph);
 
 		for (auto GraphIt = ParamsChangedHelper.ModifiedGraphs.CreateIterator(); GraphIt; ++GraphIt)
 		{
@@ -3408,7 +3210,7 @@ bool FBaseBlueprintGraphActionDetails::OnPinRenamed(UK2Node_EditablePinBase* Tar
 		PinRenamedHelper.ModifiedBlueprints.Add(GetBlueprintObj());
 
 		// GATHER 
-		PinRenamedHelper.Broadcast(TargetNode, *this, Graph);
+		PinRenamedHelper.Broadcast(GetBlueprintObj(), TargetNode, Graph);
 
 		// TEST
 		for(auto NodeIter = PinRenamedHelper.NodesToRename.CreateIterator(); NodeIter; ++NodeIter)
@@ -3918,58 +3720,13 @@ ECheckBoxState FBlueprintGraphActionDetails::GetIsPureFunction() const
 	return (EntryNode->ExtraFlags & FUNC_BlueprintPure) ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
 }
 
-bool FBaseBlueprintGraphActionDetails::IsPinNameUnique(const FString& TestName) const
-{
-	UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
-	UK2Node_EditablePinBase * FunctionResultNode = FunctionResultNodePtr.Get();
-
-	// Check the built in pins
-	for( TArray<UEdGraphPin*>::TIterator it(FunctionEntryNode->Pins); it; ++it )
-	{
-		if( (*it)->PinName == TestName )
-		{
-			return false;
-		}
-	}
-
-	// If there is a result node, that isn't the same as the entry node, check it as well
-	if( FunctionResultNode && (FunctionResultNode != FunctionEntryNode) )
-	{
-		for( TArray<UEdGraphPin*>::TIterator it(FunctionResultNode->Pins); it; ++it )
-		{
-			if( (*it)->PinName == TestName )
-			{
-				return false;
-			}
-		}
-	}
-
-	return true;
-}
-
-void FBaseBlueprintGraphActionDetails::GenerateUniqueParameterName( const FString &BaseName, FString &Result ) const
-{
-	UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
-	check(FunctionEntryNode);
-
-	const auto FoundFunction = FFunctionFromNodeHelper::FunctionFromNode(FunctionEntryNode);
-
-	Result = BaseName;
-	int UniqueNum = 0;
-	// Prevent the unique name from being the same as another of the UFunction's properties
-	while(!IsPinNameUnique(Result) || FindField<const UProperty>(FoundFunction, *Result) != NULL)
-	{
-		Result = FString::Printf(TEXT("%s%d"), *BaseName, ++UniqueNum);
-	}
-}
-
 FReply FBaseBlueprintGraphActionDetails::OnAddNewInputClicked()
 {
 	UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
 
 	if( FunctionEntryNode )
 	{
-		const FScopedTransaction Transaction( LOCTEXT( "AddInParam", "Add In Parameter" ) );
+		FScopedTransaction Transaction( LOCTEXT( "AddInParam", "Add In Parameter" ) );
 		FunctionEntryNode->Modify();
 
 		FEdGraphPinType PinType = MyBlueprint.Pin()->GetLastFunctionPinTypeUsed();
@@ -3981,11 +3738,15 @@ FReply FBaseBlueprintGraphActionDetails::OnAddNewInputClicked()
 			MyBlueprint.Pin()->ResetLastPinType();
 			PinType = MyBlueprint.Pin()->GetLastFunctionPinTypeUsed();
 		}
-		FString NewPinName;
-		GenerateUniqueParameterName(TEXT("NewParam"), NewPinName);
-		FunctionEntryNode->CreateUserDefinedPin(NewPinName, PinType);
-
-		OnParamsChanged(FunctionEntryNode, true);
+		FString NewPinName = TEXT("NewParam");
+		if (FunctionEntryNode->CreateUserDefinedPin(NewPinName, PinType, EGPD_Output))
+		{
+			OnParamsChanged(FunctionEntryNode, true);
+		}
+		else
+		{
+			Transaction.Cancel();
+		}
 	}
 
 	return FReply::Handled();
@@ -4039,15 +3800,19 @@ FReply FBlueprintGraphActionDetails::OnAddNewOutputClicked()
 			MyBlueprint.Pin()->ResetLastPinType();
 			PinType = MyBlueprint.Pin()->GetLastFunctionPinTypeUsed();
 		}
-		FString NewPinName;
-		GenerateUniqueParameterName(TEXT("NewParam"), NewPinName);
-		FunctionResultNode->CreateUserDefinedPin(NewPinName, PinType);
-		
-		OnParamsChanged(FunctionResultNode, true);
-
-		if ( !PreviousResultNode )
+		FString NewPinName = TEXT("NewParam");
+		if (FunctionResultNode->CreateUserDefinedPin(NewPinName, PinType, EGPD_Input))
 		{
-			DetailsLayoutPtr->ForceRefreshDetails();
+			OnParamsChanged(FunctionResultNode, true);
+
+			if ( !PreviousResultNode )
+			{
+				DetailsLayoutPtr->ForceRefreshDetails();
+			}
+		}
+		else
+		{
+			Transaction.Cancel();
 		}
 	}
 	else

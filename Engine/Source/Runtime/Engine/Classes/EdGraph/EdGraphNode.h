@@ -223,7 +223,7 @@ public:
 	}
 
 	/** Generate a unique pin name, trying to stick close to a passed in name */
-	FString CreateUniquePinName(FString SourcePinName) const
+	virtual FString CreateUniquePinName(FString SourcePinName) const
 	{
 		FString PinName(SourcePinName);
 		

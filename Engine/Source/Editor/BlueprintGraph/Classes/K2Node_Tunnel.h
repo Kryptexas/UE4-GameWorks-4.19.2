@@ -55,6 +55,7 @@ class UK2Node_Tunnel : public UK2Node_EditablePinBase
 	BLUEPRINTGRAPH_API virtual bool CanModifyExecutionWires() override;
 	BLUEPRINTGRAPH_API virtual ERenamePinResult RenameUserDefinedPin(const FString& OldName, const FString& NewName, bool bTest = false) override;
 	virtual bool CanUseRefParams() const override { return true; }
+	virtual bool CanCreateUserDefinedPin(const FEdGraphPinType& InPinType, EEdGraphPinDirection InDesiredDirection, FText& OutErrorMessage) override;
 	// End UK2Node_EditablePinBase interface
 public:
 	// The input pins of this tunnel go to the output pins of InputSinkNode (can be NULL).

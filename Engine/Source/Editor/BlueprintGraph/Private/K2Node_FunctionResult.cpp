@@ -93,6 +93,20 @@ void UK2Node_FunctionResult::AllocateDefaultPins()
 	FFillDefaultPinValueHelper::FillAll(this);
 }
 
+bool UK2Node_FunctionResult::CanCreateUserDefinedPin(const FEdGraphPinType& InPinType, EEdGraphPinDirection InDesiredDirection, FText& OutErrorMessage)
+{
+	bool bResult = Super::CanCreateUserDefinedPin(InPinType, InDesiredDirection, OutErrorMessage);
+	if (bResult)
+	{
+		if(InDesiredDirection == EGPD_Output)
+		{
+			OutErrorMessage = NSLOCTEXT("K2Node", "AddOutputPinError", "Cannot add output pins to function result node!");
+			bResult = false;
+		}
+	}
+	return bResult;
+}
+
 UEdGraphPin* UK2Node_FunctionResult::CreatePinFromUserDefinition(const TSharedPtr<FUserPinInfo> NewPinInfo)
 {
 	UEdGraphPin* Pin = CreatePin(

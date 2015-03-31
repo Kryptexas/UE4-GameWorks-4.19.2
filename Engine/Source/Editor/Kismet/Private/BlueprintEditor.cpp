@@ -5742,7 +5742,7 @@ void FBlueprintEditor::ExtractEventTemplateForFunction(class UK2Node_CustomEvent
 							Pin->PinType.bIsArray,
 							Pin->PinType.bIsReference,
 							UniquePortName);
-						InResultNode->CreateUserDefinedPin(UniquePortName, Pin->PinType);
+						InResultNode->CreateUserDefinedPin(UniquePortName, Pin->PinType, EGPD_Input);
 					}
 					PinLink->BreakAllPinLinks();
 					PinLink->MakeLinkTo(RemotePortPin);
@@ -5752,7 +5752,7 @@ void FBlueprintEditor::ExtractEventTemplateForFunction(class UK2Node_CustomEvent
 					InEntryNode->Modify();
 
 					FString UniquePortName = InGatewayNode->CreateUniquePinName(Pin->PinName);
-					InEntryNode->CreateUserDefinedPin(UniquePortName, Pin->PinType);
+					InEntryNode->CreateUserDefinedPin(UniquePortName, Pin->PinType, EGPD_Output);
 				}
 			}
 		}
@@ -5899,7 +5899,7 @@ void FBlueprintEditor::CollapseNodesIntoGraph(UEdGraphNode* InGatewayNode, UK2No
 								LocalPin->PinType.bIsReference,
 								UniquePortName);
 
-							LocalPortPin = LocalPort->CreateUserDefinedPin(UniquePortName, LocalPin->PinType);
+							LocalPortPin = LocalPort->CreateUserDefinedPin(UniquePortName, LocalPin->PinType, (LocalPin->Direction == EGPD_Input)? EGPD_Output : EGPD_Input);
 						}
 					}
 				}

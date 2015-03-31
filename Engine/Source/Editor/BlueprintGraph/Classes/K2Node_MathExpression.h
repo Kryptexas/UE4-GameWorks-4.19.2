@@ -43,6 +43,10 @@ public:
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	// End of UK2Node interface
 
+	// Begin UK2Node_EditablePinBase interface
+	virtual bool CanCreateUserDefinedPin(const FEdGraphPinType& InPinType, EEdGraphPinDirection InDesiredDirection, FText& OutErrorMessage) override { return false; }
+	// End UK2Node_EditablePinBase interface
+
 private:
 	/**
 	* Clears this node's sub-graph, and then takes the supplied string and

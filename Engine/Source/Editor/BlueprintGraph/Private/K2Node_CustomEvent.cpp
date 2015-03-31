@@ -142,6 +142,29 @@ void UK2Node_CustomEvent::RefreshNodeTitle()
 	CachedNodeTitle.MarkDirty();
 }
 
+bool UK2Node_CustomEvent::CanCreateUserDefinedPin(const FEdGraphPinType& InPinType, EEdGraphPinDirection InDesiredDirection, FText& OutErrorMessage)
+{
+	if (!IsEditable())
+	{
+		return false;
+	}
+
+	// Make sure that if this is an exec node we are allowed one.
+	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+	if(InDesiredDirection == EGPD_Input)
+	{
+		OutErrorMessage = NSLOCTEXT("K2Node", "AddInputPinError", "Cannot add input pins to function result node!");
+		return false;
+	}
+	else if (InPinType.PinCategory == Schema->PC_Exec && !CanModifyExecutionWires())
+	{
+		OutErrorMessage = LOCTEXT("MultipleExecPinError", "Cannot support more exec pins!");
+		return false;
+	}
+
+	return true;
+}
+
 UEdGraphPin* UK2Node_CustomEvent::CreatePinFromUserDefinition(const TSharedPtr<FUserPinInfo> NewPinInfo)
 {
 	UEdGraphPin* NewPin = CreatePin(
@@ -345,7 +368,7 @@ UK2Node_CustomEvent* UK2Node_CustomEvent::CreateFromFunction(FVector2D GraphPosi
 			{
 				FEdGraphPinType PinType;
 				K2Schema->ConvertPropertyToPinType(Param, /*out*/ PinType);
-				CustomEventNode->CreateUserDefinedPin(Param->GetName(), PinType);
+				CustomEventNode->CreateUserDefinedPin(Param->GetName(), PinType, EGPD_Output);
 			}
 		}
 

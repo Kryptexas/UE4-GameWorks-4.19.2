@@ -33,11 +33,52 @@ namespace EGraphRemoveFlags
 struct UNREALED_API FFunctionFromNodeHelper
 {
 	UFunction* const Function;
-	UK2Node* const Node;
+	const UK2Node* const Node;
 
-	static UFunction* FunctionFromNode(UK2Node* Node);
+	static UFunction* FunctionFromNode(const UK2Node* Node);
 
-	FFunctionFromNodeHelper(UObject* Obj);
+	FFunctionFromNodeHelper(const UObject* Obj);
+};
+
+class UNREALED_API FBasePinChangeHelper
+{
+public:
+	static bool NodeIsNotTransient(const UK2Node* Node)
+	{
+		return (NULL != Node)
+			&& !Node->HasAnyFlags(RF_Transient) 
+			&& (NULL != Cast<UEdGraph>(Node->GetOuter()));
+	}
+
+	virtual void EditCompositeTunnelNode(class UK2Node_Tunnel* TunnelNode) {}
+
+	virtual void EditMacroInstance(class UK2Node_MacroInstance* MacroInstance, UBlueprint* Blueprint) {}
+
+	virtual void EditCallSite(class UK2Node_CallFunction* CallSite, UBlueprint* Blueprint) {}
+
+	virtual void EditDelegates(class UK2Node_BaseMCDelegate* CallSite, UBlueprint* Blueprint) {}
+
+	virtual void EditCreateDelegates(class UK2Node_CreateDelegate* CallSite) {}
+
+	void Broadcast(UBlueprint* InBlueprint, class UK2Node_EditablePinBase* InTargetNode, UEdGraph* Graph);
+};
+
+class UNREALED_API FParamsChangedHelper : public FBasePinChangeHelper
+{
+public:
+	TSet<UBlueprint*> ModifiedBlueprints;
+	TSet<UEdGraph*> ModifiedGraphs;
+
+	virtual void EditCompositeTunnelNode(class UK2Node_Tunnel* TunnelNode) override;
+
+	virtual void EditMacroInstance(class UK2Node_MacroInstance* MacroInstance, UBlueprint* Blueprint) override;
+
+	virtual void EditCallSite(class UK2Node_CallFunction* CallSite, UBlueprint* Blueprint) override;
+
+	virtual void EditDelegates(class UK2Node_BaseMCDelegate* CallSite, UBlueprint* Blueprint) override;
+
+	virtual void EditCreateDelegates(class UK2Node_CreateDelegate* CallSite) override;
+
 };
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Notify Blueprint Changed"), EKismetCompilerStats_NotifyBlueprintChanged, STATGROUP_KismetCompiler, );
@@ -1094,6 +1135,14 @@ public:
 
 	/** Checks if a graph (or any sub-graphs or referenced graphs) have latent function nodes */
 	static bool CheckIfGraphHasLatentFunctions(UEdGraph* InGraph);
+
+	/**
+	 * Creates a function result node or returns the current one if one exists
+	 *
+	 * @param InFunctionEntryNode		The function entry node to spawn the result node for
+	 * @return							Spawned result node
+	 */
+	static class UK2Node_FunctionResult* FindOrCreateFunctionResultNode(class UK2Node_EditablePinBase* InFunctionEntryNode);
 
 protected:
 	// Removes all NULL graph references from the SubGraphs array and recurses thru the non-NULL ones

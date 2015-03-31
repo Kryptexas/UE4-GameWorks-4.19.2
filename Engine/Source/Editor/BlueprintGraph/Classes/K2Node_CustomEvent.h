@@ -42,6 +42,7 @@ class UK2Node_CustomEvent : public UK2Node_Event
 
 	// Begin UK2Node_EditablePinBase interface
 	virtual UEdGraphPin* CreatePinFromUserDefinition(const TSharedPtr<FUserPinInfo> NewPinInfo) override;
+	virtual bool CanCreateUserDefinedPin(const FEdGraphPinType& InPinType, EEdGraphPinDirection InDesiredDirection, FText& OutErrorMessage) override;
 	// Begin UK2Node_EditablePinBase interface
 
 	virtual bool IsUsedByAuthorityOnlyDelegate() const override;

@@ -18,7 +18,7 @@ void UK2Node_EditablePinBase::AllocateDefaultPins()
 	}
 }
 
-UEdGraphPin* UK2Node_EditablePinBase::CreateUserDefinedPin(const FString& InPinName, const FEdGraphPinType& InPinType)
+UEdGraphPin* UK2Node_EditablePinBase::CreateUserDefinedPin(const FString& InPinName, const FEdGraphPinType& InPinType, EEdGraphPinDirection InDesiredDirection)
 {
 	// Sanitize the name, if needed
 	const FString NewPinName = CreateUniquePinName(InPinName);
@@ -27,12 +27,11 @@ UEdGraphPin* UK2Node_EditablePinBase::CreateUserDefinedPin(const FString& InPinN
 	TSharedPtr<FUserPinInfo> NewPinInfo = MakeShareable( new FUserPinInfo() );
 	NewPinInfo->PinName = NewPinName;
 	NewPinInfo->PinType = InPinType;
+	NewPinInfo->DesiredPinDirection = InDesiredDirection;
 	UserDefinedPins.Add(NewPinInfo);
 
 	// Then, add the pin to the actual Pins array
 	UEdGraphPin* NewPin = CreatePinFromUserDefinition(NewPinInfo);
-	
-	check(NewPin);
 
 	return NewPin;
 }
@@ -218,7 +217,7 @@ bool UK2Node_EditablePinBase::CreateUserDefinedPinsForFunctionEntryExit(const UF
 			FEdGraphPinType PinType;
 			K2Schema->ConvertPropertyToPinType(Param, /*out*/ PinType);
 
-			const bool bPinGood = CreateUserDefinedPin(Param->GetName(), PinType) != NULL;
+			const bool bPinGood = CreateUserDefinedPin(Param->GetName(), PinType, Direction) != NULL;
 
 			bAllPinsGood = bAllPinsGood && bPinGood;
 		}

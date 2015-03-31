@@ -199,7 +199,7 @@ bool UK2Node_BaseAsyncTask::FBaseAsyncTaskHelper::CopyEventSignature(UK2Node_Cus
 		{
 			FEdGraphPinType PinType;
 			bResult &= Schema->ConvertPropertyToPinType(Param, /*out*/ PinType);
-			bResult &= (NULL != CENode->CreateUserDefinedPin(Param->GetName(), PinType));
+			bResult &= (NULL != CENode->CreateUserDefinedPin(Param->GetName(), PinType, EGPD_Output));
 		}
 	}
 	return bResult;

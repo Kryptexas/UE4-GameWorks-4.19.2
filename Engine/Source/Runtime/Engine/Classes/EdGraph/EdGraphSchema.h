@@ -739,4 +739,26 @@ class ENGINE_API UEdGraphSchema : public UObject
 
 	/* When a node is removed, this method determines whether we should remove it immediately or use the old (slower) code path that results in all node being recreated: */
 	virtual bool ShouldAlwaysPurgeOnModification() const { return true; }
+
+	/*
+	 * Some schemas have nodes that support the user dynamically adding pins when dropping a connection on the node
+	 *
+	 * @param InTargetNode					Node to check for pin adding support
+	 * @param InSourcePinName				Name of the pin being dropped, a new pin of similar name will be constructed
+	 * @param InSourcePinType				Type of pin to drop onto the node
+	 * @param InSourcePinDirection			Direction of the source pin
+	 * @return								Returns the new pin if created
+	 */
+	virtual UEdGraphPin* DropPinOnNode(UEdGraphNode* InTargetNode, const FString& InSourcePinName, const FEdGraphPinType& InSourcePinType, EEdGraphPinDirection InSourcePinDirection) const { return nullptr; }
+
+	/**
+	 * Checks if the node supports dropping a pin on it
+	 *
+	 * @param InTargetNode					Node to check for pin adding support
+	 * @param InSourcePinType				Type of pin to drop onto the node
+	 * @param InSourcePinDirection			Direction of the source pin
+	 * @param OutErrorMessage				Only filled with an error if there is pin add support but there is an error with the pin type
+	 * @return								Returns TRUE if there is support for dropping the pin on the node
+	 */
+	virtual bool SupportsDropPinOnNode(UEdGraphNode* InTargetNode, const FEdGraphPinType& InSourcePinType, EEdGraphPinDirection InSourcePinDirection, FText& OutErrorMessage) const { return false; }
 };
