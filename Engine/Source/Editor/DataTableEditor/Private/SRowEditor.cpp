@@ -299,7 +299,7 @@ void SRowEditor::Construct(const FArguments& InArgs, UDataTable* Changed)
 		ViewArgs.bHideSelectionTip = false;
 		ViewArgs.bShowActorLabel = false;
 
-		StructureDetailsView = PropertyModule.CreateStructureDetailView(ViewArgs, CurrentRow, false, LOCTEXT("RowValue", "Row Value"));
+		StructureDetailsView = PropertyModule.CreateStructureDetailView(ViewArgs, CurrentRow, true/*bShowObjects*/, LOCTEXT("RowValue", "Row Value"));
 		StructureDetailsView->GetOnFinishedChangingPropertiesDelegate().AddSP(this, &SRowEditor::OnFinishedChangingProperties);
 	}
 
@@ -392,7 +392,6 @@ void SRowEditor::Construct(const FArguments& InArgs, UDataTable* Changed)
 			]
 		]
 		+ SVerticalBox::Slot()
-		.AutoHeight()
 		[
 			StructureDetailsView->GetWidget().ToSharedRef()
 		]
