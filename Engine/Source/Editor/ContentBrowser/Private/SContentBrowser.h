@@ -37,7 +37,7 @@ public:
 	 *	@param bAllowImplicitSync	- true to allow the view to sync to parent folders if they are already selected,
 	 *								  false to force the view to select the explicit Parent folders of each asset 
 	 */
-	void SyncToAssets( const TArray<FAssetData>& AssetDataList, const bool bAllowImplicitSync = false );
+	void SyncToAssets( const TArray<FAssetData>& AssetDataList, const bool bAllowImplicitSync = false, const bool bDisableFiltersThatHideAssets = true );
 
 	/** Sets this content browser as the primary browser. The primary browser is the target for asset syncs and contributes to the global selection set. */
 	void SetIsPrimaryContentBrowser (bool NewIsPrimary);

@@ -760,7 +760,7 @@ void SContentBrowser::ImportAsset( const FString& InPath )
 	}
 }
 
-void SContentBrowser::SyncToAssets( const TArray<FAssetData>& AssetDataList, const bool bAllowImplicitSync )
+void SContentBrowser::SyncToAssets( const TArray<FAssetData>& AssetDataList, const bool bAllowImplicitSync, const bool bDisableFiltersThatHideAssets )
 {
 	// Check to see if any of the assets require certain folders to be visible
 	const UContentBrowserSettings* tmp = GetDefault<UContentBrowserSettings>();
@@ -815,8 +815,11 @@ void SContentBrowser::SyncToAssets( const TArray<FAssetData>& AssetDataList, con
 		}
 	}
 
-	// Disable the filter categories
-	FilterListPtr->DisableFiltersThatHideAssets(AssetDataList);
+	if ( bDisableFiltersThatHideAssets )
+	{
+		// Disable the filter categories
+		FilterListPtr->DisableFiltersThatHideAssets(AssetDataList);
+	}
 
 	// Disable the filter search (reset the filter, then clear the search text)
 	// Note: we have to remove the filter immediately, we can't wait for OnSearchBoxChanged to hit
@@ -1988,7 +1991,9 @@ void SContentBrowser::OnAssetRenameCommitted(const TArray<FAssetData>& Assets)
 	// After a rename is committed we allow an implicit sync so as not to
 	// disorientate the user if they are looking at a parent folder
 
-	SyncToAssets(Assets, /*bAllowImplicitSync*/true);
+	const bool bAllowImplicitSync = true;
+	const bool bDisableFiltersThatHideAssets = false;
+	SyncToAssets(Assets, bAllowImplicitSync, bDisableFiltersThatHideAssets);
 }
 
 void SContentBrowser::OnFindInAssetTreeRequested(const TArray<FAssetData>& AssetsToFind)
