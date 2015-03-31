@@ -334,6 +334,13 @@ public:
 	 */
 	virtual void SynchronizeProperties();
 
+	/**
+	 * Called by the owning user widget after the slate widget has been created.  After the entire widget tree
+	 * has been initialized, any widget reference that was needed to support navigating to another widget will
+	 * now be initialized and ready for usage.
+	 */
+	void BuildNavigation();
+
 #if WITH_EDITOR
 	/** Returns if the widget is currently being displayed in the designer, it may want to display different data. */
 	bool IsDesignTime() const;

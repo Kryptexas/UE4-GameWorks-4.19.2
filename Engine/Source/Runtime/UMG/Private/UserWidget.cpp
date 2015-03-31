@@ -61,10 +61,6 @@ void UUserWidget::Initialize()
 				}
 			}
 		});
-
-		// TODO Find a way to remove the bindings from the table.  Currently they're still needed.
-		// Clear the named slot bindings table.
-		//NamedSlotBindings.Reset();
 	}
 }
 
@@ -292,6 +288,12 @@ TSharedRef<SWidget> UUserWidget::RebuildWidget()
 
 void UUserWidget::OnWidgetRebuilt()
 {
+	// When a user widget is rebuilt we can safely initialize the navigation now since all the slate
+	// widgets should be held onto by a smart pointer at this point.
+	WidgetTree->ForEachWidget([&] (UWidget* Widget) {
+		Widget->BuildNavigation();
+	});
+
 	if (!IsDesignTime())
 	{
 		// Notify the widget that it has been constructed.

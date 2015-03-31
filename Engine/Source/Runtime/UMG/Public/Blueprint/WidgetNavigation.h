@@ -21,6 +21,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Navigation")
 	FName WidgetToFocus;
+
+	TWeakObjectPtr<UWidget> Widget;
 };
 
 /**
@@ -53,9 +55,14 @@ public:
 #if WITH_EDITOR
 
 	/**  */
+	FWidgetNavigationData& GetNavigationData(EUINavigation Nav);
+
+	/**  */
 	EUINavigationRule GetNavigationRule(EUINavigation Nav);
 
 #endif
+
+	void ResolveExplictRules(class UWidgetTree* WidgetTree);
 
 	/** Updates a slate metadata object to match this configured navigation ruleset. */
 	void UpdateMetaData(TSharedRef<FNavigationMetaData> MetaData);

@@ -107,6 +107,12 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 				}
 			}
 
+			// Initialize Navigation Data
+			if (Widget->Navigation)
+			{
+				Widget->Navigation->ResolveExplictRules(ClonedTree);
+			}
+
 	#if WITH_EDITOR
 			Widget->ConnectEditorData();
 	#endif
