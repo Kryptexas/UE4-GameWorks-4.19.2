@@ -638,7 +638,7 @@ FMatrix FSCSEditorViewportClient::GetWidgetCoordSystem() const
 					}					
 					else
 					{
-						Matrix = FRotationMatrix( SceneComp->GetComponentRotation() );
+						Matrix = FQuatRotationMatrix( SceneComp->GetComponentQuat() );
 					}
 				}
 			}

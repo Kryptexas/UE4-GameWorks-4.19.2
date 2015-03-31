@@ -2121,7 +2121,7 @@ FVector FEdModeLandscape::GetWidgetLocation() const
 			// Apply Landscape transformation when it is available
 			ULandscapeInfo* Info = CurrentGizmoActor->TargetLandscapeInfo;
 			return CurrentGizmoActor->GetActorLocation()
-				+ FRotationMatrix(Info->GetLandscapeProxy()->GetActorRotation()).TransformPosition(FVector(0, 0, CurrentGizmoActor->GetLength()));
+				+ FQuatRotationMatrix(Info->GetLandscapeProxy()->GetActorQuat()).TransformPosition(FVector(0, 0, CurrentGizmoActor->GetLength()));
 		}
 		return CurrentGizmoActor->GetActorLocation();
 	}

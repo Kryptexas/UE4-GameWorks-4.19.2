@@ -791,7 +791,7 @@ void UPathFollowingComponent::UpdatePathSegment()
 			{
 				const FVector AgentLocation = DestinationAgent ? DestinationAgent->GetNavAgentLocation() : DestinationActor->GetActorLocation();
 				// note that the condition below requires GoalLocation to be in world space.
-				const FVector GoalLocation = FRotationTranslationMatrix(DestinationActor->GetActorRotation(), AgentLocation).TransformPosition(MoveOffset);
+				const FVector GoalLocation = FQuatRotationTranslationMatrix(DestinationActor->GetActorQuat(), AgentLocation).TransformPosition(MoveOffset);
 				FVector HitLocation;
 
 				if (MyNavData == nullptr //|| MyNavData->DoesNodeContainLocation(Path->GetPathPoints().Last().NodeRef, GoalLocation))
@@ -889,7 +889,7 @@ bool UPathFollowingComponent::HasReached(const AActor& TestGoal, float InAccepta
 	{
 		const FVector GoalMoveOffset = NavAgent->GetMoveGoalOffset(GetOwner());
 		NavAgent->GetMoveGoalReachTest(GetOwner(), GoalMoveOffset, GoalOffset, GoalRadius, GoalHalfHeight);
-		TestPoint = FRotationTranslationMatrix(TestGoal.GetActorRotation(), NavAgent->GetNavAgentLocation()).TransformPosition(GoalOffset);
+		TestPoint = FQuatRotationTranslationMatrix(TestGoal.GetActorQuat(), NavAgent->GetNavAgentLocation()).TransformPosition(GoalOffset);
 	}
 
 	const FVector CurrentLocation = MovementComp ? MovementComp->GetActorFeetLocation() : FVector::ZeroVector;
@@ -911,7 +911,7 @@ bool UPathFollowingComponent::HasReachedDestination(const FVector& CurrentLocati
 			FVector GoalOffset;
 			DestinationAgent->GetMoveGoalReachTest(GetOwner(), MoveOffset, GoalOffset, GoalRadius, GoalHalfHeight);
 
-			GoalLocation = FRotationTranslationMatrix(DestinationActor->GetActorRotation(), DestinationAgent->GetNavAgentLocation()).TransformPosition(GoalOffset);
+			GoalLocation = FQuatRotationTranslationMatrix(DestinationActor->GetActorQuat(), DestinationAgent->GetNavAgentLocation()).TransformPosition(GoalOffset);
 		}
 		else
 		{
@@ -1018,7 +1018,7 @@ void UPathFollowingComponent::DebugReachTest(float& CurrentDot, float& CurrentDi
 				FVector GoalOffset;
 				DestinationAgent->GetMoveGoalReachTest(GetOwner(), MoveOffset, GoalOffset, GoalRadius, GoalHalfHeight);
 
-				GoalLocation = FRotationTranslationMatrix(DestinationActor->GetActorRotation(), DestinationAgent->GetNavAgentLocation()).TransformPosition(GoalOffset);
+				GoalLocation = FQuatRotationTranslationMatrix(DestinationActor->GetActorQuat(), DestinationAgent->GetNavAgentLocation()).TransformPosition(GoalOffset);
 			}
 			else
 			{

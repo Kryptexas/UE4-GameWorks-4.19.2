@@ -202,7 +202,7 @@ void UCheatManager::DamageTarget(float DamageAmount)
 	{
 		check(Hit.GetActor() != NULL);
 		FVector ActorForward, ActorSide, ActorUp;
-		FRotationMatrix(Hit.GetActor()->GetActorRotation()).GetScaledAxes(ActorForward, ActorSide, ActorUp);
+		FQuatRotationMatrix(Hit.GetActor()->GetActorQuat()).GetScaledAxes(ActorForward, ActorSide, ActorUp);
 
 		FPointDamageEvent DamageEvent(DamageAmount, Hit, -ActorForward, UDamageType::StaticClass());
 		Hit.GetActor()->TakeDamage(DamageAmount, DamageEvent, MyPC, MyPC->GetPawn());

@@ -940,7 +940,7 @@ void ACharacter::OnRep_ReplicatedBasedMovement()
 		if (ReplicatedBasedMovement.HasRelativeRotation())
 		{
 			// Relative location, relative rotation
-			FRotator NewRotation = (FRotationMatrix(ReplicatedBasedMovement.Rotation) * FQuatRotationTranslationMatrix(CharacterMovement->OldBaseQuat, FVector::ZeroVector)).Rotator();
+			FRotator NewRotation = (FRotationMatrix(ReplicatedBasedMovement.Rotation) * FQuatRotationMatrix(CharacterMovement->OldBaseQuat)).Rotator();
 			
 			// TODO: need a better way to not assume we only use Yaw.
 			NewRotation.Pitch = 0.f;

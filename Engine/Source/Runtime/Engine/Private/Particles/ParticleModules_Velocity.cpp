@@ -538,7 +538,7 @@ void UParticleModuleVelocityCone::Render3DPreview(FParticleEmitterInstance* Owne
 	UParticleLODLevel* LODLevel	= Owner->SpriteTemplate->GetCurrentLODLevel(Owner);
 	check(LODLevel);
 	FVector OwnerScale(1.0f);
-	FRotationMatrix OwnerRotation(FRotator::ZeroRotator);
+	FMatrix OwnerRotation(FMatrix::Identity);
 	FVector LocalToWorldOrigin(0.0f);
 	FMatrix LocalToWorld(FMatrix::Identity);
 	if (Owner && Owner->Component)
@@ -551,7 +551,7 @@ void UParticleModuleVelocityCone::Render3DPreview(FParticleEmitterInstance* Owne
 				OwnerScale = Owner->Component->ComponentToWorld.GetScale3D();
 			}
 
-			OwnerRotation = FRotationMatrix(Actor->GetActorRotation());
+			OwnerRotation = FQuatRotationMatrix(Actor->GetActorQuat());
 		}
 	  LocalToWorldOrigin = Owner->Component->ComponentToWorld.GetLocation();
 	  LocalToWorld = Owner->Component->ComponentToWorld.ToMatrixWithScale().RemoveTranslation();

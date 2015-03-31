@@ -404,7 +404,7 @@ FMatrix FEditorModeTools::GetCustomDrawingCoordinateSystem()
 				// Coordinate system needs to come from the last actor selected
 				if (Num > 0)
 				{
-					Matrix = FRotationMatrix(GetSelectedActors()->GetBottom<AActor>()->GetActorRotation());
+					Matrix = FQuatRotationMatrix(GetSelectedActors()->GetBottom<AActor>()->GetActorQuat());
 				}
 			}
 

@@ -654,7 +654,7 @@ bool AAIController::PreparePathfinding(const FAIMoveRequest& MoveRequest, FPathF
 			if (NavGoal)
 			{
 				const FVector Offset = NavGoal->GetMoveGoalOffset(this);
-				GoalLocation = FRotationTranslationMatrix(MoveRequest.GetGoalActor()->GetActorRotation(), NavGoal->GetNavAgentLocation()).TransformPosition(Offset);
+				GoalLocation = FQuatRotationTranslationMatrix(MoveRequest.GetGoalActor()->GetActorQuat(), NavGoal->GetNavAgentLocation()).TransformPosition(Offset);
 			}
 			else
 			{

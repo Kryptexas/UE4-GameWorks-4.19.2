@@ -1680,7 +1680,7 @@ void UCharacterMovementComponent::SaveBaseLocation()
 		else
 		{
 			// Relative rotation
-			const FRotator RelativeRotation = (FRotationMatrix(CharacterOwner->GetActorRotation()) * FQuatRotationTranslationMatrix(OldBaseQuat, FVector::ZeroVector).GetTransposed()).Rotator();
+			const FRotator RelativeRotation = (FQuatRotationMatrix(CharacterOwner->GetActorQuat()) * FQuatRotationMatrix(OldBaseQuat).GetTransposed()).Rotator();
 			CharacterOwner->SaveRelativeBasedMovement(RelativeLocation, RelativeRotation, true);	
 		}
 	}

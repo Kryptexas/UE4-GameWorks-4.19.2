@@ -532,7 +532,7 @@ void APlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float DeltaTime
 //			APawn* TPawn = Cast<APawn>(OutVT.Target);
 // 			if ((TPawn != NULL) && (TPawn->Mesh != NULL))
 // 			{
-// 				Loc += FRotationMatrix(OutVT.Target->GetActorRotation()).TransformVector(TPawn->Mesh->RelativeLocation - GetDefault<APawn>(TPawn->GetClass())->Mesh->RelativeLocation);
+// 				Loc += FQuatRotationMatrix(OutVT.Target->GetActorQuat()).TransformVector(TPawn->Mesh->RelativeLocation - GetDefault<APawn>(TPawn->GetClass())->Mesh->RelativeLocation);
 // 			}
 
 			//OutVT.Target.GetActorEyesViewPoint(Loc, Rot);
