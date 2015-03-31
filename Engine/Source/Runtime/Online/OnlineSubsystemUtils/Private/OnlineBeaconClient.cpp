@@ -99,8 +99,13 @@ void AOnlineBeaconClient::ClientOnConnected_Implementation()
 
 void AOnlineBeaconClient::DestroyBeacon()
 {
-	// Fail safe for connection to server but no client connection RPC
-	GetWorldTimerManager().ClearTimer(TimerHandle_OnFailure);
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		// Fail safe for connection to server but no client connection RPC
+		GetWorldTimerManager().ClearTimer(TimerHandle_OnFailure);
+	}
+
 	Super::DestroyBeacon();
 }
 
@@ -157,7 +162,8 @@ void AOnlineBeaconClient::NotifyControlMessage(UNetConnection* Connection, uint8
 					// Server will send ClientOnConnected() when it gets this control message
 
 					// Fail safe for connection to server but no client connection RPC
-					GetWorldTimerManager().SetTimer(TimerHandle_OnFailure, this, &AOnlineBeaconClient::OnFailure, BEACON_RPC_TIMEOUT, false);
+					FTimerDelegate TimerDelegate = FTimerDelegate::CreateUObject(this, &AOnlineBeaconClient::OnFailure);
+					GetWorldTimerManager().SetTimer(TimerHandle_OnFailure, TimerDelegate, BEACON_RPC_TIMEOUT, false);
 				}
 				else
 				{
