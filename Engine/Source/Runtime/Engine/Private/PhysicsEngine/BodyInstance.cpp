@@ -2323,13 +2323,11 @@ FTransform GetUnrealWorldTransformImp(const FBodyInstance* BodyInstance)
 {
 	FTransform WorldTM = FTransform::Identity;
 #if WITH_PHYSX
-	auto Func = [&](const PxRigidActor* PActor)
+	FPhysXSupport<NeedsLock>::ExecuteOnPxRigidActorReadOnly(BodyInstance, [&](const PxRigidActor* PActor)
 	{
 		PxTransform PTM = PActor->getGlobalPose();
 		WorldTM = P2UTransform(PTM);
-	};
-
-	ExecuteOnPxRigidActorReadOnly<decltype(Func), NeedsLock>(BodyInstance, Func);
+	});
 #endif // WITH_PHYSX
 
 #if WITH_BOX2D
@@ -2446,12 +2444,10 @@ FVector GetUnrealWorldVelocityImp(const FBodyInstance* BodyInstance)
 	FVector LinVel(EForceInit::ForceInitToZero);
 
 #if WITH_PHYSX
-	auto Func = [&](const PxRigidBody* PRigidBody)
+	FPhysXSupport<NeedsLock>::ExecuteOnPxRigidBodyReadOnly(BodyInstance, [&](const PxRigidBody* PRigidBody)
 	{
 		LinVel = P2UVector(PRigidBody->getLinearVelocity());
-	};
-
-	ExecuteOnPxRigidBodyReadOnly<decltype(Func), NeedsLock>(BodyInstance, Func);
+	});
 #endif // WITH_PHYSX
 
 #if WITH_BOX2D
@@ -2480,12 +2476,10 @@ FVector GetUnrealWorldAngularVelocityImp(const FBodyInstance* BodyInstance)
 	FVector AngVel(EForceInit::ForceInitToZero);
 
 #if WITH_PHYSX
-	auto Func = [&](const PxRigidBody* PRigidBody)
+	FPhysXSupport<NeedsLock>::ExecuteOnPxRigidBodyReadOnly(BodyInstance, [&](const PxRigidBody* PRigidBody)
 	{
 		AngVel = FVector::RadiansToDegrees(P2UVector(PRigidBody->getAngularVelocity()));
-	};
-
-	ExecuteOnPxRigidBodyReadOnly<decltype(Func), NeedsLock>(BodyInstance, Func);
+	});
 #endif // WITH_PHYSX
 
 #if WITH_BOX2D
@@ -2516,13 +2510,11 @@ FVector GetUnrealWorldVelocityAtPointImp(const FBodyInstance* BodyInstance, cons
 	FVector LinVel(EForceInit::ForceInitToZero);
 
 #if WITH_PHYSX
-	auto Func = [&](const PxRigidBody* PRigidBody)
+	FPhysXSupport<NeedsLock>::ExecuteOnPxRigidBodyReadOnly(BodyInstance, [&](const PxRigidBody* PRigidBody)
 	{
 		PxVec3 PPoint = U2PVector(Point);
 		LinVel = P2UVector(PxRigidBodyExt::getVelocityAtPos(*PRigidBody, PPoint));
-	};
-
-	ExecuteOnPxRigidBodyReadOnly<decltype(Func), NeedsLock>(BodyInstance, Func);
+	});
 #endif // WITH_PHYSX
 
 #if WITH_BOX2D
