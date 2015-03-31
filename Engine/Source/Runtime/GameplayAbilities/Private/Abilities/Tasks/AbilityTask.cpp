@@ -151,48 +151,19 @@ FPredictionKey UAbilityTask::GetActivationPredictionKey() const
 bool UAbilityTask::IsPredictingClient() const
 {
 	UGameplayAbility* MyAbility = Ability.Get();
-	if (MyAbility && MyAbility->GetCurrentActorInfo()->OwnerActor.IsValid())
-	{
-		bool bIsLocallyControlled = MyAbility->GetCurrentActorInfo()->IsLocallyControlled();
-		bool bIsAuthority = MyAbility->GetCurrentActorInfo()->IsNetAuthority();
-
-		if (!bIsAuthority && bIsLocallyControlled && MyAbility->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::LocalPredicted)
-		{
-			// If this is a predicted ability, forward up
-			return true;
-		}
-	}
-
-	return false;
+	return MyAbility && MyAbility->IsPredictingClient();
 }
 
 bool UAbilityTask::IsForRemoteClient() const
 {
 	UGameplayAbility* MyAbility = Ability.Get();
-	if (MyAbility && MyAbility->GetCurrentActorInfo()->OwnerActor.IsValid())
-	{
-		bool bIsLocallyControlled = MyAbility->GetCurrentActorInfo()->IsLocallyControlled();
-		bool bIsAuthority = MyAbility->GetCurrentActorInfo()->IsNetAuthority();
-
-		if (bIsAuthority && !bIsLocallyControlled)
-		{
-			// If this is a predicted ability, forward up
-			return true;
-		}
-	}
-
-	return false;
+	return MyAbility && MyAbility->IsForRemoteClient();
 }
 
 bool UAbilityTask::IsLocallyControlled() const
 {
 	UGameplayAbility* MyAbility = Ability.Get();
-	if (MyAbility && MyAbility->GetCurrentActorInfo()->OwnerActor.IsValid())
-	{
-		return MyAbility->GetCurrentActorInfo()->IsLocallyControlled();
-	}
-
-	return false;
+	return MyAbility && MyAbility->IsLocallyControlled();
 }
 
 bool UAbilityTask::CallOrAddReplicatedDelegate(EAbilityGenericReplicatedEvent::Type Event, FSimpleMulticastDelegate::FDelegate Delegate)

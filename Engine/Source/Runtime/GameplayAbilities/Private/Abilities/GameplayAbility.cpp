@@ -1181,6 +1181,48 @@ bool UGameplayAbility::IsTriggered() const
 	return AbilityTriggers.Num() > 0;
 }
 
+bool UGameplayAbility::IsPredictingClient() const
+{
+	if (GetCurrentActorInfo()->OwnerActor.IsValid())
+	{
+		bool bIsLocallyControlled = GetCurrentActorInfo()->IsLocallyControlled();
+		bool bIsAuthority = GetCurrentActorInfo()->IsNetAuthority();
+
+		if (!bIsAuthority && bIsLocallyControlled && GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::LocalPredicted)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool UGameplayAbility::IsForRemoteClient() const
+{
+	if (GetCurrentActorInfo()->OwnerActor.IsValid())
+	{
+		bool bIsLocallyControlled = GetCurrentActorInfo()->IsLocallyControlled();
+		bool bIsAuthority = GetCurrentActorInfo()->IsNetAuthority();
+
+		if (bIsAuthority && !bIsLocallyControlled)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool UGameplayAbility::IsLocallyControlled() const
+{
+	if (GetCurrentActorInfo()->OwnerActor.IsValid())
+	{
+		return GetCurrentActorInfo()->IsLocallyControlled();
+	}
+
+	return false;
+}
+
 bool UGameplayAbility::HasAuthority(const FGameplayAbilityActivationInfo* ActivationInfo) const
 {
 	return (ActivationInfo->ActivationMode == EGameplayAbilityActivationMode::Authority);

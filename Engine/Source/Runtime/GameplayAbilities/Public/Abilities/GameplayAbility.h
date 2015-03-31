@@ -237,6 +237,12 @@ public:
 	/** Is this ability triggered from TriggerData (or is it triggered explicitly through input/game code) */
 	bool IsTriggered() const;
 
+	bool IsPredictingClient() const;
+
+	bool IsForRemoteClient() const;
+
+	bool IsLocallyControlled() const;
+
 	bool HasAuthority(const FGameplayAbilityActivationInfo* ActivationInfo) const;
 
 	bool HasAuthorityOrPredictionKey(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo* ActivationInfo) const;
