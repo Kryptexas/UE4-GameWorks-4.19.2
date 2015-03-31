@@ -189,10 +189,12 @@ void UUnrealEdEngine::edactRemoveFromGroup()
 				if(ActorGroupParent)
 				{
 					ActorGroupParent->Add(*Actor);
+					ActorGroupParent->CenterGroupLocation();
 				}
 				else
 				{
 					ActorGroup->Remove(*Actor);
+					ActorGroup->CenterGroupLocation();
 				}
 			}
 		}

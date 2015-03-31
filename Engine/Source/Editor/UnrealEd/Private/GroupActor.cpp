@@ -547,6 +547,8 @@ void AGroupActor::AddSelectedActorsToSelectedGroup()
 							SelectedGroup->Add( *ActorsToAdd[ActorIndex] );
 						}
 					}
+
+					SelectedGroup->CenterGroupLocation();
 				}
 			}
 			else
