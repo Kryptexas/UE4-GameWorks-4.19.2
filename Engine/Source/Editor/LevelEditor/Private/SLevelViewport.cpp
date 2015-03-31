@@ -3440,9 +3440,6 @@ void SLevelViewport::ResetNewLevelViewFlags()
 {
 	ChangeExposureSetting(FEditorViewportCommands::AutoExposureRadioID);
 
-	const bool bIsPerspective = LevelViewportClient->IsPerspective();
-	LevelViewportClient->SetViewMode(bIsPerspective ? FEditorViewportClient::DefaultPerspectiveViewMode : FEditorViewportClient::DefaultOrthoViewMode);
-
 	const bool bUseSavedDefaults = true;
 	OnUseDefaultShowFlags(bUseSavedDefaults);
 }
