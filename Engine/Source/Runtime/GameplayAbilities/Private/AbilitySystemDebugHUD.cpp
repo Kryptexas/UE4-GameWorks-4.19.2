@@ -49,8 +49,12 @@ void AAbilitySystemDebugHUD::DrawDebugHUD(UCanvas* InCanvas, APlayerController* 
 	}
 
 	UPlayer * LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
-	PC = LocalPlayer->PlayerController;	
+	if (!LocalPlayer)
+	{
+		return;
+	}
 
+	PC = LocalPlayer->PlayerController;	
 	if (!PC)
 	{
 		return;
