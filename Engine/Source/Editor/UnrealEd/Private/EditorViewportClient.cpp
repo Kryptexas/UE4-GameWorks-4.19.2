@@ -2241,7 +2241,7 @@ void FEditorViewportClient::ProcessClickInViewport( const FInputEventState& Inpu
 		const int32	HitY = InputStateViewport->GetMouseY();
 		
 		// Calc the raw delta from the mouse to detect if there was any movement
-		FVector RawMouseDelta = MouseDeltaTracker->GetScreenDelta();
+		FVector RawMouseDelta = MouseDeltaTracker->GetRawDelta();
 
 		// Note: We are using raw mouse movement to double check distance moved in low performance situations.  In low performance situations its possible 
 		// that we would get a mouse down and a mouse up before the next tick where GEditor->MouseMovment has not been updated.  
@@ -3767,7 +3767,7 @@ void FEditorViewportClient::UpdateRequiredCursorVisibility()
 	else
 	{
 		// Calc the raw delta from the mouse since we started dragging to detect if there was any movement
-		FVector RawMouseDelta = MouseDeltaTracker->GetScreenDelta();
+		FVector RawMouseDelta = MouseDeltaTracker->GetRawDelta();
 
 		if (bMouseButtonDown && (RawMouseDelta.SizeSquared() >= MOUSE_CLICK_DRAG_DELTA || IsFlightCameraActive() || ShouldOrbitCamera()) && !MouseDeltaTracker->UsingDragTool())
 		{

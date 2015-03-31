@@ -24,6 +24,7 @@ FMouseDeltaTracker::FMouseDeltaTracker()
 	, End( FVector::ZeroVector )
 	, EndSnapped( FVector::ZeroVector )
 	, EndScreen( FVector::ZeroVector )
+	, RawDelta( FVector::ZeroVector )
 	, ReductionAmount( FVector::ZeroVector )
 	, DragTool( NULL )
 	, bHasAttemptedDragTool(false)
@@ -243,6 +244,7 @@ void FMouseDeltaTracker::StartTracking(FEditorViewportClient* InViewportClient, 
 	ensure( !DragTool.IsValid() );
 
 	StartSnapped = Start = StartScreen = FVector( InX, InY, 0 );
+	RawDelta = FVector::ZeroVector;
 	TrackingWidgetMode = InViewportClient->GetWidgetMode();
 
 	// No drag tool is active, so handle snapping.
@@ -300,7 +302,7 @@ bool FMouseDeltaTracker::EndTracking(FEditorViewportClient* InViewportClient)
 
 	InViewportClient->Widget->ResetDeltaRotation();
 
-	Start = StartSnapped = StartScreen = End = EndSnapped = EndScreen = ReductionAmount = FVector::ZeroVector;
+	Start = StartSnapped = StartScreen = End = EndSnapped = EndScreen = RawDelta = ReductionAmount = FVector::ZeroVector;
 
 	// Delete the drag tool if one exists.
 	if( DragTool.IsValid() )
@@ -329,7 +331,7 @@ void FMouseDeltaTracker::ConditionalBeginUsingDragTool( FEditorViewportClient* I
 	const bool bControlDown = InViewportClient->IsCtrlPressed();
 
 	// Has there been enough mouse movement to begin using a drag tool. We don't want to start using a tool for clicks(could have very small mouse movements)
-	bool bEnoughMouseMovement = GetScreenDelta().SizeSquared() > MOUSE_CLICK_DRAG_DELTA;
+	bool bEnoughMouseMovement = GetRawDelta().SizeSquared() > MOUSE_CLICK_DRAG_DELTA;
 
 	if( bEnoughMouseMovement )
 	{
@@ -385,6 +387,11 @@ void FMouseDeltaTracker::AddDelta(FEditorViewportClient* InViewportClient, FKey 
 	{
 		return;
 	}
+
+	// Accumulate raw delta
+	RawDelta += FVector(InKey == EKeys::MouseX ? InDelta : 0,
+						InKey == EKeys::MouseY ? InDelta : 0,
+						0);
 
 	// Note that AddDelta has been called since StartTracking
 	bHasReceivedAddDelta = true;
@@ -535,6 +542,14 @@ void FMouseDeltaTracker::AddDelta(FEditorViewportClient* InViewportClient, FKey 
 		}
 	}
 
+}
+
+/**
+ * Returns the raw mouse delta, in pixels.
+ */
+const FVector FMouseDeltaTracker::GetRawDelta() const
+{
+	return RawDelta;
 }
 
 /**

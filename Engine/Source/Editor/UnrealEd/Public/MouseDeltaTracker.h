@@ -61,6 +61,11 @@ public:
 	const FVector GetScreenDelta() const;
 
 	/**
+	 * Returns the raw mouse delta in pixels since dragging started.
+	 */
+	const FVector GetRawDelta() const;
+
+	/**
 	 * Returns the unsnapped start position of the current mouse drag. (This will be zero if there is no drag in progress)
 	 */
 	const FVector GetDragStartPos() const;
@@ -132,14 +137,16 @@ private:
 	FVector Start;
 	/** The snapped start position of the current mouse drag. */
 	FVector StartSnapped;
-	/** The screen space start position of the current mouse drag. */
+	/** The screen space start position of the current mouse drag (may be scaled or rotated according to the ortho zoom or view). */
 	FVector StartScreen;
 	/** The unsnapped end position of the current mouse drag. */
 	FVector End;
 	/** The snapped end position of the current mouse drag. */
 	FVector EndSnapped;
-	/** The screen space end position of the current mouse drag. */
+	/** The screen space end position of the current mouse drag (may be scaled or rotated according to the ortho zoom or view). */
 	FVector EndScreen;
+	/** The raw unscaled mouse delta in pixels */
+	FVector RawDelta;
 
 	/** The amount that the End vectors have been reduced by since dragging started, this is added to the deltas to get an absolute delta. */
 	FVector ReductionAmount;
