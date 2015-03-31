@@ -34,8 +34,7 @@ FSessionManager::FSessionManager( const IMessageBusRef& InMessageBus )
 		.Handling<FSessionServicePong>(this, &FSessionManager::HandleSessionPongMessage);
 
 	// initialize ticker
-	TickDelegate = FTickerDelegate::CreateRaw(this, &FSessionManager::HandleTicker);
-	TickDelegateHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate, 1.f);
+	TickDelegateHandle = FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FSessionManager::HandleTicker), 1.f);
 
 	SendPing();
 }

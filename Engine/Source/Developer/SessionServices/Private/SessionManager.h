@@ -21,12 +21,12 @@ public:
 	 */
 	FSessionManager( const IMessageBusRef& InMessageBus );
 	
-	/** Default destructor */
+	/** Destructor */
 	~FSessionManager();
 
 public:
 
-	// Begin ISessionManager Interface
+	// ISessionManager interface
 
 	virtual void AddOwner( const FString& InOwner ) override;
 	virtual void GetSelectedInstances( TArray<TSharedPtr<ISessionInstanceInfo>>& OutInstances) const override;
@@ -124,7 +124,7 @@ private:
 	ISessionInfoPtr SelectedSession;
 
 	/** Holds the collection of discovered sessions. */
-	TMap<FGuid, TSharedPtr<FSessionInfo> > Sessions;
+	TMap<FGuid, TSharedPtr<FSessionInfo>> Sessions;
 
 private:
 
@@ -148,9 +148,6 @@ private:
 
 	/** Holds a delegate to be invoked when a session instance is updated. */
 	FSimpleMulticastDelegate SessionInstanceUpdatedDelegate;
-
-	/** Holds a delegate to be invoked when the widget ticks. */
-	FTickerDelegate TickDelegate;
 
 	/** Holds a delegate to be invoked when the widget ticks. */
 	FDelegateHandle TickDelegateHandle;
