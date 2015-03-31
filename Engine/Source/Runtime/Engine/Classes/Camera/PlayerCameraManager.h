@@ -256,9 +256,15 @@ public:
 	UPROPERTY()
 	struct FViewTargetTransitionParams BlendParams;
 
-	/** List of active camera modifiers that have a chance to update the final camera POV */
-	UPROPERTY()
+protected:
+	/** List of active camera modifier instances that have a chance to update the final camera POV */
+	UPROPERTY(transient)
 	TArray<class UCameraModifier*> ModifierList;
+
+public:
+	/** List of modifiers to create by default for this camera */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = CameraModifier)
+	TArray< TSubclassOf<class UCameraModifier> > DefaultModifiers;
 
 	/** Distance to place free camera from view target (used in certain CameraStyles) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Debug)
@@ -286,19 +292,13 @@ protected:
 	UPROPERTY(transient)
 	TArray<class AEmitterCameraLensEffectBase*> CameraLensEffects;
 
-public:
 	/////////////////////
 	// Camera Modifiers
 	/////////////////////
-	
-	/** Camera modifier for cone-driven screen shakes */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Instanced, transient, Category = PlayerCameraManager)
-	class UCameraModifier_CameraShake* CameraShakeCamMod;
 
-protected:
-	/** Class to use when instantiating screenshake modifier object. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PlayerCameraManager)
-	TSubclassOf<class UCameraModifier_CameraShake> CameraShakeCamModClass;
+	/** Cached ref to modifier for code-driven screen shakes */
+	UPROPERTY(transient)
+	class UCameraModifier_CameraShake* CachedCameraShakeMod;
 
 	/** By default camera modifiers are not applied to stock debug cameras (e.g. CameraStyle == "FreeCam"). Setting to true will always apply modifiers. */
 	UPROPERTY()
@@ -319,8 +319,10 @@ protected:
 	/** Internal list of weights for active post process effects. Parallel array to PostProcessBlendCache. */
 	TArray<float> PostProcessBlendCacheWeights;
 
+public:
 	/** Adds a postprocess effect at the given weight. */
 	void AddCachedPPBlend(struct FPostProcessSettings& PPSettings, float BlendWeight);
+protected:
 	/** Removes all postprocess effects. */
 	void ClearCachedPPBlends();
 
@@ -483,12 +485,32 @@ public:
 	virtual void UpdateCamera(float DeltaTime);
 
 	/** 
-	 * Internal. Creates and initializes a new camera modifier of the specified class. 
+	 * Creates and initializes a new camera modifier of the specified class. 
 	 * @param ModifierClass - The class of camera modifier to create.
 	 * @return Returns the newly created camera modifier.
 	 */
-	virtual class UCameraModifier* CreateCameraModifier(TSubclassOf<class UCameraModifier> ModifierClass);
-	
+	UFUNCTION(BlueprintCallable, Category = "Game|Player")
+	virtual class UCameraModifier* AddNewCameraModifier(TSubclassOf<class UCameraModifier> ModifierClass);
+
+	/** 
+	 * Returns camera modifier for this camera of the given class, if it exists. 
+	 * Exact class match only. If there are multiple modifiers of the same class, the first one is returned.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Game|Player")
+	virtual class UCameraModifier* FindCameraModifierByClass(TSubclassOf<class UCameraModifier> ModifierClass);
+
+	/** 
+	 * Removes the given camera modifier from this camera (if it's on the camera in the first place) and discards it. 
+	 * @return True if successfully removed, false otherwise.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Game|Player")
+	virtual bool RemoveCameraModifier(class UCameraModifier* ModifierToRemove);
+
+protected:
+	/** Internal. Places the given modifier in the ModifierList at the appropriate priority. */
+	virtual bool AddCameraModifierToList(class UCameraModifier* NewModifier);
+
+public:	
 	/**
 	 * Applies the current set of camera modifiers to the given camera POV.
 	 * @param	DeltaTime	Time in seconds since last update

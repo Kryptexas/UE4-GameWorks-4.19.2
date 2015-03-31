@@ -37,7 +37,6 @@ APlayerCameraManager::APlayerCameraManager(const FObjectInitializer& ObjectIniti
 	ViewYawMax = 359.999f;
 	ViewRollMin = -89.99f;
 	ViewRollMax = 89.99f;
-	CameraShakeCamModClass = UCameraModifier_CameraShake::StaticClass();
 	bUseClientSideCameraUpdates = true;
 	CameraStyle = NAME_Default;
 	bCanBeDamaged = false;
@@ -47,6 +46,9 @@ APlayerCameraManager::APlayerCameraManager(const FObjectInitializer& ObjectIniti
 	// create dummy transform component
 	TransformComponent = CreateDefaultSubobject<USceneComponent>(TEXT("TransformComponent0"));
 	RootComponent = TransformComponent;
+
+	// support camerashakes by default
+	DefaultModifiers.Add(UCameraModifier_CameraShake::StaticClass());
 }
 
 APlayerController* APlayerCameraManager::GetOwningPlayerController() const
@@ -199,6 +201,8 @@ bool APlayerCameraManager::ShouldTickIfViewportsOnly() const
 
 void APlayerCameraManager::ApplyCameraModifiers(float DeltaTime, FMinimalViewInfo& InOutPOV)
 {
+	ClearCachedPPBlends();
+
 	// Loop through each camera modifier
 	for (int32 ModifierIdx = 0; ModifierIdx < ModifierList.Num(); ++ModifierIdx)
 	{
@@ -208,14 +212,12 @@ void APlayerCameraManager::ApplyCameraModifiers(float DeltaTime, FMinimalViewInf
 			// If ModifyCamera returns true, exit loop
 			// Allows high priority things to dictate if they are
 			// the last modifier to be applied
-			if (ModifierList[ModifierIdx]->ModifyCamera(this, DeltaTime, InOutPOV))
+			if (ModifierList[ModifierIdx]->ModifyCamera(DeltaTime, InOutPOV))
 			{
 				break;
 			}
 		}
 	}
-
-	ClearCachedPPBlends();
 
 	// Now apply CameraAnims
 	// these essentially behave as the highest-pri modifier.
@@ -627,24 +629,122 @@ void APlayerCameraManager::StopAudioFade()
 	}
 }
 
-UCameraModifier* APlayerCameraManager::CreateCameraModifier(TSubclassOf<UCameraModifier> ModifierClass)
+UCameraModifier* APlayerCameraManager::AddNewCameraModifier(TSubclassOf<UCameraModifier> ModifierClass)
 {
-	UCameraModifier* NewMod = NewObject<UCameraModifier>(this, ModifierClass);
-	NewMod->Init(this);
-	return NewMod;
+	UCameraModifier* const NewMod = NewObject<UCameraModifier>(this, ModifierClass);
+	if (NewMod)
+	{
+		if (AddCameraModifierToList(NewMod) == true)
+		{
+			return NewMod;
+		}
+	}
+	
+	return nullptr;
 }
+
+UCameraModifier* APlayerCameraManager::FindCameraModifierByClass(TSubclassOf<UCameraModifier> ModifierClass)
+{
+	for (UCameraModifier* Mod : ModifierList)
+	{
+		if (Mod->GetClass() == ModifierClass)
+		{
+			return Mod;
+		}
+	}
+
+	return nullptr;
+}
+
+
+bool APlayerCameraManager::AddCameraModifierToList(UCameraModifier* NewModifier)
+{
+	if (NewModifier)
+	{
+		// Look through current modifier list and find slot for this priority
+		int32 BestIdx = 0;
+		for (int32 ModifierIdx = 0; ModifierIdx < ModifierList.Num(); ModifierIdx++)
+		{
+			UCameraModifier* const M = ModifierList[ModifierIdx];
+			if (M)
+			{
+				if (M == NewModifier)
+				{
+					// already in list, just bail
+					return false;
+				}
+
+				// If priority of current index has passed or equaled ours - we have the insert location
+				if (NewModifier->Priority <= M->Priority)
+				{
+					// Disallow addition of exclusive modifier if priority is already occupied
+					if (NewModifier->bExclusive && NewModifier->Priority == M->Priority)
+					{
+						return false;
+					}
+
+					break;
+				}
+			}
+
+			// Update best index
+			BestIdx = ModifierIdx;
+		}
+
+		// Insert self into best index
+		ModifierList.InsertUninitialized(BestIdx, 1);
+		ModifierList[BestIdx] = NewModifier;
+
+		// Save camera
+		NewModifier->AddedToCamera(this);
+		return true;
+	}
+
+	return false;
+}
+
+bool APlayerCameraManager::RemoveCameraModifier(UCameraModifier* ModifierToRemove)
+{
+	if (ModifierToRemove)
+	{
+		// Loop through each modifier in camera
+		for (int32 ModifierIdx = 0; ModifierIdx < ModifierList.Num(); ModifierIdx++)
+		{
+			// If we found ourselves, remove ourselves from the list and return
+			if (ModifierList[ModifierIdx] == ModifierToRemove)
+			{
+				ModifierList.RemoveAt(ModifierIdx, 1);
+				return true;
+			}
+		}
+	}
+
+	// Didn't find it in the list, nothing removed
+	return false;
+}
+
 
 void APlayerCameraManager::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
- 	// Setup camera modifiers
- 	if( (CameraShakeCamMod == NULL) && (CameraShakeCamModClass != NULL) )
- 	{
- 		CameraShakeCamMod = Cast<UCameraModifier_CameraShake>(CreateCameraModifier(CameraShakeCamModClass));
- 	}
+ 	// Setup default camera modifiers
+	if (DefaultModifiers.Num() > 0)
+	{
+		for (auto ModifierClass : DefaultModifiers)
+		{
+			UCameraModifier* const NewMod = AddNewCameraModifier(ModifierClass);
+		
+			// cache ref to camera shake if this is it
+			UCameraModifier_CameraShake* const ShakeMod = Cast<UCameraModifier_CameraShake>(NewMod);
+			if (ShakeMod)
+			{
+				CachedCameraShakeMod = ShakeMod;
+			}
+		}
+	}
 
-	// create CameraAnimInsts in pool
+ 	// create CameraAnimInsts in pool
 	for (int32 Idx=0; Idx<MAX_ACTIVE_CAMERA_ANIMS; ++Idx)
 	{
 		AnimInstPool[Idx] = NewObject<UCameraAnimInst>(this);
@@ -672,8 +772,6 @@ void APlayerCameraManager::Destroyed()
 	}
 	Super::Destroyed();
 }
-
-
 
 void APlayerCameraManager::InitializeFor(APlayerController* PC)
 {
@@ -1090,9 +1188,9 @@ void APlayerCameraManager::ClearCameraLensEffects()
 
 UCameraShake* APlayerCameraManager::PlayCameraShake(TSubclassOf<UCameraShake> ShakeClass, float Scale, ECameraAnimPlaySpace::Type PlaySpace, FRotator UserPlaySpaceRot)
 {
-	if (ShakeClass && CameraShakeCamMod && (Scale > 0.0f) )
+	if (ShakeClass && CachedCameraShakeMod && (Scale > 0.0f) )
 	{
-		return CameraShakeCamMod->AddCameraShake(ShakeClass, Scale, PlaySpace, UserPlaySpaceRot);
+		return CachedCameraShakeMod->AddCameraShake(ShakeClass, Scale, PlaySpace, UserPlaySpaceRot);
 	}
 
 	return nullptr;
@@ -1101,25 +1199,25 @@ UCameraShake* APlayerCameraManager::PlayCameraShake(TSubclassOf<UCameraShake> Sh
 
 void APlayerCameraManager::StopCameraShake(UCameraShake* ShakeInst)
 {
-	if (ShakeInst && CameraShakeCamMod)
+	if (ShakeInst && CachedCameraShakeMod)
 	{
-		CameraShakeCamMod->RemoveCameraShake(ShakeInst);
+		CachedCameraShakeMod->RemoveCameraShake(ShakeInst);
 	}
 }
 
 void APlayerCameraManager::StopAllInstancesOfCameraShake(TSubclassOf<class UCameraShake> ShakeClass)
 {
-	if (ShakeClass && CameraShakeCamMod)
+	if (ShakeClass && CachedCameraShakeMod)
 	{
-		CameraShakeCamMod->RemoveAllCameraShakesOfClass(ShakeClass);
+		CachedCameraShakeMod->RemoveAllCameraShakesOfClass(ShakeClass);
 	}
 }
 
 void APlayerCameraManager::StopAllCameraShakes()
 {
-	if (CameraShakeCamMod)
+	if (CachedCameraShakeMod)
 	{
-		CameraShakeCamMod->RemoveAllCameraShakes();
+		CachedCameraShakeMod->RemoveAllCameraShakes();
 	}
 }
 

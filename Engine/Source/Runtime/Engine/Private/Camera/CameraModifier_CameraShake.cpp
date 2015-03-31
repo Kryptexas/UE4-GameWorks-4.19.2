@@ -13,13 +13,10 @@ UCameraModifier_CameraShake::UCameraModifier_CameraShake(const FObjectInitialize
 }
 
 
-bool UCameraModifier_CameraShake::ModifyCamera(class APlayerCameraManager* Camera, float DeltaTime, FMinimalViewInfo& InOutPOV)
+bool UCameraModifier_CameraShake::ModifyCamera(float DeltaTime, FMinimalViewInfo& InOutPOV)
 {
-	// Update the alpha
-	UpdateAlpha(Camera, DeltaTime);
-
 	// Call super where modifier may be disabled
-	Super::ModifyCamera(Camera, DeltaTime, InOutPOV);
+	Super::ModifyCamera(DeltaTime, InOutPOV);
 
 	// If no alpha, exit early
 	if( Alpha <= 0.f )

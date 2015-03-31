@@ -46,7 +46,7 @@ public:
 	virtual void RemoveAllCameraShakes();
 	
 	// Begin UCameraModifer Interface
-	virtual bool ModifyCamera(APlayerCameraManager* Camera, float DeltaTime, struct FMinimalViewInfo& InOutPOV) override;
+	virtual bool ModifyCamera(float DeltaTime, struct FMinimalViewInfo& InOutPOV) override;
 	// End UCameraModifer Interface
 
 protected:
