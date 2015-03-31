@@ -11,8 +11,8 @@ class FDefaultRichTextRun : public FSlateTextRun
 public:
 	FDefaultRichTextRun(URichTextBlockDecorator* Decorator, const TSharedRef<FTextLayout>& TextLayout, const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FTextBlockStyle& InStyle, const FTextRange& InRange)
 		: FSlateTextRun(InRunInfo, InText, InStyle, InRange)
-		, Decorator(Decorator)
 		, TextLayout(TextLayout)
+		, Decorator(Decorator)
 	{
 	}
 
