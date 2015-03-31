@@ -350,6 +350,21 @@ TSharedRef<SWidget> FDataTableEditor::CreateGridPanel()
 				++VisibleRowIndex;
 			}
 		}
+
+		// Update the currently selected row to try and ensure it's valid
+		if (HighlightedRowName.IsNone() || !DataTable->RowMap.Contains(HighlightedRowName))
+		{
+			if (CachedDataTable.Num() > 2)
+			{
+				// 1 is the first row in the table
+				// 0 is the name column
+				SetHighlightedRow(*CachedDataTable[1][0]);
+			}
+			else
+			{
+				SetHighlightedRow(NAME_None);
+			}
+		}
 	}
 
 	return VerticalBox;

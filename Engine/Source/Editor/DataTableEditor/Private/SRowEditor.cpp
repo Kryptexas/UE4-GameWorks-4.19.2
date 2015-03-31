@@ -269,6 +269,27 @@ FReply SRowEditor::OnRemoveClicked()
 	return FReply::Handled();
 }
 
+FReply SRowEditor::OnMoveRowClicked(FDataTableEditorUtils::ERowMoveDirection MoveDirection)
+{
+	if (DataTable.IsValid())
+	{
+		const FName RowToMove = GetCurrentName();
+		FDataTableEditorUtils::MoveRow(DataTable.Get(), RowToMove, MoveDirection);
+	}
+	return FReply::Handled();
+}
+
+FReply SRowEditor::OnMoveToExtentClicked(FDataTableEditorUtils::ERowMoveDirection MoveDirection)
+{
+	if (DataTable.IsValid())
+	{
+		// We move by the row map size, as FDataTableEditorUtils::MoveRow will automatically clamp this as appropriate
+		const FName RowToMove = GetCurrentName();
+		FDataTableEditorUtils::MoveRow(DataTable.Get(), RowToMove, MoveDirection, DataTable->RowMap.Num());
+	}
+	return FReply::Handled();
+}
+
 void SRowEditor::OnRowRenamed(const FText& Text, ETextCommit::Type CommitType)
 {
 	if (!GetCurrentNameAsText().EqualTo(Text) && DataTable.IsValid())
@@ -317,13 +338,32 @@ void SRowEditor::Construct(const FArguments& InArgs, UDataTable* Changed)
 			.AutoWidth()
 			.Padding(2)
 			[
-				SNew(SBox)
-				.MinDesiredWidth(ButtonWidth)
+				SNew(SButton)
+				.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+				.ForegroundColor(FSlateColor::UseForeground())
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.OnClicked(this, &SRowEditor::OnAddClicked)
+				.ToolTipText(LOCTEXT("AddRowTooltip", "Add a new row to the data table"))
 				[
-					SNew(SButton)
-					.OnClicked(this, &SRowEditor::OnAddClicked)
-					.HAlign(EHorizontalAlignment::HAlign_Center)
-					.Text(LOCTEXT("AddRow", "Add"))
+					SNew(SImage)
+					.Image(FEditorStyle::Get().GetBrush("Plus"))
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2)
+			[
+				SNew(SButton)
+				.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+				.ForegroundColor(FSlateColor::UseForeground())
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.OnClicked(this, &SRowEditor::OnRemoveClicked)
+				.ToolTipText(LOCTEXT("RemoveRowTooltip", "Remove the currently selected row from the data table"))
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::Get().GetBrush("Cross"))
 				]
 			]
 			+ SHorizontalBox::Slot()
@@ -331,13 +371,22 @@ void SRowEditor::Construct(const FArguments& InArgs, UDataTable* Changed)
 			.Padding(2)
 			[
 				SNew(SBox)
-				.MinDesiredWidth(ButtonWidth)
+				.WidthOverride(2 * ButtonWidth)
+				.ToolTipText(LOCTEXT("SelectedRowTooltip", "Select a row to edit"))
 				[
-					SNew(SButton)
-					.OnClicked(this, &SRowEditor::OnRemoveClicked)
-					.HAlign(EHorizontalAlignment::HAlign_Center)
-					.Text(LOCTEXT("RemoveRow", "Remove"))
+					SAssignNew(RowComboBox, SComboBox<TSharedPtr<FName>>)
+					.OptionsSource(&CachedRowNames)
+					.OnSelectionChanged(this, &SRowEditor::OnSelectionChanged)
+					.OnGenerateWidget(this, &SRowEditor::OnGenerateWidget)
+					.Content()
+					[
+						SNew(STextBlock).Text(this, &SRowEditor::GetCurrentNameAsText)
+					]
 				]
+			]
+			+ SHorizontalBox::Slot()
+			[
+				SNew(SSpacer)
 			]
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
@@ -345,9 +394,9 @@ void SRowEditor::Construct(const FArguments& InArgs, UDataTable* Changed)
 			.VAlign(EVerticalAlignment::VAlign_Center)
 			[
 				SNew(SBox)
-				.HAlign(EHorizontalAlignment::HAlign_Right)
+				.HAlign(HAlign_Right)
 				[
-					SNew(STextBlock).Text(LOCTEXT("RenameRow", "Rename:"))
+					SNew(STextBlock).Text(LOCTEXT("RowNameLabel", "Row Name:"))
 				]
 			]
 			+ SHorizontalBox::Slot()
@@ -365,29 +414,69 @@ void SRowEditor::Construct(const FArguments& InArgs, UDataTable* Changed)
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.Padding(2)
-			.VAlign(EVerticalAlignment::VAlign_Center)
 			[
-				SNew(SBox)
-				.HAlign(EHorizontalAlignment::HAlign_Right)
+				SNew(SButton)
+				.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+				.ForegroundColor(FSlateColor::UseForeground())
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.OnClicked(this, &SRowEditor::OnMoveRowClicked, FDataTableEditorUtils::ERowMoveDirection::Up)
+				.ToolTipText(LOCTEXT("MoveUpTooltip", "Move the currently selected row up by one in the data table"))
 				[
-					SNew(STextBlock).Text(LOCTEXT("SelectRow", "Select:"))
+					SNew(STextBlock)
+					.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.14"))
+					.Text(FText::FromString(FString(TEXT("\xf106"))) /*fa-angle-up*/)
 				]
 			]
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.Padding(2)
 			[
-				SNew(SBox)
-				.WidthOverride(2 * ButtonWidth)
+				SNew(SButton)
+				.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+				.ForegroundColor(FSlateColor::UseForeground())
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.OnClicked(this, &SRowEditor::OnMoveRowClicked, FDataTableEditorUtils::ERowMoveDirection::Down)
+				.ToolTipText(LOCTEXT("MoveDownTooltip", "Move the currently selected row down by one in the data table"))
 				[
-					SAssignNew(RowComboBox, SComboBox<TSharedPtr<FName>>)
-					.OptionsSource(&CachedRowNames)
-					.OnSelectionChanged(this, &SRowEditor::OnSelectionChanged)
-					.OnGenerateWidget(this, &SRowEditor::OnGenerateWidget)
-					.Content()
-					[
-						SNew(STextBlock).Text(this, &SRowEditor::GetCurrentNameAsText)
-					]
+					SNew(STextBlock)
+					.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.14"))
+					.Text(FText::FromString(FString(TEXT("\xf107"))) /*fa-angle-down*/)
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2)
+			[
+				SNew(SButton)
+				.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+				.ForegroundColor(FSlateColor::UseForeground())
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.OnClicked(this, &SRowEditor::OnMoveToExtentClicked, FDataTableEditorUtils::ERowMoveDirection::Up)
+				.ToolTipText(LOCTEXT("MoveToTopTooltip", "Move the currently selected row to the top of the data table"))
+				[
+					SNew(STextBlock)
+					.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.14"))
+					.Text(FText::FromString(FString(TEXT("\xf102"))) /*fa-angle-double-up*/)
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2)
+			[
+				SNew(SButton)
+				.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+				.ForegroundColor(FSlateColor::UseForeground())
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.OnClicked(this, &SRowEditor::OnMoveToExtentClicked, FDataTableEditorUtils::ERowMoveDirection::Down)
+				.ToolTipText(LOCTEXT("MoveToBottomTooltip", "Move the currently selected row to the bottom of the data table"))
+				[
+					SNew(STextBlock)
+					.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.14"))
+					.Text(FText::FromString(FString(TEXT("\xf103"))) /*fa-angle-double-down*/)
 				]
 			]
 		]

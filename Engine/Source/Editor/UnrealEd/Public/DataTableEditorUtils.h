@@ -12,6 +12,12 @@ struct UNREALED_API FDataTableEditorUtils
 		RowList,
 	};
 
+	enum class ERowMoveDirection
+	{
+		Up,
+		Down,
+	};
+
 	class FDataTableEditorManager : public FListenerManager < UDataTable, EDataTableChangeInfo >
 	{
 		FDataTableEditorManager() {}
@@ -28,6 +34,7 @@ struct UNREALED_API FDataTableEditorUtils
 	static bool RemoveRow(UDataTable* DataTable, FName Name);
 	static uint8* AddRow(UDataTable* DataTable, FName RowName);
 	static bool RenameRow(UDataTable* DataTable, FName OldName, FName NewName);
+	static bool MoveRow(UDataTable* DataTable, FName RowName, ERowMoveDirection Direction, int32 NumRowsToMoveBy = 1);
 
 	static void BroadcastPreChange(UDataTable* DataTable, EDataTableChangeInfo Info);
 	static void BroadcastPostChange(UDataTable* DataTable, EDataTableChangeInfo Info);

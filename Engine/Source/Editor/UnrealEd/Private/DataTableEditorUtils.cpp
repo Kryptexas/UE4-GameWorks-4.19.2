@@ -78,6 +78,80 @@ bool FDataTableEditorUtils::RenameRow(UDataTable* DataTable, FName OldName, FNam
 	return bResult;
 }
 
+bool FDataTableEditorUtils::MoveRow(UDataTable* DataTable, FName RowName, ERowMoveDirection Direction, int32 NumRowsToMoveBy)
+{
+	if (!DataTable)
+	{
+		return false;
+	}
+	
+	// Our maps are ordered which is why we can get away with this
+	// If we ever change our map implementation, we'll need to preserve this order information in a separate array and 
+	// make sure that order dependent code (such as exporting and the data table viewer) use that when dealing with rows
+	// This may also require making RowMap private and fixing up all the existing code that references it directly
+	TArray<FName> OrderedRowNames;
+	DataTable->RowMap.GenerateKeyArray(OrderedRowNames);
+
+	const int32 CurrentRowIndex = OrderedRowNames.IndexOfByKey(RowName);
+	if (CurrentRowIndex == INDEX_NONE)
+	{
+		return false;
+	}
+	
+	// Calculate our new row index, clamped to the available rows
+	int32 NewRowIndex = INDEX_NONE;
+	switch(Direction)
+	{
+	case ERowMoveDirection::Up:
+		NewRowIndex = FMath::Clamp(CurrentRowIndex - NumRowsToMoveBy, 0, OrderedRowNames.Num() - 1);
+		break;
+
+	case ERowMoveDirection::Down:
+		NewRowIndex = FMath::Clamp(CurrentRowIndex + NumRowsToMoveBy, 0, OrderedRowNames.Num() - 1);
+		break;
+
+	default:
+		break;
+	}
+
+	if (NewRowIndex == INDEX_NONE)
+	{
+		return false;
+	}
+
+	if (CurrentRowIndex == NewRowIndex)
+	{
+		// Nothing to do, but not an error
+		return true;
+	}
+
+	// Swap the order around as requested
+	OrderedRowNames.RemoveAt(CurrentRowIndex, 1, false);
+	OrderedRowNames.Insert(RowName, NewRowIndex);
+
+	// Build a name -> index map as the KeySort will hit this a lot
+	TMap<FName, int32> NamesToNewIndex;
+	for (int32 NameIndex = 0; NameIndex < OrderedRowNames.Num(); ++NameIndex)
+	{
+		NamesToNewIndex.Add(OrderedRowNames[NameIndex], NameIndex);
+	}
+
+	BroadcastPreChange(DataTable, EDataTableChangeInfo::RowList);
+	DataTable->Modify();
+
+	// Re-sort the map keys to match the new order
+	DataTable->RowMap.KeySort([&NamesToNewIndex](const FName& One, const FName& Two) -> bool
+	{
+		const int32 OneIndex = NamesToNewIndex.FindRef(One);
+		const int32 TwoIndex = NamesToNewIndex.FindRef(Two);
+		return OneIndex < TwoIndex;
+	});
+
+	BroadcastPostChange(DataTable, EDataTableChangeInfo::RowList);
+
+	return true;
+}
+
 void FDataTableEditorUtils::BroadcastPreChange(UDataTable* DataTable, EDataTableChangeInfo Info)
 {
 	FDataTableEditorManager::Get().PreChange(DataTable, Info);

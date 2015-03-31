@@ -55,6 +55,8 @@ private:
 
 	FReply OnAddClicked();
 	FReply OnRemoveClicked();
+	FReply OnMoveRowClicked(FDataTableEditorUtils::ERowMoveDirection MoveDirection);
+	FReply OnMoveToExtentClicked(FDataTableEditorUtils::ERowMoveDirection MoveDirection);
 	void OnRowRenamed(const FText& Text, ETextCommit::Type CommitType);
 
 public:
