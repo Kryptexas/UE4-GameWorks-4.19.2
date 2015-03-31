@@ -755,7 +755,7 @@ public:
 	FRHISetRenderTargetsInfo() :
 		NumColorRenderTargets(0),
 		bClearColor(false),
-		DepthClearValue(0.0f),
+		DepthClearValue((float)ERHIZBuffer::FarPlane),
 		StencilClearValue(0),
 		bClearDepth(false),
 		bClearStencil(false)
@@ -765,7 +765,7 @@ public:
 		NumColorRenderTargets(InNumColorRenderTargets),
 		bClearColor(InNumColorRenderTargets > 0 && InColorRenderTargets[0].LoadAction == ERenderTargetLoadAction::EClear),
 		DepthStencilRenderTarget(InDepthStencilRenderTarget),
-		DepthClearValue(0.0f),
+		DepthClearValue((float)ERHIZBuffer::FarPlane),
 		StencilClearValue(0),
 		bClearDepth(InDepthStencilRenderTarget.Texture && InDepthStencilRenderTarget.DepthLoadAction == ERenderTargetLoadAction::EClear),
 		bClearStencil(InDepthStencilRenderTarget.Texture && InDepthStencilRenderTarget.StencilLoadAction == ERenderTargetLoadAction::EClear)

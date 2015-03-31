@@ -993,6 +993,8 @@ void FRCPassPostProcessVelocityScatter::Process(FRenderingCompositePassContext& 
 	// set the state
 	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	//@todo-briank: Should this be CF_DepthFunctionNonInclusive?
+	check(RHIHasInvertedZBuffer());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_Greater>::GetRHI());
 
 	TShaderMapRef< FPostProcessVelocityScatterVS > VertexShader(Context.GetShaderMap());

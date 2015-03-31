@@ -627,14 +627,28 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 
 			if (bConstrainAspectRatio)
 			{
-				ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
-					MatrixFOV,
-					MatrixFOV,
-					1.0f,
-					AspectRatio,
-					MinZ,
-					MaxZ
-					);
+				if (RHIHasInvertedZBuffer())
+				{
+					ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
+						MatrixFOV,
+						MatrixFOV,
+						1.0f,
+						AspectRatio,
+						MinZ,
+						MaxZ
+						);
+				}
+				else
+				{
+					ViewInitOptions.ProjectionMatrix = FPerspectiveMatrix(
+						MatrixFOV,
+						MatrixFOV,
+						1.0f,
+						AspectRatio,
+						MinZ,
+						MaxZ
+						);
+				}
 			}
 			else
 			{
@@ -654,18 +668,33 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 					YAxisMultiplier = 1.0f;
 				}
 
-				ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
-					MatrixFOV,
-					MatrixFOV,
-					XAxisMultiplier,
-					YAxisMultiplier,
-					MinZ,
-					MaxZ
-					);
+				if (RHIHasInvertedZBuffer())
+				{
+					ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
+						MatrixFOV,
+						MatrixFOV,
+						XAxisMultiplier,
+						YAxisMultiplier,
+						MinZ,
+						MaxZ
+						);
+				}
+				else
+				{
+					ViewInitOptions.ProjectionMatrix = FPerspectiveMatrix(
+						MatrixFOV,
+						MatrixFOV,
+						XAxisMultiplier,
+						YAxisMultiplier,
+						MinZ,
+						MaxZ
+						);
+				}
 			}
 		}
 		else
 		{
+			checkf(RHIHasInvertedZBuffer(), TEXT("Check all the Rotation Matrix transformations!"));
 			float ZScale = 0.5f / HALF_WORLD_MAX;
 			float ZOffset = HALF_WORLD_MAX;
 

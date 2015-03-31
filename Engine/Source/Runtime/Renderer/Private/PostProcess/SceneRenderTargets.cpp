@@ -359,7 +359,7 @@ void FSceneRenderTargets::BeginRenderingGBuffer(FRHICommandList& RHICmdList, ERe
 		FRHIRenderTargetView RenderTargets[MaxSimultaneousRenderTargets];
 		int32 MRTCount = GetGBufferRenderTargets(ColorLoadAction, RenderTargets, VelocityRTIndex);
 
-		const float DepthClearValue = 0.0f;
+		const float DepthClearValue = (float)ERHIZBuffer::FarPlane;
 		bool bClearColor = ColorLoadAction == ERenderTargetLoadAction::EClear;
 		bool bClearDepth = DepthLoadAction == ERenderTargetLoadAction::EClear;
 		FRHIDepthRenderTargetView DepthView(GetSceneDepthSurface(), DepthLoadAction, ERenderTargetStoreAction::EStore);
@@ -914,7 +914,7 @@ void FSceneRenderTargets::BeginRenderingPrePass(FRHICommandList& RHICmdList, boo
 	FTextureRHIRef ColorTarget;
 	FTexture2DRHIRef DepthTarget = GetSceneDepthSurface();
 
-	const float DepthClearValue = 0.0f;
+	const float DepthClearValue = (float)ERHIZBuffer::FarPlane;
 	const uint32 StencilClearValue = 0;
 	if (bPerformClear)
 	{				
@@ -1092,7 +1092,7 @@ bool FSceneRenderTargets::BeginRenderingSeparateTranslucency(FRHICommandList& RH
 		if (!bFirstTimeThisFrame)
 		{
 			FLinearColor ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-			RHICmdList.BindClearMRTValues(true, 1, &ClearColor, false, 0.0f, false, 0);
+			RHICmdList.BindClearMRTValues(true, 1, &ClearColor, false, (float)ERHIZBuffer::FarPlane, false, 0);
 		}
 
 		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);

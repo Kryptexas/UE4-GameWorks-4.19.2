@@ -27,22 +27,22 @@ static_assert(SF_NumFrequencies <= (1 << SF_NumBits), "SF_NumFrequencies will no
 /** @warning: update *LegacyShaderPlatform* when the below changes */
 enum EShaderPlatform
 {
-	SP_PCD3D_SM5		= 0,
+	SP_PCD3D_SM5			= 0,
 	SP_OPENGL_SM4		= 1,
 	SP_PS4				= 2,
 	/** Used when running in Feature Level ES2 in OpenGL. */
 	SP_OPENGL_PCES2		= 3,
 	SP_XBOXONE			= 4,
-	SP_PCD3D_SM4		= 5,
+	SP_PCD3D_SM4			= 5,
 	SP_OPENGL_SM5		= 6,
 	/** Used when running in Feature Level ES2 in D3D11. */
-	SP_PCD3D_ES2		= 7,
+	SP_PCD3D_ES2			= 7,
 	SP_OPENGL_ES2		= 8,
 	SP_OPENGL_ES2_WEBGL = 9, 
 	SP_OPENGL_ES2_IOS	= 10,
-	SP_METAL			= 11,
+	SP_METAL				= 11,
 	SP_OPENGL_SM4_MAC	= 12,
-	SP_METAL_MRT		= 13,
+	SP_METAL_MRT			= 13,
 	SP_OPENGL_ES31_EXT	= 14,
 
 	SP_NumPlatforms		= 15,
@@ -74,6 +74,15 @@ enum { MaxSimultaneousRenderTargets = 8 };
 
 /** The number of UAVs that may be simultaneously bound to a shader. */
 enum { MaxSimultaneousUAVs = 8 };
+
+enum class ERHIZBuffer
+{
+	// Before changing this, make sure all math & shader assumptions are correct! Also wrap your C++ assumptions with
+	//		static_assert(FViewMatrices::IsInvertedZBuffer(), ...);
+	// Shader-wise, make sure to update Definitions.usf, HAS_INVERTED_Z_BUFFER
+	FarPlane = 0,
+	NearPlane = 1,
+};
 
 /**
  * The RHI's feature level indicates what level of support can be relied upon.
@@ -157,7 +166,11 @@ enum ECompareFunction
 	CF_Equal,
 	CF_NotEqual,
 	CF_Never,
-	CF_Always
+	CF_Always,
+
+	CF_DepthFunction = ((int32)ERHIZBuffer::NearPlane < (int32)ERHIZBuffer::FarPlane) ? CF_LessEqual : CF_GreaterEqual,
+	CF_DepthFunctionNonInclusive = ((int32)ERHIZBuffer::NearPlane < (int32)ERHIZBuffer::FarPlane) ? CF_Less : CF_Greater,
+	CF_DepthFunctionReject = ((int32)ERHIZBuffer::NearPlane < (int32)ERHIZBuffer::FarPlane) ? CF_Greater : CF_Less,
 };
 
 enum EStencilOp
@@ -707,6 +720,11 @@ inline bool RHISupportsGeometryShaders(const EShaderPlatform Platform)
 inline bool RHIHasTiledGPU(const EShaderPlatform Platform)
 {
 	return Platform == SP_METAL_MRT|| Platform == SP_METAL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES2;
+}
+
+static inline CONSTEXPR bool RHIHasInvertedZBuffer()
+{
+	return (int32)ERHIZBuffer::FarPlane < (int32)ERHIZBuffer::NearPlane;
 }
 
 inline uint32 GetFeatureLevelMaxTextureSamplers(ERHIFeatureLevel::Type FeatureLevel)

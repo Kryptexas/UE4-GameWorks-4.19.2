@@ -675,7 +675,7 @@ void ClearScratchCubemaps(FRHICommandList& RHICmdList)
 		for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
 		{
 			SetRenderTarget(RHICmdList, RT0.TargetableTexture, MipIndex, CubeFace, NULL);
-			RHICmdList.Clear(true, FLinearColor(0, 10000, 0, 0), false, 0, false, 0, FIntRect());
+			RHICmdList.Clear(true, FLinearColor(0, 10000, 0, 0), false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
 		}
 	}
 
@@ -686,7 +686,7 @@ void ClearScratchCubemaps(FRHICommandList& RHICmdList)
 		for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
 		{
 			SetRenderTarget(RHICmdList, RT1.TargetableTexture, MipIndex, CubeFace, NULL);
-			RHICmdList.Clear(true, FLinearColor(0, 10000, 0, 0), false, 0, false, 0, FIntRect());
+			RHICmdList.Clear(true, FLinearColor(0, 10000, 0, 0), false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
 		}
 	}
 }
@@ -1177,12 +1177,24 @@ void CaptureSceneIntoScratchCubemap(FScene* Scene, FVector CapturePosition, bool
 
 		// Projection matrix based on the fov, near / far clip settings
 		// Each face always uses a 90 degree field of view
-		ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
-			90.0f * (float)PI / 360.0f,
-			(float)GReflectionCaptureSize * GSupersampleCaptureFactor,
-			(float)GReflectionCaptureSize * GSupersampleCaptureFactor,
-			NearPlane
-			);
+		if (RHIHasInvertedZBuffer())
+		{
+			ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
+				90.0f * (float)PI / 360.0f,
+				(float)GReflectionCaptureSize * GSupersampleCaptureFactor,
+				(float)GReflectionCaptureSize * GSupersampleCaptureFactor,
+				NearPlane
+				);
+		}
+		else
+		{
+			ViewInitOptions.ProjectionMatrix = FPerspectiveMatrix(
+				90.0f * (float)PI / 360.0f,
+				(float)GReflectionCaptureSize * GSupersampleCaptureFactor,
+				(float)GReflectionCaptureSize * GSupersampleCaptureFactor,
+				NearPlane
+				);
+		}
 
 		ViewInitOptions.ViewOrigin = CapturePosition;
 		ViewInitOptions.ViewRotationMatrix = CalcCubeFaceViewRotationMatrix((ECubeFace)CubeFace);

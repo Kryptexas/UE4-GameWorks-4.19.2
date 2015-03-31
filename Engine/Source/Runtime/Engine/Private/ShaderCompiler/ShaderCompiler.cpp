@@ -2195,6 +2195,8 @@ void GlobalBeginCompileShader(
 		}
 	}
 
+	Input.Environment.SetDefine(TEXT("HAS_INVERTED_Z_BUFFER"), RHIHasInvertedZBuffer() ? 1 : 0);
+
 	{
 		FString ShaderPDBRoot;
 		GConfig->GetString(TEXT("DevOptions.Shaders"), TEXT("ShaderPDBRoot"), ShaderPDBRoot, GEngineIni);

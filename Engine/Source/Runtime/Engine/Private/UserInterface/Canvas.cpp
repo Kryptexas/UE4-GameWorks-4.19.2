@@ -331,14 +331,28 @@ FMatrix FCanvas::CalcProjectionMatrix(uint32 ViewSizeX, uint32 ViewSizeY, float 
 	// convert FOV to randians
 	float FOVRad = fFOV * (float)PI / 360.0f;
 	// project based on the FOV and near plane given
-	return AdjustProjectionMatrixForRHI(
-		FReversedZPerspectiveMatrix(
-			FOVRad,
-			ViewSizeX,
-			ViewSizeY,
-			NearPlane
-			)
-		);
+	if (RHIHasInvertedZBuffer())
+	{
+		return AdjustProjectionMatrixForRHI(
+			FReversedZPerspectiveMatrix(
+				FOVRad,
+				ViewSizeX,
+				ViewSizeY,
+				NearPlane
+				)
+			);
+	}
+	else
+	{
+		return AdjustProjectionMatrixForRHI(
+			FPerspectiveMatrix(
+				FOVRad,
+				ViewSizeX,
+				ViewSizeY,
+				NearPlane
+				)
+			);
+	}
 }
 
 bool FCanvasBatchedElementRenderItem::Render_RenderThread(FRHICommandListImmediate& RHICmdList, const FCanvas* Canvas)

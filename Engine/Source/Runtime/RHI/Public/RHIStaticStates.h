@@ -220,7 +220,7 @@ FRasterizerStateRHIParamRef GetStaticRasterizerState(ERasterizerFillMode FillMod
  */
 template<
 	bool bEnableDepthWrite = true,
-	ECompareFunction DepthTest = CF_GreaterEqual, // Default for reversed Z depth surface (0=far, 1=near).
+	ECompareFunction DepthTest = CF_DepthFunction,
 	bool bEnableFrontFaceStencil = false,
 	ECompareFunction FrontFaceStencilTest = CF_Always,
 	EStencilOp FrontFaceStencilFailStencilOp = SO_Keep,

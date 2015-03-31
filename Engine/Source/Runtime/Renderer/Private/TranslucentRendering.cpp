@@ -27,8 +27,7 @@ static void SetTranslucentRenderTargetAndState(FRHICommandList& RHICmdList, cons
 	if (bSetupTranslucentState)
 	{
 		// Enable depth test, disable depth writes.
-		// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_GreaterEqual>::GetRHI());
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthFunction>::GetRHI());
 	}
 }
 
@@ -419,8 +418,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 			}
 			else
 			{
-				// Note, this is a reversed Z depth surface, using CF_GreaterEqual.	
-				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual,true,CF_Always,SO_Keep,SO_Keep,SO_Replace>::GetRHI(), 1);
+				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_DepthFunction,true,CF_Always,SO_Keep,SO_Keep,SO_Replace>::GetRHI(), 1);
 			}
 		}
 		else if( bDisableDepthTest )
@@ -452,8 +450,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 		if (bDisableDepthTest || bEnableResponsiveAA)
 		{
 			// Restore default depth state
-			// Note, this is a reversed Z depth surface, using CF_GreaterEqual.	
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_DepthFunction>::GetRHI());
 		}
 
 		bDirty = true;
@@ -1069,7 +1066,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 				{
 					if (bSetupTranslucency)
 					{
-						RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_GreaterEqual>::GetRHI());
+						RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthFunction>::GetRHI());
 					}
 
 					View.TranslucentPrimSet.DrawPrimitives(RHICmdList, View, *this, true);

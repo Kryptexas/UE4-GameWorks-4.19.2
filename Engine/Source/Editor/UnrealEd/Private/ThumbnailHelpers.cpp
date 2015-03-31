@@ -70,6 +70,7 @@ void FThumbnailPreviewScene::GetView(FSceneViewFamily* ViewFamily, int32 X, int3
 	{
 		const float FOVDegrees = 30.f;
 		const float HalfFOVRadians = FMath::DegreesToRadians<float>(FOVDegrees) * 0.5f;
+		checkf(RHIHasInvertedZBuffer(), TEXT("Check NearPlane and Projection Matrix"));
 		const float NearPlane = 1.0f;
 		FMatrix ProjectionMatrix = FReversedZPerspectiveMatrix(
 			HalfFOVRadians,

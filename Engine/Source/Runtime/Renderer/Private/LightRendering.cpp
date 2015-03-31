@@ -645,7 +645,7 @@ void FDeferredShadingSceneRenderer::RenderStationaryLightOverlap(FRHICommandList
 		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingReadOnlyDepth);
 
 		// Clear to discard base pass values in scene color since we didn't skip that, to have valid scene depths
-		RHICmdList.Clear(true, FLinearColor::Black, false, 0, false, 0, FIntRect());
+		RHICmdList.Clear(true, FLinearColor::Black, false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
 
 		RenderLightArrayForOverlapViewmode(RHICmdList, Scene->Lights);
 
@@ -670,11 +670,10 @@ void SetBoundingGeometryRasterizerAndDepthState(FRHICommandList& RHICmdList, con
 		RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI());
 	}
 
-	// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
 	RHICmdList.SetDepthStencilState(
 		bCameraInsideLightGeometry
 		? TStaticDepthStencilState<false,CF_Always>::GetRHI()
-		: TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI()
+		: TStaticDepthStencilState<false,CF_DepthFunction>::GetRHI()
 		);
 }
 
@@ -905,7 +904,7 @@ void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, con
 	if (bStencilDirty)
 	{
 		// Clear the stencil buffer to 0.
-		RHICmdList.Clear(false, FColor(0, 0, 0), false, 0, true, 0, FIntRect());
+		RHICmdList.Clear(false, FColor(0, 0, 0), false, (float)ERHIZBuffer::FarPlane, true, 0, FIntRect());
 	}
 }
 

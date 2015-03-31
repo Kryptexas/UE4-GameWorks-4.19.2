@@ -689,6 +689,7 @@ bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMaterialSh
 	>::GetRHI() );
 
 	// Carmack's reverse on the bounds
+	//@todo-martinm
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
 		false,CF_LessEqual,
 		true,CF_Equal,SO_Keep,SO_Keep,SO_Increment,
@@ -765,13 +766,13 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 			// could be optimized
 			SetRenderTarget(RHICmdList, GSceneRenderTargets.DBufferA->GetRenderTargetItem().TargetableTexture, FTextureRHIParamRef());
-			RHICmdList.Clear(true, FLinearColor(0, 0, 0, 1), false, 0, false, 0, FIntRect());
+			RHICmdList.Clear(true, FLinearColor(0, 0, 0, 1), false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
 			SetRenderTarget(RHICmdList, GSceneRenderTargets.DBufferB->GetRenderTargetItem().TargetableTexture, FTextureRHIParamRef());
 			// todo: some hardware would like to have 0 or 1 for faster clear, we chose 128/255 to represent 0 (8 bit cannot represent 0.5f)
-			RHICmdList.Clear(true, FLinearColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1), false, 0, false, 0, FIntRect());
+			RHICmdList.Clear(true, FLinearColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1), false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
 			SetRenderTarget(RHICmdList, GSceneRenderTargets.DBufferC->GetRenderTargetItem().TargetableTexture, FTextureRHIParamRef());
 			// R:roughness, G:roughness opacity
-			RHICmdList.Clear(true, FLinearColor(0, 1, 0, 1), false, 0, false, 0, FIntRect());
+			RHICmdList.Clear(true, FLinearColor(0, 1, 0, 1), false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
 		}
 	}
 
@@ -1049,16 +1050,14 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 					else
 					{
 						// Render frontfaces with depth tests on to get the speedup from HiZ since the camera is outside the light function geometry
-						// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
 						if(bStencilDecals)
 						{
 							// Render frontfaces with depth tests on to get the speedup from HiZ since the camera is outside the light function geometry
 							// Enable stencil testing, only write to pixels with stencil of 0
-							// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
 							if ( bThisDecalUsesStencil )
 							{
 								RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-									false,CF_GreaterEqual,
+									false,CF_DepthFunction,
 									true,CF_Equal,SO_Zero,SO_Zero,SO_Zero,
 									true,CF_Equal,SO_Zero,SO_Zero,SO_Zero,
 									0xff, 0x7f
@@ -1067,7 +1066,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 							else
 							{
 								RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-									false,CF_GreaterEqual,
+									false,CF_DepthFunction,
 									true,CF_Equal,SO_Keep,SO_Keep,SO_Keep,
 									false,CF_Always,SO_Keep,SO_Keep,SO_Keep,
 									0x80,0x00>::GetRHI(), 0);
@@ -1076,7 +1075,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 						}
 						else
 						{
-							RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_GreaterEqual>::GetRHI(), 0);
+							RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthFunction>::GetRHI(), 0);
 						}
 						RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI());
 					}
@@ -1088,7 +1087,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 		// we don't modify stencil but if out input was having stencil for us (after base pass - we need to clear)
 		// Clear stencil to 0, which is the assumed default by other passes
-		RHICmdList.Clear(false, FLinearColor::White, false, 0, true, 0, FIntRect());
+		RHICmdList.Clear(false, FLinearColor::White, false, (float)ERHIZBuffer::FarPlane, true, 0, FIntRect());
 
 		// resolve the targets we wrote to.
 		FResolveParams ResolveParams;

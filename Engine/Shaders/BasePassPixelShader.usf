@@ -534,7 +534,10 @@ float ClipForEditorPrimitives(FMaterialPixelParameters MaterialParameters)
 	BRANCH
 	if (bEnableEditorPrimitiveDepthTest)
 	{
+#if HAS_INVERTED_Z_BUFFER
+		//@todo-briank
 		bool bIsPerspective = (View.ViewToClip._m33 < 1.0f);
+#endif	// HAS_INVERTED_Z_BUFFER
  		
 		// dejitter the sample position and make a filtered lookup - for planes this allows to reconstruct a much less jittery depth comparison function, it however doesn't fix silhuetes
 		float DeviceZ = Texture2DSampleLevel(FilteredSceneDepthTexture, FilteredSceneDepthTextureSampler, (MaterialParameters.SVPosition.xy - View.TemporalAAParams.zw) * View.ViewSizeAndSceneTexelSize.zw, 0).r;
@@ -547,7 +550,7 @@ float ClipForEditorPrimitives(FMaterialPixelParameters MaterialParameters)
 		// 0.5f is to bias around the actual value, 1 or 0 are another option
 		Ret = saturate(0.5f - (DeviceZ - PixelDeviceZ) / DeviceDepthFade);
 	}
-#endif
+#endif	// USE_EDITOR_COMPOSITING && (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || ES2_EMULATION)
 
 	// Note: multiple returns cause strange HLSL compiler error for CV_Coverage in later code
 	return Ret;

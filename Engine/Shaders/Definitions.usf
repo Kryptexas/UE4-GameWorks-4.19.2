@@ -194,3 +194,7 @@
 #else
 #define EARLYDEPTHSTENCIL
 #endif
+
+#ifndef HAS_INVERTED_Z_BUFFER
+#define HAS_INVERTED_Z_BUFFER	1
+#endif
