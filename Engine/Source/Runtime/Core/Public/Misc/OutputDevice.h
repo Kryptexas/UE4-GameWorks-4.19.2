@@ -257,22 +257,30 @@ public:
 
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 
+	FOutputDevice(FOutputDevice&&) = default;
 	FOutputDevice(const FOutputDevice&) = default;
+	FOutputDevice& operator=(FOutputDevice&&) = default;
 	FOutputDevice& operator=(const FOutputDevice&) = default;
 
-	#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
-		FOutputDevice(FOutputDevice&&) = default;
-		FOutputDevice& operator=(FOutputDevice&&) = default;
-
-	#endif
-
 #else
+
+	FORCEINLINE FOutputDevice(FOutputDevice&& Other)
+		 : bSuppressEventTag      (Other.bSuppressEventTag)
+		 , bAutoEmitLineTerminator(Other.bAutoEmitLineTerminator)
+	{
+	}
 
 	FORCEINLINE FOutputDevice(const FOutputDevice& Other)
 		 : bSuppressEventTag      (Other.bSuppressEventTag)
 		 , bAutoEmitLineTerminator(Other.bAutoEmitLineTerminator)
 	{
+	}
+
+	FORCEINLINE FOutputDevice& operator=(FOutputDevice&& Other)
+	{
+		bSuppressEventTag       = Other.bSuppressEventTag;
+		bAutoEmitLineTerminator = Other.bAutoEmitLineTerminator;
+		return *this;
 	}
 
 	FORCEINLINE FOutputDevice& operator=(const FOutputDevice& Other)
@@ -281,23 +289,6 @@ public:
 		bAutoEmitLineTerminator = Other.bAutoEmitLineTerminator;
 		return *this;
 	}
-
-	#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
-		FORCEINLINE FOutputDevice(FOutputDevice&& Other)
-			 : bSuppressEventTag      (Other.bSuppressEventTag)
-			 , bAutoEmitLineTerminator(Other.bAutoEmitLineTerminator)
-		{
-		}
-
-		FORCEINLINE FOutputDevice& operator=(FOutputDevice&& Other)
-		{
-			bSuppressEventTag       = Other.bSuppressEventTag;
-			bAutoEmitLineTerminator = Other.bAutoEmitLineTerminator;
-			return *this;
-		}
-
-	#endif
 
 #endif
 

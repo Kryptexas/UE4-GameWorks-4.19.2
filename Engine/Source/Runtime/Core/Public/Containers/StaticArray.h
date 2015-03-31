@@ -21,18 +21,16 @@ public:
 		}
 	}
 
-	/** Copy constructor. */
-	TStaticArray(const TStaticArray& Other)
-	{
-		ConstructItems<TElement>((void*)Elements, (const TElement*)Other.Elements, NumElements);
-	}
-
-#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
 	/** Move constructor. */
 	TStaticArray(TStaticArray&& Other)
 	{
 		MoveConstructItems((void*)Elements, (const TElement*)Other.Elements, NumElements);
+	}
+
+	/** Copy constructor. */
+	TStaticArray(const TStaticArray& Other)
+	{
+		ConstructItems<TElement>((void*)Elements, (const TElement*)Other.Elements, NumElements);
 	}
 
 	/** Move assignment operator. */
@@ -41,8 +39,13 @@ public:
 		MoveAssignItems((TElement*)Elements, (const TElement*)Other.Elements, NumElements);
 		return *this;
 	}
-
-#endif
+	
+	/** Assignment operator. */
+	TStaticArray& operator=(const TStaticArray& Other)
+	{
+		CopyAssignItems((TElement*)Elements, (const TElement*)Other.Elements, NumElements);
+		return *this;
+	}
 
 	/** Destructor. */
 	~TStaticArray()
@@ -58,13 +61,6 @@ public:
 			Ar << StaticArray[Index];
 		}
 		return Ar;
-	}
-	
-	/** Assignment operator. */
-	TStaticArray& operator=(const TStaticArray& Other)
-	{
-		CopyAssignItems((TElement*)Elements, (const TElement*)Other.Elements, NumElements);
-		return *this;
 	}
 
 	// Accessors.
@@ -142,21 +138,27 @@ public:
 
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 
+	TStaticArray2(TStaticArray2&&) = default;
 	TStaticArray2(const TStaticArray2&) = default;
+	TStaticArray2& operator=(TStaticArray2&&) = default;
 	TStaticArray2& operator=(const TStaticArray2&) = default;
 
-	#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
-		TStaticArray2(TStaticArray2&&) = default;
-		TStaticArray2& operator=(TStaticArray2&&) = default;
-
-	#endif
-
 #else
+
+	FORCEINLINE TStaticArray2(TStaticArray2&& Other)
+		: Super((Super&&)Other)
+	{
+	}
 
 	FORCEINLINE TStaticArray2(const TStaticArray2& Other)
 		: Super((const Super&)Other)
 	{
+	}
+
+	FORCEINLINE TStaticArray2& operator=(TStaticArray2&& Other)
+	{
+		(Super&)*this = (Super&&)Other;
+		return *this;
 	}
 
 	FORCEINLINE TStaticArray2& operator=(const TStaticArray2& Other)
@@ -164,21 +166,6 @@ public:
 		(Super&)*this = (const Super&)Other;
 		return *this;
 	}
-
-	#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
-		FORCEINLINE TStaticArray2(TStaticArray2&& Other)
-			: Super((Super&&)Other)
-		{
-		}
-
-		FORCEINLINE TStaticArray2& operator=(TStaticArray2&& Other)
-		{
-			(Super&)*this = (Super&&)Other;
-			return *this;
-		}
-
-	#endif
 
 #endif
 };
@@ -204,21 +191,27 @@ public:
 
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 
+	TStaticArray3(TStaticArray3&&) = default;
 	TStaticArray3(const TStaticArray3&) = default;
+	TStaticArray3& operator=(TStaticArray3&&) = default;
 	TStaticArray3& operator=(const TStaticArray3&) = default;
 
-	#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
-		TStaticArray3(TStaticArray3&&) = default;
-		TStaticArray3& operator=(TStaticArray3&&) = default;
-
-	#endif
-
 #else
+
+	FORCEINLINE TStaticArray3(TStaticArray3&& Other)
+		: Super((Super&&)Other)
+	{
+	}
 
 	FORCEINLINE TStaticArray3(const TStaticArray3& Other)
 		: Super((const Super&)Other)
 	{
+	}
+
+	FORCEINLINE TStaticArray3& operator=(TStaticArray3&& Other)
+	{
+		(Super&)*this = (Super&&)Other;
+		return *this;
 	}
 
 	FORCEINLINE TStaticArray3& operator=(const TStaticArray3& Other)
@@ -226,21 +219,6 @@ public:
 		(Super&)*this = (const Super&)Other;
 		return *this;
 	}
-
-	#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
-		FORCEINLINE TStaticArray3(TStaticArray3&& Other)
-			: Super((Super&&)Other)
-		{
-		}
-
-		FORCEINLINE TStaticArray3& operator=(TStaticArray3&& Other)
-		{
-			(Super&)*this = (Super&&)Other;
-			return *this;
-		}
-
-	#endif
 
 #endif
 };
@@ -268,21 +246,27 @@ public:
 
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 
+	TStaticArray4(TStaticArray4&&) = default;
 	TStaticArray4(const TStaticArray4&) = default;
+	TStaticArray4& operator=(TStaticArray4&&) = default;
 	TStaticArray4& operator=(const TStaticArray4&) = default;
 
-	#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
-		TStaticArray4(TStaticArray4&&) = default;
-		TStaticArray4& operator=(TStaticArray4&&) = default;
-
-	#endif
-
 #else
+
+	FORCEINLINE TStaticArray4(TStaticArray4&& Other)
+		: Super((Super&&)Other)
+	{
+	}
 
 	FORCEINLINE TStaticArray4(const TStaticArray4& Other)
 		: Super((const Super&)Other)
 	{
+	}
+
+	FORCEINLINE TStaticArray4& operator=(TStaticArray4&& Other)
+	{
+		(Super&)*this = (Super&&)Other;
+		return *this;
 	}
 
 	FORCEINLINE TStaticArray4& operator=(const TStaticArray4& Other)
@@ -290,21 +274,6 @@ public:
 		(Super&)*this = (const Super&)Other;
 		return *this;
 	}
-
-	#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
-		FORCEINLINE TStaticArray4(TStaticArray4&& Other)
-			: Super((Super&&)Other)
-		{
-		}
-
-		FORCEINLINE TStaticArray4& operator=(TStaticArray4&& Other)
-		{
-			(Super&)*this = (Super&&)Other;
-			return *this;
-		}
-
-	#endif
 
 #endif
 };

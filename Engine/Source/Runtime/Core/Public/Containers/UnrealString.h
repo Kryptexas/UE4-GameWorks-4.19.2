@@ -1420,7 +1420,7 @@ public:
 template<>
 struct TContainerTraits<FString> : public TContainerTraitsBase<FString>
 {
-	enum { MoveWillEmptyContainer = PLATFORM_COMPILER_HAS_RVALUE_REFERENCES && TContainerTraits<FString::DataType>::MoveWillEmptyContainer };
+	enum { MoveWillEmptyContainer = TContainerTraits<FString::DataType>::MoveWillEmptyContainer };
 };
 
 template<> struct TIsZeroConstructType<FString> { enum { Value = true }; };
@@ -1680,22 +1680,30 @@ public:
 
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 
+	FStringOutputDevice(FStringOutputDevice&&) = default;
 	FStringOutputDevice(const FStringOutputDevice&) = default;
+	FStringOutputDevice& operator=(FStringOutputDevice&&) = default;
 	FStringOutputDevice& operator=(const FStringOutputDevice&) = default;
 
-	#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
-		FStringOutputDevice(FStringOutputDevice&&) = default;
-		FStringOutputDevice& operator=(FStringOutputDevice&&) = default;
-
-	#endif
-
 #else
+
+	FORCEINLINE FStringOutputDevice(FStringOutputDevice&& Other)
+		: FString      ((FString&&)Other)
+		, FOutputDevice((FOutputDevice&&)Other)
+	{
+	}
 
 	FORCEINLINE FStringOutputDevice(const FStringOutputDevice& Other)
 		: FString      ((const FString&)Other)
 		, FOutputDevice((const FOutputDevice&)Other)
 	{
+	}
+
+	FORCEINLINE FStringOutputDevice& operator=(FStringOutputDevice&& Other)
+	{
+		(FString&)*this       = (FString&&)Other;
+		(FOutputDevice&)*this = (FOutputDevice&&)Other;
+		return *this;
 	}
 
 	FORCEINLINE FStringOutputDevice& operator=(const FStringOutputDevice& Other)
@@ -1704,23 +1712,6 @@ public:
 		(FOutputDevice&)*this = (const FOutputDevice&)Other;
 		return *this;
 	}
-
-	#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
-		FORCEINLINE FStringOutputDevice(FStringOutputDevice&& Other)
-			: FString      ((FString&&)Other)
-			, FOutputDevice((FOutputDevice&&)Other)
-		{
-		}
-
-		FORCEINLINE FStringOutputDevice& operator=(FStringOutputDevice&& Other)
-		{
-			(FString&)*this       = (FString&&)Other;
-			(FOutputDevice&)*this = (FOutputDevice&&)Other;
-			return *this;
-		}
-
-	#endif
 
 #endif
 	// Make += operator virtual.
@@ -1815,8 +1806,6 @@ public:
 
 #endif
 
-#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
 	FORCEINLINE FStringOutputDeviceCountLines(FStringOutputDeviceCountLines&& Other)
 		: Super    ((Super&&)Other)
 		, LineCount(Other.LineCount)
@@ -1835,6 +1824,4 @@ public:
 		}
 		return *this;
 	}
-
-#endif
 };

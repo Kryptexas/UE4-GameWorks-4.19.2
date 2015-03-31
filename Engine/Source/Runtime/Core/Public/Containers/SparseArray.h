@@ -461,12 +461,28 @@ public:
 	,	NumFreeIndices(0)
 	{}
 
+	/** Move constructor. */
+	TSparseArray(TSparseArray&& InCopy)
+	{
+		MoveOrCopy(*this, InCopy);
+	}
+
 	/** Copy constructor. */
 	TSparseArray(const TSparseArray& InCopy)
 	:	FirstFreeIndex(-1)
 	,	NumFreeIndices(0)
 	{
 		*this = InCopy;
+	}
+
+	/** Move assignment operator. */
+	TSparseArray& operator=(TSparseArray&& InCopy)
+	{
+		if(this != &InCopy)
+		{
+			MoveOrCopy(*this, InCopy);
+		}
+		return *this;
 	}
 
 	/** Copy assignment operator. */
@@ -511,8 +527,6 @@ public:
 		return *this;
 	}
 
-#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
 private:
 	template <typename SparseArrayType>
 	FORCEINLINE static typename TEnableIf<TContainerTraits<SparseArrayType>::MoveWillEmptyContainer>::Type MoveOrCopy(SparseArrayType& ToArray, SparseArrayType& FromArray)
@@ -533,23 +547,6 @@ private:
 	}
 
 public:
-	/** Move constructor. */
-	TSparseArray(TSparseArray&& InCopy)
-	{
-		MoveOrCopy(*this, InCopy);
-	}
-
-	/** Move assignment operator. */
-	TSparseArray& operator=(TSparseArray&& InCopy)
-	{
-		if(this != &InCopy)
-		{
-			MoveOrCopy(*this, InCopy);
-		}
-		return *this;
-	}
-#endif
-
 	// Accessors.
 	ElementType& operator[](int32 Index)
 	{
@@ -805,7 +802,6 @@ template<typename ElementType, typename Allocator>
 struct TContainerTraits<TSparseArray<ElementType, Allocator> > : public TContainerTraitsBase<TSparseArray<ElementType, Allocator> >
 {
 	enum { MoveWillEmptyContainer =
-		PLATFORM_COMPILER_HAS_RVALUE_REFERENCES &&
 		TContainerTraits<typename TSparseArray<ElementType, Allocator>::DataType>::MoveWillEmptyContainer &&
 		TContainerTraits<typename TSparseArray<ElementType, Allocator>::AllocationBitArrayType>::MoveWillEmptyContainer };
 };

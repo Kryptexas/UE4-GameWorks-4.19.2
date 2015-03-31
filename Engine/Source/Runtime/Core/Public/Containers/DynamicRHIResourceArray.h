@@ -36,22 +36,30 @@ public:
 
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 
+	TResourceArray(TResourceArray&&) = default;
 	TResourceArray(const TResourceArray&) = default;
+	TResourceArray& operator=(TResourceArray&&) = default;
 	TResourceArray& operator=(const TResourceArray&) = default;
 
-	#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
-		TResourceArray(TResourceArray&&) = default;
-		TResourceArray& operator=(TResourceArray&&) = default;
-
-	#endif
-
 #else
+
+	FORCEINLINE TResourceArray(TResourceArray&& Other)
+		: Super          ((Super&&)Other)
+		, bNeedsCPUAccess(Other.bNeedsCPUAccess)
+	{
+	}
 
 	FORCEINLINE TResourceArray(const TResourceArray& Other)
 		: Super          ((const Super&)Other)
 		, bNeedsCPUAccess(Other.bNeedsCPUAccess)
 	{
+	}
+
+	FORCEINLINE TResourceArray& operator=(TResourceArray&& Other)
+	{
+		(Super&)*this   = (Super&&)Other;
+		bNeedsCPUAccess = Other.bNeedsCPUAccess;
+		return *this;
 	}
 
 	FORCEINLINE TResourceArray& operator=(const TResourceArray& Other)
@@ -60,23 +68,6 @@ public:
 		bNeedsCPUAccess = Other.bNeedsCPUAccess;
 		return *this;
 	}
-
-	#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
-		FORCEINLINE TResourceArray(TResourceArray&& Other)
-			: Super          ((Super&&)Other)
-			, bNeedsCPUAccess(Other.bNeedsCPUAccess)
-		{
-		}
-
-		FORCEINLINE TResourceArray& operator=(TResourceArray&& Other)
-		{
-			(Super&)*this   = (Super&&)Other;
-			bNeedsCPUAccess = Other.bNeedsCPUAccess;
-			return *this;
-		}
-
-	#endif
 
 #endif
 
@@ -176,7 +167,5 @@ private:
 template< typename ElementType, uint32 Alignment >
 struct TContainerTraits<TResourceArray<ElementType, Alignment> > : public TContainerTraitsBase<TResourceArray<ElementType, Alignment> >
 {
-	enum { MoveWillEmptyContainer =
-		PLATFORM_COMPILER_HAS_RVALUE_REFERENCES &&
-		TContainerTraits<typename TResourceArray<ElementType, Alignment>::Super>::MoveWillEmptyContainer };
+	enum { MoveWillEmptyContainer = TContainerTraits<typename TResourceArray<ElementType, Alignment>::Super>::MoveWillEmptyContainer };
 };

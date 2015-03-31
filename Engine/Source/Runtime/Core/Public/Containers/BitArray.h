@@ -180,6 +180,14 @@ public:
 	}
 
 	/**
+	 * Move constructor.
+	 */
+	FORCEINLINE TBitArray(TBitArray&& Other)
+	{
+		MoveOrCopy(*this, Other);
+	}
+
+	/**
 	 * Copy constructor.
 	 */
 	FORCEINLINE TBitArray(const TBitArray& Copy)
@@ -187,6 +195,19 @@ public:
 	,	MaxBits(0)
 	{
 		*this = Copy;
+	}
+
+	/**
+	 * Move assignment.
+	 */
+	FORCEINLINE TBitArray& operator=(TBitArray&& Other)
+	{
+		if (this != &Other)
+		{
+			MoveOrCopy(*this, Other);
+		}
+
+		return *this;
 	}
 
 	/**
@@ -211,8 +232,6 @@ public:
 		return *this;
 	}
 
-#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
 private:
 	template <typename BitArrayType>
 	static FORCEINLINE typename TEnableIf<TContainerTraits<BitArrayType>::MoveWillEmptyContainer>::Type MoveOrCopy(BitArrayType& ToArray, BitArrayType& FromArray)
@@ -232,29 +251,6 @@ private:
 	}
 
 public:
-	/**
-	 * Move constructor.
-	 */
-	FORCEINLINE TBitArray(TBitArray&& Other)
-	{
-		MoveOrCopy(*this, Other);
-	}
-
-	/**
-	 * Move assignment.
-	 */
-	FORCEINLINE TBitArray& operator=(TBitArray&& Other)
-	{
-		if (this != &Other)
-		{
-			MoveOrCopy(*this, Other);
-		}
-
-		return *this;
-	}
-
-#endif
-
 	/**
 	 * Serializer
 	 */
@@ -660,9 +656,7 @@ private:
 template<typename Allocator>
 struct TContainerTraits<TBitArray<Allocator> > : public TContainerTraitsBase<TBitArray<Allocator> >
 {
-	enum { MoveWillEmptyContainer =
-		PLATFORM_COMPILER_HAS_RVALUE_REFERENCES &&
-		TAllocatorTraits<Allocator>::SupportsMove };
+	enum { MoveWillEmptyContainer = TAllocatorTraits<Allocator>::SupportsMove };
 };
 
 

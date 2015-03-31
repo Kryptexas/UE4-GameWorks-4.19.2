@@ -26,8 +26,6 @@ public:
 		}
 	}
 
-#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
 private:
 	template <typename ArrayType>
 	FORCEINLINE static typename TEnableIf<TContainerTraits<ArrayType>::MoveWillEmptyContainer>::Type MoveOrCopy(ArrayType& ToArray, ArrayType& FromArray)
@@ -58,8 +56,6 @@ public:
 
 		return *this;
 	}
-
-#endif
 
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 
@@ -229,9 +225,7 @@ protected:
 template <typename ElementType, uint32 TargetBytesPerChunk>
 struct TContainerTraits<TChunkedArray<ElementType, TargetBytesPerChunk> > : public TContainerTraitsBase<TChunkedArray<ElementType, TargetBytesPerChunk> >
 {
-	enum { MoveWillEmptyContainer =
-		PLATFORM_COMPILER_HAS_RVALUE_REFERENCES &&
-		TContainerTraits<typename TChunkedArray<ElementType, TargetBytesPerChunk>::ChunksType>::MoveWillEmptyContainer };
+	enum { MoveWillEmptyContainer = TContainerTraits<typename TChunkedArray<ElementType, TargetBytesPerChunk>::ChunksType>::MoveWillEmptyContainer };
 };
 
 

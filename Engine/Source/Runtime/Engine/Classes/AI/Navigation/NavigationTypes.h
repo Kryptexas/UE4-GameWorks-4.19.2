@@ -603,15 +603,10 @@ public:
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 
 	TNavStatArray() = default;
-	TNavStatArray(const TNavStatArray&) = default;
-	TNavStatArray& operator=(const TNavStatArray&) = default;
-
-#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
 	TNavStatArray(TNavStatArray&&) = default;
+	TNavStatArray(const TNavStatArray&) = default;
 	TNavStatArray& operator=(TNavStatArray&&) = default;
-
-#endif
+	TNavStatArray& operator=(const TNavStatArray&) = default;
 
 #else
 
@@ -624,14 +619,6 @@ public:
 	{
 	}
 
-	FORCEINLINE TNavStatArray& operator=(const TNavStatArray& Other)
-	{
-		(Super&)*this = (const Super&)Other;
-		return *this;
-	}
-
-#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
 	FORCEINLINE TNavStatArray(TNavStatArray&& Other)
 		: Super((Super&&)Other)
 	{
@@ -643,7 +630,11 @@ public:
 		return *this;
 	}
 
-#endif
+	FORCEINLINE TNavStatArray& operator=(const TNavStatArray& Other)
+	{
+		(Super&)*this = (const Super&)Other;
+		return *this;
+	}
 
 #endif
 };
@@ -651,11 +642,7 @@ public:
 template<typename InElementType>
 struct TContainerTraits<TNavStatArray<InElementType> > : public TContainerTraitsBase<TNavStatArray<InElementType> >
 {
-	enum {
-		MoveWillEmptyContainer =
-		PLATFORM_COMPILER_HAS_RVALUE_REFERENCES &&
-		TContainerTraits<typename TNavStatArray<InElementType>::Super>::MoveWillEmptyContainer
-	};
+	enum { MoveWillEmptyContainer = TContainerTraits<typename TNavStatArray<InElementType>::Super>::MoveWillEmptyContainer };
 };
 
 //----------------------------------------------------------------------//
