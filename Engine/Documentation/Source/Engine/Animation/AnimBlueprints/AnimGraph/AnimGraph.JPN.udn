@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2257945
+﻿INTSourceChangelist:2495730
 Availability:Public
 Title:AnimGraph
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
-Description:Animation ブループリントでスケルタル メッシュに適用するポーズのサンプリング、ブレンド、操作のためのグラフ
+Description:Animation ブループリントと使ってスケルタル メッシュに適用するポーズのサンプリング、ブレンド、操作に使用するグラフ
 
 [REGION:banner]
 ![AnimGraph](animgraph_banner.png)(convert:false)
@@ -12,43 +12,43 @@ Description:Animation ブループリントでスケルタル メッシュに適
 
 [EXCERPT:Intro]
 **AnimGraph** を使用して、現在のフレームに対する _スケルタルメッシュ_ の最終ポーズを評価します。デフォルトは、 
-各アニメーション ブループリントには、 **_AnimGraph_** がデフォルトで付いており、その中には _アニメーション シーケンス_ のサンプリング、アニメーションのブレンド、または _SkeletalControl_ を使用してボーンの変換を制御を行う [Animation ノード](Engine/Animation/AnimBlueprints/AnimGraph#Animationノード) が配置されています。 
- 
+各アニメーション ブループリントには、 **_AnimGraph_** がデフォルトで付いており、その中には _アニメーション シーケンス_ のサンプリング、アニメーションのブレンド、 
+または _SkeletalControl_ を使用してボーンの変換を制御を行う [Animation ノード](Engine/Animation/AnimBlueprints/AnimGraph#Animationノード) が配置されています。 
 結果として得られたポーズは、スケルタルメッシュの各フレームに適用されます。
 [/EXCERPT:Intro]
 
 ![Anim Graph](animgraph.png)(w:720)
 
-**AnimGraph** 内では、 **EventGraph** などで計算されたコードなどの値を使用でき、これらを _BlendSpaces_ や他のブレンド ノードへの入力値として使うことができます。 
-特別なブレンド処理をせずに、直接 _AnimationSequences_ をサンプリングすることも可能です。 
-**AnimGraph** によって _SkeletalControls_ を使用してボーンの配置、回転、スケールを直接修正できるようになります。 
-
+**AnimGraph** 内では、コードなど **EventGraph** などで計算した値を使用でき、 
+これらを _BlendSpaces_ や他のブレンド ノードへの入力値として使うことができます。特別なブレンド処理をせずに、 
+直接 _AnimationSequences_ をサンプリングすることも可能です。**AnimGraph** により、_SkeletalControls_ を使って 
+ボーンの配置、回転、スケールの修正が直接できるようになります。
 
 ## 実行フロー
 
-すべてのグラフには実行フローがあります。グラフのノードの _実行ピン_ の間のパルスリンクとして表示されます。 
-_ブループリント_ の **EventGraph** などの一般的なグラフの場合、このフローはイベントの発行に依存しているので再生中に表示されます。 
-**AnimGraph** の場合は、イベントベースではなくフレームごとに評価されるので、常に実行フローを表示するいう点で異なります。 
-
+すべてのグラフには実行フローがあります。グラフのノードの _実行ピン_ の間のパルスリンクとして表示されます。_ブループリント_ の **EventGraph** などの一般的なグラフの場合、 
+このフローはイベントの発行に依存しているので 
+再生中に表示されます。**AnimGraph** の場合は、 
+イベントベースではなくフレームごとに評価されるので、常に実行フローを表示するいう点で異なります。
 
 ![Blend - Alpha 0.0](exec_flow_0.png)(w:720)
 
-**AnimGraph** では、実行フローは 1 つのノードから他のノードへ _ポーズ_ が渡されたことを表します。不安： 
-[Blend ノード](Engine/Animation/NodeReference/Blend) など、複数のインプットをもち、現在の実行フローに関係しているインプットを内部で判断するノードもあります。 
-こうした判断は通常、 _データピン_ へ渡された値など、外部のインプットに依存します。 
+**AnimGraph** では、実行フローは 1 つのノードから他のノードへ _ポーズ_ が渡されたことを表します。ただし 
+[Blend ノード](Engine/Animation/NodeReference/Blend) など、 
+複数のインプットをもち、現在の実行フローに関係しているインプットを内部で判断するノードもあります。こうした判断は通常、 _データピン_ へ渡された値など、 
+外部のインプットに依存します。
 
-
-以下のサンプルでは、上図と同じ Blend ノードが _Alpha_ ピンの値に応じてインプット間で実行フローを切り替えています (わかりやすくするため、値は手動で設定しています)。 
-
+以下のサンプルでは、上図と同じ Blend ノードが _Alpha_ ピンの値に応じて 
+インプット間で実行フローを切り替えています (わかりやすくするため、値は手動で設定しています)。
 
 ![Blend - Alpha 1.0](exec_flow_1.png)(w:720)
 [REGION:caption]Alpha 1.0 とのブレンドの場合、入力 B を使用する[/REGION]
 
 ## AnimGraph の操作
 
-**AnimGraph** はノードグラフの評価により機能します。1 つ以上の入力ポーズに対して特定の操作を実行するノードもあれば、 
- _AnimationSequences_ 、 _BlendSpaces_ 、 _AnimMontages_ などの別のアセットタイプのアクセスやサンプリングに使用されるものもあります。 
-これらのアセットとノードについて、 **AnimGraph** との関わり方と合わせて説明します。
+**AnimGraph** はノードグラフを評価することにより機能します。1 つ以上の入力ポーズに対して特定の操作を実行するノードもあれば、 
+ _AnimationSequences_ 、 _BlendSpaces_ 、 
+ _AnimMontages_ など別のアセットタイプのアクセスやサンプリングに使用されるノードもあります。これらのアセットとノード、および **AnimGraph** との関わり方を説明します。
 
 ### AnimationSequences
 
@@ -84,8 +84,8 @@ SpaceConversion (空間変換) ノードに関する詳細は、[](Engine/Animat
 
 [INCLUDE:Engine/Animation/NodeReference/SkeletalControls#intro]
 
-使用できる _SkeletalControls_ の各種タイプに関する詳細は、 [](Engine/Animation/NodeReference/SkeletalControls) を参照してください。 
-
+使用できる _SkeletalControls_ の各種タイプに関する詳細は、 
+ [](Engine/Animation/NodeReference/SkeletalControls) を参照してください。
 
 #### Space Conversion
 
