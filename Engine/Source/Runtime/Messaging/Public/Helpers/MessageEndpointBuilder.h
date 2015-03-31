@@ -51,12 +51,16 @@ public:
 	/**
 	 * Adds a message handler for the given type of messages.
 	 *
+	 * It is legal to configure multiple handlers for the same message type. Each
+	 * handler will be executed when a message of the specified type is received.
+	 *
 	 * @param HandlerType The type of the object handling the messages.
 	 * @param MessageType The type of messages to handle.
 	 * @param Handler The class handling the messages.
 	 * @param HandlerFunc The class function handling the messages.
 	 * @param ReceivingThread The thread on which to handle the message.
 	 * @return This instance (for method chaining).
+	 * @see WithHandler
 	 */
 	template<typename MessageType, typename HandlerType>
 	FMessageEndpointBuilder& Handling( HandlerType* Handler, typename TMessageHandlerFunc<MessageType, HandlerType>::Type HandlerFunc )
@@ -125,8 +129,12 @@ public:
 	/**
 	 * Registers a message handler with the endpoint.
 	 *
+	 * It is legal to configure multiple handlers for the same message type. Each
+	 * handler will be executed when a message of the specified type is received.
+	 *
 	 * @param Handler The handler to add.
 	 * @return This instance (for method chaining).
+	 * @see Handling
 	 */
 	FMessageEndpointBuilder& WithHandler( const IMessageHandlerRef& Handler )
 	{

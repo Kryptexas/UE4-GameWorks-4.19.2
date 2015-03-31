@@ -781,12 +781,7 @@ protected:
 
 		for (int32 HandlerIndex = 0; HandlerIndex < Handlers.Num(); ++HandlerIndex)
 		{
-			IMessageHandlerPtr& Handler = Handlers[HandlerIndex];
-
-			if (Handler->GetHandledMessageType() == Context->GetMessageType())
-			{
-				Handler->HandleMessage(Context);
-			}
+			Handlers[HandlerIndex]->HandleMessage(Context);
 		}
 	}
 

@@ -16,18 +16,9 @@ class IMessageHandler
 public:
 
 	/**
-	 * Gets the message type handled by this handler.
-	 *
-	 * @return The name of the message type.
-	 * @see HandleMessage
-	 */
-	virtual const FName GetHandledMessageType() const = 0;
-
-	/**
 	 * Handles the specified message.
 	 *
 	 * @param Context The context of the message to handle.
-	 * @see GetHandledMessageType
 	 */
 	virtual void HandleMessage( const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context ) = 0;
 
@@ -59,7 +50,10 @@ struct TMessageHandlerFunc
 
 
 /**
- * Template for message handlers.
+ * Template for handlers of one specific message type.
+ *
+ * This class is used for message handlers that handle one particular type of messages.
+ * For handlers that can handle any type of messages see FMessageHandler.
  *
  * @param MessageType The type of message to handle.
  * @param HandlerType The type of the handler class.
@@ -83,18 +77,19 @@ public:
 		check(InHandler != nullptr);
 	}
 
+	/** Virtual destructor. */
+	~TMessageHandler() { }
+
 public:
 
 	// IMessageHandler interface
 	
-	virtual const FName GetHandledMessageType() const override
-	{
-		return MessageType::StaticStruct()->GetFName();
-	}
-
 	virtual void HandleMessage( const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context ) override
 	{
-		(Handler->*HandlerFunc)(*static_cast<const MessageType*>(Context->GetMessage()), Context);
+		if (Context->GetMessageType() == MessageType::StaticStruct()->GetFName())
+		{
+			(Handler->*HandlerFunc)(*static_cast<const MessageType*>(Context->GetMessage()), Context);
+		}	
 	}
 	
 private:
