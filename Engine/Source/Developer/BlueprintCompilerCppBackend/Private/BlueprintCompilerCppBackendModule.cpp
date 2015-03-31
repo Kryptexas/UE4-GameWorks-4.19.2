@@ -3,6 +3,7 @@
 #include "BlueprintCompilerCppBackendModulePrivatePCH.h"
 #include "IBlueprintCompilerCppBackendModule.h"
 #include "ModuleManager.h"
+#include "BlueprintCompilerCppBackend.h"
 
 class FBlueprintCompilerCppBackendModule : public IBlueprintCompilerCppBackendModule
 {
