@@ -266,6 +266,10 @@ bool FEditorBuildUtils::EditorBuild( UWorld* InWorld, EBuildOptions::Type Id, co
 				// We can't set the busy cursor for all windows, because lighting
 				// needs a cursor for the lighting options dialog.
 				const FScopedBusyCursor BusyCursor;
+
+				// BSP export to lightmass relies on current BSP state
+				GUnrealEd->Exec( InWorld, TEXT("MAP REBUILD ALLVISIBLE") );
+
 				GUnrealEd->BuildLighting( LightingBuildOptions );
 				bShouldMapCheck = false;
 			}
