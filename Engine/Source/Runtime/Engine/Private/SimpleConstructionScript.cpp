@@ -591,7 +591,7 @@ USCS_Node* USimpleConstructionScript::FindSCSNode(const FName InName) const
 
 	for( USCS_Node* SCSNode : AllNodes )
 	{
-		if (SCSNode->GetVariableName() == InName)
+		if (SCSNode->GetVariableName() == InName || (SCSNode->ComponentTemplate && SCSNode->ComponentTemplate->GetFName() == InName))
 		{
 			ReturnSCSNode = SCSNode;
 			break;
