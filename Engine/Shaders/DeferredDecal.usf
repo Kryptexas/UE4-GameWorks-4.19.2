@@ -22,7 +22,8 @@ float4x4 ScreenToDecal;
 float4x4 DecalToWorld;
 // from component to clip space (for decal frustum)
 float4x4 FrustumComponentToClip;
-
+// only for StencilDecalMaskMain, to get ShaderComplexity for Decals (doesn't look at the DecalMask yet)
+float MaskComparison;
 
 void StencilDecalMaskMain(
 	FScreenVertexOutput Input,
@@ -32,7 +33,7 @@ void StencilDecalMaskMain(
 	FGBufferData InGBufferData = GetGBufferData(Input.UV);
     
 	// Write 1 to the stencil buffer for pixels that are masked out of receiving decals
-	clip(.5f - InGBufferData.DecalMask);
+	clip(MaskComparison - InGBufferData.DecalMask);
 
 	OutColor = 0;
 }
