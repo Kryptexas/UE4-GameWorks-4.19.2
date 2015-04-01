@@ -107,6 +107,27 @@ namespace EEnvTestCost
 }
 
 UENUM()
+namespace EEnvTestFilterOperator
+{
+	enum Type
+	{
+		AllPass			UMETA(Tooltip = "All contexts must pass condition"),
+		AnyPass			UMETA(Tooltip = "At least one context must pass condition"),
+	};
+}
+
+UENUM()
+namespace EEnvTestScoreOperator
+{
+	enum Type
+	{
+		AverageScore	UMETA(Tooltip = "Use average score from all contexts"),
+		MinScore		UMETA(Tooltip = "Use minimum score from all contexts"),
+		MaxScore		UMETA(Tooltip = "Use maximum score from all contexts"),
+	};
+}
+
+UENUM()
 namespace EEnvQueryStatus
 {
 	enum Type
@@ -671,16 +692,19 @@ public:
 #if !NO_LOGGING
 	void Log(const FString Msg) const;
 #endif // #if !NO_LOGGING
-	
+
 #if USE_EQS_DEBUGGER
-#	define  UE_EQS_DBGMSG(Format, ...) \
-					Instance->ItemDetails[CurrentItem].FailedDescription = FString::Printf(Format, ##__VA_ARGS__)
+#	define  UE_EQS_DBGMSG(Condition, Format, ...) \
+					if (Condition) \
+					{ \
+						Instance->ItemDetails[CurrentItem].FailedDescription = FString::Printf(Format, ##__VA_ARGS__); \
+					}
 
 #	define UE_EQS_LOG(CategoryName, Verbosity, Format, ...) \
 					UE_LOG(CategoryName, Verbosity, Format, ##__VA_ARGS__); \
-					UE_EQS_DBGMSG(Format, ##__VA_ARGS__); 
+					UE_EQS_DBGMSG(true, Format, ##__VA_ARGS__); 
 #else
-#	define UE_EQS_DBGMSG(Format, ...)
+#	define UE_EQS_DBGMSG(Condition, Format, ...)
 #	define UE_EQS_LOG(CategoryName, Verbosity, Format, ...) UE_LOG(CategoryName, Verbosity, Format, ##__VA_ARGS__); 
 #endif
 
@@ -703,27 +727,18 @@ public:
 				switch (FilterType)
 				{
 					case EEnvTestFilterType::Maximum:
-						if (Score > Max)
-						{
-							UE_EQS_DBGMSG(TEXT("Value %f is above maximum value set to %f"), Score, Max);
-							bPassedTest = false;
-						}
+						bPassedTest = (Score <= Max);
+						UE_EQS_DBGMSG(!bPassedTest, TEXT("Value %f is above maximum value set to %f"), Score, Max);
 						break;
 
 					case EEnvTestFilterType::Minimum:
-						if (Score < Min)
-						{
-							UE_EQS_DBGMSG(TEXT("Value %f is below minimum value set to %f"), Score, Min);
-							bPassedTest = false;
-						}
+						bPassedTest = (Score >= Min);
+						UE_EQS_DBGMSG(!bPassedTest, TEXT("Value %f is below minimum value set to %f"), Score, Min);
 						break;
 
 					case EEnvTestFilterType::Range:
-						if ((Score < Min) || (Score > Max))
-						{
-							UE_EQS_DBGMSG(TEXT("Value %f is out of range set to (%f, %f)"), Score, Min, Max);
-							bPassedTest = false;
-						}
+						bPassedTest = (Score >= Min) && (Score <= Max);
+						UE_EQS_DBGMSG(!bPassedTest, TEXT("Value %f is out of range set to (%f, %f)"), Score, Min, Max);
 						break;
 
 					case EEnvTestFilterType::Match:
@@ -740,15 +755,11 @@ public:
 
 			if (bPassedTest)
 			{
-				// If we passed the test, either we really did, or we're only scoring, so we can't truly "fail".	
-				ItemScore += Score;
-				NumPartialScores++;
+				SetScoreInternal(Score);
+				NumPassedForItem++;
 			}
-			else
-			{
-				// We are ONLY filtering, and we failed
-				bPassed = false;
-			}
+
+			NumTestsForItem++;
 		}
 
 		void SetScore(EEnvTestPurpose::Type TestPurpose, EEnvTestFilterType::Type FilterType, bool bScore, bool bExpected)
@@ -758,12 +769,7 @@ public:
 			{
 				case EEnvTestFilterType::Match:
 					bPassedTest = (bScore == bExpected);
-#if USE_EQS_DEBUGGER
-					if (!bPassedTest)
-					{
-						UE_EQS_DBGMSG(TEXT("Boolean score don't mach (expected %s and got %s)"), bExpected ? TEXT("TRUE") : TEXT("FALSE"), bScore ? TEXT("TRUE") : TEXT("FALSE"));
-					}
-#endif
+					UE_EQS_DBGMSG(!bPassedTest, TEXT("Boolean score don't mach (expected %s and got %s)"), bExpected ? TEXT("TRUE") : TEXT("FALSE"), bScore ? TEXT("TRUE") : TEXT("FALSE"));
 					break;
 
 				case EEnvTestFilterType::Maximum:
@@ -787,23 +793,13 @@ public:
 					break;
 			}
 
-			if (!bPassedTest)
+			if (bPassedTest)
 			{
-				if (TestPurpose == EEnvTestPurpose::Score)
-				{
-					bSkipped = true;
-					NumPartialScores++;
-				}
-				else // We are filtering!
-				{
-					bPassed = false;
-				}
+				SetScoreInternal(1.0f);
+				NumPassedForItem++;
 			}
-			else
-			{
-				ItemScore += 1.0f;
-				NumPartialScores++;
-			}
+
+			NumTestsForItem++;
 		}
 
 		uint8* GetItemData()
@@ -818,7 +814,7 @@ public:
 
 		void SkipItem()
 		{
-			bSkipped++;
+			bSkipped = true;
 		}
 
 		void IgnoreTimeLimit()
@@ -849,16 +845,21 @@ public:
 	protected:
 
 		FEnvQueryInstance* Instance;
-		int32 CurrentItem;
-		int32 NumPartialScores;
 		double Deadline;
 		float ItemScore;
-		uint32 bPassed : 1;
-		uint32 bSkipped : 1;
+		int32 CurrentItem;
+		int16 NumPassedForItem;
+		int16 NumTestsForItem;
+		uint8 CachedFilterOp;
+		uint8 CachedScoreOp;
+		uint8 bPassed : 1;
+		uint8 bSkipped : 1;
+		uint8 bIsFiltering : 1;
 
 		void InitItemScore()
 		{
-			NumPartialScores = 0;
+			NumPassedForItem = 0;
+			NumTestsForItem = 0;
 			ItemScore = 0.0f;
 			bPassed = true;
 			bSkipped = false;
@@ -871,6 +872,46 @@ public:
 		{
 			for (CurrentItem++; CurrentItem < Instance->Items.Num() && !Instance->Items[CurrentItem].IsValid(); CurrentItem++)
 				;
+		}
+
+		FORCEINLINE void SetScoreInternal(float Score)
+		{
+			switch (CachedScoreOp)
+			{
+			case EEnvTestScoreOperator::AverageScore:
+				ItemScore += Score;
+				break;
+
+			case EEnvTestScoreOperator::MinScore:
+				if (!NumPassedForItem || ItemScore > Score)
+				{
+					ItemScore = Score;
+				}
+				break;
+
+			case EEnvTestScoreOperator::MaxScore:
+				if (!NumPassedForItem || ItemScore < Score)
+				{
+					ItemScore = Score;
+				}
+				break;
+			}
+		}
+
+		FORCEINLINE void CheckItemPassed()
+		{
+			if (!bIsFiltering)
+			{
+				bPassed = true;
+			}
+			else if (CachedFilterOp == EEnvTestFilterOperator::AllPass)
+			{
+				bPassed = bPassed && (NumPassedForItem == NumTestsForItem);
+			}
+			else
+			{
+				bPassed = bPassed && (NumPassedForItem > 0);
+			}
 		}
 	};
 #endif

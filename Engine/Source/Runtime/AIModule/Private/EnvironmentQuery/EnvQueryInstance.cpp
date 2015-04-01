@@ -327,6 +327,10 @@ FEnvQueryInstance::ItemIterator::ItemIterator(const UEnvQueryTest* QueryTest, FE
 	: Instance(&QueryInstance)
 	, CurrentItem(StartingItemIndex != INDEX_NONE ? StartingItemIndex : QueryInstance.CurrentTestStartingItem)
 {
+	CachedFilterOp = QueryTest ? QueryTest->MultipleContextFilterOp.GetValue() : EEnvTestFilterOperator::AllPass;
+	CachedScoreOp = QueryTest ? QueryTest->MultipleContextScoreOp.GetValue() : EEnvTestScoreOperator::AverageScore;
+	bIsFiltering = (QueryTest->TestPurpose == EEnvTestPurpose::Filter) || (QueryTest->TestPurpose == EEnvTestPurpose::FilterAndScore);
+
 	Deadline = QueryInstance.TimeLimit > 0.0 ? (FPlatformTime::Seconds() + QueryInstance.TimeLimit) : -1.0;
 	// it's possible item 'CurrentItem' has been already discarded. Find a valid starting index
 	--CurrentItem;
@@ -346,6 +350,8 @@ void FEnvQueryInstance::ItemIterator::HandleFailedTestResult()
 
 void FEnvQueryInstance::ItemIterator::StoreTestResult()
 {
+	CheckItemPassed();
+
 	if (Instance->IsInSingleItemFinalSearch())
 	{
 		// handle SingleResult mode
@@ -354,7 +360,7 @@ void FEnvQueryInstance::ItemIterator::StoreTestResult()
 			Instance->PickSingleItem(CurrentItem);
 			Instance->bFoundSingleResult = true;
 		}
-		else if (!bPassed || NumPartialScores == 0)
+		else if (!bPassed)
 		{
 			HandleFailedTestResult();
 		}
@@ -365,13 +371,13 @@ void FEnvQueryInstance::ItemIterator::StoreTestResult()
 		{
 			ItemScore = UEnvQueryTypes::SkippedItemValue;
 		}
-		else if (!bPassed || NumPartialScores == 0)
+		else if (!bPassed)
 		{
 			HandleFailedTestResult();
 		}
-		else
+		else if (CachedScoreOp == EEnvTestScoreOperator::AverageScore)
 		{
-			ItemScore /= NumPartialScores;
+			ItemScore /= NumPassedForItem;
 		}
 
 		Instance->ItemDetails[CurrentItem].TestResults[Instance->CurrentTest] = ItemScore;

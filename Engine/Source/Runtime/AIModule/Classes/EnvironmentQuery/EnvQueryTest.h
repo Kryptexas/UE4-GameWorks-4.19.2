@@ -48,6 +48,14 @@ class AIMODULE_API UEnvQueryTest : public UEnvQueryNode
 	UPROPERTY(EditDefaultsOnly, Category=Test)
 	TEnumAsByte<EEnvTestPurpose::Type> TestPurpose;
 	
+	/** Determines filtering operator when context returns multiple items */
+	UPROPERTY(EditDefaultsOnly, Category=Filter, AdvancedDisplay)
+	TEnumAsByte<EEnvTestFilterOperator::Type> MultipleContextFilterOp;
+
+	/** Determines scoring operator when context returns multiple items */
+	UPROPERTY(EditDefaultsOnly, Category = Score, AdvancedDisplay)
+	TEnumAsByte<EEnvTestScoreOperator::Type> MultipleContextScoreOp;
+
 	/** Does this test filter out results that are below a lower limit, above an upper limit, or both?  Or does it just look for a matching value? */
 	UPROPERTY(EditDefaultsOnly, Category=Filter)
 	TEnumAsByte<EEnvTestFilterType::Type> FilterType;
@@ -67,6 +75,10 @@ class AIMODULE_API UEnvQueryTest : public UEnvQueryNode
 	/** Cost of test */
 	TEnumAsByte<EEnvTestCost::Type> Cost;
 
+	/** The shape of the curve equation to apply to the normalized score before multiplying by factor. */
+	UPROPERTY(EditDefaultsOnly, Category=Score)
+	TEnumAsByte<EEnvTestScoreEquation::Type> ScoringEquation;
+
 	/** How should the lower bound for normalization of the raw test value before applying the scoring formula be determined?
 	    Should it use the lowest value found (tested), the lower threshold for filtering, or a separate specified normalization minimum? */
 	UPROPERTY(EditDefaultsOnly, Category=Score)
@@ -84,10 +96,6 @@ class AIMODULE_API UEnvQueryTest : public UEnvQueryNode
 	/** Maximum value to use to normalize the raw test value before applying scoring formula. */
 	UPROPERTY(EditDefaultsOnly, Category=Score)
 	FAIDataProviderFloatValue ScoreClampMax;
-
-	/** The shape of the curve equation to apply to the normalized score before multiplying by factor. */
-	UPROPERTY(EditDefaultsOnly, Category=Score)
-	TEnumAsByte<EEnvTestScoreEquation::Type> ScoringEquation;
 
 	/** The weight (factor) by which to multiply the normalized score after the scoring equation is applied. */
 	UPROPERTY(EditDefaultsOnly, Category=Score, Meta=(ClampMin="0.001", UIMin="0.001"))
