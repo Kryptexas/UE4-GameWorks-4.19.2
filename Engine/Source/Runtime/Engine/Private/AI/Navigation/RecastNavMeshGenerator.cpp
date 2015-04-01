@@ -1642,15 +1642,18 @@ bool FRecastTileGenerator::HasDataToBuild() const
 void FRecastTileGenerator::DoWork()
 {
 	TSharedPtr<FNavDataGenerator, ESPMode::ThreadSafe> ParentGenerator = ParentGeneratorWeakPtr.Pin();
-	FRecastNavMeshGenerator* RecastParentGenerator = static_cast<FRecastNavMeshGenerator*>(ParentGenerator.Get());
-	check(ParentGenerator.Get());
 
-	if (InclusionBounds.Num())
+	if (ParentGenerator.IsValid())
 	{
-		DoAsyncGeometryGathering();
-	}
+		FRecastNavMeshGenerator* RecastParentGenerator = static_cast<FRecastNavMeshGenerator*>(ParentGenerator.Get());
 
-	bSucceeded = GenerateTile();
+		if (InclusionBounds.Num())
+		{
+			DoAsyncGeometryGathering();
+		}
+
+		bSucceeded = GenerateTile();
+	}
 
 	DumpAsyncData();
 }
