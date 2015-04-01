@@ -23,6 +23,15 @@ UParticleSystemAuditCommandlet::UParticleSystemAuditCommandlet(const FObjectInit
 
 int32 UParticleSystemAuditCommandlet::Main(const FString& Params)
 {
+	if (!FParse::Value(*Params, TEXT("AuditOutputFolder="), AuditOutputFolder))
+	{
+		// No output folder specified. Use the default folder.
+		AuditOutputFolder = FPaths::GameSavedDir() / TEXT("Audit");
+	}
+
+	// Add a timestamp to the folder
+	AuditOutputFolder /= FDateTime::Now().ToString();
+
 	ProcessParticleSystems();
 	DumpResults();
 
@@ -582,7 +591,7 @@ void UParticleSystemAuditCommandlet::DumpResults()
 
 	// Dump out the particle systems w/ disabled LOD level mismatches...
 	const TCHAR* ConstColorScaleCountsName = TEXT("PSysConstColorScaleCounts");
-	OutputStream = GetOutputFile(TEXT("Audit"), ConstColorScaleCountsName);
+	OutputStream = GetOutputFile(ConstColorScaleCountsName);
 	if (OutputStream != NULL)
 	{
 		UE_LOG(LogParticleSystemAuditCommandlet, Log, TEXT("Dumping '%s' results..."), ConstColorScaleCountsName);
@@ -603,7 +612,7 @@ void UParticleSystemAuditCommandlet::DumpResults()
 
 	// Dump out the particle systems w/ disabled LOD level mismatches...
 	const TCHAR* LODIssuesName = TEXT("PSysLODIssues");
-	OutputStream = GetOutputFile(TEXT("Audit"), LODIssuesName);
+	OutputStream = GetOutputFile(LODIssuesName);
 	if (OutputStream != NULL)
 	{
 		UE_LOG(LogParticleSystemAuditCommandlet, Log, TEXT("Dumping '%s' results..."), LODIssuesName);
@@ -634,7 +643,7 @@ void UParticleSystemAuditCommandlet::DumpResults()
 
 	// Dump out the duplicate module findings...
 	const TCHAR* DuplicateModulesName = TEXT("PSysDuplicateModules");
-	OutputStream = GetOutputFile(TEXT("Audit"), DuplicateModulesName);
+	OutputStream = GetOutputFile(DuplicateModulesName);
 	if (OutputStream != NULL)
 	{
 		UE_LOG(LogParticleSystemAuditCommandlet, Log, TEXT("Dumping '%s' results..."), DuplicateModulesName);
@@ -670,15 +679,14 @@ bool UParticleSystemAuditCommandlet::DumpSimplePSysSet(TSet<FString>& InPSysSet,
 	return DumpSimpleSet(InPSysSet, InShortFilename, TEXT("ParticleSystem"));
 }
 
-bool UParticleSystemAuditCommandlet::DumpSimpleSet(TSet<FString>& InSet,
-	const TCHAR* InShortFilename, const TCHAR* InObjectClassName)
+bool UParticleSystemAuditCommandlet::DumpSimpleSet(TSet<FString>& InSet, const TCHAR* InShortFilename, const TCHAR* InObjectClassName)
 {
 	if (InSet.Num() > 0)
 	{
 		check(InShortFilename != NULL);
 		check(InObjectClassName != NULL);
 
-		FArchive* OutputStream = GetOutputFile(TEXT("Audit"), InShortFilename);
+		FArchive* OutputStream = GetOutputFile(InShortFilename);
 		if (OutputStream != NULL)
 		{
 			UE_LOG(LogParticleSystemAuditCommandlet, Log, TEXT("Dumping '%s' results..."), InShortFilename);
@@ -700,11 +708,9 @@ bool UParticleSystemAuditCommandlet::DumpSimpleSet(TSet<FString>& InSet,
 	return true;
 }
 
-FArchive* UParticleSystemAuditCommandlet::GetOutputFile(const TCHAR* InFolderName, const TCHAR* InShortFilename)
+FArchive* UParticleSystemAuditCommandlet::GetOutputFile(const TCHAR* InShortFilename)
 {
-	// Place in the <UE4>\<GAME>\Saved\<InFolderName> folder
-	FString Filename = FString::Printf(TEXT("%s%s/%s-%s.csv"), *FPaths::GameSavedDir(), InFolderName, InShortFilename, *FDateTime::Now().ToString());
-
+	const FString Filename = FString::Printf(TEXT("%s/%s.csv"), *AuditOutputFolder, InShortFilename);
 	FArchive* OutputStream = IFileManager::Get().CreateDebugFileWriter(*Filename);
 	if (OutputStream == NULL)
 	{

@@ -129,6 +129,9 @@ class UParticleSystemAuditCommandlet : public UCommandlet
 	UPROPERTY(config)
 	float FarLODDistanceTheshold;
 
+	/** The folder in which the commandlet's output files will be stored */
+	FString AuditOutputFolder;
+
 	/** Entry point */
 	int32 Main(const FString& Params) override;
 
@@ -166,5 +169,5 @@ class UParticleSystemAuditCommandlet : public UCommandlet
 	bool DumpSimpleSet(TSet<FString>& InSet, const TCHAR* InShortFilename, const TCHAR* InObjectClassName);
 
 	/** Gets an archive to write to an output file */
-	FArchive* GetOutputFile(const TCHAR* InFolderName, const TCHAR* InShortFilename);
+	FArchive* GetOutputFile(const TCHAR* InShortFilename);
 };
