@@ -4,6 +4,7 @@
 #include "PaperSprite.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "PaperCustomVersion.h"
+#include "PaperGeomTools.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
@@ -14,7 +15,6 @@
 #include "PhysicsEngine/BodySetup2D.h"
 #include "PaperSpriteAtlas.h"
 #include "GeomTools.h"
-#include "PaperGeomTools.h"
 #include "BitmapUtils.h"
 #include "ComponentReregisterContext.h"
 
