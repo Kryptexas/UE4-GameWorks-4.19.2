@@ -11,6 +11,7 @@ UScaleBox::UScaleBox(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bIsVariable = false;
+	Visibility = ESlateVisibility::SelfHitTestInvisible;
 
 	StretchDirection = EStretchDirection::Both;
 	Stretch = EStretch::ScaleToFit;
