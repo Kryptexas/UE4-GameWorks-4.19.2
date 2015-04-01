@@ -702,7 +702,7 @@ void UCrowdFollowingComponent::FollowPathSegment(float DeltaTime)
 
 	if (bUpdateDirectMoveVelocity)
 	{
-		const FVector CurrentTargetPt = DestinationActor->GetActorLocation();
+		const FVector CurrentTargetPt = DestinationActor.IsValid() ? DestinationActor->GetActorLocation() : GetCurrentTargetLocation();
 		const FVector AgentLoc = GetCrowdAgentLocation();
 		const FVector NewDirection = (CurrentTargetPt - AgentLoc).GetSafeNormal();
 
