@@ -2142,7 +2142,6 @@ void FSpriteGeometryCollection::ConditionGeometry()
 					Shape.SetNewPivot(A + 0.5f * (AB + BC));
 					Shape.BoxSize = FVector2D(AB.Size(), DA.Size());
 					Shape.ShapeType = ESpriteShapeType::Box;
-					//@TODO: Still need to deal with this here!
 				}
 			}
 		}
