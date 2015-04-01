@@ -211,7 +211,7 @@ FReply SGraphBar::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent&
 
 FVector2D SGraphBar::ComputeDesiredSize( float ) const
 {
-	return FVector2D( 500.0f, 50.0f );
+	return FVector2D( 8.0f, 16.0f );
 }
 
 void SGraphBar::SetEvents( const FVisualizerEventsArray& InEvents, double InStartTime, double InTotalTime )

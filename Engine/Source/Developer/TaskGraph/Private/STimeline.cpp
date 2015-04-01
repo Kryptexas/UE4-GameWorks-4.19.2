@@ -179,5 +179,5 @@ FReply STimeline::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent&
 
 FVector2D STimeline::ComputeDesiredSize( float ) const
 {
-	return FVector2D(500.0f, 50.0f);
+	return FVector2D( 8.0f, 8.0f );
 }
