@@ -183,11 +183,15 @@ namespace UnrealBuildTool
 			if( File.Exists( BatchFileName ) )
 			{
 				// Create a wrapper batch file that echoes environment variables to a text file
-				var EnvOutputFileName = Path.GetTempFileName();
-				var EnvReaderBatchFileName = EnvOutputFileName + ".bat";
-				Log.TraceVerbose( "Creating .bat file {0} for harvesting environment variables.", EnvReaderBatchFileName );
+                string EnvOutputFileName;
+                string EnvReaderBatchFileName;
+                try
+                {
+					EnvOutputFileName = Path.GetTempFileName();
+					EnvReaderBatchFileName = EnvOutputFileName + ".bat";
 
-				{
+					Log.TraceVerbose( "Creating .bat file {0} for harvesting environment variables.", EnvReaderBatchFileName );
+
 					var EnvReaderBatchFileContent = new List<string>();
 
 					// Run 'vcvars32.bat' (or similar x64 version) to set environment variables
@@ -200,7 +204,11 @@ namespace UnrealBuildTool
 					EnvReaderBatchFileContent.Add( String.Format( "\"{0}\" \"{1}\"", Path.Combine( GetExecutingAssemblyDirectory(), "EnvVarsToXML.exe" ), EnvOutputFileName ) );
 
 					ResponseFile.Create( EnvReaderBatchFileName, EnvReaderBatchFileContent );
-				}
+                }
+                catch (Exception Ex)
+                {
+                    throw new BuildException(Ex, "Failed to create temporary batch file to harvest environment variables (\"{0}\")", Ex.Message);
+                }
 
 				Log.TraceVerbose( "Finished creating .bat file.  Environment variables will be written to {0}.", EnvOutputFileName );
 
