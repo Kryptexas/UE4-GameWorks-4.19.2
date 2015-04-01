@@ -1178,6 +1178,8 @@ void UConsole::PostRender_InputLine(UCanvas* Canvas, FIntPoint UserInputLinePos)
 		ConsoleTile.SetColor( ConsoleDefs::AutocompleteBackgroundColor );
 		ConsoleTile.Texture = DefaultTexture_White->Resource;
 
+		AutoComplete.Sort();
+
 		// wasteful memory allocations but when typing in a console command this is fine
 		TArray<FString> AutoCompleteElements;
 		// to avoid memory many allocations
