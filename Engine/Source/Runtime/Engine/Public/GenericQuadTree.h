@@ -1,6 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+DEFINE_LOG_CATEGORY_STATIC(LogQuadTree, Log, Warning);
+
 template <typename ElementType, int32 NodeCapacity = 4>
 class TQuadTree
 {
@@ -15,16 +17,13 @@ public:
 	TQuadTree(const FBox2D& InBox);
 
 	/** Inserts an object of type ElementType with an associated 2D box of size Box (log n)*/
-	void Insert(const ElementType& Instance, const FBox2D& Box);
+	void Insert(const ElementType& Element, const FBox2D& Box);
 
-	/** Given a 2D box, returns an array of elements within the box. This may have duplicates based on how many quads the element overlaps*/
+	/** Given a 2D box, returns an array of elements within the box. There will not be any duplicates in the list. */
 	void GetElements(const FBox2D& Box, TArray<ElementType>& ElementsOut) const;
 
-	/** Given a 2D box, returns an array of elements within the box. The array will have no duplicates*/
-	void GetElementsUnique(const FBox2D& Box, TArray<ElementType>& ElementsOut) const;
-
 	/** Removes an object of type ElementType with an associated 2D box of size Box (log n). Does not cleanup tree*/
-	void Remove(const ElementType& Instance, const FBox2D& Box);
+	bool Remove(const ElementType& Instance, const FBox2D& Box);
 
 	/** Does a deep copy of the tree by going through and re-creating the internal data. Cheaper than re-insertion as it should be linear instead of nlogn */
 	void Duplicate(TreeType& OutDuplicate) const;
@@ -47,16 +46,6 @@ private:
 		BottomRight = 3
 	};
 
-	/** Given a 2D box, returns an array of leaf "trees" to be used for insertion,removal, etc... */
-	void GetLeaves(const FBox2D& Box, TArray<TreeType*>& Leaves);
-	void GetLeaves(const FBox2D& Box, TArray<const TreeType*>& Leaves) const;
-
-	/** Given a 2D box, return the subtrees that are touched*/
-	int32 GetQuads(const FBox2D& Box, TreeType* Quads[4]) const;
-
-	/** Split the tree into 4 sub-trees */
-	void Split();
-
 	/** Node used to hold the element and its corresponding 2D box*/
 	struct FNode
 	{
@@ -66,8 +55,8 @@ private:
 		FNode() {};
 
 		FNode(const ElementType& InElement, const FBox2D& InBox)
-		: Box(InBox)
-		, Element(InElement)
+			: Box(InBox)
+			, Element(InElement)
 		{}
 
 		friend FArchive& operator<<(FArchive& Ar, typename TQuadTree<ElementType, NodeCapacity>::FNode& Node)
@@ -76,19 +65,43 @@ private:
 		}
 	};
 
+	/** Given a 2D box, return the subtrees that are touched. Returns 0 for leaves. */
+	int32 GetQuads(const FBox2D& Box, TreeType* Quads[4]) const;
+
+	/** Split the tree into 4 sub-trees */
+	void Split();
+
+	/** Given a list of nodes, return which ones actually intersect the box */
+	void GetIntersectingElements(const FBox2D& Box, TArray/*TSet*/<ElementType>& ElementsOut) const;
+
+	/** Given a list of nodes, remove the node that contains the given element */
+	bool RemoveNodeForElement(const ElementType& Element);
+
+	/** Internal recursive implementation of @see GetElements */
+	void GetElementsRecursive(const FBox2D& Box, TArray<ElementType>& OutElementSet) const;
+
+	/** Internal recursive implementation of @see Insert */
+	void InsertElementRecursive(const ElementType& Element, const FBox2D& Box);
+
 private:
 	
-	/** Array containing the actual data. The node is used because we want to store the AABB and the element */
+	/** 
+	 * Contains the actual elements this tree is responsible for. Nodes are used to keep track of each element's AABB as well.
+	 * For a non-internal leaf, this is the list of nodes that are fully contained within this tree.
+	 * For an internal tree, this contains the nodes that overlap multiple subtrees.
+	 */
 	TArray<FNode> Nodes;
+
+	/** The sub-trees of this tree */
 	TreeType* SubTrees[4];
 
-	/** AABB of the tree*/
+	/** AABB of the tree */
 	FBox2D TreeBox;
 
 	/** Center position of the tree */
 	FVector2D Position;
 
-	/** Whether we are a leaf or an internal sub-tree */
+	/** Whether this is a leaf or an internal sub-tree */
 	bool bInternal;
 };
 
@@ -148,6 +161,7 @@ TQuadTree<ElementType, NodeCapacity>::~TQuadTree()
 	for (TreeType* SubTree : SubTrees)
 	{
 		delete SubTree;
+		SubTree = nullptr;
 	}
 }
 
@@ -183,179 +197,196 @@ void TQuadTree<ElementType, NodeCapacity>::Split()
 	SubTrees[TopRight] = new TreeType(FBox2D(C, TR));
 	SubTrees[BottomLeft] = new TreeType(FBox2D(BL, C));
 	SubTrees[BottomRight] = new TreeType(FBox2D(BM, MR));
+	
+	//mark as no longer a leaf
+	bInternal = true;
 
-	//take existing nodes and split them into new sub-trees
+	// Place existing nodes and place them into the new subtrees that contain them
+	// If a node overlaps multiple subtrees, we retain the reference to it here in this quad
+	TArray<FNode> OverlappingNodes;
 	for (const FNode& Node : Nodes)
 	{
-		TreeType* Leaves[4];
-		const int32 NumLeaves = GetQuads(Node.Box, Leaves);
-		for (int32 LeafIdx = 0; LeafIdx < NumLeaves; ++LeafIdx)
+		TreeType* Quads[4];
+		const int32 NumQuads = GetQuads(Node.Box, Quads);
+		check(NumQuads > 0);
+
+		if (NumQuads == 1)
 		{
-			Leaves[LeafIdx]->Nodes.Add(FNode(Node.Element, Node.Box));
+			Quads[0]->Nodes.Add(Node);
+		}
+		else
+		{
+			OverlappingNodes.Add(Node);
 		}
 	}
 
-	Nodes.Empty();
-	bInternal = true;	//mark as no longer a leaf
+	// Hang onto the nodes that don't fit cleanly into a single subtree
+	Nodes = OverlappingNodes;
 }
 
 template <typename ElementType, int32 NodeCapacity>
 void TQuadTree<ElementType, NodeCapacity>::Insert(const ElementType& Element, const FBox2D& Box)
 {
-	TArray<TreeType*> Leaves;
-	GetLeaves(Box, Leaves);
-	
-	for (TreeType* Leaf : Leaves)
+	if (!Box.Intersect(TreeBox))
 	{
-		check(Leaf->bInternal == false);	//make sure we only got leaves back
-		TArray<FNode>& LeafNodes = Leaf->Nodes;
+		// Elements shouldn't be added outside the bounds of the top-level quad
+		UE_LOG(LogQuadTree, Warning, TEXT("Adding element (%s) that is outside the bounds of the quadtree root (%s). Consider resizing."), *Box.ToString(), *TreeBox.ToString());
+	}
 
-		if (LeafNodes.Num() < NodeCapacity || Leaf->TreeBox.GetSize().Size() <= 1.f)	//it's possible that all elements in the leaf are bigger than the leaf, and we can get into an endless spiral of splitting
+	InsertElementRecursive(Element, Box);
+}
+
+template <typename ElementType, int32 NodeCapacity>
+void TQuadTree<ElementType, NodeCapacity>::InsertElementRecursive(const ElementType& Element, const FBox2D& Box)
+{
+	TreeType* Quads[4];
+	const int32 NumQuads = GetQuads(Box, Quads);
+	if (NumQuads == 0)
+	{
+		// This should only happen for leaves
+		check(!bInternal);
+
+		// It's possible that all elements in the leaf are bigger than the leaf or that more elements than NodeCapacity exist outside the top level quad
+		// In either case, we can get into an endless spiral of splitting
+		static const float MinimumQuadSize = 100.f;
+		const bool bCanSplitTree = TreeBox.GetSize().Size() > MinimumQuadSize;
+		if (!bCanSplitTree || Nodes.Num() < NodeCapacity)
 		{
-			LeafNodes.Add(FNode(Element, Box));
+			Nodes.Add(FNode(Element, Box));
+
+			if (!bCanSplitTree)
+			{
+				UE_LOG(LogQuadTree, Warning, TEXT("Minimum size reached for quadtree at %s. Filling beyond capacity %d to %d"), *Position.ToString(), NodeCapacity, Nodes.Num());
+			}
 		}
 		else
 		{
-			//no room so split and then try to add again
-			Leaf->Split();
-			Leaf->Insert(Element, Box);
+			// This quad is at capacity, so split and try again
+			Split();
+			InsertElementRecursive(Element, Box);
 		}
+	}
+	else if (NumQuads == 1)
+	{
+		check(bInternal);
+
+		// Fully contained in a single subtree, so insert it there
+		Quads[0]->InsertElementRecursive(Element, Box);
+	}
+	else
+	{
+		// Overlaps multiple subtrees, store here
+		check(bInternal);
+		Nodes.Add(FNode(Element, Box));
 	}
 }
 
 template <typename ElementType, int32 NodeCapacity>
-void TQuadTree<ElementType, NodeCapacity>::Remove(const ElementType& Element, const FBox2D& Box)
+bool TQuadTree<ElementType, NodeCapacity>::RemoveNodeForElement(const ElementType& Element)
 {
-	TArray<TQuadTree*> Leaves;
-	GetLeaves(Box, Leaves);
-	for (TreeType* Leaf : Leaves)
+	int32 ElementIdx = INDEX_NONE;
+	for (int32 NodeIdx = 0, NumNodes = Nodes.Num(); NodeIdx < NumNodes; ++NodeIdx)
 	{
-		int32 ElementIdx = INDEX_NONE;
-		for (int32 NodeIdx = 0, NumNodes = Leaf->Nodes.Num(); NodeIdx < NumNodes; ++NodeIdx)
+		if (Nodes[NodeIdx].Element == Element)
 		{
-			if (Leaf->Nodes[NodeIdx].Element == Element)
-			{
-				ElementIdx = NodeIdx;
-				break;
-			}
-		}
-		
-		if (ElementIdx != INDEX_NONE)
-		{
-			Leaf->Nodes.RemoveAtSwap(ElementIdx);
+			ElementIdx = NodeIdx;
+			break;
 		}
 	}
+
+	if (ElementIdx != INDEX_NONE)
+	{
+		Nodes.RemoveAtSwap(ElementIdx);
+		return true;
+	}
+
+	return false;
+}
+
+template <typename ElementType, int32 NodeCapacity>
+bool TQuadTree<ElementType, NodeCapacity>::Remove(const ElementType& Element, const FBox2D& Box)
+{
+	bool bElementRemoved = false;
+
+	TreeType* Quads[4];
+	const int32 NumQuads = GetQuads(Box, Quads);
+
+	// Remove from nodes referenced by this quad
+	bElementRemoved = RemoveNodeForElement(Element);
+
+	// Try to remove from subtrees if necessary
+	for (int32 QuadIndex = 0; QuadIndex < NumQuads && !bElementRemoved; QuadIndex++)
+	{
+		bElementRemoved = Quads[QuadIndex]->Remove(Element, Box);
+	}
+
+	return bElementRemoved;
 }
 
 template <typename ElementType, int32 NodeCapacity>
 void TQuadTree<ElementType, NodeCapacity>::GetElements(const FBox2D& Box, TArray<ElementType>& ElementsOut) const
 {
-	TArray<const TQuadTree*> Leaves;
-	GetLeaves(Box, Leaves);
-	for (const TreeType* Leaf : Leaves)
+	TreeType* Quads[4];
+	const int32 NumQuads = GetQuads(Box, Quads);
+
+	// Always include any nodes contained in this quad
+	GetIntersectingElements(Box, ElementsOut);
+
+	// As well as all relevant subtrees
+	for (int32 QuadIndex = 0; QuadIndex < NumQuads; QuadIndex++)
 	{
-		ElementsOut.Reserve(ElementsOut.Num() + Leaf->Nodes.Num());
-		for (const FNode& Node : Leaf->Nodes)
-		{
-			if (Box.Intersect(Node.Box))
-			{
-				ElementsOut.Add(Node.Element);
-			}
-		};
+		Quads[QuadIndex]->GetElements(Box, ElementsOut);
 	}
 }
 
 template <typename ElementType, int32 NodeCapacity>
-void TQuadTree<ElementType, NodeCapacity>::GetElementsUnique(const FBox2D& Box, TArray<ElementType>& ElementsOut) const
+void TQuadTree<ElementType, NodeCapacity>::GetIntersectingElements(const FBox2D& Box, TArray/*TSet*/<ElementType>& ElementsOut) const
 {
-	TSet<ElementType> Unique;
-	TArray<const TQuadTree*> Leaves;
-	GetLeaves(Box, Leaves);
-	for (const TreeType* Leaf : Leaves)
+	ElementsOut.Reserve(ElementsOut.Num() + Nodes.Num());
+	for (const FNode& Node : Nodes)
 	{
-		for (const FNode& Node : Leaf->Nodes)
+		if (Box.Intersect(Node.Box))
 		{
-			if (Box.Intersect(Node.Box))
-			{
-				Unique.Add(Node.Element);
-			}
-		};
-	}
-
-	for (ElementType Elem : Unique)
-	{
-		ElementsOut.Add(Elem);
-	}
+			check(!ElementsOut.Contains(Node.Element));
+			ElementsOut.Add(Node.Element);
+		}
+	};
 }
-
 
 template <typename ElementType, int32 NodeCapacity>
 int32 TQuadTree<ElementType, NodeCapacity>::GetQuads(const FBox2D& Box, TreeType* Quads[4]) const
 {
-	bool bNegX = Box.Min.X < Position.X;
-	bool bNegY = Box.Min.Y < Position.Y;
-
-	bool bPosX = Box.Max.X > Position.X;
-	bool bPosY = Box.Max.Y > Position.Y;
-
 	int32 QuadCount = 0;
-	if (bNegX && bNegY)
+	if (bInternal)
 	{
-		Quads[QuadCount++] = SubTrees[BottomLeft];
-	}
+		bool bNegX = Box.Min.X < Position.X;
+		bool bNegY = Box.Min.Y < Position.Y;
 
-	if (bPosX && bNegY)
-	{
-		Quads[QuadCount++] = SubTrees[BottomRight];
-	}
+		bool bPosX = Box.Max.X > Position.X;
+		bool bPosY = Box.Max.Y > Position.Y;
 
-	if (bNegX && bPosY)
-	{
-		Quads[QuadCount++] = SubTrees[TopLeft];
-	}
+		if (bNegX && bNegY)
+		{
+			Quads[QuadCount++] = SubTrees[BottomLeft];
+		}
 
-	if (bPosX && bPosY)
-	{
-		Quads[QuadCount++] = SubTrees[TopRight];
+		if (bPosX && bNegY)
+		{
+			Quads[QuadCount++] = SubTrees[BottomRight];
+		}
+
+		if (bNegX && bPosY)
+		{
+			Quads[QuadCount++] = SubTrees[TopLeft];
+		}
+
+		if (bPosX && bPosY)
+		{
+			Quads[QuadCount++] = SubTrees[TopRight];
+		}
 	}
 
 	return QuadCount;
-}
-
-template <typename ElementType, int32 NodeCapacity>
-void TQuadTree<ElementType, NodeCapacity>::GetLeaves(const FBox2D& Box, TArray<TreeType*>& LeavesOut)
-{
-	if (bInternal)
-	{
-		TreeType* UseNodes[4];
-		const int32 NumQuads = GetQuads(Box, UseNodes);
-		for (int32 NodeIdx = 0; NodeIdx < NumQuads; ++NodeIdx)
-		{
-			UseNodes[NodeIdx]->GetLeaves(Box, LeavesOut);
-		}
-	}
-	else
-	{
-		LeavesOut.Add(this);
-	}
-}
-
-template <typename ElementType, int32 NodeCapacity>
-void TQuadTree<ElementType, NodeCapacity>::GetLeaves(const FBox2D& Box, TArray<const TreeType*>& LeavesOut) const
-{
-	if (bInternal)
-	{
-		TreeType* UseNodes[4];
-		const int32 NumQuads = GetQuads(Box, UseNodes);
-		for (int32 NodeIdx = 0; NodeIdx < NumQuads; ++NodeIdx)
-		{
-			UseNodes[NodeIdx]->GetLeaves(Box, LeavesOut);
-		}
-	}
-	else
-	{
-		LeavesOut.Add(this);
-	}
 }
 
 template <typename ElementType, int32 NodeCapacity>

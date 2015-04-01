@@ -5,7 +5,7 @@
 #include "ProceduralFoliageInstance.h"
 
 FProceduralFoliageBroadphase::FProceduralFoliageBroadphase(float TileSize)
-: QuadTree(FBox2D(FVector2D(0, 0), FVector2D(TileSize, TileSize)))
+	: QuadTree(FBox2D(FVector2D(-TileSize * 0.5f, -TileSize * 0.5f), FVector2D(TileSize * 1.5, TileSize * 1.5)))
 {
 }
 
@@ -48,14 +48,14 @@ bool FProceduralFoliageBroadphase::GetOverlaps(FProceduralFoliageInstance* Insta
 
 	TArray<FProceduralFoliageInstance*> PossibleOverlaps;
 	const FBox2D AABB = GetMaxAABB(Instance);
-	QuadTree.GetElementsUnique(AABB, PossibleOverlaps);
+	QuadTree.GetElements(AABB, PossibleOverlaps);
 	Overlaps.Reserve(Overlaps.Num() + PossibleOverlaps.Num());
 	
 	for (FProceduralFoliageInstance* Overlap : PossibleOverlaps)
 	{
 		if (Overlap != Instance)
 		{
-			//We must determine if this is an overlap of shade or and overlap of collision. If both the collision overlap wins
+			//We must determine if this is an overlap of shade or an overlap of collision. If both the collision overlap wins
 			bool bCollisionOverlap = CircleOverlap(Instance->Location, ACollisionRadius, Overlap->Location, Overlap->GetCollisionRadius());
 			bool bShadeOverlap     = CircleOverlap(Instance->Location, AShadeRadius, Overlap->Location, Overlap->GetShadeRadius());
 
@@ -73,25 +73,11 @@ bool FProceduralFoliageBroadphase::GetOverlaps(FProceduralFoliageInstance* Insta
 void FProceduralFoliageBroadphase::Remove(FProceduralFoliageInstance* Instance)
 {
 	const FBox2D AABB = GetMaxAABB(Instance);
-	QuadTree.Remove(Instance, AABB);
+	const bool bRemoved = QuadTree.Remove(Instance, AABB);
+	check(bRemoved);
 }
 
 void FProceduralFoliageBroadphase::GetInstancesInBox(const FBox2D& Box, TArray<FProceduralFoliageInstance*>& Instances) const
 {
-	TArray<FProceduralFoliageInstance*> AABBInstances;
-	QuadTree.GetElementsUnique(Box, AABBInstances);
-
-	Instances.Reserve(AABBInstances.Num() + Instances.Num());
-
-	for (FProceduralFoliageInstance* Inst : AABBInstances)
-	{
-		const FVector2D Location2D(Inst->Location.X, Inst->Location.Y);
-		const FVector2D ClosestPt = Box.GetClosestPointTo(Location2D);
-		const float Radius2 = (ClosestPt - Location2D).SizeSquared();
-		const float InstRadius = Inst->GetMaxRadius();
-		if (Radius2 < InstRadius*InstRadius)
-		{
-			Instances.Add(Inst);
-		}
-	}
+	QuadTree.GetElements(Box, Instances);
 }
