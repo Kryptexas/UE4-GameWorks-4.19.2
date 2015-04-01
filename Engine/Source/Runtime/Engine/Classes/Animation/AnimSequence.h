@@ -800,12 +800,12 @@ public:
 	 * @return					true if the operation was successful.
 	 */
 	ENGINE_API bool InsertFramesToRawAnimData( int32 StartFrame, int32 EndFrame, int32 CopyFrame);
-#endif
 
 	/** 
 	 * Add validation check to see if it's being ready to play or not
 	 */
-	virtual bool IsValidToPlay() const override;
+	ENGINE_API virtual bool IsValidToPlay() const override;
+#endif
 
 private:
 	/** 

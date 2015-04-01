@@ -300,11 +300,13 @@ int32 UAnimSequence::GetNumberOfTracks() const
 	return TrackToSkeletonMapTable.Num();
 }
 
+#if WITH_EDITOR
 bool UAnimSequence::IsValidToPlay() const
 {
 	// make sure sequence length is valid and raw animation data exists, and compressed
 	return ( SequenceLength > 0.f && RawAnimationData.Num() > 0 && CompressedTrackOffsets.Num() > 0 );
 }
+#endif
 
 void UAnimSequence::PreSave()
 {
