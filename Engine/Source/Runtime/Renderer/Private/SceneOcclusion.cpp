@@ -1062,7 +1062,7 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 			if (ViewState && !View.bDisableQuerySubmissions)
 			{
 				// Depth tests, no depth writes, no color writes, opaque, solid rasterization wo/ backface culling.
-				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthFunction>::GetRHI());
+				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
 				// We only need to render the front-faces of the culling geometry (this halves the amount of pixels we touch)
 				RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI());
 				RHICmdList.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());

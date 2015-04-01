@@ -3382,7 +3382,7 @@ void SetupDepthStencil(FRHICommandListImmediate& RHICmdList, const FViewInfo& Vi
 
 		// Depth tests on, write 1 to stencil if depth test passed
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-			false,CF_DepthFunction,
+			false,CF_DepthNearOrEqual,
 			true,CF_Always,SO_Keep,SO_Keep,SO_Replace,
 			false,CF_Always,SO_Keep,SO_Keep,SO_Keep,
 			0xff,0xff
@@ -3486,7 +3486,7 @@ void RenderIrradianceCacheInterpolation(
 					{
 						// Depth tests enabled, pass stencil test if stencil is zero
 						RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-							false,CF_DepthFunction,
+							false,CF_DepthNearOrEqual,
 							true,CF_Equal,SO_Keep,SO_Keep,SO_Keep,
 							false,CF_Always,SO_Keep,SO_Keep,SO_Keep,
 							0xff,0xff
@@ -3495,7 +3495,7 @@ void RenderIrradianceCacheInterpolation(
 					else
 					{
 						// Depth tests enabled
-						RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthFunction>::GetRHI());
+						RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
 					}
 				}
 				else if (GAOInterpolationStencilTesting)

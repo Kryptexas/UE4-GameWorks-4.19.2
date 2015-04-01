@@ -426,7 +426,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 
 	// Derive the view's near clipping distance and plane.
 	// The GetFrustumFarPlane() is the near plane because of reverse Z projection.
-	checkf(RHIHasInvertedZBuffer(), TEXT("Fix Near Clip distance!"));
+	static_assert((int32)ERHIZBuffer::IsInverted != 0, "Fix Near Clip distance!");
 	bHasNearClippingPlane = ViewProjectionMatrix.GetFrustumFarPlane(NearClippingPlane);
 	if(ViewMatrices.ProjMatrix.M[2][3] > DELTA)
 	{

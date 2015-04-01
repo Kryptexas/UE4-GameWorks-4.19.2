@@ -673,7 +673,7 @@ void SetBoundingGeometryRasterizerAndDepthState(FRHICommandList& RHICmdList, con
 	RHICmdList.SetDepthStencilState(
 		bCameraInsideLightGeometry
 		? TStaticDepthStencilState<false,CF_Always>::GetRHI()
-		: TStaticDepthStencilState<false,CF_DepthFunction>::GetRHI()
+		: TStaticDepthStencilState<false,CF_DepthNearOrEqual>::GetRHI()
 		);
 }
 

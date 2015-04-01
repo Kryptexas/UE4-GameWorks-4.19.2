@@ -331,7 +331,7 @@ FMatrix FCanvas::CalcProjectionMatrix(uint32 ViewSizeX, uint32 ViewSizeY, float 
 	// convert FOV to randians
 	float FOVRad = fFOV * (float)PI / 360.0f;
 	// project based on the FOV and near plane given
-	if (RHIHasInvertedZBuffer())
+	if ((int32)ERHIZBuffer::IsInverted != 0)
 	{
 		return AdjustProjectionMatrixForRHI(
 			FReversedZPerspectiveMatrix(

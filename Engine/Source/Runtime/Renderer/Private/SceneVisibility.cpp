@@ -564,7 +564,7 @@ static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* S
 						else if (!View.IsPerspectiveProjection())
 						{
 							// Transform parallel near plane
-							checkf(RHIHasInvertedZBuffer(), TEXT("Check equation for culling!"));
+							static_assert((int32)ERHIZBuffer::IsInverted != 0, "Check equation for culling!");
 							bAllowBoundsTest = View.WorldToScreen(OcclusionBounds.Origin).Z - View.ViewMatrices.ProjMatrix.M[2][2] * OcclusionBounds.SphereRadius < 1;
 						}
 						else

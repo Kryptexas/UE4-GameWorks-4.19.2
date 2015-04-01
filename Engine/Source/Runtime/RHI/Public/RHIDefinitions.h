@@ -78,10 +78,13 @@ enum { MaxSimultaneousUAVs = 8 };
 enum class ERHIZBuffer
 {
 	// Before changing this, make sure all math & shader assumptions are correct! Also wrap your C++ assumptions with
-	//		static_assert(FViewMatrices::IsInvertedZBuffer(), ...);
+	//		static_assert(ERHIZBuffer::IsInvertedZBuffer(), ...);
 	// Shader-wise, make sure to update Definitions.usf, HAS_INVERTED_Z_BUFFER
 	FarPlane = 0,
 	NearPlane = 1,
+
+	// 'bool' for knowing if the API is using Inverted Z buffer
+	IsInverted = (int32)((int32)ERHIZBuffer::FarPlane < (int32)ERHIZBuffer::NearPlane),
 };
 
 /**
@@ -168,9 +171,11 @@ enum ECompareFunction
 	CF_Never,
 	CF_Always,
 
-	CF_DepthFunction = ((int32)ERHIZBuffer::NearPlane < (int32)ERHIZBuffer::FarPlane) ? CF_LessEqual : CF_GreaterEqual,
-	CF_DepthFunctionNonInclusive = ((int32)ERHIZBuffer::NearPlane < (int32)ERHIZBuffer::FarPlane) ? CF_Less : CF_Greater,
-	CF_DepthFunctionReject = ((int32)ERHIZBuffer::NearPlane < (int32)ERHIZBuffer::FarPlane) ? CF_Greater : CF_Less,
+	// Utility enumerations
+	CF_DepthNearOrEqual		= (((int32)ERHIZBuffer::IsInverted != 0) ? CF_GreaterEqual : CF_LessEqual),
+	CF_DepthNear				= (((int32)ERHIZBuffer::IsInverted != 0) ? CF_Greater : CF_Less),
+	CF_DepthFartherOrEqual	= (((int32)ERHIZBuffer::IsInverted != 0) ? CF_LessEqual : CF_GreaterEqual),
+	CF_DepthFarther			= (((int32)ERHIZBuffer::IsInverted != 0) ? CF_Less : CF_Greater),
 };
 
 enum EStencilOp
@@ -720,11 +725,6 @@ inline bool RHISupportsGeometryShaders(const EShaderPlatform Platform)
 inline bool RHIHasTiledGPU(const EShaderPlatform Platform)
 {
 	return Platform == SP_METAL_MRT|| Platform == SP_METAL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES2;
-}
-
-static inline CONSTEXPR bool RHIHasInvertedZBuffer()
-{
-	return (int32)ERHIZBuffer::FarPlane < (int32)ERHIZBuffer::NearPlane;
 }
 
 inline uint32 GetFeatureLevelMaxTextureSamplers(ERHIFeatureLevel::Type FeatureLevel)

@@ -220,7 +220,7 @@ FRasterizerStateRHIParamRef GetStaticRasterizerState(ERasterizerFillMode FillMod
  */
 template<
 	bool bEnableDepthWrite = true,
-	ECompareFunction DepthTest = CF_DepthFunction,
+	ECompareFunction DepthTest = CF_DepthNearOrEqual,
 	bool bEnableFrontFaceStencil = false,
 	ECompareFunction FrontFaceStencilTest = CF_Always,
 	EStencilOp FrontFaceStencilFailStencilOp = SO_Keep,

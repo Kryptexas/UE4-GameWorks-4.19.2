@@ -27,7 +27,7 @@ static void SetTranslucentRenderTargetAndState(FRHICommandList& RHICmdList, cons
 	if (bSetupTranslucentState)
 	{
 		// Enable depth test, disable depth writes.
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthFunction>::GetRHI());
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
 	}
 }
 
@@ -418,7 +418,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 			}
 			else
 			{
-				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_DepthFunction,true,CF_Always,SO_Keep,SO_Keep,SO_Replace>::GetRHI(), 1);
+				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_DepthNearOrEqual,true,CF_Always,SO_Keep,SO_Keep,SO_Replace>::GetRHI(), 1);
 			}
 		}
 		else if( bDisableDepthTest )
@@ -450,7 +450,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 		if (bDisableDepthTest || bEnableResponsiveAA)
 		{
 			// Restore default depth state
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_DepthFunction>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_DepthNearOrEqual>::GetRHI());
 		}
 
 		bDirty = true;
@@ -1066,7 +1066,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 				{
 					if (bSetupTranslucency)
 					{
-						RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthFunction>::GetRHI());
+						RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
 					}
 
 					View.TranslucentPrimSet.DrawPrimitives(RHICmdList, View, *this, true);

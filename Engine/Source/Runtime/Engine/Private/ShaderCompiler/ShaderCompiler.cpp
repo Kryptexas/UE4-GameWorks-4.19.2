@@ -2195,7 +2195,7 @@ void GlobalBeginCompileShader(
 		}
 	}
 
-	Input.Environment.SetDefine(TEXT("HAS_INVERTED_Z_BUFFER"), RHIHasInvertedZBuffer() ? 1 : 0);
+	Input.Environment.SetDefine(TEXT("HAS_INVERTED_Z_BUFFER"), ((int32)ERHIZBuffer::IsInverted != 0) ? 1 : 0);
 
 	{
 		FString ShaderPDBRoot;

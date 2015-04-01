@@ -202,7 +202,7 @@ FSceneRenderer* FScene::CreateSceneRenderer( USceneCaptureComponent* SceneCaptur
 			YAxisMultiplier = 1.0f;
 		}
 
-		if (RHIHasInvertedZBuffer())
+		if ((int32)ERHIZBuffer::IsInverted != 0)
 		{
 			ViewInitOptions.ProjectionMatrix = FReversedZPerspectiveMatrix(
 				FOV,
