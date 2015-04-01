@@ -49,6 +49,9 @@ struct FPaperCustomVersion
 		// Fix incorrect collision geometry generation when sprites were rotated in the source texture
 		FixIncorrectCollisionOnSourceRotatedSprites = 13,
 
+		// Refactor sprite render/collision polygon storage to allow more flexible geometry shapes
+		RefactorPolygonStorageToSupportShapes = 14,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

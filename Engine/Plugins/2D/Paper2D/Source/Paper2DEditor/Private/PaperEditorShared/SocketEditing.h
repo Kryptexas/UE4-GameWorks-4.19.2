@@ -5,22 +5,6 @@
 #include "AssetEditorSelectedItem.h"
 
 //////////////////////////////////////////////////////////////////////////
-// HSpriteSelectableObjectHitProxy
-
-struct HSpriteSelectableObjectHitProxy : public HHitProxy
-{
-	DECLARE_HIT_PROXY(PAPER2DEDITOR_API);
-
-	TSharedPtr<FSelectedItem> Data;
-
-	HSpriteSelectableObjectHitProxy(TSharedPtr<FSelectedItem> InData)
-		: HHitProxy(HPP_UI)
-		, Data(InData)
-	{
-	}
-};
-
-//////////////////////////////////////////////////////////////////////////
 // FSpriteSelectedSocket
 
 class FSpriteSelectedSocket : public FSelectedItem

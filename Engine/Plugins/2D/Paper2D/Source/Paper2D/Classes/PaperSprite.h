@@ -136,7 +136,7 @@ protected:
 
 	// Custom collision geometry polygons (in texture space)
 	UPROPERTY(Category=Collision, EditAnywhere)
-	FSpritePolygonCollection CollisionGeometry;
+	FSpriteGeometryCollection CollisionGeometry;
 
 	// The extrusion thickness of collision geometry when using a 3D collision domain
 	UPROPERTY(Category=Collision, EditAnywhere)
@@ -144,7 +144,7 @@ protected:
 
 	// Custom render geometry polygons (in texture space)
 	UPROPERTY(Category=Rendering, EditAnywhere)
-	FSpritePolygonCollection RenderGeometry;
+	FSpriteGeometryCollection RenderGeometry;
 
 	// Spritesheet group that this sprite belongs to
 	UPROPERTY(Category=Sprite, EditAnywhere, AssetRegistrySearchable)
@@ -204,17 +204,22 @@ public:
 
 	void ExtractSourceRegionFromTexturePoint(const FVector2D& Point);
 
+	// Evaluates the SourceUV/SourceDimensons rectangle, finding the tightest bounds that still include all pixels with alpha above AlphaThreshold.
+	// The output box position is the top left corner of the box, not the center.
 	void FindTextureBoundingBox(float AlphaThreshold, /*out*/ FVector2D& OutBoxPosition, /*out*/ FVector2D& OutBoxSize);
+
 	static void FindContours(const FIntPoint& ScanPos, const FIntPoint& ScanSize, float AlphaThreshold, float Detail, UTexture2D* Texture, TArray< TArray<FIntPoint> >& OutPoints);
 	static void ExtractRectsFromTexture(UTexture2D* Texture, TArray<FIntRect>& OutRects);
-	void BuildGeometryFromContours(FSpritePolygonCollection& GeomOwner);
+	void BuildGeometryFromContours(FSpriteGeometryCollection& GeomOwner);
 
-	void BuildBoundingBoxCollisionData(bool bUseTightBounds);
-	void BuildCustomCollisionData();
+	void ConvertGeometryToCollisionData();
+	void AddPolygonCollisionShapesToBodySetup();
+	void AddBoxCollisionShapesToBodySetup();
+	void AddCircleCollisionShapesToBodySetup();
 
-	void CreatePolygonFromBoundingBox(FSpritePolygonCollection& GeomOwner, bool bUseTightBounds);
 
-	void Triangulate(const FSpritePolygonCollection& Source, TArray<FVector2D>& Target);
+
+	void CreatePolygonFromBoundingBox(FSpriteGeometryCollection& GeomOwner, bool bUseTightBounds);
 
 	// Reinitializes this sprite (NOTE: Does not register existing components in the world)
 	void InitializeSprite(const FSpriteAssetInitParameters& InitParams);
@@ -305,6 +310,7 @@ public:
 	friend class FSpriteEditorViewportClient;
 	friend class FSpriteDetailsCustomization;
 	friend class FSpriteSelectedVertex;
+	friend class FSpriteSelectedShape;
 	friend class FSpriteSelectedEdge;
 	friend class FSpriteSelectedSourceRegion;
 	friend struct FPaperAtlasGenerator;

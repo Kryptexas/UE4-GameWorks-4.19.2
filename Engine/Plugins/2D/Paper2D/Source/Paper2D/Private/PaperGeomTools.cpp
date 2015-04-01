@@ -414,7 +414,7 @@ void PaperGeomTools::CorrectPolygonWinding(TArray<FVector2D>& OutVertices, const
 			// Reverse vertices
 			for (int32 VertexIndex = Vertices.Num() - 1; VertexIndex >= 0; --VertexIndex)
 			{
-				new (OutVertices)FVector2D(Vertices[VertexIndex]);
+				new (OutVertices) FVector2D(Vertices[VertexIndex]);
 			}
 		}
 		else
@@ -422,7 +422,7 @@ void PaperGeomTools::CorrectPolygonWinding(TArray<FVector2D>& OutVertices, const
 			// Copy vertices
 			for (int32 VertexIndex = 0; VertexIndex < Vertices.Num(); ++VertexIndex)
 			{
-				new (OutVertices)FVector2D(Vertices[VertexIndex]);
+				new (OutVertices) FVector2D(Vertices[VertexIndex]);
 			}
 		}
 	}
@@ -654,7 +654,7 @@ void PaperGeomTools::RemoveRedundantTriangles(TArray<FVector2D>& OutTriangles, c
 	TArray<FLocalTriangle> Triangles;
 	for (int32 TriangleVertexIndex = 0; TriangleVertexIndex < InTriangleVertices.Num(); TriangleVertexIndex += 3)
 	{
-		FLocalTriangle* NewTriangle = new(Triangles)FLocalTriangle();
+		FLocalTriangle* NewTriangle = new (Triangles) FLocalTriangle();
 		NewTriangle->VertexA = TriangleVertexIndex + 0;
 		NewTriangle->VertexB = TriangleVertexIndex + 1;
 		NewTriangle->VertexC = TriangleVertexIndex + 2;
@@ -693,16 +693,6 @@ void PaperGeomTools::RemoveRedundantTriangles(TArray<FVector2D>& OutTriangles, c
 // Find convex polygons from triangle soup
 void PaperGeomTools::GenerateConvexPolygonsFromTriangles(TArray<TArray<FVector2D>>& OutPolygons, const TArray<FVector2D>& InTriangleVertices)
 {
-	// Test: Return input triangles in exactly the same format
-	//for (int32 TriangleVertexIndex = 0; TriangleVertexIndex < InTriangleVertices.Num(); TriangleVertexIndex += 3)
-	//{
-	//	TArray<FVector2D>& Poly = *(new(OutPolygons)TArray<FVector2D>());
-	//	Poly.Add(InTriangleVertices[TriangleVertexIndex + 0]);
-	//	Poly.Add(InTriangleVertices[TriangleVertexIndex + 1]);
-	//	Poly.Add(InTriangleVertices[TriangleVertexIndex + 2]);
-	//}
-	//return;
-
 	struct FLocalTriangle
 	{
 		int VertexA, VertexB, VertexC;
@@ -711,7 +701,7 @@ void PaperGeomTools::GenerateConvexPolygonsFromTriangles(TArray<TArray<FVector2D
 	TArray<FLocalTriangle> Triangles;
 	for (int32 TriangleVertexIndex = 0; TriangleVertexIndex < InTriangleVertices.Num(); TriangleVertexIndex += 3)
 	{
-		FLocalTriangle* NewTriangle = new(Triangles)FLocalTriangle();
+		FLocalTriangle* NewTriangle = new (Triangles) FLocalTriangle();
 		NewTriangle->VertexA = TriangleVertexIndex + 0;
 		NewTriangle->VertexB = TriangleVertexIndex + 1;
 		NewTriangle->VertexC = TriangleVertexIndex + 2;

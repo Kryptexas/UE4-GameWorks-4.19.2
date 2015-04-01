@@ -4,29 +4,116 @@
 
 #include "SpriteEditorOnlyTypes.generated.h"
 
-// A single polygon, may be convex or concave, etc...
-// bNegativeWinding tells us if the winding should be negative (CW) regardless of the order in Vertices
+// The type of a shape in a sprite geometry structure
+UENUM()
+enum class ESpriteShapeType : uint8
+{
+	// Box/Rectangular prism (size defined by BoxSize)
+	Box,
+
+	// Circle/Sphere (major axis is defined by BoxSize.X, minor axis by BoxSize.Y)
+	Circle,
+
+	// Custom closed polygon
+	Polygon
+};
+
+// A single piece of geometry (e.g., a polygon which may be convex or concave, a box, or a circle)
 USTRUCT()
-struct FSpritePolygon
+struct PAPER2D_API FSpriteGeometryShape
 {
 	GENERATED_USTRUCT_BODY()
 
-	FSpritePolygon() 
-	: bNegativeWinding(false)
+	FSpriteGeometryShape()
+		: ShapeType(ESpriteShapeType::Box)
+		, BoxSize(ForceInitToZero)
+		, BoxPosition(ForceInitToZero)
+		, Rotation(0.0f)
+		, bNegativeWinding(false)
+
 	{
 	}
 
+	// The type of this piece of geometry
+	UPROPERTY(Category=Physics, VisibleAnywhere)
+	ESpriteShapeType ShapeType;
+
+	// Vertices for the polygon (valid for Box and Polygon, but empty for Circle)
 	UPROPERTY(Category=Physics, EditAnywhere)
 	TArray<FVector2D> Vertices;
 
-	UPROPERTY()//Category=Physics, EditAnywhere)
+	// Size of the box or major/minor dimensions of the circle
+	// Note: Only valid when GeometryType is Box or Circle
+	UPROPERTY(Category=Physics, VisibleAnywhere)
 	FVector2D BoxSize;
 	
-	UPROPERTY()//Category=Physics, EditAnywhere)
+	// Center of the box or circle, acts as the pivot point for polygons (but may not be at the center of them)
+	UPROPERTY(Category=Physics, VisibleAnywhere)
 	FVector2D BoxPosition;
 
-	UPROPERTY()
+	// Rotation of the shape (in degrees)
+	UPROPERTY(Category=Physics, VisibleAnywhere)
+	float Rotation;
+
+	// For Polygon geometry, this tells us if the winding should be negative (CW) regardless of the order in Vertices
+	UPROPERTY(Category=Physics, VisibleAnywhere)
 	bool bNegativeWinding;
+
+public:
+	// Is this shape valid (e.g., at least 3 vertices for a polygon)?
+	bool IsShapeValid() const
+	{
+		return (ShapeType != ESpriteShapeType::Polygon) || (Vertices.Num() > 2);
+	}
+
+	FVector2D ConvertTextureSpaceToShapeSpace(const FVector2D& TextureSpacePoint) const
+	{
+		return (TextureSpacePoint - BoxPosition).GetRotated(Rotation);
+	}
+
+	FVector2D ConvertShapeSpaceToTextureSpace(const FVector2D& ShapeSpacePoint) const
+	{
+		return ShapeSpacePoint.GetRotated(-Rotation) + BoxPosition;
+	}
+
+	FVector2D GetPolygonCentroid() const
+	{
+		FVector2D LocalSpaceResult = FVector2D::ZeroVector;
+
+		for (const FVector2D& Vertex : Vertices)
+		{
+			LocalSpaceResult += Vertex;
+		}
+
+		if (Vertices.Num() > 0)
+		{
+			LocalSpaceResult *= 1.0f / Vertices.Num();
+		}
+
+		return ConvertShapeSpaceToTextureSpace(LocalSpaceResult);
+	}
+
+	void GetTextureSpaceVertices(TArray<FVector2D>& InOutVertices) const
+	{
+		InOutVertices.Reserve(InOutVertices.Num() + Vertices.Num());
+		for (const FVector2D& Vertex : Vertices)
+		{
+			InOutVertices.Add(ConvertShapeSpaceToTextureSpace(Vertex));
+		}
+	}
+
+	// Sets a new pivot and adjusts all vertices to be relative to it
+	void SetNewPivot(const FVector2D& NewPosInTextureSpace)
+	{
+		const FVector2D DeltaTexturePos = NewPosInTextureSpace - BoxPosition;
+		for (FVector2D& Vertex : Vertices)
+		{
+			const FVector2D NewVertexPosTS = ConvertShapeSpaceToTextureSpace(Vertex) + DeltaTexturePos;
+			Vertex = ConvertTextureSpaceToShapeSpace(NewVertexPosTS);
+		}
+
+		BoxPosition = NewPosInTextureSpace;
+	}
 };
 
 
@@ -42,9 +129,6 @@ namespace ESpritePolygonMode
 		// Tighten the bounding box around the sprite to exclude fully transparent areas (the default)
 		TightBoundingBox,
 
-		// Bounding box that can be edited explicitly
-		//CustomBox,
-
 		// Shrink-wrapped geometry
 		ShrinkWrapped,
 
@@ -56,38 +140,16 @@ namespace ESpritePolygonMode
 	};
 }
 
-// Method of specifying polygons for a sprite's render or collision data
-UENUM()
-namespace ESpriteSubdivisionMode
-{
-	enum Type
-	{
-		// Don't subdivide this sprite
-		NotSubdivided,
-
-		// Subdivide the sprite, 
-		SubdivideAutomatic,
-
-		// Bounding box that can be edited explicitly
-		SubdivideManually,
-
-		// Shrink-wrapped geometry
-		ShrinkWrapped,
-
-		// Fully custom geometry; edited by hand
-		FullyCustom,
-	};
-}
-
 USTRUCT()
-struct FSpritePolygonCollection
+struct PAPER2D_API FSpriteGeometryCollection
 {
 	GENERATED_USTRUCT_BODY()
 
+	// List of shapes
 	UPROPERTY(Category=PolygonData, EditAnywhere, AdvancedDisplay)
-	TArray<FSpritePolygon> Polygons;
+	TArray<FSpriteGeometryShape> Shapes;
 
-	// The geometry type
+	// The geometry type (automatic / manual)
 	UPROPERTY(Category=PolygonData, EditAnywhere)
 	TEnumAsByte<ESpritePolygonMode::Type> GeometryType;
 
@@ -115,7 +177,8 @@ struct FSpritePolygonCollection
 	UPROPERTY(Category=PolygonData, EditAnywhere, AdvancedDisplay)
 	float SimplifyEpsilon;
 
-	FSpritePolygonCollection()
+public:
+	FSpriteGeometryCollection()
 		: GeometryType(ESpritePolygonMode::TightBoundingBox)
 		, PixelsPerSubdivisionX(32)
 		, PixelsPerSubdivisionY(32)
@@ -126,22 +189,19 @@ struct FSpritePolygonCollection
 	{
 	}
 
-	void AddRectanglePolygon(FVector2D Position, FVector2D Size)
-	{
-		FSpritePolygon& Poly = *new (Polygons) FSpritePolygon();
-		new (Poly.Vertices) FVector2D(Position.X, Position.Y);
-		new (Poly.Vertices) FVector2D(Position.X + Size.X, Position.Y);
-		new (Poly.Vertices) FVector2D(Position.X + Size.X, Position.Y + Size.Y);
-		new (Poly.Vertices) FVector2D(Position.X, Position.Y + Size.Y);
-		Poly.BoxSize = Size;
-		Poly.BoxPosition = Position;
-	}
+	void AddRectangleShape(FVector2D Position, FVector2D Size);
+	void AddCircleShape(FVector2D Position, FVector2D Size);
 
-	void Reset()
-	{
-		Polygons.Empty();
-		GeometryType = ESpritePolygonMode::TightBoundingBox;
-	}
+	// Empties this geometry collection, resetting the GeometryType to TightBoundingBox
+	void Reset();
+
+	// Conditions this geometry collection (turning Polygons back to Boxes if they meet the definition of a box, etc...)
+	void ConditionGeometry();
+
+	// Takes all polygon shapes and generates a list of triangles from them.
+	// Output will contain a multiple of 3 points, each set is one triangle.
+	// Always ignores circles, but can include or ignore boxes based on bIncludeBoxes.
+	void Triangulate(TArray<FVector2D>& Target, bool bIncludeBoxes);
 };
 
 USTRUCT()
@@ -204,3 +264,10 @@ namespace ESpritePivotMode
 		Custom
 	};
 }
+
+// Allow the old name to continue to work for one release
+DEPRECATED(4.7, "FSpritePolygon has been renamed to FSpriteGeometryShape")
+typedef FSpriteGeometryShape FSpritePolygon;
+
+DEPRECATED(4.7, "FSpritePolygon has been renamed to FSpriteGeometryShape")
+typedef FSpriteGeometryCollection FSpritePolygonCollection;

@@ -11,6 +11,7 @@
 #include "ScopedTransaction.h"
 #include "SpriteEditorSelections.h"
 #include "AssetData.h"
+#include "PaperEditorShared/SpriteGeometryEditing.h"
 
 //////////////////////////////////////////////////////////////////////////
 // 
@@ -40,7 +41,7 @@ struct FRelatedSprite
 //////////////////////////////////////////////////////////////////////////
 // FSpriteEditorViewportClient
 
-class FSpriteEditorViewportClient : public FPaperEditorViewportClient
+class FSpriteEditorViewportClient : public FPaperEditorViewportClient, public ISpriteSelectionContext
 {
 public:
 	/** Constructor */
@@ -69,6 +70,13 @@ public:
 	virtual ECoordSystem GetWidgetCoordSystemSpace() const;
 	virtual FLinearColor GetBackgroundColor() const override;
 	// End of FEditorViewportClient interface
+
+	// ISpriteSelectionContext interface
+	virtual FVector2D SelectedItemConvertWorldSpaceDeltaToLocalSpace(const FVector& WorldSpaceDelta) const override;
+	virtual FVector TextureSpaceToWorldSpace(const FVector2D& SourcePoint) const override;
+	virtual bool SelectedItemIsSelected(const struct FShapeVertexPair& Item) const override;
+	virtual float SelectedItemGetUnitsPerPixel() const override;
+	// End of ISpriteSelectionContext interface
 
 	// Process marquee selection, return true of a selection has been performed
 	bool ProcessMarquee(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, bool bMarqueeStartModifierPressed);
@@ -113,7 +121,12 @@ public:
 	void SplitEdge();
 	bool CanSplitEdge() const { return IsEditingGeometry(); } //@TODO: Need an edge
 
-	void ResetAddPolyonMode() { bIsAddingPolygon = false; }
+	void AddBoxShape();
+	bool CanAddBoxShape() const;
+	void AddCircleShape();
+	bool CanAddCircleShape() const;
+
+	void ResetAddPolygonMode() { bIsAddingPolygon = false; }
 	void ToggleAddPolygonMode();
 	bool IsAddingPolygon() const { return bIsAddingPolygon; }
 	bool CanAddPolygon() const { return IsEditingGeometry(); }
@@ -161,11 +174,11 @@ private:
 	// Pointer back to the sprite editor viewport control that owns us
 	TWeakPtr<class SSpriteEditorViewport> SpriteEditorViewportPtr;
 
-	// Selection set of vertices
-	TSet< TSharedPtr<FSelectedItem> > SelectionSet;
+	// Set of selected objects
+	TSet< TSharedPtr<FSelectedItem> > SelectedItemSet;
 
-	// Set of selected vertices
-	TSet<int32> SelectedVertexSet;
+	// Set of selected vertices/shapes
+	TSet<FShapeVertexPair> SelectedIDSet;
 
 	// The current transaction for undo/redo
 	class FScopedTransaction* ScopedTransaction;
@@ -192,15 +205,17 @@ private:
 	bool bIsAddingPolygon;
 
 	// The polygon index being added to, -1 if we don't have a polygon yet
-	int AddingPolygonIndex;
+	int32 AddingPolygonIndex;
 
 	// Marquee tracking
 	bool bIsMarqueeTracking;
 	FVector2D MarqueeStartPos, MarqueeEndPos;
 
-	// Other sprites
+	// Other sprites that share the same source texture
 	TArray<FRelatedSprite> RelatedSprites;
 
+	// Sprite geometry editing/rendering helper
+	FSpriteGeometryEditingHelper SpriteGeometryHelper;
 private:
 	UPaperSprite* GetSpriteBeingEdited() const
 	{
@@ -208,7 +223,6 @@ private:
 	}
 
 	FVector2D TextureSpaceToScreenSpace(const FSceneView& View, const FVector2D& SourcePoint) const;
-	FVector TextureSpaceToWorldSpace(const FVector2D& SourcePoint) const;
 
 	// Position relative to source texture (ignoring rotation and other transformations applied to extract the sprite)
 	FVector2D SourceTextureSpaceToScreenSpace(const FSceneView& View, const FVector2D& SourcePoint) const;
@@ -216,8 +230,10 @@ private:
 
 	void DrawTriangleList(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const TArray<FVector2D>& Triangles);
 	void DrawBoundsAsText(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, int32& YPos);
-	void DrawGeometry(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FSpritePolygonCollection& Geometry, const FLinearColor& GeometryVertexColor, const FLinearColor& NegativeGeometryVertexColor, bool bIsRenderGeometry);
-	void DrawGeometryStats(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FSpritePolygonCollection& Geometry, bool bIsRenderGeometry, int32& YPos);
+	void DrawGeometry_CanvasPass(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, FSpriteGeometryCollection& Geometry, const FLinearColor& GeometryVertexColor, const FLinearColor& NegativeGeometryVertexColor, bool bIsRenderGeometry);
+
+	static void DrawGeometryStats(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FSpriteGeometryCollection& Geometry, bool bIsRenderGeometry, int32& YPos);
+	static void DrawCollisionStats(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, class UBodySetup* BodySetup, int32& YPos);
 	void DrawRenderStats(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, class UPaperSprite* Sprite, int32& YPos);
 	void DrawSourceRegion(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FLinearColor& GeometryVertexColor);
 	void DrawRelatedSprites(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FLinearColor& GeometryVertexColor);
@@ -229,11 +245,22 @@ private:
 	void UpdateSourceTextureSpriteFromSprite(UPaperSprite* SourceSprite);
 	
 	// Selection handling
-	void SelectPolygon(const int32 PolygonIndex);
-	void AddPolygonVertexToSelection(const int32 PolygonIndex, const int32 VertexIndex);
-	void AddPolygonEdgeToSelection(const int32 PolygonIndex, const int32 FirstVertexIndex);
+
+	// Selects a shape in the geometry for currently selected mode
+	void SelectShape(const int32 ShapeIndex);
+
+	// Indicates if the specified shape is currently selected
+	bool IsShapeSelected(const int32 ShapeIndex) const;
+
+
+	void AddPolygonEdgeToSelection(const int32 ShapeIndex, const int32 FirstVertexIndex);
+
+	void AddPolygonVertexToSelection(const int32 ShapeIndex, const int32 VertexIndex);
+
+	// Indicates if the specified vertex is selected
 	bool IsPolygonVertexSelected(const int32 PolygonIndex, const int32 VertexIndex) const;
-	void AddPointToGeometry(const FVector2D& TextureSpacePoint, const int32 SelectedPolygonIndex = -1);
+
+	void AddPointToGeometry(const FVector2D& TextureSpacePoint, const int32 SelectedPolygonIndex = INDEX_NONE);
 	void ClearSelectionSet();
 
 
@@ -245,5 +272,5 @@ private:
 	void InternalActivateNewMode(ESpriteEditorMode::Type NewMode);
 
 	// Can return null
-	FSpritePolygonCollection* GetGeometryBeingEdited() const;
+	FSpriteGeometryCollection* GetGeometryBeingEdited() const;
 };

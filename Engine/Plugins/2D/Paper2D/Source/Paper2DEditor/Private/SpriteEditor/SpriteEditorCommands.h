@@ -47,6 +47,8 @@ public:
 	// Geometry editing commands
 	TSharedPtr<FUICommandInfo> DeleteSelection;
 	TSharedPtr<FUICommandInfo> SplitEdge;
+	TSharedPtr<FUICommandInfo> AddBoxShape;
+	TSharedPtr<FUICommandInfo> AddCircleShape;
 	TSharedPtr<FUICommandInfo> ToggleAddPolygonMode;
 	TSharedPtr<FUICommandInfo> SnapAllVertices;
 };

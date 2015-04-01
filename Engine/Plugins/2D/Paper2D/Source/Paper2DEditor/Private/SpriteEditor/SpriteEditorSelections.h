@@ -10,12 +10,25 @@
 class FSelectionTypes
 {
 public:
+	static const FName GeometryShape;
 	static const FName Vertex;
 	static const FName Edge;
 	static const FName Pivot;
 	static const FName SourceRegion;
 private:
 	FSelectionTypes() {}
+};
+
+//////////////////////////////////////////////////////////////////////////
+// ISpriteSelectionContext
+
+class ISpriteSelectionContext
+{
+public:
+	virtual FVector2D SelectedItemConvertWorldSpaceDeltaToLocalSpace(const FVector& WorldSpaceDelta) const = 0;
+	virtual FVector TextureSpaceToWorldSpace(const FVector2D& SourcePoint) const = 0;
+	virtual bool SelectedItemIsSelected(const struct FShapeVertexPair& Item) const = 0;
+	virtual float SelectedItemGetUnitsPerPixel() const = 0;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -193,13 +206,47 @@ public:
 
 
 //////////////////////////////////////////////////////////////////////////
+// FSpriteSelectedShape
+
+class FSpriteSelectedShape : public FSelectedItem
+{
+public:
+	// The editor context
+	ISpriteSelectionContext& EditorContext;
+
+	// The geometry that this shape belongs to
+	FSpriteGeometryCollection& Geometry;
+
+	// The index of this shape in the geometry above
+	int32 ShapeIndex;
+
+	// Is this a background object that should have lower priority?
+	bool bIsBackground;
+
+	TWeakObjectPtr<UPaperSprite> SpritePtr;
+public:
+	FSpriteSelectedShape(ISpriteSelectionContext& InEditorContext, FSpriteGeometryCollection& InGeometry, int32 InShapeIndex, bool bInIsBackground = false);
+
+	// FSelectedItem interface
+//	virtual bool IsValidInEditor(UPaperSprite* Sprite, bool bInRenderData) const override;
+	virtual uint32 GetTypeHash() const override;
+	virtual EMouseCursor::Type GetMouseCursor() const override;
+	virtual bool Equals(const FSelectedItem& OtherItem) const override;
+	virtual bool IsBackgroundObject() const override;
+	virtual void ApplyDelta(const FVector2D& Delta, const FRotator& Rotation, const FVector& Scale3D, FWidget::EWidgetMode MoveMode) override;
+	virtual FVector GetWorldPos() const override;
+	virtual void SplitEdge() override;
+	// End of FSelectedItem interface
+};
+
+//////////////////////////////////////////////////////////////////////////
 // FSpriteSelectedVertex
 
 class FSpriteSelectedVertex : public FSelectedItem
 {
 public:
 	int32 VertexIndex;
-	int32 PolygonIndex;
+	int32 ShapeIndex;
 
 	// If true, it's render data, otherwise it's collision data
 	bool bRenderData;
@@ -209,7 +256,7 @@ public:
 	FSpriteSelectedVertex()
 		: FSelectedItem(FSelectionTypes::Vertex)
 		, VertexIndex(0)
-		, PolygonIndex(0)
+		, ShapeIndex(0)
 		, bRenderData(false)
 	{
 	}
@@ -218,8 +265,8 @@ public:
 	{
 		if (Sprite && SpritePtr == Sprite && bRenderData == bInRenderData)
 		{
-			FSpritePolygonCollection& Geometry = bRenderData ? Sprite->RenderGeometry : Sprite->CollisionGeometry;
-			if (Geometry.Polygons.IsValidIndex(PolygonIndex) && Geometry.Polygons[PolygonIndex].Vertices.IsValidIndex(VertexIndex))
+			FSpriteGeometryCollection& Geometry = bRenderData ? Sprite->RenderGeometry : Sprite->CollisionGeometry;
+			if (Geometry.Shapes.IsValidIndex(ShapeIndex) && Geometry.Shapes[ShapeIndex].Vertices.IsValidIndex(VertexIndex))
 			{
 				return true;
 			}
@@ -227,14 +274,9 @@ public:
 		return false;
 	}
 
-	virtual const FSpriteSelectedVertex* CastSelectedVertex() const
-	{
-		return (FSpriteSelectedVertex*)this;
-	}
-
 	virtual uint32 GetTypeHash() const override
 	{
-		return VertexIndex + (PolygonIndex * 311) + (bRenderData ? 1063 : 0);
+		return VertexIndex + (ShapeIndex * 311) + (bRenderData ? 1063 : 0);
 	}
 
 	virtual bool Equals(const FSelectedItem& OtherItem) const override
@@ -244,7 +286,7 @@ public:
 			const FSpriteSelectedVertex& V1 = *this;
 			const FSpriteSelectedVertex& V2 = *(FSpriteSelectedVertex*)(&OtherItem);
 
-			return (V1.VertexIndex == V2.VertexIndex) && (V1.PolygonIndex == V2.PolygonIndex) && (V1.bRenderData == V2.bRenderData) && (V1.SpritePtr == V2.SpritePtr);
+			return (V1.VertexIndex == V2.VertexIndex) && (V1.ShapeIndex == V2.ShapeIndex) && (V1.bRenderData == V2.bRenderData) && (V1.SpritePtr == V2.SpritePtr);
 		}
 		else
 		{
@@ -256,18 +298,23 @@ public:
 	{
 		if (UPaperSprite* Sprite = SpritePtr.Get())
 		{
-			FSpritePolygonCollection& Geometry = bRenderData ? Sprite->RenderGeometry : Sprite->CollisionGeometry;
-			if (Geometry.Polygons.IsValidIndex(PolygonIndex))
+			FSpriteGeometryCollection& Geometry = bRenderData ? Sprite->RenderGeometry : Sprite->CollisionGeometry;
+			if (Geometry.Shapes.IsValidIndex(ShapeIndex))
 			{
-				TArray<FVector2D>& Vertices = Geometry.Polygons[PolygonIndex].Vertices;
+				FSpriteGeometryShape& Shape = Geometry.Shapes[ShapeIndex];
+				TArray<FVector2D>& Vertices = Shape.Vertices;
 				TargetVertexIndex = (Vertices.Num() > 0) ? (TargetVertexIndex % Vertices.Num()) : 0;
 				if (Vertices.IsValidIndex(TargetVertexIndex))
 				{
+					FVector2D& ShapeSpaceVertex = Vertices[TargetVertexIndex];
+
 					const FVector WorldSpaceDelta = PaperAxisX * Delta.X + PaperAxisY * Delta.Y;
 					const FVector2D TextureSpaceDelta = Sprite->ConvertWorldSpaceDeltaToTextureSpace(WorldSpaceDelta);
-					Vertices[TargetVertexIndex] += TextureSpaceDelta;
+					const FVector2D NewTextureSpacePos = Shape.ConvertShapeSpaceToTextureSpace(ShapeSpaceVertex) + TextureSpaceDelta;
+					ShapeSpaceVertex = Shape.ConvertTextureSpaceToShapeSpace(NewTextureSpacePos);
 
 					Geometry.GeometryType = ESpritePolygonMode::FullyCustom;
+					Shape.ShapeType = ESpriteShapeType::Polygon;
 				}
 			}
 		}
@@ -279,15 +326,18 @@ public:
 
 		if (UPaperSprite* Sprite = SpritePtr.Get())
 		{
-			FSpritePolygonCollection& Geometry = bRenderData ? Sprite->RenderGeometry : Sprite->CollisionGeometry;
+			FSpriteGeometryCollection& Geometry = bRenderData ? Sprite->RenderGeometry : Sprite->CollisionGeometry;
 
-			if (Geometry.Polygons.IsValidIndex(PolygonIndex))
+			if (Geometry.Shapes.IsValidIndex(ShapeIndex))
 			{
-				const TArray<FVector2D>& Vertices = Geometry.Polygons[PolygonIndex].Vertices;
+				const FSpriteGeometryShape& Shape = Geometry.Shapes[ShapeIndex];
+				const TArray<FVector2D>& Vertices = Shape.Vertices;
 				TargetVertexIndex = (Vertices.Num() > 0) ? (TargetVertexIndex % Vertices.Num()) : 0;
 				if (Vertices.IsValidIndex(TargetVertexIndex))
 				{
-					Result = Sprite->ConvertTextureSpaceToWorldSpace(Vertices[TargetVertexIndex]);
+					const FVector2D& ShapeSpacePos = Vertices[TargetVertexIndex];
+					const FVector2D TextureSpacePos = Shape.ConvertShapeSpaceToTextureSpace(ShapeSpacePos);
+					Result = Sprite->ConvertTextureSpaceToWorldSpace(TextureSpacePos);
 				}
 			}
 		}
@@ -329,6 +379,11 @@ public:
 		TypeName = FSelectionTypes::Edge;
 	}
 
+	virtual bool IsA(FName TestType) const
+	{
+		return (TestType == TypeName) || (TestType == FSelectionTypes::Vertex);
+	}
+
 	virtual bool Equals(const FSelectedItem& OtherItem) const override
 	{
 		if (OtherItem.IsA(FSelectionTypes::Edge))
@@ -336,7 +391,7 @@ public:
 			const FSpriteSelectedEdge& E1 = *this;
 			const FSpriteSelectedEdge& E2 = *(FSpriteSelectedEdge*)(&OtherItem);
 
-			return (E1.VertexIndex == E2.VertexIndex) && (E1.PolygonIndex == E2.PolygonIndex) && (E1.bRenderData == E2.bRenderData) && (E1.SpritePtr == E2.SpritePtr);
+			return (E1.VertexIndex == E2.VertexIndex) && (E1.ShapeIndex == E2.ShapeIndex) && (E1.bRenderData == E2.bRenderData) && (E1.SpritePtr == E2.SpritePtr);
 		}
 		else
 		{
@@ -362,19 +417,22 @@ public:
 	{
 		if (UPaperSprite* Sprite = SpritePtr.Get())
 		{
-			FSpritePolygonCollection& Geometry = bRenderData ? Sprite->RenderGeometry : Sprite->CollisionGeometry;
-			Geometry.GeometryType = ESpritePolygonMode::FullyCustom;
+			FSpriteGeometryCollection& Geometry = bRenderData ? Sprite->RenderGeometry : Sprite->CollisionGeometry;
 
-			if (Geometry.Polygons.IsValidIndex(PolygonIndex))
+			if (Geometry.Shapes.IsValidIndex(ShapeIndex))
 			{
-				TArray<FVector2D>& Vertices = Geometry.Polygons[PolygonIndex].Vertices;
+				FSpriteGeometryShape& Shape = Geometry.Shapes[ShapeIndex];
+				TArray<FVector2D>& Vertices = Shape.Vertices;
 				if (Vertices.IsValidIndex(VertexIndex))
 				{
 					const int32 NextVertexIndex = (VertexIndex + 1) % Vertices.Num();
 
-					const FVector2D NewPos = (Vertices[VertexIndex] + Vertices[NextVertexIndex]) * 0.5f;
+					const FVector2D NewShapeSpacePos = (Vertices[VertexIndex] + Vertices[NextVertexIndex]) * 0.5f;
 					
-					Vertices.Insert(NewPos, VertexIndex+1);
+					Vertices.Insert(NewShapeSpacePos, VertexIndex + 1);
+
+					Geometry.GeometryType = ESpritePolygonMode::FullyCustom;
+					Shape.ShapeType = ESpriteShapeType::Polygon;
 				}
 			}
 		}

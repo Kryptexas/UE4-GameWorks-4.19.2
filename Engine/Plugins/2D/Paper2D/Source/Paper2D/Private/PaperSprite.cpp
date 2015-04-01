@@ -18,7 +18,6 @@
 #include "BitmapUtils.h"
 #include "ComponentReregisterContext.h"
 
-
 //////////////////////////////////////////////////////////////////////////
 // maf
 
@@ -647,18 +646,19 @@ void UPaperSprite::RescaleSpriteData(UTexture2D* Texture)
 		CustomPivotPoint = Local::RescaleNeverSnap(CustomPivotPoint, S, D);
 	}
 
-	for (int32 GeomtryIndex = 0; GeomtryIndex < 2; ++GeomtryIndex)
+	for (int32 GeometryIndex = 0; GeometryIndex < 2; ++GeometryIndex)
 	{
-		FSpritePolygonCollection& Geometry = (GeomtryIndex == 0) ? CollisionGeometry : RenderGeometry;
-		for (int32 PolygonIndex = 0; PolygonIndex < Geometry.Polygons.Num(); ++PolygonIndex)
+		FSpriteGeometryCollection& Geometry = (GeometryIndex == 0) ? CollisionGeometry : RenderGeometry;
+		for (FSpriteGeometryShape& Shape : Geometry.Shapes)
 		{
-			FSpritePolygon& Polygon = Geometry.Polygons[PolygonIndex];
-			Polygon.BoxPosition = Local::Rescale(Polygon.BoxPosition, S, D);
-			Polygon.BoxSize = Local::Rescale(Polygon.BoxSize, S, D);
+			Shape.BoxPosition = Local::Rescale(Shape.BoxPosition, S, D);
+			Shape.BoxSize = Local::Rescale(Shape.BoxSize, S, D);
 
-			for (int32 VertexIndex = 0; VertexIndex < Polygon.Vertices.Num(); ++VertexIndex)
+			for (FVector2D& Vertex : Shape.Vertices)
 			{
-				Polygon.Vertices[VertexIndex] = Local::Rescale(Polygon.Vertices[VertexIndex], S, D);
+				const FVector2D TextureSpaceVertex = Shape.ConvertShapeSpaceToTextureSpace(Vertex);
+				const FVector2D ScaledTSVertex = Local::Rescale(TextureSpaceVertex, S, D);
+				Vertex = Shape.ConvertTextureSpaceToShapeSpace(ScaledTSVertex);
 			}
 		}
 	}
@@ -666,8 +666,9 @@ void UPaperSprite::RescaleSpriteData(UTexture2D* Texture)
 	// Apply texture space pivot positions now that pivot space is correctly defined
 	for (int32 SocketIndex = 0; SocketIndex < Sockets.Num(); ++SocketIndex)
 	{
+		const FVector2D PivotSpaceSocketPosition = ConvertTextureSpaceToPivotSpace(RescaledTextureSpaceSocketPositions[SocketIndex]);
+
 		FPaperSpriteSocket& Socket = Sockets[SocketIndex];
-		FVector2D PivotSpaceSocketPosition = ConvertTextureSpaceToPivotSpace(RescaledTextureSpaceSocketPositions[SocketIndex]);
 		FVector Translation = Socket.LocalTransform.GetTranslation();
 		Translation.X = PivotSpaceSocketPosition.X;
 		Translation.Z = PivotSpaceSocketPosition.Y;
@@ -722,24 +723,39 @@ void UPaperSprite::RebuildCollisionData()
 		{
 		case ESpritePolygonMode::Diced:
 		case ESpritePolygonMode::SourceBoundingBox:
-			BuildBoundingBoxCollisionData(/*bUseTightBounds=*/ false);
+			// Ignore diced, treat it like SourceBoundingBox, which just uses the loose bounds
+			CreatePolygonFromBoundingBox(CollisionGeometry, /*bUseTightBounds=*/ false);
 			break;
 
 		case ESpritePolygonMode::TightBoundingBox:
-			BuildBoundingBoxCollisionData(/*bUseTightBounds=*/ true);
+			// Analyze the texture to tighten the bounds
+			CreatePolygonFromBoundingBox(CollisionGeometry, /*bUseTightBounds=*/ true);
 			break;
 
 		case ESpritePolygonMode::ShrinkWrapped:
+			// Analyze the texture and rebuild the geometry
 			BuildGeometryFromContours(CollisionGeometry);
-			BuildCustomCollisionData();
 			break;
 
 		case ESpritePolygonMode::FullyCustom:
-			BuildCustomCollisionData();
+			// Nothing to rebuild, the data is already ready
 			break;
 		default:
 			check(false); // unknown mode
 		};
+
+		// Take the geometry and add it to the body setup
+		CollisionGeometry.ConditionGeometry();
+		AddBoxCollisionShapesToBodySetup();
+		AddPolygonCollisionShapesToBodySetup();
+		AddCircleCollisionShapesToBodySetup();
+
+		// Rebuild the body setup
+		if (BodySetup != nullptr)
+		{
+			BodySetup->InvalidatePhysicsData();
+			BodySetup->CreatePhysicsMeshes();
+		}
 
 		// Copy across or initialize the only editable property we expose on the body setup
 		if (OldBodySetup != nullptr)
@@ -753,12 +769,11 @@ void UPaperSprite::RebuildCollisionData()
 	}
 }
 
-void UPaperSprite::BuildCustomCollisionData()
+void UPaperSprite::AddPolygonCollisionShapesToBodySetup()
 {
-	// Rebuild the runtime geometry
+	// Rebuild the runtime geometry for polygons
 	TArray<FVector2D> CollisionData;
-	Triangulate(CollisionGeometry, CollisionData);
-
+	CollisionGeometry.Triangulate(/*out*/ CollisionData, /*bIncludeBoxes=*/ false);
 
 	// Adjust the collision data to be relative to the pivot and scaled from pixels to uu
 	const float UnitsPerPixel = GetUnrealUnitsPerPixel();
@@ -778,7 +793,6 @@ void UPaperSprite::BuildCustomCollisionData()
 		{
 			checkSlow(BodySetup);
 			UBodySetup* BodySetup3D = BodySetup;
-			BodySetup3D->AggGeom.EmptyElements();
 
 			const FVector HalfThicknessVector = PaperAxisZ * 0.5f * CollisionThickness;
 
@@ -798,15 +812,11 @@ void UPaperSprite::BuildCustomCollisionData()
 				}
 				ConvexTri.UpdateElemBox();
 			}
-
-			BodySetup3D->InvalidatePhysicsData();
-			BodySetup3D->CreatePhysicsMeshes();
 		}
 		break;
 	case ESpriteCollisionMode::Use2DPhysics:
 		{
 			UBodySetup2D* BodySetup2D = CastChecked<UBodySetup2D>(BodySetup);
-			BodySetup2D->AggGeom2D.EmptyElements();
 
 			int32 RunningIndex = 0;
 			for (int32 TriIndex = 0; TriIndex < CollisionData.Num() / 3; ++TriIndex)
@@ -819,9 +829,6 @@ void UPaperSprite::BuildCustomCollisionData()
 					new (ConvexTri.VertexData) FVector2D(Pos2D);
 				}
 			}
-
-			BodySetup2D->InvalidatePhysicsData();
-			BodySetup2D->CreatePhysicsMeshes();
 		}
 		break;
 	default:
@@ -830,80 +837,115 @@ void UPaperSprite::BuildCustomCollisionData()
 	}
 }
 
-void UPaperSprite::BuildBoundingBoxCollisionData(bool bUseTightBounds)
+void UPaperSprite::AddBoxCollisionShapesToBodySetup()
 {
-	// Update the polygon data
-	CreatePolygonFromBoundingBox(CollisionGeometry, bUseTightBounds);
+	checkSlow(BodySetup);
 
-	// Bake it to the runtime structure
-	const float UnitsPerPixel = GetUnrealUnitsPerPixel();
-
-	switch (SpriteCollisionDomain)
+	// Bake all of the boxes to the body setup
+	for (const FSpriteGeometryShape& Shape : CollisionGeometry.Shapes)
 	{
-	case ESpriteCollisionMode::Use3DPhysics:
+		if (Shape.ShapeType == ESpriteShapeType::Box)
 		{
-			// Store the bounding box as an actual box for 3D physics
-			checkSlow(BodySetup);
-			UBodySetup* BodySetup3D = BodySetup;
-			BodySetup3D->AggGeom.EmptyElements();
-
 			// Determine the box size and center in pivot space
-			const FVector2D& BoxSizeInTextureSpace = CollisionGeometry.Polygons[0].BoxSize;
-			const FVector2D& BoxPosInTextureSpace = CollisionGeometry.Polygons[0].BoxPosition;
-			const FVector2D CenterInTextureSpace = BoxPosInTextureSpace + (BoxSizeInTextureSpace * 0.5f);
+			const FVector2D& BoxSizeInTextureSpace = Shape.BoxSize;
+			const FVector2D CenterInTextureSpace = Shape.BoxPosition;
 			const FVector2D CenterInPivotSpace = ConvertTextureSpaceToPivotSpace(CenterInTextureSpace);
 
 			// Convert from pixels to uu
+			const float UnitsPerPixel = GetUnrealUnitsPerPixel();
 			const FVector2D BoxSizeInPivotSpace = bRotatedInSourceImage ? FVector2D(BoxSizeInTextureSpace.Y, BoxSizeInTextureSpace.X) : BoxSizeInTextureSpace;
 			const FVector2D BoxSize2D = BoxSizeInPivotSpace * UnitsPerPixel;
 			const FVector2D CenterInScaledSpace = CenterInPivotSpace * UnitsPerPixel;
 
 			// Create a new box primitive
-			const FVector BoxSize3D = (PaperAxisX * BoxSize2D.X) + (PaperAxisY * BoxSize2D.Y) + (PaperAxisZ * CollisionThickness);
+			switch (SpriteCollisionDomain)
+			{
+				case ESpriteCollisionMode::Use3DPhysics:
+					{
+					   const FVector BoxSize3D = (PaperAxisX * BoxSize2D.X) + (PaperAxisY * BoxSize2D.Y) + (PaperAxisZ * CollisionThickness);
 
-			FKBoxElem& Box = *new (BodySetup3D->AggGeom.BoxElems) FKBoxElem(FMath::Abs(BoxSize3D.X), FMath::Abs(BoxSize3D.Y), FMath::Abs(BoxSize3D.Z));
-			Box.Center = (PaperAxisX * CenterInScaledSpace.X) + (PaperAxisY * CenterInScaledSpace.Y);
+						// Create a new box primitive
+						FKBoxElem& Box = *new (BodySetup->AggGeom.BoxElems) FKBoxElem(FMath::Abs(BoxSize3D.X), FMath::Abs(BoxSize3D.Y), FMath::Abs(BoxSize3D.Z));
+						Box.Center = (PaperAxisX * CenterInScaledSpace.X) + (PaperAxisY * CenterInScaledSpace.Y);
+						Box.Orientation = FQuat(FRotator(Shape.Rotation, 0.0f, 0.0f));
+					}
+					break;
+				case ESpriteCollisionMode::Use2DPhysics:
+					{
+						UBodySetup2D* BodySetup2D = CastChecked<UBodySetup2D>(BodySetup);
 
-			BodySetup3D->InvalidatePhysicsData();
-			BodySetup3D->CreatePhysicsMeshes();
+						// Create a new box primitive
+						FBoxElement2D& Box = *new (BodySetup2D->AggGeom2D.BoxElements) FBoxElement2D();
+						Box.Width = FMath::Abs(BoxSize2D.X);
+						Box.Height = FMath::Abs(BoxSize2D.Y);
+						Box.Center.X = CenterInScaledSpace.X;
+						Box.Center.Y = CenterInScaledSpace.Y;
+						Box.Angle = Shape.Rotation;
+					}
+					break;
+				default:
+					check(false);
+					break;
+			}
 		}
-		break;
-	case ESpriteCollisionMode::Use2DPhysics:
+	}
+}
+
+void UPaperSprite::AddCircleCollisionShapesToBodySetup()
+{
+	checkSlow(BodySetup);
+
+	// Bake all of the boxes to the body setup
+	for (const FSpriteGeometryShape& Shape : CollisionGeometry.Shapes)
+	{
+		if (Shape.ShapeType == ESpriteShapeType::Circle)
 		{
-			UBodySetup2D* BodySetup2D = CastChecked<UBodySetup2D>(BodySetup);
-			BodySetup2D->AggGeom2D.EmptyElements();
-
-			// Determine the box center in pivot space
-			const FVector2D& BoxSizeInTextureSpace = CollisionGeometry.Polygons[0].BoxSize;
-			const FVector2D& BoxPosInTextureSpace = CollisionGeometry.Polygons[0].BoxPosition;
-			const FVector2D CenterInTextureSpace = BoxPosInTextureSpace + (BoxSizeInTextureSpace * 0.5f);
+			// Determine the box size and center in pivot space
+			const FVector2D& CircleSizeInTextureSpace = Shape.BoxSize;
+			const FVector2D& CenterInTextureSpace = Shape.BoxPosition;
 			const FVector2D CenterInPivotSpace = ConvertTextureSpaceToPivotSpace(CenterInTextureSpace);
 
 			// Convert from pixels to uu
-			const FVector2D BoxSizeInPivotSpace = bRotatedInSourceImage ? FVector2D(BoxSizeInTextureSpace.Y, BoxSizeInTextureSpace.X) : BoxSizeInTextureSpace;
-			const FVector2D BoxSize2D = BoxSizeInPivotSpace * UnitsPerPixel;
+			const float UnitsPerPixel = GetUnrealUnitsPerPixel();
+			const FVector2D CircleSizeInPivotSpace = bRotatedInSourceImage ? FVector2D(CircleSizeInTextureSpace.Y, CircleSizeInTextureSpace.X) : CircleSizeInTextureSpace;
+			const FVector2D CircleSize2D = CircleSizeInPivotSpace * UnitsPerPixel;
 			const FVector2D CenterInScaledSpace = CenterInPivotSpace * UnitsPerPixel;
 
-			// Create a new box primitive
-			FBoxElement2D& Box = *new (BodySetup2D->AggGeom2D.BoxElements) FBoxElement2D();
-			Box.Width = FMath::Abs(BoxSize2D.X);
-			Box.Height = FMath::Abs(BoxSize2D.Y);
-			Box.Center.X = CenterInScaledSpace.X;
-			Box.Center.Y = CenterInScaledSpace.Y;
+			//@TODO: Neither Box2D nor PhysX support ellipses, currently forcing to be circular, but should we instead convert to an n-gon?
+			const float AverageDiameter = (CircleSize2D.X + CircleSize2D.Y) * 0.5f;
+			const float AverageRadius = FMath::Abs(AverageDiameter * 0.5f);
 
-			BodySetup2D->InvalidatePhysicsData();
-			BodySetup2D->CreatePhysicsMeshes();
+			// Create a new circle/sphere primitive
+			switch (SpriteCollisionDomain)
+			{
+				case ESpriteCollisionMode::Use3DPhysics:
+					{
+						// Create a new box primitive
+						FKSphereElem& Sphere = *new (BodySetup->AggGeom.SphereElems) FKSphereElem(AverageRadius);
+						Sphere.Center = (PaperAxisX * CenterInScaledSpace.X) + (PaperAxisY * CenterInScaledSpace.Y);
+					}
+					break;
+				case ESpriteCollisionMode::Use2DPhysics:
+					{
+						// Create a new box primitive
+						UBodySetup2D* BodySetup2D = CastChecked<UBodySetup2D>(BodySetup);
+						FCircleElement2D& Circle = *new (BodySetup2D->AggGeom2D.CircleElements) FCircleElement2D();
+						Circle.Radius = AverageRadius;
+						Circle.Center.X = CenterInScaledSpace.X;
+						Circle.Center.Y = CenterInScaledSpace.Y;
+					}
+					break;
+				default:
+					check(false);
+					break;
+			}
 		}
-		break;
-	default:
-		check(false);
-		break;
 	}
 }
 
 void UPaperSprite::RebuildRenderData()
 {
-	FSpritePolygonCollection AlternateGeometry;
+	FSpriteGeometryCollection AlternateGeometry;
 
 	switch (RenderGeometry.GeometryType)
 	{
@@ -958,7 +1000,7 @@ void UPaperSprite::RebuildRenderData()
 		bool bSeparateOpaqueSections = true;
 
 		// Dice up the source geometry and sort into translucent and opaque sections
-		RenderGeometry.Polygons.Empty();
+		RenderGeometry.Shapes.Empty();
 
 		const int32 X0 = (int32)SourceUV.X;
 		const int32 Y0 = (int32)SourceUV.Y;
@@ -989,13 +1031,14 @@ void UPaperSprite::RebuildRenderData()
 						}
 					}
 
+					const FVector2D BoxCenter = FVector2D(Origin) + (FVector2D(Dimension) * 0.5f);
 					if (bOpaqueSection)
 					{
-						AlternateGeometry.AddRectanglePolygon(Origin, Dimension);
+						AlternateGeometry.AddRectangleShape(BoxCenter, Dimension);
 					}
 					else
 					{
-						RenderGeometry.AddRectanglePolygon(Origin, Dimension);
+						RenderGeometry.AddRectangleShape(BoxCenter, Dimension);
 					}
 				}
 			}
@@ -1004,17 +1047,17 @@ void UPaperSprite::RebuildRenderData()
 
 	// Triangulate the render geometry
 	TArray<FVector2D> TriangluatedPoints;
-	Triangulate(RenderGeometry, /*out*/ TriangluatedPoints);
+	RenderGeometry.Triangulate(/*out*/ TriangluatedPoints, /*bIncludeBoxes=*/ true);
 
 	// Triangulate the alternate render geometry, if present
-	if (AlternateGeometry.Polygons.Num() > 0)
+	if (AlternateGeometry.Shapes.Num() > 0)
 	{
 		TArray<FVector2D> AlternateTriangluatedPoints;
-		Triangulate(AlternateGeometry, /*out*/ AlternateTriangluatedPoints);
+		AlternateGeometry.Triangulate(/*out*/ AlternateTriangluatedPoints, /*bIncludeBoxes=*/ true);
 
 		AlternateMaterialSplitIndex = TriangluatedPoints.Num();
 		TriangluatedPoints.Append(AlternateTriangluatedPoints);
-		RenderGeometry.Polygons.Append(AlternateGeometry.Polygons);
+		RenderGeometry.Shapes.Append(AlternateGeometry.Shapes);
 	}
 	else
 	{
@@ -1044,8 +1087,7 @@ void UPaperSprite::FindTextureBoundingBox(float AlphaThreshold, /*out*/ FVector2
 	int32 TopBound = (int32)SourceUV.Y;
 	int32 BottomBound = (int32)(SourceUV.Y + SourceDimension.Y - 1);
 
-
-	int32 AlphaThresholdInt = FMath::Clamp<int32>(AlphaThreshold * 255, 0, 255);
+	const int32 AlphaThresholdInt = FMath::Clamp<int32>(AlphaThreshold * 255, 0, 255);
 	FBitmap SourceBitmap(SourceTexture, AlphaThresholdInt);
 	if (SourceBitmap.IsValid())
 	{
@@ -1095,7 +1137,7 @@ static int32 GetDivisorFromDetail(const FIntPoint& Size, float Detail)
 	return  FMath::Lerp(8, 1, FMath::Clamp(Detail, 0.0f, 1.0f));
 }
 
-void UPaperSprite::BuildGeometryFromContours(FSpritePolygonCollection& GeomOwner)
+void UPaperSprite::BuildGeometryFromContours(FSpriteGeometryCollection& GeomOwner)
 {
 	// First trim the image to the tight fitting bounding box (the other pixels can't matter)
 	FVector2D InitialBoxSizeFloat;
@@ -1113,7 +1155,7 @@ void UPaperSprite::BuildGeometryFromContours(FSpritePolygonCollection& GeomOwner
 	FindContours(InitialPos, InitialSize, GeomOwner.AlphaThreshold, GeomOwner.DetailAmount, SourceTexture, /*out*/ Contours);
 
 	// Convert the contours into geometry
-	GeomOwner.Polygons.Empty();
+	GeomOwner.Shapes.Empty();
 	for (int32 ContourIndex = 0; ContourIndex < Contours.Num(); ++ContourIndex)
 	{
 		TArray<FIntPoint>& Contour = Contours[ContourIndex];
@@ -1124,16 +1166,26 @@ void UPaperSprite::BuildGeometryFromContours(FSpritePolygonCollection& GeomOwner
 
 		if (Contour.Num() > 0)
 		{
-			FSpritePolygon& Polygon = *new (GeomOwner.Polygons) FSpritePolygon();
-			Polygon.Vertices.Empty(Contour.Num());
+			FSpriteGeometryShape& NewShape = *new (GeomOwner.Shapes) FSpriteGeometryShape();
+			NewShape.ShapeType = ESpriteShapeType::Polygon;
+			NewShape.Vertices.Empty(Contour.Num());
 
+			// Add the points
 			for (int32 PointIndex = 0; PointIndex < Contour.Num(); ++PointIndex)
 			{
-				new (Polygon.Vertices) FVector2D(Contour[PointIndex]);
+				new (NewShape.Vertices) FVector2D(NewShape.ConvertTextureSpaceToShapeSpace(Contour[PointIndex]));
 			}
 
+			// Recenter them
+			const FVector2D AverageCenterFloat = NewShape.GetPolygonCentroid();
+			const FVector2D AverageCenterSnapped(FMath::RoundToInt(AverageCenterFloat.X), FMath::RoundToInt(AverageCenterFloat.Y));
+
+			//@TODO: This looks a bit odd but it's due to the fact that we had the pivot in the top left and are changing it to the center
+			NewShape.BoxPosition = AverageCenterSnapped * 2.0f;
+			NewShape.SetNewPivot(AverageCenterSnapped);
+
 			// Get intended winding
-			Polygon.bNegativeWinding = !PaperGeomTools::IsPolygonWindingCCW(Polygon.Vertices);
+			NewShape.bNegativeWinding = !PaperGeomTools::IsPolygonWindingCCW(NewShape.Vertices);
 		}
 	}
 }
@@ -1318,7 +1370,7 @@ void UPaperSprite::FindContours(const FIntPoint& ScanPos, const FIntPoint& ScanS
 
 						// Moving into an undiscovered boundary
 						BoundaryImage.SetPixel(X, Y, 1);
-						new (Contour)FIntPoint(X, Y);
+						new (Contour) FIntPoint(X, Y);
 
 						// Current pixel
 						int32 NeighborPhase = 0;
@@ -1358,7 +1410,7 @@ void UPaperSprite::FindContours(const FIntPoint& ScanPos, const FIntPoint& ScanS
 // 								}
 
 								BoundaryImage.SetPixel(CX, CY, NeighborPhase+1);
-								new (Contour)FIntPoint(CX, CY);
+								new (Contour) FIntPoint(CX, CY);
 
 								PX = CX;
 								PY = CY;
@@ -1413,7 +1465,7 @@ void UPaperSprite::FindContours(const FIntPoint& ScanPos, const FIntPoint& ScanS
 	}
 }
 
-void UPaperSprite::CreatePolygonFromBoundingBox(FSpritePolygonCollection& GeomOwner, bool bUseTightBounds)
+void UPaperSprite::CreatePolygonFromBoundingBox(FSpriteGeometryCollection& GeomOwner, bool bUseTightBounds)
 {
 	FVector2D BoxSize;
 	FVector2D BoxPosition;
@@ -1428,70 +1480,12 @@ void UPaperSprite::CreatePolygonFromBoundingBox(FSpritePolygonCollection& GeomOw
 		BoxPosition = SourceUV;
 	}
 
+	// Recenter the box
+	BoxPosition += BoxSize * 0.5f;
+
 	// Put the bounding box into the geometry array
-	GeomOwner.Polygons.Empty();
-	GeomOwner.AddRectanglePolygon(BoxPosition, BoxSize);
-}
-
-void UPaperSprite::Triangulate(const FSpritePolygonCollection& Source, TArray<FVector2D>& Target)
-{
-	Target.Empty();
-	TArray<FVector2D> AllGeneratedTriangles;
-	
-	// AOS -> Validate -> SOA
-	TArray<bool> PolygonsNegativeWinding; // do these polygons have negative winding?
-	TArray<TArray<FVector2D> > ValidPolygonTriangles;
-	PolygonsNegativeWinding.Empty(Source.Polygons.Num());
-	ValidPolygonTriangles.Empty(Source.Polygons.Num());
-	bool bSourcePolygonHasHoles = false;
-
-	// Correct polygon winding for additive and subtractive polygons
-	// Invalid polygons (< 3 verts) removed from this list
-	TArray<FSpritePolygon> ValidPolygons;
-	for (int32 PolygonIndex = 0; PolygonIndex < Source.Polygons.Num(); ++PolygonIndex)
-	{
-		const FSpritePolygon& SourcePolygon = Source.Polygons[PolygonIndex];
-		if (SourcePolygon.Vertices.Num() >= 3)
-		{
-			TArray<FVector2D>* FixedVertices = new (ValidPolygonTriangles)TArray<FVector2D>();
-			PaperGeomTools::CorrectPolygonWinding(*FixedVertices, SourcePolygon.Vertices, SourcePolygon.bNegativeWinding);
-			PolygonsNegativeWinding.Add(SourcePolygon.bNegativeWinding);
-		}
-
-		if (Source.Polygons[PolygonIndex].bNegativeWinding)
-		{
-			bSourcePolygonHasHoles = true;
-		}
-	}
-
-	// Check if polygons overlap, or have inconsistent winding, or edges overlap
-	if (!PaperGeomTools::ArePolygonsValid(ValidPolygonTriangles))
-	{
-		return;
-	}
-
-	// Merge each additive and associated subtractive polygons to form a list of polygons in CCW winding
-	ValidPolygonTriangles = PaperGeomTools::ReducePolygons(ValidPolygonTriangles, PolygonsNegativeWinding);
-
-	// Triangulate the polygons
-	for (int32 PolygonIndex = 0; PolygonIndex < ValidPolygonTriangles.Num(); ++PolygonIndex)
-	{
-		TArray<FVector2D> Generated2DTriangles;
-		if (PaperGeomTools::TriangulatePoly(Generated2DTriangles, ValidPolygonTriangles[PolygonIndex], Source.bAvoidVertexMerging))
-		{
-			AllGeneratedTriangles.Append(Generated2DTriangles);
-		}
-	}
-
-	// This doesn't work when polys have holes as edges will likely form a loop around the poly
-	if (!bSourcePolygonHasHoles && !Source.bAvoidVertexMerging && (Source.Polygons.Num() > 1 && AllGeneratedTriangles.Num() > 1))
-	{
-		TArray<FVector2D> TrianglesCopy = AllGeneratedTriangles;
-		AllGeneratedTriangles.Empty();
-		PaperGeomTools::RemoveRedundantTriangles(/*out*/AllGeneratedTriangles, TrianglesCopy);
-	}
-
-	Target.Append(AllGeneratedTriangles);
+	GeomOwner.Shapes.Empty();
+	GeomOwner.AddRectangleShape(BoxPosition, BoxSize);
 }
 
 void UPaperSprite::ExtractRectsFromTexture(UTexture2D* Texture, TArray<FIntRect>& OutRects)
@@ -1892,6 +1886,49 @@ void UPaperSprite::PostLoad()
 		SetFlags(RF_Transactional);
 	}
 
+	if (PaperVer < FPaperCustomVersion::RefactorPolygonStorageToSupportShapes)
+	{
+		// Make sure the per-shape GeometryType fields are up to date for collision (introduced in this version)
+		const bool bWasCollisionBoundingBox = (CollisionGeometry.GeometryType == ESpritePolygonMode::SourceBoundingBox) || (CollisionGeometry.GeometryType == ESpritePolygonMode::TightBoundingBox);
+		const ESpriteShapeType CollisionPerShapeType = bWasCollisionBoundingBox ? ESpriteShapeType::Box : ESpriteShapeType::Polygon;
+
+		for (FSpriteGeometryShape& Shape : CollisionGeometry.Shapes)
+		{
+			Shape.ShapeType = CollisionPerShapeType;
+
+			if (bWasCollisionBoundingBox)
+			{
+				// Recenter the bounding box (BoxPosition is now defined as the center)
+				Shape.BoxPosition += Shape.BoxSize * 0.5f;
+
+				for (FVector2D& Vertex : Shape.Vertices)
+				{
+					Vertex -= Shape.BoxSize * 0.5f;
+				}
+			}
+		}
+
+		// Make sure the per-shape GeometryType fields are up to date for rendering (introduced in this version)
+		const bool bWasRenderingBoundingBox = (RenderGeometry.GeometryType == ESpritePolygonMode::SourceBoundingBox) || (RenderGeometry.GeometryType == ESpritePolygonMode::TightBoundingBox);
+		const ESpriteShapeType RenderPerShapeType = bWasRenderingBoundingBox ? ESpriteShapeType::Box : ESpriteShapeType::Polygon;
+
+		for (FSpriteGeometryShape& Shape : RenderGeometry.Shapes)
+		{
+			Shape.ShapeType = RenderPerShapeType;
+
+			if (bWasRenderingBoundingBox)
+			{
+				// Recenter the bounding box (BoxPosition is now defined as the center)
+				Shape.BoxPosition += Shape.BoxSize * 0.5f;
+
+				for (FVector2D& Vertex : Shape.Vertices)
+				{
+					Vertex -= Shape.BoxSize * 0.5f;
+				}
+			}
+		}
+	}
+
 	if (PaperVer < FPaperCustomVersion::AddPivotSnapToPixelGrid)
 	{
 		bSnapPivotToPixelGrid = false;
@@ -1962,4 +1999,152 @@ UMaterialInterface* UPaperSprite::GetMaterial(int32 MaterialIndex) const
 int32 UPaperSprite::GetNumMaterials() const
 {
 	return (AlternateMaterialSplitIndex != INDEX_NONE) ? 2 : 1;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// FSpriteGeometryCollection
+
+void FSpriteGeometryCollection::AddRectangleShape(FVector2D Position, FVector2D Size)
+{
+	const FVector2D HalfSize = Size * 0.5f;
+	
+	FSpriteGeometryShape& NewShape = *new (Shapes) FSpriteGeometryShape();
+	new (NewShape.Vertices) FVector2D(-HalfSize.X, -HalfSize.Y);
+	new (NewShape.Vertices) FVector2D(+HalfSize.X, -HalfSize.Y);
+	new (NewShape.Vertices) FVector2D(+HalfSize.X, +HalfSize.Y);
+	new (NewShape.Vertices) FVector2D(-HalfSize.X, +HalfSize.Y);
+	NewShape.ShapeType = ESpriteShapeType::Box;
+	NewShape.BoxSize = Size;
+	NewShape.BoxPosition = Position;
+}
+
+void FSpriteGeometryCollection::AddCircleShape(FVector2D Position, FVector2D Size)
+{
+	FSpriteGeometryShape& NewShape = *new (Shapes) FSpriteGeometryShape();
+	NewShape.ShapeType = ESpriteShapeType::Circle;
+	NewShape.BoxSize = Size;
+	NewShape.BoxPosition = Position;
+}
+
+void FSpriteGeometryCollection::Reset()
+{
+	Shapes.Empty();
+	GeometryType = ESpritePolygonMode::TightBoundingBox;
+}
+
+void FSpriteGeometryCollection::Triangulate(TArray<FVector2D>& Target, bool bIncludeBoxes)
+{
+	Target.Empty();
+
+	TArray<FVector2D> AllGeneratedTriangles;
+
+	// AOS -> Validate -> SOA
+	TArray<bool> PolygonsNegativeWinding; // do these polygons have negative winding?
+	TArray<TArray<FVector2D> > ValidPolygonTriangles;
+	PolygonsNegativeWinding.Empty(Shapes.Num());
+	ValidPolygonTriangles.Empty(Shapes.Num());
+	bool bSourcePolygonHasHoles = false;
+
+	// Correct polygon winding for additive and subtractive polygons
+	// Invalid polygons (< 3 verts) removed from this list
+	for (int32 PolygonIndex = 0; PolygonIndex < Shapes.Num(); ++PolygonIndex)
+	{
+		const FSpriteGeometryShape& SourcePolygon = Shapes[PolygonIndex];
+
+		if ((SourcePolygon.ShapeType == ESpriteShapeType::Polygon) || (bIncludeBoxes && (SourcePolygon.ShapeType == ESpriteShapeType::Box)))
+		{
+			if (SourcePolygon.Vertices.Num() >= 3)
+			{
+				TArray<FVector2D> TextureSpaceVertices;
+				SourcePolygon.GetTextureSpaceVertices(/*out*/ TextureSpaceVertices);
+
+				TArray<FVector2D>& FixedVertices = *new (ValidPolygonTriangles) TArray<FVector2D>();
+				PaperGeomTools::CorrectPolygonWinding(/*out*/ FixedVertices, TextureSpaceVertices, SourcePolygon.bNegativeWinding);
+				PolygonsNegativeWinding.Add(SourcePolygon.bNegativeWinding);
+			}
+
+			if (SourcePolygon.bNegativeWinding)
+			{
+				bSourcePolygonHasHoles = true;
+			}
+		}
+	}
+
+	// Check if polygons overlap, or have inconsistent winding, or edges overlap
+	if (!PaperGeomTools::ArePolygonsValid(ValidPolygonTriangles))
+	{
+		return;
+	}
+
+	// Merge each additive and associated subtractive polygons to form a list of polygons in CCW winding
+	ValidPolygonTriangles = PaperGeomTools::ReducePolygons(ValidPolygonTriangles, PolygonsNegativeWinding);
+
+	// Triangulate the polygons
+	for (int32 PolygonIndex = 0; PolygonIndex < ValidPolygonTriangles.Num(); ++PolygonIndex)
+	{
+		TArray<FVector2D> Generated2DTriangles;
+		if (PaperGeomTools::TriangulatePoly(Generated2DTriangles, ValidPolygonTriangles[PolygonIndex], bAvoidVertexMerging))
+		{
+			AllGeneratedTriangles.Append(Generated2DTriangles);
+		}
+	}
+
+	// This doesn't work when polys have holes as edges will likely form a loop around the poly
+	if (!bSourcePolygonHasHoles && !bAvoidVertexMerging && ((ValidPolygonTriangles.Num() > 1) && (AllGeneratedTriangles.Num() > 1)))
+	{
+		TArray<FVector2D> TrianglesCopy = AllGeneratedTriangles;
+		AllGeneratedTriangles.Empty();
+		PaperGeomTools::RemoveRedundantTriangles(/*out*/ AllGeneratedTriangles, TrianglesCopy);
+	}
+
+	Target.Append(AllGeneratedTriangles);
+}
+
+bool AreVectorsParallel(const FVector2D& Vector1, const FVector2D& Vector2, float Threshold = KINDA_SMALL_NUMBER)
+{
+	const float DotProduct = FVector2D::DotProduct(Vector1, Vector2);
+	const float LengthProduct = Vector1.Size() * Vector2.Size();
+
+	return FMath::IsNearlyEqual(FMath::Abs(DotProduct / LengthProduct), 1.0f, Threshold);
+}
+
+bool AreVectorsPerpendicular(const FVector2D& Vector1, const FVector2D& Vector2, float Threshold = KINDA_SMALL_NUMBER)
+{
+	const float DotProduct = FVector2D::DotProduct(Vector1, Vector2);
+	return FMath::IsNearlyEqual(DotProduct, 0.0f, Threshold);
+}
+
+void FSpriteGeometryCollection::ConditionGeometry()
+{
+	for (FSpriteGeometryShape& Shape : Shapes)
+	{
+		if ((Shape.ShapeType == ESpriteShapeType::Polygon) && (Shape.Vertices.Num() == 4))
+		{
+			const FVector2D& A = Shape.Vertices[0];
+			const FVector2D& B = Shape.Vertices[1];
+			const FVector2D& C = Shape.Vertices[2];
+			const FVector2D& D = Shape.Vertices[3];
+
+			const FVector2D AB = B - A;
+			const FVector2D BC = C - B;
+			const FVector2D CD = D - C;
+			const FVector2D DA = A - D;
+
+			if (AreVectorsPerpendicular(AB, BC) &&
+				AreVectorsPerpendicular(CD, DA) &&
+				AreVectorsParallel(AB, CD) &&
+				AreVectorsParallel(BC, DA))
+			{
+				// Checking in local space, so we still want the rotation to be 0 here
+				const bool bMeetsRotationConstraint = FMath::IsNearlyEqual(AB.Y, 0.0f);
+				if (bMeetsRotationConstraint)
+				{
+					Shape.SetNewPivot(A + 0.5f * (AB + BC));
+					Shape.BoxSize = FVector2D(AB.Size(), DA.Size());
+					Shape.ShapeType = ESpriteShapeType::Box;
+					//@TODO: Still need to deal with this here!
+				}
+			}
+		}
+	}
 }

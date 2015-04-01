@@ -21,6 +21,12 @@ public:
 		return TestType == TypeName;
 	}
 
+	template<typename SelectedType>
+	SelectedType* CastTo(FName TypeID)
+	{
+		return IsA(TypeID) ? (SelectedType*)this : (SelectedType*)nullptr;
+	}
+
 	virtual uint32 GetTypeHash() const
 	{
 		return 0;
@@ -45,9 +51,15 @@ public:
 		return FVector::ZeroVector;
 	}
 
-	virtual const class FSpriteSelectedVertex* CastSelectedVertex() const
+	virtual EMouseCursor::Type GetMouseCursor() const
 	{
-		return nullptr;
+		return EMouseCursor::Default;
+	}
+
+	// Is this item a background item (one that can be clicked thru/etc... to select something behind it?)
+	virtual bool IsBackgroundObject() const
+	{
+		return false;
 	}
 
 	virtual ~FSelectedItem() {}
@@ -63,3 +75,24 @@ inline bool operator==(const FSelectedItem& V1, const FSelectedItem& V2)
 	return V1.Equals(V2);
 }
 
+
+//////////////////////////////////////////////////////////////////////////
+// HSpriteSelectableObjectHitProxy
+
+struct HSpriteSelectableObjectHitProxy : public HHitProxy
+{
+	DECLARE_HIT_PROXY(PAPER2DEDITOR_API);
+
+	TSharedPtr<FSelectedItem> Data;
+
+	HSpriteSelectableObjectHitProxy(TSharedPtr<FSelectedItem> InData)
+		: HHitProxy(InData->IsBackgroundObject() ? HPP_World : HPP_UI)
+		, Data(InData)
+	{
+	}
+
+	// HHitProxy interface
+	virtual bool AlwaysAllowsTranslucentPrimitives() const override { return true; }
+	virtual EMouseCursor::Type GetMouseCursor() override { return Data->GetMouseCursor(); }
+	// End of HHitProxy interface
+};
