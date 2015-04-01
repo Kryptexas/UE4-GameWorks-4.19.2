@@ -231,27 +231,6 @@ public:
 	FD3D11DisjointTimeStampQuery DisjointQuery;
 };
 
-/** The state of a pending GPU timestamp profile. */
-class FD3D11GPUProfile
-{
-public:
-
-	FD3D11GPUProfile(FD3D11DynamicRHI* D3D11RHI)
-	: DisjointQuery(D3D11RHI)
-	{
-		  DisjointQuery.InitResource();
-	}
-
-	~FD3D11GPUProfile()
-	{
-		  DisjointQuery.ReleaseResource();
-	}
-
-	FD3D11DisjointTimeStampQuery DisjointQuery;
-	TArray<TRefCountPtr<ID3D11Query> > EventTimestampQueries;
-};
-
-
 /** 
  * Encapsulates GPU profiling logic and data. 
  * There's only one global instance of this struct so it should only contain global data, nothing specific to a frame.
@@ -260,9 +239,6 @@ struct FD3DGPUProfiler : public FGPUProfiler
 {
 	/** Used to measure GPU time per frame. */
 	FD3D11BufferedGPUTiming FrameTiming;
-
-	/** Current GPU profiling state. */
-	TScopedPointer<FD3D11GPUProfile> CurrentGPUProfile;
 
 	class FD3D11DynamicRHI* D3D11RHI;
 
@@ -290,16 +266,6 @@ struct FD3DGPUProfiler : public FGPUProfiler
 	void BeginFrame(class FD3D11DynamicRHI* InRHI);
 
 	void EndFrame();
-
-	void StartProfiling(FD3D11DynamicRHI* D3D11RHI)
-	{
-		CurrentGPUProfile.Reset(new FD3D11GPUProfile(D3D11RHI));
-		CurrentGPUProfile->DisjointQuery.StartTracking();
-	}
-
-	int32 RecordEventTimestamp(ID3D11Device* Direct3DDevice, ID3D11DeviceContext* Direct3DDeviceIMContext);
-
-	bool FinishProfiling(TMap<int32, double>& OutEventIdToTimestampMap, ID3D11DeviceContext* Direct3DDeviceIMContext);
 };
 
 /** The interface which is implemented by the dynamically bound RHI. */

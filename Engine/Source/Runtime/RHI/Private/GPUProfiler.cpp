@@ -194,7 +194,7 @@ void FGPUProfilerEventNodeFrame::DumpEventTree()
 		// Display a warning if this is a GPU profile and the GPU was profiled with v-sync enabled
 		FText VsyncEnabledWarningText = FText::GetEmpty();
 		static IConsoleVariable* CVSyncVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
-		if (CVSyncVar->GetInt() != 0)
+		if (CVSyncVar->GetInt() != 0 && !PlatformDisablesVSync())
 		{
 			VsyncEnabledWarningText = LOCTEXT("GpuProfileVsyncEnabledWarning",
 				"WARNING: This GPU profile was captured with v-sync enabled.  V-sync wait time may show up in any bucket, and as a result the data in this profile may be skewed. Please profile with v-sync disabled to obtain the most accurate data.");
