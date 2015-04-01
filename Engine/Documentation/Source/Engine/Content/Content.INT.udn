@@ -126,7 +126,7 @@ Not all of the content you need for your game is intended to be created within t
 		Artist Quick Start Guide
 	[/PARAM]
 	[PARAM:description]
-	If you are looking to quickly get into Unreal Engine 4 as a content creator, check out the **Artist Quick Start Guide**. In it you will be taken through the steps of importing of meshes and textures, the basics of creating materials, and applying materials to your meshes.
+	If you are looking to quickly get into Unreal Engine 4 as a content creator, check out the **Artist Quick Start Guide**. In it, you will be taken through the steps of importing of meshes and textures, the basics of creating materials, and applying materials to your meshes.
 	[/PARAM]
 	[PARAM:links]
 		* [](Engine/Content/QuickStart "%Engine/Content/QuickStart:description%")
