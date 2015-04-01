@@ -55,7 +55,7 @@ void TLinkerImportPlaceholder<PlaceholderType>::AddReferencingProperty(UProperty
 	check(ThisAsObject != nullptr);
 
 	FObjectImport* PlaceholderImport = nullptr;
-	if (ULinkerLoad* PropertyLinker = ReferencingProperty->GetLinker())
+	if (FLinkerLoad* PropertyLinker = ReferencingProperty->GetLinker())
 	{
 		for (FObjectImport& Import : PropertyLinker->ImportMap)
 		{
