@@ -41,6 +41,6 @@ class UK2Node_EnumEquality : public UK2Node
 	BLUEPRINTGRAPH_API UEdGraphPin* GetInput2Pin() const;
 
 	/** Gets the name and class of the EqualEqual_ByteByte function */
-	BLUEPRINTGRAPH_API void GetConditionalFunction(FName& FunctionName, UClass** FunctionClass);
+	BLUEPRINTGRAPH_API virtual void GetConditionalFunction(FName& FunctionName, UClass** FunctionClass) const;
 };
 

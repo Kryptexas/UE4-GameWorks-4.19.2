@@ -172,7 +172,7 @@ UEdGraphPin* UK2Node_EnumEquality::GetInput2Pin() const
 	return Pin;
 }
 
-void UK2Node_EnumEquality::GetConditionalFunction(FName& FunctionName, UClass** FunctionClass)
+void UK2Node_EnumEquality::GetConditionalFunction(FName& FunctionName, UClass** FunctionClass) const
 {
 	FunctionName = GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, EqualEqual_ByteByte);
 	*FunctionClass = UKismetMathLibrary::StaticClass();
