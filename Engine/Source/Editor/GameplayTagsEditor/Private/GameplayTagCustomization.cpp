@@ -169,7 +169,9 @@ void FGameplayTagCustomization::BuildEditableContainerList()
 			TagName = Tag->ToString();
 			TagContainer->AddTag(*Tag);
 		}
-		EditableContainers.Add(SGameplayTagWidget::FEditableGameplayTagContainerDatum(OuterObjects[0], TagContainer.Get()));
+
+		UObject* TagContainerOwner = OuterObjects.Num() ? OuterObjects[0] : nullptr;
+		EditableContainers.Add(SGameplayTagWidget::FEditableGameplayTagContainerDatum(TagContainerOwner, TagContainer.Get()));
 	}
 }
 
