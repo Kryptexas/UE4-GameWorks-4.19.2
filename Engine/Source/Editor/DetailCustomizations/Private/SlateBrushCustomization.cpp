@@ -734,6 +734,8 @@ private:
 			case ESlateBrushTileType::Vertical:
 				HorizontalAlignment = EHorizontalAlignment::HAlign_Center;
 				break;
+			case ESlateBrushTileType::Both:
+				break;
 			}
 		}
 

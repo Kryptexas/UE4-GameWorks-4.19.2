@@ -29,6 +29,12 @@ ELightingBuildQuality FLightingBuildOptions::HalfResolutionLightmapQualityLevel 
  */
 bool FLightingBuildOptions::ShouldBuildLightingForLevel(ULevel* Level) const
 {
+	// Reject NULL levels.
+	if (Level == NULL)
+	{
+		return false;
+	}
+
 	if ( bOnlyBuildCurrentLevel )
 	{
 		// Reject non-current levels.
@@ -46,8 +52,7 @@ bool FLightingBuildOptions::ShouldBuildLightingForLevel(ULevel* Level) const
 		}
 	}
 
-	// Reject NULL levels.
-	return Level != NULL;
+	return true;
 }
 
 void ALight::Destroyed()

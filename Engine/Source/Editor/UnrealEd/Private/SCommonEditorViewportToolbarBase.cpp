@@ -179,6 +179,9 @@ const FSlateBrush* SCommonEditorViewportToolbarBase::GetCameraMenuLabelIcon() co
 		case LVT_OrthoNegativeXZ:
 			Icon = FName("EditorViewport.Back");
 			break;
+
+		case LVT_OrthoFreelook:
+			break;
 	}
 
 	return FEditorStyle::GetBrush( Icon );

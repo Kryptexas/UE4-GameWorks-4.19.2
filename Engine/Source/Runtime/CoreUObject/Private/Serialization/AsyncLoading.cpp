@@ -954,14 +954,17 @@ EAsyncPackageState::Type FAsyncPackage::FinishObjects()
 			Linker->LinkerRoot->SetLoadTime( FPlatformTime::Seconds() - LoadStartTime );
 		}
 
-		// Call any completion callbacks specified.
-		for (int32 i = 0; i < CompletionCallbacks.Num(); i++)
+		if (Linker)
 		{
-			CompletionCallbacks[i].ExecuteIfBound(PackageName, Linker->LinkerRoot, LoadingResult);
-		}
+			// Call any completion callbacks specified.
+			for (int32 i = 0; i < CompletionCallbacks.Num(); i++)
+			{
+				CompletionCallbacks[i].ExecuteIfBound(PackageName, Linker->LinkerRoot, LoadingResult);
+			}
 
-		// give a hint to the IO system that we are done with this file for now
-		FIOSystem::Get().HintDoneWithFile(Linker->Filename);
+			// give a hint to the IO system that we are done with this file for now
+			FIOSystem::Get().HintDoneWithFile(Linker->Filename);
+		}
 
 	#if WITH_ENGINE
 		if (Linker != nullptr)

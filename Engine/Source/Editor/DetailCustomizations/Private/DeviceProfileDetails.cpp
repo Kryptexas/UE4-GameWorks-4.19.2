@@ -415,7 +415,7 @@ FDeviceProfileParentPropertyDetails::FDeviceProfileParentPropertyDetails(IDetail
 
 void FDeviceProfileParentPropertyDetails::CreateParentPropertyView()
 {
-	UDeviceProfile* ParentProfile = Cast<UDeviceProfile>(ActiveDeviceProfile->Parent);
+	UDeviceProfile* ParentProfile = ActiveDeviceProfile ? Cast<UDeviceProfile>(ActiveDeviceProfile->Parent) : nullptr;
 	while(ParentProfile != nullptr)
 	{
 		ParentProfile->OnCVarsUpdated().BindSP(this, &FDeviceProfileParentPropertyDetails::OnParentPropertyChanged);

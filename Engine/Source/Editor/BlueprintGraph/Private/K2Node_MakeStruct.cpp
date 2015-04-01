@@ -131,7 +131,7 @@ void UK2Node_MakeStruct::ValidateNodeDuringCompilation(class FCompilerResultsLog
 				const bool bIsBlueprintVisible = Property->HasAnyPropertyFlags(CPF_BlueprintVisible) || (Property->GetOwnerStruct() && Property->GetOwnerStruct()->IsA<UUserDefinedStruct>());
 				bHasAnyBlueprintVisibleProperty |= bIsBlueprintVisible;
 
-				const UEdGraphPin* Pin = Property ? FindPin(Property->GetName()) : NULL;
+				const UEdGraphPin* Pin = FindPin(Property->GetName());
 
 				if (Pin && !bIsBlueprintVisible)
 				{

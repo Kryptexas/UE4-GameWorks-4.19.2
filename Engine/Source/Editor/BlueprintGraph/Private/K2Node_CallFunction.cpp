@@ -1267,7 +1267,12 @@ FText UK2Node_CallFunction::GetUserFacingFunctionName(const UFunction* Function)
 
 FString UK2Node_CallFunction::GetDefaultTooltipForFunction(const UFunction* Function)
 {
-	FString Tooltip = Function->GetToolTipText().ToString();
+	FString Tooltip;
+
+	if (Function != NULL)
+	{
+		Tooltip = Function->GetToolTipText().ToString();
+	}
 
 	if (!Tooltip.IsEmpty())
 	{

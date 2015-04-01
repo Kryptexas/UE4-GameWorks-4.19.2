@@ -260,7 +260,7 @@ void UK2Node_LatentAbilityCall::CreatePinsForClass(UClass* InClass)
 			const bool bPinGood = (Pin != NULL) && K2Schema->ConvertPropertyToPinType(Property, /*out*/ Pin->PinType);
 			SpawnParmPins.Add(Pin);
 
-			if (ClassDefaultObject && K2Schema->PinDefaultValueIsEditable(*Pin))
+			if (ClassDefaultObject && Pin && K2Schema->PinDefaultValueIsEditable(*Pin))
 			{
 				FString DefaultValueAsString;
 				const bool bDefaultValueSet = FBlueprintEditorUtils::PropertyValueToString(Property, reinterpret_cast<const uint8*>(ClassDefaultObject), DefaultValueAsString);

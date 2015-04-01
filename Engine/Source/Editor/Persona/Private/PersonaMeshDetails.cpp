@@ -1635,6 +1635,8 @@ FReply FPersonaMeshDetails::OnReimportApexFileClicked(int32 AssetIndex, IDetailL
 		// Failed to create or import
 		FMessageDialog::Open( EAppMsgType::Ok, FText::Format( LOCTEXT("ReimportFailed", "Failed to re-import APEX clothing asset from {0}."), FText::FromString( FileName ) ) );
 		break;
+	case ApexClothingUtils::CURT_Cancel:
+		break;
 	}
 
 	return FReply::Handled();

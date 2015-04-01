@@ -109,6 +109,8 @@ EBoneModificationMode UAnimGraphNode_ModifyBone::GetBoneModificationMode(int32 I
 	case FWidget::WM_Scale:
 		return Node.ScaleMode;
 		break;
+	case FWidget::WM_TranslateRotateZ:
+		break;
 	}
 
 	return EBoneModificationMode::BMM_Ignore;
@@ -125,6 +127,8 @@ int32 UAnimGraphNode_ModifyBone::GetNextWidgetMode(int32 InWidgetMode)
 		return FWidget::WM_Scale;
 	case FWidget::WM_Scale:
 		return FWidget::WM_Translate;
+	case FWidget::WM_TranslateRotateZ:
+		break;
 	}
 
 	return (int32)FWidget::WM_None;

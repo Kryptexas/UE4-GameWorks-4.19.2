@@ -965,7 +965,7 @@ EObjectDiff UDiffPackagesCommandlet::DiffObjects(UObject* ObjA, UObject* ObjB, U
 		return OD_None;
 	}
 
-	UClass* ComparisonClass = (ObjA ? ObjA->GetClass() : (ObjB ? ObjB->GetClass() : ObjAncestor->GetClass()));
+	UClass* ComparisonClass = (ObjA ? ObjA->GetClass() : (ObjB ? ObjB->GetClass() : ObjAncestor->GetClass())); //-V595
 
 	// complex logic for what kind of differnce this is, if at all
 

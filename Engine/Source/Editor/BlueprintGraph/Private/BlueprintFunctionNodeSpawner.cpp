@@ -139,7 +139,6 @@ static FVector2D BlueprintFunctionNodeSpawnerImpl::CalculateBindingPosition(UEdG
 	float const EstimatedVarNodeWidth = 224.0f;
 	FVector2D AttachingNodePos;
 	AttachingNodePos.X = InputNode->NodePosX - EstimatedVarNodeWidth;
-	AttachingNodePos.Y = InputNode->NodePosY;
 
 	float const EstimatedVarNodeHeight = 48.0f;
 	float const EstimatedFuncNodeHeight = UEdGraphSchema_K2::EstimateNodeHeight(InputNode);

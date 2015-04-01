@@ -4541,8 +4541,12 @@ void FMatinee::InterpEdUndo()
 {
 	GEditor->Trans->Undo();
 	
-	CurveEd->SetRegionMarker(true, IData->EdSectionStart, IData->EdSectionEnd, RegionFillColor);
-	CurveEd->SetEndMarker(true, IData->InterpLength);
+	if (IData != NULL)
+	{
+		CurveEd->SetRegionMarker(true, IData->EdSectionStart, IData->EdSectionEnd, RegionFillColor);
+		CurveEd->SetEndMarker(true, IData->InterpLength);
+	}
+
 	Opt->bAdjustingKeyframe = false;
 	Opt->bAdjustingGroupKeyframes = false;
 
@@ -4568,8 +4572,12 @@ void FMatinee::InterpEdRedo()
 {
 	GEditor->Trans->Redo();
 
-	CurveEd->SetRegionMarker(true, IData->EdSectionStart, IData->EdSectionEnd, RegionFillColor);
-	CurveEd->SetEndMarker(true, IData->InterpLength);
+	if (IData != NULL)
+	{
+		CurveEd->SetRegionMarker(true, IData->EdSectionStart, IData->EdSectionEnd, RegionFillColor);
+		CurveEd->SetEndMarker(true, IData->InterpLength);
+	}
+
 	Opt->bAdjustingKeyframe = false;
 	Opt->bAdjustingGroupKeyframes = false;
 

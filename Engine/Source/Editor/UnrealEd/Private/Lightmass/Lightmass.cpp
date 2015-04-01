@@ -696,7 +696,7 @@ float FLightmassExporter::GetAmortizedExportPercentDone() const
 		ExportStage == ShaderCompilation ? Materials.Num():
 		ExportStage == ExportMaterials ? (Materials.Num() + CurrentAmortizationIndex) :
 		ExportStage == CleanupMaterialExport ? (Materials.Num() * 2 + CurrentAmortizationIndex) : EstimatedTotalTaskCount;
-	return CurrentTaskId / EstimatedTotalTaskCount;
+	return static_cast<float>(CurrentTaskId) / EstimatedTotalTaskCount;
 }
 
 void FLightmassExporter::WriteVisibilityData( int32 Channel )
@@ -4004,7 +4004,7 @@ bool FLightmassProcessor::ImportTextureMapping(int32 Channel, FTextureMappingImp
 		}
 	}
 
-	if (TMImport.QuantizedData && TMImport.QuantizedData->Data.Num() > 0)
+	if (TMImport.QuantizedData->Data.Num() > 0)
 	{
 		TMImport.UnmappedTexelsPercentage = (float)NumUnmappedTexels / (float)TMImport.QuantizedData->Data.Num();
 	}

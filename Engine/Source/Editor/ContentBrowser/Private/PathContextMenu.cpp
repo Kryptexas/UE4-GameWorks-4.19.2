@@ -247,10 +247,7 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 				}
 			}
 			MenuBuilder.EndSection();
-		}
 
-		if(bHasAssetPaths)
-		{
 			// Source control section //
 			MenuBuilder.BeginSection("PathContextSourceControl", LOCTEXT("AssetTreeSCCMenuHeading", "Source Control") );
 

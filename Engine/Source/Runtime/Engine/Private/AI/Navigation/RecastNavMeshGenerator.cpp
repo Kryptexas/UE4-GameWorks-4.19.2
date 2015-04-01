@@ -2254,11 +2254,8 @@ bool FRecastTileGenerator::GenerateCompressedLayers(FNavMeshBuildContext& BuildC
 			BuildContext.log(RC_LOG_ERROR, "GenerateCompressedLayers: Could not create solid heightfield.");
 			return false;
 		}
-	}
 
-	// Rasterize geometry
-	if (bHasGeometry)
-	{
+		// Rasterize geometry
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Rasterization: without voxel cache"), Stat_RecastRasterNoCache, STATGROUP_Navigation);
 		RECAST_STAT(STAT_Navigation_RasterizeTriangles)
 		

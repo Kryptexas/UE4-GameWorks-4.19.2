@@ -78,29 +78,32 @@ public:
 			DrawType = FScene::EBasePass_Masked;	
 		}
 
-		// Find the appropriate draw list for the static mesh based on the light-map policy type.
-		TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType> >& DrawList =
-			Scene->GetForwardShadingBasePassDrawList<LightMapPolicyType>(DrawType);
+		if ( Scene )
+		{
+			// Find the appropriate draw list for the static mesh based on the light-map policy type.
+			TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType> >& DrawList =
+				Scene->GetForwardShadingBasePassDrawList<LightMapPolicyType>(DrawType);
 
-		ERHIFeatureLevel::Type FeatureLevel = Scene->GetFeatureLevel();
-		// Add the static mesh to the draw list.
-		DrawList.AddMesh(
-			StaticMesh,
-			typename TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData),
-			TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType>(
+			ERHIFeatureLevel::Type FeatureLevel = Scene->GetFeatureLevel();
+			// Add the static mesh to the draw list.
+			DrawList.AddMesh(
+				StaticMesh,
+				typename TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData),
+				TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType>(
 				StaticMesh->VertexFactory,
 				StaticMesh->MaterialRenderProxy,
 				*Parameters.Material,
 				LightMapPolicy,
 				Parameters.BlendMode,
 				Parameters.TextureMode,
-				Parameters.ShadingModel != MSM_Unlit && Scene && Scene->ShouldRenderSkylight(),
+				Parameters.ShadingModel != MSM_Unlit && Scene->ShouldRenderSkylight(),
 				false,
 				FeatureLevel,
 				Parameters.bEditorCompositeDepthTest
 				),
 				FeatureLevel
-			);
+				);
+		}
 	}
 };
 

@@ -133,15 +133,16 @@ FText UK2Node_VariableSet::GetPropertyTooltip(UProperty const* VariableProperty)
 	FFormatNamedArguments Args;
 
 	bool const bHasLocalRepNotify = K2Node_VariableSetImpl::PropertyHasLocalRepNotify(VariableProperty);
-	if (bHasLocalRepNotify)
-	{
-		Args.Add(TEXT("ReplicationNotifyName"), FText::FromName(VariableProperty->RepNotifyFunc));
-		TextFormat = LOCTEXT("SetVariableWithRepNotify_Tooltip", "Set the value of variable {VarName} and call {ReplicationNotifyName}");
-	}
 
 	FName VarName = NAME_None;
 	if (VariableProperty != nullptr)
 	{
+		if (bHasLocalRepNotify)
+		{
+			Args.Add(TEXT("ReplicationNotifyName"), FText::FromName(VariableProperty->RepNotifyFunc));
+			TextFormat = LOCTEXT("SetVariableWithRepNotify_Tooltip", "Set the value of variable {VarName} and call {ReplicationNotifyName}");
+		}
+
 		VarName = VariableProperty->GetFName();
 
 		UClass* SourceClass = VariableProperty->GetOwnerClass();

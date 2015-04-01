@@ -2003,7 +2003,7 @@ void FPImplRecastNavMesh::GetDebugPolyEdges(const dtMeshTile& Tile, bool bIntern
 
 uint8 GetValidEnds(const dtNavMesh& NavMesh, const dtMeshTile& Tile, const dtPoly& Poly)
 {
-	if ((Poly.getType() & DT_POLYTYPE_GROUND) != 0)
+	if (Poly.getType() == DT_POLYTYPE_GROUND)
 	{
 		return false;
 	}

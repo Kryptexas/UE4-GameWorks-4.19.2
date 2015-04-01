@@ -763,7 +763,10 @@ void APlayerController::Possess(APawn* PawnToPossess)
 		SetPawn(PawnToPossess);
 		check(GetPawn() != NULL);
 
-		GetPawn()->SetActorTickEnabled(true);
+		if (GetPawn() != NULL)
+		{
+			GetPawn()->SetActorTickEnabled(true);
+		}
 
 		INetworkPredictionInterface* NetworkPredictionInterface = GetPawn() ? Cast<INetworkPredictionInterface>(GetPawn()->GetMovementComponent()) : NULL;
 		if (NetworkPredictionInterface)
@@ -2126,6 +2129,10 @@ bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDe
 
 					case IE_Released:
 						ClickedPrimitive->DispatchOnReleased();
+						break;
+
+					case IE_Axis:
+					case IE_Repeat:
 						break;
 					}
 				}

@@ -122,7 +122,7 @@ private:
 		return 48 + ( 16 * ResizeCurve.GetLerp() );
 	}
 
-	FOptionalSize GetCurrentHeight() const
+	FOptionalSize GetCurrentHeight() const //-V524
 	{
 		return 48 + ( 16 * ResizeCurve.GetLerp() );
 	}

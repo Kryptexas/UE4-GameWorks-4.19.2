@@ -449,8 +449,7 @@ namespace PackageTools
 					UObject* CurObj = *ObjIter;
 
 					// Only add the object if it passes all of the specified filters
-					if ( CurObj && 
-						( !FilteredClasses || FilteredClasses->Contains( CurObj->GetClass() ) ) )
+					if ( CurObj && FilteredClasses->Contains( CurObj->GetClass() ) )
 					{
 						FilteredObjects.Add( CurObj );
 					}

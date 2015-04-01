@@ -67,7 +67,6 @@ public:
 	bool RemoveLevel( FName LevelName )
 	{
 		return LevelNames.Remove( LevelName ) > 0;
-		ChangedEvent.Broadcast();
 	}
 
 	/**

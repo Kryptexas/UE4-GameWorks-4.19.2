@@ -619,7 +619,7 @@ ULinkerLoad* GetPackageLinker
 
 		// Create the package with the provided long package name.
 		UPackage* FilenamePkg = CreatePackage(nullptr, *PackageName);
-		if (LoadFlags & LOAD_PackageForPIE)
+		if (FilenamePkg && (LoadFlags & LOAD_PackageForPIE))
 		{
 			FilenamePkg->PackageFlags |= PKG_PlayInEditor;
 		}

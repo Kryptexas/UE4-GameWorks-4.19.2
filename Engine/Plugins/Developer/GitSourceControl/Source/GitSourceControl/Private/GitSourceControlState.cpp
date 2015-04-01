@@ -51,7 +51,7 @@ TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FGitSourceControlS
 // @todo add Slate icons for git specific states (Added vs Modified, Copied vs Conflicted...)
 FName FGitSourceControlState::GetIconName() const
 {
-	switch(WorkingCopyState)
+	switch(WorkingCopyState) //-V719
 	{
 	case EWorkingCopyState::Modified:
 		return FName("Subversion.CheckedOut");
@@ -76,7 +76,7 @@ FName FGitSourceControlState::GetIconName() const
 
 FName FGitSourceControlState::GetSmallIconName() const
 {
-	switch(WorkingCopyState)
+	switch(WorkingCopyState) //-V719
 	{
 	case EWorkingCopyState::Unchanged:
 		return FName("Subversion.CheckedOut_Small");
@@ -134,7 +134,7 @@ FText FGitSourceControlState::GetDisplayName() const
 
 FText FGitSourceControlState::GetDisplayTooltip() const
 {
-	switch(WorkingCopyState)
+	switch(WorkingCopyState) //-V719
 	{
 	case EWorkingCopyState::Unknown:
 		return LOCTEXT("Unknown_Tooltip", "Unknown source control state");

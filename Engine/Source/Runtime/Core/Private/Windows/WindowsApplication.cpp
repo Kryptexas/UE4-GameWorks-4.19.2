@@ -384,7 +384,6 @@ FPlatformRect FWindowsApplication::GetWorkArea( const FPlatformRect& CurrentWind
 	GetMonitorInfo( hBestMonitor, &MonitorInfo);
 
 	// ... so that we can figure out the work area (are not covered by taskbar)
-	MonitorInfo.rcWork;
 
 	FPlatformRect WorkArea;
 	WorkArea.Left = MonitorInfo.rcWork.left;

@@ -287,9 +287,8 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 	LayerCount = Mesh->GetLayerCount();
 	for (int32 UVIndex = 0; UVIndex < UniqueUVCount; UVIndex++)
 	{
-		bool bFoundUV = false;
 		LayerElementUV[UVIndex] = NULL;
-		for (int32 UVLayerIndex = 0; !bFoundUV &&UVLayerIndex<LayerCount; UVLayerIndex++)
+		for (int32 UVLayerIndex = 0; UVLayerIndex<LayerCount; UVLayerIndex++)
 		{
 			FbxLayer* lLayer = Mesh->GetLayer(UVLayerIndex);
 			int UVSetCount = lLayer->GetUVSetCount();

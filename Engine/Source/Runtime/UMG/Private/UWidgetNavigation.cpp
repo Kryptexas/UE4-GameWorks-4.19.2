@@ -44,6 +44,9 @@ EUINavigationRule UWidgetNavigation::GetNavigationRule(EUINavigation Nav)
 		return Left.Rule;
 	case EUINavigation::Right:
 		return Right.Rule;
+	case EUINavigation::Next:
+	case EUINavigation::Previous:
+		break;
 	}
 	return EUINavigationRule::Escape;
 }
@@ -104,6 +107,8 @@ void UWidgetNavigation::UpdateMetaDataEntry(TSharedRef<FNavigationMetaData> Meta
 		{
 			MetaData->SetNavigationExplicit(Nav, NavData.Widget.Get()->GetCachedWidget());
 		}
+		break;
+	case EUINavigationRule::Custom:
 		break;
 	}
 }

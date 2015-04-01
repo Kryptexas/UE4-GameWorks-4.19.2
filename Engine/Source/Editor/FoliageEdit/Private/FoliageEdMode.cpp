@@ -1337,7 +1337,7 @@ void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliage
 				bUpdated = true;
 			}
 
-			if (Settings->ReapplyScaleY)
+			if (Settings->ReapplyScaleZ)
 			{
 				Instance.DrawScale3D.Z = NewScale.Z;
 				bUpdated = true;

@@ -88,7 +88,7 @@ namespace
 		mat5 = Concatenate(mat4, trans4);
 
 		quat5 = Concatenate(quat4, rot4);
-		quat5 = Concatenate(rot4, quat4);
+		quat5 = Concatenate(rot4, quat4); //-V519
 		mat5 = Concatenate(quat4, mat4);
 		mat5 = Concatenate(mat4, quat4);
 

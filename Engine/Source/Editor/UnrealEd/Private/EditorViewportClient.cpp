@@ -549,7 +549,7 @@ void FEditorViewportClient::FocusViewportOnBox( const FBox& BoundingBox, bool bI
 				*/
 				float NewOrthoZoom;
 				uint32 MinAxisSize = (AspectToUse > 1.0f) ? Viewport->GetSizeXY().Y : Viewport->GetSizeXY().X;
-				float Zoom = Radius / (MinAxisSize / 2);
+				float Zoom = Radius / (MinAxisSize / 2.0f);
 
 				NewOrthoZoom = Zoom * (Viewport->GetSizeXY().X*15.0f);
 				NewOrthoZoom = FMath::Clamp<float>( NewOrthoZoom, MIN_ORTHOZOOM, MAX_ORTHOZOOM );
@@ -2209,7 +2209,7 @@ void FEditorViewportClient::StartTrackingDueToInput( const struct FInputEventSta
 			bIsTracking = false;
 		}
 
-		bDraggingByHandle = (Widget->GetCurrentAxis() != EAxisList::None);
+		bDraggingByHandle = (Widget && Widget->GetCurrentAxis() != EAxisList::None);
 
 		if( Event == IE_Pressed )
 		{
@@ -2218,7 +2218,7 @@ void FEditorViewportClient::StartTrackingDueToInput( const struct FInputEventSta
 		}
 
 		// Start new tracking. Potentially reset the widget so that StartTracking can pick a new axis.
-		if ( !bDraggingByHandle || InputState.IsCtrlButtonPressed() ) 
+		if ( Widget && ( !bDraggingByHandle || InputState.IsCtrlButtonPressed() ) ) 
 		{
 			bWidgetAxisControlledByDrag = false;
 			Widget->SetCurrentAxis( EAxisList::None );
@@ -2602,6 +2602,8 @@ void FEditorViewportClient::OnOrthoZoom( const struct FInputEventState& InputSta
 			break;
 		case LVT_OrthoFreelook:
 			//@TODO: CAMERA: How to handle this
+			break;
+		case LVT_Perspective:
 			break;
 		}
 	}
@@ -3241,6 +3243,9 @@ FVector FEditorViewportClient::TranslateDelta( FKey InKey, float InDelta, bool I
 					case LVT_OrthoNegativeYZ:
 						vec = FVector(0.f, -X * UnitsPerPixel, Y * UnitsPerPixel);
 						break;
+					case LVT_OrthoFreelook:
+					case LVT_Perspective:
+						break;
 					}
 				}
 			}
@@ -3391,6 +3396,9 @@ bool FEditorViewportClient::InputGesture(FViewport* InViewport, EGestureEvent::T
 						break;
 					case LVT_OrthoNegativeYZ:
 						CurrentGestureDragDelta += FVector(0, AdjustedGestureDelta.X, AdjustedGestureDelta.Y);
+						break;
+					case LVT_OrthoFreelook:
+					case LVT_Perspective:
 						break;
 				}
 

@@ -89,7 +89,7 @@ void UK2Node_SpawnActorFromClass::CreatePinsForClass(UClass* InClass, TArray<UEd
 			const bool bPinGood = (Pin != NULL) && K2Schema->ConvertPropertyToPinType(Property, /*out*/ Pin->PinType);
 			OutClassPins.Add(Pin);
 
-			if( ClassDefaultObject && K2Schema->PinDefaultValueIsEditable(*Pin))
+			if (ClassDefaultObject && Pin != NULL && K2Schema->PinDefaultValueIsEditable(*Pin))
 			{
 				FString DefaultValueAsString;
 				const bool bDefaultValueSet = FBlueprintEditorUtils::PropertyValueToString(Property, reinterpret_cast<const uint8*>(ClassDefaultObject), DefaultValueAsString);

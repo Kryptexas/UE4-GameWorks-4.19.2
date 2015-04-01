@@ -2256,6 +2256,8 @@ int32 GetDefaultExpressionForMaterialProperty(FMaterialCompiler* Compiler, EMate
 				// The user did not customize this UV, pass through the vertex texture coordinates
 				return Compiler->TextureCoordinate(TextureCoordinateIndex, false, false);
 			}
+		case MP_MaterialAttributes:
+			break;
 	}
 
 	check(0);

@@ -291,7 +291,6 @@ void UParticleSystemAuditCommandlet::CheckPSysForLODMismatches(UParticleSystem* 
 	}
 
 	// Process it...
-	bool bHasLoopingMismatch = false;
 	bool bHasIntraLoopingMismatch = false;
 	bool bHasInterLoopingMismatch = false;
 	bool bHasMultipleLODLevels = true;
@@ -303,13 +302,13 @@ void UParticleSystemAuditCommandlet::CheckPSysForLODMismatches(UParticleSystem* 
 
 	EmitterLODLevelEnabledFlags.Empty(InPSys->Emitters.Num());
 	EmitterLODLevelEnabledFlags.AddZeroed(InPSys->Emitters.Num());
-	for (int32 EmitterIdx = 0; (EmitterIdx < InPSys->Emitters.Num()) && !bHasLoopingMismatch; EmitterIdx++)
+	for (int32 EmitterIdx = 0; (EmitterIdx < InPSys->Emitters.Num()); EmitterIdx++)
 	{
 		UParticleEmitter* Emitter = InPSys->Emitters[EmitterIdx];
 		if (Emitter != NULL)
 		{
 			int32 EmitterLooping = -1;
-			for (int32 LODIdx = 0; (LODIdx < Emitter->LODLevels.Num()) && !bHasLoopingMismatch; LODIdx++)
+			for (int32 LODIdx = 0; (LODIdx < Emitter->LODLevels.Num()); LODIdx++)
 			{
 				UParticleLODLevel* LODLevel = Emitter->LODLevels[LODIdx];
 				if (LODLevel != NULL)

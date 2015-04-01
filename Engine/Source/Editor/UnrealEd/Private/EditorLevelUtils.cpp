@@ -408,7 +408,7 @@ namespace EditorLevelUtils
 
 		UWorld* OwningWorld = InLevel->OwningWorld;
 		const FName LevelPackageName		= InLevel->GetOutermost()->GetFName();
-		const bool bRemovingCurrentLevel	= InLevel && InLevel->IsCurrentLevel();
+		const bool bRemovingCurrentLevel	= InLevel->IsCurrentLevel();
 		const bool bRemoveSuccessful		= PrivateRemoveLevelFromWorld( InLevel );
 		if ( bRemoveSuccessful )
 		{

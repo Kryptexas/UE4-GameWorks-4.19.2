@@ -1039,7 +1039,6 @@ void UAnimCompress_PerTrackCompression::CompressUsingUnderlyingCompressor(
 		FPerTrackParams Params;
 		Params.AnimSeq = AnimSeq;
 		Params.MaxZeroingThreshold = MaxZeroingThreshold;
-		Params.bIncludeKeyTable = false;
 
 		// Determine the local-space error cutoffs
 		float MaxPositionErrorCutoff = MaxPosDiffBitwise;

@@ -364,6 +364,9 @@ public:
 				Ar << (TCHAR*)*Value;
 				break;
 			}
+		case EOnlineKeyValuePairDataType::Bool:
+		case EOnlineKeyValuePairDataType::Empty:
+			break;
 		}
 		return Ar;
 	}
@@ -738,6 +741,9 @@ public:
 					KeyValuePair.SetValue(Value);
 					break;
 				}
+			case EOnlineKeyValuePairDataType::Bool:
+			case EOnlineKeyValuePairDataType::Empty:
+				break;
 			}
 		}
 

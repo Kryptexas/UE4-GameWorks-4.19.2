@@ -929,7 +929,7 @@ void USimpleConstructionScript::ValidateNodeTemplates(FCompilerResultsLog& Messa
 
 		if (GetLinkerUE4Version() < VER_UE4_REMOVE_INPUT_COMPONENTS_FROM_BLUEPRINTS)
 		{
-			if (!Node->bIsNative_DEPRECATED && Node->ComponentTemplate->IsA<UInputComponent>())
+			if (!Node->bIsNative_DEPRECATED && Node->ComponentTemplate && Node->ComponentTemplate->IsA<UInputComponent>())
 			{
 				RemoveNodeAndPromoteChildren(Node);
 			}

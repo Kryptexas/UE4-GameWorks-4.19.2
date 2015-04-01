@@ -4006,6 +4006,9 @@ void FStreamingManagerTexture::UpdateFrameStats( FStreamingContext& Context, FSt
 		case StreamType_Static:
 			Context.ThisFrameTotalStaticTextureHeuristicSize += PerfectWantedSize;
 			break;
+		case StreamType_Orphaned:
+		case StreamType_Other:
+			break;
 	}
 	if ( Context.bCollectTextureStats )
 	{

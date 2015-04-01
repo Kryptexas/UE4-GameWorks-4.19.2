@@ -737,6 +737,9 @@ void FWindowsPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorRe
 				case EErrorReportMode::Balloon:
 					CallingCommandLine += TEXT( " -balloon" );
 					break;
+
+				case EErrorReportMode::Interactive:
+					break;
 				}
 
 				if (!FPlatformProcess::CreateProc(AutoReportExe, *CallingCommandLine, true, false, false, NULL, 0, NULL, NULL).IsValid())

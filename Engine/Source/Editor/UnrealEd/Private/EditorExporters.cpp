@@ -1200,7 +1200,7 @@ bool GenerateExportMaterialPropertyData(
 
 		// if PF_FloatRGB was used as render target format, the gamma conversion during rendering is deactivated
 		// if we want it not in linear space we need to convert
-		ReadPixelFlags.SetLinearToGamma(Format == PF_FloatRGB && !bForceLinear);
+		ReadPixelFlags.SetLinearToGamma(Format == PF_FloatRGB && !bForceLinear); //-V560 //remove after implementing todo (near to Format variable declaration)
 
 		if(!RenderTarget->GetRenderTargetResource()->ReadPixels(OutBMP, ReadPixelFlags))
 		{

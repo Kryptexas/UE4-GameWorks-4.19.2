@@ -522,26 +522,26 @@ EPathFollowingRequestResult::Type AAIController::MoveTo(const FAIMoveRequest& Mo
 	if (!MoveRequest.HasGoalActor())
 	{
 		if (MoveRequest.GetGoalLocation().ContainsNaN() || FAISystem::IsValidLocation(MoveRequest.GetGoalLocation()) == false)
-	{
-			UE_VLOG(this, LogAINavigation, Error, TEXT("AAIController::MoveTo: Destination is not valid! Goal(%s)"), TEXT_AI_LOCATION(MoveRequest.GetGoalLocation()));
-		bCanRequestMove = false;
-	}
-
-	// fail if projection to navigation is required but it failed
-		if (bCanRequestMove && MoveRequest.IsProjectingGoal())
-	{
-		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
-		const FNavAgentProperties& AgentProps = GetNavAgentPropertiesRef();
-		FNavLocation ProjectedLocation;
-
-			if (NavSys && !NavSys->ProjectPointToNavigation(MoveRequest.GetGoalLocation(), ProjectedLocation, AgentProps.GetExtent(), &AgentProps))
 		{
-				UE_VLOG_LOCATION(this, LogAINavigation, Error, MoveRequest.GetGoalLocation(), 30.f, FLinearColor::Red, TEXT("AAIController::MoveTo failed to project destination location to navmesh"));
+			UE_VLOG(this, LogAINavigation, Error, TEXT("AAIController::MoveTo: Destination is not valid! Goal(%s)"), TEXT_AI_LOCATION(MoveRequest.GetGoalLocation()));
 			bCanRequestMove = false;
 		}
 
+		// fail if projection to navigation is required but it failed
+		if (bCanRequestMove && MoveRequest.IsProjectingGoal())
+		{
+			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
+			const FNavAgentProperties& AgentProps = GetNavAgentPropertiesRef();
+			FNavLocation ProjectedLocation;
+
+			if (NavSys && !NavSys->ProjectPointToNavigation(MoveRequest.GetGoalLocation(), ProjectedLocation, AgentProps.GetExtent(), &AgentProps))
+			{
+				UE_VLOG_LOCATION(this, LogAINavigation, Error, MoveRequest.GetGoalLocation(), 30.f, FLinearColor::Red, TEXT("AAIController::MoveTo failed to project destination location to navmesh"));
+				bCanRequestMove = false;
+			}
+
 			MoveRequest.UpdateGoalLocation(ProjectedLocation.Location);
-	}
+		}
 
 		bAlreadyAtGoal = bCanRequestMove && PathFollowingComponent &&
 			PathFollowingComponent->HasReached(MoveRequest.GetGoalLocation(), MoveRequest.GetAcceptanceRadius(), !MoveRequest.CanStopOnOverlap());
@@ -556,10 +556,13 @@ EPathFollowingRequestResult::Type AAIController::MoveTo(const FAIMoveRequest& Mo
 	{
 		UE_VLOG(this, LogAINavigation, Log, TEXT("MoveToActor: already at goal!"));
 
-		// make sure previous move request gets aborted
-		PathFollowingComponent->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest);
+		if (PathFollowingComponent)
+		{
+			// make sure previous move request gets aborted
+			PathFollowingComponent->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest);
 
-		PathFollowingComponent->SetLastMoveAtGoal(true);
+			PathFollowingComponent->SetLastMoveAtGoal(true);
+		}
 
 		OnMoveCompleted(FAIRequestID::CurrentRequest, EPathFollowingResult::Success);
 		Result = EPathFollowingRequestResult::AlreadyAtGoal;

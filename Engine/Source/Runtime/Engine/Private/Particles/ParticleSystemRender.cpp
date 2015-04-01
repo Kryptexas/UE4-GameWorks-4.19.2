@@ -5179,7 +5179,7 @@ void FDynamicRibbonEmitterData::RenderDebug(const FParticleSystemSceneProxy* Pro
 			}
 
 			// Pin the size to the X component
-			float Increment = 1.0f / (StartTrailPayload->TriangleCount / 2);
+			float Increment = 1.0f / (StartTrailPayload->TriangleCount / 2.0f);
 			float ColorScale = 0.0f;
 
 			DebugParticle = Particle;
@@ -5376,7 +5376,7 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 		// Pin the size to the X component
 		FLinearColor CurrLinearColor = PackingParticle->Color;
 		// The increment for going [0..1] along the complete trail
-		float TextureIncrement = 1.0f / (TrailPayload->TriangleCount / 2);
+		float TextureIncrement = 1.0f / (TrailPayload->TriangleCount / 2.0f);
 		float Tex_U = 0.0f;
 		FVector CurrTilePosition = PackingParticle->Location;
 		FVector PrevTilePosition = PackingParticle->Location;
@@ -5923,7 +5923,7 @@ void FDynamicAnimTrailEmitterData::RenderDebug(const FParticleSystemSceneProxy* 
 			}
 
 			// Pin the size to the X component
-			float Increment = 1.0f / (StartTrailPayload->TriangleCount / 2);
+			float Increment = 1.0f / (StartTrailPayload->TriangleCount / 2.0f);
 			float ColorScale = 0.0f;
 
 			FAnimTrailParticleRenderData RenderData(Source, Particle, StartTrailPayload);
@@ -6054,7 +6054,7 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 	Sheets = 1;
 
 	// The increment for going [0..1] along the complete trail
-	float TextureIncrement = 1.0f / (Data.VertexCount / 2);
+	float TextureIncrement = 1.0f / (Data.VertexCount / 2.0f);
 	// The distance tracking for tiling the 2nd UV set
 	float CurrDistance = 0.0f;
 

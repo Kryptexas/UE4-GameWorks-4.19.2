@@ -410,8 +410,11 @@ public:
 		}
 		else if (bCapturing)
 		{
-			// Wait for the directshow thread to finish encoding the last data
-			GCaptureSyncEvent->Wait();
+			if ( GCaptureSyncEvent )
+			{
+				// Wait for the directshow thread to finish encoding the last data
+				GCaptureSyncEvent->Wait();
+			}
 
 			CaptureViewport->ReadPixels(ViewportColorBuffer, FReadSurfaceDataFlags());
 
@@ -429,14 +432,17 @@ public:
 		{
 			CaptureViewport->ReadPixels(ViewportColorBuffer, FReadSurfaceDataFlags());
 
-			// Allow the directshow thread to process the pixels we just read
-			GCaptureSyncEvent->Trigger();
-			Control->Run();
-			bReadyForCapture = false;
-			bCapturing = true;
-			UE_LOG(LogMovieCapture, Log, TEXT("-----------------START------------------"));
-			UE_LOG(LogMovieCapture, Log, TEXT(" INCREASE FrameNumber from %d "), FrameNumber);
-			FrameNumber++;
+			if ( GCaptureSyncEvent )
+			{
+				// Allow the directshow thread to process the pixels we just read
+				GCaptureSyncEvent->Trigger();
+				Control->Run();
+				bReadyForCapture = false;
+				bCapturing = true;
+				UE_LOG(LogMovieCapture, Log, TEXT("-----------------START------------------"));
+				UE_LOG(LogMovieCapture, Log, TEXT(" INCREASE FrameNumber from %d "), FrameNumber);
+				FrameNumber++;
+			}
 		}
 	}
 

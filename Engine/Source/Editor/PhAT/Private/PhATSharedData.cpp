@@ -522,7 +522,7 @@ void FPhATSharedData::SetSelectedBody(const FSelection* Body, bool bGroupSelect 
 		GroupSelectionChangedEvent.Broadcast(Objs);
 	}
 
-	bInsideSelChange = true;
+	//bInsideSelChange = true;
 	//HierarchySelectionChangedEvent.Broadcast();	//TODO: disable for now
 	bInsideSelChange = false;
 

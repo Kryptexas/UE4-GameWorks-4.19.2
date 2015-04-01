@@ -1563,6 +1563,9 @@ void FStaticLODModel::SortTriangles( FVector SortCenter, bool bUseSortCenter, in
 			MultiSizeIndexContainer.CopyIndexBuffer( Indices );
 		}
 		break;
+	case TRISORT_Custom:
+	case TRISORT_CustomLeftRight:
+		break;
 	}
 
 	Section.TriangleSorting = NewTriangleSorting;

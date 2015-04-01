@@ -92,7 +92,7 @@ void FFindTurnBasedMatchCallbackProxyMatchmakerDelegate::OnMatchFound(FTurnBased
     UE_LOG(LogOnline, Verbose, TEXT("Turn-based match found: %s"), *Match->GetMatchID());
 	TArray<uint8> MatchData;
 	
-	if (Match->GetMatchData(MatchData))
+	if (Match->GetMatchData(MatchData) && FindTurnBasedMatchCallbackProxy)
 	{
 		FRepLayout RepLayout;
 		RepLayout.InitFromObjectClass(FindTurnBasedMatchCallbackProxy->GetTurnBasedMatchInterfaceObject()->GetClass());

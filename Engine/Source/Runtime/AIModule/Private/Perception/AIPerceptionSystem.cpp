@@ -380,7 +380,7 @@ void UAIPerceptionSystem::MakeNoiseImpl(AActor* NoiseMaker, float Loudness, APaw
 {
 	check(NoiseMaker != nullptr || NoiseInstigator != nullptr);
 
-	UWorld* World = NoiseMaker ? NoiseMaker->GetWorld() : NoiseInstigator->GetWorld();
+	UWorld* World = NoiseMaker ? NoiseMaker->GetWorld() : (NoiseInstigator ? NoiseInstigator->GetWorld() : nullptr);
 
 	UAIPerceptionSystem::OnEvent(World, FAINoiseEvent(NoiseInstigator ? NoiseInstigator : NoiseMaker
 			, NoiseLocation

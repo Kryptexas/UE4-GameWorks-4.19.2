@@ -378,7 +378,11 @@ FReply FKismetVariableDragDropAction::DroppedOnNode(FVector2D ScreenPosition, FV
 			UEdGraphPin* Pin = TargetNode->FindPin(OldVarName);
 			DropOnBlueprint->Modify();
 			TargetNode->Modify();
-			Pin->Modify();
+
+			if (Pin != NULL)
+			{
+				Pin->Modify();
+			}
 
 			UEdGraphSchema_K2::ConfigureVarNode(TargetNode, VariableName, VariableSource.Get(), DropOnBlueprint);
 

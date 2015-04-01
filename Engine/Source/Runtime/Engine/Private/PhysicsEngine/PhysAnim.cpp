@@ -83,7 +83,7 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 		int32 BoneIndex = InRequiredBones[i];
 
 		// See if this is a physics bone..
-		int32 BodyIndex = PhysicsAsset->FindBodyIndex( SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex));
+		int32 BodyIndex = PhysicsAsset ? PhysicsAsset->FindBodyIndex(SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex)) : INDEX_NONE;
 		// need to update back to physX so that physX knows where it was after blending
 		bool bUpdatePhysics = false;
 		FBodyInstance* BodyInstance = NULL;

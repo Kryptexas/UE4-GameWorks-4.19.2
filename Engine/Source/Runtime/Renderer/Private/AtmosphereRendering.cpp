@@ -1551,11 +1551,8 @@ void FAtmosphericFogSceneInfo::PrecomputeTextures(FRHICommandListImmediate& RHIC
 			}
 
 			// Delete render targets
-			if (AtmosphereTextures)
-			{
-				delete AtmosphereTextures;
-				AtmosphereTextures = NULL;
-			}
+			delete AtmosphereTextures;
+			AtmosphereTextures = NULL;
 
 			// Save to bulk data is done
 			PrecomputeCounter.Increment(); // Notice to component that pre-computation is done...

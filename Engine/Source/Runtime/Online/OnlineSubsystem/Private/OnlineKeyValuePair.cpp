@@ -451,6 +451,9 @@ bool FVariantData::FromString(const FString& NewValue)
 			SetValue(Val);
 			return true;
 		}
+		case EOnlineKeyValuePairDataType::Blob:
+		case EOnlineKeyValuePairDataType::Empty:
+			break;
 	}
 	return false;
 }

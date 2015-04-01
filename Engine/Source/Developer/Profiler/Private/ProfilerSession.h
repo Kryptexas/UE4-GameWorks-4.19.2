@@ -148,6 +148,8 @@ protected:
 				ProfilerUnit = EProfilerSampleTypes::HierarchicalTime;
 				break;
 			}
+		case STATTYPE_Error:
+			break;
 		}
 
 		return ProfilerUnit;

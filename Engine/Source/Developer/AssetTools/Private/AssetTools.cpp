@@ -278,7 +278,7 @@ UObject* FAssetTools::CreateAsset(const FString& AssetName, const FString& Packa
 		return NULL;
 	}
 
-	UClass* ClassToUse = AssetClass ? AssetClass : Factory->GetSupportedClass();
+	UClass* ClassToUse = AssetClass ? AssetClass : (Factory ? Factory->GetSupportedClass() : NULL);
 
 	UPackage* Pkg = CreatePackage(NULL,*PackageName);
 	UObject* NewObj = NULL;

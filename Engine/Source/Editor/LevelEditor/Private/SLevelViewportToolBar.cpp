@@ -264,6 +264,8 @@ FText SLevelViewportToolBar::GetCameraMenuLabel() const
 			case LVT_OrthoNegativeXZ:
 				Label = LOCTEXT("CameraMenuTitle_Back", "Back");
 				break;
+			case LVT_OrthoFreelook:
+				break;
 		}
 	}
 
@@ -349,6 +351,8 @@ const FSlateBrush* SLevelViewportToolBar::GetCameraMenuLabelIcon() const
 
 			case LVT_OrthoNegativeXZ:
 				Icon = BackIcon;
+				break;
+			case LVT_OrthoFreelook:
 				break;
 		}
 	}

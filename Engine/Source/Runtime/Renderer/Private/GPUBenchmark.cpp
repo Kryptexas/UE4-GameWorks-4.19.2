@@ -438,7 +438,7 @@ void RendererGPUBenchmark(FRHICommandListImmediate& RHICmdList, FSynthBenchmarkR
 				SetRenderTarget(RHICmdList, RTItems[DestRTIndex]->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());	
 
 				// decide how much work we do in this pass
-				LocalWorkScale[Iteration] = (Iteration / 10 + 1) * WorkScale;
+				LocalWorkScale[Iteration] = (Iteration / 10.f + 1.f) * WorkScale;
 
 				RunBenchmarkShader(RHICmdList, View, MethodId, RTItems[SrcRTIndex], LocalWorkScale[Iteration]);
 

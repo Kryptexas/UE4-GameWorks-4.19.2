@@ -326,8 +326,7 @@ bool UMatineeTrackDirectorHelper::PreCreateKeyframe( UInterpTrack *Track, float 
 	KeyframeAddDataName = NAME_None;
 
 	FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
-	check(Mode != NULL);
-	check(Mode->InterpEd != NULL);
+	check(Mode != NULL && Mode->InterpEd != NULL);
 
 	if ( (Mode != NULL) && (Mode->InterpEd != NULL) )
 	{

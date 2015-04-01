@@ -152,7 +152,7 @@ public:
 
 	TCHAR GetCurveTypeCharacter() const
 	{
-		switch (CurveType)
+		switch (CurveType) //-V719
 		{
 		case ETransformCurve::Translation:
 			return TCHAR('T');

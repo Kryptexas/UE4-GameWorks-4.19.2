@@ -66,6 +66,8 @@ void SScaleBox::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedC
 			case EStretchDirection::UpOnly:
 				FinalScale = FMath::Max(FinalScale, 1.0f);
 				break;
+			case EStretchDirection::Both:
+				break;
 			}
 		}
 

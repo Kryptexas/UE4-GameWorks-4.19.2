@@ -1030,7 +1030,7 @@ bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHan
 	{
 		if (Spec->IsActive())
 		{
-			if (Ability->bRetriggerInstancedAbility)
+			if (Ability->bRetriggerInstancedAbility && InstancedAbility)
 			{
 				InstancedAbility->EndAbility(Handle, ActorInfo, Spec->ActivationInfo, true);
 			}

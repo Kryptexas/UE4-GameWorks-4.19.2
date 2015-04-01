@@ -728,7 +728,7 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 		SetPreviewMesh(InitMesh);
 		bSetMesh = true;
 
-		if(!TargetSkeleton->GetPreviewMesh())
+		if (TargetSkeleton && !TargetSkeleton->GetPreviewMesh())
 		{
 			TargetSkeleton->SetPreviewMesh(InitMesh, false);
 		}
@@ -1674,9 +1674,12 @@ void FPersona::Compile()
 	UObject* CurrentDebugObject = GetBlueprintObj()->GetObjectBeingDebugged();
 	const bool bIsDebuggingPreview = (PreviewComponent != NULL) && PreviewComponent->IsAnimBlueprintInstanced() && (PreviewComponent->AnimScriptInstance == CurrentDebugObject);
 
-	// Force close any asset editors that are using the AnimScriptInstance (such as the Property Matrix), the class will be garbage collected
-	FAssetEditorManager::Get().CloseOtherEditors(PreviewComponent->AnimScriptInstance, nullptr);
-	
+	if (PreviewComponent != NULL)
+	{
+		// Force close any asset editors that are using the AnimScriptInstance (such as the Property Matrix), the class will be garbage collected
+		FAssetEditorManager::Get().CloseOtherEditors(PreviewComponent->AnimScriptInstance, nullptr);
+	}
+
 	// Compile the blueprint
 	FBlueprintEditor::Compile();
 

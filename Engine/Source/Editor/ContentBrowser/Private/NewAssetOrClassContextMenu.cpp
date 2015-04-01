@@ -317,9 +317,10 @@ void FNewAssetOrClassContextMenu::MakeContextMenu(
 		MenuBuilder.EndSection();
 	}
 
-	// Add Basic Asset
+	
 	if (InOnNewAssetRequested.IsBound())
 	{
+		// Add Basic Asset
 		MenuBuilder.BeginSection("ContentBrowserNewBasicAsset", LOCTEXT("BasicAssetsMenuHeading", "Create Basic Asset") );
 		{
 			CreateNewAssetMenuCategory(
@@ -331,11 +332,8 @@ void FNewAssetOrClassContextMenu::MakeContextMenu(
 				);
 		}
 		MenuBuilder.EndSection(); //ContentBrowserNewBasicAsset
-	}
 
-	// Add Advanced Asset
-	if (InOnNewAssetRequested.IsBound())
-	{
+		// Add Advanced Asset
 		MenuBuilder.BeginSection("ContentBrowserNewAdvancedAsset", LOCTEXT("AdvancedAssetsMenuHeading", "Create Advanced Asset"));
 		{
 			// List of advanced categories to add, in order

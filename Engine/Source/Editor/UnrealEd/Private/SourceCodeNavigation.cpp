@@ -875,14 +875,14 @@ void FSourceCodeNavigationImpl::GatherFunctions( const FString& ModuleName, cons
 				}
 
 				// Filter class constructor
-				else if( !bShowConstructorAndDestructor && FunctionName == ClassName )
+				else if( !bShowConstructorAndDestructor && FunctionName == ClassName ) //-V560 //Remove this when todo will be implemented
 				{
 					// <class>
 					bPassedFilter = false;
 				}
 
 				// Filter class destructor
-				else if( !bShowConstructorAndDestructor && FunctionName.StartsWith( TEXT( "~" ) ) )
+				else if( !bShowConstructorAndDestructor && FunctionName.StartsWith( TEXT( "~" ) ) ) //-V560 //Remove this when todo will be implemented
 				{
 					// ~<class>
 					bPassedFilter = false;
@@ -1289,7 +1289,7 @@ void FSourceCodeNavigation::GatherFunctionsForActors( TArray< AActor* >& Actors,
 		{
 			// Skip low-level classes if we were asked to do that.  Here, we'll require the class to have
 			// been derived from a low level actor/pawn class.
-			if( !bGatherLowLevelClasses &&		// @todo editcode: A bit hacky here, hard-coding types
+			if( !bGatherLowLevelClasses &&		// @todo editcode: A bit hacky here, hard-coding types //-V560 //remove after implementing todo
 				( !CurClass->IsChildOf( AActor::StaticClass() ) ||
 				  CurClass == AActor::StaticClass() ) ||
 				  CurClass == APawn::StaticClass() )

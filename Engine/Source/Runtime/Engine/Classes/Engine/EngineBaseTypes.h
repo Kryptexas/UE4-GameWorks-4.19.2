@@ -516,6 +516,8 @@ namespace ETravelFailure
 			return TEXT("ServerTravelFailure");
 		case ClientTravelFailure:
 			return TEXT("ClientTravelFailure");
+		case CloudSaveFailure:
+			return TEXT("CloudSaveFailure");
 		}
 		return TEXT("Unknown ETravelFailure error occurred.");
 	}

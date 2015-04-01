@@ -269,6 +269,9 @@ void FDragTool_ActorBoxSelect::CalculateBox( FBox& OutBox )
 		OutBox.Min.X = -WORLD_MAX;
 		OutBox.Max.X = WORLD_MAX;
 		break;
+	case LVT_OrthoFreelook:
+	case LVT_Perspective:
+		break;
 	}
 }
 

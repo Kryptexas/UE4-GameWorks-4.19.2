@@ -449,7 +449,7 @@ void FCascadeEdPreviewViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		Canvas->DrawItem( TextItem,  5.0f, Viewport->GetSizeXY().Y - 105.0f );		
 	}
 
-	if (Viewport && bCaptureScreenShot)
+	if (bCaptureScreenShot)
 	{
 		UParticleSystem* ParticleSystem = CascadePtr.Pin()->GetParticleSystem();
 		int32 SrcWidth = Viewport->GetSizeXY().X;

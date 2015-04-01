@@ -2009,10 +2009,10 @@ static void BindShaderStage(FOpenGLLinkedProgramConfiguration::ShaderInfo& Shade
 				
 				if(!bInterpolatorMatches)
 				{
-					FString PrevSource = GetShaderStageSource<TOpenGLStage1>(PrevStage);
-					FString NextSource = GetShaderStageSource<TOpenGLStage0>(NextStage);
-					UE_LOG(LogRHI,Error,TEXT("Separate Shader Object Stage 0x%x:\n%s"), TOpenGLStage1::TypeEnum, *PrevSource);
-					UE_LOG(LogRHI,Error,TEXT("Separate Shader Object Stage 0x%x:\n%s"), TOpenGLStage0::TypeEnum, *NextSource);
+					FString PrevShaderStageSource = GetShaderStageSource<TOpenGLStage1>(PrevStage);
+					FString NextShaderStageSource = GetShaderStageSource<TOpenGLStage0>(NextStage);
+					UE_LOG(LogRHI, Error, TEXT("Separate Shader Object Stage 0x%x:\n%s"), TOpenGLStage1::TypeEnum, *PrevShaderStageSource);
+					UE_LOG(LogRHI, Error, TEXT("Separate Shader Object Stage 0x%x:\n%s"), TOpenGLStage0::TypeEnum, *NextShaderStageSource);
 				}
 			}
 			

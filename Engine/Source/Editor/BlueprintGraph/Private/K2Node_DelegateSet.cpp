@@ -90,13 +90,13 @@ public:
 		// Verify that the event has a darget to be bound to
 		UEdGraphPin* DelegateOwnerPin = DelegateNode->GetDelegateOwner();
 
-		if( DelegateOwnerPin->LinkedTo.Num() == 0 )
+		if (DelegateOwnerPin == nullptr || DelegateOwnerPin->LinkedTo.Num() == 0)
 		{
 			CompilerContext.MessageLog.Error(*FString(*LOCTEXT("FindDynamicallyBoundDelegate_Error", "Couldn't find target for dynamically bound delegate node @@").ToString()), DelegateNode);
 			return;
 		}
 
-		FBPTerminal** pDelegateOwnerTerm = DelegateOwnerPin ? Context.NetMap.Find(DelegateOwnerPin) : NULL;
+		FBPTerminal** pDelegateOwnerTerm = Context.NetMap.Find(DelegateOwnerPin);
 
 		// Create a delegate name term
 		FBPTerminal* DelegateNameTerm = Context.CreateLocalTerminal(ETerminalSpecification::TS_Literal);

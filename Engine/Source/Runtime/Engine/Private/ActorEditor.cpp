@@ -678,7 +678,7 @@ void AActor::SetFolderPath(const FName& NewFolderPath, bool bDetachFromParent)
 	FolderPath = NewFolderPath;
 	
 	// Detach the actor if it is attached
-	if (bIsAttached && bDetachFromParent)
+	if (RootComp && bIsAttached && bDetachFromParent)
 	{
 		AActor* OldParentActor = RootComp->AttachParent->GetOwner();
 		OldParentActor->Modify();

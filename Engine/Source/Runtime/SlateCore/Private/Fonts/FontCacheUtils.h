@@ -51,7 +51,7 @@ public:
 			if( LookupSet.Num() == MaxNumElements )
 			{
 				Eject();
-				checkf( LookupSet.Num() < MaxNumElements, TEXT("Could not eject item from the LRU: (%d of %d), %s"), LookupSet.Num(), MaxNumElements, *LeastRecent->Key );
+				checkf( LookupSet.Num() < MaxNumElements, TEXT("Could not eject item from the LRU: (%d of %d), %s"), LookupSet.Num(), MaxNumElements, LeastRecent ? *LeastRecent->Key : TEXT("NULL"));
 			}
 
 			CacheEntry* NewEntry = new CacheEntry( Key, Value );

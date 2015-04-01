@@ -406,12 +406,13 @@ ESplinePointType::Type USplineComponent::GetSplinePointType(int32 PointIndex) co
 
 void USplineComponent::SetSplinePointType(int32 PointIndex, ESplinePointType::Type Type)
 {
-	EInterpCurveMode InterpMode = CIM_Constant;
+	EInterpCurveMode InterpMode;
 	switch (Type)
 	{
 		case ESplinePointType::Curve:			InterpMode = CIM_CurveAuto; break;
 		case ESplinePointType::CurveClamped:	InterpMode = CIM_CurveAutoClamped; break;
 		case ESplinePointType::Linear:			InterpMode = CIM_Linear; break;
+		default:								InterpMode = CIM_Constant;
 	}
 
 	const int32 NumPoints = SplineInfo.Points.Num();

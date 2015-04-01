@@ -161,6 +161,7 @@ const TCHAR* FPropertyBase::GetPropertyTypeText( EPropertyType Type )
 		CASE_TEXT(CPT_String);
 		CASE_TEXT(CPT_Text);
 		CASE_TEXT(CPT_MulticastDelegate);
+		CASE_TEXT(CPT_AssetObjectReference);
 		CASE_TEXT(CPT_WeakObjectReference);
 		CASE_TEXT(CPT_LazyObjectReference);
 		CASE_TEXT(CPT_MAX);

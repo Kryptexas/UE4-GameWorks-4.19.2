@@ -1574,7 +1574,7 @@ FSceneView* FLevelEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFami
 
 	// set all other matching viewports to my location, if the LOD locking is enabled,
 	// unless another viewport already set me this frame (otherwise they fight)
-	if (GEditor->bEnableLODLocking && !bWasControlledByOtherViewport)
+	if (GEditor->bEnableLODLocking)
 	{
 		for (int32 ViewportIndex = 0; ViewportIndex < GEditor->LevelViewportClients.Num(); ViewportIndex++)
 		{
@@ -2756,6 +2756,9 @@ EAxisList::Type FLevelEditorViewportClient::GetHorizAxis() const
 	case LVT_OrthoYZ:
 	case LVT_OrthoNegativeYZ:
 		return EAxisList::Y;
+	case LVT_OrthoFreelook:
+	case LVT_Perspective:
+		break;
 	}
 
 	return EAxisList::X;
@@ -2778,6 +2781,9 @@ EAxisList::Type FLevelEditorViewportClient::GetVertAxis() const
 	case LVT_OrthoYZ:
 	case LVT_OrthoNegativeYZ:
 		return EAxisList::Z;
+	case LVT_OrthoFreelook:
+	case LVT_Perspective:
+		break;
 	}
 
 	return EAxisList::Y;

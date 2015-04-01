@@ -709,7 +709,7 @@ public:
 		return Size;
 	}
 
-	virtual uint32 GetSizeY() const
+	virtual uint32 GetSizeY() const //-V524
 	{
 		return Size;
 	}

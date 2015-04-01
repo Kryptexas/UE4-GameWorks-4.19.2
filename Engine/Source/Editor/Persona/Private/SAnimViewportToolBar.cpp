@@ -906,6 +906,8 @@ FText SAnimViewportToolBar::GetCameraMenuLabel() const
 		case LVT_OrthoNegativeXZ:
 			Label = LOCTEXT("CameraMenuTitle_Back", "Back");
 			break;
+		case LVT_OrthoFreelook:
+			break;
 		}
 	}
 
@@ -946,6 +948,8 @@ const FSlateBrush* SAnimViewportToolBar::GetCameraMenuLabelIcon() const
 
 		case LVT_OrthoNegativeXZ:
 			Icon = FName("EditorViewport.Back");
+			break;
+		case LVT_OrthoFreelook:
 			break;
 		}
 	}

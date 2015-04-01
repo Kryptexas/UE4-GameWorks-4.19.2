@@ -4227,9 +4227,6 @@ bool UEditorEngine::IsPackageValidForAutoAdding(UPackage* InPackage, const FStri
 	{
 		const FString CleanFilename = FPaths::GetCleanFilename(InFilename);
 
-		// Assume package is valid to start
-		bPackageIsValid = true;
-
 		// Determine if the package has been saved before or not; if it has, it's not valid for auto-adding
 		bPackageIsValid = !FPaths::FileExists(InFilename);
 

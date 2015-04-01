@@ -18,25 +18,29 @@ void FStructurePropertyNode::InitChildNodes()
 	for (TFieldIterator<UProperty> It(Struct); It; ++It)
 	{
 		UProperty* StructMember = *It;
-		const bool bShowIfEditableProperty = StructMember->HasAnyPropertyFlags(CPF_Edit);
-		const bool bShowIfDisableEditOnInstance = !StructMember->HasAnyPropertyFlags(CPF_DisableEditOnInstance) || bShouldShowDisableEditOnInstance;
 
-		if (StructMember && (bShouldShowHiddenProperties || (bShowIfEditableProperty && bShowIfDisableEditOnInstance)))
+		if (StructMember)
 		{
-			TSharedPtr<FItemPropertyNode> NewItemNode(new FItemPropertyNode);//;//CreatePropertyItem(StructMember,INDEX_NONE,this);
+			const bool bShowIfEditableProperty = StructMember->HasAnyPropertyFlags(CPF_Edit);
+			const bool bShowIfDisableEditOnInstance = !StructMember->HasAnyPropertyFlags(CPF_DisableEditOnInstance) || bShouldShowDisableEditOnInstance;
 
-			FPropertyNodeInitParams InitParams;
-			InitParams.ParentNode = SharedThis(this);
-			InitParams.Property = StructMember;
-			InitParams.ArrayOffset = 0;
-			InitParams.ArrayIndex = INDEX_NONE;
-			InitParams.bAllowChildren = true;
-			InitParams.bForceHiddenPropertyVisibility = bShouldShowHiddenProperties;
-			InitParams.bCreateDisableEditOnInstanceNodes = bShouldShowDisableEditOnInstance;
-			InitParams.bCreateCategoryNodes = false;
+			if (bShouldShowHiddenProperties || (bShowIfEditableProperty && bShowIfDisableEditOnInstance))
+			{
+				TSharedPtr<FItemPropertyNode> NewItemNode(new FItemPropertyNode);//;//CreatePropertyItem(StructMember,INDEX_NONE,this);
 
-			NewItemNode->InitNode(InitParams);
-			AddChildNode(NewItemNode);
+				FPropertyNodeInitParams InitParams;
+				InitParams.ParentNode = SharedThis(this);
+				InitParams.Property = StructMember;
+				InitParams.ArrayOffset = 0;
+				InitParams.ArrayIndex = INDEX_NONE;
+				InitParams.bAllowChildren = true;
+				InitParams.bForceHiddenPropertyVisibility = bShouldShowHiddenProperties;
+				InitParams.bCreateDisableEditOnInstanceNodes = bShouldShowDisableEditOnInstance;
+				InitParams.bCreateCategoryNodes = false;
+
+				NewItemNode->InitNode(InitParams);
+				AddChildNode(NewItemNode);
+			}
 		}
 	}
 }

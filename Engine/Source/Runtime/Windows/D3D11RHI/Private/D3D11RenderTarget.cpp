@@ -140,7 +140,11 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 
 	// Set the source texture.
 	const uint32 TextureIndex = ResolvePixelShader->UnresolvedSurface.GetBaseIndex();
-	SetShaderResourceView<SF_Pixel>(SourceTexture, SourceTexture->GetShaderResourceView(), TextureIndex);
+
+	if (SourceTexture)
+	{
+		SetShaderResourceView<SF_Pixel>(SourceTexture, SourceTexture->GetShaderResourceView(), TextureIndex);
+	}
 
 	// Generate the vertices used
 	FScreenVertex Vertices[4];

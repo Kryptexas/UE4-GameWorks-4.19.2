@@ -206,9 +206,12 @@ namespace TaskDatabaseSystem
 			const float MaxTimeToWaitForThread = 5.0f;
 			const double TimeStartedWaiting = FPlatformTime::Seconds();
 
+			if (GTaskDatabaseThreadRunnable != NULL)
+			{
+				GTaskDatabaseThreadRunnable->bThreadSafeShouldSuspend = false;
+			}
 
 			// Wait for the current task to complete
-			GTaskDatabaseThreadRunnable->bThreadSafeShouldSuspend = false;
 			while( GIsWaitingForResponse && ( FPlatformTime::Seconds() - TimeStartedWaiting ) < MaxTimeToWaitForThread )
 			{
 				ProcessCompletedRequests();

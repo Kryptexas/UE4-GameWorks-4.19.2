@@ -479,7 +479,7 @@ namespace MetalUtils
 	{
 		ir_variable* Variable = NULL;
 
-		if (!Variable && FCStringAnsi::Strnicmp(Semantic, "SV_", 3) == 0)
+		if (FCStringAnsi::Strnicmp(Semantic, "SV_", 3) == 0)
 		{
 			FSystemValue* SystemValues = SystemValueTable[Frequency];
 			for (int i = 0; SystemValues[i].HlslSemantic != nullptr; ++i)

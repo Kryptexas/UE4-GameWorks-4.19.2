@@ -542,7 +542,7 @@ IStatGroupEnableManager& IStatGroupEnableManager::Get()
 	static IStatGroupEnableManager* Singleton = NULL;
 	if (!Singleton)
 	{
-		verify(!FPlatformAtomics::InterlockedCompareExchangePointer((void**)&Singleton, (void*)new FStatGroupEnableManager, NULL));
+		verify(!FPlatformAtomics::InterlockedCompareExchangePointer((void**)&Singleton, new FStatGroupEnableManager, NULL));
 	}
 	return *Singleton;
 }

@@ -130,7 +130,7 @@ public:
 
 		// Find the data terms if there is already a data node from expansion phase
 		FBPTerminal* DataTerm = NULL;
-		if (GateNode && GateNode->DataNode)
+		if (GateNode->DataNode)
 		{
 			UEdGraphPin* PinToTry = FEdGraphUtilities::GetNetFromPin(GateNode->DataNode->GetVariablePin());
 			FBPTerminal** DataTermPtr = Context.NetMap.Find(PinToTry);

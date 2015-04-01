@@ -178,6 +178,8 @@ void UKismetSystemLibrary::PrintString(UObject* WorldContextObject, const FStrin
 				case NM_ListenServer:
 					Prefix = FString::Printf(TEXT("Server: "));
 					break;
+				case NM_Standalone:
+					break;
 			}
 		}
 	}

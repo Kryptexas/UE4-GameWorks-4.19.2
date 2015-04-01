@@ -238,6 +238,9 @@ bool FModeTool_InterpEdit::InputAxis(FEditorViewportClient* InViewportClient, FV
 		case LVT_OrthoNegativeYZ:
 			InViewportClient->SetCurrentWidgetAxis(EAxisList::YZ);
 			break;
+		case LVT_OrthoFreelook:
+		case LVT_Perspective:
+			break;
 		}
 	}
 

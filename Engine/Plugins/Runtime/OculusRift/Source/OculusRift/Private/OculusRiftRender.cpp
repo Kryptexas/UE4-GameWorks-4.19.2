@@ -554,7 +554,7 @@ void FOculusRiftHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewpo
 {
 	check(IsInGameThread());
 
-	if (GIsEditor)
+	if (GIsEditor && ViewportWidget)
 	{
 		// In editor we are going to check if the viewport widget supports stereo rendering or not.
 		if (!ViewportWidget->IsStereoRenderingAllowed())

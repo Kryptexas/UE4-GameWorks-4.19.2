@@ -828,8 +828,8 @@ void ALandscapeGizmoActiveActor::SampleData(int32 SizeX, int32 SizeY)
 		{
 			for (int32 X = 0; X < TexSizeX; ++X)
 			{
-				float TexX = X * SizeX / TexSizeX;
-				float TexY = Y * SizeY / TexSizeY;
+				float TexX = static_cast<float>(X) * SizeX / TexSizeX;
+				float TexY = static_cast<float>(Y) * SizeY / TexSizeY;
 				int32 LX = FMath::FloorToInt(TexX);
 				int32 LY = FMath::FloorToInt(TexY);
 

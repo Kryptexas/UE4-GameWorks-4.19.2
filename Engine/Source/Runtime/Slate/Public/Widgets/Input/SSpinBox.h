@@ -112,8 +112,6 @@ public:
 		SliderExponent = InArgs._SliderExponent;
 
 		DistanceDragged = 0.0f;
-		CachedExternalValue = 0;
-		InternalValue = 0;
 		PreDragValue = 0;
 
 		Delta = InArgs._Delta;

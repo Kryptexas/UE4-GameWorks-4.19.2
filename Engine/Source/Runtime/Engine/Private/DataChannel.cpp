@@ -1095,7 +1095,7 @@ void UControlChannel::ReceivedBunch( FInBunch& Bunch )
 {
 	check(!Closing);
 	// If this is a new client connection inspect the raw packet for endianess
-	if (bNeedsEndianInspection && !CheckEndianess(Bunch))
+	if (Connection && bNeedsEndianInspection && !CheckEndianess(Bunch))
 	{
 		// Send close bunch and shutdown this connection
 		UE_LOG(LogNet, Warning, TEXT("UControlChannel::ReceivedBunch: NetConnection::Close() [%s] [%s] [%s] from CheckEndianess(). FAILED. Closing connection."),
@@ -1235,7 +1235,11 @@ void UControlChannel::ReceivedBunch( FInBunch& Bunch )
 	if ( Bunch.IsError() )
 	{
 		UE_LOG( LogNet, Error, TEXT( "UControlChannel::ReceivedBunch: Failed to read control channel message" ) );
-		Connection->Close();
+
+		if (Connection != NULL)
+		{
+			Connection->Close();
+		}
 	}
 }
 

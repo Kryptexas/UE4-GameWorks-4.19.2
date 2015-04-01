@@ -511,7 +511,7 @@ static void SanityCheckExport(
 		UE_LOG( LogNetPackageMap, Warning, TEXT( "SanityCheckExport: Outer mismatch. Object: %s, NetGUID: %s, Current: %s, Expected: %s" ), *Object->GetPathName(), *NetGUID.ToString(), *CurrentOuterName, *ExpectedOuterName );
 	}
 
-	const bool bIsPackage = ( NetGUID.IsStatic() && Object != NULL && Object->GetOuter() == NULL );
+	const bool bIsPackage = ( NetGUID.IsStatic() && Object->GetOuter() == NULL );
 	const UPackage* Package = Cast< const UPackage >( Object );
 
 	if ( bIsPackage != ( Package != NULL ) )

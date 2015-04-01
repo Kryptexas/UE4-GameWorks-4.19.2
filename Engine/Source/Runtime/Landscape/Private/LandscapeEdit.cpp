@@ -2858,10 +2858,7 @@ void ALandscapeProxy::PostEditMove(bool bFinished)
 	{
 		ULandscapeInfo::RecreateLandscapeInfo(GetWorld(), true);
 		RecreateComponentsState();
-	}
 
-	if (bFinished)
-	{
 		if (SplineComponent)
 		{
 			SplineComponent->CheckSplinesValid();

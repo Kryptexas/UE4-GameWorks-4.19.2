@@ -125,7 +125,7 @@ static void UpdateSceneCaptureContent_RenderThread(FRHICommandListImmediate& RHI
 			if (bNeedsFlippedRenderTarget)
 			{
 				// Hijack the render target
-				SceneRenderer->ViewFamily.RenderTarget = &FlippedRenderTarget;
+				SceneRenderer->ViewFamily.RenderTarget = &FlippedRenderTarget; //-V506
 			}
 			SceneRenderer->Render(RHICmdList);
 			if (bNeedsFlippedRenderTarget)

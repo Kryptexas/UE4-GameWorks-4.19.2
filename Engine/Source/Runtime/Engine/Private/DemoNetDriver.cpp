@@ -1093,8 +1093,11 @@ bool UDemoNetDriver::ReadDemoFrame( FArchive* Archive )
 		}
 #endif
 
-		// Process incoming packet.
-		ServerConnection->ReceivedRawPacket( ReadBuffer, PacketBytes );
+		if ( ServerConnection != NULL )
+		{
+			// Process incoming packet.
+			ServerConnection->ReceivedRawPacket(ReadBuffer, PacketBytes);
+		}
 
 		if ( ServerConnection == NULL || ServerConnection->State == USOCK_Closed )
 		{

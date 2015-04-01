@@ -228,13 +228,15 @@ void SGameplayTagWidget::OnTagChecked(TSharedPtr<FGameplayTagNode> NodeChecked)
 			TWeakPtr<FGameplayTagNode> CurNode(NodeChecked);
 			UObject* OwnerObj = TagContainers[ContainerIdx].TagContainerOwner;
 			FGameplayTagContainer* Container = TagContainers[ContainerIdx].TagContainer;
-			FGameplayTagContainer EditableContainer = *Container;
 
-			while (CurNode.IsValid())
+			if (OwnerObj && Container)
 			{
-				FGameplayTag Tag = TagsManager.RequestGameplayTag(CurNode.Pin()->GetCompleteTag());
-				if (OwnerObj && Container)
+				FGameplayTagContainer EditableContainer = *Container;
+
+				while (CurNode.IsValid())
 				{
+					FGameplayTag Tag = TagsManager.RequestGameplayTag(CurNode.Pin()->GetCompleteTag());
+
 					if (bRemoveParents == false)
 					{
 						bRemoveParents = true;
@@ -248,10 +250,11 @@ void SGameplayTagWidget::OnTagChecked(TSharedPtr<FGameplayTagNode> NodeChecked)
 					{
 						EditableContainer.RemoveTag(Tag);
 					}
+
+					CurNode = CurNode.Pin()->GetParentTagNode();
 				}
-				CurNode = CurNode.Pin()->GetParentTagNode();
+				SetContainer(Container, &EditableContainer, OwnerObj);
 			}
-			SetContainer(Container, &EditableContainer, OwnerObj);
 		}
 	}
 }
@@ -267,11 +270,11 @@ void SGameplayTagWidget::OnTagUnchecked(TSharedPtr<FGameplayTagNode> NodeUncheck
 		{
 			UObject* OwnerObj = TagContainers[ContainerIdx].TagContainerOwner;
 			FGameplayTagContainer* Container = TagContainers[ContainerIdx].TagContainer;
-			FGameplayTagContainer EditableContainer = *Container;
 			FGameplayTag Tag = TagsManager.RequestGameplayTag(NodeUnchecked->GetCompleteTag());
 
 			if (OwnerObj && Container)
 			{
+				FGameplayTagContainer EditableContainer = *Container;
 				EditableContainer.RemoveTag(Tag);
 
 				TWeakPtr<FGameplayTagNode> ParentNode = NodeUnchecked->GetParentTagNode();
@@ -302,8 +305,9 @@ void SGameplayTagWidget::OnTagUnchecked(TSharedPtr<FGameplayTagNode> NodeUncheck
 					UncheckChildren(ChildNode, EditableContainer);
 				}
 
+				SetContainer(Container, &EditableContainer, OwnerObj);
 			}
-			SetContainer(Container, &EditableContainer, OwnerObj);
+			
 		}
 	}
 }
@@ -450,10 +454,10 @@ void SGameplayTagWidget::VerifyAssetTagValidity()
 	{
 		UObject* OwnerObj = TagContainers[ContainerIdx].TagContainerOwner;
 		FGameplayTagContainer* Container = TagContainers[ContainerIdx].TagContainer;
-		FGameplayTagContainer EditableContainer = *Container;
 
 		if (OwnerObj && Container)
 		{
+			FGameplayTagContainer EditableContainer = *Container;
 			FGameplayTagContainer InvalidTags;
 			for (auto It = Container->CreateConstIterator(); It; ++It)
 			{

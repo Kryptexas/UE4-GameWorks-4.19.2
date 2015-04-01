@@ -69,6 +69,9 @@ void SCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChi
 			case HAlign_Right:
 				Offset.X = -Size.X;
 				break;
+			case HAlign_Fill:
+			case HAlign_Left:
+				break;
 			}
 
 			//handle VAlignment
@@ -79,6 +82,9 @@ void SCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChi
 				break;
 			case VAlign_Center:
 				Offset.Y = -Size.Y / 2.0f;
+				break;
+			case VAlign_Top:
+			case VAlign_Fill:
 				break;
 			}
 

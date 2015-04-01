@@ -347,6 +347,10 @@ public:
 
 		case ETargetPlatformFeatures::VertexShaderTextureSampling:
 			return TPlatformProperties::SupportsVertexShaderTextureSampling();
+
+		case ETargetPlatformFeatures::SdkConnectDisconnect:
+		case ETargetPlatformFeatures::UserCredentials:
+			break;
 		}
 
 		return false;

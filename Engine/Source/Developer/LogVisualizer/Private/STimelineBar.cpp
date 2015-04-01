@@ -93,7 +93,7 @@ FReply STimelineBar::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const
 				float NewOrthoZoom;
 				const float AspectRatio = 1.777777f;
 				uint32 MinAxisSize = (AspectRatio > 1.0f) ? Viewport->GetSizeXY().Y : Viewport->GetSizeXY().X;
-				float Zoom = Radius / (MinAxisSize / 2);
+				float Zoom = Radius / (MinAxisSize / 2.0f);
 
 				NewOrthoZoom = Zoom * (Viewport->GetSizeXY().X*15.0f);
 				NewOrthoZoom = FMath::Clamp<float>(NewOrthoZoom, 250, MAX_FLT);

@@ -606,6 +606,10 @@ void SDeleteAssetsDialog::HandleDeleteModelStateChanged(FAssetDeleteModel::EStat
 	case FAssetDeleteModel::Finished:
 		RootContainer->SetContent( BuildDeleteDialog() );
 		break;
+	case FAssetDeleteModel::Scanning:
+	case FAssetDeleteModel::UpdateActions:
+	case FAssetDeleteModel::Waiting:
+		break;
 	}
 }
 

@@ -521,7 +521,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		if (Parms.OldState && (ArraySerializer.ArrayReplicationKey == ((FNetFastTArrayBaseState*)Parms.OldState)->ArrayReplicationKey))
 		{
 			// Double check the old/new maps are the same size.
-			ensure(OldMap->Num() == Items.Num());
+			ensure(OldMap && OldMap->Num() == Items.Num());
 			return false;
 		}
 

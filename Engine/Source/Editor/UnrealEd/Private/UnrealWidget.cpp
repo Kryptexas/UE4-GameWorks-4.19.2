@@ -1106,6 +1106,10 @@ void FWidget::AbsoluteTranslationConvertMouseMovementToAxisMovement(FSceneView* 
 					break;
 			}
 		}
+
+		case WM_Rotate:
+		case WM_Scale:
+			break;
 	}
 }
 

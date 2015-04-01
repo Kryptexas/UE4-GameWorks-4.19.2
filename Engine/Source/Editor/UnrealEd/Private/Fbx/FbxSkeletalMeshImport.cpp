@@ -1877,9 +1877,8 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 	LayerCount = Mesh->GetLayerCount();
 	for (uint32 UVIndex = 0; UVIndex < UniqueUVCount; UVIndex++)
 	{
-		bool bFoundUV = false;
 		LayerElementUV[UVIndex] = NULL;
-		for (int32 UVLayerIndex = 0; !bFoundUV && UVLayerIndex<LayerCount; UVLayerIndex++)
+		for (int32 UVLayerIndex = 0; UVLayerIndex<LayerCount; UVLayerIndex++)
 		{
 			FbxLayer* lLayer = Mesh->GetLayer(UVLayerIndex);
 			int32 UVSetCount = lLayer->GetUVSetCount();

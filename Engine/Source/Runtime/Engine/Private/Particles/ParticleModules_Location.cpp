@@ -1133,8 +1133,11 @@ void UParticleModuleLocationPrimitiveCylinder::Render3DPreview(FParticleEmitterI
 			// Draw at the avg. of the min/max extents
 			UDistributionVectorConstantCurve* pkCurve = CastChecked<UDistributionVectorConstantCurve>(StartLocation.Distribution);
 
-			//pkCurve->
-			Position = StartLocation.GetValue(0.0f, Owner->Component);
+			if (Owner != NULL)
+			{
+				//pkCurve->
+				Position = StartLocation.GetValue(0.0f, Owner->Component);
+			}
 		}
 	}
 
@@ -1366,8 +1369,11 @@ void UParticleModuleLocationPrimitiveSphere::Render3DPreview(FParticleEmitterIns
 			// Draw at the avg. of the min/max extents
 			UDistributionVectorConstantCurve* pkCurve = CastChecked<UDistributionVectorConstantCurve>(StartLocation.Distribution);
 
-			//pkCurve->
-			Position = StartLocation.GetValue(0.0f, Owner->Component);
+			if (Owner != NULL)
+			{
+				//pkCurve->
+				Position = StartLocation.GetValue(0.0f, Owner->Component);
+			}
 		}
 	}
 

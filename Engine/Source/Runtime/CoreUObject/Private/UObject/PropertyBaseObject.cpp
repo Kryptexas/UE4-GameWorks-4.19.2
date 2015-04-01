@@ -427,7 +427,7 @@ void UObjectPropertyBase::CheckValidObject(void* Value) const
 		// so we use this to ensure, in that situation, that we don't clear the 
 		// object value (if CLASS_NewerVersionExists is set, then we are likely 
 		// in the middle of an FArchiveReplaceObjectRef pass)
-		bool bIsReplacingClassRefs = PropertyClass->HasAnyClassFlags(CLASS_NewerVersionExists) != ObjectClass->HasAnyClassFlags(CLASS_NewerVersionExists);
+		bool bIsReplacingClassRefs = PropertyClass && PropertyClass->HasAnyClassFlags(CLASS_NewerVersionExists) != ObjectClass->HasAnyClassFlags(CLASS_NewerVersionExists);
 		
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 		ULinkerLoad* PropertyLinker = GetLinker();
