@@ -1,15 +1,15 @@
-﻿INTSourceChangelist:2444099
+﻿INTSourceChangelist:2493873
 Availability:Public
 Title:ブループリント ユーザーガイド
 Crumbs: %ROOT%, Engine, Engine/Blueprints
-Description:ユーザーガイドとは、ブループリント グラフ内で使用できる、ブループリントの様々な箇所とノードについて学習できる主力な情報源です。
+Description:ユーザーガイドに含まれるソースを使って、ブループリント グラフ内で使用できる、ブループリントの様々な箇所とノードについて学習することができます。
 
 
 ## 概要
 
 [INCLUDE:Engine\Blueprints#intro]
 
-このページでは、様々なタイプのブループリント、グラフ タイプ、ブループリント エレメント (_Variables_ 、 _Components_ および _Graphs_ など)、通信方法、ブループリント間での情報の渡し方、ブループリントの作成時に操作することになる各種グラフ ノードの分類の概要になります。 
+このページでは、様々なタイプのブループリント、グラフ タイプ、ブループリント エレメント (_変数_ 、 _コンポーネント_ および _グラフ_ など)、通信方法、ブループリント間での情報の渡し方、ブループリントの作成時に操作することになる各種グラフ ノードの分類の概要になります。 
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
@@ -19,7 +19,7 @@ Description:ユーザーガイドとは、ブループリント グラフ内で�
 		ブループリントのタイプ
 	[/PARAM]
 	[PARAM:description]
-	このセクションでは、様々なブループリントについて説明します (簡単な説明にマウスを当ててください)。各ブループリントの細かい分類については 、[](Engine\Blueprints\UserGuide\Types) ページをご覧ください。 
+	このセクションでは、様々なブループリントについて説明します (それぞれの見出しにマウスを当ててください)。各ブループリントの詳細については 、[](Engine\Blueprints\UserGuide\Types) ページをご覧ください。 
 	[/PARAM]
 	[PARAM:links]
 		[REGION:topics fourth]
@@ -45,7 +45,7 @@ Description:ユーザーガイドとは、ブループリント グラフ内で�
 		ブループリントのグラフのタイプ
 	[/PARAM]
 	[PARAM:description]
-	このセクションでは、操作することになる各種ブループリント グラフへのリンクが提供されています (簡単な説明にマウスを当ててください)。**EventGraph** およびブループリントのその他の Graphs の詳細な作業ガイドは [ブループリント エディタ グラフ モード](Engine/Blueprints/Editor/Modes/GraphPanel) をご覧ください。
+	このセクションでは、作業に使用する各種ブループリント グラフへのリンクが提供されています (見出しにマウスを当ててください)。**EventGraph** およびブループリントのその他の Graphs の詳細な作業ガイドは [ブループリント エディタ グラフ モード](Engine/Blueprints/Editor/Modes/GraphPanel) をご覧ください。
 	[/PARAM]
 	[PARAM:links]
 		[REGION:topics fourth]
@@ -72,7 +72,7 @@ Description:ユーザーガイドとは、ブループリント グラフ内で�
 		ブループリントのモード
 	[/PARAM]
 	[PARAM:description]
-	本セクションでは、作業する各種 Blueprint モードを説明します。各モードには独自の機能と目的があり、ブループリントの異なる特性を制御しています (簡単な説明にマウスを当ててください)。**Animation ブループリント** については、[](Engine/Animation/AnimBlueprints) のドキュメントをご覧ください。**Widgetブループリント** については、[](Engine/UMG/UserGuide/WidgetBlueprints) のドキュメントをご覧ください。 
+	本セクションでは、Blueprint モードについて説明します。各モードには独自の機能と目的があり、ブループリントの異なる特性を制御しています (見出しにマウスを当ててください)。**Animation ブループリント** については、[](Engine/Animation/AnimBlueprints) のドキュメントをご覧ください。**Widgetブループリント** については、[](Engine/UMG/UserGuide/WidgetBlueprints) のドキュメントをご覧ください。 
 	[/PARAM]
 	[PARAM:links]
 		[REGION:topics fourth]
@@ -117,7 +117,7 @@ Description:ユーザーガイドとは、ブループリント グラフ内で�
 -->
 
 <!--
-##グラフ ノード
+##Graph ノード
 
 -->
 [OBJECT:TopicButtonList]
@@ -125,7 +125,7 @@ Description:ユーザーガイドとは、ブループリント グラフ内で�
 		![](%ROOT%/Blueprint_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		グラフ ノード
+		Graph ノード
 	[/PARAM]
 	[PARAM:description]
 	以下のリンクは、機能を提供するためにブループリント内で使用可能な各種ノードに関する説明です (簡単な説明にマウスを当ててください)。これらのノードとブループリントを使って一般に作業するために、 [](Engine/Blueprints/BP_HowTo) セクションを見直すようにしてください。ブループリントでのスポーン / リスポーン、タイマーの使用、入力の設定、ネットワークの構築に対するゲームプレイ ベースのブループリントの使用方法 [](Gameplay) も見直すようにしてください。 
@@ -346,7 +346,7 @@ Description:ユーザーガイドとは、ブループリント グラフ内で�
 [/REGION]
 [/EXCERPT:GraphTypes]
 
-##グラフ ノード
+##Graph ノード
 
 [EXCERPT:NodeIntro]
 ノードは _ブループリント_ _グラフ_ 作成時の基本的な構成要素です。各ノードには、設定できるプロパティだけでなく、入力と出力のピンもあります。こうしたピンは、ユーザーが設定したい _ブループリント_ の機能性をプログラミングするために、実行またはデータワイヤーと接続することができます。
