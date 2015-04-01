@@ -264,18 +264,21 @@ void UK2Node_Select::AllocateDefaultPins()
 
 void UK2Node_Select::AutowireNewNode(UEdGraphPin* FromPin)
 {
-	// Attempt to autowire to the index pin as users generally drag off of something intending to use
-	// it as an index in a select statement rather than an arbitrary entry:
-	const UEdGraphSchema_K2* K2Schema = CastChecked<UEdGraphSchema_K2>(GetSchema());
-	UEdGraphPin* IndexPin = GetIndexPin();
-	ECanCreateConnectionResponse ConnectResponse = K2Schema->CanCreateConnection(FromPin, IndexPin).Response;
-	if (ConnectResponse == ECanCreateConnectionResponse::CONNECT_RESPONSE_MAKE)
+	if (FromPin)
 	{
-		if (K2Schema->TryCreateConnection(FromPin, IndexPin))
+		// Attempt to autowire to the index pin as users generally drag off of something intending to use
+		// it as an index in a select statement rather than an arbitrary entry:
+		const UEdGraphSchema_K2* K2Schema = CastChecked<UEdGraphSchema_K2>(GetSchema());
+		UEdGraphPin* IndexPin = GetIndexPin();
+		ECanCreateConnectionResponse ConnectResponse = K2Schema->CanCreateConnection(FromPin, IndexPin).Response;
+		if (ConnectResponse == ECanCreateConnectionResponse::CONNECT_RESPONSE_MAKE)
 		{
-			FromPin->GetOwningNode()->NodeConnectionListChanged();
-			this->NodeConnectionListChanged();
-			return;
+			if (K2Schema->TryCreateConnection(FromPin, IndexPin))
+			{
+				FromPin->GetOwningNode()->NodeConnectionListChanged();
+				this->NodeConnectionListChanged();
+				return;
+			}
 		}
 	}
 
