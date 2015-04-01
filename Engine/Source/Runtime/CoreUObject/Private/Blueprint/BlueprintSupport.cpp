@@ -899,7 +899,7 @@ int32 FLinkerLoad::ResolveDependencyPlaceholder(FLinkerPlaceholderBase* Placehol
 			if (Interface.Class == PlaceholderObj)
 			{
 				++ReplacementCount;
-				Interface.Class = CastChecked<UClass>(RealImportObj);
+				Interface.Class = CastChecked<UClass>(RealImportObj, ECastCheckedType::NullAllowed);
 			}
 		}
 	}
