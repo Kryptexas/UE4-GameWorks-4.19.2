@@ -9,7 +9,7 @@
 IMPLEMENT_HIT_PROXY(HSpriteSelectableObjectHitProxy, HHitProxy);
 
 //////////////////////////////////////////////////////////////////////////
-// FSocketEditingHelper
+// FSpriteSelectedSocket
 
 const FName FSpriteSelectedSocket::SocketTypeID(TEXT("Socket"));
 
