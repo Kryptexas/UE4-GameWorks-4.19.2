@@ -1,4 +1,5 @@
-﻿Availability:Licensee
+﻿INTSourceChangelist:2363518
+Availability:Licensee
 Title:ビジネスとリーガル
 Crumbs:%ROOT%
 Description:アンリアル・エンジン 4 を使用したゲーム開発に関するビジネスとリーガル情報
@@ -8,7 +9,7 @@ Navigation:role
 ![Business and Legal](business.png)
 [/REGION]
 
-[OBJECT:TopicList]
+[OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
@@ -18,14 +19,14 @@ Navigation:role
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-		* [](Support/BusinessAndLegal/TermsAndConditions) - %Support/BusinessAndLegal/TermsAndConditions:description%
-		* [](Support/BusinessAndLegal/TrademarksAndLogos) - %Support/BusinessAndLegal/TrademarksAndLogos:description%
+		* [](Support/BusinessAndLegal/TermsAndConditions "%Support/BusinessAndLegal/TermsAndConditions:description%")
+		* [](Support/BusinessAndLegal/TrademarksAndLogos "%Support/BusinessAndLegal/TrademarksAndLogos:description%")
 	[/PARAM]
 [/OBJECT]
 
-[OBJECT:TopicList]
+[OBJECT:TopicButtonList]
 	[PARAM:icon]
-		(%ROOT%/business_icon.png)(convert:false)
+		![](%ROOT%/business_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
 		ビジネス
@@ -33,8 +34,8 @@ Navigation:role
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-		* [](Support/BusinessAndLegal/IntegratedPartnersProgram) - %Support/BusinessAndLegal/IntegratedPartnersProgram:description%
-		* [](Support/BusinessAndLegal/ShippingChecklist) - %Support/BusinessAndLegal/ShippingChecklist:description%
-		* [](Support/BusinessAndLegal/ThirdPartySoftware) - %Support/BusinessAndLegal/ThirdPartySoftware:description%
+		* [](Support/BusinessAndLegal/IntegratedPartnersProgram "%Support/BusinessAndLegal/IntegratedPartnersProgram:description%")
+		* [](Support/BusinessAndLegal/ShippingChecklist "%Support/BusinessAndLegal/ShippingChecklist:description%")
+		* [](Support/BusinessAndLegal/ThirdPartySoftware "%Support/BusinessAndLegal/ThirdPartySoftware:description%")
 	[/PARAM]
 [/OBJECT]
