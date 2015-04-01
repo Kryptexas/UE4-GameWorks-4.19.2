@@ -33,8 +33,6 @@ struct FPortalPackageInstallRequest
 	FGuid RequestId;
 };
 
-template<> struct TStructOpsTypeTraits<FPortalPackageInstallRequest> : public TStructOpsTypeTraitsBase { enum { WithMessageHandling = true }; };
-
 
 /**
  * Implements a reply message to Portal package installation requests.
@@ -51,8 +49,6 @@ struct FPortalPackageInstallResponse
 	UPROPERTY()
 	bool Success;
 };
-
-template<> struct TStructOpsTypeTraits<FPortalPackageInstallResponse> : public TStructOpsTypeTraitsBase{ enum { WithMessageHandling = true }; };
 
 
 /**
@@ -84,8 +80,6 @@ struct FPortalPackageUninstallRequest
 	FGuid RequestId;
 };
 
-template<> struct TStructOpsTypeTraits<FPortalPackageUninstallRequest> : public TStructOpsTypeTraitsBase{ enum { WithMessageHandling = true }; };
-
 
 /**
  * Implements a reply message to Portal package uninstallation requests.
@@ -102,5 +96,3 @@ struct FPortalPackageUninstallResponse
 	UPROPERTY()
 	bool Success;
 };
-
-template<> struct TStructOpsTypeTraits<FPortalPackageUninstallResponse> : public TStructOpsTypeTraitsBase{ enum { WithMessageHandling = true }; };

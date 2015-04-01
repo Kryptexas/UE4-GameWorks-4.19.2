@@ -10,9 +10,11 @@
 
 FPackageInstallerProxy::FPackageInstallerProxy()
 {
+/*
 	MessageEndpoint = FMessageEndpoint::Builder("FPackageInstallerProxy")
 		.Handling<FPortalPackageInstallResponse>(this, &FPackageInstallerProxy::HandlePackageInstallResponse)
 		.Handling<FPortalPackageUninstallResponse>(this, &FPackageInstallerProxy::HandlePackageUninstallResponse);
+*/
 }
 
 
