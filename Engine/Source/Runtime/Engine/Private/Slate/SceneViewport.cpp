@@ -1217,6 +1217,7 @@ void FSceneViewport::EndRenderFrame(FRHICommandListImmediate& RHICmdList, bool b
 
 void FSceneViewport::Tick( const FGeometry& AllottedGeometry, double InCurrentTime, float DeltaTime )
 {
+	UpdateCachedGeometry(AllottedGeometry);
 	ProcessInput( DeltaTime );
 }
 
