@@ -165,11 +165,6 @@ void SSpriteEditorViewport::BindCommands()
 		FExecuteAction::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::EnterRenderingEditMode ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::IsInRenderingEditMode ) );
-	CommandList->MapAction(
-		Commands.EnterAddSpriteMode,
-		FExecuteAction::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::EnterAddSpriteMode ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::IsInAddSpriteMode ) );
 
 	// Misc. actions
 	CommandList->MapAction(

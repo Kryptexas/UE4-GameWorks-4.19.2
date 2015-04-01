@@ -23,8 +23,7 @@ namespace ESpriteEditorMode
 		ViewMode,
 		EditSourceRegionMode,
 		EditCollisionMode,
-		EditRenderingGeomMode,
-		AddSpriteMode
+		EditRenderingGeomMode
 	};
 }
 
@@ -97,13 +96,11 @@ public:
 	void EnterSourceRegionEditMode() { InternalActivateNewMode(ESpriteEditorMode::EditSourceRegionMode); UpdateRelatedSpritesList(); }
 	void EnterCollisionEditMode() { InternalActivateNewMode(ESpriteEditorMode::EditCollisionMode); }
 	void EnterRenderingEditMode() { InternalActivateNewMode(ESpriteEditorMode::EditRenderingGeomMode); }
-	void EnterAddSpriteMode() { InternalActivateNewMode(ESpriteEditorMode::AddSpriteMode); }
 
 	bool IsInViewMode() const { return CurrentMode == ESpriteEditorMode::ViewMode; }
 	bool IsInSourceRegionEditMode() const { return CurrentMode == ESpriteEditorMode::EditSourceRegionMode; }
 	bool IsInCollisionEditMode() const { return CurrentMode == ESpriteEditorMode::EditCollisionMode; }
 	bool IsInRenderingEditMode() const { return CurrentMode == ESpriteEditorMode::EditRenderingGeomMode; }
-	bool IsInAddSpriteMode() const { return CurrentMode == ESpriteEditorMode::AddSpriteMode; }
 
 	//
 	bool IsEditingGeometry() const { return IsInCollisionEditMode() || IsInRenderingEditMode(); }

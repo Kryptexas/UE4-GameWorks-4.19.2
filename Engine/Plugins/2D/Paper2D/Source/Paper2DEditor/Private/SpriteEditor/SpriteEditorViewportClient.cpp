@@ -824,9 +824,6 @@ void FSpriteEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& Vi
 			DrawSourceRegion(Viewport, View, Canvas, SpriteEditingConstants::SourceRegionBoundsColor);
 		}
 		break;
-	case ESpriteEditorMode::AddSpriteMode:
-		//@TODO:
-		break;
 	}
 
 	if (bIsMarqueeTracking)

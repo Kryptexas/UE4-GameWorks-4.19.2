@@ -128,8 +128,6 @@ void FPaperStyle::Initialize()
 		StyleSet->Set("SpriteEditor.EnterSourceRegionEditMode.Small", new IMAGE_PLUGIN_BRUSH("Icons/icon_Paper2D_EditSourceRegion_40x", Icon20x20));
 		StyleSet->Set("SpriteEditor.EnterRenderingEditMode", new IMAGE_PLUGIN_BRUSH("Icons/icon_Paper2D_RenderGeom_40x", Icon40x40));
 		StyleSet->Set("SpriteEditor.EnterRenderingEditMode.Small", new IMAGE_PLUGIN_BRUSH("Icons/icon_Paper2D_RenderGeom_40x", Icon20x20));
-		StyleSet->Set("SpriteEditor.EnterAddSpriteMode", new IMAGE_PLUGIN_BRUSH("Icons/icon_Paper2D_AddSprite_40x", Icon40x40));
-		StyleSet->Set("SpriteEditor.EnterAddSpriteMode.Small", new IMAGE_PLUGIN_BRUSH("Icons/icon_Paper2D_AddSprite_40x", Icon20x20));
 	}
 
 	// Flipbook editor
