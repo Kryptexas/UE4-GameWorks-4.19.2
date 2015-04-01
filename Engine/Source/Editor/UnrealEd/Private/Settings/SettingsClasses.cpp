@@ -137,11 +137,15 @@ void UEditorLoadingSavingSettings::PostEditChangeProperty( struct FPropertyChang
 
 void UEditorLoadingSavingSettings::PostInitProperties()
 {
-	for (const auto& String : AutoReimportDirectories_DEPRECATED)
+	if (AutoReimportDirectories_DEPRECATED.Num() != 0)
 	{
-		FAutoReimportDirectoryConfig Config;
-		Config.SourceDirectory = String;
-		AutoReimportDirectorySettings.Add(Config);
+		AutoReimportDirectorySettings.Empty();
+		for (const auto& String : AutoReimportDirectories_DEPRECATED)
+		{
+			FAutoReimportDirectoryConfig Config;
+			Config.SourceDirectory = String;
+			AutoReimportDirectorySettings.Add(Config);
+		}
 	}
 	Super::PostInitProperties();
 }

@@ -90,7 +90,7 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=AutoReimport, meta=(DisplayName="Monitor Content Directories", ToolTip="When enabled, changes to made to source content files inside the content directories will automatically be reflected in the content browser."))
 	bool bMonitorContentDirectories;
 
-	UPROPERTY()
+	UPROPERTY(config)
 	TArray<FString> AutoReimportDirectories_DEPRECATED;
 
 	/** Directories being monitored for Auto Reimport */
