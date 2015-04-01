@@ -1284,11 +1284,7 @@ namespace ObjectTools
 			UPackage* Package = PackagesToDelete[PackageIdx];
 
 			FString PackageFilename;
-			if( FPackageName::DoesPackageExist( Package->GetName(), NULL, &PackageFilename ) )
-			{
-				PackagesToDelete.RemoveAt(PackageIdx);
-			}
-			else
+			if( !FPackageName::DoesPackageExist( Package->GetName(), NULL, &PackageFilename ) )
 			{
 				// Could not determine filename for package so we can not delete
 				PackagesToDelete.RemoveAt(PackageIdx);
