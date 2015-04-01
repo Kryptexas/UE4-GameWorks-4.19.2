@@ -2,7 +2,7 @@
 
 #pragma once
 
-class PaperGeomTools
+class PAPER2D_API PaperGeomTools
 {
 public:
 	// Corrects the polygon winding to match bNegativeWinding
