@@ -490,7 +490,6 @@ struct TStructOpsTypeTraitsBase
 		WithNetSerializer              = false, // struct has a NetSerialize function for serializing its state to an FArchive used for network replication.
 		WithNetDeltaSerializer         = false, // struct has a NetDeltaSerialize function for serializing differences in state from a previous NetSerialize operation.
 		WithSerializeFromMismatchedTag = false, // struct has a SerializeFromMismatchedTag function for converting from other property tags.
-		WithMessageHandling            = false, // struct can be located by the message bus system for marshalling and unmarshalling.
 	};
 };
 
@@ -821,8 +820,6 @@ public:
 		**/
 		virtual bool SerializeFromMismatchedTag(struct FPropertyTag const& Tag, FArchive& Ar, void *Data) = 0;
 
-		virtual bool HasMessageHandling() = 0;
-
 	private:
 		/** sizeof() of the structure **/
 		const int32 Size;
@@ -957,10 +954,6 @@ public:
 		{
 			check(TTraits::WithSerializeFromMismatchedTag); // don't call this if we have indicated it is not allowed
 			return SerializeFromMismatchedTagOrNot(Tag, Ar, (CPPSTRUCT*)Data);
-		}
-		virtual bool HasMessageHandling() override
-		{
-			return TTraits::WithMessageHandling;
 		}
 	};
 

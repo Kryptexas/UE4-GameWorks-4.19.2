@@ -38,15 +38,6 @@ struct FProfilerServiceAuthorize
 
 };
 
-template<>
-struct TStructOpsTypeTraits<FProfilerServiceAuthorize> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
-};
-
 
 /**
  */
@@ -87,15 +78,6 @@ struct FProfilerServiceAuthorize2
 
 };
 
-template<>
-struct TStructOpsTypeTraits<FProfilerServiceAuthorize2> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
-};
-
 
 /**
  */
@@ -128,15 +110,6 @@ struct FProfilerServiceData
 	{
 		Data.Append(InData);
 	}
-};
-
-template<>
-struct TStructOpsTypeTraits<FProfilerServiceData> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
 };
 
 
@@ -177,15 +150,6 @@ struct FProfilerServiceData2
 	}
 };
 
-template<>
-struct TStructOpsTypeTraits<FProfilerServiceData2> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
-};
-
 
 /**
  */
@@ -216,15 +180,6 @@ struct FProfilerServicePreviewAck
 		, Frame(InFrame)
 	{
 	}
-};
-
-template<>
-struct TStructOpsTypeTraits<FProfilerServicePreviewAck> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
 };
 
 
@@ -258,15 +213,6 @@ struct FProfilerServiceMetaData
 		: InstanceId(InInstance)
 		, Data( InData )
 	{}
-};
-
-template<>
-struct TStructOpsTypeTraits<FProfilerServiceMetaData> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
 };
 
 
@@ -331,14 +277,6 @@ struct FProfilerServiceFileChunk
 	{}
 };
 
-template<>
-struct TStructOpsTypeTraits<FProfilerServiceFileChunk> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
-};
 
 /**
  */
@@ -346,15 +284,6 @@ USTRUCT()
 struct FProfilerServicePing
 {
 	GENERATED_USTRUCT_BODY()
-};
-
-template<>
-struct TStructOpsTypeTraits<FProfilerServicePing> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
 };
 
 
@@ -365,15 +294,6 @@ struct FProfilerServicePong
 {
 	GENERATED_USTRUCT_BODY()
 
-};
-
-template<>
-struct TStructOpsTypeTraits<FProfilerServicePong> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
 };
 
 
@@ -406,15 +326,6 @@ struct FProfilerServiceSubscribe
 		: SessionId(InSessionId)
 		, InstanceId(InInstanceId)
 	{ }
-};
-
-template<>
-struct TStructOpsTypeTraits<FProfilerServiceSubscribe> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
 };
 
 
@@ -450,15 +361,6 @@ struct FProfilerServiceUnsubscribe
 	{ }
 };
 
-template<>
-struct TStructOpsTypeTraits<FProfilerServiceUnsubscribe> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
-};
-
 
 /**
  */
@@ -484,15 +386,6 @@ struct FProfilerServiceCapture
 	FProfilerServiceCapture( const bool bInRequestedCaptureState )
 		: bRequestedCaptureState( bInRequestedCaptureState )
 	{ }
-};
-
-template<>
-struct TStructOpsTypeTraits<FProfilerServiceCapture> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
 };
 
 
@@ -522,15 +415,6 @@ struct FProfilerServicePreview
 	{ }
 };
 
-template<>
-struct TStructOpsTypeTraits<FProfilerServicePreview> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
-};
-
 
 /**
  */
@@ -554,13 +438,4 @@ struct FProfilerServiceRequest
 	FProfilerServiceRequest( uint32 InRequest )
 		: Request(InRequest)
 	{ }
-};
-
-template<>
-struct TStructOpsTypeTraits<FProfilerServiceRequest> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
 };

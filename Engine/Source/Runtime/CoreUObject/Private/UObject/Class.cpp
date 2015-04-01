@@ -2044,13 +2044,6 @@ void UScriptStruct::PrepareCppStructOps()
 				UE_LOG(LogClass, Verbose, TEXT("Native struct %s has native SerializeFromMismatchedTag."),*GetName());
 				StructFlags = EStructFlags(StructFlags | STRUCT_SerializeFromMismatchedTag);
 			}
-			if (CppStructOps->HasMessageHandling())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Natice struct %s is a message type."), *GetName());
-
-				// add to the message type registry
-				FMessageTypeMap::MessageTypeMap.Add(GetName(), this);
-			}
 		}
 	}
 	check(!bPrepareCppStructOpsCompleted); // recursion is unacceptable

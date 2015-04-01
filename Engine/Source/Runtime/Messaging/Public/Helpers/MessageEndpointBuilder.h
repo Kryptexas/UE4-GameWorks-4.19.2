@@ -66,8 +66,6 @@ public:
 	template<typename MessageType, typename HandlerType>
 	FMessageEndpointBuilder& Handling( HandlerType* Handler, typename TRawMessageHandler<MessageType, HandlerType>::FuncType HandlerFunc )
 	{
-		// @todo gmp: implement proper async message deserialization, so this can be removed
-		static_assert(TStructOpsTypeTraits<MessageType>::WithMessageHandling == true, "Please add a WithMessageHandling type trait.");
 		Handlers.Add(MakeShareable(new TRawMessageHandler<MessageType, HandlerType>(Handler, HandlerFunc)));
 
 		return *this;
@@ -90,8 +88,6 @@ public:
 	template<typename MessageType>
 	FMessageEndpointBuilder& Handling( typename TFunctionMessageHandler<MessageType>::FuncType HandlerFunc )
 	{
-		// @todo gmp: implement proper async message deserialization, so this can be removed
-		static_assert(TStructOpsTypeTraits<MessageType>::WithMessageHandling == true, "Please add a WithMessageHandling type trait.");
 		Handlers.Add(MakeShareable(new TFunctionMessageHandler<MessageType>(HandlerFunc)));
 
 		return *this;

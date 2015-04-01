@@ -21,7 +21,8 @@ bool FUdpDeserializedMessage::Deserialize( const FUdpReassembledMessageRef& Reas
 		FName MessageType;
 		MessageReader << MessageType;
 
-		TypeInfo = FMessageTypeMap::MessageTypeMap.Find(MessageType.ToString());
+		// @todo gmp: cache message types for faster lookup
+		TypeInfo = FindObjectSafe<UScriptStruct>(ANY_PACKAGE, *MessageType.ToString());
 
 		if (!TypeInfo.IsValid(false, true))
 		{

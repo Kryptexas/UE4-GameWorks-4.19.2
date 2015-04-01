@@ -37,15 +37,6 @@ struct FTargetDeviceServiceDeployCommit
 	{ }
 };
 
-template<>
-struct TStructOpsTypeTraits<FTargetDeviceServiceDeployCommit> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
-};
-
 
 /**
  * Implements a message for deploying a single file to a target device.
@@ -76,15 +67,6 @@ struct FTargetDeviceServiceDeployFile
 		: TargetFileName(InTargetFileName)
 		, TransactionId(InTransactionId)
 	{ }
-};
-
-template<>
-struct TStructOpsTypeTraits<FTargetDeviceServiceDeployFile> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
 };
 
 
@@ -132,15 +114,6 @@ struct FTargetDeviceServiceDeployFinished
 		, Succeeded(InSucceeded)
 		, TransactionId(InTransactionId)
 	{ }
-};
-
-template<>
-struct TStructOpsTypeTraits<FTargetDeviceServiceDeployFinished> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
 };
 
 
@@ -195,15 +168,6 @@ struct FTargetDeviceServiceLaunchApp
 	{ }
 };
 
-template<>
-struct TStructOpsTypeTraits<FTargetDeviceServiceLaunchApp> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
-};
-
 
 /**
  * Implements a message for notifying a target device proxy that launching an application has finished.
@@ -246,15 +210,6 @@ struct FTargetDeviceServiceLaunchFinished
 	{ }
 };
 
-template<>
-struct TStructOpsTypeTraits<FTargetDeviceServiceLaunchFinished> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
-};
-
 
 /* Device claiming messages
  *****************************************************************************/
@@ -294,15 +249,6 @@ struct FTargetDeviceClaimDenied
 	{ }
 };
 
-template<>
-struct TStructOpsTypeTraits<FTargetDeviceClaimDenied> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
-};
-
 
 /**
  * Implements a message that is sent when a service claimed a device.
@@ -337,15 +283,6 @@ struct FTargetDeviceClaimed
 		, HostName(InHostName)
 		, HostUser(InHostUser)
 	{ }
-};
-
-template<>
-struct TStructOpsTypeTraits<FTargetDeviceClaimed> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
 };
 
 
@@ -383,15 +320,6 @@ struct FTargetDeviceUnclaimed
 	{ }
 };
 
-template<>
-struct TStructOpsTypeTraits<FTargetDeviceUnclaimed> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
-};
-
 
 /* Device discovery messages
  *****************************************************************************/
@@ -416,15 +344,6 @@ struct FTargetDeviceServicePing
 	FTargetDeviceServicePing( const FString& InHostUser )
 		: HostUser(InHostUser)
 	{ }
-};
-
-template<>
-struct TStructOpsTypeTraits<FTargetDeviceServicePing> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
 };
 
 
@@ -453,15 +372,6 @@ struct FTargetDeviceVariant
 
 	UPROPERTY()
 	FString PlatformDisplayName;
-};
-
-template<>
-struct TStructOpsTypeTraits<FTargetDeviceVariant> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
 };
 
 
@@ -542,15 +452,6 @@ struct FTargetDeviceServicePong
 	TArray<FTargetDeviceVariant> Variants;
 };
 
-template<>
-struct TStructOpsTypeTraits<FTargetDeviceServicePong> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
-};
-
 
 /* Miscellaneous messages
  *****************************************************************************/
@@ -586,15 +487,6 @@ struct FTargetDeviceServicePowerOff
 	{ }
 };
 
-template<>
-struct TStructOpsTypeTraits<FTargetDeviceServicePowerOff> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
-};
-
 
 /**
  * Implements a message for powering on a target device.
@@ -618,15 +510,6 @@ struct FTargetDeviceServicePowerOn
 	{ }
 };
 
-template<>
-struct TStructOpsTypeTraits<FTargetDeviceServicePowerOn> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
-};
-
 
 /**
  * Implements a message for rebooting a target device.
@@ -648,15 +531,6 @@ struct FTargetDeviceServiceReboot
 	FTargetDeviceServiceReboot( const FString& InOperator )
 		: Operator(InOperator)
 	{ }
-};
-
-template<>
-struct TStructOpsTypeTraits<FTargetDeviceServiceReboot> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
 };
 
 
@@ -694,15 +568,6 @@ struct FTargetDeviceServiceRunExecutable
 		, ExecutablePath(InExecutablePath)
 		, Params(InParams)
 	{ }
-};
-
-template<>
-struct TStructOpsTypeTraits<FTargetDeviceServiceRunExecutable> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
 };
 
 
@@ -743,13 +608,4 @@ struct FTargetDeviceServiceRunFinished
 		, ProcessId(InProcessId)
 		, Succeeded(InSucceeded)
 	{ }
-};
-
-template<>
-struct TStructOpsTypeTraits<FTargetDeviceServiceRunFinished> : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithMessageHandling = true
-	};
 };
