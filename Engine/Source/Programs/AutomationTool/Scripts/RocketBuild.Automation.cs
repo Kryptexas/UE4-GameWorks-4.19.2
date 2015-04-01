@@ -449,6 +449,22 @@ namespace Rocket
 					CommandUtils.RenameFile(TempFileName, FileName);
 				}
 			}
+			else if(TargetPlatform == UnrealTargetPlatform.Android)
+			{
+				CommandUtils.LogWarning("Stripping has not yet been implemented for Android. Skipping files:");
+				foreach (string FileName in FileNames)
+				{
+					CommandUtils.LogWarning("  {0}", FileName);
+				}
+			}
+			else if(TargetPlatform == UnrealTargetPlatform.Linux)
+			{
+				CommandUtils.LogWarning("Stripping has not yet been implemented for Linux. Skipping files:");
+				foreach (string FileName in FileNames)
+				{
+					CommandUtils.LogWarning("  {0}", FileName);
+				}
+			}
 			else
 			{
 				if(FileNames.Any())
