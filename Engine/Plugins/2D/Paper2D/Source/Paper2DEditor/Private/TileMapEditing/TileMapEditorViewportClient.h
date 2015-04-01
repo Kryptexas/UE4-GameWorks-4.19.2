@@ -80,7 +80,6 @@ private:
 		return TileMapEditorPtr.Pin()->GetTileMapBeingEdited();
 	}
 
-	void DrawTriangleList(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const TArray<FVector2D>& Triangles);
 	void DrawBoundsAsText(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, int32& YPos);
 	
 	void BeginTransaction(const FText& SessionName);
