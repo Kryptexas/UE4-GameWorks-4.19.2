@@ -8,6 +8,15 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogUObjectHash, Log, All);
 
+DECLARE_STATS_GROUP(TEXT("UObject Hash"), STATGROUP_UObjectHash, STATCAT_Advanced);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("StaticFindObjectFastInternal"), STAT_Hash_StaticFindObjectFastInternal, STATGROUP_UObjectHash);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("StaticFindObjectFastExplicit"), STAT_Hash_StaticFindObjectFastExplicit, STATGROUP_UObjectHash);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("GetObjectsWithOuter"), STAT_Hash_GetObjectsWithOuter, STATGROUP_UObjectHash);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FindObjectWithOuter"), STAT_Hash_FindObjectWithOuter, STATGROUP_UObjectHash);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("GetObjectsOfClass"), STAT_Hash_GetObjectsOfClass, STATGROUP_UObjectHash);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("HashObject"), STAT_Hash_HashObject, STATGROUP_UObjectHash);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("UnhashObject"), STAT_Hash_UnhashObject, STATGROUP_UObjectHash);
+
 /**
  * This implementation will use more space than the UE3 implementation. The goal was to make UObjects smaller to save L2 cache space. 
  * The hash is rarely used at runtime. A more space-efficient implementation is possible.
@@ -22,8 +31,70 @@ DEFINE_LOG_CATEGORY_STATIC(LogUObjectHash, Log, All);
 */
 #define OBJECT_HASH_BINS (1024*1024)
 
-static TMultiMap<int32,class UObjectBase*> ObjectHash;
-static TMultiMap<int32,class UObjectBase*> ObjectHashOuter;
+class FUObjectHashTables
+{
+	FCriticalSection CriticalSection;
+
+public:
+
+	/** Hash sets */
+	TMultiMap<int32, class UObjectBase*> Hash;
+	TMultiMap<int32, class UObjectBase*> HashOuter;
+
+	/** Map of object to their outers, used to avoid an object iterator to find such things. **/
+	TMap<UObjectBase*, TSet<UObjectBase*> > ObjectOuterMap;
+	TMap<UClass*, TSet<UObjectBase*> > ClassToObjectListMap;
+	TMap<UClass*, TSet<UClass*> > ClassToChildListMap;
+
+	FUObjectHashTables()
+	{
+	}
+
+	FORCEINLINE void Lock()
+	{
+		CriticalSection.Lock();
+	}
+
+	FORCEINLINE void Unlock()
+	{
+		CriticalSection.Unlock();
+	}
+
+	static FUObjectHashTables& Get()
+	{
+		static FUObjectHashTables Singleton;
+		return Singleton;
+	}
+};
+
+class FHashTableLock
+{
+	FUObjectHashTables& Tables;
+public:
+	FORCEINLINE FHashTableLock(FUObjectHashTables& InTables)
+		: Tables(InTables)
+	{
+		// GC locks everything on the main thread so no need to lock here
+		if (!(IsGarbageCollecting() && IsInGameThread()))
+		{
+			Tables.Lock();
+		}
+	}
+	FORCEINLINE ~FHashTableLock()
+	{
+		if (!(IsGarbageCollecting() && IsInGameThread()))
+		{
+			Tables.Unlock();
+		}
+	}
+};
+
+FUObjectArray& GetUObjectArray()
+{
+	static FUObjectArray GlobalUObjectArray;
+	return GlobalUObjectArray;
+}
+
 
 /**
  * Calculates the object's hash just using the object's name index
@@ -49,6 +120,38 @@ static FORCEINLINE int32 GetObjectOuterHash(FName ObjName,PTRINT Outer)
 	return ((ObjName.GetComparisonIndex() ^ ObjName.GetNumber()) ^ (Outer >> 4)) & (OBJECT_HASH_BINS - 1);
 }
 
+UObject* StaticFindObjectFastExplicitThreadSafe(FUObjectHashTables& ThreadHash, UClass* ObjectClass, FName ObjectName, const FString& ObjectPathName, bool bExactClass, EObjectFlags ExcludeFlags/*=0*/)
+{
+	// Find an object with the specified name and (optional) class, in any package; if bAnyPackage is false, only matches top-level packages
+	int32 Hash = GetObjectHash(ObjectName);
+	FHashTableLock HashLock(ThreadHash);
+	for (TMultiMap<int32, class UObjectBase*>::TConstKeyIterator HashIt(ThreadHash.Hash, Hash); HashIt; ++HashIt)
+	{
+		UObject *Object = (UObject *)HashIt.Value();
+		if
+			((Object->GetFName() == ObjectName)
+
+			/* Don't return objects that have any of the exclusive flags set */
+			&& !Object->HasAnyFlags(ExcludeFlags)
+
+			/** If a class was specified, check that the object is of the correct class */
+			&& (ObjectClass == NULL || (bExactClass ? Object->GetClass() == ObjectClass : Object->IsA(ObjectClass)))
+			)
+
+		{
+			FString ObjectPath = Object->GetPathName();
+			/** Finally check the explicit path */
+			if (ObjectPath == ObjectPathName)
+			{
+				checkf(!Object->HasAnyFlags(RF_Unreachable), TEXT("%s"), *Object->GetFullName());
+				return Object;
+			}
+		}
+	}
+
+	return NULL;
+}
+
 /**
  * Variation of StaticFindObjectFast that uses explicit path.
  *
@@ -64,59 +167,42 @@ UObject* StaticFindObjectFastExplicit( UClass* ObjectClass, FName ObjectName, co
 	checkSlow(FPackageName::IsShortPackageName(ObjectName)); //@Package name transition, we aren't checking the name here because we know this is only used for texture
 	// Find an object with the specified name and (optional) class, in any package; if bAnyPackage is false, only matches top-level packages
 	int32 Hash = GetObjectHash( ObjectName );
-	for(TMultiMap<int32,class UObjectBase*>::TConstKeyIterator HashIt(ObjectHash,Hash); HashIt; ++HashIt)
+	UObject* Result = nullptr;
+	STAT(double ThisTime = 0);
 	{
-		UObject *Object = (UObject *)HashIt.Value();
-		if
-		(	(Object->GetFName()==ObjectName)
-
-		/* Don't return objects that have any of the exclusive flags set */
-		&&	!Object->HasAnyFlags(ExcludeFlags)
-
-		/** If a class was specified, check that the object is of the correct class */
-		&&	(ObjectClass==NULL || (bExactClass ? Object->GetClass()==ObjectClass : Object->IsA(ObjectClass)))
-		)
-
-		{
-			FString ObjectPath = Object->GetPathName();
-			/** Finally check the explicit path */
-			if (ObjectPath == ObjectPathName)
-			{
-				checkf( !Object->HasAnyFlags(RF_Unreachable), TEXT("%s"), *Object->GetFullName() );
-				return Object;
-			}
-		}
+		SCOPE_SECONDS_COUNTER(ThisTime);
+		auto& ThreadHash = FUObjectHashTables::Get();
+		Result = StaticFindObjectFastExplicitThreadSafe(ThreadHash, ObjectClass, ObjectName, ObjectPathName, bExactClass, ExcludeFlags);
 	}
-
-	return NULL;
+	INC_FLOAT_STAT_BY(STAT_Hash_StaticFindObjectFastExplicit, (float)ThisTime);
+	return Result;
 }
 
-UObject* StaticFindObjectFastInternal( UClass* ObjectClass, UObject* ObjectPackage, FName ObjectName, bool bExactClass, bool bAnyPackage, EObjectFlags ExcludeFlags )
+UObject* StaticFindObjectFastInternalThreadSafe(FUObjectHashTables& ThreadHash, UClass* ObjectClass, UObject* ObjectPackage, FName ObjectName, bool bExactClass, bool bAnyPackage, EObjectFlags ExcludeFlags)
 {
-	INC_DWORD_STAT(STAT_FindObjectFast);
-	check(ObjectPackage != ANY_PACKAGE); // this could never have returned anything but NULL
 	// If they specified an outer use that during the hashing
 	UObject* Result = NULL;
 	if (ObjectPackage != NULL)
 	{
-		int32 Hash = GetObjectOuterHash( ObjectName, (PTRINT)ObjectPackage );
-		for(TMultiMap<int32,class UObjectBase*>::TConstKeyIterator HashIt(ObjectHashOuter,Hash); HashIt; ++HashIt)
+		int32 Hash = GetObjectOuterHash(ObjectName, (PTRINT)ObjectPackage);
+		FHashTableLock HashLock(ThreadHash);
+		for (TMultiMap<int32, class UObjectBase*>::TConstKeyIterator HashIt(ThreadHash.HashOuter, Hash); HashIt; ++HashIt)
 		{
 			UObject *Object = (UObject *)HashIt.Value();
 			if
-			/* check that the name matches the name we're searching for */
-			(	(Object->GetFName()==ObjectName)
+				/* check that the name matches the name we're searching for */
+				((Object->GetFName() == ObjectName)
 
-			/* Don't return objects that have any of the exclusive flags set */
-			&&	!Object->HasAnyFlags(ExcludeFlags)
+				/* Don't return objects that have any of the exclusive flags set */
+				&& !Object->HasAnyFlags(ExcludeFlags)
 
-			/* check that the object has the correct Outer */
-			&&	Object->GetOuter() == ObjectPackage
+				/* check that the object has the correct Outer */
+				&& Object->GetOuter() == ObjectPackage
 
-			/** If a class was specified, check that the object is of the correct class */
-			&&	(ObjectClass==NULL || (bExactClass ? Object->GetClass()==ObjectClass : Object->IsA(ObjectClass))) )
+				/** If a class was specified, check that the object is of the correct class */
+				&& (ObjectClass == NULL || (bExactClass ? Object->GetClass() == ObjectClass : Object->IsA(ObjectClass))))
 			{
-				checkf( !Object->HasAnyFlags(RF_Unreachable), TEXT("%s"), *Object->GetFullName() );
+				checkf(!Object->HasAnyFlags(RF_Unreachable), TEXT("%s"), *Object->GetFullName());
 				if (Result)
 				{
 					UE_LOG(LogUObjectHash, Warning, TEXT("Ambiguous search, could be %s or %s"), *GetFullNameSafe(Result), *GetFullNameSafe(Object));
@@ -136,35 +222,36 @@ UObject* StaticFindObjectFastInternal( UClass* ObjectClass, UObject* ObjectPacka
 		// Find an object with the specified name and (optional) class, in any package; if bAnyPackage is false, only matches top-level packages
 		FName ActualObjectName = ObjectName;
 		const FString ObjectNameString = ObjectName.ToString();
-		const int32 DotIndex = FMath::Max<int32>(ObjectNameString.Find(TEXT("."), ESearchCase::CaseSensitive, ESearchDir::FromEnd), 
-												 ObjectNameString.Find(TEXT(":"), ESearchCase::CaseSensitive, ESearchDir::FromEnd));
+		const int32 DotIndex = FMath::Max<int32>(ObjectNameString.Find(TEXT("."), ESearchCase::CaseSensitive, ESearchDir::FromEnd),
+			ObjectNameString.Find(TEXT(":"), ESearchCase::CaseSensitive, ESearchDir::FromEnd));
 		if (DotIndex != INDEX_NONE)
 		{
 			ActualObjectName = FName(*ObjectNameString.Mid(DotIndex + 1));
 		}
-		const int32 Hash = GetObjectHash( ActualObjectName );
-		for(TMultiMap<int32,class UObjectBase*>::TConstKeyIterator HashIt(ObjectHash,Hash); HashIt; ++HashIt)
+		const int32 Hash = GetObjectHash(ActualObjectName);
+		FHashTableLock HashLock(ThreadHash);
+		for (TMultiMap<int32, class UObjectBase*>::TConstKeyIterator HashIt(ThreadHash.Hash, Hash); HashIt; ++HashIt)
 		{
 			UObject *Object = (UObject *)HashIt.Value();
 			if
-			(	(Object->GetFName()==ActualObjectName)
+				((Object->GetFName() == ActualObjectName)
 
-			/* Don't return objects that have any of the exclusive flags set */
-			&&	!Object->HasAnyFlags(ExcludeFlags)
+				/* Don't return objects that have any of the exclusive flags set */
+				&& !Object->HasAnyFlags(ExcludeFlags)
 
-			/*If there is no package (no InObjectPackage specified, and InName's package is "")
+				/*If there is no package (no InObjectPackage specified, and InName's package is "")
 				and the caller specified any_package, then accept it, regardless of its package.
 				Or, if the object is a top-level package then accept it immediately.*/
-			&&	(bAnyPackage ||	!Object->GetOuter())
-			
+				&& (bAnyPackage || !Object->GetOuter())
 
-			/** If a class was specified, check that the object is of the correct class */
-			&&	(ObjectClass==NULL || (bExactClass ? Object->GetClass()==ObjectClass : Object->IsA(ObjectClass))) 
 
-			/** Ensure that the partial path provided matches the object found */
-			&&  (Object->GetPathName().EndsWith(ObjectNameString)) )
+				/** If a class was specified, check that the object is of the correct class */
+				&& (ObjectClass == NULL || (bExactClass ? Object->GetClass() == ObjectClass : Object->IsA(ObjectClass)))
+
+				/** Ensure that the partial path provided matches the object found */
+				&& (Object->GetPathName().EndsWith(ObjectNameString)))
 			{
-				checkf( !Object->HasAnyFlags(RF_Unreachable), TEXT("%s"), *Object->GetFullName() );
+				checkf(!Object->HasAnyFlags(RF_Unreachable), TEXT("%s"), *Object->GetFullName());
 				if (Result)
 				{
 					UE_LOG(LogUObjectHash, Warning, TEXT("Ambiguous search, could be %s or %s"), *GetFullNameSafe(Result), *GetFullNameSafe(Object));
@@ -183,24 +270,38 @@ UObject* StaticFindObjectFastInternal( UClass* ObjectClass, UObject* ObjectPacka
 	return Result;
 }
 
-/** Map of object to their outers, used to avoid an object iterator to find such things. **/
-static TMap<UObjectBase*, TSet<UObjectBase*> > ObjectOuterMap;
-static TMap<UClass*, TSet<UObjectBase*> > ClassToObjectListMap;
-static TMap<UClass*, TSet<UClass*> > ClassToChildListMap;
-
-static void AddToOuterMap(UObjectBase* Object)
+UObject* StaticFindObjectFastInternal( UClass* ObjectClass, UObject* ObjectPackage, FName ObjectName, bool bExactClass, bool bAnyPackage, EObjectFlags ExcludeFlags )
 {
-	TSet<UObjectBase*>& Inners = ObjectOuterMap.FindOrAdd(Object->GetOuter());
+	INC_DWORD_STAT(STAT_FindObjectFast);
+	check(ObjectPackage != ANY_PACKAGE); // this could never have returned anything but NULL
+	// If they specified an outer use that during the hashing
+
+	UObject* Result = nullptr;
+	STAT(double ThisTime = 0);
+	{
+		SCOPE_SECONDS_COUNTER(ThisTime);
+		auto& ThreadHash = FUObjectHashTables::Get();
+		Result = StaticFindObjectFastInternalThreadSafe(ThreadHash, ObjectClass, ObjectPackage, ObjectName, bExactClass, bAnyPackage, ExcludeFlags);
+	}
+	INC_FLOAT_STAT_BY(STAT_Hash_StaticFindObjectFastInternal, (float)ThisTime);
+	return Result;
+}
+
+// Assumes that ThreadHash's critical is already locked
+static void AddToOuterMap(FUObjectHashTables& ThreadHash, UObjectBase* Object)
+{
+	TSet<UObjectBase*>& Inners = ThreadHash.ObjectOuterMap.FindOrAdd(Object->GetOuter());
 	bool bIsAlreadyInSetPtr = false;
 	Inners.Add(Object, &bIsAlreadyInSetPtr);
 	check(!bIsAlreadyInSetPtr); // if it already exists, something is wrong with the external code
 }
 
-static void AddToClassMap(UObjectBase* Object)
+// Assumes that ThreadHash's critical is already locked
+static void AddToClassMap(FUObjectHashTables& ThreadHash, UObjectBase* Object)
 {
 	{
 		check(Object->GetClass());
-		TSet<UObjectBase*>& ObjectList = ClassToObjectListMap.FindOrAdd(Object->GetClass());
+		TSet<UObjectBase*>& ObjectList = ThreadHash.ClassToObjectListMap.FindOrAdd(Object->GetClass());
 		bool bIsAlreadyInSetPtr = false;
 		ObjectList.Add(Object, &bIsAlreadyInSetPtr);
 		check(!bIsAlreadyInSetPtr); // if it already exists, something is wrong with the external code
@@ -213,7 +314,7 @@ static void AddToClassMap(UObjectBase* Object)
 		UClass* SuperClass = Class->GetSuperClass();
 		if ( SuperClass )
 		{
-			TSet<UClass*>& ChildList = ClassToChildListMap.FindOrAdd(SuperClass);
+			TSet<UClass*>& ChildList = ThreadHash.ClassToChildListMap.FindOrAdd(SuperClass);
 			bool bIsAlreadyInSetPtr = false;
 			ChildList.Add(Class, &bIsAlreadyInSetPtr);
 			check(!bIsAlreadyInSetPtr); // if it already exists, something is wrong with the external code
@@ -221,27 +322,29 @@ static void AddToClassMap(UObjectBase* Object)
 	}
 }
 
-static void RemoveFromOuterMap(UObjectBase* Object)
+// Assumes that ThreadHash's critical is already locked
+static void RemoveFromOuterMap(FUObjectHashTables& ThreadHash, UObjectBase* Object)
 {
-	TSet<UObjectBase*>& Inners = ObjectOuterMap.FindOrAdd(Object->GetOuter());
+	TSet<UObjectBase*>& Inners = ThreadHash.ObjectOuterMap.FindOrAdd(Object->GetOuter());
 	int32 NumRemoved = Inners.Remove(Object);
-    if (NumRemoved != 1)
+	if (NumRemoved != 1)
 	{
 		UE_LOG(LogUObjectHash, Error, TEXT("Internal Error: RemoveFromOuterMap NumRemoved = %d  for %s"), NumRemoved, *GetFullNameSafe((UObjectBaseUtility*)Object));
 	}
 	check(NumRemoved == 1); // must have existed, else something is wrong with the external code
 	if (!Inners.Num())
 	{
-		ObjectOuterMap.Remove(Object->GetOuter());
+		ThreadHash.ObjectOuterMap.Remove(Object->GetOuter());
 	}
 }
 
-static void RemoveFromClassMap(UObjectBase* Object)
+// Assumes that ThreadHash's critical is already locked
+static void RemoveFromClassMap(FUObjectHashTables& ThreadHash, UObjectBase* Object)
 {
 	UObjectBaseUtility* ObjectWithUtility = static_cast<UObjectBaseUtility*>(Object);
 
 	{
-		TSet<UObjectBase*>& ObjectList = ClassToObjectListMap.FindOrAdd(Object->GetClass());
+		TSet<UObjectBase*>& ObjectList = ThreadHash.ClassToObjectListMap.FindOrAdd(Object->GetClass());
 		int32 NumRemoved = ObjectList.Remove(Object);
 		if (NumRemoved != 1)
 		{
@@ -250,7 +353,7 @@ static void RemoveFromClassMap(UObjectBase* Object)
 		check(NumRemoved == 1); // must have existed, else something is wrong with the external code
 		if (!ObjectList.Num())
 		{
-			ClassToObjectListMap.Remove(Object->GetClass());
+			ThreadHash.ClassToObjectListMap.Remove(Object->GetClass());
 		}
 	}
 
@@ -261,7 +364,7 @@ static void RemoveFromClassMap(UObjectBase* Object)
 		if ( SuperClass )
 		{
 			// Remove the class from the SuperClass' child list
-			TSet<UClass*>& ChildList = ClassToChildListMap.FindOrAdd(SuperClass);
+			TSet<UClass*>& ChildList = ThreadHash.ClassToChildListMap.FindOrAdd(SuperClass);
 			int32 NumRemoved = ChildList.Remove(Class);
 			if (NumRemoved != 1)
 			{
@@ -270,7 +373,7 @@ static void RemoveFromClassMap(UObjectBase* Object)
 			check(NumRemoved == 1); // must have existed, else something is wrong with the external code
 			if (!ChildList.Num())
 			{
-				ClassToChildListMap.Remove(SuperClass);
+				ThreadHash.ClassToChildListMap.Remove(SuperClass);
 			}
 		}
 	}
@@ -279,91 +382,108 @@ static void RemoveFromClassMap(UObjectBase* Object)
 void GetObjectsWithOuter(const class UObjectBase* Outer, TArray<UObject *>& Results, bool bIncludeNestedObjects, EObjectFlags ExclusionFlags)
 {
 	// We don't want to return any objects that are currently being background loaded unless we're using the object iterator during async loading.
-	ExclusionFlags |= RF_Unreachable;
-	if( !GIsAsyncLoading )
+	STAT(double ThisTime = 0);
 	{
-		ExclusionFlags = EObjectFlags(ExclusionFlags | RF_AsyncLoading);
-	}
-	int32 StartNum = Results.Num();
-	TSet<UObjectBase*> const* Inners = ObjectOuterMap.Find(Outer);
-	if (Inners)
-	{
-		for(TSet<UObjectBase*>::TConstIterator It(*Inners); It; ++It)
+		SCOPE_SECONDS_COUNTER(ThisTime);
+
+		ExclusionFlags |= RF_Unreachable;
+		if (!IsAsyncLoading())
 		{
-			UObject *Object = static_cast<UObject *>(*It);
-			if (!Object->HasAnyFlags(ExclusionFlags))
-			{
-				Results.Add(Object);
-			}
+			ExclusionFlags = EObjectFlags(ExclusionFlags | RF_AsyncLoading);
 		}
-		int32 MaxResults = GUObjectArray.GetObjectArrayNum();
-		while (StartNum != Results.Num() && bIncludeNestedObjects) 
+		int32 StartNum = Results.Num();
+		auto& ThreadHash = FUObjectHashTables::Get();
+		FHashTableLock HashLock(ThreadHash);
+		TSet<UObjectBase*> const* Inners = ThreadHash.ObjectOuterMap.Find(Outer);
+		if (Inners)
 		{
-			int32 RangeStart = StartNum;
-			int32 RangeEnd = Results.Num();
-			StartNum = RangeEnd;
-			for (int32 Index = RangeStart; Index < RangeEnd; Index++)
+			for (TSet<UObjectBase*>::TConstIterator It(*Inners); It; ++It)
 			{
-				TSet<UObjectBase*> const* InnerInners = ObjectOuterMap.Find(Results[Index]);
-				if (InnerInners)
+				UObject *Object = static_cast<UObject *>(*It);
+				if (!Object->HasAnyFlags(ExclusionFlags))
 				{
-					for(TSet<UObjectBase*>::TConstIterator It(*InnerInners); It; ++It)
+					Results.Add(Object);
+				}
+			}
+			int32 MaxResults = GetUObjectArray().GetObjectArrayNum();
+			while (StartNum != Results.Num() && bIncludeNestedObjects)
+			{
+				int32 RangeStart = StartNum;
+				int32 RangeEnd = Results.Num();
+				StartNum = RangeEnd;
+				for (int32 Index = RangeStart; Index < RangeEnd; Index++)
+				{
+					TSet<UObjectBase*> const* InnerInners = ThreadHash.ObjectOuterMap.Find(Results[Index]);
+					if (InnerInners)
 					{
-						UObject *Object = static_cast<UObject *>(*It);
-						if (!Object->HasAnyFlags(ExclusionFlags))
+						for (TSet<UObjectBase*>::TConstIterator It(*InnerInners); It; ++It)
 						{
-							Results.Add(Object);
+							UObject *Object = static_cast<UObject *>(*It);
+							if (!Object->HasAnyFlags(ExclusionFlags))
+							{
+								Results.Add(Object);
+							}
 						}
 					}
 				}
+				check(Results.Num() <= MaxResults); // otherwise we have a cycle in the outer chain, which should not be possible
 			}
-			check(Results.Num() <= MaxResults); // otherwise we have a cycle in the outer chain, which should not be possible
-		} 
+		}
 	}
+	INC_FLOAT_STAT_BY(STAT_Hash_GetObjectsWithOuter, (float)ThisTime);
 }
 
 UObjectBase* FindObjectWithOuter(class UObjectBase* Outer, class UClass* ClassToLookFor, FName NameToLookFor)
 {
-	check(Outer && ClassToLookFor);
-	// We don't want to return any objects that are currently being background loaded unless we're using the object iterator during async loading.
-	EObjectFlags ExclusionFlags = RF_Unreachable;
-	if( !GIsAsyncLoading )
+	UObject* Result = nullptr;
+	STAT(double ThisTime = 0);
 	{
-		ExclusionFlags = EObjectFlags(ExclusionFlags | RF_AsyncLoading);
-	}
+		SCOPE_SECONDS_COUNTER(ThisTime);
 
-	if (NameToLookFor != NAME_None)
-	{
-		return StaticFindObjectFastInternal( ClassToLookFor, static_cast<UObject*>(Outer), NameToLookFor, false, false, ExclusionFlags );
-	}
-
-	UObject *Result = NULL;
-	TSet<UObjectBase*> const* Inners = ObjectOuterMap.Find(Outer);
-	if (Inners)
-	{
-
-		for(TSet<UObjectBase*>::TConstIterator It(*Inners); It; ++It)
+		check(Outer && ClassToLookFor);
+		// We don't want to return any objects that are currently being background loaded unless we're using the object iterator during async loading.
+		EObjectFlags ExclusionFlags = RF_Unreachable;
+		if (!IsAsyncLoading())
 		{
-			UObject *Object = static_cast<UObject *>(*It);
-			if (Object->HasAnyFlags(ExclusionFlags))
+			ExclusionFlags = EObjectFlags(ExclusionFlags | RF_AsyncLoading);
+		}
+
+		if (NameToLookFor != NAME_None)
+		{
+			Result = StaticFindObjectFastInternal(ClassToLookFor, static_cast<UObject*>(Outer), NameToLookFor, false, false, ExclusionFlags);
+		}
+		else
+		{
+			auto& ThreadHash = FUObjectHashTables::Get();
+			FHashTableLock HashLock(ThreadHash);
+			TSet<UObjectBase*> const* Inners = ThreadHash.ObjectOuterMap.Find(Outer);
+			if (Inners)
 			{
-				continue;
+				for (TSet<UObjectBase*>::TConstIterator It(*Inners); It; ++It)
+				{
+					UObject *Object = static_cast<UObject *>(*It);
+					if (Object->HasAnyFlags(ExclusionFlags))
+					{
+						continue;
+					}
+					if (!Object->IsA(ClassToLookFor))
+					{
+						continue;
+					}
+					Result = Object;
+					break;
+				}
 			}
-			if (!Object->IsA(ClassToLookFor))
-			{
-				continue;
-			}
-			Result = Object;
-			break;
 		}
 	}
+	INC_FLOAT_STAT_BY(STAT_Hash_FindObjectWithOuter, (float)ThisTime);
 	return Result;
 }
 
 /** Helper function that returns all the children of the specified class recursively */
-static void RecursivelyPopulateDerivedClasses(UClass* ParentClass, TSet<UClass*>& OutAllDerivedClass)
+static void RecursivelyPopulateDerivedClasses(FUObjectHashTables& ThreadHash, UClass* ParentClass, TSet<UClass*>& OutAllDerivedClass)
 {
-	TSet<UClass*>* ChildSet = ClassToChildListMap.Find(ParentClass);
+	TSet<UClass*>* ChildSet = ThreadHash.ClassToChildListMap.Find(ParentClass);
 	if ( ChildSet )
 	{
 		for ( auto ChildIt = ChildSet->CreateConstIterator(); ChildIt; ++ChildIt )
@@ -372,37 +492,21 @@ static void RecursivelyPopulateDerivedClasses(UClass* ParentClass, TSet<UClass*>
 			if ( !OutAllDerivedClass.Contains(ChildClass) )
 			{
 				OutAllDerivedClass.Add(ChildClass);
-				RecursivelyPopulateDerivedClasses(ChildClass, OutAllDerivedClass);
+				RecursivelyPopulateDerivedClasses(ThreadHash, ChildClass, OutAllDerivedClass);
 			}
 		}
 	}
 }
 
-void GetObjectsOfClass(UClass* ClassToLookFor, TArray<UObject *>& Results, bool bIncludeDerivedClasses, EObjectFlags AdditionalExcludeFlags)
+static void GetObjectsOfClassThreadSafe(FUObjectHashTables& ThreadHash, TSet<UClass*>& ClassesToSearch, TArray<UObject *>& Results, EObjectFlags ExclusionFlags)
 {
-	// We don't want to return any objects that are currently being background loaded unless we're using the object iterator during async loading.
-	EObjectFlags ExclusionFlags = RF_Unreachable;
-	if( !GIsAsyncLoading )
+	FHashTableLock HashLock(ThreadHash);
+	for (auto ClassIt = ClassesToSearch.CreateConstIterator(); ClassIt; ++ClassIt)
 	{
-		ExclusionFlags |= RF_AsyncLoading;
-	}
-	ExclusionFlags |= AdditionalExcludeFlags;
-
-	TSet<UClass*> ClassesToSearch;
-	ClassesToSearch.Add(ClassToLookFor);
-	if ( bIncludeDerivedClasses )
-	{
-		RecursivelyPopulateDerivedClasses(ClassToLookFor, ClassesToSearch);
-	}
-
-	const int32 MaxResults = GUObjectArray.GetObjectArrayNum();
-	for ( auto ClassIt = ClassesToSearch.CreateConstIterator(); ClassIt; ++ClassIt )
-	{
-		TSet<UObjectBase*> const* List = ClassToObjectListMap.Find(*ClassIt);
-
-		if ( List )
+		TSet<UObjectBase*> const* List = ThreadHash.ClassToObjectListMap.Find(*ClassIt);
+		if (List)
 		{
-			for( auto ObjectIt = List->CreateConstIterator(); ObjectIt; ++ObjectIt )
+			for (auto ObjectIt = List->CreateConstIterator(); ObjectIt; ++ObjectIt)
 			{
 				UObject *Object = static_cast<UObject *>(*ObjectIt);
 				if (!Object->HasAnyFlags(ExclusionFlags))
@@ -412,21 +516,57 @@ void GetObjectsOfClass(UClass* ClassToLookFor, TArray<UObject *>& Results, bool 
 			}
 		}
 	}
+}
+void GetObjectsOfClass(UClass* ClassToLookFor, TArray<UObject *>& Results, bool bIncludeDerivedClasses, EObjectFlags AdditionalExcludeFlags)
+{
+	STAT(double ThisTime = 0);
+	{
+		SCOPE_SECONDS_COUNTER(ThisTime);
 
-	check(Results.Num() <= MaxResults); // otherwise we have a cycle in the outer chain, which should not be possible
+		// We don't want to return any objects that are currently being background loaded unless we're using the object iterator during async loading.
+		EObjectFlags ExclusionFlags = RF_Unreachable;
+		if (!IsAsyncLoading())
+		{
+			ExclusionFlags |= RF_AsyncLoading;
+		}
+		ExclusionFlags |= AdditionalExcludeFlags;
+
+		TSet<UClass*> ClassesToSearch;
+		ClassesToSearch.Add(ClassToLookFor);
+		if (bIncludeDerivedClasses)
+		{
+			auto& ThreadHash = FUObjectHashTables::Get();
+			FHashTableLock HashLock(ThreadHash);
+			RecursivelyPopulateDerivedClasses(ThreadHash, ClassToLookFor, ClassesToSearch);
+		}
+
+		GetObjectsOfClassThreadSafe(FUObjectHashTables::Get(), ClassesToSearch, Results, ExclusionFlags);
+
+		check(Results.Num() <= GetUObjectArray().GetObjectArrayNum()); // otherwise we have a cycle in the outer chain, which should not be possible
+	}
+#if STATS
+	if (FThreadStats::IsCollectingData())
+	{
+		INC_FLOAT_STAT_BY(STAT_Hash_GetObjectsOfClass, (float)ThisTime);
+	}
+#endif
 }
 
 void GetDerivedClasses(UClass* ClassToLookFor, TArray<UClass *>& Results, bool bRecursive)
 {
-	if ( bRecursive )
+	if (bRecursive)
 	{
 		TSet<UClass*> AllDerivedClasses;
-		RecursivelyPopulateDerivedClasses(ClassToLookFor, AllDerivedClasses);
+		auto& ThreadHash = FUObjectHashTables::Get();
+		FHashTableLock HashLock(ThreadHash);
+		RecursivelyPopulateDerivedClasses(ThreadHash, ClassToLookFor, AllDerivedClasses);
 		Results.Append( AllDerivedClasses.Array() );
 	}
 	else
 	{
-		TSet<UClass*>* DerivedClasses = ClassToChildListMap.Find(ClassToLookFor);
+		auto& ThreadHash = FUObjectHashTables::Get();
+		FHashTableLock HashLock(ThreadHash);
+		TSet<UClass*>* DerivedClasses = ThreadHash.ClassToChildListMap.Find(ClassToLookFor);
 		if ( DerivedClasses )
 		{
 			Results.Append( DerivedClasses->Array() );
@@ -434,29 +574,41 @@ void GetDerivedClasses(UClass* ClassToLookFor, TArray<UClass *>& Results, bool b
 	}
 }
 
-/**
- * Add an object to the name hash tables
- *
- * @param	Object		Object to add to the hash tables
- */
+void AllocateUObjectIndexForCurrentThread(UObjectBase* Object)
+{
+	GetUObjectArray().AllocateUObjectIndex(Object);
+}
+
 void HashObject(UObjectBase* Object)
 {
-	FName Name = Object->GetFName();
-	if (Name == NAME_None)
+	STAT(double ThisTime = 0);
 	{
-		return;
+		SCOPE_SECONDS_COUNTER(ThisTime);
+		FName Name = Object->GetFName();
+		if (Name != NAME_None)
+		{
+			int32 Hash = GetObjectHash(Name);
+			auto& ThreadHash = FUObjectHashTables::Get();
+
+			FHashTableLock HashLock(ThreadHash);
+			checkSlow(!ThreadHash.Hash.FindPair(Hash, Object));  // if it already exists, something is wrong with the external code
+
+			ThreadHash.Hash.Add(Hash, Object);
+
+			Hash = GetObjectOuterHash(Name, (PTRINT)Object->GetOuter());
+			checkSlow(!ThreadHash.HashOuter.FindPair(Hash, Object));  // if it already exists, something is wrong with the external code
+			ThreadHash.HashOuter.Add(Hash, Object);
+
+			AddToOuterMap(ThreadHash, Object);
+			AddToClassMap(ThreadHash, Object);
+		}
 	}
-
-	int32 Hash = GetObjectHash( Name );
-	checkSlow(!ObjectHash.FindPair(Hash,Object));  // if it already exists, something is wrong with the external code
-	ObjectHash.Add(Hash,Object);
-
-	Hash = GetObjectOuterHash(Name,(PTRINT)Object->GetOuter());
-	checkSlow(!ObjectHashOuter.FindPair(Hash,Object));  // if it already exists, something is wrong with the external code
-	ObjectHashOuter.Add(Hash,Object);
-
-	AddToOuterMap(Object);
-	AddToClassMap(Object);
+#if STATS
+	if (FThreadStats::IsCollectingData())
+	{
+		INC_FLOAT_STAT_BY(STAT_Hash_HashObject, (float)ThisTime);
+	}
+#endif
 }
 
 /**
@@ -466,20 +618,47 @@ void HashObject(UObjectBase* Object)
  */
 void UnhashObject(UObjectBase* Object)
 {
-	FName Name = Object->GetFName();
-	if (Name == NAME_None)
+	STAT(double ThisTime = 0);
 	{
-		return;
+		SCOPE_SECONDS_COUNTER(ThisTime);
+		FName Name = Object->GetFName();
+		if (Name != NAME_None)
+		{
+
+			int32 Hash = GetObjectHash(Name);
+			auto& ThreadHash = FUObjectHashTables::Get();
+			FHashTableLock LockHash(ThreadHash);
+			int32 NumRemoved = ThreadHash.Hash.RemoveSingle(Hash, Object);
+			check(NumRemoved == 1); // must have existed, else something is wrong with the external code
+
+			Hash = GetObjectOuterHash(Name, (PTRINT)Object->GetOuter());
+			NumRemoved = ThreadHash.HashOuter.RemoveSingle(Hash, Object);
+			check(NumRemoved == 1); // must have existed, else something is wrong with the external code
+
+			RemoveFromOuterMap(ThreadHash, Object);
+			RemoveFromClassMap(ThreadHash, Object);
+		}
 	}
+#if STATS
+	if (FThreadStats::IsCollectingData())
+	{
+		INC_FLOAT_STAT_BY(STAT_Hash_UnhashObject, (float)ThisTime);
+	}
+#endif
+}
 
-	int32 Hash = GetObjectHash( Name );
-	int32 NumRemoved = ObjectHash.RemoveSingle(Hash,Object);
-	check(NumRemoved == 1); // must have existed, else something is wrong with the external code
+/**
+ * Prevents any other threads from finding/adding UObjects while GC is running
+*/
+void LockUObjectHashTablesForGC()
+{
+	FUObjectHashTables::Get().Lock();
+}
 
-	Hash = GetObjectOuterHash(Name,(PTRINT)Object->GetOuter());
-	NumRemoved = ObjectHashOuter.RemoveSingle(Hash,Object);
-	check(NumRemoved == 1); // must have existed, else something is wrong with the external code
-
-	RemoveFromOuterMap(Object);
-	RemoveFromClassMap(Object);
+/**
+* Releases UObject hash tables lock after GC has finished running
+*/
+void UnlockUObjectHashTablesForGC()
+{
+	FUObjectHashTables::Get().Unlock();
 }

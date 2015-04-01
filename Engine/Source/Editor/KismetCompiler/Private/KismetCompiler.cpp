@@ -177,7 +177,7 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 		FString TransientCDOString = FString::Printf(TEXT("TRASH_%s"), *OldCDO->GetName());
 		FName TransientCDOName = MakeUniqueObjectName(GetTransientPackage(), TransientClass, FName(*TransientCDOString));
 		OldCDO->Rename(*TransientCDOName.ToString(), GetTransientPackage(), RenFlags);
-		ULinkerLoad::InvalidateExport(OldCDO);
+		FLinkerLoad::InvalidateExport(OldCDO);
 	}
 
 	// Purge all subobjects (properties, functions, params) of the class, as they will be regenerated
@@ -202,7 +202,7 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 		}
 		else
 		{
-			ULinkerLoad::InvalidateExport(CurrSubObj);
+			FLinkerLoad::InvalidateExport(CurrSubObj);
 		}
 	}
 
@@ -2872,7 +2872,7 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 				}
 			}
 
-			ClonedGraph->MoveNodesToAnotherGraph(SourceGraph, GIsAsyncLoading || bIsLoading);
+			ClonedGraph->MoveNodesToAnotherGraph(SourceGraph, IsAsyncLoading() || bIsLoading);
 			FEdGraphUtilities::MergeChildrenGraphsIn(SourceGraph, ClonedGraph, /*bRequireSchemaMatch=*/ true);
 
 			// When emitting intermediate products; make an effort to make them readable by preventing overlaps and adding informative comments
@@ -3252,7 +3252,7 @@ void FKismetCompilerContext::Compile()
 
 	UObject* OldCDO = NULL;
 	int32 OldGenLinkerIdx = INDEX_NONE;
-	ULinkerLoad* OldLinker = Blueprint->GetLinker();
+	FLinkerLoad* OldLinker = Blueprint->GetLinker();
 
 	if (OldLinker)
 	{

@@ -96,7 +96,7 @@ void UBlueprintGeneratedClass::GetRequiredPreloadDependencies(TArray<UObject*>& 
 	Super::GetRequiredPreloadDependencies(DependenciesOut);
 
 	// the component templates are no longer needed as Preload() dependencies 
-	// (ULinkerLoad now handles these with placeholder export objects instead)...
+	// (FLinkerLoad now handles these with placeholder export objects instead)...
 	// this change was prompted by a cyclic case, where creating the first
 	// component-template tripped the serialization of its class outer, before 
 	// another second component-template could be created (even though the 

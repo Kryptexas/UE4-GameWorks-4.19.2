@@ -50,6 +50,13 @@ CORE_API bool IsInRHIThread()
 CORE_API FRunnableThread* GRHIThread = nullptr;
 // Fake threads
 
+// Core version of IsInAsyncLoadingThread
+static bool IsInAsyncLoadingThreadCoreInternal()
+{
+	// No async loading in Core
+	return false;
+}
+bool(*IsInAsyncLoadingThread)() = &IsInAsyncLoadingThreadCoreInternal;
 
 /**
  * Fake thread created when multi-threading is disabled.
@@ -649,5 +656,50 @@ void FTlsAutoCleanup::Register()
 	if( RunnableThread )
 	{
 		RunnableThread->TlsInstances.Add( this );
+	}
+}
+
+
+
+FMultiReaderSingleWriterGT::FMultiReaderSingleWriterGT()
+{
+	CanRead = TFunction<bool()>([=]() { return FPlatformAtomics::InterlockedCompareExchange(&CriticalSection.Action, ReadingAction, NoAction) == ReadingAction; });
+	CanWrite = TFunction<bool()>([=]() { return FPlatformAtomics::InterlockedCompareExchange(&CriticalSection.Action, WritingAction, NoAction) == WritingAction; });
+}
+
+void FMultiReaderSingleWriterGT::LockRead()
+{
+	if (!IsInGameThread())
+	{
+		FPlatformProcess::ConditionalSleep(CanRead);
+	}
+	CriticalSection.ReadCounter.Increment();
+}
+
+void FMultiReaderSingleWriterGT::UnlockRead()
+{
+	if (CriticalSection.ReadCounter.Decrement() != 0)
+	{
+		return;
+	}
+
+	if (!IsInGameThread())
+	{
+		FPlatformAtomics::InterlockedExchange(&CriticalSection.Action, NoAction);
+	}
+}
+
+void FMultiReaderSingleWriterGT::LockWrite()
+{
+	check(IsInGameThread());
+	FPlatformProcess::ConditionalSleep(CanWrite);
+	CriticalSection.WriteCounter.Increment();
+}
+
+void FMultiReaderSingleWriterGT::UnlockWrite()
+{
+	if (CriticalSection.WriteCounter.Decrement() == 0)
+	{
+		FPlatformAtomics::InterlockedExchange(&CriticalSection.Action, NoAction);
 	}
 }

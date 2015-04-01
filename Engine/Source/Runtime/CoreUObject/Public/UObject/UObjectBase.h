@@ -148,7 +148,6 @@ protected:
 	/**
 	 * Set the object flags directly
 	 *
-	 * @return Flags for this object
 	 **/
 	FORCEINLINE void SetFlagsTo( EObjectFlags NewFlags )
 	{
@@ -165,6 +164,40 @@ public:
 	{
 		checkfSlow((ObjectFlags & ~RF_AllFlags) == 0, TEXT("%s flagged as RF_AllFlags"), *GetFName().ToString());
 		return ObjectFlags;
+	}
+
+	/**
+	 *	Atomically adds the specified flags.
+	 *	Do not use unless you know what you are doing.
+	 *	Designed to be used only by parallel GC and UObject loading thread.
+	 */
+	FORCENOINLINE void AtomicallySetFlags( EObjectFlags FlagsToAdd )
+	{
+		int32 OldFlags = 0;
+		int32 NewFlags = 0;
+		do 
+		{
+			OldFlags = ObjectFlags;
+			NewFlags = OldFlags | FlagsToAdd;
+		}
+		while( FPlatformAtomics::InterlockedCompareExchange( (int32*)&ObjectFlags, NewFlags, OldFlags) != OldFlags );
+	}
+
+	/**
+	 *	Atomically clears the specified flags.
+	 *	Do not use unless you know what you are doing.
+	 *	Designed to be used only by parallel GC and UObject loading thread.
+	 */
+	FORCENOINLINE void AtomicallyClearFlags( EObjectFlags FlagsToClear )
+	{
+		int32 OldFlags = 0;
+		int32 NewFlags = 0;
+		do 
+		{
+			OldFlags = ObjectFlags;
+			NewFlags = OldFlags & ~FlagsToClear;
+		}
+		while( FPlatformAtomics::InterlockedCompareExchange( (int32*)&ObjectFlags, NewFlags, OldFlags) != OldFlags );
 	}
 
 	/**
@@ -189,6 +222,7 @@ public:
 				bIChangedIt = true;
 				break;
 			}
+			// Remove later.
 			checkSlow(OldValue == (StartValue & ~int32(RF_Unreachable)));
 		}
 		return bIChangedIt;

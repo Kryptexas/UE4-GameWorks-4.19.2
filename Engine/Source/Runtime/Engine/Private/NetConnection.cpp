@@ -507,7 +507,7 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 #if DO_ENABLE_NET_TEST
 		// if the connection is closing/being destroyed/etc we need to send immediately regardless of settings
 		// because we won't be around to send it delayed
-		if (State == USOCK_Closed || GIsGarbageCollecting || bIgnoreSimulation)
+		if (State == USOCK_Closed || IsGarbageCollecting() || bIgnoreSimulation)
 		{
 			// Checked in FlushNet() so each child class doesn't have to implement this
 			if (Driver->IsNetResourceValid())

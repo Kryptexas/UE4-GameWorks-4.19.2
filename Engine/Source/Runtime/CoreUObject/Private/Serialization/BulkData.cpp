@@ -318,7 +318,7 @@ bool FUntypedBulkData::CanLoadFromDisk() const
 #if WITH_EDITOR
 	return AttachedAr != NULL;
 #else
-	return Filename != TEXT("") || Linker.IsValid();
+	return Filename != TEXT("") || (Package.IsValid() && Package->LinkerLoad);
 #endif // WITH_EDITOR
 }
 
@@ -684,7 +684,7 @@ bool FUntypedBulkData::ShouldStreamBulkData()
 	const bool bForceStream = !!(BulkDataFlags & BULKDATA_ForceStreamPayload);
 
 	return (FPlatformProperties::RequiresCookedData() && !Filename.IsEmpty() &&
-		FPlatformProcess::SupportsMultithreading() &&
+		FPlatformProcess::SupportsMultithreading() && IsInGameThread() &&
 		(bForceStream || GetBulkDataSize() > MinBulkDataSizeForAsyncLoading.Value) &&
 		MinBulkDataSizeForAsyncLoading.Value >= 0);
 }
@@ -790,23 +790,19 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 
 			// We're allowing defered serialization.
 			if( Ar.IsAllowingLazyLoading() && Owner != NULL)
-			{
+			{				
+#if WITH_EDITOR
 				Linker = Owner->GetLinker();
-#if WITH_EDITOR
-				if (Linker)
-#else
-				if (Linker.IsValid())
-#endif
-				{
-					Filename = Linker->Filename;
-				}
-#if WITH_EDITOR
 				check(Linker);
 				Ar.AttachBulkData( Owner, this );
 				AttachedAr = &Ar;
-				
+				Filename = Linker->Filename;
 #else
-				check(Linker.IsValid());				
+				Package = Owner->GetOutermost();
+				check(Package.IsValid());
+				auto Linker = FLinkerLoad::FindExistingLinkerForPackage(Package.Get());
+				check(Linker);
+				Filename = Linker->Filename;		
 #endif // WITH_EDITOR
 				if (bPayloadInline)
 				{
@@ -909,10 +905,10 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 			Ar << BulkDataOffsetInFile;
 
 				// try to get the linkersave object
-			ULinkerSave* LinkerSave = dynamic_cast<ULinkerSave*>(Ar.GetLinker());
+			FLinkerSave* LinkerSave = Cast<FLinkerSave>(Ar.GetLinker());
 
 			// determine whether we are going to store the payload inline or not.
-			bool bStoreInline = !!(BulkDataFlags&BULKDATA_ForceInlinePayload) || LinkerSave == NULL;
+			bool bStoreInline = !!(BulkDataFlags&BULKDATA_ForceInlinePayload) || !LinkerSave;
 
 			if (!bStoreInline)
 			{
@@ -924,7 +920,7 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 				
 				// add the bulkdata storage info object to the linkersave
 				int32 Index = LinkerSave->BulkDataToAppend.AddZeroed(1);
-				ULinkerSave::FBulkDataStorageInfo& BulkStore = LinkerSave->BulkDataToAppend[Index];
+				FLinkerSave::FBulkDataStorageInfo& BulkStore = LinkerSave->BulkDataToAppend[Index];
 
 				BulkStore.BulkDataOffsetInFilePos = SavedBulkDataOffsetInFilePos;
 				BulkStore.BulkDataSizeOnDiskPos = SavedBulkDataSizeOnDiskPos;
@@ -990,7 +986,7 @@ bool FUntypedBulkData::RequiresSingleElementSerialization( FArchive& Ar )
 }
 
 /*-----------------------------------------------------------------------------
-	Accessors for friend classes ULinkerLoad and content cookers.
+	Accessors for friend classes FLinkerLoad and content cookers.
 -----------------------------------------------------------------------------*/
 
 #if WITH_EDITOR
@@ -1083,10 +1079,12 @@ void FUntypedBulkData::InitializeMemberVariables()
 	BulkData = nullptr;
 	BulkDataAsync = nullptr;
 	LockStatus = LOCKSTATUS_Unlocked;
-	bShouldFreeOnEmpty = true;
-	Linker = nullptr;
+	bShouldFreeOnEmpty = true;	
 #if WITH_EDITOR
+	Linker = nullptr;
 	AttachedAr = nullptr;
+#else
+	Package = nullptr;
 #endif
 }
 
@@ -1279,10 +1277,10 @@ void FUntypedBulkData::LoadDataIntoMemory( void* Dest )
 	AttachedAr->Seek( PushedPos );
 #else
 	bool bWasLoadedSuccessfully = false;
-	if (IsInGameThread() && Linker.IsValid())
+	if ((IsInGameThread() || IsInAsyncLoadingThread()) && Package.IsValid() && Package->LinkerLoad && Package->LinkerLoad->GetOwnerThreadId() == FPlatformTLS::GetCurrentThreadId())
 	{
-		ULinkerLoad* LinkerLoad = Linker.Get();
-		if ( LinkerLoad && LinkerLoad->Loader && !LinkerLoad->IsCompressed() )
+		FLinkerLoad* LinkerLoad = Package->LinkerLoad;
+		if (LinkerLoad && LinkerLoad->Loader && !LinkerLoad->IsCompressed())
 		{
 			FArchive* Ar = LinkerLoad;
 			// keep track of current position in this archive

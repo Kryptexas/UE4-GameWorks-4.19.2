@@ -147,7 +147,7 @@ public:
 		if (!FoundClass)
 		{
 			// Look for class redirectors
-			FName NewPath = ULinkerLoad::FindNewNameForClass(AssetClass, false);
+			FName NewPath = FLinkerLoad::FindNewNameForClass(AssetClass, false);
 
 			if (NewPath != NAME_None)
 			{

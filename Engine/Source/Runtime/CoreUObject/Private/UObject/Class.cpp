@@ -907,7 +907,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			// Check if this is a struct property and we have a redirector
 			if (Tag.Type==NAME_StructProperty && Property != NULL && Tag.Type == Property->GetID())
 			{
-				FName* NewName = ULinkerLoad::StructNameRedirects.Find(Tag.StructName);
+				FName* NewName = FLinkerLoad::StructNameRedirects.Find(Tag.StructName);
 				FName StructName = CastChecked<UStructProperty>(Property)->Struct->GetFName();
 				if (NewName != NULL && *NewName == StructName)
 				{
@@ -1346,7 +1346,7 @@ void UStruct::Serialize( FArchive& Ar )
 			if (Ar.IsPersistent() && Ar.GetLinker())
 			{
 				// make sure this is a ULinkerSave
-				ULinkerSave* LinkerSave = CastChecked<ULinkerSave>(Ar.GetLinker());
+				FLinkerSave* LinkerSave = CastChecked<FLinkerSave>(Ar.GetLinker());
 
 				// remember how we were saving
 				FArchive* SavedSaver = LinkerSave->Saver;
@@ -2514,8 +2514,8 @@ UObject* UClass::CreateDefaultObject()
 			// If this is a class that can be regenerated, it is potentially not completely loaded.  Preload and Link here to ensure we properly zero memory and read in properties for the CDO
 			if( HasAnyClassFlags(CLASS_CompiledFromBlueprint) && (PropertyLink == NULL) && !GIsDuplicatingClassForReinstancing)
 			{
-				ULinkerLoad* ClassLinker = GetLinker();
-				if( ClassLinker )
+				auto ClassLinker = GetLinker();
+				if (ClassLinker)
 				{
 					UField* FieldIt = Children;
 					while(FieldIt && (FieldIt->GetOuter() == this))

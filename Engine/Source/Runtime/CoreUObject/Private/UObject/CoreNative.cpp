@@ -4,6 +4,7 @@
 #include "ModuleManager.h"
 #include "StringAssetReference.h"
 #include "StringClassReference.h"
+#include "Linker.h"
 
 // CoreUObject module. Handles UObject system pre-init (registers init function with Core callbacks).
 class FCoreUObjectModule : public FDefaultModuleImpl
@@ -18,8 +19,14 @@ public:
 		void InitUObject();
 		FCoreDelegates::OnInit.AddStatic(InitUObject);
 
+		bool IsInAsyncLoadingThreadCoreUObjectInternal();
+		IsInAsyncLoadingThread = &IsInAsyncLoadingThreadCoreUObjectInternal;
+
+		bool IsAsyncLoadingCoreUObjectInternal();
+		IsAsyncLoading = &IsAsyncLoadingCoreUObjectInternal;
+
 		// Make sure that additional content mount points can be registered after CoreUObject loads
-		FPackageName::EnsureContentPathsAreRegistered();
+		FPackageName::EnsureContentPathsAreRegistered();		
 	}
 };
 IMPLEMENT_MODULE( FCoreUObjectModule, CoreUObject );

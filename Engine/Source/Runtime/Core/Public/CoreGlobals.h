@@ -105,7 +105,6 @@ extern CORE_API bool GIsClient;
 extern CORE_API bool GIsServer;
 extern CORE_API bool GIsCriticalError;
 extern CORE_API bool GIsRunning;
-extern CORE_API bool GIsGarbageCollecting;
 extern CORE_API bool GIsDuplicatingClassForReinstancing;
 
 /**
@@ -168,7 +167,7 @@ extern CORE_API const TCHAR* GForeignEngineDir;
 extern CORE_API FExec* GDebugToolExec;
 
 /** Whether we're currently in the async loading code path or not */
-extern CORE_API bool GIsAsyncLoading;
+extern CORE_API bool(*IsAsyncLoading)();
 
 /** Whether the editor is currently loading a package or not */
 extern CORE_API bool GIsEditorLoadingPackage;
@@ -195,9 +194,6 @@ extern CORE_API FString GSystemStartTime;
 
 /** Whether we are still in the initial loading process. */
 extern CORE_API bool GIsInitialLoad;
-
-/** true when we are routing ConditionalPostLoad/PostLoad to objects */
-extern CORE_API bool GIsRoutingPostLoad;
 
 #if WITH_HOT_RELOAD_CTORS
 /** true when we are retrieving VTablePtr from UClass */

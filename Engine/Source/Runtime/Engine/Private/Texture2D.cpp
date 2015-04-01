@@ -758,7 +758,7 @@ void UTexture2D::CalcAllowedMips( int32 MipCount, int32 NumNonStreamingMips, int
 
 FTextureResource* UTexture2D::CreateResource()
 {
-	ULinker* Linker = GetLinker();
+	FLinker* Linker = GetLinker();
 	int32 NumMips = GetNumMips();
 
 	// Determine whether or not this texture can be streamed.

@@ -92,7 +92,7 @@ struct FUserDefinedStructureCompilerInner
 			}
 			else
 			{
-				ULinkerLoad::InvalidateExport(CurrSubObj);
+				FLinkerLoad::InvalidateExport(CurrSubObj);
 			}
 		}
 

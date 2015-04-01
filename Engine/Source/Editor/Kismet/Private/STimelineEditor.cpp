@@ -1364,7 +1364,7 @@ void STimelineEditor::OnTrackNameCommitted( const FText& StringName, ETextCommit
 bool STimelineEditor::IsCurveAssetSelected() const
 {
 	// Note: Cannot call GetContentBrowserSelectionClasses() during serialization and GC due to its use of FindObject()
-	if(!GIsSavingPackage && !GIsGarbageCollecting)
+	if(!GIsSavingPackage && !IsGarbageCollecting())
 	{
 		TArray<UClass*> SelectionList;
 		GEditor->GetContentBrowserSelectionClasses(SelectionList);

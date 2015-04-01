@@ -306,7 +306,7 @@ int32 UObjectLibrary::LoadAssetDataFromPaths(const TArray<FString>& Paths, bool 
 		ARFilter.ClassNames.Add(ObjectBaseClass->GetFName());
 
 		// Add any old names to the list in case things haven't been resaved
-		TArray<FName> OldNames = ULinkerLoad::FindPreviousNamesForClass(ObjectBaseClass->GetPathName(), false);
+		TArray<FName> OldNames = FLinkerLoad::FindPreviousNamesForClass(ObjectBaseClass->GetPathName(), false);
 
 		ARFilter.ClassNames.Append(OldNames);
 

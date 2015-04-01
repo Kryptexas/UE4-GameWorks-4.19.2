@@ -203,7 +203,7 @@ void FEdGraphUtilities::CloneAndMergeGraphIn(UEdGraph* MergeTarget, UEdGraph* So
 	const bool bIsLoading = Blueprint ? Blueprint->bIsRegeneratingOnLoad : false;
 
 	// Move them all to the destination
-	ClonedGraph->MoveNodesToAnotherGraph(MergeTarget, GIsAsyncLoading || bIsLoading, bInIsCompiling);
+	ClonedGraph->MoveNodesToAnotherGraph(MergeTarget, IsAsyncLoading() || bIsLoading, bInIsCompiling);
 }
 
 // Moves the contents of all of the children graphs (recursively) into the target graph.  This does not clone, it's destructive to the source
@@ -225,7 +225,7 @@ void FEdGraphUtilities::MergeChildrenGraphsIn(UEdGraph* MergeTarget, UEdGraph* P
 			// Even if we don't require a match to recurse, we do to actually copy the nodes
 			if (bSchemaMatches)
 			{
-				ChildGraph->MoveNodesToAnotherGraph(MergeTarget, GIsAsyncLoading || bIsLoading, bInIsCompiling);
+				ChildGraph->MoveNodesToAnotherGraph(MergeTarget, IsAsyncLoading() || bIsLoading, bInIsCompiling);
 			}
 
 			MergeChildrenGraphsIn(MergeTarget, ChildGraph, bRequireSchemaMatch, bInIsCompiling);

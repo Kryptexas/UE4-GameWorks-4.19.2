@@ -104,7 +104,7 @@ public:
 		}
 	}
 
-	virtual void Suspend( bool bShouldPause = 1 ) override
+	virtual void Suspend( bool bShouldPause = true ) override
 	{
 		check(Thread);
 		if (bShouldPause == true)

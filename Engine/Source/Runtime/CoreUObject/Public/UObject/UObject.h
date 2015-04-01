@@ -363,6 +363,17 @@ public:
 		return false;
 	}
 
+	/**
+	* Called during async load to determine if PostLoad can be called on the loading thread.
+	*
+	* @return	true if this object's PostLoad is thread safe
+	*/
+	virtual bool IsPostLoadThreadSafe() const
+	{
+		return false;
+	}
+
+
 	/** 
 	 *	Determines if you can create an object from the supplied template in the current context (editor, client only, dedicated server, game/listen) 
 	 *	This calls NeedsLoadForClient & NeedsLoadForServer
@@ -844,7 +855,7 @@ public:
 	 * @param LinkerIndex				New LinkerIndex to set
 	 * @param bShouldDetachExisting		If true, detach existing linker and call PostLinkerChange
 	 */
-	void SetLinker( ULinkerLoad* LinkerLoad, int32 LinkerIndex, bool bShouldDetachExisting=true );
+	void SetLinker( FLinkerLoad* LinkerLoad, int32 LinkerIndex, bool bShouldDetachExisting=true );
 
 	/**
 	 * Creates a new archetype based on this UObject.  The archetype's property values will match

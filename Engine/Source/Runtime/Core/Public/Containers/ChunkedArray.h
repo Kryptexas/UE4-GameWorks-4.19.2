@@ -116,6 +116,19 @@ public:
 	}
 
 	/**
+	* Tests if index is valid, i.e. greater than zero and less than number of
+	* elements in array.
+	*
+	* @param Index Index to test.
+	*
+	* @returns True if index is valid. False otherwise.
+	*/
+	FORCEINLINE bool IsValidIndex(int32 Index) const
+	{
+		return Index >= 0 && Index < NumElements;
+	}
+
+	/**
 	 * Adds a new item to the end of the chunked array.
 	 *
 	 * @param Item	The item to add

@@ -9,6 +9,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "UObject/UObjectAnnotation.h"
 #include "UObject/TlsObjectInitializers.h"
+#include "UObject/UObjectThreadContext.h"
 
 DEFINE_LOG_CATEGORY(LogUObjectGlobals);
 
@@ -18,21 +19,6 @@ DEFINE_LOG_CATEGORY(LogUObjectGlobals);
 #endif
 
 bool						GIsSavingPackage = false;
-int32							GImportCount							= 0;
-/** Forced exports for EndLoad optimization.											*/
-int32							GForcedExportCount						= 0;
-TArray<UObject*>			GObjLoaded;
-
-/** List of linkers that we want to close the loaders for (to free file handles) - needs to be delayed until EndLoad is called with GObjBeginLoadCount of 0 */
-TArray<ULinkerLoad*>		GDelayedLinkerClosePackages;
-
-/** Count for BeginLoad multiple loads.									*/
-static int32					GObjBeginLoadCount						= 0;
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-/** Used to verify that the Super::Serialize chain is intact.			*/
-TArray<UObject*,TInlineAllocator<16> >		DebugSerialize;
-#endif
 
 /** Object annotation used by the engine to keep track of which objects are selected */
 FUObjectAnnotationSparseBool GSelectedAnnotation;
@@ -84,7 +70,16 @@ FCoreUObjectDelegates::FPackageCreatedForLoad FCoreUObjectDelegates::PackageCrea
 /** Check wehether we should report progress or not */
 bool ShouldReportProgress()
 {
-	return GIsEditor && !IsRunningCommandlet() && !GIsAsyncLoading;
+	return GIsEditor && !IsRunningCommandlet() && !IsAsyncLoading();
+}
+
+/**
+ * Returns true if code is called form the game thread while collecting garbage.
+ * We only have tp guard agains StaticFindObject on the game thread as other threads will be blocked anyway
+ */
+static FORCEINLINE bool IsGarbageCollectingOnGameThread()
+{
+	return IsInGameThread() && IsGarbageCollecting();
 }
 
 /**
@@ -101,13 +96,13 @@ bool ShouldReportProgress()
  */
 UObject* StaticFindObjectFast( UClass* ObjectClass, UObject* ObjectPackage, FName ObjectName, bool ExactClass, bool AnyPackage, EObjectFlags ExclusiveFlags )
 {
-	if (GIsSavingPackage || GIsGarbageCollecting)
+	if (GIsSavingPackage || IsGarbageCollectingOnGameThread())
 	{
 		UE_LOG(LogUObjectGlobals, Fatal,TEXT("Illegal call to StaticFindObjectFast() while serializing object data or garbage collecting!"));
 	}
 
 	// We don't want to return any objects that are currently being background loaded unless we're using FindObject during async loading.
-	ExclusiveFlags |= GIsAsyncLoading ? RF_NoFlags : RF_AsyncLoading;
+	ExclusiveFlags |= IsAsyncLoading() ? RF_NoFlags : RF_AsyncLoading;
 	return StaticFindObjectFastInternal( ObjectClass, ObjectPackage, ObjectName, ExactClass, AnyPackage, ExclusiveFlags );
 }
 
@@ -123,7 +118,7 @@ UObject* StaticFindObject( UClass* ObjectClass, UObject* InObjectPackage, const 
 		UE_LOG(LogUObjectGlobals, Fatal,TEXT("Illegal call to StaticFindObject() while serializing object data!"));
 	}
 
-	if (GIsGarbageCollecting)
+	if (IsGarbageCollectingOnGameThread())
 	{
 		UE_LOG(LogUObjectGlobals, Fatal,TEXT("Illegal call to StaticFindObject() while collecting garbage!"));
 	}
@@ -204,11 +199,11 @@ UObject* StaticFindObjectChecked( UClass* ObjectClass, UObject* ObjectParent, co
 }
 
 //
-// Find an object; won't assert on GIsSavingPackage or GIsGarbageCollecting
+// Find an object; won't assert on GIsSavingPackage or IsGarbageCollecting()
 //
 UObject* StaticFindObjectSafe( UClass* ObjectClass, UObject* ObjectParent, const TCHAR* InName, bool ExactClass )
 {
-	if ( !GIsSavingPackage && !GIsGarbageCollecting )
+	if (!GIsSavingPackage && !IsGarbageCollectingOnGameThread())
 	{
 		return StaticFindObject( ObjectClass, ObjectParent, InName, ExactClass );
 	}
@@ -770,7 +765,7 @@ UObject* StaticLoadObjectInternal(UClass* ObjectClass, UObject* InOuter, const T
 
 UObject* StaticLoadObject(UClass* ObjectClass, UObject* InOuter, const TCHAR* InName, const TCHAR* Filename, uint32 LoadFlags, UPackageMap* Sandbox, bool bAllowObjectReconciliation )
 {
-	//UE_CLOG(GIsRoutingPostLoad, LogUObjectGlobals, Fatal, TEXT("Calling StaticLoadObject during PostLoad is forbidden."));
+	UE_CLOG(FUObjectThreadContext::Get().IsRoutingPostLoad, LogUObjectGlobals, Fatal, TEXT("Calling StaticLoadObject during PostLoad is forbidden."));
 
 	UObject* Result = StaticLoadObjectInternal(ObjectClass, InOuter, InName, Filename, LoadFlags, Sandbox, bAllowObjectReconciliation);
 	if (!Result)
@@ -820,7 +815,7 @@ UClass* StaticLoadClass( UClass* BaseClass, UObject* InOuter, const TCHAR* InNam
 * @param	ImportLinker	Linker that requests this package through one of its imports
 * @return	Loaded package if successful, NULL otherwise
 */
-UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags, ULinkerLoad* ImportLinker)
+UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags, FLinkerLoad* ImportLinker)
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("LoadPackageInternal"), STAT_LoadPackageInternal, STATGROUP_ObjectVerbose);
 
@@ -869,12 +864,15 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 	bool bFullyLoadSkipped = false;
 
 	SlowTask.EnterProgressFrame(30);
+
+	// Declare here so that the linker does not get destroyed before ResetLoaders is called
+	FLinkerLoad* Linker = nullptr;
 	{
 		// Keep track of start time.
 		const double StartTime = FPlatformTime::Seconds();
 
 		// Create a new linker object which goes off and tries load the file.
-		ULinkerLoad* Linker = GetPackageLinker(InOuter, *FileToLoad, LoadFlags, nullptr, nullptr);
+		Linker = GetPackageLinker(InOuter, *FileToLoad, LoadFlags, nullptr, nullptr);
 		if (!Linker)
 		{
 			EndLoad();
@@ -992,7 +990,7 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		// fail, so we only currently do this when loading on consoles
 		if (FPlatformProperties::RequiresCookedData())
 		{
-			if (GObjBeginLoadCount == 0)
+			if (FUObjectThreadContext::Get().ObjBeginLoadCount == 0)
 			{
 				if (Result && Linker->Loader)
 				{
@@ -1001,9 +999,10 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 				delete Linker->Loader;
 				Linker->Loader = NULL;
 			}
-			else
+			// Async loading removes delayed linkers on the game thread after streaming has finished
+			else if (!IsInAsyncLoadingThread())
 			{
-				GDelayedLinkerClosePackages.Add(Linker);
+				FUObjectThreadContext::Get().DelayedLinkerClosePackages.Add(Linker);
 			}
 		}
 	}
@@ -1034,8 +1033,8 @@ UPackage* LoadPackage(UPackage* InOuter, const TCHAR* InLongPackageName, uint32 
  */
 bool IsLoading()
 {
-	check(GObjBeginLoadCount>=0);
-	return GObjBeginLoadCount > 0;
+	check(FUObjectThreadContext::Get().ObjBeginLoadCount >= 0);
+	return FUObjectThreadContext::Get().ObjBeginLoadCount > 0;
 }
 
 //
@@ -1044,13 +1043,14 @@ bool IsLoading()
 //
 void BeginLoad()
 {
-	if( ++GObjBeginLoadCount == 1 && !GIsAsyncLoading )
+	auto& ThreadContext = FUObjectThreadContext::Get();
+	if (++ThreadContext.ObjBeginLoadCount == 1 && !IsInAsyncLoadingThread())
 	{
 		// Make sure we're finishing up all pending async loads, and trigger texture streaming next tick if necessary.
 		FlushAsyncLoading( NAME_None );
 
 		// Validate clean load state.
-		check(GObjLoaded.Num()==0);
+		check(ThreadContext.ObjLoaded.Num() == 0);
 	}
 }
 
@@ -1059,8 +1059,8 @@ struct FCompareUObjectByLinkerAndOffset
 {
 	FORCEINLINE bool operator()( const UObject& A, const UObject &B ) const
 	{
-		ULinker* LinkerA = A.GetLinker();
-		ULinker* LinkerB = B.GetLinker();
+		FLinker* LinkerA = A.GetLinker();
+		FLinker* LinkerB = B.GetLinker();
 
 		// Both objects have linkers.
 		if( LinkerA && LinkerB )
@@ -1072,10 +1072,10 @@ struct FCompareUObjectByLinkerAndOffset
 				FObjectExport& ExportB = LinkerB->ExportMap[ B.GetLinkerIndex() ];
 				return ExportA.SerialOffset < ExportB.SerialOffset;
 			}
-			// Sort by linker name.
+			// Sort by pointer address.
 			else
 			{
-				return LinkerA->GetFName().GetComparisonIndex() < LinkerB->GetFName().GetComparisonIndex();
+				return LinkerA < LinkerB;
 			}
 		}
 		// Neither objects have a linker, don't do anything.
@@ -1096,10 +1096,12 @@ struct FCompareUObjectByLinkerAndOffset
 //
 void EndLoad()
 {
-	check(GObjBeginLoadCount>0);
-	if (GIsAsyncLoading)
+	auto& ThreadContext = FUObjectThreadContext::Get();
+
+	check(ThreadContext.ObjBeginLoadCount > 0);
+	if (IsInAsyncLoadingThread())
 	{
-		GObjBeginLoadCount--;
+		ThreadContext.ObjBeginLoadCount--;
 		return;
 	}
 
@@ -1109,20 +1111,20 @@ void EndLoad()
 	int32 NumObjectsLoaded = 0, NumObjectsFound = 0;
 #endif
 
-	while( --GObjBeginLoadCount == 0 && (GObjLoaded.Num() || GImportCount || GForcedExportCount) )
+	while (--ThreadContext.ObjBeginLoadCount == 0 && (ThreadContext.ObjLoaded.Num() || ThreadContext.ImportCount || ThreadContext.ForcedExportCount))
 	{
 		// Make sure we're not recursively calling EndLoad as e.g. loading a config file could cause
 		// BeginLoad/EndLoad to be called.
-		GObjBeginLoadCount++;
+		ThreadContext.ObjBeginLoadCount++;
 
 		// Temporary list of loaded objects as GObjLoaded might expand during iteration.
 		TArray<UObject*> ObjLoaded;
-		TSet<ULinkerLoad*> LoadedLinkers;
-		while( GObjLoaded.Num() )
+		TSet<FLinkerLoad*> LoadedLinkers;
+		while (ThreadContext.ObjLoaded.Num())
 		{
 			// Accumulate till GObjLoaded no longer increases.
-			ObjLoaded += GObjLoaded;
-			GObjLoaded.Empty();
+			ObjLoaded += ThreadContext.ObjLoaded;
+			ThreadContext.ObjLoaded.Empty();
 
 			// Sort by Filename and Offset.
 			ObjLoaded.Sort( FCompareUObjectByLinkerAndOffset() );
@@ -1141,7 +1143,7 @@ void EndLoad()
 
 			// Start over again as new objects have been loaded that need to have "Preload" called on them before
 			// we can safely PostLoad them.
-			if(GObjLoaded.Num())
+			if (ThreadContext.ObjLoaded.Num())
 			{
 				continue;
 			}
@@ -1166,7 +1168,7 @@ void EndLoad()
 
 			{
 				// set this so that we can perform certain operations in which are only safe once all objects have been de-serialized.
-				TGuardValue<bool> GuardIsRoutingPostLoad(GIsRoutingPostLoad, true);
+				TGuardValue<bool> GuardIsRoutingPostLoad(FUObjectThreadContext::Get().IsRoutingPostLoad, true);
 
 				// Postload objects.
 				for(int32 i = 0; i < ObjLoaded.Num(); i++)
@@ -1198,23 +1200,22 @@ void EndLoad()
 #endif	// WITH_EDITOR
 
 			// Empty array before next iteration as we finished postloading all objects.
-			ObjLoaded.Empty( GObjLoaded.Num() );
+			ObjLoaded.Empty(ThreadContext.ObjLoaded.Num());
 		}
 
 		if ( GIsEditor && LoadedLinkers.Num() > 0 )
 		{
-			for ( TSet<ULinkerLoad*>::TIterator It(LoadedLinkers); It; ++It )
+			for (auto LoadedLinker : LoadedLinkers)
 			{
-				ULinkerLoad* LoadedLinker = *It;
-				check(LoadedLinker);
+				check(LoadedLinker != nullptr);
 
-				if ( LoadedLinker->LinkerRoot != NULL && !LoadedLinker->LinkerRoot->IsFullyLoaded() )
+				if (LoadedLinker->LinkerRoot != nullptr && !LoadedLinker->LinkerRoot->IsFullyLoaded())
 				{
 					bool bAllExportsCreated = true;
 					for ( int32 ExportIndex = 0; ExportIndex < LoadedLinker->ExportMap.Num(); ExportIndex++ )
 					{
 						FObjectExport& Export = LoadedLinker->ExportMap[ExportIndex];
-						if ( !Export.bForcedExport && Export.Object == NULL )
+						if ( !Export.bForcedExport && Export.Object == nullptr )
 						{
 							bAllExportsCreated = false;
 							break;
@@ -1234,7 +1235,7 @@ void EndLoad()
 		DissociateImportsAndForcedExports();
 
 		// close any linkers' loaders that were requested to be closed once GObjBeginLoadCount goes to 0
-		auto PackagesToClose = MoveTemp(GDelayedLinkerClosePackages);
+		auto PackagesToClose = MoveTemp(ThreadContext.DelayedLinkerClosePackages);
 		for (auto Linker: PackagesToClose)
 		{
 			if (Linker)
@@ -1791,7 +1792,7 @@ UObject* StaticAllocateObject
 		}
 	}
 
-	ULinkerLoad*	Linker						= NULL;
+	FLinkerLoad*	Linker						= NULL;
 	int32				LinkerIndex					= INDEX_NONE;
 	bool			bWasConstructedOnOldObject	= false;
 	// True when the object to be allocated already exists and is a subobject.
@@ -1895,7 +1896,7 @@ UObject* StaticAllocateObject
 		}
 	}
 
-	if (GIsAsyncLoading)
+	if (IsInAsyncLoadingThread())
 	{
 		NotifyConstructedDuringAsyncLoading(Obj, bSubObject);
 	}
@@ -1910,16 +1911,13 @@ UObject* StaticAllocateObject
 }
 
 //@todo UE4 - move this stuff to UnObj.cpp or something
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-/** Stack to ensure that PostInitProperties is routed through Super:: calls. **/
-TArray<UObject*> PostInitPropertiesCheck;
-#endif
+
 
 
 void UObject::PostInitProperties()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	PostInitPropertiesCheck.Push(this);
+	FUObjectThreadContext::Get().PostInitPropertiesCheck.Push(this);
 #endif
 #if USE_UBER_GRAPH_PERSISTENT_FRAME
 	GetClass()->CreatePersistentUberGraphFrame(this);
@@ -1951,23 +1949,22 @@ UObject::UObject(const FObjectInitializer& ObjectInitializer)
 	const_cast<FObjectInitializer&>(ObjectInitializer).FinalizeSubobjectClassInitialization();
 }
 
-/* Global flag so that FObjectFinders know if they are called from inside the UObject constructors or not. */
-int32 GIsInConstructor = 0;
-/* Object that is currently being constructed with ObjectInitializer */
-static UObject* GConstructedObject = NULL;
+
 
 FObjectInitializer::FObjectInitializer() :
-	Obj(NULL),
-	ObjectArchetype(NULL),
+Obj(nullptr),
+	ObjectArchetype(nullptr),
 	bCopyTransientsFromClassDefaults(false),
 	bShouldIntializePropsFromArchetype(true),
 	bSubobjectClassInitializationAllowed(true),
-	InstanceGraph(NULL),
-	LastConstructedObject(GConstructedObject)
+	InstanceGraph(nullptr),
+	LastConstructedObject(nullptr)
 {
+	auto& ThreadContext = FUObjectThreadContext::Get();
 	// Mark we're in the constructor now.	
-	GIsInConstructor++;
-	GConstructedObject = Obj;
+	ThreadContext.IsInConstructor++;
+	LastConstructedObject = ThreadContext.ConstructedObject;
+	ThreadContext.ConstructedObject = Obj;
 	FTlsObjectInitializers::Push(this);
 }	
 
@@ -1979,11 +1976,13 @@ FObjectInitializer::FObjectInitializer(UObject* InObj, UObject* InObjectArchetyp
 	bShouldIntializePropsFromArchetype(bInShouldIntializeProps),
 	bSubobjectClassInitializationAllowed(true),
 	InstanceGraph(InInstanceGraph),
-	LastConstructedObject(GConstructedObject)
+	LastConstructedObject(nullptr)
 {
+	auto& ThreadContext = FUObjectThreadContext::Get();
 	// Mark we're in the constructor now.
-	GIsInConstructor++;
-	GConstructedObject = Obj;
+	ThreadContext.IsInConstructor++;
+	LastConstructedObject = ThreadContext.ConstructedObject;
+	ThreadContext.ConstructedObject = Obj;
 	FTlsObjectInitializers::Push(this);
 }
 
@@ -1993,10 +1992,11 @@ FObjectInitializer::FObjectInitializer(UObject* InObj, UObject* InObjectArchetyp
 FObjectInitializer::~FObjectInitializer()
 {
 	FTlsObjectInitializers::Pop();
+	auto& ThreadContext = FUObjectThreadContext::Get();
 	// Let the FObjectFinders know we left the constructor.
-	GIsInConstructor--;
-	check(GIsInConstructor >= 0);
-	GConstructedObject = LastConstructedObject;
+	ThreadContext.IsInConstructor--;
+	check(ThreadContext.IsInConstructor >= 0);
+	ThreadContext.ConstructedObject = LastConstructedObject;
 
 	SCOPE_CYCLE_COUNTER(STAT_PostConstructInitializeProperties);
 	check(Obj);
@@ -2069,7 +2069,7 @@ FObjectInitializer::~FObjectInitializer()
 	Obj->PostInitProperties();
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (!PostInitPropertiesCheck.Num() || (PostInitPropertiesCheck.Pop() != Obj))
+	if (!FUObjectThreadContext::Get().PostInitPropertiesCheck.Num() || (FUObjectThreadContext::Get().PostInitPropertiesCheck.Pop() != Obj))
 	{
 		UE_LOG(LogUObjectGlobals, Fatal, TEXT("%s failed to route PostInitProperties"), *Obj->GetClass()->GetName() );
 	}
@@ -2329,12 +2329,14 @@ UObject* StaticConstructObject
 
 void FObjectInitializer::AssertIfInConstructor(UObject* Outer, const TCHAR* ErrorMessage)
 {
-	UE_CLOG(GIsInConstructor && Outer == GConstructedObject, LogUObjectGlobals, Fatal, TEXT("%s"), ErrorMessage);
+	auto& ThreadContext = FUObjectThreadContext::Get();
+	UE_CLOG(ThreadContext.IsInConstructor && Outer == ThreadContext.ConstructedObject, LogUObjectGlobals, Fatal, TEXT("%s"), ErrorMessage);
 }
 
 FObjectInitializer& FObjectInitializer::Get()
 {
-	UE_CLOG(!GIsInConstructor, LogUObjectGlobals, Fatal, TEXT("FObjectInitializer::Get() can only be used inside of UObject-derived class constructor."));
+	auto& ThreadContext = FUObjectThreadContext::Get();
+	UE_CLOG(!ThreadContext.IsInConstructor, LogUObjectGlobals, Fatal, TEXT("FObjectInitializer::Get() can only be used inside of UObject-derived class constructor."));
 	return FTlsObjectInitializers::TopChecked();
 }
 
@@ -2400,7 +2402,8 @@ void ConstructorHelpers::CheckFoundViaRedirect(UObject *Object, const FString& P
 
 void ConstructorHelpers::CheckIfIsInConstructor(const TCHAR* ObjectToFind)
 {
-	UE_CLOG(!GIsInConstructor, LogUObjectGlobals, Fatal, TEXT("FObjectFinders can't be used outside of constructors to find %s"), ObjectToFind);
+	auto& ThreadContext = FUObjectThreadContext::Get();
+	UE_CLOG(!ThreadContext.IsInConstructor, LogUObjectGlobals, Fatal, TEXT("FObjectFinders can't be used outside of constructors to find %s"), ObjectToFind);
 }
 
 void ConstructorHelpers::StripObjectClass( FString& PathName, bool bAssertOnBadPath /*= false */ )
@@ -2466,7 +2469,6 @@ public:
 		ReferenceSearchFlags = SearchFlags;
 		FoundReferencesList = FoundReferences;
 
-		checkSlow(!DebugSerialize.Num()); // should only be filled int he scope of this function
 		// Iterate over all objects.
 		for( FObjectIterator It; It; ++It )
 		{
@@ -2509,7 +2511,6 @@ public:
 			// Serialize object.
 			FindReferences( CurrentObject );
 		}
-		checkSlow(!DebugSerialize.Num()); // everyone should have been removed, or we should have errored
 	}
 
 private:
@@ -2751,7 +2752,6 @@ UObject* FObjectInitializer::CreateDefaultSubobject(UObject* Outer, FName Subobj
 	}
 	return Result;
 }
-
 UObject* FObjectInitializer::CreateEditorOnlyDefaultSubobject(UObject* Outer, FName SubobjectName, UClass* ReturnType, bool bTransient /*= false*/) const
 {
 #if WITH_EDITOR

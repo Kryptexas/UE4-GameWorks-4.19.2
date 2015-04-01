@@ -117,9 +117,8 @@ ANavigationData::ANavigationData(const FObjectInitializer& ObjectInitializer)
 
 uint16 ANavigationData::GetNextUniqueID()
 {
-	check(IsInGameThread());
-	static uint16 StaticID = INVALID_NAVDATA;
-	return ++StaticID;
+	static FThreadSafeCounter StaticID(INVALID_NAVDATA);
+	return StaticID.Increment();
 }
 
 void ANavigationData::PostInitProperties()

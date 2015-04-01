@@ -510,11 +510,6 @@ void FAssetDeleteModel::PrepareToDelete(UObject* InObject)
 		if ( !bContainsAtLeastOneOtherAsset )
 		{
 			RedirectorPackage->RemoveFromRoot();
-			ULinkerLoad* Linker = ULinkerLoad::FindExistingLinkerForPackage(RedirectorPackage);
-			if ( Linker )
-			{
-				Linker->RemoveFromRoot();
-			}
 
 			// @todo we shouldnt be worrying about metadata objects here, ObjectTools::CleanUpAfterSuccessfulDelete should
 			if ( PackageMetaData )

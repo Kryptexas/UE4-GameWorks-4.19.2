@@ -90,7 +90,7 @@ UObjectBase::~UObjectBase()
 		// Validate it.
 		check(IsValidLowLevel());
 		LowLevelRename(NAME_None);
-		GUObjectArray.FreeUObjectIndex(this);
+		GetUObjectArray().FreeUObjectIndex(this);
 	}
 }
 
@@ -153,7 +153,7 @@ void UObjectBase::DeferredRegister(UClass *UClassStaticClass,const TCHAR* Packag
 	AddObject(FName(InName));
 
 	// Make sure that objects disregarded for GC are part of root set.
-	check(!GUObjectArray.IsDisregardForGC(this) || (GetFlags() & RF_RootSet) );
+	check(!GetUObjectArray().IsDisregardForGC(this) || (GetFlags() & RF_RootSet) );
 }
 
 /**
@@ -164,7 +164,11 @@ void UObjectBase::DeferredRegister(UClass *UClassStaticClass,const TCHAR* Packag
 void UObjectBase::AddObject(FName InName)
 {
 	Name = InName;
-	GUObjectArray.AllocateUObjectIndex(this);
+	if (!IsInGameThread())
+	{
+		ObjectFlags |= RF_Async;
+	}
+	AllocateUObjectIndexForCurrentThread(this);
 	check(InName != NAME_None && InternalIndex >= 0);
 	HashObject(this);
 	check(IsValidLowLevel());
@@ -221,7 +225,7 @@ bool UObjectBase::IsValidLowLevel() const
 		UE_LOG(LogUObjectBase, Warning, TEXT("Object is not registered") );
 		return false;
 	}
-	return GUObjectArray.IsValid(this);
+	return GetUObjectArray().IsValid(this);
 }
 
 bool UObjectBase::IsValidLowLevelFast(bool bRecursive /*= true*/) const
@@ -266,7 +270,7 @@ bool UObjectBase::IsValidLowLevelFast(bool bRecursive /*= true*/) const
 		return false;
 	}
 	// Lightweight versions of index checks.
-	if (!GUObjectArray.IsValidIndex(this) || !Name.IsValidIndexFast())
+	if (!GetUObjectArray().IsValidIndex(this) || !Name.IsValidIndexFast())
 	{
 		UE_LOG(LogUObjectBase, Error, TEXT("Object array index or name index is invalid."));
 		return false;
@@ -784,7 +788,10 @@ void UObjectBaseInit()
 	UE_LOG(LogInit, Log, TEXT("Presizing for %i objects not considered by GC, pre-allocating %i bytes."), MaxObjectsNotConsideredByGC, SizeOfPermanentObjectPool );
 
 	GUObjectAllocator.AllocatePermanentObjectPool(SizeOfPermanentObjectPool);
-	GUObjectArray.AllocatePermanentObjectPool(MaxObjectsNotConsideredByGC);
+	GetUObjectArray().AllocatePermanentObjectPool(MaxObjectsNotConsideredByGC);
+
+	void InitAsyncThread();
+	InitAsyncThread();
 
 	// Note initialized.
 	Internal::GObjInitialized = true;
@@ -797,7 +804,7 @@ void UObjectBaseInit()
  */
 void UObjectBaseShutdown()
 {
-	GUObjectArray.ShutdownUObjectArray();
+	GetUObjectArray().ShutdownUObjectArray();
 	Internal::GObjInitialized = false;
 }
 

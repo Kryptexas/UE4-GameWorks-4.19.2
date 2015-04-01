@@ -288,7 +288,7 @@ void UMaterialInstance::PropagateDataToMaterialProxy()
 
 void FMaterialInstanceResource::GameThread_SetParent(UMaterialInterface* ParentMaterialInterface)
 {
-	check(IsInGameThread());
+	check(IsInGameThread() || IsAsyncLoading());
 
 	if( GameThreadParent != ParentMaterialInterface )
 	{
@@ -484,7 +484,7 @@ void UMaterialInstance::InitResources()
 
 const UMaterial* UMaterialInstance::GetMaterial() const
 {
-	check(IsInGameThread());
+	check(IsInGameThread() || IsAsyncLoading());
 	if(ReentrantFlag)
 	{
 		return UMaterial::GetDefaultMaterial(MD_Surface);
@@ -1309,7 +1309,7 @@ void UMaterialInstance::UpdatePermutationAllocations()
 
 void UMaterialInstance::CacheResourceShadersForRendering()
 {
-	check(IsInGameThread());
+	check(IsInGameThread() || IsAsyncLoading());
 
 	// Fix-up the parent lighting guid if it has changed...
 	if (Parent && (Parent->GetLightingGuid() != ParentLightingGuid))

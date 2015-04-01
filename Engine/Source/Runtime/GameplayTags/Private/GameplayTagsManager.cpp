@@ -32,7 +32,7 @@ void UGameplayTagsManager::LoadGameplayTagTables(TArray<FString>& TagTableNames)
 			// will not be initialized correctly.
 			if (TagTable && IsLoading())
 			{
-				ULinkerLoad* TagLinker = TagTable->GetLinker();
+				FLinkerLoad* TagLinker = TagTable->GetLinker();
 				if (TagLinker)
 				{
 					TagTable->GetLinker()->Preload(TagTable);

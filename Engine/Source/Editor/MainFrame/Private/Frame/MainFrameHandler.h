@@ -61,7 +61,7 @@ public:
 			// Cannot exit right now.
 			return false;
 		}
-		else if (GIsSavingPackage || GIsGarbageCollecting)
+		else if (GIsSavingPackage || IsGarbageCollecting())
 		{
 			// SAVING/GC PATH
 

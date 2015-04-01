@@ -237,7 +237,7 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 		VerboseMessage(TEXT("Pre GetPackageLinker"));
 
 		BeginLoad();
-		ULinkerLoad* Linker = GetPackageLinker(NULL,*Filename,LOAD_NoVerify,NULL,NULL);
+		auto Linker = GetPackageLinker(NULL,*Filename,LOAD_NoVerify,NULL,NULL);
 		EndLoad();
 	
 		// Bail early if we don't have a valid linker (package was out of date, etc)
@@ -595,7 +595,7 @@ FText UResavePackagesCommandlet::GetChangelistDescription() const
 }
 
 
-bool UResavePackagesCommandlet::PerformPreloadOperations( ULinkerLoad* PackageLinker, bool& bSavePackage )
+bool UResavePackagesCommandlet::PerformPreloadOperations( FLinkerLoad* PackageLinker, bool& bSavePackage )
 {
 	bool bResult = false;
 
@@ -1064,7 +1064,7 @@ int32 UWrangleContentCommandlet::Main( const FString& Params )
 					UPackage* Package = LoadPackage(NULL, *PackageFilename, LOAD_None);
 
 					BeginLoad();
-					ULinkerLoad* Linker = GetPackageLinker( NULL, *PackageFilename, LOAD_Quiet|LOAD_NoWarn|LOAD_NoVerify, NULL, NULL );
+					auto Linker = GetPackageLinker( NULL, *PackageFilename, LOAD_Quiet|LOAD_NoWarn|LOAD_NoVerify, NULL, NULL );
 					EndLoad();
 
 					// look for special package types
@@ -1219,7 +1219,7 @@ int32 UWrangleContentCommandlet::Main( const FString& Params )
 			}
 
 			BeginLoad();
-			ULinkerLoad* Linker = GetPackageLinker( NULL, *PackageFilename, LOAD_Quiet|LOAD_NoWarn|LOAD_NoVerify, NULL, NULL );
+			auto Linker = GetPackageLinker( NULL, *PackageFilename, LOAD_Quiet|LOAD_NoWarn|LOAD_NoVerify, NULL, NULL );
 			EndLoad();
 
 			// go through the exports in the package, looking for public objects

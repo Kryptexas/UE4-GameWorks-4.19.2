@@ -234,7 +234,7 @@ void APlayerController::ServerUpdateLevelVisibility_Implementation(FName Package
 			// verify that we were passed a valid level name
 			FString Filename;
 			UPackage* TempPkg = FindPackage(NULL, *PackageName.ToString());
-			ULinkerLoad* Linker = ULinkerLoad::FindExistingLinkerForPackage(TempPkg);
+			FLinkerLoad* Linker = FLinkerLoad::FindExistingLinkerForPackage(TempPkg);
 
 			// If we have a linker we know it has been loaded off disk successfully
 			// If we have a file it is fine too

@@ -153,7 +153,7 @@ protected:
  * of the UObject data being saved/loaded.
  * <p>
  * UObject references are not serialized directly into the memory archive.  Instead, we use
- * a system similar to the Export/ImportMap of ULinker - the pointer to the UObject is added
+ * a system similar to the Export/ImportMap of FLinker - the pointer to the UObject is added
  * to a persistent (from the standpoint of the FReloadObjectArc) array.  The location into
  * this array is what is actually stored in the archive's buffer.
  * <p>

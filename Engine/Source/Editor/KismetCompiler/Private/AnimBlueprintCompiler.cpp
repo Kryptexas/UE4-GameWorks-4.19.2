@@ -593,7 +593,7 @@ int32 FAnimBlueprintCompiler::ExpandGraphAndProcessNodes(UEdGraph* SourceGraph, 
 	check(TargetRootNode);
 
 	// Move the cloned nodes into the consolidated event graph
-	const bool bIsLoading = Blueprint->bIsRegeneratingOnLoad || GIsAsyncLoading;
+	const bool bIsLoading = Blueprint->bIsRegeneratingOnLoad || IsAsyncLoading();
 	ClonedGraph->MoveNodesToAnotherGraph(ConsolidatedEventGraph, bIsLoading);
 
 	// Process any animation nodes
@@ -1108,7 +1108,7 @@ void FAnimBlueprintCompiler::MergeUbergraphPagesIn(UEdGraph* Ubergraph)
 			{
 				// Merge all the animation nodes, contents, etc... into the ubergraph
 				UEdGraph* ClonedGraph = FEdGraphUtilities::CloneGraph(SourceGraph, NULL, &MessageLog, true);
-				const bool bIsLoading = Blueprint->bIsRegeneratingOnLoad || GIsAsyncLoading;
+				const bool bIsLoading = Blueprint->bIsRegeneratingOnLoad || IsAsyncLoading();
 				ClonedGraph->MoveNodesToAnotherGraph(ConsolidatedEventGraph, bIsLoading);
 			}
 		}

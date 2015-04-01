@@ -299,6 +299,7 @@ class TStaticIndirectArrayThreadSafeRead
 		}
 		check(ChunkIndex < NumChunks && Chunks[ChunkIndex]); // should have a valid pointer now
 	}
+
 	/**
 	 * Return a pointer to the pointer to a given element
 	 * @param Index The Index of an element we want to retrieve the pointer-to-pointer for
@@ -374,6 +375,28 @@ public:
 	ElementType*** GetRootBlockForDebuggerVisualizers()
 	{
 		return Chunks;
+	}
+	/**
+	* Make sure chunks are allocated to hold the specified capacity of items. This is NOT thread safe.
+	**/
+	void Reserve(int32 Capacity)
+	{
+		check(Capacity >= 0 && Capacity <= MaxTotalElements);
+		if (Capacity > NumElements)
+		{			
+			int32 MaxChunks = (Capacity + ElementsPerChunk - 1) / ElementsPerChunk;
+			check(MaxChunks >= NumChunks);
+			for (int32 ChunkIndex = 0; ChunkIndex < MaxChunks; ++ChunkIndex)
+			{
+				if (!Chunks[ChunkIndex])
+				{
+					ElementType** NewChunk = (ElementType**)FMemory::Malloc(sizeof(ElementType*) * ElementsPerChunk);
+					FMemory::Memzero(NewChunk, sizeof(ElementType*) * ElementsPerChunk);
+					Chunks[ChunkIndex] = NewChunk;
+				}
+			}
+			NumChunks = MaxChunks;
+		}
 	}
 };
 
@@ -748,13 +771,13 @@ public:
 	FName( const TCHAR* Name, int32 InNumber, EFindName FindType=FNAME_Add );
 
 	/**
-	 * Constructor used by ULinkerLoad when loading its name table; Creates an FName with an instance
+	 * Constructor used by FLinkerLoad when loading its name table; Creates an FName with an instance
 	 * number of 0 that does not attempt to split the FName into string and number portions.
 	 */
 	FName( ELinkerNameTableConstructor, const WIDECHAR* Name );
 
 	/**
-	 * Constructor used by ULinkerLoad when loading its name table; Creates an FName with an instance
+	 * Constructor used by FLinkerLoad when loading its name table; Creates an FName with an instance
 	 * number of 0 that does not attempt to split the FName into string and number portions.
 	 */
 	FName( ELinkerNameTableConstructor, const ANSICHAR* Name );

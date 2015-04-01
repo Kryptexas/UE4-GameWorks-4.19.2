@@ -1298,7 +1298,7 @@ void UDiffPackagesCommandlet::LoadNativePropertyData( UObject* Object, TArray<ui
 	// first, validate our input parameters
 	check(Object);
 
-	ULinkerLoad* ObjectLinker = Object->GetLinker();
+	auto ObjectLinker = Object->GetLinker();
 	check(ObjectLinker);
 
 	int32 ObjectLinkerIndex = Object->GetLinkerIndex();

@@ -775,7 +775,7 @@ void AGroupActor::PostRemove()
 			MarkPackageDirty();
 
 			// If not currently garbage collecting (changing maps, saving, etc), remove the group immediately
-			if(!GIsGarbageCollecting)
+			if(!IsGarbageCollecting())
 			{
 				// Refresh all editor browsers after removal
 				FScopedRefreshAllBrowsers LevelRefreshAllBrowsers;

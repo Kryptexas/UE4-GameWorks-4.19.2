@@ -233,9 +233,7 @@ struct FStreamable* FStreamableManager::StreamInternal(FStringAssetReference con
 		}
 
 		Existing->bAsyncLoadRequestOutstanding = true;
-		LoadPackageAsync(Package,
-			FLoadPackageAsyncDelegate::CreateStatic(&AsyncLoadCallbackWrapper, new FCallback(TargetName, this))
-			);
+		LoadPackageAsync(Package, FLoadPackageAsyncDelegate::CreateStatic(&AsyncLoadCallbackWrapper, new FCallback(TargetName, this)));
 	}
 	return Existing;
 }

@@ -273,7 +273,7 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 
 		static FText GetUObjectCountAsString() 
 		{
-			return FText::AsNumber(GUObjectArray.GetObjectArrayNumMinusAvailable());
+			return FText::AsNumber(GetUObjectArray().GetObjectArrayNumMinusAvailable());
 		}
 
 		static void OpenVideo( FString SourceFilePath )

@@ -45,19 +45,6 @@ typedef void (UObject::*Native)( FFrame& TheStack, RESULT_DECL );
 
 /** set while in SavePackage() to detect certain operations that are illegal while saving */
 extern COREUOBJECT_API bool					GIsSavingPackage;
-/** Imports for EndLoad optimization.									*/
-extern int32						GImportCount;
-/** Forced exports for EndLoad optimization.							*/
-extern int32						GForcedExportCount;
-/** Objects that might need preloading.									*/
-extern TArray<UObject*>			GObjLoaded;
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-/** Used to verify that the Super::Serialize chain is intact.			*/
-extern TArray<UObject*,TInlineAllocator<16> >		DebugSerialize;
-#endif
-
-
 
 /*-----------------------------------------------------------------------------
 	FObjectDuplicationParameters.
@@ -291,29 +278,29 @@ namespace EAsyncLoadingResult
  * @param	Result		Result of async loading.
  */
 DECLARE_DELEGATE_ThreeParams(FLoadPackageAsyncDelegate, const FName& /*PackageName*/, UPackage* /*LoadedPackage*/, EAsyncLoadingResult::Type /*Result*/)
-struct FAsyncPackage;
-/**
- * Asynchronously load a package and all contained objects that match context flags. Non- blocking.
- *
- * @param	PackageName			Name of package to load
- * @param	CompletionDelegate	Delegate called on completion of loading
- * @param	PackageGuid			GUID of the package to load, or NULL for "don't care"
- * @param	PackageType			A type name associated with this package for later use
- * @param	PackageToLoadFrom	If non-null, this is another package name. We load from this package name, into a (probably new) package named PackageName
- * @return	Handle for this async loading request
- */
-COREUOBJECT_API FAsyncPackage& LoadPackageAsync( const FString& PackageName, FLoadPackageAsyncDelegate CompletionDelegate, const FGuid* RequiredGuid = NULL, FName PackageType = NAME_None, const TCHAR* PackageToLoadFrom = NULL );
 
 /**
  * Asynchronously load a package and all contained objects that match context flags. Non- blocking.
  *
- * @param	PackageName			Name of package to load
- * @param	PackageGuid			GUID of the package to load, or NULL for "don't care"
- * @param	PackageType			A type name associated with this package for later use
- * @param	PackageToLoadFrom	If non-null, this is another package name. We load from this package name, into a (probably new) package named PackageName
- * @return	Handle for this async loading request
+ * @param	InName					Name of package to load
+ * @param	InGuid					GUID of the package to load, or NULL for "don't care"
+ * @param	InType					A type name associated with this package for later use
+ * @param	InPackageToLoadFrom		If non-null, this is another package name. We load from this package name, into a (probably new) package named PackageName
+ * @param	InCompletionDelegate	Delegate to be invoked when the packages has finished streaming
+ * @param	InFlags					Package flags
+ * @param	InPIEInstanceID			PIE instance ID
+ * @param	InPackagePriority		Loading priority
  */
-COREUOBJECT_API FAsyncPackage& LoadPackageAsync( const FString& PackageName, const FGuid* RequiredGuid = NULL, FName PackageType = NAME_None, const TCHAR* PackageToLoadFrom = NULL );
+COREUOBJECT_API void LoadPackageAsync(const FString& InName, const FGuid* InGuid = nullptr, FName InType = NAME_None, const TCHAR* InPackageToLoadFrom = nullptr, FLoadPackageAsyncDelegate InCompletionDelegate = FLoadPackageAsyncDelegate(), uint32 InFlags = 0, int32 InPIEInstanceID = INDEX_NONE, uint32 InPackagePriority = 0);
+
+/**
+* Asynchronously load a package and all contained objects that match context flags. Non- blocking.
+*
+* @param	InName					Name of package to load
+* @param	InCompletionDelegate	Delegate to be invoked when the packages has finished streaming
+* @param	InPackagePriority		Loading priority
+*/
+COREUOBJECT_API void LoadPackageAsync(const FString& InName, FLoadPackageAsyncDelegate InCompletionDelegate, uint32 InPackagePriority = 0);
 
 /**
 * Cancels all async package loading requests.
@@ -322,20 +309,33 @@ COREUOBJECT_API void CancelAsyncLoading();
 
 /**
  * Returns the async load percentage for a package in flight with the passed in name or -1 if there isn't one.
+ * THIS IS SLOW. MAY BLOCK ASYNC LOADING.
  *
  * @param	PackageName			Name of package to query load percentage for
  * @return	Async load percentage if package is currently being loaded, -1 otherwise
  */
 COREUOBJECT_API float GetAsyncLoadPercentage( const FName& PackageName );
 
+/**
+* Whether we are inside garbage collection
+*/
+COREUOBJECT_API bool IsGarbageCollecting();
+
 /** 
- * Deletes all unreferenced objects, keeping objects that have any of the passed in KeepFlags set
+ * Deletes all unreferenced objects, keeping objects that have any of the passed in KeepFlags set. Will wait for other threads to unlock GC.
  *
  * @param	KeepFlags			objects with those flags will be kept regardless of being referenced or not
  * @param	bPerformFullPurge	if true, perform a full purge after the mark pass
  */
-COREUOBJECT_API void CollectGarbage( EObjectFlags KeepFlags, bool bPerformFullPurge = true );
-COREUOBJECT_API void SerializeRootSet( FArchive& Ar, EObjectFlags KeepFlags );
+COREUOBJECT_API void CollectGarbage(EObjectFlags KeepFlags, bool bPerformFullPurge = true);
+/**
+* Performs garbage collection only if no other thread holds a lock on GC
+*
+* @param	KeepFlags			objects with those flags will be kept regardless of being referenced or not
+* @param	bPerformFullPurge	if true, perform a full purge after the mark pass
+*/
+COREUOBJECT_API bool TryCollectGarbage(EObjectFlags KeepFlags, bool bPerformFullPurge = true);
+COREUOBJECT_API void SerializeRootSet(FArchive& Ar, EObjectFlags KeepFlags);
 
 /**
  * Returns whether an incremental purge is still pending/ in progress.
@@ -397,12 +397,6 @@ COREUOBJECT_API bool IsReferenced( UObject*& Res, EObjectFlags KeepFlags, bool b
  * @param	ExcludeType		Do not flush packages associated with this specific type name
  */
 COREUOBJECT_API void FlushAsyncLoading( FName ExcludeType = NAME_None );
-/**
- * Returns whether we are currently async loading a package.
- *
- * @return true if we are async loading a package, false otherwise
- */
-COREUOBJECT_API bool IsAsyncLoading();
 
 /**
  * @return number of active async load package requests
@@ -1168,7 +1162,7 @@ inline T* FindObjectChecked( UObject* Outer, const TCHAR* Name, bool ExactClass=
 	return (T*)StaticFindObjectChecked( T::StaticClass(), Outer, Name, ExactClass );
 }
 
-// Find an object without asserting on GIsSavingPackage or GIsGarbageCollecting
+// Find an object without asserting on GIsSavingPackage or IsGarbageCollecting()
 template< class T > 
 inline T* FindObjectSafe( UObject* Outer, const TCHAR* Name, bool ExactClass=false )
 {

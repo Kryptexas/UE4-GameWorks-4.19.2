@@ -1025,20 +1025,20 @@ public:
 
 	class FMaterialShaderMap* GetGameThreadShaderMap() const 
 	{ 
-		checkSlow(IsInGameThread());
+		checkSlow(IsInGameThread() || IsInAsyncLoadingThread());
 		return GameThreadShaderMap; 
 	}
 
 	/** Note: SetRenderingThreadShaderMap must also be called with the same value, but from the rendering thread. */
 	void SetGameThreadShaderMap(FMaterialShaderMap* InMaterialShaderMap)
 	{
-		checkSlow(IsInGameThread());
+		checkSlow(IsInGameThread() || IsInAsyncLoadingThread());
 		GameThreadShaderMap = InMaterialShaderMap;
 	}
 
 	void SetInlineShaderMap(FMaterialShaderMap* InMaterialShaderMap)
 	{
-		checkSlow(IsInGameThread());
+		checkSlow(IsInGameThread() || IsInAsyncLoadingThread());
 		GameThreadShaderMap = InMaterialShaderMap;
 		bContainsInlineShaders = true;
 	}

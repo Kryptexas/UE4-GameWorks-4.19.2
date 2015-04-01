@@ -370,7 +370,7 @@ void FPackageDependencyInfo::RecursiveDeterminePackageDependentTimeStamp(const T
 
 		// We have the package info, so process the actual package.
 		BeginLoad();
-		ULinkerLoad* Linker = GetPackageLinker(NULL, InPackageName, LOAD_NoVerify, NULL, NULL);
+		auto Linker = GetPackageLinker(NULL, InPackageName, LOAD_NoVerify, NULL, NULL);
 		EndLoad();
 		if (Linker != NULL)
 		{

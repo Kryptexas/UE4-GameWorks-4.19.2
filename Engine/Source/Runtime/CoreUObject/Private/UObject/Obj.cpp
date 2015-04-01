@@ -14,10 +14,9 @@
 #include "FindStronglyConnected.h"
 #include "HotReloadInterface.h"
 #include "UObject/TlsObjectInitializers.h"
+#include "UObject/UObjectThreadContext.h"
 
 DEFINE_LOG_CATEGORY(LogObj);
-
-extern int32 GIsInConstructor;
 
 /** Stat group for dynamic objects cycle counters*/
 
@@ -82,7 +81,8 @@ void UObject::EnsureNotRetrievingVTablePtr() const
 
 UObject* UObject::CreateDefaultSubobject(FName SubobjectFName, UClass* ReturnType, UClass* ClassToCreateByDefault, bool bIsRequired, bool bAbstract, bool bIsTransient)
 {
-	UE_CLOG(!GIsInConstructor, LogObj, Fatal, TEXT("CreateDefultSubobject can only be used inside of UObject constructors. UObject constructing subobjects cannot be created using new or placement new operator."));
+	auto& ThreadContext = FUObjectThreadContext::Get();
+	UE_CLOG(!ThreadContext.IsInConstructor, LogObj, Fatal, TEXT("CreateDefultSubobject can only be used inside of UObject constructors. UObject constructing subobjects cannot be created using new or placement new operator."));
 	auto CurrentInitializer = FTlsObjectInitializers::Top();
 	UE_CLOG(!CurrentInitializer, LogObj, Fatal, TEXT("No object initializer found during construction."));
 	UE_CLOG(CurrentInitializer->Obj != this, LogObj, Fatal, TEXT("Using incorrect object initializer."));
@@ -534,7 +534,7 @@ void UObject::FinishDestroy()
 			);
 	}
 
-	check( GetLinker() == NULL );
+	check( !GetLinker() );
 	check( GetLinkerIndex()	== INDEX_NONE );
 
 	DestroyNonNativeProperties();
@@ -664,6 +664,8 @@ void UObject::ConditionalPostLoad()
 {
 	if( HasAnyFlags(RF_NeedPostLoad) )
 	{
+		check(IsInGameThread() || HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject) || IsPostLoadThreadSafe() || IsA(UClass::StaticClass()))
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		checkSlow(!DebugPostLoad.Contains(this));
 		DebugPostLoad.Add(this);
@@ -784,7 +786,7 @@ bool UObject::Modify( bool bAlwaysMarkDirty/*=true*/ )
 {
 	bool bSavedToTransactionBuffer = false;
 
-	if (!GIsGarbageCollecting)
+	if (!IsGarbageCollecting())
 	{
 		// Do not consider PIE world objects or script packages, as they should never end up in the
 		// transaction buffer and we don't want to mark them dirty here either.
@@ -817,10 +819,6 @@ bool UObject::IsSelected() const
 
 void UObject::Serialize( FArchive& Ar )
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	DebugSerialize.RemoveSingle(this);
-#endif
-
 	// These three items are very special items from a serialization standpoint. They aren't actually serialized.
 	UClass *Class = GetClass();
 	UObject* LoadOuter = GetOuter();
@@ -834,7 +832,7 @@ void UObject::Serialize( FArchive& Ar )
 		// make sure this object's template data is loaded - the only objects
 		// this should actually affect are those that don't have any defaults
 		// to serialize.  for objects with defaults that actually require loading
-		// the class default object should be serialized in ULinkerLoad::Preload, before
+		// the class default object should be serialized in FLinkerLoad::Preload, before
 		// we've hit this code.
 		if ( !HasAnyFlags(RF_ClassDefaultObject) && Class->GetDefaultsCount() > 0 )
 		{
@@ -855,8 +853,11 @@ void UObject::Serialize( FArchive& Ar )
 			Ar << Class;
 		}
 		//@todo UE4 - This seems to be required and it should not be. Seems to be related to the texture streamer.
-		ULinkerLoad* LinkerLoad = GetLinker();
-		Ar << LinkerLoad;
+		FLinkerLoad* LinkerLoad = GetLinker();
+		if (LinkerLoad)
+		{
+			LinkerLoad->Serialize(Ar);
+		}
 	}
 	// Special support for supporting undo/redo of renaming and changing Archetype.
 	else if( Ar.IsTransacting() )
@@ -1273,11 +1274,8 @@ bool UObject::IsSafeForRootSet() const
 		return false;
 	}
 
-	const ULinkerLoad* LinkerLoad = dynamic_cast<const ULinkerLoad*>(this);
-
-	// Exclude linkers from root set if we're using seekfree loading
-	if( !HasAnyFlags(RF_PendingKill)
-		&& ( !FPlatformProperties::RequiresCookedData() || LinkerLoad == NULL || LinkerLoad->HasAnyFlags(RF_ClassDefaultObject) ) )
+	// Exclude linkers from root set if we're using seekfree loading		
+	if (!HasAnyFlags(RF_PendingKill))
 	{
 		return true;
 	}
@@ -3427,43 +3425,6 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 				}
 			}
 		}
-		else if( FParse::Command(&Str,TEXT("LINKERS")) )
-		{
-			Ar.Logf( TEXT("Linkers:") );
-			for (TMap<UPackage*, ULinkerLoad*>::TIterator It(GObjLoaders); It; ++It)
-			{
-				ULinkerLoad* Linker = It.Value();
-				int32 NameSize = 0;
-				for( int32 j=0; j<Linker->NameMap.Num(); j++ )
-				{
-					if( Linker->NameMap[j] != NAME_None )
-					{
-						NameSize += FNameEntry::GetSize( *Linker->NameMap[j].ToString() );
-					}
-				}
-				Ar.Logf
-				(
-					TEXT("%s (%s): Names=%i (%iK/%iK) Imports=%i (%iK) Exports=%i (%iK) Gen=%i Bulk=%i"),
-					*Linker->Filename,
-					*Linker->LinkerRoot->GetFullName(),
-					Linker->NameMap.Num(),
-					Linker->NameMap.Num() * sizeof(FName) / 1024,
-					NameSize / 1024,
-					Linker->ImportMap.Num(),
-					Linker->ImportMap.Num() * sizeof(FObjectImport) / 1024,
-					Linker->ExportMap.Num(),
-					Linker->ExportMap.Num() * sizeof(FObjectExport) / 1024,
-					Linker->Summary.Generations.Num(),
-#if WITH_EDITOR
-					Linker->BulkDataLoaders.Num()
-#else
-					0
-#endif // WITH_EDITOR
-				);
-			}
-
-			return true;
-		}
 		else if ( FParse::Command(&Str,TEXT("FLAGS")) )
 		{
 			// Dump all object flags for objects rooted at the named object.
@@ -3629,7 +3590,7 @@ void StaticUObjectInit()
 //
 void StaticExit()
 {
-	check(GObjLoaded.Num()==0);
+	check(FUObjectThreadContext::Get().ObjLoaded.Num() == 0);
 	if (UObjectInitialized() == false)
 	{
 		return;
@@ -3672,7 +3633,7 @@ void StaticExit()
 	GExitPurge					= true;
 
 	// Route BeginDestroy. This needs to be a separate pass from marking as RF_Unreachable as code might rely on RF_Unreachable to be 
-	// set on all objects that are about to be deleted. One example is ULinkerLoad detaching textures - the SetLinker call needs to 
+	// set on all objects that are about to be deleted. One example is FLinkerLoad detaching textures - the SetLinker call needs to 
 	// not kick off texture streaming.
 	//
 	for ( FRawObjectIterator It; It; ++It )
@@ -3710,7 +3671,7 @@ void StaticExit()
 
 	UObjectBaseShutdown();
 	// Empty arrays to prevent falsely-reported memory leaks.
-	GObjLoaded			.Empty();
+	FUObjectThreadContext::Get().ObjLoaded.Empty();
 	UE_LOG(LogExit, Log, TEXT("Object subsystem successfully closed.") );
 }
 
@@ -3750,7 +3711,7 @@ void MarkObjectsToDisregardForGC()
 	}
 
 	UE_LOG(LogObj, Log, TEXT("%i objects as part of root set at end of initial load."), NumAlwaysLoadedObjects);
-	if (GUObjectArray.DisregardForGCEnabled())
+	if (GetUObjectArray().DisregardForGCEnabled())
 	{
 		UE_LOG(LogObj, Log, TEXT("%i objects are not in the root set, but can never be destroyed because they are in the DisregardForGC set."), NumAlwaysLoadedObjects - NumRootObjects);
 	}

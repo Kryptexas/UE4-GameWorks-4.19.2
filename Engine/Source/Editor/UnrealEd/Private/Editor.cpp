@@ -4314,7 +4314,7 @@ void UEditorEngine::OnSourceControlDialogClosed(bool bEnabled)
 }
 
 bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlags TopLevelFlags, const TCHAR* Filename, 
-				 FOutputDevice* Error, ULinkerLoad* Conform, bool bForceByteSwapping, bool bWarnOfLongFilename, 
+				 FOutputDevice* Error, FLinkerLoad* Conform, bool bForceByteSwapping, bool bWarnOfLongFilename, 
 				 uint32 SaveFlags, const class ITargetPlatform* TargetPlatform, const FDateTime& FinalTimeStamp, bool bSlowTask )
 {
 	FScopedSlowTask SlowTask(100, FText(), bSlowTask);
@@ -7512,7 +7512,7 @@ void UEditorEngine::OnAssetLoaded(UObject* Asset)
 	UWorld* WorldAsset = Cast<UWorld>(Asset);
 	if (WorldAsset != NULL)
 	{
-		// Init inactive worlds here instead of UWorld::PostLoad because it is illegal to call UpdateWorldComponents while GIsRoutingPostLoad
+		// Init inactive worlds here instead of UWorld::PostLoad because it is illegal to call UpdateWorldComponents while IsRoutingPostLoad
 		if (WorldAsset->WorldType == EWorldType::Inactive)
 		{
 			// Create the world without a physics scene because creating too many physics scenes causes deadlock issues in PhysX. The scene will be created when it is opened in the level editor.

@@ -576,7 +576,7 @@ void FBlueprintEditorUtils::PreloadConstructionScript(UBlueprint* Blueprint)
 {
 	if ( Blueprint )
 	{
-		ULinkerLoad* TargetLinker = Blueprint->SimpleConstructionScript ? Blueprint->SimpleConstructionScript->GetLinker() : NULL;
+		FLinkerLoad* TargetLinker = Blueprint->SimpleConstructionScript ? Blueprint->SimpleConstructionScript->GetLinker() : NULL;
 		if (TargetLinker)
 		{
 			TargetLinker->Preload(Blueprint->SimpleConstructionScript);
@@ -607,7 +607,7 @@ void FBlueprintEditorUtils::PreloadConstructionScript(UBlueprint* Blueprint)
 	}
 }
 
-void FBlueprintEditorUtils::PatchNewCDOIntoLinker(UObject* CDO, ULinkerLoad* Linker, int32 ExportIndex, TArray<UObject*>& ObjLoaded)
+void FBlueprintEditorUtils::PatchNewCDOIntoLinker(UObject* CDO, FLinkerLoad* Linker, int32 ExportIndex, TArray<UObject*>& ObjLoaded)
 {
 	if( (CDO != NULL) && (Linker != NULL) && (ExportIndex != INDEX_NONE) )
 	{
@@ -907,7 +907,7 @@ struct FRegenerationHelper
 	/**
 	 * A helper function that loads (and regenerates) interface dependencies.
 	 * Accounts for circular dependencies by following how we handle parent 
-	 * classes in ULinkerLoad::RegenerateBlueprintClass() (that is, to complete 
+	 * classes in FLinkerLoad::RegenerateBlueprintClass() (that is, to complete 
 	 * the interface's compilation/regeneration before we utilize it for the
 	 * specified blueprint).
 	 * 
@@ -1290,7 +1290,7 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 		Blueprint->GetBlueprintCDONames(GeneratedName, SkeletonName);
 		int32 OldSkelLinkerIdx = INDEX_NONE;
 		int32 OldGenLinkerIdx = INDEX_NONE;
-		ULinkerLoad* OldLinker = Blueprint->GetLinker();
+		auto OldLinker = Blueprint->GetLinker();
 		for( int32 i = 0; i < OldLinker->ExportMap.Num(); i++ )
 		{
 			FObjectExport& ThisExport = OldLinker->ExportMap[i];
@@ -1646,7 +1646,7 @@ void FBlueprintEditorUtils::PatchCDOSubobjectsIntoExport(UObject* PreviousCDO, U
 			UObject** NewComponentPtr = NewComponentsMap.Find(OldComponentName);
 			if (NewComponentPtr && *NewComponentPtr)
 			{
-				ULinkerLoad::PRIVATE_PatchNewObjectIntoExport(OldComponent, *NewComponentPtr);
+				FLinkerLoad::PRIVATE_PatchNewObjectIntoExport(OldComponent, *NewComponentPtr);
 			}
 		}
 		NewCDO->CheckDefaultSubobjects();

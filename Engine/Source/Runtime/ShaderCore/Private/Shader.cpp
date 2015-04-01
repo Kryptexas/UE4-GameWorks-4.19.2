@@ -230,9 +230,11 @@ FArchive& operator<<(FArchive& Ar,FShaderType*& Ref)
 }
 
 
-FShader* FShaderType::FindShaderById(const FShaderId& Id) const
+FShader* FShaderType::FindShaderById(const FShaderId& Id)
 {
-	return ShaderIdMap.FindRef(Id);
+	FScopeLock MapLock(&ShaderIdMapCritical);
+	FShader* Result = ShaderIdMap.FindRef(Id);
+	return Result;
 }
 
 FShader* FShaderType::ConstructForDeserialization() const
@@ -289,6 +291,7 @@ void FShaderType::Uninitialize()
 }
 
 TMap<FShaderResourceId, FShaderResource*> FShaderResource::ShaderResourceIdMap;
+FCriticalSection FShaderResource::ShaderResourceIdMapCritical;
 
 FShaderResource::FShaderResource()
 	: SpecificType(NULL)
@@ -314,7 +317,11 @@ FShaderResource::FShaderResource(const FShaderCompilerOutput& Output, FShaderTyp
 	OutputHash = Output.OutputHash;
 	checkSlow(OutputHash != FSHAHash());
 
-	ShaderResourceIdMap.Add(GetId(), this);
+	{
+		FScopeLock ShaderResourceIdMapLock(&ShaderResourceIdMapCritical);
+		ShaderResourceIdMap.Add(GetId(), this);
+	}
+	
 	INC_DWORD_STAT_BY_FName(GetMemoryStatType((EShaderFrequency)Target.Frequency).GetName(), Code.Num());
 	INC_DWORD_STAT_BY(STAT_Shaders_ShaderResourceMemory, GetSizeBytes());
 	INC_DWORD_STAT_BY(STAT_Shaders_NumShaderResourcesLoaded, 1);
@@ -331,6 +338,7 @@ FShaderResource::~FShaderResource()
 
 void FShaderResource::Register()
 {
+	FScopeLock ShaderResourceIdMapLock(&ShaderResourceIdMapCritical);
 	ShaderResourceIdMap.Add(GetId(), this);
 }
 
@@ -365,7 +373,10 @@ void FShaderResource::Release()
 	check(NumRefs != 0);
 	if(--NumRefs == 0)
 	{
-		ShaderResourceIdMap.Remove(GetId());
+		{
+			FScopeLock ShaderResourceIdMapLock(&ShaderResourceIdMapCritical);
+			ShaderResourceIdMap.Remove(GetId());
+		}
 
 		// Send a release message to the rendering thread when the shader loses its last reference.
 		BeginReleaseResource(this);
@@ -377,6 +388,7 @@ void FShaderResource::Release()
 
 FShaderResource* FShaderResource::FindShaderResourceById(const FShaderResourceId& Id)
 {
+	FScopeLock ShaderResourceIdMapLock(&ShaderResourceIdMapCritical);
 	return ShaderResourceIdMap.FindRef(Id);
 }
 
@@ -396,6 +408,7 @@ FShaderResource* FShaderResource::FindOrCreateShaderResource(const FShaderCompil
 
 void FShaderResource::GetAllShaderResourceId(TArray<FShaderResourceId>& Ids)
 {
+	FScopeLock ShaderResourceIdMapLock(&ShaderResourceIdMapCritical);
 	ShaderResourceIdMap.GetKeys(Ids);
 }
 
@@ -939,13 +952,13 @@ void FShader::Register()
 	check(ShaderId.MaterialShaderMapHash != FSHAHash());
 	check(ShaderId.SourceHash != FSHAHash());
 	check(Resource);
-	Type->GetShaderIdMap().Add(ShaderId, this);
+	Type->AddToShaderIdMap(ShaderId, this);
 }
 
 
 void FShader::Deregister()
 {
-	Type->GetShaderIdMap().Remove(GetId());
+	Type->RemoveFromShaderIdMap(GetId());
 }
 
 
@@ -1165,17 +1178,17 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("Compat.UseDXT5NormalMaps"));
-		KeyString += (CVar && CVar->GetValueOnGameThread() != 0) ? TEXT("_DXTN") : TEXT("_BC5N");
+		KeyString += (CVar && CVar->GetValueOnAnyThread() != 0) ? TEXT("_DXTN") : TEXT("_BC5N");
 	}
 
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.CompileShadersForDevelopment"));
-		KeyString += (CVar && CVar->GetValueOnGameThread() != 0) ? TEXT("_DEV") : TEXT("_NoDEV");
+		KeyString += (CVar && CVar->GetValueOnAnyThread() != 0) ? TEXT("_DEV") : TEXT("_NoDEV");
 	}
 
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
-		const bool bValue = CVar ? CVar->GetValueOnGameThread() != 0 : true;
+		const bool bValue = CVar ? CVar->GetValueOnAnyThread() != 0 : true;
 		KeyString += bValue ? TEXT("_SL") : TEXT("_NoSL");
 	}
 
@@ -1189,7 +1202,7 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GBuffer"));
-		if(CVar ? CVar->GetValueOnGameThread() == 0 : false)
+		if (CVar ? CVar->GetValueOnAnyThread() == 0 : false)
 		{
 			KeyString += TEXT("_NoGB");
 		}
@@ -1214,7 +1227,7 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 	{
 		{
 			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PS4MixedModeShaderDebugInfo"));
-			if( CVar && CVar->GetValueOnGameThread() != 0 )
+			if (CVar && CVar->GetValueOnAnyThread() != 0)
 			{
 				KeyString += TEXT("_MMDBG");
 			}
@@ -1222,7 +1235,7 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 
 		{
 			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PS4DumpShaderSDB"));
-			if( CVar && CVar->GetValueOnGameThread() != 0 )
+			if (CVar && CVar->GetValueOnAnyThread() != 0)
 			{
 				KeyString += TEXT("_SDB");
 			}

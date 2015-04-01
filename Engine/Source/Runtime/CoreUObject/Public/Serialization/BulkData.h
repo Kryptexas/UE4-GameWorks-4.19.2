@@ -62,7 +62,7 @@ enum EBulkDataLockFlags
  */
 struct COREUOBJECT_API FUntypedBulkData
 {
-	friend class ULinkerLoad;
+	friend class FLinkerLoad;
 
 	/*-----------------------------------------------------------------------------
 		Constructors and operators
@@ -428,10 +428,10 @@ protected:
 	/** Archive associated with bulk data for serialization																*/
 	FArchive*			AttachedAr;
 	/** Used to make sure the linker doesn't get garbage collected at runtime for things with attached archives			*/
-	ULinkerLoad*		Linker;
+	FLinkerLoad*		Linker;
 #else
 	/** weak pointer to the linker this bulk data originally belonged to. */
-	TWeakObjectPtr<ULinkerLoad> Linker;
+	TWeakObjectPtr<UPackage> Package;
 #endif // WITH_EDITOR
 };
 

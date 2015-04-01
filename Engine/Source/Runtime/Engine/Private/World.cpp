@@ -76,6 +76,7 @@
 #include "Engine/Polys.h"
 #include "Engine/LightMapTexture2D.h"
 #include "Engine/GameInstance.h"
+#include "UObject/UObjectThreadContext.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogWorld, Log, All);
 DEFINE_LOG_CATEGORY(LogSpawn);
@@ -273,7 +274,7 @@ bool UWorld::Rename(const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags)
 	const bool bTestRename = (Flags & REN_Test) != 0;
 
 	// Rename the level script blueprint now, unless we are in PostLoad. ULevel::PostLoad should handle renaming this at load time.
-	if ( !GIsRoutingPostLoad )
+	if (!FUObjectThreadContext::Get().IsRoutingPostLoad)
 	{
 		const bool bDontCreate = true;
 		UBlueprint* LevelScriptBlueprint = PersistentLevel->GetLevelScriptBlueprint(bDontCreate);
@@ -4490,7 +4491,7 @@ void FSeamlessTravelHandler::StartLoadingDestination()
 			{
 				// Load localized part of level first in case it exists. We don't need to worry about GC or completion 
 				// callback as we always kick off another async IO for the level below.
-				LoadPackageAsync(*LocalizedPackageName);
+				LoadPackageAsync(LocalizedPackageName);
 			}
 		}
 
@@ -4516,12 +4517,15 @@ void FSeamlessTravelHandler::StartLoadingDestination()
 			}
 		}
 #endif
-		LoadPackageAsync(URLMapPackageName, 
-			FLoadPackageAsyncDelegate::CreateRaw(this, &FSeamlessTravelHandler::SeamlessTravelLoadCallback), 
+		LoadPackageAsync(
+			URLMapPackageName, 
 			PendingTravelGuid.IsValid() ? &PendingTravelGuid : NULL,
 			NAME_None,
-			*URLMapPackageToLoadFrom
-			).SetPackageData(PackageFlags, PIEInstanceID);
+			*URLMapPackageToLoadFrom,
+			FLoadPackageAsyncDelegate::CreateRaw(this, &FSeamlessTravelHandler::SeamlessTravelLoadCallback), 			
+			PackageFlags,
+			PIEInstanceID
+			);
 	}
 	else
 	{

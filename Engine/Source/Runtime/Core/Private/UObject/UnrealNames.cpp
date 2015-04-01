@@ -393,7 +393,7 @@ FName::FName( const TCHAR* Name, int32 InNumber, EFindName FindType )
 
 
 /**
- * Constructor used by ULinkerLoad when loading its name table; Creates an FName with an instance
+ * Constructor used by FLinkerLoad when loading its name table; Creates an FName with an instance
  * number of 0 that does not attempt to split the FName into string and number portions.
  */
 FName::FName( ELinkerNameTableConstructor, const WIDECHAR* Name )
@@ -402,7 +402,7 @@ FName::FName( ELinkerNameTableConstructor, const WIDECHAR* Name )
 }
 
 /**
- * Constructor used by ULinkerLoad when loading its name table; Creates an FName with an instance
+ * Constructor used by FLinkerLoad when loading its name table; Creates an FName with an instance
  * number of 0 that does not attempt to split the FName into string and number portions.
  */
 FName::FName( ELinkerNameTableConstructor, const ANSICHAR* Name )

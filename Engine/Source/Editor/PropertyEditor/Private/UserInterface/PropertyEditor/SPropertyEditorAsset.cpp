@@ -479,7 +479,7 @@ FPropertyAccess::Result SPropertyEditorAsset::GetValue( FObjectOrAssetData& OutV
 {
 	// Potentially accessing the value while garbage collecting or saving the package could trigger a crash.
 	// so we fail to get the value when that is occuring.
-	if ( GIsSavingPackage || GIsGarbageCollecting )
+	if ( GIsSavingPackage || IsGarbageCollecting() )
 	{
 		return FPropertyAccess::Fail;
 	}

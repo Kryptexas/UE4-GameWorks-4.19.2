@@ -7,6 +7,7 @@
 #include "Linker.h"
 #include "PropertyTag.h"
 #include "UObject/StructScriptLoader.h"
+#include "UObject/UObjectThreadContext.h"
 
 /** 
  * Defined in BlueprintSupport.cpp
@@ -131,12 +132,12 @@ FScopedClassDependencyGather::~FScopedClassDependencyGather()
 			UClass* Dependency = *DependencyIter;
 			if( Dependency->ClassGeneratedBy != BatchMasterClass->ClassGeneratedBy )
 			{
-				Dependency->ConditionalRecompileClass(&GObjLoaded);
+				Dependency->ConditionalRecompileClass(&FUObjectThreadContext::Get().ObjLoaded);
 			}
 		}
 
 		// Finally, recompile the master class to make sure it gets updated too
-		BatchMasterClass->ConditionalRecompileClass(&GObjLoaded);
+		BatchMasterClass->ConditionalRecompileClass(&FUObjectThreadContext::Get().ObjLoaded);
 		
 		BatchMasterClass = NULL;
 	}
@@ -151,7 +152,7 @@ TArray<UClass*> const& FScopedClassDependencyGather::GetCachedDependencies()
 
 
 /*******************************************************************************
- * ULinkerLoad
+ * FLinkerLoad
  ******************************************************************************/
 
 // rather than littering the code with USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
@@ -192,7 +193,7 @@ struct FPreloadMembersHelper
 		if (InObject && !InObject->HasAnyFlags(RF_LoadCompleted))
 		{
 			InObject->SetFlags(RF_NeedLoad);
-			if (ULinkerLoad* Linker = InObject->GetLinker())
+			if (FLinkerLoad* Linker = InObject->GetLinker())
 			{
 				Linker->Preload(InObject);
 			}
@@ -207,7 +208,7 @@ struct FPreloadMembersHelper
  * @param	ExportObject	Current object being exported
  * @return	Returns true if regeneration was successful, otherwise false
  */
-bool ULinkerLoad::RegenerateBlueprintClass(UClass* LoadClass, UObject* ExportObject)
+bool FLinkerLoad::RegenerateBlueprintClass(UClass* LoadClass, UObject* ExportObject)
 {
 	// determine if somewhere further down the callstack, we're already in this
 	// function for this class
@@ -286,7 +287,7 @@ bool ULinkerLoad::RegenerateBlueprintClass(UClass* LoadClass, UObject* ExportObj
 			// Preload the blueprint to make sure it has all the data the class needs for regeneration
 			FPreloadMembersHelper::PreloadObject(BlueprintObject);
 
-			UClass* RegeneratedClass = BlueprintObject->RegenerateClass(LoadClass, CurrentCDO, GObjLoaded);
+			UClass* RegeneratedClass = BlueprintObject->RegenerateClass(LoadClass, CurrentCDO, FUObjectThreadContext::Get().ObjLoaded);
 			if (RegeneratedClass)
 			{
 				BlueprintObject->ClearFlags(RF_BeingRegenerated);
@@ -314,7 +315,7 @@ static FLinkerPlaceholderBase* PlaceholderCast(UObject* PlaceholderObj)
 	return CastChecked<PlaceholderType>(PlaceholderObj, ECastCheckedType::NullAllowed);
 }
 
-bool ULinkerLoad::DeferPotentialCircularImport(const int32 Index)
+bool FLinkerLoad::DeferPotentialCircularImport(const int32 Index)
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	if (!FBlueprintSupport::UseDeferredDependencyLoading())
@@ -437,13 +438,13 @@ struct FResolvingExportTracker : TThreadSingleton<FResolvingExportTracker>
 {
 public:
 	/**  */
-	void FlagLinkerExportAsResolving(ULinkerLoad* Linker, int32 ExportIndex)
+	void FlagLinkerExportAsResolving(FLinkerLoad* Linker, int32 ExportIndex)
 	{
 		ResolvingExports.FindOrAdd(Linker).Add(ExportIndex);
 	}
 
 	/**  */
-	bool IsLinkerExportBeingResolved(ULinkerLoad* Linker, int32 ExportIndex) const
+	bool IsLinkerExportBeingResolved(FLinkerLoad* Linker, int32 ExportIndex) const
 	{
 		if (auto* ExportIndices = ResolvingExports.Find(Linker))
 		{
@@ -453,7 +454,7 @@ public:
 	}
 
 	/**  */
-	void FlagExportClassAsFullyResolved(ULinkerLoad* Linker, int32 ExportIndex)
+	void FlagExportClassAsFullyResolved(FLinkerLoad* Linker, int32 ExportIndex)
 	{
 		if (auto* ExportIndices = ResolvingExports.Find(Linker))
 		{
@@ -466,18 +467,18 @@ public:
 	}
 
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-	void FlagFullExportResolvePassComplete(ULinkerLoad* Linker)
+	void FlagFullExportResolvePassComplete(FLinkerLoad* Linker)
 	{
 		FullyResolvedLinkers.Add(Linker);
 	}
 
-	bool HasPerformedFullExportResolvePass(ULinkerLoad* Linker)
+	bool HasPerformedFullExportResolvePass(FLinkerLoad* Linker)
 	{
 		return FullyResolvedLinkers.Contains(Linker);
 	}
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
-	void Reset(ULinkerLoad* Linker)
+	void Reset(FLinkerLoad* Linker)
 	{
 		ResolvingExports.Remove(Linker);
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
@@ -487,10 +488,10 @@ public:
 
 private:
 	/**  */
-	TMap< ULinkerLoad*, TSet<int32> > ResolvingExports;
+	TMap< FLinkerLoad*, TSet<int32> > ResolvingExports;
 
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-	TSet<ULinkerLoad*> FullyResolvedLinkers;
+	TSet<FLinkerLoad*> FullyResolvedLinkers;
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 };
 
@@ -501,7 +502,7 @@ private:
 struct FScopedResolvingExportTracker
 {
 public: 
-	FScopedResolvingExportTracker(ULinkerLoad* Linker, int32 ExportIndex)
+	FScopedResolvingExportTracker(FLinkerLoad* Linker, int32 ExportIndex)
 		: TrackedLinker(Linker), TrackedExport(ExportIndex)
 	{
 		FResolvingExportTracker::Get().FlagLinkerExportAsResolving(Linker, ExportIndex);
@@ -513,11 +514,11 @@ public:
 	}
 
 private:
-	ULinkerLoad* TrackedLinker;
+	FLinkerLoad* TrackedLinker;
 	int32        TrackedExport;
 };
 
-bool ULinkerLoad::DeferExportCreation(const int32 Index)
+bool FLinkerLoad::DeferExportCreation(const int32 Index)
 {
 	FObjectExport& Export = ExportMap[Index];
 
@@ -541,7 +542,7 @@ bool ULinkerLoad::DeferExportCreation(const int32 Index)
 	ULinkerPlaceholderClass* AsPlaceholderClass = Cast<ULinkerPlaceholderClass>(LoadClass);
 	bool const bIsPlaceholderClass = (AsPlaceholderClass != nullptr);
 
-	ULinkerLoad* ClassLinker = LoadClass->GetLinker();
+	FLinkerLoad* ClassLinker = LoadClass->GetLinker();
 	if ( !bIsPlaceholderClass && ((ClassLinker == nullptr) || !ClassLinker->IsBlueprintFinalizationPending()) )
 	{
 		return false;
@@ -568,7 +569,7 @@ bool ULinkerLoad::DeferExportCreation(const int32 Index)
 	}
 	// we haven't come across a scenario where this happens, but if this hits 
 	// then we're deferring exports that will NEVER be resolved (possibly 
-	// stemming from CDO serialization in ULinkerLoad::ResolveDeferredExports)
+	// stemming from CDO serialization in FLinkerLoad::ResolveDeferredExports)
 	DEFERRED_DEPENDENCY_CHECK(!FResolvingExportTracker::Get().HasPerformedFullExportResolvePass(this));
 	
 	UPackage* PlaceholderOuter = LinkerRoot;
@@ -588,7 +589,7 @@ bool ULinkerLoad::DeferExportCreation(const int32 Index)
 	return true;
 }
 
-int32 ULinkerLoad::FindCDOExportIndex(UClass* LoadClass)
+int32 FLinkerLoad::FindCDOExportIndex(UClass* LoadClass)
 {
 	DEFERRED_DEPENDENCY_CHECK(LoadClass->GetLinker() == this);
 	int32 const ClassExportIndex = LoadClass->GetLinkerIndex();
@@ -658,7 +659,7 @@ public:
 	 * @param  Linker	The linker you want to check.
 	 * @return True if the specified linker is in the midst of an unfinished ResolveDeferredDependencies() call (otherwise false).
 	 */
-	static bool IsAssociatedStructUnresolved(const ULinkerLoad* Linker)
+	static bool IsAssociatedStructUnresolved(const FLinkerLoad* Linker)
 	{
 		for (UObject* UnresolvedObj : UnresolvedStructs)
 		{
@@ -673,7 +674,7 @@ public:
 	}
 
 	/**  */
-	static void Reset(const ULinkerLoad* Linker)
+	static void Reset(const FLinkerLoad* Linker)
 	{
 		TArray<UObject*> ToRemove;
 		for (UObject* UnresolvedObj : UnresolvedStructs)
@@ -700,11 +701,11 @@ private:
 	 */
 	static TSet<UObject*> UnresolvedStructs;
 };
-/** A global set that tracks structs currently being ran through (and unfinished by) ULinkerLoad::ResolveDeferredDependencies() */
+/** A global set that tracks structs currently being ran through (and unfinished by) FLinkerLoad::ResolveDeferredDependencies() */
 TSet<UObject*> FUnresolvedStructTracker::UnresolvedStructs;
-UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags, ULinkerLoad* ImportLinker);
+UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags, FLinkerLoad* ImportLinker);
 
-void ULinkerLoad::ResolveDeferredDependencies(UStruct* LoadStruct)
+void FLinkerLoad::ResolveDeferredDependencies(UStruct* LoadStruct)
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	//--------------------------------------
@@ -786,7 +787,7 @@ void ULinkerLoad::ResolveDeferredDependencies(UStruct* LoadStruct)
 
 		if (UStruct* SuperStruct = LoadStruct->GetSuperStruct())
 		{
-			ULinkerLoad* SuperLinker = SuperStruct->GetLinker();
+			FLinkerLoad* SuperLinker = SuperStruct->GetLinker();
 			// NOTE: there is no harm in calling this when the super is not 
 			//       "actively resolving deferred dependencies"... this condition  
 			//       just saves on wasted ops, looping over the super's ImportMap
@@ -828,12 +829,12 @@ void ULinkerLoad::ResolveDeferredDependencies(UStruct* LoadStruct)
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }
 
-bool ULinkerLoad::HasUnresolvedDependencies() const
+bool FLinkerLoad::HasUnresolvedDependencies() const
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	// checking (ResolvingDeferredPlaceholder != nullptr) is not sufficient, 
 	// because the linker could be in the midst of a nested resolve (for a 
-	// struct, or super... see ULinkerLoad::ResolveDeferredDependencies)
+	// struct, or super... see FLinkerLoad::ResolveDeferredDependencies)
 	bool bIsClassExportUnresolved = FUnresolvedStructTracker::IsAssociatedStructUnresolved(this);
 
 	// (ResolvingDeferredPlaceholder != nullptr) should imply 
@@ -847,7 +848,7 @@ bool ULinkerLoad::HasUnresolvedDependencies() const
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }
 
-int32 ULinkerLoad::ResolveDependencyPlaceholder(FLinkerPlaceholderBase* PlaceholderIn, UClass* ReferencingClass)
+int32 FLinkerLoad::ResolveDependencyPlaceholder(FLinkerPlaceholderBase* PlaceholderIn, UClass* ReferencingClass)
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
@@ -942,7 +943,7 @@ int32 ULinkerLoad::ResolveDependencyPlaceholder(FLinkerPlaceholderBase* Placehol
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }
 
-void ULinkerLoad::FinalizeBlueprint(UClass* LoadClass)
+void FLinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	if (!FBlueprintSupport::UseDeferredDependencyLoading())
@@ -963,7 +964,7 @@ void ULinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 	// (so we can have a properly formed sub-class)
 	if (UClass* SuperClass = LoadClass->GetSuperClass())
 	{
-		ULinkerLoad* SuperLinker = SuperClass->GetLinker();
+		FLinkerLoad* SuperLinker = SuperClass->GetLinker();
 		if ((SuperLinker != nullptr) && SuperLinker->IsBlueprintFinalizationPending())
 		{
 			SuperLinker->FinalizeBlueprint(SuperClass);
@@ -1087,7 +1088,7 @@ void ULinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }
 
-void ULinkerLoad::ResolveDeferredExports(UClass* LoadClass)
+void FLinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
@@ -1098,7 +1099,7 @@ void ULinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 	DEFERRED_DEPENDENCY_CHECK(BlueprintCDO != nullptr);
 
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-	static TSet<ULinkerLoad*> ResolvingExportsTracker;
+	static TSet<FLinkerLoad*> ResolvingExportsTracker;
 	// the first half of this function CANNOT be re-entrant (specifically for 
 	// this linker)
 	//
@@ -1125,7 +1126,7 @@ void ULinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 				DEFERRED_DEPENDENCY_CHECK(Export.ClassIndex.IsImport());
 				UClass* ExportClass = GetExportLoadClass(ExportIndex);
 				DEFERRED_DEPENDENCY_CHECK((ExportClass != nullptr) && !ExportClass->HasAnyClassFlags(CLASS_Intrinsic) && ExportClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint));
-				ULinkerLoad* ClassLinker = ExportClass->GetLinker();
+				FLinkerLoad* ClassLinker = ExportClass->GetLinker();
 				DEFERRED_DEPENDENCY_CHECK((ClassLinker != nullptr) && (ClassLinker != this));
 
 				{
@@ -1229,7 +1230,7 @@ void ULinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }
 
-bool ULinkerLoad::IsBlueprintFinalizationPending() const
+bool FLinkerLoad::IsBlueprintFinalizationPending() const
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	return (DeferredCDOIndex != INDEX_NONE);
@@ -1238,10 +1239,10 @@ bool ULinkerLoad::IsBlueprintFinalizationPending() const
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }
 
-bool ULinkerLoad::ForceRegenerateClass(UClass* ImportClass)
+bool FLinkerLoad::ForceRegenerateClass(UClass* ImportClass)
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-	if (ULinkerLoad* ClassLinker = ImportClass->GetLinker())
+	if (FLinkerLoad* ClassLinker = ImportClass->GetLinker())
 	{
 		//
 		// BE VERY CAREFUL with this! if these following statements are called 
@@ -1264,7 +1265,7 @@ bool ULinkerLoad::ForceRegenerateClass(UClass* ImportClass)
 	return false;
 }
 
-bool ULinkerLoad::IsExportBeingResolved(int32 ExportIndex)
+bool FLinkerLoad::IsExportBeingResolved(int32 ExportIndex)
 {
 	FObjectExport& Export = ExportMap[ExportIndex];
 	bool bIsExportClassBeingForceRegened = FResolvingExportTracker::Get().IsLinkerExportBeingResolved(this, ExportIndex);
@@ -1292,7 +1293,7 @@ bool ULinkerLoad::IsExportBeingResolved(int32 ExportIndex)
 	return bIsExportClassBeingForceRegened;
 }
 
-bool ULinkerLoad::HasPerformedFullExportResolvePass()
+bool FLinkerLoad::HasPerformedFullExportResolvePass()
 {
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 	return FResolvingExportTracker::Get().HasPerformedFullExportResolvePass(this);
@@ -1302,7 +1303,7 @@ bool ULinkerLoad::HasPerformedFullExportResolvePass()
 	
 }
 
-void ULinkerLoad::ResetDeferredLoadingState()
+void FLinkerLoad::ResetDeferredLoadingState()
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	DeferredCDOIndex = INDEX_NONE;

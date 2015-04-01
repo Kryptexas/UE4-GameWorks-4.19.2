@@ -1231,7 +1231,7 @@ void UEditorEngine::PostUndo (bool bSuccess)
 bool UEditorEngine::UndoTransaction()
 {
 	// make sure we're in a valid state to perform this
-	if (GIsSavingPackage || GIsGarbageCollecting)
+	if (GIsSavingPackage || IsGarbageCollecting())
 	{
 		return false;
 	}
@@ -1242,7 +1242,7 @@ bool UEditorEngine::UndoTransaction()
 bool UEditorEngine::RedoTransaction()
 {
 	// make sure we're in a valid state to perform this
-	if (GIsSavingPackage || GIsGarbageCollecting)
+	if (GIsSavingPackage || IsGarbageCollecting())
 	{
 		return false;
 	}
@@ -5068,13 +5068,13 @@ void ListMapPackageDependencies(const TCHAR* InStr)
 			UE_LOG(LogEditorServer, Warning, TEXT("\tResave packages and run again to ensure accurate results."));
 		}
 
-		ULinkerLoad* Linker = ProcessingPackage->GetLinker();
-		if (Linker == NULL)
+		auto Linker = ProcessingPackage->GetLinker();
+		if (!Linker)
 		{
 			// Create a new linker object which goes off and tries load the file.
 			Linker = GetPackageLinker(NULL, *(ProcessingPackage->GetName()), LOAD_None, NULL, NULL );
 		}
-		if (Linker != NULL)
+		if (Linker)
 		{
 			for (int32 ImportIdx = 0; ImportIdx < Linker->ImportMap.Num(); ImportIdx++)
 			{
@@ -5111,13 +5111,13 @@ void ListMapPackageDependencies(const TCHAR* InStr)
 			UPackage* RefdPackage = LoadPackage(NULL, *RefdPkgName, LOAD_None);
 			if (RefdPackage != NULL)
 			{
-				ULinkerLoad* Linker = RefdPackage->GetLinker();
-				if (Linker == NULL)
+				auto Linker = RefdPackage->GetLinker();
+				if (!Linker)
 				{
 					// Create a new linker object which goes off and tries load the file.
 					Linker = GetPackageLinker(NULL, *RefdPkgName,  LOAD_None, NULL, NULL );
 				}
-				if (Linker != NULL)
+				if (Linker)
 				{
 					for (int32 ExportIdx = 0; ExportIdx < Linker->ExportMap.Num(); ExportIdx++)
 					{

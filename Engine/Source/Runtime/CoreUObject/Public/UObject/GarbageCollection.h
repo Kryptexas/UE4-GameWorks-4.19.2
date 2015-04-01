@@ -6,7 +6,7 @@
 =============================================================================*/
 
 /** Context sensitive keep flags for garbage collection */
-#define GARBAGE_COLLECTION_KEEPFLAGS	(GIsEditor ? RF_Native|RF_AsyncLoading|RF_Standalone : RF_Native|RF_AsyncLoading)
+#define GARBAGE_COLLECTION_KEEPFLAGS	(GIsEditor ? RF_Native|RF_AsyncLoading|RF_Standalone|RF_Async : RF_Native|RF_AsyncLoading|RF_Async)
 
 /*-----------------------------------------------------------------------------
 	Realtime garbage collection helper classes.
@@ -466,4 +466,12 @@ protected:
 	FReferenceCollector& Collector;
 	/** Object which is performing the serialization. */
 	const UObject* SerializingObject;
+};
+
+/** Prevent GC from running in the current scope */
+class COREUOBJECT_API FGCScopeGuard
+{
+public:
+	FGCScopeGuard();
+	~FGCScopeGuard();
 };

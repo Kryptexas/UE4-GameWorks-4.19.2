@@ -66,7 +66,7 @@ TAutoConsoleVariable<int32> CVarShowInitialOverlaps(
 int32 UPrimitiveComponent::CurrentTag = 2147483647 / 4;
 
 // 0 is reserved to mean invalid
-uint32 UPrimitiveComponent::NextComponentId = 1;
+FThreadSafeCounter UPrimitiveComponent::NextComponentId;
 
 UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer)
@@ -99,9 +99,7 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 	VisibilityId = -1;
 	CanBeCharacterBase_DEPRECATED = ECB_Yes;
 	CanCharacterStepUpOn = ECB_Yes;
-	ComponentId.PrimIDValue = NextComponentId;
-	check(IsInGameThread());
-	NextComponentId++;
+	ComponentId.PrimIDValue = NextComponentId.Increment();
 
 	bUseEditorCompositing = false;
 

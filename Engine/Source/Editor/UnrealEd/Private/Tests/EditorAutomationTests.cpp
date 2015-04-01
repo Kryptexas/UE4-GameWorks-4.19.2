@@ -2094,7 +2094,7 @@ namespace StaticMeshUVTest
 			}
 			else
 			{
-				LoadPackageAsync(PackageName,FLoadPackageAsyncDelegate::CreateSP(this, &FUVTestHelper::PackageLoadCallback));
+				LoadPackageAsync(*PackageName, FLoadPackageAsyncDelegate::CreateSP(this, &FUVTestHelper::PackageLoadCallback));
 				CurrentState = EStaticMeshUVTestState::WaitingForPackage;
 			}
 		}

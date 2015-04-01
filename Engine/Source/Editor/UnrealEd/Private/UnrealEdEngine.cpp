@@ -31,6 +31,7 @@
 #include "AutoReimport/AutoReimportManager.h"
 #include "NotificationManager.h"
 #include "SNotificationList.h"
+#include "UObject/UObjectThreadContext.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdEngine, Log, All);
 
@@ -429,8 +430,8 @@ void UUnrealEdEngine::OnPackageDirtyStateUpdated( UPackage* Pkg)
 	const FString PackageName = Package->GetName();
 
 	// Alert the user if they have modified a package that won't be able to be saved because
-	// it's already been saved with an engine version that is newer than the current one.
-	if ( !GIsRoutingPostLoad && Package->IsDirty() && !PackagesCheckedForEngineVersion.Contains( PackageName ) )
+	// it's already been saved with an engine version that is newer than the current one.	
+	if (!FUObjectThreadContext::Get().IsRoutingPostLoad && Package->IsDirty() && !PackagesCheckedForEngineVersion.Contains(PackageName))
 	{
 		EWriteDisallowedWarningState WarningStateToSet = WDWS_WarningUnnecessary;
 				
@@ -457,7 +458,7 @@ void UUnrealEdEngine::OnPackageDirtyStateUpdated( UPackage* Pkg)
 
 	// Alert the user if they have modified a package that they do not have sufficient permission to write to disk.
 	// This can be due to the content being in the "Program Files" folder and the user does not have admin privileges.
-	if ( !GIsRoutingPostLoad && Package->IsDirty() && !PackagesCheckedForWritePermission.Contains( PackageName ) )
+	if (!FUObjectThreadContext::Get().IsRoutingPostLoad && Package->IsDirty() && !PackagesCheckedForWritePermission.Contains(PackageName))
 	{
 		EWriteDisallowedWarningState WarningStateToSet = GetWarningStateForWritePermission(PackageName);
 

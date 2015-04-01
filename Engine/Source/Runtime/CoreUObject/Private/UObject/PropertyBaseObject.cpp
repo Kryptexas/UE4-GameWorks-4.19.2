@@ -430,7 +430,7 @@ void UObjectPropertyBase::CheckValidObject(void* Value) const
 		bool bIsReplacingClassRefs = PropertyClass && PropertyClass->HasAnyClassFlags(CLASS_NewerVersionExists) != ObjectClass->HasAnyClassFlags(CLASS_NewerVersionExists);
 		
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-		ULinkerLoad* PropertyLinker = GetLinker();
+		FLinkerLoad* PropertyLinker = GetLinker();
 		bool const bIsDeferringValueLoad = ((PropertyLinker == nullptr) || (PropertyLinker->LoadFlags & LOAD_DeferDependencyLoads)) &&
 			Object->IsA<ULinkerPlaceholderExportObject>();
 

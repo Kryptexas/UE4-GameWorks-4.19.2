@@ -465,7 +465,7 @@ void GetShaderIncludes(const TCHAR* Filename, TArray<FString>& IncludeFilenames,
 const FSHAHash& GetShaderFileHash(const TCHAR* Filename)
 {
 	// Make sure we are only accessing GShaderHashCache from one thread
-	check(IsInGameThread());
+	//check(IsInGameThread() || IsAsyncLoading());
 	STAT(double HashTime = 0);
 	{
 		SCOPE_SECONDS_COUNTER(HashTime);

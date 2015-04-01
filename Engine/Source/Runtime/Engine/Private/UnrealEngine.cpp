@@ -709,7 +709,7 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 
 	// Subsystems.
 	FURL::StaticInit();
-	ULinkerLoad::StaticInit(UTexture2D::StaticClass());
+	FLinkerLoad::StaticInit(UTexture2D::StaticClass());
 
 #if !UE_BUILD_SHIPPING
 	// Check for overrides to the default map on the command line
@@ -4068,7 +4068,7 @@ bool UEngine::HandleDumpParticleCountsCommand( const TCHAR* Cmd, FOutputDevice& 
 bool UEngine::HandleListPreCacheMapPackagesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	TArray<FString> Packages;
-	ULinkerLoad::GetListOfPackagesInPackagePrecacheMap( Packages );
+	FLinkerLoad::GetListOfPackagesInPackagePrecacheMap( Packages );
 
 	Packages.Sort();
 
@@ -4705,6 +4705,24 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		}
 		return true;
 	}
+	else if (FParse::Command(&Cmd, TEXT("TRYGC")))
+	{
+		// Purge unclaimed objects.		
+		if (TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS))
+		{
+			Ar.Logf(TEXT("Collecting garbage and resetting GC timers on all worlds."));
+			for (TObjectIterator<UWorld> It; It; ++It)
+			{
+				UWorld* CurrentWorld = *It;
+				CurrentWorld->TimeSinceLastPendingKillPurge = 0;
+			}
+		}
+		else
+		{
+			Ar.Logf(TEXT("Garbage collection blocked by other threads."));
+		}
+		return true;
+	}
 	else if (FParse::Command(&Cmd,TEXT("LIST2")))
 	{			
 		UClass* ClassToCheck = NULL;
@@ -4980,7 +4998,7 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 					continue;
 				}
 
-				if ( bOnlyListGCObjects && GUObjectArray.IsDisregardForGC(*It) )
+				if ( bOnlyListGCObjects && GetUObjectArray().IsDisregardForGC(*It) )
 				{
 					continue;
 				}
@@ -6230,7 +6248,7 @@ FGuid UEngine::GetPackageGuid(FName PackageName)
 	FGuid Result(0,0,0,0);
 
 	BeginLoad();
-	ULinkerLoad* Linker = GetPackageLinker(NULL, *PackageName.ToString(), LOAD_NoWarn | LOAD_NoVerify, NULL, NULL);
+	FLinkerLoad* Linker = GetPackageLinker(NULL, *PackageName.ToString(), LOAD_NoWarn | LOAD_NoVerify, NULL, NULL);
 	if (Linker != NULL && Linker->LinkerRoot != NULL)
 	{
 		Result = Linker->LinkerRoot->GetGuid();
@@ -6544,10 +6562,14 @@ bool UEngine::HandleLogoutStatLevelsCommand( const TCHAR* Cmd, FOutputDevice& Ar
 		{
 			DisplayName += FString::Printf(TEXT(" - %4.1f sec"), LevelPackage->GetLoadTime());
 		}
-		else if( GetAsyncLoadPercentage( LevelStatus.PackageName ) >= 0 )
+		else
 		{
-			const int32 Percentage = FMath::TruncToInt( GetAsyncLoadPercentage( LevelStatus.PackageName ) );
-			DisplayName += FString::Printf(TEXT(" - %3i %%"), Percentage ); 
+			const float LevelLoadPercentage = GetAsyncLoadPercentage(LevelStatus.PackageName);
+			if (LevelLoadPercentage >= 0.0f)
+			{
+				const int32 Percentage = FMath::TruncToInt(LevelLoadPercentage);
+				DisplayName += FString::Printf(TEXT(" - %3i %%"), Percentage);
+			}
 		}
 
 		if ( LevelStatus.bPlayerInside )
@@ -9965,11 +9987,11 @@ bool UEngine::PrepareMapChange(FWorldContext &Context, const TArray<FName>& Leve
 				{
 					// Load localized part of level first in case it exists. We don't need to worry about GC or completion 
 					// callback as we always kick off another async IO for the level below.
-					LoadPackageAsync( *LocalizedPackageName );
+					LoadPackageAsync(LocalizedPackageName);
 				}
 			}
 			
-			LoadPackageAsync( *LevelName.ToString(), 
+			LoadPackageAsync(LevelName.ToString(),
 				FLoadPackageAsyncDelegate::CreateStatic(&AsyncMapChangeLevelLoadCompletionCallback, Context.ContextHandle)
 				);
 		}
@@ -10630,7 +10652,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 		NewActor->ResetOwnedComponents();
 	}
 
-	bool bDumpProperties = CVarDumpCopyPropertiesForUnrelatedObjects.GetValueOnGameThread() != 0;
+	bool bDumpProperties = CVarDumpCopyPropertiesForUnrelatedObjects.GetValueOnAnyThread() != 0;
 	// Uncomment the next line to debug CPFUO for a specific object:
 	// bDumpProperties |= (NewObject->GetName().Find(TEXT("SpinTree")) != INDEX_NONE);
 	if (bDumpProperties)
@@ -11224,8 +11246,8 @@ int32 UEngine::RenderStatLevels(UWorld* World, FViewport* Viewport, FCanvas* Can
 		}
 		else
 		{
-			float AsyncLoadPercentage = GetAsyncLoadPercentage(*LevelStatus.PackageName.ToString());
-			if (AsyncLoadPercentage >= 0)
+			const float AsyncLoadPercentage = GetAsyncLoadPercentage(*LevelStatus.PackageName.ToString());
+			if (AsyncLoadPercentage >= 0.0f)
 			{
 				const int32 Percentage = FMath::TruncToInt(AsyncLoadPercentage);
 				DisplayName += FString::Printf(TEXT(" - %3i %%"), Percentage);

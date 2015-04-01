@@ -10,7 +10,7 @@
 
 void UArrayProperty::LinkInternal(FArchive& Ar)
 {
-	ULinkerLoad* MyLinker = GetLinker();
+	FLinkerLoad* MyLinker = GetLinker();
 	if( MyLinker )
 	{
 		MyLinker->Preload(this);

@@ -348,11 +348,11 @@ public:
 	virtual FString GetArchiveName() const;
 
 	/**
-	 * If this archive is a ULinkerLoad or ULinkerSave, returns a pointer to the ULinker portion.
+	 * If this archive is a FLinkerLoad or FLinkerSave, returns a pointer to the ULinker portion.
 	 *
 	 * @return The linker, or nullptr if the archive is not a linker.
 	 */
-	virtual class ULinker* GetLinker()
+	virtual class FLinker* GetLinker()
 	{
 		return nullptr;
 	}
@@ -711,7 +711,7 @@ public:
 	}
 
 	/**
-	 * Sets the archive version number. Used by the code that makes sure that ULinkerLoad's 
+	 * Sets the archive version number. Used by the code that makes sure that FLinkerLoad's 
 	 * internal archive versions match the file reader it creates.
 	 *
 	 * @param UE4Ver	new version number
@@ -722,7 +722,7 @@ public:
 	}
 
 	/**
-	 * Sets the archive licensee version number. Used by the code that makes sure that ULinkerLoad's 
+	 * Sets the archive licensee version number. Used by the code that makes sure that FLinkerLoad's 
 	 * internal archive versions match the file reader it creates.
 	 *
 	 * @param Ver	new version number
@@ -733,7 +733,7 @@ public:
 	}
 
 	/**
-	* Sets the archive engine version. Used by the code that makes sure that ULinkerLoad's
+	* Sets the archive engine version. Used by the code that makes sure that FLinkerLoad's
 	* internal archive versions match the file reader it creates.
 	*
 	* @param InVer	new version number
@@ -1111,7 +1111,7 @@ public:
 
 	CORE_API virtual FString GetArchiveName() const override;
 
-	virtual class ULinker* GetLinker() override
+	virtual class FLinker* GetLinker() override
 	{
 		return InnerArchive.GetLinker();
 	}

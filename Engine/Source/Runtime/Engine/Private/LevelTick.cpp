@@ -1024,6 +1024,13 @@ public:
 extern bool GCollisionAnalyzerIsRecording;
 #endif // ENABLE_COLLISION_ANALYZER
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+static TAutoConsoleVariable<int32> CVarStressTestGCWhileStreaming(
+	TEXT("t.StressTestGC"),
+	0,
+	TEXT("If set to 1, the engine will attempt to trigger GC each frame while async loading."));
+#endif
+
 /**
  * Update the level after a variable amount of time, DeltaSeconds, has passed.
  * All child actors are ticked after their owners have been ticked.
@@ -1317,12 +1324,22 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	bInTick = false;
 	Mark.Pop();
 
-	if ( FullPurgeTriggered )
+	
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (CVarStressTestGCWhileStreaming.GetValueOnGameThread() && IsAsyncLoading())
 	{
-		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS, true );
-		CleanupActors();
-		FullPurgeTriggered = false;
-		TimeSinceLastPendingKillPurge = 0.0f;
+		TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);
+	}
+	else 
+#endif
+	if (FullPurgeTriggered)
+	{
+		if (TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true))
+		{
+			CleanupActors();
+			FullPurgeTriggered = false;
+			TimeSinceLastPendingKillPurge = 0.0f;
+		}
 	}
 	else if( HasBegunPlay() )
 	{
@@ -1430,12 +1447,13 @@ void UWorld::PerformGarbageCollectionAndCleanupActors()
 	if( !IsAsyncLoading() )
 	{
 		// Perform housekeeping.
-		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS, false );
+		if (TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, false))
+		{
+			CleanupActors();
 
-		CleanupActors();
-
-		// Reset counter.
-		TimeSinceLastPendingKillPurge = 0;
+			// Reset counter.
+			TimeSinceLastPendingKillPurge = 0;
+		}
 	}
 }
 

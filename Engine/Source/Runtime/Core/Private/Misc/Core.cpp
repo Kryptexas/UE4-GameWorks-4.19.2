@@ -109,7 +109,6 @@ bool					GIsServer						= false;					/* Whether engine was launched as a server,
 bool					GIsCriticalError				= false;					/* An appError() has occured */
 bool					GIsGuarded						= false;					/* Whether execution is happening within main()/WinMain()'s try/catch handler */
 bool					GIsRunning						= false;					/* Whether execution is happening within MainLoop() */
-bool					GIsGarbageCollecting			= false;					/* Whether we are inside garbage collection */
 bool					GIsDuplicatingClassForReinstancing = false;					/* Whether we are currently using SDO on a UClass or CDO for live reinstancing */
 /** This specifies whether the engine was launched as a build machine process								*/
 bool					GIsBuildMachine					= false;
@@ -165,7 +164,12 @@ IMPLEMENT_FOREIGN_ENGINE_DIR()
 /** Exec handler for game debugging tool, allowing commands like "editactor", ...							*/
 FExec*					GDebugToolExec					= NULL;
 /** Whether we're currently in the async loading codepath or not											*/
-bool					GIsAsyncLoading					= false;
+static bool IsAsyncLoadingCoreInternal()
+{
+	// No Async loading in Core
+	return false;
+}
+bool(*IsAsyncLoading)() = &IsAsyncLoadingCoreInternal;
 /** Whether the editor is currently loading a package or not												*/
 bool					GIsEditorLoadingPackage				= false;
 /** Whether GWorld points to the play in editor world														*/
@@ -182,8 +186,6 @@ double					GStartTime						= FPlatformTime::InitTiming();
 FString					GSystemStartTime;
 /** Whether we are still in the initial loading proces.														*/
 bool					GIsInitialLoad					= true;
-/** true when we are routing ConditionalPostLoad/PostLoad to objects										*/
-bool					GIsRoutingPostLoad				= false;
 /** Steadily increasing frame counter.																		*/
 uint64					GFrameCounter					= 0;
 /** Incremented once per frame before the scene is being rendered. In split screen mode this is incremented once for all views (not for each view). */

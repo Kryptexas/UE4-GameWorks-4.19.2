@@ -107,6 +107,11 @@ public:
 
 	void PreCompile(UBlueprint* Blueprint)
 	{
+		if (!CanCompile(Blueprint))
+		{
+			return;
+		}
+
 		if ( CompileCount == 0 )
 		{
 			ReRegister = new TComponentReregisterContext<UWidgetComponent>();

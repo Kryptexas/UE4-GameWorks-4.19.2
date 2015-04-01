@@ -1155,7 +1155,7 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FreeSkeletalMeshBuffers"));
 	if(CVar)
 	{
-		bKeepBuffersInCPUMemory = !CVar->GetValueOnGameThread();
+		bKeepBuffersInCPUMemory = !CVar->GetValueOnAnyThread();
 	}
 
 	Ar << Sections;

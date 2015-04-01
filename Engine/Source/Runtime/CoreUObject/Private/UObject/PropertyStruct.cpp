@@ -8,14 +8,14 @@ static inline void PreloadInnerStructMembers(UStructProperty* StructProperty)
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	uint32 PropagatedLoadFlags = 0;
-	if (ULinkerLoad* Linker = StructProperty->GetLinker())
+	if (FLinkerLoad* Linker = StructProperty->GetLinker())
 	{
 		PropagatedLoadFlags |= (Linker->LoadFlags & LOAD_DeferDependencyLoads);
 	}
 
 	if (UScriptStruct* Struct = StructProperty->Struct)
 	{
-		if (ULinkerLoad* StructLinker = Struct->GetLinker())
+		if (FLinkerLoad* StructLinker = Struct->GetLinker())
 		{
 			TGuardValue<uint32> LoadFlagGuard(StructLinker->LoadFlags, StructLinker->LoadFlags | PropagatedLoadFlags);
 			Struct->RecursivelyPreload();

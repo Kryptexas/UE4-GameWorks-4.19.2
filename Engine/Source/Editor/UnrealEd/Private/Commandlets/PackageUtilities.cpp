@@ -199,7 +199,7 @@ bool NormalizePackageNames( TArray<FString> PackageNames, TArray<FString>& Packa
 
 * @return true if successful
 */
-bool SavePackageHelper(UPackage* Package, FString Filename, EObjectFlags KeepObjectFlags, FOutputDevice* ErrorDevice, ULinkerLoad* LinkerToConformAgainst, ESaveFlags SaveFlags)
+bool SavePackageHelper(UPackage* Package, FString Filename, EObjectFlags KeepObjectFlags, FOutputDevice* ErrorDevice, FLinkerLoad* LinkerToConformAgainst, ESaveFlags SaveFlags)
 {
 	// look for a world object in the package (if there is one, there's a map)
 	UWorld* World = UWorld::FindWorldInPackage(Package);
@@ -692,7 +692,7 @@ int32 ULoadPackageCommandlet::Main( const FString& Params )
 		if (bCheckForLegacyPackages)
 		{
 			BeginLoad();
-			ULinkerLoad* Linker = GetPackageLinker(NULL,*Filename,LOAD_NoVerify,NULL,NULL);
+			auto Linker = GetPackageLinker(NULL,*Filename,LOAD_NoVerify,NULL,NULL);
 			EndLoad();
 			MinVersion = FMath::Min<int32>(MinVersion, Linker->Summary.GetFileVersionUE4());
 		}
@@ -729,7 +729,7 @@ struct FExportInfo
 	FString PathName;
 	FString OuterPathName;
 
-	FExportInfo( ULinkerLoad* Linker, int32 InIndex )
+	FExportInfo( FLinkerLoad* Linker, int32 InIndex )
 	: Export(Linker->ExportMap[InIndex]), ExportIndex(InIndex)
 	, OuterPathName(TEXT("NULL"))
 	{
@@ -737,7 +737,7 @@ struct FExportInfo
 		SetOuterPathName(Linker);
 	}
 
-	void SetOuterPathName( ULinkerLoad* Linker )
+	void SetOuterPathName( FLinkerLoad* Linker )
 	{
 		if ( !Export.OuterIndex.IsNull() )
 		{
@@ -816,7 +816,7 @@ namespace
  *
  * @param	InLinker	if specified, changes this reporter's Linker before generating the report.
  */
-void FPkgInfoReporter_Log::GeneratePackageReport( ULinkerLoad* InLinker/*=NULL*/ )
+void FPkgInfoReporter_Log::GeneratePackageReport( FLinkerLoad* InLinker/*=NULL*/ )
 {
 	check(InLinker);
 
@@ -1394,7 +1394,7 @@ int32 UPkgInfoCommandlet::Main( const FString& Params )
 		}
 
 		BeginLoad();
-		ULinkerLoad* Linker = GetPackageLinker( NULL, *Filename, LOAD_NoVerify, NULL, NULL );
+		auto Linker = GetPackageLinker( NULL, *Filename, LOAD_NoVerify, NULL, NULL );
 		EndLoad();
 
 		if( Linker )

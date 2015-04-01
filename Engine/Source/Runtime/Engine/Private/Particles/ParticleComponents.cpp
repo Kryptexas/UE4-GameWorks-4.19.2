@@ -1126,7 +1126,7 @@ void UParticleEmitter::PostLoad()
 		{
 			LODLevel->ConditionalPostLoad();
 
-			ULinkerLoad* LODLevelLinker = LODLevel->GetLinker();
+			FLinkerLoad* LODLevelLinker = LODLevel->GetLinker();
 			if (LODLevel->SpawnModule == NULL)
 			{
 				// Force the conversion to SpawnModule

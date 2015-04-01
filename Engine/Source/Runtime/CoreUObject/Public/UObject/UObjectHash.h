@@ -83,5 +83,12 @@ void HashObject(class UObjectBase* Object);
  */
 void UnhashObject(class UObjectBase* Object);
 
+/**
+* Adds a uobject to the global array which is used for uobject iteration
+*
+* @param	Object Object to allocate an index for
+*/
+void AllocateUObjectIndexForCurrentThread(class UObjectBase* Object);
+
 #endif	// __UOBJECTHASH_H__
 

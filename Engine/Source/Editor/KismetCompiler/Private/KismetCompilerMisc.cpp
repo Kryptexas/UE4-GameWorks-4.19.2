@@ -328,7 +328,7 @@ void FKismetCompilerUtilities::ConsignToOblivion(UClass* OldClass, bool bForceNo
 		for( TFieldIterator<UFunction> ItFunc(OldClass,EFieldIteratorFlags::ExcludeSuper); ItFunc; ++ItFunc )
 		{
 			UFunction* CurrentFunc = *ItFunc;
-			ULinkerLoad::InvalidateExport(CurrentFunc);
+			FLinkerLoad::InvalidateExport(CurrentFunc);
 
 			for( TFieldIterator<UProperty> It(CurrentFunc,EFieldIteratorFlags::ExcludeSuper); It; ++It )
 			{
@@ -351,10 +351,10 @@ void FKismetCompilerUtilities::InvalidatePropertyExport(UProperty* PropertyToInv
 	UArrayProperty* ArrayProp = Cast<UArrayProperty>(PropertyToInvalidate);
  	if( ArrayProp && ArrayProp->Inner )
  	{
-		ULinkerLoad::InvalidateExport(ArrayProp->Inner);
+		FLinkerLoad::InvalidateExport(ArrayProp->Inner);
  	}
 
-	ULinkerLoad::InvalidateExport(PropertyToInvalidate);
+	FLinkerLoad::InvalidateExport(PropertyToInvalidate);
 }
 
 void FKismetCompilerUtilities::RemoveObjectRedirectorIfPresent(UObject* Package, const FString& NewName, UObject* ObjectBeingMovedIn)

@@ -5,6 +5,7 @@
 #include "SlateWrapperTypes.h"
 #include "WidgetTransform.h"
 #include "DynamicPropertyPath.h"
+#include "UObject/UObjectThreadContext.h"
 
 #include "Widget.generated.h"
 
@@ -373,7 +374,7 @@ public:
 #if WITH_EDITOR
 	FORCEINLINE bool CanSafelyRouteEvent()
 	{
-		return !( IsDesignTime() || GIsRoutingPostLoad || GIntraFrameDebuggingGameThread || HasAnyFlags(RF_Unreachable) );
+		return !(IsDesignTime() || GIntraFrameDebuggingGameThread || HasAnyFlags(RF_Unreachable) || FUObjectThreadContext::Get().IsRoutingPostLoad);
 	}
 #else
 	FORCEINLINE bool CanSafelyRouteEvent() { return true; }

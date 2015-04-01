@@ -130,6 +130,11 @@ public:
 		return InReference.Reference != nullptr;
 	}
 
+	FORCEINLINE bool IsValid() const
+	{
+		return Reference != nullptr;
+	}
+
 	void SafeRelease()
 	{
 		*this = nullptr;

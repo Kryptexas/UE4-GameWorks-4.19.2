@@ -31,7 +31,7 @@ struct FBlueprintSupport
 #if WITH_EDITOR
 /**
  * This is a helper struct that allows us to gather all previously unloaded class dependencies of a UClass
- * The first time we create a new UClass object in ULinkerLoad::CreateExport(), we register it as a dependency
+ * The first time we create a new UClass object in FLinkerLoad::CreateExport(), we register it as a dependency
  * master.  Any subsequent UClasses that are created for the first time during the preload of that class are
  * added to the list as potential cyclic referencers.  We then step over the list at the end of the load, and
  * recompile any classes that may depend on each other a second time to ensure that that functions and properties

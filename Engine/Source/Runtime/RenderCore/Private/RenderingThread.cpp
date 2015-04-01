@@ -698,7 +698,7 @@ bool FRenderCommandFence::IsFenceComplete() const
 	{
 		return true;
 	}
-	check(IsInGameThread());
+	check(IsInGameThread() || IsInAsyncLoadingThread());
 	CheckRenderingThreadHealth();
 	if (!CompletionEvent.GetReference() || CompletionEvent->IsComplete())
 	{

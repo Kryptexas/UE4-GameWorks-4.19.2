@@ -216,6 +216,8 @@ private:
 
 	/** Tracks loaded shader resources by id. */
 	static TMap<FShaderResourceId, FShaderResource*> ShaderResourceIdMap;
+	/** Critical section for ShaderResourceIdMap. */
+	static FCriticalSection ShaderResourceIdMapCritical;
 };
 
 /** Encapsulates information about a shader's serialization behavior, used to detect when C++ serialization changes to auto-recompile. */
@@ -738,7 +740,7 @@ public:
 	 * Finds a shader of this type by ID.
 	 * @return NULL if no shader with the specified ID was found.
 	 */
-	FShader* FindShaderById(const FShaderId& Id) const;
+	FShader* FindShaderById(const FShaderId& Id);
 
 	/** Constructs a new instance of the shader type for deserialization. */
 	FShader* ConstructForDeserialization() const;
@@ -805,9 +807,16 @@ public:
 		}
 	}
 
-	TMap<FShaderId,FShader*>& GetShaderIdMap()
+	void AddToShaderIdMap(FShaderId Id, FShader* Shader)
 	{
-		return ShaderIdMap;
+		FScopeLock MapLock(&ShaderIdMapCritical);
+		ShaderIdMap.Add(Id, Shader);
+	}
+
+	void RemoveFromShaderIdMap(FShaderId Id)
+	{
+		FScopeLock MapLock(&ShaderIdMapCritical);
+		ShaderIdMap.Remove(Id);
 	}
 
 	bool LimitShaderResourceToThisType()
@@ -833,6 +842,7 @@ private:
 
 	/** A map from shader ID to shader.  A shader will be removed from it when deleted, so this doesn't need to use a TRefCountPtr. */
 	TMap<FShaderId,FShader*> ShaderIdMap;
+	FCriticalSection ShaderIdMapCritical;
 
 	TLinkedList<FShaderType*> GlobalListLink;
 

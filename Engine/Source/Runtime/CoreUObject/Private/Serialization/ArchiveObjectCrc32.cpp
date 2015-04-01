@@ -40,12 +40,6 @@ FArchive& FArchiveObjectCrc32::operator<<(class UObject*& Object)
 {
 	FArchive& Ar = *this;
 
-	// No linker should be a part of the object's state
-	if (Object && Object->IsA<ULinker>())
-	{
-		Object = NULL;
-	}
-
 	if (!Object || !Object->IsIn(RootObject))
 	{
 		auto UniqueName = GetPathNameSafe(Object);

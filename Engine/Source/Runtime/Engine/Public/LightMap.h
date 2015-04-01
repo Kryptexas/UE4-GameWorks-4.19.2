@@ -84,12 +84,12 @@ public:
 	// Reference counting.
 	void AddRef()
 	{
-		check( IsInGameThread() );
+		check(IsInGameThread() || IsInAsyncLoadingThread());
 		NumRefs++;
 	}
 	void Release()
 	{
-		check( IsInGameThread() );
+		check(IsInGameThread() || IsInAsyncLoadingThread());
 		checkSlow(NumRefs > 0);
 		if(--NumRefs == 0)
 		{

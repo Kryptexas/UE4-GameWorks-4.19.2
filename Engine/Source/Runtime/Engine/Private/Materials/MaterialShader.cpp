@@ -1531,13 +1531,13 @@ FMaterialShaderMap::FMaterialShaderMap() :
 	bCompiledSuccessfully(true),
 	bIsPersistent(true)
 {
-	checkSlow(IsInGameThread());
+	checkSlow(IsInGameThread() || IsAsyncLoading());
 	AllMaterialShaderMaps.Add(this);
 }
 
 FMaterialShaderMap::~FMaterialShaderMap()
 { 
-	checkSlow(IsInGameThread());
+	checkSlow(IsInGameThread() || IsAsyncLoading());
 	check(bDeletedThroughDeferredCleanup);
 	check(!bRegistered);
 	AllMaterialShaderMaps.RemoveSwap(this);

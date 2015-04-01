@@ -745,7 +745,7 @@ void UWorld::LoadSecondaryLevels(bool bForce, TSet<FString>* CookedPackages)
 	// Only load secondary levels in the Editor, and not for commandlets.
 	if( (!IsRunningCommandlet() || bForce)
 	// Don't do any work for world info actors that are part of secondary levels being streamed in! 
-	&&	!GIsAsyncLoading )
+	&& !IsAsyncLoading())
 	{
 		for( int32 LevelIndex=0; LevelIndex<StreamingLevels.Num(); LevelIndex++ )
 		{

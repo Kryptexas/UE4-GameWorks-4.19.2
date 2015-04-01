@@ -163,7 +163,7 @@ void UUserDefinedStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, US
 
 void UUserDefinedStruct::RecursivelyPreload()
 {
-	ULinkerLoad* Linker = GetLinker();
+	FLinkerLoad* Linker = GetLinker();
 	if( Linker && (NULL == PropertyLink) )
 	{
 		TArray<UObject*> AllChildMembers;

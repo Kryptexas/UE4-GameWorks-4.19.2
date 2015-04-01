@@ -663,7 +663,7 @@ void UGameViewportClient::SetDropDetail(float DeltaSeconds)
 #if 0 
 		// so where we check to see if we are above some threshold and below 150 ms (any thing above that is usually blocking loading of some sort)
 		// also we don't want to do the auto trace when we are blocking on async loading
-		if( ( 0.070 < FrameTime ) && ( FrameTime < 0.150 ) && GIsAsyncLoading == false && GetWorld()->bRequestedBlockOnAsyncLoading == false && (GetWorld()->GetTimeSeconds() > 30.0f )  )
+		if ((0.070 < FrameTime) && (FrameTime < 0.150) && IsAsyncLoading() == false && GetWorld()->bRequestedBlockOnAsyncLoading == false && (GetWorld()->GetTimeSeconds() > 30.0f))
 		{
 			// now check to see if we have done a trace in the last 30 seconds otherwise we will just trace ourselves to death
 			static float LastTraceTime = -9999.0f;
@@ -2954,7 +2954,7 @@ bool UGameViewportClient::HandleDisplayAllCommand( const TCHAR* Cmd, FOutputDevi
 					// so then we only have to iterate over dynamic things each frame
 					for (TObjectIterator<UObject> It; It; ++It)
 					{
-						if (!GUObjectArray.IsDisregardForGC(*It))
+						if (!GetUObjectArray().IsDisregardForGC(*It))
 						{
 							break;
 						}
@@ -3001,7 +3001,7 @@ bool UGameViewportClient::HandleDisplayAllLocationCommand( const TCHAR* Cmd, FOu
 			// so then we only have to iterate over dynamic things each frame
 			for (TObjectIterator<UObject> It(true); It; ++It)
 			{
-				if (!GUObjectArray.IsDisregardForGC(*It))
+				if (!GetUObjectArray().IsDisregardForGC(*It))
 				{
 					break;
 				}
@@ -3039,7 +3039,7 @@ bool UGameViewportClient::HandleDisplayAllRotationCommand( const TCHAR* Cmd, FOu
 			// so then we only have to iterate over dynamic things each frame
 			for (TObjectIterator<UObject> It(true); It; ++It)
 			{
-				if (!GUObjectArray.IsDisregardForGC(*It))
+				if (!GetUObjectArray().IsDisregardForGC(*It))
 				{
 					break;
 				}
