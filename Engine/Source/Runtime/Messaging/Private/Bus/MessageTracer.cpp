@@ -117,6 +117,7 @@ void FMessageTracer::TraceDispatchedMessage( const IMessageContextRef& Context, 
 			DispatchState->DispatchLatency = Timestamp - MessageInfo->TimeSent;
 			DispatchState->DispatchType = Async ? EMessageTracerDispatchTypes::TaskGraph : EMessageTracerDispatchTypes::Direct;
 			DispatchState->EndpointInfo = EndpointInfo;
+			DispatchState->RecipientThread = Recipient->GetRecipientThread();
 			DispatchState->TimeDispatched = Timestamp;
 			DispatchState->TimeHandled = 0.0;
 
