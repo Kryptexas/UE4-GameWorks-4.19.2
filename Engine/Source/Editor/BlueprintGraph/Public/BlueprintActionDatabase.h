@@ -96,8 +96,9 @@ public:
 	 * won't be rebuilt, unless RefreshAssetActions() is explicitly called after.
 	 * 
 	 * @param  AssetObject	
+	 * @return True if an entry was found and removed.
 	 */
-	void ClearAssetActions(UObject* const AssetObject);
+	bool ClearAssetActions(UObject* const AssetObject);
 	
 	/**
 	 * Finds the database entry for the specified unloaded asset and wipes it.
