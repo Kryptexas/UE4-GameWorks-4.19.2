@@ -2,7 +2,7 @@
 
 #include "UMGPrivatePCH.h"
 
-#include "RichTextBlock.h"
+#include "RichTextBlockDecorator.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
