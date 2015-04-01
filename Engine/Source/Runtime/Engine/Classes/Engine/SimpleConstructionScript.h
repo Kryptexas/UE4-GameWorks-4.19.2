@@ -90,6 +90,12 @@ private:
 	TArray<USCS_Node*> ActorComponentNodes_DEPRECATED;
 
 #if WITH_EDITOR
+	/** Helper function to find the current scene root component template and/or owning SCS node */
+	USceneComponent* GetSceneRootComponentTemplate(USCS_Node** OutSCSNode = nullptr) const;
+
+	/** Helper function to find an appropriate child node index that can be promoted to the parent's level */
+	int32 FindPromotableChildNodeIndex(USCS_Node* InParentNode) const;
+
 	/** Helper function for generating list of currently used names */
 	void GenerateListOfExistingNames(TArray<FName>& CurrentNames) const;
 
