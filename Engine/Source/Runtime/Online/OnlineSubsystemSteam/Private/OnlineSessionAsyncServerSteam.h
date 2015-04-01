@@ -303,17 +303,17 @@ public:
 	/**
 	 * Called by the SteamAPI when a server has successfully responded
 	 */
-	void ServerResponded(HServerListRequest Request, int iServer);
+	void ServerResponded(HServerListRequest Request, int iServer) override;
 
 	/**
 	 * Called by the SteamAPI when a server has failed to respond
 	 */
-	void ServerFailedToRespond(HServerListRequest Request, int iServer);
+	void ServerFailedToRespond(HServerListRequest Request, int iServer) override;
 
 	/**
 	 * Called by the SteamAPI when all server requests for the list have completed
 	 */
-	void RefreshComplete(HServerListRequest Request, EMatchMakingServerResponse Response);
+	void RefreshComplete(HServerListRequest Request, EMatchMakingServerResponse Response) override;
 
 	/**
 	 * Give the async task a chance to marshal its data back to the game thread

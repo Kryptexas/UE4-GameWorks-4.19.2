@@ -59,6 +59,6 @@ class UNREALED_API UFbxAnimSequenceImportData : public UFbxAssetImportData
 	/** Gets or creates fbx import data for the specified anim sequence */
 	static UFbxAnimSequenceImportData* GetImportDataForAnimSequence(UAnimSequence* AnimSequence, UFbxAnimSequenceImportData* TemplateForCreation);
 
-	virtual bool CanEditChange(const UProperty* InProperty) const;
+	virtual bool CanEditChange(const UProperty* InProperty) const override;
 
 };

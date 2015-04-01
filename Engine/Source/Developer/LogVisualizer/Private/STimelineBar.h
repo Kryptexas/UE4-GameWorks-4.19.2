@@ -20,11 +20,11 @@ public:
 	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 
-	virtual bool SupportsKeyboardFocus() const { return true;  }
+	virtual bool SupportsKeyboardFocus() const override { return true;  }
 
 	void Construct(const FArguments& InArgs, TSharedPtr<FVisualLoggerTimeSliderController> InTimeSliderController, TSharedPtr<class STimeline> TimelineOwner);
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
-	FVector2D ComputeDesiredSize(float) const;
+	FVector2D ComputeDesiredSize(float) const override;
 	void SnapScrubPosition(float ScrubPosition);
 	void SnapScrubPosition(int32 NewItemIndex);
 	int32 GetClosestItem(float Time) const;

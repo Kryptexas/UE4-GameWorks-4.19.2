@@ -2249,8 +2249,8 @@ struct ENGINE_API FPointDamageEvent : public FDamageEvent
 	/** ID for this class. NOTE this must be unique for all damage events. */
 	static const int32 ClassID = 1;
 	
-	virtual int32 GetTypeID() const { return FPointDamageEvent::ClassID; };
-	virtual bool IsOfType(int32 InID) const { return (FPointDamageEvent::ClassID == InID) || FDamageEvent::IsOfType(InID); };
+	virtual int32 GetTypeID() const override { return FPointDamageEvent::ClassID; };
+	virtual bool IsOfType(int32 InID) const override { return (FPointDamageEvent::ClassID == InID) || FDamageEvent::IsOfType(InID); };
 
 	/** Simple API for common cases where we are happy to assume a single hit is expected, even though damage event may have multiple hits. */
 	virtual void GetBestHitInfo(AActor const* HitActor, AActor const* HitInstigator, struct FHitResult& OutHitInfo, FVector& OutImpulseDir) const override;
@@ -2318,8 +2318,8 @@ struct ENGINE_API FRadialDamageEvent : public FDamageEvent
 	/** ID for this class. NOTE this must be unique for all damage events. */
 	static const int32 ClassID = 2;
 
-	virtual int32 GetTypeID() const { return FRadialDamageEvent::ClassID; };
-	virtual bool IsOfType(int32 InID) const { return (FRadialDamageEvent::ClassID == InID) || FDamageEvent::IsOfType(InID); };
+	virtual int32 GetTypeID() const override { return FRadialDamageEvent::ClassID; };
+	virtual bool IsOfType(int32 InID) const override { return (FRadialDamageEvent::ClassID == InID) || FDamageEvent::IsOfType(InID); };
 
 	/** Simple API for common cases where we are happy to assume a single hit is expected, even though damage event may have multiple hits. */
 	virtual void GetBestHitInfo(AActor const* HitActor, AActor const* HitInstigator, struct FHitResult& OutHitInfo, FVector& OutImpulseDir) const override;

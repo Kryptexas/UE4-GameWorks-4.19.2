@@ -67,8 +67,8 @@ public:
 	 */
 	void RenderPrePassViewParallel(const FViewInfo& View, FRHICommandList& ParentCmdList, bool& OutDirty);
 
-    /** Renders the basepass for the static data of a given View. */
-    bool RenderBasePassStaticData(FRHICommandList& RHICmdList, FViewInfo& View);
+	/** Renders the basepass for the static data of a given View. */
+	bool RenderBasePassStaticData(FRHICommandList& RHICmdList, FViewInfo& View);
 	bool RenderBasePassStaticDataMasked(FRHICommandList& RHICmdList, FViewInfo& View);
 	bool RenderBasePassStaticDataDefault(FRHICommandList& RHICmdList, FViewInfo& View);
 
@@ -86,7 +86,7 @@ public:
 	/** Renders the basepass for the dynamic data of a given View, in parallel. */
 	void RenderBasePassDynamicDataParallel(FParallelCommandListSet& ParallelCommandListSet);
 
-    /** Renders the basepass for a given View, in parallel */
+	/** Renders the basepass for a given View, in parallel */
 	void RenderBasePassViewParallel(FViewInfo& View, FRHICommandList& ParentCmdList, bool& OutDirty);
 
 	/** Renders the basepass for a given View. */

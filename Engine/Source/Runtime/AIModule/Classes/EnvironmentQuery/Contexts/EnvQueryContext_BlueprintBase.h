@@ -26,7 +26,7 @@ class UEnvQueryContext_BlueprintBase : public UEnvQueryContext
 	ECallMode CallMode;
 
 	// We need to implement GetWorld() so that blueprint functions which use a hidden WorldContextObject* will work properly.
-	virtual UWorld* GetWorld() const;
+	virtual UWorld* GetWorld() const override;
 
 	virtual void ProvideContext(FEnvQueryInstance& QueryInstance, FEnvQueryContextData& ContextData) const override;
 

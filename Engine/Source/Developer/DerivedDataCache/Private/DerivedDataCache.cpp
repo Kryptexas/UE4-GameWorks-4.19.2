@@ -137,7 +137,7 @@ public:
 		PendingTasks.Empty();
 	}
 
-	virtual bool GetSynchronous(FDerivedDataPluginInterface* DataDeriver, TArray<uint8>& OutData)
+	virtual bool GetSynchronous(FDerivedDataPluginInterface* DataDeriver, TArray<uint8>& OutData) override
 	{
 		check(DataDeriver);
 		FString CacheKey = FDerivedDataCache::BuildCacheKey(DataDeriver);
@@ -149,7 +149,7 @@ public:
 		return PendingTask.GetTask().bSuccess;
 	}
 
-	virtual uint32 GetAsynchronous(FDerivedDataPluginInterface* DataDeriver)
+	virtual uint32 GetAsynchronous(FDerivedDataPluginInterface* DataDeriver) override
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 		uint32 Handle = NextHandle();

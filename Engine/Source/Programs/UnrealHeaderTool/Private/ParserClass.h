@@ -19,14 +19,6 @@ class FClass : public UClass
 public:
 	FClass();
 
-	/**
-	 * Tests if this class inherits another.
-	 *
-	 * @param SuspectBase The class to test if it's a base of this.
-	 * @return true if the SuspectBase is a base of this, false otherwise.
-	 */
-	bool Inherits(const FClass* SuspectBase) const;
-
 	/** 
 	 * Returns the name of the given class with a valid prefix.
 	 *

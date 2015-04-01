@@ -296,9 +296,9 @@ public:
 	// FSCSEditorTreeNode interface
 	virtual FName GetVariableName() const override;
 	virtual FString GetDisplayString() const override;
-	virtual bool CanRename() const { return !IsInherited() && !IsDefaultSceneRoot(); }
-	virtual bool CanDelete() const { return !IsInherited() && !IsDefaultSceneRoot(); }
-	virtual bool CanReparent() const { return !IsInherited() && !IsDefaultSceneRoot() && IsSceneComponent(); }
+	virtual bool CanRename() const override { return !IsInherited() && !IsDefaultSceneRoot(); }
+	virtual bool CanDelete() const override { return !IsInherited() && !IsDefaultSceneRoot(); }
+	virtual bool CanReparent() const override { return !IsInherited() && !IsDefaultSceneRoot() && IsSceneComponent(); }
 	// End of FSCSEditorTreeNode interface
 };
 
@@ -324,7 +324,7 @@ public:
 	virtual bool IsInherited() const override { return true; }
 	virtual bool IsUserInstanced() const override { return false; }
 	virtual bool IsDefaultSceneRoot() const override;
-	virtual bool CanEditDefaults() const;
+	virtual bool CanEditDefaults() const override;
 	//virtual FName GetVariableName() const override;
 	//virtual FString GetDisplayString() const override;
 	virtual FText GetDisplayName() const override;
@@ -357,7 +357,7 @@ public:
 	virtual bool IsInstanced() const override { return true; }
 	virtual bool IsUserInstanced() const override { return true; }
 	virtual bool IsDefaultSceneRoot() const override;
-	virtual bool CanEditDefaults() const { return true; }
+	virtual bool CanEditDefaults() const override { return true; }
 	virtual FName GetVariableName() const override { return NAME_None; }
 	virtual FString GetDisplayString() const override;
 	virtual FText GetDisplayName() const override;

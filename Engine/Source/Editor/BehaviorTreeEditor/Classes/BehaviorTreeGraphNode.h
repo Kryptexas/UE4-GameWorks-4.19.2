@@ -31,7 +31,7 @@ class UBehaviorTreeGraphNode : public UAIGraphNode
 	virtual void InitializeInstance() override;
 	virtual void OnSubNodeAdded(UAIGraphNode* SubNode) override;
 	virtual void OnSubNodeRemoved(UAIGraphNode* SubNode) override;
-	virtual void RemoveAllSubNodes();
+	virtual void RemoveAllSubNodes() override;
 	virtual int32 FindSubNodeDropIndex(UAIGraphNode* SubNode) const override;
 	virtual void InsertSubNodeAt(UAIGraphNode* SubNode, int32 DropIndex) override;
 

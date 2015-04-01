@@ -63,7 +63,7 @@ public:
 	virtual void ActorSelectionChangeNotify() override;
 	virtual void MapChangeNotify() override;
 	virtual void SelectionChanged() override;
-	virtual FVector GetWidgetLocation() const;
+	virtual FVector GetWidgetLocation() const override;
 	virtual bool IsCompatibleWith(FEditorModeID OtherModeID) const override;
 	// End of FEdMode interface
 
@@ -167,9 +167,9 @@ public:
 	 */
 	virtual void SendToSource();
 	virtual bool FinalizeSourceData();
-	virtual void PostUndo();
+	virtual void PostUndo() override;
 	virtual bool ExecDelete();
-	virtual void UpdateInternalData();
+	virtual void UpdateInternalData() override;
 
 	void RenderPoly( const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI );
 	void RenderEdge( const FSceneView* View, FPrimitiveDrawInterface* PDI );
@@ -212,7 +212,7 @@ class FModeTool_GeometryModify : public FModeTool
 public:
 	FModeTool_GeometryModify();
 
-	virtual FString GetName() const		{ return TEXT("Modifier"); }
+	virtual FString GetName() const override { return TEXT("Modifier"); }
 
 	void SetCurrentModifier( UGeomModifier* InModifier );
 	UGeomModifier* GetCurrentModifier();
@@ -222,17 +222,17 @@ public:
 	/**
 	 * @return		true if the delta was handled by this editor mode tool.
 	 */
-	virtual bool InputDelta(FEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale);
+	virtual bool InputDelta(FEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale) override;
 
-	virtual bool StartModify();
-	virtual bool EndModify();
+	virtual bool StartModify() override;
+	virtual bool EndModify() override;
 
-	virtual void StartTrans();
-	virtual void EndTrans();
+	virtual void StartTrans() override;
+	virtual void EndTrans() override;
 
-	virtual void SelectNone();
-	virtual bool BoxSelect( FBox& InBox, bool InSelect = true );
-	virtual bool FrustumSelect( const FConvexVolume& InFrustum, bool InSelect = true );
+	virtual void SelectNone() override;
+	virtual bool BoxSelect( FBox& InBox, bool InSelect = true ) override;
+	virtual bool FrustumSelect( const FConvexVolume& InFrustum, bool InSelect = true ) override;
 
 	/** @name Modifier iterators */
 	//@{
@@ -247,13 +247,13 @@ public:
 	const UGeomModifier* GetModifier(int32 Index) const		{ return Modifiers[ Index ]; }
 	//@}
 
-	virtual void Tick(FEditorViewportClient* ViewportClient,float DeltaTime);
+	virtual void Tick(FEditorViewportClient* ViewportClient,float DeltaTime) override;
 
 	/** @return		true if the key was handled by this editor mode tool. */
 	virtual bool InputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) override;
 
-	virtual void Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawInterface* PDI);
-	virtual void DrawHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas);
+	virtual void Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawInterface* PDI) override;
+	virtual void DrawHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas) override;
 	
 	/**
 	 * Store the current geom selections for all geom objects

@@ -16,7 +16,7 @@ public:
 	*
 	* @return The tool tip widget.
 	*/
-	virtual TSharedRef<class SWidget> AsWidget()
+	virtual TSharedRef<class SWidget> AsWidget() override
 	{
 		return GetContentWidget();
 	}
@@ -26,7 +26,7 @@ public:
 	*
 	* @return The content widget.
 	*/
-	virtual TSharedRef<SWidget> GetContentWidget()
+	virtual TSharedRef<SWidget> GetContentWidget() override
 	{
 		if ( CachedToolTip.IsValid() )
 		{
@@ -48,7 +48,7 @@ public:
 	*
 	* @param InContentWidget The new content widget to set.
 	*/
-	virtual void SetContentWidget(const TSharedRef<SWidget>& InContentWidget)
+	virtual void SetContentWidget(const TSharedRef<SWidget>& InContentWidget) override
 	{
 		CachedToolTip = InContentWidget;
 	}
@@ -58,7 +58,7 @@ public:
 	*
 	* @return true if the tool tip has no content to display, false otherwise.
 	*/
-	virtual bool IsEmpty() const
+	virtual bool IsEmpty() const override
 	{
 		return !ToolTipWidgetDelegate.IsBound();
 	}
@@ -68,7 +68,7 @@ public:
 	*
 	* @return true if it is an interactive tool tip, false otherwise.
 	*/
-	virtual bool IsInteractive() const
+	virtual bool IsInteractive() const override
 	{
 		return false;
 	}

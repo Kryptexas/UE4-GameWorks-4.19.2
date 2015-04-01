@@ -324,7 +324,7 @@ public:
 
 	// FRenderResource interface.
 	virtual void InitRHI() override;
-	virtual FString GetFriendlyName() const { return TEXT("PositionOnly Static-mesh vertices"); }
+	virtual FString GetFriendlyName() const override { return TEXT("PositionOnly Static-mesh vertices"); }
 
 private:
 
@@ -501,7 +501,7 @@ public:
 
 	// FRenderResource interface.
 	virtual void InitRHI() override;
-	virtual FString GetFriendlyName() const { return TEXT("Static-mesh vertices"); }
+	virtual FString GetFriendlyName() const override { return TEXT("Static-mesh vertices"); }
 
 private:
 

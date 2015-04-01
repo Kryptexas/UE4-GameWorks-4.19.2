@@ -319,13 +319,13 @@ public:
 	}
 
 
-	void RegisterDebugDrawDelgate()
+	void RegisterDebugDrawDelgate() override
 	{
 		DebugTextDrawingDelegate = FDebugDrawDelegate::CreateRaw(this, &FRecastRenderingSceneProxy::DrawDebugLabels);
 		DebugTextDrawingDelegateHandle = UDebugDrawService::Register(TEXT("Navigation"), DebugTextDrawingDelegate);
 	}
 
-	void UnregisterDebugDrawDelgate()
+	void UnregisterDebugDrawDelgate() override
 	{
 		if (DebugTextDrawingDelegate.IsBound())
 		{
@@ -536,7 +536,7 @@ public:
 		return View->ViewFrustum.IntersectBox(Location, FVector::ZeroVector);
 	}
 
-	void DrawDebugLabels(UCanvas* Canvas, APlayerController*)
+	void DrawDebugLabels(UCanvas* Canvas, APlayerController*) override
 	{
 		const bool bVisible = (Canvas && Canvas->SceneView && !!Canvas->SceneView->Family->EngineShowFlags.Navigation) || bForceRendering;
 		if (ProxyData.bNeedsNewData == true || ProxyData.bEnableDrawing == false || !bVisible || ProxyData.DebugLabels.Num() == 0)
@@ -561,7 +561,7 @@ public:
 		Canvas->SetDrawColor(OldDrawColor);
 	}
 
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
 	{
 		const bool bVisible = !!View->Family->EngineShowFlags.Navigation || bForceRendering;
 		FPrimitiveViewRelevance Result;
@@ -571,7 +571,7 @@ public:
 		return Result;
 	}
 
-	virtual uint32 GetMemoryFootprint( void ) const { return sizeof( *this ) + GetAllocatedSize(); }
+	virtual uint32 GetMemoryFootprint( void ) const override { return sizeof( *this ) + GetAllocatedSize(); }
 	uint32 GetAllocatedSize( void ) const 
 	{ 
 		return FDebugRenderSceneProxy::GetAllocatedSize() + 

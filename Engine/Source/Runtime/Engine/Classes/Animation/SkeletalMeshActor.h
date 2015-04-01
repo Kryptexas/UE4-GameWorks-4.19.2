@@ -61,7 +61,7 @@ public:
 
 	// Begin UObject interface
 protected:
-	virtual FString GetDetailedInfoInternal() const;
+	virtual FString GetDetailedInfoInternal() const override;
 public:
 	// End UObject interface
 

@@ -331,7 +331,7 @@ public:
 	/** Default constructor. */
 	FTexture()
 	: TextureRHI(NULL)
-    , SamplerStateRHI(NULL)
+	, SamplerStateRHI(NULL)
 	, DeferredPassSamplerStateRHI(NULL)
 	, LastRenderTime(-FLT_MAX)
 	, bGreyScaleFormat(false)
@@ -360,7 +360,7 @@ public:
 		SamplerStateRHI.SafeRelease();
 		DeferredPassSamplerStateRHI.SafeRelease();
 	}
-	virtual FString GetFriendlyName() const { return TEXT("FTexture"); }
+	virtual FString GetFriendlyName() const override { return TEXT("FTexture"); }
 };
 
 /** A texture reference resource. */
@@ -420,7 +420,7 @@ public:
 	{
 		VertexBufferRHI.SafeRelease();
 	}
-	virtual FString GetFriendlyName() const { return TEXT("FVertexBuffer"); }
+	virtual FString GetFriendlyName() const override { return TEXT("FVertexBuffer"); }
 };
 
 /**
@@ -461,7 +461,7 @@ public:
 	{
 		IndexBufferRHI.SafeRelease();
 	}
-	virtual FString GetFriendlyName() const { return TEXT("FIndexBuffer"); }
+	virtual FString GetFriendlyName() const override { return TEXT("FIndexBuffer"); }
 };
 
 /**

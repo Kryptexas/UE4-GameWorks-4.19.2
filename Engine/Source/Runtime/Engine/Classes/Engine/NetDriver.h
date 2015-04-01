@@ -512,7 +512,7 @@ public:
 	/**
 	 * Get the world associated with this net driver
 	 */
-	class UWorld* GetWorld() const { return World; }
+	class UWorld* GetWorld() const override { return World; }
 
 	/** Called during seamless travel to clear all state that was tied to the previous game world (actor lists, etc) */
 	ENGINE_API virtual void ResetGameWorldState();

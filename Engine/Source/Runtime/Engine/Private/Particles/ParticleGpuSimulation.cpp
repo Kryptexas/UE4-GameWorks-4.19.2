@@ -494,7 +494,7 @@ public:
 
 	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const override;
 
-	virtual uint32 GetSize() const { return sizeof(*this); }
+	virtual uint32 GetSize() const override { return sizeof(*this); }
 
 private:
 
@@ -2544,7 +2544,7 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 	/**
 	 * Called to create render thread resources.
 	 */
-	virtual void UpdateRenderThreadResourcesEmitter(const FParticleSystemSceneProxy* InOwnerProxy)
+	virtual void UpdateRenderThreadResourcesEmitter(const FParticleSystemSceneProxy* InOwnerProxy) override
 	{
 		check(Simulation);
 
@@ -2589,7 +2589,7 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 	/**
 	 * Called to release render thread resources.
 	 */
-	virtual void ReleaseRenderThreadResources(const FParticleSystemSceneProxy* InOwnerProxy)
+	virtual void ReleaseRenderThreadResources(const FParticleSystemSceneProxy* InOwnerProxy) override
 	{		
 	}
 
@@ -2709,7 +2709,7 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 	/**
 	 * Retrieves the material render proxy with which to render sprites.
 	 */
-	virtual const FMaterialRenderProxy* GetMaterialRenderProxy(bool bSelected)
+	virtual const FMaterialRenderProxy* GetMaterialRenderProxy(bool bSelected) override
 	{
 		check( Material );
 		return Material->GetRenderProxy( bSelected );
@@ -2718,7 +2718,7 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 	/**
 	 * Emitter replay data. A dummy value is returned as data is stored on the GPU.
 	 */
-	virtual const FDynamicEmitterReplayDataBase& GetSource() const
+	virtual const FDynamicEmitterReplayDataBase& GetSource() const override
 	{
 		static FDynamicEmitterReplayDataBase DummyData;
 		return DummyData;
@@ -2855,7 +2855,7 @@ public:
 	 *
 	 *	@return	bool		true if GetDynamicData should continue, false if it should return NULL
 	 */
-	virtual bool IsDynamicDataRequired(UParticleLODLevel* CurrentLODLevel)
+	virtual bool IsDynamicDataRequired(UParticleLODLevel* CurrentLODLevel) override
 	{
 		bool bShouldRender = (ActiveParticles >= 0 || TilesToClear.Num() || NewParticles.Num());
 		bool bCanRender = (FXSystem != NULL) && (Component != NULL) && (Component->FXSystem == FXSystem);
@@ -2865,7 +2865,7 @@ public:
 	/**
 	 *	Retrieves the dynamic data for the emitter
 	 */
-	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected)
+	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected) override
 	{
 		check(Component);
 		check(SpriteTemplate);
@@ -2992,7 +2992,7 @@ public:
 	/**
 	 * Initializes the emitter.
 	 */
-	virtual void Init()
+	virtual void Init() override
 	{
 		FParticleEmitterInstance::Init();
 
@@ -3065,7 +3065,7 @@ public:
 	/**
 	 * Simulates the emitter forward by the specified amount of time.
 	 */
-	virtual void Tick(float DeltaSeconds, bool bSuppressSpawning)
+	virtual void Tick(float DeltaSeconds, bool bSuppressSpawning) override
 	{
 		SCOPE_CYCLE_COUNTER(STAT_GPUSpriteTickTime);
 
@@ -3253,7 +3253,7 @@ public:
 	/**
 	 * Returns true if the emitter has completed.
 	 */
-	virtual bool HasCompleted()
+	virtual bool HasCompleted() override
 	{
 		if ( AllowedLoopCount == 0 || LoopCount < AllowedLoopCount )
 		{
@@ -3268,7 +3268,7 @@ public:
 	 *		requires syncing with the GPU to read back the emitter's bounds.
 	 *		This function should NEVER be called at runtime!
 	 */
-	virtual void ForceUpdateBoundingBox()
+	virtual void ForceUpdateBoundingBox() override
 	{
 		if ( !GIsEditor )
 		{
@@ -3670,19 +3670,19 @@ private:
 		LocalVectorFieldRotation += EmitterInfo.LocalVectorField.RotationRate * DeltaSeconds;
 	}
 
-	virtual void UpdateBoundingBox(float DeltaSeconds)
+	virtual void UpdateBoundingBox(float DeltaSeconds) override
 	{
 		// Setup a bogus bounding box at the origin. GPU emitters must use fixed bounds.
 		FVector Origin = Component ? Component->GetComponentToWorld().GetTranslation() : FVector::ZeroVector;
 		ParticleBoundingBox = FBox::BuildAABB(Origin, FVector(1.0f));
 	}
 
-	virtual bool Resize(int32 NewMaxActiveParticles, bool bSetMaxActiveCount = true)
+	virtual bool Resize(int32 NewMaxActiveParticles, bool bSetMaxActiveCount = true) override
 	{
 		return false;
 	}
 
-	virtual float Tick_SpawnParticles(float DeltaTime, UParticleLODLevel* CurrentLODLevel, bool bSuppressSpawning, bool bFirstTime)
+	virtual float Tick_SpawnParticles(float DeltaTime, UParticleLODLevel* CurrentLODLevel, bool bSuppressSpawning, bool bFirstTime) override
 	{
 		return 0.0f;
 	}
@@ -3691,7 +3691,7 @@ private:
 	{
 	}
 
-	virtual void Tick_ModuleUpdate(float DeltaTime, UParticleLODLevel* CurrentLODLevel)
+	virtual void Tick_ModuleUpdate(float DeltaTime, UParticleLODLevel* CurrentLODLevel) override
 	{
 		// We cannot update particles that have spawned, but modules such as BoneSocket and Skel Vert/Surface may need to perform calculations each tick.
 		UParticleLODLevel* HighestLODLevel = SpriteTemplate->LODLevels[0];
@@ -3707,11 +3707,11 @@ private:
 		}
 	}
 
-	virtual void Tick_ModulePostUpdate(float DeltaTime, UParticleLODLevel* CurrentLODLevel)
+	virtual void Tick_ModulePostUpdate(float DeltaTime, UParticleLODLevel* CurrentLODLevel) override
 	{
 	}
 
-	virtual void Tick_ModuleFinalUpdate(float DeltaTime, UParticleLODLevel* CurrentLODLevel)
+	virtual void Tick_ModuleFinalUpdate(float DeltaTime, UParticleLODLevel* CurrentLODLevel) override
 	{
 		// We cannot update particles that have spawned, but modules such as BoneSocket and Skel Vert/Surface may need to perform calculations each tick.
 		UParticleLODLevel* HighestLODLevel = SpriteTemplate->LODLevels[0];
@@ -3727,28 +3727,28 @@ private:
 		}
 	}
 
-	virtual void SetCurrentLODIndex(int32 InLODIndex, bool bInFullyProcess)
+	virtual void SetCurrentLODIndex(int32 InLODIndex, bool bInFullyProcess) override
 	{
 		bool bDifferent = (InLODIndex != CurrentLODLevelIndex);
 		FParticleEmitterInstance::SetCurrentLODIndex(InLODIndex, bInFullyProcess);
 	}
 
-	virtual uint32 RequiredBytes()
+	virtual uint32 RequiredBytes() override
 	{
 		return 0;
 	}
 
-	virtual uint8* GetTypeDataModuleInstanceData()
+	virtual uint8* GetTypeDataModuleInstanceData() override
 	{
 		return NULL;
 	}
 
-	virtual uint32 CalculateParticleStride(uint32 ParticleSize)
+	virtual uint32 CalculateParticleStride(uint32 ParticleSize) override
 	{
 		return ParticleSize;
 	}
 
-	virtual void ResetParticleParameters(float DeltaTime)
+	virtual void ResetParticleParameters(float DeltaTime) override
 	{
 	}
 
@@ -3758,21 +3758,21 @@ private:
 	{
 	}
 
-	virtual void UpdateOrbitData(float DeltaTime)
+	virtual void UpdateOrbitData(float DeltaTime) override
 	{
 
 	}
 
-	virtual void ParticlePrefetch()
+	virtual void ParticlePrefetch() override
 	{
 	}
 
-	virtual float Spawn(float DeltaTime)
+	virtual float Spawn(float DeltaTime) override
 	{
 		return 0.0f;
 	}
 
-	virtual void ForceSpawn(float DeltaTime, int32 InSpawnCount, int32 InBurstCount, FVector& InLocation, FVector& InVelocity)
+	virtual void ForceSpawn(float DeltaTime, int32 InSpawnCount, int32 InBurstCount, FVector& InLocation, FVector& InVelocity) override
 	{
 		const bool bUseLocalSpace = GetCurrentLODLevelChecked()->RequiredModule->bUseLocalSpace;
 		FVector SpawnLocation = bUseLocalSpace ? FVector::ZeroVector : InLocation;
@@ -3798,19 +3798,19 @@ private:
 		}
 	}
 
-	virtual void PreSpawn(FBaseParticle* Particle, const FVector& InitialLocation, const FVector& InitialVelocity)
+	virtual void PreSpawn(FBaseParticle* Particle, const FVector& InitialLocation, const FVector& InitialVelocity) override
 	{
 	}
 
-	virtual void PostSpawn(FBaseParticle* Particle, float InterpolationPercentage, float SpawnTime)
+	virtual void PostSpawn(FBaseParticle* Particle, float InterpolationPercentage, float SpawnTime) override
 	{
 	}
 
-	virtual void KillParticles()
+	virtual void KillParticles() override
 	{
 	}
 
-	virtual void KillParticle(int32 Index)
+	virtual void KillParticle(int32 Index) override
 	{
 	}
 
@@ -3818,19 +3818,19 @@ private:
 	{
 	}
 
-	virtual FBaseParticle* GetParticle(int32 Index)
+	virtual FBaseParticle* GetParticle(int32 Index) override
 	{
 		return NULL;
 	}
 
-	virtual FBaseParticle* GetParticleDirect(int32 InDirectIndex)
+	virtual FBaseParticle* GetParticleDirect(int32 InDirectIndex) override
 	{
 		return NULL;
 	}
 
 protected:
 
-	virtual bool FillReplayData(FDynamicEmitterReplayDataBase& OutData)
+	virtual bool FillReplayData(FDynamicEmitterReplayDataBase& OutData) override
 	{
 		return true;
 	}

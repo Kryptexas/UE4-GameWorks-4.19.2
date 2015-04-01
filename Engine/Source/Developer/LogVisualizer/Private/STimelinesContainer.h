@@ -24,7 +24,7 @@ public:
 
 	void OnTimelineSelected(TSharedPtr<class STimelinesBar> Widget);
 	void ChangeSelection(class TSharedPtr<class STimeline>, const FPointerEvent& MouseEvent);
-	virtual bool SupportsKeyboardFocus() const { return true; }
+	virtual bool SupportsKeyboardFocus() const override { return true; }
 
 	void OnNewLogEntry(const FVisualLogDevice::FVisualLogEntryItem& Entry);
 	void OnFiltersChanged();

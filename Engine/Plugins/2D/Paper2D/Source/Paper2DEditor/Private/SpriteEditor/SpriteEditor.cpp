@@ -77,7 +77,7 @@ private:
 
 private:
 	// Returns true if the viewport is visible
-	bool IsVisible() const;
+	bool IsVisible() const override;
 };
 
 void SSpriteEditorViewport::Construct(const FArguments& InArgs, TSharedPtr<FSpriteEditor> InSpriteEditor)

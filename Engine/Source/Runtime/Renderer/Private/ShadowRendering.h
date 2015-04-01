@@ -1183,7 +1183,7 @@ public:
 	 * Serialize the parameters for this shader
 	 * @param Ar - archive to serialize to
 	 */
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FShadowProjectionPixelShaderInterface::Serialize(Ar);
 		Ar << ProjectionParameters;
@@ -1291,7 +1291,7 @@ public:
 	 * Serialize the parameters for this shader
 	 * @param Ar - archive to serialize to
 	 */
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = TShadowProjectionPS<Quality>::Serialize(Ar);
 		Ar << TranslucencyProjectionParameters;
@@ -1422,7 +1422,7 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, PointLightDepthBiasParameters, FVector2D(ShadowInfo->GetShaderDepthBias(), 0.0f));
 	}
 
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << DeferredParameters;

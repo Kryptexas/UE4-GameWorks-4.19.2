@@ -82,7 +82,7 @@ protected:
 protected:
 
 	/**
-     * Binds the UI commands to delegates.
+	 * Binds the UI commands to delegates.
 	 */
 	void BindCommands( );
 

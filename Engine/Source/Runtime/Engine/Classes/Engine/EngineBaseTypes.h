@@ -322,7 +322,7 @@ struct FActorTickFunction : public FTickFunction
 	**/
 	ENGINE_API virtual void ExecuteTick(float DeltaTime, ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
-	ENGINE_API virtual FString DiagnosticMessage();
+	ENGINE_API virtual FString DiagnosticMessage() override;
 };
 
 template<>
@@ -354,7 +354,7 @@ struct FActorComponentTickFunction : public FTickFunction
 	**/
 	ENGINE_API virtual void ExecuteTick(float DeltaTime, ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
-	ENGINE_API virtual FString DiagnosticMessage();
+	ENGINE_API virtual FString DiagnosticMessage() override;
 };
 
 
@@ -386,7 +386,7 @@ struct FPrimitiveComponentPostPhysicsTickFunction : public FTickFunction
 	**/
 	virtual void ExecuteTick(float DeltaTime, ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
-	virtual FString DiagnosticMessage();
+	virtual FString DiagnosticMessage() override;
 };
 
 template<>

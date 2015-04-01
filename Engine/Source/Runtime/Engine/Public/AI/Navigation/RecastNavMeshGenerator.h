@@ -406,7 +406,7 @@ public:
 	FBox GrowBoundingBox(const FBox& BBox, bool bIncludeAgentHeight) const;
 	
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	virtual void ExportNavigationData(const FString& FileName) const;
+	virtual void ExportNavigationData(const FString& FileName) const override;
 #endif
 
 	/** 

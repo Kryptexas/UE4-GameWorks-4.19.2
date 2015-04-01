@@ -18,16 +18,16 @@ public:
 	FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SViewport> InViewportWidget );
 	~FSceneViewport();
 
-	virtual void* GetWindow() { return NULL; }
+	virtual void* GetWindow() override { return NULL; }
 
 	/** FViewport interface */
-	virtual void MoveWindow(int32 NewPosX, int32 NewPosY, int32 NewSizeX, int32 NewSizeY) {}
-	virtual bool HasMouseCapture() const;
-	virtual bool HasFocus() const;
-	virtual bool IsForegroundWindow() const;
-	virtual void CaptureMouse( bool bCapture );
-	virtual void LockMouseToViewport( bool bLock );
-	virtual void ShowCursor( bool bVisible );
+	virtual void MoveWindow(int32 NewPosX, int32 NewPosY, int32 NewSizeX, int32 NewSizeY) override {}
+	virtual bool HasMouseCapture() const override;
+	virtual bool HasFocus() const override;
+	virtual bool IsForegroundWindow() const override;
+	virtual void CaptureMouse( bool bCapture ) override;
+	virtual void LockMouseToViewport( bool bLock ) override;
+	virtual void ShowCursor( bool bVisible ) override;
 	virtual void SetPreCaptureMousePosFromSlateCursor() override;
 	virtual bool IsCursorVisible() const override { return bIsCursorVisible; }
 	virtual void ShowSoftwareCursor( bool bVisible ) override { bIsSoftwareCursorVisible = bVisible; }
@@ -214,13 +214,13 @@ public:
 	TSharedPtr<SWindow> FindWindow();
 
 	/** Should return true, if stereo rendering is allowed in this viewport */
-	virtual bool IsStereoRenderingAllowed() const;
+	virtual bool IsStereoRenderingAllowed() const override;
 
 private:
 	/**
 	 * Called when this viewport is destroyed
 	 */
-	void Destroy();
+	void Destroy() override;
 
 	// FRenderResource interface.
 	virtual void InitDynamicRHI() override;

@@ -245,7 +245,7 @@ struct HInstancedStaticMeshInstance : public HHitProxy
 
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
-	virtual EMouseCursor::Type GetMouseCursor()
+	virtual EMouseCursor::Type GetMouseCursor() override
 	{
 		return EMouseCursor::CardinalCross;
 	}

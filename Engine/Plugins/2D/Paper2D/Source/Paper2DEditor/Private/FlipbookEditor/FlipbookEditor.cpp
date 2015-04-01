@@ -80,7 +80,7 @@ private:
 
 private:
 	// Returns true if the viewport is visible
-	bool IsVisible() const;
+	bool IsVisible() const override;
 };
 
 void SFlipbookEditorViewport::Construct(const FArguments& InArgs)

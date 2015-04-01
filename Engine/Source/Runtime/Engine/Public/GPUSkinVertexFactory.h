@@ -494,7 +494,7 @@ public:
 		: FGPUBaseSkinVertexFactory(InBoneMatrices, InFeatureLevel)
 	{}
 
-	virtual bool UsesExtraBoneInfluences() const
+	virtual bool UsesExtraBoneInfluences() const override
 	{
 		return bExtraBoneInfluencesT;
 	}

@@ -215,7 +215,7 @@ public:
 	 *
 	 * @param Ar The archive to serialize with
 	 */
-	UNREALED_API virtual void AddReferencedObjects( FReferenceCollector& Collector );
+	UNREALED_API virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 	/** Gets a list of the commands handled by this control */
 	UNREALED_API TSharedPtr<FUICommandList> GetCommands();
@@ -488,7 +488,7 @@ protected:
 	
 	// SWidget interface
 	UNREALED_API virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, 
-		FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const ;
+		FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 
 	/** Update view range */
 	UNREALED_API void SetInputMinMax(float NewMin, float NewMax);

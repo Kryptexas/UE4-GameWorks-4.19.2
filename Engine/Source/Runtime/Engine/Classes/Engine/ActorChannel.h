@@ -133,7 +133,7 @@ public:
 	void QueueRemoteFunctionBunch( UObject* CallTarget, UFunction* Func, FOutBunch &Bunch );
 
 	/** Returns true if channel is ready to go dormant (e.g., all outstanding property updates have been ACK'd) */
-	virtual bool ReadyForDormancy(bool debug=false);
+	virtual bool ReadyForDormancy(bool debug=false) override;
 	
 	/** Puts the channel in a state to start becoming dormant. It will not become dormant until ReadyForDormancy returns true in Tick */
 	virtual void StartBecomingDormant() override;
@@ -253,5 +253,5 @@ protected:
 	virtual bool CleanUp( const bool bForDestroy ) override;
 
 	/** Closes the actor channel but with a 'dormant' flag set so it can be reopened */
-	virtual void BecomeDormant();
+	virtual void BecomeDormant() override;
 };

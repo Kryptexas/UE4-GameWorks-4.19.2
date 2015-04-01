@@ -97,7 +97,7 @@ public:
 	float GetDPIScaleBasedOnSize(FIntPoint Size) const;
 
 #if WITH_EDITOR
-	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
+	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
 private:

@@ -1743,7 +1743,6 @@ void FNativeClassHeaderGenerator::ExportClassesFromSourceFileInner(FUnrealSource
 				SuperInterfaceCPPName = FString::Printf(TEXT("I%s"), *SuperClass->GetName());
 			}
 
-
 			// Thunk functions
 			FUHTStringBuilder InterfaceBoilerplate;
 

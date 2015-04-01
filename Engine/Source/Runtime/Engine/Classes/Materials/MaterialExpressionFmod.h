@@ -21,7 +21,7 @@ class UMaterialExpressionFmod : public UMaterialExpression
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 #if WITH_EDITOR
-	virtual FString GetKeywords() const {return TEXT("%");}
+	virtual FString GetKeywords() const override {return TEXT("%");}
 #endif // WITH_EDITOR
 	// End UMaterialExpression Interface
 };

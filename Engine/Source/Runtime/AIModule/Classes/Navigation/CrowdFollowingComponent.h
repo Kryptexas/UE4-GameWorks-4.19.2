@@ -111,9 +111,9 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 	FORCEINLINE int32 GetGroupsToAvoid() const { return GroupsToAvoid.Packed; }
 	FORCEINLINE int32 GetGroupsToIgnore() const { return GroupsToIgnore.Packed; }
 
-	virtual void GetDebugStringTokens(TArray<FString>& Tokens, TArray<EPathFollowingDebugTokens::Type>& Flags) const;
+	virtual void GetDebugStringTokens(TArray<FString>& Tokens, TArray<EPathFollowingDebugTokens::Type>& Flags) const override;
 #if ENABLE_VISUAL_LOG
-	virtual void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const;
+	virtual void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const override;
 #endif // ENABLE_VISUAL_LOG
 
 protected:

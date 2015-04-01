@@ -162,7 +162,7 @@ public:
 		ObjectBufferParameters.UnsetParameters(RHICmdList, GetComputeShader());
 	}
 
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{		
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << NumUploadOperations;
@@ -227,7 +227,7 @@ public:
 		CopyObjectData.UnsetUAV(RHICmdList, GetComputeShader());
 	}
 
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{		
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << CopyObjectBounds;
@@ -290,7 +290,7 @@ public:
 		CopySurfelData.UnsetUAV(RHICmdList, GetComputeShader());
 	}
 
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{		
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << CopyInterpolatedVertexData;
@@ -353,7 +353,7 @@ public:
 		CopyVPLFlux.UnsetUAV(RHICmdList, GetComputeShader());
 	}
 
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{		
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << CopyVPLFlux;
@@ -425,7 +425,7 @@ public:
 		ObjectBufferParameters.UnsetParameters(RHICmdList, GetComputeShader());
 	}
 
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{		
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << NumRemoveOperations;

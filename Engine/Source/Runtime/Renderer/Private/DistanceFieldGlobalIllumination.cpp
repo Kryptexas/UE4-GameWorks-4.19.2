@@ -180,7 +180,7 @@ public:
 	}
 
 	// FShader interface.
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << VPLParameterBuffer;
@@ -260,7 +260,7 @@ public:
 		DispatchParameters.UnsetUAV(RHICmdList, GetComputeShader());
 	}
 
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{		
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << DispatchParameters;
@@ -333,7 +333,7 @@ public:
 		CulledVPLData.UnsetUAV(RHICmdList, GetComputeShader());
 	}
 
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{		
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << VPLParameterBuffer;
@@ -589,7 +589,7 @@ public:
 		DispatchParameters.UnsetUAV(RHICmdList, GetComputeShader());
 	}
 
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{		
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << DispatchParameters;
@@ -711,7 +711,7 @@ public:
 	}
 
 	// FShader interface.
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << AOParameters;
@@ -930,7 +930,7 @@ public:
 		HeightfieldIrradiance.UnsetUAV(RHICmdList, GetComputeShader());
 	}
 
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{		
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << SurfelIrradiance;
@@ -1029,7 +1029,7 @@ public:
 		StepBentNormal.UnsetUAV(RHICmdList, GetComputeShader());
 	}
 
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{		
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << StepBentNormal;
@@ -1157,7 +1157,7 @@ public:
 		SurfelIrradiance.UnsetUAV(RHICmdList, GetComputeShader());
 	}
 
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{		
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << AOParameters;
@@ -1264,7 +1264,7 @@ public:
 		IrradianceCacheIrradiance.UnsetUAV(RHICmdList, GetComputeShader());
 	}
 
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{		
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << IrradianceCacheIrradiance;

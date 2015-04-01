@@ -214,11 +214,11 @@ public:
 	}
 
 	// FDynamicPrimitiveResource interface.
-	virtual void InitPrimitiveResource()
+	virtual void InitPrimitiveResource() override
 	{
 		InitResource();
 	}
-	virtual void ReleasePrimitiveResource()
+	virtual void ReleasePrimitiveResource() override
 	{
 		ReleaseResource();
 		delete this;
@@ -263,11 +263,11 @@ public:
 	}
 
 	// FDynamicPrimitiveResource interface.
-	virtual void InitPrimitiveResource()
+	virtual void InitPrimitiveResource() override
 	{
 		InitResource();
 	}
-	virtual void ReleasePrimitiveResource()
+	virtual void ReleasePrimitiveResource() override
 	{
 		ReleaseResource();
 		delete this;

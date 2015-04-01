@@ -97,7 +97,7 @@ public:
 		const uint16 Version = ((HLSLCCVersion & 0xff) << 8) | (GLSLVersion & 0xff);
 		return Version;
 	}
-	virtual void GetSupportedFormats(TArray<FName>& OutFormats) const
+	virtual void GetSupportedFormats(TArray<FName>& OutFormats) const override
 	{
 		OutFormats.Add(NAME_GLSL_150);
 		OutFormats.Add(NAME_GLSL_150_MAC);
@@ -109,7 +109,7 @@ public:
 		OutFormats.Add(NAME_GLSL_310_ES_EXT);
 		OutFormats.Add(NAME_GLSL_150_ES2_NOUB);
 	}
-	virtual void CompileShader(FName Format, const struct FShaderCompilerInput& Input, struct FShaderCompilerOutput& Output,const FString& WorkingDirectory) const
+	virtual void CompileShader(FName Format, const struct FShaderCompilerInput& Input, struct FShaderCompilerOutput& Output,const FString& WorkingDirectory) const override
 	{
 		CheckFormat(Format);
 

@@ -498,7 +498,7 @@ public:
 	EWindowTransparency GetTransparencySupport() const;
 
 	/** @return A String representation of the widget */
-	virtual FString ToString() const;
+	virtual FString ToString() const override;
 
 	/**
 	 * Sets a widget that should become focused when this window is next activated

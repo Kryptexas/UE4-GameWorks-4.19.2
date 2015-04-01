@@ -182,7 +182,7 @@ class ENGINE_API UMaterialExpression : public UObject
 #endif // WITH_EDITOR
 
 	virtual bool Modify( bool bAlwaysMarkDirty=true ) override;
-	virtual void Serialize( FArchive& Ar );
+	virtual void Serialize( FArchive& Ar ) override;
 	// End UObject interface.
 
 	/**

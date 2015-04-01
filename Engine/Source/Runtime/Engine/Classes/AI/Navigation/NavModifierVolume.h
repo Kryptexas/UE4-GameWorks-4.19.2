@@ -17,7 +17,7 @@ class ANavModifierVolume : public AVolume, public INavRelevantInterface
 	TSubclassOf<class UNavArea> AreaClass;
 
 	virtual void GetNavigationData(FNavigationRelevantData& Data) const override;
-	virtual FBox GetNavigationBounds() const;
+	virtual FBox GetNavigationBounds() const override;
 
 #if WITH_EDITOR
 	virtual void PostEditUndo() override;

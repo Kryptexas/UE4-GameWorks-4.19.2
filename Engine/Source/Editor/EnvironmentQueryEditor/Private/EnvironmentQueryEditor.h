@@ -41,7 +41,7 @@ private:
 	void CreateInternalWidgets();
 
 	/** Called when the selection changes in the GraphEditor */
-	void OnSelectedNodesChanged(const TSet<class UObject*>& NewSelection);
+	void OnSelectedNodesChanged(const TSet<class UObject*>& NewSelection) override;
 
 	/** Spawns the tab with the update graph inside */
 	TSharedRef<SDockTab> SpawnTab_UpdateGraph(const FSpawnTabArgs& Args);

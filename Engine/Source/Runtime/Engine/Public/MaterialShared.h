@@ -1473,69 +1473,69 @@ public:
 	/** Returns the number of samplers used in this material, or -1 if the material does not have a valid shader map (compile error or still compiling). */
 	ENGINE_API int32 GetSamplerUsage() const;
 
-	ENGINE_API virtual FString GetMaterialUsageDescription() const;
+	ENGINE_API virtual FString GetMaterialUsageDescription() const override;
 
 	// FMaterial interface.
-	ENGINE_API virtual void GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const;
+	ENGINE_API virtual void GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const override;
 	ENGINE_API virtual int32 GetMaterialDomain() const override;
-	ENGINE_API virtual bool IsTwoSided() const;
-	ENGINE_API virtual bool IsTangentSpaceNormal() const;
-	ENGINE_API virtual bool ShouldInjectEmissiveIntoLPV() const;
-	ENGINE_API virtual bool ShouldGenerateSphericalParticleNormals() const;
-	ENGINE_API virtual bool ShouldDisableDepthTest() const;
-	ENGINE_API virtual bool ShouldEnableResponsiveAA() const;
-	ENGINE_API virtual bool ShouldDoSSR() const;
-	ENGINE_API virtual bool IsLightFunction() const;
-	ENGINE_API virtual bool IsUsedWithEditorCompositing() const;
-	ENGINE_API virtual bool IsUsedWithDeferredDecal() const;
-	ENGINE_API virtual bool IsWireframe() const;
-	ENGINE_API virtual bool IsSpecialEngineMaterial() const;
-	ENGINE_API virtual bool IsUsedWithSkeletalMesh() const;
-	ENGINE_API virtual bool IsUsedWithLandscape() const;
-	ENGINE_API virtual bool IsUsedWithParticleSystem() const;
-	ENGINE_API virtual bool IsUsedWithParticleSprites() const;
-	ENGINE_API virtual bool IsUsedWithBeamTrails() const;
-	ENGINE_API virtual bool IsUsedWithMeshParticles() const;
-	ENGINE_API virtual bool IsUsedWithStaticLighting() const;
-	ENGINE_API virtual bool IsUsedWithMorphTargets() const;
-	ENGINE_API virtual bool IsUsedWithSplineMeshes() const;
-	ENGINE_API virtual bool IsUsedWithInstancedStaticMeshes() const;
-	ENGINE_API virtual bool IsUsedWithAPEXCloth() const;
-	ENGINE_API virtual bool IsUsedWithUI() const;
-	ENGINE_API virtual enum EMaterialTessellationMode GetTessellationMode() const;
-	ENGINE_API virtual bool IsCrackFreeDisplacementEnabled() const;
-	ENGINE_API virtual bool IsAdaptiveTessellationEnabled() const;
-	ENGINE_API virtual bool IsFullyRough() const;
-	ENGINE_API virtual bool OutputsVelocityOnBasePass() const;
-	ENGINE_API virtual bool IsNonmetal() const;
-	ENGINE_API virtual bool UseLmDirectionality() const;
-	ENGINE_API virtual enum EBlendMode GetBlendMode() const;
-	ENGINE_API virtual uint32 GetDecalBlendMode() const;
-	ENGINE_API virtual uint32 GetMaterialDecalResponse() const;
-	ENGINE_API virtual bool HasNormalConnected() const;
-	ENGINE_API virtual enum EMaterialShadingModel GetShadingModel() const;
-	ENGINE_API virtual enum ETranslucencyLightingMode GetTranslucencyLightingMode() const;
-	ENGINE_API virtual float GetOpacityMaskClipValue() const;
-	ENGINE_API virtual bool IsDistorted() const;
-	ENGINE_API virtual float GetTranslucencyDirectionalLightingIntensity() const;
-	ENGINE_API virtual float GetTranslucentShadowDensityScale() const;
-	ENGINE_API virtual float GetTranslucentSelfShadowDensityScale() const;
-	ENGINE_API virtual float GetTranslucentSelfShadowSecondDensityScale() const;
-	ENGINE_API virtual float GetTranslucentSelfShadowSecondOpacity() const;
-	ENGINE_API virtual float GetTranslucentBackscatteringExponent() const;
-	ENGINE_API virtual bool IsSeparateTranslucencyEnabled() const;
-	ENGINE_API virtual FLinearColor GetTranslucentMultipleScatteringExtinction() const;
-	ENGINE_API virtual float GetTranslucentShadowStartOffset() const;
-	ENGINE_API virtual bool IsMasked() const;
-	ENGINE_API virtual FString GetFriendlyName() const;
-	ENGINE_API virtual bool RequiresSynchronousCompilation() const;
-	ENGINE_API virtual bool IsDefaultMaterial() const;
-	ENGINE_API virtual float GetRefractionDepthBiasValue() const;
-	ENGINE_API virtual bool UseTranslucencyVertexFog() const;
+	ENGINE_API virtual bool IsTwoSided() const override;
+	ENGINE_API virtual bool IsTangentSpaceNormal() const override;
+	ENGINE_API virtual bool ShouldInjectEmissiveIntoLPV() const override;
+	ENGINE_API virtual bool ShouldGenerateSphericalParticleNormals() const override;
+	ENGINE_API virtual bool ShouldDisableDepthTest() const override;
+	ENGINE_API virtual bool ShouldEnableResponsiveAA() const override;
+	ENGINE_API virtual bool ShouldDoSSR() const override;
+	ENGINE_API virtual bool IsLightFunction() const override;
+	ENGINE_API virtual bool IsUsedWithEditorCompositing() const override;
+	ENGINE_API virtual bool IsUsedWithDeferredDecal() const override;
+	ENGINE_API virtual bool IsWireframe() const override;
+	ENGINE_API virtual bool IsSpecialEngineMaterial() const override;
+	ENGINE_API virtual bool IsUsedWithSkeletalMesh() const override;
+	ENGINE_API virtual bool IsUsedWithLandscape() const override;
+	ENGINE_API virtual bool IsUsedWithParticleSystem() const override;
+	ENGINE_API virtual bool IsUsedWithParticleSprites() const override;
+	ENGINE_API virtual bool IsUsedWithBeamTrails() const override;
+	ENGINE_API virtual bool IsUsedWithMeshParticles() const override;
+	ENGINE_API virtual bool IsUsedWithStaticLighting() const override;
+	ENGINE_API virtual bool IsUsedWithMorphTargets() const override;
+	ENGINE_API virtual bool IsUsedWithSplineMeshes() const override;
+	ENGINE_API virtual bool IsUsedWithInstancedStaticMeshes() const override;
+	ENGINE_API virtual bool IsUsedWithAPEXCloth() const override;
+	ENGINE_API virtual bool IsUsedWithUI() const override;
+	ENGINE_API virtual enum EMaterialTessellationMode GetTessellationMode() const override;
+	ENGINE_API virtual bool IsCrackFreeDisplacementEnabled() const override;
+	ENGINE_API virtual bool IsAdaptiveTessellationEnabled() const override;
+	ENGINE_API virtual bool IsFullyRough() const override;
+	ENGINE_API virtual bool OutputsVelocityOnBasePass() const override;
+	ENGINE_API virtual bool IsNonmetal() const override;
+	ENGINE_API virtual bool UseLmDirectionality() const override;
+	ENGINE_API virtual enum EBlendMode GetBlendMode() const override;
+	ENGINE_API virtual uint32 GetDecalBlendMode() const override;
+	ENGINE_API virtual uint32 GetMaterialDecalResponse() const override;
+	ENGINE_API virtual bool HasNormalConnected() const override;
+	ENGINE_API virtual enum EMaterialShadingModel GetShadingModel() const override;
+	ENGINE_API virtual enum ETranslucencyLightingMode GetTranslucencyLightingMode() const override;
+	ENGINE_API virtual float GetOpacityMaskClipValue() const override;
+	ENGINE_API virtual bool IsDistorted() const override;
+	ENGINE_API virtual float GetTranslucencyDirectionalLightingIntensity() const override;
+	ENGINE_API virtual float GetTranslucentShadowDensityScale() const override;
+	ENGINE_API virtual float GetTranslucentSelfShadowDensityScale() const override;
+	ENGINE_API virtual float GetTranslucentSelfShadowSecondDensityScale() const override;
+	ENGINE_API virtual float GetTranslucentSelfShadowSecondOpacity() const override;
+	ENGINE_API virtual float GetTranslucentBackscatteringExponent() const override;
+	ENGINE_API virtual bool IsSeparateTranslucencyEnabled() const override;
+	ENGINE_API virtual FLinearColor GetTranslucentMultipleScatteringExtinction() const override;
+	ENGINE_API virtual float GetTranslucentShadowStartOffset() const override;
+	ENGINE_API virtual bool IsMasked() const override;
+	ENGINE_API virtual FString GetFriendlyName() const override;
+	ENGINE_API virtual bool RequiresSynchronousCompilation() const override;
+	ENGINE_API virtual bool IsDefaultMaterial() const override;
+	ENGINE_API virtual float GetRefractionDepthBiasValue() const override;
+	ENGINE_API virtual bool UseTranslucencyVertexFog() const override;
 	/**
 	 * Should shaders compiled for this material be saved to disk?
 	 */
-	ENGINE_API virtual bool IsPersistent() const;
+	ENGINE_API virtual bool IsPersistent() const override;
 	ENGINE_API virtual FGuid GetMaterialId() const override;
 
 	ENGINE_API virtual void NotifyCompilationFinished() override;
@@ -1552,7 +1552,7 @@ public:
 
 	ENGINE_API SIZE_T GetResourceSizeInclusive();
 
-	ENGINE_API virtual void LegacySerialize(FArchive& Ar);
+	ENGINE_API virtual void LegacySerialize(FArchive& Ar) override;
 
 	ENGINE_API virtual const TArray<UTexture*>& GetReferencedTextures() const override;
 
@@ -1565,11 +1565,11 @@ protected:
 	ENGINE_API virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, class FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency, bool bUsePreviousFrameTime) const override;
 	/* Gives the material a chance to compile any custom output nodes it has added */
 	ENGINE_API virtual void GatherCustomOutputExpressions(TArray<class UMaterialExpressionCustomOutput*>& OutCustomOutputs) const override;
-	ENGINE_API virtual bool HasVertexPositionOffsetConnected() const;
-	ENGINE_API virtual bool HasPixelDepthOffsetConnected() const;
-	ENGINE_API virtual bool HasMaterialAttributesConnected() const;
+	ENGINE_API virtual bool HasVertexPositionOffsetConnected() const override;
+	ENGINE_API virtual bool HasPixelDepthOffsetConnected() const override;
+	ENGINE_API virtual bool HasMaterialAttributesConnected() const override;
 	/** Useful for debugging. */
-	ENGINE_API virtual FString GetBaseMaterialPathName() const;
+	ENGINE_API virtual FString GetBaseMaterialPathName() const override;
 };
 
 /**

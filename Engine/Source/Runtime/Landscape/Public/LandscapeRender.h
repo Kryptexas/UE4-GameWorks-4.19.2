@@ -113,13 +113,13 @@ public:
 	* Bind shader constants by name
 	* @param	ParameterMap - mapping of named shader constants to indices
 	*/
-	virtual void Bind(const FShaderParameterMap& ParameterMap);
+	virtual void Bind(const FShaderParameterMap& ParameterMap) override;
 
 	/**
 	* Serialize shader params to an archive
 	* @param	Ar - archive to serialize to
 	*/
-	virtual void Serialize(FArchive& Ar);
+	virtual void Serialize(FArchive& Ar) override;
 
 	/**
 	* Set any shader data specific to this vertex factory

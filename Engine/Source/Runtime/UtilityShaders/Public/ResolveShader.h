@@ -27,8 +27,8 @@ public:
 	void SetParameters(FRHICommandList& RHICmdList, FParameter)
 	{
 	}
-	
-	virtual bool Serialize(FArchive& Ar)
+
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << UnresolvedSurface;
@@ -59,7 +59,7 @@ public:
 	{
 	}
 	
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << UnresolvedSurface;
@@ -88,7 +88,7 @@ public:
 	
 	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, uint32 SingleSampleIndexValue);
 	
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << UnresolvedSurface;

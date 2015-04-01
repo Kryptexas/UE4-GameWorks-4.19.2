@@ -221,8 +221,8 @@ class ULevelStreaming : public UObject
 	
 #if WITH_EDITOR
 	/** Override Pre/PostEditUndo functions to handle editor transform */
-	virtual void PreEditUndo();
-	virtual void PostEditUndo();
+	virtual void PreEditUndo() override;
+	virtual void PostEditUndo() override;
 #endif
 	
 	/** Matcher for searching streaming levels by PackageName */
@@ -241,7 +241,7 @@ class ULevelStreaming : public UObject
 		FName PackageName;
 	};
 
-	UWorld* GetWorld() const;
+	UWorld* GetWorld() const override;
 
 	/** Returns whether streaming level is visible */
 	UFUNCTION(BlueprintCallable, Category="Game")

@@ -17,7 +17,7 @@ public:
 		SLATE_ARGUMENT( bool, IsDocumentArea )
 	SLATE_END_ARGS()
 
-	virtual Type GetNodeType() const
+	virtual Type GetNodeType() const override
 	{
 		return SDockingNode::DockTabStack;
 	}

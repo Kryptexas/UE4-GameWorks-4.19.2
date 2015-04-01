@@ -81,7 +81,7 @@ public:
 
 	// ITargetPlatformManagerModule interface
 
-	virtual void Invalidate()
+	virtual void Invalidate() override
 	{
 		bForceCacheUpdate = true;
 
@@ -590,7 +590,7 @@ protected:
 		}
 	}
 
-	bool UpdatePlatformEnvironment(FString PlatformName, TArray<FString> &Keys, TArray<FString> &Values)
+	bool UpdatePlatformEnvironment(FString PlatformName, TArray<FString> &Keys, TArray<FString> &Values) override
 	{
 		SetupEnvironmentVariables(Keys, Values);
 		return SetupSDKStatus(PlatformName);	

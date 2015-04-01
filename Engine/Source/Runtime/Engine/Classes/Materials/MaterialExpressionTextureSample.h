@@ -73,7 +73,7 @@ class ENGINE_API UMaterialExpressionTextureSample : public UMaterialExpressionTe
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 	virtual bool MatchesSearchQuery( const TCHAR* SearchQuery ) override;
 #if WITH_EDITOR
-	virtual uint32 GetInputType(int32 InputIndex);
+	virtual uint32 GetInputType(int32 InputIndex) override;
 #endif
 	// End UMaterialExpression Interface
 

@@ -31,5 +31,5 @@ class AIMODULE_API UEnvQueryGenerator : public UEnvQueryNode
 	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const { checkNoEntry(); }
 
 	virtual void PostLoad() override;
-	void UpdateNodeVersion();
+	void UpdateNodeVersion() override;
 };

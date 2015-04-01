@@ -109,7 +109,7 @@ public:
 			];
 	}
 
-	virtual void ShowInContentBrowser()
+	virtual void ShowInContentBrowser() override
 	{
 		TArray<UObject*> ObjectsToSync;
 		ObjectsToSync.Add(MyAsset);

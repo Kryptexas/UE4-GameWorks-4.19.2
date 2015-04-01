@@ -45,7 +45,7 @@ public:
 	// End UObject
 
 #if WITH_EDITORONLY_DATA
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
 	/** Ensures the user widget is initialized */

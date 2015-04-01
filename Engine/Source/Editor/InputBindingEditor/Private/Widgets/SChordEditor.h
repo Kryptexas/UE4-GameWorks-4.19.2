@@ -36,7 +36,7 @@ public:
 	 */
 	void Construct( const FArguments& InArgs, TSharedPtr<FChordTreeItem> InputCommand );
 	
-	virtual bool SupportsKeyboardFocus() const { return true; }
+	virtual bool SupportsKeyboardFocus() const override { return true; }
 
 	/** Starts editing the chord. */
 	void StartEditing();

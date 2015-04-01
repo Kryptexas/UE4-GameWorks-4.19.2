@@ -225,7 +225,7 @@ class AIMODULE_API UCrowdManager : public UObject
 	/** notify called when detour navmesh is changed */
 	void OnNavMeshUpdate();
 
-	UWorld* GetWorld() const;
+	UWorld* GetWorld() const override;
 
 	static UCrowdManager* GetCurrent(UObject* WorldContextObject);
 	static UCrowdManager* GetCurrent(UWorld* World);

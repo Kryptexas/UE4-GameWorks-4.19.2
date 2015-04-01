@@ -18,7 +18,7 @@ public:
 	virtual ~SSocketManager();
 
 	// ISocketManager interface
-	virtual UStaticMeshSocket* GetSelectedSocket() const;
+	virtual UStaticMeshSocket* GetSelectedSocket() const override;
 	virtual void SetSelectedSocket(UStaticMeshSocket* InSelectedSocket) override;
 	virtual void DeleteSelectedSocket() override;
 	virtual void DuplicateSelectedSocket() override;

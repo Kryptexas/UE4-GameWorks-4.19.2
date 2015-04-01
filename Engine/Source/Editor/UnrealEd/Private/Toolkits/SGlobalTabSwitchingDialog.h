@@ -23,7 +23,7 @@ public:
 	virtual FReply OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply OnKeyUp(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
-	virtual bool SupportsKeyboardFocus() const { return true; }
+	virtual bool SupportsKeyboardFocus() const override { return true; }
 	// End of SWidget interface
 
 	// Is an instance already open?

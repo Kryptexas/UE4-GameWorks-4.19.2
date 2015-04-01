@@ -115,7 +115,6 @@ void FVisualLoggerCanvasRenderer::DrawHistogramGraphs(class UCanvas* Canvas, cla
 		FVector2D LeftExtreme, RightExtreme;
 		TArray<FVector2D> Samples;
 	};
-	typedef TMap<FName, FGraphLineData > FGraphLines;
 
 	struct FGraphData
 	{

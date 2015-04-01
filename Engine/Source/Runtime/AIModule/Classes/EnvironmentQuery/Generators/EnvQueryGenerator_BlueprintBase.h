@@ -26,7 +26,7 @@ class AIMODULE_API UEnvQueryGenerator_BlueprintBase : public UEnvQueryGenerator
 	TSubclassOf<UEnvQueryItemType> GeneratedItemType;
 
 	virtual void PostInitProperties() override;
-	virtual UWorld* GetWorld() const;
+	virtual UWorld* GetWorld() const override;
 
 	UFUNCTION(BlueprintImplementableEvent, Category = Generator)
 	void DoItemGeneration(const TArray<FVector>& ContextLocations) const;

@@ -325,7 +325,7 @@ public:
 			return FVector2D::ZeroVector;
 		}
 
-		virtual float GetRelativeLayoutScale(const FSlotBase& Child) const
+		virtual float GetRelativeLayoutScale(const FSlotBase& Child) const override
 		{
 			const FNodeSlot& ThisSlot = static_cast<const FNodeSlot&>(Child);
 			if ( !ThisSlot.AllowScale.Get() )

@@ -93,7 +93,7 @@ public:
 	UTextureFactory(const FObjectInitializer& ObjectInitializer);
 
 	// Begin UObject Interface
-	virtual void PostInitProperties();
+	virtual void PostInitProperties() override;
 	// End UObject Interface
 
 	// Begin UFactory Interface

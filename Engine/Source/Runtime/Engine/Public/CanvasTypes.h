@@ -808,7 +808,7 @@ public:
 	*
 	* @return this instance
 	*/
-	virtual class FCanvasBatchedElementRenderItem* GetCanvasBatchedElementRenderItem() 
+	virtual class FCanvasBatchedElementRenderItem* GetCanvasBatchedElementRenderItem() override
 	{ 
 		return this; 
 	}
@@ -939,7 +939,7 @@ public:
 	*
 	* @return this instance
 	*/
-	virtual class FCanvasTileRendererItem* GetCanvasTileRendererItem() 
+	virtual class FCanvasTileRendererItem* GetCanvasTileRendererItem() override
 	{ 
 		return this; 
 	}
@@ -1064,7 +1064,7 @@ public:
 	 *
 	 * @return this instance
 	 */
-	virtual class FCanvasTriangleRendererItem* GetCanvasTriangleRendererItem()
+	virtual class FCanvasTriangleRendererItem* GetCanvasTriangleRendererItem() override
 	{
 		return this;
 	}

@@ -100,7 +100,7 @@ class ENGINE_API UWorldComposition : public UObject
 	FString GetWorldRoot() const;
 	
 	/** @returns Currently managed world obejct */
-	UWorld* GetWorld() const;
+	UWorld* GetWorld() const override;
 	
 	/** Handles level OnPostLoad event*/
 	static void OnLevelPostLoad(ULevel* InLevel);

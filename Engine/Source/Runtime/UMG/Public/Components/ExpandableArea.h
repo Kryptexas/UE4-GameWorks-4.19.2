@@ -40,9 +40,9 @@ public:
 	void SetIsExpanded(bool IsExpanded);
 	
 	// Begin INamedSlotInterface
-	virtual void GetSlotNames(TArray<FName>& SlotNames) const;
-	virtual UWidget* GetContentForSlot(FName SlotName) const;
-	virtual void SetContentForSlot(FName SlotName, UWidget* Content);
+	virtual void GetSlotNames(TArray<FName>& SlotNames) const override;
+	virtual UWidget* GetContentForSlot(FName SlotName) const override;
+	virtual void SetContentForSlot(FName SlotName, UWidget* Content) override;
 	// End INamedSlotInterface
 
 public:

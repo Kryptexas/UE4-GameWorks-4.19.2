@@ -50,7 +50,7 @@ class UBehaviorTreeGraph : public UAIGraph
 
 protected:
 
-	virtual void CollectAllNodeInstances(TSet<UObject*>& NodeInstances);
+	void CollectAllNodeInstances(TSet<UObject*>& NodeInstances) override;
 
 	void UpdateVersion_UnifiedSubNodes();
 	void UpdateVersion_InnerGraphWhitespace();

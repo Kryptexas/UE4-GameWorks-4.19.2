@@ -765,7 +765,7 @@ public:
 	*
 	* @return true if the shader should be compiled
 	*/
-	virtual bool ShouldCache(EShaderPlatform Platform, const FShaderType* ShaderType, const FVertexFactoryType* VertexFactoryType) const
+	virtual bool ShouldCache(EShaderPlatform Platform, const FShaderType* ShaderType, const FVertexFactoryType* VertexFactoryType) const override
 	{
 		// Always cache - decreases performance but avoids missing shaders during exports.
 		return true;
@@ -778,7 +778,7 @@ public:
 
 	////////////////
 	// FMaterialRenderProxy interface.
-	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const
+	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const override
 	{
 		if(GetRenderingThreadShaderMap())
 		{
@@ -807,7 +807,7 @@ public:
 
 	// Material properties.
 	/** Entry point for compiling a specific material property.  This must call SetMaterialProperty. */
-	virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency, bool bUsePreviousFrameTime) const
+	virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency, bool bUsePreviousFrameTime) const override
 	{
 		// needs to be called in this function!!
 		Compiler->SetMaterialProperty(Property, OverrideShaderFrequency, bUsePreviousFrameTime);
@@ -880,7 +880,10 @@ public:
 		}
 	}
 
-	virtual FString GetMaterialUsageDescription() const { return FString::Printf(TEXT("FExportMaterialRenderer %s"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL")); }
+	virtual FString GetMaterialUsageDescription() const override
+	{
+		return FString::Printf(TEXT("FExportMaterialRenderer %s"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL"));
+	}
 	virtual int32 GetMaterialDomain() const override
 	{
 		if (Material)
@@ -889,7 +892,7 @@ public:
 		}
 		return MD_Surface;
 	}
-	virtual bool IsTwoSided() const 
+	virtual bool IsTwoSided() const  override
 	{ 
 		if (MaterialInterface)
 		{
@@ -897,7 +900,7 @@ public:
 		}
 		return false;
 	}
-	virtual bool IsLightFunction() const
+	virtual bool IsLightFunction() const override
 	{
 		if (Material)
 		{
@@ -905,12 +908,12 @@ public:
 		}
 		return false;
 	}
-	virtual bool IsUsedWithDeferredDecal() const
+	virtual bool IsUsedWithDeferredDecal() const override
 	{
 		return	Material &&
 				Material->MaterialDomain == MD_DeferredDecal;
 	}
-	virtual bool IsSpecialEngineMaterial() const
+	virtual bool IsSpecialEngineMaterial() const override
 	{
 		if (Material)
 		{
@@ -918,7 +921,7 @@ public:
 		}
 		return false;
 	}
-	virtual bool IsWireframe() const
+	virtual bool IsWireframe() const override
 	{
 		if (Material)
 		{
@@ -926,15 +929,15 @@ public:
 		}
 		return false;
 	}
-	virtual bool IsMasked() const									{ return false; }
-	virtual enum EBlendMode GetBlendMode() const					{ return BLEND_Opaque; }
-	virtual enum EMaterialShadingModel GetShadingModel() const		{ return MSM_Unlit; }
-	virtual float GetOpacityMaskClipValue() const					{ return 0.5f; }
-	virtual FString GetFriendlyName() const { return FString::Printf(TEXT("FExportMaterialRenderer %s"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL")); }
+	virtual bool IsMasked() const override								{ return false; }
+	virtual enum EBlendMode GetBlendMode() const override				{ return BLEND_Opaque; }
+	virtual enum EMaterialShadingModel GetShadingModel() const override	{ return MSM_Unlit; }
+	virtual float GetOpacityMaskClipValue() const override				{ return 0.5f; }
+	virtual FString GetFriendlyName() const override { return FString::Printf(TEXT("FExportMaterialRenderer %s"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL")); }
 	/**
 	* Should shaders compiled for this material be saved to disk?
 	*/
-	virtual bool IsPersistent() const { return false; }
+	virtual bool IsPersistent() const override { return false; }
 	virtual FGuid GetMaterialId() const override { return Id; }
 
 	const UMaterialInterface* GetMaterialInterface() const

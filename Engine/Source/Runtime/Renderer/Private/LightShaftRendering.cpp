@@ -283,7 +283,7 @@ public:
 	}
 
 	/** Serializer */
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FShader::Serialize(Ar);
 		Ar << LightShaftParameters;
@@ -353,7 +353,7 @@ public:
 	}
 
 	/** Serializer */
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FShader::Serialize(Ar);
 		Ar << RadialBlurParameters;
@@ -404,7 +404,7 @@ public:
 	}
 
 	/** Serializer */
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FShader::Serialize(Ar);
 		Ar << LightShaftParameters;
@@ -801,7 +801,7 @@ public:
 	}
 
 	/** Serializer */
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FShader::Serialize(Ar);
 		Ar << SourceTextureParameter;

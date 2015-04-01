@@ -237,7 +237,7 @@ public:
 	 * @param  InMouseEvent  Mouse button event.
 	 * @return  Returns whether the event was handled, along with other possible actions.
 	 */
-	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
+	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override
 	{
 		if( InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 		{
@@ -267,7 +267,7 @@ public:
 	 * @param MouseEvent Information about the input event.
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */	
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		TSharedPtr< ITypedTableView<ItemType> > OwnerWidget = OwnerTablePtr.Pin();
 		ChangedSelectionOnMouseDown = false;
@@ -360,7 +360,7 @@ public:
 	 * @param MouseEvent Information about the input event.
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		TSharedPtr< ITypedTableView<ItemType> > OwnerWidget = OwnerTablePtr.Pin();
 		check(OwnerWidget.IsValid());

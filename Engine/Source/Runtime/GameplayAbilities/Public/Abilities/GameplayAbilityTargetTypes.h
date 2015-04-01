@@ -357,31 +357,31 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_LocationInfo : public FG
 
 	// -------------------------------------
 
-	virtual bool HasOrigin() const
+	virtual bool HasOrigin() const override
 	{
 		return true;
 	}
 
-	virtual FTransform GetOrigin() const
+	virtual FTransform GetOrigin() const override
 	{
 		return SourceLocation.GetTargetingTransform();
 	}
 
 	// -------------------------------------
 
-	virtual bool HasEndPoint() const
+	virtual bool HasEndPoint() const override
 	{
 		return true;
 	}
 
-	virtual FVector GetEndPoint() const
+	virtual FVector GetEndPoint() const override
 	{
 		return TargetLocation.GetTargetingTransform().GetLocation();
 	}
 
 	// -------------------------------------
 
-	virtual UScriptStruct* GetScriptStruct()
+	virtual UScriptStruct* GetScriptStruct() override
 	{
 		return FGameplayAbilityTargetData_LocationInfo::StaticStruct();
 	}

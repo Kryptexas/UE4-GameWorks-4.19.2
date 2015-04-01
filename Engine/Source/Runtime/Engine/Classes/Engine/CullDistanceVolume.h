@@ -68,7 +68,7 @@ public:
 	/** 
 	 * Override Destroyed so that we can re-calculate primitive draw distances after this volume has been deleted.
 	 */
-	virtual void Destroyed();
+	virtual void Destroyed() override;
 
 	/**
 	 * Returns whether the passed in primitive can be affected by cull distance volumes.

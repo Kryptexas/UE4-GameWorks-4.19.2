@@ -90,7 +90,7 @@ private:
 	/** The parent tab where this viewport resides */
 	TWeakPtr<SDockTab> ParentTab;
 
-	bool IsVisible() const;
+	bool IsVisible() const override;
 
 	/** Pointer back to the material editor tool that owns us */
 	TWeakPtr<IMaterialEditor> MaterialEditorPtr;

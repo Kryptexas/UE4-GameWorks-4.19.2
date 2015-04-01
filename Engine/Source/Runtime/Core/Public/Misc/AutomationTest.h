@@ -1040,7 +1040,7 @@ private:\
 public: \
 	F##ClassDeclaration(int32 InRoleIndex) : RoleIndex(InRoleIndex) {} \
 	virtual ~F##ClassDeclaration() {} \
-	virtual uint32 GetRoleIndex() const { return RoleIndex; } \
+	virtual uint32 GetRoleIndex() const override { return RoleIndex; } \
 	virtual void Run() override 
 
 //close the class and add to the framework

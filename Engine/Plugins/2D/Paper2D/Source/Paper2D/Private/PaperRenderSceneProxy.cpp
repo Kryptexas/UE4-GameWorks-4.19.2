@@ -114,10 +114,10 @@ public:
 	}
 
 	// FDynamicPrimitiveResource interface.
-	virtual void InitPrimitiveResource()
+	virtual void InitPrimitiveResource() override
 	{
 	}
-	virtual void ReleasePrimitiveResource()
+	virtual void ReleasePrimitiveResource() override
 	{
 		delete this;
 	}

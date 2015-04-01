@@ -91,7 +91,7 @@ public:
 		return Result;
 	}
 
-	virtual uint32 GetMemoryFootprint( void ) const
+	virtual uint32 GetMemoryFootprint( void ) const override
 	{
 		return sizeof( *this ) + GetAllocatedSize(); 
 	}

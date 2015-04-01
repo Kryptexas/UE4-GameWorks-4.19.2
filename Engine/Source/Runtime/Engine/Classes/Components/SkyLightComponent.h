@@ -38,12 +38,12 @@ public:
 		FTexture::ReleaseRHI();
 	}
 
-	virtual uint32 GetSizeX() const
+	virtual uint32 GetSizeX() const override
 	{
 		return Size;
 	}
 
-	virtual uint32 GetSizeY() const
+	virtual uint32 GetSizeY() const override
 	{
 		return Size;
 	}
@@ -58,7 +58,7 @@ public:
 	void Release();
 
 	// FDeferredCleanupInterface
-	virtual void FinishCleanup()
+	virtual void FinishCleanup() override
 	{
 		delete this;
 	}
@@ -136,7 +136,7 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 	class FSkyLightSceneProxy* CreateSceneProxy() const;
 
 	// Begin UObject Interface
-	virtual void PostInitProperties();	
+	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
 	virtual void PostInterpChange(UProperty* PropertyThatChanged) override;
 #if WITH_EDITOR

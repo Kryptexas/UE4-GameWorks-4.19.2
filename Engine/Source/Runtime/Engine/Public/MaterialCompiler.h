@@ -193,7 +193,7 @@ public:
 	// Simple pass through all other material operations unmodified.
 
 	virtual void SetMaterialProperty(EMaterialProperty InProperty, EShaderFrequency OverrideShaderFrequency, bool bUsePreviousFrameTime) override { Compiler->SetMaterialProperty(InProperty, OverrideShaderFrequency, bUsePreviousFrameTime); }
-	virtual EShaderFrequency GetCurrentShaderFrequency() const	{ return Compiler->GetCurrentShaderFrequency(); }
+	virtual EShaderFrequency GetCurrentShaderFrequency() const override { return Compiler->GetCurrentShaderFrequency(); }
 	virtual int32 Error(const TCHAR* Text) override { return Compiler->Error(Text); }
 
 	virtual int32 CallExpression(FMaterialExpressionKey ExpressionKey,FMaterialCompiler* InCompiler) override { return Compiler->CallExpression(ExpressionKey,InCompiler); }

@@ -42,10 +42,10 @@ public:
 	virtual UMaterialInterface* GetMaterialInterface() const override;
 
 	/** Pre edit change notify for properties. */
-	virtual void NotifyPreChange( UProperty* PropertyAboutToChange );
+	virtual void NotifyPreChange( UProperty* PropertyAboutToChange ) override;
 
 	/** Post edit change notify for properties. */
-	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged );
+	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged ) override;
 
 	/** Rebuilds the inheritance list for this material instance. */
 	void RebuildInheritanceList();
@@ -56,7 +56,7 @@ public:
 	/**
 	 * Draws messages on the specified viewport and canvas.
 	 */
-	virtual void DrawMessages( FViewport* Viewport, FCanvas* Canvas );
+	virtual void DrawMessages( FViewport* Viewport, FCanvas* Canvas ) override;
 
 	/**
 	 * Draws sampler/texture mismatch warning strings.

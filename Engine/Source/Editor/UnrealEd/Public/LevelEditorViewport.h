@@ -247,7 +247,7 @@ public:
 	void DrawTextureStreamingBounds(const FSceneView* View,FPrimitiveDrawInterface* PDI);
 
 	/** GC references. */
-	void AddReferencedObjects( FReferenceCollector& Collector );
+	void AddReferencedObjects( FReferenceCollector& Collector ) override;
 	
 	/**
 	 * Copies layout and camera settings from the specified viewport

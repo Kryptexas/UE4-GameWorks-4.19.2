@@ -179,7 +179,7 @@ public:
 	//----------------------------------------------------------------------//
 	// DEBUG
 	//----------------------------------------------------------------------//
-	FString GetDebugLegend() const;
+	FString GetDebugLegend() const override;
 	static FColor GetDebugSightRangeColor() { return FColor::Green; }
 	static FColor GetDebugLoseSightColor() { return FColorList::NeonPink; }
 #endif // !UE_BUILD_SHIPPING

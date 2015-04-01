@@ -135,7 +135,7 @@ public:
 	FIntPoint CalcAbsoluteLevelPosition() const;
 		
 	/** @return ULevel bounding box in shifted space*/
-	FBox GetLevelBounds() const;
+	FBox GetLevelBounds() const override;
 	
 	/** @return Landscape component world size */
 	FVector2D GetLandscapeComponentSize() const;

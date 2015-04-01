@@ -57,7 +57,7 @@ public:
 	 *
 	 * @return true if the shader should be compiled
 	 */
-	virtual bool ShouldCache(EShaderPlatform Platform, const FShaderType* ShaderType, const FVertexFactoryType* VertexFactoryType) const;
+	virtual bool ShouldCache(EShaderPlatform Platform, const FShaderType* ShaderType, const FVertexFactoryType* VertexFactoryType) const override;
 
 	virtual const TArray<UTexture*>& GetReferencedTextures() const override
 	{
@@ -67,7 +67,7 @@ public:
 	////////////////
 	// FMaterialRenderProxy interface.
 
-	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const
+	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const override
 	{
 		if(GetRenderingThreadShaderMap())
 		{
@@ -79,7 +79,7 @@ public:
 		}
 	}
 
-	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const override
 	{
 		if (Expression.IsValid() && Expression->Material)
 		{
@@ -88,7 +88,7 @@ public:
 		return false;
 	}
 
-	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const override
 	{
 		if (Expression.IsValid() && Expression->Material)
 		{
@@ -97,7 +97,7 @@ public:
 		return false;
 	}
 
-	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const override
 	{
 		if (Expression.IsValid() && Expression->Material)
 		{
@@ -111,21 +111,21 @@ public:
 	virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency, bool bUsePreviousFrameTime) const override;
 
 	virtual int32 GetMaterialDomain() const override { return MD_Surface; }
-	virtual FString GetMaterialUsageDescription() const { return FString::Printf(TEXT("FMatExpressionPreview %s"), Expression.IsValid() ? *Expression->GetName() : TEXT("NULL")); }
-	virtual bool IsTwoSided() const { return false; }
-	virtual bool IsLightFunction() const { return false; }
-	virtual bool IsUsedWithDeferredDecal() const { return false; }
-	virtual bool IsSpecialEngineMaterial() const { return false; }
-	virtual bool IsWireframe() const { return false; }
-	virtual bool IsMasked() const { return false; }
-	virtual enum EBlendMode GetBlendMode() const { return BLEND_Opaque; }
-	virtual enum EMaterialShadingModel GetShadingModel() const { return MSM_Unlit; }
-	virtual float GetOpacityMaskClipValue() const { return 0.5f; }
-	virtual FString GetFriendlyName() const { return FString::Printf(TEXT("FMatExpressionPreview %s"), Expression.IsValid() ? *Expression->GetName() : TEXT("NULL")); }
+	virtual FString GetMaterialUsageDescription() const override { return FString::Printf(TEXT("FMatExpressionPreview %s"), Expression.IsValid() ? *Expression->GetName() : TEXT("NULL")); }
+	virtual bool IsTwoSided() const override { return false; }
+	virtual bool IsLightFunction() const override { return false; }
+	virtual bool IsUsedWithDeferredDecal() const override { return false; }
+	virtual bool IsSpecialEngineMaterial() const override { return false; }
+	virtual bool IsWireframe() const override { return false; }
+	virtual bool IsMasked() const override { return false; }
+	virtual enum EBlendMode GetBlendMode() const override { return BLEND_Opaque; }
+	virtual enum EMaterialShadingModel GetShadingModel() const override { return MSM_Unlit; }
+	virtual float GetOpacityMaskClipValue() const override { return 0.5f; }
+	virtual FString GetFriendlyName() const override { return FString::Printf(TEXT("FMatExpressionPreview %s"), Expression.IsValid() ? *Expression->GetName() : TEXT("NULL")); }
 	/**
 	 * Should shaders compiled for this material be saved to disk?
 	 */
-	virtual bool IsPersistent() const { return false; }
+	virtual bool IsPersistent() const override { return false; }
 	virtual FGuid GetMaterialId() const override { return Id; }
 	const UMaterialExpression* GetExpression() const
 	{
@@ -241,7 +241,7 @@ public:
 	/**
 	 * Draws messages on the specified viewport and canvas.
 	 */
-	virtual void DrawMessages( FViewport* Viewport, FCanvas* Canvas );
+	virtual void DrawMessages( FViewport* Viewport, FCanvas* Canvas ) override;
 
 	/**
 	 * Recenter the editor to either the material inputs or the first material function output

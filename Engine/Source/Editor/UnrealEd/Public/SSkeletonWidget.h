@@ -280,7 +280,7 @@ private:
 
 	class UDebugSkelMeshComponent* PreviewComponent;
 
-	bool IsVisible() const;
+	bool IsVisible() const override;
 };
 
 /////////////////////////////////////////////

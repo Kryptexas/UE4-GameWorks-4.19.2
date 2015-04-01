@@ -70,7 +70,7 @@ public:
 
 	// FTickableGameObject interface
 
-	void Tick(float DeltaTime)
+	void Tick(float DeltaTime) override
 	{
 		DataLock.Lock();
 
@@ -86,13 +86,13 @@ public:
 	}
 
 	/** We should call Tick on this object */
-	virtual bool IsTickable() const
+	virtual bool IsTickable() const override
 	{
 		return true;
 	}
 
 	/** Need this to be ticked when paused (that is the point!) */
-	virtual bool IsTickableWhenPaused() const
+	virtual bool IsTickableWhenPaused() const override
 	{
 		return true;
 	}

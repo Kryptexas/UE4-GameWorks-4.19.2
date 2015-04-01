@@ -1841,7 +1841,7 @@ public:
 	virtual const TCHAR* GetToolName() override { return TEXT("CopyPaste"); }
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Region", "Region Copy/Paste"); };
 
-	virtual void EnterTool()
+	virtual void EnterTool() override
 	{
 		// Make sure gizmo actor is selected
 		ALandscapeGizmoActiveActor* Gizmo = this->EdMode->CurrentGizmoActor.Get();
@@ -1921,29 +1921,29 @@ public:
 	virtual void SetEditRenderType() override { GLandscapeEditRenderMode = ELandscapeEditRenderMode::None | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
 	virtual bool SupportsMask() override { return false; }
 
-	virtual void EnterTool()
+	virtual void EnterTool() override
 	{
 		EdMode->NewLandscapePreviewMode = NewLandscapePreviewMode;
 	}
 
-	virtual void ExitTool()
+	virtual void ExitTool() override
 	{
 		NewLandscapePreviewMode = EdMode->NewLandscapePreviewMode;
 		EdMode->NewLandscapePreviewMode = ENewLandscapePreviewMode::None;
 	}
 
-	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation)
+	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation) override
 	{
 		// does nothing
 		return false;
 	}
 
-	virtual void EndTool(FEditorViewportClient* ViewportClient)
+	virtual void EndTool(FEditorViewportClient* ViewportClient) override
 	{
 		// does nothing
 	}
 
-	virtual bool MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y)
+	virtual bool MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) override
 	{
 		// does nothing
 		return false;
@@ -1971,7 +1971,7 @@ public:
 	virtual void SetEditRenderType() override { GLandscapeEditRenderMode = ELandscapeEditRenderMode::None | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
 	virtual bool SupportsMask() override { return false; }
 
-	virtual void EnterTool()
+	virtual void EnterTool() override
 	{
 		const int32 ComponentSizeQuads = EdMode->CurrentToolTarget.LandscapeInfo->ComponentSizeQuads;
 		int32 MinX, MinY, MaxX, MaxY;
@@ -1992,22 +1992,22 @@ public:
 		EdMode->UISettings->ResizeLandscape_SectionsPerComponent = EdMode->UISettings->ResizeLandscape_Original_SectionsPerComponent;
 	}
 
-	virtual void ExitTool()
+	virtual void ExitTool() override
 	{
 	}
 
-	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation)
+	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation) override
 	{
 		// does nothing
 		return false;
 	}
 
-	virtual void EndTool(FEditorViewportClient* ViewportClient)
+	virtual void EndTool(FEditorViewportClient* ViewportClient) override
 	{
 		// does nothing
 	}
 
-	virtual bool MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y)
+	virtual bool MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) override
 	{
 		// does nothing
 		return false;

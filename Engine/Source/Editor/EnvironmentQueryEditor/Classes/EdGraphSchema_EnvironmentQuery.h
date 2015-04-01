@@ -19,6 +19,6 @@ class UEdGraphSchema_EnvironmentQuery : public UAIGraphSchema
 	// End EdGraphSchema interface
 
 	// Begin UAIGraphSchema interface
-	virtual void GetSubNodeClasses(int32 SubNodeFlags, TArray<FGraphNodeClassData>& ClassData, UClass*& GraphNodeClass) const;
+	virtual void GetSubNodeClasses(int32 SubNodeFlags, TArray<FGraphNodeClassData>& ClassData, UClass*& GraphNodeClass) const override;
 	// End UAIGraphSchema interface
 };

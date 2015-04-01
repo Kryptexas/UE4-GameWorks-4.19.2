@@ -697,19 +697,19 @@ public:
 		INC_MEMORY_STAT_BY(STAT_ReflectionCaptureTextureMemory,CalcTextureSize(Size,Size,Format,NumMips) * 6);
 	}
 
-	virtual void ReleaseRHI()
+	virtual void ReleaseRHI() override
 	{
 		DEC_MEMORY_STAT_BY(STAT_ReflectionCaptureTextureMemory,CalcTextureSize(Size,Size,Format,NumMips) * 6);
 		TextureCubeRHI.SafeRelease();
 		FTexture::ReleaseRHI();
 	}
 
-	virtual uint32 GetSizeX() const
+	virtual uint32 GetSizeX() const override
 	{
 		return Size;
 	}
 
-	virtual uint32 GetSizeY() const //-V524
+	virtual uint32 GetSizeY() const override //-V524
 	{
 		return Size;
 	}

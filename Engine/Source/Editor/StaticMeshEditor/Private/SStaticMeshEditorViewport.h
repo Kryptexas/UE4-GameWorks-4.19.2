@@ -98,7 +98,7 @@ protected:
 
 private:
 	/** Determines the visibility of the viewport. */
-	bool IsVisible() const;
+	bool IsVisible() const override;
 
 	/** Callback for toggling the wireframe mode flag. */
 	void SetViewModeWireframe();

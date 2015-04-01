@@ -80,7 +80,7 @@ protected:
 	FSlateColor GetBorderBackgroundColor() const;
 	FSlateColor GetBackgroundColor() const;
 
-	virtual const FSlateBrush* GetNameIcon() const;
+	virtual const FSlateBrush* GetNameIcon() const override;
 	virtual EVisibility GetBlueprintIconVisibility() const;
 
 	/** Get the visibility of the index overlay */

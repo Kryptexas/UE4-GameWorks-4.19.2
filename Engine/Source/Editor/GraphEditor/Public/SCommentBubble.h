@@ -111,7 +111,7 @@ protected:
 	FSlateColor GetTextForegroundColor() const;
 
 	/** Returns the foreground color for the text and buttons, taking into account the bubble color */
-	FSlateColor GetForegroundColor() const { return ForegroundColor; }
+	FSlateColor GetForegroundColor() const override { return ForegroundColor; }
 
 	/** Called when the comment text is committed */
 	void OnCommentTextCommitted( const FText& NewText, ETextCommit::Type CommitInfo );

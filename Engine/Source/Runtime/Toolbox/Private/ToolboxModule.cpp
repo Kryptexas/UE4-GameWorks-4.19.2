@@ -162,12 +162,12 @@ TSharedRef<SDockTab> CreateModulesTab( const FSpawnTabArgs& Args )
 
 class FToolboxModule : public IToolboxModule
 {
-	void StartupModule()
+	void StartupModule() override
 	{
 
 	}
 
-	void ShutdownModule()
+	void ShutdownModule() override
 	{
 		bTabsRegistered = false;
 

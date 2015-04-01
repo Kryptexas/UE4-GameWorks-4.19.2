@@ -49,7 +49,7 @@ public:
 
 	// FViewportClient interface
 	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) override;
-	virtual void Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI);
+	virtual void Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
 	virtual void DrawCanvas(FViewport& InViewport, FSceneView& View, FCanvas& Canvas) override;
 	virtual void Tick(float DeltaSeconds) override;
 	// End of FViewportClient interface
@@ -65,9 +65,9 @@ public:
 	virtual void SetWidgetMode(FWidget::EWidgetMode NewMode) override;
 	virtual bool CanSetWidgetMode(FWidget::EWidgetMode NewMode) const override;
 	virtual bool CanCycleWidgetMode() const override;
-	virtual FVector GetWidgetLocation() const;
-	virtual FMatrix GetWidgetCoordSystem() const;
-	virtual ECoordSystem GetWidgetCoordSystemSpace() const;
+	virtual FVector GetWidgetLocation() const override;
+	virtual FMatrix GetWidgetCoordSystem() const override;
+	virtual ECoordSystem GetWidgetCoordSystemSpace() const override;
 	virtual FLinearColor GetBackgroundColor() const override;
 	// End of FEditorViewportClient interface
 

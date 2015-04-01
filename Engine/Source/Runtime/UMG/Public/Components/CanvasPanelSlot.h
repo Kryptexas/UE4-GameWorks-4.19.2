@@ -134,8 +134,8 @@ public:
 
 #if WITH_EDITOR
 	// UObject interface
-	virtual void PreEditChange(class FEditPropertyChain& PropertyAboutToChange);
-	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent);
+	virtual void PreEditChange(class FEditPropertyChain& PropertyAboutToChange) override;
+	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent) override;
 	// End of UObject interface
 
 	/** Stores the current layout information about the slot and parent canvas. */

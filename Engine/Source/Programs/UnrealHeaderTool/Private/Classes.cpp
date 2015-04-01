@@ -71,7 +71,7 @@ bool FClasses::IsDependentOn(const FClass* Suspect, const FClass* Source, TSet<c
 	// Children are all implicitly dependent on their parent, that is, children require their parent
 	// to be compiled first therefore if the source is a parent of the suspect, the suspect is
 	// dependent on the source.
-	if (Suspect->Inherits(Source))
+	if (Suspect->IsChildOf(Source))
 	{
 		return true;
 	}

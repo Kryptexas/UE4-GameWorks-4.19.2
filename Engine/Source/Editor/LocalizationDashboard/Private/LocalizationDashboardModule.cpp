@@ -49,7 +49,7 @@ public:
 	}
 	// End IModuleInterface interface
 
-	virtual void Show()
+	virtual void Show() override
 	{
 		FLocalizationDashboard* const LocalizationDashboard = FLocalizationDashboard::Get();
 		if (LocalizationDashboard)
@@ -58,12 +58,12 @@ public:
 		}
 	}
 
-	virtual const TArray<ILocalizationServiceProvider*>& GetLocalizationServiceProviders() const
+	virtual const TArray<ILocalizationServiceProvider*>& GetLocalizationServiceProviders() const override
 	{
 		return ServiceProviders;
 	}
 
-	virtual ILocalizationServiceProvider* GetCurrentLocalizationServiceProvider() const
+	virtual ILocalizationServiceProvider* GetCurrentLocalizationServiceProvider() const override
 	{
 		if(CurrentServiceProviderName == NAME_None)
 		{

@@ -214,14 +214,14 @@ public:
 
 
 	/** Returns whether shaders that Slate depends on have been compiled. */
-	virtual bool AreShadersInitialized() const;
+	virtual bool AreShadersInitialized() const override;
 
 	/** 
 	 * Removes references to FViewportRHI's.  
 	 * This has to be done explicitly instead of using the FRenderResource mechanism because FViewportRHI's are managed by the game thread.
 	 * This is needed before destroying the RHI device. 
 	 */
-	virtual void InvalidateAllViewports();
+	virtual void InvalidateAllViewports() override;
 
 	virtual void PrepareToTakeScreenshot(const FIntRect& Rect, TArray<FColor>* OutColorData) override;
 

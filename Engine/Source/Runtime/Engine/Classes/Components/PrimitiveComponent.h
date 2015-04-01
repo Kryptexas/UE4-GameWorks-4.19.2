@@ -987,7 +987,7 @@ public:
 	void SetLODParentPrimitive(UPrimitiveComponent * InLODParentPrimitive);
 
 #if WITH_EDITOR
-	virtual const int32 GetNumUncachedStaticLightingInteractions() const; // recursive function
+	virtual const int32 GetNumUncachedStaticLightingInteractions() const override; // recursive function
 #endif
 
 	// Begin UActorComponent Interface
@@ -1335,7 +1335,7 @@ public:
 	 * Allow the object to perform any cleanup for properties which shouldn't be duplicated or
 	 * are unsupported by the script serialization
 	 */
-	virtual void PostEditImport();
+	virtual void PostEditImport() override;
 #endif
 
 	virtual void BeginDestroy() override;

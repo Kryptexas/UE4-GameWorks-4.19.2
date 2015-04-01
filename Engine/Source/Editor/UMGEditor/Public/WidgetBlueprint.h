@@ -219,7 +219,7 @@ public:
 		return false;
 	}
 
-	virtual void GetReparentingRules(TSet< const UClass* >& AllowedChildrenOfClasses, TSet< const UClass* >& DisallowedChildrenOfClasses) const;
+	virtual void GetReparentingRules(TSet< const UClass* >& AllowedChildrenOfClasses, TSet< const UClass* >& DisallowedChildrenOfClasses) const override;
 	// End of UBlueprint interface
 
 	static bool ValidateGeneratedClass(const UClass* InClass);

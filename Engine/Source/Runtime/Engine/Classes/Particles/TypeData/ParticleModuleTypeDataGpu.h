@@ -417,7 +417,7 @@ class UParticleModuleTypeDataGpu : public UParticleModuleTypeDataBase
 
 	// Begin UParticleModuleTypeDataBase Interface
 	virtual void Build( struct FParticleEmitterBuildInfo& EmitterBuildInfo ) override;
-	virtual bool RequiresBuild() const { return true; }
+	virtual bool RequiresBuild() const override { return true; }
 	virtual FParticleEmitterInstance* CreateInstance(UParticleEmitter* InEmitterParent, UParticleSystemComponent* InComponent) override;
 	// End UParticleModuleTypeDataBase Interface
 };

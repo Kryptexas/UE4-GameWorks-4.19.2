@@ -164,8 +164,8 @@ public:
 	virtual void SetKeyframeHandler( TSharedPtr<class IDetailKeyframeHandler> InKeyframeHandler ) override;
 	virtual TSharedPtr<IDetailKeyframeHandler> GetKeyframeHandler() override;
 
-	virtual void SetExtensionHandler(TSharedPtr<class IDetailPropertyExtensionHandler> InExtensionHandler);
-	virtual TSharedPtr<IDetailPropertyExtensionHandler> GetExtensionHandler();
+	virtual void SetExtensionHandler(TSharedPtr<class IDetailPropertyExtensionHandler> InExtensionHandler) override;
+	virtual TSharedPtr<IDetailPropertyExtensionHandler> GetExtensionHandler() override;
 
 	/**
 	 * Requests that an item in the tree be expanded or collapsed
@@ -256,7 +256,7 @@ public:
 	/**
 	 * @return The thumbnail pool that should be used for thumbnails being rendered in this view
 	 */
-	TSharedPtr<class FAssetThumbnailPool> GetThumbnailPool() const;
+	TSharedPtr<class FAssetThumbnailPool> GetThumbnailPool() const override;
 
 	/**
 	 * Returns the property utilities for this view

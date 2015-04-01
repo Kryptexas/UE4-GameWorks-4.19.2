@@ -363,7 +363,7 @@ public:
 #endif
 
 	/** @todo document */
-	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly);
+	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) override;
 
 
 	/** Get the landscape actor associated with this component. */
@@ -517,10 +517,10 @@ public:
 	void RemoveInvalidWeightmaps();
 
 	/** @todo document */
-	virtual void ExportCustomProperties(FOutputDevice& Out, uint32 Indent);
+	virtual void ExportCustomProperties(FOutputDevice& Out, uint32 Indent) override;
 
 	/** @todo document */
-	virtual void ImportCustomProperties(const TCHAR* SourceText, FFeedbackContext* Warn);
+	virtual void ImportCustomProperties(const TCHAR* SourceText, FFeedbackContext* Warn) override;
 
 	/** @todo document */
 	LANDSCAPE_API void InitHeightmapData(TArray<FColor>& Heights, bool bUpdateCollision);

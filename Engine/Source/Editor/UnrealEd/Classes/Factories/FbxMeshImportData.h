@@ -28,5 +28,5 @@ class UFbxMeshImportData : public UFbxAssetImportData
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=ImportSettings, meta=(ImportType="Mesh"))
 	TEnumAsByte<enum EFBXNormalImportMethod> NormalImportMethod;
 
-	bool CanEditChange( const UProperty* InProperty ) const;
+	bool CanEditChange( const UProperty* InProperty ) const override;
 };

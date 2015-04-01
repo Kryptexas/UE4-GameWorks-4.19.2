@@ -219,7 +219,7 @@ public:
 	 *
 	 * @return true if the shader should be compiled
 	 */
-	virtual bool ShouldCache(EShaderPlatform Platform, const FShaderType* ShaderType, const FVertexFactoryType* VertexFactoryType) const
+	virtual bool ShouldCache(EShaderPlatform Platform, const FShaderType* ShaderType, const FVertexFactoryType* VertexFactoryType) const override
 	{
 		if (VertexFactoryType == FindVertexFactoryType(FName(TEXT("FLocalVertexFactory"), FNAME_Find)))
 		{
@@ -241,7 +241,7 @@ public:
 
 	////////////////
 	// FMaterialRenderProxy interface.
-	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const
+	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const override
 	{
 		if(GetRenderingThreadShaderMap())
 		{
@@ -253,17 +253,17 @@ public:
 		}
 	}
 
-	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const override
 	{
 		return MaterialInterface->GetRenderProxy(0)->GetVectorValue(ParameterName, OutValue, Context);
 	}
 
-	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const override
 	{
 		return MaterialInterface->GetRenderProxy(0)->GetScalarValue(ParameterName, OutValue, Context);
 	}
 
-	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const override
 	{
 		return MaterialInterface->GetRenderProxy(0)->GetTextureValue(ParameterName,OutValue,Context);
 	}
@@ -405,7 +405,7 @@ public:
 		}
 		return MD_Surface;
 	}
-	virtual bool IsTwoSided() const 
+	virtual bool IsTwoSided() const override
 	{
 		if (MaterialInterface)
 		{
@@ -413,7 +413,7 @@ public:
 		}
 		return false;
 	}
-	virtual bool IsLightFunction() const
+	virtual bool IsLightFunction() const override
 	{
 		if (Material)
 		{
@@ -421,11 +421,11 @@ public:
 		}
 		return false;
 	}
-	virtual bool IsUsedWithDeferredDecal() const
+	virtual bool IsUsedWithDeferredDecal() const override
 	{
 		return Material && Material->MaterialDomain == MD_DeferredDecal;
 	}
-	virtual bool IsSpecialEngineMaterial() const
+	virtual bool IsSpecialEngineMaterial() const override
 	{
 		if (Material)
 		{
@@ -433,7 +433,7 @@ public:
 		}
 		return false;
 	}
-	virtual bool IsWireframe() const
+	virtual bool IsWireframe() const override
 	{
 		if (Material)
 		{
@@ -441,16 +441,16 @@ public:
 		}
 		return false;
 	}
-	virtual bool IsMasked() const									{ return false; }
-	virtual enum EBlendMode GetBlendMode() const					{ return BLEND_Opaque; }
-	virtual enum EMaterialShadingModel GetShadingModel() const		{ return MSM_Unlit; }
-	virtual float GetOpacityMaskClipValue() const					{ return 0.5f; }
-	virtual FString GetFriendlyName() const { return FString::Printf(TEXT("FLightmassMaterialRenderer %s"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL")); }
+	virtual bool IsMasked() const override								{ return false; }
+	virtual enum EBlendMode GetBlendMode() const override				{ return BLEND_Opaque; }
+	virtual enum EMaterialShadingModel GetShadingModel() const override	{ return MSM_Unlit; }
+	virtual float GetOpacityMaskClipValue() const override				{ return 0.5f; }
+	virtual FString GetFriendlyName() const override { return FString::Printf(TEXT("FLightmassMaterialRenderer %s"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL")); }
 
 	/**
 	 * Should shaders compiled for this material be saved to disk?
 	 */
-	virtual bool IsPersistent() const { return true; }
+	virtual bool IsPersistent() const override { return true; }
 
 	virtual FGuid GetMaterialId() const override 
 	{ 

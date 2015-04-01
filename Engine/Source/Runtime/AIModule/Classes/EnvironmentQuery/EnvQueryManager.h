@@ -114,7 +114,7 @@ class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject
 
 	// We need to implement GetWorld() so that any EQS-related blueprints (such as blueprint contexts) can implement
 	// GetWorld() and so provide access to blueprint nodes using hidden WorldContextObject parameters.
-	virtual UWorld* GetWorld() const;
+	virtual UWorld* GetWorld() const override;
 
 	/** [FTickableGameObject] tick function */
 	virtual void Tick(float DeltaTime) override;

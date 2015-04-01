@@ -91,7 +91,7 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UObject
 	TWeakObjectPtr<UAbilitySystemComponent>	AbilitySystemComponent;
 
 	/** Helper function for getting UWorld off a task */
-	UWorld* GetWorld() const;
+	UWorld* GetWorld() const override;
 
 	/** Proper way to get the owning actor of the ability that owns this task and the gameplay effects */
 	AActor* GetOwnerActor() const;

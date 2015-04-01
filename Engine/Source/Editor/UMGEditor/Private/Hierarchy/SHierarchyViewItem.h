@@ -99,7 +99,7 @@ public:
 
 protected:
 	virtual void GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children) override;
-	virtual void UpdateSelection();
+	virtual void UpdateSelection() override;
 
 private:
 
@@ -122,7 +122,7 @@ public:
 
 	virtual FSlateFontInfo GetFont() const override;
 
-	virtual void OnSelection();
+	virtual void OnSelection() override;
 	
 	virtual TOptional<EItemDropZone> HandleCanAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone) override;
 	virtual FReply HandleAcceptDrop(FDragDropEvent const& DragDropEvent, EItemDropZone DropZone) override;
@@ -130,7 +130,7 @@ public:
 
 protected:
 	virtual void GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children) override;
-	virtual void UpdateSelection();
+	virtual void UpdateSelection() override;
 
 private:
 
@@ -168,7 +168,7 @@ public:
 
 	virtual void OnNameTextCommited(const FText& InText, ETextCommit::Type CommitInfo) override;
 
-	virtual void OnSelection();
+	virtual void OnSelection() override;
 
 	virtual void OnMouseEnter() override;
 	virtual void OnMouseLeave() override;
@@ -212,7 +212,7 @@ public:
 
 protected:
 	virtual void GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children) override;
-	virtual void UpdateSelection();
+	virtual void UpdateSelection() override;
 
 private:
 	FWidgetReference Item;
@@ -236,7 +236,7 @@ public:
 	void Construct(const FArguments& InArgs, const TSharedRef< STableViewBase >& InOwnerTableView, TSharedPtr<FHierarchyModel> InModel);
 
 	// Begin SWidget
-	virtual bool IsHovered() const;
+	virtual bool IsHovered() const override;
 	virtual void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual void OnMouseLeave(const FPointerEvent& MouseEvent) override;
 	// End SWidget

@@ -28,12 +28,12 @@ public:
 	}
 
 
-	virtual bool Init()
+	virtual bool Init() override
 	{
 		return true; 
 	}
 
-	virtual uint32 Run()
+	virtual uint32 Run() override
 	{
 		while (!StopRequested.GetValue())
 		{
@@ -63,12 +63,12 @@ public:
 #endif
 	}
 
-	virtual void Stop() 
+	virtual void Stop() override
 	{
 		StopRequested.Set(true);
 	}
 
-	virtual void Exit()
+	virtual void Exit() override
 	{
 		Socket->Close();
 		ISocketSubsystem::Get()->DestroySocket(Socket);

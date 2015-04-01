@@ -64,12 +64,12 @@ public:
 
 protected:
 
-	virtual bool SupportsKeyboardFocus() const { return true; }
+	virtual bool SupportsKeyboardFocus() const override { return true; }
 
 	// e.g. Tab or Key_Up
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& KeyEvent );
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& KeyEvent ) override;
 
-	void OnFocusLost( const FFocusEvent& InFocusEvent );
+	void OnFocusLost( const FFocusEvent& InFocusEvent ) override;
 
 	/** Handles entering in a command */
 	void OnTextCommitted(const FText& InText, ETextCommit::Type CommitInfo);

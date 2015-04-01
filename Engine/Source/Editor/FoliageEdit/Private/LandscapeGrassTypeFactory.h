@@ -16,6 +16,6 @@ class ULandscapeGrassTypeFactory : public UFactory
 
 	// UFactory interface
 	virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) override;
-	virtual uint32 GetMenuCategories() const;
+	virtual uint32 GetMenuCategories() const override;
 	// End of UFactory interface
 };

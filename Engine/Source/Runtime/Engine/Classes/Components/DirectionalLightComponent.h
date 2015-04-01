@@ -150,8 +150,8 @@ class UDirectionalLightComponent : public ULightComponent
 	void SetLightShaftOverrideDirection(FVector NewValue);
 
 	// ULightComponent interface.
-	virtual FVector4 GetLightPosition() const;
-	virtual ELightComponentType GetLightType() const;
+	virtual FVector4 GetLightPosition() const override;
+	virtual ELightComponentType GetLightType() const override;
 	virtual FLightSceneProxy* CreateSceneProxy() const override;
 	virtual bool IsUsedAsAtmosphereSunLight() const override
 	{

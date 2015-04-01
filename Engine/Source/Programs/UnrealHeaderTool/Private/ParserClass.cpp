@@ -5,11 +5,6 @@
 #include "Classes.h"
 #include "ClassMaps.h"
 
-bool FClass::Inherits(const FClass* SuspectBase) const
-{
-	return IsChildOf(SuspectBase);
-}
-
 FString FClass::GetNameWithPrefix(EEnforceInterfacePrefix::Type EnforceInterfacePrefix) const
 {
 	const TCHAR* Prefix = 0;

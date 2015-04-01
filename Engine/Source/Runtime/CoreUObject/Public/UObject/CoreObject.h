@@ -584,4 +584,3 @@ private:
 };
 
 #endif //WITH_EDITOR
-

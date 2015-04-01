@@ -484,7 +484,7 @@ public:
 	 * @param InItem   Item to visualize.
 	 * @return A widget that represents this item.
 	 */
-	virtual TSharedRef<ITableRow> GenerateNewWidget( ItemType InItem )
+	virtual TSharedRef<ITableRow> GenerateNewWidget( ItemType InItem ) override
 	{
 		if ( this->OnGenerateRow.IsBound() )
 		{

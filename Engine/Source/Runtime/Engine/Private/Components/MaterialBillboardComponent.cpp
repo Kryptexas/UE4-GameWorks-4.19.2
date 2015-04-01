@@ -230,7 +230,7 @@ public:
 		}
 	}
 
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
 	{
 		bool bVisible = View->Family->EngineShowFlags.BillboardSprites;
 		FPrimitiveViewRelevance Result;
@@ -240,8 +240,8 @@ public:
 		MaterialRelevance.SetPrimitiveViewRelevance(Result);
 		return Result;
 	}
-	virtual bool CanBeOccluded() const { return !MaterialRelevance.bDisableDepthTest; }
-	virtual uint32 GetMemoryFootprint() const { return sizeof(*this) + GetAllocatedSize(); }
+	virtual bool CanBeOccluded() const override { return !MaterialRelevance.bDisableDepthTest; }
+	virtual uint32 GetMemoryFootprint() const override { return sizeof(*this) + GetAllocatedSize(); }
 	uint32 GetAllocatedSize() const { return FPrimitiveSceneProxy::GetAllocatedSize(); }
 
 private:

@@ -493,7 +493,7 @@ public:
 		return MaybeGroupFName;
 	}
 
-	void StatGroupEnableManagerCommand(FString const& InCmd)
+	void StatGroupEnableManagerCommand(FString const& InCmd) override
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 		const TCHAR* Cmd = *InCmd;
@@ -687,7 +687,7 @@ public:
 	}
 
 	/** Attaches to the task graph stats thread, all processing will be handled by the task graph. */
-	virtual uint32 Run()
+	virtual uint32 Run() override
 	{
 		FTaskGraphInterface::Get().AttachToThread(ENamedThreads::StatsThread);
 		FTaskGraphInterface::Get().ProcessThreadUntilRequestReturn(ENamedThreads::StatsThread);

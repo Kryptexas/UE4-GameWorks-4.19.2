@@ -216,7 +216,7 @@ private:
 		return FReply::Handled().DetectDrag(SharedThis(this), EKeys::LeftMouseButton);
 	}
 
-	virtual FReply OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
+	virtual FReply OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) override
 	{
 		return HandleClick();
 	}

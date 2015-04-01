@@ -1198,8 +1198,8 @@ public:
 	FSimpleElementCollector();
 	~FSimpleElementCollector();
 
-	virtual void SetHitProxy(HHitProxy* HitProxy);
-	virtual void AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased = false, bool bThickLines = false) {}
+	virtual void SetHitProxy(HHitProxy* HitProxy) override;
+	virtual void AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased = false, bool bThickLines = false) override {}
 
 	virtual void DrawSprite(
 		const FVector& Position,
@@ -1235,7 +1235,7 @@ public:
 	virtual void RegisterDynamicResource(FDynamicPrimitiveResource* DynamicResource) override;
 
 	// Not supported
-	virtual bool IsHitTesting() 
+	virtual bool IsHitTesting() override
 	{ 
 		static bool bTriggered = false;
 
@@ -1249,7 +1249,7 @@ public:
 	}
 
 	// Not supported
-	virtual int32 DrawMesh(const FMeshBatch& Mesh) 
+	virtual int32 DrawMesh(const FMeshBatch& Mesh) override
 	{
 		static bool bTriggered = false;
 

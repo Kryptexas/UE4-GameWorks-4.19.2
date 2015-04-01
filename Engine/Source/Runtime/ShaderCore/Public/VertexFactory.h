@@ -259,7 +259,7 @@ extern SHADERCORE_API FVertexFactoryType* FindVertexFactoryType(FName TypeName);
 #define DECLARE_VERTEX_FACTORY_TYPE(FactoryClass) \
 	public: \
 	static FVertexFactoryType StaticType; \
-	virtual FVertexFactoryType* GetType() const { return &StaticType; }
+	virtual FVertexFactoryType* GetType() const override { return &StaticType; }
 
 /**
  * A macro for implementing the static vertex factory type object, and specifying parameters used by the type.

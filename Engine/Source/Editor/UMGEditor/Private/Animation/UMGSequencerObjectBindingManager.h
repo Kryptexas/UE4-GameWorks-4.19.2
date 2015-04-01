@@ -14,13 +14,13 @@ public:
 	~FUMGSequencerObjectBindingManager();
 
 	/** FGCObject interface */
-	virtual void AddReferencedObjects(FReferenceCollector& Collector);
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
 	/** ISequencerObjectBindingManager interface */
 	virtual bool AllowsSpawnableObjects() const override { return false; }
 	virtual FGuid FindGuidForObject( const UMovieScene& MovieScene, UObject& Object ) const override;
-	virtual void SpawnOrDestroyObjectsForInstance( TSharedRef<FMovieSceneInstance> MovieSceneInstance, bool bDestroyAll ) {}
-	virtual void DestroyAllSpawnedObjects()  {}
+	virtual void SpawnOrDestroyObjectsForInstance( TSharedRef<FMovieSceneInstance> MovieSceneInstance, bool bDestroyAll ) override {}
+	virtual void DestroyAllSpawnedObjects() override {}
 	virtual bool CanPossessObject( UObject& Object ) const override;
 	virtual void BindPossessableObject( const FGuid& PossessableGuid, UObject& PossessedObject ) override;
 	virtual void UnbindPossessableObjects( const FGuid& PossessableGuid ) override;

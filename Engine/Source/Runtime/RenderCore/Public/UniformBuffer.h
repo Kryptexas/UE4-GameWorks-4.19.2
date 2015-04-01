@@ -51,7 +51,7 @@ public:
 		check(IsInRenderingThread());
 		UniformBufferRHI = RHICreateUniformBuffer(Contents,TBufferStruct::StaticStruct.GetLayout(),BufferUsage);
 	}
-	virtual void ReleaseDynamicRHI()
+	virtual void ReleaseDynamicRHI() override
 	{
 		UniformBufferRHI.SafeRelease();
 	}

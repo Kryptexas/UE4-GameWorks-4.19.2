@@ -29,9 +29,9 @@ class GAMEPLAYABILITIES_API UGameplayCueNotify_Static : public UObject
 
 	virtual void OnOwnerDestroyed();
 
-	virtual void PostInitProperties();
+	virtual void PostInitProperties() override;
 
-	virtual void Serialize(FArchive& Ar);
+	virtual void Serialize(FArchive& Ar) override;
 
 	virtual void HandleGameplayCue(AActor* MyTarget, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
 

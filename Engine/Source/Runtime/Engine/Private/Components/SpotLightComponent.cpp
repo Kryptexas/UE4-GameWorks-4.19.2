@@ -70,7 +70,7 @@ public:
 	}
 
 	/** Accesses parameters needed for rendering the light. */
-	virtual void GetParameters(FVector4& LightPositionAndInvRadius, FVector4& LightColorAndFalloffExponent, FVector& NormalizedLightDirection, FVector2D& SpotAngles, float& LightSourceRadius, float& LightSourceLength, float& LightMinRoughness) const
+	virtual void GetParameters(FVector4& LightPositionAndInvRadius, FVector4& LightColorAndFalloffExponent, FVector& NormalizedLightDirection, FVector2D& SpotAngles, float& LightSourceRadius, float& LightSourceLength, float& LightMinRoughness) const override
 	{
 		LightPositionAndInvRadius = FVector4(
 			GetOrigin(),
@@ -90,7 +90,7 @@ public:
 	}
 
 	// FLightSceneInfo interface.
-	virtual bool AffectsBounds(const FBoxSphereBounds& Bounds) const
+	virtual bool AffectsBounds(const FBoxSphereBounds& Bounds) const override
 	{
 		if(!TPointLightSceneProxy<FSpotLightPolicy>::AffectsBounds(Bounds))
 		{
@@ -119,7 +119,7 @@ public:
 	 * Sets up a projected shadow initializer for shadows from the entire scene.
 	 * @return True if the whole-scene projected shadow should be used.
 	 */
-	virtual bool GetWholeSceneProjectedShadowInitializer(const FSceneViewFamily& ViewFamily, TArray<FWholeSceneProjectedShadowInitializer, TInlineAllocator<6> >& OutInitializers) const
+	virtual bool GetWholeSceneProjectedShadowInitializer(const FSceneViewFamily& ViewFamily, TArray<FWholeSceneProjectedShadowInitializer, TInlineAllocator<6> >& OutInitializers) const override
 	{
 		FWholeSceneProjectedShadowInitializer& OutInitializer = *new(OutInitializers) FWholeSceneProjectedShadowInitializer;
 		OutInitializer.PreShadowTranslation = -GetLightToWorld().GetOrigin();
@@ -138,11 +138,11 @@ public:
 		return true;
 	}
 
-	virtual float GetOuterConeAngle() const { return OuterConeAngle; }
+	virtual float GetOuterConeAngle() const override { return OuterConeAngle; }
 
 	virtual FVector2D GetLightShaftConeParams() const override { return FVector2D(CosLightShaftConeAngle, InvCosLightShaftConeDifference); }
 
-	virtual FSphere GetBoundingSphere() const
+	virtual FSphere GetBoundingSphere() const override
 	{
 		// Use the law of cosines to find the distance to the furthest edge of the spotlight cone from a position that is halfway down the spotlight direction
 		const float BoundsRadius = FMath::Sqrt(1.25f * Radius * Radius - Radius * Radius * CosOuterCone);

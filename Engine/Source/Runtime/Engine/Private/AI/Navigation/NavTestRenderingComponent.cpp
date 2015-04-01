@@ -319,7 +319,7 @@ public:
 		return View->ViewFrustum.IntersectBox(Location, FVector::ZeroVector);
 	}
 
-	void DrawDebugLabels(UCanvas* Canvas, APlayerController*)
+	void DrawDebugLabels(UCanvas* Canvas, APlayerController*) override
 	{
 		if (NavTestActor == NULL)
 		{
@@ -376,7 +376,7 @@ public:
 		Canvas->SetDrawColor(OldDrawColor);
 	}
 
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
 	{
 		FPrimitiveViewRelevance Result;
 		Result.bDrawRelevance = IsShown(View);

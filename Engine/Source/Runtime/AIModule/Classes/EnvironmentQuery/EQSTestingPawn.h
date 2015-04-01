@@ -87,13 +87,13 @@ public:
 
 	virtual bool GetShouldDebugDrawLabels() const override { return bDrawLabels; }
 	virtual bool GetShouldDrawFailedItems() const override{ return bDrawFailedItems; }
-	virtual float GetHighlightRangePct() const;
+	virtual float GetHighlightRangePct() const override;
 	// IEQSQueryResultSourceInterface end
 
 	void RunEQSQuery();
 
 protected:	
-	void Reset();
+	void Reset() override;
 	void MakeOneStep();
 
 	void UpdateDrawing();

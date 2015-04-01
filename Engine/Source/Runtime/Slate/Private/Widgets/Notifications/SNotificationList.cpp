@@ -95,19 +95,19 @@ public:
 	}
 
 	/** Sets the ExpireDuration */
-	virtual void SetExpireDuration(float Duration)
+	virtual void SetExpireDuration(float Duration) override
 	{
 		ExpireDuration = Duration;
 	}
 
 	/** Sets the FadeInDuration */
-	virtual void SetFadeInDuration(float Duration)
+	virtual void SetFadeInDuration(float Duration) override
 	{
 		FadeInDuration = Duration;
 	}
 
 	/** Sets the FadeOutDuration */
-	virtual void SetFadeOutDuration(float Duration)
+	virtual void SetFadeOutDuration(float Duration) override
 	{
 		FadeOutDuration = Duration;
 	}

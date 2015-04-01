@@ -1197,7 +1197,7 @@ private:
 
 	void DrawSafeFrameQuad( FCanvas &Canvas, FVector2D V1, FVector2D V2 );
 	
-	virtual FEngineShowFlags* GetEngineShowFlags() 
+	virtual FEngineShowFlags* GetEngineShowFlags() override
 	{ 
 		return &EngineShowFlags; 
 	}

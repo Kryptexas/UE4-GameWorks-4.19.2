@@ -561,7 +561,7 @@ public:
 	/**
 	 * Start cook by the book in the editor process space
 	 */
-	virtual void StartCookByTheBookInEditor( const TArray<ITargetPlatform*> &TargetPlatforms, const TArray<FString> &CookMaps, const TArray<FString> &CookDirectories, const TArray<FString> &CookCultures, const TArray<FString> &IniMapSections );
+	virtual void StartCookByTheBookInEditor( const TArray<ITargetPlatform*> &TargetPlatforms, const TArray<FString> &CookMaps, const TArray<FString> &CookDirectories, const TArray<FString> &CookCultures, const TArray<FString> &IniMapSections ) override;
 
 	/**
 	 * Checks if the cook by the book is finished
@@ -647,12 +647,12 @@ public:
 	/**
 	 * @return true if selection of translucent objects in perspective viewports is allowed
 	 */
-	virtual bool AllowSelectTranslucent() const;
+	virtual bool AllowSelectTranslucent() const override;
 
 	/**
 	 * @return true if only editor-visible levels should be loaded in Play-In-Editor sessions
 	 */
-	virtual bool OnlyLoadEditorVisibleLevelsInPIE() const;
+	virtual bool OnlyLoadEditorVisibleLevelsInPIE() const override;
 
 	/**
 	 * @return true if level streaming should prefer to stream levels from disk instead of duplicating them from editor world
@@ -690,7 +690,7 @@ public:
 	 *
 	 * @return	Index of the provided sprite category, if possible; INDEX_NONE otherwise
 	 */
-	virtual int32 GetSpriteCategoryIndex( const FName& InSpriteCategory );
+	virtual int32 GetSpriteCategoryIndex( const FName& InSpriteCategory ) override;
 	
 	/**
 	 * Shows the LightingStaticMeshInfoWindow, creating it first if it hasn't been initialized.

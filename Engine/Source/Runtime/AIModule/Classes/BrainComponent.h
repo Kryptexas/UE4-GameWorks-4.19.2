@@ -161,7 +161,7 @@ public:
 	
 	/** BEGIN UActorComponent overrides */
 	virtual void InitializeComponent() override;
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction);
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual void OnRegister() override;
 	/** END UActorComponent overrides */
 

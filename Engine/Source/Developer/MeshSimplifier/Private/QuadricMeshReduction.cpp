@@ -123,7 +123,7 @@ public:
 		float& OutMaxDeviation,
 		const FRawMesh& InMesh,
 		const FMeshReductionSettings& InSettings
-		)
+		) override
 	{
 #if 0
 		TMap<int32,int32> FinalVerts;
@@ -347,12 +347,12 @@ public:
 		int32 LODIndex,
 		const FSkeletalMeshOptimizationSettings& Settings,
 		bool bCalcLODDistance
-		)
+		) override
 	{
 		return false;
 	}
 
-	virtual bool IsSupported() const
+	virtual bool IsSupported() const override
 	{
 		return true;
 	}

@@ -27,9 +27,9 @@ public:
 	virtual void SetWidgetMode(FWidget::EWidgetMode NewMode) override;
 	virtual bool CanSetWidgetMode(FWidget::EWidgetMode NewMode) const override;
 	virtual bool CanCycleWidgetMode() const override;
-	virtual FVector GetWidgetLocation() const;
-	virtual FMatrix GetWidgetCoordSystem() const;
-	virtual ECoordSystem GetWidgetCoordSystemSpace() const { return COORD_Local; }
+	virtual FVector GetWidgetLocation() const override;
+	virtual FMatrix GetWidgetCoordSystem() const override;
+	virtual ECoordSystem GetWidgetCoordSystemSpace() const override { return COORD_Local; }
 	virtual bool ShouldOrbitCamera() const override;
 	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily) override;
 

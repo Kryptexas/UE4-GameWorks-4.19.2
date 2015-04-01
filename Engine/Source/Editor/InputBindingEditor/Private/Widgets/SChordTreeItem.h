@@ -49,7 +49,7 @@ public:
 	 *
 	 * @param ColumnName The name of the column that needs a widget.
 	 */
-	TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName );
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override;
 
 public:
 

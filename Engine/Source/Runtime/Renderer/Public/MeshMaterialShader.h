@@ -55,8 +55,8 @@ public:
 	FUniformBufferRHIParamRef GetPrimitiveFadeUniformBufferParameter(const FSceneView& View, const FPrimitiveSceneProxy* Proxy);
 
 	// FShader interface.
-	virtual const FVertexFactoryParameterRef* GetVertexFactoryParameterRef() const { return &VertexFactoryParameters; }
-	virtual bool Serialize(FArchive& Ar);
+	virtual const FVertexFactoryParameterRef* GetVertexFactoryParameterRef() const override { return &VertexFactoryParameters; }
+	virtual bool Serialize(FArchive& Ar) override;
 	virtual uint32 GetAllocatedSize() const override;
 
 private:

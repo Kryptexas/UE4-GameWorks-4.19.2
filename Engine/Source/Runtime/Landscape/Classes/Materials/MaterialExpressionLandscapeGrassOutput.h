@@ -50,7 +50,7 @@ class UMaterialExpressionLandscapeGrassOutput : public UMaterialExpressionCustom
 #endif
 
 	virtual int32 GetNumOutputs() const override { return GrassTypes.Num(); }
-	virtual FString GetFunctionName() const { return TEXT("GetGrassWeight"); }
+	virtual FString GetFunctionName() const override { return TEXT("GetGrassWeight"); }
 
 	UPROPERTY(EditAnywhere, Category = UMaterialExpressionLandscapeGrassOutput)
 	TArray<FGrassInput> GrassTypes;

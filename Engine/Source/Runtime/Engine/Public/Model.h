@@ -290,7 +290,7 @@ public:
 
 	// FRenderResource interface.
 	virtual void InitRHI() override;
-	virtual FString GetFriendlyName() const { return TEXT("BSP vertices"); }
+	virtual FString GetFriendlyName() const override { return TEXT("BSP vertices"); }
 	
 	/**
 	* Serializer for this class
@@ -423,13 +423,13 @@ public:
 	ENGINE_API void Initialize(ABrush* Owner, bool InRootOutside = true);
 
 	// UObject interface.
-	virtual void Serialize( FArchive& Ar );	
-	virtual void PostLoad();
+	virtual void Serialize( FArchive& Ar ) override;
+	virtual void PostLoad() override;
 #if WITH_EDITOR
 	virtual void PostEditUndo() override;
 #endif // WITH_EDITOR
 	virtual bool Modify( bool bAlwaysMarkDirty=false ) override;
-	virtual bool Rename( const TCHAR* InName=NULL, UObject* NewOuter=NULL, ERenameFlags Flags=REN_None );
+	virtual bool Rename( const TCHAR* InName=NULL, UObject* NewOuter=NULL, ERenameFlags Flags=REN_None ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 	/**
@@ -448,9 +448,9 @@ public:
 	 * Called after duplication & serialization and before PostLoad. Used to make sure UModel's FPolys
 	 * get duplicated as well.
 	 */
-	virtual void PostDuplicate(bool bDuplicateForPIE);
-	virtual void BeginDestroy();
-	virtual bool IsReadyForFinishDestroy();
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
+	virtual void BeginDestroy() override;
+	virtual bool IsReadyForFinishDestroy() override;
 	
 	virtual bool IsAsset() const override { return false; }
 

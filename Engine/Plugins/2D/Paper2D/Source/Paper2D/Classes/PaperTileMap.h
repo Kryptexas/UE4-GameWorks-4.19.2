@@ -116,7 +116,7 @@ public:
 	void ValidateSelectedLayerIndex();
 #endif
 #if WITH_EDITORONLY_DATA
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 #endif
 	// End of UObject interface
 

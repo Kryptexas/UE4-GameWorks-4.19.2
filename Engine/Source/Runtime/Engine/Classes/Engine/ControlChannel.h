@@ -56,7 +56,7 @@ class UControlChannel
 		ChType								= CHTYPE_Control;
 	}
 
-	virtual void Init( UNetConnection* InConnection, int32 InChIndex, bool InOpenedLocally );
+	virtual void Init( UNetConnection* InConnection, int32 InChIndex, bool InOpenedLocally ) override;
 
 	// Begin UChannel interface.
 	virtual FPacketIdRange SendBunch(FOutBunch* Bunch, bool Merge) override;
@@ -66,8 +66,8 @@ class UControlChannel
 
 
 	/** Handle an incoming bunch. */
-	void ReceivedBunch( FInBunch& Bunch );
+	void ReceivedBunch( FInBunch& Bunch ) override;
 
 	/** Describe the text channel. */
-	FString Describe();
+	FString Describe() override;
 };

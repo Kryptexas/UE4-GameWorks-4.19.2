@@ -96,7 +96,7 @@ public:
 
 	FShadowDepthVS() {}
 
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
 		Ar << ShadowParameters;
@@ -238,7 +238,7 @@ public:
 
 	FShadowDepthDS() {}
 
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FBaseDS::Serialize(Ar);
 		Ar << ShadowParameters;
@@ -315,7 +315,7 @@ public:
 
 	FOnePassPointShadowProjectionGS() {}
 
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
 		Ar << ShadowViewProjectionMatrices;
@@ -474,7 +474,7 @@ public:
 		FMeshMaterialShader::SetMesh(RHICmdList, GetPixelShader(),VertexFactory,View,Proxy,BatchElement);
 	}
 
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
 

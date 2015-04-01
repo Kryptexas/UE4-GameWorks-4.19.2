@@ -693,7 +693,7 @@ public:
 	}
 
 	// FSceneViewStateInterface
-	RENDERER_API virtual void Destroy();
+	RENDERER_API virtual void Destroy() override;
 	
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
 	{
@@ -731,7 +731,7 @@ public:
 	}
 
 	// Note: OnStartPostProcessing() needs to be called each frame for each view
-	virtual UMaterialInstanceDynamic* GetReusableMID(class UMaterialInterface* ParentMaterial)
+	virtual UMaterialInstanceDynamic* GetReusableMID(class UMaterialInterface* ParentMaterial) override
 	{		
 		check(IsInGameThread());
 
@@ -783,12 +783,12 @@ public:
 
 
 	// FDeferredCleanupInterface
-	virtual void FinishCleanup()
+	virtual void FinishCleanup() override
 	{
 		delete this;
 	}
 
-	virtual SIZE_T GetSizeBytes() const;
+	virtual SIZE_T GetSizeBytes() const override;
 
 
 	/** Information about visibility/occlusion states in past frames for individual primitives. */
@@ -1547,51 +1547,51 @@ public:
 	virtual ~FScene();
 
 	// FSceneInterface interface.
-	virtual void AddPrimitive(UPrimitiveComponent* Primitive);
-	virtual void RemovePrimitive(UPrimitiveComponent* Primitive);
-	virtual void ReleasePrimitive(UPrimitiveComponent* Primitive);
-	virtual void UpdatePrimitiveTransform(UPrimitiveComponent* Primitive);
+	virtual void AddPrimitive(UPrimitiveComponent* Primitive) override;
+	virtual void RemovePrimitive(UPrimitiveComponent* Primitive) override;
+	virtual void ReleasePrimitive(UPrimitiveComponent* Primitive) override;
+	virtual void UpdatePrimitiveTransform(UPrimitiveComponent* Primitive) override;
 	virtual void UpdatePrimitiveAttachment(UPrimitiveComponent* Primitive) override;
-	virtual void AddLight(ULightComponent* Light);
-	virtual void RemoveLight(ULightComponent* Light);
-	virtual void AddInvisibleLight(ULightComponent* Light);
-	virtual void SetSkyLight(FSkyLightSceneProxy* Light);
-	virtual void DisableSkyLight(FSkyLightSceneProxy* Light);
-	virtual void AddDecal(UDecalComponent* Component);
-	virtual void RemoveDecal(UDecalComponent* Component);
+	virtual void AddLight(ULightComponent* Light) override;
+	virtual void RemoveLight(ULightComponent* Light) override;
+	virtual void AddInvisibleLight(ULightComponent* Light) override;
+	virtual void SetSkyLight(FSkyLightSceneProxy* Light) override;
+	virtual void DisableSkyLight(FSkyLightSceneProxy* Light) override;
+	virtual void AddDecal(UDecalComponent* Component) override;
+	virtual void RemoveDecal(UDecalComponent* Component) override;
 	virtual void UpdateDecalTransform(UDecalComponent* Decal) override;
-	virtual void AddReflectionCapture(UReflectionCaptureComponent* Component);
-	virtual void RemoveReflectionCapture(UReflectionCaptureComponent* Component);
+	virtual void AddReflectionCapture(UReflectionCaptureComponent* Component) override;
+	virtual void RemoveReflectionCapture(UReflectionCaptureComponent* Component) override;
 	virtual void GetReflectionCaptureData(UReflectionCaptureComponent* Component, class FReflectionCaptureFullHDRDerivedData& OutDerivedData) override;
-	virtual void UpdateReflectionCaptureTransform(UReflectionCaptureComponent* Component);
-	virtual void ReleaseReflectionCubemap(UReflectionCaptureComponent* CaptureComponent);
-	virtual void UpdateSceneCaptureContents(class USceneCaptureComponent2D* CaptureComponent);
-	virtual void UpdateSceneCaptureContents(class USceneCaptureComponentCube* CaptureComponent);
-	virtual void AllocateReflectionCaptures(const TArray<UReflectionCaptureComponent*>& NewCaptures);
-	virtual void UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, FTexture* OutProcessedTexture, FSHVectorRGB3& OutIrradianceEnvironmentMap);
-	virtual void AddPrecomputedLightVolume(const class FPrecomputedLightVolume* Volume);
-	virtual void RemovePrecomputedLightVolume(const class FPrecomputedLightVolume* Volume);
-	virtual void UpdateLightTransform(ULightComponent* Light);
-	virtual void UpdateLightColorAndBrightness(ULightComponent* Light);
-	virtual void UpdateDynamicSkyLight(const FLinearColor& UpperColor, const FLinearColor& LowerColor);
-	virtual void AddExponentialHeightFog(UExponentialHeightFogComponent* FogComponent);
-	virtual void RemoveExponentialHeightFog(UExponentialHeightFogComponent* FogComponent);
-	virtual void AddAtmosphericFog(UAtmosphericFogComponent* FogComponent);
-	virtual void RemoveAtmosphericFog(UAtmosphericFogComponent* FogComponent);
+	virtual void UpdateReflectionCaptureTransform(UReflectionCaptureComponent* Component) override;
+	virtual void ReleaseReflectionCubemap(UReflectionCaptureComponent* CaptureComponent) override;
+	virtual void UpdateSceneCaptureContents(class USceneCaptureComponent2D* CaptureComponent) override;
+	virtual void UpdateSceneCaptureContents(class USceneCaptureComponentCube* CaptureComponent) override;
+	virtual void AllocateReflectionCaptures(const TArray<UReflectionCaptureComponent*>& NewCaptures) override;
+	virtual void UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, FTexture* OutProcessedTexture, FSHVectorRGB3& OutIrradianceEnvironmentMap) override;
+	virtual void AddPrecomputedLightVolume(const class FPrecomputedLightVolume* Volume) override;
+	virtual void RemovePrecomputedLightVolume(const class FPrecomputedLightVolume* Volume) override;
+	virtual void UpdateLightTransform(ULightComponent* Light) override;
+	virtual void UpdateLightColorAndBrightness(ULightComponent* Light) override;
+	virtual void UpdateDynamicSkyLight(const FLinearColor& UpperColor, const FLinearColor& LowerColor) override;
+	virtual void AddExponentialHeightFog(UExponentialHeightFogComponent* FogComponent) override;
+	virtual void RemoveExponentialHeightFog(UExponentialHeightFogComponent* FogComponent) override;
+	virtual void AddAtmosphericFog(UAtmosphericFogComponent* FogComponent) override;
+	virtual void RemoveAtmosphericFog(UAtmosphericFogComponent* FogComponent) override;
 	virtual FAtmosphericFogSceneInfo* GetAtmosphericFogSceneInfo() override { return AtmosphericFog; }
-	virtual void AddWindSource(UWindDirectionalSourceComponent* WindComponent);
-	virtual void RemoveWindSource(UWindDirectionalSourceComponent* WindComponent);
-	virtual const TArray<FWindSourceSceneProxy*>& GetWindSources_RenderThread() const;
+	virtual void AddWindSource(UWindDirectionalSourceComponent* WindComponent) override;
+	virtual void RemoveWindSource(UWindDirectionalSourceComponent* WindComponent) override;
+	virtual const TArray<FWindSourceSceneProxy*>& GetWindSources_RenderThread() const override;
 	virtual void GetWindParameters(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const override;
 	virtual void GetDirectionalWindParameters(FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const override;
-	virtual void AddSpeedTreeWind(FVertexFactory* VertexFactory, const UStaticMesh* StaticMesh);
-	virtual void RemoveSpeedTreeWind(FVertexFactory* VertexFactory, const UStaticMesh* StaticMesh);
-	virtual void RemoveSpeedTreeWind_RenderThread(FVertexFactory* VertexFactory, const UStaticMesh* StaticMesh);
-	virtual void UpdateSpeedTreeWind(double CurrentTime);
-	virtual FUniformBufferRHIParamRef GetSpeedTreeUniformBuffer(const FVertexFactory* VertexFactory);
-	virtual void DumpUnbuiltLightIteractions( FOutputDevice& Ar ) const;
+	virtual void AddSpeedTreeWind(FVertexFactory* VertexFactory, const UStaticMesh* StaticMesh) override;
+	virtual void RemoveSpeedTreeWind(FVertexFactory* VertexFactory, const UStaticMesh* StaticMesh) override;
+	virtual void RemoveSpeedTreeWind_RenderThread(FVertexFactory* VertexFactory, const UStaticMesh* StaticMesh) override;
+	virtual void UpdateSpeedTreeWind(double CurrentTime) override;
+	virtual FUniformBufferRHIParamRef GetSpeedTreeUniformBuffer(const FVertexFactory* VertexFactory) override;
+	virtual void DumpUnbuiltLightIteractions( FOutputDevice& Ar ) const override;
 	virtual void DumpStaticMeshDrawListStats() const override;
-	virtual void SetClearMotionBlurInfoGameThread();
+	virtual void SetClearMotionBlurInfoGameThread() override;
 	virtual void UpdateParameterCollections(const TArray<FMaterialParameterCollectionInstanceResource*>& InParameterCollections) override;
 
 	/** Determines whether the scene has dynamic sky lighting. */
@@ -1612,19 +1612,19 @@ public:
 	 * @param	Primitive				Primitive to retrieve interacting lights for
 	 * @param	RelevantLights	[out]	Array of lights interacting with primitive
 	 */
-	virtual void GetRelevantLights( UPrimitiveComponent* Primitive, TArray<const ULightComponent*>* RelevantLights ) const;
+	virtual void GetRelevantLights( UPrimitiveComponent* Primitive, TArray<const ULightComponent*>* RelevantLights ) const override;
 
 	/** Sets the precomputed visibility handler for the scene, or NULL to clear the current one. */
-	virtual void SetPrecomputedVisibility(const FPrecomputedVisibilityHandler* PrecomputedVisibilityHandler);
+	virtual void SetPrecomputedVisibility(const FPrecomputedVisibilityHandler* PrecomputedVisibilityHandler) override;
 
 	/** Sets shader maps on the specified materials without blocking. */
-	virtual void SetShaderMapsOnMaterialResources(const TMap<FMaterial*, class FMaterialShaderMap*>& MaterialsToUpdate);
+	virtual void SetShaderMapsOnMaterialResources(const TMap<FMaterial*, class FMaterialShaderMap*>& MaterialsToUpdate) override;
 
 	/** Updates static draw lists for the given set of materials. */
-	virtual void UpdateStaticDrawListsForMaterials(const TArray<const FMaterial*>& Materials);
+	virtual void UpdateStaticDrawListsForMaterials(const TArray<const FMaterial*>& Materials) override;
 
-	virtual void Release();
-	virtual UWorld* GetWorld() const { return World; }
+	virtual void Release() override;
+	virtual UWorld* GetWorld() const override { return World; }
 
 	/** Finds the closest reflection capture to a point in space. */
 	const FReflectionCaptureProxy* FindClosestReflectionCapture(FVector Position) const;
@@ -1643,14 +1643,14 @@ public:
 	/**
 	 * @return		true if hit proxies should be rendered in this scene.
 	 */
-	virtual bool RequiresHitProxies() const;
+	virtual bool RequiresHitProxies() const override;
 
 	SIZE_T GetSizeBytes() const;
 
 	/**
 	* Return the scene to be used for rendering
 	*/
-	virtual class FScene* GetRenderScene()
+	virtual class FScene* GetRenderScene() override
 	{
 		return this;
 	}
@@ -1658,19 +1658,19 @@ public:
 	/**
 	 * Sets the FX system associated with the scene.
 	 */
-	virtual void SetFXSystem( class FFXSystemInterface* InFXSystem );
+	virtual void SetFXSystem( class FFXSystemInterface* InFXSystem ) override;
 
 	/**
 	 * Get the FX system associated with the scene.
 	 */
-	virtual class FFXSystemInterface* GetFXSystem();
+	virtual class FFXSystemInterface* GetFXSystem() override;
 
 	/**
 	 * Exports the scene.
 	 *
 	 * @param	Ar		The Archive used for exporting.
 	 **/
-	virtual void Export( FArchive& Ar ) const;
+	virtual void Export( FArchive& Ar ) const override;
 
 	FUniformBufferRHIParamRef GetParameterCollectionBuffer(const FGuid& InId) const
 	{

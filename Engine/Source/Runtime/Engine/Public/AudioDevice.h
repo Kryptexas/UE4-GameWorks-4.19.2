@@ -498,11 +498,11 @@ public:
 	/* When the set of Audio volumes have changed invalidate the cached values of active sounds */
 	void InvalidateCachedInteriorVolumes() const;
 
-    /** Suspend any context related objects */
-    virtual void SuspendContext() {}
-    
-    /** Resume any context related objects */
-    virtual void ResumeContext() {}
+	/** Suspend any context related objects */
+	virtual void SuspendContext() {}
+	
+	/** Resume any context related objects */
+	virtual void ResumeContext() {}
 
 	/** Check if any background music or sound is playing through the audio device */
 	virtual bool IsExernalBackgroundSoundActive() { return false; }

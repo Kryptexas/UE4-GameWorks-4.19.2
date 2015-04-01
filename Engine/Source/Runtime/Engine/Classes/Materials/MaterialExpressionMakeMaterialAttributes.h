@@ -67,7 +67,7 @@ class UMaterialExpressionMakeMaterialAttributes : public UMaterialExpression
 	// Begin UMaterialExpression Interface
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
-	virtual bool IsResultMaterialAttributes(int32 OutputIndex){return true;}
+	virtual bool IsResultMaterialAttributes(int32 OutputIndex) override {return true;}
 	// End UMaterialExpression Interface
 };
 

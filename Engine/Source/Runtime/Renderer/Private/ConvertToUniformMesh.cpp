@@ -535,7 +535,7 @@ public:
 		SurfelBufferParameters.UnsetParameters(RHICmdList, ShaderRHI);
 	}
 
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{		
 		bool bShaderHasOutdatedParameters = FMaterialShader::Serialize(Ar);
 		Ar << SurfelBufferParameters;

@@ -58,7 +58,7 @@ public:
 	/**
 	 * Focuses the viewport on the currently selected components
 	 */
-	virtual void OnFocusViewportToSelection();
+	virtual void OnFocusViewportToSelection() override;
 
 	/**
 	 * Returns true if simulation is enabled for the viewport
@@ -75,7 +75,7 @@ protected:
 	 *
 	 * @return true if the viewport is visible; false otherwise.
 	 */
-	bool IsVisible() const;
+	bool IsVisible() const override;
 
 	/** Called when the simulation toggle command is fired */
 	void ToggleIsSimulateEnabled();
@@ -83,7 +83,7 @@ protected:
 	/** SEditorViewport interface */
 	virtual TSharedRef<class FEditorViewportClient> MakeEditorViewportClient() override;
 	virtual TSharedPtr<class SWidget> MakeViewportToolbar() override;
-	virtual void BindCommands();
+	virtual void BindCommands() override;
 
 private:
 	/** One-off active timer to update the preview */

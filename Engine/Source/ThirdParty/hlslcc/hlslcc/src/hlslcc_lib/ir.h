@@ -167,7 +167,7 @@ public:
 
 	virtual ir_constant* constant_expression_value();
 
-	virtual ir_rvalue * as_rvalue()
+	virtual ir_rvalue * as_rvalue() override
 	{
 		return this;
 	}
@@ -335,7 +335,7 @@ class ir_variable : public ir_instruction
 public:
 	ir_variable(const struct glsl_type *, const char *, ir_variable_mode);
 
-	virtual ir_variable *clone(void *mem_ctx, struct hash_table *ht) const;
+	virtual ir_variable *clone(void *mem_ctx, struct hash_table *ht) const override;
 
 	virtual ir_variable *as_variable() override
 	{
@@ -1684,7 +1684,7 @@ public:
 
 	virtual ir_visitor_status accept(ir_hierarchical_visitor *) override;
 
-	bool is_lvalue() const
+	bool is_lvalue() const override
 	{
 		return val->is_lvalue() && !mask.has_duplicates;
 	}
@@ -1710,19 +1710,19 @@ private:
 class ir_dereference : public ir_rvalue
 {
 public:
-	virtual ir_dereference *clone(void *mem_ctx, struct hash_table *) const = 0;
+	virtual ir_dereference *clone(void *mem_ctx, struct hash_table *) const override = 0;
 
 	virtual ir_dereference *as_dereference() override
 	{
 		return this;
 	}
 
-	bool is_lvalue() const;
+	bool is_lvalue() const override;
 
 	/**
 	* Get the variable that is ultimately referenced by an r-value
 	*/
-	virtual ir_variable *variable_referenced() const = 0;
+	virtual ir_variable *variable_referenced() const override = 0;
 };
 
 

@@ -164,7 +164,7 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 	//End UPrimitiveComponent Interface
 
 	//Begin UStaticMeshComponent Interface
-	virtual class FStaticMeshStaticLightingMesh* AllocateStaticLightingMesh(int32 LODIndex, const TArray<ULightComponent*>& InRelevantLights);
+	virtual class FStaticMeshStaticLightingMesh* AllocateStaticLightingMesh(int32 LODIndex, const TArray<ULightComponent*>& InRelevantLights) override;
 	//End UStaticMeshComponent Interface
 
 	// Begin Interface_CollisionDataProvider Interface

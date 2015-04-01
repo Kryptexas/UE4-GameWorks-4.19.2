@@ -14,7 +14,7 @@ public:
 	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 
 	/** Initializes the foliage mode toolkit */
-	virtual void Init(const TSharedPtr< class IToolkitHost >& InitToolkitHost);
+	virtual void Init(const TSharedPtr< class IToolkitHost >& InitToolkitHost) override;
 
 	/** IToolkit interface */
 	virtual FName GetToolkitFName() const override;

@@ -130,7 +130,7 @@ public:
 	virtual UEdGraphPin* GetGraphPinForMenu() override;
 	virtual void ZoomToFit(bool bOnlySelection) override;
 	virtual bool GetBoundsForSelectedNodes( class FSlateRect& Rect, float Padding) override;
-	virtual void NotifyGraphChanged();
+	virtual void NotifyGraphChanged() override;
 	virtual TSharedPtr<SWidget> GetTitleBar() const override;
 	virtual void SetViewLocation(const FVector2D& Location, float ZoomAmount) override;
 	virtual void GetViewLocation(FVector2D& Location, float& ZoomAmount) override;

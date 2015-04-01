@@ -706,7 +706,7 @@ public:
 	/**
 	 * Remove any items that are no longer in the list from the selection set.
 	 */
-	virtual void UpdateSelectionSet()
+	virtual void UpdateSelectionSet() override
 	{
 		// Trees take care of this update in a different way.
 		if ( TableViewMode != ETableViewMode::Tree )

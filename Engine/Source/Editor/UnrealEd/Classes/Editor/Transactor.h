@@ -187,10 +187,10 @@ protected:
 			}
 
 			virtual int64 Tell() override {return Offset;}
-			virtual void Seek( int64 InPos ) { Offset = InPos; }
+			virtual void Seek( int64 InPos ) override { Offset = InPos; }
 
 		private:
-			void Serialize( void* SerData, int64 Num )
+			void Serialize( void* SerData, int64 Num ) override
 			{
 				if( Num )
 				{
@@ -199,21 +199,21 @@ protected:
 					Offset += Num;
 				}
 			}
-			FArchive& operator<<( class FName& N )
+			FArchive& operator<<( class FName& N ) override
 			{
 				int32 NameIndex = 0;
 				(FArchive&)*this << NameIndex;
 				N = ReferencedNames[NameIndex];
 				return *this;
 			}
-			FArchive& operator<<( class UObject*& Res )
+			FArchive& operator<<( class UObject*& Res ) override
 			{
 				int32 ObjectIndex = 0;
 				(FArchive&)*this << ObjectIndex;
 				Res = ReferencedObjects[ObjectIndex].GetObject();
 				return *this;
 			}
-			void Preload( UObject* InObject )
+			void Preload( UObject* InObject ) override
 			{
 				if( Owner )
 				{
@@ -260,14 +260,14 @@ protected:
 			}
 
 			virtual int64 Tell() override {return Offset;}
-			virtual void Seek( int64 InPos ) 
+			virtual void Seek( int64 InPos ) override
 			{
 				checkSlow(Offset<=Data.Num());
 				Offset = InPos; 
 			}
 
 		private:
-			void Serialize( void* SerData, int64 Num )
+			void Serialize( void* SerData, int64 Num ) override
 			{
 				if( Num )
 				{
@@ -279,12 +279,12 @@ protected:
 					Offset+= Num;
 				}
 			}
-			FArchive& operator<<( class FName& N )
+			FArchive& operator<<( class FName& N ) override
 			{
 				int32 NameIndex = ReferencedNames.AddUnique(N);
 				return (FArchive&)*this << NameIndex;
 			}
-			FArchive& operator<<( class UObject*& Res )
+			FArchive& operator<<( class UObject*& Res ) override
 			{
 				int32 ObjectIndex = 0;
 				int32* ObjIndexPtr = ObjectMap.Find(Res);
@@ -341,14 +341,14 @@ public:
 	{}
 
 	// FTransactionBase interface.
-	virtual void SaveObject( UObject* Object );
-	virtual void SaveArray( UObject* Object, FScriptArray* Array, int32 Index, int32 Count, int32 Oper, int32 ElementSize, STRUCT_DC DefaultConstructor, STRUCT_AR Serializer, STRUCT_DTOR Destructor );
-	virtual void SetPrimaryObject(UObject* InObject);
+	virtual void SaveObject( UObject* Object ) override;
+	virtual void SaveArray( UObject* Object, FScriptArray* Array, int32 Index, int32 Count, int32 Oper, int32 ElementSize, STRUCT_DC DefaultConstructor, STRUCT_AR Serializer, STRUCT_DTOR Destructor ) override;
+	virtual void SetPrimaryObject(UObject* InObject) override;
 
 	/**
 	 * Enacts the transaction.
 	 */
-	virtual void Apply();
+	virtual void Apply() override;
 
 	/** Returns a unique string to serve as a type ID for the FTranscationBase-derived type. */
 	virtual const TCHAR* GetTransactionType() const

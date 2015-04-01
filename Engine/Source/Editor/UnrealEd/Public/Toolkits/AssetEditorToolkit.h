@@ -56,10 +56,10 @@ public:
 	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 	virtual bool IsAssetEditor() const override;
 	virtual const TArray< UObject* >* GetObjectsCurrentlyBeingEdited() const override;
-	virtual FName GetToolkitFName() const = 0;					// Must implement in derived class!
-	virtual FText GetBaseToolkitName() const = 0;				// Must implement in derived class!
+	virtual FName GetToolkitFName() const override = 0;				// Must implement in derived class!
+	virtual FText GetBaseToolkitName() const override = 0;			// Must implement in derived class!
 	virtual FText GetToolkitName() const override;		
-	virtual FString GetWorldCentricTabPrefix() const = 0;		// Must implement in derived class!
+	virtual FString GetWorldCentricTabPrefix() const override = 0;	// Must implement in derived class!
 	virtual class FEdMode* GetEditorMode() const override;
 
 	/** IAssetEditorInstance interface */

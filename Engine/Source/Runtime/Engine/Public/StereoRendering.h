@@ -20,10 +20,10 @@ public:
 	 */
 	virtual bool EnableStereo(bool stereo = true) = 0;
 
-    /**
-     * Adjusts the viewport rectangle for stereo, based on which eye pass is being rendered.
-     */
-    virtual void AdjustViewRect(enum EStereoscopicPass StereoPass, int32& X, int32& Y, uint32& SizeX, uint32& SizeY) const = 0;
+	/**
+	 * Adjusts the viewport rectangle for stereo, based on which eye pass is being rendered.
+	 */
+	virtual void AdjustViewRect(enum EStereoscopicPass StereoPass, int32& X, int32& Y, uint32& SizeX, uint32& SizeY) const = 0;
 
 	/**
 	 * Gets the percentage bounds of the safe region to draw in.  This allows things like stat rendering to appear within the readable portion of the stereo view.
@@ -31,7 +31,7 @@ public:
 	 */
 	virtual FVector2D GetTextSafeRegionBounds() const { return FVector2D(0.75f, 0.75f); }
 
-    /**
+	/**
 	 * Calculates the offset for the camera position, given the specified position, rotation, and world scale
 	 */
 	virtual void CalculateStereoViewOffset(const enum EStereoscopicPass StereoPassType, const FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation) = 0;

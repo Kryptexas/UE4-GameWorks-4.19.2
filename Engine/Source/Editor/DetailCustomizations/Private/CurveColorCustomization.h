@@ -36,7 +36,7 @@ public:
 	virtual bool IsLinearColorCurve() const override { return true; }
 	virtual FLinearColor GetLinearColorValue(float InTime) const override;
 	virtual bool HasAnyAlphaKeys() const override;
-	virtual bool IsValidCurve( FRichCurveEditInfo CurveInfo );
+	virtual bool IsValidCurve( FRichCurveEditInfo CurveInfo ) override;
 
 private:
 	/**

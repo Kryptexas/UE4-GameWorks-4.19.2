@@ -37,12 +37,12 @@ public:
 		return FindOrAddContainer(ContainerName)->AddSection(CategoryName, SectionName, DisplayName, Description, CustomWidget);
 	}
 
-	virtual void RegisterViewer( const FName& ContainerName, ISettingsViewer& SettingsViewer )
+	virtual void RegisterViewer( const FName& ContainerName, ISettingsViewer& SettingsViewer ) override
 	{
 		ContainerNamesToViewers.Add(ContainerName, &SettingsViewer);
 	}
 
-	virtual void ShowViewer( const FName& ContainerName, const FName& CategoryName, const FName& SectionName )
+	virtual void ShowViewer( const FName& ContainerName, const FName& CategoryName, const FName& SectionName ) override
 	{
 		ISettingsViewer** Viewer = ContainerNamesToViewers.Find(ContainerName);
 
@@ -52,7 +52,7 @@ public:
 		}
 	}
 
-	virtual void UnregisterViewer( const FName& ContainerName )
+	virtual void UnregisterViewer( const FName& ContainerName ) override
 	{
 		ContainerNamesToViewers.Remove(ContainerName);
 	}

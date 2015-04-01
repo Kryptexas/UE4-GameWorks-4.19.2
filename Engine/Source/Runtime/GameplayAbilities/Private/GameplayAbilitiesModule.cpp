@@ -11,7 +11,7 @@ class FGameplayAbilitiesModule : public IGameplayAbilitiesModule
 	virtual void ShutdownModule() override;
 	// End IModuleInterface
 
-	virtual UAbilitySystemGlobals* GetAbilitySystemGlobals()
+	virtual UAbilitySystemGlobals* GetAbilitySystemGlobals() override
 	{
 		// Defer loading of globals to the first time it is requested
 		if (!AbilitySystemGlobals)

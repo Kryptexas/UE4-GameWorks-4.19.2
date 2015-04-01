@@ -52,9 +52,9 @@ public:
 #endif // WITH_EDITORONLY_DATA
 
 	// BEGIN INavRelevantInterface
-	virtual void GetNavigationData(FNavigationRelevantData& Data) const;
-	virtual FBox GetNavigationBounds() const;
-	virtual bool IsNavigationRelevant() const;
+	virtual void GetNavigationData(FNavigationRelevantData& Data) const override;
+	virtual FBox GetNavigationBounds() const override;
+	virtual bool IsNavigationRelevant() const override;
 	// END INavRelevantInterface
 
 	// BEGIN INavLinkHostInterface

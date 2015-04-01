@@ -181,7 +181,7 @@ public:
 	}
 		
 	/**  SWidget interface */
-	void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+	void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
 	{
 		SNodePanel::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
@@ -621,7 +621,7 @@ protected:
 	}
 	
 	/**  SNodePanel interface */
-	TSharedPtr<SWidget> OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+	TSharedPtr<SWidget> OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
 	{
 		if (WorldModel->IsReadOnly())
 		{

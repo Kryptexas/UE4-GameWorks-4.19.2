@@ -143,7 +143,7 @@ public:
 	}
 
 	/** Accesses parameters needed for rendering the light. */
-	virtual void GetParameters(FVector4& LightPositionAndInvRadius, FVector4& LightColorAndFalloffExponent, FVector& NormalizedLightDirection, FVector2D& SpotAngles, float& LightSourceRadius, float& LightSourceLength, float& LightMinRoughness) const
+	virtual void GetParameters(FVector4& LightPositionAndInvRadius, FVector4& LightColorAndFalloffExponent, FVector& NormalizedLightDirection, FVector2D& SpotAngles, float& LightSourceRadius, float& LightSourceLength, float& LightMinRoughness) const override
 	{
 		LightPositionAndInvRadius = FVector4(0, 0, 0, 0);
 
@@ -181,7 +181,7 @@ public:
 
 	// FLightSceneInfo interface.
 
-	virtual bool ShouldCreatePerObjectShadowsForDynamicObjects() const 
+	virtual bool ShouldCreatePerObjectShadowsForDynamicObjects() const override
 	{
 		return FLightSceneProxy::ShouldCreatePerObjectShadowsForDynamicObjects()
 			// Only create per-object shadows for dynamic objects if the CSM range is under some threshold
@@ -192,7 +192,7 @@ public:
 	}
 
 	/** Returns the number of view dependent shadows this light will create, not counting distance field shadow cascades. */
-	virtual uint32 GetNumViewDependentWholeSceneShadows(const FSceneView& View, bool bPrecomputedLightingIsValid) const
+	virtual uint32 GetNumViewDependentWholeSceneShadows(const FSceneView& View, bool bPrecomputedLightingIsValid) const override
 	{ 
 		uint32 TotalCascades = GetNumShadowMappedCascades(View.MaxShadowCascades, bPrecomputedLightingIsValid) + FarShadowCascadeCount;
 
@@ -204,7 +204,7 @@ public:
 	 * @param InCascadeIndex ShadowSplitIndex or INDEX_NONE for the the DistanceFieldCascade
 	 * @return True if the whole-scene projected shadow should be used.
 	 */
-	virtual bool GetViewDependentWholeSceneProjectedShadowInitializer(const FSceneView& View, int32 InCascadeIndex, bool bPrecomputedLightingIsValid, FWholeSceneProjectedShadowInitializer& OutInitializer) const
+	virtual bool GetViewDependentWholeSceneProjectedShadowInitializer(const FSceneView& View, int32 InCascadeIndex, bool bPrecomputedLightingIsValid, FWholeSceneProjectedShadowInitializer& OutInitializer) const override
 	{
 		const FMatrix& WorldToLight = GetWorldToLight();
 
@@ -238,7 +238,7 @@ public:
 	virtual bool GetViewDependentRsmWholeSceneProjectedShadowInitializer(
 		const class FSceneView& View, 
 		const FBox& LightPropagationVolumeBounds,
-		class FWholeSceneProjectedShadowInitializer& OutInitializer ) const
+	    class FWholeSceneProjectedShadowInitializer& OutInitializer ) const override
 	{
 		const FMatrix& WorldToLight = GetWorldToLight();
 
@@ -277,7 +277,7 @@ public:
 		return true;
 	}
 
-	virtual FVector2D GetDirectionalLightDistanceFadeParameters(ERHIFeatureLevel::Type InFeatureLevel, bool bPrecomputedLightingIsValid) const
+	virtual FVector2D GetDirectionalLightDistanceFadeParameters(ERHIFeatureLevel::Type InFeatureLevel, bool bPrecomputedLightingIsValid) const override
 	{
 		float FarDistance = GetCSMMaxDistance(bPrecomputedLightingIsValid);
 		{
@@ -287,14 +287,14 @@ public:
 			}
 			FarDistance = FMath::Max(FarDistance, FarShadowDistance);
 		}
-        
+	    
 		// The far distance for the dynamic to static fade is the range of the directional light.
 		// The near distance is placed at a depth of 90% of the light's range.
 		const float NearDistance = FarDistance - FarDistance * ShadowDistanceFadeoutFraction;
 		return FVector2D(NearDistance, 1.0f / FMath::Max<float>(FarDistance - NearDistance, KINDA_SMALL_NUMBER));
 	}
 
-	virtual bool GetPerObjectProjectedShadowInitializer(const FBoxSphereBounds& SubjectBounds,FPerObjectProjectedShadowInitializer& OutInitializer) const
+	virtual bool GetPerObjectProjectedShadowInitializer(const FBoxSphereBounds& SubjectBounds,FPerObjectProjectedShadowInitializer& OutInitializer) const override
 	{
 		OutInitializer.PreShadowTranslation = -SubjectBounds.Origin;
 		OutInitializer.WorldToLight = FInverseRotationMatrix(FVector(WorldToLight.M[0][0],WorldToLight.M[1][0],WorldToLight.M[2][0]).GetSafeNormal().Rotation());
@@ -309,7 +309,7 @@ public:
 		return true;
 	}
 
-	virtual bool ShouldCreateRayTracedCascade(ERHIFeatureLevel::Type InFeatureLevel, bool bPrecomputedLightingIsValid) const
+	virtual bool ShouldCreateRayTracedCascade(ERHIFeatureLevel::Type InFeatureLevel, bool bPrecomputedLightingIsValid) const override
 	{
 		//@todo - handle View.MaxShadowCascades properly
 		const uint32 NumCascades = GetNumShadowMappedCascades(10, bPrecomputedLightingIsValid);
@@ -511,7 +511,7 @@ private:
 		}
 	}
 
-	virtual FSphere GetShadowSplitBoundsDepthRange(const FSceneView& View, FVector ViewOrigin, float SplitNear, float SplitFar, FShadowCascadeSettings* OutCascadeSettings) const
+	virtual FSphere GetShadowSplitBoundsDepthRange(const FSceneView& View, FVector ViewOrigin, float SplitNear, float SplitFar, FShadowCascadeSettings* OutCascadeSettings) const override
 	{
 		const FMatrix ViewMatrix = View.ShadowViewMatrices.ViewMatrix;
 		const FMatrix ProjectionMatrix = View.ShadowViewMatrices.ProjMatrix;
@@ -584,7 +584,7 @@ private:
 	}
 
 	// @param InShadowSplitIndex cascade index or InShadowSplitIndex == INDEX_NONE for the distance field cascade
-	virtual FSphere GetShadowSplitBounds(const FSceneView& View, int32 InCascadeIndex, bool bPrecomputedLightingIsValid, FShadowCascadeSettings* OutCascadeSettings) const
+	virtual FSphere GetShadowSplitBounds(const FSceneView& View, int32 InCascadeIndex, bool bPrecomputedLightingIsValid, FShadowCascadeSettings* OutCascadeSettings) const override
 	{
 		uint32 NumNearCascades = GetNumShadowMappedCascades(View.MaxShadowCascades, bPrecomputedLightingIsValid);
 

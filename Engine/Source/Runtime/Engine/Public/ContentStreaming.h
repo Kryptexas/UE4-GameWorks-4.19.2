@@ -529,7 +529,7 @@ struct FStreamingManagerCollection : public IStreamingManager
 	 * @param DeltaTime				Time since last call in seconds
 	 * @param bProcessEverything	[opt] If true, process all resources with no throttling limits
 	 */
-	ENGINE_API virtual void Tick( float DeltaTime, bool bProcessEverything=false );
+	ENGINE_API virtual void Tick( float DeltaTime, bool bProcessEverything=false ) override;
 
 	/**
 	 * Updates streaming, taking into account all current view infos. Can be called multiple times per frame.
@@ -537,7 +537,7 @@ struct FStreamingManagerCollection : public IStreamingManager
 	 * @param DeltaTime				Time since last call in seconds
 	 * @param bProcessEverything	[opt] If true, process all resources with no throttling limits
 	 */
-	virtual void UpdateResourceStreaming( float DeltaTime, bool bProcessEverything=false );
+	virtual void UpdateResourceStreaming( float DeltaTime, bool bProcessEverything=false ) override;
 
 	/**
 	 * Streams in/out all resources that wants to and blocks until it's done.
@@ -545,7 +545,7 @@ struct FStreamingManagerCollection : public IStreamingManager
 	 * @param TimeLimit					Maximum number of seconds to wait for streaming I/O. If zero, uses .ini setting
 	 * @return							Number of streaming requests still in flight, if the time limit was reached before they were finished.
 	 */
-	virtual int32 StreamAllResources( float TimeLimit=0.0f );
+	virtual int32 StreamAllResources( float TimeLimit=0.0f ) override;
 
 	/**
 	 * Blocks till all pending requests are fulfilled.
@@ -554,10 +554,10 @@ struct FStreamingManagerCollection : public IStreamingManager
 	 * @param bLogResults	Whether to dump the results to the log.
 	 * @return				Number of streaming requests still in flight, if the time limit was reached before they were finished.
 	 */
-	virtual int32 BlockTillAllRequestsFinished( float TimeLimit = 0.0f, bool bLogResults = false );
+	virtual int32 BlockTillAllRequestsFinished( float TimeLimit = 0.0f, bool bLogResults = false ) override;
 
 	/** Returns the number of resources that currently wants to be streamed in. */
-	virtual int32 GetNumWantingResources() const;
+	virtual int32 GetNumWantingResources() const override;
 
 	/**
 	 * Returns the current ID for GetNumWantingResources().
@@ -565,17 +565,17 @@ struct FStreamingManagerCollection : public IStreamingManager
 	 * Can be used to verify that any changes have been fully examined, by comparing current ID with
 	 * what it was when the changes were made.
 	 */
-	virtual int32 GetNumWantingResourcesID() const;
+	virtual int32 GetNumWantingResourcesID() const override;
 
 	/**
 	 * Cancels the timed Forced resources (i.e used the Kismet action "Stream In Textures").
 	 */
-	virtual void CancelForcedResources();
+	virtual void CancelForcedResources() override;
 
 	/**
 	 * Notifies manager of "level" change.
 	 */
-	virtual void NotifyLevelChange();
+	virtual void NotifyLevelChange() override;
 
 	/**
 	 * Checks whether any kind of streaming is active
@@ -620,7 +620,7 @@ struct FStreamingManagerCollection : public IStreamingManager
 	void SetNumIterationsForNextFrame( int32 NumIterations );
 
 	/** Don't stream world resources for the next NumFrames. */
-	virtual void SetDisregardWorldResourcesForFrames( int32 NumFrames );
+	virtual void SetDisregardWorldResourcesForFrames( int32 NumFrames ) override;
 
 	/**
 	 * Disables resource streaming. Enable with EnableResourceStreaming. Disable/enable can be called multiple times nested
@@ -647,16 +647,16 @@ struct FStreamingManagerCollection : public IStreamingManager
 	virtual void AddLevel( class ULevel* Level );
 
 	/** Removes a ULevel from the streaming manager. */
-	virtual void RemoveLevel( class ULevel* Level );
+	virtual void RemoveLevel( class ULevel* Level ) override;
 
 	/** Adds a ULevel that has already prepared StreamingData to the streaming manager. */
-	virtual void AddPreparedLevel( class ULevel* Level );
+	virtual void AddPreparedLevel( class ULevel* Level ) override;
 
 	/** Called when an actor is spawned. */
-	virtual void NotifyActorSpawned( AActor* Actor );
+	virtual void NotifyActorSpawned( AActor* Actor ) override;
 
 	/** Called when a spawned actor is destroyed. */
-	virtual void NotifyActorDestroyed( AActor* Actor );
+	virtual void NotifyActorDestroyed( AActor* Actor ) override;
 
 	/**
 	 * Called when a primitive is attached to an actor or another component.
@@ -664,17 +664,17 @@ struct FStreamingManagerCollection : public IStreamingManager
 	 *
 	 * @param InPrimitive	Newly attached dynamic/spawned primitive
 	 */
-	virtual void NotifyPrimitiveAttached( const UPrimitiveComponent* Primitive, EDynamicPrimitiveType DynamicType );
+	virtual void NotifyPrimitiveAttached( const UPrimitiveComponent* Primitive, EDynamicPrimitiveType DynamicType ) override;
 
 	/** Called when a primitive is detached from an actor or another component. */
-	virtual void NotifyPrimitiveDetached( const UPrimitiveComponent* Primitive );
+	virtual void NotifyPrimitiveDetached( const UPrimitiveComponent* Primitive ) override;
 
 	/**
 	 * Called when a primitive has had its textured changed.
 	 * Only affects primitives that were already attached.
 	 * Replaces previous info.
 	 */
-	virtual void NotifyPrimitiveUpdated( const UPrimitiveComponent* Primitive );
+	virtual void NotifyPrimitiveUpdated( const UPrimitiveComponent* Primitive ) override;
 
 protected:
 
@@ -843,14 +843,14 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	 * @param DeltaTime				Time since last call in seconds
 	 * @param bProcessEverything	[opt] If true, process all resources with no throttling limits
 	 */
-	virtual void UpdateResourceStreaming( float DeltaTime, bool bProcessEverything=false );
+	virtual void UpdateResourceStreaming( float DeltaTime, bool bProcessEverything=false ) override;
 
 	/**
 	 * Updates streaming for an individual texture, taking into account all view infos.
 	 *
 	 * @param Texture	Texture to update
 	 */
-	virtual void UpdateIndividualTexture( UTexture2D* Texture );
+	virtual void UpdateIndividualTexture( UTexture2D* Texture ) override;
 
 	/**
 	 * Blocks till all pending requests are fulfilled.
@@ -859,17 +859,17 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	 * @param bLogResults	Whether to dump the results to the log.
 	 * @return				Number of streaming requests still in flight, if the time limit was reached before they were finished.
 	 */
-	virtual int32 BlockTillAllRequestsFinished( float TimeLimit = 0.0f, bool bLogResults = false );
+	virtual int32 BlockTillAllRequestsFinished( float TimeLimit = 0.0f, bool bLogResults = false ) override;
 
 	/**
 	 * Cancels the timed Forced resources (i.e used the Kismet action "Stream In Textures").
 	 */
-	virtual void CancelForcedResources();
+	virtual void CancelForcedResources() override;
 
 	/**
 	 * Notifies manager of "level" change so it can prioritize character textures for a few frames.
 	 */
-	virtual void NotifyLevelChange();
+	virtual void NotifyLevelChange() override;
 
 	/**
 	 * Adds a textures streaming handler to the array of handlers used to determine which
@@ -888,14 +888,14 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	void RemoveTextureStreamingHandler( FStreamingHandlerTextureBase* TextureStreamingHandler );
 
 	/** Don't stream world resources for the next NumFrames. */
-	virtual void SetDisregardWorldResourcesForFrames( int32 NumFrames );
+	virtual void SetDisregardWorldResourcesForFrames( int32 NumFrames ) override;
 
 	/**
 	 *	Try to stream out texture mip-levels to free up more memory.
 	 *	@param RequiredMemorySize	- Required minimum available texture memory
 	 *	@return						- Whether it succeeded or not
 	 **/
-	virtual bool StreamOutTextureData( int64 RequiredMemorySize );
+	virtual bool StreamOutTextureData( int64 RequiredMemorySize ) override;
 
 	/**
 	 * Allows the streaming manager to process exec commands.
@@ -935,22 +935,22 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	bool HandleInvestigateTextureCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	/** Adds a new texture to the streaming manager. */
-	virtual void AddStreamingTexture( UTexture2D* Texture );
+	virtual void AddStreamingTexture( UTexture2D* Texture ) override;
 
 	/** Removes a texture from the streaming manager. */
-	virtual void RemoveStreamingTexture( UTexture2D* Texture );
+	virtual void RemoveStreamingTexture( UTexture2D* Texture ) override;
 
 	/** Adds a ULevel to the streaming manager. */
-	virtual void AddPreparedLevel( class ULevel* Level );
+	virtual void AddPreparedLevel( class ULevel* Level ) override;
 
 	/** Removes a ULevel from the streaming manager. */
-	virtual void RemoveLevel( class ULevel* Level );
+	virtual void RemoveLevel( class ULevel* Level ) override;
 
 	/** Called when an actor is spawned. */
-	virtual void NotifyActorSpawned( AActor* Actor );
+	virtual void NotifyActorSpawned( AActor* Actor ) override;
 
 	/** Called when a spawned actor is destroyed. */
-	virtual void NotifyActorDestroyed( AActor* Actor );
+	virtual void NotifyActorDestroyed( AActor* Actor ) override;
 
 	/**
 	 * Called when a primitive is attached to an actor or another component.
@@ -958,10 +958,10 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	 *
 	 * @param InPrimitive	Newly attached dynamic/spawned primitive
 	 */
-	virtual void NotifyPrimitiveAttached( const UPrimitiveComponent* Primitive, EDynamicPrimitiveType DynamicType );
+	virtual void NotifyPrimitiveAttached( const UPrimitiveComponent* Primitive, EDynamicPrimitiveType DynamicType ) override;
 
 	/** Called when a primitive is detached from an actor or another component. */
-	virtual void NotifyPrimitiveDetached( const UPrimitiveComponent* Primitive );
+	virtual void NotifyPrimitiveDetached( const UPrimitiveComponent* Primitive ) override;
 
 	/**
 	 * Called when a LastRenderTime primitive is attached to an actor or another component.
@@ -970,7 +970,7 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	 *
 	 * @param Primitive	Newly attached dynamic/spawned primitive
 	 */
-	virtual void NotifyTimedPrimitiveAttached( const UPrimitiveComponent* Primitive, EDynamicPrimitiveType DynamicType );
+	virtual void NotifyTimedPrimitiveAttached( const UPrimitiveComponent* Primitive, EDynamicPrimitiveType DynamicType ) override;
 
 	/**
 	 * Called when a LastRenderTime primitive is detached from an actor or another component.
@@ -979,14 +979,14 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	 *
 	 * @param Primitive	Newly detached dynamic/spawned primitive
 	 */
-	virtual void NotifyTimedPrimitiveDetached( const UPrimitiveComponent* Primitive );
+	virtual void NotifyTimedPrimitiveDetached( const UPrimitiveComponent* Primitive ) override;
 
 	/**
 	 * Called when a primitive has had its textured changed.
 	 * Only affects primitives that were already attached.
 	 * Replaces previous info.
 	 */
-	virtual void NotifyPrimitiveUpdated( const UPrimitiveComponent* Primitive );
+	virtual void NotifyPrimitiveUpdated( const UPrimitiveComponent* Primitive ) override;
 
 	bool AddDynamicPrimitive( const UPrimitiveComponent* Primitive, EDynamicPrimitiveType DynamicType );
 	bool RemoveDynamicPrimitive( const UPrimitiveComponent* Primitive, EDynamicPrimitiveType DynamicType );
@@ -995,7 +995,7 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	FStreamingTexture& GetStreamingTexture( const UTexture2D* Texture2D );
 
 	/** Returns true if this is a streaming texture that is managed by the streaming manager. */
-	virtual bool IsManagedStreamingTexture( const UTexture2D* Texture2D );
+	virtual bool IsManagedStreamingTexture( const UTexture2D* Texture2D ) override;
 
 	/** Updates the I/O state of a texture (allowing it to progress to the next stage) and some stats. */
 	void UpdateTextureStatus( FStreamingTexture& StreamingTexture, FStreamingContext& Context );
@@ -1102,7 +1102,7 @@ protected:
 		 * Temporarily boosts the streaming distance factor by the specified number.
 		 * This factor is automatically reset to 1.0 after it's been used for mip-calculations.
 		 */
-		void BoostTextures( AActor* Actor, float BoostFactor );
+		void BoostTextures( AActor* Actor, float BoostFactor ) override;
 
 		/** Updates the thread-safe cache information for dynamic primitives. */
 		void UpdateDynamicPrimitiveCache();

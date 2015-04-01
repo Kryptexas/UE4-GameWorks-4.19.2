@@ -229,7 +229,7 @@ public:
 	// End UObject interface.
 
 	// Begin interface IBlendableInterface
-	ENGINE_API virtual void OverrideBlendableSettings(class FSceneView& View, float Weight) const;
+	ENGINE_API virtual void OverrideBlendableSettings(class FSceneView& View, float Weight) const override;
 	// End interface IBlendableInterface
 
 	/** Walks up parent chain and finds the base Material that this is an instance of. */

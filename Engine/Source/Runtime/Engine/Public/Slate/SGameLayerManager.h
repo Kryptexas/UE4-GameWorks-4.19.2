@@ -51,14 +51,14 @@ public:
 	void Construct( const FArguments& InArgs );
 
 	// Begin IGameLayerManager
-	virtual void NotifyPlayerAdded(int32 PlayerIndex, ULocalPlayer* AddedPlayer);
-	virtual void NotifyPlayerRemoved(int32 PlayerIndex, ULocalPlayer* RemovedPlayer);
+	virtual void NotifyPlayerAdded(int32 PlayerIndex, ULocalPlayer* AddedPlayer) override;
+	virtual void NotifyPlayerRemoved(int32 PlayerIndex, ULocalPlayer* RemovedPlayer) override;
 
-	virtual void AddWidgetForPlayer(ULocalPlayer* Player, TSharedRef<SWidget> ViewportContent, const int32 ZOrder);
-	virtual void RemoveWidgetForPlayer(ULocalPlayer* Player, TSharedRef<SWidget> ViewportContent);
-	virtual void ClearWidgetsForPlayer(ULocalPlayer* Player);
+	virtual void AddWidgetForPlayer(ULocalPlayer* Player, TSharedRef<SWidget> ViewportContent, const int32 ZOrder) override;
+	virtual void RemoveWidgetForPlayer(ULocalPlayer* Player, TSharedRef<SWidget> ViewportContent) override;
+	virtual void ClearWidgetsForPlayer(ULocalPlayer* Player) override;
 
-	virtual void ClearWidgets();
+	virtual void ClearWidgets() override;
 	// Ened IGameLayerManager
 
 public:

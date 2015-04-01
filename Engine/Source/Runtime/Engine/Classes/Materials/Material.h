@@ -751,7 +751,7 @@ public:
 	ENGINE_API virtual UMaterial* GetMaterial() override;
 	ENGINE_API virtual const UMaterial* GetMaterial() const override;
 	ENGINE_API virtual const UMaterial* GetMaterial_Concurrent(TMicRecursionGuard& RecursionGuard) const override;
-	ENGINE_API virtual bool GetParameterDesc(FName ParameterName, FString& OutDesc) const;
+	ENGINE_API virtual bool GetParameterDesc(FName ParameterName, FString& OutDesc) const override;
 	ENGINE_API virtual bool GetVectorParameterValue(FName ParameterName,FLinearColor& OutValue) const override;
 	ENGINE_API virtual bool GetScalarParameterValue(FName ParameterName,float& OutValue) const override;
 	ENGINE_API virtual bool GetTextureParameterValue(FName ParameterName,class UTexture*& OutValue) const override;
@@ -777,25 +777,25 @@ public:
 		TArray<FName>* OutTextureParamNames, class FStaticParameterSet* InStaticParameterSet) override;
 	ENGINE_API virtual void RecacheUniformExpressions() const override;
 
-	ENGINE_API virtual float GetOpacityMaskClipValue(bool bIsGameThread = IsInGameThread()) const;
-	ENGINE_API virtual EBlendMode GetBlendMode(bool bIsGameThread = IsInGameThread()) const;
-	ENGINE_API virtual EMaterialShadingModel GetShadingModel(bool bIsGameThread = IsInGameThread()) const;
-	ENGINE_API virtual bool IsTwoSided(bool bIsGameThread = IsInGameThread()) const;
-	ENGINE_API virtual bool IsMasked(bool bIsGameThread = IsInGameThread()) const;
-	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const;
+	ENGINE_API virtual float GetOpacityMaskClipValue(bool bIsGameThread = IsInGameThread()) const override;
+	ENGINE_API virtual EBlendMode GetBlendMode(bool bIsGameThread = IsInGameThread()) const override;
+	ENGINE_API virtual EMaterialShadingModel GetShadingModel(bool bIsGameThread = IsInGameThread()) const override;
+	ENGINE_API virtual bool IsTwoSided(bool bIsGameThread = IsInGameThread()) const override;
+	ENGINE_API virtual bool IsMasked(bool bIsGameThread = IsInGameThread()) const override;
+	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const override;
 
 	ENGINE_API void SetShadingModel(EMaterialShadingModel NewModel) {ShadingModel = NewModel;}
 
 	/** Checks to see if an input property should be active, based on the state of the material */
-	ENGINE_API virtual bool IsPropertyActive(EMaterialProperty InProperty) const;
+	ENGINE_API virtual bool IsPropertyActive(EMaterialProperty InProperty) const override;
 	/** Allows material properties to be compiled with the option of being overridden by the material attributes input. */
-	ENGINE_API virtual int32 CompilePropertyEx( class FMaterialCompiler* Compiler, EMaterialProperty Property );
+	ENGINE_API virtual int32 CompilePropertyEx( class FMaterialCompiler* Compiler, EMaterialProperty Property ) override;
 	ENGINE_API virtual void ForceRecompileForRendering() override;
 	// End UMaterialInterface interface.
 
 	// Begin UObject Interface
-	ENGINE_API virtual void PreSave();
-	ENGINE_API virtual void PostInitProperties();	
+	ENGINE_API virtual void PreSave() override;
+	ENGINE_API virtual void PostInitProperties() override;
 	ENGINE_API virtual void Serialize(FArchive& Ar) override;
 	ENGINE_API virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	ENGINE_API virtual void PostLoad() override;

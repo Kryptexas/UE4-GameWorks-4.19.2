@@ -30,13 +30,13 @@ public:
 	{
 	}
 	
-	void Serialize( void* V, int64 Length )
+	void Serialize( void* V, int64 Length ) override
 	{
 		int32 iStart = ScriptBuffer.AddUninitialized( Length );
 		FMemory::Memcpy( &(ScriptBuffer[iStart]), V, Length );
 	}
 
-	FArchive& operator<<(FName& Name)
+	FArchive& operator<<(FName& Name) override
 	{
 		FArchive& Ar = *this;
 
@@ -49,7 +49,7 @@ public:
 		return Ar;
 	}
 
-	FArchive& operator<<(UObject*& Res)
+	FArchive& operator<<(UObject*& Res) override
 	{
 		ScriptPointerType D = (ScriptPointerType)Res; 
 		FArchive& Ar = *this;
@@ -58,12 +58,12 @@ public:
 		return Ar;
 	}
 
-	FArchive& operator<<(FLazyObjectPtr& LazyObjectPtr)
+	FArchive& operator<<(FLazyObjectPtr& LazyObjectPtr) override
 	{
 		return FArchive::operator<<(LazyObjectPtr);
 	}
 
-	FArchive& operator<<(FAssetPtr& AssetPtr)
+	FArchive& operator<<(FAssetPtr& AssetPtr) override
 	{
 		return FArchive::operator<<(AssetPtr);
 	}

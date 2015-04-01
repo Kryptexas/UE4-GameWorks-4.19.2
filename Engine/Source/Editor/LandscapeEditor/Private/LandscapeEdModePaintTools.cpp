@@ -632,7 +632,7 @@ public:
 	virtual const TCHAR* GetToolName() override { return TEXT("Flatten"); }
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Flatten", "Flatten"); };
 
-	virtual void Tick(FEditorViewportClient* ViewportClient, float DeltaTime)
+	virtual void Tick(FEditorViewportClient* ViewportClient, float DeltaTime) override
 	{
 		FLandscapeToolPaintBase<ToolTarget, FLandscapeToolStrokeFlatten<ToolTarget>>::Tick(ViewportClient, DeltaTime);
 
@@ -660,7 +660,7 @@ public:
 		return bResult;
 	}
 
-	virtual void EnterTool()
+	virtual void EnterTool() override
 	{
 		FLandscapeToolPaintBase<ToolTarget, FLandscapeToolStrokeFlatten<ToolTarget>>::EnterTool();
 
@@ -680,7 +680,7 @@ public:
 		MeshComponent->SetRelativeLocation(Origin, false);
 	}
 
-	virtual void ExitTool()
+	virtual void ExitTool() override
 	{
 		FLandscapeToolPaintBase<ToolTarget, FLandscapeToolStrokeFlatten<ToolTarget>>::ExitTool();
 

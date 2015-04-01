@@ -738,7 +738,7 @@ private:
 	}
 
 	/** Dumps all tick functions to output device */
-	virtual void DumpAllTickFunctions(FOutputDevice& Ar, UWorld* InWorld, bool bEnabled, bool bDisabled)
+	virtual void DumpAllTickFunctions(FOutputDevice& Ar, UWorld* InWorld, bool bEnabled, bool bDisabled) override
 	{
 		int32 EnabledCount = 0, DisabledCount = 0;
 

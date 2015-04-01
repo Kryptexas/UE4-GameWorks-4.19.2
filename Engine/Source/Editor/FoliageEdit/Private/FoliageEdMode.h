@@ -251,11 +251,11 @@ public:
 	virtual void ActorSelectionChangeNotify() override;
 
 	/** Notifies all active modes of mouse click messages. */
-	bool HandleClick(FEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click);
+	bool HandleClick(FEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click) override;
 
 	/** FEdMode: widget handling */
 	virtual FVector GetWidgetLocation() const override;
-	virtual bool AllowWidgetMove();
+	virtual bool AllowWidgetMove() override;
 	virtual bool ShouldDrawWidget() const override;
 	virtual bool UsesTransformWidget() const override;
 	virtual EAxisList::Type GetWidgetAxisToDraw(FWidget::EWidgetMode InWidgetMode) const override;

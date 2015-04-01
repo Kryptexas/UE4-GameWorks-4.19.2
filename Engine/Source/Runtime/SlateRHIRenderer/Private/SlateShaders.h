@@ -61,7 +61,7 @@ public:
 	void SetVerticalAxisMultiplier(FRHICommandList& RHICmdList, float InMultiplier);
 
 	/** Serializes the shader data */
-	virtual bool Serialize( FArchive& Ar );
+	virtual bool Serialize( FArchive& Ar ) override;
 
 private:
 	/** ViewProjection parameter used by the shader */
@@ -188,7 +188,7 @@ public:
 	}
 
 	/** Serializes the shader data */
-	virtual bool Serialize( FArchive& Ar )
+	virtual bool Serialize( FArchive& Ar ) override
 	{
 		return FSlateElementPS::Serialize( Ar );
 	}
@@ -220,7 +220,7 @@ public:
 	}
 
 
-	virtual bool Serialize( FArchive& Ar )
+	virtual bool Serialize( FArchive& Ar ) override
 	{
 		return FSlateElementPS::Serialize( Ar );
 	}

@@ -15,7 +15,7 @@ public:
 	TArray<FNiagaraVariableInfo> Outputs;
 
 	// Begin UObject interface
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent);
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End UObject interface
 
 	// Begin EdGraphNode interface

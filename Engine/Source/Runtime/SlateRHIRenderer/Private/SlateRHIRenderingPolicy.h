@@ -141,7 +141,7 @@ public:
 	virtual void ReleaseDynamicRHI() override;
 
 	/** Returns a friendly name for this buffer. */
-	virtual FString GetFriendlyName() const { return TEXT("SlateElementIndices"); }
+	virtual FString GetFriendlyName() const override { return TEXT("SlateElementIndices"); }
 
 	/** Returns the size of this buffer */
 	uint32 GetBufferSize() const { return BufferSize; }

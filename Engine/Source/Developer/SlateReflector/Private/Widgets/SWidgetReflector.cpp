@@ -1032,8 +1032,6 @@ class SStatTableRow : public SMultiColumnTableRow< TSharedRef<FSlateStatCycleCou
 {
 	
 public:
-	typedef SMultiColumnTableRow< TSharedRef<FSlateStatCycleCounter> > Super;
-		
 	SLATE_BEGIN_ARGS( SStatTableRow )
 	{}
 	SLATE_END_ARGS();

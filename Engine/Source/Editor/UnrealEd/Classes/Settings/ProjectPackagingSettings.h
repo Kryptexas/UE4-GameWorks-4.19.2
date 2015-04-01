@@ -167,5 +167,5 @@ public:
 	// UObject Interface
 
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
-	virtual bool CanEditChange( const UProperty* InProperty ) const;
+	virtual bool CanEditChange( const UProperty* InProperty ) const override;
 };

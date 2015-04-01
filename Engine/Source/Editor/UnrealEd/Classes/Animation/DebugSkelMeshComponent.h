@@ -241,8 +241,8 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 		TArray<FString> Errors;
 	};
 	TArray<FAnimNotifyErrors> AnimNotifyErrors;
-	virtual void ReportAnimNotifyError(const FText& Error, UObject* InSourceNotify);
-	virtual void ClearAnimNotifyErrors(UObject* InSourceNotify);
+	virtual void ReportAnimNotifyError(const FText& Error, UObject* InSourceNotify) override;
+	virtual void ClearAnimNotifyErrors(UObject* InSourceNotify) override;
 #endif
 
 #if WITH_APEX_CLOTHING

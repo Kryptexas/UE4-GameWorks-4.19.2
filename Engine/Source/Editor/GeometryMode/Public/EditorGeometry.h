@@ -224,7 +224,7 @@ class FGeomObject : public FGeomBase, public FGCObject
 public:
 	FGeomObject();
 	
-	virtual FVector GetMidPoint() const;
+	virtual FVector GetMidPoint() const override;
 
 	/** Index to the ABrush actor this object represents. */
 	ABrush* ActualBrush;
@@ -280,7 +280,7 @@ public:
 	/** Erases all current data for this object. */
 	void ClearData();
 
-	virtual FVector GetWidgetLocation();
+	virtual FVector GetWidgetLocation() override;
 	int32 AddVertexToPool( int32 InObjectIndex, int32 InParentPolyIndex, int32 InPolyIndex, int32 InVertexIndex );
 	int32 AddEdgeToPool( FGeomPoly* InPoly, int32 InParentPolyIndex, int32 InVectorIdxA, int32 InVectorIdxB );
 	virtual void GetFromSource();
@@ -333,7 +333,7 @@ struct HGeomPolyProxy : public HHitProxy
 		PolyIndex(InPolyIndex)
 	{}
 
-	virtual EMouseCursor::Type GetMouseCursor()
+	virtual EMouseCursor::Type GetMouseCursor() override
 	{
 		return EMouseCursor::Crosshairs;
 	}
@@ -346,7 +346,7 @@ struct HGeomPolyProxy : public HHitProxy
 	 *
 	 * @return	true if translucent primitives are always allowed with this hit proxy; false otherwise
 	 */
-	virtual bool AlwaysAllowsTranslucentPrimitives() const
+	virtual bool AlwaysAllowsTranslucentPrimitives() const override
 	{
 		return true;
 	}
@@ -368,7 +368,7 @@ struct HGeomEdgeProxy : public HHitProxy
 		EdgeIndex(InEdgeIndex)
 	{}
 
-	virtual EMouseCursor::Type GetMouseCursor()
+	virtual EMouseCursor::Type GetMouseCursor() override
 	{
 		return EMouseCursor::Crosshairs;
 	}
@@ -381,7 +381,7 @@ struct HGeomEdgeProxy : public HHitProxy
 	 *
 	 * @return	true if translucent primitives are always allowed with this hit proxy; false otherwise
 	 */
-	virtual bool AlwaysAllowsTranslucentPrimitives() const
+	virtual bool AlwaysAllowsTranslucentPrimitives() const override
 	{
 		return true;
 	}
@@ -405,7 +405,7 @@ struct HGeomVertexProxy : public HHitProxy
 		VertexIndex(InVertexIndex)
 	{}
 
-	virtual EMouseCursor::Type GetMouseCursor()
+	virtual EMouseCursor::Type GetMouseCursor() override
 	{
 		return EMouseCursor::Crosshairs;
 	}
@@ -418,7 +418,7 @@ struct HGeomVertexProxy : public HHitProxy
 	 *
 	 * @return	true if translucent primitives are always allowed with this hit proxy; false otherwise
 	 */
-	virtual bool AlwaysAllowsTranslucentPrimitives() const
+	virtual bool AlwaysAllowsTranslucentPrimitives() const override
 	{
 		return true;
 	}

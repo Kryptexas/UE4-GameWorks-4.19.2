@@ -27,7 +27,7 @@ public:
 	void SetContent( const TSharedRef< SWidget >& InContent );
 
 protected:
-	void OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const;
+	void OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const override;
 
 	virtual float GetRelativeLayoutScale( const FSlotBase& Child ) const override;
 

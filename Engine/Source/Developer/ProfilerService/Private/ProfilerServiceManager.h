@@ -55,9 +55,9 @@ public:
 
 	virtual void SendData(FProfilerCycleGraph& Data) override;
 
-	virtual void StartCapture();
+	virtual void StartCapture() override;
 	
-	virtual void StopCapture();
+	virtual void StopCapture() override;
 
 	virtual void StartFrame(uint32 FrameNumber, double FrameStart) override;
 

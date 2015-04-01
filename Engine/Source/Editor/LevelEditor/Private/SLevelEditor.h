@@ -161,7 +161,7 @@ private:
 	 * @param MyGeometry		Information about the size and position of the level editor widget
 	 * @param InKeyEvent	The event which just occurred	
 	 */
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent );
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 
 	/** Callback for when the property view changes */
 	void OnPropertyObjectArrayChanged(const FString& NewTitle, const TArray< UObject* >& UObjects );

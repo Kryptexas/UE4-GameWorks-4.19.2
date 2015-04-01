@@ -110,10 +110,10 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 	void Reset();
 
 	/** get cost of path, starting from next poly in corridor */
-	virtual float GetCostFromNode(NavNodeRef PathNode) const { return GetCostFromIndex(PathCorridor.Find(PathNode) + 1); }
+	virtual float GetCostFromNode(NavNodeRef PathNode) const override { return GetCostFromIndex(PathCorridor.Find(PathNode) + 1); }
 
 	/** get cost of path, starting from given point */
-	virtual float GetCostFromIndex(int32 PathPointIndex) const
+	virtual float GetCostFromIndex(int32 PathPointIndex) const override
 	{
 		float TotalCost = 0.f;
 		const float* Cost = PathCorridorCost.GetData();
@@ -133,10 +133,10 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 	FORCEINLINE int32 GetNodeRefIndex(const NavNodeRef NodeRef) const { return PathCorridor.Find(NodeRef); }
 
 	/** check if path (all polys in corridor) contains given node */
-	virtual bool ContainsNode(NavNodeRef NodeRef) const { return PathCorridor.Contains(NodeRef); }
+	virtual bool ContainsNode(NavNodeRef NodeRef) const override { return PathCorridor.Contains(NodeRef); }
 
-	virtual bool ContainsCustomLink(uint32 UniqueLinkId) const { return CustomLinkIds.Contains(UniqueLinkId); }
-	virtual bool ContainsAnyCustomLink() const { return CustomLinkIds.Num() > 0; }
+	virtual bool ContainsCustomLink(uint32 UniqueLinkId) const override { return CustomLinkIds.Contains(UniqueLinkId); }
+	virtual bool ContainsAnyCustomLink() const override { return CustomLinkIds.Num() > 0; }
 
 	bool IsPathSegmentANavLink(const int32 PathSegmentStartIndex) const;
 

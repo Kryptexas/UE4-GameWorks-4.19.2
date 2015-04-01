@@ -53,7 +53,7 @@ struct HNewLandscapeGrabHandleProxy : public HHitProxy
 	{
 	}
 
-	virtual EMouseCursor::Type GetMouseCursor()
+	virtual EMouseCursor::Type GetMouseCursor() override
 	{
 		switch (Edge)
 		{

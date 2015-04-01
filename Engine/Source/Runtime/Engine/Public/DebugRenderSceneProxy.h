@@ -46,7 +46,7 @@ public:
 
 	ENGINE_API virtual void DrawDebugLabels(UCanvas* Canvas, APlayerController*);
 
-	virtual uint32 GetMemoryFootprint( void ) const { return( sizeof( *this ) + GetAllocatedSize() ); }
+	virtual uint32 GetMemoryFootprint( void ) const override { return( sizeof( *this ) + GetAllocatedSize() ); }
 	ENGINE_API uint32 GetAllocatedSize(void) const;
 
 	/** called to set up debug drawing delegate in UDebugDrawService if you want to draw labels */

@@ -47,7 +47,7 @@ struct HPropertyWidgetProxy : public HHitProxy
 	{}
 
 	/** Show cursor as cross when over this handle */
-	virtual EMouseCursor::Type GetMouseCursor()
+	virtual EMouseCursor::Type GetMouseCursor() override
 	{
 		return EMouseCursor::Crosshairs;
 	}

@@ -1866,7 +1866,7 @@ public:
 	 * @param	OutColor	[out] The returned color.
 	 * @return				true if a color was successfully set on OutColor, false otherwise.
 	 */
-	virtual bool GetPropertyColorationColor(class UObject* Object, FColor& OutColor);
+	virtual bool GetPropertyColorationColor(class UObject* Object, FColor& OutColor) override;
 
 	/**
 	 * Sets property value and property chain to be used for property-based coloration.

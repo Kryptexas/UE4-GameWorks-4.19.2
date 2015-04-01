@@ -59,7 +59,7 @@ public:
 		}
 	}
 
-	virtual void GetInstalledSDKVersions(const TCHAR* SDKDirectory, TArray<FHTML5SDKVersionNumber>& OutSDKs)
+	virtual void GetInstalledSDKVersions(const TCHAR* SDKDirectory, TArray<FHTML5SDKVersionNumber>& OutSDKs) override
 	{
 		FHTML5TargetPlatform::GetInstalledSDKVersions(SDKDirectory, OutSDKs);
 	}

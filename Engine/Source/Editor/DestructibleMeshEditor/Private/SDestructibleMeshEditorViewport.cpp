@@ -38,8 +38,8 @@ public:
 	// FEditorViewportClient interface
 	virtual void Tick(float DeltaTime) override;
 	virtual void Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI) override;
-	FLinearColor GetBackgroundColor() const { return FLinearColor::Black; }
-	virtual void ProcessClick(class FSceneView& View, class HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY);
+	FLinearColor GetBackgroundColor() const override { return FLinearColor::Black; }
+	virtual void ProcessClick(class FSceneView& View, class HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY) override;
 
 	void UpdateLighting();
 

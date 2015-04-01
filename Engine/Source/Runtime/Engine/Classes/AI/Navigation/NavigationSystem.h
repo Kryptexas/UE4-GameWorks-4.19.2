@@ -350,7 +350,7 @@ public:
 
 	virtual void Tick(float DeltaSeconds);	
 
-	UWorld* GetWorld() const { return GetOuterUWorld(); }
+	UWorld* GetWorld() const override { return GetOuterUWorld(); }
 
 	UCrowdManager* GetCrowdManager() const { return CrowdManager.Get(); }
 

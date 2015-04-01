@@ -114,7 +114,7 @@ public:
 		bIsSuspended = bShouldPause;
 	}
 
-	virtual bool Kill(bool bShouldWait)
+	virtual bool Kill(bool bShouldWait) override
 	{
 		FSingleThreadManager::Get().RemoveThread(this);
 		return true;
@@ -127,7 +127,7 @@ public:
 
 	virtual bool CreateInternal(FRunnable* InRunnable, const TCHAR* ThreadName,
 		uint32 InStackSize,
-		EThreadPriority InThreadPri, uint64 InThreadAffinityMask)
+		EThreadPriority InThreadPri, uint64 InThreadAffinityMask) override
 
 	{
 		Runnable = InRunnable->GetSingleThreadInterface();

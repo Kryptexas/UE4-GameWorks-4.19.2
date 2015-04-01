@@ -46,7 +46,7 @@ private:
 public:
 	// Begin UActorComponent Interface
 	virtual void SendRenderTransform_Concurrent() override;
-	virtual bool RequiresGameThreadEndOfFrameUpdates() const
+	virtual bool RequiresGameThreadEndOfFrameUpdates() const override
 	{
 		// this method could probably be removed allowing them to run on any thread, but it isn't worth the trouble
 		return true;

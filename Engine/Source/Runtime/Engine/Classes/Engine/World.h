@@ -338,7 +338,7 @@ struct FStartPhysicsTickFunction : public FTickFunction
 	**/
 	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
-	virtual FString DiagnosticMessage();
+	virtual FString DiagnosticMessage() override;
 };
 
 /** 
@@ -361,7 +361,7 @@ struct FEndPhysicsTickFunction : public FTickFunction
 	**/
 	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
-	virtual FString DiagnosticMessage();
+	virtual FString DiagnosticMessage() override;
 };
 
 /**
@@ -384,7 +384,7 @@ struct FStartClothSimulationFunction : public FTickFunction
 	**/
 	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
-	virtual FString DiagnosticMessage();
+	virtual FString DiagnosticMessage() override;
 };
 
 /**
@@ -407,7 +407,7 @@ struct FEndClothSimulationFunction : public FTickFunction
 	**/
 	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
-	virtual FString DiagnosticMessage();
+	virtual FString DiagnosticMessage() override;
 };
 
 /* Struct of optional parameters passed to SpawnActor function(s). */

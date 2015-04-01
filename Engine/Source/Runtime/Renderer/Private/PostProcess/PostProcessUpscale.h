@@ -24,9 +24,9 @@ public:
 	FRCPassPostProcessUpscale(uint32 InUpscaleQuality, float InCylinderDistortion);
 
 	// interface FRenderingCompositePass ---------
-	virtual void Process(FRenderingCompositePassContext& Context);
+	virtual void Process(FRenderingCompositePassContext& Context) override;
 	virtual void Release() override { delete this; }
-	FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
+	FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
 private:
 	// @param InCylinderDistortion 0=none..1=full in percent, must be in that range
 	template <uint32 Quality, uint32 bTesselatedQuad> static FShader* SetShader(const FRenderingCompositePassContext& Context, float InCylinderDistortion = 0.0f);

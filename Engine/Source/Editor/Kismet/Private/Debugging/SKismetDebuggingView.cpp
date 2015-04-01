@@ -918,7 +918,7 @@ public:
 		}
 	}
 protected:
-	virtual FText GetDisplayName() const
+	virtual FText GetDisplayName() const override
 	{
 		return LOCTEXT("ExecutionTrace", "Execution Trace");
 	}

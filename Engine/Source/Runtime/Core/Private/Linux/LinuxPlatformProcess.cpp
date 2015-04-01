@@ -324,7 +324,7 @@ bool FPipeHandle::ReadToArray(TArray<uint8> & Output)
 	{
 		if (BytesAvailable > 0)
 		{
-			Output.Init(BytesAvailable);
+			Output.SetNumUninitialized(BytesAvailable);
 			int BytesRead = read(PipeDesc, Output.GetData(), BytesAvailable);
 			if (BytesRead > 0)
 			{

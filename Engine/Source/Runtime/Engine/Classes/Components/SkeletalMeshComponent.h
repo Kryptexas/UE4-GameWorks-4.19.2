@@ -259,7 +259,7 @@ struct FSkeletalMeshComponentPreClothTickFunction : public FTickFunction
 	**/
 	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
-	virtual FString DiagnosticMessage();
+	virtual FString DiagnosticMessage() override;
 };
 
 
@@ -806,7 +806,7 @@ public:
 	// End UActorComponent interface.
 
 	// Begin USceneComponent interface.
-	virtual void UpdateBounds();
+	virtual void UpdateBounds() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual bool IsAnySimulatingPhysics() const override;
 	virtual void OnUpdateTransform(bool bSkipPhysicsMove) override;
@@ -837,7 +837,7 @@ public:
 	virtual bool IsAnyRigidBodyAwake() override;
 	virtual void OnComponentCollisionSettingsChanged() override;
 	virtual void SetPhysMaterialOverride(UPhysicalMaterial* NewPhysMaterial) override;
-	virtual float GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const;
+	virtual float GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const override;
 	virtual bool LineTraceComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionQueryParams& Params ) override;
 	virtual bool SweepComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionShape& CollisionShape, bool bTraceComplex=false) override;
 	virtual bool ComponentOverlapComponent(class UPrimitiveComponent* PrimComp, const FVector Pos, const FRotator FRotator, const FCollisionQueryParams& Params) override;

@@ -36,7 +36,7 @@ protected:
 			Record.bShowPin = true;
 		}
 
-		virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property) const;
+		virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property) const override;
 		// End of FOptionalPinsUpdater interfac
 	};
 #if WITH_EDITOR

@@ -54,7 +54,7 @@ public:
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 
 	/** IStaticMeshEditor interface */
-	virtual UStaticMesh* GetStaticMesh() { return StaticMesh; }
+	virtual UStaticMesh* GetStaticMesh() override { return StaticMesh; }
 	virtual UStaticMeshComponent* GetStaticMeshComponent() const override;
 
 	virtual UStaticMeshSocket* GetSelectedSocket() const override ;
@@ -63,7 +63,7 @@ public:
 	virtual void RequestRenameSelectedSocket() override;
 
 	virtual bool IsPrimValid(const FPrimData& InPrimData) const override;
-	virtual bool HasSelectedPrims() const;
+	virtual bool HasSelectedPrims() const override;
 	virtual void AddSelectedPrim(const FPrimData& InPrimData, bool bClearSelection) override;
 	virtual void RemoveSelectedPrim(const FPrimData& InPrimData) override;
 	virtual void RemoveInvalidPrims() override;
@@ -74,9 +74,9 @@ public:
 	virtual void RotateSelectedPrims(const FRotator& InRot) override;
 	virtual void ScaleSelectedPrims(const FVector& InScale) override;
 	virtual bool CalcSelectedPrimsAABB(FBox &OutBox) const override;
-	virtual bool GetLastSelectedPrimTransform(FTransform& OutTransform) const;
-	FTransform GetPrimTransform(const FPrimData& InPrimData) const;
-	void SetPrimTransform(const FPrimData& InPrimData, const FTransform& InPrimTransform) const;
+	virtual bool GetLastSelectedPrimTransform(FTransform& OutTransform) const override;
+	FTransform GetPrimTransform(const FPrimData& InPrimData) const override;
+	void SetPrimTransform(const FPrimData& InPrimData, const FTransform& InPrimTransform) const override;
 	bool OverlapsExistingPrim(const FPrimData& InPrimData) const;
 
 	virtual int32 GetNumTriangles( int32 LODLevel = 0 ) const override;

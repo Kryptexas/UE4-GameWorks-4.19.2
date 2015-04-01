@@ -349,7 +349,7 @@ class ENGINE_API UCheatManager : public UObject
 	virtual void BeginDestroy() override;
 
 	/** Use the Outer Player Controller to get a World.  */
-	UWorld* GetWorld() const;
+	virtual UWorld* GetWorld() const override;
 protected:
 
 	/** Do game specific bugIt */

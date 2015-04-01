@@ -553,7 +553,7 @@ public:
 #endif // WITH_EDITOR
 	ENGINE_API virtual void BeginDestroy() override;
 	ENGINE_API virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	// End of UObject interface
 
 	// Begin UAnimationAsset interface
@@ -567,7 +567,7 @@ public:
 
 	// Begin UAnimSequenceBase interface
 	ENGINE_API virtual void OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InstanceOwner) const override;
-	ENGINE_API virtual bool HasRootMotion() const { return bEnableRootMotion; }
+	ENGINE_API virtual bool HasRootMotion() const override { return bEnableRootMotion; }
 	// End UAnimSequenceBase interface
 
 	// Extract Root Motion transform from the animation
@@ -805,7 +805,7 @@ public:
 	/** 
 	 * Add validation check to see if it's being ready to play or not
 	 */
-	virtual bool IsValidToPlay() const;
+	virtual bool IsValidToPlay() const override;
 
 private:
 	/** 

@@ -200,7 +200,7 @@ class FHttpNetworkReplayStreamingFactory : public INetworkReplayStreamingFactory
 {
 public:
 	/** INetworkReplayStreamingFactory */
-	virtual TSharedPtr< INetworkReplayStreamer > CreateReplayStreamer();
+	virtual TSharedPtr< INetworkReplayStreamer > CreateReplayStreamer() override;
 
 	/** FTickableGameObject */
 	virtual void Tick( float DeltaTime ) override;

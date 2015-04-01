@@ -131,7 +131,7 @@ public:
 	FTextureRHIRef& GetEyeAdaptation(const FSceneView& View);
 
 	// FShader interface.
-	virtual bool Serialize(FArchive& Ar);
+	virtual bool Serialize(FArchive& Ar) override;
 	virtual uint32 GetAllocatedSize() const override;
 
 private:

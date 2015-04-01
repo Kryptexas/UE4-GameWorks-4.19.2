@@ -81,7 +81,7 @@ public:
 	 * Redraws all viewports.
 	 * @param	bShouldPresent	Whether we want this frame to be presented
 	 */
-	virtual void RedrawViewports( bool bShouldPresent = true );
+	virtual void RedrawViewports( bool bShouldPresent = true ) override;
 
 public:
 
@@ -126,7 +126,7 @@ public:
 	virtual void PostLoadMap();
 
 	/** Returns the GameViewport widget */
-	virtual TSharedPtr<SViewport> GetGameViewportWidget() const
+	virtual TSharedPtr<SViewport> GetGameViewportWidget() const override
 	{
 		return GameViewportWidget;
 	}

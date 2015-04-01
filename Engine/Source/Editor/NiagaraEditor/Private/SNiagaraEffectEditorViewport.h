@@ -61,7 +61,7 @@ private:
 	TWeakPtr<SDockTab> ParentTab;
 	
 	
-	bool IsVisible() const;
+	bool IsVisible() const override;
 	
 	/** Pointer back to the material editor tool that owns us */
 	//TWeakPtr<INiagaraEffectEditor> EffectEditorPtr;

@@ -53,14 +53,14 @@ public:
 	 * 
 	 * @param bDropWasHandled   true when the drop was handled by some widget; false otherwise
 	 */
-	virtual void OnDrop( bool bDropWasHandled, const FPointerEvent& MouseEvent );
+	virtual void OnDrop( bool bDropWasHandled, const FPointerEvent& MouseEvent ) override;
 
 	/** 
 	 * Called when the mouse was moved during a drag and drop operation
 	 *
 	 * @param DragDropEvent    The event that describes this drag drop operation.
 	 */
-	virtual void OnDragged( const FDragDropEvent& DragDropEvent );
+	virtual void OnDragged( const FDragDropEvent& DragDropEvent ) override;
 	
 	/**
 	 * DragTestArea widgets invoke this method when a drag enters them

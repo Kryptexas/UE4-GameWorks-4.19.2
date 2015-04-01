@@ -76,7 +76,7 @@ public:
 		return TargetPlatform;
 	}
 
-	virtual bool IsConnected( )
+	virtual bool IsConnected( ) override
 	{
 		return true;
 	}

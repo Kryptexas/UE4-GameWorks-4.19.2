@@ -2345,49 +2345,49 @@ public:
 		}
 	}
 
-	virtual void AddPrimitive(UPrimitiveComponent* Primitive){}
-	virtual void RemovePrimitive(UPrimitiveComponent* Primitive){}
-	virtual void ReleasePrimitive(UPrimitiveComponent* Primitive){}
+	virtual void AddPrimitive(UPrimitiveComponent* Primitive) override {}
+	virtual void RemovePrimitive(UPrimitiveComponent* Primitive) override {}
+	virtual void ReleasePrimitive(UPrimitiveComponent* Primitive) override {}
 
 	/** Updates the transform of a primitive which has already been added to the scene. */
-	virtual void UpdatePrimitiveTransform(UPrimitiveComponent* Primitive){}
-	virtual void UpdatePrimitiveAttachment(UPrimitiveComponent* Primitive) {};
+	virtual void UpdatePrimitiveTransform(UPrimitiveComponent* Primitive) override {}
+	virtual void UpdatePrimitiveAttachment(UPrimitiveComponent* Primitive) override {}
 
-	virtual void AddLight(ULightComponent* Light){}
-	virtual void RemoveLight(ULightComponent* Light){}
-	virtual void AddInvisibleLight(ULightComponent* Light){}
-	virtual void SetSkyLight(FSkyLightSceneProxy* Light) {}
-	virtual void DisableSkyLight(FSkyLightSceneProxy* Light) {}
+	virtual void AddLight(ULightComponent* Light) override {}
+	virtual void RemoveLight(ULightComponent* Light) override {}
+	virtual void AddInvisibleLight(ULightComponent* Light) override {}
+	virtual void SetSkyLight(FSkyLightSceneProxy* Light) override {}
+	virtual void DisableSkyLight(FSkyLightSceneProxy* Light) override {}
 
-	virtual void AddDecal(UDecalComponent*){}
-	virtual void RemoveDecal(UDecalComponent*){}
+	virtual void AddDecal(UDecalComponent*) override {}
+	virtual void RemoveDecal(UDecalComponent*) override {}
 	virtual void UpdateDecalTransform(UDecalComponent* Decal) override {}
 
 	/** Updates the transform of a light which has already been added to the scene. */
-	virtual void UpdateLightTransform(ULightComponent* Light){}
-	virtual void UpdateLightColorAndBrightness(ULightComponent* Light){}
+	virtual void UpdateLightTransform(ULightComponent* Light) override {}
+	virtual void UpdateLightColorAndBrightness(ULightComponent* Light) override {}
 
-	virtual void AddExponentialHeightFog(class UExponentialHeightFogComponent* FogComponent){}
-	virtual void RemoveExponentialHeightFog(class UExponentialHeightFogComponent* FogComponent){}
-	virtual void AddAtmosphericFog(class UAtmosphericFogComponent* FogComponent) {}
-	virtual void RemoveAtmosphericFog(class UAtmosphericFogComponent* FogComponent) {}
+	virtual void AddExponentialHeightFog(class UExponentialHeightFogComponent* FogComponent) override {}
+	virtual void RemoveExponentialHeightFog(class UExponentialHeightFogComponent* FogComponent) override {}
+	virtual void AddAtmosphericFog(class UAtmosphericFogComponent* FogComponent) override {}
+	virtual void RemoveAtmosphericFog(class UAtmosphericFogComponent* FogComponent) override {}
 	virtual FAtmosphericFogSceneInfo* GetAtmosphericFogSceneInfo() override { return NULL; }
-	virtual void AddWindSource(class UWindDirectionalSourceComponent* WindComponent) {}
-	virtual void RemoveWindSource(class UWindDirectionalSourceComponent* WindComponent) {}
-	virtual const TArray<class FWindSourceSceneProxy*>& GetWindSources_RenderThread() const
+	virtual void AddWindSource(class UWindDirectionalSourceComponent* WindComponent) override {}
+	virtual void RemoveWindSource(class UWindDirectionalSourceComponent* WindComponent) override {}
+	virtual const TArray<class FWindSourceSceneProxy*>& GetWindSources_RenderThread() const override
 	{
 		static TArray<class FWindSourceSceneProxy*> NullWindSources;
 		return NullWindSources;
 	}
-	virtual void GetWindParameters(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const { OutDirection = FVector(1.0f, 0.0f, 0.0f); OutSpeed = 0.0f; OutMinGustAmt = 0.0f; OutMaxGustAmt = 0.0f; }
-	virtual void GetDirectionalWindParameters(FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const { OutDirection = FVector(1.0f, 0.0f, 0.0f); OutSpeed = 0.0f; OutMinGustAmt = 0.0f; OutMaxGustAmt = 0.0f; }
-	virtual void AddSpeedTreeWind(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh) {}
-	virtual void RemoveSpeedTreeWind(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh) {}
-	virtual void RemoveSpeedTreeWind_RenderThread(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh) {}
-	virtual void UpdateSpeedTreeWind(double CurrentTime) {}
-	virtual FUniformBufferRHIParamRef GetSpeedTreeUniformBuffer(const FVertexFactory* VertexFactory) { return FUniformBufferRHIParamRef(); }
+	virtual void GetWindParameters(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const override { OutDirection = FVector(1.0f, 0.0f, 0.0f); OutSpeed = 0.0f; OutMinGustAmt = 0.0f; OutMaxGustAmt = 0.0f; }
+	virtual void GetDirectionalWindParameters(FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const override { OutDirection = FVector(1.0f, 0.0f, 0.0f); OutSpeed = 0.0f; OutMinGustAmt = 0.0f; OutMaxGustAmt = 0.0f; }
+	virtual void AddSpeedTreeWind(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh) override {}
+	virtual void RemoveSpeedTreeWind(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh) override {}
+	virtual void RemoveSpeedTreeWind_RenderThread(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh) override {}
+	virtual void UpdateSpeedTreeWind(double CurrentTime) override {}
+	virtual FUniformBufferRHIParamRef GetSpeedTreeUniformBuffer(const FVertexFactory* VertexFactory) override { return FUniformBufferRHIParamRef(); }
 
-	virtual void Release(){}
+	virtual void Release() override {}
 
 	/**
 	 * Retrieves the lights interacting with the passed in primitive and adds them to the out array.
@@ -2395,18 +2395,18 @@ public:
 	 * @param	Primitive				Primitive to retrieve interacting lights for
 	 * @param	RelevantLights	[out]	Array of lights interacting with primitive
 	 */
-	virtual void GetRelevantLights( UPrimitiveComponent* Primitive, TArray<const ULightComponent*>* RelevantLights ) const {}
+	virtual void GetRelevantLights( UPrimitiveComponent* Primitive, TArray<const ULightComponent*>* RelevantLights ) const override {}
 
 	/**
 	 * @return		true if hit proxies should be rendered in this scene.
 	 */
-	virtual bool RequiresHitProxies() const 
+	virtual bool RequiresHitProxies() const override
 	{
 		return false;
 	}
 
 	// Accessors.
-	virtual class UWorld* GetWorld() const
+	virtual class UWorld* GetWorld() const override
 	{
 		return World;
 	}
@@ -2414,7 +2414,7 @@ public:
 	/**
 	* Return the scene to be used for rendering
 	*/
-	virtual class FScene* GetRenderScene()
+	virtual class FScene* GetRenderScene() override
 	{
 		return NULL;
 	}
@@ -2422,7 +2422,7 @@ public:
 	/**
 	 * Sets the FX system associated with the scene.
 	 */
-	virtual void SetFXSystem( class FFXSystemInterface* InFXSystem )
+	virtual void SetFXSystem( class FFXSystemInterface* InFXSystem ) override
 	{
 		FXSystem = InFXSystem;
 	}
@@ -2430,12 +2430,12 @@ public:
 	/**
 	 * Get the FX system associated with the scene.
 	 */
-	virtual class FFXSystemInterface* GetFXSystem()
+	virtual class FFXSystemInterface* GetFXSystem() override
 	{
 		return FXSystem;
 	}
 
-	virtual bool HasAnyLights() const { return false; }
+	virtual bool HasAnyLights() const override { return false; }
 private:
 	UWorld* World;
 	class FFXSystemInterface* FXSystem;

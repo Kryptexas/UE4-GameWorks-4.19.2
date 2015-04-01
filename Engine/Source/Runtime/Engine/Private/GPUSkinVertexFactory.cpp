@@ -454,7 +454,7 @@ public:
 		}
 	}
 
-	virtual uint32 GetSize() const { return sizeof(*this); }
+	virtual uint32 GetSize() const override { return sizeof(*this); }
 
 private:
 	FShaderParameter BoneIndexOffset;
@@ -519,7 +519,7 @@ public:
 		}
 	}
 
-	virtual uint32 GetSize() const { return sizeof(*this); }
+	virtual uint32 GetSize() const override { return sizeof(*this); }
 
 private:
 	FShaderParameter GPUSkinCacheStreamFloatOffset;

@@ -132,9 +132,9 @@ public:
 
 	virtual void PrintDebug();
 
-	virtual void PreNetReceive();
+	virtual void PreNetReceive() override;
 	
-	virtual void PostNetReceive();
+	virtual void PostNetReceive() override;
 
 protected:
 	/** Is this attribute set safe to ID over the network by name?  */

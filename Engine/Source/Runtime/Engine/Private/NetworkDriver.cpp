@@ -659,7 +659,7 @@ void UNetDriver::TickDispatch( float DeltaTime )
 bool UNetDriver::IsLevelInitializedForActor(const AActor* InActor, const UNetConnection* InConnection) const
 {
 	check(InActor);
-    check(InConnection);
+	check(InConnection);
 	check(World == InActor->GetWorld());
 
 	// we can't create channels while the client is in the wrong world

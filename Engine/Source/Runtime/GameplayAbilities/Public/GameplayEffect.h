@@ -540,7 +540,7 @@ public:
 
 	virtual void PostInitProperties() override;
 #if WITH_EDITOR
-	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
+	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
 	/** Policy for the duration of this effect */

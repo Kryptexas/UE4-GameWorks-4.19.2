@@ -290,9 +290,9 @@ public:
 		ADD_TEST(Test_PeriodicDamage);
 	}
 
-	virtual uint32 GetTestFlags() const { return EAutomationTestFlags::ATF_Editor; }
+	virtual uint32 GetTestFlags() const override { return EAutomationTestFlags::ATF_Editor; }
 	virtual bool IsStressTest() const { return false; }
-	virtual uint32 GetRequiredDeviceNum() const { return 1; }
+	virtual uint32 GetRequiredDeviceNum() const override { return 1; }
 
 protected:
 	virtual FString GetBeautifiedTestName() const override { return "AbilitySystem.GameplayEffects"; }
@@ -305,7 +305,7 @@ protected:
 		}
 	}
 
-	bool RunTest(const FString& Parameters)
+	bool RunTest(const FString& Parameters) override
 	{
 		// find the matching test
 		TestFunc TestFunction = nullptr;

@@ -52,22 +52,22 @@ public:
 	// FLightSceneInfo interface.
 
 	/** @return radius of the light or 0 if no radius */
-	virtual float GetRadius() const 
+	virtual float GetRadius() const override
 	{ 
 		return Radius; 
 	}
 
-	virtual float GetSourceRadius() const 
+	virtual float GetSourceRadius() const override
 	{ 
 		return SourceRadius; 
 	}
 
-	virtual bool IsInverseSquared() const
+	virtual bool IsInverseSquared() const override
 	{
 		return bInverseSquared;
 	}
 
-	virtual bool AffectsBounds(const FBoxSphereBounds& Bounds) const
+	virtual bool AffectsBounds(const FBoxSphereBounds& Bounds) const override
 	{
 		if((Bounds.Origin - GetLightToWorld().GetOrigin()).SizeSquared() > FMath::Square(Radius + Bounds.SphereRadius))
 		{
@@ -102,7 +102,7 @@ public:
 		}
 	}
 
-	virtual bool GetPerObjectProjectedShadowInitializer(const FBoxSphereBounds& SubjectBounds,class FPerObjectProjectedShadowInitializer& OutInitializer) const
+	virtual bool GetPerObjectProjectedShadowInitializer(const FBoxSphereBounds& SubjectBounds,class FPerObjectProjectedShadowInitializer& OutInitializer) const override
 	{
 		// Use a perspective projection looking at the primitive from the light position.
 		FVector LightPosition = LightToWorld.GetOrigin();

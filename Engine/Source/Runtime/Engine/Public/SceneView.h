@@ -398,11 +398,11 @@ public:
 	/** Maximum number of shadow cascades to render with. */
 	int32 MaxShadowCascades;
 
-    FViewMatrices ViewMatrices;
+	FViewMatrices ViewMatrices;
 
-    /** Variables used to determine the view matrix */
-    FVector		ViewLocation;
-    FRotator	ViewRotation;
+	/** Variables used to determine the view matrix */
+	FVector		ViewLocation;
+	FRotator	ViewRotation;
 	FQuat		BaseHmdOrientation;
 	FVector		BaseHmdLocation;
 	float		WorldToMetersScale;
@@ -811,8 +811,8 @@ public:
 	/** Editor setting to allow designers to override the automatic expose. 0:Automatic, following indices: -4 .. +4 */
 	FExposureSettings ExposureSettings;
 
-    /** Extensions that can modify view parameters on the render thread. */
-    TArray<class ISceneViewExtension*> ViewExtensions;
+	/** Extensions that can modify view parameters on the render thread. */
+	TArray<class ISceneViewExtension*> ViewExtensions;
 
 #if WITH_EDITOR
 	// Override the LOD of landscape in this viewport

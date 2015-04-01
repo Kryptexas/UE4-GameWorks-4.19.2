@@ -43,15 +43,15 @@ protected:
 	 *
 	 * @param Bunch the voice data to process
 	 */
-	virtual void ReceivedBunch(FInBunch& Bunch);
+	virtual void ReceivedBunch(FInBunch& Bunch) override;
 
 	/**
 	 * Performs any per tick update of the VoIP state
 	 */
-	virtual void Tick();
+	virtual void Tick() override;
 
 	/** Human readable information about the channel */
-	virtual FString Describe()
+	virtual FString Describe() override
 	{
 		return FString(TEXT("VoIP: ")) + UChannel::Describe();
 	}

@@ -28,7 +28,7 @@ public:
 	bool IsExposedToEffectEditor()	{ return bExposeToEffectEditor; }
 
 	// Begin UObject interface
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent);
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End UObject interface
 	
 	// Begin EdGraphNode interface
@@ -38,7 +38,7 @@ public:
 	// End EdGraphNode interface
 
 	// Begin UNiagaraNode interface
-	UNREALED_API virtual void Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNodeResult>& Outputs)override;
+	UNREALED_API virtual void Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNodeResult>& Outputs) override;
 	// End UNiagaraNode interface
 };
 

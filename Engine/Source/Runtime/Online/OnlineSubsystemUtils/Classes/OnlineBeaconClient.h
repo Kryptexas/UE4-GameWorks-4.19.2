@@ -28,7 +28,7 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 	GENERATED_UCLASS_BODY()
 
 	// Begin AActor Interface
-	void OnNetCleanup(UNetConnection* Connection);
+	void OnNetCleanup(UNetConnection* Connection) override;
 	virtual UNetConnection* GetNetConnection() override;
 	// End AActor Interface
 

@@ -430,7 +430,7 @@ struct HWidgetAxis : public HHitProxy
 		Axis(InAxis),
 		bDisabled(InbDisabled) {}
 
-	virtual EMouseCursor::Type GetMouseCursor()
+	virtual EMouseCursor::Type GetMouseCursor() override
 	{
 		if (bDisabled)
 		{
@@ -447,7 +447,7 @@ struct HWidgetAxis : public HHitProxy
 	 *
 	 * @return	true if translucent primitives are always allowed with this hit proxy; false otherwise
 	 */
-	virtual bool AlwaysAllowsTranslucentPrimitives() const
+	virtual bool AlwaysAllowsTranslucentPrimitives() const override
 	{
 		return true;
 	}

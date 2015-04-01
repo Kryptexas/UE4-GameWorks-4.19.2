@@ -130,7 +130,7 @@ public:
 
 	// FRenderResource interface.
 	virtual void InitRHI() override;
-	virtual FString GetFriendlyName() const { return TEXT("Static-mesh instances"); }
+	virtual FString GetFriendlyName() const override { return TEXT("Static-mesh instances"); }
 
 private:
 
@@ -271,7 +271,7 @@ class FInstancedStaticMeshVertexFactoryShaderParameters : public FLocalVertexFac
 
 	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* VertexShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags) const override;
 
-	void Serialize(FArchive& Ar)
+	void Serialize(FArchive& Ar) override
 	{
 		FLocalVertexFactoryShaderParameters::Serialize(Ar);
 		Ar << InstancingFadeOutParamsParameter;
@@ -285,7 +285,7 @@ class FInstancedStaticMeshVertexFactoryShaderParameters : public FLocalVertexFac
 		Ar << CPUInstanceLightmapAndShadowMapBias;
 	}
 
-	virtual uint32 GetSize() const { return sizeof(*this); }
+	virtual uint32 GetSize() const override { return sizeof(*this); }
 
 private:
 	FShaderParameter InstancingFadeOutParamsParameter;

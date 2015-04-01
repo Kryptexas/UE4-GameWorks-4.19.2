@@ -101,7 +101,7 @@ class ENGINE_API ULightComponentBase : public USceneComponent
 	/**
 	 * Called after duplication & serialization and before PostLoad. Used to e.g. make sure GUIDs remains globally unique.
 	 */
-	virtual void PostDuplicate(bool bDuplicateForPIE);
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 
 #if WITH_EDITOR
 	/** UObject interface */

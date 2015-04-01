@@ -256,7 +256,7 @@ public:
 	 *
 	 * @return  Returns the world of the LocalPlayer's PlayerController. NULL if the LocalPlayer does not have a PlayerController
 	 */
-	UWorld* GetWorld() const;
+	UWorld* GetWorld() const override;
 
 	/**
 	 * Get the game instance associated with this local player

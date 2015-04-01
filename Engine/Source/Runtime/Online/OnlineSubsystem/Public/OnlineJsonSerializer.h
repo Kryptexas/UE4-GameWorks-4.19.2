@@ -167,7 +167,7 @@ public:
     /** Is the JSON being written to */
 	virtual bool IsSaving() const override { return true; }
 	/** Access to the root object */
-	virtual TSharedPtr<FJsonObject> GetObject() { return TSharedPtr<FJsonObject>(); }
+	virtual TSharedPtr<FJsonObject> GetObject() override { return TSharedPtr<FJsonObject>(); }
 
 	/**
 	 * Starts a new object "{"
@@ -380,7 +380,7 @@ public:
     /** Is the JSON being written to */
 	virtual bool IsSaving() const override { return false; }
 	/** Access to the root Json object being read */
-	virtual TSharedPtr<FJsonObject> GetObject() { return JsonObject; }
+	virtual TSharedPtr<FJsonObject> GetObject() override { return JsonObject; }
 
 	/** Ignored */
 	virtual void StartObject() override

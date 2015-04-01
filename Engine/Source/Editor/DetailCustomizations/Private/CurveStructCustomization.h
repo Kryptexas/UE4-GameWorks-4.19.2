@@ -33,7 +33,7 @@ public:
 	virtual void ModifyOwner() override;
 	virtual void MakeTransactional() override;
 	virtual void OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos) override;
-	virtual bool IsValidCurve( FRichCurveEditInfo CurveInfo );
+	virtual bool IsValidCurve( FRichCurveEditInfo CurveInfo ) override;
 
 private:
 	/**

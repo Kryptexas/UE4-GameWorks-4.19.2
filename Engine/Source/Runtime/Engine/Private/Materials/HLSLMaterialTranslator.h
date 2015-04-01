@@ -1282,7 +1282,7 @@ protected:
 	 * This affects the internal state of the compiler and the results of all functions except GetFixedParameterCode.
 	 * @param OverrideShaderFrequency SF_NumFrequencies to not override
 	 */
-	virtual void SetMaterialProperty(EMaterialProperty InProperty, EShaderFrequency OverrideShaderFrequency = SF_NumFrequencies, bool bUsePreviousFrameTime = false)
+	virtual void SetMaterialProperty(EMaterialProperty InProperty, EShaderFrequency OverrideShaderFrequency = SF_NumFrequencies, bool bUsePreviousFrameTime = false) override
 	{
 		FunctionStack.Empty();
 		FunctionStack.Add(FMaterialFunctionCompileState(NULL));
@@ -1302,12 +1302,12 @@ protected:
 
 		CurrentScopeChunks = &PropertyCodeChunks[MaterialProperty][ShaderFrequency];
 	}
-	virtual EShaderFrequency GetCurrentShaderFrequency() const
+	virtual EShaderFrequency GetCurrentShaderFrequency() const override
 	{
 		return ShaderFrequency;
 	}
 
-	virtual int32 Error(const TCHAR* Text)
+	virtual int32 Error(const TCHAR* Text) override
 	{
 		FString ErrorString;
 

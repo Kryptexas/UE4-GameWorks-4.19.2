@@ -240,7 +240,7 @@ private:
 
 public:
 	// Begin interface IBlendableInterface
-	virtual ENGINE_API void OverrideBlendableSettings(class FSceneView& View, float Weight) const;
+	virtual ENGINE_API void OverrideBlendableSettings(class FSceneView& View, float Weight) const override;
 	// End interface IBlendableInterface
 
 	// Begin UMaterialInterface interface.
@@ -277,11 +277,11 @@ public:
 	virtual ENGINE_API bool GetRefractionSettings(float& OutBiasValue) const override;
 	ENGINE_API virtual void ForceRecompileForRendering() override;
 	
-	ENGINE_API virtual float GetOpacityMaskClipValue(bool bIsGameThread=IsInGameThread()) const;
-	ENGINE_API virtual EBlendMode GetBlendMode(bool bIsGameThread = IsInGameThread()) const;
-	ENGINE_API virtual EMaterialShadingModel GetShadingModel(bool bIsGameThread = IsInGameThread()) const;
-	ENGINE_API virtual bool IsTwoSided(bool bIsGameThread = IsInGameThread()) const;
-	ENGINE_API virtual bool IsMasked(bool bIsGameThread = IsInGameThread()) const;
+	ENGINE_API virtual float GetOpacityMaskClipValue(bool bIsGameThread=IsInGameThread()) const override;
+	ENGINE_API virtual EBlendMode GetBlendMode(bool bIsGameThread = IsInGameThread()) const override;
+	ENGINE_API virtual EMaterialShadingModel GetShadingModel(bool bIsGameThread = IsInGameThread()) const override;
+	ENGINE_API virtual bool IsTwoSided(bool bIsGameThread = IsInGameThread()) const override;
+	ENGINE_API virtual bool IsMasked(bool bIsGameThread = IsInGameThread()) const override;
 
 	ENGINE_API float RenderThread_GetOpacityMaskClipValue() const;
 	ENGINE_API EBlendMode RenderThread_GetBlendMode() const;
@@ -289,12 +289,12 @@ public:
 	ENGINE_API bool RenderThread_IsTwoSided() const;
 	ENGINE_API bool RenderThread_IsMasked() const;
 	
-	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const;
+	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const override;
 
 	/** Checks to see if an input property should be active, based on the state of the material */
-	ENGINE_API virtual bool IsPropertyActive(EMaterialProperty InProperty) const;
+	ENGINE_API virtual bool IsPropertyActive(EMaterialProperty InProperty) const override;
 	/** Allows material properties to be compiled with the option of being overridden by the material attributes input. */
-	ENGINE_API virtual int32 CompilePropertyEx(class FMaterialCompiler* Compiler, EMaterialProperty Property);
+	ENGINE_API virtual int32 CompilePropertyEx(class FMaterialCompiler* Compiler, EMaterialProperty Property) override;
 	// End UMaterialInterface interface.
 
 	// Begin UObject interface.

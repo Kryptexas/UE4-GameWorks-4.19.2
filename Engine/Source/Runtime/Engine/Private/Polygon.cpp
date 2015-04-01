@@ -213,7 +213,7 @@ int32 FPoly::SplitWithPlane
 		for( i=0; i<Vertices.Num(); i++ )
 		{
 			PrevDist	= Dist;
-      		Dist		= FVector::PointPlaneDist( Vertices[i], PlaneBase, PlaneNormal );
+	  		Dist		= FVector::PointPlaneDist( Vertices[i], PlaneBase, PlaneNormal );
 
 			if      (Dist > +Thresh)  	Status = V_FRONT;
 			else if (Dist < -Thresh)  	Status = V_BACK;
@@ -272,8 +272,8 @@ int32 FPoly::SplitWithPlane
 			}
 			else
 			{
-        		if (Status==V_FRONT) new(FrontPoly->Vertices)FVector(Vertices[i]);
-        		else                 new(BackPoly->Vertices)FVector(Vertices[i]);
+	    		if (Status==V_FRONT) new(FrontPoly->Vertices)FVector(Vertices[i]);
+	    		else                 new(BackPoly->Vertices)FVector(Vertices[i]);
 			}
 			j          = i;
 			PrevStatus = Status;

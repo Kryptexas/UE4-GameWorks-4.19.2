@@ -605,7 +605,7 @@ public:
 		this->AssetColumnItem->Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 	}
 
-	virtual bool OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent)
+	virtual bool OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent) override
 	{
 		// We take the content from the asset column item during construction,
 		// so let the item handle the tooltip callback

@@ -782,7 +782,7 @@ protected:
 
 	virtual void OnEditTabClosed(TSharedRef<SDockTab> Tab);
 
-	virtual bool GetBoundsForSelectedNodes(class FSlateRect& Rect, float Padding);
+	virtual bool GetBoundsForSelectedNodes(class FSlateRect& Rect, float Padding) override;
 
 	/**
 	 * Pulls out the pins to use as a template when collapsing a selection to a function with a custom event involved.

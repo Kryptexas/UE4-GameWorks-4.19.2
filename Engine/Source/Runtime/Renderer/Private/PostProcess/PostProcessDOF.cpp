@@ -48,7 +48,7 @@ public:
 	}
 
 	// FShader interface.
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << PostprocessParameter << DeferredParameters << DepthOfFieldParams;
@@ -232,7 +232,7 @@ public:
 	}
 
 	// FShader interface.
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << PostprocessParameter << DeferredParameters << DepthOfFieldUVLimit;
@@ -357,7 +357,7 @@ FPooledRenderTargetDesc FRCPassPostProcessDOFRecombine::ComputeOutputDesc(EPassO
 // Setup depth based blur.
 static FVector CircleDofCoc(const FRenderingCompositePassContext& Context)
 {
-    // Convert FOV to focal length,
+	// Convert FOV to focal length,
 	// 
 	// fov = 2 * atan(d/(2*f))
 	// where,
@@ -375,12 +375,12 @@ static FVector CircleDofCoc(const FRenderingCompositePassContext& Context)
 
 	// Convert f-stop, focal length, and focal distance to
 	// projected circle of confusion size at infinity in mm.
-    //
+	//
 	// coc = f*f / (n * (d - f))
 	// where,
 	//   f = focal length
 	//   d = focal distance
-    //   n = fstop (where n is the "n" in "f/n")
+	//   n = fstop (where n is the "n" in "f/n")
 	float Radius = FocalLength * FocalLength / (Context.View.FinalPostProcessSettings.DepthOfFieldFstop * (Distance - FocalLength));
 
 	// Scale so that APS-C 24.576 mm = full frame.
@@ -445,7 +445,7 @@ public:
 	}
 
 	// FShader interface.
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << PostprocessParameter << DeferredParameters << DepthOfFieldParams << CircleDofParams;
@@ -633,7 +633,7 @@ public:
 	}
 
 	// FShader interface.
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << PostprocessParameter << DeferredParameters << DepthOfFieldParams << CircleDofParams;
@@ -849,7 +849,7 @@ public:
 	}
 
 	// FShader interface.
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << PostprocessParameter << DeferredParameters << DepthOfFieldParams << RandomOffset << CircleDofParams;
@@ -1039,7 +1039,7 @@ public:
 	}
 
 	// FShader interface.
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << PostprocessParameter << DeferredParameters << DepthOfFieldUVLimit << RandomOffset << CircleDofParams;

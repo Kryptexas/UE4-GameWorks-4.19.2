@@ -128,7 +128,7 @@ public:
 		DeferredParameters.Set(RHICmdList, ShaderRHI, *View);
 	}
 
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FMaterialShader::Serialize(Ar);
 		Ar << ScreenToLight;

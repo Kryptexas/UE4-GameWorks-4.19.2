@@ -100,12 +100,12 @@ public:
 		}
 	}
 
-	bool CanCompile(const UBlueprint* Blueprint)
+	bool CanCompile(const UBlueprint* Blueprint) override
 	{
 		return Cast<UWidgetBlueprint>(Blueprint) != nullptr;
 	}
 
-	void PreCompile(UBlueprint* Blueprint)
+	void PreCompile(UBlueprint* Blueprint) override
 	{
 		if (!CanCompile(Blueprint))
 		{
@@ -120,7 +120,7 @@ public:
 		CompileCount++;
 	}
 
-	void Compile(UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded)
+	void Compile(UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded) override
 	{
 		if ( UWidgetBlueprint* WidgetBlueprint = CastChecked<UWidgetBlueprint>(Blueprint) )
 		{
@@ -130,7 +130,7 @@ public:
 		}
 	}
 
-	void PostCompile(UBlueprint* Blueprint)
+	void PostCompile(UBlueprint* Blueprint) override
 	{
 		CompileCount--;
 
@@ -147,8 +147,8 @@ public:
 	}
 
 	/** Gets the extensibility managers for outside entities to extend gui page editor's menus and toolbars */
-	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() { return MenuExtensibilityManager; }
-	virtual TSharedPtr<FExtensibilityManager> GetToolBarExtensibilityManager() { return ToolBarExtensibilityManager; }
+	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() override { return MenuExtensibilityManager; }
+	virtual TSharedPtr<FExtensibilityManager> GetToolBarExtensibilityManager() override { return ToolBarExtensibilityManager; }
 
 private:
 	void RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action)

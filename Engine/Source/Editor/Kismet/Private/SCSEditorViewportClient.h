@@ -36,9 +36,9 @@ public:
 	virtual FWidget::EWidgetMode GetWidgetMode() const override;
 	virtual void SetWidgetMode( FWidget::EWidgetMode NewMode ) override;
 	virtual void SetWidgetCoordSystemSpace( ECoordSystem NewCoordSystem ) override;
-	virtual FVector GetWidgetLocation() const;
-	virtual FMatrix GetWidgetCoordSystem() const;
-	virtual ECoordSystem GetWidgetCoordSystemSpace() const { return WidgetCoordSystem; }
+	virtual FVector GetWidgetLocation() const override;
+	virtual FMatrix GetWidgetCoordSystem() const override;
+	virtual ECoordSystem GetWidgetCoordSystemSpace() const override { return WidgetCoordSystem; }
 
 
 	/** 

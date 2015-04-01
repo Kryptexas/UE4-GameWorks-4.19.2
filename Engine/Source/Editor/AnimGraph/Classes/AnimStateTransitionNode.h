@@ -95,7 +95,7 @@ class UAnimStateTransitionNode : public UAnimStateNodeBase
 	virtual FText GetTooltipText() const override;
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual void PinConnectionListChanged(UEdGraphPin* Pin) override;
-	virtual bool CanDuplicateNode() const { return true; }
+	virtual bool CanDuplicateNode() const override { return true; }
 	virtual void PrepareForCopying() override;
 	virtual void PostPasteNode() override;
 	virtual void PostPlacedNewNode() override;
@@ -110,7 +110,7 @@ class UAnimStateTransitionNode : public UAnimStateNodeBase
 	// End UAnimStateNodeBase interface
 
 	// @return the name of this state
-	ANIMGRAPH_API FString GetStateName() const;
+	ANIMGRAPH_API FString GetStateName() const override;
 
 	ANIMGRAPH_API UAnimStateNodeBase* GetPreviousState() const;
 	ANIMGRAPH_API UAnimStateNodeBase* GetNextState() const;

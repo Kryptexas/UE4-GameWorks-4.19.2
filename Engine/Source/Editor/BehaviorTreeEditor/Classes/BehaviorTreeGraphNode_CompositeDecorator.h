@@ -29,7 +29,7 @@ class UBehaviorTreeGraphNode_CompositeDecorator : public UBehaviorTreeGraphNode
 	virtual FText GetDescription() const override;
 	virtual void PostPlacedNewNode() override;
 	virtual void PostLoad() override;
-	virtual UEdGraph* GetBoundGraph() const { return BoundGraph; }
+	virtual UEdGraph* GetBoundGraph() const override { return BoundGraph; }
 	virtual bool IsSubNode() const override;
 	virtual bool HasErrors() const override;
 	virtual bool RefreshNodeClass() override;

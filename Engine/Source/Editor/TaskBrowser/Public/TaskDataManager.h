@@ -152,7 +152,7 @@ public:
 	 *
 	 * @return	true if class is ready to be ticked, false otherwise.
 	 */
-	virtual bool IsTickable() const
+	virtual bool IsTickable() const override
 	{
 		return true;
 	}
@@ -163,7 +163,7 @@ public:
 	 *
 	 * @param DeltaTime	Game time passed since the last call.
 	 */
-	virtual void Tick( float DeltaTime );
+	virtual void Tick( float DeltaTime ) override;
 
 	virtual TStatId GetStatId() const override;
 
@@ -345,7 +345,7 @@ public:
 	 * @param	InGenericResponse	Response data for the completed request.  This is a polymorphic object
 	 *								that should be casted to the appropriate response type for the request.
 	 */
-	virtual void OnTaskDatabaseRequestCompleted( const FTaskDatabaseResponse* InGenericResponse );
+	virtual void OnTaskDatabaseRequestCompleted( const FTaskDatabaseResponse* InGenericResponse ) override;
 
 private:
 

@@ -103,7 +103,7 @@ public:
 		}
 	}
 
-	virtual HHitProxy* CreateHitProxies(UPrimitiveComponent* Component, TArray<TRefCountPtr<HHitProxy> >& OutHitProxies)
+	virtual HHitProxy* CreateHitProxies(UPrimitiveComponent* Component, TArray<TRefCountPtr<HHitProxy> >& OutHitProxies) override
 	{
 		OutHitProxies.Reserve(OutHitProxies.Num() + Segments.Num() + ControlPoints.Num());
 		for (FSegmentProxy& Segment : Segments)
@@ -282,7 +282,7 @@ public:
 		}
 	}
 
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
 	{
 		FPrimitiveViewRelevance Result;
 		Result.bDrawRelevance = IsShown(View) && View->Family->EngineShowFlags.Splines;
@@ -290,7 +290,7 @@ public:
 		return Result;
 	}
 
-	virtual uint32 GetMemoryFootprint() const
+	virtual uint32 GetMemoryFootprint() const override
 	{
 		return sizeof(*this) + GetAllocatedSize();
 	}

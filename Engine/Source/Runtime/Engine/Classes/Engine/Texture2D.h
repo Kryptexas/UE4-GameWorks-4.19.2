@@ -299,7 +299,7 @@ public:
 	/**
 	 * Waits until all streaming requests for this texture has been fully processed.
 	 */
-	virtual void WaitForStreaming();
+	virtual void WaitForStreaming() override;
 	
 	/**
 	 * Updates the streaming status of the texture and performs finalization when appropriate. The function returns
@@ -308,7 +308,7 @@ public:
 	 * @param bWaitForMipFading	Whether to wait for Mip Fading to complete before finalizing.
 	 * @return					true if there are requests in flight, false otherwise
 	 */
-	virtual bool UpdateStreamingStatus( bool bWaitForMipFading = false );
+	virtual bool UpdateStreamingStatus( bool bWaitForMipFading = false ) override;
 
 	/**
 	 * Tries to cancel a pending mip change request. Requests cannot be canceled if they are in the
@@ -391,7 +391,7 @@ public:
 
 	/** Called after an editor or undo operation is formed on texture
 	*/
-	virtual void PostEditUndo();
+	virtual void PostEditUndo() override;
 
 #endif // WITH_EDITOR
 

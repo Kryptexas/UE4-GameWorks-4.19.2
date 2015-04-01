@@ -110,7 +110,7 @@ public:
 	void DemoPlaybackEnded();
 
 	/** @return true if the net resource is valid or false if it should not be used */
-	virtual bool IsNetResourceValid(void) { return true; }
+	virtual bool IsNetResourceValid(void) override { return true; }
 
 	void TickDemoRecord( float DeltaSeconds );
 	void PauseChannels( const bool bPause );

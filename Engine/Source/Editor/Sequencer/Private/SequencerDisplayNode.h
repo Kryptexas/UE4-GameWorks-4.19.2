@@ -384,7 +384,7 @@ public:
 	const FGuid& GetObjectBinding() const { return ObjectBinding; }
 	
 	/** What sort of context menu this node summons */
-	virtual TSharedPtr<SWidget> OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+	virtual TSharedPtr<SWidget> OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 
 private:
 	/** The binding to live objects */

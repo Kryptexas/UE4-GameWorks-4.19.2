@@ -525,10 +525,10 @@ public:
 	}
 
 	// Always called immediately before properties are received from the remote.
-	virtual void PreNetReceive() { }
+	virtual void PreNetReceive() override { }
 	
 	// Always called immediately after properties are received from the remote.
-	virtual void PostNetReceive() { }
+	virtual void PostNetReceive() override { }
 
 	/** Called before we throw away components during RerunConstructionScripts, to cache any data we wish to persist across that operation */
 	virtual class FActorComponentInstanceData* GetComponentInstanceData() const;

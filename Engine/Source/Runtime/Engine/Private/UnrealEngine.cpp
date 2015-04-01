@@ -1773,7 +1773,7 @@ public:
 
 	}
 
-	virtual void InitCanvasFromView(FSceneView* InView, UCanvas* Canvas) {}
+	virtual void InitCanvasFromView(FSceneView* InView, UCanvas* Canvas) override {}
 
 	virtual void PushViewportCanvas(EStereoscopicPass StereoPass, FCanvas *InCanvas, UCanvas *InCanvasObject, FViewport *InViewport) const override 
 	{

@@ -329,7 +329,7 @@ public:
 		}
 	}
 
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
 	{
 		bool bVisible = false;
 
@@ -417,7 +417,7 @@ public:
 		return Result;
 	}
 
-	virtual void CreateRenderThreadResources()
+	virtual void CreateRenderThreadResources() override
 	{
 #if WITH_EDITORONLY_DATA
 		VertexFactory.InitResource();
@@ -427,7 +427,7 @@ public:
 
 	}
 
-	virtual uint32 GetMemoryFootprint( void ) const { return( sizeof( *this ) + GetAllocatedSize() ); }
+	virtual uint32 GetMemoryFootprint( void ) const override { return( sizeof( *this ) + GetAllocatedSize() ); }
 	uint32 GetAllocatedSize( void ) const { return( FPrimitiveSceneProxy::GetAllocatedSize() ); }
 
 private:

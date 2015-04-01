@@ -48,7 +48,7 @@ class SWidgetStack : public SVerticalBox
 		return DesiredSize;
 	}
 
-	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override
 	{
 		if (Children.Num() == 0)
 		{
@@ -124,7 +124,7 @@ class SWidgetStack : public SVerticalBox
 		}
 	}
 	
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override
 	{
 		if (!SlideCurve.IsPlaying())
 		{

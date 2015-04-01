@@ -554,7 +554,7 @@ private:
 	 *
 	 * @param	Obj		a pointer to the object that was encountered
 	 */
-	FArchive& operator<<( UObject*& Obj )
+	FArchive& operator<<( UObject*& Obj ) override
 	{
 		if( Obj )
 		{
@@ -654,7 +654,7 @@ public:
 	 *
 	 * This is overridden for the specific Archive Types
 	 **/
-	virtual FString GetArchiveName() const { return TEXT("FArchiveFindReferences"); }
+	virtual FString GetArchiveName() const override { return TEXT("FArchiveFindReferences"); }
 };
 
 void UCookOnTheFlyServer::GetDependencies( const TSet<UPackage*>& Packages, TSet<UObject*>& Found)

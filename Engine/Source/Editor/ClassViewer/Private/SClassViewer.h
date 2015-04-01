@@ -59,7 +59,7 @@ private:
 	TSharedRef< ITableRow > OnGenerateRowForClassViewer( TSharedPtr<FClassViewerNode> Item, const TSharedRef< STableViewBase >& OwnerTable );
 
 	/** Invoked when the user attempts to drag an item out of the class browser */
-	FReply OnDragDetected( const FGeometry& Geometry, const FPointerEvent& PointerEvent );
+	FReply OnDragDetected( const FGeometry& Geometry, const FPointerEvent& PointerEvent ) override;
 
 	/** Called by Slate when the filter box changes text. */
 	void OnFilterTextChanged( const FText& InFilterText );

@@ -64,7 +64,7 @@ public:
 		: PhysXCooking( InCooking )
 	{}
 
-	virtual bool AllowParallelBuild() const
+	virtual bool AllowParallelBuild() const override
 	{
 		return false;
 	}
@@ -76,7 +76,7 @@ public:
 	}
 
 
-	virtual void GetSupportedFormats(TArray<FName>& OutFormats) const
+	virtual void GetSupportedFormats(TArray<FName>& OutFormats) const override
 	{
 		OutFormats.Add(NAME_PhysXPC);
 		OutFormats.Add(NAME_PhysXXboxOne);

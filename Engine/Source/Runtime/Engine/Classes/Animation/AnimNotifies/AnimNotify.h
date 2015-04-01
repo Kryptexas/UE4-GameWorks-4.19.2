@@ -61,7 +61,7 @@ class ENGINE_API UAnimNotify : public UObject
 	virtual class UWorld* GetWorld() const override;
 
 	/** UObject Interface */
-	virtual void PostLoad();
+	virtual void PostLoad() override;
 	/** End UObject Interface */
 
 private:

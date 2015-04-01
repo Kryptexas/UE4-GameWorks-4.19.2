@@ -94,7 +94,7 @@ public:
 		SetSRVParameter(RHICmdList, ShaderRHI, TriangleVertexData, NULL);
 	}
 
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{		
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << NumTriangles;
@@ -164,7 +164,7 @@ public:
 		TriangleCDFs.UnsetUAV(RHICmdList, ShaderRHI);
 	}
 
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{		
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << NumTriangles;
@@ -246,7 +246,7 @@ public:
 		SetSRVParameter(RHICmdList, ShaderRHI, TriangleVertexData, NULL);
 	}
 
-	virtual bool Serialize(FArchive& Ar)
+	virtual bool Serialize(FArchive& Ar) override
 	{		
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << SurfelBufferParameters;

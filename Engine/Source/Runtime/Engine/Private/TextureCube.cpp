@@ -250,13 +250,13 @@ public:
 	}
 
 	/** Returns the width of the texture in pixels. */
-	virtual uint32 GetSizeX() const
+	virtual uint32 GetSizeX() const override
 	{
 		return Owner->GetSizeX();
 	}
 
 	/** Returns the height of the texture in pixels. */
-	virtual uint32 GetSizeY() const
+	virtual uint32 GetSizeY() const override
 	{
 		return Owner->GetSizeY();
 	}

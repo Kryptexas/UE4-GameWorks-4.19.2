@@ -757,7 +757,7 @@ public:
 
 	virtual const TArray<FBoxSphereBounds>* GetOcclusionQueries(const FSceneView* View) const override;
 	virtual void AcceptOcclusionResults(const FSceneView* View, const bool* Results, int32 NumResults) override;
-	virtual bool HasSubprimitiveOcclusionQueries() const
+	virtual bool HasSubprimitiveOcclusionQueries() const override
 	{
 		return FirstOcclusionNode > 0;
 	}
@@ -2012,7 +2012,7 @@ void UHierarchicalInstancedStaticMeshComponent::ApplyBuildTreeAsync(ENamedThread
 				Builder->Result->InstanceReorderTable[Index] = Index;
 		    }
 	    }
-    
+	
 		ClusterTreePtr = MakeShareable(new TArray<FClusterNode>);
 		TArray<FClusterNode>& ClusterTree = *ClusterTreePtr;
 	    Exchange(ClusterTree, Builder->Result->Nodes);
@@ -2023,7 +2023,7 @@ void UHierarchicalInstancedStaticMeshComponent::ApplyBuildTreeAsync(ENamedThread
 
 
 	    //UE_LOG(LogStaticMesh, Display, TEXT("Built a foliage hierarchy with %d of %d elements in %.1fs."), NumBuiltInstances, PerInstanceSMData.Num(), float(FPlatformTime::Seconds() - StartTime));
-    
+	
 	    if (NumBuiltInstances < PerInstanceSMData.Num())
 	    {
 		    // There are new outstanding instances, build again!

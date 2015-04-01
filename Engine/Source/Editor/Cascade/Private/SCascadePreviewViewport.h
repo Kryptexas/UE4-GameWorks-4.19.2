@@ -31,7 +31,7 @@ public:
 	void RefreshViewport();
 
 	/** Returns true if the viewport is visible */
-	bool IsVisible() const;
+	bool IsVisible() const override;
 
 	/** Accessors */
 	TSharedPtr<FSceneViewport> GetViewport() const;

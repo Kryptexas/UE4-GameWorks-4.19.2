@@ -107,7 +107,7 @@ public:
 	 * @param ViewLocation the view point to hide/unhide from
 	 * @param HiddenComponents the list to add to/remove from
 	 */
-	virtual void UpdateHiddenComponents(const FVector& ViewLocation,TSet<FPrimitiveComponentId>& HiddenComponents);
+	virtual void UpdateHiddenComponents(const FVector& ViewLocation,TSet<FPrimitiveComponentId>& HiddenComponents) override;
 
 public:
 

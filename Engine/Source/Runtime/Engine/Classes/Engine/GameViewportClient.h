@@ -248,7 +248,7 @@ public:
 	 * Determines whether this viewport client should receive calls to InputAxis() if the game's window is not currently capturing the mouse.
 	 * Used by the UI system to easily receive calls to InputAxis while the viewport's mouse capture is disabled.
 	 */
-	virtual bool RequiresUncapturedAxisInput() const;
+	virtual bool RequiresUncapturedAxisInput() const override;
 
 	/**
 	 * Set this GameViewportClient's viewport and viewport frame to the viewport specified
@@ -520,7 +520,7 @@ public:
 	}
 
 	/** Return the engine show flags for this viewport */
-	virtual FEngineShowFlags* GetEngineShowFlags() 
+	virtual FEngineShowFlags* GetEngineShowFlags() override
 	{ 
 		return &EngineShowFlags; 
 	}

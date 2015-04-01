@@ -195,7 +195,7 @@ public:
 		}              
 	}
 
-	virtual bool IsTickable() const
+	virtual bool IsTickable() const override
 	{
 		return true;
 	}

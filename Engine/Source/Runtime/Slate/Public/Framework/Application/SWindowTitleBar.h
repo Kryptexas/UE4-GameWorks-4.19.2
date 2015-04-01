@@ -124,7 +124,7 @@ public:
 
 	// Begin IWindowTitleBar interface
 
-	void Flash( )
+	void Flash( ) override
 	{
 		TitleFlashSequence = FCurveSequence(0, SWindowTitleBarDefs::WindowFlashDuration, ECurveEaseFunction::Linear);
 		TitleFlashSequence.Play(this->AsShared());

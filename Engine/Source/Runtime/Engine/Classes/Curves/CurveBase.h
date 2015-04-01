@@ -494,7 +494,7 @@ public:
 	virtual void MakeTransactional() override;
 	virtual void OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos) override;
 
-	virtual bool IsValidCurve( FRichCurveEditInfo CurveInfo ) { return false; };
+	virtual bool IsValidCurve( FRichCurveEditInfo CurveInfo ) override { return false; };
 	// End FCurveOwnerInterface
 
 	// Begin UCurveBase interface
@@ -513,7 +513,7 @@ public:
 	// Begin UObject interface
 #if WITH_EDITORONLY_DATA
 	/** Override to ensure we write out the asset import data */
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 #endif
 	// End UObject interface
 };
