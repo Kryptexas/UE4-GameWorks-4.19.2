@@ -257,8 +257,8 @@ void UK2Node_Event::ValidateNodeDuringCompilation(class FCompilerResultsLog& Mes
 
 bool UK2Node_Event::NodeCausesStructuralBlueprintChange() const
 {
-	// will only change class structure when UGPF is disabled
-	return !UBlueprintGeneratedClass::UsePersistentUberGraphFrame();
+	// FBlueprintEditor::CanAddParentNode requires actual data in skel class
+	return true;
 }
 
 void UK2Node_Event::GetRedirectPinNames(const UEdGraphPin& Pin, TArray<FString>& RedirectPinNames) const
