@@ -3,6 +3,159 @@
 #include "AIModulePrivate.h"
 #include "EnvQueryTraceHelpers.h"
 
+
+template<>
+void FEQSHelpers::FBatchTrace::DoSingleSourceMultiDestinations<EEnvTraceShape::Line>(const FVector& Source, TArray<FNavLocation>& Points)
+{
+	FVector HitPos(FVector::ZeroVector);
+	for (int32 Idx = Points.Num() - 1; Idx >= 0; Idx--)
+	{
+		const bool bHit = RunLineTrace(Source, Points[Idx].Location, HitPos);
+		if (bHit)
+		{
+			Points[Idx] = HitPos;
+		}
+		else if (TraceMode == ETraceMode::Discard)
+		{
+			Points.RemoveAt(Idx, 1, false);
+		}
+	}
+}
+
+
+template<>
+void FEQSHelpers::FBatchTrace::DoSingleSourceMultiDestinations<EEnvTraceShape::Box>(const FVector& Source, TArray<FNavLocation>& Points)
+{
+	FVector HitPos(FVector::ZeroVector);
+	for (int32 Idx = Points.Num() - 1; Idx >= 0; Idx--)
+	{
+		const bool bHit = RunBoxTrace(Source, Points[Idx].Location, HitPos);
+		if (bHit)
+		{
+			Points[Idx] = HitPos;
+		}
+		else if (TraceMode == ETraceMode::Discard)
+		{
+			Points.RemoveAt(Idx, 1, false);
+		}
+	}
+}
+
+
+template<>
+void FEQSHelpers::FBatchTrace::DoSingleSourceMultiDestinations<EEnvTraceShape::Sphere>(const FVector& Source, TArray<FNavLocation>& Points)
+{
+	FVector HitPos(FVector::ZeroVector);
+	for (int32 Idx = Points.Num() - 1; Idx >= 0; Idx--)
+	{
+		const bool bHit = RunSphereTrace(Source, Points[Idx].Location, HitPos);
+		if (bHit)
+		{
+			Points[Idx] = HitPos;
+		}
+		else if (TraceMode == ETraceMode::Discard)
+		{
+			Points.RemoveAt(Idx, 1, false);
+		}
+	}
+}
+
+
+template<>
+void FEQSHelpers::FBatchTrace::DoSingleSourceMultiDestinations<EEnvTraceShape::Capsule>(const FVector& Source, TArray<FNavLocation>& Points)
+{
+	FVector HitPos(FVector::ZeroVector);
+	for (int32 Idx = Points.Num() - 1; Idx >= 0; Idx--)
+	{
+		const bool bHit = RunCapsuleTrace(Source, Points[Idx].Location, HitPos);
+		if (bHit)
+		{
+			Points[Idx] = HitPos;
+		}
+		else if (TraceMode == ETraceMode::Discard)
+		{
+			Points.RemoveAt(Idx, 1, false);
+		}
+	}
+}
+
+
+template<>
+void FEQSHelpers::FBatchTrace::DoProject<EEnvTraceShape::Line>(TArray<FNavLocation>& Points, float StartOffsetZ, float EndOffsetZ, float HitOffsetZ)
+{
+	FVector HitPos(FVector::ZeroVector);
+	for (int32 Idx = Points.Num() - 1; Idx >= 0; Idx--)
+	{
+		const bool bHit = RunLineTrace(Points[Idx].Location + FVector(0, 0, StartOffsetZ), Points[Idx].Location + FVector(0, 0, EndOffsetZ), HitPos);
+		if (bHit)
+		{
+			Points[Idx] = HitPos + FVector(0, 0, HitOffsetZ);
+		}
+		else if (TraceMode == ETraceMode::Discard)
+		{
+			Points.RemoveAt(Idx, 1, false);
+		}
+	}
+}
+
+
+template<>
+void FEQSHelpers::FBatchTrace::DoProject<EEnvTraceShape::Box>(TArray<FNavLocation>& Points, float StartOffsetZ, float EndOffsetZ, float HitOffsetZ)
+{
+	FVector HitPos(FVector::ZeroVector);
+	for (int32 Idx = Points.Num() - 1; Idx >= 0; Idx--)
+	{
+		const bool bHit = RunBoxTrace(Points[Idx].Location + FVector(0, 0, StartOffsetZ), Points[Idx].Location + FVector(0, 0, EndOffsetZ), HitPos);
+		if (bHit)
+		{
+			Points[Idx] = HitPos + FVector(0, 0, HitOffsetZ);
+		}
+		else if (TraceMode == ETraceMode::Discard)
+		{
+			Points.RemoveAt(Idx, 1, false);
+		}
+	}
+}
+
+
+template<>
+void FEQSHelpers::FBatchTrace::DoProject<EEnvTraceShape::Sphere>(TArray<FNavLocation>& Points, float StartOffsetZ, float EndOffsetZ, float HitOffsetZ)
+{
+	FVector HitPos(FVector::ZeroVector);
+	for (int32 Idx = Points.Num() - 1; Idx >= 0; Idx--)
+	{
+		const bool bHit = RunSphereTrace(Points[Idx].Location + FVector(0, 0, StartOffsetZ), Points[Idx].Location + FVector(0, 0, EndOffsetZ), HitPos);
+		if (bHit)
+		{
+			Points[Idx] = HitPos + FVector(0, 0, HitOffsetZ);
+		}
+		else if (TraceMode == ETraceMode::Discard)
+		{
+			Points.RemoveAt(Idx, 1, false);
+		}
+	}
+}
+
+
+template<>
+void FEQSHelpers::FBatchTrace::DoProject<EEnvTraceShape::Capsule>(TArray<FNavLocation>& Points, float StartOffsetZ, float EndOffsetZ, float HitOffsetZ)
+{
+	FVector HitPos(FVector::ZeroVector);
+	for (int32 Idx = Points.Num() - 1; Idx >= 0; Idx--)
+	{
+		const bool bHit = RunCapsuleTrace(Points[Idx].Location + FVector(0, 0, StartOffsetZ), Points[Idx].Location + FVector(0, 0, EndOffsetZ), HitPos);
+		if (bHit)
+		{
+			Points[Idx] = HitPos + FVector(0, 0, HitOffsetZ);
+		}
+		else if (TraceMode == ETraceMode::Discard)
+		{
+			Points.RemoveAt(Idx, 1, false);
+		}
+	}
+}
+
+
 void FEQSHelpers::RunNavRaycasts(ANavigationData* NavData, const FEnvTraceData& TraceData, const FVector& SourcePt, TArray<FNavLocation>& Points, ETraceMode TraceMode)
 {
 	TSharedPtr<const FNavigationQueryFilter> NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavData, TraceData.NavigationFilter);
@@ -33,6 +186,7 @@ void FEQSHelpers::RunNavRaycasts(ANavigationData* NavData, const FEnvTraceData& 
 		}
 	}
 }
+
 
 void FEQSHelpers::RunNavProjection(ANavigationData* NavData, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, ETraceMode TraceMode)
 {
@@ -73,6 +227,7 @@ void FEQSHelpers::RunNavProjection(ANavigationData* NavData, const FEnvTraceData
 	}
 }
 
+
 void FEQSHelpers::RunPhysRaycasts(UWorld* World, const FEnvTraceData& TraceData, const FVector& SourcePt, TArray<FNavLocation>& Points, ETraceMode TraceMode)
 {
 	ECollisionChannel TraceCollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceData.TraceChannel);
@@ -105,6 +260,7 @@ void FEQSHelpers::RunPhysRaycasts(UWorld* World, const FEnvTraceData& TraceData,
 		break;
 	}
 }
+
 
 void FEQSHelpers::RunPhysProjection(UWorld* World, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, ETraceMode TraceMode)
 {
