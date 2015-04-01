@@ -4,7 +4,7 @@
 
 #include "Function.h"
 
-class ITlsAutoCleanup;
+class FTlsAutoCleanup;
 class FRunnableThread;
 
 /**
@@ -231,7 +231,7 @@ public:
 class CORE_API FRunnableThread
 {
 	friend class FThreadSingletonInitializer;
-	friend class ITlsAutoCleanup;
+	friend class FTlsAutoCleanup;
 
 	/** Index of TLS slot for FRunnableThread pointer. */
 	static uint32 RunnableTlsSlot;
@@ -354,7 +354,7 @@ protected:
 	/** Stores this instance in the runnable thread TLS slot. */
 	void SetTls();
 
-	/** Deletes all ITlsAutoCleanup objects created for this thread. */
+	/** Deletes all FTlsAutoCleanup objects created for this thread. */
 	void FreeTls();
 
 	/**
@@ -378,8 +378,8 @@ protected:
 	/** The Affinity to run the thread with. */
 	uint64 ThreadAffinityMask;
 
-	/** An array of ITlsAutoCleanup based instances that needs to be deleted before the thread will die. */
-	TArray<ITlsAutoCleanup*> TlsInstances;
+	/** An array of FTlsAutoCleanup based instances that needs to be deleted before the thread will die. */
+	TArray<FTlsAutoCleanup*> TlsInstances;
 
 	/** The priority to run the thread at. */
 	EThreadPriority ThreadPriority;
@@ -924,12 +924,12 @@ extern CORE_API bool IsInRHIThread();
 /** Thread used for RHI */
 extern CORE_API FRunnableThread* GRHIThread;
 
-/** Interface required for auto-cleanup of instances of classes stored in the TLS. */
-class CORE_API ITlsAutoCleanup
+/** Base class for objects in TLS that support auto-cleanup. */
+class CORE_API FTlsAutoCleanup
 {
 public:
 	/** Virtual destructor. */
-	virtual ~ITlsAutoCleanup()
+	virtual ~FTlsAutoCleanup()
 	{}
 
 	/** Register this instance to be auto-cleanup. */
@@ -946,7 +946,7 @@ public:
 	/**
 	* @return an instance of a singleton for the current thread.
 	*/
-	static CORE_API ITlsAutoCleanup* Get( const TFunctionRef<ITlsAutoCleanup*()>& CreateInstance, uint32& TlsSlot );
+	static CORE_API FTlsAutoCleanup* Get( const TFunctionRef<FTlsAutoCleanup*()>& CreateInstance, uint32& TlsSlot );
 };
 
 
@@ -955,7 +955,7 @@ public:
  * Calling Get() method is thread-safe.
  */
 template < class T >
-class TThreadSingleton : public ITlsAutoCleanup
+class TThreadSingleton : public FTlsAutoCleanup
 {
 	/**
 	 * @return TLS slot that holds a TThreadSingleton.
@@ -976,7 +976,7 @@ protected:
 	/**
 	 * @return a new instance of the thread singleton.
 	 */
-	static ITlsAutoCleanup* CreateInstance()
+	static FTlsAutoCleanup* CreateInstance()
 	{
 		return new T();
 	}
@@ -991,7 +991,7 @@ public:
 	 */
 	FORCEINLINE static T& Get()
 	{
-		return *(T*)FThreadSingletonInitializer::Get( [](){ return (ITlsAutoCleanup*)new T(); }, T::GetTlsSlot() );
+		return *(T*)FThreadSingletonInitializer::Get( [](){ return (FTlsAutoCleanup*)new T(); }, T::GetTlsSlot() );
 	}
 };
 

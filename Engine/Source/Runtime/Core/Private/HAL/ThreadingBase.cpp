@@ -268,7 +268,7 @@ void FRunnableThread::FreeTls()
 	check( RunnableTlsSlot );
 	FPlatformTLS::SetTlsValue( RunnableTlsSlot, nullptr );
 
-	// Delete all ITlsAutoCleanup objects created for this thread.
+	// Delete all FTlsAutoCleanup objects created for this thread.
 	for( auto& Instance : TlsInstances )
 	{
 		delete Instance;
@@ -621,7 +621,7 @@ FQueuedThreadPool* FQueuedThreadPool::Allocate()
 	FThreadSingletonInitializer
 -----------------------------------------------------------------------------*/
 
-ITlsAutoCleanup* FThreadSingletonInitializer::Get( const TFunctionRef<ITlsAutoCleanup*()>& CreateInstance, uint32& TlsSlot )
+FTlsAutoCleanup* FThreadSingletonInitializer::Get( const TFunctionRef<FTlsAutoCleanup*()>& CreateInstance, uint32& TlsSlot )
 {
 	if( TlsSlot == 0 )
 	{
@@ -633,7 +633,7 @@ ITlsAutoCleanup* FThreadSingletonInitializer::Get( const TFunctionRef<ITlsAutoCl
 			FPlatformTLS::FreeTlsSlot( ThisTlsSlot );
 		}
 	}
-	ITlsAutoCleanup* ThreadSingleton = (ITlsAutoCleanup*)FPlatformTLS::GetTlsValue( TlsSlot );
+	FTlsAutoCleanup* ThreadSingleton = (FTlsAutoCleanup*)FPlatformTLS::GetTlsValue( TlsSlot );
 	if( !ThreadSingleton )
 	{
 		ThreadSingleton = CreateInstance();
@@ -643,7 +643,7 @@ ITlsAutoCleanup* FThreadSingletonInitializer::Get( const TFunctionRef<ITlsAutoCl
 	return ThreadSingleton;
 }
 
-void ITlsAutoCleanup::Register()
+void FTlsAutoCleanup::Register()
 {
 	FRunnableThread* RunnableThread = FRunnableThread::GetRunnableThread();
 	if( RunnableThread )

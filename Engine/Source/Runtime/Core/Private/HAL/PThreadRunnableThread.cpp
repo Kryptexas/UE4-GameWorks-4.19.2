@@ -13,7 +13,7 @@ uint32 FRunnableThreadPThread::Run()
 	uint32 ExitCode = 1;
 	check(Runnable);
 	
-	// Setup TLS for this thread, used by ITlsAutoCleanup objects.
+	// Setup TLS for this thread, used by FTlsAutoCleanup objects.
 	SetTls();
 
 	// Initialize the runnable object
