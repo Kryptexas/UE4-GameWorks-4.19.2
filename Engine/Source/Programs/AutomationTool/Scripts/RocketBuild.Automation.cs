@@ -103,16 +103,6 @@ namespace Rocket
 				// Add a dependency on this platform finishing
 				RocketAggregateNode AggNode = (RocketAggregateNode)bp.FindNode(RocketAggregateNode.StaticGetFullName());
 
-				// Get file lists for each of the target platforms
-				foreach(UnrealTargetPlatform CodeTargetPlatform in CodeTargetPlatforms)
-				{
-					UnrealTargetPlatform SourceHostPlatform = GetSourceHostPlatform(bp, HostPlatform, CodeTargetPlatform);
-					if(!bp.HasNode(GetExternalFileListNode.StaticGetFullName(SourceHostPlatform, CodeTargetPlatform)))
-					{
-						bp.AddNode(new GetExternalFileListNode(SourceHostPlatform, CodeTargetPlatform));
-					}
-				}
-
 				// Copy to output folders
 				AggNode.AddDependency(bp.AddNode(new CopyInstalledEditorNode(bp, HostPlatform, InstallDir)));
 				AggNode.AddDependency(bp.AddNode(new CopyInstalledPlatformsNode(bp, HostPlatform, TargetPlatforms, CodeTargetPlatforms, InstallDir, CurrentFeaturePacks, CurrentTemplates)));
@@ -570,7 +560,6 @@ namespace Rocket
 			{
 				UnrealTargetPlatform SourceHostPlatform = GetSourceHostPlatform(bp, HostPlatform, CodeTargetPlatform);
 				AddDependency(GUBP.GamePlatformMonolithicsNode.StaticGetFullName(SourceHostPlatform, bp.Branch.BaseEngineProject, CodeTargetPlatform, Precompiled: true));
-				AddDependency(GetExternalFileListNode.StaticGetFullName(SourceHostPlatform, CodeTargetPlatform));
 			}
 
 			// Add win64 tools on Mac, to get the win64 build of IPP
@@ -613,7 +602,7 @@ namespace Rocket
 			foreach(UnrealTargetPlatform CodeTargetPlatform in CodeTargetPlatforms)
 			{
 				UnrealTargetPlatform SourceHostPlatform = GetSourceHostPlatform(bp, HostPlatform, CodeTargetPlatform);
-				string FileListPath = GetExternalFileListNode.StaticGetFileListPath(SourceHostPlatform, CodeTargetPlatform);
+				string FileListPath = GUBP.GamePlatformMonolithicsNode.StaticGetBuildDependenciesPath(SourceHostPlatform, CodeTargetPlatform);
 				AddFilesToFilter(Filter, UnrealBuildTool.Utils.ReadClass<UnrealBuildTool.ExternalFileList>(FileListPath).FileNames, FileFilterType.Include);
 			}
 
@@ -685,66 +674,6 @@ namespace Rocket
 		public override string GetFullName()
 		{
 			return StaticGetFullName(HostPlatform);
-		}
-	}
-
-	class GetExternalFileListNode : GUBP.HostPlatformNode
-	{
-		UnrealTargetPlatform TargetPlatform;
-
-		public GetExternalFileListNode(UnrealTargetPlatform InHostPlatform, UnrealTargetPlatform InTargetPlatform)
-			: base(InHostPlatform)
-		{
-			TargetPlatform = InTargetPlatform;
-			AgentSharingGroup = "UE4_" + TargetPlatform.ToString() + "_Mono" + StaticGetHostPlatformSuffix(HostPlatform);
-		}
-		public static string StaticGetFullName(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform TargetPlatform)
-		{
-            return "UE4_" + TargetPlatform.ToString() + "_GetExternalFiles" + StaticGetHostPlatformSuffix(HostPlatform);
-		}
-		public override string GetFullName()
-		{
-			return StaticGetFullName(HostPlatform, TargetPlatform);
-		}
-		public override void DoBuild(GUBP bp)
-		{
-			// Prepare an agenda of targets that need to be buildable under Rocket.
-			UE4Build.BuildAgenda Agenda = new UE4Build.BuildAgenda();
-
-			// Add the game dependencies for UE4Game on all the target platforms. We don't link libraries with their dependencies, so we can use UE4Game and -buildrocket 
-			// to pick up all the default plugins.
-			Agenda.AddTargets(new string[] { "UE4Game" }, TargetPlatform, UnrealTargetConfiguration.Development, null, false, false, false, "-precompile");
-			Agenda.AddTargets(new string[] { "UE4Game" }, TargetPlatform, UnrealTargetConfiguration.Shipping, null, false, false, false, "-precompile");
-
-			// Read the file list
-			string FileListPath = new UE4Build(bp).GenerateExternalFileList(Agenda);
-			UnrealBuildTool.ExternalFileList FileList = UnrealBuildTool.Utils.ReadClass<UnrealBuildTool.ExternalFileList>(FileListPath);
-
-			// Make all the paths relative to the root
-			string FilterPrefix = CommandUtils.CombinePaths(PathSeparator.Slash, CommandUtils.CmdEnv.LocalRoot).TrimEnd('/') + "/";
-			for(int Idx = 0; Idx < FileList.FileNames.Count; Idx++)
-			{
-				if(FileList.FileNames[Idx].StartsWith(FilterPrefix, StringComparison.InvariantCultureIgnoreCase))
-				{
-					FileList.FileNames[Idx] = FileList.FileNames[Idx].Substring(FilterPrefix.Length);
-				}
-				else
-				{
-					CommandUtils.LogError("Referenced external file is not under local root: {0}", FileList.FileNames[Idx]);
-				}
-			}
-
-			// Write the resulting file list out to disk
-			string OutputFileListPath = StaticGetFileListPath(HostPlatform, TargetPlatform);
-			UnrealBuildTool.Utils.WriteClass<UnrealBuildTool.ExternalFileList>(FileList, OutputFileListPath, "");
-
-			// Add it to the build products
-			BuildProducts = new List<string>();
-			AddBuildProduct(OutputFileListPath);
-		}
-		public static string StaticGetFileListPath(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform TargetPlatform)
-		{
-			return CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine/Saved/ExternalFileList/" + TargetPlatform.ToString() + StaticGetHostPlatformSuffix(HostPlatform) + ".xml");
 		}
 	}
 

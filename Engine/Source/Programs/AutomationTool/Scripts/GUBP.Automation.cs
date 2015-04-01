@@ -1596,6 +1596,38 @@ public class GUBP : BuildCommand
 			return false;
 		}
 
+		public override void DoBuild(GUBP bp)
+		{
+			base.DoBuild(bp);
+
+			if(Precompiled)
+			{
+				// Get a list of all the build dependencies
+				UE4Build.BuildAgenda Agenda = GetAgenda(bp);
+				string FileListPath = new UE4Build(bp).GenerateExternalFileList(Agenda);
+				UnrealBuildTool.ExternalFileList FileList = UnrealBuildTool.Utils.ReadClass<UnrealBuildTool.ExternalFileList>(FileListPath);
+
+				// Make all the paths relative to the root
+				string FilterPrefix = CommandUtils.CombinePaths(PathSeparator.Slash, CommandUtils.CmdEnv.LocalRoot).TrimEnd('/') + "/";
+				for(int Idx = 0; Idx < FileList.FileNames.Count; Idx++)
+				{
+					if(FileList.FileNames[Idx].StartsWith(FilterPrefix, StringComparison.InvariantCultureIgnoreCase))
+					{
+						FileList.FileNames[Idx] = FileList.FileNames[Idx].Substring(FilterPrefix.Length);
+					}
+					else
+					{
+						CommandUtils.LogError("Referenced external file is not under local root: {0}", FileList.FileNames[Idx]);
+					}
+				}
+
+				// Write the resulting file list out to disk
+				string OutputFileListPath = StaticGetBuildDependenciesPath(HostPlatform, TargetPlatform);
+				UnrealBuildTool.Utils.WriteClass<UnrealBuildTool.ExternalFileList>(FileList, OutputFileListPath, "");
+				AddBuildProduct(OutputFileListPath);
+			}
+		}
+
         public override UE4Build.BuildAgenda GetAgenda(GUBP bp)
         {
             if (!bp.ActivePlatforms.Contains(TargetPlatform))
@@ -1664,6 +1696,11 @@ public class GUBP : BuildCommand
 
             return Agenda;
         }
+
+		public static string StaticGetBuildDependenciesPath(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform TargetPlatform)
+		{
+			return CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine/Saved/BuildDependencies/" + TargetPlatform.ToString() + StaticGetHostPlatformSuffix(HostPlatform) + ".xml");
+		}
     }
 
 	public static class HeadersNode
