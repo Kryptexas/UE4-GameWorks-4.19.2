@@ -27,6 +27,12 @@ The **Edit Source Region** mode displays the current bounding rectangle of the S
 at each corner and at the center of each side. Each handle can be selected and dragged using the transform 
 gizmo.
 
+New sprites can be created in this mode by Ctrl+Dragging around a region of the source texture, or by double-clicking
+on a region of the texture (which will find all connected pixels and create a new sprite from the bounds).
+
+Other sprites that share the same source texture will be drawn with a subdued border, and clicking on one of them will
+change the current sprite being edited.
+
 ![](edit_source_region.png)
 
 ## Modifying Render Geometry
