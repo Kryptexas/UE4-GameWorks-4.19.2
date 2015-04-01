@@ -1150,7 +1150,6 @@ public class GUBP : BuildCommand
                 Agenda.DotNetProjects.AddRange(
                     new string[] 
 			    {
-				    CombinePaths(@"Engine\Source\Programs\Distill\Distill.csproj"),		  
                     CombinePaths(@"Engine\Source\Programs\NotForLicensees\CrashReportServer\CrashReportCommon\CrashReportCommon.csproj"),
 					CombinePaths(@"Engine\Source\Programs\NotForLicensees\CrashReportServer\CrashReportReceiver\CrashReportReceiver.csproj"),
 					CombinePaths(@"Engine\Source\Programs\NotForLicensees\CrashReportServer\CrashReportProcess\CrashReportProcess.csproj"),

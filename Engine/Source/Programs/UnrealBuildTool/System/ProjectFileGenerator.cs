@@ -511,9 +511,6 @@ namespace UnrealBuildTool
 					// Add automation.csproj files to the master project
 					AddAutomationModules(ProgramsFolder);
 
-					// Add Distill to the master project
-					ProgramsFolder.ChildProjects.Add(AddSimpleCSharpProject("Distill"));
-
 					// Add DotNETUtilities to the master project
 					ProgramsFolder.ChildProjects.Add(AddSimpleCSharpProject("DotNETCommon/DotNETUtilities", bShouldBuildForAllSolutionTargets: true, bForceDevelopmentConfiguration: true));
 
