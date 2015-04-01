@@ -97,16 +97,20 @@ const TCHAR* UAssetObjectProperty::ImportText_Internal( const TCHAR* InBuffer, v
 	{
 		if( *Buffer == TCHAR('\'') )
 		{
+			// A ' token likely means we're looking at an asset string in the form "Texture2d'/Game/UI/HUD/Actions/Barrel'" and we need to read and append the path part
+			// We have to skip over the first ' as UPropertyHelpers::ReadToken doesn't read single-quoted strings correctly, but does read a path correctly
+			NewPath += *Buffer++; // Append the leading '
 			NewBuffer = UPropertyHelpers::ReadToken( Buffer, NewPath, 1 );
 			if( !NewBuffer )
 			{
 				return NULL;
 			}
 			Buffer = NewBuffer;
-			if( *Buffer++ != TCHAR('\'') )
+			if( *Buffer != TCHAR('\'') )
 			{
 				return NULL;
 			}
+			NewPath += *Buffer++; // Append the trailing '
 		}
 		FStringAssetReference ID(NewPath);
 		AssetPtr = ID;
