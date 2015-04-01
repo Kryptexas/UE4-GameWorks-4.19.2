@@ -408,8 +408,10 @@ struct CORE_API FDebug
 	 * @param	FormattedMsg	Informative error message text with variable args
 	 *
 	 * @return false in all cases.
+	 *
+	 * Note: this crazy name is to ensure that the crash reporter recognizes it, which checks for functions in the callstack starting with 'EnsureNotFalse'.
 	 */
-	static bool VARARGS OptionallyLogFormattedEnsureMessageReturningFalse(bool bLog, const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* FormattedMsg, ...);
+	static bool VARARGS EnsureNotFalse_OptionallyLogFormattedEnsureMessageReturningFalse(bool bLog, const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* FormattedMsg, ...);
 #endif // DO_CHECK || DO_GUARD_SLOW
 };
 
