@@ -123,10 +123,6 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 			int32 SizeX = BlockAllocator.GetSizeX();
 			int32 SizeY = BlockAllocator.GetSizeY();
 
-#if PLATFORM_PS4
-			SizeX = SizeY = FMath::Max(SizeX, SizeY);
-#endif
-
 			VolumeTextureRHI = RHICreateTexture3D(
 				SizeX, 
 				SizeY, 
@@ -163,9 +159,9 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 
 		CurrentAllocations.Append(PendingAllocations);
 		PendingAllocations.Empty();
-	}
+	}	
 }
-
+	
 void FDistanceFieldVolumeTexture::Initialize()
 {
 	if (IsValidDistanceFieldVolume())
