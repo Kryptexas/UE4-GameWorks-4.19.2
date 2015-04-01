@@ -136,7 +136,7 @@ _In this image, the **StoneBox** is in a folder called **Meshes**, much in the s
 ## Scene Management
 
 
-Epic's artists usually store similar assets in a single file. For example, for a **Static Mesh** that has three different states: normal, damaged and broken; all three are in the same file. However, each mesh is exported as a single FBX file.
+Epic's artists usually store similar assets in a single file. For example, for a **Static Mesh** that has three different states: normal, damaged, and broken; all three are in the same file. However, each mesh is exported as a single FBX file.
 
 ![FBXBestPractices_MultipleColumn.jpg](FBXBestPractices_MultipleColumn.jpg)(w:410 h:810)
 
