@@ -188,9 +188,7 @@ bool UDemoNetDriver::InitConnect( FNetworkNotify* InNotify, const FURL& ConnectU
 	ServerConnection = NewObject<UNetConnection>(GetTransientPackage(), UDemoNetConnection::StaticClass());
 	ServerConnection->InitConnection( this, USOCK_Pending, ConnectURL, 1000000 );
 
-	FString VersionString = FString::Printf( TEXT( "%s_%u" ), FApp::GetGameName(), FNetworkVersion::GetLocalNetworkVersion() );
-
-	ReplayStreamer->StartStreaming( DemoFilename, false, VersionString, FOnStreamReadyDelegate::CreateUObject( this, &UDemoNetDriver::ReplayStreamingReady ) );
+	ReplayStreamer->StartStreaming( DemoFilename, false, FNetworkVersion::GetReplayVersion(), FOnStreamReadyDelegate::CreateUObject( this, &UDemoNetDriver::ReplayStreamingReady ) );
 
 	return true;
 }
@@ -362,9 +360,7 @@ bool UDemoNetDriver::InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool
 	Connection->InitSendBuffer();
 	ClientConnections.Add( Connection );
 
-	FString VersionString = FString::Printf( TEXT( "%s_%u" ), FApp::GetGameName(), FNetworkVersion::GetLocalNetworkVersion() );
-
-	ReplayStreamer->StartStreaming( DemoFilename, true, VersionString, FOnStreamReadyDelegate::CreateUObject( this, &UDemoNetDriver::ReplayStreamingReady ) );
+	ReplayStreamer->StartStreaming( DemoFilename, true, FNetworkVersion::GetReplayVersion(), FOnStreamReadyDelegate::CreateUObject( this, &UDemoNetDriver::ReplayStreamingReady ) );
 
 	FArchive* FileAr = ReplayStreamer->GetHeaderArchive();
 
