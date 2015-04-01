@@ -336,6 +336,9 @@ void AActor::PreEditUndo()
 		}
 	}
 
+	// let navigation system know to not care about this actor anymore
+	UNavigationSystem::ClearNavOctreeAll(this);
+
 	Super::PreEditUndo();
 }
 
@@ -351,6 +354,12 @@ void AActor::PostEditUndo()
 	if (!IsPendingKill())
 	{
 		ResetOwnedComponents();
+		// notify navigation system
+		UNavigationSystem::UpdateNavOctreeAll(this);
+	}
+	else
+	{
+		UNavigationSystem::ClearNavOctreeAll(this);
 	}
 
 	Super::PostEditUndo();
@@ -370,6 +379,12 @@ void AActor::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAn
 	if (!IsPendingKill())
 	{
 		ResetOwnedComponents();
+		// notify navigation system
+		UNavigationSystem::UpdateNavOctreeAll(this);
+	}
+	else
+	{
+		UNavigationSystem::ClearNavOctreeAll(this);
 	}
 
 	Super::PostEditUndo(TransactionAnnotation);

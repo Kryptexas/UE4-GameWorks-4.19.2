@@ -993,8 +993,6 @@ void ALandscapeProxy::PreEditUndo()
 	if (GIsEditor && GetWorld() && !GetWorld()->IsPlayInEditor())
 	{
 		GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeEditorData"));
-
-		UNavigationSystem::ClearNavOctreeAll(this);
 	}
 }
 
@@ -1005,8 +1003,6 @@ void ALandscapeProxy::PostEditUndo()
 	if (GIsEditor && GetWorld() && !GetWorld()->IsPlayInEditor())
 	{
 		GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeEditorData"));
-
-		UNavigationSystem::UpdateNavOctreeAll(this);
 	}
 }
 
