@@ -107,7 +107,7 @@ void FUObjectArray::FreeUObjectIndex(UObjectBase* Object)
 	// No point in filling this list when doing exit purge. Nothing should be allocated afterwards anyway.
 	if (Index > ObjLastNonGCIndex && !GExitPurge)  
 	{
-		ObjAvailableList.Push((int32*)Index);
+		ObjAvailableList.Push((int32*)(uintptr_t)Index);
 #if WITH_EDITOR
 		ObjAvailableCount.Increment();
 #endif
