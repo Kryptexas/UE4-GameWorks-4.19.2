@@ -76,6 +76,7 @@ public:
 		return ShapeSpacePoint.GetRotated(-Rotation) + BoxPosition;
 	}
 
+	// Returns the polygon centroid in texture space
 	FVector2D GetPolygonCentroid() const
 	{
 		FVector2D LocalSpaceResult = FVector2D::ZeroVector;
@@ -105,7 +106,7 @@ public:
 	// Sets a new pivot and adjusts all vertices to be relative to it
 	void SetNewPivot(const FVector2D& NewPosInTextureSpace)
 	{
-		const FVector2D DeltaTexturePos = NewPosInTextureSpace - BoxPosition;
+		const FVector2D DeltaTexturePos = BoxPosition - NewPosInTextureSpace;
 		for (FVector2D& Vertex : Vertices)
 		{
 			const FVector2D NewVertexPosTS = ConvertShapeSpaceToTextureSpace(Vertex) + DeltaTexturePos;

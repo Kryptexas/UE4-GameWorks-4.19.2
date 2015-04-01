@@ -1179,9 +1179,6 @@ void UPaperSprite::BuildGeometryFromContours(FSpriteGeometryCollection& GeomOwne
 			// Recenter them
 			const FVector2D AverageCenterFloat = NewShape.GetPolygonCentroid();
 			const FVector2D AverageCenterSnapped(FMath::RoundToInt(AverageCenterFloat.X), FMath::RoundToInt(AverageCenterFloat.Y));
-
-			//@TODO: This looks a bit odd but it's due to the fact that we had the pivot in the top left and are changing it to the center
-			NewShape.BoxPosition = AverageCenterSnapped * 2.0f;
 			NewShape.SetNewPivot(AverageCenterSnapped);
 
 			// Get intended winding
@@ -2139,7 +2136,8 @@ void FSpriteGeometryCollection::ConditionGeometry()
 				const bool bMeetsRotationConstraint = FMath::IsNearlyEqual(AB.Y, 0.0f);
 				if (bMeetsRotationConstraint)
 				{
-					Shape.SetNewPivot(A + 0.5f * (AB + BC));
+					const FVector2D NewPivotTextureSpace = Shape.GetPolygonCentroid();
+					Shape.SetNewPivot(NewPivotTextureSpace);
 					Shape.BoxSize = FVector2D(AB.Size(), DA.Size());
 					Shape.ShapeType = ESpriteShapeType::Box;
 				}
