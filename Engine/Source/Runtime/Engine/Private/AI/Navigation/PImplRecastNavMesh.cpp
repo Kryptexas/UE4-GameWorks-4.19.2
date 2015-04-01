@@ -1468,11 +1468,18 @@ bool FPImplRecastNavMesh::ProjectPointMulti(const FVector& Point, TArray<FNavLoc
 				status = NavQuery.projectedPointOnPoly(HitPolys[i], &RcPoint.X, ClosestPoint);
 				if (dtStatusSucceed(status))
 				{
-					FNavLocation HitLocation(Recast2UnrealPoint(ClosestPoint), HitPolys[i]);
-					ensure((HitLocation.Location - AdjustedPoint).SizeSquared2D() < KINDA_SMALL_NUMBER);
-					
-					Result.Add(HitLocation);
-					bSuccess = true;
+					float ExactZ = 0.0f;
+					status = NavQuery.getPolyHeight(HitPolys[i], ClosestPoint, &ExactZ);
+					if (dtStatusSucceed(status))
+					{
+						FNavLocation HitLocation(Recast2UnrealPoint(ClosestPoint), HitPolys[i]);
+						HitLocation.Location.Z = ExactZ;
+
+						ensure((HitLocation.Location - AdjustedPoint).SizeSquared2D() < KINDA_SMALL_NUMBER);
+
+						Result.Add(HitLocation);
+						bSuccess = true;
+					}
 				}
 			}
 		}
