@@ -60,7 +60,7 @@ Removing asset references simply requires that you **right-click** on one or mor
 ![](RemovingAssetsFromCollections.png)
 
 [REGION:warning]
-If you select an asset in a Collection and press **Delete** you _can_ delete the asset entirely. You will get a prompt verifying that this is what you want to do, but keep in mind that _deleting_ an asset means it is _destroyed_. If you simply want the asset reference out of the Collection, use the method described above.
+If you select an asset in a Collection and press **Delete**, you _can_ delete the asset entirely. You will get a prompt verifying that this is what you want to do, but keep in mind that _deleting_ an asset means it is _destroyed_. If you simply want the asset reference out of the Collection, use the method described above.
 [/REGION]
 
 ## Renaming and Destroying Collections
