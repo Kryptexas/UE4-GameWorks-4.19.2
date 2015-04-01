@@ -313,7 +313,7 @@ TSharedRef<SWidget> FDataTableEditor::CreateGridPanel()
 					RowSplitter->AddSlot()
 					.Value(TAttribute<float>::Create(TAttribute<float>::FGetter::CreateSP(this, &FDataTableEditor::GetColumnWidth, ColumnIndex)))
 					.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &FDataTableEditor::OnColumnResized, ColumnIndex))
-					.SizeRule(SSplitter::AbsoluteSize)
+					.SizeRule(SSplitter::ManualSize)
 					[
 						SAssignNew(ColumnEntryWidget, SBorder)
 						.Padding(2.0f)
@@ -342,7 +342,7 @@ TSharedRef<SWidget> FDataTableEditor::CreateGridPanel()
 				RowSplitter->AddSlot()
 				.Value(TAttribute<float>::Create(TAttribute<float>::FGetter::CreateSP(this, &FDataTableEditor::GetColumnWidth, static_cast<int32>(INDEX_NONE))))
 				.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &FDataTableEditor::OnColumnResized, static_cast<int32>(INDEX_NONE)))
-				.SizeRule(SSplitter::AbsoluteSize)
+				.SizeRule(SSplitter::ManualSize)
 				[
 					SNullWidget::NullWidget
 				];

@@ -13,7 +13,7 @@ namespace ESplitterResizeMode
 
 class FLayoutGeometry;
 /**
- * SSPlitter divides its allotted area into N segments, where N is the number of children it has.
+ * SSplitter divides its allotted area into N segments, where N is the number of children it has.
  * It allows the users to resize the children along the splitters axis: that is, horizontally or vertically.
  */
 class SLATE_API SSplitter : public SPanel
@@ -27,8 +27,8 @@ public:
 		SizeToContent,
 		/** Use a fraction of the parent's size */
 		FractionOfParent,
-		/** Use the SizeValue of the slot as an absolute size */
-		AbsoluteSize,
+		/** Use the SizeValue of the slot as the desired size */
+		ManualSize,
 	};
 
 	DECLARE_DELEGATE_OneParam(
@@ -213,20 +213,27 @@ private:
 protected:
 
 	/**
-	 * Given the index of the dragged handle and the children, find a child above/left_of of the dragged handle that can be resized.
+	 * Given the index of the dragged handle and the children, find a child above/left_of of the dragged handle that can be resized (either proportionally or absolutely).
 	 *
 	 * @return INDEX_NONE if no such child can be found.
 	 */
 	static int32 FindResizeableSlotBeforeHandle( int32 DraggedHandle, const TPanelChildren<FSlot>& Children );
 
 	/**
-	 * Given the index of the dragged handle and the children, find a child below/right_of the dragged handle that can be resized
+	 * Given the index of the dragged handle and the children, find a child below/right_of the dragged handle that isn't collapsed
 	 *
 	 * @return Children.Num() if no such child can be found.
 	 */
-	static int32 FindResizeableSlotAfterHandle( int32 DraggedHandle, const TPanelChildren<FSlot>& Children );
+	static int32 FindNonCollapsedSlotAfterHandle( int32 DraggedHandle, const TPanelChildren<FSlot>& Children );
 
-	static void FindAllResizeableSlotsAfterHandle( int32 DraggedHandle, const TPanelChildren<FSlot>& Children, TArray< int32 >& OutSlotIndicies );
+	/**
+	 * Given the index of the dragged handle and the children, find a child below/right_of the dragged handle that can be proportionally resized
+	 *
+	 * @return Children.Num() if no such child can be found.
+	 */
+	static int32 FindProportionallyResizeableSlotAfterHandle( int32 DraggedHandle, const TPanelChildren<FSlot>& Children );
+
+	static void FindAllProportionallyResizeableSlotsAfterHandle( int32 DraggedHandle, const TPanelChildren<FSlot>& Children, TArray< int32 >& OutSlotIndicies );
 
 	/**
 	 * Resizes the children based on user input. The template parameter Orientation corresponds to the splitter being horizontal or vertical.
@@ -257,6 +264,18 @@ protected:
 	 */
 	template<EOrientation SplitterOrientation>
 	static int32 GetHandleBeingResizedFromMousePosition(  float PhysicalSplitterHandleSize, float HitDetectionSplitterHandleSize, FVector2D LocalMousePos, const TArray<FLayoutGeometry>& ChildGeometries );
+
+	/**
+	 * Given a mouse position within the splitter, figure out which resize handle we are hovering (if any), and
+	 * then validate that the handle can actually be used to perform a sizing operation
+	 *
+	 * @param LocalMousePos  The mouse position within this splitter.
+	 * @param ChildGeometris The arranged children and their geometries; we need to test the mouse against them.
+	 *
+	 * @return The index of the handle being hovered, or INDEX_NONE if we are not hovering a handle, or the handle cannot be used to size a slot.
+	 */
+	template<EOrientation SplitterOrientation>
+	int32 GetAndValidateHandleBeingResizedFromMousePosition( FVector2D LocalMousePos, const TArray<FLayoutGeometry>& ChildGeometries ) const;
 
 	TPanelChildren< FSlot > Children;
 

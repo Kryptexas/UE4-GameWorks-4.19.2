@@ -97,11 +97,11 @@ TArray<FLayoutGeometry> SSplitter::ArrangeChildrenForLayout(const FGeometry& All
 			{
 				++NumNonCollapsedChildren;
 
-				if ( Children[ChildIndex].SizingRule == SSplitter::SizeToContent )
+				if ( Children[ChildIndex].SizingRule.Get() == SSplitter::SizeToContent )
 				{
 					NonProportionalSpace += Children[ChildIndex].GetWidget()->GetDesiredSize()[AxisIndex];
 				}
-				else if ( Children[ChildIndex].SizingRule == SSplitter::AbsoluteSize )
+				else if ( Children[ChildIndex].SizingRule.Get() == SSplitter::ManualSize )
 				{
 					NonProportionalSpace += Children[ChildIndex].SizeValue.Get();
 				}
@@ -126,11 +126,11 @@ TArray<FLayoutGeometry> SSplitter::ArrangeChildrenForLayout(const FGeometry& All
 		const FSlot& CurSlot = Children[ChildIndex];
 
 		float ChildSpace = 0.0f;
-		if ( CurSlot.SizingRule == SSplitter::SizeToContent )
+		if ( CurSlot.SizingRule.Get() == SSplitter::SizeToContent )
 		{
 			ChildSpace = CurSlot.GetWidget()->GetDesiredSize()[AxisIndex];
 		}
-		else if ( CurSlot.SizingRule == SSplitter::AbsoluteSize )
+		else if ( CurSlot.SizingRule.Get() == SSplitter::ManualSize )
 		{
 			ChildSpace = CurSlot.SizeValue.Get();
 		}
@@ -248,13 +248,13 @@ static FVector2D ComputeDesiredSizeForSplitter( const float PhysicalSplitterHand
 			FVector2D ChildDesiredSize( CurSlot.GetWidget()->GetDesiredSize() );
 			if ( Orientation == Orient_Horizontal )
 			{
-				MyDesiredSize.X += (CurSlot.SizingRule == SSplitter::AbsoluteSize) ? CurSlot.SizeValue.Get() : ChildDesiredSize.X;
+				MyDesiredSize.X += (CurSlot.SizingRule.Get() == SSplitter::ManualSize) ? CurSlot.SizeValue.Get() : ChildDesiredSize.X;
 				MyDesiredSize.Y = FMath::Max(ChildDesiredSize.Y, MyDesiredSize.Y);
 			}
 			else
 			{
 				MyDesiredSize.X = FMath::Max(ChildDesiredSize.X, MyDesiredSize.X);				
-				MyDesiredSize.Y += (CurSlot.SizingRule == SSplitter::AbsoluteSize) ? CurSlot.SizeValue.Get() : ChildDesiredSize.Y;
+				MyDesiredSize.Y += (CurSlot.SizingRule.Get() == SSplitter::ManualSize) ? CurSlot.SizeValue.Get() : ChildDesiredSize.Y;
 			}
 		}
 	}
@@ -369,19 +369,10 @@ FReply SSplitter::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent&
 		return FReply::Handled();
 	}
 	else
-	{	
-		// Hit test which handle we are hovering over.		
+	{
 		HoveredHandleIndex = (Orientation == Orient_Horizontal)
-			? GetHandleBeingResizedFromMousePosition<Orient_Horizontal>( PhysicalSplitterHandleSize, HitDetectionSplitterHandleSize, LocalMousePosition, LayoutChildren )
-			: GetHandleBeingResizedFromMousePosition<Orient_Vertical>( PhysicalSplitterHandleSize, HitDetectionSplitterHandleSize, LocalMousePosition, LayoutChildren );
-
-		if (HoveredHandleIndex != INDEX_NONE)
-		{
-			if ( FindResizeableSlotBeforeHandle(HoveredHandleIndex, Children) <= INDEX_NONE || FindResizeableSlotAfterHandle(HoveredHandleIndex, Children) >= Children.Num() )
-			{
-				HoveredHandleIndex = INDEX_NONE;
-			}
-		}
+			? GetAndValidateHandleBeingResizedFromMousePosition<Orient_Horizontal>( LocalMousePosition, LayoutChildren )
+			: GetAndValidateHandleBeingResizedFromMousePosition<Orient_Vertical>( LocalMousePosition, LayoutChildren );
 
 		return FReply::Unhandled();
 	}
@@ -409,8 +400,8 @@ FCursorReply SSplitter::OnCursorQuery( const FGeometry& MyGeometry, const FPoint
 
 	// Hit test which handle we are hovering over.		
 	const int32 CurrentHoveredHandleIndex = (Orientation == Orient_Horizontal)
-		? GetHandleBeingResizedFromMousePosition<Orient_Horizontal>( PhysicalSplitterHandleSize, HitDetectionSplitterHandleSize, LocalMousePosition, LayoutChildren )
-		: GetHandleBeingResizedFromMousePosition<Orient_Vertical>( PhysicalSplitterHandleSize, HitDetectionSplitterHandleSize, LocalMousePosition, LayoutChildren );
+		? GetAndValidateHandleBeingResizedFromMousePosition<Orient_Horizontal>( LocalMousePosition, LayoutChildren )
+		: GetAndValidateHandleBeingResizedFromMousePosition<Orient_Vertical>( LocalMousePosition, LayoutChildren );
 
 	if (CurrentHoveredHandleIndex != INDEX_NONE)
 	{
@@ -467,7 +458,7 @@ int32 SSplitter::FindResizeableSlotBeforeHandle( int32 DraggedHandle, const TPan
 }
 
 
-int32 SSplitter::FindResizeableSlotAfterHandle( int32 DraggedHandle, const TPanelChildren<FSlot>& Children )
+int32 SSplitter::FindNonCollapsedSlotAfterHandle( int32 DraggedHandle, const TPanelChildren<FSlot>& Children )
 {
 	const int32 NumChildren = Children.Num();
 
@@ -475,7 +466,7 @@ int32 SSplitter::FindResizeableSlotAfterHandle( int32 DraggedHandle, const TPane
 	// We also cannot resize auto-sizing slots.
 	int32 SlotAfterDragHandle = DraggedHandle+1;
 	{
-		while( SlotAfterDragHandle < NumChildren && (Children[SlotAfterDragHandle].GetWidget()->GetVisibility() == EVisibility::Collapsed || Children[SlotAfterDragHandle].SizingRule.Get() == SSplitter::SizeToContent) )
+		while( SlotAfterDragHandle < NumChildren && Children[SlotAfterDragHandle].GetWidget()->GetVisibility() == EVisibility::Collapsed )
 		{
 			++SlotAfterDragHandle;
 		}
@@ -485,20 +476,38 @@ int32 SSplitter::FindResizeableSlotAfterHandle( int32 DraggedHandle, const TPane
 }
 
 
-void SSplitter::FindAllResizeableSlotsAfterHandle( int32 DraggedHandle, const TPanelChildren<FSlot>& Children, TArray< int32 >& OutSlotIndicies )
+int32 SSplitter::FindProportionallyResizeableSlotAfterHandle( int32 DraggedHandle, const TPanelChildren<FSlot>& Children )
+{
+	const int32 NumChildren = Children.Num();
+
+	// But the slots list does contain collapsed children! Make sure that we are not resizing a collapsed slot.
+	// We also cannot resize auto-sizing slots.
+	int32 SlotAfterDragHandle = DraggedHandle+1;
+	{
+		while( SlotAfterDragHandle < NumChildren && (Children[SlotAfterDragHandle].GetWidget()->GetVisibility() == EVisibility::Collapsed || Children[SlotAfterDragHandle].SizingRule.Get() != SSplitter::FractionOfParent) )
+		{
+			++SlotAfterDragHandle;
+		}
+	}
+
+	return SlotAfterDragHandle;
+}
+
+
+void SSplitter::FindAllProportionallyResizeableSlotsAfterHandle( int32 DraggedHandle, const TPanelChildren<FSlot>& Children, TArray< int32 >& OutSlotIndicies )
 {
 	const int32 NumChildren = Children.Num();
 
 	for (int SlotIndex = DraggedHandle+1; SlotIndex < NumChildren; SlotIndex++)
 	{
-		if (Children[ SlotIndex ].GetWidget()->GetVisibility() == EVisibility::Collapsed || Children[ SlotIndex ].SizingRule.Get() == SSplitter::SizeToContent)
+		if (Children[ SlotIndex ].GetWidget()->GetVisibility() == EVisibility::Collapsed || Children[ SlotIndex ].SizingRule.Get() != SSplitter::FractionOfParent)
 		{
 			continue;
 		}
 
 		OutSlotIndicies.Add( SlotIndex );
 	}
-};
+}
 
 
 template<EOrientation SplitterOrientation>
@@ -528,8 +537,9 @@ void SSplitter::HandleResizing( const float PhysicalSplitterHandleSize, const ES
 	const float PrevChildLength = PrevChildGeom.GetSizeInParentSpace().Component(AxisIndex);
 	float NewPrevChildLength = ClampChild( PrevChildLength + Delta );
 
-	// Changing the size of an absolutely sized slot doesn't affect the size of any subsequent slots, it just moves them
-	if ( PrevChild.SizingRule == SSplitter::AbsoluteSize )
+	// Changing the size of an absolutely sized slot doesn't adjust the proportional size of any subsequent slots
+	// Our change in size will be handled by the layout logic and any proportional slots will update accordingly
+	if ( PrevChild.SizingRule.Get() == SSplitter::ManualSize )
 	{
 		if (PrevChild.OnSlotResized_Handler.IsBound())
 		{
@@ -543,22 +553,22 @@ void SSplitter::HandleResizing( const float PhysicalSplitterHandleSize, const ES
 	else
 	{
 		// Proportionally sized slots need to redistribute their size accordingly
-		TArray< int32 > SlotsAfterDragHandleIndicies;
+		TArray< int32 > ProportionalSlotsAfterDragHandleIndicies;
 		if ( ResizeMode == ESplitterResizeMode::Fixed )
 		{
-			const int32 SlotAfterDragHandle = FindResizeableSlotAfterHandle( DraggedHandle, Children );
+			const int32 SlotAfterDragHandle = FindProportionallyResizeableSlotAfterHandle( DraggedHandle, Children );
 
 			if ( SlotAfterDragHandle < NumChildren )
 			{
-				SlotsAfterDragHandleIndicies.Add( SlotAfterDragHandle );
+				ProportionalSlotsAfterDragHandleIndicies.Add( SlotAfterDragHandle );
 			}
 		}
 		else if ( ResizeMode == ESplitterResizeMode::Fill )
 		{
-			FindAllResizeableSlotsAfterHandle( DraggedHandle, Children, /*OUT*/ SlotsAfterDragHandleIndicies );
+			FindAllProportionallyResizeableSlotsAfterHandle( DraggedHandle, Children, /*OUT*/ ProportionalSlotsAfterDragHandleIndicies );
 		}
 
-		if ( SlotsAfterDragHandleIndicies.Num() > 0)
+		if ( ProportionalSlotsAfterDragHandleIndicies.Num() > 0)
 		{
 			struct FSlotInfo 
 			{
@@ -567,29 +577,29 @@ void SSplitter::HandleResizing( const float PhysicalSplitterHandleSize, const ES
 				float NewSize;
 			};
 
-			TArray< FSlotInfo > SlotsAfterDragHandle;
-			for (int SlotIndex = 0; SlotIndex < SlotsAfterDragHandleIndicies.Num(); SlotIndex++)
+			TArray< FSlotInfo > ProportionalSlotsAfterDragHandle;
+			for (int SlotIndex = 0; SlotIndex < ProportionalSlotsAfterDragHandleIndicies.Num(); SlotIndex++)
 			{
 				FSlotInfo SlotInfo;
 
-				SlotInfo.Slot = &Children[ SlotsAfterDragHandleIndicies[ SlotIndex ] ];
-				SlotInfo.Geometry = &ChildGeometries[ SlotsAfterDragHandleIndicies[ SlotIndex ] ];
+				SlotInfo.Slot = &Children[ ProportionalSlotsAfterDragHandleIndicies[ SlotIndex ] ];
+				SlotInfo.Geometry = &ChildGeometries[ ProportionalSlotsAfterDragHandleIndicies[ SlotIndex ] ];
 				SlotInfo.NewSize = SlotInfo.Geometry->GetSizeInParentSpace().Component( AxisIndex );
 
-				SlotsAfterDragHandle.Add( SlotInfo );
+				ProportionalSlotsAfterDragHandle.Add( SlotInfo );
 			}
 
 			Delta = NewPrevChildLength - PrevChildLength;
 
 			// Distribute the Delta across the affected slots after the drag handle
 			float UnusedDelta = Delta;
-			for (int DistributionCount = 0; DistributionCount < SlotsAfterDragHandle.Num() && UnusedDelta != 0; DistributionCount++)
+			for (int DistributionCount = 0; DistributionCount < ProportionalSlotsAfterDragHandle.Num() && UnusedDelta != 0; DistributionCount++)
 			{
-				float DividedDelta = UnusedDelta / SlotsAfterDragHandle.Num();
+				float DividedDelta = UnusedDelta / ProportionalSlotsAfterDragHandle.Num();
 				UnusedDelta = 0;
-				for (int SlotIndex = 0; SlotIndex < SlotsAfterDragHandle.Num(); SlotIndex++)
+				for (int SlotIndex = 0; SlotIndex < ProportionalSlotsAfterDragHandle.Num(); SlotIndex++)
 				{
-					FSlotInfo& SlotInfo = SlotsAfterDragHandle[ SlotIndex ];
+					FSlotInfo& SlotInfo = ProportionalSlotsAfterDragHandle[ SlotIndex ];
 
 					float CurrentSize = ClampChild( SlotInfo.Geometry->GetSizeInParentSpace().Component(AxisIndex) );
 					SlotInfo.NewSize = ClampChild( CurrentSize - DividedDelta );
@@ -611,9 +621,9 @@ void SSplitter::HandleResizing( const float PhysicalSplitterHandleSize, const ES
 				float TotalLength = NewPrevChildLength;
 				float TotalStretchCoefficients = PrevChild.SizeValue.Get();
 
-				for (int SlotIndex = 0; SlotIndex < SlotsAfterDragHandle.Num(); SlotIndex++)
+				for (int SlotIndex = 0; SlotIndex < ProportionalSlotsAfterDragHandle.Num(); SlotIndex++)
 				{
-					FSlotInfo SlotInfo = SlotsAfterDragHandle[ SlotIndex ];
+					FSlotInfo SlotInfo = ProportionalSlotsAfterDragHandle[ SlotIndex ];
 
 					TotalLength += SlotInfo.NewSize;
 					TotalStretchCoefficients += SlotInfo.Slot->SizeValue.Get();
@@ -630,9 +640,9 @@ void SSplitter::HandleResizing( const float PhysicalSplitterHandleSize, const ES
 					PrevChild.SizeValue = NewPrevChildSize;
 				}
 
-				for (int SlotIndex = 0; SlotIndex < SlotsAfterDragHandle.Num(); SlotIndex++)
+				for (int SlotIndex = 0; SlotIndex < ProportionalSlotsAfterDragHandle.Num(); SlotIndex++)
 				{
-					FSlotInfo SlotInfo = SlotsAfterDragHandle[ SlotIndex ];
+					FSlotInfo SlotInfo = ProportionalSlotsAfterDragHandle[ SlotIndex ];
 
 					const float NewNextChildSize = ( TotalStretchCoefficients * SlotInfo.NewSize / TotalLength );
 
@@ -683,6 +693,44 @@ int32 SSplitter::GetHandleBeingResizedFromMousePosition( float PhysicalSplitterH
 	}
 
 	return INDEX_NONE;
+}
+
+template<EOrientation SplitterOrientation>
+int32 SSplitter::GetAndValidateHandleBeingResizedFromMousePosition( FVector2D LocalMousePos, const TArray<FLayoutGeometry>& ChildGeometries ) const
+{
+	// Hit test which handle we are hovering over.		
+	int32 LocalHoveredHandleIndex = (Orientation == Orient_Horizontal)
+		? GetHandleBeingResizedFromMousePosition<Orient_Horizontal>( PhysicalSplitterHandleSize, HitDetectionSplitterHandleSize, LocalMousePos, ChildGeometries )
+		: GetHandleBeingResizedFromMousePosition<Orient_Vertical>( PhysicalSplitterHandleSize, HitDetectionSplitterHandleSize, LocalMousePos, ChildGeometries );
+
+	if (LocalHoveredHandleIndex != INDEX_NONE)
+	{
+		const FSlot& PrevChild = Children[LocalHoveredHandleIndex];
+		if ( PrevChild.SizingRule.Get() == SSplitter::ManualSize )
+		{
+			// Manual sized slots can be resized as long as they're not the last slot in the splitter
+			const int32 NonCollapsedSlotAfterDragHandle = FindNonCollapsedSlotAfterHandle( LocalHoveredHandleIndex, Children );
+
+			// Valid index?
+			if ( NonCollapsedSlotAfterDragHandle >= Children.Num() )
+			{
+				LocalHoveredHandleIndex = INDEX_NONE;
+			}
+		}
+		else
+		{
+			// Other kinds of slots can be resized as long as they have at least one proportionally sized slot after them in the splitter
+			const int32 ProportionalSlotAfterDragHandle = FindProportionallyResizeableSlotAfterHandle( LocalHoveredHandleIndex, Children );
+
+			// Valid index?
+			if ( ProportionalSlotAfterDragHandle >= Children.Num() )
+			{
+				LocalHoveredHandleIndex = INDEX_NONE;
+			}
+		}
+	}
+
+	return LocalHoveredHandleIndex;
 }
 
 /********************************************************************
