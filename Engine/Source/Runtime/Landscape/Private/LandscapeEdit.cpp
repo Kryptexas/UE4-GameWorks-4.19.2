@@ -3430,6 +3430,8 @@ void ALandscapeProxy::ChangedPhysMaterial()
 			if (CollisionComponent)
 			{
 				Comp->UpdateCollisionLayerData();
+				// Physical materials cooked into collision object, so we need to recreate it
+				CollisionComponent->RecreateCollision(false);
 			}
 		}
 	}
