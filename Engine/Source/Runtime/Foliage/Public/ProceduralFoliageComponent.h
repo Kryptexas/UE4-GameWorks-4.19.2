@@ -9,6 +9,30 @@ class UProceduralFoliageSpawner;
 class AProceduralFoliageLevelInfo;
 struct FDesiredFoliageInstance;
 
+/** Describes the layout of the tiles used for procedural foliage simulation */
+struct FTileLayout
+{
+	FTileLayout()
+		: BottomLeftX(0), BottomLeftY(0), NumTilesX(0), NumTilesY(0), HalfHeight(0.f)
+	{
+	}
+
+	// The X coordinate (in whole tiles) of the bottom-left-most active tile
+	int32 BottomLeftX;
+
+	// The Y coordinate (in whole tiles) of the bottom-left-most active tile
+	int32 BottomLeftY;
+
+	// The total number of active tiles along the x-axis
+	int32 NumTilesX;
+
+	// The total number of active tiles along the y-axis
+	int32 NumTilesY;
+	
+
+	float HalfHeight;
+};
+
 UCLASS(BlueprintType)
 class FOLIAGE_API UProceduralFoliageComponent : public UActorComponent
 {
@@ -28,21 +52,35 @@ class FOLIAGE_API UProceduralFoliageComponent : public UActorComponent
 	bool bShowDebugTiles;
 #endif
 
-	bool SpawnProceduralContent(TArray<FDesiredFoliageInstance>& OutFoliageInstances);
+	/** 
+	 * Runs the procedural foliage simulation to generate a list of desired instances to spawn.
+	 * @return True if the simulation succeeded
+	 */
+	bool GenerateProceduralContent(TArray<FDesiredFoliageInstance>& OutFoliageInstances);
+	
+	/** Removes all spawned foliage instances in the level that were spawned by this component */
 	void RemoveProceduralContent();
-	bool HasSpawnedAnyInstances();
-	const FGuid& GetProceduralGuid() const { return ProceduralGuid;  }
 
+	/** @return True if any foliage instances in the level were spawned by this component */
+	bool HasSpawnedAnyInstances();
+	
+	/** @return The position in world space of the bottom-left corner of the bottom-left-most active tile */
+	FVector GetWorldPosition() const;
+
+	/** Determines the basic layout of the tiles used in the simulation */
+	void GetTileLayout(FTileLayout& OutTileLayout) const;
+
+	void SetSpawningVolume(AVolume* InSpawningVolume) { SpawningVolume = InSpawningVolume; }
+	const FGuid& GetProceduralGuid() const { return ProceduralGuid; }
+
+private:
+	/** Does all the actual work of executing the procedural foliage simulation */
+	bool ExecuteSimulation(TArray<FDesiredFoliageInstance>& OutFoliageInstances);
+
+private:
 	UPROPERTY()
 	AVolume* SpawningVolume;
-
-	FVector GetWorldPosition() const;
-	void GetTilesLayout(int32& MinXIdx, int32& MinYIdx, int32& NumXTiles, int32& NumYTiles, float& HalfHeight) const;
-
-private:
-	bool SpawnTiles(TArray<FDesiredFoliageInstance>& OutFoliageInstances);
-
-private:
+	
 	UPROPERTY()
 	FGuid ProceduralGuid;
 };

@@ -6,38 +6,43 @@
 #include "ProceduralFoliageComponent.h"
 
 
-static const FColor	ProcTileColor(0,255,0);
-static const FColor	ProcTileOverlapColor(255, 255, 0);
+static const FColor& ProcTileColor = FColor::Yellow;
+static const FColor& ProcTileOverlapColor = FColor::Green;
 
 void FProceduralFoliageComponentVisualizer::DrawVisualization(const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI)
 {
 	if (const UProceduralFoliageComponent* ProcComponent = Cast<const UProceduralFoliageComponent>(Component))
 	{
-		if (ProcComponent->FoliageSpawner && ProcComponent->bShowDebugTiles == true)
+		if (ProcComponent->bShowDebugTiles && ProcComponent->FoliageSpawner)
 		{
+			const FVector TilesOrigin = ProcComponent->GetWorldPosition();
+
 			const float TileSize = ProcComponent->FoliageSpawner->TileSize;
-			const FVector TileSizeOffset(TileSize, TileSize, 0.f);
-			const FVector TileLocation = ProcComponent->GetWorldPosition();
-			const FVector OverlapV(ProcComponent->TileOverlap, ProcComponent->TileOverlap, 0.f);
+			const FVector TileSizeV(TileSize, TileSize, 0.f);
+
+			const float TileOverlap = ProcComponent->TileOverlap;
+			const FVector TileOverlapV(TileOverlap, TileOverlap, 0.f);
 			
-			int32 XOffset, YOffset;
-			int32 NumX = 0;
-			int32 NumY = 0;
-			float HalfHeight;
+			FTileLayout TileLayout;
+			ProcComponent->GetTileLayout(TileLayout);
 
-			ProcComponent->GetTilesLayout(XOffset, YOffset, NumX, NumY, HalfHeight);
-
-			for (int32 X = 0; X < NumX; ++X)
+			// Draw each tile
+			for (int32 X = 0; X < TileLayout.NumTilesX; ++X)
 			{
-				for (int32 Y = 0; Y < NumY; ++Y)
+				for (int32 Y = 0; Y < TileLayout.NumTilesY; ++Y)
 				{
 					const FVector StartOffset(X*TileSize, Y*TileSize, 0.f);
 					
-					const FBox BoxInner(TileLocation + StartOffset, TileLocation + StartOffset + TileSizeOffset);
+					// Draw the tile without overlap
+					const FBox BoxInner(TilesOrigin + StartOffset, TilesOrigin + StartOffset + TileSizeV);
 					DrawWireBox(PDI, BoxInner, ProcTileColor, SDPG_World);
 
-					const FBox BoxOuter = BoxInner + (BoxInner.Min - OverlapV) + (BoxInner.Max + OverlapV);
-					DrawWireBox(PDI, BoxOuter, ProcTileOverlapColor, SDPG_World);
+					if (TileOverlap != 0.f)
+					{
+						// Draw the tile expanded by the overlap amount
+						const FBox BoxOuter = BoxInner + (BoxInner.Min - TileOverlapV) + (BoxInner.Max + TileOverlapV);
+						DrawWireBox(PDI, BoxOuter, ProcTileOverlapColor, SDPG_World);
+					}
 				}
 			}
 			

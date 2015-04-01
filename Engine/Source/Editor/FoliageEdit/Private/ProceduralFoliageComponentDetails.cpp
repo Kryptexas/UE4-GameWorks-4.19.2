@@ -78,7 +78,7 @@ FReply FProceduralFoliageComponentDetails::OnResimulateClicked()
 
 			FScopedTransaction Transaction(NSLOCTEXT("ProceduralFoliageComponentDetails", "Resimulate_Transaction", "Procedural Foliage Simulation"));
 			TArray <FDesiredFoliageInstance> DesiredFoliageInstances;
-			if (Component->SpawnProceduralContent(DesiredFoliageInstances))
+			if (Component->GenerateProceduralContent(DesiredFoliageInstances))
 			{
 				FEdModeFoliage::AddInstances(Component->GetWorld(), DesiredFoliageInstances);
 
@@ -102,7 +102,7 @@ bool FProceduralFoliageComponentDetails::IsResimulateEnabled() const
 {
 	for(const TWeakObjectPtr<UProceduralFoliageComponent>& Component : SelectedComponents)
 	{
-		if(Component.IsValid() && Component->FoliageSpawner)
+		if(Component.IsValid() && Component->FoliageSpawner && Component->FoliageSpawner->GetTypes().Num() > 0)
 		{
 			return true;
 		}

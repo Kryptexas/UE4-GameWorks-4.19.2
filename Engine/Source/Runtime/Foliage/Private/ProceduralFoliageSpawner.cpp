@@ -130,11 +130,15 @@ const UProceduralFoliageTile* UProceduralFoliageSpawner::GetRandomTile(int32 X, 
 {
 	if (PrecomputedTiles.Num())
 	{
-		FRandomStream HashStream;	//using this as a hash function
+		// Random stream to use as a hash function
+		FRandomStream HashStream;	
+		
 		HashStream.Initialize(X);
 		const float XRand = HashStream.FRand();
+		
 		HashStream.Initialize(Y);
 		const float YRand = HashStream.FRand();
+		
 		const int32 RandomNumber = (RAND_MAX * XRand / (YRand + 0.01f));
 		const int32 Idx = FMath::Clamp(RandomNumber % PrecomputedTiles.Num(), 0, PrecomputedTiles.Num() - 1);
 		return PrecomputedTiles[Idx].Get();
@@ -175,17 +179,21 @@ void UProceduralFoliageSpawner::Simulate(int32 NumSteps)
 
 	for (int32 FutureIdx = 0; FutureIdx < Futures.Num(); ++FutureIdx)
 	{
-		while (Futures[FutureIdx].WaitFor(FTimespan(0, 0, 0, 0, 100)) == false)		//sleep for 100ms if not ready. Needed so cancel is responsive
+		// Sleep for 100ms if not ready. Needed so cancel is responsive.
+		while (Futures[FutureIdx].WaitFor(FTimespan(0, 0, 0, 0, 100)) == false)
 		{
 			GWarn->StatusUpdate(FutureIdx, TotalTasks, LOCTEXT("SimulateProceduralFoliage", "Simulate ProceduralFoliage..."));
-			if (GWarn->ReceivedUserCancel() && bCancelled == false)	//If the user wants to cancel just increment this. Tiles compare against the original count and cancel if needed
+
+			if (GWarn->ReceivedUserCancel() && bCancelled == false)
 			{
+				// Increment the thread-safe counter. Tiles compare against the original count and cancel if different.
 				LastCancel.Increment();
 				bCancelled = true;
 			}
 		}
 
-		PrecomputedTiles.Add(Futures[FutureIdx].Get());		//Even if we cancel we block until threads have exited safely to ensure memory isn't GCed
+		// Even if canceled, block until all threads have exited safely. This ensures memory isn't GC'd.
+		PrecomputedTiles.Add(Futures[FutureIdx].Get());		
 	}
 
 	GWarn->EndSlowTask();

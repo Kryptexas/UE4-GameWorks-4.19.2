@@ -29,20 +29,22 @@ class FOLIAGE_API UProceduralFoliageSpawner : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	/**The seed used for generating the randomness of the simulation. */
+	/** The seed used for generating the randomness of the simulation. */
 	UPROPERTY(Category = ProceduralFoliageSimulation, EditAnywhere, BlueprintReadOnly)
 	int32 RandomSeed;
 
-	/**Cm size of the tile along one axis. The tile is square so the total area is TileSize*TileSize */
+	/** Length of the tile (in cm) along one axis. The total area of the tile will be TileSize*TileSize. */
 	UPROPERTY(Category = ProceduralFoliageSimulation, EditAnywhere, BlueprintReadOnly)
 	float TileSize;
 
+	/** The number of unique tiles to generate. The final simulation is a procedurally determined combination of the various unique tiles. */
 	UPROPERTY(Category = ProceduralFoliageSimulation, EditAnywhere, BlueprintReadOnly)
 	int32 NumUniqueTiles;
 
 	FThreadSafeCounter LastCancel;
 
 private:
+	/** The types of foliage to procedurally spawn. */
 	UPROPERTY(Category = ProceduralFoliageSimulation, EditAnywhere)
 	TArray<FProceduralFoliageTypeData> Types;
 

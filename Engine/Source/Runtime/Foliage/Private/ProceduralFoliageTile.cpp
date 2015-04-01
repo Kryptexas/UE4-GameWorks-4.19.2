@@ -16,16 +16,15 @@ UProceduralFoliageTile::UProceduralFoliageTile(const FObjectInitializer& ObjectI
 
 bool UProceduralFoliageTile::HandleOverlaps(FProceduralFoliageInstance* Instance)
 {
-	//We now check what the instance overlaps. If any of its overlaps dominate we remove the instance and leave everything else alone.
-	//If the instance survives we mark all dominated overlaps as pending removal. They will be removed from the broadphase and will not spread seeds or age.
-	//Note that this introduces potential indeterminism! If the iteration order changes we could get different results. This is needed because it gives us huge performance savings.
-	//Note that if the underlying data structures stay the same (i.e. no core engine changes) this should not matter. This gives us short term determinism, but not long term.
+	// If the instance survives we mark all dominated overlaps as pending removal. They will be removed from the broadphase and will not spread seeds or age.
+	// Note that this introduces potential indeterminism! If the iteration order changes we could get different results. This is needed because it gives us huge performance savings.
+	// Note that if the underlying data structures stay the same (i.e. no core engine changes) this should not matter. This gives us short term determinism, but not long term.
 
 	bool bSurvived = true;
 	TArray<FProceduralFoliageOverlap> Overlaps;
 	Broadphase.GetOverlaps(Instance, Overlaps);
 
-	//Check if the instance survives
+	// Check if the instance survives
 	for (const FProceduralFoliageOverlap& Overlap : Overlaps)
 	{
 		FProceduralFoliageInstance* Dominated = FProceduralFoliageInstance::Domination(Overlap.A, Overlap.B, Overlap.OverlapType);
@@ -42,8 +41,11 @@ bool UProceduralFoliageTile::HandleOverlaps(FProceduralFoliageInstance* Instance
 		{
 			if (FProceduralFoliageInstance* Dominated = FProceduralFoliageInstance::Domination(Overlap.A, Overlap.B, Overlap.OverlapType))
 			{
-				check(Dominated != Instance);	//we shouldn't be here if we survived
-				MarkPendingRemoval(Dominated);	//We can't immediately remove because we're potentially iterating over existing instances.
+				// Should only be here if we didn't survive
+				check(Dominated != Instance);
+
+				//We can't immediately remove because we're potentially iterating over existing instances.
+				MarkPendingRemoval(Dominated);
 			}
 		}
 	}
@@ -69,8 +71,7 @@ FProceduralFoliageInstance* UProceduralFoliageTile::NewSeed(const FVector& Locat
 		NewInst->Scale = Scale;
 		NewInst->bBlocker = bBlocker;
 		
-	
-
+		// Add the seed if possible
 		Broadphase.Insert(NewInst);
 		const bool bSurvived = HandleOverlaps(NewInst);
 		return bSurvived ? NewInst : nullptr;
@@ -123,7 +124,7 @@ FVector UProceduralFoliageTile::GetSeedOffset(const UFoliageType_InstancedStatic
 void UProceduralFoliageTile::AgeSeeds()
 {
 	TArray<FProceduralFoliageInstance*> NewSeeds;
-	for (FProceduralFoliageInstance* Instance : Instances)
+	for (FProceduralFoliageInstance* Instance : InstancesSet)
 	{
 		if (UserCancelled()){ return; }
 		if (Instance->IsAlive())
@@ -137,6 +138,7 @@ void UProceduralFoliageTile::AgeSeeds()
 
 				const FVector Location = Instance->Location;
 
+				// Replace the current instance with the newly aged version
 				MarkPendingRemoval(Instance);
 				if (FProceduralFoliageInstance* Inst = NewSeed(Location, NewScale, Type, NewAge))
 				{
@@ -146,22 +148,25 @@ void UProceduralFoliageTile::AgeSeeds()
 		}
 	}
 
+	// Save all the newly created aged instances
 	for (FProceduralFoliageInstance* Seed : NewSeeds)
 	{
-		Instances.Add(Seed);
+		InstancesSet.Add(Seed);
 	}
 
+	// Get rid of the old younger versions
 	FlushPendingRemovals();
-	
 }
 
 void UProceduralFoliageTile::SpreadSeeds(TArray<FProceduralFoliageInstance*>& NewSeeds)
 {
-	for (FProceduralFoliageInstance* Inst : Instances)
+	for (FProceduralFoliageInstance* Inst : InstancesSet)
 	{
 		if (UserCancelled()){ return; }
-		if (Inst->IsAlive() == false)	//The instance has been killed so don't bother spreading seeds. Note this introduces potential indeterminism if the order of instance traversal changes (implementation details of TSet for example)
+		if (Inst->IsAlive() == false)
 		{
+			// The instance has been killed so don't bother spreading seeds. 
+			// Note this introduces potential indeterminism if the order of instance traversal changes (implementation details of TSet for example)
 			continue;
 		}
 
@@ -180,9 +185,9 @@ void UProceduralFoliageTile::SpreadSeeds(TArray<FProceduralFoliageInstance*>& Ne
 				if (GlobalOffset.SizeSquared2D() + SMALL_NUMBER > MinDistanceToClear*MinDistanceToClear)
 				{
 					const FVector NewLocation = GlobalOffset + Inst->Location;
-					if (FProceduralFoliageInstance* Inst = NewSeed(NewLocation, NewScale, Type, NewAge))
+					if (FProceduralFoliageInstance* NewInstance = NewSeed(NewLocation, NewScale, Type, NewAge))
 					{
-						NewSeeds.Add(Inst);
+						NewSeeds.Add(NewInstance);
 					}
 				}
 			}
@@ -321,7 +326,7 @@ void UProceduralFoliageTile::MarkPendingRemoval(FProceduralFoliageInstance* ToRe
 
 void UProceduralFoliageTile::RemoveInstances()
 {
-	for (FProceduralFoliageInstance* Inst : Instances)
+	for (FProceduralFoliageInstance* Inst : InstancesSet)
 	{
 		MarkPendingRemoval(Inst);
 	}
@@ -332,10 +337,11 @@ void UProceduralFoliageTile::RemoveInstances()
 
 void UProceduralFoliageTile::InstancesToArray()
 {
-	InstancesArray.Empty(Instances.Num());
-	for (FProceduralFoliageInstance* FromInst : Instances)
+	InstancesArray.Empty(InstancesSet.Num());
+	for (FProceduralFoliageInstance* FromInst : InstancesSet)
 	{
-		if (FromInst->bBlocker == false)	//blockers do not get instantiated so don't bother putting it into array
+		// Blockers do not get instantiated so don't bother putting it into array
+		if (FromInst->bBlocker == false)
 		{
 			new(InstancesArray)FProceduralFoliageInstance(*FromInst);
 		}
@@ -350,7 +356,7 @@ void UProceduralFoliageTile::RemoveInstance(FProceduralFoliageInstance* ToRemove
 		ToRemove->TerminateInstance();
 	}
 	
-	Instances.Remove(ToRemove);
+	InstancesSet.Remove(ToRemove);
 	delete ToRemove;
 }
 
@@ -394,13 +400,13 @@ void UProceduralFoliageTile::StepSimulation()
 
 	for (FProceduralFoliageInstance* Inst : NewInstances)
 	{
-		Instances.Add(Inst);
+		InstancesSet.Add(Inst);
 	}
 
 	FlushPendingRemovals();
 }
 
-void UProceduralFoliageTile::StartSimulation(const int32 MaxNumSteps, bool bShadeGrowth)
+void UProceduralFoliageTile::RunSimulation(const int32 MaxNumSteps, bool bShadeGrowth)
 {
 	int32 MaxSteps = 0;
 
@@ -434,8 +440,8 @@ void UProceduralFoliageTile::Simulate(const UProceduralFoliageSpawner* InFoliage
 	LastCancel = InLastCancel;
 	InitSimulation(InFoliageSpawner, RandomSeed);
 
-	StartSimulation(MaxNumSteps, false);
-	StartSimulation(MaxNumSteps, true);
+	RunSimulation(MaxNumSteps, false);
+	RunSimulation(MaxNumSteps, true);
 }
 
 
@@ -445,12 +451,14 @@ void UProceduralFoliageTile::BeginDestroy()
 	RemoveInstances();
 }
 
-void UProceduralFoliageTile::CreateInstancesToSpawn(TArray<FDesiredFoliageInstance>& OutInstances, const FTransform& WorldTM, const FGuid& ProceduralGuid, const float HalfHeight, const FBodyInstance* VolumeBodyInstance) const
+void UProceduralFoliageTile::ExtractDesiredInstances(TArray<FDesiredFoliageInstance>& OutInstances, const FTransform& WorldTM, const FGuid& ProceduralGuid, const float HalfHeight, const FBodyInstance* VolumeBodyInstance, bool bEmptyTileInfo)
 {
+	InstancesToArray();
+
 	const FCollisionQueryParams Params(true);
 	FHitResult Hit;
 
-	OutInstances.Reserve(Instances.Num());
+	OutInstances.Reserve(InstancesSet.Num());
 	for (const FProceduralFoliageInstance& Instance : InstancesArray)
 	{
 		FVector StartRay = Instance.Location + WorldTM.GetLocation();
@@ -466,6 +474,25 @@ void UProceduralFoliageTile::CreateInstancesToSpawn(TArray<FDesiredFoliageInstan
 		DesiredInst->ProceduralVolumeBodyInstance = VolumeBodyInstance;
 		DesiredInst->PlacementMode = EFoliagePlacementMode::Procedural;
 	}
+
+	if (bEmptyTileInfo)
+	{
+		Empty();
+	}
+}
+
+void UProceduralFoliageTile::CopyInstancesToTile(UProceduralFoliageTile* ToTile, const FBox2D& LocalAABB, const FTransform& RelativeTM, const float Overlap) const
+{
+	//@todo proc foliage: Would be better to use the max radius of any instances in the tile instead of overlap to define the outer AABB
+
+	TArray<FProceduralFoliageInstance*> InstancesIncludingOverlap;
+	const FBox2D OuterLocalAABB(LocalAABB.Min, LocalAABB.Max + Overlap);
+	
+	// Get all the instances in the outer AABB (so we include potential blockers)
+	GetInstancesInAABB(OuterLocalAABB, InstancesIncludingOverlap);
+
+
+	ToTile->AddInstances(InstancesIncludingOverlap, RelativeTM, LocalAABB);
 }
 
 void UProceduralFoliageTile::Empty()
@@ -473,19 +500,19 @@ void UProceduralFoliageTile::Empty()
 	Broadphase.Empty();
 	InstancesArray.Empty();
 	
-	for (FProceduralFoliageInstance* Inst : Instances)
+	for (FProceduralFoliageInstance* Inst : InstancesSet)
 	{
 		delete Inst;
 	}
 
-	Instances.Empty();
+	InstancesSet.Empty();
 	PendingRemovals.Empty();
 }
 
 SIZE_T UProceduralFoliageTile::GetResourceSize(EResourceSizeMode::Type Mode)
 {
 	SIZE_T TotalSize = 0;
-	for (FProceduralFoliageInstance* Inst : Instances)
+	for (FProceduralFoliageInstance* Inst : InstancesSet)
 	{
 		TotalSize += sizeof(FProceduralFoliageInstance);
 	}
@@ -495,44 +522,51 @@ SIZE_T UProceduralFoliageTile::GetResourceSize(EResourceSizeMode::Type Mode)
 }
 
 
-void UProceduralFoliageTile::GetInstancesInAABB(const FBox2D& LocalAABB, TArray<FProceduralFoliageInstance*>& OutInstances, bool bOnTheBorder) const
+void UProceduralFoliageTile::GetInstancesInAABB(const FBox2D& LocalAABB, TArray<FProceduralFoliageInstance*>& OutInstances, bool bFullyContainedOnly) const
 {
 	TArray<FProceduralFoliageInstance*> InstancesInAABB;
 	Broadphase.GetInstancesInBox(LocalAABB, InstancesInAABB);
 
 	OutInstances.Reserve(OutInstances.Num() + InstancesInAABB.Num());
 	for (FProceduralFoliageInstance* Inst : InstancesInAABB)
-{
+	{
 		const float Rad = Inst->GetMaxRadius();
 		const FVector& Location = Inst->Location;
 
-		if (bOnTheBorder || (Location.X - Rad >= LocalAABB.Min.X && Location.X + Rad <= LocalAABB.Max.X && Location.Y - Rad >= LocalAABB.Min.Y && Location.Y + Rad <= LocalAABB.Max.Y))
+		if (!bFullyContainedOnly || (Location.X - Rad >= LocalAABB.Min.X && Location.X + Rad <= LocalAABB.Max.X && Location.Y - Rad >= LocalAABB.Min.Y && Location.Y + Rad <= LocalAABB.Max.Y))
 		{
 			OutInstances.Add(Inst);
 		}
 	}
+
+	// Sort the instances by location.
+	// This protects us from any future modifications made to the broadphase that would impact the order in which instances are located in the AABB.
+	OutInstances.Sort([](const FProceduralFoliageInstance& A, const FProceduralFoliageInstance& B)
+	{
+		return (B.Location.X == A.Location.X) ? (B.Location.Y > A.Location.Y) : (B.Location.X > A.Location.X);
+	});
 }
 
 void UProceduralFoliageTile::AddInstances(const TArray<FProceduralFoliageInstance*>& NewInstances, const FTransform& RelativeTM, const FBox2D& InnerLocalAABB)
 {
 	for (const FProceduralFoliageInstance* Inst : NewInstances)
 	{
-		const FVector& Location = Inst->Location;	//we need the local space because we're comparing it to the AABB
-		//Instances in InnerLocalAABB or on the border of the max sides of the AABB will be visible and instantiated by this tile
-		//Instances outside of the InnerLocalAABB are only used for rejection purposes. This is needed for overlapping tiles
+		// We need the local space because we're comparing it to the AABB
+		const FVector& Location = Inst->Location;	
 		const float Radius = Inst->GetMaxRadius();
-		bool bBlocker = false;
-		if (Location.X + Radius <= InnerLocalAABB.Min.X || Location.X - Radius > InnerLocalAABB.Max.X || Location.Y + Radius <= InnerLocalAABB.Min.Y || Location.Y - Radius > InnerLocalAABB.Max.Y)
-		{
-			//Only used for blocking instances in case of overlap, a different tile will instantiate it
-			bBlocker = true;
-		}
+		
+		// Instances in InnerLocalAABB or on the border of the max sides of the AABB will be visible and instantiated by this tile
+		// Instances outside of the InnerLocalAABB are only used for rejection purposes. This is needed for overlapping tiles
+		// The actual instantiation of the object will be taken care of by a different tile
+		const bool bIsOutsideInnerLocalAABB = Location.X + Radius <= InnerLocalAABB.Min.X
+											|| Location.X - Radius > InnerLocalAABB.Max.X
+											|| Location.Y + Radius <= InnerLocalAABB.Min.Y
+											|| Location.Y - Radius > InnerLocalAABB.Max.Y;
 
 		const FVector NewLocation = RelativeTM.TransformPosition(Inst->Location);
-		if (FProceduralFoliageInstance* NewInst = NewSeed(NewLocation, Inst->Scale, Inst->Type, Inst->Age, bBlocker))
-		{
-			
-			Instances.Add(NewInst);
+		if (FProceduralFoliageInstance* NewInst = NewSeed(NewLocation, Inst->Scale, Inst->Type, Inst->Age, bIsOutsideInnerLocalAABB))
+		{			
+			InstancesSet.Add(NewInst);
 		}
 	}
 
