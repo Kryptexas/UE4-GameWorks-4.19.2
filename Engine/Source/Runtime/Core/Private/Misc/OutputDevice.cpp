@@ -361,18 +361,17 @@ void VARARGS FDebug::AssertFailed(const ANSICHAR* Expr, const ANSICHAR* File, in
 }
 
 #if DO_CHECK || DO_GUARD_SLOW
-bool VARARGS FDebug::EnsureNotFalseFormatted( bool bExpressionResult, const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* FormattedMsg, ... )
+bool VARARGS FDebug::OptionallyLogFormattedEnsureMessageReturningFalse( bool bLog, const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* FormattedMsg, ... )
 {
-	const int32 TempStrSize = 4096;
-	TCHAR TempStr[ TempStrSize ];
-	GET_VARARGS( TempStr, TempStrSize, TempStrSize - 1, FormattedMsg, FormattedMsg );
-
-	if( bExpressionResult == 0 )
+	if (bLog)
 	{
+		const int32 TempStrSize = 4096;
+		TCHAR TempStr[ TempStrSize ];
+		GET_VARARGS( TempStr, TempStrSize, TempStrSize - 1, FormattedMsg, FormattedMsg );
 		EnsureFailed( Expr, File, Line, TempStr );
 	}
 	
-	return bExpressionResult;
+	return false;
 }
 #endif
 

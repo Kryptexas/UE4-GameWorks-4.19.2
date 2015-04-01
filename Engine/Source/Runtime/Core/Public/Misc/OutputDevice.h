@@ -399,40 +399,17 @@ struct CORE_API FDebug
 	static void EnsureFailed( const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Msg );
 
 	/**
-	 * Triggers a (potentially) non-fatal, non-intrusive error if bExpressionResult is zero
+	 * Logs an error if bLog is true, and returns false.  Takes a formatted string.
 	 *
-	 * @param	bExpressionResult	Expression that will trigger an error if resolves to zero
-	 * @param	Expr	Code expression ANSI string (#code)
-	 * @param	File	File name ANSI string (__FILE__)
-	 * @param	Line	Line number (__LINE__)
-	 * @param	Msg		Optional informative error message text
-	 */
-    static FORCEINLINE bool EnsureNotFalse( bool bExpressionResult, const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Msg = TEXT( "" ) )
-	{
-	    if( bExpressionResult == 0 )
-	    {
-			EnsureFailed(Expr, File, Line, Msg);
-			if (!FPlatformMisc::IsDebuggerPresent())
-			{
-				FPlatformMisc::PromptForRemoteDebugging(false);
-			}
-
-			FPlatformMisc::DebugBreak();
-	    }
-    
-    	return bExpressionResult;
-	}
-
-	/**
-	 * Triggers a (potentially) non-fatal, non-intrusive error if bExpressionResult is zero.  Takes a formatted string.
-	 *
-	 * @param	bExpressionResult	Expression that will trigger an error if resolves to zero
+	 * @param	bLog	Log if true.
 	 * @param	Expr	Code expression ANSI string (#code)
 	 * @param	File	File name ANSI string (__FILE__)
 	 * @param	Line	Line number (__LINE__)
 	 * @param	FormattedMsg	Informative error message text with variable args
+	 *
+	 * @return false in all cases.
 	 */
-	static bool VARARGS EnsureNotFalseFormatted(bool bExpressionResult, const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* FormattedMsg, ...);
+	static bool VARARGS OptionallyLogFormattedEnsureMessageReturningFalse(bool bLog, const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* FormattedMsg, ...);
 #endif // DO_CHECK || DO_GUARD_SLOW
 };
 

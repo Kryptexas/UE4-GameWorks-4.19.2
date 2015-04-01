@@ -3,6 +3,7 @@
 #pragma once
 
 #include "HAL/Platform.h"
+#include "HAL/PlatformMisc.h"
 #include "Misc/Build.h"
 
 
@@ -112,22 +113,42 @@
 
 #if DO_CHECK && !USING_CODE_ANALYSIS // The Visual Studio 2013 analyzer doesn't understand these complex conditionals
 
-	#define ensure( InExpression ) \
-		FDebug::EnsureNotFalse( ( ( InExpression ) != 0 ), #InExpression, __FILE__, __LINE__ )
+	namespace UE4Asserts_Private
+	{
+		// This is used by ensureOnce to generate a bool per instance
+		// by passing a lambda which will uniquely instantiate the template.
+		template <typename Type>
+		bool TrueOnFirstCallOnly(const Type&)
+		{
+			static bool bValue = true;
+			bool Result = bValue;
+			bValue = false;
+			return Result;
+		}
 
-	#define ensureMsg( InExpression, InMsg ) \
-		(((InExpression) == 0) ? FDebug::EnsureNotFalse(false, #InExpression, __FILE__, __LINE__, InMsg ) : true)
+		FORCEINLINE bool OptionallyDebugBreakAndPromptForRemoteReturningFalse(bool bBreak)
+		{
+			if (bBreak)
+			{
+				FPlatformMisc::DebugBreakAndPromptForRemoteReturningFalse();
+			}
+			return false;
+		}
+	}
 
-	#define ensureMsgf( InExpression, InFormat, ... ) \
-		(((InExpression) == 0) ? ( FDebug::EnsureNotFalseFormatted(false, #InExpression, __FILE__, __LINE__, InFormat, ##__VA_ARGS__ ) || FPlatformMisc::DebugBreakAndPromptForRemoteReturningFalse()) : true)
+	#define ensure(         InExpression                ) ((InExpression) != 0 || FDebug::OptionallyLogFormattedEnsureMessageReturningFalse(true,                                          #InExpression, __FILE__, __LINE__, TEXT("")               ) || FPlatformMisc::DebugBreakAndPromptForRemoteReturningFalse())
+	#define ensureMsg(      InExpression, InMsg         ) ((InExpression) != 0 || FDebug::OptionallyLogFormattedEnsureMessageReturningFalse(true,                                          #InExpression, __FILE__, __LINE__, InMsg                  ) || FPlatformMisc::DebugBreakAndPromptForRemoteReturningFalse())
+	#define ensureMsgf(     InExpression, InFormat, ... ) ((InExpression) != 0 || FDebug::OptionallyLogFormattedEnsureMessageReturningFalse(true,                                          #InExpression, __FILE__, __LINE__, InFormat, ##__VA_ARGS__) || FPlatformMisc::DebugBreakAndPromptForRemoteReturningFalse())
+	#define ensureOnce(     InExpression                ) ((InExpression) != 0 || FDebug::OptionallyLogFormattedEnsureMessageReturningFalse(UE4Asserts_Private::TrueOnFirstCallOnly([]{}), #InExpression, __FILE__, __LINE__, TEXT("")               ) || UE4Asserts_Private::OptionallyDebugBreakAndPromptForRemoteReturningFalse(UE4Asserts_Private::TrueOnFirstCallOnly([]{})))
+	#define ensureOnceMsgf( InExpression, InFormat, ... ) ((InExpression) != 0 || FDebug::OptionallyLogFormattedEnsureMessageReturningFalse(UE4Asserts_Private::TrueOnFirstCallOnly([]{}), #InExpression, __FILE__, __LINE__, InFormat, ##__VA_ARGS__) || UE4Asserts_Private::OptionallyDebugBreakAndPromptForRemoteReturningFalse(UE4Asserts_Private::TrueOnFirstCallOnly([]{})))
 
 #else	// DO_CHECK
 
-	#define ensure( InExpression ) ( ( InExpression ) != 0 )
-
-	#define ensureMsg( InExpression, InMsg ) ( ( InExpression ) != 0 )
-
-	#define ensureMsgf( InExpression, InFormat, ... ) ( ( InExpression ) != 0 )
+	#define ensure(         InExpression                ) ((InExpression) != 0)
+	#define ensureMsg(      InExpression, InMsg         ) ((InExpression) != 0)
+	#define ensureMsgf(     InExpression, InFormat, ... ) ((InExpression) != 0)
+	#define ensureOnce(     InExpression                ) ((InExpression) != 0)
+	#define ensureOnceMsgf( InExpression, InFormat, ... ) ((InExpression) != 0)
 
 #endif	// DO_CHECK
 
