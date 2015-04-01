@@ -1583,7 +1583,7 @@ public class GUBP : BuildCommand
         public override int CISFrequencyQuantumShift(GUBP bp)
         {            
             int Result = base.CISFrequencyQuantumShift(bp);
-            if(GameProj.GameName != bp.Branch.BaseEngineProject.GameName)
+            if(GameProj.GameName != bp.Branch.BaseEngineProject.GameName || !Precompiled)
             {
                 Result += 3; //only every 80m
             }
