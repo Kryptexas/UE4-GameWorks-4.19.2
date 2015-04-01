@@ -1,0 +1,140 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+#include "AIModulePrivate.h"
+#include "EnvQueryTraceHelpers.h"
+
+void FEQSHelpers::RunNavRaycasts(ANavigationData* NavData, const FEnvTraceData& TraceData, const FVector& SourcePt, TArray<FNavLocation>& Points, ETraceMode TraceMode)
+{
+	TSharedPtr<const FNavigationQueryFilter> NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavData, TraceData.NavigationFilter);
+
+	TArray<FNavigationRaycastWork> RaycastWorkload;
+	RaycastWorkload.Reserve(Points.Num());
+
+	for (const auto& ItemLocation : Points)
+	{
+		RaycastWorkload.Add(FNavigationRaycastWork(SourcePt, ItemLocation.Location));
+	}
+
+	NavData->BatchRaycast(RaycastWorkload, NavigationFilter);
+
+	for (int32 Idx = 0; Idx < Points.Num(); Idx++)
+	{
+		Points[Idx] = RaycastWorkload[Idx].HitLocation;
+	}
+
+	if (TraceMode == ETraceMode::Discard)
+	{
+		for (int32 Idx = Points.Num() - 1; Idx >= 0; Idx++)
+		{
+			if (!RaycastWorkload[Idx].bDidHit)
+			{
+				Points.RemoveAt(Idx, 1, false);
+			}
+		}
+	}
+}
+
+void FEQSHelpers::RunNavProjection(ANavigationData* NavData, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, ETraceMode TraceMode)
+{
+	TSharedPtr<const FNavigationQueryFilter> NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavData, TraceData.NavigationFilter);
+	TArray<FNavigationProjectionWork> Workload;
+	Workload.Reserve(Points.Num());
+
+	if (TraceData.ProjectDown == TraceData.ProjectUp)
+	{
+		for (const auto& Point : Points)
+		{
+			Workload.Add(FNavigationProjectionWork(Point.Location));
+		}
+	}
+	else
+	{
+		const FVector VerticalOffset = FVector(0, 0, (TraceData.ProjectUp - TraceData.ProjectDown) / 2);
+		for (const auto& Point : Points)
+		{
+			Workload.Add(FNavigationProjectionWork(Point.Location + VerticalOffset));
+		}
+	}
+
+	const FVector ProjectionExtent(TraceData.ExtentX, TraceData.ExtentX, (TraceData.ProjectDown + TraceData.ProjectUp) / 2);
+	NavData->BatchProjectPoints(Workload, ProjectionExtent, NavigationFilter);
+
+	for (int32 Idx = Workload.Num() - 1; Idx >= 0; Idx--)
+	{
+		if (Workload[Idx].bResult)
+		{
+			Points[Idx] = Workload[Idx].OutLocation;
+			Points[Idx].Location.Z += TraceData.PostProjectionVerticalOffset;
+		}
+		else if (TraceMode == ETraceMode::Discard)
+		{
+			Points.RemoveAt(Idx, 1, false);
+		}
+	}
+}
+
+void FEQSHelpers::RunPhysRaycasts(UWorld* World, const FEnvTraceData& TraceData, const FVector& SourcePt, TArray<FNavLocation>& Points, ETraceMode TraceMode)
+{
+	ECollisionChannel TraceCollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceData.TraceChannel);
+	FVector TraceExtent(TraceData.ExtentX, TraceData.ExtentY, TraceData.ExtentZ);
+
+	FCollisionQueryParams TraceParams(TEXT("EnvQueryTrace"), TraceData.bTraceComplex);
+	TraceParams.bTraceAsyncScene = true;
+
+	FBatchTrace BatchOb(World, TraceCollisionChannel, TraceParams, TraceExtent, TraceMode);
+
+	switch (TraceData.TraceShape)
+	{
+	case EEnvTraceShape::Line:
+		BatchOb.DoSingleSourceMultiDestinations<EEnvTraceShape::Line>(SourcePt, Points);
+		break;
+
+	case EEnvTraceShape::Sphere:
+		BatchOb.DoSingleSourceMultiDestinations<EEnvTraceShape::Sphere>(SourcePt, Points);
+		break;
+
+	case EEnvTraceShape::Capsule:
+		BatchOb.DoSingleSourceMultiDestinations<EEnvTraceShape::Capsule>(SourcePt, Points);
+		break;
+
+	case EEnvTraceShape::Box:
+		BatchOb.DoSingleSourceMultiDestinations<EEnvTraceShape::Box>(SourcePt, Points);
+		break;
+
+	default:
+		break;
+	}
+}
+
+void FEQSHelpers::RunPhysProjection(UWorld* World, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, ETraceMode TraceMode)
+{
+	ECollisionChannel TraceCollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceData.TraceChannel);
+	FVector TraceExtent(TraceData.ExtentX, TraceData.ExtentY, TraceData.ExtentZ);
+
+	FCollisionQueryParams TraceParams(TEXT("EnvQueryTrace"), TraceData.bTraceComplex);
+	TraceParams.bTraceAsyncScene = true;
+
+	FBatchTrace BatchOb(World, TraceCollisionChannel, TraceParams, TraceExtent, TraceMode);
+
+	switch (TraceData.TraceShape)
+	{
+	case EEnvTraceShape::Line:
+		BatchOb.DoProject<EEnvTraceShape::Line>(Points, TraceData.ProjectUp, -TraceData.ProjectDown, TraceData.PostProjectionVerticalOffset);
+		break;
+
+	case EEnvTraceShape::Sphere:
+		BatchOb.DoProject<EEnvTraceShape::Sphere>(Points, TraceData.ProjectUp, -TraceData.ProjectDown, TraceData.PostProjectionVerticalOffset);
+		break;
+
+	case EEnvTraceShape::Capsule:
+		BatchOb.DoProject<EEnvTraceShape::Capsule>(Points, TraceData.ProjectUp, -TraceData.ProjectDown, TraceData.PostProjectionVerticalOffset);
+		break;
+
+	case EEnvTraceShape::Box:
+		BatchOb.DoProject<EEnvTraceShape::Box>(Points, TraceData.ProjectUp, -TraceData.ProjectDown, TraceData.PostProjectionVerticalOffset);
+		break;
+
+	default:
+		break;
+	}
+}
