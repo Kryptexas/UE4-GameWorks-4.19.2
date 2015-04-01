@@ -151,7 +151,7 @@ void FVisualLogger::SetIsRecordingToFile(bool InIsRecording)
 		SetIsRecording(true);
 	}
 
-	UWorld* World = GEngine->GetWorld();
+	UWorld* World = GEngine ? GEngine->GetWorld() : NULL;
 
 	const FString BaseFileName = LogFileNameGetter.IsBound() ? LogFileNameGetter.Execute() : TEXT("VisualLog");
 	const FString MapName = World ? World->GetMapName() : TEXT("");
