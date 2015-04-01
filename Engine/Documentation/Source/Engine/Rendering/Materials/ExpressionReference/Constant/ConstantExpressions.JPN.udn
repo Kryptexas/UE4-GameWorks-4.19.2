@@ -166,7 +166,7 @@ Time ノードは、 [Panner](Engine/Rendering/Materials/ExpressionReference/Coo
 | -------- | ----------- |
 | [REGION:tablesection]プロパティ[/REGION] ||
 | **Ignore Pause** | _true_ の場合、ゲームが一時中断されても時間は経過します。|
-| **Period** | _true_ の場合、 タイムをラップする量となります。Mobile マテリアル上では、フル精度で CPU の Period 演算を行います。GPU 上では、ハーフ精度で実行します (継続時間が 1 分を超えると問題が発生する可能性があります)。 |
+| **Period** | _true_ の場合、 タイムをラップする量となります。Mobile マテリアル上では、単精度で CPU の Period 演算を行います。GPU 上では、半精度で実行します (継続時間が 1 分を超えると問題が発生する可能性があります)。 |
 
 [REGION:fullwidth]
 ![TimeExample.png](TimeExample.png)
