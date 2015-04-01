@@ -60,9 +60,9 @@ More control information can be found within the plug-in's read me. However some
 ![QTFBX_OpenedFBX.png](QTFBX_OpenedFBX.png)
 
 
-* **Rotating the camera** - Mouse **left-click** and hold within the view port. Dragging the mouse around will rotate the camera.
-* **Panning the camera** - Hold the **Shift** key, and then mouse **left-click** and hold within the view port. Dragging the mouse around will pan the camera.
-* **Zooming the camera** - Hold the **Z** key, and then mouse **left-click** and hold within the view port. Dragging the mouse forward and backwards will zoom the camera.
+* **Rotating the camera** - Mouse **left-click** and hold within the viewport. Dragging the mouse around will rotate the camera.
+* **Panning the camera** - Hold the **Shift** key, and then mouse **left-click** and hold within the viewport. Dragging the mouse around will pan the camera.
+* **Zooming the camera** - Hold the **Z** key, and then mouse **left-click** and hold within the viewport. Dragging the mouse forward and backwards will zoom the camera.
 * **Cycling between camera views** - Press the **C** key to switch between camera view modes.
 * **Getting more help** - Press the **H** key to bring up more help options.
 
