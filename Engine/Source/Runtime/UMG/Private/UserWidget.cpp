@@ -860,6 +860,8 @@ void UUserWidget::PostLoad()
 {
 	Super::PostLoad();
 
+#if WITH_EDITORONLY_DATA
+
 	if ( GetLinkerUE4Version() < VER_UE4_DEPRECATE_USER_WIDGET_DESIGN_SIZE )
 	{
 		if ( bUseDesignTimeSize_DEPRECATED )
@@ -871,6 +873,8 @@ void UUserWidget::PostLoad()
 			DesignSizeMode = EDesignPreviewSizeMode::Desired;
 		}
 	}
+
+#endif
 }
 
 /////////////////////////////////////////////////////
