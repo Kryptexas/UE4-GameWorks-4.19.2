@@ -936,6 +936,30 @@ public:
 	void Register();
 };
 
+/** Wrapper for values to be stored in TLS that support auto-cleanup. */
+template< class T >
+class TTlsAutoCleanupValue
+	: public FTlsAutoCleanup
+{
+public:
+
+	/** Constructor. */
+	TTlsAutoCleanupValue(const T& InValue)
+		: Value(InValue)
+	{ }
+
+	/** Gets the value. */
+	T Get() const
+	{
+		return Value;
+	}
+
+private:
+
+	/** The value. */
+	T Value;
+};
+
 /**
  * Thread singleton initializer.
  */
