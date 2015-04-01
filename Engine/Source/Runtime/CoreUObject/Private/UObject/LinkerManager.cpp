@@ -3,9 +3,6 @@
 /*=============================================================================
 	LinkerManager.h: Unreal object linker manager
 =============================================================================*/
-
-#pragma once
-
 #include "CoreUObjectPrivate.h"
 #include "LinkerManager.h"
 
