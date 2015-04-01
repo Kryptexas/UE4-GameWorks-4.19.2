@@ -277,7 +277,7 @@ FComponentKey UInheritableComponentHandler::FindKey(const FName VariableName) co
 {
 	for (const FComponentOverrideRecord& Record : Records)
 	{
-		if (Record.ComponentKey.VariableName == VariableName)
+		if (Record.ComponentKey.VariableName == VariableName || (Record.ComponentTemplate && Record.ComponentTemplate->GetFName() == VariableName))
 		{
 			return Record.ComponentKey;
 		}
