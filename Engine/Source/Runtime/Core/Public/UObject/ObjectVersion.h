@@ -488,6 +488,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_TRACK_UCS_MODIFIED_PROPERTIES,
 	// Allowed landscape spline meshes to be stored into landscape streaming levels rather than the spline's level
 	VER_UE4_LANDSCAPE_SPLINE_CROSS_LEVEL_MESHES,
+	// Deprecate the variables used for sizing in the designer on UUserWidget
+	VER_UE4_DEPRECATE_USER_WIDGET_DESIGN_SIZE,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

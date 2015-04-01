@@ -116,6 +116,20 @@ namespace EUMGSequencePlayMode
 	};
 }
 
+#if WITH_EDITORONLY_DATA
+
+UENUM()
+enum class EDesignPreviewSizeMode : uint8
+{
+	FillScreen,
+	Custom,
+	CustomOnScreen,
+	Desired,
+	DesiredOnScreen,
+};
+
+#endif
+
 //TODO UMG If you want to host a widget that's full screen there may need to be a SWindow equivalent that you spawn it into.
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnConstructEvent);
@@ -137,6 +151,7 @@ public:
 	virtual void PostEditImport() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	virtual void BeginDestroy() override;
+	virtual void PostLoad() override;
 	// End of UObject interface
 
 	void Initialize();
@@ -755,7 +770,7 @@ public:
 	UPROPERTY()
 	FGetSlateColor ForegroundColorDelegate;
 
-	/** Called when the visibility changes. */
+	/** Setting this flag to true, allows this widget to accept focus when clicked, or when navigated to. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category="Behavior")
 	bool bSupportsKeyboardFocus;
 
@@ -783,11 +798,14 @@ public:
 
 	/** A flag that determines if the design time size is used for previewing the widget in the designer. */
 	UPROPERTY()
-	bool bUseDesignTimeSize;
+	bool bUseDesignTimeSize_DEPRECATED;
 
 	/** A flag that determines if the widget's desired size is used for previewing the widget in the designer. */
 	UPROPERTY()
-	bool bUseDesiredSizeAtDesignTime;
+	bool bUseDesiredSizeAtDesignTime_DEPRECATED;
+
+	UPROPERTY()
+	EDesignPreviewSizeMode DesignSizeMode;
 
 	/** The category this widget appears in the palette. */
 	UPROPERTY()
@@ -845,6 +863,12 @@ protected:
 	virtual FReply NativeOnTouchMoved( const FGeometry& InGeometry, const FPointerEvent& InGestureEvent );
 	virtual FReply NativeOnTouchEnded( const FGeometry& InGeometry, const FPointerEvent& InGestureEvent );
 	virtual FReply NativeOnMotionDetected( const FGeometry& InGeometry, const FMotionEvent& InMotionEvent );
+
+protected:
+	/**
+	 * Ticks the active sequences and latent actions that have been scheduled for this Widget.
+	 */
+	void TickActionsAndAnimation(const FGeometry& MyGeometry, float InDeltaTime);
 
 private:
 	FAnchors ViewportAnchors;

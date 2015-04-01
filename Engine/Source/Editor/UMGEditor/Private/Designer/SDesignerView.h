@@ -81,10 +81,18 @@ private:
 	void SetStartupResolution();
 
 	/** The width of the preview screen for the UI */
-	FOptionalSize GetPreviewWidth() const;
+	FOptionalSize GetPreviewAreaWidth() const;
 
 	/** The height of the preview screen for the UI */
-	FOptionalSize GetPreviewHeight() const;
+	FOptionalSize GetPreviewAreaHeight() const;
+
+	/** The width of the preview widget for the UI */
+	FOptionalSize GetPreviewSizeWidth() const;
+
+	/** The height of the preview widget for the UI */
+	FOptionalSize GetPreviewSizeHeight() const;
+
+	void GetPreviewAreaAndSize(FVector2D& Area, FVector2D& Size) const;
 
 	/** Gets the DPI scale that would be applied given the current preview width and height */
 	float GetPreviewDPIScale() const;
@@ -140,11 +148,13 @@ private:
 	void HandleOnCommonResolutionSelected(int32 Width, int32 Height, FString AspectRatio);
 	bool HandleIsCommonResolutionSelected(int32 Width, int32 Height) const;
 	void AddScreenResolutionSection(FMenuBuilder& MenuBuilder, const TArray<FPlayScreenResolution>& Resolutions, const FText& SectionName);
-	bool HandleIsCustomResolutionSelected() const;
-	void HandleOnCustomResolutionSelected();
-	bool HandleIsDesiredSizeSelected() const;
-	void HandleOnDesiredSizeSelected();
-	TSharedRef<SWidget> GetAspectMenu();
+	TSharedRef<SWidget> GetResolutionsMenu();
+
+	TSharedRef<SWidget> GetScreenSizingFillMenu();
+	void CreateScreenFillEntry(FMenuBuilder& MenuBuilder, EDesignPreviewSizeMode SizeMode);
+	FText GetScreenSizingFillText() const;
+	bool GetIsScreenFillRuleSelected(EDesignPreviewSizeMode SizeMode) const;
+	void OnScreenFillRuleSelected(EDesignPreviewSizeMode SizeMode);
 
 	EVisibility PIENotification() const;
 
@@ -220,6 +230,8 @@ private:
 	UPanelWidget* DropPreviewParent;
 
 	TSharedPtr<class SZoomPan> PreviewHitTestRoot;
+	TSharedPtr<SBox> PreviewAreaConstraint;
+	TSharedPtr<SBox> PreviewSizeConstraint;
 	TSharedPtr<SDPIScaler> PreviewSurface;
 	TSharedPtr<SCanvas> ExtensionWidgetCanvas;
 	TSharedPtr<SPaintSurface> EffectsLayer;

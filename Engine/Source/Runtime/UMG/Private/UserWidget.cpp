@@ -26,9 +26,11 @@ UUserWidget::UUserWidget(const FObjectInitializer& ObjectInitializer)
 	ForegroundColor = FSlateColor::UseForeground();
 
 #if WITH_EDITORONLY_DATA
-	bUseDesignTimeSize = false;
+	bUseDesignTimeSize_DEPRECATED = false;
+	bUseDesiredSizeAtDesignTime_DEPRECATED = false;
 	DesignTimeSize = FVector2D(100, 100);
 	PaletteCategory = LOCTEXT("UserCreated", "User Created");
+	DesignSizeMode = EDesignPreviewSizeMode::FillScreen;
 #endif
 }
 
@@ -684,6 +686,18 @@ void UUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	GInitRunaway();
 
+	TickActionsAndAnimation(MyGeometry, InDeltaTime);
+
+	Tick(MyGeometry, InDeltaTime);
+}
+
+void UUserWidget::TickActionsAndAnimation(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	if ( bDesignTime )
+	{
+		return;
+	}
+
 	// Update active movie scenes
 	for ( UUMGSequencePlayer* Player : ActiveSequencePlayers )
 	{
@@ -698,18 +712,13 @@ void UUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 
 	StoppedSequencePlayers.Empty();
 
-	if ( !bDesignTime )
+	UWorld* World = GetWorld();
+	if ( World )
 	{
-		UWorld* World = GetWorld();
-		if ( World )
-		{
-			// Update any latent actions we have for this actor
-			FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
-			LatentActionManager.ProcessLatentActions(this, InDeltaTime);
-		}
+		// Update any latent actions we have for this actor
+		FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
+		LatentActionManager.ProcessLatentActions(this, InDeltaTime);
 	}
-
-	Tick(MyGeometry, InDeltaTime);
 }
 
 void UUserWidget::NativePaint( FPaintContext& InContext ) const 
@@ -845,6 +854,23 @@ FReply UUserWidget::NativeOnTouchEnded( const FGeometry& InGeometry, const FPoin
 FReply UUserWidget::NativeOnMotionDetected( const FGeometry& InGeometry, const FMotionEvent& InMotionEvent )
 {
 	return OnMotionDetected( InGeometry, InMotionEvent ).NativeReply;
+}
+
+void UUserWidget::PostLoad()
+{
+	Super::PostLoad();
+
+	if ( GetLinkerUE4Version() < VER_UE4_DEPRECATE_USER_WIDGET_DESIGN_SIZE )
+	{
+		if ( bUseDesignTimeSize_DEPRECATED )
+		{
+			DesignSizeMode = EDesignPreviewSizeMode::Custom;
+		}
+		else if ( bUseDesiredSizeAtDesignTime_DEPRECATED )
+		{
+			DesignSizeMode = EDesignPreviewSizeMode::Desired;
+		}
+	}
 }
 
 /////////////////////////////////////////////////////
