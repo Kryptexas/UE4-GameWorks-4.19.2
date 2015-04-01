@@ -415,7 +415,7 @@ bool FDesktopPlatformBase::CompileGameProject(const FString& RootDir, const FStr
 	}
 
 	// Append the Rocket flag
-	if(!IsSourceDistribution(RootDir))
+	if(!IsSourceDistribution(RootDir) || FRocketSupport::IsRocket())
 	{
 		Arguments += TEXT(" -rocket");
 	}
