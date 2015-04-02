@@ -112,7 +112,7 @@ Creating a Material can be accomplished in a few different ways, the quickest wa
 
 ### Creating a New Material
 
-In this section we'll take a look at how we can create a brand new Material from scratch. 
+In this section, we will take a look at how we can create a brand new Material from scratch. 
 
 To create a new Material:
 
@@ -214,7 +214,7 @@ Using the two textures you imported earlier or any other textures you happened t
 
 	![](Engine/Content/QuickStart/5/allNodesConnectedNoVal.png)
 
-1. You can now adjust the values of each of the **Constants** by selecting them and changing the **Value** parameter in the **Details** Panel.
+1. You can now adjust the values of each of the **Constants** by selecting them and changing the **Value** parameter in the **Details** panel.
 
 	* Metallic/Specular Value = 0.0
 	* Roughness Value = 0.8
