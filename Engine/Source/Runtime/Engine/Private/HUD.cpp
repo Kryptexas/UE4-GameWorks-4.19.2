@@ -577,6 +577,30 @@ void AHUD::RemoveAllDebugStrings_Implementation()
 	DebugTextList.Empty();
 }
 
+void AHUD::NotifyHitBoxClick(FName BoxName)
+{
+	// dispatch BP event
+	ReceiveHitBoxClick(BoxName);
+}
+
+void AHUD::NotifyHitBoxRelease(FName BoxName)
+{
+	// dispatch BP event
+	ReceiveHitBoxRelease(BoxName);
+}
+
+void AHUD::NotifyHitBoxBeginCursorOver(FName BoxName)
+{
+	// dispatch BP event
+	ReceiveHitBoxBeginCursorOver(BoxName);
+}
+
+void AHUD::NotifyHitBoxEndCursorOver(FName BoxName)
+{
+	// dispatch BP event
+	ReceiveHitBoxEndCursorOver(BoxName);
+}
+
 void AHUD::GetTextSize(const FString& Text, float& OutWidth, float& OutHeight, class UFont* Font, float Scale) const
 {
 	if (IsCanvasValid_WarnIfNot())
@@ -860,7 +884,7 @@ void AHUD::UpdateHitBoxCandidates( TArray<FVector2D> InContactPoints )
 	for (auto It = NotOverHitBoxes.CreateConstIterator(); It; ++It)
 	{
 		const FName HitBoxName = *It;
-		ReceiveHitBoxEndCursorOver(HitBoxName);
+		NotifyHitBoxEndCursorOver(HitBoxName);
 		HitBoxesOver.Remove(HitBoxName);
 	}
 
@@ -868,7 +892,7 @@ void AHUD::UpdateHitBoxCandidates( TArray<FVector2D> InContactPoints )
 	for (int32 OverIndex = 0; OverIndex < NewlyOverHitBoxes.Num(); ++OverIndex)
 	{
 		const FName HitBoxName = NewlyOverHitBoxes[OverIndex];
-		ReceiveHitBoxBeginCursorOver(HitBoxName);
+		NotifyHitBoxBeginCursorOver(HitBoxName);
 		HitBoxesOver.Add(HitBoxName);
 	}
 }
@@ -934,7 +958,7 @@ bool AHUD::UpdateAndDispatchHitBoxClickEvents(FVector2D ClickLocation, const EIn
 			{
 				bHit = true;
 
-				ReceiveHitBoxClick(HitBox.GetName());
+				NotifyHitBoxClick(HitBox.GetName());
 
 				if (HitBox.ConsumesInput())
 				{
@@ -953,7 +977,7 @@ bool AHUD::UpdateAndDispatchHitBoxClickEvents(FVector2D ClickLocation, const EIn
 
 				if (InEventType == IE_Released)
 				{
-					ReceiveHitBoxRelease(HitBoxHit->GetName());
+					NotifyHitBoxRelease(HitBoxHit->GetName());
 				}
 
 				if (HitBoxHit->ConsumesInput() == true)
