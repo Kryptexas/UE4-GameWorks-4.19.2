@@ -38,7 +38,7 @@ void UPhysicsSettings::PostInitProperties()
 
 	if (LockedAxis_DEPRECATED == static_cast<ESettingsLockedAxis::Type>(-1))
 	{
-		LockedAxis_DEPRECATED == ESettingsLockedAxis::Invalid;
+		LockedAxis_DEPRECATED = ESettingsLockedAxis::Invalid;
 	}
 
 	if (LockedAxis_DEPRECATED != ESettingsLockedAxis::Invalid)
