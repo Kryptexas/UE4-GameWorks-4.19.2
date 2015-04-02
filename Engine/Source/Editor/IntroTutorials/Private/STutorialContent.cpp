@@ -675,8 +675,7 @@ void STutorialContent::HandleRestartSelected()
 	if(Tutorial.IsValid())
 	{
 		FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
-		const bool bRestart = true;
-		IntroTutorials.LaunchTutorial(Tutorial.Get(), bRestart, FSlateApplication::Get().FindWidgetWindow(AsShared()));
+		IntroTutorials.LaunchTutorial(Tutorial.Get(), IIntroTutorials::ETutorialStartType::TST_RESTART, FSlateApplication::Get().FindWidgetWindow(AsShared()));
 
 		if( FEngineAnalytics::IsAvailable() && Tutorial.IsValid() )
 		{

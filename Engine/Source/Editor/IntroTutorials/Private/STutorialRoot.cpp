@@ -98,20 +98,32 @@ void STutorialRoot::Tick( const FGeometry& AllottedGeometry, const double InCurr
 	DrawnWidgets.Empty(DrawnWidgets.Max());
 }
 
-void STutorialRoot::LaunchTutorial(UEditorTutorial* InTutorial, bool bInRestart, TWeakPtr<SWindow> InNavigationWindow, FSimpleDelegate InOnTutorialClosed, FSimpleDelegate InOnTutorialExited)
+void STutorialRoot::LaunchTutorial(UEditorTutorial* InTutorial, IIntroTutorials::ETutorialStartType InStartType, TWeakPtr<SWindow> InNavigationWindow, FSimpleDelegate InOnTutorialClosed, FSimpleDelegate InOnTutorialExited)
 {
 	if(InTutorial != nullptr)
 	{
 		CurrentTutorial = InTutorial;
 
 		// we force a restart if this tutorial was completed
-		if(GetDefault<UTutorialStateSettings>()->HaveCompletedTutorial(CurrentTutorial))
+		if (GetDefault<UTutorialStateSettings>()->HaveCompletedTutorial(CurrentTutorial) && (InStartType == IIntroTutorials::ETutorialStartType::TST_CONTINUE))
 		{
-			bInRestart = true;
+			InStartType = IIntroTutorials::ETutorialStartType::TST_RESTART;
 		}
 
 		bool bHaveSeenTutorial = false;
-		CurrentTutorialStage = bInRestart ? 0 : GetDefault<UTutorialStateSettings>()->GetProgress(CurrentTutorial, bHaveSeenTutorial);
+		switch (InStartType)
+		{
+		case IIntroTutorials::ETutorialStartType::TST_RESTART:
+			CurrentTutorialStage = 0;
+			break;
+		case IIntroTutorials::ETutorialStartType::TST_LASTSTAGE:
+			CurrentTutorialStage = FMath::Max(0, (CurrentTutorial->Stages.Num() - 1));
+			break;
+		default:
+		case IIntroTutorials::ETutorialStartType::TST_CONTINUE:
+			CurrentTutorialStage = GetDefault<UTutorialStateSettings>()->GetProgress(CurrentTutorial, bHaveSeenTutorial);
+			break;
+		}
 
 		// check if we should be launching this tutorial for an asset editor
 		if(InTutorial->AssetToUse.IsValid())
@@ -266,19 +278,45 @@ void STutorialRoot::AddReferencedObjects( FReferenceCollector& Collector )
 
 void STutorialRoot::GoToPreviousStage()
 {
-	if(CurrentTutorial != nullptr)
+	if (CurrentTutorial != nullptr)
 	{
-		int32 PreviousTutorialStage = CurrentTutorialStage;
-		if (CurrentTutorialStage > 0)
+		UEditorTutorial* OldTutorial = CurrentTutorial;
+		int32 OldTutorialStage = CurrentTutorialStage;
+		if (CurrentTutorialStage < CurrentTutorial->Stages.Num())
 		{
 			CurrentTutorial->HandleTutorialStageEnded(CurrentTutorial->Stages[CurrentTutorialStage].Name);
 		}
 
-		CurrentTutorialStage = FMath::Max(0, CurrentTutorialStage - 1);
+		if ((CurrentTutorialStage <= 0) && (FName(*CurrentTutorial->PreviousTutorial.AssetLongPathname) != NAME_None))
+		{
+			TSubclassOf<UEditorTutorial> PreviousTutorialClass = LoadClass<UEditorTutorial>(NULL, *CurrentTutorial->PreviousTutorial.AssetLongPathname, NULL, LOAD_None, NULL);
+			if (PreviousTutorialClass != nullptr)
+			{
+				LaunchTutorial(PreviousTutorialClass->GetDefaultObject<UEditorTutorial>(), IIntroTutorials::ETutorialStartType::TST_LASTSTAGE, nullptr, FSimpleDelegate(), FSimpleDelegate());
+			}
+			else
+			{
+				FSlateNotificationManager::Get().AddNotification(FNotificationInfo(FText::Format(LOCTEXT("TutorialNotFound", "Could not start previous tutorial {0}"), FText::FromString(CurrentTutorial->PreviousTutorial.AssetLongPathname))));
+			}
+		}
+		else
+		{
+			CurrentTutorialStage = FMath::Max(CurrentTutorialStage - 1, 0);
+			GetMutableDefault<UTutorialStateSettings>()->RecordProgress(CurrentTutorial, CurrentTutorialStage);
+		}
 
-		if (PreviousTutorialStage != CurrentTutorialStage)
+		if (CurrentTutorial != nullptr && CurrentTutorialStage < CurrentTutorial->Stages.Num() && (CurrentTutorial != OldTutorial || CurrentTutorialStage != OldTutorialStage))
 		{
 			CurrentTutorial->HandleTutorialStageStarted(CurrentTutorial->Stages[CurrentTutorialStage].Name);
+		}
+	}
+
+	for (auto& TutorialWidget : TutorialWidgets)
+	{
+		if (TutorialWidget.Value.IsValid())
+		{
+			TSharedPtr<SEditorTutorials> PinnedTutorialWidget = TutorialWidget.Value.Pin();
+			PinnedTutorialWidget->RebuildCurrentContent();
 		}
 	}
 }
@@ -287,8 +325,8 @@ void STutorialRoot::GoToNextStage(TWeakPtr<SWindow> InNavigationWindow)
 {
 	if(CurrentTutorial != nullptr)
 	{
-		UEditorTutorial* PreviousTutorial = CurrentTutorial;
-		int32 PreviousTutorialStage = CurrentTutorialStage;
+		UEditorTutorial* OldTutorial = CurrentTutorial;
+		int32 OldTutorialStage = CurrentTutorialStage;
 		if(CurrentTutorialStage < CurrentTutorial->Stages.Num())
 		{
 			CurrentTutorial->HandleTutorialStageEnded(CurrentTutorial->Stages[CurrentTutorialStage].Name);
@@ -299,7 +337,7 @@ void STutorialRoot::GoToNextStage(TWeakPtr<SWindow> InNavigationWindow)
 			TSubclassOf<UEditorTutorial> NextTutorialClass = LoadClass<UEditorTutorial>(NULL, *CurrentTutorial->NextTutorial.AssetLongPathname, NULL, LOAD_None, NULL);
 			if(NextTutorialClass != nullptr)
 			{
-				LaunchTutorial(NextTutorialClass->GetDefaultObject<UEditorTutorial>(), true, InNavigationWindow, FSimpleDelegate(), FSimpleDelegate());
+				LaunchTutorial(NextTutorialClass->GetDefaultObject<UEditorTutorial>(), IIntroTutorials::ETutorialStartType::TST_RESTART, InNavigationWindow, FSimpleDelegate(), FSimpleDelegate());
 			}
 			else
 			{
@@ -312,7 +350,7 @@ void STutorialRoot::GoToNextStage(TWeakPtr<SWindow> InNavigationWindow)
 			GetMutableDefault<UTutorialStateSettings>()->RecordProgress(CurrentTutorial, CurrentTutorialStage);
 		}
 
-		if (CurrentTutorial != nullptr && CurrentTutorialStage < CurrentTutorial->Stages.Num() && (CurrentTutorial != PreviousTutorial || CurrentTutorialStage != PreviousTutorialStage))
+		if (CurrentTutorial != nullptr && CurrentTutorialStage < CurrentTutorial->Stages.Num() && (CurrentTutorial != OldTutorial || CurrentTutorialStage != OldTutorialStage))
 		{
 			CurrentTutorial->HandleTutorialStageStarted(CurrentTutorial->Stages[CurrentTutorialStage].Name);
 		}

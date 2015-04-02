@@ -872,7 +872,7 @@ void STutorialsBrowser::OnTutorialSelected(UEditorTutorial* InTutorial, bool bRe
 			IntroTutorials.DismissTutorialBrowser();
 		}
 	}
-	OnLaunchTutorial.ExecuteIfBound(InTutorial, bRestart, ParentWindow, FSimpleDelegate(), FSimpleDelegate());
+	OnLaunchTutorial.ExecuteIfBound(InTutorial, bRestart ? IIntroTutorials::ETutorialStartType::TST_RESTART : IIntroTutorials::ETutorialStartType::TST_CONTINUE, ParentWindow, FSimpleDelegate(), FSimpleDelegate());
 }
 
 void STutorialsBrowser::OnCategorySelected(const FString& InCategory)

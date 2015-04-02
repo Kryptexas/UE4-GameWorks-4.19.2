@@ -64,7 +64,7 @@ EActiveTimerReturnType STutorialButton::OpenTutorialPostConstruct( double InCurr
 		// kick off the attract tutorial if the user hasn't dismissed it and hasn't completed it
 		FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>( TEXT( "IntroTutorials" ) );
 		const bool bRestart = true;
-		IntroTutorials.LaunchTutorial(CachedAttractTutorial, bRestart, ContextWindow);
+		IntroTutorials.LaunchTutorial(CachedAttractTutorial, bRestart ? IIntroTutorials::ETutorialStartType::TST_RESTART : IIntroTutorials::ETutorialStartType::TST_CONTINUE, ContextWindow);
 	}
 
 	if ( ShouldShowAlert() )
@@ -195,8 +195,7 @@ EActiveTimerReturnType STutorialButton::HandleButtonClicked_AssetRegistryChecker
 		//If we don't want to launch the browser, and we have a tutorial in mind, launch the tutorial now.
 		auto Delegate = FSimpleDelegate::CreateSP(this, &STutorialButton::HandleTutorialExited);
 
-		const bool bRestart = true;
-		IntroTutorials.LaunchTutorial(CachedLaunchTutorial, bRestart, ContextWindow, Delegate, Delegate);
+		IntroTutorials.LaunchTutorial(CachedLaunchTutorial, IIntroTutorials::ETutorialStartType::TST_RESTART, ContextWindow, Delegate, Delegate);
 
 		// The user asked to start the tutorial, so we don't need to remind them about it again this session, but we'll remind
 		// them in the next session if they haven't completed it by then

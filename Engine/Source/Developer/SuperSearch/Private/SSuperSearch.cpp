@@ -170,7 +170,7 @@ void SSuperSearchBox::ActOnSuggestion(TSharedPtr<FSearchEntry> SearchEntry, FStr
 			FWidgetPath OutWidgetPath;
 			TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(SuggestionBox.ToSharedRef(), OutWidgetPath);
 
-			IntroTutorials.LaunchTutorial(Tutorial, true, ParentWindow);
+			IntroTutorials.LaunchTutorial(Tutorial, IIntroTutorials::ETutorialStartType::TST_RESTART, ParentWindow);
 		}
 		else
 #endif

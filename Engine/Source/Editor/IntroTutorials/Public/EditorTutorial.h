@@ -247,6 +247,10 @@ class INTROTUTORIALS_API UEditorTutorial : public UObject
 	UPROPERTY(EditAnywhere, Category="Stages")
 	TArray<FTutorialStage> Stages;
 
+	/** Tutorial to optionally chain back to if the "back" button is clicked on the first stage */
+	UPROPERTY(EditAnywhere, Category = "Tutorial", meta = (MetaClass = "EditorTutorial"))
+	FStringClassReference PreviousTutorial;
+
 	/** Tutorial to optionally chain onto after this tutorial completes */
 	UPROPERTY(EditAnywhere, Category="Tutorial", meta=(MetaClass="EditorTutorial"))
 	FStringClassReference NextTutorial;

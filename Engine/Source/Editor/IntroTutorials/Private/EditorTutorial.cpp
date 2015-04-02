@@ -38,7 +38,7 @@ void UEditorTutorial::GoToPreviousTutorialStage()
 void UEditorTutorial::BeginTutorial(UEditorTutorial* TutorialToStart, bool bRestart)
 {
 	FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
-	IntroTutorials.LaunchTutorial(TutorialToStart, bRestart);
+	IntroTutorials.LaunchTutorial(TutorialToStart, bRestart ? IIntroTutorials::ETutorialStartType::TST_RESTART : IIntroTutorials::ETutorialStartType::TST_CONTINUE);
 }
 
 

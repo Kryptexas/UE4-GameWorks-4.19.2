@@ -101,7 +101,9 @@ bool SEditorTutorials::IsBackButtonEnabled() const
 	UEditorTutorial* CurrentTutorial = OnGetCurrentTutorial.Execute();
 	int32 CurrentTutorialStage = OnGetCurrentTutorialStage.Execute();
 
-	return CurrentTutorial != nullptr && CurrentTutorialStage > 0;
+	const bool bStepsPassed = (CurrentTutorial != nullptr) && (CurrentTutorialStage > 0);
+	const bool bPreviousTutorialAvailable = (CurrentTutorial != nullptr) && (CurrentTutorialStage == 0) && (CurrentTutorial->PreviousTutorial != nullptr);
+	return bStepsPassed || bPreviousTutorialAvailable;
 }
 
 bool SEditorTutorials::IsHomeButtonEnabled() const
@@ -114,8 +116,8 @@ bool SEditorTutorials::IsNextButtonEnabled() const
 	UEditorTutorial* CurrentTutorial = OnGetCurrentTutorial.Execute();
 	int32 CurrentTutorialStage = OnGetCurrentTutorialStage.Execute();
 
-	const bool bStepsRemaining = CurrentTutorial != nullptr && CurrentTutorialStage + 1 < CurrentTutorial->Stages.Num();
-	const bool bNextTutorialAvailable = CurrentTutorial != nullptr && CurrentTutorialStage + 1 >= CurrentTutorial->Stages.Num() && CurrentTutorial->NextTutorial != nullptr;
+	const bool bStepsRemaining = (CurrentTutorial != nullptr) && (CurrentTutorialStage + 1 < CurrentTutorial->Stages.Num());
+	const bool bNextTutorialAvailable = (CurrentTutorial != nullptr) && (CurrentTutorialStage + 1 >= CurrentTutorial->Stages.Num()) && (CurrentTutorial->NextTutorial != nullptr);
 	return bStepsRemaining || bNextTutorialAvailable;
 }
 
