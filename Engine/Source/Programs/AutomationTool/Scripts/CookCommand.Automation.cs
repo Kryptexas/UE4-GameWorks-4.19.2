@@ -196,7 +196,7 @@ public partial class Project : CommandUtils
 
                 if (!Params.NoClient)
                 {
-                    var MapsList = Maps.ToList(); 
+                    var MapsList = Maps == null ? new List<string>() :  Maps.ToList(); 
                     foreach (var ClientPlatform in Params.ClientTargetPlatforms)
                     {
                         var DataPlatform = Params.GetCookedDataPlatformForClientTarget(ClientPlatform);
