@@ -479,6 +479,10 @@ public:
 	FLevelBoundsActorUpdatedEvent& LevelBoundsActorUpdated() { return LevelBoundsActorUpdatedEvent; }
 	/**	Broadcasts that Level bounds actor has been updated */ 
 	void BroadcastLevelBoundsActorUpdated() { LevelBoundsActorUpdatedEvent.Broadcast(); }
+
+	/** Marks level bounds as dirty so they will be recalculated  */
+	ENGINE_API void MarkLevelBoundsDirty();
+
 private:
 	FLevelBoundsActorUpdatedEvent LevelBoundsActorUpdatedEvent; 
 
@@ -740,10 +744,6 @@ public:
 
 	/** Push any pending auto receive input actor's input components on to the player controller's input stack */
 	void PushPendingAutoReceiveInput(APlayerController* PC);
-
-	/** Increments number of steaming objects referring this level */
-	ENGINE_API void IncStreamingLevelRefs();
-	
 	
 	// Begin IInterface_AssetUserData Interface
 	virtual void AddAssetUserData(UAssetUserData* InUserData) override;

@@ -1101,13 +1101,19 @@ void ULevel::PostEditUndo()
 		}
 	}
 
-	if (LevelBoundsActor.IsValid())
-	{
-		LevelBoundsActor.Get()->OnLevelBoundsDirtied();
-	}
+	MarkLevelBoundsDirty();
 }
 #endif // WITH_EDITOR
 
+void ULevel::MarkLevelBoundsDirty()
+{
+#if WITH_EDITOR
+	if (LevelBoundsActor.IsValid())
+	{
+		LevelBoundsActor->MarkLevelBoundsDirty();
+	}
+#endif// WITH_EDITOR
+}
 
 void ULevel::InvalidateModelGeometry()
 {

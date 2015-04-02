@@ -345,9 +345,9 @@ void AActor::PreEditUndo()
 void AActor::PostEditUndo()
 {
 	// Notify LevelBounds actor that level bounding box might be changed
-	if (!IsTemplate() && GetLevel()->LevelBoundsActor.IsValid())
+	if (!IsTemplate())
 	{
-		GetLevel()->LevelBoundsActor.Get()->OnLevelBoundsDirtied();
+		GetLevel()->MarkLevelBoundsDirty();
 	}
 
 	// Restore OwnedComponents array
@@ -370,9 +370,9 @@ void AActor::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAn
 	CurrentTransactionAnnotation = StaticCastSharedPtr<FActorTransactionAnnotation>(TransactionAnnotation);
 
 	// Notify LevelBounds actor that level bounding box might be changed
-	if (!IsTemplate() && GetLevel()->LevelBoundsActor.IsValid())
+	if (!IsTemplate())
 	{
-		GetLevel()->LevelBoundsActor.Get()->OnLevelBoundsDirtied();
+		GetLevel()->MarkLevelBoundsDirty();
 	}
 
 	// Restore OwnedComponents array
