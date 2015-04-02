@@ -802,6 +802,7 @@ public:
 	 */
 	TPromise(TPromise&& Other)
 		: BaseType(MoveTemp(Other))
+		, FutureRetrieved(MoveTemp(Other.FutureRetrieved))
 	{ }
 
 public:
