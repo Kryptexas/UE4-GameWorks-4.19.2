@@ -11,7 +11,6 @@
 
 #define LOCTEXT_NAMESPACE "FlipbookEditor"
 
-
 //////////////////////////////////////////////////////////////////////////
 // FFlipbookEditorViewportClient
 
@@ -122,14 +121,14 @@ bool FFlipbookEditorViewportClient::InputKey(FViewport* Viewport, int32 Controll
 {
 	bool bHandled = false;
 
-	if ( (Event == IE_Pressed) && (Key == EKeys::F) && (AnimatedRenderComponent.IsValid()) )
+	if ((Event == IE_Pressed) && (Key == EKeys::F) && (AnimatedRenderComponent.IsValid()))
 	{
 		bHandled = true;
 		FocusViewportOnBox(AnimatedRenderComponent->Bounds.GetBox());
 	}
 
 	// Pass keys to standard controls, if we didn't consume input
-	return (bHandled) ? true : FEditorViewportClient::InputKey(Viewport,  ControllerId, Key, Event, AmountDepressed, bGamepad);
+	return (bHandled) ? true : FEditorViewportClient::InputKey(Viewport, ControllerId, Key, Event, AmountDepressed, bGamepad);
 }
 
 FLinearColor FFlipbookEditorViewportClient::GetBackgroundColor() const
