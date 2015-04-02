@@ -3777,6 +3777,37 @@ void FBlueprintEditorUtils::BulkRemoveMemberVariables(UBlueprint* Blueprint, con
 	}
 }
 
+FGuid FBlueprintEditorUtils::FindMemberVariableGuidByName(UBlueprint* InBlueprint, const FName InVariableName)
+{
+	while(InBlueprint)
+	{
+		const int32 VarIndex = FBlueprintEditorUtils::FindNewVariableIndex(InBlueprint, InVariableName);
+		if (VarIndex != INDEX_NONE)
+		{
+			return InBlueprint->NewVariables[VarIndex].VarGuid;
+		}
+		InBlueprint = Cast<UBlueprint>(InBlueprint->ParentClass->ClassGeneratedBy);
+	}
+	return FGuid(); 
+}
+
+FName FBlueprintEditorUtils::FindMemberVariableNameByGuid(UBlueprint* InBlueprint, const FGuid& InVariableGuid)
+{
+	while(InBlueprint)
+	{
+		for(FBPVariableDescription& Variable : InBlueprint->NewVariables)
+		{
+			if(Variable.VarGuid == InVariableGuid)
+			{
+				return Variable.VarName;
+			}
+		}
+
+		InBlueprint = Cast<UBlueprint>(InBlueprint->ParentClass->ClassGeneratedBy);
+	}
+	return NAME_None;
+}
+
 void FBlueprintEditorUtils::RemoveVariableNodes(UBlueprint* Blueprint, const FName& VarName, bool const bForSelfOnly, UEdGraph* LocalGraphScope)
 {
 	TArray<UEdGraph*> AllGraphs;

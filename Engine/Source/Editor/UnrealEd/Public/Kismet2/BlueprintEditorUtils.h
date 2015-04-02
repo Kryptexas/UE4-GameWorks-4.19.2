@@ -631,6 +631,24 @@ public:
 	static void BulkRemoveMemberVariables(UBlueprint* Blueprint, const TArray<FName>& VarNames);
 
 	/**
+	 * Finds a member variable Guid using the variable's name
+	 *
+	 * @param InBlueprint		Blueprint to search for the local variable
+	 * @param InVariableGuid	Local variable's name to search for
+	 * @return					The Guid associated with the local variable
+	 */
+	static FGuid FindMemberVariableGuidByName(UBlueprint* InBlueprint, const FName InVariableName);
+
+	/**
+	 * Finds a member variable name using the variable's Guid
+	 *
+	 * @param InBlueprint		Blueprint to search for the local variable
+	 * @param InVariableGuid	Guid to identify the local variable with
+	 * @return					Local variable's name
+	 */
+	static FName FindMemberVariableNameByGuid(UBlueprint* InBlueprint, const FGuid& InVariableGuid);
+
+	/**
 	 * Removes the variable nodes associated with the specified var name
 	 *
 	 * @param	Blueprint			The blueprint you want variable nodes removed from.
@@ -713,7 +731,6 @@ public:
 	 * Finds a local variable name using the variable's Guid
 	 *
 	 * @param InBlueprint		Blueprint to search for the local variable
-	 * @param InScope			Local variable's scope
 	 * @param InVariableGuid	Guid to identify the local variable with
 	 * @return					Local variable's name
 	 */
