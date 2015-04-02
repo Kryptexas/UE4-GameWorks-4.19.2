@@ -6,6 +6,8 @@
 #include "WindowsApplication.h"
 #include "EngineVersion.h"
 
+#include "GenericPlatformChunkInstall.h"
+
 // Resource includes.
 #include "Runtime/Launch/Resources/Windows/Resource.h"
 #include "Runtime/Launch/Resources/Version.h"
@@ -2407,4 +2409,27 @@ EConvertibleLaptopMode FWindowsPlatformMisc::GetConvertibleLaptopMode()
 	}
 	
 	return EConvertibleLaptopMode::Laptop;
+}
+
+IPlatformChunkInstall* FWindowsPlatformMisc::GetPlatformChunkInstall()
+{
+	static IPlatformChunkInstall* ChunkInstall = nullptr;
+	IPlatformChunkInstallModule* PlatformChunkInstallModule = FModuleManager::LoadModulePtr<IPlatformChunkInstallModule>("HTTPChunkInstaller");
+	if (!ChunkInstall)
+	{
+#if !(WITH_EDITORONLY_DATA || IS_PROGRAM)
+		if (PlatformChunkInstallModule != NULL)
+		{
+			// Attempt to grab the platform installer
+			ChunkInstall = PlatformChunkInstallModule->GetPlatformChunkInstall();
+		}
+		else
+#endif
+		{
+			// Placeholder instance
+			ChunkInstall = new FGenericPlatformChunkInstall();
+		}
+	}
+
+	return ChunkInstall;
 }

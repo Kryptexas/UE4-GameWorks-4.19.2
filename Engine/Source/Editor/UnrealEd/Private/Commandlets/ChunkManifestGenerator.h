@@ -2,6 +2,9 @@
 
 #pragma once
 
+class UChunkDependencyInfo;
+struct FChunkDependencyTreeNode;
+
 /**
  * Helper class for generating streaming install manifests
  */
@@ -33,6 +36,8 @@ class FChunkManifestGenerator
 	TArray<FChunkPackageSet*>		FinalChunkManifests;
 	/** Lookup table of used package names used when searching references. */
 	TSet<FName>						InspectedNames;
+	/** */
+	UChunkDependencyInfo*			DependencyInfo;
 
 	struct FReferencePair
 	{
@@ -194,6 +199,16 @@ class FChunkManifestGenerator
 	* Helper function for FindShortestReferenceChain
 	*/
 	FString			GetShortestReferenceChain(FName PackageName, int32 ChunkID);
+
+	/**
+	* 
+	*/
+	void			ResolveChunkDependencyGraph(const FChunkDependencyTreeNode& Node, FChunkPackageSet BaseAssetSet);
+
+	/**
+	* Helper function to verify Chunk asset assigment is valid.
+	*/
+	bool			CheckChunkAssetsAreNotInChild(const FChunkDependencyTreeNode& Node);
 
 public:
 

@@ -12,6 +12,7 @@
 #include "UnrealEdMessages.h"
 #include "GameDelegates.h"
 #include "ChunkManifestGenerator.h"
+#include "ChunkDependencyInfo.h"
 #include "IPlatformFileSandboxWrapper.h"
 
 #include "JsonWriter.h"
@@ -25,6 +26,7 @@ FChunkManifestGenerator::FChunkManifestGenerator(const TArray<ITargetPlatform*>&
 	, Platforms(InPlatforms)
 	, bGenerateChunks(false)
 {
+	DependencyInfo = GetMutableDefault<UChunkDependencyInfo>();
 }
 
 FChunkManifestGenerator::~FChunkManifestGenerator()
@@ -726,6 +728,59 @@ void FChunkManifestGenerator::NotifyPackageWasCooked(const FString& PackageSandb
 	AllCookedPackages.Add(PackageName, PackageSandboxPath);
 }
 
+void FChunkManifestGenerator::ResolveChunkDependencyGraph(const FChunkDependencyTreeNode& Node, FChunkPackageSet BaseAssetSet) 
+{
+	if (FinalChunkManifests.Num() > Node.ChunkID && FinalChunkManifests[Node.ChunkID])
+	{
+		for (auto It = BaseAssetSet.CreateConstIterator(); It; ++It)
+		{
+			// Remove any assets belonging to our parents.
+			FinalChunkManifests[Node.ChunkID]->Remove(It.Key());
+		}
+		// Add the current Chunk's assets
+		for (auto It = FinalChunkManifests[Node.ChunkID]->CreateConstIterator(); It; ++It)//for (const auto It : *(FinalChunkManifests[Node.ChunkID]))
+		{
+			BaseAssetSet.Add(It.Key(), It.Value());
+		}
+		for (const auto It : Node.ChildNodes)
+		{
+			ResolveChunkDependencyGraph(It, BaseAssetSet);
+		}
+	}
+}
+
+bool FChunkManifestGenerator::CheckChunkAssetsAreNotInChild(const FChunkDependencyTreeNode& Node)
+{
+	for (const auto It : Node.ChildNodes)
+	{
+		if (!CheckChunkAssetsAreNotInChild(It))
+		{
+			return false;
+		}
+	}
+
+	if (!(FinalChunkManifests.Num() > Node.ChunkID && FinalChunkManifests[Node.ChunkID]))
+	{
+		return true;
+	}
+
+	for (const auto ChildIt : Node.ChildNodes)
+	{
+		if(FinalChunkManifests.Num() > ChildIt.ChunkID && FinalChunkManifests[ChildIt.ChunkID])
+		{
+			for (auto It = FinalChunkManifests[Node.ChunkID]->CreateConstIterator(); It; ++It)
+			{
+				if (FinalChunkManifests[ChildIt.ChunkID]->Find(It.Key()))
+				{
+					return false;
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
 void FChunkManifestGenerator::FixupPackageDependenciesForChunks(FSandboxPlatformFile* InSandboxFile)
 {
 	for (int32 ChunkID = 0, MaxChunk = ChunkManifests.Num(); ChunkID < MaxChunk; ++ChunkID)
@@ -742,6 +797,7 @@ void FChunkManifestGenerator::FixupPackageDependenciesForChunks(FSandboxPlatform
 		}
 	}
 
+	auto* ChunkDepGraph = DependencyInfo->GetChunkDependencyGraph(ChunkManifests.Num());
 	//Once complete, Add any remaining assets (that are not assigned to a chunk) to the first chunk.
 	if (FinalChunkManifests.Num() == 0)
 	{
@@ -758,17 +814,17 @@ void FChunkManifestGenerator::FixupPackageDependenciesForChunks(FSandboxPlatform
 		AddPackageAndDependenciesToChunk(FinalChunkManifests[0], It.Key(), It.Value(), 0, InSandboxFile);
 	}
 
-	//Finally, if the previous step may added any extra packages to the 0 chunk. Pull them out of other chunks and save space
-	for (auto It = FinalChunkManifests[0]->CreateConstIterator(); It; ++It)
+	if (!CheckChunkAssetsAreNotInChild(*ChunkDepGraph))
 	{
-		for (int32 ChunkID = 1, MaxChunk = FinalChunkManifests.Num(); ChunkID < MaxChunk; ++ChunkID)
-		{
-			if (!FinalChunkManifests[ChunkID])
-			{
-				continue;
-			}
-			FinalChunkManifests[ChunkID]->Remove(It.Key());
-		}
+		UE_LOG(LogChunkManifestGenerator, Log, TEXT("Initial scan of chunks found duplicate assets in graph children"));
+	}
+
+	//Finally, if the previous step may added any extra packages to the 0 chunk. Pull them out of other chunks and save space
+	ResolveChunkDependencyGraph(*ChunkDepGraph, FChunkPackageSet());
+
+	if (!CheckChunkAssetsAreNotInChild(*ChunkDepGraph))
+	{
+		UE_LOG(LogChunkManifestGenerator, Error, TEXT("Second Scan of chunks found duplicate asset entries in children."));
 	}
 
 	// Fix up the asset registry to reflect this chunk layout

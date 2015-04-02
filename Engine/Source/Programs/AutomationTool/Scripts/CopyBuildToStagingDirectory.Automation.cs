@@ -744,15 +744,9 @@ public partial class Project : CommandUtils
 				var BPTExe = GetBuildPatchToolExecutable();
 				EnsureBuildPatchToolExists();
 
-				string P4Change = "UnknownCL";
-				string P4Branch = "UnknownBranch";
-				if (CommandUtils.P4Enabled)
-				{
-					P4Change = CommandUtils.P4Env.ChangelistString;
-					P4Branch = CommandUtils.P4Env.BuildRootEscaped;
-				}
-				string ChunkInstallBasePath = CombinePaths(SC.ProjectRoot, "ChunkInstall", SC.FinalCookPlatform);
-				string RawDataPath = CombinePaths(ChunkInstallBasePath, P4Branch + "-CL-" + P4Change, PakName);
+				string VersionString = Params.ChunkInstallVersionString;
+				string ChunkInstallBasePath = CombinePaths(Params.ChunkInstallDirectory, SC.FinalCookPlatform);
+				string RawDataPath = CombinePaths(ChunkInstallBasePath, VersionString, PakName);
 				string RawDataPakPath = CombinePaths(RawDataPath, PakName + "-" + SC.FinalCookPlatform + ".pak");
 				//copy the pak chunk to the raw data folder
 				if (InternalUtils.SafeFileExists(RawDataPakPath, true))
@@ -768,10 +762,15 @@ public partial class Project : CommandUtils
 
 				string BuildRoot = MakePathSafeToUseWithCommandLine(RawDataPath);
 				string CloudDir = MakePathSafeToUseWithCommandLine(CombinePaths(ChunkInstallBasePath, "CloudDir"));
-				var AppID = 1; // !!JM todo, get valid value for this
+				string ManifestDir = CombinePaths(ChunkInstallBasePath, "ManifestDir");
+				var AppID = 1; // For a chunk install this value doesn't seem to matter
 				string AppName = String.Format("{0}_{1}", SC.ShortProjectName, PakName);
-				string AppLaunch = ""; // !!JM todo, get real value for this...?
-				string VersionString = P4Branch + "-CL-" + P4Change;
+				string AppLaunch = ""; // For a chunk install this value doesn't seem to matter
+				string ManifestFilename = AppName + VersionString + ".manifest";
+				string SourceManifestPath = CombinePaths(CloudDir, ManifestFilename);
+				string BackupManifestPath = CombinePaths(RawDataPath, ManifestFilename);
+				string DestManifestPath = CombinePaths(ManifestDir, ManifestFilename);
+				InternalUtils.SafeCreateDirectory(ManifestDir, true);
 
 				string CmdLine = String.Format("-BuildRoot=\"{0}\" -CloudDir=\"{1}\" -AppID={2} -AppName=\"{3}\" -BuildVersion=\"{4}\" -AppLaunch=\"{5}\" -DataAgeThreshold=12", BuildRoot, CloudDir, AppID, AppName, VersionString, AppLaunch);
 				CmdLine += " -AppArgs=\"\"";
@@ -781,6 +780,9 @@ public partial class Project : CommandUtils
 				CmdLine += " -stdout";
 
 				RunAndLog(CmdEnv, BPTExe, CmdLine, Options: ERunOptions.Default | ERunOptions.UTF8Output);
+
+				InternalUtils.SafeCopyFile(SourceManifestPath, BackupManifestPath);
+				InternalUtils.SafeCopyFile(SourceManifestPath, DestManifestPath);
 			}
 			else
 			{
@@ -838,6 +840,23 @@ public partial class Project : CommandUtils
 			if (!bAddedToChunk)
 			{
 				PakResponseFiles[DefaultChunkIndex].Add(StagingFile.Key, StagingFile.Value);
+			}
+		}
+
+		if (Params.CreateChunkInstall)
+		{
+			string ManifestDir = CombinePaths(Params.ChunkInstallDirectory, SC.FinalCookPlatform, "ManifestDir");
+			if (InternalUtils.SafeDirectoryExists(ManifestDir))
+			{
+				foreach (string ManifestFile in Directory.GetFiles(ManifestDir, "*.manifest"))
+				{
+					InternalUtils.SafeDeleteFile(ManifestFile, true);
+				}
+			}
+			string DestDir = CombinePaths(Params.ChunkInstallDirectory, SC.FinalCookPlatform, Params.ChunkInstallVersionString);
+			if (InternalUtils.SafeDirectoryExists(DestDir))
+			{
+				InternalUtils.SafeDeleteDirectory(DestDir); 
 			}
 		}
 

@@ -494,6 +494,8 @@ namespace AutomationTool
             this.StageNonMonolithic = GetParamValueIfNotSpecified(Command, StageNonMonolithic, this.StageNonMonolithic, "StageNonMonolithic");
 			this.Manifests = GetParamValueIfNotSpecified(Command, Manifests, this.Manifests, "manifests");
             this.CreateChunkInstall = GetParamValueIfNotSpecified(Command, CreateChunkInstall, this.CreateChunkInstall, "createchunkinstall");
+			this.ChunkInstallDirectory = ParseParamValueIfNotSpecified(Command, ChunkInstallDirectory, "chunkinstalldirectory", String.Empty).Trim(new char[]{'\"'});
+			this.ChunkInstallVersionString = ParseParamValueIfNotSpecified(Command, ChunkInstallVersionString, "chunkinstallversion", String.Empty).Trim(new char[] { '\"' });
 			this.Archive = GetParamValueIfNotSpecified(Command, Archive, this.Archive, "archive");
 			this.ArchiveDirectoryParam = ParseParamValueIfNotSpecified(Command, ArchiveDirectoryParam, "archivedirectory", String.Empty);
 			this.ArchiveMetaData = GetParamValueIfNotSpecified(Command, ArchiveMetaData, this.ArchiveMetaData, "archivemetadata");
@@ -813,10 +815,20 @@ namespace AutomationTool
 		public bool Manifests { private set; get; }
 
         /// <summary>
-        /// Shared: true if this build chunk install streaming install data, command line: -createchunkinstalldata !!JM
+        /// Shared: true if this build chunk install streaming install data, command line: -createchunkinstalldata
         /// </summary>
         [Help("createchunkinstall", "generate streaming install data from manifest when cooking data, requires -stage & -manifests")]
         public bool CreateChunkInstall { private set; get; }
+
+		/// <summary>
+		/// Shared: Directory to use for built chunk install data, command line: -chunkinstalldirectory=
+		/// </summary>
+		public string ChunkInstallDirectory { set; get; }
+
+		/// <summary>
+		/// Shared: Version string to use for built chunk install data, command line: -chunkinstallversion=
+		/// </summary>
+		public string ChunkInstallVersionString { set; get; }
 
 		/// <summary>
 		/// Shared: Directory to copy the client to, command line: -stagingdirectory=
@@ -1937,8 +1949,18 @@ namespace AutomationTool
 
             if (CreateChunkInstall && (!Manifests || !Stage))
             {
-                throw new AutomationException("-createchunkinstall can only be used with -pak & -stage");
+                throw new AutomationException("-createchunkinstall can only be used with -manifests & -stage"); 
             }
+
+			if (CreateChunkInstall && String.IsNullOrEmpty(ChunkInstallDirectory))
+			{
+				throw new AutomationException("-createchunkinstall must specify the chunk install data directory with -chunkinstalldirectory=");
+			}
+
+			if (CreateChunkInstall && String.IsNullOrEmpty(ChunkInstallVersionString))
+			{
+				throw new AutomationException("-createchunkinstall must specify the chunk install data version string with -chunkinstallversion=");
+			}
 		}
 
 		protected bool bLogged = false;

@@ -259,6 +259,8 @@ struct CORE_API FWindowsPlatformMisc
 	static FString GetOperatingSystemId();
 
 	static EConvertibleLaptopMode GetConvertibleLaptopMode();
+
+	static IPlatformChunkInstall* GetPlatformChunkInstall();
 };
 
 
