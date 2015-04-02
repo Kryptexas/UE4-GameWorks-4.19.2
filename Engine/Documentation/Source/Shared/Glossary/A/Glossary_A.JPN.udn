@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2444875
+﻿INTSourceChangelist:2483253
 Title:A
 Crumbs:Shared/Glossary
 Description:
@@ -8,7 +8,7 @@ Availability:Public
 
 [OBJECT:GlossaryItem]
 	[PARAM:Term]
-Actor（アクタ）
+アクタ
 	[/PARAM]
 	[PARAM:Definition]
 <!--
@@ -16,7 +16,7 @@ Actor（アクタ）
 -->
 
 [EXCERPT:Glossary_Actor]
-**アクタ** は、レベル内へ配置可能な任意のオブジェクトです。平行移動、回転、スケーリングなどの 3D 変形をサポートする汎用クラスです。アクタはゲームプレイ コード (C++ またはブループリント) を通して作成 (スポーン) 、破壊することができます。 
+**アクタ** は、レベル内へ配置可能な任意のオブジェクトです。平行移動、回転、スケーリングなどの 3D 変形をサポートする汎用クラスです。アクタはゲームプレイ コード (C++ またはブループリント) を通して作成 (スポーン) 、破壊することができます。C++ において `AActor` は全てのアクタの基本クラスになります。 
 
 様々なタイプのアクタがあります。例えば、StaticMeshActor、CameraActor および、PlayerStartActor などがあります。 
 [/EXCERPT:Glossary_Actor]
@@ -27,7 +27,7 @@ Actor（アクタ）
 
 [OBJECT:GlossaryItem]
 	[PARAM:Term]
-AI（人工知能）
+AI
 	[/PARAM]
 	[PARAM:Definition]
 
@@ -70,7 +70,7 @@ AIController
 
 [OBJECT:GlossaryItem]
 	[PARAM:Term]
-アニメーションシーケンス
+アニメーション シーケンス
 	[/PARAM]
 	[PARAM:Definition]
 
