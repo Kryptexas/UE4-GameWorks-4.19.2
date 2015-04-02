@@ -75,7 +75,6 @@ FSpriteEditorViewportClient::FSpriteEditorViewportClient(TWeakPtr<FSpriteEditor>
 
 	bShowSourceTexture = false;
 	bShowSockets = true;
-	bShowNormals = true;
 	bShowPivot = true;
 	bShowRelatedSprites = true;
 

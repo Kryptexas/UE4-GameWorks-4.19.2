@@ -136,9 +136,9 @@ void SSpriteEditorViewport::BindCommands()
 
 	CommandList->MapAction(
 		Commands.SetShowNormals,
-		FExecuteAction::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::ToggleShowNormals ),
+		FExecuteAction::CreateRaw(GeometryEditingHelper, &FSpriteGeometryEditingHelper::ToggleShowNormals),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::IsShowNormalsChecked ) );
+		FIsActionChecked::CreateRaw(GeometryEditingHelper, &FSpriteGeometryEditingHelper::IsShowNormalsEnabled));
  
 	CommandList->MapAction(
 		Commands.SetShowPivot,

@@ -101,6 +101,10 @@ public:
 	void AddPolygonVertexToSelection(const int32 ShapeIndex, const int32 VertexIndex);
 	void AddPolygonEdgeToSelection(const int32 ShapeIndex, const int32 FirstVertexIndex);
 
+	void SetShowNormals(bool bShouldShowNormals);
+	void ToggleShowNormals();
+	bool IsShowNormalsEnabled() const { return bShowNormals; }
+
 	// Changes the geometry being edited (clears the selection set in the process)
 	void SetGeometryBeingEdited(FSpriteGeometryCollection* NewGeometryBeingEdited, bool bInAllowCircles, bool bInAllowSubtractivePolygons);
 
@@ -154,7 +158,7 @@ private:
 	// The polygon index being added to, INDEX_NONE if we don't have a polygon yet
 	int32 AddingPolygonIndex;
 
-	// Should we draw normal ticks?
+	// Should we show polygon edge normals?
 	bool bShowNormals;
 
 	// Do we allow subtractive polygons?

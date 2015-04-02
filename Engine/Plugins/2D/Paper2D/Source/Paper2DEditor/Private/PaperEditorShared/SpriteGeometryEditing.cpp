@@ -183,6 +183,11 @@ FVector FSpriteSelectedShape::GetWorldPos() const
 FSpriteGeometryEditingHelper::FSpriteGeometryEditingHelper(ISpriteSelectionContext& InEditorContext)
 	: EditorContext(InEditorContext)
 	, GeometryBeingEdited(nullptr)
+	, bIsAddingPolygon(false)
+	, AddingPolygonIndex(INDEX_NONE)
+	, bShowNormals(true)
+	, bAllowSubtractivePolygons(false)
+	, bAllowCircles(true)
 {
 	WidgetVertexColorMaterial = (UMaterial*)StaticLoadObject(UMaterial::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/WidgetVertexColorMaterial.WidgetVertexColorMaterial"), NULL, LOAD_None, NULL);
 }
@@ -655,6 +660,17 @@ void FSpriteGeometryEditingHelper::AddPolygonEdgeToSelection(const int32 ShapeIn
 		AddPolygonVertexToSelection(ShapeIndex, FirstVertexIndex);
 		AddPolygonVertexToSelection(ShapeIndex, NextVertexIndex);
 	}
+}
+
+void FSpriteGeometryEditingHelper::SetShowNormals(bool bShouldShowNormals)
+{
+	bShowNormals = bShouldShowNormals;
+	EditorContext.InvalidateViewportAndHitProxies();
+}
+
+void FSpriteGeometryEditingHelper::ToggleShowNormals()
+{
+	SetShowNormals(!bShowNormals);
 }
 
 void FSpriteGeometryEditingHelper::SetGeometryBeingEdited(FSpriteGeometryCollection* NewGeometryBeingEdited, bool bInAllowCircles, bool bInAllowSubtractivePolygons)

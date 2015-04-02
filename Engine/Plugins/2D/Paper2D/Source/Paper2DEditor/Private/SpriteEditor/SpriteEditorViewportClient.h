@@ -89,9 +89,6 @@ public:
 	void ToggleShowPivot() { bShowPivot = !bShowPivot; Invalidate(); }
 	bool IsShowPivotChecked() const { return bShowPivot; }
 
-	void ToggleShowNormals() { bShowNormals = !bShowNormals; Invalidate(); }
-	bool IsShowNormalsChecked() const { return bShowNormals; }
-
 	void ToggleShowMeshEdges();
 	bool IsShowMeshEdgesChecked() const;
 
@@ -171,9 +168,6 @@ private:
 
 	// Should we show sockets?
 	bool bShowSockets;
-
-	// Should we show polygon normals?
-	bool bShowNormals;
 
 	// Should we show the sprite pivot?
 	bool bShowPivot;
