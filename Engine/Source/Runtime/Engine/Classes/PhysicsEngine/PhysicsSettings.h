@@ -76,7 +76,9 @@ namespace ESettingsLockedAxis
 		/*Lock movement along the y-axis*/
 		Y,
 		/*Lock movement along the z-axis*/
-		Z
+		Z,
+		/* Used for backwards compatibility. Indicates that we've updated into the new struct*/
+		Invalid
 	};
 }
 

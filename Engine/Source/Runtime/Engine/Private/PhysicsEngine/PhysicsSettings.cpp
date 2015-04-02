@@ -15,7 +15,7 @@ UPhysicsSettings::UPhysicsSettings(const FObjectInitializer& ObjectInitializer)
 	, bEnableAsyncScene(false)
 	, bWarnMissingLocks(true)
 	, bEnable2DPhysics(false)
-	, LockedAxis_DEPRECATED(static_cast<ESettingsLockedAxis::Type>(-1))
+	, LockedAxis_DEPRECATED(ESettingsLockedAxis::Invalid)
 	, BounceThresholdVelocity(200.f)
 	, bSimulateSkeletalMeshOnDedicatedServer(true)
 	, MaxPhysicsDeltaTime(1.f / 30.f)
@@ -36,7 +36,12 @@ void UPhysicsSettings::PostInitProperties()
 	LoadSurfaceType();
 #endif
 
-	if (LockedAxis_DEPRECATED != static_cast<ESettingsLockedAxis::Type>(-1))
+	if (LockedAxis_DEPRECATED == static_cast<ESettingsLockedAxis::Type>(-1))
+	{
+		LockedAxis_DEPRECATED == ESettingsLockedAxis::Invalid;
+	}
+
+	if (LockedAxis_DEPRECATED != ESettingsLockedAxis::Invalid)
 	{
 		if (LockedAxis_DEPRECATED == ESettingsLockedAxis::None)
 		{
@@ -55,7 +60,7 @@ void UPhysicsSettings::PostInitProperties()
 			DefaultDegreesOfFreedom = ESettingsDOF::XYPlane;
 		}
 
-		LockedAxis_DEPRECATED = static_cast<ESettingsLockedAxis::Type>(-1);
+		LockedAxis_DEPRECATED = ESettingsLockedAxis::Invalid;
 	}
 }
 
