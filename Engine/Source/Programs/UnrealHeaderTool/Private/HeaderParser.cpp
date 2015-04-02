@@ -709,7 +709,7 @@ namespace
 		FClassMetaData::AddMetaData(Field, RemappedPairs);
 	}
 
-	bool IsPropertySupportedByBlueprint(const UProperty* Property)
+	bool IsPropertySupportedByBlueprint(const UProperty* Property, bool bMemberVariable)
 	{
 		if (Property == NULL)
 		{
@@ -717,13 +717,13 @@ namespace
 		}
 		if (auto ArrayProperty = Cast<const UArrayProperty>(Property))
 		{
-			return IsPropertySupportedByBlueprint(ArrayProperty->Inner);
+			// Inner Property can be handled as a member variable
+			return IsPropertySupportedByBlueprint(ArrayProperty->Inner, true);
 		}
 
 		const bool bSupportedType = Property->IsA<UInterfaceProperty>()
 			|| Property->IsA<UClassProperty>()
-			|| Property->IsA<UAssetClassProperty>() //?
-			|| Property->IsA<UObjectPropertyBase>()
+			|| Property->IsA<UObjectProperty>()
 			|| Property->IsA<UStructProperty>()
 			|| Property->IsA<UFloatProperty>()
 			|| Property->IsA<UIntProperty>()
@@ -735,7 +735,9 @@ namespace
 			|| Property->IsA<UMulticastDelegateProperty>()
 			|| Property->IsA<UDelegateProperty>();
 
-		return bSupportedType;
+		const bool bIsSupportedMemberVariable = Property->IsA<UObjectPropertyBase>();
+
+		return bSupportedType || (bIsSupportedMemberVariable && bMemberVariable);
 	}
 }
 	
@@ -5832,7 +5834,7 @@ void FHeaderParser::CompileFunctionDeclaration(FUnrealSourceFile& SourceFile, FC
 				FError::Throwf(TEXT("Static array cannot be exposed to blueprint. Function: %s Parameter %s\n"), *TopFunction->GetName(), *Param->GetName());
 			}
 
-			if (!IsPropertySupportedByBlueprint(Param))
+			if (!IsPropertySupportedByBlueprint(Param, false))
 			{
 				FError::Throwf(TEXT("Type '%s' is not supported by blueprint. Function: %s Parameter %s\n"), *Param->GetCPPType(), *TopFunction->GetName(), *Param->GetName());
 			}
@@ -6139,7 +6141,7 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 			FError::Throwf(TEXT("Static array cannot be exposed to blueprint %s.%s"), *Struct->GetName(), *NewProperty->GetName());
 		}
 
-		if (NewProperty->HasAnyPropertyFlags(CPF_BlueprintVisible) && !IsPropertySupportedByBlueprint(NewProperty))
+		if (NewProperty->HasAnyPropertyFlags(CPF_BlueprintVisible) && !IsPropertySupportedByBlueprint(NewProperty, true))
 		{
 			FError::Throwf(TEXT("Type '%s' is not supported by blueprint. %s.%s"), *NewProperty->GetCPPType(), *Struct->GetName(), *NewProperty->GetName());
 		}
