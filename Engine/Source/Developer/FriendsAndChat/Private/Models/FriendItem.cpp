@@ -105,7 +105,7 @@ const FString FFriendItem::GetClientName() const
 		}
 		else if (FFriendItem::LauncherClientIds.Contains(ClientId))
 		{
-			Result = TEXT("Unreal Engine Launcher");
+			Result = TEXT("Epic Games Launcher");
 		}
 	}
 	return Result;

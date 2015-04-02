@@ -496,7 +496,20 @@ FBuildPatchAppManifest::FBuildPatchAppManifest(const uint32& InAppID, const FStr
 
 FBuildPatchAppManifest::FBuildPatchAppManifest(const FBuildPatchAppManifest& Other)
 {
-	Data = DuplicateObject<UBuildPatchManifest>(Other.Data, Other.Data->GetOuter());
+	Data = NewObject<UBuildPatchManifest>();
+	Data->ManifestFileVersion = Other.Data->ManifestFileVersion;
+	Data->bIsFileData = Other.Data->bIsFileData;
+	Data->AppID = Other.Data->AppID;
+	Data->AppName = Other.Data->AppName;
+	Data->BuildVersion = Other.Data->BuildVersion;
+	Data->LaunchExe = Other.Data->LaunchExe;
+	Data->LaunchCommand = Other.Data->LaunchCommand;
+	Data->PrereqName = Other.Data->PrereqName;
+	Data->PrereqPath = Other.Data->PrereqPath;
+	Data->PrereqArgs = Other.Data->PrereqArgs;
+	Data->FileManifestList = Other.Data->FileManifestList;
+	Data->ChunkList = Other.Data->ChunkList;
+	Data->CustomFields = Other.Data->CustomFields;
 	Data->AddToRoot();
 	InitLookups();
 	bNeedsResaving = Other.bNeedsResaving;
@@ -536,16 +549,16 @@ bool FBuildPatchAppManifest::SaveToFile(const FString& Filename, bool bUseBinary
 				TArray<uint8>& FileData = bDataIsCompressed ? TempCompressed : ManifestData.GetBytes();
 
 				FManifestFileHeader Header;
-				*FileOut << Header;
-				Header.HeaderSize = FileOut->Tell();
 				Header.StoredAs = bDataIsCompressed ? EManifestFileHeader::STORED_COMPRESSED : EManifestFileHeader::STORED_RAW;
 				Header.DataSize = DataSize;
 				Header.CompressedSize = bDataIsCompressed ? CompressedSize : 0;
 				FSHA1::HashBuffer(FileData.GetData(), FileData.Num(), Header.SHAHash.Hash);
 
+				// Write to disk
+				*FileOut << Header;
+				Header.HeaderSize = FileOut->Tell();
 				FileOut->Seek(0);
 				*FileOut << Header;
-
 				FileOut->Serialize(FileData.GetData(), FileData.Num());
 				bSuccess = !FileOut->IsError();
 			}
@@ -590,7 +603,8 @@ bool FBuildPatchAppManifest::DeserializeFromData(const TArray<uint8>& DataInput)
 			FMemoryReader ManifestFile(DataInput);
 			FManifestFileHeader Header;
 			ManifestFile << Header;
-			if (Header.CheckMagic())
+			const int32 SignedHeaderSize = Header.HeaderSize;
+			if (Header.CheckMagic() && DataInput.Num() > SignedHeaderSize)
 			{
 				FSHAHashData DataHash;
 				FSHA1::HashBuffer(&DataInput[Header.HeaderSize], DataInput.Num() - Header.HeaderSize, DataHash.Hash);
@@ -1508,6 +1522,8 @@ bool FBuildPatchAppManifest::VerifyAgainstDirectory( const FString& VerifyDirect
 void FBuildPatchAppManifest::EnumerateChunkPartInventory(const TArray<FGuid>& ChunksRequired, TMap<FGuid, TArray<FFileChunkPart>>& ChunkPartsAvailable) const
 {
 	ChunkPartsAvailable.Empty();
+	// Use a set to optimize
+	TSet<FGuid> ChunksReqSet(ChunksRequired);
 	// For each file in the manifest, check what chunks it is made out of, and grab details for the ones in ChunksRequired
 	for (auto FileManifestIt = Data->FileManifestList.CreateConstIterator(); FileManifestIt && !FBuildPatchInstallError::HasFatalError(); ++FileManifestIt)
 	{
@@ -1516,7 +1532,7 @@ void FBuildPatchAppManifest::EnumerateChunkPartInventory(const TArray<FGuid>& Ch
 		for (auto ChunkPartIt = FileManifest.FileChunkParts.CreateConstIterator(); ChunkPartIt && !FBuildPatchInstallError::HasFatalError(); ++ChunkPartIt)
 		{
 			const FChunkPartData& ChunkPart = *ChunkPartIt;
-			if (ChunksRequired.Contains(ChunkPart.Guid))
+			if (ChunksReqSet.Contains(ChunkPart.Guid))
 			{
 				TArray<FFileChunkPart>& FileChunkParts = ChunkPartsAvailable.FindOrAdd(ChunkPart.Guid);
 				FFileChunkPart FileChunkPart;

@@ -91,6 +91,11 @@ public:
 	virtual void JoinPublicChatRoom(const FString& RoomName) = 0;
 
 	/**
+	 * Open whisper windows we have chat messages for
+	 */
+	virtual void OpenWhisperChatWindows(const FFriendsAndChatStyle* InStyle) = 0;
+
+	/**
 	 * Delegate when the chat room has been joined
 	 */
 	virtual void OnChatPublicRoomJoined(const FString& ChatRoomID) = 0;

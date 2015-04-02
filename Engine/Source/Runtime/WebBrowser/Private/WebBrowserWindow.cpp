@@ -7,18 +7,19 @@
 #include "RHI.h"
 
 #if WITH_CEF3
-FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize, FString InInitialURL, TOptional<FString> InContentsToLoad, bool InShowErrorMessage)
+FWebBrowserWindow::FWebBrowserWindow(FIntPoint ViewportSize, FString Url, TOptional<FString> ContentsToLoad, bool ShowErrorMessage)
 	: DocumentState(EWebBrowserDocumentState::NoDocument)
 	, UpdatableTexture(nullptr)
-	, ViewportSize(InViewportSize)
+	, CurrentUrl(Url)
+	, ViewportSize(ViewportSize)
 	, bIsClosing(false)
 	, bHasBeenPainted(false)
-	, InitialURL(InInitialURL)
-	, ContentsToLoad(InContentsToLoad)
-	, ShowErrorMessage(InShowErrorMessage)
+	, ContentsToLoad(ContentsToLoad)
+	, ShowErrorMessage(ShowErrorMessage)
 {
 	TextureData.Reserve(ViewportSize.X * ViewportSize.Y * 4);
 	TextureData.SetNumZeroed(ViewportSize.X * ViewportSize.Y * 4);
+    bTextureDataDirty = true;
 
 	if (FSlateApplication::IsInitialized() && FSlateApplication::Get().GetRenderer().IsValid())
 	{
@@ -90,6 +91,7 @@ void FWebBrowserWindow::SetViewportSize(FIntPoint WindowSize)
 		{
 			UpdatableTexture->ResizeTexture(ViewportSize.X, ViewportSize.Y);
 			UpdatableTexture->UpdateTextureThreadSafe(TextureData);
+            bTextureDataDirty = false;
 		}
 		if (IsValid())
 		{
@@ -102,6 +104,11 @@ FSlateShaderResource* FWebBrowserWindow::GetTexture()
 {
 	if (UpdatableTexture != nullptr)
 	{
+        if (bTextureDataDirty)
+        {
+            UpdatableTexture->UpdateTexture(TextureData);
+            bTextureDataDirty = false;
+        }
 		return UpdatableTexture->GetSlateResource();
 	}
 	return nullptr;
@@ -140,7 +147,7 @@ FString FWebBrowserWindow::GetUrl() const
 
 		if (MainFrame != nullptr)
 		{
-			return MainFrame->GetURL().ToWString().c_str();
+			return CurrentUrl;
 		}
 	}
 
@@ -407,7 +414,7 @@ void FWebBrowserWindow::BindCefBrowser(CefRefPtr<CefBrowser> Browser)
 	// Need to wait until this point if we want to start with a page loaded from a string
 	if (ContentsToLoad.IsSet())
 	{
-		LoadString(ContentsToLoad.GetValue(), InitialURL);
+		LoadString(ContentsToLoad.GetValue(), CurrentUrl);
 	}
 }
 
@@ -415,6 +422,12 @@ void FWebBrowserWindow::SetTitle(const CefString& InTitle)
 {
 	Title = InTitle.ToWString().c_str();
 	TitleChangedEvent.Broadcast(Title);
+}
+
+void FWebBrowserWindow::SetUrl(const CefString& Url)
+{
+	CurrentUrl = Url.ToWString().c_str();
+	OnUrlChanged().Broadcast(CurrentUrl);
 }
 
 bool FWebBrowserWindow::GetViewRect(CefRect& Rect)
@@ -450,19 +463,26 @@ void FWebBrowserWindow::NotifyDocumentLoadingStateChange(bool IsLoading)
 void FWebBrowserWindow::OnPaint(CefRenderHandler::PaintElementType Type, const CefRenderHandler::RectList& DirtyRects, const void* Buffer, int Width, int Height)
 {
 	const int32 BufferSize = Width*Height*4;
-	if (BufferSize == TextureData.Num())
+	if (BufferSize == TextureData.Num() && DirtyRects.size() == 1 && DirtyRects[0].width == Width && DirtyRects[0].height == Height)
 	{
 		FMemory::Memcpy(TextureData.GetData(), Buffer, BufferSize);
 	}
 	else
 	{
-		// copy row by row to avoid texture distortion
-		const int32 WriteWidth = FMath::Min(Width, ViewportSize.X) * 4;
-		const int32 WriteHeight = FMath::Min(Height, ViewportSize.Y);
-		for (int32 RowIndex = 0; RowIndex < WriteHeight; ++RowIndex)
-		{
-			FMemory::Memcpy(TextureData.GetData() + ViewportSize.X * RowIndex * 4, static_cast<const uint8*>(Buffer) + Width * RowIndex * 4, WriteWidth);
-		}
+        for (CefRect Rect : DirtyRects)
+        {
+            // Skip rect if fully outside the viewport
+            if (Rect.x > ViewportSize.X || Rect.y > ViewportSize.Y)
+                continue;
+            
+            const int32 WriteWidth = (FMath::Min(Rect.x + Rect.width, ViewportSize.X) - Rect.x) * 4;
+            const int32 WriteHeight = FMath::Min(Rect.y + Rect.height, ViewportSize.Y);
+            // copy row by row to skip pixels outside the rect
+            for (int32 RowIndex = Rect.y; RowIndex < WriteHeight; ++RowIndex)
+            {
+                FMemory::Memcpy(TextureData.GetData() + ( ViewportSize.X * RowIndex + Rect.x ) * 4 , static_cast<const uint8*>(Buffer) + (Width * RowIndex + Rect.x) * 4, WriteWidth);
+            }
+        }
 	}
 
 	if (UpdatableTexture != nullptr)
@@ -470,7 +490,10 @@ void FWebBrowserWindow::OnPaint(CefRenderHandler::PaintElementType Type, const C
 		UpdatableTexture->UpdateTextureThreadSafe(TextureData);
 	}
 
-	bHasBeenPainted = true;
+    bTextureDataDirty = true;
+    bHasBeenPainted = true;
+
+    NeedsRedrawEvent.Broadcast();
 }
 
 void FWebBrowserWindow::OnCursorChange(CefCursorHandle Cursor)

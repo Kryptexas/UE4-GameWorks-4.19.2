@@ -176,6 +176,22 @@ public:
 	}
 
 	/**
+	 * Gets a shared reference to an instance of the specified class.
+	 *
+	 * Unlike GetInstance(), this function will assert if no instance was registered for
+	 * the requested type of class using either RegisterClass() or RegisterInstance().
+	 *
+	 * @param R The type of class that an instance is being requested for.
+	 * @param A shared pointer to the instance.
+	 * @see GetInstance, RegisterClass, RegisterInstance
+	 */
+	template<class R>
+	TSharedRef<R> GetInstanceRef()
+	{
+		return GetInstance<R>().ToSharedRef();
+	}
+
+	/**
 	 * Registers a class for instances of the specified class.
 	 *
 	 * @param R The type of class to register an instance class for.

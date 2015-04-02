@@ -8,16 +8,19 @@ FOnlineSubsystemIOS::FOnlineSubsystemIOS()
 
 }
 
-
 IOnlineSessionPtr FOnlineSubsystemIOS::GetSessionInterface() const
 {
 	return SessionInterface;
 }
 
-
 IOnlineFriendsPtr FOnlineSubsystemIOS::GetFriendsInterface() const
 {
 	return FriendsInterface;
+}
+
+IOnlinePartyPtr FOnlineSubsystemIOS::GetPartyInterface() const
+{
+	return nullptr;
 }
 
 IOnlineGroupsPtr FOnlineSubsystemIOS::GetGroupsInterface() const
@@ -27,18 +30,17 @@ IOnlineGroupsPtr FOnlineSubsystemIOS::GetGroupsInterface() const
 
 IOnlineSharedCloudPtr FOnlineSubsystemIOS::GetSharedCloudInterface() const
 {
-	return NULL;
+	return nullptr;
 }
-
 
 IOnlineUserCloudPtr FOnlineSubsystemIOS::GetUserCloudInterface() const
 {
-	return NULL;
+	return nullptr;
 }
 
 IOnlineUserCloudPtr FOnlineSubsystemIOS::GetUserCloudInterface(const FString& Key) const
 {
-	return NULL;
+	return nullptr;
 }
 
 IOnlineLeaderboardsPtr FOnlineSubsystemIOS::GetLeaderboardsInterface() const
@@ -48,39 +50,33 @@ IOnlineLeaderboardsPtr FOnlineSubsystemIOS::GetLeaderboardsInterface() const
 
 IOnlineVoicePtr FOnlineSubsystemIOS::GetVoiceInterface() const
 {
-	return NULL;
+	return nullptr;
 }
-
 
 IOnlineExternalUIPtr FOnlineSubsystemIOS::GetExternalUIInterface() const
 {
 	return ExternalUIInterface;
 }
 
-
 IOnlineTimePtr FOnlineSubsystemIOS::GetTimeInterface() const
 {
-	return NULL;
+	return nullptr;
 }
-
 
 IOnlineIdentityPtr FOnlineSubsystemIOS::GetIdentityInterface() const
 {
 	return IdentityInterface;
 }
 
-
 IOnlineTitleFilePtr FOnlineSubsystemIOS::GetTitleFileInterface() const
 {
-	return NULL;
+	return nullptr;
 }
-
 
 IOnlineEntitlementsPtr FOnlineSubsystemIOS::GetEntitlementsInterface() const
 {
-	return NULL;
+	return nullptr;
 }
-
 
 IOnlineStorePtr FOnlineSubsystemIOS::GetStoreInterface() const
 {
@@ -89,7 +85,7 @@ IOnlineStorePtr FOnlineSubsystemIOS::GetStoreInterface() const
 
 IOnlineEventsPtr FOnlineSubsystemIOS::GetEventsInterface() const
 {
-	return NULL;
+	return nullptr;
 }
 
 IOnlineAchievementsPtr FOnlineSubsystemIOS::GetAchievementsInterface() const
@@ -97,31 +93,29 @@ IOnlineAchievementsPtr FOnlineSubsystemIOS::GetAchievementsInterface() const
 	return AchievementsInterface;
 }
 
-
 IOnlineSharingPtr FOnlineSubsystemIOS::GetSharingInterface() const
 {
-	return NULL;
+	return nullptr;
 }
-
 
 IOnlineUserPtr FOnlineSubsystemIOS::GetUserInterface() const
 {
-	return NULL;
+	return nullptr;
 }
 
 IOnlineMessagePtr FOnlineSubsystemIOS::GetMessageInterface() const
 {
-	return NULL;
+	return nullptr;
 }
 
 IOnlinePresencePtr FOnlineSubsystemIOS::GetPresenceInterface() const
 {
-	return NULL;
+	return nullptr;
 }
 
 IOnlineChatPtr FOnlineSubsystemIOS::GetChatInterface() const
 {
-	return NULL;
+	return nullptr;
 }
 
 IOnlineTurnBasedPtr FOnlineSubsystemIOS::GetTurnBasedInterface() const

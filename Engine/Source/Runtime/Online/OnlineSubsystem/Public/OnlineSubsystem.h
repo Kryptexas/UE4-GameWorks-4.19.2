@@ -33,6 +33,7 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("VoiceInt"), STAT_Voice_Interface, STATGROUP_Onli
 /** Forward declarations of all interface classes */
 typedef TSharedPtr<class IOnlineSession, ESPMode::ThreadSafe> IOnlineSessionPtr;
 typedef TSharedPtr<class IOnlineFriends, ESPMode::ThreadSafe> IOnlineFriendsPtr;
+typedef TSharedPtr<class IOnlineParty, ESPMode::ThreadSafe> IOnlinePartyPtr;
 typedef TSharedPtr<class IOnlineGroups, ESPMode::ThreadSafe> IOnlineGroupsPtr;
 typedef TSharedPtr<class IOnlineSharedCloud, ESPMode::ThreadSafe> IOnlineSharedCloudPtr;
 typedef TSharedPtr<class IOnlineUserCloud, ESPMode::ThreadSafe> IOnlineUserCloudPtr;
@@ -150,6 +151,12 @@ public:
 	 * @return Interface pointer for appropriate groups service
 	 */
 	virtual IOnlineGroupsPtr GetGroupsInterface() const = 0;
+
+	/** 
+	 * Get the interface for accessing the player party services
+	 * @return Interface pointer for the appropriate party service
+	 */
+	virtual IOnlinePartyPtr GetPartyInterface() const = 0;
 
 	/** 
 	 * Get the interface for sharing user files in the cloud

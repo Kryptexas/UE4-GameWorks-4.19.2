@@ -27,11 +27,11 @@ public:
 	// A string determining the app and version we are installing
 	const FString PatchVersion;
 
-	// An array of files that were started
-	TArray< FString > FilesStarted;
+	// The set of files that were started
+	TSet<FString> FilesStarted;
 
-	// An array of files that were completed, determined by expected filesize
-	TArray< FString > FilesCompleted;
+	// The set of files that were completed, determined by expected filesize
+	TSet<FString> FilesCompleted;
 
 	// The manifest for the app we are installing
 	FBuildPatchAppManifestRef BuildManifest;
@@ -53,6 +53,7 @@ public:
 	{
 		// Load data from previous resume file
 		bHasResumeData = FPaths::FileExists( ResumeDataFile );
+		GLog->Logf(TEXT("BuildPatchResumeData file found %d"), bHasResumeData);
 		if( bHasResumeData )
 		{
 			FString PrevResumeData;
@@ -60,17 +61,9 @@ public:
 			FFileHelper::LoadFileToString( PrevResumeData, *ResumeDataFile );
 			PrevResumeData.ParseIntoArray( ResumeDataLines, TEXT( "\n" ), true );
 			// Line 1 will be the previously attempted version
-			bHasResumeData = ( ResumeDataLines.Num() >= 1 ) && ResumeDataLines[0] == PatchVersion;
-			if( bHasResumeData )
-			{
-				// The rest of the lines will be the filenames that were started
-				for( int32 LineIdx = 1; LineIdx < ResumeDataLines.Num(); ++LineIdx )
-				{
-					const FString& Filename = ResumeDataLines[ LineIdx ];
-					const FString FullFilename = InStagingDir / Filename;
-					FilesStarted.Add( Filename );
-				}
-			}
+			FString PreviousVersion = (ResumeDataLines.Num() > 0) ? MoveTemp(ResumeDataLines[0]) : TEXT("");
+			bHasResumeData = PreviousVersion  == PatchVersion;
+			GLog->Logf(TEXT("BuildPatchResumeData version matched %d %s == %s"), bHasResumeData, *PreviousVersion, *PatchVersion);
 		}
 	}
 
@@ -79,14 +72,8 @@ public:
 	 */
 	void SaveOut()
 	{
-		// Save out the data
-		FString DataOut = PatchVersion + TEXT("\n");
-		for( auto FilesStartedIt = FilesStarted.CreateConstIterator(); FilesStartedIt; ++FilesStartedIt )
-		{
-			const FString& Filename = *FilesStartedIt;
-			DataOut += Filename  + TEXT("\n");
-		}
-		FFileHelper::SaveStringToFile( DataOut, *ResumeDataFile );
+		// Save out the patch version
+		FFileHelper::SaveStringToFile(PatchVersion + TEXT("\n"), *ResumeDataFile);
 	}
 
 	/**
@@ -96,19 +83,18 @@ public:
 	void CheckFile( const FString& Filename )
 	{
 		// If we had resume data, check file size is correct
-		if( bHasResumeData && FilesStarted.Contains( Filename ) )
+		if(bHasResumeData)
 		{
 			const FString FullFilename = StagingDir / Filename;
 			const int64 DiskFileSize = IFileManager::Get().FileSize( *FullFilename );
 			const int64 CompleteFileSize = BuildManifest->GetFileSize( Filename );
+			if (DiskFileSize > 0 && DiskFileSize <= CompleteFileSize)
+			{
+				FilesStarted.Add(Filename);
+			}
 			if( DiskFileSize == CompleteFileSize )
 			{
 				FilesCompleted.Add( Filename );
-			}
-			// Sanity check, if file is larger than we expect, that's bad
-			else if( DiskFileSize > CompleteFileSize )
-			{
-				FilesStarted.Remove( Filename );
 			}
 		}
 	}
@@ -185,6 +171,9 @@ uint32 FBuildPatchFileConstructor::Run()
 	// Check for resume data
 	FResumeData ResumeData( StagingDirectory, BuildManifest );
 
+	// Save for started version
+	ResumeData.SaveOut();
+
 	// Start resume progress at zero or one
 	BuildProgress->SetStateProgress( EBuildPatchProgress::Resuming, ResumeData.bHasResumeData ? 0.0f : 1.0f );
 
@@ -213,11 +202,6 @@ uint32 FBuildPatchFileConstructor::Run()
 		else
 		{
 			bFileSuccess = ConstructFileFromChunks( FileToConstruct, bFilePreviouslyStarted );
-			// Add to resume data if successful or failure was not file construction fail
-			if( bFileSuccess || FBuildPatchInstallError::GetErrorState() != EBuildPatchInstallError::FileConstructionFail )
-			{
-				ResumeData.FilesStarted.AddUnique( FileToConstruct );
-			}
 		}
 
 		// If the file succeeded, add to lists
@@ -235,14 +219,11 @@ uint32 FBuildPatchFileConstructor::Run()
 		BuildProgress->WaitWhilePaused();
 	}
 
-	// Save resume data
-	ResumeData.SaveOut();
 	BuildProgress->SetStateProgress(EBuildPatchProgress::Resuming, 1.0f);
 
 	// Set constructed files
 	ThreadLock.Lock();
-	FilesConstructed.Empty();
-	FilesConstructed.Append( ConstructedFiles );
+	FilesConstructed = MoveTemp(ConstructedFiles);
 	ThreadLock.Unlock();
 
 	SetRunning( false );

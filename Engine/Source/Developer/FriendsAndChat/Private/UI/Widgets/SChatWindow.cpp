@@ -871,8 +871,6 @@ private:
 	{
 		const bool bDisabled = NewState == ECheckBoxState::Unchecked;
 		SharedChatViewModel->SetDisplayGlobalChat(!bDisabled);
-
-		FFriendsAndChatManager::Get()->GetAnalytics().RecordToggleChat(TEXT("Global"), !bDisabled, TEXT("Social.Chat.Toggle"));
 	}
 
 	ECheckBoxState GetGlobalOptionState() const

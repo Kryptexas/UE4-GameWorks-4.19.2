@@ -1116,10 +1116,12 @@ namespace EInviteStatus
 class FOnlineFriend : public FOnlineUser
 {
 public:
+	
 	/**
 	 * @return the current invite status of a friend wrt to user that queried
 	 */
 	virtual EInviteStatus::Type GetInviteStatus() const = 0;
+	
 	/**
 	 * @return presence info for an online friend
 	 */
@@ -1127,11 +1129,12 @@ public:
 };
 
 /**
- * Friend user info returned via IOnlineFriends interface
+ * Recent player user info returned via IOnlineFriends interface
  */
 class FOnlineRecentPlayer : public FOnlineUser
 {
 public:
+	
 	/**
 	 * @return last time the player was seen by the current user
 	 */

@@ -9,6 +9,7 @@
 #endif
 
 #include "include/cef_client.h"
+#include "include/wrapper/cef_message_router.h"
 
 #if PLATFORM_WINDOWS
 	#include "HideWindowsPlatformTypes.h"
@@ -78,11 +79,18 @@ public:
 		return this;
 	}
 
+    virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> Browser,
+        CefProcessId SourceProcess,
+        CefRefPtr<CefProcessMessage> Message) override;
+
+
 public:
 
 	// CefDisplayHandler Interface
 
 	virtual void OnTitleChange(CefRefPtr<CefBrowser> Browser, const CefString& Title) override;
+	virtual void OnAddressChange(CefRefPtr<CefBrowser> Browser, CefRefPtr<CefFrame> Frame, const CefString& Url) override;
+
 
 public:
 
@@ -126,6 +134,11 @@ public:
 	virtual bool OnBeforeResourceLoad(CefRefPtr<CefBrowser> Browser,
 		CefRefPtr<CefFrame> Frame,
 		CefRefPtr<CefRequest> Request) override;
+    virtual void OnRenderProcessTerminated(CefRefPtr<CefBrowser> Browser, TerminationStatus Status) override;
+    virtual bool OnBeforeBrowse(CefRefPtr<CefBrowser> Browser,
+        CefRefPtr<CefFrame> Frame,
+        CefRefPtr<CefRequest> Request,
+        bool IsRedirect) override;
 
 private:
 
@@ -134,6 +147,9 @@ private:
 
 	/** Whether to show an error message in case of loading errors. */
 	bool ShowErrorMessage;
+
+    /** The message router is used as a part of a generic message api between Javascript in the render process and the application process */
+    CefRefPtr<CefMessageRouterBrowserSide> MessageRouter;
 
 	// Include the default reference counting implementation.
 	IMPLEMENT_REFCOUNTING(FWebBrowserHandler);

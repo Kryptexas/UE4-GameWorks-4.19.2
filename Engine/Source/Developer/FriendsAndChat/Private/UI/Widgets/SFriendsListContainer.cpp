@@ -24,6 +24,8 @@ public:
 		FFriendListViewModel* ViewModelPtr = ViewModel.Get();
 		MenuMethod = InArgs._Method;
 
+		EVisibility FilterVisibility = ViewModel->GetListType() == EFriendsDisplayLists::ClanMemberDisplay ? EVisibility::Visible : EVisibility::Collapsed;
+
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
 			SNew(SVerticalBox)
@@ -76,8 +78,13 @@ public:
 						]
 						+ SHorizontalBox::Slot()
 						.HAlign(HAlign_Fill)
+						.Padding(FMargin(5, 0))
 						[
-							SNew(SSpacer)
+							SNew(SEditableTextBox)
+							.Style(&FriendStyle.AddFriendEditableTextStyle)
+							.HintText(LOCTEXT("FilterListHint", "Filter"))
+							.OnTextChanged(this, &SFriendsListContainerImpl::HandleFilterChanged, ETextCommit::Default)
+							.Visibility(FilterVisibility)
 						]
 						+ SHorizontalBox::Slot()
 						.AutoWidth()
@@ -133,6 +140,11 @@ private:
 	{
 		FriendsVisibility = FriendsVisibility == EVisibility::Visible ? EVisibility::Collapsed : EVisibility::Visible;
 		return FReply::Handled();
+	}
+
+	void HandleFilterChanged(const FText& CommentText, ETextCommit::Type CommitInfo)
+	{
+		ViewModel->SetListFilter(CommentText);
 	}
 
 private:

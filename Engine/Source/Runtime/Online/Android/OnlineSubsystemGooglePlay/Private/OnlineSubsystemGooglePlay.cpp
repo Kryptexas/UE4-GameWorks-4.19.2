@@ -33,20 +33,22 @@ IOnlineIdentityPtr FOnlineSubsystemGooglePlay::GetIdentityInterface() const
 	return IdentityInterface;
 }
 
-
 IOnlineStorePtr FOnlineSubsystemGooglePlay::GetStoreInterface() const
 {
 	return StoreInterface;
 }
-
 
 IOnlineSessionPtr FOnlineSubsystemGooglePlay::GetSessionInterface() const
 {
 	return nullptr;
 }
 
-
 IOnlineFriendsPtr FOnlineSubsystemGooglePlay::GetFriendsInterface() const
+{
+	return nullptr;
+}
+
+IOnlinePartyPtr FOnlineSubsystemGooglePlay::GetPartyInterface() const
 {
 	return nullptr;
 }
@@ -60,7 +62,6 @@ IOnlineSharedCloudPtr FOnlineSubsystemGooglePlay::GetSharedCloudInterface() cons
 {
 	return nullptr;
 }
-
 
 IOnlineUserCloudPtr FOnlineSubsystemGooglePlay::GetUserCloudInterface() const
 {
@@ -77,18 +78,15 @@ IOnlineLeaderboardsPtr FOnlineSubsystemGooglePlay::GetLeaderboardsInterface() co
 	return LeaderboardsInterface;
 }
 
-
 IOnlineVoicePtr FOnlineSubsystemGooglePlay::GetVoiceInterface() const
 {
 	return nullptr;
 }
 
-
 IOnlineExternalUIPtr FOnlineSubsystemGooglePlay::GetExternalUIInterface() const
 {
 	return ExternalUIInterface;
 }
-
 
 IOnlineTimePtr FOnlineSubsystemGooglePlay::GetTimeInterface() const
 {

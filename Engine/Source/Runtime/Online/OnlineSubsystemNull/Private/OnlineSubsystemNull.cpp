@@ -17,8 +17,12 @@ IOnlineSessionPtr FOnlineSubsystemNull::GetSessionInterface() const
 
 IOnlineFriendsPtr FOnlineSubsystemNull::GetFriendsInterface() const
 {
-	//return FriendInterface;
-	return NULL;
+	return nullptr;
+}
+
+IOnlinePartyPtr FOnlineSubsystemNull::GetPartyInterface() const
+{
+	return nullptr;
 }
 
 IOnlineGroupsPtr FOnlineSubsystemNull::GetGroupsInterface() const
@@ -28,23 +32,22 @@ IOnlineGroupsPtr FOnlineSubsystemNull::GetGroupsInterface() const
 
 IOnlineSharedCloudPtr FOnlineSubsystemNull::GetSharedCloudInterface() const
 {
-	return NULL;
+	return nullptr;
 }
 
 IOnlineUserCloudPtr FOnlineSubsystemNull::GetUserCloudInterface() const
 {
-	//return UserCloudInterface;
-	return NULL;
+	return nullptr;
 }
 
 IOnlineUserCloudPtr FOnlineSubsystemNull::GetUserCloudInterface(const FString& Key) const
 {
-	return NULL;
+	return nullptr;
 }
 
 IOnlineEntitlementsPtr FOnlineSubsystemNull::GetEntitlementsInterface() const
 {
-	return NULL;
+	return nullptr;
 };
 
 IOnlineLeaderboardsPtr FOnlineSubsystemNull::GetLeaderboardsInterface() const
@@ -59,13 +62,12 @@ IOnlineVoicePtr FOnlineSubsystemNull::GetVoiceInterface() const
 
 IOnlineExternalUIPtr FOnlineSubsystemNull::GetExternalUIInterface() const
 {
-	//return ExternalUIInterface;
-	return NULL;
+	return nullptr;
 }
 
 IOnlineTimePtr FOnlineSubsystemNull::GetTimeInterface() const
 {
-	return NULL;
+	return nullptr;
 }
 
 IOnlineIdentityPtr FOnlineSubsystemNull::GetIdentityInterface() const
@@ -75,17 +77,17 @@ IOnlineIdentityPtr FOnlineSubsystemNull::GetIdentityInterface() const
 
 IOnlineTitleFilePtr FOnlineSubsystemNull::GetTitleFileInterface() const
 {
-	return NULL;
+	return nullptr;
 }
 
 IOnlineStorePtr FOnlineSubsystemNull::GetStoreInterface() const
 {
-	return NULL;
+	return nullptr;
 }
 
 IOnlineEventsPtr FOnlineSubsystemNull::GetEventsInterface() const
 {
-	return NULL;
+	return nullptr;
 }
 
 IOnlineAchievementsPtr FOnlineSubsystemNull::GetAchievementsInterface() const
@@ -95,32 +97,32 @@ IOnlineAchievementsPtr FOnlineSubsystemNull::GetAchievementsInterface() const
 
 IOnlineSharingPtr FOnlineSubsystemNull::GetSharingInterface() const
 {
-	return NULL;
+	return nullptr;
 }
 
 IOnlineUserPtr FOnlineSubsystemNull::GetUserInterface() const
 {
-	return NULL;
+	return nullptr;
 }
 
 IOnlineMessagePtr FOnlineSubsystemNull::GetMessageInterface() const
 {
-	return NULL;
+	return nullptr;
 }
 
 IOnlinePresencePtr FOnlineSubsystemNull::GetPresenceInterface() const
 {
-	return NULL;
+	return nullptr;
 }
 
 IOnlineChatPtr FOnlineSubsystemNull::GetChatInterface() const
 {
-	return NULL;
+	return nullptr;
 }
 
 IOnlineTurnBasedPtr FOnlineSubsystemNull::GetTurnBasedInterface() const
 {
-    return NULL;
+    return nullptr;
 }
 
 bool FOnlineSubsystemNull::Tick(float DeltaTime)
@@ -168,7 +170,7 @@ bool FOnlineSubsystemNull::Init()
 		VoiceInterface = MakeShareable(new FOnlineVoiceImpl(this));
 		if (!VoiceInterface->Init())
 		{
-			VoiceInterface = NULL;
+			VoiceInterface = nullptr;
 		}
 	}
 	else
@@ -187,20 +189,20 @@ bool FOnlineSubsystemNull::Shutdown()
 	{
 		// Destroy the online async task thread
 		delete OnlineAsyncTaskThread;
-		OnlineAsyncTaskThread = NULL;
+		OnlineAsyncTaskThread = nullptr;
 	}
 
 	if (OnlineAsyncTaskThreadRunnable)
 	{
 		delete OnlineAsyncTaskThreadRunnable;
-		OnlineAsyncTaskThreadRunnable = NULL;
+		OnlineAsyncTaskThreadRunnable = nullptr;
 	}
 	
  	#define DESTRUCT_INTERFACE(Interface) \
  	if (Interface.IsValid()) \
  	{ \
  		ensure(Interface.IsUnique()); \
- 		Interface = NULL; \
+ 		Interface = nullptr; \
  	}
  
  	// Destruct the interfaces

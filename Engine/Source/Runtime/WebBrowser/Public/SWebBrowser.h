@@ -17,6 +17,7 @@ public:
 	SLATE_BEGIN_ARGS(SWebBrowser)
 		: _InitialURL(TEXT("www.google.com"))
 		, _ShowControls(true)
+		, _ShowAddressBar(false)
 		, _ShowErrorMessage(true)
 		, _SupportsTransparency(false)
 		, _ViewportSize(FVector2D(320, 240))
@@ -33,6 +34,9 @@ public:
 
 		/** Whether to show standard controls like Back, Forward, Reload etc. */
 		SLATE_ARGUMENT(bool, ShowControls)
+
+		/** Whether to show an address bar. */
+		SLATE_ARGUMENT(bool, ShowAddressBar)
 
 		/** Whether to show an error message in case of loading errors. */
 		SLATE_ARGUMENT(bool, ShowErrorMessage)
@@ -54,6 +58,8 @@ public:
 
 		/** Called when document title changed. */
 		SLATE_EVENT(FOnTextChanged, OnTitleChanged)
+
+		SLATE_EVENT(FOnTextChanged, OnUrlChanged)
 	SLATE_END_ARGS()
 
 
@@ -90,7 +96,14 @@ public:
 	 *
 	 * @return The URL, or empty string if no document is loaded.
 	 */
-	FString GetUrl();
+	FString GetUrl() const;
+
+	/**
+	 * Gets the URL that appears in the address bar, this may not be the URL that is currently loaded in the frame.
+	 *
+	 * @return The address bar URL.
+	 */
+	FText GetAddressBarUrlText() const;
 
 	/** Whether the document finished loading. */
 	bool IsLoaded() const;
@@ -118,6 +131,9 @@ private:
 	/** Reload or stop loading */
 	FReply OnReloadClicked();
 
+	/** Invoked whenever text is committed in the address bar. */
+	void OnUrlTextCommitted( const FText& NewText, ETextCommit::Type CommitType );
+
 	/** Get whether the page viewport should be visible */
 	EVisibility GetViewportVisibility() const;
 
@@ -127,6 +143,15 @@ private:
 	/** Callback for document loading state changes. */
 	void HandleBrowserWindowDocumentStateChanged(EWebBrowserDocumentState NewState);
 
+	/** Callback to tell slate we want to update the contents of the web view based on changes inside the view. */
+	void HandleBrowserWindowNeedsRedraw();
+
+	/** Callback for document title changes. */
+	void HandleTitleChanged(FString NewTitle);
+
+	/** Callback for loaded url changes. */
+	void HandleUrlChanged(FString NewUrl);
+
 private:
 
 	/** Interface for dealing with a web browser window. */
@@ -134,6 +159,12 @@ private:
 
 	/** Viewport interface for rendering the web page. */
 	TSharedPtr<FWebBrowserViewport> BrowserViewport;
+
+	/** The url that appears in the address bar which can differ from the url of the loaded page */
+	FText AddressBarUrl;
+
+	/** Editable text widget used for an address bar */
+	TSharedPtr< SEditableTextBox > InputText;
 
 	/** A delegate that is invoked when document loading completed. */
 	FSimpleDelegate OnLoadCompleted;
@@ -146,4 +177,10 @@ private:
 
 	/** A delegate that is invoked when document title changed. */
 	FOnTextChanged OnTitleChanged;
+
+	/** A delegate that is invoked when document address changed. */
+	FOnTextChanged OnUrlChanged;
+
+	/** A flag to avoid having more than one active timer delegate in flight at the same time */
+	bool IsHandlingRedraw;
 };

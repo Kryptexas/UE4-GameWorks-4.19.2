@@ -43,7 +43,7 @@ public:
 	 * @param InContentsToLoad Optional string to load as a web page.
 	 * @param InShowErrorMessage Whether to show an error message in case of loading errors.
 	 */
-	FWebBrowserWindow(FIntPoint InViewportSize, FString InInitialURL, TOptional<FString> InContentsToLoad, bool InShowErrorMessage);
+	FWebBrowserWindow(FIntPoint ViewportSize, FString URL, TOptional<FString> ContentsToLoad, bool ShowErrorMessage);
 
 	/** Virtual Destructor. */
 	virtual ~FWebBrowserWindow();
@@ -104,6 +104,18 @@ public:
 		return TitleChangedEvent;
 	}
 
+	DECLARE_DERIVED_EVENT(FWebBrowserWindow, IWebBrowserWindow::FOnUrlChanged, FOnUrlChanged);
+	virtual FOnUrlChanged& OnUrlChanged() override
+	{
+		return UrlChangedEvent;
+	}
+
+	DECLARE_DERIVED_EVENT(FWebBrowserWindow, IWebBrowserWindow::FOnNeedsRedraw, FOnNeedsRedraw);
+	virtual FOnNeedsRedraw& OnNeedsRedraw() override
+	{
+		return NeedsRedrawEvent;
+	}
+
 private:
 
 	/**
@@ -120,6 +132,13 @@ private:
 	 * @param InTitle The new title of this window.
 	 */
 	void SetTitle(const CefString& InTitle);
+
+	/**
+	 * Sets the url of this window.
+	 * 
+	 * @param InUrl The new url of this window.
+	 */
+	void SetUrl(const CefString& Url);
 
 	/**
 	 * Get the current proportions of this window.
@@ -194,6 +213,9 @@ private:
 	/** Temporary storage for the raw texture data. */
 	TArray<uint8> TextureData;
 
+    /** Wether the texture data contain updates that have not been copied to the UpdatableTexture yet. */
+    bool bTextureDataDirty;
+
 	/** Pointer to the CEF Handler for this window. */
 	CefRefPtr<FWebBrowserHandler> Handler;
 
@@ -203,6 +225,9 @@ private:
 	/** Current title of this window. */
 	FString Title;
 
+	/** Current Url of this window. */
+	FString CurrentUrl;
+
 	/** Current size of this window. */
 	FIntPoint ViewportSize;
 
@@ -211,9 +236,6 @@ private:
 
 	/** Whether this window has been painted at least once. */
 	bool bHasBeenPainted;
-
-	/** Initial URL that will be loaded (stored to pass on as the dummy for LoadString()). */
-	FString InitialURL;
 
 	/** Optional text to load as a web page. */
 	TOptional<FString> ContentsToLoad;
@@ -226,6 +248,12 @@ private:
 
 	/** Delegate for broadcasting title changes. */
 	FOnTitleChanged TitleChangedEvent;
+
+	/** Delegate for broadcasting address changes. */
+	FOnUrlChanged UrlChangedEvent;
+
+	/** Delegate for notifying that the window needs refreshing. */
+	FOnNeedsRedraw NeedsRedrawEvent;
 };
 
 

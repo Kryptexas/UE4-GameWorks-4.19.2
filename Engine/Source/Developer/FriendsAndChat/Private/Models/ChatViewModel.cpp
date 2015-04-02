@@ -452,6 +452,7 @@ public:
 	virtual void SetDisplayGlobalChat(bool bAllow) override
 	{
 		bIsDisplayingGlobalChat = bAllow;
+		FFriendsAndChatManager::Get()->GetAnalytics().RecordToggleChat(TEXT("Global"), bIsDisplayingGlobalChat, TEXT("Social.Chat.Toggle"));
 		RefreshMessages();
 	}
 

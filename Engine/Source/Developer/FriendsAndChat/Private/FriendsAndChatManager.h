@@ -131,6 +131,7 @@ public:
 	virtual void AddApplicationViewModel(const FString ClientID, TSharedPtr<IFriendsApplicationViewModel> ApplicationViewModel) override;
 	virtual void CreateFriendsListWindow(const FFriendsAndChatStyle* InStyle) override;
 	virtual void CreateChatWindow(const struct FFriendsAndChatStyle* InStyle, EChatMessageType::Type ChatType, TSharedPtr<IFriendItem> FriendItem, bool BringToFront = false) override;
+	virtual void OpenWhisperChatWindows(const FFriendsAndChatStyle* InStyle) override;
 	virtual void SetUserSettings(const FFriendsAndChatSettings& UserSettings) override;
 	virtual void SetAnalyticsProvider(const TSharedPtr<IAnalyticsProvider>& AnalyticsProvider) override;
 	virtual TSharedPtr< SWidget > GenerateFriendsListWidget( const FFriendsAndChatStyle* InStyle ) override;
@@ -812,6 +813,11 @@ private:
 
 	// Use chat window, one window for each chat, non-windowed widgets?
 	EChatWindowMode ChatWindowMode;
+
+	// Holds the clan repository
+	TSharedPtr<class IClanRepository> ClanRepository;
+	// Holds the friends list provider
+	TSharedPtr<class IFriendListFactory> FriendsListFactory;
 
 	/* Manger state
 	*****************************************************************************/

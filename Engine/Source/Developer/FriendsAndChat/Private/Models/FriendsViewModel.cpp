@@ -7,6 +7,9 @@
 #include "FriendsUserSettingsViewModel.h"
 #include "FriendListViewModel.h"
 #include "FriendsUserViewModel.h"
+#include "ClanViewModel.h"
+#include "ClanRepository.h"
+#include "IFriendList.h"
 
 class FFriendsViewModelImpl
 	: public FFriendsViewModel
@@ -40,7 +43,12 @@ public:
 
 	virtual TSharedRef< FFriendListViewModel > GetFriendListViewModel(EFriendsDisplayLists::Type ListType) override
 	{
-		return FFriendListViewModelFactory::Create(SharedThis(this), ListType);
+		return FFriendListViewModelFactory::Create(FriendsListFactory->Create(ListType), ListType);
+	}
+
+	virtual TSharedRef< FClanViewModel > GetClanViewModel() override
+	{
+		return FClanViewModelFactory::Create(ClanRepository);
 	}
 
 	virtual void RequestFriend(const FText& FriendName) const override
@@ -95,15 +103,21 @@ private:
 	}
 
 	FFriendsViewModelImpl(
-		const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager
+		const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager,
+		const TSharedRef<IClanRepository>& ClanRepository,
+		const TSharedRef<IFriendListFactory>& FriendsListFactory
 		)
 		: FriendsAndChatManager(FriendsAndChatManager)
+		, ClanRepository(ClanRepository)
+		, FriendsListFactory(FriendsListFactory)
 		, bIsPerformingAction(false)
 	{
 	}
 
 private:
 	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
+	TSharedRef<IClanRepository> ClanRepository;
+	TSharedRef<IFriendListFactory> FriendsListFactory;
 	bool bIsPerformingAction;
 
 private:
@@ -111,9 +125,11 @@ private:
 };
 
 TSharedRef< FFriendsViewModel > FFriendsViewModelFactory::Create(
-	const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager
+	const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager,
+	const TSharedRef<IClanRepository>& ClanRepository,
+	const TSharedRef<IFriendListFactory>& FriendsListFactory
 	)
 {
-	TSharedRef< FFriendsViewModelImpl > ViewModel(new FFriendsViewModelImpl(FriendsAndChatManager));
+	TSharedRef< FFriendsViewModelImpl > ViewModel(new FFriendsViewModelImpl(FriendsAndChatManager, ClanRepository, FriendsListFactory));
 	return ViewModel;
 }

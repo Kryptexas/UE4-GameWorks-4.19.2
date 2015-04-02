@@ -41,6 +41,10 @@ public:
 	{
 		return NULL;
 	}
+	virtual IOnlinePartyPtr GetPartyInterface() const override
+	{
+		return NULL;
+	}
 	virtual IOnlineGroupsPtr GetGroupsInterface() const override
 	{
 		return nullptr;

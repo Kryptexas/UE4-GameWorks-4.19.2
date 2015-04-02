@@ -191,6 +191,14 @@ public:
 	DECLARE_EVENT_OneParam(IWebBrowserWindow, FOnTitleChanged, FString /*NewTitle*/);
 	virtual FOnTitleChanged& OnTitleChanged() = 0;
 
+	/** A delegate to allow callbacks when a frame url changes. */
+	DECLARE_EVENT_OneParam(IWebBrowserWindow, FOnUrlChanged, FString /*NewUrl*/);
+	virtual FOnUrlChanged& OnUrlChanged() = 0;
+
+	/** A delegate that is invoked when the off-screen window has been repainted and requires an update. */
+	DECLARE_EVENT(IWebBrowserWindow, FOnNeedsRedraw)
+	virtual FOnNeedsRedraw& OnNeedsRedraw() = 0;
+
 protected:
 
 	/** Virtual Destructor. */

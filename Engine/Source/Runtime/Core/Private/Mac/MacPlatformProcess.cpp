@@ -578,8 +578,7 @@ bool FMacPlatformProcess::GetProcReturnCode( FProcHandle& ProcessHandle, int32* 
 
 bool FMacPlatformProcess::IsApplicationRunning( const TCHAR* ProcName )
 {
-    CFStringRef ProcessName = FPlatformString::TCHARToCFString( ProcName );
-    check(ProcessName);
+	const FString ProcString = FPaths::GetBaseFilename(ProcName);
 	uint32 ThisProcessID = getpid();
 	bool bFound = false;
 	
@@ -595,7 +594,8 @@ bool FMacPlatformProcess::IsApplicationRunning( const TCHAR* ProcName )
 			for (uint32 Index = 0; Index < ProcCount; Index++)
 			{
 				proc_pidpath(Processes[Index].kp_proc.p_pid, Buffer, sizeof(Buffer));
-				if (Processes[Index].kp_proc.p_pid != ThisProcessID && [(NSString*)ProcessName isEqualToString: [[NSString stringWithUTF8String: Buffer] lastPathComponent]])
+				const FString TestProcString = FPaths::GetBaseFilename(Buffer);
+				if (Processes[Index].kp_proc.p_pid != ThisProcessID && TestProcString == ProcString)
 				{
 					bFound = true;
 				}
@@ -604,7 +604,6 @@ bool FMacPlatformProcess::IsApplicationRunning( const TCHAR* ProcName )
 		
 		FMemory::Free(Processes);
 	}
-    CFRelease(ProcessName);
     
 	return bFound;
 }
