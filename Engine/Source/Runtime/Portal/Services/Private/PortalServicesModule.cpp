@@ -13,6 +13,11 @@ class FPortalServicesModule
 {
 public:
 
+	/** Virtual destructor. */
+	virtual ~FPortalServicesModule() { }
+
+public:
+
 	// IPortalServicesModule
 
 	virtual FTypeContainer& GetServiceContainer() override
