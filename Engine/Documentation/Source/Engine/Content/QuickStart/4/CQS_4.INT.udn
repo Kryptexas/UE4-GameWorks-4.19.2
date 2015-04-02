@@ -21,11 +21,11 @@ Description:Now that we have imported a texture, we will create a Material and a
 
 %Steps%
 
-On this page we will take the **Material** created in the previous step and apply it to the Static Mesh we imported. 
+On this page, we will take the **Material** created in the previous step and apply it to the Static Mesh we imported. 
 
 ## Setting a Default Material 
 
-In this section we will assign the default Material to use for a Static Mesh whenever it is placed in the level. 
+In this section, we will assign the default Material to use for a Static Mesh whenever it is placed in the level. 
 
 1.	In the **Content Browser**, **Double-click** on the asset you imported from Step 2 of this guide.
 
@@ -65,15 +65,15 @@ In this section we will assign the default Material to use for a Static Mesh whe
 
 ## Changing the Material used by an Actor 
 
-By placing the Static Mesh object in our level in the section above we've created an [Actor](Engine/Actors) and for each instance of that Actor, we can specify a Material for it to use. This means you can have several different "versions" of the Static Mesh each using a different Material. 
+By placing the Static Mesh object in our level in the section above, we have created an [Actor](Engine/Actors) and for each instance of that Actor, we can specify a Material for it to use. This means you can have several different "versions" of the Static Mesh each using a different Material. 
 
-Let's change the Material for our Static Mesh Actor. 
+Let us change the Material for our Static Mesh Actor. 
 
 1.	Select the Static Mesh placed from the previous section in the level. 
 
 	![](StaticMeshSelected.png)
 
-1.	In the **Details** panel (lower-right window in the Editor) you will see a **Materials** section, click the Materials drop-down box. 
+1.	In the **Details** panel, (lower-right window in the Editor) you will see a **Materials** section, click the Materials drop-down box. 
 
 	![](ActorMaterial.png)
 
