@@ -8,6 +8,8 @@
 #include "SSourceControlLogin.h"
 
 #if WITH_EDITOR
+
+	#include "Settings/EditorLoadingSavingSettings.h"
 	#include "Runtime/Engine/Public/EngineAnalytics.h"
 	#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #endif
@@ -170,6 +172,8 @@ void FSourceControlModule::OnSourceControlDialogClosed(const TSharedRef<SWindow>
 	bTemporarilyDisabled = false;
 
 #if WITH_EDITOR
+	GetMutableDefault<UEditorLoadingSavingSettings>()->CheckSourceControlCompatability();
+
 	FString NewProvider = CurrentSourceControlProvider->GetName().ToString();
 	if( FEngineAnalytics::IsAvailable() && !ActiveProviderName.Equals( NewProvider, ESearchCase::IgnoreCase ))
 	{

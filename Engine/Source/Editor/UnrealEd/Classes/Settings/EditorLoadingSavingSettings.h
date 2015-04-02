@@ -86,6 +86,17 @@ public:
 
 public:
 
+	/** Check that the current source control settings will play nicely with the auto-reimport feature */
+	void CheckSourceControlCompatability();
+
+private:
+
+	/** true when CheckSourceControlCompatability is enabled */
+	UPROPERTY(config)
+	bool bEnableSourceControlCompatabilityCheck;
+
+public:
+
 	/**Automatically reimports textures when a change to source content is detected */
 	UPROPERTY(EditAnywhere, config, Category=AutoReimport, meta=(DisplayName="Monitor Content Directories", ToolTip="When enabled, changes to made to source content files inside the content directories will automatically be reflected in the content browser."))
 	bool bMonitorContentDirectories;
