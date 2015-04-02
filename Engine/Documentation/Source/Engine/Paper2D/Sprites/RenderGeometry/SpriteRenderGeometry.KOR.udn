@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2415423
+﻿INTSourceChangelist:2499490
+Availability:Public
 Title:스프라이트 소스 리전 및 렌더 지오메트리
 Crumbs: %ROOT%, Engine, Engine/Paper2D, Engine/Paper2D/Sprites
 Description:텍스처 소스 리전 및 스프라이트 렌더 지오메트리의 표시 및 편집이 가능합니다.
-Availability:Public
 Related: Engine\Paper2D\Sprites\Collision
 Related: Engine\Paper2D\Flipbooks
 Related: Engine/Rendering/Materials
@@ -27,6 +27,12 @@ Related: Engine/Content/Types/Textures
 **소스 리전 편집** 모드에는 스프라이트 소스 리전의 현재 바운딩 사각형이 표시되는데, 각 코너마다 하나씩, 그리고 
 양쪽 중앙에 하나씩 핸들이 달려 있습니다. 각 핸들은 트랜스폼 기즈모를 사용하여 선택 및 드래그로 
 조절 가능합니다.
+
+이 모드에서 소스 텍스처 구역 주변을 Ctrl+드래그 또는 텍스처 구역에 더블클릭하면 (연결된 픽셀을 모두 찾아 
+그 경계대로) 스프라이트를 새로 만들 수 있습니다.
+
+같은 소스 텍스처를 공유하는 다른 스프라이트는 연한 경계로 그려져, 그 중 하나를 클릭하면 
+편집중인 현재 스프라이트가 바뀝니다.
 
 ![](edit_source_region.png)
 

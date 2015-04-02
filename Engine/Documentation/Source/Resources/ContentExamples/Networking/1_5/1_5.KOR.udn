@@ -4,9 +4,9 @@ Title:1.5 - 함수 리플리케이션
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
 Description:Network Feature 예제 레벨에 대한 개요로, 예제 1.5: Function Replication, Remote Procedure Call 입니다.
 Related: Gameplay/Networking
-Related: Gameplay/Networking/Replication/Components
-Related: Gameplay/Networking/Replication
-Related: Gameplay/Networking/Replication/RPCs
+Related: Gameplay/Networking/Actors/Components
+Related: Gameplay/Networking/Actors
+Related: Gameplay/Networking/Actors/RPCs
 Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 
 [VAR:TopicCompact]

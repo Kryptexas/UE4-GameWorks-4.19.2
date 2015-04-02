@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2445736
+﻿INTSourceChangelist:2499001
 Availability: Public
 Title:블루프린트 기본 사용 안내서
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -90,8 +90,6 @@ Related: Gameplay
 <!--
 ## 블루프린트 편집하기
 
-## 블루프린트 모드
-
 작업하려는 블루프린트 유형에 따라 선택할 수 있는 여러가지 **블루프린트 모드** 를 통해 블루프린트가 무엇을 어떻게 할 것인지 결정할 수 있습니다. 여기서는 위에 언급한 방법을 통해 생성된 블루프린트에 초점을 맞출 것이며, 다른 블루프린트 유형에 관한 상세 정보는 아래 링크를 참고해 주시기 바랍니다.
 
 * 애니메이션 블루프린트: [](Engine/Animation/AnimBlueprints)
@@ -156,7 +154,9 @@ Related: Gameplay
 
 **내 블루프린트** 창에서 블루프린트에 쓸 변수를 만들 수 있는데, ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\myblueprint_variable.png) 변수 목록 제목의 ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\plus_Button.png) **추가 버튼** 을 누르면 됩니다.
 
-Once you have created a variable, you will need be able to define the properties of the variable. 
+변수를 생성한 이후에는, 변수의 프로퍼티를 정의해 줘야 할 것입니다.
 
 [INCLUDE:Engine/Blueprints/UserGuide/Variables#addvariables]
+
+* 다양한 변수 유형에 대한 상세 정보 및 그 작업 방법에 대해서는 [](Engine/Blueprints/UserGuide/Variables) 문서를 참고하세요.
 
