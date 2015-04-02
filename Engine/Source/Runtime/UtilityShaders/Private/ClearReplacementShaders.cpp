@@ -9,6 +9,7 @@ IMPLEMENT_SHADER_TYPE(,FClearReplacementVS,TEXT("ClearReplacementShaders"),TEXT(
 IMPLEMENT_SHADER_TYPE(,FClearReplacementPS,TEXT("ClearReplacementShaders"),TEXT("ClearPS"),SF_Pixel);
 
 IMPLEMENT_SHADER_TYPE(,FClearTexture2DReplacementCS,TEXT("ClearReplacementShaders"),TEXT("ClearTexture2DCS"),SF_Compute);
+IMPLEMENT_SHADER_TYPE(,FClearTexture2DReplacementScissorCS,TEXT("ClearReplacementShaders"),TEXT("ClearTexture2DScissorCS"), SF_Compute);
 
 IMPLEMENT_SHADER_TYPE(,FClearBufferReplacementCS,TEXT("ClearReplacementShaders"),TEXT("ClearBufferCS"),SF_Compute);
 
@@ -16,6 +17,14 @@ void FClearTexture2DReplacementCS::SetParameters( FRHICommandList& RHICmdList, F
 {
 	FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
 	SetShaderValue(RHICmdList, ComputeShaderRHI, ClearColor, Value);
+	RHICmdList.SetUAVParameter(ComputeShaderRHI, ClearTextureRW.GetBaseIndex(), TextureRW);
+}
+
+void FClearTexture2DReplacementScissorCS::SetParameters(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef TextureRW, FLinearColor InClearColor, FVector4 InTargetBounds)
+{
+	FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
+	SetShaderValue(RHICmdList, ComputeShaderRHI, ClearColor, InClearColor);
+	SetShaderValue(RHICmdList, ComputeShaderRHI, TargetBounds, InTargetBounds);
 	RHICmdList.SetUAVParameter(ComputeShaderRHI, ClearTextureRW.GetBaseIndex(), TextureRW);
 }
 

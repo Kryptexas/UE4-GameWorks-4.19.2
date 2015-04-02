@@ -1509,6 +1509,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 		AddGBufferVisualizationOverview(Context, SeparateTranslucency);
 
 		bool bStereoRenderingAndHMD = View.Family->EngineShowFlags.StereoRendering && View.Family->EngineShowFlags.HMDDistortion;
+		bool bHMDWantsUpscale = false;
 		if (bStereoRenderingAndHMD)
 		{
 			FRenderingCompositePass* Node = NULL;
@@ -1517,12 +1518,15 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 			{
 				Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
 			}
-#if MORPHEUS_ENGINE_DISTORTION
+
 			else if(DeviceType == EHMDDeviceType::DT_Morpheus)
 			{
+#if MORPHEUS_ENGINE_DISTORTION
 				Node = Context.Graph.RegisterPass(new FRCPassPostProcessMorpheus());
-			}
 #endif
+				bHMDWantsUpscale = true;
+			}
+
 			
 			if(Node)
 			{
@@ -1561,8 +1565,8 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 		}
 
 		// Do not use upscale if SeparateRenderTarget is in use!
-		if ((Cylinder > 0.01f || View.UnscaledViewRect != View.ViewRect)
-			&& (!View.Family->EngineShowFlags.StereoRendering || (!View.Family->EngineShowFlags.HMDDistortion && !View.Family->bUseSeparateRenderTarget)))
+		if ((Cylinder > 0.01f || View.UnscaledViewRect != View.ViewRect) && 
+			(bHMDWantsUpscale ||!View.Family->EngineShowFlags.StereoRendering || (!View.Family->EngineShowFlags.HMDDistortion && !View.Family->bUseSeparateRenderTarget)))
 		{
 			int32 UpscaleQuality = CVarUpscaleQuality.GetValueOnRenderThread();
 			UpscaleQuality = FMath::Clamp(UpscaleQuality, 0, 3);
