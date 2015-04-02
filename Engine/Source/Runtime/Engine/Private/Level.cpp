@@ -1280,6 +1280,14 @@ void ULevel::BuildStreamingData(UTexture2D* UpdateSpecificTextureOnly/*=NULL*/)
 				// Ask the primitive to enumerate the streaming textures it uses.
 				Primitive->GetStreamingTextureInfo(PrimitiveStreamingTextures);
 
+				for (int32 Index = 0; Index < PrimitiveStreamingTextures.Num(); Index++)
+				{
+					if (!PrimitiveStreamingTextures[Index].Texture || !Cast<UTexture2D>(PrimitiveStreamingTextures[Index].Texture))
+					{
+						PrimitiveStreamingTextures.RemoveAt(Index--);
+					}
+				}
+
 				for(int32 TextureIndex = 0;TextureIndex < PrimitiveStreamingTextures.Num();TextureIndex++)
 				{
 					const FStreamingTexturePrimitiveInfo& PrimitiveStreamingTexture = PrimitiveStreamingTextures[TextureIndex];

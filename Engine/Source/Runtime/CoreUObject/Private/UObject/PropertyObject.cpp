@@ -2,6 +2,7 @@
 
 #include "CoreUObjectPrivate.h"
 #include "LinkerPlaceholderExportObject.h"
+#include "LinkerPlaceholderClass.h"
 
 /*-----------------------------------------------------------------------------
 	UObjectProperty.
@@ -31,10 +32,16 @@ void UObjectProperty::SerializeItem( FArchive& Ar, void* Value, int32 MaxReadByt
 	UObject* CurrentValue = GetObjectPropertyValue(Value);
 	if (ObjectValue != CurrentValue)
 	{
+		SetObjectPropertyValue(Value, ObjectValue);
+
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 		if (ULinkerPlaceholderExportObject* PlaceholderVal = Cast<ULinkerPlaceholderExportObject>(ObjectValue))
 		{
 			PlaceholderVal->AddReferencingProperty(this);
+		}
+		else if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(ObjectValue))
+		{
+			PlaceholderClass->AddReferencingPropertyValue(this, Value);
 		}
 		// NOTE: we don't remove this from CurrentValue if it is a 
 		//       ULinkerPlaceholderExportObject; this is because this property 
@@ -48,8 +55,7 @@ void UObjectProperty::SerializeItem( FArchive& Ar, void* Value, int32 MaxReadByt
 		//        we'd have to modify ULinkerPlaceholderExportObject::ReplaceReferencingObjectValues()
 		//        to accommodate this (as it depends on finding itself as the set value)
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-
-		SetObjectPropertyValue(Value, ObjectValue);
+		
 		CheckValidObject(Value);
 	}
 }

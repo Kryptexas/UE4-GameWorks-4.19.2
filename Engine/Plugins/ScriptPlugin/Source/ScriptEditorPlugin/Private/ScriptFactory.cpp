@@ -7,7 +7,6 @@ UScriptFactory::UScriptFactory(const FObjectInitializer& ObjectInitializer)
 	SupportedClass = UScriptBlueprint::StaticClass();
 	ParentClass = AActor::StaticClass();
 
-	Formats.Add(TEXT("txt;Script"));
 	Formats.Add(TEXT("lua;Script"));
 
 	bCreateNew = false;

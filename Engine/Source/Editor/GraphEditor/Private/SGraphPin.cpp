@@ -72,7 +72,8 @@ struct FKnotNetCollector
 
 
 SGraphPin::SGraphPin()
-	: bShowLabel(true)
+	: GraphPinObj(nullptr)
+	, bShowLabel(true)
 	, bIsMovingLinks(false)
 	, PinColorModifier(FLinearColor::White)
 	, CachedNodeOffset(FVector2D::ZeroVector)
@@ -967,8 +968,7 @@ FText SGraphPin::GetTooltip() const
 {
 	FText HoverText = FText::GetEmpty();
 
-	check(GraphPinObj != nullptr);
-	UEdGraphNode* GraphNode = GraphPinObj->GetOwningNodeUnchecked();
+	UEdGraphNode* GraphNode = GraphPinObj ? GraphPinObj->GetOwningNodeUnchecked() : nullptr;
 	if (GraphNode != nullptr)
 	{
 		FString HoverStr;

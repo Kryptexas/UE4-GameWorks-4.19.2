@@ -167,7 +167,10 @@ void ACharacter::GetSimpleCollisionCylinder(float& CollisionRadius, float& Colli
 
 void ACharacter::UpdateNavigationRelevance()
 {
-	CapsuleComponent->SetCanEverAffectNavigation(bCanAffectNavigationGeneration);
+	if (CapsuleComponent)
+	{
+		CapsuleComponent->SetCanEverAffectNavigation(bCanAffectNavigationGeneration);
+	}
 }
 
 void ACharacter::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)

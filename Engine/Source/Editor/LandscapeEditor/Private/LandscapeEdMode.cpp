@@ -529,7 +529,7 @@ void FEdModeLandscape::Tick(FEditorViewportClient* ViewportClient, float DeltaTi
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
 		bool bStaleTargetLandscapeInfo = CurrentToolTarget.LandscapeInfo.IsStale();
-		bool bStaleTargetLandscape = CurrentToolTarget.LandscapeInfo.IsValid() && CurrentToolTarget.LandscapeInfo->LandscapeActor.IsStale();
+		bool bStaleTargetLandscape = CurrentToolTarget.LandscapeInfo.IsValid() && (CurrentToolTarget.LandscapeInfo->GetLandscapeProxy() != nullptr);
 
 		if (bStaleTargetLandscapeInfo || bStaleTargetLandscape)
 		{
@@ -539,24 +539,29 @@ void FEdModeLandscape::Tick(FEditorViewportClient* ViewportClient, float DeltaTi
 		if (CurrentToolTarget.LandscapeInfo.IsValid())
 		{
 			ALandscapeProxy* LandscapeProxy = CurrentToolTarget.LandscapeInfo->GetLandscapeProxy();
+			
 			if (LandscapeProxy == NULL ||
 				LandscapeProxy->GetLandscapeMaterial() != CachedLandscapeMaterial)
 			{
 				UpdateTargetList();
 			}
-		}
-
-		if (CurrentTool)
-		{
-			CurrentTool->Tick(ViewportClient, DeltaTime);
-		}
-		if (CurrentBrush)
-		{
-			CurrentBrush->Tick(ViewportClient, DeltaTime);
-		}
-		if (CurrentBrush != GizmoBrush && CurrentGizmoActor.IsValid() && GizmoBrush && (GLandscapeEditRenderMode & ELandscapeEditRenderMode::Gizmo))
-		{
-			GizmoBrush->Tick(ViewportClient, DeltaTime);
+			else
+			{
+				if (CurrentTool)
+				{
+					CurrentTool->Tick(ViewportClient, DeltaTime);
+				}
+			
+				if (CurrentBrush)
+				{
+					CurrentBrush->Tick(ViewportClient, DeltaTime);
+				}
+			
+				if (CurrentBrush != GizmoBrush && CurrentGizmoActor.IsValid() && GizmoBrush && (GLandscapeEditRenderMode & ELandscapeEditRenderMode::Gizmo))
+				{
+					GizmoBrush->Tick(ViewportClient, DeltaTime);
+				}
+			}
 		}
 	}
 }
@@ -1645,36 +1650,44 @@ int32 FEdModeLandscape::UpdateLandscapeList()
 	}
 
 	int32 CurrentIndex = INDEX_NONE;
-	if (GetWorld())
+	UWorld* World = GetWorld();
+	
+	if (World)
 	{
 		int32 Index = 0;
-		for (auto It = GetLandscapeInfoMap(GetWorld()).Map.CreateIterator(); It; ++It)
+		auto& LandscapeInfoMap = GetLandscapeInfoMap(World);
+
+		for (auto It = LandscapeInfoMap.Map.CreateIterator(); It; ++It)
 		{
 			ULandscapeInfo* LandscapeInfo = It.Value();
 			if (LandscapeInfo && !LandscapeInfo->IsPendingKill())
 			{
-				if (CurrentToolTarget.LandscapeInfo == LandscapeInfo)
+				ALandscapeProxy* LandscapeProxy = LandscapeInfo->GetLandscapeProxy();
+				if (LandscapeProxy)
 				{
-					CurrentIndex = Index;
-
-					// Update GizmoActor Landscape Target (is this necessary?)
-					if (CurrentGizmoActor.IsValid())
+					if (CurrentToolTarget.LandscapeInfo == LandscapeInfo)
 					{
-						CurrentGizmoActor->SetTargetLandscape(LandscapeInfo);
+						CurrentIndex = Index;
+
+						// Update GizmoActor Landscape Target (is this necessary?)
+						if (CurrentGizmoActor.IsValid())
+						{
+							CurrentGizmoActor->SetTargetLandscape(LandscapeInfo);
+						}
 					}
-				}
 
-				int32 MinX, MinY, MaxX, MaxY;
-				int32 Width = 0, Height = 0;
-				if (LandscapeInfo->GetLandscapeExtent(MinX, MinY, MaxX, MaxY))
-				{
-					Width = MaxX - MinX + 1;
-					Height = MaxY - MinY + 1;
-				}
+					int32 MinX, MinY, MaxX, MaxY;
+					int32 Width = 0, Height = 0;
+					if (LandscapeInfo->GetLandscapeExtent(MinX, MinY, MaxX, MaxY))
+					{
+						Width = MaxX - MinX + 1;
+						Height = MaxY - MinY + 1;
+					}
 
-				LandscapeList.Add(FLandscapeListInfo(*LandscapeInfo->GetLandscapeProxy()->GetName(), LandscapeInfo,
-					LandscapeInfo->ComponentSizeQuads, LandscapeInfo->ComponentNumSubsections, Width, Height));
-				Index++;
+					LandscapeList.Add(FLandscapeListInfo(*LandscapeProxy->GetName(), LandscapeInfo,
+						LandscapeInfo->ComponentSizeQuads, LandscapeInfo->ComponentNumSubsections, Width, Height));
+					Index++;
+				}
 			}
 		}
 	}

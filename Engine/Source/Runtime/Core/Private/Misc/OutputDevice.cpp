@@ -339,7 +339,12 @@ void FDebug::EnsureFailed( const ANSICHAR* Expr, const ANSICHAR* File, int32 Lin
 			if ( bShouldSendNewReport )
 			{
 #if PLATFORM_DESKTOP
+				FScopeLock Lock( &FailDebugCriticalSection );
 				NewReportEnsure( GErrorMessage );
+
+				GErrorHist[0] = 0;
+				GErrorMessage[0] = 0;
+				GErrorExceptionDescription[0] = 0;
 #endif
 			}
 		}

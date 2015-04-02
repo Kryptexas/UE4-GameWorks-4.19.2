@@ -1614,7 +1614,12 @@ void AActor::Destroyed()
 
 	ReceiveDestroyed();
 	OnDestroyed.Broadcast();
-	GetWorld()->RemoveNetworkActor(this);
+	UWorld* ActorWorld = GetWorld();
+
+	if( ActorWorld )
+	{
+		ActorWorld->RemoveNetworkActor(this);
+	}
 }
 
 void AActor::TornOff() {}

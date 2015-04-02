@@ -2927,6 +2927,11 @@ void ULinkerLoad::Preload( UObject* Object )
 
 				{
 					SCOPE_CYCLE_COUNTER(STAT_LinkerSerialize);
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+					// communicate with FLinkerPlaceholderBase, what object is currently serializing in
+					FScopedPlaceholderContainerTracker SerializingObjTracker(Object);
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
 					if (Object->HasAnyFlags(RF_ClassDefaultObject))
 					{
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING

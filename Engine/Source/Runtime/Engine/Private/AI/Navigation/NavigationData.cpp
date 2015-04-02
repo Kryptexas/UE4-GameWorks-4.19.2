@@ -233,10 +233,11 @@ void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActo
 			if (PathNavAgent && PathNavAgent->ShouldPostponePathUpdates())
 			{
 				PostponedRequests.Add(RecalcRequest);
+				continue;
 			}
 
 			FPathFindingQuery Query(RecalcRequest.Path);
-			// @todo consider supplying NavAgentPropertied from path's querier
+			// @todo consider supplying NavAgentProperties from path's querier
 			const FPathFindingResult Result = FindPath(FNavAgentProperties(), Query.SetPathInstanceToUpdate(RecalcRequest.Path));
 
 			// partial paths are still valid and can change to full path when moving goal gets back on navmesh

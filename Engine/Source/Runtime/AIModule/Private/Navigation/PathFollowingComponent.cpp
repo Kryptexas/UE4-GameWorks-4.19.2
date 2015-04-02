@@ -109,6 +109,45 @@ FString GetPathDescHelper(FNavPathSharedPtr Path)
 		FString::Printf(TEXT("%s:%d"), Path->IsPartial() ? TEXT("partial") : TEXT("complete"), Path->GetPathPoints().Num());
 }
 
+namespace FMoveToActorFix
+{
+	// @hack this function is here as a fix for 4.7.3 pathing issues implemented without changes to header files
+	// DO NOT MERGE TO MAIN
+	static void OnPathEvent(FNavigationPath* InvalidatedPath, ENavPathEvent::Type Event)
+	{
+		const static UEnum* NavPathEventEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ENavPathEvent"));
+
+		if (InvalidatedPath == nullptr)
+		{
+			return;
+		}
+		AAIController* Querier = Cast<AAIController>(const_cast<UObject*>(InvalidatedPath->GetQuerier()));
+
+		UPathFollowingComponent* PFComponent = Querier ? Querier->GetPathFollowingComponent() : nullptr;
+		if (PFComponent)
+		{
+			UE_VLOG(PFComponent->GetOwner(), LogPathFollowing, Log, TEXT("OnPathEvent: %s"), *NavPathEventEnum->GetEnumName(Event));
+
+			if (InvalidatedPath == nullptr || PFComponent->GetPath().Get() != InvalidatedPath)
+			{
+				return;
+			}
+
+			switch (Event)
+			{
+			case ENavPathEvent::UpdatedDueToGoalMoved:
+			case ENavPathEvent::UpdatedDueToNavigationChanged:
+			{
+				PFComponent->UpdateMove(PFComponent->GetPath(), PFComponent->GetCurrentRequestId());
+			}
+				break;
+			}
+		}
+	}
+
+	static FNavigationPath::FPathObserverDelegate::FDelegate PathEvenDelegate = FNavigationPath::FPathObserverDelegate::FDelegate::CreateStatic(&OnPathEvent);
+}
+
 FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FRequestCompletedSignature OnComplete,
 	const AActor* InDestinationActor, float InAcceptanceRadius, bool bInStopOnOverlap, FCustomMoveSharedPtr InGameData)
 {
@@ -167,6 +206,11 @@ FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FReq
 
 		// store new data
 		Path = InPath;
+		Path->AddObserver(FMoveToActorFix::PathEvenDelegate);
+		if (MovementComp && MovementComp->GetOwner())
+		{
+			Path->SetSourceActor(*(MovementComp->GetOwner()));
+		}
 		OnPathUpdated();
 
 		AcceptanceRadius = InAcceptanceRadius;

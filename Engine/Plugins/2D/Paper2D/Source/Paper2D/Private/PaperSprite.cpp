@@ -263,20 +263,20 @@ UPaperSprite::UPaperSprite(const FObjectInitializer& ObjectInitializer)
 	
 	AlternateMaterialSplitIndex = INDEX_NONE;
 
-#if WITH_EDITOR
+#if WITH_EDITORONLY_DATA
 	PivotMode = ESpritePivotMode::Center_Center;
 	bSnapPivotToPixelGrid = true;
 
 	CollisionGeometry.GeometryType = ESpritePolygonMode::TightBoundingBox;
 	CollisionThickness = 10.0f;
 
-	PixelsPerUnrealUnit = 2.56f;
-
 	bTrimmedInSourceImage = false;
 	bRotatedInSourceImage = false;
 
 	SourceTextureDimension.Set(0, 0);
 #endif
+
+	PixelsPerUnrealUnit = 2.56f;
 
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaskedMaterialRef(TEXT("/Paper2D/MaskedUnlitSpriteMaterial"));
 	DefaultMaterial = MaskedMaterialRef.Object;
@@ -470,6 +470,7 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 
 void UPaperSprite::RescaleSpriteData(const UTexture2D* Texture)
 {
+	const_cast<UTexture2D*>(Texture)->ConditionalPostLoad();
 	FVector2D PreviousTextureDimension = SourceTextureDimension;
 	FVector2D NewTextureDimension(Texture->GetImportedSize().X, Texture->GetImportedSize().Y);
 
@@ -560,6 +561,7 @@ bool UPaperSprite::NeedRescaleSpriteData()
 {
 	if (UTexture2D* Texture = GetSourceTexture())
 	{
+		Texture->ConditionalPostLoad();
 		FIntPoint TextureSize = Texture->GetImportedSize();
 		bool bTextureSizeIsZero = TextureSize.X == 0 || TextureSize.Y == 0;
 		return !SourceTextureDimension.IsZero() && !bTextureSizeIsZero && (TextureSize.X != SourceTextureDimension.X || TextureSize.Y != SourceTextureDimension.Y);
@@ -728,13 +730,14 @@ void UPaperSprite::BuildBoundingBoxCollisionData(bool bUseTightBounds)
 			BodySetup3D->AggGeom.EmptyElements();
 
 			// Determine the box size and center in pivot space
-			const FVector2D& BoxSize2DInPixels = CollisionGeometry.Polygons[0].BoxSize;
-			const FVector2D& BoxPos = CollisionGeometry.Polygons[0].BoxPosition;
-			const FVector2D CenterInTextureSpace = BoxPos + (BoxSize2DInPixels * 0.5f);
+			const FVector2D& BoxSizeInTextureSpace = CollisionGeometry.Polygons[0].BoxSize;
+			const FVector2D& BoxPosInTextureSpace = CollisionGeometry.Polygons[0].BoxPosition;
+			const FVector2D CenterInTextureSpace = BoxPosInTextureSpace + (BoxSizeInTextureSpace * 0.5f);
 			const FVector2D CenterInPivotSpace = ConvertTextureSpaceToPivotSpace(CenterInTextureSpace);
 
 			// Convert from pixels to uu
-			const FVector2D BoxSize2D = BoxSize2DInPixels * UnitsPerPixel;
+			const FVector2D BoxSizeInPivotSpace = bRotatedInSourceImage ? FVector2D(BoxSizeInTextureSpace.Y, BoxSizeInTextureSpace.X) : BoxSizeInTextureSpace;
+			const FVector2D BoxSize2D = BoxSizeInPivotSpace * UnitsPerPixel;
 			const FVector2D CenterInScaledSpace = CenterInPivotSpace * UnitsPerPixel;
 
 			// Create a new box primitive
@@ -753,13 +756,14 @@ void UPaperSprite::BuildBoundingBoxCollisionData(bool bUseTightBounds)
 			BodySetup2D->AggGeom2D.EmptyElements();
 
 			// Determine the box center in pivot space
-			const FVector2D& BoxSize2DInPixels = CollisionGeometry.Polygons[0].BoxSize;
-			const FVector2D& BoxPos = CollisionGeometry.Polygons[0].BoxPosition;
-			const FVector2D CenterInTextureSpace = BoxPos + (BoxSize2DInPixels * 0.5f);
+			const FVector2D& BoxSizeInTextureSpace = CollisionGeometry.Polygons[0].BoxSize;
+			const FVector2D& BoxPosInTextureSpace = CollisionGeometry.Polygons[0].BoxPosition;
+			const FVector2D CenterInTextureSpace = BoxPosInTextureSpace + (BoxSizeInTextureSpace * 0.5f);
 			const FVector2D CenterInPivotSpace = ConvertTextureSpaceToPivotSpace(CenterInTextureSpace);
 
 			// Convert from pixels to uu
-			const FVector2D BoxSize2D = BoxSize2DInPixels * UnitsPerPixel;
+			const FVector2D BoxSizeInPivotSpace = bRotatedInSourceImage ? FVector2D(BoxSizeInTextureSpace.Y, BoxSizeInTextureSpace.X) : BoxSizeInTextureSpace;
+			const FVector2D BoxSize2D = BoxSizeInPivotSpace * UnitsPerPixel;
 			const FVector2D CenterInScaledSpace = CenterInPivotSpace * UnitsPerPixel;
 
 			// Create a new box primitive
@@ -1596,7 +1600,7 @@ void UPaperSprite::PostLoad()
 		bRebuildCollision = true;
 		bRebuildRenderData = true;
 	}
-	else if (PaperVer < FPaperCustomVersion::FixTypoIn3DConvexHullCollisionGeneration)
+	else if (PaperVer < FPaperCustomVersion::FixIncorrectCollisionOnSourceRotatedSprites)
 	{
 		bRebuildCollision = true;
 	}
@@ -1606,7 +1610,7 @@ void UPaperSprite::PostLoad()
 		BodySetup->DefaultInstance.SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
 	}
 
-	if (PaperVer >= FPaperCustomVersion::AddSourceTextureSize && NeedRescaleSpriteData())
+	if ((PaperVer >= FPaperCustomVersion::AddSourceTextureSize) && NeedRescaleSpriteData())
 	{
 		RescaleSpriteData(GetSourceTexture());
 		bRebuildCollision = true;

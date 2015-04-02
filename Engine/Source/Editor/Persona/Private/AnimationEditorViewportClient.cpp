@@ -1581,12 +1581,13 @@ FMatrix FAnimationViewportClient::GetWidgetCoordSystem() const
 		{
 			FName BoneName = SelectedSkelControlAnimGraph->FindSelectedBone();
 			int32 BoneIndex = PreviewSkelMeshComp->GetBoneIndex(BoneName);
-			FTransform BoneMatrix = PreviewSkelMeshComp->GetBoneTransform(BoneIndex);
-
-			return BoneMatrix.ToMatrixNoScale().RemoveTranslation();
+			if (BoneIndex != INDEX_NONE)
+			{
+				FTransform BoneMatrix = PreviewSkelMeshComp->GetBoneTransform(BoneIndex);
+				return BoneMatrix.ToMatrixNoScale().RemoveTranslation();
+			}
 		}
-		else
-		if ( PreviewSkelMeshComp->BonesOfInterest.Num() > 0 )
+		else if ( PreviewSkelMeshComp->BonesOfInterest.Num() > 0 )
 		{
 			int32 BoneIndex = PreviewSkelMeshComp->BonesOfInterest.Last();
 
