@@ -396,4 +396,41 @@ void UWidgetBlueprintLibrary::GetAllWidgetsOfClass(UObject* WorldContextObject, 
 	}
 }
 
+void UWidgetBlueprintLibrary::GetAllWidgetsWithInterface(UObject* WorldContextObject, TSubclassOf<UInterface> Interface, TArray<UUserWidget*>& FoundWidgets, bool TopLevelOnly)
+{
+	FoundWidgets.Empty();
+
+	if (!Interface || !WorldContextObject)
+	{
+		return;
+	}
+
+	const UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (!World)
+	{
+		return;
+	}
+
+	for (TObjectIterator<UUserWidget> Itr; Itr; ++Itr)
+	{
+		UUserWidget* LiveWidget = *Itr;
+
+		if (LiveWidget->GetWorld() != World)
+		{
+			continue;
+		}
+
+		if (TopLevelOnly)
+		{
+			if (LiveWidget->IsInViewport() && LiveWidget->GetClass()->ImplementsInterface(Interface))
+			{
+				FoundWidgets.Add(LiveWidget);
+			}
+		}
+		else if (LiveWidget->GetClass()->ImplementsInterface(Interface))
+		{
+			FoundWidgets.Add(LiveWidget);
+		}
+	}
+}
 #undef LOCTEXT_NAMESPACE
