@@ -105,6 +105,15 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 		Ar << Sum.TotalHeaderSize;
 		Ar << Sum.FolderName;
 		Ar << Sum.PackageFlags;
+
+#if WITH_EDITOR
+		if (Ar.IsLoading())
+		{
+			// This flag should never be saved and its reused, so we need to make sure it hasn't been loaded.
+			Sum.PackageFlags &= ~PKG_NewlyCreated;
+		}
+#endif // WITH_EDITOR
+
 		if( Sum.PackageFlags & PKG_FilterEditorOnly )
 		{
 			Ar.SetFilterEditorOnly(true);
