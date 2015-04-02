@@ -426,7 +426,7 @@ public:
 	 *	@param DebugName Name of the instance for logging
 	 *	@param Setup Body setup for this instance
 	 */
-	static bool ValidateTransform(const FTransform &Transform, FString& DebugName, UBodySetup* Setup);
+	static bool ValidateTransform(const FTransform &Transform, const FString& DebugName, const UBodySetup* Setup);
 
 	/** Standalone path to batch initialise large amounts of static bodies, which will be deferred till the next scene update for fast scene addition.
 	 *	@param Bodies
@@ -995,6 +995,7 @@ private:
 
 	friend class UCollisionProfile;
 	friend class FBodyInstanceCustomization;
+	friend struct FInitBodiesHelper;
 
 #if WITH_BOX2D
 
