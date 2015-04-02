@@ -5058,24 +5058,26 @@ void UInterpTrackToggle::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst
 			for (int32 KeyIndex = ToggleTrack.Num() - 1; KeyIndex >= 0; KeyIndex--)
 			{
 				FToggleTrackKey& ToggleKey = ToggleTrack[KeyIndex];
-				// We have found the key to the left of the position
-				if (ToggleKey.ToggleAction == ETTA_On)
+				if( ToggleKey.Time < NewPosition )
 				{
-					EmitterActor->GetParticleSystemComponent()->ActivateSystem(bActivateWithJustAttachedFlag);
-				}
-				else
-				if (ToggleKey.ToggleAction == ETTA_Trigger)
-				{
-					if (ToggleKey.Time >= ToggleInst->LastUpdatePosition)
+					// We have found the key to the left of the position
+					if( ToggleKey.ToggleAction == ETTA_On )
 					{
-						EmitterActor->GetParticleSystemComponent()->SetActive(true, bActivateWithJustAttachedFlag);
+						EmitterActor->GetParticleSystemComponent()->ActivateSystem( bActivateWithJustAttachedFlag );
 					}
+					else if( ToggleKey.ToggleAction == ETTA_Trigger )
+					{
+						if( ToggleKey.Time >= ToggleInst->LastUpdatePosition )
+						{
+							EmitterActor->GetParticleSystemComponent()->SetActive( true, bActivateWithJustAttachedFlag );
+						}
+					}
+					else
+					{
+						EmitterActor->GetParticleSystemComponent()->DeactivateSystem();
+					}
+					break;
 				}
-				else
-				{
-					EmitterActor->GetParticleSystemComponent()->DeactivateSystem();
-				}
-				break;
 			}
 		}
 	}
