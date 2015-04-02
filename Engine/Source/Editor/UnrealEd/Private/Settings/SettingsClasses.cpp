@@ -153,6 +153,7 @@ void UEditorLoadingSavingSettings::PostInitProperties()
 			Config.SourceDirectory = String;
 			AutoReimportDirectorySettings.Add(Config);
 		}
+		AutoReimportDirectories_DEPRECATED.Empty();
 	}
 	Super::PostInitProperties();
 }
@@ -202,6 +203,8 @@ void UEditorLoadingSavingSettings::CheckSourceControlCompatability()
 			ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
 			if (SettingsModule != nullptr)
 			{
+				// Ensure that the advanced properties are visible
+				GConfig->SetBool(TEXT("DetailCategoriesAdvanced"), TEXT("EditorLoadingSavingSettings.AutoReimport"), true, GEditorUserSettingsIni);
 				SettingsModule->ShowViewer("Editor", "General", "LoadingSaving");
 			}
 		});
