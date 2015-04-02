@@ -1869,7 +1869,7 @@ void UUnrealEdEngine::edactSelectMatchingStaticMesh( bool bAllClasses )
 			if ( FStaticMeshActor::GetStaticMeshInfoFromActor( Actor, ActorInfo ) )
 			{
 				bool bSelectActor = false;
-				if ( !bSelectActor && (bAllClasses || ActorInfo.IsStaticMeshActor()) )
+				if ( bAllClasses || ActorInfo.IsStaticMeshActor() )
 				{
 					for ( int32 i = 0 ; i < StaticMeshActors.Num() ; ++i )
 					{

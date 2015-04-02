@@ -1028,7 +1028,7 @@ public:
 	
 	}
 	uint32 GetSizeX() const { return GetSize(); }
-	uint32 GetSizeY() const { return GetSize(); }
+	uint32 GetSizeY() const { return GetSize(); } //-V524
 	uint32 GetSizeZ() const { return ArraySize > 1 ? ArraySize : 0; }
 	
 	uint32 GetArraySize() const {return ArraySize;}

@@ -587,7 +587,7 @@ const TCHAR* ImportObjectProperties( FImportObjectParams& InParams )
 			Supplier.ClassName = InParams.ObjectStruct->GetOwnerClass() ? InParams.ObjectStruct->GetOwnerClass()->GetName() : FName(NAME_None).ToString();
 			Supplier.CurrentLine = InParams.LineNumber; 
 
-			ContextSupplier = &Supplier;
+			ContextSupplier = &Supplier; //-V506
 		}
 		else
 		{

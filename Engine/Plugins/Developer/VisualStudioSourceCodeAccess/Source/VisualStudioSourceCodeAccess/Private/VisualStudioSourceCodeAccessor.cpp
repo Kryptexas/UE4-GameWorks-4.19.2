@@ -300,7 +300,7 @@ bool FVisualStudioSourceCodeAccessor::OpenVisualStudioFilesInternalViaDTE(const 
 							if ( SUCCEEDED(DTE->get_ActiveDocument(&Document)) &&
 								 SUCCEEDED(Document->get_Selection(&SelectionDispatch)) &&
 								 SUCCEEDED(SelectionDispatch->QueryInterface(&Selection)) &&
-								 SUCCEEDED(Selection->GotoLine(Request.LineNumber, true)) )
+								 SUCCEEDED(Selection->GotoLine(Request.LineNumber, VARIANT_TRUE)) )
 							{
 								if ( !SUCCEEDED(Selection->MoveToLineAndOffset(Request.LineNumber, Request.ColumnNumber, false)) )
 								{

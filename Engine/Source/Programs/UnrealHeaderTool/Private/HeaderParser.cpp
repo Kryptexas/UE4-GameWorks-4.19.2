@@ -4922,7 +4922,7 @@ void FHeaderParser::CompileInterfaceDeclaration(FClasses& AllClasses)
 
 	// Set the appropriate interface class flags
 	InterfaceClass->ClassFlags |= CLASS_Interface | CLASS_Abstract;
-	if (InterfaceClass->GetSuperStruct() != NULL)
+	if (InterfaceClass->GetSuperClass() != NULL)
 	{
 		InterfaceClass->ClassCastFlags |= InterfaceClass->GetSuperClass()->ClassCastFlags;
 	}

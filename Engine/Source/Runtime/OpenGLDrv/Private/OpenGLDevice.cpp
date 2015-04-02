@@ -420,7 +420,7 @@ PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT_ProcAddress = NULL;
 static inline void SetupTextureFormat( EPixelFormat Format, const FOpenGLTextureFormat& GLFormat)
 {
 	GOpenGLTextureFormats[Format] = GLFormat;
-	GPixelFormats[Format].Supported = (GLFormat.Format != GL_NONE && GLFormat.InternalFormat != GL_NONE);
+	GPixelFormats[Format].Supported = (GLFormat.Format != GL_NONE && (GLFormat.InternalFormat[0] != GL_NONE || GLFormat.InternalFormat[1] != GL_NONE));
 }
 
 

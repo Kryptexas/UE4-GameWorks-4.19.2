@@ -511,7 +511,7 @@ public:
 							MaterialProperty = MP_MAX; // Indicates we're not compiling any material property.
 							ShaderFrequency = SF_Pixel;
 							TArray<FShaderCodeChunk> CustomExpressionChunks;
-							CurrentScopeChunks = &CustomExpressionChunks;
+							CurrentScopeChunks = &CustomExpressionChunks; //-V506
 							CustomOutput->Compile(this, Index, 0);
 						}
 					}
@@ -2064,7 +2064,7 @@ protected:
 			// be exactly the same as the offset one, so there is no point bringing in the extra code.
 			// Also, we can't access the full offset world position in anything other than the pixel shader, because it won't have
 			// been calculated yet
-			bool bNonOffsetWorldPositionAvailable = Material->MaterialMayModifyMeshPosition() && ShaderFrequency == SF_Pixel;
+			bool bNonOffsetWorldPositionAvailable = Material->MaterialMayModifyMeshPosition();
 
 			switch (WorldPositionIncludedOffsets)
 			{
@@ -2361,6 +2361,8 @@ protected:
 			case SAMPLERTYPE_Normal:
 				// Normal maps need to be unpacked in the pixel shader.
 				SampleCode = FString::Printf( TEXT("UnpackNormalMap(%s)"), *SampleCode );
+				break;
+			case SAMPLERTYPE_Masks:
 				break;
 		}
 

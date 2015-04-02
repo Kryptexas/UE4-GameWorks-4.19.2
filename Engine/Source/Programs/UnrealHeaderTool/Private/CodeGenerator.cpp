@@ -1546,6 +1546,8 @@ FString GetPreservedAccessSpecifierString(FClass* Class)
 		case EAccessSpecifier::ACCESS_Public:
 			PreservedAccessSpecifier = "public:";
 			break;
+		case EAccessSpecifier::ACCESS_NotAnAccessSpecifier :
+			break;
 		}
 	}
 
@@ -2731,11 +2733,8 @@ void FNativeClassHeaderGenerator::ExportMirrorsForNoexportStructs(const TArray<U
 
 bool FNativeClassHeaderGenerator::WillExportEventParms( UFunction* Function )
 {
-	for( TFieldIterator<UProperty> It(Function); It && (It->PropertyFlags&CPF_Parm); ++It )
-	{
-		return true;
-	}
-	return false;
+  TFieldIterator<UProperty> It(Function);
+  return It && (It->PropertyFlags&CPF_Parm);
 }
 
 void WriteEventFunctionPrologue(FUHTStringBuilder& Output, int32 Indent, const FParmsAndReturnProperties& Parameters, UObject* FunctionOuter, const TCHAR* FunctionName)

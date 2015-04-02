@@ -892,8 +892,8 @@ static FORCEINLINE_DEBUGGABLE bool CullNode(const FFoliageCullInstanceParams& Pa
 		checkSlow(Params.ViewFrustumLocal.PermutedPlanes.Num() == 4);
 
 		//@todo, once we have more than one mesh per tree, these should be aligned
-		VectorRegister BoxMin = VectorLoad(&Node.BoundMin);
-		VectorRegister BoxMax = VectorLoad(&Node.BoundMax);
+		VectorRegister BoxMin = VectorLoadFloat3(&Node.BoundMin);
+		VectorRegister BoxMax = VectorLoadFloat3(&Node.BoundMax);
 
 		VectorRegister BoxDiff = VectorSubtract(BoxMax,BoxMin);
 		VectorRegister BoxSum = VectorAdd(BoxMax,BoxMin);
@@ -1085,7 +1085,6 @@ void FHierarchicalStaticMeshSceneProxy::FillDynamicMeshElements(FMeshElementColl
 
 					MeshElement.VertexFactory = &InstancedRenderData.VertexFactories[LODIndex];
 					FMeshBatchElement& BatchElement0 = MeshElement.Elements[0];
-					BatchElement0.UserData = (void*)&UserData_AllInstances;
 
 					BatchElement0.UserData = ElementParams.PassUserData[SelectionGroupIndex];
 					BatchElement0.MaxScreenSize = 1.0;

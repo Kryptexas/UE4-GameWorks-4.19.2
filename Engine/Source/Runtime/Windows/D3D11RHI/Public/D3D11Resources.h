@@ -478,7 +478,7 @@ public:
 	: FRHITextureCube(InSizeX,InNumMips,InFormat,InFlags)
 	{ check(InNumSamples == 1); }
 	uint32 GetSizeX() const { return GetSize(); }
-	uint32 GetSizeY() const { return GetSize(); }
+	uint32 GetSizeY() const { return GetSize(); } //-V524
 	uint32 GetSizeZ() const { return 0; }
 };
 

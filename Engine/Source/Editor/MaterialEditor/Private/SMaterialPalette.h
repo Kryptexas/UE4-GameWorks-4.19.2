@@ -50,6 +50,8 @@ protected:
 	/** Callback from the Asset Registry when an asset is renamed. */
 	void RenameAssetFromRegistry(const FAssetData& InAddedAssetData, const FString& InNewName);
 
+	void RefreshAssetInRegistry(const FAssetData& InAddedAssetData);
+
 protected:
 	/** Pointer back to the material editor that owns us */
 	TWeakPtr<FMaterialEditor> MaterialEditorPtr;

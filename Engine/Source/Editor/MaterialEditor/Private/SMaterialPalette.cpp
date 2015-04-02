@@ -208,32 +208,25 @@ void SMaterialPalette::CategorySelectionChanged(TSharedPtr<FString> NewSelection
 
 void SMaterialPalette::AddAssetFromAssetRegistry(const FAssetData& InAddedAssetData)
 {
-	// Grab the asset class, it will be checked for being a material function.
-	UClass* Asset = FindObject<UClass>(ANY_PACKAGE, *InAddedAssetData.AssetClass.ToString());
-
-	if(Asset->IsChildOf(UMaterialFunction::StaticClass()))
-	{
-		RefreshActionsList(true);
-	}
+	RefreshAssetInRegistry(InAddedAssetData);
 }
 
 void SMaterialPalette::RemoveAssetFromRegistry(const FAssetData& InAddedAssetData)
 {
-	// Grab the asset class, it will be checked for being a material function.
-	UClass* Asset = FindObject<UClass>(ANY_PACKAGE, *InAddedAssetData.AssetClass.ToString());
-
-	if(Asset->IsChildOf(UMaterialFunction::StaticClass()))
-	{
-		RefreshActionsList(true);
-	}
+	RefreshAssetInRegistry(InAddedAssetData);
 }
 
 void SMaterialPalette::RenameAssetFromRegistry(const FAssetData& InAddedAssetData, const FString& InNewName)
 {
+	RefreshAssetInRegistry(InAddedAssetData);
+}
+
+void SMaterialPalette::RefreshAssetInRegistry(const FAssetData& InAddedAssetData)
+{
 	// Grab the asset class, it will be checked for being a material function.
 	UClass* Asset = FindObject<UClass>(ANY_PACKAGE, *InAddedAssetData.AssetClass.ToString());
 
-	if(Asset->IsChildOf(UMaterialFunction::StaticClass()))
+	if (Asset->IsChildOf(UMaterialFunction::StaticClass()))
 	{
 		RefreshActionsList(true);
 	}

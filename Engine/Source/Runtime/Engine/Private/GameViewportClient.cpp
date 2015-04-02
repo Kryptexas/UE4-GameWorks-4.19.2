@@ -563,7 +563,7 @@ bool UGameViewportClient::RequiresUncapturedAxisInput() const
 
 EMouseCursor::Type UGameViewportClient::GetCursor(FViewport* InViewport, int32 X, int32 Y)
 {
-	bool bIsPlayingMovie = false;//GetMoviePlayer()->IsMovieCurrentlyPlaying();
+	//bool bIsPlayingMovie = false;//GetMoviePlayer()->IsMovieCurrentlyPlaying();
 
 #if !PLATFORM_WINDOWS
 	bool bIsWithinTitleBar = false;
@@ -592,7 +592,7 @@ EMouseCursor::Type UGameViewportClient::GetCursor(FViewport* InViewport, int32 X
 	{
 		return EMouseCursor::Default;
 	}
-	else if ( (!bIsPlayingMovie) && (InViewport->IsFullscreen() || !bIsWithinTitleBar) )
+	else if ( /*(!bIsPlayingMovie) && */(InViewport->IsFullscreen() || !bIsWithinTitleBar) ) //bIsPlayingMovie has always false value
 	{
 		if (GetWorld() && GetWorld()->GetFirstPlayerController())
 		{
@@ -1002,7 +1002,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	GetWorld()->UpdateLevelStreaming();
 
 	// Draw the player views.
-	if (!bDisableWorldRendering && !bUIDisableWorldRendering && PlayerViewMap.Num() > 0)
+	if (!bDisableWorldRendering && !bUIDisableWorldRendering && PlayerViewMap.Num() > 0) //-V560
 	{
 		GetRendererModule().BeginRenderingViewFamily(SceneCanvas,&ViewFamily);
 	}
@@ -1207,7 +1207,10 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 					GEngine->HMDDevice->DrawDebug(DebugCanvasObject, eSSP_LEFT_EYE);
 				}
 #endif
-				DebugCanvas->PopTransform();
+				if (DebugCanvas != NULL)
+				{
+					DebugCanvas->PopTransform();
+				}
 
 				GEngine->StereoRenderingDevice->PushViewportCanvas(eSSP_RIGHT_EYE, DebugCanvas, DebugCanvasObject, Viewport);
 				ViewportConsole->PostRender_Console(DebugCanvasObject);
@@ -1217,7 +1220,10 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 					GEngine->HMDDevice->DrawDebug(DebugCanvasObject, eSSP_RIGHT_EYE);
 				}
 #endif
-				DebugCanvas->PopTransform();
+				if (DebugCanvas != NULL)
+				{
+					DebugCanvas->PopTransform();
+				}
 
 				// Reset the canvas for rendering to the full viewport.
 				DebugCanvasObject->Reset();

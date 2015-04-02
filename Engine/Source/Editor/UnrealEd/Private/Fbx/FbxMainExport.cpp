@@ -169,11 +169,8 @@ void FFbxExporter::WriteToFile(const TCHAR* Filename)
 	FbxExporter* Exporter = FbxExporter::Create(SdkManager, "");
 
 	// set file format
-	if( FileFormat < 0 || FileFormat >= SdkManager->GetIOPluginRegistry()->GetWriterFormatCount() )
-	{
-		// Write in fall back format if pEmbedMedia is true
-		FileFormat = SdkManager->GetIOPluginRegistry()->GetNativeWriterFormat();
-	}
+	// Write in fall back format if pEmbedMedia is true
+	FileFormat = SdkManager->GetIOPluginRegistry()->GetNativeWriterFormat();
 
 	// Set the export states. By default, the export states are always set to 
 	// true except for the option eEXPORT_TEXTURE_AS_EMBEDDED. The code below 

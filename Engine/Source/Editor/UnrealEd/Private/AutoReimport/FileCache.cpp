@@ -73,7 +73,7 @@ FMD5Hash ReadFileMD5(const FString& Filename, TArray<uint8>* Buffer = nullptr)
 		if (!Buffer)
 		{
 			LocalScratch.SetNumUninitialized(1024*64);
-			Buffer = &LocalScratch;
+			Buffer = &LocalScratch; //-V506
 		}
 		FMD5 MD5;
 
