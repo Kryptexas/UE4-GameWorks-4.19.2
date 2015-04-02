@@ -10,8 +10,41 @@ TNumericUnitTypeInterface<NumericType>::TNumericUnitTypeInterface(EUnit InUnits,
 {}
 
 template<typename NumericType>
+TNumericUnitTypeInterface<NumericType>::~TNumericUnitTypeInterface()
+{
+	FUnitConversion::Settings().OnDisplaySettingsChanged().RemoveAll(this);
+}
+
+
+template<typename NumericType>
+void TNumericUnitTypeInterface<NumericType>::UseDefaultInputUnits()
+{
+	FUnitConversion::Settings().OnDisplaySettingsChanged().AddRaw(this, &TNumericUnitTypeInterface<NumericType>::OnGlobalUnitSettingChanged);
+	OnGlobalUnitSettingChanged();
+}
+
+template<typename NumericType>
+void TNumericUnitTypeInterface<NumericType>::OnGlobalUnitSettingChanged()
+{
+	const EUnit Default = FUnitConversion::Settings().GetDefaultInputUnit();
+	if (FUnitConversion::AreUnitsCompatible(Default, Units))
+	{
+		DefaultInputUnits = Default;
+	}
+	else
+	{
+		DefaultInputUnits.Reset();
+	}
+}
+
+template<typename NumericType>
 FNumericUnit<NumericType> TNumericUnitTypeInterface<NumericType>::QuantizeUnitsToBestFit(const NumericType& InValue, EUnit InUnits) const
 {
+	// Use the default input units for 0
+	if (InValue == 0 && DefaultInputUnits.IsSet() && FUnitConversion::AreUnitsCompatible(DefaultInputUnits.GetValue(), InUnits))
+	{
+		return FNumericUnit<NumericType>(0, FUnitConversion::ConvertToGlobalDisplayRange(DefaultInputUnits.GetValue()));
+	}
 	return FUnitConversion::QuantizeUnitsToBestFit(InValue, InUnits);
 }
 
@@ -20,12 +53,19 @@ FString TNumericUnitTypeInterface<NumericType>::ToString(const NumericType& Valu
 {
 	using namespace LexicalConversion;
 
-	const FNumericUnit<NumericType> Default(Value, Units);
-	return ToSanitizedString(bAllowUnitRangeAdaption ? QuantizeUnitsToBestFit(Default.Value, Default.Units) : Default);
+	NumericType ValueToUse = Value;
+	EUnit DisplayUnits = FUnitConversion::ConvertToGlobalDisplayRange(Units);
+
+	if (DisplayUnits != Units)
+	{
+		ValueToUse = FUnitConversion::Convert(ValueToUse, Units, DisplayUnits);
+	}
+	
+	return ToSanitizedString(bAllowUnitRangeAdaption ? QuantizeUnitsToBestFit(ValueToUse, DisplayUnits) : FNumericUnit<NumericType>(ValueToUse, DisplayUnits));
 }
 
 template<typename NumericType>
-TOptional<NumericType> TNumericUnitTypeInterface<NumericType>::FromString(const FString& InString, const NumericType& InCurrentValue)
+TOptional<NumericType> TNumericUnitTypeInterface<NumericType>::FromString(const FString& InString)
 {
 	using namespace LexicalConversion;
 
@@ -36,10 +76,10 @@ TOptional<NumericType> TNumericUnitTypeInterface<NumericType>::FromString(const 
 	{
 		// Convert the number into the correct units
 		EUnit SourceUnits = NewValue.Units;
-		if (SourceUnits == EUnit::Unspecified && bAllowUnitRangeAdaption)
+		if (SourceUnits == EUnit::Unspecified && DefaultInputUnits.IsSet())
 		{
-			// Use the display units of the current value
-			SourceUnits = QuantizeUnitsToBestFit(InCurrentValue, Units).Units;
+			// Use the default supplied input units
+			SourceUnits = DefaultInputUnits.GetValue();
 		}
 		return FUnitConversion::Convert(NewValue.Value, SourceUnits, Units);
 	}

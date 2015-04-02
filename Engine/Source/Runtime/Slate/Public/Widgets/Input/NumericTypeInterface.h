@@ -10,7 +10,7 @@ struct INumericTypeInterface
 
 	/** Convert the type to/from a string */
 	virtual FString ToString(const NumericType& Value) const = 0;
-	virtual TOptional<NumericType> FromString(const FString& InString, const NumericType& InCurrentValue) = 0;
+	virtual TOptional<NumericType> FromString(const FString& InString) = 0;
 
 	/** Check whether the typed character is valid */
 	virtual bool IsCharacterValid(TCHAR InChar) const = 0;
@@ -25,7 +25,7 @@ struct TDefaultNumericTypeInterface : INumericTypeInterface<NumericType>
 	{
 		return LexicalConversion::ToSanitizedString(Value);
 	}
-	virtual TOptional<NumericType> FromString(const FString& InString, const NumericType& InCurrentValue) override
+	virtual TOptional<NumericType> FromString(const FString& InString) override
 	{
 		NumericType NewValue;
 		bool bEvalResult = LexicalConversion::TryParseString( NewValue, *InString );
@@ -74,21 +74,32 @@ struct TNumericUnitTypeInterface : TDefaultNumericTypeInterface<NumericType>
 	/** The units that we should treat this value as */
 	EUnit Units;
 
+	/** Optional units to use for input when no units where specified */
+	TOptional<EUnit> DefaultInputUnits;
+
 	/** True if we are allowed to display this unit to the user as a more relevant related unit type (e.g. 10000 m shows as 10 km) */
 	bool bAllowUnitRangeAdaption;
 
 	/** Constructor */
 	TNumericUnitTypeInterface(EUnit InUnits, bool bInAllowUnitRangeAdaption = true);
+	~TNumericUnitTypeInterface();
+
+	/** Set up this interface to use the global default input units */
+	void UseDefaultInputUnits();
 
 	/** Convert this type to a string */
 	virtual FString ToString(const NumericType& Value) const override;
 
 	/** Attempt to parse a numeral with our units from the specified string. */
-	virtual TOptional<NumericType> FromString(const FString& ValueString, const NumericType& InCurrentValue) override;
+	virtual TOptional<NumericType> FromString(const FString& ValueString) override;
 
 	/** Called by this class to quantize the specified value to the best unit */
 	virtual FNumericUnit<NumericType> QuantizeUnitsToBestFit(const NumericType& InValue, EUnit InUnits) const;
 
 	/** Check whether the specified typed character is valid */
 	virtual bool IsCharacterValid(TCHAR InChar) const override;
+
+private:
+	/** Called when the global unit settings have changed, if this type interface is using the default input units */
+	void OnGlobalUnitSettingChanged();
 };

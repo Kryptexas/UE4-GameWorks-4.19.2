@@ -94,7 +94,7 @@ public:
 
 		// Set up the correct type interface if we want to display units on the property editor
 		TSharedPtr<INumericTypeInterface<NumericType>> TypeInterface;
-		if (FUnitConversion::bIsUnitDisplayEnabled)
+		if (FUnitConversion::Settings().ShouldDisplayUnits())
 		{
 			const FString& Units = InPropertyEditor->GetProperty()->GetMetaData(TEXT("Units"));
 			auto PropertyUnits = FUnitConversion::UnitFromString(*Units);
@@ -107,7 +107,11 @@ public:
 				{
 					LexicalConversion::FromString(bAllowUnitRangeAdaption, *AllowRageAdaptionString);
 				}
-				TypeInterface = MakeShareable( new TNumericUnitTypeInterface<NumericType>(PropertyUnits.GetValue(), bAllowUnitRangeAdaption) );
+
+				// Create the type interface and set up the default input units if they are compatible
+				auto* Impl = new TNumericUnitTypeInterface<NumericType>(PropertyUnits.GetValue(), bAllowUnitRangeAdaption);
+				Impl->UseDefaultInputUnits();
+				TypeInterface = MakeShareable(Impl);
 			}
 		}
 

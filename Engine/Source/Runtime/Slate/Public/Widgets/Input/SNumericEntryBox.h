@@ -380,7 +380,7 @@ private:
 		{
 			if( bCommit )
 			{
-				TOptional<NumericType> NumericValue = Interface->FromString(NewValue.ToString(), OnGetValueForSpinBox());
+				TOptional<NumericType> NumericValue = Interface->FromString(NewValue.ToString());
 				if( NumericValue.IsSet() )
 				{
 					OnValueCommitted.ExecuteIfBound(NumericValue.GetValue(), CommitInfo );

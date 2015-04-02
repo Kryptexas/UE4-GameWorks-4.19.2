@@ -15,7 +15,6 @@ UEditorStyleSettings::UEditorStyleSettings( const FObjectInitializer& ObjectInit
 
 	bOpenAssetEditorTabsInNewWindow = true;
 
-	bDisplayPropertyUnits = true;
 	bShowFriendlyNames = true;
 	LogTimestampMode = ELogTimes::None;
 }
@@ -41,10 +40,6 @@ void UEditorStyleSettings::PostEditChangeProperty(struct FPropertyChangedEvent& 
 	{
 		FSlateApplication::Get().EnableMenuAnimations(bEnableWindowAnimations);
 	}
-	else if (Name == GET_MEMBER_NAME_CHECKED(UEditorStyleSettings, bDisplayPropertyUnits))
-	{
-		FUnitConversion::bIsUnitDisplayEnabled = bDisplayPropertyUnits;
-	}
 
 //	if (!FUnrealEdMisc::Get().IsDeletePreferences())
 	{
@@ -54,10 +49,4 @@ void UEditorStyleSettings::PostEditChangeProperty(struct FPropertyChangedEvent& 
 	SettingChangedEvent.Broadcast(Name);
 }
 
-
-void UEditorStyleSettings::PostInitProperties()
-{
-	Super::PostInitProperties();
-	FUnitConversion::bIsUnitDisplayEnabled = bDisplayPropertyUnits;
-}
 #endif

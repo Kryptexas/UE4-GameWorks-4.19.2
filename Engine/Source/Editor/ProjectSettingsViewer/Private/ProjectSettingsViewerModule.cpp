@@ -18,6 +18,9 @@
 #include "Runtime/Engine/Classes/Sound/AudioSettings.h"
 #include "Runtime/AIModule/Classes/Navigation/CrowdManager.h"
 #include "Runtime/Engine/Classes/Animation/AnimationSettings.h"
+
+#include "Editor/UnrealEd/Public/Settings/EditorProjectSettings.h"
+
 #include "AISystem.h"
 
 #define LOCTEXT_NAMESPACE "FProjectSettingsViewerModule"
@@ -64,6 +67,7 @@ public:
 		{
 			RegisterEngineSettings(*SettingsModule);
 			RegisterProjectSettings(*SettingsModule);
+			RegisterEditorSettings(*SettingsModule);
 
 			SettingsModule->RegisterViewer("Project", *this);
 		}
@@ -268,6 +272,22 @@ protected:
 		);*/
 	}
 
+
+	/**
+	 * Registers Editor settings.
+	 *
+	 * @param SettingsModule A reference to the settings module.
+	 */
+	void RegisterEditorSettings( ISettingsModule& SettingsModule )
+	{
+		// Appearance settings
+		SettingsModule.RegisterSettings("Project", "Editor", "Appearance",
+			LOCTEXT("AppearanceSettingsName", "Appearance"),
+			LOCTEXT("AppearanceSettingsDescription", "Settings pertaining to the appearance of the editor"),
+			GetMutableDefault<UEditorProjectAppearanceSettings>()
+		);
+	}
+
 	/** Unregisters all settings. */
 	void UnregisterSettings()
 	{
@@ -276,7 +296,6 @@ protected:
 		if (SettingsModule != nullptr)
 		{
 			SettingsModule->UnregisterViewer("Project");
-
 			// engine settings
 			SettingsModule->UnregisterSettings("Project", "Engine", "General");
 			SettingsModule->UnregisterSettings("Project", "Engine", "CrowdManager");
@@ -294,6 +313,10 @@ protected:
 			SettingsModule->UnregisterSettings("Project", "Project", "Packaging");
 			SettingsModule->UnregisterSettings("Project", "Project", "SupportedPlatforms");
 			SettingsModule->UnregisterSettings("Project", "Project", "Movies");
+
+			// Editor settings
+			SettingsModule->UnregisterSettings("Editor", "Editor", "Appearance");
+
 //			SettingsModule->UnregisterSettings("Project", "Project", "GameSession");
 //			SettingsModule->UnregisterSettings("Project", "Project", "HUD");
 		}

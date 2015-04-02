@@ -45,12 +45,51 @@ enum class EUnit
 	Unspecified
 };
 
+enum class EGlobalUnitDisplay
+{
+	None, Metric, Imperial
+};
+
 template<typename NumericType> struct FNumericUnit;
+
+/** Unit settings accessed globally through FUnitConversion::Settings() */
+class CORE_API FUnitSettings
+{
+public:
+	
+	FUnitSettings();
+
+	/** Check whether unit display is globally enabled or disabled */
+	bool ShouldDisplayUnits() { return GlobalUnitDisplay != EGlobalUnitDisplay::None; }
+
+	/** Get/set the global unit display to either mertic, imperial, or none */
+	EGlobalUnitDisplay GetGlobalUnitDisplay() { return GlobalUnitDisplay; }
+	void SetGlobalUnitDisplay(EGlobalUnitDisplay InGlobalUnitDisplay) { GlobalUnitDisplay = InGlobalUnitDisplay; SettingChangedEvent.Broadcast(); }
+	
+	/** Default unit to use for text input when no unit was specified. Can be EUnit::Unspecified. Check for compatibility with property units using AreUnitsCompatible */
+	EUnit GetDefaultInputUnit() { return DefaultInputUnit; }
+	void SetDefaultInputUnit(EUnit InDefaultInputUnit) { DefaultInputUnit = InDefaultInputUnit; SettingChangedEvent.Broadcast(); }
+
+	/** Returns an event delegate that is executed when a display setting has changed. (GlobalUnitDisplay or DefaultInputUnits) */
+	DECLARE_EVENT(FUnitSettings, FDisplaySettingChanged);
+	FDisplaySettingChanged& OnDisplaySettingsChanged() { return SettingChangedEvent; }
+
+private:
+
+	/** Globally check how we should display units on user interfaces */
+	EGlobalUnitDisplay GlobalUnitDisplay;
+
+	/** Default unit to use for text input when no unit was specified. Can be EUnit::Unspecified. Check for compatibility with property units using AreUnitsCompatible */
+	EUnit DefaultInputUnit;
+	
+	/** Holds an event delegate that is executed when a display setting has changed. */
+	FDisplaySettingChanged SettingChangedEvent;
+};
 
 struct CORE_API FUnitConversion
 {
-	/** Globally check whether we should display units in on user interfaces */
-	static bool bIsUnitDisplayEnabled;
+	/** Get the global settings for unit conversion/display */
+	static FUnitSettings& Settings();
 
 	/** Check whether it is possible to convert a number between the two specified units */
 	static bool AreUnitsCompatible(EUnit From, EUnit To)
@@ -111,6 +150,9 @@ struct CORE_API FUnitConversion
 
 	/** Helper function to find a unit from a string (name or display string) */
 	static TOptional<EUnit> UnitFromString(const TCHAR* UnitString);
+
+	/** Perform metric <-> imperial conversion on the specified unit according to the GlobalUnitDisplay setting */
+	static EUnit ConvertToGlobalDisplayRange(EUnit InUnit);
 
 private:
 

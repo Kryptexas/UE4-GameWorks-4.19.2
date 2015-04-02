@@ -360,8 +360,9 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 	if(!bHideLocationField)
 	{
 		TSharedPtr<INumericTypeInterface<float>> TypeInterface;
-		if( FUnitConversion::bIsUnitDisplayEnabled )
+		if( FUnitConversion::Settings().ShouldDisplayUnits() )
 		{
+			UseDefaultInputUnits();
 			TypeInterface = SharedThis(this);
 		}
 
@@ -425,7 +426,7 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 	if(!bHideRotationField)
 	{
 		TSharedPtr<INumericTypeInterface<float>> TypeInterface;
-		if( FUnitConversion::bIsUnitDisplayEnabled )
+		if( FUnitConversion::Settings().ShouldDisplayUnits() )
 		{
 			TypeInterface = MakeShareable( new TNumericUnitTypeInterface<float>(EUnit::Degrees) );
 		}
@@ -583,17 +584,17 @@ void FComponentTransformDetails::CacheCommonLocationUnits()
 		}
 	};
 
-	if (CachedLocation.X.IsSet())
+	if (CachedLocation.X.IsSet() && CachedLocation.X.GetValue() != 0)
 	{
-		SetLargestUnit(FUnitConversion::QuantizeUnitsToBestFit(CachedLocation.X.GetValue(), EUnit::Centimeters).Units);
+		SetLargestUnit(FUnitConversion::QuantizeUnitsToBestFit(CachedLocation.X.GetValue(), Units).Units);
 	}
-	if (CachedLocation.Y.IsSet())
+	if (CachedLocation.Y.IsSet() && CachedLocation.Y.GetValue() != 0)
 	{
-		SetLargestUnit(FUnitConversion::QuantizeUnitsToBestFit(CachedLocation.Y.GetValue(), EUnit::Centimeters).Units);
+		SetLargestUnit(FUnitConversion::QuantizeUnitsToBestFit(CachedLocation.Y.GetValue(), Units).Units);
 	}
-	if (CachedLocation.Z.IsSet())
+	if (CachedLocation.Z.IsSet() && CachedLocation.Z.GetValue() != 0)
 	{
-		SetLargestUnit(FUnitConversion::QuantizeUnitsToBestFit(CachedLocation.Z.GetValue(), EUnit::Centimeters).Units);
+		SetLargestUnit(FUnitConversion::QuantizeUnitsToBestFit(CachedLocation.Z.GetValue(), Units).Units);
 	}
 
 	if (LargestUnit.IsSet())
@@ -602,8 +603,10 @@ void FComponentTransformDetails::CacheCommonLocationUnits()
 	}
 	else
 	{
-		VectorUnits	= EUnit::Centimeters;
+		VectorUnits	= DefaultInputUnits.GetValue();
 	}
+
+	VectorUnits = FUnitConversion::ConvertToGlobalDisplayRange(VectorUnits);
 }
 
 FNumericUnit<float> FComponentTransformDetails::QuantizeUnitsToBestFit(const float& InValue, EUnit InUnits) const

@@ -113,14 +113,95 @@ const FUnitConversion::EUnitType FUnitConversion::Types[] = {
 	EUnitType::Time,		EUnitType::Time,		EUnitType::Time,		EUnitType::Time,		EUnitType::Time,		EUnitType::Time,		EUnitType::Time,
 };
 
-/** Globally check whether we should display units in on user interfaces */
-bool FUnitConversion::bIsUnitDisplayEnabled = true;
+const EUnit MetricToImperial[] = {
+	/** Scalar distance/length units */
+	EUnit::Inches/*Micrometers*/, EUnit::Inches/*Millimeters*/, EUnit::Inches/*Centimeters*/, EUnit::Yards/*Meters*/, EUnit::Miles/*Kilometers*/,
+	EUnit::Inches, EUnit::Feet, EUnit::Yards, EUnit::Miles,
+	EUnit::Lightyears,
+
+	/** Angular units */
+	EUnit::Degrees, EUnit::Radians,
+
+	/** Speed units */
+	EUnit::MilesPerHour/*MetersPerSecond*/, EUnit::MilesPerHour/*KilometersPerHour*/, EUnit::MilesPerHour,
+
+	/** Temperature units */
+	EUnit::Farenheit/*Celsius*/, EUnit::Farenheit, EUnit::Kelvin,
+
+	/** Mass units */
+	EUnit::Ounces/*Micrograms*/, EUnit::Ounces/*Milligrams*/, EUnit::Ounces/*Grams*/, EUnit::Pounds/*Kilograms*/, EUnit::Stones/*MetricTons*/,
+	EUnit::Ounces, EUnit::Pounds, EUnit::Stones,
+
+	/** Force units */
+	EUnit::PoundsForce/*Newtons*/, EUnit::PoundsForce, EUnit::PoundsForce/*KilogramsForce*/,
+
+	/** Frequency units */
+	EUnit::Hertz, EUnit::Kilohertz, EUnit::Megahertz, EUnit::Gigahertz, EUnit::RevolutionsPerMinute,
+
+	/** Data Size units */
+	EUnit::Bytes, EUnit::Kilobytes, EUnit::Megabytes, EUnit::Gigabytes, EUnit::Terabytes,
+
+	/** Luminous flux units */
+	EUnit::Lumens,
+
+	/** Time units */
+	EUnit::Milliseconds, EUnit::Seconds, EUnit::Minutes, EUnit::Hours, EUnit::Days, EUnit::Months, EUnit::Years
+};
+EUnit ImperialToMetric[] = {
+	/** Scalar distance/length units */
+	EUnit::Micrometers, EUnit::Millimeters, EUnit::Centimeters, EUnit::Meters, EUnit::Kilometers,
+	EUnit::Centimeters/*Inches*/, EUnit::Meters/*Feet*/, EUnit::Meters/*Yards*/, EUnit::Kilometers/*Miles*/,
+	EUnit::Lightyears,
+
+	/** Angular units */
+	EUnit::Degrees, EUnit::Radians,
+
+	/** Speed units */
+	EUnit::MetersPerSecond, EUnit::KilometersPerHour, EUnit::KilometersPerHour/*MilesPerHour*/,
+
+	/** Temperature units */
+	EUnit::Celsius, EUnit::Celsius/*Farenheit*/, EUnit::Kelvin,
+
+	/** Mass units */
+	EUnit::Micrograms, EUnit::Milligrams, EUnit::Grams, EUnit::Kilograms, EUnit::MetricTons,
+	EUnit::Grams/*Ounces*/, EUnit::Kilograms/*Pounds*/, EUnit::MetricTons/*Stones*/,
+
+	/** Force units */
+	EUnit::Newtons, EUnit::Newtons/*PoundsForce*/, EUnit::KilogramsForce,
+
+	/** Frequency units */
+	EUnit::Hertz, EUnit::Kilohertz, EUnit::Megahertz, EUnit::Gigahertz, EUnit::RevolutionsPerMinute,
+
+	/** Data Size units */
+	EUnit::Bytes, EUnit::Kilobytes, EUnit::Megabytes, EUnit::Gigabytes, EUnit::Terabytes,
+
+	/** Luminous flux units */
+	EUnit::Lumens,
+
+	/** Time units */
+	EUnit::Milliseconds, EUnit::Seconds, EUnit::Minutes, EUnit::Hours, EUnit::Days, EUnit::Months, EUnit::Years,
+};
+
+FUnitSettings::FUnitSettings()
+	: GlobalUnitDisplay(EGlobalUnitDisplay::Metric)
+	, DefaultInputUnit(EUnit::Centimeters)
+{
+}
+
+/** Get the global settings for unit conversion/display */
+FUnitSettings& FUnitConversion::Settings()
+{
+	static TUniquePtr<FUnitSettings> Settings(new FUnitSettings);
+	return *Settings;
+}
 
 /** Get the unit abbreviation the specified unit type */
 const TCHAR* FUnitConversion::GetUnitDisplayString(EUnit Unit)
 {
 	static_assert(ARRAY_COUNT(FUnitConversion::Types) == (uint8)EUnit::Unspecified, "Type array does not match size of unit enum");
 	static_assert(ARRAY_COUNT(FUnitConversion::DisplayStrings) == (uint8)EUnit::Unspecified, "Display String array does not match size of unit enum");
+	static_assert(ARRAY_COUNT(MetricToImperial) == (uint8)EUnit::Unspecified, "MetricToImperial array does not match size of unit enum");
+	static_assert(ARRAY_COUNT(ImperialToMetric) == (uint8)EUnit::Unspecified, "ImperialToMetric array does not match size of unit enum");
 	
 	if (Unit != EUnit::Unspecified)
 	{
@@ -146,6 +227,21 @@ TOptional<EUnit> FUnitConversion::UnitFromString(const TCHAR* UnitString)
 	}
 
 	return TOptional<EUnit>();
+}
+
+EUnit FUnitConversion::ConvertToGlobalDisplayRange(EUnit InUnit)
+{
+	if (InUnit == EUnit::Unspecified)
+	{
+		return EUnit::Unspecified;
+	}
+
+	switch(Settings().GetGlobalUnitDisplay())
+	{
+	case EGlobalUnitDisplay::Metric:	return ImperialToMetric[(int8)InUnit];
+	case EGlobalUnitDisplay::Imperial:	return MetricToImperial[(int8)InUnit];
+	default:							return InUnit;
+	}
 }
 
 double FUnitConversion::DistanceUnificationFactor(EUnit From)
