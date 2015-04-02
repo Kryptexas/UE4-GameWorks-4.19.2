@@ -31,6 +31,11 @@ namespace UnrealBuildTool
 																					bInAllowExports:!ShouldCompileMonolithic(),
 																					InModuleNames: new List<string>() { "Launch" } );
 
+				if(Platform == UnrealTargetPlatform.Win64 && Configuration != UnrealTargetConfiguration.Shipping)
+				{
+					Config.bBuildAdditionalConsoleApp = true;
+				}
+
 				AppBinaries.Add( new UEBuildBinaryCPP( this, Config ) );
 			}
 

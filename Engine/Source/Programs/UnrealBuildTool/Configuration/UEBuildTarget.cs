@@ -1334,9 +1334,7 @@ namespace UnrealBuildTool
 					Manifest.AddBuildProduct(OutputFilePath, DebugInfoExtension);
 				}
 
-				if (Binary.Config.Type == UEBuildBinaryType.Executable &&
-					  GlobalLinkEnvironment.Config.CanProduceAdditionalConsoleApp &&
-					  UEBuildConfiguration.bBuildEditor)
+				if (Binary.Config.Type == UEBuildBinaryType.Executable && Binary.Config.bBuildAdditionalConsoleApp)
 				{
 					foreach (string OutputFilePath in Binary.Config.OutputFilePaths)
 					{

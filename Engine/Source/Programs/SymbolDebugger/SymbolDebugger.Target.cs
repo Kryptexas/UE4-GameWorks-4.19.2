@@ -61,8 +61,5 @@ public class SymbolDebuggerTarget : TargetRules
 		// SymbolDebugger.exe has no exports, so no need to verify that a .lib and .exp file was emitted by
 		// the linker.
 		OutLinkEnvironmentConfiguration.bHasExports = false;
-
-		// Do NOT produce additional console app exe
-		OutLinkEnvironmentConfiguration.bBuildAdditionalConsoleApplication = false;
 	}
 }

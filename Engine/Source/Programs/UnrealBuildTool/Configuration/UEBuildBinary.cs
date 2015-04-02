@@ -115,6 +115,12 @@ namespace UnrealBuildTool
 		/// </summary>
 		public bool bCompileMonolithic = false;
 
+        /// <summary>
+		/// If true, creates an additional console application. Hack for Windows, where it's not possible to conditionally inherit a parent's console Window depending on how
+		/// the application is invoked; you have to link the same executable with a different subsystem setting.
+		/// </summary>
+		public bool bBuildAdditionalConsoleApp = false;
+
 		/// <summary>
 		/// The build target configuration being compiled
 		/// </summary>
@@ -768,7 +774,7 @@ namespace UnrealBuildTool
 			OutputFiles.AddRange(Executables);
 
 			// Produce additional console app if requested
-			if (BinaryLinkEnvironment.Config.CanProduceAdditionalConsoleApp && UEBuildConfiguration.bBuildEditor)
+			if (Config.bBuildAdditionalConsoleApp)
 			{
 				// Produce additional binary but link it as a console app
 				var ConsoleAppLinkEvironment = BinaryLinkEnvironment.DeepCopy();

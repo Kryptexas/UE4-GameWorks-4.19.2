@@ -51,6 +51,5 @@ public class UnrealLaunchDaemonTarget : TargetRules
 		UEBuildConfiguration.bCompileAgainstEngine = false;
 
 		OutLinkEnvironmentConfiguration.bHasExports = false;
-		OutLinkEnvironmentConfiguration.bBuildAdditionalConsoleApplication = false;
 	}
 }

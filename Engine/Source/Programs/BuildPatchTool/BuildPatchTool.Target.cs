@@ -48,7 +48,6 @@ public class BuildPatchToolTarget : TargetRules
 		OutCPPEnvironmentConfiguration.Definitions.Add("WITH_BUILDPATCHGENERATION=1");
 
 		OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = true;
-		OutLinkEnvironmentConfiguration.bBuildAdditionalConsoleApplication = false;
 		OutLinkEnvironmentConfiguration.bHasExports = false;
 	}
     public override bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly, out bool SeparateNode, out bool CrossCompile)

@@ -92,9 +92,6 @@ public class CrashReportClientTarget : TargetRules
 		// the linker.
 		OutLinkEnvironmentConfiguration.bHasExports = false;
 
-		// Do NOT produce additional console app exe
-		OutLinkEnvironmentConfiguration.bBuildAdditionalConsoleApplication = false;
-
 		OutCPPEnvironmentConfiguration.Definitions.Add( "USE_CHECKS_IN_SHIPPING=1" );
 	}
     public override bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly, out bool SeparateNode, out bool CrossCompile)

@@ -66,9 +66,6 @@ public class UnrealCEFSubProcessTarget : TargetRules
 		// CEFSubProcess is a console application, not a Windows app (sets entry point to main(), instead of WinMain())
 		OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = false;
 
-		// Do NOT produce additional console app exe
-		OutLinkEnvironmentConfiguration.bBuildAdditionalConsoleApplication = false;
-
 		// Disable logging, as the sub processes are spawned often and logging will just slow them down
 		OutCPPEnvironmentConfiguration.Definitions.Add("ALLOW_LOG_FILE=0");
 	}
