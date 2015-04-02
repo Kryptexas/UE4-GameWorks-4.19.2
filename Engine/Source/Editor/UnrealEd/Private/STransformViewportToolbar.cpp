@@ -202,6 +202,10 @@ TSharedRef< SWidget > STransformViewportToolBar::MakeTransformToolBar( const TSh
 		// Scale Mode
 		static FName ScaleModeName = FName(TEXT("ScaleMode"));
 		ToolbarBuilder.AddToolBarButton( FEditorViewportCommands::Get().ScaleMode, NAME_None, TAttribute<FText>(), TAttribute<FText>(), TAttribute<FSlateIcon>(), ScaleModeName );
+
+		// 2D Mode
+		static FName TranslateRotate2DModeName = FName(TEXT("TranslateRotate2DMode"));
+		ToolbarBuilder.AddToolBarButton(FEditorViewportCommands::Get().TranslateRotate2DMode, NAME_None, TAttribute<FText>(), TAttribute<FText>(), TAttribute<FSlateIcon>(), TranslateRotate2DModeName);
 	}
 	ToolbarBuilder.EndBlockGroup();
 	ToolbarBuilder.EndSection();
@@ -264,7 +268,7 @@ TSharedRef< SWidget > STransformViewportToolBar::MakeTransformToolBar( const TSh
 									.IsChecked(this, &STransformViewportToolBar::IsRotationGridSnapChecked)
 									.OnCheckStateChanged(this, &STransformViewportToolBar::HandleToggleRotationGridSnap)
 									.Label(this, &STransformViewportToolBar::GetRotationGridLabel)
-									.OnGetMenuContent(this ,&STransformViewportToolBar::FillRotationGridSnapMenu)
+									.OnGetMenuContent(this, &STransformViewportToolBar::FillRotationGridSnapMenu)
 									.ToggleButtonToolTip(Command->GetDescription())
 									.MenuButtonToolTip(LOCTEXT("RotationGridSnap_ToolTip", "Set the Rotation Grid Snap value"))
 									.Icon(Command->GetIcon())
@@ -272,7 +276,32 @@ TSharedRef< SWidget > STransformViewportToolBar::MakeTransformToolBar( const TSh
 									, RotationSnapName );
 	}
 	ToolbarBuilder.EndSection();
-	
+
+	ToolbarBuilder.BeginSection("Layer2DSnap");
+	{
+		// Grab the existing UICommand 
+		FUICommandInfo* Command = FEditorViewportCommands::Get().Layer2DSnap.Get();
+
+		static FName Layer2DSnapName = FName(TEXT("Layer2DSnap"));
+
+		ToolbarBuilder.AddWidget(SNew(SViewportToolBarComboMenu)
+			.Cursor(EMouseCursor::Default)
+			.Style(ToolBarStyle)
+			.Visibility(this, &STransformViewportToolBar::IsLayer2DSnapVisible)
+			.IsChecked(this, &STransformViewportToolBar::IsLayer2DSnapChecked)
+			.OnCheckStateChanged(this, &STransformViewportToolBar::HandleToggleLayer2DSnap)
+			.Label(this, &STransformViewportToolBar::GetLayer2DLabel)
+			.OnGetMenuContent(this, &STransformViewportToolBar::FillLayer2DSnapMenu)
+			.ToggleButtonToolTip(Command->GetDescription())
+			.MenuButtonToolTip(LOCTEXT("Layer2DSnap_ToolTip", "Set the 2d layer snap value"))
+			.Icon(Command->GetIcon())
+			.ParentToolBar(SharedThis(this))
+			, Layer2DSnapName);
+	}
+	ToolbarBuilder.EndSection();
+
+
+
 	ToolbarBuilder.BeginSection("ScaleGridSnap");
 	{
 		// Grab the existing UICommand 
@@ -379,7 +408,18 @@ FText STransformViewportToolBar::GetLocationGridLabel() const
 
 FText STransformViewportToolBar::GetRotationGridLabel() const
 {
-	return FText::Format( LOCTEXT("GridRotation - Number - DegreeSymbol", "{0}\u00b0"), FText::AsNumber( GEditor->GetRotGridSize().Pitch ) );
+	return FText::Format(LOCTEXT("GridRotation - Number - DegreeSymbol", "{0}\u00b0"), FText::AsNumber(GEditor->GetRotGridSize().Pitch));
+}
+
+FText STransformViewportToolBar::GetLayer2DLabel() const
+{
+	const ULevelEditor2DSettings* Settings2D = GetDefault<ULevelEditor2DSettings>();
+	if (Settings2D->SnapLayers.IsValidIndex(Settings2D->ActiveSnapLayerIndex))
+	{
+		return FText::FromString(Settings2D->SnapLayers[Settings2D->ActiveSnapLayerIndex].Name);
+	}
+	
+	return FText();
 }
 
 FText STransformViewportToolBar::GetScaleGridLabel() const
@@ -460,6 +500,19 @@ void STransformViewportToolBar::SetScaleGridSize( int32 InIndex )
 	GEditor->SetScaleGridSize( InIndex );
 }
 
+/**
+	* Sets the scale grid size
+	*
+	* @param	InIndex	The new index of the scale grid size to use
+	*/
+void STransformViewportToolBar::SetLayer2D( int32 Layer2DIndex )
+{
+	ULevelEditor2DSettings* Settings2D = GetMutableDefault<ULevelEditor2DSettings>();
+	Settings2D->bEnableLayerSnap = true;
+	Settings2D->ActiveSnapLayerIndex = Layer2DIndex;
+	Settings2D->PostEditChange();
+}
+
 		
 /**
 	* Checks to see if the specified grid size index is the current grid size index
@@ -497,10 +550,15 @@ bool STransformViewportToolBar::IsRotationGridSizeChecked( int32 GridSizeIndex, 
 	*
 	* @return	True if the specified scale grid size is the current one
 	*/
-bool STransformViewportToolBar::IsScaleGridSizeChecked( int32 GridSizeIndex )
+bool STransformViewportToolBar::IsScaleGridSizeChecked(int32 GridSizeIndex)
 {
 	const ULevelEditorViewportSettings* ViewportSettings = GetDefault<ULevelEditorViewportSettings>();
 	return (ViewportSettings->CurrentScalingGridSize == GridSizeIndex);
+}
+
+bool STransformViewportToolBar::IsLayer2DSelected(int32 LayerIndex)
+{
+	return (GetDefault<ULevelEditor2DSettings>()->ActiveSnapLayerIndex == LayerIndex);
 }
 
 void STransformViewportToolBar::TogglePreserveNonUniformScale()
@@ -554,7 +612,7 @@ TSharedRef<SWidget> STransformViewportToolBar::FillRotationGridSnapMenu()
 
 	return SNew(SUniformGridPanel)
 
-	+ SUniformGridPanel::Slot(0, 0)
+		+ SUniformGridPanel::Slot(0, 0)
 		[
 			BuildRotationGridCheckBoxList("Common", LOCTEXT("RotationCommonText", "Common"), ViewportSettings->CommonRotGridSizes, GridMode_Common)
 		]
@@ -563,6 +621,26 @@ TSharedRef<SWidget> STransformViewportToolBar::FillRotationGridSnapMenu()
 		[
 			BuildRotationGridCheckBoxList("Div360", LOCTEXT("RotationDivisions360DegreesText", "Divisions of 360\u00b0"), ViewportSettings->DivisionsOf360RotGridSizes, GridMode_DivisionsOf360)
 		];
+}
+
+TSharedRef<SWidget> STransformViewportToolBar::FillLayer2DSnapMenu()
+{
+	const ULevelEditor2DSettings* Settings2D = GetDefault<ULevelEditor2DSettings>();
+	int32 LayerCount = Settings2D->SnapLayers.Num();
+	const bool bInShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder ShowMenuBuilder(bInShouldCloseWindowAfterMenuSelection, CommandList); // rename
+	for (int32 LayerIndex = 0; LayerIndex < LayerCount; ++LayerIndex)
+	{
+		FName LayerName(*Settings2D->SnapLayers[LayerIndex].Name);
+
+		FUIAction Action(FExecuteAction::CreateStatic(&STransformViewportToolBar::SetLayer2D, LayerIndex),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateStatic(&STransformViewportToolBar::IsLayer2DSelected, LayerIndex));
+
+		ShowMenuBuilder.AddMenuEntry(FText::FromName(LayerName), FText::GetEmpty(), FSlateIcon(), Action, NAME_None, EUserInterfaceActionType::RadioButton);
+	}
+
+	return ShowMenuBuilder.MakeWidget();
 }
 
 TSharedRef<SWidget> STransformViewportToolBar::BuildRotationGridCheckBoxList(FName InExtentionHook, const FText& InHeading, const TArray<float>& InGridSizes, ERotationGridMode InGridMode) const
@@ -661,6 +739,19 @@ ECheckBoxState STransformViewportToolBar::IsRotationGridSnapChecked() const
 	return GetDefault<ULevelEditorViewportSettings>()->RotGridEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
+ECheckBoxState STransformViewportToolBar::IsLayer2DSnapChecked() const
+{
+	const ULevelEditor2DSettings* Settings2D = GetDefault<ULevelEditor2DSettings>();
+	bool bChecked = Settings2D->bEnableLayerSnap && Settings2D->SnapLayers.IsValidIndex(Settings2D->ActiveSnapLayerIndex);
+	return bChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+EVisibility STransformViewportToolBar::IsLayer2DSnapVisible() const
+{
+	const ULevelEditor2DSettings* Settings2D = GetDefault<ULevelEditor2DSettings>();
+	return Settings2D->bMode2DEnabled ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
 ECheckBoxState STransformViewportToolBar::IsScaleGridSnapChecked() const
 {
 	return GetDefault<ULevelEditorViewportSettings>()->SnapScaleEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -671,12 +762,27 @@ void STransformViewportToolBar::HandleToggleLocationGridSnap( ECheckBoxState InS
 	GUnrealEd->Exec( GEditor->GetEditorWorldContext().World(), *FString::Printf( TEXT("MODE GRID=%d"), !GetDefault<ULevelEditorViewportSettings>()->GridEnabled ? 1 : 0 ) );
 }
 
-void STransformViewportToolBar::HandleToggleRotationGridSnap( ECheckBoxState InState )
+void STransformViewportToolBar::HandleToggleRotationGridSnap(ECheckBoxState InState)
 {
-	GUnrealEd->Exec( GEditor->GetEditorWorldContext().World(), *FString::Printf( TEXT("MODE ROTGRID=%d"), !GetDefault<ULevelEditorViewportSettings>()->RotGridEnabled ? 1 : 0 ) );
+	GUnrealEd->Exec(GEditor->GetEditorWorldContext().World(), *FString::Printf(TEXT("MODE ROTGRID=%d"), !GetDefault<ULevelEditorViewportSettings>()->RotGridEnabled ? 1 : 0));
 }
 
-void STransformViewportToolBar::HandleToggleScaleGridSnap( ECheckBoxState InState )
+void STransformViewportToolBar::HandleToggleLayer2DSnap(ECheckBoxState InState)
+{
+	ULevelEditor2DSettings* Settings2D = GetMutableDefault<ULevelEditor2DSettings>();
+	if (!Settings2D->bEnableLayerSnap && Settings2D->SnapLayers.Num() > 0)
+	{
+		Settings2D->bEnableLayerSnap = true;
+		Settings2D->ActiveSnapLayerIndex = FMath::Clamp(Settings2D->ActiveSnapLayerIndex, 0, Settings2D->SnapLayers.Num() - 1);
+	}
+	else
+	{
+		Settings2D->bEnableLayerSnap = false;
+	}
+	Settings2D->PostEditChange();
+}
+
+void STransformViewportToolBar::HandleToggleScaleGridSnap(ECheckBoxState InState)
 {
 	GUnrealEd->Exec( GEditor->GetEditorWorldContext().World(), *FString::Printf( TEXT("MODE SCALEGRID=%d"), !GetDefault<ULevelEditorViewportSettings>()->SnapScaleEnabled ? 1 : 0 ) );
 }

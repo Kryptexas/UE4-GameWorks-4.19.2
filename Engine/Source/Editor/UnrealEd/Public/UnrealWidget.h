@@ -18,6 +18,7 @@ public:
 		WM_TranslateRotateZ,
 		WM_Rotate,
 		WM_Scale,
+		WM_2D,
 		WM_Max,
 	};
 
@@ -70,6 +71,11 @@ public:
 	* Draws the Translate & Rotate Z widget.
 	*/
 	void Render_TranslateRotateZ( const FSceneView* View, FPrimitiveDrawInterface* PDI, FEditorViewportClient* ViewportClient, const FVector& InLocation, bool bDrawWidget );
+
+	/**
+	* Draws the combined 2D widget.
+	*/
+	void Render_2D(const FSceneView* View, FPrimitiveDrawInterface* PDI, FEditorViewportClient* ViewportClient, const FVector& InLocation, bool bDrawWidget);
 
 	/**
 	 * Converts mouse movement on the screen to widget axis movement/rotation.

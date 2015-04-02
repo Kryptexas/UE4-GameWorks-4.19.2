@@ -343,6 +343,9 @@ public:
 	/** The angle for the translate rotate widget */
 	float TranslateRotateXAxisAngle;
 
+	/** The angles for the 2d translate rotate widget */
+	float TranslateRotate2DAngle;
+
 	/** Draws in the top level corner of all FEditorViewportClient windows (can be used to relay info to the user). */
 	FString InfoString;
 

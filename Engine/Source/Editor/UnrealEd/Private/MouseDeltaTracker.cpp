@@ -104,6 +104,7 @@ void FMouseDeltaTracker::DetermineCurrentAxis(FEditorViewportClient* InViewportC
 
 				case FWidget::WM_Translate:
 				case FWidget::WM_TranslateRotateZ:
+				case FWidget::WM_2D:
 					switch( InViewportClient->ViewportType )
 					{
 						case LVT_Perspective:
@@ -266,6 +267,7 @@ void FMouseDeltaTracker::StartTracking(FEditorViewportClient* InViewportClient, 
 		}
 		break;
 		case FWidget::WM_TranslateRotateZ:
+		case FWidget::WM_2D:
 			FSnappingUtils::SnapPointToGrid( StartSnapped, FVector(GEditor->GetGridSize(),GEditor->GetGridSize(),GEditor->GetGridSize()) );
 			break;
 
@@ -429,7 +431,9 @@ void FMouseDeltaTracker::AddDelta(FEditorViewportClient* InViewportClient, FKey 
 		// Affect input delta by the camera speed
 
 		FWidget::EWidgetMode WidgetMode = InViewportClient->GetWidgetMode();
-		bool bIsRotation = (WidgetMode == FWidget::WM_Rotate) || ( ( WidgetMode == FWidget::WM_TranslateRotateZ ) && ( InViewportClient->GetCurrentWidgetAxis() == EAxisList::ZRotation ) );
+		bool bIsRotation = (WidgetMode == FWidget::WM_Rotate) 
+			|| ( ( WidgetMode == FWidget::WM_TranslateRotateZ ) && ( InViewportClient->GetCurrentWidgetAxis() == EAxisList::ZRotation ) )
+			|| ( ( WidgetMode == FWidget::WM_2D) && (InViewportClient->GetCurrentWidgetAxis() == EAxisList::Rotate2D ) );
 		if (bIsRotation)
 		{
 			Wk *= GetDefault<ULevelEditorViewportSettings>()->MouseSensitivty;
@@ -523,8 +527,9 @@ void FMouseDeltaTracker::AddDelta(FEditorViewportClient* InViewportClient, FKey 
 			}
 			break;
 			case FWidget::WM_TranslateRotateZ:
+			case FWidget::WM_2D:
 			{
-				if (InViewportClient->GetCurrentWidgetAxis() == EAxisList::ZRotation)
+				if (InViewportClient->GetCurrentWidgetAxis() == EAxisList::Rotate2D)
 				{
 					FRotator Rotation( EndSnapped.X, EndSnapped.Y, EndSnapped.Z );
 					FSnappingUtils::SnapRotatorToGrid( Rotation );

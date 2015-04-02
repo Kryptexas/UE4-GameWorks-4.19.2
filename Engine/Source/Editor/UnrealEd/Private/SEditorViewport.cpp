@@ -248,7 +248,15 @@ void SEditorViewport::BindCommands()
 		FIsActionButtonVisible::CreateSP( this, &SEditorViewport::IsTranslateRotateModeVisible )
 		);
 
-	CommandListRef.MapAction( 
+	CommandListRef.MapAction(
+		Commands.TranslateRotate2DMode,
+		FExecuteAction::CreateSP(ClientRef, &FEditorViewportClient::SetWidgetMode, FWidget::WM_2D),
+		FCanExecuteAction::CreateSP(ClientRef, &FEditorViewportClient::CanSetWidgetMode, FWidget::WM_2D),
+		FIsActionChecked::CreateSP(this, &SEditorViewport::IsWidgetModeActive, FWidget::WM_2D),
+		FIsActionButtonVisible::CreateSP(this, &SEditorViewport::Is2DModeVisible)
+		);
+
+	CommandListRef.MapAction(
 		Commands.ShrinkTransformWidget,
 		FExecuteAction::CreateSP( ClientRef, &FEditorViewportClient::AdjustTransformWidgetSize, -1 )
 		);
@@ -489,7 +497,12 @@ bool SEditorViewport::IsTranslateRotateModeVisible() const
 	return GetDefault<ULevelEditorViewportSettings>()->bAllowTranslateRotateZWidget;
 }
 
-bool SEditorViewport::IsCoordSystemActive( ECoordSystem CoordSystem ) const
+bool SEditorViewport::Is2DModeVisible() const
+{
+	return GetDefault<ULevelEditor2DSettings>()->bMode2DEnabled;
+}
+
+bool SEditorViewport::IsCoordSystemActive(ECoordSystem CoordSystem) const
 {
 	return Client->GetWidgetCoordSystemSpace() == CoordSystem;
 }
@@ -505,6 +518,11 @@ void SEditorViewport::OnCycleWidgetMode()
 		++WidgetModeAsInt;
 
 		if ((WidgetModeAsInt == FWidget::WM_TranslateRotateZ) && (!GetDefault<ULevelEditorViewportSettings>()->bAllowTranslateRotateZWidget))
+		{
+			++WidgetModeAsInt;
+		}
+
+		if ((WidgetModeAsInt == FWidget::WM_2D) && (!GetDefault<ULevelEditor2DSettings>()->bMode2DEnabled))
 		{
 			++WidgetModeAsInt;
 		}

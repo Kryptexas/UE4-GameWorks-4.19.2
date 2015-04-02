@@ -182,6 +182,55 @@ struct UNREALED_API FSnapToSurfaceSettings
 
 
 /**
+* 2D layer settings
+*/
+USTRUCT()
+struct UNREALED_API FMode2DLayer
+{
+	GENERATED_USTRUCT_BODY()
+
+	FMode2DLayer()
+		: Name(TEXT("Default"))
+		, LayerOffset(0)
+	{ }
+
+	/** Whether snapping to surfaces in the world is enabled */
+	UPROPERTY(EditAnywhere, config, Category=Layer)
+	FString Name;
+
+	/** The amount of offset to apply when snapping to surfaces */
+	UPROPERTY(EditAnywhere, config, Category=Layer)
+	float LayerOffset;
+};
+
+/**
+* Implements the Level Editor's 2D view port settings.
+*/
+UCLASS(config = EditorUserSettings)
+class UNREALED_API ULevelEditor2DSettings
+	: public UObject
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+	/** If enabled will allow 2D mode */
+	UPROPERTY(EditAnywhere, config, Category = General, meta = (DisplayName = "Enable 2D Mode"))
+	bool bMode2DEnabled;
+
+	/** When enabled and active snap layer is valid, items dropped in the viewport will be dropped on the appropriate Y distance away */
+	UPROPERTY(EditAnywhere, config, Category = LayerSnapping, AdvancedDisplay)
+	bool bEnableLayerSnap;
+
+	/** Will try to use snap settings from SnapLayers */
+	UPROPERTY(EditAnywhere, config, Category = LayerSnapping, AdvancedDisplay)
+	int32 ActiveSnapLayerIndex;
+
+	/** Snap layers that are displayed in the viewport toolbar */
+	UPROPERTY(EditAnywhere, config, Category = LayerSnapping)
+	TArray<FMode2DLayer> SnapLayers;
+};
+
+/**
  * Implements the Level Editor's view port settings.
  */
 UCLASS(config=EditorUserSettings)

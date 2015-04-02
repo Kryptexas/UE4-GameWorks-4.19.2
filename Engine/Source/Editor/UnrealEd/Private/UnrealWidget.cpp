@@ -10,6 +10,7 @@ IMPLEMENT_HIT_PROXY(HWidgetAxis,HHitProxy);
 
 static const float AXIS_LENGTH = 35.0f;
 static const float TRANSLATE_ROTATE_AXIS_CIRCLE_RADIUS = 20.0f;
+static const float TWOD_AXIS_CIRCLE_RADIUS = 10.0f;
 static const float INNER_AXIS_CIRCLE_RADIUS = 48.0f;
 static const float OUTER_AXIS_CIRCLE_RADIUS = 56.0f;
 static const float ROTATION_TEXT_RADIUS = 75.0f;
@@ -184,6 +185,10 @@ void FWidget::Render( const FSceneView* View,FPrimitiveDrawInterface* PDI, FEdit
 
 		case WM_TranslateRotateZ:
 			Render_TranslateRotateZ( View, PDI, ViewportClient, Loc, bDrawWidget );
+			break;
+
+		case WM_2D:
+			Render_2D( View, PDI, ViewportClient, Loc, bDrawWidget );
 			break;
 
 		default:
@@ -769,6 +774,160 @@ void FWidget::Render_TranslateRotateZ( const FSceneView* View, FPrimitiveDrawInt
 }
 
 /**
+* Draws the 2D widget.
+*/
+
+void FWidget::Render_2D(const FSceneView* View, FPrimitiveDrawInterface* PDI, FEditorViewportClient* ViewportClient, const FVector& InLocation, bool bDrawWidget)
+{
+	//////////////////////////////////////////////////////////////////////////
+	// Translation subwidget
+	//////////////////////////////////////////////////////////////////////////
+
+	// Figure out axis colors
+	const FLinearColor& XColor = (CurrentAxis&EAxisList::X ? (FLinearColor)CurrentColor : AxisColorX);
+	const FLinearColor& YColor = (CurrentAxis&EAxisList::Y ? (FLinearColor)CurrentColor : AxisColorY);
+	const FLinearColor& ZColor = (CurrentAxis&EAxisList::Z ? (FLinearColor)CurrentColor : AxisColorZ);
+	FColor CurrentScreenColor = (CurrentAxis & EAxisList::Screen ? CurrentColor : ScreenSpaceColor);
+
+	// Figure out axis matrices
+	FMatrix WidgetMatrix = CustomCoordSystem * FTranslationMatrix(InLocation);
+
+	bool bIsPerspective = (View->ViewMatrices.ProjMatrix.M[3][3] < 1.0f);
+	const bool bIsOrthoXY = !bIsPerspective && FMath::Abs(View->ViewMatrices.ViewMatrix.M[2][2]) > 0.0f;
+	const bool bIsOrthoXZ = !bIsPerspective && FMath::Abs(View->ViewMatrices.ViewMatrix.M[1][2]) > 0.0f;
+	const bool bIsOrthoYZ = !bIsPerspective && FMath::Abs(View->ViewMatrices.ViewMatrix.M[0][2]) > 0.0f;
+
+	// For local space widgets, we always want to draw all three axis, since they may not be aligned with
+	// the orthographic projection anyway.
+	const bool bIsLocalSpace = (ViewportClient->GetWidgetCoordSystemSpace() == COORD_Local);
+
+	EAxisList::Type DrawAxis = EAxisList::None;
+	if (bIsOrthoXY)
+	{
+		DrawAxis = EAxisList::X;
+	}
+	else if (bIsOrthoXZ)
+	{
+		DrawAxis = EAxisList::XZ;
+	}
+	else if (bIsOrthoYZ)
+	{
+		DrawAxis = EAxisList::Z;
+	}
+	else if (bIsPerspective)
+	{
+		// Find the best plane to move on
+		const FVector CameraZAxis = View->ViewMatrices.ViewMatrix.GetColumn(2);
+		const FVector LargestAxis = CameraZAxis.GetAbs();
+		if (LargestAxis.X > LargestAxis.Y)
+		{
+			if (LargestAxis.Z > LargestAxis.X)
+			{
+				DrawAxis = EAxisList::X;
+			}
+			else
+			{
+				DrawAxis = EAxisList::Z;
+			}
+		}
+		else
+		{
+			if (LargestAxis.Y > LargestAxis.Z)
+			{
+				DrawAxis = EAxisList::XZ;
+			}
+			else
+			{
+				DrawAxis = EAxisList::X;
+			}
+		}
+	}
+
+	const bool bDisabled = IsWidgetDisabled();
+
+	FVector Scale;
+	float UniformScale = View->WorldToScreen(InLocation).W * (4.0f / View->ViewRect.Width() / View->ViewMatrices.ProjMatrix.M[0][0]);
+
+	if (bIsOrthoXY)
+	{
+		Scale = FVector(UniformScale, UniformScale, 1.0f);
+	}
+	else if (bIsOrthoXZ)
+	{
+		Scale = FVector(UniformScale, 1.0f, UniformScale);
+	}
+	else if (bIsOrthoYZ)
+	{
+		Scale = FVector(1.0f, UniformScale, UniformScale);
+	}
+	else
+	{
+		Scale = FVector(UniformScale, UniformScale, UniformScale);
+	}
+
+	// Radius
+	const float ScaledRadius = (TWOD_AXIS_CIRCLE_RADIUS * UniformScale) + GetDefault<ULevelEditorViewportSettings>()->TransformWidgetSizeAdjustment;
+	const int32 CircleSides = (GetDefault<ULevelEditorViewportSettings>()->TransformWidgetSizeAdjustment > 0)
+		? AXIS_CIRCLE_SIDES + (GetDefault<ULevelEditorViewportSettings>()->TransformWidgetSizeAdjustment / 5)
+		: AXIS_CIRCLE_SIDES;
+
+	// Draw the grabbers
+	if (bDrawWidget)
+	{
+		FVector CornerPos = FVector(7, 0, 7) * UniformScale;
+		FVector AxisSize = FVector(12, 1.2, 12) * UniformScale;
+		float CornerLength = 1.2f * UniformScale;
+
+		// Draw the axis lines with arrow heads
+		if (DrawAxis&EAxisList::X && (bIsPerspective || bIsLocalSpace || !bIsOrthoYZ))
+		{
+			UMaterialInstanceDynamic* XMaterial = (CurrentAxis&EAxisList::X ? CurrentAxisMaterial : AxisMaterialX);
+			Render_Axis(View, PDI, EAxisList::X, WidgetMatrix, XMaterial, XColor, XAxisDir, Scale, bDrawWidget);
+		}
+
+		if (DrawAxis&EAxisList::Y && (bIsPerspective || bIsLocalSpace || !bIsOrthoXZ))
+		{
+			UMaterialInstanceDynamic* YMaterial = (CurrentAxis&EAxisList::Y ? CurrentAxisMaterial : AxisMaterialY);
+			Render_Axis(View, PDI, EAxisList::Y, WidgetMatrix, YMaterial, YColor, YAxisDir, Scale, bDrawWidget);
+		}
+
+		if (DrawAxis&EAxisList::Z && (bIsPerspective || bIsLocalSpace || !bIsOrthoXY))
+		{
+			UMaterialInstanceDynamic* ZMaterial = (CurrentAxis&EAxisList::Z ? CurrentAxisMaterial : AxisMaterialZ);
+			Render_Axis(View, PDI, EAxisList::Z, WidgetMatrix, ZMaterial, ZColor, ZAxisDir, Scale, bDrawWidget);
+		}
+
+		// After the primitives have been scaled and transformed, we apply this inverse scale that flattens the dimension
+		// that was scaled up to prevent it from intersecting with the near plane.  In perspective this won't have any effect,
+		// but in the ortho viewports it will prevent scaling in the direction of the camera and thus intersecting the near plane.
+		FVector FlattenScale = FVector(Scale.Component(0) == 1.0f ? 1.0f / UniformScale : 1.0f, Scale.Component(1) == 1.0f ? 1.0f / UniformScale : 1.0f, Scale.Component(2) == 1.0f ? 1.0f / UniformScale : 1.0f);
+		float ArrowRadius = ScaledRadius * 2.0f;
+
+		if (((DrawAxis&EAxisList::XZ) == EAxisList::XZ) && (bIsPerspective || bIsLocalSpace || bIsOrthoXZ)) // Front
+		{
+			uint8 Alpha = ((CurrentAxis&EAxisList::XZ) == EAxisList::XZ ? 0x3f : 0x0f);
+			PDI->SetHitProxy(new HWidgetAxis(EAxisList::XZ, bDisabled));
+			{
+				FColor Color = YColor;
+				DrawCircle(PDI, InLocation, CustomCoordSystem.TransformPosition(FVector(1, 0, 0)), CustomCoordSystem.TransformPosition(FVector(0, 0, 1)), Color, ScaledRadius, CircleSides, SDPG_Foreground);
+				Color.A = Alpha;
+				DrawDisc(PDI, InLocation, CustomCoordSystem.TransformPosition(FVector(1, 0, 0)), CustomCoordSystem.TransformPosition(FVector(0, 0, 1)), Color, ScaledRadius, CircleSides, TransparentPlaneMaterialXY->GetRenderProxy(false), SDPG_Foreground);
+			}
+			PDI->SetHitProxy(NULL);
+
+			PDI->SetHitProxy(new HWidgetAxis(EAxisList::Rotate2D, bDisabled));
+			{
+				FVector XAxis = CustomCoordSystem.TransformPosition(FVector(1, 0, 0).RotateAngleAxis((EditorModeTools ? EditorModeTools->TranslateRotate2DAngle : 0), FVector(0, -1, 0)));
+				FVector YAxis = CustomCoordSystem.TransformPosition(FVector(0, 0, 1).RotateAngleAxis((EditorModeTools ? EditorModeTools->TranslateRotate2DAngle : 0), FVector(0, -1, 0)));
+				FVector BaseArrowPoint = InLocation + XAxis * ScaledRadius;
+				DrawFlatArrow(PDI, BaseArrowPoint, XAxis, YAxis, YColor, ArrowRadius, ArrowRadius*.5f, TransparentPlaneMaterialXY->GetRenderProxy(false), SDPG_Foreground);
+			}
+			PDI->SetHitProxy(NULL);
+		}
+	}
+}
+
+/**
  * Converts mouse movement on the screen to widget axis movement/rotation.
  */
 void FWidget::ConvertMouseMovementToAxisMovement( FEditorViewportClient* InViewportClient, const FVector& InLocation, FVector& InOutDelta, FVector& OutDrag, FRotator& OutRotation, FVector& OutScale )
@@ -907,6 +1066,7 @@ void FWidget::ConvertMouseMovementToAxisMovement( FEditorViewportClient* InViewp
 			{
 				if( CurrentAxis == EAxisList::ZRotation )
 				{
+
 					const FVector2D AxisDir = bIsOrthoDrawingFullRing ? TangentDir : ZAxisDir;
 					FRotator Rotation = FRotator(0, FVector2D::DotProduct(AxisDir, DragDir), 0);
 					FSnappingUtils::SnapRotatorToGrid(Rotation);
@@ -939,6 +1099,51 @@ void FWidget::ConvertMouseMovementToAxisMovement( FEditorViewportClient* InViewp
 				}
 			}
 			break;
+
+		case WM_2D:
+		{
+			if (CurrentAxis == EAxisList::Rotate2D)
+			{
+				// TODO: Determine why -TangentDir is necessary here, and fix whatever is causing it
+				const FVector2D AxisDir = bIsOrthoDrawingFullRing ? -TangentDir : YAxisDir;
+
+				FRotator Rotation = FRotator(FVector2D::DotProduct(AxisDir, DragDir), 0, 0);
+				FSnappingUtils::SnapRotatorToGrid(Rotation);
+
+				CurrentDeltaRotation = Rotation.Pitch;
+				FVector2D EffectiveDelta = AxisDir * Rotation.Pitch;
+
+
+				// Adjust the input delta according to how much rotation was actually applied
+				InOutDelta = FVector(EffectiveDelta.X, -EffectiveDelta.Y, 0.0f);
+
+				// Need to get the delta rotation in the current coordinate space of the widget
+				OutRotation = (CustomCoordSystem.Inverse() * FRotationMatrix(Rotation) * CustomCoordSystem).Rotator();
+			}
+			else
+			{
+				// Get drag delta in widget axis space
+				OutDrag = FVector(
+					(CurrentAxis & EAxisList::X) ? FVector2D::DotProduct(XAxisDir, DragDir) : 0.0f,
+					(CurrentAxis & EAxisList::Y) ? FVector2D::DotProduct(YAxisDir, DragDir) : 0.0f,
+					(CurrentAxis & EAxisList::Z) ? FVector2D::DotProduct(ZAxisDir, DragDir) : 0.0f
+					);
+
+				// Snap to grid in widget axis space
+				const FVector GridSize = FVector(GEditor->GetGridSize());
+				FSnappingUtils::SnapPointToGrid(OutDrag, GridSize);
+
+				// Convert to effective screen space delta, and replace input delta, adjusted for inverted screen space Y axis
+				const FVector2D EffectiveDelta = OutDrag.X * XAxisDir + OutDrag.Y * YAxisDir + OutDrag.Z * ZAxisDir;
+				InOutDelta = FVector(EffectiveDelta.X, -EffectiveDelta.Y, 0.0f);
+
+				// Transform drag delta into world space
+				OutDrag = CustomCoordSystem.TransformPosition(OutDrag);
+			}
+		}
+			break;
+
+
 		default:
 			break;
 	}
@@ -1038,6 +1243,69 @@ void FWidget::AbsoluteTranslationConvertMouseMovementToAxisMovement(FSceneView* 
 			break;
 		}
 
+		case WM_2D:
+		{
+			switch (CurrentAxis)
+			{
+				case EAxisList::X:
+				{
+					GetAxisPlaneNormalAndMask(InputCoordSystem, Params.XAxis, Params.CameraDir, Params.PlaneNormal, Params.NormalToRemove);
+					OutDrag = GetAbsoluteTranslationDelta(Params);
+					break;
+				}
+				case EAxisList::Z:
+				{
+					GetAxisPlaneNormalAndMask(InputCoordSystem, Params.ZAxis, Params.CameraDir, Params.PlaneNormal, Params.NormalToRemove);
+					OutDrag = GetAbsoluteTranslationDelta(Params);
+					break;
+				}
+				case EAxisList::XZ:
+				{
+					GetPlaneNormalAndMask(Params.YAxis, Params.PlaneNormal, Params.NormalToRemove);
+					OutDrag = GetAbsoluteTranslationDelta(Params);
+					break;
+				}
+			
+				//Rotate about the y-axis
+				case EAxisList::Rotate2D:
+				{
+					//no position snapping, we'll handle the rotation snapping elsewhere
+					Params.bPositionSnapping = false;
+
+					GetPlaneNormalAndMask(Params.YAxis, Params.PlaneNormal, Params.NormalToRemove);
+					//No DAMPING
+					Params.bMovementLockedToCamera = false;
+					//this is the one movement type where we want to always use the widget origin and 
+					//NOT the "first click" origin
+					FVector XZPlaneProjectedPosition = GetAbsoluteTranslationDelta(Params) + InitialTranslationOffset;
+
+					//remove the component along the normal we want to mute
+					float MovementAlongMutedAxis = XZPlaneProjectedPosition | Params.NormalToRemove;
+					XZPlaneProjectedPosition = XZPlaneProjectedPosition - (Params.NormalToRemove*MovementAlongMutedAxis);
+
+					if (!XZPlaneProjectedPosition.Normalize())
+					{
+						XZPlaneProjectedPosition = Params.YAxis;
+					}
+
+					//NOW, find the rotation around the PlaneNormal to make the xaxis point at InDrag
+					OutRotation = FRotator::ZeroRotator;
+
+					float PitchDegrees = -FMath::Atan2(-XZPlaneProjectedPosition.Z, XZPlaneProjectedPosition.X) * 180.f / PI;
+					OutRotation.Pitch = PitchDegrees - (EditorModeTools ? EditorModeTools->TranslateRotate2DAngle : 0);
+
+					if (bSnapEnabled)
+					{
+						FSnappingUtils::SnapRotatorToGrid(OutRotation);
+					}
+
+					break;
+				}
+			}
+
+			break;
+		}
+
 		case WM_TranslateRotateZ:
 		{
 			FVector LineToUse;
@@ -1116,7 +1384,7 @@ void FWidget::AbsoluteTranslationConvertMouseMovementToAxisMovement(FSceneView* 
 /** Only some modes support Absolute Translation Movement */
 bool FWidget::AllowsAbsoluteTranslationMovement(EWidgetMode WidgetMode)
 {
-	if ((WidgetMode == WM_Translate) || (WidgetMode == WM_TranslateRotateZ))
+	if ((WidgetMode == WM_Translate) || (WidgetMode == WM_TranslateRotateZ) || (WidgetMode == WM_2D))
 	{
 		return true;
 	}

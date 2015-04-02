@@ -139,6 +139,11 @@ protected:
 	virtual bool IsTranslateRotateModeVisible() const;
 
 	/**
+	* @return true if the 2d mode widget is visible
+	*/
+	virtual bool Is2DModeVisible() const;
+
+	/**
 	 * Moves between widget modes
 	 */
 	virtual void OnCycleWidgetMode();

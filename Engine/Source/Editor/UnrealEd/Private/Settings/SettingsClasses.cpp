@@ -344,6 +344,14 @@ ULevelEditorPlaySettings::ULevelEditorPlaySettings( const FObjectInitializer& Ob
 	RouteGamepadToSecondWindow = false;
 }
 
+/* ULevelEditor2DSettings 
+*****************************************************************************/
+
+ULevelEditor2DSettings::ULevelEditor2DSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+}
+
 
 /* ULevelEditorViewportSettings interface
  *****************************************************************************/

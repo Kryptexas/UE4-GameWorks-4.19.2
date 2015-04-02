@@ -179,6 +179,7 @@ void UUnrealEdEngine::SetPivot( FVector NewPivot, bool bSnapPivotToGrid, bool bI
 
 	//default to using the x axis for the translate rotate widget
 	EditorModeTools.TranslateRotateXAxisAngle = 0.0f;
+	EditorModeTools.TranslateRotate2DAngle = 0.0f;
 	FVector TranslateRotateWidgetWorldXAxis;
 
 	AActor* LastSelectedActor = NULL;

@@ -4117,10 +4117,13 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 		Set( "EditorViewport.ScaleMode.Small", new IMAGE_BRUSH( "Icons/icon_scaleb_16x", Icon16x16 ) );
 		Set( "EditorViewport.TranslateRotateMode", new IMAGE_BRUSH( "Icons/icon_translate_rotate_40x", Icon20x20 ) );
 		Set( "EditorViewport.TranslateRotateMode.Small", new IMAGE_BRUSH( "Icons/icon_translate_rotate_40x", Icon20x20 ) );
-		Set( "EditorViewport.ToggleRealTime", new IMAGE_BRUSH( "Icons/icon_MatEd_Realtime_40x", Icon40x40 ) );
+		Set( "EditorViewport.TranslateRotate2DMode", new IMAGE_BRUSH("Icons/icon_translate_rotate_2d_40x", Icon20x20));
+		Set( "EditorViewport.TranslateRotate2DMode.Small", new IMAGE_BRUSH("Icons/icon_translate_rotate_2d_40x", Icon20x20));
+		Set("EditorViewport.ToggleRealTime", new IMAGE_BRUSH("Icons/icon_MatEd_Realtime_40x", Icon40x40));
 		Set( "EditorViewport.ToggleRealTime.Small", new IMAGE_BRUSH( "Icons/icon_MatEd_Realtime_40x", Icon20x20 ) );
 		Set( "EditorViewport.LocationGridSnap", new IMAGE_BRUSH( "Old/LevelEditor/LocationGridSnap", Icon14x14, IconColor) );
 		Set( "EditorViewport.RotationGridSnap", new IMAGE_BRUSH( "Old/LevelEditor/RotationGridSnap", Icon14x14, IconColor ) );
+		Set( "EditorViewport.Layer2DSnap", new IMAGE_BRUSH("Old/LevelEditor/Layer2DSnap", Icon14x14, IconColor));
 		Set( "EditorViewport.ScaleGridSnap", new IMAGE_BRUSH( "Old/LevelEditor/ScaleGridSnap", Icon14x14, IconColor ) );
 		Set( "EditorViewport.ToggleSurfaceSnapping", new IMAGE_BRUSH( "Icons/icon_surface_snapping_14px", Icon14x14 ) );
 		Set( "EditorViewport.RelativeCoordinateSystem_Local", new IMAGE_BRUSH( "Icons/icon_axis_local_16px", Icon16x16, IconColor ) );

@@ -833,7 +833,8 @@ bool FLevelEditorViewportClient::ShouldUseMoveCanvasMovement()
 		//OBJECT MOVEMENT CODE
 		if ( ( AltDown == false && ShiftDown == false && ( LeftMouseButtonDown ^ RightMouseButtonDown ) ) && 
 			( ( GetWidgetMode() == FWidget::WM_Translate && Widget->GetCurrentAxis() != EAxisList::None ) ||
-			( GetWidgetMode() == FWidget::WM_TranslateRotateZ && Widget->GetCurrentAxis() != EAxisList::ZRotation &&  Widget->GetCurrentAxis() != EAxisList::None ) ) )
+			( GetWidgetMode() == FWidget::WM_TranslateRotateZ && Widget->GetCurrentAxis() != EAxisList::ZRotation &&  Widget->GetCurrentAxis() != EAxisList::None ) ||
+			( GetWidgetMode() == FWidget::WM_2D && Widget->GetCurrentAxis() != EAxisList::Rotate2D &&  Widget->GetCurrentAxis() != EAxisList::None ) ) )
 		{
 			return true;
 		}
@@ -1127,7 +1128,7 @@ EMouseCursor::Type FEditorViewportClient::GetCursor(FViewport* InViewport,int32 
 	}
 	else if (bMoveCanvasMovement && 
 		bHasMouseMovedSinceClick &&
-		( GetWidgetMode() == FWidget::WM_Translate || GetWidgetMode() == FWidget::WM_TranslateRotateZ ) )
+		(GetWidgetMode() == FWidget::WM_Translate || GetWidgetMode() == FWidget::WM_TranslateRotateZ || GetWidgetMode() == FWidget::WM_2D))
 	{
 		MouseCursor = EMouseCursor::CardinalCross;
 	}
@@ -2370,7 +2371,8 @@ bool FEditorViewportClient::ShouldUseMoveCanvasMovement() const
 		//OBJECT MOVEMENT CODE
 		if ( ( AltDown == false && ShiftDown == false && ( LeftMouseButtonDown ^ RightMouseButtonDown ) ) && 
 			( ( GetWidgetMode() == FWidget::WM_Translate && Widget->GetCurrentAxis() != EAxisList::None ) ||
-			( GetWidgetMode() == FWidget::WM_TranslateRotateZ && Widget->GetCurrentAxis() != EAxisList::ZRotation &&  Widget->GetCurrentAxis() != EAxisList::None ) ) )
+			( GetWidgetMode() == FWidget::WM_TranslateRotateZ && Widget->GetCurrentAxis() != EAxisList::ZRotation &&  Widget->GetCurrentAxis() != EAxisList::None ) ||
+			( GetWidgetMode() == FWidget::WM_2D && Widget->GetCurrentAxis() != EAxisList::Rotate2D &&  Widget->GetCurrentAxis() != EAxisList::None ) ) )
 		{
 			return true;
 		}
@@ -2808,6 +2810,10 @@ void FEditorViewportClient::ApplyDeltaToRotateWidget(const FRotator& InRot)
 		FRotator TranslateRotateWidgetRotation(0, ModeTools->TranslateRotateXAxisAngle, 0);
 		TranslateRotateWidgetRotation += InRot;
 		ModeTools->TranslateRotateXAxisAngle = TranslateRotateWidgetRotation.Yaw;
+
+		FRotator Widget2DRotation(ModeTools->TranslateRotate2DAngle, 0, 0);
+		Widget2DRotation += InRot;
+		ModeTools->TranslateRotate2DAngle = Widget2DRotation.Pitch;
 	}
 }
 
@@ -3765,7 +3771,8 @@ void FEditorViewportClient::UpdateRequiredCursorVisibility()
 		//Translating an object, but NOT moving the camera AND the object (shift)
 		if ( ( AltDown == false && ShiftDown == false && ( LeftMouseButtonDown ^ RightMouseButtonDown ) ) && 
 			( ( GetWidgetMode() == FWidget::WM_Translate && Widget->GetCurrentAxis() != EAxisList::None ) ||
-			(  GetWidgetMode() == FWidget::WM_TranslateRotateZ && Widget->GetCurrentAxis() != EAxisList::ZRotation &&  Widget->GetCurrentAxis() != EAxisList::None ) ) )
+			(  GetWidgetMode() == FWidget::WM_TranslateRotateZ && Widget->GetCurrentAxis() != EAxisList::ZRotation &&  Widget->GetCurrentAxis() != EAxisList::None ) ||
+			( GetWidgetMode() == FWidget::WM_2D && Widget->GetCurrentAxis() != EAxisList::Rotate2D &&  Widget->GetCurrentAxis() != EAxisList::None ) ) )
 		{
 			RequiredCursorVisibiltyAndAppearance.bHardwareCursorVisible = false;
 			RequiredCursorVisibiltyAndAppearance.bSoftwareCursorVisible = true;								

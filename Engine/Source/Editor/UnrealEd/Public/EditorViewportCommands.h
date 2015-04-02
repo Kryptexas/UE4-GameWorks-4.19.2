@@ -117,6 +117,9 @@ public:
 	/** TranslateRotate Mode */
 	TSharedPtr< FUICommandInfo > TranslateRotateMode;
 
+	/** TranslateRotate Mode */
+	TSharedPtr< FUICommandInfo > TranslateRotate2DMode;
+
 	/** Shrink the level editor transform widget */
 	TSharedPtr< FUICommandInfo > ShrinkTransformWidget;
 
@@ -161,6 +164,8 @@ public:
 	/** Enables or disables snapping to a rotational grid while rotating objects */
 	TSharedPtr< FUICommandInfo > RotationGridSnap;
 
+	/** Enables or disables snapping to a 2D layer */
+	TSharedPtr< FUICommandInfo > Layer2DSnap;
 
 	/** Enables or disables snapping to a scaling grid while scaling objects */
 	TSharedPtr< FUICommandInfo > ScaleGridSnap;
