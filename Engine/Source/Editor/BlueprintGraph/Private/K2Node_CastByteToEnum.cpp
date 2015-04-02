@@ -39,13 +39,13 @@ FText UK2Node_CastByteToEnum::GetTooltipText() const
 	{
 		return NSLOCTEXT("K2Node", "CastByteToEnum_NullTooltip", "Byte to Enum (bad enum)");
 	}
-	else if(CachedTooltip.IsOutOfDate())
+	else if(CachedTooltip.IsOutOfDate(this))
 	{
 		// FText::Format() is slow, so we cache this to save on performance
-		CachedTooltip = FText::Format(
+		CachedTooltip.SetCachedText(FText::Format(
 			NSLOCTEXT("K2Node", "CastByteToEnum_Tooltip", "Byte to Enum {0}"),
 			FText::FromName(Enum->GetFName())
-		);
+		), this);
 	}
 	return CachedTooltip;
 }

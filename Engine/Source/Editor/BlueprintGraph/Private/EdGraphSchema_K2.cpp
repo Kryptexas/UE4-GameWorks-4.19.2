@@ -483,6 +483,7 @@ const UScriptStruct* UEdGraphSchema_K2::LinearColorStruct = nullptr;
 const UScriptStruct* UEdGraphSchema_K2::ColorStruct = nullptr;
 
 bool UEdGraphSchema_K2::bGeneratingDocumentation = false;
+int32 UEdGraphSchema_K2::CurrentCacheRefreshID = 0;
 
 UEdGraphSchema_K2::UEdGraphSchema_K2(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -5801,6 +5802,21 @@ bool UEdGraphSchema_K2::SupportsDropPinOnNode(UEdGraphNode* InTargetNode, const 
 		}
 	}
 	return bIsSupported;
+}
+
+bool UEdGraphSchema_K2::IsCacheVisualizationOutOfDate(int32 InVisualizationCacheID) const
+{
+	return CurrentCacheRefreshID != InVisualizationCacheID;
+}
+
+int32 UEdGraphSchema_K2::GetCurrentVisualizationCacheID() const
+{
+	return CurrentCacheRefreshID;
+}
+
+void UEdGraphSchema_K2::ForceVisualizationCacheClear() const
+{
+	++CurrentCacheRefreshID;
 }
 
 /////////////////////////////////////////////////////

@@ -171,22 +171,19 @@ FText UK2Node_VariableGet::GetBlueprintVarTooltip(FBPVariableDescription const& 
 
 FText UK2Node_VariableGet::GetTooltipText() const
 {
-	// @TODO: The variable name mutates as the user makes changes to the 
-	//        underlying property, so until we can catch all those cases, we're
-	//        going to leave this optimization off
-	//if (CachedTooltip.IsOutOfDate())
+	if (CachedTooltip.IsOutOfDate(this))
 	{
 		if (UProperty* Property = GetPropertyForVariable())
 		{
-			CachedTooltip = GetPropertyTooltip(Property);
+			CachedTooltip.SetCachedText(GetPropertyTooltip(Property), this);
 		}
 		else if (FBPVariableDescription const* VarDesc = GetBlueprintVarDescription())
 		{
-			CachedTooltip = GetBlueprintVarTooltip(*VarDesc);
+			CachedTooltip.SetCachedText(GetBlueprintVarTooltip(*VarDesc), this);
 		}
 		else
 		{
-			CachedTooltip = K2Node_VariableGetImpl::GetBaseTooltip(GetVarName());
+			CachedTooltip.SetCachedText(K2Node_VariableGetImpl::GetBaseTooltip(GetVarName()), this);
 		}
 	}
 	return CachedTooltip;
@@ -212,15 +209,12 @@ FText UK2Node_VariableGet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	{
 		return LOCTEXT("Get", "Get");
 	}
-	// @TODO: The variable name mutates as the user makes changes to the 
-	//        underlying property, so until we can catch all those cases, we're
-	//        going to leave this optimization off
-	else //if (CachedNodeTitle.IsOutOfDate())
+	else if (CachedNodeTitle.IsOutOfDate(this))
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("PinName"), FText::FromString(OutputPinName));
 		// FText::Format() is slow, so we cache this to save on performance
-		CachedNodeTitle = FText::Format(LOCTEXT("GetPinName", "Get {PinName}"), Args);
+		CachedNodeTitle.SetCachedText(FText::Format(LOCTEXT("GetPinName", "Get {PinName}"), Args), this);
 	}
 	return CachedNodeTitle;
 }

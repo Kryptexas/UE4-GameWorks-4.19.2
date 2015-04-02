@@ -761,4 +761,18 @@ class ENGINE_API UEdGraphSchema : public UObject
 	 * @return								Returns TRUE if there is support for dropping the pin on the node
 	 */
 	virtual bool SupportsDropPinOnNode(UEdGraphNode* InTargetNode, const FEdGraphPinType& InSourcePinType, EEdGraphPinDirection InSourcePinDirection, FText& OutErrorMessage) const { return false; }
+
+	/**
+	 * Checks if a CacheRefreshID is out of date
+	 *
+	 * @param InVisualizationCacheID	The current refresh ID to check if out of date
+	 * @return							TRUE if dirty
+	 */
+	virtual bool IsCacheVisualizationOutOfDate(int32 InVisualizationCacheID) const { return false; }
+
+	/** Returns the current cache title refresh ID that is appropriate for the passed node */
+	virtual int32 GetCurrentVisualizationCacheID() const { return 0; }
+
+	/** Forces cached visualization data to refresh */
+	virtual void ForceVisualizationCacheClear() const {};
 };

@@ -76,15 +76,12 @@ FText UAnimGraphNode_StateMachineBase::GetNodeTitle(ENodeTitleType::Type TitleTy
 	}
 	else if (TitleType == ENodeTitleType::FullTitle)
 	{
-		// @TODO: don't know enough about this node type to comfortably assert that
-		//        the EditorStateMachineGraph won't change after the node has 
-		//        spawned... until then, we'll leave this optimization off
-		//if (CachedFullTitle.IsOutOfDate())
+		if (CachedFullTitle.IsOutOfDate(this))
 		{
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("Title"), FText::FromName(EditorStateMachineGraph->GetFName()));
 			// FText::Format() is slow, so we cache this to save on performance
-			CachedFullTitle = FText::Format(LOCTEXT("StateMachineFullTitle", "{Title}\nState Machine"), Args);
+			CachedFullTitle.SetCachedText(FText::Format(LOCTEXT("StateMachineFullTitle", "{Title}\nState Machine"), Args), this);
 		}
 		return CachedFullTitle;
 	}

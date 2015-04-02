@@ -326,7 +326,7 @@ FText UK2Node_SpawnActorFromClass::GetNodeTitle(ENodeTitleType::Type TitleType) 
 			}
 			else
 			{
-				if (CachedNodeTitle.IsOutOfDate())
+				if (CachedNodeTitle.IsOutOfDate(this))
 				{
 					FText ClassName;
 					if (UClass* PickedClass = Cast<UClass>(ClassPin->DefaultObject))
@@ -338,7 +338,7 @@ FText UK2Node_SpawnActorFromClass::GetNodeTitle(ENodeTitleType::Type TitleType) 
 					Args.Add(TEXT("ClassName"), ClassName);
 
 					// FText::Format() is slow, so we cache this to save on performance
-					CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "SpawnActor", "SpawnActor {ClassName}"), Args);
+					CachedNodeTitle.SetCachedText(FText::Format(NSLOCTEXT("K2Node", "SpawnActor", "SpawnActor {ClassName}"), Args), this);
 				}
 				NodeTitle = CachedNodeTitle;
 			} 

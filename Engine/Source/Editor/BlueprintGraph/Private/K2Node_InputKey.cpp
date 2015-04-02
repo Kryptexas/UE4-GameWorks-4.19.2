@@ -154,14 +154,14 @@ FText UK2Node_InputKey::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if (bControl || bAlt || bShift || bCommand)
 	{
-		if (CachedNodeTitle.IsOutOfDate())
+		if (CachedNodeTitle.IsOutOfDate(this))
 		{
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("ModifierKey"), GetModifierText());
 			Args.Add(TEXT("Key"), GetKeyText());
 			
 			// FText::Format() is slow, so we cache this to save on performance
-			CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "InputKey_Name_WithModifiers", "{ModifierKey} {Key}"), Args);
+			CachedNodeTitle.SetCachedText(FText::Format(NSLOCTEXT("K2Node", "InputKey_Name_WithModifiers", "{ModifierKey} {Key}"), Args), this);
 		}
 		return CachedNodeTitle;
 	}
@@ -173,7 +173,7 @@ FText UK2Node_InputKey::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 FText UK2Node_InputKey::GetTooltipText() const
 {
-	if (CachedTooltip.IsOutOfDate())
+	if (CachedTooltip.IsOutOfDate(this))
 	{
 		FText ModifierText = GetModifierText();
 		FText KeyText = GetKeyText();
@@ -181,11 +181,11 @@ FText UK2Node_InputKey::GetTooltipText() const
 		// FText::Format() is slow, so we cache this to save on performance
 		if (!ModifierText.IsEmpty())
 		{
-			CachedTooltip = FText::Format(NSLOCTEXT("K2Node", "InputKey_Tooltip_Modifiers", "Events for when the {0} key is pressed or released while {1} is also held."), KeyText, ModifierText);
+			CachedTooltip.SetCachedText(FText::Format(NSLOCTEXT("K2Node", "InputKey_Tooltip_Modifiers", "Events for when the {0} key is pressed or released while {1} is also held."), KeyText, ModifierText), this);
 		}
 		else
 		{
-			CachedTooltip = FText::Format(NSLOCTEXT("K2Node", "InputKey_Tooltip", "Events for when the {0} key is pressed or released."), KeyText);
+			CachedTooltip.SetCachedText(FText::Format(NSLOCTEXT("K2Node", "InputKey_Tooltip", "Events for when the {0} key is pressed or released."), KeyText), this);
 		}
 	}
 	return CachedTooltip;
@@ -362,10 +362,10 @@ FText UK2Node_InputKey::GetMenuCategory() const
 		CategoryIndex = KeyEventCategory;
 	}
 
-	if (CachedCategories[CategoryIndex].IsOutOfDate())
+	if (CachedCategories[CategoryIndex].IsOutOfDate(this))
 	{
 		// FText::Format() is slow, so we cache this to save on performance
-		CachedCategories[CategoryIndex] = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, SubCategory);
+		CachedCategories[CategoryIndex].SetCachedText(FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, SubCategory), this);
 	}
 	return CachedCategories[CategoryIndex];
 }

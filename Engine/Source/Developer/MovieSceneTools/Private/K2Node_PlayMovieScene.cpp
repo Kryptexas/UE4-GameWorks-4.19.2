@@ -85,12 +85,12 @@ FText UK2Node_PlayMovieScene::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	// @TODO: don't know enough about this node type to comfortably assert that
 	//        the MovieScene won't change after the node has spawned... until
 	//        then, we'll leave this optimization off
-	else //if (CachedNodeTitle.IsOutOfDate())
+	else //if (CachedNodeTitle.IsOutOfDate(this))
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("SceneName"), FText::FromString(MovieScene->GetName()));
 		// FText::Format() is slow, so we cache this to save on performance
-		CachedNodeTitle = FText::Format(NSLOCTEXT("PlayMovieSceneNode", "NodeTitle", "Play Movie Scene: {SceneName}"), Args);
+		CachedNodeTitle.SetCachedText(FText::Format(NSLOCTEXT("PlayMovieSceneNode", "NodeTitle", "Play Movie Scene: {SceneName}"), Args), this);
 	}
 	return CachedNodeTitle;
 }

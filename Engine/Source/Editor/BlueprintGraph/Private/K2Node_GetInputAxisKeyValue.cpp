@@ -41,12 +41,12 @@ FText UK2Node_GetInputAxisKeyValue::GetNodeTitle(ENodeTitleType::Type TitleType)
 	{
 		return InputAxisKey.GetDisplayName();
 	}
-	else if (CachedNodeTitle.IsOutOfDate())
+	else if (CachedNodeTitle.IsOutOfDate(this))
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("AxisKey"), InputAxisKey.GetDisplayName());
 		// FText::Format() is slow, so we cache this to save on performance
-		CachedNodeTitle = FText::Format(NSLOCTEXT("K2Node", "GetInputAxisKey_Name", "Get {AxisKey}"), Args);
+		CachedNodeTitle.SetCachedText(FText::Format(NSLOCTEXT("K2Node", "GetInputAxisKey_Name", "Get {AxisKey}"), Args), this);
 	}
 
 	return CachedNodeTitle;
@@ -59,12 +59,12 @@ FString UK2Node_GetInputAxisKeyValue::GetKeywords() const
 
 FText UK2Node_GetInputAxisKeyValue::GetTooltipText() const
 {
-	if (CachedTooltip.IsOutOfDate())
+	if (CachedTooltip.IsOutOfDate(this))
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("AxisKey"), InputAxisKey.GetDisplayName());
 		// FText::Format() is slow, so we cache this to save on performance
-		CachedTooltip = FText::Format(NSLOCTEXT("K2Node", "GetInputAxisKey_Tooltip", "Returns the current value of input axis key {AxisKey}.  If input is disabled for the actor the value will be 0."), Args);
+		CachedTooltip.SetCachedText(FText::Format(NSLOCTEXT("K2Node", "GetInputAxisKey_Tooltip", "Returns the current value of input axis key {AxisKey}.  If input is disabled for the actor the value will be 0."), Args), this);
 	}
 	return CachedTooltip;
 }
@@ -202,10 +202,10 @@ FText UK2Node_GetInputAxisKeyValue::GetMenuCategory() const
 		CategoryIndex = KeyValueCategory;
 	}
 
-	if (CachedCategories[CategoryIndex].IsOutOfDate())
+	if (CachedCategories[CategoryIndex].IsOutOfDate(this))
 	{
 		// FText::Format() is slow, so we cache this to save on performance
-		CachedCategories[CategoryIndex] = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, SubCategory);
+		CachedCategories[CategoryIndex].SetCachedText(FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, SubCategory), this);
 	}
 	return CachedCategories[CategoryIndex];
 }

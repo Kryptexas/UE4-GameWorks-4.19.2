@@ -19,13 +19,13 @@ FText UK2Node_Message::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	FText NodeName;
 	if (UFunction* Function = GetTargetFunction())
 	{
-		if (!CachedNodeTitles.IsTitleCached(TitleType))
+		if (!CachedNodeTitles.IsTitleCached(TitleType, this))
 		{
 			FText NodeNameText = UK2Node_CallFunction::GetUserFacingFunctionName(Function);
 			if (TitleType == ENodeTitleType::MenuTitle)
 			{
 				// FText::Format() is slow, so we cache this to save on performance
-				CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("ListTitle", "{0} (Message)"), NodeNameText));
+				CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("ListTitle", "{0} (Message)"), NodeNameText), this);
 			}
 			else
 			{
@@ -35,7 +35,7 @@ FText UK2Node_Message::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 				FText NodeTitle = FText::Format(NSLOCTEXT("K2Node", "CallInterfaceContext", "{NodeName}\nUsing Interface {OuterClassName}"), Args);
 				// FText::Format() is slow, so we cache this to save on performance
-				CachedNodeTitles.SetCachedTitle(TitleType, NodeTitle);
+				CachedNodeTitles.SetCachedTitle(TitleType, NodeTitle, this);
 			}
 		}
 	}

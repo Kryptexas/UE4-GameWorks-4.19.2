@@ -38,7 +38,7 @@ FText UAnimGraphNode_BlendSpacePlayer::GetNodeTitle(ENodeTitleType::Type TitleTy
 	}
 	// @TODO: the bone can be altered in the property editor, so we have to 
 	//        choose to mark this dirty when that happens for this to properly work
-	else //if (!CachedNodeTitles.IsTitleCached(TitleType))
+	else //if (!CachedNodeTitles.IsTitleCached(TitleType, this))
 	{
 		const FText BlendSpaceName = FText::FromString(Node.BlendSpace->GetName());
 
@@ -47,7 +47,7 @@ FText UAnimGraphNode_BlendSpacePlayer::GetNodeTitle(ENodeTitleType::Type TitleTy
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("BlendSpaceName"), BlendSpaceName);
 			// FText::Format() is slow, so we cache this to save on performance
-			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("BlendspacePlayer", "Blendspace Player '{BlendSpaceName}'"), Args));
+			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("BlendspacePlayer", "Blendspace Player '{BlendSpaceName}'"), Args), this);
 		}
 		else
 		{
@@ -63,7 +63,7 @@ FText UAnimGraphNode_BlendSpacePlayer::GetNodeTitle(ENodeTitleType::Type TitleTy
 				Title = FText::Format(LOCTEXT("BlendSpaceNodeGroupSubtitle", "{Title}\nSync group {SyncGroupName}"), Args);
 			}
 			// FText::Format() is slow, so we cache this to save on performance
-			CachedNodeTitles.SetCachedTitle(TitleType, Title);
+			CachedNodeTitles.SetCachedTitle(TitleType, Title, this);
 		}
 	}
 	return CachedNodeTitles[TitleType];

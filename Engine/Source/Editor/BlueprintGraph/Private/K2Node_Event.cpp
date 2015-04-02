@@ -107,9 +107,9 @@ FText UK2Node_Event::GetNodeTitle(ENodeTitleType::Type TitleType) const
 FText UK2Node_Event::GetTooltipText() const
 {
 	UFunction* Function = EventReference.ResolveMember<UFunction>(GetBlueprintClassFromNode());
-	if (CachedTooltip.IsOutOfDate() && (Function != nullptr))
+	if (CachedTooltip.IsOutOfDate(this) && (Function != nullptr))
 	{
-		CachedTooltip = FText::FromString(UK2Node_CallFunction::GetDefaultTooltipForFunction(Function));
+		CachedTooltip.SetCachedText(FText::FromString(UK2Node_CallFunction::GetDefaultTooltipForFunction(Function)), this);
 
 		if (bOverrideFunction || (CustomFunctionName == NAME_None))
 		{
@@ -124,7 +124,7 @@ FText UK2Node_Event::GetTooltipText() const
 					NSLOCTEXT("K2Node", "ClientEvent", "\n\nCosmetic. This event is only for cosmetic, non-gameplay actions.")
 				);
 				// FText::Format() is slow, so we cache this to save on performance
-				CachedTooltip = FText::Format(LOCTEXT("Event_SubtitledTooltip", "{FunctionTooltip}\n\n{ClientString}"), Args);
+				CachedTooltip.SetCachedText(FText::Format(LOCTEXT("Event_SubtitledTooltip", "{FunctionTooltip}\n\n{ClientString}"), Args), this);
 			} 
 			else if(Function->HasAllFunctionFlags(FUNC_BlueprintAuthorityOnly))
 			{
@@ -133,7 +133,7 @@ FText UK2Node_Event::GetTooltipText() const
 					NSLOCTEXT("K2Node", "ServerEvent", "\n\nAuthority Only. This event only fires on the server.")
 				);
 				// FText::Format() is slow, so we cache this to save on performance
-				CachedTooltip = FText::Format(LOCTEXT("Event_SubtitledTooltip", "{FunctionTooltip}\n\n{ClientString}"), Args);
+				CachedTooltip.SetCachedText(FText::Format(LOCTEXT("Event_SubtitledTooltip", "{FunctionTooltip}\n\n{ClientString}"), Args), this);
 			}			
 		}		
 	}

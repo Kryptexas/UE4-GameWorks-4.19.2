@@ -48,10 +48,10 @@ FText UK2Node_InputAxisKeyEvent::GetNodeTitle(ENodeTitleType::Type TitleType) co
 
 FText UK2Node_InputAxisKeyEvent::GetTooltipText() const
 {
-	if (CachedTooltip.IsOutOfDate())
+	if (CachedTooltip.IsOutOfDate(this))
 	{
 		// FText::Format() is slow, so we cache this to save on performance
-		CachedTooltip = FText::Format(NSLOCTEXT("K2Node", "InputAxisKey_Tooltip", "Event that provides the current value of the {0} axis once per frame when input is enabled for the containing actor."), AxisKey.GetDisplayName());
+		CachedTooltip.SetCachedText(FText::Format(NSLOCTEXT("K2Node", "InputAxisKey_Tooltip", "Event that provides the current value of the {0} axis once per frame when input is enabled for the containing actor."), AxisKey.GetDisplayName()), this);
 	}
 	return CachedTooltip;
 }
@@ -199,10 +199,10 @@ FText UK2Node_InputAxisKeyEvent::GetMenuCategory() const
 		CategoryIndex = KeyEventCategory;
 	}
 
-	if (CachedCategories[CategoryIndex].IsOutOfDate())
+	if (CachedCategories[CategoryIndex].IsOutOfDate(this))
 	{
 		// FText::Format() is slow, so we cache this to save on performance
-		CachedCategories[CategoryIndex] = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, SubCategory);
+		CachedCategories[CategoryIndex].SetCachedText(FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, SubCategory), this);
 	}
 	return CachedCategories[CategoryIndex];
 }

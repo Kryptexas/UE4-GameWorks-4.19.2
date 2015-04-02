@@ -159,12 +159,12 @@ FText UK2Node_MakeStruct::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	{
 		return LOCTEXT("MakeNullStructTitle", "Make <unknown struct>");
 	}
-	else if (CachedNodeTitle.IsOutOfDate())
+	else if (CachedNodeTitle.IsOutOfDate(this))
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("StructName"), FText::FromName(StructType->GetFName()));
 		// FText::Format() is slow, so we cache this to save on performance
-		CachedNodeTitle = FText::Format(LOCTEXT("MakeNodeTitle", "Make {StructName}"), Args);
+		CachedNodeTitle.SetCachedText(FText::Format(LOCTEXT("MakeNodeTitle", "Make {StructName}"), Args), this);
 	}
 	return CachedNodeTitle;
 }
@@ -175,13 +175,13 @@ FText UK2Node_MakeStruct::GetTooltipText() const
 	{
 		return LOCTEXT("MakeNullStruct_Tooltip", "Adds a node that create an '<unknown struct>' from its members");
 	}
-	else if (CachedTooltip.IsOutOfDate())
+	else if (CachedTooltip.IsOutOfDate(this))
 	{
 		// FText::Format() is slow, so we cache this to save on performance
-		CachedTooltip = FText::Format(
+		CachedTooltip.SetCachedText(FText::Format(
 			LOCTEXT("MakeStruct_Tooltip", "Adds a node that create a '{0}' from its members"),
 			FText::FromName(StructType->GetFName())
-		);
+		), this);
 	}
 	return CachedTooltip;
 }

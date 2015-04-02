@@ -269,12 +269,12 @@ FText UK2Node_ConstructObjectFromClass::GetNodeTitle(ENodeTitleType::Type TitleT
 		{
 			return NSLOCTEXT("K2Node", "ConstructObject_Title_NONE", "Construct NONE");
 		}
-		else if (CachedNodeTitle.IsOutOfDate())
+		else if (CachedNodeTitle.IsOutOfDate(this))
 		{
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("ClassName"), FText::FromString(ClassPin->DefaultObject->GetName()));
 			// FText::Format() is slow, so we cache this to save on performance
-			CachedNodeTitle = FText::Format(GetNodeTitleFormat(), Args);
+			CachedNodeTitle.SetCachedText(FText::Format(GetNodeTitleFormat(), Args), this);
 		}
 	}
 	else

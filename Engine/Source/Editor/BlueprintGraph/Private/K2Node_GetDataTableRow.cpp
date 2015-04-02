@@ -294,14 +294,14 @@ FText UK2Node_GetDataTableRow::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 		{
 			return NSLOCTEXT("K2Node", "DataTable_Title_None", "Get Data Table Row NONE");
 		}
-		else if (CachedNodeTitle.IsOutOfDate())
+		else if (CachedNodeTitle.IsOutOfDate(this))
 		{
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("DataTableName"), FText::FromString(DataTablePin->DefaultObject->GetName()));
 
 			FText LocFormat = NSLOCTEXT("K2Node", "DataTable", "Get Data Table Row {DataTableName}");
 			// FText::Format() is slow, so we cache this to save on performance
-			CachedNodeTitle = FText::Format(LocFormat, Args);
+			CachedNodeTitle.SetCachedText(FText::Format(LocFormat, Args), this);
 		}
 	}
 	else
