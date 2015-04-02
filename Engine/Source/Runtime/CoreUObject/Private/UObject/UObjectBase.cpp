@@ -714,10 +714,15 @@ static void UObjectLoadAllCompiledInStructs()
 		TArray<FPendingEnumRegistrant> PendingRegistrants;
 		PendingRegistrants = GetDeferredCompiledInEnumRegistration();
 		GetDeferredCompiledInEnumRegistration().Empty();
+		
 		for (auto& EnumRegistrant : PendingRegistrants)
 		{
 			// Make sure the package exists in case it does not contain any UObjects
 			CreatePackage(NULL, EnumRegistrant.PackageName);
+		}
+
+		for (auto& EnumRegistrant : PendingRegistrants)
+		{
 			EnumRegistrant.RegisterFn();
 		}
 	}
@@ -729,10 +734,15 @@ static void UObjectLoadAllCompiledInStructs()
 		TArray<FPendingStructRegistrant> PendingRegistrants;
 		PendingRegistrants = GetDeferredCompiledInStructRegistration();
 		GetDeferredCompiledInStructRegistration().Empty();
+
 		for (auto& StructRegistrant : PendingRegistrants)
 		{
 			// Make sure the package exists in case it does not contain any UObjects or UEnums
 			CreatePackage(NULL, StructRegistrant.PackageName);
+		}
+
+		for (auto& StructRegistrant : PendingRegistrants)
+		{
 			StructRegistrant.RegisterFn();
 		}
 	}
