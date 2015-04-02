@@ -601,9 +601,13 @@ void FComponentTransformDetails::CacheCommonLocationUnits()
 	{
 		VectorUnits = LargestUnit.GetValue();
 	}
-	else
+	else if (DefaultInputUnits.IsSet())
 	{
 		VectorUnits	= DefaultInputUnits.GetValue();
+	}
+	else
+	{
+		VectorUnits = EUnit::Unspecified;
 	}
 
 	VectorUnits = FUnitConversion::ConvertToGlobalDisplayRange(VectorUnits);
