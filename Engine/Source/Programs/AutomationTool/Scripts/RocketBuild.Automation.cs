@@ -500,7 +500,7 @@ namespace Rocket
 
 		public override int CISFrequencyQuantumShift(GUBP bp)
 		{
-			return base.CISFrequencyQuantumShift(bp);
+			return base.CISFrequencyQuantumShift(bp) + 2;
 		}
 
 		public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform)
