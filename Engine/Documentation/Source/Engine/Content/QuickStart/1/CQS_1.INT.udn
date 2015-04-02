@@ -34,7 +34,7 @@ If you are unfamiliar with how to create a new game project, refer to the [](Eng
 While we can import assets manually, UE4 does auto-import any assets that are added to the directory structure on your disk. If UE4 is running while you add an asset to your project's directory, it will import it immediately (otherwise it will import it when UE4 is next run). Ultimately, all of your files will automatically appear in the **Content Browser** inside UE4 in a location determined by your Project's directory structure. 
 
 [REGION:tip]
-Tip: Any content created outside of UE4, save it to your UE4 Project's directory so that it's automatically imported. 
+Tip: Any content created outside of UE4, save it to your UE4 Project's directory so that it is automatically imported. 
 [/REGION]
 
 <!--
