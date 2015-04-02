@@ -660,8 +660,11 @@ bool FPortableObjectFormatDOM::FromString( const FString& InStr )
 			}
 			for( uint32 NextLineIdx = LineIdx + 1; NextLineIdx < NumFileLines && LinesToProcess[NextLineIdx].Trim().TrimTrailing().StartsWith(TEXT("\"")); ++NextLineIdx)
 			{
-				const FString& NextLine = 
-				RawMsgCtxt += FindDelimitedString(Line, TEXT("\""), TEXT("\""), RawMsgCtxt);
+				FString Tmp;
+				if (FindDelimitedString(Line, TEXT("\""), TEXT("\""), Tmp))
+				{
+					RawMsgCtxt += Tmp;
+				}
 			}
 
 			// If the following line contains more info for this element we continue to parse it out

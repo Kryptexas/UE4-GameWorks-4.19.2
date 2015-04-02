@@ -256,7 +256,7 @@ int32 SRuler::DrawTicks( FSlateWindowElementList& OutDrawElements, const struct 
 	// Draw line that runs along the bottom of all the ticks.
 	{
 		LinePoints[0] = Orientation == Orient_Horizontal ? FVector2D(0, InArgs.AllottedGeometry.Size.Y) : FVector2D(InArgs.AllottedGeometry.Size.X, 0);
-		LinePoints[1] = Orientation == Orient_Horizontal ? FVector2D(InArgs.AllottedGeometry.Size.X, InArgs.AllottedGeometry.Size.Y) : FVector2D(InArgs.AllottedGeometry.Size.X, InArgs.AllottedGeometry.Size.Y);
+		LinePoints[1] = FVector2D(InArgs.AllottedGeometry.Size.X, InArgs.AllottedGeometry.Size.Y);
 
 		const bool bAntiAlias = false;
 		// Draw each sub mark

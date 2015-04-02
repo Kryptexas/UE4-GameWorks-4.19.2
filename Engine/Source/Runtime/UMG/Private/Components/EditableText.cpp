@@ -20,7 +20,7 @@ UEditableText::UEditableText(const FObjectInitializer& ObjectInitializer)
 
 	// Grab other defaults from slate arguments.
 	IsReadOnly = Defaults._IsReadOnly.Get();
-	IsPassword = Defaults._IsReadOnly.Get();
+	IsPassword = Defaults._IsPassword.Get();
 	MinimumDesiredWidth = Defaults._MinDesiredWidth.Get();
 	IsCaretMovedWhenGainFocus = Defaults._IsCaretMovedWhenGainFocus.Get();
 	SelectAllTextWhenFocused = Defaults._SelectAllTextWhenFocused.Get();

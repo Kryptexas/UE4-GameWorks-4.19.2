@@ -1072,24 +1072,22 @@ void FCascade::OnNewEmitter()
 	NewEmitter->UpdateModuleLists();
 
 	NewEmitter->PostEditChange();
-	if (NewEmitter)
+
+	NewEmitter->SetFlags(RF_Transactional);
+	for (int32 LODIndex = 0; LODIndex < NewEmitter->LODLevels.Num(); LODIndex++)
 	{
-		NewEmitter->SetFlags(RF_Transactional);
-		for (int32 LODIndex = 0; LODIndex < NewEmitter->LODLevels.Num(); LODIndex++)
+		UParticleLODLevel* NewEmitterLODLevel = NewEmitter->GetLODLevel(LODIndex);
+		if (NewEmitterLODLevel)
 		{
-			UParticleLODLevel* NewEmitterLODLevel = NewEmitter->GetLODLevel(LODIndex);
-			if (NewEmitterLODLevel)
+			NewEmitterLODLevel->SetFlags(RF_Transactional);
+			check(NewEmitterLODLevel->RequiredModule);
+			NewEmitterLODLevel->RequiredModule->SetTransactionFlag();
+			check(NewEmitterLODLevel->SpawnModule);
+			NewEmitterLODLevel->SpawnModule->SetTransactionFlag();
+			for (int32 jj = 0; jj < NewEmitterLODLevel->Modules.Num(); jj++)
 			{
-				NewEmitterLODLevel->SetFlags(RF_Transactional);
-				check(NewEmitterLODLevel->RequiredModule);
-				NewEmitterLODLevel->RequiredModule->SetTransactionFlag();
-				check(NewEmitterLODLevel->SpawnModule);
-				NewEmitterLODLevel->SpawnModule->SetTransactionFlag();
-				for (int32 jj = 0; jj < NewEmitterLODLevel->Modules.Num(); jj++)
-				{
-					UParticleModule* pkModule = NewEmitterLODLevel->Modules[jj];
-					pkModule->SetTransactionFlag();
-				}
+				UParticleModule* pkModule = NewEmitterLODLevel->Modules[jj];
+				pkModule->SetTransactionFlag();
 			}
 		}
 	}
@@ -4392,52 +4390,43 @@ void FCascade::OnDeleteModule(bool bConfirm)
 	}
 	CurveEditor->RefreshViewport();
 
-	if (SelectedEmitter)
+	bool bNeedsListUpdated = false;
+
+	for (int32 LODIndex = 0; LODIndex < SelectedEmitter->LODLevels.Num(); LODIndex++)
 	{
-		bool bNeedsListUpdated = false;
+		UParticleLODLevel* LODLevel	= SelectedEmitter->GetLODLevel(LODIndex);
 
-		for (int32 LODIndex = 0; LODIndex < SelectedEmitter->LODLevels.Num(); LODIndex++)
+		// See if it is in this LODs level...
+		UParticleModule* CheckModule;
+
+		if (DeleteModuleIndex >= 0)
 		{
-			UParticleLODLevel* LODLevel	= SelectedEmitter->GetLODLevel(LODIndex);
-
-			// See if it is in this LODs level...
-			UParticleModule* CheckModule;
-
-			if (DeleteModuleIndex >= 0)
-			{
-				CheckModule = LODLevel->Modules[DeleteModuleIndex];
-			}
-			else
-			{
-				CheckModule = LODLevel->TypeDataModule;
-			}
-
-			if (CheckModule)
-			{
-				if (CheckModule->IsA(UParticleModuleTypeDataBase::StaticClass()))
-				{
-					check(LODLevel->TypeDataModule == CheckModule);
-					LODLevel->TypeDataModule = NULL;
-				}
-				else
-					if (CheckModule->IsA(UParticleModuleEventGenerator::StaticClass()))
-					{
-						LODLevel->EventGenerator = NULL;
-					}
-					LODLevel->Modules.Remove(CheckModule);
-					bNeedsListUpdated = true;
-			}
+			CheckModule = LODLevel->Modules[DeleteModuleIndex];
+		}
+		else
+		{
+			CheckModule = LODLevel->TypeDataModule;
 		}
 
-		if (bNeedsListUpdated)
+		if (CheckModule)
 		{
-			SelectedEmitter->UpdateModuleLists();
+			if (CheckModule->IsA(UParticleModuleTypeDataBase::StaticClass()))
+			{
+				check(LODLevel->TypeDataModule == CheckModule);
+				LODLevel->TypeDataModule = NULL;
+			}
+			else if (CheckModule->IsA(UParticleModuleEventGenerator::StaticClass()))
+			{
+				LODLevel->EventGenerator = NULL;
+			}
+			LODLevel->Modules.Remove(CheckModule);
+			bNeedsListUpdated = true;
 		}
 	}
-	else
+
+	if (bNeedsListUpdated)
 	{
-		// Assume that it's in the module dump...
-		DraggedModuleList.Remove(SelectedModule);
+		SelectedEmitter->UpdateModuleLists();
 	}
 
 	ParticleSystem->PostEditChange();

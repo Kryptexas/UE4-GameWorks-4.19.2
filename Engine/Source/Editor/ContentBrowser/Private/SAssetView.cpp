@@ -3234,15 +3234,8 @@ FReply SAssetView::OnDraggingAssetItem( const FGeometry& MyGeometry, const FPoin
 					continue;
 				}
 
-				if (AssetData.AssetClass == UClass::StaticClass()->GetFName())
-				{
-					// If dragging a class, send though an FAssetData whose name is null and class is this class' name
-					InAssetData.Add(AssetData);
-				}
-				else
-				{
-					InAssetData.Add(AssetData);
-				}
+				// If dragging a class, send though an FAssetData whose name is null and class is this class' name
+				InAssetData.Add(AssetData);
 			}
 			
 			if ( InAssetData.Num() > 0 )
@@ -3587,7 +3580,7 @@ float SAssetView::GetTileViewItemWidth() const
 	return GetTileViewItemBaseWidth() * FillScale;
 }
 
-float SAssetView::GetTileViewItemBaseWidth() const
+float SAssetView::GetTileViewItemBaseWidth() const //-V524
 {
 	return ( TileViewThumbnailSize + TileViewThumbnailPadding * 2 ) * FMath::Lerp( MinThumbnailScale, MaxThumbnailScale, GetThumbnailScale() );
 }

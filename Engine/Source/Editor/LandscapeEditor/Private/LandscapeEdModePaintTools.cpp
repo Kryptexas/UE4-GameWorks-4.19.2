@@ -270,14 +270,7 @@ public:
 
 				if (bUseWeightTargetValue)
 				{
-					if (bInvert)
-					{
-						CurrentValue = FMath::Lerp(CurrentValue, DestValue, PaintAmount / AdjustedStrength);
-					}
-					else
-					{
-						CurrentValue = FMath::Lerp(CurrentValue, DestValue, PaintAmount / AdjustedStrength);
-					}
+					CurrentValue = FMath::Lerp(CurrentValue, DestValue, PaintAmount / AdjustedStrength);
 				}
 				else if (bUseClayBrush)
 				{

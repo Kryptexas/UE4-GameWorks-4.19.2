@@ -105,7 +105,11 @@ public:
 		Offset += sizeof(float) * 4;
 
 		/** The per-particle dynamic parameter stream */
-		Offset = 0;
+
+		// The -V519 disables a warning from PVS-Studio's static analyzer. It noticed that offset is assigned
+		// twice before being read. It is probably safer to leave the redundant assignments here to reduce
+		// the chance of an error being introduced if this code is modified.
+		Offset = 0;  //-V519
 		Stride = sizeof(float) * 4;
 		Elements.Add(FVertexElement(bInstanced ? 2 : 1, Offset, VET_Float4, 5, Stride, bInstanced));
 		Offset += sizeof(float) * 4;

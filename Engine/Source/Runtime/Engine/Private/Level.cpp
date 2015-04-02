@@ -805,7 +805,7 @@ void ULevel::CreateModelComponents()
 					Key.Z				= FMath::FloorToInt(NodeBounds.GetCenter().Z / MODEL_GRID_SIZE_Z);
 				}
 
-				Key.MaskedPolyFlags = Surf.PolyFlags & PF_ModelComponentMask;
+				Key.MaskedPolyFlags = 0;
 
 				// Find an existing node list for the grid cell.
 				TArray<uint16>* ComponentNodes = ModelComponentMap.Find(Key);
@@ -1676,11 +1676,11 @@ void ULevel::OnLevelScriptBlueprintChanged(ULevelScriptBlueprint* InBlueprint)
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.OverrideLevel = this;
 		LevelScriptActor = OwningWorld->SpawnActor<ALevelScriptActor>( SpawnClass, SpawnInfo );
-		LevelScriptActor->ClearFlags(RF_Transactional);
-		check(LevelScriptActor->GetOuter() == this);
 
 		if( LevelScriptActor )
 		{
+			LevelScriptActor->ClearFlags(RF_Transactional);
+			check(LevelScriptActor->GetOuter() == this);
 			// Finally, fixup all the bound events to point to their new LSA
 			FBlueprintEditorUtils::FixLevelScriptActorBindings(LevelScriptActor, InBlueprint);
 		}		

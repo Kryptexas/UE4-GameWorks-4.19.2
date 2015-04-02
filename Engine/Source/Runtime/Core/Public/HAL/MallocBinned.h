@@ -845,7 +845,7 @@ public:
 		*/
 		HashKeyShift = PoolBitShift+IndirectPoolBitShift;
 		/** Used to mask off the bits that have been used to lookup the indirect table */
-		PoolMask =  ( ( 1 << ( HashKeyShift - PoolBitShift ) ) - 1 );
+		PoolMask =  ( ( 1ull << ( HashKeyShift - PoolBitShift ) ) - 1 );
 		BinnedSizeLimit = PAGE_SIZE_LIMIT/2;
 		BinnedOSTableIndex = BinnedSizeLimit+EXTENED_PAGE_POOL_ALLOCATION_COUNT;
 
