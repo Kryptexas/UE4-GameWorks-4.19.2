@@ -6,18 +6,39 @@
 #include "PaperGeomTools.h"
 #include "DynamicMeshBuilder.h"
 
-//@TODO: Hackery
+#define LOCTEXT_NAMESPACE "PaperGeometryEditing"
+
+//////////////////////////////////////////////////////////////////////////
+
 namespace SpriteEditingConstantsEX
 {
 	// The length and color to draw a normal tick in
-// 	const FLinearColor GeometryNormalColor(0.0f, 1.0f, 0.0f, 0.5f);
-// 	const float GeometryNormalLength = 15.0f;
-
+	const float GeometryNormalLength = 15.0f;
+	const FLinearColor GeometryNormalColor(0.0f, 1.0f, 0.0f, 0.5f);
+	
 	// Geometry edit rendering stuff
-// 	const float GeometryVertexSize = 8.0f;
-// 	const float GeometryBorderLineThickness = 2.0f;
 	const int32 CircleShapeNumSides = 64;
+	const float GeometryVertexSize = 8.0f;
+	const float GeometryBorderLineThickness = 2.0f;
 	const FLinearColor GeometrySelectedColor(FLinearColor::White);
+}
+
+//////////////////////////////////////////////////////////////////////////
+// FSpriteSelectionHelper
+
+void FSpriteSelectionHelper::ClearSelectionSet()
+{
+	SelectedItemSet.Empty();
+}
+
+void FSpriteSelectionHelper::DeleteSelectedItems(bool bShouldTransact)
+{
+	//@TODO: Allow deletion of sockets, etc... here
+}
+
+void FSpriteSelectionHelper::SelectItem(TSharedPtr<FSelectedItem> NewItem)
+{
+	SelectedItemSet.Add(NewItem);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -31,15 +52,6 @@ FSpriteSelectedShape::FSpriteSelectedShape(ISpriteSelectionContext& InEditorCont
 	, bIsBackground(bInIsBackground)
 {
 }
-
-// bool FSpriteSelectedShape::IsValidInEditor(UPaperSprite* Sprite, bool bInRenderData) const
-// {
-// 	if ((Sprite != nullptr) && (&Geometry == (bInRenderData ? &(Sprite->RenderGeometry) : &(Sprite->CollisionGeometry))))
-// 	{
-// 		return Geometry.Shapes.IsValidIndex(ShapeIndex);
-// 	}
-// 	return false;
-// }
 
 uint32 FSpriteSelectedShape::GetTypeHash() const
 {
@@ -165,18 +177,95 @@ FVector FSpriteSelectedShape::GetWorldPos() const
 	return Result;
 }
 
-void FSpriteSelectedShape::SplitEdge()
-{
-	// Nonsense operation on a whole shape, do nothing
-}
-
 //////////////////////////////////////////////////////////////////////////
 // FSpriteGeometryEditingHelper
 
 FSpriteGeometryEditingHelper::FSpriteGeometryEditingHelper(ISpriteSelectionContext& InEditorContext)
 	: EditorContext(InEditorContext)
+	, GeometryBeingEdited(nullptr)
 {
 	WidgetVertexColorMaterial = (UMaterial*)StaticLoadObject(UMaterial::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/WidgetVertexColorMaterial.WidgetVertexColorMaterial"), NULL, LOAD_None, NULL);
+}
+
+void FSpriteGeometryEditingHelper::ClearSelectionSet()
+{
+	FSpriteSelectionHelper::ClearSelectionSet();
+	SelectedIDSet.Empty();
+
+	ResetAddPolygonMode();
+
+	EditorContext.InvalidateViewportAndHitProxies();
+}
+
+void FSpriteGeometryEditingHelper::DeleteSelectedItems(bool bShouldTransact)
+{
+	// Make a set of polygon-vertices "pairs" to delete
+	TSet<FShapeVertexPair> CompositeIndicesSet;
+	TSet<int32> ShapesToDeleteSet;
+
+	FSpriteGeometryCollection& Geometry = GetGeometryChecked();
+
+	for (TSharedPtr<FSelectedItem> SelectionIt : GetSelectionSet())
+	{
+		if (const FSpriteSelectedVertex* SelectedVertex = SelectionIt->CastTo<const FSpriteSelectedVertex>(FSelectionTypes::Vertex))
+		{
+			CompositeIndicesSet.Add(FShapeVertexPair(SelectedVertex->ShapeIndex, SelectedVertex->VertexIndex));
+
+			if (SelectedVertex->IsA(FSelectionTypes::Edge)) // add the "next" point for the edge
+			{
+				const int32 NextIndex = (SelectedVertex->VertexIndex + 1) % Geometry.Shapes[SelectedVertex->ShapeIndex].Vertices.Num();
+				CompositeIndicesSet.Add(FShapeVertexPair(SelectedVertex->ShapeIndex, NextIndex));
+			}
+		}
+		else if (const FSpriteSelectedShape* SelectedShape = SelectionIt->CastTo<const FSpriteSelectedShape>(FSelectionTypes::GeometryShape))
+		{
+			ShapesToDeleteSet.Add(SelectedShape->ShapeIndex);
+		}
+	}
+
+	if ((CompositeIndicesSet.Num() > 0) || (ShapesToDeleteSet.Num() > 0))
+	{
+		EditorContext.BeginTransaction(LOCTEXT("DeleteSelectionTransaction", "Delete Selection"));
+
+		// Delete the selected vertices first, as they may cause entire shapes to need to be deleted (sort so we delete from the back first)
+		TArray<FShapeVertexPair> CompositeIndices = CompositeIndicesSet.Array();
+		CompositeIndices.Sort([](const FShapeVertexPair& A, const FShapeVertexPair& B) { return (A.VertexIndex > B.VertexIndex); });
+		for (const FShapeVertexPair& Composite : CompositeIndices)
+		{
+			const int32 ShapeIndex = Composite.ShapeIndex;
+			const int32 VertexIndex = Composite.VertexIndex;
+			if (DeleteVertexInPolygonInternal(Geometry, ShapeIndex, VertexIndex))
+			{
+				ShapesToDeleteSet.Add(ShapeIndex);
+			}
+		}
+
+		// Delete the selected shapes (plus any shapes that became empty due to selected vertices)
+		if (ShapesToDeleteSet.Num() > 0)
+		{
+			// Sort so we delete from the back first
+			TArray<int32> ShapesToDeleteIndicies = ShapesToDeleteSet.Array();
+			ShapesToDeleteIndicies.Sort([](const int32& A, const int32& B) { return (A > B); });
+			for (const int32 ShapeToDeleteIndex : ShapesToDeleteIndicies)
+			{
+				Geometry.Shapes.RemoveAt(ShapeToDeleteIndex);
+			}
+		}
+
+		Geometry.GeometryType = ESpritePolygonMode::FullyCustom;
+		EditorContext.MarkTransactionAsDirty();
+
+		//@TODO: Should allow deleting other things when geometry is also selected!
+		//FSpriteGeometryEditingHelper::DeleteSelectedItems(/*bShouldTransact=*/ false);
+
+		ClearSelectionSet();
+		EditorContext.EndTransaction();
+		ResetAddPolygonMode();
+	}
+	else
+	{
+		FSpriteGeometryEditingHelper::DeleteSelectedItems(/*bShouldTransact=*/ true);
+	}
 }
 
 void FSpriteGeometryEditingHelper::AddReferencedObjects(FReferenceCollector& Collector)
@@ -184,8 +273,14 @@ void FSpriteGeometryEditingHelper::AddReferencedObjects(FReferenceCollector& Col
 	Collector.AddReferencedObject(WidgetVertexColorMaterial);
 }
 
-void FSpriteGeometryEditingHelper::DrawGeometry(const FSceneView& View, FPrimitiveDrawInterface& PDI, FSpriteGeometryCollection& Geometry, const FLinearColor& GeometryVertexColor, const FLinearColor& NegativeGeometryVertexColor, bool bIsRenderGeometry)
+void FSpriteGeometryEditingHelper::DrawGeometry(const FSceneView& View, FPrimitiveDrawInterface& PDI, const FLinearColor& GeometryVertexColor, const FLinearColor& NegativeGeometryVertexColor)
 {
+	if (GeometryBeingEdited == nullptr)
+	{
+		return;
+	}
+
+	FSpriteGeometryCollection& Geometry = GetGeometryChecked();
 	const bool bIsHitTesting = PDI.IsHitTesting();
 	const float UnitsPerPixel = EditorContext.SelectedItemGetUnitsPerPixel();
 
@@ -259,3 +354,471 @@ void FSpriteGeometryEditingHelper::DrawGeometry(const FSceneView& View, FPrimiti
 		}
 	}
 }
+
+void FSpriteGeometryEditingHelper::DrawGeometry_CanvasPass(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, /*inout*/ int32& YPos, const FLinearColor& GeometryVertexColor, const FLinearColor& NegativeGeometryVertexColor)
+{
+	//@TODO: Display 'action required' text in a bright color for Add Polygon mode
+	//@TODO: Move all of the line drawing to the PDI pass
+	FSpriteGeometryCollection& Geometry = GetGeometryChecked();
+
+	// Display tool help
+	{
+		static const FText GeomHelpStr = LOCTEXT("GeomEditHelp", "Shift + click to insert a vertex.\nSelect one or more vertices and press Delete to remove them.\nDouble click a vertex to select a polygon\n");
+		static const FText GeomClickAddPolygon_NoSubtractive = LOCTEXT("GeomClickAddPolygon_NoSubtractive", "Click to start creating a polygon\n");
+		static const FText GeomClickAddPolygon_AllowSubtractive = LOCTEXT("GeomClickAddPolygon_AllowSubtractive", "Click to start creating a polygon\nCtrl + Click to start creating a subtractive polygon\n");
+		static const FText GeomAddVerticesHelpStr = LOCTEXT("GeomClickAddVertices", "Click to add points to the polygon\nEnter to finish adding a polygon\nEscape to cancel this polygon\n");
+
+		const FText* HelpStr;
+		if (IsAddingPolygon())
+		{
+			if (AddingPolygonIndex == INDEX_NONE)
+			{
+				HelpStr = bAllowSubtractivePolygons ? &GeomClickAddPolygon_AllowSubtractive : &GeomClickAddPolygon_NoSubtractive;
+			}
+			else
+			{
+				HelpStr = &GeomAddVerticesHelpStr;
+			}
+		}
+		else
+		{
+			HelpStr = &GeomHelpStr;
+		}
+
+		FCanvasTextItem TextItem(FVector2D(6, YPos), *HelpStr, GEngine->GetSmallFont(), FLinearColor::White);
+		TextItem.EnableShadow(FLinearColor::Black);
+		TextItem.Draw(&Canvas);
+		YPos += 54;
+	}
+
+	const bool bIsHitTesting = Canvas.IsHitTesting();
+
+	// Run thru the geometry shapes and draw hit proxies for them
+	for (int32 ShapeIndex = 0; ShapeIndex < Geometry.Shapes.Num(); ++ShapeIndex)
+	{
+		const FSpriteGeometryShape& Shape = Geometry.Shapes[ShapeIndex];
+
+		const bool bIsShapeSelected = IsGeometrySelected(FShapeVertexPair(ShapeIndex, INDEX_NONE));
+		const FLinearColor LineColorRaw = Shape.bNegativeWinding ? NegativeGeometryVertexColor : GeometryVertexColor;
+		const FLinearColor VertexColor = Shape.bNegativeWinding ? NegativeGeometryVertexColor : GeometryVertexColor;
+
+		const FLinearColor LineColor = Shape.IsShapeValid() ? LineColorRaw : FMath::Lerp(LineColorRaw, FLinearColor::Red, 0.8f);
+
+		// Draw the circle shape if necessary
+		if (Shape.ShapeType == ESpriteShapeType::Circle)
+		{
+			if (bIsHitTesting)
+			{
+				TSharedPtr<FSpriteSelectedShape> Data = MakeShareable(new FSpriteSelectedShape(EditorContext, Geometry, ShapeIndex, /*bIsBackground=*/ false));
+				Canvas.SetHitProxy(new HSpriteSelectableObjectHitProxy(Data));
+			}
+
+			// Draw the circle
+			const float RadiusX = Shape.BoxSize.X * 0.5f;
+			const float RadiusY = Shape.BoxSize.Y * 0.5f;
+
+			const float	AngleDelta = 2.0f * PI / SpriteEditingConstantsEX::CircleShapeNumSides;
+
+			const float LastX = Shape.BoxPosition.X + RadiusX;
+			const float LastY = Shape.BoxPosition.Y;
+			FVector2D LastVertexPos = TextureSpaceToScreenSpace(View, FVector2D(LastX, LastY));
+
+
+			for (int32 SideIndex = 0; SideIndex < SpriteEditingConstantsEX::CircleShapeNumSides; SideIndex++)
+			{
+				const float X = Shape.BoxPosition.X + RadiusX * FMath::Cos(AngleDelta * (SideIndex + 1));
+				const float Y = Shape.BoxPosition.Y + RadiusY * FMath::Sin(AngleDelta * (SideIndex + 1));
+				const FVector2D ScreenPos = TextureSpaceToScreenSpace(View, FVector2D(X, Y));
+
+				FCanvasLineItem LineItem(LastVertexPos, ScreenPos);
+				LineItem.SetColor(bIsShapeSelected ? SpriteEditingConstantsEX::GeometrySelectedColor : LineColor);
+				LineItem.LineThickness = SpriteEditingConstantsEX::GeometryBorderLineThickness;
+
+				Canvas.DrawItem(LineItem);
+
+				LastVertexPos = ScreenPos;
+			}
+
+
+			if (bIsHitTesting)
+			{
+				Canvas.SetHitProxy(nullptr);
+			}
+		}
+
+		// Draw lines connecting the vertices of the shape
+		for (int32 VertexIndex = 0; VertexIndex < Shape.Vertices.Num(); ++VertexIndex)
+		{
+			const int32 NextVertexIndex = (VertexIndex + 1) % Shape.Vertices.Num();
+
+			const FVector2D ScreenPos = TextureSpaceToScreenSpace(View, Shape.ConvertShapeSpaceToTextureSpace(Shape.Vertices[VertexIndex]));
+			const FVector2D NextScreenPos = TextureSpaceToScreenSpace(View, Shape.ConvertShapeSpaceToTextureSpace(Shape.Vertices[NextVertexIndex]));
+
+			const bool bIsThisVertexSelected = IsGeometrySelected(FShapeVertexPair(ShapeIndex, VertexIndex));
+			const bool bIsNextVertexSelected = IsGeometrySelected(FShapeVertexPair(ShapeIndex, NextVertexIndex));
+
+			const bool bIsEdgeSelected = bIsShapeSelected || (bIsThisVertexSelected && bIsNextVertexSelected);
+
+			// Draw the normal tick
+			if (bShowNormals)
+			{
+				const FVector2D Direction = (NextScreenPos - ScreenPos).GetSafeNormal();
+				const FVector2D Normal = FVector2D(-Direction.Y, Direction.X);
+
+				const FVector2D Midpoint = (ScreenPos + NextScreenPos) * 0.5f;
+				const FVector2D NormalPoint = Midpoint - Normal * SpriteEditingConstantsEX::GeometryNormalLength;
+				FCanvasLineItem LineItem(Midpoint, NormalPoint);
+				LineItem.SetColor(SpriteEditingConstantsEX::GeometryNormalColor);
+
+				Canvas.DrawItem(LineItem);
+			}
+
+			// Draw the edge
+			{
+				if (bIsHitTesting)
+				{
+					TSharedPtr<FSpriteSelectedEdge> Data = MakeShareable(new FSpriteSelectedEdge(EditorContext, Geometry, ShapeIndex, VertexIndex));
+					Canvas.SetHitProxy(new HSpriteSelectableObjectHitProxy(Data));
+				}
+
+				FCanvasLineItem LineItem(ScreenPos, NextScreenPos);
+				LineItem.SetColor(bIsEdgeSelected ? SpriteEditingConstantsEX::GeometrySelectedColor : LineColor);
+				LineItem.LineThickness = SpriteEditingConstantsEX::GeometryBorderLineThickness;
+				Canvas.DrawItem(LineItem);
+
+				if (bIsHitTesting)
+				{
+					Canvas.SetHitProxy(nullptr);
+				}
+			}
+		}
+
+		// Draw the vertices
+		for (int32 VertexIndex = 0; VertexIndex < Shape.Vertices.Num(); ++VertexIndex)
+		{
+			const FVector2D ScreenPos = TextureSpaceToScreenSpace(View, Shape.ConvertShapeSpaceToTextureSpace(Shape.Vertices[VertexIndex]));
+			const float X = ScreenPos.X;
+			const float Y = ScreenPos.Y;
+
+			const bool bIsVertexSelected = IsGeometrySelected(FShapeVertexPair(ShapeIndex, VertexIndex));
+			const bool bIsVertexLastAdded = IsAddingPolygon() && (AddingPolygonIndex == ShapeIndex) && (VertexIndex == Shape.Vertices.Num() - 1);
+			const bool bNeedHighlightVertex = bIsShapeSelected || bIsVertexSelected || bIsVertexLastAdded;
+
+			if (bIsHitTesting)
+			{
+				TSharedPtr<FSpriteSelectedVertex> Data = MakeShareable(new FSpriteSelectedVertex(EditorContext, Geometry, ShapeIndex, VertexIndex));
+				Canvas.SetHitProxy(new HSpriteSelectableObjectHitProxy(Data));
+			}
+
+			const float VertSize = SpriteEditingConstantsEX::GeometryVertexSize;
+			Canvas.DrawTile(ScreenPos.X - VertSize*0.5f, ScreenPos.Y - VertSize*0.5f, VertSize, VertSize, 0.f, 0.f, 1.f, 1.f, bNeedHighlightVertex ? SpriteEditingConstantsEX::GeometrySelectedColor : VertexColor, GWhiteTexture);
+
+			if (bIsHitTesting)
+			{
+				Canvas.SetHitProxy(nullptr);
+			}
+		}
+	}
+}
+
+void FSpriteGeometryEditingHelper::AddPointToGeometry(const FVector2D& TextureSpacePoint, const int32 SelectedPolygonIndex)
+{
+	FSpriteGeometryCollection& Geometry = GetGeometryChecked();
+
+	int32 ClosestShapeIndex = INDEX_NONE;
+	int32 ClosestVertexInsertIndex = INDEX_NONE;
+	float ClosestDistanceSquared = MAX_FLT;
+
+	int32 StartPolygonIndex = 0;
+	int32 EndPolygonIndex = Geometry.Shapes.Num();
+	if ((SelectedPolygonIndex >= 0) && (SelectedPolygonIndex < Geometry.Shapes.Num()))
+	{
+		StartPolygonIndex = SelectedPolygonIndex;
+		EndPolygonIndex = SelectedPolygonIndex + 1;
+	}
+
+	// Determine where we should insert the vertex
+	for (int32 PolygonIndex = StartPolygonIndex; PolygonIndex < EndPolygonIndex; ++PolygonIndex)
+	{
+		FSpriteGeometryShape& Polygon = Geometry.Shapes[PolygonIndex];
+		if (Polygon.Vertices.Num() >= 3)
+		{
+			for (int32 VertexIndex = 0; VertexIndex < Polygon.Vertices.Num(); ++VertexIndex)
+			{
+				FVector2D ClosestPoint;
+				const FVector2D LineStart = Polygon.ConvertShapeSpaceToTextureSpace(Polygon.Vertices[VertexIndex]);
+				int32 NextVertexIndex = (VertexIndex + 1) % Polygon.Vertices.Num();
+				const FVector2D LineEnd = Polygon.ConvertShapeSpaceToTextureSpace(Polygon.Vertices[NextVertexIndex]);
+				if (ClosestPointOnLine(TextureSpacePoint, LineStart, LineEnd, /*out*/ ClosestPoint))
+				{
+					const float CurrentDistanceSquared = FVector2D::DistSquared(ClosestPoint, TextureSpacePoint);
+					if (CurrentDistanceSquared < ClosestDistanceSquared)
+					{
+						ClosestShapeIndex = PolygonIndex;
+						ClosestDistanceSquared = CurrentDistanceSquared;
+						ClosestVertexInsertIndex = NextVertexIndex;
+					}
+				}
+			}
+		}
+		else
+		{
+			// Simply insert the vertex
+			for (int32 VertexIndex = 0; VertexIndex < Polygon.Vertices.Num(); ++VertexIndex)
+			{
+				const FVector2D CurrentVertexTS = Polygon.ConvertShapeSpaceToTextureSpace(Polygon.Vertices[VertexIndex]);
+				const float CurrentDistanceSquared = FVector2D::DistSquared(CurrentVertexTS, TextureSpacePoint);
+				if (CurrentDistanceSquared < ClosestDistanceSquared)
+				{
+					ClosestShapeIndex = PolygonIndex;
+					ClosestDistanceSquared = CurrentDistanceSquared;
+					ClosestVertexInsertIndex = VertexIndex + 1;
+				}
+			}
+		}
+	}
+
+	if ((ClosestVertexInsertIndex != INDEX_NONE) && (ClosestShapeIndex != INDEX_NONE))
+	{
+		FSpriteGeometryShape& Shape = Geometry.Shapes[ClosestShapeIndex];
+		if (Shape.ShapeType != ESpriteShapeType::Circle)
+		{
+			EditorContext.BeginTransaction(LOCTEXT("AddPolygonVertexTransaction", "Add Vertex to Polygon"));
+			Shape.Vertices.Insert(Shape.ConvertTextureSpaceToShapeSpace(TextureSpacePoint), ClosestVertexInsertIndex);
+			Shape.ShapeType = ESpriteShapeType::Polygon;
+			Geometry.GeometryType = ESpritePolygonMode::FullyCustom;
+			EditorContext.MarkTransactionAsDirty();
+			EditorContext.EndTransaction();
+
+			// Select this vertex
+			ClearSelectionSet();
+			AddPolygonVertexToSelection(ClosestShapeIndex, ClosestVertexInsertIndex);
+		}
+	}
+}
+
+void FSpriteGeometryEditingHelper::SelectGeometry(const FShapeVertexPair& GeometyItem)
+{
+	SelectedIDSet.Add(GeometyItem);
+	EditorContext.InvalidateViewportAndHitProxies();
+}
+
+bool FSpriteGeometryEditingHelper::IsGeometrySelected(const FShapeVertexPair& GeometyItem) const
+{
+	return SelectedIDSet.Contains(GeometyItem);
+}
+
+void FSpriteGeometryEditingHelper::AddShapeToSelection(const int32 ShapeIndex)
+{
+	FSpriteGeometryCollection& Geometry = GetGeometryChecked();
+	if (Geometry.Shapes.IsValidIndex(ShapeIndex))
+	{
+		if (!IsGeometrySelected(FShapeVertexPair(ShapeIndex, INDEX_NONE)))
+		{
+			FSpriteGeometryShape& Shape = Geometry.Shapes[ShapeIndex];
+
+			TSharedPtr<FSpriteSelectedShape> SelectedShape = MakeShareable(new FSpriteSelectedShape(EditorContext, Geometry, ShapeIndex));
+
+			SelectItem(SelectedShape);
+			SelectGeometry(FShapeVertexPair(ShapeIndex, INDEX_NONE));
+		}
+	}
+}
+
+void FSpriteGeometryEditingHelper::AddPolygonVertexToSelection(const int32 ShapeIndex, const int32 VertexIndex)
+{
+	FSpriteGeometryCollection& Geometry = GetGeometryChecked();
+	if (Geometry.Shapes.IsValidIndex(ShapeIndex))
+	{
+		FSpriteGeometryShape& Shape = Geometry.Shapes[ShapeIndex];
+		if (Shape.Vertices.IsValidIndex(VertexIndex))
+		{
+			if (!IsGeometrySelected(FShapeVertexPair(ShapeIndex, VertexIndex)))
+			{
+				TSharedPtr<FSpriteSelectedVertex> Vertex = MakeShareable(new FSpriteSelectedVertex(EditorContext, Geometry, ShapeIndex, VertexIndex));
+
+				SelectItem(Vertex);
+				SelectGeometry(FShapeVertexPair(ShapeIndex, VertexIndex));
+			}
+		}
+	}
+}
+
+void FSpriteGeometryEditingHelper::AddPolygonEdgeToSelection(const int32 ShapeIndex, const int32 FirstVertexIndex)
+{
+	FSpriteGeometryCollection& Geometry = GetGeometryChecked();
+	if (Geometry.Shapes.IsValidIndex(ShapeIndex))
+	{
+		FSpriteGeometryShape& Shape = Geometry.Shapes[ShapeIndex];
+		const int32 NextVertexIndex = (FirstVertexIndex + 1) % Shape.Vertices.Num();
+
+		AddPolygonVertexToSelection(ShapeIndex, FirstVertexIndex);
+		AddPolygonVertexToSelection(ShapeIndex, NextVertexIndex);
+	}
+}
+
+void FSpriteGeometryEditingHelper::SetGeometryBeingEdited(FSpriteGeometryCollection* NewGeometryBeingEdited, bool bInAllowCircles, bool bInAllowSubtractivePolygons)
+{
+	ClearSelectionSet();
+	GeometryBeingEdited = NewGeometryBeingEdited;
+	bAllowCircles = bInAllowCircles;
+	bAllowSubtractivePolygons = bInAllowSubtractivePolygons;
+}
+
+void FSpriteGeometryEditingHelper::AddNewCircleShape(const FVector2D& CircleLocation, float Radius)
+{
+	FSpriteGeometryCollection& Geometry = GetGeometryChecked();
+	EditorContext.BeginTransaction(LOCTEXT("AddCircleShapeTransaction", "Add Circle Shape"));
+
+	// Create the new shape
+	const FVector2D CircleSize2D(Radius*2.0f, Radius*2.0f);
+	Geometry.AddCircleShape(CircleLocation, CircleSize2D);
+	Geometry.GeometryType = ESpritePolygonMode::FullyCustom;
+
+	// Select the new shape
+	ClearSelectionSet();
+	AddShapeToSelection(Geometry.Shapes.Num() - 1);
+
+	EditorContext.MarkTransactionAsDirty();
+	EditorContext.EndTransaction();
+}
+
+void FSpriteGeometryEditingHelper::AddNewBoxShape(const FVector2D& BoxLocation, const FVector2D& BoxSize)
+{
+	FSpriteGeometryCollection& Geometry = GetGeometryChecked();
+	EditorContext.BeginTransaction(LOCTEXT("AddBoxShapeTransaction", "Add Box Shape"));
+
+	// Create the new shape
+	Geometry.AddRectangleShape(BoxLocation, BoxSize);
+	Geometry.GeometryType = ESpritePolygonMode::FullyCustom;
+
+	// Select the new shape
+	ClearSelectionSet();
+	AddShapeToSelection(Geometry.Shapes.Num() - 1);
+
+	EditorContext.MarkTransactionAsDirty();
+	EditorContext.EndTransaction();
+}
+
+void FSpriteGeometryEditingHelper::ToggleAddPolygonMode()
+{
+	if (IsAddingPolygon())
+	{
+		ResetAddPolygonMode();
+	}
+	else
+	{
+		ClearSelectionSet();
+
+		bIsAddingPolygon = true;
+		AddingPolygonIndex = INDEX_NONE;
+		EditorContext.InvalidateViewportAndHitProxies();
+	}
+}
+
+void FSpriteGeometryEditingHelper::AbandonAddPolygonMode()
+{
+	check(bIsAddingPolygon);
+
+	FSpriteGeometryCollection& Geometry = GetGeometryChecked();
+
+	if ((AddingPolygonIndex != INDEX_NONE) && Geometry.Shapes.IsValidIndex(AddingPolygonIndex))
+	{
+		EditorContext.BeginTransaction(LOCTEXT("DeletePolygon", "Delete Polygon"));
+
+		Geometry.Shapes.RemoveAt(AddingPolygonIndex);
+
+		EditorContext.MarkTransactionAsDirty();
+		EditorContext.EndTransaction();
+	}
+
+	ResetAddPolygonMode();
+}
+
+void FSpriteGeometryEditingHelper::TEMP_HandleAddPolygonClick(const FVector2D& TexturePoint, bool bWantsSubtractive)
+{
+	EditorContext.BeginTransaction(LOCTEXT("AddPolygonVertexTransaction", "Add Vertex to Polygon"));
+
+	FSpriteGeometryCollection& Geometry = GetGeometryChecked();
+	if (AddingPolygonIndex == INDEX_NONE)
+	{
+		FSpriteGeometryShape NewPolygon;
+		NewPolygon.ShapeType = ESpriteShapeType::Polygon;
+		NewPolygon.bNegativeWinding = CanAddSubtractivePolygon() && bWantsSubtractive;
+
+		Geometry.Shapes.Add(NewPolygon);
+		AddingPolygonIndex = Geometry.Shapes.Num() - 1;
+	}
+
+	if (Geometry.Shapes.IsValidIndex(AddingPolygonIndex))
+	{
+		FSpriteGeometryShape& Shape = Geometry.Shapes[AddingPolygonIndex];
+		Shape.ShapeType = ESpriteShapeType::Polygon;
+		Shape.Vertices.Add(Shape.ConvertTextureSpaceToShapeSpace(TexturePoint));
+	}
+	else
+	{
+		ResetAddPolygonMode();
+	}
+
+	Geometry.GeometryType = ESpritePolygonMode::FullyCustom;
+
+	EditorContext.MarkTransactionAsDirty();
+	EditorContext.EndTransaction();
+}
+
+bool FSpriteGeometryEditingHelper::ClosestPointOnLine(const FVector2D& Point, const FVector2D& LineStart, const FVector2D& LineEnd, FVector2D& OutClosestPoint)
+{
+	const FVector2D DL = LineEnd - LineStart;
+	const FVector2D DP = Point - LineStart;
+	const float DotL = FVector2D::DotProduct(DP, DL);
+	const float DotP = FVector2D::DotProduct(DL, DL);
+	if (DotP > 0.0001f)
+	{
+		float T = DotL / DotP;
+		if ((T >= -0.0001f) && (T <= 1.0001f))
+		{
+			T = FMath::Clamp(T, 0.0f, 1.0f);
+			OutClosestPoint = LineStart + T * DL;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FSpriteGeometryEditingHelper::DeleteVertexInPolygonInternal(FSpriteGeometryCollection& Geometry, const int32 ShapeIndex, const int32 VertexIndex)
+{
+	if (Geometry.Shapes.IsValidIndex(ShapeIndex))
+	{
+		FSpriteGeometryShape& Shape = Geometry.Shapes[ShapeIndex];
+		if (Shape.Vertices.IsValidIndex(VertexIndex))
+		{
+			Geometry.GeometryType = ESpritePolygonMode::FullyCustom;
+			Shape.ShapeType = ESpriteShapeType::Polygon;
+			Shape.Vertices.RemoveAt(VertexIndex);
+
+			if (Shape.Vertices.Num() == 0)
+			{
+				// Tell the caller they should delete the polygon since it has no more verts
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+
+FVector2D FSpriteGeometryEditingHelper::TextureSpaceToScreenSpace(const FSceneView& View, const FVector2D& SourcePoint) const
+{
+	const FVector WorldSpacePoint = EditorContext.TextureSpaceToWorldSpace(SourcePoint);
+
+	FVector2D PixelLocation;
+	View.WorldToPixel(WorldSpacePoint, /*out*/ PixelLocation);
+	return PixelLocation;
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE

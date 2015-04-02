@@ -94,6 +94,8 @@ void SSpriteEditorViewport::BindCommands()
 	const FSpriteEditorCommands& Commands = FSpriteEditorCommands::Get();
 
 	TSharedRef<FSpriteEditorViewportClient> EditorViewportClientRef = EditorViewportClient.ToSharedRef();
+	FSpriteGeometryEditingHelper* GeometryEditingHelper = EditorViewportClientRef->GetGeometryEditHelper();
+
 
 	// Show toggles
 	CommandList->MapAction(
@@ -177,27 +179,23 @@ void SSpriteEditorViewport::BindCommands()
 		FExecuteAction::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::DeleteSelection ),
 		FCanExecuteAction::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::CanDeleteSelection ));
 	CommandList->MapAction(
-		Commands.SplitEdge,
-		FExecuteAction::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::SplitEdge ),
-		FCanExecuteAction::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::CanSplitEdge ));
-	CommandList->MapAction(
 		Commands.AddBoxShape,
 		FExecuteAction::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::AddBoxShape),
-		FCanExecuteAction::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::CanAddBoxShape),
+		FCanExecuteAction::CreateRaw(GeometryEditingHelper, &FSpriteGeometryEditingHelper::CanAddBoxShape),
 		FIsActionChecked(),
-		FIsActionButtonVisible::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::CanAddBoxShape));
+		FIsActionButtonVisible::CreateRaw(GeometryEditingHelper, &FSpriteGeometryEditingHelper::CanAddBoxShape));
 	CommandList->MapAction(
 		Commands.ToggleAddPolygonMode,
-		FExecuteAction::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::ToggleAddPolygonMode),
-		FCanExecuteAction::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::CanAddPolygon),
-		FIsActionChecked::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::IsAddingPolygon),
-		FIsActionButtonVisible::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::CanAddPolygon));
+		FExecuteAction::CreateRaw(GeometryEditingHelper, &FSpriteGeometryEditingHelper::ToggleAddPolygonMode),
+		FCanExecuteAction::CreateRaw(GeometryEditingHelper, &FSpriteGeometryEditingHelper::CanAddPolygon),
+		FIsActionChecked::CreateRaw(GeometryEditingHelper, &FSpriteGeometryEditingHelper::IsAddingPolygon),
+		FIsActionButtonVisible::CreateRaw(GeometryEditingHelper, &FSpriteGeometryEditingHelper::CanAddPolygon));
 	CommandList->MapAction(
 		Commands.AddCircleShape,
 		FExecuteAction::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::AddCircleShape),
-		FCanExecuteAction::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::CanAddCircleShape),
+		FCanExecuteAction::CreateRaw(GeometryEditingHelper, &FSpriteGeometryEditingHelper::CanAddCircleShape),
 		FIsActionChecked(),
-		FIsActionButtonVisible::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::CanAddCircleShape));
+		FIsActionButtonVisible::CreateRaw(GeometryEditingHelper, &FSpriteGeometryEditingHelper::CanAddCircleShape));
 	CommandList->MapAction(
 		Commands.SnapAllVertices,
 		FExecuteAction::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::SnapAllVerticesToPixelGrid ),

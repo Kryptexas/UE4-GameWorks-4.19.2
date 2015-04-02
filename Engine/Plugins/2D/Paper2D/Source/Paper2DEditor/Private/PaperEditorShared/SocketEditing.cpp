@@ -93,11 +93,6 @@ FVector FSpriteSelectedSocket::GetWorldPos() const
 	return FVector::ZeroVector;
 }
 
-void FSpriteSelectedSocket::SplitEdge()
-{
-	// Nonsense operation on a socket, do nothing
-}
-
 //////////////////////////////////////////////////////////////////////////
 // FSocketEditingHelper
 

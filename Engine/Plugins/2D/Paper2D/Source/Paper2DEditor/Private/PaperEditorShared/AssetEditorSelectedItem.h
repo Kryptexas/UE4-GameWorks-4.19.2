@@ -41,11 +41,6 @@ public:
 	{
 	}
 
-	//@TODO: Doesn't belong here in base!
-	virtual void SplitEdge()
-	{
-	}
-
 	virtual FVector GetWorldPos() const
 	{
 		return FVector::ZeroVector;
