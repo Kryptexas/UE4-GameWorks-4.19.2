@@ -193,6 +193,19 @@ public partial class Project : CommandUtils
                     CommandletParams += " ";
                     CommandletParams += FormatedAdditionalCookerParams;
                 }
+
+                if (!Params.NoClient)
+                {
+                    var MapsList = Maps.ToList(); 
+                    foreach (var ClientPlatform in Params.ClientTargetPlatforms)
+                    {
+                        var DataPlatform = Params.GetCookedDataPlatformForClientTarget(ClientPlatform);
+                        CommandletParams += (Params.GetTargetPlatformInstance(DataPlatform).GetCookExtraCommandLine(Params));
+                        MapsList.AddRange((Params.GetTargetPlatformInstance(ClientPlatform).GetCookExtraMaps()));
+                    }
+                    Maps = MapsList.ToArray();
+                }
+
                 CookCommandlet(Params.RawProjectPath, Params.UE4Exe, Maps, Dirs, InternationalizationPreset, Cultures, CombineCommandletParams(PlatformsToCook.ToArray()), CommandletParams);
             }
 			catch (Exception Ex)

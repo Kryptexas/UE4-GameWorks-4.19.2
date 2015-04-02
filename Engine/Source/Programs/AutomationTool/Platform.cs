@@ -291,6 +291,27 @@ namespace AutomationTool
 		}
 
         /// <summary>
+        /// Gets extra cook commandline arguments for this platform.
+        /// </summary>
+        /// <param name="Params"> ProjectParams </param>
+        /// <returns>Cook platform string.</returns>
+        public virtual string GetCookExtraCommandLine(ProjectParams Params)
+        {
+            return ""; 
+        }
+
+        /// <summary>
+        /// Gets extra maps needed on this platform.
+        /// </summary>
+        /// <returns>extra maps</returns>
+        public virtual List<string> GetCookExtraMaps()
+        {
+            return new List<string>();
+        }
+
+
+
+        /// <summary>
         /// Gets editor cook platform name for this platform. Cooking the editor is not useful, but this is used to fill the derived data cache
         /// </summary>
         /// <returns>Cook platform string.</returns>
