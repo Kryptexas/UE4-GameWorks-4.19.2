@@ -543,6 +543,17 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatWindowStyle(const EChatChanne
 	return *this;
 }
 
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetClanDetailsBrush(const FSlateBrush& Brush)
+{
+	ClanDetailsBrush = Brush;
+	return *this;
+}
+
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetClanMembersBrush(const FSlateBrush& Brush)
+{
+	ClanMembersBrush = Brush;
+	return *this;
+}
 
 const FFriendsAndChatStyle& FFriendsAndChatStyle::GetDefault()
 {

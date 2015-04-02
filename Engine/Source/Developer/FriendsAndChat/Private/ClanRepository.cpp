@@ -186,6 +186,16 @@ public:
 		return MemberList;
 	}
 
+	virtual FText GetClanBrushName() const override
+	{
+		return FText::FromString("TileMapEditor.LayerEyeOpened");
+	}
+
+	virtual int32 GetClanMembersCount() const override
+	{
+		return MemberList.Num();
+	}
+
 	DECLARE_DERIVED_EVENT(FClanInfo, IClanInfo::FChangedEvent, FChangedEvent)
 	virtual IClanInfo::FChangedEvent& OnChanged() override { return ChangedEvent; }
 

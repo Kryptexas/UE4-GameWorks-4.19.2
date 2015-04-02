@@ -3,6 +3,7 @@
 #include "FriendsAndChatPrivatePCH.h"
 #include "SClanHome.h"
 #include "SClanList.h"
+#include "SClanListContainer.h"
 #include "ClanViewModel.h"
 #include "ClanListViewModel.h"
 
@@ -24,13 +25,20 @@ public:
 		[
 			SNew(SVerticalBox)
 			+ SVerticalBox::Slot()
+			.Padding(10)
 			[
-				SNew(STextBlock)
-				.Text(FText::FromString("Clan Home"))
+				SNew(SClanListContainer, InViewModel)
+				.FriendStyle(&FriendStyle)
+				.Visibility(EVisibility::Visible)
+				.ClanListType(EClanDisplayLists::DefaultDisplay)
 			]
 			+ SVerticalBox::Slot()
+			.Padding(10)
 			[
-				SNew(SClanList, FClanListViewModelFactory::Create(InViewModel, EClanDisplayLists::DefaultDisplay)).FriendStyle(&FriendStyle)
+				SNew(SClanListContainer, InViewModel)
+				.FriendStyle(&FriendStyle)
+				.Visibility(EVisibility::Collapsed)
+				.ClanListType(EClanDisplayLists::ClanRequestsDisplay)
 			]
 		]);
 	}

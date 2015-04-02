@@ -14,19 +14,18 @@ class SClanListContainerImpl : public SClanListContainer
 {
 public:
 
-	void Construct(const FArguments& InArgs, const TSharedRef<FClanListViewModel>& InViewModel)
+	void Construct(const FArguments& InArgs, const TSharedRef<FClanViewModel>& InViewModel)
 	{
 		FriendStyle = *InArgs._FriendStyle;
-		FriendsVisibility = EVisibility::Visible;
+		ClanListType = InArgs._ClanListType;
+		ClansVisibility = EVisibility::Visible;
 		ViewModel = InViewModel;
 
-		FClanListViewModel* ViewModelPtr = ViewModel.Get();
 		MenuMethod = InArgs._Method;
 
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
 			SNew(SVerticalBox)
-			.Visibility(ViewModelPtr, &FClanListViewModel::GetListVisibility)
 			+ SVerticalBox::Slot()
 			.VAlign(VAlign_Center)
 			.AutoHeight()
@@ -34,14 +33,56 @@ public:
 				SNew(SBorder)
 				.Padding(FriendStyle.BorderPadding)
 				.BorderImage(&FriendStyle.FriendListHeader)
+				[
+					SNew(SButton)
+					.OnClicked(this, &SClanListContainerImpl::HandleShowClansClicked)
+					.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+					.ContentPadding(FMargin(7.0f, 2.0f, 4.0f, 2.0f))
+					.Cursor(EMouseCursor::Hand)
+					[
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.HAlign(HAlign_Left)
+						.VAlign(VAlign_Center)
+						.AutoWidth()
+						[
+							SNew(SButton)
+							.OnClicked(this, &SClanListContainerImpl::HandleShowClansClicked)
+							.ButtonStyle(&FriendStyle.FriendListOpenButtonStyle)
+							.Visibility(this, &SClanListContainerImpl::GetClansListOpenVisbility, true)
+						]
+						+ SHorizontalBox::Slot()
+						.HAlign(HAlign_Left)
+						.VAlign(VAlign_Center)
+						.AutoWidth()
+						[
+							SNew(SButton)
+							.OnClicked(this, &SClanListContainerImpl::HandleShowClansClicked)
+							.ButtonStyle(&FriendStyle.FriendListCloseButtonStyle)
+							.Visibility(this, &SClanListContainerImpl::GetClansListOpenVisbility, false)
+						]
+						+ SHorizontalBox::Slot()
+						.HAlign(HAlign_Left)
+						.VAlign(VAlign_Center)
+						.AutoWidth()
+						.Padding(FMargin(5, 0))
+						[
+							SNew(STextBlock)
+							.ColorAndOpacity(FLinearColor::White)
+							.Font(FriendStyle.FriendsFontStyleUserLarge)
+							.Text(GetListName())
+						]
+					]
+				]
 			]
 			+ SVerticalBox::Slot()
 			.AutoHeight()
 			[
 				SNew(SBox)
 				.Padding(FMargin(0.0f, 2.0f, 0.0f, 8.0f))
+				.Visibility(this, &SClanListContainerImpl::GetClansListOpenVisbility, false)
 				[
-					CreateList()
+					SNew(SClanList, FClanListViewModelFactory::Create(ViewModel.ToSharedRef(), ClanListType)).FriendStyle(&FriendStyle)
 				]
 			]
 		]);
@@ -49,22 +90,38 @@ public:
 
 private:
 
-	TSharedRef<SWidget> CreateList()
+	FText GetListName() const
 	{
-		return SNew(SClanList, ViewModel.ToSharedRef())
-			.FriendStyle(&FriendStyle)
-			.Method(MenuMethod);
+		return EClanDisplayLists::ToFText(ClanListType);
 	}
 
-private:
+	EVisibility GetClansListOpenVisbility(bool bOpenButton) const
+	{
+		if (bOpenButton)
+		{
+			return ClansVisibility == EVisibility::Visible ? EVisibility::Collapsed : EVisibility::Visible;
+		}
+		return ClansVisibility;
+	}
+
+	FReply HandleShowClansClicked()
+	{
+		ClansVisibility = ClansVisibility == EVisibility::Visible ? EVisibility::Collapsed : EVisibility::Visible;
+		return FReply::Handled();
+	}
+
 	/** Holds the style to use when making the widget. */
 	FFriendsAndChatStyle FriendStyle;
 
-	EVisibility  FriendsVisibility;
+	EVisibility  ClansVisibility;
 
-	TSharedPtr<FClanListViewModel> ViewModel;
+	TSharedPtr<FClanViewModel> ViewModel;
 
 	EPopupMethod MenuMethod;
+
+	EClanDisplayLists::Type ClanListType;
+
+	bool bListOpen;
 };
 
 TSharedRef<SClanListContainer> SClanListContainer::New()

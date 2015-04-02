@@ -11,6 +11,8 @@ public:
 	virtual FText GetDescription() const = 0;
 	virtual FText GetLongDescription() const = 0;
 	virtual TArray<TSharedPtr<class IFriendItem>> GetMemberList() const = 0;
+	virtual FText GetClanBrushName() const = 0;
+	virtual int32 GetClanMembersCount() const = 0;
 
 	DECLARE_EVENT(IClanInfo, FChangedEvent)
 	virtual FChangedEvent& OnChanged() = 0;

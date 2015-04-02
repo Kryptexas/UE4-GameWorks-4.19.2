@@ -12,6 +12,7 @@ public:
 	virtual int32 GetMemberCount() = 0;
 	virtual TSharedRef<class FFriendListViewModel > GetFriendListViewModel() = 0;
 	virtual FText GetListCountText() const = 0;
+	virtual FText GetClanBrushName() const = 0;
 };
 
 /**

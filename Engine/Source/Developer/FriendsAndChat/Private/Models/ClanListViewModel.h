@@ -5,7 +5,7 @@
 // Enum holding the display list selection
 namespace EClanDisplayLists
 {
-	enum Type
+	enum Type : uint8
 	{
 		DefaultDisplay,
 		ClanRequestsDisplay,			// Clan request display

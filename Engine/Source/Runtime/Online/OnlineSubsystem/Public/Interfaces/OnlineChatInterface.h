@@ -22,6 +22,35 @@ public:
 	virtual const FString& GetSubject() const = 0;
 	virtual bool IsPrivate() const = 0;
 	virtual bool IsJoined() const = 0;
+	virtual const class FChatRoomConfig& GetRoomConfig() const = 0;
+};
+
+/**
+ * Configuration for creating a chat room
+ */
+class FChatRoomConfig
+{
+public:
+	FChatRoomConfig()
+		: bMembersOnly(false)
+		, bHidden(false)
+		, bPasswordRequired(false)
+		, bPersistent(false)
+		, bAllowMemberInvites(false)
+		, bLoggingEnabled(false)
+		, MessageHistory(0)
+		, MaxMembers(0)
+	{}
+
+	bool bMembersOnly;
+	bool bHidden;
+	bool bPasswordRequired;
+	bool bPersistent;
+	bool bAllowMemberInvites;
+	bool bLoggingEnabled;
+	int32 MessageHistory;
+	int32 MaxMembers;
+	FString PubSubNode;
 };
 
 /**
@@ -127,6 +156,17 @@ typedef FOnChatPrivateMessageReceived::FDelegate FOnChatPrivateMessageReceivedDe
 class IOnlineChat
 {
 public:
+
+	/**
+	 * Kick off request for creating a chat room with a provided configuration
+	 * 
+	 * @param UserId id of user that is joining
+	 * @param RoomConfig configuration for the room
+	 * @param Nickname display name for the chat room. Name must be unique and is reserved for duration of join
+	 *
+	 * @return if successfully started the async operation
+	 */
+	virtual bool CreateRoom(const FUniqueNetId& UserId, const FChatRoomConfig& RoomConfig, const FString& Nickname) = 0;
 	
 	/**
 	 * Kick off request for joining a public chat room

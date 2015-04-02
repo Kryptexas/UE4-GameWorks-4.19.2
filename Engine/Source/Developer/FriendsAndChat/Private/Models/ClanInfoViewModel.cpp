@@ -31,6 +31,11 @@ public:
 		return FText::AsNumber(ClanInfo->GetMemberList().Num());
 	}
 
+	virtual FText GetClanBrushName() const override
+	{
+		return ClanInfo->GetClanBrushName();
+	}
+
 private:
 	void Initialize()
 	{

@@ -446,6 +446,14 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	TEnumAsByte<EChatChannelStyle::Type> ChatChannelStyle;
 	FFriendsAndChatStyle&  SetChatWindowStyle(const EChatChannelStyle::Type Style);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush ClanDetailsBrush;
+	FFriendsAndChatStyle& SetClanDetailsBrush(const FSlateBrush& Brush);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush ClanMembersBrush;
+	FFriendsAndChatStyle& SetClanMembersBrush(const FSlateBrush& Brush);
 };
 
 /** Manages the style which provides resources for the rich text widget. */
