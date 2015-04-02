@@ -300,26 +300,16 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessAsyncLoading(int32& OutPack
 			bool bPackageFullyLoaded = false;
 			if (LoadingState == EAsyncPackageState::Complete)
 			{
-				// Only remove packages that are not being referenced by anything (we still need their linkers
-				// when the referencing packages create their imports and exports).
-				if (Package->GetDependencyRefCount() == 0)
+				// We're done, at least on this thread, so we can remove the package now.
+				AddToLoadedPackages(Package);
 				{
-					// We're done so we can remove the package now.
-					AddToLoadedPackages(Package);
-					{
-						FScopeLock LockAsyncPackages(&AsyncPackagesCritical);
-						AsyncPackages.RemoveAt(PackageIndex);
-					}
+					FScopeLock LockAsyncPackages(&AsyncPackagesCritical);
+					AsyncPackages.RemoveAt(PackageIndex);
+				}
 					
-					// Need to process this index again as we just removed an item
-					PackageIndex--;
-					bPackageFullyLoaded = true;
-				}
-				else
-				{
-					// This package is being referenced by another package so we can't say streaming is complete yet.
-					LoadingState = EAsyncPackageState::PendingImports;
-				}
+				// Need to process this index again as we just removed an item
+				PackageIndex--;
+				bPackageFullyLoaded = true;
 			}
 			else if (!bUseTimeLimit && !FPlatformProcess::SupportsMultithreading())
 			{
@@ -353,36 +343,42 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTim
 		LoadedPackages.Empty();
 	}
 		
-	int32 PackageIndex = 0;
-	while (PackageIndex < LoadedPackagesToProcess.Num() && !IsTimeLimitExceeded(TickStartTime, bUseTimeLimit, TimeLimit))
+	for (int32 PackageIndex = 0; PackageIndex < LoadedPackagesToProcess.Num() && !IsTimeLimitExceeded(TickStartTime, bUseTimeLimit, TimeLimit); ++PackageIndex)
 	{
 		auto Package = LoadedPackagesToProcess[PackageIndex];
-		Result = Package->PostLoadDeferredObjects(TickStartTime, bUseTimeLimit, TimeLimit);
-		if (Result == EAsyncPackageState::Complete)
+		if (Package->GetDependencyRefCount() == 0)
 		{
-			if (FPlatformProperties::RequiresCookedData())
+			Result = Package->PostLoadDeferredObjects(TickStartTime, bUseTimeLimit, TimeLimit);
+			if (Result == EAsyncPackageState::Complete)
 			{
-				// Emulates ResetLoaders on the package linker's linkerroot.
-				Package->ResetLoader();
+				const bool bInternalCallbacks = false;
+				const EAsyncLoadingResult::Type LoadingResult = Package->HasLoadFailed() ? EAsyncLoadingResult::Failed : EAsyncLoadingResult::Succeeded;
+				Package->CallCompletionCallbacks(bInternalCallbacks, LoadingResult);
+
+				if (FPlatformProperties::RequiresCookedData())
+				{
+					// Emulates ResetLoaders on the package linker's linkerroot.
+					Package->ResetLoader();
+				}
+
+				// Incremented on the Async Thread, decremented on the Game Thread				
+				AsyncLoadingCounter.Decrement();
+				check(AsyncLoadingCounter.GetValue() >= 0);
+
+				delete Package;
+				LoadedPackagesToProcess.RemoveAt(PackageIndex--);
 			}
-
-			const bool bInternalCallbacks = false;
-			const EAsyncLoadingResult::Type LoadingResult = Package->HasLoadFailed() ? EAsyncLoadingResult::Failed : EAsyncLoadingResult::Succeeded;
-			Package->CallCompletionCallbacks(bInternalCallbacks, LoadingResult);
-			PackageIndex++;
-
-			// Incremented on the Async Thread, decremented on the Game Thread				
-			AsyncLoadingCounter.Decrement();
-			check(AsyncLoadingCounter.GetValue() >= 0);
+			else
+			{
+				break;
+			}
 		}
 		else
 		{
+			Result = EAsyncPackageState::PendingImports;
+			// Break immediately, we want to keep the order of processing when packages get here
 			break;
 		}
-	}
-	if (PackageIndex > 0)
-	{
-		LoadedPackagesToProcess.RemoveAt(0, PackageIndex);
 	}
 
 	return Result;
@@ -952,7 +948,7 @@ void FAsyncPackage::AddImportDependency(int32 CurrentPackageIndex, const FName& 
 	int32 ExistingAsyncPackageIndex = FAsyncLoadingThread::Get().FindAsyncPackage(PendingImport);
 	if (ExistingAsyncPackageIndex == INDEX_NONE)
 	{
-		const FAsyncPackageDesc Info(PendingImport, FGuid(), PendingImport);
+		const FAsyncPackageDesc Info(PendingImport);
 		PackageToStream = new FAsyncPackage(Info);
 
 		// If priority of the dependency is not set, inherit from parent.
@@ -972,12 +968,12 @@ void FAsyncPackage::AddImportDependency(int32 CurrentPackageIndex, const FName& 
 	{
 		const bool bInternalCallback = true;
 		PackageToStream->AddCompletionCallback(FLoadPackageAsyncDelegate::CreateRaw(this, &FAsyncPackage::ImportFullyLoadedCallback), bInternalCallback);
-		PackageToStream->DependencyRefCount++;
+		PackageToStream->DependencyRefCount.Increment();
 		PendingImportedPackages.Add(PackageToStream);
 	}
 	else
 	{
-		PackageToStream->DependencyRefCount++;
+		PackageToStream->DependencyRefCount.Increment();
 		ReferencedImports.Add(PackageToStream);
 	}
 }
@@ -1086,7 +1082,7 @@ EAsyncPackageState::Type FAsyncPackage::LoadImports()
 				{
 					UE_LOG(LogStreaming, Verbose, TEXT("FAsyncPackage::LoadImports for %s: Linker exists for %s"), *Desc.NameToLoad.ToString(), *ImportPackageFName.ToString());
 					// Only keep a reference to this package so that its linker doesn't go away too soon
-					PendingPackage.DependencyRefCount++;
+					PendingPackage.DependencyRefCount.Increment();
 					ReferencedImports.Add(&PendingPackage);
 					// Check if we need to add its dependencies too.
 					TSet<FAsyncPackage*> SearchedPackages;
@@ -1257,9 +1253,9 @@ void FAsyncPackage::FreeReferencedImports()
 	for (int32 ReferenceIndex = 0; ReferenceIndex < ReferencedImports.Num(); ++ReferenceIndex)
 	{
 		FAsyncPackage& Ref = *ReferencedImports[ReferenceIndex];
-		Ref.DependencyRefCount--;
-		UE_LOG(LogStreaming, Verbose, TEXT("FAsyncPackage::FreeReferencedImports for %s: Releasing %s (%d)"), *Desc.NameToLoad.ToString(), *Ref.GetPackageName().ToString(), Ref.DependencyRefCount);
-		check(Ref.DependencyRefCount >= 0);
+		Ref.DependencyRefCount.Decrement();
+		UE_LOG(LogStreaming, Verbose, TEXT("FAsyncPackage::FreeReferencedImports for %s: Releasing %s (%d)"), *Desc.NameToLoad.ToString(), *Ref.GetPackageName().ToString(), Ref.GetDependencyRefCount());
+		check(Ref.DependencyRefCount.GetValue() >= 0);
 	}
 	ReferencedImports.Empty();
 }
@@ -1543,7 +1539,7 @@ void LoadPackageAsync(const FString& InName, const FGuid* InGuid /*= nullptr*/, 
 		UE_LOG(LogStreaming, Fatal, TEXT("Async loading code requires long package names (%s)."), *PackageNameToLoad);
 	}
 
-	FAsyncPackageDesc PackageDesc(*PackageName, InGuid ? *InGuid : FGuid(), InType, *PackageNameToLoad, InCompletionDelegate, InFlags, InPIEInstanceID, InPackagePriority);
+	FAsyncPackageDesc PackageDesc(*PackageName, *PackageNameToLoad, InGuid ? *InGuid : FGuid(), InType, InCompletionDelegate, InFlags, InPIEInstanceID, InPackagePriority);
 	FAsyncLoadingThread::Get().QueuePackage(PackageDesc);
 }
 

@@ -70,7 +70,7 @@ struct FAsyncPackage
 	/** Gets the number of references to this package from other packages in the dependency tree. */
 	FORCEINLINE int32 GetDependencyRefCount() const
 	{
-		return DependencyRefCount;
+		return DependencyRefCount.GetValue();
 	}
 
 	/** Returns true if the package has finished loading. */
@@ -124,7 +124,7 @@ private:
 	/** Referenced imports - list of packages we need until we finish loading this package. */
 	TArray<FAsyncPackage*> ReferencedImports;
 	/** Number of references to this package from other packages in the dependency tree. */
-	int32							DependencyRefCount;
+	FThreadSafeCounter	DependencyRefCount;
 	/** Current index into linkers import table used to spread creation over several frames				*/
 	int32							LoadImportIndex;
 	/** Current index into linkers import table used to spread creation over several frames				*/
