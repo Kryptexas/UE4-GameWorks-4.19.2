@@ -2292,7 +2292,7 @@ void UUnrealEdEngine::edactAlignVertices()
 						FEdModeGeometry::TGeomObjectIterator GeomModeIt = GeomMode->GeomObjectItor();
 						for( ; GeomModeIt; ++GeomModeIt )
 						{
-							FGeomObject* Object = *GeomModeIt;
+							FGeomObjectPtr Object = *GeomModeIt;
 							if( Object->GetActualBrush() == Brush )
 							{
 								// We found our current brush, update the geometry object's data

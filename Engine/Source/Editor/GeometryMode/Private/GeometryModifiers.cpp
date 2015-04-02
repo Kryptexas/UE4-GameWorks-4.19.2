@@ -196,7 +196,7 @@ bool UGeomModifier::DoEdgesOverlap()
 	//Loop through all of the geometry objects
 	for( FEdModeGeometry::TGeomObjectIterator itor( mode->GeomObjectItor() ) ; itor ; ++itor )
 	{
-		FGeomObject* geomObject = *itor;
+		FGeomObjectPtr geomObject = *itor;
 
 		//Loop through all of the edges
 		for( int32 edgeIndex1 = 0 ; edgeIndex1 < geomObject->EdgePool.Num() ; ++edgeIndex1 )
@@ -300,7 +300,7 @@ void UGeomModifier::StartTrans()
 	FEdModeGeometry* CurMode = static_cast<FEdModeGeometry*>( GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry) );
 	for( FEdModeGeometry::TGeomObjectIterator Itor( CurMode->GeomObjectItor() ) ; Itor ; ++Itor )
 	{
-		FGeomObject* go = *Itor;
+		FGeomObjectPtr go = *Itor;
 		ABrush* Actor = go->GetActualBrush();
 
 		Actor->Modify();
@@ -314,7 +314,7 @@ void UGeomModifier::EndTrans()
 }
 
 
-void UGeomModifier::StoreCurrentGeomSelections( TArray<struct FGeomSelection>& SelectionArray, FGeomObject* go ) 
+void UGeomModifier::StoreCurrentGeomSelections( TArray<struct FGeomSelection>& SelectionArray, FGeomObjectPtr go ) 
 {
 	SelectionArray.Empty();
 	FGeomSelection* gs = NULL;
@@ -366,7 +366,7 @@ void UGeomModifier::StoreAllCurrentGeomSelections()
 	// Record the current selection list into the selected brushes.
 	for( FEdModeGeometry::TGeomObjectIterator Itor( CurMode->GeomObjectItor() ) ; Itor ; ++Itor )
 	{
-		FGeomObject* go = *Itor;
+		FGeomObjectPtr go = *Itor;
 		go->CompileSelectionOrder();
 
 		ABrush* Actor = go->GetActualBrush();
@@ -413,7 +413,7 @@ bool UGeomModifier_Edit::InputDelta(FEditorViewportClient* InViewportClient,FVie
 
 	for( FEdModeGeometry::TGeomObjectIterator Itor( mode->GeomObjectItor() ) ; Itor ; ++Itor )
 	{
-		FGeomObject* go = *Itor;
+		FGeomObjectPtr go = *Itor;
 
 		for( int32 p = 0 ; p < go->PolyPool.Num() ; ++p )
 		{
@@ -722,7 +722,7 @@ void UGeomModifier_Extrude::Apply(int32 InLength, int32 InSegments)
 
 	for( FEdModeGeometry::TGeomObjectIterator Itor( mode->GeomObjectItor() ) ; Itor ; ++Itor )
 	{
-		FGeomObject* go = *Itor;
+		FGeomObjectPtr go = *Itor;
 		ABrush* Brush = go->GetActualBrush();
 
 		go->SendToSource();
@@ -2349,7 +2349,7 @@ bool UGeomModifier_Delete::OnApply()
 
 	for( FEdModeGeometry::TGeomObjectIterator Itor( mode->GeomObjectItor() ) ; Itor ; ++Itor )
 	{
-		FGeomObject* go = *Itor;
+		FGeomObjectPtr go = *Itor;
 
 		// Polys
 
@@ -2432,7 +2432,7 @@ bool UGeomModifier_Create::OnApply()
 
 	for( FEdModeGeometry::TGeomObjectIterator Itor( mode->GeomObjectItor() ) ; Itor ; ++Itor )
 	{
-		FGeomObject* go = *Itor;
+		FGeomObjectPtr go = *Itor;
 
 		go->CompileSelectionOrder();
 
@@ -2500,7 +2500,7 @@ bool UGeomModifier_Flip::OnApply()
 
 	for( FEdModeGeometry::TGeomObjectIterator Itor( mode->GeomObjectItor() ) ; Itor ; ++Itor )
 	{
-		FGeomObject* go = *Itor;
+		FGeomObjectPtr go = *Itor;
 
 		for( int32 p = 0 ; p < go->PolyPool.Num() ; ++p )
 		{
@@ -2563,14 +2563,14 @@ bool UGeomModifier_Split::OnApply()
 
 	// Get a pointer to the selected geom object
 
-	FGeomObject* GeomObject = NULL;
+	FGeomObjectPtr GeomObject = NULL;
 	for( FEdModeGeometry::TGeomObjectIterator Itor( mode->GeomObjectItor() ) ; Itor ; ++Itor )
 	{
 		GeomObject = *Itor;
 		break;
 	}
 
-	if( GeomObject == NULL )
+	if( !GeomObject.IsValid() )
 	{
 		return false;
 	}
@@ -2917,7 +2917,7 @@ bool UGeomModifier_Triangulate::OnApply()
 
 	for( FEdModeGeometry::TGeomObjectIterator Itor( mode->GeomObjectItor() ) ; Itor ; ++Itor )
 	{
-		FGeomObject* go = *Itor;
+		FGeomObjectPtr go = *Itor;
 
 		TArray<FPoly> PolyList;
 
@@ -2990,7 +2990,7 @@ bool UGeomModifier_Optimize::OnApply()
 	{
 		for( FEdModeGeometry::TGeomObjectIterator Itor( mode->GeomObjectItor() ) ; Itor ; ++Itor )
 		{
-			FGeomObject* go = *Itor;
+			FGeomObjectPtr go = *Itor;
 			ABrush* ActualBrush = go->GetActualBrush();
 
 			// Gather a list of polygons that are 
@@ -3036,7 +3036,7 @@ bool UGeomModifier_Optimize::OnApply()
 	{
 		for( FEdModeGeometry::TGeomObjectIterator Itor( mode->GeomObjectItor() ) ; Itor ; ++Itor )
 		{
-			FGeomObject* go = *Itor;
+			FGeomObjectPtr go = *Itor;
 			ABrush* ActualBrush = go->GetActualBrush();
 
 			// Optimize the polygons
@@ -3075,7 +3075,7 @@ bool UGeomModifier_Turn::OnApply()
 
 	for( FEdModeGeometry::TGeomObjectIterator Itor( mode->GeomObjectItor() ) ; Itor ; ++Itor )
 	{
-		FGeomObject* go = *Itor;
+		FGeomObjectPtr go = *Itor;
 
 		TArray<FGeomEdge> Edges;
 		go->CompileUniqueEdgeArray( &Edges );
@@ -3243,7 +3243,7 @@ bool UGeomModifier_Weld::OnApply()
 
 	for( FEdModeGeometry::TGeomObjectIterator Itor( mode->GeomObjectItor() ) ; Itor ; ++Itor )
 	{
-		FGeomObject* go = *Itor;
+		FGeomObjectPtr go = *Itor;
 
 		go->CompileSelectionOrder();
 
@@ -3279,7 +3279,7 @@ bool UGeomModifier_Weld::OnApply()
 	//finally, cache the selections AFTER the weld and set the widget to the appropriate selection
 	for( FEdModeGeometry::TGeomObjectIterator Itor( mode->GeomObjectItor() ) ; Itor ; ++Itor )
 	{
-		FGeomObject* go = *Itor;
+		FGeomObjectPtr go = *Itor;
 		go->CompileSelectionOrder();
 
 		ABrush* Actor = go->GetActualBrush();

@@ -3,9 +3,8 @@
 #pragma once
 
 
-class FGeomObject;
 class FPoly;
-
+typedef TSharedPtr<class FGeomObject> FGeomObjectPtr;
 
 /**
  * Base class for all classes that support storing and editing of geometry.
@@ -37,8 +36,8 @@ public:
 	virtual FRotator GetWidgetRotation() const			{ return Normal.Rotation(); }
 
 	//@{
-	FGeomObject* GetParentObject();
-	const FGeomObject* GetParentObject() const;
+	FGeomObjectPtr GetParentObject();
+	const FGeomObjectPtr GetParentObject() const;
 	//@}
 
 	/** Returns true if this geometry objects is a vertex. */
@@ -324,14 +323,16 @@ struct HGeomPolyProxy : public HHitProxy
 {
 	DECLARE_HIT_PROXY(UNREALED_API);
 
-	FGeomObject*	GeomObject;
+	TWeakPtr<FGeomObject> GeomObjectWeakPtr;
 	int32				PolyIndex;
 
-	HGeomPolyProxy(FGeomObject* InGeomObject, int32 InPolyIndex):
+	HGeomPolyProxy(FGeomObjectPtr InGeomObject, int32 InPolyIndex):
 		HHitProxy(HPP_UI),
-		GeomObject(InGeomObject),
+		GeomObjectWeakPtr(InGeomObject),
 		PolyIndex(InPolyIndex)
 	{}
+
+	FGeomObject* GetGeomObject() { return GeomObjectWeakPtr.IsValid() ? GeomObjectWeakPtr.Pin().Get() : nullptr; }
 
 	virtual EMouseCursor::Type GetMouseCursor() override
 	{
@@ -359,14 +360,17 @@ struct HGeomEdgeProxy : public HHitProxy
 {
 	DECLARE_HIT_PROXY(UNREALED_API);
 
-	FGeomObject*	GeomObject;
+	// Kept around for backwards compat
+	TWeakPtr<FGeomObject> GeomObjectWeakPtr;
 	int32				EdgeIndex;
 
-	HGeomEdgeProxy(FGeomObject* InGeomObject, int32 InEdgeIndex):
+	HGeomEdgeProxy(FGeomObjectPtr InGeomObject, int32 InEdgeIndex):
 		HHitProxy(HPP_UI),
-		GeomObject(InGeomObject),
+		GeomObjectWeakPtr(InGeomObject),
 		EdgeIndex(InEdgeIndex)
 	{}
+
+	FGeomObject* GetGeomObject() { return GeomObjectWeakPtr.IsValid() ? GeomObjectWeakPtr.Pin().Get() : nullptr; }
 
 	virtual EMouseCursor::Type GetMouseCursor() override
 	{
@@ -396,14 +400,16 @@ struct HGeomVertexProxy : public HHitProxy
 {
 	DECLARE_HIT_PROXY(UNREALED_API);
 
-	FGeomObject*	GeomObject;
+	TWeakPtr<FGeomObject> GeomObjectWeakPtr;
 	int32				VertexIndex;
 
-	HGeomVertexProxy(FGeomObject* InGeomObject, int32 InVertexIndex):
+	HGeomVertexProxy(FGeomObjectPtr InGeomObject, int32 InVertexIndex):
 		HHitProxy(HPP_UI),
-		GeomObject(InGeomObject),
+		GeomObjectWeakPtr(InGeomObject),
 		VertexIndex(InVertexIndex)
 	{}
+
+	FGeomObject* GetGeomObject() { return GeomObjectWeakPtr.IsValid() ? GeomObjectWeakPtr.Pin().Get() : nullptr; }
 
 	virtual EMouseCursor::Type GetMouseCursor() override
 	{

@@ -10,6 +10,7 @@ class FGeomEdge;
 class FGeomVertex;
 class FGeomBase;
 class FGeomObject;
+typedef TSharedPtr<class FGeomObject> FGeomObjectPtr;
 
 /**
  * Geometry mode module
@@ -179,15 +180,15 @@ public:
 
 	/** @name GeomObject iterators */
 	//@{
-	typedef TArray<FGeomObject*>::TIterator TGeomObjectIterator;
-	typedef TArray<FGeomObject*>::TConstIterator TGeomObjectConstIterator;
+	typedef TArray<FGeomObjectPtr>::TIterator TGeomObjectIterator;
+	typedef TArray<FGeomObjectPtr>::TConstIterator TGeomObjectConstIterator;
 
 	TGeomObjectIterator			GeomObjectItor()			{ return TGeomObjectIterator( GeomObjects ); }
 	TGeomObjectConstIterator	GeomObjectConstItor() const	{ return TGeomObjectConstIterator( GeomObjects ); }
 
 	// @todo DB: Get rid of these; requires changes to FGeomBase::ParentObjectIndex
-	FGeomObject* GetGeomObject(int32 Index)					{ return GeomObjects[ Index ]; }
-	const FGeomObject* GetGeomObject(int32 Index) const		{ return GeomObjects[ Index ]; }
+	FGeomObjectPtr GetGeomObject(int32 Index)					{ return GeomObjects[ Index ]; }
+	const FGeomObjectPtr GetGeomObject(int32 Index) const		{ return GeomObjects[ Index ]; }
 	//@}
 
 protected:
@@ -197,7 +198,7 @@ protected:
 	 * interacts with while in this mode.  Changes done here are
 	 * reflected back to the real data in the level at specific times.
 	 */
-	TArray<FGeomObject*> GeomObjects;
+	TArray<FGeomObjectPtr> GeomObjects;
 };
 
 

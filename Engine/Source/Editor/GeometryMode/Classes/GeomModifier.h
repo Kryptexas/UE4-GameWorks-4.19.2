@@ -7,6 +7,7 @@
  */
 
 #include "GeomModifier.generated.h"
+typedef TSharedPtr<class FGeomObject> FGeomObjectPtr;
 
 UCLASS(abstract, hidecategories=(Object, GeomModifier))
 class UGeomModifier : public UObject
@@ -95,7 +96,7 @@ public:
 	/**
 	 * Store the current geom selections (Edge, Vert and Poly)
 	 */
-	void StoreCurrentGeomSelections( TArray<struct FGeomSelection>& SelectionArray, FGeomObject* go );
+	void StoreCurrentGeomSelections( TArray<struct FGeomSelection>& SelectionArray, FGeomObjectPtr go );
 
 	/**
 	 * Store the current geom selections for all geom objects

@@ -1872,29 +1872,39 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 		}
 		else if (HitProxy->IsA(HGeomPolyProxy::StaticGetType()))
 		{
-			FHitResult CheckResult(ForceInit);
-			FCollisionQueryParams BoxParams(ProcessClickTrace, false, ((HGeomPolyProxy*)HitProxy)->GeomObject->ActualBrush);
-			bool bHit = GWorld->SweepSingleByObjectType(CheckResult, Click.GetOrigin(), Click.GetOrigin() + Click.GetDirection() * HALF_WORLD_MAX, FQuat::Identity,FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionShape::MakeBox(FVector(1.f)), BoxParams);
+			HGeomPolyProxy* GeomHitProxy = (HGeomPolyProxy*)HitProxy;
 
-			if( bHit )
+			if( GeomHitProxy->GetGeomObject() )
 			{
-				GEditor->UnsnappedClickLocation = CheckResult.Location;
-				GEditor->ClickLocation = CheckResult.Location;
-				GEditor->ClickPlane = FPlane(CheckResult.Location,CheckResult.Normal);
-			}
+				FHitResult CheckResult(ForceInit);
+				FCollisionQueryParams BoxParams(ProcessClickTrace, false, GeomHitProxy->GetGeomObject()->ActualBrush);
+				bool bHit = GWorld->SweepSingleByObjectType(CheckResult, Click.GetOrigin(), Click.GetOrigin() + Click.GetDirection() * HALF_WORLD_MAX, FQuat::Identity, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionShape::MakeBox(FVector(1.f)), BoxParams);
 
-			if( !ClickHandlers::ClickActor(this,((HGeomPolyProxy*)HitProxy)->GeomObject->ActualBrush,Click,false) )
-			{
-				ClickHandlers::ClickGeomPoly(this,(HGeomPolyProxy*)HitProxy,Click);
-			}
+				if(bHit)
+				{
+					GEditor->UnsnappedClickLocation = CheckResult.Location;
+					GEditor->ClickLocation = CheckResult.Location;
+					GEditor->ClickPlane = FPlane(CheckResult.Location, CheckResult.Normal);
+				}
 
-			Invalidate( true, true );
+				if(!ClickHandlers::ClickActor(this, GeomHitProxy->GetGeomObject()->ActualBrush, Click, false))
+				{
+					ClickHandlers::ClickGeomPoly(this, GeomHitProxy, Click);
+				}
+
+				Invalidate(true, true);
+			}
 		}
 		else if (HitProxy->IsA(HGeomEdgeProxy::StaticGetType()))
 		{
-			if( !ClickHandlers::ClickGeomEdge(this,(HGeomEdgeProxy*)HitProxy,Click) )
+			HGeomEdgeProxy* GeomHitProxy = (HGeomEdgeProxy*)HitProxy;
+
+			if( GeomHitProxy->GetGeomObject() !=nullptr )
 			{
-				ClickHandlers::ClickActor(this,((HGeomEdgeProxy*)HitProxy)->GeomObject->ActualBrush,Click,true);
+				if(!ClickHandlers::ClickGeomEdge(this, GeomHitProxy, Click))
+				{
+					ClickHandlers::ClickActor(this, GeomHitProxy->GetGeomObject()->ActualBrush, Click, true);
+				}
 			}
 		}
 		else if (HitProxy->IsA(HGeomVertexProxy::StaticGetType()))
