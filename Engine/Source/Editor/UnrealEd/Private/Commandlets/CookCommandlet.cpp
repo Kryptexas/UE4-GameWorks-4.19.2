@@ -1182,6 +1182,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	Swap( StartupOptions.BasedOnReleaseVersion, BasedOnReleaseVersion );
 	Swap( StartupOptions.CreateReleaseVersion, CreateReleaseVersion );
 	StartupOptions.CookOptions = CookOptions;
+	StartupOptions.bGenerateDependeciesForMaps = Switches.Contains(TEXT("GenerateDependenciesForMaps"));
 
 	CookOnTheFlyServer->StartCookByTheBook( StartupOptions );
 

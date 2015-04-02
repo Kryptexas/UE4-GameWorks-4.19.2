@@ -588,7 +588,8 @@ private:
 		FCookByTheBookOptions() : bGenerateStreamingInstallManifests(false),
 			bRunning(false),
 			CookTime( 0.0 ),
-			CookStartTime( 0.0 )
+			CookStartTime( 0.0 ), 
+			bGenerateDependeciesForMaps(false)
 		{ }
 
 		/** Should we test for UObject leaks */
@@ -611,6 +612,8 @@ private:
 		TArray<FFilePlatformRequest> PreviousCookRequests; 
 		double CookTime;
 		double CookStartTime;
+		/** Generate Map dependencies */
+		bool bGenerateDependeciesForMaps;
 	};
 	FCookByTheBookOptions* CookByTheBookOptions;
 	
@@ -633,6 +636,10 @@ private:
 	ECookInitializationFlags CookFlags;
 	TAutoPtr<class FSandboxPlatformFile> SandboxFile;
 	bool bIsSavingPackage; // used to stop recursive mark package dirty functions
+
+	//////////////////////////////////////////////////////////////////////////
+	// Dependency graph of maps as root objects. 
+	TMap< FName, TSet <FName> > MapDependencyGraph; 
 
 	// data about the current package being processed
 	struct FReentryData
@@ -738,10 +745,12 @@ public:
 		FString DLCName;
 		FString CreateReleaseVersion;
 		FString BasedOnReleaseVersion;
+		bool bGenerateDependeciesForMaps; 
 
 		FCookByTheBookStartupOptions() :
 			CookOptions(ECookByTheBookOptions::None),
-			DLCName(FString())
+			DLCName(FString()),
+			bGenerateDependeciesForMaps(false)
 		{ }
 	};
 

@@ -789,6 +789,19 @@ void UCookOnTheFlyServer::GenerateManifestInfo( UPackage* Package, const TArray<
 		Packages.Add( Object->GetOutermost() );
 	}
 
+	if (CookByTheBookOptions->bGenerateDependeciesForMaps
+		&& Package->ContainsMap()
+		&& (World != nullptr)
+		)
+	{
+		TSet <FName> Names;
+		for (auto Object : Packages)
+		{
+			Names.Add(Object->GetFName());
+		}
+		MapDependencyGraph.Add(Package->GetFName(), Names);
+	}
+
 	// update the manifests with generated dependencies
 	for ( const auto& PlatformName : TargetPlatformNames )
 	{
@@ -2658,6 +2671,7 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FString>& FilesInPath, const
 	// the correct folder; etc.
 	{
 		TArray<FString> UIContentPaths;
+		TSet <FName> ContentDirectoryAssets; 
 		if (GConfig->GetArray(TEXT("UI"), TEXT("ContentDirectories"), UIContentPaths, GEditorIni) > 0)
 		{
 			for (int32 DirIdx = 0; DirIdx < UIContentPaths.Num(); DirIdx++)
@@ -2669,11 +2683,16 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FString>& FilesInPath, const
 				for (int32 Index = 0; Index < Files.Num(); Index++)
 				{
 					FString StdFile = Files[Index];
+					FName PackageName = FName(*FPackageName::FilenameToLongPackageName(StdFile));
+					ContentDirectoryAssets.Add(PackageName);
 					FPaths::MakeStandardFilename(StdFile);
 					AddFileToCook( FilesInPath, StdFile);
 				}
 			}
 		}
+
+		if (CookByTheBookOptions->bGenerateDependeciesForMaps) 
+			MapDependencyGraph.Add(FName(TEXT("ContentDirectoryAssets")), ContentDirectoryAssets);
 	}
 }
 
@@ -2798,6 +2817,37 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 				IFileManager::Get().Copy(*VersionedRegistryFilename, *CookedAssetRegistryFilename, true, true);
 				// Manifest.Value->SaveManifests( VersionedRegistryFilename );
 			}
+		}
+	}
+
+	if (CookByTheBookOptions->bGenerateDependeciesForMaps)
+	{
+		FString MapDependencyGraphFile = FPaths::GameDir()/ TEXT("MapDependencyGraph.json");
+		// dump dependency graph. 
+		FString DependencyString; 
+		DependencyString += "{";
+		for (auto& Ele : MapDependencyGraph)
+		{
+			TSet <FName>& Deps = Ele.Value;
+			FName MapName = Ele.Key;
+			DependencyString += TEXT("\t\"") + MapName.ToString() + TEXT("\" : \n\t[\n ") ;
+			for (auto& Val : Deps)
+			{
+				DependencyString += TEXT("\t\t\"") + Val.ToString() + TEXT("\",\n");
+			}
+			DependencyString.RemoveFromEnd(TEXT(",\n"));
+			DependencyString += TEXT("\n\t],\n") ;
+		}
+		DependencyString.RemoveFromEnd(TEXT(",\n"));
+		DependencyString += "\n}";
+
+		ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
+		const TArray<ITargetPlatform*>& Platforms = TPM.GetCookingTargetPlatforms();
+
+		for (ITargetPlatform* Platform : Platforms)
+		{
+			FString CookedMapDependencyGraphFilePlatform =  ConvertToFullSandboxPath(MapDependencyGraphFile, true).Replace(TEXT("[Platform]"), *Platform->PlatformName());
+			FFileHelper::SaveStringToFile(DependencyString, *CookedMapDependencyGraphFilePlatform, FFileHelper::EEncodingOptions::ForceUnicode);
 		}
 	}
 
@@ -2947,6 +2997,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 	CookByTheBookOptions->bCancel = false;
 	CookByTheBookOptions->CookTime = 0.0f;
 	CookByTheBookOptions->CookStartTime = FPlatformTime::Seconds();
+	CookByTheBookOptions->bGenerateDependeciesForMaps = CookByTheBookStartupOptions.bGenerateDependeciesForMaps;
 	
 	CookByTheBookOptions->CreateReleaseVersion = CreateReleaseVersion;
 
