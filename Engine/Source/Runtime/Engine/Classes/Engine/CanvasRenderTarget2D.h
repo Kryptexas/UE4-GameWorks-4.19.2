@@ -60,7 +60,7 @@ public:
 	 * @param	Height				Height of the render target.
 	 */
 	UFUNCTION(BlueprintImplementableEvent, Category="Canvas Render Target 2D")
-	virtual void ReceiveUpdate(UCanvas* Canvas, int32 Width, int32 Height);
+	void ReceiveUpdate(UCanvas* Canvas, int32 Width, int32 Height);
 
 	/**
 	 * Gets a specific render target's size from the global map of canvas render targets.

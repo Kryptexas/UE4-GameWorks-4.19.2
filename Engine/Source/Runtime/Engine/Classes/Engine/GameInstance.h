@@ -72,11 +72,11 @@ public:
 
 	/** Opportunity for blueprints to handle network errors. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "NetworkError"))
-	virtual void HandleNetworkError(ENetworkFailure::Type FailureType, bool bIsServer);
+	void HandleNetworkError(ENetworkFailure::Type FailureType, bool bIsServer);
 
 	/** Opportunity for blueprints to handle travel errors. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "TravelError"))
-	virtual void HandleTravelError(ETravelFailure::Type FailureType);
+	void HandleTravelError(ETravelFailure::Type FailureType);
 
 	/* Called to initialize the game instance for standalone instances of the game */
 	void InitializeStandalone();
