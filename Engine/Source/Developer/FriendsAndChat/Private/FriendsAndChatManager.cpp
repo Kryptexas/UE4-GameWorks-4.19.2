@@ -422,7 +422,18 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateFriendsListWidget( const F
 {
 	if ( !FriendListWidget.IsValid() )
 	{
+		if (!ClanRepository.IsValid())
+		{
+			ClanRepository = FClanRepositoryFactory::Create();
+		}
 		check(ClanRepository.IsValid())
+
+		if (!FriendsListFactory.IsValid())
+		{
+			FriendsListFactory = FFriendListFactoryFactory::Create();
+		}
+		check(FriendsListFactory.IsValid());
+
 		Style = *InStyle;
 		FFriendsAndChatModuleStyle::Initialize(Style);
 		SAssignNew(FriendListWidget, SOverlay)
