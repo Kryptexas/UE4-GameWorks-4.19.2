@@ -30,38 +30,44 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogGraphPanel, Log, All);
 
-SGraphPanel::FGraphPinHandle::FGraphPinHandle(UEdGraphPin* InPin)
+//////////////////////////////////////////////////////////////////////////
+// FGraphPinHandle
+
+FGraphPinHandle::FGraphPinHandle(UEdGraphPin* InPin)
 {
-	if (auto* Node = InPin->GetOwningNode())
+	if (InPin != nullptr)
 	{
-		PinName = InPin->PinName;
-		NodeGuid = Node->NodeGuid;
+		if (UEdGraphNode* Node = InPin->GetOwningNodeUnchecked())
+		{
+			PinName = InPin->PinName;
+			NodeGuid = Node->NodeGuid;
+		}
 	}
 }
 
-TSharedPtr<SGraphPin> SGraphPanel::FGraphPinHandle::FindInGraphPanel(const SGraphPanel& InPanel) const
+TSharedPtr<SGraphPin> FGraphPinHandle::FindInGraphPanel(const SGraphPanel& InPanel) const
 {
 	// First off, find the node
-	TSharedPtr<SGraphNode> GraphNode = InPanel.GetNodeWidgetFromGuid(NodeGuid);
-	if (GraphNode.IsValid())
+	if (NodeGuid.IsValid())
 	{
-		UEdGraphNode* Node = GraphNode->GetNodeObj();
-		UEdGraphPin* Pin = Node->FindPin(PinName);
-
-		if (Pin)
+		TSharedPtr<SGraphNode> GraphNode = InPanel.GetNodeWidgetFromGuid(NodeGuid);
+		if (GraphNode.IsValid())
 		{
-			return GraphNode->FindWidgetForPin(Pin);
+			UEdGraphNode* Node = GraphNode->GetNodeObj();
+
+			if (UEdGraphPin* Pin = Node->FindPin(PinName))
+			{
+				return GraphNode->FindWidgetForPin(Pin);
+			}
 		}
 	}
 
 	return TSharedPtr<SGraphPin>();
 }
 
-/**
- * Construct a widget
- *
- * @param InArgs    The declaration describing how the widgets should be constructed.
- */
+//////////////////////////////////////////////////////////////////////////
+// SGraphPanel
+
 void SGraphPanel::Construct( const SGraphPanel::FArguments& InArgs )
 {
 	SNodePanel::Construct();
@@ -517,39 +523,27 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 
 void SGraphPanel::OnSplineHoverStateChanged(const FGraphSplineOverlapResult& NewSplineHoverState)
 {
-	UEdGraphPin* OldPin = PreviousFrameSplineOverlap.GetBestPin();
+	TSharedPtr<SGraphPin> OldPinWidget = PreviousFrameSplineOverlap.GetBestPinWidget(*this);
 	PreviousFrameSplineOverlap = NewSplineHoverState;
-	UEdGraphPin* NewPin = PreviousFrameSplineOverlap.GetBestPin();
+	TSharedPtr<SGraphPin> NewPinWidget = PreviousFrameSplineOverlap.GetBestPinWidget(*this);
 
 	PreviousFrameSavedMousePosForSplineOverlap = SavedMousePosForOnPaintEventLocalSpace;
 
 	// Handle mouse enter/leaves on the associated pin
-	if (OldPin != NewPin)
+	if (OldPinWidget != NewPinWidget)
 	{
-		if (OldPin != nullptr)
+		if (OldPinWidget.IsValid())
 		{
-			FGraphPinHandle OldPinHandle(OldPin);
-			TSharedPtr<SGraphPin> OldPinWidget = OldPinHandle.FindInGraphPanel(*this);
-
-			if (OldPinWidget.IsValid())
-			{
-				OldPinWidget->OnMouseLeave(LastPointerEvent);
-			}
+			OldPinWidget->OnMouseLeave(LastPointerEvent);
 		}
 
-		if (NewPin != nullptr)
+		if (NewPinWidget.IsValid())
 		{
-			FGraphPinHandle NewPinHandle(NewPin);
-			TSharedPtr<SGraphPin> NewPinWidget = NewPinHandle.FindInGraphPanel(*this);
+			NewPinWidget->OnMouseEnter(LastPointerGeometry, LastPointerEvent);
 
-			if (NewPinWidget.IsValid())
-			{
-				NewPinWidget->OnMouseEnter(LastPointerGeometry, LastPointerEvent);
-
-				// Get the pin/wire glowing quicker, since it's a direct selection (this time was already set to 'now' as part of entering the pin)
-				//@TODO: Source this parameter from the graph rendering settings once it is there (see code in ApplyHoverDeemphasis)
-				TimeWhenMouseEnteredPin -= 0.75f;
-			}
+			// Get the pin/wire glowing quicker, since it's a direct selection (this time was already set to 'now' as part of entering the pin)
+			//@TODO: Source this parameter from the graph rendering settings once it is there (see code in ApplyHoverDeemphasis)
+			TimeWhenMouseEnteredPin -= 0.75f;
 		}
 	}
 }
@@ -673,13 +667,15 @@ FReply SGraphPanel::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerE
 
 FReply SGraphPanel::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	if (PreviousFrameSplineOverlap.IsValid() && (PreviousFrameSplineOverlap.Pin1 != nullptr) && (PreviousFrameSplineOverlap.Pin2 != nullptr))
+	UEdGraphPin* Pin1;
+	UEdGraphPin* Pin2;
+	if (PreviousFrameSplineOverlap.GetPins(*this, /*out*/ Pin1, /*out*/ Pin2))
 	{
 		// Give the schema a chance to do something interesting with a double click on a proper spline (both ends are attached to a pin, i.e., not a preview/drag one)
 		const FVector2D DoubleClickPositionInGraphSpace = PanelCoordToGraphCoord(MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()));
 
 		const UEdGraphSchema* Schema = GraphObj->GetSchema();
-		Schema->OnPinConnectionDoubleCicked(PreviousFrameSplineOverlap.Pin1, PreviousFrameSplineOverlap.Pin2, DoubleClickPositionInGraphSpace);
+		Schema->OnPinConnectionDoubleCicked(Pin1, Pin2, DoubleClickPositionInGraphSpace);
 	}
 
 	return SNodePanel::OnMouseButtonDoubleClick(MyGeometry, MouseEvent);
@@ -687,15 +683,8 @@ FReply SGraphPanel::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const 
 
 class SGraphPin* SGraphPanel::GetBestPinFromHoveredSpline() const
 {
-	if (PreviousFrameSplineOverlap.IsValid())
-	{
-		FGraphPinHandle SplineAssociatedPinHandle(PreviousFrameSplineOverlap.GetBestPin());
-		return SplineAssociatedPinHandle.FindInGraphPanel(*this).Get();
-	}
-	else
-	{
-		return nullptr;
-	}
+	TSharedPtr<SGraphPin> BestPinWidget = PreviousFrameSplineOverlap.GetBestPinWidget(*this);
+	return BestPinWidget.Get();
 }
 
 void SGraphPanel::GetAllPins(TSet< TSharedRef<SWidget> >& AllPins)
@@ -1191,6 +1180,10 @@ void SGraphPanel::Update()
 // Purges the existing visual representation (typically followed by an Update call in the next tick)
 void SGraphPanel::PurgeVisualRepresentation()
 {
+	// No need to call OnSplineHoverStateChanged since we're about to destroy all the nodes and pins
+	PreviousFrameSplineOverlap = FGraphSplineOverlapResult();
+
+	// Clear all of the nodes and pins
 	RemoveAllNodes();
 }
 

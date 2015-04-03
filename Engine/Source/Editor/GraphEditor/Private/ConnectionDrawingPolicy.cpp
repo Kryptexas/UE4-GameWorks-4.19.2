@@ -309,7 +309,7 @@ void FConnectionDrawingPolicy::DrawConnection(int32 LayerId, const FVector2D& St
 			// Record the overlap
 			if (ClosestDistanceSquared < QueryDistanceTriggerThresholdSquared)
 			{
-				if (ClosestDistanceSquared < SplineOverlapResult.DistanceSquared)
+				if (ClosestDistanceSquared < SplineOverlapResult.GetDistanceSquared())
 				{
 					const float SquaredDistToPin1 = (Params.AssociatedPin1 != nullptr) ? (P0 - ClosestPoint).SizeSquared() : FLT_MAX;
 					const float SquaredDistToPin2 = (Params.AssociatedPin2 != nullptr) ? (P1 - ClosestPoint).SizeSquared() : FLT_MAX;
@@ -525,6 +525,7 @@ void FConnectionDrawingPolicy::ApplyHoverDeemphasis(UEdGraphPin* OutputPin, UEdG
 
 void FGraphSplineOverlapResult::ComputeBestPin()
 {
+	UEdGraphPin* BestPin = nullptr;
 	if (Pin1 == nullptr)
 	{
 		BestPin = Pin2;
@@ -553,4 +554,34 @@ void FGraphSplineOverlapResult::ComputeBestPin()
 			BestPin = (DistanceSquaredToPin1 < DistanceSquaredToPin2) ? Pin1 : Pin2;
 		}
 	}
+
+	BestPinHandle = FGraphPinHandle(BestPin);
+
+	Pin1 = nullptr;
+	Pin2 = nullptr;
 }
+
+bool FGraphSplineOverlapResult::GetPins(const class SGraphPanel& InGraphPanel, UEdGraphPin*& OutPin1, UEdGraphPin*& OutPin2) const
+{
+	OutPin1 = nullptr;
+	OutPin2 = nullptr;
+
+	if (IsValid())
+	{
+		TSharedPtr<SGraphPin> Pin1Widget = Pin1Handle.FindInGraphPanel(InGraphPanel);
+		TSharedPtr<SGraphPin> Pin2Widget = Pin2Handle.FindInGraphPanel(InGraphPanel);
+
+		if (Pin1Widget.IsValid())
+		{
+			OutPin1 = Pin1Widget->GetPinObj();
+		}
+
+		if (Pin2Widget.IsValid())
+		{
+			OutPin2 = Pin2Widget->GetPinObj();
+		}
+	}
+
+	return (OutPin1 != nullptr) && (OutPin2 != nullptr);
+}
+
