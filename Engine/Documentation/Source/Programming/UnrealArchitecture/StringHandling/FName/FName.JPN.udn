@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2123695
-Availability: Public
+﻿INTSourceChangelist:2374181
+Availability:Public
 Title:FName
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/StringHandling
 Description: %doxygen:FName%
+Version:4.5
 
 [TOC (start:2 end:3)]
 
@@ -10,12 +11,12 @@ Description: %doxygen:FName%
 
 
 [EXCERPT:Overview]
-**コンテンツ ブラウザ** で新規アセットに名前を付ける、ダイナミック マテリアル インスタンスのパラメータを変更する、またはスケルタル メッシュのボーンにアクセスする時、 FNames を使います。再利用した時でも、所定の文字列がデータ テーブルに一度だけ格納される場合、FNames は文字列を使用するための軽量のシステムを提供します。 
-Fnames は大文字・小文字を区別しません。変更不可能であり、操作することもできません。Fnames はストレージ システムで静的な性質なので、 
-キーを使った参照と Fnames へのアクセスが早いです。FNames サブシステムのもう 1 つの特徴は、ハッシュ表を使用して Fast String を FName へ変換へ提供します。
+FNames は、 **コンテンツ ブラウザ** で新規アセットに名前を付けたり、ダイナミック マテリアル インスタンスのパラメータを変更する場合、またはスケルタル メッシュのボーンにアクセスする時に使います。再利用する場合でも、所定の文字を一回だけデータ テーブルに格納する、 
+とても軽いシステムです。Fnames は大文字・小文字を区別しません。変更も操作もできません。Fnames はストレージ システムで静的な性質なので、 
+キーによる参照と Fnames へのアクセスが速いです。FNames サブシステムのもう 1 つの特徴は、文字列から Fname への変換をハッシュ テーブルで素早く行うことです。 
 [/EXCERPT:Overview]
 
-FNames は大文字・小文字を区別せず、インデックスの組み合わせとしてユニークな文字列とインスタンス番号に格納されます。 
+FNames は大文字・小文字を区別せず、インデックスの組み合わせとしてユニークな文字列とインスタンス番号のテーブル内に格納されます。 
 
 ## FNames の作成
 
@@ -24,18 +25,18 @@ FNames は大文字・小文字を区別せず、インデックスの組み合�
 
 ## 変換
 
-FNames は FStrings と FText へのみ変換され、 FStrings からのみ変換できます。
+FNames の変換は、FStrings と FText と、および FStrings からのみ可能です。
 
 ### FName からの変換
 
-|From | To | Example |
+|変換元 | 変換先 | 例 |
 |---|------|---------|
 %Programming/UnrealArchitecture/StringHandling:fnametofstring%
 %Programming/UnrealArchitecture/StringHandling:fnametoftext%
 
 ### FName への変換
 
-|From | To | Example |
+|変換元 | 変換先 | 例 |
 |---|------|---------|
 %Programming/UnrealArchitecture/StringHandling:fstringtofname%
 %Programming/UnrealArchitecture/StringHandling:ftexttofname%
@@ -56,7 +57,8 @@ FNames は FStrings と FText へのみ変換され、 FStrings からのみ変�
 
 ## FNames の使用
 
-FName の使い方は非常に分かりやすいです。アクタのスケルタルメッシュ コンポーネントから「pelvis」という名前のボーンを取得するとします。以下の C++ コードは、 GetBoneRotation() へパスされながらオンザフライで作成された Fname の使用を表します。 
+FName の使い方は非常に分かりやすいです。アクタのスケルタルメッシュ コンポーネントから「pelvis」という名前のボーンを取得するとします。以下の C++ コードは、 GetBoneRotation() へパスされながら 
+オンザフライで作成された Fname の使用を表します。
 
 	FRotator rotPelvis = Mesh->MeshGetInstance(this))->GetBoneRotation(FName(TEXT("pelvis")));
 
@@ -73,4 +75,4 @@ FName が名前テーブルにあるかどうかを、自動追加せずに判�
 		// Do something
 	}
 
-名前テーブルに名前が存在しない場合、 FName のインデックスを `NAME_None` に設定します。普通の文字列の場合とは違って、 ヌルポインタに対するチェックを行いません。 
+名前テーブルに名前が存在しない場合、 FName のインデックスを `NAME_None` に設定します。普通の文字列の場合とは違って、ヌルポインタに対するチェックを行いません。 
