@@ -76,7 +76,7 @@ MaterialFunction'/Engine/ArtTools/RenderToTexture/MaterialFunctions/VolumeShadow
 
 First it is worth noting that this material function is mostly set up for foliage at the moment. There is no direct lighting component calculated, only a shadow. As such, shadows on solid geometry that curve away from the light will not look as good as they could. You can fix this by doing a manual DotProduct with the "Projection Vector" and the vertex normal and clamping that 0-1.
 
-Here is an example of the shadow being used on a regular Static Mesh. This Static Mesh is just a few cylinders, boxes and spheres on top of each other.
+Here is an example of the shadow being used on a regular Static Mesh. This Static Mesh is just a few cylinders, boxes, and spheres on top of each other.
 
 ![](21.jpg)
  
