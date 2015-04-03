@@ -421,7 +421,7 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 		static TArray<TSharedRef<FBlueprintCompileReinstancer>> QueueToReinstance;
 		TSharedRef<FBlueprintCompileReinstancer> SharedThis = AsShared();
 		const bool bAlreadyQueued = QueueToReinstance.Contains(SharedThis);
-		if (!bAlreadyQueued)
+		if (!bAlreadyQueued && !bHasReinstanced)
 		{
 			QueueToReinstance.Push(SharedThis);
 
@@ -456,6 +456,7 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 				for (int32 Idx = 0; Idx < QueueToReinstance.Num(); ++Idx)
 				{
 					QueueToReinstance[Idx]->ReinstanceInner(bForceAlwaysReinstance);
+					QueueToReinstance[Idx]->bHasReinstanced = true;
 				}
 				QueueToReinstance.Empty();
 			}
