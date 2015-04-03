@@ -1697,7 +1697,7 @@ public:
 	  */
 	virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const;
 
-	DEPRECATED(4.8, "GetNetDormancy changed from PlayerController parameter to Actor parameter, please override that version.")
+	DEPRECATED(4.8, "IsNetRelevantFor changed from PlayerController parameter to Actor parameter, please override that version.")
 	virtual bool IsNetRelevantFor(const APlayerController* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const;
 
 	/**
