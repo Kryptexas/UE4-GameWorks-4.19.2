@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2465675
+﻿INTSourceChangelist:2478927
 Availability:Public
 Title:4.ポーンとコンポーネントの併用
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
@@ -7,7 +7,7 @@ Description:ポーンの機能、入力設定、コンポーネントの併用
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[次の手順](Programming\Tutorials\Components\3 "%Programming\Tutorials\Components\3:title%")
+		[前の手順](Programming\Tutorials\Components\3 "%Programming\Tutorials\Components\3:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -22,7 +22,7 @@ Description:ポーンの機能、入力設定、コンポーネントの併用
 
 %Steps%
 
-1. カスタム仕様の **Pawn Movement Component** を使用するために、まずコンポーネントを追跡する **Pawn** クラスを追加します。「CollidingPawn.h」ファイルの "OurParticleSystem" 変数を追加した付近のクラス定義の下に以下のコードを追加します：
+1. カスタム仕様の **Pawn Movement Component** を使用するために、まずコンポーネントを追跡する **Pawn** クラスを追加します。"OurParticleSystem" 変数を追加した付近の、「CollidingPawn.h」ファイルのクラス定義下部に以下のコードを追加します：
 
 		class UCollidingPawnMovementComponent* OurMovementComponent;
 
@@ -267,7 +267,7 @@ Description:ポーンの機能、入力設定、コンポーネントの併用
 			{
 				if (OurParticleSystem && OurParticleSystem->Template)
 				{
-					OurParticleSystem->Activate(!OurParticleSystem->IsActive());
+					OurParticleSystem->ToggleActive();
 				}
 			}
 
