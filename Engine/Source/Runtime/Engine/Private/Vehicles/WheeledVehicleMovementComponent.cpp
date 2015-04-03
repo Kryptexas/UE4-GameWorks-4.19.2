@@ -121,6 +121,10 @@ UWheeledVehicleMovementComponent::UWheeledVehicleMovementComponent(const FObject
 	AvoidanceConsiderationRadius = 2000.0f;
 	RVOSteeringStep = 0.5f;
 	RVOThrottleStep = 0.25f;
+    
+    ThresholdLongitudinalSpeed = 5.f;
+    LowForwardSpeedSubStepCount = 3;
+    HighForwardSpeedSubStepCount = 1;
 
 #if WITH_VEHICLE
 	// tire load filtering
@@ -304,7 +308,7 @@ void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWhe
 		const PxReal LengthScale = 100.f; // Convert default from m to cm
 
 		// Control substepping
-		PWheelsSimData->setSubStepCount(5.f * LengthScale, 3, 1);
+		PWheelsSimData->setSubStepCount(ThresholdLongitudinalSpeed * LengthScale, LowForwardSpeedSubStepCount, HighForwardSpeedSubStepCount);
 		PWheelsSimData->setMinLongSlipDenominator(4.f * LengthScale);
 
 		// Prealloc data for the sprung masses
