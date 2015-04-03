@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2465675
+﻿INTSourceChangelist:2486588
 Availability:Public
 Title:ゲーム制御のカメラ
 Crumbs:%ROOT%, GettingStarted, Programming/Tutorials
@@ -39,6 +39,19 @@ Description:さまざまなビューパースペクティブ間のアクティ�
 [/VAR]
 
 このチュートリアルは、カメラをアクティベートする方法、またあるカメラから別のカメラへアクティブなカメラを変更する方法を紹介します。
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	hwErvhNdc9c
+	[/PARAMLITERAL]
+[/OBJECT]
+
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/start_icon.png)(convert:false)
@@ -52,6 +65,7 @@ Description:さまざまなビューパースペクティブ間のアクティ�
 	* [](Programming\Tutorials\AutoCamera\1 "%Programming\Tutorials\AutoCamera\1:description%")
 	* [](Programming\Tutorials\AutoCamera\2 "%Programming\Tutorials\AutoCamera\2:description%")
 	* [](Programming\Tutorials\AutoCamera\3 "%Programming\Tutorials\AutoCamera\3:description%")
+	* [](Programming\Tutorials\AutoCamera\4 "%Programming\Tutorials\AutoCamera\4:description%")
 	[/PARAM]
 [/OBJECT]
 
