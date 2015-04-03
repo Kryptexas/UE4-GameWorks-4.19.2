@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreUObject.h"
-
+#include "IMessageContext.h"
 
 class IMessageContext;
 
