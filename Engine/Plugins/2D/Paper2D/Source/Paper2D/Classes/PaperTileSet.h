@@ -7,6 +7,11 @@
 
 #include "PaperTileSet.generated.h"
 
+/**
+ * A tile set is a collection of tiles pulled from a texture that can be used to fill out a tile map.
+ *
+ * @see UPaperTileMap, UPaperTileMapComponent
+ */
 UCLASS()
 class PAPER2D_API UPaperTileSet : public UObject
 {
