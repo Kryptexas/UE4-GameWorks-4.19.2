@@ -113,6 +113,9 @@ public:
 	/** Snaps the camera to the selected object. */
 	TSharedPtr< FUICommandInfo > SnapCameraToObject;
 
+	/** Snaps the selected actor to the camera. */
+	TSharedPtr< FUICommandInfo > SnapObjectToCamera;
+
 	/** Goes to the source code for the selected actor's class. */
 	TSharedPtr< FUICommandInfo > GoToCodeForActor;
 
@@ -1160,6 +1163,11 @@ public:
 	 * Moves an actor to the grid.
 	 */
 	static void MoveActorToGrid_Clicked( bool InAlign, bool bInPerActor );
+
+	/**
+	* Snaps a selected actor to the camera view.
+	*/
+	static void SnapObjectToView_Clicked();
 
 	/** 
 	 * Moves an actor to another actor.

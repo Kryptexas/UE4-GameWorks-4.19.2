@@ -185,6 +185,7 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 
 			MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().GoHere);
 			MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().SnapCameraToObject);
+			MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().SnapObjectToCamera);
 		}
 		MenuBuilder.EndSection();
 
@@ -276,6 +277,7 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 
 			MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().GoHere);
 			MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().SnapCameraToObject);
+			MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().SnapObjectToCamera);
 
 			if (SelectedActors.Num() == 1)
 			{

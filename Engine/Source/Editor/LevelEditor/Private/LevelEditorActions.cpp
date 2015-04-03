@@ -2324,6 +2324,20 @@ void FLevelEditorActionCallbacks::OnAudioMutedChanged(bool bMuted)
 	GEditor->MuteRealTimeAudio(bMuted);
 }
 
+void FLevelEditorActionCallbacks::SnapObjectToView_Clicked()
+{
+	for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
+	{
+		AActor* Actor = Cast<AActor>(*It);
+		FVector location = GCurrentLevelEditingViewportClient->GetViewLocation();
+		FRotator rotation = GCurrentLevelEditingViewportClient->GetViewRotation();
+
+		Actor->SetActorLocation(location);
+		Actor->SetActorRotation(rotation);
+	}
+
+}
+
 void FLevelEditorActionCallbacks::OnEnableActorSnap()
 {
 	FSnappingUtils::EnableActorSnap( !FSnappingUtils::IsSnapToActorEnabled() );
@@ -2859,6 +2873,7 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( GoHere, "Go Here", "Moves the camera to the current mouse position", EUserInterfaceActionType::Button, FInputChord() );
 
 	UI_COMMAND( SnapCameraToObject, "Snap View to Object", "Snaps the view to the selected object", EUserInterfaceActionType::Button, FInputChord() );
+	UI_COMMAND( SnapObjectToCamera, "Snap Object to View", "Snaps the selected object to the view", EUserInterfaceActionType::Button, FInputChord() );
 
 	UI_COMMAND( GoToCodeForActor, "Go to C++ Code for Actor", "Opens a code editing IDE and navigates to the source file associated with the seleced actor", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( GoToDocsForActor, "Go to Documentation for Actor", "Opens documentation for the Actor in the default web browser", EUserInterfaceActionType::Button, FInputChord() );
