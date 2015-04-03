@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2465675
+﻿INTSourceChangelist:2489335
 Availability:Public
 Title:3.ゲームアクションのプログラミングとバインド
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerInput
@@ -15,6 +15,7 @@ Description:入力と C++ コードのバインド
 		[プログラミングチュートリアルのホームページ](Programming\Tutorials\)
 	[/PARAM]
 	[PARAM:next]
+		[次の手順](Programming\Tutorials\PlayerInput\4 "%Programming\Tutorials\PlayerInput\4:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -58,7 +59,7 @@ Description:入力と C++ コードのバインド
 		{
 			bGrowing = false;
 		}
-	入力から受け取る値を「－1」から「＋1」の範囲にコンストレイントするために **FMath::Clamp** を使用します。サンプルでは問題ありませんが、軸に影響を与える複数キーが同一方向にある場合は、プレイヤーがこれらの値を同時にパスすると値は一緒に加算されます。例えば「W」と「↑」両方が1.0値のスケールでMoveXにマッピングされている場合は、両方のキーを同時に押すとAxisValueは値2.0になります。クランプしなければ、この値は結果的にプレイヤーを倍速で移動させます。
+	入力から受け取る値を「－1」から「＋1」の範囲にコンストレイントするために **FMath::Clamp** を使用します。サンプルでは問題ありませんが、軸に同じように影響を与える複数キーがある場合は、プレイヤーがこれらの値を同時にパスすると値は一緒に加算されます。例えば「W」と「↑」両方が1.0値のスケールでMoveXにマッピングされている場合は、両方のキーを同時に押すとAxisValueは値2.0になります。クランプしなければ、この値は結果的にプレイヤーを倍速で移動させます。
 	[REGION:note]2つの "Move" 関数は軸値を浮動小数値で受け取る一方で、 "Grow" 関数は違うことにお気づきかもしれません。Move 関数は軸マッピングのMoveXとMoveYにマッピングされているため、浮動小数点パラメータになります。アクションマッピングにこのパラメータはありません。[/REGION]
 
 1. 入力関数を定義したので、適切な入力に対応するようにこれらをバインドしなくてはいけません。**AMyPawn::SetupPlayerInputComponent** に以下のコードを追加します：
@@ -100,7 +101,7 @@ Description:入力と C++ コードのバインド
 			}
 		}
 
-1. コードをコンパイルした後に **アンリアルエディタ** へ戻って **Play（再生）** を押します。WASDキーで操作可能な **Pawn** があります。このポーンはスペースバーを押しながら拡大出来て、バーをリリースすると縮小します。
+1. コードをコンパイルした後に **アンリアルエディタ** へ戻って **Play（再生）** を押します。WASDキーで操作可能な **Pawn** があります。このポーンはスペースバーを押すと拡大、バーをリリースすると縮小します。
 
 [![](PlayingGame1.png)](PlayingGame1.png)
 [![](PlayingGame2.png)](PlayingGame2.png)
