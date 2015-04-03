@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2465675
+﻿INTSourceChangelist:2489335
 Availability:Public
 Title:プレイヤー入力とPawn クラス
 Crumbs:%ROOT%, GettingStarted
-Description:Pawn クラスを拡張してプレイヤーの入力に反応する
+Description:Pawn クラスを拡張してプレイヤーの入力に反応させる
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -38,7 +38,20 @@ Description:Pawn クラスを拡張してプレイヤーの入力に反応する
 [/OBJECT]
 [/VAR]
 
-チュートリアルを通じて、Pawn クラスを拡張してプレイヤーの入力に反応する方法を学びます。
+チュートリアルを読み進める間に、Pawn クラスを拡張してプレイヤーの入力に反応する方法を学びます。
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	nTshVrOaNdY
+	[/PARAMLITERAL]
+[/OBJECT]
+
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/start_icon.png)(convert:false)
@@ -52,6 +65,7 @@ Description:Pawn クラスを拡張してプレイヤーの入力に反応する
 	* [](Programming\Tutorials\PlayerInput\1 "%Programming\Tutorials\PlayerInput\1:description%")
 	* [](Programming\Tutorials\PlayerInput\2 "%Programming\Tutorials\PlayerInput\2:description%")
 	* [](Programming\Tutorials\PlayerInput\3 "%Programming\Tutorials\PlayerInput\3:description%")
+	* [](Programming\Tutorials\PlayerInput\4 "%Programming\Tutorials\PlayerInput\4:description%")
 	[/PARAM]
 [/OBJECT]
 
