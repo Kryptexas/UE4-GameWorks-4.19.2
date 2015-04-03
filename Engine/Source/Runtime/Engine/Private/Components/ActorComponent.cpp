@@ -179,9 +179,17 @@ void UActorComponent::PostLoad()
 		}
 	}
 
-	if ((GetLinkerUE4Version() < VER_UE4_TRACK_UCS_MODIFIED_PROPERTIES) && !HasAnyFlags(RF_ClassDefaultObject))
+	if (CreationMethod == EComponentCreationMethod::SimpleConstructionScript)
 	{
-		DetermineUCSModifiedProperties();
+		if ((GetLinkerUE4Version() < VER_UE4_TRACK_UCS_MODIFIED_PROPERTIES) && !HasAnyFlags(RF_ClassDefaultObject))
+		{
+			DetermineUCSModifiedProperties();
+		}
+	}
+	else
+	{
+		// For a brief period of time we were inadvertently storing these for all components, need to clear it out
+		UCSModifiedProperties.Empty();
 	}
 }
 
@@ -1454,41 +1462,44 @@ bool UActorComponent::IsEditableWhenInherited() const
 
 void UActorComponent::DetermineUCSModifiedProperties()
 {
-	class FComponentPropertySkipper : public FArchive
-	{
-	public:
-		FComponentPropertySkipper()
-			: FArchive()
-		{
-			ArIsSaving = true;
-		}
-
-		virtual bool ShouldSkipProperty(const UProperty* InProperty) const override
-		{
-			return (    InProperty->HasAnyPropertyFlags(CPF_Transient | CPF_ContainsInstancedReference | CPF_InstancedReference)
-					|| !InProperty->HasAnyPropertyFlags(CPF_Edit | CPF_Interp));
-		}
-	} PropertySkipper;
-
-	UClass* ComponentClass = GetClass();
-	UObject* ComponentArchetype = GetArchetype();
-
 	UCSModifiedProperties.Empty();
 
-	for (TFieldIterator<UProperty> It(ComponentClass); It; ++It)
+	if (CreationMethod == EComponentCreationMethod::SimpleConstructionScript)
 	{
-		UProperty* Property = *It;
-		if( Property->ShouldSerializeValue(PropertySkipper) )
+		class FComponentPropertySkipper : public FArchive
 		{
-			for( int32 Idx=0; Idx<Property->ArrayDim; Idx++ )
+		public:
+			FComponentPropertySkipper()
+				: FArchive()
 			{
-				uint8* DataPtr      = Property->ContainerPtrToValuePtr           <uint8>((uint8*)this, Idx);
-				uint8* DefaultValue = Property->ContainerPtrToValuePtrForDefaults<uint8>(ComponentClass, (uint8*)ComponentArchetype, Idx);
-				if (!Property->Identical( DataPtr, DefaultValue))
+				ArIsSaving = true;
+			}
+
+			virtual bool ShouldSkipProperty(const UProperty* InProperty) const override
+			{
+				return (    InProperty->HasAnyPropertyFlags(CPF_Transient | CPF_ContainsInstancedReference | CPF_InstancedReference)
+						|| !InProperty->HasAnyPropertyFlags(CPF_Edit | CPF_Interp));
+			}
+		} PropertySkipper;
+
+		UClass* ComponentClass = GetClass();
+		UObject* ComponentArchetype = GetArchetype();
+
+		for (TFieldIterator<UProperty> It(ComponentClass); It; ++It)
+		{
+			UProperty* Property = *It;
+			if( Property->ShouldSerializeValue(PropertySkipper) )
+			{
+				for( int32 Idx=0; Idx<Property->ArrayDim; Idx++ )
 				{
-					UCSModifiedProperties.Add(FSimpleMemberReference());
-					FMemberReference::FillSimpleMemberReference<UProperty>(Property, UCSModifiedProperties.Last());
-					break;
+					uint8* DataPtr      = Property->ContainerPtrToValuePtr           <uint8>((uint8*)this, Idx);
+					uint8* DefaultValue = Property->ContainerPtrToValuePtrForDefaults<uint8>(ComponentClass, (uint8*)ComponentArchetype, Idx);
+					if (!Property->Identical( DataPtr, DefaultValue))
+					{
+						UCSModifiedProperties.Add(FSimpleMemberReference());
+						FMemberReference::FillSimpleMemberReference<UProperty>(Property, UCSModifiedProperties.Last());
+						break;
+					}
 				}
 			}
 		}
