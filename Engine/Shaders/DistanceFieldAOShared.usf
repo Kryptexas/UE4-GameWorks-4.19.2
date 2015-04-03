@@ -99,11 +99,22 @@ void GetDownsampledGBuffer(float2 ScreenUV, out float3 OutNormal, out float OutD
 	OutNormal.z *= abs(TextureValue.z) > .75f ? -1 : 1;
 }
 
+float GetDownsampledDepth(float2 ScreenUV)
+{
+	return abs(Texture2DSampleLevel(DistanceFieldNormalTexture, DistanceFieldNormalSampler, ScreenUV, 0).w);
+}
+
 uint CurrentLevelDownsampleFactor;
 float2 AOBufferSize;
 
 uint DownsampleFactorToBaseLevel;
 float2 BaseLevelTexelSize;
+
+Texture2D BentNormalAOTexture;
+SamplerState BentNormalAOSampler;
+
+Texture2D IrradianceTexture;
+SamplerState IrradianceSampler;
 
 bool SphereIntersectCone(float4 SphereCenterAndRadius, float3 ConeVertex, float3 ConeAxis, float ConeAngleCos, float ConeAngleSin)
 {

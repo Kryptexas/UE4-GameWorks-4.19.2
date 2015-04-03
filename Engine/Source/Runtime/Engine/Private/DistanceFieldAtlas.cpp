@@ -120,16 +120,13 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 
 			FRHIResourceCreateInfo CreateInfo;
 
-			int32 SizeX = BlockAllocator.GetSizeX();
-			int32 SizeY = BlockAllocator.GetSizeY();
-
 			VolumeTextureRHI = RHICreateTexture3D(
-				SizeX, 
-				SizeY, 
+				BlockAllocator.GetSizeX(), 
+				BlockAllocator.GetSizeY(), 
 				BlockAllocator.GetSizeZ(), 
 				Format,
 				1,
-				TexCreate_ShaderResource | TexCreate_NoTiling,
+				TexCreate_ShaderResource,
 				CreateInfo);
 
 			UE_LOG(LogStaticMesh,Log,TEXT("Allocated %s"), *GetSizeString());

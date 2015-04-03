@@ -273,8 +273,12 @@ void BuildTileConesMain(
     uint3 GroupThreadId : SV_GroupThreadID) 
 {
     uint ThreadIndex = GroupThreadId.y * THREADGROUP_SIZEX + GroupThreadId.x;
-	float2 ScreenUV = (DispatchThreadId.xy * DOWNSAMPLE_FACTOR + View.ViewRectMin.xy + float2(.5f, .5f)) * View.ViewSizeAndSceneTexelSize.zw;
-	float SceneDepth = CalcSceneDepth(ScreenUV);
+
+	float2 BaseLevelScreenUV = (DispatchThreadId.xy + float2(.5f, .5f)) * DOWNSAMPLE_FACTOR * View.ViewSizeAndSceneTexelSize.zw;
+	float SceneDepth = GetDownsampledDepth(BaseLevelScreenUV);
+
+	//float2 ScreenUV = (DispatchThreadId.xy * DOWNSAMPLE_FACTOR + View.ViewRectMin.xy + float2(.5f, .5f)) * View.ViewSizeAndSceneTexelSize.zw;
+	//float SceneDepth = CalcSceneDepth(ScreenUV);
 
 	// Initialize per-tile variables
     if (ThreadIndex == 0) 
@@ -709,7 +713,8 @@ groupshared float3 SharedGatheredLighting[FINAL_GATHER_THREADGROUP_SIZE];
 groupshared uint SharedCulledObjectList[MAX_RECORD_CULLED_OBJECTS];
 groupshared uint NumRecordCulledObjects;
 
-#define CULL_OBJECTS_TO_RECORD 1
+// Inconsistent performance savings + overflow of shared memory array
+#define CULL_OBJECTS_TO_RECORD 0
 
 /** Computes ambient occlusion for a surface cache record by cone stepping through the nearby object distance fields. */
 [numthreads(FINAL_GATHER_THREADGROUP_SIZE, 1, 1)]
@@ -843,27 +848,28 @@ void ConeTraceOcclusionCS(
 				// Ignore extra threads
 				&& ObjectOffsetIndex < SIMULTANEOUSLY_TRACED_OBJECTS)
 			{
-				#if CULL_OBJECTS_TO_RECORD
-					uint ObjectIndex = SharedCulledObjectList[EffectiveListObjectIndex];
-					{
-				#else
 
-					uint ListIndex = 0;
-					uint ArrayIndex = EffectiveListObjectIndex;
+			#if CULL_OBJECTS_TO_RECORD
+				uint ObjectIndex = SharedCulledObjectList[EffectiveListObjectIndex];
+				{
+			#else
 
-					FLATTEN
-					if (EffectiveListObjectIndex >= TileHead.y + TileHead.z)
-					{
-						ListIndex = 2;
-						ArrayIndex = EffectiveListObjectIndex - TileHead.y - TileHead.z;
-					}
-					else if (EffectiveListObjectIndex >= TileHead.y)
-					{
-						ListIndex = 1;
-						ArrayIndex = EffectiveListObjectIndex - TileHead.y;
-					}
+				uint ListIndex = 0;
+				uint ArrayIndex = EffectiveListObjectIndex;
 
-					uint ObjectIndex = TileArrayData.Load((ArrayIndex * TileListGroupSize.x * TileListGroupSize.y + TileHead.x) * NUM_CULLED_OBJECT_LISTS + ListIndex);
+				FLATTEN
+				if (EffectiveListObjectIndex >= TileHead.y + TileHead.z)
+				{
+					ListIndex = 2;
+					ArrayIndex = EffectiveListObjectIndex - TileHead.y - TileHead.z;
+				}
+				else if (EffectiveListObjectIndex >= TileHead.y)
+				{
+					ListIndex = 1;
+					ArrayIndex = EffectiveListObjectIndex - TileHead.y;
+				}
+
+				uint ObjectIndex = TileArrayData.Load((ArrayIndex * TileListGroupSize.x * TileListGroupSize.y + TileHead.x) * NUM_CULLED_OBJECT_LISTS + ListIndex);
 
 				float4 ObjectPositionAndRadius = LoadObjectPositionAndRadius(ObjectIndex);
 				float ObjectDistanceSq = dot(ObjectPositionAndRadius.xyz - WorldShadingPosition, ObjectPositionAndRadius.xyz - WorldShadingPosition);
@@ -873,7 +879,7 @@ void ConeTraceOcclusionCS(
 				if (ObjectPositionAndRadius.w * ObjectPositionAndRadius.w / ObjectDistanceSq > Square(.25f))
 				{
 
-				#endif
+			#endif
 					float3 LocalPositionExtent = LoadObjectLocalPositionExtent(ObjectIndex);
 					float4x4 WorldToVolume = LoadObjectWorldToVolume(ObjectIndex);
 					bool bGeneratedAsTwoSided;
