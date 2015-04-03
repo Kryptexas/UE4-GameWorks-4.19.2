@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2465675
+﻿INTSourceChangelist:2486757
 Availability:Public
 Title:3.入力に対応するC++コードの記述
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerCamera
@@ -15,13 +15,14 @@ Description:入力を伴うポーンとカメラをコントロールするコ�
 		[プログラミングチュートリアルのホームページ][Programming Tutorials Home](Programming\Tutorials\)
 	[/PARAM]
 	[PARAM:next]
+		[次の手順](Programming\Tutorials\PlayerCamera\4 "%Programming\Tutorials\PlayerCamera\4:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-1. 使用可能な入力マッピングをゲームに設定したので、受信データを格納するメンバ変数をいくつか設定しましょう。更新の間に、移動とマウスが見ている軸それぞれの2Dベクター値が必要です。ズームインまたはズームアウトビューのどちらへ移動させるべきか、2つのステートの間隔が現時点でどれくらいあるのかも知る必要があります。これを実現するために「PawnWithCamera.h」ファイルのクラス定義へ以下のコードを追加しなくてはいけません：
+1. 使用可能な入力マッピングをゲームに設定したので、受信データを格納するメンバ変数をいくつか設定しましょう。更新の間に、移動とマウスから見える軸それぞれの2Dベクター値が必要です。ズームインまたはズームアウトビューのどちらへ移動させるべきか、2つのステートの間隔が現時点でどれくらいあるのかも知る必要があります。これを実現するために「PawnWithCamera.h」ファイルのクラス定義へ以下のコードを追加しなくてはいけません：
 
 		//Input variables（入力変数）
 		FVector2D MovementInput;
