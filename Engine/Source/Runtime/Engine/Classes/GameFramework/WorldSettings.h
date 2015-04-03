@@ -164,11 +164,11 @@ struct ENGINE_API FNetViewer
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** The player controller corresponding to this view */
+	/** The "controlling net object" associated with this view (typically player controller) */
 	UPROPERTY()
-	class APlayerController* InViewer;
+	class AActor* InViewer;
 
-	/** The actor that is being directly viewed, usually a pawn */
+	/** The actor that is being directly viewed, usually a pawn.  Could also be the net actor of consequence */
 	UPROPERTY()
 	class AActor* ViewTarget;
 
@@ -241,7 +241,7 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=World, AdvancedDisplay)
 	uint32 bEnableWorldBoundsChecks:1;
 
-	/** if set to false navigation system will not get created (and all navigation functionality won't be accesible)*/
+	/** if set to false navigation system will not get created (and all navigation functionality won't be accessible)*/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, config, Category=World, AdvancedDisplay)
 	uint32 bEnableNavigationSystem:1;
 

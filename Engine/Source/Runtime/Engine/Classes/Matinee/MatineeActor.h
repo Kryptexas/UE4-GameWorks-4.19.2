@@ -309,7 +309,7 @@ public:
 #endif
 
 	// Begin AActor Interface
-	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth) override;
+	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, AActor* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth) override;
 	virtual void Tick(float DeltaTime) override;
 	virtual void PreNetReceive() override;
 	virtual void PostNetReceive() override;

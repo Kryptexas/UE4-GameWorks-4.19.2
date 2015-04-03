@@ -25,7 +25,7 @@ void AOnlineBeaconClient::SetBeaconOwner(AOnlineBeaconHostObject* InBeaconOwner)
 	BeaconOwner = InBeaconOwner;
 }
 
-UNetConnection* AOnlineBeaconClient::GetNetConnection()
+UNetConnection* AOnlineBeaconClient::GetNetConnection() const
 {
 	return BeaconConnection;
 }

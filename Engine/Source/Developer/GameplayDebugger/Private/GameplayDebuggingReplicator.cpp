@@ -103,7 +103,7 @@ void AGameplayDebuggingReplicator::GetLifetimeReplicatedProps(TArray< FLifetimeP
 #endif
 }
 
-bool AGameplayDebuggingReplicator::IsNetRelevantFor(const APlayerController* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
+bool AGameplayDebuggingReplicator::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
 {
 	return LocalPlayerOwner == RealViewer;
 }
@@ -325,7 +325,7 @@ UGameplayDebuggingComponent* AGameplayDebuggingReplicator::GetDebugComponent()
 	return DebugComponent;
 }
 
-class UNetConnection* AGameplayDebuggingReplicator::GetNetConnection()
+class UNetConnection* AGameplayDebuggingReplicator::GetNetConnection() const
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (LocalPlayerOwner && LocalPlayerOwner->IsPendingKill() == false && IsPendingKill() == false)

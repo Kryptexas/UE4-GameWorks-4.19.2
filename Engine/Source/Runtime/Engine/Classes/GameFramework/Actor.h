@@ -1500,19 +1500,22 @@ public:
 	/**
 	 * @param ViewPos		Position of the viewer
 	 * @param ViewDir		Vector direction of viewer
-	 * @param Viewer		PlayerController owned by the client for whom net priority is being determined
+	 * @param Viewer		"net object" owned by the client for whom net priority is being determined (typically player controller)
 	 * @param ViewTarget	The actor that is currently being viewed/controlled by Viewer, usually a pawn
 	 * @param InChannel		Channel on which this actor is being replicated.
 	 * @param Time			Time since actor was last replicated
-	 * @param bLowBandwidth True if low bandwith of viewer
+	 * @param bLowBandwidth True if low bandwidth of viewer
 	 * @return				Priority of this actor for replication
 	 */
-	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, class APlayerController* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth);
+	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, class AActor* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth);
 
 	DEPRECATED(4.8, "GetNetPriority now takes a ViewTarget, please override that version.")
 	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, class APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth);
 
 	/** Returns true if the actor should be dormant for a specific net connection. Only checked for DORM_DormantPartial */
+	virtual bool GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, class AActor* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth);
+
+	DEPRECATED(4.8, "GetNetDormancy changed from PlayerController parameter to Actor parameter, please override that version.")
 	virtual bool GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, class APlayerController* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth);
 
 	/** 
@@ -1686,12 +1689,15 @@ public:
 	// Actor relevancy determination
 
 	/** 
-	  * @param RealViewer - is the PlayerController associated with the client for which network relevancy is being checked
-	  * @param VieweTarget - is the Actor being used as the point of view for the PlayerController
+	  * @param RealViewer - is the "controlling net object" associated with the client for which network relevancy is being checked (typically player controller)
+	  * @param ViewTarget - is the Actor being used as the point of view for the RealViewer
 	  * @param SrcLocation - is the viewing location
 	  *
 	  * @return bool - true if this actor is network relevant to the client associated with RealViewer 
 	  */
+	virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const;
+
+	DEPRECATED(4.8, "GetNetDormancy changed from PlayerController parameter to Actor parameter, please override that version.")
 	virtual bool IsNetRelevantFor(const APlayerController* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const;
 
 	/**
@@ -1703,7 +1709,7 @@ public:
 	 *
 	 * @return bool - true if this actor should be considered the owner
 	 */
-	virtual bool IsRelevancyOwnerFor(AActor* ReplicatedActor, AActor* ActorOwner, AActor* ConnectionActor);
+	virtual bool IsRelevancyOwnerFor(const AActor* ReplicatedActor, const AActor* ActorOwner, const AActor* ConnectionActor) const;
 
 	/** Called after the actor is spawned in the world.  Responsible for setting up actor for play. */
 	void PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& SpawnRotation, AActor* InOwner, APawn* InInstigator, bool bRemoteOwned, bool bNoFail, bool bDeferConstruction);
@@ -1739,6 +1745,9 @@ public:
 	/** Dispatches ReceiveHit virtual and OnComponentHit delegate */
 	void DispatchPhysicsCollisionHit(const struct FRigidBodyCollisionInfo& MyInfo, const struct FRigidBodyCollisionInfo& OtherInfo, const FCollisionImpactData& RigidCollisionData);
 	
+	/** @return the actor responsible for replication, if any.  Typically the player controller */
+	virtual const AActor* GetNetOwner() const;
+
 	/** @return the owning UPlayer (if any) of this actor. This will be a local player, a net connection, or NULL. */
 	virtual class UPlayer* GetNetOwningPlayer();
 
@@ -1746,7 +1755,7 @@ public:
 	 * Get the owning connection used for communicating between client/server 
 	 * @return NetConnection to the client or server for this actor
 	 */
-	virtual class UNetConnection* GetNetConnection();
+	virtual class UNetConnection* GetNetConnection() const;
 
 	/**
 	 * Gets the net mode for this actor, indicating whether it is a client or server (including standalone/not networked).

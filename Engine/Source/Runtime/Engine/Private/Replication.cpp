@@ -36,7 +36,7 @@ static bool				SavedbReversePlayback;
 static float			SavedPosition;
 static uint8			SavedReplicationForceIsPlaying;
 
-float AMatineeActor::GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth)
+float AMatineeActor::GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, AActor* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth)
 {
 	float Result = Super::GetNetPriority(ViewPos, ViewDir, Viewer, ViewTarget, InChannel, Time, bLowBandwidth);
 	// attempt to replicate MatineeActors approximately in the order that they were spawned to reduce ordering issues

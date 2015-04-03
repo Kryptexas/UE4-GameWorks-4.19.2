@@ -29,7 +29,7 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 
 	// Begin AActor Interface
 	void OnNetCleanup(UNetConnection* Connection) override;
-	virtual UNetConnection* GetNetConnection() override;
+	virtual UNetConnection* GetNetConnection() const override;
 	// End AActor Interface
 
 	// Begin FNetworkNotify Interface

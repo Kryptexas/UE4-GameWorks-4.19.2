@@ -83,13 +83,18 @@ APlayerController::APlayerController(const FObjectInitializer& ObjectInitializer
 	}
 }
 
-float APlayerController::GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth)
+float APlayerController::GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, AActor* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth)
 {
 	if ( Viewer == this )
 	{
 		Time *= 4.f;
 	}
 	return NetPriority * Time;
+}
+
+const AActor* APlayerController::GetNetOwner() const
+{
+	return this;
 }
 
 UPlayer* APlayerController::GetNetOwningPlayer() 
@@ -103,7 +108,7 @@ bool APlayerController::HasNetOwner() const
 	return true;
 }
 
-UNetConnection* APlayerController::GetNetConnection()
+UNetConnection* APlayerController::GetNetConnection() const
 {
 	// A controller without a player has no "owner"
 	return (Player != NULL) ? NetConnection : NULL;
@@ -3873,7 +3878,7 @@ void APlayerController::TickActor( float DeltaSeconds, ELevelTick TickType, FAct
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
-bool APlayerController::IsNetRelevantFor(const APlayerController* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
+bool APlayerController::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
 {
 	return ( this==RealViewer );
 }

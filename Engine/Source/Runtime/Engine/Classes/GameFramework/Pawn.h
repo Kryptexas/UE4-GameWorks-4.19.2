@@ -198,7 +198,7 @@ public:
 	virtual void Reset() override;
 	virtual FString GetHumanReadableName() const override;
 	virtual bool ShouldTickIfViewportsOnly() const override;
-	virtual bool IsNetRelevantFor(const APlayerController* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
+	virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
 	virtual void PostNetReceiveLocationAndRotation() override;
 	virtual void PostNetReceiveVelocity(const FVector& NewVelocity) override;
 	virtual void DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
@@ -207,8 +207,9 @@ public:
 	virtual void Destroyed() override;
 	virtual void PreInitializeComponents() override;
 	virtual void PostInitializeComponents() override;
+	virtual const AActor* GetNetOwner() const override;
 	virtual UPlayer* GetNetOwningPlayer() override;
-	virtual UNetConnection* GetNetConnection() override;
+	virtual class UNetConnection* GetNetConnection() const override;
 	virtual void PostLoad() override;
 	virtual void PostRegisterAllComponents() override;
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;

@@ -105,9 +105,9 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 	UFUNCTION()
 	virtual void OnRep_AutoActivate();
 
-	virtual class UNetConnection* GetNetConnection() override;
+	virtual class UNetConnection* GetNetConnection() const override;
 
-	virtual bool IsNetRelevantFor(const APlayerController* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
+	virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
 
 	virtual void PostNetInit() override;
 	

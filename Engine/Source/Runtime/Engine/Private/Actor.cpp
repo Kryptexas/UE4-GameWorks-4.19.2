@@ -622,7 +622,7 @@ bool AActor::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags 
 	return bSuccess;
 }
 
-UNetConnection* AActor::GetNetConnection()
+UNetConnection* AActor::GetNetConnection() const
 {
 	return Owner ? Owner->GetNetConnection() : NULL;
 }
@@ -1187,6 +1187,13 @@ AActor* AActor::GetOwner() const
 	return Owner; 
 }
 
+const AActor* AActor::GetNetOwner() const
+{
+	// NetOwner is the Actor Owner unless otherwise overridden (see PlayerController/Pawn/Beacon)
+	// Used in ServerReplicateActors
+	return Owner;
+}
+
 bool AActor::HasNetOwner() const
 {
 	if (Owner == NULL)
@@ -1479,7 +1486,7 @@ FVector AActor::GetTargetLocation(AActor* RequestedBy) const
 }
 
 
-bool AActor::IsRelevancyOwnerFor(AActor* ReplicatedActor, AActor* ActorOwner, AActor* ConnectionActor)
+bool AActor::IsRelevancyOwnerFor(const AActor* ReplicatedActor, const AActor* ActorOwner, const AActor* ConnectionActor) const
 {
 	return (ActorOwner == this);
 }

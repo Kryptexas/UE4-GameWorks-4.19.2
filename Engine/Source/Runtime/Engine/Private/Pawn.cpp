@@ -501,7 +501,7 @@ void APawn::UnPossessed()
 }
 
 
-class UNetConnection* APawn::GetNetConnection()
+class UNetConnection* APawn::GetNetConnection() const
 {
 	// if have a controller, it has the net connection
 	if ( Controller )
@@ -511,6 +511,10 @@ class UNetConnection* APawn::GetNetConnection()
 	return Super::GetNetConnection();
 }
 
+const AActor* APawn::GetNetOwner() const
+{
+	return this;
+}
 
 class UPlayer* APawn::GetNetOwningPlayer()
 {
@@ -1002,7 +1006,7 @@ bool APawn::IsBasedOnActor(const AActor* Other) const
 }
 
 
-bool APawn::IsNetRelevantFor(const APlayerController* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
+bool APawn::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
 {
 	if (bAlwaysRelevant || RealViewer == Controller || IsOwnedBy(ViewTarget) || IsOwnedBy(RealViewer) || this == ViewTarget || ViewTarget == Instigator
 		|| IsBasedOnActor(ViewTarget) || (ViewTarget && ViewTarget->IsBasedOnActor(this)))

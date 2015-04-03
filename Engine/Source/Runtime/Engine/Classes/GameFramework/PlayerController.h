@@ -1173,7 +1173,7 @@ public:
 	virtual void GetActorEyesViewPoint(FVector& Location, FRotator& Rotation) const override;
 	virtual void CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult) override;
 	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
-	virtual bool IsNetRelevantFor(const APlayerController* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
+	virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
 	virtual void FellOutOfWorld(const class UDamageType& dmgType) override;
 	virtual void Reset() override;
 	virtual void Possess(APawn* aPawn) override;
@@ -1184,9 +1184,10 @@ public:
 	virtual void OnActorChannelOpen(class FInBunch& InBunch, class UNetConnection* Connection) override;
 	virtual void OnSerializeNewActor(class FOutBunch& OutBunch) override;
 	virtual void OnNetCleanup(class UNetConnection* Connection) override;
-	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth) override;
+	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, AActor* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth) override;
+	virtual const AActor* GetNetOwner() const override;
 	virtual class UPlayer* GetNetOwningPlayer() override;
-	virtual class UNetConnection* GetNetConnection() override;
+	virtual class UNetConnection* GetNetConnection() const override;
 	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
 	virtual void PostInitializeComponents() override;
 	virtual void EnableInput(class APlayerController* PlayerController) override;

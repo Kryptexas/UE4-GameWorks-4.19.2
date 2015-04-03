@@ -25,7 +25,7 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeacon : public AActor, public FNetworkNot
 
 	// Begin AActor Interface
 	virtual void OnActorChannelOpen(class FInBunch& InBunch, class UNetConnection* Connection) override;
-	virtual UNetConnection* GetNetConnection() override { return nullptr; }
+	virtual UNetConnection* GetNetConnection() const override { return nullptr; }
 	// End AActor Interface
 
 	// Begin FNetworkNotify Interface
