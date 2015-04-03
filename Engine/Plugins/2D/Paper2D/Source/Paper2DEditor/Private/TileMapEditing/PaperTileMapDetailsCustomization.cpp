@@ -133,6 +133,11 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 		TileMapCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UPaperTileMapComponent, TileMap));
 	}
 
+	//@TODO: No clue where to route this to a toolkit one, and anywhere I can put an OnKeyDown around here
+	// or in the STileLayerList to route it myself isn't good enough, since the editor viewport will have focus
+	// 99% of the time, not the details panel.
+	TSharedPtr<FUICommandList> CommandList = MakeShareable(new FUICommandList);
+
 	// Add the layer browser
 	if (TileMap != nullptr)
 	{
@@ -157,7 +162,7 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 			]
 			+SVerticalBox::Slot()
 			[
-				SNew(STileLayerList, TileMap, NotifyHook)
+				SNew(STileLayerList, TileMap, NotifyHook, CommandList)
 			]
 		];
 	}

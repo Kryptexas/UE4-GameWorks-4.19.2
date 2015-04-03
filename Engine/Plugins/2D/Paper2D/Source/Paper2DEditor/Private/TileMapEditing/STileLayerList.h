@@ -11,7 +11,7 @@ public:
 	SLATE_BEGIN_ARGS(STileLayerList) {}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, UPaperTileMap* TileMap, FNotifyHook* InNotifyHook);
+	void Construct(const FArguments& InArgs, UPaperTileMap* TileMap, FNotifyHook* InNotifyHook, TSharedPtr<class FUICommandList> InCommandList);
 
 protected:
 	typedef TSharedPtr<int32> FMirrorEntry;
@@ -44,8 +44,12 @@ protected:
 	void DeleteLayer();
 	void DuplicateLayer();
 	void MergeLayerDown();
-	void MoveLayerUp();
-	void MoveLayerDown();
+	void MoveLayerUp(bool bForceToTop);
+	void MoveLayerDown(bool bForceToBottom);
+	void SelectLayerAbove(bool bTopmost);
+	void SelectLayerBelow(bool bBottommost);
+
+	void SetSelectedLayerIndex(int32 NewIndex);
 
 	int32 GetNumLayers() const;
 	bool CanExecuteActionNeedingLayerAbove() const;

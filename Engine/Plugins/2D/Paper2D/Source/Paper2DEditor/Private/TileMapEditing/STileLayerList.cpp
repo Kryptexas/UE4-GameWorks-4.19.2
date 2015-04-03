@@ -14,7 +14,7 @@
 //////////////////////////////////////////////////////////////////////////
 // STileLayerList
 
-void STileLayerList::Construct(const FArguments& InArgs, UPaperTileMap* InTileMap, FNotifyHook* InNotifyHook)
+void STileLayerList::Construct(const FArguments& InArgs, UPaperTileMap* InTileMap, FNotifyHook* InNotifyHook, TSharedPtr<class FUICommandList> InCommandList)
 {
 	TileMapPtr = InTileMap;
 	NotifyHook = InNotifyHook;
@@ -22,7 +22,7 @@ void STileLayerList::Construct(const FArguments& InArgs, UPaperTileMap* InTileMa
 	FTileMapEditorCommands::Register();
 	const FTileMapEditorCommands& Commands = FTileMapEditorCommands::Get();
 
-	CommandList = MakeShareable(new FUICommandList);
+	CommandList = InCommandList;
 
 	CommandList->MapAction(
 		Commands.AddNewLayerAbove,
@@ -49,14 +49,32 @@ void STileLayerList::Construct(const FArguments& InArgs, UPaperTileMap* InTileMa
 
 	CommandList->MapAction(
 		Commands.MoveLayerUp,
-		FExecuteAction::CreateSP(this, &STileLayerList::MoveLayerUp),
+		FExecuteAction::CreateSP(this, &STileLayerList::MoveLayerUp, /*bForceToTop=*/ false),
 		FCanExecuteAction::CreateSP(this, &STileLayerList::CanExecuteActionNeedingLayerAbove));
 
 	CommandList->MapAction(
 		Commands.MoveLayerDown,
-		FExecuteAction::CreateSP(this, &STileLayerList::MoveLayerDown),
+		FExecuteAction::CreateSP(this, &STileLayerList::MoveLayerDown, /*bForceToBottom=*/ false),
 		FCanExecuteAction::CreateSP(this, &STileLayerList::CanExecuteActionNeedingLayerBelow));
-	
+
+	CommandList->MapAction(
+		Commands.MoveLayerToTop,
+		FExecuteAction::CreateSP(this, &STileLayerList::MoveLayerUp, /*bForceToTop=*/ true),
+		FCanExecuteAction::CreateSP(this, &STileLayerList::CanExecuteActionNeedingLayerAbove));
+
+	CommandList->MapAction(
+		Commands.MoveLayerToBottom,
+		FExecuteAction::CreateSP(this, &STileLayerList::MoveLayerDown, /*bForceToBottom=*/ true),
+		FCanExecuteAction::CreateSP(this, &STileLayerList::CanExecuteActionNeedingLayerBelow));
+
+	CommandList->MapAction(
+		Commands.SelectLayerAbove,
+		FExecuteAction::CreateSP(this, &STileLayerList::SelectLayerAbove, /*bTopmost=*/ false));
+
+	CommandList->MapAction(
+		Commands.SelectLayerBelow,
+		FExecuteAction::CreateSP(this, &STileLayerList::SelectLayerBelow, /*bBottommost=*/ false));
+
 	FToolBarBuilder ToolbarBuilder(CommandList, FMultiBoxCustomization("TileLayerBrowserToolbar"), TSharedPtr<FExtender>(), Orient_Horizontal, /*InForceSmallIcons=*/ true);
 	ToolbarBuilder.SetLabelVisibility(EVisibility::Collapsed);
 
@@ -353,18 +371,46 @@ void STileLayerList::MergeLayerDown()
 	}
 }
 
-void STileLayerList::MoveLayerUp()
+void STileLayerList::MoveLayerUp(bool bForceToTop)
 {
 	const int32 SelectedIndex = GetSelectionIndex();
-	const int32 NewIndex = SelectedIndex - 1;
+	const int32 NewIndex = bForceToTop ? 0 : (SelectedIndex - 1);
 	ChangeLayerOrdering(SelectedIndex, NewIndex);
 }
 
-void STileLayerList::MoveLayerDown()
+void STileLayerList::MoveLayerDown(bool bForceToBottom)
 {
 	const int32 SelectedIndex = GetSelectionIndex();
-	const int32 NewIndex = SelectedIndex + 1;
+	const int32 NewIndex = bForceToBottom ? (GetNumLayers() - 1) : (SelectedIndex + 1);
 	ChangeLayerOrdering(SelectedIndex, NewIndex);
+}
+
+void STileLayerList::SelectLayerAbove(bool bTopmost)
+{
+	const int32 SelectedIndex = GetSelectionIndex();
+	const int32 NumLayers = GetNumLayers();
+	const int32 NewIndex = bTopmost ? 0 : ((NumLayers + SelectedIndex - 1) % NumLayers);
+	SetSelectedLayerIndex(NewIndex);
+}
+
+void STileLayerList::SelectLayerBelow(bool bBottommost)
+{
+	const int32 SelectedIndex = GetSelectionIndex();
+	const int32 NumLayers = GetNumLayers();
+	const int32 NewIndex = bBottommost ? (NumLayers - 1) : ((SelectedIndex + 1) % NumLayers);
+	SetSelectedLayerIndex(NewIndex);
+}
+
+void STileLayerList::SetSelectedLayerIndex(int32 NewIndex)
+{
+	if (UPaperTileMap* TileMap = TileMapPtr.Get())
+	{
+		if (TileMap->TileLayers.IsValidIndex(NewIndex))
+		{
+			SetSelectedLayer(TileMap->TileLayers[NewIndex]);
+			PostEditNotfications();
+		}
+	}
 }
 
 int32 STileLayerList::GetNumLayers() const
@@ -424,7 +470,7 @@ TSharedPtr<SWidget> STileLayerList::OnConstructContextMenu()
 
 	const FTileMapEditorCommands& Commands = FTileMapEditorCommands::Get();
 
- 	MenuBuilder.BeginSection("BasicOperations");
+	MenuBuilder.BeginSection("BasicOperations", LOCTEXT("BasicOperationsHeader", "Layer actions"));
  	{
 		MenuBuilder.AddMenuEntry(Commands.DuplicateLayer);
 		MenuBuilder.AddMenuEntry(Commands.DeleteLayer);
