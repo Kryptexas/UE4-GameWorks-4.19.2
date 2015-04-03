@@ -67,7 +67,8 @@ namespace UnrealBuildTool
 				}
 			}
 
-			if( !ProjectFileGenerator.bGenerateProjectFiles && !UnrealBuildTool.bNeedsFullCPPIncludeRescan )
+			bool bIsBuilding = (BuildConfiguration.bXGEExport == false) && (UEBuildConfiguration.bGenerateManifest == false) && (UEBuildConfiguration.bGenerateExternalFileList == false) && (UEBuildConfiguration.bCleanProject == false);
+			if( bIsBuilding && !UnrealBuildTool.bNeedsFullCPPIncludeRescan )
 			{ 
 				UnrealBuildTool.bNeedsFullCPPIncludeRescan = true;
 				Log.TraceInformation( "Performing full C++ include scan (no include cache file)" );
