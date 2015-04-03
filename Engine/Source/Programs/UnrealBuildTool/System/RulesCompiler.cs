@@ -225,6 +225,9 @@ namespace UnrealBuildTool
         /// Extra modules this module may require at run time, that are on behalf of another platform (i.e. shader formats and the like)
         public List<string> PlatformSpecificDynamicallyLoadedModuleNames = new List<string>();
 
+		/// List of files which this module depends on at runtime. These files will be staged along with the target.
+		public List<RuntimeDependency> RuntimeDependencies = new List<RuntimeDependency>();
+
 		/// <summary>
 		/// Property for the directory containing this module. Useful for adding paths to third party dependencies.
 		/// </summary>

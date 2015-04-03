@@ -170,12 +170,12 @@ namespace UnrealBuildTool
 			}
 		}
 
-		public override void AddFilesToManifest(BuildManifest Manifest, UEBuildBinary Binary)
+		public override void AddFilesToReceipt(BuildReceipt Receipt, UEBuildBinary Binary)
 		{
 			if (BuildConfiguration.bCreateStubIPA && Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
 			{
 				string StubFile = Path.Combine (Path.GetDirectoryName (Binary.Config.OutputFilePath), Path.GetFileNameWithoutExtension (Binary.Config.OutputFilePath) + ".stub");
-				Manifest.AddBuildProduct(StubFile);
+				Receipt.AddBuildProduct(StubFile, BuildProductType.Executable);
 			}
 		}
 

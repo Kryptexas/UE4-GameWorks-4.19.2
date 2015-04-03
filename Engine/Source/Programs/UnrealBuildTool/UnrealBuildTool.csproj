@@ -202,6 +202,7 @@
     <Compile Include="System\BuildException.cs" />
     <Compile Include="Configuration\BuildConfiguration.cs" />
     <Compile Include="System\BuildHostPlatform.cs" />
+    <Compile Include="System\BuildReceipt.cs" />
     <Compile Include="System\FlatCPPIncludeDepencencyCache.cs" />
     <Compile Include="System\Distcc.cs" />
     <Compile Include="System\CMakefileGenerator.cs" />

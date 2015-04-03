@@ -38,7 +38,7 @@ namespace UnrealBuildTool
 
 		void SetUpGlobalEnvironment();
 
-        void AddFilesToManifest(BuildManifest Manifest, UEBuildBinary Binary);
+		void AddFilesToReceipt(BuildReceipt Receipt, UEBuildBinary Binary);
 
 		void SetupBundleDependencies(List<UEBuildBinary> Binaries, string GameName);
 
@@ -168,14 +168,11 @@ namespace UnrealBuildTool
 
 		protected void RunUnrealHeaderToolIfNeeded()
 		{
-
 		}
 
-        public virtual void AddFilesToManifest(BuildManifest Manifest, UEBuildBinary Binary)
-        {
-
-        }
-
+		public virtual void AddFilesToReceipt(BuildReceipt Receipt, UEBuildBinary Binary)
+		{
+		}
 
 		protected void AddPrerequisiteSourceFile( UEBuildTarget Target, IUEBuildPlatform BuildPlatform, CPPEnvironment CompileEnvironment, FileItem SourceFile, List<FileItem> PrerequisiteItems )
 		{

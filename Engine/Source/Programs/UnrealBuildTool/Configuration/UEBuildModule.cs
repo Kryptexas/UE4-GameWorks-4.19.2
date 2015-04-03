@@ -257,6 +257,9 @@ namespace UnrealBuildTool
         /** Extra modules this module may require at run time, that are on behalf of another platform (i.e. shader formats and the like) */
 		protected HashSet<string> PlatformSpecificDynamicallyLoadedModuleNames;
 
+		/** Files which this module depends on at runtime. */
+		public List<RuntimeDependency> RuntimeDependencies;
+
 		public UEBuildModule(
 			UEBuildTarget InTarget,
 			string InName,
@@ -282,7 +285,8 @@ namespace UnrealBuildTool
 			IEnumerable<string> InPrivateDependencyModuleNames = null,
 			IEnumerable<string> InCircularlyReferencedDependentModules = null,
 			IEnumerable<string> InDynamicallyLoadedModuleNames = null,
-            IEnumerable<string> InPlatformSpecificDynamicallyLoadedModuleNames = null
+            IEnumerable<string> InPlatformSpecificDynamicallyLoadedModuleNames = null,
+			IEnumerable<RuntimeDependency> InRuntimeDependencies = null
 			)
 		{
 			Target = InTarget;
@@ -309,6 +313,7 @@ namespace UnrealBuildTool
 			CircularlyReferencedDependentModules = new HashSet<string>( HashSetFromOptionalEnumerableStringParameter( InCircularlyReferencedDependentModules ) );
 			DynamicallyLoadedModuleNames = HashSetFromOptionalEnumerableStringParameter( InDynamicallyLoadedModuleNames );
             PlatformSpecificDynamicallyLoadedModuleNames = HashSetFromOptionalEnumerableStringParameter(InPlatformSpecificDynamicallyLoadedModuleNames);
+			RuntimeDependencies = (InRuntimeDependencies == null)? new List<RuntimeDependency>() : new List<RuntimeDependency>(InRuntimeDependencies);
 			IsRedistributableOverride = InIsRedistributableOverride;
 
 			SetupModuleDistributionLevel();
@@ -942,7 +947,8 @@ namespace UnrealBuildTool
 			IEnumerable<string> InPublicAdditionalShadowFiles = null,
 			IEnumerable<UEBuildBundleResource> InPublicAdditionalBundleResources = null,
 			IEnumerable<string> InPublicDependencyModuleNames = null,
-			IEnumerable<string> InPublicDelayLoadDLLs = null		// Delay loaded DLLs that should be setup when including this module
+			IEnumerable<string> InPublicDelayLoadDLLs = null,		// Delay loaded DLLs that should be setup when including this module
+			IEnumerable<RuntimeDependency> InRuntimeDependencies = null
 			)
 		: base(
 			InTarget:						InTarget,
@@ -962,7 +968,8 @@ namespace UnrealBuildTool
 			InPublicAdditionalShadowFiles:  InPublicAdditionalShadowFiles,
 			InPublicAdditionalBundleResources: InPublicAdditionalBundleResources,
 			InPublicDependencyModuleNames:	InPublicDependencyModuleNames,
-			InPublicDelayLoadDLLs:			InPublicDelayLoadDLLs
+			InPublicDelayLoadDLLs:			InPublicDelayLoadDLLs,
+			InRuntimeDependencies:			InRuntimeDependencies
 			)
 		{
 			bIncludedInTarget = true;
@@ -1154,6 +1161,7 @@ namespace UnrealBuildTool
 			IEnumerable<string> InCircularlyReferencedDependentModules,
 			IEnumerable<string> InDynamicallyLoadedModuleNames,
             IEnumerable<string> InPlatformSpecificDynamicallyLoadedModuleNames,
+			IEnumerable<RuntimeDependency> InRuntimeDependencies,
             ModuleRules.CodeOptimization InOptimizeCode,
 			bool InAllowSharedPCH,
 			string InSharedPCHHeaderFile,
@@ -1188,7 +1196,8 @@ namespace UnrealBuildTool
 					InPrivateDependencyModuleNames, 
 					InCircularlyReferencedDependentModules,
 					InDynamicallyLoadedModuleNames,
-                    InPlatformSpecificDynamicallyLoadedModuleNames
+                    InPlatformSpecificDynamicallyLoadedModuleNames,
+					InRuntimeDependencies
 				)
 		{
 			IntelliSenseGatherer = InIntelliSenseGatherer;
@@ -2235,6 +2244,7 @@ namespace UnrealBuildTool
 			IEnumerable<string> InCircularlyReferencedDependentModules,
 			IEnumerable<string> InDynamicallyLoadedModuleNames,
             IEnumerable<string> InPlatformSpecificDynamicallyLoadedModuleNames,
+			IEnumerable<RuntimeDependency> InRuntimeDependencies,
             ModuleRules.CodeOptimization InOptimizeCode,
 			bool InAllowSharedPCH,
 			string InSharedPCHHeaderFile,
@@ -2249,7 +2259,7 @@ namespace UnrealBuildTool
 			InSourceFiles,InPublicIncludePaths,InPublicSystemIncludePaths,null,InDefinitions,
 			InPublicIncludePathModuleNames,InPublicDependencyModuleNames,InPublicDelayLoadDLLs,InPublicAdditionalLibraries,InPublicFrameworks,InPublicWeakFrameworks,InPublicAdditionalFrameworks,InPublicAdditionalShadowFiles,InPublicAdditionalBundleResources,
 			InPrivateIncludePaths,InPrivateIncludePathModuleNames,InPrivateDependencyModuleNames,
-            InCircularlyReferencedDependentModules, InDynamicallyLoadedModuleNames, InPlatformSpecificDynamicallyLoadedModuleNames, InOptimizeCode,
+            InCircularlyReferencedDependentModules, InDynamicallyLoadedModuleNames, InPlatformSpecificDynamicallyLoadedModuleNames, InRuntimeDependencies, InOptimizeCode,
 			InAllowSharedPCH, InSharedPCHHeaderFile, InUseRTTI, InEnableBufferSecurityChecks, InFasterWithoutUnity, InMinFilesUsingPrecompiledHeaderOverride,
 			InEnableExceptions, bInBuildSourceFiles)
 		{

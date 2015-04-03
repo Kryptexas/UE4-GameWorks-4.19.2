@@ -1761,11 +1761,12 @@ namespace UnrealBuildTool
                             // Execute the actions.
                             bSuccess = ActionGraph.ExecuteActions(ActionsToExecute, out ExecutorName);
 
-                            // if the build succeeded, do any needed syncing
+                            // if the build succeeded, write the receipts and do any needed syncing
                             if (bSuccess)
                             {
                                 foreach (UEBuildTarget Target in Targets)
                                 {
+									Target.WriteReceipt();
                                     ToolChain.PostBuildSync(Target);
                                 }
 								if (ActionsToExecute.Count == 0 && UEBuildConfiguration.bSkipLinkingWhenNothingToCompile)

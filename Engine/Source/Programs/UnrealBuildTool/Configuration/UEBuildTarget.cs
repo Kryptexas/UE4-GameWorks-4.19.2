@@ -740,6 +740,9 @@ namespace UnrealBuildTool
 		[NonSerialized]
 		private Dictionary<string, UEBuildModule> Modules = new Dictionary<string, UEBuildModule>(StringComparer.InvariantCultureIgnoreCase);
 
+		/** The receipt for this target, which contains a record of this build. */
+		private BuildReceipt Receipt;
+
 		/// <summary>
 		/// Whether this target should be compiled in monolithic mode
 		/// </summary>
@@ -978,10 +981,8 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Cleans all target intermediate files. May also clean UHT if the target uses UObjects.
 		/// </summary>
-		/// <param name="Binaries">Target binaries</param>
-		/// <param name="Platform">Tareet platform</param>
 		/// <param name="Manifest">Manifest</param>
-		protected void CleanTarget(List<UEBuildBinary> Binaries, CPPTargetPlatform Platform, BuildManifest Manifest)
+		protected void CleanTarget(BuildManifest Manifest)
 		{
 			{
 				Log.TraceVerbose("Cleaning target {0} - AppName {1}", TargetName, AppName);
@@ -1288,7 +1289,7 @@ namespace UnrealBuildTool
 		}
 
 		/** Generates a public manifest file for writing out */
-        public void GenerateManifest(IUEToolChain ToolChain, List<UEBuildBinary> Binaries, CPPTargetPlatform Platform)
+        public void GenerateManifest()
 		{
 			string ManifestPath;
 			if (UnrealBuildTool.RunningRocket())
@@ -1307,51 +1308,58 @@ namespace UnrealBuildTool
 				Manifest = Utils.ReadClass<BuildManifest>(ManifestPath);
 			}
 
-			UnrealTargetPlatform TargetPlatform = CPPTargetPlatformToUnrealTargetPlatform( Platform );
-			var BuildPlatform = UEBuildPlatform.GetBuildPlatform( TargetPlatform );
-
-
-			// Iterate over all the binaries, and add the relevant info to the manifest
-			foreach( UEBuildBinary Binary in Binaries )
+			foreach(BuildProduct BuildProduct in Receipt.BuildProducts)
 			{
-				// Get the platform specific extension for debug info files
-
-				// Don't add static library files to the manifest as we do not check them into perforce.
-				// However, add them to the manifest when cleaning the project as we do want to delete 
-				// them in that case.
-				if (UEBuildConfiguration.bCleanProject == false && !bPrecompile)
+				// If we're cleaning, don't add any precompiled binaries to the manifest. We don't want to delete them.
+				if(UEBuildConfiguration.bCleanProject && bUsePrecompiled && BuildProduct.IsPrecompiled)
 				{
-                    if (Binary.Config.Type == UEBuildBinaryType.StaticLibrary)
-					{
-						continue;
-					}
-				}
-                string DebugInfoExtension = BuildPlatform.GetDebugInfoExtension(Binary.Config.Type);
-
-				// Create and add the binary and associated debug info
-				foreach (string OutputFilePath in Binary.Config.OutputFilePaths)
-				{
-					Manifest.AddBuildProduct(OutputFilePath, DebugInfoExtension);
+					continue;
 				}
 
-				if (Binary.Config.Type == UEBuildBinaryType.Executable && Binary.Config.bBuildAdditionalConsoleApp)
+				// Don't add static libraries into the manifest unless we're explicitly building them; we don't submit them to Perforce.
+				if(!UEBuildConfiguration.bCleanProject && !bPrecompile && (BuildProduct.Type == BuildProductType.StaticLibrary || BuildProduct.Type == BuildProductType.ImportLibrary))
 				{
-					foreach (string OutputFilePath in Binary.Config.OutputFilePaths)
-					{
-						Manifest.AddBuildProduct(UEBuildBinary.GetAdditionalConsoleAppPath(OutputFilePath), DebugInfoExtension);
-					}
+					continue;
 				}
 
-                ToolChain.AddFilesToManifest(Manifest, Binary);
+				// Otherwise add it
+				string FullPath = BuildReceipt.ExpandPathVariables(BuildProduct.Path, BuildConfiguration.RelativeEnginePath, ProjectDirectory);
+				Manifest.AddBuildProduct(FullPath);
 			}
 
 			if (UEBuildConfiguration.bCleanProject)
 			{
-				CleanTarget(Binaries, Platform, Manifest);
+				CleanTarget(Manifest);
 			}
 			if (UEBuildConfiguration.bGenerateManifest)
 			{
 				Utils.WriteClass<BuildManifest>(Manifest, ManifestPath, "");
+			}
+		}
+
+		/** Creates the receipt for the target */
+		private void PrepareReceipt(IUEToolChain ToolChain)
+		{
+			Receipt = new BuildReceipt();
+			foreach(UEBuildBinary Binary in AppBinaries)
+			{
+				BuildReceipt BinaryReceipt = Binary.MakeReceipt(ToolChain);
+				Receipt.Merge(BinaryReceipt);
+			}
+			foreach(BuildProduct BuildProduct in Receipt.BuildProducts)
+			{
+				BuildProduct.Path = BuildReceipt.InsertPathVariables(BuildProduct.Path, BuildConfiguration.RelativeEnginePath, ProjectDirectory);
+			}
+		}
+
+		/** Writes the receipt for this target to disk */
+		public void WriteReceipt()
+		{
+			if(Receipt != null)
+			{
+				string ReceiptFileName = Path.Combine(ProjectDirectory, "Build", "Receipts", String.Format("{0}-{1}-{2}.target.xml", TargetName, Platform.ToString(), Configuration.ToString()));
+				Directory.CreateDirectory(Path.GetDirectoryName(ReceiptFileName));
+				Receipt.Write(ReceiptFileName);
 			}
 		}
 
@@ -1435,10 +1443,13 @@ namespace UnrealBuildTool
 				return ECompilationResult.Succeeded;
 			}
 
+			// Create a receipt for the target
+			PrepareReceipt(TargetToolChain);
+
 			// If we're only generating the manifest, return now
 			if (UEBuildConfiguration.bGenerateManifest || UEBuildConfiguration.bCleanProject)
 			{
-                GenerateManifest(TargetToolChain, AppBinaries, GlobalLinkEnvironment.Config.Target.Platform);
+                GenerateManifest();
                 if (!BuildConfiguration.bXGEExport)
                 {
                     return ECompilationResult.Succeeded;
@@ -2051,6 +2062,7 @@ namespace UnrealBuildTool
 				InCircularlyReferencedDependentModules: new List<string>(),
 				InDynamicallyLoadedModuleNames: new List<string>(),
 				InPlatformSpecificDynamicallyLoadedModuleNames: new List<string>(),
+				InRuntimeDependencies: new List<RuntimeDependency>(),
 				InOptimizeCode: ModuleRules.CodeOptimization.Default,
 				InAllowSharedPCH: false,
 				InSharedPCHHeaderFile: "",
@@ -3131,6 +3143,7 @@ namespace UnrealBuildTool
 							InCircularlyReferencedDependentModules: RulesObject.CircularlyReferencedDependentModules,
 							InDynamicallyLoadedModuleNames: RulesObject.DynamicallyLoadedModuleNames,
 							InPlatformSpecificDynamicallyLoadedModuleNames: RulesObject.PlatformSpecificDynamicallyLoadedModuleNames,
+							InRuntimeDependencies: RulesObject.RuntimeDependencies,
 							InOptimizeCode: RulesObject.OptimizeCode,
 							InAllowSharedPCH: (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.NoSharedPCHs) ? false : true,
 							InSharedPCHHeaderFile: RulesObject.SharedPCHHeaderFile,
@@ -3171,6 +3184,7 @@ namespace UnrealBuildTool
 							InCircularlyReferencedDependentModules: RulesObject.CircularlyReferencedDependentModules,
 							InDynamicallyLoadedModuleNames: RulesObject.DynamicallyLoadedModuleNames,
 							InPlatformSpecificDynamicallyLoadedModuleNames: RulesObject.PlatformSpecificDynamicallyLoadedModuleNames,
+							InRuntimeDependencies: RulesObject.RuntimeDependencies,
 							InOptimizeCode: RulesObject.OptimizeCode,
 							InAllowSharedPCH: (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.NoSharedPCHs) ? false : true,
 							InSharedPCHHeaderFile: RulesObject.SharedPCHHeaderFile,
@@ -3201,7 +3215,8 @@ namespace UnrealBuildTool
 							InPublicAdditionalShadowFiles: RulesObject.PublicAdditionalShadowFiles,
 							InPublicAdditionalBundleResources: RulesObject.AdditionalBundleResources,
 							InPublicDependencyModuleNames: RulesObject.PublicDependencyModuleNames,
-							InPublicDelayLoadDLLs: RulesObject.PublicDelayLoadDLLs
+							InPublicDelayLoadDLLs: RulesObject.PublicDelayLoadDLLs,
+							InRuntimeDependencies: RulesObject.RuntimeDependencies
 						);
 
 				default:

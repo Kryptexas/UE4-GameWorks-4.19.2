@@ -937,7 +937,7 @@ namespace UnrealBuildTool
 			return Outputs.ToArray();
 		}
 
-		public override void AddFilesToManifest(BuildManifest Manifest, UEBuildBinary Binary)
+		public override void AddFilesToReceipt(BuildReceipt Receipt, UEBuildBinary Binary)
 		{
 			// the binary will have all of the .so's in the output files, we need to trim down to the shared apk (which is what needs to go into the manifest)
 			if (Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
@@ -945,7 +945,7 @@ namespace UnrealBuildTool
 				foreach (string BinaryPath in Binary.Config.OutputFilePaths)
 				{
 					string ApkFile = Path.ChangeExtension(BinaryPath, ".apk");
-					Manifest.AddBuildProduct(ApkFile);
+					Receipt.AddBuildProduct(ApkFile, BuildProductType.Executable);
 				}
 			}
 		}

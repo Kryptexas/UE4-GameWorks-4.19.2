@@ -1,5 +1,6 @@
 ﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
+using System;
 using System.IO;
 
 public class ICU : ModuleRules
@@ -15,7 +16,8 @@ public class ICU : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string ICURootPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "ICU/icu4c-53_1/";
+		string ICUVersion = "icu4c-53_1";
+		string ICURootPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "ICU/" + ICUVersion + "/";
 
 		// Includes
 		PublicSystemIncludePaths.Add(ICURootPath + "include" + "/");
@@ -72,6 +74,17 @@ public class ICU : ModuleRules
                     string LibraryName = "icu" + Stem + LibraryNamePostfix + "53" + "." + "dll";
                     PublicDelayLoadDLLs.Add(LibraryName);
                 }
+
+				if(Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
+				{
+					string BinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/ICU/{0}/{1}/VS{2}/", ICUVersion, Target.Platform.ToString(), WindowsPlatform.GetVisualStudioCompilerVersionName());
+					foreach(string Stem in LibraryNameStems)
+					{
+						string LibraryName = BinariesDir + String.Format("icu{0}{1}53.dll", Stem, LibraryNamePostfix);
+						RuntimeDependencies.Add(new RuntimeDependency(LibraryName));
+					}
+				}
+
                 break;
             }
 		}
