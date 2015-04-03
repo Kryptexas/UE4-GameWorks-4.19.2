@@ -9,7 +9,7 @@ namespace UnrealBuildTool.Rules
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"SteamVR/Private",
-					"../../../../Source/Runtime/Renderer/Private",
+					"../../../../../Source/Runtime/Renderer/Private",
 					// ... add other private include paths required here ...
 				}
 				);
