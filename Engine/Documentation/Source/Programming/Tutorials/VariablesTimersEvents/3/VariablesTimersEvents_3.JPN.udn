@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2465675
+﻿INTSourceChangelist:2489335
 Availability:Public
 Title:3.ブループリントでC++コードを拡張およびオーバーライドする
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/VariablesTimersEvents
@@ -15,6 +15,7 @@ Description:ブループリントを使用したC++機能の追加または置�
 		[プログラミングチュートリアルのホームページ](Programming\Tutorials\)
 	[/PARAM]
 	[PARAM:next]
+		[次の手順](Programming\Tutorials\VariablesTimersEvents\4 "%Programming\Tutorials\VariablesTimersEvents\4:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
