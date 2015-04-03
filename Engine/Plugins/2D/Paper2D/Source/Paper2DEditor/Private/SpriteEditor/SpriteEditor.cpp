@@ -13,6 +13,7 @@
 #include "WorkspaceMenuStructureModule.h"
 #include "Paper2DEditorModule.h"
 #include "SSpriteEditorViewportToolbar.h"
+#include "SpriteDetailsCustomization.h"
 
 #include "SSpriteList.h"
 #include "SDockTab.h"
@@ -67,6 +68,11 @@ public:
 	void NotifySpriteBeingEditedHasChanged()
 	{
 		EditorViewportClient->NotifySpriteBeingEditedHasChanged();
+	}
+
+	ESpriteEditorMode::Type GetCurrentMode() const
+	{
+		return EditorViewportClient->GetCurrentMode();
 	}
 private:
 	// Pointer back to owning sprite editor instance (the keeper of state)
@@ -259,6 +265,11 @@ public:
 		SpriteEditorPtr = InSpriteEditor;
 
 		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments(), /*bAutomaticallyObserveViaGetObjectToObserve=*/ true, /*bAllowSearch=*/ true);
+
+		TAttribute<ESpriteEditorMode::Type> SpriteEditorMode = TAttribute<ESpriteEditorMode::Type>::Create(
+			TAttribute<ESpriteEditorMode::Type>::FGetter::CreateSP(InSpriteEditor.ToSharedRef(), &FSpriteEditor::GetCurrentMode));
+		FOnGetDetailCustomizationInstance CustomizeSpritesForEditor = FOnGetDetailCustomizationInstance::CreateStatic(&FSpriteDetailsCustomization::MakeInstanceForSpriteEditor, SpriteEditorMode);
+		PropertyView->RegisterInstancedCustomPropertyLayout(UPaperSprite::StaticClass(), CustomizeSpritesForEditor);
 	}
 
 	// SSingleObjectDetailsPanel interface
@@ -549,6 +560,10 @@ void FSpriteEditor::SetSpriteBeingEdited(UPaperSprite* NewSprite)
 	}
 }
 
+ESpriteEditorMode::Type FSpriteEditor::GetCurrentMode() const
+{
+	return ViewportPtr->GetCurrentMode();
+}
 
 void FSpriteEditor::CreateModeToolbarWidgets(FToolBarBuilder& IgnoredBuilder)
 {

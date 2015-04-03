@@ -6,6 +6,20 @@
 #include "Toolkits/AssetEditorManager.h"
 
 //////////////////////////////////////////////////////////////////////////
+// 
+
+namespace ESpriteEditorMode
+{
+	enum Type
+	{
+		ViewMode,
+		EditSourceRegionMode,
+		EditCollisionMode,
+		EditRenderingGeomMode
+	};
+}
+
+//////////////////////////////////////////////////////////////////////////
 // FSpriteEditor
 
 class FSpriteEditor : public FAssetEditorToolkit, public FGCObject
@@ -36,6 +50,9 @@ public:
 
 	UPaperSprite* GetSpriteBeingEdited() const { return SpriteBeingEdited; }
 	void SetSpriteBeingEdited(UPaperSprite* NewSprite);
+
+	ESpriteEditorMode::Type GetCurrentMode() const;
+
 protected:
 	UPaperSprite* SpriteBeingEdited;
 	TSharedPtr<class SSpriteEditorViewport> ViewportPtr;

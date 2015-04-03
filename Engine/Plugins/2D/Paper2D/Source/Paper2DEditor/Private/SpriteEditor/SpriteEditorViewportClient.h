@@ -14,20 +14,6 @@
 #include "PaperEditorShared/SpriteGeometryEditing.h"
 
 //////////////////////////////////////////////////////////////////////////
-// 
-
-namespace ESpriteEditorMode
-{
-	enum Type
-	{
-		ViewMode,
-		EditSourceRegionMode,
-		EditCollisionMode,
-		EditRenderingGeomMode
-	};
-}
-
-//////////////////////////////////////////////////////////////////////////
 // FRelatedSprite
 
 struct FRelatedSprite
@@ -132,6 +118,8 @@ public:
 	{
 		return CurrentMode;
 	}
+
+	static void AnalyzeSpriteMaterialType(UPaperSprite* Sprite, int32& OutNumOpaque, int32& OutNumMasked, int32& OutNumTranslucent);
 private:
 	// Editor mode
 	ESpriteEditorMode::Type CurrentMode;

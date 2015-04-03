@@ -336,27 +336,6 @@ void FSpriteEditorViewportClient::DrawGeometryStats(FViewport& InViewport, FScen
 	YPos = (int32)TextItem.Position.Y;
 }
 
-void AttributeTrianglesByMaterialType(int32 NumTriangles, UMaterialInterface* Material, int32& NumOpaqueTriangles, int32& NumMaskedTriangles, int32& NumTranslucentTriangles)
-{
-	if (Material != nullptr)
-	{
-		switch (Material->GetBlendMode())
-		{
-		case EBlendMode::BLEND_Opaque:
-			NumOpaqueTriangles += NumTriangles;
-			break;
-		case EBlendMode::BLEND_Translucent:
-		case EBlendMode::BLEND_Additive:
-		case EBlendMode::BLEND_Modulate:
-			NumTranslucentTriangles += NumTriangles;
-			break;
-		case EBlendMode::BLEND_Masked:
-			NumMaskedTriangles += NumTriangles;
-			break;
-		}
-	}
-}
-
 void FSpriteEditorViewportClient::DrawCollisionStats(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, class UBodySetup* BodySetup, int32& YPos)
 {
 	FCanvasTextItem TextItem(FVector2D(6, YPos), LOCTEXT("CollisionGeomBaked", "Collision Geometry (baked)"), GEngine->GetSmallFont(), FLinearColor::White);
@@ -440,25 +419,35 @@ void FSpriteEditorViewportClient::DrawCollisionStats(FViewport& InViewport, FSce
 	YPos = (int32)TextItem.Position.Y;
 }
 
-void FSpriteEditorViewportClient::DrawRenderStats(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, class UPaperSprite* Sprite, int32& YPos)
+void FSpriteEditorViewportClient::AnalyzeSpriteMaterialType(UPaperSprite* Sprite, int32& OutNumOpaque, int32& OutNumMasked, int32& OutNumTranslucent)
 {
-	FCanvasTextItem TextItem(FVector2D(6, YPos), LOCTEXT("RenderGeomBaked", "Render Geometry (baked)"), GEngine->GetSmallFont(), FLinearColor::White);
-	TextItem.EnableShadow(FLinearColor::Black);
-
-	TextItem.Draw(&Canvas);
-	TextItem.Position += FVector2D(6.0f, 18.0f);
-
-	int32 NumSections = (Sprite->AlternateMaterialSplitIndex != INDEX_NONE) ? 2 : 1;
-	if (NumSections > 1)
+	struct Local
 	{
-		TextItem.Text = FText::Format(LOCTEXT("SectionCount", "Sections: {0}"), FText::AsNumber(NumSections));
-		TextItem.Draw(&Canvas);
-		TextItem.Position.Y += 18.0f;
-	}
+		static void AttributeTrianglesByMaterialType(int32 NumTriangles, UMaterialInterface* Material, int32& NumOpaqueTriangles, int32& NumMaskedTriangles, int32& NumTranslucentTriangles)
+		{
+			if (Material != nullptr)
+			{
+				switch (Material->GetBlendMode())
+				{
+				case EBlendMode::BLEND_Opaque:
+					NumOpaqueTriangles += NumTriangles;
+					break;
+				case EBlendMode::BLEND_Translucent:
+				case EBlendMode::BLEND_Additive:
+				case EBlendMode::BLEND_Modulate:
+					NumTranslucentTriangles += NumTriangles;
+					break;
+				case EBlendMode::BLEND_Masked:
+					NumMaskedTriangles += NumTriangles;
+					break;
+				}
+			}
+		}
+	};
 
-	int32 NumOpaqueTriangles = 0;
-	int32 NumMaskedTriangles = 0;
-	int32 NumTranslucentTriangles = 0;
+	OutNumOpaque = 0;
+	OutNumMasked = 0;
+	OutNumTranslucent = 0;
 
 	int32 NumVerts = Sprite->BakedRenderData.Num();
 	int32 DefaultTriangles = 0;
@@ -473,8 +462,30 @@ void FSpriteEditorViewportClient::DrawRenderStats(FViewport& InViewport, FSceneV
 		DefaultTriangles = NumVerts / 3;
 	}
 
-	AttributeTrianglesByMaterialType(DefaultTriangles, Sprite->GetDefaultMaterial(), /*inout*/ NumOpaqueTriangles, /*inout*/ NumMaskedTriangles, /*inout*/ NumTranslucentTriangles);
-	AttributeTrianglesByMaterialType(AlternateTriangles, Sprite->GetAlternateMaterial(), /*inout*/ NumOpaqueTriangles, /*inout*/ NumMaskedTriangles, /*inout*/ NumTranslucentTriangles);
+	Local::AttributeTrianglesByMaterialType(DefaultTriangles, Sprite->GetDefaultMaterial(), /*inout*/ OutNumOpaque, /*inout*/ OutNumMasked, /*inout*/ OutNumTranslucent);
+	Local::AttributeTrianglesByMaterialType(AlternateTriangles, Sprite->GetAlternateMaterial(), /*inout*/ OutNumOpaque, /*inout*/ OutNumMasked, /*inout*/ OutNumTranslucent);
+}
+
+void FSpriteEditorViewportClient::DrawRenderStats(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, class UPaperSprite* Sprite, int32& YPos)
+{
+	FCanvasTextItem TextItem(FVector2D(6, YPos), LOCTEXT("RenderGeomBaked", "Render Geometry (baked)"), GEngine->GetSmallFont(), FLinearColor::White);
+	TextItem.EnableShadow(FLinearColor::Black);
+
+	TextItem.Draw(&Canvas);
+	TextItem.Position += FVector2D(6.0f, 18.0f);
+
+	int32 NumOpaqueTriangles = 0;
+	int32 NumMaskedTriangles = 0;
+	int32 NumTranslucentTriangles = 0;
+	AnalyzeSpriteMaterialType(Sprite, /*out*/ NumOpaqueTriangles, /*out*/ NumMaskedTriangles, /*out*/ NumTranslucentTriangles);
+
+	int32 NumSections = (Sprite->AlternateMaterialSplitIndex != INDEX_NONE) ? 2 : 1;
+	if (NumSections > 1)
+	{
+		TextItem.Text = FText::Format(LOCTEXT("SectionCount", "Sections: {0}"), FText::AsNumber(NumSections));
+		TextItem.Draw(&Canvas);
+		TextItem.Position.Y += 18.0f;
+	}
 
 	// Draw the number of triangles
 	if (NumOpaqueTriangles > 0)

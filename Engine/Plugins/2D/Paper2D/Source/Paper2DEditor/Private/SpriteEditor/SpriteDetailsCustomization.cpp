@@ -17,7 +17,18 @@
 
 TSharedRef<IDetailCustomization> FSpriteDetailsCustomization::MakeInstance()
 {
-	return MakeShareable(new FSpriteDetailsCustomization);
+	TAttribute<ESpriteEditorMode::Type> DummyEditMode(ESpriteEditorMode::ViewMode);
+	return MakeInstanceForSpriteEditor(DummyEditMode);
+}
+
+TSharedRef<IDetailCustomization> FSpriteDetailsCustomization::MakeInstanceForSpriteEditor(TAttribute<ESpriteEditorMode::Type> InEditMode)
+{
+	return MakeShareable(new FSpriteDetailsCustomization(InEditMode));
+}
+
+FSpriteDetailsCustomization::FSpriteDetailsCustomization(TAttribute<ESpriteEditorMode::Type> InEditMode)
+{
+	SpriteEditMode = InEditMode;
 }
 
 FDetailWidgetRow& FSpriteDetailsCustomization::GenerateWarningRow(IDetailCategoryBuilder& WarningCategory, bool bExperimental, const FText& WarningText, const FText& Tooltip, const FString& ExcerptLink, const FString& ExcerptName)
@@ -60,13 +71,13 @@ void FSpriteDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailL
 	IDetailCategoryBuilder& SpriteCategory = DetailLayout.EditCategory("Sprite", FText::GetEmpty(), ECategoryPriority::Important);
 	BuildSpriteSection(SpriteCategory, DetailLayout);
 
-	// Build the rendering category
-	IDetailCategoryBuilder& RenderingCategory = DetailLayout.EditCategory("Rendering");
-	BuildRenderingSection(RenderingCategory, DetailLayout);
-
 	// Build the collision category
 	IDetailCategoryBuilder& CollisionCategory = DetailLayout.EditCategory("Collision");
 	BuildCollisionSection(CollisionCategory, DetailLayout);
+
+	// Build the rendering category
+	IDetailCategoryBuilder& RenderingCategory = DetailLayout.EditCategory("Rendering");
+	BuildRenderingSection(RenderingCategory, DetailLayout);
 }
 
 void FSpriteDetailsCustomization::BuildSpriteSection(IDetailCategoryBuilder& SpriteCategory, IDetailLayoutBuilder& DetailLayout)
@@ -95,11 +106,57 @@ void FSpriteDetailsCustomization::BuildSpriteSection(IDetailCategoryBuilder& Spr
 
 void FSpriteDetailsCustomization::BuildRenderingSection(IDetailCategoryBuilder& RenderingCategory, IDetailLayoutBuilder& DetailLayout)
 {
+	TAttribute<EVisibility> HideWhenInCollisionMode = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FSpriteDetailsCustomization::EditorModeIsNot, ESpriteEditorMode::EditCollisionMode));
+	TAttribute<EVisibility> ShowWhenInCollisionMode = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FSpriteDetailsCustomization::EditorModeMatches, ESpriteEditorMode::EditCollisionMode));
+
+	static const FText EditRenderingInRenderingMode = LOCTEXT("RenderingPropertiesHiddenInCollisionMode", "Switch to 'Edit RenderGeom' mode\nto edit Rendering settings");
+	RenderingCategory.AddCustomRow(EditRenderingInRenderingMode)
+		.Visibility(ShowWhenInCollisionMode)
+		.WholeRowContent()
+		.HAlign(HAlign_Center)
+		[
+			SNew(STextBlock)
+			.Font(DetailLayout.GetDetailFontItalic())
+			.Justification(ETextJustify::Center)
+			.Text(EditRenderingInRenderingMode)
+		];
+
+	TArray<TWeakObjectPtr<UObject>> ObjectsBeingCustomized;
+	DetailLayout.GetObjectsBeingCustomized(/*out*/ ObjectsBeingCustomized);
+
+	if (ObjectsBeingCustomized.Num() > 0)
+	{
+		if (UPaperSprite* SpriteBeingEdited = Cast<UPaperSprite>(ObjectsBeingCustomized[0].Get()))
+		{
+			static const FText TypesOfMaterialsTooltip = LOCTEXT("TypesOfMaterialsTooltip", "Translucent materials can have smooth alpha edges, blending with the background\nMasked materials have on or off alpha, useful for cutouts\nOpaque materials have no transparency but render faster");
+
+			RenderingCategory.HeaderContent
+			(
+				SNew(SBox)
+				.HAlign(HAlign_Right)
+				[
+					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot()
+					.Padding(FMargin(5.0f, 0.0f))
+					.AutoWidth()
+					[
+						SNew(STextBlock)
+						.Font(FEditorStyle::GetFontStyle("TinyText"))
+						.Text(this, &FSpriteDetailsCustomization::GetRenderingHeaderContentText, TWeakObjectPtr<UPaperSprite>(SpriteBeingEdited))
+						.ToolTipText(TypesOfMaterialsTooltip)
+					]
+				]
+			);
+
+		}
+	}
+
 	// Add the rendering geometry mode into the parent container (renamed)
 	const FString RenderGeometryTypePropertyPath = FString::Printf(TEXT("%s.%s"), GET_MEMBER_NAME_STRING_CHECKED(UPaperSprite, RenderGeometry), GET_MEMBER_NAME_STRING_CHECKED(FSpriteGeometryCollection, GeometryType));
 	TSharedPtr<IPropertyHandle> RenderGeometryTypeProperty = DetailLayout.GetProperty(*RenderGeometryTypePropertyPath);
 	RenderingCategory.AddProperty(RenderGeometryTypeProperty)
-		.DisplayName(LOCTEXT("RenderGeometryType", "Render Geometry Type"));
+		.DisplayName(LOCTEXT("RenderGeometryType", "Render Geometry Type"))
+		.Visibility(HideWhenInCollisionMode);
 
 	// Show the alternate material, but only when the mode is Diced
 	TAttribute<EVisibility> ShowWhenModeIsDiced = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FSpriteDetailsCustomization::PolygonModeMatches, RenderGeometryTypeProperty, ESpritePolygonMode::Diced));
@@ -109,22 +166,56 @@ void FSpriteDetailsCustomization::BuildRenderingSection(IDetailCategoryBuilder& 
 
 	// Show the rendering geometry settings
 	TSharedRef<IPropertyHandle> RenderGeometry = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UPaperSprite, RenderGeometry));
-	IDetailPropertyRow& RenderGeometryProperty = RenderingCategory.AddProperty(RenderGeometry);
+	IDetailPropertyRow& RenderGeometryProperty = RenderingCategory.AddProperty(RenderGeometry)
+		.Visibility(HideWhenInCollisionMode);
 
 	// Add the render polygons into advanced (renamed)
 	const FString RenderGeometryPolygonsPropertyPath = FString::Printf(TEXT("%s.%s"), GET_MEMBER_NAME_STRING_CHECKED(UPaperSprite, RenderGeometry), GET_MEMBER_NAME_STRING_CHECKED(FSpriteGeometryCollection, Shapes));
 	RenderingCategory.AddProperty(DetailLayout.GetProperty(*RenderGeometryPolygonsPropertyPath), EPropertyLocation::Advanced)
-		.DisplayName(LOCTEXT("RenderShapes", "Render Shapes"));
+		.DisplayName(LOCTEXT("RenderShapes", "Render Shapes"))
+		.Visibility(HideWhenInCollisionMode);
 }
 
 void FSpriteDetailsCustomization::BuildCollisionSection(IDetailCategoryBuilder& CollisionCategory, IDetailLayoutBuilder& DetailLayout)
 {
 	TSharedPtr<IPropertyHandle> SpriteCollisionDomainProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UPaperSprite, SpriteCollisionDomain));
-	TAttribute<EVisibility> ParticipatesInPhysics = TAttribute<EVisibility>::Create( TAttribute<EVisibility>::FGetter::CreateSP( this, &FSpriteDetailsCustomization::AnyPhysicsMode, SpriteCollisionDomainProperty) ) ;
+
+	CollisionCategory.HeaderContent
+	(
+		SNew(SBox)
+		.HAlign(HAlign_Right)
+		[
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.Padding(FMargin(5.0f, 0.0f))
+			.AutoWidth()
+			[
+				SNew(STextBlock)
+				.Font(FEditorStyle::GetFontStyle("TinyText"))
+				.Text(this, &FSpriteDetailsCustomization::GetCollisionHeaderContentText, SpriteCollisionDomainProperty)
+			]
+		]
+	);
+
+	TAttribute<EVisibility> ParticipatesInPhysics = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP( this, &FSpriteDetailsCustomization::AnyPhysicsMode, SpriteCollisionDomainProperty));
 	TAttribute<EVisibility> ParticipatesInPhysics3D = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FSpriteDetailsCustomization::PhysicsModeMatches, SpriteCollisionDomainProperty, ESpriteCollisionMode::Use3DPhysics));
 	TAttribute<EVisibility> ParticipatesInPhysics2D = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FSpriteDetailsCustomization::PhysicsModeMatches, SpriteCollisionDomainProperty, ESpriteCollisionMode::Use2DPhysics));
+	TAttribute<EVisibility> HideWhenInRenderingMode = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FSpriteDetailsCustomization::EditorModeIsNot, ESpriteEditorMode::EditRenderingGeomMode));
+	TAttribute<EVisibility> ShowWhenInRenderingMode = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FSpriteDetailsCustomization::EditorModeMatches, ESpriteEditorMode::EditRenderingGeomMode));
 
-	CollisionCategory.AddProperty(SpriteCollisionDomainProperty);
+	static const FText EditCollisionInCollisionMode = LOCTEXT("CollisionPropertiesHiddenInRenderingMode", "Switch to 'Edit Collsion' mode\nto edit Collision settings");
+	CollisionCategory.AddCustomRow(EditCollisionInCollisionMode)
+		.Visibility(ShowWhenInRenderingMode)
+		.WholeRowContent()
+		.HAlign(HAlign_Center)
+		[
+			SNew(STextBlock)
+			.Font(DetailLayout.GetDetailFontItalic())
+			.Justification(ETextJustify::Center)
+			.Text(EditCollisionInCollisionMode)
+		];
+
+	CollisionCategory.AddProperty(SpriteCollisionDomainProperty).Visibility(HideWhenInRenderingMode);
 
 	// Add a warning bar about 2D collision being experimental
 	FText WarningFor2D = LOCTEXT("Experimental2DPhysicsWarning", "2D collision support is *experimental*");
@@ -156,19 +247,9 @@ void FSpriteDetailsCustomization::BuildCollisionSection(IDetailCategoryBuilder& 
 			.Visibility(ParticipatesInPhysics);
 	}
 
-	// Show the collision geometry when not None
-	CollisionCategory.AddProperty( DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UPaperSprite, CollisionGeometry)) )
-		.Visibility(ParticipatesInPhysics);
-
 	// Show the collision thickness only in 3D mode
 	CollisionCategory.AddProperty( DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UPaperSprite, CollisionThickness)) )
 		.Visibility(ParticipatesInPhysics3D);
-
-	// Add the collision polygons into advanced (renamed)
-	const FString CollisionGeometryPolygonsPropertyPath = FString::Printf(TEXT("%s.%s"), GET_MEMBER_NAME_STRING_CHECKED(UPaperSprite, CollisionGeometry), GET_MEMBER_NAME_STRING_CHECKED(FSpriteGeometryCollection, Shapes));
-	CollisionCategory.AddProperty(DetailLayout.GetProperty(*CollisionGeometryPolygonsPropertyPath), EPropertyLocation::Advanced)
-		.DisplayName(LOCTEXT("CollisionShapes", "Collision Shapes"))
-		.Visibility(ParticipatesInPhysics);
 
 	// Show the default body instance (and only it) from the body setup (if it exists)
 	DetailLayout.HideProperty("BodySetup");
@@ -197,6 +278,16 @@ void FSpriteDetailsCustomization::BuildCollisionSection(IDetailCategoryBuilder& 
 			DefaultInstanceRow->Visibility(ParticipatesInPhysics);
 		}
 	}
+
+	// Show the collision geometry when not None
+	CollisionCategory.AddProperty(DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UPaperSprite, CollisionGeometry)))
+		.Visibility(ParticipatesInPhysics);
+
+	// Add the collision polygons into advanced (renamed)
+	const FString CollisionGeometryPolygonsPropertyPath = FString::Printf(TEXT("%s.%s"), GET_MEMBER_NAME_STRING_CHECKED(UPaperSprite, CollisionGeometry), GET_MEMBER_NAME_STRING_CHECKED(FSpriteGeometryCollection, Shapes));
+	CollisionCategory.AddProperty(DetailLayout.GetProperty(*CollisionGeometryPolygonsPropertyPath), EPropertyLocation::Advanced)
+		.DisplayName(LOCTEXT("CollisionShapes", "Collision Shapes"))
+		.Visibility(ParticipatesInPhysics);
 }
 
 void FSpriteDetailsCustomization::BuildTextureSection(IDetailCategoryBuilder& SpriteCategory, IDetailLayoutBuilder& DetailLayout)
@@ -313,8 +404,23 @@ TSharedRef<SWidget> FSpriteDetailsCustomization::CreateTextureNameWidget(TShared
 	}
 }
 
+EVisibility FSpriteDetailsCustomization::EditorModeMatches(ESpriteEditorMode::Type DesiredMode) const
+{
+	return (SpriteEditMode.Get() == DesiredMode) ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+EVisibility FSpriteDetailsCustomization::EditorModeIsNot(ESpriteEditorMode::Type DesiredMode) const
+{
+	return (SpriteEditMode.Get() != DesiredMode) ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
 EVisibility FSpriteDetailsCustomization::PhysicsModeMatches(TSharedPtr<IPropertyHandle> Property, ESpriteCollisionMode::Type DesiredMode) const
 {
+	if (SpriteEditMode.Get() == ESpriteEditorMode::EditRenderingGeomMode)
+	{
+		return EVisibility::Collapsed;
+	}
+
 	if (Property.IsValid())
 	{
 		uint8 ValueAsByte;
@@ -332,6 +438,11 @@ EVisibility FSpriteDetailsCustomization::PhysicsModeMatches(TSharedPtr<IProperty
 
 EVisibility FSpriteDetailsCustomization::AnyPhysicsMode(TSharedPtr<IPropertyHandle> Property) const
 {
+	if (SpriteEditMode.Get() == ESpriteEditorMode::EditRenderingGeomMode)
+	{
+		return EVisibility::Collapsed;
+	}
+
 	if (Property.IsValid())
 	{
 		uint8 ValueAsByte;
@@ -345,6 +456,88 @@ EVisibility FSpriteDetailsCustomization::AnyPhysicsMode(TSharedPtr<IPropertyHand
 
 	// If there are multiple values, show all properties
 	return EVisibility::Visible;
+}
+
+FText FSpriteDetailsCustomization::GetCollisionHeaderContentText(TSharedPtr<IPropertyHandle> Property) const
+{
+	FText CollisionContentText;
+
+	if (Property.IsValid())
+	{
+		uint8 ValueAsByte;
+		if (Property->GetValue(/*out*/ ValueAsByte) == FPropertyAccess::Success)
+		{
+			ESpriteCollisionMode::Type CollisionMode = ((ESpriteCollisionMode::Type)ValueAsByte);
+
+			switch (CollisionMode)
+			{
+			case ESpriteCollisionMode::None:
+				CollisionContentText = LOCTEXT("CollisionHeader_NoCollision", "(no collision)");
+				break;
+			case ESpriteCollisionMode::Use2DPhysics:
+				CollisionContentText = LOCTEXT("CollisionHeader_Use2D", "Uses 2D Physics");
+				break;
+			case ESpriteCollisionMode::Use3DPhysics:
+				CollisionContentText = LOCTEXT("CollisionHeader_Use3D", "Uses 3D Physics");
+				break;
+			}
+		}
+	}
+
+	return CollisionContentText;
+}
+
+
+FText FSpriteDetailsCustomization::GetRenderingHeaderContentText(TWeakObjectPtr<UPaperSprite> WeakSprite) const
+{
+	FText HeaderDisplayText;
+
+	if (UPaperSprite* SpriteBeingEdited = WeakSprite.Get())
+	{
+		int32 NumOpaqueTriangles = 0;
+		int32 NumMaskedTriangles = 0;
+		int32 NumTranslucentTriangles = 0;
+		FSpriteEditorViewportClient::AnalyzeSpriteMaterialType(SpriteBeingEdited, /*out*/ NumOpaqueTriangles, /*out*/ NumMaskedTriangles, /*out*/ NumTranslucentTriangles);
+
+		static const FText Opaque = LOCTEXT("OpaqueMaterial", "Opaque");
+		static const FText Translucent = LOCTEXT("TranslucentMaterial", "Translucent");
+		static const FText Masked = LOCTEXT("MaskedMaterial", "Masked");
+		static const FText TwoItems = LOCTEXT("SpriteWithTwoMaterialsRenderHeaderText", "{0} and {1}");
+		static const FText ThreeItems = LOCTEXT("SpriteWithThreeMaterialsRenderHeaderText", "{0}, {1}, {2}"); // Should never happen right now!
+
+		TArray<const FText*, TInlineAllocator<3>> MaterialTypes;
+		if (NumOpaqueTriangles > 0)
+		{
+			MaterialTypes.Add(&Opaque);
+		}
+
+		if (NumMaskedTriangles > 0)
+		{
+			MaterialTypes.Add(&Masked);
+		}
+
+		if (NumTranslucentTriangles > 0)
+		{
+			MaterialTypes.Add(&Translucent);
+		}
+
+		switch (MaterialTypes.Num())
+		{
+		case 0:
+			break;
+		case 1:
+			HeaderDisplayText = *MaterialTypes[0];
+			break;
+		case 2:
+			HeaderDisplayText = FText::Format(TwoItems, *MaterialTypes[0], *MaterialTypes[1]);
+			break;
+		case 3:
+			HeaderDisplayText = FText::Format(ThreeItems, *MaterialTypes[0], *MaterialTypes[1], *MaterialTypes[2]);
+			break;
+		};
+	}
+
+	return HeaderDisplayText;
 }
 
 EVisibility FSpriteDetailsCustomization::GetAtlasGroupVisibility()
@@ -377,6 +570,14 @@ EVisibility FSpriteDetailsCustomization::Get2DPhysicsNotEnabledWarningVisibility
 
 EVisibility FSpriteDetailsCustomization::PolygonModeMatches(TSharedPtr<IPropertyHandle> Property, ESpritePolygonMode::Type DesiredMode) const
 {
+	if (DesiredMode == ESpritePolygonMode::Diced)
+	{
+		if (SpriteEditMode.Get() == ESpriteEditorMode::EditCollisionMode)
+		{
+			return EVisibility::Collapsed;
+		}
+	}
+
 	if (Property.IsValid())
 	{
 		uint8 ValueAsByte;
