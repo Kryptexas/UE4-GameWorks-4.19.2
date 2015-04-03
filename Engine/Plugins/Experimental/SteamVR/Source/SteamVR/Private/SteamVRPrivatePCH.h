@@ -7,6 +7,7 @@
 
 #include "Engine.h"
 #include "IHeadMountedDisplay.h"
+#include "Runtime/Engine/Public/ScreenRendering.h"
 
 // @todo Steam: Steam headers trigger secure-C-runtime warnings in Visual C++. Rather than mess with _CRT_SECURE_NO_WARNINGS, we'll just
 //	disable the warnings locally. Remove when this is fixed in the SDK

@@ -5,26 +5,26 @@
 #include "HeadMountedDisplay.h"
 #include "IHeadMountedDisplay.h"
 
+#if PLATFORM_WINDOWS
+#include "AllowWindowsPlatformTypes.h"
+#include <d3d11.h>
+#include "HideWindowsPlatformTypes.h"
+#endif
+
 #if STEAMVR_SUPPORTED_PLATFORMS
 
 #include "SceneViewExtension.h"
 
+//@todo steamvr: better association between SteamController plugin and SteamVR plugin
+#ifndef MAX_STEAM_CONTROLLERS
+	#define MAX_STEAM_CONTROLLERS 8
+#endif
 
-class FSteamVRDistortionMesh
+/** Stores vectors, in clockwise order, to define soft and hard bounds for Chaperone */
+struct FBoundingQuad
 {
-public:
-	struct FDistortionVertex*	Verts;
-	uint16*						Indices;
-	uint32						NumVerts;
-	uint32						NumIndices;
-	uint32						NumTriangles;
-
-	FSteamVRDistortionMesh();
-	~FSteamVRDistortionMesh();
-
-	void CreateMesh(vr::IHmd* Hmd, vr::Hmd_Eye Eye);
+	FVector Corners[4];
 };
-
 
 /**
  * SteamVR Head Mounted Display
@@ -58,6 +58,8 @@ public:
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
 	virtual void OnScreenModeChange(EWindowMode::Type WindowMode) override;
 
+	virtual bool IsFullscreenAllowed() override { return false; }
+
 	virtual bool IsPositionalTrackingEnabled() const override;
 	virtual bool EnablePositionalTracking(bool enable) override;
 
@@ -83,6 +85,8 @@ public:
 
 	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FSceneView& View, const FIntPoint& TextureSize) override;
 
+	virtual void UpdateScreenSettings(const FViewport* InViewport) {}
+
 	/** IStereoRendering interface */
 	virtual bool IsStereoEnabled() const override;
 	virtual bool EnableStereo(bool stereo = true) override;
@@ -94,12 +98,92 @@ public:
 	virtual void PushViewportCanvas(EStereoscopicPass StereoPass, FCanvas *InCanvas, UCanvas *InCanvasObject, FViewport *InViewport) const override;
 	virtual void PushViewCanvas(EStereoscopicPass StereoPass, FCanvas *InCanvas, UCanvas *InCanvasObject, FSceneView *InView) const override;
 	virtual void GetEyeRenderParams_RenderThread(EStereoscopicPass StereoPass, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const override;
+	virtual void RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef BackBuffer, FTexture2DRHIParamRef SrcTexture) const override;
+
+	virtual void CalculateRenderTargetSize(uint32& InOutSizeX, uint32& InOutSizeY) const override;
+	virtual bool NeedReAllocateViewportRenderTarget(const FViewport& Viewport) const override;
+	virtual bool ShouldUseSeparateRenderTarget() const override
+	{
+		check(IsInGameThread());
+		return IsStereoEnabled();
+	}
 
 	/** ISceneViewExtension interface */
 	virtual void ModifyShowFlags(FEngineShowFlags& ShowFlags) override;
 	virtual void SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView) override;
 	virtual void PreRenderView_RenderThread(FSceneView& InView) override;
 	virtual void PreRenderViewFamily_RenderThread(FSceneViewFamily& InViewFamily) override;
+
+	virtual void UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& Viewport, SViewport*) override;
+
+	class BridgeBaseImpl : public FRHICustomPresent
+	{
+	public:
+		BridgeBaseImpl(FSteamVRHMD* plugin) :
+			FRHICustomPresent(nullptr),
+			Plugin(plugin), 
+			bNeedReinitRendererAPI(true), 
+			bInitialized(false) 
+		{}
+
+		bool IsInitialized() const { return bInitialized; }
+
+		virtual void BeginRendering() = 0;
+		virtual void UpdateViewport(const FViewport& Viewport, FRHIViewport* ViewportRHI) = 0;
+		virtual void SetNeedReinitRendererAPI() { bNeedReinitRendererAPI = true; }
+
+		virtual void Reset() = 0;
+		virtual void Shutdown() = 0;
+
+	protected:
+		FSteamVRHMD*		Plugin;
+		bool				bNeedReinitRendererAPI;
+		bool				bInitialized;
+	};
+
+#if PLATFORM_WINDOWS
+	class D3D11Bridge : public BridgeBaseImpl
+	{
+	public:
+		D3D11Bridge(FSteamVRHMD* plugin);
+
+		virtual void OnBackBufferResize() override;
+		virtual bool Present(int SyncInterval) override;
+
+		virtual void BeginRendering() override;
+		void FinishRendering();
+		virtual void UpdateViewport(const FViewport& Viewport, FRHIViewport* ViewportRHI) override;
+		virtual void Reset() override;
+		virtual void Shutdown() override
+		{
+			Reset();
+		}
+
+	protected:
+		ID3D11Texture2D* RenderTargetTexture = NULL;
+	};
+#endif // PLATFORM_WINDOWS
+
+	BridgeBaseImpl* GetActiveRHIBridgeImpl();
+	void ShutdownRendering();
+
+	/** Motion Controllers */
+	void GetTrackedDeviceIds(TArray<int32>& TrackedIds);
+	bool GetTrackedObjectOrientationAndPosition(uint32 DeviceId, FQuat& CurrentOrientation, FVector& CurrentPosition);
+	bool GetTrackedDeviceIdFromControllerIndex(int32 ControllerIndex, int32& OutDeviceId);
+
+	/** Chaperone */
+	/** Returns whether or not the player is currently inside the soft bounds */
+	bool IsInsideSoftBounds();
+
+	/** Returns an array of the soft bounds as Unreal-scaled vectors, relative to the HMD calibration point (0,0,0).  The Z will always be at 0.f */
+	TArray<FVector> GetSoftBounds() const;
+
+	/** Returns an array of the hard bounds as Unreal-scaled vectors, relative to the HMD calibration point (0,0,0).  Every four entries will represent one quad of the bounding box */
+	TArray<FVector> GetHardBounds() const;
+
+	/** Get the windowed mirror mode.  @todo steamvr: thread safe flags */
+	int32 GetWindowMirrorMode() const { return WindowMirrorMode; }
 
 public:
 	/** Constructor */
@@ -123,12 +207,17 @@ private:
 	 */
 	void Shutdown();
 
+	void LoadFromIni();
+	void SaveToIni();
+
 	bool LoadSteamModule();
 	void UnloadSteamModule();
 
-	void PoseToOrientationAndPosition(const vr::HmdMatrix34_t& Pose, FQuat& OutOrientation, FVector& OutPosition) const;
-	void GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosition, float MotionPredictionInSeconds);
+	// Initialize the controller to tracked device mappings
+	void InitializeControllerMappings();
 
+	void PoseToOrientationAndPosition(const vr::HmdMatrix34_t& Pose, FQuat& OutOrientation, FVector& OutPosition) const;
+	void GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosition, uint32 DeviceID = vr::k_unTrackedDeviceIndex_Hmd, bool bForceRefresh=false);
 
 	FORCEINLINE FMatrix ToFMatrix(const vr::HmdMatrix34_t& tm) const
 	{
@@ -152,13 +241,110 @@ private:
 
 private:
 
-	vr::IHmd* Hmd;
 	bool bHmdEnabled;
 	bool bStereoEnabled;
 	bool bHmdPosTracking;
 	mutable bool bHaveVisionTracking;
 
+ 	struct FTrackingFrame
+ 	{
+ 		uint32 FrameNumber;
+ 
+ 		bool bDeviceIsValid[vr::k_unMaxTrackedDeviceCount];
+ 		bool bPoseIsValid[vr::k_unMaxTrackedDeviceCount];
+ 		FVector DevicePosition[vr::k_unMaxTrackedDeviceCount];
+ 		FQuat DeviceOrientation[vr::k_unMaxTrackedDeviceCount];
+
+		vr::HmdMatrix34_t RawPoses[vr::k_unMaxTrackedDeviceCount];
+
+		FTrackingFrame()
+		{
+			FrameNumber = 0;
+
+			const uint32 MaxDevices = vr::k_unMaxTrackedDeviceCount;
+
+			FMemory::Memzero(bDeviceIsValid, MaxDevices * sizeof(bool));
+			FMemory::Memzero(bPoseIsValid, MaxDevices * sizeof(bool));
+			FMemory::Memzero(DevicePosition, MaxDevices * sizeof(FVector));
+
+			for (uint32 i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
+			{
+				DeviceOrientation[i] = FQuat::Identity;
+			}
+
+			FMemory::Memzero(RawPoses, MaxDevices * sizeof(vr::HmdMatrix34_t));
+		}
+ 	};
+	FTrackingFrame TrackingFrame;
+
+	// a mapping from steam controller index to a tracked device index.  -1 indicates an invalid mapping
+	int32 ControllerIndexToTrackedDeviceIndex[MAX_STEAM_CONTROLLERS];
+	static const uint32 InvalidTrackedDeviceId = 0xFFFFFFFF;
+
+	/** Coverts a SteamVR-space vector to an Unreal-space vector.  Does not handle scaling, only axes conversion */
+	FORCEINLINE static FVector CONVERT_STEAMVECTOR_TO_FVECTOR(const vr::HmdVector3_t InVector)
+	{
+		return FVector(-InVector.v[2], InVector.v[0], InVector.v[1]);
+	}
+
+	FORCEINLINE static FVector RAW_STEAMVECTOR_TO_FVECTOR(const vr::HmdVector3_t InVector)
+	{
+		return FVector(InVector.v[0], InVector.v[1], InVector.v[2]);
+	}
+
+	/** Chaperone Support */
+	struct FChaperoneBounds
+	{
+		/** Stores the soft bounds in SteamVR HMD space, for fast checking.  These will need to be converted to Unreal HMD-calibrated space before being used in the world */
+		FBoundingQuad			SoftBounds;
+
+		/** Stores the hard bounds in SteamVR HMD space, for fast checking.  These will need to be converted to Unreal HMD-calibrated space before being used in the world */
+		TArray<FBoundingQuad>	HardBounds;
+
+		uint32 NumHardBounds;
+
+	public:
+		FChaperoneBounds()
+			: NumHardBounds(0)
+		{}
+
+		FChaperoneBounds(vr::IVRChaperone* Chaperone)
+			: FChaperoneBounds()
+		{
+			vr::ChaperoneSoftBoundsInfo_t	VRSoftBounds;
+			Chaperone->GetSoftBoundsInfo(&VRSoftBounds);
+			for (uint8 i = 0; i < 4; ++i)
+			{
+				const vr::HmdVector3_t Corner = VRSoftBounds.quadCorners.vCorners[i];
+				SoftBounds.Corners[i] = RAW_STEAMVECTOR_TO_FVECTOR(Corner);
+			}
+
+			// Check to see if we have any bounds specified.  This MUST be called before actually getting buffer info
+			Chaperone->GetHardBoundsInfo(NULL, &NumHardBounds);
+			if (NumHardBounds > 0)
+			{
+				vr::HmdQuad_t* HardBoundsBuf = (vr::HmdQuad_t*)FMemory_Alloca(NumHardBounds * sizeof(vr::HmdQuad_t));
+				FMemory::Memzero(HardBoundsBuf, NumHardBounds * sizeof(vr::HmdQuad_t));
+
+				// Actually grab the bounds from the buffer
+				Chaperone->GetHardBoundsInfo(HardBoundsBuf, &NumHardBounds);
+				for (uint32 i = 0; i < NumHardBounds; ++i)
+				{
+					FBoundingQuad Quad;
+					Quad.Corners[0] = RAW_STEAMVECTOR_TO_FVECTOR(HardBoundsBuf[i].vCorners[0]);
+					Quad.Corners[1] = RAW_STEAMVECTOR_TO_FVECTOR(HardBoundsBuf[i].vCorners[1]);
+					Quad.Corners[2] = RAW_STEAMVECTOR_TO_FVECTOR(HardBoundsBuf[i].vCorners[2]);
+					Quad.Corners[3] = RAW_STEAMVECTOR_TO_FVECTOR(HardBoundsBuf[i].vCorners[3]);
+
+					HardBounds.Add(Quad);
+				}
+			}
+		}
+	};
+	FChaperoneBounds ChaperoneBounds;
+	
 	float IPD;
+	int32 WindowMirrorMode;		// how to mirror the display contents to the desktop window: 0 - no mirroring, 1 - single eye, 2 - stereo pair
 
 	/** Player's orientation tracking */
 	mutable FQuat			CurHmdOrientation;
@@ -171,16 +357,17 @@ private:
 	mutable FQuat			LastHmdOrientation; // contains last APPLIED ON GT HMD orientation
 	FVector					LastHmdPosition;	// contains last APPLIED ON GT HMD position
 
-	/** HMD base values, specify forward orientation and zero pos offset */
-//	OVR::Vector3f			BaseOffset;			// base position, in SteamVR coords
+	// HMD base values, specify forward orientation and zero pos offset
 	FQuat					BaseOrientation;	// base orientation
 
 	/** World units (UU) to Meters scale.  Read from the level, and used to transform positional tracking data */
 	float WorldToMetersScale;
 
-	/** Motion prediction (in seconds). 0 - no prediction */
-	float MotionPredictionInSecondsGame;
-	float MotionPredictionInSecondsRender;
+	IRendererModule* RendererModule;
+
+	vr::IVRSystem* Hmd;
+	vr::IVRCompositor* VRCompositor;
+	vr::IVRChaperone* VRChaperone;
 
 	void* SteamDLLHandle;
 	
@@ -188,7 +375,9 @@ private:
 
 	float IdealScreenPercentage;
 
-	FSteamVRDistortionMesh DistortionMesh[2];
+#if PLATFORM_WINDOWS
+	TRefCountPtr<D3D11Bridge>	pD3D11Bridge;
+#endif
 };
 
 

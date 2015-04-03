@@ -95,7 +95,7 @@ public:
 			// [RCL] 2014-05-05 FIXME: disable when could not init?
 			if (bInited)
 			{
-				FMemory::Memzero(ControllerStates);
+				FMemory::Memzero(ControllerStates, sizeof(ControllerStates));
 			}
 		}
 		else

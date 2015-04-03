@@ -6,6 +6,7 @@
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
 #include "PostProcess/PostProcessHMD.h"
+#include "Classes/SteamVRFunctionLibrary.h"
 
 
 //---------------------------------------------------
@@ -62,7 +63,7 @@ void FSteamVRHMD::EnableHMD(bool enable)
 
 EHMDDeviceType::Type FSteamVRHMD::GetHMDDeviceType() const
 {
-	return EHMDDeviceType::DT_OculusRift;		//@todo steamvr: steamvr post
+	return EHMDDeviceType::DT_NoPost;
 }
 
 bool FSteamVRHMD::GetHMDMonitorInfo(MonitorInfo& MonitorDesc) 
@@ -121,68 +122,192 @@ float FSteamVRHMD::GetInterpupillaryDistance() const
 	return 0.064f;
 }
 
-void FSteamVRHMD::GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosition, float MotionPredictionInSeconds)
+void FSteamVRHMD::GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosition, uint32 DeviceId, bool bForceRefresh /* = false*/)
 {
-	vr::HmdMatrix34_t Pose;
-	vr::HmdTrackingResult Result;
-	bool bValid = Hmd->GetTrackerFromHeadPose(MotionPredictionInSeconds, &Pose, &Result);
-
-	bHaveVisionTracking = bValid && (Result == vr::TrackingResult_Running_OK);
-
-	if (!bHaveVisionTracking)
+	if (!Hmd)
 	{
 		return;
 	}
 
-	PoseToOrientationAndPosition(Pose, CurrentOrientation, CurrentPosition);
+	check(DeviceId < vr::k_unMaxTrackedDeviceCount);
+
+	if (bForceRefresh)
+	{
+		// With SteamVR, we should only update on the PreRender_ViewFamily, and then the next frame should use the previous frame's results
+		check(IsInRenderingThread());
+
+		TrackingFrame.FrameNumber = GFrameNumberRenderThread;
+
+		vr::TrackedDevicePose_t Poses[vr::k_unMaxTrackedDeviceCount];
+		VRCompositor->WaitGetPoses(Poses, ARRAYSIZE(Poses));
+
+		for (uint32 i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
+		{
+			TrackingFrame.bDeviceIsValid[i] = Poses[i].bDeviceIsValid;
+			TrackingFrame.bPoseIsValid[i] = Poses[i].bPoseIsValid;
+
+			FVector CurrentPosition;
+			FQuat CurrentOrientation;
+			PoseToOrientationAndPosition(Poses[i].mDeviceToAbsoluteTracking, CurrentOrientation, CurrentPosition);
+
+			TrackingFrame.DeviceOrientation[i] = CurrentOrientation;
+			TrackingFrame.DevicePosition[i] = CurrentPosition;
+
+			TrackingFrame.RawPoses[i] = Poses[i].mDeviceToAbsoluteTracking;
+		}
+	}
+	
+	// Update CurrentOrientation and CurrentPosition for the desired device, if valid
+	if (TrackingFrame.bPoseIsValid[DeviceId])
+ 	{
+		CurrentOrientation = TrackingFrame.DeviceOrientation[DeviceId];
+		CurrentPosition = TrackingFrame.DevicePosition[DeviceId];
+ 	}
+}
+
+
+
+bool FSteamVRHMD::IsInsideSoftBounds()
+{
+	if (VRChaperone)
+	{
+		vr::HmdMatrix34_t VRPose = TrackingFrame.RawPoses[vr::k_unTrackedDeviceIndex_Hmd];
+		FMatrix Pose = ToFMatrix(VRPose);
+		
+		const FVector HMDLocation(Pose.M[3][0], 0.f, Pose.M[3][2]);
+
+		bool bLastWasNegative = false;
+
+		// Since the order of the soft bounds are points on a plane going clockwise, wind around the sides, checking the crossproduct of the affine side to the affine HMD position.  If they're all on the same side, we're in the bounds
+		for (uint8 i = 0; i < 4; ++i)
+		{
+			const FVector PointA = ChaperoneBounds.SoftBounds.Corners[i];
+			const FVector PointB = ChaperoneBounds.SoftBounds.Corners[(i + 1) % 4];
+
+			const FVector AffineSegment = PointB - PointA;
+			const FVector AffinePoint = HMDLocation - PointA;
+			const FVector CrossProduct = FVector::CrossProduct(AffineSegment, AffinePoint);
+
+			const bool bIsNegative = (CrossProduct.Y < 0);
+
+			// If the cross between the point and the side has flipped, that means we're not consistent, and therefore outside the bounds
+			if ((i > 0) && (bLastWasNegative != bIsNegative))
+			{
+				return false;
+			}
+
+			bLastWasNegative = bIsNegative;
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+/** Helper function to convert bounds from SteamVR space to scaled Unreal space*/
+TArray<FVector> ConvertBoundsToUnrealSpace(const FBoundingQuad& InBounds, const float WorldToMetersScale)
+{
+	TArray<FVector> Bounds;
+
+	for (int32 i = 0; i < ARRAYSIZE(InBounds.Corners); ++i)
+	{
+		const FVector SteamVRCorner = InBounds.Corners[i];
+		const FVector UnrealVRCorner(-SteamVRCorner.Z, SteamVRCorner.X, SteamVRCorner.Y);
+		Bounds.Add(UnrealVRCorner * WorldToMetersScale);
+	}
+
+	return Bounds;
+}
+
+TArray<FVector> FSteamVRHMD::GetSoftBounds() const
+{
+	return ConvertBoundsToUnrealSpace(ChaperoneBounds.SoftBounds, WorldToMetersScale);
+}
+
+TArray<FVector> FSteamVRHMD::GetHardBounds() const
+{
+	TArray<FVector> Bounds;
+
+	for (int32 i = 0; i < ChaperoneBounds.HardBounds.Num(); ++i)
+	{
+		Bounds.Append(ConvertBoundsToUnrealSpace(ChaperoneBounds.HardBounds[i], WorldToMetersScale));
+	}
+	
+	return Bounds;
 }
 
 void FSteamVRHMD::PoseToOrientationAndPosition(const vr::HmdMatrix34_t& InPose, FQuat& OutOrientation, FVector& OutPosition) const
 {
 	FMatrix Pose = ToFMatrix(InPose);
 	FQuat Orientation(Pose);
-
+ 
 	OutOrientation.X = -Orientation.Z;
 	OutOrientation.Y = Orientation.X;
 	OutOrientation.Z = Orientation.Y;
-	OutOrientation.W = -Orientation.W;
-	OutPosition = FVector(-Pose.M[3][2], Pose.M[3][0], Pose.M[3][1]) * WorldToMetersScale;
+ 	OutOrientation.W = -Orientation.W;	
+
+	FVector Position = FVector(-Pose.M[3][2], Pose.M[3][0], Pose.M[3][1]) * WorldToMetersScale;
+	OutPosition = BaseOrientation.Inverse().RotateVector(Position);
+
+	OutOrientation = BaseOrientation.Inverse() * OutOrientation;
+	OutOrientation.Normalize();
 }
-
-namespace
-{
-	void UpdatePlayerViewPoint(const FQuat& CurrentOrientation, const FVector& CurrentPosition, FSceneView& View)
-	{
-		//if (!CurrentOrientation.IsNormalized() || !View.BaseHmdOrientation.IsNormalized())
-		//{
-		//	return;
-		//}
-
-		//// Given ViewRotation is BaseOrientation * BaseHmdOrientation
-		//FQuat BaseOrientation = (View.ViewRotation.Quaternion() * View.BaseHmdOrientation.Inverse());
-		//BaseOrientation.Normalize();
-
-		//// Use the inverse of the controller viewpoint to find the view-based offset that the HMD is currently in
-		//// ViewLocation = BaseLocation + (BaseOrientation * BaseHmdLocation)
-		//FVector HeadOffset = BaseOrientation.RotateVector(CurrentPosition - View.BaseHmdLocation);
-
-		//// Update new view rotation and location
-		//View.ViewRotation = (BaseOrientation * CurrentOrientation).Rotator().GetNormalized();
-		//View.ViewLocation += HeadOffset;// *View.WorldToMetersScale;
-
-		//View.UpdateViewMatrix();
-		//GetViewFrustumBounds(View.ViewFrustum, View.ViewMatrices.GetViewProjMatrix(), false);
-	}
-}
-
 
 void FSteamVRHMD::GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition)
 {
 	check(IsInGameThread());
-	GetCurrentPose(CurHmdOrientation, CurHmdPosition, MotionPredictionInSecondsGame);
+	GetCurrentPose(CurHmdOrientation, CurHmdPosition);
 	CurrentOrientation = LastHmdOrientation = CurHmdOrientation;
 
 	CurrentPosition = CurHmdPosition;
+}
+
+void FSteamVRHMD::GetTrackedDeviceIds(TArray<int32>& TrackedIds)
+{
+	TrackedIds.Empty();
+
+	for (uint32 i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
+	{
+		// Add only devices with a currently valid tracked pose, and exclude the HMD
+		if ((i != vr::k_unTrackedDeviceIndex_Hmd) && TrackingFrame.bPoseIsValid[i])
+	{
+			TrackedIds.Add(i);
+		}
+	}
+}
+
+bool FSteamVRHMD::GetTrackedObjectOrientationAndPosition(uint32 DeviceId, FQuat& CurrentOrientation, FVector& CurrentPosition)
+{
+	check(IsInGameThread());
+
+	bool bHasValidPose = false;
+
+	if (DeviceId < vr::k_unMaxTrackedDeviceCount)
+	{
+		CurrentOrientation = TrackingFrame.DeviceOrientation[DeviceId];
+		CurrentPosition = TrackingFrame.DevicePosition[DeviceId];
+
+		bHasValidPose = TrackingFrame.bPoseIsValid[DeviceId] && TrackingFrame.bDeviceIsValid[DeviceId];
+	}
+
+	return bHasValidPose;
+}
+
+bool FSteamVRHMD::GetTrackedDeviceIdFromControllerIndex(int32 ControllerIndex, int32& OutDeviceId)
+{
+	check(IsInGameThread());
+
+	OutDeviceId = -1;
+
+	if ((ControllerIndex < 0) || (ControllerIndex >= MAX_STEAM_CONTROLLERS))
+	{
+		return false;
+	}
+
+	OutDeviceId = ControllerIndexToTrackedDeviceIndex[ControllerIndex];
+	
+	return (OutDeviceId != -1);
 }
 
 ISceneViewExtension* FSteamVRHMD::GetViewExtension()
@@ -194,7 +319,7 @@ void FSteamVRHMD::ApplyHmdRotation(APlayerController* PC, FRotator& ViewRotation
 {
 	ViewRotation.Normalize();
 
-	GetCurrentPose(CurHmdOrientation, CurHmdPosition, MotionPredictionInSecondsGame);
+	GetCurrentPose(CurHmdOrientation, CurHmdPosition);
 	LastHmdOrientation = CurHmdOrientation;
 
 	const FRotator DeltaRot = ViewRotation - PC->GetControlRotation();
@@ -211,7 +336,7 @@ void FSteamVRHMD::ApplyHmdRotation(APlayerController* PC, FRotator& ViewRotation
 
 void FSteamVRHMD::UpdatePlayerCameraRotation(APlayerCameraManager* Camera, struct FMinimalViewInfo& POV)
 {
-	GetCurrentPose(CurHmdOrientation, CurHmdPosition, MotionPredictionInSecondsGame);
+	GetCurrentPose(CurHmdOrientation, CurHmdPosition);
 	LastHmdOrientation = CurHmdOrientation;
 
 	DeltaControlRotation = POV.Rotation;
@@ -264,16 +389,18 @@ bool FSteamVRHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 			return true;
 		}
 
-		float val;
-		if (FParse::Value(Cmd, TEXT("MPG="), val))
+		int32 val;
+		if (FParse::Value(Cmd, TEXT("MIRROR"), val))
 		{
-			MotionPredictionInSecondsGame = val;
-			return true;
+			if ((val >= 0) && (val <= 2))
+			{
+				WindowMirrorMode = val;
+			}
+			else
+		{
+				Ar.Logf(TEXT("HMD MIRROR accepts values from 0 though 2"));
 		}
 
-		if (FParse::Value(Cmd, TEXT("MPR="), val))
-		{
-			MotionPredictionInSecondsRender = val;
 			return true;
 		}
 	}
@@ -325,7 +452,19 @@ void FSteamVRHMD::ResetOrientationAndPosition(float yaw)
 
 void FSteamVRHMD::ResetOrientation(float Yaw)
 {
-	//@todo steamvr: ResetOrientation()
+	FRotator ViewRotation;
+	ViewRotation = FRotator(TrackingFrame.DeviceOrientation[vr::k_unTrackedDeviceIndex_Hmd]);
+	ViewRotation.Pitch = 0;
+	ViewRotation.Roll = 0;
+
+	if (Yaw != 0.f)
+	{
+		// apply optional yaw offset
+		ViewRotation.Yaw -= Yaw;
+		ViewRotation.Normalize();
+	}
+
+	BaseOrientation = ViewRotation.Quaternion();
 }
 void FSteamVRHMD::ResetPosition()
 {
@@ -346,10 +485,12 @@ FRotator FSteamVRHMD::GetBaseRotation() const
 
 void FSteamVRHMD::SetBaseOrientation(const FQuat& BaseOrient)
 {
+	BaseOrientation = BaseOrient;
 }
+
 FQuat FSteamVRHMD::GetBaseOrientation() const
 {
-	return FQuat::Identity;
+	return BaseOrientation;
 }
 
 void FSteamVRHMD::SetPositionOffset(const FVector& PosOff)
@@ -369,6 +510,9 @@ bool FSteamVRHMD::IsStereoEnabled() const
 bool FSteamVRHMD::EnableStereo(bool stereo)
 {
 	bStereoEnabled = (IsHMDEnabled()) ? stereo : false;
+
+	FSystemResolution::RequestResolutionChange(1280, 720, (stereo) ? EWindowMode::WindowedMirror : EWindowMode::Windowed);
+
 	return bStereoEnabled;
 }
 
@@ -387,16 +531,15 @@ void FSteamVRHMD::CalculateStereoViewOffset(const enum EStereoscopicPass StereoP
 	if( StereoPassType != eSSP_FULL)
 	{
 		vr::Hmd_Eye HmdEye = (StereoPassType == eSSP_LEFT_EYE) ? vr::Eye_Left : vr::Eye_Right;
-		vr::HmdMatrix34_t HeadFromEye = Hmd->GetHeadFromEyePose(HmdEye);
+		vr::HmdMatrix34_t HeadFromEye = Hmd->GetEyeToHeadTransform(HmdEye);
 
 		// grab the eye position, currently ignoring the rotation supplied by GetHeadFromEyePose()
 		FVector TotalOffset = FVector(-HeadFromEye.m[2][3], HeadFromEye.m[0][3], HeadFromEye.m[1][3]) * WorldToMeters;
 
 		ViewLocation += ViewRotation.Quaternion().RotateVector(TotalOffset);
 
-		const FVector vHMDPosition = DeltaControlOrientation.RotateVector(CurHmdPosition);
+ 		const FVector vHMDPosition = DeltaControlOrientation.RotateVector(TrackingFrame.DevicePosition[vr::k_unTrackedDeviceIndex_Hmd]);
 		ViewLocation += vHMDPosition;
-		LastHmdPosition = CurHmdPosition;
 	}
 }
 
@@ -483,37 +626,106 @@ void FSteamVRHMD::GetEyeRenderParams_RenderThread(EStereoscopicPass StereoPass, 
 void FSteamVRHMD::ModifyShowFlags(FEngineShowFlags& ShowFlags)
 {
 	ShowFlags.MotionBlur = 0;
-	ShowFlags.HMDDistortion = true;
-	ShowFlags.ScreenPercentage = 1.0f;
+	ShowFlags.HMDDistortion = false;
 	ShowFlags.StereoRendering = IsStereoEnabled();
 }
 
 void FSteamVRHMD::SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView)
 {
-	InView.BaseHmdOrientation = FQuat(FRotator(0.0f,0.0f,0.0f));
-	InView.BaseHmdLocation = FVector(0.f);
+	InView.BaseHmdOrientation = LastHmdOrientation;
+	InView.BaseHmdLocation = LastHmdPosition;
 	WorldToMetersScale = InView.WorldToMetersScale;
-	InViewFamily.bUseSeparateRenderTarget = false;
+	InViewFamily.bUseSeparateRenderTarget = true;
 }
 
 void FSteamVRHMD::PreRenderView_RenderThread(FSceneView& View)
 {
 	check(IsInRenderingThread());
 
-	FVector CurrentPosition;
-	FQuat CurrentOrientation;
-
-	// Update again for low-latency
-	GetCurrentPose(CurrentOrientation, CurrentPosition, MotionPredictionInSecondsRender);
-
-//	UpdatePlayerViewPoint(CurrentOrientation, CurrentPosition, View);
+	// The last view location used to set the view will be in BaseHmdOrientation.  We need to calculate the delta from that, so that
+	// cameras that rely on game objects (e.g. other components) for their positions don't need to be updated on the render thread.
+	const FQuat DeltaOrient = View.BaseHmdOrientation.Inverse() * TrackingFrame.DeviceOrientation[vr::k_unTrackedDeviceIndex_Hmd];
+	View.ViewRotation = FRotator(View.ViewRotation.Quaternion() * DeltaOrient);
+ 	View.UpdateViewMatrix();
 }
 
 void FSteamVRHMD::PreRenderViewFamily_RenderThread(FSceneViewFamily& ViewFamily)
 {
 	check(IsInRenderingThread());
+	GetActiveRHIBridgeImpl()->BeginRendering();
+
+	FVector CurrentPosition;
+	FQuat CurrentOrientation;
+	GetCurrentPose(CurrentOrientation, CurrentPosition, vr::k_unTrackedDeviceIndex_Hmd, true);
 }
 
+void FSteamVRHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& InViewport, SViewport* ViewportWidget)
+{
+	check(IsInGameThread());
+
+	FRHIViewport* const ViewportRHI = InViewport.GetViewportRHI().GetReference();
+
+	if (!IsStereoEnabled())
+	{
+		if (!bUseSeparateRenderTarget)
+		{
+			ViewportRHI->SetCustomPresent(nullptr);
+		}
+		return;
+	}
+
+	GetActiveRHIBridgeImpl()->UpdateViewport(InViewport, ViewportRHI);
+}
+
+FSteamVRHMD::BridgeBaseImpl* FSteamVRHMD::GetActiveRHIBridgeImpl()
+{
+#if PLATFORM_WINDOWS
+	if (pD3D11Bridge)
+	{
+		return pD3D11Bridge;
+	}
+#endif
+
+	return nullptr;
+}
+
+void FSteamVRHMD::CalculateRenderTargetSize(uint32& InOutSizeX, uint32& InOutSizeY) const
+{
+	check(IsInGameThread());
+
+//	if (Flags.bScreenPercentageEnabled)
+	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
+		float value = CVar->GetValueOnGameThread();
+		if (value > 0.0f)
+		{
+			InOutSizeX = FMath::CeilToInt(InOutSizeX * value / 100.f);
+			InOutSizeY = FMath::CeilToInt(InOutSizeY * value / 100.f);
+		}
+	}
+}
+
+bool FSteamVRHMD::NeedReAllocateViewportRenderTarget(const FViewport& Viewport) const
+{
+	check(IsInGameThread());
+
+	if (IsStereoEnabled())
+	{
+		const uint32 InSizeX = Viewport.GetSizeXY().X;
+		const uint32 InSizeY = Viewport.GetSizeXY().Y;
+		FIntPoint RenderTargetSize;
+		RenderTargetSize.X = Viewport.GetRenderTargetTexture()->GetSizeX();
+		RenderTargetSize.Y = Viewport.GetRenderTargetTexture()->GetSizeY();
+
+		uint32 NewSizeX = InSizeX, NewSizeY = InSizeY;
+		CalculateRenderTargetSize(NewSizeX, NewSizeY);
+		if (NewSizeX != RenderTargetSize.X || NewSizeY != RenderTargetSize.Y)
+		{
+			return true;
+		}
+	}
+	return false;
+}
 
 FSteamVRHMD::FSteamVRHMD() :
 	Hmd(nullptr),
@@ -522,14 +734,15 @@ FSteamVRHMD::FSteamVRHMD() :
 	bHmdPosTracking(true),
 	bHaveVisionTracking(false),
 	IPD(0.064f),
+	WindowMirrorMode(0),
 	CurHmdOrientation(FQuat::Identity),
 	LastHmdOrientation(FQuat::Identity),
+	BaseOrientation(FQuat::Identity),
 	DeltaControlRotation(FRotator::ZeroRotator),
 	DeltaControlOrientation(FQuat::Identity),
 	CurHmdPosition(FVector::ZeroVector),
 	WorldToMetersScale(100.0f),
-	MotionPredictionInSecondsGame(0.0f),
-	MotionPredictionInSecondsRender(0.0f),
+	RendererModule(nullptr),
 	SteamDLLHandle(nullptr),
 	IdealScreenPercentage(100.0f)
 {
@@ -554,30 +767,69 @@ void FSteamVRHMD::Startup()
 		return;
 	}
 
+	// grab a pointer to the renderer module for displaying our mirror window
+	static const FName RendererModuleName("Renderer");
+	RendererModule = FModuleManager::GetModulePtr<IRendererModule>(RendererModuleName);
+	
 	bool ret = SteamAPI_Init();
 
 	// look for a headset
 	vr::HmdError HmdErr = vr::HmdError_None;
 	Hmd = vr::VR_Init(&HmdErr);
+	
+	// make sure that the version of the HMD we're compiled against is correct
+	Hmd = (vr::IVRSystem*)vr::VR_GetGenericInterface(vr::IVRSystem_Version, &HmdErr);	//@todo steamvr: verify init error handling
 
-	if (Hmd != nullptr)
+	// initialize SteamController().  Note: this is redundant with the SteamController support.  Verify that the API can handle multiple initializations/teardowns
+	if (SteamController() != nullptr)
+	{
+		FString PluginsDir = FPaths::EnginePluginsDir();
+		FString ContentDir = FPaths::Combine(*PluginsDir, TEXT("Runtime"), TEXT("Steam"), TEXT("SteamController"), TEXT("Content"));
+		FString VdfPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(*ContentDir, TEXT("Controller.vdf")));
+
+		bool bInited = SteamController()->Init(TCHAR_TO_ANSI(*VdfPath));
+		UE_LOG(LogHMD, Log, TEXT("SteamController %s initialized with vdf file '%s'."), bInited ? TEXT("could not be") : TEXT("has been"), *VdfPath);
+	}
+
+	// attach to the compositor
+	if ((Hmd != nullptr) && (HmdErr == vr::HmdError_None))
+	{
+		VRCompositor = (vr::IVRCompositor*)vr::VR_GetGenericInterface(vr::IVRCompositor_Version, &HmdErr);
+
+		if ((VRCompositor != nullptr) && (HmdErr == vr::HmdError_None))
+		{
+			// determine our compositor type
+			vr::Compositor_DeviceType CompositorDeviceType = vr::Compositor_DeviceType_None;
+			if (IsPCPlatform(GMaxRHIShaderPlatform) && !IsOpenGLPlatform(GMaxRHIShaderPlatform))
+			{
+				CompositorDeviceType = vr::Compositor_DeviceType_D3D11;
+			}
+			else if (IsOpenGLPlatform(GMaxRHIShaderPlatform))
+			{
+				check(0);	//@todo steamvr: use old path for mac and linux until support is added
+				CompositorDeviceType = vr::Compositor_DeviceType_OpenGL;
+			}
+		}
+	}
+
+	if ((Hmd != nullptr) && (HmdErr == vr::HmdError_None))
 	{
 		// grab info about the attached display
 		char Buf[128];
 		FString DriverId;
-		if (Hmd->GetDriverId(Buf, 128) > 0)
+		vr::TrackedPropertyError Error;
+
+		Hmd->GetStringTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_TrackingSystemName_String, Buf, sizeof(Buf), &Error);
+		if (Error == vr::TrackedProp_Success)
 		{
 			DriverId = FString(UTF8_TO_TCHAR(Buf));
 		}
 
-		if (Hmd->GetDisplayId(Buf, 128) > 0)
+		Hmd->GetStringTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SerialNumber_String, Buf, sizeof(Buf), &Error);
+		if (Error == vr::TrackedProp_Success)
 		{
 			DisplayId = FString(UTF8_TO_TCHAR(Buf));
 		}
-
-		// create our distortion meshes
-		DistortionMesh[0].CreateMesh(Hmd, vr::Eye_Left);
-		DistortionMesh[1].CreateMesh(Hmd, vr::Eye_Right);
 
 		// determine our ideal screen percentage
 		uint32 RecommendedWidth, RecommendedHeight;
@@ -601,39 +853,171 @@ void FSteamVRHMD::Startup()
 			CScrPercVar->Set(IdealScreenPercentage);
 		}
 
-		// enable vsync
+		// disable vsync
 		static IConsoleVariable* CVSyncVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
-		CVSyncVar->Set(true);
+		CVSyncVar->Set(false);
 
-		//@todo steamvr: better prediction
-		MotionPredictionInSecondsGame = 2.0f * (1.0f / 75.0f);
-		MotionPredictionInSecondsRender = 1.0f * (1.0f / 75.0f);
+		// enforce finishcurrentframe
+		static IConsoleVariable* CFCFVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.finishcurrentframe"));
+		CFCFVar->Set(true);
 
 		// Uncap fps to enable FPS higher than 62
 		GEngine->bSmoothFrameRate = false;
+
+		// Grab the chaperone
+		vr::HmdError ChaperoneErr = vr::HmdError_None;
+		VRChaperone = (vr::IVRChaperone*)vr::VR_GetGenericInterface(vr::IVRChaperone_Version, &ChaperoneErr);
+		if ((VRChaperone != nullptr) && (ChaperoneErr == vr::HmdError_None))
+		{
+			ChaperoneBounds = FChaperoneBounds(VRChaperone);
+		}
+		else
+		{
+			UE_LOG(LogHMD, Warning, TEXT("Failed to initialize Chaperone.  Error: %d"), (int32)ChaperoneErr);
+		}
+
+		// Initialize the controller to tracked device mappings
+		InitializeControllerMappings();
+
+#if PLATFORM_WINDOWS
+		if (IsPCPlatform(GMaxRHIShaderPlatform) && !IsOpenGLPlatform(GMaxRHIShaderPlatform))
+		{
+			pD3D11Bridge = new D3D11Bridge(this);
+		}
+#endif
+
+		LoadFromIni();
+
 		UE_LOG(LogHMD, Log, TEXT("SteamVR initialized.  Driver: %s  Display: %s"), *DriverId, *DisplayId);
 	}
 	else
 	{
 		UE_LOG(LogHMD, Warning, TEXT("SteamVR failed to initialize.  Error: %d"), (int32)HmdErr);
+
+		if (Hmd != nullptr)
+		{
+			Hmd = nullptr;
+		}
+	}
+}
+
+void FSteamVRHMD::LoadFromIni()
+{
+	const TCHAR* SteamVRSettings = TEXT("SteamVR.Settings");
+	int32 i;
+
+	if (GConfig->GetInt(SteamVRSettings, TEXT("WindowMirrorMode"), i, GEngineIni))
+	{
+		WindowMirrorMode = i;
+	}
+}
+
+void FSteamVRHMD::SaveToIni()
+{
+	const TCHAR* SteamVRSettings = TEXT("SteamVR.Settings");
+	GConfig->SetInt(SteamVRSettings, TEXT("WindowMirrorMode"), WindowMirrorMode, GEngineIni);
+}
+
+// Initialize the controller to tracked device mappings
+void FSteamVRHMD::InitializeControllerMappings()
+{
+	// invalidate all of the mappings
+	for (uint32 i = 0; i < MAX_STEAM_CONTROLLERS; ++i)
+	{
+		ControllerIndexToTrackedDeviceIndex[i] = -1;
+	}
+
+	if (SteamController() == nullptr)
+	{
+		return;
+	}
+
+	// grab a temporary array of the tracked device ids for comparing later so we're not constantly looping over the tracked devices
+	uint32 TrackedDeviceIds[vr::k_unMaxTrackedDeviceCount];
+	
+	char Buf[128];
+	uint32 BufLen = sizeof(Buf);
+	vr::TrackedPropertyError Error;
+
+	for (uint32 DeviceIndex = 0; DeviceIndex < vr::k_unMaxTrackedDeviceCount; ++DeviceIndex)
+	{
+		Hmd->GetStringTrackedDeviceProperty(DeviceIndex, vr::Prop_AttachedDeviceId_String, Buf, sizeof(Buf), &Error);
+		if (Error == vr::TrackedProp_Success)
+		{
+			TrackedDeviceIds[DeviceIndex] = (uint32)FCStringAnsi::Atoi64(Buf);
+		}
+		else
+		{
+			TrackedDeviceIds[DeviceIndex] = InvalidTrackedDeviceId;
+		}
+	}
+
+	SteamControllerState_t ControllerState;
+
+	// iterate over the controllers
+	for (uint32 ControllerIndex = 0; ControllerIndex < MAX_STEAM_CONTROLLERS; ++ControllerIndex)
+	{
+		if (!SteamController()->GetControllerState(ControllerIndex, &ControllerState))
+		{
+			continue;
+		}
+
+		if (ControllerState.unPacketNum == 0)
+		{
+			continue;
+		}
+
+		uint32 ControllerId = ((uint32)ControllerState.sLeftPadX << 16) | ((uint32)ControllerState.sLeftPadY & 0xFFFF);
+
+		// loop over our cached tracked device ids to see which tracked device index we are mapped to
+		for (uint32 DeviceIndex = 0; DeviceIndex < vr::k_unMaxTrackedDeviceCount; ++DeviceIndex)
+		{
+			if (TrackedDeviceIds[DeviceIndex] == ControllerId)
+			{
+				// found a match, add it to our controller index to tracked device index 
+				ControllerIndexToTrackedDeviceIndex[ControllerIndex] = DeviceIndex;
+				break;
+			}
+		}
 	}
 }
 
 void FSteamVRHMD::Shutdown()
 {
-	// unload steam library
-	UnloadSteamModule();
+	// save any runtime configuration changes to the .ini
+	SaveToIni();
 
 	// shut down our headset
 	vr::VR_Shutdown();
 	Hmd = nullptr;
+
+	// shut down the controller interface
+	if (SteamController() != nullptr)
+	{
+		SteamController()->Shutdown();
+	}
+
+	// unload steam library
+	UnloadSteamModule();
 }
 
 bool FSteamVRHMD::LoadSteamModule()
 {
 #if PLATFORM_WINDOWS
 	#if PLATFORM_64BITS
-		FString RootSteamPath = FPaths::EngineDir() / FString::Printf(TEXT("Binaries/ThirdParty/Steamworks/%s/Win64/"), STEAM_SDK_VER); 
+		FString RootSteamPath;
+		TCHAR VROverridePath[MAX_PATH];
+		FPlatformMisc::GetEnvironmentVariable(TEXT("VR_OVERRIDE"), VROverridePath, MAX_PATH);
+	
+		if (FCString::Strlen(VROverridePath) > 0)
+		{
+			RootSteamPath = FString::Printf(TEXT("%s\\bin\\win64\\"), VROverridePath);
+		}
+		else
+		{
+			RootSteamPath = FPaths::EngineDir() / FString::Printf(TEXT("Binaries/ThirdParty/Steamworks/%s/Win64/"), STEAM_SDK_VER);
+		}
+		
 		FPlatformProcess::PushDllDirectory(*RootSteamPath);
 		SteamDLLHandle = FPlatformProcess::GetDllHandle(*(RootSteamPath + "steam_api64.dll"));
 		FPlatformProcess::PopDllDirectory(*RootSteamPath);
@@ -664,93 +1048,5 @@ void FSteamVRHMD::UnloadSteamModule()
 		SteamDLLHandle = nullptr;
 	}
 }
-
-
-FSteamVRDistortionMesh::FSteamVRDistortionMesh() :
-	Verts(nullptr),
-	Indices(nullptr),
-	NumVerts(0),
-	NumIndices(0),
-	NumTriangles(0)
-{
-}
-
-FSteamVRDistortionMesh::~FSteamVRDistortionMesh()
-{
-	if (Verts != nullptr)
-	{
-		delete[] Verts;
-	}
-
-	if (Indices != nullptr)
-	{
-		delete[] Indices;
-	}
-}
-
-void FSteamVRDistortionMesh::CreateMesh(vr::IHmd* Hmd, vr::Hmd_Eye Eye)
-{
-	static const uint32 ResU = 32;
-	static const uint32 ResV = 32;
-
-	static const uint32 ResUMinus1 = ResU - 1;
-	static const uint32 ResVMinus1 = ResV - 1;
-
-#if 0
-	// should be taking Hmd viewport into account
-	uint32 VPX, VPY, VPWidth, VPHeight;
-	Hmd->GetEyeOutputViewport(vr::Eye_Left, &VPX, &VPY, &VPWidth, &VPHeight);
-	Hmd->GetEyeOutputViewport(vr::Eye_Right, &VPX, &VPY, &VPWidth, &VPHeight);
-#endif
-
-	NumVerts = ResU * ResV;
-	NumTriangles = 2 * ResUMinus1 * ResVMinus1;
-	NumIndices = 3 * NumTriangles;
-
-	Verts = new FDistortionVertex[NumVerts];
-	Indices = new uint16[NumIndices];
-
-	uint32 TriIndex = 0;
-
-	for (uint32 IndexV = 0; IndexV < ResV; ++IndexV)
-	{
-		float V = (float)IndexV / (float)ResVMinus1;
-		float Y = FMath::Lerp(1.0f, -1.0f, V);
-
-		for (uint32 IndexU = 0; IndexU < ResU; ++IndexU)
-		{
-			float U = (float)IndexU / (float)ResUMinus1;
-			float X = (Eye == vr::Eye_Left) ? FMath::Lerp(-1.0f, 0.0f, U) : FMath::Lerp(0.0f, 1.0f, U);
-
-			vr::DistortionCoordinates_t DistCoords = Hmd->ComputeDistortion(Eye, U, V);
-
-			uint32 VertIndex = IndexV * ResU + IndexU;
-
-			Verts[VertIndex].Position = FVector2D(X, Y);
-			Verts[VertIndex].TexR = FVector2D(DistCoords.rfRed[0], DistCoords.rfRed[1]);
-			Verts[VertIndex].TexG = FVector2D(DistCoords.rfGreen[0], DistCoords.rfGreen[1]);
-			Verts[VertIndex].TexB = FVector2D(DistCoords.rfBlue[0], DistCoords.rfBlue[1]);
-			Verts[VertIndex].TimewarpFactor = 0.0f;
-			Verts[VertIndex].VignetteFactor = 1.0f;
-
-			if ((IndexV > 0) && (IndexU > 0))
-			{
-				uint16 A = (IndexV - 1) * ResU + (IndexU - 1);
-				uint16 B = (IndexV - 1) * ResU + IndexU;
-				uint16 C = IndexV * ResU + (IndexU - 1);
-				uint16 D = IndexV * ResU + IndexU;
-
-				Indices[TriIndex++] = A;
-				Indices[TriIndex++] = B;
-				Indices[TriIndex++] = D;
-
-				Indices[TriIndex++] = A;
-				Indices[TriIndex++] = D;
-				Indices[TriIndex++] = C;
-			}
-		}
-	}
-}
-
 
 #endif //STEAMVR_SUPPORTED_PLATFORMS

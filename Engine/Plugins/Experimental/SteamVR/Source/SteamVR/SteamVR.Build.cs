@@ -24,7 +24,9 @@ namespace UnrealBuildTool.Rules
 					"RenderCore",
 					"Renderer",
 					"ShaderCore",
-					"HeadMountedDisplay"
+					"HeadMountedDisplay",
+					"Slate",
+					"SlateCore"
 				}
 				);
 
@@ -33,6 +35,7 @@ namespace UnrealBuildTool.Rules
             if (UEBuildConfiguration.bCompileSteamOSS && (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64))
             {
 				AddThirdPartyPrivateStaticDependencies(Target, "Steamworks");
+                PrivateDependencyModuleNames.AddRange(new string[] { "D3D11RHI" });     //@todo steamvr: multiplatform
             }
 		}
 	}
