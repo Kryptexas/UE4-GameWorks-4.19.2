@@ -1032,47 +1032,74 @@ public:
 	 *	For events when objects have a blocking collision, for example a player hitting a wall, see 'Hit' events.
 	 *	@note Components on both this and the other Actor must have bGenerateOverlapEvents set to true to generate overlap events.
 	 */
+	virtual void NotifyActorBeginOverlap(AActor* OtherActor);
+	/** 
+	 *	Event when this actor overlaps another actor, for example a player walking into a trigger.
+	 *	For events when objects have a blocking collision, for example a player hitting a wall, see 'Hit' events.
+	 *	@note Components on both this and the other Actor must have bGenerateOverlapEvents set to true to generate overlap events.
+	 */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "ActorBeginOverlap"), Category="Collision")
-	virtual void ReceiveActorBeginOverlap(AActor* OtherActor);
+	void ReceiveActorBeginOverlap(AActor* OtherActor);
 
 	/** 
 	 *	Event when an actor no longer overlaps another actor, and they have separated. 
 	 *	@note Components on both this and the other Actor must have bGenerateOverlapEvents set to true to generate overlap events.
 	 */
+	virtual void NotifyActorEndOverlap(AActor* OtherActor);
+	/** 
+	 *	Event when an actor no longer overlaps another actor, and they have separated. 
+	 *	@note Components on both this and the other Actor must have bGenerateOverlapEvents set to true to generate overlap events.
+	 */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "ActorEndOverlap"), Category="Collision")
-	virtual void ReceiveActorEndOverlap(AActor* OtherActor);
+	void ReceiveActorEndOverlap(AActor* OtherActor);
 
 	/** Event when this actor has the mouse moved over it with the clickable interface. */
+	virtual void NotifyActorBeginCursorOver();
+	/** Event when this actor has the mouse moved over it with the clickable interface. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "ActorBeginCursorOver"), Category="Mouse Input")
-	virtual void ReceiveActorBeginCursorOver();
+	void ReceiveActorBeginCursorOver();
 
 	/** Event when this actor has the mouse moved off of it with the clickable interface. */
+	virtual void NotifyActorEndCursorOver();
+	/** Event when this actor has the mouse moved off of it with the clickable interface. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "ActorEndCursorOver"), Category="Mouse Input")
-	virtual void ReceiveActorEndCursorOver();
+	void ReceiveActorEndCursorOver();
 
 	/** Event when this actor is clicked by the mouse when using the clickable interface. */
+	virtual void NotifyActorOnClicked();
+	/** Event when this actor is clicked by the mouse when using the clickable interface. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "ActorOnClicked"), Category="Mouse Input")
-	virtual void ReceiveActorOnClicked();
+	void ReceiveActorOnClicked();
 
 	/** Event when this actor is under the mouse when left mouse button is released while using the clickable interface. */
+	virtual void NotifyActorOnReleased();
+	/** Event when this actor is under the mouse when left mouse button is released while using the clickable interface. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "ActorOnReleased"), Category="Mouse Input")
-	virtual void ReceiveActorOnReleased();
+	void ReceiveActorOnReleased();
 
 	/** Event when this actor is touched when click events are enabled. */
+	virtual void NotifyActorOnInputTouchBegin(const ETouchIndex::Type FingerIndex);
+	/** Event when this actor is touched when click events are enabled. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "BeginInputTouch"), Category="Touch Input")
-	virtual void ReceiveActorOnInputTouchBegin(const ETouchIndex::Type FingerIndex);
+	void ReceiveActorOnInputTouchBegin(const ETouchIndex::Type FingerIndex);
 
 	/** Event when this actor is under the finger when untouched when click events are enabled. */
+	virtual void NotifyActorOnInputTouchEnd(const ETouchIndex::Type FingerIndex);
+	/** Event when this actor is under the finger when untouched when click events are enabled. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "EndInputTouch"), Category="Touch Input")
-	virtual void ReceiveActorOnInputTouchEnd(const ETouchIndex::Type FingerIndex);
+	void ReceiveActorOnInputTouchEnd(const ETouchIndex::Type FingerIndex);
 
 	/** Event when this actor has a finger moved over it with the clickable interface. */
+	virtual void NotifyActorOnInputTouchEnter(const ETouchIndex::Type FingerIndex);
+	/** Event when this actor has a finger moved over it with the clickable interface. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "TouchEnter"), Category="Touch Input")
-	virtual void ReceiveActorOnInputTouchEnter(const ETouchIndex::Type FingerIndex);
+	void ReceiveActorOnInputTouchEnter(const ETouchIndex::Type FingerIndex);
 
 	/** Event when this actor has a finger moved off of it with the clickable interface. */
+	virtual void NotifyActorOnInputTouchLeave(const ETouchIndex::Type FingerIndex);
+	/** Event when this actor has a finger moved off of it with the clickable interface. */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "TouchLeave"), Category="Touch Input")
-	virtual void ReceiveActorOnInputTouchLeave(const ETouchIndex::Type FingerIndex);
+	void ReceiveActorOnInputTouchLeave(const ETouchIndex::Type FingerIndex);
 
 	/** 
 	 * Returns list of actors this actor is overlapping (any component overlapping any component). Does not return itself.
@@ -1095,8 +1122,19 @@ public:
 	 * @note When receiving a hit from another object's movement (bSelfMoved is false), the directions of 'Hit.Normal' and 'Hit.ImpactNormal'
 	 * will be adjusted to indicate force from the other object against this object.
 	 */
+	virtual void NotifyHit(class UPrimitiveComponent* MyComp, AActor* Other, class UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit);
+	/** 
+	 * Event when this actor bumps into a blocking object, or blocks another actor that bumps into it.
+	 * This could happen due to things like Character movement, using Set Location with 'sweep' enabled, or physics simulation.
+	 * For events when objects overlap (e.g. walking into a trigger) see the 'Overlap' event.
+	 *
+	 * @note For collisions during physics simulation to generate hit events, 'Simulation Generates Hit Events' must be enabled.
+	 * @note When receiving a hit from another object's movement (bSelfMoved is false), the directions of 'Hit.Normal' and 'Hit.ImpactNormal'
+	 * will be adjusted to indicate force from the other object against this object.
+	 */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "Hit"), Category="Collision")
-	virtual void ReceiveHit(class UPrimitiveComponent* MyComp, AActor* Other, class UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit);
+	void ReceiveHit(class UPrimitiveComponent* MyComp, AActor* Other, class UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit);
+
 
 	/** Set the lifespan of this actor. When it expires the object will be destroyed. If requested lifespan is 0, the timer is cleared and the actor will not be destroyed. */
 	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "delete destroy"))
