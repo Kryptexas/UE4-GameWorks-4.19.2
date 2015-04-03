@@ -76,6 +76,7 @@ public class UnrealEd : ModuleRules
                 "AIModule",
 				"BlueprintGraph",
                 "Http",
+				"UnrealAudio",
 			}
 		);
 
@@ -227,6 +228,7 @@ public class UnrealEd : ModuleRules
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
 			PublicDependencyModuleNames.Add("XAudio2");
+			PublicDependencyModuleNames.Add("UnrealAudioWasapi");
 
 			AddThirdPartyPrivateStaticDependencies(Target, 
 				"UEOgg",
