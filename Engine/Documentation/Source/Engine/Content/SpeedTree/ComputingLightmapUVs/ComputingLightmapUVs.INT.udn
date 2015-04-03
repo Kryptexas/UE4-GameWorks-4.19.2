@@ -9,11 +9,11 @@ In order to use static lighting (Lightmass) in UE4, you must compute a set of un
 [![](ue4_lightmap.jpg)(w:920)](ue4_lightmap.jpg)
 [/REGION]
 
-Modeler lightmap and density on the left, lightmapped model in UE4 on the right
+Modeler lightmap and density on the left; Lightmapped model in UE4 on the right.
 
 ## Step 1: Switch to Lightmap Density Rendering Mode
 
-Using the **Render** toolbar button switch the rendering mode to **Lightmap Density**. Your display should look like the one in the image below.
+Using the **Render** toolbar button, switch the rendering mode to **Lightmap Density**. Your display should look like the one in the image below.
 
 ![](ue4_starting_lightmap.jpg)
 
