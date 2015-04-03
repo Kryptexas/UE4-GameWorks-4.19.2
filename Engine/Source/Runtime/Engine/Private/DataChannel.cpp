@@ -30,6 +30,11 @@ static TAutoConsoleVariable<int32> CVarNetReliableDebug(
 	TEXT(" 2: Print reliable bunch buffer each net update"),
 	ECVF_Default);
 
+static TAutoConsoleVariable<float> CVarNetProcessQueuedBunchesMillisecondLimit(
+	TEXT("net.ProcessQueuedBunchesMillisecondLimit"),
+	30.0f,
+	TEXT("Time threshold for processing queued bunches. If it takes longer than this in a single frame, wait until the next frame to continue processing queued bunches."));
+
 /*-----------------------------------------------------------------------------
 	UChannel implementation.
 -----------------------------------------------------------------------------*/
@@ -1678,6 +1683,10 @@ void UActorChannel::Tick()
 
 bool UActorChannel::ProcessQueuedBunches()
 {
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ProcessQueuedBunches time"), STAT_ProcessQueuedBunchesTime, STATGROUP_Net);
+
+	const uint32 QueueBunchStartCycles = FPlatformTime::Cycles();
+
 	// Try to resolve any guids that are holding up the network stream on this channel
 	for ( auto It = PendingGuidResolves.CreateIterator(); It; ++It )
 	{
@@ -1697,11 +1706,16 @@ bool UActorChannel::ProcessQueuedBunches()
 		}
 	}
 
+	const bool bHasTimeToProcess = Connection->Driver->ProcessQueuedBunchesCurrentFrameMilliseconds < CVarNetProcessQueuedBunchesMillisecondLimit.GetValueOnGameThread();
+
 	// We can process all of the queued up bunches if ALL of these are true:
 	//	1. We have queued bunches to process
 	//	2. We no longer have any pending guids to load
 	//	3. We aren't still processing bunches on another channel that this actor was previously on
-	if ( QueuedBunches.Num() > 0 && PendingGuidResolves.Num() == 0 && ( ChIndex == -1 || !Connection->KeepProcessingActorChannelBunchesMap.Contains( ActorNetGUID ) ) )
+	//	4. We haven't spent too much time yet this frame processing queued bunches
+	//	5. The driver isn't requesting queuing for this GUID
+	if ( QueuedBunches.Num() > 0 && PendingGuidResolves.Num() == 0 && ( ChIndex == -1 || !Connection->KeepProcessingActorChannelBunchesMap.Contains( ActorNetGUID ) ) &&
+		 bHasTimeToProcess && !Connection->Driver->ShouldQueueBunchesForActorGUID( ActorNetGUID ) )
 	{
 		for ( int32 i = 0; i < QueuedBunches.Num(); i++ )
 		{
@@ -1725,6 +1739,13 @@ bool UActorChannel::ProcessQueuedBunches()
 			QueuedBunchStartTime = FPlatformTime::Seconds();
 		}
 	}
+
+	// Update the driver with our time spent
+	const uint32 QueueBunchEndCycles = FPlatformTime::Cycles();
+	const uint32 QueueBunchDeltaCycles = QueueBunchEndCycles - QueueBunchStartCycles;
+	const float QueueBunchDeltaMilliseconds = FPlatformTime::ToMilliseconds(QueueBunchDeltaCycles);
+
+	Connection->Driver->ProcessQueuedBunchesCurrentFrameMilliseconds += QueueBunchDeltaMilliseconds;
 
 	// Return true if we are done processing queued bunches
 	return QueuedBunches.Num() == 0;
@@ -1792,7 +1813,9 @@ void UActorChannel::ReceivedBunch( FInBunch & Bunch )
 		//	1. We have pending guids to resolve
 		//	2. We already have queued up bunches
 		//	3. If this actor was previously on a channel that is now still processing bunches after a close
-		if ( PendingGuidResolves.Num() > 0 || QueuedBunches.Num() > 0 || Connection->KeepProcessingActorChannelBunchesMap.Contains( ActorNetGUID ) )
+		//	4. The driver is requesting queuing for this GUID
+		if ( PendingGuidResolves.Num() > 0 || QueuedBunches.Num() > 0 || Connection->KeepProcessingActorChannelBunchesMap.Contains( ActorNetGUID ) ||
+			 ( Connection->Driver->ShouldQueueBunchesForActorGUID( ActorNetGUID ) ) )
 		{
 			if ( Connection->KeepProcessingActorChannelBunchesMap.Contains( ActorNetGUID ) )
 			{

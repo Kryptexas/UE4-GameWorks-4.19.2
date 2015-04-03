@@ -31,6 +31,7 @@ static TAutoConsoleVariable<int32> CVarGotoCheckpointIndex( TEXT( "demo.GotoChec
 static TAutoConsoleVariable<float> CVarGotoTimeInSeconds( TEXT( "demo.GotoTimeInSeconds" ), -1, TEXT( "For testing only, jump to a particular time" ) );
 static TAutoConsoleVariable<int32> CVarDemoFastForwardDestroyTearOffActors( TEXT( "demo.FastForwardDestroyTearOffActors" ), 1, TEXT( "If true, the driver will destroy any torn-off actors immediately while fast-forwarding a replay." ) );
 static TAutoConsoleVariable<int32> CVarDemoFastForwardSkipRepNotifies( TEXT( "demo.FastForwardSkipRepNotifies" ), 1, TEXT( "If true, the driver will optimize fast-forwarding by deferring calls to RepNotify functions until the fast-forward is complete. " ) );
+static TAutoConsoleVariable<int32> CVarDemoQueueCheckpointChannels( TEXT( "demo.QueueCheckpointChannels" ), 1, TEXT( "If true, the driver will put all channels created during checkpoint loading into queuing mode, to amortize the cost of spawning new actors across multiple frames." ) );
 
 static const int32 MAX_DEMO_READ_WRITE_BUFFER = 1024 * 2;
 
@@ -58,6 +59,7 @@ bool UDemoNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, con
 		bIsFastForwarding		= false;
 		GotoCheckpointSkipExtraTimeInMS = -1;
 		LastGotoTimeInSeconds	= -1.0f;
+		bIsLoadingCheckpoint	= false;
 
 		ResetDemoState();
 
@@ -1029,6 +1031,8 @@ bool UDemoNetDriver::ConditionallyReadDemoFrame()
 
 bool UDemoNetDriver::ReadDemoFrame( FArchive* Archive )
 {
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ReadDemoFrame time"), STAT_ReplayReadDemoFrameTime, STATGROUP_Net);
+
 	while ( true )
 	{
 		uint8 ReadBuffer[ MAX_DEMO_READ_WRITE_BUFFER ];
@@ -1221,6 +1225,10 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 	{
 		bIsFastForwarding = false;
 
+		// We may have been fast-forwarding immediately after loading a checkpoint
+		// for fine-grained scrubbing. If so, at this point we are no longer loading a checkpoint.
+		bIsLoadingCheckpoint = false;
+
 		// Flush all pending RepNotifies that were built up during the fast-forward.
 		if ( ServerConnection != nullptr)
 		{
@@ -1311,6 +1319,8 @@ void UDemoNetDriver::CheckpointReady( const bool bSuccess, const int64 SkipExtra
 
 void UDemoNetDriver::LoadCheckpoint()
 {
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("LoadCheckpoint time"), STAT_ReplayCheckpointLoadTime, STATGROUP_Net);
+
 	if ( GotoCheckpointArchive == NULL )
 	{
 		UE_LOG( LogDemo, Warning, TEXT( "UDemoNetConnection::LoadCheckpoint: GotoCheckpointArchive == NULL." ) );
@@ -1329,6 +1339,8 @@ void UDemoNetDriver::LoadCheckpoint()
 		return;
 	}
 
+	bIsLoadingCheckpoint = true;
+
 	bRestoreSpectatorPosition = true;
 	SpectatorLocation = SpectatorController->GetSpectatorPawn()->GetActorLocation();
 	SpectatorRotation = SpectatorController->GetControlRotation();//GetSpectatorPawn()->GetActorRotation();
@@ -1336,10 +1348,24 @@ void UDemoNetDriver::LoadCheckpoint()
 	FURL ConnectURL;
 	ConnectURL.Map = DemoFilename;
 
+	// Reset the never-queue GUID list, we'll rebuild it
+	NonQueuedGUIDsForScrubbing.Empty();
+
+	// Save off the SpectatorController's GUID so that we know not to queue his bunches
+	AddNonQueuedActorForScrubbing(SpectatorController);
+
 #if 1
 	// Destroy all non startup actors. They will get restored with the checkpoint
 	for ( FActorIterator It( GetWorld() ); It; ++It )
 	{
+		// If there are any existing actors that are bAlwaysRelevant, don't queue their bunches.
+		// Actors that do queue their bunches might not appear immediately after the checkpoint is loaded,
+		// and missing bAlwaysRelevant actors are more likely to cause noticeable artifacts.
+		if ( It->bAlwaysRelevant )
+		{
+			AddNonQueuedActorForScrubbing(*It);
+		}
+
 		if ( !It->IsNetStartupActor() )
 		{
 			GetWorld()->DestroyActor( *It, true );
@@ -1388,6 +1414,7 @@ void UDemoNetDriver::LoadCheckpoint()
 
 		GotoCheckpointArchive			= NULL;
 		GotoCheckpointSkipExtraTimeInMS = -1;
+		bIsLoadingCheckpoint = false;
 		return;
 	}
 
@@ -1433,6 +1460,10 @@ void UDemoNetDriver::LoadCheckpoint()
 		DemoCurrentTime += (float)GotoCheckpointSkipExtraTimeInMS / 1000;
 		bIsFastForwarding = true;
 	}
+	else
+	{
+		bIsLoadingCheckpoint = false;
+	}
 
 	GotoCheckpointSkipExtraTimeInMS = -1;
 	GotoCheckpointArchive			= NULL;
@@ -1442,6 +1473,32 @@ void UDemoNetDriver::LoadCheckpoint()
 	if ( bRestoreSpectatorPosition )
 	{
 		UE_LOG( LogDemo, Warning, TEXT( "UDemoNetConnection::LoadCheckpoint: Spectator wasn't restored." ) );
+	}
+}
+
+bool UDemoNetDriver::ShouldQueueBunchesForActorGUID(FNetworkGUID InGUID) const
+{
+	if ( CVarDemoQueueCheckpointChannels.GetValueOnGameThread() == 0)
+	{
+		return false;
+	}
+
+	// While loading a checkpoint, queue most bunches so that we don't process them all on one frame.
+	if (bIsLoadingCheckpoint)
+	{
+		return !NonQueuedGUIDsForScrubbing.Contains(InGUID);
+	}
+
+	return false;
+}
+
+void UDemoNetDriver::AddNonQueuedActorForScrubbing(AActor* Actor)
+{
+	auto FoundChannel = ServerConnection->ActorChannels.Find(Actor);
+	if (FoundChannel != nullptr && *FoundChannel != nullptr)
+	{
+		FNetworkGUID ActorGUID = (*FoundChannel)->ActorNetGUID;
+		NonQueuedGUIDsForScrubbing.Add(ActorGUID);
 	}
 }
 

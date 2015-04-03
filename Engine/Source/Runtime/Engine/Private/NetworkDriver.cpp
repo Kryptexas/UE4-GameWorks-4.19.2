@@ -123,6 +123,7 @@ UNetDriver::UNetDriver(const FObjectInitializer& ObjectInitializer)
 ,	StatPeriod(1.f)
 ,	NetTag(0)
 ,	DebugRelevantActors(false)
+,	ProcessQueuedBunchesCurrentFrameMilliseconds(0.0f)
 {
 }
 
@@ -169,6 +170,9 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		LastUpdateCount = Updated;
 #endif // WITH_SERVER_CODE
 	}
+
+	// Reset queued bunch amortization timer
+	ProcessQueuedBunchesCurrentFrameMilliseconds = 0.0f;
 
 #if STATS
 	// Update network stats (only main game net driver for now)

@@ -75,6 +75,12 @@ class ENGINE_API UDemoNetDriver : public UNetDriver
 
 private:
 	bool		bIsFastForwarding;
+	bool		bIsLoadingCheckpoint;
+
+	TArray<FNetworkGUID> NonQueuedGUIDsForScrubbing;
+
+	// If a channel is associated with Actor, adds the channel's GUID to the list of GUIDs excluded from queuing bunches during scrubbing.
+	void		AddNonQueuedActorForScrubbing(AActor* Actor);
 
 public:
 
@@ -94,6 +100,7 @@ public:
 	bool InitConnectInternal( FString& Error );
 	virtual bool ShouldClientDestroyTearOffActors() const override;
 	virtual bool ShouldSkipRepNotifies() const override;
+	virtual bool ShouldQueueBunchesForActorGUID(FNetworkGUID InGUID) const override;
 
 public:
 

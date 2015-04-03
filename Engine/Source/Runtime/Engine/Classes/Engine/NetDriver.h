@@ -302,6 +302,9 @@ public:
 	FDelegateHandle TickFlushDelegateHandle;
 	FDelegateHandle PostTickFlushDelegateHandle;
 
+	/** Tracks the amount of time spent during the current frame processing queued bunches. */
+	float ProcessQueuedBunchesCurrentFrameMilliseconds;
+
 	/**
 	* Updates the standby cheat information and
 	 * causes the dialog to be shown/hidden as needed
@@ -536,6 +539,9 @@ public:
 
 	/** Returns whether or not properties that are replicating using this driver should not call RepNotify functions. */
 	virtual bool ShouldSkipRepNotifies() const { return false; }
+
+	/** Returns true if actor channels with InGUID should queue up bunches, even if they wouldn't otherwise be queued. */
+	virtual bool ShouldQueueBunchesForActorGUID(FNetworkGUID InGUID) const { return false; }
 
 protected:
 
