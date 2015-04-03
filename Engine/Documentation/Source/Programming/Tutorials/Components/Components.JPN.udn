@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2465675
+﻿INTSourceChangelist:2486695
 Availability:Public
 Title:コンポーネントとコリジョン
 Crumbs:%ROOT%, GettingStarted, Programming/Tutorials
@@ -38,7 +38,20 @@ Description:パーティクルエフェクトなどを使用してコンポー�
 [/OBJECT]
 [/VAR]
 
-このチュートリアルは、コンポーネントの作成、コンポーネントを階層へ配置、ゲームプレイ中のコントロール、またソリッドなバリアが存在するワールド内でコンポーネントを使用してポーンをあちこちへ移動させる方法を紹介します。
+このチュートリアルは、コンポーネントの作成、コンポーネントを階層へ配置、ゲームプレイ中のコントロール、またソリッドなオブジェクトが存在するワールド内でコンポーネントを使用してポーンをあちこちへ移動させる方法を紹介します。
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	SVwK5FJEfwU
+	[/PARAMLITERAL]
+[/OBJECT]
+
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/start_icon.png)(convert:false)
@@ -54,6 +67,7 @@ Description:パーティクルエフェクトなどを使用してコンポー�
 	* [](Programming\Tutorials\Components\3 "%Programming\Tutorials\Components\3:description%")
 	* [](Programming\Tutorials\Components\4 "%Programming\Tutorials\Components\4:description%")
 	* [](Programming\Tutorials\Components\5 "%Programming\Tutorials\Components\5:description%")
+	* [](Programming\Tutorials\Components\6 "%Programming\Tutorials\Components\6:description%")
 	[/PARAM]
 [/OBJECT]
 
