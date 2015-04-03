@@ -401,22 +401,18 @@ void StaticTick( float DeltaTime, bool bUseFullTimeLimit, float AsyncLoadingTime
 //
 // Safe load error-handling.
 //
-void SafeLoadError( UObject* Outer, uint32 LoadFlags, const TCHAR* Error, const TCHAR* Fmt, ... )
+void SafeLoadError( UObject* Outer, uint32 LoadFlags, const TCHAR* ErrorMessage)
 {
-	// Variable arguments setup.
-	TCHAR TempStr[4096];
-	GET_VARARGS( TempStr, ARRAY_COUNT(TempStr), ARRAY_COUNT(TempStr)-1, Fmt, Fmt );
-
 	if( FParse::Param( FCommandLine::Get(), TEXT("TREATLOADWARNINGSASERRORS") ) == true )
 	{
-		UE_LOG(LogUObjectGlobals, Error, TEXT("%s"), TempStr ); 
+		UE_LOG(LogUObjectGlobals, Error, TEXT("%s"), ErrorMessage);
 	}
 	else
 	{
 		// Don't warn here if either quiet or no warn are set
 		if( (LoadFlags & LOAD_Quiet) == 0 && (LoadFlags & LOAD_NoWarn) == 0)
 		{ 
-			UE_LOG(LogUObjectGlobals, Warning, TEXT("%s"), TempStr ); 
+			UE_LOG(LogUObjectGlobals, Warning, TEXT("%s"), ErrorMessage);
 		}
 	}
 }
@@ -782,7 +778,7 @@ UObject* StaticLoadObject(UClass* ObjectClass, UObject* InOuter, const TCHAR* In
 		Arguments.Add(TEXT("OuterName"), InOuter ? FText::FromString(InOuter->GetPathName()) : NSLOCTEXT("Core", "None", "None"));
 		Arguments.Add(TEXT("ObjectName"), FText::FromString(ObjectName));
 		const FString Error = FText::Format(NSLOCTEXT("Core", "ObjectNotFound", "Failed to find object '{ClassName} {OuterName}.{ObjectName}'"), Arguments).ToString();
-		SafeLoadError(InOuter, LoadFlags, *Error, *Error);
+		SafeLoadError(InOuter, LoadFlags, *Error);
 	}
 	return Result;
 }
@@ -801,7 +797,7 @@ UClass* StaticLoadClass( UClass* BaseClass, UObject* InOuter, const TCHAR* InNam
 		Arguments.Add(TEXT("ClassName"), FText::FromString( Class->GetFullName() ));
 		Arguments.Add(TEXT("BaseClassName"), FText::FromString( BaseClass->GetFullName() ));
 		const FString Error = FText::Format( NSLOCTEXT( "Core", "LoadClassMismatch", "{ClassName} is not a child class of {BaseClassName}" ), Arguments ).ToString();
-		SafeLoadError(InOuter, LoadFlags,*Error, *Error);
+		SafeLoadError(InOuter, LoadFlags, *Error);
 
 		// return NULL class due to error
 		Class = NULL;

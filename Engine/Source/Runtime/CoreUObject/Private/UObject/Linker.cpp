@@ -515,7 +515,7 @@ static void LogGetPackageLinkerError(FArchiveUObject* LinkerArchive, const TCHAR
 		else
 		{
 			// Gracefully handle missing packages
-			SafeLoadError( InOuter, LoadFlags, *InFullErrorMessage.ToString(), *Error.ToString() );
+			SafeLoadError(InOuter, LoadFlags, *Error.ToString());
 		}
 	}
 }
