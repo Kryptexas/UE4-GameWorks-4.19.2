@@ -1344,7 +1344,7 @@ namespace UnrealBuildTool
 			foreach(UEBuildBinary Binary in AppBinaries)
 			{
 				BuildReceipt BinaryReceipt = Binary.MakeReceipt(ToolChain);
-				Receipt.Merge(BinaryReceipt);
+				Receipt.Append(BinaryReceipt);
 			}
 			foreach(BuildProduct BuildProduct in Receipt.BuildProducts)
 			{
