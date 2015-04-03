@@ -67,7 +67,7 @@ namespace UnrealBuildTool
 				}
 			}
 
-			bool bIsBuilding = (BuildConfiguration.bXGEExport == false) && (UEBuildConfiguration.bGenerateManifest == false) && (UEBuildConfiguration.bGenerateExternalFileList == false) && (UEBuildConfiguration.bCleanProject == false);
+			bool bIsBuilding = (ProjectFileGenerator.bGenerateProjectFiles == false ) && (BuildConfiguration.bXGEExport == false) && (UEBuildConfiguration.bGenerateManifest == false) && (UEBuildConfiguration.bGenerateExternalFileList == false) && (UEBuildConfiguration.bCleanProject == false);
 			if( bIsBuilding && !UnrealBuildTool.bNeedsFullCPPIncludeRescan )
 			{ 
 				UnrealBuildTool.bNeedsFullCPPIncludeRescan = true;
