@@ -184,6 +184,11 @@ public:
 	static FText AsTimespan(const FTimespan& Timespan, const FCulturePtr& TargetCulture = NULL);
 
 	/**
+	 * Gets the time zone string that represents a non-specific, zero offset, culture invariant time zone.
+	 */
+	static FString GetInvariantTimeZone();
+
+	/**
 	 * Generate an FText that represents the passed number as a memory size in the current culture
 	 */
 	static FText AsMemory(SIZE_T NumBytes, const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
