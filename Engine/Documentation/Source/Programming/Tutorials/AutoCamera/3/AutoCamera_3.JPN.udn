@@ -1,13 +1,13 @@
-﻿INTSourceChangelist:2466292
+﻿INTSourceChangelist:2486582
 Availability:Public
 Title:3.ワールドにCamera Directorを配置する
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/AutoCamera
-Description:ワールドにCamera Directorを配置してカメラを割り当てる
+Description:Camera Directorをワールドに配置してカメラを割り当てる
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[前の手順](Programming\Tutorials\AutoCamera\2 "%Programming\Tutorials\AutoCamera\1:title%")
+		[前の手順](Programming\Tutorials\AutoCamera\2 "%Programming\Tutorials\AutoCamera\2:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -15,6 +15,7 @@ Description:ワールドにCamera Directorを配置してカメラを割り当�
 		[プログラミングチュートリアルのホームページ](Programming\Tutorials\)
 	[/PARAM]
 	[PARAM:next]
+		[次の手順](Programming\Tutorials\AutoCamera\4 "%Programming\Tutorials\AutoCamera\4:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -33,7 +34,7 @@ Description:ワールドにCamera Directorを配置してカメラを割り当�
 
 	[![](CameraDirectorDetails2.png)](CameraDirectorDetails2.png)
 
-1. **Play（再生）** を押すと、カメラがこのビューにスナップされます：
+1. **Play（再生）** を押すと、カメラがこのビューにスナップします：
 
 	[![](CameraOneView.png)](CameraOneView.png)
 
@@ -41,11 +42,11 @@ Description:ワールドにCamera Directorを配置してカメラを割り当�
 
 	[![](CameraTwoView.png)](CameraTwoView.png)
 
-	元に戻る前に数秒間待機します。
+	スナップバックする前に数秒間待機します。
 
 ----
 
-ゲームロジックに完全に基づいてプレイヤーのカメラを動かすシステムが出来ました。このコードは、プレイヤーがカメラを直接操作しないゲームやカメラビュー間のブレンディングが実用的なゲームなど、どんなゲームにも使用するために変更することができます。
+ゲームロジックに完全に基づいてプレイヤーのカメラを動かせるシステムが出来ました。このコードは、プレイヤーがカメラを直接操作しないゲームやカメラビュー間のブレンディングが実用的なゲームなど、任意のゲームで使用するために変更可能です。
 
 [OBJECT:Section]
     [PARAMLITERAL:id]
