@@ -151,8 +151,7 @@ TSharedPtr<SWidget> SFlipbookEditorViewport::MakeViewportToolbar()
 
 EVisibility SFlipbookEditorViewport::GetTransformToolbarVisibility() const
 {
-	//@TODO: Nothing to transform in the flipbook editor, yet...
-	return EVisibility::Hidden;
+	return EVisibility::Visible;
 }
 
 void SFlipbookEditorViewport::OnFocusViewportToSelection()
