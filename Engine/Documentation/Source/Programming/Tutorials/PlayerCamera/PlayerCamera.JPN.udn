@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2465675
+﻿INTSourceChangelist:2486757
 Availability:Public
 Title:プレイヤー制御のカメラ
 Crumbs:%ROOT%, GettingStarted, Programming/Tutorials
@@ -38,7 +38,20 @@ Description:プレイヤー入力でカメラとポーンを同時に操作す�
 [/OBJECT]
 [/VAR]
 
-このチュートリアルは、カメラのアクティベート方法、またあるカメラから別のカメラへアクティブなカメラを変更する方法を紹介します。
+このチュートリアルは、カメラのアクティベート方法、またあるカメラから別のカメラへアクティブなカメラを切り替える方法を紹介します。
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	i4RJu80d8Ss
+	[/PARAMLITERAL]
+[/OBJECT]
+
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/start_icon.png)(convert:false)
@@ -52,6 +65,7 @@ Description:プレイヤー入力でカメラとポーンを同時に操作す�
 	* [](Programming\Tutorials\PlayerCamera\1 "%Programming\Tutorials\PlayerCamera\1:description%")
 	* [](Programming\Tutorials\PlayerCamera\2 "%Programming\Tutorials\PlayerCamera\2:description%")
 	* [](Programming\Tutorials\PlayerCamera\3 "%Programming\Tutorials\PlayerCamera\3:description%")
+	* [](Programming\Tutorials\PlayerCamera\4 "%Programming\Tutorials\PlayerCamera\4:description%")
 	[/PARAM]
 [/OBJECT]
 
