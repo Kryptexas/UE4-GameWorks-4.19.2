@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2444099
+﻿INTSourceChangelist:2500145
 Availability:Public
 Title: 툴바
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
@@ -22,6 +22,6 @@ Description:
 
 ## 툴바 옵션
 
-블루프린트 툴바에는 여러가지 옵션이 들어있습니다. 사용할 수 있는 옵션은 블루프린트의 유형과, 블루프린트 클래스의 경우 어떤 모드에 있는가에 따라 달라집니다.
+블루프린트 툴바에는 여러가지 옵션이 들어있습니다. 사용할 수 있는 옵션은 블루프린트의 유형과 어떤 모드에 있는가에 따라 달라집니다.
 
 툴바 옵션 관련 상세 정보는 [](Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions) 문서를 참고하세요.

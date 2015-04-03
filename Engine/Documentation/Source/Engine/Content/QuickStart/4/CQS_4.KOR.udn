@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2466505
+﻿INTSourceChangelist:2500418
 Availability: Public
 Title:4. 머티리얼 적용
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
@@ -216,3 +216,4 @@ Using the two textures you imported earlier or any other textures you happened t
 다음 단계에서는 애셋을 수동으로 임포트하는 여러가지 방법을 배워보도록 하겠습니다.
 
 %Steps%
+
