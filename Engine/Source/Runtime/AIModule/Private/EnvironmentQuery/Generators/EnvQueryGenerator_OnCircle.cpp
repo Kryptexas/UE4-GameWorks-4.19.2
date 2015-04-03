@@ -155,13 +155,10 @@ void UEnvQueryGenerator_OnCircle::GenerateItemsForCircle(uint8* ContextRawData, 
 	{
 		case EEnvQueryTrace::Navigation:
 		{
-			ANavigationData* NavData = nullptr;
-#if WITH_RECAST
-			NavData = (ANavigationData*)FEQSHelpers::FindNavMeshForQuery(OutQueryInstance);
-#endif
+			ANavigationData* NavData = const_cast<ANavigationData*>(FEQSHelpers::FindNavigationDataForQuery(OutQueryInstance));
 			if (NavData)
 			{
-				FEQSHelpers::RunNavRaycasts(NavData, TraceData, CenterLocation, ItemCandidates);
+				FEQSHelpers::RunNavRaycasts(*NavData, TraceData, CenterLocation, ItemCandidates);
 			}
 		}
 			break;

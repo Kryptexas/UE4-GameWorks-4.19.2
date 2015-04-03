@@ -17,18 +17,16 @@ UEnvQueryGenerator_ProjectedPoints::UEnvQueryGenerator_ProjectedPoints(const FOb
 
 void UEnvQueryGenerator_ProjectedPoints::ProjectAndFilterNavPoints(TArray<FNavLocation>& Points, FEnvQueryInstance& QueryInstance) const
 {
-	ANavigationData* NavData = nullptr;
+	const ANavigationData* NavData = nullptr;
 	if (ProjectionData.TraceMode != EEnvQueryTrace::None)
 	{
-#if WITH_RECAST
-		NavData = (ANavigationData*)FEQSHelpers::FindNavMeshForQuery(QueryInstance);
-#endif // WITH_RECAST
+		NavData = FEQSHelpers::FindNavigationDataForQuery(QueryInstance);
 	}
 
 	if (NavData)
 	{
 		FEQSHelpers::ETraceMode Mode = (ProjectionData.TraceMode == EEnvQueryTrace::Navigation) ? FEQSHelpers::ETraceMode::Discard : FEQSHelpers::ETraceMode::Keep;
-		FEQSHelpers::RunNavProjection(NavData, ProjectionData, Points, Mode);
+		FEQSHelpers::RunNavProjection(*NavData, ProjectionData, Points, Mode);
 	}
 
 	if (ProjectionData.TraceMode == EEnvQueryTrace::Geometry)
@@ -39,7 +37,8 @@ void UEnvQueryGenerator_ProjectedPoints::ProjectAndFilterNavPoints(TArray<FNavLo
 
 void UEnvQueryGenerator_ProjectedPoints::StoreNavPoints(const TArray<FNavLocation>& Points, FEnvQueryInstance& QueryInstance) const
 {
-	QueryInstance.ReserveItemData(QueryInstance.Items.Num() + Points.Num());
+	const int32 InitialElementsCount = QueryInstance.Items.Num();
+	QueryInstance.ReserveItemData(InitialElementsCount + Points.Num());
 	for (int32 Idx = 0; Idx < Points.Num(); Idx++)
 	{
 		// store using default function to handle creating new data entry 
@@ -50,7 +49,7 @@ void UEnvQueryGenerator_ProjectedPoints::StoreNavPoints(const TArray<FNavLocatio
 	for (int32 Idx = 0; Idx < Points.Num(); Idx++)
 	{
 		// overwrite with more detailed info
-		UEnvQueryItemType_Point::SetNavValue(DataPtr + QueryInstance.Items[Idx].DataOffset, Points[Idx]);
+		UEnvQueryItemType_Point::SetNavValue(DataPtr + QueryInstance.Items[Idx + InitialElementsCount].DataOffset, Points[Idx]);
 	}
 
 	FEnvQueryOptionInstance& OptionInstance = QueryInstance.Options[QueryInstance.OptionIndex];

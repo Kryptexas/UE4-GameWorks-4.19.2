@@ -929,7 +929,11 @@ public:
 
 namespace FEQSHelpers
 {
+	AIMODULE_API const ANavigationData* FindNavigationDataForQuery(FEnvQueryInstance& QueryInstance);
+
 #if WITH_RECAST
+
+	DEPRECATED(4.8, "FindNavMeshForQuery is deprecated. Please use FindNavigationDataForQuery")
 	AIMODULE_API const ARecastNavMesh* FindNavMeshForQuery(FEnvQueryInstance& QueryInstance);
 #endif // WITH_RECAST
 }

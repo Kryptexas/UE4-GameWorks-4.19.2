@@ -650,30 +650,37 @@ bool AAIController::PreparePathfinding(const FAIMoveRequest& MoveRequest, FPathF
 			NavSys->GetNavDataForProps(GetNavAgentPropertiesRef()) :
 			NavSys->GetAbstractNavData();
 
-		FVector GoalLocation = MoveRequest.GetGoalLocation();
-		if (MoveRequest.HasGoalActor())
+		if (NavData)
 		{
-			const INavAgentInterface* NavGoal = Cast<const INavAgentInterface>(MoveRequest.GetGoalActor());
-			if (NavGoal)
+			FVector GoalLocation = MoveRequest.GetGoalLocation();
+			if (MoveRequest.HasGoalActor())
 			{
-				const FVector Offset = NavGoal->GetMoveGoalOffset(this);
-				GoalLocation = FQuatRotationTranslationMatrix(MoveRequest.GetGoalActor()->GetActorQuat(), NavGoal->GetNavAgentLocation()).TransformPosition(Offset);
+				const INavAgentInterface* NavGoal = Cast<const INavAgentInterface>(MoveRequest.GetGoalActor());
+				if (NavGoal)
+				{
+					const FVector Offset = NavGoal->GetMoveGoalOffset(this);
+					GoalLocation = FQuatRotationTranslationMatrix(MoveRequest.GetGoalActor()->GetActorQuat(), NavGoal->GetNavAgentLocation()).TransformPosition(Offset);
+				}
+				else
+				{
+					GoalLocation = MoveRequest.GetGoalActor()->GetActorLocation();
+				}
 			}
-			else
+
+			Query = FPathFindingQuery(this, *NavData, GetNavAgentLocation(), GoalLocation, UNavigationQueryFilter::GetQueryFilter(*NavData, MoveRequest.GetNavigationFilter()));
+			Query.SetAllowPartialPaths(MoveRequest.IsUsingPartialPaths());
+
+			if (PathFollowingComponent)
 			{
-				GoalLocation = MoveRequest.GetGoalActor()->GetActorLocation();
+				PathFollowingComponent->OnPathfindingQuery(Query);
 			}
+
+			return true;
 		}
-
-		Query = FPathFindingQuery(this, NavData, GetNavAgentLocation(), GoalLocation, UNavigationQueryFilter::GetQueryFilter(NavData, MoveRequest.GetNavigationFilter()));
-		Query.SetAllowPartialPaths(MoveRequest.IsUsingPartialPaths());
-
-		if (PathFollowingComponent)
+		else
 		{
-			PathFollowingComponent->OnPathfindingQuery(Query);
+			UE_VLOG(this, LogAINavigation, Warning, TEXT("Unable to find NavigationData instance while calling AAIController::PreparePathfinding"));
 		}
-
-		return true;
 	}
 
 	return false;

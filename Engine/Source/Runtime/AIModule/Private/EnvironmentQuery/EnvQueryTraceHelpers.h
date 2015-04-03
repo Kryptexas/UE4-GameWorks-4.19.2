@@ -94,8 +94,29 @@ namespace FEQSHelpers
 	template<>
 	void FBatchTrace::DoProject<EEnvTraceShape::Capsule>(TArray<FNavLocation>& Points, float StartOffsetZ, float EndOffsetZ, float HitOffsetZ);
 
-	void RunNavRaycasts(ANavigationData* NavData, const FEnvTraceData& TraceData, const FVector& SourcePt, TArray<FNavLocation>& Points, ETraceMode TraceMode = ETraceMode::Keep);
-	void RunNavProjection(ANavigationData* NavData, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, ETraceMode TraceMode = ETraceMode::Discard);
+	void RunNavRaycasts(const ANavigationData& NavData, const FEnvTraceData& TraceData, const FVector& SourcePt, TArray<FNavLocation>& Points, ETraceMode TraceMode = ETraceMode::Keep);
+	void RunNavProjection(const ANavigationData& NavData, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, ETraceMode TraceMode = ETraceMode::Discard);
 	void RunPhysRaycasts(UWorld* World, const FEnvTraceData& TraceData, const FVector& SourcePt, TArray<FNavLocation>& Points, ETraceMode TraceMode = ETraceMode::Keep);
 	void RunPhysProjection(UWorld* World, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, ETraceMode TraceMode = ETraceMode::Discard);
+
+	//----------------------------------------------------------------------//
+	// deprecates
+	//----------------------------------------------------------------------//
+	DEPRECATED(4.8, "This version of RunNavRaycasts is deprecated. Please use ANavigationData reference rather than a pointer version")
+	void RunNavRaycasts(const ANavigationData* NavData, const FEnvTraceData& TraceData, const FVector& SourcePt, TArray<FNavLocation>& Points, ETraceMode TraceMode = ETraceMode::Keep)
+	{
+		if (NavData)
+		{
+			RunNavRaycasts(*NavData, TraceData, SourcePt, Points, TraceMode);
+		}
+	}
+
+	DEPRECATED(4.8, "This version of RunNavProjection is deprecated. Please use ANavigationData reference rather than a pointer version")
+	void RunNavProjection(const ANavigationData* NavData, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, ETraceMode TraceMode = ETraceMode::Discard)
+	{
+		if (NavData)
+		{
+			RunNavProjection(*NavData, TraceData, Points, TraceMode);
+		}
+	}
 }

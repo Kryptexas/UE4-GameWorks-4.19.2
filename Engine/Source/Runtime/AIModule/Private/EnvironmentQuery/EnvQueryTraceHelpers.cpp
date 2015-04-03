@@ -156,7 +156,7 @@ void FEQSHelpers::FBatchTrace::DoProject<EEnvTraceShape::Capsule>(TArray<FNavLoc
 }
 
 
-void FEQSHelpers::RunNavRaycasts(ANavigationData* NavData, const FEnvTraceData& TraceData, const FVector& SourcePt, TArray<FNavLocation>& Points, ETraceMode TraceMode)
+void FEQSHelpers::RunNavRaycasts(const ANavigationData& NavData, const FEnvTraceData& TraceData, const FVector& SourcePt, TArray<FNavLocation>& Points, ETraceMode TraceMode /*= ETraceMode::Keep*/)
 {
 	TSharedPtr<const FNavigationQueryFilter> NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavData, TraceData.NavigationFilter);
 
@@ -168,7 +168,7 @@ void FEQSHelpers::RunNavRaycasts(ANavigationData* NavData, const FEnvTraceData& 
 		RaycastWorkload.Add(FNavigationRaycastWork(SourcePt, ItemLocation.Location));
 	}
 
-	NavData->BatchRaycast(RaycastWorkload, NavigationFilter);
+	NavData.BatchRaycast(RaycastWorkload, NavigationFilter);
 
 	for (int32 Idx = 0; Idx < Points.Num(); Idx++)
 	{
@@ -188,7 +188,7 @@ void FEQSHelpers::RunNavRaycasts(ANavigationData* NavData, const FEnvTraceData& 
 }
 
 
-void FEQSHelpers::RunNavProjection(ANavigationData* NavData, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, ETraceMode TraceMode)
+void FEQSHelpers::RunNavProjection(const ANavigationData& NavData, const FEnvTraceData& TraceData, TArray<FNavLocation>& Points, ETraceMode TraceMode /*= ETraceMode::Discard*/)
 {
 	TSharedPtr<const FNavigationQueryFilter> NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavData, TraceData.NavigationFilter);
 	TArray<FNavigationProjectionWork> Workload;
@@ -211,7 +211,7 @@ void FEQSHelpers::RunNavProjection(ANavigationData* NavData, const FEnvTraceData
 	}
 
 	const FVector ProjectionExtent(TraceData.ExtentX, TraceData.ExtentX, (TraceData.ProjectDown + TraceData.ProjectUp) / 2);
-	NavData->BatchProjectPoints(Workload, ProjectionExtent, NavigationFilter);
+	NavData.BatchProjectPoints(Workload, ProjectionExtent, NavigationFilter);
 
 	for (int32 Idx = Workload.Num() - 1; Idx >= 0; Idx--)
 	{

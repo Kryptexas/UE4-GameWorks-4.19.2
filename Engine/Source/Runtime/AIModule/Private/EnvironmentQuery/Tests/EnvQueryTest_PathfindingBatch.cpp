@@ -75,9 +75,13 @@ void UEnvQueryTest_PathfindingBatch::RunTest(FEnvQueryInstance& QueryInstance) c
 	float RangeMultiplierValue = ScanRangeMultiplier.GetValue();
 
 	UNavigationSystem* NavSys = QueryInstance.World->GetNavigationSystem();
-	ANavigationData* NavData = FindNavigationData(NavSys, QueryInstance.Owner.Get());
+	if (NavSys == nullptr)
+	{
+		return;
+	}
+	ANavigationData* NavData = FindNavigationData(*NavSys, QueryInstance.Owner.Get());
 	ARecastNavMesh* NavMeshData = Cast<ARecastNavMesh>(NavData);
-	if (!NavMeshData)
+	if (NavMeshData == nullptr)
 	{
 		return;
 	}
@@ -93,7 +97,7 @@ void UEnvQueryTest_PathfindingBatch::RunTest(FEnvQueryInstance& QueryInstance) c
 	CollectDistanceSq.Init(0.0f, ContextLocations.Num());
 
 	TSharedPtr<FNavigationQueryFilter> NavigationFilter = FilterClass != nullptr
-		? UNavigationQueryFilter::GetQueryFilter(NavMeshData, FilterClass)->GetCopy()
+		? UNavigationQueryFilter::GetQueryFilter(*NavMeshData, FilterClass)->GetCopy()
 		: NavMeshData->GetDefaultQueryFilter()->GetCopy();
 	NavigationFilter->SetBacktrackingEnabled(!bPathToItem);
 	const dtQueryFilter* NavQueryFilter = ((const FRecastQueryFilter*)NavigationFilter->GetImplementation())->GetAsDetourQueryFilter();

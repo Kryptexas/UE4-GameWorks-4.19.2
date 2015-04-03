@@ -274,7 +274,7 @@ void FEnvFloatParam_DEPRECATED::Convert(UObject* Owner, FAIDataProviderFloatValu
 //----------------------------------------------------------------------//
 namespace FEQSHelpers
 {
-	const ARecastNavMesh* FindNavMeshForQuery(FEnvQueryInstance& QueryInstance)
+	const ANavigationData* FindNavigationDataForQuery(FEnvQueryInstance& QueryInstance)
 	{
 		const UNavigationSystem* NavSys = QueryInstance.World->GetNavigationSystem();
 		
@@ -288,11 +288,26 @@ namespace FEQSHelpers
 		if (NavAgent)
 		{
 			const FNavAgentProperties& NavAgentProps = NavAgent ? NavAgent->GetNavAgentPropertiesRef() : FNavAgentProperties::DefaultProperties;
-			return Cast<const ARecastNavMesh>(NavSys->GetNavDataForProps(NavAgentProps));
+			return NavSys->GetNavDataForProps(NavAgentProps);
 		}
 
-		return Cast<const ARecastNavMesh>(NavSys->GetMainNavData());
+		return NavSys->GetMainNavData();
 	}
 }
+
+//----------------------------------------------------------------------//
+// DEPRECATED
+//----------------------------------------------------------------------//
+#if WITH_RECAST
+
+namespace FEQSHelpers
+{
+	const ARecastNavMesh* FindNavMeshForQuery(FEnvQueryInstance& QueryInstance)
+	{
+		return Cast<const ARecastNavMesh>(FEQSHelpers::FindNavigationDataForQuery(QueryInstance));
+	}
+}
+
+#endif // WITH_RECAST
 
 #undef LOCTEXT_NAMESPACE

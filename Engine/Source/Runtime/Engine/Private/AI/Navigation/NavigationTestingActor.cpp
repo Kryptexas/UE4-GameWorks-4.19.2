@@ -410,8 +410,8 @@ void ANavigationTestingActor::OnPathEvent(FNavigationPath* InvalidatedPath, ENav
 
 FPathFindingQuery ANavigationTestingActor::BuildPathFindingQuery(const ANavigationTestingActor* Goal) const
 {
-	check(Goal);
-	return FPathFindingQuery(this, MyNavData, GetNavAgentLocation(), Goal->GetNavAgentLocation(), UNavigationQueryFilter::GetQueryFilter(MyNavData, FilterClass));
+	check(Goal && MyNavData);
+	return FPathFindingQuery(this, *MyNavData, GetNavAgentLocation(), Goal->GetNavAgentLocation(), UNavigationQueryFilter::GetQueryFilter(*MyNavData, FilterClass));
 }
 
 

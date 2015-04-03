@@ -38,7 +38,7 @@ void UEnvQueryGenerator_PathingGrid::ProjectAndFilterNavPoints(TArray<FNavLocati
 	bool bPathToItem = PathToItem.GetValue();
 	float RangeMultiplierValue = ScanRangeMultiplier.GetValue();
 
-	ARecastNavMesh* NavMeshData = (ARecastNavMesh*)FEQSHelpers::FindNavMeshForQuery(QueryInstance);
+	ARecastNavMesh* NavMeshData = const_cast<ARecastNavMesh*>(static_cast<const ARecastNavMesh*>(FEQSHelpers::FindNavigationDataForQuery(QueryInstance)));
 	if (!NavMeshData)
 	{
 		return;
@@ -48,7 +48,7 @@ void UEnvQueryGenerator_PathingGrid::ProjectAndFilterNavPoints(TArray<FNavLocati
 	QueryInstance.PrepareContext(GenerateAround, ContextLocations);
 
 	TSharedPtr<FNavigationQueryFilter> NavigationFilterOb = (NavigationFilter != nullptr)
-		? UNavigationQueryFilter::GetQueryFilter(NavMeshData, NavigationFilter)->GetCopy()
+		? UNavigationQueryFilter::GetQueryFilter(*NavMeshData, NavigationFilter)->GetCopy()
 		: NavMeshData->GetDefaultQueryFilter()->GetCopy();
 	NavigationFilterOb->SetBacktrackingEnabled(!bPathToItem);
 	
