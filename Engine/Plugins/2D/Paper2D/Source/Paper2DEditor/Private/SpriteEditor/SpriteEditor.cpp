@@ -56,6 +56,7 @@ public:
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
 	virtual TSharedPtr<SWidget> MakeViewportToolbar() override;
 	virtual EVisibility GetTransformToolbarVisibility() const override;
+	virtual void OnFocusViewportToSelection() override;
 	// End of SEditorViewport interface
 
 	// ICommonEditorViewportToolbarInfoProvider interface
@@ -174,11 +175,6 @@ void SSpriteEditorViewport::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::IsInRenderingEditMode ) );
 
-	// Misc. actions
-	CommandList->MapAction(
-		Commands.FocusOnSprite,
-		FExecuteAction::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::FocusOnSprite ));
-
 	// Geometry editing commands
 	CommandList->MapAction(
 		Commands.DeleteSelection,
@@ -230,6 +226,11 @@ TSharedPtr<SWidget> SSpriteEditorViewport::MakeViewportToolbar()
 EVisibility SSpriteEditorViewport::GetTransformToolbarVisibility() const
 {
 	return EVisibility::Visible;
+}
+
+void SSpriteEditorViewport::OnFocusViewportToSelection()
+{
+	EditorViewportClient->RequestFocusOnSelection(/*bInstant=*/ false);
 }
 
 TSharedRef<class SEditorViewport> SSpriteEditorViewport::GetViewportWidget()

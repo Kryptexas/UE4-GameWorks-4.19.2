@@ -72,8 +72,11 @@ private:
 	// Should we show the sprite pivot?
 	bool bShowPivot;
 
-	// Should we zoom to the tile map next tick?
-	bool bDeferZoomToTileMap;
+protected:
+	// FPaperEditorViewportClient interface
+	virtual FBox GetDesiredFocusBounds() const override;
+	// End of FPaperEditorViewportClient interface
+
 private:
 	UPaperTileMap* GetTileMapBeingEdited() const
 	{
@@ -84,6 +87,4 @@ private:
 	
 	void BeginTransaction(const FText& SessionName);
 	void EndTransaction();
-
-	void ClearSelectionSet();
 };

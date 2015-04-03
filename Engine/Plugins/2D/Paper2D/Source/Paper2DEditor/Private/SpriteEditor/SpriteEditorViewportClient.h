@@ -120,6 +120,12 @@ public:
 	}
 
 	static void AnalyzeSpriteMaterialType(UPaperSprite* Sprite, int32& OutNumOpaque, int32& OutNumMasked, int32& OutNumTranslucent);
+
+protected:
+	// FPaperEditorViewportClient interface
+	virtual FBox GetDesiredFocusBounds() const override;
+	// End of FPaperEditorViewportClient interface
+
 private:
 	// Editor mode
 	ESpriteEditorMode::Type CurrentMode;
@@ -159,9 +165,6 @@ private:
 
 	// Should we show the sprite pivot?
 	bool bShowPivot;
-
-	// Should we zoom to the sprite next tick?
-	bool bDeferZoomToSprite;
 
 	// Should we show related sprites in the source texture?
 	bool bShowRelatedSprites;

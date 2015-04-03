@@ -42,6 +42,11 @@ public:
 		return AnimatedRenderComponent.Get();
 	}
 
+protected:
+	// FPaperEditorViewportClient interface
+	virtual FBox GetDesiredFocusBounds() const override;
+	// End of FPaperEditorViewportClient interface
+
 private:
 
 	// The preview scene
@@ -61,7 +66,4 @@ private:
 
 	// Should we show sockets?
 	bool bShowSockets;
-
-	// Should we zoom to the sprite next tick?
-	bool bDeferZoomToSprite;
 };

@@ -54,6 +54,7 @@ public:
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
 	virtual TSharedPtr<SWidget> MakeViewportToolbar() override;
 	virtual EVisibility GetTransformToolbarVisibility() const override;
+	virtual void OnFocusViewportToSelection() override;
 	// End of SEditorViewport interface
 
 	// ICommonEditorViewportToolbarInfoProvider interface
@@ -111,11 +112,6 @@ void STileMapEditorViewport::BindCommands()
 		FExecuteAction::CreateSP(EditorViewportClientRef, &FTileMapEditorViewportClient::ToggleShowPivot),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(EditorViewportClientRef, &FTileMapEditorViewportClient::IsShowPivotChecked));
-
-	// Misc. actions
-	CommandList->MapAction(
-		Commands.FocusOnTileMap,
-		FExecuteAction::CreateSP(EditorViewportClientRef, &FTileMapEditorViewportClient::FocusOnTileMap));
 }
 
 TSharedRef<FEditorViewportClient> STileMapEditorViewport::MakeEditorViewportClient()
@@ -140,6 +136,11 @@ TSharedPtr<SWidget> STileMapEditorViewport::MakeViewportToolbar()
 EVisibility STileMapEditorViewport::GetTransformToolbarVisibility() const
 {
 	return EVisibility::Visible;
+}
+
+void STileMapEditorViewport::OnFocusViewportToSelection()
+{
+	EditorViewportClient->RequestFocusOnSelection(/*bInstant=*/ false);
 }
 
 TSharedRef<class SEditorViewport> STileMapEditorViewport::GetViewportWidget()

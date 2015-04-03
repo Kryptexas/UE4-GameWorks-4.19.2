@@ -40,9 +40,6 @@ public:
 	TSharedPtr<FUICommandInfo> EnterCollisionEditMode;
 	TSharedPtr<FUICommandInfo> EnterRenderingEditMode;
 
-	// Misc. actions
-	TSharedPtr<FUICommandInfo> FocusOnSprite;
-
 	// Geometry editing commands
 	TSharedPtr<FUICommandInfo> DeleteSelection;
 	TSharedPtr<FUICommandInfo> SplitEdge;

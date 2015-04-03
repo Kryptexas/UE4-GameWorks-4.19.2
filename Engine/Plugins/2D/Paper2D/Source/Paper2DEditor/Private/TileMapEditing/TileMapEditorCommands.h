@@ -35,9 +35,6 @@ public:
 	
 	TSharedPtr<FUICommandInfo> SetShowPivot;
 
-	// Misc. actions
-	TSharedPtr<FUICommandInfo> FocusOnTileMap;
-
 	// Selection actions
 	TSharedPtr<FUICommandInfo> FlipSelectionHorizontally;
 	TSharedPtr<FUICommandInfo> FlipSelectionVertically;

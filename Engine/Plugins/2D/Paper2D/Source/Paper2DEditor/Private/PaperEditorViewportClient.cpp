@@ -47,6 +47,12 @@ FPaperEditorViewportClient::FPaperEditorViewportClient(const TWeakPtr<SEditorVie
 	}
 	SetViewModes(VMI_Lit, VMI_Lit);
 	SetViewportType(NewViewportType);
+
+	bDeferZoomToSprite = true;
+	bDeferZoomToSpriteIsInstant = true;
+
+	// Get the correct general direction of the perspective mode; the distance doesn't matter much as we've queued up a deferred zoom that will calculate a much better distance
+ 	SetInitialViewTransform(LVT_Perspective, -100.0f * PaperAxisZ, PaperAxisZ.Rotation(), 0.0f);
 }
 
 FPaperEditorViewportClient::~FPaperEditorViewportClient()
@@ -62,6 +68,27 @@ FLinearColor FPaperEditorViewportClient::GetBackgroundColor() const
 void FPaperEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 {
 	Canvas->Clear(GetBackgroundColor());
+}
+
+void FPaperEditorViewportClient::Tick(float DeltaSeconds)
+{
+	// Zoom in on the sprite
+	//@TODO: Fix this properly so it doesn't need to be deferred, or wait for the viewport to initialize
+	FIntPoint Size = Viewport->GetSizeXY();
+	if (bDeferZoomToSprite && (Size.X > 0) && (Size.Y > 0))
+	{
+		FBox BoundsToFocus = GetDesiredFocusBounds();
+		if (ViewportType != LVT_Perspective)
+		{
+			TGuardValue<ELevelViewportType> SaveViewportType(ViewportType, LVT_Perspective);
+			FocusViewportOnBox(BoundsToFocus, bDeferZoomToSpriteIsInstant);
+		}
+
+		FocusViewportOnBox(BoundsToFocus, bDeferZoomToSpriteIsInstant);
+		bDeferZoomToSprite = false;
+	}
+
+	FEditorViewportClient::Tick(DeltaSeconds);
 }
 
 void FPaperEditorViewportClient::DrawSelectionRectangles(FViewport* Viewport, FCanvas* Canvas)
@@ -85,6 +112,13 @@ void FPaperEditorViewportClient::AddReferencedObjects(FReferenceCollector& Colle
 	FEditorViewportClient::AddReferencedObjects(Collector);
 
 	Collector.AddReferencedObject(CheckerboardTexture);
+}
+
+// Called to request a focus on the current selection
+void FPaperEditorViewportClient::RequestFocusOnSelection(bool bInstant)
+{
+	bDeferZoomToSprite = true;
+	bDeferZoomToSpriteIsInstant = bInstant;
 }
 
 void FPaperEditorViewportClient::ModifyCheckerboardTextureColors()

@@ -31,7 +31,6 @@ FFlipbookEditorViewportClient::FFlipbookEditorViewportClient(const TAttribute<UP
 
 	bShowPivot = false;
 	bShowSockets = true;
-	bDeferZoomToSprite = true;
 	DrawHelper.bDrawGrid = false;
 
 	EngineShowFlags.DisableAdvancedFeatures();
@@ -86,6 +85,11 @@ void FFlipbookEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawI
 	}
 }
 
+FBox FFlipbookEditorViewportClient::GetDesiredFocusBounds() const
+{
+	return AnimatedRenderComponent->Bounds.GetBox();
+}
+
 void FFlipbookEditorViewportClient::Tick(float DeltaSeconds)
 {
 	if (AnimatedRenderComponent.IsValid())
@@ -96,16 +100,6 @@ void FFlipbookEditorViewportClient::Tick(float DeltaSeconds)
 			AnimatedRenderComponent->SetFlipbook(Flipbook);
 			AnimatedRenderComponent->UpdateBounds();
 			FlipbookBeingEditedLastFrame = Flipbook;
-		}
-
-		// Zoom in on the sprite
-		//@TODO: This doesn't work correctly, only partially zooming in or something
-		//@TODO: Fix this properly so it doesn't need to be deferred, or wait for the viewport to initialize
-		FIntPoint Size = Viewport->GetSizeXY();
-		if (bDeferZoomToSprite && (Size.X > 0) && (Size.Y > 0))
-		{
-			FocusViewportOnBox(AnimatedRenderComponent->Bounds.GetBox(), true);
-			bDeferZoomToSprite = false;
 		}
 	}
 
@@ -120,12 +114,6 @@ void FFlipbookEditorViewportClient::Tick(float DeltaSeconds)
 bool FFlipbookEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad)
 {
 	bool bHandled = false;
-
-	if ((Event == IE_Pressed) && (Key == EKeys::F) && (AnimatedRenderComponent.IsValid()))
-	{
-		bHandled = true;
-		FocusViewportOnBox(AnimatedRenderComponent->Bounds.GetBox());
-	}
 
 	// Pass keys to standard controls, if we didn't consume input
 	return (bHandled) ? true : FEditorViewportClient::InputKey(Viewport, ControllerId, Key, Event, AmountDepressed, bGamepad);

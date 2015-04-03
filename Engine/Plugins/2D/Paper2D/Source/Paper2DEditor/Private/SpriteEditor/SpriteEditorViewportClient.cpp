@@ -78,8 +78,6 @@ FSpriteEditorViewportClient::FSpriteEditorViewportClient(TWeakPtr<FSpriteEditor>
 	bShowPivot = true;
 	bShowRelatedSprites = true;
 
-	bDeferZoomToSprite = true;
-
 	bIsMarqueeTracking = false;
 
 	DrawHelper.bDrawGrid = false;
@@ -131,7 +129,7 @@ void FSpriteEditorViewportClient::UpdateSourceTextureSpriteFromSprite(UPaperSpri
 			TargetSprite->PixelsPerUnrealUnit = SourceSprite->PixelsPerUnrealUnit;
 			TargetSprite->InitializeSprite(SpriteReinitParams);
 
-			bDeferZoomToSprite = true;
+			RequestFocusOnSelection(/*bInstant=*/ true);
 		}
 
 
@@ -687,7 +685,14 @@ void FSpriteEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInt
 
 void FSpriteEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 {
+	// Skipping the parent on purpose
 	FEditorViewportClient::Draw(Viewport, Canvas);
+}
+
+FBox FSpriteEditorViewportClient::GetDesiredFocusBounds() const
+{
+	UPaperSpriteComponent* ComponentToFocusOn = SourceTextureViewComponent->IsVisible() ? SourceTextureViewComponent : RenderSpriteComponent;
+	return ComponentToFocusOn->Bounds.GetBox();
 }
 
 void FSpriteEditorViewportClient::Tick(float DeltaSeconds)
@@ -707,26 +712,16 @@ void FSpriteEditorViewportClient::Tick(float DeltaSeconds)
 		bool bSourceTextureViewComponentVisibility = bShowSourceTexture || IsInSourceRegionEditMode();
 		if (bSourceTextureViewComponentVisibility != SourceTextureViewComponent->IsVisible())
 		{
-			bDeferZoomToSprite = true;
+			RequestFocusOnSelection(/*bInstant=*/ true);
 			SourceTextureViewComponent->SetVisibility(bSourceTextureViewComponentVisibility);
 		}
 
 		bool bRenderTextureViewComponentVisibility = !IsInSourceRegionEditMode();
 		if (bRenderTextureViewComponentVisibility != RenderSpriteComponent->IsVisible())
 		{
-			bDeferZoomToSprite = true;
+			RequestFocusOnSelection(/*bInstant=*/ true);
 			RenderSpriteComponent->SetVisibility(bRenderTextureViewComponentVisibility);
 		}
-
-		// Zoom in on the sprite
-		//@TODO: Fix this properly so it doesn't need to be deferred, or wait for the viewport to initialize
-		FIntPoint Size = Viewport->GetSizeXY();
-		if (bDeferZoomToSprite && (Size.X > 0) && (Size.Y > 0))
-		{
-			UPaperSpriteComponent* ComponentToFocusOn = SourceTextureViewComponent->IsVisible() ? SourceTextureViewComponent : RenderSpriteComponent;
-			FocusViewportOnBox(ComponentToFocusOn->Bounds.GetBox(), true);
-			bDeferZoomToSprite = false;
-		}		
 	}
 
 	if (bIsMarqueeTracking)
@@ -1325,7 +1320,7 @@ void FSpriteEditorViewportClient::NotifySpriteBeingEditedHasChanged()
 	InternalActivateNewMode(CurrentMode);
 
 	//@TODO: Only do this if the sprite isn't visible (may consider doing a flashing pulse around the source region rect?)
-	bDeferZoomToSprite = true;
+	RequestFocusOnSelection(/*bInstant=*/ true);
 }
 
 void FSpriteEditorViewportClient::FocusOnSprite()

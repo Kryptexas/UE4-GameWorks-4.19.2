@@ -38,8 +38,6 @@ FTileMapEditorViewportClient::FTileMapEditorViewportClient(TWeakPtr<FTileMapEdit
 	DrawHelper.bDrawPivot = false;
 	bShowPivot = true;
 
-	bDeferZoomToTileMap = true;
-
 	EngineShowFlags.DisableAdvancedFeatures();
 	EngineShowFlags.CompositeEditorPrimitives = true;
 
@@ -127,19 +125,6 @@ void FTileMapEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 void FTileMapEditorViewportClient::Tick(float DeltaSeconds)
 {
-	if (UPaperTileMap* TileMap = RenderTileMapComponent->TileMap)
-	{
-		// Zoom in on the tile map
-		//@TODO: Fix this properly so it doesn't need to be deferred, or wait for the viewport to initialize
-		FIntPoint Size = Viewport->GetSizeXY();
-		if (bDeferZoomToTileMap && (Size.X > 0) && (Size.Y > 0))
-		{
-			UPaperTileMapComponent* ComponentToFocusOn = RenderTileMapComponent;
-			FocusViewportOnBox(ComponentToFocusOn->Bounds.GetBox(), true);
-			bDeferZoomToTileMap = false;
-		}		
-	}
-
 	FPaperEditorViewportClient::Tick(DeltaSeconds);
 
 	if (!GIntraFrameDebuggingGameThread)
@@ -191,23 +176,17 @@ void FTileMapEditorViewportClient::NotifyTileMapBeingEditedHasChanged()
 {
 	//@TODO: Ideally we do this before switching
 	EndTransaction();
-	ClearSelectionSet();
 
 	// Update components to know about the new tile map being edited
 	UPaperTileMap* TileMap = GetTileMapBeingEdited();
 	RenderTileMapComponent->TileMap = TileMap;
 
-	//
-	bDeferZoomToTileMap = true;
+	RequestFocusOnSelection(/*bInstant=*/ true);
 }
 
-void FTileMapEditorViewportClient::FocusOnTileMap()
+FBox FTileMapEditorViewportClient::GetDesiredFocusBounds() const
 {
-	FocusViewportOnBox(RenderTileMapComponent->Bounds.GetBox());
-}
-
-void FTileMapEditorViewportClient::ClearSelectionSet()
-{
+	return RenderTileMapComponent->Bounds.GetBox();
 }
 
 //////////////////////////////////////////////////////////////////////////
