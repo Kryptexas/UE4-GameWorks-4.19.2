@@ -19,7 +19,7 @@ Painted geometry is instanced and renders very quickly; however, it cannot be li
 
 ### Wind
 
-Add wind to the scene by adding a wind direction source object (Select **Window** -> **class viewer**", search for "WindDirectionalSource", and drag it into the scene). The **Speed** property defaults to 1.0 which is considered maximum wind for SpeedTree models. Lower this value to something like 0.1 to start with calm wind.
+Add wind to the scene by adding a wind direction source object (Select **Window** -> **Class Viewer**, search for "WindDirectionalSource", and drag it into the scene). The **Speed** property defaults to 1.0 which is considered maximum wind for SpeedTree models. Lower this value to something like 0.1 to start with calm wind.
 
 ### Level of Detail
 
