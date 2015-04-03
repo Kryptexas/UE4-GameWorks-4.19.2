@@ -65,7 +65,7 @@ void STranslationPickerFloatingWindow::Tick( const FGeometry& AllottedGeometry, 
 			for (FText PickedText : PickedTexts)
 			{
 				TextsBox->AddSlot()
-					.FillHeight(1)
+					.AutoHeight()
 					.Padding(FMargin(5))
 					[
 						SNew(SBorder)
@@ -153,19 +153,30 @@ FText STranslationPickerFloatingWindow::GetTextFromWidget(TSharedRef<SWidget> Wi
 		}
 	}
 	
-	// Don't show the same text twice
-	bool bAlreadyPicked = false;
-	for (FText PickedText : PickedTexts)
+	if (!OriginalText.IsEmpty())
 	{
-		if (OriginalText.EqualTo(PickedText))
+		// Search the text from this widget's FText::Format history to find any source text
+		TArray<FText> FormattingSourceTexts;
+		OriginalText.GetSourceTextsFromFormatHistory(FormattingSourceTexts);
+
+		for (FText FormattingSourceText : FormattingSourceTexts)
 		{
-			bAlreadyPicked = true;
+			// Don't show the same text twice
+			bool bAlreadyPicked = false;
+			for (FText PickedText : PickedTexts)
+			{
+				if (FormattingSourceText.EqualTo(PickedText))
+				{
+					bAlreadyPicked = true;
+					break;
+				}
+			}
+
+			if (!bAlreadyPicked)
+			{
+				PickedTexts.Add(FormattingSourceText);
+			}
 		}
-	}
-	
-	if (!OriginalText.IsEmpty() && !bAlreadyPicked)
-	{
-		PickedTexts.Add(OriginalText);
 	}
 
 	return OriginalText;

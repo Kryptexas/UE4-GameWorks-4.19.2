@@ -42,6 +42,9 @@ public:
 	/** Returns the source string managed by the history (if any). */
 	virtual TSharedPtr< FString, ESPMode::ThreadSafe > GetSourceString() const;
 
+	/** Trace the history of this Text until we find the base Texts it was comprised from */
+	virtual void GetSourceTextsFromFormatHistory(FText Text, TArray<FText>& OutSourceTexts) const;
+
 	/** Will rebuild the display string if out of date. */
 	void Rebuild(TSharedRef< FString, ESPMode::ThreadSafe > InDisplayString);
 
@@ -82,6 +85,7 @@ public:
 	// Begin FTextHistory interface
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void GetSourceTextsFromFormatHistory(FText, TArray<FText>& OutSourceTexts) const override;
 	// End FTextHistory interface
 
 private:
@@ -101,6 +105,7 @@ public:
 	// Begin FTextHistory interface
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void GetSourceTextsFromFormatHistory(FText, TArray<FText>& OutSourceTexts) const override;
 	// End FTextHistory interface
 
 private:
@@ -120,6 +125,7 @@ public:
 	// Begin FTextHistory interface
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void GetSourceTextsFromFormatHistory(FText, TArray<FText>& OutSourceTexts) const override;
 	// End FTextHistory interface
 
 private:

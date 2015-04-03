@@ -809,6 +809,11 @@ bool FText::IdenticalTo( const FText& Other ) const
 	return DisplayString == Other.DisplayString;
 }
 
+void FText::GetSourceTextsFromFormatHistory(TArray<FText>& OutSourceTexts) const
+{
+	History->GetSourceTextsFromFormatHistory(*(this), OutSourceTexts);
+}
+
 FTextSnapshot::FTextSnapshot()
 	: DisplayStringPtr()
 	, HistoryRevision(INDEX_NONE)

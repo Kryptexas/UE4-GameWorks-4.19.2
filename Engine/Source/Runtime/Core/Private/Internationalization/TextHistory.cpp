@@ -25,6 +25,12 @@ TSharedPtr< FString, ESPMode::ThreadSafe > FTextHistory::GetSourceString() const
 	return NULL;
 }
 
+void FTextHistory::GetSourceTextsFromFormatHistory(FText Text, TArray<FText>& OutSourceTexts) const
+{
+	// If we get here, we have no more source so this must be the base text
+	OutSourceTexts.Add(Text);
+}
+
 void FTextHistory::SerializeForDisplayString(FArchive& Ar, TSharedRef<FString, ESPMode::ThreadSafe>& InOutDisplayString)
 {
 	if(Ar.IsLoading())
@@ -201,6 +207,25 @@ void FTextHistory_NamedFormat::Serialize( FArchive& Ar )
 	Ar << Arguments;
 }
 
+void FTextHistory_NamedFormat::GetSourceTextsFromFormatHistory(FText, TArray<FText>& OutSourceTexts) const
+{
+	// Search the formatting text itself for source text
+	SourceText.GetSourceTextsFromFormatHistory(OutSourceTexts);
+
+	for (auto It = Arguments.CreateConstIterator(); It; ++It)
+	{
+		const FFormatArgumentValue& ArgumentValue = It.Value();
+		if (ArgumentValue.Type == EFormatArgumentType::Text)
+		{
+			if (ArgumentValue.TextValue && ArgumentValue.TextValue->History.IsValid())
+			{
+				// Search any text arguments for source text
+				ArgumentValue.TextValue->History->GetSourceTextsFromFormatHistory(*(ArgumentValue.TextValue), OutSourceTexts);
+			}
+		}
+	}
+}
+
 ///////////////////////////////////////
 // FTextHistory_OrderedFormat
 
@@ -228,6 +253,25 @@ void FTextHistory_OrderedFormat::Serialize( FArchive& Ar )
 	Ar << Arguments;
 }
 
+void FTextHistory_OrderedFormat::GetSourceTextsFromFormatHistory(FText, TArray<FText>& OutSourceTexts) const
+{
+	// Search the formatting text itself for source text
+	SourceText.GetSourceTextsFromFormatHistory(OutSourceTexts);
+
+	for (auto It = Arguments.CreateConstIterator(); It; ++It)
+	{
+		const FFormatArgumentValue& ArgumentValue = *It;
+		if (ArgumentValue.Type == EFormatArgumentType::Text)
+		{
+			if (ArgumentValue.TextValue && ArgumentValue.TextValue->History.IsValid())
+			{
+				// Search any text arguments for source text
+				ArgumentValue.TextValue->History->GetSourceTextsFromFormatHistory(*(ArgumentValue.TextValue), OutSourceTexts);
+			}
+		}
+	}
+}
+
 ///////////////////////////////////////
 // FTextHistory_ArgumentDataFormat
 
@@ -253,6 +297,25 @@ void FTextHistory_ArgumentDataFormat::Serialize( FArchive& Ar )
 
 	Ar << SourceText;
 	Ar << Arguments;
+}
+
+void FTextHistory_ArgumentDataFormat::GetSourceTextsFromFormatHistory(FText, TArray<FText>& OutBaseTexts) const
+{
+	// Search the formatting text itself for source text
+	SourceText.GetSourceTextsFromFormatHistory(OutBaseTexts);
+
+	for (int32 x = 0; x < Arguments.Num(); ++x)
+	{
+		const FFormatArgumentValue& ArgumentValue = Arguments[x].ArgumentValue;
+		if (ArgumentValue.Type == EFormatArgumentType::Text)
+		{
+			if (ArgumentValue.TextValue && ArgumentValue.TextValue->History.IsValid())
+			{
+				// Search any text arguments for source text
+				ArgumentValue.TextValue->History->GetSourceTextsFromFormatHistory(*(ArgumentValue.TextValue), OutBaseTexts);
+			}
+		}
+	}
 }
 
 ///////////////////////////////////////

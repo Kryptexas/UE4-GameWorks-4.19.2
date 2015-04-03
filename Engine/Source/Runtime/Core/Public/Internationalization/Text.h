@@ -238,6 +238,9 @@ public:
 	 */
 	bool IdenticalTo( const FText& Other ) const;
 
+	/** Trace the history of this Text until we find the base Texts it was comprised from */
+	void GetSourceTextsFromFormatHistory(TArray<FText>& OutSourceTexts) const;
+
 	class CORE_API FSortPredicate
 	{
 	public:

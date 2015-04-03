@@ -37,7 +37,7 @@ private:
 	UTranslationUnit* TranslationUnit;
 
 	/** The text box for entering/modifying a translation */
-	TSharedPtr<SEditableTextBox> TextBox;
+	TSharedPtr<SMultiLineEditableTextBox> TextBox;
 
 	/** Whether or not to show the save button*/
 	bool bAllowEditing;
