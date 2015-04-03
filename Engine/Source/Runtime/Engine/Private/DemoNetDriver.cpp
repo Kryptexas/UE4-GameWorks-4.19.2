@@ -1411,10 +1411,13 @@ void UDemoNetDriver::LoadCheckpoint()
 			DemoCurrentTime += (float)GotoCheckpointSkipExtraTimeInMS / 1000;
 			bIsFastForwarding = true;
 		}
+		else
+		{
+			bIsLoadingCheckpoint = false;
+		}
 
 		GotoCheckpointArchive			= NULL;
 		GotoCheckpointSkipExtraTimeInMS = -1;
-		bIsLoadingCheckpoint = false;
 		return;
 	}
 
