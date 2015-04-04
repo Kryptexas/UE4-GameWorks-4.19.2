@@ -65,6 +65,30 @@ int32 UPaperTileSet::GetTileCountY() const
 	}
 }
 
+FPaperTileMetadata* UPaperTileSet::GetMutableTileMetadata(int32 TileIndex)
+{
+	if (ExperimentalPerTileData.IsValidIndex(TileIndex))
+	{
+		return &(ExperimentalPerTileData[TileIndex]);
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
+const FPaperTileMetadata* UPaperTileSet::GetTileMetadata(int32 TileIndex) const
+{
+	if (ExperimentalPerTileData.IsValidIndex(TileIndex))
+	{
+		return &(ExperimentalPerTileData[TileIndex]);
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
 bool UPaperTileSet::GetTileUV(int32 TileIndex, /*out*/ FVector2D& Out_TileUV) const
 {
 	const int32 NumCells = GetTileCount();
@@ -105,6 +129,20 @@ FIntPoint UPaperTileSet::GetTileXYFromTextureUV(const FVector2D& TextureUV, bool
 #include "PaperTileMapComponent.h"
 #include "ComponentReregisterContext.h"
 
+void UPaperTileSet::PostLoad()
+{
+	if (TileSheet != nullptr)
+	{
+		TileSheet->ConditionalPostLoad();
+
+		WidthInTiles = GetTileCountX();
+		HeightInTiles = GetTileCountY();
+		ReallocateAndCopyTileData();
+	}
+
+	Super::PostLoad();
+}
+
 void UPaperTileSet::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	const FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
@@ -115,9 +153,61 @@ void UPaperTileSet::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 	TileWidth = FMath::Max<int32>(TileWidth, 1);
 	TileHeight = FMath::Max<int32>(TileHeight, 1);
 
-	//@TODO: Determine when these are really needed, as they're seriously expensive!
-	TComponentReregisterContext<UPaperTileMapComponent> ReregisterStaticComponents;
+	WidthInTiles = GetTileCountX();
+	HeightInTiles = GetTileCountY();
+	ReallocateAndCopyTileData();
+
+	// Rebuild any tile map components that may have been relying on us
+	if ((PropertyChangedEvent.ChangeType & EPropertyChangeType::Interactive) == 0)
+	{
+		//@TODO: Currently tile maps have no fast list of referenced tile sets, so we just rebuild all of them
+		TComponentReregisterContext<UPaperTileMapComponent> ReregisterAllTileMaps;
+	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 #endif
+
+void UPaperTileSet::DestructiveAllocateTileData(int32 NewWidth, int32 NewHeight)
+{
+	check((NewWidth > 0) && (NewHeight > 0));
+
+	const int32 NumCells = NewWidth * NewHeight;
+	ExperimentalPerTileData.Empty(NumCells);
+	for (int32 Index = 0; Index < NumCells; ++Index)
+	{
+		ExperimentalPerTileData.Add(FPaperTileMetadata());
+	}
+
+	AllocatedWidth = NewWidth;
+	AllocatedHeight = NewHeight;
+}
+
+void UPaperTileSet::ReallocateAndCopyTileData()
+{
+	if ((AllocatedWidth == WidthInTiles) && (AllocatedHeight == HeightInTiles))
+	{
+		return;
+	}
+
+	const int32 SavedWidth = AllocatedWidth;
+	const int32 SavedHeight = AllocatedHeight;
+	TArray<FPaperTileMetadata> SavedDesignedMap(ExperimentalPerTileData);
+
+	DestructiveAllocateTileData(WidthInTiles, HeightInTiles);
+
+	const int32 CopyWidth = FMath::Min<int32>(WidthInTiles, SavedWidth);
+	const int32 CopyHeight = FMath::Min<int32>(HeightInTiles, SavedHeight);
+
+	for (int32 Y = 0; Y < CopyHeight; ++Y)
+	{
+		for (int32 X = 0; X < CopyWidth; ++X)
+		{
+			const int32 SrcIndex = Y*SavedWidth + X;
+			const int32 DstIndex = Y*WidthInTiles + X;
+
+			ExperimentalPerTileData[DstIndex] = SavedDesignedMap[SrcIndex];
+		}
+	}
+
+}

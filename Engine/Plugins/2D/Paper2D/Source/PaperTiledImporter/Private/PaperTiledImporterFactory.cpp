@@ -238,7 +238,29 @@ UObject* UPaperTiledImporterFactory::FactoryCreateText(UClass* InClass, UObject*
 					bLoadedSuccessfully = false;
 				}
 
-				TileSetAsset->PostEditChange();
+				// Make the tile set allocate space for the per-tile data
+				FPropertyChangedEvent InteractiveRebuildTileSet(nullptr, EPropertyChangeType::Interactive);
+				TileSetAsset->PostEditChangeProperty(InteractiveRebuildTileSet);
+
+				// Copy across per-tile metadata
+				const int32 NumTilesCreated = TileSetAsset->GetTileCount();
+				for (const auto& KV : TileSetData.PerTileData)
+				{
+					const int32 TileIndex = KV.Key;
+					const FTiledTileInfo& SourceTileData = KV.Value;
+
+					if (FPaperTileMetadata* TargetTileData = TileSetAsset->GetMutableTileMetadata(TileIndex))
+					{
+						//@TODO: TileData.TerrainIndices
+						FTiledObject::AddToSpriteGeometryCollection(FVector2D::ZeroVector, SourceTileData.Objects, TargetTileData->CollisionData);
+					}
+				}
+				
+				// Update anyone who might be using the tile set (in case we're reimporting)
+				FPropertyChangedEvent FinalRebuildTileSet(nullptr, EPropertyChangeType::ValueSet);
+				TileSetAsset->PostEditChangeProperty(FinalRebuildTileSet);
+
+				// Save off that we created the asset
 				GlobalInfo.CreatedTileSetAssets.Add(TileSetAsset);
 			}
 			else
@@ -770,8 +792,8 @@ bool FTileLayerFromTiled::ParseFromJSON(TSharedPtr<FJsonObject> Tree, const FStr
 
 	// Parse all of the integer fields
 	FRequiredIntField IntFields[] = {
-		FRequiredIntField( Width, TEXT("width"), 1 ),
-		FRequiredIntField( Height, TEXT("height"), 1 ),
+		FRequiredIntField( Width, TEXT("width"), 0 ),
+		FRequiredIntField( Height, TEXT("height"), 0 ),
 		FRequiredIntField( OffsetX, TEXT("x"), 0 ),
 		FRequiredIntField( OffsetY, TEXT("y"), 0 )
 	};
@@ -798,6 +820,12 @@ bool FTileLayerFromTiled::ParseFromJSON(TSharedPtr<FJsonObject> Tree, const FStr
 	const FString LayerTypeStr = FPaperJSONHelpers::ReadString(Tree, TEXT("type"), FString());
 	if (LayerTypeStr == TEXT("tilelayer"))
 	{
+		if ((Width < 1) || (Height < 1))
+		{
+			TILED_IMPORT_ERROR(TEXT("Failed to parse '%s'.  Tile layers should be at least 1x1"), *NameForErrors);
+			bSuccessfullyParsed = false;
+		}
+
 		LayerType = ETiledLayerType::TileLayer;
 	}
 	else if (LayerTypeStr == TEXT("objectgroup"))
@@ -1120,6 +1148,53 @@ bool FTiledObject::ParsePointArray(TArray<FVector2D>& OutPoints, const TArray<TS
 	}
 
 	return bSuccessfullyParsed;
+}
+
+void FTiledObject::AddToSpriteGeometryCollection(const FVector2D& Offset, const TArray<FTiledObject>& InObjects, FSpriteGeometryCollection& InOutShapes)
+{
+	for (const FTiledObject& SourceObject : InObjects)
+	{
+		const FVector2D SourcePos = Offset + FVector2D(SourceObject.X, SourceObject.Y);
+		const float SmallerWidthOrHeight = FMath::Min(SourceObject.Width, SourceObject.Height);
+
+		bool bCreatedShape = false;
+		switch (SourceObject.TiledObjectType)
+		{
+		case ETiledObjectType::Box:
+			InOutShapes.AddRectangleShape(SourcePos, FVector2D(SourceObject.Width, SourceObject.Height));
+			bCreatedShape = true;
+			break;
+		case ETiledObjectType::Ellipse:
+			InOutShapes.AddRectangleShape(SourcePos, FVector2D(SmallerWidthOrHeight, SmallerWidthOrHeight));
+			bCreatedShape = true;
+			break;
+		case ETiledObjectType::Polygon:
+			{
+				FSpriteGeometryShape NewShape;
+				NewShape.ShapeType = ESpriteShapeType::Polygon;
+				NewShape.BoxPosition = SourcePos;
+				NewShape.Vertices = SourceObject.Points;
+				InOutShapes.Shapes.Add(NewShape);
+				bCreatedShape = true;
+		}
+			break;
+		case ETiledObjectType::PlacedTile:
+			UE_LOG(LogPaperTiledImporter, Warning, TEXT("Ignoring Tiled Object of type PlacedTile"));
+			break;
+		case ETiledObjectType::Polyline:
+			UE_LOG(LogPaperTiledImporter, Warning, TEXT("Ignoring Tiled Object of type Polyline"));
+			break;
+		default:
+			ensureMsg(false, TEXT("Unknown enumerant in ETiledObjectType"));
+			break;
+		}
+
+		if (bCreatedShape)
+		{
+			const float RotationUnwound = FMath::Fmod(SourceObject.RotationDegrees, 360.0f);
+			InOutShapes.Shapes.Last().Rotation = RotationUnwound;
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
