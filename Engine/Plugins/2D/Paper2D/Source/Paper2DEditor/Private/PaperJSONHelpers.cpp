@@ -11,8 +11,12 @@ static TArray< TSharedPtr<FJsonValue> > EmptyArray;
 
 FString FPaperJSONHelpers::ReadString(TSharedPtr<class FJsonObject> Item, const FString& Key, const FString& DefaultValue)
 {
-	const TSharedPtr<FJsonValue>& ValuePtr = Item->GetField<EJson::String>(Key);
-	return ValuePtr.IsValid() ? ValuePtr->AsString() : DefaultValue;
+	FString Result;
+	if (!Item->TryGetStringField(Key, /*out*/ Result))
+	{
+		Result = DefaultValue;
+	}
+	return Result;
 }
 
 TSharedPtr<class FJsonObject> FPaperJSONHelpers::ReadObject(TSharedPtr<class FJsonObject> Item, const FString& Key)
@@ -41,21 +45,20 @@ const TArray< TSharedPtr<FJsonValue> >& FPaperJSONHelpers::ReadArray(TSharedPtr<
 
 bool FPaperJSONHelpers::ReadBoolean(const TSharedPtr<class FJsonObject> Item, const FString& Key, bool bDefaultIfMissing)
 {
-	if (Item->HasTypedField<EJson::Boolean>(Key))
+	bool bResult;
+	if (!Item->TryGetBoolField(Key, /*out*/ bResult))
 	{
-		return Item->GetBoolField(Key);
+		bResult = bDefaultIfMissing;
 	}
-	else
-	{
-		return bDefaultIfMissing;
-	}
+	return bResult;
 }
 
 bool FPaperJSONHelpers::ReadFloatNoDefault(const TSharedPtr<class FJsonObject> Item, const FString& Key, float& Out_Value)
 {
-	if (Item->HasTypedField<EJson::Number>(Key))
+	double DoubleOutValue;
+	if (Item->TryGetNumberField(Key, /*out*/ DoubleOutValue))
 	{
-		Out_Value = Item->GetNumberField(Key);
+		Out_Value = DoubleOutValue;
 		return true;
 	}
 	else
