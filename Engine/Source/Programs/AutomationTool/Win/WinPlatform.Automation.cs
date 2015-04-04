@@ -195,7 +195,8 @@ public abstract class BaseWinPlatform : Platform
 					StageExecutable("exe", SC, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), Path.GetFileNameWithoutExtension(SourceFile) + ".", true, null, null, false, WorkingFileType);
 					if(Exe == Exes[0] && !Params.NoBootstrapExe)
 					{
-						StageBootstrapExecutable(SC, SourceFile, CombinePaths("Engine", "Binaries", SC.PlatformDir, ExeFileName), String.Format("..\\..\\..\\{0}\\{0}.uproject", SC.ShortProjectName));
+						string CommandLine = ShouldStageCommandLine(Params, SC)? "" : String.Format("..\\..\\..\\{0}\\{0}.uproject", SC.ShortProjectName);
+						StageBootstrapExecutable(SC, SourceFile, CombinePaths("Engine", "Binaries", SC.PlatformDir, ExeFileName), CommandLine);
 					}
 				}
 				else
@@ -355,6 +356,11 @@ public abstract class BaseWinPlatform : Platform
 			ExecutableNames.Add(CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir, ExeName + Ext));
 		}
 		return ExecutableNames;
+	}
+
+	public override bool ShouldStageCommandLine(ProjectParams Params, DeploymentContext SC)
+	{
+		return !String.IsNullOrEmpty(Params.StageCommandline) || !String.IsNullOrEmpty(Params.RunCommandline) || (!Params.IsCodeBasedProject && Params.NoBootstrapExe);
 	}
 
 	public override List<string> GetDebugFileExtentions()

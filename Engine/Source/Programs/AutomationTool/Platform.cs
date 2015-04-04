@@ -476,6 +476,14 @@ namespace AutomationTool
 			return true;
 		}
 
+		/// <summary>
+		/// Determines whether we should stage a UE4CommandLine.txt for this platform 
+		/// </summary>
+		public virtual bool ShouldStageCommandLine(ProjectParams Params, DeploymentContext SC)
+		{
+			return true;
+		}
+
         /// <summary>
         /// Only relevant for the mac and PC at the moment. Example calling the Mac platform with PS4 as an arg will return false. Can't compile or cook for the PS4 on the mac.
         /// </summary>

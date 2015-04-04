@@ -993,6 +993,11 @@ public partial class Project : CommandUtils
 			File.Delete(IntermediateCmdLineFile);
 		}
 
+		if(!SC.StageTargetPlatform.ShouldStageCommandLine(Params, SC))
+		{
+			return;
+		}
+
 		if (!string.IsNullOrEmpty(Params.StageCommandline) || !string.IsNullOrEmpty(Params.RunCommandline))
 		{
 			string FileHostParams = " ";
