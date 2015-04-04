@@ -6,6 +6,7 @@
 #include "IMessageHandler.h"
 #include "IMessagingModule.h"
 #include "MessageEndpoint.h"
+#include "MessageHandlers.h"
 #include "TaskGraphInterfaces.h"
 
 
@@ -72,7 +73,7 @@ public:
 	}
 
 	/**
-	 * Adds a message handler for the given type of messages.
+	 * Adds a message handler for the given type of messages (via TFunction object).
 	 *
 	 * It is legal to configure multiple handlers for the same message type. Each
 	 * handler will be executed when a message of the specified type is received.
