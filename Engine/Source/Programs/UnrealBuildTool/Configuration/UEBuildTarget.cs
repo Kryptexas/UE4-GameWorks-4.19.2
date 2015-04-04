@@ -1330,6 +1330,8 @@ namespace UnrealBuildTool
 				Manifest.AddBuildProduct(BuildProduct.Path);
 			}
 
+			Manifest.AddBuildProduct(BuildReceipt.GetDefaultPath(ProjectDirectory, TargetName, Platform, Configuration));
+
 			if (UEBuildConfiguration.bCleanProject)
 			{
 				CleanTarget(Manifest);
