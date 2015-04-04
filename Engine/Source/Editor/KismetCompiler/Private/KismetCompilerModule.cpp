@@ -118,11 +118,6 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 	if (CompileOptions.CompileType != EKismetCompileType::Cpp)
 	{
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileSkeletonClass);
-
-		// Pre-cache the derived classes, before reinstancing can occur.
-		TArray<UClass*> ChildrenOfClass;
-		GetDerivedClasses(Blueprint->SkeletonGeneratedClass, ChildrenOfClass);
-
 		auto SkeletonReinstancer = FBlueprintCompileReinstancer::Create(Blueprint->SkeletonGeneratedClass);
 
 		FCompilerResultsLog SkeletonResults;

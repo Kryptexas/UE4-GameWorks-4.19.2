@@ -1892,6 +1892,30 @@ void FBlueprintEditorUtils::UpdateDelegatesInBlueprint(UBlueprint* Blueprint)
 // Blueprint has materially changed.  Recompile the skeleton, notify observers, and mark the package as dirty.
 void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blueprint)
 {
+	auto SkeletalRecompileChildren = [](TArray<UClass*> ChildrenOfClass)
+	{
+		for (auto SkelClass : ChildrenOfClass)
+		{
+			IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
+
+			auto Blueprint = Cast<UBlueprint>(SkelClass->ClassGeneratedBy);
+			if (Blueprint
+				&& Blueprint->Status != BS_BeingCreated
+				&& !Blueprint->bBeingCompiled
+				&& !Blueprint->bIsRegeneratingOnLoad
+				&& Blueprint->bHasBeenRegenerated)
+			{
+				FCompilerResultsLog Results;
+				Results.bSilentMode = true;
+				Results.bLogInfoOnly = true;
+
+				FKismetCompilerOptions CompileOptions;
+				CompileOptions.CompileType = EKismetCompileType::SkeletonOnly;
+				Compiler.CompileBlueprint(Blueprint, CompileOptions, Results);
+			}
+		}
+	};
+
 	// The Blueprint has been structurally modified and this means that some node titles will need to be refreshed
 	GetDefault<UEdGraphSchema_K2>()->ForceVisualizationCacheClear();
 
@@ -1918,6 +1942,12 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 			}
 		}
 
+		TArray<UClass*> ChildrenOfClass;
+		if (UClass* SkelClass = Blueprint->SkeletonGeneratedClass)
+		{
+			GetDerivedClasses(SkelClass, ChildrenOfClass);
+		}
+
 		{
 			// Invoke the compiler to update the skeleton class definition
 			IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
@@ -1928,6 +1958,8 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 			Blueprint->Status = BS_Dirty;
 		}
 		UpdateDelegatesInBlueprint(Blueprint);
+
+		SkeletalRecompileChildren(ChildrenOfClass);
 
 		{
 			BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_NotifyBlueprintChanged);
