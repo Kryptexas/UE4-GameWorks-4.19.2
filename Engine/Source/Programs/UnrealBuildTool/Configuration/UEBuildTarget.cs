@@ -1308,7 +1308,11 @@ namespace UnrealBuildTool
 				Manifest = Utils.ReadClass<BuildManifest>(ManifestPath);
 			}
 
-			foreach(BuildProduct BuildProduct in Receipt.BuildProducts)
+			// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
+			BuildReceipt ReceiptWithFullPaths = new BuildReceipt(Receipt);
+			ReceiptWithFullPaths.ExpandPathVariables(BuildConfiguration.RelativeEnginePath, ProjectDirectory);
+
+			foreach(BuildProduct BuildProduct in ReceiptWithFullPaths.BuildProducts)
 			{
 				// If we're cleaning, don't add any precompiled binaries to the manifest. We don't want to delete them.
 				if(UEBuildConfiguration.bCleanProject && bUsePrecompiled && BuildProduct.IsPrecompiled)
@@ -1323,8 +1327,7 @@ namespace UnrealBuildTool
 				}
 
 				// Otherwise add it
-				string FullPath = BuildReceipt.ExpandPathVariables(BuildProduct.Path, BuildConfiguration.RelativeEnginePath, ProjectDirectory);
-				Manifest.AddBuildProduct(FullPath);
+				Manifest.AddBuildProduct(BuildProduct.Path);
 			}
 
 			if (UEBuildConfiguration.bCleanProject)
@@ -1346,10 +1349,7 @@ namespace UnrealBuildTool
 				BuildReceipt BinaryReceipt = Binary.MakeReceipt(ToolChain);
 				Receipt.Append(BinaryReceipt);
 			}
-			foreach(BuildProduct BuildProduct in Receipt.BuildProducts)
-			{
-				BuildProduct.Path = BuildReceipt.InsertPathVariables(BuildProduct.Path, BuildConfiguration.RelativeEnginePath, ProjectDirectory);
-			}
+			Receipt.InsertStandardPathVariables(BuildConfiguration.RelativeEnginePath, ProjectDirectory);
 		}
 
 		/** Writes the receipt for this target to disk */
@@ -1357,7 +1357,7 @@ namespace UnrealBuildTool
 		{
 			if(Receipt != null)
 			{
-				string ReceiptFileName = Path.Combine(ProjectDirectory, "Build", "Receipts", String.Format("{0}-{1}-{2}.target.xml", TargetName, Platform.ToString(), Configuration.ToString()));
+				string ReceiptFileName = BuildReceipt.GetDefaultPath(ProjectDirectory, TargetName, Platform, Configuration);
 				Directory.CreateDirectory(Path.GetDirectoryName(ReceiptFileName));
 				Receipt.Write(ReceiptFileName);
 			}

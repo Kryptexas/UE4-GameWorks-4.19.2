@@ -76,7 +76,47 @@ namespace UnrealBuildTool
 				
 			return Result;
 		}
-				
+
+		/// <summary>
+		/// Expands variables in $(VarName) format in the given string. Variables are retrieved from the given dictionary, or through the environment of the current process.
+		/// Any unknown variables are ignored.
+		/// </summary>
+		/// <param name="InputString">String to search for variable names</param>
+		/// <param name="Variables">Lookup of variable names to values</param>
+		/// <returns>String with all variables replaced</returns>
+		public static string ExpandVariables(string InputString, Dictionary<string, string> AdditionalVariables = null)
+		{
+			string Result = InputString;
+			for(int Idx = Result.IndexOf("$("); Idx != -1; Idx = Result.IndexOf("$(", Idx))
+			{
+				// Find the end of the variable name
+				int EndIdx = Result.IndexOf(')', Idx + 2);
+				if(EndIdx == -1)
+				{
+					break;
+				}
+
+				// Extract the variable name from the string
+				string Name = Result.Substring(Idx + 2, EndIdx - (Idx + 2));
+
+				// Find the value for it, either from the dictionary or the environment block
+				string Value;
+				if(AdditionalVariables == null || !AdditionalVariables.TryGetValue(Name, out Value))
+				{
+					Value = Environment.GetEnvironmentVariable(Name);
+					if(Value == null)
+					{
+						Idx = EndIdx + 1;
+						continue;
+					}
+				}
+
+				// Replace the variable, or skip past it
+				Result = Result.Substring(0, Idx) + Value + Result.Substring(EndIdx + 1);
+			}
+			return Result;
+		}
+		
 		/**
 		 * This is a faster replacement of File.ReadAllText. Code snippet based on code 
 		 * and analysis by Sam Allen

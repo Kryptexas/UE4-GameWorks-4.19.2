@@ -42,6 +42,13 @@ namespace UnrealBuildTool
 			Type = InType;
 		}
 
+		public BuildProduct(BuildProduct Other)
+		{
+			Path = Other.Path;
+			Type = Other.Type;
+			IsPrecompiled = Other.IsPrecompiled;
+		}
+
 		public override string ToString()
 		{
 			return Path;
@@ -90,9 +97,6 @@ namespace UnrealBuildTool
 	[Serializable]
 	public class BuildReceipt
 	{
-		const string EngineDirVariable = "$(EngineDir)";
-		const string ProjectDirVariable = "$(ProjectDir)";
-
 		[XmlArrayItem("BuildProduct")]
 		public List<BuildProduct> BuildProducts = new List<BuildProduct>();
 
@@ -104,6 +108,22 @@ namespace UnrealBuildTool
 		/// </summary>
 		public BuildReceipt()
 		{
+		}
+
+		/// <summary>
+		/// Copy constructor
+		/// </summary>
+		/// <param name="InOther">Receipt to copy from</param>
+		public BuildReceipt(BuildReceipt Other)
+		{ 
+			foreach(BuildProduct OtherBuildProduct in Other.BuildProducts)
+			{
+				BuildProducts.Add(new BuildProduct(OtherBuildProduct));
+			}
+			foreach(RuntimeDependency OtherRuntimeDependency in Other.RuntimeDependencies)
+			{
+				RuntimeDependencies.Add(new RuntimeDependency(OtherRuntimeDependency));
+			}
 		}
 
 		/// <summary>
@@ -149,54 +169,102 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Expand all the path variables in the manifest
+		/// </summary>
+		/// <param name="EngineDir">Value for the $(EngineDir) variable</param>
+		/// <param name="ProjectDir">Value for the $(ProjectDir) variable</param>
+		public void ExpandPathVariables(string EngineDir, string ProjectDir)
+		{
+			ExpandPathVariables(EngineDir, ProjectDir, new Dictionary<string, string>());
+		}
+
+		/// <summary>
+		/// Expand all the path variables in the manifest, including a list of supplied variable values.
+		/// </summary>
+		/// <param name="EngineDir">Value for the $(EngineDir) variable</param>
+		/// <param name="ProjectDir">Value for the $(ProjectDir) variable</param>
+		public void ExpandPathVariables(string EngineDir, string ProjectDir, IDictionary<string, string> OtherVariables)
+		{
+			// Build a dictionary containing the standard variable expansions
+			Dictionary<string, string> Variables = new Dictionary<string, string>(OtherVariables);
+			Variables["EngineDir"] = Path.GetFullPath(EngineDir).TrimEnd(Path.DirectorySeparatorChar);
+			Variables["ProjectDir"] = Path.GetFullPath(ProjectDir).TrimEnd(Path.DirectorySeparatorChar);
+
+			// Replace all the variables in the paths
+			foreach(BuildProduct BuildProduct in BuildProducts)
+			{
+				BuildProduct.Path = Utils.ExpandVariables(BuildProduct.Path, Variables);
+			}
+			foreach(RuntimeDependency RuntimeDependency in RuntimeDependencies)
+			{
+				RuntimeDependency.Path = Utils.ExpandVariables(RuntimeDependency.Path, Variables);
+				if(RuntimeDependency.StagePath != null)
+				{
+					RuntimeDependency.StagePath = Utils.ExpandVariables(RuntimeDependency.StagePath, Variables);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Inserts standard $(EngineDir) and $(ProjectDir) variables into any path strings, so it can be used on different machines.
+		/// </summary>
+		/// <param name="EngineDir">The engine directory. Relative paths are ok.</param>
+		/// <param name="ProjectDir">The project directory. Relative paths are ok.</param>
+		public void InsertStandardPathVariables(string EngineDir, string ProjectDir)
+		{
+			string EnginePrefix = Path.GetFullPath(EngineDir).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+			string ProjectPrefix = Path.GetFullPath(ProjectDir).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+
+			foreach(BuildProduct BuildProduct in BuildProducts)
+			{
+				BuildProduct.Path = InsertStandardPathVariablesToString(BuildProduct.Path, EnginePrefix, ProjectPrefix);
+			}
+			foreach(RuntimeDependency RuntimeDependency in RuntimeDependencies)
+			{
+				RuntimeDependency.Path = InsertStandardPathVariablesToString(RuntimeDependency.Path, EnginePrefix, ProjectPrefix);
+				if(RuntimeDependency.StagePath != null)
+				{
+					RuntimeDependency.StagePath = InsertStandardPathVariablesToString(RuntimeDependency.StagePath, EnginePrefix, ProjectPrefix);
+				}
+			}
+		}
+
+		/// <summary>
 		/// Inserts $(EngineDir) and $(ProjectDir) variables into a path string, so it can be used on different machines.
 		/// </summary>
 		/// <param name="InputPath">Input path</param>
 		/// <param name="EngineDir">The engine directory. Relative paths are ok.</param>
 		/// <param name="ProjectDir">The project directory. Relative paths are ok.</param>
 		/// <returns>New string with the base directory replaced, or the original string</returns>
-		public static string InsertPathVariables(string InputPath, string EngineDir, string ProjectDir)
+		static string InsertStandardPathVariablesToString(string InputPath, string EnginePrefix, string ProjectPrefix)
 		{
+			string Result = InputPath;
 			if(!InputPath.StartsWith("$("))
 			{
 				string FullInputPath = Path.GetFullPath(InputPath);
-
-				string FullEngineDir = Path.GetFullPath(EngineDir).TrimEnd(Path.DirectorySeparatorChar);
-				if(FullInputPath.StartsWith(FullEngineDir + Path.DirectorySeparatorChar, StringComparison.InvariantCultureIgnoreCase))
+				if(FullInputPath.StartsWith(EnginePrefix))
 				{
-					return EngineDirVariable + FullInputPath.Substring(FullEngineDir.Length);
+					Result = "$(EngineDir)" + FullInputPath.Substring(EnginePrefix.Length - 1);
 				}
-
-				string FullProjectDir = Path.GetFullPath(ProjectDir).TrimEnd(Path.DirectorySeparatorChar);
-				if(FullInputPath.StartsWith(FullProjectDir + Path.DirectorySeparatorChar, StringComparison.InvariantCultureIgnoreCase))
+				else if(FullInputPath.StartsWith(ProjectPrefix))
 				{
-					return ProjectDirVariable + FullInputPath.Substring(FullProjectDir.Length);
+					Result = "$(ProjectDir)" + FullInputPath.Substring(ProjectPrefix.Length - 1);
 				}
 			}
-			return InputPath;
+			return Result;
 		}
 
 		/// <summary>
-		/// Expands any $(EngineDir) and $(ProjectDir) variables in the given path.
+		/// Returns the standard path to the build receipt for a given target
 		/// </summary>
-		/// <param name="InputPath">Input path</param>
-		/// <param name="EngineDir">The engine directory. Relative paths will be converted to absolute paths in the output string.</param>
-		/// <param name="ProjectDir">The project directory. Relative paths will be converted to absolute paths in the output string</param>
-		/// <returns>Full path with variable strings replaced, or the original string.</returns>
-		public static string ExpandPathVariables(string InputPath, string EngineDir, string ProjectDir)
+		/// <param name="DirectoryName">Base directory for the target being built; either the project directory or engine directory.</param>
+		/// <param name="TargetName">The target being built</param>
+		/// <param name="Configuration">The target configuration</param>
+		/// <param name="Platform">The target platform</param>
+		/// <returns>Path to the receipt for this target</returns>
+		public static string GetDefaultPath(string BaseDir, string TargetName, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration)
 		{
-			if(InputPath.StartsWith("$("))
-			{
-				if(InputPath.StartsWith(EngineDirVariable))
-				{
-					return Path.GetFullPath(EngineDir.TrimEnd('/', '\\') + InputPath.Substring(EngineDirVariable.Length));
-				}
-				else if(InputPath.StartsWith(ProjectDirVariable))
-				{
-					return Path.GetFullPath(ProjectDir.TrimEnd('/', '\\') + InputPath.Substring(ProjectDirVariable.Length));
-				}
-			}
-			return InputPath;
+			return Path.Combine(BaseDir, "Build", "Receipts", String.Format("{0}-{1}-{2}.target.xml", TargetName, Platform.ToString(), Configuration.ToString()));
 		}
 
 		/// <summary>
