@@ -42,14 +42,19 @@ private:
 	// Actually create extracted sprites
 	void CreateExtractedSprites();
 
+	// Sets the details panel appropriately for the currently selected panel
+	void SetDetailsViewForActiveMode();
+
 private:
 	// Source texture to extract from
 	UTexture2D* SourceTexture;
 
 
 	class UPaperExtractSpritesSettings* ExtractSpriteSettings;
+	class UPaperExtractSpriteGridSettings* ExtractSpriteGridSettings;
 
-	TSharedPtr<class IDetailsView> PropertyView;
+	TSharedPtr<class IDetailsView> MainPropertyView;
+	TSharedPtr<class IDetailsView> DetailsPropertyView;
 	TArray<FPaperExtractedSprite> ExtractedSprites;
 };
 

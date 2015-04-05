@@ -43,8 +43,12 @@ void FPaperExtractSpritesViewportClient::Draw(FViewport* Viewport, FCanvas* Canv
 	// Super will clear the viewport 
 	FPaperEditorViewportClient::Draw(Viewport, Canvas);
 
-	UTexture2D* Texture = TextureBeingExtracted.Get();
+	if (Settings != nullptr)
+	{
+		Canvas->Clear(Settings->BackgroundColor);
+	}
 
+	UTexture2D* Texture = TextureBeingExtracted.Get();
 	if (Texture != nullptr)
 	{
 		const bool bUseTranslucentBlend = Texture->HasAlphaChannel();
@@ -128,16 +132,26 @@ void SPaperExtractSpritesDialog::Construct(const FArguments& InArgs, UTexture2D*
 
 	ExtractSpriteSettings = NewObject<UPaperExtractSpritesSettings>();
 	ExtractSpriteSettings->AddToRoot();
-	ExtractSpriteSettings->GridWidth = InSourceTexture->GetSizeX();
-	ExtractSpriteSettings->GridHeight = InSourceTexture->GetSizeY();
+
+	ExtractSpriteGridSettings = NewObject<UPaperExtractSpriteGridSettings>();
+	ExtractSpriteGridSettings->AddToRoot();
+	ExtractSpriteGridSettings->NamingTemplate = "Sprite_{0}";
+	ExtractSpriteGridSettings->CellWidth = InSourceTexture->GetSizeX();
+	ExtractSpriteGridSettings->CellHeight = InSourceTexture->GetSizeY();
+
 	PreviewExtractedSprites();
 
 	FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	FDetailsViewArgs DetailsViewArgs(/*bUpdateFromSelection=*/ false, /*bLockable=*/ false, /*bAllowSearch=*/ false, /*InNameAreaSettings=*/ FDetailsViewArgs::HideNameArea, /*bHideSelectionTip=*/ true);
-	PropertyView = EditModule.CreateDetailView(DetailsViewArgs);
-	PropertyView->SetObject(ExtractSpriteSettings);
-	PropertyView->OnFinishedChangingProperties().AddSP(this, &SPaperExtractSpritesDialog::OnFinishedChangingProperties);
+	MainPropertyView = EditModule.CreateDetailView(DetailsViewArgs);
+	MainPropertyView->SetObject(ExtractSpriteSettings);
+	MainPropertyView->OnFinishedChangingProperties().AddSP(this, &SPaperExtractSpritesDialog::OnFinishedChangingProperties);
 	
+	DetailsPropertyView = EditModule.CreateDetailView(DetailsViewArgs);
+	DetailsPropertyView->OnFinishedChangingProperties().AddSP(this, &SPaperExtractSpritesDialog::OnFinishedChangingProperties);
+
+	SetDetailsViewForActiveMode();
+
 	TSharedRef<SPaperExtractSpritesViewport> Viewport = SNew(SPaperExtractSpritesViewport, SourceTexture, ExtractedSprites, ExtractSpriteSettings, this);
 
 	ChildSlot
@@ -158,11 +172,16 @@ void SPaperExtractSpritesDialog::Construct(const FArguments& InArgs, UTexture2D*
 				SNew(SVerticalBox)
 				+ SVerticalBox::Slot()
 				.Padding(2.0f)
+				.AutoHeight()
 				[
-					PropertyView.ToSharedRef()
+					MainPropertyView.ToSharedRef()
 				]
 				+ SVerticalBox::Slot()
+				.Padding(2.0f)
 				.FillHeight(1.0f)
+				[
+					DetailsPropertyView.ToSharedRef()
+				]
 				+ SVerticalBox::Slot()
 				.Padding(2.0f)
 				.AutoHeight()
@@ -193,6 +212,11 @@ SPaperExtractSpritesDialog::~SPaperExtractSpritesDialog()
 	if (ExtractSpriteSettings && ExtractSpriteSettings->IsValidLowLevel())
 	{
 		ExtractSpriteSettings->RemoveFromRoot();
+	}
+
+	if (ExtractSpriteGridSettings && ExtractSpriteGridSettings->IsValidLowLevel())
+	{
+		ExtractSpriteGridSettings->RemoveFromRoot();
 	}
 }
 
@@ -230,7 +254,7 @@ void SPaperExtractSpritesDialog::PreviewExtractedSprites()
 	SlowTask.EnterProgressFrame();
 
 	const FString DefaultSuffix = TEXT("Sprite");
-	if (ExtractSpriteSettings->Mode == ESpriteExtractMode::Auto)
+	if (ExtractSpriteSettings->SpriteExtractMode == ESpriteExtractMode::Auto)
 	{
 		ExtractedSprites.Empty();
 
@@ -291,21 +315,44 @@ void SPaperExtractSpritesDialog::PreviewExtractedSprites()
 	}
 	else
 	{
+		FString NamingTemplate = ExtractSpriteGridSettings->NamingTemplate;
+		if (NamingTemplate.Find(TEXT("{0}")) == INDEX_NONE)
+		{
+			NamingTemplate.Append(TEXT("_{0}"));
+		}
+
 		// Calculate rects
 		ExtractedSprites.Empty();
 		if (SourceTexture != nullptr)
 		{
-			int32 ExtractedRectIndex = 0;
+			int32 ExtractedRectIndex = ExtractSpriteGridSettings->NamingStartIndex;
 			int32 TextureWidth = SourceTexture->GetSizeX();
 			int32 TextureHeight = SourceTexture->GetSizeY();
-			for (int32 Y = ExtractSpriteSettings->Margin; Y + ExtractSpriteSettings->GridHeight <= TextureHeight; Y += ExtractSpriteSettings->GridHeight + ExtractSpriteSettings->Spacing)
+			int NumExtractedCellsY = 0;
+			for (int32 Y = ExtractSpriteGridSettings->MarginY; Y + ExtractSpriteGridSettings->CellHeight <= TextureHeight; Y += ExtractSpriteGridSettings->CellHeight + ExtractSpriteGridSettings->SpacingY)
 			{
-				for (int32 X = ExtractSpriteSettings->Margin; X + ExtractSpriteSettings->GridWidth <= TextureWidth; X += ExtractSpriteSettings->GridWidth + ExtractSpriteSettings->Spacing)
+				int NumExtractedCellsX = 0;
+				for (int32 X = ExtractSpriteGridSettings->MarginX; X + ExtractSpriteGridSettings->CellWidth <= TextureWidth; X += ExtractSpriteGridSettings->CellWidth + ExtractSpriteGridSettings->SpacingX)
 				{
 					FPaperExtractedSprite* Sprite = new(ExtractedSprites)FPaperExtractedSprite();
-					Sprite->Rect = FIntRect(X, Y, X + ExtractSpriteSettings->GridWidth, Y + ExtractSpriteSettings->GridHeight);
-					Sprite->Name = FString::Printf(TEXT("%s_%d"), *DefaultSuffix, ExtractedRectIndex);
+					Sprite->Rect = FIntRect(X, Y, X + ExtractSpriteGridSettings->CellWidth, Y + ExtractSpriteGridSettings->CellHeight);
+					
+					Sprite->Name = NamingTemplate;
+					Sprite->Name.ReplaceInline(TEXT("{0}"), *FString::Printf(TEXT("%d"), ExtractedRectIndex));
+
 					ExtractedRectIndex++;
+
+					++NumExtractedCellsX;
+					if (ExtractSpriteGridSettings->NumCellsX > 0 && NumExtractedCellsX >= ExtractSpriteGridSettings->NumCellsX)
+					{
+						break;
+					}
+				}
+
+				++NumExtractedCellsY;
+				if (ExtractSpriteGridSettings->NumCellsY > 0 && NumExtractedCellsY >= ExtractSpriteGridSettings->NumCellsY)
+				{
+					break;
 				}
 			}
 		}
@@ -314,7 +361,22 @@ void SPaperExtractSpritesDialog::PreviewExtractedSprites()
 
 void SPaperExtractSpritesDialog::OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent)
 {
-	PreviewExtractedSprites();
+	if (PropertyChangedEvent.Property != nullptr)
+	{
+		const FName PropertyName(PropertyChangedEvent.Property->GetFName());
+		
+		if (PropertyName != GET_MEMBER_NAME_CHECKED(UPaperExtractSpritesSettings, OutlineColor) &&
+			PropertyName != GET_MEMBER_NAME_CHECKED(UPaperExtractSpritesSettings, BackgroundColor) &&
+			PropertyName != GET_MEMBER_NAME_CHECKED(UPaperExtractSpritesSettings, TextureTint))
+		{
+			PreviewExtractedSprites();
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPaperExtractSpritesSettings, SpriteExtractMode))
+		{
+			SetDetailsViewForActiveMode();
+		}
+	}
 }
 
 FReply SPaperExtractSpritesDialog::ExtractClicked()
@@ -391,6 +453,18 @@ void SPaperExtractSpritesDialog::CreateExtractedSprites()
 	if (ObjectsToSync.Num() > 0)
 	{
 		ContentBrowserModule.Get().SyncBrowserToAssets(ObjectsToSync);
+	}
+}
+
+void SPaperExtractSpritesDialog::SetDetailsViewForActiveMode()
+{
+	if (ExtractSpriteSettings->SpriteExtractMode == ESpriteExtractMode::Grid)
+	{
+		DetailsPropertyView->SetObject(ExtractSpriteGridSettings);
+	}
+	else
+	{
+		DetailsPropertyView->SetObject(nullptr);
 	}
 }
 

@@ -8,15 +8,22 @@ UPaperExtractSpritesSettings::UPaperExtractSpritesSettings(const FObjectInitiali
 {
 	OutlineColor = FLinearColor::Yellow;
 	TextureTint = FLinearColor::Gray;
+	BackgroundColor = FLinearColor(0.1f, 0.1f, 0.1f);
 }
 
 void UPaperExtractSpritesSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	const FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
-	if (PropertyName == GET_MEMBER_NAME_CHECKED(UPaperExtractSpritesSettings, Mode))
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UPaperExtractSpritesSettings, SpriteExtractMode))
 	{
 		// Update bools
-		bAutoMode = (Mode == ESpriteExtractMode::Auto);
-		bGridMode = (Mode == ESpriteExtractMode::Grid);
+		bAutoMode = (SpriteExtractMode == ESpriteExtractMode::Auto);
+		bGridMode = (SpriteExtractMode == ESpriteExtractMode::Grid);
 	}
+}
+
+
+UPaperExtractSpriteGridSettings::UPaperExtractSpriteGridSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
 }
