@@ -27,6 +27,7 @@ public:
 
 	// FViewportClient interface
 	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) override;
+	virtual FLinearColor GetBackgroundColor() const override;
 	// End of FViewportClient interface
 
 private:
@@ -42,11 +43,6 @@ void FPaperExtractSpritesViewportClient::Draw(FViewport* Viewport, FCanvas* Canv
 {
 	// Super will clear the viewport 
 	FPaperEditorViewportClient::Draw(Viewport, Canvas);
-
-	if (Settings != nullptr)
-	{
-		Canvas->Clear(Settings->BackgroundColor);
-	}
 
 	UTexture2D* Texture = TextureBeingExtracted.Get();
 	if (Texture != nullptr)
@@ -74,6 +70,19 @@ void FPaperExtractSpritesViewportClient::Draw(FViewport* Viewport, FCanvas* Canv
 		}
 	}
 }
+
+FLinearColor FPaperExtractSpritesViewportClient::GetBackgroundColor() const
+{
+	if (Settings != nullptr)
+	{
+		return Settings->BackgroundColor;
+	}
+	else
+	{
+		return FEditorViewportClient::GetBackgroundColor();
+	}
+}
+
 
 void FPaperExtractSpritesViewportClient::DrawRectangle(FCanvas* Canvas, const FLinearColor& Color, const FIntRect& Rect)
 {
