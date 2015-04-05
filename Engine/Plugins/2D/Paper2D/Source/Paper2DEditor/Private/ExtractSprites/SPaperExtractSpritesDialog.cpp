@@ -127,6 +127,7 @@ void SPaperExtractSpritesDialog::Construct(const FArguments& InArgs, UTexture2D*
 	SourceTexture = InSourceTexture;
 
 	ExtractSpriteSettings = NewObject<UPaperExtractSpritesSettings>();
+	ExtractSpriteSettings->AddToRoot();
 	ExtractSpriteSettings->GridWidth = InSourceTexture->GetSizeX();
 	ExtractSpriteSettings->GridHeight = InSourceTexture->GetSizeY();
 	PreviewExtractedSprites();
@@ -185,6 +186,14 @@ void SPaperExtractSpritesDialog::Construct(const FArguments& InArgs, UTexture2D*
 			]
 		]
 	];
+}
+
+SPaperExtractSpritesDialog::~SPaperExtractSpritesDialog()
+{
+	if (ExtractSpriteSettings && ExtractSpriteSettings->IsValidLowLevel())
+	{
+		ExtractSpriteSettings->RemoveFromRoot();
+	}
 }
 
 bool SPaperExtractSpritesDialog::ShowWindow(const FText& TitleText, UTexture2D* SourceTexture)

@@ -22,6 +22,8 @@ public:
 	// Constructs this widget with InArgs
 	void Construct(const FArguments& InArgs, UTexture2D* Texture);
 
+	virtual ~SPaperExtractSpritesDialog();
+
 	// Show the dialog, returns true if successfully extracted sprites
 	static bool ShowWindow(const FText& TitleText, UTexture2D* SourceTexture);
 
@@ -43,6 +45,7 @@ private:
 private:
 	// Source texture to extract from
 	UTexture2D* SourceTexture;
+
 
 	class UPaperExtractSpritesSettings* ExtractSpriteSettings;
 
