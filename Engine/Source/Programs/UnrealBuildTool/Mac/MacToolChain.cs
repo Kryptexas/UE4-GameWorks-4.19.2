@@ -55,8 +55,6 @@ namespace UnrealBuildTool
 
 		private static List<FileItem> BundleDependencies = new List<FileItem>();
 
-		private static List<string> BundleDylibPaths = new List<string>();
-
 		public List<string> BuiltBinaries = new List<string>();
 
 		public override void SetUpGlobalEnvironment()
@@ -688,12 +686,6 @@ namespace UnrealBuildTool
 
 			if (!bIsBuildingLibrary || LinkEnvironment.Config.bIncludeDependentLibrariesInLibrary)
 			{
-				// Add RPaths for other bundle modules
-				foreach (string BundleDylibPath in BundleDylibPaths)
-				{
-					LinkCommand += String.Format(" -rpath @executable_path/{0}/", BundleDylibPath);
-				}
-
 				// Add the additional libraries to the argument list.
 				foreach (string AdditionalLibrary in LinkEnvironment.Config.AdditionalLibraries)
 				{
@@ -847,7 +839,18 @@ namespace UnrealBuildTool
 			if (LinkEnvironment.Config.bIsBuildingDLL)
 			{
 				// Add the output file to the command-line.
-				LinkCommand += string.Format(" -install_name {0}/{1}", DylibsPath, Path.GetFileName(OutputFile.AbsolutePath));
+				string Filename = "";
+				int Index = OutputFile.AbsolutePath.LastIndexOf(".app/Contents/MacOS/");
+				if (Index > -1)
+				{
+					Index += ".app/Contents/MacOS/".Length;
+					Filename = OutputFile.AbsolutePath.Substring(Index);
+				}
+				else
+				{
+					Filename = Path.GetFileName(OutputFile.AbsolutePath);
+				}
+				LinkCommand += string.Format(" -install_name {0}/{1}", DylibsPath, Filename);
 			}
 
 			if (!bIsBuildingLibrary)
@@ -1295,8 +1298,6 @@ namespace UnrealBuildTool
 		{
 			base.FixBundleBinariesPaths(Target, Binaries);
 
-			BundleDylibPaths.Clear();
-
 			string BundleContentsPath = Target.OutputPath + ".app/Contents/";
 			foreach (UEBuildBinary Binary in Binaries)
 			{
@@ -1312,13 +1313,6 @@ namespace UnrealBuildTool
 						// get the subdir, which is the DylibDir - ExeDir
 						string SubDir = DylibDir.Replace(ExeDir, "");
 						Binary.Config.OutputFilePaths[0] = BundleContentsPath + "MacOS" + SubDir + "/" + BinaryFileName;
-
-						// Add the path to the list of search paths for the bundle
-						string TrimSubDir = SubDir.Trim('/', '\\');
-						if (TrimSubDir.Length > 0 && !BundleDylibPaths.Contains(TrimSubDir))
-						{
-							BundleDylibPaths.Add(TrimSubDir);
-						}
 					}
 				}
 				else if (!BinaryFileName.EndsWith(".a") && !Binary.Config.OutputFilePath.Contains(".app/Contents/MacOS/")) // Binaries can contain duplicates
