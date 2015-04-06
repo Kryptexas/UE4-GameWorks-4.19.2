@@ -2451,7 +2451,7 @@ void FMaterialEditor::OnAssetPostImport(UFactory* InFactory, UObject* InObject)
 			{
 				if (ExpressionTexture->Texture == Texture)
 				{
-					UpdatePreviewMaterial(true);
+					UpdateOriginalMaterial();
 					break;
 				}
 			}
@@ -2487,7 +2487,7 @@ void FMaterialEditor::OnAssetPostImport(UFactory* InFactory, UObject* InObject)
 				if (ExpressionFunctionCall->MaterialFunction != nullptr &&
 					Local::ReferencesImportedObject(ExpressionFunctionCall->MaterialFunction, Texture))
 				{
-					UpdatePreviewMaterial(true);
+					UpdateOriginalMaterial();
 					break;
 				}
 			}
