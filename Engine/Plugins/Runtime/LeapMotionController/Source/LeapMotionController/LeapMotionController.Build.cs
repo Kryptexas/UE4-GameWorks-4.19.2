@@ -11,8 +11,6 @@ namespace UnrealBuildTool.Rules
 			PublicDependencyModuleNames.AddRange( new string[] { "Core", "CoreUObject", "Engine", "InputCore" } ); 
 
             PublicDependencyModuleNames.AddRange(new string[] { "Leap" }); 
-
-			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Leap/Leap.dll"));
 		}
 	}
 }
