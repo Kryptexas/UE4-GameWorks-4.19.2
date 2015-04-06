@@ -78,7 +78,10 @@ void SCommentBubble::Tick( const FGeometry& AllottedGeometry, const double InCur
 {
 	SCompoundWidget::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
 
-	const bool bTitleBarBubbleVisible = bEnableTitleBarBubble && IsGraphNodeHovered.IsBound();
+	// Check Editable and Hovered so we can prevent bubble toggling in read only graphs.
+	const bool bNodeEditable = GraphNode->NodeWidget.IsValid() ? GraphNode->NodeWidget.Pin()->IsNodeEditable() : false;
+	const bool bEnableTitleHintBubble = bEnableTitleBarBubble && bNodeEditable;
+	const bool bTitleBarBubbleVisible = bEnableTitleHintBubble && IsGraphNodeHovered.IsBound();
 
 	if( bTitleBarBubbleVisible || IsBubbleVisible() )
 	{
