@@ -85,24 +85,15 @@ void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent,
 	// given instance index between reattaches
 	FRandomStream RandomStream( InComponent->InstancingRandomSeed );
 
-	FColor HitProxyColor(ForceInit);
-	bool bSelected = false;
 	for (int32 InstanceIndex = 0; InstanceIndex < NumRealInstances; InstanceIndex++)
 	{
-#if WITH_EDITOR
-		if (InHitProxies.Num() == NumRealInstances)
-		{
-			HitProxyColor = InHitProxies[InstanceIndex]->Id.GetColor();
-		}
-		// Record if the instance is selected
-		bSelected = InstanceIndex < InComponent->SelectedInstances.Num() && InComponent->SelectedInstances[InstanceIndex];
-#endif
-
 		FInstanceStream* InstanceRenderData = InstanceData->GetInstanceWriteAddress(bUseRemapTable ? InComponent->InstanceReorderTable[InstanceIndex] : InstanceIndex);
 		const FInstancedStaticMeshInstanceData& Instance = InComponent->PerInstanceSMData[InstanceIndex];
 						
-		InstanceRenderData->SetInstance(Instance.Transform, RandomStream.GetFraction(), Instance.LightmapUVBias, Instance.ShadowmapUVBias, HitProxyColor, bSelected);
+		InstanceRenderData->SetInstance(Instance.Transform, RandomStream.GetFraction(), Instance.LightmapUVBias, Instance.ShadowmapUVBias);
 	}
+
+	SetPerInstanceEditorData(InComponent, InHitProxies);
 
 	// Hide any removed instances
 	if (NumRemoved)
@@ -128,6 +119,30 @@ void FStaticMeshInstanceBuffer::InitFromPreallocatedData(UInstancedStaticMeshCom
 	AllocateData(Other);
 	SetupCPUAccess(InComponent);
 	InstanceData->SetAllowCPUAccess(true);		// GDC demo hack!
+}
+
+void FStaticMeshInstanceBuffer::SetPerInstanceEditorData(UInstancedStaticMeshComponent* InComponent, const TArray<TRefCountPtr<HHitProxy>>& InHitProxies)
+{
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		FColor HitProxyColor(ForceInit);
+		int32 NumRealInstances = InComponent->PerInstanceSMData.Num();
+		bool bUseRemapTable = InComponent->PerInstanceSMData.Num() == InComponent->InstanceReorderTable.Num();
+		
+		for (int32 InstanceIndex = 0; InstanceIndex < NumRealInstances; InstanceIndex++)
+		{
+			if (InHitProxies.Num() == NumRealInstances)
+			{
+				HitProxyColor = InHitProxies[InstanceIndex]->Id.GetColor();
+			}
+			// Record if the instance is selected
+			bool bSelected = InstanceIndex < InComponent->SelectedInstances.Num() && InComponent->SelectedInstances[InstanceIndex];
+			FInstanceStream* InstanceRenderData = InstanceData->GetInstanceWriteAddress(bUseRemapTable ? InComponent->InstanceReorderTable[InstanceIndex] : InstanceIndex);
+			InstanceRenderData->SetInstanceEditorData(HitProxyColor, bSelected);
+		}
+	}
+#endif
 }
 
 /**
@@ -710,6 +725,7 @@ void FInstancedStaticMeshSceneProxy::GetDistanceFieldInstanceInfo(int32& NumInst
 UInstancedStaticMeshComponent::UInstancedStaticMeshComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bPerInstanceRenderDataWasPrebuilt(false)
+	, SelectionStamp(0)
 {
 	Mobility = EComponentMobility::Movable;
 	BodyInstance.bSimulatePhysics = false;
@@ -1267,6 +1283,8 @@ void UInstancedStaticMeshComponent::ReleasePerInstanceRenderData()
 	{
 		typedef TSharedPtr<FPerInstanceRenderData, ESPMode::ThreadSafe> FPerInstanceRenderDataPtr;
 
+		PerInstanceRenderData->HitProxies.Empty();
+
 		// Make shared pointer object on the heap
 		FPerInstanceRenderDataPtr* CleanupRenderDataPtr = new FPerInstanceRenderDataPtr(PerInstanceRenderData);
 		PerInstanceRenderData.Reset();
@@ -1664,7 +1682,15 @@ void UInstancedStaticMeshComponent::SelectInstance(bool bInSelected, int32 InIns
 		SelectedInstances[InstanceIndex] = bInSelected;
 	}
 
-	ReleasePerInstanceRenderData();
+	SelectionStamp++;
+#endif
+}
+
+void UInstancedStaticMeshComponent::ClearInstanceSelection()
+{
+#if WITH_EDITOR	
+	SelectedInstances.Empty();
+	SelectionStamp++;
 #endif
 }
 

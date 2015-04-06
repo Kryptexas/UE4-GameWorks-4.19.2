@@ -94,6 +94,9 @@ public:
 	 */
 	void InitFromPreallocatedData(UInstancedStaticMeshComponent* InComponent, FStaticMeshInstanceData& Other);
 
+	/** Propagates instance selection state and hit proxy colors */
+	void SetPerInstanceEditorData(UInstancedStaticMeshComponent* InComponent, const TArray<TRefCountPtr<HHitProxy>>& InHitProxies);
+
 	/** Serializer. */
 	friend FArchive& operator<<(FArchive& Ar, FStaticMeshInstanceBuffer& VertexBuffer);
 
@@ -309,6 +312,7 @@ struct FPerInstanceRenderData
 	// Should be always constructed on main thread
 	FPerInstanceRenderData(UInstancedStaticMeshComponent* InComponent, ERHIFeatureLevel::Type InFeaureLevel)
 		: InstanceBuffer(InFeaureLevel)
+		, CachedSelectionStamp(InComponent->SelectionStamp)
 	{
 		// Create hit proxies for each instance if the component wants
 		if (GIsEditor && InComponent->bHasPerInstanceHitProxies)
@@ -328,6 +332,7 @@ struct FPerInstanceRenderData
 
 	FPerInstanceRenderData(UInstancedStaticMeshComponent* InComponent, FStaticMeshInstanceData& Other, ERHIFeatureLevel::Type InFeaureLevel)
 		: InstanceBuffer(InFeaureLevel)
+		, CachedSelectionStamp(0)
 	{
 		InstanceBuffer.InitFromPreallocatedData(InComponent, Other);
 		BeginInitResource(&InstanceBuffer);
@@ -343,6 +348,8 @@ struct FPerInstanceRenderData
 	FStaticMeshInstanceBuffer			InstanceBuffer;
 	/** Hit proxies for the instances */
 	TArray<TRefCountPtr<HHitProxy>>		HitProxies;
+	/** Cached selection identifier from component */
+	int32								CachedSelectionStamp;
 };
 
 
@@ -369,6 +376,13 @@ public:
 			InComponent->PerInstanceRenderData = MakeShareable(new FPerInstanceRenderData(InComponent, InFeatureLevel));
 			PerInstanceRenderData = InComponent->PerInstanceRenderData;
 			InComponent->bPerInstanceRenderDataWasPrebuilt = false;
+		}
+		else if (PerInstanceRenderData->CachedSelectionStamp != InComponent->SelectionStamp)
+		{
+			// Update editor data bits in already existing instance buffer
+			PerInstanceRenderData->InstanceBuffer.SetPerInstanceEditorData(InComponent, PerInstanceRenderData->HitProxies);
+			PerInstanceRenderData->CachedSelectionStamp = InComponent->SelectionStamp;
+			BeginUpdateResourceRHI(&PerInstanceRenderData->InstanceBuffer);
 		}
 
 		NumInstances = PerInstanceRenderData->InstanceBuffer.GetNumInstances();

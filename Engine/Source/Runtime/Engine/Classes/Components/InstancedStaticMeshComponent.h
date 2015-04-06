@@ -140,7 +140,9 @@ public:
 	/** One bit per instance if the instance is selected. */
 	TBitArray<> SelectedInstances;
 #endif
-
+	/** Incremented when instance selection is changed */
+	int32 SelectionStamp;
+	
 #if WITH_PHYSX
 	/** Aggregate physx representation of the instances' bodies. */
 	TArray<physx::PxAggregate*> Aggregates;
@@ -192,6 +194,9 @@ public:
 
 	/** Select/deselect an instance or group of instances */
 	void SelectInstance(bool bInSelected, int32 InInstanceIndex, int32 InInstanceCount = 1);
+
+	/** Deselect all instances */
+	void ClearInstanceSelection();
 
 	/** 
 	 * Transfers ownership of instance render data to a render thread 

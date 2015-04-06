@@ -944,13 +944,11 @@ void FFoliageMeshInfo::ReapplyInstancesToComponent()
 
 		if (SelectedIndices.Num())
 		{
-			if (Component->SelectedInstances.Num() != Component->PerInstanceSMData.Num())
-			{
-				Component->SelectedInstances.Init(false, Component->PerInstanceSMData.Num());
-			}
+			Component->ClearInstanceSelection();
+			
 			for (int32 i : SelectedIndices)
 			{
-				Component->SelectedInstances[i] = true;
+				Component->SelectInstance(true, i, 1);
 			}
 		}
 
@@ -1035,15 +1033,15 @@ void FFoliageMeshInfo::SelectInstances(AInstancedFoliageActor* InIFA, bool bSele
 			{
 				SelectedIndices.Add(i);
 			}
+			
+			Component->SelectInstance(true, 0, Component->PerInstanceSMData.Num());
 		}
 		else
 		{
 			SelectedIndices.Empty();
+			Component->ClearInstanceSelection();
 		}
 
-		// Apply selections to the component
-		Component->SelectedInstances.Init(bSelect, Component->PerInstanceSMData.Num());
-		Component->ReleasePerInstanceRenderData();
 		Component->MarkRenderStateDirty();
 	}
 }
@@ -1053,37 +1051,35 @@ void FFoliageMeshInfo::SelectInstances(AInstancedFoliageActor* InIFA, bool bSele
 	if (InInstances.Num())
 	{
 		check(Component);
-		InIFA->Modify();
-
 		if (bSelect)
 		{
-			// Apply selections to the component
-			Component->ReleasePerInstanceRenderData();
-			Component->MarkRenderStateDirty();
-
-			if (Component->SelectedInstances.Num() != Component->PerInstanceSMData.Num())
-			{
-				Component->SelectedInstances.Init(false, Component->PerInstanceSMData.Num());
-			}
+			InIFA->Modify();
 
 			for (int32 i : InInstances)
 			{
 				SelectedIndices.Add(i);
-				Component->SelectedInstances[i] = true;
+				Component->SelectInstance(true, i, 1);
 			}
+			
+			Component->MarkRenderStateDirty();
 		}
 		else
 		{
-			if (Component->SelectedInstances.Num())
-			{
-				Component->ReleasePerInstanceRenderData();
-				Component->MarkRenderStateDirty();
+			InIFA->Modify();
 
+			for (int32 i : InInstances)
+			{
+				SelectedIndices.Remove(i);
+			}
+
+			if (Component->SelectedInstances.Num() > 0)
+			{
 				for (int32 i : InInstances)
 				{
-					SelectedIndices.Remove(i);
-					Component->SelectedInstances[i] = false;
+					Component->SelectInstance(false, i, 1);
 				}
+
+				Component->MarkRenderStateDirty();
 			}
 		}
 	}
@@ -1747,17 +1743,9 @@ void AInstancedFoliageActor::SelectInstance(UInstancedStaticMeshComponent* InCom
 		{
 			FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 
-			if (MeshInfo.SelectedIndices.Num() > 0)
-			{
-				check(MeshInfo.Component);
-				if (MeshInfo.Component->SelectedInstances.Num() > 0)
-				{
-					MeshInfo.Component->SelectedInstances.Empty();
-					MeshInfo.Component->ReleasePerInstanceRenderData();
-					MeshInfo.Component->MarkRenderStateDirty();
-				}
-			}
-
+			check(MeshInfo.Component);
+			MeshInfo.Component->ClearInstanceSelection();
+			MeshInfo.Component->MarkRenderStateDirty();
 			MeshInfo.SelectedIndices.Empty();
 		}
 	}
@@ -1773,6 +1761,7 @@ void AInstancedFoliageActor::SelectInstance(UInstancedStaticMeshComponent* InCom
 			{
 				Type = MeshPair.Key;
 				MeshInfo = &MeshPair.Value.Get();
+				break;
 			}
 		}
 		
@@ -1783,8 +1772,7 @@ void AInstancedFoliageActor::SelectInstance(UInstancedStaticMeshComponent* InCom
 			// Deselect if it's already selected.
 			if (InInstanceIndex < InComponent->SelectedInstances.Num())
 			{
-				InComponent->SelectedInstances[InInstanceIndex] = false;
-				InComponent->ReleasePerInstanceRenderData();
+				InComponent->SelectInstance(false, InInstanceIndex, 1);
 				InComponent->MarkRenderStateDirty();
 			}
 
@@ -1796,12 +1784,7 @@ void AInstancedFoliageActor::SelectInstance(UInstancedStaticMeshComponent* InCom
 			if (!bToggle || !bIsSelected)
 			{
 				// Add the selection
-				if (InComponent->SelectedInstances.Num() < InComponent->PerInstanceSMData.Num())
-				{
-					InComponent->SelectedInstances.Init(false, InComponent->PerInstanceSMData.Num());
-				}
-				InComponent->SelectedInstances[InInstanceIndex] = true;
-				InComponent->ReleasePerInstanceRenderData();
+				InComponent->SelectInstance(true, InInstanceIndex, 1);
 				InComponent->MarkRenderStateDirty();
 
 				MeshInfo->SelectedIndices.Add(InInstanceIndex);
@@ -1878,34 +1861,21 @@ void AInstancedFoliageActor::ApplySelectionToComponents(bool bApply)
 	for (auto& MeshPair : FoliageMeshes)
 	{
 		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
+		UHierarchicalInstancedStaticMeshComponent* Component = MeshInfo.Component;
 
-		if (bApply)
+		if (Component && (bApply || Component->SelectedInstances.Num() > 0))
 		{
-			if (MeshInfo.SelectedIndices.Num() > 0)
+			Component->ClearInstanceSelection();
+			
+			if (bApply)
 			{
-				check(MeshInfo.Component);
-
-				// Apply any selections in the component
-				MeshInfo.Component->SelectedInstances.Init(false, MeshInfo.Component->PerInstanceSMData.Num());
 				for (int32 i : MeshInfo.SelectedIndices)
 				{
-					MeshInfo.Component->SelectedInstances[i] = true;
+					Component->SelectInstance(true, i, 1);
 				}
-
-				MeshInfo.Component->ReleasePerInstanceRenderData();
-				MeshInfo.Component->MarkRenderStateDirty();
 			}
-		}
-		else		
-		{
-			if (MeshInfo.Component && MeshInfo.Component->SelectedInstances.Num() > 0)
-			{
-				// remove any selections in the component
-				MeshInfo.Component->SelectedInstances.Empty();
 
-				MeshInfo.Component->ReleasePerInstanceRenderData();
-				MeshInfo.Component->MarkRenderStateDirty();
-			}
+			Component->MarkRenderStateDirty();
 		}
 	}
 }
