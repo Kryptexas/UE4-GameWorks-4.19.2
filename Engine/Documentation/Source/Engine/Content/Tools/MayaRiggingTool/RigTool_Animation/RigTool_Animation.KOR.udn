@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2387029
+﻿INTSourceChangelist:2501140
 Availability: Public
 Title:Animation Tools
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Tools/MayaRiggingTool
@@ -203,7 +203,7 @@ You can also access these in the picker by **right-clicking** on the head, neck,
 **Left-Clicking** on the **Character Portrait** will bring up a list of characters in the scene for you to select. Only the currently selected character can use the **Animation Interface**.
 
 [REGION:note]
-Though only the currently selected character can use the **Animation Interface**, other characters in the scene can still be animated by directly selecting their controllers in the view port.
+Though only the currently selected character can use the **Animation Interface**, other characters in the scene can still be animated by directly selecting their controllers in the viewport.
 [/REGION]
 
 [REGION:lightbox]
