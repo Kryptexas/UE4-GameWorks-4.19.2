@@ -184,8 +184,35 @@ struct FAnimNotifyEvent : public FAnimLinkableElement
 			);
 	}
 
+	/** This can be used with the Sort() function on a TArray of FAnimNotifyEvents to sort the notifies array by time, earliest first. */
+	ENGINE_API bool operator <(const FAnimNotifyEvent& Other) const;
+
 	ENGINE_API virtual void SetTime(float NewTime, EAnimLinkMethod::Type ReferenceFrame = EAnimLinkMethod::Absolute) override;
 };
+
+// Used by UAnimSequenceBase::SortNotifies() to sort its Notifies array
+FORCEINLINE bool FAnimNotifyEvent::operator<(const FAnimNotifyEvent& Other) const
+{
+	float ATime = GetTriggerTime();
+	float BTime = Other.GetTriggerTime();
+
+#if WITH_EDITORONLY_DATA
+	// this sorting only works if it's saved in editor or loaded with editor data
+	// this is required for gameplay team to have reliable order of notifies
+	// but it was noted that this change will require to resave notifies. 
+	// once you resave, this order will be preserved
+	if (FMath::IsNearlyEqual(ATime, BTime))
+	{
+
+		// if the 2 anim notify events are the same display time sort based off of track index
+		return TrackIndex < Other.TrackIndex;
+	}
+	else
+#endif // WITH_EDITORONLY_DATA
+	{
+		return ATime < BTime;
+	}
+}
 
 /**
  * Keyframe position data for one track.  Pos(i) occurs at Time(i).  Pos.Num() always equals Time.Num().

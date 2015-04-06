@@ -16,6 +16,9 @@ DECLARE_DELEGATE( FOnUpdatePanel )
 DECLARE_DELEGATE_RetVal( float, FOnGetScrubValue )
 DECLARE_DELEGATE( FRefreshOffsetsRequest )
 DECLARE_DELEGATE( FDeleteNotify )
+DECLARE_DELEGATE_RetVal( bool, FOnGetIsAnimNotifySelectionValidForReplacement )
+DECLARE_DELEGATE_TwoParams( FReplaceWithNotify, FString, UClass* )
+DECLARE_DELEGATE_TwoParams( FReplaceWithBlueprintNotify, FString, FString )
 DECLARE_DELEGATE( FDeselectAllNotifies )
 DECLARE_DELEGATE( FCopyNotifies )
 DECLARE_DELEGATE_OneParam( FOnGetBlueprintNotifyData, TArray<FAssetData>& )
@@ -208,6 +211,15 @@ public:
 	void RefreshMarqueeSelectedNodes(const FGeometry& PanelGeo);
 
 	void OnNotifyObjectChanged(UObject* EditorBaseObj, bool bRebuild);
+
+	/** Check to make sure the current AnimNotify selection is a valid selection for replacing (i.e., AnimNotifies and AnimNotifyStates aren't mixed together in the selection) */
+	bool IsNotifySelectionValidForReplacement();
+
+	/** Handler for replacing with notify */
+	void OnReplaceSelectedWithNotify(FString NewNotifyName, UClass* NewNotifyClass);
+
+	/** Handler for replacing with notify blueprint */
+	void OnReplaceSelectedWithNotifyBlueprint(FString NewBlueprintNotifyName, FString NewBlueprintNotifyClass);
 
 private:
 	TSharedPtr<SBorder> PanelArea;
