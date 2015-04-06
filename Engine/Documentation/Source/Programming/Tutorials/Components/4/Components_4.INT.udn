@@ -84,7 +84,7 @@ Description:Tying the functionality of the Pawn, the input configuration, and th
 			{
 				if (OurParticleSystem && OurParticleSystem->Template)
 				{
-					OurParticleSystem->Activate(!OurParticleSystem->IsActive());
+					OurParticleSystem->ToggleActive();
 				}
 			}
 
