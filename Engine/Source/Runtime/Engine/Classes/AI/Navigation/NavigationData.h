@@ -867,9 +867,7 @@ struct FAsyncPathFindingQuery : public FPathFindingQuery
 	{ }
 
 	DEPRECATED(4.8, "This version of FAsyncPathFindingQuery constructor is deprecated. Please use ANavigationData reference rather than a pointer version")
-	FAsyncPathFindingQuery(const UObject* InOwner, const ANavigationData* InNavData, const FVector& Start, const FVector& End, const FNavPathQueryDelegate& Delegate, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter)
-	: FAsyncPathFindingQuery(InOwner, *InNavData, Start, End, Delegate, SourceQueryFilter)
-	{}
+	FAsyncPathFindingQuery(const UObject* InOwner, const ANavigationData* InNavData, const FVector& Start, const FVector& End, const FNavPathQueryDelegate& Delegate, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter);
 
 	FAsyncPathFindingQuery(const UObject* InOwner, const ANavigationData& InNavData, const FVector& Start, const FVector& End, const FNavPathQueryDelegate& Delegate, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter);
 	FAsyncPathFindingQuery(const FPathFindingQuery& Query, const FNavPathQueryDelegate& Delegate, const EPathFindingMode::Type QueryMode);
