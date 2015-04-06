@@ -415,7 +415,7 @@ void FSpriteEditor::InitSpriteEditor(const EToolkitMode::Type Mode, const TShare
 			)
 		);
 
-	// Initialize the asset editor and spawn nothing (dummy layout)
+	// Initialize the asset editor
 	InitAssetEditor(Mode, InitToolkitHost, SpriteEditorAppName, StandaloneDefaultLayout, /*bCreateDefaultStandaloneMenu=*/ true, /*bCreateDefaultToolbar=*/ true, InitSprite);
 
 	// Extend things
