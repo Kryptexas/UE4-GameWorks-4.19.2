@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<BuildReceipt xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <BuildProducts>
+    <BuildProduct Path="$(EngineDir)/Binaries/Mac/CrashReportClient.app/Contents/MacOS/CrashReportClient" Type="Executable" />
+    <BuildProduct Path="$(EngineDir)/Binaries/Mac/CrashReportClient.app/Contents/Info.plist" Type="RequiredResource" />
+    <BuildProduct Path="$(EngineDir)/Binaries/Mac/CrashReportClient.app/Contents/PkgInfo" Type="RequiredResource" />
+    <BuildProduct Path="$(EngineDir)/Binaries/Mac/CrashReportClient.app/Contents/Resources/UE4.icns" Type="RequiredResource" />
+  </BuildProducts>
+  <RuntimeDependencies />
+</BuildReceipt>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<BuildReceipt xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <BuildProducts>
+    <BuildProduct Path="$(EngineDir)/Binaries/Mac/UnrealFileServer" Type="Executable" />
+  </BuildProducts>
+  <RuntimeDependencies />
+</BuildReceipt>
