@@ -167,6 +167,7 @@ public:
 
 	void					enableHardSleeping();
 	void					disableHardSleeping(bool wake);
+	bool					setChunkPhysXActorAwakeState(physx::PxU32 chunkIndex, bool awake);
 
 	void					setLODWeights(physx::PxF32 maxDistance, physx::PxF32 distanceWeight, physx::PxF32 maxAge, physx::PxF32 ageWeight, physx::PxF32 bias);
 	const DestructibleActorParamNS::LODWeights_Type& getLODWeights(){ return reinterpret_cast<DestructibleActorParamNS::LODWeights_Type&>(mState->internalLODWeights); }

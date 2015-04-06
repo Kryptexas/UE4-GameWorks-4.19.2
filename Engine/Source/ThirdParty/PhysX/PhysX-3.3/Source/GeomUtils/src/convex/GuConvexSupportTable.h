@@ -233,7 +233,6 @@ namespace Gu
 		virtual Ps::aos::Vec3V doSupportSweep(const Ps::aos::Vec3VArg dir, const Ps::aos::Vec3VArg x, Ps::aos::Vec3V& supportA, Ps::aos::Vec3V& supportB) const = 0;
 		virtual Ps::aos::Vec3V doSupportSweepOnB(const Ps::aos::Vec3VArg nvNorm, const Ps::aos::Vec3VArg x) const = 0;
 		virtual Ps::aos::Vec3V getDir() const =0;
-		virtual Ps::aos::Vec3V getSweepMargin() const = 0;
 	};
 
 
@@ -406,8 +405,6 @@ namespace Gu
 			return aToB.p;
 		}
 
-		virtual Ps::aos::Vec3V getSweepMargin() const{ return Ps::aos::FMin(convA.getSweepMargin(), convB.getSweepMargin()); }
-
 	private:
 		GJKSupportMapPairRelativeImpl& operator=(const GJKSupportMapPairRelativeImpl&);
 	};
@@ -475,8 +472,6 @@ namespace Gu
 		{
 			return Ps::aos::V3Sub(convA.getCenter(), convB.getCenter());
 		}
-
-		virtual Ps::aos::Vec3V getSweepMargin() const{ return Ps::aos::FMin(convA.getSweepMargin(), convB.getSweepMargin()); }
 
 
 	private:

@@ -262,11 +262,6 @@ namespace Gu
 			return ret;
 		}
 
-		PX_FORCE_INLINE Ps::aos::FloatV getSweepMargin() const
-		{
-			return Ps::aos::FZero();
-		}
-
 		//don't change the order of p0 and p1, the getPoint function depend on the order
 		Ps::aos::Vec3V	p0;		//!< Start of segment
 		Ps::aos::Vec3V	p1;		//!< End of segment

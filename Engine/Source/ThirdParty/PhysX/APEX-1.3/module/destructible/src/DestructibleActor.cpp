@@ -1207,7 +1207,7 @@ physx::PxU32 DestructibleActor::getChunkActorFlags(physx::PxU32 index) const
 
 void DestructibleActor::applyDamage(physx::PxF32 damage, physx::PxF32 momentum, const physx::PxVec3& position, const physx::PxVec3& direction, physx::PxI32 chunkIndex, void* userData)
 {
-	DamageEvent& damageEvent = mStructure->dscene->mDamageBuffer.pushBack();
+	DamageEvent& damageEvent = mStructure->dscene->getDamageWriteBuffer().pushBack();
 	damageEvent.destructibleID = mID;
 	damageEvent.damage = damage;
 	damageEvent.momentum = momentum;
@@ -1222,7 +1222,7 @@ void DestructibleActor::applyDamage(physx::PxF32 damage, physx::PxF32 momentum, 
 
 void DestructibleActor::applyRadiusDamage(physx::PxF32 damage, physx::PxF32 momentum, const physx::PxVec3& position, physx::PxF32 radius, bool falloff, void* userData)
 {
-	DamageEvent& damageEvent = mStructure->dscene->mDamageBuffer.pushBack();
+	DamageEvent& damageEvent = mStructure->dscene->getDamageWriteBuffer().pushBack();
 	damageEvent.destructibleID = mID;
 	damageEvent.damage = damage;
 	damageEvent.momentum = momentum;
@@ -1254,7 +1254,7 @@ void DestructibleActor::takeImpact(const physx::PxVec3& force, const physx::PxVe
 	{
 		return;
 	}
-	DamageEvent& damageEvent = mStructure->dscene->mDamageBuffer.pushBack();
+	DamageEvent& damageEvent = mStructure->dscene->getDamageWriteBuffer().pushBack();
 	damageEvent.direction = force;
 	damageEvent.destructibleID = mID;
 	const physx::PxF32 magnitude = damageEvent.direction.normalize();
@@ -2655,6 +2655,45 @@ void DestructibleActor::disableHardSleeping(bool wake)
 			}
 		}
 	}
+}
+
+bool DestructibleActor::setChunkPhysXActorAwakeState(physx::PxU32 chunkIndex, bool awake)
+{
+	NxActor* actor = getChunkActor(chunkIndex);
+	if (actor == NULL)
+	{
+		return false;
+	}
+
+	physx::PxScene* scene = actor->getScene();
+	if (scene == NULL)
+	{
+#if NX_SDK_VERSION_MAJOR == 3
+		// defer
+		if (mDestructibleScene != NULL)
+		{
+			mDestructibleScene->addForceToAddActorsMap(actor, ActorForceAtPosition(physx::PxVec3(0.0f), physx::PxVec3(0.0f), physx::PxForceMode::eFORCE, awake));
+			return true;
+		}
+#endif
+		return false;
+	}
+
+	// Actor has a scene, set sleep state now
+	if (awake)
+	{
+		actor->wakeUp();
+	}
+	else
+	{
+#if NX_SDK_VERSION_MAJOR == 2
+		actor->putToSleep();
+#elif NX_SDK_VERSION_MAJOR == 3
+		((PxRigidDynamic*)actor)->putToSleep();
+#endif
+	}
+
+	return true;
 }
 
 void DestructibleActor::setLODWeights(physx::PxF32 maxDistance, physx::PxF32 distanceWeight, physx::PxF32 maxAge, physx::PxF32 ageWeight, physx::PxF32 bias)

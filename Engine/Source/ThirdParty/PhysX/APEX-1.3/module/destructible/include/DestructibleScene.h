@@ -673,7 +673,8 @@ public:
 	NxResourceList					mApexActorKillList;
 
 	// Damage queue
-	NxRingBuffer<DamageEvent>		mDamageBuffer;
+	NxRingBuffer<DamageEvent>		mDamageBuffer[2];	// Double-buffering
+	physx::PxU32					mDamageBufferWriteIndex;
 
 	// Fracture queue
 	NxRingBuffer<FractureEvent>		mFractureBuffer;
@@ -716,6 +717,20 @@ public:
 	NxApexRenderLockMode::Enum		mRenderLockMode;
 
 	physx::AtomicLock				mRenderDataLock;
+
+	// Access to the double-buffered damage events
+	NxRingBuffer<DamageEvent>&		getDamageWriteBuffer()
+	{
+		return mDamageBuffer[mDamageBufferWriteIndex];
+	}
+	NxRingBuffer<DamageEvent>&		getDamageReadBuffer()
+	{
+		return mDamageBuffer[mDamageBufferWriteIndex^1];
+	}
+	void							swapDamageBuffers()
+	{
+		mDamageBufferWriteIndex ^= 1;
+	}
 
 	// For visualization
 	struct LODReductionData

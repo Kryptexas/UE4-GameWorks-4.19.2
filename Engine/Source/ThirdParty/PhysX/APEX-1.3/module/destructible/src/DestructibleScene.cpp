@@ -372,6 +372,7 @@ DestructibleScene::DestructibleScene(ModuleDestructible& module, NiApexScene& sc
 	mDynamicActorFIFONum(0),
 	mTotalChunkCount(0),
 	mFractureEventCount(0),
+	mDamageBufferWriteIndex(0),
 	mUsingActiveTransforms(false),
 	m_worldSupportPhysXScene(NULL),
 	m_damageApplicationRaycastFlags(physx::NxDestructibleActorRaycastFlags::StaticChunks),
@@ -664,7 +665,8 @@ void DestructibleScene::reset()
 	mFractureBuffer.erase();
 
 	// Damage buffer
-	mDamageBuffer.erase();
+	getDamageWriteBuffer().erase();
+	getDamageReadBuffer().erase();
 
 	// FIFO
 	mDynamicActorFIFONum = 0;
@@ -1633,6 +1635,8 @@ void DestructibleScene::fetchResults()
 #if APEX_RUNTIME_FRACTURE
 	getDestructibleRTScene()->postSim(PX_MAX_F32);
 #endif
+
+	swapDamageBuffers();
 }
 
 PX_INLINE void visualizeNxActorBenefit(NiApexRenderDebug* debugRender, const physx::PxVec3& eyePos, const physx::PxVec3& eyeDir, NxActor& actor, physx::PxF32 benefit, const physx::PxF32* m, physx::PxF32 e, physx::PxF32 recip_a)
@@ -2175,7 +2179,17 @@ void DestructibleScene::removeReferencesToActor(DestructibleActor& destructible)
 	PX_ASSERT(mDestructibles.usedCount() == 0 ? mActorKillList.size() == 0 : true);
 
 	// Remove from damage and fracture buffers
-	for (NxRingBuffer<DamageEvent>::It i(mDamageBuffer); i; ++i)
+	for (NxRingBuffer<DamageEvent>::It i(getDamageReadBuffer()); i; ++i)
+	{
+		DamageEvent& e = *i;
+		if (e.destructibleID == destructible.getID())
+		{
+			e.flags |= (physx::PxU32)DamageEvent::Invalid;
+			//e.destructibleID = (physx::PxU32)DestructibleStructure::InvalidID;
+		}
+	}
+
+	for (NxRingBuffer<DamageEvent>::It i(getDamageWriteBuffer()); i; ++i)
 	{
 		DamageEvent& e = *i;
 		if (e.destructibleID == destructible.getID())
@@ -2589,7 +2603,7 @@ bool DestructibleScene::scheduleNxActorForDelete(NiApexPhysXObjectDesc& actorDes
 void DestructibleScene::applyRadiusDamage(physx::PxF32 damage, physx::PxF32 momentum, const physx::PxVec3& position, physx::PxF32 radius, bool falloff)
 {
 	// Apply scene-based damage actor-based damage.  Those will split off islands.
-	DamageEvent& damageEvent = mDamageBuffer.pushFront();
+	DamageEvent& damageEvent = getDamageWriteBuffer().pushFront();
 	damageEvent.damage = damage;
 	damageEvent.momentum = momentum;
 	damageEvent.position = position;
@@ -2677,7 +2691,7 @@ physx::PxF32 DestructibleScene::setDamageBufferBudget(physx::PxF32 budget, physx
 	processFIFOForLOD();
 
 	physx::PxF32 minCost, maxCost;
-	calculateDamageBufferCostProfiles(minCost, maxCost, mDamageBuffer);
+	calculateDamageBufferCostProfiles(minCost, maxCost, getDamageReadBuffer());
 
 	//===SyncParams===
 	if(NULL != userDamageBuffer)
@@ -2738,7 +2752,7 @@ physx::PxF32 DestructibleScene::setDamageBufferBudget(physx::PxF32 budget, physx
 			DamageEvent* eventPtr = NULL;
 			physx::PxF32 eventDeltaCost = NX_MAX_REAL;
 			physx::PxF32 minEventBenefitToCost = NX_MAX_REAL;
-			for (NxRingBuffer<DamageEvent>::It i(mDamageBuffer); i; ++i)
+			for (NxRingBuffer<DamageEvent>::It i(getDamageReadBuffer()); i; ++i)
 			{
 				DamageEvent& event = *i;
 				if (event.flags & DamageEvent::Invalid)
@@ -3229,7 +3243,7 @@ physx::PxF32 DestructibleScene::processEventBuffers(physx::PxF32 resourceBudget)
 	//===SyncParams=== give the user the damage event buffer. damage event buffer must be fully populated and locked during this call
 	if(NULL != callback)
 	{
-		mSyncParams.onProcessWriteData(*callback, mDamageBuffer);
+		mSyncParams.onProcessWriteData(*callback, getDamageReadBuffer());
 	}
 
 	//pop damage buffer, push fracture buffer. note that local fracture buffer may be 'contaminated' with non-local fractureEvents, which are derivatives of the user's damageEvents
@@ -3249,7 +3263,7 @@ physx::PxF32 DestructibleScene::processEventBuffers(physx::PxF32 resourceBudget)
 void DestructibleScene::generateFractureProfilesInDamageBuffer(physx::NxRingBuffer<DamageEvent> & userDamageBuffer, const physx::Array<SyncParams::UserDamageEvent> * userSource /*= NULL*/)
 {
 	
-#define LOCAL_CONDITION (eventN < mDamageBuffer.size())
+#define LOCAL_CONDITION (eventN < getDamageReadBuffer().size())
 	bool processingLocal = true;
 	for (physx::PxU32 eventN = 0 , userEventN = 0, userEventCount = (NULL != userSource && NULL != &userDamageBuffer) ? userSource->size() : 0;
 		 LOCAL_CONDITION || (userEventN < userEventCount);
@@ -3258,7 +3272,7 @@ void DestructibleScene::generateFractureProfilesInDamageBuffer(physx::NxRingBuff
 		processingLocal = LOCAL_CONDITION;
 #undef LOCAL_CONDITION
 		//===SyncParams===
-		DamageEvent& damageEvent = processingLocal ? mDamageBuffer[eventN] : mSyncParams.interpret((*userSource)[userEventN]);
+		DamageEvent& damageEvent = processingLocal ? getDamageReadBuffer()[eventN] : mSyncParams.interpret((*userSource)[userEventN]);
 		PX_ASSERT(!processingLocal ? mSyncParams.assertUserDamageEventOk(damageEvent, *this) : true);
 		const bool usingEditFeature = false;
 		if(usingEditFeature)
@@ -3317,8 +3331,8 @@ void DestructibleScene::generateFractureProfilesInDamageBuffer(physx::NxRingBuff
 						if (overlapDestructible->getStructure() != NULL)
 						{
 							// Expand damage buffer
-							DamageEvent& newEvent 	= processingLocal ? mDamageBuffer.pushBack()	: userDamageBuffer.pushBack();
-							newEvent 				= processingLocal ? mDamageBuffer[eventN]		: userDamageBuffer[userEventN];	// Need to use indexed access again; damageEvent may now be invalid if the buffer resized
+							DamageEvent& newEvent 	= processingLocal ? getDamageReadBuffer().pushBack()	: userDamageBuffer.pushBack();
+							newEvent 				= processingLocal ? getDamageReadBuffer()[eventN]		: userDamageBuffer[userEventN];	// Need to use indexed access again; damageEvent may now be invalid if the buffer resized
 							newEvent.destructibleID = overlapDestructible->getID();
 							const PxU32 maxLOD = overlapDestructible->getAsset()->getDepthCount() > 0 ? overlapDestructible->getAsset()->getDepthCount() - 1 : 0;
 							newEvent.minDepth = physx::PxMin(overlapDestructible->getLOD(), maxLOD);
@@ -3356,8 +3370,8 @@ void DestructibleScene::generateFractureProfilesInDamageBuffer(physx::NxRingBuff
 						if (overlapDestructible->getStructure() != NULL)
 						{
 							// Expand damage buffer
-							DamageEvent& newEvent 	= processingLocal ? mDamageBuffer.pushBack()	: userDamageBuffer.pushBack();
-							newEvent 				= processingLocal ? mDamageBuffer[eventN]		: userDamageBuffer[userEventN];	// Need to use indexed access again; damageEvent may now be invalid if the buffer resized
+							DamageEvent& newEvent 	= processingLocal ? getDamageReadBuffer().pushBack()	: userDamageBuffer.pushBack();
+							newEvent 				= processingLocal ? getDamageReadBuffer()[eventN]		: userDamageBuffer[userEventN];	// Need to use indexed access again; damageEvent may now be invalid if the buffer resized
 							newEvent.destructibleID = overlapDestructible->getID();
 							const physx::PxU32 maxLOD = overlapDestructible->getAsset()->getDepthCount() > 0 ? overlapDestructible->getAsset()->getDepthCount() - 1 : 0;
 							newEvent.minDepth = physx::PxMin(overlapDestructible->getLOD(), maxLOD);
@@ -3416,16 +3430,16 @@ void DestructibleScene::generateFractureProfilesInDamageBuffer(physx::NxRingBuff
 
 void DestructibleScene::fillFractureBufferFromDamage(physx::NxRingBuffer<DamageEvent> * userDamageBuffer /*= NULL*/)
 {
-#define LOCAL_CONDITION (mDamageBuffer.size() > 0)
+#define LOCAL_CONDITION (getDamageReadBuffer().size() > 0)
 	bool processingLocal = true;
 	for (physx::PxU32 userEventN = 0, userEventCount = (NULL != userDamageBuffer) ? userDamageBuffer->size() : 0;
 		 LOCAL_CONDITION || (userEventN < userEventCount);
-		 processingLocal ? mDamageBuffer.popFront() : unfortunateCompilerWorkaround(++userEventN))
+		 processingLocal ? getDamageReadBuffer().popFront() : unfortunateCompilerWorkaround(++userEventN))
 	{
         processingLocal = LOCAL_CONDITION;
 #undef LOCAL_CONDITION
 		//===SyncParams===
-		DamageEvent& damageEvent = processingLocal ? mDamageBuffer.front() : (*userDamageBuffer)[userEventN];
+		DamageEvent& damageEvent = processingLocal ? getDamageReadBuffer().front() : (*userDamageBuffer)[userEventN];
 
 		if (damageEvent.flags & DamageEvent::Invalid)
 		{

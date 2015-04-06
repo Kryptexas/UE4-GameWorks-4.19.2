@@ -15,7 +15,6 @@
 
 #include "CmPhysXCommon.h"
 #include "PsVecMath.h"
-#include "GuBarycentricCoordinates.h"
 
 #if defined __SPU__ || (defined __GNUC__ && defined _DEBUG)
 #define PX_GJK_INLINE PX_INLINE
@@ -32,10 +31,10 @@ namespace Gu
 {
 
 
-	PX_NOALIAS Ps::aos::Vec3V closestPtPointTetrahedron(Ps::aos::Vec3V* PX_RESTRICT Q, Ps::aos::Vec3V* PX_RESTRICT A, Ps::aos::Vec3V* PX_RESTRICT B, PxU32& size);
+	PX_NOALIAS Ps::aos::Vec3V closestPtPointTetrahedron(Ps::aos::Vec3V* PX_RESTRICT Q, Ps::aos::Vec3V* PX_RESTRICT A, Ps::aos::Vec3V* PX_RESTRICT B, PxU32& size, Ps::aos::Vec3V& closestA, Ps::aos::Vec3V& closestB);
 
-	PX_NOALIAS Ps::aos::Vec3V closestPtPointTetrahedron(Ps::aos::Vec3V* PX_RESTRICT Q, Ps::aos::Vec3V* PX_RESTRICT A, Ps::aos::Vec3V* PX_RESTRICT B, PxI32* PX_RESTRICT aInd, PxI32* PX_RESTRICT bInd, 
-		PxU32& size);
+	PX_NOALIAS Ps::aos::Vec3V closestPtPointTetrahedron(Ps::aos::Vec3V* PX_RESTRICT Q, Ps::aos::Vec3V* PX_RESTRICT A, Ps::aos::Vec3V* PX_RESTRICT B, PxI32* PX_RESTRICT aInd, PxI32* PX_RESTRICT bInd, const Ps::aos::Vec3VArg support, const Ps::aos::Vec3VArg supportA,
+		const Ps::aos::Vec3VArg supportB,  PxU32& size, Ps::aos::Vec3V& closestA, Ps::aos::Vec3V& closestB);
 
 	PX_NOALIAS PX_FORCE_INLINE Ps::aos::BoolV PointOutsideOfPlane4(const Ps::aos::Vec3VArg _a, const Ps::aos::Vec3VArg _b, const Ps::aos::Vec3VArg _c, const Ps::aos::Vec3VArg _d)
 	{
@@ -78,7 +77,7 @@ namespace Gu
 	}
 
 
-	PX_NOALIAS PX_FORCE_INLINE Ps::aos::Vec3V closestPtPointSegment(Ps::aos::Vec3V* PX_RESTRICT Q, PxU32& size)
+	PX_NOALIAS PX_FORCE_INLINE Ps::aos::Vec3V closestPtPointSegment(Ps::aos::Vec3V* PX_RESTRICT Q, Ps::aos::Vec3V* PX_RESTRICT A, Ps::aos::Vec3V* PX_RESTRICT B, PxU32& size, Ps::aos::Vec3V& closestA, Ps::aos::Vec3V& closestB)
 	{
 		using namespace Ps::aos;
 		const Vec3V a = Q[0];
@@ -94,107 +93,137 @@ namespace Gu
 		const FloatV denom = V3Dot(ab, ab);
 		const Vec3V ap = V3Neg(a);//V3Sub(origin, a);
 		const FloatV nom = V3Dot(ap, ab);
-		const BoolV con = FIsGrtrOrEq(FEps(), denom);//FIsEq(denom, zero);
+		const BoolV con = FIsEq(denom, zero);
+		const Vec3V v = V3Sub(A[1], A[0]);
+		const Vec3V w = V3Sub(B[1], B[0]);
+		const FloatV tValue = FClamp(FDiv(nom, denom), zero, one);
+		const FloatV t = FSel(con, zero, tValue);
 		//TODO - can we get rid of this branch? The problem is size, which isn't a vector!
 		if(BAllEq(con, bTrue))
 		{
 			size = 1;
+			closestA = A[0];
+			closestB = B[0];
 			return Q[0];
 		}
 
 	/*	const PxU32 count = BAllEq(con, bTrue);
 		size = 2 - count;*/
 		
-		const FloatV tValue = FClamp(FDiv(nom, denom), zero, one);
-		return V3ScaleAdd(ab, tValue, a);
+		const Vec3V tempClosestA = V3ScaleAdd(v, t, A[0]);
+		const Vec3V tempClosestB = V3ScaleAdd(w, t, B[0]);
+		closestA = tempClosestA;
+		closestB = tempClosestB;
+		return V3Sub(tempClosestA, tempClosestB);
 	}
 
-
-	PX_FORCE_INLINE void getClosestPoint(const Ps::aos::Vec3V* PX_RESTRICT Q, const Ps::aos::Vec3V* PX_RESTRICT A, const Ps::aos::Vec3V* PX_RESTRICT B, const Ps::aos::Vec3VArg closest, Ps::aos::Vec3V& closestA, Ps::aos::Vec3V& closestB, const PxU32 size)
+	PX_NOALIAS PX_FORCE_INLINE Ps::aos::Vec3V closestPtPointSegment(const Ps::aos::Vec3VArg a, const Ps::aos::Vec3VArg b)
 	{
 		using namespace Ps::aos;
+	
+		const FloatV zero = FZero();
+		const FloatV one = FOne();
 
-		switch(size)
-		{
-		case 1:
-			{
-				closestA = A[0];
-				closestB = B[0];
-				break;
-			}
-		case 2:
-			{
-				FloatV v;
-				barycentricCoordinates(closest, Q[0], Q[1], v);
-				const Vec3V av = V3Sub(A[1], A[0]);
-				const Vec3V bv = V3Sub(B[1], B[0]);
-				closestA = V3ScaleAdd(av, v, A[0]);
-				closestB = V3ScaleAdd(bv, v, B[0]);
-				
-				break;
-			}
-		case 3:
-			{
-				//calculate the Barycentric of closest point p in the mincowsky sum
-				FloatV v, w;
-				barycentricCoordinates(closest, Q[0], Q[1], Q[2], v, w);
+		//Test degenerated case
+		const Vec3V ab = V3Sub(b, a);
+		const FloatV denom = V3Dot(ab, ab);
+		const Vec3V ap = V3Neg(a);//V3Sub(origin, a);
+		const FloatV nom = V3Dot(ap, ab);
+		const BoolV con = FIsEq(denom, zero);
+		const FloatV tValue = FClamp(FDiv(nom, denom), zero, one);
+		const FloatV t = FSel(con, zero, tValue);
 
-				const Vec3V av0 = V3Sub(A[1], A[0]);
-				const Vec3V av1 = V3Sub(A[2], A[0]);
-				const Vec3V bv0 = V3Sub(B[1], B[0]);
-				const Vec3V bv1 = V3Sub(B[2], B[0]);
-
-				closestA = V3Add(A[0], V3Add(V3Scale(av0, v), V3Scale(av1, w)));
-				closestB = V3Add(B[0], V3Add(V3Scale(bv0, v), V3Scale(bv1, w)));
-			}
-		};
+		return V3Sel(con, a, V3ScaleAdd(ab, t, a));
 	}
 
-	PX_NOALIAS PX_GJK_FORCE_INLINE Ps::aos::Vec3V closestPtPointTriangleBaryCentric(const Ps::aos::Vec3VArg a, const Ps::aos::Vec3VArg b, const Ps::aos::Vec3VArg c, PxU32* PX_RESTRICT indices, 
-		PxU32& size)
+	PX_NOALIAS PX_FORCE_INLINE Ps::aos::Vec3V closestPtPointSegment(const Ps::aos::Vec3VArg Q0, const Ps::aos::Vec3VArg Q1, const Ps::aos::Vec3VArg A0, const Ps::aos::Vec3VArg A1,
+		const Ps::aos::Vec3VArg B0, const Ps::aos::Vec3VArg B1, PxU32& size, Ps::aos::Vec3V& closestA, Ps::aos::Vec3V& closestB)
+	{
+		using namespace Ps::aos;
+		const Vec3V a = Q0;
+		const Vec3V b = Q1;
+
+		const BoolV bTrue = BTTTT();
+		const FloatV zero = FZero();
+		const FloatV one = FOne();
+
+		//Test degenerated case
+		const Vec3V ab = V3Sub(b, a);
+		const FloatV denom = V3Dot(ab, ab);
+		const Vec3V ap = V3Neg(a);//V3Sub(origin, a);
+		const FloatV nom = V3Dot(ap, ab);
+		const BoolV con = FIsEq(denom, zero);
+		
+		if(BAllEq(con, bTrue))
+		{
+			size = 1;
+			closestA = A0;
+			closestB = B0;
+			return Q0;
+		}
+
+		const Vec3V v = V3Sub(A1, A0);
+		const Vec3V w = V3Sub(B1, B0);
+		const FloatV tValue = FClamp(FDiv(nom, denom), zero, one);
+		const FloatV t = FSel(con, zero, tValue);
+	/*	const PxU32 count = BAllEq(con, bTrue);
+		size = 2 - count;*/
+		const Vec3V tempClosestA = V3ScaleAdd(v, t, A0);
+		const Vec3V tempClosestB = V3ScaleAdd(w, t, B0);
+		closestA = tempClosestA;
+		closestB = tempClosestB;
+		return V3Sub(tempClosestA, tempClosestB);
+	}
+
+	
+
+
+	PX_NOALIAS PX_FORCE_INLINE Ps::aos::Vec3V closestPtPointSegmentBaryCentric(const Ps::aos::Vec3VArg Q0, const Ps::aos::Vec3VArg Q1, PxU32& size, Ps::aos::FloatV& t0)
+	{
+		using namespace Ps::aos;
+		const Vec3V a = Q0;
+		const Vec3V b = Q1;
+
+		const BoolV bTrue = BTTTT();
+		const FloatV zero = FZero();
+		const FloatV one = FOne();
+
+		//Test degenerated case
+		const Vec3V ab = V3Sub(b, a);
+		const FloatV denom = V3Dot(ab, ab);
+		const Vec3V ap = V3Neg(a);//V3Sub(origin, a);
+		const FloatV nom = V3Dot(ap, ab);
+		const BoolV con = FIsEq(denom, zero);
+		const FloatV tValue = FClamp(FDiv(nom, denom), zero, one);
+		const FloatV t = FSel(con, zero, tValue);
+		const PxU32 count = BAllEq(con, bTrue);
+		size = 2 - count;
+		t0 = t;
+		return V3ScaleAdd(ab, t, a);
+	}
+
+	PX_NOALIAS PX_GJK_FORCE_INLINE Ps::aos::Vec3V closestPtPointTriangle(const Ps::aos::Vec3VArg a, const Ps::aos::Vec3VArg b, const Ps::aos::Vec3VArg c, Ps::aos::Vec3V* PX_RESTRICT Q, Ps::aos::Vec3V* PX_RESTRICT A, Ps::aos::Vec3V* PX_RESTRICT B, PxU32& size, Ps::aos::Vec3V& closestA, Ps::aos::Vec3V& closestB)
 	{
 		using namespace Ps::aos;
 
 		size = 3;
 		const FloatV zero = FZero();
-		const BoolV bTrue = BTTTT();
 		const FloatV eps = FEps();
-		
+		const BoolV bTrue = BTTTT();
+
 		const Vec3V ab = V3Sub(b, a);
 		const Vec3V ac = V3Sub(c, a);
+		const Vec3V bc = V3Sub(c, b);
 
-		const Vec3V n = V3Cross(ab, ac);
-
-		//const FloatV va = FNegScaleSub(d5, d4, FMul(d3, d6));//edge region of BC
-		//const FloatV vb = FNegScaleSub(d1, d6, FMul(d5, d2));//edge region of AC
-		//const FloatV vc = FNegScaleSub(d3, d2, FMul(d1, d4));//edge region of AB
-
-		//const FloatV va = V3Dot(n, V3Cross(b, c));//edge region of BC, signed area rbc, u = S(rbc)/S(abc) for a
-		//const FloatV vb = V3Dot(n, V3Cross(c, a));//edge region of AC, signed area rac, v = S(rca)/S(abc) for b
-		//const FloatV vc = V3Dot(n, V3Cross(a, b));//edge region of AB, signed area rab, w = S(rab)/S(abc) for c
-
-		const VecCrossV crossA = V3PrepareCross(a);
-		const VecCrossV crossB = V3PrepareCross(b);
-		const VecCrossV crossC = V3PrepareCross(c);
-		const Vec3V bCrossC = V3Cross(crossB, crossC);
-		const Vec3V cCrossA = V3Cross(crossC, crossA);
-		const Vec3V aCrossB = V3Cross(crossA, crossB);
-
-		const FloatV va = V3Dot(n, bCrossC);//edge region of BC, signed area rbc, u = S(rbc)/S(abc) for a
-		const FloatV vb = V3Dot(n, cCrossA);//edge region of AC, signed area rac, v = S(rca)/S(abc) for b
-		const FloatV vc = V3Dot(n, aCrossB);//edge region of AB, signed area rab, w = S(rab)/S(abc) for c
-
-		const BoolV isFacePoints = BAnd(FIsGrtrOrEq(va, zero), BAnd(FIsGrtrOrEq(vb, zero), FIsGrtrOrEq(vc, zero)));
-
-
-		//face region
-		if(BAllEq(isFacePoints, bTrue))
-		{	
-			const FloatV nn= V3Dot(n, n);
-			const FloatV t = FDiv(V3Dot(n, a), nn);
-			return V3Scale(n, t);
+		const FloatV dac = V3Dot(ac, ac);
+		const FloatV dbc = V3Dot(bc, bc);
+		if(FAllGrtrOrEq(eps, FMin(dac, dbc)))
+		{
+			//degenerate
+			size = 2;
+			return closestPtPointSegment(Q, A, B, size, closestA, closestB);
 		}
-
+		
 		const Vec3V ap = V3Neg(a);
 		const Vec3V bp = V3Neg(b);
 		const Vec3V cp = V3Neg(c);
@@ -206,178 +235,298 @@ namespace Gu
 		const FloatV d5 = V3Dot(ab, cp); //  udenom = d5 - d6
 		const FloatV d6 = V3Dot(ac, cp); // -tdenom
 
+		//optimize code
+		/*const Vec4V tmp0 = V4UnpackXY(ap, cp);
+		const Vec4V tmp1 = V4UnpackXY(bp, cp);
+		const Vec4V apxbpxcpx = V4UnpackXY(tmp0, tmp1);
+		const Vec4V apxbpxcpy = V4UnpackZW(tmp0, tmp1);
+		const Vec4V apxbpxcpz = V4MergeZ(ap, bp, cp, cp);
 
+		const FloatV abX = V3GetX(ab);
+		const FloatV abY = V3GetY(ab);
+		const FloatV abZ = V3GetZ(ab);
+
+		const FloatV acX = V3GetX(ac);
+		const FloatV acY = V3GetY(ac);
+		const FloatV acZ = V3GetZ(ac);
+
+		Vec4V dot0 = V4Scale(apxbpxcpx, abX);
+		Vec4V dot1 = V4Scale(apxbpxcpx, acX);
+
+		dot0 = V4ScaleAdd(apxbpxcpy, abY, dot0);
+		dot1 = V4ScaleAdd(apxbpxcpy, acY, dot1);
+
+		dot0 = V4ScaleAdd(apxbpxcpz, abZ, dot0);
+		dot1 = V4ScaleAdd(apxbpxcpz, acZ, dot1);
+
+		const FloatV d1 = V3GetX(dot0);
+		const FloatV d3 = V3GetY(dot0);
+		const FloatV d5 = V3GetZ(dot0);
+
+		const FloatV d2 = V3GetX(dot1);
+		const FloatV d4 = V3GetY(dot1);
+		const FloatV d6 = V3GetZ(dot1);*/
+
+	
 		const FloatV unom = FSub(d4, d3);
 		const FloatV udenom = FSub(d5, d6);
 
-		size = 2;
+		//const FloatV va = FSub(FMul(d3, d6), FMul(d5, d4));//edge region of BC
+		//const FloatV vb = FSub(FMul(d5, d2), FMul(d1, d6));//edge region of AC
+		//const FloatV vc = FSub(FMul(d1, d4), FMul(d3, d2));//edge region of AB
+
+		//check if p in vertex region outside a
+		const BoolV con00 = FIsGrtrOrEq(zero, d1); // snom <= 0
+		const BoolV con01 = FIsGrtrOrEq(zero, d2); // tnom <= 0
+		
+		//check if p in vertex region outside b
+		const BoolV con10 = FIsGrtrOrEq(d3, zero);
+		const BoolV con11 = FIsGrtrOrEq(d3, d4);
+		
+		//check if p in vertex region outside of c
+		const BoolV con20 = FIsGrtrOrEq(d6, zero);
+		const BoolV con21 = FIsGrtrOrEq(d6, d5); 
+
+		const BoolV con0 = BAnd(con00, con01); // vertex region a
+		const BoolV con1 = BAnd(con10, con11); // vertex region b
+		const BoolV con2 = BAnd(con20, con21); // vertex region c
+
+		const BoolV bVertexRegion = BOr(con0, BOr(con1, con2));
+		if(BAllEq(bVertexRegion, bTrue))
+		{
+			const Vec3V tempClosestA = V3Sel(con0, A[0], V3Sel(con1, A[1], A[2]));
+			const Vec3V tempClosestB = V3Sel(con0, B[0], V3Sel(con1, B[1], B[2]));
+			closestA = tempClosestA;
+			closestB = tempClosestB;
+			return  V3Sub(tempClosestA, tempClosestB);
+		}
+
+		const FloatV va = FNegMulSub(d5, d4, FMul(d3, d6));//edge region of BC
+		const FloatV vb = FNegMulSub(d1, d6, FMul(d5, d2));//edge region of AC
+		const FloatV vc = FNegMulSub(d3, d2, FMul(d1, d4));//edge region of AB
+
 		//check if p in edge region of AB
 		const BoolV con30 = FIsGrtrOrEq(zero, vc);
 		const BoolV con31 = FIsGrtrOrEq(d1, zero);
 		const BoolV con32 = FIsGrtrOrEq(zero, d3);
-		const BoolV con3 = BAnd(con30, BAnd(con31, con32));//edge AB region
-		if(BAllEq(con3, bTrue))
-		{
-			const FloatV toRecipAB = FSub(d1, d3);
-			const FloatV recipAB = FSel(FIsGrtr(FAbs(toRecipAB), eps), FRecip(toRecipAB), zero);
-			const FloatV t = FMul(d1, recipAB);
-			return V3ScaleAdd(ab, t, a);
-		}
+		
 	
 		//check if p in edge region of BC
 		const BoolV con40 = FIsGrtrOrEq(zero, va);
 		const BoolV con41 = FIsGrtrOrEq(d4, d3);
 		const BoolV con42 = FIsGrtrOrEq(d5, d6);
-		const BoolV con4 = BAnd(con40, BAnd(con41, con42)); //edge BC region
-		if(BAllEq(con4, bTrue))
+
+		//check if p in edge region of AC
+		const BoolV con50 = FIsGrtrOrEq(zero, vb);
+		const BoolV con51 = FIsGrtrOrEq(d2, zero);
+		const BoolV con52 = FIsGrtrOrEq(zero, d6);
+
+
+		const BoolV con3 = BAnd(con30, BAnd(con31, con32));//edge AB region
+		const BoolV con4 = BAnd(con40, BAnd(con41, con42));//edge BC region
+		const BoolV con5 = BAnd(con50, BAnd(con51, con52));//edeg AC region
+	
+		const FloatV toRecipA = FSub(d1, d3);
+		const FloatV toRecipB = FAdd(unom, udenom);
+		const FloatV toRecipC = FSub(d2, d6);
+		const FloatV toRecipD = FAdd(va, FAdd(vb, vc));
+
+		const Vec4V tmp = V4Merge(toRecipA, toRecipB, toRecipC, toRecipD);
+		//const Vec4V recipTmp = V4Recip(tmp);
+		const Vec4V recipTmp = V4Sel(V4IsGrtr(V4Abs(tmp), V4Splat(eps)), V4Recip(tmp), V4Splat(zero));
+
+		//TODO - can we roll these loops into 1???
+		const BoolV bEdgeRegion = BOr(con3, BOr(con4, con5));
+
+		if(BAllEq(bEdgeRegion, bTrue))
 		{
-			const Vec3V bc = V3Sub(c, b);
-			const FloatV toRecipBC = FAdd(unom, udenom);
-			const FloatV recipBC = FSel(FIsGrtr(FAbs(toRecipBC), eps), FRecip(toRecipBC), zero);
-			const FloatV t = FMul(unom, recipBC);
-			indices[0] = indices[1];
-			indices[1] = indices[2];
-			return V3ScaleAdd(bc, t, b);
+			const FloatV sScale = FMul(d1, V4GetX(recipTmp));
+			const FloatV uScale = FMul(unom, V4GetY(recipTmp));
+			const FloatV tScale = FMul(d2, V4GetZ(recipTmp));
+
+			const Vec3V A1 = V3Sel(con3, A[1], A[2]);
+			const Vec3V B1 = V3Sel(con3, B[1], B[2]);
+			const Vec3V A0 = V3Sel(con3, A[0], V3Sel(con4, A[1], A[0]));
+			const Vec3V B0 = V3Sel(con3, B[0], V3Sel(con4, B[1], B[0]));
+
+			const Vec3V v = V3Sub(A1, A0);
+			const Vec3V w = V3Sub(B1, B0);
+
+			const FloatV scale = FSel(con3, sScale, FSel(con4, uScale, tScale));
+
+			const Vec3V tempClosestA = V3ScaleAdd(v, scale, A0);
+			const Vec3V tempClosestB = V3ScaleAdd(w, scale, B0);
+			closestA = tempClosestA;
+			closestB = tempClosestB;
+			return V3Sub(tempClosestA, tempClosestB);
 		}
+
+		//P must project inside face region. Compute Q using Barycentric coordinates
+		const FloatV denom = V4GetW(recipTmp);
+		const Vec3V v0 = V3Sub(A[1], A[0]);
+		const Vec3V v1 = V3Sub(A[2], A[0]);
+		const Vec3V w0 = V3Sub(B[1], B[0]);
+		const Vec3V w1 = V3Sub(B[2], B[0]);
+
+		const FloatV t = FMul(vb, denom);
+		const FloatV w = FMul(vc, denom);
+		const Vec3V vA1 = V3Scale(v1, w);
+		const Vec3V vB1 = V3Scale(w1, w);
+		const Vec3V tempClosestA = V3Add(A[0], V3ScaleAdd(v0, t, vA1));
+		const Vec3V tempClosestB = V3Add(B[0], V3ScaleAdd(w0, t, vB1));
+		closestA = tempClosestA;
+		closestB = tempClosestB;
+		return V3Sub(tempClosestA, tempClosestB);
+	}
+
+	
+	PX_NOALIAS PX_GJK_FORCE_INLINE Ps::aos::Vec3V closestPtPointTriangleBaryCentric(const Ps::aos::Vec3VArg a, const Ps::aos::Vec3VArg b, const Ps::aos::Vec3VArg c, /*PxU32* PX_RESTRICT indices,*/ PxU32& size, Ps::aos::FloatV& t, Ps::aos::FloatV& w)
+	{
+		using namespace Ps::aos;
+
+		size = 3;
+		const FloatV zero = FZero();
+		const FloatV one = FOne();
+		const BoolV bTrue = BTTTT();
+		const FloatV eps = FEps();
+		
+		const Vec3V ab = V3Sub(b, a);
+		const Vec3V ac = V3Sub(c, a);
+		const Vec3V ap = V3Neg(a);
+		const Vec3V bp = V3Neg(b);
+		const Vec3V cp = V3Neg(c);
+
+		const FloatV d1 = V3Dot(ab, ap); //  snom
+		const FloatV d2 = V3Dot(ac, ap); //  tnom
+		const FloatV d3 = V3Dot(ab, bp); // -sdenom
+		const FloatV d4 = V3Dot(ac, bp); //  unom = d4 - d3
+		const FloatV d5 = V3Dot(ab, cp); //  udenom = d5 - d6
+		const FloatV d6 = V3Dot(ac, cp); // -tdenom
+
+		
+		/*const Vec4V tmp0 = V4UnpackXY(ap, cp);
+		const Vec4V tmp1 = V4UnpackXY(bp, cp);
+		const Vec4V apxbpxcpx = V4UnpackXY(tmp0, tmp1);
+		const Vec4V apxbpxcpy = V4UnpackZW(tmp0, tmp1);
+		const Vec4V apxbpxcpz = V4MergeZ(ap, bp, cp, cp);
+
+		const FloatV abX = V3GetX(ab);
+		const FloatV abY = V3GetY(ab);
+		const FloatV abZ = V3GetZ(ab);
+
+		const FloatV acX = V3GetX(ac);
+		const FloatV acY = V3GetY(ac);
+		const FloatV acZ = V3GetZ(ac);
+
+		Vec4V dot0 = V4Scale(apxbpxcpx, abX);
+		Vec4V dot1 = V4Scale(apxbpxcpx, acX);
+
+		dot0 = V4ScaleAdd(apxbpxcpy, abY, dot0);
+		dot1 = V4ScaleAdd(apxbpxcpy, acY, dot1);
+
+		dot0 = V4ScaleAdd(apxbpxcpz, abZ, dot0);
+		dot1 = V4ScaleAdd(apxbpxcpz, acZ, dot1);
+
+		const FloatV d1 = V3GetX(dot0);
+		const FloatV d3 = V3GetY(dot0);
+		const FloatV d5 = V3GetZ(dot0);
+
+		const FloatV d2 = V3GetX(dot1);
+		const FloatV d4 = V3GetY(dot1);
+		const FloatV d6 = V3GetZ(dot1);*/  
+
+
+		const FloatV unom = FSub(d4, d3);
+		const FloatV udenom = FSub(d5, d6);
+
+
+		//check if p in vertex region outside a
+		const BoolV con00 = FIsGrtrOrEq(zero, d1); // snom <= 0
+		const BoolV con01 = FIsGrtrOrEq(zero, d2); // tnom <= 0
+
+		//check if p in vertex region outside b
+		const BoolV con10 = FIsGrtrOrEq(d3, zero);
+		const BoolV con11 = FIsGrtrOrEq(d3, d4);
+		
+		//check if p in vertex region outside c
+		const BoolV con20 = FIsGrtrOrEq(d6, zero);
+		const BoolV con21 = FIsGrtrOrEq(d6, d5); 
+
+		const BoolV con0 = BAnd(con00, con01); // vertex region a
+		const BoolV con1 = BAnd(con10, con11); // vertex region b
+		const BoolV con2 = BAnd(con20, con21); // vertex region c
+
+		const BoolV bVertexRegion = BOr(con0, BOr(con1, con2));
+		if(BAllEq(bVertexRegion, bTrue))
+		{
+			t = FSel(con1, one, zero);
+			w = FSel(con2, one, zero);
+			return V3Sel(con0, a, V3Sel(con1, b, c));
+		}
+
+		const FloatV va = FNegMulSub(d5, d4, FMul(d3, d6));//edge region of BC
+		const FloatV vb = FNegMulSub(d1, d6, FMul(d5, d2));//edge region of AC
+		const FloatV vc = FNegMulSub(d3, d2, FMul(d1, d4));//edge region of AB
+
+		//check if p in edge region of AB
+		const BoolV con30 = FIsGrtrOrEq(zero, vc);
+		const BoolV con31 = FIsGrtrOrEq(d1, zero);
+		const BoolV con32 = FIsGrtrOrEq(zero, d3);
+	
+		//check if p in edge region of BC
+		const BoolV con40 = FIsGrtrOrEq(zero, va);
+		const BoolV con41 = FIsGrtrOrEq(d4, d3);
+		const BoolV con42 = FIsGrtrOrEq(d5, d6);
 		
 		//check if p in edge region of AC
 		const BoolV con50 = FIsGrtrOrEq(zero, vb);
 		const BoolV con51 = FIsGrtrOrEq(d2, zero);
 		const BoolV con52 = FIsGrtrOrEq(zero, d6);
-	
+
+		const BoolV con3 = BAnd(con30, BAnd(con31, con32));//edge AB region
+		const BoolV con4 = BAnd(con40, BAnd(con41, con42)); //edge BC region
 		const BoolV con5 = BAnd(con50, BAnd(con51, con52));//edge AC region
-		if(BAllEq(con5, bTrue))
-		{
-			const FloatV toRecipAC = FSub(d2, d6);
-			const FloatV recipAC = FSel(FIsGrtr(FAbs(toRecipAC), eps), FRecip(toRecipAC), zero);
-			const FloatV t = FMul(d2, recipAC);
-			indices[1]=indices[2];
-			return V3ScaleAdd(ac, t, a);
-		}
 
-		size = 1;
-		//check if p in vertex region outside a
-		const BoolV con00 = FIsGrtrOrEq(zero, d1); // snom <= 0
-		const BoolV con01 = FIsGrtrOrEq(zero, d2); // tnom <= 0
-		const BoolV con0 = BAnd(con00, con01); // vertex region a
-		if(BAllEq(con0, bTrue))
-		{
-			return a;
-		}
+		//TODO - can we roll these loops into 1???
+		const BoolV bEdgeRegion = BOr(con3, BOr(con4, con5));
 
-		//check if p in vertex region outside b
-		const BoolV con10 = FIsGrtrOrEq(d3, zero);
-		const BoolV con11 = FIsGrtrOrEq(d3, d4);
-		const BoolV con1 = BAnd(con10, con11); // vertex region b
-		if(BAllEq(con1, bTrue))
-		{
-			indices[0] = indices[1];
-			return b;
-		}
+		const FloatV toRecipA = FSub(d1, d3);
+		const FloatV toRecipB = FAdd(unom, udenom);
+		const FloatV toRecipC = FSub(d2, d6);
+		const FloatV toRecipD = FAdd(va, FAdd(vb, vc));
 		
-		//p is in vertex region outside c
-		indices[0] = indices[2];
-		return c;
+		const Vec4V tmp = V4Merge(toRecipA, toRecipB, toRecipC, toRecipD);
+		//const Vec4V recipTmp = V4Recip(tmp);
+		const Vec4V recipTmp = V4Sel(V4IsGrtr(V4Abs(tmp), V4Splat(eps)), V4Recip(tmp), V4Splat(zero));
 
+		if(BAllEq(bEdgeRegion, bTrue))
+		{
+			
+			const FloatV sScale = FMul(d1, V4GetX(recipTmp));
+			const FloatV uScale = FMul(unom, V4GetY(recipTmp));
+			const FloatV tScale = FMul(d2, V4GetZ(recipTmp));
+
+			const Vec3V Q1 = V3Sel(con3, b, c);
+			const Vec3V Q0 = V3Sel(con3, a, V3Sel(con4, b, a));
+			const Vec3V q01 = V3Sub(Q1, Q0);
+			const FloatV scale = FSel(con3, sScale, FSel(con4, uScale, tScale));
+			t = FSel(con3, sScale, FSel(con4, FSub(one, uScale), zero));
+			w = FSel(con3, zero,   FSel(con4, uScale,			 tScale));
+			return V3ScaleAdd(q01, scale, Q0);
+		} 
+
+		//P must project inside face region. Compute Q using Barycentric coordinates
+		const FloatV denom = V4GetW(recipTmp);		
+		const FloatV _t = FMul(vb, denom);
+		const FloatV _w = FMul(vc, denom);
+		t = _t;
+		w = _w;
+	
+		return V3Add(a, V3ScaleAdd(ab, _t, V3Scale(ac, _w)));
 	}
 
-	PX_NOALIAS PX_GJK_FORCE_INLINE Ps::aos::Vec3V closestPtPointTriangle(Ps::aos::Vec3V* PX_RESTRICT Q, Ps::aos::Vec3V* A, Ps::aos::Vec3V* B, PxU32& size)
-	{
-		
-		using namespace Ps::aos;
-
-		size = 3;
-	
-		const FloatV eps = FEps();
-		const Vec3V a = Q[0];
-		const Vec3V b = Q[1];
-		const Vec3V c = Q[2];
-		const Vec3V ab = V3Sub(b, a);
-		const Vec3V ac = V3Sub(c, a);
-		const Vec3V signArea = V3Cross(ab, ac);//0.5*(abXac)
-		const FloatV area = V3Dot(signArea, signArea);
-		if(FAllGrtrOrEq(eps, area))
-		{
-			//degenerate
-			size = 2;
-			return closestPtPointSegment(Q, size);
-		}
-
-		PxU32 _size;
-		PxU32 indices[3]={0, 1, 2};
-		const Vec3V closest = closestPtPointTriangleBaryCentric(a, b, c, indices, _size);
-
-		if(_size != 3)
-		{
-		
-			const Vec3V q0 = Q[indices[0]]; const Vec3V q1 = Q[indices[1]];
-			const Vec3V a0 = A[indices[0]]; const Vec3V a1 = A[indices[1]];
-			const Vec3V b0 = B[indices[0]]; const Vec3V b1 = B[indices[1]];
-
-			Q[0] = q0; Q[1] = q1;
-			A[0] = a0; A[1] = a1;
-			B[0] = b0; B[1] = b1;
-
-			size = _size;
-		}
-
-		return closest;
-	}
-
-	PX_NOALIAS PX_GJK_FORCE_INLINE Ps::aos::Vec3V closestPtPointTriangle(Ps::aos::Vec3V* PX_RESTRICT Q, Ps::aos::Vec3V* A, Ps::aos::Vec3V* B, PxI32* PX_RESTRICT aInd, PxI32* PX_RESTRICT bInd, 
-		PxU32& size)
-	{
-		
-		using namespace Ps::aos;
-
-		size = 3;
-	
-		const FloatV eps = FEps();
-
-		const Vec3V a = Q[0];
-		const Vec3V b = Q[1];
-		const Vec3V c = Q[2];
-		const Vec3V ab = V3Sub(b, a);
-		const Vec3V ac = V3Sub(c, a);
-		const Vec3V signArea = V3Cross(ab, ac);//0.5*(abXac)
-		const FloatV area = V3Dot(signArea, signArea);
-		if(FAllGrtrOrEq(eps, area))
-		{
-			//degenerate
-			size = 2;
-			return closestPtPointSegment(Q, size);
-		}
-
-		PxU32 _size;
-		PxU32 indices[3]={0, 1, 2};
-		const Vec3V closest = closestPtPointTriangleBaryCentric(a, b, c, indices, _size);
-
-		if(_size != 3)
-		{
-		
-			const Vec3V q0 = Q[indices[0]]; const Vec3V q1 = Q[indices[1]];
-			const Vec3V a0 = A[indices[0]]; const Vec3V a1 = A[indices[1]];
-			const Vec3V b0 = B[indices[0]]; const Vec3V b1 = B[indices[1]];
-			const PxI32 aInd0 = aInd[indices[0]]; const PxI32 aInd1 = aInd[indices[1]];
-			const PxI32 bInd0 = bInd[indices[0]]; const PxI32 bInd1 = bInd[indices[1]];
-
-			Q[0] = q0; Q[1] = q1;
-			A[0] = a0; A[1] = a1;
-			B[0] = b0; B[1] = b1;
-			aInd[0] = aInd0; aInd[1] = aInd1;
-			bInd[0] = bInd0; bInd[1] = bInd1;
-
-			size = _size;
-		}
-
-		return closest;
-	}
-
-	
-	
-
-	PX_NOALIAS PX_FORCE_INLINE Ps::aos::Vec3V GJKCPairDoSimplex(Ps::aos::Vec3V* PX_RESTRICT Q, Ps::aos::Vec3V* PX_RESTRICT A, Ps::aos::Vec3V* PX_RESTRICT B, const Ps::aos::Vec3VArg support, 
-		PxU32& size)
+	PX_NOALIAS PX_FORCE_INLINE Ps::aos::Vec3V GJKCPairDoSimplex(Ps::aos::Vec3V* PX_RESTRICT Q, Ps::aos::Vec3V* PX_RESTRICT A, Ps::aos::Vec3V* PX_RESTRICT B, 
+		const Ps::aos::Vec3VArg support, const Ps::aos::Vec3VArg supportA, const Ps::aos::Vec3VArg supportB, PxU32& size, Ps::aos::Vec3V& closestA, Ps::aos::Vec3V& closestB)
 	{
 		using namespace Ps::aos;
 
@@ -387,18 +536,20 @@ namespace Gu
 		{
 		case 1:
 			{
+				closestA = supportA;
+				closestB = supportB;
 				return support;
 			}
 		case 2:
 			{
-			return closestPtPointSegment(Q, size);
+			return closestPtPointSegment(Q[0], support, A[0], supportA, B[0], supportB, size, closestA, closestB);
 			}
 		case 3:
 			{
-			return closestPtPointTriangle(Q, A, B, size);
+			return closestPtPointTriangle(Q[0], Q[1], support, Q, A, B, size, closestA, closestB);
 			}
 		case 4:
-			return closestPtPointTetrahedron(Q, A, B, size);
+			return closestPtPointTetrahedron(Q, A, B, size, closestA, closestB);
 		default:
 			PX_ASSERT(0);
 		}
@@ -407,7 +558,7 @@ namespace Gu
 
 
 	PX_NOALIAS PX_FORCE_INLINE Ps::aos::Vec3V GJKCPairDoSimplex(Ps::aos::Vec3V* PX_RESTRICT Q, Ps::aos::Vec3V* PX_RESTRICT A, Ps::aos::Vec3V* PX_RESTRICT B, PxI32* PX_RESTRICT aInd, PxI32* PX_RESTRICT bInd, 
-		const Ps::aos::Vec3VArg support, PxU32& size)
+		const Ps::aos::Vec3VArg support, const Ps::aos::Vec3VArg supportA, const Ps::aos::Vec3VArg supportB, PxU32& size, Ps::aos::Vec3V& closestA, Ps::aos::Vec3V& closestB)
 	{
 		using namespace Ps::aos;
 
@@ -417,18 +568,20 @@ namespace Gu
 		{
 		case 1:
 			{
+				closestA = supportA;
+				closestB = supportB;
 				return support;
 			}
 		case 2:
 			{
-			return closestPtPointSegment(Q, size);
+			return closestPtPointSegment(Q[0], support, A[0], supportA, B[0], supportB, size, closestA, closestB);
 			}
 		case 3:
 			{
-			return closestPtPointTriangle(Q, A, B, aInd, bInd, size);
+			return closestPtPointTriangle(Q[0], Q[1], support, Q, A, B, size, closestA, closestB);
 			}
 		case 4:
-			return closestPtPointTetrahedron(Q, A, B, aInd, bInd, size);
+			return closestPtPointTetrahedron(Q, A, B, aInd, bInd, support, supportA, supportB, size, closestA, closestB);
 		default:
 			PX_ASSERT(0);
 		}

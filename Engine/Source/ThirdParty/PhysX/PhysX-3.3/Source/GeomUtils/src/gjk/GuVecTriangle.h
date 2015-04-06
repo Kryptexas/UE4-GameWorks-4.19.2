@@ -106,7 +106,7 @@ namespace Gu
 
 		PX_FORCE_INLINE Ps::aos::FloatV getSweepMargin() const
 		{
-			return Ps::aos::FMax();
+			return Ps::aos::FZero();
 		}
 
 		PX_FORCE_INLINE void setCenter(const Ps::aos::Vec3VArg _center)
@@ -286,9 +286,9 @@ namespace Gu
 			using namespace Ps::aos;
 			//transfer dir into the local space of triangle
 			const Vec3V _dir = aToB.rotateInv(dir);
-			const Vec3V res = aToB.transform(supportLocal(_dir, index));
+			const Vec3V res = supportLocal(_dir, index);
 			support = res;
-			return res;//transform maxPoint to the b space
+			return aToB.transform(res);//transform maxPoint to the b space
 
 		}
 

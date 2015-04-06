@@ -700,7 +700,22 @@ void DestructibleScene::addActorsToScene()
 					PxRigidDynamic* rigidDynamic = actor->isRigidDynamic();
 					if (rigidDynamic && !(rigidDynamic->getRigidDynamicFlags() & physx::PxRigidDynamicFlag::eKINEMATIC))
 					{
-						PxRigidBodyExt::addForceAtPos(*actor->isRigidBody(), forceToAdd.force, forceToAdd.pos, forceToAdd.mode, forceToAdd.wakeup);
+						if (!forceToAdd.force.isZero())
+						{
+							PxRigidBodyExt::addForceAtPos(*actor->isRigidBody(), forceToAdd.force, forceToAdd.pos, forceToAdd.mode, forceToAdd.wakeup);
+						}
+						else
+						{
+							// No force, but we will apply the wakeup flag
+							if (forceToAdd.wakeup)
+							{
+								rigidDynamic->wakeUp();
+							}
+							else
+							{
+								rigidDynamic->putToSleep();
+							}
+						}
 					}
 				}
 			}

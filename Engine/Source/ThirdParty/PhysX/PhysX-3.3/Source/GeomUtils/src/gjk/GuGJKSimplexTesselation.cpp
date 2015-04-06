@@ -16,63 +16,6 @@ namespace physx
 {
 namespace Gu
 {
-	PX_NOALIAS PX_FORCE_INLINE Ps::aos::Vec3V closestPtPointSegment(const Ps::aos::Vec3VArg a, const Ps::aos::Vec3VArg b)
-	{
-		using namespace Ps::aos;
-	
-		const FloatV zero = FZero();
-		const FloatV one = FOne();
-
-		//Test degenerated case
-		const Vec3V ab = V3Sub(b, a);
-		const FloatV denom = V3Dot(ab, ab);
-		const Vec3V ap = V3Neg(a);//V3Sub(origin, a);
-		const FloatV nom = V3Dot(ap, ab);
-		const BoolV con = FIsEq(denom, zero);
-		const FloatV tValue = FClamp(FDiv(nom, denom), zero, one);
-		const FloatV t = FSel(con, zero, tValue);
-
-		return V3Sel(con, a, V3ScaleAdd(ab, t, a));
-	}
-
-	PX_NOALIAS PX_FORCE_INLINE Ps::aos::Vec3V closestPtPointSegment(const Ps::aos::Vec3VArg Q0, const Ps::aos::Vec3VArg Q1, const Ps::aos::Vec3VArg A0, const Ps::aos::Vec3VArg A1,
-		const Ps::aos::Vec3VArg B0, const Ps::aos::Vec3VArg B1, PxU32& size, Ps::aos::Vec3V& closestA, Ps::aos::Vec3V& closestB)
-	{
-		using namespace Ps::aos;
-		const Vec3V a = Q0;
-		const Vec3V b = Q1;
-
-		const BoolV bTrue = BTTTT();
-		const FloatV zero = FZero();
-		const FloatV one = FOne();
-
-		//Test degenerated case
-		const Vec3V ab = V3Sub(b, a);
-		const FloatV denom = V3Dot(ab, ab);
-		const Vec3V ap = V3Neg(a);//V3Sub(origin, a);
-		const FloatV nom = V3Dot(ap, ab);
-		const BoolV con = FIsEq(denom, zero);
-		
-		if(BAllEq(con, bTrue))
-		{
-			size = 1;
-			closestA = A0;
-			closestB = B0;
-			return Q0;
-		}
-
-		const Vec3V v = V3Sub(A1, A0);
-		const Vec3V w = V3Sub(B1, B0);
-		const FloatV tValue = FClamp(FDiv(nom, denom), zero, one);
-		const FloatV t = FSel(con, zero, tValue);
-
-		const Vec3V tempClosestA = V3ScaleAdd(v, t, A0);
-		const Vec3V tempClosestB = V3ScaleAdd(w, t, B0);
-		closestA = tempClosestA;
-		closestB = tempClosestB;
-		return V3Sub(tempClosestA, tempClosestB);
-	}
-
 	PX_NOALIAS Ps::aos::Vec3V closestPtPointSegmentTesselation(const Ps::aos::Vec3VArg Q0, const Ps::aos::Vec3VArg Q1, const Ps::aos::Vec3VArg A0, const Ps::aos::Vec3VArg A1,
 		const Ps::aos::Vec3VArg B0, const Ps::aos::Vec3VArg B1, PxU32& size, Ps::aos::Vec3V& closestA, Ps::aos::Vec3V& closestB)
 	{
@@ -172,9 +115,9 @@ namespace Gu
 	/*	FloatV unom = FSub(d4, d3);
 		FloatV udenom = FSub(d5, d6);*/
 
-		FloatV va = FNegScaleSub(d5, d4, FMul(d3, d6));//edge region of BC
-		FloatV vb = FNegScaleSub(d1, d6, FMul(d5, d2));//edge region of AC
-		FloatV vc = FNegScaleSub(d3, d2, FMul(d1, d4));//edge region of AB
+		FloatV va = FNegMulSub(d5, d4, FMul(d3, d6));//edge region of BC
+		FloatV vb = FNegMulSub(d1, d6, FMul(d5, d2));//edge region of AC
+		FloatV vc = FNegMulSub(d3, d2, FMul(d1, d4));//edge region of AB
 
 		//check if p in vertex region outside a
 		const BoolV con00 = FIsGrtrOrEq(zero, d1); // snom <= 0
@@ -398,9 +341,9 @@ namespace Gu
 		d5 = V3Dot(ab_, cp); //  udenom = d5 - d6
 		d6 = V3Dot(ac_, cp); // -tdenom
 
-		va = FNegScaleSub(d5, d4, FMul(d3, d6));//edge region of BC
-		vb = FNegScaleSub(d1, d6, FMul(d5, d2));//edge region of AC
-		vc = FNegScaleSub(d3, d2, FMul(d1, d4));//edge region of AB
+		va = FNegMulSub(d5, d4, FMul(d3, d6));//edge region of BC
+		vb = FNegMulSub(d1, d6, FMul(d5, d2));//edge region of AC
+		vc = FNegMulSub(d3, d2, FMul(d1, d4));//edge region of AB
 
 		const FloatV toRecipD = FAdd(va, FAdd(vb, vc));
 		const FloatV denom = FRecip(toRecipD);//V4GetW(recipTmp);

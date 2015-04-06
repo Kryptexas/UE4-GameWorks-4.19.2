@@ -99,11 +99,16 @@ namespace Gu
 		
 		const FloatV sumOriginalMargin = FAdd(marginA, marginB);
 
+		Vec3V closA = zeroV;
+		Vec3V closB = zeroV;
 		FloatV sDist = FMax();
 		FloatV minDist= sDist;
+		Vec3V tempClosA = zeroV;
+		Vec3V tempClosB = zeroV;
 
 		BoolV bNotTerminated = bTrue;
 		BoolV bCon = bTrue;
+		Vec3V v;
 
 		Vec3V Q[4];
 		Vec3V A[4];
@@ -113,47 +118,47 @@ namespace Gu
 
 		PxU32 size = 0;//_size;
 		
-		Vec3V closest;
-		
 		//ML: if _size!=0, which means we pass in the previous frame simplex so that we can warm-start the simplex. 
 		//In this case, GJK will normally terminate in one iteration
 		if(_size != 0)
 		{
-			Vec3V support = zeroV;
+			Vec3V supportA = zeroV, supportB = zeroV, support = zeroV;
+			Vec3V lastQ = zeroV, lastA = zeroV, lastB = zeroV;
 			
 			//we should not have duplicate vertexes
 			for(PxU32 i=0; i<_size; ++i)
 			{
 				aInd[i] = aIndices[i];
 				bInd[i] = bIndices[i];
-				Vec3V supportA = aToB.transform(a.supportPoint(aIndices[i]));
-				Vec3V supportB = b.supportPoint(bIndices[i]);
+				supportA = aToB.transform(a.supportPoint(aIndices[i]));
+				supportB = b.supportPoint(bIndices[i]);
 				support = V3Sub(supportA, supportB);
 
 #if	GJK_VALIDATE
 				validateDuplicateVertex(Q, support, size);
 #endif
-				A[size] = supportA;
-				B[size] = supportB;
-				Q[size++] = support;
+				A[size] = lastA = supportA;
+				B[size] = lastB = supportB;
+				Q[size++] = lastQ = support;
 
 			}
 
 			//run simplex solver to determine whether the point is closest enough so that gjk can terminate
-			closest = GJKCPairDoSimplex(Q, A, B, aInd, bInd, support, size);
+			v = GJKCPairDoSimplex(Q, A, B, aInd, bInd, lastQ, lastA, lastB, size, closA, closB);
 
-			sDist = V3Dot(closest, closest);
+			sDist = V3Dot(v, v);
 			minDist = sDist;
+			tempClosA = closA;
+			tempClosB = closB;
 
+			
 			bNotTerminated = FIsGrtr(sDist, eps2);
 		}
 		else
 		{
 			const Vec3V _initialSearchDir = aToB.p;//V3Sub(a.getCenter(), b.getCenter());
-			closest = V3Sel(FIsGrtr(V3Dot(_initialSearchDir, _initialSearchDir), zero), _initialSearchDir, V3UnitX());
+			v = V3Sel(FIsGrtr(V3Dot(_initialSearchDir, _initialSearchDir), zero), _initialSearchDir, V3UnitX());
 		}
-
-		Vec3V prevClosest = closest;
 		
 		// ML : termination condition
 		//(1)two (shrunk)shapes overlap. GJK will terminate based on sq(v) < eps2 and indicate that two shapes are overlapping.
@@ -165,14 +170,18 @@ namespace Gu
 			//minDist, tempClosA, tempClosB are used to store the previous iteration's closest points(in A and B space) and the square distance from the closest point
 			//to origin in Mincowski space
 			minDist = sDist;
-			prevClosest = closest;
+			tempClosA = closA;
+			tempClosB = closB;
+			const Vec3V nv = V3Neg(v);
 
-			const Vec3V supportA=a.supportRelative(V3Neg(closest), aToB, A[size], aInd[size]);
-			const Vec3V supportB=b.supportLocal(closest, B[size], bInd[size]);
+			const Vec3V supportA=a.supportRelative(nv, aToB, A[size], aInd[size]);
+			const Vec3V supportB=b.supportLocal(v, B[size], bInd[size]);
 
 			//calculate the support point
 			const Vec3V support = V3Sub(supportA, supportB);
-			Q[size]=support;
+			Q[size++]=support;
+
+			PX_ASSERT(size <= 4);
 
 			//ML: because we shrink the shapes by plane shifting(box and convexhull), the distance from the "shrunk" vertices to the original vertices may be larger than contact distance. 
 			//therefore, we need to take the largest of these 2 values into account so that we don't incorrectly declare shapes to be disjoint. If we don't do this, there is
@@ -184,7 +193,7 @@ namespace Gu
 			const FloatV sqMargin = FMul(sumMargin, sumMargin);
 			const FloatV tmp = FMul(sDist, sqMargin);//FMulAdd(sDist, sqMargin, eps3);
 
-			const FloatV vw = V3Dot(closest, support);
+			const FloatV vw = V3Dot(v, support);
 			const FloatV sqVW = FMul(vw, vw);
 
 			
@@ -202,18 +211,14 @@ namespace Gu
 			if(BAllEq(conOrconGrtr, bTrue))
 			{
 				//PX_ASSERT(BAllEq(_conGrtr, conGrtr));
-				assignWarmStartValue(aIndices, bIndices, _size, aInd, bInd, size);
+				assignWarmStartValue(aIndices, bIndices, _size, aInd, bInd, size-1);
 			
 				//size--; if you want to get the correct size, this line need to be on
 				if(BAllEq(con, bFalse)) //must be true otherwise we wouldn't be in here...
 				{
-
-					Vec3V closA, closB;
-					getClosestPoint(Q, A, B, closest, closA, closB, size);
-
 					const FloatV dist = FSqrt(sDist);
 					PX_ASSERT(FAllGrtr(dist, FEps()));
-					const Vec3V n = V3ScaleInv(closest, dist);//normalise
+					const Vec3V n = V3ScaleInv(v, dist);//normalise
 					contactA = V3NegScaleSub(n, marginA, closA);
 					contactB = V3ScaleAdd(n, marginB, closB);
 					penetrationDepth = FSub(dist, sumOriginalMargin);
@@ -227,13 +232,10 @@ namespace Gu
 				}
 			}
 
-			size++;
-			PX_ASSERT(size <= 4);
-
 			//calculate the closest point between two convex hull
-			closest = GJKCPairDoSimplex(Q, A, B, aInd, bInd, support, size);
+			v = GJKCPairDoSimplex(Q, A, B, aInd, bInd,  support, supportA, supportB, size, closA, closB);
 
-			sDist = V3Dot(closest, closest);
+			sDist = V3Dot(v, v);
 
 			bCon = FIsGrtr(minDist, sDist);
 			bNotTerminated = BAnd(FIsGrtr(sDist, eps2), bCon);
@@ -244,13 +246,13 @@ namespace Gu
 			assignWarmStartValue(aIndices, bIndices, _size, aInd, bInd, size-1);
 
 			//Reset back to older closest point 
-			closest = prevClosest;
-			Vec3V closA, closB;
-			getClosestPoint(Q, A, B, closest, closA, closB, size);
+			closA = tempClosA;
+			closB = tempClosB;
 			sDist = minDist;
+			v = V3Sub(closA, closB);
 			const FloatV dist = FSqrt(sDist);
 			PX_ASSERT(FAllGrtr(dist, FEps()));
-			const Vec3V n = V3ScaleInv(closest, dist);//normalise
+			const Vec3V n = V3ScaleInv(v, dist);//normalise
 			contactA = V3NegScaleSub(n, marginA, closA);
 			contactB = V3ScaleAdd(n, marginB, closB);
 			penetrationDepth = FSub(dist, sumOriginalMargin);
@@ -261,6 +263,9 @@ namespace Gu
 		{	
 			//this two shapes are deeply intersected with each other, we need to use EPA algorithm to calculate MTD
 			assignWarmStartValue(aIndices, bIndices, _size, aInd, bInd, size);
+			
+			contactA = closA;
+			contactB = closB;
 			return EPA_CONTACT;     
 		}
 	}
@@ -295,13 +300,16 @@ namespace Gu
 		
 		const FloatV sumOrignalMargin = FAdd(marginA, marginB);
 
+		Vec3V closA = zeroV;
+		Vec3V closB = zeroV;
 		FloatV sDist = FMax();
 		FloatV minDist= sDist;
+		Vec3V tempClosA = zeroV;
+		Vec3V tempClosB = zeroV;
 
 		BoolV bNotTerminated = bTrue;
 		BoolV bCon = bTrue;
-		Vec3V closest;
-		
+		Vec3V v;
 
 		Vec3V Q[4];
 		Vec3V A[4];
@@ -316,6 +324,7 @@ namespace Gu
 		//In this case, GJK will normally terminate in one iteration
 		if(_size != 0)
 		{
+			Vec3V lastQ = zeroV, lastA = zeroV, lastB = zeroV;
 			for(PxU32 i=0; i<_size; ++i)
 			{
 				aInd[i] = aIndices[i];
@@ -329,15 +338,15 @@ namespace Gu
 				//this means something isn't right and we need to investigate
 				validateDuplicateVertex(Q, support, size);
 #endif
-				A[size] = supportA;
-				B[size] =  supportB;
-				Q[size++] =	support;
+				A[size] = lastA = supportA;
+				B[size] = lastB = supportB;
+				Q[size++] =	lastQ = support;
 			}
 
 			//run simplex solver to determine whether the point is closest enough so that gjk can terminate
-			closest = GJKCPairDoSimplex(Q, A, B, aInd, bInd, support, size);
+			v = GJKCPairDoSimplex(Q, A, B, aInd, bInd, lastQ, lastA, lastB, size, closA, closB);
 
-			sDist = V3Dot(closest, closest);
+			sDist = V3Dot(v, v);
 			minDist = sDist;
 			
 			bNotTerminated = FIsGrtr(sDist, eps2);
@@ -345,10 +354,8 @@ namespace Gu
 		else
 		{
 			const Vec3V _initialSearchDir = V3Sub(a.getCenter(), b.getCenter());
-			closest = V3Sel(FIsGrtr(V3Dot(_initialSearchDir, _initialSearchDir), zero), _initialSearchDir, V3UnitX());
+			v = V3Sel(FIsGrtr(V3Dot(_initialSearchDir, _initialSearchDir), zero), _initialSearchDir, V3UnitX());
 		}
-
-		Vec3V prevClosest = closest;
 		
 		// ML : termination condition
 		//(1)two (shrunk)shapes overlap. GJK will terminate based on sq(v) < eps2 and indicate that two shapes are overlapping.
@@ -360,15 +367,18 @@ namespace Gu
 			//minDist, tempClosA, tempClosB are used to store the previous iteration's closest points(in A and B space) and the square distance from the closest point
 			//to origin in Mincowski space
 			minDist = sDist;
-			prevClosest = closest;
+			tempClosA = closA;
+			tempClosB = closB;
 
-			supportA=a.supportLocal(V3Neg(closest), A[size], aInd[size]);
-			supportB=b.supportLocal(closest, B[size], bInd[size]);
+			supportA=a.supportLocal(V3Neg(v), A[size], aInd[size]);
+			supportB=b.supportLocal(v, B[size], bInd[size]);
 			
 		
 			//calculate the support point
 			support = V3Sub(supportA, supportB);
-			Q[size]=support;
+			Q[size++]=support;
+
+			PX_ASSERT(size <= 4);
 
 			//ML: because we shrink the shapes by plane shifting(box and convexhull), the distance from the "shrunk" vertices to the original vertices may be larger than contact distance. 
 			//therefore, we need to take the largest of these 2 values into account so that we don't incorrectly declare shapes to be disjoint. If we don't do this, there is
@@ -381,7 +391,7 @@ namespace Gu
 			const FloatV sqMargin = FMul(sumMargin, sumMargin);
 			const FloatV tmp = FMul(sDist, sqMargin);//FMulAdd(sDist, sqMargin, eps3);
 
-			const FloatV vw = V3Dot(closest, support);
+			const FloatV vw = V3Dot(v, support);
 			const FloatV sqVW = FMul(vw, vw);
 
 			
@@ -405,10 +415,8 @@ namespace Gu
 				{
 					const FloatV dist = FSqrt(sDist);
 					PX_ASSERT(FAllGrtr(dist, FEps()));
-					const Vec3V n = V3ScaleInv(closest, dist);//normalise
+					const Vec3V n = V3ScaleInv(v, dist);//normalise
 					normal = n; 
-					Vec3V closA, closB;
-					getClosestPoint(Q, A, B, closest, closA, closB, size);
 					if(takeCoreShape)
 					{
 						const BoolV aQuadratic = a.isMarginEqRadius();
@@ -437,13 +445,10 @@ namespace Gu
 				}
 			}
 
-			size++;
-			PX_ASSERT(size <= 4);
-
 			//calculate the closest point between two convex hull
-			closest = GJKCPairDoSimplex(Q, A, B, aInd, bInd, support, size);
+			v = GJKCPairDoSimplex(Q, A, B, aInd, bInd, support, supportA, supportB,  size, closA, closB);
 
-			sDist = V3Dot(closest, closest);
+			sDist = V3Dot(v, v);
 
 			bCon = FIsGrtr(minDist, sDist);
 			bNotTerminated = BAnd(FIsGrtr(sDist, eps2), bCon);
@@ -451,20 +456,18 @@ namespace Gu
 
 		if(BAllEq(bCon, bFalse))
 		{
-			sDist = minDist;
 			assignWarmStartValue(aIndices, bIndices, _size, aInd, bInd, size-1);
 			const FloatV sumExpandedMargin = FAdd(sumOrignalMargin, contactDist);
 			const FloatV sqExpandedMargin = FMul(sumExpandedMargin, sumExpandedMargin);
 			//Reset back to older closest point
-			closest = prevClosest;//V3Sub(closA, closB);
-			Vec3V closA, closB;
-			getClosestPoint(Q, A, B, closest, closA, closB, size);
-
+			closA = tempClosA;
+			closB = tempClosB;
 			sDist = minDist;
+			v = V3Sub(closA, closB);
 
 			const FloatV dist = FSqrt(sDist);
 			PX_ASSERT(FAllGrtr(dist, FEps()));
-			const Vec3V n = V3ScaleInv(closest, dist);//normalise
+			const Vec3V n = V3ScaleInv(v, dist);//normalise
 
 			if(takeCoreShape)
 			{
@@ -496,6 +499,9 @@ namespace Gu
 		{
 			//this two shapes are deeply intersected with each other, we need to use EPA algorithm to calculate MTD
 			assignWarmStartValue(aIndices, bIndices, _size, aInd, bInd, size);
+			contactA = closA;
+			contactB = closB;
+
 			return EPA_CONTACT;
 			
 		}

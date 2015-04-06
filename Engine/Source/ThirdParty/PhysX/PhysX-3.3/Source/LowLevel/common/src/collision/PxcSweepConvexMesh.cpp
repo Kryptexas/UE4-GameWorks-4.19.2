@@ -495,7 +495,7 @@ static PxReal PxcSweepAnyShapeMesh(	const PxsCCDShape& shape0, const PxsCCDShape
 
 	PxVec3 sphereCenter(shape0.mPrevTransform.p);
 	PxF32 inSphereRadius = shape0.mFastMovingThreshold;
-	//PxF32 inRadSq = inSphereRadius * inSphereRadius;
+	PxF32 inRadSq = inSphereRadius * inSphereRadius;
 
 	PxVec3 sphereCenterInTransform1 = transform1.transformInv(sphereCenter);
 
@@ -528,7 +528,7 @@ static PxReal PxcSweepAnyShapeMesh(	const PxsCCDShape& shape0, const PxsCCDShape
 
 		if(res <= 0.f)
 		{
-			//res = 0.f;
+			res = 0.f;
 
 			const PxVec3 vv0 = v1 - v0 ;
 			const PxVec3 vv1 = v2 - v0;
@@ -538,18 +538,16 @@ static PxReal PxcSweepAnyShapeMesh(	const PxsCCDShape& shape0, const PxsCCDShape
 
 			PxF32 distanceSq = Gu::distancePointTriangleSquared( sphereCenterInTransform1, v0, vv0, vv1);
 
-			PxReal inflatedRadius = restDistance + inSphereRadius;
-
-			if(distanceSq < (inflatedRadius*inflatedRadius))
+			if(distanceSq < inRadSq)
 			{
 				const PxF32 distance = PxSqrt(distanceSq);
-				res = distance - inflatedRadius;
+				res = distance - inSphereRadius;
 				const PxF32 d = nor.dot(v0);
 				const PxF32 dd = nor.dot(sphereCenterInTransform0p);
 				if((dd - d) > 0.f)
 				{
 					//back side, penetration 
-					res = -(2.f * inflatedRadius - distance);
+					res = -(2.f * inSphereRadius - distance);
 				}
 			}	
 			PX_ASSERT(PxIsFinite(res));

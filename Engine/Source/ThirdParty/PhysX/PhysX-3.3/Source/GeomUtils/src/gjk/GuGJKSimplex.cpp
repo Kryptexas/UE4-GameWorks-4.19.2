@@ -17,160 +17,37 @@ namespace physx
 namespace Gu
 {
 
-	using namespace Ps::aos;
 
-	static Vec3V getClosestPtPointTriangle(Vec3V* PX_RESTRICT Q, const BoolVArg bIsOutside4, PxU32* indices, PxU32& size)
+	PX_NOALIAS Ps::aos::Vec3V closestPtPointTetrahedron(Ps::aos::Vec3V* PX_RESTRICT Q, Ps::aos::Vec3V* PX_RESTRICT A, Ps::aos::Vec3V* PX_RESTRICT B, PxU32& size, Ps::aos::Vec3V& closestA, Ps::aos::Vec3V& closestB)
 	{
-		const BoolV bTrue = BTTTT();
+		using namespace Ps::aos;
+		const FloatV zero = FZero();
+		const Vec3V zeroV = V3Zero();
+		const FloatV eps = FEps();
+		PxU32 tempSize = size;
+		FloatV tempT = zero;
+		FloatV tempW = zero;
+	
 		FloatV bestSqDist = FMax();
-		
-		PxU32 _indices[3] = {0, 1, 2};
-
-		Vec3V result = V3Zero();
-	
-		if(BAllEq(BGetX(bIsOutside4), bTrue))
-		{
-			//use the original indices, size, v and w
-			result = closestPtPointTriangleBaryCentric(Q[0], Q[1], Q[2], indices, size);
-			bestSqDist = V3Dot(result, result);
-		}
-
-		if(BAllEq(BGetY(bIsOutside4), bTrue))
-		{
-
-			PxU32 _size = 3;
-			_indices[0] = 0; _indices[1] = 2; _indices[2] = 3; 
-			const Vec3V q = closestPtPointTriangleBaryCentric(Q[0], Q[2], Q[3],  _indices, _size);
-
-			const FloatV sqDist = V3Dot(q, q);
-			const BoolV con = FIsGrtr(bestSqDist, sqDist);
-			if(BAllEq(con, bTrue))
-			{
-				result = q;
-				bestSqDist = sqDist;
-
-				indices[0] = _indices[0];
-				indices[1] = _indices[1];
-				indices[2] = _indices[2];
-
-				size = _size;
-			}
-		}
-
-		if(BAllEq(BGetZ(bIsOutside4), bTrue))
-		{
-			PxU32 _size = 3;
-			
-			_indices[0] = 0; _indices[1] = 3; _indices[2] = 1; 
-
-			const Vec3V q = closestPtPointTriangleBaryCentric(Q[0], Q[3], Q[1], _indices, _size);
-			const FloatV sqDist = V3Dot(q, q);
-			const BoolV con = FIsGrtr(bestSqDist, sqDist);
-			if(BAllEq(con, bTrue))
-			{
-				result = q;
-				bestSqDist = sqDist;
-
-				indices[0] = _indices[0];
-				indices[1] = _indices[1];
-				indices[2] = _indices[2];
-
-				size = _size;
-			}
-
-		}
-
-		if(BAllEq(BGetW(bIsOutside4), bTrue))
-		{
-	
-
-			PxU32 _size = 3;
-			_indices[0] = 1; _indices[1] = 3; _indices[2] = 2; 
-			const Vec3V q = closestPtPointTriangleBaryCentric(Q[1], Q[3], Q[2], _indices, _size);
-
-			const FloatV sqDist = V3Dot(q, q);
-			const BoolV con = FIsGrtr(bestSqDist, sqDist);
-
-			if(BAllEq(con, bTrue))
-			{
-				result = q;
-				bestSqDist = sqDist;
-
-				indices[0] = _indices[0];
-				indices[1] = _indices[1];
-				indices[2] = _indices[2];
-
-				size = _size;
-			}
-		}
-
-		return result;
-	}
-
-	PX_NOALIAS Vec3V closestPtPointTetrahedron(Vec3V* PX_RESTRICT Q, Vec3V* PX_RESTRICT A, Vec3V* PX_RESTRICT B, PxU32& size)
-	{
-		
-		const FloatV eps = FLoad(1e-4f);
 		const Vec3V a = Q[0];
 		const Vec3V b = Q[1];
 		const Vec3V c = Q[2];  
 		const Vec3V d = Q[3];
+		const BoolV bTrue = BTTTT();
 		const BoolV bFalse = BFFFF();
 
 		//degenerated
-		const Vec3V ab = V3Sub(b, a);
-		const Vec3V ac = V3Sub(c, a);
-		const Vec3V n = V3Normalize(V3Cross(ab, ac));
-		const FloatV signDist = V3Dot(n, V3Sub(d, a));
-		if(FAllGrtr(eps, FAbs(signDist)))
+		const Vec3V ad = V3Sub(d, a);
+		const Vec3V bd = V3Sub(d, b);
+		const Vec3V cd = V3Sub(d, c);
+		const FloatV dad = V3Dot(ad, ad);
+		const FloatV dbd = V3Dot(bd, bd);
+		const FloatV dcd = V3Dot(cd, cd);
+		const FloatV fMin = FMin(dad, FMin(dbd, dcd));
+		if(FAllGrtr(eps, fMin))
 		{
 			size = 3;
-			return closestPtPointTriangle(Q, A, B, size);
-		}
-
-		const BoolV bIsOutside4 = PointOutsideOfPlane4(a, b, c, d);
-
-		if(BAllEq(bIsOutside4, bFalse))
-		{
-			//All inside
-			return V3Zero();
-		}
-
-		PxU32 indices[3] = {0, 1, 2};
-		
-		const Vec3V closest = getClosestPtPointTriangle(Q, bIsOutside4, indices, size);
-
-		const Vec3V q0 = Q[indices[0]]; const Vec3V q1 = Q[indices[1]]; const Vec3V q2 = Q[indices[2]];
-		const Vec3V a0 = A[indices[0]]; const Vec3V a1 = A[indices[1]]; const Vec3V a2 = A[indices[2]];
-		const Vec3V b0 = B[indices[0]]; const Vec3V b1 = B[indices[1]]; const Vec3V b2 = B[indices[2]];
-		Q[0] = q0; Q[1] = q1; Q[2] = q2;
-		A[0] = a0; A[1] = a1; A[2] = a2;
-		B[0] = b0; B[1] = b1; B[2] = b2; 
-
-		return closest;
-	}
-
-	PX_NOALIAS Vec3V closestPtPointTetrahedron(Vec3V* PX_RESTRICT Q, Vec3V* PX_RESTRICT A, Vec3V* PX_RESTRICT B, PxI32* PX_RESTRICT aInd,  PxI32* PX_RESTRICT bInd, PxU32& size)
-	{
-		
-		const FloatV eps = FLoad(1e-4f);
-		const Vec3V zeroV = V3Zero();
-		
-		const Vec3V a = Q[0];
-		const Vec3V b = Q[1];
-		const Vec3V c = Q[2];
-		const Vec3V d = Q[3];
-		const BoolV bFalse = BFFFF();
-
-		//degenerated
-		const Vec3V ab = V3Sub(b, a);
-		const Vec3V ac = V3Sub(c, a);
-		const Vec3V n = V3Normalize(V3Cross(ab, ac));
-		const FloatV signDist = V3Dot(n, V3Sub(d, a));
-		if(FAllGrtr(eps, FAbs(signDist)))
-		{
-			size = 3;
-			return closestPtPointTriangle(Q, A, B, aInd, bInd, size);
+			return closestPtPointTriangle(a, b, c, Q, A, B, size, closestA, closestB);
 		}
 
 		const BoolV bIsOutside4 = PointOutsideOfPlane4(a, b, c, d);
@@ -181,21 +58,274 @@ namespace Gu
 			return zeroV;
 		}
 
+		Vec3V _Q[] = {Q[0], Q[1], Q[2], Q[3]};
+		Vec3V _A[] = {A[0], A[1], A[2], A[3]};
+		Vec3V _B[] = {B[0], B[1], B[2], B[3]};
+
 		PxU32 indices[3] = {0, 1, 2};
-		const Vec3V closest = getClosestPtPointTriangle(Q, bIsOutside4, indices, size);
 
-		const Vec3V q0 = Q[indices[0]]; const Vec3V q1 = Q[indices[1]]; const Vec3V q2 = Q[indices[2]];
-		const Vec3V a0 = A[indices[0]]; const Vec3V a1 = A[indices[1]]; const Vec3V a2 = A[indices[2]];
-		const Vec3V b0 = B[indices[0]]; const Vec3V b1 = B[indices[1]]; const Vec3V b2 = B[indices[2]];
-		const PxI32 _aInd0 = aInd[indices[0]]; const PxI32 _aInd1 = aInd[indices[1]]; const PxI32 _aInd2 = aInd[indices[2]];
-		const PxI32 _bInd0 = bInd[indices[0]]; const PxI32 _bInd1 = bInd[indices[1]]; const PxI32 _bInd2 = bInd[indices[2]];
-		Q[0] = q0; Q[1] = q1; Q[2] = q2;
-		A[0] = a0; A[1] = a1; A[2] = a2;
-		B[0] = b0; B[1] = b1; B[2] = b2; 
-		aInd[0] = _aInd0; aInd[1] = _aInd1; aInd[2] = _aInd2;
-		bInd[0] = _bInd0; bInd[1] = _bInd1; bInd[2] = _bInd2;
+		Vec3V result = zeroV;
+	
+		if(BAllEq(BGetX(bIsOutside4), bTrue))
+		{
+	
+			PxU32 _size = 3;
+			FloatV t, w;
+			result = closestPtPointTriangleBaryCentric(_Q[0], _Q[1], _Q[2], _size, t, w);
 
-		return closest;
+			const FloatV sqDist = V3Dot(result, result);
+			
+			bestSqDist = sqDist;
+			
+			tempSize = _size;
+			tempT = t;
+			tempW = w;
+		}
+
+		if(BAllEq(BGetY(bIsOutside4), bTrue))
+		{
+
+			PxU32 _size = 3;
+			
+			FloatV t, w;
+			const Vec3V q = closestPtPointTriangleBaryCentric(_Q[0], _Q[2], _Q[3],  _size, t, w);
+
+			const FloatV sqDist = V3Dot(q, q);
+			const BoolV con = FIsGrtr(bestSqDist, sqDist);
+			if(BAllEq(con, bTrue))
+			{
+				result = q;
+				bestSqDist = sqDist;
+
+				indices[0] = 0;
+				indices[1] = 2;
+				indices[2] = 3;
+
+				tempSize = _size;
+				tempT = t;
+				tempW = w;
+			}
+		}
+
+		if(BAllEq(BGetZ(bIsOutside4), bTrue))
+		{
+			
+
+			PxU32 _size = 3;
+			FloatV t, w;
+			const Vec3V q = closestPtPointTriangleBaryCentric(_Q[0], _Q[3], _Q[1], _size, t, w);
+
+			const FloatV sqDist = V3Dot(q, q);
+			const BoolV con = FIsGrtr(bestSqDist, sqDist);
+			if(BAllEq(con, bTrue))
+			{
+				result = q;
+				bestSqDist = sqDist;
+
+				indices[0] = 0;
+				indices[1] = 3;
+				indices[2] = 1;
+
+
+				tempSize = _size;
+				tempT = t;
+				tempW = w;
+			}
+
+		}
+
+		if(BAllEq(BGetW(bIsOutside4), bTrue))
+		{
+	
+
+			PxU32 _size = 3;
+			FloatV t, w;
+			const Vec3V q = closestPtPointTriangleBaryCentric(_Q[1], _Q[3], _Q[2], _size, t, w);
+
+			const FloatV sqDist = V3Dot(q, q);
+			const BoolV con = FIsGrtr(bestSqDist, sqDist);
+
+			if(BAllEq(con, bTrue))
+			{
+				result = q;
+				bestSqDist = sqDist;
+
+				indices[0] = 1;
+				indices[1] = 3;
+				indices[2] = 2;
+
+				tempSize = _size;
+				tempT = t;
+				tempW = w;
+			}
+		}
+
+		A[0] = _A[indices[0]]; A[1] = _A[indices[1]]; A[2] = _A[indices[2]];
+		B[0] = _B[indices[0]]; B[1] = _B[indices[1]]; B[2] = _B[indices[2]];
+		Q[0] = _Q[indices[0]]; Q[1] = _Q[indices[1]]; Q[2] = _Q[indices[2]];
+
+		const Vec3V a0 = V3Sub(_A[indices[1]], _A[indices[0]]);
+		const Vec3V a1 = V3Sub(_A[indices[2]], _A[indices[0]]);
+
+		const Vec3V b0 = V3Sub(_B[indices[1]], _B[indices[0]]);
+		const Vec3V b1 = V3Sub(_B[indices[2]], _B[indices[0]]);
+
+		closestA = V3Add( _A[indices[0]], V3ScaleAdd(a0, tempT, V3Scale(a1, tempW)));
+		closestB = V3Add( _B[indices[0]], V3ScaleAdd(b0, tempT, V3Scale(b1, tempW)));
+
+		size = tempSize;
+		return result;
+	}
+
+	PX_NOALIAS Ps::aos::Vec3V closestPtPointTetrahedron(Ps::aos::Vec3V* PX_RESTRICT Q, Ps::aos::Vec3V* PX_RESTRICT A, Ps::aos::Vec3V* PX_RESTRICT B, PxI32* PX_RESTRICT aInd,  PxI32* PX_RESTRICT bInd, 
+		const Ps::aos::Vec3VArg Q4, const Ps::aos::Vec3VArg A4, const Ps::aos::Vec3VArg B4, PxU32& size, Ps::aos::Vec3V& closestA, Ps::aos::Vec3V& closestB)
+	{
+		using namespace Ps::aos;
+		const FloatV zero = FZero();
+		const FloatV eps = FEps();
+		const Vec3V zeroV = V3Zero();
+		PxU32 tempSize = size;
+		FloatV tempT = zero;
+		FloatV tempW = zero;
+	
+		
+		FloatV bestSqDist = FMax();
+		const Vec3V a = Q[0];
+		const Vec3V b = Q[1];
+		const Vec3V c = Q[2];
+		const Vec3V d = Q4;//Q[3];
+		const BoolV bTrue = BTTTT();
+		const BoolV bFalse = BFFFF();
+
+		//degenerated
+		const Vec3V ad = V3Sub(d, a);
+		const Vec3V bd = V3Sub(d, b);
+		const Vec3V cd = V3Sub(d, c);
+		const FloatV dad = V3Dot(ad, ad);
+		const FloatV dbd = V3Dot(bd, bd);
+		const FloatV dcd = V3Dot(cd, cd);
+		const FloatV fMin = FMin(dad, FMin(dbd, dcd));
+		if(FAllGrtr(eps, fMin))
+		{
+			size = 3;
+			return closestPtPointTriangle(a, b, c, Q, A, B, size, closestA, closestB);
+		}
+
+		BoolV bIsOutside4 = PointOutsideOfPlane4(a, b, c, d);
+
+		if(BAllEq(bIsOutside4, bFalse))
+		{
+			//All inside
+			return zeroV;
+		}
+
+
+		Vec3V _Q[] = {Q[0], Q[1], Q[2], Q4};
+		Vec3V _A[] = {A[0], A[1], A[2], A4};
+		Vec3V _B[] = {B[0], B[1], B[2], B4};
+		PxI32 _aInd[] = {aInd[0], aInd[1], aInd[2], aInd[3]};
+		PxI32 _bInd[] = {bInd[0], bInd[1], bInd[2], bInd[3]};
+
+		PxU32 indices[3] = {0, 1, 2};
+
+		Vec3V result = zeroV;
+		FloatV t, w;
+
+		if(BAllEq(BGetX(bIsOutside4), bTrue))
+		{
+			PxU32 _size = 3;
+			result = closestPtPointTriangleBaryCentric(_Q[0], _Q[1], _Q[2], _size, t, w);
+			bestSqDist = V3Dot(result, result);
+			tempSize = _size;
+			tempT = t;
+			tempW = w;
+		}
+
+		if(BAllEq(BGetY(bIsOutside4), bTrue))
+		{
+
+			PxU32 _size = 3;
+			const Vec3V q = closestPtPointTriangleBaryCentric(_Q[0], _Q[2], _Q[3], _size, t, w);
+
+			const FloatV sqDist = V3Dot(q, q);
+			const BoolV con = FIsGrtr(bestSqDist, sqDist);
+			if(BAllEq(con, bTrue))
+			{
+				result = q;
+				bestSqDist = sqDist;
+				indices[0] = 0;
+				indices[1] = 2;
+				indices[2] = 3;
+
+				tempSize = _size;
+				tempT = t;
+				tempW = w;
+			}
+		}
+
+		if(BAllEq(BGetZ(bIsOutside4), bTrue))
+		{
+
+			PxU32 _size = 3;
+			const Vec3V q = closestPtPointTriangleBaryCentric(_Q[0], _Q[3], _Q[1], _size, t, w);
+
+			const FloatV sqDist = V3Dot(q, q);
+			const BoolV con = FIsGrtr(bestSqDist, sqDist);
+			if(BAllEq(con, bTrue))
+			{
+				result = q;
+				bestSqDist = sqDist;
+				indices[0] = 0;
+				indices[1] = 3;
+				indices[2] = 1;
+
+				tempSize = _size;
+				tempT = t;
+				tempW = w;
+			}
+
+		}
+
+		if(BAllEq(BGetW(bIsOutside4), bTrue))
+		{
+			PxU32 _size = 3;			
+			const Vec3V q = closestPtPointTriangleBaryCentric(_Q[1], _Q[3], _Q[2], _size, t, w);
+
+			const FloatV sqDist = V3Dot(q, q);
+			const BoolV con = FIsGrtr(bestSqDist, sqDist);
+
+			if(BAllEq(con, bTrue))
+			{
+				result = q;
+				bestSqDist = sqDist;
+
+				indices[0] = 1;
+				indices[1] = 3;
+				indices[2] = 2;
+
+				tempSize = _size;
+				tempT = t;
+				tempW = w;
+			}
+		}
+
+		A[0] = _A[indices[0]]; A[1] = _A[indices[1]]; A[2] = _A[indices[2]];
+		B[0] = _B[indices[0]]; B[1] = _B[indices[1]]; B[2] = _B[indices[2]];
+		Q[0] = _Q[indices[0]]; Q[1] = _Q[indices[1]]; Q[2] = _Q[indices[2]];
+		aInd[0] = _aInd[indices[0]]; aInd[1] = _aInd[indices[1]]; aInd[2] = _aInd[indices[2]];
+		bInd[0] = _bInd[indices[0]]; bInd[1] = _bInd[indices[1]]; bInd[2] = _bInd[indices[2]];
+
+		const Vec3V a0 = V3Sub(_A[indices[1]], _A[indices[0]]);
+		const Vec3V a1 = V3Sub(_A[indices[2]], _A[indices[0]]);
+
+		const Vec3V b0 = V3Sub(_B[indices[1]], _B[indices[0]]);
+		const Vec3V b1 = V3Sub(_B[indices[2]], _B[indices[0]]);
+
+		closestA = V3Add( _A[indices[0]], V3ScaleAdd(a0, tempT, V3Scale(a1, tempW)));
+		closestB = V3Add( _B[indices[0]], V3ScaleAdd(b0, tempT, V3Scale(b1, tempW)));
+
+		size = tempSize;
+		return result;
 	}
 }
 

@@ -21,13 +21,6 @@ namespace physx
 {
 namespace Gu
 {
-	//calculate the barycentric coorinates for a point in a segment
-	void barycentricCoordinates(const Ps::aos::Vec3VArg p, 
-		const Ps::aos::Vec3VArg a, 
-		const Ps::aos::Vec3VArg b, 
-		Ps::aos::FloatV& v);
-
-	//calculate the barycentric coorinates for a point in a triangle
 	void barycentricCoordinates(const Ps::aos::Vec3VArg p, 
 		const Ps::aos::Vec3VArg a, 
 		const Ps::aos::Vec3VArg b, 
@@ -62,6 +55,7 @@ namespace Gu
 
 		const Vec4V v0v1v0v1 = V4Perm_XZXZ(vwvw);
 		const Vec4V w0w1w0w1 = V4Perm_YWYW(vwvw);
+
 
 		const BoolV con0 = BAnd(V4IsGrtrOrEq(v0v1v0v1, zero), V4IsGrtrOrEq(one, v0v1v0v1));
 		const BoolV con1 = BAnd(V4IsGrtrOrEq(w0w1w0w1, zero), V4IsGrtrOrEq(one, w0w1w0w1));
