@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2449375
+﻿INTSourceChangelist:2501141
 Availability:Public
 Title:ブループリント マクロ ライブラリ
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
@@ -52,8 +52,8 @@ Description:他のブループリントで再利用するためにマクロを�
 時間節約の手段となります。
 
 _マクロ_ は参照される全グラフで共有されますが、 
-コンパイル時の折りたたまれたノードのようにグラフ内へ自動的に展開されます。つまり _Blueprint Macro Libraries_ はコンパイルを必要としませんが、 
- _マクロ_ への変更は、 これらのグラフを含んだ _ブループリント_ の再コンパイル時のみ 
+コンパイル時の折りたたまれたノードのようにグラフ内へ自動的に展開されます。つまり _Blueprint Macro Libraries_ はコンパイルを必要としませんが、 _マクロ_ への変更は、 
+これらのグラフを含んだ _ブループリント_ の再コンパイル時のみ 
 その _マクロ_ を参照するグラフへ反映されます。
 [/EXCERPT:Intro]
 
@@ -85,8 +85,8 @@ _Blueprint Macro Libraries_ はパッケージに格納され、他のアセッ�
 	![](save_macrolib_content_browser.png)
 
 1. **[Save Content]** ウィンドウが表示されたら、新規 _Blueprint Macro Library_ のチェックボックスが選択されていることを確認し、 ![Save Selected](button_save_selected.png) をクリックします。
-	![](save_selected_macrolib.png)
 
+	![](save_selected_macrolib.png)
 
 1. _ブループリントエディタ_ 内で _Blueprint Macro Library_ のアイコンを **ダブルクリック** して開きます。
 -->
@@ -99,7 +99,7 @@ _Blueprint Macro Libraries_ はパッケージに格納され、他のアセッ�
 
 	![](rt_click_content_browser_macrolib.png)
 
-1. **[親クラスを選択]** ウィンドウが表示されたら、ここからの _Blueprint Macro Library_ 作成プロセスは **[New Asset]** ボタンを使った場合と同じです。 
+1. **[Pick Parent Class]** ウィンドウが表示されたら、ここからの _Blueprint Macro Library_ 作成プロセスは **[New Asset]** ボタンを使った場合と同じです。 
 
 
 ## ブループリント マクロ
