@@ -998,7 +998,7 @@ void ULandscapeHeightfieldCollisionComponent::UpdateHeightfieldRegion(int32 Comp
 		//
 		// Reset geometry of heightfield shape. Required by the modifySamples
 		//
-		FVector LandscapeScale = GetComponentToWorld().GetScale3D();
+		FVector LandscapeScale = GetComponentToWorld().GetScale3D().GetAbs();
 		// Create the geometry
 		PxHeightFieldGeometry LandscapeComponentGeom(HeightfieldRef->RBHeightfieldEd, PxMeshGeometryFlags(), LandscapeScale.Z * LANDSCAPE_ZSCALE, LandscapeScale.Y * CollisionScale, LandscapeScale.X * CollisionScale);
 
