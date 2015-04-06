@@ -116,6 +116,9 @@ protected:
 	/** Called when the comment text is committed */
 	void OnCommentTextCommitted( const FText& NewText, ETextCommit::Type CommitInfo );
 
+	/** Called to determine if the comment bubble is readonly */
+	bool IsReadOnly() const;
+
 protected:
 
 	/** The GraphNode this widget interacts with */
