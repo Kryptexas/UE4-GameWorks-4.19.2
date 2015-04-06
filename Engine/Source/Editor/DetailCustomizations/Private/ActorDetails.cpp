@@ -711,7 +711,8 @@ FReply FActorDetails::CallBlutilityFunction()
 	if( ActorWeakPtr.IsValid() && ActiveBlutilityFunction.IsValid() )
 	{
 		AActor* Actor = ActorWeakPtr.Get();
-		Actor->ProcessEvent( ActiveBlutilityFunction.Get(), NULL );
+		UFunction* ActiveFunction = ActiveBlutilityFunction.Get();
+		Actor->ProcessEvent( ActiveFunction, ActiveFunction->Children );
 	}
 
 	return FReply::Handled();
