@@ -318,10 +318,6 @@ bool SCommentBubble::IsScalingAllowed() const
 
 FText SCommentBubble::GetCommentText() const
 {
-	if( CommentAttribute.Get().IsEmpty() )
-	{
-		return HintText.Get();
-	}
 	return CachedCommentText;
 }
 
@@ -378,8 +374,7 @@ FSlateColor SCommentBubble::GetTextForegroundColor() const
 
 void SCommentBubble::OnCommentTextCommitted( const FText& NewText, ETextCommit::Type CommitInfo )
 {
-	const bool bValidText = !NewText.EqualTo( HintText.Get() );
-	if( GraphNode && bValidText )
+	if( GraphNode )
 	{
 		GraphNode->OnUpdateCommentText( NewText.ToString() );
 	}
