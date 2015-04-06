@@ -10,6 +10,7 @@
 #include "SPaperEditorViewport.h"
 #include "CanvasTypes.h"
 #include "CanvasItem.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "TileSetEditor"
 
@@ -19,24 +20,19 @@ const FName TileSetEditorAppName = FName(TEXT("TileSetEditorApp"));
 
 //////////////////////////////////////////////////////////////////////////
 
-struct FTileSetEditorModes
-{
-	// Mode identifiers
-	static const FName StandardMode;
-};
-
 struct FTileSetEditorTabs
 {
 	// Tab identifiers
 	static const FName DetailsID;
 	static const FName TextureViewID;
+	static const FName SingleTileEditorID;
 };
 
 //////////////////////////////////////////////////////////////////////////
 
-const FName FTileSetEditorModes::StandardMode(TEXT("StandardMode"));
 const FName FTileSetEditorTabs::DetailsID(TEXT("Details"));
 const FName FTileSetEditorTabs::TextureViewID(TEXT("TextureCanvas"));
+const FName FTileSetEditorTabs::SingleTileEditorID(TEXT("SingleTileEditor"));
 
 //////////////////////////////////////////////////////////////////////////
 // FTileSetEditorViewportClient 
@@ -90,19 +86,6 @@ void FTileSetEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		Texture->SetForceMipLevelsToBeResident(30.0f);
 		Texture->WaitForStreaming();
 
-		// Draw the background checkerboard pattern in the same size/position as the render texture so it will show up anywhere
-		// the texture has transparency
-		//if (TextureEditorPtr.Pin()->GetIsCheckeredBackground())
-			// Handle case of using the checkerboard as a background
-// 			if (TextureEditorPtr.Pin()->GetCheckeredBackground_Fill())
-// 			{
-// 				DrawTile(Canvas, 0.0f, 0.0f, Viewport->GetSizeXY().X, Viewport->GetSizeXY().Y, 0.0f, 0.0f, (Viewport->GetSizeXY().X / CheckerboardTexture->GetSizeX()), (Viewport->GetSizeXY().Y / CheckerboardTexture->GetSizeY()), FLinearColor::White, CheckerboardTexture->Resource);
-// 			}
-// 			else
-// 			{
-// 				DrawTile(Canvas, XPos, YPos, Width, Height, 0.0f, 0.0f, (Width / CheckerboardTexture->GetSizeX()), (Height / CheckerboardTexture->GetSizeY()), FLinearColor::White, CheckerboardTexture->Resource);
-// 			}
-
 		FLinearColor TextureDrawColor = FLinearColor::White;
 
 		const float XPos = -ZoomPos.X * ZoomAmount;
@@ -128,7 +111,6 @@ void FTileSetEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		FCanvasBoxItem BoxItem(FVector2D(X, Y), FVector2D(W, H));
 		BoxItem.SetColor(Rect.Color);
 		Canvas->DrawItem(BoxItem);
-
 	}
 
 	if (TileIndex != INDEX_NONE)
@@ -238,6 +220,8 @@ void STileSetSelectorViewport::OnSelectionChanged(FMarqueeOperation Marquee, boo
 		SelectionDimensions.Y = 0;
 	}
 
+	OnTileSelectionChanged.Broadcast(SelectionTopLeft, SelectionDimensions);
+
 	const bool bHasSelection = (SelectionDimensions.X * SelectionDimensions.Y) > 0;
 	if (bIsPreview && bHasSelection)
 	{
@@ -280,32 +264,6 @@ void STileSetSelectorViewport::RefreshSelectionRectangle()
 	}
 }
 
-//////////////////////////////////////////////////////////////////////////
-// FTileSetViewportSummoner
-
-struct FTileSetViewportSummoner : public FWorkflowTabFactory
-{
-public:
-	FTileSetViewportSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
-		: FWorkflowTabFactory(FTileSetEditorTabs::TextureViewID, InHostingApp)
-	{
-		TabLabel = LOCTEXT("TextureViewTabLabel", "Viewport");
-		//TabIcon = FEditorStyle::GetBrush("Kismet.Tabs.Variables");
-
-		bIsSingleton = true;
-
-		ViewMenuDescription = LOCTEXT("TextureViewTabMenu_Description", "Viewport");
-		ViewMenuTooltip = LOCTEXT("TextureViewTabMenu_ToolTip", "Shows the viewport");
-	}
-
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override
-	{
-		TSharedPtr<FTileSetEditor> TileSetEditorPtr = StaticCastSharedPtr<FTileSetEditor>(HostingApp.Pin());
-
-		return SNew(STileSetSelectorViewport, TileSetEditorPtr->GetTileSetBeingEdited(), /*EdMode=*/ nullptr);
-	}
-};
-
 /////////////////////////////////////////////////////
 // STileSetPropertiesTabBody
 
@@ -344,91 +302,209 @@ public:
 	// End of SSingleObjectDetailsPanel interface
 };
 
-//////////////////////////////////////////////////////////////////////////
-// FTileSetDetailsSummoner
-
-struct FTileSetDetailsSummoner : public FWorkflowTabFactory
-{
-public:
-	FTileSetDetailsSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
-		: FWorkflowTabFactory(FTileSetEditorTabs::DetailsID, InHostingApp)
-	{
-		TabLabel = LOCTEXT("DetailsTabLabel", "Details");
-		//TabIcon = FEditorStyle::GetBrush("Kismet.Tabs.Variables");
-
-		bIsSingleton = true;
-
-		ViewMenuDescription = LOCTEXT("DetailsTabMenu_Description", "Details");
-		ViewMenuTooltip = LOCTEXT("DetailsTabMenu_ToolTip", "Shows the details panel");
-	}
-
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override
-	{
-		TSharedPtr<FTileSetEditor> TileSetEditorPtr = StaticCastSharedPtr<FTileSetEditor>(HostingApp.Pin());
-		return SNew(STileSetPropertiesTabBody, TileSetEditorPtr);
-	}
-};
 
 //////////////////////////////////////////////////////////////////////////
-// FBasicTileSetEditorMode
+// FSingleTileEditorViewportClient
 
-class FBasicTileSetEditorMode : public FApplicationMode
+class FSingleTileEditorViewportClient : public FPaperEditorViewportClient
 {
 public:
-	FBasicTileSetEditorMode(TSharedPtr<class FTileSetEditor> InTileSetEditor, FName InModeName);
+	FSingleTileEditorViewportClient(UPaperTileSet* InTileSet)
+		: TileSet(InTileSet)
+		, TileBeingEditedIndex(INDEX_NONE)
+		, PixelSize(4.0f)
+	{
+		ZoomPos = FVector2D(-TileSet->TileWidth * ZoomAmount * PixelSize * 0.5f, -TileSet->TileHeight * ZoomAmount * PixelSize * 0.5f);
+	}
 
-	// FApplicationMode interface
-	virtual void RegisterTabFactories(TSharedPtr<FTabManager> InTabManager) override;
-	// End of FApplicationMode interface
+	// FViewportClient interface
+	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) override;
+	// End of FViewportClient interface
 
-protected:
-	TWeakPtr<FTileSetEditor> MyTileSetEditor;
-	FWorkflowAllowedTabSet TabFactories;
+	// FEditorViewportClient interface
+	virtual FLinearColor GetBackgroundColor() const override;
+	// End of FEditorViewportClient interface
+
+	void SetTileIndex(int32 InTileIndex);
+	int32 GetTileIndex() const;
+	void OnActiveTileIndexChanged(const FIntPoint& TopLeft, const FIntPoint& Dimensions);
+public:
+	// Tile set
+	UPaperTileSet* TileSet;
+
+	int32 TileBeingEditedIndex;
+
+	float PixelSize;
 };
 
-FBasicTileSetEditorMode::FBasicTileSetEditorMode(TSharedPtr<class FTileSetEditor> InTileSetEditor, FName InModeName)
-	: FApplicationMode(InModeName)
+void FSingleTileEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 {
-	MyTileSetEditor = InTileSetEditor;
+	// Super will clear the viewport
+	FPaperEditorViewportClient::Draw(Viewport, Canvas);
 
-	TabFactories.RegisterFactory(MakeShareable(new FTileSetViewportSummoner(InTileSetEditor)));
-	TabFactories.RegisterFactory(MakeShareable(new FTileSetDetailsSummoner(InTileSetEditor)));
+	if (TileBeingEditedIndex == INDEX_NONE)
+	{
+		return;
+	}
 
-	TabLayout = FTabManager::NewLayout("Standalone_TileSetEditor_Layout_v2")
-		->AddArea
-		(
-			FTabManager::NewPrimaryArea()
-			->SetOrientation(Orient_Vertical)
-			->Split
-			(
-				FTabManager::NewStack()
-				->SetSizeCoefficient(0.8f)
-				->SetHideTabWell(true)
-				->AddTab(FTileSetEditorTabs::TextureViewID, ETabState::OpenedTab)
-			)
-			->Split
-			(
-				FTabManager::NewStack()
-				->SetSizeCoefficient(0.2f)
-				->SetHideTabWell(true)
-				->AddTab(FTileSetEditorTabs::DetailsID, ETabState::OpenedTab)
-			)
-		);
+	if (UTexture2D* Texture = TileSet->TileSheet)
+	{
+		const bool bUseTranslucentBlend = Texture->HasAlphaChannel();
+
+		// Fully stream in the texture before drawing it.
+		Texture->SetForceMipLevelsToBeResident(30.0f);
+		Texture->WaitForStreaming();
+
+		const float XPos = -ZoomPos.X * ZoomAmount;
+		const float YPos = -ZoomPos.Y * ZoomAmount;
+		const float Width = TileSet->TileWidth * ZoomAmount * PixelSize;
+		const float Height = TileSet->TileHeight * ZoomAmount * PixelSize;
+
+		const float InvTextureWidth = 1.0f / Texture->GetSurfaceWidth();
+		const float InvTextureHeight = 1.0f / Texture->GetSurfaceHeight();
+
+		FVector2D TopLeft;
+		TileSet->GetTileUV(TileBeingEditedIndex, /*out*/ TopLeft);
+		const FVector2D UV0(TopLeft.X * InvTextureWidth, TopLeft.Y * InvTextureHeight);
+
+		const FVector2D UVSize(TileSet->TileWidth * InvTextureWidth, TileSet->TileHeight * InvTextureHeight);
+
+		const FLinearColor TextureDrawColor = FLinearColor::White;
+		Canvas->DrawTile(XPos, YPos, Width, Height, UV0.X, UV0.Y, UVSize.X, UVSize.Y, TextureDrawColor, Texture->Resource, bUseTranslucentBlend);
+	}
 }
 
-void FBasicTileSetEditorMode::RegisterTabFactories(TSharedPtr<FTabManager> InTabManager)
-{
-	TSharedPtr<FTileSetEditor> Editor = MyTileSetEditor.Pin();
 
-	Editor->PushTabFactories(TabFactories);
+FLinearColor FSingleTileEditorViewportClient::GetBackgroundColor() const
+{
+	return TileSet->BackgroundColor;
+}
+
+void FSingleTileEditorViewportClient::SetTileIndex(int32 InTileIndex)
+{
+	const bool bNewIndexValid = (InTileIndex >= 0) && (InTileIndex < TileSet->GetTileCount());
+	TileBeingEditedIndex = bNewIndexValid ? InTileIndex : INDEX_NONE;
+	Invalidate();
+}
+
+void FSingleTileEditorViewportClient::OnActiveTileIndexChanged(const FIntPoint& TopLeft, const FIntPoint& Dimensions)
+{
+	const int32 NewIndex = (TileSet->GetTileCountX() * TopLeft.Y) + TopLeft.X;
+	SetTileIndex(NewIndex);
+}
+
+int32 FSingleTileEditorViewportClient::GetTileIndex() const
+{
+	return TileBeingEditedIndex;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// SSingleTileEditorViewport
+
+class SSingleTileEditorViewport : public SPaperEditorViewport
+{
+public:
+	SLATE_BEGIN_ARGS(SSingleTileEditorViewport) {}
+	SLATE_END_ARGS()
+
+	~SSingleTileEditorViewport();
+
+	void Construct(const FArguments& InArgs, TSharedPtr<class FSingleTileEditorViewportClient> InViewportClient);
+
+protected:
+	// SPaperEditorViewport interface
+	virtual FText GetTitleText() const override;
+	// End of SPaperEditorViewport interface
+
+private:
+	TSharedPtr<class FSingleTileEditorViewportClient> TypedViewportClient;
+	class FEdModeTileMap* TileMapEditor;
+};
+
+//////////////////////////////////////////////////////////////////////////
+// SSingleTileEditorViewport
+
+SSingleTileEditorViewport::~SSingleTileEditorViewport()
+{
+	TypedViewportClient.Reset();
+}
+
+void SSingleTileEditorViewport::Construct(const FArguments& InArgs, TSharedPtr<class FSingleTileEditorViewportClient> InViewportClient)
+{
+	TypedViewportClient = InViewportClient;
+
+	SPaperEditorViewport::Construct(
+		SPaperEditorViewport::FArguments(),
+		TypedViewportClient.ToSharedRef());
+
+	// Make sure we get input instead of the viewport stealing it
+	ViewportWidget->SetVisibility(EVisibility::HitTestInvisible);
+}
+
+FText SSingleTileEditorViewport::GetTitleText() const
+{
+	const int32 CurrentTileIndex = TypedViewportClient->GetTileIndex();
+	if (CurrentTileIndex != INDEX_NONE)
+	{
+		FNumberFormattingOptions NoGroupingFormat;
+		NoGroupingFormat.SetUseGrouping(false);
+
+		return FText::Format(LOCTEXT("SingleTileEditorViewportTitle", "Editing tile #{0}"), FText::AsNumber(CurrentTileIndex, &NoGroupingFormat));
+	}
+	else
+	{
+		return LOCTEXT("SingleTileEditorViewportTitle_NoTile", "Tile Editor - Select a tile");
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
 // FTileSetEditor
 
+FTileSetEditor::FTileSetEditor()
+{
+	// Register to be notified when properties are edited
+	FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedDelegate = FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &FTileSetEditor::OnPropertyChanged);
+	OnPropertyChangedHandle = FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedDelegate);
+}
+
+FTileSetEditor::~FTileSetEditor()
+{
+	// Unregister the property modification handler
+	FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandle);
+}
+
 void FTileSetEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	FWorkflowCentricApplication::RegisterTabSpawners(TabManager);
+	WorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_TileSetEditor", "Tile Set Editor"));
+	TSharedRef<FWorkspaceItem> WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
+
+	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
+
+	TabManager->RegisterTabSpawner(FTileSetEditorTabs::TextureViewID, FOnSpawnTab::CreateSP(this, &FTileSetEditor::SpawnTab_TextureView))
+		.SetDisplayName(LOCTEXT("TextureViewTabMenu_Description", "Viewport"))
+		.SetTooltipText(LOCTEXT("TextureViewTabMenu_ToolTip", "Shows the viewport"))
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports"));
+
+	TabManager->RegisterTabSpawner(FTileSetEditorTabs::DetailsID, FOnSpawnTab::CreateSP(this, &FTileSetEditor::SpawnTab_Details))
+		.SetDisplayName(LOCTEXT("DetailsTabLabel", "Details"))
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details"));
+
+	TabManager->RegisterTabSpawner(FTileSetEditorTabs::SingleTileEditorID, FOnSpawnTab::CreateSP(this, &FTileSetEditor::SpawnTab_SingleTileEditor))
+		.SetDisplayName(LOCTEXT("SingleTileEditTabMenu_Description", "Tile Editor"))
+		.SetTooltipText(LOCTEXT("SingleTileEditTabMenu_ToolTip", "Shows the tile editor"))
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports"));
+}
+
+void FTileSetEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
+{
+	FAssetEditorToolkit::UnregisterTabSpawners(TabManager);
+
+	TabManager->UnregisterTabSpawner(FTileSetEditorTabs::TextureViewID);
+	TabManager->UnregisterTabSpawner(FTileSetEditorTabs::DetailsID);
+	TabManager->UnregisterTabSpawner(FTileSetEditorTabs::SingleTileEditorID);
 }
 
 void FTileSetEditor::InitTileSetEditor(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, class UPaperTileSet* InitTileSet)
@@ -436,15 +512,142 @@ void FTileSetEditor::InitTileSetEditor(const EToolkitMode::Type Mode, const TSha
 	FAssetEditorManager::Get().CloseOtherEditors(InitTileSet, this);
 	TileSetBeingEdited = InitTileSet;
 
-	// Initialize the asset editor and spawn nothing (dummy layout)
-	const TSharedRef<FTabManager::FLayout> DummyLayout = FTabManager::NewLayout("NullLayout")->AddArea(FTabManager::NewPrimaryArea());
-	InitAssetEditor(Mode, InitToolkitHost, TileSetEditorAppName, DummyLayout, /*bCreateDefaultStandaloneMenu=*/ true, /*bCreateDefaultToolbar=*/ false, InitTileSet);
+	TileSetViewport = SNew(STileSetSelectorViewport, InitTileSet, /*EdMode=*/ nullptr);
+	TileEditorViewportClient = MakeShareable(new FSingleTileEditorViewportClient(InitTileSet));
+	TileSetViewport->GetTileSelectionChanged().AddRaw(TileEditorViewportClient.Get(), &FSingleTileEditorViewportClient::OnActiveTileIndexChanged);
 
-	// Create the modes and activate one (which will populate with a real layout)
-	AddApplicationMode(
-		FTileSetEditorModes::StandardMode, 
-		MakeShareable(new FBasicTileSetEditorMode(SharedThis(this), FTileSetEditorModes::StandardMode)));
-	SetCurrentMode(FTileSetEditorModes::StandardMode);
+	//@TODO: FTileSetEditorCommands::Register();
+	BindCommands();
+
+	// Default layout
+	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_TileSetEditor_Layout_v3")
+		->AddArea
+		(
+			FTabManager::NewPrimaryArea()
+			->SetOrientation(Orient_Vertical)
+			->Split
+			(
+				FTabManager::NewStack()
+				->SetSizeCoefficient(0.1f)
+				->SetHideTabWell(true)
+				->AddTab(GetToolbarTabId(), ETabState::OpenedTab)
+			)
+			->Split
+			(
+				FTabManager::NewSplitter()
+				->SetOrientation(Orient_Horizontal)
+				->SetSizeCoefficient(0.9f)
+				->Split
+				(
+					FTabManager::NewStack()
+					->SetSizeCoefficient(0.6f)
+					->SetHideTabWell(true)
+					->AddTab(FTileSetEditorTabs::TextureViewID, ETabState::OpenedTab)
+				)
+				->Split
+				(
+					FTabManager::NewSplitter()
+					->SetOrientation(Orient_Vertical)
+					->SetSizeCoefficient(0.4f)
+					->Split
+					(
+						FTabManager::NewStack()
+						->SetSizeCoefficient(0.5f)
+						->AddTab(FTileSetEditorTabs::SingleTileEditorID, ETabState::OpenedTab)
+					)
+					->Split
+					(
+						FTabManager::NewStack()
+						->SetSizeCoefficient(0.5f)
+						->AddTab(FTileSetEditorTabs::DetailsID, ETabState::OpenedTab)
+					)
+				)
+			)
+		);
+
+
+	// Initialize the asset editor
+	InitAssetEditor(Mode, InitToolkitHost, TileSetEditorAppName, StandaloneDefaultLayout, /*bCreateDefaultStandaloneMenu=*/ true, /*bCreateDefaultToolbar=*/ true, InitTileSet);
+
+	// Extend things
+	ExtendMenu();
+	ExtendToolbar();
+	RegenerateMenusAndToolbars();
+}
+
+TSharedRef<SDockTab> FTileSetEditor::SpawnTab_TextureView(const FSpawnTabArgs& Args)
+{
+	return SNew(SDockTab)
+		.Label(LOCTEXT("TextureViewTabLabel", "Viewport"))
+		[
+			TileSetViewport.ToSharedRef()
+		];
+}
+
+TSharedRef<SDockTab> FTileSetEditor::SpawnTab_Details(const FSpawnTabArgs& Args)
+{
+	TSharedPtr<FTileSetEditor> TileSetEditorPtr = SharedThis(this);
+
+	return SNew(SDockTab)
+		.Label(LOCTEXT("DetailsTabLabel", "Details"))
+		[
+			SNew(STileSetPropertiesTabBody, TileSetEditorPtr)
+		];
+}
+
+TSharedRef<SDockTab> FTileSetEditor::SpawnTab_SingleTileEditor(const FSpawnTabArgs& Args)
+{
+	TSharedPtr<FTileSetEditor> TileSetEditorPtr = SharedThis(this);
+
+	return SNew(SDockTab)
+		.Label(LOCTEXT("SingleTileEditTabLabel", "Tile Editor"))
+		[
+			SNew(SSingleTileEditorViewport, TileEditorViewportClient)
+		];
+}
+
+void FTileSetEditor::BindCommands()
+{
+}
+
+void FTileSetEditor::ExtendMenu()
+{
+}
+
+void FTileSetEditor::ExtendToolbar()
+{
+//@TODO: Add geometry creation commands
+// 	struct Local
+// 	{
+// 		static void FillToolbar(FToolBarBuilder& ToolbarBuilder)
+// 		{
+// 			ToolbarBuilder.BeginSection("Tools");
+// 			{
+// 				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().AddBoxShape);
+// 				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().ToggleAddPolygonMode);
+// 				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().AddCircleShape);
+// 				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().SnapAllVertices);
+// 			}
+// 			ToolbarBuilder.EndSection();
+// 		}
+// 	};
+// 
+// 	TSharedPtr<FExtender> ToolbarExtender = MakeShareable(new FExtender);
+// 
+// 	ToolbarExtender->AddToolBarExtension(
+// 		"Asset",
+// 		EExtensionHook::After,
+// 		ViewportPtr->GetCommandList(),
+// 		FToolBarExtensionDelegate::CreateStatic(&Local::FillToolbar)
+// 		);
+}
+
+void FTileSetEditor::OnPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if (ObjectBeingModified == TileSetBeingEdited)
+	{
+		TileEditorViewportClient->SetTileIndex(TileEditorViewportClient->GetTileIndex());
+	}
 }
 
 FName FTileSetEditor::GetToolkitFName() const
@@ -475,6 +678,12 @@ FString FTileSetEditor::GetWorldCentricTabPrefix() const
 FLinearColor FTileSetEditor::GetWorldCentricTabColorScale() const
 {
 	return FLinearColor::White;
+}
+
+FString FTileSetEditor::GetDocumentationLink() const
+{
+	//@TODO: Need to make a page for this
+	return TEXT("Engine/Paper2D/TileSetEditor");
 }
 
 void FTileSetEditor::AddReferencedObjects(FReferenceCollector& Collector)

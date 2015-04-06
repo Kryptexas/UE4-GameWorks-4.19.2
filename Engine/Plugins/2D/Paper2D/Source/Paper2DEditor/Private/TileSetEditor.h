@@ -2,17 +2,22 @@
 
 #pragma once
 
-#include "WorkflowCentricApplication.h"
+#include "Toolkits/AssetEditorToolkit.h"
+#include "Toolkits/AssetEditorManager.h"
 #include "SPaperEditorViewport.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FTileSetEditor
 
-class FTileSetEditor : public FWorkflowCentricApplication, public FGCObject
+class FTileSetEditor : public FAssetEditorToolkit, public FGCObject
 {
 public:
+	FTileSetEditor();
+	~FTileSetEditor();
+
 	// IToolkit interface
 	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
+	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 	// End of IToolkit interface
 
 	// FAssetEditorToolkit
@@ -21,6 +26,7 @@ public:
 	virtual FText GetToolkitName() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 	virtual FString GetWorldCentricTabPrefix() const override;
+	virtual FString GetDocumentationLink() const override;
 	// End of FAssetEditorToolkit
 
 	// FSerializableObject interface
@@ -31,8 +37,25 @@ public:
 	void InitTileSetEditor(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, class UPaperTileSet* InitTileSet);
 
 	UPaperTileSet* GetTileSetBeingEdited() const { return TileSetBeingEdited; }
+
+protected:
+	TSharedRef<class SDockTab> SpawnTab_TextureView(const FSpawnTabArgs& Args);
+	TSharedRef<class SDockTab> SpawnTab_Details(const FSpawnTabArgs& Args);
+	TSharedRef<class SDockTab> SpawnTab_SingleTileEditor(const FSpawnTabArgs& Args);
+
+	void BindCommands();
+	void ExtendMenu();
+	void ExtendToolbar();
+
+	void OnPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
+
 protected:
 	UPaperTileSet* TileSetBeingEdited;
+
+	TSharedPtr<class STileSetSelectorViewport> TileSetViewport;
+	TSharedPtr<class FSingleTileEditorViewportClient> TileEditorViewportClient;
+
+	FDelegateHandle OnPropertyChangedHandle;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -41,6 +64,8 @@ protected:
 class STileSetSelectorViewport : public SPaperEditorViewport
 {
 public:
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnTileViewportSelectionChanged, const FIntPoint& /*TopLeft*/, const FIntPoint& /*Dimensions*/);
+
 	SLATE_BEGIN_ARGS(STileSetSelectorViewport) {}
 	SLATE_END_ARGS()
 
@@ -49,6 +74,12 @@ public:
 	void Construct(const FArguments& InArgs, UPaperTileSet* InTileSet, class FEdModeTileMap* InTileMapEditor);
 
 	void ChangeTileSet(UPaperTileSet* InTileSet);
+
+	FOnTileViewportSelectionChanged& GetTileSelectionChanged()
+	{
+		return OnTileSelectionChanged;
+	}
+
 protected:
 	// SPaperEditorViewport interface
 	virtual FText GetTitleText() const override;
@@ -64,4 +95,6 @@ private:
 	class FEdModeTileMap* TileMapEditor;
 	FIntPoint SelectionTopLeft;
 	FIntPoint SelectionDimensions;
+
+	FOnTileViewportSelectionChanged OnTileSelectionChanged;
 };
