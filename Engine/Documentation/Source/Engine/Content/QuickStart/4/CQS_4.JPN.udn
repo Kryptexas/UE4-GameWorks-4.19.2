@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2466505
+﻿INTSourceChangelist:2500418
 Availability:Public
 Title:4.マテリアルを適用する
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
@@ -37,14 +37,14 @@ Description:テクスチャをインポートしたら、次はマテリアル�
 	[/REGION]
 
 	以下の画像のように、[スタティックメッシュ](Engine/Content/Types/StaticMeshes/Editor) エディタ内で開きます。
-	[REGION:lightbox]
 
+	[REGION:lightbox]
 	[![](StaticMeshEditor.png)(w:600)](StaticMeshEditor.png)
 	[/REGION:lightbox]
 
 	_画像をクリックしてフルサイズで表示_
 
-1.	**[Details]** パネルの**[Default Value]** で [Material] ドロップダウン メニューをクリックします。 
+1.	**[Details]** パネルの **[Default Value]** で [Material] ドロップダウン メニューをクリックします。 
 
 	![](Element0.png)
 
@@ -68,7 +68,7 @@ Description:テクスチャをインポートしたら、次はマテリアル�
 
 前のセクションでは、レベル内にスタティックメッシュのオブジェクトを配置することで、 [アクタ](Engine/Actors) とアクタの各インスタンスが作成され、それに対して使用するマテリアルを指定することができました。つまり、それぞれが異なるマテリアルを使っている、いろいろな「バージョン」のスタティックメッシュを作ることができるのです。 
 
-Static Mesh アクタのマテリアルを変えてみましょう。 
+Static Mesh アクタのマテリアルを変えてみます。 
 
 1.	前のセクションでレベル内に配置したスタティックメッシュを選択します。 
 
@@ -87,8 +87,8 @@ Static Mesh アクタのマテリアルを変えてみましょう。
 1.	新規マテリアルを適用するために、レベル内の Static Mesh アクタ上にマテリアルをドロップ＆ドラッグすることもできます。 
 
 	![](draganddropMaterial.png)
-		<!--
 
+<!--
 
 [INCLUDE:Shared/Glossary/M/#Glossary_Material]
 
@@ -113,7 +113,7 @@ Static Mesh アクタのマテリアルを変えてみましょう。
 
 	マテリアルに名前を付ける前にどこか他の場所をクリックしてしまった場合は、 **右クリック** して **[Rename]** を選択します。
 
-1. 作成されたマテリアルを **ダブルクリック** すると、 **マテリアル エディタ** が開きます。
+	1. 作成されたマテリアルを **ダブルクリック** すると、 **マテリアル エディタ** が開きます。
 
 	![](Engine/Content/QuickStart/5/materialEditorInterface.png)(w:840)
 
@@ -184,7 +184,7 @@ Static Mesh アクタのマテリアルを変えてみましょう。
 
 	![](Engine/Content/QuickStart/5/Constants.png)
 
-1. **[3]** キーを押したまま **[Graph]** パネル内で **左クリック** すると、 Constant3Vector を簡単に作ることができます。
+1. **[3]** キーを押したまま **[Graph]** パネル内で **左クリック** すると、Constant3Vector を簡単に作ることができます。
 
 	![](Engine/Content/QuickStart/5/Constant3.png)
 
