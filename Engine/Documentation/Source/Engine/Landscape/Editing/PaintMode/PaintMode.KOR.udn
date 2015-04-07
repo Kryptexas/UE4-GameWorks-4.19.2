@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2392717
+﻿INTSourceChangelist:2503433
 Availability: Public
 Title:페인트 모드
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
@@ -151,6 +151,7 @@ Layer Info (레이어 인포) 오브젝트는 랜드스케이프 레이어에 �
 
 1. 레이어 이름 오른쪽의 더하기 (![Create Layer Info](Engine/Landscape\Editing\icon_Landscape_CreateLayerInfo.png)) 아이콘을 누릅니다.
 1. **Weight-Blended Layer (normal)** (웨이트 블렌딩된 레이어 (노멀)) 또는 **Non Weight-Blended Layer** (웨이트 블렌딩되지 않은 레이어)를 선택합니다.
+![](WeightBlended_NonWeightBlended.png)
 1. 레이어 인포 오브젝트를 저장할 위치를 선택합니다.
 
 <!-- what's the difference between weight-blended and non weight-blended? -->
@@ -179,7 +180,7 @@ Layer Info (레이어 인포) 오브젝트는 랜드스케이프 레이어에 �
 
 | 옵션 | 설명 |
 | ------ | ----------- |
-| **Phys Material** | 피지컬 머티리얼 - (있는 경우) 피지컬 머티리얼을 이 레이어가 우세한 랜드스케이프 영역에 할당합니다. |
+| **Phys Material** | 피지컬 머티리얼 - (있는 경우) [피지컬 머티리얼](Engine/Physics/PhysicalMaterials) 을 이 레이어가 우세한 랜드스케이프 영역에 할당합니다. |
 | **Hardness** | 하드니스 - [침식](Engine/Landscape/Editing/SculptMode/#침식) 툴에 사용되는 값입니다. |
 
 ### 고아 레이어

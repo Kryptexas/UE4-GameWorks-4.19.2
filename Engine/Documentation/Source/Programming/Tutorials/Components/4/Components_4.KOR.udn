@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2478927
+﻿INTSourceChangelist:2503046
 Availability: Public
 Title:4. 폰과 컴포넌트 함께 사용하기
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
@@ -85,7 +85,7 @@ Description:폰의 함수성, 입력 환경설정, 컴포넌트를 함께 묶는
 			{
 				if (OurParticleSystem && OurParticleSystem->Template)
 				{
-					OurParticleSystem->Activate(!OurParticleSystem->IsActive());
+					OurParticleSystem->ToggleActive();
 				}
 			}
 

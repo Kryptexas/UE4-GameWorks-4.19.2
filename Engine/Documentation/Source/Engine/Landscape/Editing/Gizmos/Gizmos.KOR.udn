@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2472953
+﻿INTSourceChangelist:2503067
 Availability: Public
 Title:랜드스케이프 기즈모
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
@@ -30,7 +30,7 @@ Description:랜드스케이프 편집시 사용가능한 기즈모 사용 안내
 ## 개요
 
 
-랜드스케이프 기즈모는 일정한 영역을 지정할 수 있다는 점에서 볼륨과 비슷한 에디터 전용 액터입니다. 그 목적은 랜드스케이프의 한 영역에 대한 높이 및 레이어 데이터를 담고서, 랜드스케이프 다른 위치로 복사한다든가 다른 랜드스케이프에서 사용할 수 있도록 익스포트한다든가 하는 것입니다.
+랜드스케이프 기즈모는 일정한 영역을 지정할 수 있다는 점에서 볼륨과 비슷한 에디터 전용 액터입니다. 그 목적은 랜드스케이프의 한 영역에 대한 높이 및 레이어 데이터를 담고서, 랜드스케이프 다른 위치로 복사한다든가 다른 랜드스케이프나 (world machine, terresculptor 등의) 하이트맵 생성기에서 사용할 수 있도록 익스포트한다든가 하는 것입니다.
 
 ![](Using_Gizom_Tool.gif)(convert:false)
 

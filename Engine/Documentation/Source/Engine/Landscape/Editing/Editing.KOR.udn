@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2360395
+﻿INTSourceChangelist:2503434
 Availability: Public
 Title:랜드스케이프 편집하기
 Crumbs: %ROOT%, Engine, Engine/Landscape
@@ -38,13 +38,13 @@ Description:랜드스케이프 터레인 편집용 툴 사용 안내서입니다
 * **[랜드스케이프 기즈모](Engine/Landscape\Editing\Gizmos)** 로 랜드스케이프의 하이트맵 일부를 복사/붙여넣기, 임포트/익스포트 합니다.
 * 랜드스케이프의 [머티리얼](Engine/Landscape\Materials) 을 변경합니다.
 * [스플라인](Engine/Landscape\Editing\Splines) 을 만들어 랜드스케이프에서의 선 관련 기능에 활용합니다.
-* 랜드스케이프에 구멍을 뚫어 동굴같은 것을 만듭니다.
+* 랜드스케이프에 [구멍](Engine/Landscape\Materials) 을 뚫어 동굴같은 것을 만듭니다.
 
 랜드스케이프 생성 관련 정보는 [](Engine/Landscape\Creation) 문서를 참고하세요.
 
 여러가지 랜드스케이프 툴 모드와 옵션에 대한 간략 안내서는 [](Engine/Landscape/UI) 문서를 참고하세요.
 
-랜드스케이프 툴 실전 예제는 [](Resources\ContentExamples\Landscapes) 콘텐츠 예제에서 확인할 수 있습니다.
+랜드스케이프 툴 실전 예제는 [](Resources\ContentExamples\Landscapes) 에서 확인할 수 있습니다.
 
 
 [REGION:topics third]
