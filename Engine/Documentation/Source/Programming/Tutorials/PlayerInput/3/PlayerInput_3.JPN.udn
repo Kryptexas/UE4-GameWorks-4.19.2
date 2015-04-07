@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2489335
+﻿INTSourceChangelist:2502586
 Availability:Public
 Title:3.ゲームアクションのプログラミングとバインド
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerInput
@@ -7,7 +7,7 @@ Description:入力と C++ コードのバインド
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[次の手順](Programming\Tutorials\PlayerInput\2 "%Programming\Tutorials\PlayerInput\2:title%")
+		[前の手順](Programming\Tutorials\PlayerInput\2 "%Programming\Tutorials\PlayerInput\2:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -228,6 +228,13 @@ Description:入力と C++ コードのバインド
 			{
 				Super::SetupPlayerInputComponent(InputComponent);
 
+				// Respond when our "Grow" key is pressed or released.（Grow キーが押された時またはリリースされた時に反応）
+				InputComponent->BindAction("Grow", IE_Pressed, this, &AMyPawn::StartGrowing);
+				InputComponent->BindAction("Grow", IE_Released, this, &AMyPawn::StopGrowing);
+
+				// Respond every frame to the values of our two movement axes, "MoveX" and "MoveY".
+				InputComponent->BindAxis("MoveX", this, &AMyPawn::Move_XAxis);
+				InputComponent->BindAxis("MoveY", this, &AMyPawn::Move_YAxis);
 			}
 
 			void AMyPawn::Move_XAxis(float AxisValue)
