@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2360395
+﻿INTSourceChangelist:2503040
 Availability:Public
 Title:ランドスケープの編集
 Crumbs: %ROOT%, Engine, Engine/Landscape
@@ -38,13 +38,13 @@ Description:ランドスケープのテレイン編集に使用するツール�
 * ランドスケープの高さマップの部分を、 **[ランドスケープ ギズモ](Engine/Landscape\Editing\Gizmos)** を使用してコピー、ペースト、インポート、エクスポートします。
 * ランドスケープの **[マテリアル](Engine/Landscape\Materials)** を修正します。
 * ランドスケープで使用したい線形機能に対する **[スプライン](Engine/Landscape\Editing\Splines)** を作成します。
-* 洞窟などの機能に対してランドスケープに穴をつくります。
+* 洞窟などの機能に対してランドスケープに **[穴](Engine/Landscape\Materials)** をつくります。
 
 ランドスケープの作成に関する詳細は、 **[](Engine/Landscape\Creation)** を参照してください。
 
 様々なランドスケープ ツールのモードやオプションに対するクイック リファレンス ガイドについては、 **[](Engine/Landscape/UI)** を参照してください。
 
-動作中のランドスケープの例については、 **[](Resources\ContentExamples\Landscapes)** コンテンツの例を参照してください。
+動作中のランドスケープのサンプルは、 **[](Resources\ContentExamples\Landscapes)** を参照してください。
 
 
 [REGION:topics third]
