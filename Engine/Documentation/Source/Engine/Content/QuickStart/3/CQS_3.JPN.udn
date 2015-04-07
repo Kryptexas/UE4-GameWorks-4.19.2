@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2466505
+﻿INTSourceChangelist:2500409
 Availability:Public
 Title:3.画像をインポートしてマテリアルを作成する
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
@@ -61,15 +61,15 @@ Photoshop などの画像エディタをお持ちでない場合、 CIMP 、 Pix
 
 	![](photoshop_export2.png)
 
-1. ディスク上でプロジェクトの「 **Content** 」フォルダをブラウズします。画像ファイルが追加されているのが分かります。 
+1.	ディスク上でプロジェクトの「 **Content** 」フォルダをブラウズします。画像ファイルが追加されているのが分かります。 
 
 	![](photoshop_export6.png)(w:800)	
 
-1. UE4 エディタを開いていると (または次回実行する際) 、「 **Processing outstanding content changes** 」というメッセージが表示されます。 
+1.	UE4 エディタを開いていると (または次回実行する際) 、「 **Processing outstanding content changes** 」というメッセージが表示されます。 
 
 	![](photoshop_export4.png)
 
-1. 完了すると、アセットはインポートされ、使用が可能になります。 
+1.	完了すると、アセットはインポートされ、使用が可能になります。 
 
 	![](photoshop_export5.png)(w:900)
 
@@ -85,7 +85,7 @@ Photoshop などの画像エディタをお持ちでない場合、 CIMP 、 Pix
 
 マテリアルの作成方法は何通りかありますが、マテリアルにテクスチャを与える方法が最も早いです。 
 
-1.	サンプル アセットの入っている **コンテンツ ブラウザ** で **T_Rock_04_D** を **右クリック** して、**Create Material** を選択します。 
+1.	サンプル アセットの入っている **コンテンツ ブラウザ** で **T_Rock_04_D** を **右クリック** して、 **Create Material** を選択します。 
 
 	![](createMaterial.png)
 
@@ -228,8 +228,8 @@ Photoshop などの画像エディタをお持ちでない場合、 CIMP 、 Pix
 	![](Engine/Content/QuickStart/5/preview_All.png) 
 
 次のステップでは、このページで作成したマテリアルをスタティックメッシュに適用します。 
-	<!--
 
+<!--
 
 [REGION:note]
 このチュートリアル シリーズでは **Starter Content** を有効にした新規の **ブランク** のプロジェクトを使用しています。_新規プロジェクトの作成、プロジェクト テンプレートの使用およびプロジェクト設置の定義 (**Starter Content** を含む) については、 [](Engine/Basics/Projects/Browser) ページを参照してください。 
@@ -291,3 +291,5 @@ Photoshop などの画像エディタをお持ちでない場合、 CIMP 、 Pix
 -->
 
 %Steps%
+
+
