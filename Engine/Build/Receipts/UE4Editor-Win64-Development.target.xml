@@ -972,7 +972,5 @@
     <BuildProduct Path="$(EngineDir)\Binaries\Win64\UE4Editor-InputDevice.pdb" Type="SymbolFile" />
     <BuildProduct Path="$(EngineDir)\Intermediate\Build\Win64\UE4Editor\Development\UE4Editor-InputDevice.lib" Type="ImportLibrary" />
   </BuildProducts>
-  <RuntimeDependencies>
-    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/Leap/Leap.dll" />
-  </RuntimeDependencies>
+  <RuntimeDependencies />
 </BuildReceipt>
