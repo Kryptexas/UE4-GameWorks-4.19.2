@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2478927
+﻿INTSourceChangelist:2503046
 Availability:Public
 Title:4.ポーンとコンポーネントの併用
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
@@ -85,7 +85,7 @@ Description:ポーンの機能、入力設定、コンポーネントの併用
 			{
 				if (OurParticleSystem && OurParticleSystem->Template)
 				{
-					OurParticleSystem->Activate(!OurParticleSystem->IsActive());
+					OurParticleSystem->ToggleActive();
 				}
 			}
 
