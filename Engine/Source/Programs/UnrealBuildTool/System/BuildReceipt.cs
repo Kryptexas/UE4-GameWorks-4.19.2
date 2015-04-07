@@ -262,9 +262,9 @@ namespace UnrealBuildTool
 		/// <param name="Configuration">The target configuration</param>
 		/// <param name="Platform">The target platform</param>
 		/// <returns>Path to the receipt for this target</returns>
-		public static string GetDefaultPath(string BaseDir, string TargetName, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration)
+		public static string GetDefaultPath(string BaseDir, string TargetName, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string BuildArchitecture)
 		{
-			return Path.Combine(BaseDir, "Build", "Receipts", String.Format("{0}-{1}-{2}.target.xml", TargetName, Platform.ToString(), Configuration.ToString()));
+			return Path.Combine(BaseDir, "Build", "Receipts", String.Format("{0}-{1}-{2}{3}.target.xml", TargetName, Platform.ToString(), Configuration.ToString(), BuildArchitecture));
 		}
 
 		/// <summary>

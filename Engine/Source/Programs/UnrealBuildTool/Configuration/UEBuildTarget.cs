@@ -1330,7 +1330,8 @@ namespace UnrealBuildTool
 				Manifest.AddBuildProduct(BuildProduct.Path);
 			}
 
-			Manifest.AddBuildProduct(BuildReceipt.GetDefaultPath(ProjectDirectory, TargetName, Platform, Configuration));
+			IUEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
+			Manifest.AddBuildProduct(BuildReceipt.GetDefaultPath(ProjectDirectory, TargetName, Platform, Configuration, BuildPlatform.GetActiveArchitecture()));
 
 			if (UEBuildConfiguration.bCleanProject)
 			{
@@ -1359,7 +1360,8 @@ namespace UnrealBuildTool
 		{
 			if(Receipt != null)
 			{
-				string ReceiptFileName = BuildReceipt.GetDefaultPath(ProjectDirectory, TargetName, Platform, Configuration);
+				IUEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
+				string ReceiptFileName = BuildReceipt.GetDefaultPath(ProjectDirectory, TargetName, Platform, Configuration, BuildPlatform.GetActiveArchitecture());
 				Directory.CreateDirectory(Path.GetDirectoryName(ReceiptFileName));
 				Receipt.Write(ReceiptFileName);
 			}
