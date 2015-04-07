@@ -1427,7 +1427,7 @@ void FFloatBulkData::SerializeElement( FArchive& Ar, void* Data, int32 ElementIn
 }
 
 
-void FFormatContainer::Serialize(FArchive& Ar, UObject* Owner, const TArray<FName>* FormatsToSave)
+void FFormatContainer::Serialize(FArchive& Ar, UObject* Owner, const TArray<FName>* FormatsToSave, bool bSingleUse)
 {
 	if (Ar.IsLoading())
 	{
@@ -1463,7 +1463,7 @@ void FFormatContainer::Serialize(FArchive& Ar, UObject* Owner, const TArray<FNam
 				Ar << Name;
 				FByteBulkData* Bulk = It.Value();
 				// Force this kind of bulk data (physics, etc) to be stored inline for streaming
-				Bulk->SetBulkDataFlags(BULKDATA_ForceInlinePayload | BULKDATA_SingleUse);
+				Bulk->SetBulkDataFlags(bSingleUse ? (BULKDATA_ForceInlinePayload | BULKDATA_SingleUse) : BULKDATA_ForceInlinePayload);
 				check(Bulk);
 				Bulk->Serialize(Ar, Owner);
 			}

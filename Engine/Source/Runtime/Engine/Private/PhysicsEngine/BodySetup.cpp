@@ -842,7 +842,7 @@ void UBodySetup::Serialize(FArchive& Ar)
 			ActualFormatsToSave.Add(Format);
 
 			Ar << bHasCookedCollisionData;
-			CookedFormatData.Serialize(Ar, this, &ActualFormatsToSave);
+			CookedFormatData.Serialize(Ar, this, &ActualFormatsToSave, !bSharedCookedData);
 		}
 		else
 		{
