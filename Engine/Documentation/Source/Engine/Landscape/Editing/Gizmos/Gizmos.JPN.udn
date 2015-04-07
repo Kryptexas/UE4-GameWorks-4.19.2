@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2472953
+﻿INTSourceChangelist:2503067
 Availability:Public
 Title:ランドスケープ ギズモ
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
-Description:ランドスケープの修正に利用できるギズモのガイド
+Description:ランドスケープの修正に使用するギズモの操作ガイド
 
 [VAR:Topic]
 [OBJECT:Topiccompact]
@@ -30,19 +30,19 @@ Description:ランドスケープの修正に利用できるギズモのガイ�
 ## 概要
 
 
-ランドスケープ ギズモは、指定領域を定義する点においてボリュームと同類のエディタの機能のみ持つアクタです。目的は、そのランドスケープ上の別の位置へコピーしたり、別のランドスケープで使用するためにエクスポートすることができるように、ランドスケープの領域に対して高さとレイヤーデータを維持することです。
+ランドスケープ ギズモは、指定領域を定義する点においてボリュームと類似した、エディタ限定のアクタです。目的は、そのランドスケープ上の別の位置へコピーしたり、別のランドスケープや高さマップ ジェネレータ (world machine 、terresculptor) で使用するためにエクスポートすることができるように、ランドスケープの領域に対して高さとレイヤーデータを維持することです。
 
 ![](Using_Gizom_Tool.gif)(convert:false)
 
-##ギズモ ツールへアクセスする
+##ギズモ ツールの操作方法
 
-**ギズモ ツールへのアクセスするには、次のようにします。**
+**ギズモ ツールは以下の方法で利用します。**
 
-1. **Sculpt** モードの場合、現在選択しているツールアイコンをクリックして **[Sculpting Tools]** ドロップダウン メニューを開きます。
+1. **Sculpt** モードで、現在選択しているツールアイコンをクリックして **[Sculpting Tools]** ドロップダウン メニューを開きます。
 
 	![Sculpt Menu](Landscape_SculptMenu.png)
 
-1. メニューから**[Copy/Paste]** を選択します。選択したランドスケープ上にギズモ ブラシが赤枠の四角で表示されます。
+1. メニューから **[Copy/Paste]** を選択します。選択したランドスケープ上にギズモ ブラシが赤枠の四角で表示されます。
 
 	![Gizmo Outline](Landscape_GizmoOutline.png)
 
@@ -53,7 +53,7 @@ Description:ランドスケープの修正に利用できるギズモのガイ�
 変形ツールの詳細については、 [](Engine/Actors/Transform) をご覧ください。
 [/region]
 
-**[Details]** パネルのギズモ アクタのプロパティを修正することも可能です。
+**[Details]** パネルでギズモ アクタのプロパティを修正することも可能です。
 
 ![Gizmo Properties](Landscape_GizmoProperties.png)
 
@@ -79,7 +79,7 @@ Description:ランドスケープの修正に利用できるギズモのガイ�
 **選択したリージョンをコピーするには、次のようにします。**
 
 
-1. Sculpt モードでは、 **領域の選択内容** スカルプト ツールを選びます。
+1. Sculpt モードで、 **[Region Selection]** スカルプト ツールを選びます。
 
 	![Region Select](Engine/Landscape/Editing/SculptMode/Landscape_RegionSelect.png)
 1. ブラシ ストロークを使ってランドスケープからリージョンを選択します。手順は、法線ペイントの場合と同様です。  
@@ -115,7 +115,7 @@ Description:ランドスケープの修正に利用できるギズモのガイ�
 1. ギズモを移動、回転、スケーリングすることによって、コピーしたいランドスケープの一部を取り囲みます。  
 
 	![Transformed Gizmo](Landscape_GizmoCopy6.png)(w:640)
-1. **[ギズモへデータをコピーする]** ボタンをクリックして、ギズモ領域内にあるランドスケープの部分のデータを転送します。**Ctrl + C** キーによっても、これと同じことが実行できます。  
+1. **[Copy Data to Gizmo]** ボタンをクリックして、ギズモ領域内にあるランドスケープの部分のデータを転送します。**Ctrl + C** キーでも同じ操作ができます。  
 
 	![Copied Data to Gizmo](Landscape_GizmoCopy7.png)(w:640)
 
@@ -155,7 +155,7 @@ Description:ランドスケープの修正に利用できるギズモのガイ�
 (#ギズモデータのインポート / エクスポート)
 ##ギズモデータのインポート / エクスポート
 
-高さマップのデータは、ギズモにインポートすることができるとともに、ギズモからエクスポートすることができます。それには、**[Landscape Editor]** の **[Gizmo Import/Export]** セクションを使います。
+高さマップのデータは、ギズモへインポートすることも、ギズモからエクスポートすることもできます。それには、**[Landscape Editor]** の **[Gizmo Import/Export]** セクションを使います。
 
 ![gizmo_importexport.png](gizmo_importexport.png)(convert:false)
 
@@ -186,7 +186,7 @@ Description:ランドスケープの修正に利用できるギズモのガイ�
 (#ExportingGizmo)
 **ギズモのデータをエクスポートするには、次のようにします。**
 
-1. ギズモにデータが入っている状態で ([ギズモへのコピー](#ギズモへのコピー) 参照) 、**[(Export Gizmo Data]** ボタンをクリックして、ギズモのデータをファイルにエクスポートします。**Gizmo applies to all layers** のチェックボックスを有効にすると、レイヤーのウエイトデータをファイルにエクスポートできます。  
+1. ギズモにデータが入っている状態で ([ギズモへのコピー](#ギズモへのコピー) 参照) 、 **[(Export Gizmo Data]** ボタンをクリックして、ギズモのデータをファイルにエクスポートします。**Gizmo applies to all layers** のチェックボックスを有効にすると、レイヤーのウエイトデータをファイルにエクスポートできます。  
 1. 高さマップファイルの場所と名前を選択します。  
     ![export_file.jpg](export_file.jpg)(w:625 h:436)
 1. レイヤーをエクスポートする場合は、エクスポートされる各レイヤーの場所とファイル名を選択します。  
