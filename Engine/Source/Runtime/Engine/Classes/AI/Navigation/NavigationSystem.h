@@ -770,6 +770,7 @@ protected:
 
 	// async queries
 	FCriticalSection NavDataRegistrationSection;
+	static FCriticalSection NavAreaRegistrationSection;
 	
 	uint32 bNavigationBuildingLocked:1;
 	uint32 bInitialBuildingLockActive:1;
