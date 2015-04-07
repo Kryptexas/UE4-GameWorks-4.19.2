@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2428796
+﻿INTSourceChangelist:2478900
 Availability:Public
 Title:ブループリントでOnHit Event を使用する方法
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\UseOnHit
-Description:さまざまな方法でアクタに影響を及ぼすために使用するOnHit Eventの操作手順 
+Description:さまざまな方法でアクタと作用させるOnHit Eventの操作手順 
 Related:Engine/Blueprints
 Related:Engine/Blueprints/UserGuide/Events
 Related:Engine/Blueprints/UserGuide/CastNodes
@@ -12,39 +12,45 @@ Related:Engine/Blueprints/UserGuide/CastNodes
 
 ## 概要
 
-このページは、照明器具のライトを撃ち抜くために **Event Hit** Event を使用します。これによりエミッタはスポーンを出現させます。また物理オブジェクトに推進力も適用して、オブジェクトを着弾地点の放出させます。最後にオブジェクトにダメージを与えて、オブジェクトが「ヘルス値」を使い果たした後に破壊します。 
+このページでは、照明器具のライトを撃ち抜くために **Event Hit** Event を使用します。このイベントはエミッタがスポーンされる原因となります。物理オブジェクトに推進力も適用して、オブジェクトを衝撃点の方向に起動させます。最後にオブジェクトにダメージを与えて、「ヘルス値」を使い果たした後にオブジェクトを破壊します。 
 
 ## プロジェクト設定
 
-Hit Eventの作成するには、以下の設定セクションに示すようにオブジェクトとその他の対象に撃たせなくてはいけません。 
+Hit Eventを作成するには、オブジェクトとその他の対象が何かに向かって発砲できなくてはいけません。以下の設定例のように設定を行います。 
  
 [REGION:note]
-ここでは **Blueprint First Person Template with Starter Content** を使用します。
+この例は **Blueprint First Person Template with Starter Content** を有効にしています。
 [/REGION:note]
 
 ### 設定 （Bomb ブループリント）
 
 このセクションは、プレイヤーキャラクターが対象物を射撃したり物を投げつけたりできるように「Bomb」ブループリントを作成します。 
 
- 1.	 **コンテンツブラウザ** で、 **作成** ボタンをクリックして **ブループリント** を選択します。そして親クラスに **アクタ** を選択します。 
+1.	 **コンテンツブラウザ** で、 **作成** ボタンをクリックして **ブループリント** を選択します。そして親クラスに **アクタ** を選択します。 
 
 1.	作成したブループリントに **BP_Bomb** と名前を付けて、これを **ダブルクリック** して開きます。 
 
-1.	**Add Component（コンポーネントを追加）** ボタンをクリックして、 **projectile（発射物）** を検索、その後 **Projectile Movement** を選択します。 
+1.	**Add Component（コンポーネントを追加）** ボタンをクリックして、 **projectile（発射物）** を検索しながら **Projectile Movement** を選択します。 
 
-	![](OnHit_1.png)	
+	[REGION:raw]
+	![](OnHit_1.png)
+	[/REGION]
 
-1.	 **Add Component（コンポーネントを追加）** をクリックして、**Sphere（球体）** と **Static Mesh（スタティックメッシュ）** を選択します。 
+1.	 **Add Component（コンポーネントを追加）** をクリックして、 **Sphere Collision** と **Static Mesh** を追加します。 
 
 1.	**コンポーネント** ウィンドウで **Sphere（球体）** コンポーネントをクリックして、 **詳細** パネルで名前を **Collision** に変更します。 
 
+	[REGION:raw]
 	![](OnHit_2.png)
+	[/REGION]
 
 1.	 **Static Mesh（スタティックメッシュ）** をクリックして名前を **Bomb** に変更して、位置の **Z** 値を **-10** 、また XYZ のスケールをそれぞれ **.25** に設定します。 
 
-1.	 **Static Mesh（スタティックメッシュ）** のドロップダウンをクリックして **Shape_Sphere** を見つけて追加します。 
+1.	 **Static Mesh（スタティックメッシュ）** のドロップダウンリストから **Shape_Sphere** を追加します。 
 
+	[REGION:raw]
 	![](OnHit_3.png)
+	[/REGION]
 
 	[REGION:note]
 	**Shape_Sphere** が見つからない場合は、プロジェクトの **Starter Content** が有効になっていることを確認してください。 
@@ -52,7 +58,9 @@ Hit Eventの作成するには、以下の設定セクションに示すよう�
 
 1.	スクロールダウンして **Collision** セクションを見つけたら、コリジョンを **NoCollision** に設定します。 
 
+	[REGION:raw]
 	![](OnHit_4.png)
+	[/REGION]
 
 	コリジョンはStatic Meshではなく、Root Sphere Componentを使用すると検知されます。 
 
@@ -60,21 +68,27 @@ Hit Eventの作成するには、以下の設定セクションに示すよう�
 
 1.	 **コリジョン** の **Simulation Generates Hit Events** を **True** に設定して、 **Collision Presets** に **Block All** を設定します。 
 
+	[REGION:raw]
 	![](OnHit_5.png)
+	[/REGION]
 
 1.	 **Collision** Sphere Componentをクリックしてから、 **詳細** パネルで **Sphere Radius（球体の半径）** を **20** に設定します。 
 
-1.	**Should Bounce** も **True** に設定します。
+1.	**Should Bounce** にも **チェックマーク** を入れます。
 
+	[REGION:raw]
 	![](OnHit_6.png)
+	[/REGION]
 
-	前述の2つの手順で発射物の移動方法を判断します。好きな値に変更可能です。 
+	前述の2つの手順で発射物の移動パターンを判断します。これらの値は自由に変更できます。 
 
-1.	ウィンドウの右上隅にある **デフォルト** タブをクリックしてから、 **Initial Life Span** を **3** に設定します。 
+1.	詳細タブで [Blueprint Defaults] を開くために、ツールバーにある **Class Defaults** ボタンをクリックします。 **Initial Life Span** を **3** に設定します。 
 
+	[REGION:raw]
 	![](OnHit_7.png)
+	[/REGION]
 
-	これにより一度スポーンした発射物がワールド内に留まる時間を判断します。繰り返しになりますが、ユーザーの好きな値に設定することができます。 
+	この設定で一度スポーンした発射物がワールド内に留まる時間を判断できるようになりました。この値も自由に変更できます。 
 
 1.	**コンパイル** および **保存** を行ってからブループリントを閉じます。 
 
@@ -87,7 +101,9 @@ Hit Eventの作成するには、以下の設定セクションに示すよう�
 
 1.	 **コンポーネント** タブから **コンポーネントを追加** をクリックして、 **パーティクルシステム** を検索して追加します。 
 
+	[REGION:raw]
 	![](OnHit_8.png)	
+	[/REGION]
 
 1.	パーティクルシステムの **詳細** パネルで、位置の **Z** 値に **-140** を設定します。この時に **P_Sparks** エフェクトを使用して **Auto Activate** のチェックを外します。 
 
@@ -103,19 +119,19 @@ Hit Eventの作成するには、以下の設定セクションに示すよう�
 
 1.	 **コンテンツブラウザ** でアクタタイプの別のブループリントを作成して、これを開きます。 
 
-1.	 **コンポーネント** タブで、 **スタティックメッシュ** コンポーネントを追加します。 
+1.	最初に **Scene** コンポーネントを追加します（Root コンポーネントとして使用するダミーコンポーネントです）。 
 
-	![](OnHit_10.png)
-
-1.	次に **Scene** コンポーネントを追加します（Rootコンポーネントとして使用するダミーコンポーネントです）。 
-
+	[REGION:raw]
 	![](OnHit_11.png)
+	[/REGION]
 
-1.	  **Static Mesh** コンポーネント上にシーンコンポーネントをドラッグ＆ドロップして、**Scene** コンポーネントを Root に設定します。 
+1.	 **Components** タブで **Static Mesh** コンポーネントを追加します。 
 
-	![](OnHit_12.png)
+	[REGION:raw]
+	![](OnHit_10.png)
+	[/REGION]
 
-1.	 **スタティックメッシュ** をクリックしてから、 **詳細** パネルの **Shape_Cube** を使用して **Simulate Physics** を **True** に設定します。 
+1.	 **スタティックメッシュ** をクリック、 **詳細** パネルで **Shape_Cube** を選択して **Simulate Physics** に **チェックマーク** を入れます。 
 
 	![](OnHit_13.png)
 
@@ -177,19 +193,19 @@ Hit Eventの作成するには、以下の設定セクションに示すよう�
 
 	![](OnHit_19.png)
 
-	**Other** ピンはコリジョンに関わるもう一方のアクタを参照します。ここで **Cast To BP_Bomb** ノードを使用することで、別のアクタも関与し、ヒット対象は **BP_Bomb** 、そしてこれが正しい場合はスクリプトを継続実行することを示しています。そうでない場合はスクリプトの実行は継続しません。これは照明器具にヒットした対象を手っ取り早くチェックする方法です。 
+	**Other** ピンはコリジョンに関わるもう一方のアクタを参照します。ここで **Cast To BP_Bomb** ノードを使用することで、 **BP_Bomb** をヒットする別のアクタが関与するかどうかを確認して、そして関与する場合はスクリプトを継続実行することを示しています。そうでない場合はスクリプトの実行は継続しません。これは照明器具にヒットした対象を手っ取り早くチェックする方法です。 
 
 	[REGION:note]
 	各ピンタイプの詳細は [Event Hit](Engine/Blueprints/UserGuide/Events#eventhit) ドキュメントを参照してください。
 	[/REGION]
 
-1.	 **Control** を押しながら **MyBlueprint** から **Sparks** コンポーネントをグラフへドラッグします。 
+1.	 **Ctl** キーを押しながら **Sparks** コンポーネントを **MyBlueprint** からグラフへドラッグします。 
 
 1.	 **Sparks** をドラッグして、 **Activate** ノードを追加して以下のように接続します。 
 
 	![](OnHit_20.png)
 
-1.	 **Control** を押しながら **MyBlueprint** ウィンドウから **Point Light 1** コンポーネントをグラフへドラッグします。 
+1.	 **Ctl** キーを押しながら **Point Light 1** コンポーネントを **MyBlueprint** ウィンドウからグラフへドラッグします。 
 
 1.	 **Point Light 1** をドラッグして、 **Set Visibility** ノードを追加、 **New Visibility** のチェックを外したままで以下のように接続します。 
 
@@ -292,4 +308,4 @@ Hit Eventの作成するには、以下の設定セクションに示すよう�
 
 	エディタで再生時は、爆弾の発射物からの推進力にキューブが応答して、衝撃位置に力が適用されるのがわかります。キューブをヒットするたびにキューブ全体のヘルス値が減少し、スクリーンの左上隅に表示されます。5回撃たれるとキューブは破壊されます。 
 
-以上が必要に応じたゲームプレイ目的に使用可能な **Event Hit** の使用例です。Hit発生時やHitに基づく追加のチェックを実行したり、別の動作を行う異なるスクリプトを実行させなくてはいけない可能性もあります。 
+以上がニーズに応じたゲームプレイに使用可能な **Event Hit** の使用例です。Hit発生時やHitに基づく追加のチェックを実行したり、さまざまな動作を実行するためにさまざまなスクリプトを実行させる場合もあります。 
