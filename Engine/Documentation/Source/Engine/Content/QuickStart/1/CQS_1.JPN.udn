@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2465039
+﻿INTSourceChangelist:2500361
 Availability:Public
-Title: 1.コンテンツを UE4 のプロジェクトへインポートする
+Title:1.コンテンツを UE4 のプロジェクトへインポートする
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
 Description:アンリアル エンジン 4 で使用できる重要な外部コンテンツ ファイル タイプの概要
 
@@ -73,8 +73,8 @@ Description:アンリアル エンジン 4 で使用できる重要な外部コ�
 	使い方が非常に特殊な形式もあります。.raw ファイルはハイトマップとしてランドスケープ エディタへインポートすることが可能ですが、.hdr ファイル タイプと .dds 形式は **Cubemaps** に使用されます。
 
 	サポート対象の画像ファイルについては、 (Engine/Content/Types/Textures/Importing) を参照してください。[**%Engine/Content/Types/Textures/Importing:title%**] (Engine/Content/Types/Textures/Importing) 
-
 	[/PARAM]
+
 [/OBJECT]
 
 <!--
