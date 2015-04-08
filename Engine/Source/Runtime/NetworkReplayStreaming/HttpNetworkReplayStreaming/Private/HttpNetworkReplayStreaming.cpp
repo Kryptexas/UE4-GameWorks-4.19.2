@@ -707,6 +707,11 @@ bool FHttpNetworkReplayStreamer::IsLive() const
 	return bStreamIsLive;
 }
 
+bool FHttpNetworkReplayStreamer::IsLoadingCheckpoint() const
+{
+	return GotoCheckpointDelegate.IsBound();
+}
+
 void FHttpNetworkReplayStreamer::DeleteFinishedStream( const FString& StreamName, const FOnDeleteFinishedStreamComplete& Delegate ) const
 {
 	// Stubbed!
@@ -1002,6 +1007,7 @@ void FHttpNetworkReplayStreamer::HttpDownloadCheckpointFinished( FHttpRequestPtr
 		{
 			UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadCheckpointFinished. Checkpoint empty." ) );
 			GotoCheckpointDelegate.ExecuteIfBound( false, -1 );
+			GotoCheckpointDelegate = FOnCheckpointReadyDelegate();
 			return;
 		}
 

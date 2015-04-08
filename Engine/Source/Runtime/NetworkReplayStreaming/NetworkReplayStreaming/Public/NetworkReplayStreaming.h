@@ -117,6 +117,7 @@ public:
 	virtual bool IsDataAvailable() const = 0;
 	virtual void SetHighPriorityTimeRange( const uint32 StartTimeInMS, const uint32 EndTimeInMS ) = 0;
 	virtual bool IsDataAvailableForTimeRange( const uint32 StartTimeInMS, const uint32 EndTimeInMS ) = 0;
+	virtual bool IsLoadingCheckpoint() const = 0;
 	
 	/** Returns true if the playing stream is currently in progress */
 	virtual bool IsLive() const = 0;

@@ -59,7 +59,8 @@ class ENGINE_API UDemoNetDriver : public UNetDriver
 	double		MaxRecordTime;
 	int32		RecordCountSinceFlush;
 	float		TimeToSkip;
-	float		LastGotoTimeInSeconds;
+	float		QueuedGotoTimeInSeconds;
+	uint32		InitialLiveDemoTime;
 
 	bool		bSavingCheckpoint;
 	double		LastCheckpointTime;
