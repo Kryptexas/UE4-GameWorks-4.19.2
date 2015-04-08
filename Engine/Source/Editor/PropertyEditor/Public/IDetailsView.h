@@ -20,6 +20,17 @@ struct FDetailsViewArgs
 		/** Components and actors use the name area. Components will display their actor owner as the name */
 		ComponentsAndActorsUseNameArea,
 	};
+
+	enum class EEditDefaultsOnlyNodeVisibility : uint8
+	{
+		/** Always show nodes that have the EditDefaultsOnly aka CPF_DisableEditOnInstance flag. */
+		Show,
+		/** Always hide nodes that have the EditDefaultsOnly aka CPF_DisableEditOnInstance flag. */
+		Hide,
+		/** Let the details panel control it. If the CDO is selected EditDefaultsOnly nodes will be visible, otherwise false. */
+		Automatic,
+	};
+
 	/** Identifier for this details view; NAME_None if this view is anonymous */
 	FName ViewIdentifier;
 	/** Notify hook to call when properties are changed */
@@ -48,8 +59,8 @@ struct FDetailsViewArgs
 	uint32 bCustomNameAreaLocation : 1;
 	/** If true, the filter area will be created but will not be displayed so it can be placed in a custom location.  */
 	uint32 bCustomFilterAreaLocation : 1;
-	/** If true, nodes marked CPF_DisableEditOnInstance will be shown */
-	uint32 bShowDisableEditOnInstanceNodes : 1;
+	/** Controls how CPF_DisableEditOnInstance nodes will be treated */
+	EEditDefaultsOnlyNodeVisibility DefaultsOnlyVisibility;
 
 	/** Default constructor */
 	FDetailsViewArgs( const bool InUpdateFromSelection = false
@@ -74,7 +85,7 @@ struct FDetailsViewArgs
 		, bShowDifferingPropertiesOption(false)
 		, bCustomNameAreaLocation(false)
 		, bCustomFilterAreaLocation(false)
-		, bShowDisableEditOnInstanceNodes(true)
+		, DefaultsOnlyVisibility(EEditDefaultsOnlyNodeVisibility::Show)
 	{
 	}
 };
