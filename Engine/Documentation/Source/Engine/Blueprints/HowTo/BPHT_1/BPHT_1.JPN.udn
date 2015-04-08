@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2468080
+﻿INTSourceChangelist:2068080
 Availability:Public
 Title:1.アセットに必要な設定をする
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
@@ -245,10 +245,10 @@ Description:プロジェクトで使用するアセットのセットアップ�
 
 [OBJECT:TopicList]
 	[PARAM:title]
-		発砲エフェクトの設定
+		炎のエフェクトの設定
 	[/PARAM]
 	[PARAM:description]
-	次に、プレイヤーが触れたことが分かるように、以下のように発砲エフェクトの周囲にトリガー スフィアを追加していきます。 	
+	次に、プレイヤーが触れたことが分かるように、以下のように炎のエフェクトの周囲にトリガー スフィアを追加していきます。 	
 	[/PARAM]
 [/OBJECT]
 
@@ -282,8 +282,8 @@ Description:プロジェクトで使用するアセットのセットアップ�
 [/OBJECT]
 
 1.	**Modes** ウィンドウで、 **Target Point** を検索し、レベル ビューポートのどこかへドラッグ＆ドロップして、追加します。 
-	![](BPHT1_18.png)
 
+	![](BPHT1_18.png)
 
 	_これは、スポーンしたい **BP_Rock** のスポーナー位置を表します。_
 
@@ -299,7 +299,7 @@ Description:プロジェクトで使用するアセットのセットアップ�
 		単純なプールの設定
 	[/PARAM]
 	[PARAM:description]
-	設定の最後は、火が燃え移ったキャラクターが飛びこめるように、水が入っている小さなプールを作ります。、 	
+	設定の最後は、炎が燃え移ったキャラクターが飛びこめるように、水が入っている小さなプールを作ります。、 	
 	[/PARAM]
 [/OBJECT]
 
