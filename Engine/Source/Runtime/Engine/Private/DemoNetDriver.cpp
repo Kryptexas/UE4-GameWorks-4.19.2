@@ -1480,13 +1480,14 @@ void UDemoNetDriver::LoadCheckpoint()
 
 	DemoCurrentTime = (float)SavedAbsTimeMS / 1000.0f;
 
+	bIsFastForwarding = true;
+
 	ReadDemoFrame( GotoCheckpointArchive );
 
 	// If we need to skip more time for fine scrubbing, set that up now
 	if ( GotoCheckpointSkipExtraTimeInMS != -1 )
 	{
 		DemoCurrentTime += (float)GotoCheckpointSkipExtraTimeInMS / 1000;
-		bIsFastForwarding = true;
 	}
 	else
 	{

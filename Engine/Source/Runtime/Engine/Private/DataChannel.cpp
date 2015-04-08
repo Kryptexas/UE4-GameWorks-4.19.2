@@ -1726,6 +1726,12 @@ bool UActorChannel::ProcessQueuedBunches()
 		UE_LOG( LogNet, VeryVerbose, TEXT( "UActorChannel::ProcessQueuedBunches: Flushing queued bunches. ChIndex: %i, Actor: %s, Queued: %i" ), ChIndex, Actor != NULL ? *Actor->GetPathName() : TEXT( "NULL" ), QueuedBunches.Num() );
 
 		QueuedBunches.Empty();
+
+		// Call any onreps that were delayed because we were queuing bunches
+		for (auto& ReplicatorPair : ReplicationMap)
+		{
+			ReplicatorPair.Value->CallRepNotifies();
+		}
 	}
 
 	// Warn when we have queued bunches for a very long time

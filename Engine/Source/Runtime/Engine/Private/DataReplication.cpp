@@ -1132,6 +1132,11 @@ void FObjectReplicator::CallRepNotifies()
 		return;
 	}
 
+	if ( OwningChannel != NULL && OwningChannel->QueuedBunches.Num() > 0 )
+	{
+		return;
+	}
+
 	RepLayout->CallRepNotifies( RepState, Object );
 
 	if ( RepNotifies.Num() > 0 )
