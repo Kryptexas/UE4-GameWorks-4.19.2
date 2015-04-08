@@ -27,6 +27,9 @@ class ENGINE_API UDemoNetDriver : public UNetDriver
 	/** Current record/playback position in seconds */
 	float DemoCurrentTime;
 
+	/** Old current record/playback position in seconds (so we can restore on checkpoint failure) */
+	float OldDemoCurrentTime;
+
 	/** Total number of frames in the demo */
 	int32 DemoTotalFrames;
 
