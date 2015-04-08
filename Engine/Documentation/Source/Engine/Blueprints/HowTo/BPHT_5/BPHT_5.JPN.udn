@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2468131
+﻿INTSourceChangelist:2501099
 Availability:Public
 Title:5.岩を破壊する 
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
@@ -25,7 +25,7 @@ Description:OnHit に結合されている Bind Event を使って、ヒット�
 
 このステップでは、プレイヤーが発砲した発射物にヒット岩が破壊されるようにします。これを行うためには別の **Bind Event** を使いますが、それは Event Dispatcher には結像しません。その代り、岩のコリジョンが何かにヒットすると実行される **OnHit** と呼ばれるコリジョン イベントを使います。まさにこの状況にぴったりです。 
 
-では岩を破壊します。
+岩を破壊してみましょう！
 
 1.	**FirstPersonCharacter** ブループリント内に戻り、岩をスポーンする **Spawn Actor** ノードを検索します。 
 
@@ -102,8 +102,8 @@ Description:OnHit に結合されている Bind Event を使って、ヒット�
 1. **Blueprint_Effect_Sparks** を **レベル ビューポート** へドラッグします。 
 
 	![](BPHT5_2.png)(w:720)
-
 		1. エフェクトを選択して、 **Control+W** で複製して、レベル内に幾つか配置します。 
+
 
 	![](BPHT5_3.png)(w:720)
 
@@ -142,7 +142,7 @@ Description:OnHit に結合されている Bind Event を使って、ヒット�
 		ブループリント インターフェース
 	[/PARAM]
 	[PARAM:description]
-	次は、プレイヤーに火が燃え移っている場合と燃え移っていない場合、3 種類の **ブループリント** を異なるように反応させてみます。**ブループリント インターフェース** を使って必要とされる指示を出します。 
+	次は、プレイヤーに炎が燃え移っている場合と燃え移っていない場合、3 種類の **ブループリント** を異なるように反応させてみます。**ブループリント インターフェース** を使って必要とされる指示を出します。 
 	[/PARAM]
 [/OBJECT]
 
