@@ -41,109 +41,109 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/** Main tick function for the Actor */
-	UPROPERTY(EditDefaultsOnly, Category="Tick")
+	UPROPERTY(EditDefaultsOnly, Category = "Tick")
 	struct FActorComponentTickFunction PrimaryComponentTick;
 
 	/** Array of tags that can be used for grouping and categorizing. Can also be accessed from scripting. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Tags)
-	TArray<FName> ComponentTags;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Tags)
+		TArray<FName> ComponentTags;
 
 protected:
 
 	/** Array of user data stored with the component */
 	UPROPERTY()
-	TArray<UAssetUserData*> AssetUserData;
+		TArray<UAssetUserData*> AssetUserData;
 
-	/** 
-	 *  Indicates if this ActorComponent is currently registered with a scene. 
+	/**
+	 *  Indicates if this ActorComponent is currently registered with a scene.
 	 */
-	uint32 bRegistered:1;
+	uint32 bRegistered : 1;
 
 	/** If the render state is currently created for this component */
-	uint32 bRenderStateCreated:1;
+	uint32 bRenderStateCreated : 1;
 
 	/** If the physics state is currently created for this component */
-	uint32 bPhysicsStateCreated:1;
+	uint32 bPhysicsStateCreated : 1;
 
 	/** Is this component currently replicating? Should the network code consider it for replication? Owning Actor must be replicating first! */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Replicated, Category=ComponentReplication,meta=(DisplayName = "Component Replicates"))
-	uint32 bReplicates:1;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Replicated, Category = ComponentReplication, meta = (DisplayName = "Component Replicates"))
+		uint32 bReplicates : 1;
 
 	/** Is this component safe to ID over the network by name?  */
 	UPROPERTY()
-	uint32 bNetAddressable:1;
+		uint32 bNetAddressable : 1;
 
 private:
 	/** Is this component in need of its whole state being sent to the renderer? */
-	uint32 bRenderStateDirty:1;
+	uint32 bRenderStateDirty : 1;
 
 	/** Is this component's transform in need of sending to the renderer? */
-	uint32 bRenderTransformDirty:1;
+	uint32 bRenderTransformDirty : 1;
 
 	/** Is this component's dynamic data in need of sending to the renderer? */
-	uint32 bRenderDynamicDataDirty:1;
+	uint32 bRenderDynamicDataDirty : 1;
 
 	/** Used to ensure that any subclass of UActorComponent that overrides PostRename calls up to the Super to make OwnedComponents arrays get updated correctly */
-	uint32 bRoutedPostRename:1;
+	uint32 bRoutedPostRename : 1;
 
 public:
 
 	/** Does this component automatically register with its owner */
-	uint32 bAutoRegister:1;
+	uint32 bAutoRegister : 1;
 
 	/** Should this component be ticked in the editor */
-	uint32 bTickInEditor:1;
+	uint32 bTickInEditor : 1;
 
 	/** If true, this component never needs a render update. */
-	uint32 bNeverNeedsRenderUpdate:1;
+	uint32 bNeverNeedsRenderUpdate : 1;
 
 	/** Can we tick this concurrently on other threads? */
-	uint32 bAllowConcurrentTick:1;
+	uint32 bAllowConcurrentTick : 1;
 
 	/** True if this component was created by a construction script, and will be destroyed by DestroyConstructedComponents */
 	UPROPERTY()
-	uint32 bCreatedByConstructionScript_DEPRECATED:1;
+		uint32 bCreatedByConstructionScript_DEPRECATED : 1;
 
 	/** True if this component was created as an instance component */
 	UPROPERTY()
-	uint32 bInstanceComponent_DEPRECATED:1;
+		uint32 bInstanceComponent_DEPRECATED : 1;
 
 	/** Whether to the component is activated at creation or must be explicitly activated. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Activation)
-	uint32 bAutoActivate:1;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Activation)
+		uint32 bAutoActivate : 1;
 
 	/** Whether the component is currently active. */
-	UPROPERTY(transient, ReplicatedUsing=OnRep_IsActive)
-	uint32 bIsActive:1;
+	UPROPERTY(transient, ReplicatedUsing = OnRep_IsActive)
+		uint32 bIsActive : 1;
 
-	UPROPERTY(EditDefaultsOnly, Category="Variable")
-	uint32 bEditableWhenInherited:1;
+	UPROPERTY(EditDefaultsOnly, Category = "Variable")
+		uint32 bEditableWhenInherited : 1;
 
 	/** If true, we call the virtual InitializeComponent */
-	uint32 bWantsInitializeComponent:1;
+	uint32 bWantsInitializeComponent : 1;
 
 	/** If true, we call the virtual BeginPlay */
 	UPROPERTY()
-	uint32 bWantsBeginPlay:1;
+		uint32 bWantsBeginPlay : 1;
 
 private:
 	/** Indicates that OnCreatedComponent has been called, but OnDestroyedComponent has not yet */
-	uint32 bHasBeenCreated:1;
+	uint32 bHasBeenCreated : 1;
 
 	/** Indicates that InitializeComponent has been called, but UninitializeComponent has not yet */
-	uint32 bHasBeenInitialized:1;
+	uint32 bHasBeenInitialized : 1;
 
 	/** Indicates that BeginPlay has been called, but EndPlay has not yet */
-	uint32 bHasBegunPlay:1;
+	uint32 bHasBegunPlay : 1;
 
 	/** Tracks whether the component has been added to one of the world's end of frame update lists */
-	uint32 MarkedForEndOfFrameUpdateState:2;
+	uint32 MarkedForEndOfFrameUpdateState : 2;
 	friend struct FMarkComponentEndOfFrameUpdateState;
 
 	friend class FActorComponentInstanceData;
 
 	UPROPERTY()
-	TArray<FSimpleMemberReference> UCSModifiedProperties;
+		TArray<FSimpleMemberReference> UCSModifiedProperties;
 
 public:
 
@@ -159,22 +159,22 @@ public:
 	bool HasBegunPlay() const { return bHasBegunPlay; }
 
 	UPROPERTY()
-	EComponentCreationMethod CreationMethod;
+		EComponentCreationMethod CreationMethod;
 
 	bool IsCreatedByConstructionScript() const;
 
 	UFUNCTION()
-	void OnRep_IsActive();
+		void OnRep_IsActive();
 
 	/** Follow the Outer chain to get the  AActor  that 'Owns' this component */
-	UFUNCTION(BlueprintCallable, Category="Components", meta=(Keywords = "Actor Owning Parent"))
+	UFUNCTION(BlueprintCallable, Category = "Components", meta = (Keywords = "Actor Owning Parent"))
 	class AActor* GetOwner() const;
 
 	virtual class UWorld* GetWorld() const override;
 
 	/** See if this component contains the supplied tag */
-	UFUNCTION(BlueprintCallable, Category="Components")
-	bool ComponentHasTag(FName Tag) const;
+	UFUNCTION(BlueprintCallable, Category = "Components")
+		bool ComponentHasTag(FName Tag) const;
 
 	// Trigger/Activation interface
 
@@ -182,38 +182,38 @@ public:
 	 * Activates the SceneComponent
 	 * @param bReset - The value to assign to HiddenGame.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|Activation")
-	virtual void Activate(bool bReset=false);
-	
+	UFUNCTION(BlueprintCallable, Category = "Components|Activation")
+		virtual void Activate(bool bReset = false);
+
 	/**
 	 * Deactivates the SceneComponent.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|Activation")
-	virtual void Deactivate();
+	UFUNCTION(BlueprintCallable, Category = "Components|Activation")
+		virtual void Deactivate();
 
 	/**
 	 * Sets whether the component is active or not
 	 * @param bNewActive - The new active state of the component
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|Activation")
-	virtual void SetActive(bool bNewActive, bool bReset=false);
+	UFUNCTION(BlueprintCallable, Category = "Components|Activation")
+		virtual void SetActive(bool bNewActive, bool bReset = false);
 
 	/**
 	 * Toggles the active state of the component
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|Activation")
-	virtual void ToggleActive();
+	UFUNCTION(BlueprintCallable, Category = "Components|Activation")
+		virtual void ToggleActive();
 
 	/**
 	 * Returns whether the component is active or not
 	 * @return - The active state of the component.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|Activation")
-	virtual bool IsActive() const;
+	UFUNCTION(BlueprintCallable, Category = "Components|Activation")
+		virtual bool IsActive() const;
 
 	/** Sets whether this component can tick when paused. */
-	UFUNCTION(BlueprintCallable, Category="Utilities")
-	void SetTickableWhenPaused(bool bTickableWhenPaused);
+	UFUNCTION(BlueprintCallable, Category = "Utilities")
+		void SetTickableWhenPaused(bool bTickableWhenPaused);
 
 	// Networking
 
@@ -227,8 +227,8 @@ public:
 	virtual bool IsSupportedForNetworking() const override;
 
 	/** Enable or disable replication. This is the equivelent of RemoteRole for actors (only a bool is required for components) */
-	UFUNCTION(BlueprintCallable, Category="Components")
-	void SetIsReplicated(bool ShouldReplicate);
+	UFUNCTION(BlueprintCallable, Category = "Components")
+		void SetIsReplicated(bool ShouldReplicate);
 
 	/** Returns whether replication is enabled or not. */
 	bool GetIsReplicated() const;
@@ -251,8 +251,8 @@ public:
 
 protected:
 
-	/** 
-	 * Pointer to the world that this component is currently registered with. 
+	/**
+	 * Pointer to the world that this component is currently registered with.
 	 * This is only non-NULL when the component is registered.
 	 */
 	UWorld* World;
@@ -311,8 +311,8 @@ protected:
 	virtual void DestroyPhysicsState();
 
 	/** Return true if CreatePhysicsState() should be called.
-	    Ideally CreatePhysicsState() should always succeed if this returns true, but this isn't currently the case */
-	virtual bool ShouldCreatePhysicsState() const {return false;}
+		Ideally CreatePhysicsState() should always succeed if this returns true, but this isn't currently the case */
+	virtual bool ShouldCreatePhysicsState() const { return false; }
 
 	/** Used to check that DestroyPhysicsState() is working correctly */
 	virtual bool HasValidPhysicsState() const { return false; }
