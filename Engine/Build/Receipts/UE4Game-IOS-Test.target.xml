@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<BuildReceipt xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <BuildProducts>
+    <BuildProduct Path="$(EngineDir)/Binaries/IOS/UE4Game-IOS-Test" Type="Executable" />
+    <BuildProduct Path="$(EngineDir)/Binaries/IOS/UE4Game-IOS-Test.stub" Type="Executable" />
+    <BuildProduct Path="$(EngineDir)/Plugins/2D/Paper2D/Binaries/IOS/UE4Game-Paper2D-IOS-Test-Static.a" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)/Plugins/Experimental/CharacterAI/Binaries/IOS/UE4Game-CharacterAI-IOS-Test-Static.a" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)/Plugins/Media/AvfMedia/Binaries/IOS/UE4Game-AvfMedia-IOS-Test-Static.a" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)/Plugins/Messaging/UdpMessaging/Binaries/IOS/UE4Game-UdpMessaging-IOS-Test-Static.a" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)/Plugins/Runtime/AppleMoviePlayer/Binaries/IOS/UE4Game-AppleMoviePlayer-IOS-Test-Static.a" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)/Plugins/Runtime/CableComponent/Binaries/IOS/UE4Game-CableComponent-IOS-Test-Static.a" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)/Plugins/Runtime/CustomMeshComponent/Binaries/IOS/UE4Game-CustomMeshComponent-IOS-Test-Static.a" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)/Plugins/Runtime/ExampleDeviceProfileSelector/Binaries/IOS/UE4Game-ExampleDeviceProfileSelector-IOS-Test-Static.a" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)/Plugins/Runtime/IOSDeviceProfileSelector/Binaries/IOS/UE4Game-IOSDeviceProfileSelector-IOS-Test-Static.a" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)/Plugins/Slate/SlateRemote/Binaries/IOS/UE4Game-SlateRemote-IOS-Test-Static.a" Type="StaticLibrary" />
+  </BuildProducts>
+  <RuntimeDependencies />
+</BuildReceipt>

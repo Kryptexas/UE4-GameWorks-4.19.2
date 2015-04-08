@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<BuildReceipt xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <BuildProducts>
+    <BuildProduct Path="$(EngineDir)\Binaries\Linux\UE4Game-Linux-Shipping" Type="Executable" />
+    <BuildProduct Path="$(EngineDir)\Plugins\2D\Paper2D\Binaries\Linux\libUE4Game-Paper2D-Linux-Shipping-Static.a" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Experimental\CharacterAI\Binaries\Linux\libUE4Game-CharacterAI-Linux-Shipping-Static.a" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Messaging\UdpMessaging\Binaries\Linux\libUE4Game-UdpMessaging-Linux-Shipping-Static.a" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\CableComponent\Binaries\Linux\libUE4Game-CableComponent-Linux-Shipping-Static.a" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\CustomMeshComponent\Binaries\Linux\libUE4Game-CustomMeshComponent-Linux-Shipping-Static.a" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\ExampleDeviceProfileSelector\Binaries\Linux\libUE4Game-ExampleDeviceProfileSelector-Linux-Shipping-Static.a" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Slate\SlateRemote\Binaries\Linux\libUE4Game-SlateRemote-Linux-Shipping-Static.a" Type="StaticLibrary" />
+  </BuildProducts>
+  <RuntimeDependencies />
+</BuildReceipt>

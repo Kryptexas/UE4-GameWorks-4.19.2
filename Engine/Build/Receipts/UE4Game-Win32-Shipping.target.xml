@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<BuildReceipt xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <BuildProducts>
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Win32-Shipping.exe" Type="Executable" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Win32-Shipping.pdb" Type="SymbolFile" />
+    <BuildProduct Path="$(EngineDir)\Plugins\2D\Paper2D\Binaries\Win32\UE4Game-Paper2D-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Experimental\CharacterAI\Binaries\Win32\UE4Game-CharacterAI-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Experimental\SimpleHMD\Binaries\Win32\UE4Game-SimpleHMD-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Experimental\StructBox\Binaries\Win32\UE4Game-StructBox-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Media\WmfMedia\Binaries\Win32\UE4Game-WmfMedia-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Messaging\UdpMessaging\Binaries\Win32\UE4Game-UdpMessaging-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\NetcodeUnitTest\NetcodeUnitTest\Binaries\Win32\UE4Game-NetcodeUnitTest-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\NetcodeUnitTest\NUTUnrealEngine4\Binaries\Win32\UE4Game-NUTUnrealEngine4-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\NotForLicensees\NUTFortnite\Binaries\Win32\UE4Game-NUTFortnite-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\NotForLicensees\NUTUnrealEngine4_Private\Binaries\Win32\UE4Game-NUTUnrealEngine4_Private-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\Analytics\AnalyticsBlueprintLibrary\Binaries\Win32\UE4Game-AnalyticsBlueprintLibrary-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\Analytics\FileLogging\Binaries\Win32\UE4Game-FileLogging-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\CableComponent\Binaries\Win32\UE4Game-CableComponent-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\CustomMeshComponent\Binaries\Win32\UE4Game-CustomMeshComponent-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\ExampleDeviceProfileSelector\Binaries\Win32\UE4Game-ExampleDeviceProfileSelector-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\LeapMotionController\Binaries\Win32\UE4Game-LeapMotionController-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\LiveEditorListenServer\Binaries\Win32\UE4Game-LiveEditorListenServer-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\OculusRift\Binaries\Win32\UE4Game-OculusRift-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\SoundMod\Binaries\Win32\UE4Game-SoundMod-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\SoundVisualizations\Binaries\Win32\UE4Game-SoundVisualizations-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\Steam\SteamVR\Binaries\Win32\UE4Game-SteamVR-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\TwitchLiveStreaming\Binaries\Win32\NotForLicensees\UE4Game-TwitchLiveStreaming-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\WebBrowserAsPlugin\Binaries\Win32\UE4Game-WebBrowserAsPlugin-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\WindowsDeviceProfileSelector\Binaries\Win32\UE4Game-WindowsDeviceProfileSelector-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\WindowsMoviePlayer\Binaries\Win32\UE4Game-WindowsMoviePlayer-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\ScriptPlugin\Binaries\Win32\UE4Game-ScriptPlugin-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Slate\SlateRemote\Binaries\Win32\UE4Game-SlateRemote-Win32-Shipping-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Launch-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Core-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-CoreUObject-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Projects-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Json-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Engine-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-AppFramework-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-InputCore-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-SlateReflector-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Slate-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-SlateCore-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Networking-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Sockets-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-SandboxFile-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-VectorVM-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Landscape-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-RenderCore-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-RHI-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-NullDrv-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-D3D11RHI-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-ShaderCore-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-UtilityShaders-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-OpenGLDrv-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-ImageWrapper-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Renderer-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-HeadMountedDisplay-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Foliage-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-PhysXFormats-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-UMG-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-MovieSceneCore-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-HTTP-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-SlateRHIRenderer-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Navmesh-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Messaging-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-AssetRegistry-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-EngineMessages-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-EngineSettings-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-SynthBenchmark-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-AIModule-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-GameplayTags-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-DatabaseSupport-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-MovieSceneCoreTypes-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-StreamingPauseRendering-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-MoviePlayer-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Analytics-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-AnalyticsET-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-NetworkReplayStreaming-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-NullNetworkReplayStreaming-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-HttpNetworkReplayStreaming-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-OnlineSubsystem-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-ImageCore-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-OnlineSubsystemUtils-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Voice-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Advertising-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-CrashTracker-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-GameLiveStreaming-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-MediaAssets-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Media-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-PakFile-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Serialization-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-SessionServices-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-SessionMessages-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-XAudio2-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-InputDevice-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-GameMenuBuilder-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-XmlParser-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-OnlineSubsystemNull-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-OnlineSubsystemAmazon-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-OnlineSubsystemSteam-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-OnlineSubsystemFacebook-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Settings-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-WebBrowser-Win32-Shipping.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-CEF3Utils-Win32-Shipping.lib" Type="StaticLibrary" />
+  </BuildProducts>
+  <RuntimeDependencies>
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/PhysX-3.3/Win64/VS2013/PhysX3PROFILE_x86.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/PhysX-3.3/Win64/VS2013/PhysX3GpuPROFILE_x86.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/PhysX-3.3/Win64/VS2013/PhysX3CommonPROFILE_x86.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/PhysX-3.3/Win64/VS2013/PhysX3CookingPROFILE_x86.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/PhysX-3.3/Win64/VS2013/nvToolsExt64_1.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/PhysX-3.3/Win64/VS2013/PhysXDevice.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/APEX-1.3/Win32/VS2013/APEX_ClothingPROFILE_x86.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/APEX-1.3/Win32/VS2013/APEX_DestructiblePROFILE_x86.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/APEX-1.3/Win32/VS2013/APEX_LegacyPROFILE_x86.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/APEX-1.3/Win32/VS2013/APEX_LoaderPROFILE_x86.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/APEX-1.3/Win32/VS2013/APEX_ParticlesPROFILE_x86.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/APEX-1.3/Win32/VS2013/ApexFrameworkPROFILE_x86.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/Ogg/Win32/VS2013/libogg.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/Vorbis/Win32/VS2013/libvorbis.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/Vorbis/Win32/VS2013/libvorbisfile.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/Steamworks/Steamv132/Win32/steam_api.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/Leap/Win32/Leap.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/Win32/UnrealCEFSubProcess.exe" />
+  </RuntimeDependencies>
+</BuildReceipt>

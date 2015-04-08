@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<BuildReceipt xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <BuildProducts>
+    <BuildProduct Path="$(EngineDir)\Binaries\XboxOne\UE4Game.exe" Type="Executable" />
+    <BuildProduct Path="$(EngineDir)\Binaries\XboxOne\UE4Game.pdb" Type="SymbolFile" />
+    <BuildProduct Path="$(EngineDir)\Plugins\2D\Paper2D\Binaries\XboxOne\UE4Game-Paper2D-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Experimental\CharacterAI\Binaries\XboxOne\UE4Game-CharacterAI-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Messaging\UdpMessaging\Binaries\XboxOne\UE4Game-UdpMessaging-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\CableComponent\Binaries\XboxOne\UE4Game-CableComponent-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\CustomMeshComponent\Binaries\XboxOne\UE4Game-CustomMeshComponent-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\ExampleDeviceProfileSelector\Binaries\XboxOne\UE4Game-ExampleDeviceProfileSelector-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\XboxOne\XboxOneMoviePlayer\Binaries\XboxOne\UE4Game-XboxOneMoviePlayer-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Slate\SlateRemote\Binaries\XboxOne\UE4Game-SlateRemote-Static.lib" Type="StaticLibrary" />
+  </BuildProducts>
+  <RuntimeDependencies />
+</BuildReceipt>
