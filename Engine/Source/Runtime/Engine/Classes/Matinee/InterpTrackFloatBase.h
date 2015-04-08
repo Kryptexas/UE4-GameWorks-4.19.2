@@ -4,8 +4,8 @@
 #include "Matinee/InterpTrack.h"
 #include "InterpTrackFloatBase.generated.h"
 
-UCLASS(abstract, MinimalAPI)
-class UInterpTrackFloatBase : public UInterpTrack
+UCLASS(abstract)
+class ENGINE_API UInterpTrackFloatBase : public UInterpTrack
 {
 	GENERATED_UCLASS_BODY()
 	
