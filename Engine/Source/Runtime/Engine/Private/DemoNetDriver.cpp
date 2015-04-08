@@ -1299,6 +1299,21 @@ void UDemoNetDriver::ReplayStreamingReady( bool bSuccess, bool bRecord )
 	{
 		FString Error;
 		InitConnectInternal( Error );
+
+		const uint32 TotalDemoTimeInMS = ReplayStreamer->GetTotalDemoTime();
+
+		if ( TotalDemoTimeInMS > 0 )
+		{
+			DemoTotalTime = (float)TotalDemoTimeInMS / 1000.0f;
+		}
+
+		if ( ReplayStreamer->IsLive() && ReplayStreamer->GetTotalDemoTime() > 15 * 1000 )
+		{
+			ReplayStreamer->GotoTimeInMS( ReplayStreamer->GetTotalDemoTime() - 10 * 1000, FOnCheckpointReadyDelegate::CreateUObject( this, &UDemoNetDriver::CheckpointReady ) );
+
+			OldDemoCurrentTime = DemoCurrentTime;		// So we can restore on failure
+			DemoCurrentTime = (float)( ReplayStreamer->GetTotalDemoTime() - 10 * 1000 ) / 1000.0f;
+		}
 	}
 }
 
@@ -1328,32 +1343,23 @@ void UDemoNetDriver::LoadCheckpoint()
 		return;
 	}
 
-	if ( SpectatorController == NULL )
-	{
-		UE_LOG( LogDemo, Warning, TEXT( "UDemoNetConnection::LoadCheckpoint: No spectator player controller." ) );
-		return;
-	}
-
-	if ( SpectatorController->GetSpectatorPawn() == NULL )
-	{
-		UE_LOG( LogDemo, Warning, TEXT( "UDemoNetConnection::LoadCheckpoint: No spectator pawn." ) );
-		return;
-	}
-
 	bIsLoadingCheckpoint = true;
-
-	bRestoreSpectatorPosition = true;
-	SpectatorLocation = SpectatorController->GetSpectatorPawn()->GetActorLocation();
-	SpectatorRotation = SpectatorController->GetControlRotation();//GetSpectatorPawn()->GetActorRotation();
-
-	FURL ConnectURL;
-	ConnectURL.Map = DemoFilename;
 
 	// Reset the never-queue GUID list, we'll rebuild it
 	NonQueuedGUIDsForScrubbing.Empty();
 
-	// Save off the SpectatorController's GUID so that we know not to queue his bunches
-	AddNonQueuedActorForScrubbing(SpectatorController);
+	// Save off the current spectator position
+	// Check for NULL, which can be the case if we haven't played any of the demo yet but want to fast forward (joining live game for example)
+	if ( SpectatorController != NULL && SpectatorController->GetSpectatorPawn() != NULL )
+	{
+		bRestoreSpectatorPosition = true;
+
+		SpectatorLocation = SpectatorController->GetSpectatorPawn()->GetActorLocation();
+		SpectatorRotation = SpectatorController->GetControlRotation();//GetSpectatorPawn()->GetActorRotation();
+
+		// Save off the SpectatorController's GUID so that we know not to queue his bunches
+		AddNonQueuedActorForScrubbing(SpectatorController);
+	}
 
 #if 1
 	// Destroy all non startup actors. They will get restored with the checkpoint
@@ -1362,6 +1368,8 @@ void UDemoNetDriver::LoadCheckpoint()
 		// If there are any existing actors that are bAlwaysRelevant, don't queue their bunches.
 		// Actors that do queue their bunches might not appear immediately after the checkpoint is loaded,
 		// and missing bAlwaysRelevant actors are more likely to cause noticeable artifacts.
+		// NOTE - We are adding the actor guid here, under the assumption that the actor will reclaim the same guid when we load the checkpoint
+		// This is normally the case, but could break if actors get destroyed and re-created with different guids during recording
 		if ( It->bAlwaysRelevant )
 		{
 			AddNonQueuedActorForScrubbing(*It);
@@ -1391,6 +1399,9 @@ void UDemoNetDriver::LoadCheckpoint()
 
 	ServerConnection->Close();
 	ServerConnection->CleanUp();
+
+	FURL ConnectURL;
+	ConnectURL.Map = DemoFilename;
 
 	ServerConnection = NewObject<UNetConnection>(GetTransientPackage(), UDemoNetConnection::StaticClass());
 	ServerConnection->InitConnection( this, USOCK_Pending, ConnectURL, 1000000 );

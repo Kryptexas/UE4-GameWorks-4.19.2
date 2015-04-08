@@ -118,8 +118,8 @@ public:
 	virtual void SetHighPriorityTimeRange( const uint32 StartTimeInMS, const uint32 EndTimeInMS ) = 0;
 	virtual bool IsDataAvailableForTimeRange( const uint32 StartTimeInMS, const uint32 EndTimeInMS ) = 0;
 	
-	/** Returns true if the given StreamName is a game currently in progress */
-	virtual bool IsLive( const FString& StreamName ) const = 0;
+	/** Returns true if the playing stream is currently in progress */
+	virtual bool IsLive() const = 0;
 
 	/**
 	 * Attempts to delete the stream with the specified name. May execute asynchronously.

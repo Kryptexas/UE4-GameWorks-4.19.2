@@ -138,7 +138,12 @@ FArchive* FNullNetworkReplayStreamer::GetMetadataArchive()
 	return MetadataFileAr.Get();
 }
 
-bool FNullNetworkReplayStreamer::IsLive( const FString& StreamName ) const
+bool FNullNetworkReplayStreamer::IsLive() const
+{
+	return IsNamedStreamLive(CurrentStreamName);
+}
+
+bool FNullNetworkReplayStreamer::IsNamedStreamLive( const FString& StreamName ) const
 {
 	// If the directory for this stream doesn't exist, it can't possibly be live.
 	if (!IFileManager::Get().DirectoryExists(*GetStreamDirectory(StreamName)))
@@ -154,7 +159,7 @@ bool FNullNetworkReplayStreamer::IsLive( const FString& StreamName ) const
 void FNullNetworkReplayStreamer::DeleteFinishedStream( const FString& StreamName, const FOnDeleteFinishedStreamComplete& Delegate ) const
 {
 	// Live streams can't be deleted
-	if (IsLive(StreamName))
+	if (IsNamedStreamLive(StreamName))
 	{
 		UE_LOG(LogNullReplay, Log, TEXT("Can't delete network replay stream %s because it is live!"), *StreamName);
 		Delegate.ExecuteIfBound(false);
@@ -191,7 +196,7 @@ void FNullNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersion& 
 		{
 			Info.Name = Directory;
 			Info.Timestamp = IFileManager::Get().GetTimeStamp( *FullDemoFilePath );
-			Info.bIsLive = IsLive( Directory );			
+			Info.bIsLive = IsNamedStreamLive( Directory );			
 
 			// Live streams not supported yet
 			if (!Info.bIsLive)
