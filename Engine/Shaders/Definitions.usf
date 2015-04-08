@@ -150,6 +150,10 @@
 #define NUM_VF_PACKED_INTERPOLANTS						0
 #endif
 
+#ifndef USE_CLEARCOAT
+#define USE_CLEARCOAT									0
+#endif
+
 #if SM5_PROFILE || COMPILER_SUPPORTS_ATTRIBUTES
 /** Avoids flow control constructs. */
 #define UNROLL											[unroll]

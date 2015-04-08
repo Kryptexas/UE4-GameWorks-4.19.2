@@ -121,6 +121,7 @@ float3 SimpleShading( FGBufferData GBuffer, float Roughness, float3 L, float3 V,
 
 float3 ClearCoatShading( FGBufferData GBuffer, float3 LobeRoughness, float3 LobeEnergy, float3 L, float3 V, half3 N )
 {
+#if USE_CLEARCOAT
 	const float ClearCoat			= GBuffer.CustomData.x;
 	const float ClearCoatRoughness	= GBuffer.CustomData.y;
 	const float Film = 1 * ClearCoat;
@@ -227,6 +228,9 @@ float3 ClearCoatShading( FGBufferData GBuffer, float3 LobeRoughness, float3 Lobe
 	
 	return Fr1 + Fr2 * LayerAttenuation;
 #endif
+#else //USE_CLEARCOAT
+	return float3(0.0f, 0.0f, 0.0f);
+#endif //USE_CLEARCOAT
 }
 
 float3 SubsurfaceShadingSubsurface( FGBufferData GBuffer, float3 L, float3 V, half3 N )

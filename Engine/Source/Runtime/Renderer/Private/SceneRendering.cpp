@@ -210,9 +210,9 @@ void FViewInfo::Init()
 	bPrevTransformsReset = false;
 	bIgnoreExistingQueries = false;
 	bDisableQuerySubmissions = false;
-	bDisableDistanceBasedFadeTransitions = false;
-	bScreenSpaceSubsurfacePassNeeded = false;
-	NumVisibleStaticMeshElements = false;
+	bDisableDistanceBasedFadeTransitions = false;	
+	LightingProfilesActiveInView = 0;
+	NumVisibleStaticMeshElements = 0;
 	PrecomputedVisibilityData = 0;
 
 	bIsViewInfo = true;

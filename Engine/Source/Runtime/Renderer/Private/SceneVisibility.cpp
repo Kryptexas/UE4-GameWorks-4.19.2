@@ -753,7 +753,7 @@ static void ComputeRelevanceForView(
 		const bool bDynamicRelevance = ViewRelevance.bDynamicRelevance;
 		const bool bShadowRelevance = ViewRelevance.bShadowRelevance;
 		const bool bEditorRelevance = ViewRelevance.bEditorPrimitiveRelevance;
-		const bool bTranslucentRelevance = ViewRelevance.HasTranslucency();
+		const bool bTranslucentRelevance = ViewRelevance.HasTranslucency();		
 
 		if (bStaticRelevance && (bDrawRelevance || bShadowRelevance))
 		{
@@ -795,10 +795,7 @@ static void ComputeRelevanceForView(
 			}
 		}
 		
-		if (ViewRelevance.bSubsurfaceProfileRelevance)
-		{
-			View.bScreenSpaceSubsurfacePassNeeded = true;
-		}
+		View.LightingProfilesActiveInView |= ViewRelevance.LightingProfileRelevanceMask;
 		
 		if (ViewRelevance.bRenderCustomDepth)
 		{
@@ -937,6 +934,7 @@ struct FRelevancePacket
 	FRelevancePrimSet<FPrimitiveSceneProxy*> CustomDepthSet;
 	FRelevancePrimSet<FPrimitiveSceneInfo*> UpdateStaticMeshes;
 	FRelevancePrimSet<FPrimitiveSceneInfo*> VisibleEditorPrimitives;
+	uint16 CombinedLightingProfileMask;
 
 	FRelevancePacket(
 		FRHICommandListImmediate& InRHICmdList,
@@ -958,6 +956,7 @@ struct FRelevancePacket
 		, OutHasDynamicMeshElementsMasks(InOutHasDynamicMeshElementsMasks)
 		, OutHasDynamicEditorMeshElementsMasks(InOutHasDynamicEditorMeshElementsMasks)
 		, MarkMasks(InMarkMasks)
+		, CombinedLightingProfileMask(0)
 	{
 	}
 
@@ -969,6 +968,7 @@ struct FRelevancePacket
 
 	void ComputeRelevance()
 	{
+		CombinedLightingProfileMask = 0;
 		SCOPE_CYCLE_COUNTER(STAT_ComputeViewRelevance);
 		for (int32 Index = 0; Index < Input.NumPrims; Index++)
 		{
@@ -1028,11 +1028,7 @@ struct FRelevancePacket
 				}
 			}
 
-			if (ViewRelevance.bSubsurfaceProfileRelevance)
-			{
-				// this is ok because it is write only
-				const_cast<FViewInfo&>(View).bScreenSpaceSubsurfacePassNeeded = true;
-			}
+			CombinedLightingProfileMask |= ViewRelevance.LightingProfileRelevanceMask;			
 
 			if (ViewRelevance.bRenderCustomDepth)
 			{
@@ -1151,11 +1147,12 @@ struct FRelevancePacket
 	void RenderThreadFinalize()
 	{
 		FViewInfo& WriteView = const_cast<FViewInfo&>(View);
-
+		
 		for (int32 Index = 0; Index < NotDrawRelevant.NumPrims; Index++)
 		{
 			WriteView.PrimitiveVisibilityMap[NotDrawRelevant.Prims[Index]] = false;
 		}
+		WriteView.LightingProfilesActiveInView |= CombinedLightingProfileMask;
 		VisibleEditorPrimitives.AppendTo(WriteView.VisibleEditorPrimitives);
 		VisibleDynamicPrimitives.AppendTo(WriteView.VisibleDynamicPrimitives);
 		WriteView.TranslucentPrimSet.AppendScenePrimitives(SortedTranslucencyPrims.Prims, SortedTranslucencyPrims.NumPrims, SortedSeparateTranslucencyPrims.Prims, SortedSeparateTranslucencyPrims.NumPrims);

@@ -17,7 +17,7 @@ void FMaterialRelevance::SetPrimitiveViewRelevance(FPrimitiveViewRelevance& OutV
 	OutViewRelevance.bDistortionRelevance = bDistortion;
 	OutViewRelevance.bSeparateTranslucencyRelevance = bSeparateTranslucency;
 	OutViewRelevance.bNormalTranslucencyRelevance = bNormalTranslucency;
-	OutViewRelevance.bSubsurfaceProfileRelevance = bSubsurfaceProfile;
+	OutViewRelevance.LightingProfileRelevanceMask = LightingProfileMask;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -50,15 +50,14 @@ FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Ma
 		const bool bIsLit =  ShadingModel != MSM_Unlit;
 		// Determine the material's view relevance.
 		FMaterialRelevance MaterialRelevance;
+		MaterialRelevance.LightingProfileMask = 1 << ShadingModel;
 		MaterialRelevance.bOpaque = !bIsTranslucent;
 		MaterialRelevance.bMasked = IsMasked();
 		MaterialRelevance.bDistortion = Material->bUsesDistortion && bIsTranslucent;
 		MaterialRelevance.bSeparateTranslucency = bIsTranslucent && Material->bEnableSeparateTranslucency;
 		MaterialRelevance.bNormalTranslucency = bIsTranslucent && !Material->bEnableSeparateTranslucency;
-		MaterialRelevance.bDisableDepthTest = bIsTranslucent && Material->bDisableDepthTest;
-		MaterialRelevance.bSubsurfaceProfile = (Material->MaterialDomain == MD_Surface) && !bIsTranslucent && (ShadingModel == MSM_SubsurfaceProfile);
-		MaterialRelevance.bOutputsVelocityInBasePass = Material->bOutputVelocityOnBasePass;
-
+		MaterialRelevance.bDisableDepthTest = bIsTranslucent && Material->bDisableDepthTest;		
+		MaterialRelevance.bOutputsVelocityInBasePass = Material->bOutputVelocityOnBasePass;		
 		return MaterialRelevance;
 	}
 	else

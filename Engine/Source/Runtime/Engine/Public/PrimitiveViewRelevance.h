@@ -8,6 +8,8 @@
  */
 struct FPrimitiveViewRelevance
 {
+	/* The LightingProfile supported by this primitive, as a bitmask. */
+	uint16 LightingProfileRelevanceMask;
 	/** The primitive's static elements are rendered for the view. */
 	uint32 bStaticRelevance : 1; 
 	/** The primitive's dynamic elements are rendered for the view. */
@@ -37,8 +39,6 @@ struct FPrimitiveViewRelevance
 	uint32 bSeparateTranslucencyRelevance : 1;
 	/** The primitive has one or more elements that have normal translucency. */
 	uint32 bNormalTranslucencyRelevance : 1;
-	/** The primitive has one or more elements that have the SubsurfaceProfile shading model. */
-	uint32 bSubsurfaceProfileRelevance : 1;
 	// The primitive has one or more elements that have World Position Offset.
 	uint32 bHasWorldPositionOffset : 1;
 
@@ -56,6 +56,7 @@ struct FPrimitiveViewRelevance
 
 	/** Initialization constructor. */
 	FPrimitiveViewRelevance():
+		LightingProfileRelevanceMask(0),
 		bStaticRelevance(false),
 		bDynamicRelevance(false),
 		bDrawRelevance(false),
@@ -69,8 +70,7 @@ struct FPrimitiveViewRelevance
 		bMaskedRelevance(false),
 		bDistortionRelevance(false),
 		bSeparateTranslucencyRelevance(false),
-		bNormalTranslucencyRelevance(false),
-		bSubsurfaceProfileRelevance(false),
+		bNormalTranslucencyRelevance(false),		
 		bHasWorldPositionOffset(false),
 		bInitializedThisFrame(false)
 	{}
@@ -78,6 +78,7 @@ struct FPrimitiveViewRelevance
 	/** Bitwise OR operator.  Sets any relevance bits which are present in either FPrimitiveViewRelevance. */
 	FPrimitiveViewRelevance& operator|=(const FPrimitiveViewRelevance& B)
 	{
+		LightingProfileRelevanceMask |= B.LightingProfileRelevanceMask;
 		bStaticRelevance |= B.bStaticRelevance != 0;
 		bDynamicRelevance |= B.bDynamicRelevance != 0;
 		bDrawRelevance |= B.bDrawRelevance != 0;
@@ -92,8 +93,7 @@ struct FPrimitiveViewRelevance
 		bHasSimpleLights |= B.bHasSimpleLights != 0;
 		bSeparateTranslucencyRelevance |= B.bSeparateTranslucencyRelevance != 0;
 		bNormalTranslucencyRelevance |= B.bNormalTranslucencyRelevance != 0;
-		bInitializedThisFrame |= B.bInitializedThisFrame;
-		bSubsurfaceProfileRelevance |= B.bSubsurfaceProfileRelevance != 0;
+		bInitializedThisFrame |= B.bInitializedThisFrame;		
 		bHasWorldPositionOffset |= B.bHasWorldPositionOffset != 0;
 		return *this;
 	}

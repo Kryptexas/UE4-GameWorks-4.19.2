@@ -51,6 +51,7 @@ void ScreenSpaceReflectionsPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 O
 	
 	float Roughness = GBuffer.Roughness;
 
+#if USE_CLEARCOAT
 	BRANCH
 	if( GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT )
 	{
@@ -59,6 +60,7 @@ void ScreenSpaceReflectionsPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 O
 
 		Roughness = lerp( Roughness, ClearCoatRoughness, ClearCoat );
 	}
+#endif
 
 	// mask SSR to reduce noise and for better performance, roughness of 0 should have SSR, at MaxRoughness we fade to 0
 	float RoughnessFade = saturate(Roughness * SSRParams.y + 2);

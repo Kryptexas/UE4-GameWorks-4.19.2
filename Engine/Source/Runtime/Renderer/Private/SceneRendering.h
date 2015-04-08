@@ -442,8 +442,8 @@ public:
 	uint32 bDisableQuerySubmissions : 1;
 	/** Whether we should disable distance-based fade transitions for this frame (usually after a large camera movement.) */
 	uint32 bDisableDistanceBasedFadeTransitions : 1;
-	/** Whether we render any objects with a material using SubsurfaceProfile as shading model. */
-	uint32 bScreenSpaceSubsurfacePassNeeded : 1;
+	/** Bitmask of all lighting profiles used by primitives in this view */
+	uint16 LightingProfilesActiveInView;
 
 	FViewMatrices PrevViewMatrices;
 

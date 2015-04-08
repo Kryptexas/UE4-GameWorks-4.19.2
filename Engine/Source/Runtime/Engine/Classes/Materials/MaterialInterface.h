@@ -53,12 +53,12 @@ struct ENGINE_API FMaterialRelevance
 
 	UPROPERTY()
 	uint32 bDisableDepthTest : 1;
-
-	UPROPERTY()
-	uint32 bSubsurfaceProfile : 1;
-
+	
 	UPROPERTY()
 	uint32 bOutputsVelocityInBasePass : 1;
+
+	UPROPERTY()
+	uint16 LightingProfileMask;
 
 	/** Default constructor. */
 	FMaterialRelevance()
@@ -67,9 +67,9 @@ struct ENGINE_API FMaterialRelevance
 		, bDistortion(false)
 		, bSeparateTranslucency(false)
 		, bNormalTranslucency(false)
-		, bDisableDepthTest(false)
-		, bSubsurfaceProfile(false)
+		, bDisableDepthTest(false)		
 		, bOutputsVelocityInBasePass(true)
+		, LightingProfileMask(0)
 	{}
 
 	/** Bitwise OR operator.  Sets any relevance bits which are present in either FMaterialRelevance. */
@@ -81,7 +81,7 @@ struct ENGINE_API FMaterialRelevance
 		bSeparateTranslucency |= B.bSeparateTranslucency;
 		bNormalTranslucency |= B.bNormalTranslucency;
 		bDisableDepthTest |= B.bDisableDepthTest;
-		bSubsurfaceProfile |= B.bSubsurfaceProfile;
+		LightingProfileMask |= B.LightingProfileMask;
 		bOutputsVelocityInBasePass |= B.bOutputsVelocityInBasePass;
 		return *this;
 	}

@@ -19,6 +19,11 @@ public:
 	virtual const TCHAR* GetDebugName() { return TEXT("FRCPassPostProcessAmbient"); }
 	virtual void Process(FRenderingCompositePassContext& Context) override;
 	virtual void Release() override { delete this; }
-	virtual bool FrameBufferBlendingWithInput0() const override { return true; }
-	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
+	virtual bool FrameBufferBlendingWithInput0() const { return true; }
+	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
+
+private:
+
+	template<bool bUseClearCoat>
+	void Render(FRenderingCompositePassContext& Context);
 };
