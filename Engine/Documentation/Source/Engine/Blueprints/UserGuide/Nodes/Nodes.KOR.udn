@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2419450
+﻿INTSourceChangelist:2504305
 Availability:Public
 Title:노드
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -211,3 +211,4 @@ Description:이벤트와 함수 호출을 사용해서 블루프린트와 연관
 1.	접힌 그래프 노드가 그 안에 들어있는 노드들로 대체되며, 더이상 **내 블루프린트** 탭 그래프 계층구조에 존재하지 않습니다.
 
 	![Blueprint Expand Node - Resulting Nodes](k2_expand_graph.png)(w:900)
+
