@@ -5503,7 +5503,7 @@ void UEdGraphSchema_K2::SplitPin(UEdGraphPin* Pin) const
 			{
 				FFormatNamedArguments Arguments;
 				Arguments.Add(TEXT("PinDisplayName"), Pin->GetDisplayName());
-				Arguments.Add(TEXT("PinDisplayName"), ProtoPin->GetDisplayName());
+				Arguments.Add(TEXT("ProtoPinDisplayName"), ProtoPin->GetDisplayName());
 				SubPin->PinFriendlyName = FText::Format(LOCTEXT("SplitPinFriendlyNameFormat", "{PinDisplayName} {ProtoPinDisplayName}"), Arguments);
 			}
 
