@@ -234,8 +234,8 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(CollisionPawn, SFG_Hidden, LOCTEXT("CollisionPawn", "
 SHOWFLAG_ALWAYS_ACCESSIBLE(LightShafts, SFG_LightingFeatures, LOCTEXT("LightShaftsSF", "Light Shafts"))
 /** Render the PostProcess Material */
 SHOWFLAG_ALWAYS_ACCESSIBLE(PostProcessMaterial, SFG_PostProcess, LOCTEXT("PostProcessMaterialSF", "Post Process Material"))
-/** Render Atmospheric scattering */
-SHOWFLAG_ALWAYS_ACCESSIBLE(Atmosphere, SFG_Normal, LOCTEXT("AtmosphereSF", "Atmosphere"))
+/** Render Atmospheric scattering (Atmospheric Fog) */
+SHOWFLAG_ALWAYS_ACCESSIBLE(AtmosphericFog, SFG_Advanced, LOCTEXT("AtmosphereSF", "Atmospheric Fog"))
 /** Render safe frames bars*/
 SHOWFLAG_ALWAYS_ACCESSIBLE(CameraAspectRatioBars, SFG_Advanced, LOCTEXT("CameraAspectRatioBarsSF", "Camera Aspect Ratio Bars"))
 /** Render safe frames */

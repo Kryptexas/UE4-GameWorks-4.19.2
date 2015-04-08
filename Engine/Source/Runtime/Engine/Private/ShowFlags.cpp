@@ -398,10 +398,11 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 			ViewModeIndex == VMI_BrushWireframe ||
 			ViewModeIndex == VMI_Unlit ||
 			ViewModeIndex == VMI_StationaryLightOverlap ||
+			ViewModeIndex == VMI_ShaderComplexity ||
 			ViewModeIndex == VMI_LightmapDensity)
 		{
 			EngineShowFlags.Lighting = 0;
-			EngineShowFlags.Atmosphere = 0;
+			EngineShowFlags.AtmosphericFog = 0;
 		}
 
 		if( ViewModeIndex == VMI_Lit ||

@@ -357,6 +357,7 @@ void UConsole::UpdateCompleteIndices()
 		{
 			AutoComplete.Add(AutoCompleteList[Leaf[i]]);
 		}
+		AutoComplete.Sort();
 	}
 }
 
@@ -1177,8 +1178,6 @@ void UConsole::PostRender_InputLine(UCanvas* Canvas, FIntPoint UserInputLinePos)
 		// Set the background color/texture of the auto-complete section
 		ConsoleTile.SetColor( ConsoleDefs::AutocompleteBackgroundColor );
 		ConsoleTile.Texture = DefaultTexture_White->Resource;
-
-		AutoComplete.Sort();
 
 		// wasteful memory allocations but when typing in a console command this is fine
 		TArray<FString> AutoCompleteElements;
