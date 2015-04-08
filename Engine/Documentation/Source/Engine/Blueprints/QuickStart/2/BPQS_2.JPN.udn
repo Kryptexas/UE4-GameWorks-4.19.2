@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2449235
+﻿INTSourceChangelist:2492474
 Availability:Public
 Title:2.Launchpad を構成する
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
-Description:最も一般的に用いられるビューポートのナビゲーション制御の概要
+Description:最も一般的に使われるビューポートのナビゲーション制御の概要
 
 
 [VAR:Steps]
@@ -31,16 +31,16 @@ Launchpadはレベルエディタでビルドして、ゲームプレイビヘ�
 
 	![](TopPlatforms.png)(w:500)
 
-	Empty Actor（空のアクタ）を使用してLaunchpadの全要素を保持するコンテナを作成します。必要な2つの要素（またはコンポーネント）はLaunchpadを表す形状とキャラクターがこれにオーバーラップした時の
+	Empty Actor（空のアクタ）を使用してLaunchpadの要素すべてを保持するコンテナを作成します。必要となる2つの要素（またはコンポーネント）は、Launchpadを表す形状とキャラクターがこれにオーバーラップした時の
 	トリガーです。 
 
-1. **モード** パネルで **Basic** をクリック、そして **Empty Actor** を探します。
+1. **[モード]** パネルで **[Basic]** をクリック、そして **[Empty Actor]** を探します。
 
 	 ![](EmptyActor.png)
 1. 表示されているプラットフォームのどれかにアクタを配置するためにレベルへドラッグします。
 
 	![](DragEmptyActor.png)
-1. レベルでアクタを選択すると、アクタのプロパティが [詳細] パネルに表示されます。[詳細] パネルの一番上でアクタの名前を変更することができます。テキストボックスをクリックして、「LaunchPad」など新しい名前を入力してください。
+1. レベルでアクタを選択すると、アクタのプロパティが **[詳細]** パネルに表示されます。[詳細] パネルの上部でアクタの名前を変更することができます。テキストボックスをクリックして、「LaunchPad」など新しい名前を入力してください。
 
 	![](NameLaunchpad.png)
 
