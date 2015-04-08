@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2386014
+﻿INTSourceChangelist:2499090
 Availability:Public
 Title:QuickTime で FBX ファイルを表示する
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
@@ -30,7 +30,7 @@ Description:Quicktime FBX ビューアでスケルタル メッシュとアニ�
 ## 概要
 
 
-FBX ファイルの表示は、多くの場合、お気に入りの 3D コンテンツ作成パッケージをインポートして表示させる必要があります。しかし、普段 3D モデルの作業をしないプログラマーの方などは注意が必要となります。Autodesk が開発した QuickTime プラグインは、3D コンテンツ作成パッケージをインストールすることなく FBX ファイルの表示を可能とします。 
+FBX ファイルの表示は、お気に入りの 3D コンテンツ作成パッケージをインポートして表示さなければならない場合が多いです。しかし、普段 3D モデルの作業をしないプログラマーの方などは注意が必要となります。Autodesk が開発した QuickTime プラグインは、3D コンテンツ作成パッケージをインストールすることなく FBX ファイルの表示を可能とします。 
 
 
 ## プラグインと QuickTime をダウンロードする
@@ -42,7 +42,7 @@ QuickTimeがインストールされていない場合、 [Apple 社のウェブ
 
 ## FBX ファイルを開く
 
-プラグインは QuickTime で表示するファイルのリストへ拡張子を追加しません。これを回避するには、"All Files(<literal>*.*</literal>)" オプションを選択します。そして FBX ファイルが表示されたら **ダブルクリック** 、またはファイルを選択して [開く] をクリックします。
+プラグインは QuickTime で表示するファイルのリストへ拡張子を追加しません。これを回避するには、[All Files(<literal>*.*</literal>)] オプションを選択します。そして FBX ファイルが表示されたら **ダブルクリック** 、またはファイルを選択して [Open] をクリックします。
 
 ![QTFBX_OpeningFiles.jpg](QTFBX_OpeningFiles.jpg)(w:664 h:636)
 
