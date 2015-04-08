@@ -520,9 +520,10 @@ UK2Node::ERedirectType UK2Node::DoPinsMatchForReconstruction(const UEdGraphPin* 
 				for (int32 ParentIndex = ParentHierarchy.Num() - 1; ParentIndex >= 0; --ParentIndex)
 				{
 					const UEdGraphPin* CurPin = ParentHierarchy[ParentIndex].Pin;
-					const UEdGraphPin* ParentPin = CurPin->ParentPin;
+					const UEdGraphPin* ParentPin = CurPin ? CurPin->ParentPin : nullptr;
+					const UObject* SubCategoryObject = ParentPin ? ParentPin->PinType.PinSubCategoryObject.Get() : nullptr;
 
-					TMap<FName, FName>* StructRedirects = UStruct::TaggedPropertyRedirects.Find(ParentPin->PinType.PinSubCategoryObject->GetFName());
+					TMap<FName, FName>* StructRedirects = SubCategoryObject ? UStruct::TaggedPropertyRedirects.Find(SubCategoryObject->GetFName()) : nullptr;
 					if (StructRedirects)
 					{
 						FName* PropertyRedirect = StructRedirects->Find(FName(*ParentHierarchy[ParentIndex].PropertyName));
