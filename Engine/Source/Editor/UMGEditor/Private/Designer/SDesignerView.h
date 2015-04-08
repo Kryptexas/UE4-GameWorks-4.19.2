@@ -92,6 +92,8 @@ private:
 	/** The height of the preview widget for the UI */
 	FOptionalSize GetPreviewSizeHeight() const;
 
+	const FSlateBrush* GetPreviewBackground() const;
+
 	void GetPreviewAreaAndSize(FVector2D& Area, FVector2D& Size) const;
 
 	/** Gets the DPI scale that would be applied given the current preview width and height */
@@ -259,6 +261,9 @@ private:
 
 	/** The configured Height of the preview area, simulates screen size. */
 	int32 PreviewHeight;
+
+	/** The slate brush we use to hold the background image shown in the designer. */
+	mutable FSlateBrush BackgroundImage;
 
 	/** We cache the desired preview desired size to maintain the same size between compiles when it lags a frame behind and no widget is available. */
 	FVector2D CachedPreviewDesiredSize;

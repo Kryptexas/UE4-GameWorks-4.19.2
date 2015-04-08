@@ -225,12 +225,17 @@ void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepr
 
 					+ SOverlay::Slot()
 					[
-						SAssignNew(PreviewAreaConstraint, SBox)
-						.WidthOverride(this, &SDesignerView::GetPreviewAreaWidth)
-						.HeightOverride(this, &SDesignerView::GetPreviewAreaHeight)
+						SNew(SBorder)
+						.Padding(FMargin(0))
+						.BorderImage(this, &SDesignerView::GetPreviewBackground)
 						[
-							SAssignNew(PreviewSurface, SDPIScaler)
-							.DPIScale(this, &SDesignerView::GetPreviewDPIScale)
+							SAssignNew(PreviewAreaConstraint, SBox)
+							.WidthOverride(this, &SDesignerView::GetPreviewAreaWidth)
+							.HeightOverride(this, &SDesignerView::GetPreviewAreaHeight)
+							[
+								SAssignNew(PreviewSurface, SDPIScaler)
+								.DPIScale(this, &SDesignerView::GetPreviewDPIScale)
+							]
 						]
 					]
 				]
@@ -688,6 +693,20 @@ FOptionalSize SDesignerView::GetPreviewSizeHeight() const
 	GetPreviewAreaAndSize(Area, Size);
 
 	return Size.Y;
+}
+
+const FSlateBrush* SDesignerView::GetPreviewBackground() const
+{
+	if ( UUserWidget* DefaultWidget = GetDefaultWidget() )
+	{
+		if ( DefaultWidget->PreviewBackground )
+		{
+			BackgroundImage.SetResourceObject(DefaultWidget->PreviewBackground);
+			return &BackgroundImage;
+		}
+	}
+
+	return nullptr;
 }
 
 void SDesignerView::GetPreviewAreaAndSize(FVector2D& Area, FVector2D& Size) const
