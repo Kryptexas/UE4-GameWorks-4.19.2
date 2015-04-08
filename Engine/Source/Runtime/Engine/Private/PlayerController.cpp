@@ -6,9 +6,7 @@
 #include "Engine/WorldComposition.h"
 #include "Engine/LevelScriptActor.h"
 #include "GameFramework/GameNetworkManager.h"
-#include "GameFramework/Character.h"
 #include "Interfaces/NetworkPredictionInterface.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "ConfigCacheIni.h"
 #include "SoundDefinitions.h"
 #include "OnlineSubsystemUtils.h"
@@ -39,8 +37,11 @@
 #include "Engine/GameEngine.h"
 #include "Engine/GameInstance.h"
 #include "VisualLogger/VisualLogger.h"
+#include "MessageLog.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerController);
+
+#define LOCTEXT_NAMESPACE "PlayerController"
 
 const float RetryClientRestartThrottleTime = 0.5f;
 const float RetryServerAcknowledgeThrottleTime = 0.25f;
@@ -747,6 +748,15 @@ void APlayerController::ClientRestart_Implementation(APawn* NewPawn)
 
 void APlayerController::Possess(APawn* PawnToPossess)
 {
+	if (!HasAuthority())
+	{
+		FMessageLog("PIE").Warning(FText::Format(
+			LOCTEXT("PlayerControllerPossessAuthorityOnly", "Possess function should only be used by the network authority for {0}"),
+			FText::FromName(GetFName())
+			));
+		return;
+	}
+
 	if ( PawnToPossess != NULL && 
 		(PlayerState == NULL || !PlayerState->bOnlySpectator) )
 	{
@@ -4542,3 +4552,5 @@ void APlayerController::OnServerStartedVisualLogger_Implementation(bool bIsLoggi
 	ClientMessage(FString::Printf(TEXT("Visual Loggger is %s."), FVisualLogger::Get().IsRecordingOnServer() ? TEXT("now recording") : TEXT("disabled")));
 #endif
 }
+
+#undef LOCTEXT_NAMESPACE

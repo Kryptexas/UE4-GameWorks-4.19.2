@@ -12,7 +12,7 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/GameMode.h"
 #include "GameFramework/PawnMovementComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
+#include "MessageLog.h"
 
 // @todo this is here only due to circular dependency to AIModule. To be removed
 #include "Navigation/PathFollowingComponent.h"
@@ -21,6 +21,8 @@
 #include "Components/CapsuleComponent.h"
 
 DEFINE_LOG_CATEGORY(LogPath);
+
+#define LOCTEXT_NAMESPACE "Controller"
 
 
 AController::AController(const FObjectInitializer& ObjectInitializer)
@@ -214,6 +216,15 @@ void AController::PostInitializeComponents()
 
 void AController::Possess(APawn* InPawn)
 {
+	if (!HasAuthority())
+	{
+		FMessageLog("PIE").Warning(FText::Format(
+			LOCTEXT("ControllerPossessAuthorityOnly", "Possess function should only be used by the network authority for {0}"),
+			FText::FromName(GetFName())
+			));
+		return;
+	}
+
 	REDIRECT_OBJECT_TO_VLOG(InPawn, this);
 
 	if (InPawn != NULL)
@@ -592,3 +603,5 @@ void AController::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutL
 
 /** Returns TransformComponent subobject **/
 USceneComponent* AController::GetTransformComponent() const { return TransformComponent; }
+
+#undef LOCTEXT_NAMESPACE

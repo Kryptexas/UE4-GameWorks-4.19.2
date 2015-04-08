@@ -5,6 +5,7 @@
 #include "Controller.generated.h"
 
 class UPathFollowingComponent;
+class APawn;
 
 UDELEGATE(BlueprintAuthorityOnly)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams( FInstigatedAnyDamageSignature, float, Damage, const class UDamageType*, DamageType, class AActor*, DamagedActor, class AActor*, DamageCauser );
@@ -36,13 +37,13 @@ class ENGINE_API AController : public AActor, public INavAgentInterface
 private:
 	/** Pawn currently being controlled by this controller.  Use Pawn.Possess() to take control of a pawn */
 	UPROPERTY(replicatedUsing=OnRep_Pawn)
-	class APawn* Pawn;
+	APawn* Pawn;
 
 	/**
 	 * Used to track when pawn changes during OnRep_Pawn. 
 	 * It's possible to use a OnRep parameter here, but I'm not sure what happens with pointers yet so playing it safe.
 	 */
-	TWeakObjectPtr< class APawn > OldPawn;
+	TWeakObjectPtr< APawn > OldPawn;
 
 	/** Character currently being controlled by this controller.  Value is same as Pawn if the controlled pawn is a character, otherwise NULL */
 	UPROPERTY()
@@ -162,10 +163,10 @@ public:
 
 	/** Return the Pawn that is currently 'controlled' by this PlayerController */
 	UFUNCTION(BlueprintCallable, Category="Pawn", meta=(DisplayName="Get Controlled Pawn"))
-	class APawn* K2_GetPawn() const;
+	APawn* K2_GetPawn() const;
 
 	DEPRECATED(4.4, "Use GetPawn() instead of GetControlledPawn()")
-	class APawn* GetControlledPawn() const { return GetPawn(); }
+	APawn* GetControlledPawn() const { return GetPawn(); }
 
 public:
 
@@ -216,15 +217,17 @@ public:
 	/** Called from Destroyed().  Cleans up PlayerState. */
 	virtual void CleanupPlayerState();
 
-	/** Handles attaching this controller to the specified pawn.
-	 * @param inPawn is the pawn to be possessed
+	/**
+	 * Handles attaching this controller to the specified pawn.
+	 * Only runs on the network authority (where HasAuthority() returns true).
+	 * @param InPawn The Pawn to be possessed.
+	 * @see HasAuthority()
 	 */
-	UFUNCTION(BlueprintCallable, Category="Pawn")
-	virtual void Possess(class APawn* inPawn);
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Pawn")
+	virtual void Possess(APawn* InPawn);
 
 	/**
-	 * Called to unpossess our pawn for any reason that is not the pawn being destroyed
-	 * (destruction handled by PawnDestroyed())
+	 * Called to unpossess our pawn for any reason that is not the pawn being destroyed (destruction handled by PawnDestroyed()).
 	 */
 	UFUNCTION(BlueprintCallable, Category="Pawn")
 	virtual void UnPossess();
@@ -233,7 +236,7 @@ public:
 	 * Called to unpossess our pawn because it is going to be destroyed.
 	 * (other unpossession handled by UnPossess())
 	 */
-	virtual void PawnPendingDestroy(class APawn* inPawn);
+	virtual void PawnPendingDestroy(APawn* inPawn);
 
 	DEPRECATED(4.5, "NotifyKilled is unused in engine code and will be removed from AController.")
 	virtual void NotifyKilled(AController* Killer, AController* KilledPlayer, APawn* KilledPawn, const UDamageType* DamageType) {}
