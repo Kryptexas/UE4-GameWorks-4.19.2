@@ -274,11 +274,12 @@ void SGraphNodeK2Var::UpdateGraphNode()
 	}
 	// Create comment bubble
 	TSharedPtr<SCommentBubble> CommentBubble;
+	const FSlateColor CommentColor = GetDefault<UGraphEditorSettings>()->DefaultCommentNodeTitleColor;
 
 	SAssignNew( CommentBubble, SCommentBubble )
 	.GraphNode( GraphNode )
 	.Text( this, &SGraphNode::GetNodeComment )
-	.ColorAndOpacity( this, &SGraphNodeK2Var::GetCommentColor )
+	.ColorAndOpacity( CommentColor )
 	.AllowPinning( true )
 	.EnableTitleBarBubble( true )
 	.EnableBubbleCtrls( true )
