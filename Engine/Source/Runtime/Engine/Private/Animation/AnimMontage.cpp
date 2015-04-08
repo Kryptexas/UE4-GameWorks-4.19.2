@@ -20,6 +20,7 @@ UAnimMontage::UAnimMontage(const FObjectInitializer& ObjectInitializer)
 	bAnimBranchingPointNeedsSort = true;
 	BlendInTime = 0.25f;
 	BlendOutTime = 0.25f;
+	BlendOutTriggerTime = -1.f;
 }
 
 bool UAnimMontage::IsValidSlot(FName InSlotName) const
@@ -852,7 +853,7 @@ void FAnimMontageInstance::Play(float InPlayRate)
 	DesiredWeight = 1.f;
 }
 
-void FAnimMontageInstance::Stop(float BlendOut, bool bInterrupt)
+void FAnimMontageInstance::Stop(float BlendOutDuration, bool bInterrupt)
 {
 	// overwrite bInterrupted if it hasn't already interrupted
 	// once interrupted, you don't go back to non-interrupted
@@ -869,7 +870,7 @@ void FAnimMontageInstance::Stop(float BlendOut, bool bInterrupt)
 			// do not use default Montage->BlendOut  Time
 			// depending on situation, the BlendOut time changes
 			// check where this function gets called and see how we calculate BlendTime
-			BlendTime = BlendOut;
+			BlendTime = BlendOutDuration;
 
 			if (UAnimInstance* Inst = AnimInstance.Get())
 			{
@@ -884,9 +885,9 @@ void FAnimMontageInstance::Stop(float BlendOut, bool bInterrupt)
 		// it is already stopped, but new montage blendtime is shorter than what 
 		// I'm blending out, that means this needs to readjust blendtime
 		// that way we don't accumulate old longer blendtime for newer montage to play
-		if (BlendOut < BlendTime)
+		if (BlendOutDuration < BlendTime)
 		{
-			BlendTime = BlendOut;
+			BlendTime = BlendOutDuration;
 		}
 	}
 
@@ -1281,16 +1282,21 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 							}
 						}
 
-						// If about to reach the end of the montage...
-						if (NextSectionIndex == INDEX_NONE)
+						// If current section is last one, check to trigger a blend out.
+						if( NextSectionIndex == INDEX_NONE )
 						{
-							// ... trigger blend out if within blend out time window.
 							const float DeltaPosToEnd = bPlayingForward ? (CurrentSectionLength - PosInSection) : PosInSection;
 							const float DeltaTimeToEnd = DeltaPosToEnd / CombinedPlayRate;
-							const float BlendOutTime = FMath::Max<float>(Montage->BlendOutTime * DefaultBlendTimeMultiplier, KINDA_SMALL_NUMBER);
-							if (DeltaTimeToEnd <= BlendOutTime)
+
+							const bool bCustomBlendOutTriggerTime = (Montage->BlendOutTriggerTime >= 0);
+							const float DefaultBlendOutTime = Montage->BlendOutTime * DefaultBlendTimeMultiplier;
+							const float BlendOutTriggerTime = bCustomBlendOutTriggerTime ? Montage->BlendOutTriggerTime : DefaultBlendOutTime;
+							
+							// ... trigger blend out if within blend out time window.
+							if (DeltaTimeToEnd <= FMath::Max<float>(BlendOutTriggerTime, KINDA_SMALL_NUMBER))
 							{
-								Stop(DeltaTimeToEnd, false);
+								const float BlendOutTime = bCustomBlendOutTriggerTime ? DefaultBlendOutTime : DeltaTimeToEnd;
+								Stop(BlendOutTime, false);
 							}
 						}
 

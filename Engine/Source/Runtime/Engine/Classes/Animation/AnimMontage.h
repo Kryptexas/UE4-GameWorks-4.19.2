@@ -242,7 +242,7 @@ public:
 
 	// montage instance interfaces
 	void Play(float InPlayRate = 1.f);
-	void Stop(float BlendOut, bool bInterrupt=true);
+	void Stop(float BlendOutDuration, bool bInterrupt=true);
 	void Pause();
 	void Initialize(class UAnimMontage * InMontage);
 
@@ -322,6 +322,12 @@ class UAnimMontage : public UAnimCompositeBase
 	/** Default blend out time. */
 	UPROPERTY(EditAnywhere, Category=Montage)
 	float BlendOutTime;
+
+	/** Time from Sequence End to trigger blend out.
+	 * <0 means using BlendOutTime, so BlendOut finishes as Montage ends.
+	 * >=0 means using 'SequenceEnd - BlendOutTriggerTime' to trigger blend out. */
+	UPROPERTY(EditAnywhere, Category = Montage)
+	float BlendOutTriggerTime;
 
 	// composite section. 
 	UPROPERTY()
