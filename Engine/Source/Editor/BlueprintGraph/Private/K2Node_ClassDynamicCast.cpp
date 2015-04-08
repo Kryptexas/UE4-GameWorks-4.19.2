@@ -90,8 +90,7 @@ UEdGraphPin* UK2Node_ClassDynamicCast::GetCastSourcePin() const
 UEdGraphPin* UK2Node_ClassDynamicCast::GetBoolSuccessPin() const
 {
 	UEdGraphPin* Pin = FindPin(FClassDynamicCastHelper::CastSuccessPinName);
-	check(Pin != nullptr);
-	check(Pin->Direction == EGPD_Output);
+	check((Pin == nullptr) || (Pin->Direction == EGPD_Output));
 	return Pin;
 }
 
