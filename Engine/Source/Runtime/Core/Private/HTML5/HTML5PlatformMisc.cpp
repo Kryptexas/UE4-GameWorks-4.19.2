@@ -18,6 +18,10 @@
 #include <SDL.h>
 #include <ctime>
 
+#include "MapPakDownloaderModule.h"
+#include "MapPakDownloader.h"
+
+
 void FHTML5Misc::PlatformInit()
 {
 	// Identity.
@@ -157,4 +161,15 @@ extern "C"
 void FHTML5Misc::SetCrashHandler(void(* CrashHandler)(const FGenericCrashContext& Context))
 {
 	GHTML5CrashHandler = CrashHandler;
+}
+
+const void FHTML5Misc::PreLoadMap(FString& Map, FString& LastMap, void* DynData)
+{
+	static TSharedPtr<FMapPakDownloader> Downloader = FModuleManager::GetModulePtr<IMapPakDownloaderModule>("MapPakDownloader")->GetDownloader();
+	Downloader->Cache(Map, LastMap, DynData);
+}
+
+void FHTML5Misc::PlatformPostInit(bool ShowSplashScreen /*= false*/)
+{
+	FModuleManager::Get().LoadModule("MapPakDownloader");
 }

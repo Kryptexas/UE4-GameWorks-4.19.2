@@ -9,6 +9,20 @@
 #include "HTML5TargetSettings.generated.h"
 
 
+
+USTRUCT()
+struct FHTML5LevelTransitions
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, Category = HTML5_LevelTransitions, Meta = (DisplayName = "From Map"))
+	FFilePath MapFrom;
+
+	UPROPERTY(EditAnywhere, Category = HTML5_LevelTransitions, Meta = (DisplayName = "To Map"))
+	FFilePath MapTo;
+};
+
+
 /**
  * Implements the settings for the HTML5 target platform.
  */
@@ -19,7 +33,6 @@ class HTML5PLATFORMEDITOR_API UHTML5TargetSettings
 public:
 
 	GENERATED_UCLASS_BODY()
-
  	/**
  	 * Setting to control HTML5 Heap size (in Development)
  	 */
@@ -37,4 +50,16 @@ public:
  	 */
  	UPROPERTY(GlobalConfig, EditAnywhere, Category=Memory, Meta = (DisplayName = "Port to use when deploying game from the editor", ClampMin="49152", ClampMax="65535"))
  	int32 DeployServerPort;
+	/**
+	 * Use a loading level and download maps during transitions.                                                                     
+	 */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Packaging, Meta = (DisplayName = "Download Maps on the fly [experimental]"))
+	bool UseAsyncLevelLoading;
+
+	/**
+	 * Generate Delta Pak files for these level transitions.
+	 */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Packaging, Meta = (DisplayName = "Level transitions for delta paks [experimental]"))
+	TArray<FHTML5LevelTransitions> LevelTransitions;
+
 };

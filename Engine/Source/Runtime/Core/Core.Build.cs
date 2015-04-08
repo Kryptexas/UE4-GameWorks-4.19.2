@@ -141,6 +141,7 @@ public class Core : ModuleRules
         {
             AddThirdPartyPrivateStaticDependencies(Target, "SDL2");
             PrivateDependencyModuleNames.Add("HTML5JS");
+            PrivateDependencyModuleNames.Add("MapPakDownloader");
         }
 
         if ( UEBuildConfiguration.bCompileICU == true ) 

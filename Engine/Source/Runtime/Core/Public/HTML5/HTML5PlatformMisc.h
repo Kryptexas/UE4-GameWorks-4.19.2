@@ -18,6 +18,7 @@
 struct CORE_API FHTML5Misc : public FGenericPlatformMisc
 {
 	static void PlatformInit();
+	static void PlatformPostInit(bool ShowSplashScreen = false);
 	static class GenericApplication* CreateApplication();
 	static uint32 GetKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings);
 	static uint32 GetCharKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings);
@@ -85,6 +86,8 @@ struct CORE_API FHTML5Misc : public FGenericPlatformMisc
 	{
 		wprintf(TEXT("%ls"), Str);
 	}
+
+	static const void PreLoadMap(FString&, FString&, void*);
 };
 
 typedef FHTML5Misc FPlatformMisc;
