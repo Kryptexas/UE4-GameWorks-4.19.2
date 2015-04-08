@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2468179
+﻿INTSourceChangelist:2501115
 Availability:Public
 Title:6.HUD と通信する
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
@@ -25,7 +25,7 @@ Description:Character ブループリントに保存された値に基づいて 
 
 このステップでは、Character ブループリントと通信して、その中に保存されたPull 、Shot 、Score の値を取得し、HUD Widget ブループリント上に表示する値を更新します。**Cast** を使ってプレイヤーの Character ブループリントにアクセスして、Character ブループリントにある値を HUD のプロパティにバインドすることにより、これらの値が Character ブループリントで更新されると自動的に更新されるようになります。 
 
-ゲームの完了まであと少しです。最後に HUD を更新します。 
+ゲームの完了まであと少しです。最後に HUD の更新をしてみましょう。 
 
 1.	作成した **HUD** Widget ブループリントを開きます。 
 
@@ -73,7 +73,7 @@ Description:Character ブループリントに保存された値に基づいて 
 
 	最後に、岩にヒットするとプレイヤーに対して得点を正しく取得して表示します。 
 
-1. **[コンパイル]** と **[保存]** をクリックし、ブループリントを閉じます。 
+1. **[Compile]** と **[Save]** をクリックし、ブループリントを閉じます。 
 
 1. メイン エディタ ビューで、 **[Play]** ボタンをクリックしてエディタで再生します。 
 
