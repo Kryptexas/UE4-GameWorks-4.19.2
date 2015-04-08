@@ -17,6 +17,7 @@
 #include "K2Node_CallDataTableFunction.h"
 #include "K2Node_CallArrayFunction.h"
 #include "K2Node_VariableGet.h"
+#include "BlueprintEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintFunctionNodeSpawner"
 
@@ -391,10 +392,16 @@ UEdGraphNode* UBlueprintFunctionNodeSpawner::Invoke(UEdGraph* ParentGraph, FBind
 	FCustomizeNodeDelegate PostSpawnSetupDelegate = FCustomizeNodeDelegate::CreateStatic(PostSpawnSetupLambda, GetFunction(), SetNodeFieldDelegate, CustomizeNodeDelegate);
 
 	UClass* SpawnClass = NodeClass;
-	if ((Bindings.Num() == 1) && (*Bindings.CreateConstIterator())->IsA<UObjectProperty>())
+
+	const UBlueprintEditorSettings* BPSettings = GetDefault<UBlueprintEditorSettings>();
+	bool const bIsTemplateNode = FBlueprintNodeTemplateCache::IsTemplateOuter(ParentGraph);
+
+	bool const bSpawnCallOnMember = (Bindings.Num() == 1) && (*Bindings.CreateConstIterator())->IsA<UObjectProperty>();
+	if (bSpawnCallOnMember && (bIsTemplateNode || BPSettings->bCompactCallOnMemberNodes))
 	{
 		SpawnClass = UK2Node_CallFunctionOnMember::StaticClass();
 	}
+
 	// if this spawner was set up to spawn a bound node, reset this so the 
 	// bound nodes get positioned properly
 	BlueprintFunctionNodeSpawnerImpl::BindingOffset = FVector2D::ZeroVector;

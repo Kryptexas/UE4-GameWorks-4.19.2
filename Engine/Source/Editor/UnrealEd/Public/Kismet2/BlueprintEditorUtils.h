@@ -949,6 +949,9 @@ public:
 	/** Ensures that the CDO root component reference is valid for Actor-based Blueprints */
 	static void UpdateRootComponentReference(UBlueprint* Blueprint);
 
+	/** Determines if this property is associated with a component that would be displayed in the SCS editor */
+	static bool IsSCSComponentProperty(UObjectProperty* MemberProperty);
+
 	//////////////////////////////////////////////////////////////////////////
 	// Interface
 

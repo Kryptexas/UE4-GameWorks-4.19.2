@@ -34,6 +34,25 @@ namespace FBlueprintMenuActionItemImpl
 	 * @return The spawned node (could be an existing one if the event was already placed).
 	 */
 	static UEdGraphNode* InvokeAction(const UBlueprintNodeSpawner* Action, UEdGraph* ParentGraph, FVector2D const Location, IBlueprintNodeBinder::FBindingSet const& Bindings, bool& bOutNewNode);
+
+	/**
+	 * 
+	 * 
+	 * @param  LeadingPin    
+	 * @param  Node    
+	 * @return 
+	 */
+	static bool IsNodeLinked(UEdGraphPin* LeadingPin, UEdGraphNode& Node);
+
+	/**
+	 * 
+	 * 
+	 * @param  ParentGraph    
+	 * @param  FromPin    
+	 * @param  SpawnedNodesBeginIndex    
+	 * @return 
+	 */
+	static UEdGraphNode* AutowireSpawnedNodes(UEdGraphPin* FromPin, const TArray<UEdGraphNode*>& GraphNodes, int32 const NodesBeginIndex);
 }
 
 //------------------------------------------------------------------------------
@@ -84,6 +103,94 @@ static UEdGraphNode* FBlueprintMenuActionItemImpl::InvokeAction(const UBlueprint
 	}
 
 	return SpawnedNode;
+}
+
+//------------------------------------------------------------------------------
+static bool FBlueprintMenuActionItemImpl::IsNodeLinked(UEdGraphPin* LeadingPin, UEdGraphNode& Node)
+{
+	const EEdGraphPinDirection PinDirection = LeadingPin->Direction;
+	
+	for (UEdGraphPin* Link : LeadingPin->LinkedTo)
+	{
+		UEdGraphNode* LinkNode = Link->GetOwningNode();
+		if (LinkNode == &Node)
+		{
+			return true;
+		}
+
+		for (UEdGraphPin* NodePin : LinkNode->Pins)
+		{
+			if (NodePin->Direction != PinDirection)
+			{
+				continue;
+			}
+
+			if (IsNodeLinked(NodePin, Node))
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+//------------------------------------------------------------------------------
+static UEdGraphNode* FBlueprintMenuActionItemImpl::AutowireSpawnedNodes(UEdGraphPin* FromPin, const TArray<UEdGraphNode*>& GraphNodes, int32 const NodesBeginIndex)
+{
+	int32 const CurrentGraphNodeCount = GraphNodes.Num();
+	int32 const NewNodeCount = CurrentGraphNodeCount - NodesBeginIndex;
+
+	TArray<UEdGraphNode*> OrderedNewNodes;
+	OrderedNewNodes.Reserve(NewNodeCount);
+	// @TODO: there's gotta be a better way to blit these in
+	for (int32 NodexIndex = NodesBeginIndex; NodexIndex < CurrentGraphNodeCount; ++NodexIndex)
+	{
+		OrderedNewNodes.Add(GraphNodes[NodexIndex]);
+	}
+
+	const EEdGraphPinDirection PinDirection = FromPin->Direction;
+	// should lhs come before rhs?
+	OrderedNewNodes.Sort([PinDirection](UEdGraphNode& Lhs, UEdGraphNode& Rhs)->bool
+		{
+			for (UEdGraphPin* NodePin : Rhs.Pins)
+			{
+				if (NodePin->Direction != PinDirection)
+				{
+					continue;
+				}
+
+				if (IsNodeLinked(NodePin, Lhs))
+				{
+					return false;
+				}
+			}
+			return true;
+		});
+		
+
+	int32 const PreAutowireConnectionCount = FromPin->LinkedTo.Num();
+
+	UEdGraphPin* OldPinLink = nullptr;
+	if (PreAutowireConnectionCount > 0)
+	{
+		OldPinLink = FromPin->LinkedTo[0];
+	}
+
+	for (UEdGraphNode* NewNode : OrderedNewNodes)
+	{
+		NewNode->AutowireNewNode(FromPin);
+
+		int32 const NewConnectionCount = FromPin->LinkedTo.Num();
+		if (NewConnectionCount == 0)
+		{
+			continue;
+		}
+		else if ((NewConnectionCount != PreAutowireConnectionCount) || (FromPin->LinkedTo[0] != OldPinLink))
+		{
+			return NewNode;
+		}
+	}
+	return nullptr;
 }
 
 /*******************************************************************************
@@ -149,6 +256,8 @@ UEdGraphNode* FBlueprintActionMenuItem::PerformAction(UEdGraph* ParentGraph, UEd
 			}
 		}
 
+		int32 const PreInvokeNodeCount = ParentGraph->Nodes.Num();
+
 		bool bNewNode = false;
 		LastSpawnedNode = InvokeAction(Action, ParentGraph, ModifiedLocation, BindingsSubset, /*out*/ bNewNode);
 		// could already be an existent node, so we have to add here (can't 
@@ -161,7 +270,7 @@ UEdGraphNode* FBlueprintActionMenuItem::PerformAction(UEdGraph* ParentGraph, UEd
 		{
 			// make sure to auto-wire after we position the new node (in case
 			// the auto-wire creates a conversion node to put between them)
-			LastSpawnedNode->AutowireNewNode(FromPin);
+			FBlueprintMenuActionItemImpl::AutowireSpawnedNodes(FromPin, ParentGraph->Nodes, PreInvokeNodeCount);
 		}
 
 		if (bNewNode)

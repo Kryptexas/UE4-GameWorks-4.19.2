@@ -35,7 +35,7 @@ UEdGraphPin* UK2Node_CallFunctionOnMember::CreateSelfPin(const UFunction* Functi
 FString UK2Node_CallFunctionOnMember::GetFunctionContextString() const
 {
 	UClass* MemberVarClass = MemberVariableToCallOn.GetMemberParentClass(GetBlueprintClassFromNode());
-	FString CallFunctionClassName = (MemberVarClass != NULL) ? MemberVarClass->GetName() : TEXT("NULL");
+	FString CallFunctionClassName = (MemberVarClass != NULL) ? MemberVarClass->GetDisplayNameText().ToString() : TEXT("NULL");
 	return FString(TEXT("\n")) + FString::Printf(TEXT("%s %s (%s)"), *LOCTEXT("CallFunctionOnMemberDifferentContext", "Target is").ToString(), *CallFunctionClassName, *MemberVariableToCallOn.GetMemberName().ToString());
 }
 

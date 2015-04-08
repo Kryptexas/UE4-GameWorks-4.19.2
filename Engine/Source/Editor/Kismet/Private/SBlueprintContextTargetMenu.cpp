@@ -6,6 +6,7 @@
 #include "BlueprintActionFilter.h"		// for FBlueprintActionContext
 #include "BlueprintEditorUtils.h"		// for DoesSupportComponents
 #include "BlueprintEditorSettings.h"
+#include "Components/ActorComponent.h"
 
 #define LOCTEXT_NAMESPACE "SBlueprintContextTargetMenu"
 
@@ -26,7 +27,10 @@ namespace ContextMenuTargetProfileImpl
 	 * @return True if the context contains a pin matching the type in question, otherwise false.
 	 */
 	static bool HasExecPinContext(const FBlueprintActionContext& MenuContext);
+	static bool HasComponentPinContext(const FBlueprintActionContext& MenuContext);
 	static bool HasObjectPinContext(const FBlueprintActionContext& MenuContext);
+	static bool HasClassPinContext(const FBlueprintActionContext& MenuContext);
+	static bool HasInterfacePinContext(const FBlueprintActionContext& MenuContext);
 
 	static bool IsObjectPin(UEdGraphPin* Pin);
 	static UClass* GetPinClass(UEdGraphPin const* Pin);
@@ -51,6 +55,35 @@ namespace ContextMenuTargetProfileImpl
 }
 
 //------------------------------------------------------------------------------
+static bool ContextMenuTargetProfileImpl::HasExecPinContext(const FBlueprintActionContext& MenuContext)
+{
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+	for (UEdGraphPin* ContextPin : MenuContext.Pins)
+	{
+		if (K2Schema->IsExecPin(*ContextPin))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+//------------------------------------------------------------------------------
+static bool ContextMenuTargetProfileImpl::HasComponentPinContext(const FBlueprintActionContext& MenuContext)
+{
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+	for (UEdGraphPin* ContextPin : MenuContext.Pins)
+	{
+		UClass* PinClass = GetPinClass(ContextPin);
+		if ((PinClass != nullptr) && PinClass->IsChildOf<UActorComponent>())
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+//------------------------------------------------------------------------------
 static bool ContextMenuTargetProfileImpl::HasObjectPinContext(const FBlueprintActionContext& MenuContext)
 {
 	for (UEdGraphPin* ContextPin : MenuContext.Pins)
@@ -64,12 +97,24 @@ static bool ContextMenuTargetProfileImpl::HasObjectPinContext(const FBlueprintAc
 }
 
 //------------------------------------------------------------------------------
-static bool ContextMenuTargetProfileImpl::HasExecPinContext(const FBlueprintActionContext& MenuContext)
+static bool ContextMenuTargetProfileImpl::HasClassPinContext(const FBlueprintActionContext& MenuContext)
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	for (UEdGraphPin* ContextPin : MenuContext.Pins)
 	{
-		if (K2Schema->IsExecPin(*ContextPin))
+		if (ContextPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Class)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+//------------------------------------------------------------------------------
+static bool ContextMenuTargetProfileImpl::HasInterfacePinContext(const FBlueprintActionContext& MenuContext)
+{
+	for (UEdGraphPin* ContextPin : MenuContext.Pins)
+	{
+		if (ContextPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Interface)
 		{
 			return true;
 		}
@@ -139,11 +184,23 @@ FText ContextMenuTargetProfileImpl::GetProfileDescription(const FBlueprintAction
 	{
 		return LOCTEXT("BlueprintContextTarget", "Blueprint Context Target(s)");
 	}
-	else if (ContextMenuTargetProfileImpl::HasObjectPinContext(MenuContext))
+	else if (HasComponentPinContext(MenuContext))
+	{
+		return LOCTEXT("ComponentContextTarget", "Component Context Target(s)");
+	}
+// 	else if (HasClassPinContext(MenuContext))
+// 	{
+// 		return LOCTEXT("ClassContextTarget", "Class Context Target(s)");
+// 	}
+//	else if (HasInterfacePinContext(MenuContext))
+// 	{
+// 		return LOCTEXT("InterfaceContextTarget", "Interface Context Target(s)");
+// 	}
+	else if (HasObjectPinContext(MenuContext))
 	{
 		return LOCTEXT("ObjectContextTarget", "Object Context Target(s)");
 	}
-	else if (ContextMenuTargetProfileImpl::HasExecPinContext(MenuContext))
+	else if (HasExecPinContext(MenuContext))
 	{
 		return LOCTEXT("ExecContextTarget", "Exec Context Target(s)");
 	}
@@ -227,7 +284,7 @@ uint32 ContextMenuTargetProfileImpl::GetIncompatibleTargetFlags(const FBlueprint
 		}
 	}
 
-	if (HasComponentsMaskOut != 0)
+	if ((HasComponentsMaskOut != 0) && !HasComponentPinContext(MenuContext))
 	{
 		IncompatibleFlags &= ~EContextTargetFlags::TARGET_SubComponents;
 	}
@@ -253,6 +310,18 @@ static FString ContextMenuTargetProfileImpl::GetProfileSaveName(const FBlueprint
 	{
 		return TEXT("ExecPinProfile");
 	}
+	else if (HasComponentPinContext(MenuContext))
+	{
+		return TEXT("ComponentPinProfile");
+	}
+// 	else if (HasClassPinContext(MenuContext))
+// 	{
+// 		return TEXT("ClassPinProfile");
+// 	}
+// 	else if (HasInterfacePinContext(MenuContext))
+// 	{
+// 		return TEXT("InterfacePinProfile");
+// 	}
 
 	uint32 HasComponentMask = 0;
 	uint32 IncompatibleTargetFlags = GetIncompatibleTargetFlags(MenuContext, HasComponentMask);

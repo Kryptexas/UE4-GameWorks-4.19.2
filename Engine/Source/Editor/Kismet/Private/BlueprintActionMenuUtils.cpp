@@ -292,14 +292,14 @@ static FBlueprintActionFilter BlueprintActionMenuUtilsImpl::MakeCallOnMemberFilt
 	bool bForceAddComponents = ((ContextTargetMask & EContextTargetFlags::TARGET_SubComponents) != 0);
 
 	TArray<UClass*> TargetClasses = MainMenuFilter.TargetClasses;
-	if (bForceAddComponents && (CallOnMemberFilter.TargetClasses.Num() == 0))
+	if (bForceAddComponents && (TargetClasses.Num() == 0))
 	{
 		for (UBlueprint const* TargetBlueprint : MainMenuFilter.Context.Blueprints)
 		{
 			UClass* BpClass = TargetBlueprint->SkeletonGeneratedClass;
 			if (BpClass != nullptr)
 			{
-				TargetClasses.Add(BpClass);
+				TargetClasses.AddUnique(BpClass);
 			}
 		}
 	}
@@ -308,14 +308,14 @@ static FBlueprintActionFilter BlueprintActionMenuUtilsImpl::MakeCallOnMemberFilt
 	{
 		for (TFieldIterator<UObjectProperty> PropertyIt(TargetClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 		{
-			UObjectProperty* ObjectProperty = *PropertyIt;
+ 			UObjectProperty* ObjectProperty = *PropertyIt;
 			if (!ObjectProperty->HasAnyPropertyFlags(CPF_BlueprintVisible))
 			{
 				continue;
 			}
 
 			if ( ObjectProperty->HasMetaData(FBlueprintMetadata::MD_ExposeFunctionCategories) || 
-				(bForceAddComponents && ObjectProperty->PropertyClass->IsChildOf<UActorComponent>()) )
+				(bForceAddComponents && FBlueprintEditorUtils::IsSCSComponentProperty(ObjectProperty)) )
 			{
 				CallOnMemberFilter.Context.SelectedObjects.Add(ObjectProperty);
 			}			
@@ -472,7 +472,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 			bCanOperateOnLevelActors &= BlueprintClass->IsChildOf<ALevelScriptActor>();
 			if (bIsContextSensitive && (ClassTargetMask & EContextTargetFlags::TARGET_Blueprint))
 			{
-				MainMenuFilter.TargetClasses.Add(BlueprintClass);
+				MainMenuFilter.TargetClasses.AddUnique(BlueprintClass);
 			}
 		}
 		bCanHaveActorComponents &= FBlueprintEditorUtils::DoesSupportComponents(Blueprint);
@@ -559,7 +559,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 			{
 				if (ClassTargetMask & EContextTargetFlags::TARGET_PinObject)
 				{
-					MainMenuFilter.TargetClasses.Add(PinObjClass);
+					MainMenuFilter.TargetClasses.AddUnique(PinObjClass);
 				}
 			}
 
@@ -571,7 +571,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 				{
 					if (UClass* TargetClass = GetPinClassType(TargetPin))
 					{
-						MainMenuFilter.TargetClasses.Add(TargetClass);
+						MainMenuFilter.TargetClasses.AddUnique(TargetClass);
 					}
 				}
 			}
@@ -587,7 +587,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 				{
 					if (UClass* PinClass = GetPinClassType(NodePin))
 					{
-						MainMenuFilter.TargetClasses.Add(PinClass);
+						MainMenuFilter.TargetClasses.AddUnique(PinClass);
 					}
 				}
 			}

@@ -14,6 +14,7 @@ UBlueprintEditorSettings::UBlueprintEditorSettings(const FObjectInitializer& Obj
 	, bSplitContextTargetSettings(true)
 	, bExposeAllMemberComponentFunctions(true)
 	, bShowContextualFavorites(false)
+	, bCompactCallOnMemberNodes(false)
 	, bFlattenFavoritesMenus(true)
 	, bFavorPureCastNodes(false)
 	, bAutoCastObjectConnections(false)

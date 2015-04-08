@@ -5748,6 +5748,76 @@ void FBlueprintEditorUtils::UpdateRootComponentReference(UBlueprint* Blueprint)
 	}
 }
 
+bool FBlueprintEditorUtils::IsSCSComponentProperty(UObjectProperty* MemberProperty)
+{
+	if (!MemberProperty->PropertyClass->IsChildOf<UActorComponent>())
+	{
+		return false;
+	}
+
+
+	UClass* OwnerClass = MemberProperty->GetOwnerClass();
+	UBlueprintGeneratedClass* BpClassOwner = Cast<UBlueprintGeneratedClass>(OwnerClass);
+
+	if (BpClassOwner == nullptr)
+	{
+		// if this isn't directly a blueprint property, then we check if it is a 
+		// associated with a natively added component (which would still be  
+		// accessible through the SCS tree)
+
+		if (OwnerClass == nullptr)
+		{
+			return false;
+		}
+		else if (const AActor* ActorCDO = GetDefault<AActor>(OwnerClass))
+		{
+			TInlineComponentArray<UActorComponent*> CDOComponents;
+			ActorCDO->GetComponents(CDOComponents);
+
+			const void* PropertyAddress = MemberProperty->ContainerPtrToValuePtr<void>(ActorCDO);
+			UObject* PropertyValue = MemberProperty->GetObjectPropertyValue(PropertyAddress);
+
+			for (UActorComponent* Component : CDOComponents)
+			{
+				if (!Component->GetClass()->IsChildOf(MemberProperty->PropertyClass))
+				{
+					continue;
+				}
+
+				if (PropertyValue == Component)
+				{
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	FMemberReference MemberRef;
+	MemberRef.SetFromField<UProperty>(MemberProperty, /*bIsConsideredSelfContext =*/false);
+	bool const bIsGuidValid = MemberRef.GetMemberGuid().IsValid();
+
+	if (BpClassOwner->SimpleConstructionScript != nullptr)
+	{
+		TArray<USCS_Node*> SCSNodes = BpClassOwner->SimpleConstructionScript->GetAllNodes();
+		for (USCS_Node* ScsNode : SCSNodes)
+		{
+			if (bIsGuidValid && ScsNode->VariableGuid.IsValid())
+			{
+				if (ScsNode->VariableGuid == MemberRef.GetMemberGuid())
+				{
+					return true;
+				}
+			}
+			else if (ScsNode->VariableName == MemberRef.GetMemberName())
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 /** Temporary fix for cut-n-paste error that failed to carry transactional flags */
 void FBlueprintEditorUtils::UpdateTransactionalFlags(UBlueprint* Blueprint)
 {
