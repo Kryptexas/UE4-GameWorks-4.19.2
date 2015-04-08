@@ -6,8 +6,6 @@
 
 #include "WebBrowser.generated.h"
 
-//Experimental, ClassGroup=UserInterface
-
 /**
  * 
  */
