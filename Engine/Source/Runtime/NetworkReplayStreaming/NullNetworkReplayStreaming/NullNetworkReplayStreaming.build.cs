@@ -8,11 +8,14 @@ namespace UnrealBuildTool.Rules
 		{
 			PrivateIncludePaths.Add( "Runtime/NetworkReplayStreaming/NullNetworkReplayStreaming/Private" );
 
-			PublicDependencyModuleNames.AddRange(
+            PrivateIncludePathModuleNames.Add("OnlineSubsystem");
+
+			PrivateDependencyModuleNames.AddRange(
 				new string[]
 				{
 					"Core",
 					"NetworkReplayStreaming",
+                    "Json"
 				}
 			);
 		}

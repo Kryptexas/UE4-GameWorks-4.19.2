@@ -61,6 +61,7 @@ bool UDemoNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, con
 		QueuedGotoTimeInSeconds	= -1.0f;
 		bIsLoadingCheckpoint	= false;
 		InitialLiveDemoTime		= 0;
+		bWasStartStreamingSuccessful = true;
 
 		ResetDemoState();
 
@@ -191,9 +192,10 @@ bool UDemoNetDriver::InitConnect( FNetworkNotify* InNotify, const FURL& ConnectU
 	ServerConnection = NewObject<UNetConnection>(GetTransientPackage(), UDemoNetConnection::StaticClass());
 	ServerConnection->InitConnection( this, USOCK_Pending, ConnectURL, 1000000 );
 
+	bWasStartStreamingSuccessful = true;
 	ReplayStreamer->StartStreaming( DemoFilename, false, FNetworkVersion::GetReplayVersion(), FOnStreamReadyDelegate::CreateUObject( this, &UDemoNetDriver::ReplayStreamingReady ) );
 
-	return true;
+	return bWasStartStreamingSuccessful;
 }
 
 bool UDemoNetDriver::InitConnectInternal( FString& Error )
@@ -1312,6 +1314,8 @@ void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection )
 
 void UDemoNetDriver::ReplayStreamingReady( bool bSuccess, bool bRecord )
 {
+	bWasStartStreamingSuccessful = bSuccess;
+
 	if ( !bSuccess )
 	{
 		GetWorld()->GetGameInstance()->HandleDemoPlaybackFailure( EDemoPlayFailure::DemoNotFound, FString( EDemoPlayFailure::ToString( EDemoPlayFailure::DemoNotFound ) ) );
@@ -1425,7 +1429,7 @@ void UDemoNetDriver::LoadCheckpoint()
 	GuidCache->ObjectLookup.Empty();
 	GuidCache->NetGUIDLookup.Empty();
 
-	if ( GotoCheckpointArchive->TotalSize() == 0 )
+	if ( GotoCheckpointArchive->TotalSize() == 0 || GotoCheckpointArchive->TotalSize() == INDEX_NONE )
 	{
 		// This is the very first checkpoint, we'll read the stream from the very beginning in this case
 		DemoCurrentTime			= 0;

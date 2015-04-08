@@ -12,7 +12,8 @@ class FNullNetworkReplayStreamer : public INetworkReplayStreamer
 {
 public:
 	FNullNetworkReplayStreamer() :
-		StreamerState( EStreamerState::Idle )
+		StreamerState( EStreamerState::Idle ),
+		CurrentCheckpointIndex( 0 )
 	{}
 	
 	/** INetworkReplayStreamer implementation */
@@ -20,10 +21,10 @@ public:
 	virtual void StopStreaming() override;
 	virtual FArchive* GetHeaderArchive() override;
 	virtual FArchive* GetStreamingArchive() override;
-	virtual FArchive* GetCheckpointArchive() override { return NULL; }
-	virtual void FlushCheckpoint( const uint32 TimeInMS ) override { }
-	virtual void GotoCheckpointIndex( const int32 TimeInMS, const FOnCheckpointReadyDelegate& Delegate ) override { }
-	virtual void GotoTimeInMS( const uint32 TimeInMS, const FOnCheckpointReadyDelegate& Delegate ) override { }
+	virtual FArchive* GetCheckpointArchive() override;
+	virtual void FlushCheckpoint( const uint32 TimeInMS ) override;
+	virtual void GotoCheckpointIndex( const int32 CheckpointIndex, const FOnCheckpointReadyDelegate& Delegate ) override;
+	virtual void GotoTimeInMS( const uint32 TimeInMS, const FOnCheckpointReadyDelegate& Delegate ) override;
 	virtual FArchive* GetMetadataArchive() override;
 	virtual void UpdateTotalDemoTime( uint32 TimeInMS ) override { }
 	virtual uint32 GetTotalDemoTime() const override { return 0; }
@@ -39,11 +40,20 @@ public:
 private:
 	bool IsNamedStreamLive( const FString& StreamName ) const;
 
+	/** Handles the details of loading a checkpoint */
+	void GotoCheckpointIndexInternal(int32 CheckpointIndex, const FOnCheckpointReadyDelegate& Delegate, int32 TimeInMS);
+
+	/** Handle to the archive that will read/write the demo header */
+	TUniquePtr<FArchive> HeaderAr;
+
 	/** Handle to the archive that will read/write network packets */
 	TUniquePtr<FArchive> FileAr;
 
 	/* Handle to the archive that will read/write metadata */
 	TUniquePtr<FArchive> MetadataFileAr;
+
+	/* Handle to the archive that will read/write checkpoint files */
+	TUniquePtr<FArchive> CheckpointAr;
 
 	/** EStreamerState - Overall state of the streamer */
 	enum class EStreamerState
@@ -58,6 +68,9 @@ private:
 
 	/** Remember the name of the current stream, if any. */
 	FString CurrentStreamName;
+
+	/** Current number of checkpoints written. */
+	int32 CurrentCheckpointIndex;
 };
 
 class FNullNetworkReplayStreamingFactory : public INetworkReplayStreamingFactory

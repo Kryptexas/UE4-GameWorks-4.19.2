@@ -80,6 +80,7 @@ class ENGINE_API UDemoNetDriver : public UNetDriver
 private:
 	bool		bIsFastForwarding;
 	bool		bIsLoadingCheckpoint;
+	bool		bWasStartStreamingSuccessful;
 
 	TArray<FNetworkGUID> NonQueuedGUIDsForScrubbing;
 
