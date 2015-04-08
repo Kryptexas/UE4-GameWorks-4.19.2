@@ -1,67 +1,10 @@
 ﻿Availability:Public
 Title:カメラ
-Crumbs:%ROOT%, Programming/Gameplay/Framework
+Crumbs:%ROOT%, Gameplay, Gameplay/Framework
 Description: **Camera** は、ワールドを見るプレーヤーの視点を表します。
 
-**Camera** は、プレーヤーがどのようにワールドを見ているのか、プレーヤーの視野を表します。従って 
-カメラは人間に制御されたプレーヤーのみに関連性をもちます。**PlayerController** は camera クラスを指定し、プレーヤーが見ているワールドの位置と方向の計算に使う**カメラ** アクタをインスタンス化します。 
-プレイヤーからワールドを眺めたときの位置と方位を計算する 
-**カメラ** アクタをインスタンス化します。
-
-## CameraComponentとCameraActor
-
-カメラのプロパティ及び動作はすべてCameracomponentで設定されます。CameraActorクラスは主にCameracomponentのラッパー機能を果たすため、カメラを他のクラス内に配置せずに
-レベルへ直接配置することができます。  
-
-CameraComponentで、カメラを [パースペクティブ] モードまたは [平行投影] モードのどちらかへ設定することができます。垂直方向の視野角（FOV）を [パースペクティブ] モードに設定し、 
-ワールド単位の幅を [平行投影] モードに設定することができます。両モードは縦横比の指定が可能で、共通デバイスの縦横比を事前に設定したり、 
-モードの表示タイプが提供されます。 [](Engine/Rendering\PostProcessEffects) をカメラへ追加したり、ポストプロセスエフェクトの強度をスケーリングすることができます。
-
-エディタ内の視覚的な配置に役立つ2つのコンポーネントがCameraComponentへ追加されましたが、ゲームプレイ中にこのコンポーネントは表示されません。FrustumComponentはカメラの 
-視野角の場所を表示します。デフォルトでは非表示ですが、**ビューポート** の**表示 > Advanced > Camera Frustums** を選択すると表示することができます。StaticMeshComponent はレベル内のカメラの配置を表示します。 
- カメラ配置を表します。 
-
-$ bUseControllerViewRotation:_true_ の場合、カメラコンポーネントがポーンに配置されたら可能な時点でポーンの回転ビューを使用します。
-
-$ GetCameraView() :カメラの視点を返します。 「GetCameraView」はカメラアクタ越しに見たときに `PlayerCameraManager`に呼ばれるか、CameraComponentを格納したアクタのCalcCamera関数に呼ばれます。 
-
-
-## PlayerCameraManager
-
-PlayerCameraManager クラスはカメラマネージャーです。初期設定で、独自に内蔵された動作は未決定のビューターゲットとコンソールコマンドにトリガーされたデバッグカメラをブレンドしています。さもなければカメラのビューポイントの決定に 
-ViewTargetとその他全てのカメラ設定のクエリを実行します。通常は PlayerCameraManager サブクラスは必要ありません。自動ルールが不十分な場合は、 
-ViewTargetの設定ルールの追加の他に、PlayerCameraManager に多少の修正が必要です。
-
-PlayerCameraManager のサブクラス化が必要で、これをC++コードではなくブループリントで行う場合、カメラのカスタム実装に「BlueprintUpdateCamera」関数を使用します。_絶対的_変形時は、
-戻り値を使用するために_true_を返すか、戻り値を無視するために_false_ を返します。
-
-### ViewTarget
-
-PlayerCameraManagerで定義されるViewTarget構造体は、理想的な視点（POV）を持ったPlayerCameraManagerを提供します。ViewTargetはターゲットアクタの情報、ターゲットアクタの
-コントローラー（ローカル外でコントロールされるポーン）、ポーンの変換や観戦中に発生する他の変更を手段に同一プレイヤーの追跡を行うPlayerStateを格納します。POVプロパティ経由でPlayerCameraManagerへ渡されるカメラ情報は、
-「FMinimalViewInfo」構造体形式です。この構造体は、CameraComponentの基本的なカメラ情報を格納します。
-情報には位置、回転、投影モード（パースペクティブまたは平行投影）、FOV、平行投影幅、縦横比、そしてポストプロセスエフェクトが含まれます。これらの値をPlayerCameraManagerが受け取ることにより、
-PlayerCameraはカメラマネージメント中に2つのカメラモードをブレンドすることができます。 
-
-
-## CameraのChain of Responsibilityパターン
-
-ゲーム固有のカメラ動作は、カメラの「Chain of Responsibility」と一緒にどの時点でも提供することができます。ALocalPlayerへ渡す前に以下のクラスを通じて上から下へフローし、レンダリング、シーン表示、そして関連システムで終了します。
-
-### CameraComponent 
-
-ViewTargetがCameraActorまたはCameraComponentを格納するアクタで`bFindCameraComponentWhenViewTarget`がTrueに設定されている場合、
-CameraComponentはカメラのプロパティに関する情報を提供します。`bTakeCameraControlWhenPossessed`は任意のポーンに設定可能な関連プロパティです。PlayerControllerに所有されるとポーンは自動的にViewTargetになります。
-
-### ActorまたはPlayerController
-
-PlayerControllerもActorもCalcCamera関数を格納します。アクタのCalcCamera関数は、「bFindCameraComponentWhenViewTarget」がTrueでCameraComponentが存在する場合、アクタの最初のCameraComponentのカメラビューを返します。  
-さもなければアクタの位置と回転を受け取ります。PlayerControllerで、CalcCamera関数は2番目のケースと似た振る舞いをします。 
-存在する場合は所有しているポーンの位置を返し、PlayerControllerの回転を制御します。  
-
-
-### PlayerCameraManager
-
-PlayerCameraManager内のUpdateViewTarget関数はViewTargetにクエリを実行して、ViewTargetのPOVを返します。サブクラス化したAPlayerCameraManagerを持ち、CameraComponent越しに見ていない場合、 
-この関数はBlueprintUpdateCameraも返します。
-
+[OBJECT:Redirect]
+[PARAM:link]
+[](Gameplay/Framework/Camera)
+[/PARAM]
+[/OBJECT]
