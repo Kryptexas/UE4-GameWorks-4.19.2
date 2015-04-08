@@ -3491,8 +3491,6 @@ void SLevelViewport::EndPlayInEditorSession()
 		HideMouseCaptureLabel();
 	}
 
-	FSlateApplication::Get().SetKeyboardFocus( ViewportWidget );
-
 	// Kick off a quick transition effect (border graphics)
 	ViewTransitionType = EViewTransition::ReturningToEditor;
 	ViewTransitionAnim = FCurveSequence( 0.0f, 1.5f, ECurveEaseFunction::CubicOut );
