@@ -385,14 +385,9 @@ bool UDemoNetDriver::InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool
 	return true;
 }
 
-void UDemoNetDriver::TickDispatch( float DeltaSeconds )
+void UDemoNetDriver::TickDispatch(float DeltaSeconds)
 {
 	Super::TickDispatch( DeltaSeconds );
-}
-
-void UDemoNetDriver::TickFlush( float DeltaSeconds )
-{
-	Super::TickFlush( DeltaSeconds );
 
 	if ( ClientConnections.Num() == 0 && ServerConnection == nullptr )
 	{
