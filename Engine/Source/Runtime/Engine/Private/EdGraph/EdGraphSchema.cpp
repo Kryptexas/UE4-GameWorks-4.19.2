@@ -620,6 +620,7 @@ void UEdGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, const U
 					.OnTextCommitted_Static(&Local::OnNodeCommentTextCommitted, SelectedNodeWeakPtr)
 					.SelectAllTextWhenFocused( true )
 					.RevertTextOnEscape( true )
+					.ModiferKeyForNewLine( EModifierKey::Control )
 				];
 				MenuBuilder->EndSection();
 			}
