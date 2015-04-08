@@ -667,7 +667,7 @@ TSharedRef<class IStructureDetailsView> FPropertyEditorModule::CreateStructureDe
 				const auto ArrayProperty = Cast<UArrayProperty>(&PropertyAndParent.Property);
 				const auto TrueProperty = ArrayProperty ? ArrayProperty->Inner : &PropertyAndParent.Property;
 				const bool bCanShow = TrueProperty 
-					&& !TrueProperty->IsA<UObjectPropertyBase>()
+					&& (!TrueProperty->IsA<UObjectPropertyBase>() || TrueProperty->IsA<UClassProperty>())
 					&& !TrueProperty->IsA<UInterfaceProperty>();
 				return bCanShow;
 			}

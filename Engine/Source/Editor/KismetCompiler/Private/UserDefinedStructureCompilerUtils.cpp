@@ -34,6 +34,7 @@ struct FUserDefinedStructureCompilerInner
 			DuplicatedStruct->Status = EUserDefinedStructureStatus::UDSS_Duplicate;
 			DuplicatedStruct->SetFlags(RF_Transient);
 			DuplicatedStruct->AddToRoot();
+			CastChecked<UUserDefinedStructEditorData>(DuplicatedStruct->EditorData)->RecreateDefaultInstance();
 
 			for (auto StructProperty : TObjectRange<UStructProperty>(RF_ClassDefaultObject | RF_PendingKill))
 			{
@@ -74,6 +75,11 @@ struct FUserDefinedStructureCompilerInner
 	static void CleanAndSanitizeStruct(UUserDefinedStruct* StructToClean)
 	{
 		check(StructToClean);
+
+		if (auto EditorData = Cast<UUserDefinedStructEditorData>(StructToClean->EditorData))
+		{
+			EditorData->CleanDefaultInstance();
+		}
 
 		const FString TransientString = FString::Printf(TEXT("TRASHSTRUCT_%s"), *StructToClean->GetName());
 		const FName TransientName = MakeUniqueObjectName(GetTransientPackage(), UUserDefinedStruct::StaticClass(), FName(*TransientString));
@@ -190,6 +196,13 @@ struct FUserDefinedStructureCompilerInner
 		if (Struct->GetStructureSize() <= 0)
 		{
 			LogError(Struct, MessageLog, FString::Printf(*LOCTEXT("StructurEmpty_Error", "Structure '%s' is empty ").ToString(), *Struct->GetFullName()));
+		}
+
+		FString DefaultInstanceError;
+		EditorData->RecreateDefaultInstance(&DefaultInstanceError);
+		if (!DefaultInstanceError.IsEmpty())
+		{
+			LogError(Struct, MessageLog, DefaultInstanceError);
 		}
 
 		const bool bNoErrorsDuringCompilation = (ErrorNum == MessageLog.NumErrors);

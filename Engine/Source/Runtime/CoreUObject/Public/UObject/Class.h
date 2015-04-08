@@ -1098,16 +1098,21 @@ protected:
 
 	FStructOnScope() : SampleStructMemory(NULL) {}
 
-public:
-	FStructOnScope(const UStruct* InScriptStruct)
-		: ScriptStruct(InScriptStruct)
-		, SampleStructMemory(NULL)
+	void Initialize()
 	{
 		if (ScriptStruct.IsValid())
 		{
 			SampleStructMemory = (uint8*)FMemory::Malloc(ScriptStruct->GetStructureSize());
 			ScriptStruct.Get()->InitializeStruct(SampleStructMemory);
 		}
+	}
+
+public:
+	FStructOnScope(const UStruct* InScriptStruct)
+		: ScriptStruct(InScriptStruct)
+		, SampleStructMemory(NULL)
+	{
+		Initialize();
 	}
 
 	virtual uint8* GetStructMemory() { return SampleStructMemory; }

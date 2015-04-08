@@ -25,6 +25,10 @@ void UUserDefinedStruct::Serialize(FArchive& Ar)
 		if ( EditorData != nullptr )
 		{
 			Ar.Preload(EditorData);
+			if (!(Ar.GetPortFlags() & PPF_Duplicate))
+			{
+				FStructureEditorUtils::RecreateDefaultInstanceInEditorData(this);
+			}
 		}
 
 		const FStructureEditorUtils::EStructureError Result = FStructureEditorUtils::IsStructureValid(this, NULL, &ErrorMessage);
