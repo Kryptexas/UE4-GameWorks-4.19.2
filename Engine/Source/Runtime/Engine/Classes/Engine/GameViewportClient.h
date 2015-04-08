@@ -450,8 +450,9 @@ public:
 	 * Notification of network error messages
 	 * generally not expected to handle the failure here, but provide notification to the user
 	 *
+	 * @param	World associated with failure
+	 * @param	NetDriver associated with failure
 	 * @param	FailureType	the type of error
-	 * @param	NetDriverName name of the network driver generating the error
 	 * @param	ErrorString	additional string detailing the error
 	 */
 	virtual void PeekNetworkFailureMessages(UWorld *World, UNetDriver *NetDriver, enum ENetworkFailure::Type FailureType, const FString& ErrorString);

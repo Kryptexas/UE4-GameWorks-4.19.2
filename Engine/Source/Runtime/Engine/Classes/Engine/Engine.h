@@ -2287,8 +2287,8 @@ public:
 	 * Notification of network error messages, allows the engine to handle the failure
 	 *
 	 * @param	World associated with failure
+	 * @param	NetDriver associated with failure
 	 * @param	FailureType	the type of error
-	 * @param	NetDriverName name of the network driver generating the error
 	 * @param	ErrorString	additional string detailing the error
 	 */
 	virtual void HandleNetworkFailure(UWorld *World, UNetDriver *NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString);
