@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2472981
+﻿INTSourceChangelist:2491948
 Availability:Public
 Title:アクタレプリケーションフロー
 Crumbs:%ROOT%, Gameplay, Gameplay/Networking, Gameplay/Networking/Actors
@@ -8,9 +8,9 @@ Related:Gameplay/Networking/Actors/Properties
 Related:Gameplay/Networking/Actors/RPCs
 Related:Gameplay/Networking/Actors/ReplicationPerformance
 
-アクタレプリケーションの大半は `UNetDriver::ServerReplicateActors` 内部で発生します。ここは各クライアントと関わりがあると判断されたすべてのアクタをサーバーが収集する場所です。各送信先クライアントが最後に更新されてから変更したプロパティを送信する場所でもあります。
+アクタレプリケーションの大半は `UNetDriver::ServerReplicateActors` 内部で発生します。ここは各クライアントと関わりがあると判断したすべてのアクタをサーバーが収集する場所です。それぞれの接続クライアントが最後に更新されてから変更したプロパティを送信する場所でもあります。
 
-アクタの更新方法、起動する特定のフレームワークコールバック、そして処理中に使用する特定プロパティに関するフロー定義があります。以下が重要なフロー定義です：
+アクタの更新方法、起動する特定のフレームワークコールバック、そしてこのプロセスの間に使用する特定プロパティには定義されたフローがあります。以下が重要なフロー定義です：
 * `AActor::NetUpdateFrequency` - アクタをレプリケートする頻度の判断に使用
 * `AActor::PreReplication` - レプリケーションが発生する前に呼び出す
 * `AActor::bOnlyRelevantToOwner` - このアクタをオーナーだけにレプリケートする場合はTrue
@@ -32,7 +32,7 @@ Related:Gameplay/Networking/Actors/ReplicationPerformance
 		* まだチャンネルがない場合
 			* クライアントはアクタが存在するレベルをロードしたかどうかを判断
 				* ロードしていない場合はスキップ
-			* 接続に `AActor::IsNetRelevantFor` を呼び出してアクタは関連性があるかどうかを判断
+			* 接続に `AActor::IsNetRelevantFor` を呼び出してアクタに関連性があるかどうかを判断
 				* 関連性がない場合はスキップ
 	* 上記から接続を所有する関連リストにアクタを追加
 	* この時点で接続に関連性のあるアクタのリストを保持
@@ -40,18 +40,18 @@ Related:Gameplay/Networking/Actors/ReplicationPerformance
 	* 並び替えした各アクタに対して：
 		* 接続先がこのアクタが存在するレベルをロードしていない場合はチャンネルをクローズ、存在する場合は継続
 		* 1秒ごとに AActor::IsNetRelevantFor を呼び出してアクタと接続の関連性を判断
-		* 関連性が5秒間がない場合はチャンネルをクローズ
+		* 5秒間関連しなかった場合はチャンネルをクローズ
 		* 関連性がありチャンネルが開いていない場合は新しいチャンネルを開く
 		* どこかの時点でこの接続がサチュレートした場合
 			* 残りのアクタに対して
-				* 関連性が1秒未満の場合は次のティックで強制的に更新
-				* 関連性が2秒以上ある場合は、次のティックの更新をするかどうかの判断に `AActor::IsNetRelevantFor` を呼び出す
+				* 1秒未満しか関連しなかった場合は次のティックで強制的に更新
+				* 2秒以上関連した場合は、次のティックの更新をするかどうかの判断に `AActor::IsNetRelevantFor` を呼び出す
 		* 上記すべてをパスするアクタは、 `UChannel::ReplicateActor` を呼び出して接続先にアクタをレプリケート
 
 ## アクタを接続先にレプリケートする
 
 `UChannel::ReplicateActor` はアクタとそのコンポーネント全てを接続先にレプリケートする重要な役割を果たします。フローは以下のように表示されます：
-* アクタのチャンネルが開かれてから初めての更新かどうかを判断
+* このアクタのチャンネルが開いてから初めての更新かどうかを判断
 	* 初回更新の場合は、特定の必要な情報をシリアライズ（初回位置、回転など）
 * この接続がこのアクタを所有するか判断
 	* 所有しない場合は、そしてこのアクタの役割が `ROLE_AutonomousProxy` の場合は、 `ROLE_SimulatedProxy` に格下げ
