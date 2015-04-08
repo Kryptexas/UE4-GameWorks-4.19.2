@@ -14,13 +14,13 @@ public:
 private:
 	void MakeTransformDetails( IDetailLayoutBuilder& DetailBuilder );
 
-	FSlateColor GetMobilityTextColor(TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility) const;
+	FSlateColor GetMobilityTextColor(EComponentMobility::Type InMobility) const;
 
-	ECheckBoxState IsMobilityActive(TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility) const;
+	ECheckBoxState IsMobilityActive(EComponentMobility::Type InMobility) const;
 
-	void OnMobilityChanged(ECheckBoxState InCheckedState, TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility);
+	void OnMobilityChanged(ECheckBoxState InCheckedState, EComponentMobility::Type InMobility);
 
-	FText GetMobilityToolTip(TWeakPtr<IPropertyHandle> MobilityHandle) const;
+	FText GetMobilityToolTip() const;
 	
 	/**
 	 * When a scene component's Mobility is altered, we need to make sure the scene hierarchy is
@@ -43,4 +43,6 @@ private:
 
 	/** A collection of USceneComponents that were selected last time CustomizeDetails() was ran */
 	TArray< TWeakObjectPtr<UObject> > CachedSelectedSceneComponents;
+private:
+	TSharedPtr<IPropertyHandle> MobilityHandle;
 };
