@@ -1101,7 +1101,7 @@ void UWorld::RemoveActor(AActor* Actor, bool bShouldModifyLevel)
 			ModifyLevel( CheckLevel );
 		}
 		
-		if (!AreActorsInitialized())
+		if (!IsGameWorld())
 		{
 			CheckLevel->Actors.ModifyItem(ActorListIndex);
 		}
@@ -1135,9 +1135,8 @@ void UWorld::RemoveActor(AActor* Actor, bool bShouldModifyLevel)
 				UE_LOG(LogWorld, Log, TEXT("  %s"), (CurrentActor ? *CurrentActor->GetPathName() : TEXT("NONE")));
 			}
 		}
-		UE_LOG(LogWorld, Fatal, TEXT("Could not remove actor %s from world (check level is %s)"), *Actor->GetPathName(), *CheckLevel->GetPathName());
+		ensureMsgf(false, TEXT("Could not remove actor %s from world (check level is %s)"), *Actor->GetPathName(), *CheckLevel->GetPathName());
 	}
-	check(bSuccessfulRemoval);
 }
 
 
