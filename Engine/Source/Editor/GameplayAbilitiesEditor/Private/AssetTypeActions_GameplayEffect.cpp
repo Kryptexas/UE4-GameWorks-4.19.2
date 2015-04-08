@@ -13,8 +13,8 @@ DEFINE_LOG_CATEGORY(LogAssetTypeActions_GameplayEffect);
 
 void CopyInfoFromDataGE(const UGameplayEffect& InGE, UGameplayEffect& OutGE)
 {
+	OutGE.DurationPolicy = InGE.DurationPolicy;
 	OutGE.DurationMagnitude = InGE.DurationMagnitude;
-	OutGE.Duration = InGE.Duration;
 	OutGE.Period = InGE.Period;
 
 	for (FGameplayModifierInfo InModifier : InGE.Modifiers)

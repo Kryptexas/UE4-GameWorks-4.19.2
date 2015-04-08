@@ -551,10 +551,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=GameplayEffect)
 	FGameplayEffectModifierMagnitude DurationMagnitude;
 
-	/** Deprecated. Use DurationMagnitude instead. */
-	UPROPERTY()
-	FScalableFloat	Duration;
-
 	/** Period in seconds. 0.0 for non-periodic effects */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Period)
 	FScalableFloat	Period;

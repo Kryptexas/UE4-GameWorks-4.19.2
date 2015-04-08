@@ -91,28 +91,6 @@ void UGameplayEffect::PostLoad()
 	ClearTagsContainer.RemoveAllTags();
 
 	UpdateInheritedTagProperties();
-
-	if (Duration.Curve.CurveTable != nullptr || Duration.Value != 0)
-	{
-		if (Duration.Value == INFINITE_DURATION)
-		{
-			DurationPolicy = EGameplayEffectDurationType::Infinite;
-		}
-		else if (Duration.Value == INSTANT_APPLICATION)
-		{
-			DurationPolicy = EGameplayEffectDurationType::Instant;
-		}
-		else
-		{
-			DurationPolicy = EGameplayEffectDurationType::HasDuration;
-		}
-
-		DurationMagnitude.ScalableFloatMagnitude = Duration;
-		DurationMagnitude.MagnitudeCalculationType = EGameplayEffectMagnitudeCalculation::ScalableFloat;
-
-		Duration.Curve.CurveTable = nullptr;
-		Duration.Value = 0;
-	}
 }
 
 void UGameplayEffect::PostInitProperties()
