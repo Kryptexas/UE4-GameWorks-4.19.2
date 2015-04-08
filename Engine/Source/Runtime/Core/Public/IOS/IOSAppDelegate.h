@@ -76,6 +76,10 @@ UITextFieldDelegate>
 
 /** True if we need to reset the idle timer */
 @property (readonly) bool bResetIdleTimer;
+
+/** initial launch options */
+@property(retain) NSDictionary* launchOptions;
+
 /**
  * @return the single app delegate object
  */

@@ -378,6 +378,9 @@ void InstallSignalHandlers()
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions
 {
+	// save launch options
+	self.launchOptions = launchOptions;
+
 	// use the status bar orientation to properly determine landscape vs portrait
 	self.bDeviceInPortraitMode = UIInterfaceOrientationIsPortrait([[UIApplication sharedApplication] statusBarOrientation]);
 	printf("========= This app is in %s mode\n", self.bDeviceInPortraitMode ? "PORTRAIT" : "LANDSCAPE");
