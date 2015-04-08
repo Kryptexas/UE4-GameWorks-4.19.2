@@ -24,15 +24,15 @@ public:
 	 * If you want to customize the creation of the popup, you should bind a function to OnGetMenuContentEvent 
 	 * instead.
 	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Menu Anchor")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Menu Anchor")
 	TSubclassOf<class UUserWidget> MenuClass;
 
 	/** Called when the menu content is requested to allow a more customized handling over what to display */
-	UPROPERTY(EditDefaultsOnly, Category="Events")
+	UPROPERTY(EditAnywhere, Category="Events")
 	FGetWidget OnGetMenuContentEvent;
 	
 	/** The placement location of the summoned widget. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Menu Anchor")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Menu Anchor")
 	TEnumAsByte<EMenuPlacement> Placement;
 
 public:

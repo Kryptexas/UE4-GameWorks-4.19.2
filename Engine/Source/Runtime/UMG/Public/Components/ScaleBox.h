@@ -20,15 +20,15 @@ class UMG_API UScaleBox : public UContentWidget
 public:
 
 	/** Controls in what direction content can be scaled */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Stretching")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Stretching")
 	TEnumAsByte<EStretchDirection::Type> StretchDirection;
 
 	/** The stretching rule to apply when content is stretched */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Stretching")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Stretching")
 	TEnumAsByte<EStretch::Type> Stretch;
 
 	/** Optional scale that can be specified by the User. Isn't used if Stretch != EStretch::UserSpecified */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Stretching")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Stretching")
 	float UserSpecifiedScale;
 
 public:

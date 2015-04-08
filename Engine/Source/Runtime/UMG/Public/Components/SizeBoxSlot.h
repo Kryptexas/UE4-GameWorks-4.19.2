@@ -14,15 +14,15 @@ class UMG_API USizeBoxSlot : public UPanelSlot
 
 public:
 	/** The padding area between the slot and the content it contains. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout|SizeBox Slot")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Layout|SizeBox Slot")
 	FMargin Padding;
 
 	/** The alignment of the object horizontally. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout|SizeBox Slot")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Layout|SizeBox Slot")
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
 	/** The alignment of the object vertically. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout|SizeBox Slot")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Layout|SizeBox Slot")
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
 public:

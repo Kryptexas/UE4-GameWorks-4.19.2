@@ -221,7 +221,7 @@ class UMG_API UViewport : public UContentWidget
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditAnywhere, Category=Appearance)
 	FLinearColor BackgroundColor;
 
 	UFUNCTION(BlueprintCallable, Category="Viewport")

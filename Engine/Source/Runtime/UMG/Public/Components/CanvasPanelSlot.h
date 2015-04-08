@@ -23,7 +23,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnchorData)
 	FAnchors Anchors;
 
-	/** Alignment. */
+	/**
+	 * Alignment is the pivot point of the widget.  Starting in the upper left at (0,0),
+	 * ending in the lower right at (1,1).  Moving the alignment point allows you to move
+	 * the origin of the widget.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnchorData)
 	FVector2D Alignment;
 };
@@ -36,15 +40,15 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 public:
 
 	/** The anchoring information for the slot */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout|Canvas Slot")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Layout|Canvas Slot")
 	FAnchorData LayoutData;
 
 	/** When AutoSize is true we use the widget's desired size */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout|Canvas Slot", AdvancedDisplay, meta=( DisplayName="Size To Content" ))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Layout|Canvas Slot", AdvancedDisplay, meta=( DisplayName="Size To Content" ))
 	bool bAutoSize;
 
 	/** The order priority this widget is rendered in.  Higher values are rendered last (and so they will appear to be on top). */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout|Canvas Slot")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Layout|Canvas Slot")
 	int32 ZOrder;
 
 public:

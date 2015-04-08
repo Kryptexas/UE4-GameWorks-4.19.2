@@ -204,7 +204,11 @@ void UUserWidget::PlayAnimation( const UWidgetAnimation* InAnimation, float Star
 	if( InAnimation )
 	{
 		// @todo UMG sequencer - Restart animations which have had Play called on them?
-		UUMGSequencePlayer** FoundPlayer = ActiveSequencePlayers.FindByPredicate( [&](const UUMGSequencePlayer* Player) { return Player->GetAnimation() == InAnimation; } );
+		UUMGSequencePlayer** FoundPlayer = ActiveSequencePlayers.FindByPredicate(
+			[&](const UUMGSequencePlayer* Player)
+			{
+				return Player->GetAnimation() == InAnimation;
+			});
 
 		if( !FoundPlayer )
 		{

@@ -15,11 +15,11 @@ class UMG_API UTileView : public UTableViewBase
 public:
 
 	/**  */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditAnywhere, Category=Appearance)
 	float ItemWidth;
 
 	/**  */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditAnywhere, Category=Appearance)
 	float ItemHeight;
 
 	/**  */
@@ -27,11 +27,11 @@ public:
 	TArray<UObject*> Items;
 
 	/**  */
-	UPROPERTY(EditDefaultsOnly, Category=Content)
+	UPROPERTY(EditAnywhere, Category=Content)
 	TEnumAsByte<ESelectionMode::Type> SelectionMode;
 
 	/**  */
-	UPROPERTY(EditDefaultsOnly, Category=Events)
+	UPROPERTY(EditAnywhere, Category=Events)
 	FOnGenerateRowUObject OnGenerateTileEvent;
 
 public:

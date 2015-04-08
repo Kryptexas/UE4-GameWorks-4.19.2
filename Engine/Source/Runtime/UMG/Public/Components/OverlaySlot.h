@@ -17,15 +17,15 @@ class UMG_API UOverlaySlot : public UPanelSlot
 public:
 	
 	/** The padding area between the slot and the content it contains. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout|Overlay Slot")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Layout|Overlay Slot")
 	FMargin Padding;
 
 	/** The alignment of the object horizontally. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout|Overlay Slot")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Layout|Overlay Slot")
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
 	/** The alignment of the object vertically. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout|Overlay Slot")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Layout|Overlay Slot")
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
 public:

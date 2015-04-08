@@ -119,7 +119,7 @@ public:
 	UPanelSlot* Slot;
 
 	/** Sets whether this widget can be modified interactively by the user */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Behavior")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Behavior")
 	bool bIsEnabled;
 
 	/** A bindable delegate for bIsEnabled */
@@ -127,7 +127,7 @@ public:
 	FGetBool bIsEnabledDelegate;
 
 	/** Tooltip text to show when the user hovers over the widget with the mouse */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Behavior", meta=(MultiLine=true))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Behavior", meta=(MultiLine=true))
 	FText ToolTipText;
 
 	/** A bindable delegate for ToolTipText */
@@ -135,7 +135,7 @@ public:
 	FGetText ToolTipTextDelegate;
 
 	/** Tooltip widget to show when the user hovers over the widget with the mouse */
-	UPROPERTY(EditDefaultsOnly, Category="Behavior", AdvancedDisplay)
+	UPROPERTY(EditAnywhere, Category="Behavior", AdvancedDisplay)
 	UWidget* ToolTipWidget;
 
 	/** A bindable delegate for ToolTipWidget */
@@ -147,7 +147,7 @@ public:
 	TEnumAsByte<ESlateVisibility> Visiblity_DEPRECATED;
 
 	/** The visibility of the widget */
-	UPROPERTY(EditDefaultsOnly, Category="Behavior")
+	UPROPERTY(EditAnywhere, Category="Behavior")
 	ESlateVisibility Visibility;
 
 	/** A bindable delegate for Visibility */
@@ -155,7 +155,7 @@ public:
 	FGetSlateVisibility VisibilityDelegate;
 
 	/** The cursor to show when the mouse is over the widget */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Behavior", AdvancedDisplay)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Behavior", AdvancedDisplay)
 	TEnumAsByte<EMouseCursor::Type> Cursor;
 
 	/** A bindable delegate for Cursor */
@@ -163,14 +163,14 @@ public:
 	FGetMouseCursor CursorDelegate;
 
 	/** The render transform of the widget allows for arbitrary 2D transforms to be applied to the widget. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Render Transform", meta=( DisplayName="Transform" ))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Render Transform", meta=( DisplayName="Transform" ))
 	FWidgetTransform RenderTransform;
 
 	/**
 	 * The render transform pivot controls the location about which transforms are applied.  
 	 * This value is a normalized coordinate about which things like rotations will occur.
 	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Render Transform", meta=( DisplayName="Pivot" ))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Render Transform", meta=( DisplayName="Pivot" ))
 	FVector2D RenderTransformPivot;
 
 	/**
@@ -178,7 +178,7 @@ public:
 	 * navigation rules for this widget in the widget designer.  Those rules determine how navigation transitions
 	 * can occur between widgets.
 	 */
-	UPROPERTY(Instanced, EditDefaultsOnly, BlueprintReadOnly, Category="Navigation")
+	UPROPERTY(Instanced, EditAnywhere, BlueprintReadOnly, Category="Navigation")
 	class UWidgetNavigation* Navigation;
 
 #if WITH_EDITORONLY_DATA
@@ -435,8 +435,6 @@ public:
 
 	static FSizeParam ConvertSerializedSizeParamToRuntime(const FSlateChildSize& Input);
 
-	static void GatherChildren(UWidget* Root, TSet<UWidget*>& Children);
-	static void GatherAllChildren(UWidget* Root, TSet<UWidget*>& Children);
 	static UWidget* FindChildContainingDescendant(UWidget* Root, UWidget* Descendant);
 
 protected:

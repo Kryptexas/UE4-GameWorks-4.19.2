@@ -141,7 +141,7 @@ private:
 	FVector2D Pivot;
 
 	/** The Screen Space ZOrder that is used if the widget is displayed in screen space. */
-	UPROPERTY(EditDefaultsOnly, Category=UI)
+	UPROPERTY(EditAnywhere, Category=UI)
 	int32 ZOrder;
 	
 	/** The maximum distance from which a player can interact with this widget */

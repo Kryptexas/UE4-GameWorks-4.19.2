@@ -42,7 +42,7 @@ public:
 	void GetAllWidgets(TArray<UWidget*>& Widgets) const;
 
 	/** Gathers descendant child widgets of a parent widget. */
-	void GetChildWidgets(UWidget* Parent, TArray<UWidget*>& Widgets) const;
+	static void GetChildWidgets(UWidget* Parent, TArray<UWidget*>& Widgets);
 
 	/**
 	 * Iterates through all widgets including widgets contained in named slots, other than
@@ -66,7 +66,7 @@ public:
 	 * inside another user widget.
 	 */
 	template <typename Predicate>
-	FORCEINLINE void ForWidgetAndChildren(UWidget* Widget, Predicate Pred) const
+	static FORCEINLINE void ForWidgetAndChildren(UWidget* Widget, Predicate Pred)
 	{
 		// Search for any named slot with content that we need to dive into.
 		if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Widget) )

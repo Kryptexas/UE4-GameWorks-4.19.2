@@ -16,15 +16,15 @@ class UMG_API UExpandableArea : public UWidget, public INamedSlotInterface
 
 public:
 	/**  */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Expansion")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Expansion")
 	bool bIsExpanded;
 
 	/** The maximum height of the area */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Expansion")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Expansion")
 	float MaxHeight;
 	
 	/**  */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Expansion")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Expansion")
 	FMargin AreaPadding;
 
 	/** A bindable delegate for the IsChecked. */

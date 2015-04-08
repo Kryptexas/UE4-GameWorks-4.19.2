@@ -305,7 +305,7 @@ void FWidgetBlueprintEditorUtils::DeleteWidgets(UWidgetBlueprint* BP, TSet<FWidg
 
 			// Rename all child widgets as well, to the transient package so that they don't conflict with future widgets sharing the same name.
 			TArray<UWidget*> ChildWidgets;
-			BP->WidgetTree->GetChildWidgets(WidgetTemplate, ChildWidgets);
+			UWidgetTree::GetChildWidgets(WidgetTemplate, ChildWidgets);
 			for ( UWidget* Widget : ChildWidgets )
 			{
 				Widget->Rename(nullptr, nullptr);
@@ -503,7 +503,7 @@ void FWidgetBlueprintEditorUtils::CutWidgets(UWidgetBlueprint* BP, TSet<FWidgetR
 
 void FWidgetBlueprintEditorUtils::CopyWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets)
 {
-	TSet<UWidget*> CopyableWidets;
+	TArray<UWidget*> CopyableWidets;
 	for ( const FWidgetReference& Widget : Widgets )
 	{
 		UWidget* ParentWidget = Widget.GetTemplate();
@@ -511,11 +511,13 @@ void FWidgetBlueprintEditorUtils::CopyWidgets(UWidgetBlueprint* BP, TSet<FWidget
 
 		// When copying a widget users expect all sub widgets to be copied as well, so we need to ensure that
 		// we gather all the child widgets and copy them as well.
-		UWidget::GatherAllChildren(ParentWidget, CopyableWidets);
+		UWidgetTree::GetChildWidgets(ParentWidget, CopyableWidets);
 	}
 
+	TSet<UWidget*> CopyableWidetsSet(CopyableWidets);
+
 	FString ExportedText;
-	FWidgetBlueprintEditorUtils::ExportWidgetsToText(CopyableWidets, /*out*/ ExportedText);
+	FWidgetBlueprintEditorUtils::ExportWidgetsToText(CopyableWidetsSet, /*out*/ ExportedText);
 	FPlatformMisc::ClipboardCopy(*ExportedText);
 }
 
@@ -537,6 +539,21 @@ void FWidgetBlueprintEditorUtils::ExportWidgetsToText(TSet<UWidget*> WidgetsToEx
 		LastOuter = ThisOuter;
 
 		UExporter::ExportToOutputDevice(&Context, Widget, nullptr, Archive, TEXT("copy"), 0, PPF_ExportsNotFullyQualified | PPF_Copy | PPF_Delimited, false, ThisOuter);
+
+		// Check to see if this widget was content of another widget holding it in a named slot.
+		if ( Widget->GetParent() == nullptr )
+		{
+			for ( UWidget* ExportableWidget : WidgetsToExport )
+			{
+				if ( INamedSlotInterface* NamedSlotContainer = Cast<INamedSlotInterface>(ExportableWidget) )
+				{
+					if ( NamedSlotContainer->ContainsContent(Widget) )
+					{
+						continue;
+					}
+				}
+			}
+		}
 
 		if ( Widget->GetParent() == nullptr || !WidgetsToExport.Contains(Widget->GetParent()) )
 		{

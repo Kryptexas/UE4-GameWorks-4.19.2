@@ -39,14 +39,14 @@ public:
 	USlateBrushAsset* MarqueeImage_DEPRECATED;
 
 	/** Used to determine the fill position of the progress bar ranging 0..1 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Progress, meta=( UIMin = "0", UIMax = "1" ))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Progress, meta=( UIMin = "0", UIMax = "1" ))
 	float Percent;
 
 	/** Defines if this progress bar fills Left to right or right to left */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Progress)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Progress)
 	TEnumAsByte<EProgressBarFillType::Type> BarFillType;
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Progress)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Progress)
 	bool bIsMarquee;
 
 	/** A bindable delegate to allow logic to drive the text of the widget */
@@ -54,7 +54,7 @@ public:
 	FGetFloat PercentDelegate;
 
 	/** Fill Color and Opacity */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
 	FLinearColor FillColorAndOpacity;
 
 	/** */

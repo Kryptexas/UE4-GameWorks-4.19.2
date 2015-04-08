@@ -14,17 +14,17 @@ class UMG_API UHorizontalBoxSlot : public UPanelSlot
 public:
 	
 	/** The amount of padding between the slots parent and the content. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout|Horizontal Box Slot")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Layout|Horizontal Box Slot")
 	FMargin Padding;
 
 	/** How much space this slot should occupy in the direction of the panel. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout|Horizontal Box Slot")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Layout|Horizontal Box Slot")
 	FSlateChildSize Size;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout|Horizontal Box Slot")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Layout|Horizontal Box Slot")
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout|Horizontal Box Slot")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Layout|Horizontal Box Slot")
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
 public:
