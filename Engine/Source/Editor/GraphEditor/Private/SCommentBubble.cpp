@@ -42,6 +42,7 @@ void SCommentBubble::Construct( const FArguments& InArgs )
 	bAllowPinning			= InArgs._AllowPinning;
 	bEnableTitleBarBubble	= InArgs._EnableTitleBarBubble;
 	bEnableBubbleCtrls		= InArgs._EnableBubbleCtrls;
+	bInvertLODCulling		= InArgs._InvertLODCulling;
 	GraphLOD				= InArgs._GraphLOD;
 	IsGraphNodeHovered		= InArgs._IsGraphNodeHovered;
 	HintText				= InArgs._HintText.IsSet() ? InArgs._HintText : NSLOCTEXT( "CommentBubble", "EditCommentHint", "Click to edit" );
@@ -118,7 +119,8 @@ void SCommentBubble::Tick( const FGeometry& AllottedGeometry, const double InCur
 	{
 		CachedComment = GraphNode->NodeComment;
 		CachedCommentText = FText::FromString( CachedComment );
-		GraphNode->bCommentBubbleVisible = !CachedComment.IsEmpty();
+		// Comment nodes should always have bCommentBubbleVisible set to true, they also are the nodes that set bInvertCulling.
+		GraphNode->bCommentBubbleVisible = bInvertLODCulling ? GraphNode->bCommentBubbleVisible : !CachedComment.IsEmpty();
 		UpdateBubble();
 	}
 }
@@ -139,6 +141,7 @@ void SCommentBubble::UpdateBubble()
 			if( bAllowPinning )
 			{
 				SAssignNew( BubbleControls, SVerticalBox )
+				.Visibility( this, &SCommentBubble::GetBubbleVisibility )
 				+SVerticalBox::Slot()
 				.Padding( 1.f )
 				.AutoHeight()
@@ -175,6 +178,7 @@ void SCommentBubble::UpdateBubble()
 			else
 			{
 				SAssignNew( BubbleControls, SVerticalBox )
+				.Visibility( this, &SCommentBubble::GetBubbleVisibility )
 				+SVerticalBox::Slot()
 				.AutoHeight()
 				.Padding( 1.f )
@@ -194,6 +198,7 @@ void SCommentBubble::UpdateBubble()
 		ChildSlot
 		[
 			SNew(SVerticalBox)
+			.Visibility( this, &SCommentBubble::GetBubbleVisibility )
 			+SVerticalBox::Slot()
 			.AutoHeight()
 			[
@@ -304,14 +309,14 @@ FVector2D SCommentBubble::GetSize() const
 bool SCommentBubble::IsBubbleVisible() const
 {
 	EGraphRenderingLOD::Type CurrLOD = GraphLOD.Get();
-	const bool bShowScaled = CurrLOD > EGraphRenderingLOD::LowestDetail;
+	const bool bShowScaled = CurrLOD > EGraphRenderingLOD::LowDetail;
 	const bool bShowPinned = CurrLOD <= EGraphRenderingLOD::MediumDetail;
 
-	if( bAllowPinning )
+	if( bAllowPinning && !bInvertLODCulling )
 	{
 		return GraphNode->bCommentBubblePinned ? true : bShowScaled;
 	}
-	return bShowPinned;
+	return bInvertLODCulling ? bShowPinned : !bShowPinned;
 }
 
 bool SCommentBubble::IsScalingAllowed() const
@@ -396,8 +401,7 @@ EVisibility SCommentBubble::GetToggleButtonVisibility() const
 
 EVisibility SCommentBubble::GetBubbleVisibility() const
 {
-	const bool bIsVisible = !CachedCommentText.IsEmpty() && IsBubbleVisible();
-	return bIsVisible ? EVisibility::Visible : EVisibility::Hidden;
+	return IsBubbleVisible() ? EVisibility::Visible : EVisibility::Hidden;
 }
 
 void SCommentBubble::OnCommentBubbleToggle( ECheckBoxState State )

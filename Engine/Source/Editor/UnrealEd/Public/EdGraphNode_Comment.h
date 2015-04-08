@@ -42,7 +42,7 @@ public:
 	TEnumAsByte<ECommentBoxMode::Type> MoveMode;
 
 	/** comment Depth */
-	UPROPERTY(EditAnywhere, Category=Comment, meta=(DisplayName="CommentDepth"))
+	UPROPERTY()
 	int32 CommentDepth;
 
 public:

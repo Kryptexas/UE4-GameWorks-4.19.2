@@ -12,6 +12,7 @@ class GRAPHEDITOR_API SCommentBubble : public SCompoundWidget
 		, _AllowPinning( false )
 		, _EnableTitleBarBubble( false )
 		, _EnableBubbleCtrls( false )
+		, _InvertLODCulling( false )
 		, _GraphLOD( EGraphRenderingLOD::DefaultDetail )
 	{}
 
@@ -41,6 +42,9 @@ class GRAPHEDITOR_API SCommentBubble : public SCompoundWidget
 
 		/** Enable the controls within the bubble */
 		SLATE_ARGUMENT( bool, EnableBubbleCtrls )
+
+		/** Invert LOD culling */
+		SLATE_ARGUMENT( bool, InvertLODCulling )
 
 		/** The current level of detail */
 		SLATE_ATTRIBUTE( EGraphRenderingLOD::Type, GraphLOD )
@@ -148,6 +152,8 @@ protected:
 	bool bAllowPinning;
 	/** Allow in bubble controls */
 	bool bEnableBubbleCtrls;
+	/** Invert the LOD culling behavior, used by comment nodes */
+	bool bInvertLODCulling;
 	/** Enable the title bar bubble toggle */
 	bool bEnableTitleBarBubble;
 	/** Used to Control hover fade up/down for widgets */
