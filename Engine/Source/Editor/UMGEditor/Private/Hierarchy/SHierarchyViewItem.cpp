@@ -36,7 +36,7 @@ class FHierarchyWidgetDragDropOp : public FDecoratedDragDropOp
 public:
 	DRAG_DROP_OPERATOR_TYPE(FHierarchyWidgetDragDropOp, FDecoratedDragDropOp)
 
-	virtual ~FHierarchyWidgetDragDropOp();
+		virtual ~FHierarchyWidgetDragDropOp();
 
 	virtual void OnDrop(bool bDropWasHandled, const FPointerEvent& MouseEvent) override;
 
@@ -103,7 +103,7 @@ TOptional<EItemDropZone> ProcessHierarchyDragDrop(const FDragDropEvent& DragDrop
 {
 	UWidget* TargetTemplate = TargetItem.GetTemplate();
 
-	if ( TargetTemplate && (DropZone == EItemDropZone::AboveItem || DropZone == EItemDropZone::BelowItem) )
+	if ( TargetTemplate && ( DropZone == EItemDropZone::AboveItem || DropZone == EItemDropZone::BelowItem ) )
 	{
 		if ( UPanelWidget* TargetParentTemplate = Cast<UPanelWidget>(TargetTemplate->GetParent()) )
 		{
@@ -155,7 +155,7 @@ TOptional<EItemDropZone> ProcessHierarchyDragDrop(const FDragDropEvent& DragDrop
 			if ( bIsDrop )
 			{
 				UWidget* Widget = TemplateDragDropOp->Template->Create(Blueprint->WidgetTree);
-				
+
 				UPanelSlot* NewSlot = nullptr;
 				if ( Index.IsSet() )
 				{
@@ -285,6 +285,7 @@ TOptional<EItemDropZone> ProcessHierarchyDragDrop(const FDragDropEvent& DragDrop
 	return TOptional<EItemDropZone>();
 }
 
+
 //////////////////////////////////////////////////////////////////////////
 
 FHierarchyModel::FHierarchyModel()
@@ -387,6 +388,7 @@ bool FHierarchyModel::IsSelected() const
 FHierarchyRoot::FHierarchyRoot(TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor)
 	: BlueprintEditor(InBlueprintEditor)
 {
+	RootText = FText::Format(LOCTEXT("RootWidgetFormat", "[{0}]"), FText::FromString(BlueprintEditor.Pin()->GetBlueprintObj()->GetName()));
 }
 
 FName FHierarchyRoot::GetUniqueName() const
@@ -397,7 +399,7 @@ FName FHierarchyRoot::GetUniqueName() const
 
 FText FHierarchyRoot::GetText() const
 {
-	return LOCTEXT("Root", "[Root]");
+	return RootText;
 }
 
 const FSlateBrush* FHierarchyRoot::GetImage() const
@@ -810,11 +812,22 @@ void FHierarchyWidget::UpdateSelection()
 	bIsSelected = SelectedWidgets.Contains(Item);
 }
 
+bool FHierarchyWidget::CanRename() const
+{
+	return true;
+}
+
+void FHierarchyWidget::BeginRename()
+{
+	RenameEvent.ExecuteIfBound();
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 void SHierarchyViewItem::Construct(const FArguments& InArgs, const TSharedRef< STableViewBase >& InOwnerTableView, TSharedPtr<FHierarchyModel> InModel)
 {
 	Model = InModel;
+	Model->RenameEvent.BindSP(this, &SHierarchyViewItem::BeginRename);
 
 	STableRow< TSharedPtr<FHierarchyModel> >::Construct(
 		STableRow< TSharedPtr<FHierarchyModel> >::FArguments()
@@ -844,7 +857,7 @@ void SHierarchyViewItem::Construct(const FArguments& InArgs, const TSharedRef< S
 			.Padding(2, 0, 0, 0)
 			.VAlign(VAlign_Center)
 			[
-				SNew(SInlineEditableTextBlock)
+				SAssignNew(EditBox, SInlineEditableTextBlock)
 				.Font(this, &SHierarchyViewItem::GetItemFont)
 				.Text(this, &SHierarchyViewItem::GetItemText)
 				.ToolTipText(Model->GetLabelToolTipText())
@@ -878,6 +891,11 @@ void SHierarchyViewItem::Construct(const FArguments& InArgs, const TSharedRef< S
 		InOwnerTableView);
 }
 
+SHierarchyViewItem::~SHierarchyViewItem()
+{
+	Model->RenameEvent.Unbind();
+}
+
 void SHierarchyViewItem::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	STableRow< TSharedPtr<FHierarchyModel> >::OnMouseEnter(MyGeometry, MouseEvent);
@@ -907,6 +925,20 @@ void SHierarchyViewItem::OnNameTextCommited(const FText& InText, ETextCommit::Ty
 		return;
 	}
 	Model->OnNameTextCommited(InText, CommitInfo);
+}
+
+bool SHierarchyViewItem::CanRename() const
+{
+	return Model->CanRename();
+}
+
+void SHierarchyViewItem::BeginRename()
+{
+	TSharedPtr<SInlineEditableTextBlock> SafeEditBox = EditBox.Pin();
+	if ( SafeEditBox.IsValid() )
+	{
+		SafeEditBox->EnterEditingMode();
+	}
 }
 
 FSlateFontInfo SHierarchyViewItem::GetItemFont() const

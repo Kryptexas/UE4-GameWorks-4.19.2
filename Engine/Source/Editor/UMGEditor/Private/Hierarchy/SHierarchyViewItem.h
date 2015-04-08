@@ -62,6 +62,12 @@ public:
 	virtual bool IsExpanded() const { return true; }
 	virtual void SetExpanded(bool bIsExpanded) { }
 
+	virtual bool CanRename() const { return false; }
+	virtual void BeginRename() { }
+
+public:
+	FSimpleDelegate RenameEvent;
+
 protected:
 	virtual void GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children) = 0;
 	virtual void UpdateSelection() = 0;
@@ -104,6 +110,8 @@ protected:
 private:
 
 	TWeakPtr<FWidgetBlueprintEditor> BlueprintEditor;
+
+	FText RootText;
 };
 
 class FNamedSlotModel : public FHierarchyModel
@@ -210,6 +218,9 @@ public:
 		Item.GetTemplate()->bExpandedInDesigner = bIsExpanded;
 	}
 
+	virtual bool CanRename() const override;
+	virtual void BeginRename() override;
+
 protected:
 	virtual void GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children) override;
 	virtual void UpdateSelection() override;
@@ -234,6 +245,7 @@ public:
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, const TSharedRef< STableViewBase >& InOwnerTableView, TSharedPtr<FHierarchyModel> InModel);
+	virtual ~SHierarchyViewItem();
 
 	// Begin SWidget
 	virtual bool IsHovered() const override;
@@ -241,7 +253,7 @@ public:
 	virtual void OnMouseLeave(const FPointerEvent& MouseEvent) override;
 	// End SWidget
 
-private:
+public:
 	FReply HandleDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 	void HandleDragEnter(const FDragDropEvent& DragDropEvent);
 	void HandleDragLeave(const FDragDropEvent& DragDropEvent);
@@ -255,6 +267,11 @@ private:
 	/** Called when text is committed on the node */
 	void OnNameTextCommited(const FText& InText, ETextCommit::Type CommitInfo);
 
+	bool CanRename() const;
+	void BeginRename();
+
+private:
+
 	/** Gets the font to use for the text item, bold for customized named items */
 	FSlateFontInfo GetItemFont() const;
 
@@ -266,6 +283,11 @@ private:
 
 	/** Returns a brush representing the visibility item of the widget's visibility button */
 	FText GetVisibilityBrushForWidget() const;
+
+private:
+
+	/** Edit box for the name. */
+	TWeakPtr<SInlineEditableTextBlock> EditBox;
 
 	/* The mode that this tree item represents */
 	TSharedPtr<FHierarchyModel> Model;

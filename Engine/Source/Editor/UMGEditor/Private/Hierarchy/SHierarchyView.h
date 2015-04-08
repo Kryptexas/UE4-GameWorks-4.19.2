@@ -13,8 +13,6 @@ class FWidgetBlueprintEditor;
 class UWidget;
 class UWidgetBlueprint;
 
-//TODO rename SUMGEditorHierarchy
-
 /**
  * The tree view presenting the widget hierarchy.  This allows users to edit the hierarchy of widgets easily by dragging and 
  * dropping them logically, which in some cases may be significantly easier than doing it visually in the widget designer.
@@ -48,6 +46,9 @@ private:
 	void WidgetHierarchy_OnExpansionChanged(TSharedPtr<FHierarchyModel> Item, bool bExpanded);
 
 private:
+	void BeginRename();
+	bool CanRename() const;
+
 	/** @returns the current blueprint being edited */
 	UWidgetBlueprint* GetBlueprint() const;
 
@@ -103,6 +104,9 @@ private:
 
 	/** Cached pointer to the blueprint editor that owns this tree. */
 	TWeakPtr<class FWidgetBlueprintEditor> BlueprintEditor;
+
+	/** Commands specific to the hierarchy. */
+	TSharedPtr<FUICommandList> CommandList;
 
 	/** Handles filtering the hierarchy based on an IFilter. */
 	TSharedPtr< TreeFilterHandler< TSharedPtr<FHierarchyModel> > > FilterHandler;
