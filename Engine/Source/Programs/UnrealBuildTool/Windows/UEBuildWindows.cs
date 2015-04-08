@@ -456,7 +456,7 @@ namespace UnrealBuildTool
 
 				//on PS4 the SDK now handles distortion correction.  On PC we will still have to handle it manually,
 				//but we require SDK changes before we can get the required data.  For the moment, no platform does in-engine morpheus distortion
-				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("MORPHEUS_ENGINE_DISTORTION=0");				
+				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("MORPHEUS_ENGINE_DISTORTION=1");				
             }
 
             if (InBuildTarget.Rules != null)

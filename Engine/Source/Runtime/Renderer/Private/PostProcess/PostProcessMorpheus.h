@@ -8,7 +8,7 @@
 
 #include "RenderingCompositionGraph.h"
 
-#if MORPHEUS_ENGINE_DISTORTION
+#if HAS_MORPHEUS
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>
 // ePId_Input0: SceneColor

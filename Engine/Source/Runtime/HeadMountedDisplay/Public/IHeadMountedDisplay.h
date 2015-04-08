@@ -273,6 +273,8 @@ public:
 
 	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FSceneView& View, const FIntPoint& TextureSize) {}
 
+	virtual void DrawSingleEyeDistortionSDK_RenderThread(FRHICommandListImmediate& RHICmdList, const FSceneView& View, const FTexture2DRHIRef& InputTexture) {}
+
 	/**
 	 * This method is able to change screen settings right before any drawing occurs. 
 	 * It is called at the beginning of UGameViewportClient::Draw() method.
