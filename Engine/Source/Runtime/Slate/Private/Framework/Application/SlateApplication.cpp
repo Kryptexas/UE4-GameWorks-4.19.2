@@ -444,7 +444,7 @@ void FSlateApplication::MouseCaptorHelper::SetMouseCaptor(uint32 PointerIndex, c
 		{
 			MouseCaptorWeakPath = NewMouseCaptorPath;
 		}
-		else
+		else if (EventPath.Widgets.Num() > 0)
 		{
 			// If the target widget wasn't found on the event path then start the search from the root
 			NewMouseCaptorPath = EventPath.GetPathDownTo( EventPath.Widgets[0].Widget );
@@ -453,6 +453,10 @@ void FSlateApplication::MouseCaptorHelper::SetMouseCaptor(uint32 PointerIndex, c
 			MouseCaptorWeakPath = IsPathToCaptorFound( NewMouseCaptorPath, WidgetRef )
 				? NewMouseCaptorPath
 				: FWeakWidgetPath();
+		}
+		else
+		{
+			ensureMsgf(EventPath.Widgets.Num() > 0, TEXT("An unknown widget is attempting to set capture to %s"), *Widget->ToString() );
 		}
 
 		if (MouseCaptorWeakPath.IsValid())
