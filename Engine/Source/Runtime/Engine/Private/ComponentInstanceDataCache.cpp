@@ -122,7 +122,12 @@ void FActorComponentInstanceData::ApplyToComponent(UActorComponent* Component, c
 
 			TSet<const UProperty*> PropertiesToSkip;
 
-		} ComponentPropertyReader(Component, SavedProperties);	
+		} ComponentPropertyReader(Component, SavedProperties);
+
+		if (Component->IsRegistered())
+		{
+			Component->ReregisterComponent();
+		}
 	}
 }
 
