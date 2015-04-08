@@ -935,7 +935,7 @@ public class AndroidPlatform : Platform
 		ProcessResult ExtensionsResult = RunAdbCommand(Params, "shell dumpsys SurfaceFlinger", null, ERunOptions.AppMustExist);
 		string Extensions = ExtensionsResult.Output.Trim();
 
-		// look for AEP support
+		// look for AEP support (on device and in project)
 		if (Extensions.Contains("GL_ANDROID_extension_pack_es31a") && Extensions.Contains("GL_EXT_color_buffer_half_float"))
 		{
 			if (AppGPUArchitectures.Contains("-es31"))
