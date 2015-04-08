@@ -69,7 +69,10 @@ void APawn::PreInitializeComponents()
 {
 	Super::PreInitializeComponents();
 
-	Instigator = this;
+	if (Instigator == nullptr)
+	{
+		Instigator = this;
+	}
 
 	if (AutoPossessPlayer != EAutoReceiveInput::Disabled && GetNetMode() != NM_Client )
 	{
