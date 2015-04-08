@@ -590,9 +590,6 @@ UK2Node_Event* FKismetEditorUtilities::AddDefaultEventNode(UBlueprint* InBluepri
 
 		InGraph->AddNode(NewEventNode);
 
-		// Rebuild the skeleton class so we can determine if we are overriding the function from the parent
-		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(InBlueprint);
-
 		// Get the function that the event node or function entry represents
 		FFunctionFromNodeHelper FunctionFromNode(NewEventNode);
 		if (FunctionFromNode.Function && Schema->GetCallableParentFunction(FunctionFromNode.Function))
