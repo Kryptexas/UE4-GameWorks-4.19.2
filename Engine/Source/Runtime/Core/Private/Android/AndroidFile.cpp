@@ -1603,6 +1603,7 @@ private:
 			{
 				// Absolute paths are only local.
 				LocalPath = AndroidPath;
+				AssetPath = AndroidPath;
 			}
 			else
 			{
