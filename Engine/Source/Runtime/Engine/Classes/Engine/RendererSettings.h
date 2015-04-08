@@ -144,12 +144,6 @@ class ENGINE_API URendererSettings
 	uint32 bUseNormalMapsForStaticLighting:1;
 
 	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
-		ConsoleVariable="r.GBuffer",
-		ToolTip="1=Use GBuffer, 0=Don't use GBuffer (minimal limited renderer)."))
-		uint32 bGBuffer:1;
-
-
-	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
 		ConsoleVariable="r.GenerateMeshDistanceFields",
 		ToolTip="Whether to build distance fields of static meshes, needed for distance field AO, which is used to implement Movable SkyLight shadows, and ray traced distance field shadows on directional lights.  Enabling will increase mesh build times and memory usage.  Changing this setting requires restarting the editor."))
 	uint32 bGenerateMeshDistanceFields:1;
