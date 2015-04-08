@@ -468,15 +468,23 @@ FReply FKismetVariableDragDropAction::DroppedOnPanel( const TSharedRef< SWidget 
 			// call analytics
 			AnalyticCallback.ExecuteIfBound();
 
-			// Asking for a getter
-			if (bControlDrag || !CanExecuteMakeSetter(NewNodeParams, VariableProperty))
+			// Take into account current state of modifier keys in case the user changed his mind
+			auto ModifierKeys = FSlateApplication::Get().GetModifierKeys();
+			const bool bModifiedKeysActive = ModifierKeys.IsControlDown() || ModifierKeys.IsAltDown();
+			const bool bAutoCreateGetter = bModifiedKeysActive ? ModifierKeys.IsControlDown() : bControlDrag;
+			const bool bAutoCreateSetter = bModifiedKeysActive ? ModifierKeys.IsAltDown() : bAltDrag;
+			// Handle Getter/Setters
+			if (bAutoCreateGetter || bAutoCreateSetter)
 			{
-				MakeGetter(NewNodeParams);
-			}
-			// Asking for a setter
-			else if (bAltDrag && CanExecuteMakeSetter(NewNodeParams, VariableProperty))
-			{
-				MakeSetter(NewNodeParams);
+				if (bAutoCreateGetter || !CanExecuteMakeSetter(NewNodeParams, VariableProperty))
+				{
+					MakeGetter(NewNodeParams);
+					NewNodeParams.GraphPosition.Y += 50.f;
+				}
+				if (bAutoCreateSetter && CanExecuteMakeSetter( NewNodeParams, VariableProperty))
+				{
+					MakeSetter(NewNodeParams);
+				}
 			}
 			// Show selection menu
 			else
