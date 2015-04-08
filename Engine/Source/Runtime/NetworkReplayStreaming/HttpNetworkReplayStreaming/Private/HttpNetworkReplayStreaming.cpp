@@ -662,6 +662,11 @@ bool FHttpNetworkReplayStreamer::IsDataAvailable() const
 		return false;
 	}
 
+	if ( GotoCheckpointDelegate.IsBound() )
+	{
+		return false;
+	}
+
 	if ( HighPriorityEndTime > 0 )
 	{
 		// If we are waiting for a high priority portion of the stream, pretend like we don't have any data so that game code waits for the entire portion
