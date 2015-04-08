@@ -492,6 +492,15 @@ namespace AutomationTool
             return false;
         }
 
+		/// <summary>
+		/// Allows some platforms to not be compiled, for instance when BuildCookRun -build is performed
+		/// </summary>
+		/// <returns><c>true</c> if this instance can be compiled; otherwise, <c>false</c>.</returns>
+		public virtual bool CanBeCompiled()
+		{
+			return true;
+		}
+
 		public virtual bool RetrieveDeployedManifests(ProjectParams Params, DeploymentContext SC, out List<string> UFSManifests, out List<string> NonUFSManifests)
 		{
 			UFSManifests = null;

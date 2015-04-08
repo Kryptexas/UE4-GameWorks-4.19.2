@@ -666,6 +666,12 @@ namespace AutomationTool
 			/// <param name="InAddArgs">Specifies additional arguments for UBT</param>
 			public void AddTarget(string TargetName, UnrealBuildTool.UnrealTargetPlatform InPlatform, UnrealBuildTool.UnrealTargetConfiguration InConfiguration, string InUprojectPath = null, bool bForceMonolithic = false, bool bForceNonUnity = false, bool bForceDebugInfo = false, string InAddArgs = "")
 			{
+				// Is this platform a compilable target?
+				if (!Platform.Platforms[InPlatform].CanBeCompiled())
+				{
+					return;
+				}
+
 				Targets.Add(new BuildTarget()
 				{
 					TargetName = TargetName,
@@ -691,6 +697,12 @@ namespace AutomationTool
 			/// <param name="bForceDebugInfo">Force debug info even in development builds</param>
 			public void AddTargets(string[] TargetNames, UnrealBuildTool.UnrealTargetPlatform InPlatform, UnrealBuildTool.UnrealTargetConfiguration InConfiguration, string InUprojectPath = null, bool bForceMonolithic = false, bool bForceNonUnity = false, bool bForceDebugInfo = false, string InAddArgs = "")
 			{
+				// Is this platform a compilable target?
+				if (!Platform.Platforms[InPlatform].CanBeCompiled())
+				{
+					return;
+				}
+
 				foreach (var Target in TargetNames)
 				{
 					Targets.Add(new BuildTarget()
@@ -1335,15 +1347,18 @@ namespace AutomationTool
 				Log("Build products *******");
 				if (BuildProductFiles.Count < 1)
 				{
-					throw new AutomationException("BUILD FAILED: no build products??");
+					Log("No build products were made");
 				}
-				foreach (var Product in BuildProductFiles)
+				else
 				{
-					if (!FileExists(Product))
+					foreach (var Product in BuildProductFiles)
 					{
-						throw new AutomationException("BUILD FAILED {0} was a build product but no longer exists", Product);
+						if (!FileExists(Product))
+						{
+							throw new AutomationException("BUILD FAILED {0} was a build product but no longer exists", Product);
+						}
+						Log(Product);
 					}
-					Log(Product);
 				}
 				Log("End Build products *******");
 			}

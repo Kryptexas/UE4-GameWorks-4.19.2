@@ -100,7 +100,7 @@ public abstract class BaseLinuxPlatform : Platform
 				    if (!Params.IsCodeBasedProject && Exe == Exes[0])
 				    {
 						// ensure the ue4game binary exists, if applicable
-						if (!SC.IsCodeBasedProject && !FileExists_NoExceptions(Params.ProjectGameExeFilename))
+						if (!SC.IsCodeBasedProject && !FileExists_NoExceptions(Params.ProjectGameExeFilename) && !SC.bIsCombiningMultiplePlatforms)
 						{
 							Log("Failed to find game binary " + Params.ProjectGameExeFilename);
 							AutomationTool.ErrorReporter.Error("Stage Failed.", (int)AutomationTool.ErrorCodes.Error_MissingExecutable);

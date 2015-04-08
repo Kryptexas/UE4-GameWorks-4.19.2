@@ -18,23 +18,49 @@ public class DesktopPlatform : Platform
 	{
 	}
 
+	public override bool CanBeCompiled()
+	{
+		return false;
+	}
+
+	private static List<UnrealTargetPlatform> DesktopPlatforms = new List<UnrealTargetPlatform>() { 
+		UnrealTargetPlatform.Win32,
+		UnrealTargetPlatform.Win64,
+		UnrealTargetPlatform.Mac,
+		UnrealTargetPlatform.Linux,
+	};
+
 	public override void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
 	{
-
-		PrintRunTime();
+		SC.bIsCombiningMultiplePlatforms = true;
+		string SavedPlatformDir = SC.PlatformDir;
+		foreach (UnrealTargetPlatform DesktopPlatform in DesktopPlatforms)
+		{
+			Platform SubPlatform = Platform.Platforms[DesktopPlatform];
+			SC.PlatformDir = DesktopPlatform.ToString();
+			SubPlatform.Package(Params, SC, WorkingCL);
+		}
+		SC.PlatformDir = SavedPlatformDir;
+		SC.bIsCombiningMultiplePlatforms = false;
 	}
 
 	public override void GetFilesToArchive(ProjectParams Params, DeploymentContext SC)
 	{
+		SC.bIsCombiningMultiplePlatforms = true;
+		string SavedPlatformDir = SC.PlatformDir;
+		foreach (UnrealTargetPlatform DesktopPlatform in DesktopPlatforms)
+		{
+			Platform SubPlatform = Platform.Platforms[DesktopPlatform];
+			SC.PlatformDir = DesktopPlatform.ToString();
+			SubPlatform.GetFilesToArchive(Params, SC);
+		}
+		SC.PlatformDir = SavedPlatformDir;
+		SC.bIsCombiningMultiplePlatforms = false;
 	}
 
 	public override void GetConnectedDevices(ProjectParams Params, out List<string> Devices)
 	{
 		Devices = new List<string>();
-	}
-
-	public override void Deploy(ProjectParams Params, DeploymentContext SC)
-	{
 	}
 
 	public override ProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
@@ -44,6 +70,34 @@ public class DesktopPlatform : Platform
 
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
 	{
+		SC.bIsCombiningMultiplePlatforms = true;
+		string SavedPlatformDir = SC.PlatformDir;
+		foreach (UnrealTargetPlatform DesktopPlatform in DesktopPlatforms)
+		{
+			Platform SubPlatform = Platform.Platforms[DesktopPlatform];
+			SC.PlatformDir = DesktopPlatform.ToString();
+			SubPlatform.GetFilesToDeployOrStage(Params, SC);
+		}
+		SC.PlatformDir = SavedPlatformDir;
+		SC.bIsCombiningMultiplePlatforms = false;
+	}
+
+	public override void ProcessArchivedProject(ProjectParams Params, DeploymentContext SC)
+	{
+		Console.WriteLine("***************************** PROCESSING ARCHIVED PROJECT ****************");
+
+		SC.bIsCombiningMultiplePlatforms = true;
+		string SavedPlatformDir = SC.PlatformDir;
+		foreach (UnrealTargetPlatform DesktopPlatform in DesktopPlatforms)
+		{
+			Platform SubPlatform = Platform.Platforms[DesktopPlatform];
+			SC.PlatformDir = DesktopPlatform.ToString();
+			SubPlatform.ProcessArchivedProject(Params, SC);
+		}
+		SC.PlatformDir = SavedPlatformDir;
+		SC.bIsCombiningMultiplePlatforms = false;
+
+		Console.WriteLine("***************************** DONE PROCESSING ARCHIVED PROJECT ****************");
 	}
 
 	/// <summary>

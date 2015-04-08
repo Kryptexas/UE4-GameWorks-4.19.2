@@ -904,6 +904,11 @@ protected:
 					PlatformName = TEXT("LinuxServer");
 					PlatformInfo::UpdatePlatformSDKStatus(PlatformName, Status);
 				}
+				else if (PlatformName == TEXT("Desktop"))
+				{
+					// since Desktop is just packaging, we don't need an SDK, and UBT will return INVALID, since it doesn't build for it
+					PlatformInfo::UpdatePlatformSDKStatus(PlatformName, PlatformInfo::EPlatformSDKStatus::Installed);
+				}
 				else
 				{
 					PlatformInfo::UpdatePlatformSDKStatus(PlatformName, Status);

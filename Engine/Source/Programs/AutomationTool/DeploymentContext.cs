@@ -200,6 +200,10 @@ public class DeploymentContext //: ProjectParams
 	/// </summary>
 	public string ShortProjectName;
 
+	/// <summary>
+	/// If true, multiple platforms are being merged together - some behavior needs to change (but not much)
+	/// </summary>
+	public bool bIsCombiningMultiplePlatforms = false;
 
 	public DeploymentContext(
 		string RawProjectPathOrName,
@@ -352,7 +356,7 @@ public class DeploymentContext //: ProjectParams
                     continue;
                 }
 
-                if (bStripFilesForOtherPlatforms)
+				if (bStripFilesForOtherPlatforms && !bIsCombiningMultiplePlatforms)
                 {
                     bool OtherPlatform = false;
                     foreach (UnrealTargetPlatform Plat in Enum.GetValues(typeof(UnrealTargetPlatform)))
@@ -481,7 +485,7 @@ public class DeploymentContext //: ProjectParams
 			}
 		}
 
-		if (FilesAdded == 0 && !bAllowNone)
+		if (FilesAdded == 0 && !bAllowNone && !bIsCombiningMultiplePlatforms)
 		{
 			AutomationTool.ErrorReporter.Error(String.Format("No files found to deploy for {0} with wildcard {1} and exclusions {2}", InPath, Wildcard, ExcludeWildcard), (int)AutomationTool.ErrorCodes.Error_StageMissingFile);
 			throw new AutomationException("No files found to deploy for {0} with wildcard {1} and exclusions {2}", InPath, Wildcard, ExcludeWildcard);
@@ -535,18 +539,22 @@ public class DeploymentContext //: ProjectParams
 				{
 					continue;
 				}
-				bool OtherPlatform = false;
-				foreach (UnrealTargetPlatform Plat in Enum.GetValues(typeof(UnrealTargetPlatform)))
+
+				if (!bIsCombiningMultiplePlatforms)
 				{
-					if (Plat != StageTargetPlatform.PlatformType && Plat != UnrealTargetPlatform.Unknown && FileToCopy.IndexOf(CommandUtils.CombinePaths("/" + Plat.ToString() + "/"), 0, StringComparison.InvariantCultureIgnoreCase) >= 0)
+					bool OtherPlatform = false;
+					foreach (UnrealTargetPlatform Plat in Enum.GetValues(typeof(UnrealTargetPlatform)))
 					{
-						OtherPlatform = true;
-						break;
+						if (Plat != StageTargetPlatform.PlatformType && Plat != UnrealTargetPlatform.Unknown && FileToCopy.IndexOf(CommandUtils.CombinePaths("/" + Plat.ToString() + "/"), 0, StringComparison.InvariantCultureIgnoreCase) >= 0)
+						{
+							OtherPlatform = true;
+							break;
+						}
 					}
-				}
-				if (OtherPlatform)
-				{
-					continue;
+					if (OtherPlatform)
+					{
+						continue;
+					}
 				}
 
 				string Dest;
@@ -561,7 +569,17 @@ public class DeploymentContext //: ProjectParams
 					Dest = Dest.Substring(1);
 				}
 
-				ArchivedFiles.Add(FileToCopy, Dest);
+				if (ArchivedFiles.ContainsKey(FileToCopy))
+				{
+					if (ArchivedFiles[FileToCopy] != Dest)
+					{
+						throw new AutomationException("Can't archive {0}: it was already in the files to archive with a different destination '{1}'", FileToCopy, Dest);
+					}
+				}
+				else
+				{
+					ArchivedFiles.Add(FileToCopy, Dest);
+				}
 
 				FilesAdded++;
 			}

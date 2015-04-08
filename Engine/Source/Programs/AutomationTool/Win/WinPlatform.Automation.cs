@@ -185,7 +185,7 @@ public abstract class BaseWinPlatform : Platform
 					string SourceFile = CombinePaths(SC.LocalRoot, "Engine", "Binaries", SC.PlatformDir, ExeFileName);
 
 					// ensure the ue4game binary exists, if applicable
-					if (!SC.IsCodeBasedProject && !FileExists_NoExceptions(SourceFile))
+					if (!SC.IsCodeBasedProject && !FileExists_NoExceptions(SourceFile) && !SC.bIsCombiningMultiplePlatforms)
 					{
 						Log("Failed to find game executable " + SourceFile);
 						AutomationTool.ErrorReporter.Error("Stage Failed.", (int)AutomationTool.ErrorCodes.Error_MissingExecutable);
@@ -223,28 +223,33 @@ public abstract class BaseWinPlatform : Platform
 			string IntermediateFile = CombinePaths(IntermediateDir, ExeName);
 			File.Copy(InputFile, IntermediateFile, true);
 	
-			// Get the icon from the build directory if possible
-			GroupIconResource GroupIcon = null;
-			if(InternalUtils.SafeFileExists(CombinePaths(SC.ProjectRoot, "Build/Windows/Application.ico")))
+			// currently the icon updating doesn't run under mono
+			if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64 ||
+				UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win32)
 			{
-				GroupIcon = GroupIconResource.FromIco(CombinePaths(SC.ProjectRoot, "Build/Windows/Application.ico"));
-			}
-			if(GroupIcon == null)
-			{
-				GroupIcon = GroupIconResource.FromExe(TargetFile);
-			}
+				// Get the icon from the build directory if possible
+				GroupIconResource GroupIcon = null;
+				if(InternalUtils.SafeFileExists(CombinePaths(SC.ProjectRoot, "Build/Windows/Application.ico")))
+				{
+					GroupIcon = GroupIconResource.FromIco(CombinePaths(SC.ProjectRoot, "Build/Windows/Application.ico"));
+				}
+				if(GroupIcon == null)
+				{
+					GroupIcon = GroupIconResource.FromExe(TargetFile);
+				}
 
-			// Update the resources in the new file
-			using(ModuleResourceUpdate Update = new ModuleResourceUpdate(IntermediateFile, true))
-			{
-				const int IconResourceId = 101;
-				if(GroupIcon != null) Update.SetIcons(IconResourceId, GroupIcon);
+				// Update the resources in the new file
+				using(ModuleResourceUpdate Update = new ModuleResourceUpdate(IntermediateFile, true))
+				{
+					const int IconResourceId = 101;
+					if(GroupIcon != null) Update.SetIcons(IconResourceId, GroupIcon);
 
-				const int ExecFileResourceId = 201;
-				Update.SetData(ExecFileResourceId, ResourceType.RawData, Encoding.Unicode.GetBytes(StagedRelativeTargetPath + "\0"));
+					const int ExecFileResourceId = 201;
+					Update.SetData(ExecFileResourceId, ResourceType.RawData, Encoding.Unicode.GetBytes(StagedRelativeTargetPath + "\0"));
 
-				const int ExecArgsResourceId = 202;
-				Update.SetData(ExecArgsResourceId, ResourceType.RawData, Encoding.Unicode.GetBytes(StagedArguments + "\0"));
+					const int ExecArgsResourceId = 202;
+					Update.SetData(ExecArgsResourceId, ResourceType.RawData, Encoding.Unicode.GetBytes(StagedArguments + "\0"));
+				}
 			}
 
 			// Copy it to the staging directory

@@ -112,7 +112,7 @@ public class MacPlatform : Platform
 
 					string AbsoluteBundlePath = CombinePaths (SC.LocalRoot, AppBundlePath);
 					// ensure the ue4game binary exists, if applicable
-					if (!SC.IsCodeBasedProject && !Directory.Exists(AbsoluteBundlePath))
+					if (!SC.IsCodeBasedProject && !Directory.Exists(AbsoluteBundlePath) && !SC.bIsCombiningMultiplePlatforms)
 					{
 						Log("Failed to find app bundle " + AbsoluteBundlePath);
 						AutomationTool.ErrorReporter.Error("Stage Failed.", (int)AutomationTool.ErrorCodes.Error_MissingExecutable);
@@ -158,54 +158,69 @@ public class MacPlatform : Platform
 	{
 		string ExeName = SC.StageExecutables[0];
 		string BundlePath = CombinePaths(SC.ArchiveDirectory, SC.ShortProjectName + ".app");
-		if (!Directory.Exists(BundlePath))
+
+		if (SC.bIsCombiningMultiplePlatforms)
 		{
-			string SourceBundlePath = CombinePaths(SC.ArchiveDirectory, SC.ShortProjectName, "Binaries", "Mac", ExeName + ".app");
-			if (!Directory.Exists(SourceBundlePath))
+			// when combining multiple platforms, don't merge the content into the .app, use the one in the Binaries directory
+			BundlePath = CombinePaths(SC.ArchiveDirectory, SC.ShortProjectName, "Binaries", "Mac", ExeName + ".app");
+			if (!Directory.Exists(BundlePath))
 			{
-				SourceBundlePath = CombinePaths(SC.ArchiveDirectory, "Engine", "Binaries", "Mac", ExeName + ".app");
+				// if the .app wasn't there, just skip out (we don't require executables when combining)
+				return;
 			}
-			Directory.Move(SourceBundlePath, BundlePath);
 		}
 
 		string TargetPath = CombinePaths(BundlePath, "Contents", "UE4");
-		if (DirectoryExists(TargetPath))
+		if (!SC.bIsCombiningMultiplePlatforms)
 		{
-			Directory.Delete(TargetPath, true);
-		}
-
-		// First, move all files and folders inside he app bundle
-		string[] StagedFiles = Directory.GetFiles(SC.ArchiveDirectory, "*", SearchOption.TopDirectoryOnly);
-		foreach (string FilePath in StagedFiles)
-		{
-			string TargetFilePath = CombinePaths(TargetPath, Path.GetFileName(FilePath));
-			Directory.CreateDirectory(Path.GetDirectoryName(TargetFilePath));
-			File.Move(FilePath, TargetFilePath);
-		}
-
-		string[] StagedDirectories = Directory.GetDirectories(SC.ArchiveDirectory, "*", SearchOption.TopDirectoryOnly);
-		foreach (string DirPath in StagedDirectories)
-		{
-			string DirName = Path.GetFileName(DirPath);
-			if (!DirName.EndsWith(".app"))
+			if (!Directory.Exists(BundlePath))
 			{
-				string TargetDirPath = CombinePaths(TargetPath, DirName);
-				Directory.CreateDirectory(Path.GetDirectoryName(TargetDirPath));
-				Directory.Move(DirPath, TargetDirPath);
+				string SourceBundlePath = CombinePaths(SC.ArchiveDirectory, SC.ShortProjectName, "Binaries", "Mac", ExeName + ".app");
+				if (!Directory.Exists(SourceBundlePath))
+				{
+					SourceBundlePath = CombinePaths(SC.ArchiveDirectory, "Engine", "Binaries", "Mac", ExeName + ".app");
+				}
+				Directory.Move(SourceBundlePath, BundlePath);
+			}
+
+			if (DirectoryExists(TargetPath))
+			{
+				Directory.Delete(TargetPath, true);
+			}
+
+			// First, move all files and folders inside he app bundle
+			string[] StagedFiles = Directory.GetFiles(SC.ArchiveDirectory, "*", SearchOption.TopDirectoryOnly);
+			foreach (string FilePath in StagedFiles)
+			{
+				string TargetFilePath = CombinePaths(TargetPath, Path.GetFileName(FilePath));
+				Directory.CreateDirectory(Path.GetDirectoryName(TargetFilePath));
+				File.Move(FilePath, TargetFilePath);
+			}
+
+			string[] StagedDirectories = Directory.GetDirectories(SC.ArchiveDirectory, "*", SearchOption.TopDirectoryOnly);
+			foreach (string DirPath in StagedDirectories)
+			{
+				string DirName = Path.GetFileName(DirPath);
+				if (!DirName.EndsWith(".app"))
+				{
+					string TargetDirPath = CombinePaths(TargetPath, DirName);
+					Directory.CreateDirectory(Path.GetDirectoryName(TargetDirPath));
+					Directory.Move(DirPath, TargetDirPath);
+				}
 			}
 		}
 
 		// Update executable name, icon and entry in Info.plist
-		string UE4GamePath = CombinePaths(SC.ArchiveDirectory, SC.ShortProjectName + ".app", "Contents", "MacOS", ExeName);
+		string UE4GamePath = CombinePaths(BundlePath, "Contents", "MacOS", ExeName);
 		if (ExeName != SC.ShortProjectName && File.Exists(UE4GamePath))
 		{
-			string GameExePath = CombinePaths(SC.ArchiveDirectory, SC.ShortProjectName + ".app", "Contents", "MacOS", SC.ShortProjectName);
+			string GameExePath = CombinePaths(BundlePath, "Contents", "MacOS", SC.ShortProjectName);
 			File.Delete(GameExePath);
 			File.Move(UE4GamePath, GameExePath);
 
-			string DefaultIconPath = CombinePaths(SC.ArchiveDirectory, SC.ShortProjectName + ".app", "Contents", "Resources", "UE4.icns");
-			string CustomIconSrcPath = CombinePaths(SC.ArchiveDirectory, SC.ShortProjectName + ".app", "Contents", "Resources", "Application.icns");
-			string CustomIconDestPath = CombinePaths(SC.ArchiveDirectory, SC.ShortProjectName + ".app", "Contents", "Resources", SC.ShortProjectName + ".icns");
+			string DefaultIconPath = CombinePaths(BundlePath, "Contents", "Resources", "UE4.icns");
+			string CustomIconSrcPath = CombinePaths(BundlePath, "Contents", "Resources", "Application.icns");
+			string CustomIconDestPath = CombinePaths(BundlePath, "Contents", "Resources", SC.ShortProjectName + ".icns");
 			if (File.Exists(CustomIconSrcPath))
 			{
 				File.Delete(DefaultIconPath);
@@ -216,7 +231,7 @@ public class MacPlatform : Platform
 				File.Move(DefaultIconPath, CustomIconDestPath);
 			}
 
-			string InfoPlistPath = CombinePaths(SC.ArchiveDirectory, SC.ShortProjectName + ".app", "Contents", "Info.plist");
+			string InfoPlistPath = CombinePaths(BundlePath, "Contents", "Info.plist");
 			string InfoPlistContents = File.ReadAllText(InfoPlistPath);
 			InfoPlistContents = InfoPlistContents.Replace(ExeName, SC.ShortProjectName);
 			InfoPlistContents = InfoPlistContents.Replace("<string>UE4</string>", "<string>" + SC.ShortProjectName + "</string>");
