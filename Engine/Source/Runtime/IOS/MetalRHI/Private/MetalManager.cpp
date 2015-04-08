@@ -713,7 +713,7 @@ void FMetalManager::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
 			// set up the stencil attachment
 			StencilAttachment.texture = Surface.StencilTexture;
 			StencilAttachment.loadAction = GetMetalRTLoadAction(RenderTargetsInfo.DepthStencilRenderTarget.StencilLoadAction);
-			StencilAttachment.storeAction = GetMetalRTStoreAction(RenderTargetsInfo.DepthStencilRenderTarget.StencilStoreAction);
+			StencilAttachment.storeAction = GetMetalRTStoreAction(RenderTargetsInfo.DepthStencilRenderTarget.GetStencilStoreAction());
 			StencilAttachment.clearStencil = RenderTargetsInfo.StencilClearValue;
 
 			Pipeline.StencilTargetFormat = StencilAttachment.texture.pixelFormat;

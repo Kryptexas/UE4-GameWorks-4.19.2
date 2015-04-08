@@ -103,7 +103,7 @@ public:
 	void SetBoundShaderState(FMetalBoundShaderState* BoundShaderState);
 	void SetCurrentRenderTarget(FMetalSurface* RenderSurface, int32 RenderTargetIndex, uint32 MipIndex, uint32 ArraySliceIndex, MTLLoadAction LoadAction, MTLStoreAction StoreAction, int32 TotalNumRenderTargets);
 	void SetCurrentDepthStencilTarget(FMetalSurface* RenderSurface, MTLLoadAction DepthLoadAction=MTLLoadActionDontCare, MTLStoreAction DepthStoreAction=MTLStoreActionDontCare, float ClearDepthValue=0, 
-		MTLLoadAction StencilLoadAction=MTLLoadActionDontCare, MTLStoreAction StencilStoreAction=MTLStoreActionDontCare, uint8 ClearStencilValue=0);
+		MTLLoadAction StencilLoadAction=MTLLoadActionDontCare, MTLStoreAction InStencilStoreAction=MTLStoreActionDontCare, uint8 ClearStencilValue=0);
 	
 	/**
 	 * Set the color, depth and stencil render targets, and then make the new command buffer/encoder
