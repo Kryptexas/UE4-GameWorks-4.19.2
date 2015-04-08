@@ -110,30 +110,25 @@ void USoundNodeRandom::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT Node
 			}
 		}
 
-		float Weight = FMath::FRand() * WeightSum;
+		float Choice = FMath::FRand() * WeightSum;
+		WeightSum = 0.0f;
 		for( int32 i = 0; i < ChildNodes.Num() && i < Weights.Num(); ++i )
 		{
 #if WITH_EDITOR
 			if(!bIsPIESound || !PIEHiddenNodes.Contains(i) )
 #endif //WITH_EDITOR
 			{
-				if( bRandomizeWithoutReplacement && ( Weights[ i ] >= Weight ) && ( HasBeenUsed[ i ] != true ) )
+				if (bRandomizeWithoutReplacement && HasBeenUsed[i])
 				{
-					HasBeenUsed[ i ] = true;
-					// we played a sound so increment how many sounds we have played
+					continue;
+				}
+				WeightSum += Weights[i];
+				if (Choice < WeightSum)
+				{
+					NodeIndex = i;
+					HasBeenUsed[i] = true;
 					++NumRandomUsed;
-
-					NodeIndex = i;
 					break;
-				}
-				else if( ( bRandomizeWithoutReplacement == false ) && ( Weights[ i ] >= Weight ) )
-				{
-					NodeIndex = i;
-					break;
-				}
-				else
-				{
-					Weight -= Weights[ i ];
 				}
 			}
 		}
