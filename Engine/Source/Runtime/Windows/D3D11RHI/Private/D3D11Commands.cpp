@@ -638,20 +638,30 @@ void FD3D11DynamicRHI::RHISetShaderParameter(FComputeShaderRHIParamRef ComputeSh
 	CSConstantBuffers[BufferIndex]->UpdateConstant((const uint8*)NewValue,BaseIndex,NumBytes);
 }
 
+void FD3D11DynamicRHI::ValidateExclusiveDepthStencilAccess(FExclusiveDepthStencil RequestedAccess) const
+{
+	const bool bSrcDepthWrite = RequestedAccess.IsDepthWrite();
+	const bool bSrcStencilWrite = RequestedAccess.IsStencilWrite();
+
+	if (bSrcDepthWrite || bSrcStencilWrite)
+	{
+		// New Rule: You have to call SetRenderTarget[s]() before
+		ensure(CurrentDepthTexture);
+
+		const bool bDstDepthWrite = CurrentDSVAccessType.IsDepthWrite();
+		const bool bDstStencilWrite = CurrentDSVAccessType.IsStencilWrite();
+
+		// requested access is not possible, fix SetRenderTarget EExclusiveDepthStencil or request a different one
+		check(!bSrcDepthWrite || bDstDepthWrite);
+		check(!bSrcStencilWrite || bDstStencilWrite);
+	}
+}
+
 void FD3D11DynamicRHI::RHISetDepthStencilState(FDepthStencilStateRHIParamRef NewStateRHI,uint32 StencilRef)
 {
 	DYNAMIC_CAST_D3D11RESOURCE(DepthStencilState,NewState);
 
-	if (CurrentDepthTexture && NewState->AccessType != CurrentDSVAccessType)
-	{
-		CurrentDSVAccessType = NewState->AccessType;
-		CurrentDepthStencilTarget = CurrentDepthTexture->GetDepthStencilView(CurrentDSVAccessType);
-
-		// Unbind any shader views of the depth stencil target that are bound.
-		ConditionalClearShaderResource(CurrentDepthTexture);
-
-		CommitRenderTargetsAndUAVs();
-	}
+	ValidateExclusiveDepthStencilAccess(NewState->AccessType);
 
 	StateCache.SetDepthStencilState(NewState->Resource, StencilRef);
 }
@@ -774,7 +784,7 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 
 #if CHECK_SRV_TRANSITIONS
 	// if the depth buffer is writable then it counts as unresolved.
-	if (NewDepthStencilTargetRHI && !NewDepthStencilTargetRHI->bReadOnly && NewDepthStencilTarget)
+	if (NewDepthStencilTargetRHI && NewDepthStencilTargetRHI->GetDepthStencilAccess() == FExclusiveDepthStencil::DepthWrite_StencilWrite && NewDepthStencilTarget)
 	{		
 		UnresolvedTargets.Add(NewDepthStencilTarget->GetResource(), FUnresolvedRTInfo(NewDepthStencilTargetRHI->Texture->GetName(), 0, 1, -1, 1));
 	}
@@ -788,8 +798,9 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 	ID3D11DepthStencilView* DepthStencilView = NULL;
 	if(NewDepthStencilTarget)
 	{
+		CurrentDSVAccessType = NewDepthStencilTargetRHI->GetDepthStencilAccess();
 		DepthStencilView = NewDepthStencilTarget->GetDepthStencilView(CurrentDSVAccessType);
-		
+
 		// Unbind any shader views of the depth stencil target that are bound.
 		ConditionalClearShaderResource(NewDepthStencilTarget);
 	}
@@ -1552,23 +1563,17 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 	// Must specify enough clear colors for all active RTs
 	check(!bClearColor || NumClearColors >= BoundRenderTargets.GetNumActiveTargets());
 
-	ID3D11DepthStencilView* DepthStencilView = BoundRenderTargets.GetDepthStencilView();
-
-	// If we're clearing depth or stencil and we have a readonly depth/stencil view bound, we need to use a writable depth/stencil view instead
+	// If we're clearing depth or stencil and we have a readonly depth/stencil view bound, we need to use a writable depth/stencil view
 	if (CurrentDepthTexture)
 	{
-		// Create an access type mask by setting the readonly bits according to the bClearDepth/bClearStencil bools.
-		EDepthStencilAccessType AccessMask = (EDepthStencilAccessType)((bClearDepth ? DSAT_Writable : DSAT_ReadOnlyDepth) | (bClearStencil ? DSAT_Writable : DSAT_ReadOnlyStencil));
+		FExclusiveDepthStencil RequestedAccess;
+		
+		RequestedAccess.SetDepthStencilWrite(bClearDepth, bClearStencil);
 
-		// Apply the mask to the current access state
-		EDepthStencilAccessType RequiredAccess = (EDepthStencilAccessType)(CurrentDSVAccessType & AccessMask);
-
-		if (RequiredAccess != CurrentDSVAccessType)
-		{
-			// A different access type is required than is currently set. Replace the DSV used for the clear.
-			DepthStencilView = CurrentDepthTexture->GetDepthStencilView(RequiredAccess);
-		}
+		ensure(RequestedAccess.IsValid(CurrentDSVAccessType));
 	}
+
+	ID3D11DepthStencilView* DepthStencilView = BoundRenderTargets.GetDepthStencilView();
 
 	// Determine if we're trying to clear a subrect of the screen
 	bool UseDrawClear = false;
@@ -1680,21 +1685,13 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 					>::GetRHI()
 			:     TStaticDepthStencilState<false, CF_Always>::GetRHI();
 
-		bool bChangedDepthStencilTarget = false;
-		if (CurrentDepthTexture)
+		// Create an access type mask by setting the readonly bits according to the bClearDepth/bClearStencil bools.
 		{
-			// Create an access type mask by setting the readonly bits according to the bClearDepth/bClearStencil bools.
-			EDepthStencilAccessType AccessMask = (EDepthStencilAccessType)((bClearDepth ? DSAT_Writable : DSAT_ReadOnlyDepth) | (bClearStencil ? DSAT_Writable : DSAT_ReadOnlyStencil));
+			FExclusiveDepthStencil RequestedAccess;
+			
+			RequestedAccess.SetDepthStencilWrite(bClearDepth, bClearStencil);
 
-			// Apply the mask to the current access state
-			EDepthStencilAccessType RequiredAccess = (EDepthStencilAccessType)(CurrentDSVAccessType & AccessMask);
-
-			if (RequiredAccess != CurrentDSVAccessType)
-			{
-				bChangedDepthStencilTarget = true;
-				CurrentDepthStencilTarget = CurrentDepthTexture->GetDepthStencilView(RequiredAccess);
-				CommitRenderTargetsAndUAVs();
-			} 
+			ValidateExclusiveDepthStencilAccess(RequestedAccess);
 		}
 
 		DYNAMIC_CAST_D3D11RESOURCE(BlendState,BlendState);
@@ -1820,14 +1817,6 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 				}
 			}
 			// Implicit flush. Always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
-		}
-
-		if (bChangedDepthStencilTarget)
-		{
-			// Restore the DST
-			CurrentDepthStencilTarget = CurrentDepthTexture->GetDepthStencilView(CurrentDSVAccessType);
-
-			CommitRenderTargetsAndUAVs();
 		}
 
 		// Restore the original device state

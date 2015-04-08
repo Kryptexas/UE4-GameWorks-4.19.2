@@ -192,7 +192,7 @@ public:
 		// Set the DSVs for all the access type combinations
 		if ( InDepthStencilViews != nullptr )
 		{
-			for ( uint32 Index=0; Index<DSAT_Count; Index++ )
+			for (uint32 Index = 0; Index < FExclusiveDepthStencil::MaxIndex; Index++)
 			{
 				DepthStencilViews[Index] = InDepthStencilViews[Index];
 				// New Monolithic Graphics drivers have optional "fast calls" replacing various D3d functions
@@ -245,9 +245,9 @@ public:
 		}
 		return 0;
 	}
-	ID3D11DepthStencilView* GetDepthStencilView(EDepthStencilAccessType AccessType) const 
+	ID3D11DepthStencilView* GetDepthStencilView(FExclusiveDepthStencil AccessType) const
 	{ 
-		return DepthStencilViews[AccessType]; 
+		return DepthStencilViews[AccessType.GetIndex()]; 
 	}
 
 	// New Monolithic Graphics drivers have optional "fast calls" replacing various D3d functions
@@ -282,7 +282,7 @@ protected:
 	int32 RTVArraySize;
 
 	/** A depth-stencil targetable view of the texture. */
-	TRefCountPtr<ID3D11DepthStencilView> DepthStencilViews[ DSAT_Count ];
+	TRefCountPtr<ID3D11DepthStencilView> DepthStencilViews[FExclusiveDepthStencil::MaxIndex];
 
 	/** Number of Depth Stencil Views - used for fast call tracking. */
 	uint32	NumDepthStencilViews;

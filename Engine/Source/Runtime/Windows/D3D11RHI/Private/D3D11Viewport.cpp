@@ -530,7 +530,7 @@ void FD3D11DynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,bo
 	// Clear references the device might have to resources.
 	CurrentDepthTexture = NULL;
 	CurrentDepthStencilTarget = NULL;
-	CurrentDSVAccessType = DSAT_Writable;
+	CurrentDSVAccessType = FExclusiveDepthStencil::DepthWrite_StencilWrite;
 	CurrentRenderTargets[0] = NULL;
 	for(uint32 RenderTargetIndex = 1;RenderTargetIndex < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT;++RenderTargetIndex)
 	{

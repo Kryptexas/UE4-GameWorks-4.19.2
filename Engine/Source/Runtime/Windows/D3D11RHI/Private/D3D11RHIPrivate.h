@@ -428,7 +428,7 @@ protected:
 	uint16 DirtyUniformBuffers[SF_NumFrequencies];
 
 	/** Tracks the current depth stencil access type. */
-	EDepthStencilAccessType CurrentDSVAccessType;
+	FExclusiveDepthStencil CurrentDSVAccessType;
 
 	/** When a new shader is set, we discard all old constants set for the previous shader. */
 	bool bDiscardSharedConstants;
@@ -516,6 +516,8 @@ protected:
 	template <class ShaderType> void SetResourcesFromTables(const ShaderType* RESTRICT);
 	void CommitGraphicsResourceTables();
 	void CommitComputeResourceTables(FD3D11ComputeShader* ComputeShader);
+
+	void ValidateExclusiveDepthStencilAccess(FExclusiveDepthStencil Src) const;
 
 	/** 
 	 * Gets the best supported MSAA settings from the provided MSAA count to check against. 

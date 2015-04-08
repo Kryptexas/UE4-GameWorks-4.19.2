@@ -251,7 +251,7 @@ FDepthStencilStateRHIRef FD3D11DynamicRHI::RHICreateDepthStencilState(const FDep
 		&& Initializer.BackFacePassStencilOp == SO_Keep;
 
 	const bool bMayWriteStencil = Initializer.StencilWriteMask != 0 && !bStencilOpIsKeep;
-	DepthStencilState->AccessType = (EDepthStencilAccessType)((Initializer.bEnableDepthWrite ? DSAT_Writable : DSAT_ReadOnlyDepth) | (bMayWriteStencil ? DSAT_Writable : DSAT_ReadOnlyStencil));
+	DepthStencilState->AccessType.SetDepthStencilWrite(Initializer.bEnableDepthWrite, bMayWriteStencil);
 
 	VERIFYD3D11RESULT(Direct3DDevice->CreateDepthStencilState(&DepthStencilDesc,DepthStencilState->Resource.GetInitReference()));
 	return DepthStencilState;

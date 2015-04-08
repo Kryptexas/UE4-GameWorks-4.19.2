@@ -626,7 +626,7 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 	TRefCountPtr<ID3D11Texture2D> TextureResource;
 	TRefCountPtr<ID3D11ShaderResourceView> ShaderResourceView;
 	TArray<TRefCountPtr<ID3D11RenderTargetView> > RenderTargetViews;
-	TRefCountPtr<ID3D11DepthStencilView> DepthStencilViews[DSAT_Count];
+	TRefCountPtr<ID3D11DepthStencilView> DepthStencilViews[FExclusiveDepthStencil::MaxIndex];
 	
 #if PLATFORM_SUPPORTS_VIRTUAL_TEXTURES
 	// Turn off pooling when we are using virtual textures or the texture is offline processed as we control when the memory is released
@@ -760,17 +760,17 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 				DSVDesc.Texture2D.MipSlice = 0;
 			}
 
-			for(uint32 AccessType = 0; AccessType < DSAT_Count; ++AccessType)
+			for (uint32 AccessType = 0; AccessType < FExclusiveDepthStencil::MaxIndex; ++AccessType)
 			{
 				// Create a read-only access views for the texture.
 				// Read-only DSVs are not supported in Feature Level 10 so 
 				// a dummy DSV is created in order reduce logic complexity at a higher-level.
 				if(Direct3DDevice->GetFeatureLevel() == D3D_FEATURE_LEVEL_11_0)
 				{
-					DSVDesc.Flags  = (AccessType & DSAT_ReadOnlyDepth) ? D3D11_DSV_READ_ONLY_DEPTH : 0;
+					DSVDesc.Flags = (AccessType & FExclusiveDepthStencil::DepthRead_StencilWrite) ? D3D11_DSV_READ_ONLY_DEPTH : 0;
 					if(HasStencilBits(DSVDesc.Format))
 					{
-						DSVDesc.Flags |= (AccessType & DSAT_ReadOnlyStencil) ? D3D11_DSV_READ_ONLY_STENCIL : 0;
+						DSVDesc.Flags |= (AccessType & FExclusiveDepthStencil::DepthWrite_StencilRead) ? D3D11_DSV_READ_ONLY_STENCIL : 0;
 					}
 				}
 				VERIFYD3D11RESULT(Direct3DDevice->CreateDepthStencilView(TextureResource,&DSVDesc,DepthStencilViews[AccessType].GetInitReference()));

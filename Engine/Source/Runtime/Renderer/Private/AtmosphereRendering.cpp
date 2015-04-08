@@ -414,7 +414,7 @@ void FDeferredShadingSceneRenderer::RenderAtmosphere(FRHICommandListImmediate& R
 		};
 
 		
-		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingReadOnlyDepth);
+		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 		{
 			const FViewInfo& View = Views[ViewIndex];
@@ -1614,8 +1614,6 @@ bool ShouldRenderAtmosphere(const FSceneViewFamily& Family)
 	const FEngineShowFlags EngineShowFlags = Family.EngineShowFlags;
 
 	return GSupportsVolumeTextureRendering
-		&& EngineShowFlags.Atmosphere
-		&& !EngineShowFlags.ShaderComplexity
-		&& !EngineShowFlags.StationaryLightOverlap 
-		&& !EngineShowFlags.LightMapDensity;
+		&& EngineShowFlags.AtmosphericFog
+		&& EngineShowFlags.Fog;
 }

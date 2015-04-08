@@ -43,7 +43,7 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory1* InDXGIFactory1,D3D_FEATURE_LEV
 	NumUAVs(0),
 	SceneFrameCounter(0),
 	ResourceTableFrameCounter(INDEX_NONE),
-	CurrentDSVAccessType(DSAT_Writable),
+	CurrentDSVAccessType(FExclusiveDepthStencil::DepthWrite_StencilWrite),
 	bDiscardSharedConstants(false),
 	bUsingTessellation(false),
 	PendingNumVertices(0),

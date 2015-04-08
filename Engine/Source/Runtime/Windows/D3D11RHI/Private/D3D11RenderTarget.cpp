@@ -251,7 +251,7 @@ void FD3D11DynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureR
 			GPUProfilingData.RegisterGPUWork();
 		
 			if(FeatureLevel == D3D_FEATURE_LEVEL_11_0 
-			&& DestTexture2D->GetDepthStencilView(DSAT_Writable)
+			&& DestTexture2D->GetDepthStencilView(FExclusiveDepthStencil::DepthWrite_StencilWrite)
 			&& SourceTextureRHI->IsMultisampled()
 			&& !DestTextureRHI->IsMultisampled())
 			{
@@ -264,7 +264,7 @@ void FD3D11DynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureR
 					SourceTexture2D,
 					DestTexture2D,
 					DestTexture2D->GetRenderTargetView(0, -1),
-					DestTexture2D->GetDepthStencilView(DSAT_Writable),
+					DestTexture2D->GetDepthStencilView(FExclusiveDepthStencil::DepthWrite_StencilWrite),
 					ResolveTargetDesc,
 					GetDefaultRect(ResolveParams.Rect,DestTexture2D->GetSizeX(),DestTexture2D->GetSizeY()),
 					GetDefaultRect(ResolveParams.Rect,DestTexture2D->GetSizeX(),DestTexture2D->GetSizeY()),
@@ -273,7 +273,7 @@ void FD3D11DynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureR
 					);
 			}
 			else if(FeatureLevel == D3D_FEATURE_LEVEL_10_0 
-					&& DestTexture2D->GetDepthStencilView(DSAT_Writable))
+				&& DestTexture2D->GetDepthStencilView(FExclusiveDepthStencil::DepthWrite_StencilWrite))
 			{
 				D3D11_TEXTURE2D_DESC ResolveTargetDesc;
 
@@ -284,7 +284,7 @@ void FD3D11DynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureR
 					SourceTexture2D,
 					DestTexture2D,
 					NULL,
-					DestTexture2D->GetDepthStencilView(DSAT_Writable),
+					DestTexture2D->GetDepthStencilView(FExclusiveDepthStencil::DepthWrite_StencilWrite),
 					ResolveTargetDesc,
 					GetDefaultRect(ResolveParams.Rect,DestTexture2D->GetSizeX(),DestTexture2D->GetSizeY()),
 					GetDefaultRect(ResolveParams.Rect,DestTexture2D->GetSizeX(),DestTexture2D->GetSizeY()),

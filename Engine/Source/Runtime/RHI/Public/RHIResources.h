@@ -655,6 +655,142 @@ public:
 	}
 };
 
+class FExclusiveDepthStencil
+{
+public:
+	enum Type
+	{
+		// don't use those directly, use the combined versions below
+		// 4 bits are used for depth and 4 for stencil to make the hex value readable and non overlapping
+		DepthNop =		0x00,
+		DepthRead =		0x01,
+		DepthWrite =	0x02,
+		DepthMask =		0x0f,
+		StencilNop =	0x00,
+		StencilRead =	0x10,
+		StencilWrite =	0x20,
+		StencilMask =	0xf0,
+
+		// use those:
+		DepthNop_StencilNop = DepthNop + StencilNop,
+		DepthRead_StencilNop = DepthRead + StencilNop,
+		DepthWrite_StencilNop = DepthWrite + StencilNop,
+		DepthNop_StencilRead = DepthNop + StencilRead,
+		DepthRead_StencilRead = DepthRead + StencilRead,
+		DepthWrite_StencilRead = DepthWrite + StencilRead,
+		DepthNop_StencilWrite = DepthNop + StencilWrite,
+		DepthRead_StencilWrite = DepthRead + StencilWrite,
+		DepthWrite_StencilWrite = DepthWrite + StencilWrite,
+	};
+
+private:
+	Type Value;
+
+public:
+	// constructor
+	FExclusiveDepthStencil(Type InValue = DepthNop_StencilNop)
+		: Value(InValue)
+	{
+	}
+
+	inline bool IsUsingDepthStencil() const
+	{
+		return Value != DepthNop_StencilNop;
+	}
+	inline bool IsDepthWrite() const
+	{
+		return ExtractDepth() == DepthWrite;
+	}
+	inline bool IsStencilWrite() const
+	{
+		return ExtractStencil() == StencilWrite;
+	}
+	inline void SetDepthWrite()
+	{
+		Value = (Type)(ExtractStencil() | DepthWrite);
+	}
+	inline void SetStencilWrite()
+	{
+		Value = (Type)(ExtractDepth() | StencilWrite);
+	}
+	inline void SetDepthStencilWrite(bool bDepth, bool bStencil)
+	{
+		Value = DepthNop_StencilNop;
+
+		if (bDepth)
+		{
+			SetDepthWrite();
+		}
+		if (bStencil)
+		{
+			SetStencilWrite();
+		}
+	}
+	bool operator==(const FExclusiveDepthStencil& rhs) const
+	{
+		return Value == rhs.Value;
+	}
+	inline bool IsValid(FExclusiveDepthStencil& Current) const
+	{
+		Type Depth = ExtractDepth();
+
+		if (Depth != DepthNop && Depth != Current.ExtractDepth())
+		{
+			return false;
+		}
+
+		Type Stencil = ExtractStencil();
+
+		if (Stencil != StencilNop && Stencil != Current.ExtractStencil())
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	uint32 GetIndex() const
+	{
+		// Note: The array to index has views created in that specific order.
+
+		// we don't care about the Nop versions so less views are needed
+		// we combine Nop and Write
+		switch (Value)
+		{
+			case DepthWrite_StencilNop:
+			case DepthNop_StencilWrite:
+			case DepthWrite_StencilWrite:
+			case DepthNop_StencilNop:
+				return 0; // old DSAT_Writable
+		
+			case DepthRead_StencilNop:
+			case DepthRead_StencilWrite:
+				return 1; // old DSAT_ReadOnlyDepth
+
+			case DepthNop_StencilRead:
+			case DepthWrite_StencilRead:
+				return 2; // old DSAT_ReadOnlyStencil
+
+			case DepthRead_StencilRead:
+				return 3; // old DSAT_ReadOnlyDepthAndStencil
+		}
+		// should never happen
+		check(0);
+		return -1;
+	}
+	static const uint32 MaxIndex = 4;
+
+private:
+	inline Type ExtractDepth() const
+	{
+		return (Type)(Value & DepthMask);
+	}
+	inline Type ExtractStencil() const
+	{
+		return (Type)(Value & StencilMask);
+	}
+};
+
 class FRHIDepthRenderTargetView
 {
 public:
@@ -663,8 +799,16 @@ public:
 	ERenderTargetLoadAction		DepthLoadAction;
 	ERenderTargetStoreAction	DepthStoreAction;
 	ERenderTargetLoadAction		StencilLoadAction;
+
+private:
 	ERenderTargetStoreAction	StencilStoreAction;
-	bool						bReadOnly; //target will not be written to.
+	FExclusiveDepthStencil		DepthStencilAccess;
+public:
+
+	// accessor to prevent write access to StencilStoreAction
+	ERenderTargetStoreAction GetStencilStoreAction() const { return StencilStoreAction; }
+	// accessor to prevent write access to DepthStencilAccess
+	FExclusiveDepthStencil GetDepthStencilAccess() const { return DepthStencilAccess; }
 
 	FRHIDepthRenderTargetView() :
 		Texture(nullptr),
@@ -672,8 +816,10 @@ public:
 		DepthStoreAction(ERenderTargetStoreAction::EStore),
 		StencilLoadAction(ERenderTargetLoadAction::EClear),
 		StencilStoreAction(ERenderTargetStoreAction::EStore),
-		bReadOnly(false)
-	{}
+		DepthStencilAccess(FExclusiveDepthStencil::DepthWrite_StencilWrite)
+	{
+		Validate();
+	}
 
 	FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture) :
 		Texture(InTexture),
@@ -681,8 +827,10 @@ public:
 		DepthStoreAction(ERenderTargetStoreAction::EStore),
 		StencilLoadAction(ERenderTargetLoadAction::EClear),
 		StencilStoreAction(ERenderTargetStoreAction::EStore),
-		bReadOnly(false)
-	{}
+		DepthStencilAccess(FExclusiveDepthStencil::DepthWrite_StencilWrite)
+	{
+		Validate();
+	}
 
 	FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InLoadAction, ERenderTargetStoreAction InStoreAction) :
 		Texture(InTexture),
@@ -690,18 +838,20 @@ public:
 		DepthStoreAction(InStoreAction),
 		StencilLoadAction(InLoadAction),
 		StencilStoreAction(InStoreAction),
-		bReadOnly(false)
-	{}
+		DepthStencilAccess(FExclusiveDepthStencil::DepthWrite_StencilWrite)
+	{
+		Validate();
+	}
 
-	FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InLoadAction, ERenderTargetStoreAction InStoreAction, bool bInReadOnly) :
+	FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InLoadAction, ERenderTargetStoreAction InStoreAction, FExclusiveDepthStencil InDepthStencilAccess) :
 		Texture(InTexture),
 		DepthLoadAction(InLoadAction),
 		DepthStoreAction(InStoreAction),
 		StencilLoadAction(InLoadAction),
 		StencilStoreAction(InStoreAction),
-		bReadOnly(bInReadOnly)
+		DepthStencilAccess(InDepthStencilAccess)
 	{
-		ensure(!bReadOnly || InStoreAction == ERenderTargetStoreAction::ENoAction);
+		Validate();
 	}
 
 	FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InDepthLoadAction, ERenderTargetStoreAction InDepthStoreAction, ERenderTargetLoadAction InStencilLoadAction, ERenderTargetStoreAction InStencilStoreAction) :
@@ -710,18 +860,26 @@ public:
 		DepthStoreAction(InDepthStoreAction),
 		StencilLoadAction(InStencilLoadAction),
 		StencilStoreAction(InStencilStoreAction),
-		bReadOnly(false)
-	{}
+		DepthStencilAccess(FExclusiveDepthStencil::DepthWrite_StencilWrite)
+	{
+		Validate();
+	}
 
-	FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InDepthLoadAction, ERenderTargetStoreAction InDepthStoreAction, ERenderTargetLoadAction InStencilLoadAction, ERenderTargetStoreAction InStencilStoreAction, bool bInReadOnly) :
+	FRHIDepthRenderTargetView(FTextureRHIParamRef InTexture, ERenderTargetLoadAction InDepthLoadAction, ERenderTargetStoreAction InDepthStoreAction, ERenderTargetLoadAction InStencilLoadAction, ERenderTargetStoreAction InStencilStoreAction, FExclusiveDepthStencil InDepthStencilAccess) :
 		Texture(InTexture),
 		DepthLoadAction(InDepthLoadAction),
 		DepthStoreAction(InDepthStoreAction),
 		StencilLoadAction(InStencilLoadAction),
 		StencilStoreAction(InStencilStoreAction),
-		bReadOnly(bInReadOnly)
+		DepthStencilAccess(InDepthStencilAccess)
 	{
-		ensure(!bReadOnly || InDepthStoreAction == ERenderTargetStoreAction::ENoAction);
+		Validate();
+	}
+
+	void Validate() const
+	{
+		// Missed optimization, resolve is not needed for read only ops
+		ensure(!(DepthStencilAccess == FExclusiveDepthStencil::DepthRead_StencilRead && StencilStoreAction != ERenderTargetStoreAction::ENoAction));
 	}
 
 	bool operator==(const FRHIDepthRenderTargetView& Other)
@@ -732,7 +890,7 @@ public:
 			DepthStoreAction == Other.DepthStoreAction &&
 			StencilLoadAction == Other.StencilLoadAction &&
 			StencilStoreAction == Other.StencilStoreAction &&
-			bReadOnly == Other.bReadOnly;
+			DepthStencilAccess == Other.DepthStencilAccess;
 	}
 };
 
