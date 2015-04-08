@@ -1658,7 +1658,12 @@ void UMaterial::CacheResourceShadersForRendering(bool bRegenerateId)
 
 			// Only cache shaders for the quality level that will actually be used to render
 			ResourcesToCache.Reset();
-			ResourcesToCache.Add(MaterialResources[ActiveQualityLevel][FeatureLevel]);
+
+			FMaterialResource* MaterialResource = MaterialResources[ActiveQualityLevel][FeatureLevel];
+
+			check(MaterialResource);
+
+			ResourcesToCache.Add(MaterialResource);
 			CacheShadersForResources(ShaderPlatform, ResourcesToCache, true);
 		}
 

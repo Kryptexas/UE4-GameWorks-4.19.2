@@ -101,6 +101,7 @@
 #include "NotificationManager.h"
 #include "SNotificationList.h"
 #include "Engine/UserInterfaceSettings.h"
+#include "ComponentRecreateRenderStateContext.h"
 
 DEFINE_LOG_CATEGORY(LogEngine);
 
@@ -221,17 +222,20 @@ static FCachedSystemScalabilityCVars GCachedScalabilityCVars;
 
 const FCachedSystemScalabilityCVars& GetCachedScalabilityCVars()
 {
+	check(GCachedScalabilityCVars.bInitialized);
 	return GCachedScalabilityCVars;
 }
 
 FCachedSystemScalabilityCVars::FCachedSystemScalabilityCVars()
-	: DetailMode(-1)
+	: bInitialized(false)
+	, DetailMode(-1)
 	, MaterialQualityLevel(EMaterialQualityLevel::Num)
 	, MaxAnisotropy(-1)
 	, MaxShadowResolution(-1)
 	, ViewDistanceScale(-1)
 	, ViewDistanceScaleSquared(-1)
 	, GaussianDOFNearThreshold(-1)
+	, SimpleDynamicLighting(-1)
 {
 
 }
@@ -240,85 +244,81 @@ void ScalabilityCVarsSinkCallback()
 {
 	IConsoleManager& ConsoleMan = IConsoleManager::Get();
 
-	static const auto DetailMode = ConsoleMan.FindTConsoleVariableDataInt(TEXT("r.DetailMode"));
-	if( GCachedScalabilityCVars.DetailMode != DetailMode->GetValueOnGameThread() )
-	{
-		TArray<UClass*> ExcludeComponents;
-		ExcludeComponents.Add(UAudioComponent::StaticClass());
+	FCachedSystemScalabilityCVars LocalScalabilityCVars = GCachedScalabilityCVars;
 
-		FGlobalComponentReregisterContext PropagateDetailModeChanges(ExcludeComponents);
-		GCachedScalabilityCVars.DetailMode = DetailMode->GetValueOnGameThread();
+	{
+		static const auto DetailMode = ConsoleMan.FindTConsoleVariableDataInt(TEXT("r.DetailMode"));
+		LocalScalabilityCVars.DetailMode = DetailMode->GetValueOnGameThread();
 	}
 
-	static const auto* MaxAnisotropy = ConsoleMan.FindTConsoleVariableDataInt(TEXT("r.MaxAnisotropy"));
-	static const auto* MaxShadowResolution = ConsoleMan.FindTConsoleVariableDataInt(TEXT("r.Shadow.MaxResolution"));
-	static const auto ViewDistanceScale = ConsoleMan.FindTConsoleVariableDataFloat(TEXT("r.ViewDistanceScale"));
-	GCachedScalabilityCVars.MaxAnisotropy = MaxAnisotropy->GetValueOnGameThread();
-	GCachedScalabilityCVars.MaxShadowResolution = MaxShadowResolution->GetValueOnGameThread();
-	GCachedScalabilityCVars.ViewDistanceScale = FMath::Clamp(ViewDistanceScale->GetValueOnGameThread(), 0.0f, 1.0f);
-	GCachedScalabilityCVars.ViewDistanceScaleSquared = FMath::Square(GCachedScalabilityCVars.ViewDistanceScale);
-	GCachedScalabilityCVars.GaussianDOFNearThreshold = CVarDepthOfFieldNearBlurSizeThreshold.GetValueOnGameThread();
+	{
+		static const auto* MaxAnisotropy = ConsoleMan.FindTConsoleVariableDataInt(TEXT("r.MaxAnisotropy"));
+		LocalScalabilityCVars.MaxAnisotropy = MaxAnisotropy->GetValueOnGameThread();
+	}
 
-	// action needed if we change r.MaterialQualityLevel at runtime
+	{
+		static const auto* MaxShadowResolution = ConsoleMan.FindTConsoleVariableDataInt(TEXT("r.Shadow.MaxResolution"));
+		LocalScalabilityCVars.MaxShadowResolution = MaxShadowResolution->GetValueOnGameThread();
+	}
+
+	{
+		static const auto ViewDistanceScale = ConsoleMan.FindTConsoleVariableDataFloat(TEXT("r.ViewDistanceScale"));
+		LocalScalabilityCVars.ViewDistanceScale = FMath::Clamp(ViewDistanceScale->GetValueOnGameThread(), 0.0f, 1.0f);
+		LocalScalabilityCVars.ViewDistanceScaleSquared = FMath::Square(LocalScalabilityCVars.ViewDistanceScale);
+	}
+
+	{
+		LocalScalabilityCVars.GaussianDOFNearThreshold = CVarDepthOfFieldNearBlurSizeThreshold.GetValueOnGameThread();
+	}
+
 	{
 		static const auto MaterialQualityLevelVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MaterialQualityLevel"));
+		LocalScalabilityCVars.MaterialQualityLevel = (EMaterialQualityLevel::Type)FMath::Clamp(MaterialQualityLevelVar->GetValueOnGameThread(), 0, 1);
+	}
 
-		EMaterialQualityLevel::Type NewMaterialQualityLevel = (EMaterialQualityLevel::Type)FMath::Clamp(MaterialQualityLevelVar->GetValueOnGameThread(), 0, 1);
+	{
+		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.SimpleDynamicLighting"));
+		LocalScalabilityCVars.SimpleDynamicLighting = FMath::Clamp(CVar->GetInt(), 0, 1);
+	}
 
-		// has the state changed ?
-		if(GCachedScalabilityCVars.MaterialQualityLevel != NewMaterialQualityLevel)
+	LocalScalabilityCVars.bInitialized = true;
+
+	if (!GCachedScalabilityCVars.bInitialized)
+	{
+		// optimization: the first time we assume the render thread wasn't started and we don't need to destroy proxies
+		GCachedScalabilityCVars = LocalScalabilityCVars;
+	}
+	else
+	{
+		bool bRecreateRenderstate = false;
+		bool bCacheResourceShaders = false;
+
+		if (LocalScalabilityCVars.DetailMode != GCachedScalabilityCVars.DetailMode ||
+			LocalScalabilityCVars.SimpleDynamicLighting != GCachedScalabilityCVars.SimpleDynamicLighting)
 		{
-			// we had a state before?
-			if(GCachedScalabilityCVars.MaterialQualityLevel != EMaterialQualityLevel::Type::Num)
+			bRecreateRenderstate = true;
+		}
+
+		if (LocalScalabilityCVars.MaterialQualityLevel != GCachedScalabilityCVars.MaterialQualityLevel)
+		{
+			bCacheResourceShaders = true;
+		}
+
+		if (bRecreateRenderstate || bCacheResourceShaders)
+		{
+			FlushRenderingCommands();
+
+			// after FlushRenderingCommands() to not have render thread pick up the data partially
+			GCachedScalabilityCVars = LocalScalabilityCVars;
+
+			// Note: constructor and destructor has side effect
+			FGlobalComponentRecreateRenderStateContext Recreate;
+
+			if (bCacheResourceShaders)
 			{
-				// state has changed, some action is needed
-
-				// Deregister all components
-				FGlobalComponentReregisterContext RecreateComponents;
-
-				// after FGlobalComponentReregisterContext to have the renderthread flushed before so it can use the variable on either thread
-				GCachedScalabilityCVars.MaterialQualityLevel = NewMaterialQualityLevel;
-
 				// For all materials, UMaterial::CacheResourceShadersForRendering
 				UMaterial::AllMaterialsCacheResourceShadersForRendering();
 				UMaterialInstance::AllMaterialsCacheResourceShadersForRendering();
-
-				// destructor of RecreateComponents will register the components again
-			}
-			else
-			{
-				GCachedScalabilityCVars.MaterialQualityLevel = NewMaterialQualityLevel;
-			}
-		}
-	}
-
-	// action needed if we change r.SimpleDynamicLighting at runtime
-	{
-		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.SimpleDynamicLighting"));
-
-		// 0:off, 1:on, -1:unknown
-		static int32 CurrentSDL = -1;
-
-		int32 NewSDL = FMath::Clamp(CVar->GetInt(), 0, 1);
-
-		// has the state changed ?
-		if(CurrentSDL != NewSDL)
-		{
-			// we had a state before?
-			if(CurrentSDL != -1)
-			{
-				CurrentSDL = NewSDL;
-
-				// state has changed, some action is needed
-
-				// Deregister all components
-				FGlobalComponentReregisterContext RecreateComponents;
-
-				// destructor of RecreateComponents will register the components again
-			}
-			else
-			{
-				CurrentSDL = NewSDL;
 			}
 		}
 	}

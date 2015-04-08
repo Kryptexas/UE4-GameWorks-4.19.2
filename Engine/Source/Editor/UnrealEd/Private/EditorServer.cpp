@@ -6153,21 +6153,6 @@ bool UEditorEngine::HandleSetDetailModeViewCommand( const TCHAR* Str, FOutputDev
 		static IConsoleVariable* DetailModeCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DetailMode"));
 		check (DetailMode);
 		DetailModeCVar->Set(DetailMode);
-
-		// Reregister all primitive components so the view will respect the new detail mode filter
-		for ( FActorIterator It(InWorld) ; It ; ++It )
-		{
-			AActor* Actor = static_cast<AActor*>( *It );
-			checkSlow( Actor->IsA(AActor::StaticClass()) );
-
-			TInlineComponentArray<UPrimitiveComponent*> Components;
-			Actor->GetComponents(Components);
-
-			for(int32 ComponentIndex = 0;ComponentIndex < Components.Num();ComponentIndex++)
-			{
-				Components[ComponentIndex]->MarkRenderStateDirty();
-			}
-		}
 	}
 
 	RedrawLevelEditingViewports( true );
