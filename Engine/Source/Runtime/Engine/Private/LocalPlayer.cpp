@@ -731,7 +731,7 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 		ViewInitOptions.bInCameraCut = PlayerController->PlayerCameraManager->bGameCameraCutThisFrame;
 	}
 	
-	check( PlayerController->GetWorld() );
+	check(PlayerController && PlayerController->GetWorld());
 
 	// Fill out the rest of the view init options
 	ViewInitOptions.ViewFamily = ViewFamily;
@@ -761,7 +761,7 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 		View->StartFinalPostprocessSettings(OutViewLocation);
 
 		// CameraAnim override
-		if (PlayerController && PlayerController->PlayerCameraManager)
+		if (PlayerController->PlayerCameraManager)
 		{
 			TArray<FPostProcessSettings> const* CameraAnimPPSettings;
 			TArray<float> const* CameraAnimPPBlendWeights;

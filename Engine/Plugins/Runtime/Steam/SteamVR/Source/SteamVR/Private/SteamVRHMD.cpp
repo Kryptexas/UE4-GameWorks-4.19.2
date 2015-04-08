@@ -146,12 +146,12 @@ void FSteamVRHMD::GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosi
 			TrackingFrame.bDeviceIsValid[i] = Poses[i].bDeviceIsValid;
 			TrackingFrame.bPoseIsValid[i] = Poses[i].bPoseIsValid;
 
-			FVector CurrentPosition;
-			FQuat CurrentOrientation;
-			PoseToOrientationAndPosition(Poses[i].mDeviceToAbsoluteTracking, CurrentOrientation, CurrentPosition);
+			FVector LocalCurrentPosition;
+			FQuat LocalCurrentOrientation;
+			PoseToOrientationAndPosition(Poses[i].mDeviceToAbsoluteTracking, LocalCurrentOrientation, LocalCurrentPosition);
 
-			TrackingFrame.DeviceOrientation[i] = CurrentOrientation;
-			TrackingFrame.DevicePosition[i] = CurrentPosition;
+			TrackingFrame.DeviceOrientation[i] = LocalCurrentOrientation;
+			TrackingFrame.DevicePosition[i] = LocalCurrentPosition;
 
 			TrackingFrame.RawPoses[i] = Poses[i].mDeviceToAbsoluteTracking;
 		}

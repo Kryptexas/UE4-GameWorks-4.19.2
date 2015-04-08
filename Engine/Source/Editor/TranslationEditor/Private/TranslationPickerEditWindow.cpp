@@ -188,8 +188,7 @@ void STranslationPickerEditWidget::Construct(const FArguments& InArgs)
 	FString ManifestAndArchiveNameString;
 	if (NamespaceString && KeyString)
 	{
-		TSharedPtr<FString, ESPMode::ThreadSafe> TextTableName = TSharedPtr<FString, ESPMode::ThreadSafe>(nullptr);
-		TextTableName = FTextLocalizationManager::Get().GetTableName(*NamespaceString, *KeyString);
+		TSharedPtr<FString, ESPMode::ThreadSafe> TextTableName = FTextLocalizationManager::Get().GetTableName(*NamespaceString, *KeyString);
 		LocresFullPath = *TextTableName;
 		if (TextTableName.IsValid())
 		{

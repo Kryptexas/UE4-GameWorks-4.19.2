@@ -617,7 +617,7 @@ void UpdateBufferStats(TRefCountPtr<ID3D11Buffer> Buffer, bool bAllocating)
 		}
 	}
 	else
-	{
+	{ //-V523
 		if (bUniformBuffer)
 		{
 			DEC_MEMORY_STAT_BY(STAT_UniformBufferMemory,Desc.ByteWidth);

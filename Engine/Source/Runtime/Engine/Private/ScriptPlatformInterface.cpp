@@ -209,6 +209,8 @@ bool UCloudStorageBase::ReadKeyValue(const FString& KeyName, EPlatformInterfaceD
 				UE_LOG(LogScriptPlatformInterface, Log, TEXT("CONVERT SOME uint8 ARRAY TO UOBJECT HERE?"));
 			}
 			break;
+		case PIDT_Custom:
+			break;
 	}
 	GConfig->DisableFileOperations();
 

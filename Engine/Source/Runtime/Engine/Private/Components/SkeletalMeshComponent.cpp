@@ -1078,7 +1078,10 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 		Prerequistes.Add(ParallelAnimationEvaluationTask);
 		FGraphEventRef TickCompletionEvent = TGraphTask<FParallelAnimationCompletionTask>::CreateTask(&Prerequistes).ConstructAndDispatchWhenReady(this);
 
-		TickFunction->GetCompletionHandle()->DontCompleteUntil(TickCompletionEvent);
+		if ( TickFunction )
+		{
+			TickFunction->GetCompletionHandle()->DontCompleteUntil(TickCompletionEvent);
+		}
 	}
 	else
 	{

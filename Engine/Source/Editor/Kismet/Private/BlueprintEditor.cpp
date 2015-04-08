@@ -5874,8 +5874,7 @@ void FBlueprintEditor::CollapseNodesIntoGraph(UEdGraphNode* InGatewayNode, UK2No
 					if(InterfaceTemplateNode && LocalPin->Direction == EGPD_Input)
 					{
 						// Find the pin on the entry node, we will use that pin's name to find the pin on the remote port
-						UEdGraphPin* EntryNodePin = nullptr;
-						EntryNodePin = InEntryNode->FindPin(LocalPin->LinkedTo[0]->PinName);
+						UEdGraphPin* EntryNodePin = InEntryNode->FindPin(LocalPin->LinkedTo[0]->PinName);
 						if(EntryNodePin)
 						{
 							LocalPin->BreakAllPinLinks();

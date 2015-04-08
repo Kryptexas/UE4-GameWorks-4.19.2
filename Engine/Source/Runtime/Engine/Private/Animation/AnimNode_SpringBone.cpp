@@ -63,7 +63,7 @@ void FAnimNode_SpringBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCo
 
 	// Location of our bone in world space
 	FTransform SpaceBase = MeshBases.GetComponentSpaceTransform(SpringBone.BoneIndex);
-	FTransform  BoneTransformInWorldSpace = SpaceBase * SkelComp->GetComponentToWorld();
+	FTransform  BoneTransformInWorldSpace = (SkelComp != NULL) ? SpaceBase * SkelComp->GetComponentToWorld() : SpaceBase;
 
 	FVector const TargetPos = BoneTransformInWorldSpace.GetLocation();
 

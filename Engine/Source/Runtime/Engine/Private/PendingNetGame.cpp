@@ -242,8 +242,7 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 
 void UPendingNetGame::Tick( float DeltaTime )
 {
-	check(NetDriver);
-	check(NetDriver->ServerConnection);
+	check(NetDriver && NetDriver->ServerConnection);
 
 	// The following line disables checks for nullptr access on NetDriver. We have checked() it's validity above,
 	// but the TickDispatch call below may invalidate the ptr, thus we must null check after calling TickDispatch.

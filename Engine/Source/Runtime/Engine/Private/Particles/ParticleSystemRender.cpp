@@ -5350,8 +5350,7 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 	FVector	ViewOrigin	= CameraToWorld.GetOrigin();
 
 	int32 MaxTessellationBetweenParticles = FMath::Max<int32>(Source.MaxTessellationBetweenParticles, 1);
-	int32 Sheets = FMath::Max<int32>(Source.Sheets, 1);
-	Sheets = 1;
+	int32 Sheets = 1;
 
 	// The distance tracking for tiling the 2nd UV set
 	float CurrDistance = 0.0f;
@@ -6050,8 +6049,7 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 	uint8* TempDynamicParamData = (uint8*)Data.DynamicParameterData;
 	FParticleBeamTrailVertexDynamicParameter* DynParamVertex;
 
-	int32 Sheets = FMath::Max<int32>(Source.Sheets, 1);
-	Sheets = 1;
+	int32 Sheets = 1;
 
 	// The increment for going [0..1] along the complete trail
 	float TextureIncrement = 1.0f / (Data.VertexCount / 2.0f);

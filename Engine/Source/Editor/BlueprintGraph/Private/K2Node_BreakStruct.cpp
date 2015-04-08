@@ -242,7 +242,7 @@ void UK2Node_BreakStruct::ValidateNodeDuringCompilation(class FCompilerResultsLo
 				const bool bIsBlueprintVisible = Property->HasAnyPropertyFlags(CPF_BlueprintVisible) || (Property->GetOwnerStruct() && Property->GetOwnerStruct()->IsA<UUserDefinedStruct>());
 				bHasAnyBlueprintVisibleProperty |= bIsBlueprintVisible;
 
-				const UEdGraphPin* Pin = Property ? FindPin(Property->GetName()) : NULL;
+				const UEdGraphPin* Pin = FindPin(Property->GetName());
 				const bool bIsLinked = Pin && Pin->LinkedTo.Num();
 
 				if (!bIsBlueprintVisible && bIsLinked)

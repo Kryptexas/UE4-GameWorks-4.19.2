@@ -171,7 +171,7 @@ void FDefaultRichTextDecorator::ExplodeRunInfo(const FRunInfo& InRunInfo, FSlate
 		const FString& FontColorStringRef = *FontColorString;
 
 		// Is Hex color?
-		if ( ( !FontColorStringRef.IsEmpty() && FontColorStringRef[0] == TCHAR('#') ) )
+		if ( !FontColorStringRef.IsEmpty() && FontColorStringRef[0] == TCHAR('#') )
 		{
 			OutFontColor = FLinearColor(FColor::FromHex(FontColorStringRef));
 		}

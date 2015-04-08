@@ -24,6 +24,8 @@ FWidgetNavigationData& UWidgetNavigation::GetNavigationData(EUINavigation Nav)
 		return Left;
 	case EUINavigation::Right:
 		return Right;
+	default:
+		break;
 	}
 
 	// Should never happen

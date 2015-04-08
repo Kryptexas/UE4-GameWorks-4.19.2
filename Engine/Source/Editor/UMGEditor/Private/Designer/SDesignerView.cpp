@@ -713,6 +713,8 @@ void SDesignerView::GetPreviewAreaAndSize(FVector2D& Area, FVector2D& Size) cons
 		case EDesignPreviewSizeMode::DesiredOnScreen:
 			Size = CachedPreviewDesiredSize;
 			return;
+		case EDesignPreviewSizeMode::FillScreen:
+			break;
 		}
 	}
 }

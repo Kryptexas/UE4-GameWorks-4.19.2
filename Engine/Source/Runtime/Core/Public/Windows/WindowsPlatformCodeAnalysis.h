@@ -133,10 +133,12 @@
 	//-V:SelectedEmitter:519
 	//-V:MAX_VERTS_PER_POLY:512
 	//-V:127:547
+	//-V:0x7F:547
 	//-V:FT_LOAD_TARGET_NORMAL:616
 	//-V:OPENGL_PERFORMANCE_DATA_INVALID:564
 	//-V:HLSLCC_VersionMajor:616
 	//-V:UWorld:623
+	//-V:TextureRHI:623
 	//-V:bIgnoreFieldReferences:519
 	//-V:CachedQueryInstance:519
 	//-V:MeshContext:519
@@ -150,4 +152,23 @@
 	//-V:SPAWN_INIT:595
 	//-V:BEGIN_UPDATE_LOOP:595
 	//-V:OPENGL_PERFORMANCE_DATA_INVALID:560
+	//-V:bSkipTranslationTrack:560
+	//-V:NumSelected>0:581
+	//-V:bTryPerTrackBitwiseCompression:581
+	//-V:DataStripped:581
+	//-V:FromInt:601
+	//-V:UE_CLOG(:501
+	//-V:UE_LOG(:501
+	//-V:UGL_REQUIRED_VOID:501
+	//-V:ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER:601
+	//-V:AnimScriptInstance:595
+	//-V:Driver:595
+	//-V:PSceneAsync->lockWrite:595
+	//-V:Context.World():595
+	//-V:ALLOCATE_VERTEX_DATA_TEMPLATE:501
+	//-V:UGL_REQUIRED:501
+	//-V:DEBUG_LOG_HTTP:523
+	//-V:GIsEditor:560
+	//-V:bHasEditorToken:560
+
 #endif

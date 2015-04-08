@@ -101,6 +101,9 @@ namespace UAudio
 			case EStreamFormat::INT_32:
 				ConvertToFloatType<int32, FloatType>(ToBuffer, FromBuffer, StreamInfo.BlockSize, ConvertInfo);
 				break;
+
+			default:
+				break;
 		}
 	}
 
@@ -187,6 +190,9 @@ namespace UAudio
 			case EStreamFormat::INT_32:
 				ConvertIntegerToIntegerType<int32, FloatType>(ToBuffer, FromBuffer, StreamInfo.BlockSize, ConvertInfo);
 				break;
+
+			default:
+				break;
 		}
 	}
 
@@ -214,6 +220,9 @@ namespace UAudio
 
 			case EStreamFormat::INT_32:
 				ConvertAllToIntegerType<double>(ToBuffer, FromBuffer, StreamInfo.BlockSize, ConvertInfo);
+				break;
+
+			default:
 				break;
 		}
 

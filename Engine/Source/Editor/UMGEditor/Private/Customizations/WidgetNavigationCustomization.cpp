@@ -121,6 +121,8 @@ FText FWidgetNavigationCustomization::GetNavigationText(TWeakPtr<IPropertyHandle
 		return LOCTEXT("NavigationExplicit", "Explicit");
 	case EUINavigationRule::Invalid:
 		return LOCTEXT("NavigationMultipleValues", "Multiple Values");
+	case EUINavigationRule::Custom:
+		break;
 	}
 
 	return FText::GetEmpty();

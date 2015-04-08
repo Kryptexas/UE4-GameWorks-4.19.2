@@ -553,7 +553,8 @@ int FWindowsPlatformStackWalkExt::GetCallstacks()
 	ULONG ContextUsed = 0;
 
 	// Get the context of the crashed thread
-	if( Control->GetStoredEventInformation( &DebugEvent, &ProcessID, &ThreadID, Context, ContextSize, &ContextUsed, NULL, 0, 0) )
+	HRESULT hr = Control->GetStoredEventInformation(&DebugEvent, &ProcessID, &ThreadID, Context, ContextSize, &ContextUsed, NULL, 0, 0);
+	if( FAILED(hr) )
 	{
 		return NumValidFunctionNames;
 	}
@@ -663,7 +664,8 @@ bool FWindowsPlatformStackWalkExt::OpenDumpFile( const FString& InCrashDumpFilen
 		return false;
 	}
 
-	if( Client->OpenDumpFileWide( *InCrashDumpFilename, NULL ) )
+	HRESULT hr = Client->OpenDumpFileWide(*InCrashDumpFilename, NULL);
+	if(FAILED(hr) )
 	{
 		UE_LOG( LogCrashDebugHelper, Warning, TEXT( "Failed to open minidump file: %s" ), *InCrashDumpFilename );
 		return false;

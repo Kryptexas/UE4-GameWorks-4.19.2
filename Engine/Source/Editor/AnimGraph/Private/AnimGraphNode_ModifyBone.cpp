@@ -110,6 +110,7 @@ EBoneModificationMode UAnimGraphNode_ModifyBone::GetBoneModificationMode(int32 I
 		return Node.ScaleMode;
 		break;
 	case FWidget::WM_TranslateRotateZ:
+	case FWidget::WM_2D:
 		break;
 	}
 
@@ -128,6 +129,7 @@ int32 UAnimGraphNode_ModifyBone::GetNextWidgetMode(int32 InWidgetMode)
 	case FWidget::WM_Scale:
 		return FWidget::WM_Translate;
 	case FWidget::WM_TranslateRotateZ:
+	case FWidget::WM_2D:
 		break;
 	}
 

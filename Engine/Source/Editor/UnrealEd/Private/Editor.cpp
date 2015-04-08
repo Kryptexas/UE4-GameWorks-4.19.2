@@ -3945,9 +3945,6 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 					if( Info.ActorGroup )
 					{
 						Info.ActorGroup->Add(*Actor);
-					}
-					if( Info.ActorGroup )
-					{
 						Info.ActorGroup->Add(*Actor);
 					}
 				}
@@ -6159,18 +6156,12 @@ AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FTransform
 		}
 	}
 
-	///////////////////////////////
-	// If this actor is part of any layers (set in its default properties), add them into the visible layers list.
-
 	if( Actor )
 	{
+		// If this actor is part of any layers (set in its default properties), add them into the visible layers list.
 		GEditor->Layers->SetLayersVisibility( Actor->Layers, true );
-	}
 
-	///////////////////////////////
-	// Clean up.
-	if ( Actor )
-	{
+		// Clean up.
 		Actor->MarkPackageDirty();
 		ULevel::LevelDirtiedEvent.Broadcast();
 	}
@@ -7036,7 +7027,6 @@ namespace EditorUtilities
 	template<class AllocatorType = FDefaultAllocator>
 	UActorComponent* FindMatchingComponentInstance( UActorComponent* SourceComponent, AActor* TargetActor, const TArray<UActorComponent*, AllocatorType>& TargetComponents, int32& StartIndex )
 	{
-		const bool bSourceIsArchetype = SourceComponent->HasAnyFlags(RF_ArchetypeObject);
 		UActorComponent* TargetComponent = StartIndex < TargetComponents.Num() ? TargetComponents[ StartIndex ] : nullptr;
 
 		// If the source and target components do not match (e.g. context-specific), attempt to find a match in the target's array elsewhere
@@ -7045,6 +7035,7 @@ namespace EditorUtilities
 			&& ((TargetComponent == nullptr) 
 				|| (SourceComponent->GetFName() != TargetComponent->GetFName()) ))
 		{
+			const bool bSourceIsArchetype = SourceComponent->HasAnyFlags(RF_ArchetypeObject);
 			// Reset the target component since it doesn't match the source
 			TargetComponent = nullptr;
 

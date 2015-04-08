@@ -447,6 +447,13 @@ namespace ClickHandlers
 
 	bool ClickGeomPoly(FLevelEditorViewportClient* ViewportClient, HGeomPolyProxy* InHitProxy, const FViewportClick& Click)
 	{
+		//something is wrong with the hitproxy relating to this click - create a debug log to help identify what
+		if( InHitProxy == NULL )
+		{
+			UE_LOG(LogEditorViewport, Warning, TEXT("Invalid hitproxy"));
+			return false;
+		}
+
 		if( !InHitProxy->GeomObjectWeakPtr.IsValid() )
 		{
 			return false;
@@ -469,7 +476,7 @@ namespace ClickHandlers
 			FEdMode* Mode = GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Geometry );
 			if( Mode )
 			{
-				if( ( InHitProxy != NULL) && ( InHitProxy->GetGeomObject() != NULL ) && (InHitProxy->GetGeomObject()->PolyPool.IsValidIndex( InHitProxy->PolyIndex ) == true ) )					
+				if( ( InHitProxy->GetGeomObject() != NULL ) && (InHitProxy->GetGeomObject()->PolyPool.IsValidIndex( InHitProxy->PolyIndex ) == true ) )					
 				{
 					Mode->GetCurrentTool()->StartTrans();
 
@@ -488,22 +495,13 @@ namespace ClickHandlers
 				}
 				else
 				{
-					//something is wrong with the hitproxy relating to this click - create a debug log to help identify what
-					if( InHitProxy == NULL) 
+					//try to get the name of the object also
+					FString name = TEXT("UNKNOWN");
+					if( InHitProxy->GetGeomObject()->GetActualBrush() != NULL )
 					{
-						UE_LOG(LogEditorViewport, Warning, TEXT("Invalid hitproxy" ) );
+						name = InHitProxy->GetGeomObject()->GetActualBrush()->GetName();
 					}
-					else
-					{
-						//try to get the name of the object also
-						FString name = TEXT("UNKNOWN");
-						if( InHitProxy->GetGeomObject()->GetActualBrush() != NULL )
-						{
-							name = InHitProxy->GetGeomObject()->GetActualBrush()->GetName();
-						}
-						UE_LOG(LogEditorViewport, Warning, TEXT("Invalid PolyIndex %d on %s" ) ,InHitProxy->PolyIndex , *name );
-					}
-
+					UE_LOG(LogEditorViewport, Warning, TEXT("Invalid PolyIndex %d on %s" ) ,InHitProxy->PolyIndex , *name );
 				}
 			}
 		}

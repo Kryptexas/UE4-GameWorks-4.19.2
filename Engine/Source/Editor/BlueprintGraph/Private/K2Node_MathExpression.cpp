@@ -232,7 +232,7 @@ public:
 	/** For debug purposes, constructs a textual representation of this expression */
 	virtual FString ToString() const override
 	{
-		if (Token.TokenType == FBasicToken::TOKEN_Identifier || FBasicToken::TOKEN_Guid)
+		if (Token.TokenType == FBasicToken::TOKEN_Identifier || Token.TokenType == FBasicToken::TOKEN_Guid)
 		{
 			return FString::Printf(TEXT("%s"), Token.Identifier);
 		}

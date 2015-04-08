@@ -1277,7 +1277,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 			if (!ParentFunction->IsSignatureCompatibleWith(Context.Function))
 			{
 				FString SignatureClassName("");
-				if (Context.EntryPoint && Context.EntryPoint->SignatureClass)
+				if (Context.EntryPoint->SignatureClass)
 				{
 					SignatureClassName = Context.EntryPoint->SignatureClass->GetName();
 				}
@@ -3296,8 +3296,7 @@ void FKismetCompilerContext::Compile()
 
 	NewClass->ClassGeneratedBy = Blueprint;
 
-	UClass* ParentClass = nullptr;
-	ParentClass = NewClass->ClassWithin;
+	UClass* ParentClass = NewClass->ClassWithin;
 	NewClass->SetSuperStruct(ParentClass);
 	NewClass->ClassFlags |= (ParentClass->ClassFlags & CLASS_Inherit);
 	NewClass->ClassCastFlags |= ParentClass->ClassCastFlags;

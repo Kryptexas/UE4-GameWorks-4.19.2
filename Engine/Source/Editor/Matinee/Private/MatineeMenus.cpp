@@ -1537,11 +1537,16 @@ void FMatinee::OnContextTrackExportAnimFBX()
 		// Get the owning group of the track
 		UInterpGroup* Group = CastChecked<UInterpGroup>( SelectedTrack->GetOuter() ) ;
 
-		// Get the first group instance for this track.  In the case of animations there is only one instance usually
-		UInterpGroupInst* GroupInst = MatineeActor->FindFirstGroupInst( Group );
+		ASkeletalMeshActor* SkelMeshActor = NULL;
 
-		// Get the actor for this group.
-		ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>( GroupInst->GroupActor );
+		if ( MatineeActor != NULL )
+		{
+			// Get the first group instance for this track.  In the case of animations there is only one instance usually
+			UInterpGroupInst* GroupInst = MatineeActor->FindFirstGroupInst(Group);
+
+			// Get the actor for this group.
+			SkelMeshActor = Cast<ASkeletalMeshActor>(GroupInst->GroupActor);
+		}
 
 		// Someone could have hooked up an invalid actor.  In that case do nothing
 		if( SkelMeshActor )
@@ -1921,6 +1926,8 @@ void FMatinee::OnContextGroupExportAnimFBX()
 			{
 				// Find the skeletal mesh for this group
 				USkeletalMeshComponent* SkelMeshComponent = NULL;
+
+				if (MatineeActor != NULL)
 				{
 					// Get the first group instance for this group.  In the case of animations there is usually only one instance
 					UInterpGroupInst* GroupInst = MatineeActor->FindFirstGroupInst( SelectedGroup );

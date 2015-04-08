@@ -66,7 +66,10 @@ void FPlacementMode::Tick(FEditorViewportClient* ViewportClient,float DeltaTime)
 {
 	if ( IsCurrentlyPlacing() )
 	{
-		ViewportClient->SetRequiredCursorOverride( true, EMouseCursor::GrabHandClosed );
+		if ( ViewportClient )
+		{
+			ViewportClient->SetRequiredCursorOverride(true, EMouseCursor::GrabHandClosed);
+		}
 
 		bool HasValidFocusTarget = false;
 		for (int Index = ValidFocusTargetsForPlacement.Num() - 1; !HasValidFocusTarget && Index >= 0 ; Index--)
@@ -107,7 +110,7 @@ void FPlacementMode::Tick(FEditorViewportClient* ViewportClient,float DeltaTime)
 			StopPlacing();
 		}
 	}
-	else
+	else if (ViewportClient != NULL)
 	{
 		ViewportClient->SetRequiredCursorOverride( false );
 	}

@@ -85,7 +85,7 @@ void UParticleModuleVelocity::SpawnEx(FParticleEmitterInstance* Owner, int32 Off
 		FVector FromOrigin = (Particle.Location - Owner->EmitterToSimulation.GetOrigin()).GetSafeNormal();
 
 		FVector OwnerScale(1.0f);
-		if ((bApplyOwnerScale == true) && Owner && Owner->Component)
+		if ((bApplyOwnerScale == true) && Owner->Component)
 		{
 			OwnerScale = Owner->Component->ComponentToWorld.GetScale3D();
 		}
@@ -270,7 +270,7 @@ void UParticleModuleVelocityOverLifetime::Update(FParticleEmitterInstance* Owner
 	UParticleLODLevel* LODLevel	= Owner->SpriteTemplate->GetCurrentLODLevel(Owner);
 	check(LODLevel);
 	FVector OwnerScale(1.0f);
-	if ((bApplyOwnerScale == true) && Owner && Owner->Component)
+	if ((bApplyOwnerScale == true) && Owner->Component)
 	{
 		OwnerScale = Owner->Component->ComponentToWorld.GetScale3D();
 	}
@@ -429,7 +429,7 @@ void UParticleModuleVelocityCone::SpawnEx(FParticleEmitterInstance* Owner, int32
 	UParticleLODLevel* LODLevel	= Owner->SpriteTemplate->GetCurrentLODLevel(Owner);
 	check(LODLevel);
 	FVector OwnerScale(1.0f);
-	if ((bApplyOwnerScale == true) && Owner && Owner->Component)
+	if ((bApplyOwnerScale == true) && Owner->Component)
 	{
 		OwnerScale = Owner->Component->ComponentToWorld.GetScale3D();
 	}
@@ -541,7 +541,7 @@ void UParticleModuleVelocityCone::Render3DPreview(FParticleEmitterInstance* Owne
 	FMatrix OwnerRotation(FMatrix::Identity);
 	FVector LocalToWorldOrigin(0.0f);
 	FMatrix LocalToWorld(FMatrix::Identity);
-	if (Owner && Owner->Component)
+	if (Owner->Component)
 	{
 		AActor* Actor = Owner->Component->GetOwner();
 		if (Actor)

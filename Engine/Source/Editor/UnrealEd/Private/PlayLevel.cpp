@@ -1709,6 +1709,7 @@ void UEditorEngine::PlayForMovieCapture()
 			case EMatineeCaptureType::JPEG:
 				EditorCommandLine += TEXT(" -MATINEESSFORMAT=JPEG");
 				break;
+			default: break;
 			}
 
 			// If buffer visualization dumping is enabled, we need to tell capture process to enable it too

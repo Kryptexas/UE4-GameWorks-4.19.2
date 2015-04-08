@@ -3078,7 +3078,7 @@ void UParticleModuleKillBox::Render3DPreview(FParticleEmitterInstance* Owner, co
 		KillboxVerts[7].Set(CheckUR.X, CheckLL.Y, CheckUR.Z);
 	}
 	
-	if ((bAbsolute == false) && (Owner != NULL) && (Owner->Component != NULL))
+	if ((bAbsolute == false) && (Owner->Component != NULL))
 	{
 		if (bAxisAlignedAndFixedSize == false)
 		{

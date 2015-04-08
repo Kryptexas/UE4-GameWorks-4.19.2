@@ -792,7 +792,7 @@ float FFbxImporter::ImportMatineeActor(FbxNode* Node, UInterpGroupInst* MatineeG
 			bIsCamera = true;
 		}
 
-		if( MovementTrack->SubTracks.Num() > 0 )
+		if (MovementTrack && MovementTrack->SubTracks.Num() > 0)
 		{
 			check (bIsCamera == false);
 			ImportMoveSubTrack(TransCurves[0], 0, SubTracks[0], 0, false, RealCurves[0], DefaultPos[0]);
@@ -817,7 +817,7 @@ float FFbxImporter::ImportMatineeActor(FbxNode* Node, UInterpGroupInst* MatineeG
 			// Scale the track timing to ensure that it is large enough
 			MovementTrack->GetTimeRange( StartTime, TimeLength );
 		}
-		else
+		else if (MovementTrack)
 		{
 			ImportMatineeAnimated(TransCurves[0], MovementTrack->PosTrack, 1, true, RealCurves[0], DefaultPos[0]);
 			ImportMatineeAnimated(TransCurves[1], MovementTrack->PosTrack, 0, true, RealCurves[0], DefaultPos[1]);
