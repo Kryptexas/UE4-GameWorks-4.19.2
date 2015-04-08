@@ -1202,6 +1202,11 @@ void FTaskGraphInterface::Shutdown()
 	TaskGraphImplementationSingleton = NULL;
 }
 
+bool FTaskGraphInterface::IsRunning()
+{
+    return TaskGraphImplementationSingleton != NULL;
+}
+
 FTaskGraphInterface& FTaskGraphInterface::Get()
 {
 	checkThreadGraph(TaskGraphImplementationSingleton);

@@ -121,7 +121,11 @@ public:
 	 *	Explicit start call to shutdown the system. This is unlikely to work unless the system is idle.
 	**/
 	static CORE_API void Shutdown();
-	/** 
+    /**
+     *	Check to see if the system is running.
+     **/
+    static CORE_API bool IsRunning();
+	/**
 	 *	Singleton for the system
 	 *	@return a reference to the task graph system
 	**/
@@ -1175,6 +1179,68 @@ public:
 		Prerequisites.Add(InPrerequisite);
 		return CreateAndDispatchWhenReady(InTaskDeletegate, InStatId, &Prerequisites, InCurrentThreadIfKnown, InDesiredThread);
 	}
+};
+
+/** Task class for lambda based tasks. **/
+class FFunctionGraphTask : public FCustomStatIDGraphTaskBase
+{
+public:
+    /** Function to run **/
+    TFunction<void()> Function;
+    /** Thread to run the function on **/
+    const ENamedThreads::Type			DesiredThread;
+    
+public:
+    ENamedThreads::Type GetDesiredThread()
+    {
+        return DesiredThread;
+    }
+    static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
+    
+    void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+    {
+        Function();
+    }
+    /**
+     * Task constructor
+     * @param InFunction - function to execute when the prerequisites are complete
+     *	@param StatId The stat id for this task.
+     * @param InDesiredThread - Thread to run on
+     **/
+    FFunctionGraphTask(TFunction<void()>& InFunction, const TStatId StatId, ENamedThreads::Type InDesiredThread)
+    : FCustomStatIDGraphTaskBase(StatId)
+    , Function(InFunction)
+    , DesiredThread(InDesiredThread)
+    {
+    }
+    
+    /**
+     * Create a task and dispatch it when the prerequisites are complete
+     * @param InTaskDelegate - delegate to execute when the prerequisites are complete
+     * @param InStatId - StatId of task for debugging or analysis tools
+     * @param InPrerequisites - Handles for prerequisites for this task, can be NULL if there are no prerequisites
+     * @param InDesiredThread - Thread to run on
+     * @return completion handle for the new task
+     **/
+    static FGraphEventRef CreateAndDispatchWhenReady(TFunction<void()> InFunction, const TStatId InStatId, const FGraphEventArray* InPrerequisites = NULL, ENamedThreads::Type InDesiredThread = ENamedThreads::AnyThread)
+    {
+        return TGraphTask<FFunctionGraphTask>::CreateTask(InPrerequisites).ConstructAndDispatchWhenReady(InFunction, InStatId, InDesiredThread);
+    }
+    /**
+     * Create a task and dispatch it when the prerequisites are complete
+     * @param InTaskDelegate - delegate to execute when the prerequisites are complete
+     * @param InStatId - StatId of task for debugging or analysis tools
+     * @param InPrerequisite - Handle for a single prerequisite for this task
+     * @param InDesiredThread - Thread to run on
+     * @return completion handle for the new task
+     **/
+    static FGraphEventRef CreateAndDispatchWhenReady(TFunction<void()> InFunction, const TStatId&& InStatId, const FGraphEventRef& InPrerequisite, ENamedThreads::Type InDesiredThread = ENamedThreads::AnyThread)
+    {
+        FGraphEventArray Prerequisites;
+        check(InPrerequisite.GetReference());
+        Prerequisites.Add(InPrerequisite);
+        return CreateAndDispatchWhenReady(InFunction, InStatId, &Prerequisites, InDesiredThread);
+    }
 };
 
 /**
