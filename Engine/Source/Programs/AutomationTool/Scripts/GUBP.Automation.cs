@@ -5547,8 +5547,11 @@ public class GUBP : BuildCommand
                     }
                     else if (Proj.Properties.bIsCodeBasedProject)
                     {
-						Branch.NonCodeProjects.Add(Proj);
-						NonCodeProjectNames.Add(Codeless.Key, Codeless.Value);                        
+						if (!Branch.NonCodeProjects.Contains(Proj)) 
+						{ 
+							Branch.NonCodeProjects.Add(Proj);
+							NonCodeProjectNames.Add(Codeless.Key, Codeless.Value);
+						}
                     }
                     else
                     {
@@ -5798,7 +5801,7 @@ public class GUBP : BuildCommand
 									}
                                     if (!bNoAutomatedTesting)
                                     {                                        
-										if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac automated testing works
+										if (HostPlatform == UnrealTargetPlatform.Mac || HostPlatform == UnrealTargetPlatform.Linux) continue; //temp hack till Linux and Mac automated testing works
 										var ThisMonoGameTestNodes = new List<string>();
 										foreach (var Test in GameTests)
 										{
@@ -6035,7 +6038,7 @@ public class GUBP : BuildCommand
 									}
 									if (!bNoAutomatedTesting)
 									{
-										if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac automated testing works
+										if (HostPlatform == UnrealTargetPlatform.Mac || HostPlatform == UnrealTargetPlatform.Linux) continue; //temp hack till Linux and Mac automated testing works
 										var GameTests = Target.Rules.GUBP_GetGameTests_MonolithicOnly(HostPlatform, GetAltHostPlatform(HostPlatform), Plat);
 										var RequiredPlatforms = new List<UnrealTargetPlatform> { Plat };
 										var ThisMonoGameTestNodes = new List<string>();
@@ -6065,7 +6068,7 @@ public class GUBP : BuildCommand
 					{
 						foreach (var GamePlatform in GamePlatforms)
 						{
-							if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac automated testing works
+							if (HostPlatform == UnrealTargetPlatform.Mac || HostPlatform == UnrealTargetPlatform.Linux) continue; //temp hack till Linux and Mac automated testing works
 							var Target = CodeProj.Properties.Targets[TargetRules.TargetType.Game];
 							var ClientServerTests = Target.Rules.GUBP_GetClientServerTests_MonolithicOnly(HostPlatform, GetAltHostPlatform(HostPlatform), ServerPlatform, GamePlatform);
 							var RequiredPlatforms = new List<UnrealTargetPlatform> { ServerPlatform };

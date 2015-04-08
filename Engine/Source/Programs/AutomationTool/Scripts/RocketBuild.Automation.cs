@@ -129,6 +129,7 @@ namespace Rocket
 		public static List<UnrealTargetPlatform> GetTargetPlatforms(GUBP bp, UnrealTargetPlatform HostPlatform)
 		{
 			List<UnrealTargetPlatform> TargetPlatforms = new List<UnrealTargetPlatform>();
+			bool bSupportsMobilePlatforms = (HostPlatform == UnrealTargetPlatform.Win64 || HostPlatform == UnrealTargetPlatform.Mac);
 			if(!bp.ParseParam("NoPlatforms"))
 			{
 				TargetPlatforms.Add(HostPlatform);
@@ -137,11 +138,11 @@ namespace Rocket
 				{
 					TargetPlatforms.Add(UnrealTargetPlatform.Win32);
 				}
-				if(!bp.ParseParam("NoAndroid"))
+				if(!bp.ParseParam("NoAndroid") && bSupportsMobilePlatforms)
 				{
 					TargetPlatforms.Add(UnrealTargetPlatform.Android);
 				}
-				if(!bp.ParseParam("NoIOS"))
+				if(!bp.ParseParam("NoIOS") && bSupportsMobilePlatforms)
 				{
 					TargetPlatforms.Add(UnrealTargetPlatform.IOS);
 				}
