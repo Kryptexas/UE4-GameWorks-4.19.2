@@ -712,6 +712,12 @@ EVisibility SKismetInspector::GetPropertyViewVisibility() const
 bool SKismetInspector::IsPropertyEditingEnabled() const
 {
 	bool bIsEditable = true;
+
+	if (BlueprintEditorPtr.IsValid())
+	{
+		bIsEditable = BlueprintEditorPtr.Pin()->InEditingMode();
+	}
+
 	for (const TWeakObjectPtr<UObject>& SelectedObject : SelectedObjects)
 	{
 		UActorComponent* Component = Cast<UActorComponent>(SelectedObject.Get());
