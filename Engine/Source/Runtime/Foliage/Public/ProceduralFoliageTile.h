@@ -60,7 +60,7 @@ class FOLIAGE_API UProceduralFoliageTile : public UObject
 	void RemoveInstances();
 
 	/** Initializes the tile for simulation. Called automatically by Simulate, so only bother to call if the tile won't actually simulate. */
-	void InitSimulation(const UProceduralFoliageSpawner* InFoliageSpawner, const int32 RandomSeed);
+	void InitSimulation(const UProceduralFoliageSpawner* InFoliageSpawner, const int32 InRandomSeed);
 
 	// UObject interface
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
@@ -131,6 +131,7 @@ private:
 	int32 SimulationStep;
 	FProceduralFoliageBroadphase Broadphase;	
 
+	int32 RandomSeed;
 	FRandomStream RandomStream;
 	bool bSimulateShadeGrowth;
 

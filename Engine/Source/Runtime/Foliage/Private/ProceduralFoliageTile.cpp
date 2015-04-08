@@ -222,7 +222,7 @@ void UProceduralFoliageTile::AddRandomSeeds(TArray<FProceduralFoliageInstance*>&
 			}
 
 			{	//save the random stream per type
-				RandomStreamPerType.Add(Type, FRandomStream(Type->DistributionSeed + FoliageSpawner->RandomSeed));
+				RandomStreamPerType.Add(Type, FRandomStream(Type->DistributionSeed + FoliageSpawner->RandomSeed + RandomSeed));
 			}
 
 			{	//compute the needed offsets for initial seed variance
@@ -370,8 +370,9 @@ void UProceduralFoliageTile::FlushPendingRemovals()
 	PendingRemovals.Empty();
 }
 
-void UProceduralFoliageTile::InitSimulation(const UProceduralFoliageSpawner* InFoliageSpawner, const int32 RandomSeed)
+void UProceduralFoliageTile::InitSimulation(const UProceduralFoliageSpawner* InFoliageSpawner, const int32 InRandomSeed)
 {
+	RandomSeed = InRandomSeed;
 	RandomStream.Initialize(RandomSeed);
 	FoliageSpawner = InFoliageSpawner;
 	SimulationStep = 0;
