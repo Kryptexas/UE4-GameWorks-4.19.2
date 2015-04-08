@@ -2939,18 +2939,10 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 					/*out*/ NodeOffsetY);
 			}
 
-			// If regenerating on load and the MacroGraph's Blueprint did not reach PostLoad yet, the nodes expanded from the graph will need to be reconstructed
-			bool bMacroNodesNeedRefresh = Blueprint->bIsRegeneratingOnLoad && !FBlueprintEditorUtils::FindBlueprintForGraph(MacroGraph)->bHasBeenRegenerated;
-
 			// Record intermediate object creation nodes, offset the nodes, and handle tunnels
 			for (TArray<UEdGraphNode*>::TIterator MacroNodeIt(MacroNodes); MacroNodeIt; ++MacroNodeIt)
 			{
 				UEdGraphNode* DuplicatedNode = *MacroNodeIt;
-				if ( bMacroNodesNeedRefresh)
-				{
-					DuplicatedNode->ReconstructNode();
-				}
-
 				if( DuplicatedNode != NULL )
 				{
 					// Record the source node mapping for the intermediate node first, as it's going to be overwritten through the MessageLog below
