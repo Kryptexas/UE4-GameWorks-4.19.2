@@ -409,4 +409,12 @@ void FBlueprintSpawnNodeCommands::GetGraphActionByChord(FInputChord& InChord, FB
 	}
 }
 
+//////////////////////////////////////////////////////////////////////////
+// FSCSEditorViewportCommands
+
+void FSCSEditorViewportCommands::RegisterCommands()
+{
+	UI_COMMAND(DeleteComponent, "Delete", "Delete current selection", EUserInterfaceActionType::Button, FInputChord(EKeys::Platform_Delete));
+}
+
 #undef LOCTEXT_NAMESPACE

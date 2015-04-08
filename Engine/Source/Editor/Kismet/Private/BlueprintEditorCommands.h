@@ -100,3 +100,19 @@ private:
 	/** An array of all the possible commands for spawning nodes */
 	TArray< TSharedPtr< class FNodeSpawnInfo > > NodeCommands;
 };
+
+//////////////////////////////////////////////////////////////////////////
+// FSCSEditorViewportCommands
+
+class FSCSEditorViewportCommands : public TCommands<FSCSEditorViewportCommands>
+{
+public:
+
+	FSCSEditorViewportCommands()
+		: TCommands<FSCSEditorViewportCommands>(TEXT("SCSEditorViewport"), NSLOCTEXT("Contexts", "SCSEditorViewport", "SCS Editor Viewport"), NAME_None, FEditorStyle::GetStyleSetName())
+	{}
+
+	virtual void RegisterCommands() override;
+
+	TSharedPtr< FUICommandInfo > DeleteComponent;
+};
