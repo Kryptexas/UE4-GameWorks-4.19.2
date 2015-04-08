@@ -83,8 +83,8 @@ public:
 
 	/** Audio device this buffer is attached to */
 	FALAudioDevice*			AudioDevice;
-	/** Array of buffer ids used to reference the data stored in AL. */
-	ALuint					BufferIds[2];
+	/** Buffer id used to reference the data stored in AL. */
+	ALuint					BufferId;
 	/** Format of the data internal to OpenAL */
 	ALuint					InternalFormat;
 
@@ -175,6 +175,9 @@ protected:
 	FALSoundBuffer*		Buffer;
 
 	friend class FALAudioDevice;
+
+	/** Convenience function to avoid casting in multiple places */
+	FORCEINLINE FALAudioDevice * GetALDevice();
 };
 
 /**
@@ -219,9 +222,17 @@ public:
 	// Error checking.
 	bool alError( const TCHAR* Text, bool Log = true );
 
+	/** 
+	 * Makes sure correct context is set.
+	 * 
+	 * @param CallSiteIdentifier identifies the call site for debugging/error reporting purposes
+	 */
+	void MakeCurrent(const TCHAR * CallSiteIdentifier = nullptr);
+
 protected:
 
 	virtual FSoundSource* CreateSoundSource() override; 
+
 	/** Returns the enum for the internal format for playing a sound with this number of channels. */
 	ALuint GetInternalFormat( int NumChannels );
 
@@ -238,6 +249,7 @@ protected:
 	ALCdevice*									HardwareDevice;
 	ALCcontext*									SoundContext;
 	void*										DLLHandle;
+
 	/** Formats for multichannel sounds */
 	ALenum										Surround40Format;
 	ALenum										Surround51Format;
@@ -247,3 +259,7 @@ protected:
 	friend class FALSoundBuffer;
 };
 
+FORCEINLINE FALAudioDevice * FALSoundSource::GetALDevice()
+{
+	return static_cast<FALAudioDevice *>(AudioDevice);
+}

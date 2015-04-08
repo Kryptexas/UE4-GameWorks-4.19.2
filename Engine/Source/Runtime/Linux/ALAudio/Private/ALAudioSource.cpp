@@ -15,6 +15,7 @@
 bool FALSoundSource::Init( FWaveInstance* InWaveInstance )
 {
 	check(InWaveInstance);
+	GetALDevice()->MakeCurrent(TEXT("FALSoundSource::Init()"));
 
 	if (InWaveInstance->OutputTarget != EAudioOutputTarget::Controller)
 	{
@@ -33,13 +34,13 @@ bool FALSoundSource::Init( FWaveInstance* InWaveInstance )
 			alSourcei( SourceId, AL_LOOPING, ( WaveInstance->LoopingMode == LOOP_Forever ) ? AL_TRUE : AL_FALSE );
 
 			// Always queue up the first buffer
-			alSourceQueueBuffers( SourceId, 1, Buffer->BufferIds );	
+			alSourceQueueBuffers(SourceId, 1, &Buffer->BufferId);
 			if( WaveInstance->LoopingMode == LOOP_WithNotification )
 			{		
 				// We queue the sound twice for wave instances that use seamless looping so we can have smooth 
 				// loop transitions. The downside is that we might play at most one frame worth of audio from the 
 				// beginning of the wave after the wave stops looping.
-				alSourceQueueBuffers( SourceId, 1, Buffer->BufferIds );
+				alSourceQueueBuffers(SourceId, 1, &Buffer->BufferId);
 			}
 
 			Update();
@@ -61,6 +62,8 @@ bool FALSoundSource::Init( FWaveInstance* InWaveInstance )
  */
 FALSoundSource::~FALSoundSource( void )
 {
+	GetALDevice()->MakeCurrent(TEXT("FALSoundSource::~FALSoundSource()"));
+
 	// @todo openal: What do we do here
 	/// AudioDevice->DestroyEffect( this );
 
@@ -79,6 +82,8 @@ void FALSoundSource::Update( void )
 	{
 		return;
 	}
+
+	GetALDevice()->MakeCurrent(TEXT("FALSoundSource::Update()"));
 
 	float Volume = 1.0f;
 
@@ -146,6 +151,8 @@ void FALSoundSource::Play( void )
 {
 	if( WaveInstance )
 	{
+		GetALDevice()->MakeCurrent(TEXT("FALSoundSource::Play()"));
+
 		alSourcePlay( SourceId );
 		Paused = false;
 		Playing = true;
@@ -159,6 +166,8 @@ void FALSoundSource::Stop( void )
 {
 	if( WaveInstance )
 	{
+		GetALDevice()->MakeCurrent(TEXT("FALSoundSource::Stop()"));
+
 		alSourceStop( SourceId );
 		// This clears out any pending buffers that may or may not be queued or played
 		alSourcei( SourceId, AL_BUFFER, 0 );
@@ -177,6 +186,8 @@ void FALSoundSource::Pause( void )
 {
 	if( WaveInstance )
 	{
+		GetALDevice()->MakeCurrent(TEXT("FALSoundSource::Pause()"));
+
 		alSourcePause( SourceId );
 		Paused = true;
 	}
@@ -189,14 +200,16 @@ bool FALSoundSource::IsSourceFinished( void )
 {
 	ALint State = AL_STOPPED;
 
+	GetALDevice()->MakeCurrent(TEXT("FALSoundSource::IsSourceFinished()"));
+
 	// Check the source for data to continue playing
 	alGetSourcei( SourceId, AL_SOURCE_STATE, &State );
 	if( State == AL_PLAYING || State == AL_PAUSED )
 	{
-		return( false );
+		return false;
 	}
 
-	return( true );
+	return true;
 }
 
 /** 
@@ -204,6 +217,8 @@ bool FALSoundSource::IsSourceFinished( void )
  */
 void FALSoundSource::HandleQueuedBuffer( void )
 {
+	GetALDevice()->MakeCurrent(TEXT("FALSoundSource::HandleQueuedBuffer()"));
+
 	ALuint	DequeuedBuffer;
 
 	// Unqueue the processed buffers
@@ -213,7 +228,7 @@ void FALSoundSource::HandleQueuedBuffer( void )
 	WaveInstance->NotifyFinished();
 
 	// Queue the same packet again for looping
-	alSourceQueueBuffers( SourceId, 1, Buffer->BufferIds );
+	alSourceQueueBuffers(SourceId, 1, &Buffer->BufferId);
 }
 
 /**
@@ -224,6 +239,8 @@ void FALSoundSource::HandleQueuedBuffer( void )
  */
 bool FALSoundSource::IsFinished( void )
 {
+	GetALDevice()->MakeCurrent(TEXT("FALSoundSource::IsFinished()"));
+
 	if( WaveInstance )
 	{
 		// Check for a non starved, stopped source
@@ -261,8 +278,8 @@ bool FALSoundSource::IsFinished( void )
 			}
 		}
 
-		return( false  );
+		return false;
 	}
 
-	return(  true );
+	return true;
 }

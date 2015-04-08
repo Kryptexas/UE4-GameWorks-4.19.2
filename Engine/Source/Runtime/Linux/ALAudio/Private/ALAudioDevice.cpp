@@ -60,7 +60,7 @@ void FALAudioDevice::TeardownHardware( void )
 	// Disable the context
 	if( &alcMakeContextCurrent )
 	{	
-		alcMakeContextCurrent( NULL );
+		alcMakeContextCurrent(nullptr);
 	}
 
 	// Destroy the context
@@ -72,9 +72,13 @@ void FALAudioDevice::TeardownHardware( void )
 
 	// Close the hardware device
 	if( &alcCloseDevice )
-	{	
+	{
+		checkf(HardwareDevice, TEXT("Tearing down invalid OpenAL device! (HardwareDevice should not be null)."));
+		const ALCchar* DeviceName = alcGetString(HardwareDevice, ALC_DEVICE_SPECIFIER);
+		UE_LOG(LogALAudio, Log, TEXT("Closing ALAudio device : %s"), StringCast<TCHAR>(static_cast<const ANSICHAR*>(DeviceName)).Get());
+
 		alcCloseDevice( HardwareDevice );
-		HardwareDevice = NULL;
+		HardwareDevice = nullptr;
 	}
 
 }
@@ -103,9 +107,8 @@ bool FALAudioDevice::InitializeHardware( void )
 	// Load ogg and vorbis dlls if they haven't been loaded yet
 	//LoadVorbisLibraries();
 
-	
 	// Open device
-	HardwareDevice = alcOpenDevice(  NULL );
+	HardwareDevice = alcOpenDevice(nullptr);
 	if( !HardwareDevice )
 	{
 		UE_LOG(LogALAudio, Log, TEXT( "ALAudio: no OpenAL devices found." ) );
@@ -134,8 +137,7 @@ bool FALAudioDevice::InitializeHardware( void )
 		return false ;
 	}
 
-	alcMakeContextCurrent( SoundContext );
-	
+	alcMakeContextCurrent(SoundContext);
 
 	// Make sure everything happened correctly
 	if( alError( TEXT( "Init" ) ) )
@@ -206,7 +208,6 @@ void FALAudioDevice::Update( bool Realtime )
 	FVector ListenerFront		= Listeners[ 0 ].GetFront();
 	FVector ListenerUp			= Listeners[ 0 ].GetUp();
 
-
 	// Set Player position
 	FVector Location;
 
@@ -223,7 +224,7 @@ void FALAudioDevice::Update( bool Realtime )
 	Orientation[0].X = ListenerFront.X;
 	Orientation[0].Y = ListenerFront.Z; // Z/Y swapped on purpose, see file header	
 	Orientation[0].Z = ListenerFront.Y; // Z/Y swapped on purpose, see file header
-	
+
 	// See file header for coordinate system explanation.
 	Orientation[1].X = ListenerUp.X;
 	Orientation[1].Y = ListenerUp.Z; // Z/Y swapped on purpose, see file header
@@ -232,7 +233,9 @@ void FALAudioDevice::Update( bool Realtime )
 	// Make the listener still and the sounds move relatively -- this allows 
 	// us to scale the doppler effect on a per-sound basis.
 	FVector Velocity = FVector( 0.0f, 0.0f, 0.0f );
-	
+
+	MakeCurrent(TEXT("FALAudioDevice::Update()"));
+
 	alListenerfv( AL_POSITION, ( ALfloat* )&Location );
 	alListenerfv( AL_ORIENTATION, ( ALfloat* )&Orientation[0] );
 	alListenerfv( AL_VELOCITY, ( ALfloat* )&Velocity );
@@ -273,6 +276,15 @@ ALuint FALAudioDevice::GetInternalFormat( int NumChannels )
 	}
 
 	return( InternalFormat );
+}
+
+void FALAudioDevice::MakeCurrent(const TCHAR * CallSiteIdentifier)
+{
+	checkf(SoundContext, TEXT("Unitialiized sound context in FALAudioDevice::MakeCurrent()!"));
+	if (!alcMakeContextCurrent(SoundContext))
+	{
+		alError(CallSiteIdentifier ? CallSiteIdentifier : TEXT("FALAudioDevice::MakeCurrent()"));
+	}
 }
 
 /*------------------------------------------------------------------------------------

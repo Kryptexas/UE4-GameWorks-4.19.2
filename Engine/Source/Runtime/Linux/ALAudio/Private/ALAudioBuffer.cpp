@@ -28,7 +28,7 @@ FALSoundBuffer::FALSoundBuffer( FALAudioDevice* InAudioDevice )
 FALSoundBuffer::~FALSoundBuffer( void )
 {
 	// Delete AL buffers.
-	alDeleteBuffers( 1, BufferIds );
+	alDeleteBuffers(1, &BufferId);
 }
 
 /**
@@ -143,10 +143,8 @@ FALSoundBuffer* FALSoundBuffer::CreateNativeBuffer( FALAudioDevice* AudioDevice,
 		// Create new buffer.
 		Buffer = new FALSoundBuffer(AudioDevice);
 
-		alGenBuffers(1, Buffer->BufferIds);
-
+		alGenBuffers(1, &Buffer->BufferId);
 		AudioDevice->alError(TEXT("RegisterSound"));
-
 
 		AudioDeviceManager->TrackResource(Wave, Buffer);
 
@@ -158,7 +156,7 @@ FALSoundBuffer* FALSoundBuffer::CreateNativeBuffer( FALAudioDevice* AudioDevice,
 		{
 			// upload it
 			Buffer->BufferSize = Wave->RawPCMDataSize;
-			alBufferData(Buffer->BufferIds[0], Buffer->InternalFormat, Wave->RawPCMData, Wave->RawPCMDataSize, Buffer->SampleRate);
+			alBufferData(Buffer->BufferId, Buffer->InternalFormat, Wave->RawPCMData, Wave->RawPCMDataSize, Buffer->SampleRate);
 
 			// Free up the data if necessary
 			if (Wave->bDynamicResource)
@@ -187,7 +185,7 @@ FALSoundBuffer* FALSoundBuffer::CreateNativeBuffer( FALAudioDevice* AudioDevice,
 			Buffer->BufferSize = SoundDataSize;
 
 			// upload it
-			alBufferData( Buffer->BufferIds[0], Buffer->InternalFormat, SoundData, Buffer->BufferSize, Buffer->SampleRate );
+			alBufferData( Buffer->BufferId, Buffer->InternalFormat, SoundData, Buffer->BufferSize, Buffer->SampleRate );
 			// unload it
 			Wave->RawData.Unlock();
 		}
