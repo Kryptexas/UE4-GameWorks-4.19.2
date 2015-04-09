@@ -102,18 +102,18 @@ public:
 
 	/** Constructs the widget, and adds it to the tree. */
 	template< class T >
-	FORCEINLINE T* ConstructWidget(TSubclassOf<UWidget> WidgetType)
+	FORCEINLINE T* ConstructWidget(TSubclassOf<UWidget> WidgetType, FName WidgetName = NAME_None)
 	{
 		if ( WidgetType->IsChildOf(UUserWidget::StaticClass()) )
 		{
-			UUserWidget* Widget = NewObject<UUserWidget>(this, WidgetType);
+			UUserWidget* Widget = NewObject<UUserWidget>(this, WidgetType, WidgetName);
 			Widget->Initialize();
 			Widget->SetFlags(RF_Transactional);
 			return (T*)Widget;
 		}
 		else
 		{
-			UWidget* Widget = (UWidget*)NewObject<UWidget>(this, WidgetType);
+			UWidget* Widget = (UWidget*)NewObject<UWidget>(this, WidgetType, WidgetName);
 			Widget->SetFlags(RF_Transactional);
 			return (T*)Widget;
 		}

@@ -526,14 +526,27 @@ FString UWidget::GetLabelMetadata() const
 
 FString UWidget::GetLabel() const
 {
-	if ( IsGeneratedName() && !bIsVariable )
+	return GetLabelText().ToString();
+}
+
+FText UWidget::GetLabelText() const
+{
+	FText Label = GetDisplayNameBase();
+
+	if (IsGeneratedName() && !bIsVariable)
 	{
-		return TEXT("[") + GetClass()->GetName() + TEXT("]") + GetLabelMetadata();
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("BaseName"), Label);
+		Args.Add(TEXT("Metadata"), FText::FromString(GetLabelMetadata()));
+		Label = FText::Format(LOCTEXT("NonVariableLabelFormat", "[{BaseName}]{Metadata}"), Args);
 	}
-	else
-	{
-		return GetName();
-	}
+
+	return Label;
+}
+
+FText UWidget::GetDisplayNameBase() const
+{
+	return IsGeneratedName() ? GetClass()->GetDisplayNameText() : FText::FromString(GetName());
 }
 
 const FText UWidget::GetPaletteCategory()

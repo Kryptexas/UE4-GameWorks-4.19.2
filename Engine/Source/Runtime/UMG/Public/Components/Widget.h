@@ -389,7 +389,11 @@ public:
 	virtual FString GetLabelMetadata() const;
 
 	/** Gets the label to display to the user for this widget. */
+	DEPRECATED(4.8, "Use GetLabelText(), which will return the label as FText.")
 	FString GetLabel() const;
+
+	/** Gets the label to display to the user for this widget. */
+	FText GetLabelText() const;
 
 	/** Gets the palette category of the widget */
 	virtual const FText GetPaletteCategory();
@@ -450,6 +454,9 @@ protected:
 	TSharedRef<SWidget> BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidget);
 
 	void UpdateRenderTransform();
+
+	/** Gets the base name used to generate the display label/name of this widget. */
+	FText GetDisplayNameBase() const;
 
 protected:
 	//TODO UMG Consider moving conversion functions into another class.

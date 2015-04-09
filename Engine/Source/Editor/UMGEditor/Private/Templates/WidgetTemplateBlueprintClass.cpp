@@ -5,6 +5,7 @@
 #include "WidgetTemplateBlueprintClass.h"
 #include "IDocumentation.h"
 #include "WidgetBlueprint.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "UMGEditor"
 
@@ -60,7 +61,7 @@ UWidget* FWidgetTemplateBlueprintClass::Create(UWidgetTree* Tree)
 		WidgetClass = CastChecked<UClass>(LoadedWidget->GeneratedClass);
 	}
 
-	return FWidgetTemplateClass::Create(Tree);
+	return FWidgetTemplateClass::CreateNamed(Tree, FName(*FBlueprintEditorUtils::GetClassNameWithoutSuffix(WidgetClass.Get())));
 }
 
 const FSlateBrush* FWidgetTemplateBlueprintClass::GetIcon() const

@@ -63,6 +63,13 @@ public:
 	/** Creates a property named PropertyName of type PropertyType in the Scope or returns NULL if the type is unknown, but does *not* link that property in */
 	static UProperty* CreatePropertyOnScope(UStruct* Scope, const FName& PropertyName, const FEdGraphPinType& Type, UClass* SelfClass, uint64 PropertyFlags, const class UEdGraphSchema_K2* Schema, FCompilerResultsLog& MessageLog);
 
+	/**
+	 * Checks that the property name isn't taken in the given scope (used by CreatePropertyOnScope())
+	 *
+	 * @return	Ptr to an existing object with that name in the given scope or nullptr if none exists
+	 */
+	static UObject* CheckPropertyNameOnScope(UStruct* Scope, const FName& PropertyName);
+
 private:
 	/** Counter to ensure unique names in the transient package, to avoid GC collection issues with classes and their CDOs */
 	static uint32 ConsignToOblivionCounter;

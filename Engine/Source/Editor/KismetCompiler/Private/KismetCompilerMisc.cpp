@@ -727,19 +727,21 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 			return nullptr;
 		};
 
-		if (UObject* ExistingObject = CheckIfPropertyNameIsUsed(Scope, *PropertyName.ToString()))
+		if (UObject* ExistingObject = CheckPropertyNameOnScope(Scope, PropertyName))
 		{
 			MessageLog.Error(*FString::Printf(TEXT("Internal Compiler Error:  Tried to create a property %s in scope %s, but %s already exists there."), *PropertyName.ToString(), (Scope ? *Scope->GetName() : TEXT("None")), *ExistingObject->GetFullName()));
 
 			// Find a free name, so we can still create the property to make it easier to spot the duplicates, and avoid crashing
 			uint32 Counter = 0;
-			FString TestNameString;
+			FName TestName;
 			do 
 			{
-				TestNameString = PropertyName.ToString() + FString::Printf(TEXT("_ERROR_DUPLICATE_%d"), Counter++);
-			} while (CheckIfPropertyNameIsUsed(Scope, *TestNameString) != NULL);
+				FString TestNameString = PropertyName.ToString() + FString::Printf(TEXT("_ERROR_DUPLICATE_%d"), Counter++);
+				TestName = FName(*TestNameString);
 
-			ValidatedPropertyName = FName(*TestNameString);
+			} while (CheckPropertyNameOnScope(Scope, TestName) != NULL);
+
+			ValidatedPropertyName = TestName;
 		}
 	}
 
@@ -921,6 +923,25 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 	return NewProperty;
 }
 
+UObject* FKismetCompilerUtilities::CheckPropertyNameOnScope(UStruct* Scope, const FName& PropertyName)
+{
+	FString NameStr = PropertyName.ToString();
+
+	if (UObject* ExistingObject = FindObject<UObject>(Scope, *NameStr, false))
+	{
+		return ExistingObject;
+	}
+
+	if (Scope && !Scope->IsA<UFunction>() && (UBlueprintGeneratedClass::GetUberGraphFrameName() != PropertyName))
+	{
+		if (auto Field = FindField<UProperty>(Scope ? Scope->GetSuperStruct() : nullptr, *NameStr))
+		{
+			return Field;
+		}
+	}
+
+	return nullptr;
+}
 
 //////////////////////////////////////////////////////////////////////////
 // FNodeHandlingFunctor

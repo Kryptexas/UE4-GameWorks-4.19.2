@@ -93,8 +93,8 @@ TSharedRef<FSelectedWidgetDragDropOp> FSelectedWidgetDragDropOp::New(TSharedPtr<
 	TSharedRef<FSelectedWidgetDragDropOp> Operation = MakeShareable(new FSelectedWidgetDragDropOp());
 	Operation->bStayingInParent = bStayInParent;
 	Operation->ParentWidget = Editor->GetReferenceFromTemplate(InWidget.GetTemplate()->GetParent());
-	Operation->DefaultHoverText = FText::FromString( InWidget.GetTemplate()->GetLabel() );
-	Operation->CurrentHoverText = FText::FromString( InWidget.GetTemplate()->GetLabel() );
+	Operation->DefaultHoverText = InWidget.GetTemplate()->GetLabelText();
+	Operation->CurrentHoverText = InWidget.GetTemplate()->GetLabelText();
 	Operation->Construct();
 
 	// Cache the preview and template, it's not safe to query the preview/template while dragging the widget as it no longer

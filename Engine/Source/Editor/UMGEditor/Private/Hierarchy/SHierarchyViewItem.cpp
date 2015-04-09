@@ -60,8 +60,8 @@ TSharedRef<FHierarchyWidgetDragDropOp> FHierarchyWidgetDragDropOp::New(UWidgetBl
 {
 	TSharedRef<FHierarchyWidgetDragDropOp> Operation = MakeShareable(new FHierarchyWidgetDragDropOp());
 	Operation->Widget = InWidget;
-	Operation->DefaultHoverText = FText::FromString(InWidget.GetTemplate()->GetLabel());
-	Operation->CurrentHoverText = FText::FromString(InWidget.GetTemplate()->GetLabel());
+	Operation->DefaultHoverText = InWidget.GetTemplate()->GetLabelText();
+	Operation->CurrentHoverText = InWidget.GetTemplate()->GetLabelText();
 	Operation->Construct();
 
 	FWidgetBlueprintEditorUtils::ExportPropertiesToText(InWidget.GetTemplate()->Slot, Operation->ExportedSlotProperties);
@@ -646,7 +646,7 @@ FText FHierarchyWidget::GetText() const
 	UWidget* WidgetTemplate = Item.GetTemplate();
 	if ( WidgetTemplate )
 	{
-		return FText::FromString(WidgetTemplate->GetLabel());
+		return WidgetTemplate->GetLabelText();
 	}
 
 	return FText::GetEmpty();
@@ -679,7 +679,7 @@ FText FHierarchyWidget::GetLabelToolTipText() const
 	UWidget* WidgetTemplate = Item.GetTemplate();
 	if ( WidgetTemplate && !WidgetTemplate->IsGeneratedName() )
 	{
-		return FText::FromString(TEXT( "[" ) + WidgetTemplate->GetClass()->GetName() + TEXT( "]" ) );
+		return FText::FromString(TEXT( "[" ) + WidgetTemplate->GetClass()->GetDisplayNameText().ToString() + TEXT( "]" ) );
 	}
 
 	return FText::GetEmpty();
