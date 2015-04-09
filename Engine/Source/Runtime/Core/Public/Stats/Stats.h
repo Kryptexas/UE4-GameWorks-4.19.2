@@ -455,7 +455,7 @@ struct FDynamicStats
 	static TStatId CreateStatId( const FString& StatNameOrDescription )
 	{
 #if	STATS
-		return CreateStatId( FName( *StatNameOrDescription ) );
+		return CreateStatId<TStatGroup>( FName( *StatNameOrDescription ) );
 #endif // STATS
 
 		return TStatId();
