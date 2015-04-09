@@ -1197,6 +1197,8 @@ void FTiledObject::AddToSpriteGeometryCollection(const FVector2D& Offset, const 
 			InOutShapes.Shapes.Last().Rotation = RotationUnwound;
 		}
 	}
+
+	InOutShapes.ConditionGeometry();
 }
 
 //////////////////////////////////////////////////////////////////////////
