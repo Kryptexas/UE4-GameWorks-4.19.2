@@ -33,7 +33,7 @@ namespace
 		
 	private:
 		TWeakPtr<ITextInputMethodContext> Context;
-		TSharedPtr<FGenericWindow> ContextWindow;
+		TWeakPtr<FGenericWindow> ContextWindow;
 	};
 	
 	void FTextInputMethodChangeNotifier::SetContextWindow(TSharedPtr<FGenericWindow> Window)
@@ -47,7 +47,7 @@ namespace
 		{
 			ContextWindow = Context.Pin()->GetWindow();
 		}
-		return ContextWindow;
+		return ContextWindow.Pin();
 	}
 	
 	void FTextInputMethodChangeNotifier::NotifyLayoutChanged(const ELayoutChangeType ChangeType)
