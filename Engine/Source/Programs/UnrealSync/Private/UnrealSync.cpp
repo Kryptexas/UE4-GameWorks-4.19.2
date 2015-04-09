@@ -11,14 +11,56 @@ DEFINE_LOG_CATEGORY_STATIC(LogUnrealSync, Log, All);
 
 IMPLEMENT_APPLICATION(UnrealSync, "UnrealSync");
 
-/**
- * Unreal sync main function.
- *
- * @param CommandLine Command line that the program was called with.
- */
-void RunUnrealSync(const TCHAR* CommandLine)
+bool FUnrealSync::UpdateOriginalUS(const FString& OriginalUSPath)
 {
-	InitGUI(CommandLine);
+	FString Output;
+	return FP4Env::RunP4Output(TEXT("sync ") + OriginalUSPath, Output);
+}
+
+bool FUnrealSync::RunDetachedUS(const FString& USPath, bool bDoNotRunFromCopy, bool bDoNotUpdateOnStartUp, bool bPassP4Env)
+{
+	FString CommandLine = FString()
+		+ (bDoNotRunFromCopy ? TEXT("-DoNotRunFromCopy ") : TEXT(""))
+		+ (bDoNotUpdateOnStartUp ? TEXT("-DoNotUpdateOnStartUp ") : TEXT(""))
+		+ (bPassP4Env ? *FP4Env::Get().GetCommandLine()	: TEXT(""));
+
+	return RunProcess(USPath, CommandLine);
+}
+
+bool FUnrealSync::DeleteIfExistsAndCopyFile(const FString& To, const FString& From)
+{
+	auto& PlatformPhysical = IPlatformFile::GetPlatformPhysical();
+
+	if (PlatformPhysical.FileExists(*To) && !PlatformPhysical.DeleteFile(*To))
+	{
+		return false;
+	}
+
+	return PlatformPhysical.CopyFile(*To, *From);
+}
+
+void FUnrealSync::RunUnrealSync(const TCHAR* CommandLine)
+{
+	// start up the main loop
+	GEngineLoop.PreInit(CommandLine);
+
+	if (!FP4Env::Init(CommandLine))
+	{
+		GLog->Flush();
+		InitGUI(CommandLine, true);
+	}
+	else
+	{
+		if (FUnrealSync::Initialization(CommandLine))
+		{
+			InitGUI(CommandLine);
+		}
+
+		if (!FUnrealSync::GetInitializationError().IsEmpty())
+		{
+			UE_LOG(LogUnrealSync, Fatal, TEXT("Error: %s"), *FUnrealSync::GetInitializationError());
+		}
+	}
 }
 
 FString FUnrealSync::GetLatestLabelForGame(const FString& GameName)
@@ -435,11 +477,60 @@ bool FUnrealSync::Sync(bool bArtist, bool bPreview, const FString& Label, const 
 
 	if (!FP4Env::RunP4Progress(FString("sync ") + (bPreview ? "-n " : "") + FString::Join(SyncSteps, TEXT(" ")), OnSyncProgress))
 	{
+	}
+
+	return true;
+}
+
+bool FUnrealSync::Initialization(const TCHAR* CommandLine)
+{
+	FString CommonExecutablePath =
+		FPaths::ConvertRelativePathToFull(
+		FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries"), TEXT("Win64"),
+#if !UE_BUILD_DEBUG
+		TEXT("UnrealSync")
+#else
+		TEXT("UnrealSync-Win64-Debug")
+#endif
+		));
+
+	FString OriginalExecutablePath = CommonExecutablePath + TEXT(".exe");
+	FString TemporaryExecutablePath = CommonExecutablePath + TEXT(".Temporary.exe");
+
+	bool bDoNotRunFromCopy = FParse::Param(CommandLine, TEXT("DoNotRunFromCopy"));
+	bool bDoNotUpdateOnStartUp = FParse::Param(CommandLine, TEXT("DoNotUpdateOnStartUp"));
+
+	if (!bDoNotRunFromCopy)
+	{
+		if (!DeleteIfExistsAndCopyFile(*TemporaryExecutablePath, *OriginalExecutablePath))
+		{
+			InitializationError = TEXT("Copying UnrealSync to temp location failed.");
+		}
+		else if (!RunDetachedUS(TemporaryExecutablePath, true, bDoNotUpdateOnStartUp, true))
+		{
+			InitializationError = TEXT("Running remote UnrealSync failed.");
+		}
+
+		return false;
+	}
+
+	if (!bDoNotUpdateOnStartUp && FP4Env::CheckIfFileNeedsUpdate(OriginalExecutablePath))
+	{
+		if (!UpdateOriginalUS(OriginalExecutablePath))
+		{
+			InitializationError = TEXT("UnrealSync update failed.");
+		}
+		else if (!RunDetachedUS(OriginalExecutablePath, false, true, true))
+		{
+			InitializationError = TEXT("Running UnrealSync failed.");
+		}
+
 		return false;
 	}
 
 	return true;
 }
+
 
 /* Static fields initialization. */
 FUnrealSync::FOnDataLoaded FUnrealSync::OnDataLoaded;
@@ -448,3 +539,4 @@ TSharedPtr<FP4DataCache> FUnrealSync::Data;
 bool FUnrealSync::bLoadingFinished = false;
 TSharedPtr<FP4DataLoader> FUnrealSync::LoaderThread;
 TSharedPtr<FSyncingThread> FUnrealSync::SyncingThread;
+FString FUnrealSync::InitializationError;
