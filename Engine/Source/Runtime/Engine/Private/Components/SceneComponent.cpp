@@ -10,6 +10,10 @@
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/PhysicsVolume.h"
 #include "ComponentReregisterContext.h"
+#include "ComponentUtils.h"
+#include "Engine/SCS_Node.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #define LOCTEXT_NAMESPACE "SceneComponent"
 
@@ -50,6 +54,234 @@ void USceneComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector&
 #endif
 	Super::AddReferencedObjects(InThis, Collector);
 }
+
+#if WITH_EDITOR
+
+/**
+ * A static helper function used meant as the default for determining if a 
+ * component's Mobility should be overridden.
+ * 
+ * @param  CurrentMobility	The component's current Mobility setting
+ * @param  NewMobility		The proposed new Mobility for the component in question
+ * @return True if the two mobilities are not equal (false if they are equal)
+ */
+static bool AreMobilitiesDifferent(EComponentMobility::Type CurrentMobility, EComponentMobility::Type NewMobility)
+{
+	return CurrentMobility != NewMobility;
+}
+DECLARE_DELEGATE_RetVal_OneParam(bool, FMobilityQueryDelegate, EComponentMobility::Type);
+
+/**
+ * A static helper function that recursively alters the Mobility property for all 
+ * sub-components (descending from the specified USceneComponent)
+ * 
+ * @param  SceneComponentObject		The component whose sub-components you want to alter
+ * @param  NewMobilityType			The Mobility type you want to switch sub-components over to
+ * @param  ShouldOverrideMobility	A delegate used to determine if a sub-component's Mobility should be overridden
+ *									(if left unset it will default to the AreMobilitiesDifferent() function)
+ * @return The number of decedents that had their mobility altered.
+ */
+static int32 SetDecedentMobility(USceneComponent const* SceneComponentObject, EComponentMobility::Type NewMobilityType, FMobilityQueryDelegate ShouldOverrideMobility = FMobilityQueryDelegate())
+{
+	if (!ensure(SceneComponentObject != NULL))
+	{
+		return 0;
+	}
+
+	TArray<USceneComponent*> AttachedChildren = SceneComponentObject->AttachChildren;
+	// gather children for component templates
+	USCS_Node* SCSNode = ComponentUtils::FindCorrespondingSCSNode(SceneComponentObject);
+	if (SCSNode != NULL)
+	{
+		// gather children from the SCSNode
+		for (int32 ChildIndex = 0; ChildIndex < SCSNode->ChildNodes.Num(); ++ChildIndex)
+		{
+			USCS_Node* SCSChild = SCSNode->ChildNodes[ChildIndex];
+
+			USceneComponent* ChildSceneComponent = Cast<USceneComponent>(SCSChild->ComponentTemplate);
+			if (ChildSceneComponent != NULL)
+			{
+				AttachedChildren.Add(ChildSceneComponent);
+			}
+		}
+	}
+
+	if (!ShouldOverrideMobility.IsBound())
+	{
+		ShouldOverrideMobility = FMobilityQueryDelegate::CreateStatic(&AreMobilitiesDifferent, NewMobilityType);
+	}
+
+	int32 NumDecendentsChanged = 0;
+	// recursively alter the mobility for children and deeper decedents 
+	for (int32 ChildIndex = 0; ChildIndex < AttachedChildren.Num(); ++ChildIndex)
+	{
+		USceneComponent* ChildSceneComponent = AttachedChildren[ChildIndex];
+
+		if (ShouldOverrideMobility.Execute(ChildSceneComponent->Mobility))
+		{
+			// USceneComponents shouldn't be set Stationary 
+			if ((NewMobilityType == EComponentMobility::Stationary) && ChildSceneComponent->IsA(UStaticMeshComponent::StaticClass()))
+			{
+				// make it Movable (because it is acceptable for Stationary parents to have Movable children)
+				ChildSceneComponent->Mobility = EComponentMobility::Movable;
+			}
+			else
+			{
+				ChildSceneComponent->Mobility = NewMobilityType;
+			}
+			++NumDecendentsChanged;
+		}
+		NumDecendentsChanged += SetDecedentMobility(ChildSceneComponent, NewMobilityType, ShouldOverrideMobility);
+	}
+
+	return NumDecendentsChanged;
+}
+
+/**
+ * A static helper function that alters the Mobility property for all ancestor
+ * components (ancestors of the specified USceneComponent).
+ * 
+ * @param  SceneComponentObject		The component whose attached ancestors you want to alter
+ * @param  NewMobilityType			The Mobility type you want to switch ancestor components over to
+ * @param  ShouldOverrideMobility	A delegate used to determine if a ancestor's Mobility should be overridden
+ *									(if left unset it will default to the AreMobilitiesDifferent() function)
+ * @return The number of ancestors that had their mobility altered.
+ */
+static int32 SetAncestorMobility(USceneComponent const* SceneComponentObject, EComponentMobility::Type NewMobilityType, FMobilityQueryDelegate ShouldOverrideMobility = FMobilityQueryDelegate())
+{
+	if (!ensure(SceneComponentObject != NULL))
+	{
+		return 0;
+	}
+
+	if (!ShouldOverrideMobility.IsBound())
+	{
+		ShouldOverrideMobility = FMobilityQueryDelegate::CreateStatic(&AreMobilitiesDifferent, NewMobilityType);
+	}
+
+	int32 MobilityAlteredCount = 0;
+	while(USceneComponent* AttachedParent = ComponentUtils::GetAttachedParent(SceneComponentObject))
+	{
+		if (ShouldOverrideMobility.Execute(AttachedParent->Mobility))
+		{
+			// USceneComponents shouldn't be set Stationary 
+			if ((NewMobilityType == EComponentMobility::Stationary) && AttachedParent->IsA(UStaticMeshComponent::StaticClass()))
+			{
+				// make it Static (because it is acceptable for Stationary children to have Static parents)
+				AttachedParent->Mobility = EComponentMobility::Static;
+			}
+			else
+			{
+				AttachedParent->Mobility = NewMobilityType;
+			}
+			++MobilityAlteredCount;
+		}
+		SceneComponentObject = AttachedParent;
+	}
+
+	return MobilityAlteredCount;
+}
+
+/**
+* When a scene component's Mobility is altered, we need to make sure the scene hierarchy is
+* updated. Parents can't be more mobile than their children. This means that certain
+* mobility hierarchy structures are disallowed, like:
+*
+*   Movable
+*   |-Stationary   <-- NOT allowed
+*   Movable
+*   |-Static       <-- NOT allowed
+*   Stationary
+*   |-Static       <-- NOT allowed
+*
+* This method walks the hierarchy and alters parent/child component's Mobility as a result of
+* this property change.
+*/
+static void UpdateAttachedMobility(USceneComponent* ComponentThatChanged)
+{
+	// Attached parent components can't be more mobile than their children. This means that 
+	// certain mobility hierarchy structures are disallowed. So we have to walk the hierarchy 
+	// and alter parent/child components as a result of this property change.
+
+	// track how many other components we had to change
+	int32 NumMobilityChanges = 0;
+
+	// Movable components can only have movable sub-components
+	if(ComponentThatChanged->Mobility == EComponentMobility::Movable)
+	{
+		NumMobilityChanges += SetDecedentMobility(ComponentThatChanged, EComponentMobility::Movable);
+	}
+	else if(ComponentThatChanged->Mobility == EComponentMobility::Stationary)
+	{
+		// a functor for checking if we should change a component's Mobility
+		struct FMobilityEqualityFunctor
+		{
+			bool operator()(EComponentMobility::Type CurrentMobility, EComponentMobility::Type CheckValue)
+			{
+				return CurrentMobility == CheckValue;
+			}
+		};
+		FMobilityEqualityFunctor EquivalenceFunctor;
+
+		// a delegate for checking if components are Static
+		FMobilityQueryDelegate IsStaticDelegate  = FMobilityQueryDelegate::CreateRaw(&EquivalenceFunctor, &FMobilityEqualityFunctor::operator(), EComponentMobility::Static);
+		// a delegate for checking if components are Movable
+		FMobilityQueryDelegate IsMovableDelegate = FMobilityQueryDelegate::CreateRaw(&EquivalenceFunctor, &FMobilityEqualityFunctor::operator(), EComponentMobility::Movable);
+
+		// if any decedents are static, change them to stationary (or movable for static meshes)
+		NumMobilityChanges += SetDecedentMobility(ComponentThatChanged, EComponentMobility::Stationary, IsStaticDelegate);
+
+		// if any ancestors are movable, change them to stationary (or static for static meshes)
+		NumMobilityChanges += SetAncestorMobility(ComponentThatChanged, EComponentMobility::Stationary, IsMovableDelegate);
+	}
+	else // if MobilityValue == Static
+	{
+		// ensure we have the mobility we expected (in case someone adds a new one)
+		ensure(ComponentThatChanged->Mobility == EComponentMobility::Static);
+
+		NumMobilityChanges += SetAncestorMobility(ComponentThatChanged, EComponentMobility::Static);
+	}
+
+	// if we altered any components (other than the ones selected), then notify the user
+	if(NumMobilityChanges > 0)
+	{
+		FText NotificationText = LOCTEXT("MobilityAlteredSingularNotification", "Caused 1 component to also change Mobility");
+		if(NumMobilityChanges > 1)
+		{
+			NotificationText = FText::Format(LOCTEXT("MobilityAlteredPluralNotification", "Caused {0} other components to also change Mobility"), FText::AsNumber(NumMobilityChanges));
+		}
+		FNotificationInfo Info(NotificationText);
+		Info.bFireAndForget = true;
+		Info.bUseThrobber   = true;
+		FSlateNotificationManager::Get().AddNotification(Info);
+	}
+}
+
+void USceneComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	// Note: This must be called before UActorComponent::PostEditChangeChainProperty is called because this component will be reset when UActorComponent reruns construction scripts 
+	static FName MobilityName("Mobility");
+	if(PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == MobilityName)
+	{
+		UpdateAttachedMobility(this);
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
+void USceneComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
+{
+	// Note: This must be called before UActorComponent::PostEditChangeChainProperty is called because this component will be reset when UActorComponent reruns construction scripts 
+	static FName MobilityName("Mobility");
+	if(PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == MobilityName)
+	{
+		UpdateAttachedMobility(this);
+	}
+
+	Super::PostEditChangeChainProperty(PropertyChangedEvent);
+}
+
+#endif
 
 FTransform USceneComponent::CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent) const
 {
