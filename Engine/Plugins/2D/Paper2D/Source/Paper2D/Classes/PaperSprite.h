@@ -7,22 +7,6 @@
 #include "Interfaces/Interface_CollisionDataProvider.h"
 #include "PaperSprite.generated.h"
 
-UENUM()
-namespace ESpriteCollisionMode
-{
-	enum Type
-	{
-		// Should this have no collison and not participate in physics?
-		None,
-
-		// EXPERIMENTAL: Should this have 2D collision geometry and participate in the 2D physics world?
-		Use2DPhysics UMETA(DisplayName = "Use 2D Physics"),
-
-		// Should this have 3D collision geometry and participate in the 3D physics world?
-		Use3DPhysics UMETA(DisplayName = "Use 3D Physics")
-	};
-}
-
 //@TODO: Should have some nice UI and enforce unique names, etc...
 USTRUCT()
 struct FPaperSpriteSocket
@@ -203,6 +187,18 @@ public:
 	// Returns the current pivot position in texture space
 	FVector2D GetPivotPosition() const;
 
+	// Returns the extrusion thickness of collision geometry when using a 3D collision domain
+	float GetCollisionThickness() const
+	{
+		return CollisionThickness;
+	}
+
+	// Returns the collision domain (no collision, 2D, or 3D)
+	ESpriteCollisionMode::Type GetSpriteCollisionDomain() const
+	{
+		return SpriteCollisionDomain;
+	}
+
 	// Rescale properties to handle source texture size change
 	void RescaleSpriteData(UTexture2D* Texture);
 	bool NeedRescaleSpriteData();
@@ -219,13 +215,6 @@ public:
 	static void FindContours(const FIntPoint& ScanPos, const FIntPoint& ScanSize, float AlphaThreshold, float Detail, UTexture2D* Texture, TArray< TArray<FIntPoint> >& OutPoints);
 	static void ExtractRectsFromTexture(UTexture2D* Texture, TArray<FIntRect>& OutRects);
 	void BuildGeometryFromContours(FSpriteGeometryCollection& GeomOwner);
-
-	void ConvertGeometryToCollisionData();
-	void AddPolygonCollisionShapesToBodySetup();
-	void AddBoxCollisionShapesToBodySetup();
-	void AddCircleCollisionShapesToBodySetup();
-
-
 
 	void CreatePolygonFromBoundingBox(FSpriteGeometryCollection& GeomOwner, bool bUseTightBounds);
 
@@ -322,5 +311,6 @@ public:
 	friend class FSpriteSelectedEdge;
 	friend class FSpriteSelectedSourceRegion;
 	friend struct FPaperAtlasGenerator;
+	friend class FSingleTileEditorViewportClient;
 };
 

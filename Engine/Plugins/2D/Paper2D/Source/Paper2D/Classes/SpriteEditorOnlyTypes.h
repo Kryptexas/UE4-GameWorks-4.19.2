@@ -4,6 +4,23 @@
 
 #include "SpriteEditorOnlyTypes.generated.h"
 
+// The kind of collision that a Paper2D asset or component might participate in
+UENUM()
+namespace ESpriteCollisionMode
+{
+	enum Type
+	{
+		// Should this have no collison and not participate in physics?
+		None,
+
+		// EXPERIMENTAL: Should this have 2D collision geometry and participate in the 2D physics world?
+		Use2DPhysics UMETA(DisplayName = "Use 2D Physics"),
+
+		// Should this have 3D collision geometry and participate in the 3D physics world?
+		Use3DPhysics UMETA(DisplayName = "Use 3D Physics")
+	};
+}
+
 // The type of a shape in a sprite geometry structure
 UENUM()
 enum class ESpriteShapeType : uint8
@@ -202,7 +219,31 @@ public:
 	// Takes all polygon shapes and generates a list of triangles from them.
 	// Output will contain a multiple of 3 points, each set is one triangle.
 	// Always ignores circles, but can include or ignore boxes based on bIncludeBoxes.
-	void Triangulate(TArray<FVector2D>& Target, bool bIncludeBoxes);
+	void Triangulate(TArray<FVector2D>& Target, bool bIncludeBoxes) const;
+};
+
+// A helper class for converting one or more FSpriteGeometryCollection objects into a UBodySetup object
+struct FSpriteGeometryCollisionBuilderBase
+{
+protected:
+	class UBodySetup* MyBodySetup;
+	float UnrealUnitsPerPixel;
+	float CollisionThickness;
+	float ZOffsetAmount;
+	ESpriteCollisionMode::Type CollisionDomain;
+
+public:
+	FSpriteGeometryCollisionBuilderBase(class UBodySetup* InBodySetup);
+
+	virtual void ProcessGeometry(const FSpriteGeometryCollection& InGeometry);
+	virtual void Finalize();
+protected:
+	void AddBoxCollisionShapesToBodySetup(const FSpriteGeometryCollection& InGeometry);
+	void AddPolygonCollisionShapesToBodySetup(const FSpriteGeometryCollection& InGeometry);
+	void AddCircleCollisionShapesToBodySetup(const FSpriteGeometryCollection& InGeometry);
+
+	virtual FVector2D ConvertTextureSpaceToPivotSpace(const FVector2D& Input) const;
+	virtual FVector2D ConvertTextureSpaceToPivotSpaceNoTranslation(const FVector2D& Input) const;
 };
 
 USTRUCT()
