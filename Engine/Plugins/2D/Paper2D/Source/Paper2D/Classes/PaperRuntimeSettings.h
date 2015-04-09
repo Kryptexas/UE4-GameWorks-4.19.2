@@ -39,6 +39,6 @@ class PAPER2D_API UPaperRuntimeSettings : public UObject
 	bool bEnableSpriteAtlasGroups;
 
 	// Enables experimental *incomplete and unsupported* 2D terrain spline editing. Note: You need to restart the editor when enabling this setting for the change to fully take effect.
-	UPROPERTY(EditAnywhere, config, Category=Experimental)
+	UPROPERTY(EditAnywhere, config, Category=Experimental, meta=(ConfigRestartRequired=true))
 	bool bEnableTerrainSplineEditing;
 };
