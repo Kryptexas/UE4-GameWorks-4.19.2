@@ -65,11 +65,6 @@ FLinearColor FPaperEditorViewportClient::GetBackgroundColor() const
 	return FLinearColor(0, 0, 127, 0);
 }
 
-void FPaperEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
-{
-	Canvas->Clear(GetBackgroundColor());
-}
-
 void FPaperEditorViewportClient::Tick(float DeltaSeconds)
 {
 	// Zoom in on the sprite

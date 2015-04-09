@@ -41,11 +41,10 @@ private:
 
 void FPaperExtractSpritesViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 {
-	// Super will clear the viewport 
-	FPaperEditorViewportClient::Draw(Viewport, Canvas);
+	// Clear the viewport 
+	Canvas->Clear(GetBackgroundColor());
 
-	UTexture2D* Texture = TextureBeingExtracted.Get();
-	if (Texture != nullptr)
+	if (UTexture2D* Texture = TextureBeingExtracted.Get())
 	{
 		const bool bUseTranslucentBlend = Texture->HasAlphaChannel();
 

@@ -108,21 +108,6 @@ void FTileMapEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& V
 	DrawBoundsAsText(Viewport, View, Canvas, /*inout*/ YPos);
 }
 
-void FTileMapEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI)
-{
-	FEditorViewportClient::Draw(View, PDI);
-
-	if (bShowPivot)
-	{
-		FUnrealEdUtils::DrawWidget(View, PDI, RenderTileMapComponent->ComponentToWorld.ToMatrixWithScale(), 0, 0, EAxisList::XZ, EWidgetMovementMode::WMM_Translate);
-	}
-}
-
-void FTileMapEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
-{
-	FEditorViewportClient::Draw(Viewport, Canvas);
-}
-
 void FTileMapEditorViewportClient::Tick(float DeltaSeconds)
 {
 	FPaperEditorViewportClient::Tick(DeltaSeconds);

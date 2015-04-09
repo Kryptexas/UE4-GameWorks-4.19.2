@@ -23,7 +23,6 @@ public:
 	~FPaperEditorViewportClient();
 
 	// FViewportClient interface
-	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) override;
 	virtual void Tick(float DeltaSeconds) override;
 	// End of FViewportClient interface
 

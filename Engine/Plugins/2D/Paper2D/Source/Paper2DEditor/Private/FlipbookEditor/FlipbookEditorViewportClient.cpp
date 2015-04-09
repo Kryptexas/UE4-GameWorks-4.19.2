@@ -65,11 +65,6 @@ void FFlipbookEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& 
 	}
 }
 
-void FFlipbookEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
-{
-	FEditorViewportClient::Draw(Viewport, Canvas);
-}
-
 void FFlipbookEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI)
 {
 	FEditorViewportClient::Draw(View, PDI);

@@ -662,12 +662,6 @@ void FSpriteEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInt
 	}
 }
 
-void FSpriteEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
-{
-	// Skipping the parent on purpose
-	FEditorViewportClient::Draw(Viewport, Canvas);
-}
-
 FBox FSpriteEditorViewportClient::GetDesiredFocusBounds() const
 {
 	UPaperSpriteComponent* ComponentToFocusOn = SourceTextureViewComponent->IsVisible() ? SourceTextureViewComponent : RenderSpriteComponent;
