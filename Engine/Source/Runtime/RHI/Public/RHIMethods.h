@@ -470,7 +470,8 @@ DEFINE_RHIMETHOD_GLOBAL_1(
 
 /**
  * Creates a bound shader state instance which encapsulates a decl, vertex shader, hull shader, domain shader and pixel shader
- * CAUTION: Even though this is marked as threadsafe, it is only valid to call from the render thread or the RHI thread. Thus is need not be threadsafe on platforms that do not support or aren't using an RHIThread
+ * CAUTION: Even though this is marked as threadsafe, it is only valid to call from the render thread or the RHI thread. It need not be threadsafe unless the RHI support parallel translation.
+ * CAUTION: Platforms that support RHIThread but don't actually have a threadsafe implementation must flush internally with FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::WaitForRHIThread); when the call is from the render thread
  * @param VertexDeclaration - existing vertex decl
  * @param VertexShader - existing vertex shader
  * @param HullShader - existing hull shader
