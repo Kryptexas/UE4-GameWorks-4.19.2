@@ -409,12 +409,12 @@ public:
 		return noErr;
 	}
 	
-	EVoiceCaptureState::Type CopyBuffer(uint8 ReadBuffer, uint8* OutVoiceBuffer, uint32 ReadOffset, uint32* ReadLen, uint32* WriteLen)
+	EVoiceCaptureState::Type CopyBuffer(uint8 InReadBuffer, uint8* OutVoiceBuffer, uint32 InReadOffset, uint32* ReadLen, uint32* WriteLen)
 	{
 		EVoiceCaptureState::Type State = VoiceCaptureState;
 		if ( *ReadLen )
 		{
-			uint8* Data = (uint8*)(BufferList[ReadBuffer].mData) + ReadOffset;
+			uint8* Data = (uint8*)(BufferList[InReadBuffer].mData) + InReadOffset;
 			
 			if ( StreamDesc.mSampleRate == OutputDesc.mSampleRate )
 			{
@@ -434,7 +434,7 @@ public:
 				AudioBufferList InputBuffer;
 				InputBuffer.mNumberBuffers = 1;
 				InputBuffer.mBuffers[0].mNumberChannels =  StreamDesc.mChannelsPerFrame;
-				InputBuffer.mBuffers[0].mDataByteSize = BufferList[ReadBuffer].mDataByteSize;
+				InputBuffer.mBuffers[0].mDataByteSize = BufferList[InReadBuffer].mDataByteSize;
 				InputBuffer.mBuffers[0].mData = Data;
 				
 				FAudioFileIO inUserData;

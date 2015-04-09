@@ -125,13 +125,13 @@ void UAISystem::RunEQS(const FString& QueryName, UObject* Target)
 #endif
 }
 
-UAISystem::FBlackboardDataToComponentsIterator::FBlackboardDataToComponentsIterator(FBlackboardDataToComponentsMap& BlackboardDataToComponentsMap, UBlackboardData* BlackboardAsset)
+UAISystem::FBlackboardDataToComponentsIterator::FBlackboardDataToComponentsIterator(FBlackboardDataToComponentsMap& InBlackboardDataToComponentsMap, UBlackboardData* BlackboardAsset)
 	: CurrentIteratorIndex(0)
 	, Iterators()
 {
 	while (BlackboardAsset)
 	{
-		Iterators.Add(BlackboardDataToComponentsMap.CreateConstKeyIterator(BlackboardAsset));
+		Iterators.Add(InBlackboardDataToComponentsMap.CreateConstKeyIterator(BlackboardAsset));
 		BlackboardAsset = BlackboardAsset->Parent;
 	}
 	TryMoveIteratorToParentBlackboard();

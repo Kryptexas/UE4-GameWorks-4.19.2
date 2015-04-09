@@ -374,9 +374,9 @@ bool UPawnAction::PushChildAction(UPawnAction& Action)
 // messaging
 //----------------------------------------------------------------------//
 
-void UPawnAction::WaitForMessage(FName MessageType, FAIRequestID RequestID)
+void UPawnAction::WaitForMessage(FName MessageType, FAIRequestID InRequestID)
 {
-	MessageHandlers.Add(FAIMessageObserver::Create(BrainComp, MessageType, RequestID.GetID(), FOnAIMessage::CreateUObject(this, &UPawnAction::HandleAIMessage)));
+	MessageHandlers.Add(FAIMessageObserver::Create(BrainComp, MessageType, InRequestID.GetID(), FOnAIMessage::CreateUObject(this, &UPawnAction::HandleAIMessage)));
 }
 
 //----------------------------------------------------------------------//

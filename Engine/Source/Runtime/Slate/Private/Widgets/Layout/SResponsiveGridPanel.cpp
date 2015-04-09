@@ -36,9 +36,9 @@ void SResponsiveGridPanel::ClearChildren()
 	Slots.Empty();
 }
 
-void SResponsiveGridPanel::Construct(const FArguments& InArgs, int32 TotalColumns)
+void SResponsiveGridPanel::Construct(const FArguments& InArgs, int32 InTotalColumns)
 {
-	this->TotalColumns = TotalColumns;
+	TotalColumns = InTotalColumns;
 	ColumnGutter = InArgs._ColumnGutter;
 	RowGutter = InArgs._RowGutter;
 

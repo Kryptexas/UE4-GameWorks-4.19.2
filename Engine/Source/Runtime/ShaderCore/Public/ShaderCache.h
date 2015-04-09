@@ -265,12 +265,12 @@ class SHADERCORE_API FShaderCache
 			
 			friend uint32 GetTypeHash(const FShaderRasterizerState &Key)
 			{
-				uint32 Hash = (*((uint32*)&Key.DepthBias) ^ *((uint32*)&Key.SlopeScaleDepthBias));
-				Hash ^= (Key.FillMode << 8);
-				Hash ^= Key.CullMode;
-				Hash ^= Key.bAllowMSAA ? 2 : 0;
-				Hash ^= Key.bEnableLineAA ? 1 : 0;
-				return Hash;
+				uint32 KeyHash = (*((uint32*)&Key.DepthBias) ^ *((uint32*)&Key.SlopeScaleDepthBias));
+				KeyHash ^= (Key.FillMode << 8);
+				KeyHash ^= Key.CullMode;
+				KeyHash ^= Key.bAllowMSAA ? 2 : 0;
+				KeyHash ^= Key.bEnableLineAA ? 1 : 0;
+				return KeyHash;
 			}
 		};
 		

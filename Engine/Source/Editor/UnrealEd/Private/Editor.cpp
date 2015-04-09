@@ -2623,7 +2623,7 @@ void FReimportManager::UpdateReimportPaths( UObject* Obj, const TArray<FString>&
 	if (Obj)
 	{
 		TArray<FString> UnusedExistingFilenames;
-		auto* Handler = Handlers.FindByPredicate([&](FReimportHandler* Handler){ return Handler->CanReimport(Obj, UnusedExistingFilenames); });
+		auto* Handler = Handlers.FindByPredicate([&](FReimportHandler* InHandler){ return InHandler->CanReimport(Obj, UnusedExistingFilenames); });
 		if (Handler)
 		{
 			(*Handler)->SetReimportPaths(Obj, InFilenames);

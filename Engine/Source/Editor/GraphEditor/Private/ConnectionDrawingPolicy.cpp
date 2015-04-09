@@ -287,7 +287,6 @@ void FConnectionDrawingPolicy::DrawConnection(int32 LayerId, const FVector2D& St
 			float ClosestDistanceSquared = FLT_MAX;
 
 			const int32 NumStepsToTest = 16;
-			float TestAlpha = 0.0f;
 			const float StepInterval = 1.0f / (float)NumStepsToTest;
 			FVector2D Point1 = FMath::CubicInterp(P0, P0Tangent, P1, P1Tangent, 0.0f);
 			for (float TestAlpha = 0.0f; TestAlpha < 1.0f; TestAlpha += StepInterval)

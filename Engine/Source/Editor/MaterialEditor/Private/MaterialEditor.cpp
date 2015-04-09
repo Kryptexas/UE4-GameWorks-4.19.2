@@ -2459,21 +2459,21 @@ void FMaterialEditor::OnAssetPostImport(UFactory* InFactory, UObject* InObject)
 			{
 				struct Local
 				{
-					static bool ReferencesImportedObject(UMaterialFunction* Function, UTexture* Texture)
+					static bool ReferencesImportedObject(UMaterialFunction* Function, UTexture* InTexture)
 					{
-						for (UMaterialExpression* Expression : Function->FunctionExpressions)
+						for (UMaterialExpression* MaterialExpression : Function->FunctionExpressions)
 						{
-							if (UMaterialExpressionTextureBase* ExpressionTexture = Cast<UMaterialExpressionTextureBase>(Expression))
+							if (UMaterialExpressionTextureBase* MaterialExpressionTexture = Cast<UMaterialExpressionTextureBase>(MaterialExpression))
 							{
-								if (ExpressionTexture->Texture == Texture)
+								if (MaterialExpressionTexture->Texture == InTexture)
 								{
 									return true;
 								}
 							}
-							else if (UMaterialExpressionMaterialFunctionCall* ExpressionFunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(Expression))
+							else if (UMaterialExpressionMaterialFunctionCall* MaterialExpressionFunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(MaterialExpression))
 							{
-								if (ExpressionFunctionCall->MaterialFunction != nullptr &&
-									ReferencesImportedObject(ExpressionFunctionCall->MaterialFunction, Texture))
+								if (MaterialExpressionFunctionCall->MaterialFunction != nullptr &&
+									ReferencesImportedObject(MaterialExpressionFunctionCall->MaterialFunction, InTexture))
 								{
 									return true;
 								}

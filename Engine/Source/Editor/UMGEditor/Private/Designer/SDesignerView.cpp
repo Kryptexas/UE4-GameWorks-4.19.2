@@ -1524,7 +1524,8 @@ void SDesignerView::Tick( const FGeometry& AllottedGeometry, const double InCurr
 		SideRuler->SetCursor(TOptional<FVector2D>());
 	}
 
-	if ( UUserWidget* DefaultWidget = GetDefaultWidget() )
+	DefaultWidget = GetDefaultWidget();
+	if (DefaultWidget)
 	{
 		const bool bNeedDesiredSize = 
 			DefaultWidget->DesignSizeMode == EDesignPreviewSizeMode::Desired || 

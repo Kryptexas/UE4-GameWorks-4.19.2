@@ -272,8 +272,8 @@ bool FAutoReimportDirectoryConfig::ParseSourceDirectoryAndMountPoint(FString& So
 		}
 
 		// Set the mounted path if necessary
-		auto* Pair = InContext.MountedPaths.FindByPredicate([&](const TPair<FString, FString>& Pair){
-			return SourceDirectory.StartsWith(Pair.Key);
+		auto* Pair = InContext.MountedPaths.FindByPredicate([&](const TPair<FString, FString>& InPair){
+			return SourceDirectory.StartsWith(InPair.Key);
 		});
 
 		if (Pair)

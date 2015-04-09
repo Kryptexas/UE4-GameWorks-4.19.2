@@ -1166,8 +1166,9 @@ bool UMaterial::GetGroupName(FName ParameterName, FName& OutDesc) const
 	for (const UMaterialExpression* Expression : Expressions)
 	{
 		// Parameter is a basic Expression Parameter
-		if (const UMaterialExpressionParameter* Parameter = Cast<const UMaterialExpressionParameter>(Expression))
+		if (Expression->IsA<UMaterialExpressionParameter>())
 		{
+			const UMaterialExpressionParameter* Parameter = CastChecked<const UMaterialExpressionParameter>(Expression);
 			if (Parameter->ParameterName == ParameterName)
 			{
 				OutDesc = Parameter->Group;
@@ -1175,8 +1176,9 @@ bool UMaterial::GetGroupName(FName ParameterName, FName& OutDesc) const
 			}
 		}
 		// Parameter is a Texture Sample Parameter
-		else if (const UMaterialExpressionTextureSampleParameter* Parameter = Cast<const UMaterialExpressionTextureSampleParameter>(Expression))
+		else if (Expression->IsA<UMaterialExpressionTextureSampleParameter>())
 		{
+			const UMaterialExpressionTextureSampleParameter* Parameter = CastChecked<const UMaterialExpressionTextureSampleParameter>(Expression);
 			if (Parameter->ParameterName == ParameterName)
 			{
 				OutDesc = Parameter->Group;
@@ -1184,8 +1186,9 @@ bool UMaterial::GetGroupName(FName ParameterName, FName& OutDesc) const
 			}
 		}
 		// Parameter is a Font Sample Parameter
-		else if (const UMaterialExpressionFontSampleParameter* Parameter = Cast<const UMaterialExpressionFontSampleParameter>(Expression))
+		else if (Expression->IsA<UMaterialExpressionFontSampleParameter>())
 		{
+			const UMaterialExpressionFontSampleParameter* Parameter = CastChecked<const UMaterialExpressionFontSampleParameter>(Expression);
 			if (Parameter->ParameterName == ParameterName)
 			{
 				OutDesc = Parameter->Group;
@@ -1193,8 +1196,9 @@ bool UMaterial::GetGroupName(FName ParameterName, FName& OutDesc) const
 			}
 		}
 		// Parameter is a function call
-		else if (const UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<const UMaterialExpressionMaterialFunctionCall>(Expression))
+		else if (Expression->IsA<UMaterialExpressionMaterialFunctionCall>())
 		{
+			const UMaterialExpressionMaterialFunctionCall* FunctionCall = CastChecked<const UMaterialExpressionMaterialFunctionCall>(Expression);
 			if (FunctionCall->MaterialFunction)
 			{
 				TArray<UMaterialFunction*> Functions;
@@ -1206,8 +1210,9 @@ bool UMaterial::GetGroupName(FName ParameterName, FName& OutDesc) const
 					for (UMaterialExpression* FunctionExpression : Function->FunctionExpressions)
 					{
 						// Parameter is a basic Expression Parameter
-						if (const UMaterialExpressionParameter* Parameter = Cast<const UMaterialExpressionParameter>(FunctionExpression))
+						if (FunctionExpression->IsA<UMaterialExpressionParameter>())
 						{
+							const UMaterialExpressionParameter* Parameter = CastChecked<const UMaterialExpressionParameter>(FunctionExpression);
 							if (Parameter->ParameterName == ParameterName)
 							{
 								OutDesc = Parameter->Group;
@@ -1215,8 +1220,9 @@ bool UMaterial::GetGroupName(FName ParameterName, FName& OutDesc) const
 							}
 						}
 						// Parameter is a Texture Sample Parameter
-						else if (const UMaterialExpressionTextureSampleParameter* Parameter = Cast<const UMaterialExpressionTextureSampleParameter>(FunctionExpression))
+						else if (FunctionExpression->IsA<UMaterialExpressionTextureSampleParameter>())
 						{
+							const UMaterialExpressionTextureSampleParameter* Parameter = CastChecked<const UMaterialExpressionTextureSampleParameter>(FunctionExpression);
 							if (Parameter->ParameterName == ParameterName)
 							{
 								OutDesc = Parameter->Group;
@@ -1224,8 +1230,9 @@ bool UMaterial::GetGroupName(FName ParameterName, FName& OutDesc) const
 							}
 						}
 						// Parameter is a Font Sample Parameter
-						else if (const UMaterialExpressionFontSampleParameter* Parameter = Cast<const UMaterialExpressionFontSampleParameter>(FunctionExpression))
+						else if (FunctionExpression->IsA<UMaterialExpressionFontSampleParameter>())
 						{
+							const UMaterialExpressionFontSampleParameter* Parameter = CastChecked<const UMaterialExpressionFontSampleParameter>(FunctionExpression);
 							if (Parameter->ParameterName == ParameterName)
 							{
 								OutDesc = Parameter->Group;
@@ -1246,8 +1253,9 @@ bool UMaterial::GetParameterDesc(FName ParameterName, FString& OutDesc) const
 	for (const UMaterialExpression* Expression : Expressions)
 	{
 		// Parameter is a basic Expression Parameter
-		if (const UMaterialExpressionParameter* Parameter = Cast<const UMaterialExpressionParameter>(Expression))
+		if (Expression->IsA<UMaterialExpressionParameter>())
 		{
+			const UMaterialExpressionParameter* Parameter = CastChecked<const UMaterialExpressionParameter>(Expression);
 			if (Parameter->ParameterName == ParameterName)
 			{
 				OutDesc = Parameter->Desc;
@@ -1255,8 +1263,9 @@ bool UMaterial::GetParameterDesc(FName ParameterName, FString& OutDesc) const
 			}
 		}
 		// Parameter is a Texture Sample Parameter
-		else if (const UMaterialExpressionTextureSampleParameter* Parameter = Cast<const UMaterialExpressionTextureSampleParameter>(Expression))
+		else if (Expression->IsA<UMaterialExpressionTextureSampleParameter>())
 		{
+			const UMaterialExpressionTextureSampleParameter* Parameter = CastChecked<const UMaterialExpressionTextureSampleParameter>(Expression);
 			if (Parameter->ParameterName == ParameterName)
 			{
 				OutDesc = Parameter->Desc;
@@ -1264,8 +1273,9 @@ bool UMaterial::GetParameterDesc(FName ParameterName, FString& OutDesc) const
 			}
 		}
 		// Parameter is a Font Sample Parameter
-		else if (const UMaterialExpressionFontSampleParameter* Parameter = Cast<const UMaterialExpressionFontSampleParameter>(Expression))
+		else if (Expression->IsA<UMaterialExpressionFontSampleParameter>())
 		{
+			const UMaterialExpressionFontSampleParameter* Parameter = CastChecked<const UMaterialExpressionFontSampleParameter>(Expression);
 			if (Parameter->ParameterName == ParameterName)
 			{
 				OutDesc = Parameter->Desc;
@@ -1273,8 +1283,9 @@ bool UMaterial::GetParameterDesc(FName ParameterName, FString& OutDesc) const
 			}
 		}
 		// Parameter is a function call
-		else if (const UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<const UMaterialExpressionMaterialFunctionCall>(Expression))
+		else if (Expression->IsA<UMaterialExpressionMaterialFunctionCall>())
 		{
+			const UMaterialExpressionMaterialFunctionCall* FunctionCall = CastChecked<const UMaterialExpressionMaterialFunctionCall>(Expression);
 			if (FunctionCall->MaterialFunction)
 			{
 				TArray<UMaterialFunction*> Functions;
@@ -1286,8 +1297,9 @@ bool UMaterial::GetParameterDesc(FName ParameterName, FString& OutDesc) const
 					for (UMaterialExpression* FunctionExpression : Function->FunctionExpressions)
 					{
 						// Parameter is a basic Expression Parameter
-						if (const UMaterialExpressionParameter* Parameter = Cast<const UMaterialExpressionParameter>(FunctionExpression))
+						if (FunctionExpression->IsA<UMaterialExpressionParameter>())
 						{
+							const UMaterialExpressionParameter* Parameter = CastChecked<const UMaterialExpressionParameter>(FunctionExpression);
 							if (Parameter->ParameterName == ParameterName)
 							{
 								OutDesc = Parameter->Desc;
@@ -1295,8 +1307,9 @@ bool UMaterial::GetParameterDesc(FName ParameterName, FString& OutDesc) const
 							}
 						}
 						// Parameter is a Texture Sample Parameter
-						else if (const UMaterialExpressionTextureSampleParameter* Parameter = Cast<const UMaterialExpressionTextureSampleParameter>(FunctionExpression))
+						else if (FunctionExpression->IsA<UMaterialExpressionTextureSampleParameter>())
 						{
+							const UMaterialExpressionTextureSampleParameter* Parameter = CastChecked<const UMaterialExpressionTextureSampleParameter>(FunctionExpression);
 							if (Parameter->ParameterName == ParameterName)
 							{
 								OutDesc = Parameter->Desc;
@@ -1304,8 +1317,9 @@ bool UMaterial::GetParameterDesc(FName ParameterName, FString& OutDesc) const
 							}
 						}
 						// Parameter is a Font Sample Parameter
-						else if (const UMaterialExpressionFontSampleParameter* Parameter = Cast<const UMaterialExpressionFontSampleParameter>(FunctionExpression))
+						else if (FunctionExpression->IsA<UMaterialExpressionFontSampleParameter>())
 						{
+							const UMaterialExpressionFontSampleParameter* Parameter = CastChecked<const UMaterialExpressionFontSampleParameter>(FunctionExpression);
 							if (Parameter->ParameterName == ParameterName)
 							{
 								OutDesc = Parameter->Desc;
@@ -1325,15 +1339,17 @@ bool UMaterial::GetVectorParameterValue(FName ParameterName, FLinearColor& OutVa
 {
 	for (const UMaterialExpression* Expression : Expressions)
 	{
-		if (const UMaterialExpressionVectorParameter* Parameter = Cast<const UMaterialExpressionVectorParameter>(Expression))
+		if (Expression->IsA<UMaterialExpressionVectorParameter>())
 		{
+			const UMaterialExpressionVectorParameter* Parameter = CastChecked<const UMaterialExpressionVectorParameter>(Expression);
 			if (Parameter->IsNamedParameter(ParameterName, OutValue))
 			{
 				return true;
 			}
 		}
-		else if (const UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<const UMaterialExpressionMaterialFunctionCall>(Expression))
+		else if (Expression->IsA<UMaterialExpressionMaterialFunctionCall>())
 		{
+			const UMaterialExpressionMaterialFunctionCall* FunctionCall = CastChecked<const UMaterialExpressionMaterialFunctionCall>(Expression);
 			if (FunctionCall->MaterialFunction)
 			{
 				TArray<UMaterialFunction*> Functions;
@@ -1344,8 +1360,9 @@ bool UMaterial::GetVectorParameterValue(FName ParameterName, FLinearColor& OutVa
 				{
 					for (UMaterialExpression* FunctionExpression : Function->FunctionExpressions)
 					{
-						if (const UMaterialExpressionVectorParameter* Parameter = Cast<const UMaterialExpressionVectorParameter>(FunctionExpression))
+						if (FunctionExpression->IsA<UMaterialExpressionVectorParameter>())
 						{
+							const UMaterialExpressionVectorParameter* Parameter = CastChecked<const UMaterialExpressionVectorParameter>(FunctionExpression);
 							if (Parameter->IsNamedParameter(ParameterName, OutValue))
 							{
 								return true;
@@ -1364,15 +1381,17 @@ bool UMaterial::GetScalarParameterValue(FName ParameterName, float& OutValue) co
 {
 	for (const UMaterialExpression* Expression : Expressions)
 	{
-		if (const UMaterialExpressionScalarParameter* Parameter = Cast<const UMaterialExpressionScalarParameter>(Expression))
+		if (Expression->IsA<UMaterialExpressionScalarParameter>())
 		{
+			const UMaterialExpressionScalarParameter* Parameter = CastChecked<const UMaterialExpressionScalarParameter>(Expression);
 			if (Parameter->IsNamedParameter(ParameterName, OutValue))
 			{
 				return true;
 			}
 		}
-		else if (const UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<const UMaterialExpressionMaterialFunctionCall>(Expression))
+		else if (Expression->IsA<UMaterialExpressionMaterialFunctionCall>())
 		{
+			const UMaterialExpressionMaterialFunctionCall* FunctionCall = CastChecked<const UMaterialExpressionMaterialFunctionCall>(Expression);
 			if (FunctionCall->MaterialFunction)
 			{
 				TArray<UMaterialFunction*> Functions;
@@ -1383,8 +1402,9 @@ bool UMaterial::GetScalarParameterValue(FName ParameterName, float& OutValue) co
 				{
 					for (UMaterialExpression* FunctionExpression : Function->FunctionExpressions)
 					{
-						if (const UMaterialExpressionScalarParameter* Parameter = Cast<const UMaterialExpressionScalarParameter>(FunctionExpression))
+						if (FunctionExpression->IsA<UMaterialExpressionScalarParameter>())
 						{
+							const UMaterialExpressionScalarParameter* Parameter = CastChecked<const UMaterialExpressionScalarParameter>(FunctionExpression);
 							if (Parameter->IsNamedParameter(ParameterName, OutValue))
 							{
 								return true;
@@ -1403,15 +1423,17 @@ bool UMaterial::GetTextureParameterValue(FName ParameterName, UTexture*& OutValu
 {
 	for (const UMaterialExpression* Expression : Expressions)
 	{
-		if (const UMaterialExpressionTextureSampleParameter* Parameter = Cast<const UMaterialExpressionTextureSampleParameter>(Expression))
+		if (Expression->IsA<UMaterialExpressionTextureSampleParameter>())
 		{
+			const UMaterialExpressionTextureSampleParameter* Parameter = CastChecked<const UMaterialExpressionTextureSampleParameter>(Expression);
 			if (Parameter->IsNamedParameter(ParameterName, OutValue))
 			{
 				return true;
 			}
 		}
-		else if (const UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<const UMaterialExpressionMaterialFunctionCall>(Expression))
+		else if (Expression->IsA<UMaterialExpressionMaterialFunctionCall>())
 		{
+			const UMaterialExpressionMaterialFunctionCall* FunctionCall = CastChecked<const UMaterialExpressionMaterialFunctionCall>(Expression);
 			if (FunctionCall->MaterialFunction)
 			{
 				TArray<UMaterialFunction*> Functions;
@@ -1422,8 +1444,9 @@ bool UMaterial::GetTextureParameterValue(FName ParameterName, UTexture*& OutValu
 				{
 					for (UMaterialExpression* FunctionExpression : Function->FunctionExpressions)
 					{
-						if (const UMaterialExpressionTextureSampleParameter* Parameter = Cast<const UMaterialExpressionTextureSampleParameter>(FunctionExpression))
+						if (FunctionExpression->IsA<UMaterialExpressionTextureSampleParameter>())
 						{
+							const UMaterialExpressionTextureSampleParameter* Parameter = CastChecked<const UMaterialExpressionTextureSampleParameter>(FunctionExpression);
 							if (Parameter->IsNamedParameter(ParameterName, OutValue))
 							{
 								return true;
@@ -1442,15 +1465,17 @@ bool UMaterial::GetFontParameterValue(FName ParameterName, UFont*& OutFontValue,
 {
 	for (const UMaterialExpression* Expression : Expressions)
 	{
-		if (const UMaterialExpressionFontSampleParameter* Parameter = Cast<const UMaterialExpressionFontSampleParameter>(Expression))
+		if (Expression->IsA<UMaterialExpressionFontSampleParameter>())
 		{
+			const UMaterialExpressionFontSampleParameter* Parameter = CastChecked<const UMaterialExpressionFontSampleParameter>(Expression);
 			if (Parameter->IsNamedParameter(ParameterName, OutFontValue, OutFontPage))
 			{
 				return true;
 			}
 		}
-		else if (const UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<const UMaterialExpressionMaterialFunctionCall>(Expression))
+		else if (Expression->IsA<UMaterialExpressionMaterialFunctionCall>())
 		{
+			const UMaterialExpressionMaterialFunctionCall* FunctionCall = CastChecked<const UMaterialExpressionMaterialFunctionCall>(Expression);
 			if (FunctionCall->MaterialFunction)
 			{
 				TArray<UMaterialFunction*> Functions;
@@ -1461,8 +1486,9 @@ bool UMaterial::GetFontParameterValue(FName ParameterName, UFont*& OutFontValue,
 				{
 					for (UMaterialExpression* FunctionExpression : Function->FunctionExpressions)
 					{
-						if (const UMaterialExpressionFontSampleParameter* Parameter = Cast<const UMaterialExpressionFontSampleParameter>(FunctionExpression))
+						if (FunctionExpression->IsA<UMaterialExpressionFontSampleParameter>())
 						{
+							const UMaterialExpressionFontSampleParameter* Parameter = CastChecked<const UMaterialExpressionFontSampleParameter>(FunctionExpression);
 							if (Parameter->IsNamedParameter(ParameterName, OutFontValue, OutFontPage))
 							{
 								return true;
@@ -1482,15 +1508,17 @@ bool UMaterial::GetStaticSwitchParameterValue(FName ParameterName, bool& OutValu
 {
 	for (const UMaterialExpression* Expression : Expressions)
 	{
-		if (const UMaterialExpressionStaticBoolParameter* Parameter = Cast<const UMaterialExpressionStaticBoolParameter>(Expression))
+		if (Expression->IsA<UMaterialExpressionStaticBoolParameter>())
 		{
+			const UMaterialExpressionStaticBoolParameter* Parameter = CastChecked<const UMaterialExpressionStaticBoolParameter>(Expression);
 			if (Parameter->IsNamedParameter(ParameterName, OutValue, OutExpressionGuid))
 			{
 				return true;
 			}
 		}
-		else if (const UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<const UMaterialExpressionMaterialFunctionCall>(Expression))
+		else if (Expression->IsA<UMaterialExpressionMaterialFunctionCall>())
 		{
+			const UMaterialExpressionMaterialFunctionCall* FunctionCall = CastChecked<const UMaterialExpressionMaterialFunctionCall>(Expression);
 			if (FunctionCall->MaterialFunction)
 			{
 				TArray<UMaterialFunction*> Functions;
@@ -1501,8 +1529,9 @@ bool UMaterial::GetStaticSwitchParameterValue(FName ParameterName, bool& OutValu
 				{
 					for (UMaterialExpression* FunctionExpression : Function->FunctionExpressions)
 					{
-						if (const UMaterialExpressionStaticBoolParameter* Parameter = Cast<const UMaterialExpressionStaticBoolParameter>(FunctionExpression))
+						if (FunctionExpression->IsA<UMaterialExpressionStaticBoolParameter>())
 						{
+							const UMaterialExpressionStaticBoolParameter* Parameter = CastChecked<const UMaterialExpressionStaticBoolParameter>(FunctionExpression);
 							if (Parameter->IsNamedParameter(ParameterName, OutValue, OutExpressionGuid))
 							{
 								return true;
@@ -1522,15 +1551,17 @@ bool UMaterial::GetStaticComponentMaskParameterValue(FName ParameterName, bool& 
 {
 	for (const UMaterialExpression* Expression : Expressions)
 	{
-		if (const UMaterialExpressionStaticComponentMaskParameter* Parameter = Cast<const UMaterialExpressionStaticComponentMaskParameter>(Expression))
+		if (Expression->IsA<UMaterialExpressionStaticComponentMaskParameter>())
 		{
+			const UMaterialExpressionStaticComponentMaskParameter* Parameter = CastChecked<const UMaterialExpressionStaticComponentMaskParameter>(Expression);
 			if (Parameter->IsNamedParameter(ParameterName, OutR, OutG, OutB, OutA, OutExpressionGuid))
 			{
 				return true;
 			}
 		}
-		else if (const UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<const UMaterialExpressionMaterialFunctionCall>(Expression))
+		else if (Expression->IsA<UMaterialExpressionMaterialFunctionCall>())
 		{
+			const UMaterialExpressionMaterialFunctionCall* FunctionCall = CastChecked<const UMaterialExpressionMaterialFunctionCall>(Expression);
 			if (FunctionCall->MaterialFunction)
 			{
 				TArray<UMaterialFunction*> Functions;
@@ -1541,8 +1572,9 @@ bool UMaterial::GetStaticComponentMaskParameterValue(FName ParameterName, bool& 
 				{
 					for (UMaterialExpression* FunctionExpression : Function->FunctionExpressions)
 					{
-						if (const UMaterialExpressionStaticComponentMaskParameter* Parameter = Cast<const UMaterialExpressionStaticComponentMaskParameter>(FunctionExpression))
+						if (FunctionExpression->IsA<UMaterialExpressionStaticComponentMaskParameter>())
 						{
+							const UMaterialExpressionStaticComponentMaskParameter* Parameter = CastChecked<const UMaterialExpressionStaticComponentMaskParameter>(FunctionExpression);
 							if (Parameter->IsNamedParameter(ParameterName, OutR, OutG, OutB, OutA, OutExpressionGuid))
 							{
 								return true;

@@ -188,9 +188,9 @@ uint32 FRunnableThread::RunnableTlsSlot = FRunnableThread::GetTlsSlot();
 uint32 FRunnableThread::GetTlsSlot()
 {
 	check( IsInGameThread() );
-	uint32 RunnableTlsSlot = FPlatformTLS::AllocTlsSlot();
-	check( FPlatformTLS::IsValidTlsSlot( RunnableTlsSlot ) );
-	return RunnableTlsSlot;
+	uint32 TlsSlot = FPlatformTLS::AllocTlsSlot();
+	check( FPlatformTLS::IsValidTlsSlot( TlsSlot ) );
+	return TlsSlot;
 }
 
 FRunnableThread::FRunnableThread()

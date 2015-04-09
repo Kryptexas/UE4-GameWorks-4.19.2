@@ -37,7 +37,7 @@ struct FGeneratedCodeData
 	FString ClassName;
 	TWeakObjectPtr<UBlueprint> Blueprint;
 
-	void GatherUserDefinedDependencies(UBlueprint& Blueprint)
+	void GatherUserDefinedDependencies(UBlueprint& InBlueprint)
 	{
 		TArray<UObject*> ReferencedObjects;
 		{
@@ -45,7 +45,7 @@ struct FGeneratedCodeData
 
 			{
 				TArray<UObject*> ObjectsToCheck;
-				GetObjectsWithOuter(Blueprint.GeneratedClass, ObjectsToCheck, true);
+				GetObjectsWithOuter(InBlueprint.GeneratedClass, ObjectsToCheck, true);
 				for (auto Obj : ObjectsToCheck)
 				{
 					if (IsValid(Obj))
@@ -55,7 +55,7 @@ struct FGeneratedCodeData
 				}
 			}
 
-			for (UClass* Class = Blueprint.GeneratedClass->GetSuperClass(); Class && !Class->HasAnyClassFlags(CLASS_Native); Class = Class->GetSuperClass())
+			for (UClass* Class = InBlueprint.GeneratedClass->GetSuperClass(); Class && !Class->HasAnyClassFlags(CLASS_Native); Class = Class->GetSuperClass())
 			{
 				ReferencedObjects.Add(Class);
 			}
@@ -64,7 +64,7 @@ struct FGeneratedCodeData
 		TypeDependencies.Empty();
 		for (auto Obj : ReferencedObjects)
 		{
-			if (IsValid(Obj) && !Obj->IsIn(Blueprint.GeneratedClass) && (Obj != Blueprint.GeneratedClass))
+			if (IsValid(Obj) && !Obj->IsIn(InBlueprint.GeneratedClass) && (Obj != InBlueprint.GeneratedClass))
 			{
 				if (Obj->IsA<UBlueprintGeneratedClass>() || Obj->IsA<UUserDefinedEnum>() || Obj->IsA<UUserDefinedStruct>())
 				{

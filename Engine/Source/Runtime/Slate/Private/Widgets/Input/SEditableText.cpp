@@ -345,8 +345,8 @@ uint32 SEditableText::FTextInputMethodContext::GetTextLength()
 	const TSharedPtr<SEditableText> OwningWidgetPtr = OwningWidget.Pin();
 	if(OwningWidgetPtr.IsValid())
 	{
-		const FString& EditedText = OwningWidgetPtr->EditedText.ToString();
-		TextLength = EditedText.Len();
+		const FString& WidgetEditedText = OwningWidgetPtr->EditedText.ToString();
+		TextLength = WidgetEditedText.Len();
 	}
 	return TextLength;
 }
@@ -416,8 +416,8 @@ void SEditableText::FTextInputMethodContext::GetTextInRange(const uint32 BeginIn
 	const TSharedPtr<SEditableText> OwningWidgetPtr = OwningWidget.Pin();
 	if(OwningWidgetPtr.IsValid())
 	{
-		const FString& EditedText = OwningWidgetPtr->EditedText.ToString();
-		OutString = EditedText.Mid(BeginIndex, Length);
+		const FString& WidgetEditedText = OwningWidgetPtr->EditedText.ToString();
+		OutString = WidgetEditedText.Mid(BeginIndex, Length);
 	}
 }
 

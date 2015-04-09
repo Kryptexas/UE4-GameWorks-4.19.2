@@ -191,8 +191,8 @@ void FModuleManager::AddModule(const FName InModuleName)
 	// Make sure module info is added to known modules and proper delegates are fired on exit.
 	struct FAtExit
 	{
-		FAtExit(const FName InModuleName, const TSharedRef<FModuleInfo>& InModuleInfo)
-			: ModuleName(InModuleName)
+		FAtExit(const FName InModule_Name, const TSharedRef<FModuleInfo>& InModuleInfo)
+			: ModuleName(InModule_Name)
 			, ModuleInfo(InModuleInfo)
 		{ }
 

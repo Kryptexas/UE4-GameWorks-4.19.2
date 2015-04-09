@@ -3884,17 +3884,17 @@ void FLevelEditorViewportClient::DrawBrushDetails(const FSceneView* View, FPrimi
 
 void FLevelEditorViewportClient::UpdateAudioListener(const FSceneView& View)
 {
-	UWorld* World = GetWorld();
+	UWorld* ViewportWorld = GetWorld();
 
-	if (World)
+	if (ViewportWorld)
 	{
-		if (FAudioDevice* AudioDevice = World->GetAudioDevice())
+		if (FAudioDevice* AudioDevice = ViewportWorld->GetAudioDevice())
 		{
 			FReverbSettings ReverbSettings;
 			FInteriorSettings InteriorSettings;
 			const FVector& ViewLocation = GetViewLocation();
 
-			class AAudioVolume* AudioVolume = World->GetAudioSettings(ViewLocation, &ReverbSettings, &InteriorSettings);
+			class AAudioVolume* AudioVolume = ViewportWorld->GetAudioSettings(ViewLocation, &ReverbSettings, &InteriorSettings);
 
 			FMatrix CameraToWorld = View.ViewMatrices.ViewMatrix.InverseFast();
 			FVector ProjUp = CameraToWorld.TransformVector(FVector(0, 1000, 0));

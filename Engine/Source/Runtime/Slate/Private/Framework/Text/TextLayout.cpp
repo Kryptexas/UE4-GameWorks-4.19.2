@@ -824,15 +824,15 @@ FTextLocation FTextLayout::GetTextLocationAt( const FLineView& LineView, const F
 	return FTextLocation( LineView.ModelIndex, LineView.Range.EndIndex );
 }
 
-int32 FTextLayout::GetLineViewIndexForTextLocation(const TArray< FTextLayout::FLineView >& LineViews, const FTextLocation& Location, const bool bPerformInclusiveBoundsCheck)
+int32 FTextLayout::GetLineViewIndexForTextLocation(const TArray< FTextLayout::FLineView >& InLineViews, const FTextLocation& Location, const bool bPerformInclusiveBoundsCheck)
 {
 	const int32 LineModelIndex = Location.GetLineIndex();
 	const int32 Offset = Location.GetOffset();
 
 	const FLineModel& LineModel = LineModels[LineModelIndex];
-	for(int32 Index = 0; Index < LineViews.Num(); Index++)
+	for(int32 Index = 0; Index < InLineViews.Num(); Index++)
 	{
-		const FTextLayout::FLineView& LineView = LineViews[Index];
+		const FTextLayout::FLineView& LineView = InLineViews[Index];
 
 		if(LineView.ModelIndex == LineModelIndex)
 		{
@@ -843,7 +843,7 @@ int32 FTextLayout::GetLineViewIndexForTextLocation(const TArray< FTextLayout::FL
 			}
 
 			// If we're the last line, then we also need to test for the end index being part of the range
-			const bool bIsLastLineForModel = Index == (LineViews.Num() - 1) || LineViews[Index + 1].ModelIndex != LineModelIndex;
+			const bool bIsLastLineForModel = Index == (InLineViews.Num() - 1) || InLineViews[Index + 1].ModelIndex != LineModelIndex;
 			if((bIsLastLineForModel || bPerformInclusiveBoundsCheck) && LineView.Range.EndIndex == Offset)
 			{
 				return Index;
@@ -1838,14 +1838,14 @@ void FTextLayout::FRunModel::AppendTextTo(FString& Text, const FTextRange& Range
 	Run->AppendTextTo(Text, Range);
 }
 
-TSharedRef< ILayoutBlock > FTextLayout::FRunModel::CreateBlock( const FBlockDefinition& BlockDefine, float Scale ) const
+TSharedRef< ILayoutBlock > FTextLayout::FRunModel::CreateBlock( const FBlockDefinition& BlockDefine, float InScale ) const
 {
 	const FTextRange& SizeRange = BlockDefine.ActualRange;
 
 	if ( MeasuredRanges.Num() == 0 )
 	{
 		FTextRange RunRange = Run->GetTextRange();
-		return Run->CreateBlock( BlockDefine.ActualRange.BeginIndex, BlockDefine.ActualRange.EndIndex, Run->Measure( SizeRange.BeginIndex, SizeRange.EndIndex, Scale ), BlockDefine.Renderer );
+		return Run->CreateBlock( BlockDefine.ActualRange.BeginIndex, BlockDefine.ActualRange.EndIndex, Run->Measure( SizeRange.BeginIndex, SizeRange.EndIndex, InScale ), BlockDefine.Renderer );
 	}
 
 	int32 StartRangeIndex = 0;
@@ -1910,7 +1910,7 @@ TSharedRef< ILayoutBlock > FTextLayout::FRunModel::CreateBlock( const FBlockDefi
 		}
 		else
 		{
-			BlockSize += Run->Measure( SizeRange.BeginIndex, SizeRange.EndIndex, Scale );
+			BlockSize += Run->Measure( SizeRange.BeginIndex, SizeRange.EndIndex, InScale );
 		}
 	}
 	else
@@ -1921,7 +1921,7 @@ TSharedRef< ILayoutBlock > FTextLayout::FRunModel::CreateBlock( const FBlockDefi
 		}
 		else
 		{
-			BlockSize += Run->Measure( SizeRange.BeginIndex, MeasuredRanges[ StartRangeIndex ].EndIndex, Scale );
+			BlockSize += Run->Measure( SizeRange.BeginIndex, MeasuredRanges[ StartRangeIndex ].EndIndex, InScale );
 		}
 
 		for (int32 Index = StartRangeIndex + 1; Index < EndRangeIndex; Index++)
@@ -1937,7 +1937,7 @@ TSharedRef< ILayoutBlock > FTextLayout::FRunModel::CreateBlock( const FBlockDefi
 		}
 		else
 		{
-			FVector2D Size = Run->Measure( MeasuredRanges[ EndRangeIndex ].BeginIndex, SizeRange.EndIndex, Scale );
+			FVector2D Size = Run->Measure( MeasuredRanges[ EndRangeIndex ].BeginIndex, SizeRange.EndIndex, InScale );
 			BlockSize.X += Size.X;
 			BlockSize.Y = FMath::Max( Size.Y, BlockSize.Y );
 		}

@@ -180,7 +180,7 @@ void UAIPerceptionComponent::OnRegister()
 
 	// this should not be needed but aparently AAIController::PostRegisterAllComponents
 	// gets called component's OnRegister
-	AAIController* AIOwner = Cast<AAIController>(GetOwner());
+	AIOwner = Cast<AAIController>(GetOwner());
 	if (AIOwner)
 	{
 		AIOwner->SetPerceptionComponent(*this);

@@ -365,7 +365,7 @@ bool FStructureEditorUtils::ChangeVariableType(UUserDefinedStruct* Struct, FGuid
 
 bool FStructureEditorUtils::ChangeVariableDefaultValue(UUserDefinedStruct* Struct, FGuid VarGuid, const FString& NewDefaultValue)
 {
-	auto ValidateDefaultValue = [](const FStructVariableDescription& VarDesc, const FString& NewDefaultValue) -> bool
+	auto ValidateDefaultValue = [](const FStructVariableDescription& VarDesc, const FString& InNewDefaultValue) -> bool
 	{
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		const FEdGraphPinType PinType = VarDesc.ToPinType();
@@ -382,7 +382,7 @@ bool FStructureEditorUtils::ChangeVariableDefaultValue(UUserDefinedStruct* Struc
 		}
 		else
 		{
-			bResult = K2Schema->DefaultValueSimpleValidation(PinType, FString(), NewDefaultValue, NULL, FText::GetEmpty());
+			bResult = K2Schema->DefaultValueSimpleValidation(PinType, FString(), InNewDefaultValue, NULL, FText::GetEmpty());
 		}
 		return bResult;
 	};

@@ -7,15 +7,15 @@
 #include "RHI.h"
 
 #if WITH_CEF3
-FWebBrowserWindow::FWebBrowserWindow(FIntPoint ViewportSize, FString Url, TOptional<FString> ContentsToLoad, bool ShowErrorMessage)
+FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize, FString InUrl, TOptional<FString> InContentsToLoad, bool bInShowErrorMessage)
 	: DocumentState(EWebBrowserDocumentState::NoDocument)
 	, UpdatableTexture(nullptr)
-	, CurrentUrl(Url)
-	, ViewportSize(ViewportSize)
+	, CurrentUrl(InUrl)
+	, ViewportSize(InViewportSize)
 	, bIsClosing(false)
 	, bHasBeenPainted(false)
-	, ContentsToLoad(ContentsToLoad)
-	, ShowErrorMessage(ShowErrorMessage)
+	, ContentsToLoad(InContentsToLoad)
+	, ShowErrorMessage(bInShowErrorMessage)
 {
 	TextureData.Reserve(ViewportSize.X * ViewportSize.Y * 4);
 	TextureData.SetNumZeroed(ViewportSize.X * ViewportSize.Y * 4);

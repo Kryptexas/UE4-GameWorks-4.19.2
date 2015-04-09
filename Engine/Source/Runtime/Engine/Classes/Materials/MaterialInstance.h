@@ -476,8 +476,9 @@ bool UpdateParameterSet(TArray<ParameterType> &Parameters, UMaterial* ParentMate
 		{
 			for (const UMaterialExpression* Expression : ParentMaterial->Expressions)
 			{
-				if (const ExpressionType* ParameterExpression = Cast<const ExpressionType>(Expression))
+				if (Expression->IsA<ExpressionType>())
 				{
+					const ExpressionType* ParameterExpression = CastChecked<const ExpressionType>(Expression);
 					if (ParameterExpression->ParameterName == Parameter.ParameterName)
 					{
 						Parameter.ExpressionGUID = ParameterExpression->ExpressionGUID;

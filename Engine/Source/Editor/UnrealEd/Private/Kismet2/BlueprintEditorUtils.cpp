@@ -1898,12 +1898,12 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 		{
 			for (auto SkelClass : SkelClassesToRecompile)
 			{
-				auto Blueprint = Cast<UBlueprint>(SkelClass->ClassGeneratedBy);
-				if (Blueprint
-					&& Blueprint->Status != BS_BeingCreated
-					&& !Blueprint->bBeingCompiled
-					&& !Blueprint->bIsRegeneratingOnLoad
-					&& Blueprint->bHasBeenRegenerated)
+				auto SkelBlueprint = Cast<UBlueprint>(SkelClass->ClassGeneratedBy);
+				if (SkelBlueprint
+					&& SkelBlueprint->Status != BS_BeingCreated
+					&& !SkelBlueprint->bBeingCompiled
+					&& !SkelBlueprint->bIsRegeneratingOnLoad
+					&& SkelBlueprint->bHasBeenRegenerated)
 				{
 					TArray<UClass*> ChildrenOfClass;
 					GetDerivedClasses(SkelClass, ChildrenOfClass, false);
@@ -1916,7 +1916,7 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 
 					FKismetCompilerOptions CompileOptions;
 					CompileOptions.CompileType = EKismetCompileType::SkeletonOnly;
-					Compiler.CompileBlueprint(Blueprint, CompileOptions, Results);
+					Compiler.CompileBlueprint(SkelBlueprint, CompileOptions, Results);
 
 					SkeletalRecompileChildren(ChildrenOfClass);
 				}

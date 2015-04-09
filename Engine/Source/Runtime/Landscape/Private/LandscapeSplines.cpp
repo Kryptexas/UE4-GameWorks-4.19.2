@@ -1488,13 +1488,13 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 	}
 	for (auto& ForeignMeshComponentsPair : ForeignMeshComponentsMap)
 	{
-		ULandscapeSplinesComponent* MeshComponentOuterSplines = ForeignMeshComponentsPair.Key;
+		ULandscapeSplinesComponent* ForeignMeshComponentOuterSplines = ForeignMeshComponentsPair.Key;
 		auto* ForeignMeshComponent = ForeignMeshComponentsPair.Value;
 		if (ForeignMeshComponent != MeshComponent)
 		{
-			MeshComponentOuterSplines->Modify();
+			ForeignMeshComponentOuterSplines->Modify();
 			ForeignMeshComponent->Modify();
-			MeshComponentOuterSplines->RemoveForeignMeshComponent(this, ForeignMeshComponent);
+			ForeignMeshComponentOuterSplines->RemoveForeignMeshComponent(this, ForeignMeshComponent);
 			ForeignMeshComponent->DestroyComponent();
 		}
 	}

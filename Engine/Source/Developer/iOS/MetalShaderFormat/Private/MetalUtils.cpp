@@ -298,7 +298,6 @@ namespace MetalUtils
 			return nullptr;
 		}
 
-		ir_variable* Variable = NULL;
 		if (FCStringAnsi::Strnicmp(Semantic, "SV_", 3) == 0)
 		{
 			FSystemValue* SystemValues = SystemValueTable[Frequency];
@@ -350,7 +349,7 @@ namespace MetalUtils
 			_mesa_glsl_warning(ParseState, "unrecognized system value input '%s'", Semantic);
 		}
 
-		Variable = new(ParseState)ir_variable(
+		ir_variable* Variable = new(ParseState)ir_variable(
 			Type,
 			ralloc_asprintf(ParseState, "IN_%s", Semantic),
 			ir_var_in);

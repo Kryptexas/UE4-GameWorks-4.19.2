@@ -198,12 +198,14 @@ bool FAutoReimportSimpleModifyTest::RunTest(const FString& Parameters)
 	// Start watching the directory
 	TSharedPtr<FAutoReimportTestPayload> Test = MakeShareable(new FAutoReimportTestPayload(WorkingDir));
 
-	TArray<FSrcDstFilenames> Files;
-	Files.Emplace(SrcFilename1, DstFilename);
-
-	if (!CopyTestFiles(*Test, Files))
 	{
-		return false;
+		TArray<FSrcDstFilenames> Files;
+		Files.Emplace(SrcFilename1, DstFilename);
+
+		if (!CopyTestFiles(*Test, Files))
+		{
+			return false;
+		}
 	}
 
 	Test->StartWatching();
@@ -461,11 +463,13 @@ bool FAutoReimportRestartDetectionTest::RunTest(const FString& Parameters)
 	
 	TSharedPtr<FAutoReimportTestPayload> Test = MakeShareable(new FAutoReimportTestPayload(WorkingDir));
 
-	TArray<FSrcDstFilenames> Files;
-	Files.Emplace(SrcFilename, SrcFilename);
-	if (!CopyTestFiles(*Test, Files))
 	{
-		return false;
+		TArray<FSrcDstFilenames> Files;
+		Files.Emplace(SrcFilename, SrcFilename);
+		if (!CopyTestFiles(*Test, Files))
+		{
+			return false;
+		}
 	}
 
 	// Start watching the directory
@@ -483,11 +487,13 @@ bool FAutoReimportRestartDetectionTest::RunTest(const FString& Parameters)
 		Test->Config.bDetectChangesSinceLastRun = true;
 
 		// Modify the file while the watcher isn't running
-		TArray<FSrcDstFilenames> Files;
-		Files.Emplace(SrcFilename2, SrcFilename);
-		if (!CopyTestFiles(*Test, Files))
 		{
-			return;
+			TArray<FSrcDstFilenames> Files;
+			Files.Emplace(SrcFilename2, SrcFilename);
+			if (!CopyTestFiles(*Test, Files))
+			{
+				return;
+			}
 		}
 
 		Test->StartWatching();
@@ -531,10 +537,10 @@ bool FAutoReimportRestartDetectionTest::RunTest(const FString& Parameters)
 			Test->StartWatching();
 			Test->WaitForStartup([=]{
 
-				auto Changes = Test->FileCache->GetOutstandingChanges();
-				if (Changes.Num() != 0)
+				auto OutstandingChanges = Test->FileCache->GetOutstandingChanges();
+				if (OutstandingChanges.Num() != 0)
 				{
-					UE_LOG(LogAutoReimportTests, Error, TEXT("Shouldn't have reported changes when bDetectChangesSinceLastRun is false (%d change(s) received)."), Changes.Num());
+					UE_LOG(LogAutoReimportTests, Error, TEXT("Shouldn't have reported changes when bDetectChangesSinceLastRun is false (%d change(s) received)."), OutstandingChanges.Num());
 					return;
 				}
 
@@ -620,12 +626,14 @@ bool FAutoReimportChangeExtensionsTest::RunTest(const FString& Parameters)
 	Test->WaitForStartup([=]{
 
 		// Add a txt file and a png - we should only be told about the txt
-		TArray<FSrcDstFilenames> Files;
-		Files.Emplace(SrcFilename1, SrcFilename1);
-		Files.Emplace(SrcFilename3, SrcFilename3);
-		if (!CopyTestFiles(*Test, Files))
 		{
-			return;
+			TArray<FSrcDstFilenames> Files;
+			Files.Emplace(SrcFilename1, SrcFilename1);
+			Files.Emplace(SrcFilename3, SrcFilename3);
+			if (!CopyTestFiles(*Test, Files))
+			{
+				return;
+			}
 		}
 
 		ADD_LATENT_AUTOMATION_COMMAND(FDelayedCallbackLatentCommand([=]{
@@ -657,11 +665,13 @@ bool FAutoReimportChangeExtensionsTest::RunTest(const FString& Parameters)
 			Test->StartWatching();
 			Test->WaitForStartup([=]{
 
-				auto Changes = Test->FileCache->GetOutstandingChanges();
-				if (Changes.Num() != 0)
 				{
-					UE_LOG(LogAutoReimportTests, Error, TEXT("Incorrect number of changes reported (%d != 0)."), Changes.Num());
-					return;
+					auto OutstandingChanges = Test->FileCache->GetOutstandingChanges();
+					if (OutstandingChanges.Num() != 0)
+					{
+						UE_LOG(LogAutoReimportTests, Error, TEXT("Incorrect number of changes reported (%d != 0)."), OutstandingChanges.Num());
+						return;
+					}
 				}
 
 				// Add another png - we should only be notified about this one
@@ -673,11 +683,11 @@ bool FAutoReimportChangeExtensionsTest::RunTest(const FString& Parameters)
 				}
 
 				ADD_LATENT_AUTOMATION_COMMAND(FDelayedCallbackLatentCommand([=]{
-					auto Changes = Test->FileCache->GetOutstandingChanges();
+					auto OutstandingChanges = Test->FileCache->GetOutstandingChanges();
 
-					if (Changes.Num() != 1)
+					if (OutstandingChanges.Num() != 1)
 					{
-						UE_LOG(LogAutoReimportTests, Error, TEXT("Incorrect number of changes reported (%d != 1)."), Changes.Num());
+						UE_LOG(LogAutoReimportTests, Error, TEXT("Incorrect number of changes reported (%d != 1)."), OutstandingChanges.Num());
 					}
 				}, 1));
 
@@ -711,13 +721,15 @@ bool FAutoReimportWildcardFiltersTest::RunTest(const FString& Parameters)
 
 	IFileManager::Get().MakeDirectory(*(GetWorkingDir() / TEXT("Content") / TEXT("sub-folder")), false);
 		
-	TArray<FSrcDstFilenames> Files;
-	Files.Emplace(SrcFilename1, DstFilename1);
-	Files.Emplace(SrcFilename2, DstFilename2);
-	Files.Emplace(SrcFilename3, DstFilename3);
-	if (!CopyTestFiles(*Test, Files))
 	{
-		return false;
+		TArray<FSrcDstFilenames> Files;
+		Files.Emplace(SrcFilename1, DstFilename1);
+		Files.Emplace(SrcFilename2, DstFilename2);
+		Files.Emplace(SrcFilename3, DstFilename3);
+		if (!CopyTestFiles(*Test, Files))
+		{
+			return false;
+		}
 	}
 
 	// Start watching the directory
