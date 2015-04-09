@@ -10,6 +10,8 @@
  */
 class FAsyncLoadingThread : public FRunnable
 {
+	friend class FArchiveAsync;
+
 	/** Thread to run the worker FRunnable on */
 	FRunnableThread* Thread;
 	/** Stops this thread */
@@ -47,7 +49,10 @@ class FAsyncLoadingThread : public FRunnable
 	FThreadSafeCounter AsyncThreadReady;
 
 	/** Async loading thread ID */
-	static int32 AsyncLoadingThreadID;
+	static uint32 AsyncLoadingThreadID;
+
+	/** Thread safe counter used to accumulate cycles spent on blocking. Using stats may generate to many stats messages. */
+	static FThreadSafeCounter BlockingCycles;
 
 	FAsyncLoadingThread();
 	virtual ~FAsyncLoadingThread();
