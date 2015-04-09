@@ -351,6 +351,12 @@ void PrivateDrawBracketsForGroups( FPrimitiveDrawInterface* PDI, FViewport* View
 
 void AGroupActor::DrawBracketsForGroups( FPrimitiveDrawInterface* PDI, FViewport* Viewport, bool bMustBeSelected/*=true*/ )
 {
+	// Don't draw group actor brackets in game view
+	if (Viewport->GetClient()->IsInGameView())
+	{
+		return;
+	}
+
 	if( GUnrealEd->bGroupingActive )
 	{
 		check(PDI);
