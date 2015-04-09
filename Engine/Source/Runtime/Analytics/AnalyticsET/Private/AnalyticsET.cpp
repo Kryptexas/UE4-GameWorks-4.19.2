@@ -339,7 +339,17 @@ void FAnalyticsProviderET::FlushEvents()
 			*FGenericPlatformHttp::UrlEncode(APIKey),
 			*FGenericPlatformHttp::UrlEncode(AppVersion),
 			*FGenericPlatformHttp::UrlEncode(UserID));
-		
+
+		// Recreate the URLPath for logging because we do not want to escape the parameters when logging.
+		// We cannot simply UrlEncode the entire Path after logging it because UrlEncode(Params) != UrlEncode(Param1) & UrlEncode(Param2) ...
+		UE_LOG(LogAnalytics, VeryVerbose, TEXT("[%s] AnalyticsET URL:CollectData.1?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s. Payload:%s"), 
+			*APIKey, 
+			*SessionID,
+			*APIKey,
+			*AppVersion,
+			*UserID,
+			*Payload);
+
 		// Create/send Http request for an event
 		TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 		HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json; charset=utf-8"));
@@ -348,8 +358,6 @@ void FAnalyticsProviderET::FlushEvents()
 		HttpRequest->SetVerb(TEXT("POST"));
 		HttpRequest->SetContentAsString(Payload);
 		HttpRequest->OnProcessRequestComplete().BindRaw(this, &FAnalyticsProviderET::EventRequestComplete);
-
-		UE_LOG(LogAnalytics, Display, TEXT("[%s] AnalyticsET URL:%s. Payload:%s"), *APIKey, *URLPath, *Payload);
 
  		HttpRequest->ProcessRequest();
 
