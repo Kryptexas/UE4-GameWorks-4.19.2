@@ -388,10 +388,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				var FuncsToRemove = new HashSet<string>( new string[] 
 				{ 
 					"RaiseException", 
-					"FDebug::EnsureFailed", 		
+					"FDebug::", 		
 					"Error::Serialize",
-					"FDebug::AssertFailed",
-					"FDebug::EnsureNotFalseFormatted",
 					"FOutputDevice::Logf",
 					"FMsg::Logf",
 					"ReportCrash",
