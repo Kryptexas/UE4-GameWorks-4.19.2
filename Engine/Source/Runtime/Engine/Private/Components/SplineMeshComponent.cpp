@@ -924,6 +924,8 @@ void USplineMeshComponent::RecreateCollision()
 				{
 					Point = CalcSliceTransform(GetAxisValue(Point, ForwardAxis)).TransformPosition(Point * Mask);
 				}
+
+				ConvexElem.UpdateElemBox();
 			}
 		}
 
