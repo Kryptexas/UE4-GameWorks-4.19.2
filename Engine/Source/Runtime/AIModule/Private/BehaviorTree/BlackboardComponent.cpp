@@ -530,6 +530,13 @@ void UBlackboardComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 
 UObject* UBlackboardComponent::GetValueAsObject(const FName& KeyName) const
 {
+	// temporary fix, will be replaced with type safe entries soon
+	FBlackboard::FKey KeyID = GetKeyID(KeyName);
+	if (GetKeyType(KeyID) != UBlackboardKeyType_Object::StaticClass())
+	{
+		return UBlackboardKeyType_Object::InvalidValue;
+	}
+
 	return GetValue<UBlackboardKeyType_Object>(KeyName);
 }
 
