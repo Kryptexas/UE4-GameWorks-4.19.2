@@ -9,6 +9,7 @@
     <BuildProduct Path="$(EngineDir)\Plugins\Runtime\CableComponent\Binaries\PS4\UE4Game-CableComponent-Static.a" Type="StaticLibrary" />
     <BuildProduct Path="$(EngineDir)\Plugins\Runtime\CustomMeshComponent\Binaries\PS4\UE4Game-CustomMeshComponent-Static.a" Type="StaticLibrary" />
     <BuildProduct Path="$(EngineDir)\Plugins\Runtime\ExampleDeviceProfileSelector\Binaries\PS4\UE4Game-ExampleDeviceProfileSelector-Static.a" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\PS4\Morpheus\Binaries\PS4\UE4Game-Morpheus-Static.a" Type="StaticLibrary" />
     <BuildProduct Path="$(EngineDir)\Plugins\Runtime\PS4\PS4MoviePlayer\Binaries\PS4\UE4Game-PS4MoviePlayer-Static.a" Type="StaticLibrary" />
     <BuildProduct Path="$(EngineDir)\Plugins\Slate\SlateRemote\Binaries\PS4\UE4Game-SlateRemote-Static.a" Type="StaticLibrary" />
   </BuildProducts>

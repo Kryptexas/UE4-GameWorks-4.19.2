@@ -16,6 +16,7 @@
     <BuildProduct Path="$(EngineDir)\Binaries\HTML5\UE4Game-Launch.bc" Type="StaticLibrary" />
     <BuildProduct Path="$(EngineDir)\Binaries\HTML5\UE4Game-Core.bc" Type="StaticLibrary" />
     <BuildProduct Path="$(EngineDir)\Binaries\HTML5\UE4Game-HTML5JS.bc" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\HTML5\UE4Game-MapPakDownloader.bc" Type="StaticLibrary" />
     <BuildProduct Path="$(EngineDir)\Binaries\HTML5\UE4Game-CoreUObject.bc" Type="StaticLibrary" />
     <BuildProduct Path="$(EngineDir)\Binaries\HTML5\UE4Game-Projects.bc" Type="StaticLibrary" />
     <BuildProduct Path="$(EngineDir)\Binaries\HTML5\UE4Game-Json.bc" Type="StaticLibrary" />

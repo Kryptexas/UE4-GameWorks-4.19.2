@@ -11,6 +11,7 @@
     <BuildProduct Path="$(EngineDir)\Plugins\Runtime\CustomMeshComponent\Binaries\Win64\UE4Game-CustomMeshComponent-Win64-Test-Static.lib" Type="StaticLibrary" />
     <BuildProduct Path="$(EngineDir)\Plugins\Runtime\ExampleDeviceProfileSelector\Binaries\Win64\UE4Game-ExampleDeviceProfileSelector-Win64-Test-Static.lib" Type="StaticLibrary" />
     <BuildProduct Path="$(EngineDir)\Plugins\Runtime\OculusRift\Binaries\Win64\UE4Game-OculusRift-Win64-Test-Static.lib" Type="StaticLibrary" />
+    <BuildProduct Path="$(EngineDir)\Plugins\Runtime\PS4\Morpheus\Binaries\Win64\UE4Game-Morpheus-Win64-Test-Static.lib" Type="StaticLibrary" />
     <BuildProduct Path="$(EngineDir)\Plugins\Runtime\WindowsMoviePlayer\Binaries\Win64\UE4Game-WindowsMoviePlayer-Win64-Test-Static.lib" Type="StaticLibrary" />
     <BuildProduct Path="$(EngineDir)\Plugins\Slate\SlateRemote\Binaries\Win64\UE4Game-SlateRemote-Win64-Test-Static.lib" Type="StaticLibrary" />
   </BuildProducts>
