@@ -1763,7 +1763,7 @@ namespace UnrealBuildTool
 			}
 
 			//@todo.Rocket: Will users be able to rebuild UnrealHeaderTool? NO
-			if (UnrealBuildTool.RunningRocket() && AppName != "UnrealHeaderTool")
+			if (!ProjectFileGenerator.bGenerateProjectFiles && UnrealBuildTool.RunningRocket() && AppName != "UnrealHeaderTool")
 			{
 				var FilteredBinaries = new List<UEBuildBinary>();
 
