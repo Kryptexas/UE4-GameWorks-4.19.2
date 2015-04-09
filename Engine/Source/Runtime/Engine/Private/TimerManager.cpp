@@ -238,6 +238,7 @@ void FTimerManager::InternalSetTimer(FTimerData& NewTimerData, float InRate, boo
 	{
 		NewTimerData.Rate = InRate;
 		NewTimerData.bLoop = InbLoop;
+		NewTimerData.bRequiresDelegate = NewTimerData.TimerDelegate.IsBound();
 
 		const float FirstDelay = (InFirstDelay >= 0.f) ? InFirstDelay : InRate;
 
@@ -265,6 +266,7 @@ void FTimerManager::InternalSetTimerForNextTick(FTimerUnifiedDelegate const& InD
 	FTimerData NewTimerData;
 	NewTimerData.Rate = 0.f;
 	NewTimerData.bLoop = false;
+	NewTimerData.bRequiresDelegate = true;
 	NewTimerData.TimerDelegate = InDelegate;
 	NewTimerData.ExpireTime = InternalTime;
 	NewTimerData.Status = ETimerStatus::Active;
@@ -303,7 +305,7 @@ void FTimerManager::InternalClearTimer(FTimerHandle const& InHandle)
 	}
 }
 
-void FTimerManager::InternalClearTimer(int32 TimerIdx, ETimerStatus::Type TimerStatus)
+void FTimerManager::InternalClearTimer(int32 TimerIdx, ETimerStatus TimerStatus)
 {
 	switch (TimerStatus)
 	{
@@ -434,7 +436,7 @@ void FTimerManager::InternalPauseTimer( FTimerData const* TimerToPause, int32 Ti
 
 	if( TimerToPause && (TimerToPause->Status != ETimerStatus::Paused) )
 	{
-		ETimerStatus::Type PreviousStatus = TimerToPause->Status;
+		ETimerStatus PreviousStatus = TimerToPause->Status;
 
 		// Don't pause the timer if it's currently executing and isn't going to loop
 		if( PreviousStatus != ETimerStatus::Executing || TimerToPause->bLoop )
@@ -542,10 +544,14 @@ void FTimerManager::Tick(float DeltaTime)
 			// Status test needed to ensure it didn't get cleared during execution
 			if( CurrentlyExecutingTimer.bLoop && CurrentlyExecutingTimer.Status == ETimerStatus::Executing )
 			{
-				// Put this timer back on the heap
-				CurrentlyExecutingTimer.ExpireTime += CallCount * CurrentlyExecutingTimer.Rate;
-				CurrentlyExecutingTimer.Status = ETimerStatus::Active;
-				ActiveTimerHeap.HeapPush(CurrentlyExecutingTimer);
+				// if timer requires a delegate, make sure it's still validly bound (i.e. the delegate's object didn't get deleted or something)
+				if (!CurrentlyExecutingTimer.bRequiresDelegate || CurrentlyExecutingTimer.TimerDelegate.IsBound())
+				{
+					// Put this timer back on the heap
+					CurrentlyExecutingTimer.ExpireTime += CallCount * CurrentlyExecutingTimer.Rate;
+					CurrentlyExecutingTimer.Status = ETimerStatus::Active;
+					ActiveTimerHeap.HeapPush(CurrentlyExecutingTimer);
+				}
 			}
 
 			CurrentlyExecutingTimer.Clear();
