@@ -7709,7 +7709,17 @@ UNetDriver* FindNamedNetDriver_Local(const TArray<FNamedNetDriver>& ActiveNetDri
 
 UNetDriver* UEngine::FindNamedNetDriver(UWorld * InWorld, FName NetDriverName)
 {
+#if WITH_EDITOR
+	const FWorldContext* WorldContext = GetWorldContextFromWorld(InWorld);
+	if (WorldContext)
+	{
+		return FindNamedNetDriver_Local(WorldContext->ActiveNetDrivers, NetDriverName);
+	}
+		
+	return nullptr;
+#else
 	return FindNamedNetDriver_Local(GetWorldContextFromWorldChecked(InWorld).ActiveNetDrivers, NetDriverName);
+#endif // WITH_EDITOR
 }
 
 UNetDriver* UEngine::FindNamedNetDriver(const UPendingNetGame* InPendingNetGame, FName NetDriverName)
