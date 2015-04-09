@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:2081041
+﻿INTSourceChangelist:2374181
 Availability:Public
 Title:アンリアルビルドシステムの設定
 Crumbs: %ROOT%, Programming, Programming/UnrealBuildSystem
 Description:エンジンのビルドを制御するアンリアルビルドシステムの設定
+Version:4.5
 
-アンリアルビルドシステムは、さまざまな用途に合わせたビルドプロセスの変更を、`BuildConfiguration.cs` を通じて設定することが出来ます。
+アンリアルビルドシステムは、さまざまな用途に合わせたビルドプロセスの変更を、`BuildConfiguration.cs` を通じて設定できます。
 
 ## UnrealBuldTool 設定プロパティ
 
@@ -23,7 +24,7 @@ $ bEnableFastIteration :_true_ の場合、コンパイルおよびリンク時�
 
 ##ビルドモード
 
-ビルドモードには、**ユニティ** と **高速イタレーション** の 2 つのモードがあります。ユニティモードはエンジン全体の再ビルドを必要とする変更に適しています。例えばエンジンヘッダの変更などです。高速イタレーションモードは局部的な変更に適しています。コンパイル/リンク時間が 4 秒以内に減少します。モードの変更は、`BuildConfiguration.cs` を開いて以下の行を検索します。
+ビルドモードには、 **ユニティ** と **高速イタレーション** の 2 つのモードがあります。ユニティモードはエンジン全体の再ビルドを必要とする変更に適しています。例えばエンジンヘッダの変更などです。高速イタレーションモードは局部的な変更に適しています。コンパイル/リンク時間が 4 秒以内に減少します。モードの変更は、`BuildConfiguration.cs` を開いて以下の行を検索します。
 
 	bEnableFastIteration = Utils.GetEnvironmentVariable( "ue.bEnableFastIteration", false );
 	bUseUnityBuild = Utils.GetEnvironmentVariable("ue.bUseUnityBuild", true);
