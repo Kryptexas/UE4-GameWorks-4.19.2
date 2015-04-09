@@ -13,7 +13,7 @@ class UNREALED_API FDragTool_ActorFrustumSelect : public FDragTool
 {
 public:
 	explicit FDragTool_ActorFrustumSelect(FLevelEditorViewportClient* InLevelViewportClient)
-		: FDragTool()
+		: FDragTool(InLevelViewportClient->GetModeTools())
 		, LevelViewportClient( InLevelViewportClient )
 	{}
 

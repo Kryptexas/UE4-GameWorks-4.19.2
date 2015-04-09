@@ -3646,12 +3646,12 @@ bool FEditorViewportClient::ShouldPanOrDollyCamera() const
 
 TSharedPtr<FDragTool> FEditorViewportClient::MakeDragTool(EDragTool::Type)
 {
-	return MakeShareable( new FDragTool );
+	return MakeShareable( new FDragTool(GetModeTools()) );
 }
 
 bool FEditorViewportClient::CanUseDragTool() const
 {
-	return !ShouldOrbitCamera() && GetCurrentWidgetAxis() == EAxisList::None && (!ModeTools || ModeTools->AllowsViewportDragTool());
+	return !ShouldOrbitCamera() && (GetCurrentWidgetAxis() == EAxisList::None) && ((ModeTools == nullptr) || ModeTools->AllowsViewportDragTool());
 }
 
 bool FEditorViewportClient::ShouldOrbitCamera() const

@@ -634,14 +634,14 @@ public:
 	virtual TSharedPtr<class FDragTool> MakeDragTool( EDragTool::Type DragToolType );
 
 	/** @return true if a drag tool can be used */
-	bool CanUseDragTool() const;
+	virtual bool CanUseDragTool() const;
 
 	/** @return Whether or not to orbit the camera */
-	virtual bool ShouldOrbitCamera() const ;
+	virtual bool ShouldOrbitCamera() const;
 
 	bool IsMovingCamera() const;
 
-	virtual void UpdateLinkedOrthoViewports( bool bInvalidate = false ) {};
+	virtual void UpdateLinkedOrthoViewports( bool bInvalidate = false ) {}
 
 	/**
 	 * @return true to lock the pitch of the viewport camera
