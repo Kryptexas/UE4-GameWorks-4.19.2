@@ -19,6 +19,18 @@ public class HTMLPakAutomation
     string PakOrderFileLocation;
 
     Dictionary<string, object> DependencyJson;
+    
+    public static bool CanCreateMapPaks(ProjectParams Param)
+    {
+        bool UseAsyncLevelLoading = false;
+        var ConfigCache = new UnrealBuildTool.ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", Path.GetDirectoryName(Param.RawProjectPath), CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine"));
+        ConfigCache.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "UseAsyncLevelLoading", out UseAsyncLevelLoading);
+
+        if (Param.Run)
+            return false; 
+
+        return UseAsyncLevelLoading;
+    }
 
     public HTMLPakAutomation(ProjectParams InParam, DeploymentContext InSC)
     {
