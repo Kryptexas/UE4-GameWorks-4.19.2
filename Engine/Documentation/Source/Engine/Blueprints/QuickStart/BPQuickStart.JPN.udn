@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2449235
+﻿INTSourceChangelist:2465824
 Availability:Public
 Title:ブループリントのクイックスタートガイド
 Crumbs: %ROOT%, Engine, Engine/Blueprints
-Description:ブループリントの新規作成
+Description:初めてのブループリント作成
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -38,7 +38,20 @@ Description:ブループリントの新規作成
 [/OBJECT]
 [/VAR]
 
-アンリアルエディタクイックスタートガイドは、レベルに新規プロジェクトを作成、ビューポートのナビゲーション、新規レベルを作成、アクタの配置と編集に加えて、レベルのビルドおよび実行プロセスを説明するウォークスルードキュメントです。
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	Ax4Xgu2Zb4g
+	[/PARAMLITERAL]
+[/OBJECT]
+
+このクイックスタートガイドはさまざまなコンポーネントでレベルにアクタを作成します。キャラクターがレベル内で飛行できるように、起動ビヘイビアを追加することができる Blueprint クラスへ変換する方法を説明します！
+Blueprint クラスへの変換は、 **コンテンツブラウザ** からレベルへドラッグするだけでたくさんの Launchpad を作成できることも意味します。
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
