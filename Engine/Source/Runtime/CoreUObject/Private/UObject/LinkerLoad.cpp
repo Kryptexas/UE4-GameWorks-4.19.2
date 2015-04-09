@@ -1718,7 +1718,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FinalizeCreation()
 #endif
 
 		// Add this linker to the object manager's linker array.
-		FLinkerManager::Get().GetLoaders().Add(this);
+		FLinkerManager::Get().AddLoader(this);
 
 		// check if the package source matches the package filename's CRC (if it doens't match, a user saved this package)
 		if (Summary.PackageSource != FCrc::StrCrc_DEPRECATED(*FPaths::GetBaseFilename(Filename).ToUpper()))
@@ -2109,7 +2109,7 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 					// now, fake our Import to be what the redirector pointed to
 					Import.XObject = Redir->DestinationObject;
 					FUObjectThreadContext::Get().ImportCount++;
-					FLinkerManager::Get().GetLoadersWithNewImports().Add(this);
+					FLinkerManager::Get().AddLoaderWithNewImports(this);
 				}
 			}
 		}
@@ -2500,7 +2500,7 @@ bool FLinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 				// except if we are looking for _the_ package...in which case we are looking for TmpPkg, so we are done
 				Import.XObject = TmpPkg;
 				FUObjectThreadContext::Get().ImportCount++;
-				FLinkerManager::Get().GetLoadersWithNewImports().Add(this);
+				FLinkerManager::Get().AddLoaderWithNewImports(this);
 				return false;
 			}
 		}
@@ -2553,7 +2553,7 @@ bool FLinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 				{
 					Import.XObject = FindObject;
 					FUObjectThreadContext::Get().ImportCount++;
-					FLinkerManager::Get().GetLoadersWithNewImports().Add(this);
+					FLinkerManager::Get().AddLoaderWithNewImports(this);
 				}
 				else
 				{
@@ -3500,7 +3500,7 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 				LoadClass = UObjectRedirector::StaticClass();
 				// Create new import for UObjectRedirector class
 				FObjectImport* RedirectorImport = new( ImportMap )FObjectImport( UObjectRedirector::StaticClass() );
-				FLinkerManager::Get().GetLoadersWithNewImports().Add(this);
+				FLinkerManager::Get().AddLoaderWithNewImports(this);
 				FUObjectThreadContext::Get().ImportCount++;
 				Export.ClassIndex = FPackageIndex::FromImport(ImportMap.Num() - 1);
 				Export.Object = Redirector;
@@ -3799,7 +3799,7 @@ UObject* FLinkerLoad::CreateImport( int32 Index )
 						// Associate import and indicate that we associated an import for later cleanup.
 						Import.XObject = FindObject;
 						FUObjectThreadContext::Get().ImportCount++;
-						FLinkerManager::Get().GetLoadersWithNewImports().Add(this);
+						FLinkerManager::Get().AddLoaderWithNewImports(this);
 					}
 				}
 			}
@@ -3836,7 +3836,7 @@ UObject* FLinkerLoad::CreateImport( int32 Index )
 				}
 #endif
 				FUObjectThreadContext::Get().ImportCount++;
-				FLinkerManager::Get().GetLoadersWithNewImports().Add(this);
+				FLinkerManager::Get().AddLoaderWithNewImports(this);
 			}
 		}
 	}
@@ -3914,8 +3914,8 @@ void FLinkerLoad::Detach()
 	}
 
 	// Remove from object manager, if it has been added.
-	FLinkerManager::Get().GetLoaders().Remove(this);
-	FLinkerManager::Get().GetLoadersWithNewImports().Remove(this);
+	FLinkerManager::Get().RemoveLoader(this);
+	FLinkerManager::Get().RemoveLoaderWithNewImports(this);
 	if (!FPlatformProperties::HasEditorOnlyData())
 	{
 		FUObjectThreadContext::Get().DelayedLinkerClosePackages.Remove(this);

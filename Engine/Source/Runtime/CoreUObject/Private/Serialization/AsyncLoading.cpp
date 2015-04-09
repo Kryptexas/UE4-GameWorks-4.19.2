@@ -90,19 +90,21 @@ public:
 			InObject->ThisThreadAtomicallyClearedRFUnreachable();
 		}
 	}
-	/** Removes all objects from the list */
-	FORCEINLINE void EmptyReferencedObjects()
+	/** Removes all objects from the list and clears async loading flags */
+	FORCENOINLINE void EmptyReferencedObjects()
 	{
+		const EObjectFlags AsyncFlags = RF_Async | RF_AsyncLoading;
 		FScopeLock ReferencedObjectsLock(&ReferencedObjectsCritical);
-		for (auto Obj : ReferencedObjects)
+		for (UObject* Obj : ReferencedObjects)
 		{
 			check(Obj);
-			Obj->ClearFlags(RF_Async | RF_AsyncLoading);
+			Obj->AtomicallyClearFlags(AsyncFlags);
+			check(!Obj->HasAnyFlags(AsyncFlags))
 		}
 		ReferencedObjects.Empty(ReferencedObjects.Num());
 	}
 	/** Removes all referenced objects and markes them for GC */
-	void EmptyReferencedObjectsAndCancelLoading()
+	FORCENOINLINE void EmptyReferencedObjectsAndCancelLoading()
 	{
 		const EObjectFlags LoadFlags = RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects;
 		const EObjectFlags AsyncFlags = RF_Async | RF_AsyncLoading;
@@ -113,9 +115,10 @@ public:
 			Object->ClearFlags(AsyncFlags);
 			if (Object->HasAnyFlags(LoadFlags))
 			{
-				Object->ClearFlags(LoadFlags);
-				Object->SetFlags(RF_PendingKill);
+				Object->AtomicallyClearFlags(LoadFlags);
+				Object->AtomicallySetFlags(RF_PendingKill);
 			}
+			check(!Object->HasAnyFlags(AsyncFlags | LoadFlags));
 		}
 		ReferencedObjects.Empty(ReferencedObjects.Num());
 	}

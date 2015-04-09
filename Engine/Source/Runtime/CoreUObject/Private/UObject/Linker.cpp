@@ -332,53 +332,7 @@ void ResetLoaders( UObject* InPkg )
 {
 	// Make sure we're not in the middle of loading something in the background.
 	FlushAsyncLoading();
-
-	// Top level package to reset loaders for.
-	UObject*		TopLevelPackage = InPkg ? InPkg->GetOutermost() : NULL;
-
-	// Find loader/ linker associated with toplevel package. We do this upfront as Detach resets LinkerRoot.
-	if( TopLevelPackage )
-	{
-		// Linker to reset/ detach.
-		auto LinkerToReset = FLinkerLoad::FindExistingLinkerForPackage(CastChecked<UPackage>(TopLevelPackage));
-		if (LinkerToReset)
-		{
-			for (auto Linker : FLinkerManager::Get().GetLoaders())
-			{
-				// Detach LinkerToReset from other linker's import table.
-				if( Linker->LinkerRoot != TopLevelPackage )
-				{
-					for (auto& Import : Linker->ImportMap)
-					{
-						if (Import.SourceLinker == LinkerToReset)
-						{
-							Import.SourceLinker = NULL;
-							Import.SourceIndex = INDEX_NONE;
-						}
-					}
-				}
-				else
-				{
-					check(Linker == LinkerToReset);
-				}
-			}
-			// Detach linker, also removes from array and sets LinkerRoot to NULL.
-			LinkerToReset->LoadAndDetachAllBulkData();
-			delete LinkerToReset;
-			LinkerToReset = nullptr;
-		}
-	}
-	else
-	{
-		auto LinkersToDetach = FLinkerManager::Get().GetLoaders();
-		for (auto Linker : LinkersToDetach)
-		{
-			// Detach linker, also removes from array and sets LinkerRoot to NULL.
-			Linker->LoadAndDetachAllBulkData();
-			delete Linker;
-		}
-	}
-
+	FLinkerManager::Get().ResetLoaders(InPkg);
 }
 
 
@@ -389,46 +343,7 @@ void ResetLoaders( UObject* InPkg )
  */
 void DissociateImportsAndForcedExports()
 {
-	int32& ImportCount = FUObjectThreadContext::Get().ImportCount;
-	if (ImportCount && FLinkerManager::Get().GetLoadersWithNewImports().Num())
-	{
-		for (auto Linker : FLinkerManager::Get().GetLoadersWithNewImports())
-		{
-			for( int32 ImportIndex=0; ImportIndex<Linker->ImportMap.Num(); ImportIndex++ )
-			{
-				FObjectImport& Import = Linker->ImportMap[ImportIndex];
-				if( Import.XObject && !Import.XObject->HasAnyFlags(RF_Native) )
-				{
-					Import.XObject = NULL;
-				}
-				Import.SourceLinker = NULL;
-				// when the SourceLinker is reset, the SourceIndex must also be reset, or recreating
-				// an import that points to a redirector will fail to find the redirector
-				Import.SourceIndex = INDEX_NONE;
-			}
-		}
-	}
-	ImportCount = 0;
-	FLinkerManager::Get().GetLoadersWithNewImports().Empty();
-
-	int32& ForcedExportCount = FUObjectThreadContext::Get().ForcedExportCount;
-	if (ForcedExportCount)
-	{
-		for (auto Linker : FLinkerManager::Get().GetLoaders())
-		{
-			//@todo optimization: only dissociate exports for loaders that had forced exports created
-			//@todo optimization: since the last time this function was called.
-			for (auto& Export : Linker->ExportMap)
-			{
-				if (Export.Object && Export.bForcedExport)
-				{
-					Export.Object->SetLinker(NULL, INDEX_NONE);
-					Export.Object = NULL;
-				}
-			}
-		}
-	}
-	ForcedExportCount = 0;
+	FLinkerManager::Get().DissociateImportsAndForcedExports();
 }
 
 static void LogGetPackageLinkerError(FArchiveUObject* LinkerArchive, const TCHAR* InFilename, const FText& InFullErrorMessage, const FText& InSummaryErrorMessage, UObject* InOuter, uint32 LoadFlags)

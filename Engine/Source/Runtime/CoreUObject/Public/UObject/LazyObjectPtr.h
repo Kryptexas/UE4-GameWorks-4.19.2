@@ -98,11 +98,11 @@ struct COREUOBJECT_API FUniqueObjectGuid
 
 	static int32 GetCurrentTag()
 	{
-		return CurrentAnnotationTag;
+		return CurrentAnnotationTag.GetValue();
 	}
 	static int32 InvalidateTag()
 	{
-		return CurrentAnnotationTag++;
+		return CurrentAnnotationTag.Increment();
 	}
 
 	static FUniqueObjectGuid GetOrCreateIDForObject(const class UObject *Object);
@@ -111,7 +111,7 @@ private:
 	FGuid Guid;
 
 	/** Global counter that determines when we need to re-search for GUIDs because more objects have been loaded **/
-	static int32 CurrentAnnotationTag;
+	static FThreadSafeCounter CurrentAnnotationTag;
 };
 
 

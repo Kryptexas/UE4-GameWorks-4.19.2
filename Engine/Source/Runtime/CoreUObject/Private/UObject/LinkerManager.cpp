@@ -5,6 +5,7 @@
 =============================================================================*/
 #include "CoreUObjectPrivate.h"
 #include "LinkerManager.h"
+#include "UObject/UObjectThreadContext.h"
 
 FLinkerManager& FLinkerManager::Get()
 {
@@ -65,4 +66,108 @@ bool FLinkerManager::Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice
 		return true;
 	}
 	return false;
+}
+
+void FLinkerManager::ResetLoaders(UObject* InPkg)
+{
+	// Top level package to reset loaders for.
+	UObject*		TopLevelPackage = InPkg ? InPkg->GetOutermost() : NULL;
+
+	// Find loader/ linker associated with toplevel package. We do this upfront as Detach resets LinkerRoot.
+	if (TopLevelPackage)
+	{
+		// Linker to reset/ detach.
+		auto LinkerToReset = FLinkerLoad::FindExistingLinkerForPackage(CastChecked<UPackage>(TopLevelPackage));
+		if (LinkerToReset)
+		{
+			{
+				FScopeLock ObjectLoadersLock(&ObjectLoadersCritical);
+				for (auto Linker : ObjectLoaders)
+				{
+					// Detach LinkerToReset from other linker's import table.
+					if (Linker->LinkerRoot != TopLevelPackage)
+					{
+						for (auto& Import : Linker->ImportMap)
+						{
+							if (Import.SourceLinker == LinkerToReset)
+							{
+								Import.SourceLinker = NULL;
+								Import.SourceIndex = INDEX_NONE;
+							}
+						}
+					}
+					else
+					{
+						check(Linker == LinkerToReset);
+					}
+				}
+			}
+			// Detach linker, also removes from array and sets LinkerRoot to NULL.
+			LinkerToReset->LoadAndDetachAllBulkData();
+			delete LinkerToReset;
+			LinkerToReset = nullptr;
+		}
+	}
+	else
+	{
+		// We just want a copy here
+		TSet<FLinkerLoad*> LinkersToDetach;
+		GetLoaders(LinkersToDetach);
+		for (auto Linker : LinkersToDetach)
+		{
+			// Detach linker, also removes from array and sets LinkerRoot to NULL.
+			Linker->LoadAndDetachAllBulkData();
+			delete Linker;
+		}
+	}
+}
+
+void FLinkerManager::DissociateImportsAndForcedExports()
+{
+	int32& ImportCount = FUObjectThreadContext::Get().ImportCount;
+	if (ImportCount != 0)
+	{
+		TSet<FLinkerLoad*> LocalLoadersWithNewImports;
+		GetLoadersWithNewImportsAndEmpty(LocalLoadersWithNewImports);
+		if (LocalLoadersWithNewImports.Num())
+		{
+			for (auto Linker : LocalLoadersWithNewImports)
+			{
+				for (int32 ImportIndex = 0; ImportIndex < Linker->ImportMap.Num(); ImportIndex++)
+				{
+					FObjectImport& Import = Linker->ImportMap[ImportIndex];
+					if (Import.XObject && !Import.XObject->HasAnyFlags(RF_Native))
+					{
+						Import.XObject = nullptr;
+					}
+					Import.SourceLinker = nullptr;
+					// when the SourceLinker is reset, the SourceIndex must also be reset, or recreating
+					// an import that points to a redirector will fail to find the redirector
+					Import.SourceIndex = INDEX_NONE;
+				}
+			}
+		}
+		ImportCount = 0;
+	}
+
+	int32& ForcedExportCount = FUObjectThreadContext::Get().ForcedExportCount;
+	if (ForcedExportCount)
+	{		
+		TSet<FLinkerLoad*> LocalLoaders;
+		GetLoaders(LocalLoaders);
+		for (auto Linker : LocalLoaders)
+		{
+			//@todo optimization: only dissociate exports for loaders that had forced exports created
+			//@todo optimization: since the last time this function was called.
+			for (auto& Export : Linker->ExportMap)
+			{
+				if (Export.Object && Export.bForcedExport)
+				{
+					Export.Object->SetLinker(nullptr, INDEX_NONE);
+					Export.Object = nullptr;
+				}
+			}
+		}	
+		ForcedExportCount = 0;
+	}	
 }

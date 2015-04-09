@@ -621,6 +621,7 @@ public:
 		: TrackedStruct(LoadStruct)
 	{
 		DEFERRED_DEPENDENCY_CHECK((LoadStruct != nullptr) && (LoadStruct->GetLinker() != nullptr));
+		FScopeLock UnresolvedStructsLock(&UnresolvedStructsCritical);
 		UnresolvedStructs.Add(LoadStruct);
 	}
 
@@ -631,6 +632,7 @@ public:
 		// we want the most nested one removing it from the set (because this 
 		// means the struct is fully resolved, even if we're still in the middle  
 		// of a ResolveDeferredDependencies() call further up the stack)
+		FScopeLock UnresolvedStructsLock(&UnresolvedStructsCritical);
 		UnresolvedStructs.Remove(TrackedStruct);
 	}
 
@@ -644,6 +646,7 @@ public:
 	 */
 	static bool IsImportStructUnresolved(UObject* ImportObject)
 	{
+		FScopeLock UnresolvedStructsLock(&UnresolvedStructsCritical);
 		return UnresolvedStructs.Contains(ImportObject);
 	}
 
@@ -661,6 +664,7 @@ public:
 	 */
 	static bool IsAssociatedStructUnresolved(const FLinkerLoad* Linker)
 	{
+		FScopeLock UnresolvedStructsLock(&UnresolvedStructsCritical);
 		for (UObject* UnresolvedObj : UnresolvedStructs)
 		{
 			// each unresolved struct should have a linker set on it, because 
@@ -684,6 +688,7 @@ public:
 				ToRemove.Add(UnresolvedObj);
 			}
 		}
+		FScopeLock UnresolvedStructsLock(&UnresolvedStructsCritical);
 		for (UObject* ResetingObj : ToRemove)
 		{
 			UnresolvedStructs.Remove(ResetingObj);
@@ -700,9 +705,12 @@ private:
 	 * we don't have to cast import objects before checking for their presence).
 	 */
 	static TSet<UObject*> UnresolvedStructs;
+	static FCriticalSection UnresolvedStructsCritical;
 };
 /** A global set that tracks structs currently being ran through (and unfinished by) FLinkerLoad::ResolveDeferredDependencies() */
 TSet<UObject*> FUnresolvedStructTracker::UnresolvedStructs;
+FCriticalSection FUnresolvedStructTracker::UnresolvedStructsCritical;
+
 UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName, uint32 LoadFlags, FLinkerLoad* ImportLinker);
 
 void FLinkerLoad::ResolveDeferredDependencies(UStruct* LoadStruct)

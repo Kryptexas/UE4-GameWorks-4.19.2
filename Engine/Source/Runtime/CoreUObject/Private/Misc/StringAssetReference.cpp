@@ -190,5 +190,5 @@ void FStringAssetReference::FixupForPIE()
 	}
 }
 
-int32 FStringAssetReference::CurrentTag = 1;
+FThreadSafeCounter FStringAssetReference::CurrentTag(1);
 TArray<FString> FStringAssetReference::PackageNamesBeingDuplicatedForPIE;

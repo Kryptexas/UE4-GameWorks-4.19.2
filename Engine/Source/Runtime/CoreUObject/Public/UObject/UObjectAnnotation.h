@@ -498,6 +498,7 @@ public:
 		}
 		else
 		{
+			FScopeLock AnnotationArrayLock(&AnnotationArrayCritical);
 			if (AnnotationArray.Num() == 0)
 			{
 				// we are adding the first one, so if we are auto removing or verifying removal, register now
@@ -538,6 +539,7 @@ public:
 	void RemoveAnnotation(int32 Index)
 	{
 		check(Index >= 0);
+		FScopeLock AnnotationArrayLock(&AnnotationArrayCritical);
 		if (Index <  AnnotationArray.Num())
 		{
 			AnnotationArray[Index] = TAnnotation();
@@ -549,6 +551,7 @@ public:
 	 */
 	void RemoveAllAnnotations()
 	{
+		FScopeLock AnnotationArrayLock(&AnnotationArrayCritical);
 		bool bHadElements = (AnnotationArray.Num() > 0);
 		AnnotationArray.Empty();
 		if (bHadElements)
@@ -582,6 +585,7 @@ public:
 	FORCEINLINE TAnnotation GetAnnotation(int32 Index)
 	{
 		check(Index >= 0);
+		FScopeLock AnnotationArrayLock(&AnnotationArrayCritical);
 		if (Index < AnnotationArray.Num())
 		{
 			return AnnotationArray[Index];
@@ -610,6 +614,7 @@ public:
 	 */
 	FORCEINLINE TAnnotation& GetAnnotationRef(int32 Index)
 	{
+		FScopeLock AnnotationArrayLock(&AnnotationArrayCritical);
 		if (Index >= AnnotationArray.Num())
 		{
 			AddAnnotation(Index, TAnnotation());
@@ -623,6 +628,7 @@ private:
 	 * Map from live objects to an annotation
 	 */
 	TArray<TAnnotation> AnnotationArray;
+	FCriticalSection AnnotationArrayCritical;
 
 };
 

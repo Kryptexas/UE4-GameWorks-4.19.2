@@ -67,6 +67,7 @@ void FUniqueObjectGuid::FromString(const FString& From)
 FUniqueObjectGuid FUniqueObjectGuid::GetOrCreateIDForObject(const class UObject *Object)
 {
 	check(Object);
+	checkSlow(IsInGameThread());
 	FUniqueObjectGuid ObjectGuid(Object);
 	if (!ObjectGuid.IsValid())
 	{
@@ -77,7 +78,7 @@ FUniqueObjectGuid FUniqueObjectGuid::GetOrCreateIDForObject(const class UObject 
 	return ObjectGuid;
 }
 
-int32 FUniqueObjectGuid::CurrentAnnotationTag = 1;
+FThreadSafeCounter FUniqueObjectGuid::CurrentAnnotationTag(1);
 
 
 /*-----------------------------------------------------------------------------------------------------------
