@@ -285,6 +285,11 @@ TArray<FString> UKismetStringLibrary::ParseIntoArray(const FString& SourceString
 	return SeparatedStrings;
 }
 
+FString UKismetStringLibrary::JoinStringArray(const TArray<FString>& SourceArray, const FString&  Separator)
+{
+	return FString::Join(SourceArray, *Separator);
+}
+
 TArray<FString> UKismetStringLibrary::GetCharacterArrayFromString(const FString& SourceString)
 {
 	TArray<FString> SeparatedChars;
