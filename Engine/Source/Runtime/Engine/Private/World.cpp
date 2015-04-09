@@ -2644,12 +2644,8 @@ bool UWorld::HandleDemoRecordCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 	FURL DemoURL;
 	FString DemoName;
 
-	if ( !FParse::Token( Cmd, DemoName, 0 ) )
-	{
-		Ar.Logf( TEXT( "Missing demo name." ) );
-		return true;
-	}
-
+	FParse::Token( Cmd, DemoName, 0 );
+	
 	DemoName.ReplaceInline( TEXT( "%m" ), *GetMapName() );
 
 	// replace the current URL's map with a demo extension

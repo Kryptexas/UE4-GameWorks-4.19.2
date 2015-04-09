@@ -102,18 +102,66 @@ static FString GetEventFilename( const FString& StreamName, int32 Index )
 	return FPaths::Combine(*GetStreamDirectory(StreamName), TEXT("events"), *FString::Printf( TEXT("event%d"), Index ) );
 }
 
-void FNullNetworkReplayStreamer::StartStreaming( const FString& StreamName, bool bRecord, const FNetworkReplayVersion& ReplayVersion, const FOnStreamReadyDelegate& Delegate )
+// Returns a name formatted as "demoX", where X is 0-9.
+// Returns the first value that doesn't yet exist, or if they all exist, returns the oldest one
+// (it will be overwritten).
+static FString GetAutomaticDemoName()
 {
-	// Create a directory for this demo
-	const FString DemoDir = GetStreamDirectory(StreamName);
+	FString FinalDemoName;
+	FDateTime BestDateTime = FDateTime::MaxValue();
 
-	IFileManager::Get().MakeDirectory( *DemoDir, true );
+	const int MAX_DEMOS = 10;
 
-	const FString FullHeaderFilename = GetHeaderFilename(StreamName);
-	const FString FullDemoFilename = GetDemoFilename(StreamName);
-	const FString FullMetadataFilename = GetMetadataFilename(StreamName);
+	for (int32 i = 0; i < MAX_DEMOS; i++)
+	{
+		const FString DemoName = FString::Printf(TEXT("demo%i"), i + 1);
+		
+		const FString FullDemoName = GetDemoFilename(DemoName);
+		
+		FDateTime DateTime = IFileManager::Get().GetTimeStamp(*FullDemoName);
 
-	CurrentStreamName = StreamName;
+		if (DateTime == FDateTime::MinValue())
+		{
+			// If we don't find this file, we can early out now
+			FinalDemoName = DemoName;
+			break;
+		}
+		else if (DateTime < BestDateTime)
+		{
+			// Use the oldest file
+			FinalDemoName = DemoName;
+			BestDateTime = DateTime;
+		}
+	}
+
+	return FinalDemoName;
+}
+
+void FNullNetworkReplayStreamer::StartStreaming( const FString& CustomName, const FString& FriendlyName, bool bRecord, const FNetworkReplayVersion& ReplayVersion, const FOnStreamReadyDelegate& Delegate )
+{
+	FString FinalDemoName = CustomName;
+
+	if ( CustomName.IsEmpty() )
+	{
+		if ( bRecord )
+		{
+			// If we're recording and the caller didn't provide a name, generate one automatically
+			FinalDemoName = GetAutomaticDemoName();
+		}
+		else
+		{
+			// Can't play a replay if the user didn't provide a name!
+			Delegate.ExecuteIfBound( false, bRecord );
+			return;
+		}
+	}
+	
+	const FString DemoDir = GetStreamDirectory(FinalDemoName);
+
+	const FString FullHeaderFilename = GetHeaderFilename(FinalDemoName);
+	const FString FullDemoFilename = GetDemoFilename(FinalDemoName);
+	
+	CurrentStreamName = FinalDemoName;
 
 	if ( !bRecord )
 	{
@@ -124,6 +172,12 @@ void FNullNetworkReplayStreamer::StartStreaming( const FString& StreamName, bool
 	}
 	else
 	{
+		// Delete any existing demo with this name
+		IFileManager::Get().DeleteDirectory( *DemoDir, false, true );
+		
+		// Create a directory for this demo
+		IFileManager::Get().MakeDirectory( *DemoDir, true );
+
 		// Open file for writing
 		FileAr.Reset( IFileManager::Get().CreateFileWriter( *FullDemoFilename, FILEWRITE_AllowRead ) );
 		HeaderAr.Reset( IFileManager::Get().CreateFileWriter( *FullHeaderFilename ) );

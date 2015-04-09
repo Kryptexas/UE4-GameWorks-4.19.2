@@ -122,7 +122,7 @@ FHttpNetworkReplayStreamer::FHttpNetworkReplayStreamer() :
 	GConfig->GetString( TEXT( "HttpNetworkReplayStreaming" ), TEXT( "ServerURL" ), ServerURL, GEngineIni );
 }
 
-void FHttpNetworkReplayStreamer::StartStreaming( const FString& StreamName, bool bRecord, const FNetworkReplayVersion& InReplayVersion, const FOnStreamReadyDelegate& Delegate )
+void FHttpNetworkReplayStreamer::StartStreaming( const FString& CustomName, const FString& FriendlyName, bool bRecord, const FNetworkReplayVersion& InReplayVersion, const FOnStreamReadyDelegate& Delegate )
 {
 	if ( !SessionName.IsEmpty() )
 	{
@@ -175,7 +175,7 @@ void FHttpNetworkReplayStreamer::StartStreaming( const FString& StreamName, bool
 		// We are streaming down
 		StreamerState = EStreamerState::StreamingDown;
 
-		SessionName = StreamName;
+		SessionName = CustomName;
 
 		// Notify the http server that we want to start downloading a replay
 		HttpRequest->SetURL( FString::Printf( TEXT( "%sstartdownloading?Session=%s" ), *ServerURL, *SessionName ) );
@@ -203,7 +203,7 @@ void FHttpNetworkReplayStreamer::StartStreaming( const FString& StreamName, bool
 		bNeedToUploadHeader = true;
 
 		// Notify the http server that we want to start uploading a replay
-		HttpRequest->SetURL( FString::Printf( TEXT( "%sstartuploading?App=%s&Version=%u&CL=%u&Friendly=%s" ), *ServerURL, *ReplayVersion.AppString, ReplayVersion.NetworkVersion, ReplayVersion.Changelist, *StreamName ) );
+		HttpRequest->SetURL( FString::Printf( TEXT( "%sstartuploading?App=%s&Version=%u&CL=%u&Friendly=%s" ), *ServerURL, *ReplayVersion.AppString, ReplayVersion.NetworkVersion, ReplayVersion.Changelist, *FriendlyName ) );
 
 		HttpRequest->SetVerb( TEXT( "POST" ) );
 
