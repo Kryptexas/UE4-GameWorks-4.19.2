@@ -392,7 +392,7 @@ void UMaterialGraphNode::GetContextMenuActions(const FGraphNodeContextMenuBuilde
 
 		Context.MenuBuilder->BeginSection("MaterialEditorMenuDocumentation");
 		{
-			Context.MenuBuilder->AddMenuEntry(FMaterialEditorCommands::Get().GoToDocumentation);
+			Context.MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().GoToDocumentation);
 		}
 		Context.MenuBuilder->EndSection();
 

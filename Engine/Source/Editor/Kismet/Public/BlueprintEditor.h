@@ -945,6 +945,15 @@ private:
 	/** Checks to see if it is possible to jump to the selected node's graph definition. */
 	bool CanGoToDefinition() const;
 
+	/** Open documentation for the selected node class */
+	void OnGoToDocumentation();
+
+	/** Can we open documentation for the selected node */
+	bool CanGoToDocumentation();
+
+	/** Util to try and get doc link for the currently selected node */
+	FString GetDocLinkForSelectedNode();
+
 public://@TODO
 	TSharedPtr<FDocumentTracker> DocumentManager;
 

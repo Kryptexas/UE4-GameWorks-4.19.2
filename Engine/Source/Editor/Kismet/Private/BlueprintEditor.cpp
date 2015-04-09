@@ -27,6 +27,7 @@
 #include "GraphEditorActions.h"
 #include "SNodePanel.h"
 #include "SDockTab.h"
+#include "EditorClassUtils.h"
 
 #include "SBlueprintEditorToolbar.h"
 #include "FindInBlueprints.h"
@@ -1132,6 +1133,11 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsSelectionNativeVariable),
 				FIsActionChecked(),
 				FIsActionButtonVisible::CreateSP( this, &FBlueprintEditor::IsNativeCodeBrowsingAvailable )
+				);
+
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().GoToDocumentation,
+				FExecuteAction::CreateSP(this, &FBlueprintEditor::OnGoToDocumentation),
+				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::CanGoToDocumentation)
 				);
 		}
 	}
@@ -5584,6 +5590,41 @@ void FBlueprintEditor::OnGoToDefinition()
 	const FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
 	check(SelectedNodes.Num() == 1);
 	OnNodeDoubleClicked(Cast<UEdGraphNode>(*SelectedNodes.CreateConstIterator()));
+}
+
+FString FBlueprintEditor::GetDocLinkForSelectedNode()
+{
+	FString DocumentationLink;
+
+	const FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
+	if (SelectedNodes.Num() == 1)
+	{
+		UEdGraphNode* SelectedGraphNode = Cast<UEdGraphNode>(*SelectedNodes.CreateConstIterator());
+		if (SelectedGraphNode != NULL)
+		{
+			FString DocLink = SelectedGraphNode->GetDocumentationLink();
+			FString DocExcerpt = SelectedGraphNode->GetDocumentationExcerptName();
+
+			DocumentationLink = FEditorClassUtils::GetDocumentationLinkFromExcerpt(DocLink, DocExcerpt);
+		}
+	}
+
+	return DocumentationLink;
+}
+
+void FBlueprintEditor::OnGoToDocumentation()
+{
+	FString DocumentationLink = GetDocLinkForSelectedNode();
+	if (!DocumentationLink.IsEmpty())
+	{
+		IDocumentation::Get()->Open(DocumentationLink, FDocumentationSourceInfo(TEXT("rightclick_bpnode")));
+	}
+}
+
+bool FBlueprintEditor::CanGoToDocumentation()
+{
+	FString DocumentationLink = GetDocLinkForSelectedNode();
+	return !DocumentationLink.IsEmpty();
 }
 
 void FBlueprintEditor::ToggleSaveIntermediateBuildProducts()

@@ -1402,6 +1402,12 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 					MenuBuilder->EndSection();
 				}
 			}
+
+			MenuBuilder->BeginSection("EdGraphSchemaDocumentation", LOCTEXT("DocumentationHeader", "Documentation"));
+			{
+				MenuBuilder->AddMenuEntry( FGraphEditorCommands::Get().GoToDocumentation );
+			}
+			MenuBuilder->EndSection();
 		}
 	}
 

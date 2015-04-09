@@ -108,6 +108,9 @@ public:
 	// Zoom in and out on the graph editor
 	TSharedPtr< FUICommandInfo > ZoomIn;
 	TSharedPtr< FUICommandInfo > ZoomOut;
+
+	// Go to node documentation
+	TSharedPtr< FUICommandInfo > GoToDocumentation;
 };
 
 class GRAPHEDITOR_API FGraphEditorCommands
