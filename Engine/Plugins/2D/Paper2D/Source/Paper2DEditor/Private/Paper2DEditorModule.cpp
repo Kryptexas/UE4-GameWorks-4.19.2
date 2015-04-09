@@ -19,6 +19,8 @@
 #include "SpriteEditor/SpriteComponentDetailsCustomization.h"
 #include "SpriteEditor/SpritePolygonCollectionCustomization.h"
 
+#include "PaperEditorShared/SpriteGeometryEditMode.h"
+
 // Flipbook support
 #include "FlipbookAssetTypeActions.h"
 #include "PaperFlipbookAssetBroker.h"
@@ -147,6 +149,12 @@ public:
 			FSlateIcon(),
 			false);
 
+		FEditorModeRegistry::Get().RegisterMode<FSpriteGeometryEditMode>(
+			FSpriteGeometryEditMode::EM_SpriteGeometry,
+			LOCTEXT("SpriteGeometryEditMode", "Sprite Geometry Editor"),
+			FSlateIcon(),
+			false);
+
 		// Integrate Paper2D actions associated with existing engine types (e.g., Texture2D) into the content browser
 		FPaperContentBrowserExtensions::InstallHooks();
 
@@ -187,6 +195,7 @@ public:
 			FComponentAssetBrokerage::UnregisterBroker(PaperSpriteBroker);
 
 			// Unregister the editor modes
+			FEditorModeRegistry::Get().UnregisterMode(FSpriteGeometryEditMode::EM_SpriteGeometry);
 			FEditorModeRegistry::Get().UnregisterMode(FEdModeTileMap::EM_TileMap);
 
 			// Unregister the thumbnail renderers

@@ -30,7 +30,7 @@ class FSpriteEditorViewportClient : public FPaperEditorViewportClient, public IS
 {
 public:
 	/** Constructor */
-	FSpriteEditorViewportClient(TWeakPtr<FSpriteEditor> InSpriteEditor, TWeakPtr<class SSpriteEditorViewport> InSpriteEditorViewportPtr);
+	FSpriteEditorViewportClient(TWeakPtr<FSpriteEditor> InSpriteEditor, TWeakPtr<class SEditorViewport> InSpriteEditorViewportPtr);
 
 	// FViewportClient interface
 	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) override;
@@ -42,23 +42,15 @@ public:
 	// FEditorViewportClient interface
 	virtual void ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY) override;
 	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad) override;
-	virtual bool InputWidgetDelta(FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale) override;
 	virtual void TrackingStarted(const struct FInputEventState& InInputState, bool bIsDragging, bool bNudge) override;
 	virtual void TrackingStopped() override;
-	virtual FWidget::EWidgetMode GetWidgetMode() const override;
-	virtual void SetWidgetMode(FWidget::EWidgetMode NewMode) override;
-	virtual bool CanSetWidgetMode(FWidget::EWidgetMode NewMode) const override;
-	virtual bool CanCycleWidgetMode() const override;
-	virtual FVector GetWidgetLocation() const override;
-	virtual FMatrix GetWidgetCoordSystem() const override;
-	virtual ECoordSystem GetWidgetCoordSystemSpace() const override;
 	virtual FLinearColor GetBackgroundColor() const override;
 	// End of FEditorViewportClient interface
 
 	// ISpriteSelectionContext interface
 	virtual FVector2D SelectedItemConvertWorldSpaceDeltaToLocalSpace(const FVector& WorldSpaceDelta) const override;
+	virtual FVector2D WorldSpaceToTextureSpace(const FVector& SourcePoint) const override;
 	virtual FVector TextureSpaceToWorldSpace(const FVector2D& SourcePoint) const override;
-	virtual bool SelectedItemIsSelected(const struct FShapeVertexPair& Item) const override;
 	virtual float SelectedItemGetUnitsPerPixel() const override;
 	virtual void BeginTransaction(const FText& SessionName) override;
 	virtual void MarkTransactionAsDirty() override;
@@ -66,8 +58,7 @@ public:
 	virtual void InvalidateViewportAndHitProxies() override;
 	// End of ISpriteSelectionContext interface
 
-	// Process marquee selection, return true of a selection has been performed
-	bool ProcessMarquee(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, bool bMarqueeStartModifierPressed);
+	void ActivateEditMode();
 
 	void ToggleShowSockets() { bShowSockets = !bShowSockets; Invalidate(); }
 	bool IsShowSocketsChecked() const { return bShowSockets; }
@@ -94,18 +85,6 @@ public:
 	void ToggleShowSourceTexture();
 	bool IsShowSourceTextureChecked() const { return bShowSourceTexture; }
 	bool CanShowSourceTexture() const { return !IsInSourceRegionEditMode(); }
-
-	void FocusOnSprite();
-
-	// Geometry editing commands
-	void DeleteSelection();
-	bool CanDeleteSelection() const { return IsEditingGeometry(); } //@TODO: Need a selection
-
-	void AddBoxShape();
-	void AddCircleShape();
-
-	void SnapAllVerticesToPixelGrid();
-	bool CanSnapVerticesToPixelGrid() const { return IsEditingGeometry(); }
 
 	// Invalidate any references to the sprite being edited; it has changed
 	void NotifySpriteBeingEditedHasChanged();
@@ -143,7 +122,7 @@ private:
 	UPaperSpriteComponent* RenderSpriteComponent;
 
 	// Widget mode
-	FWidget::EWidgetMode DesiredWidgetMode;
+// 	FWidget::EWidgetMode DesiredWidgetMode;
 
 	// Are we currently manipulating something?
 	bool bManipulating;
@@ -152,7 +131,7 @@ private:
 	bool bManipulationDirtiedSomething;
 
 	// Pointer back to the sprite editor viewport control that owns us
-	TWeakPtr<class SSpriteEditorViewport> SpriteEditorViewportPtr;
+	TWeakPtr<class SEditorViewport> SpriteEditorViewportPtr;
 
 	// The current transaction for undo/redo
 	class FScopedTransaction* ScopedTransaction;
@@ -169,21 +148,8 @@ private:
 	// Should we show related sprites in the source texture?
 	bool bShowRelatedSprites;
 
-	// Marquee tracking
-	bool bIsMarqueeTracking;
-	FVector2D MarqueeStartPos, MarqueeEndPos;
-
 	// Other sprites that share the same source texture
 	TArray<FRelatedSprite> RelatedSprites;
-
-	// Sprite geometry editing/rendering helper
-	FSpriteGeometryEditingHelper SpriteGeometryHelper;
-
-public:
-	FSpriteGeometryEditingHelper* GetGeometryEditHelper()
-	{
-		return &SpriteGeometryHelper;
-	}
 
 private:
 	UPaperSprite* GetSpriteBeingEdited() const
@@ -202,25 +168,11 @@ private:
 	void DrawRenderStats(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, class UPaperSprite* Sprite, int32& YPos);
 	void DrawSourceRegion(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FLinearColor& GeometryVertexColor);
 	void DrawRelatedSprites(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FLinearColor& GeometryVertexColor);
-	void DrawMarquee(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FLinearColor& MarqueeColor);
 
 	void UpdateSourceTextureSpriteFromSprite(UPaperSprite* SourceSprite);
 	
-	// Selection handling
-
-	// Indicates if the specified shape is currently selected
-	bool IsShapeSelected(const int32 ShapeIndex) const;
-
-	// Indicates if the specified vertex is selected
-	bool IsPolygonVertexSelected(const int32 PolygonIndex, const int32 VertexIndex) const;
-
-	void ResetMarqueeTracking();
 	bool ConvertMarqueeToSourceTextureSpace(/*out*/FVector2D& OutStartPos, /*out*/FVector2D& OutDimension);
-	void SelectVerticesInMarquee(bool bAddToSelection);
 
 	// Activates a new mode, clearing selection set, etc...
 	void InternalActivateNewMode(ESpriteEditorMode::Type NewMode);
-
-	// Can return null
-	FSpriteGeometryCollection* GetGeometryBeingEdited() const;
 };

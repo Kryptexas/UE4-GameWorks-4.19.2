@@ -26,8 +26,8 @@ class ISpriteSelectionContext
 {
 public:
 	virtual FVector2D SelectedItemConvertWorldSpaceDeltaToLocalSpace(const FVector& WorldSpaceDelta) const = 0;
+	virtual FVector2D WorldSpaceToTextureSpace(const FVector& SourcePoint) const = 0;
 	virtual FVector TextureSpaceToWorldSpace(const FVector2D& SourcePoint) const = 0;
-	virtual bool SelectedItemIsSelected(const struct FShapeVertexPair& Item) const = 0;
 	virtual float SelectedItemGetUnitsPerPixel() const = 0;
 	virtual void BeginTransaction(const FText& SessionName) = 0;
 	virtual void MarkTransactionAsDirty() = 0;
@@ -211,7 +211,7 @@ class FSpriteSelectedShape : public FSelectedItem
 {
 public:
 	// The editor context
-	ISpriteSelectionContext& EditorContext;
+	ISpriteSelectionContext* EditorContext;
 
 	// The geometry that this shape belongs to
 	FSpriteGeometryCollection& Geometry;
@@ -224,7 +224,7 @@ public:
 
 	TWeakObjectPtr<UPaperSprite> SpritePtr;
 public:
-	FSpriteSelectedShape(ISpriteSelectionContext& InEditorContext, FSpriteGeometryCollection& InGeometry, int32 InShapeIndex, bool bInIsBackground = false);
+	FSpriteSelectedShape(ISpriteSelectionContext* InEditorContext, FSpriteGeometryCollection& InGeometry, int32 InShapeIndex, bool bInIsBackground = false);
 
 	// FSelectedItem interface
 	virtual uint32 GetTypeHash() const override;
@@ -243,7 +243,7 @@ class FSpriteSelectedVertex : public FSelectedItem
 {
 public:
 	// The editor context
-	ISpriteSelectionContext& EditorContext;
+	ISpriteSelectionContext* EditorContext;
 
 	// The geometry that this shape belongs to
 	FSpriteGeometryCollection& Geometry;
@@ -252,7 +252,7 @@ public:
 	const int32 VertexIndex;
 
 public:
-	FSpriteSelectedVertex(ISpriteSelectionContext& InEditorContext, FSpriteGeometryCollection& InGeometry, int32 InShapeIndex, int32 InVertexIndex)
+	FSpriteSelectedVertex(ISpriteSelectionContext* InEditorContext, FSpriteGeometryCollection& InGeometry, int32 InShapeIndex, int32 InVertexIndex)
 		: FSelectedItem(FSelectionTypes::Vertex)
 		, EditorContext(InEditorContext)
 		, Geometry(InGeometry)
@@ -293,7 +293,7 @@ public:
 				FVector2D& ShapeSpaceVertex = Vertices[TargetVertexIndex];
 
 				const FVector WorldSpaceDelta = PaperAxisX * Delta.X + PaperAxisY * Delta.Y;
-				const FVector2D TextureSpaceDelta = EditorContext.SelectedItemConvertWorldSpaceDeltaToLocalSpace(WorldSpaceDelta);
+				const FVector2D TextureSpaceDelta = EditorContext->SelectedItemConvertWorldSpaceDeltaToLocalSpace(WorldSpaceDelta);
 				const FVector2D NewTextureSpacePos = Shape.ConvertShapeSpaceToTextureSpace(ShapeSpaceVertex) + TextureSpaceDelta;
 				ShapeSpaceVertex = Shape.ConvertTextureSpaceToShapeSpace(NewTextureSpacePos);
 
@@ -316,7 +316,7 @@ public:
 			{
 				const FVector2D& ShapeSpacePos = Vertices[TargetVertexIndex];
 				const FVector2D TextureSpacePos = Shape.ConvertShapeSpaceToTextureSpace(ShapeSpacePos);
-				Result = EditorContext.TextureSpaceToWorldSpace(TextureSpacePos);
+				Result = EditorContext->TextureSpaceToWorldSpace(TextureSpacePos);
 			}
 		}
 
@@ -345,7 +345,7 @@ public:
 class FSpriteSelectedEdge : public FSpriteSelectedVertex
 {
 public:
-	FSpriteSelectedEdge(ISpriteSelectionContext& InEditorContext, FSpriteGeometryCollection& InGeometry, int32 InShapeIndex, int32 InVertexIndex)
+	FSpriteSelectedEdge(ISpriteSelectionContext* InEditorContext, FSpriteGeometryCollection& InGeometry, int32 InShapeIndex, int32 InVertexIndex)
 		: FSpriteSelectedVertex(InEditorContext, InGeometry, InShapeIndex, InVertexIndex)
 	{
 		TypeName = FSelectionTypes::Edge;

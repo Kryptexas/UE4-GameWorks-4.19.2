@@ -60,6 +60,8 @@ public:
 
 	virtual void DeleteSelectedItems(bool bShouldTransact = true);
 
+	virtual bool CanDeleteSelection() const;
+
 	~FSpriteSelectionHelper()
 	{
 	}
@@ -75,7 +77,7 @@ private:
 class FSpriteGeometryEditingHelper : public FSpriteSelectionHelper, public FGCObject
 {
 public:
-	FSpriteGeometryEditingHelper(class ISpriteSelectionContext& InEditorContext);
+	FSpriteGeometryEditingHelper(class ISpriteSelectionContext* InEditorContext);
 
 	// FSpriteSelectionHelper interface
 	virtual void ClearSelectionSet() override;
@@ -86,8 +88,11 @@ public:
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	// End of FGCObject interface
 
+	void SetEditorContext(class ISpriteSelectionContext* InNewEditorContext);
+	class ISpriteSelectionContext* GetEditorContext() const;
+
 	void DrawGeometry(const FSceneView& View, FPrimitiveDrawInterface& PDI, const FLinearColor& GeometryVertexColor, const FLinearColor& NegativeGeometryVertexColor);
-	void DrawGeometry_CanvasPass(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, /*inout*/ int32& YPos, const FLinearColor& GeometryVertexColor, const FLinearColor& NegativeGeometryVertexColor);
+	void DrawGeometry_CanvasPass(FViewport& InViewport, const FSceneView& View, FCanvas& Canvas, /*inout*/ int32& YPos, const FLinearColor& GeometryVertexColor, const FLinearColor& NegativeGeometryVertexColor);
 
 	// Adds a point to the currently edited index
 	// If SelectedPolygonIndex is set, only that polygon is considered
@@ -107,6 +112,7 @@ public:
 
 	// Changes the geometry being edited (clears the selection set in the process)
 	void SetGeometryBeingEdited(FSpriteGeometryCollection* NewGeometryBeingEdited, bool bInAllowCircles, bool bInAllowSubtractivePolygons);
+	FSpriteGeometryCollection* GetGeometryBeingEdited() const;
 
 	// Adds a new circle shape and selects it
 	void AddNewCircleShape(const FVector2D& CircleLocation, float Radius);
@@ -123,9 +129,16 @@ public:
 	bool CanAddSubtractivePolygon() const { return CanAddPolygon() && bAllowSubtractivePolygons; }
 	void AbandonAddPolygonMode();
 
+	void SnapAllVerticesToPixelGrid();
+	bool CanSnapVerticesToPixelGrid() const { return GeometryBeingEdited != nullptr; }
+
 	//@TODO: The code calling this will eventually be folded in here too
 	void TEMP_HandleAddPolygonClick(const FVector2D& TexturePoint, bool bWantsSubtractive);
 
+	bool IsEditingGeometry() const
+	{
+		return GeometryBeingEdited != nullptr;
+	}
 private:
 	static bool ClosestPointOnLine(const FVector2D& Point, const FVector2D& LineStart, const FVector2D& LineEnd, FVector2D& OutClosestPoint);
 
@@ -143,7 +156,8 @@ private:
 	FVector2D TextureSpaceToScreenSpace(const FSceneView& View, const FVector2D& SourcePoint) const;
 
 private:
-	class ISpriteSelectionContext& EditorContext;
+	class ISpriteSelectionContext* EditorContext;
+
 	UMaterial* WidgetVertexColorMaterial;
 
 	// Set of selected vertices/shapes

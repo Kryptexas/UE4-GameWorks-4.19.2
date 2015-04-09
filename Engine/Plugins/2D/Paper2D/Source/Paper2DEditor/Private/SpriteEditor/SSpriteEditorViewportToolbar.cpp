@@ -31,7 +31,7 @@ TSharedRef<SWidget> SSpriteEditorViewportToolbar::GenerateShowMenu() const
 
 		ShowMenuBuilder.AddMenuEntry(FSpriteEditorCommands::Get().SetShowGrid);
 		ShowMenuBuilder.AddMenuEntry(FSpriteEditorCommands::Get().SetShowBounds);
-		ShowMenuBuilder.AddMenuEntry(FSpriteEditorCommands::Get().SetShowNormals);
+		ShowMenuBuilder.AddMenuEntry(FSpriteGeometryEditCommands::Get().SetShowNormals);
 
 		ShowMenuBuilder.AddMenuSeparator();
 

@@ -15,7 +15,10 @@
 #include "CanvasItem.h"
 #include "PaperEditorShared/SocketEditing.h"
 
+#include "PaperEditorShared/SpriteGeometryEditMode.h"
+
 #include "PhysicsEngine/BodySetup2D.h"
+#include "SEditorViewport.h"
 
 #define LOCTEXT_NAMESPACE "SpriteEditor"
 
@@ -42,8 +45,6 @@ namespace SpriteEditingConstants
 	const FLinearColor BakedCollisionRenderColor(1.0f, 1.0f, 0.0f, 0.5f);
 	const float BakedCollisionVertexSize = 3.0f;
 
-	const FLinearColor MarqueeColor(1.0f, 1.0f, 1.0f, 0.5f);
-
 	const FLinearColor SourceRegionBoundsColor(1.0f, 1.0f, 1.0f, 0.8f);
 	// Alpha is being ignored in FBatchedElements::AddLine :(
 	const FLinearColor SourceRegionRelatedBoundsColor(0.3f, 0.3f, 0.3f, 0.2f);
@@ -56,19 +57,21 @@ namespace SpriteEditingConstants
 //////////////////////////////////////////////////////////////////////////
 // FSpriteEditorViewportClient
 
-FSpriteEditorViewportClient::FSpriteEditorViewportClient(TWeakPtr<FSpriteEditor> InSpriteEditor, TWeakPtr<class SSpriteEditorViewport> InSpriteEditorViewportPtr)
+FSpriteEditorViewportClient::FSpriteEditorViewportClient(TWeakPtr<FSpriteEditor> InSpriteEditor, TWeakPtr<class SEditorViewport> InSpriteEditorViewportPtr)
 	: CurrentMode(ESpriteEditorMode::ViewMode)
 	, SpriteEditorPtr(InSpriteEditor)
 	, SpriteEditorViewportPtr(InSpriteEditorViewportPtr)
-	, SpriteGeometryHelper(*this)
 {
 	check(SpriteEditorPtr.IsValid() && SpriteEditorViewportPtr.IsValid());
 
+	// The tile map editor fully supports mode tools and isn't doing any incompatible stuff with the Widget
+	Widget->SetUsesEditorModeTools(ModeTools);
+
 	PreviewScene = &OwnedPreviewScene;
+	((FAssetEditorModeManager*)ModeTools)->SetPreviewScene(PreviewScene);
 
 	SetRealtime(true);
 
-	DesiredWidgetMode = FWidget::WM_Translate;
 	bManipulating = false;
 	bManipulationDirtiedSomething = false;
 	ScopedTransaction = nullptr;
@@ -77,8 +80,6 @@ FSpriteEditorViewportClient::FSpriteEditorViewportClient(TWeakPtr<FSpriteEditor>
 	bShowSockets = true;
 	bShowPivot = true;
 	bShowRelatedSprites = true;
-
-	bIsMarqueeTracking = false;
 
 	DrawHelper.bDrawGrid = false;
 
@@ -111,6 +112,20 @@ FSpriteEditorViewportClient::FSpriteEditorViewportClient(TWeakPtr<FSpriteEditor>
 		SourceTextureViewComponent->bVisible = false;
 		PreviewScene->AddComponent(SourceTextureViewComponent, Transform);
 	}
+}
+
+void FSpriteEditorViewportClient::ActivateEditMode()
+{
+	// Activate the sprite geometry edit mode
+	ModeTools->SetToolkitHost(SpriteEditorPtr.Pin()->GetToolkitHost());
+	ModeTools->SetDefaultMode(FSpriteGeometryEditMode::EM_SpriteGeometry);
+	ModeTools->ActivateDefaultMode();
+
+	FSpriteGeometryEditMode* GeometryEditMode = ModeTools->GetActiveModeTyped<FSpriteGeometryEditMode>(FSpriteGeometryEditMode::EM_SpriteGeometry);
+	check(GeometryEditMode);
+	GeometryEditMode->SetEditorContext(this);
+	GeometryEditMode->BindCommands(SpriteEditorViewportPtr.Pin()->GetCommandList());
+	ModeTools->SetWidgetMode(FWidget::WM_Translate);
 }
 
 void FSpriteEditorViewportClient::UpdateSourceTextureSpriteFromSprite(UPaperSprite* SourceSprite)
@@ -284,23 +299,6 @@ void FSpriteEditorViewportClient::DrawSourceRegion(FViewport& InViewport, FScene
                 Canvas.SetHitProxy(nullptr);
             }
         }
-	}
-}
-
-void FSpriteEditorViewportClient::DrawMarquee(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FLinearColor& MarqueeColor)
-{
-	FVector2D MarqueeDelta = MarqueeEndPos - MarqueeStartPos;
-	FVector2D MarqueeVertices[4];
-	MarqueeVertices[0] = FVector2D(MarqueeStartPos.X, MarqueeStartPos.Y);
-	MarqueeVertices[1] = MarqueeVertices[0] + FVector2D(MarqueeDelta.X, 0);
-	MarqueeVertices[2] = MarqueeVertices[0] + FVector2D(MarqueeDelta.X, MarqueeDelta.Y);
-	MarqueeVertices[3] = MarqueeVertices[0] + FVector2D(0, MarqueeDelta.Y);
-	for (int32 MarqueeVertexIndex = 0; MarqueeVertexIndex < 4; ++MarqueeVertexIndex)
-	{
-		const int32 NextVertexIndex = (MarqueeVertexIndex + 1) % 4;
-		FCanvasLineItem MarqueeLine(MarqueeVertices[MarqueeVertexIndex], MarqueeVertices[NextVertexIndex]);
-		MarqueeLine.SetColor(MarqueeColor);
-		Canvas.DrawItem(MarqueeLine);
 	}
 }
 
@@ -591,8 +589,8 @@ void FSpriteEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& Vi
 		break;
 	case ESpriteEditorMode::EditCollisionMode:
 		{
-			// Draw the custom collision geometry
-			SpriteGeometryHelper.DrawGeometry_CanvasPass(Viewport, View, Canvas, /*inout*/ YPos, SpriteEditingConstants::CollisionShapeColor, FLinearColor::White);
+			// Draw the collision geometry stats
+			YPos += 60; //@TODO: Need a better way to determine this from the editor mode
 			if (Sprite->BodySetup != nullptr)
 			{
 				DrawGeometryStats(Viewport, View, Canvas, Sprite->CollisionGeometry, false, /*inout*/ YPos);
@@ -608,8 +606,8 @@ void FSpriteEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& Vi
 		break;
 	case ESpriteEditorMode::EditRenderingGeomMode:
 		{
-			// Draw the custom render geometry
-			SpriteGeometryHelper.DrawGeometry_CanvasPass(Viewport, View, Canvas, /*inout*/ YPos, SpriteEditingConstants::RenderShapeColor, SpriteEditingConstants::SubtractiveRenderShapeColor);
+			// Draw the render geometry stats
+			YPos += 60; //@TODO: Need a better way to determine this from the editor mode
 			DrawGeometryStats(Viewport, View, Canvas, Sprite->RenderGeometry, true, /*inout*/ YPos);
 			DrawRenderStats(Viewport, View, Canvas, Sprite, /*inout*/ YPos);
 
@@ -637,11 +635,6 @@ void FSpriteEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& Vi
 		break;
 	}
 
-	if (bIsMarqueeTracking)
-	{
-		DrawMarquee(Viewport, View, Canvas, SpriteEditingConstants::MarqueeColor);
-	}
-
 	if (bShowSockets && !IsInSourceRegionEditMode())
 	{
 		FSocketEditingHelper::DrawSocketNames(RenderSpriteComponent, Viewport, View, Canvas);
@@ -666,20 +659,6 @@ void FSpriteEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInt
 	if (bShowSockets && !IsInSourceRegionEditMode())
 	{
 		FSocketEditingHelper::DrawSockets(RenderSpriteComponent, View, PDI);
-	}
-
-	switch (CurrentMode)
-	{
-	case ESpriteEditorMode::EditCollisionMode:
-		// Draw the custom collision geometry
-		SpriteGeometryHelper.DrawGeometry(*View, *PDI, SpriteEditingConstants::CollisionShapeColor, FLinearColor::White);
-		break;
-	case ESpriteEditorMode::EditRenderingGeomMode:
-		// Draw the custom render geometry
-		SpriteGeometryHelper.DrawGeometry(*View, *PDI, SpriteEditingConstants::RenderShapeColor, SpriteEditingConstants::SubtractiveRenderShapeColor);
-		break;
-	default:
-		break;
 	}
 }
 
@@ -722,13 +701,17 @@ void FSpriteEditorViewportClient::Tick(float DeltaSeconds)
 			RequestFocusOnSelection(/*bInstant=*/ true);
 			RenderSpriteComponent->SetVisibility(bRenderTextureViewComponentVisibility);
 		}
-	}
 
-	if (bIsMarqueeTracking)
-	{
-		int32 HitX = Viewport->GetMouseX();
-		int32 HitY = Viewport->GetMouseY();
-		MarqueeEndPos = FVector2D(HitX, HitY);
+		const FVector2D BoxSize(Sprite->GetSourceSize());
+		const FVector2D BoxLocation(Sprite->GetSourceUV() + (BoxSize * 0.5f));
+		FBox2D SpriteBounds(ForceInitToZero);
+		SpriteBounds.Min = BoxSize - BoxLocation * 0.5f;
+		SpriteBounds.Max = BoxSize + BoxLocation * 0.5f;
+
+		if (FSpriteGeometryEditMode* GeometryEditMode = ModeTools->GetActiveModeTyped<FSpriteGeometryEditMode>(FSpriteGeometryEditMode::EM_SpriteGeometry))
+		{
+			GeometryEditMode->SetNewGeometryPreferredBounds(SpriteBounds);
+		}
 	}
 
 	FPaperEditorViewportClient::Tick(DeltaSeconds);
@@ -812,173 +795,59 @@ void FSpriteEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitP
 	const bool bIsAltKeyDown = Viewport->KeyState(EKeys::LeftAlt) || Viewport->KeyState(EKeys::RightAlt);
 	bool bHandled = false;
 
-	const bool bAllowSelectVertex = !(IsEditingGeometry() && SpriteGeometryHelper.IsAddingPolygon()) && !bIsShiftKeyDown;
-
-	const bool bClearSelectionModifier = bIsCtrlKeyDown;
-	const bool bDeleteClickedVertex = bIsAltKeyDown;
-	const bool bInsertVertexModifier = bIsShiftKeyDown;
 	HSpriteSelectableObjectHitProxy* SelectedItemProxy = HitProxyCast<HSpriteSelectableObjectHitProxy>(HitProxy);
 
-	if (bAllowSelectVertex && (SelectedItemProxy != nullptr))
+	if (IsInSourceRegionEditMode())
 	{
-		if (!bClearSelectionModifier)
+		if (Event == EInputEvent::IE_DoubleClick)
 		{
-			SpriteGeometryHelper.ClearSelectionSet();
-		}
-
-		if (bDeleteClickedVertex)
-		{
-			// Delete selection
-			if (const FSpriteSelectedVertex* SelectedVertex = SelectedItemProxy->Data->CastTo<const FSpriteSelectedVertex>(FSelectionTypes::Vertex))
+			FVector4 WorldPoint = View.PixelToWorld(HitX, HitY, 0);
+			UPaperSprite* Sprite = GetSpriteBeingEdited();
+			FVector2D TexturePoint = SourceTextureViewComponent->GetSprite()->ConvertWorldSpaceToTextureSpace(WorldPoint);
+			if (bIsCtrlKeyDown)
 			{
-				SpriteGeometryHelper.ClearSelectionSet();
-				SpriteGeometryHelper.AddPolygonVertexToSelection(SelectedVertex->ShapeIndex, SelectedVertex->VertexIndex);
-				DeleteSelection();
+				UPaperSprite* NewSprite = CreateNewSprite(Sprite->GetSourceUV(), Sprite->GetSourceSize());
+				if (NewSprite != nullptr)
+				{
+					NewSprite->ExtractSourceRegionFromTexturePoint(TexturePoint);
+					bHandled = true;
+				}
 			}
-			else if (const FSpriteSelectedShape* SelectedShape = SelectedItemProxy->Data->CastTo<const FSpriteSelectedShape>(FSelectionTypes::GeometryShape))
+			else
 			{
-				SpriteGeometryHelper.ClearSelectionSet();
-				SpriteGeometryHelper.AddShapeToSelection(SelectedShape->ShapeIndex);
-				DeleteSelection();
-			}
-		}
-		else if (Event == EInputEvent::IE_DoubleClick)
-		{
-			// Double click to select a polygon
-			if (const FSpriteSelectedVertex* SelectedVertex = SelectedItemProxy->Data->CastTo<const FSpriteSelectedVertex>(FSelectionTypes::Vertex))
-			{
-				SpriteGeometryHelper.ClearSelectionSet();
-				SpriteGeometryHelper.AddShapeToSelection(SelectedVertex->ShapeIndex);
+				Sprite->ExtractSourceRegionFromTexturePoint(TexturePoint);
+				bHandled = true;
 			}
 		}
 		else
 		{
-			//@TODO: This needs to be generalized!
-			if (const FSpriteSelectedEdge* SelectedEdge = SelectedItemProxy->Data->CastTo<const FSpriteSelectedEdge>(FSelectionTypes::Edge))
+			FVector4 WorldPoint = View.PixelToWorld(HitX, HitY, 0);
+			FVector2D TexturePoint = SourceTextureViewComponent->GetSprite()->ConvertWorldSpaceToTextureSpace(WorldPoint);
+			for (int32 RelatedSpriteIndex = 0; RelatedSpriteIndex < RelatedSprites.Num(); ++RelatedSpriteIndex)
 			{
-				// Add the next vertex defined by this edge
-				SpriteGeometryHelper.AddPolygonEdgeToSelection(SelectedEdge->ShapeIndex, SelectedEdge->VertexIndex);
-			}
-			else if (const FSpriteSelectedVertex* SelectedVertex = SelectedItemProxy->Data->CastTo<const FSpriteSelectedVertex>(FSelectionTypes::Vertex))
-			{
-				SpriteGeometryHelper.AddPolygonVertexToSelection(SelectedVertex->ShapeIndex, SelectedVertex->VertexIndex);
-			}
-			else if (const FSpriteSelectedShape* SelectedShape = SelectedItemProxy->Data->CastTo<const FSpriteSelectedShape>(FSelectionTypes::GeometryShape))
-			{
-				SpriteGeometryHelper.AddShapeToSelection(SelectedShape->ShapeIndex);
-			}
-			else
-			{
-				SpriteGeometryHelper.SelectItem(SelectedItemProxy->Data);
-			}
-		}
-
-		bHandled = true;
-	}
-// 	else if (HWidgetUtilProxy* PivotProxy = HitProxyCast<HWidgetUtilProxy>(HitProxy))
-// 	{
-// 		//const bool bUserWantsPaint = bIsLeftButtonDown && ( !GetDefault<ULevelEditorViewportSettings>()->bLeftMouseDragMovesCamera ||  bIsCtrlDown );
-// 		//findme
-// 		WidgetAxis = WidgetProxy->Axis;
-// 
-// 			// Calculate the screen-space directions for this drag.
-// 			FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues( Viewport, GetScene(), EngineShowFlags ));
-// 			FSceneView* View = CalcSceneView(&ViewFamily);
-// 			WidgetProxy->CalcVectors(View, FViewportClick(View, this, Key, Event, HitX, HitY), LocalManipulateDir, WorldManipulateDir, DragX, DragY);
-// 			bHandled = true;
-// 	}
-	else
-	{
-		if (IsInSourceRegionEditMode())
-		{
-			SpriteGeometryHelper.ClearSelectionSet();
-
-			if (Event == EInputEvent::IE_DoubleClick)
-			{
-				FVector4 WorldPoint = View.PixelToWorld(HitX, HitY, 0);
-				UPaperSprite* Sprite = GetSpriteBeingEdited();
-				FVector2D TexturePoint = SourceTextureViewComponent->GetSprite()->ConvertWorldSpaceToTextureSpace(WorldPoint);
-				if (bIsCtrlKeyDown)
+				FRelatedSprite& RelatedSprite = RelatedSprites[RelatedSpriteIndex];
+				if ((TexturePoint.X >= RelatedSprite.SourceUV.X) && (TexturePoint.Y >= RelatedSprite.SourceUV.Y) &&
+					(TexturePoint.X < (RelatedSprite.SourceUV.X + RelatedSprite.SourceDimension.X)) &&
+					(TexturePoint.Y < (RelatedSprite.SourceUV.Y + RelatedSprite.SourceDimension.Y)))
 				{
-					UPaperSprite* NewSprite = CreateNewSprite(Sprite->GetSourceUV(), Sprite->GetSourceSize());
-					if (NewSprite != nullptr)
+					// Select this sprite
+					if (UPaperSprite* LoadedSprite = Cast<UPaperSprite>(RelatedSprite.AssetData.GetAsset()))
 					{
-						NewSprite->ExtractSourceRegionFromTexturePoint(TexturePoint);
-						bHandled = true;
-					}
-				}
-				else
-				{
-					Sprite->ExtractSourceRegionFromTexturePoint(TexturePoint);
-					bHandled = true;
-				}
-			}
-			else
-			{
-				FVector4 WorldPoint = View.PixelToWorld(HitX, HitY, 0);
-				FVector2D TexturePoint = SourceTextureViewComponent->GetSprite()->ConvertWorldSpaceToTextureSpace(WorldPoint);
-				for (int32 RelatedSpriteIndex = 0; RelatedSpriteIndex < RelatedSprites.Num(); ++RelatedSpriteIndex)
-				{
-					FRelatedSprite& RelatedSprite = RelatedSprites[RelatedSpriteIndex];
-					if ((TexturePoint.X >= RelatedSprite.SourceUV.X) && (TexturePoint.Y >= RelatedSprite.SourceUV.Y) &&
-						(TexturePoint.X < (RelatedSprite.SourceUV.X + RelatedSprite.SourceDimension.X)) &&
-						(TexturePoint.Y < (RelatedSprite.SourceUV.Y + RelatedSprite.SourceDimension.Y)))
-					{
-						// Select this sprite
-						if (UPaperSprite* LoadedSprite = Cast<UPaperSprite>(RelatedSprite.AssetData.GetAsset()))
+						if (SpriteEditorPtr.IsValid())
 						{
-							if (SpriteEditorPtr.IsValid())
-							{
-								SpriteEditorPtr.Pin()->SetSpriteBeingEdited(LoadedSprite);
-								break;
-							}
-						}
-						bHandled = true;
-					}
-				}
-			}
-		}
-		else if (IsEditingGeometry() && !SpriteGeometryHelper.IsAddingPolygon())
-		{
-			FSpriteGeometryCollection* Geometry = GetGeometryBeingEdited();
-
-			if (bInsertVertexModifier)
-			{
-				FVector4 WorldPoint = View.PixelToWorld(HitX, HitY, 0);
-				if (UPaperSprite* Sprite = GetSpriteBeingEdited())
-				{
-					FVector2D SpriteSpaceClickPoint = Sprite->ConvertWorldSpaceToTextureSpace(WorldPoint);
-
-					// find a polygon to add vert to
-					bool bFoundShapeToAddTo = false;
-					for (TSharedPtr<FSelectedItem> SelectedItemPtr : SpriteGeometryHelper.GetSelectionSet())
-					{
-						if (const FSpriteSelectedVertex* SelectedVertex = SelectedItemPtr->CastTo<const FSpriteSelectedVertex>(FSelectionTypes::Vertex)) //@TODO:  Inflexible?
-						{
-							SpriteGeometryHelper.AddPointToGeometry(SpriteSpaceClickPoint, SelectedVertex->ShapeIndex);
-							bFoundShapeToAddTo = true;
+							SpriteEditorPtr.Pin()->SetSpriteBeingEdited(LoadedSprite);
 							break;
 						}
 					}
-
-					if (!bFoundShapeToAddTo)
-					{
-						SpriteGeometryHelper.AddPointToGeometry(SpriteSpaceClickPoint);
-					}
 					bHandled = true;
 				}
 			}
 		}
-		else if (!IsEditingGeometry())
-		{
-			// Clicked on the background (missed any proxies), deselect the socket or whatever was selected
-			SpriteGeometryHelper.ClearSelectionSet();
-		}
+	}
 
-		if (!bHandled)
-		{
-			FPaperEditorViewportClient::ProcessClick(View, HitProxy, Key, Event, HitX, HitY);
-		}
+	if (!bHandled)
+	{
+		FPaperEditorViewportClient::ProcessClick(View, HitProxy, Key, Event, HitX, HitY);
 	}
 }
 
@@ -1022,41 +891,6 @@ UPaperSprite* FSpriteEditorViewportClient::CreateNewSprite(FVector2D TopLeft, FV
 	return CreatedSprite;
 }
 
-bool FSpriteEditorViewportClient::ProcessMarquee(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, bool bMarqueeStartModifierPressed)
-{
-	bool bMarqueeReady = false;
-
-	if (Key == EKeys::LeftMouseButton)
-	{
-		int32 HitX = Viewport->GetMouseX();
-		int32 HitY = Viewport->GetMouseY();
-		if (Event == IE_Pressed && bMarqueeStartModifierPressed)
-		{
-			HHitProxy* HitResult = Viewport->GetHitProxy(HitX, HitY);
-			
-			if ((HitResult == nullptr) || (HitResult->Priority == HPP_World))
-			{
-				bIsMarqueeTracking = true;
-				MarqueeStartPos = FVector2D(HitX, HitY);
-				MarqueeEndPos = MarqueeStartPos;
-			}
-		}
-		else if (bIsMarqueeTracking && (Event == IE_Released))
-		{
-			MarqueeEndPos = FVector2D(HitX, HitY);
-			bIsMarqueeTracking = false;
-			bMarqueeReady = true;
-		}
-	}
-	else if (bIsMarqueeTracking && (Key == EKeys::Escape))
-	{
-		// Cancel marquee selection
-		bIsMarqueeTracking = false;
-	}
-
-	return bMarqueeReady;
-}
-
 bool FSpriteEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad)
 {
 	bool bHandled = false;
@@ -1065,10 +899,14 @@ bool FSpriteEditorViewportClient::InputKey(FViewport* Viewport, int32 Controller
 	// Handle marquee tracking in source region edit mode
 	if (IsInSourceRegionEditMode())
 	{
-		bool bMarqueeStartModifier = InputState.IsCtrlButtonPressed();
-		if (ProcessMarquee(Viewport, ControllerId, Key, Event, bMarqueeStartModifier))
+		FSpriteGeometryEditMode* GeometryEditMode = ModeTools->GetActiveModeTyped<FSpriteGeometryEditMode>(FSpriteGeometryEditMode::EM_SpriteGeometry);
+		check(GeometryEditMode);
+
+		const bool bMarqueeStartModifier = InputState.IsCtrlButtonPressed();
+		if (GeometryEditMode->ProcessMarquee(Viewport, Key, Event, bMarqueeStartModifier))
 		{
-			FVector2D TextureSpaceStartPos, TextureSpaceDimensions;
+			FVector2D TextureSpaceStartPos;
+			FVector2D TextureSpaceDimensions;
 			if (ConvertMarqueeToSourceTextureSpace(/*out*/TextureSpaceStartPos, /*out*/TextureSpaceDimensions))
 			{
 				//@TODO: Warn if overlapping with another sprite
@@ -1076,92 +914,18 @@ bool FSpriteEditorViewportClient::InputKey(FViewport* Viewport, int32 Controller
 			}
 		}
 	}
-	else if (IsEditingGeometry())
-	{
-		if (SpriteGeometryHelper.IsAddingPolygon())
-		{
-			if (Key == EKeys::LeftMouseButton && Event == IE_Pressed)
-			{
-				const int32 HitX = Viewport->GetMouseX();
-				const int32 HitY = Viewport->GetMouseY();
-
-				// Calculate world space positions
-				FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(Viewport, GetScene(), EngineShowFlags));
-				FSceneView* View = CalcSceneView(&ViewFamily);
-				FVector WorldPoint = View->PixelToWorld(HitX, HitY, 0);
-
-				UPaperSprite* Sprite = GetSpriteBeingEdited();
-				FVector2D TexturePoint = Sprite->ConvertWorldSpaceToTextureSpace(WorldPoint);
-
-				const bool bMakeSubtractiveIfAllowed = Viewport->KeyState(EKeys::LeftControl) || Viewport->KeyState(EKeys::RightControl);
-				SpriteGeometryHelper.TEMP_HandleAddPolygonClick(TexturePoint, bMakeSubtractiveIfAllowed);
-			}
-			else if (Key == EKeys::Enter)
-			{
-				SpriteGeometryHelper.ResetAddPolygonMode();
-			}
-			else if (Key == EKeys::Escape)
-			{
-				SpriteGeometryHelper.AbandonAddPolygonMode();
-			}
-		}
-		else
-		{
-			if (ProcessMarquee(Viewport, ControllerId, Key, Event, true))
-			{
-				const bool bAddingToSelection = InputState.IsShiftButtonPressed(); //@TODO: control button moves widget? Hopefully make this more consistent when that is changed
-				SelectVerticesInMarquee(bAddingToSelection);
-			}
-		}
-	}
-
-	// Start the drag
-	//@TODO: EKeys::LeftMouseButton
-	//@TODO: Event.IE_Pressed
-	// Implement InputAxis
-	// StartTracking
-
+	
 	// Pass keys to standard controls, if we didn't consume input
-	return (bHandled) ? true : FEditorViewportClient::InputKey(Viewport,  ControllerId, Key, Event, AmountDepressed, bGamepad);
-}
-
-bool FSpriteEditorViewportClient::InputWidgetDelta(FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale)
-{
-	bool bHandled = false;
-	if (bManipulating && (CurrentAxis != EAxisList::None))
-	{
-		bHandled = true;
-
-		const FWidget::EWidgetMode MoveMode = GetWidgetMode();
-
-		// Negate Y because vertices are in source texture space, not world space
-		const FVector2D Drag2D(FVector::DotProduct(Drag, PaperAxisX), -FVector::DotProduct(Drag, PaperAxisY));
-
-		// Apply the delta to all of the selected objects
-		for (TSharedPtr<FSelectedItem> SelectedItem : SpriteGeometryHelper.GetSelectionSet())
-		{
-			SelectedItem->ApplyDelta(Drag2D, Rot, Scale, MoveMode);
-		}
-
-		if (SpriteGeometryHelper.HasAnySelectedItems())
-		{
-			if (!IsInSourceRegionEditMode())
-			{
-				UPaperSprite* Sprite = GetSpriteBeingEdited();
-				Sprite->PostEditChange();
-				Invalidate();
-			}
-
-			bManipulationDirtiedSomething = true;
-		}
-	}
-
-	return bHandled;
+	return (bHandled) ? true : FEditorViewportClient::InputKey(Viewport, ControllerId, Key, Event, AmountDepressed, bGamepad);
 }
 
 void FSpriteEditorViewportClient::TrackingStarted(const struct FInputEventState& InInputState, bool bIsDragging, bool bNudge)
 {
-	if (!bManipulating && bIsDragging)
+	//@TODO: Should push this into FEditorViewportClient
+	// Begin transacting.  Give the current editor mode an opportunity to do the transacting.
+	const bool bTrackingHandledExternally = ModeTools->StartTracking(this, Viewport);
+
+	if (!bManipulating && bIsDragging && !bTrackingHandledExternally)
 	{
 		BeginTransaction(LOCTEXT("ModificationInViewport", "Modification in Viewport"));
 		bManipulating = true;
@@ -1171,62 +935,14 @@ void FSpriteEditorViewportClient::TrackingStarted(const struct FInputEventState&
 
 void FSpriteEditorViewportClient::TrackingStopped() 
 {
-	if (bManipulating)
+	// Stop transacting.  Give the current editor mode an opportunity to do the transacting.
+	const bool bTransactingHandledByEditorMode = ModeTools->EndTracking(this, Viewport);
+
+	if (bManipulating && !bTransactingHandledByEditorMode)
 	{
 		EndTransaction();
 		bManipulating = false;
 	}
-}
-
-FWidget::EWidgetMode FSpriteEditorViewportClient::GetWidgetMode() const
-{
-	return SpriteGeometryHelper.HasAnySelectedItems() ? DesiredWidgetMode : FWidget::WM_None;
-}
-
-void FSpriteEditorViewportClient::SetWidgetMode(FWidget::EWidgetMode NewMode)
-{
-	DesiredWidgetMode = NewMode;
-}
-
-bool FSpriteEditorViewportClient::CanSetWidgetMode(FWidget::EWidgetMode NewMode) const
-{
-	return CanCycleWidgetMode();
-}
-
-bool FSpriteEditorViewportClient::CanCycleWidgetMode() const
-{
-	if (!Widget->IsDragging())
-	{
-		return SpriteGeometryHelper.HasAnySelectedItems();
-	}
-	return false;
-}
-
-FVector FSpriteEditorViewportClient::GetWidgetLocation() const
-{
-	FVector SummedPos(ForceInitToZero);
-
-	if (SpriteGeometryHelper.HasAnySelectedItems())
-	{
-		// Find the center of the selection set
-		for (TSharedPtr<FSelectedItem> SelectedItem : SpriteGeometryHelper.GetSelectionSet())
-		{
-			SummedPos += SelectedItem->GetWorldPos();
-		}
-		return (SummedPos / SpriteGeometryHelper.GetSelectionSet().Num());
-	}
-
-	return SummedPos;
-}
-
-FMatrix FSpriteEditorViewportClient::GetWidgetCoordSystem() const
-{
-	return FMatrix::Identity;
-}
-
-ECoordSystem FSpriteEditorViewportClient::GetWidgetCoordSystemSpace() const
-{
-	return COORD_World;
 }
 
 FLinearColor FSpriteEditorViewportClient::GetBackgroundColor() const
@@ -1240,15 +956,16 @@ FVector2D FSpriteEditorViewportClient::SelectedItemConvertWorldSpaceDeltaToLocal
 	return Sprite->ConvertWorldSpaceDeltaToTextureSpace(WorldSpaceDelta);
 }
 
+FVector2D FSpriteEditorViewportClient::WorldSpaceToTextureSpace(const FVector& SourcePoint) const
+{
+	UPaperSprite* Sprite = GetSpriteBeingEdited();
+	return Sprite->ConvertWorldSpaceToTextureSpace(SourcePoint);
+}
+
 FVector FSpriteEditorViewportClient::TextureSpaceToWorldSpace(const FVector2D& SourcePoint) const
 {
 	UPaperSprite* Sprite = GetSpriteBeingEdited();
 	return Sprite->ConvertTextureSpaceToWorldSpace(SourcePoint);
-}
-
-bool FSpriteEditorViewportClient::SelectedItemIsSelected(const struct FShapeVertexPair& Item) const
-{
-	return SpriteGeometryHelper.IsGeometrySelected(Item);
 }
 
 float FSpriteEditorViewportClient::SelectedItemGetUnitsPerPixel() const
@@ -1271,6 +988,9 @@ void FSpriteEditorViewportClient::BeginTransaction(const FText& SessionName)
 void FSpriteEditorViewportClient::MarkTransactionAsDirty()
 {
 	bManipulationDirtiedSomething = true;
+	Invalidate();
+	//@TODO: Can add a call to Sprite->PostEditChange here if we want to update the baked sprite data during a drag operation
+	// (maybe passing in Interactive - if so, the EndTransaction PostEditChange needs to be a ValueSet)
 }
 
 void FSpriteEditorViewportClient::EndTransaction()
@@ -1309,7 +1029,6 @@ void FSpriteEditorViewportClient::NotifySpriteBeingEditedHasChanged()
 {
 	//@TODO: Ideally we do this before switching
 	EndTransaction();
-	SpriteGeometryHelper.ClearSelectionSet();
 
 	// Update components to know about the new sprite being edited
 	UPaperSprite* Sprite = GetSpriteBeingEdited();
@@ -1323,93 +1042,19 @@ void FSpriteEditorViewportClient::NotifySpriteBeingEditedHasChanged()
 	RequestFocusOnSelection(/*bInstant=*/ true);
 }
 
-void FSpriteEditorViewportClient::FocusOnSprite()
-{
-	FocusViewportOnBox(RenderSpriteComponent->Bounds.GetBox());
-}
-
-void FSpriteEditorViewportClient::DeleteSelection()
-{
-	SpriteGeometryHelper.DeleteSelectedItems();
-}
-
-void FSpriteEditorViewportClient::AddBoxShape()
-{
-	UPaperSprite* Sprite = GetSpriteBeingEdited();
-	check(Sprite);
-
-	const FVector2D BoxSize(Sprite->GetSourceSize());
-	const FVector2D BoxLocation(Sprite->GetSourceUV() + (BoxSize * 0.5f));
-
-	SpriteGeometryHelper.AddNewBoxShape(BoxLocation, BoxSize);
-}
-
-void FSpriteEditorViewportClient::AddCircleShape()
-{
-	check(IsInCollisionEditMode());
-
-	UPaperSprite* Sprite = GetSpriteBeingEdited();
-	check(Sprite);
-
-	const FVector2D SpriteBounds = Sprite->GetSourceSize();
-	const float SmallerBoundingAxisSize = SpriteBounds.GetMin();
-	const float CircleRadius = SmallerBoundingAxisSize * 0.5f;
-	const FVector2D EllipseLocation = Sprite->GetSourceUV() + (SpriteBounds * 0.5f);
-
-	SpriteGeometryHelper.AddNewCircleShape(EllipseLocation, CircleRadius);
-}
-
-void FSpriteEditorViewportClient::SnapAllVerticesToPixelGrid()
-{
-	if (FSpriteGeometryCollection* Geometry = GetGeometryBeingEdited())
-	{
-		BeginTransaction(LOCTEXT("SnapAllVertsToPixelGridTransaction", "Snap All Verts to Pixel Grid"));
-
-		for (FSpriteGeometryShape& Shape : Geometry->Shapes)
-		{
-			bManipulationDirtiedSomething = true;
-
-			Shape.BoxPosition.X = FMath::RoundToInt(Shape.BoxPosition.X);
-			Shape.BoxPosition.Y = FMath::RoundToInt(Shape.BoxPosition.Y);
-			
-			if ((Shape.ShapeType == ESpriteShapeType::Box) || (Shape.ShapeType == ESpriteShapeType::Circle))
-			{
-				//@TODO: Should we snap BoxPosition also, or just the verts?
-				const FVector2D OldHalfSize = Shape.BoxSize * 0.5f;
-				FVector2D TopLeft = Shape.BoxPosition - OldHalfSize;
-				FVector2D BottomRight = Shape.BoxPosition + OldHalfSize;
-				TopLeft.X = FMath::RoundToInt(TopLeft.X);
-				TopLeft.Y = FMath::RoundToInt(TopLeft.Y);
-				BottomRight.X = FMath::RoundToInt(BottomRight.X);
-				BottomRight.Y = FMath::RoundToInt(BottomRight.Y);
-				Shape.BoxPosition = (TopLeft + BottomRight) * 0.5f;
-				Shape.BoxSize = BottomRight - TopLeft;
-			}
-
-			for (FVector2D& Vertex : Shape.Vertices)
-			{
-				FVector2D TextureSpaceVertex = Shape.ConvertShapeSpaceToTextureSpace(Vertex);
-				TextureSpaceVertex.X = FMath::RoundToInt(TextureSpaceVertex.X);
-				TextureSpaceVertex.Y = FMath::RoundToInt(TextureSpaceVertex.Y);
-				Vertex = Shape.ConvertTextureSpaceToShapeSpace(TextureSpaceVertex);
-			}
-		}
-
-		EndTransaction();
-	}
-}
-
 void FSpriteEditorViewportClient::InternalActivateNewMode(ESpriteEditorMode::Type NewMode)
 {
 	CurrentMode = NewMode;
 	Viewport->InvalidateHitProxy();
-	ResetMarqueeTracking();
 
 	UPaperSprite* Sprite = GetSpriteBeingEdited();
 
+	FSpriteGeometryEditMode* GeometryEditMode = ModeTools->GetActiveModeTyped<FSpriteGeometryEditMode>(FSpriteGeometryEditMode::EM_SpriteGeometry);
+	check(GeometryEditMode);
+
 	// Note: This has side effects (clearing the selection set, ensuring the geometry is correct if the sprite being edited changed, etc...).
 	// Do not skip even if the mode is not really changing.
-	SpriteGeometryHelper.SetGeometryBeingEdited(nullptr, /*bAllowCircles=*/ false, /*bAllowSubtractivePolygons=*/ false);
+	GeometryEditMode->SetGeometryBeingEdited(nullptr, /*bAllowCircles=*/ false, /*bAllowSubtractivePolygons=*/ false);
 
 	switch (CurrentMode)
 	{
@@ -1419,51 +1064,29 @@ void FSpriteEditorViewportClient::InternalActivateNewMode(ESpriteEditorMode::Typ
 		UpdateRelatedSpritesList();
 		break;
 	case ESpriteEditorMode::EditCollisionMode:
+		GeometryEditMode->SetGeometryColors(SpriteEditingConstants::CollisionShapeColor, FLinearColor::White);
 		if (Sprite != nullptr)
 		{
-			SpriteGeometryHelper.SetGeometryBeingEdited(&(Sprite->CollisionGeometry), /*bAllowCircles=*/ true, /*bAllowSubtractivePolygons=*/ false);
+			GeometryEditMode->SetGeometryBeingEdited(&(Sprite->CollisionGeometry), /*bAllowCircles=*/ true, /*bAllowSubtractivePolygons=*/ false);
 		}
 		break;
 	case ESpriteEditorMode::EditRenderingGeomMode:
+		GeometryEditMode->SetGeometryColors(SpriteEditingConstants::RenderShapeColor, SpriteEditingConstants::SubtractiveRenderShapeColor);
 		if (Sprite != nullptr)
 		{
-			SpriteGeometryHelper.SetGeometryBeingEdited(&(Sprite->RenderGeometry), /*bAllowCircles=*/ false, /*bAllowSubtractivePolygons=*/ true);
+			GeometryEditMode->SetGeometryBeingEdited(&(Sprite->RenderGeometry), /*bAllowCircles=*/ false, /*bAllowSubtractivePolygons=*/ true);
 		}
 		break;
 	}
-}
-
-FSpriteGeometryCollection* FSpriteEditorViewportClient::GetGeometryBeingEdited() const
-{
-	UPaperSprite* Sprite = GetSpriteBeingEdited();
-	switch (CurrentMode)
-	{
-	case ESpriteEditorMode::EditCollisionMode:
-		return &(Sprite->CollisionGeometry);
-	case ESpriteEditorMode::EditRenderingGeomMode:
-		return &(Sprite->RenderGeometry);
-	default:
-		return nullptr;
-	}
-}
-
-bool FSpriteEditorViewportClient::IsShapeSelected(const int32 ShapeIndex) const
-{
-	return SpriteGeometryHelper.IsGeometrySelected(FShapeVertexPair(ShapeIndex, INDEX_NONE));
-}
-
-bool FSpriteEditorViewportClient::IsPolygonVertexSelected(const int32 ShapeIndex, const int32 VertexIndex) const
-{
-	return SpriteGeometryHelper.IsGeometrySelected(FShapeVertexPair(ShapeIndex, VertexIndex));
-}
-
-void FSpriteEditorViewportClient::ResetMarqueeTracking()
-{
-	bIsMarqueeTracking = false;
 }
 
 bool FSpriteEditorViewportClient::ConvertMarqueeToSourceTextureSpace(/*out*/FVector2D& OutStartPos, /*out*/FVector2D& OutDimension)
 {
+	FSpriteGeometryEditMode* GeometryEditMode = ModeTools->GetActiveModeTyped<FSpriteGeometryEditMode>(FSpriteGeometryEditMode::EM_SpriteGeometry);
+	check(GeometryEditMode);
+	const FVector2D MarqueeStartPos = GeometryEditMode->GetMarqueeStartPos();
+	const FVector2D MarqueeEndPos = GeometryEditMode->GetMarqueeEndPos();
+
 	bool bSuccessful = false;
 	UPaperSprite* Sprite = SourceTextureViewComponent->GetSprite();
 	UTexture2D* SpriteSourceTexture = Sprite->GetSourceTexture();
@@ -1505,77 +1128,6 @@ bool FSpriteEditorViewportClient::ConvertMarqueeToSourceTextureSpace(/*out*/FVec
 	}
 
 	return bSuccessful;
-}
-
-void FSpriteEditorViewportClient::SelectVerticesInMarquee(bool bAddToSelection)
-{
-	if (!bAddToSelection)
-	{
-		SpriteGeometryHelper.ClearSelectionSet();
-	}
-
-	if (UPaperSprite* Sprite = GetSpriteBeingEdited())
-	{
-		// Calculate world space positions
-		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(Viewport, GetScene(), EngineShowFlags));
-		FSceneView* View = CalcSceneView(&ViewFamily);
-		const FVector StartPos = View->PixelToWorld(MarqueeStartPos.X, MarqueeStartPos.Y, 0);
-		const FVector EndPos = View->PixelToWorld(MarqueeEndPos.X, MarqueeEndPos.Y, 0);
-
-		// Convert to source texture space to work out the pixels dragged
-		FVector2D TextureSpaceStartPos = Sprite->ConvertWorldSpaceToTextureSpace(StartPos);
-		FVector2D TextureSpaceEndPos = Sprite->ConvertWorldSpaceToTextureSpace(EndPos);
-
-		if (TextureSpaceStartPos.X > TextureSpaceEndPos.X)
-		{
-			Swap(TextureSpaceStartPos.X, TextureSpaceEndPos.X);
-		}
-		if (TextureSpaceStartPos.Y > TextureSpaceEndPos.Y)
-		{
-			Swap(TextureSpaceStartPos.Y, TextureSpaceEndPos.Y);
-		}
-
-		const FBox2D QueryBounds(TextureSpaceStartPos, TextureSpaceEndPos);
-
-		if (FSpriteGeometryCollection* Geometry = GetGeometryBeingEdited())
-		{
-			for (int32 ShapeIndex = 0; ShapeIndex < Geometry->Shapes.Num(); ++ShapeIndex)
-			{
-				const FSpriteGeometryShape& Shape = Geometry->Shapes[ShapeIndex];
-
-				bool bSelectWholeShape = false;
-
-				if ((Shape.ShapeType == ESpriteShapeType::Circle) || (Shape.ShapeType == ESpriteShapeType::Box))
-				{
-					// First see if we are fully contained
-					const FBox2D ShapeBoxBounds(Shape.BoxPosition - Shape.BoxSize * 0.5f, Shape.BoxPosition + Shape.BoxSize * 0.5f);
-					if (QueryBounds.IsInside(ShapeBoxBounds))
-					{
-						bSelectWholeShape = true;
-					}
-				}
-
-				//@TODO: Try intersecting with the circle if it wasn't entirely enclosed
-				
-				if (bSelectWholeShape)
-				{
-					SpriteGeometryHelper.AddShapeToSelection(ShapeIndex);
-				}
-				else
-				{
-					// Try to select some subset of the vertices
-					for (int32 VertexIndex = 0; VertexIndex < Shape.Vertices.Num(); ++VertexIndex)
-					{
-						const FVector2D TextureSpaceVertex = Shape.ConvertShapeSpaceToTextureSpace(Shape.Vertices[VertexIndex]);
-						if (QueryBounds.IsInside(TextureSpaceVertex))
-						{
-							SpriteGeometryHelper.AddPolygonVertexToSelection(ShapeIndex, VertexIndex);
-						}
-					}
-				}
-			}
-		}
-	}
 }
 
 //////////////////////////////////////////////////////////////////////////
