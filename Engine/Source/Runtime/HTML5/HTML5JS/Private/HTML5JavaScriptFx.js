@@ -112,14 +112,21 @@ var UE_JavaScriptLibary =
         return 1;
     },
 
-    UE_MakeHTTPDataRequest: function (ctx, url, verb, payload, freeBuffer, onload, onerror, onprogress) {
+    UE_MakeHTTPDataRequest: function (ctx, url, verb, payload, payloadsize, headers, freeBuffer, onload, onerror, onprogress) {
 	    var _url = Pointer_stringify(url);
 	    var _verb = Pointer_stringify(verb);
-	    var _payload = Pointer_stringify(payload);
+	    var _headers = Pointer_stringify(headers);
 
 	    var xhr = new XMLHttpRequest();
 	    xhr.open(_verb, _url, true);
 	    xhr.responseType = 'arraybuffer';
+
+        // set all headers. 
+	    var _headerArray = _headers.split("%");
+	    for(var headerArrayidx = 0; headerArrayidx < _headerArray.length; headerArrayidx++){
+	        var header = _headerArray[headerArrayidx].split(":");
+	        xhr.setRequestHeader(header[0],header[1]);
+	    }
 
 	    // Onload event handler
 	    xhr.addEventListener('load', function (e) {
@@ -154,11 +161,9 @@ var UE_JavaScriptLibary =
 	    } catch (ex) { }
 
 	    if (_verb === "POST") {
-	        //Send the proper header information along with the request
-	        xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-	        xhr.setRequestHeader("Content-length", _payload.length);
+	        var postData = Module.HEAP8.subarray(payload, payload + payloadsize);
 	        xhr.setRequestHeader("Connection", "close");
-	        xhr.send(_payload);
+	        xhr.send(postData);
 	    } else {
 	        xhr.send(null);
 	    }
