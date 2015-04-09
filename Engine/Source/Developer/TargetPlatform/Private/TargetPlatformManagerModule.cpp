@@ -35,6 +35,8 @@ public:
 		// AutoSDKs only enabled if UE_SDKS_ROOT is set.
 		if (IsAutoSDKsEnabled())
 		{					
+			DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FTargetPlatformManagerModule.StartAutoSDK" ), STAT_FTargetPlatformManagerModule_StartAutoSDK, STATGROUP_TargetPlatform );
+
 			// amortize UBT cost by calling it once for all platforms, rather than once per platform.
 			FString UBTParams(TEXT("-autosdkonly"));
 			int32 UBTReturnCode = -1;
@@ -555,6 +557,8 @@ protected:
 	/** Discovers the available target platforms. */
 	void DiscoverAvailablePlatforms()
 	{
+		DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FTargetPlatformManagerModule::DiscoverAvailablePlatforms" ), STAT_FTargetPlatformManagerModule_DiscoverAvailablePlatforms, STATGROUP_TargetPlatform );
+
 		Platforms.Empty(Platforms.Num());
 
 		TArray<FName> Modules;
@@ -828,6 +832,8 @@ protected:
 
 	bool SetupSDKStatus(FString TargetPlatforms)
 	{
+		DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FTargetPlatformManagerModule::SetupSDKStatus" ), STAT_FTargetPlatformManagerModule_SetupSDKStatus, STATGROUP_TargetPlatform );
+
 		// run UBT with -validate -allplatforms and read the output
 		FString CmdExe, CommandLine;
 		
