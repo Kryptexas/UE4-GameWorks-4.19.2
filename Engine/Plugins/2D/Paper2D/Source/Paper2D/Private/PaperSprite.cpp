@@ -2018,7 +2018,9 @@ void FSpriteGeometryCollisionBuilderBase::ProcessGeometry(const FSpriteGeometryC
 void FSpriteGeometryCollisionBuilderBase::Finalize()
 {
 	// Rebuild the body setup
+#if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 	MyBodySetup->InvalidatePhysicsData();
+#endif
 	MyBodySetup->CreatePhysicsMeshes();
 }
 
