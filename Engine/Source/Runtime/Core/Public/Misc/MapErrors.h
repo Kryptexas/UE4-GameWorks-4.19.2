@@ -170,7 +170,7 @@ struct CORE_API FMapErrors
 	/** {Actor} : Static mesh actor has NULL StaticMeshComponent property - please delete!: This warning is caused when there is a static mesh actor with a "None" StaticMeshComponent component.  It is usually found in older maps where duplication was used to create the actor and can be fixed by deleting the actor causing the warning and creating a new one. */
     static FName StaticMeshComponent;
     
-	/** {StaticMesh} has simple collision but is being scaled non-uniformly - collision creation will fail: Simple collision cannot be used with non-uniform scale. Please either fix the scale or the collision type. */
+	/** {StaticMesh} has simple collision but is being scaled non-uniformly - collision creation will fail: sphere or capsule simple collision cannot be used with non-uniform scale. Please either fix the scale or the collision type. */
     static FName SimpleCollisionButNonUniformScale;
 
 	/** More overriden materials {Count} on static mesh component than are referenced {Count} in source mesh {StaticMesh}: **TODO** */
