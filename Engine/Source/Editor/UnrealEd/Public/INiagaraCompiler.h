@@ -23,6 +23,12 @@ public:
 	virtual TNiagaraExprPtr GetExternalConstant(const FNiagaraVariableInfo& Constant, const FVector4& Default) = 0;
 	/** Creates an expression which fetches the named constant. */
 	virtual TNiagaraExprPtr GetExternalConstant(const FNiagaraVariableInfo& Constant, const FMatrix& Default) = 0;
+	/** Creates an expression which fetches the named constant. */
+	virtual TNiagaraExprPtr GetInternalConstant(const FNiagaraVariableInfo& Constant, float Default) = 0;
+	/** Creates an expression which fetches the named constant. */
+	virtual TNiagaraExprPtr GetInternalConstant(const FNiagaraVariableInfo& Constant, const FVector4& Default) = 0;
+	/** Creates an expression which fetches the named constant. */
+	virtual TNiagaraExprPtr GetInternalConstant(const FNiagaraVariableInfo& Constant, const FMatrix& Default) = 0;
 	/** Creates an expression which fetches the named CURVE. */
 	virtual TNiagaraExprPtr GetExternalCurveConstant(const FNiagaraVariableInfo& Constant) = 0;
 

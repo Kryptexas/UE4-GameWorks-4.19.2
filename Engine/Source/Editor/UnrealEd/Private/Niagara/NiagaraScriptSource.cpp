@@ -101,29 +101,35 @@ void UNiagaraScriptSource::Compile()
 	FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::Get().LoadModuleChecked<FNiagaraEditorModule>(TEXT("NiagaraEditor"));
 	NiagaraEditorModule.CompileScript(ScriptOwner);
 
-	ExposedVectorConstants.Empty();
+	FNiagaraConstants& ExternalConsts = ScriptOwner->ConstantData.ExternalConstants;
 
-	// grab all constant nodes that are exposed to the editor
-	TArray<UNiagaraNodeInput*> ConstNodes;
-	NodeGraph->GetNodesOfClass<UNiagaraNodeInput>(ConstNodes);
-	for (UNiagaraNodeInput *Node : ConstNodes)
+	const UEdGraphSchema_Niagara* Schema = CastChecked<UEdGraphSchema_Niagara>(NodeGraph->GetSchema());
+	ExposedVectorConstants.Empty();
+	for (int32 ConstIdx = 0; ConstIdx < ExternalConsts.GetNumVectorConstants(); ConstIdx++)
 	{
-		if (Node->IsExposedConstant())
+		FNiagaraVariableInfo Info;
+		FVector4 Value;
+		ExternalConsts.GetVectorConstant(ConstIdx, Value, Info);
+		if (Schema->IsSystemConstant(Info))
 		{
-			if(Node->Input.Type == ENiagaraDataType::Vector)
-			{
-				EditorExposedVectorConstant *Const = new EditorExposedVectorConstant();
-				Const->ConstName = Node->Input.Name;
-				Const->Value = Node->VectorDefault;
-				ExposedVectorConstants.Add( MakeShareable(Const) );
-			}
-			else if (Node->Input.Type == ENiagaraDataType::Curve)
-			{
-				EditorExposedVectorCurveConstant *Const = new EditorExposedVectorCurveConstant();
-				Const->ConstName = Node->Input.Name;
-				ExposedVectorCurveConstants.Add(MakeShareable(Const));
-			}
+			continue;//System constants are "external" but should not be exposed to the editor.
 		}
+			
+		EditorExposedVectorConstant *Const = new EditorExposedVectorConstant();
+		Const->ConstName = Info.Name;
+		Const->Value = Value;
+		ExposedVectorConstants.Add(MakeShareable(Const));
+	}
+
+	for (int32 ConstIdx = 0; ConstIdx < ExternalConsts.GetNumDataObjectConstants(); ConstIdx++)
+	{
+		EditorExposedVectorCurveConstant *Const = new EditorExposedVectorCurveConstant();
+		FNiagaraVariableInfo Info;
+		FNiagaraDataObject* Dummy;
+		ExternalConsts.GetDataObjectConstant(ConstIdx, Dummy, Info);
+		Const->ConstName = Info.Name;
+		//Set default value for this too?
+		ExposedVectorCurveConstants.Add(MakeShareable(Const));
 	}
 }
 

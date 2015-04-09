@@ -198,9 +198,21 @@ void FNiagaraCompiler_VectorVM::CompileScript(UNiagaraScript* InScript)
 	Script = InScript;
 	Source = CastChecked<UNiagaraScriptSource>(InScript->Source);
 
+	//Should we roll our own message/error log and put it in a window somewhere?
+	MessageLog.SetSourceName(InScript->GetPathName());
+
 	// Clone the source graph so we can modify it as needed; merging in the child graphs
-	SourceGraph = CastChecked<UNiagaraGraph>(FEdGraphUtilities::CloneGraph(Source->NodeGraph, Source, &MessageLog));
+	SourceGraph = CastChecked<UNiagaraGraph>(FEdGraphUtilities::CloneGraph(Source->NodeGraph, NULL, &MessageLog));
 	FEdGraphUtilities::MergeChildrenGraphsIn(SourceGraph, SourceGraph, /*bRequireSchemaMatch=*/ true);
+
+	if (!MergeInFunctionNodes())
+	{ 
+		//TODO: Insert a good error reporting and compile failure system.
+		InScript->Attributes.Empty();
+		InScript->ByteCode.Empty();
+		InScript->ConstantData.Empty();
+		return;
+	}
 
 	TempRegisters.AddZeroed(VectorVM::NumTempRegisters);
 

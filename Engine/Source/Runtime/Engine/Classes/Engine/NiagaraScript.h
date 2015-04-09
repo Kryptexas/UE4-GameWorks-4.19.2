@@ -6,6 +6,22 @@
 
 #include "NiagaraScript.generated.h"
 
+#define NIAGARA_INVALID_MEMORY (0xBA)
+
+/** Defines what will happen to unused attributes when a script is run. */
+UENUM()
+enum class EUnusedAttributeBehaviour : uint8
+{
+	/** The previous value of the attribute is copied across. */
+	Copy,
+	/** The attribute is set to zero. */
+	Zero,
+	/** The attribute is untouched. */
+	None,
+	/** The memory for the attribute is set to NIAGARA_INVALID_MEMORY. */
+	MarkInvalid, 
+};
+
 /** Runtime script for a Niagara system */
 UCLASS(MinimalAPI)
 class UNiagaraScript : public UObject

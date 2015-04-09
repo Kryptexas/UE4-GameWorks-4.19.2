@@ -13,8 +13,10 @@
 
 #define SNAP_GRID (16) // @todo ensure this is the same as SNodePanel::GetSnapGridSize()
 
-const FLinearColor UEdGraphSchema_Niagara::NodeTitleColor_Attribute = FLinearColor::Blue;
+const FLinearColor UEdGraphSchema_Niagara::NodeTitleColor_Attribute = FLinearColor::Green;
 const FLinearColor UEdGraphSchema_Niagara::NodeTitleColor_Constant = FLinearColor::Red;
+const FLinearColor UEdGraphSchema_Niagara::NodeTitleColor_SystemConstant = FLinearColor::White;
+const FLinearColor UEdGraphSchema_Niagara::NodeTitleColor_FunctionCall = FLinearColor::Blue;
 
 namespace 
 {
@@ -171,17 +173,26 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 
 	//Add a generic Input node to allow getting external constants the current context doesn't know about.
 	{
-		const FText MenuDesc = LOCTEXT("GetSystemConstantUnknown", "Get Constant");
+		const FText MenuDesc = LOCTEXT("GetInput", "Input");
 
 		//TSharedPtr<FNiagaraSchemaAction_NewNode> GetConstAction = AddNewNodeAction(ContextMenuBuilder, *LOCTEXT("System Constants Menu Title", "System Constants").ToString(), MenuDesc, TEXT(""));
-		TSharedPtr<FNiagaraSchemaAction_NewNode> GetConstAction = AddNewNodeAction(ContextMenuBuilder, TEXT(""), MenuDesc, TEXT(""));
+		TSharedPtr<FNiagaraSchemaAction_NewNode> InputAction = AddNewNodeAction(ContextMenuBuilder, TEXT(""), MenuDesc, TEXT(""));
 
 		UNiagaraNodeInput* InputNode = NewObject<UNiagaraNodeInput>(ContextMenuBuilder.OwnerOfTemporaries);
 		InputNode->Input.Name = NAME_None;
 		InputNode->Input.Type = ENiagaraDataType::Vector;
-		GetConstAction->NodeTemplate = InputNode;
+		InputAction->NodeTemplate = InputNode;
 	}
 
+	//Add a function call node
+	{
+		const FText MenuDesc = LOCTEXT("NiagaraFunctionCall", "Function Call");
+
+		TSharedPtr<FNiagaraSchemaAction_NewNode> FunctionCallAction = AddNewNodeAction(ContextMenuBuilder, TEXT(""), MenuDesc, TEXT(""));
+
+		UNiagaraNodeFunctionCall* FunctionCallNode = NewObject<UNiagaraNodeFunctionCall>(ContextMenuBuilder.OwnerOfTemporaries);
+		FunctionCallAction->NodeTemplate = FunctionCallNode;
+	}
 	//TODO: Add quick commands for certain UNiagaraStructs and UNiagaraScripts to be added as functions
 }
 
@@ -324,6 +335,11 @@ void UEdGraphSchema_Niagara::GetPinDefaultValue(UEdGraphPin* Pin, FMatrix& OutDe
 		OutDefault.M[2][0] = FCString::Atof(*ResultString[8]); OutDefault.M[2][1] = FCString::Atof(*ResultString[9]); OutDefault.M[2][2] = FCString::Atof(*ResultString[10]); OutDefault.M[2][3] = FCString::Atof(*ResultString[11]);
 		OutDefault.M[3][0] = FCString::Atof(*ResultString[12]); OutDefault.M[3][1] = FCString::Atof(*ResultString[13]); OutDefault.M[3][2] = FCString::Atof(*ResultString[14]); OutDefault.M[3][3] = FCString::Atof(*ResultString[15]);
 	}
+}
+
+bool UEdGraphSchema_Niagara::IsSystemConstant(const FNiagaraVariableInfo& Variable)const
+{
+	return UNiagaraComponent::GetSystemConstants().Find(Variable) != INDEX_NONE;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -170,6 +170,32 @@ public:
 		DataObjectConstants.Empty();
 	}
 
+	void GetScalarConstant(int32 Index, float& OutValue, FNiagaraVariableInfo& OutInfo)const
+	{
+		OutInfo = ScalarConstantsInfo[Index]; 
+		OutValue = ScalarConstants[Index];
+	}
+	void GetVectorConstant(int32 Index, FVector4& OutValue, FNiagaraVariableInfo& OutInfo)const
+	{
+		OutInfo = VectorConstantsInfo[Index];
+		OutValue = VectorConstants[Index];
+	}
+	void GetMatrixConstant(int32 Index, FMatrix& OutValue, FNiagaraVariableInfo& OutInfo)const
+	{
+		OutInfo = MatrixConstantsInfo[Index];
+		OutValue = MatrixConstants[Index];
+	}
+	void GetDataObjectConstant(int32 Index, FNiagaraDataObject*& OutValue, FNiagaraVariableInfo& OutInfo)const
+	{
+		OutInfo = DataObjectConstantsInfo[Index];
+		OutValue = DataObjectConstants[Index];
+	}
+
+	const int32 GetNumScalarConstants()const{ return ScalarConstantsInfo.Num(); }
+	const int32 GetNumVectorConstants()const{ return VectorConstantsInfo.Num(); }
+	const int32 GetNumMatrixConstants()const{ return MatrixConstantsInfo.Num(); }
+	const int32 GetNumDataObjectConstants()const{ return DataObjectConstantsInfo.Num(); }
+
 	/** Fills the entire constants set into the constant table. */
 	void AppendToConstantsTable(TArray<FVector4>& ConstantsTable)const
 	{

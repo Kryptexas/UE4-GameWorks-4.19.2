@@ -68,8 +68,12 @@ class UEdGraphSchema_Niagara : public UEdGraphSchema
 	UNREALED_API void GetPinDefaultValue(UEdGraphPin* Pin, float& OutDefault)const;
 	UNREALED_API void GetPinDefaultValue(UEdGraphPin* Pin, FVector4& OutDefault)const;
 	UNREALED_API void GetPinDefaultValue(UEdGraphPin* Pin, FMatrix& OutDefault)const;
+	
+	bool IsSystemConstant(const FNiagaraVariableInfo& Variable)const;
 
 	static const FLinearColor NodeTitleColor_Attribute;
 	static const FLinearColor NodeTitleColor_Constant;
+	static const FLinearColor NodeTitleColor_SystemConstant;
+	static const FLinearColor NodeTitleColor_FunctionCall;
 };
 

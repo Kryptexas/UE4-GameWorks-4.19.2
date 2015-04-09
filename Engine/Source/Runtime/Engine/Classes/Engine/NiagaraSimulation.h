@@ -13,7 +13,8 @@ NiagaraSimulation.h: Niagara emitter simulation class
 
 DECLARE_CYCLE_STAT(TEXT("Tick"), STAT_NiagaraTick, STATGROUP_Niagara);
 DECLARE_CYCLE_STAT(TEXT("Simulate"), STAT_NiagaraSimulate, STATGROUP_Niagara);
-DECLARE_CYCLE_STAT(TEXT("Spawn + Kill"), STAT_NiagaraSpawnAndKill, STATGROUP_Niagara);
+DECLARE_CYCLE_STAT(TEXT("Spawn"), STAT_NiagaraSpawn, STATGROUP_Niagara);
+DECLARE_CYCLE_STAT(TEXT("Kill"), STAT_NiagaraKill, STATGROUP_Niagara);
 
 
 class NiagaraEffectRenderer;
@@ -144,18 +145,11 @@ private:
 		SpawnRemainder = FloatNumToSpawn - NumToSpawn;
 		return NumToSpawn;
 	}
-
-	/** Run VM to update particle positions */
-	void UpdateParticles(
-		float DeltaSeconds,
-		FVector4* PrevParticles,
-		int32 PrevNumVectorsPerAttribute,
-		FVector4* Particles,
-		int32 NumVectorsPerAttribute,
-		int32 NumParticles
-		);
-
-	int32 SpawnAndKillParticles(int32 NumToSpawn);
+	
+	/** Runs a script in the VM over a specific range of particles. */
+	void RunVMScript(UNiagaraScript* Script, EUnusedAttributeBehaviour UnusedAttribBehaviour);
+	void RunVMScript(UNiagaraScript* Script, EUnusedAttributeBehaviour UnusedAttribBehaviour, uint32 StartParticle);
+	void RunVMScript(UNiagaraScript* Script, EUnusedAttributeBehaviour UnusedAttribBehaviour, uint32 StartParticle, uint32 NumParticles);
 
 	/** Util to move a particle */
 	void MoveParticleToIndex(int32 SrcIndex, int32 DestIndex)

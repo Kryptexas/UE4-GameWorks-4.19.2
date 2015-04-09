@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "BlueprintGraphDefinitions.h"
@@ -133,9 +133,12 @@ FText UNiagaraNodeInput::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 FLinearColor UNiagaraNodeInput::GetNodeTitleColor() const
 {
+	const UEdGraphSchema_Niagara* Schema = CastChecked<UEdGraphSchema_Niagara>(GetSchema());
 	if (IsConstant())
 	{
-		return CastChecked<UEdGraphSchema_Niagara>(GetSchema())->NodeTitleColor_Constant;
+		return Schema->IsSystemConstant(Input) ? 
+			CastChecked<UEdGraphSchema_Niagara>(GetSchema())->NodeTitleColor_SystemConstant :
+			CastChecked<UEdGraphSchema_Niagara>(GetSchema())->NodeTitleColor_Constant ;
 	}
 	else
 	{
@@ -148,15 +151,30 @@ void UNiagaraNodeInput::Compile(class INiagaraCompiler* Compiler, TArray<FNiagar
 	//Input nodes in scripts being used as functions by other scripts will actually never get this far.
 	//The compiler will find them and replace them with direct links between the pins going in and the nodes connected to the corresponding input.
 
+	const UEdGraphSchema_Niagara* Schema = CastChecked<UEdGraphSchema_Niagara>(GetSchema());
 	if (IsConstant())
 	{
-		//treat this input as an external constant.
-		switch (Input.Type)
+		if (IsExposedConstant() || Schema->IsSystemConstant(Input))
 		{
-		case ENiagaraDataType::Scalar:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalConstant(Input, FloatDefault), Pins[0]));	break;
-		case ENiagaraDataType::Vector:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalConstant(Input, VectorDefault), Pins[0]));	break;
-		case ENiagaraDataType::Matrix:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalConstant(Input, MatrixDefault), Pins[0]));	break;
-		case ENiagaraDataType::Curve:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalCurveConstant(Input), Pins[0]));	break;
+			//treat this input as an external constant.
+			switch (Input.Type)
+			{
+			case ENiagaraDataType::Scalar:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalConstant(Input, FloatDefault), Pins[0]));	break;
+			case ENiagaraDataType::Vector:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalConstant(Input, VectorDefault), Pins[0]));	break;
+			case ENiagaraDataType::Matrix:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalConstant(Input, MatrixDefault), Pins[0]));	break;
+			case ENiagaraDataType::Curve:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalCurveConstant(Input), Pins[0]));	break;
+			}
+		}
+		else
+		{
+			//treat this input as an external constant.
+			switch (Input.Type)
+			{
+			case ENiagaraDataType::Scalar:	Outputs.Add(FNiagaraNodeResult(Compiler->GetInternalConstant(Input, FloatDefault), Pins[0]));	break;
+			case ENiagaraDataType::Vector:	Outputs.Add(FNiagaraNodeResult(Compiler->GetInternalConstant(Input, VectorDefault), Pins[0]));	break;
+			case ENiagaraDataType::Matrix:	Outputs.Add(FNiagaraNodeResult(Compiler->GetInternalConstant(Input, MatrixDefault), Pins[0]));	break;
+			case ENiagaraDataType::Curve:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalCurveConstant(Input), Pins[0]));	break;//Internal curve Constant?
+			}
 		}
 	}
 	else

@@ -1,11 +1,15 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
 #include "NiagaraNodeFunctionCall.generated.h"
 
-UCLASS()
+UCLASS(MinimalAPI)
 class UNiagaraNodeFunctionCall : public UNiagaraNode
 {
 	GENERATED_BODY()
+
+public:
 
 	UPROPERTY(EditAnywhere, Category = "Function")
 	UNiagaraScript* FunctionScript;
@@ -13,6 +17,7 @@ class UNiagaraNodeFunctionCall : public UNiagaraNode
 
 	//Begin UObject interface
 	virtual void PostLoad()override;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)override;
 	//End UObject interface
 
 	// Begin UNiagaraNode interface
@@ -21,9 +26,9 @@ class UNiagaraNodeFunctionCall : public UNiagaraNode
 
 	// Begin EdGraphNode interface
 	virtual void AllocateDefaultPins() override;
-// 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-// 	virtual FText GetTooltipText() const override;
-// 	virtual FLinearColor GetNodeTitleColor() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FText GetTooltipText() const override;
+	virtual FLinearColor GetNodeTitleColor() const override;
 	// End EdGraphNode interface
 
 private:

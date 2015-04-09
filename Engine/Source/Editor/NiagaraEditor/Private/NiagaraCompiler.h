@@ -50,6 +50,9 @@ protected:
 	template< typename T >
 	void SetOrAddConstant(bool bInternal, const FNiagaraVariableInfo& Constant, const T& Default);
 
+	/** Searches for Function Call nodes and merges their graphs into the main graph. */
+	bool MergeInFunctionNodes();
+
 public:
 
 	//Begin INiagaraCompiler Interface
@@ -59,6 +62,9 @@ public:
 	virtual TNiagaraExprPtr GetExternalConstant(const FNiagaraVariableInfo& Constant, float Default)override;
 	virtual TNiagaraExprPtr GetExternalConstant(const FNiagaraVariableInfo& Constant, const FVector4& Default)override;
 	virtual TNiagaraExprPtr GetExternalConstant(const FNiagaraVariableInfo& Constant, const FMatrix& Default)override;
+	virtual TNiagaraExprPtr GetInternalConstant(const FNiagaraVariableInfo& Constant, float Default)override;
+	virtual TNiagaraExprPtr GetInternalConstant(const FNiagaraVariableInfo& Constant, const FVector4& Default)override;
+	virtual TNiagaraExprPtr GetInternalConstant(const FNiagaraVariableInfo& Constant, const FMatrix& Default)override;
 	virtual TNiagaraExprPtr GetExternalCurveConstant(const FNiagaraVariableInfo& Constant)override;
 
 	virtual void CheckInputs(FName OpName, TArray<TNiagaraExprPtr>& Inputs)override;
