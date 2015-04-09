@@ -29,6 +29,7 @@ FMouseDeltaTracker::FMouseDeltaTracker()
 	, DragTool( NULL )
 	, bHasAttemptedDragTool(false)
 	, bUsedDragModifier(false)
+	, bIsDeletingDragTool(false)
 {
 }
 
@@ -306,15 +307,21 @@ bool FMouseDeltaTracker::EndTracking(FEditorViewportClient* InViewportClient)
 
 	Start = StartSnapped = StartScreen = End = EndSnapped = EndScreen = RawDelta = ReductionAmount = FVector::ZeroVector;
 
-	// Delete the drag tool if one exists.
-	if( DragTool.IsValid() )
+	if (!bIsDeletingDragTool)
 	{
-		if( DragTool->IsDragging() )
+		// Ending the drag tool may pop up a modal dialog which can cause unwanted reentrancy - protect against this.
+		TGuardValue<bool> RecursionGuard(bIsDeletingDragTool, true);
+
+		// Delete the drag tool if one exists.
+		if (DragTool.IsValid())
 		{
-			DragTool->EndDrag();
+			if (DragTool->IsDragging())
+			{
+				DragTool->EndDrag();
+			}
+			DragTool.Reset();
+			return false;
 		}
-		DragTool.Reset();
-		return false;
 	}
 
 	// Do not fade snapping indicators over time if this viewport is not realtime

@@ -170,6 +170,8 @@ private:
 	/** Tracks if the user used a modifier to drag a selected item. (Rather than using a widget handle).Reset on StartTracking */
 	bool bUsedDragModifier;
 
+	/** Tracks whether the drag tool is in the process of being deleted (to protect against reentrancy) */
+	bool bIsDeletingDragTool;
 
 	/** Stores the widget mode active when the tracker begins tracking to help stop it change mid-track */
 	FWidget::EWidgetMode TrackingWidgetMode;
