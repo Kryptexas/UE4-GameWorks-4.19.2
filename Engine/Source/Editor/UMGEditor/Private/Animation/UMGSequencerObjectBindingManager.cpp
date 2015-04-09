@@ -114,7 +114,13 @@ bool FUMGSequencerObjectBindingManager::TryGetObjectBindingDisplayName(const FGu
 		UPanelSlot* SlotObject = Cast<UPanelSlot>(BindingObjects[0].Get());
 		if (SlotObject != nullptr)
 		{
-			DisplayName = FText::Format(LOCTEXT("SlotObject", "{0} ({1} Slot)"), FText::FromString(SlotObject->Content->GetName()), FText::FromString(SlotObject->Parent->GetName()));
+			FText PanelName = SlotObject->Parent != nullptr 
+				? FText::FromString(SlotObject->Parent->GetName())
+				: LOCTEXT("InvalidPanel", "Invalid Panel");
+			FText ContentName = SlotObject->Content != nullptr
+				? FText::FromString(SlotObject->Content->GetName())
+				: LOCTEXT("EmptyPanel", "Empty");
+			DisplayName = FText::Format(LOCTEXT("SlotObject", "{0} ({1} Slot)"), ContentName, PanelName);
 		}
 		else
 		{
