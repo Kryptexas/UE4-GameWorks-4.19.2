@@ -44,16 +44,7 @@ namespace Test
 
 	static float WrapTwoPi(float Value)
 	{
-		while (Value >= TWO_PI)
-		{
-			return Value -= TWO_PI;
-		}
-
-		while (Value < 0)
-		{
-			return Value += TWO_PI;
-		}
-		return Value;
+		return FMath::UnwindRadians(Value) + PI;
 	}
 
 	static float Lerp(float StartX, float EndX, float StartY, float EndY, float Alpha)
