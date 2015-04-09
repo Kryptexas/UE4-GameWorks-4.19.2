@@ -73,7 +73,7 @@ Description:입력으로 폰과 카메라를 제어하는 코드를 구현합니
 			bZoomingIn = false;
 		}
 
-	[REGION:note]아직 ZoomFactor 관련 아무 작업도 하지 않았습니다. 그 변수는 **Pawn** 의 **Tick** 함수 도중 업데이트될텐데, 그 값은 버튼 상태에 따라 계속해서 변하기 때문입니다.
+	[REGION:note]아직 ZoomFactor 관련 아무 작업도 하지 않았습니다. 그 변수는 **Pawn** 의 **Tick** 함수 도중 업데이트될텐데, 그 값은 버튼 상태에 따라 계속해서 변하기 때문입니다.[/REGION]
 
 1. 입력 데이터를 저장할 코드가 생겼으니, 이제 **언리얼 엔진** 더러 그 코드 호출 시점을 알려주기만 하면 됩니다. **Pawn** 에 대한 입력 이벤트에 함수를 바인딩하는 것은, 다음과 같이 **APawnWithCamera::SetupPlayerInputComponent** 에 바인딩 코드를 추가해 주기만 하면 됩니다:
 
