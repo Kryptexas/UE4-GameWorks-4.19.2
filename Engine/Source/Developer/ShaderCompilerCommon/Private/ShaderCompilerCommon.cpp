@@ -16,7 +16,7 @@ int16 GetNumUniformBuffersUsed(const FShaderResourceTable& InSRT)
 						for (int32 i = 0; i < In.Num(); ++i)
 						{
 							auto BufferIndex = FRHIResourceTableEntry::GetUniformBufferIndex(In[i]);
-							if (BufferIndex != FRHIResourceTableEntry::GetEndOfStreamToken())
+							if (BufferIndex != static_cast<uint16>(FRHIResourceTableEntry::GetEndOfStreamToken()) )
 							{
 								LastIndex = FMath::Max(LastIndex, (int16)BufferIndex);
 							}
