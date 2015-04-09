@@ -477,6 +477,7 @@ bool FUnrealSync::Sync(bool bArtist, bool bPreview, const FString& Label, const 
 
 	if (!FP4Env::RunP4Progress(FString("sync ") + (bPreview ? "-n " : "") + FString::Join(SyncSteps, TEXT(" ")), OnSyncProgress))
 	{
+		return false;
 	}
 
 	return true;
