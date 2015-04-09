@@ -148,7 +148,7 @@ void UEnvQueryGenerator_OnCircle::GenerateItemsForCircle(uint8* ContextRawData, 
 
 	for (int32 Step = 0; Step < StepsCount; ++Step)
 	{
-		ItemCandidates[Step] = CenterLocation + StartDirection.RotateAngleAxis(AngleStep*Step, FVector::UpVector);
+		ItemCandidates[Step] = FNavLocation(CenterLocation + StartDirection.RotateAngleAxis(AngleStep*Step, FVector::UpVector));
 	}
 
 	switch (TraceData.TraceMode)

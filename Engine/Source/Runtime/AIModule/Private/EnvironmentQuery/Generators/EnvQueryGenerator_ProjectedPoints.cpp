@@ -42,14 +42,7 @@ void UEnvQueryGenerator_ProjectedPoints::StoreNavPoints(const TArray<FNavLocatio
 	for (int32 Idx = 0; Idx < Points.Num(); Idx++)
 	{
 		// store using default function to handle creating new data entry 
-		QueryInstance.AddItemData<UEnvQueryItemType_Point>(Points[Idx].Location);
-	}
-
-	uint8* DataPtr = QueryInstance.RawData.GetData();
-	for (int32 Idx = 0; Idx < Points.Num(); Idx++)
-	{
-		// overwrite with more detailed info
-		UEnvQueryItemType_Point::SetNavValue(DataPtr + QueryInstance.Items[Idx + InitialElementsCount].DataOffset, Points[Idx]);
+		QueryInstance.AddItemData<UEnvQueryItemType_Point>(Points[Idx]);
 	}
 
 	FEnvQueryOptionInstance& OptionInstance = QueryInstance.Options[QueryInstance.OptionIndex];

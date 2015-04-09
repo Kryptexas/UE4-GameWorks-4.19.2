@@ -1261,7 +1261,7 @@ FNavLocation UPathFollowingComponent::GetCurrentNavLocation() const
 	// get navigation location of moved actor
 	if (MovementComp == NULL || GetWorld() == NULL || GetWorld()->GetNavigationSystem() == NULL)
 	{
-		return FVector::ZeroVector;
+		return FNavLocation();
 	}
 
 	const FVector OwnerLoc = MovementComp->GetActorNavLocation();

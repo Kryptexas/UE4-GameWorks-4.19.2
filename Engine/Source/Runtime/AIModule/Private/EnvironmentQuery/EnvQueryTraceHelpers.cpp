@@ -13,7 +13,7 @@ void FEQSHelpers::FBatchTrace::DoSingleSourceMultiDestinations<EEnvTraceShape::L
 		const bool bHit = RunLineTrace(Source, Points[Idx].Location, HitPos);
 		if (bHit)
 		{
-			Points[Idx] = HitPos;
+			Points[Idx] = FNavLocation(HitPos);
 		}
 		else if (TraceMode == ETraceMode::Discard)
 		{
@@ -32,7 +32,7 @@ void FEQSHelpers::FBatchTrace::DoSingleSourceMultiDestinations<EEnvTraceShape::B
 		const bool bHit = RunBoxTrace(Source, Points[Idx].Location, HitPos);
 		if (bHit)
 		{
-			Points[Idx] = HitPos;
+			Points[Idx] = FNavLocation(HitPos);
 		}
 		else if (TraceMode == ETraceMode::Discard)
 		{
@@ -51,7 +51,7 @@ void FEQSHelpers::FBatchTrace::DoSingleSourceMultiDestinations<EEnvTraceShape::S
 		const bool bHit = RunSphereTrace(Source, Points[Idx].Location, HitPos);
 		if (bHit)
 		{
-			Points[Idx] = HitPos;
+			Points[Idx] = FNavLocation(HitPos);
 		}
 		else if (TraceMode == ETraceMode::Discard)
 		{
@@ -70,7 +70,7 @@ void FEQSHelpers::FBatchTrace::DoSingleSourceMultiDestinations<EEnvTraceShape::C
 		const bool bHit = RunCapsuleTrace(Source, Points[Idx].Location, HitPos);
 		if (bHit)
 		{
-			Points[Idx] = HitPos;
+			Points[Idx] = FNavLocation(HitPos);
 		}
 		else if (TraceMode == ETraceMode::Discard)
 		{
@@ -89,7 +89,7 @@ void FEQSHelpers::FBatchTrace::DoProject<EEnvTraceShape::Line>(TArray<FNavLocati
 		const bool bHit = RunLineTrace(Points[Idx].Location + FVector(0, 0, StartOffsetZ), Points[Idx].Location + FVector(0, 0, EndOffsetZ), HitPos);
 		if (bHit)
 		{
-			Points[Idx] = HitPos + FVector(0, 0, HitOffsetZ);
+			Points[Idx] = FNavLocation(HitPos + FVector(0, 0, HitOffsetZ));
 		}
 		else if (TraceMode == ETraceMode::Discard)
 		{
@@ -108,7 +108,7 @@ void FEQSHelpers::FBatchTrace::DoProject<EEnvTraceShape::Box>(TArray<FNavLocatio
 		const bool bHit = RunBoxTrace(Points[Idx].Location + FVector(0, 0, StartOffsetZ), Points[Idx].Location + FVector(0, 0, EndOffsetZ), HitPos);
 		if (bHit)
 		{
-			Points[Idx] = HitPos + FVector(0, 0, HitOffsetZ);
+			Points[Idx] = FNavLocation(HitPos + FVector(0, 0, HitOffsetZ));
 		}
 		else if (TraceMode == ETraceMode::Discard)
 		{
@@ -127,7 +127,7 @@ void FEQSHelpers::FBatchTrace::DoProject<EEnvTraceShape::Sphere>(TArray<FNavLoca
 		const bool bHit = RunSphereTrace(Points[Idx].Location + FVector(0, 0, StartOffsetZ), Points[Idx].Location + FVector(0, 0, EndOffsetZ), HitPos);
 		if (bHit)
 		{
-			Points[Idx] = HitPos + FVector(0, 0, HitOffsetZ);
+			Points[Idx] = FNavLocation(HitPos + FVector(0, 0, HitOffsetZ));
 		}
 		else if (TraceMode == ETraceMode::Discard)
 		{
@@ -146,7 +146,7 @@ void FEQSHelpers::FBatchTrace::DoProject<EEnvTraceShape::Capsule>(TArray<FNavLoc
 		const bool bHit = RunCapsuleTrace(Points[Idx].Location + FVector(0, 0, StartOffsetZ), Points[Idx].Location + FVector(0, 0, EndOffsetZ), HitPos);
 		if (bHit)
 		{
-			Points[Idx] = HitPos + FVector(0, 0, HitOffsetZ);
+			Points[Idx] = FNavLocation(HitPos + FVector(0, 0, HitOffsetZ));
 		}
 		else if (TraceMode == ETraceMode::Discard)
 		{

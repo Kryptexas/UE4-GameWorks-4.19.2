@@ -627,6 +627,7 @@ public:
 
 		FORCEINLINE int32 GetMaxCorridorSize() const { return MAX_PATH_CORRIDOR_POLYS; }
 		FORCEINLINE bool HasHit() const { return HitTime != FLT_MAX; }
+		FORCEINLINE NavNodeRef GetLastNodeRef() const { return CorridorPolysCount > 0 ? CorridorPolys[CorridorPolysCount] : INVALID_NAVNODEREF; }
 	};
 
 	//----------------------------------------------------------------------//

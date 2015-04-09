@@ -123,7 +123,7 @@ void UEnvQueryGenerator_Donut::GenerateItems(FEnvQueryInstance& QueryInstance) c
 				const FVector RingPos(RingRadius * CosValue, RingRadius * SinValue, 0.0f);
 				for (int32 ContextIdx = 0; ContextIdx < CenterPoints.Num(); ContextIdx++)
 				{
-					const FVector PointPos = CenterPoints[ContextIdx] + RingPos;
+					const FNavLocation PointPos = FNavLocation(CenterPoints[ContextIdx] + RingPos);
 					Points.Add(PointPos);
 				}
 			}

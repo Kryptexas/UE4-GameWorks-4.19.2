@@ -3,6 +3,18 @@
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_Point.h"
 
+template<>
+void FEnvQueryInstance::AddItemData<UEnvQueryItemType_Point, FNavLocation>(FNavLocation ItemValue)
+{
+	DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize() + Items.GetAllocatedSize());
+
+	const int32 DataOffset = RawData.AddUninitialized(ValueSize);
+	UEnvQueryItemType_Point::SetNavValue(RawData.GetData() + DataOffset, ItemValue);
+	Items.Add(FEnvQueryItem(DataOffset));
+
+	INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize() + Items.GetAllocatedSize());
+}
+
 UEnvQueryItemType_Point::UEnvQueryItemType_Point(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	ValueSize = sizeof(FNavLocation);
