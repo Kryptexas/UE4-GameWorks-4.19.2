@@ -125,5 +125,5 @@ public:
 
 	virtual void UpdateRuntimeInstances() = 0;
 
-
+	virtual TSharedRef<ISequencerObjectBindingManager> GetObjectBindingManager() const = 0;
 };

@@ -28,7 +28,7 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 
 	TSharedRef<SWidget> TextWidget = 
 		SNew( STextBlock )
-		.Text( Node->GetDisplayName() )
+		.Text(this, &SAnimationOutlinerTreeNode::GetDisplayName )
 		.Font( NodeFont );
 
 	TSharedRef<SWidget>	FinalWidget = 
@@ -153,6 +153,11 @@ EVisibility SAnimationOutlinerTreeNode::GetNodeVisibility() const
 EVisibility SAnimationOutlinerTreeNode::GetExpanderVisibility() const
 {
 	return DisplayNode->GetNumChildren() > 0 ? EVisibility::Visible : EVisibility::Hidden;
+}
+
+FText SAnimationOutlinerTreeNode::GetDisplayName() const
+{
+	return DisplayNode->GetDisplayName();
 }
 
 void SAnimationOutlinerView::Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> InRootNode, TSharedRef<FSequencer> InSequencer )

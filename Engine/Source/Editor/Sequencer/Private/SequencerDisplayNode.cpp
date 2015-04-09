@@ -12,6 +12,7 @@
 #include "MovieSceneTrack.h"
 #include "CommonMovieSceneTools.h"
 #include "IKeyArea.h"
+#include "ISequencerObjectBindingManager.h"
 
 
 class SSequencerObjectTrack : public SLeafWidget
@@ -443,6 +444,13 @@ void FTrackNode::FixRowIndices()
 			Sections[i]->GetSectionObject()->SetRowIndex(0);
 		}
 	}
+}
+
+FText FObjectBindingNode::GetDisplayName() const
+{
+	FText DisplayName;
+	return GetSequencer().GetObjectBindingManager()->TryGetObjectBindingDisplayName(ObjectBinding, DisplayName) ?
+		DisplayName : DefaultDisplayName;
 }
 
 float FObjectBindingNode::GetNodeHeight() const

@@ -52,6 +52,12 @@ private:
 	 * @return The expander visibility of this node                                                              
 	 */
 	EVisibility GetExpanderVisibility() const;
+
+	/**
+	 * @return The display name for this node.
+	 */
+	FText GetDisplayName() const;
+
 private:
 	/** Layout node the widget is visualizing */
 	TSharedPtr<FSequencerDisplayNode> DisplayNode;

@@ -12,6 +12,8 @@
 #include "Animation/WidgetAnimation.h"
 #include "WidgetBlueprint.h"
 
+#define LOCTEXT_NAMESPACE "UMGSequencerObjectBindingManager"
+
 FUMGSequencerObjectBindingManager::FUMGSequencerObjectBindingManager( FWidgetBlueprintEditor& InWidgetBlueprintEditor, UWidgetAnimation& InAnimation )
 	: WidgetAnimation( &InAnimation )
 	, WidgetBlueprintEditor( InWidgetBlueprintEditor )
@@ -48,6 +50,7 @@ bool FUMGSequencerObjectBindingManager::CanPossessObject( UObject& Object ) cons
 void FUMGSequencerObjectBindingManager::BindPossessableObject( const FGuid& PossessableGuid, UObject& PossessedObject )
 {
 	PreviewObjectToGuidMap.Add( &PossessedObject, PossessableGuid );
+	GuidToPreviewObjectsMap.Add(PossessableGuid, &PossessedObject);
 
 	FWidgetAnimationBinding NewBinding;
 	NewBinding.AnimationGuid = PossessableGuid;
@@ -73,13 +76,13 @@ void FUMGSequencerObjectBindingManager::BindPossessableObject( const FGuid& Poss
 
 void FUMGSequencerObjectBindingManager::UnbindPossessableObjects( const FGuid& PossessableGuid )
 {
-	for( auto It = PreviewObjectToGuidMap.CreateIterator(); It; ++It )
+	TArray<TWeakObjectPtr<UObject>> PreviewObjects;
+	GuidToPreviewObjectsMap.MultiFind(PossessableGuid, PreviewObjects);
+	for (TWeakObjectPtr<UObject>& PreviewObject : PreviewObjects)
 	{
-		if( It.Value() == PossessableGuid )
-		{
-			It.RemoveCurrent();
-		}
+		PreviewObjectToGuidMap.Remove(PreviewObject);
 	}
+	GuidToPreviewObjectsMap.Remove(PossessableGuid);
 
 	UWidgetBlueprint* WidgetBlueprint = WidgetBlueprintEditor.GetWidgetBlueprintObj();
 
@@ -89,14 +92,40 @@ void FUMGSequencerObjectBindingManager::UnbindPossessableObjects( const FGuid& P
 
 void FUMGSequencerObjectBindingManager::GetRuntimeObjects( const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& ObjectGuid, TArray<UObject*>& OutRuntimeObjects ) const
 {
-	for( auto It = PreviewObjectToGuidMap.CreateConstIterator(); It; ++It )
+	TArray<TWeakObjectPtr<UObject>> PreviewObjects;
+	GuidToPreviewObjectsMap.MultiFind(ObjectGuid, PreviewObjects);
+	for (TWeakObjectPtr<UObject>& PreviewObject : PreviewObjects)
 	{
-		UObject* Object = It.Key().Get();
-		if( Object && It.Value() == ObjectGuid )
+		OutRuntimeObjects.Add(PreviewObject.Get());
+	}
+}
+
+bool FUMGSequencerObjectBindingManager::TryGetObjectBindingDisplayName(const FGuid& ObjectGuid, FText& DisplayName) const
+{
+	// TODO: This gets called every frame for every bound object and could be a potential performance issue for a really complicated animation.
+	TArray<TWeakObjectPtr<UObject>> BindingObjects;
+	GuidToPreviewObjectsMap.MultiFind(ObjectGuid, BindingObjects);
+	if (BindingObjects.Num() == 0)
+	{
+		DisplayName = LOCTEXT("NoBoundObjects", "Invalid bound object");
+	}
+	else if (BindingObjects.Num() == 1)
+	{
+		UPanelSlot* SlotObject = Cast<UPanelSlot>(BindingObjects[0].Get());
+		if (SlotObject != nullptr)
 		{
-			OutRuntimeObjects.Add( Object );
+			DisplayName = FText::Format(LOCTEXT("SlotObject", "{0} ({1} Slot)"), FText::FromString(SlotObject->Content->GetName()), FText::FromString(SlotObject->Parent->GetName()));
+		}
+		else
+		{
+			DisplayName = FText::FromString(BindingObjects[0].Get()->GetName());
 		}
 	}
+	else
+	{
+		DisplayName = LOCTEXT("Multiple bound objects", "Multilple bound objects");
+	}
+	return true;
 }
 
 bool FUMGSequencerObjectBindingManager::HasValidWidgetAnimation() const
@@ -120,6 +149,7 @@ void FUMGSequencerObjectBindingManager::InitPreviewObjects()
 			if( FoundObject )
 			{
 				PreviewObjectToGuidMap.Add(FoundObject, Binding.AnimationGuid);
+				GuidToPreviewObjectsMap.Add(Binding.AnimationGuid, FoundObject);
 			}
 		}
 	}
@@ -128,8 +158,11 @@ void FUMGSequencerObjectBindingManager::InitPreviewObjects()
 void FUMGSequencerObjectBindingManager::OnWidgetPreviewUpdated()
 {
 	PreviewObjectToGuidMap.Empty();
+	GuidToPreviewObjectsMap.Empty();
 
 	InitPreviewObjects();
 
 	WidgetBlueprintEditor.GetSequencer()->UpdateRuntimeInstances();
 }
+
+#undef LOCTEXT_NAMESPACE

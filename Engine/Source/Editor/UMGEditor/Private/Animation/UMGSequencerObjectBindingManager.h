@@ -25,6 +25,7 @@ public:
 	virtual void BindPossessableObject( const FGuid& PossessableGuid, UObject& PossessedObject ) override;
 	virtual void UnbindPossessableObjects( const FGuid& PossessableGuid ) override;
 	virtual void GetRuntimeObjects( const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& ObjectGuid, TArray<UObject*>& OutRuntimeObjects ) const override;
+	virtual bool TryGetObjectBindingDisplayName(const FGuid& ObjectGuid, FText& DisplayName) const override;
 	
 	/** @return true if the current animation is valid */
 	bool HasValidWidgetAnimation() const;
@@ -39,7 +40,9 @@ private:
 	void OnWidgetPreviewUpdated();
 private:
 	/** Mapping of preview objects to sequencer guids */
-	TMap< TWeakObjectPtr<UObject>, FGuid> PreviewObjectToGuidMap;
+	TMap<TWeakObjectPtr<UObject>, FGuid> PreviewObjectToGuidMap;
+	TMultiMap<FGuid, TWeakObjectPtr<UObject>> GuidToPreviewObjectsMap;
+
 
 	UWidgetAnimation* WidgetAnimation;
 

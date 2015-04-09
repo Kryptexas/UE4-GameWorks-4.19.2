@@ -371,12 +371,12 @@ public:
 	FObjectBindingNode( FName NodeName, const FString& InObjectName, const FGuid& InObjectBinding, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree )
 		: FSequencerDisplayNode( NodeName, InParentNode, InParentTree )
 		, ObjectBinding( InObjectBinding )
-		, DisplayName( InObjectName )
+		, DefaultDisplayName( FText::FromString(InObjectName) )
 	{}
 
 	/** FSequencerDisplayNodeInterface */
 	virtual ESequencerNode::Type GetType() const override { return ESequencerNode::Object; }
-	virtual FText GetDisplayName() const override { return FText::FromString(DisplayName); }
+	virtual FText GetDisplayName() const override;
 	virtual float GetNodeHeight() const override;
 	virtual bool GetShotFilteredVisibilityToCache() const override;
 	
@@ -389,8 +389,8 @@ public:
 private:
 	/** The binding to live objects */
 	FGuid ObjectBinding;
-	/** Display name of the object */
-	FString DisplayName;
+	/** The default display name of the object which is used if the binding manager doesn't provide one. */
+	FText DefaultDisplayName;
 };
 
 /**

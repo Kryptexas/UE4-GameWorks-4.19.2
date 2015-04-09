@@ -1296,6 +1296,11 @@ void FSequencer::KeyProperty(const TArray<UObject*>& ObjectsToKey, const class I
 	ObjectChangeListener->KeyProperty( ObjectsToKey, PropertyHandle );
 }
 
+TSharedRef<ISequencerObjectBindingManager> FSequencer::GetObjectBindingManager() const
+{
+	return ObjectBindingManager.ToSharedRef();
+}
+
 TArray< TWeakObjectPtr<UMovieSceneSection> > FSequencer::GetFilteringShotSections() const
 {
 	return FilteringShots;
