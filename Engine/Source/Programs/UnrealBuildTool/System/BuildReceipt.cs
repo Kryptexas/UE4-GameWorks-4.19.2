@@ -10,6 +10,26 @@ using System.ComponentModel;
 
 namespace UnrealBuildTool
 {
+	[Serializable]
+	public class BuildProperty
+	{
+		[XmlAttribute]
+		public string Name;
+
+		[XmlAttribute]
+		public string Value;
+
+		private BuildProperty()
+		{
+		}
+
+		public BuildProperty(string InName, string InValue)
+		{
+			Name = InName;
+			Value = InValue;
+		}
+	}
+
 	public enum BuildProductType
 	{
 		Executable,
@@ -97,6 +117,9 @@ namespace UnrealBuildTool
 	[Serializable]
 	public class BuildReceipt
 	{
+		[XmlArrayItem("Property")]
+		public List<BuildProperty> Properties = new List<BuildProperty>();
+
 		[XmlArrayItem("BuildProduct")]
 		public List<BuildProduct> BuildProducts = new List<BuildProduct>();
 
@@ -127,6 +150,42 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Sets a property with the given name
+		/// </summary>
+		/// <param name="Name">Name of the property; case sensitive.</param>
+		/// <param name="Value">Value for the property</param>
+		public void SetProperty(string Name, string Value)
+		{
+			BuildProperty Property = Properties.FirstOrDefault(x => x.Name == Name);
+			if(Property == null)
+			{
+				Properties.Add(new BuildProperty(Name, Value));
+			}
+			else
+			{
+				Property.Value = Value;
+			}
+		}
+
+		/// <summary>
+		/// Gets the value associated with a property
+		/// </summary>
+		/// <param name="Name">Name of the property; case sensitive.</param>
+		/// <param name="DefaultValue">Default value for the property if it's not found</param>
+		public string GetProperty(string Name, string DefaultValue)
+		{
+			BuildProperty Property = Properties.FirstOrDefault(x => x.Name == Name);
+			if(Property == null)
+			{
+				return DefaultValue;
+			}
+			else
+			{
+				return Property.Value;
+			}
+		}
+
+		/// <summary>
 		/// Adds a build product to the receipt. Does not check whether it already exists.
 		/// </summary>
 		/// <param name="Path">Path to the build product.</param>
@@ -153,10 +212,10 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Appends another receipt to this one.
+		/// Merges another receipt to this one.
 		/// </summary>
-		/// <param name="Other">Receipt which should be appended</param>
-		public void Append(BuildReceipt Other)
+		/// <param name="Other">Receipt which should be merged</param>
+		public void Merge(BuildReceipt Other)
 		{
 			foreach(BuildProduct OtherBuildProduct in Other.BuildProducts)
 			{
@@ -164,7 +223,10 @@ namespace UnrealBuildTool
 			}
 			foreach(RuntimeDependency OtherRuntimeDependency in Other.RuntimeDependencies)
 			{
-				RuntimeDependencies.Add(OtherRuntimeDependency);
+				if(!RuntimeDependencies.Any(x => x.Path == OtherRuntimeDependency.Path && x.StagePath == OtherRuntimeDependency.StagePath))
+				{
+					RuntimeDependencies.Add(OtherRuntimeDependency);
+				}
 			}
 		}
 

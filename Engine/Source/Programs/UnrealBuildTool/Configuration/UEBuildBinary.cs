@@ -696,6 +696,8 @@ namespace UnrealBuildTool
 		public override BuildReceipt MakeReceipt(IUEToolChain ToolChain)
 		{
 			BuildReceipt Receipt = base.MakeReceipt(ToolChain);
+
+			// Set the IsPrecompiled flag on all the build products if we're not actually building this binary
 			if(!Config.bAllowCompilation)
 			{
 				foreach(BuildProduct BuildProduct in Receipt.BuildProducts)
@@ -703,12 +705,30 @@ namespace UnrealBuildTool
 					BuildProduct.IsPrecompiled = true;
 				}
 			}
+
+			// Add runtime dependencies for all the modules in this binary, and build up a list of all the referenced modules
+			Dictionary<string, UEBuildModule> ReferencedModules = new Dictionary<string,UEBuildModule>();
+			List<UEBuildModule> OrderedModules = new List<UEBuildModule>();
 			foreach (string ModuleName in ModuleNames)
 			{
 				UEBuildModule Module = Target.GetModuleByName(ModuleName); 
 				foreach(RuntimeDependency RuntimeDependency in Module.RuntimeDependencies)
 				{
 					Receipt.RuntimeDependencies.Add(new RuntimeDependency(RuntimeDependency));
+				}
+				Module.GetAllDependencyModules(ReferencedModules, OrderedModules, true, false, true);
+			}
+
+			// Add runtime dependencies for all the referenced external modules. These may be introduce dependencies for the binary without actually being listed for inclusion in it.
+			foreach(UEBuildModule OrderedModule in OrderedModules)
+			{
+				UEBuildExternalModule ExternalModule = OrderedModule as UEBuildExternalModule;
+				if(ExternalModule != null)
+				{
+					foreach(RuntimeDependency RuntimeDependency in ExternalModule.RuntimeDependencies)
+					{
+						Receipt.RuntimeDependencies.Add(new RuntimeDependency(RuntimeDependency));
+					}
 				}
 			}
 			return Receipt;

@@ -290,6 +290,7 @@ namespace AutomationTool
 			this.NoBootstrapExe = InParams.NoBootstrapExe;
             this.Prebuilt = InParams.Prebuilt;
             this.RunTimeoutSeconds = InParams.RunTimeoutSeconds;
+			this.bIsCodeBasedProject = InParams.bIsCodeBasedProject;
 		}
 
 		/// <summary>

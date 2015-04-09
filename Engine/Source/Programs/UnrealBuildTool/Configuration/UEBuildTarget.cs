@@ -1347,11 +1347,21 @@ namespace UnrealBuildTool
 		private void PrepareReceipt(IUEToolChain ToolChain)
 		{
 			Receipt = new BuildReceipt();
+
+			// Add the target properties
+			Receipt.SetProperty("TargetName", TargetName);
+			Receipt.SetProperty("Platform", Platform.ToString());
+			Receipt.SetProperty("Configuration", Configuration.ToString());
+			Receipt.SetProperty("Precompile", bPrecompile.ToString());
+
+			// Merge all the binary receipts into this
 			foreach(UEBuildBinary Binary in AppBinaries)
 			{
 				BuildReceipt BinaryReceipt = Binary.MakeReceipt(ToolChain);
-				Receipt.Append(BinaryReceipt);
+				Receipt.Merge(BinaryReceipt);
 			}
+
+			// Convert all the paths to use variables for the engine and project root
 			Receipt.InsertStandardPathVariables(BuildConfiguration.RelativeEnginePath, ProjectDirectory);
 		}
 

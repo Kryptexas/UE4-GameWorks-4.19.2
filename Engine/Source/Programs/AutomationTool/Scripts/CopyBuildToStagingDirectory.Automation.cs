@@ -1360,6 +1360,29 @@ public partial class Project : CommandUtils
                 }
             }
 
+			string EngineDir = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine");
+
+			List<BuildReceipt> TargetsToStage = new List<BuildReceipt>();
+			foreach(string Target in ListToProcess)
+			{
+				foreach(UnrealTargetConfiguration Config in ConfigsToProcess)
+				{
+					string ReceiptBaseDir = Params.IsCodeBasedProject? Path.GetDirectoryName(Params.RawProjectPath) : EngineDir;
+
+					// Read the receipt
+					string ReceiptFileName = BuildReceipt.GetDefaultPath(ReceiptBaseDir, Target, StagePlatform, Config, "");
+					if(!File.Exists(ReceiptFileName))
+					{
+						throw new AutomationException("Missing receipt '{0}'. Check that this target has been built.", Path.GetFileName(ReceiptFileName));
+					}
+
+					// Convert the paths to absolute
+					BuildReceipt Receipt = BuildReceipt.Read(ReceiptFileName);
+					Receipt.ExpandPathVariables(EngineDir, Path.GetDirectoryName(Params.RawProjectPath));
+					TargetsToStage.Add(Receipt);
+				}
+			}
+
 			//@todo should pull StageExecutables from somewhere else if not cooked
             var SC = new DeploymentContext(Params.RawProjectPath, CmdEnv.LocalRoot,
                 StageDirectory,
@@ -1368,6 +1391,7 @@ public partial class Project : CommandUtils
 				Params.GetTargetPlatformInstance(CookedDataPlatform),
 				Params.GetTargetPlatformInstance(StagePlatform),
 				ConfigsToProcess,
+				TargetsToStage,
 				ExecutablesToStage,
 				InDedicatedServer,
 				Params.Cook || Params.CookOnTheFly,
