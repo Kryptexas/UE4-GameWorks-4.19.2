@@ -4,7 +4,6 @@
 
 #include "GitSourceControlState.h"
 #include "GitSourceControlRevision.h"
-#include "GitSourceControlCommand.h"
 
 class FGitSourceControlCommand;
 
@@ -33,8 +32,8 @@ namespace GitSourceControlUtils
 {
 
 /**
- * Find the path to the Git binary, looking in a few standard place (ThirdParty subdirectory and standard sSystem paths)
- * @returns the path to the Git binary if found, or the last path tested if no git found.
+ * Find the path to the Git binary, looking into a few places (standalone Git install, and other common tools embedding Git)
+ * @returns the path to the Git binary if found, or an empty string.
  */
 FString FindGitBinaryPath();
 
