@@ -172,6 +172,7 @@ public:
 				+ SVerticalBox::Slot().AutoHeight()
 				[
 					SNew(SCheckBox)
+					.Style(FCoreStyle::Get(), "RadioButton")
 					.OnCheckStateChanged(this, &FItem::OnCheckStateChange)
 					.IsChecked(this, &FItem::IsCheckboxChecked)
 					[
@@ -179,7 +180,7 @@ public:
 						.Text(FText::FromString(GetName()))
 					]
 				]
-			+ SVerticalBox::Slot().VAlign(VAlign_Fill)
+				+ SVerticalBox::Slot().VAlign(VAlign_Fill).Padding(19.0f, 2.0f, 2.0f, 2.0f)
 				[
 					GetContent()
 				];
@@ -957,7 +958,7 @@ public:
 			+ SWidgetSwitcher::Slot()
 			[
 				SNew(SVerticalBox)
-				+ SVerticalBox::Slot().AutoHeight()
+				+ SVerticalBox::Slot().AutoHeight().Padding(5.0f)
 				[
 					PickGameWidget.ToSharedRef()
 				]
