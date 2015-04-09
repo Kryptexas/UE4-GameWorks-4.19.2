@@ -359,10 +359,18 @@ FCocoaRunLoopSource* FCocoaRunLoopSource::GameRunLoopSource = nullptr;
 	
 	if (GIsRequestingExit)
 	{
-		MainThreadCall(^{
+		dispatch_sync(dispatch_get_main_queue(), ^{
 			GGameThreadId = FPlatformTLS::GetCurrentThreadId();
 			[NSApp replyToApplicationShouldTerminate:YES];
-		}, NSDefaultRunLoopMode, false);
+			[[NSProcessInfo processInfo] enableSuddenTermination];
+		});
+	}
+	else
+	{
+		dispatch_sync(dispatch_get_main_queue(), ^{
+			GGameThreadId = FPlatformTLS::GetCurrentThreadId();
+			[[NSProcessInfo processInfo] enableSuddenTermination];
+		});
 	}
 	
 	[self release];
@@ -429,6 +437,10 @@ void GameThreadCall(dispatch_block_t Block, NSArray* SendModes, bool const bWait
 void RunGameThread(id Target, SEL Selector)
 {
 	SCOPED_AUTORELEASE_POOL;
+	
+	// @todo: Proper support for sudden termination (OS termination of application without any events, notifications or signals) - which presently can assert, crash or corrupt. At present we can't deal with this and we need to ensure that we don't permit the system to kill us without warning by disabling & enabling support around operations which must be committed to disk atomically.
+	[[NSProcessInfo processInfo] disableSuddenTermination];
+	
 #if MAC_SEPARATE_GAME_THREAD
 	// Register main run loop source
 	FCocoaRunLoopSource::RegisterMainRunLoop(CFRunLoopGetCurrent());
