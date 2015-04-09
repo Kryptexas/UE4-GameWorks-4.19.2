@@ -17,6 +17,10 @@ UWorldComposition::FWorldCompositionChangedEvent UWorldComposition::WorldComposi
 
 UWorldComposition::UWorldComposition(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, TilesStreamingTimeThreshold(1.0)
+	, bLoadAllTilesDuringCinematic(false)
+	, bRebaseOriginIn3DSpace(false)
+	, RebaseOriginDistance(HALF_WORLD_MAX1*0.5f)
 {
 }
 
@@ -756,11 +760,15 @@ void UWorldComposition::EvaluateWorldOriginLocation(const FVector& ViewLocation)
 	UWorld* OwningWorld = GetWorld();
 	
 	FVector Location = ViewLocation;
-	// Consider only XY plane
-	Location.Z = 0.f;
+
+	if (!bRebaseOriginIn3DSpace)
+	{
+		// Consider only XY plane
+		Location.Z = 0.f;
+	}
 		
 	// Request to shift world in case current view is quite far from current origin
-	if (Location.Size() > HALF_WORLD_MAX1*0.5f)
+	if (Location.Size() > RebaseOriginDistance)
 	{
 		OwningWorld->RequestNewWorldOrigin(FIntVector(Location.X, Location.Y, Location.Z) + OwningWorld->OriginLocation);
 	}

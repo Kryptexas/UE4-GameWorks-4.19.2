@@ -221,4 +221,11 @@ public:
 	UPROPERTY(config)
 	bool						bLoadAllTilesDuringCinematic;
 
+	// Whether to rebase origin in 3D space, otherwise only on XY plane
+	UPROPERTY(config)
+	bool						bRebaseOriginIn3DSpace;
+
+	// Maximum distance to current view point where we should initiate origin rebasing
+	UPROPERTY(config)
+	float						RebaseOriginDistance;
 };
