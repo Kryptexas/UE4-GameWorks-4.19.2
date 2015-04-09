@@ -3621,7 +3621,9 @@ FVector UDistributionVectorUniformCurve::GetMinValue() const
 	return FVector::ZeroVector;
 }
 
-FVector UDistributionVectorUniformCurve::GetMaxValue() const
+// PVS-Studio notices that the implementation of GetMinValue is identical to this one
+// and warns us. In this case, it is intentional, so we disable the warning:
+FVector UDistributionVectorUniformCurve::GetMaxValue() const //-V524
 {
 	check(!TEXT("Don't call me!"));
 	return FVector::ZeroVector;

@@ -3240,7 +3240,8 @@ FDynamicEmitterDataBase* UParticleSystemComponent::CreateDynamicDataFromReplay( 
 		case DET_Mesh:
 			{
 				// Allocate the dynamic data
-				FDynamicMeshEmitterData* NewEmitterData = ::new FDynamicMeshEmitterData(EmitterInstance->CurrentLODLevel->RequiredModule);
+				// PVS-Studio does not understand the checkSlow above, so it is warning us that EmitterInstance->CurrentLODLevel may be null.
+				FDynamicMeshEmitterData* NewEmitterData = ::new FDynamicMeshEmitterData(EmitterInstance->CurrentLODLevel->RequiredModule); //-V595
 
 				// Fill in the source data
 				const FDynamicMeshEmitterReplayData* MeshEmitterReplayData =

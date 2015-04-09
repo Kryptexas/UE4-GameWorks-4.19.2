@@ -2627,7 +2627,11 @@ void UClass::DeferredRegister(UClass *UClassStaticClass,const TCHAR* PackageName
 	Super::DeferredRegister(UClassStaticClass,PackageName,Name);
 
 	// Get stashed registration info.
-	const TCHAR* InClassConfigName = *(TCHAR**)&ClassConfigName;
+
+	// PVS-Studio justifiably complains about this cast, but we expect this to work because we 'know' that 
+	// we're coming from the UClass constructor that is used when 'statically linked'. V580 disables 
+	// a warning that indicates this is an 'odd explicit type casting'.
+	const TCHAR* InClassConfigName = *(TCHAR**)&ClassConfigName; //-V580
 	ClassConfigName = InClassConfigName;
 
 	// Propagate inherited flags.
@@ -3375,7 +3379,12 @@ UClass::UClass
 ,	bCooked( false )
 {
 	// If you add properties here, please update the other constructors and PurgeClass()
-	*(const TCHAR**)&ClassConfigName = InConfigName;
+
+	// We store the pointer to the ConfigName in an FName temporarily, this cast is intentional
+	// as we expect the mis-typed data to get picked up in UClass::DeferredRegister. PVS-Studio
+	// complains about this operation, but AFAIK it is safe (and we've been doing it a long time)
+	// so the warning has been disabled for now:
+	*(const TCHAR**)&ClassConfigName = InConfigName; //-V580
 }
 
 #if WITH_HOT_RELOAD

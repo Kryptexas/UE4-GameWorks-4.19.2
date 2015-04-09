@@ -1209,7 +1209,9 @@ void FTexture2DResource::InitRHI()
 	if( Owner->PendingMipChangeRequestStatus.GetValue() == TexState_InProgress_Initialization )
 	{
 		bool bSkipRHITextureCreation = false; //Owner->bIsCompositingSource;
-		if (GIsEditor || (!bSkipRHITextureCreation))
+		// PVS - Studio has pointed out that bSkipRHITextureCreation is a codesmell (!bSkipRHITextureCreation is always true)
+		// for now, we have disabled the warning, but consider removing the variable if requirements indicate it will never be used.
+		if (GIsEditor || (!bSkipRHITextureCreation)) //-V560 
 		{
 			if ( CanCreateAsVirtualTexture(Owner, TexCreateFlags) )
 			{
@@ -1297,7 +1299,9 @@ void FTexture2DResource::InitRHI()
 	{
 		// Recreate the texture from the texture contents that were saved by ReleaseRHI.
 		bool bSkipRHITextureCreation = false; //Owner->bIsCompositingSource;
-		if (GIsEditor || (!bSkipRHITextureCreation))
+		// PVS - Studio has pointed out that bSkipRHITextureCreation is a codesmell (!bSkipRHITextureCreation is always true)
+		// for now, we have disabled the warning, but consider removing the variable if requirements indicate it will never be used.
+		if (GIsEditor || (!bSkipRHITextureCreation)) //-V560
 		{
 			FRHIResourceCreateInfo CreateInfo;
 			Texture2DRHI	= RHICreateTexture2D( SizeX, SizeY, EffectiveFormat, Owner->RequestedMips, 1, TexCreateFlags, CreateInfo );

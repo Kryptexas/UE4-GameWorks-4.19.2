@@ -599,7 +599,9 @@ uint8* FTextureSource::LockMip(int32 MipIndex)
 						if (RawData->Num() > 0)
 						{
 							LockedMipData = (uint8*)FMemory::Malloc(RawData->Num());
-							FMemory::Memcpy(LockedMipData, RawData->GetData(), RawData->Num());
+							// PVS-Studio does not understand that IImageWrapper::GetRaw's return value validates the pointer, so we disable
+							// the warning that we are using the RawData pointer before checking for null:
+							FMemory::Memcpy(LockedMipData, RawData->GetData(), RawData->Num()); //-V595
 						}
 					}
 					if (RawData == NULL || RawData->Num() == 0)

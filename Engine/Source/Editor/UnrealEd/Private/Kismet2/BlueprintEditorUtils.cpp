@@ -7661,7 +7661,10 @@ UK2Node_FunctionResult* FBlueprintEditorUtils::FindOrCreateFunctionResultNode(UK
 		UEdGraph* Graph = InFunctionEntryNode->GetGraph();
 
 		TArray<UK2Node_FunctionResult*> ResultNode;
-		Graph->GetNodesOfClass(ResultNode);
+		if (Graph)
+		{
+			Graph->GetNodesOfClass(ResultNode);
+		}
 
 		if (Graph && ResultNode.Num() == 0)
 		{

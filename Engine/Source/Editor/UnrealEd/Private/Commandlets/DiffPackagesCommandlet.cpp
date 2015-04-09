@@ -965,6 +965,8 @@ EObjectDiff UDiffPackagesCommandlet::DiffObjects(UObject* ObjA, UObject* ObjB, U
 		return OD_None;
 	}
 
+	// PVS-Studio does not understand the assumption that we must have an ancestor if we have an ObjA or an ObjB, and is
+	// warning about usage of ObjAncestor pointer:
 	UClass* ComparisonClass = (ObjA ? ObjA->GetClass() : (ObjB ? ObjB->GetClass() : ObjAncestor->GetClass())); //-V595
 
 	// complex logic for what kind of differnce this is, if at all
@@ -1123,7 +1125,7 @@ EObjectDiff UDiffPackagesCommandlet::DiffObjects(UObject* ObjA, UObject* ObjB, U
 				{
 					check(ObjB);
 					PropDiff.DiffType = OD_ABConflict;
-					FString FullPath = ObjA ? ObjA->GetFullName(Packages[0]) : ObjB->GetFullName(Packages[1]);
+					FString FullPath = ObjA ? ObjA->GetFullName(Packages[0]) : ObjB->GetFullName(Packages[1]); //-V595 PVS-Studio does not understand the check(objB) above, and is warning about usage of the objB pointer
 
 					// recompose the text relative to each other so that when showing differences of structs,
 					// only properties within the struct that actually changed are shown

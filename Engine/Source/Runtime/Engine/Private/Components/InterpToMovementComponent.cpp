@@ -38,7 +38,7 @@ void UInterpToMovementComponent::TickComponent(float DeltaTime, enum ELevelTick 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// skip if don't want component updated when not rendered or updated component can't move
-	if (ShouldSkipUpdate(DeltaTime))
+	if (!UpdatedComponent || ShouldSkipUpdate(DeltaTime))
 	{
 		return;
 	}

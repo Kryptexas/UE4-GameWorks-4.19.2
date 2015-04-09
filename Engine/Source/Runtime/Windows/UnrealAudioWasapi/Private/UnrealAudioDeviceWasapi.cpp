@@ -125,7 +125,7 @@ namespace UAudio
 		Speakers.Reset();
 		uint32 ChanCount = 0;
 		// Build a flag field of the speaker outputs of this device
-		for (uint32 SpeakerTypeIndex = 0; SpeakerTypeIndex < ESpeaker::SPEAKER_TYPE_COUNT, ChanCount < NumChannels; ++SpeakerTypeIndex)
+		for (uint32 SpeakerTypeIndex = 0; SpeakerTypeIndex < ESpeaker::SPEAKER_TYPE_COUNT && ChanCount < NumChannels; ++SpeakerTypeIndex)
 		{
 			if (ChannelMask & SpeakerMaskMapping[SpeakerTypeIndex].XAudio2SpeakerTypeFlag)
 			{
@@ -565,7 +565,7 @@ Cleanup:
 
 		if (!GetDeviceInfo(DataFlow, DeviceIndex, DeviceInfo))
 		{
-			Result = -1;
+			Result = S_FALSE;
 			goto Cleanup;
 		}
 

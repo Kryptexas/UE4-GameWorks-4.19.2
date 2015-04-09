@@ -233,7 +233,9 @@ bool FMetadataTest::RunTest( const FString& Parameters )
 		// Test assignment
 		{
 			FLocMetadataObject MetadataObjectAClone = *MetadataObjectB;
-			MetadataObjectAClone = *MetadataObjectA;
+			// PVS-Studio complains about double initialization, but that's something we're testing
+			// so we disable the warning
+			MetadataObjectAClone = *MetadataObjectA; //-V519
 			TestTrue( TEXT("MetadataObjectAClone == MetadataObjectA"), MetadataObjectAClone == *MetadataObjectA );
 			TestFalse( TEXT("MetadataObjectAClone == MetadataObjectB"), MetadataObjectAClone == *MetadataObjectB );
 		}

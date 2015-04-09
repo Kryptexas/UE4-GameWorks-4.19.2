@@ -43,7 +43,9 @@ public:
 		return Size;
 	}
 
-	virtual uint32 GetSizeY() const override
+	// PVS-Studio notices that the implementation of GetSizeX is identical to this one
+	// and warns us. In this case, it is intentional, so we disable the warning:
+	virtual uint32 GetSizeY() const override //-V524
 	{
 		return Size;
 	}

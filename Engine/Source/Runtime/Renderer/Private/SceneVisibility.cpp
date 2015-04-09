@@ -1932,7 +1932,9 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 		const bool bIsParent = ViewState && ViewState->IsViewParent();
 		if ( bIsParent )
 		{
-			ViewState->ParentPrimitives.Empty();
+			// PVS-Studio does not understand the validation of ViewState above, so we're disabling
+			// its warning that ViewState may be null:
+			ViewState->ParentPrimitives.Empty(); //-V595
 		}
 
 		if (ViewState)

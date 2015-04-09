@@ -416,6 +416,11 @@ static UObject* GetOrCreateMaterialFromTexture( UTexture* UnrealTexture )
 	UMaterial* UnrealMaterial = (UMaterial*)MaterialFactory->FactoryCreateNew(
 		UMaterial::StaticClass(), Package, *MaterialFullName, RF_Standalone | RF_Public, NULL, GWarn );
 
+	if (UnrealMaterial == nullptr)
+	{
+		return nullptr;
+	}
+
 	const int HSpace = -300;
 
 	// If we were able to figure out the material kind, we need to try and build a complex material
@@ -469,14 +474,11 @@ static UObject* GetOrCreateMaterialFromTexture( UTexture* UnrealTexture )
 		TryAndCreateMaterialInput( UnrealMaterial, EMaterialKind::Normal, NormalTexture, UnrealMaterial->Normal, HSpace, VSpace * 2 );
 	}
 
-	if ( UnrealMaterial != NULL )
-	{
-		// Notify the asset registry
-		FAssetRegistryModule::AssetCreated( UnrealMaterial );
+	// Notify the asset registry
+	FAssetRegistryModule::AssetCreated( UnrealMaterial );
 
-		// Set the dirty flag so this package will get saved later
-		Package->SetDirtyFlag( true );
-	}
+	// Set the dirty flag so this package will get saved later
+	Package->SetDirtyFlag( true );
 
 	UnrealMaterial->ForceRecompileForRendering();
 

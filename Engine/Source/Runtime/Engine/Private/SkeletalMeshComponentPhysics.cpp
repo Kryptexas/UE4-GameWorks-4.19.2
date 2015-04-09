@@ -826,33 +826,36 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 
 #if WITH_PHYSX
 
+	if (PhysScene)
+	{
 		// Get the scene type from the SkeletalMeshComponent's BodyInstance
 		const uint32 SceneType = (bHasBodiesInAsyncScene && PhysScene->HasAsyncScene()) ? PST_Async : PST_Sync;
-			PxScene* PScene = PhysScene->GetPhysXScene(SceneType);
-			SCOPED_SCENE_WRITE_LOCK(PScene);
-
-	// add Aggregate into the scene
-	if(Aggregate && Aggregate->getNbActors() > 0 && PhysScene)
-	{
-			PScene->addAggregate(*Aggregate);
-		
-		// If we've used an aggregate, InitBody would not be able to set awake status as we *must* have a scene
-		// to do that, so we reconcile this here.
-		AActor* Owner = GetOwner();
-		bool bShouldSleep = !BodyInstance.bStartAwake && (Owner && Owner->GetVelocity().SizeSquared() <= KINDA_SMALL_NUMBER);
-
-		for(FBodyInstance* Body : Bodies)
+		PxScene* PScene = PhysScene->GetPhysXScene(SceneType);
+		SCOPED_SCENE_WRITE_LOCK(PScene);
+		// add Aggregate into the scene
+		if (Aggregate && Aggregate->getNbActors() > 0)
 		{
-			// Creates a DOF constraint if necessary for the body - also requires the scene to exist within the actor
-			Body->CreateDOFLock();
+			PScene->addAggregate(*Aggregate);
 
-			// Set to sleep if necessary
-			if(bShouldSleep)
+			// If we've used an aggregate, InitBody would not be able to set awake status as we *must* have a scene
+			// to do that, so we reconcile this here.
+			AActor* Owner = GetOwner();
+			bool bShouldSleep = !BodyInstance.bStartAwake && (Owner && Owner->GetVelocity().SizeSquared() <= KINDA_SMALL_NUMBER);
+
+			for (FBodyInstance* Body : Bodies)
 			{
-				Body->GetPxRigidDynamic_AssumesLocked()->putToSleep();
+				// Creates a DOF constraint if necessary for the body - also requires the scene to exist within the actor
+				Body->CreateDOFLock();
+
+				// Set to sleep if necessary
+				if (bShouldSleep)
+				{
+					Body->GetPxRigidDynamic_AssumesLocked()->putToSleep();
+				}
 			}
 		}
 	}
+
 #endif //WITH_PHYSX
 
 	// Create all the constraints.
@@ -2387,6 +2390,9 @@ void USkeletalMeshComponent::DrawDebugClothCollisions()
 				break;
 			case FClothCollisionPrimitive::CONVEX:	
 				DrawDebugConvexFromPlanes(CollisionPrims[PrimIndex], Colors[PrimIndex%6]);
+				break;
+
+			case FClothCollisionPrimitive::PLANE:
 				break;
 			}
 

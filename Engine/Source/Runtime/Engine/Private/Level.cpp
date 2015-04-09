@@ -59,7 +59,7 @@ void FPrecomputedVisibilityHandler::UpdateVisibilityStats(bool bAllocating) cons
 		}
 	}
 	else
-	{
+	{ //-V523, disabling identical branch warning because PVS-Studio does not understate the stat system in all configurations:
 		DEC_DWORD_STAT_BY(STAT_PrecomputedVisibilityMemory, PrecomputedVisibilityCellBuckets.GetAllocatedSize());
 		for (int32 BucketIndex = 0; BucketIndex < PrecomputedVisibilityCellBuckets.Num(); BucketIndex++)
 		{

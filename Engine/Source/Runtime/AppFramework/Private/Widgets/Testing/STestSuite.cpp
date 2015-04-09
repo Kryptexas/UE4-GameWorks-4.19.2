@@ -52,7 +52,9 @@ namespace
 		// rotation casts
 		auto quat3 = TransformCast<FQuat>(rot);
 		auto rot3 = TransformCast<FRotator>(quat);
-		rot3 = TransformCast<FRotator>(mat);
+		// PVS-Studio complains about double initialization, but that's something we're testing
+		// so we disable the warning:
+		rot3 = TransformCast<FRotator>(mat); //-V519
 
 		// higher level transform casts
 		auto mat3 = TransformCast<FMatrix>(uniScale);
