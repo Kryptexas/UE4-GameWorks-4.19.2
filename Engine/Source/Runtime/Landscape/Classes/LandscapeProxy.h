@@ -361,8 +361,8 @@ public:
 	UPROPERTY(EditAnywhere, Category=Landscape)
 	UMaterialInterface* LandscapeMaterial;
 
-	/** Material used to render landscape components with holes. Should be a BLEND_Masked version of LandscapeMaterial. */
-	UPROPERTY(EditAnywhere, Category=Landscape)
+	/** Material used to render landscape components with holes. If not set, LandscapeMaterial will be used (blend mode will be overridden to Masked if it is set to Opaque) */
+	UPROPERTY(EditAnywhere, Category=Landscape, AdvancedDisplay)
 	UMaterialInterface* LandscapeHoleMaterial;
 
 	UPROPERTY(EditAnywhere, Category=LOD)

@@ -290,7 +290,7 @@ UMaterialInterface* ULandscapeComponent::GetLandscapeHoleMaterial() const
 	{
 		return Proxy->GetLandscapeHoleMaterial();
 	}
-	return UMaterial::GetDefaultMaterial(MD_Surface);
+	return nullptr;
 }
 
 bool ULandscapeComponent::ComponentHasVisibilityPainted() const
@@ -306,9 +306,8 @@ bool ULandscapeComponent::ComponentHasVisibilityPainted() const
 	return false;
 }
 
-FString ULandscapeComponent::GetLayerAllocationKey(bool bMobile /* = false */) const
+FString ULandscapeComponent::GetLayerAllocationKey(UMaterialInterface* LandscapeMaterial, bool bMobile /*= false*/) const
 {
-	UMaterialInterface* LandscapeMaterial = GetLandscapeMaterial();
 	if (!LandscapeMaterial)
 	{
 		return FString();
@@ -320,7 +319,7 @@ FString ULandscapeComponent::GetLayerAllocationKey(bool bMobile /* = false */) c
 	TArray<FString> LayerStrings;
 	for (int32 LayerIdx = 0; LayerIdx < WeightmapLayerAllocations.Num(); LayerIdx++)
 	{
-		new(LayerStrings)FString(*FString::Printf(TEXT("_%s_%d"), *WeightmapLayerAllocations[LayerIdx].GetLayerName().ToString(), bMobile ? 0 : WeightmapLayerAllocations[LayerIdx].WeightmapTextureIndex));
+		LayerStrings.Add(FString::Printf(TEXT("_%s_%d"), *WeightmapLayerAllocations[LayerIdx].GetLayerName().ToString(), bMobile ? 0 : WeightmapLayerAllocations[LayerIdx].WeightmapTextureIndex));
 	}
 	/**
 	 * Generate a key for this component's layer allocations to use with MaterialInstanceConstantMap.
@@ -1494,11 +1493,11 @@ UMaterialInterface* ALandscapeProxy::GetLandscapeHoleMaterial() const
 	{
 		return LandscapeHoleMaterial;
 	}
-	else if (LandscapeActor)
+	else if (ALandscape* Landscape = LandscapeActor.Get())
 	{
-		return LandscapeActor->GetLandscapeHoleMaterial();
+		return Landscape->GetLandscapeHoleMaterial();
 	}
-	return UMaterial::GetDefaultMaterial(MD_Surface);
+	return nullptr;
 }
 
 UMaterialInterface* ALandscape::GetLandscapeMaterial() const
@@ -1516,7 +1515,7 @@ UMaterialInterface* ALandscape::GetLandscapeHoleMaterial() const
 	{
 		return LandscapeHoleMaterial;
 	}
-	return UMaterial::GetDefaultMaterial(MD_Surface);
+	return nullptr;
 }
 
 void ALandscape::PreSave()

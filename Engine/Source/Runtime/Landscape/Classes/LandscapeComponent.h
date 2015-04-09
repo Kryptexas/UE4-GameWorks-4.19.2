@@ -166,7 +166,7 @@ class ULandscapeComponent : public UPrimitiveComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LandscapeComponent)
 	class UMaterialInterface* OverrideMaterial;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LandscapeComponent)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LandscapeComponent, AdvancedDisplay)
 	class UMaterialInterface* OverrideHoleMaterial;
 
 	UPROPERTY(TextExportTransient)
@@ -508,7 +508,7 @@ public:
 	/**
 	 * Generate a key for this component's layer allocations to use with MaterialInstanceConstantMap.
 	 */
-	FString GetLayerAllocationKey(bool bMobile = false) const;
+	FString GetLayerAllocationKey(UMaterialInterface* LandscapeMaterial, bool bMobile = false) const;
 
 	/** @todo document */
 	void GetLayerDebugColorKey(int32& R, int32& G, int32& B) const;

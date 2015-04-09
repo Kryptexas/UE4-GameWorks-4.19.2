@@ -167,32 +167,36 @@ UMaterialInstanceConstant* ULandscapeComponent::GetCombinationMaterial(bool bMob
 
 	ALandscapeProxy* Proxy = GetLandscapeProxy();
 
-	UMaterialInterface* LandscapeMaterial = ComponentHasVisibilityPainted() ? GetLandscapeHoleMaterial() : GetLandscapeMaterial();
+	const bool bComponentHasHoles = ComponentHasVisibilityPainted();
+	UMaterialInterface* const LandscapeMaterial = GetLandscapeMaterial();
+	UMaterialInterface* const HoleMaterial = bComponentHasHoles ? GetLandscapeHoleMaterial() : nullptr;
+	UMaterialInterface* const MaterialToUse = bComponentHasHoles && HoleMaterial ? HoleMaterial : LandscapeMaterial;
+	const bool bOverrideBlendMode = bComponentHasHoles && !HoleMaterial && LandscapeMaterial->GetBlendMode() == BLEND_Opaque;
 
-	if (LandscapeMaterial != NULL)
+	if (ensure(MaterialToUse != nullptr))
 	{
 		// Ensure top level UMaterial has appropriate usage flags set.
 		bool bNeedsRecompile;
-		UMaterial* ParentUMaterial = LandscapeMaterial->GetMaterial();
+		UMaterial* ParentUMaterial = MaterialToUse->GetMaterial();
 		if (ParentUMaterial && ParentUMaterial != UMaterial::GetDefaultMaterial(MD_Surface))
 		{
 			ParentUMaterial->SetMaterialUsage(bNeedsRecompile, MATUSAGE_Landscape);
 			ParentUMaterial->SetMaterialUsage(bNeedsRecompile, MATUSAGE_StaticLighting);
 		}
 
-		FString LayerKey = GetLayerAllocationKey(bMobile);
+		FString LayerKey = GetLayerAllocationKey(MaterialToUse, bMobile);
 		//UE_LOG(LogLandscape, Log, TEXT("Looking for key %s"), *LayerKey);
 
 		// Find or set a matching MIC in the Landscape's map.
 		UMaterialInstanceConstant* CombinationMaterialInstance = Proxy->MaterialInstanceConstantMap.FindRef(*LayerKey);
-		if (CombinationMaterialInstance == NULL || CombinationMaterialInstance->Parent != LandscapeMaterial || GetOutermost() != CombinationMaterialInstance->GetOutermost())
+		if (CombinationMaterialInstance == nullptr || CombinationMaterialInstance->Parent != MaterialToUse || GetOutermost() != CombinationMaterialInstance->GetOutermost())
 		{
 			FlushRenderingCommands();
 
 			CombinationMaterialInstance = NewObject<ULandscapeMaterialInstanceConstant>(GetOutermost());
 			UE_LOG(LogLandscape, Log, TEXT("Looking for key %s, making new combination %s"), *LayerKey, *CombinationMaterialInstance->GetName());
 			Proxy->MaterialInstanceConstantMap.Add(*LayerKey, CombinationMaterialInstance);
-			CombinationMaterialInstance->SetParentEditorOnly(LandscapeMaterial);
+			CombinationMaterialInstance->SetParentEditorOnly(MaterialToUse);
 
 			FStaticParameterSet StaticParameters;
 			CombinationMaterialInstance->GetStaticParameterValues(StaticParameters);
@@ -222,6 +226,12 @@ UMaterialInstanceConstant* ULandscapeComponent::GetCombinationMaterial(bool bMob
 				}
 			}
 
+			CombinationMaterialInstance->BasePropertyOverrides.bOverride_BlendMode = bOverrideBlendMode;
+			if (bOverrideBlendMode)
+			{
+				CombinationMaterialInstance->BasePropertyOverrides.BlendMode = bComponentHasHoles ? BLEND_Masked : BLEND_Opaque;
+			}
+
 			CombinationMaterialInstance->UpdateStaticPermutation(StaticParameters);
 
 			CombinationMaterialInstance->PostEditChange();
@@ -229,7 +239,7 @@ UMaterialInstanceConstant* ULandscapeComponent::GetCombinationMaterial(bool bMob
 
 		return CombinationMaterialInstance;
 	}
-	return NULL;
+	return nullptr;
 }
 
 void ULandscapeComponent::UpdateMaterialInstances()
@@ -447,7 +457,7 @@ void ULandscapeComponent::FixupWeightmaps()
 				UMaterialInstanceConstant* CombinationMaterialInstance = Cast<UMaterialInstanceConstant>(MaterialInstance->Parent);
 				if (CombinationMaterialInstance)
 				{
-					Proxy->MaterialInstanceConstantMap.Add(*GetLayerAllocationKey(), CombinationMaterialInstance);
+					Proxy->MaterialInstanceConstantMap.Add(*GetLayerAllocationKey(CombinationMaterialInstance->Parent), CombinationMaterialInstance);
 				}
 			}
 		}
