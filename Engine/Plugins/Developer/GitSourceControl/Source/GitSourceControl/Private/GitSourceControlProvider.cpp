@@ -51,7 +51,6 @@ void FGitSourceControlProvider::CheckGitAvailability()
 	}
 	else
 	{
-		UE_LOG(LogSourceControl, Error, TEXT("Git not found"));
 		bGitAvailable = false;
 	}
 }
