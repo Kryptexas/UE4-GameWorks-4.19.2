@@ -1285,7 +1285,7 @@ void FCanvasBoxItem::SetupBox()
 
 void FCanvasTriangleItem::Draw( class FCanvas* InCanvas )
 {
-	if (Texture != nullptr)
+	if (MaterialRenderProxy == nullptr)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Canvas_TriTextureItemTime);
 		FBatchedElements* BatchedElements = InCanvas->GetBatchedElements(FCanvas::ET_Triangle, BatchedElementParameters, Texture, BlendMode);
