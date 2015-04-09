@@ -79,16 +79,11 @@ public:
 	void EndQuery(GLenum const QueryType);
 
 private:
-	static GLuint GetDummyDrawProgram();
-	
-private:
-	static GLuint DummyDrawProgram;
 	FPlatformOpenGLContext* PlatformContext;
 	FOpenGLQueryCache FreeQueries;
 	TArray<TSharedPtr<FMacOpenGLQuery, ESPMode::Fast>> Queries;
 	TMap<GLenum, TSharedPtr<FMacOpenGLQuery, ESPMode::Fast>> RunningQueries;
 	TSharedPtr<FMacOpenGLTimer, ESPMode::Fast> LastTimer;
-	bool bOwnsDummyDrawProgram;
 };
 
 extern bool GIsEmulatingTimestamp;
