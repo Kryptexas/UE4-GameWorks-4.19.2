@@ -14,6 +14,7 @@
 #include "Editor/Documentation/Public/IDocumentation.h"
 #include "BreakIterator.h"
 #include "SHyperlink.h"
+#include "SOutputLogDialog.h"
 
 #define LOCTEXT_NAMESPACE "NewProjectWizard"
 
@@ -1437,14 +1438,14 @@ bool SNewProjectWizard::CreateProject( const FString& ProjectFile )
 		return false;
 	}
 
-	FText FailReason;
+	FText FailReason, FailLog;
 
 	FProjectInformation ProjectInfo(ProjectFile, SelectedTemplate->bGenerateCode, bCopyStarterContent, SelectedTemplate->ProjectFile);
 	ProjectInfo.TargetedHardware = SelectedHardwareClassTarget;
 	ProjectInfo.DefaultGraphicsPerformance = SelectedGraphicsPreset;
-	if (!GameProjectUtils::CreateProject(ProjectInfo, FailReason))
+	if (!GameProjectUtils::CreateProject(ProjectInfo, FailReason, FailLog))
 	{
-		DisplayError(FailReason);
+		SOutputLogDialog::Open(LOCTEXT("CreateProject", "Create Project"), FailReason, FailLog, FText::GetEmpty());
 		return false;
 	}
 

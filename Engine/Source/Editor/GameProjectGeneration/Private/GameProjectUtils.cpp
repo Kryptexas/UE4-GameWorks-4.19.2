@@ -596,7 +596,7 @@ void GameProjectUtils::GetStarterContentFiles(TArray<FString>& OutFilenames)
 	IFileManager::Get().FindFilesRecursive(OutFilenames, *SrcFolder, TEXT("*.upack"), /*Files=*/true, /*Directories=*/false);
 }
 
-bool GameProjectUtils::CreateProject(const FProjectInformation& InProjectInfo, FText& OutFailReason)
+bool GameProjectUtils::CreateProject(const FProjectInformation& InProjectInfo, FText& OutFailReason, FText& OutFailLog)
 {
 	if ( !IsValidProjectFileForCreation(InProjectInfo.ProjectFilename, OutFailReason) )
 	{
@@ -610,12 +610,12 @@ bool GameProjectUtils::CreateProject(const FProjectInformation& InProjectInfo, F
 	FString TemplateName;
 	if ( InProjectInfo.TemplateFile.IsEmpty() )
 	{
-		bProjectCreationSuccessful = GenerateProjectFromScratch(InProjectInfo, OutFailReason);
+		bProjectCreationSuccessful = GenerateProjectFromScratch(InProjectInfo, OutFailReason, OutFailLog);
 		TemplateName = InProjectInfo.bShouldGenerateCode ? TEXT("Basic Code") : TEXT("Blank");
 	}
 	else
 	{
-		bProjectCreationSuccessful = CreateProjectFromTemplate(InProjectInfo, OutFailReason);
+		bProjectCreationSuccessful = CreateProjectFromTemplate(InProjectInfo, OutFailReason, OutFailLog);
 		TemplateName = FPaths::GetBaseFilename(InProjectInfo.TemplateFile);
 	}
 
@@ -1005,7 +1005,7 @@ UTemplateProjectDefs* GameProjectUtils::LoadTemplateDefs(const FString& ProjectD
 	return TemplateDefs;
 }
 
-bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InProjectInfo, FText& OutFailReason)
+bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InProjectInfo, FText& OutFailReason, FText& OutFailLog)
 {
 	FScopedSlowTask SlowTask(5);
 
@@ -1094,7 +1094,7 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 	if ( InProjectInfo.bShouldGenerateCode )
 	{
 		// Generate project files
-		if ( !GenerateCodeProjectFiles(InProjectInfo.ProjectFilename, OutFailReason) )
+		if ( !GenerateCodeProjectFiles(InProjectInfo.ProjectFilename, OutFailReason, OutFailLog) )
 		{
 			DeleteGeneratedProjectFiles(InProjectInfo.ProjectFilename);
 			DeleteCreatedFiles(NewProjectFolder, CreatedFiles);
@@ -1108,7 +1108,7 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 	return true;
 }
 
-bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InProjectInfo, FText& OutFailReason)
+bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InProjectInfo, FText& OutFailReason, FText& OutFailLog)
 {
 	FScopedSlowTask SlowTask(10);
 
@@ -1511,7 +1511,7 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 	if ( InProjectInfo.bShouldGenerateCode )
 	{
 		// Generate project files
-		if ( !GenerateCodeProjectFiles(InProjectInfo.ProjectFilename, OutFailReason) )
+		if ( !GenerateCodeProjectFiles(InProjectInfo.ProjectFilename, OutFailReason, OutFailLog) )
 		{
 			DeleteGeneratedProjectFiles(InProjectInfo.ProjectFilename);
 			DeleteCreatedFiles(DestFolder, CreatedFiles);
@@ -1954,7 +1954,7 @@ bool GameProjectUtils::BuildCodeProject(const FString& ProjectFilename)
 	return bCompileSucceeded;
 }
 
-bool GameProjectUtils::GenerateCodeProjectFiles(const FString& ProjectFilename, FText& OutFailReason)
+bool GameProjectUtils::GenerateCodeProjectFiles(const FString& ProjectFilename, FText& OutFailReason, FText& OutFailLog)
 {
 	FStringOutputDevice OutputLog;
 	OutputLog.SetAutoEmitLineTerminator(true);
@@ -1964,9 +1964,8 @@ bool GameProjectUtils::GenerateCodeProjectFiles(const FString& ProjectFilename, 
 
 	if(!bHaveProjectFiles)
 	{
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("LogOutput"), FText::FromString(OutputLog) );
-		OutFailReason = FText::Format(LOCTEXT("CouldNotGenerateProjectFiles", "Failed to generate project files. Log output:\n{LogOutput}"), Args);
+		OutFailReason = LOCTEXT("ErrorWhileGeneratingProjectFiles", "An error occurred while trying to generate project files.");
+		OutFailLog = FText::FromString(OutputLog);
 		return false;
 	}
 

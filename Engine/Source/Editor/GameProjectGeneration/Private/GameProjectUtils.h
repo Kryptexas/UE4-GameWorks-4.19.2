@@ -73,7 +73,7 @@ public:
 	static bool OpenCodeIDE(const FString& ProjectFile, FText& OutFailReason);
 
 	/** Creates the specified project file and all required folders. If TemplateFile is non-empty, it will be used as the template for creation. On failure, OutFailReason will be populated. */
-	static bool CreateProject(const FProjectInformation& InProjectInfo, FText& OutFailReason);
+	static bool CreateProject(const FProjectInformation& InProjectInfo, FText& OutFailReason, FText& OutFailLog);
 
 	/** Prompts the user to update his project file, if necessary. */
 	static void CheckForOutOfDateGameProjectFile();
@@ -129,8 +129,8 @@ public:
 	/** Compiles a project while showing a progress bar, and offers to open the IDE if it fails. */
 	static bool BuildCodeProject(const FString& ProjectFilename);
 
-	/** Creates code project files for a new game project. On failure, OutFailReason will be populated. */
-	static bool GenerateCodeProjectFiles(const FString& ProjectFilename, FText& OutFailReason);
+	/** Creates code project files for a new game project. On failure, OutFailReason and OutFailLog will be populated. */
+	static bool GenerateCodeProjectFiles(const FString& ProjectFilename, FText& OutFailReason, FText& OutFailLog);
 
 	/** Returns true if there are starter content files available for instancing into new projects. */
 	static bool IsStarterContentAvailableForNewProjects();
@@ -207,10 +207,10 @@ private:
 	static FString GetHardwareConfigString(const FProjectInformation& InProjectInfo);
 
 	/** Generates a new project without using a template project */
-	static bool GenerateProjectFromScratch(const FProjectInformation& InProjectInfo, FText& OutFailReason);
+	static bool GenerateProjectFromScratch(const FProjectInformation& InProjectInfo, FText& OutFailReason, FText& OutFailLog);
 
 	/** Generates a new project using a template project */
-	static bool CreateProjectFromTemplate(const FProjectInformation& InProjectInfo, FText& OutFailReason);
+	static bool CreateProjectFromTemplate(const FProjectInformation& InProjectInfo, FText& OutFailReason, FText& OutFailLog);
 
 	/** Sets the engine association for a new project. Handles foreign and non-foreign projects. */
 	static bool SetEngineAssociationForForeignProject(const FString& ProjectFileName, FText& OutFailReason);

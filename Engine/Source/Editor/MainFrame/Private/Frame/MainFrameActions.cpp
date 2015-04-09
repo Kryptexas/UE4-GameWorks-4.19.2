@@ -9,6 +9,7 @@
 #include "GenericCommands.h"
 #include "EngineBuildSettings.h"
 #include "SourceCodeNavigation.h"
+#include "SOutputLogDialog.h"
 
 
 #define LOCTEXT_NAMESPACE "MainFrameActions"
@@ -649,10 +650,10 @@ void FMainFrameActionCallbacks::RefreshCodeProject()
 		FSourceCodeNavigation::AccessOnCompilerNotFound().Broadcast();
 	}
 
-	FText FailReason;
-	if(!FGameProjectGenerationModule::Get().UpdateCodeProject(FailReason))
+	FText FailReason, FailLog;
+	if(!FGameProjectGenerationModule::Get().UpdateCodeProject(FailReason, FailLog))
 	{
-		FMessageDialog::Open(EAppMsgType::Ok, FailReason);
+		SOutputLogDialog::Open(LOCTEXT("RefreshProject", "Refresh Project"), FailReason, FailLog, FText::GetEmpty());
 	}
 }
 

@@ -15,6 +15,7 @@
 #include "GameProjectGenerationModule.h"
 #include "Factories/PackFactory.h"
 #include "GameFramework/InputSettings.h"
+#include "Dialogs/SOutputLogDialog.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPackFactory, Log, All);
 
@@ -626,10 +627,10 @@ UObject* UPackFactory::FactoryCreateBinary
 			{
 				// Update the game projects before we attempt to build
 				FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
-				FText FailReason;
-				if (!GameProjectModule.UpdateCodeProject(FailReason))
+				FText FailReason, FailLog;
+				if (!GameProjectModule.UpdateCodeProject(FailReason, FailLog))
 				{
-					FMessageDialog::Open(EAppMsgType::Ok, FailReason);
+					SOutputLogDialog::Open(NSLOCTEXT("PackFactory", "CreateBinary", "Create binary"), FailReason, FailLog, FText::GetEmpty());
 				}
 
 				// Compile the new code, either using the in editor hot-reload (if an existing module), or as a brand new module (if no existing code)

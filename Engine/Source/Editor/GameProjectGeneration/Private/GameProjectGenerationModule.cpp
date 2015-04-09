@@ -84,12 +84,12 @@ bool FGameProjectGenerationModule::UpdateGameProject(const FString& ProjectFile,
 }
 
 
-bool FGameProjectGenerationModule::UpdateCodeProject(FText& OutFailReason)
+bool FGameProjectGenerationModule::UpdateCodeProject(FText& OutFailReason, FText& OutFailLog)
 {
 	FScopedSlowTask SlowTask(0, LOCTEXT( "UpdatingCodeProject", "Updating code project..." ) );
 	SlowTask.MakeDialog();
 
-	return GameProjectUtils::GenerateCodeProjectFiles(FPaths::GetProjectFilePath(), OutFailReason);
+	return GameProjectUtils::GenerateCodeProjectFiles(FPaths::GetProjectFilePath(), OutFailReason, OutFailLog);
 }
 
 bool FGameProjectGenerationModule::GenerateBasicSourceCode(TArray<FString>& OutCreatedFiles, FText& OutFailReason)
