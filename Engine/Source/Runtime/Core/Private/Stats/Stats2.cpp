@@ -412,17 +412,19 @@ public:
 		--PendingCount;
 		TStatIdData* Result = PendingStatIds;
 
+		const FString StatDescription = InDescription ? InDescription : StatShortName.GetPlainNameString();
+
 		// Get the wide stat description.
-		const int32 StatDescLen = FCString::Strlen( InDescription ) + 1;
+		const int32 StatDescLen = StatDescription.Len() + 1;
 		// We are leaking this. @see STAT_StatDescMemory
 		WIDECHAR* StatDescWide = new WIDECHAR[StatDescLen];
-		TCString<WIDECHAR>::Strcpy( StatDescWide, StatDescLen, StringCast<WIDECHAR>( InDescription ).Get() );
+		TCString<WIDECHAR>::Strcpy( StatDescWide, StatDescLen, StringCast<WIDECHAR>( *StatDescription ).Get() );
 		Result->WideString = reinterpret_cast<uint64>(StatDescWide);
 
 		// Get the ansi stat description.
 		// We are leaking this. @see STAT_StatDescMemory
 		ANSICHAR* StatDescAnsi = new ANSICHAR[StatDescLen];
-		TCString<ANSICHAR>::Strcpy( StatDescAnsi, StatDescLen, StringCast<ANSICHAR>( InDescription ).Get() );
+		TCString<ANSICHAR>::Strcpy( StatDescAnsi, StatDescLen, StringCast<ANSICHAR>( *StatDescription ).Get() );
 		Result->AnsiString = reinterpret_cast<uint64>(StatDescAnsi);
 
 		MemoryCounter.Add( StatDescLen*(sizeof( ANSICHAR ) + sizeof( WIDECHAR )) );

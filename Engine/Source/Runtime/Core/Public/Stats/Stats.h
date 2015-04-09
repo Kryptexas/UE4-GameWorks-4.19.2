@@ -435,3 +435,39 @@ FORCEINLINE void StatsMasterEnableSubtract(int32 Value = 1)
 #define GET_STATDESCRIPTION(Stat) (nullptr)
 
 #endif
+
+
+/** Helper class used to generate dynamic stat ids. */
+struct FDynamicStats
+{
+	/**
+	* Create a new stat id and registers it with the stats system.
+	* This is the only way to create dynamic stat ids at runtime.
+	* Can be used only with FScopeCycleCounters.
+	*
+	* Example:
+	*	FDynamicStats::CreateStatId<STAT_GROUP_TO_FStatGroup( STATGROUP_UObjects )>( FString::Printf(TEXT("MyDynamicStat_%i"),Index) )
+	*/
+	template< typename TStatGroup >
+	static TStatId CreateStatId( const FString& StatNameOrDescription )
+	{
+#if	STATS
+		const FName StatName = FName( *StatNameOrDescription );
+		FStartupMessages::Get().AddMetadata( StatName, nullptr,
+											 TStatGroup::GetGroupName(),
+											 TStatGroup::GetGroupCategory(),
+											 TStatGroup::GetDescription(),
+											 true, EStatDataType::ST_int64, true );
+
+		TStatId StatID = IStatGroupEnableManager::Get().GetHighPerformanceEnableForStat( StatName,
+			TStatGroup::GetGroupName(),
+			TStatGroup::GetGroupCategory(),
+			TStatGroup::DefaultEnable,
+			true, EStatDataType::ST_int64, nullptr, true );
+
+		return StatID;
+#endif // STATS
+
+		return TStatId();
+	}
+};
