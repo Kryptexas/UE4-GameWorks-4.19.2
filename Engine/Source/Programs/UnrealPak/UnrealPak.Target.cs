@@ -55,7 +55,7 @@ public class UnrealPakTarget : TargetRules
     {
         bInternalToolOnly = false;
         SeparateNode = false;
-		CrossCompile = false;
+		CrossCompile = true;
         return true;
     }
 }
