@@ -53,14 +53,26 @@ public:
 	void operator delete(void *RawMemory);
 
 private:
-	/** The index into Scene->Lights of the light which affects the primitive. */
-	int32 LightId;
-
 	/** The light which affects the primitive. */
 	FLightSceneInfo* LightSceneInfo;
 
 	/** The primitive which is affected by the light. */
 	FPrimitiveSceneInfo* PrimitiveSceneInfo;
+
+	/** A pointer to the NextPrimitive member of the previous interaction in the light's interaction list. */
+	FLightPrimitiveInteraction** PrevPrimitiveLink;
+
+	/** The next interaction in the light's interaction list. */
+	FLightPrimitiveInteraction* NextPrimitive;
+
+	/** A pointer to the NextLight member of the previous interaction in the primitive's interaction list. */
+	FLightPrimitiveInteraction** PrevLightLink;
+
+	/** The next interaction in the primitive's interaction list. */
+	FLightPrimitiveInteraction* NextLight;
+
+	/** The index into Scene->Lights of the light which affects the primitive. */
+	int32 LightId;
 
 	/** True if the primitive casts a shadow from the light. */
 	uint32 bCastShadow : 1;
@@ -85,19 +97,6 @@ private:
 
 	/** True if the primitive only shadows itself. */
 	uint32 bSelfShadowOnly : 1;
-
-	/** A pointer to the NextPrimitive member of the previous interaction in the light's interaction list. */
-	FLightPrimitiveInteraction** PrevPrimitiveLink;
-
-	/** The next interaction in the light's interaction list. */
-	FLightPrimitiveInteraction* NextPrimitive;
-
-	/** A pointer to the NextLight member of the previous interaction in the primitive's interaction list. */
-	FLightPrimitiveInteraction** PrevLightLink;
-
-	/** The next interaction in the primitive's interaction list. */
-	FLightPrimitiveInteraction* NextLight;
-
 
 	/** Initialization constructor. */
 	FLightPrimitiveInteraction(FLightSceneInfo* InLightSceneInfo,FPrimitiveSceneInfo* InPrimitiveSceneInfo,

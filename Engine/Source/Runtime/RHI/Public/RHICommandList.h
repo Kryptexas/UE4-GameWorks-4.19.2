@@ -686,12 +686,12 @@ struct FRHICommandFlushComputeShaderCache : public FRHICommand<FRHICommandFlushC
 
 struct FRHICommandDrawPrimitiveIndirect : public FRHICommand<FRHICommandDrawPrimitiveIndirect>
 {
-	uint32 PrimitiveType;
 	FVertexBufferRHIParamRef ArgumentBuffer;
+	uint32 PrimitiveType;
 	uint32 ArgumentOffset;
 	FORCEINLINE_DEBUGGABLE FRHICommandDrawPrimitiveIndirect(uint32 InPrimitiveType, FVertexBufferRHIParamRef InArgumentBuffer, uint32 InArgumentOffset)
-		: PrimitiveType(InPrimitiveType)
-		, ArgumentBuffer(InArgumentBuffer)
+		: ArgumentBuffer(InArgumentBuffer)
+		, PrimitiveType(InPrimitiveType)
 		, ArgumentOffset(InArgumentOffset)
 	{
 	}
@@ -719,15 +719,15 @@ struct FRHICommandDrawIndexedIndirect : public FRHICommand<FRHICommandDrawIndexe
 
 struct FRHICommandDrawIndexedPrimitiveIndirect : public FRHICommand<FRHICommandDrawIndexedPrimitiveIndirect>
 {
-	uint32 PrimitiveType;
 	FIndexBufferRHIParamRef IndexBuffer;
 	FVertexBufferRHIParamRef ArgumentsBuffer;
+	uint32 PrimitiveType;
 	uint32 ArgumentOffset;
 
 	FORCEINLINE_DEBUGGABLE FRHICommandDrawIndexedPrimitiveIndirect(uint32 InPrimitiveType, FIndexBufferRHIParamRef InIndexBuffer, FVertexBufferRHIParamRef InArgumentsBuffer, uint32 InArgumentOffset)
-		: PrimitiveType(InPrimitiveType)
-		, IndexBuffer(InIndexBuffer)
+		: IndexBuffer(InIndexBuffer)
 		, ArgumentsBuffer(InArgumentsBuffer)
+		, PrimitiveType(InPrimitiveType)
 		, ArgumentOffset(InArgumentOffset)
 	{
 	}
@@ -767,16 +767,16 @@ struct FRHICommandClearUAV : public FRHICommand<FRHICommandClearUAV>
 
 struct FRHICommandCopyToResolveTarget : public FRHICommand<FRHICommandCopyToResolveTarget>
 {
+	FResolveParams ResolveParams;
 	FTextureRHIParamRef SourceTexture;
 	FTextureRHIParamRef DestTexture;
 	bool bKeepOriginalSurface;
-	FResolveParams ResolveParams;
 
 	FORCEINLINE_DEBUGGABLE FRHICommandCopyToResolveTarget(FTextureRHIParamRef InSourceTexture, FTextureRHIParamRef InDestTexture, bool InbKeepOriginalSurface, const FResolveParams& InResolveParams)
-		: SourceTexture(InSourceTexture)
+		: ResolveParams(InResolveParams)
+		, SourceTexture(InSourceTexture)
 		, DestTexture(InDestTexture)
 		, bKeepOriginalSurface(InbKeepOriginalSurface)
-		, ResolveParams(InResolveParams)
 	{
 	}
 	RHI_API void Execute(FRHICommandListBase& CmdList);

@@ -15,17 +15,16 @@
 class FLightSceneInfoCompact
 {
 public:
-
-	// must not be 0
-	FLightSceneInfo* LightSceneInfo;
 	// XYZ: origin, W:sphere radius
 	VectorRegister BoundingSphereVector;
 	FLinearColor Color;
+	// must not be 0
+	FLightSceneInfo* LightSceneInfo;
+	// e.g. LightType_Directional, LightType_Point or LightType_Spot
+	uint32 LightType : LightType_NumBits;	
 	uint32 bCastDynamicShadow : 1;
 	uint32 bCastStaticShadow : 1;
 	uint32 bStaticLighting : 1;
-	// e.g. LightType_Directional, LightType_Point or LightType_Spot
-	uint32 LightType : LightType_NumBits;	
 
 	/** Initializes the compact scene info from the light's full scene info. */
 	void Init(FLightSceneInfo* InLightSceneInfo);

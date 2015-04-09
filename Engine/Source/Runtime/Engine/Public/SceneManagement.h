@@ -436,8 +436,8 @@ public:
 
 	/** Default constructor. */
 	FShadowMapInteraction() :
-		Type(SMIT_None),
-		ShadowTexture(NULL)
+		ShadowTexture(nullptr),
+		Type(SMIT_None)
 	{
 		for (int Channel = 0; Channel < ARRAY_COUNT(bChannelValid); Channel++)
 		{
@@ -473,12 +473,11 @@ public:
 	}
 
 private:
-
-	EShadowMapInteractionType Type;
 	UShadowMapTexture2D* ShadowTexture;
 	FVector2D CoordinateScale;
 	FVector2D CoordinateBias;
 	bool bChannelValid[4];
+	EShadowMapInteractionType Type;
 };
 
 /**
