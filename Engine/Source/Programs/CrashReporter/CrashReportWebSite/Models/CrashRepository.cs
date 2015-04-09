@@ -214,11 +214,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				var ResultsAll = ConstructQuery(FormData);
 
 				// Filter by data and get as enumerable.
-				Results = FilterByDate(ResultsAll, FormData.DateFrom, FormData.DateTo);
+			    Results = FilterByDate(ResultsAll, FormData.DateFrom, FormData.DateTo);
 
-
-
-				// Get UserGroup ResultCounts
+			    // Get UserGroup ResultCounts
 				Dictionary<string, int> GroupCounts = GetCountsByGroupFromCrashes( Results );
 
 				// Filter by user group if present
@@ -284,6 +282,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					UsernameQuery = FormData.UsernameQuery,
 					EpicIdQuery = FormData.EpicIdQuery,
 					MachineIdQuery = FormData.MachineIdQuery,
+                    DescriptionQuery = FormData.DescriptionQuery,
+                    MessageQuery = FormData.MessageQuery,
 					JiraQuery = FormData.JiraQuery,
 					DateFrom = (long)( FormData.DateFrom - CrashesViewModel.Epoch ).TotalMilliseconds,
 					DateTo = (long)( FormData.DateTo - CrashesViewModel.Epoch ).TotalMilliseconds,
@@ -354,7 +354,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + " SQL" ) )
 			{
 				IQueryable<Crash> CrashesInTimeFrame = Results
-					.Where( MyCrash => MyCrash.TimeOfCrash >= DateFrom && MyCrash.TimeOfCrash <= DateTo.AddDays( 1 ) );
+					.Where( MyCrash => MyCrash.TimeOfCrash >= DateFrom && MyCrash.TimeOfCrash <= DateTo.AddDays( 1 ));
 				IEnumerable<Crash> CrashesInTimeFrameEnumerable = CrashesInTimeFrame.ToList();
 				return CrashesInTimeFrameEnumerable;
 			}
@@ -709,6 +709,15 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					);
 				}
 			}
+			else
+			{
+			    results = 
+                    (
+                    from CrashDetail in results
+                    where !CrashDetail.Branch.Equals("UE4-UT-Releases") && !CrashDetail.Branch.Equals("UE4-UT")
+			        select CrashDetail
+                    );
+			}
 
 			// Filter by GameName
 			if (!string.IsNullOrEmpty(FormData.GameName))
@@ -732,6 +741,37 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					);
 				}
 			}
+
+		    if (!string.IsNullOrEmpty(FormData.MessageQuery))
+		    {
+		        results =
+		            (
+		                from CrashDetail in results
+		                where SqlMethods.Like(CrashDetail.Summary, "%" + FormData.MessageQuery + "%")
+		                select CrashDetail
+		                );
+		    }
+
+		    if (!string.IsNullOrEmpty(FormData.DescriptionQuery))
+		    {
+		        results = 
+                    (
+                        from CrashDetail in results
+                        where SqlMethods.Like(CrashDetail.Description, "%" + FormData.DescriptionQuery + "%")
+		                select CrashDetail
+                    );
+		    }
+
+		    if (!string.IsNullOrEmpty(FormData.SearchQuery))
+		    {
+		        results = 
+                    (
+                        from CrashDetail in results
+                        where SqlMethods.Like(CrashDetail.RawCallStack, "%" + FormData.SearchQuery + "%")
+		                select CrashDetail
+                    );
+		    }
+
 			return results;
 		}
 	}

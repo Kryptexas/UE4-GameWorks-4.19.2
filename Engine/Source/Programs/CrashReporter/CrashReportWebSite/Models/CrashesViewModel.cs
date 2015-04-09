@@ -46,6 +46,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 		public string JiraQuery { get; set; }
 
+        public string MessageQuery { get; set; }
+
+        public string DescriptionQuery { get; set; }
+
 		/// <summary>The date of the earliest crash to display.</summary>
 		public long DateFrom { get; set; }
 

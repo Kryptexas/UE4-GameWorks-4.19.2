@@ -846,7 +846,7 @@ th a:visited
 }
 
 #searchTypeBox {
-	width: 20%;
+	width: 13%;
 	display: inline-block;
 	vertical-align: top;
 }
@@ -869,12 +869,12 @@ th a:visited
 }
 
 #dateBox {
-	width: 35%;
+	width: 26%;
 	display: inline-block;
 }
 
 #searchFields {
-	width: 40%;
+	width: 29%;
 	display: inline-block;
 	vertical-align: top;
 	border-left: 1px solid rgba(128, 128, 128, 0.44);
@@ -887,7 +887,7 @@ th a:visited
 }
 
 #Container {
-	width:960px; 
+	width:1230px; 
 	border: 1px solid rgba(128, 128, 128, 0.44);
 	border-top: none; 
 	padding:10px; 

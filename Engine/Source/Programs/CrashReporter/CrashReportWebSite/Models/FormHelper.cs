@@ -24,6 +24,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
         public string JiraQuery = "";
 
+	    public string DescriptionQuery = "";
+
+	    public string MessageQuery = "";
+
 		/// <summary>The page to display from the list.</summary>
 		public int Page = 1;
 
@@ -136,6 +140,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
             GetFormParameter(Request, Form, "MachineIdQuery", MachineIdQuery, out MachineIdQuery);
 
             GetFormParameter(Request, Form, "JiraQuery", JiraQuery, out JiraQuery);
+
+            GetFormParameter(Request, Form, "MessageQuery", MessageQuery, out MessageQuery);
+
+            GetFormParameter(Request, Form, "DescriptionQuery", DescriptionQuery, out DescriptionQuery);
 
 			GetFormParameter( Request, Form, "SortTerm", DefaultSortTerm, out SortTerm );
 

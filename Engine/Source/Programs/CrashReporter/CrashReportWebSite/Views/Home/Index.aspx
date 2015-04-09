@@ -88,7 +88,7 @@ Crash Reports
 
 <asp:Content ID="AboveMainContent"  ContentPlaceHolderID="AboveMainContent" runat="server" >
 	<div id='SearchForm' style="clear:both">
-	<div id="titleBar" style="width:960px; border: 1px solid rgba(128, 128, 128, 0.44); padding:10px;">
+	<div id="titleBar" style="width:1230px; border: 1px solid rgba(128, 128, 128, 0.44); padding:10px;">
         <h4 id="titleText">SEARCH OPTIONS</h4>
     </div>	
 	<% using( Html.BeginForm( "", "Crashes", FormMethod.Get, new { id = "FilterCrashesForm" } ) )
@@ -124,6 +124,22 @@ Crash Reports
                     <div id="fieldSeperator">
                         <p class="searchText">Jira</p>
 			            <input id="SearchQuery" name="JiraQuery" type="text" value="<%=Model.JiraQuery %>" width="1000" title="For searching for an user use 'user:[name]'" />
+                    </div>
+		        </div>
+            </div>
+            <div id ="searchFields">
+                <div id="SearchBox">
+                    <div id="fieldSeperator">
+                        <p class="searchText">Call Stack</p>
+			            <input id="SearchQuery" name="SearchQuery" type="text" value="<%=Model.SearchQuery %>" width="1000" title="For searching for an user use 'user:[name]'" />
+                    </div>
+                    <div id="fieldSeperator">
+                        <p class="searchText">Summary/Message</p>
+			            <input id="SearchQuery" name="MessageQuery" type="text" value="<%=Model.MessageQuery %>" width="1000" title="For searching for an user use 'user:[name]'" />
+                    </div>
+                    <div id="fieldSeperator">
+                        <p class="searchText">Description</p>
+			            <input id="SearchQuery" name="DescriptionQuery" type="text" value="<%=Model.DescriptionQuery %>" width="1000" title="For searching for an user use 'user:[name]'" />    
                     </div>
 		        </div>
             </div>
