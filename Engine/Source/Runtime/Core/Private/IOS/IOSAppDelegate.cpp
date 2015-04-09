@@ -7,6 +7,7 @@
 #include "ModuleBoilerplate.h"
 #include "CallbackDevice.h"
 #include "IOSView.h"
+#include "TaskGraphInterfaces.h"
 
 #include <AudioToolbox/AudioToolbox.h>
 #include <AVFoundation/AVAudioSession.h>
