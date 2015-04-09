@@ -5216,6 +5216,29 @@ void FBlueprintEditor::PasteNodesHere(class UEdGraph* DestinationGraph, const FV
 		{
 			bNeedToModifyStructurally = true;
 		}
+
+		// For pasted Event nodes, we need to see if there is an already existing node in a disabled state that needs to be cleaned up
+		if (UK2Node_Event* EventNode = Cast<UK2Node_Event>(Node))
+		{
+			// Gather all existing event nodes
+			TArray<UK2Node_Event*> ExistingEventNodes;
+			FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Event>(GetBlueprintObj(), ExistingEventNodes);
+
+			for (UK2Node_Event* ExistingEventNode : ExistingEventNodes)
+			{
+				bool bIdenticalNode = EventNode != ExistingEventNode && ExistingEventNode->bOverrideFunction && UK2Node_Event::AreEventNodesIdentical(EventNode, ExistingEventNode);
+
+				// Check if the nodes are identical, if they are we need to delete the original because it is disabled. Identical nodes that are in an enabled state will never make it this far and still be enabled.
+				if(bIdenticalNode)
+				{
+					// Should not have made it to being a pasted node if the pre-existing node wasn't disabled.
+					ensure(!ExistingEventNode->bIsNodeEnabled);
+
+					// Destroy the pre-existing node, we do not need it.
+					ExistingEventNode->DestroyNode();
+				}
+			}
+		}
 		// Log new node created to analytics
 		AnalyticsTrackNodeEvent( GetBlueprintObj(), Node, false );
 	}

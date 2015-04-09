@@ -91,6 +91,8 @@ class UK2Node_Event : public UK2Node_EditablePinBase
 	 */
 	static FString GetLocalizedNetString(uint32 NetFlags, bool Calling);
 
+	/** Helper function to identify if two Event nodes are the same */
+	static BLUEPRINTGRAPH_API bool AreEventNodesIdentical(const UK2Node_Event* InNodeA, const UK2Node_Event* InNodeB);
 private:
 	/** Constructing FText strings can be costly, so we cache the node's tooltip */
 	FNodeTextCache CachedTooltip;

@@ -426,9 +426,7 @@ bool UK2Node_Event::CanPasteHere(const UEdGraph* TargetGraph) const
 						// If the event function is already handled in this Blueprint, don't paste this event
 						for(int32 i = 0; i < ExistingEventNodes.Num() && !bDisallowPaste; ++i)
 						{
-							bDisallowPaste = ExistingEventNodes[i]->bOverrideFunction
-								&& ExistingEventNodes[i]->EventReference.GetMemberName() == EventReference.GetMemberName()
-								&& ExistingEventNodes[i]->EventReference.GetMemberParentClass(GetBlueprintClassFromNode()) == EventReference.GetMemberParentClass(GetBlueprintClassFromNode());
+							bDisallowPaste = ExistingEventNodes[i]->bOverrideFunction && ExistingEventNodes[i]->bIsNodeEnabled && AreEventNodesIdentical(this, ExistingEventNodes[i]);
 						}
 
 						// We need to also check for 'const' BPIE methods that might already be implemented as functions with a read-only 'self' context (these were previously implemented as events)
@@ -716,6 +714,12 @@ UObject* UK2Node_Event::GetJumpTargetForDoubleClick() const
 	}
 
 	return NULL;
+}
+
+bool UK2Node_Event::AreEventNodesIdentical(const UK2Node_Event* InNodeA, const UK2Node_Event* InNodeB)
+{
+	return InNodeA->EventReference.GetMemberName() == InNodeB->EventReference.GetMemberName()
+		&& InNodeA->EventReference.GetMemberParentClass(InNodeA->GetBlueprintClassFromNode()) == InNodeB->EventReference.GetMemberParentClass(InNodeB->GetBlueprintClassFromNode());
 }
 
 #undef LOCTEXT_NAMESPACE
