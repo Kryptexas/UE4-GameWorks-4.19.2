@@ -48,8 +48,8 @@ class ENGINE_API UActorChannel
 	UPROPERTY()
 	AActor* Actor;					// Actor this corresponds to.
 
-	FNetworkGUID ActorNetGUID;		// Actor GUID (useful when we don't have the actor resolved yet). Currently only valid on clients.
-
+	FNetworkGUID	ActorNetGUID;		// Actor GUID (useful when we don't have the actor resolved yet). Currently only valid on clients.
+	float			CustomTimeDilation;
 
 	// Variables.
 	double	RelevantTime;			// Last time this actor was relevant to client.

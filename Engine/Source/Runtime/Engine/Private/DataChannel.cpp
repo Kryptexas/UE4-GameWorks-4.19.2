@@ -1370,6 +1370,7 @@ void UActorChannel::Init( UNetConnection* InConnection, int32 InChannelIndex, bo
 	LastUpdateTime			= Connection->Driver->Time - Connection->Driver->SpawnPrioritySeconds;
 	bActorMustStayDirty		= false;
 	bActorStillInitial		= false;
+	CustomTimeDilation		= 1.0f;
 }
 
 void UActorChannel::SetClosingFlag()
@@ -1882,6 +1883,8 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 		Actor->OnActorChannelOpen(Bunch, Connection);
 
 		RepFlags.bNetInitial = true;
+
+		Actor->CustomTimeDilation = CustomTimeDilation;
 	}
 	else
 	{

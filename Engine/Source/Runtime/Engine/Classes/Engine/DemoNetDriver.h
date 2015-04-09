@@ -130,6 +130,7 @@ public:
 	void TickDemoPlayback( float DeltaSeconds );
 	void SpawnDemoRecSpectator( UNetConnection* Connection );
 	void ResetDemoState();
+	void JumpToEndOfLiveReplay();
 
 	void StopDemo();
 
