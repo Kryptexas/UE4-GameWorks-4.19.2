@@ -15,10 +15,12 @@ TLinkedList<FGlobalBoundShaderStateResource*>*& FGlobalBoundShaderStateResource:
 
 FGlobalBoundShaderStateResource::FGlobalBoundShaderStateResource()
 	: GlobalListLink(this)
+#if DO_CHECK
 	, BoundVertexDeclaration(nullptr)
 	, BoundVertexShader(nullptr)
 	, BoundPixelShader(nullptr)
 	, BoundGeometryShader(nullptr)
+#endif 
 {
 	// Add this resource to the global list in the rendering thread.
 	if(IsInRenderingThread())
