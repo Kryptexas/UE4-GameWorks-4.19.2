@@ -62,16 +62,16 @@ public:
 
 public:
 
-	UPROPERTY(EditAnywhere, Category=Events)
+	UPROPERTY(EditAnywhere, Category=Events, meta=( IsBindableEvent="True" ))
 	FOnPointerEvent OnMouseButtonDownEvent;
 
-	UPROPERTY(EditAnywhere, Category=Events)
+	UPROPERTY(EditAnywhere, Category=Events, meta=( IsBindableEvent="True" ))
 	FOnPointerEvent OnMouseButtonUpEvent;
 
-	UPROPERTY(EditAnywhere, Category=Events)
+	UPROPERTY(EditAnywhere, Category=Events, meta=( IsBindableEvent="True" ))
 	FOnPointerEvent OnMouseMoveEvent;
 
-	UPROPERTY(EditAnywhere, Category=Events)
+	UPROPERTY(EditAnywhere, Category=Events, meta=( IsBindableEvent="True" ))
 	FOnPointerEvent OnMouseDoubleClickEvent;
 
 public:

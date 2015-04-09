@@ -31,7 +31,7 @@ public:
 	TEnumAsByte<ESelectionMode::Type> SelectionMode;
 
 	/**  */
-	UPROPERTY(EditAnywhere, Category=Events)
+	UPROPERTY(EditAnywhere, Category=Events, meta=( IsBindableEvent="True" ))
 	FOnGenerateRowUObject OnGenerateTileEvent;
 
 public:

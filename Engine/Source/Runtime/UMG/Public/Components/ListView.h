@@ -27,7 +27,7 @@ public:
 	TEnumAsByte<ESelectionMode::Type> SelectionMode;
 
 	/** Called when a widget needs to be generated */
-	UPROPERTY(EditAnywhere, Category=Events)
+	UPROPERTY(EditAnywhere, Category=Events, meta=( IsBindableEvent="True" ))
 	FOnGenerateRowUObject OnGenerateRowEvent;
 
 #if WITH_EDITOR

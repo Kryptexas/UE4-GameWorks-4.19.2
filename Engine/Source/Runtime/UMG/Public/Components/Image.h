@@ -40,7 +40,7 @@ public:
 
 public:
 
-	UPROPERTY(EditAnywhere, Category=Events)
+	UPROPERTY(EditAnywhere, Category=Events, meta=( IsBindableEvent="True" ))
 	FOnPointerEvent OnMouseButtonDownEvent;
 
 public:

@@ -50,7 +50,7 @@ public:
 public: // Events
 
 	/** Called when the widget is needed for the item. */
-	UPROPERTY(EditAnywhere, Category=Events)
+	UPROPERTY(EditAnywhere, Category=Events, meta=( IsBindableEvent="True" ))
 	FGenerateWidgetForString OnGenerateWidgetEvent;
 
 	/** Called when a new item is selected in the combobox. */
