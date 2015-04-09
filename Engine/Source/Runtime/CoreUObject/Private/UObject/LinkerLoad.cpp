@@ -14,7 +14,7 @@
 
 #define LOCTEXT_NAMESPACE "LinkerLoad"
 
-DECLARE_STATS_GROUP(TEXT("Linker Load"), STATGROUP_LinkerLoad, STATCAT_Advanced);
+DECLARE_STATS_GROUP_VERBOSE(TEXT("Linker Load"), STATGROUP_LinkerLoad, STATCAT_Advanced);
 
 DECLARE_CYCLE_STAT(TEXT("Linker Preload"),STAT_LinkerPreload,STATGROUP_LinkerLoad);
 DECLARE_CYCLE_STAT(TEXT("Linker Precache"),STAT_LinkerPrecache,STATGROUP_LinkerLoad);
