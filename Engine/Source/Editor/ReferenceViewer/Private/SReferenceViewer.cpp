@@ -40,6 +40,7 @@ void SReferenceViewer::Construct( const FArguments& InArgs )
 
 	SGraphEditor::FGraphEditorEvents GraphEvents;
 	GraphEvents.OnNodeDoubleClicked = FSingleNodeEvent::CreateSP(this, &SReferenceViewer::OnNodeDoubleClicked);
+	GraphEvents.OnCreateActionMenu = SGraphEditor::FOnCreateActionMenu::CreateSP(this, &SReferenceViewer::OnCreateGraphActionMenu);
 
 	// Create the graph editor
 	GraphEditorPtr = SNew(SGraphEditor)
@@ -258,6 +259,12 @@ void SReferenceViewer::OnNodeDoubleClicked(UEdGraphNode* Node)
 	TSet<UObject*> Nodes;
 	Nodes.Add(Node);
 	ReCenterGraphOnNodes( Nodes );
+}
+
+FActionMenuContent SReferenceViewer::OnCreateGraphActionMenu(UEdGraph* InGraph, const FVector2D& InNodePosition, const TArray<UEdGraphPin*>& InDraggedPins, bool bAutoExpand, SGraphEditor::FActionMenuClosed InOnMenuClosed)
+{
+	// no context menu when not over a node
+	return FActionMenuContent();
 }
 
 bool SReferenceViewer::IsBackEnabled() const
