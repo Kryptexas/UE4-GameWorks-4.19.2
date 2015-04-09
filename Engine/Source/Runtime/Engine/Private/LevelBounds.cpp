@@ -96,13 +96,20 @@ void ALevelBounds::PostRegisterAllComponents()
 {
 	Super::PostRegisterAllComponents();
 	
-	GetLevel()->LevelBoundsActor = this;
-	SubscribeToUpdateEvents();
+	if (!IsTemplate())
+	{
+		GetLevel()->LevelBoundsActor = this;
+		SubscribeToUpdateEvents();
+	}
 }
 
 void ALevelBounds::PostUnregisterAllComponents()
 {
-	UnsubscribeFromUpdateEvents();
+	if (!IsTemplate())
+	{
+		UnsubscribeFromUpdateEvents();
+	}
+	
 	Super::PostUnregisterAllComponents();
 }
 
