@@ -80,7 +80,7 @@ public:
 	{
 		Pos += Length;
 	}
-	virtual FString GetArchiveName() const { return TEXT( "FArchiveFileWriterDummy" ); }
+	virtual FString GetArchiveName() const override { return TEXT( "FArchiveFileWriterDummy" ); }
 protected:
 	int64             Pos;
 };
@@ -561,7 +561,7 @@ void FArchiveFileReaderGeneric::Seek( int64 InPos )
 	{
 		TCHAR ErrorBuffer[1024];
 		ArIsError = true;
-		UE_LOG( LogFileManager, Error, TEXT( "SetFilePointer Failed %lld/%lld: %lld %s" ), InPos, Size, Pos, FPlatformMisc::GetSystemErrorMessage( ErrorBuffer, 1024, 0 ) );
+		UE_LOG(LogFileManager, Error, TEXT("SetFilePointer on %s Failed %lld/%lld: %lld %s"), *Filename, InPos, Size, Pos, FPlatformMisc::GetSystemErrorMessage(ErrorBuffer, 1024, 0));
 	}
 	Pos         = InPos;
 	BufferBase  = Pos;
@@ -715,7 +715,7 @@ void FArchiveFileWriterGeneric::Seek( int64 InPos )
 	if( !SeekLowLevel( InPos ) )
 	{
 		ArIsError = true;
-		UE_LOG( LogFileManager, Error, TEXT("%s"), TEXT("Error seeking file") );
+		LogWriteError(TEXT("Error seeking file"));
 	}
 	Pos = InPos;
 }
@@ -726,7 +726,7 @@ bool FArchiveFileWriterGeneric::Close()
 	if( !CloseLowLevel() )
 	{
 		ArIsError = true;
-		UE_LOG( LogFileManager, Error, TEXT("%s"), TEXT("Error writing to file") );
+		LogWriteError(TEXT("Error closing file"));
 	}
 	return !ArIsError;
 }
@@ -740,7 +740,7 @@ void FArchiveFileWriterGeneric::Serialize( void* V, int64 Length )
 		if( !WriteLowLevel( (uint8*)V, Length ) )
 		{
 			ArIsError = true;
-			UE_LOG( LogFileManager, Error, TEXT("%s"), TEXT("Error writing to file") );
+			LogWriteError(TEXT("Error writing to file"));
 		}
 	}
 	else
@@ -772,12 +772,17 @@ void FArchiveFileWriterGeneric::Flush()
 		if( !WriteLowLevel( Buffer, BufferCount ) )
 		{
 			ArIsError = true;
-			UE_LOG( LogFileManager, Error, TEXT("%s"), TEXT("Error writing to file") );
+			LogWriteError(TEXT("Error flushing file"));
 		}
 		BufferCount = 0;
 	}
 }
 
+void FArchiveFileWriterGeneric::LogWriteError(const TCHAR* Message)
+{
+	TCHAR ErrorBuffer[1024];
+	UE_LOG(LogFileManager, Error, TEXT("%s: %s (%s)"), Message, *Filename, FPlatformMisc::GetSystemErrorMessage(ErrorBuffer, 1024, 0));
+}
 //---
 
 
