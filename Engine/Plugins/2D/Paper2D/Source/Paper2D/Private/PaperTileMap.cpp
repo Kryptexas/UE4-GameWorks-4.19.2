@@ -20,6 +20,7 @@ UPaperTileMap::UPaperTileMap(const FObjectInitializer& ObjectInitializer)
 	SeparationPerTileX = 0.0f;
 	SeparationPerTileY = 0.0f;
 	SeparationPerLayer = 4.0f;
+	CollisionThickness = 50.0f;
 	SpriteCollisionDomain = ESpriteCollisionMode::None;
 
 #if WITH_EDITORONLY_DATA
@@ -149,18 +150,10 @@ void UPaperTileMap::UpdateBodySetup()
 	switch (SpriteCollisionDomain)
 	{
 	case ESpriteCollisionMode::Use3DPhysics:
-		BodySetup = nullptr;
-		if (BodySetup == nullptr)
-		{
-			BodySetup = NewObject<UBodySetup>(this);
-		}
+		BodySetup = NewObject<UBodySetup>(this);
 		break;
 	case ESpriteCollisionMode::Use2DPhysics:
-		BodySetup = nullptr;
-		if (BodySetup == nullptr)
-		{
-			BodySetup = NewObject<UBodySetup2D>(this);
-		}
+		BodySetup = NewObject<UBodySetup2D>(this);
 		break;
 	case ESpriteCollisionMode::None:
 		BodySetup = nullptr;
@@ -169,18 +162,16 @@ void UPaperTileMap::UpdateBodySetup()
 
 	if (SpriteCollisionDomain != ESpriteCollisionMode::None)
 	{
-		if (SpriteCollisionDomain == ESpriteCollisionMode::Use3DPhysics)
-		{
-			BodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
+		BodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
 
-			BodySetup->AggGeom.BoxElems.Empty();
-			for (int32 LayerIndex = 0; LayerIndex < TileLayers.Num(); ++LayerIndex)
-			{
-				TileLayers[LayerIndex]->AugmentBodySetup(BodySetup);
-			}
+		for (int32 LayerIndex = 0; LayerIndex < TileLayers.Num(); ++LayerIndex)
+		{
+			TileLayers[LayerIndex]->AugmentBodySetup(BodySetup);
 		}
 
-		//@TODO: BOX2D: Add support for 2D physics on tile maps
+		// Finalize the BodySetup
+		BodySetup->InvalidatePhysicsData();
+		BodySetup->CreatePhysicsMeshes();
 	}
 }
 

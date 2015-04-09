@@ -77,10 +77,16 @@ class PAPER2D_API UPaperTileMap : public UObject
 	UPROPERTY(Instanced, Category=Sprite, BlueprintReadOnly)
 	TArray<class UPaperTileLayer*> TileLayers;
 
+protected:
+	// The extrusion thickness of collision geometry when using a 3D collision domain
+	UPROPERTY(Category=Collision, EditAnywhere, BlueprintReadOnly)
+	float CollisionThickness;
+
 	// Collision domain (no collision, 2D, or 3D)
 	UPROPERTY(Category=Collision, EditAnywhere, BlueprintReadOnly)
 	TEnumAsByte<ESpriteCollisionMode::Type> SpriteCollisionDomain;
 
+public:
 	// Tile map type
 	UPROPERTY(Category=Setup, EditAnywhere, BlueprintReadOnly)
 	TEnumAsByte<ETileMapProjectionMode::Type> ProjectionMode;
@@ -133,6 +139,17 @@ public:
 	void GetTileToLocalParameters(FVector& OutCornerPosition, FVector& OutStepX, FVector& OutStepY, FVector& OutOffsetYFactor) const;
 	void GetLocalToTileParameters(FVector& OutCornerPosition, FVector& OutStepX, FVector& OutStepY, FVector& OutOffsetYFactor) const;
 
+	// Returns the extrusion thickness of collision geometry when using a 3D collision domain
+	float GetCollisionThickness() const
+	{
+		return CollisionThickness;
+	}
+
+	// Returns the collision domain (no collision, 2D, or 3D)
+	ESpriteCollisionMode::Type GetSpriteCollisionDomain() const
+	{
+		return SpriteCollisionDomain;
+	}
 
 	FBoxSphereBounds GetRenderBounds() const;
 
