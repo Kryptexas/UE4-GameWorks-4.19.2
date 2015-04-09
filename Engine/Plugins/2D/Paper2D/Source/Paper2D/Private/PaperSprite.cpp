@@ -3,6 +3,8 @@
 #include "Paper2DPrivatePCH.h"
 #include "PaperSprite.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "PhysicsEngine/BodySetup2D.h"
+
 #include "PaperCustomVersion.h"
 #include "PaperGeomTools.h"
 
@@ -12,7 +14,6 @@
 
 #if WITH_EDITOR
 
-#include "PhysicsEngine/BodySetup2D.h"
 #include "PaperSpriteAtlas.h"
 #include "GeomTools.h"
 #include "BitmapUtils.h"
