@@ -91,6 +91,9 @@ public:
 
 	/** Create Kismet assignment statement with proper object <-> interface cast */
 	static void CreateObjectAssignmentStatement(FKismetFunctionContext& Context, UEdGraphNode* Node, FBPTerminal* SrcTerm, FBPTerminal* DstTerm);
+
+	/** Checks if each execution path ends with a Return node */
+	static void ValidateProperEndExecutionPath(FKismetFunctionContext& Context);
 };
 
 //////////////////////////////////////////////////////////////////////////
