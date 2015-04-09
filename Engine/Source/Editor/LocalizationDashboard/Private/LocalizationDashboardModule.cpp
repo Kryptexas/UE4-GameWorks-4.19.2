@@ -83,6 +83,6 @@ private:
 	FName CurrentServiceProviderName;
 };
 
-IMPLEMENT_MODULE(FLocalizationDashboardModule, "LocalizationDashboard");
+IMPLEMENT_MODULE(FLocalizationDashboardModule, LocalizationDashboard);
 
 #undef LOCTEXT_NAMESPACE
