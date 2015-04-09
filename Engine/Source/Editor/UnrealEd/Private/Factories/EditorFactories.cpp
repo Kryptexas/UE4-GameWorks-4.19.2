@@ -838,7 +838,7 @@ UObject* ULevelFactory::FactoryCreateText
 			if ( Actor->ShouldImport(PropText, bIsMoveToStreamingLevel) )
 			{
 				Actor->PreEditChange(nullptr);
-				ImportObjectProperties( (uint8*)Actor, **PropText, Actor->GetClass(), Actor, Actor, Warn, 0 );
+				ImportObjectProperties( (uint8*)Actor, **PropText, Actor->GetClass(), Actor, Actor, Warn, 0, INDEX_NONE, NULL, &NewActorsFNames );
 				bActorChanged = true;
 
 				GEditor->SelectActor( Actor, true, false, true );

@@ -341,6 +341,8 @@ struct FImportObjectParams
 		not necessary to specify a value when calling this function from other code */
 	FObjectInstancingGraph* InInstanceGraph;
 
+	/** provides a mapping from an actor name to a new instance to which it should be remapped */
+	const TMap<FName, AActor*>* ActorRemapper;
 
 	/** True if we should call PreEditChange/PostEditChange on the object as it's imported.  Pass false here
 		if you're going to do that on your own. */
@@ -358,6 +360,7 @@ struct FImportObjectParams
 		  Depth( 0 ),
 		  LineNumber( INDEX_NONE ),
 		  InInstanceGraph( NULL ),
+		  ActorRemapper( NULL ),
 		  bShouldCallEditChange( true )
 	{
 	}
@@ -390,6 +393,7 @@ const TCHAR* ImportObjectProperties( FImportObjectParams& InParams );
  * @param	LineNumber			used when importing defaults during script compilation for tracking which line the defaultproperties block begins on
  * @param	InstanceGraph		contains the mappings of instanced objects and components to their templates; used when recursively calling ImportObjectProperties; generally
  *								not necessary to specify a value when calling this function from other code
+ * @param	ActorRemapper		used when duplicating actors to remap references from a source actor to the duplicated actor
  *
  * @return	NULL if the default values couldn't be imported
  */
@@ -402,7 +406,8 @@ const TCHAR* ImportObjectProperties(
 	FFeedbackContext*	Warn,
 	int32					Depth,
 	int32					LineNumber = INDEX_NONE,
-	FObjectInstancingGraph* InstanceGraph=NULL
+	FObjectInstancingGraph* InstanceGraph = NULL,
+	const TMap<FName, AActor*>* ActorRemapper = NULL
 	);
 
 //
