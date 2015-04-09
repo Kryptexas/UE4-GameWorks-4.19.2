@@ -501,6 +501,39 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 			BuildConfiguration = EProjectPackagingBuildConfigurations::PPBC_Shipping;
 		}
 	}
+	else if (Name == FName(TEXT("bGenerateChunks")))
+	{
+		if (bGenerateChunks)
+		{
+			UsePakFile = true;
+		}
+	}
+	else if (Name == FName(TEXT("UsePakFile")))
+	{
+		if (!UsePakFile)
+		{
+			bGenerateChunks = false;
+			bBuildHttpChunkInstallData = false;
+		}
+	}
+	else if (Name == FName(TEXT("bBuildHTTPChunkInstallData")))
+	{
+		if (bBuildHttpChunkInstallData)
+		{
+			UsePakFile = true;
+			bGenerateChunks = true;
+			//Ensure data is something valid
+			if (HttpChunkInstallDataDirectory.Path.IsEmpty())
+			{
+				auto CloudInstallDir = FPaths::ConvertRelativePathToFull(FPaths::GetPath(FPaths::GetProjectFilePath())) / TEXT("ChunkInstall");
+				HttpChunkInstallDataDirectory.Path = CloudInstallDir;
+			}
+			if (HttpChunkInstallDataVersion.IsEmpty())
+			{
+				HttpChunkInstallDataVersion = TEXT("release1");
+			}
+		}
+	}
 }
 
 bool UProjectPackagingSettings::CanEditChange( const UProperty* InProperty ) const

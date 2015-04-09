@@ -192,12 +192,14 @@ public:
 	IBuildPatchServicesModule*	BPSModule;
 	FString						ContentDir; // Directory where installed chunks need to live to be mounted
 	const TArray<FString>*		CurrentMountPaks; // Array of already mounted Paks
+	const TSet<uint32>*			ExpectedChunks; //Manifests expected to be seen. Chunks not in this list are deleted
 	/** Output */
 	FEvent*									CompleteEvent;
 	TArray<FString>							MountedPaks;
 	/** Working */
 	TArray<FString>		FoundPaks;
 	TArray<FString>		FoundManifests;
+	TArray<FString>		ChunkInstallToDestroy;
 	FFileSearchVisitor	PakVisitor;
 	FFileSearchVisitor	ManifestVisitor;
 
@@ -215,15 +217,17 @@ public:
 		FPlatformProcess::ReturnSynchEventToPool(CompleteEvent);
 	}
 
-	void SetupWork(IBuildPatchServicesModule* InBPSModule, FString InContentDir, const TArray<FString>& InCurrentMountedPaks)
+	void SetupWork(IBuildPatchServicesModule* InBPSModule, FString InContentDir, const TArray<FString>& InCurrentMountedPaks, const TSet<uint32>& InExpectedChunks)
 	{
 		BPSModule = InBPSModule;
 		ContentDir = InContentDir;
 		CurrentMountPaks = &InCurrentMountedPaks;
+		ExpectedChunks = &InExpectedChunks;
 
 		MountedPaks.Reset();
 		FoundManifests.Reset();
 		FoundPaks.Reset();
+		ChunkInstallToDestroy.Reset();
 
 		CompleteEvent->Reset();
 	}
@@ -232,6 +236,10 @@ public:
 	{
 		IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 		PlatformFile.IterateDirectory(*ContentDir, *this);
+		for (const auto& Dir : ChunkInstallToDestroy)
+		{
+			PlatformFile.DeleteDirectoryRecursively(*Dir);
+		}
 		CompleteEvent->Trigger();
 	}
 
@@ -268,6 +276,13 @@ public:
 			return true;
 		}
 
+		if (!ExpectedChunks->Find(ChunkIDField->AsInteger())) 
+		{
+			//Add this to the list of chunks to remove
+			ChunkInstallToDestroy.Add(FilenameOrDirectory);
+			return true;
+		}
+
 		FoundPaks.Reset();
 		PlatformFile.IterateDirectoryRecursively(FilenameOrDirectory, PakVisitor);
 		if (FoundPaks.Num() == 0)
@@ -284,8 +299,15 @@ public:
 			{
 				if (FCoreDelegates::OnMountPak.IsBound())
 				{
-					FCoreDelegates::OnMountPak.Execute(PakPath, PakReadOrder);
-					MountedPaks.Add(PakPath);
+					auto bSuccess = FCoreDelegates::OnMountPak.Execute(PakPath, PakReadOrder);
+#if !UE_BUILD_SHIPPING
+					if (!bSuccess)
+					{
+						// This can fail because of the sandbox system - which the pak system doesn't understand.
+						auto SandboxedPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*PakPath);
+						bSuccess = FCoreDelegates::OnMountPak.Execute(SandboxedPath, PakReadOrder);
+					}
+#endif
 					//Register the install
 					BPSModule->RegisterAppInstallation(Manifest.ToSharedRef(), FilenameOrDirectory);
 				}

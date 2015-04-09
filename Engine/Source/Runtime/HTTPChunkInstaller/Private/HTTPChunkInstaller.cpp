@@ -110,12 +110,6 @@ bool FHTTPChunkInstall::Tick(float DeltaSeconds)
 		{			
 			//Now query the title file service for the chunk manifests. This should return the list of expected chunk manifests
 			check(OnlineTitleFile.IsValid());
-			if (InstallSpeed == EChunkInstallSpeed::Paused)
-			{
-				UE_LOG(LogHTTPChunkInstaller, Log, TEXT("Skipping enumerating manifest files because system is paused"));
-				InstallerState = ChunkInstallState::PostSetup;
-				break;
-			}
 			OnlineTitleFile->ClearFiles();
 			InstallerState = ChunkInstallState::RequestingTitleFiles;
 			UE_LOG(LogHTTPChunkInstaller, Log, TEXT("Enumerating manifest files"));
@@ -127,6 +121,7 @@ bool FHTTPChunkInstall::Tick(float DeltaSeconds)
 			TArray<FCloudFileHeader> FileList;
 			TitleFilesToRead.Reset();
 			RemoteManifests.Reset();
+			ExpectedChunks.Empty();
 			OnlineTitleFile->GetFileList(FileList);
 			for (int32 FileIndex = 0, FileCount = FileList.Num(); FileIndex < FileCount; ++FileIndex)
 			{
@@ -192,7 +187,7 @@ bool FHTTPChunkInstall::Tick(float DeltaSeconds)
 			{
 				if (bFirstRun)
 				{
-					ChunkMountTask.SetupWork(BPSModule, ContentDir, MountedPaks);
+					ChunkMountTask.SetupWork(BPSModule, ContentDir, MountedPaks, ExpectedChunks);
 					ChunkMountTaskThread.Reset(FRunnableThread::Create(&ChunkMountTask, TEXT("Chunk mounting thread")));
 				}
 				InstallerState = ChunkInstallState::PostSetup;
@@ -201,6 +196,16 @@ bool FHTTPChunkInstall::Tick(float DeltaSeconds)
 			{
 				InstallerState = ChunkInstallState::ReadTitleFiles;
 			}
+		} break;
+	case ChunkInstallState::EnterOfflineMode:
+		{
+			for (auto It = InstalledManifests.CreateConstIterator(); It; ++It)
+			{
+				ExpectedChunks.Add(It.Key());
+			}
+			ChunkMountTask.SetupWork(BPSModule, ContentDir, MountedPaks, ExpectedChunks);
+			ChunkMountTaskThread.Reset(FRunnableThread::Create(&ChunkMountTask, TEXT("Chunk mounting thread")));
+			InstallerState = ChunkInstallState::PostSetup;
 		} break;
 	case ChunkInstallState::PostSetup:
 		{
@@ -401,12 +406,12 @@ float FHTTPChunkInstall::GetChunkProgress(uint32 ChunkID,EChunkProgressReporting
 
 void FHTTPChunkInstall::OSSEnumerateFilesComplete(bool bSuccess)
 {
-	InstallerState = bSuccess ? ChunkInstallState::SearchTitleFiles : ChunkInstallState::QueryRemoteManifests;
+	InstallerState = bSuccess ? ChunkInstallState::SearchTitleFiles : ChunkInstallState::EnterOfflineMode;
 }
 
 void FHTTPChunkInstall::OSSReadFileComplete(bool bSuccess, const FString& Filename)
 {
-	InstallerState = bSuccess ? ChunkInstallState::ReadComplete : ChunkInstallState::ReadTitleFiles;
+	InstallerState = bSuccess ? ChunkInstallState::ReadComplete : ChunkInstallState::EnterOfflineMode;
 }
 
 void FHTTPChunkInstall::OSSInstallComplete(bool bSuccess, IBuildManifestRef BuildManifest)
@@ -479,6 +484,7 @@ void FHTTPChunkInstall::ParseTitleFileManifest(const FString& ManifestFileHash)
 	}
 	//Compare to installed manifests and add to the remote if it needs to be installed.
 	uint32 ChunkID = (uint32)RemoteChunkIDField->AsInteger();
+	ExpectedChunks.Add(ChunkID);
 	TArray<IBuildManifestPtr> FoundManifests;
 	InstalledManifests.MultiFind(ChunkID, FoundManifests);
 	uint32 FoundCount = FoundManifests.Num();

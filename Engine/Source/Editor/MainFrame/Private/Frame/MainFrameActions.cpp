@@ -575,6 +575,11 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		OptionalParams += TEXT(" -CrashReporter");
 	}
 
+	if (PackagingSettings->bBuildHttpChunkInstallData)
+	{
+		OptionalParams += FString::Printf(TEXT(" -manifests -createchunkinstall -chunkinstalldirectory=\"%s\" -chunkinstallversion=%s"), *(PackagingSettings->HttpChunkInstallDataDirectory.Path), *(PackagingSettings->HttpChunkInstallDataVersion));
+	}
+
 	FString ExecutableName = FPlatformProcess::ExecutableName(false);
 #if PLATFORM_WINDOWS
 	// turn UE4editor into UE4editor.cmd

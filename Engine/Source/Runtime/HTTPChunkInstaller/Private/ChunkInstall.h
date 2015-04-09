@@ -100,7 +100,15 @@ public:
 			{
 				if (FCoreDelegates::OnMountPak.IsBound())
 				{
-					FCoreDelegates::OnMountPak.Execute(PakFiles[PakIndex], PakReadOrder);
+					auto bSuccess = FCoreDelegates::OnMountPak.Execute(PakFiles[PakIndex], PakReadOrder);
+#if !UE_BUILD_SHIPPING
+					if (!bSuccess)
+					{
+						// This can fail because of the sandbox system - which the pak system doesn't understand.
+						auto SandboxedPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*PakFiles[PakIndex]);
+						bSuccess = FCoreDelegates::OnMountPak.Execute(SandboxedPath, PakReadOrder);
+					}
+#endif
 					MountedPaks.Add(PakFiles[PakIndex]);
 				}
 			}

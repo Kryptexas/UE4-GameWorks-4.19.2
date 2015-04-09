@@ -88,6 +88,7 @@ private:
 		Setup,
 		SetupWait,
 		QueryRemoteManifests,
+		EnterOfflineMode,
 		MoveInstalledChunks,
 		RequestingTitleFiles,
 		SearchTitleFiles,
@@ -134,6 +135,7 @@ private:
 	TMultiMap<uint32, IBuildManifestPtr>						RemoteManifests;
 	TMap<uint32, FPlatformChunkInstallCompleteMultiDelegate>	DelegateMap;
 	TSet<FString>												ManifestsInMemory;
+	TSet<uint32>												ExpectedChunks;
 	TArray<FCloudFileHeader>									TitleFilesToRead;
 	TArray<uint8>												FileContentBuffer;
 	TArray<FChunkPrio>											PriorityQueue;

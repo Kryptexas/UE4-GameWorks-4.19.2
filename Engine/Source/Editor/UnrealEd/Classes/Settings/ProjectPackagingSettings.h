@@ -93,6 +93,24 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
 	bool bGenerateChunks;
 
+	/** 
+	 * If enabled, will generate data for HTTP Chunk Installer. This data can be hosted on webserver to be installed at runtime. Requires "Generate Chunks" enabled.
+	 */
+	UPROPERTY(config, EditAnywhere, Category=Packaging)
+	bool bBuildHttpChunkInstallData;
+
+	/** 
+	 * When "Build HTTP Chunk Install Data" is enabled this is the directory where the data will be build to.
+	 */	
+	UPROPERTY(config, EditAnywhere, Category = Packaging)
+	FDirectoryPath HttpChunkInstallDataDirectory;
+
+	/** 
+	 * Version name for HTTP Chunk Install Data.
+	 */
+	UPROPERTY(config, EditAnywhere, Category = Packaging)
+	FString HttpChunkInstallDataVersion;
+
 	/** Specifies whether to include prerequisites of packaged games, such as redistributable operating system components, whenever possible. */
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
 	bool IncludePrerequisites;
