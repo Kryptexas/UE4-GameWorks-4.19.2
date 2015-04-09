@@ -170,7 +170,9 @@ void UPaperTileMap::UpdateBodySetup()
 		}
 
 		// Finalize the BodySetup
+#if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 		BodySetup->InvalidatePhysicsData();
+#endif
 		BodySetup->CreatePhysicsMeshes();
 	}
 }
