@@ -59,10 +59,16 @@ public:
 		return PathToRepositoryRoot;
 	}
 
-	/** Get the path to the Game directory: shall be inside of the Git repository */
-	inline const FString& GetPathToGameDir() const
+	/** Git config user.name */
+	inline const FString& GetUserName() const
 	{
-		return PathToGameDir;
+		return UserName;
+	}
+
+	/** Git config user.email */
+	inline const FString& GetUserEmail() const
+	{
+		return UserEmail;
 	}
 
 	/** Helper function used to update state cache */
@@ -93,10 +99,13 @@ private:
 	/** Path to the root of the Git repository: can be the GameDir itself, or any parent directory (found by the "Connect" operation) */
 	FString PathToRepositoryRoot;
 
-	/** Path to the Game directory: shall be inside of the Git repository */
-	FString PathToGameDir;
+	/** Git config user.name (from local repository, else globally) */
+	FString UserName;
 
-	/** Name of the current branch (found by the "Connect" operation) */
+	/** Git config user.email (from local repository, else globally) */
+	FString UserEmail;
+
+	/** Name of the current branch */
 	FString BranchName;
 
 	/** State cache */

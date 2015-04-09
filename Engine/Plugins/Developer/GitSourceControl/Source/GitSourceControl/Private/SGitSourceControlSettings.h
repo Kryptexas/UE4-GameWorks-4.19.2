@@ -21,4 +21,9 @@ private:
 
 	/** Delegate to commit repository text to settings */
 	void OnBinaryPathTextCommited(const FText& InText, ETextCommit::Type InCommitType) const;
+
+	/** Delegate to get repository root, user name and email from provider */
+	FText GetPathToRepositoryRoot() const;
+	FText GetUserName() const;
+	FText GetUserEmail() const;
 };

@@ -60,7 +60,10 @@ public:
 	virtual void ShutdownModule() override;
 
 	/** Access the Git source control settings */
-	FGitSourceControlSettings& AccessSettings();
+	FGitSourceControlSettings& AccessSettings()
+	{
+		return GitSourceControlSettings;
+	}
 
 	/** Save the Git source control settings */
 	void SaveSettings();

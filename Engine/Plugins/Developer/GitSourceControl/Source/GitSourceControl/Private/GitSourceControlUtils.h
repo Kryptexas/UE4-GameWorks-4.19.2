@@ -49,8 +49,25 @@ bool CheckGitAvailability(const FString& InPathToGitBinary);
  * @param InPathToGameDir		The path to the Game Directory
  * @param OutRepositoryRoot		The path to the root directory of the Git repository if found
  * @returns true if the command succeeded and returned no errors
-*/
+ */
 bool FindRootDirectory(const FString& InPathToGameDir, FString& OutRepositoryRoot);
+
+/**
+ * Get Git config user.name & user.email
+ * @param	InPathToGitBinary	The path to the Git binary
+ * @param	InRepositoryRoot	The Git repository from where to run the command - usually the Game directory (can be empty)
+ * @param	OutUserName			Name of the Git user configured for this repository (or globaly)
+ * @param	OutEmailName		E-mail of the Git user configured for this repository (or globaly)
+ */
+void GetUserConfig(const FString& InPathToGitBinary, const FString& InRepositoryRoot, FString& OutUserName, FString& OutUserEmail);
+
+/**
+ * Get Git current checked-out branch
+ * @param	InPathToGitBinary	The path to the Git binary
+ * @param	InRepositoryRoot	The Git repository from where to run the command - usually the Game directory (can be empty)
+ * @param	OutBranchName		Name of the current checked-out branch (if any, ie. not in detached HEAD)
+ */
+void GetBranchName(const FString& InPathToGitBinary, const FString& InRepositoryRoot, FString& OutBranchName);
 
 /**
  * Run a Git command - output is a string TArray.

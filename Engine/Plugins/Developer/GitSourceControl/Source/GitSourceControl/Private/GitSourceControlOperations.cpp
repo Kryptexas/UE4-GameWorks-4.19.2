@@ -18,30 +18,15 @@ bool FGitConnectWorker::Execute(FGitSourceControlCommand& InCommand)
 {
 	check(InCommand.Operation->GetName() == GetName());
 
-	InCommand.bCommandSuccessful = GitSourceControlUtils::FindRootDirectory(InCommand.PathToGameDir, InCommand.PathToRepositoryRoot);
-	if(InCommand.bCommandSuccessful)
-	{
-		InCommand.bCommandSuccessful = GitSourceControlUtils::RunCommand(TEXT("status"), InCommand.PathToGitBinary, InCommand.PathToRepositoryRoot, TArray<FString>(), TArray<FString>(), InCommand.InfoMessages, InCommand.ErrorMessages);
-	}
+	InCommand.bCommandSuccessful = GitSourceControlUtils::RunCommand(TEXT("status"), InCommand.PathToGitBinary, InCommand.PathToRepositoryRoot, TArray<FString>(), TArray<FString>(), InCommand.InfoMessages, InCommand.ErrorMessages);
 	if(!InCommand.bCommandSuccessful || InCommand.ErrorMessages.Num() > 0 || InCommand.InfoMessages.Num() == 0)
 	{
-		// @todo popup to propose to initialize the git repository "git init + .gitignore"
+		// @todo popup to propose to initialize the git repository "git init + .gitignore" (easier in the provider!)
+		// then "Connect" could in fact do the "git init"
 		StaticCastSharedRef<FConnect>(InCommand.Operation)->SetErrorText(LOCTEXT("NotAWorkingCopyError", "Project is not part of a Git working copy."));
 		// @todo Double error messages (and displayed in reverse order): Perforce distinguish the two errors
 		InCommand.ErrorMessages.Add(LOCTEXT("NotAWorkingCopyErrorHelp", "You should check out a working copy into your project directory.").ToString());
 		InCommand.bCommandSuccessful = false;
-	}
-	else // if(InCommand.bCommandSuccessful)
-	{
-		TArray<FString> Parameters;
-		Parameters.Add("--short HEAD");
-
-		// Get current branche name
-		GitSourceControlUtils::RunCommand(TEXT("symbolic-ref"), InCommand.PathToGitBinary, InCommand.PathToRepositoryRoot, Parameters, TArray<FString>(), InCommand.InfoMessages, InCommand.ErrorMessages);
-		if(InCommand.InfoMessages.Num() == 1)
-		{
-			InCommand.BranchName = InCommand.InfoMessages[0];
-		}
 	}
 
 	return InCommand.bCommandSuccessful;

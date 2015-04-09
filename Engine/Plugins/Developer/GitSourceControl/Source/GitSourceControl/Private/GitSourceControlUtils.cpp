@@ -82,14 +82,17 @@ static bool RunCommandInternalRaw(const FString& InCommand, const FString& InPat
 
 	FullCommand += LogableCommand;
 
-	UE_LOG(LogSourceControl, Log, TEXT("RunCommandInternalRaw: 'git %s'"), *LogableCommand);
 // @todo: temporary debug logs
 //	UE_LOG(LogSourceControl, Log, TEXT("RunCommandInternalRaw: 'git %s'"), *FullCommand);
 	FPlatformProcess::ExecProcess(*InPathToGitBinary, *FullCommand, &ReturnCode, &OutResults, &OutErrors);
-	UE_LOG(LogSourceControl, Log, TEXT("RunCommandInternalRaw: ExecProcess ReturnCode=%d OutResults='%s'"), ReturnCode, *OutResults);
-	if(!OutErrors.IsEmpty())
+	if(OutErrors.IsEmpty() && (ReturnCode == 0))
 	{
-		UE_LOG(LogSourceControl, Error, TEXT("RunCommandInternalRaw: ExecProcess ReturnCode=%d OutErrors='%s'"), ReturnCode, *OutErrors);
+		UE_LOG(LogSourceControl, Log, TEXT("'git %s':\n%s"), *LogableCommand, *OutResults);
+	}
+	else
+	{
+		// @todo filter here like RemoveRedundantErrors("' is outside repository") ?
+		UE_LOG(LogSourceControl, Error, TEXT("'git %s': ReturnCode=%d Errors='%s'"), *LogableCommand, ReturnCode, *OutErrors);
 	}
 
 	return ReturnCode == 0;
@@ -198,6 +201,7 @@ bool CheckGitAvailability(const FString& InPathToGitBinary)
 	return bGitAvailable;
 }
 
+// Find the root of the Git repository, looking from the GameDir and upward in its parent directories.
 bool FindRootDirectory(const FString& InPathToGameDir, FString& OutRepositoryRoot)
 {
 	bool bFound = false;
@@ -207,7 +211,7 @@ bool FindRootDirectory(const FString& InPathToGameDir, FString& OutRepositoryRoo
 	while(!bFound && !OutRepositoryRoot.IsEmpty())
 	{
 		PathToGitSubdirectory = OutRepositoryRoot;
-		PathToGitSubdirectory += TEXT(".git"); // Look for the ".git" subdirectory at the root of every Git repository
+		PathToGitSubdirectory += TEXT(".git"); // Look for the ".git" subdirectory present at the root of every Git repository
 		bFound = IFileManager::Get().DirectoryExists(*PathToGitSubdirectory);
 		if(!bFound)
 		{
@@ -225,6 +229,57 @@ bool FindRootDirectory(const FString& InPathToGameDir, FString& OutRepositoryRoo
 	}
 
 	return bFound;
+}
+
+void GetUserConfig(const FString& InPathToGitBinary, const FString& InRepositoryRoot, FString& OutUserName, FString& OutUserEmail)
+{
+	bool bResults;
+	TArray<FString> InfoMessages;
+	TArray<FString> ErrorMessages;
+	TArray<FString> Parameters;
+	Parameters.Add(TEXT("user.name"));
+	bResults = RunCommandInternal(TEXT("config"), InPathToGitBinary, InRepositoryRoot, Parameters, TArray<FString>(), InfoMessages, ErrorMessages);
+	if (bResults && InfoMessages.Num() > 0)
+	{
+		OutUserName = InfoMessages[0];
+	}
+
+	Parameters.Reset();
+	Parameters.Add(TEXT("user.email"));
+	InfoMessages.Reset();
+	bResults &= RunCommandInternal(TEXT("config"), InPathToGitBinary, InRepositoryRoot, Parameters, TArray<FString>(), InfoMessages, ErrorMessages);
+	if (bResults && InfoMessages.Num() > 0)
+	{
+		OutUserEmail = InfoMessages[0];
+	}
+}
+
+void GetBranchName(const FString& InPathToGitBinary, const FString& InRepositoryRoot, FString& OutBranchName)
+{
+	bool bResults;
+	TArray<FString> InfoMessages;
+	TArray<FString> ErrorMessages;
+	TArray<FString> Parameters;
+	Parameters.Add(TEXT("--short"));
+	Parameters.Add(TEXT("--quiet"));		// no error message while in detached HEAD
+	Parameters.Add(TEXT("HEAD"));	
+	bResults = RunCommandInternal(TEXT("symbolic-ref"), InPathToGitBinary, InRepositoryRoot, Parameters, TArray<FString>(), InfoMessages, ErrorMessages);
+	if (bResults && InfoMessages.Num() > 0)
+	{
+		OutBranchName = InfoMessages[0];
+	}
+	else
+	{
+		Parameters.Reset();
+		Parameters.Add(TEXT("-1"));
+		Parameters.Add(TEXT("--format=\"%h\""));		// no error message while in detached HEAD
+		bResults = RunCommandInternal(TEXT("log"), InPathToGitBinary, InRepositoryRoot, Parameters, TArray<FString>(), InfoMessages, ErrorMessages);
+		if (bResults && InfoMessages.Num() > 0)
+		{
+			OutBranchName = "HEAD detached at ";
+			OutBranchName += InfoMessages[0];
+		}
+	}
 }
 
 bool RunCommand(const FString& InCommand, const FString& InPathToGitBinary, const FString& InRepositoryRoot, const TArray<FString>& InParameters, const TArray<FString>& InFiles, TArray<FString>& OutResults, TArray<FString>& OutErrorMessages)
