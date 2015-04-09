@@ -14,7 +14,7 @@ public:
 	}
 
 	// The parent window hosting this dialog
-	SLATE_ATTRIBUTE(TSharedPtr<SWindow>, ParentWindow)
+	SLATE_ATTRIBUTE(TWeakPtr<SWindow>, ParentWindow)
 
 	SLATE_END_ARGS()
 
@@ -71,7 +71,7 @@ private:
 
 private:
 	/** Pointer to the parent window */
-	TAttribute<TSharedPtr<SWindow>> ParentWindow;
+	TAttribute<TWeakPtr<SWindow>> ParentWindow;
 
 	/** Current mesh merging settings */
 	FMeshMergingSettings MergingSettings;
