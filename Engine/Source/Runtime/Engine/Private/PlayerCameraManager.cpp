@@ -791,18 +791,17 @@ void APlayerCameraManager::InitializeFor(APlayerController* PC)
 
 float APlayerCameraManager::GetFOVAngle() const
 {
-	return bLockedFOV ? LockedFOV : CameraCache.POV.FOV;
+	return (LockedFOV > 0.f) ? LockedFOV : CameraCache.POV.FOV;
 }
 
 void APlayerCameraManager::SetFOV(float NewFOV)
 {
-	bLockedFOV = true;
 	LockedFOV = NewFOV;
 }
 
 void APlayerCameraManager::UnlockFOV()
 {
-	bLockedFOV = false;
+	LockedFOV = 0.f;
 }
 
 bool APlayerCameraManager::IsOrthographic() const
@@ -812,18 +811,17 @@ bool APlayerCameraManager::IsOrthographic() const
 
 float APlayerCameraManager::GetOrthoWidth() const
 {
-	return bLockedOrthoWidth ? LockedOrthoWidth : DefaultOrthoWidth;
+	return (LockedOrthoWidth > 0.f) ? LockedOrthoWidth : DefaultOrthoWidth;
 }
 
 void APlayerCameraManager::SetOrthoWidth(float OrthoWidth)
 {
-	bLockedOrthoWidth = true;
 	LockedOrthoWidth = OrthoWidth;
 }
 
 void APlayerCameraManager::UnlockOrthoWidth()
 {
-	bLockedOrthoWidth = false;
+	LockedOrthoWidth = 0.f;
 }
 
 void APlayerCameraManager::GetCameraViewPoint(FVector& OutCamLoc, FRotator& OutCamRot) const
