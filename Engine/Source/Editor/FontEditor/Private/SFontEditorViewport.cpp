@@ -578,7 +578,6 @@ void SFontEditorViewport::Construct(const FArguments& InArgs)
 void SFontEditorViewport::RefreshViewport()
 {
 	Viewport->Invalidate();
-	Viewport->InvalidateDisplay();
 }
 
 int32 SFontEditorViewport::GetCurrentSelectedPage() const

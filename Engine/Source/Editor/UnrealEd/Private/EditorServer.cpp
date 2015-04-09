@@ -1075,6 +1075,7 @@ void UEditorEngine::HandleTransactorRedo( FUndoSessionContext SessionContext, bo
 	PostUndo(Succeeded);
 
 	BroadcastPostRedo(SessionContext.Context, SessionContext.PrimaryObject, Succeeded);
+	InvalidateAllViewportsAndHitProxies();
 	ShowUndoRedoNotification(FText::Format(NSLOCTEXT("UnrealEd", "RedoMessageFormat", "Redo: {0}"), SessionContext.Title), Succeeded);
 }
 
@@ -1084,6 +1085,7 @@ void UEditorEngine::HandleTransactorUndo( FUndoSessionContext SessionContext, bo
 	PostUndo(Succeeded);
 
 	BroadcastPostUndo(SessionContext.Context, SessionContext.PrimaryObject, Succeeded);
+	InvalidateAllViewportsAndHitProxies();
 	ShowUndoRedoNotification(FText::Format(NSLOCTEXT("UnrealEd", "UndoMessageFormat", "Undo: {0}"), SessionContext.Title), Succeeded);
 }
 
@@ -1125,7 +1127,7 @@ UTransactor* UEditorEngine::CreateTrans()
 	return TransBuffer;
 }
 
-void UEditorEngine::PostUndo (bool bSuccess)
+void UEditorEngine::PostUndo(bool bSuccess)
 {
 	//Update the actor selection followed by the component selection if needed (note: order is important)
 		
@@ -2022,7 +2024,7 @@ UWorld* UEditorEngine::NewMap()
 	GUnrealEd->ResetTransaction( CleanseText );
 
 	// Invalidate all the level viewport hit proxies
-	InvalidateAllViewportClientHitProxies();
+	InvalidateAllLevelEditorViewportClientHitProxies();
 
 	return NewWorld;
 }
@@ -2472,7 +2474,7 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					}
 
 					// Invalidate all the level viewport hit proxies
-					InvalidateAllViewportClientHitProxies();
+					InvalidateAllLevelEditorViewportClientHitProxies();
 				}
 			}
 			else
@@ -4856,6 +4858,9 @@ void UEditorEngine::BroadcastPostRedo(const FString& Context, UObject* PrimaryOb
 			Client->PostRedo( bRedoSuccess );
 		}
 	}
+
+	// Invalidate all viewports
+	InvalidateAllViewportsAndHitProxies();
 }
 
 bool UEditorEngine::Exec_Particle(const TCHAR* Str, FOutputDevice& Ar)

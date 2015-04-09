@@ -380,7 +380,6 @@ void FFontEditor::PostUndo(bool bSuccess)
 	UpdateLayout();
 
 	CompositeFontEditor->Refresh();
-	FontPreviewWidget->RefreshViewport();
 }
 
 void FFontEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged)

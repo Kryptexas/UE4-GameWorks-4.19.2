@@ -1821,7 +1821,15 @@ bool UEditorEngine::UpdateSingleViewportClient(FEditorViewportClient* InViewport
 	return bUpdatedNonRealtimeViewport;
 }
 
-void UEditorEngine::InvalidateAllViewportClientHitProxies()
+void UEditorEngine::InvalidateAllViewportsAndHitProxies()
+{
+	for (FEditorViewportClient* ViewportClient : AllViewportClients)
+	{
+		ViewportClient->Invalidate();
+	}
+}
+
+void UEditorEngine::InvalidateAllLevelEditorViewportClientHitProxies()
 {
 	for (const auto* LevelViewportClient : LevelViewportClients)
 	{

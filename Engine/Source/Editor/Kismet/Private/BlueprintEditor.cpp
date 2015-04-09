@@ -2728,18 +2728,12 @@ void FBlueprintEditor::PostUndo(bool bSuccess)
 		}
 
 		// Transaction affects the Blueprint this editor handles, so react as necessary
-		if(bAffectsBlueprint)
+		if (bAffectsBlueprint)
 		{
 			SetUISelectionState(NAME_None);
 
 			// Will cause a call to RefreshEditors()
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprintObj());
-
-			TSharedPtr<class SSCSEditorViewport> ViewportPtr = GetSCSViewport();
-			if (ViewportPtr.IsValid())
-			{
-				ViewportPtr->Invalidate();
-			}
 
 			FSlateApplication::Get().DismissAllMenus();
 		}
@@ -2768,7 +2762,7 @@ void FBlueprintEditor::PostRedo(bool bSuccess)
 		}
 
 		// Transaction affects the Blueprint this editor handles, so react as necessary
-		if(bAffectsBlueprint)
+		if (bAffectsBlueprint)
 		{
 			// Will cause a call to RefreshEditors()
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified( BlueprintObj );
