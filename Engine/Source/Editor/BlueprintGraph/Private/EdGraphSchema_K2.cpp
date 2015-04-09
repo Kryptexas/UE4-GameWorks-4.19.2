@@ -124,7 +124,7 @@ private:
 		const FString Tooltip = (TooltipPtr && !TooltipPtr->IsEmpty()) ? *TooltipPtr : InAsset.ObjectPath.ToString();
 
 		FPinTypeTreeInfoPtr TypeTreeInfo = MakeShareable(new UEdGraphSchema_K2::FPinTypeTreeInfo(InCategoryName, InAsset.ToStringReference(), FText::FromString(Tooltip)));
-		TypeTreeInfo->FriendlyName = FText::FromName(InAsset.AssetName);
+		TypeTreeInfo->FriendlyName = FText::FromString(FName::NameToDisplayString(InAsset.AssetName.ToString(), false));
 		OutChildren.Add(TypeTreeInfo);
 	}
 
@@ -412,13 +412,13 @@ FText UEdGraphSchema_K2::FPinTypeTreeInfo::GetDescription() const
 	else if (PinType.PinSubCategoryObject.IsValid())
 	{
 		FText DisplayName;
-		if (UClass* SubCategoryClass = Cast<UClass>(PinType.PinSubCategoryObject.Get()))
+		if (UField* SubCategoryField = Cast<UField>(PinType.PinSubCategoryObject.Get()))
 		{
-			DisplayName = FBlueprintEditorUtils::GetFriendlyClassDisplayName(SubCategoryClass);
+			DisplayName = SubCategoryField->GetDisplayNameText();
 		}
 		else
 		{
-			DisplayName = FText::FromString(PinType.PinSubCategoryObject->GetName());
+			DisplayName = FText::FromString(FName::NameToDisplayString(PinType.PinSubCategoryObject->GetName(), PinType.PinCategory == PC_Boolean));
 		}
 
 		return DisplayName;
