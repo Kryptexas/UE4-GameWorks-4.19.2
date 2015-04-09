@@ -365,7 +365,15 @@ private:
 		if (bRequiresTextUpdate)
 		{
 			FFormatNamedArguments Args;
-			Args.Add(TEXT("SenderName"), ViewModel->GetSenderName());
+			if(ViewModel->IsFromSelf() && ViewModel->GetMessageType() != EChatMessageType::Global)
+			{
+				Args.Add(TEXT("SenderName"), ViewModel->GetRecipientName());
+			}
+			else
+			{
+				Args.Add(TEXT("SenderName"), ViewModel->GetSenderName());
+			}
+
 			Args.Add(TEXT("NameStyle"), FText::FromString(GetTextHyperlinkStyle()));
 			Args.Add(TEXT("Message"), TextToSet);
 			CurrentListMessageText = FText::Format(NSLOCTEXT("FChatItemViewModel", "DisplayNameAndMessage", "<a id=\"UserName\" style=\"{NameStyle}\">{SenderName}</>: {Message}"), Args);

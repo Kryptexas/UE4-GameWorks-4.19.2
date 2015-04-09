@@ -255,9 +255,10 @@ public:
 			bool bFoundUser = false;
 			TSharedPtr< IFriendItem > ExistingFriend = NULL;
 
-			if(ChatItemSelected->GetSenderID().IsValid())
+			const TSharedPtr<FUniqueNetId> ChatID = ChatItemSelected->IsFromSelf() ? ChatItemSelected->GetRecipientID() : ChatItemSelected->GetSenderID();
+			if(ChatID.IsValid())
 			{
-				ExistingFriend = FFriendsAndChatManager::Get()->FindUser(*ChatItemSelected->GetSenderID().Get());
+				ExistingFriend = FFriendsAndChatManager::Get()->FindUser(*ChatID.Get());
 			}
 
 			if(ExistingFriend.IsValid() && ExistingFriend->GetInviteStatus() == EInviteStatus::Accepted && !bLockedChannel)

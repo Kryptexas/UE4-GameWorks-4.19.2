@@ -652,8 +652,8 @@ void FFriendsAndChatManager::SetChatFriend( TSharedPtr< IFriendItem > FriendItem
 {
 	if (ChatWindowMode != EChatWindowMode::Widget)
 	{
-	CreateChatWindow(&Style, EChatMessageType::Whisper, FriendItem, true);
-}
+		CreateChatWindow(&Style, EChatMessageType::Whisper, FriendItem, true);
+	}
 
 	if (ChatWindowMode != EChatWindowMode::MultiWindow)
 	{

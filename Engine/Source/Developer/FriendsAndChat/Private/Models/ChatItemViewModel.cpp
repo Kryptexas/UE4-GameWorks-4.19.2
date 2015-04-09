@@ -61,9 +61,19 @@ public:
 		return ChatMessages[0]->FromName;
 	}
 
+	virtual FText GetRecipientName() const override
+	{
+		return ChatMessages[0]->ToName;
+	}
+
 	virtual const TSharedPtr<FUniqueNetId> GetSenderID() const override
 	{
 		return ChatMessages[0]->SenderId;
+	}
+
+	virtual const TSharedPtr<FUniqueNetId> GetRecipientID() const override
+	{
+		return ChatMessages[0]->RecipientId;
 	}
 
 	const bool IsFromSelf() const override

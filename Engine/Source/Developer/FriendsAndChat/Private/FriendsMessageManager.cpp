@@ -106,6 +106,8 @@ public:
 			{
 				TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
 				ChatItem->FromName = FText::FromString(OnlineSub->GetIdentityInterface()->GetPlayerNickname(*LoggedInUser.Get()));
+				TSharedPtr<IFriendItem> FoundFriend = FFriendsAndChatManager::Get()->FindUser(*UserID.Get());
+				ChatItem->ToName = FText::FromString(*FoundFriend->GetName());
 				ChatItem->Message = MessageText;
 				ChatItem->MessageType = EChatMessageType::Whisper;
 				ChatItem->MessageTime = FDateTime::UtcNow();

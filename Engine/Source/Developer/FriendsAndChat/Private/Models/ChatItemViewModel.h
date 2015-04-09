@@ -19,8 +19,11 @@ public:
 	virtual void AddMessage(const TSharedRef<FFriendChatMessage>& ChatMessage) = 0;
 
 	virtual FText GetSenderName() const = 0;
-
 	virtual const TSharedPtr<FUniqueNetId> GetSenderID() const = 0;
+
+	virtual FText GetRecipientName() const = 0;
+	virtual const TSharedPtr<FUniqueNetId> GetRecipientID() const = 0;
+
 	virtual const bool IsFromSelf() const = 0;
 
 	DECLARE_EVENT_OneParam(FChatItemViewModel, FChangedEvent, const TSharedRef<FChatItemViewModel>&)

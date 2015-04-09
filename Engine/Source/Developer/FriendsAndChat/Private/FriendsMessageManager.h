@@ -40,6 +40,7 @@ struct FFriendChatMessage
 {
 	EChatMessageType::Type MessageType;
 	FText FromName;
+	FText ToName;
 	FText Message;
 	FDateTime MessageTime;
 	FDateTime ExpireTime;
