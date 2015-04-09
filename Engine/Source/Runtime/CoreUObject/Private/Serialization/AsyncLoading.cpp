@@ -542,7 +542,7 @@ void FAsyncLoadingThread::TickAsyncThread(bool bUseTimeLimit, bool bUseFullTimeL
 	}
 
 	// Update stats
-	SET_FLOAT_STAT( STAT_AsyncIO_MainThreadBlockTime, FPlatformTime::ToSeconds( BlockingCycles.GetValue() ) );
+	SET_FLOAT_STAT( STAT_AsyncIO_AsyncLoadingBlockingTime, FPlatformTime::ToSeconds( BlockingCycles.GetValue() ) );
 	BlockingCycles.Set( 0 );
 }
 
@@ -2103,7 +2103,7 @@ void FArchiveAsync::Serialize( void* Data, int64 Count )
 
 	// Update stats if we were blocked.
 #if STATS
-	if( bIOBlocked && IsInGameThread() )
+	if( bIOBlocked )
 	{
 		const int32 BlockingCycles = int32(FPlatformTime::Cycles() - StartCycles);
 		FAsyncLoadingThread::BlockingCycles.Add( BlockingCycles );

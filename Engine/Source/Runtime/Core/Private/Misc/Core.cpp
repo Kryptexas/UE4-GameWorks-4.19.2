@@ -306,7 +306,7 @@ DEFINE_STAT(STAT_AsyncIO_CanceledReadSize);
 DEFINE_STAT(STAT_AsyncIO_OutstandingReadCount);
 DEFINE_STAT(STAT_AsyncIO_OutstandingReadSize);
 DEFINE_STAT(STAT_AsyncIO_UncompressorWaitTime);
-DEFINE_STAT(STAT_AsyncIO_MainThreadBlockTime);
+DEFINE_STAT(STAT_AsyncIO_AsyncLoadingBlockingTime);
 DEFINE_STAT(STAT_AsyncIO_AsyncPackagePrecacheWaitTime);
 DEFINE_STAT(STAT_AsyncIO_Bandwidth);
 DEFINE_STAT(STAT_AsyncIO_PlatformReadTime);
