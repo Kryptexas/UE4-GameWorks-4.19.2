@@ -352,20 +352,25 @@ void ConvertQueryImpactHit(const UWorld* World, const PxLocationHit& PHit, FHitR
 
 	SetHitResultFromShapeAndFaceIndex(PHit.shape,  PHit.actor, PHit.faceIndex, OutResult, bReturnPhysMat);
 
+	// See if this is a 'blocking' hit
+	const PxFilterData PShapeFilter = PHit.shape->getQueryFilterData();
+	const PxSceneQueryHitType::Enum HitType = FPxQueryFilterCallback::CalcQueryHitType(QueryFilter, PShapeFilter);
+	OutResult.bBlockingHit = (HitType == PxSceneQueryHitType::eBLOCK); 
+	OutResult.bStartPenetrating = bInitialOverlap;
+
 	// calculate the hit time
 	const float HitTime = PHit.distance/CheckLength;
+	OutResult.Time = HitTime;
 
 	// figure out where the the "safe" location for this shape is by moving from the startLoc toward the ImpactPoint
 	const FVector TraceStartToEnd = EndLoc - StartLoc;
 	const FVector SafeLocationToFitShape = StartLoc + (HitTime * TraceStartToEnd);
-
-	// Other info
-	// Caution: we may still have an initial overlap, but with null Geom. This is the case for RayCast results.
 	OutResult.Location = SafeLocationToFitShape;
 
 	const bool bUsePxPoint = ((PHit.flags & PxHitFlag::ePOSITION) && !bInitialOverlap);
 	OutResult.ImpactPoint = bUsePxPoint ? P2UVector(PHit.position) : StartLoc;
 	
+	// Caution: we may still have an initial overlap, but with null Geom. This is the case for RayCast results.
 	const bool bUsePxNormal = ((PHit.flags & PxHitFlag::eNORMAL) && !bInitialOverlap);
 	FVector Normal = bUsePxNormal ? P2UVector(PHit.normal).GetSafeNormal() : -TraceStartToEnd.GetSafeNormal();
 	OutResult.Normal = Normal;
@@ -373,13 +378,6 @@ void ConvertQueryImpactHit(const UWorld* World, const PxLocationHit& PHit, FHitR
 
 	OutResult.TraceStart = StartLoc;
 	OutResult.TraceEnd = EndLoc;
-	OutResult.Time = HitTime;
-
-	// See if this is a 'blocking' hit
-	PxFilterData PShapeFilter = PHit.shape->getQueryFilterData();
-	PxSceneQueryHitType::Enum HitType = FPxQueryFilterCallback::CalcQueryHitType(QueryFilter, PShapeFilter);
-	OutResult.bBlockingHit = (HitType == PxSceneQueryHitType::eBLOCK); 
-	OutResult.bStartPenetrating = bInitialOverlap;
 
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST || !WITH_EDITOR)

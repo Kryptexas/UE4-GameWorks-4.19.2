@@ -1456,19 +1456,19 @@ struct ENGINE_API FHitResult
 	FVector_NetQuantize Location;
 
 	/**
+	 * Location in world space of the actual contact of the trace shape (box, sphere, ray, etc) with the impacted object.
+	 * Example: for a sphere trace test, this is the point where the surface of the sphere touches the other object.
+	 */
+	UPROPERTY()
+	FVector_NetQuantize ImpactPoint;
+
+	/**
 	 * Normal of the hit in world space, for the object that was swept. Equal to ImpactNormal for line tests.
 	 * This is computed for capsules and spheres, otherwise it will be the same as ImpactNormal.
 	 * Example: for a sphere trace test, this is a normalized vector pointing in towards the center of the sphere at the point of impact.
 	 */
 	UPROPERTY()
 	FVector_NetQuantizeNormal Normal;
-
-	/**
-	 * Location in world space of the actual contact of the trace shape (box, sphere, ray, etc) with the impacted object.
-	 * Example: for a sphere trace test, this is the point where the surface of the sphere touches the other object.
-	 */
-	UPROPERTY()
-	FVector_NetQuantize ImpactPoint;
 
 	/**
 	 * Normal of the hit in world space, for the object that was hit by the sweep, if any.
