@@ -213,7 +213,6 @@ struct FEmitHelper
 			HANDLE_CPF_TAG(TEXT("NoClear"), CPF_NoClear)
 			HANDLE_CPF_TAG(TEXT("EditFixedSize"), CPF_EditFixedSize)
 			HANDLE_CPF_TAG(TEXT("NotReplicated"), CPF_RepSkip)
-			HANDLE_CPF_TAG(TEXT("RepRetry"), CPF_RepRetry)
 			HANDLE_CPF_TAG(TEXT("Interp"), CPF_Edit | CPF_BlueprintVisible | CPF_Interp)
 			HANDLE_CPF_TAG(TEXT("NonTransactional"), CPF_NonTransactional)
 			HANDLE_CPF_TAG(TEXT("BlueprintAssignable"), CPF_BlueprintAssignable)

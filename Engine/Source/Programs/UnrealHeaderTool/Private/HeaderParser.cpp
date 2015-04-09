@@ -2716,7 +2716,7 @@ void FHeaderParser::GetVarType
 			}
 			else if (Specifier == TEXT("RepRetry"))
 			{
-				Flags |= CPF_RepRetry;
+				FError::Throwf(TEXT("'RepRetry' is deprecated."));
 			}
 			else if (Specifier == TEXT("Interp"))
 			{
@@ -3469,11 +3469,6 @@ void FHeaderParser::GetVarType
 	if ( VarProperty.IsObject() && VarProperty.MetaClass == NULL && (VarProperty.PropertyFlags&CPF_Config) != 0 )
 	{
 		FError::Throwf(TEXT("Not allowed to use 'config' with object variables"));
-	}
-
-	if ((VarProperty.PropertyFlags & CPF_RepRetry) && VarProperty.Type != CPT_Struct)
-	{
-		FError::Throwf(TEXT("'RepRetry' is only allowed on struct properties"));
 	}
 
 	if ((VarProperty.PropertyFlags & CPF_BlueprintAssignable) && VarProperty.Type != CPT_MulticastDelegate)

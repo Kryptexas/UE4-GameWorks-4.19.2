@@ -2444,7 +2444,7 @@ TArray<const TCHAR*> ParsePropertyFlags(uint64 Flags)
 		TEXT("CPF_NonTransactional"),
 		TEXT("CPF_EditorOnly"),
 		TEXT("CPF_NoDestructor"),
-		TEXT("CPF_RepRetry"),
+		TEXT("0x0000002000000000"),
 		TEXT("CPF_AutoWeak"),
 		TEXT("CPF_ContainsInstancedReference"),
 		TEXT("CPF_AssetRegistrySearchable"),

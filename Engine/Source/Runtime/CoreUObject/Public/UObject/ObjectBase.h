@@ -346,7 +346,7 @@ typedef uint64 EClassCastFlags;
 #define CPF_NonTransactional				DECLARE_UINT64(0x0000000400000000)		// Property isn't transacted
 #define CPF_EditorOnly						DECLARE_UINT64(0x0000000800000000)		// Property should only be loaded in the editor
 #define CPF_NoDestructor					DECLARE_UINT64(0x0000001000000000)		// No destructor
-#define CPF_RepRetry						DECLARE_UINT64(0x0000002000000000)		// retry replication of this property if it fails to be fully sent (e.g. object references not yet available to serialize over the network)
+//#define CPF_								DECLARE_UINT64(0x0000002000000000)		//
 #define CPF_AutoWeak						DECLARE_UINT64(0x0000004000000000)		// Only used for weak pointers, means the export type is autoweak
 #define CPF_ContainsInstancedReference		DECLARE_UINT64(0x0000008000000000)		// Property contains component references.
 #define CPF_AssetRegistrySearchable			DECLARE_UINT64(0x0000010000000000)		// asset instances will add properties with this flag to the asset registry automatically
@@ -802,9 +802,6 @@ namespace UP
 
 		/// Property is relevant to network replication. Notify actors when a property is replicated (usage: ReplicatedUsing=FunctionName).
 		ReplicatedUsing,
-
-		/// Retry replication of this property if it fails to be fully sent (e.g. object references not yet available to serialize over the network)
-		RepRetry,
 
 		/// Skip replication (only for struct members and parameters in service request functions).
 		NotReplicated,
