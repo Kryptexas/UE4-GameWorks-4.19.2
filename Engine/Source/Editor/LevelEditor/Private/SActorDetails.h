@@ -11,7 +11,7 @@ public:
 	SLATE_BEGIN_ARGS(SActorDetails) {}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, const FName TabIdentifier);
+	void Construct(const FArguments& InArgs, const FName TabIdentifier, TSharedPtr<FUICommandList> InCommandList);
 	~SActorDetails();
 
 	/**

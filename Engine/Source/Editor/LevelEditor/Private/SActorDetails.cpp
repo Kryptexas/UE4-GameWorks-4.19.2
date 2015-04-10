@@ -60,7 +60,7 @@ public:
 	}
 };
 
-void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifier)
+void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifier, TSharedPtr<FUICommandList> InCommandList)
 {
 	bSelectionGuard = false;
 	bShowingRootActorNodeSelected = false;
@@ -80,7 +80,7 @@ void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifie
 	DetailsViewArgs.bCustomNameAreaLocation = true;
 	DetailsViewArgs.bCustomFilterAreaLocation = true;
 	DetailsViewArgs.DefaultsOnlyVisibility = FDetailsViewArgs::EEditDefaultsOnlyNodeVisibility::Hide;
-
+	DetailsViewArgs.HostCommandList = InCommandList;
 	DetailsView = PropPlugin.CreateDetailView(DetailsViewArgs);
 
 	auto IsPropertyVisible = [](const FPropertyAndParent& PropertyAndParent)

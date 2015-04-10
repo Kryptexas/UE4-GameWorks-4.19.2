@@ -513,9 +513,9 @@ TSharedRef<FTabManager> SLevelEditor::GetTabManager() const
 
 TSharedRef<SDockTab> SLevelEditor::SummonDetailsPanel( FName TabIdentifier )
 {
-	TSharedPtr<SActorDetails> ActorDetails;
+	TSharedRef<SActorDetails> ActorDetails = SNew(SActorDetails, TabIdentifier, LevelEditorCommands);
 
-	FText Label = NSLOCTEXT( "LevelEditor", "DetailsTabTitle", "Details" );
+	const FText Label = NSLOCTEXT( "LevelEditor", "DetailsTabTitle", "Details" );
 
 	TSharedRef<SDockTab> DocTab = SNew(SDockTab)
 		.Icon( FEditorStyle::GetBrush( "LevelEditor.Tabs.Details" ) )
@@ -525,7 +525,7 @@ TSharedRef<SDockTab> SLevelEditor::SummonDetailsPanel( FName TabIdentifier )
 			SNew( SBox )
 			.AddMetaData<FTutorialMetaData>(FTutorialMetaData(TEXT("ActorDetails"), TEXT("LevelEditorSelectionDetails")))
 			[
-				SAssignNew( ActorDetails, SActorDetails, TabIdentifier )
+				ActorDetails
 			]
 		];
 
