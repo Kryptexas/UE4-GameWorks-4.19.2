@@ -457,6 +457,11 @@ TSharedPtr<SWidget> SDetailsViewBase::GetFilterAreaWidget()
 	return DetailsViewArgs.bCustomFilterAreaLocation ? FilterRow : nullptr;
 }
 
+TSharedPtr<class FUICommandList> SDetailsViewBase::GetHostCommandList() const
+{
+	return DetailsViewArgs.HostCommandList;
+}
+
 /** 
  * Hides or shows properties based on the passed in filter text
  * 

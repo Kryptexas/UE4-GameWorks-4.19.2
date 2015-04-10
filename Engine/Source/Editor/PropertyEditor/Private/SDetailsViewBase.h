@@ -391,6 +391,7 @@ protected:
 
 	virtual TSharedPtr<SWidget> GetNameAreaWidget() override;
 	virtual TSharedPtr<SWidget> GetFilterAreaWidget() override;
+	virtual TSharedPtr<class FUICommandList> GetHostCommandList() const override;
 
 	/** 
 	 * Hides or shows properties based on the passed in filter text
