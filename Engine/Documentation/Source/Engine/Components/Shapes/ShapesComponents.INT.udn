@@ -33,7 +33,7 @@ The **CapsuleComponent** is a capsule shape which can also be used as simple col
 
 ![](capsule_component.png)
 
-Above a **CapsuleComponent** is automatically included when creating a new **Character Blueprint** and provides the collision settings for the character, keeping them from intersecting with objects in the world. The **CapsuleComponent** can also **Generate Overlap Events** or **Generate Hit Events** allow you to provide script for when either of those events occur. 
+Above a **CapsuleComponent** is automatically included when creating a new **Character Blueprint** and provides the collision settings for the character, keeping them from intersecting with objects in the world. The **CapsuleComponent** can also **Generate Overlap Events** or **Generate Hit Events** to allow you to provide scripts for when either of those events occur. 
 
 
 ## Sphere Component

@@ -14,7 +14,7 @@ Paper 2D Components are used to add (or modify) 2D **Sprites** or **Flipbooks** 
 A **PaperSpriteComponent** handles rendering and collision for a single instance of a `UPaperSprite` asset. 
 This Component is created when you drag a Sprite asset from the **Content Browser** into a **Blueprint** or contained inside the Actor created when you drag one into a level. 
 
-An example of using this type of Component may come in the form of Sprite assets used to construct a level, for instance ledges or platforms, ladders, ramps etc. Placing those Sprite assets in your level creates a **PaperSpriteActor** that uses and instanced **PaperSpriteComponent** (or unique copy) of the selected Sprite asset. 
+An example of using this type of Component may come in the form of Sprite assets used to construct a level, for instance ledges or platforms, ladders, ramps etc. Placing those Sprite assets in your level creates a **PaperSpriteActor** that uses an instanced **PaperSpriteComponent** (or unique copy) of the selected Sprite asset. 
 
 For information on creating Sprites in Unreal Engine 4, see the [](Engine\Paper2D\Sprites\Creation) documentation. 
 

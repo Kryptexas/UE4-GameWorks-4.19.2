@@ -46,7 +46,7 @@ The **MaterialBillboardComponent** is a 2D Material that will be rendered always
 
 A **CableComponent** allows you attach two Components together while rendering a cable between them. On the cable itself, you can assign a Material and define parameters that affect the way the cable is displayed. 
 
-An example use case for this type of Component is if you were in need of a rope or something that a player character could swing on. By attaching one point to a fixed location and attaching the other to the player character through script, the character could swing on the rope. Below use have a first person character that can shoot a cable out from their gun and attach it to the impact location, creating a "grappling gun" of sorts. 
+An example use case for this type of Component is if you were in need of a rope or something that a player character could swing on. By attaching one point to a fixed location and attaching the other to the player character through script, the character could swing on the rope. Below you have a first person character that can shoot a cable out from their gun and attach it to the impact location, creating a "grappling gun" of sorts. 
 
 ![](cable.png)(w:440)
 
