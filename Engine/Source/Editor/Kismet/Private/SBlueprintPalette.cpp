@@ -1046,25 +1046,29 @@ TSharedRef<SWidget> SBlueprintPaletteItem::CreateTextSlotWidget(const FSlateFont
 //------------------------------------------------------------------------------
 FText SBlueprintPaletteItem::GetDisplayText() const
 {
-	FText DisplayText;
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+	if (MenuDescriptionCache.IsOutOfDate(K2Schema))
+	{
+		TSharedPtr< FEdGraphSchemaAction > GraphAction = ActionPtr.Pin();
+		if (GraphAction->GetTypeId() == FEdGraphSchemaAction_K2Enum::StaticGetTypeId())
+		{
+			FEdGraphSchemaAction_K2Enum* EnumAction = (FEdGraphSchemaAction_K2Enum*)GraphAction.Get();
+			FText DisplayText = FText::FromString(EnumAction->Enum->GetName());
+			MenuDescriptionCache.SetCachedText(DisplayText, K2Schema);
+		}
+		else if (GraphAction->GetTypeId() == FEdGraphSchemaAction_K2Struct::StaticGetTypeId())
+		{
+			FEdGraphSchemaAction_K2Struct* StructAction = (FEdGraphSchemaAction_K2Struct*)GraphAction.Get();
+			FText DisplayText = StructAction->Struct ? FText::FromString(StructAction->Struct->GetName()) : FText::FromString(TEXT("None"));
+			MenuDescriptionCache.SetCachedText(DisplayText, K2Schema);
+		}
+		else
+		{
+			MenuDescriptionCache.SetCachedText(ActionPtr.Pin()->MenuDescription, K2Schema);
+		}
+	}
 
-	TSharedPtr< FEdGraphSchemaAction > GraphAction = ActionPtr.Pin();
-	if (GraphAction->GetTypeId() == FEdGraphSchemaAction_K2Enum::StaticGetTypeId())
-	{
-		FEdGraphSchemaAction_K2Enum* EnumAction = (FEdGraphSchemaAction_K2Enum*)GraphAction.Get();
-		DisplayText = FText::FromString(EnumAction->Enum->GetName());
-	}
-	else if (GraphAction->GetTypeId() == FEdGraphSchemaAction_K2Struct::StaticGetTypeId())
-	{
-		FEdGraphSchemaAction_K2Struct* StructAction = (FEdGraphSchemaAction_K2Struct*)GraphAction.Get();
-		DisplayText = StructAction->Struct ? FText::FromString(StructAction->Struct->GetName()) : FText::FromString(TEXT("None"));
-	}
-	else
-	{
-		DisplayText = ActionPtr.Pin()->MenuDescription;
-	}
-
-	return DisplayText;
+	return MenuDescriptionCache;
 }
 
 //------------------------------------------------------------------------------

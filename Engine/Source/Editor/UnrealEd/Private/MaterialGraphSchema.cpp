@@ -22,6 +22,8 @@
 
 #define LOCTEXT_NAMESPACE "MaterialGraphSchema"
 
+int32 UMaterialGraphSchema::CurrentCacheRefreshID = 0;
+
 ////////////////////////////////////////
 // FMaterialGraphSchemaAction_NewNode //
 
@@ -807,6 +809,21 @@ bool UMaterialGraphSchema::HasCompatibleConnection(const FAssetData& FunctionAss
 	}
 
 	return false;
+}
+
+bool UMaterialGraphSchema::IsCacheVisualizationOutOfDate(int32 InVisualizationCacheID) const
+{
+	return CurrentCacheRefreshID != InVisualizationCacheID;
+}
+
+int32 UMaterialGraphSchema::GetCurrentVisualizationCacheID() const
+{
+	return CurrentCacheRefreshID;
+}
+
+void UMaterialGraphSchema::ForceVisualizationCacheClear() const
+{
+	++CurrentCacheRefreshID;
 }
 
 #undef LOCTEXT_NAMESPACE

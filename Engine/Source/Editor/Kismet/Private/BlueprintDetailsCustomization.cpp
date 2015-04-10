@@ -2694,9 +2694,6 @@ void FBlueprintGraphActionDetails::SetNetFlags( TWeakObjectPtr<UK2Node_EditableP
 				bBlueprintModified = true;
 			}
 
-			// The node title needs to refresh
-			FunctionEntryNode->RefreshNodeTitle();
-
 			if( bBlueprintModified )
 			{
 				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified( FunctionEntryNode->GetBlueprint() );

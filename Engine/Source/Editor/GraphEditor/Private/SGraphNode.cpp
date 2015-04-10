@@ -31,16 +31,16 @@ void SNodeTitle::Construct(const FArguments& InArgs, UEdGraphNode* InNode)
 	{
 		TitleText = TAttribute<FText>(this, &SNodeTitle::GetNodeTitle);
 	}
-	CachedTitle = TitleText.Get();
+	NodeTitleCache.SetCachedText(TitleText.Get(), GraphNode);
 	RebuildWidget();
 }
 
 void SNodeTitle::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	// Checks to see if the cached string is valid, and if not, updates it.
-	if (TitleText.Get().CompareTo(CachedTitle) != 0)
+	if (NodeTitleCache.IsOutOfDate(GraphNode))
 	{
-		CachedTitle = TitleText.Get();
+		NodeTitleCache.SetCachedText(TitleText.Get(), GraphNode);
 		RebuildWidget();
 	}
 }
@@ -68,7 +68,7 @@ void SNodeTitle::RebuildWidget()
 
 	// Break the title into lines
 	TArray<FString> Lines;
-	const FString CachedTitleString = CachedTitle.ToString().Replace(TEXT("\r"), TEXT(""));
+	const FString CachedTitleString = NodeTitleCache.GetCachedText().ToString().Replace(TEXT("\r"), TEXT(""));
 	CachedTitleString.ParseIntoArray(Lines, TEXT("\n"), false);
 
 	if (Lines.Num())

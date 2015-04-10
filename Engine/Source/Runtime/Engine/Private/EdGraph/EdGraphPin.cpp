@@ -262,6 +262,13 @@ FText UEdGraphPin::GetDisplayName() const
 	else
 	{
 		DisplayName = (!PinFriendlyName.IsEmpty()) ? PinFriendlyName : FText::FromString(PinName);
+
+		bool bShowNodesAndPinsUnlocalized;
+		GConfig->GetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorGameAgnosticIni );
+		if (bShowNodesAndPinsUnlocalized)
+		{
+			return FText::FromString(DisplayName.BuildSourceString());
+		}
 	}
 	return DisplayName;
 }

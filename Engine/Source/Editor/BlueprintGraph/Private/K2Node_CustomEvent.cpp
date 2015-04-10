@@ -137,11 +137,6 @@ FText UK2Node_CustomEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return CachedNodeTitle;
 }
 
-void UK2Node_CustomEvent::RefreshNodeTitle()
-{
-	CachedNodeTitle.MarkDirty();
-}
-
 bool UK2Node_CustomEvent::CanCreateUserDefinedPin(const FEdGraphPinType& InPinType, EEdGraphPinDirection InDesiredDirection, FText& OutErrorMessage)
 {
 	if (!IsEditable())

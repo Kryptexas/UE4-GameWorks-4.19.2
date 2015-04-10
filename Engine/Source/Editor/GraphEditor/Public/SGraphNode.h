@@ -41,7 +41,7 @@ public:
 
 protected:
 	UEdGraphNode* GraphNode;
-	FText CachedTitle;
+	FNodeTextCache NodeTitleCache;
 	FName ExtraLineStyle;
 
 	/** The cached head title to return */

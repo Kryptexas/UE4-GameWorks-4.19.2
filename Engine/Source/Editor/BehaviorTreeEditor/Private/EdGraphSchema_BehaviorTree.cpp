@@ -17,6 +17,8 @@
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeEditor"
 
+int32 UEdGraphSchema_BehaviorTree::CurrentCacheRefreshID = 0;
+
 UEdGraphNode* FBehaviorTreeSchemaAction_AutoArrange::PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode)
 {
 	UBehaviorTreeGraph* Graph = Cast<UBehaviorTreeGraph>(ParentGraph);
@@ -413,6 +415,21 @@ int32 UEdGraphSchema_BehaviorTree::GetNodeSelectionCount(const UEdGraph* Graph) 
 	}
 
 	return 0;
+}
+
+bool UEdGraphSchema_BehaviorTree::IsCacheVisualizationOutOfDate(int32 InVisualizationCacheID) const
+{
+	return CurrentCacheRefreshID != InVisualizationCacheID;
+}
+
+int32 UEdGraphSchema_BehaviorTree::GetCurrentVisualizationCacheID() const
+{
+	return CurrentCacheRefreshID;
+}
+
+void UEdGraphSchema_BehaviorTree::ForceVisualizationCacheClear() const
+{
+	++CurrentCacheRefreshID;
 }
 
 #undef LOCTEXT_NAMESPACE

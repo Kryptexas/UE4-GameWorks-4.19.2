@@ -27,8 +27,17 @@ public:
 	 */
 	FORCEINLINE bool IsOutOfDate(const UEdGraphNode* InOwningNode) const
 	{
-		check(InOwningNode);
-		return CachedText.IsEmpty() || (InOwningNode->GetSchema()->IsCacheVisualizationOutOfDate(CacheRefreshID));
+		return CachedText.IsEmpty() || (InOwningNode && InOwningNode->GetGraph() && InOwningNode->GetSchema()->IsCacheVisualizationOutOfDate(CacheRefreshID));
+	}
+
+	/**
+	 * Checks if the title is out of date
+	 *
+	 * @param InSchema		Schema to use for checking if externally made out of date
+	 */
+	FORCEINLINE bool IsOutOfDate(const UEdGraphSchema* InSchema) const
+	{
+		return CachedText.IsEmpty() || (InSchema && InSchema->IsCacheVisualizationOutOfDate(CacheRefreshID));
 	}
 
 	/**
@@ -39,9 +48,30 @@ public:
 	 */
 	FORCEINLINE void SetCachedText(FText const& InText, const UEdGraphNode* InOwningNode) const
 	{
-		check(InOwningNode);
-		CachedText = InText;
-		CacheRefreshID = InOwningNode->GetSchema()->GetCurrentVisualizationCacheID();
+		UpdateCacheIternal(InText);
+
+		if (InOwningNode && InOwningNode->GetGraph())
+		{
+			// Update the CacheRefreshID, whenever these values do not match the cached value is out of date
+			CacheRefreshID = InOwningNode->GetSchema()->GetCurrentVisualizationCacheID();
+		}
+	}
+
+	/**
+	 * Checks if the title is out of date
+	 *
+	 * @param InText			Text to cache
+	 * @param InSchema			Schema to use for checking if externally made out of date
+	 */
+	FORCEINLINE void SetCachedText(FText const& InText, const UEdGraphSchema* InSchema) const
+	{
+		UpdateCacheIternal(InText);
+
+		if (InSchema)
+		{
+			// Update the CacheRefreshID, whenever these values do not match the cached value is out of date
+			CacheRefreshID = InSchema->GetCurrentVisualizationCacheID();
+		}
 	}
 
 	/** */
@@ -67,6 +97,24 @@ public:
 	FORCEINLINE operator FText&() const
 	{
 		return GetCachedText();
+	}
+
+private:
+	/** Helper to lookup from the GConfig the correct ini setting for displaying
+	 *  node and pin titles localized and updates the cache accordingly */
+	FORCEINLINE bool UpdateCacheIternal(FText const& InText) const
+	{
+		bool bShowNodesAndPinsUnlocalized;
+		GConfig->GetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorGameAgnosticIni );
+
+		if (bShowNodesAndPinsUnlocalized)
+		{
+			CachedText = FText::FromString(InText.BuildSourceString());
+		}
+		else
+		{
+			CachedText = InText;
+		}
 	}
 
 private:
@@ -147,7 +195,8 @@ public:
 	 */
 	FORCEINLINE bool IsTooltipCached(const UEdGraphNode* InOwningNode) const
 	{
-		return !CachedTooltip.IsOutOfDate(InOwningNode);
+		const UEdGraphSchema* NullSchema = nullptr;
+		return !CachedTooltip.IsOutOfDate(NullSchema);
 	}
 
 	/**
@@ -158,7 +207,8 @@ public:
 	 */
 	FORCEINLINE void SetCachedTooltip(FText const& InText, const UEdGraphNode* InOwningNode) const
 	{
-		CachedTooltip.SetCachedText(InText, InOwningNode);
+		const UEdGraphSchema* NullSchema = nullptr;
+		CachedTooltip.SetCachedText(InText, NullSchema);
 	}
 
 	/** */
