@@ -14,7 +14,7 @@
 //////////////////////////////////////////////////////////////////////////
 // STileLayerList
 
-void STileLayerList::Construct(const FArguments& InArgs, UPaperTileMap* InTileMap, FNotifyHook* InNotifyHook, TSharedPtr<class FUICommandList> InCommandList)
+void STileLayerList::Construct(const FArguments& InArgs, UPaperTileMap* InTileMap, FNotifyHook* InNotifyHook, TSharedPtr<class FUICommandList> InParentCommandList)
 {
 	TileMapPtr = InTileMap;
 	NotifyHook = InNotifyHook;
@@ -22,7 +22,8 @@ void STileLayerList::Construct(const FArguments& InArgs, UPaperTileMap* InTileMa
 	FTileMapEditorCommands::Register();
 	const FTileMapEditorCommands& Commands = FTileMapEditorCommands::Get();
 
-	CommandList = InCommandList;
+	CommandList = MakeShareable(new FUICommandList);
+	InParentCommandList->Append(CommandList.ToSharedRef());
 
 	CommandList->MapAction(
 		Commands.AddNewLayerAbove,
@@ -475,7 +476,19 @@ TSharedPtr<SWidget> STileLayerList::OnConstructContextMenu()
 		MenuBuilder.AddMenuEntry(Commands.DuplicateLayer);
 		MenuBuilder.AddMenuEntry(Commands.DeleteLayer);
 		MenuBuilder.AddMenuEntry(Commands.MergeLayerDown);
- 	}
+		MenuBuilder.AddMenuSeparator();
+		MenuBuilder.AddMenuEntry(Commands.SelectLayerAbove);
+		MenuBuilder.AddMenuEntry(Commands.SelectLayerBelow);
+	}
+	MenuBuilder.EndSection();
+
+	MenuBuilder.BeginSection("OrderingOperations", LOCTEXT("OrderingOperationsHeader", "Order actions"));
+	{
+		MenuBuilder.AddMenuEntry(Commands.MoveLayerToTop);
+		MenuBuilder.AddMenuEntry(Commands.MoveLayerUp);
+		MenuBuilder.AddMenuEntry(Commands.MoveLayerDown);
+		MenuBuilder.AddMenuEntry(Commands.MoveLayerToBottom);
+	}
 	MenuBuilder.EndSection();
 
 	return MenuBuilder.MakeWidget();
