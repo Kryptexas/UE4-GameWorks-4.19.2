@@ -34,11 +34,11 @@ class PAPER2D_API UPaperTileMap : public UObject
 	GENERATED_UCLASS_BODY()
 
 	// Width of map (in tiles)
-	UPROPERTY(Category=Setup, EditAnywhere, BlueprintReadOnly, meta=(UIMin=1, ClampMin=1))
+	UPROPERTY(Category=Setup, EditAnywhere, BlueprintReadOnly, meta=(UIMin=1, ClampMin=1, ClampMax=1024))
 	int32 MapWidth;
 
 	// Height of map (in tiles)
-	UPROPERTY(Category=Setup, EditAnywhere, BlueprintReadOnly, meta=(UIMin=1, ClampMin=1))
+	UPROPERTY(Category=Setup, EditAnywhere, BlueprintReadOnly, meta=(UIMin=1, ClampMin=1, ClampMax=1024))
 	int32 MapHeight;
 
 	// Width of one tile (in pixels)
