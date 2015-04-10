@@ -4,10 +4,25 @@
 
 #include "FoliageType_InstancedStaticMesh.h"
 #include "ProceduralFoliageInstance.h"
-#include "FoliageTypeObject.h"
 #include "ProceduralFoliageSpawner.generated.h"
 
 class UProceduralFoliageTile;
+
+
+USTRUCT()
+struct FProceduralFoliageTypeData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(Category = ProceduralFoliageSimulation, EditAnywhere, BlueprintReadOnly)
+	TSubclassOf<UFoliageType_InstancedStaticMesh> Type;
+
+	UPROPERTY(transient)
+	UFoliageType_InstancedStaticMesh* TypeInstance;
+
+	UPROPERTY()
+	int32 ChangeCount;
+};
 
 UCLASS(BlueprintType, Blueprintable)
 class FOLIAGE_API UProceduralFoliageSpawner : public UObject
@@ -31,7 +46,7 @@ class FOLIAGE_API UProceduralFoliageSpawner : public UObject
 private:
 	/** The types of foliage to procedurally spawn. */
 	UPROPERTY(Category = ProceduralFoliageSimulation, EditAnywhere)
-	TArray<FFoliageTypeObject> FoliageTypes;
+	TArray<FProceduralFoliageTypeData> Types;
 
 	UPROPERTY()
 	bool bNeedsSimulation;
@@ -42,7 +57,7 @@ public:
 
 	int32 GetRandomNumber();
 
-	const TArray<FFoliageTypeObject>& GetFoliageTypes() const { return FoliageTypes; }
+	const TArray<FProceduralFoliageTypeData>& GetTypes() const { return Types; }
 
 	/** Returns the instances that need to spawn for a given min,max region */
 	void GetInstancesToSpawn(TArray<FProceduralFoliageInstance>& OutInstances, const FVector& Min = FVector(-FLT_MAX, -FLT_MAX, -FLT_MAX), const FVector& Max = FVector(FLT_MAX, FLT_MAX, FLT_MAX) ) const;

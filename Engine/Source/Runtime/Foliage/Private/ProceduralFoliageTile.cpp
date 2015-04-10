@@ -206,29 +206,29 @@ void UProceduralFoliageTile::AddRandomSeeds(TArray<FProceduralFoliageInstance*>&
 
 	TArray<const UFoliageType_InstancedStaticMesh*> TypesToSeed;
 
-	for (const FFoliageTypeObject& FoliageTypeObject : FoliageSpawner->GetFoliageTypes())
+	for (const FProceduralFoliageTypeData& Data : FoliageSpawner->GetTypes())
 	{
 		if (UserCancelled()){ return; }
-		const UFoliageType_InstancedStaticMesh* TypeInstance = FoliageTypeObject.GetInstance();
-		if (TypeInstance && TypeInstance->bGrowsInShade == bSimulateShadeGrowth)
+		const UFoliageType_InstancedStaticMesh* Type = Data.TypeInstance;
+		if (Type && Type->bGrowsInShade == bSimulateShadeGrowth)
 		{
 			{	//compute the number of initial seeds
-				const int32 NumSeeds = FMath::RoundToInt(TypeInstance->GetSeedDensitySquared() * SizeTenM2);
-				SeedsLeftMap.Add(TypeInstance, NumSeeds);
+				const int32 NumSeeds = FMath::RoundToInt(Type->GetSeedDensitySquared() * SizeTenM2);
+				SeedsLeftMap.Add(Type, NumSeeds);
 				if (NumSeeds > 0)
 				{
-					TypesToSeed.Add(TypeInstance);
+					TypesToSeed.Add(Type);
 				}
 			}
 
 			{	//save the random stream per type
-				RandomStreamPerType.Add(TypeInstance, FRandomStream(TypeInstance->DistributionSeed + FoliageSpawner->RandomSeed + RandomSeed));
+				RandomStreamPerType.Add(Type, FRandomStream(Type->DistributionSeed + FoliageSpawner->RandomSeed + RandomSeed));
 			}
 
 			{	//compute the needed offsets for initial seed variance
-				const int32 DistributionSeed = TypeInstance->DistributionSeed;
-				const float MaxScale = TypeInstance->GetScaleForAge(TypeInstance->MaxAge);
-				const float TypeMaxCollisionRadius = MaxScale * TypeInstance->CollisionRadius;
+				const int32 DistributionSeed = Type->DistributionSeed;
+				const float MaxScale = Type->GetScaleForAge(Type->MaxAge);
+				const float TypeMaxCollisionRadius = MaxScale * Type->CollisionRadius;
 				if (float* MaxRadius = MaxCollisionRadii.Find(DistributionSeed))
 				{
 					*MaxRadius = FMath::Max(*MaxRadius, TypeMaxCollisionRadius);
@@ -238,7 +238,7 @@ void UProceduralFoliageTile::AddRandomSeeds(TArray<FProceduralFoliageInstance*>&
 					MaxCollisionRadii.Add(DistributionSeed, TypeMaxCollisionRadius);
 				}
 
-				const float TypeMaxShadeRadius = MaxScale * TypeInstance->ShadeRadius;
+				const float TypeMaxShadeRadius = MaxScale * Type->ShadeRadius;
 				if (float* MaxRadius = MaxShadeRadii.Find(DistributionSeed))
 				{
 					*MaxRadius = FMath::Max(*MaxRadius, TypeMaxShadeRadius);
@@ -411,9 +411,9 @@ void UProceduralFoliageTile::RunSimulation(const int32 MaxNumSteps, bool bShadeG
 {
 	int32 MaxSteps = 0;
 
-	for (const FFoliageTypeObject& FoliageTypeObject : FoliageSpawner->GetFoliageTypes())
+	for (const FProceduralFoliageTypeData& Data : FoliageSpawner->GetTypes())
 	{
-		const UFoliageType_InstancedStaticMesh* TypeInstance = FoliageTypeObject.GetInstance();
+		const UFoliageType_InstancedStaticMesh* TypeInstance = Data.TypeInstance;
 		if (TypeInstance && TypeInstance->bGrowsInShade == bShadeGrowth)
 		{
 			MaxSteps = FMath::Max(MaxSteps, TypeInstance->NumSteps + 1);

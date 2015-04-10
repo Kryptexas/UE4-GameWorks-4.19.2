@@ -490,8 +490,6 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_LANDSCAPE_SPLINE_CROSS_LEVEL_MESHES,
 	// Deprecate the variables used for sizing in the designer on UUserWidget
 	VER_UE4_DEPRECATE_USER_WIDGET_DESIGN_SIZE,
-	// Updated foliage to work with either FoliageType assets or blueprint classes
-	VER_UE4_FOLIAGE_WITH_ASSET_OR_CLASS,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

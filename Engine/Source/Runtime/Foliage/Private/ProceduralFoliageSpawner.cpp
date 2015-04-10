@@ -34,18 +34,28 @@ UProceduralFoliageTile* UProceduralFoliageSpawner::CreateTempTile()
 
 void UProceduralFoliageSpawner::CreateProceduralFoliageInstances()
 {
-	for (FFoliageTypeObject& FoliageTypeObject : FoliageTypes)
+	for(FProceduralFoliageTypeData& TypeData : Types)
 	{
-		// Refresh the instances contained in the type objects
-		FoliageTypeObject.RefreshInstance();
+		if( TypeData.Type )
+		{
+			TypeData.TypeInstance = NewObject<UFoliageType_InstancedStaticMesh>(this, TypeData.Type);
+			TypeData.ChangeCount = TypeData.TypeInstance->ChangeCount;
+		}
+		else
+		{
+			TypeData.TypeInstance = nullptr;
+		}
 	}
 }
 
 void UProceduralFoliageSpawner::SetClean()
 {
-	for (FFoliageTypeObject& FoliageTypeObject : FoliageTypes)
+	for (FProceduralFoliageTypeData& TypeData : Types)
 	{
-		FoliageTypeObject.SetClean();
+		if( TypeData.Type && TypeData.TypeInstance )
+		{
+			TypeData.TypeInstance->ChangeCount = TypeData.Type->GetDefaultObject<UFoliageType_InstancedStaticMesh>()->ChangeCount;
+		}
 	}
 
 	bNeedsSimulation = false;
@@ -87,18 +97,23 @@ bool UProceduralFoliageSpawner::AnyDirty() const
 {
 	bool bDirty = bNeedsSimulation;
 
-	if (!bDirty)
+	for (const FProceduralFoliageTypeData& TypeData : Types)
 	{
-		for (const FFoliageTypeObject& FoliageTypeObject : FoliageTypes)
+		if (TypeData.Type)
 		{
-			if (FoliageTypeObject.IsDirty())
+			if (TypeData.TypeInstance && TypeData.Type->GetDefaultObject<UFoliageType_InstancedStaticMesh>()->ChangeCount != TypeData.ChangeCount)
+			{
+				bDirty = true;
+				break;
+			}
+			else if (!TypeData.TypeInstance)
 			{
 				bDirty = true;
 				break;
 			}
 		}
 	}
-	
+
 	return bDirty;
 }
 
