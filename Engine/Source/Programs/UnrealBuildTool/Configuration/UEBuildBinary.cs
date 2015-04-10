@@ -111,11 +111,6 @@ namespace UnrealBuildTool
         public bool bIsCrossTarget = false;
 
         /// <summary>
-		/// If true, the binary is being compiled as a monolithic build
-		/// </summary>
-		public bool bCompileMonolithic = false;
-
-        /// <summary>
 		/// If true, creates an additional console application. Hack for Windows, where it's not possible to conditionally inherit a parent's console Window depending on how
 		/// the application is invoked; you have to link the same executable with a different subsystem setting.
 		/// </summary>
@@ -165,7 +160,6 @@ namespace UnrealBuildTool
 			bAllowCompilation = bInAllowCompilation;
 			bHasModuleRules = bInHasModuleRules;
             bIsCrossTarget = bInIsCrossTarget;
-            bCompileMonolithic = bInCompileMonolithic;
 			ProjectFilePath = InProjectFilePath;
 			ModuleNames = InModuleNames;
 		}
@@ -466,10 +460,6 @@ namespace UnrealBuildTool
 						throw new BuildException("Module \"{0}\" linked into both {1} and {2}, which creates ambiguous linkage for dependents.", ModuleName, Module.Binary.Config.OutputFilePath, Config.OutputFilePath);
 					}
 				}
-
-				// We set whether the binary is being compiled monolithic here to know later - specifically
-				// when we are determining whether to use SharedPCHs or not for static lib builds of plugins.
-				Config.bCompileMonolithic = Target.ShouldCompileMonolithic();
 			}
 		}
 
@@ -746,7 +736,7 @@ namespace UnrealBuildTool
 				{
 					// Compile each module.
 					Log.TraceVerbose("Compile module: " + ModuleName);
-					LinkInputFiles = Module.Compile(CompileEnvironment, BinaryCompileEnvironment, Config.bCompileMonolithic);
+					LinkInputFiles = Module.Compile(CompileEnvironment, BinaryCompileEnvironment);
 
 					// NOTE: Because of 'Shared PCHs', in monolithic builds the same PCH file may appear as a link input
 					// multiple times for a single binary.  We'll check for that here, and only add it once.  This avoids
