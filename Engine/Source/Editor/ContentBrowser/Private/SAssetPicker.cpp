@@ -62,7 +62,7 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 	TAttribute< FText > HighlightText;
 	EThumbnailLabel::Type ThumbnailLabel = InArgs._AssetPickerConfig.ThumbnailLabel;
 
-	FrontendFilters = MakeShareable(new AssetFilterCollectionType());
+	FrontendFilters = MakeShareable(new FAssetFilterCollectionType());
 
 	// Search box
 	if (!InArgs._AssetPickerConfig.bAutohideSearchBar)

@@ -2,9 +2,6 @@
 
 #pragma once
 
-typedef const FAssetData& AssetFilterType;
-typedef TFilterCollection<AssetFilterType> AssetFilterCollectionType;
-
 class FFrontendFilterCategory
 {
 public:
@@ -17,7 +14,7 @@ public:
 	const FText Tooltip;
 };
 
-class FFrontendFilter : public IFilter<AssetFilterType>
+class FFrontendFilter : public IFilter<FAssetFilterType>
 {
 public:
 	FFrontendFilter(TSharedPtr<FFrontendFilterCategory> InCategory) : FilterCategory(InCategory) {}
@@ -47,7 +44,7 @@ public:
 	virtual void ActiveStateChanged(bool bActive) { }
 
 	// IFilter implementation
-	DECLARE_DERIVED_EVENT( FFrontendFilter, IFilter<AssetFilterType>::FChangedEvent, FChangedEvent );
+	DECLARE_DERIVED_EVENT( FFrontendFilter, IFilter<FAssetFilterType>::FChangedEvent, FChangedEvent );
 	virtual FChangedEvent& OnChanged() override { return ChangedEvent; }
 
 	TSharedPtr<FFrontendFilterCategory> GetCategory() { return FilterCategory; }

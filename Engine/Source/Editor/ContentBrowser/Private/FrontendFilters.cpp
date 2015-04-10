@@ -11,20 +11,20 @@
 // FFrontendFilter_Text
 /////////////////////////////////////////
 
-void AssetDataToClassAndNameStrings(AssetFilterType Asset, OUT TArray< FString >& Array)
+void AssetDataToClassAndNameStrings(FAssetFilterType Asset, OUT TArray< FString >& Array)
 {
 	Array.Add(Asset.AssetClass.ToString());
 	Array.Add(Asset.AssetName.ToString());
 }
 
-void AssetDataToNameString(AssetFilterType Asset, OUT TArray< FString >& Array)
+void AssetDataToNameString(FAssetFilterType Asset, OUT TArray< FString >& Array)
 {
 	Array.Add(Asset.AssetName.ToString());
 }
 
 FFrontendFilter_Text::FFrontendFilter_Text()
 	: FFrontendFilter(nullptr)
-	, TextFilter(TTextFilter<AssetFilterType>::FItemToStringArray::CreateStatic( &AssetDataToClassAndNameStrings ) )
+	, TextFilter(TTextFilter<FAssetFilterType>::FItemToStringArray::CreateStatic(&AssetDataToClassAndNameStrings))
 {
 	SetIncludeClassName(true);
 }
@@ -34,7 +34,7 @@ FFrontendFilter_Text::~FFrontendFilter_Text()
 	TextFilter.OnChanged().RemoveAll(this);
 }
 
-bool FFrontendFilter_Text::PassesFilter(AssetFilterType InItem) const
+bool FFrontendFilter_Text::PassesFilter(FAssetFilterType InItem) const
 {
 	return TextFilter.PassesFilter(InItem);
 }
@@ -56,11 +56,11 @@ void FFrontendFilter_Text::SetIncludeClassName(bool bIncludeClassName)
 
 	if ( bIncludeClassName )
 	{
-		TextFilter = TTextFilter<AssetFilterType>::FItemToStringArray::CreateStatic( &AssetDataToClassAndNameStrings );
+		TextFilter = TTextFilter<FAssetFilterType>::FItemToStringArray::CreateStatic(&AssetDataToClassAndNameStrings);
 	}
 	else
 	{
-		TextFilter = TTextFilter<AssetFilterType>::FItemToStringArray::CreateStatic( &AssetDataToNameString );
+		TextFilter = TTextFilter<FAssetFilterType>::FItemToStringArray::CreateStatic(&AssetDataToNameString);
 	}
 
 	// Apply the existing text before we re-assign the delegate since we want the text preservation to be opaque.
@@ -93,7 +93,7 @@ void FFrontendFilter_CheckedOut::ActiveStateChanged(bool bActive)
 	}
 }
 
-bool FFrontendFilter_CheckedOut::PassesFilter( AssetFilterType InItem ) const
+bool FFrontendFilter_CheckedOut::PassesFilter(FAssetFilterType InItem) const
 {
 	FSourceControlStatePtr SourceControlState = ISourceControlModule::Get().GetProvider().GetState(SourceControlHelpers::PackageFilename(InItem.PackageName.ToString()), EStateCacheUsage::Use);
 	return SourceControlState.IsValid() && (SourceControlState->IsCheckedOut() || SourceControlState->IsAdded());
@@ -137,7 +137,7 @@ void FFrontendFilter_Modified::ActiveStateChanged(bool bActive)
 	bIsCurrentlyActive = bActive;
 }
 
-bool FFrontendFilter_Modified::PassesFilter( AssetFilterType InItem ) const
+bool FFrontendFilter_Modified::PassesFilter(FAssetFilterType InItem) const
 {
 	UPackage* Package = FindPackage(NULL, *InItem.PackageName.ToString());
 
@@ -161,7 +161,7 @@ void FFrontendFilter_Modified::OnPackageDirtyStateUpdated(UPackage* Package)
 // FFrontendFilter_ReplicatedBlueprint
 /////////////////////////////////////////
 
-bool FFrontendFilter_ReplicatedBlueprint::PassesFilter( AssetFilterType InItem ) const
+bool FFrontendFilter_ReplicatedBlueprint::PassesFilter(FAssetFilterType InItem) const
 {
 	FString TagValue = InItem.TagsAndValues.FindRef("NumReplicatedProperties");
 	return !TagValue.IsEmpty() && (FCString::Atoi(*TagValue) > 0);
@@ -196,7 +196,7 @@ void FFrontendFilter_ShowOtherDevelopers::SetCurrentFilter(const FARFilter& InFi
 	}
 }
 
-bool FFrontendFilter_ShowOtherDevelopers::PassesFilter( AssetFilterType InItem ) const
+bool FFrontendFilter_ShowOtherDevelopers::PassesFilter(FAssetFilterType InItem) const
 {
 	// Pass all assets if other developer assets are allowed
 	if ( !bShowOtherDeveloperAssets )
@@ -252,7 +252,7 @@ void FFrontendFilter_ShowRedirectors::SetCurrentFilter(const FARFilter& InFilter
 	bAreRedirectorsInBaseFilter = InFilter.ClassNames.Contains(RedirectorClassName);
 }
 
-bool FFrontendFilter_ShowRedirectors::PassesFilter( AssetFilterType InItem ) const
+bool FFrontendFilter_ShowRedirectors::PassesFilter(FAssetFilterType InItem) const
 {
 	// Never hide redirectors if they are explicitly searched for
 	if ( !bAreRedirectorsInBaseFilter )
@@ -301,7 +301,7 @@ void FFrontendFilter_InUseByLoadedLevels::OnAssetPostRename(const TArray<FAssetR
 	ObjectTools::TagInUseObjects(ObjectTools::SO_LoadedLevels);
 }
 
-bool FFrontendFilter_InUseByLoadedLevels::PassesFilter( AssetFilterType InItem ) const
+bool FFrontendFilter_InUseByLoadedLevels::PassesFilter(FAssetFilterType InItem) const
 {
 	bool bObjectInUse = false;
 	

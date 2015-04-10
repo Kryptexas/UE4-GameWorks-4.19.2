@@ -82,7 +82,7 @@ public:
 		SLATE_ARGUMENT( bool, AllowThumbnailHintLabel )
 
 		/** The filter collection used to further filter down assets returned from the backend */
-		SLATE_ARGUMENT( TSharedPtr<AssetFilterCollectionType>, FrontendFilters )
+		SLATE_ARGUMENT( TSharedPtr<FAssetFilterCollectionType>, FrontendFilters )
 
 		/** The initial base sources filter */
 		SLATE_ARGUMENT( FSourcesData, InitialSourcesData )
@@ -632,7 +632,7 @@ private:
 	/** The current base source filter for the view */
 	FSourcesData SourcesData;
 	FARFilter BackendFilter;
-	TSharedPtr<AssetFilterCollectionType> FrontendFilters;
+	TSharedPtr<FAssetFilterCollectionType> FrontendFilters;
 
 	/** If true, the source items will be refreshed next frame. Very slow. */
 	bool bSlowFullListRefreshRequested;

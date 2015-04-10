@@ -19,7 +19,7 @@ public:
 	virtual FText GetToolTipText() const override { return LOCTEXT("FrontendFilter_TextTooltip", "Show only assets that match the input text"); }
 
 	// IFilter implementation
-	virtual bool PassesFilter(AssetFilterType InItem) const override;
+	virtual bool PassesFilter(FAssetFilterType InItem) const override;
 
 public:
 	/** Returns the unsanitized and unsplit filter terms */
@@ -36,7 +36,7 @@ private:
 	/** Handler for the internal text filter */
 	void HandleOnChangedEvent();
 
-	TTextFilter<AssetFilterType> TextFilter;
+	TTextFilter<FAssetFilterType> TextFilter;
 };
 
 /** A filter that displays only checked out assets */
@@ -52,7 +52,7 @@ public:
 	virtual void ActiveStateChanged(bool bActive) override;
 
 	// IFilter implementation
-	virtual bool PassesFilter( AssetFilterType InItem ) const override;
+	virtual bool PassesFilter(FAssetFilterType InItem) const override;
 
 private:
 	
@@ -77,7 +77,7 @@ public:
 	virtual void ActiveStateChanged(bool bActive) override;
 
 	// IFilter implementation
-	virtual bool PassesFilter( AssetFilterType InItem ) const override;
+	virtual bool PassesFilter(FAssetFilterType InItem) const override;
 
 private:
 
@@ -99,7 +99,7 @@ public:
 	virtual FText GetToolTipText() const override { return LOCTEXT("FFrontendFilter_ReplicatedBlueprintToolTip", "Show only blueprints with replicated properties."); }
 
 	// IFilter implementation
-	virtual bool PassesFilter( AssetFilterType InItem ) const override;
+	virtual bool PassesFilter(FAssetFilterType InItem) const override;
 };
 
 /** An inverse filter that allows display of content in developer folders that are not the current user's */
@@ -117,7 +117,7 @@ public:
 	virtual void SetCurrentFilter(const FARFilter& InFilter) override;
 
 	// IFilter implementation
-	virtual bool PassesFilter( AssetFilterType InItem ) const override;
+	virtual bool PassesFilter(FAssetFilterType InItem) const override;
 
 public:
 	/** Sets if we should filter out assets from other developers */
@@ -148,7 +148,7 @@ public:
 	virtual void SetCurrentFilter(const FARFilter& InFilter) override;
 
 	// IFilter implementation
-	virtual bool PassesFilter( AssetFilterType InItem ) const override;
+	virtual bool PassesFilter(FAssetFilterType InItem) const override;
 
 private:
 	bool bAreRedirectorsInBaseFilter;
@@ -170,7 +170,7 @@ public:
 	virtual void ActiveStateChanged(bool bActive) override;
 
 	// IFilter implementation
-	virtual bool PassesFilter( AssetFilterType InItem ) const override;
+	virtual bool PassesFilter(FAssetFilterType InItem) const override;
 
 	/** Handler for when maps change in the editor */
 	void OnEditorMapChange( uint32 MapChangeFlags );

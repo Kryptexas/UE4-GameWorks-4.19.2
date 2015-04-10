@@ -90,7 +90,7 @@ private:
 private:
 
 	/** The list of FrontendFilters currently applied to the asset view */
-	TSharedPtr<AssetFilterCollectionType> FrontendFilters;
+	TSharedPtr<FAssetFilterCollectionType> FrontendFilters;
 
 	/** The asset view widget */
 	TSharedPtr<SAssetView> AssetViewPtr;
@@ -120,7 +120,7 @@ private:
 	bool bPendingFocusNextFrame;
 
 	/** Filters needed for filtering the assets */
-	TSharedPtr< AssetFilterCollectionType > FilterCollection;
+	TSharedPtr< FAssetFilterCollectionType > FilterCollection;
 	TSharedPtr< FFrontendFilter_Text > TextFilter;
 	TSharedPtr< FFrontendFilter_ShowOtherDevelopers > OtherDevelopersFilter;
 

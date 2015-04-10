@@ -1,6 +1,5 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
 
 #include "ContentBrowserDelegates.h"
@@ -10,8 +9,8 @@
 #include "FilterCollection.h"
 #include "AssetThumbnail.h"
 
-typedef const FAssetData& AssetFilterType;
-typedef TFilterCollection<AssetFilterType> AssetFilterCollectionType;
+typedef const FAssetData& FAssetFilterType;
+typedef TFilterCollection<FAssetFilterType> FAssetFilterCollectionType;
 
 /** The view modes used in SAssetView */
 namespace EAssetViewType

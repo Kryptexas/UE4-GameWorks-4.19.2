@@ -31,9 +31,9 @@ public:
 	virtual FText GetToolTipText() const override { return LOCTEXT("FFrontendFilter_AdditiveAnimAssetsToolTip", "Show only animations that are additive."); }
 
 	// IFilter implementation
-	virtual bool PassesFilter( AssetFilterType InItem ) const override
+	virtual bool PassesFilter(FAssetFilterType InItem) const override
 	{
-		FString TagValue = InItem.TagsAndValues.FindRef("AdditiveAnimType");
+		const FString TagValue = InItem.TagsAndValues.FindRef(GET_MEMBER_NAME_CHECKED(UAnimSequence, AdditiveAnimType));
 		return !TagValue.IsEmpty() && !TagValue.Equals(TEXT("AAT_None"));
 	}
 };
