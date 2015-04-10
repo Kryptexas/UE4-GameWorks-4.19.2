@@ -4,8 +4,8 @@
 
 #include "WidgetLayoutLibrary.generated.h"
 
-UCLASS(MinimalAPI)
-class UWidgetLayoutLibrary : public UBlueprintFunctionLibrary
+UCLASS()
+class UMG_API UWidgetLayoutLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
 

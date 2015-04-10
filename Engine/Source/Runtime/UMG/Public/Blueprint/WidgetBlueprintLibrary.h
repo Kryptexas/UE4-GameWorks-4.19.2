@@ -10,8 +10,8 @@ class USlateBrushAsset;
 
 struct FPaintContext;
 
-UCLASS(MinimalAPI)
-class UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary
+UCLASS()
+class UMG_API UWidgetBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
 
