@@ -50,7 +50,7 @@ class PAPER2D_API UPaperFlipbook : public UObject
 
 protected:
 	// The nominal frame rate to play this flipbook animation back at
-	UPROPERTY(Category=Sprite, EditAnywhere, BlueprintReadOnly, meta=(ClampMax=1000))
+	UPROPERTY(Category=Sprite, EditAnywhere, BlueprintReadOnly, meta=(ClampMin=0, ClampMax=1000))
 	float FramesPerSecond;
 
 	// The set of key frames for this flipbook animation (each one has a duration and a sprite to display)
