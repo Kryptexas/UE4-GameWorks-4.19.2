@@ -91,7 +91,14 @@ const TCHAR* UClassProperty::ImportText_Internal( const TCHAR* Buffer, void* Dat
 
 FString UClassProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CPPExportFlags/*=0*/ ) const
 {
-	return FString::Printf(TEXT("TSubclassOf<%s%s> "),MetaClass->GetPrefixCPP(),*MetaClass->GetName());
+	if (PropertyFlags & CPF_UObjectWrapper)
+	{
+		return FString::Printf(TEXT("TSubclassOf<%s%s> "),MetaClass->GetPrefixCPP(),*MetaClass->GetName());
+	}
+	else
+	{
+		return TEXT("UClass*");
+	}
 }
 
 FString UClassProperty::GetCPPTypeForwardDeclaration() const

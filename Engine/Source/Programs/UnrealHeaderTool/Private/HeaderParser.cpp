@@ -3151,7 +3151,6 @@ void FHeaderParser::GetVarType
 		{
 			// An object reference of some type (maybe a restricted class?)
 			UClass* TempClass = NULL;
-			bool bExpectStar = true;
 
 			const bool bIsLazyPtrTemplate        = VarType.Matches(TEXT("TLazyObjectPtr"));
 			const bool bIsAssetPtrTemplate       = VarType.Matches(TEXT("TAssetPtr"));
@@ -3173,7 +3172,7 @@ void FHeaderParser::GetVarType
 			else if (VarType.Matches(TEXT("FScriptInterface")))
 			{
 				TempClass = UInterface::StaticClass();
-				bExpectStar = false;
+				Flags |= CPF_UObjectWrapper;
 			}
 			else if (bIsAssetClassTemplate)
 			{
@@ -3222,7 +3221,7 @@ void FHeaderParser::GetVarType
 						Flags |= CPF_SubobjectReference | CPF_InstancedReference;
 					}
 
-					bExpectStar = false;
+					Flags |= CPF_UObjectWrapper;
 				}
 				else
 				{
@@ -3246,7 +3245,7 @@ void FHeaderParser::GetVarType
 				{
 					if ( MatchSymbol(TEXT("<")) )
 					{
-						bExpectStar = false;
+						Flags |= CPF_UObjectWrapper;
 
 						// Consume a forward class declaration 'class' if present
 						MatchIdentifier(TEXT("class"));
@@ -3290,7 +3289,7 @@ void FHeaderParser::GetVarType
 				}
 
 				// Eat the star that indicates this is a pointer to the UObject
-				if (bExpectStar)
+				if (!(Flags & CPF_UObjectWrapper))
 				{
 					// Const after variable type but before pointer symbol
 					MatchIdentifier(TEXT("const"));
@@ -5006,7 +5005,7 @@ void FHeaderParser::ParseParameterList(FClasses& AllClasses, UFunction* Function
 		// Get parameter type.
 		FToken Property(CPT_None);
 		EVariableCategory::Type VariableCategory = (Function->FunctionFlags & FUNC_Net) ? EVariableCategory::ReplicatedParameter : EVariableCategory::RegularParameter;
-		GetVarType(AllClasses, GetCurrentScope(), Property, ~(CPF_ParmFlags | CPF_AutoWeak | CPF_RepSkip), NULL, EPropertyDeclarationStyle::None, VariableCategory);
+		GetVarType(AllClasses, GetCurrentScope(), Property, ~(CPF_ParmFlags | CPF_AutoWeak | CPF_RepSkip | CPF_UObjectWrapper), NULL, EPropertyDeclarationStyle::None, VariableCategory);
 		Property.PropertyFlags |= CPF_Parm;
 
 		if (bExpectCommaBeforeName)

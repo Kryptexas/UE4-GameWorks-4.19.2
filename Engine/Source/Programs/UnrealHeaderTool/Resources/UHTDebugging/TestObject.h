@@ -38,6 +38,9 @@ public:
 	}
 #endif
 
+	UFUNCTION(BlueprintNativeEvent, Category="Game")
+	UClass* BrokenReturnTypeForFunction();
+
 #if 0
 	UPROPERTY()
 	ITestInterface* ShouldGiveAMeaningfulErrorAboutTScriptInterface;
