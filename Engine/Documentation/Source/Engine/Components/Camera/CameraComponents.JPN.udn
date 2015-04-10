@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2498852
+Availability:Public
 Title:カメラ コンポーネント
 Crumbs:%ROOT%, Engine, Engine/Components
 Description:CameraComponent と SpringArmComponent の説明 
@@ -9,7 +10,7 @@ Related:Engine/Blueprints/UserGuide/Components
 
 **CameraComponent** (カメラ視点を追加) と **SpringArmComponent** (子を固定距離で延長し、コリジョン発生時に収縮) は、一緒に使用するとゲームワールドで動的に調整可能なサードパーソン視点の機能を実現します。 
 
-## カメラ コンポーネント
+## Camera コンポーネント
 
 **CameraComponent** では、カメラ視点を、アクタのサブオブジェクトとして追加することができます。**ViewTarget** が **CameraActor** または CameraComponent を含み `bFindCameraComponentWhenViewTarget` オプションが _True_ に設定されているアクタである場合、CameraComponent はカメラのプロパティに関する情報を提供します。 
 
@@ -19,7 +20,7 @@ Related:Engine/Blueprints/UserGuide/Components
 
 ## Spring Arm コンポーネント
 
-**SpringArmComponent** は、子を親から固定距離に保とうとしますが、コリジョンがあると子は収縮し、コリジョンがないと戻ります。通常、SpringArmComponent はプレイヤーの追跡カメラがワールドと衝突しないように「カメラブーム」として使用します (SpringArmComponent がなければ、CameraComponent は邪魔になる可能性のあるオブジェクトやそれがアタッチされているオブジェクトに関係なく指定された固定距離に維持されます)。[SpringArmComponent の使用](Gameplay/HowTo/UsingCameras/Blueprints#SpringArmComponentの使用) をご覧ください。 
+**SpringArmComponent** は、子を親から固定距離に保とうとしますが、コリジョンがあると子は収縮し、コリジョンがないと戻ります。通常、SpringArmComponent はプレイヤーの追跡カメラがワールドと衝突しないように「カメラブーム」として使用します (SpringArmComponent がなければ、CameraComponent は邪魔になる可能性のあるオブジェクトやそれがアタッチされているオブジェクトに関係なく指定された固定距離に維持されます)。[SpringArmComponent の使用](Gameplay/HowTo/UsingCameras/Blueprints#SpringArmコンポーネントの使用) をご覧ください。 
 
 ![](camera_springArm.png)
 
