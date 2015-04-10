@@ -12,6 +12,7 @@
 #include "IScriptGeneratorPluginInterface.h"
 #include "Manifest.h"
 #include "UnitConversion.h"
+#include "GeneratedCodeVersion.h"
 
 double GPluginOverheadTime = 0.0;
 double GHeaderCodeGenTime = 0.0;
@@ -50,6 +51,7 @@ private:
 enum {MAX_ARRAY_SIZE=2048};
 
 static const FName NAME_ToolTip(TEXT("ToolTip"));
+EGeneratedCodeVersion FHeaderParser::DefaultGeneratedCodeVersion = EGeneratedCodeVersion::V1;
 TMap<UClass*, ClassDefinitionRange> ClassDefinitionRanges;
 /**
  * Dirty hack global variable to allow different result codes passed through
@@ -1798,14 +1800,7 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses, FUn
 			Struct->StructMacroDeclaredLineNumber = InputLine;
 			RequireSymbol(TEXT("("), TEXT("'struct'"));
 
-			FToken DuplicateStructName;
-			if (GetIdentifier(DuplicateStructName))
-			{
-				if (!DuplicateStructName.Matches(*StructNameInScript))
-				{
-					FError::Throwf(TEXT("The argument to %s must match the struct name '%s' if present.  However, the argument can be omitted entirely."), Token.Identifier, *StructNameInScript);
-				}
-			}
+			CompileVersionDeclaration(SourceFile, Struct);
 
 			RequireSymbol(TEXT(")"), TEXT("'struct'"));
 
@@ -3834,6 +3829,7 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FUnrealSourceFile& 
 			FError::Throwf(TEXT("%s must occur inside the native interface definition"), Token.Identifier);
 		}
 		RequireSymbol(TEXT("("), Token.Identifier);
+		CompileVersionDeclaration(SourceFile, GetCurrentClass());
 		RequireSymbol(TEXT(")"), Token.Identifier);
 
 		auto* ClassData = GetCurrentClassData();
@@ -3847,6 +3843,11 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FUnrealSourceFile& 
 		{
 			CurrentAccessSpecifier = ACCESS_Public;
 		}
+
+		if (Token.Matches(TEXT("GENERATED_BODY")))
+		{
+			ClassDefinitionRanges[GetCurrentClass()].bHasGeneratedBody = true;
+		}
 	}
 	else if (Token.Matches(TEXT("GENERATED_UINTERFACE_BODY")) || (Token.Matches(TEXT("GENERATED_BODY")) && TopNest->NestType == NEST_Interface))
 	{
@@ -3855,6 +3856,7 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FUnrealSourceFile& 
 			FError::Throwf(TEXT("%s must occur inside the interface definition"), Token.Identifier);
 		}
 		RequireSymbol(TEXT("("), Token.Identifier);
+		CompileVersionDeclaration(SourceFile, GetCurrentClass());
 		RequireSymbol(TEXT(")"), Token.Identifier);
 
 		auto* ClassData = GetCurrentClassData();
@@ -3895,6 +3897,7 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, FUnrealSourceFile& 
 		}
 
 		RequireSymbol(TEXT("("), Token.Identifier);
+		CompileVersionDeclaration(SourceFile, GetCurrentClass());
 		RequireSymbol(TEXT(")"), Token.Identifier);
 
 		ClassData->SetGeneratedBodyLine(InputLine);
@@ -6727,6 +6730,12 @@ FHeaderParser::FHeaderParser(FFeedbackContext* InWarn)
 	DelegateParameterCountStrings.Add(TEXT("_SixParams"));
 	DelegateParameterCountStrings.Add(TEXT("_SevenParams"));
 	DelegateParameterCountStrings.Add(TEXT("_EightParams"));
+
+	FString Version;
+	if (GConfig->GetString(TEXT("GeneratedCodeVersion"), TEXT("UnrealHeaderTool"), Version, GEngineIni))
+	{
+		DefaultGeneratedCodeVersion = ToGeneratedCodeVersion(Version);
+	}
 }
 
 // Throws if a specifier value wasn't provided
@@ -6799,6 +6808,7 @@ ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(
 	// Create the header parser and register it as the warning context.
 	// Note: This must be declared outside the try block, since the catch block will log into it.
 	FHeaderParser HeaderParser(Warn);
+	HeaderParser.CurrentlyParsedModule = &Module;
 	Warn->SetContext(&HeaderParser);
 
 	// Set up a filename for the error context if we don't even get as far parsing a class
@@ -7710,6 +7720,38 @@ void FHeaderParser::SkipDeprecatedMacroIfNecessary()
 	}
 
 	RequireSymbol(TEXT(")"), TEXT("DEPRECATED macro"));
+}
+
+void FHeaderParser::CompileVersionDeclaration(FUnrealSourceFile& SourceFile, UStruct* Struct)
+{
+	// Do nothing if we're at the end of file.
+	FToken Token;
+	if (!GetToken(Token, true, ESymbolParseOption::Normal))
+	{
+		return;
+	}
+
+	// Default version based on config file.
+	auto Version = DefaultGeneratedCodeVersion;
+
+	// Overwrite with module-specific value if one was specified.
+	if (CurrentlyParsedModule->GeneratedCodeVersion != EGeneratedCodeVersion::None)
+	{
+		Version = CurrentlyParsedModule->GeneratedCodeVersion;
+	}
+
+	if (Token.TokenType == ETokenType::TOKEN_Symbol
+		&& !FCString::Stricmp(Token.Identifier, TEXT(")")))
+	{
+		SourceFile.GetGeneratedCodeVersions().FindOrAdd(Struct) = Version;
+		UngetToken(Token);
+		return;
+	}
+
+	// Overwrite with version specified by macro.
+	Version = ToGeneratedCodeVersion(Token.Identifier);
+
+	SourceFile.GetGeneratedCodeVersions().FindOrAdd(Struct) = Version;
 }
 
 void FHeaderParser::ResetClassData()

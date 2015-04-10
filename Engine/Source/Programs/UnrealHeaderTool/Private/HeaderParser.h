@@ -6,9 +6,13 @@
 #include "BaseParser.h"
 #include "CompilationResult.h"
 #include "ScopedTimers.h"
+#include "Scope.h"
+#include "GeneratedCodeVersion.h"
 
 class FClass;
 class FClasses;
+class FScope;
+class FHeaderProvider;
 
 extern double GPluginOverheadTime;
 extern double GHeaderCodeGenTime;
@@ -185,6 +189,9 @@ private:
 class FHeaderParser : public FBaseParser, public FContextSupplier
 {
 public:
+	// Default version of generated code. Defaults to oldest possible, unless specified otherwise in config.
+	static EGeneratedCodeVersion DefaultGeneratedCodeVersion;
+
 	// Compute the function parameter size and save the return offset
 	static void ComputeFunctionParametersSize(UClass* InClass);
 
@@ -732,6 +739,9 @@ protected:
 	static void ValidatePropertyIsDeprecatedIfNecessary(FPropertyBase& VarProperty, FToken* OuterPropertyType);
 
 private:
+	// Module currently parsed by UHT.
+	const FManifestModule* CurrentlyParsedModule;
+
 	/**
 	 * Tries to match constructor parameter list. Assumes that constructor
 	 * name is already matched.
@@ -745,6 +755,8 @@ private:
 	bool TryToMatchConstructorParameterList(FToken Token);
 	void SkipDeprecatedMacroIfNecessary();
 
+	// Parses possible version declaration in generated code, e.g. GENERATED_BODY(<some_version>).
+	void CompileVersionDeclaration(FUnrealSourceFile& SourceFile, UStruct* Struct);
 };
 
 /////////////////////////////////////////////////////

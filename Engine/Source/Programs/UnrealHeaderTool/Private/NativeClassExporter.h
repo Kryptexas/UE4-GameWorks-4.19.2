@@ -31,6 +31,7 @@ namespace EExportFunctionType
 class FClass;
 class FClasses;
 class FModuleClasses;
+class FScope;
 
 // These are declared in this way to allow swapping out the classes for something more optimized in the future
 typedef FStringOutputDevice FUHTStringBuilder;
@@ -75,7 +76,6 @@ private:
 	FUHTStringBuilder InClassNoPureDeclsMacroCalls;
 	FUHTStringBuilder StandardUObjectConstructorsMacroCall;
 	FUHTStringBuilder EnhancedUObjectConstructorsMacroCall;
-	FUHTStringBuilder StaticChecks;
 
 	/** Generated function implementations that belong in the cpp file, split into multiple files base on line count **/
 	TArray<FUHTStringBuilderLineCounter> GeneratedFunctionBodyTextSplit;
@@ -379,11 +379,11 @@ private:
 	* Exports checks if function exists
 	*
 	* @param	FunctionData			Data representing the function to export.
-	* @param	CheckClasses			Where to write the member check classes.
-	* @param	StaticChecks			Where to write the static asserts throwing errors when function doesn't exist.
 	* @param	ClassName				Name of currently parsed class.
+	* @param	bHasImplementation		Whether class has declared a version of FunctionData with _Implementation suffix.
+	* @param	bHasValidate			Whether class has declared a version of FunctionData with _Validate suffix.
 	*/
-	void ExportFunctionChecks(const FFuncInfo& FunctionData, FUHTStringBuilder& CheckClasses, FUHTStringBuilder& StaticChecks, const FString& ClassName);
+	void CheckRPCFunctions(const FFuncInfo& FunctionData, const FString& ClassName, bool bHasImplementation, bool bHasValidate, const FUnrealSourceFile& SourceFile, int32 GeneratedBodyLine);
 
 	/**
 	 * Exports the native stubs for the list of functions specified

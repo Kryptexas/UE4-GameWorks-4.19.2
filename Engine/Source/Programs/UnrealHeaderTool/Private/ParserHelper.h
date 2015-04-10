@@ -1,9 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-
-#include "ClassMaps.h"
-
 #pragma once
+#include "ClassMaps.h"
 
 extern class FCompilerMetadataManager GScriptHelper;
 

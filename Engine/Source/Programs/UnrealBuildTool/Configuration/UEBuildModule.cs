@@ -1940,7 +1940,7 @@ namespace UnrealBuildTool
 				bool HasUObjects;
 				var DirectIncludes = CPPEnvironment.GetDirectIncludeDependencies( Target, UObjectHeaderFileItem, BuildPlatform, bOnlyCachedDependencies:false, HasUObjects:out HasUObjects );
 				Debug.Assert( DirectIncludes != null );
-
+				
 				if (HasUObjects)
 				{ 
 					if (UObjectHeaderFileItem.AbsolutePath.StartsWith(ClassesFolder))
@@ -1965,7 +1965,8 @@ namespace UnrealBuildTool
 				ModuleType					= this.Type.ToString(),
 				PublicUObjectClassesHeaders = _AllClassesHeaders    .ToList(),
 				PublicUObjectHeaders        = _PublicUObjectHeaders .ToList(),
-				PrivateUObjectHeaders       = _PrivateUObjectHeaders.ToList()
+				PrivateUObjectHeaders       = _PrivateUObjectHeaders.ToList(),
+				GeneratedCodeVersion = this.Target.Rules.GetGeneratedCodeVersion()
 			};
 
 			return CachedModuleUHTInfo;

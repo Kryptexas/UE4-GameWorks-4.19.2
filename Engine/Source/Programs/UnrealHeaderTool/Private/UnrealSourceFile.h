@@ -5,6 +5,7 @@
 #include "Scope.h"
 #include "HeaderProvider.h"
 #include "UnrealTypeDefinitionInfo.h"
+#include "GeneratedCodeVersion.h"
 
 class FClassMetaData;
 
@@ -185,6 +186,27 @@ public:
 	}
 
 	/**
+	 * Gets generated code version for given UStruct.
+	 */
+	EGeneratedCodeVersion GetGeneratedCodeVersionForStruct(UStruct* Struct);
+
+	/**
+	 * Gets generated code versions.
+	 */
+	TMap<UStruct*, EGeneratedCodeVersion>& GetGeneratedCodeVersions()
+	{
+		return GeneratedCodeVersions;
+	}
+
+	/**
+	 * Gets generated code versions. Const version.
+	 */
+	const TMap<UStruct*, EGeneratedCodeVersion>& GetGeneratedCodeVersions() const
+	{
+		return GeneratedCodeVersions;
+	}
+
+	/**
 	 * Sets generated filename.
 	 */
 	void SetGeneratedFilename(FString GeneratedFilename);
@@ -265,4 +287,7 @@ private:
 
 	// List of classes defined in this source file.
 	TArray<UClass*> DefinedClasses;
+
+	// Mapping of UStructs to versions, according to which their code should be generated.
+	TMap<UStruct*, EGeneratedCodeVersion> GeneratedCodeVersions;
 };

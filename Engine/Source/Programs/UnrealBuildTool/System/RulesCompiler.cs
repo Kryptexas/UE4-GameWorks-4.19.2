@@ -970,6 +970,14 @@ namespace UnrealBuildTool
 		{
 			return "";
 		}
+
+		/// <summary>
+		/// Allow target module to override UHT code generation version.
+		/// </summary>
+		public virtual EGeneratedCodeVersion GetGeneratedCodeVersion()
+		{
+			return EGeneratedCodeVersion.None;
+		}
 	}
 
 

@@ -3,6 +3,8 @@
 #include "UnrealHeaderTool.h"
 #include "UnrealSourceFile.h"
 #include "ParserHelper.h"
+#include "HeaderParser.h"
+#include "GeneratedCodeVersion.h"
 
 void FUnrealSourceFile::AddDefinedClass(UClass* Class)
 {
@@ -96,6 +98,17 @@ void FUnrealSourceFile::SetIncludePath(FString IncludePath)
 const FString& FUnrealSourceFile::GetContent() const
 {
 	return Content;
+}
+
+EGeneratedCodeVersion FUnrealSourceFile::GetGeneratedCodeVersionForStruct(UStruct* Struct)
+{
+	auto Version = GeneratedCodeVersions.Find(Struct);
+	if (Version)
+	{
+		return *Version;
+	}
+
+	return FHeaderParser::DefaultGeneratedCodeVersion;
 }
 
 void FUnrealSourceFile::MarkDependenciesResolved()

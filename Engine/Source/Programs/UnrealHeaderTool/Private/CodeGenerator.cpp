@@ -45,6 +45,38 @@ const TCHAR* GetTabs(int32 NumTabs)
 	return TabString + TabPos;
 }
 
+bool HasIdentifierExactMatch(const FString &ClassDefinition, const FString& Identifier)
+{
+	int32 SearchStartPosition = INDEX_NONE;
+
+	for (;;)
+	{
+		auto IdentifierStartIndex = ClassDefinition.Find(Identifier, ESearchCase::CaseSensitive, ESearchDir::FromStart, SearchStartPosition);
+
+		// Class definition not found
+		if (IdentifierStartIndex == INDEX_NONE
+			// ClassDefinition can't start with CppImplName. If it starts, we'll get compiler error anyway
+			|| IdentifierStartIndex == 0)
+		{
+			return false;
+		}
+
+		// To find exact match, previous and next character can't be parts of identifier.
+		if (!FChar::IsIdentifier(ClassDefinition[IdentifierStartIndex - 1])
+			&& !FChar::IsIdentifier(ClassDefinition[IdentifierStartIndex + Identifier.Len()]))
+		{
+			return true;
+		}
+
+		// Exact match not found, continue search starting just after the end of identifier
+		SearchStartPosition = IdentifierStartIndex + Identifier.Len() + 1;
+	}
+
+	// We should never get here.
+	checkNoEntry();
+	return false;
+}
+
 /////////////////////////////////////////////////////
 // FFlagAudit
 
@@ -1762,17 +1794,12 @@ void FNativeClassHeaderGenerator::ExportClassesFromSourceFileInner(FUnrealSource
 
 			// Replication, add in the declaration for GetLifetimeReplicatedProps() automatically if there are any net flagged properties
 			bool bNeedsRep = false;
-			FUHTStringBuilder StaticChecks;
 			auto ClassName = FString(NameLookupCPP.GetNameCPP(Class));
 			for (TFieldIterator<UProperty> It(Class, EFieldIteratorFlags::ExcludeSuper); It; ++It)
 			{
 				if ((It->PropertyFlags & CPF_Net) != 0)
 				{
 					bNeedsRep = true;
-					StaticChecks.Logf(TEXT("\tstatic inline void StaticChecks()\r\n"));
-					StaticChecks.Logf(TEXT("\t{\r\n"));
-					StaticChecks.Logf(TEXT("\t\tstatic_assert(THasMemberFunction_GetLifetimeReplicatedProps<%s>::Value, \"Class %s has Net flagged properties and should declare member function: void GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const override;\");\r\n"), ClassCPPName, ClassCPPName, ClassCPPName);
-					StaticChecks.Logf(TEXT("\t}\r\n"));
 					break;
 				}
 			}
@@ -1787,11 +1814,18 @@ void FNativeClassHeaderGenerator::ExportClassesFromSourceFileInner(FUnrealSource
 			auto ClassEnd = ClassRange.End;
 			auto ClassDefinition = FString(ClassEnd - ClassStart, ClassStart);
 
-			bool bHasGetLifetimeReplicatedProps = ClassDefinition.Contains(TEXT("GetLifetimeReplicatedProps"), ESearchCase::CaseSensitive);
+			bool bHasGetLifetimeReplicatedProps = HasIdentifierExactMatch(ClassDefinition, TEXT("GetLifetimeReplicatedProps"));
 
 			if (bNeedsRep && !bHasGetLifetimeReplicatedProps)
 			{
-				InterfaceBoilerplate.Logf(TEXT("\void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const;\r\n"));
+				if (SourceFile.GetGeneratedCodeVersionForStruct(Class) == EGeneratedCodeVersion::V1)
+				{
+					InterfaceBoilerplate.Logf(TEXT("\void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const;\r\n"));
+				}
+				else
+				{
+					FError::Throwf(TEXT("Class %s has Net flagged properties and should declare member function: void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override"), ClassCPPName);
+				}
 			}
 
 			auto NoPureDeclsMacroName = SourceFile.GetGeneratedMacroName(ClassData, TEXT("_INCLASS_IINTERFACE_NO_PURE_DECLS"));
@@ -1799,7 +1833,7 @@ void FNativeClassHeaderGenerator::ExportClassesFromSourceFileInner(FUnrealSource
 			InClassNoPureDeclsMacroCalls.Logf(TEXT("\t%s\r\n"), *NoPureDeclsMacroName);
 
 			auto MacroName = SourceFile.GetGeneratedMacroName(ClassData, TEXT("_INCLASS_IINTERFACE"));
-			WriteMacro(GeneratedHeaderText, MacroName, InterfaceBoilerplate + StaticChecks);
+			WriteMacro(GeneratedHeaderText, MacroName, InterfaceBoilerplate);
 			InClassMacroCalls.Logf(TEXT("\t%s\r\n"), *MacroName);
 		}
 		else
@@ -1861,16 +1895,11 @@ void FNativeClassHeaderGenerator::ExportClassesFromSourceFileInner(FUnrealSource
 
 				// Replication, add in the declaration for GetLifetimeReplicatedProps() automatically if there are any net flagged properties
 				bool bHasNetFlaggedProperties = false;
-				FUHTStringBuilder StaticChecks;
 				for (TFieldIterator<UProperty> It(Class, EFieldIteratorFlags::ExcludeSuper); It; ++It)
 				{
 					if ((It->PropertyFlags & CPF_Net) != 0)
 					{
 						bHasNetFlaggedProperties = true;
-						StaticChecks.Logf(TEXT("\tstatic inline void StaticChecks()\r\n"));
-						StaticChecks.Logf(TEXT("\t{\r\n"));
-						StaticChecks.Logf(TEXT("\t\tstatic_assert(THasMemberFunction_GetLifetimeReplicatedProps<%s>::Value, \"Class %s has Net flagged properties and should have member void GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const override;\");\r\n"), ClassCPPName, ClassCPPName, ClassCPPName);
-						StaticChecks.Logf(TEXT("\t}\r\n"));
 						break;
 					}
 				}
@@ -1885,15 +1914,23 @@ void FNativeClassHeaderGenerator::ExportClassesFromSourceFileInner(FUnrealSource
 				auto ClassEnd = ClassRange.End;
 				auto ClassDefinition = FString(ClassEnd - ClassStart, ClassStart);
 
-				bool bHasGetLifetimeReplicatedProps = ClassDefinition.Contains(TEXT("GetLifetimeReplicatedProps"), ESearchCase::CaseSensitive);
+				bool bHasGetLifetimeReplicatedProps = HasIdentifierExactMatch(ClassDefinition, TEXT("GetLifetimeReplicatedProps"));
 
 				if (bHasNetFlaggedProperties && !bHasGetLifetimeReplicatedProps)
 				{
-					ClassBoilerplate.Logf(TEXT("\tvoid GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;\r\n"));
+					// Default version autogenerates declarations.
+					if (SourceFile.GetGeneratedCodeVersionForStruct(Class) == EGeneratedCodeVersion::V1)
+					{
+						ClassBoilerplate.Logf(TEXT("\tvoid GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;\r\n"));
+					}
+					else
+					{
+						FError::Throwf(TEXT("Class %s has Net flagged properties and should declare member function: void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override"), ClassCPPName);
+					}
 				}
 
 				auto NoPureDeclsMacroName = SourceFile.GetGeneratedMacroName(ClassData, TEXT("_INCLASS_NO_PURE_DECLS"));
-				WriteMacro(GeneratedHeaderText, NoPureDeclsMacroName, ClassBoilerplate + StaticChecks);
+				WriteMacro(GeneratedHeaderText, NoPureDeclsMacroName, ClassBoilerplate);
 				InClassNoPureDeclsMacroCalls.Logf(TEXT("\t%s\r\n"), *NoPureDeclsMacroName);
 
 				FString MacroName = SourceFile.GetGeneratedMacroName(ClassData, TEXT("_INCLASS"));
@@ -3499,11 +3536,11 @@ FString GetFunctionConstModifierString(UFunction* Function)
 	return FString();
 }
 
-void FNativeClassHeaderGenerator::ExportFunctionChecks(const FFuncInfo& FunctionData, FUHTStringBuilder& CheckClasses, FUHTStringBuilder& StaticChecks, const FString& ClassName)
+void FNativeClassHeaderGenerator::CheckRPCFunctions(const FFuncInfo& FunctionData, const FString& ClassName, bool bHasImplementation, bool bHasValidate, const FUnrealSourceFile& SourceFile, int32 GeneratedBodyLine)
 {
 	auto Function = FunctionData.FunctionReference;
 	auto FunctionReturnType = GetFunctionReturnString(Function);
-	auto ConstModifier = GetFunctionConstModifierString(Function);
+	auto ConstModifier = GetFunctionConstModifierString(Function) + TEXT(" ");
 
 	auto bIsNative = Function->HasAllFunctionFlags(FUNC_Native);
 	auto bIsNet = Function->HasAllFunctionFlags(FUNC_Net);
@@ -3545,19 +3582,15 @@ void FNativeClassHeaderGenerator::ExportFunctionChecks(const FFuncInfo& Function
 	//
 	// Add proper checks if necessary.
 	//
-	FString FunctionName;
-	if (bNeedsImplementation)
+	if (bNeedsImplementation && !bHasImplementation)
 	{
-		FunctionName = FunctionData.CppImplName;
-		StaticChecks.Logf(TEXT("\t\tstatic_assert(THasMemberFunction_%s<%s>::Value, \"%s Declare function %s %s(%s) %s in class %s.\");\r\n"), *FunctionName, *ClassName, *AssertMessage, *FunctionReturnType, *FunctionName, *ParameterString, *ConstModifier, *ClassName);
-		CheckClasses.Logf(TEXT("GENERATE_MEMBER_FUNCTION_CHECK(%s, %s, %s, %s)\r\n"), *FunctionName, *FunctionReturnType, *ConstModifier, *ParameterString);
+		// FullFilePath(LineNumber): error:
+		FError::Throwf(TEXT("%s(%d): error: %s Declare function %s %s(%s) %sin class %s."), *SourceFile.GetFilename(), GeneratedBodyLine, *AssertMessage, *FunctionReturnType, *FunctionData.CppImplName, *ParameterString, *ConstModifier, *ClassName);
 	}
 	
-	if (bNeedsValidate)
+	if (bNeedsValidate && !bHasValidate)
 	{
-		FunctionName = FunctionData.CppValidationImplName;
-		StaticChecks.Logf(TEXT("\t\tstatic_assert(THasMemberFunction_%s<%s>::Value, \"%s Declare function bool %s(%s) %s in class %s.\");\r\n"), *FunctionName, *ClassName, *AssertMessage, *FunctionName, *ParameterString, *ConstModifier, *ClassName);
-		CheckClasses.Logf(TEXT("GENERATE_MEMBER_FUNCTION_CHECK(%s, bool, %s, %s)\r\n"), *FunctionName, *ConstModifier, *ParameterString);
+		FError::Throwf(TEXT("%s(%d): error: %s Declare function bool %s(%s) %sin class %s."), *SourceFile.GetFilename(), GeneratedBodyLine, *AssertMessage, *FunctionData.CppValidationImplName, *ParameterString, *ConstModifier, *ClassName);
 	}
 }
 
@@ -3821,8 +3854,8 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FUHTStringBuilder& RPCWrap
 
 	auto FunctionName = Function->GetName();
 
-	bool bHasImplementation = ClassDefinition.Contains(FunctionData.CppImplName, ESearchCase::CaseSensitive);
-	bool bHasValidate = ClassDefinition.Contains(FunctionData.CppValidationImplName, ESearchCase::CaseSensitive);
+	bool bHasImplementation = HasIdentifierExactMatch(ClassDefinition, FunctionData.CppImplName);
+	bool bHasValidate = HasIdentifierExactMatch(ClassDefinition, FunctionData.CppValidationImplName);
 
 	auto bShouldEnableImplementationDeprecation =
 		// Enable deprecation warnings only if GENERATED_BODY is used inside class or interface (not GENERATED_UCLASS_BODY etc.)
@@ -3844,12 +3877,6 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FUHTStringBuilder& RPCWrap
 	// Call the validate function if there is one
 	if (!(FunctionData.FunctionExportFlags & FUNCEXPORT_CppStatic) && (FunctionData.FunctionFlags & FUNC_NetValidate))
 	{
-		// Call the validate function, and if it fails, return (which will NOT execute the _Implementation function below)
-		// NOTE - We don't need to set "Result", since RPC calls don't return any values...
-		if (bShouldEnableValidateDeprecation)
-		{
-			DeprecationWarningOutputDevice.Logf(TEXT("EMIT_CUSTOM_WARNING_AT_LINE(%d, \"Function %s::%s needs additional native validation function declaration %s due to its properties. Currently %s declaration is autogenerated by UHT. Since next release you'll have to provide declaration on your own. Please update your code before upgrading to the next release, otherwise your project will no longer compile.\")\r\n"), FunctionData.MacroLine, *ClassName, *FunctionName, *FunctionData.CppValidationImplName, *FunctionData.CppValidationImplName);
-		}
 		RPCWrappers.Logf(TEXT("\t\tif (!this->%s(%s))") LINE_TERMINATOR, *FunctionData.CppValidationImplName, *ParameterList);
 		RPCWrappers.Logf(TEXT("\t\t{") LINE_TERMINATOR);
 		RPCWrappers.Logf(TEXT("\t\t\tRPC_ValidateFailed(TEXT(\"%s\"));") LINE_TERMINATOR, *FunctionData.CppValidationImplName);
@@ -3857,10 +3884,6 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FUHTStringBuilder& RPCWrap
 		RPCWrappers.Logf(TEXT("\t\t}") LINE_TERMINATOR);
 	}
 
-	if (bShouldEnableImplementationDeprecation)
-	{
-		DeprecationWarningOutputDevice.Logf(TEXT("EMIT_CUSTOM_WARNING_AT_LINE(%d, \"Function %s::%s needs additional native declaration %s due to its properties. Currently %s declaration is autogenerated by UHT. Since next release you'll have to provide declaration on your own. Please update your code before upgrading to the next release, otherwise your project will no longer compile.\")\r\n"), FunctionData.MacroLine, *ClassName, *FunctionName, *FunctionData.CppImplName, *FunctionData.CppImplName);
-	}
 	// write out the return value
 	RPCWrappers.Log(TEXT("\t\t"));
 	if (Return != NULL)
@@ -3919,12 +3942,10 @@ FString FNativeClassHeaderGenerator::GetFunctionParameterString(UFunction* Funct
 void FNativeClassHeaderGenerator::ExportNativeFunctions(FUnrealSourceFile& SourceFile, UClass* Class, FClassMetaData* ClassData)
 {
 	FUHTStringBuilder RPCWrappers;
-	FUHTStringBuilder	AutogeneratedBlueprintFunctionDeclarations;
-	FUHTStringBuilder	AutogeneratedBlueprintFunctionDeclarationsOnlyNotDeclared;
-	FUHTStringBuilder	MemberFunctionCheckClasses;
-	FUHTStringBuilder StaticChecks;
-	StaticChecks.Logf(TEXT("\tstatic inline void StaticChecks_Implementation_Validate()\r\n"));
-	StaticChecks.Logf(TEXT("\t{\r\n"));
+	FUHTStringBuilder AutogeneratedBlueprintFunctionDeclarations;
+	FUHTStringBuilder AutogeneratedBlueprintFunctionDeclarationsOnlyNotDeclared;
+
+	auto ClassName = Class->GetName();
 
 	auto ClassRange = ClassDefinitionRange();
 	if (ClassDefinitionRanges.Contains(Class))
@@ -3966,8 +3987,8 @@ void FNativeClassHeaderGenerator::ExportNativeFunctions(FUnrealSourceFile& Sourc
 
 			auto FunctionName = Function->GetName();
 
-			bool bHasImplementation = ClassDefinition.Contains(FunctionData.CppImplName, ESearchCase::CaseSensitive);
-			bool bHasValidate = ClassDefinition.Contains(FunctionData.CppValidationImplName, ESearchCase::CaseSensitive);
+			bool bHasImplementation = HasIdentifierExactMatch(ClassDefinition, FunctionData.CppImplName);
+			bool bHasValidate = HasIdentifierExactMatch(ClassDefinition, FunctionData.CppValidationImplName);
 
 			//Emit warning here if necessary
 			FUHTStringBuilder FunctionDeclaration;
@@ -3995,7 +4016,12 @@ void FNativeClassHeaderGenerator::ExportNativeFunctions(FUnrealSourceFile& Sourc
 				AutogeneratedBlueprintFunctionDeclarationsOnlyNotDeclared.Log(*FunctionDeclaration);
 			}
 
-			ExportFunctionChecks(FunctionData, MemberFunctionCheckClasses, StaticChecks, Class->HasAnyClassFlags(CLASS_Interface) ? *(FString(TEXT("I")) + Class->GetName()) : NameLookupCPP.GetNameCPP(Class));
+			// Versions that skip function autodeclaration throw an error when a function is missing.
+			if ((SourceFile.GetGeneratedCodeVersionForStruct(Class) > EGeneratedCodeVersion::V1) && ClassRange.bHasGeneratedBody)
+			{
+				CheckRPCFunctions(FunctionData, Class->HasAnyClassFlags(CLASS_Interface) ? *(FString(TEXT("I")) + ClassName) : NameLookupCPP.GetNameCPP(Class), bHasImplementation, bHasValidate, SourceFile, Class->HasAnyClassFlags(CLASS_Interface) ? ClassData->GetInterfaceGeneratedBodyLine() : ClassData->GetGeneratedBodyLine());
+			}
+			
 		}
 
 		if (bMultiLineUFUNCTION)
@@ -4020,15 +4046,20 @@ void FNativeClassHeaderGenerator::ExportNativeFunctions(FUnrealSourceFile& Sourc
 		RPCWrappers += TEXT("\t}") LINE_TERMINATOR;
 	}
 
-	StaticChecks.Logf(TEXT("\t}\r\n"));
-
 	FString MacroName = SourceFile.GetGeneratedMacroName(ClassData, TEXT("_RPC_WRAPPERS"));
 	WriteMacro(GeneratedHeaderText, MacroName, AutogeneratedBlueprintFunctionDeclarations + RPCWrappers);
 	InClassMacroCalls.Logf(TEXT("\t%s\r\n"), *MacroName);
 
 	// Put static checks before RPCWrappers to get proper messages from static asserts before compiler errors.
 	FString NoPureDeclsMacroName = SourceFile.GetGeneratedMacroName(ClassData, TEXT("_RPC_WRAPPERS_NO_PURE_DECLS"));
-	WriteMacro(GeneratedHeaderText, NoPureDeclsMacroName, AutogeneratedBlueprintFunctionDeclarationsOnlyNotDeclared + MemberFunctionCheckClasses + StaticChecks + RPCWrappers);
+	if (SourceFile.GetGeneratedCodeVersionForStruct(Class) > EGeneratedCodeVersion::V1)
+	{
+		WriteMacro(GeneratedHeaderText, NoPureDeclsMacroName, RPCWrappers);
+	}
+	else
+	{
+		WriteMacro(GeneratedHeaderText, NoPureDeclsMacroName, AutogeneratedBlueprintFunctionDeclarationsOnlyNotDeclared + RPCWrappers);
+	}
 	InClassNoPureDeclsMacroCalls.Logf(TEXT("\t%s\r\n"), *NoPureDeclsMacroName);
 }
 
@@ -4778,6 +4809,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 	GeneratedLinkerFixupFunction.Logf(TEXT("void EmptyLinkFunctionForGeneratedCode%s() {}") LINE_TERMINATOR, *ModuleInfo->Name);
 
 	GeneratedCPPText.Log(*GeneratedPackageCPP);
+
 	// Add all names marked for export to a list (for sorting)
 	TArray<FString> Names;
 	for (TSet<FName>::TIterator It(ReferencedNames); It; ++It)
