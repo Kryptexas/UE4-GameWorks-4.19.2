@@ -175,7 +175,7 @@ public:
 	{
 		TileMapEditorPtr = InTileMapEditor;
 
-		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments());
+		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments().HostCommandList(InTileMapEditor->GetToolkitCommands()));
 	}
 
 	// SSingleObjectDetailsPanel interface

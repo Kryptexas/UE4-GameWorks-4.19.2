@@ -284,7 +284,7 @@ public:
 	{
 		TileSetEditorPtr = InTileSetEditor;
 
-		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments());
+		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments().HostCommandList(InTileSetEditor->GetToolkitCommands()));
 	}
 
 	// SSingleObjectDetailsPanel interface

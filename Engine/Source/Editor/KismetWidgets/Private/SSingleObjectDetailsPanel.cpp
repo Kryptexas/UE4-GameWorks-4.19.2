@@ -15,6 +15,7 @@ void SSingleObjectDetailsPanel::Construct(const FArguments& InArgs, bool bAutoma
 	FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
 	FDetailsViewArgs DetailsViewArgs(/*bUpdateFromSelection=*/ false, /*bLockable=*/ false, bAllowSearch, FDetailsViewArgs::HideNameArea, /*bHideSelectionTip=*/ true);
+	DetailsViewArgs.HostCommandList = InArgs._HostCommandList;
 
 	PropertyView = EditModule.CreateDetailView(DetailsViewArgs);
 	
