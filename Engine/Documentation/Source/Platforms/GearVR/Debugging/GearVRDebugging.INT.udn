@@ -38,7 +38,7 @@ This can be any kind of application, download or compiled.
 
 	![](T_GearVR_Dev_Mode_03.png)
 
-1. You should now see a scan process happen and when completed you should now see the **Developer Mode** toggle on the screen.
+1. You should now see a scan process happen and when completed you should see the **Developer Mode** toggle on the screen.
 
 	![](T_GearVR_Dev_Mode_04.png)
 
@@ -85,7 +85,7 @@ You can get a full list of available console commands by entering **DumpConsoleC
 1. When you are done debugging or if you just wish to clear the screen of debug information, you can input **Stat None** to clear the screen off all debug information.
 
 	[region:tip]
-	The best option for console debugging with the Gear VR Headset is to use a Bluetooth keyboard. This way you can use the console with out having to remove the phone from the headset.
+	The best option for console debugging with the Gear VR Headset is to use a Bluetooth keyboard. This way you can use the console without having to remove the phone from the headset.
 	[/region]
 
 ### Viewing Gear VR Debug Logs
@@ -94,7 +94,7 @@ Debug logs can provide vital information and insight into why your project is no
 In the following section we will go over what you need to do in order to get debug logs from your Smartphone.
 
 [region:note]
-For much more detailed information on all of various things you can do with [Logcat](http://developer.android.com/tools/help/logcat.html), check out the official Android documentation on [Logcat](http://developer.android.com/tools/help/logcat.html).
+Check out the official Android documentation for much more detailed information on all of various things you can do with [Logcat](http://developer.android.com/tools/help/logcat.html).
 [/region]
 
 1. First make sure that your Smartphone with the application you want to get debug information from is plugged into your PC via USB.
@@ -131,7 +131,7 @@ For much more detailed information on all of various things you can do with [Log
  To see the live output of the log, omit the **>logoutput.txt** part and all log updates will happen in the command line window.
  [/region]
 
-1. To complete the log capture press **CTRL + C** on the keyboard and when completed you should now have a log file named,** logoutput.txt**, that is saved to your **Users** folder in Windows
+1. To complete the log capture press **CTRL + C** on the keyboard and when completed you should now have a log file named,** logoutput.txt**, that is saved to your **Users** folder in Windows.
 	![](T_ADB_Log_Location.png)
 
 	[region:note]
@@ -145,7 +145,7 @@ For much more detailed information on all of various things you can do with [Log
 	![](T_ADB_Log_Info.png)
 
 If your Gear VR Project is not starting up for some reason, using the logcat command is a great way to see exactly where your project is failing and why. 
-It also provides you with detailed information about the problem that can then be posted to the UE4 Forums or Answer Hub so that you can get with the issue.
+It also provides you with detailed information about the problem that can then be posted to the UE4 Forums or Answer Hub so that you can get help with the issue.
 
 ### Wireless Deploying & Debugging
 Getting debug information or deploying to your Smartphone while it is in the Gear VR Headset is impossible due to the only USB port being used by the Gear VR Headset. 
@@ -190,7 +190,7 @@ Please note that in order for this to work you have to have your development PC 
 
 	![](T_ADB_Attached_IP.png)
 
-With your Smartphone and PC now connected to one another via the network you can now begin to get debug information from your Smartphone or even deploy projects to your phone with out having to use the USB calbe. 
+With your Smartphone and PC now connected to one another via the network you can now begin to get debug information from your Smartphone or even deploy projects to your phone without having to use the USB cable. 
 However keep in mind that deploying to your Smartphone from your PC over the network is four to five times slower than using the USB cable.
 
 ### Return to Wired Deploying & Debugging

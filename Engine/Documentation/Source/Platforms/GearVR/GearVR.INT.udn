@@ -18,7 +18,7 @@ In the following sections we will go over everything you need to know to get you
 
 ## Gear VR Headset Pre-requisites 
 
-Before we can get into UE4 Gear VR development we first must make sure that the following prerequisites are full filled as if we do not, we run the risk of our Gear VR projects not working with the Gear VR Headset. 
+Before we can get into UE4 Gear VR development we first must make sure that the following prerequisites are fulfilled as if we do not, we run the risk of our Gear VR projects not working with the Gear VR Headset. 
 
 * Make sure you have the USB cord used for charging your Samsung Galaxy Note 4 Smartphone available and plugged into a USB port on the PC you are developing on. 
 The USB cord is of vital importance as this is how you transfer data between your development PC and your Smartphone.
@@ -35,7 +35,7 @@ The USB cord is of vital importance as this is how you transfer data between you
 
 * Install the **Tegra Android Development Pack** which can be found in **Engine\Extras\Android**.  
 
-* Check to see if [Developer Mode](https://docs.unrealengine.com/latest/INT/Platforms/Android/GettingStarted/2/index.html ) has been enabled on your Samsung Galaxy Note 4 Smartphone and if not enable it. 
+* Check to see if [Developer Mode](https://docs.unrealengine.com/latest/INT/Platforms/Android/GettingStarted/2/index.html ) has been enabled on your Samsung Galaxy Note 4 Smartphone and if not, enable it. 
 
 * Also make sure to check that USB Debugging has been enabled to ensure that you can load data onto your Smartphone from your PC.
 	
@@ -62,7 +62,7 @@ Then place that folder in **Engine/Build/Android/Java**.
 	![](GVR_OSIG_File_Location.png)
 
 It is very important that you make sure all items listed in the Gear VR Prerequisites section are completed before moving on to the next section. 
-Skipping or failing to do a step could result in your project not working with the Gear VR Headset. 
+Skipping a step could result in your project not working with the Gear VR Headset. 
 Once everything from above has been completed you can now move on to the Gear VR Headset Development Quick Start.
 
 
