@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2449235
+﻿INTSourceChangelist:2492543
 Availability:Public
 Title:6.キャラクターの起動
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
@@ -14,7 +14,7 @@ Description:多数のアクタを配置したカスタマイズ状態でレベ�
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Engine/Blueprints/QuickStart)
+		[クイックスタートのホーム画面](Engine/Blueprints/QuickStart)
 	[/PARAM]
 	[PARAM:next]
 		[次の手順](Engine/Blueprints/QuickStart/7 "%Engine/Blueprints/QuickStart/7:title%")
@@ -26,27 +26,53 @@ Description:多数のアクタを配置したカスタマイズ状態でレベ�
 
 ---
 
-まず、PawnがCharacterであることを確かめる必要があります。
+アンリアルの Launchpad は **Launch Character** という関数を使用すると機能します。**Launch Character** 関数は、キャラクターの現在のベロシティに指定したベロシティを追加して、
+キャラクターを好きな方向へ飛ばすことができるようになります。この設定はキャラクターのみに機能します。ポーン（アバター）が必ずキャラクター（人間そっくりのアバター）になるように設定してください。 
 
-1. **Get Player Pawn** の出力ピンを引き出します。 
-1. 検索ボックスに「Cast」と入力します。
-1. コンテクストメニューから **Cast to Character** を選択します。
+設定はキャストで行います。キャスティングはユーザー入力を別タイプの入力に変換します。これにより特定タイプのみに有効な特殊な機能へアクセスができるようになります。入力タイプがこの特定タイプに基づいている場合は 
+成功します。 
 
+後に追加できるその他の特別なビヘイビアに加えて、レベルに配置できるのはアクタだけです。つまりレベル内にあるすべてのものに対してリファレンスを取得して、これを **アクタ** にキャストすることができます。 
+これは成功します。しかしすべてのものがゲーム内でキャラクターを表現するポーンではありません。そのため何かを **ポーン** にキャストしても成功しない場合もあります。 
+
+1. **Get Player Pawn** の **Return Value** ピンを引き出します。 
+1. 検索ボックスに "Cast" と入力して、コンテキストメニューから **Cast to Character** を選択します。
+
+	![](CasttoCharacterMenu.png)
 
 1. **Cast** ノードの **As Character** ピンを引き出します。  
-1. 検索ボックスに「Launch」と入力します。
-1. コンテクストメニューから **Launch Character** を選択します。
+1. 検索ボックスに "Launch" と入力して、コンテクストメニューから **Launch Character** を選択します。
 
-出力実行ピン（キャストを成功させるため）が **Launch Character** の入力実行ピンと自動的に接続することに注目してください 
+	![](LaunchWired.png)
+
+	[REGION:tip]
+	キャストを成功する要因となる出力実行ピンが **Launch Character** の入力実行ピンと自動的に接続することに注目してください。 
+	[/REGION]
 
 1. **Launch Character** ノードのZフィールドに「3000」と入力します。
-1. 最後に、 **Branch** ノードの **True** 実行ピンを **Cast to Character** ノードの入力実行ピンと接続します。結果としてオーバーラップしているアクタが独自のPawnの場合のみCastとLaunchが発生します。
+1. 最後に、オーバーラップしているアクタがPawnの場合のみ **Cast to Character** と **Launch Character** が発生するように **Branch** ノードの **True** 実行ピンを **Cast to Character** ノードの入力実行ピンと接続します。
 
-この時点で保存とコンパイルを行って、ブループリントエディタを閉じます。
+	![](GraphDone.png)
 
-1. コンテンツ ブラウザ からプラットフォームをいくつかレベルに ドラッグします。 
-1. 再生を押して、WASDキーでレベルを走り回ってスペースバーでジャンプします。飛行しながらプラットフォームのどれかに降り立って観察してみてください！ 
+	ここでツールバーのボタンで **コンパイル** と **保存** を行って、ブループリントエディタを閉じます。
 
+1. **コンテンツブラウザ** からいくつかのLaunchpad をレベルへドラッグします。 
+
+	![](MultipleLaunchpads.png)
+
+1. ツールバーの **Play(再生)** ボタンをを押すと、レベルを走り回ったり(WASDキー)ジャンプ(スペースバー)することができます。プラットフォームに着陸したり、飛行する様子を見てください！ 
+
+	[OBJECT:EmbeddedVideo]
+		[PARAMLITERAL:width]
+		640
+		[/PARAMLITERAL]
+		[PARAMLITERAL:height]
+		360
+		[/PARAMLITERAL]
+		[PARAMLITERAL:videoid]
+		Ax4Xgu2Zb4g
+		[/PARAMLITERAL]
+	[/OBJECT]
 
 
 ---
