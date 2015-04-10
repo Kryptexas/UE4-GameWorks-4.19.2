@@ -2053,7 +2053,6 @@ namespace UnrealBuildTool
 				InName: Name,
 				InType: UEBuildModuleType.Game,
 				InModuleDirectory: Directory,
-				InOutputDirectory: GlobalCompileEnvironment.Config.OutputDirectory,
 				InIsRedistributableOverride: null,
 				InIntelliSenseGatherer: null,
 				InSourceFiles: SourceFiles.ToList(),
@@ -2999,7 +2998,6 @@ namespace UnrealBuildTool
 				// is NOT from the engine and therefore must be an application-specific module.
 				// Get the type of module we're creating
 				var ModuleType = UEBuildModuleType.Unknown;
-				var ApplicationOutputPath = "";
 				var ModuleFileRelativeToEngineDirectory = Utils.MakePathRelativeTo(ModuleFileName, ProjectFileGenerator.EngineRelativePath);
 
 				// see if it's external
@@ -3016,18 +3014,7 @@ namespace UnrealBuildTool
 						// not a plugin, see if it is a game module 
 						if (ModuleFileRelativeToEngineDirectory.StartsWith("..") || Path.IsPathRooted(ModuleFileRelativeToEngineDirectory))
 						{
-							ApplicationOutputPath = ModuleFileName;
-							int SourceIndex = ApplicationOutputPath.LastIndexOf(Path.DirectorySeparatorChar + "Source" + Path.DirectorySeparatorChar);
-							if (SourceIndex != -1)
-							{
-								ApplicationOutputPath = ApplicationOutputPath.Substring(0, SourceIndex + 1);
-								ModuleType = UEBuildModuleType.Game;
-							}
-							else
-							{
-								throw new BuildException("Unable to parse application directory for module '{0}' ({1}). Is it in '../../<APP>/Source'?",
-									ModuleName, ModuleFileName);
-							}
+							ModuleType = UEBuildModuleType.Game;
 						}
 						else
 						{
@@ -3103,7 +3090,7 @@ namespace UnrealBuildTool
 				}
 
 				// Now, go ahead and create the module builder instance
-				Module = InstantiateModule(RulesObject, ModuleName, ModuleType, ModuleDirectory, ApplicationOutputPath, IntelliSenseGatherer, FoundSourceFiles, bBuildFiles);
+				Module = InstantiateModule(RulesObject, ModuleName, ModuleType, ModuleDirectory, IntelliSenseGatherer, FoundSourceFiles, bBuildFiles);
 				if(Module == null)
 				{
 					throw new BuildException("Unrecognized module type specified by 'Rules' object {0}", RulesObject.ToString());
@@ -3129,7 +3116,6 @@ namespace UnrealBuildTool
 			string               ModuleName,
 			UEBuildModuleType    ModuleType,
 			string               ModuleDirectory,
-			string               ApplicationOutputPath,
 			IntelliSenseGatherer IntelliSenseGatherer,
 			List<FileItem>       ModuleSourceFiles,
 			bool                 bBuildSourceFiles)
@@ -3142,7 +3128,6 @@ namespace UnrealBuildTool
 							InName: ModuleName,
 							InType: ModuleType,
 							InModuleDirectory: ModuleDirectory,
-							InOutputDirectory: ApplicationOutputPath,
 							InIsRedistributableOverride: RulesObject.IsRedistributableOverride,
 							InIntelliSenseGatherer: IntelliSenseGatherer,
 							InSourceFiles: ModuleSourceFiles,
@@ -3183,7 +3168,6 @@ namespace UnrealBuildTool
 							InName: ModuleName,
 							InType: ModuleType,
 							InModuleDirectory: ModuleDirectory,
-							InOutputDirectory: ApplicationOutputPath,
 							InIsRedistributableOverride: RulesObject.IsRedistributableOverride,
 							InIntelliSenseGatherer: IntelliSenseGatherer,
 							InSourceFiles: ModuleSourceFiles,
@@ -3224,7 +3208,6 @@ namespace UnrealBuildTool
 							InName: ModuleName,
 							InType: ModuleType,
 							InModuleDirectory: ModuleDirectory,
-							InOutputDirectory: ApplicationOutputPath,
 							InIsRedistributableOverride: RulesObject.IsRedistributableOverride,
 							InPublicDefinitions: RulesObject.Definitions,
 							InPublicSystemIncludePaths: RulesObject.PublicSystemIncludePaths,

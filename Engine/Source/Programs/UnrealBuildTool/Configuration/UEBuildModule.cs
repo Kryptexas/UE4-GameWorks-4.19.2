@@ -193,9 +193,6 @@ namespace UnrealBuildTool
 		/** Path to the module directory */
 		public readonly string ModuleDirectory;
 
-		/** An optional output path for the module */
-		public readonly string OutputDirectory;
-
 		/** Is this module allowed to be redistributed. */
 		private readonly bool? IsRedistributableOverride;
 
@@ -265,7 +262,6 @@ namespace UnrealBuildTool
 			string InName,
 			UEBuildModuleType InType,
 			string InModuleDirectory,
-			string InOutputDirectory,
 			bool? InIsRedistributableOverride,
 			IEnumerable<string> InPublicDefinitions = null,
 			IEnumerable<string> InPublicIncludePaths = null,
@@ -293,7 +289,6 @@ namespace UnrealBuildTool
 			Name = InName;
 			Type = InType;
 			ModuleDirectory = InModuleDirectory;
-			OutputDirectory = InOutputDirectory;
 			PublicDefinitions = HashSetFromOptionalEnumerableStringParameter(InPublicDefinitions);
 			PublicIncludePaths = HashSetFromOptionalEnumerableStringParameter(InPublicIncludePaths);
 			PublicSystemIncludePaths = HashSetFromOptionalEnumerableStringParameter(InPublicSystemIncludePaths);
@@ -579,29 +574,6 @@ namespace UnrealBuildTool
 		internal void RemovePublicDefinition(string InDefintion)
 		{
 			PublicDefinitions.Remove(InDefintion);
-		}
-
-		/** Return the (optional) output directory */
-		public string GetOutputDirectory()
-		{
-			return OutputDirectory;
-		}
-
-		/** Fix up the output path */
-		public virtual string FixupOutputPath(string InOutputPath)
-		{
-			string ModuleOutputPath = InOutputPath;
-			if (OutputDirectory.Length != 0)
-			{
-				// Use from 'Binaries/' on as it is setup w/ the correct platform already
-				int BinariesIndex = ModuleOutputPath.LastIndexOf("Binaries");
-				if (BinariesIndex != -1)
-				{
-					ModuleOutputPath = OutputDirectory + ModuleOutputPath.Substring(BinariesIndex);
-				}
-			}
-
-			return ModuleOutputPath;
 		}
 
 		/** Sets up the environment for compiling any module that includes the public interface of this module. */
@@ -934,7 +906,6 @@ namespace UnrealBuildTool
 			UEBuildModuleType InType,
 			string InName,
 			string InModuleDirectory,
-			string InOutputDirectory,
 			bool? InIsRedistributableOverride,
 			IEnumerable<string> InPublicDefinitions = null,
 			IEnumerable<string> InPublicIncludePaths = null,
@@ -955,7 +926,6 @@ namespace UnrealBuildTool
 			InType:							InType,
 			InName:							InName,
 			InModuleDirectory:				InModuleDirectory,
-			InOutputDirectory:				InOutputDirectory,
 			InIsRedistributableOverride:	InIsRedistributableOverride,
 			InPublicDefinitions:			InPublicDefinitions,
 			InPublicIncludePaths:			InPublicIncludePaths,
@@ -1138,7 +1108,6 @@ namespace UnrealBuildTool
 			string InName,
 			UEBuildModuleType InType,
 			string InModuleDirectory,
-			string InOutputDirectory,
 			bool? InIsRedistributableOverride,
 			IntelliSenseGatherer InIntelliSenseGatherer,
 			IEnumerable<FileItem> InSourceFiles,
@@ -1176,7 +1145,6 @@ namespace UnrealBuildTool
 					InName, 
 					InType,
 					InModuleDirectory,
-					InOutputDirectory,
 					InIsRedistributableOverride,
 					InDefinitions, 
 					InPublicIncludePaths,
@@ -2105,12 +2073,6 @@ namespace UnrealBuildTool
 																									InTargetConfiguration: Target.Configuration,
 																									bInCompileMonolithic: Target.ShouldCompileMonolithic() );
 
-								// Fix up the binary path if this is module specifies an alternate output directory
-								for (int Index = 0; Index < Config.OutputFilePaths.Length; Index++)
-								{
-									Config.OutputFilePaths[Index] = DependencyModule.FixupOutputPath(Config.OutputFilePaths[Index]);
-								}
-	
 								BinaryToBindTo = new UEBuildBinaryCPP( Target, Config );
 							}
 
@@ -2222,7 +2184,6 @@ namespace UnrealBuildTool
 			string InName,
 			UEBuildModuleType InType,
 			string InModuleDirectory,
-			string InOutputDirectory,
 			bool? InIsRedistributableOverride,
 			IntelliSenseGatherer InIntelliSenseGatherer,
 			IEnumerable<FileItem> InSourceFiles,
@@ -2256,7 +2217,7 @@ namespace UnrealBuildTool
 			bool InEnableExceptions,
 			bool bInBuildSourceFiles
 			)
-			: base(InTarget,InName,InType,InModuleDirectory,InOutputDirectory,InIsRedistributableOverride,InIntelliSenseGatherer,
+			: base(InTarget,InName,InType,InModuleDirectory,InIsRedistributableOverride,InIntelliSenseGatherer,
 			InSourceFiles,InPublicIncludePaths,InPublicSystemIncludePaths,null,InDefinitions,
 			InPublicIncludePathModuleNames,InPublicDependencyModuleNames,InPublicDelayLoadDLLs,InPublicAdditionalLibraries,InPublicFrameworks,InPublicWeakFrameworks,InPublicAdditionalFrameworks,InPublicAdditionalShadowFiles,InPublicAdditionalBundleResources,
 			InPrivateIncludePaths,InPrivateIncludePathModuleNames,InPrivateDependencyModuleNames,

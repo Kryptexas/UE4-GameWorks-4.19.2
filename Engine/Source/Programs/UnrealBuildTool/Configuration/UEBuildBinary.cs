@@ -490,15 +490,6 @@ namespace UnrealBuildTool
 				// to the plugins.
 				Config.TargetConfiguration = Target.Configuration;
 				Config.TargetName = Target.GetAppName();
-
-				if (Module != null && (Target.Rules == null || Target.Rules.bOutputToEngineBinaries == false))
-				{
-					// Fix up the binary path if this is module specifies an alternate output directory
-					for (int Index = 0; Index < Config.OutputFilePaths.Length; Index++ )
-					{
-						Config.OutputFilePaths[Index] = Module.FixupOutputPath(Config.OutputFilePaths[Index]);
-					}
-				}
 			}
 		}
 
