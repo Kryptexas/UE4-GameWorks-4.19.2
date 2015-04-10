@@ -931,13 +931,12 @@ void FKismetCompilerUtilities::ValidateProperEndExecutionPath(FKismetFunctionCon
 {
 	struct FRecrursiveHelper
 	{
-		// returns if the path is properly ended
-		static void CheckPath(UK2Node* StartingNode, TSet<UK2Node*>& VisitedNodes, FKismetFunctionContext& InContext)
+		static void CheckPathEnding(const UK2Node* StartingNode, TSet<const UK2Node*>& VisitedNodes, FKismetFunctionContext& InContext, bool bPathShouldEndWithReturn)
 		{
-			UK2Node* CurrentNode = StartingNode;
+			const UK2Node* CurrentNode = StartingNode;
 			while (CurrentNode)
 			{
-				UK2Node* SourceNode = CurrentNode;
+				const UK2Node* SourceNode = CurrentNode;
 				CurrentNode = nullptr;
 
 				bool bAlreadyVisited = false;
@@ -949,25 +948,25 @@ void FKismetCompilerUtilities::ValidateProperEndExecutionPath(FKismetFunctionCon
 					{
 						if (CurrentPin
 							&& (CurrentPin->Direction == EEdGraphPinDirection::EGPD_Output)
-							&& (CurrentPin->PinType.PinCategory == InContext.Schema->PC_Exec)
-							&& (CurrentPin->LinkedTo.Num() > 0))
+							&& (CurrentPin->PinType.PinCategory == InContext.Schema->PC_Exec))
 						{
+							if (!CurrentPin->LinkedTo.Num())
+							{
+								if (bPathShouldEndWithReturn && !bIsExecutionSequence)
+								{
+									InContext.MessageLog.Note(*LOCTEXT("ExecutionEnd_Note", "The execution path doesn't end with a return node. @@").ToString(), CurrentPin);
+								}
+								continue;
+							}
 							auto LinkedPin = CurrentPin->LinkedTo[0];
-							auto NextNode = ensure(LinkedPin) ? Cast<UK2Node>(LinkedPin->GetOwningNodeUnchecked()) : nullptr;
-							if (CurrentNode && !bIsExecutionSequence && ensure(NextNode)) // for sequence node, we want only the last output
+							auto NextNode = ensure(LinkedPin) ? Cast<const UK2Node>(LinkedPin->GetOwningNodeUnchecked()) : nullptr;
+							ensure(NextNode);
+							if (CurrentNode)
 							{
-								FRecrursiveHelper::CheckPath(NextNode, VisitedNodes, InContext);
+								FRecrursiveHelper::CheckPathEnding(CurrentNode, VisitedNodes, InContext, bPathShouldEndWithReturn && !bIsExecutionSequence);
 							}
-							else
-							{
-								CurrentNode = NextNode;
-							}
+							CurrentNode = NextNode;
 						}
-					}
-
-					if (!CurrentNode)
-					{
-						InContext.MessageLog.Warning(*LOCTEXT("ExecutionEnd_Warning", "The execution path doesn't end with a return node. @@").ToString(), SourceNode);
 					}
 				}
 			}
@@ -981,8 +980,8 @@ void FKismetCompilerUtilities::ValidateProperEndExecutionPath(FKismetFunctionCon
 		Context.SourceGraph->GetNodesOfClass(ReturnNodes);
 		if (ReturnNodes.Num() && ensure(Context.EntryPoint))
 		{
-			TSet<UK2Node*> VisitedNodes;
-			FRecrursiveHelper::CheckPath(Context.EntryPoint, VisitedNodes, Context);
+			TSet<const UK2Node*> VisitedNodes;
+			FRecrursiveHelper::CheckPathEnding(Context.EntryPoint, VisitedNodes, Context, true);
 		}
 	}
 }

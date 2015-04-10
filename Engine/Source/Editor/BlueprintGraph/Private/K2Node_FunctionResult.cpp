@@ -65,6 +65,22 @@ public:
 		Term->CopyFromPin(Net, Net->PinName);
 		Context.NetMap.Add(Net, Term);
 	}
+
+	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) override
+	{
+		GenerateAssigments(Context, Node);
+
+		if (Context.bCreateDebugData && Node)
+		{
+			FBlueprintCompiledStatement& TraceStatement = Context.AppendStatementForNode(Node);
+			TraceStatement.Type = KCST_WireTraceSite;
+			TraceStatement.Comment = Node->NodeComment.IsEmpty() ? Node->GetName() : Node->NodeComment;
+		}
+
+		// always go to return
+		FBlueprintCompiledStatement& GotoStatement = Context.AppendStatementForNode(Node);
+		GotoStatement.Type = KCST_GotoReturn; 
+	}
 };
 
 UK2Node_FunctionResult::UK2Node_FunctionResult(const FObjectInitializer& ObjectInitializer)

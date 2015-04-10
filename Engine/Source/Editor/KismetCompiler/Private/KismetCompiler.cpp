@@ -51,7 +51,7 @@ DECLARE_CYCLE_STAT(TEXT("Clean and Sanitize Class"), EKismetCompilerStats_CleanA
 DECLARE_CYCLE_STAT(TEXT("Create Class Properties"), EKismetCompilerStats_CreateClassVariables, STATGROUP_KismetCompiler );
 DECLARE_CYCLE_STAT(TEXT("Bind and Link Class"), EKismetCompilerStats_BindAndLinkClass, STATGROUP_KismetCompiler );
 DECLARE_CYCLE_STAT(TEXT("Calculate checksum of CDO"), EKismetCompilerStats_ChecksumCDO, STATGROUP_KismetCompiler );
-		
+DECLARE_CYCLE_STAT(TEXT("Analyze execution path"), EKismetCompilerStats_AnalyzeExecutionPath, STATGROUP_KismetCompiler);
 //////////////////////////////////////////////////////////////////////////
 // FKismetCompilerContext
 
@@ -1226,7 +1226,11 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 		//@TODO: Prune pure functions that don't have any consumers
 		if (bIsFullCompile)
 		{
-			FKismetCompilerUtilities::ValidateProperEndExecutionPath(Context);
+			if (!Blueprint->bIsRegeneratingOnLoad)
+			{
+				BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_AnalyzeExecutionPath);
+				FKismetCompilerUtilities::ValidateProperEndExecutionPath(Context);
+			}
 
 			// Find the execution path (and make sure it has no cycles)
 			CreateExecutionSchedule(Context.SourceGraph->Nodes, Context.LinearExecutionList);
