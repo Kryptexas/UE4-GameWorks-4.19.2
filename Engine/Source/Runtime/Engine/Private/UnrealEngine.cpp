@@ -321,6 +321,10 @@ void ScalabilityCVarsSinkCallback()
 				UMaterialInstance::AllMaterialsCacheResourceShadersForRendering();
 			}
 		}
+		else
+		{
+			GCachedScalabilityCVars = LocalScalabilityCVars;
+		}
 	}
 }
 
