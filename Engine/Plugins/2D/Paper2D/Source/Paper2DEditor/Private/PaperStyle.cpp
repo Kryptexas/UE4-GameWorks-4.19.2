@@ -36,6 +36,22 @@ void FPaperStyle::Initialize()
 	StyleSet->SetContentRoot(FPaths::EngineContentDir() / TEXT("Editor/Slate"));
 	StyleSet->SetCoreContentRoot(FPaths::EngineContentDir() / TEXT("Slate"));
 
+	const FTextBlockStyle& NormalText = FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("NormalText");
+
+	// Shared editors
+	{
+		StyleSet->Set("Paper2D.Common.ViewportZoomTextStyle", FTextBlockStyle(NormalText)
+			.SetFont(TTF_FONT("Fonts/Roboto-BoldCondensed", 16))
+			);
+
+		StyleSet->Set("Paper2D.Common.ViewportTitleTextStyle", FTextBlockStyle(NormalText)
+			.SetFont(TTF_FONT("Fonts/Roboto-Regular", 18))
+			.SetColorAndOpacity(FLinearColor(1.0, 1.0f, 1.0f, 0.5f))
+			);
+
+		StyleSet->Set("Paper2D.Common.ViewportTitleBackground", new BOX_BRUSH("Old/Graph/GraphTitleBackground", FMargin(0)));
+	}
+
 	// Tile map editor
 	{
 		StyleSet->Set("TileMapEditor.EnterTileMapEditMode", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_TileMapEdModeIcon_40x"), Icon40x40));
@@ -83,7 +99,7 @@ void FPaperStyle::Initialize()
 
 		StyleSet->Set("TileMapEditor.LayerBrowser.SelectionColor", LayerSelectionColor);
 
-		StyleSet->Set("TileMapEditor.TileSetPalette.NothingSelectedText", FTextBlockStyle(FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>("NormalText"))
+		StyleSet->Set("TileMapEditor.TileSetPalette.NothingSelectedText", FTextBlockStyle(NormalText)
 			.SetFont(TTF_FONT("Fonts/Roboto-BoldCondensed", 18))
 			.SetColorAndOpacity(FLinearColor(0.8, 0.8f, 0.0f, 0.8f))
 			.SetShadowOffset(FVector2D(1.0f, 1.0f))

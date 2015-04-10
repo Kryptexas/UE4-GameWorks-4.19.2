@@ -11,6 +11,7 @@
 #include "CanvasTypes.h"
 #include "CanvasItem.h"
 #include "SDockTab.h"
+#include "PaperStyle.h"
 
 #define LOCTEXT_NAMESPACE "TileSetEditor"
 
@@ -726,7 +727,7 @@ void SSingleTileEditorViewport::Construct(const FArguments& InArgs, TSharedPtr<c
 		.VAlign(VAlign_Bottom)
 		[
 			SNew(SBorder)
-			.BorderImage( FEditorStyle::GetBrush( TEXT("Graph.TitleBackground") ) ) //@TODO: Switch this over to the Paper2D style
+			.BorderImage(FPaperStyle::Get()->GetBrush("Paper2D.Common.ViewportTitleBackground"))
 			.HAlign(HAlign_Fill)
 			.Visibility(EVisibility::HitTestInvisible)
 			[
@@ -741,8 +742,7 @@ void SSingleTileEditorViewport::Construct(const FArguments& InArgs, TSharedPtr<c
 					.FillWidth(1.f)
 					[
 						SNew(STextBlock)
-						.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18 ) ) //@TODO: Switch this over to the Paper2D style
-						.ColorAndOpacity( FLinearColor(1,1,1,0.5) )
+						.TextStyle(FPaperStyle::Get(), "Paper2D.Common.ViewportTitleTextStyle")
 						.Text(this, &SSingleTileEditorViewport::GetTitleText)
 					]
 				]

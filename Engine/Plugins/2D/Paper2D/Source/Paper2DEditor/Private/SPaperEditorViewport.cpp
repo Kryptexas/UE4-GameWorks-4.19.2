@@ -3,6 +3,7 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "SPaperEditorViewport.h"
 #include "PaperEditorViewportClient.h"
+#include "PaperStyle.h"
 
 const int32 DefaultZoomLevel = 5;
 const int32 NumZoomLevels = 13;
@@ -61,7 +62,6 @@ void SPaperEditorViewport::Construct(const FArguments& InArgs, TSharedRef<FPaper
 		+SOverlay::Slot()
 		[
 			SAssignNew(ViewportWidget, SViewport)
-			//.Visibility(EVisibility::HitTestInvisible)
 			.EnableGammaCorrection(false)
 			.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
 			.ShowEffectWhenDisabled(false)
@@ -72,7 +72,7 @@ void SPaperEditorViewport::Construct(const FArguments& InArgs, TSharedRef<FPaper
 		.VAlign(VAlign_Top)
 		[
 			SNew(STextBlock)
-			.Font(FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-BoldCondensed"), 16))
+			.TextStyle(FPaperStyle::Get(), "Paper2D.Common.ViewportZoomTextStyle")
 			.Text(this, &SPaperEditorViewport::GetZoomText)
 			.ColorAndOpacity(this, &SPaperEditorViewport::GetZoomTextColorAndOpacity)
 		]
@@ -80,7 +80,7 @@ void SPaperEditorViewport::Construct(const FArguments& InArgs, TSharedRef<FPaper
 		.VAlign(VAlign_Top)
 		[
 			SNew(SBorder)
-			.BorderImage( FEditorStyle::GetBrush( TEXT("Graph.TitleBackground") ) )
+			.BorderImage(FPaperStyle::Get()->GetBrush("Paper2D.Common.ViewportTitleBackground"))
 			.HAlign(HAlign_Fill)
 			.Visibility(EVisibility::HitTestInvisible)
 			[
@@ -95,9 +95,8 @@ void SPaperEditorViewport::Construct(const FArguments& InArgs, TSharedRef<FPaper
 					.FillWidth(1.f)
 					[
 						SNew(STextBlock)
-						.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18 ) )
-						.ColorAndOpacity( FLinearColor(1,1,1,0.5) )
-						.Text( this, &SPaperEditorViewport::GetTitleText )
+						.TextStyle(FPaperStyle::Get(), "Paper2D.Common.ViewportTitleTextStyle")
+						.Text(this, &SPaperEditorViewport::GetTitleText)
 					]
 				]
 			]
