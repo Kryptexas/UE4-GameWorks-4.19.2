@@ -122,16 +122,6 @@ namespace UnrealBuildTool
 		public bool bBuildAdditionalConsoleApp = false;
 
 		/// <summary>
-		/// The build target configuration being compiled
-		/// </summary>
-		public UnrealTargetConfiguration TargetConfiguration = UnrealTargetConfiguration.Development;
-
-		/// <summary>
-		/// The name of the target being compiled
-		/// </summary>
-		public string TargetName = "";
-
-		/// <summary>
 		/// The projectfile path
 		/// </summary>
 		public string ProjectFilePath = "";
@@ -162,8 +152,6 @@ namespace UnrealBuildTool
 				bool bInHasModuleRules = true,
                 bool bInIsCrossTarget = false,
                 bool bInCompileMonolithic = false,
-				UnrealTargetConfiguration InTargetConfiguration = UnrealTargetConfiguration.Development,
-				string InTargetName = "",
 				string InProjectFilePath = "",
 				List<string> InModuleNames = null
 			)
@@ -178,8 +166,6 @@ namespace UnrealBuildTool
 			bHasModuleRules = bInHasModuleRules;
             bIsCrossTarget = bInIsCrossTarget;
             bCompileMonolithic = bInCompileMonolithic;
-			TargetConfiguration = InTargetConfiguration;
-			TargetName = InTargetName;
 			ProjectFilePath = InProjectFilePath;
 			ModuleNames = InModuleNames;
 		}
@@ -484,12 +470,6 @@ namespace UnrealBuildTool
 				// We set whether the binary is being compiled monolithic here to know later - specifically
 				// when we are determining whether to use SharedPCHs or not for static lib builds of plugins.
 				Config.bCompileMonolithic = Target.ShouldCompileMonolithic();
-
-				// We also need to know what the actual build target configuration is later in the process
-				// where we do not have access to the Target itself... This is for generating the paths
-				// to the plugins.
-				Config.TargetConfiguration = Target.Configuration;
-				Config.TargetName = Target.GetAppName();
 			}
 		}
 

@@ -1381,7 +1381,7 @@ namespace UnrealBuildTool
 				Receipt.AddBuildProduct(BundleContentsDirectory + "PkgInfo", BuildProductType.RequiredResource);
 				Receipt.AddBuildProduct(BundleContentsDirectory + "Resources/UE4.icns", BuildProductType.RequiredResource);
 
-				if (Binary.Config.TargetName.StartsWith("UE4Editor"))
+				if (Binary.Target.AppName.StartsWith("UE4Editor"))
 				{
 					Receipt.AddBuildProduct(BundleContentsDirectory + "Resources/UProject.icns", BuildProductType.RequiredResource);
 				}
