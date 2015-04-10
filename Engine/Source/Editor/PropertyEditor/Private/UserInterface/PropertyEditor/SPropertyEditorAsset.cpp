@@ -72,28 +72,50 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 	PropertyEditor = InPropertyEditor;
 	PropertyHandle = InArgs._PropertyHandle;
 	OnSetObject = InArgs._OnSetObject;
+	OnShouldFilterAsset = InArgs._OnShouldFilterAsset;
 
+	UProperty* Property = nullptr;
 	if(PropertyEditor.IsValid())
 	{
-		UProperty* NodeProperty = PropertyEditor->GetPropertyNode()->GetProperty();
-		UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>( NodeProperty );
+		Property = PropertyEditor->GetPropertyNode()->GetProperty();
+		UObjectPropertyBase* ObjectProperty = Cast<UObjectPropertyBase>(Property);
 		check(ObjectProperty);
 
-		bAllowClear = !(NodeProperty->PropertyFlags & CPF_NoClear);
+		bAllowClear = !(Property->PropertyFlags & CPF_NoClear);
 		ObjectClass = ObjectProperty->PropertyClass;
 		bIsActor = ObjectProperty->PropertyClass->IsChildOf( AActor::StaticClass() );
+	}
+	else
+	{
+		bAllowClear = InArgs._AllowClear;
+		ObjectPath = InArgs._ObjectPath;
+		ObjectClass = InArgs._Class;
+		bIsActor = ObjectClass->IsChildOf( AActor::StaticClass() );
 
+		if (PropertyHandle.IsValid() && PropertyHandle->IsValidHandle())
+		{
+			Property = PropertyHandle->GetProperty();
+		}
+		else
+		{
+			CustomClassFilters.Add(ObjectClass);
+		}
+	}
+
+	// Account for the allowed classes specified in the property metadata
+	if (Property)
+	{
 		FString ClassFilterString;
-		if ( UArrayProperty* ArrayParent = Cast<UArrayProperty>(NodeProperty->GetOuter()) )
+		if (UArrayProperty* ArrayParent = Cast<UArrayProperty>(Property->GetOuter()))
 		{
 			ClassFilterString = ArrayParent->GetMetaData("AllowedClasses");
 		}
 		else
 		{
-			ClassFilterString = NodeProperty->GetMetaData("AllowedClasses");
+			ClassFilterString = Property->GetMetaData("AllowedClasses");
 		}
 
-		if ( ClassFilterString.IsEmpty() )
+		if (ClassFilterString.IsEmpty())
 		{
 			CustomClassFilters.Add(ObjectClass);
 		}
@@ -102,26 +124,26 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 			TArray<FString> CustomClassFilterNames;
 			ClassFilterString.ParseIntoArray(CustomClassFilterNames, TEXT(","), true);
 
-			for(auto It = CustomClassFilterNames.CreateConstIterator(); It; ++It)
+			for (auto It = CustomClassFilterNames.CreateConstIterator(); It; ++It)
 			{
 				const FString& ClassName = *It;
 
 				UClass* Class = FindObject<UClass>(ANY_PACKAGE, *ClassName);
-				
-				if ( !Class )
+
+				if (!Class)
 				{
 					Class = LoadObject<UClass>(nullptr, *ClassName);
 				}
 
-				if ( Class )
+				if (Class)
 				{
 					// If the class is an interface, expand it to be all classes in memory that implement the class.
-					if ( Class->HasAnyClassFlags(CLASS_Interface) )
+					if (Class->HasAnyClassFlags(CLASS_Interface))
 					{
-						for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
+						for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 						{
-							UClass* const ClassWithInterface = ( *ClassIt );
-							if ( ClassWithInterface->ImplementsInterface(Class) )
+							UClass* const ClassWithInterface = (*ClassIt);
+							if (ClassWithInterface->ImplementsInterface(Class))
 							{
 								CustomClassFilters.Add(ClassWithInterface);
 							}
@@ -135,26 +157,14 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 			}
 		}
 	}
-	else
-	{
-		bAllowClear = InArgs._AllowClear;
-		ObjectPath = InArgs._ObjectPath;
-		ObjectClass = InArgs._Class;
-		bIsActor = ObjectClass->IsChildOf( AActor::StaticClass() );
-
-		CustomClassFilters.Add(ObjectClass);
-	}
-	OnShouldFilterAsset = InArgs._OnShouldFilterAsset;
 
 	if (InArgs._NewAssetFactories.IsSet())
 	{
 		NewAssetFactories = InArgs._NewAssetFactories.GetValue();
 	}
-	else if (ObjectClass != UObject::StaticClass())
+	else if (CustomClassFilters.Num() > 1 || !CustomClassFilters.Contains(UObject::StaticClass()))
 	{
-		TArray<const UClass*> AllowedClasses;
-		AllowedClasses.Add(ObjectClass);
-		NewAssetFactories = PropertyCustomizationHelpers::GetNewAssetFactoriesForClasses(AllowedClasses);
+		NewAssetFactories = PropertyCustomizationHelpers::GetNewAssetFactoriesForClasses(CustomClassFilters);
 	}
 	
 	TSharedPtr<SHorizontalBox> HorizontalBox = NULL;

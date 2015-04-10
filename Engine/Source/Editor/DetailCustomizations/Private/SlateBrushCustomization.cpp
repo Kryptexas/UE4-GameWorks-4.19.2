@@ -1060,10 +1060,6 @@ class SBrushResourceObjectBox : public SCompoundWidget
 		FSimpleDelegate OnBrushResourceChangedDelegate = FSimpleDelegate::CreateSP(this, &SBrushResourceObjectBox::OnBrushResourceChanged);
 		ResourceObjectProperty->SetOnPropertyValueChanged(OnBrushResourceChangedDelegate);
 
-		TArray<const UClass*> SupportedClasses;
-		SupportedClasses.Add(UTexture2D::StaticClass());
-		SupportedClasses.Add(UMaterialInterface::StaticClass());
-
 		ChildSlot
 		[
 			SNew(SVerticalBox)
@@ -1073,8 +1069,6 @@ class SBrushResourceObjectBox : public SCompoundWidget
 				SNew(SObjectPropertyEntryBox)
 				.PropertyHandle(InResourceObjectProperty)
 				.ThumbnailPool(StructCustomizationUtils->GetThumbnailPool())
-				.NewAssetFactories(PropertyCustomizationHelpers::GetNewAssetFactoriesForClasses(SupportedClasses))
-				.OnShouldFilterAsset(this, &SBrushResourceObjectBox::OnFilterAssetPicker)
 				.OnObjectChanged(this, &SBrushResourceObjectBox::OnAssetPicked)
 			]
 			+ SVerticalBox::Slot()
@@ -1134,13 +1128,6 @@ private:
 
 			ImageSizeProperty->SetValue(CachedTextureSize);
 		}
-	}
-
-	/** Called when the asset picker needs to be filtered */
-	bool OnFilterAssetPicker(const FAssetData& InAssetData) const
-	{
-		UClass* Class = InAssetData.GetClass();
-		return !Class->IsChildOf(UTexture2D::StaticClass()) && !Class->IsChildOf(UMaterialInterface::StaticClass());
 	}
 
 	/**
