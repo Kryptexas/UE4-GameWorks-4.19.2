@@ -1020,33 +1020,68 @@ protected:
 				CellContents = GenerateWidgetForColumn( Column.ColumnId );
 			}
 
-			if ( Column.SizeRule == EColumnSizeMode::Fixed )
+			switch(Column.SizeRule)
 			{
-				Box->AddSlot()
-				.AutoWidth()
-				[
-					SNew( SBox )
-					.WidthOverride( Column.Width.Get() )
+			case EColumnSizeMode::Fill:
+				{
+					TAttribute<float> WidthBinding;
+					WidthBinding.BindRaw( &Column, &SHeaderRow::FColumn::GetWidth );
+
+					SHorizontalBox::FSlot& NewSlot = Box->AddSlot()
 					.HAlign(Column.CellHAlignment)
 					.VAlign(Column.CellVAlignment)
-					.Content()
+					.FillWidth( WidthBinding )
 					[
 						CellContents
-					]
-				];
-			}
-			else
-			{
-				TAttribute<float> WidthBinding;
-				WidthBinding.BindRaw( &Column, &SHeaderRow::FColumn::GetWidth );
+					];
+				}
+				break;
 
-				SHorizontalBox::FSlot& NewSlot = Box->AddSlot()
-				.HAlign(Column.CellHAlignment)
-				.VAlign(Column.CellVAlignment)
-				.FillWidth( WidthBinding )
-				[
-					CellContents
-				];
+			case EColumnSizeMode::Fixed:
+				{
+					Box->AddSlot()
+					.AutoWidth()
+					[
+						SNew( SBox )
+						.WidthOverride( Column.Width.Get() )
+						.HAlign(Column.CellHAlignment)
+						.VAlign(Column.CellVAlignment)
+						.Content()
+						[
+							CellContents
+						]
+					];
+				}
+				break;
+
+			case EColumnSizeMode::Manual:
+				{
+					auto GetColumnWidthAsOptionalSize = [&Column]() -> FOptionalSize
+					{
+						const float DesiredWidth = Column.GetWidth();
+						return FOptionalSize(DesiredWidth);
+					};
+
+					TAttribute<FOptionalSize> WidthBinding;
+					WidthBinding.Bind(TAttribute<FOptionalSize>::FGetter::CreateLambda(GetColumnWidthAsOptionalSize));
+
+					Box->AddSlot()
+					.AutoWidth()
+					[
+						SNew( SBox )
+						.WidthOverride(WidthBinding)
+						.HAlign(Column.CellHAlignment)
+						.VAlign(Column.CellVAlignment)
+						.Content()
+						[
+							CellContents
+						]
+					];
+				}
+				break;
+
+			default:
+				break;
 			}
 
 			NewColumnIdToSlotContents.Add( Column.ColumnId, CellContents );
