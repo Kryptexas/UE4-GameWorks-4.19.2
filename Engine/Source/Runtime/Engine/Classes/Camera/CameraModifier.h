@@ -15,6 +15,15 @@ class ENGINE_API UCameraModifier : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
+public:
+	/** If true, enables certain debug visualization features. */
+	UPROPERTY(EditAnywhere, Category = Debug)
+	uint32 bDebug : 1;
+
+	/** If true, no other modifiers of same priority allowed. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = CameraModifier)
+	uint32 bExclusive : 1;
+
 protected:
 	/** If true, do not apply this modifier to the camera. */
 	uint32 bDisabled:1;
@@ -22,20 +31,16 @@ protected:
 	/** If true, this modifier will disable itself when finished interpolating out. */
 	uint32 bPendingDisable:1;
 
+public:
+	/** Priority value that determines the order in which modifiers are applied. 0 = highest priority, 255 = lowest. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = CameraModifier)
+	uint8 Priority;	
+	
+protected:
 	/** Camera this object is associated with. */
 	UPROPERTY(transient, BlueprintReadOnly, Category = CameraModifier)
 	class APlayerCameraManager* CameraOwner;
 
-public:
-	/** Priority value that determines the order in which modifiers are applied. 0 = highest priority, 255 = lowest. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = CameraModifier)
-	uint8 Priority;
-
-	/** If true, no other modifiers of same priority allowed. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = CameraModifier)
-	uint32 bExclusive:1;
-
-protected:
 	/** When blending in, alpha proceeds from 0 to 1 over this time */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = CameraModifier)
 	float AlphaInTime;
@@ -47,11 +52,6 @@ protected:
 	/** Current blend alpha. */
 	UPROPERTY(transient, BlueprintReadOnly, Category = CameraModifier)
 	float Alpha;
-
-public:
-	/** If true, enables certain debug visualization features. */
-	UPROPERTY(EditAnywhere, Category=Debug)
-	uint32 bDebug :1;
 
 protected:
 	/** @return Returns the ideal blend alpha for this modifier. Interpolation will seek this value. */
