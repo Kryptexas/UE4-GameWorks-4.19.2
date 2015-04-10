@@ -28,6 +28,7 @@
 #include "SNodePanel.h"
 #include "SDockTab.h"
 #include "EditorClassUtils.h"
+#include "IDocumentation.h"
 
 #include "SBlueprintEditorToolbar.h"
 #include "FindInBlueprints.h"
