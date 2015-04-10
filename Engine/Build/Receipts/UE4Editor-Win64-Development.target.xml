@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <BuildReceipt xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Properties>
+    <Property Name="TargetName" Value="UE4Editor" />
+    <Property Name="Platform" Value="Win64" />
+    <Property Name="Configuration" Value="Development" />
+    <Property Name="Precompile" Value="True" />
+  </Properties>
   <BuildProducts>
     <BuildProduct Path="$(EngineDir)\Binaries\Win64\UE4Editor.exe" Type="Executable" />
     <BuildProduct Path="$(EngineDir)\Binaries\Win64\UE4Editor.pdb" Type="SymbolFile" />
@@ -972,5 +978,30 @@
     <BuildProduct Path="$(EngineDir)\Binaries\Win64\UE4Editor-InputDevice.pdb" Type="SymbolFile" />
     <BuildProduct Path="$(EngineDir)\Intermediate\Build\Win64\UE4Editor\Development\UE4Editor-InputDevice.lib" Type="ImportLibrary" />
   </BuildProducts>
-  <RuntimeDependencies />
+  <RuntimeDependencies>
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/Leap/Win64/Leap.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/Steamworks/Steamv132/Win64/steam_api64.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/ICU/icu4c-53_1/Win64/VS2013/icudt53.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/ICU/icu4c-53_1/Win64/VS2013/icuuc53.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/ICU/icu4c-53_1/Win64/VS2013/icuin53.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/ICU/icu4c-53_1/Win64/VS2013/icule53.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/ICU/icu4c-53_1/Win64/VS2013/iculx53.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/ICU/icu4c-53_1/Win64/VS2013/icuio53.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/PhysX-3.3/Win64/VS2013/PhysX3PROFILE_x64.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/PhysX-3.3/Win64/VS2013/PhysX3GpuPROFILE_x64.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/PhysX-3.3/Win64/VS2013/PhysX3CommonPROFILE_x64.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/PhysX-3.3/Win64/VS2013/PhysX3CookingPROFILE_x64.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/PhysX-3.3/Win64/VS2013/nvToolsExt64_1.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/PhysX-3.3/Win64/VS2013/PhysXDevice64.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/APEX-1.3/Win64/VS2013/APEX_ClothingPROFILE_x64.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/APEX-1.3/Win64/VS2013/APEX_DestructiblePROFILE_x64.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/APEX-1.3/Win64/VS2013/APEX_LegacyPROFILE_x64.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/APEX-1.3/Win64/VS2013/APEX_LoaderPROFILE_x64.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/APEX-1.3/Win64/VS2013/APEX_ParticlesPROFILE_x64.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/PhysX/APEX-1.3/Win64/VS2013/ApexFrameworkPROFILE_x64.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/Ogg/Win64/VS2013/libogg_64.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/Vorbis/Win64/VS2013/libvorbis_64.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/Vorbis/Win64/VS2013/libvorbisfile_64.dll" />
+    <RuntimeDependency Path="$(EngineDir)/Binaries/Win64/UnrealCEFSubProcess.exe" />
+  </RuntimeDependencies>
 </BuildReceipt>
