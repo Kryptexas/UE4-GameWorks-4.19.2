@@ -121,7 +121,9 @@ void FTileSetEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		int32 XL;
 		int32 YL;
 		StringSize(GEngine->GetLargeFont(), XL, YL, *TileIndexString);
-		Canvas->DrawShadowedString(4, Viewport->GetSizeXY().Y - YL - 4, *TileIndexString, GEngine->GetLargeFont(), FLinearColor::White);
+		const float DrawX = 4.0f;
+		const float DrawY = FMath::Floor(Viewport->GetSizeXY().Y - YL - 4.0f);
+		Canvas->DrawShadowedString(DrawX, DrawY, *TileIndexString, GEngine->GetLargeFont(), FLinearColor::White);
 	}
 }
 
