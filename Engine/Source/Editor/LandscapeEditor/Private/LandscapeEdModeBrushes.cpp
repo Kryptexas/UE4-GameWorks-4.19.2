@@ -12,6 +12,7 @@
 
 #include "LevelUtils.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "EngineUtils.h"
 
 // 
 // FLandscapeBrush

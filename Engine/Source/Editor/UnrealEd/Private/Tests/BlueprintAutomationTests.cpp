@@ -13,6 +13,8 @@
 #include "Editor/GraphEditor/Public/GraphDiffControl.h"
 #include "BlueprintSupport.h" // for FScopedClassDependencyGather::GetCachedDependencies()
 #include "EdGraphSchema_K2.h"
+#include "EngineUtils.h"
+#include "GameFramework/SaveGame.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintAutomationTests, Log, All);
 

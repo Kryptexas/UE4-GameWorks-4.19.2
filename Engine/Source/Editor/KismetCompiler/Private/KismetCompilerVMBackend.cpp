@@ -13,6 +13,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
+#include "Engine/UserDefinedStruct.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FScriptBytecodeWriter

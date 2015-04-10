@@ -5,6 +5,8 @@
 
 #include "PaperRenderSceneProxy.h"
 #include "PaperGeomTools.h"
+#include "PhysicsEngine/BodySetup.h"
+#include "PhysicsEngine/ConvexElem.h"
 
 #define PAPER_USE_MATERIAL_SLOPES 1
 

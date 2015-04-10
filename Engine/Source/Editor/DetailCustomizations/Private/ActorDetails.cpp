@@ -30,6 +30,11 @@
 #include "SHyperlink.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "GameFramework/Volume.h"
+#include "Engine/Selection.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Components/BillboardComponent.h"
 
 #define LOCTEXT_NAMESPACE "ActorDetails"
 

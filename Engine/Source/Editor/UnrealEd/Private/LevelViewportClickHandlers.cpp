@@ -17,6 +17,7 @@
 #include "Engine/Selection.h"
 #include "Engine/StaticMeshActor.h"
 #include "Engine/TargetPoint.h"
+#include "EngineUtils.h"
 
 #define LOCTEXT_NAMESPACE "ClickHandlers"
 

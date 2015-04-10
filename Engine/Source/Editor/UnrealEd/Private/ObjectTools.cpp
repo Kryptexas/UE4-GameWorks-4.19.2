@@ -33,6 +33,14 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "Layers/ILayers.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/LevelStreaming.h"
+#include "GameFramework/WorldSettings.h"
+#include "CanvasTypes.h"
+#include "Engine/SCS_Node.h"
+#include "Engine/UserDefinedStruct.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogObjectTools, Log, All);
 

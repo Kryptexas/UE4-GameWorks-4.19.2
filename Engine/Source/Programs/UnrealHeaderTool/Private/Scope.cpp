@@ -2,6 +2,7 @@
 
 #include "UnrealHeaderTool.h"
 #include "ParserHelper.h"
+#include "Scope.h"
 
 extern FCompilerMetadataManager GScriptHelper;
 

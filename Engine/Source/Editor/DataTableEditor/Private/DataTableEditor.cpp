@@ -10,6 +10,7 @@
 #include "SRowEditor.h"
 #include "Engine/DataTable.h"
 #include "Json.h"
+#include "Engine/UserDefinedStruct.h"
  
 #define LOCTEXT_NAMESPACE "DataTableEditor"
 
@@ -44,7 +45,7 @@ FDataTableEditor::~FDataTableEditor()
 	if (DataTable.IsValid())
 	{
 		SaveLayoutData();
-	}
+}
 }
 
 void FDataTableEditor::PreChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info)
@@ -267,7 +268,7 @@ TSharedRef<SWidget> FDataTableEditor::CreateGridPanel()
 							ColumnWidth.CurrentWidth = static_cast<float>(LayoutColumnWidth);
 						}
 					}
-				}
+		}
 			}
 		}
 
@@ -445,12 +446,12 @@ TSharedRef<SVerticalBox> FDataTableEditor::CreateContentBox()
 				.ExternalScrollbar(HorizontalScrollBar)
 				+SScrollBox::Slot()
 				[
-					SAssignNew(ScrollBoxWidget, SScrollBox)
+			SAssignNew(ScrollBoxWidget, SScrollBox)
 					.Orientation(Orient_Vertical)
 					.ExternalScrollbar(VerticalScrollBar)
 					.ConsumeMouseWheel(EConsumeMouseWheel::Always) // Always consume the mouse wheel events to prevent the outer scroll box from scrolling
-					+SScrollBox::Slot()
-					[
+			+SScrollBox::Slot()
+			[
 						CreateGridPanel()
 					]
 				]

@@ -8,6 +8,7 @@
 #include "IDetailsView.h"
 #include "DataTableUtils.h"
 #include "DataTableEditorUtils.h"
+#include "Engine/UserDefinedStruct.h"
 
 #define LOCTEXT_NAMESPACE "SRowEditor"
 

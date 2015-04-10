@@ -51,6 +51,8 @@
 #include "Engine/InheritableComponentHandler.h"
 
 #include "EditorCategoryUtils.h"
+#include "EngineUtils.h"
+#include "Engine/LevelScriptActor.h"
 #define LOCTEXT_NAMESPACE "Blueprint"
 
 DEFINE_LOG_CATEGORY(LogBlueprintDebug);

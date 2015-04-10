@@ -4,6 +4,7 @@
 #include "SkyLightComponentDetails.h"
 #include "Components/LightComponentBase.h"
 #include "Engine/SkyLight.h"
+#include "Components/SkyLightComponent.h"
 
 #define LOCTEXT_NAMESPACE "SkyLightComponentDetails"
 

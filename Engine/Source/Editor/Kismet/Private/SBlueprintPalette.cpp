@@ -35,6 +35,8 @@
 #include "SInlineEditableTextBlock.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "Editor/UnrealEd/Public/Kismet2/ComponentEditorUtils.h"
+#include "Engine/SCS_Node.h"
+#include "Components/TimelineComponent.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintPalette"
 

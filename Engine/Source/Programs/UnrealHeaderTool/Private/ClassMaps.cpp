@@ -3,6 +3,8 @@
 #include "UnrealHeaderTool.h"
 
 #include "ClassMaps.h"
+#include "UnrealSourceFile.h"
+#include "UnrealTypeDefinitionInfo.h"
 
 TMap<FString, TSharedRef<FUnrealSourceFile> > GUnrealSourceFilesMap;
 TMap<UField*, TSharedRef<FUnrealTypeDefinitionInfo> > GTypeDefinitionInfoMap;

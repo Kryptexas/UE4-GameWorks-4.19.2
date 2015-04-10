@@ -11,6 +11,7 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #endif
+#include "Sound/SoundMix.h"
 
 /*-----------------------------------------------------------------------------
 	USoundClass implementation.

@@ -10,6 +10,7 @@
 #include "GlobalEditorCommonCommands.h"
 
 #include "Editor/UnrealEd/Public/ObjectTools.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "ReferenceViewer"
 

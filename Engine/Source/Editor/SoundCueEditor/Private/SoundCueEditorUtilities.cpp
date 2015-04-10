@@ -7,6 +7,7 @@
 #include "SoundDefinitions.h"
 #include "Sound/SoundNodeWavePlayer.h"
 #include "GraphEditor.h"
+#include "Sound/SoundCue.h"
 
 bool FSoundCueEditorUtilities::CanPasteNodes(const class UEdGraph* Graph)
 {

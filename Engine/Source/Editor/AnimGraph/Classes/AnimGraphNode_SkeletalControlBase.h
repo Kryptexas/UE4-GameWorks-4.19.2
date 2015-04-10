@@ -5,6 +5,8 @@
 #include "AnimGraphNode_Base.h"
 #include "AnimGraphNode_SkeletalControlBase.generated.h"
 
+struct HActor;
+
 UCLASS(Abstract, MinimalAPI)
 class UAnimGraphNode_SkeletalControlBase : public UAnimGraphNode_Base
 {

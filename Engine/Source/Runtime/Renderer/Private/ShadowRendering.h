@@ -8,6 +8,7 @@
 #define __ShadowRendering_H__
 
 #include "ShaderParameterUtils.h"
+#include "SceneCore.h"
 
 // Forward declarations.
 class FProjectedShadowInfo;

@@ -4,6 +4,8 @@
 #include "Slate/SlateBrushAsset.h"
 #include "Slate/UMGDragDropOp.h"
 #include "WidgetBlueprintLibrary.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

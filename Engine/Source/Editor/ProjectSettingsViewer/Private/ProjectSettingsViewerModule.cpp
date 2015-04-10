@@ -22,6 +22,10 @@
 #include "Editor/UnrealEd/Public/Settings/EditorProjectSettings.h"
 
 #include "AISystem.h"
+#include "GameFramework/InputSettings.h"
+#include "AI/Navigation/RecastNavMesh.h"
+#include "Engine/NetworkSettings.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 #define LOCTEXT_NAMESPACE "FProjectSettingsViewerModule"
 

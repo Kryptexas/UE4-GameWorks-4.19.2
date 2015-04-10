@@ -7,6 +7,10 @@
 #include "Rendering/PaperBatchSceneProxy.h"
 #include "PhysicsEngine/BodySetup2D.h"
 #include "LocalVertexFactory.h"
+#include "MeshBatch.h"
+#include "EngineGlobals.h"
+#include "SceneManagement.h"
+#include "Engine/Engine.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FPaperSpriteVertex

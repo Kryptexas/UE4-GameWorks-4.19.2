@@ -7,6 +7,7 @@
 #include "KismetCompiledFunctionContext.h"
 #include "KismetCompilerMisc.h"
 
+class UBlueprintGeneratedClass;
 
 KISMETCOMPILER_API DECLARE_LOG_CATEGORY_EXTERN(LogK2Compiler, Log, All);
 

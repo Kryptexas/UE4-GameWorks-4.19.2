@@ -8,6 +8,7 @@
 #define UNREAL_NETWORK_PROFILER_H
 
 class UNetConnection;
+class FInternetAddr;
 
 #if USE_NETWORK_PROFILER 
 

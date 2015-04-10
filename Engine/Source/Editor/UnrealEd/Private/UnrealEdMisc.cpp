@@ -38,6 +38,9 @@
 #include "PerformanceMonitor.h"
 #include "Engine/WorldComposition.h"
 #include "FeaturePack.h"
+#include "GameMapsSettings.h"
+#include "GeneralProjectSettings.h"
+#include "Lightmass/LightmappedSurfaceCollection.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd"
 

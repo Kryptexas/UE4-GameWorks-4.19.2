@@ -35,6 +35,7 @@
 #include "ContentBrowserModule.h"
 #include "SDockTab.h"
 #include "GenericCommands.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeEditor"
 

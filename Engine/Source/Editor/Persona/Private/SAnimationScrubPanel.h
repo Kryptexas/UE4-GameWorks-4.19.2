@@ -6,6 +6,8 @@
 #include "SScrubWidget.h"
 #include "Editor/EditorWidgets/Public/ITransportControl.h"
 
+struct FAnimBlueprintDebugData;
+
 class SAnimationScrubPanel : public SCompoundWidget
 {
 public:

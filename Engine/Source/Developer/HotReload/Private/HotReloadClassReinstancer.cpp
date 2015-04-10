@@ -4,6 +4,7 @@
 #include "HotReloadClassReinstancer.h"
 
 #if WITH_ENGINE
+#include "Engine/BlueprintGeneratedClass.h"
 
 void FHotReloadClassReinstancer::SetupNewClassReinstancing(UClass* InNewClass, UClass* InOldClass)
 {

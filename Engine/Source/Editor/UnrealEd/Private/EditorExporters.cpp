@@ -38,6 +38,7 @@
 #include "EngineUtils.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
 #include "TileRendering.h"
+#include "Engine/TextureLODSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorExporters, Log, All);
 
@@ -2460,7 +2461,7 @@ namespace MaterialExportUtils
 		float CurrentRealTime = 0.f;
 		float CurrentWorldTime = 0.f;
 		float DeltaWorldTime = 0.f;
-
+	
 		if (InWorld)
 		{
 			CurrentRealTime = InWorld->GetRealTimeSeconds();
@@ -2546,15 +2547,15 @@ namespace MaterialExportUtils
 			OutBMP.Add(UniformValue);
 			return true;
 		}
-
+	
 		check(InRenderTarget);
-		
+
 		RenderMaterialTile(InWorld, MaterialProxy, InRenderTarget);
-		
+				
 		bool bNormalmap = (InMaterialProperty == MP_Normal);
 		FReadSurfaceDataFlags ReadPixelFlags(bNormalmap ? RCM_SNorm : RCM_UNorm);
 		ReadPixelFlags.SetLinearToGamma(false);
-		
+
 		FTextureRenderTargetResource* RTResource = InRenderTarget->GameThread_GetRenderTargetResource();
 		return RTResource->ReadPixels(OutBMP, ReadPixelFlags);
 	}

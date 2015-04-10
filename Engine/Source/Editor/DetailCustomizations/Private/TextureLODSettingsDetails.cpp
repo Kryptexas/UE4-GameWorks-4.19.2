@@ -2,6 +2,8 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "TextureLODSettingsDetails.h"
+#include "Engine/TextureLODSettings.h"
+#include "DeviceProfiles/DeviceProfile.h"
 
 #define LOCTEXT_NAMESPACE "TextureLODSettingsDetails"
 

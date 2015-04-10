@@ -9,6 +9,7 @@
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 #include "ContentBrowserModule.h"
 #include "AssetToolsModule.h"
+#include "CanvasTypes.h"
 
 #define LOCTEXT_NAMESPACE "PaperEditor"
 

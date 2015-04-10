@@ -3,6 +3,8 @@
 #include "Paper2DPrivatePCH.h"
 #include "SpriteEditorOnlyTypes.h"
 #include "ComponentReregisterContext.h"
+#include "PhysicsEngine/BoxElem.h"
+#include "PhysicsEngine/BodySetup.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FTileMapLayerReregisterContext

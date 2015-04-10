@@ -13,6 +13,7 @@
 #include "Engine/LevelStreaming.h"
 #include "Engine/LevelStreamingKismet.h"
 #include "Landscape.h"
+#include "AssetData.h"
 
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"

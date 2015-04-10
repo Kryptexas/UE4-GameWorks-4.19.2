@@ -8,6 +8,9 @@
 #include "Factories.h"
 #include "Engine.h"
 #include "FbxImporter.h"
+#include "Engine/PointLight.h"
+#include "Engine/DirectionalLight.h"
+#include "Engine/SpotLight.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFbxLightImport, Log, All);
 

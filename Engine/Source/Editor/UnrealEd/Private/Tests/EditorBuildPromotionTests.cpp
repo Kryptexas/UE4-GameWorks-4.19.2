@@ -59,6 +59,15 @@
 #include "ObjectTools.h"
 #include "RHI.h"
 
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/SCS_Node.h"
+#include "Engine/StaticMeshActor.h"
+#include "Engine/PointLight.h"
+#include "GameFramework/PlayerStart.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/DirectionalLight.h"
+#include "Distributions/DistributionVectorUniform.h"
+
 #define LOCTEXT_NAMESPACE "EditorBuildPromotionTests"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorBuildPromotionTests, Log, All);

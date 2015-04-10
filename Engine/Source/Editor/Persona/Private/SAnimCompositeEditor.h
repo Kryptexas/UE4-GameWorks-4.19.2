@@ -5,6 +5,9 @@
 
 #include "Persona.h"
 #include "SAnimEditorBase.h"
+#include "Animation/AnimComposite.h"
+
+class UAnimComposite;
 
 //////////////////////////////////////////////////////////////////////////
 // SAnimCompositeEditor

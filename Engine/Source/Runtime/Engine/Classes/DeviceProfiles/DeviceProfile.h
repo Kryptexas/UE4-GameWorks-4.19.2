@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Engine/TextureLODSettings.h"
 #include "DeviceProfile.generated.h"
 
 

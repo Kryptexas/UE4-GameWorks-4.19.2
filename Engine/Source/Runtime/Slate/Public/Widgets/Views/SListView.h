@@ -2,6 +2,7 @@
 
 #pragma once
 #include "STableViewBase.h"
+#include "TableViewTypeTraits.h"
 
 
 /**

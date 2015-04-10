@@ -5,6 +5,7 @@
 #include "Matinee/MatineeActorCameraAnim.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
+#include "Camera/CameraAnim.h"
 
 void FMatinee::BuildPropertyWindow()
 {

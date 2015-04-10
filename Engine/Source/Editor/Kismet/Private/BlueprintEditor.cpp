@@ -91,6 +91,9 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "NativeCodeGenerationTool.h"
+#include "GeneralProjectSettings.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/LevelStreamingKismet.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
 

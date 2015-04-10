@@ -3,6 +3,7 @@
 #pragma once
 #include "TimerManager.h"
 #include "GameFramework/Info.h"
+#include "PlayerStart.h"
 #include "GameMode.generated.h"
 
 class FDebugDisplayInfo;

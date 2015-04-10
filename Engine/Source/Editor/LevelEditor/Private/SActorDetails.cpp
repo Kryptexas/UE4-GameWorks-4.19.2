@@ -8,6 +8,8 @@
 #include "LevelEditorGenericDetails.h"
 #include "ScopedTransaction.h"
 #include "SourceCodeNavigation.h"
+#include "Engine/Selection.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 class SActorDetailsUneditableComponentWarning : public SCompoundWidget
 {

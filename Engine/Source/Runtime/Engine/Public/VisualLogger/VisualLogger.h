@@ -2,6 +2,7 @@
 #pragma once
 #include "VisualLoggerTypes.h"
 #include "EngineDefines.h"
+#include "EngineStats.h"
 
 #if ENABLE_VISUAL_LOG
 

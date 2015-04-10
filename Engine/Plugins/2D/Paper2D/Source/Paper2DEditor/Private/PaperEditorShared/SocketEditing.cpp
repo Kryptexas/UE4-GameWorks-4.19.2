@@ -3,6 +3,8 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "SocketEditing.h"
 #include "SpriteGeometryEditMode.h"
+#include "CanvasItem.h"
+#include "CanvasTypes.h"
 
 //////////////////////////////////////////////////////////////////////////
 // HSpriteSelectableObjectHitProxy

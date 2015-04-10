@@ -30,6 +30,7 @@
 #include "ContentBrowserModule.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 
 #define LOCTEXT_NAMESPACE "GameProjectGeneration"

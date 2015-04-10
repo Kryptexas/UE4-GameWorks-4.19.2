@@ -3,6 +3,10 @@
 #include "CustomMeshComponentPluginPrivatePCH.h"
 #include "CustomMeshComponent.h"
 #include "DynamicMeshBuilder.h"
+#include "MaterialShared.h"
+#include "EngineGlobals.h"
+#include "LocalVertexFactory.h"
+#include "Engine/Engine.h"
 
 /** Vertex Buffer */
 class FCustomMeshVertexBuffer : public FVertexBuffer 

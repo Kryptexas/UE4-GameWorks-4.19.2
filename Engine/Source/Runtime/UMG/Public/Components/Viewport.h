@@ -4,6 +4,7 @@
 
 #include "Camera/CameraTypes.h"
 #include "ContentWidget.h"
+#include "SceneManagement.h"
 #include "Viewport.generated.h"
 
 class FPreviewScene;

@@ -69,6 +69,9 @@
 #include "NotificationManager.h"
 
 #include "Editor/KismetWidgets/Public/SSingleObjectDetailsPanel.h"
+#include "Animation/AimOffsetBlendSpace.h"
+#include "Animation/AimOffsetBlendSpace1D.h"
+#include "Animation/AnimNotifies/AnimNotifyState.h"
 
 #define LOCTEXT_NAMESPACE "FPersona"
 

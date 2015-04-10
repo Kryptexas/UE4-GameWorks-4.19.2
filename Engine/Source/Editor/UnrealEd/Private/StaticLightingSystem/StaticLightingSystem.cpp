@@ -35,6 +35,9 @@ DEFINE_LOG_CATEGORY(LogStaticLightingSystem);
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "Engine/GeneratedMeshAreaLight.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/Selection.h"
+#include "Components/SkyLightComponent.h"
 
 #define LOCTEXT_NAMESPACE "StaticLightingSystem"
 

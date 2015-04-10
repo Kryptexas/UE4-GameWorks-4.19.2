@@ -41,6 +41,7 @@
 #include "Engine/SCS_Node.h"
 #include "Components/TimelineComponent.h"
 #include "Engine/BlueprintGeneratedClass.h"
+#include "Components/ChildActorComponent.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintDetailsCustomization"
 

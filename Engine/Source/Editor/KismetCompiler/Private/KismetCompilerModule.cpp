@@ -13,6 +13,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/KismetReinstanceUtilities.h"
 
 #include "UserDefinedStructureCompilerUtils.h"
+#include "Engine/UserDefinedStruct.h"
 
 DEFINE_LOG_CATEGORY(LogK2Compiler);
 DECLARE_CYCLE_STAT(TEXT("Compile Time"), EKismetCompilerStats_CompileTime, STATGROUP_KismetCompiler);
@@ -93,7 +94,7 @@ void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, 
 }
 
 
-void FKismet2CompilerModule::CompileStructure(class UUserDefinedStruct* Struct, FCompilerResultsLog& Results)
+void FKismet2CompilerModule::CompileStructure(UUserDefinedStruct* Struct, FCompilerResultsLog& Results)
 {
 	Results.SetSourceName(Struct->GetName());
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileTime);

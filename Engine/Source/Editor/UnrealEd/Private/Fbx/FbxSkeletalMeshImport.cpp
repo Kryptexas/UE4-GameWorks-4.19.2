@@ -54,6 +54,8 @@
 #include "ComponentReregisterContext.h"
 
 #include "FbxErrors.h"
+#include "PhysicsEngine/PhysicsAsset.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 #define LOCTEXT_NAMESPACE "FBXImpoter"
 

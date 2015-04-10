@@ -26,6 +26,7 @@
 #include "EngineUtils.h"
 #include "SEditorViewport.h"
 #include "AssetEditorModeManager.h"
+#include "Components/DirectionalLightComponent.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewportClient"
 

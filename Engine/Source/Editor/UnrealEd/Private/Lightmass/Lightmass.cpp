@@ -20,6 +20,12 @@
 #include "ComponentReregisterContext.h"
 #include "ShaderCompiler.h"
 #include "Lightmass/Lightmass.h"
+#include "Engine/LevelStreaming.h"
+#include "Components/DirectionalLightComponent.h"
+#include "Components/ModelComponent.h"
+#include "Engine/GeneratedMeshAreaLight.h"
+#include "Components/SkyLightComponent.h"
+#include "UnrealEngine.h"
 
 extern FSwarmDebugOptions GSwarmDebugOptions;
 

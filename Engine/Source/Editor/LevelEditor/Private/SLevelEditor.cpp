@@ -37,6 +37,7 @@
 #include "SDockTab.h"
 #include "SActorDetails.h"
 #include "ScopedTransaction.h"
+#include "GameFramework/WorldSettings.h"
 
 
 static const FName LevelEditorBuildAndSubmitTab("LevelEditorBuildAndSubmit");

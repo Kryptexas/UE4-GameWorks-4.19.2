@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #pragma once
+#include "MeshBatch.h"
 
 // Forward declarations.
 class FStaticMesh;

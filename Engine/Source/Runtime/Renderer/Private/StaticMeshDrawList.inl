@@ -8,6 +8,7 @@
 #define __STATICMESHDRAWLIST_INL__
 
 #include "RHICommandList.h"
+#include "EngineStats.h"
 
 // Expensive
 #define PER_MESH_DRAW_STATS 0

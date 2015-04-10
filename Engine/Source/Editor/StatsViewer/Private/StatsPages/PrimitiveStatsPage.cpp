@@ -8,6 +8,8 @@
 #include "LandscapeComponent.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
+#include "Components/ModelComponent.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "Editor.StatsViewer.PrimitiveStats"
 

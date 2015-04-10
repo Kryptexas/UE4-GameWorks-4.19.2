@@ -59,6 +59,7 @@
 #include "GameMapsSettings.h"
 #include "GameFramework/Pawn.h"
 #include "GameDelegates.h"
+#include "GeneralProjectSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayLevel, Log, All);
 

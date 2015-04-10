@@ -3,6 +3,9 @@
 #include "PersonaPrivatePCH.h"
 
 #include "AnimationEditorPreviewScene.h"
+#include "Components/DirectionalLightComponent.h"
+#include "Components/ExponentialHeightFogComponent.h"
+#include "Components/SphereReflectionCaptureComponent.h"
 
 /////////////////////////////////////////////////////////////////////////
 // FAnimationEditorPreviewScene

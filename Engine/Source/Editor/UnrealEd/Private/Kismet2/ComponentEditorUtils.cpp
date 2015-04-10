@@ -14,6 +14,7 @@
 #include "SourceCodeNavigation.h"
 #include "ClassIconFinder.h"
 #include "AssetEditorManager.h"
+#include "Components/DecalComponent.h"
 
 #define LOCTEXT_NAMESPACE "ComponentEditorUtils"
 

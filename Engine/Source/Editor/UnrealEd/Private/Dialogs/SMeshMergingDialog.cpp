@@ -13,6 +13,7 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/Selection.h"
 #include "SystemSettings.h"
+#include "Engine/TextureLODSettings.h"
 #include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "SMeshMergingDialog"

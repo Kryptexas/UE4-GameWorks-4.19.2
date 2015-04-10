@@ -51,6 +51,7 @@
 
 #include "SourceCodeNavigation.h"
 #include "Editor/BlueprintGraph/Public/BlueprintEditorSettings.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 #define LOCTEXT_NAMESPACE "SSCSEditor"
 

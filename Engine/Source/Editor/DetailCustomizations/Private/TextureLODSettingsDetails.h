@@ -2,6 +2,7 @@
 
 #pragma once
 
+struct FTextureLODGroup;
 
 /**
  * Texture Group layout for property editor views.

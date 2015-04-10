@@ -33,6 +33,7 @@
 #include "EngineUtils.h"
 #include "LandscapeDataAccess.h"
 #include "FoliageType_InstancedStaticMesh.h"
+#include "Components/BrushComponent.h"
 
 
 #define LOCTEXT_NAMESPACE "FoliageEdMode"

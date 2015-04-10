@@ -16,6 +16,8 @@
 #include "ObjectTools.h"
 
 #endif // WITH_EDITOR
+#include "GameFramework/WorldSettings.h"
+#include "Components/InstancedStaticMeshComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLODGenerator, Log, All);
 

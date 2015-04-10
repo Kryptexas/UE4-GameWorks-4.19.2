@@ -14,6 +14,8 @@
 #include "SExpandableArea.h"
 #include "Toolkits/AssetEditorManager.h"
 #include "BlueprintActionDatabase.h"
+#include "Animation/AnimNotifies/AnimNotifyState.h"
+#include "Animation/AnimNotifies/AnimNotify.h"
 
 // Track Panel drawing
 const float NotificationTrackHeight = 20.0f;

@@ -9,6 +9,7 @@
 #include "ScopedTransaction.h"
 #include "Runtime/Engine/Public/ComponentReregisterContext.h"
 #include "CanvasTypes.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "TileMapEditor"
 

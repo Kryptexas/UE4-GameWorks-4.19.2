@@ -8,6 +8,8 @@
 #include "SnappingUtils.h"
 #include "MessageLog.h"
 #include "ComponentEditorUtils.h"
+#include "Components/ChildActorComponent.h"
+#include "Components/DecalComponent.h"
 
 #define LOCTEXT_NAMESPACE "EditorSelectUtils"
 

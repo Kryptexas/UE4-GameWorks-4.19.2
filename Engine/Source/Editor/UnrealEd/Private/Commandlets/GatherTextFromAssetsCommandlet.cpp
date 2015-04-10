@@ -9,6 +9,7 @@
 #include "InternationalizationMetadata.h"
 #include "Sound/DialogueWave.h"
 #include "Sound/DialogueVoice.h"
+#include "Engine/DataTable.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGatherTextFromAssetsCommandlet, Log, All);
 

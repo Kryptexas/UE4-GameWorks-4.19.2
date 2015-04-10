@@ -8,6 +8,7 @@
 #define __LIGHTSCENEINFO_H__
 
 #include "StaticArray.h"
+#include "SceneManagement.h"
 
 /**
  * The information needed to cull a light-primitive interaction.

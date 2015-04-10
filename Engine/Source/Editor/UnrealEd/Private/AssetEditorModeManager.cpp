@@ -3,6 +3,7 @@
 #include "UnrealEd.h"
 #include "AssetEditorModeManager.h"
 #include "PreviewScene.h"
+#include "Engine/Selection.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FAssetEditorModeManager

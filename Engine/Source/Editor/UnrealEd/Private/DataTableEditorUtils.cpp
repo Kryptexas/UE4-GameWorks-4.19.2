@@ -3,6 +3,7 @@
 #include "UnrealEd.h"
 #include "DataTableEditorUtils.h"
 #include "K2Node_GetDataTableRow.h"
+#include "Engine/UserDefinedStruct.h"
 
 FDataTableEditorUtils::FDataTableEditorManager& FDataTableEditorUtils::FDataTableEditorManager::Get()
 {

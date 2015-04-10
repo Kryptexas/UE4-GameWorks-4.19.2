@@ -18,6 +18,7 @@
 #include "SSoundCuePalette.h"
 #include "SDockTab.h"
 #include "GenericCommands.h"
+#include "Sound/SoundCue.h"
 
 #define LOCTEXT_NAMESPACE "SoundCueEditor"
 

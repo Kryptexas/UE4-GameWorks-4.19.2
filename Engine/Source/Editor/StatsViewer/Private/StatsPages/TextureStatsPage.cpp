@@ -5,6 +5,8 @@
 #include "TextureStats.h"
 #include "ReferencedAssetsUtils.h"
 #include "AssetSelection.h"
+#include "EngineUtils.h"
+#include "Engine/TextureCube.h"
 
 #define LOCTEXT_NAMESPACE "Editor.StatsViewer.TextureStats"
 

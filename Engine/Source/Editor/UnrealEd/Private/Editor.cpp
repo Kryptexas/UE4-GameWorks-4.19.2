@@ -97,6 +97,18 @@
 #include "NotificationManager.h"
 #include "Engine/GameEngine.h"
 #include "Engine/TextureRenderTarget2D.h"
+#include "GameFramework/GameUserSettings.h"
+#include "Engine/Light.h"
+#include "Engine/LevelStreamingVolume.h"
+#include "Sound/SoundCue.h"
+#include "Components/BrushComponent.h"
+#include "Engine/LocalPlayer.h"
+#include "Components/SkyLightComponent.h"
+#include "Components/ReflectionCaptureComponent.h"
+#include "Engine/Polys.h"
+#include "UnrealEngine.h"
+#include "EngineStats.h"
+#include "Engine/SimpleConstructionScript.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 

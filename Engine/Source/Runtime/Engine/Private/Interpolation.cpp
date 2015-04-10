@@ -84,6 +84,8 @@
 #include "Engine/Light.h"
 #include "Components/DecalComponent.h"
 
+#include "Sound/SoundCue.h"
+
 DEFINE_LOG_CATEGORY(LogMatinee);
 
 // Priority with which to display sounds triggered by Matinee sound tracks.

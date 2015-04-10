@@ -7,6 +7,7 @@
 #include "LiveEditorDeviceSetupWindow.h"
 #include "LiveEditorWizardBase.h"
 #include "SExpandableArea.h"
+#include "Engine/Selection.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LiveEditorConfigWindow, Log, All);
 

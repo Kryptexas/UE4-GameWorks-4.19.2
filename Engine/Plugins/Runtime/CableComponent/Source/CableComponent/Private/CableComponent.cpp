@@ -2,6 +2,9 @@
 
 #include "CableComponentPluginPrivatePCH.h"
 #include "DynamicMeshBuilder.h"
+#include "EngineGlobals.h"
+#include "LocalVertexFactory.h"
+#include "Engine/Engine.h"
 
 
 /** Vertex Buffer */

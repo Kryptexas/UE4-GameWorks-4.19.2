@@ -11,6 +11,7 @@
 #include "WidgetBlueprint.h"
 #include "WidgetBlueprintCompiler.h"
 #include "PropertyBinding.h"
+#include "Engine/UserDefinedStruct.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

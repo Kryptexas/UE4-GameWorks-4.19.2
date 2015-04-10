@@ -3,6 +3,7 @@
 #include "DetailCustomizationsPrivatePCH.h"
 #include "HierarchicalSimplificationCustomizations.h"
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
+#include "GameFramework/WorldSettings.h"
 
 TSharedRef<IPropertyTypeCustomization> FHierarchicalSimplificationCustomizations::MakeInstance() 
 {

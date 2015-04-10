@@ -46,6 +46,8 @@
 #include "../Private/GeomFitUtils.h"
 #include "TargetPlatform.h"
 #include "FbxErrors.h"
+#include "Engine/StaticMeshSocket.h"
+#include "Engine/Polys.h"
 
 #define LOCTEXT_NAMESPACE "FbxStaticMeshImport"
 

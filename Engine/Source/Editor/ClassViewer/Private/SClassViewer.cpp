@@ -35,6 +35,7 @@
 #include "SSearchBox.h"
 
 #include "SListViewSelectorDropdownMenu.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 #define LOCTEXT_NAMESPACE "SClassViewer"
 

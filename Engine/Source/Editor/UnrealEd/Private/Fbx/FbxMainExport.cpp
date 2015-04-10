@@ -67,6 +67,7 @@
 #include "Components/PointLightComponent.h"
 #include "Camera/CameraActor.h"
 #include "Components/DirectionalLightComponent.h"
+#include "Components/ChildActorComponent.h"
 
 namespace UnFbx
 {

@@ -10,6 +10,8 @@
 
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 #include "Editor/Documentation/Public/IDocumentation.h"
+#include "GameFramework/InputSettings.h"
+#include "GameMapsSettings.h"
 
 
 #define LOCTEXT_NAMESPACE "HardwareTargeting"

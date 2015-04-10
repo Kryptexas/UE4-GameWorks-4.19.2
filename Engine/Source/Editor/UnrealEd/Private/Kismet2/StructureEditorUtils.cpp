@@ -13,6 +13,7 @@
 #include "Toolkits/AssetEditorManager.h"
 #include "Editor/DataTableEditor/Public/IDataTableEditor.h"
 #include "Engine/UserDefinedStruct.h"
+#include "Engine/DataTable.h"
 
 #define LOCTEXT_NAMESPACE "Structure"
 

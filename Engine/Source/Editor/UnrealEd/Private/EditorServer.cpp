@@ -60,6 +60,13 @@
 #include "NotificationManager.h"
 #include "EditorUndoClient.h"
 #include "DesktopPlatformModule.h"
+#include "Layers/Layer.h"
+#include "Engine/Light.h"
+#include "Animation/AnimNotifies/AnimNotify.h"
+#include "Components/BillboardComponent.h"
+#include "Components/DrawFrustumComponent.h"
+#include "UnrealEngine.h"
+#include "AI/Navigation/NavLinkRenderingComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 

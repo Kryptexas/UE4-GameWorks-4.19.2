@@ -10,6 +10,8 @@
 #include "UnrealSourceFile.h"
 
 struct FManifestModule;
+class FUnrealSourceFile;
+class FUnrealTypeDefinitionInfo;
 
 /** Structure that holds class meta data generated from its UCLASS declaration */
 struct FClassDeclarationMetaData

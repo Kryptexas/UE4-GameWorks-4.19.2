@@ -4,6 +4,7 @@
 #include "PaperTileMapRenderSceneProxy.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "PaperCustomVersion.h"
+#include "Engine/Canvas.h"
 
 #define LOCTEXT_NAMESPACE "Paper2D"
 

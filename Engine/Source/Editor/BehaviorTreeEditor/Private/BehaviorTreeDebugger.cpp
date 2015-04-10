@@ -8,6 +8,8 @@
 #include "BehaviorTreeDelegates.h"
 #include "GameplayDebuggingReplicator.h"
 #include "GameplayDebuggingComponent.h"
+#include "Engine/Selection.h"
+#include "EngineUtils.h"
 
 FBehaviorTreeDebugger::FBehaviorTreeDebugger()
 {
