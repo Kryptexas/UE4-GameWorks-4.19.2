@@ -287,7 +287,6 @@ void FAudioDeviceManager::StopSoundsUsingResource(class USoundWave* InSoundWave,
 	{
 		if (AudioDevice)
 		{
-			TArray<UAudioComponent*> StoppedComponents;
 			AudioDevice->StopSoundsUsingResource(InSoundWave, StoppedComponents);
 		}
 	}
