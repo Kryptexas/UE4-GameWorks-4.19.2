@@ -789,8 +789,17 @@ public:
 				SNew(STextBlock).Text(FText::FromString("Artist sync?"))
 			];
 
-		// Checked by default.
-		ArtistSyncCheckBox->ToggleCheckedState();
+#if UE_BUILD_DEBUG
+		auto bDebug = FParse::Param(FCommandLine::Get(), TEXT("Debug"));
+#else
+		const auto bDebug = false;
+#endif
+
+		if (!bDebug)
+		{
+			// Checked by default.
+			ArtistSyncCheckBox->ToggleCheckedState();
+		}
 
 		PreviewSyncCheckBox = SNew(SCheckBox)
 			[
@@ -807,11 +816,13 @@ public:
 		LogListView = SNew(SListView<TSharedPtr<FString> >)
 			.ListItemsSource(&LogLines)
 			.OnGenerateRow(this, &SMainTabWidget::GenerateLogItem);
+
+		TSharedPtr<SVerticalBox> MainBox;
 		
 		Switcher = SNew(SWidgetSwitcher)
 			+ SWidgetSwitcher::Slot()
 			[
-				SNew(SVerticalBox)
+				SAssignNew(MainBox, SVerticalBox)
 				+ SVerticalBox::Slot().AutoHeight().Padding(5.0f)
 				[
 					PickGameWidget.ToSharedRef()
@@ -880,6 +891,22 @@ public:
 			[
 				Switcher.ToSharedRef()
 			];
+
+		if (bDebug)
+		{
+			MainBox->InsertSlot(2).AutoHeight()
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					[
+						SNew(STextBlock).Text(LOCTEXT("OverrideSyncStepSpec", "Override sync step specification"))
+					]
+					+ SHorizontalBox::Slot()
+					[
+						SNew(SEditableTextBox).OnTextCommitted(this, &SMainTabWidget::OnOverrideSyncStepText)
+					]
+				];
+		}
 
 		FUnrealSync::RegisterOnDataReset(FUnrealSync::FOnDataReset::CreateRaw(this, &SMainTabWidget::DataReset));
 		FUnrealSync::RegisterOnDataLoaded(FUnrealSync::FOnDataLoaded::CreateRaw(this, &SMainTabWidget::DataLoaded));
@@ -1015,11 +1042,13 @@ private:
 	 */
 	FReply OnSync()
 	{
-		auto bArtist = ArtistSyncCheckBox->IsChecked();
-		auto bPreview = PreviewSyncCheckBox->IsChecked();
+		FSyncSettings Settings(
+			ArtistSyncCheckBox->IsChecked(),
+			PreviewSyncCheckBox->IsChecked(),
+			OverrideSyncStep);
 
 		Switcher->SetActiveWidgetIndex(1);
-		FUnrealSync::LaunchSync(bArtist, bPreview, GetCurrentSyncCmdLineProvider(),
+		FUnrealSync::LaunchSync(Settings, GetCurrentSyncCmdLineProvider(),
 			FUnrealSync::FOnSyncFinished::CreateRaw(this, &SMainTabWidget::SyncingFinished),
 			FUnrealSync::FOnSyncProgress::CreateRaw(this, &SMainTabWidget::SyncingProgress));
 
@@ -1126,6 +1155,11 @@ private:
 	}
 
 	/**
+	 * Happens when someone edits the override sync step text box.
+	 */
+	void OnOverrideSyncStepText(const FText& CommittedText, ETextCommit::Type Type);
+
+	/**
 	 * Method to add command line provider/widget to correct arrays.
 	 *
 	 * @param Name Name of the radio selection widget item.
@@ -1164,7 +1198,15 @@ private:
 
 	/* Array of sync command line providers. */
 	TArray<TSharedRef<ILabelNameProvider> > SyncCommandLineProviders;
+
+	/* Override sync step value. */
+	FString OverrideSyncStep;
 };
+
+void SMainTabWidget::OnOverrideSyncStepText(const FText& CommittedText, ETextCommit::Type Type)
+{
+	OverrideSyncStep = CommittedText.ToString();
+}
 
 /**
  * Creates and returns main tab.

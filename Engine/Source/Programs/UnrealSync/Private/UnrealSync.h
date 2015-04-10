@@ -6,6 +6,8 @@
 #include "CoreUObject.h"
 #include "P4DataCache.h"
 
+#define LOCTEXT_NAMESPACE "UnrealSync"
+
 /**
  * Class to store date needed for sync monitoring thread.
  */
@@ -80,6 +82,30 @@ public:
 private:
 	/* Current game name. */
 	FString CurrentGameName;
+};
+
+struct FSyncSettings
+{
+	/* Artist sync? */
+	bool bArtist;
+
+	/* Preview sync? */
+	bool bPreview;
+
+	/* Override sync step. If set then it overrides collecting sync steps and uses this one instead. */
+	FString OverrideSyncStep;
+
+	FSyncSettings(bool bArtist, bool bPreview, FString OverrideSyncStep = FString())
+		: bArtist(bArtist)
+		, bPreview(bPreview)
+		, OverrideSyncStep(MoveTemp(OverrideSyncStep))
+	{ }
+
+	FSyncSettings(const FSyncSettings&& Other)
+		: bArtist(MoveTemp(Other.bArtist))
+		, bPreview(MoveTemp(Other.bPreview))
+		, OverrideSyncStep(MoveTemp(Other.OverrideSyncStep))
+	{ }
 };
 
 /**
@@ -250,24 +276,22 @@ public:
 	/**
 	 * Launches UAT UnrealSync command with given command line and options.
 	 *
-	 * @param bArtist Perform artist sync?
-	 * @param bPreview Perform preview sync?
+	 * @param Settings Sync settings.
 	 * @param LabelNameProvider Object that will provide label name to syncing thread.
 	 * @param OnSyncFinished Delegate to run when syncing is finished.
 	 * @param OnSyncProgress Delegate to run when syncing has made progress.
 	 */
-	static void LaunchSync(bool bArtist, bool bPreview, ILabelNameProvider& LabelNameProvider, const FOnSyncFinished& OnSyncFinished, const FOnSyncProgress& OnSyncProgress);
+	static void LaunchSync(FSyncSettings Settings, ILabelNameProvider& LabelNameProvider, const FOnSyncFinished& OnSyncFinished, const FOnSyncProgress& OnSyncProgress);
 
 	/**
 	 * Performs the actual sync with given params.
 	 *
-	 * @param bArtist Perform artist sync?
-	 * @param bPreview Perform preview sync?
+	 * @param Settings Sync settings.
 	 * @param Label Chosen label name.
 	 * @param Game Chosen game.
 	 * @param OnSyncProgress Delegate to run when syncing has made progress. 
 	 */
-	static bool Sync(bool bArtist, bool bPreview, const FString& Label, const FString& Game, const FOnSyncProgress& OnSyncProgress);
+	static bool Sync(const FSyncSettings& Settings, const FString& Label, const FString& Game, const FOnSyncProgress& OnSyncProgress);
 private:
 	/**
 	 * Tries to update original UnrealSync at given location.

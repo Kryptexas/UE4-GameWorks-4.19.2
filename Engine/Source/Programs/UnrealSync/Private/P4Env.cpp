@@ -14,8 +14,6 @@
 
 DECLARE_LOG_CATEGORY_CLASS(LogP4Env, Log, All);
 
-#define LOCTEXT_NAMESPACE "UnrealSync"
-
 /**
  * Parses param from command line.
  *
