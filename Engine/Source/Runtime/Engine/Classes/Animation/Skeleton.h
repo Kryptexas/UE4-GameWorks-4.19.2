@@ -300,6 +300,13 @@ public:
 	ENGINE_API bool AddSlotGroupName(const FName& InNewGroupName);
 	ENGINE_API FName GetSlotGroupName(const FName& InSlotName) const;
 
+	// Edits/removes slot group data
+	// WARNING: Does not verify that the names aren't used anywhere - if it isn't checked
+	// by the caller the names will be recreated when referencing assets load again.
+	ENGINE_API void RemoveSlotName(const FName& InSlotName);
+	ENGINE_API void RemoveSlotGroup(const FName& InSlotName);
+	ENGINE_API void RenameSlotName(const FName& OldName, const FName& NewName);
+
 #if WITH_EDITORONLY_DATA
 private:
 	/** The default skeletal mesh to use when previewing this skeleton */

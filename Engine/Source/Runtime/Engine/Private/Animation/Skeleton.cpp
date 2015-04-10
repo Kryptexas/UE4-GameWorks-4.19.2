@@ -967,15 +967,10 @@ void USkeleton::BuildSlotToGroupMap()
 
 FAnimSlotGroup* USkeleton::FindAnimSlotGroup(const FName& InGroupName)
 {
-	for (int32 GroupIndex = 0; GroupIndex < SlotGroups.Num(); GroupIndex++)
+	return SlotGroups.FindByPredicate([&InGroupName](const FAnimSlotGroup& Item)
 	{
-		FAnimSlotGroup& SlotGroup = SlotGroups[GroupIndex];
-		if (SlotGroup.GroupName == InGroupName)
-		{
-			return &SlotGroup;
-		}
-	}
-	return NULL;
+		return Item.GroupName == InGroupName;
+	});
 }
 
 bool USkeleton::ContainsSlotName(const FName& InSlotName) 
@@ -1050,6 +1045,43 @@ FName USkeleton::GetSlotGroupName(const FName& InSlotName) const
 
 	// If Group name cannot be found, use DefaultSlotGroupName.
 	return FAnimSlotGroup::DefaultGroupName;
+}
+
+void USkeleton::RemoveSlotName(const FName& InSlotName)
+{
+	FName GroupName = GetSlotGroupName(InSlotName);
+	
+	if(SlotToGroupNameMap.Remove(InSlotName) > 0)
+	{
+		FAnimSlotGroup* SlotGroup = FindAnimSlotGroup(GroupName);
+		SlotGroup->SlotNames.Remove(InSlotName);
+	}
+}
+
+void USkeleton::RemoveSlotGroup(const FName& InSlotGroupName)
+{
+	FAnimSlotGroup* SlotGroup = FindAnimSlotGroup(InSlotGroupName);
+	// Remove slot mappings
+	for(const FName& SlotName : SlotGroup->SlotNames)
+	{
+		SlotToGroupNameMap.Remove(SlotName);
+	}
+
+	// Remove group
+	SlotGroups.RemoveAll([&InSlotGroupName](const FAnimSlotGroup& Item)
+	{
+		return Item.GroupName == InSlotGroupName;
+	});
+}
+
+void USkeleton::RenameSlotName(const FName& OldName, const FName& NewName)
+{
+	// Can't rename a name that doesn't exist
+	check(ContainsSlotName(OldName))
+
+	FName GroupName = GetSlotGroupName(OldName);
+	RemoveSlotName(OldName);
+	SetSlotGroupName(NewName, GroupName);
 }
 
 void USkeleton::RegenerateGuid()
@@ -1218,5 +1250,6 @@ void USkeleton::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 
 	OutTags.Add(FAssetRegistryTag(USkeleton::RigTag, RigFullName, FAssetRegistryTag::TT_Hidden));
 }
+
 #endif //WITH_EDITOR
 #undef LOCTEXT_NAMESPACE 
