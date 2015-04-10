@@ -200,7 +200,7 @@ public class PhysX : ModuleRules
 			}
             PublicDelayLoadDLLs.Add("nvToolsExt32_1.dll");
 
-			string PhysXBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/{0}/Win64/VS{1}/", PhysXVersion, WindowsPlatform.GetVisualStudioCompilerVersionName());
+			string PhysXBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/{0}/Win32/VS{1}/", PhysXVersion, WindowsPlatform.GetVisualStudioCompilerVersionName());
 			foreach(string DLL in RuntimeDependenciesX86)
 			{
 				RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + String.Format(DLL, LibrarySuffix)));
