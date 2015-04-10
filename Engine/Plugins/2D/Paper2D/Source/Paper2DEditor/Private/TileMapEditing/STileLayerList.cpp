@@ -208,7 +208,7 @@ FText STileLayerList::GenerateDuplicatedLayerName(const FString& InputNameRaw, U
 	return FText::FromString(TestLayerName);
 }
 
-UPaperTileLayer* STileLayerList::AddLayer(bool bCollisionLayer, int32 InsertionIndex)
+UPaperTileLayer* STileLayerList::AddLayer(int32 InsertionIndex)
 {
 	UPaperTileLayer* NewLayer = nullptr;
 
@@ -218,7 +218,7 @@ UPaperTileLayer* STileLayerList::AddLayer(bool bCollisionLayer, int32 InsertionI
 		TileMap->SetFlags(RF_Transactional);
 		TileMap->Modify();
 
-		NewLayer = TileMap->AddNewLayer(bCollisionLayer, InsertionIndex);
+		NewLayer = TileMap->AddNewLayer(InsertionIndex);
 
 		PostEditNotfications();
 
@@ -256,12 +256,12 @@ void STileLayerList::ChangeLayerOrdering(int32 OldIndex, int32 NewIndex)
 
 void STileLayerList::AddNewLayerAbove()
 {
-	AddLayer(/*bCollisionLayer=*/ false, GetSelectionIndex());
+	AddLayer(GetSelectionIndex());
 }
 
 void STileLayerList::AddNewLayerBelow()
 {
-	AddLayer(/*bCollisionLayer=*/ false, GetSelectionIndex() + 1);
+	AddLayer(GetSelectionIndex() + 1);
 }
 
 int32 STileLayerList::GetSelectionIndex() const

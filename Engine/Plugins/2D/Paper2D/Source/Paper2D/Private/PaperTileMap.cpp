@@ -332,7 +332,7 @@ FBoxSphereBounds UPaperTileMap::GetRenderBounds() const
 	}
 }
 
-UPaperTileLayer* UPaperTileMap::AddNewLayer(bool bCollisionLayer, int32 InsertionIndex)
+UPaperTileLayer* UPaperTileMap::AddNewLayer(int32 InsertionIndex)
 {
 	// Create the new layer
 	UPaperTileLayer* NewLayer = NewObject<UPaperTileLayer>(this);
@@ -342,7 +342,6 @@ UPaperTileLayer* UPaperTileMap::AddNewLayer(bool bCollisionLayer, int32 Insertio
 	NewLayer->LayerHeight = MapHeight;
 	NewLayer->DestructiveAllocateMap(NewLayer->LayerWidth, NewLayer->LayerHeight);
 	NewLayer->LayerName = GenerateNewLayerName(this);
-	NewLayer->bCollisionLayer = bCollisionLayer;
 
 	// Insert the new layer
 	if (TileLayers.IsValidIndex(InsertionIndex))

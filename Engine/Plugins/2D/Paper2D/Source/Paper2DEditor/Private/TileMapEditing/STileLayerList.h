@@ -34,7 +34,7 @@ protected:
 
 	static FText GenerateDuplicatedLayerName(const FString& InputNameRaw, UPaperTileMap* TileMap);
 
-	class UPaperTileLayer* AddLayer(bool bCollisionLayer, int32 InsertionIndex = INDEX_NONE);
+	class UPaperTileLayer* AddLayer(int32 InsertionIndex = INDEX_NONE);
 
 	// Moves a layer from OldIndex to NewIndex if both are valid, otherwise it does nothing silently
 	void ChangeLayerOrdering(int32 OldIndex, int32 NewIndex);

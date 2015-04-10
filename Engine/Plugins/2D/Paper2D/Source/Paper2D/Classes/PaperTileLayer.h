@@ -129,10 +129,6 @@ class PAPER2D_API UPaperTileLayer : public UObject
 	UPROPERTY(BlueprintReadOnly, Category=Sprite)
 	bool bHiddenInGame;
 
-	// Is this layer a collision layer?
-	UPROPERTY()
-	bool bCollisionLayer;
-
 protected:
 	// The allocated width of the tile data (used to handle resizing without data loss)
 	UPROPERTY()

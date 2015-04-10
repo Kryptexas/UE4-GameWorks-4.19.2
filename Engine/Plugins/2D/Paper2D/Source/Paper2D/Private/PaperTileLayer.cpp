@@ -233,39 +233,6 @@ void UPaperTileLayer::AugmentBodySetup(UBodySetup* ShapeBodySetup)
 			}
 		}
 	}
-
-	//@TODO: Remove this legacy code path; there is no way to author new layers with bCollisionLayer and they're superceeded by per-tile collision data
-	// Create a box element for every non-zero value in the layer
-	if (bCollisionLayer)
-	{
-		//@TODO: Tile pivot issue
-		const float TileThickness = TileMap->GetCollisionThickness();
-
-		//@TODO: When the origin of the component changes, this logic will need to be adjusted as well
-		// The origin is currently the top left
-		const float XOrigin = 0;
-		const float YOrigin = 0;
-
-		// Create a box element for every non-zero value in the layer
-		for (int32 XValue = 0; XValue < LayerWidth; ++XValue)
-		{
-			for (int32 YValue = 0; YValue < LayerHeight; ++YValue)
-			{
-				if (GetCell(XValue, YValue).PackedTileIndex != 0)
-				{
-					//@TODO: BOX2D: Add support for 2D physics on tile maps if this code isn't deleted entirely (see TODO above)
-					FKBoxElem* NewBox = new (ShapeBodySetup->AggGeom.BoxElems) FKBoxElem(TileWidth, TileThickness, TileHeight);
-
-					FVector BoxPosition;
-					BoxPosition.X = XOrigin + XValue * TileWidth;
-					BoxPosition.Y = TileThickness * 0.5f;
-					BoxPosition.Z = YOrigin - YValue * TileHeight;
-
-					NewBox->Center = BoxPosition;
-				}
-			}
-		}
-	}
 }
 
 void UPaperTileLayer::ConvertToTileSetPerCell()

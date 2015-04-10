@@ -271,31 +271,21 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 					UTexture2D* SourceTexture = nullptr;
 
 					FVector2D SourceUV = FVector2D::ZeroVector;
-					if (Layer->bCollisionLayer)
+
+					if (TileInfo.TileSet == nullptr)
 					{
-						if (TileInfo.PackedTileIndex == 0)
-						{
-							continue;
-						}
-						SourceTexture = UCanvas::StaticClass()->GetDefaultObject<UCanvas>()->DefaultTexture;
+						continue;
 					}
-					else
+
+					if (!TileInfo.TileSet->GetTileUV(TileInfo.GetTileIndex(), /*out*/ SourceUV))
 					{
-						if (TileInfo.TileSet == nullptr)
-						{
-							continue;
-						}
+						continue;
+					}
 
-						if (!TileInfo.TileSet->GetTileUV(TileInfo.GetTileIndex(), /*out*/ SourceUV))
-						{
-							continue;
-						}
-
-						SourceTexture = TileInfo.TileSet->TileSheet;
-						if (SourceTexture == nullptr)
-						{
-							continue;
-						}
+					SourceTexture = TileInfo.TileSet->TileSheet;
+					if (SourceTexture == nullptr)
+					{
+						continue;
 					}
 
 					if ((SourceTexture != LastSourceTexture) || (CurrentBatch == nullptr))
