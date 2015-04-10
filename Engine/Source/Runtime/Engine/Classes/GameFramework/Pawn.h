@@ -205,6 +205,7 @@ public:
 	virtual void GetActorEyesViewPoint( FVector& Location, FRotator& Rotation ) const override;
 	virtual void OutsideWorldBounds() override;
 	virtual void Destroyed() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void PreInitializeComponents() override;
 	virtual void PostInitializeComponents() override;
 	virtual const AActor* GetNetOwner() const override;

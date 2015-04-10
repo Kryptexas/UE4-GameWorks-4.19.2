@@ -373,9 +373,20 @@ void APawn::PawnClientRestart()
 void APawn::Destroyed()
 {
 	DetachFromControllerPendingDestroy();
-
 	GetWorld()->RemovePawn( this );
 	Super::Destroyed();
+}
+
+void APawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	// Only do this once, to not be redundant with Destroyed().
+	if (EndPlayReason != EEndPlayReason::Destroyed)
+	{
+		DetachFromControllerPendingDestroy();
+		GetWorld()->RemovePawn( this );
+	}
+	
+	Super::EndPlay(EndPlayReason);
 }
 
 bool APawn::ShouldTakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) const
@@ -867,7 +878,6 @@ void APawn::DetachFromControllerPendingDestroy()
 {
 	if ( Controller != NULL && Controller->GetPawn() == this )
 	{
-		AController* OldController = Controller;
 		Controller->PawnPendingDestroy(this);
 		if (Controller != NULL)
 		{
