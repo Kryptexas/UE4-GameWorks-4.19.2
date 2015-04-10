@@ -69,6 +69,33 @@ FText UK2Node_Tunnel::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	}
 }
 
+FString UK2Node_Tunnel::CreateUniquePinName(FString InSourcePinName) const
+{
+	if (GetClass() == UK2Node_Tunnel::StaticClass())
+	{
+		// When dealing with a tunnel node that is not a sub class (macro/collapsed graph entry and result), attempt to find the paired node and find a valid name between the two
+		TWeakObjectPtr<UK2Node_EditablePinBase> TunnelEntry;
+		TWeakObjectPtr<UK2Node_EditablePinBase> TunnelResult;
+		FBlueprintEditorUtils::GetEntryAndResultNodes(GetGraph(), TunnelEntry, TunnelResult);
+
+		if (TunnelEntry.IsValid() && TunnelResult.IsValid())
+		{
+			FString PinName(InSourcePinName);
+
+			int32 Index = 1;
+			while (TunnelEntry.Get()->FindPin(PinName) != nullptr || TunnelResult.Get()->FindPin(PinName) != nullptr)
+			{
+				++Index;
+				PinName = InSourcePinName + FString::FromInt(Index);
+			}
+
+			return PinName;
+		}
+	}
+
+	return Super::CreateUniquePinName(InSourcePinName);
+}
+
 bool UK2Node_Tunnel::CanUserDeleteNode() const
 {
 	// Disallow deletion of tunnels that are inside a tunnel graph, but allow it on top level tunnels that have gotten there on accident

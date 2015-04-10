@@ -41,6 +41,7 @@ class UK2Node_Tunnel : public UK2Node_EditablePinBase
 	virtual bool CanUserDeleteNode() const override;
 	BLUEPRINTGRAPH_API virtual bool CanDuplicateNode() const override;
 	virtual UObject* GetJumpTargetForDoubleClick() const override;
+	virtual FString CreateUniquePinName(FString SourcePinName) const override;
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface.

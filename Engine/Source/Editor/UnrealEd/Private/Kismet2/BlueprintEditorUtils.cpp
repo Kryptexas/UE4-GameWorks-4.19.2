@@ -4431,7 +4431,8 @@ UFunction* FFunctionFromNodeHelper::FunctionFromNode(const UK2Node* Node)
 			check(EntryNodes.Num() == 1);
 			Node = EntryNodes[0];
 		}
-		else if (const UK2Node_FunctionEntry* FunctionNode = Cast<UK2Node_FunctionEntry>(Node))
+		
+		if (const UK2Node_FunctionEntry* FunctionNode = Cast<UK2Node_FunctionEntry>(Node))
 		{
 			const FName FunctionName = (FunctionNode->CustomGeneratedFunctionName != NAME_None) ? FunctionNode->CustomGeneratedFunctionName : FunctionNode->GetGraph()->GetFName();
 			Function = SearchScope->FindFunctionByName(FunctionName);

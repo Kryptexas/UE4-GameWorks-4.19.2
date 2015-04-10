@@ -3209,7 +3209,7 @@ bool FBaseBlueprintGraphActionDetails::OnPinRenamed(UK2Node_EditablePinBase* Tar
 
 		if (FunctionResultNodePtr.IsValid())
 		{
-			PinRenamedHelper.NodesToRename.Add(FunctionEntryNodePtr.Get());
+			PinRenamedHelper.NodesToRename.Add(FunctionResultNodePtr.Get());
 		}
 
 		PinRenamedHelper.ModifiedBlueprints.Add(GetBlueprintObj());
