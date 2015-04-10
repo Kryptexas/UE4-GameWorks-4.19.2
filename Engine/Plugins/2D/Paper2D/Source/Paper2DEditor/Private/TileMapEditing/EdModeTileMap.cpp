@@ -353,7 +353,7 @@ void FEdModeTileMap::DrawHUD(FEditorViewportClient* ViewportClient, FViewport* V
 		int32 YL;
 		StringSize(GEngine->GetLargeFont(), XL, YL, *EdModeHelpAsString);
 
-		const float DrawX = FMath::Floor(CanvasRect.Min.X + (CanvasRect.Width() - XL) * 0.5f);
+		const float DrawX = FMath::FloorToFloat(CanvasRect.Min.X + (CanvasRect.Width() - XL) * 0.5f);
 		const float DrawY = 30.0f;
 		Canvas->DrawShadowedString(DrawX, DrawY, *EdModeHelpAsString, GEngine->GetLargeFont(), FLinearColor::White);
 	}
@@ -393,8 +393,8 @@ void FEdModeTileMap::DrawHUD(FEditorViewportClient* ViewportClient, FViewport* V
 			int32 XL;
 			int32 YL;
 			StringSize(GEngine->GetLargeFont(), XL, YL, *ToolDescriptionString);
-			const float DrawX = FMath::Floor(ScreenSpacePreviewLocation.X);
-			const float DrawY = FMath::Floor(ScreenSpacePreviewLocation.Y - YL);
+			const float DrawX = FMath::FloorToFloat(ScreenSpacePreviewLocation.X);
+			const float DrawY = FMath::FloorToFloat(ScreenSpacePreviewLocation.Y - YL);
 			Canvas->DrawShadowedString(DrawX, DrawY, *ToolDescriptionString, GEngine->GetLargeFont(), ToolPromptColor);
 		}
 	}
@@ -446,8 +446,8 @@ void FEdModeTileMap::DrawHUD(FEditorViewportClient* ViewportClient, FViewport* V
 			int32 YL;
 			StringSize(GEngine->GetLargeFont(), XL, YL, *CursorDescriptionString);
 
-			const float DrawX = FMath::Floor(CanvasRect.Min.X + (CanvasRect.Width() - XL) * 0.5f);
-			const float DrawY = FMath::Floor(CanvasRect.Max.Y - 10.0f - YL);
+			const float DrawX = FMath::FloorToFloat(CanvasRect.Min.X + (CanvasRect.Width() - XL) * 0.5f);
+			const float DrawY = FMath::FloorToFloat(CanvasRect.Max.Y - 10.0f - YL);
 			Canvas->DrawShadowedString(DrawX, DrawY, *CursorDescriptionString, GEngine->GetLargeFont(), FLinearColor::White);
 		}
 	}
