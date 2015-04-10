@@ -1504,7 +1504,7 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Copies files using miltiple threads
+		/// Copies files using multiple threads
 		/// </summary>
 		/// <param name="SourceDirectory"></param>
 		/// <param name="DestDirectory"></param>
@@ -1567,6 +1567,45 @@ namespace AutomationTool
 					CopyFile(Source[Index], Dest[Index], bQuiet);
 				}
 			}
+		}
+
+		/// <summary>
+		/// Copies a set of files from one folder to another
+		/// </summary>
+		/// <param name="SourceDir">Source directory</param>
+		/// <param name="TargetDir">Target directory</param>
+		/// <param name="RelativePaths">Paths relative to the source directory to copy</param>
+		/// <param name="bIgnoreSymlinks">Whether to ignore symlinks during the copy</param>
+		/// <param name="MaxThreads">Maximum number of threads to create</param>
+		/// <returns>Array of filenames copied to the target directory</returns>
+		public static string[] ThreadedCopyFiles(string SourceDir, string TargetDir, string[] RelativePaths, int MaxThreads = 64)
+		{
+			string[] SourceFileNames = new string[RelativePaths.Length];
+			string[] TargetFileNames = new string[RelativePaths.Length];
+			for(int Idx = 0; Idx < RelativePaths.Length; Idx++)
+			{
+				SourceFileNames[Idx] = CommandUtils.CombinePaths(SourceDir, RelativePaths[Idx]);
+				TargetFileNames[Idx] = CommandUtils.CombinePaths(TargetDir, RelativePaths[Idx]);
+			}
+			CommandUtils.ThreadedCopyFiles(SourceFileNames, TargetFileNames, MaxThreads);
+			return TargetFileNames;
+		}
+
+		/// <summary>
+		/// Copies a set of files from one folder to another
+		/// </summary>
+		/// <param name="SourceDir">Source directory</param>
+		/// <param name="TargetDir">Target directory</param>
+		/// <param name="Filter">Filter which selects files from the source directory to copy</param>
+		/// <param name="bIgnoreSymlinks">Whether to ignore symlinks during the copy</param>
+		/// <param name="MaxThreads">Maximum number of threads to create</param>
+		/// <returns>Array of filenames copied to the target directory</returns>
+		public static string[] ThreadedCopyFiles(string SourceDir, string TargetDir, FileFilter Filter, bool bIgnoreSymlinks, int MaxThreads = 64)
+		{
+			// Filter all the relative paths
+			CommandUtils.Log("Applying filter to {0}...", SourceDir);
+			string[] RelativePaths = Filter.ApplyToDirectory(SourceDir, bIgnoreSymlinks).ToArray();
+			return ThreadedCopyFiles(SourceDir, TargetDir, RelativePaths);
 		}
 
 		#endregion

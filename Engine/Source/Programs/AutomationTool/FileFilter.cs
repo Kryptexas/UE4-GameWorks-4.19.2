@@ -1,5 +1,6 @@
 ﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
+using AutomationTool;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -148,12 +149,38 @@ public class FileFilter
 	}
 
 	/// <summary>
+	/// Adds a rule which matches a filename relative to a given base directory.
+	/// </summary>
+	/// <param name="FileName">The filename to add a rule for</param>
+	/// <param name="BaseDirectoryName">Base directory for the rule</param>
+	/// <param name="Type">Whether to add an include or exclude rule</param>
+	public void AddRuleForFile(string FileName, string BaseDirectoryName, FileFilterType Type)
+	{
+		AddRuleForFiles(new string[]{ FileName }, BaseDirectoryName, Type);
+	}
+
+	/// <summary>
+	/// Adds rules for files which match the given names
+	/// </summary>
+	/// <param name="FileName">The filenames to rules for</param>
+	/// <param name="BaseDirectoryName">Base directory for the rules</param>
+	/// <param name="Type">Whether to add an include or exclude rule</param>
+	public void AddRuleForFiles(IEnumerable<string> FileNames, string BaseDirectoryName, FileFilterType Type)
+	{
+		string FullBaseDirectoryName = Path.GetFullPath(BaseDirectoryName);
+		foreach (string FileName in FileNames)
+		{
+			AddRule("/" + CommandUtils.StripBaseDirectory(Path.GetFullPath(FileName), FullBaseDirectoryName), Type);
+		}
+	}
+
+	/// <summary>
 	/// Reads a configuration file split into sections
 	/// </summary>
 	/// <param name="Filter"></param>
 	/// <param name="RulesFileName"></param>
 	/// <param name="Conditions"></param>
-	public void AddRulesFromFile(string FileName, string SectionName, params string[] AllowTags)
+	public void ReadRulesFromFile(string FileName, string SectionName, params string[] AllowTags)
 	{
 		bool bInSection = false;
 		foreach(string Line in File.ReadAllLines(FileName))
@@ -312,6 +339,26 @@ public class FileFilter
 	}
 
 	/// <summary>
+	/// Excludes all restricted platform folders from the filter
+	/// </summary>
+	public void ExcludeConfidentialPlatforms()
+	{
+		AddRule(".../PS4/...", FileFilterType.Exclude);
+		AddRule(".../XboxOne/...", FileFilterType.Exclude);
+	}
+
+	/// <summary>
+	/// Excludes all confidential folders from the filter
+	/// </summary>
+	public void ExcludeConfidentialFolders()
+	{
+		AddRule(".../EpicInternal/...", FileFilterType.Exclude);
+		AddRule(".../CarefullyRedist/...", FileFilterType.Exclude);
+		AddRule(".../NotForLicensees/...", FileFilterType.Exclude);
+		AddRule(".../NoRedist/...", FileFilterType.Exclude);
+	}
+
+	/// <summary>
 	/// Determines whether the given file matches the filter
 	/// </summary>
 	/// <param name="FileName">File to match</param>
@@ -365,10 +412,10 @@ public class FileFilter
 	/// </summary>
 	/// <param name="FolderName">File to match</param>
 	/// <returns>True if the file passes the filter</returns>
-	public IEnumerable<string> ApplyToDirectory(string DirectoryName)
+	public IEnumerable<string> ApplyToDirectory(string DirectoryName, bool bIgnoreSymlinks)
 	{
 		List<string> MatchingFileNames = new List<string>();
-		FindMatchesFromDirectory(new DirectoryInfo(DirectoryName), "", MatchingFileNames);
+		FindMatchesFromDirectory(new DirectoryInfo(DirectoryName), "", bIgnoreSymlinks, MatchingFileNames);
 		return MatchingFileNames.ToArray();
 	}
 
@@ -377,12 +424,12 @@ public class FileFilter
 	/// </summary>
 	/// <param name="FolderName">File to match</param>
 	/// <returns>True if the file passes the filter</returns>
-	void FindMatchesFromDirectory(DirectoryInfo CurrentDirectory, string NamePrefix, List<string> MatchingFileNames)
+	void FindMatchesFromDirectory(DirectoryInfo CurrentDirectory, string NamePrefix, bool bIgnoreSymlinks, List<string> MatchingFileNames)
 	{
 		foreach (FileInfo NextFile in CurrentDirectory.EnumerateFiles())
 		{
 			string FileName = NamePrefix + NextFile.Name;
-			if (Matches(FileName))
+			if (Matches(FileName) && (!bIgnoreSymlinks || !NextFile.Attributes.HasFlag(FileAttributes.ReparsePoint)))
 			{
 				MatchingFileNames.Add(FileName);
 			}
@@ -392,7 +439,7 @@ public class FileFilter
 			string NextNamePrefix = NamePrefix + NextDirectory.Name;
 			if (PossiblyMatches(NextNamePrefix))
 			{
-				FindMatchesFromDirectory(NextDirectory, NextNamePrefix + "/", MatchingFileNames);
+				FindMatchesFromDirectory(NextDirectory, NextNamePrefix + "/", bIgnoreSymlinks, MatchingFileNames);
 			}
 		}
 	}

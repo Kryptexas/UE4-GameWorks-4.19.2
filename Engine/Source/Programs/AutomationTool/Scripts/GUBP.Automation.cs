@@ -2464,6 +2464,7 @@ public class GUBP : BuildCommand
                             !Product.EndsWith("_Success.log", StringComparison.InvariantCultureIgnoreCase) &&
 							!Product.Replace('\\', '/').Contains("/Intermediate/") &&
 							!Product.Replace('\\', '/').Contains("/Engine/Saved/") &&
+							!Product.Replace('\\', '/').Contains("/DerivedDataCache/") &&
 							!Product.EndsWith(".lib") &&
 							!Product.EndsWith(".a") && 
 							!Product.EndsWith(".bc")
