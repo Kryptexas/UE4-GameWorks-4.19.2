@@ -3479,7 +3479,6 @@ public:
 
 	FDynamicForceFeedbackDetails ForceFeedbackDetails;
 
-	FLatentActionInfo LatentInfo;
 	/** Function to execute on completion */
 	FName ExecutionFunction;
 	/** Link to fire on completion */

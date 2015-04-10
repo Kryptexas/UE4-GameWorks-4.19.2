@@ -998,8 +998,8 @@ static inline float ComputeTexelArea(uint32 x, uint32 y, float InvSideExtentMul2
  */
 static void GenerateAngularFilteredMip(FImage* DestMip, FImage& SrcMip, float ConeAngle)
 {
-	int32 Extent = DestMip->SizeX;
-	float InvSideExtent = 1.0f / Extent;
+	int32 MipExtent = DestMip->SizeX;
+	float MipInvSideExtent = 1.0f / MipExtent;
 
 	TArray<float> TexelAreaArray;
 	TexelAreaArray.AddUninitialized(SrcMip.SizeX * SrcMip.SizeY);
@@ -1009,7 +1009,7 @@ static void GenerateAngularFilteredMip(FImage* DestMip, FImage& SrcMip, float Co
 	{
 		for(int32 x = 0; x < SrcMip.SizeX; ++x)
 		{
-			TexelAreaArray[x + y * SrcMip.SizeX] = ComputeTexelArea(x, y, InvSideExtent * 2);
+			TexelAreaArray[x + y * SrcMip.SizeX] = ComputeTexelArea(x, y, MipInvSideExtent * 2);
 		}
 	}
 
@@ -1060,7 +1060,7 @@ static void GenerateAngularFilteredMip(FImage* DestMip, FImage& SrcMip, float Co
 
 		for (int32 Face = 0; Face < 6; ++Face)
 		{
-			auto* AsyncTask = new(AsyncTasks) FAsyncGenerateMipsPerFaceTask(Face, DestMip, Extent, ConeAngle, TexelAreaArray.GetData(), &SrcMip);
+			auto* AsyncTask = new(AsyncTasks) FAsyncGenerateMipsPerFaceTask(Face, DestMip, MipExtent, ConeAngle, TexelAreaArray.GetData(), &SrcMip);
 			AsyncTask->StartBackgroundTask();
 		}
 
@@ -1075,11 +1075,11 @@ static void GenerateAngularFilteredMip(FImage* DestMip, FImage& SrcMip, float Co
 		for (int32 Face = 0; Face < 6; ++Face)
 		{
 			FImageView2D DestMipView(*DestMip, Face);
-			for (int32 y = 0; y < Extent; ++y)
+			for (int32 y = 0; y < MipExtent; ++y)
 			{
-				for (int32 x = 0; x < Extent; ++x)
+				for (int32 x = 0; x < MipExtent; ++x)
 				{
-					FVector DirectionWS = ComputeWSCubeDirectionAtTexelCenter(Face, x, y, InvSideExtent);
+					FVector DirectionWS = ComputeWSCubeDirectionAtTexelCenter(Face, x, y, MipInvSideExtent);
 					DestMipView.Access(x, y) = IntegrateAngularArea(SrcMip, DirectionWS, ConeAngle, TexelAreaArray.GetData());
 				}
 			}

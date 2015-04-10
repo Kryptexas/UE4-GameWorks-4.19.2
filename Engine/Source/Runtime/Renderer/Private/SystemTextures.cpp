@@ -231,21 +231,23 @@ void FSystemTextures::InitializeTextures(FRHICommandListImmediate& RHICmdList, E
 			Bases[Pos] = FColor(FMath::Quantize8SignedByte(c), FMath::Quantize8SignedByte(s), FMath::Quantize8SignedByte(-s), FMath::Quantize8SignedByte(c));
 		}
 
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(64, 64), PF_B8G8R8A8, TexCreate_HideInVisualizeTexture, TexCreate_None, false));
-		GRenderTargetPool.FindFreeElement(Desc, SSAORandomization, TEXT("SSAORandomization"));
-		// Write the contents of the texture.
-		uint32 DestStride;
-		uint8* DestBuffer = (uint8*)RHICmdList.LockTexture2D((FTexture2DRHIRef&)SSAORandomization->GetRenderTargetItem().ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
-
-		for(int32 y = 0; y < Desc.Extent.Y; ++y)
 		{
-			for(int32 x = 0; x < Desc.Extent.X; ++x)
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(64, 64), PF_B8G8R8A8, TexCreate_HideInVisualizeTexture, TexCreate_None, false));
+			GRenderTargetPool.FindFreeElement(Desc, SSAORandomization, TEXT("SSAORandomization"));
+			// Write the contents of the texture.
+			uint32 DestStride;
+			uint8* DestBuffer = (uint8*)RHICmdList.LockTexture2D((FTexture2DRHIRef&)SSAORandomization->GetRenderTargetItem().ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
+
+			for(int32 y = 0; y < Desc.Extent.Y; ++y)
 			{
-				FColor* Dest = (FColor*)(DestBuffer + x * sizeof(uint32) + y * DestStride);
+				for(int32 x = 0; x < Desc.Extent.X; ++x)
+				{
+					FColor* Dest = (FColor*)(DestBuffer + x * sizeof(uint32) + y * DestStride);
 
-				uint32 Index = (x % 4) + (y % 4) * 4; 
+					uint32 Index = (x % 4) + (y % 4) * 4; 
 
-				*Dest = Bases[Index];
+					*Dest = Bases[Index];
+				}
 			}
 		}
 		RHICmdList.UnlockTexture2D((FTexture2DRHIRef&)SSAORandomization->GetRenderTargetItem().ShaderResourceTexture, 0, false);

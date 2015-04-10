@@ -2007,7 +2007,7 @@ public:
 		const TArray<FMeshWedge>	&Wedges,
 		const TArray<FMeshFace>		&Faces,
 		const TArray<FVector>		&Points,
-		bool						&bComputeNormals,
+		bool						&bInComputeNormals,
 		TArray<FVector>				&VertexTangentsX,
 		TArray<FVector>				&VertexTangentsY,
 		TArray<FVector>				&VertexTangentsZ
@@ -2016,7 +2016,7 @@ public:
 		wedges			(Wedges),
 		faces			(Faces),
 		points			(Points),
-		bComputeNormals	(bComputeNormals),
+		bComputeNormals	(bInComputeNormals),
 		TangentsX		(VertexTangentsX),
 		TangentsY		(VertexTangentsY),
 		TangentsZ		(VertexTangentsZ)

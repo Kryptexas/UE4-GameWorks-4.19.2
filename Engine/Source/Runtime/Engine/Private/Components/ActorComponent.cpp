@@ -1227,10 +1227,10 @@ void UActorComponent::MarkForNeededEndOfFrameUpdate()
 		return;
 	}
 
-	UWorld* World = GetWorld();
-	if (World)
+	UWorld* ComponentWorld = GetWorld();
+	if (ComponentWorld)
 	{
-		World->MarkActorComponentForNeededEndOfFrameUpdate(this, RequiresGameThreadEndOfFrameUpdates());
+		ComponentWorld->MarkActorComponentForNeededEndOfFrameUpdate(this, RequiresGameThreadEndOfFrameUpdates());
 	}
 	else if (!HasAnyFlags(RF_Unreachable))
 	{
@@ -1246,11 +1246,11 @@ void UActorComponent::MarkForNeededEndOfFrameRecreate()
 		return;
 	}
 
-	UWorld* World = GetWorld();
-	if (World)
+	UWorld* ComponentWorld = GetWorld();
+	if (ComponentWorld)
 	{
 		// by convention, recreates are always done on the gamethread
-		World->MarkActorComponentForNeededEndOfFrameUpdate(this, true);
+		ComponentWorld->MarkActorComponentForNeededEndOfFrameUpdate(this, true);
 	}
 	else if (!HasAnyFlags(RF_Unreachable))
 	{

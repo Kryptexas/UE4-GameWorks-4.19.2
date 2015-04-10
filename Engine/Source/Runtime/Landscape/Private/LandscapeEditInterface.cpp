@@ -2851,20 +2851,20 @@ void FLandscapeEditDataInterface::GetWeightDataTemplFast(ULandscapeLayerInfoObje
 								for( int32 LayerIdx=0;LayerIdx<Component->WeightmapLayerAllocations.Num();LayerIdx++ )
 								{
 									int32 Idx = Component->WeightmapLayerAllocations[LayerIdx].WeightmapTextureIndex;
-									UTexture2D* WeightmapTexture = Component->WeightmapTextures[Idx];
-									uint8* WeightmapTextureData = (uint8*)TexDataInfos[Idx]->GetMipData(0);
-									uint8 WeightmapChannelOffset = ChannelOffsets[Component->WeightmapLayerAllocations[LayerIdx].WeightmapTextureChannel];
+									UTexture2D* ComponentWeightmapTexture = Component->WeightmapTextures[Idx];
+									uint8* ComponentWeightmapTextureData = (uint8*)TexDataInfos[Idx]->GetMipData(0);
+									uint8 ComponentWeightmapChannelOffset = ChannelOffsets[Component->WeightmapLayerAllocations[LayerIdx].WeightmapTextureChannel];
 
 									// Find the texture data corresponding to this vertex
-									int32 SizeU = WeightmapTexture->Source.GetSizeX();
-									int32 SizeV = WeightmapTexture->Source.GetSizeY();
+									int32 SizeU = ComponentWeightmapTexture->Source.GetSizeX();
+									int32 SizeV = ComponentWeightmapTexture->Source.GetSizeY();
 									int32 WeightmapOffsetX = Component->WeightmapScaleBias.Z * (float)SizeU;
 									int32 WeightmapOffsetY = Component->WeightmapScaleBias.W * (float)SizeV;
 
 									int32 TexX = WeightmapOffsetX + (SubsectionSizeQuads+1) * SubIndexX + SubX;
 									int32 TexY = WeightmapOffsetY + (SubsectionSizeQuads+1) * SubIndexY + SubY;
 
-									uint8 Weight = WeightmapTextureData[ 4 * (TexX + TexY * SizeU) + WeightmapChannelOffset ];
+									uint8 Weight = ComponentWeightmapTextureData[ 4 * (TexX + TexY * SizeU) + ComponentWeightmapChannelOffset ];
 
 									// Find index in LayerInfos
 									{
@@ -3436,20 +3436,20 @@ void FLandscapeEditDataInterface::GetWeightDataTempl(ULandscapeLayerInfoObject* 
 								for( int32 LayerIdx=0;LayerIdx<Component->WeightmapLayerAllocations.Num();LayerIdx++ )
 								{
 									int32 Idx = Component->WeightmapLayerAllocations[LayerIdx].WeightmapTextureIndex;
-									UTexture2D* WeightmapTexture = Component->WeightmapTextures[Idx];
-									uint8* WeightmapTextureData = (uint8*)TexDataInfos[Idx]->GetMipData(0);
-									uint8 WeightmapChannelOffset = ChannelOffsets[Component->WeightmapLayerAllocations[LayerIdx].WeightmapTextureChannel];
+									UTexture2D* ComponentWeightmapTexture = Component->WeightmapTextures[Idx];
+									uint8* ComponentWeightmapTextureData = (uint8*)TexDataInfos[Idx]->GetMipData(0);
+									uint8 ComponentWeightmapChannelOffset = ChannelOffsets[Component->WeightmapLayerAllocations[LayerIdx].WeightmapTextureChannel];
 
 									// Find the texture data corresponding to this vertex
-									int32 SizeU = WeightmapTexture->Source.GetSizeX();
-									int32 SizeV = WeightmapTexture->Source.GetSizeY();
+									int32 SizeU = ComponentWeightmapTexture->Source.GetSizeX();
+									int32 SizeV = ComponentWeightmapTexture->Source.GetSizeY();
 									int32 WeightmapOffsetX = Component->WeightmapScaleBias.Z * (float)SizeU;
 									int32 WeightmapOffsetY = Component->WeightmapScaleBias.W * (float)SizeV;
 
 									int32 TexX = WeightmapOffsetX + (SubsectionSizeQuads+1) * SubIndexX + SubX;
 									int32 TexY = WeightmapOffsetY + (SubsectionSizeQuads+1) * SubIndexY + SubY;
 
-									uint8 Weight = WeightmapTextureData[ 4 * (TexX + TexY * SizeU) + WeightmapChannelOffset ];
+									uint8 Weight = ComponentWeightmapTextureData[ 4 * (TexX + TexY * SizeU) + ComponentWeightmapChannelOffset ];
 
 									// Find index in LayerInfos
 									{

@@ -177,12 +177,12 @@ bool FDefaultGameMoviePlayer::PlayMovie()
 		
 		LastPlayTime = FPlatformTime::Seconds();
 
-        bool bInitialized = true;
+        bool bIsInitialized = true;
 		if (MovieStreamingIsPrepared())
 		{
-			bInitialized = MovieStreamer->Init(LoadingScreenAttributes.MoviePaths);
+			bIsInitialized = MovieStreamer->Init(LoadingScreenAttributes.MoviePaths);
 		}
-        if (bInitialized)
+        if (bIsInitialized)
         {
 			MovieStreamingIsDone.Set(MovieStreamingIsPrepared() ? 0 : 1);
 			LoadingIsDone.Set(0);
