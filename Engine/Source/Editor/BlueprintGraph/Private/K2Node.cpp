@@ -944,6 +944,28 @@ UEdGraphPin* UK2Node::GetExecPin() const
 	return Pin;
 }
 
+UEdGraphPin* UK2Node::GetPassThroughPin(const UEdGraphPin* FromPin) const
+{
+	UEdGraphPin* MatchedPin = nullptr;
+	if(FromPin && Pins.Contains(FromPin))
+	{
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		if(K2Schema->IsExecPin(*FromPin))
+		{
+			if(FromPin->Direction == EGPD_Input)
+			{
+				MatchedPin = FindPin(K2Schema->PN_Then);
+			}
+			else
+			{
+				MatchedPin = FindPin(K2Schema->PN_Execute);
+			}
+		}
+	}
+
+	return MatchedPin;
+}
+
 bool UK2Node::CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const
 {
 	return DesiredSchema->GetClass()->IsChildOf(UEdGraphSchema_K2::StaticClass());

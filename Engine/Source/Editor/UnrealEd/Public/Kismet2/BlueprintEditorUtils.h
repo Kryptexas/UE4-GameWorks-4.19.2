@@ -83,6 +83,9 @@ public:
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Notify Blueprint Changed"), EKismetCompilerStats_NotifyBlueprintChanged, STATGROUP_KismetCompiler, );
 
+/** Array type for GetCompilerRelevantNodes()                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 */
+typedef TArray<UK2Node*, TInlineAllocator<4> > FCompilerRelevantNodesArray;
+
 class UNREALED_API FBlueprintEditorUtils
 {
 public:
@@ -495,6 +498,23 @@ public:
 	 * @param [in,out]	GraphNames	The graph names will be appended to this array.
 	 */
 	static void GetAllGraphNames(const UBlueprint* Blueprint, TArray<FName>& GraphNames);
+
+	/**
+	 * Gets the compiler-relevant (i.e. non-ignorable) nodes from the given pin.
+	 *
+	 * @param			FromPin			The pin to start searching from.
+	 * @param			OutNodes		Will contain the given pin's owning node if compiler-relevant, or all nodes linked to the owning node at the matching "pass-through" pin that are compiler-relevant. Empty if no compiler-relevant nodes can be found from the given pin.
+	 */
+	static void GetCompilerRelevantNodes(const UEdGraphPin* FromPin, FCompilerRelevantNodesArray& OutNodes);
+
+	/**
+	 * Finds the first compiler-relevant (i.e. non-ignorable) node from the given pin.
+	 *
+	 * @param			FromPin			The pin to start searching from.
+	 *
+	 * @return			The given pin's owning node if compiler-relevant, or the first node linked to the owning node at the matching "pass-through" pin that is compiler-relevant. May be NULL if no compiler-relevant nodes can be found from the given pin.
+	 */
+	static UK2Node* FindFirstCompilerRelevantNode(const UEdGraphPin* FromPin);
 
 
 	//////////////////////////////////////////////////////////////////////////

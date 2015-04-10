@@ -672,6 +672,44 @@ void FBlueprintEditorUtils::GetAllGraphNames(const UBlueprint* Blueprint, TArray
 	}
 }
 
+void FBlueprintEditorUtils::GetCompilerRelevantNodes(const UEdGraphPin* FromPin, FCompilerRelevantNodesArray& OutNodes)
+{
+	if(FromPin)
+	{
+		// Start with the given pin's owning node
+		UK2Node* OwningNode = Cast<UK2Node>(FromPin->GetOwningNode());
+		if(OwningNode)
+		{
+			// If this node is not compiler relevant
+			if(!OwningNode->IsCompilerRelevant())
+			{
+				// And if this node has a matching "pass-through" pin
+				FromPin = OwningNode->GetPassThroughPin(FromPin);
+				if(FromPin)
+				{
+					// Recursively check each link for a compiler-relevant node that will "pass through" this node at compile time
+					for(auto LinkedPin : FromPin->LinkedTo)
+					{
+						GetCompilerRelevantNodes(LinkedPin, OutNodes);
+					}
+				}
+			}
+			else
+			{
+				OutNodes.Add(OwningNode);
+			}
+		}		
+	}
+}
+
+UK2Node* FBlueprintEditorUtils::FindFirstCompilerRelevantNode(const UEdGraphPin* FromPin)
+{
+	FCompilerRelevantNodesArray RelevantNodes;
+	GetCompilerRelevantNodes(FromPin, RelevantNodes);
+	
+	return RelevantNodes.Num() > 0 ? RelevantNodes[0] : nullptr;
+}
+
 /** 
  * Check FKismetCompilerContext::SetCanEverTickForActor
  */

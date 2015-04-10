@@ -103,6 +103,7 @@ class UK2Node : public UEdGraphNode
 	BLUEPRINTGRAPH_API virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const override;
 	BLUEPRINTGRAPH_API virtual bool ShowPaletteIconOnNode() const override { return true; }
 	BLUEPRINTGRAPH_API virtual bool AllowSplitPins() const override;
+	BLUEPRINTGRAPH_API virtual UEdGraphPin* GetPassThroughPin(const UEdGraphPin* FromPin) const override;
 	// End of UEdGraphNode interface
 
 	// K2Node interface

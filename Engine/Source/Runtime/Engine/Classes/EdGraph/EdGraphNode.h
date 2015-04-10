@@ -426,6 +426,12 @@ public:
 
 	/** Return the requested metadata for the pin if there is any */
 	virtual FString GetPinMetaData(FString InPinName, FName InKey) { return FString(); }
+
+	/** Return false if the node and any expansion will isolate itself during compile */
+	virtual bool IsCompilerRelevant() const { return true; }
+
+	/** Return the matching "pass-through" pin for the given pin (if supported by this node) */
+	virtual UEdGraphPin* GetPassThroughPin(const UEdGraphPin* FromPin) const { return nullptr; }
 #endif // WITH_EDITOR
 
 };

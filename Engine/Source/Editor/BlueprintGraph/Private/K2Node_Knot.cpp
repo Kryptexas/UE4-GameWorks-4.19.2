@@ -189,6 +189,16 @@ TSharedPtr<class INameValidatorInterface> UK2Node_Knot::MakeNameValidator() cons
 	return MakeShareable(new FDummyNameValidator(EValidatorResult::Ok));
 }
 
+UEdGraphPin* UK2Node_Knot::GetPassThroughPin(const UEdGraphPin* FromPin) const
+{
+	if(FromPin && Pins.Contains(FromPin))
+	{
+		return FromPin == Pins[0] ? Pins[1] : Pins[0];
+	}
+
+	return nullptr;
+}
+
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE
