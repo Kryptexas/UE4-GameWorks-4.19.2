@@ -10,7 +10,7 @@ class UFoliageType_InstancedStaticMesh : public UFoliageType
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(EditAnywhere, Category=FoliageType)
+	UPROPERTY(EditAnywhere, Category=Mesh)
 	UStaticMesh* Mesh;
 
 	virtual UStaticMesh* GetStaticMesh() const override
