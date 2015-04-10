@@ -285,7 +285,7 @@ void ACharacter::OnRep_IsCrouched()
 
 bool ACharacter::CanCrouch()
 {
-	return !bIsCrouched && CharacterMovement && CharacterMovement->CanEverCrouch() && (CapsuleComponent->GetUnscaledCapsuleHalfHeight() > CharacterMovement->CrouchedHalfHeight) && GetRootComponent() && !GetRootComponent()->IsSimulatingPhysics();
+	return !bIsCrouched && CharacterMovement && CharacterMovement->CanEverCrouch() && GetRootComponent() && !GetRootComponent()->IsSimulatingPhysics();
 }
 
 void ACharacter::Crouch(bool bClientSimulation)

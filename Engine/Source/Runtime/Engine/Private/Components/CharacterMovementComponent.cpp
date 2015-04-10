@@ -1705,14 +1705,19 @@ void UCharacterMovementComponent::Crouch(bool bClientSimulation)
 		return;
 	}
 
-	// Do not perform if collision is already at desired size.
-	if( CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() == CrouchedHalfHeight )
+	if (!CanCrouchInCurrentState())
 	{
 		return;
 	}
 
-	if (!CanCrouchInCurrentState())
+	// See if collision is already at desired size.
+	if (CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() == CrouchedHalfHeight)
 	{
+		if (!bClientSimulation)
+		{
+			CharacterOwner->bIsCrouched = true;
+		}
+		CharacterOwner->OnStartCrouch( 0.f, 0.f );
 		return;
 	}
 
@@ -1781,9 +1786,14 @@ void UCharacterMovementComponent::UnCrouch(bool bClientSimulation)
 
 	ACharacter* DefaultCharacter = CharacterOwner->GetClass()->GetDefaultObject<ACharacter>();
 
-	// Do not perform if collision is already at desired size.
+	// See if collision is already at desired size.
 	if( CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() == DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() )
 	{
+		if (!bClientSimulation)
+		{
+			CharacterOwner->bIsCrouched = false;
+		}
+		CharacterOwner->OnEndCrouch( 0.f, 0.f );
 		return;
 	}
 
