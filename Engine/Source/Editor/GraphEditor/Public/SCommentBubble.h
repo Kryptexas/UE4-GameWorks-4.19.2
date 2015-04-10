@@ -25,6 +25,9 @@ class GRAPHEDITOR_API SCommentBubble : public SCompoundWidget
 		/** Called when the comment bubble pin button is pressed */
 		SLATE_EVENT( FOnCheckStateChanged, OnCommentBubblePinned )
 
+		/** Called when the comment bubble toggle button is pressed */
+		SLATE_ATTRIBUTE( ECheckBoxState, ToggleButtonCheck )
+
 		/** The comment text for the bubble */
 		SLATE_ATTRIBUTE( FString, Text )
 
@@ -120,6 +123,12 @@ protected:
 	/** Called when the comment text is committed */
 	void OnCommentTextCommitted( const FText& NewText, ETextCommit::Type CommitInfo );
 
+	/** Returns bubble toggle check state */
+	ECheckBoxState GetToggleButtonCheck() const;
+
+	/** Returns pinned check state */
+	ECheckBoxState GetPinnedButtonCheck() const;
+
 	/** Called to determine if the comment bubble is readonly */
 	bool IsReadOnly() const;
 
@@ -138,6 +147,8 @@ protected:
 	TAttribute<EGraphRenderingLOD::Type> GraphLOD;
 	/** Hint Text */
 	TAttribute<FText> HintText;
+	/** Toggle button checked state  */
+	TAttribute<ECheckBoxState> ToggleButtonCheck;
 
 	/** Optional delegate to call when the comment is toggled */
 	FOnCheckStateChanged CommentBubbleToggleDelegate;
