@@ -26,6 +26,8 @@ struct FAssetRenameData
 	}
 };
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FAssetPostRenameEvent, const TArray<FAssetRenameData>&);
+
 class IAssetTools
 {
 public:
@@ -86,6 +88,9 @@ public:
 
 	/** Renames assets using the specified names. */
 	virtual void RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const = 0;
+
+	/** Event issued at the end of the rename process */
+	virtual FAssetPostRenameEvent& OnAssetPostRename() = 0;
 
 	/** Opens a file open dialog to choose files to import to the destination path. */
 	virtual TArray<UObject*> ImportAssets(const FString& DestinationPath) = 0;

@@ -144,31 +144,32 @@ private:
 
 void FAssetRenameManager::RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const
 {
-	// Prep a list of assets to rename with an extra boolean to determine if they should leave a redirector or not
-	TArray<FAssetRenameDataWithReferencers> AssetsToRename;
-	for ( int32 AssetIdx = 0; AssetIdx < AssetsAndNames.Num(); ++AssetIdx )
-	{
-		new(AssetsToRename) FAssetRenameDataWithReferencers(AssetsAndNames[AssetIdx]);
-	}
-
 	// If the asset registry is still loading assets, we cant check for referencers, so we must open the rename dialog
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	if ( AssetRegistryModule.Get().IsLoadingAssets() )
 	{
 		// Open a dialog asking the user to wait while assets are being discovered
 		SDiscoveringAssetsDialog::OpenDiscoveringAssetsDialog(
-			SDiscoveringAssetsDialog::FOnAssetsDiscovered::CreateSP(this, &FAssetRenameManager::FixReferencesAndRename, AssetsToRename)
+			SDiscoveringAssetsDialog::FOnAssetsDiscovered::CreateSP(this, &FAssetRenameManager::FixReferencesAndRename, AssetsAndNames)
 			);
 	}
 	else
 	{
 		// No need to wait, attempt to fix references and rename now.
-		FixReferencesAndRename(AssetsToRename);
+		FixReferencesAndRename(AssetsAndNames);
 	}
 }
 
-void FAssetRenameManager::FixReferencesAndRename(TArray<FAssetRenameDataWithReferencers> AssetsToRename) const
+void FAssetRenameManager::FixReferencesAndRename(TArray<FAssetRenameData> AssetsAndNames) const
 {
+	// Prep a list of assets to rename with an extra boolean to determine if they should leave a redirector or not
+	TArray<FAssetRenameDataWithReferencers> AssetsToRename;
+	AssetsToRename.Reset(AssetsAndNames.Num());
+	for (int32 AssetIdx = 0; AssetIdx < AssetsAndNames.Num(); ++AssetIdx)
+	{
+		new(AssetsToRename)FAssetRenameDataWithReferencers(AssetsAndNames[AssetIdx]);
+	}
+
 	// Warn the user if they are about to rename an asset that is referenced by a CDO
 	auto CDOAssets = FindCDOReferencedAssets(AssetsToRename);
 
@@ -215,6 +216,9 @@ void FAssetRenameManager::FixReferencesAndRename(TArray<FAssetRenameDataWithRefe
 
 			// Save all packages that were referencing any of the assets that were moved without redirectors
 			SaveReferencingPackages(ReferencingPackagesToSave);
+
+			// Issue post rename event
+			AssetPostRenameEvent.Broadcast(AssetsAndNames);
 		}
 	}
 

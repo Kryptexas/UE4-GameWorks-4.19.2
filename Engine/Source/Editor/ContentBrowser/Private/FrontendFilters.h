@@ -175,6 +175,9 @@ public:
 	/** Handler for when maps change in the editor */
 	void OnEditorMapChange( uint32 MapChangeFlags );
 
+	/** Handler for when an asset is renamed */
+	void OnAssetPostRename(const TArray<FAssetRenameData>& AssetsAndNames);
+
 private:
 	bool bIsCurrentlyActive;
 };

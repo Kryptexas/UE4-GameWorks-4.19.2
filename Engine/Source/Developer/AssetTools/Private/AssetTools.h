@@ -32,6 +32,7 @@ public:
 	virtual bool CreateDiffProcess(const FString& DiffCommand, const FString& OldTextFilename, const FString& NewTextFilename, const FString& DiffArgs = FString("")) const override;
 	virtual void MigratePackages(const TArray<FName>& PackageNamesToMigrate) const override;
 	virtual void FixupReferencers(const TArray<UObjectRedirector*>& Objects) const override;
+	virtual FAssetPostRenameEvent& OnAssetPostRename() override { return AssetRenameManager->OnAssetPostRenameEvent(); }
 
 public:
 	/** Gets the asset tools singleton as a FAssetTools for asset tools module use */

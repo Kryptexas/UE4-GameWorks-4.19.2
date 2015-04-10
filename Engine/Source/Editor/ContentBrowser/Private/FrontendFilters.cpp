@@ -4,6 +4,7 @@
 #include "FrontendFilters.h"
 #include "ISourceControlModule.h"
 #include "ObjectTools.h"
+#include "AssetToolsModule.h"
 
 
 /////////////////////////////////////////
@@ -271,11 +272,17 @@ FFrontendFilter_InUseByLoadedLevels::FFrontendFilter_InUseByLoadedLevels(TShared
 	, bIsCurrentlyActive(false)
 {
 	FEditorDelegates::MapChange.AddRaw(this, &FFrontendFilter_InUseByLoadedLevels::OnEditorMapChange);
+
+	IAssetTools& AssetTools = FAssetToolsModule::GetModule().Get();
+	AssetTools.OnAssetPostRename().AddRaw(this, &FFrontendFilter_InUseByLoadedLevels::OnAssetPostRename);
 }
 
 FFrontendFilter_InUseByLoadedLevels::~FFrontendFilter_InUseByLoadedLevels()
 {
 	FEditorDelegates::MapChange.RemoveAll(this);
+
+	IAssetTools& AssetTools = FAssetToolsModule::GetModule().Get();
+	AssetTools.OnAssetPostRename().RemoveAll(this);
 }
 
 void FFrontendFilter_InUseByLoadedLevels::ActiveStateChanged( bool bActive )
@@ -286,6 +293,12 @@ void FFrontendFilter_InUseByLoadedLevels::ActiveStateChanged( bool bActive )
 	{
 		ObjectTools::TagInUseObjects(ObjectTools::SO_LoadedLevels);
 	}
+}
+
+void FFrontendFilter_InUseByLoadedLevels::OnAssetPostRename(const TArray<FAssetRenameData>& AssetsAndNames)
+{
+	// Update the tags identifying objects currently used by loaded levels
+	ObjectTools::TagInUseObjects(ObjectTools::SO_LoadedLevels);
 }
 
 bool FFrontendFilter_InUseByLoadedLevels::PassesFilter( AssetFilterType InItem ) const
