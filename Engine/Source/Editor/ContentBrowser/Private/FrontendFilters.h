@@ -102,6 +102,38 @@ public:
 	virtual bool PassesFilter(FAssetFilterType InItem) const override;
 };
 
+/** A filter that compares the value of an asset registry tag to a target value */
+class FFrontendFilter_ArbitraryComparisonOperation : public FFrontendFilter
+{
+public:
+	FFrontendFilter_ArbitraryComparisonOperation(TSharedPtr<FFrontendFilterCategory> InCategory);
+
+	// FFrontendFilter implementation
+	virtual FString GetName() const override;
+	virtual FText GetDisplayName() const override;
+	virtual FText GetToolTipText() const override;
+	virtual void ModifyContextMenu(FMenuBuilder& MenuBuilder) override;
+
+	// IFilter implementation
+	virtual bool PassesFilter(FAssetFilterType InItem) const override;
+
+protected:
+	static FString ConvertOperationToString(ETextFilterComparisonOperation Op);
+	
+	void SetComparisonOperation(ETextFilterComparisonOperation NewOp);
+	bool IsComparisonOperationEqualTo(ETextFilterComparisonOperation TestOp) const;
+
+	FText GetKeyValueAsText() const;
+	FText GetTargetValueAsText() const;
+	void OnKeyValueTextCommitted(const FText& InText, ETextCommit::Type InCommitType);
+	void OnTargetValueTextCommitted(const FText& InText, ETextCommit::Type InCommitType);
+
+public:
+	FName TagName;
+	FString TargetTagValue;
+	ETextFilterComparisonOperation ComparisonOp;
+};
+
 /** An inverse filter that allows display of content in developer folders that are not the current user's */
 class FFrontendFilter_ShowOtherDevelopers : public FFrontendFilter
 {

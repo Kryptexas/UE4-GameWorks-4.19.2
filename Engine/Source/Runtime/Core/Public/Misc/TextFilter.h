@@ -3,6 +3,16 @@
 
 #include "IFilter.h"
 
+UENUM()
+enum class ETextFilterComparisonOperation : uint8
+{
+	Equal,
+	NotEqual,
+	Less,
+	LessOrEqual,
+	Greater,
+	GreaterOrEqual,
+};
 
 /**
  *	A generic filter specialized for text restrictions

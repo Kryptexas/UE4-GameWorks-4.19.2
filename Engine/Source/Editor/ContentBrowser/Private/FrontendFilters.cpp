@@ -168,6 +168,190 @@ bool FFrontendFilter_ReplicatedBlueprint::PassesFilter(FAssetFilterType InItem) 
 }
 
 /////////////////////////////////////////
+// FFrontendFilter_ArbitraryComparisonOperation
+/////////////////////////////////////////
+
+#define LOCTEXT_NAMESPACE "ContentBrowser"
+
+FFrontendFilter_ArbitraryComparisonOperation::FFrontendFilter_ArbitraryComparisonOperation(TSharedPtr<FFrontendFilterCategory> InCategory)
+	: FFrontendFilter(InCategory)
+	, TagName(TEXT("TagName"))
+	, TargetTagValue(TEXT("Value"))
+	, ComparisonOp(ETextFilterComparisonOperation::NotEqual)
+{
+}
+
+FString FFrontendFilter_ArbitraryComparisonOperation::GetName() const
+{
+	return TEXT("CompareTags");
+}
+
+FText FFrontendFilter_ArbitraryComparisonOperation::GetDisplayName() const
+{
+	return FText::Format(LOCTEXT("FFrontendFilter_CompareOperation", "Compare Tags ({0} {1} {2})"),
+		FText::FromName(TagName),
+		FText::AsCultureInvariant(ConvertOperationToString(ComparisonOp)),
+		FText::AsCultureInvariant(TargetTagValue));
+}
+
+FText FFrontendFilter_ArbitraryComparisonOperation::GetToolTipText() const
+{
+	return LOCTEXT("FFrontendFilter_CompareOperation", "Compares AssetRegistrySearchable values on assets with a target value.");
+}
+
+bool FFrontendFilter_ArbitraryComparisonOperation::PassesFilter(FAssetFilterType InItem) const
+{
+	if (const FString* pTagValue = InItem.TagsAndValues.Find(TagName))
+	{
+		const FString& TestTagValue = *pTagValue;
+
+		const bool bNumericComparison = TestTagValue.IsNumeric() && TargetTagValue.IsNumeric();
+
+		int32 ComparisonSign = 0;
+		if (bNumericComparison)
+		{
+			const double Difference = FCString::Atod(*TestTagValue) - FCString::Atod(*TargetTagValue);
+			ComparisonSign = (int32)FMath::Sign(Difference);
+		}
+		else
+		{
+			ComparisonSign = TestTagValue.Compare(TargetTagValue, ESearchCase::IgnoreCase);
+		}
+
+		bool bComparisonPassed = false;
+		switch (ComparisonOp)
+		{
+		case ETextFilterComparisonOperation::Equal:
+			bComparisonPassed = ComparisonSign == 0;
+			break;
+		case ETextFilterComparisonOperation::NotEqual:
+			bComparisonPassed = ComparisonSign != 0;
+			break;
+		case ETextFilterComparisonOperation::Less:
+			bComparisonPassed = ComparisonSign < 0;
+			break;
+		case ETextFilterComparisonOperation::LessOrEqual:
+			bComparisonPassed = ComparisonSign <= 0;
+			break;
+		case ETextFilterComparisonOperation::Greater:
+			bComparisonPassed = ComparisonSign > 0;
+			break;
+		case ETextFilterComparisonOperation::GreaterOrEqual:
+			bComparisonPassed = ComparisonSign >= 0;
+			break;
+		default:
+			check(false);
+		};
+
+		return bComparisonPassed;
+	}
+	else
+	{
+		// Failed to find the tag, can't pass the filter
+		//@TODO: Maybe we should succeed here if the operation is !=
+		return false;
+	}
+}
+
+void FFrontendFilter_ArbitraryComparisonOperation::ModifyContextMenu(FMenuBuilder& MenuBuilder)
+{
+	FUIAction Action;
+
+	MenuBuilder.BeginSection(TEXT("ComparsionSection"), LOCTEXT("ComparisonSectionHeading", "AssetRegistrySearchable Comparison"));
+
+	TSharedRef<SWidget> KeyWidget =
+		SNew(SEditableTextBox)
+		.Text_Raw(this, &FFrontendFilter_ArbitraryComparisonOperation::GetKeyValueAsText)
+		.OnTextCommitted_Raw(this, &FFrontendFilter_ArbitraryComparisonOperation::OnKeyValueTextCommitted)
+		.MinDesiredWidth(100.0f);
+	TSharedRef<SWidget> ValueWidget = SNew(SEditableTextBox)
+		.Text_Raw(this, &FFrontendFilter_ArbitraryComparisonOperation::GetTargetValueAsText)
+		.OnTextCommitted_Raw(this, &FFrontendFilter_ArbitraryComparisonOperation::OnTargetValueTextCommitted)
+		.MinDesiredWidth(100.0f);
+
+	MenuBuilder.AddWidget(KeyWidget, LOCTEXT("KeyMenuDesc", "Tag"));
+	MenuBuilder.AddWidget(ValueWidget, LOCTEXT("ValueMenuDesc", "Target Value"));
+
+#define UE_SET_COMP_OP(Operation) \
+	MenuBuilder.AddMenuEntry(FText::AsCultureInvariant(ConvertOperationToString(Operation)), \
+		LOCTEXT("SwitchOpsTooltip", "Switch comparsion type"), \
+		FSlateIcon(), \
+		FUIAction(FExecuteAction::CreateRaw(this, &FFrontendFilter_ArbitraryComparisonOperation::SetComparisonOperation, Operation), FCanExecuteAction(), FIsActionChecked::CreateRaw(this, &FFrontendFilter_ArbitraryComparisonOperation::IsComparisonOperationEqualTo, Operation)), \
+		NAME_None, \
+		EUserInterfaceActionType::RadioButton);
+
+	UE_SET_COMP_OP(ETextFilterComparisonOperation::Equal);
+	UE_SET_COMP_OP(ETextFilterComparisonOperation::NotEqual);
+	UE_SET_COMP_OP(ETextFilterComparisonOperation::Less);
+	UE_SET_COMP_OP(ETextFilterComparisonOperation::LessOrEqual);
+	UE_SET_COMP_OP(ETextFilterComparisonOperation::Greater);
+	UE_SET_COMP_OP(ETextFilterComparisonOperation::GreaterOrEqual);
+#undef UE_SET_COMP_OP
+
+	MenuBuilder.EndSection();
+}
+
+void FFrontendFilter_ArbitraryComparisonOperation::SetComparisonOperation(ETextFilterComparisonOperation NewOp)
+{
+	ComparisonOp = NewOp;
+	BroadcastChangedEvent();
+}
+
+bool FFrontendFilter_ArbitraryComparisonOperation::IsComparisonOperationEqualTo(ETextFilterComparisonOperation TestOp) const
+{
+	return (ComparisonOp == TestOp);
+}
+
+FText FFrontendFilter_ArbitraryComparisonOperation::GetKeyValueAsText() const
+{
+	return FText::FromName(TagName);
+}
+
+FText FFrontendFilter_ArbitraryComparisonOperation::GetTargetValueAsText() const
+{
+	return FText::AsCultureInvariant(TargetTagValue);
+}
+
+void FFrontendFilter_ArbitraryComparisonOperation::OnKeyValueTextCommitted(const FText& InText, ETextCommit::Type InCommitType)
+{
+	if (!InText.IsEmpty())
+	{
+		TagName = *InText.ToString();
+		BroadcastChangedEvent();
+	}
+}
+
+void FFrontendFilter_ArbitraryComparisonOperation::OnTargetValueTextCommitted(const FText& InText, ETextCommit::Type InCommitType)
+{
+	TargetTagValue = InText.ToString();
+	BroadcastChangedEvent();
+}
+
+FString FFrontendFilter_ArbitraryComparisonOperation::ConvertOperationToString(ETextFilterComparisonOperation Op)
+{
+	switch (Op)
+	{
+	case ETextFilterComparisonOperation::Equal:
+		return TEXT("==");
+	case ETextFilterComparisonOperation::NotEqual:
+		return TEXT("!=");
+	case ETextFilterComparisonOperation::Less:
+		return TEXT("<");
+	case ETextFilterComparisonOperation::LessOrEqual:
+		return TEXT("<=");
+	case ETextFilterComparisonOperation::Greater:
+		return TEXT(">");
+	case ETextFilterComparisonOperation::GreaterOrEqual:
+		return TEXT(">=");
+	default:
+		check(false);
+		return TEXT("op");
+	};
+}
+
+#undef LOCTEXT_NAMESPACE
+
+/////////////////////////////////////////
 // FFrontendFilter_ShowOtherDevelopers
 /////////////////////////////////////////
 

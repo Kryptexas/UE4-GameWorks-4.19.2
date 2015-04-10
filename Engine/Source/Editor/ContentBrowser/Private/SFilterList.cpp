@@ -98,7 +98,7 @@ public:
 		FrontendFilter = InArgs._FrontendFilter;
 
 		// Get the tooltip and color of the type represented by this filter
-		FText FilterToolTip;
+		TAttribute<FText> FilterToolTip;
 		FilterColor = FLinearColor::White;
 		if ( InArgs._AssetTypeActions.IsValid() )
 		{
@@ -107,10 +107,10 @@ public:
 
 			// No tooltip for asset type filters
 		}
-		else if ( InArgs._FrontendFilter.IsValid() )
+		else if ( FrontendFilter.IsValid() )
 		{
 			FilterColor = FrontendFilter->GetColor();
-			FilterToolTip = FrontendFilter->GetToolTipText();
+			FilterToolTip = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(FrontendFilter.ToSharedRef(), &FFrontendFilter::GetToolTipText));
 		}
 
 		ChildSlot
@@ -133,7 +133,7 @@ public:
 					.ColorAndOpacity(this, &SFilter::GetFilterNameColorAndOpacity)
 					.Font(FEditorStyle::GetFontStyle("ContentBrowser.FilterNameFont"))
 					.ShadowOffset(FVector2D(1.f, 1.f))
-					.Text( GetFilterName() )
+					.Text(this, &SFilter::GetFilterName)
 				]
 			]
 		];
@@ -252,6 +252,11 @@ private:
 				);
 		}
 		MenuBuilder.EndSection();
+
+		if (FrontendFilter.IsValid())
+		{
+			FrontendFilter->ModifyContextMenu(MenuBuilder);
+		}
 
 		return MenuBuilder.MakeWidget();
 	}
@@ -383,6 +388,7 @@ void SFilterList::Construct( const FArguments& InArgs )
 	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_ReplicatedBlueprint(DefaultCategory)) );
 	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_ShowRedirectors(DefaultCategory)) );
 	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_InUseByLoadedLevels(DefaultCategory)) );
+	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_ArbitraryComparisonOperation(DefaultCategory)) ); //@TODO: Needs to be extensible
 
 	for(auto Iter = InArgs._ExtraFrontendFilters.CreateConstIterator(); Iter; ++Iter)
 	{
@@ -639,6 +645,8 @@ void SFilterList::SaveSettings(const FString& IniFilename, const FString& IniSec
 	GConfig->SetString(*IniSection, *(SettingsString + TEXT(".EnabledTypeFilters")), *EnabledTypeFilterString, IniFilename);
 	GConfig->SetString(*IniSection, *(SettingsString + TEXT(".ActiveFrontendFilters")), *ActiveFrontendFilterString, IniFilename);
 	GConfig->SetString(*IniSection, *(SettingsString + TEXT(".EnabledFrontendFilters")), *EnabledFrontendFilterString, IniFilename);
+
+	//@TODO: Allow filters to save information out here (and read it back in at the bottom of LoadSettings)
 }
 
 void SFilterList::LoadSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString)
