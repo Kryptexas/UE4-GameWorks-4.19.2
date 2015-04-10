@@ -137,9 +137,9 @@ FLightPrimitiveInteraction::FLightPrimitiveInteraction(
 	bool bInHasTranslucentObjectShadow,
 	bool bInHasInsetObjectShadow
 	):
-	LightId(InLightSceneInfo->Id),
 	LightSceneInfo(InLightSceneInfo),
 	PrimitiveSceneInfo(InPrimitiveSceneInfo),
+	LightId(InLightSceneInfo->Id),
 	bLightMapped(bInLightMapped),
 	bIsDynamic(bInIsDynamic),
 	bIsShadowMapped(bInIsShadowMapped),
