@@ -18,6 +18,7 @@ class FDataTableEditor : public IDataTableEditor
 	, public FStructureEditorUtils::INotifyOnStructChanged
 	, public FDataTableEditorUtils::INotifyOnDataTableChanged
 {
+	friend class SDataTableListViewRow;
 
 public:
 
@@ -39,9 +40,6 @@ public:
 	/** Destructor */
 	virtual ~FDataTableEditor();
 
-	/* Create the grid panel */
-	TSharedRef<SWidget> CreateGridPanel();
-
 	/** IToolkit interface */
 	virtual FName GetToolkitFName() const override;
 	virtual FText GetBaseToolkitName() const override;
@@ -60,9 +58,15 @@ public:
 
 private:
 
-	void ReloadVisibleData();
+	void RefreshCachedDataTable();
+
+	void UpdateVisibleRows();
+
+	void RestoreCachedSelection(const FName InCachedSelection, const bool bUpdateEvenIfValid = false);
 
 	void OnSearchTextChanged(const FText& SearchText);
+
+	FSlateColor GetRowTextColor(FName RowName) const;
 
 	TSharedRef<SVerticalBox> CreateContentBox();
 
@@ -74,17 +78,30 @@ private:
 	/**	Spawns the tab with the Row Editor inside */
 	TSharedRef<SDockTab> SpawnTab_RowEditor(const FSpawnTabArgs& Args);
 
-	FSlateColor GetRowColor(FName RowName) const;
+	FOptionalSize GetRowNameColumnWidth() const;
 
-	FReply OnRowClicked(const FGeometry&, const FPointerEvent&, FName RowName);
-
-	float GetColumnWidth(const int32 ColumnIndex);
+	float GetColumnWidth(const int32 ColumnIndex) const;
 
 	void OnColumnResized(const float NewWidth, const int32 ColumnIndex);
 
 	void LoadLayoutData();
 
 	void SaveLayoutData();
+
+	/** Make the widget for a row name entry in the data table row list view */
+	TSharedRef<ITableRow> MakeRowNameWidget(FDataTableEditorRowListViewDataPtr InRowDataPtr, const TSharedRef<STableViewBase>& OwnerTable);
+
+	/** Make the widget for a row entry in the data table row list view */
+	TSharedRef<ITableRow> MakeRowWidget(FDataTableEditorRowListViewDataPtr InRowDataPtr, const TSharedRef<STableViewBase>& OwnerTable);
+
+	/** Make the widget for a cell entry in the data table row list view */
+	TSharedRef<SWidget> MakeCellWidget(FDataTableEditorRowListViewDataPtr InRowDataPtr, const int32 InRowIndex, const FName& InColumnId);
+
+	void OnRowNamesListViewScrolled(double InScrollOffset);
+
+	void OnCellsListViewScrolled(double InScrollOffset);
+
+	void OnRowSelectionChanged(FDataTableEditorRowListViewDataPtr InNewSelection, ESelectInfo::Type InSelectInfo);
 
 private:
 
@@ -103,26 +120,32 @@ private:
 		float CurrentWidth;
 	};
 
-	/** Cached table data */
-	TArray<TArray<FString> > CachedDataTable;
+	/** Array of the columns that are available for editing */
+	TArray<FDataTableEditorColumnHeaderDataPtr> AvailableColumns;
 
-	/** Cached raw column names */
-	TArray<FString> CachedRawColumnNames;
+	/** Array of the rows that are available for editing */
+	TArray<FDataTableEditorRowListViewDataPtr> AvailableRows;
+	
+	/** Array of the rows that match the active filter(s) */
+	TArray<FDataTableEditorRowListViewDataPtr> VisibleRows;
 
-	/** Visibility of data table rows */
-	TArray<bool> RowsVisibility;
+	/** Header row containing entries for each column in AvailableColumns */
+	TSharedPtr<SHeaderRow> ColumnNamesHeaderRow;
 
-	/** Widths of data table columns */
+	/** List view responsible for showing the row names column */
+	TSharedPtr<SListView<FDataTableEditorRowListViewDataPtr>> RowNamesListView;
+
+	/** List view responsible for showing the rows in VisibleRows for each entry in AvailableColumns */
+	TSharedPtr<SListView<FDataTableEditorRowListViewDataPtr>> CellsListView;
+
+	/** Width of the row name column */
+	float RowNameColumnWidth;
+
+	/** Widths of data table cell columns */
 	TArray<FColumnWidth> ColumnWidths;
 
 	/** Search box */
-	TSharedPtr<SWidget> SearchBox;
-
-	/** Scroll containing data table */
-	TSharedPtr<SScrollBox> ScrollBoxWidget;
-
-	/**Border surrounding the GridPanel */
-	TSharedPtr<SBorder>	 GridPanelOwner;
+	TSharedPtr<SSearchBox> SearchBox;
 
 	/* The DataTable that is active in the editor */
 	TAssetPtr<UDataTable> DataTable;
@@ -139,4 +162,7 @@ private:
 
 	/**	The tab id for the row editor tab */
 	static const FName RowEditorTabId;
+
+	/** The column id for the row name list view column */
+	static const FName RowNameColumnId;
 };

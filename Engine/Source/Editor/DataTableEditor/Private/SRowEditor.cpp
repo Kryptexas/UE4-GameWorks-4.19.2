@@ -147,28 +147,38 @@ void SRowEditor::RefreshNameList()
 
 void SRowEditor::Restore()
 {
-	if (SelectedName.IsValid())
+	if (!SelectedName.IsValid() || !SelectedName->IsNone())
 	{
-		auto CurrentName = *SelectedName;
-		SelectedName = NULL;
-		for (auto Element : CachedRowNames)
+		if (SelectedName.IsValid())
 		{
-			if (*Element == CurrentName)
+			auto CurrentName = *SelectedName;
+			SelectedName = NULL;
+			for (auto Element : CachedRowNames)
 			{
-				SelectedName = Element;
-				break;
+				if (*Element == CurrentName)
+				{
+					SelectedName = Element;
+					break;
+				}
 			}
 		}
-	}
 
-	if (!SelectedName.IsValid() && CachedRowNames.Num() && CachedRowNames[0].IsValid())
-	{
-		SelectedName = CachedRowNames[0];
-	}
+		if (!SelectedName.IsValid() && CachedRowNames.Num() && CachedRowNames[0].IsValid())
+		{
+			SelectedName = CachedRowNames[0];
+		}
 
-	if (RowComboBox.IsValid())
+		if (RowComboBox.IsValid())
+		{
+			RowComboBox->SetSelectedItem(SelectedName);
+		}
+	}
+	else
 	{
-		RowComboBox->SetSelectedItem(SelectedName);
+		if (RowComboBox.IsValid())
+		{
+			RowComboBox->ClearSelection();
+		}
 	}
 
 	auto FinalName = SelectedName.IsValid() ? *SelectedName : NAME_None;
@@ -211,7 +221,7 @@ TSharedRef<SWidget> SRowEditor::OnGenerateWidget(TSharedPtr<FName> InItem)
 
 void SRowEditor::OnSelectionChanged(TSharedPtr<FName> InItem, ESelectInfo::Type InSeletionInfo)
 {
-	if (InItem != SelectedName)
+	if (InItem.IsValid() && InItem != SelectedName)
 	{
 		CleanBeforeChange();
 
@@ -237,7 +247,7 @@ void SRowEditor::SelectRow(FName InName)
 			NewSelectedName = Name;
 		}
 	}
-	if (!NewSelectedName->IsValid())
+	if (!NewSelectedName.IsValid())
 	{
 		NewSelectedName = MakeShareable(new FName(InName));
 	}
@@ -254,8 +264,8 @@ FReply SRowEditor::OnAddClicked()
 		{
 			NewName.SetNumber(NewName.GetNumber() + 1);
 		}
-		SelectedName = MakeShareable(new FName(NewName));
 		FDataTableEditorUtils::AddRow(DataTable.Get(), NewName);
+		SelectRow(NewName);
 	}
 	return FReply::Handled();
 }
@@ -306,8 +316,8 @@ void SRowEditor::OnRowRenamed(const FText& Text, ETextCommit::Type CommitType)
 		}
 
 		const FName OldName = GetCurrentName();
-		SelectedName = MakeShareable(new FName(NewName));
 		FDataTableEditorUtils::RenameRow(DataTable.Get(), OldName, NewName);
+		SelectRow(NewName);
 	}
 }
 
