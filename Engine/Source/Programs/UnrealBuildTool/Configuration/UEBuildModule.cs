@@ -2067,8 +2067,7 @@ namespace UnrealBuildTool
 																									InIntermediateDirectory: IntermediateDirectory,
 																									bInAllowExports: true,
 																									InModuleNames: new List<string> { DependencyModule.Name },
-																									bInIsCrossTarget: PlatformSpecificDynamicallyLoadedModuleNames.Contains(DependencyName) && !DynamicallyLoadedModuleNames.Contains(DependencyName),
-																									bInCompileMonolithic: Target.ShouldCompileMonolithic() );
+																									bInIsCrossTarget: PlatformSpecificDynamicallyLoadedModuleNames.Contains(DependencyName) && !DynamicallyLoadedModuleNames.Contains(DependencyName) );
 
 								BinaryToBindTo = new UEBuildBinaryCPP( Target, Config );
 							}

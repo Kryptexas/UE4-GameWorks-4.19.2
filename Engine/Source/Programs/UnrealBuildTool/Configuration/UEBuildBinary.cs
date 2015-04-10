@@ -146,7 +146,6 @@ namespace UnrealBuildTool
 				bool bInAllowCompilation = true,
 				bool bInHasModuleRules = true,
                 bool bInIsCrossTarget = false,
-                bool bInCompileMonolithic = false,
 				string InProjectFilePath = "",
 				List<string> InModuleNames = null
 			)

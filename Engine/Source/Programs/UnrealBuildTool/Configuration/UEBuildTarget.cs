@@ -2410,7 +2410,7 @@ namespace UnrealBuildTool
 			}
 
 			// Get the binary configuration
-			UEBuildBinaryConfiguration BinaryConfig = new UEBuildBinaryConfiguration(BinaryType, OutputFilePaths, IntermediateDirectory, true, bInAllowCompilation: bPrecompile, bInCompileMonolithic: bCompileMonolithic, InModuleNames: new List<string>{ ModuleName });
+			UEBuildBinaryConfiguration BinaryConfig = new UEBuildBinaryConfiguration(BinaryType, OutputFilePaths, IntermediateDirectory, true, bInAllowCompilation: bPrecompile, InModuleNames: new List<string>{ ModuleName });
 
 			// Create the binary
 			UEBuildBinaryCPP Binary = new UEBuildBinaryCPP(this, BinaryConfig);
