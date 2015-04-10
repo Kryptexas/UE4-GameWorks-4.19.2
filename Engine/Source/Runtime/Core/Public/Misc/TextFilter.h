@@ -3,7 +3,6 @@
 
 #include "IFilter.h"
 
-UENUM()
 enum class ETextFilterComparisonOperation : uint8
 {
 	Equal,
