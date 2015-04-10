@@ -134,7 +134,8 @@ public:
 	/**
 	 * Sends a message to subscribed recipients.
 	 *
-	 * The message is published with a default time to live of Process.
+	 * The bus takes over ownership of the message's memory.
+	 * It must NOT be freed by the caller.
 	 *
 	 * @param Message The message to publish.
 	 * @param TypeInfo The message's type information.
@@ -157,6 +158,9 @@ public:
 
 	/**
 	 * Sends a message to multiple recipients.
+	 *
+	 * The bus takes over ownership of the message's memory.
+	 * It must NOT be freed by the caller.
 	 *
 	 * @param Message The message to send.
 	 * @param TypeInfo The message's type information.

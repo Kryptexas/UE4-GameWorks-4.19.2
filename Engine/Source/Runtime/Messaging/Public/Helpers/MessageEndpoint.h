@@ -41,6 +41,9 @@ DECLARE_DELEGATE_RetVal_OneParam(bool, FOnMessageEndpointReceiveMessage, const I
  * Endpoints that are destroyed or receive messages on non-Game threads should use the static function
  * FMessageEndpoint::SafeRelease() to dispose of the endpoint. This will ensure that there are no race
  * conditions between endpoint destruction and the receiving of messages.
+ *
+ * The underlying message bus will take ownership of all sent and published message objects. The memory
+ * held by the messages must therefore NOT be freed by the caller.
  */
 class FMessageEndpoint
 	: public TSharedFromThis<FMessageEndpoint, ESPMode::ThreadSafe>
