@@ -803,6 +803,10 @@ public:
 	virtual void InitializeComponent() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual void RegisterComponentTickFunctions(bool bRegister) override;
+
+	//Handle registering our pre cloth tick function
+	void RegisterPreClothTick(bool bRegister);
+
 	// End UActorComponent interface.
 
 	// Begin USceneComponent interface.
@@ -1202,6 +1206,12 @@ public:
 	friend class FSkeletalMeshComponentDetails;
 
 private:
+	// Returns whether we need to run the Pre Cloth Tick or not
+	bool ShouldRunPreClothTick() const;
+
+	// Handles registering/unregistering the pre cloth tick as it is needed
+	void UpdatePreClothTickRegisteredState();
+
 	// these are deprecated variables from removing SingleAnimSkeletalComponent
 	// remove if this version goes away : VER_UE4_REMOVE_SINGLENODEINSTANCE
 	// deprecated variable to be re-save

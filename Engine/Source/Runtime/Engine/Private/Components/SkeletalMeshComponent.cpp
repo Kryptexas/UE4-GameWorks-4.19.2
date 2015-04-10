@@ -149,26 +149,42 @@ void USkeletalMeshComponent::RegisterComponentTickFunctions(bool bRegister)
 {
 	Super::RegisterComponentTickFunctions(bRegister);
 
-	if (bRegister)
+	UpdatePreClothTickRegisteredState();
+}
+
+void USkeletalMeshComponent::RegisterPreClothTick(bool bRegister)
+{
+	if (bRegister != PreClothTickFunction.IsTickFunctionRegistered())
 	{
-		if (SetupActorComponentTickFunction(&PreClothTickFunction))
+		if (bRegister)
 		{
-			PreClothTickFunction.Target = this;
-			// Set a prereq for the pre cloth tick to happen after physics is finished
-			if (World != NULL)
+			if (SetupActorComponentTickFunction(&PreClothTickFunction))
 			{
-				PreClothTickFunction.AddPrerequisite(World, World->EndPhysicsTickFunction);
+				PreClothTickFunction.Target = this;
+				// Set a prereq for the pre cloth tick to happen after physics is finished
+				if (World != NULL)
+				{
+					PreClothTickFunction.AddPrerequisite(World, World->EndPhysicsTickFunction);
+				}
 			}
 		}
-	}
-	else
-	{
-		if (PreClothTickFunction.IsTickFunctionRegistered())
+		else
 		{
 			PreClothTickFunction.UnRegisterTickFunction();
 		}
 	}
+}
 
+bool USkeletalMeshComponent::ShouldRunPreClothTick() const
+{
+	return	(bEnablePhysicsOnDedicatedServer || !IsRunningDedicatedServer()) && // Early out with we are on a dedicated server and not running physics
+			(IsSimulatingPhysics() || ShouldBlendPhysicsBones() || (SkeletalMesh && SkeletalMesh->ClothingAssets.Num() > 0));
+}
+
+void USkeletalMeshComponent::UpdatePreClothTickRegisteredState()
+{
+	bool bShouldRunClothTick = ShouldRunPreClothTick();
+	RegisterPreClothTick(bShouldRunClothTick && PrimaryComponentTick.IsTickFunctionRegistered());
 }
 
 bool USkeletalMeshComponent::NeedToSpawnAnimScriptInstance(bool bForceInit) const
@@ -586,6 +602,8 @@ void USkeletalMeshComponent::TickPose(float DeltaTime, bool bNeedsValidRootMotio
 
 void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
+	UpdatePreClothTickRegisteredState();
+
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// Update bOldForceRefPose
@@ -988,11 +1006,6 @@ void USkeletalMeshComponent::PerformAnimationEvaluation(const USkeletalMesh* InS
 	EvaluateAnimation(InSkeletalMesh, InAnimInstance, OutLocalAtoms, OutVertexAnims, OutRootBoneTranslation);
 	// Fill SpaceBases from LocalAtoms
 	FillSpaceBases(InSkeletalMesh, OutLocalAtoms, OutSpaceBases);
-}
-
-const TCHAR* B(bool b)
-{
-	return b ? TEXT("true") : TEXT("false");
 }
 
 void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)

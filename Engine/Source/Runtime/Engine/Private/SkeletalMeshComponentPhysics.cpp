@@ -3092,6 +3092,12 @@ void USkeletalMeshComponent::ProcessClothCollisionWithEnvironment()
 
 void USkeletalMeshComponent::PreClothTick(float DeltaTime)
 {
+	//IMPORTANT!
+	//
+	// The decision on whether to use PreClothTick or not is made by ShouldRunPreClothTick()
+	// Any changes that are made to PreClothTick that effect whether it should be run or not
+	// have to be reflected in ShouldRunPreClothTick() as well
+	
 	// if physics is disabled on dedicated server, no reason to be here. 
 	if (!bEnablePhysicsOnDedicatedServer && IsRunningDedicatedServer())
 	{
