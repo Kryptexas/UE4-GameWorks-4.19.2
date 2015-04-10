@@ -367,7 +367,6 @@ bool ULocalizationTarget::DeleteFiles(const FString* const Culture) const
 		TArray<FString> FilesInDataDirectory;
 		IFileManager::Get().FindFilesRecursive(FilesInDataDirectory, *DataDirectory, TEXT("*"), true, false);
 
-		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 		TArray<FSourceControlStateRef> SourceControlStates;
 		ECommandResult::Type Result = SourceControlProvider.GetState( FilesInDataDirectory, SourceControlStates, EStateCacheUsage::ForceUpdate );
 		if (Result == ECommandResult::Succeeded)
@@ -408,7 +407,6 @@ bool ULocalizationTarget::DeleteFiles(const FString* const Culture) const
 
 		// Remove script files from source control.
 		{
-			ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 			TArray<FSourceControlStateRef> SourceControlStates;
 			ECommandResult::Type Result = SourceControlProvider.GetState( ScriptPaths, SourceControlStates, EStateCacheUsage::ForceUpdate );
 			if (Result == ECommandResult::Succeeded)

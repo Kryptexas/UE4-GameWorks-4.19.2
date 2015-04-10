@@ -403,14 +403,14 @@ void FPlatformOpenGLContext::VerifyCurrentContext()
 		bool const bGPUChange = (GMacUseAutomaticGraphicsSwitching || GMacUseMultipleGPUs && GMacExplicitRendererID);
 		if(bGPUChange && RendererID != RendererToMatch)
 		{
-			CGLPixelFormatObj PixelFormat = CGLGetPixelFormat(Current);
+			CGLPixelFormatObj CurrentPixelFormat = CGLGetPixelFormat(Current);
 			GLint NumVirtualScreens = 0;
-			CGLDescribePixelFormat(PixelFormat, 0, kCGLPFAVirtualScreenCount, &NumVirtualScreens);
+			CGLDescribePixelFormat(CurrentPixelFormat, 0, kCGLPFAVirtualScreenCount, &NumVirtualScreens);
 			if(NumVirtualScreens > 1)
 			{
 				for(GLint i = 0; i < NumVirtualScreens; i++)
 				{
-					CGLDescribePixelFormat(PixelFormat, i, kCGLPFARendererID, &RendererID);
+					CGLDescribePixelFormat(CurrentPixelFormat, i, kCGLPFARendererID, &RendererID);
 					if(RendererID == RendererToMatch)
 					{
 						CGLSetVirtualScreen(Current, i);

@@ -709,7 +709,7 @@ void TOpenGLTexture<RHIResourceType>::Resolve(uint32 MipIndex,uint32 ArrayIndex)
 }
 
 template<typename RHIResourceType>
-void* TOpenGLTexture<RHIResourceType>::Lock(uint32 MipIndex,uint32 ArrayIndex,EResourceLockMode LockMode,uint32& DestStride)
+void* TOpenGLTexture<RHIResourceType>::Lock(uint32 InMipIndex,uint32 ArrayIndex,EResourceLockMode LockMode,uint32& DestStride)
 {
 	VERIFY_GL_SCOPE();
 
@@ -729,8 +729,8 @@ void* TOpenGLTexture<RHIResourceType>::Lock(uint32 MipIndex,uint32 ArrayIndex,ER
 	const uint32 BlockSizeX = GPixelFormats[PixelFormat].BlockSizeX;
 	const uint32 BlockSizeY = GPixelFormats[PixelFormat].BlockSizeY;
 	const uint32 BlockBytes = GPixelFormats[PixelFormat].BlockBytes;
-	const uint32 MipSizeX = FMath::Max(this->GetSizeX() >> MipIndex,BlockSizeX);
-	const uint32 MipSizeY = FMath::Max(this->GetSizeY() >> MipIndex,BlockSizeY);
+	const uint32 MipSizeX = FMath::Max(this->GetSizeX() >> InMipIndex,BlockSizeX);
+	const uint32 MipSizeY = FMath::Max(this->GetSizeY() >> InMipIndex,BlockSizeY);
 	uint32 NumBlocksX = (MipSizeX + BlockSizeX - 1) / BlockSizeX;
 	uint32 NumBlocksY = (MipSizeY + BlockSizeY - 1) / BlockSizeY;
 	if ( PixelFormat == PF_PVRTC2 || PixelFormat == PF_PVRTC4 )
@@ -743,7 +743,7 @@ void* TOpenGLTexture<RHIResourceType>::Lock(uint32 MipIndex,uint32 ArrayIndex,ER
 
 	DestStride = NumBlocksX * BlockBytes;
 
-	const int32 BufferIndex = MipIndex * (bCubemap ? 6 : 1) * this->GetEffectiveSizeZ() + ArrayIndex;
+	const int32 BufferIndex = InMipIndex * (bCubemap ? 6 : 1) * this->GetEffectiveSizeZ() + ArrayIndex;
 
 	// Should we use client-storage to improve update time on platforms that require it
 	const FOpenGLTextureFormat& GLFormat = GOpenGLTextureFormats[PixelFormat];
@@ -768,7 +768,7 @@ void* TOpenGLTexture<RHIResourceType>::Lock(uint32 MipIndex,uint32 ArrayIndex,ER
 
 		if( LockMode != RLM_WriteOnly && !bCPUTexResolved && FOpenGL::SupportsPixelBuffers() )
 		{
-			Resolve(MipIndex, ArrayIndex);
+			Resolve(InMipIndex, ArrayIndex);
 		}
 
 		result = PixelBuffer->Lock(0, PixelBuffer->GetSize(), LockMode == RLM_ReadOnly, LockMode != RLM_ReadOnly);
@@ -778,7 +778,7 @@ void* TOpenGLTexture<RHIResourceType>::Lock(uint32 MipIndex,uint32 ArrayIndex,ER
 		// Use APPLE_client_storage to reduce memory usage and improve performance
 		// GL's which support this extension only need copy a pointer, not the memory contents
 		check( FOpenGL::SupportsClientStorage() && !FOpenGL::SupportsTextureView() );
-		if(GetAllocatedStorageForMip(MipIndex,ArrayIndex))
+		if(GetAllocatedStorageForMip(InMipIndex,ArrayIndex))
 		{
 			result = ClientStorageBuffers[BufferIndex].Data;
 		}

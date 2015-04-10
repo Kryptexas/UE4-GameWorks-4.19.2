@@ -621,35 +621,35 @@ void FSceneRenderTargets::AllocGBufferTargets()
 	{
 
 		// Allocate the Gbuffer resource uniform buffer.
-		const FSceneRenderTargetItem& GBufferA = this->GBufferA ? this->GBufferA->GetRenderTargetItem() : GSystemTextures.BlackDummy->GetRenderTargetItem();
-		const FSceneRenderTargetItem& GBufferB = this->GBufferB ? this->GBufferB->GetRenderTargetItem() : GSystemTextures.BlackDummy->GetRenderTargetItem();
-		const FSceneRenderTargetItem& GBufferC = this->GBufferC ? this->GBufferC->GetRenderTargetItem() : GSystemTextures.BlackDummy->GetRenderTargetItem();
-		const FSceneRenderTargetItem& GBufferD = this->GBufferD ? this->GBufferD->GetRenderTargetItem() : GSystemTextures.BlackDummy->GetRenderTargetItem();
-		const FSceneRenderTargetItem& GBufferE = this->GBufferE ? this->GBufferE->GetRenderTargetItem() : GSystemTextures.BlackDummy->GetRenderTargetItem();
-		const FSceneRenderTargetItem& GBufferVelocity = this->GBufferVelocity ? this->GBufferVelocity->GetRenderTargetItem() : GSystemTextures.BlackDummy->GetRenderTargetItem();
+		const FSceneRenderTargetItem& GBufferAToUse = GBufferA ? GBufferA->GetRenderTargetItem() : GSystemTextures.BlackDummy->GetRenderTargetItem();
+		const FSceneRenderTargetItem& GBufferBToUse = GBufferB ? GBufferB->GetRenderTargetItem() : GSystemTextures.BlackDummy->GetRenderTargetItem();
+		const FSceneRenderTargetItem& GBufferCToUse = GBufferC ? GBufferC->GetRenderTargetItem() : GSystemTextures.BlackDummy->GetRenderTargetItem();
+		const FSceneRenderTargetItem& GBufferDToUse = GBufferD ? GBufferD->GetRenderTargetItem() : GSystemTextures.BlackDummy->GetRenderTargetItem();
+		const FSceneRenderTargetItem& GBufferEToUse = GBufferE ? GBufferE->GetRenderTargetItem() : GSystemTextures.BlackDummy->GetRenderTargetItem();
+		const FSceneRenderTargetItem& GBufferVelocityToUse = GBufferVelocity ? GBufferVelocity->GetRenderTargetItem() : GSystemTextures.BlackDummy->GetRenderTargetItem();
 
 		FGBufferResourceStruct GBufferResourceStruct;
 
-		GBufferResourceStruct.GBufferATexture = GBufferA.ShaderResourceTexture;
-		GBufferResourceStruct.GBufferBTexture = GBufferB.ShaderResourceTexture;
-		GBufferResourceStruct.GBufferCTexture = GBufferC.ShaderResourceTexture;
-		GBufferResourceStruct.GBufferDTexture = GBufferD.ShaderResourceTexture;
-		GBufferResourceStruct.GBufferETexture = GBufferE.ShaderResourceTexture;
-		GBufferResourceStruct.GBufferVelocityTexture = GBufferVelocity.ShaderResourceTexture;
+		GBufferResourceStruct.GBufferATexture = GBufferAToUse.ShaderResourceTexture;
+		GBufferResourceStruct.GBufferBTexture = GBufferBToUse.ShaderResourceTexture;
+		GBufferResourceStruct.GBufferCTexture = GBufferCToUse.ShaderResourceTexture;
+		GBufferResourceStruct.GBufferDTexture = GBufferDToUse.ShaderResourceTexture;
+		GBufferResourceStruct.GBufferETexture = GBufferEToUse.ShaderResourceTexture;
+		GBufferResourceStruct.GBufferVelocityTexture = GBufferVelocityToUse.ShaderResourceTexture;
 
-		GBufferResourceStruct.GBufferATextureNonMS = GBufferA.ShaderResourceTexture;
-		GBufferResourceStruct.GBufferBTextureNonMS = GBufferB.ShaderResourceTexture;
-		GBufferResourceStruct.GBufferCTextureNonMS = GBufferC.ShaderResourceTexture;
-		GBufferResourceStruct.GBufferDTextureNonMS = GBufferD.ShaderResourceTexture;
-		GBufferResourceStruct.GBufferETextureNonMS = GBufferE.ShaderResourceTexture;
-		GBufferResourceStruct.GBufferVelocityTextureNonMS = GBufferVelocity.ShaderResourceTexture;
+		GBufferResourceStruct.GBufferATextureNonMS = GBufferAToUse.ShaderResourceTexture;
+		GBufferResourceStruct.GBufferBTextureNonMS = GBufferBToUse.ShaderResourceTexture;
+		GBufferResourceStruct.GBufferCTextureNonMS = GBufferCToUse.ShaderResourceTexture;
+		GBufferResourceStruct.GBufferDTextureNonMS = GBufferDToUse.ShaderResourceTexture;
+		GBufferResourceStruct.GBufferETextureNonMS = GBufferEToUse.ShaderResourceTexture;
+		GBufferResourceStruct.GBufferVelocityTextureNonMS = GBufferVelocityToUse.ShaderResourceTexture;
 
-		GBufferResourceStruct.GBufferATextureMS = GBufferA.TargetableTexture;
-		GBufferResourceStruct.GBufferBTextureMS = GBufferB.TargetableTexture;
-		GBufferResourceStruct.GBufferCTextureMS = GBufferC.TargetableTexture;
-		GBufferResourceStruct.GBufferDTextureMS = GBufferD.TargetableTexture;
-		GBufferResourceStruct.GBufferETextureMS = GBufferE.TargetableTexture;
-		GBufferResourceStruct.GBufferVelocityTextureMS = GBufferVelocity.TargetableTexture;
+		GBufferResourceStruct.GBufferATextureMS = GBufferAToUse.TargetableTexture;
+		GBufferResourceStruct.GBufferBTextureMS = GBufferBToUse.TargetableTexture;
+		GBufferResourceStruct.GBufferCTextureMS = GBufferCToUse.TargetableTexture;
+		GBufferResourceStruct.GBufferDTextureMS = GBufferDToUse.TargetableTexture;
+		GBufferResourceStruct.GBufferETextureMS = GBufferEToUse.TargetableTexture;
+		GBufferResourceStruct.GBufferVelocityTextureMS = GBufferVelocityToUse.TargetableTexture;
 
 		GBufferResourceStruct.GBufferATextureSampler = TStaticSamplerState<>::GetRHI();
 		GBufferResourceStruct.GBufferBTextureSampler = TStaticSamplerState<>::GetRHI();
@@ -791,13 +791,13 @@ void FSceneRenderTargets::FinishRenderingSceneColor(FRHICommandListImmediate& RH
 
 bool FSceneRenderTargets::BeginRenderingCustomDepth(FRHICommandListImmediate& RHICmdList, bool bPrimitives)
 {
-	IPooledRenderTarget* CustomDepth = RequestCustomDepth(bPrimitives);
+	IPooledRenderTarget* CustomDepthRenderTarget = RequestCustomDepth(bPrimitives);
 
-	if(CustomDepth)
+	if(CustomDepthRenderTarget)
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, BeginRenderingCustomDepth);
 		
-		SetRenderTarget(RHICmdList, FTextureRHIRef(), CustomDepth->GetRenderTargetItem().ShaderResourceTexture);
+		SetRenderTarget(RHICmdList, FTextureRHIRef(), CustomDepthRenderTarget->GetRenderTargetItem().ShaderResourceTexture);
 
 		return true;
 	}
@@ -1293,8 +1293,10 @@ void FSceneRenderTargets::AllocateForwardShadingPathRenderTargets()
 
 void FSceneRenderTargets::AllocateForwardShadingShadowDepthTarget(const FIntPoint& ShadowBufferResolution)
 {
-	FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(ShadowBufferResolution, PF_ShadowDepth, TexCreate_None, TexCreate_DepthStencilTargetable, false));
-	GRenderTargetPool.FindFreeElement(Desc, ShadowDepthZ, TEXT("ShadowDepthZ"));
+	{
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(ShadowBufferResolution, PF_ShadowDepth, TexCreate_None, TexCreate_DepthStencilTargetable, false));
+		GRenderTargetPool.FindFreeElement(Desc, ShadowDepthZ, TEXT("ShadowDepthZ"));
+	}
 
 	if (!GSupportsDepthRenderTargetWithoutColorRenderTarget)
 	{

@@ -58,7 +58,7 @@ void UEndMatchCallbackProxy::Activate()
 	OnFailure.Broadcast();
 }
 
-void UEndMatchCallbackProxy::EndMatchDelegate(FString MatchID, bool Succeeded)
+void UEndMatchCallbackProxy::EndMatchDelegate(FString InMatchID, bool Succeeded)
 {
 	if (Succeeded)
 	{ 

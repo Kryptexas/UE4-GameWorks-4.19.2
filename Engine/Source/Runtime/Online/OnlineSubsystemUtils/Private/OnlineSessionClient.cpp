@@ -318,15 +318,15 @@ void UOnlineSessionClient::StartOnlineSession(FName SessionName)
 	if (PC)
 	{
 		UWorld* World = PC->GetWorld();
-		IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
-		if (SessionInt.IsValid())
+		IOnlineSessionPtr SessionInterface = Online::GetSessionInterface(World);
+		if (SessionInterface.IsValid())
 		{
-			FNamedOnlineSession* Session = SessionInt->GetNamedSession(SessionName);
+			FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
 			if (Session &&
 				(Session->SessionState == EOnlineSessionState::Pending || Session->SessionState == EOnlineSessionState::Ended))
 			{
-				StartSessionCompleteHandle = SessionInt->AddOnStartSessionCompleteDelegate_Handle(FOnStartSessionCompleteDelegate::CreateUObject(this, &UOnlineSessionClient::OnStartSessionComplete));
-				SessionInt->StartSession(SessionName);
+				StartSessionCompleteHandle = SessionInterface->AddOnStartSessionCompleteDelegate_Handle(FOnStartSessionCompleteDelegate::CreateUObject(this, &UOnlineSessionClient::OnStartSessionComplete));
+				SessionInterface->StartSession(SessionName);
 			}
 		}
 	}
@@ -339,10 +339,10 @@ void UOnlineSessionClient::OnStartSessionComplete(FName SessionName, bool bWasSu
 	if (PC)
 	{
 		UWorld* World = PC->GetWorld();
-		IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
-		if (SessionInt.IsValid())
+		IOnlineSessionPtr SessionInterface = Online::GetSessionInterface(World);
+		if (SessionInterface.IsValid())
 		{
-			SessionInt->ClearOnStartSessionCompleteDelegate_Handle(StartSessionCompleteHandle);
+			SessionInterface->ClearOnStartSessionCompleteDelegate_Handle(StartSessionCompleteHandle);
 		}
 	}
 }
@@ -353,15 +353,15 @@ void UOnlineSessionClient::EndOnlineSession(FName SessionName)
 	if (PC)
 	{
 		UWorld* World = PC->GetWorld();
-		IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
-		if (SessionInt.IsValid())
+		IOnlineSessionPtr SessionInterface = Online::GetSessionInterface(World);
+		if (SessionInterface.IsValid())
 		{
-			FNamedOnlineSession* Session = SessionInt->GetNamedSession(SessionName);
+			FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
 			if (Session &&
 				Session->SessionState == EOnlineSessionState::InProgress)
 			{
-				EndSessionCompleteHandle = SessionInt->AddOnEndSessionCompleteDelegate_Handle(FOnStartSessionCompleteDelegate::CreateUObject(this, &UOnlineSessionClient::OnEndSessionComplete));
-				SessionInt->EndSession(SessionName);
+				EndSessionCompleteHandle = SessionInterface->AddOnEndSessionCompleteDelegate_Handle(FOnStartSessionCompleteDelegate::CreateUObject(this, &UOnlineSessionClient::OnEndSessionComplete));
+				SessionInterface->EndSession(SessionName);
 			}
 		}
 	}
@@ -374,10 +374,10 @@ void UOnlineSessionClient::OnEndSessionComplete(FName SessionName, bool bWasSucc
 	if (PC)
 	{
 		UWorld* World = PC->GetWorld();
-		IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
-		if (SessionInt.IsValid())
+		IOnlineSessionPtr SessionInterface = Online::GetSessionInterface(World);
+		if (SessionInterface.IsValid())
 		{
-			SessionInt->ClearOnEndSessionCompleteDelegate_Handle(EndSessionCompleteHandle);
+			SessionInterface->ClearOnEndSessionCompleteDelegate_Handle(EndSessionCompleteHandle);
 		}
 	}
 }

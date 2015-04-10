@@ -57,7 +57,7 @@ void UQuitMatchCallbackProxy::Activate()
 	OnFailure.Broadcast();
 }
 
-void UQuitMatchCallbackProxy::QuitMatchDelegate(FString MatchID, bool Succeeded)
+void UQuitMatchCallbackProxy::QuitMatchDelegate(FString InMatchID, bool Succeeded)
 {
 	if (Succeeded)
 	{

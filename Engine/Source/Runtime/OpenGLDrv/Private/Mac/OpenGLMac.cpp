@@ -961,9 +961,9 @@ uint64 FMacOpenGL::GetVideoMemorySize()
 		GLint RendererID = 0;
 		GLint DisplayMask = 0;
 		
-		CGLPixelFormatObj PixelFormat = CGLGetPixelFormat(Context);
+		CGLPixelFormatObj ContextPixelFormat = CGLGetPixelFormat(Context);
 		
-		if(PixelFormat && CGLDescribePixelFormat(PixelFormat, VirtualScreen, kCGLPFADisplayMask, &DisplayMask) == kCGLNoError
+		if(ContextPixelFormat && CGLDescribePixelFormat(ContextPixelFormat, VirtualScreen, kCGLPFADisplayMask, &DisplayMask) == kCGLNoError
 		   && CGLGetParameter(Context, kCGLCPCurrentRendererID, &RendererID) == kCGLNoError)
 		{
 			// Get renderer info for all renderers that match the display mask.

@@ -322,8 +322,8 @@ void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const
 
 						// Display a UObject link to the UFunction that is crashing. Will open the Blueprint if able and focus on the function's graph
 						Message->AddToken(FTextToken::Create(LOCTEXT( "InfiniteLoopWarning_Function", ", asserted during ")));
-						const int32 BreakpointOffset = StackFrame.Code - StackFrame.Node->Script.GetData() - 1; //@TODO: Might want to make this a parameter of Info
-						UEdGraphNode* SourceNode = FindSourceNodeForCodeLocation(ActiveObject, StackFrame.Node, BreakpointOffset, /*bAllowImpreciseHit=*/ true);
+						const int32 BreakpointOpCodeOffset = StackFrame.Code - StackFrame.Node->Script.GetData() - 1; //@TODO: Might want to make this a parameter of Info
+						UEdGraphNode* SourceNode = FindSourceNodeForCodeLocation(ActiveObject, StackFrame.Node, BreakpointOpCodeOffset, /*bAllowImpreciseHit=*/ true);
 
 						// If a source node is found, that's the token we want to link, otherwise settle with the UFunction
 						if(SourceNode)

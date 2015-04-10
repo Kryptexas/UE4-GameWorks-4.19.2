@@ -455,10 +455,10 @@ float UFoliageType::GetInitAge(FRandomStream& RandomStream) const
 	return RandomStream.FRandRange(0, InitialMaxAge);
 }
 
-float UFoliageType::GetNextAge(const float CurrentAge, const int32 NumSteps) const
+float UFoliageType::GetNextAge(const float CurrentAge, const int32 InNumSteps) const
 {
 	float NewAge = CurrentAge;
-	for (int32 Count = 0; Count < NumSteps; ++Count)
+	for (int32 Count = 0; Count < InNumSteps; ++Count)
 	{
 		const float GrowAge = NewAge + 1;
 		if (GrowAge <= MaxAge)

@@ -1058,10 +1058,10 @@ void FOnlineAsyncTaskSteamFindLobbies::TriggerDelegates()
  *
  * @param LobbyId lobby to create the search result for
  */
-void FOnlineAsyncTaskSteamFindLobby::ParseSearchResult(FUniqueNetIdSteam& LobbyId)
+void FOnlineAsyncTaskSteamFindLobby::ParseSearchResult(FUniqueNetIdSteam& InLobbyId)
 {
 	FOnlineSessionSearchResult* NewSearchResult = new (SearchSettings->SearchResults) FOnlineSessionSearchResult();
-	if (!FillSessionFromLobbyData(LobbyId, NewSearchResult->Session))
+	if (!FillSessionFromLobbyData(InLobbyId, NewSearchResult->Session))
 	{
 		// Remove the failed element
 		SearchSettings->SearchResults.RemoveAtSwap(SearchSettings->SearchResults.Num() - 1);
@@ -1113,10 +1113,10 @@ void FOnlineAsyncTaskSteamFindLobby::Finalize()
 			// Parse any ready search results
 			for (int32 LobbyIdx=0; LobbyIdx < SessionInt->PendingSearchLobbyIds.Num(); LobbyIdx++)
 			{
-				FUniqueNetIdSteam& LobbyId = SessionInt->PendingSearchLobbyIds[LobbyIdx];
-				if (LobbyId.IsValid() && CSteamID(LobbyId).IsLobby())
+				FUniqueNetIdSteam& PendingLobbyId = SessionInt->PendingSearchLobbyIds[LobbyIdx];
+				if (PendingLobbyId.IsValid() && CSteamID(PendingLobbyId).IsLobby())
 				{
-					ParseSearchResult(LobbyId);
+					ParseSearchResult(PendingLobbyId);
 				}
 			}
 

@@ -166,9 +166,9 @@ void FFoliageInstanceBaseCache::CompactInstanceBaseCache(AInstancedFoliageActor*
 	FFoliageInstanceBaseCache& Cache = IFA->InstanceBaseCache;
 	
 	TSet<FFoliageInstanceBaseId> BasesInUse;
-	for (auto& Pair : IFA->FoliageMeshes)
+	for (auto& FoliageMeshPair : IFA->FoliageMeshes)
 	{
-		for (const auto& Pair : Pair.Value->ComponentHash)
+		for (const auto& Pair : FoliageMeshPair.Value->ComponentHash)
 		{
 			if (Pair.Key != FFoliageInstanceBaseCache::InvalidBaseId)
 			{

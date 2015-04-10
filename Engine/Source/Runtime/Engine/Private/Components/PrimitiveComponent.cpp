@@ -1768,9 +1768,9 @@ bool UPrimitiveComponent::OverlapComponent(const FVector& Pos, const FQuat& Rot,
 
 bool UPrimitiveComponent::ComputePenetration(FMTDResult& OutMTD, const FCollisionShape & CollisionShape, const FVector& Pos, const FQuat& Rot)
 {
-	if(FBodyInstance* BodyInstance = GetBodyInstance())
+	if(FBodyInstance* ComponentBodyInstance = GetBodyInstance())
 	{
-		return BodyInstance->OverlapTest(Pos, Rot, CollisionShape, &OutMTD);
+		return ComponentBodyInstance->OverlapTest(Pos, Rot, CollisionShape, &OutMTD);
 	}
 
 	return false;

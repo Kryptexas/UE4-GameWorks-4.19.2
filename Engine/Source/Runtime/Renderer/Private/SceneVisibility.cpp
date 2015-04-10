@@ -1388,24 +1388,24 @@ static void ComputeAndMarkRelevanceForViewParallel(
 }
 
 void FSceneRenderer::GatherDynamicMeshElements(
-	TArray<FViewInfo>& Views, 
-	const FScene* Scene, 
-	const FSceneViewFamily& ViewFamily, 
+	TArray<FViewInfo>& InViews, 
+	const FScene* InScene, 
+	const FSceneViewFamily& InViewFamily, 
 	const FPrimitiveViewMasks& HasDynamicMeshElementsMasks, 
 	const FPrimitiveViewMasks& HasDynamicEditorMeshElementsMasks, 
 	FMeshElementCollector& Collector)
 {
 	SCOPE_CYCLE_COUNTER(STAT_GetDynamicMeshElements);
 
-	int32 NumPrimitives = Scene->Primitives.Num();
+	int32 NumPrimitives = InScene->Primitives.Num();
 	check(HasDynamicMeshElementsMasks.Num() == NumPrimitives);
 
 	{
 		Collector.ClearViewMeshArrays();
 
-		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		for (int32 ViewIndex = 0; ViewIndex < InViews.Num(); ViewIndex++)
 		{
-			Collector.AddViewMeshArrays(&Views[ViewIndex], &Views[ViewIndex].DynamicMeshElements, &Views[ViewIndex].SimpleElementCollector, ViewFamily.GetFeatureLevel());
+			Collector.AddViewMeshArrays(&InViews[ViewIndex], &InViews[ViewIndex].DynamicMeshElements, &InViews[ViewIndex].SimpleElementCollector, InViewFamily.GetFeatureLevel());
 		}
 
 		for (int32 PrimitiveIndex = 0; PrimitiveIndex < NumPrimitives; ++PrimitiveIndex)
@@ -1414,9 +1414,9 @@ void FSceneRenderer::GatherDynamicMeshElements(
 
 			if (ViewMask != 0)
 			{
-				FPrimitiveSceneInfo* PrimitiveSceneInfo = Scene->Primitives[PrimitiveIndex];
+				FPrimitiveSceneInfo* PrimitiveSceneInfo = InScene->Primitives[PrimitiveIndex];
 				Collector.SetPrimitive(PrimitiveSceneInfo->Proxy, PrimitiveSceneInfo->DefaultDynamicHitProxyId);
-				PrimitiveSceneInfo->Proxy->GetDynamicMeshElements(ViewFamily.Views, ViewFamily, ViewMask, Collector);
+				PrimitiveSceneInfo->Proxy->GetDynamicMeshElements(InViewFamily.Views, InViewFamily, ViewMask, Collector);
 			}
 		}
 	}
@@ -1425,9 +1425,9 @@ void FSceneRenderer::GatherDynamicMeshElements(
 	{
 		Collector.ClearViewMeshArrays();
 
-		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		for (int32 ViewIndex = 0; ViewIndex < InViews.Num(); ViewIndex++)
 		{
-			Collector.AddViewMeshArrays(&Views[ViewIndex], &Views[ViewIndex].DynamicEditorMeshElements, &Views[ViewIndex].EditorSimpleElementCollector, ViewFamily.GetFeatureLevel());
+			Collector.AddViewMeshArrays(&InViews[ViewIndex], &InViews[ViewIndex].DynamicEditorMeshElements, &InViews[ViewIndex].EditorSimpleElementCollector, InViewFamily.GetFeatureLevel());
 		}
 
 		for (int32 PrimitiveIndex = 0; PrimitiveIndex < NumPrimitives; ++PrimitiveIndex)
@@ -1436,9 +1436,9 @@ void FSceneRenderer::GatherDynamicMeshElements(
 
 			if (ViewMask != 0)
 			{
-				FPrimitiveSceneInfo* PrimitiveSceneInfo = Scene->Primitives[PrimitiveIndex];
+				FPrimitiveSceneInfo* PrimitiveSceneInfo = InScene->Primitives[PrimitiveIndex];
 				Collector.SetPrimitive(PrimitiveSceneInfo->Proxy, PrimitiveSceneInfo->DefaultDynamicHitProxyId);
-				PrimitiveSceneInfo->Proxy->GetDynamicMeshElements(ViewFamily.Views, ViewFamily, ViewMask, Collector);
+				PrimitiveSceneInfo->Proxy->GetDynamicMeshElements(InViewFamily.Views, InViewFamily, ViewMask, Collector);
 			}
 		}
 	}

@@ -436,10 +436,10 @@ void UProceduralFoliageTile::RunSimulation(const int32 MaxNumSteps, bool bShadeG
 	InstancesToArray();
 }
 
-void UProceduralFoliageTile::Simulate(const UProceduralFoliageSpawner* InFoliageSpawner, const int32 RandomSeed, const int32 MaxNumSteps, const int32 InLastCancel)
+void UProceduralFoliageTile::Simulate(const UProceduralFoliageSpawner* InFoliageSpawner, const int32 InRandomSeed, const int32 MaxNumSteps, const int32 InLastCancel)
 {
 	LastCancel = InLastCancel;
-	InitSimulation(InFoliageSpawner, RandomSeed);
+	InitSimulation(InFoliageSpawner, InRandomSeed);
 
 	RunSimulation(MaxNumSteps, false);
 	RunSimulation(MaxNumSteps, true);

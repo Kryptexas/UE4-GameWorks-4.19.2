@@ -1915,8 +1915,6 @@ static void BindShaderStage(FOpenGLLinkedProgramConfiguration::ShaderInfo& Shade
 		
 			if(!bInterpolatorMatches)
 			{
-				FString PrevSource = GetShaderStageSource<TOpenGLStage1>(PrevStage);
-				
 				if(InputErrors.Num() == 0)
 				{
 					FOpenGLCodeHeader Header;

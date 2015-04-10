@@ -297,8 +297,8 @@ bool FCodeProjectEditor::Save()
 {
 	if(DocumentManager.IsValid() && DocumentManager->GetActiveTab().IsValid())
 	{
-		TSharedRef<SCodeEditor> CodeEditor = StaticCastSharedRef<SCodeEditor>(DocumentManager->GetActiveTab()->GetContent());
-		return CodeEditor->Save();
+		TSharedRef<SCodeEditor> CodeEditorRef = StaticCastSharedRef<SCodeEditor>(DocumentManager->GetActiveTab()->GetContent());
+		return CodeEditorRef->Save();
 	}
 
 	return false;
@@ -309,8 +309,8 @@ bool FCodeProjectEditor::CanSave() const
 	if(DocumentManager.IsValid() && DocumentManager->GetActiveTab().IsValid())
 	{
 		TSharedRef<SWidget> Content = DocumentManager->GetActiveTab()->GetContent();
-		TSharedRef<SCodeEditor> CodeEditor = StaticCastSharedRef<SCodeEditor>(Content);
-		return CodeEditor->CanSave();
+		TSharedRef<SCodeEditor> CodeEditorRef = StaticCastSharedRef<SCodeEditor>(Content);
+		return CodeEditorRef->CanSave();
 	}
 
 	return false;
@@ -332,8 +332,8 @@ bool FCodeProjectEditor::SaveAll()
 		{
 			if(Tab.IsValid())
 			{
-				TSharedRef<SCodeEditor> CodeEditor = StaticCastSharedRef<SCodeEditor>(Tab->GetContent());
-				if(!CodeEditor->Save())
+				TSharedRef<SCodeEditor> CodeEditorRef = StaticCastSharedRef<SCodeEditor>(Tab->GetContent());
+				if(!CodeEditorRef->Save())
 				{
 					bResult = false;
 				}

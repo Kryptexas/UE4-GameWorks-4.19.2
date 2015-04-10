@@ -610,9 +610,9 @@ public:
 			{
 				if (!ToLandscape)
 				{
-					ULandscapeInfo* LandscapeInfo = FromProxy->GetLandscapeInfo(false);
-					check(LandscapeInfo);
-					ToLandscape = LandscapeInfo->GetCurrentLevelLandscapeProxy(true);
+					ULandscapeInfo* ProxyLandscapeInfo = FromProxy->GetLandscapeInfo(false);
+					check(ProxyLandscapeInfo);
+					ToLandscape = ProxyLandscapeInfo->GetCurrentLevelLandscapeProxy(true);
 					if (!ToLandscape)
 					{
 						// No Landscape Proxy, don't support for creating only for Spline now
@@ -699,9 +699,9 @@ public:
 			{
 				if (!ToLandscape)
 				{
-					ULandscapeInfo* LandscapeInfo = FromProxy->GetLandscapeInfo(false);
-					check(LandscapeInfo);
-					ToLandscape = LandscapeInfo->GetCurrentLevelLandscapeProxy(true);
+					ULandscapeInfo* ProxyLandscapeInfo = FromProxy->GetLandscapeInfo(false);
+					check(ProxyLandscapeInfo);
+					ToLandscape = ProxyLandscapeInfo->GetCurrentLevelLandscapeProxy(true);
 					if (!ToLandscape)
 					{
 						// No Landscape Proxy, don't support for creating only for Spline now

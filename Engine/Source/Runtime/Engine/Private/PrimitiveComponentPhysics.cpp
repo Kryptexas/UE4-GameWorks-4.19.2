@@ -332,9 +332,9 @@ FVector UPrimitiveComponent::GetPhysicsAngularVelocity(FName BoneName)
 
 FVector UPrimitiveComponent::GetCenterOfMass(FName BoneName)
 {
-	if (FBodyInstance* BodyInstance = GetBodyInstance(BoneName))
+	if (FBodyInstance* ComponentBodyInstance = GetBodyInstance(BoneName))
 	{
-		return BodyInstance->GetCOMPosition();
+		return ComponentBodyInstance->GetCOMPosition();
 	}
 
 	return FVector::ZeroVector;

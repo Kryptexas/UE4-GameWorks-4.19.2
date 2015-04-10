@@ -641,10 +641,10 @@ namespace
 		{
 			void* ParentWindowWindowHandle = NULL;
 
-			const TSharedPtr<SWindow>& ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
-			if (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid())
+			const TSharedPtr<SWindow>& ParentWindowPtr = FSlateApplication::Get().FindWidgetWindow(AsShared());
+			if (ParentWindowPtr.IsValid() && ParentWindowPtr->GetNativeWindow().IsValid())
 			{
-				ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
+				ParentWindowWindowHandle = ParentWindowPtr->GetNativeWindow()->GetOSWindowHandle();
 			}
 
 			if (DesktopPlatform->SaveFileDialog(

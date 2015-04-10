@@ -105,7 +105,7 @@ namespace LocalizationConfigurationScript
 				}
 				AllLocalizationTargets.Append(LocalizationTargetSet->TargetObjects);
 
-				ULocalizationTarget* const * OtherTarget = AllLocalizationTargets.FindByPredicate([&TargetDependencyGuid](ULocalizationTarget* const OtherTarget)->bool{return OtherTarget->Settings.Guid == TargetDependencyGuid;});
+				ULocalizationTarget* const * OtherTarget = AllLocalizationTargets.FindByPredicate([&TargetDependencyGuid](ULocalizationTarget* const InOtherTarget)->bool{return InOtherTarget->Settings.Guid == TargetDependencyGuid;});
 				if (OtherTarget)
 				{
 					ConfigSection.Add( TEXT("ManifestDependencies"), MakePathRelativeForCommandletProcess(GetManifestPath(*OtherTarget), !Target->IsMemberOfEngineTargetSet()) );

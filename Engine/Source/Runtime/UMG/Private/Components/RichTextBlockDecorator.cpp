@@ -9,10 +9,10 @@
 class FDefaultRichTextRun : public FSlateTextRun
 {
 public:
-	FDefaultRichTextRun(URichTextBlockDecorator* Decorator, const TSharedRef<FTextLayout>& TextLayout, const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FTextBlockStyle& InStyle, const FTextRange& InRange)
+	FDefaultRichTextRun(URichTextBlockDecorator* InDecorator, const TSharedRef<FTextLayout>& InTextLayout, const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FTextBlockStyle& InStyle, const FTextRange& InRange)
 		: FSlateTextRun(InRunInfo, InText, InStyle, InRange)
-		, TextLayout(TextLayout)
-		, Decorator(Decorator)
+		, TextLayout(InTextLayout)
+		, Decorator(InDecorator)
 	{
 	}
 
@@ -87,10 +87,10 @@ private:
 /////////////////////////////////////////////////////
 // FDefaultRichTextDecorator
 
-FDefaultRichTextDecorator::FDefaultRichTextDecorator(URichTextBlockDecorator* Decorator, const FSlateFontInfo& DefaultFont, const FLinearColor& DefaultColor)
-	: DefaultFont(DefaultFont)
-	, DefaultColor(DefaultColor)
-	, Decorator(Decorator)
+FDefaultRichTextDecorator::FDefaultRichTextDecorator(URichTextBlockDecorator* InDecorator, const FSlateFontInfo& InDefaultFont, const FLinearColor& InDefaultColor)
+	: DefaultFont(InDefaultFont)
+	, DefaultColor(InDefaultColor)
+	, Decorator(InDecorator)
 {
 }
 

@@ -70,7 +70,7 @@ void UEndTurnCallbackProxy::Activate()
 	OnFailure.Broadcast();
 }
 
-void UEndTurnCallbackProxy::UploadMatchDataDelegate(FString MatchID, bool Succeeded)
+void UEndTurnCallbackProxy::UploadMatchDataDelegate(FString InMatchID, bool Succeeded)
 {
 	if (Succeeded)
 	{

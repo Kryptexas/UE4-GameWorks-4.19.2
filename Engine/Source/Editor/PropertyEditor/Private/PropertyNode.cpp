@@ -1541,22 +1541,20 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 
 						// dynamic arrays are the only property type that do not support CopySingleValue correctly due to the fact that they cannot
 						// be used in a static array
-						UArrayProperty* ArrayProp = Cast<UArrayProperty>(TheProperty);
 
-
-					
-						FPropertyNode* ParentNode = GetParentNode();
-						if(ParentNode != NULL && ParentNode->GetProperty() && ParentNode->GetProperty()->IsA(UArrayProperty::StaticClass()))
+						FPropertyNode* ParentPropertyNode = GetParentNode();
+						if(ParentPropertyNode != NULL && ParentPropertyNode->GetProperty() && ParentPropertyNode->GetProperty()->IsA(UArrayProperty::StaticClass()))
 						{
-							UArrayProperty* ArrayProp = Cast<UArrayProperty>(ParentNode->GetProperty());
+							UArrayProperty* ArrayProp = Cast<UArrayProperty>(ParentPropertyNode->GetProperty());
 							if(ArrayProp->Inner == TheProperty)
 							{
-								uint8* Addr = ParentNode->GetValueBaseAddress((uint8*)Object);
+								uint8* Addr = ParentPropertyNode->GetValueBaseAddress((uint8*)Object);
 
 								ArrayProp->ExportText_Direct(PreviousArrayValue, Addr, Addr, NULL, 0);
 							}
 						}
 
+						UArrayProperty* ArrayProp = Cast<UArrayProperty>(TheProperty);
 						if( ArrayProp != NULL )
 						{
 							TheProperty->CopyCompleteValue(ValueTracker.GetPropertyValueAddress(), ValueTracker.GetPropertyDefaultAddress());

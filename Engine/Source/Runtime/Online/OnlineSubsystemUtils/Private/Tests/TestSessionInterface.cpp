@@ -513,10 +513,10 @@ bool FTestSessionInterface::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevic
 					if (!bFound)
 					{
 						// use friend str as id instead of display name
-						TSharedPtr<FUniqueNetId> UserId = Identity->CreateUniquePlayerId(FriendStr);
-						if (UserId.IsValid())
+						TSharedPtr<FUniqueNetId> FriendUserId = Identity->CreateUniquePlayerId(FriendStr);
+						if (FriendUserId.IsValid())
 						{	
-							SessionInt->SendSessionInviteToFriend(LocalUserNum, SessionName, *UserId);
+							SessionInt->SendSessionInviteToFriend(LocalUserNum, SessionName, *FriendUserId);
 						}
 					}
 				}

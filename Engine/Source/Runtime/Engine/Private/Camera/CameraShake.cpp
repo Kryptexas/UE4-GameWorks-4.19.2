@@ -52,7 +52,7 @@ void UCameraShake::StopShake()
 	ReceiveStopShake();
 }
 
-void UCameraShake::PlayShake(APlayerCameraManager* Camera, float Scale, ECameraAnimPlaySpace::Type PlaySpace, FRotator UserPlaySpaceRot)
+void UCameraShake::PlayShake(APlayerCameraManager* Camera, float Scale, ECameraAnimPlaySpace::Type InPlaySpace, FRotator UserPlaySpaceRot)
 {
 	ShakeScale = Scale;
 	CameraOwner = Camera;
@@ -130,12 +130,12 @@ void UCameraShake::PlayShake(APlayerCameraManager* Camera, float Scale, ECameraA
 			float const FinalAnimScale = Scale * AnimScale;
 			if (FinalAnimScale > 0.f)
 			{
-				AnimInst = CameraOwner->PlayCameraAnim(Anim, AnimPlayRate, FinalAnimScale, AnimBlendInTime, AnimBlendOutTime, bLoop, bRandomStart, Duration, PlaySpace, UserPlaySpaceRot);
+				AnimInst = CameraOwner->PlayCameraAnim(Anim, AnimPlayRate, FinalAnimScale, AnimBlendInTime, AnimBlendOutTime, bLoop, bRandomStart, Duration, InPlaySpace, UserPlaySpaceRot);
 			}
 		}
 	}
 
-	if (PlaySpace == ECameraAnimPlaySpace::UserDefined)
+	if (InPlaySpace == ECameraAnimPlaySpace::UserDefined)
 	{
 		UserPlaySpaceMatrix = FRotationMatrix(UserPlaySpaceRot);
 	}

@@ -796,9 +796,9 @@ void FOpenGLDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI,F
 		FMemory::Memzero(FloatData.GetData(),SizeX * SizeY*sizeof(FLinearColor));
 		glReadPixels(Rect.Min.X, Rect.Min.Y, SizeX, SizeY, GL_RGBA, GL_FLOAT, FloatData.GetData());
 		FLinearColor* FloatDataPtr = FloatData.GetData();
-		for (uint32 Index = 0; Index < SizeX * SizeY; ++Index, ++FloatDataPtr)
+		for (uint32 DataIndex = 0; DataIndex < SizeX * SizeY; ++DataIndex, ++FloatDataPtr)
 		{
-			OutData[Index] = FFloat16Color(*FloatDataPtr);
+			OutData[DataIndex] = FFloat16Color(*FloatDataPtr);
 		}
 	}
 	else

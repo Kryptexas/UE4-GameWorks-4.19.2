@@ -648,17 +648,17 @@ private:
 	 * @param SortMethod method the leaderboard scores will be sorted, ignored if leaderboard exists
 	 * @param DisplayFormat type of data the leaderboard represents, ignored if leaderboard exists
 	 */
-	void CreateOrFindLeaderboard(const FName& LeaderboardName, ELeaderboardSort::Type InSortMethod, ELeaderboardFormat::Type InDisplayFormat)
+	void CreateOrFindLeaderboard(const FName& InLeaderboardName, ELeaderboardSort::Type InSortMethod, ELeaderboardFormat::Type InDisplayFormat)
 	{
 		if (bFindOnly)
 		{
-			CallbackHandle = SteamUserStats()->FindLeaderboard(TCHAR_TO_UTF8(*LeaderboardName.ToString()));
+			CallbackHandle = SteamUserStats()->FindLeaderboard(TCHAR_TO_UTF8(*InLeaderboardName.ToString()));
 		}
 		else
 		{
 			ELeaderboardSortMethod SortMethodSteam = ToSteamLeaderboardSortMethod(InSortMethod);
 			ELeaderboardDisplayType DisplayTypeSteam = ToSteamLeaderboardDisplayType(InDisplayFormat);
-			CallbackHandle = SteamUserStats()->FindOrCreateLeaderboard(TCHAR_TO_UTF8(*LeaderboardName.ToString()), SortMethodSteam, DisplayTypeSteam);
+			CallbackHandle = SteamUserStats()->FindOrCreateLeaderboard(TCHAR_TO_UTF8(*InLeaderboardName.ToString()), SortMethodSteam, DisplayTypeSteam);
 		}
 	}
 

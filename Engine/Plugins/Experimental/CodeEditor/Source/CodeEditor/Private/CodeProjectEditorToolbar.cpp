@@ -37,9 +37,9 @@ void FCodeProjectEditorToolbar::FillEditorToolbar(FToolBarBuilder& ToolbarBuilde
 		{
 			struct Local
 			{
-				static void ExecuteCompile(TSharedPtr<FCodeProjectEditor> CodeProjectEditorPtr)
+				static void ExecuteCompile(TSharedPtr<FCodeProjectEditor> InCodeProjectEditorPtr)
 				{
-					if(CodeProjectEditorPtr->SaveAll())
+					if(InCodeProjectEditorPtr->SaveAll())
 					{
 						FLevelEditorActionCallbacks::RecompileGameCode_Clicked();
 					}

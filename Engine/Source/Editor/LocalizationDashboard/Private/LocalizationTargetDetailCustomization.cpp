@@ -856,27 +856,27 @@ void FLocalizationTargetDetailCustomization::UpdateTargetFromReports()
 
 		if (TargetSettingsPropertyHandle.IsValid() && TargetSettingsPropertyHandle->IsValidHandle())
 		{
-			const TSharedPtr<IPropertyHandle> NativeCultureStatisticsPropertyHandle = TargetSettingsPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FLocalizationTargetSettings, NativeCultureStatistics));
-			if (NativeCultureStatisticsPropertyHandle.IsValid() && NativeCultureStatisticsPropertyHandle->IsValidHandle())
+			const TSharedPtr<IPropertyHandle> NativeCultureStatisticsPropHandle = TargetSettingsPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FLocalizationTargetSettings, NativeCultureStatistics));
+			if (NativeCultureStatisticsPropHandle.IsValid() && NativeCultureStatisticsPropHandle->IsValidHandle())
 			{
-				const TSharedPtr<IPropertyHandle> WordCountPropertyHandle = NativeCultureStatisticsPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FCultureStatistics, WordCount));
+				const TSharedPtr<IPropertyHandle> WordCountPropertyHandle = NativeCultureStatisticsPropHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FCultureStatistics, WordCount));
 				if (WordCountPropertyHandle.IsValid() && WordCountPropertyHandle->IsValidHandle())
 				{
 					WordCountPropertyHandles.Add(WordCountPropertyHandle);
 				}
 			}
 
-			const TSharedPtr<IPropertyHandle> SupportedCulturesStatisticsPropertyHandle = TargetSettingsPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FLocalizationTargetSettings, SupportedCulturesStatistics));
-			if (SupportedCulturesStatisticsPropertyHandle.IsValid() && SupportedCulturesStatisticsPropertyHandle->IsValidHandle())
+			const TSharedPtr<IPropertyHandle> SupportedCulturesStatisticsPropHandle = TargetSettingsPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FLocalizationTargetSettings, SupportedCulturesStatistics));
+			if (SupportedCulturesStatisticsPropHandle.IsValid() && SupportedCulturesStatisticsPropHandle->IsValidHandle())
 			{
 				uint32 SupportedCultureCount = 0;
-				SupportedCulturesStatisticsPropertyHandle->GetNumChildren(SupportedCultureCount);
+				SupportedCulturesStatisticsPropHandle->GetNumChildren(SupportedCultureCount);
 				for (uint32 i = 0; i < SupportedCultureCount; ++i)
 				{
-					const TSharedPtr<IPropertyHandle> ElementPropertyHandle = SupportedCulturesStatisticsPropertyHandle->GetChildHandle(i);
+					const TSharedPtr<IPropertyHandle> ElementPropertyHandle = SupportedCulturesStatisticsPropHandle->GetChildHandle(i);
 					if (ElementPropertyHandle.IsValid() && ElementPropertyHandle->IsValidHandle())
 					{
-						const TSharedPtr<IPropertyHandle> WordCountPropertyHandle = SupportedCulturesStatisticsPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FCultureStatistics, WordCount));
+						const TSharedPtr<IPropertyHandle> WordCountPropertyHandle = SupportedCulturesStatisticsPropHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FCultureStatistics, WordCount));
 						if (WordCountPropertyHandle.IsValid() && WordCountPropertyHandle->IsValidHandle())
 						{
 							WordCountPropertyHandles.Add(WordCountPropertyHandle);
