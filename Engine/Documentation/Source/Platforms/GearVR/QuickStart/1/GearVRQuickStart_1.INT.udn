@@ -1,0 +1,59 @@
+Availability:Public
+Title:1. Gear VR C++ Project Creation
+Crumbs:%ROOT%, Platforms/GearVR
+Description:How to create a UE4 C++ based project that can be used with the Gear VR Headset.
+Navigation:platform
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Platforms/GearVR/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Platforms/GearVR/QuickStart/2 "%Platforms/GearVR/QuickStart/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+%Steps%
+
+Setting up a UE4 project that works with the Samsung Gear VR Headset requires a slightly different setup than a normal UE4 project. 
+This is because a Gear VR Headset project needs to be created as a C++ project and then compiled to ensure that the proper files for the Gear VR Headset are compiled into the projects binary files. 
+In the following section we will go over everything you need to know about how to properly setup your projects so they work with the Gear VR Headset.
+
+[REGION:warning]
+Currently projects that are created using the Blueprint based templates **WILL NOT** work with the Gear VR Headset. 
+This means that all newly created Gear VR projects **MUST** use one of the C++ based templates. 
+However this does not mean that you can not use Blueprints in your projects even if they were created using the C++ based templates.
+[/REGION]
+
+1. First make sure that you have UE4 version **4.7.4** or later downloaded and installed on your development PC. 
+You can get UE4 version **4.7.4** or later from the [Unreal Engine Launcher](http://tinyurl.com/oawb7x2) or from [Github](https://www.unrealengine.com/ue4-on-github). 
+
+	[Region:note]
+	If you are using the [Github](https://www.unrealengine.com/ue4-on-github) version of UE4 to run the **Setup.Bat** file before going any further to ensure that you have the proper files downloaded to your development PC.
+	[/REGION]
+
+	![](GVR_New_Project_03.png)
+
+1. Once you have a version of UE4 **4.7.4** or later installed on your development PC create a new **C++ Project** from the **New Project Tab**.
+	![](GVR_New_Project_00.png)
+
+1. Next select the **First Person Template** as the template to be used and make sure to change the following options.
+	* **Mobile / Tablet**
+	* **Scalable 3D / 2D** 
+	* Also make sure to not include the **Starter Content** to help reduce project size.
+	![](GVR_New_Project_01.png)
+
+1. Finally give the project a location to be saved to and a name. The name for this example the project name will be **GearVR_QS**. Once everything has been completed press the green **Create Project** button to create the project.
+	![](GVR_New_Project_02.png)
+
+
+
+%Steps%

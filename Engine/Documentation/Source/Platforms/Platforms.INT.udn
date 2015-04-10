@@ -88,6 +88,9 @@ platforms
 		* [](Platforms/Oculus "%Platforms/Oculus:description%")
 			* [](Platforms/Oculus/BestPractices "%Platforms/Oculus/BestPractices:description%")
 			* [](Platforms/Oculus/QuickStart "%Platforms/Oculus/QuickStart:description%")
+		* [](Platforms/GearVR "%Platforms/GearVR:Description%")
+			* [](Platforms/GearVR/QuickStart "%Platforms/GearVR:Description%")
+			* [](Platforms/GearVR/BestPractices "%Platforms/GearVR:Description%")
 	[/PARAM]
 [/OBJECT]
 
