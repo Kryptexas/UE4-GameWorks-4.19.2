@@ -35,6 +35,11 @@ enum class EListItemAlignment : uint8
 };
 
 
+DECLARE_DELEGATE_OneParam(
+	FOnTableViewScrolled,
+	double );	/** Scroll offset from the beginning of the list in items */
+
+
 /**
  * Contains ListView functionality that does not depend on the type of data being observed by the ListView.
  */
@@ -45,7 +50,7 @@ class SLATE_API STableViewBase
 public:
 
 	/** Create the child widgets that comprise the list */
-	void ConstructChildren( const TAttribute<float>& InItemWidth, const TAttribute<float>& InItemHeight, const TAttribute<EListItemAlignment>& InItemAlignment, const TSharedPtr<SHeaderRow>& InColumnHeaders, const TSharedPtr<SScrollBar>& InScrollBar  );
+	void ConstructChildren( const TAttribute<float>& InItemWidth, const TAttribute<float>& InItemHeight, const TAttribute<EListItemAlignment>& InItemAlignment, const TSharedPtr<SHeaderRow>& InColumnHeaders, const TSharedPtr<SScrollBar>& InScrollBar, const FOnTableViewScrolled& InOnTableViewScrolled );
 
 	/** Sets the item height */
 	void SetItemHeight(TAttribute<float> Height);
@@ -88,6 +93,9 @@ public:
 	/** Scrolls the view to the bottom */
 	void ScrollToBottom();
 
+	/** Set the scroll offset of this view (in items) */
+	void SetScrollOffset( const float InScrollOffset );
+
 public:
 
 	// SWidget interface
@@ -121,7 +129,7 @@ public:
 protected:
 
 	STableViewBase( ETableViewMode::Type InTableViewMode );
-	
+
 	/**
 	 * Scroll the list view by some number of screen units.
 	 *
@@ -235,8 +243,12 @@ protected:
 
 	/** The panel which holds the visible widgets in this list */
 	TSharedPtr< SListPanel > ItemsPanel;
+
 	/** The scroll bar widget */
 	TSharedPtr< SScrollBar > ScrollBar;
+
+	/** Delegate to call when the table view is scrolled */
+	FOnTableViewScrolled OnTableViewScrolled;
 
 	/** Scroll offset from the beginning of the list in items */
 	double ScrollOffset;
