@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2347458
+﻿INTSourceChangelist:2505172
 Availability:Public
 Title:定型化されたレンダリングのポストプロセス
 Crumbs:%ROOT%, Resources, Resources/Showcases/Stylized
@@ -49,7 +49,7 @@ Related:Resources/ContentExamples/PostProcessing
 ![](Outline.png)
 
 [REGION:note]
-**上記の画像** は、アウトラインを処理するポストネットワークの一部を抽出して、エフェクトをより鮮明にするためにそれを単独で表示しています。　
+**上記の画像** は、アウトラインを処理するポストネットワークの一部を抽出して、エフェクトをより鮮明にするためにそれを単独で表示しています。
 [/REGION]
 
 このエフェクトは M_PostProcess_Paper マテリアル内に表示されます。主に **Line Render** とコメントされているセクションです。
@@ -59,12 +59,12 @@ Related:Resources/ContentExamples/PostProcessing
 [/REGION]
 
 [REGION:lightbox fullwidth]
-[![](LineRender02.png)](LineRender.png)
+[![](LineRender02.png)](LineRender02.png)
 [/REGION]
 
 **上記の各画像は** 、実物大で表示したい場合はそれぞれを **右クリック** して [Save As] を選択するのが最善です (Stylized Showcase 内には、マテリアル ネットワークもあります)。
 
-シーンに表示されるオブジェクト周りのアウトラインは、SceneTexture 式でシーン深度をサンプリングして処理しています。その後 UV 座標を少しだけ正と負の方向へ水平、垂直に凹凸をつけてオフセットしています。結果は組み合わされてアウトラインの位置を定義するために使用されます。 
+シーンに表示されるオブジェクト周りのアウトラインは、SceneTexture 式でシーン深度をサンプリングして処理しています。その後 UV 座標を少しだけ正と負の方向へ水平、垂直に凹凸をつけてオフセットしています。結果は組み合わされて、アウトラインの位置を定義するために使用されます。 
 
 しかしラインが実際にレンダリングされる前に、2 番目の SceneTexture はアンビエント オクルージョンで計算されています。これはアウトラインを隠すために使用します。ワイヤーフレームの端に表示されるいくつかの内部ラインを防ぐことが目的です。以下でこれらを可視化できます。
 
