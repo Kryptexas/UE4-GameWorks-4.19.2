@@ -68,7 +68,7 @@ class PAPER2D_API UPaperTileSet : public UObject
 
 #if WITH_EDITORONLY_DATA
 	/** The background color displayed in the tile set viewer */
-	UPROPERTY(Category=TileSet, EditAnywhere)
+	UPROPERTY(Category=TileSet, EditAnywhere, meta=(HideAlphaChannel))
 	FLinearColor BackgroundColor;
 #endif
 

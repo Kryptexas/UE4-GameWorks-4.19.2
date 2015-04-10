@@ -38,7 +38,7 @@ public:
 	FLinearColor TextureTint;
 
 	// The viewport background color
-	UPROPERTY(Category = Settings, EditAnywhere)
+	UPROPERTY(Category = Settings, EditAnywhere, meta=(HideAlphaChannel))
 	FLinearColor BackgroundColor;
 
 	UPROPERTY()

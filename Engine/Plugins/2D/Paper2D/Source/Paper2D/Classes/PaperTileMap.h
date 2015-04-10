@@ -106,7 +106,7 @@ public:
 	int32 SelectedLayerIndex;
 
 	/** The background color displayed in the tile map editor */
-	UPROPERTY(Category=Setup, EditAnywhere)
+	UPROPERTY(Category=Setup, EditAnywhere, meta=(HideAlphaChannel))
 	FLinearColor BackgroundColor;
 #endif
 
