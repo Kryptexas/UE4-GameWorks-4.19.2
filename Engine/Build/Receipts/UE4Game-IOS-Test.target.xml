@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <BuildReceipt xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Properties>
+    <Property Name="TargetName" Value="UE4Game" />
+    <Property Name="Platform" Value="IOS" />
+    <Property Name="Configuration" Value="Test" />
+    <Property Name="Precompile" Value="False" />
+  </Properties>
   <BuildProducts>
     <BuildProduct Path="$(EngineDir)/Binaries/IOS/UE4Game-IOS-Test" Type="Executable" />
     <BuildProduct Path="$(EngineDir)/Binaries/IOS/UE4Game-IOS-Test.stub" Type="Executable" />

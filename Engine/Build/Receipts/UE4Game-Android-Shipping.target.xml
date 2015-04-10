@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <BuildReceipt xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Properties>
+    <Property Name="TargetName" Value="UE4Game" />
+    <Property Name="Platform" Value="Android" />
+    <Property Name="Configuration" Value="Shipping" />
+    <Property Name="Precompile" Value="True" />
+  </Properties>
   <BuildProducts>
     <BuildProduct Path="$(EngineDir)\Binaries\Android\UE4Game-Android-Shipping-armv7-es2.so" Type="Executable" />
     <BuildProduct Path="$(EngineDir)\Binaries\Android\UE4Game-Android-Shipping-armv7-es2.apk" Type="Executable" />

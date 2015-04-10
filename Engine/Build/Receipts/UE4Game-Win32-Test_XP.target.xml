@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <BuildReceipt xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Properties>
+    <Property Name="TargetName" Value="UE4Game" />
+    <Property Name="Platform" Value="Win32" />
+    <Property Name="Configuration" Value="Test" />
+    <Property Name="Precompile" Value="False" />
+  </Properties>
   <BuildProducts>
     <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Win32-Test_XP.exe" Type="Executable" />
     <BuildProduct Path="$(EngineDir)\Binaries\Win32\UE4Game-Win32-Test_XP.pdb" Type="SymbolFile" />

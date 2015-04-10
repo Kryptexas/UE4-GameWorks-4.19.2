@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <BuildReceipt xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Properties>
+    <Property Name="TargetName" Value="UE4Game" />
+    <Property Name="Platform" Value="Mac" />
+    <Property Name="Configuration" Value="Test" />
+    <Property Name="Precompile" Value="False" />
+  </Properties>
   <BuildProducts>
     <BuildProduct Path="$(EngineDir)/Binaries/Mac/UE4Game-Mac-Test.app/Contents/MacOS/UE4Game-Mac-Test" Type="Executable" />
     <BuildProduct Path="$(EngineDir)/Binaries/Mac/UE4Game-Mac-Test.app/Contents/MacOS/libogg.dylib" Type="DynamicLibrary" />

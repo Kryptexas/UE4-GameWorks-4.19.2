@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <BuildReceipt xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Properties>
+    <Property Name="TargetName" Value="UE4Game" />
+    <Property Name="Platform" Value="Linux" />
+    <Property Name="Configuration" Value="Shipping" />
+    <Property Name="Precompile" Value="False" />
+  </Properties>
   <BuildProducts>
     <BuildProduct Path="$(EngineDir)\Binaries\Linux\UE4Game-Linux-Shipping" Type="Executable" />
     <BuildProduct Path="$(EngineDir)\Plugins\2D\Paper2D\Binaries\Linux\libUE4Game-Paper2D-Linux-Shipping-Static.a" Type="StaticLibrary" />
