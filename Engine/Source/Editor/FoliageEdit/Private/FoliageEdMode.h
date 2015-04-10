@@ -333,6 +333,8 @@ public:
 	static void AddInstances(UWorld* InWorld, const TArray<FDesiredFoliageInstance>& DesiredInstances);
 
 	typedef TMap<FName, TMap<ULandscapeComponent*, TArray<uint8> > > LandscapeLayerCacheData;
+
+	FSimpleMulticastDelegate OnToolChanged;
 private:
 
 	/** Add instances inside the brush to match DesiredInstanceCount */

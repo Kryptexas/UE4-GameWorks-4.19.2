@@ -19,21 +19,15 @@ public:
 private:
 	FFoliageTypePaintingCustomization(FEdModeFoliage* InFoliageEditMode);
 	
-	EVisibility GetAlignMaxAngleVisibility() const;
-	EVisibility GetScaleXVisibility() const;
-	EVisibility GetScaleYVisibility() const;
-	EVisibility GetScaleZVisibility() const;
-	EVisibility GetCollisionScaleVisibility() const;
-	EVisibility GetVertexColorMaskDetailsVisibility() const;
-	
+	EVisibility GetScaleVisibility(EAxis::Type Axis) const;
+	EVisibility GetNonReapplyPropertyVisibility() const;
 	EVisibility GetReapplyModeVisibility() const;
+
 	ECheckBoxState GetReapplyPropertyState(TSharedPtr<IPropertyHandle> ReapplyProperty) const;
 	void OnReapplyPropertyStateChanged(ECheckBoxState CheckState, TSharedPtr<IPropertyHandle> ReapplyProperty);
 	bool IsReapplyPropertyEnabled(TSharedPtr<IPropertyHandle> ReapplyProperty) const;
 
-	EVisibility GetDensityVisibility() const;
-	EVisibility GetReapplyDensityAmountVisibility() const;
-
+	/** Adds a property that can optionally be hidden behind another when the reapply tool is active */
 	IDetailPropertyRow& AddFoliageProperty(
 		IDetailCategoryBuilder& Category,
 		TSharedPtr<IPropertyHandle>& Property, 
@@ -41,47 +35,15 @@ private:
 		const TAttribute<EVisibility>& InVisibility,
 		const TAttribute<bool>& InEnabled);
 
-	static void HideFoliageCategory(IDetailLayoutBuilder& DetailLayout,	FName CategoryName);
-	
+	void ShowFoliagePropertiesForCategory(IDetailLayoutBuilder& DetailLayoutBuilder, const FName CategoryName, TMap<const FName, IDetailPropertyRow*>& OutDetailRowsByPropertyName);
+
+	/** Gets the visibility attribute for property that is hidden behind another */
+	void GetHiddenPropertyVisibility(const TSharedPtr<IPropertyHandle>& PropertyHandle, bool bHideInReapplyTool, TAttribute<EVisibility>& OutVisibility) const;
+
 private:
 	/** Pointer to the foliage edit mode. */
 	FEdModeFoliage* FoliageEditMode;
 
-	TSharedPtr<IPropertyHandle> Density;
-	TSharedPtr<IPropertyHandle> Radius;
-	TSharedPtr<IPropertyHandle> AlignToNormal;
-	TSharedPtr<IPropertyHandle> AlignMaxAngle;
-	TSharedPtr<IPropertyHandle> RandomYaw;
 	TSharedPtr<IPropertyHandle> Scaling;
-	TSharedPtr<IPropertyHandle> ScaleX;
-	TSharedPtr<IPropertyHandle> ScaleY;
-	TSharedPtr<IPropertyHandle> ScaleZ;
-	TSharedPtr<IPropertyHandle> ZOffset;
-	TSharedPtr<IPropertyHandle> RandomPitchAngle;
-	TSharedPtr<IPropertyHandle> GroundSlopeAngle;
-	TSharedPtr<IPropertyHandle> Height;
-	TSharedPtr<IPropertyHandle>	LandscapeLayers;
-	TSharedPtr<IPropertyHandle>	MinimumLayerWeight;
-	TSharedPtr<IPropertyHandle> CollisionWithWorld;
-	TSharedPtr<IPropertyHandle> CollisionScale;
-	TSharedPtr<IPropertyHandle> VertexColorMask;
-	TSharedPtr<IPropertyHandle> VertexColorMaskInvert;
-	TSharedPtr<IPropertyHandle> VertexColorMaskThreshold;
-
-	//
-	TSharedPtr<IPropertyHandle> ReapplyDensity;
-	TSharedPtr<IPropertyHandle> ReapplyDensityAmount;
-	TSharedPtr<IPropertyHandle> ReapplyRadius;
-	TSharedPtr<IPropertyHandle> ReapplyAlignToNormal;
-	TSharedPtr<IPropertyHandle> ReapplyRandomYaw;
-	TSharedPtr<IPropertyHandle> ReapplyScaleX;
-	TSharedPtr<IPropertyHandle> ReapplyScaleY;
-	TSharedPtr<IPropertyHandle> ReapplyScaleZ;
-	TSharedPtr<IPropertyHandle> ReapplyRandomPitchAngle;
-	TSharedPtr<IPropertyHandle> ReapplyGroundSlopeAngle;
-	TSharedPtr<IPropertyHandle> ReapplyHeight;
-	TSharedPtr<IPropertyHandle> ReapplyLandscapeLayer;
-	TSharedPtr<IPropertyHandle> ReapplyZOffset;
-	TSharedPtr<IPropertyHandle> ReapplyCollisionWithWorld;
-	TSharedPtr<IPropertyHandle> ReapplyVertexColorMask;
+	TSharedPtr<IPropertyHandle> ReapplyScaling;
 };

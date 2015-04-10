@@ -301,6 +301,8 @@ void FEdModeFoliage::NotifyToolChanged()
 	{
 		ApplySelectionToComponents(GetWorld(), false);
 	}
+
+	OnToolChanged.Broadcast();
 }
 
 bool FEdModeFoliage::DisallowMouseDeltaTracking() const
@@ -1317,31 +1319,34 @@ void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliage
 			}
 
 			// Reapply scale
-			FVector NewScale = Settings->GetRandomScale();
-			
-			if (Settings->ReapplyScaleX)
+			if (Settings->ReapplyScaling)
 			{
-				if (Settings->Scaling == EFoliageScaling::Uniform)
-				{
-					Instance.DrawScale3D = NewScale;
-				}
-				else
-				{
-					Instance.DrawScale3D.X = NewScale.X;
-				}
-				bUpdated = true;
-			}
+				FVector NewScale = Settings->GetRandomScale();
 
-			if (Settings->ReapplyScaleY)
-			{
-				Instance.DrawScale3D.Y = NewScale.Y;
-				bUpdated = true;
-			}
+				if (Settings->ReapplyScaleX)
+				{
+					if (Settings->Scaling == EFoliageScaling::Uniform)
+					{
+						Instance.DrawScale3D = NewScale;
+					}
+					else
+					{
+						Instance.DrawScale3D.X = NewScale.X;
+					}
+					bUpdated = true;
+				}
 
-			if (Settings->ReapplyScaleZ)
-			{
-				Instance.DrawScale3D.Z = NewScale.Z;
-				bUpdated = true;
+				if (Settings->ReapplyScaleY)
+				{
+					Instance.DrawScale3D.Y = NewScale.Y;
+					bUpdated = true;
+				}
+
+				if (Settings->ReapplyScaleZ)
+				{
+					Instance.DrawScale3D.Z = NewScale.Z;
+					bUpdated = true;
+				}
 			}
 
 			// Reapply ZOffset
@@ -1352,7 +1357,7 @@ void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliage
 			}
 
 			// Find a ground normal for either normal or ground slope check.
-			if (bReapplyNormal || Settings->ReapplyGroundSlope || Settings->ReapplyVertexColorMask || (Settings->ReapplyLandscapeLayer && LandscapeLayersValid(Settings)))
+			if (bReapplyNormal || Settings->ReapplyGroundSlope || Settings->ReapplyVertexColorMask || (Settings->ReapplyLandscapeLayers && LandscapeLayersValid(Settings)))
 			{
 				FHitResult Hit;
 				static const FName NAME_ReapplyInstancesForBrush = TEXT("ReapplyInstancesForBrush");
@@ -1388,7 +1393,7 @@ void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliage
 					}
 
 					// Cull instances for the landscape layer
-					if (Settings->ReapplyLandscapeLayer && LandscapeLayersValid(Settings))
+					if (Settings->ReapplyLandscapeLayers && LandscapeLayersValid(Settings))
 					{
 						float HitWeight = 1.f;
 						if (GetMaxHitWeight(Hit.Location, Hit.GetComponent(), Settings, &LandscapeLayerCaches, HitWeight))
@@ -1515,7 +1520,7 @@ void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliage
 
 void FEdModeFoliage::ReapplyInstancesDensityForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere, float Pressure)
 {
-	if (Settings->ReapplyDensity && !FMath::IsNearlyEqual(Settings->ReapplyDensityAmount, 1.f))
+	if (Settings->ReapplyDensity && !FMath::IsNearlyEqual(Settings->DensityAdjustmentFactor, 1.f))
 	{
 		// Determine number of instances at the start of the brush stroke
 		int32 SnapshotInstanceCount = 0;
@@ -1527,13 +1532,13 @@ void FEdModeFoliage::ReapplyInstancesDensityForBrush(UWorld* InWorld, const UFol
 		}
 	
 		// Determine desired number of instances
-		int32 DesiredInstanceCount = FMath::RoundToInt((float)SnapshotInstanceCount * Settings->ReapplyDensityAmount);
+		int32 DesiredInstanceCount = FMath::RoundToInt((float)SnapshotInstanceCount * Settings->DensityAdjustmentFactor);
 
-		if (Settings->ReapplyDensityAmount > 1.f)
+		if (Settings->DensityAdjustmentFactor > 1.f)
 		{
 			AddInstancesForBrush(InWorld, Settings, BrushSphere, DesiredInstanceCount, Pressure);
 		}
-		else if (Settings->ReapplyDensityAmount < 1.f)
+		else if (Settings->DensityAdjustmentFactor < 1.f)
 		{
 			RemoveInstancesForBrush(InWorld, Settings, BrushSphere, DesiredInstanceCount, Pressure);
 		}
@@ -2191,12 +2196,12 @@ bool FEdModeFoliage::CanPaint(const UFoliageType* FoliageType, const ULevel* InL
 UFoliageType* FEdModeFoliage::AddFoliageAsset(UObject* InAsset)
 {
 	UFoliageType* FoliageType = nullptr;
-
-	const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "FoliageMode_AddMeshTransaction", "Foliage Editing: Add Mesh"));
 	
+	const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "FoliageMode_AddTypeTransaction", "Add Foliage Type"));
+
 	UStaticMesh* StaticMesh = Cast<UStaticMesh>(InAsset);
 	if (StaticMesh)
-	{
+	{	
 		AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(GetWorld(), true);
 		FoliageType = IFA->GetSettingsForMesh(StaticMesh);
 		if (!FoliageType)

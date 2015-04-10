@@ -281,7 +281,7 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	MinimumLayerWeight = 0.5f;
 	DisplayOrder = 0;
 	IsSelected = false;
-	ReapplyDensityAmount = 1.0f;
+	DensityAdjustmentFactor = 1.0f;
 	CollisionWithWorld = false;
 	CollisionScale = FVector(0.9f, 0.9f, 0.9f);
 	VertexColorMask = FOLIAGEVERTEXCOLORMASK_Disabled;

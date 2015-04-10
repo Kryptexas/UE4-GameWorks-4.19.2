@@ -103,6 +103,7 @@ TSharedRef<SWidget> SFoliageEditMeshRow::GenerateWidgetForColumn(const FName& Co
 			SNew(SHorizontalBox)
 			
 			+SHorizontalBox::Slot()
+			.Padding(FMargin(10,1,0,1))
 			.VAlign(VAlign_Center)
 			.AutoWidth()
 			[

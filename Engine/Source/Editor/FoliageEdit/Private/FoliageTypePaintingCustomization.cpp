@@ -5,8 +5,11 @@
 #include "FoliageType.h"
 #include "FoliageEdMode.h"
 #include "FoliageTypePaintingCustomization.h"
+#include "FoliageTypeCustomizationHelpers.h"
 
 #define LOCTEXT_NAMESPACE "FoliageEd_Mode"
+
+DECLARE_DELEGATE_RetVal(EVisibility, FFoliageVisibilityDelegate);
 
 /////////////////////////////////////////////////////
 // FFoliageTypePaintingCustomization 
@@ -17,134 +20,104 @@ TSharedRef<IDetailCustomization> FFoliageTypePaintingCustomization::MakeInstance
 }
 
 FFoliageTypePaintingCustomization::FFoliageTypePaintingCustomization(FEdModeFoliage* InFoliageEditMode)
+	:FoliageEditMode(InFoliageEditMode)
 {
-	FoliageEditMode = InFoliageEditMode;
 }
 
 void FFoliageTypePaintingCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailLayoutBuilder)
 {
 	// Hide categories we are not going to customize
-	const static FName PaintingName("Painting");
-	const static FName PlacementName("Placement");
-	const static FName ProceduralName("Procedural");
-	HideFoliageCategory(DetailLayoutBuilder, PaintingName);
-	HideFoliageCategory(DetailLayoutBuilder, PlacementName);
-	HideFoliageCategory(DetailLayoutBuilder, ProceduralName);
+	FFoliageTypeCustomizationHelpers::HideFoliageCategory(DetailLayoutBuilder, "Procedural");
+	FFoliageTypeCustomizationHelpers::HideFoliageCategory(DetailLayoutBuilder, "Reapply");
 	
-	//
-	// Re-add customized properties 
-	//
-		
-	// Get the properties we need
-	TSharedPtr<IPropertyHandle> InvalidProperty;
-	IDetailCategoryBuilder& PaintingCategory = DetailLayoutBuilder.EditCategory("Painting");
-	
-	Density = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, Density));
-	Radius = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, Radius));
-	AlignToNormal = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, AlignToNormal));
-	AlignMaxAngle = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, AlignMaxAngle));
-	RandomYaw = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, RandomYaw));
+	// Show all the properties with a reapply condition or that depend on another variable to be relevant
+	TMap<const FName, IDetailPropertyRow*> PropertyRowsByName;
+	ShowFoliagePropertiesForCategory(DetailLayoutBuilder, "Painting", PropertyRowsByName);
+	ShowFoliagePropertiesForCategory(DetailLayoutBuilder, "Placement", PropertyRowsByName);
+	ShowFoliagePropertiesForCategory(DetailLayoutBuilder, "InstanceSettings", PropertyRowsByName);
+
+	// Density adjustment factor should only be visible when reapplying
+	FFoliageTypeCustomizationHelpers::ModifyFoliagePropertyRow(*PropertyRowsByName.Find(GET_MEMBER_NAME_CHECKED(UFoliageType, DensityAdjustmentFactor)),
+		TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::GetReapplyModeVisibility)),
+		TAttribute<bool>());
+
+	// Set the scale visibility attribute for each axis
 	Scaling = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, Scaling));
-	ScaleX = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, ScaleX));
-	ScaleY = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, ScaleY));
-	ScaleZ = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, ScaleZ));
-	ZOffset = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, ZOffset));
-	RandomPitchAngle = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, RandomPitchAngle));
-	GroundSlopeAngle = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, GroundSlopeAngle));
-	Height = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, Height));
-	LandscapeLayers = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, LandscapeLayers));
-	MinimumLayerWeight = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, MinimumLayerWeight));
-	CollisionWithWorld = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, CollisionWithWorld));
-	CollisionScale = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, CollisionScale));
-	VertexColorMask = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, VertexColorMask));
-	VertexColorMaskInvert = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, VertexColorMaskInvert));
-	VertexColorMaskThreshold = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, VertexColorMaskThreshold));
-	
-	//
-	ReapplyDensityAmount = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, ReapplyDensityAmount));
-	ReapplyDensity = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, ReapplyDensity));
-	ReapplyRadius = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, ReapplyRadius));
-	ReapplyAlignToNormal = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, ReapplyAlignToNormal));
-	ReapplyRandomYaw = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, ReapplyRandomYaw));
-	ReapplyScaleX = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, ReapplyScaleX));
-	ReapplyScaleY = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, ReapplyScaleY));
-	ReapplyScaleZ = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, ReapplyScaleZ));
-	ReapplyRandomPitchAngle = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, ReapplyRandomPitchAngle));
-	ReapplyGroundSlopeAngle = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, ReapplyGroundSlope));
-	ReapplyHeight = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, ReapplyHeight));
-	ReapplyLandscapeLayer = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, ReapplyLandscapeLayer));
-	ReapplyZOffset = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, ReapplyZOffset));
-	ReapplyCollisionWithWorld = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, ReapplyCollisionWithWorld));
-	ReapplyVertexColorMask = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, ReapplyVertexColorMask));
-	
-	// Density is hidden during Reapply mode
-	AddFoliageProperty(PaintingCategory, Density, InvalidProperty, 
-		TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::GetDensityVisibility)), 
-		TAttribute<bool>());
-	
-	// Reapply DensityAmount is visible only during Reapply mode
-	AddFoliageProperty(PaintingCategory, ReapplyDensityAmount, ReapplyDensity, 
-		TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::GetReapplyDensityAmountVisibility)), 
+	ReapplyScaling = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, ReapplyScaling));
+	FFoliageTypeCustomizationHelpers::ModifyFoliagePropertyRow(*PropertyRowsByName.Find(GET_MEMBER_NAME_CHECKED(UFoliageType, ScaleX)),
+		TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::GetScaleVisibility, EAxis::X)),
 		TAttribute<bool>());
 
-	// Radius
-	AddFoliageProperty(PaintingCategory, Radius, ReapplyRadius, TAttribute<EVisibility>(), TAttribute<bool>());
+	FFoliageTypeCustomizationHelpers::ModifyFoliagePropertyRow(*PropertyRowsByName.Find(GET_MEMBER_NAME_CHECKED(UFoliageType, ScaleY)),
+		TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::GetScaleVisibility, EAxis::Y)),
+		TAttribute<bool>());
 
-	// Align to normal
-	AddFoliageProperty(PaintingCategory, AlignToNormal, ReapplyAlignToNormal, TAttribute<EVisibility>(), TAttribute<bool>());
-	AddFoliageProperty(PaintingCategory, AlignMaxAngle, InvalidProperty,
-		TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::GetAlignMaxAngleVisibility)),
-		TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::IsReapplyPropertyEnabled, ReapplyAlignToNormal))); 
-		
-	// Random Yaw
-	AddFoliageProperty(PaintingCategory, RandomYaw, ReapplyRandomYaw, TAttribute<EVisibility>(), TAttribute<bool>());
-		
-	// Scaling
-	AddFoliageProperty(PaintingCategory, Scaling, InvalidProperty, TAttribute<EVisibility>(), TAttribute<bool>());
+	FFoliageTypeCustomizationHelpers::ModifyFoliagePropertyRow(*PropertyRowsByName.Find(GET_MEMBER_NAME_CHECKED(UFoliageType, ScaleZ)),
+		TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::GetScaleVisibility, EAxis::Z)),
+		TAttribute<bool>());
+}
+
+void FFoliageTypePaintingCustomization::ShowFoliagePropertiesForCategory(IDetailLayoutBuilder& DetailLayoutBuilder, const FName CategoryName, TMap<const FName, IDetailPropertyRow*>& OutDetailRowsByPropertyName)
+{
+	// Properties that have a ReapplyCondition should be disabled behind the specified property when in reapply mode
+	static const FName ReapplyConditionKey("ReapplyCondition");
 	
-	AddFoliageProperty(PaintingCategory, ScaleX, ReapplyScaleX, 
-		TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::GetScaleXVisibility)), TAttribute<bool>());
-	
-	AddFoliageProperty(PaintingCategory, ScaleY, ReapplyScaleY, 
-		TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::GetScaleYVisibility)), TAttribute<bool>());
-	
-	AddFoliageProperty(PaintingCategory, ScaleZ, ReapplyScaleZ, 
-		TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::GetScaleZVisibility)), TAttribute<bool>());
+	// Properties with a HideBehind property specified should only be shown if that property is true, non-zero, or not empty
+	static const FName HideBehindKey("HideBehind");
 
-	// ZOffset
-	AddFoliageProperty(PaintingCategory, ZOffset, ReapplyZOffset, TAttribute<EVisibility>(), TAttribute<bool>());
-	
-	// Random pitch
-	AddFoliageProperty(PaintingCategory, RandomPitchAngle, ReapplyRandomPitchAngle, TAttribute<EVisibility>(), TAttribute<bool>());
+	IDetailCategoryBuilder& CategoryBuilder = DetailLayoutBuilder.EditCategory(CategoryName);
+	TArray<TSharedRef<IPropertyHandle>> CategoryProperties;
+	CategoryBuilder.GetDefaultProperties(CategoryProperties, true, true);
 
-	// Ground slope
-	AddFoliageProperty(PaintingCategory, GroundSlopeAngle, ReapplyGroundSlopeAngle, TAttribute<EVisibility>(), TAttribute<bool>());
+	// Determine whether each property should be shown and how
+	for (auto& PropertyHandle : CategoryProperties)
+	{
+		bool bShowingProperty = false;
+		if (UProperty* Property = PropertyHandle->GetProperty())
+		{
+			// Check to see if this property can be reapplied
+			TSharedPtr<IPropertyHandle> ReapplyConditionPropertyHandle = DetailLayoutBuilder.GetProperty(*Property->GetMetaData(ReapplyConditionKey));
+			if (ReapplyConditionPropertyHandle.IsValid() && ReapplyConditionPropertyHandle->IsValidHandle())
+			{
+				// Create a custom entry that allows explicit enabling/disabling of the property when reapplying
+				TSharedPtr<IPropertyHandle> PropertyHandlePtr = PropertyHandle;
+				OutDetailRowsByPropertyName.FindOrAdd(PropertyHandle->GetProperty()->GetFName()) =
+					&AddFoliageProperty(CategoryBuilder, PropertyHandlePtr, ReapplyConditionPropertyHandle, TAttribute<EVisibility>(), TAttribute<bool>());
+			}
+			else
+			{
+				TSharedPtr<IPropertyHandle> InvalidProperty;
+				TSharedPtr<IPropertyHandle> PropertyHandlePtr = PropertyHandle;
 
-	// Height
-	AddFoliageProperty(PaintingCategory, Height, ReapplyHeight, TAttribute<EVisibility>(), TAttribute<bool>());
+				// Check to see if this property is hidden behind another
+				TSharedPtr<IPropertyHandle> HiddenBehindPropertyHandle = DetailLayoutBuilder.GetProperty(*Property->GetMetaData(HideBehindKey));
+				if (HiddenBehindPropertyHandle.IsValid() && HiddenBehindPropertyHandle->IsValidHandle())
+				{
+					TAttribute<bool> IsEnabledAttribute;
+					ReapplyConditionPropertyHandle = DetailLayoutBuilder.GetProperty(*HiddenBehindPropertyHandle->GetProperty()->GetMetaData(ReapplyConditionKey));
+					if (ReapplyConditionPropertyHandle.IsValid() && ReapplyConditionPropertyHandle->IsValidHandle())
+					{
+						// If the property this is hidden behind has a reapply condition, disable this when the condition is false
+						IsEnabledAttribute = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::IsReapplyPropertyEnabled, ReapplyConditionPropertyHandle));
+					}
 
-	// Landscape layers
-	AddFoliageProperty(PaintingCategory, LandscapeLayers, ReapplyLandscapeLayer, TAttribute<EVisibility>(), TAttribute<bool>());
-	AddFoliageProperty(PaintingCategory, MinimumLayerWeight, InvalidProperty, 
-		TAttribute<EVisibility>(), 
-		TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::IsReapplyPropertyEnabled, ReapplyLandscapeLayer))); 
+					TAttribute<EVisibility> VisibilityAttribute;
+					GetHiddenPropertyVisibility(HiddenBehindPropertyHandle, !IsEnabledAttribute.IsSet(), VisibilityAttribute);
 
-	// Collision with world
-	AddFoliageProperty(PaintingCategory, CollisionWithWorld, ReapplyCollisionWithWorld, TAttribute<EVisibility>(), TAttribute<bool>());
-	AddFoliageProperty(PaintingCategory, CollisionScale, InvalidProperty, 
-		TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::GetCollisionScaleVisibility)),
-		TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::IsReapplyPropertyEnabled, ReapplyCollisionWithWorld))); 
-
-	// Vertex color mask
-	AddFoliageProperty(PaintingCategory, VertexColorMask, ReapplyVertexColorMask, TAttribute<EVisibility>(), TAttribute<bool>());
-	
-	AddFoliageProperty(PaintingCategory, VertexColorMaskInvert, InvalidProperty, 
-		TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::GetVertexColorMaskDetailsVisibility)),
-		TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::IsReapplyPropertyEnabled, ReapplyVertexColorMask))); 
-	
-	AddFoliageProperty(PaintingCategory, VertexColorMaskThreshold, InvalidProperty, 
-		TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::GetVertexColorMaskDetailsVisibility)), 
-		TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::IsReapplyPropertyEnabled, ReapplyVertexColorMask))); 
+					OutDetailRowsByPropertyName.FindOrAdd(PropertyHandle->GetProperty()->GetFName()) =
+						&AddFoliageProperty(CategoryBuilder, PropertyHandlePtr, InvalidProperty, VisibilityAttribute, IsEnabledAttribute);
+				}
+				else
+				{
+					// This property cannot be reapplied and isn't hidden behind anything, so show it whenever the reapply tool isn't active
+					OutDetailRowsByPropertyName.FindOrAdd(PropertyHandle->GetProperty()->GetFName()) =
+						&AddFoliageProperty(CategoryBuilder, PropertyHandlePtr, InvalidProperty,
+						TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FFoliageTypePaintingCustomization::GetNonReapplyPropertyVisibility)),
+						TAttribute<bool>());
+				}
+			}
+		}
+	}
 }
 
 IDetailPropertyRow& FFoliageTypePaintingCustomization::AddFoliageProperty(
@@ -167,7 +140,7 @@ IDetailPropertyRow& FFoliageTypePaintingCustomization::AddFoliageProperty(
 		ValueWidget->SetEnabled(IsEnabled);
 		NameWidget->SetEnabled(IsEnabled);
 
-		PropertyRow.CustomWidget()
+		PropertyRow.CustomWidget(true)
 		.NameContent()
 		.MinDesiredWidth(Row.NameWidget.MinWidth)
 		.MaxDesiredWidth(Row.NameWidget.MaxWidth)
@@ -179,7 +152,6 @@ IDetailPropertyRow& FFoliageTypePaintingCustomization::AddFoliageProperty(
 				SNew(SCheckBox)
 				.IsChecked(this, &FFoliageTypePaintingCustomization::GetReapplyPropertyState, ReapplyProperty)
 				.OnCheckStateChanged(this, &FFoliageTypePaintingCustomization::OnReapplyPropertyStateChanged, ReapplyProperty)
-				.IsChecked(this, &FFoliageTypePaintingCustomization::GetReapplyPropertyState, ReapplyProperty)
 				.Visibility(this, &FFoliageTypePaintingCustomization::GetReapplyModeVisibility)
 				.ToolTipText(ReapplyProperty->GetToolTipText())
 			]
@@ -209,75 +181,42 @@ IDetailPropertyRow& FFoliageTypePaintingCustomization::AddFoliageProperty(
 		PropertyRow.Visibility(InVisibility);
 	}
 	
-	//
 	return PropertyRow;
 }
 
-void FFoliageTypePaintingCustomization::HideFoliageCategory(IDetailLayoutBuilder& DetailLayoutBuilder, FName CategoryName)
+void FFoliageTypePaintingCustomization::GetHiddenPropertyVisibility(const TSharedPtr<IPropertyHandle>& PropertyHandle, bool bHideInReapplyTool, TAttribute<EVisibility>& OutVisibility) const
 {
-	TArray<TSharedRef<IPropertyHandle>> CategoryProperties;
-	DetailLayoutBuilder.EditCategory(CategoryName).GetDefaultProperties(CategoryProperties, true, true);
+	TAttribute<EVisibility>::FGetter VisibilityGetter;
+	FFoliageTypeCustomizationHelpers::BindHiddenPropertyVisibilityGetter(PropertyHandle, VisibilityGetter);
 
-	for (auto& PropertyHandle : CategoryProperties)
+	if (bHideInReapplyTool)
 	{
-		DetailLayoutBuilder.HideProperty(PropertyHandle);
+		// In addition to hiding it it behind the given property, only show this in the reapply tool
+		OutVisibility = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateLambda([=]
+		{
+			if (!FoliageEditMode->UISettings.GetReapplyToolSelected() && VisibilityGetter.IsBound())
+			{
+				const EVisibility ReturnVal = VisibilityGetter.Execute();
+				return ReturnVal;
+			}
+			return EVisibility::Collapsed;
+		}));
+	}
+	else
+	{
+		OutVisibility.Bind(VisibilityGetter);
 	}
 }
 
-EVisibility FFoliageTypePaintingCustomization::GetAlignMaxAngleVisibility() const
+EVisibility FFoliageTypePaintingCustomization::GetScaleVisibility(EAxis::Type Axis) const
 {
-	bool bAlightToNormal;
-	if (AlignToNormal->GetValue(bAlightToNormal) == FPropertyAccess::Success)
+	// In reapply mode we only want to show these if scaling is being reapplied
+	if (IsReapplyPropertyEnabled(ReapplyScaling) || !FoliageEditMode->UISettings.GetReapplyToolSelected())
 	{
-		return bAlightToNormal ? EVisibility::Visible : EVisibility::Collapsed;
+		return FFoliageTypeCustomizationHelpers::GetScaleAxisVisibility(Axis, Scaling);
 	}
 
-	return EVisibility::Visible;
-}
-
-EVisibility FFoliageTypePaintingCustomization::GetScaleXVisibility() const
-{
-	return EVisibility::Visible;
-}
-
-EVisibility FFoliageTypePaintingCustomization::GetScaleYVisibility() const
-{
-	uint8 ScalingValue;
-	if (Scaling->GetValue(ScalingValue) == FPropertyAccess::Success)
-	{
-		return (ScalingValue == (uint8)EFoliageScaling::Uniform) ? EVisibility::Collapsed : EVisibility::Visible;
-	}
-	return EVisibility::Visible;
-}
-
-EVisibility FFoliageTypePaintingCustomization::GetScaleZVisibility() const
-{
-	uint8 ScalingValue;
-	if (Scaling->GetValue(ScalingValue) == FPropertyAccess::Success)
-	{
-		return (ScalingValue == (uint8)EFoliageScaling::Uniform) ? EVisibility::Collapsed : EVisibility::Visible;
-	}
-	return EVisibility::Visible;
-}
-
-EVisibility FFoliageTypePaintingCustomization::GetCollisionScaleVisibility() const
-{
-	bool bCollisionWithWorld = false;
-	if (CollisionWithWorld->GetValue(bCollisionWithWorld) == FPropertyAccess::Success)
-	{
-		return bCollisionWithWorld ? EVisibility::Visible : EVisibility::Collapsed;
-	}
-	return EVisibility::Visible;
-}
-
-EVisibility FFoliageTypePaintingCustomization::GetVertexColorMaskDetailsVisibility() const
-{
-	uint8 ColorMask;
-	if (VertexColorMask->GetValue(ColorMask) == FPropertyAccess::Success)
-	{
-		return ColorMask != FOLIAGEVERTEXCOLORMASK_Disabled ? EVisibility::Visible : EVisibility::Collapsed;
-	}
-	return EVisibility::Visible;
+	return EVisibility::Collapsed;
 }
 
 EVisibility FFoliageTypePaintingCustomization::GetReapplyModeVisibility() const
@@ -318,16 +257,10 @@ bool FFoliageTypePaintingCustomization::IsReapplyPropertyEnabled(TSharedPtr<IPro
 	return true;
 }
 
-EVisibility FFoliageTypePaintingCustomization::GetDensityVisibility() const
+EVisibility FFoliageTypePaintingCustomization::GetNonReapplyPropertyVisibility() const
 {
-	// mutually exclusive with ReapplyDensityAmmount
+	// Visible if the reapply tool is not active
 	return !FoliageEditMode->UISettings.GetReapplyToolSelected() ? EVisibility::Visible : EVisibility::Collapsed;
-}
-
-EVisibility FFoliageTypePaintingCustomization::GetReapplyDensityAmountVisibility() const
-{
-	// mutually exclusive with Density
-	return FoliageEditMode->UISettings.GetReapplyToolSelected() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 

@@ -4,31 +4,43 @@
 #include "FoliageEditModule.h"
 #include "PropertyEditing.h"
 #include "FoliageTypeDetails.h"
+#include "FoliageType.h"
+#include "FoliageTypeCustomizationHelpers.h"
 
 TSharedRef<IDetailCustomization> FFoliageTypeDetails::MakeInstance()
 {
 	return MakeShareable(new FFoliageTypeDetails());
-
 }
 
-static void HideFoliageCategory(IDetailLayoutBuilder& DetailBuilder, FName Category)
+void CustomizePropertyRowVisibility(IDetailLayoutBuilder& LayoutBuilder, const TSharedRef<IPropertyHandle>& PropertyHandle, IDetailPropertyRow& PropertyRow)
 {
-	TArray<TSharedRef<IPropertyHandle>> CategoryProperties;
-	DetailBuilder.EditCategory(Category).GetDefaultProperties(CategoryProperties, true, true);
-
-	for (auto& PropertyHandle : CategoryProperties)
+	// Properties with a HideBehind property specified should only be shown if that property is true, non-zero, or not empty
+	static const FName HideBehindName("HideBehind");
+	if (UProperty* Property = PropertyHandle->GetProperty())
 	{
-		DetailBuilder.HideProperty(PropertyHandle);
+		if (Property->HasMetaData(HideBehindName))
+		{
+			TSharedPtr<IPropertyHandle> HiddenBehindPropertyHandle = LayoutBuilder.GetProperty(*Property->GetMetaData(HideBehindName));
+			if (HiddenBehindPropertyHandle.IsValid() && HiddenBehindPropertyHandle->IsValidHandle())
+			{
+				TAttribute<EVisibility>::FGetter VisibilityGetter;
+				FFoliageTypeCustomizationHelpers::BindHiddenPropertyVisibilityGetter(HiddenBehindPropertyHandle, VisibilityGetter);
+
+				PropertyRow.Visibility(TAttribute<EVisibility>::Create(VisibilityGetter));
+			}
+		}
 	}
 }
 
-void AddSubcategoryProperties(IDetailCategoryBuilder& CategoryBuilder)
+void AddSubcategoryProperties(IDetailLayoutBuilder& LayoutBuilder, const FName CategoryName, TMap<const FName, IDetailPropertyRow*>* OutDetailRowsByPropertyName = nullptr)
 {
+	IDetailCategoryBuilder& CategoryBuilder = LayoutBuilder.EditCategory(CategoryName);
+
 	TArray<TSharedRef<IPropertyHandle>> CategoryProperties;
 	CategoryBuilder.GetDefaultProperties(CategoryProperties, true, true);
 
 	//Build map of subcategories to properties
-	const FName SubcategoryName("Subcategory");
+	static const FName SubcategoryName("Subcategory");
 	TMap<FString, TArray<TSharedRef<IPropertyHandle>> > SubcategoryPropertiesMap;
 	for (auto& PropertyHandle : CategoryProperties)
 	{
@@ -39,6 +51,17 @@ void AddSubcategoryProperties(IDetailCategoryBuilder& CategoryBuilder)
 				const FString& Subcategory = Property->GetMetaData(SubcategoryName);
 				TArray<TSharedRef<IPropertyHandle>>& PropertyHandles = SubcategoryPropertiesMap.FindOrAdd(Subcategory);
 				PropertyHandles.Add(PropertyHandle);
+			}
+			else
+			{
+				// The property is not in a subcategory, so add it now
+				auto& PropertyRow = CategoryBuilder.AddProperty(PropertyHandle);
+				CustomizePropertyRowVisibility(LayoutBuilder, PropertyHandle, PropertyRow);
+
+				if (OutDetailRowsByPropertyName)
+				{
+					OutDetailRowsByPropertyName->Add(Property->GetFName()) = &PropertyRow;
+				}
 			}
 		}
 	}
@@ -51,20 +74,45 @@ void AddSubcategoryProperties(IDetailCategoryBuilder& CategoryBuilder)
 		IDetailGroup& Group = CategoryBuilder.AddGroup(FName(*GroupString), FText::FromString(GroupString));
 		for (auto& PropertyHandle : PropertyHandles)
 		{
-			Group.AddPropertyRow(PropertyHandle);
+			auto& PropertyRow = Group.AddPropertyRow(PropertyHandle);
+			CustomizePropertyRowVisibility(LayoutBuilder, PropertyHandle, PropertyRow);
+
+			if (OutDetailRowsByPropertyName && PropertyHandle->GetProperty())
+			{
+				OutDetailRowsByPropertyName->Add(PropertyHandle->GetProperty()->GetFName()) = &PropertyRow;
+			}
 		}
 	}
 }
 
 void FFoliageTypeDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
+	const static FName ReapplyName("Reapply");
 	const static FName PaintingName("Painting");
 	const static FName PlacementName("Placement");
 	const static FName ProceduralName("Procedural");
 	const static FName InstanceSettingsName("InstanceSettings");
-	
-	HideFoliageCategory(DetailBuilder, PaintingName);
-	AddSubcategoryProperties(DetailBuilder.EditCategory(PlacementName));
-	AddSubcategoryProperties(DetailBuilder.EditCategory(ProceduralName));
-	AddSubcategoryProperties(DetailBuilder.EditCategory(InstanceSettingsName));
+
+	FFoliageTypeCustomizationHelpers::HideFoliageCategory(DetailBuilder, ReapplyName);
+	FFoliageTypeCustomizationHelpers::HideFoliageCategory(DetailBuilder, PaintingName);
+
+	TMap<const FName, IDetailPropertyRow*> PropertyRowsByName;
+	AddSubcategoryProperties(DetailBuilder, PlacementName, &PropertyRowsByName);
+	AddSubcategoryProperties(DetailBuilder, ProceduralName);
+	AddSubcategoryProperties(DetailBuilder, InstanceSettingsName);
+
+	// Custom visibility overrides for the scale axes
+	TSharedPtr<IPropertyHandle> Scaling = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UFoliageType, Scaling));
+
+	FFoliageTypeCustomizationHelpers::ModifyFoliagePropertyRow(*PropertyRowsByName.Find(GET_MEMBER_NAME_CHECKED(UFoliageType, ScaleX)),
+		TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&FFoliageTypeCustomizationHelpers::GetScaleAxisVisibility, EAxis::X, Scaling)),
+		TAttribute<bool>());
+
+	FFoliageTypeCustomizationHelpers::ModifyFoliagePropertyRow(*PropertyRowsByName.Find(GET_MEMBER_NAME_CHECKED(UFoliageType, ScaleY)),
+		TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&FFoliageTypeCustomizationHelpers::GetScaleAxisVisibility, EAxis::Y, Scaling)),
+		TAttribute<bool>());
+
+	FFoliageTypeCustomizationHelpers::ModifyFoliagePropertyRow(*PropertyRowsByName.Find(GET_MEMBER_NAME_CHECKED(UFoliageType, ScaleZ)),
+		TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&FFoliageTypeCustomizationHelpers::GetScaleAxisVisibility, EAxis::Z, Scaling)),
+		TAttribute<bool>());
 }

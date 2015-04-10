@@ -19,8 +19,6 @@ public:
 	/** SCompoundWidget functions */
 	void Construct(const FArguments& InArgs);
 
-	~SFoliageEdit();
-
 	/** Does a full refresh on the list. */
 	void RefreshFullList();
 
@@ -42,6 +40,9 @@ private:
 
 	/** Creates the toolbar. */
 	TSharedRef<SWidget> BuildToolBar();
+
+	/** Adds the foliage type asset to the foliage actor's list of meshes. */
+	void AddFoliageType(const class FAssetData& AssetData);
 
 	/** Delegate callbacks for the UI */
 
@@ -79,25 +80,40 @@ private:
 	void SetRadius(float InRadius);
 
 	/** Retrieves the brush Radius for the brush. */
-	float GetRadius() const;
+	TOptional<float> GetRadius() const;
 
 	/** Sets the Paint Density for the brush. */
 	void SetPaintDensity(float InDensity);
 
 	/** Retrieves the Paint Density for the brush. */
-	float GetPaintDensity() const;
+	TOptional<float> GetPaintDensity() const;
 
 	/** Sets the Erase Density for the brush. */
 	void SetEraseDensity(float InDensity);
 
 	/** Retrieves the Erase Density for the brush. */
-	float GetEraseDensity() const;
-	
+	TOptional<float> GetEraseDensity() const;
+
+	/** Gets the visibility of the Add Foliage Type text in the header row button */
+	EVisibility GetAddFoliageTypeButtonTextVisibility() const;
+
+	/** Gets the asset picker for adding a foliage type. */
+	TSharedRef<SWidget> OnGetAddFoliageMeshAssetPicker();
+
+	/** Retrieves the text for the filters option */
+	FText GetFilterText() const;
+
+	/** Retrieves the tooltip text for the filters option */
+	FText GetFilterTooltipText() const;
+
 	/** Sets the filter settings for if painting will occur on Landscapes. */
 	void OnCheckStateChanged_Landscape(ECheckBoxState InState);
 
 	/** Retrieves the filter settings for painting on Landscapes. */
 	ECheckBoxState GetCheckState_Landscape() const;
+
+	/** Retrieves the tooltip text for the landscape filter */
+	FText GetTooltipText_Landscape() const;
 
 	/** Sets the filter settings for if painting will occur on Static Meshes. */
 	void OnCheckStateChanged_StaticMesh(ECheckBoxState InState);
@@ -105,17 +121,26 @@ private:
 	/** Retrieves the filter settings for painting on Static Meshes. */
 	ECheckBoxState GetCheckState_StaticMesh() const;
 
+	/** Retrieves the tooltip text for the static mesh filter */
+	FText GetTooltipText_StaticMesh() const;
+
 	/** Sets the filter settings for if painting will occur on BSPs. */
 	void OnCheckStateChanged_BSP(ECheckBoxState InState);
 
 	/** Retrieves the filter settings for painting on BSPs. */
 	ECheckBoxState GetCheckState_BSP() const;
 
+	/** Retrieves the tooltip text for the BSP filter */
+	FText GetTooltipText_BSP() const;
+
 	/** Sets the filter settings for if painting will occur on translucent meshes. */
 	void OnCheckStateChanged_Translucent(ECheckBoxState InState);
 
 	/** Retrieves the filter settings for painting on translucent meshes. */
 	ECheckBoxState GetCheckState_Translucent() const;
+
+	/** Retrieves the tooltip text for the translucent filter */
+	FText GetTooltipText_Translucent() const;
 
 	/** Checks if the text in the empty list overlay should appear. If the list is has items but the the drag and drop override is true, it will return EVisibility::Visible. */
 	EVisibility GetVisibility_EmptyList() const;
@@ -176,6 +201,12 @@ private:
 	EColumnSortMode::Type GetMeshColumnSortMode() const;
 	void OnMeshesColumnSortModeChanged(EColumnSortPriority::Type InPriority, const FName& InColumnName, EColumnSortMode::Type InSortMode);
 
+	/** Handler to trigger a refresh of the details view when the active tool changes */
+	void HandleOnToolChanged();
+
+	/** Refreshes the mesh details widget to match the current selection */
+	void RefreshMeshDetailsWidget();
+
 private:
 	/** Foliage mesh tree widget  */
 	TSharedPtr<SFoliageMeshTree>	MeshTreeWidget;
@@ -188,4 +219,10 @@ private:
 
 	/** Pointer to the foliage edit mode. */
 	FEdModeFoliage*					FoliageEditMode;
+
+	/** The Add Foliage Type combo button */
+	TSharedPtr<class SComboButton> AddFoliageTypeCombo;
+
+	/** The header row of the foliage mesh tree */
+	TSharedPtr<class SHeaderRow> MeshTreeHeaderRowWidget;
 };
