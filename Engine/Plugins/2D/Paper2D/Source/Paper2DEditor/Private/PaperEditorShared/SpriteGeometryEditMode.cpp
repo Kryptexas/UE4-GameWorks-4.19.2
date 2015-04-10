@@ -3,6 +3,7 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "SpriteGeometryEditMode.h"
 #include "../SpriteEditor/SpriteEditorCommands.h"
+#include "SocketEditing.h"
 
 #define LOCTEXT_NAMESPACE "PaperGeometryEditing"
 
@@ -313,58 +314,6 @@ void FSpriteGeometryEditMode::SetGeometryBeingEdited(FSpriteGeometryCollection* 
 	SpriteGeometryHelper.SetGeometryBeingEdited(NewGeometryBeingEdited, bInAllowCircles, bInAllowSubtractivePolygons);
 	bIsMarqueeTracking = false;
 }
-// 
-// FVector2D FSpriteGeometryEditMode::SelectedItemConvertWorldSpaceDeltaToLocalSpace(const FVector& WorldSpaceDelta) const
-// {
-// 	const FVector ProjectionX = WorldSpaceDelta.ProjectOnTo(PaperAxisX);
-// 	const FVector ProjectionY = WorldSpaceDelta.ProjectOnTo(PaperAxisY);
-// 
-// 	const float XValue = FMath::Sign(ProjectionX | PaperAxisX) * ProjectionX.Size();
-// 	const float YValue = FMath::Sign(ProjectionY | PaperAxisY) * ProjectionY.Size();
-// 
-// 	return FVector2D(XValue, YValue);
-// }
-// 
-// FVector2D FSpriteGeometryEditMode::WorldSpaceToTextureSpace(const FVector& SourcePoint) const
-// {
-// 	const FVector ProjectionX = SourcePoint.ProjectOnTo(PaperAxisX);
-// 	const FVector ProjectionY = SourcePoint.ProjectOnTo(PaperAxisY);
-// 
-// 	const float XValue = FMath::Sign(ProjectionX | PaperAxisX) * ProjectionX.Size();
-// 	const float YValue = FMath::Sign(ProjectionY | PaperAxisY) * ProjectionY.Size();
-// 
-// 	return FVector2D(XValue, YValue);
-// }
-// 
-// FVector FSpriteGeometryEditMode::TextureSpaceToWorldSpace(const FVector2D& SourcePoint) const
-// {
-// 	return (SourcePoint.X * PaperAxisX) + (SourcePoint.Y * PaperAxisY);
-// }
-// 
-// float FSpriteGeometryEditMode::SelectedItemGetUnitsPerPixel() const
-// {
-// 	return 1.0f;
-// }
-// 
-// void FSpriteGeometryEditMode::BeginTransaction(const FText& SessionName)
-// {
-// 	// Dummy implementation does nothing
-// }
-// 
-// void FSpriteGeometryEditMode::MarkTransactionAsDirty()
-// {
-// 	// Dummy implementation does nothing
-// }
-// 
-// void FSpriteGeometryEditMode::EndTransaction()
-// {
-// 	// Dummy implementation does nothing
-// }
-// 
-// void FSpriteGeometryEditMode::InvalidateViewportAndHitProxies()
-// {
-// 	// Dummy implementation does nothing
-// }
 
 void FSpriteGeometryEditMode::BindCommands(TSharedPtr<FUICommandList> CommandList)
 {
@@ -456,6 +405,7 @@ void FSpriteGeometryEditMode::SelectVerticesInMarquee(FEditorViewportClient* Vie
 
 		const FBox2D QueryBounds(TextureSpaceStartPos, TextureSpaceEndPos);
 
+		// Check geometry
 		if (FSpriteGeometryCollection* Geometry = SpriteGeometryHelper.GetGeometryBeingEdited())
 		{
 			for (int32 ShapeIndex = 0; ShapeIndex < Geometry->Shapes.Num(); ++ShapeIndex)
@@ -494,6 +444,8 @@ void FSpriteGeometryEditMode::SelectVerticesInMarquee(FEditorViewportClient* Vie
 				}
 			}
 		}
+
+		//@TODO: Check other items (sockets/etc...)
 	}
 }
 
@@ -530,6 +482,22 @@ bool FSpriteGeometryEditMode::ProcessMarquee(FViewport* Viewport, FKey Key, EInp
 	}
 
 	return bMarqueeReady;
+}
+
+bool FSpriteGeometryEditMode::IsSocketSelected(FName SocketName) const
+{
+	for (TSharedPtr<FSelectedItem> SelectedItemPtr : SpriteGeometryHelper.GetSelectionSet())
+	{
+		if (const FSpriteSelectedSocket* SelectedSocket = SelectedItemPtr->CastTo<const FSpriteSelectedSocket>(FSpriteSelectedSocket::SocketTypeID))
+		{
+			if (SelectedSocket->SocketName == SocketName)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 void FSpriteGeometryEditMode::DrawMarquee(FViewport& InViewport, const FSceneView& View, FCanvas& Canvas, const FLinearColor& Color)

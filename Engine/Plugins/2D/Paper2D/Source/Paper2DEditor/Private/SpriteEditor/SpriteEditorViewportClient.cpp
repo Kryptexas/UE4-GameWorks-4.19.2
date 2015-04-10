@@ -640,7 +640,8 @@ void FSpriteEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& Vi
 
 	if (bShowSockets && !IsInSourceRegionEditMode())
 	{
-		FSocketEditingHelper::DrawSocketNames(RenderSpriteComponent, Viewport, View, Canvas);
+		FSpriteGeometryEditMode* GeometryEditMode = ModeTools->GetActiveModeTyped<FSpriteGeometryEditMode>(FSpriteGeometryEditMode::EM_SpriteGeometry);
+		FSocketEditingHelper::DrawSocketNames(GeometryEditMode, RenderSpriteComponent, Viewport, View, Canvas);
 	}
 
 	FEditorViewportClient::DrawCanvas(Viewport, View, Canvas);
@@ -661,7 +662,8 @@ void FSpriteEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInt
 
 	if (bShowSockets && !IsInSourceRegionEditMode())
 	{
-		FSocketEditingHelper::DrawSockets(RenderSpriteComponent, View, PDI);
+		FSpriteGeometryEditMode* GeometryEditMode = ModeTools->GetActiveModeTyped<FSpriteGeometryEditMode>(FSpriteGeometryEditMode::EM_SpriteGeometry);
+		FSocketEditingHelper::DrawSockets(GeometryEditMode, RenderSpriteComponent, View, PDI);
 	}
 }
 

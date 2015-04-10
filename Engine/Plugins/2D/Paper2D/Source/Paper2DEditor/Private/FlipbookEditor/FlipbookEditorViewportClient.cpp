@@ -61,7 +61,7 @@ void FFlipbookEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& 
 
 	if (bShowSockets)
 	{
-		FSocketEditingHelper::DrawSocketNames(AnimatedRenderComponent.Get(), Viewport, View, Canvas);
+		FSocketEditingHelper::DrawSocketNames(nullptr, AnimatedRenderComponent.Get(), Viewport, View, Canvas);
 	}
 }
 
@@ -76,7 +76,7 @@ void FFlipbookEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawI
 
 	if (bShowSockets)
 	{
-		FSocketEditingHelper::DrawSockets(AnimatedRenderComponent.Get(), View, PDI);
+		FSocketEditingHelper::DrawSockets(nullptr, AnimatedRenderComponent.Get(), View, PDI);
 	}
 }
 

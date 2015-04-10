@@ -2,6 +2,7 @@
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "SocketEditing.h"
+#include "SpriteGeometryEditMode.h"
 
 //////////////////////////////////////////////////////////////////////////
 // HSpriteSelectableObjectHitProxy
@@ -113,14 +114,15 @@ void FSpriteSelectedSocket::DeleteThisItem()
 //////////////////////////////////////////////////////////////////////////
 // FSocketEditingHelper
 
-void FSocketEditingHelper::DrawSockets(UPrimitiveComponent* PreviewComponent, const FSceneView* View, FPrimitiveDrawInterface* PDI)
+void FSocketEditingHelper::DrawSockets(FSpriteGeometryEditMode* GeometryEditMode, UPrimitiveComponent* PreviewComponent, const FSceneView* View, FPrimitiveDrawInterface* PDI)
 {
 	if (PreviewComponent != nullptr)
 	{
 		const bool bIsHitTesting = PDI->IsHitTesting();
 
 		const float DiamondSize = 5.0f;
-		const FColor DiamondColor(255, 128, 128);
+		const FColor UnselectedDiamondColor(255, 128, 128);
+		const FColor SelectedDiamondColor(FColor::White);
 
 		TArray<FComponentSocketDescription> SocketList;
 		PreviewComponent->QuerySupportedSockets(/*out*/ SocketList);
@@ -135,6 +137,9 @@ void FSocketEditingHelper::DrawSockets(UPrimitiveComponent* PreviewComponent, co
 				PDI->SetHitProxy(new HSpriteSelectableObjectHitProxy(Data));
 			}
 
+			const bool bIsSelected = (GeometryEditMode != nullptr) && GeometryEditMode->IsSocketSelected(Socket.Name);
+			const FColor& DiamondColor = bIsSelected ? SelectedDiamondColor : UnselectedDiamondColor;
+
 			const FMatrix SocketTM = PreviewComponent->GetSocketTransform(Socket.Name, RTS_World).ToMatrixWithScale();
 			DrawWireDiamond(PDI, SocketTM, DiamondSize, DiamondColor, SDPG_Foreground);
 
@@ -146,14 +151,15 @@ void FSocketEditingHelper::DrawSockets(UPrimitiveComponent* PreviewComponent, co
 	}
 }
 
-void FSocketEditingHelper::DrawSocketNames(UPrimitiveComponent* PreviewComponent, FViewport& Viewport, FSceneView& View, FCanvas& Canvas)
+void FSocketEditingHelper::DrawSocketNames(FSpriteGeometryEditMode* GeometryEditMode, UPrimitiveComponent* PreviewComponent, FViewport& Viewport, FSceneView& View, FCanvas& Canvas)
 {
 	if (PreviewComponent != nullptr)
 	{
 		const int32 HalfX = Viewport.GetSizeXY().X / 2;
 		const int32 HalfY = Viewport.GetSizeXY().Y / 2;
 
-		const FColor SocketNameColor(255, 196, 196);
+		const FColor UnselectedSocketNameColor(255, 196, 196);
+		const FColor SelectedSocketNameColor(FColor::White);
 
 		TArray<FComponentSocketDescription> SocketList;
 		PreviewComponent->QuerySupportedSockets(/*out*/ SocketList);
@@ -168,7 +174,10 @@ void FSocketEditingHelper::DrawSocketNames(UPrimitiveComponent* PreviewComponent
 				const int32 XPos = HalfX + (HalfX * Proj.X);
 				const int32 YPos = HalfY + (HalfY * (-Proj.Y));
 
-				FCanvasTextItem Msg(FVector2D(XPos, YPos), FText::FromString(Socket.Name.ToString()), GEngine->GetMediumFont(), SocketNameColor);
+				const bool bIsSelected = (GeometryEditMode != nullptr) && GeometryEditMode->IsSocketSelected(Socket.Name);
+				const FColor& SocketColor = bIsSelected ? SelectedSocketNameColor : UnselectedSocketNameColor;
+
+				FCanvasTextItem Msg(FVector2D(XPos, YPos), FText::FromString(Socket.Name.ToString()), GEngine->GetMediumFont(), SocketColor);
 				Msg.EnableShadow(FLinearColor::Black);
 				Canvas.DrawItem(Msg);
 
