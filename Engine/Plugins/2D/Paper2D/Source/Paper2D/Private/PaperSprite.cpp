@@ -1712,6 +1712,13 @@ void UPaperSprite::ValidateSocketNames()
 #endif
 
 #if WITH_EDITOR
+void UPaperSprite::RemoveSocket(FName SocketNameToDelete)
+{
+	Sockets.RemoveAll([=](const FPaperSpriteSocket& Socket){ return Socket.SocketName == SocketNameToDelete; });
+}
+#endif
+
+#if WITH_EDITOR
 void UPaperSprite::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);

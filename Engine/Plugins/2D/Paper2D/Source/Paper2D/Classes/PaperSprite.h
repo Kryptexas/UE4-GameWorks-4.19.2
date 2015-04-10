@@ -259,6 +259,9 @@ public:
 	// Make sure all socket names are valid
 	// All duplicate / empty names will be made unique
 	void ValidateSocketNames();
+
+	// Removes the specified socket
+	void RemoveSocket(FName SocketName);
 #endif
 
 	// Return the scaling factor between pixels and Unreal units (cm)

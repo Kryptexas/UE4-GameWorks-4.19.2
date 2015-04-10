@@ -22,6 +22,7 @@ public:
 	virtual bool Equals(const FSelectedItem& OtherItem) const override;
 	virtual void ApplyDelta(const FVector2D& Delta, const FRotator& Rotation, const FVector& Scale3D, FWidget::EWidgetMode MoveMode) override;
 	FVector GetWorldPos() const override;
+	virtual void DeleteThisItem() override;
 	// End of FSelectedItem interface
 };
 

@@ -58,8 +58,6 @@ public:
 
 	virtual void ClearSelectionSet();
 
-	virtual void DeleteSelectedItems(bool bShouldTransact = true);
-
 	virtual bool CanDeleteSelection() const;
 
 	~FSpriteSelectionHelper()
@@ -81,13 +79,13 @@ public:
 
 	// FSpriteSelectionHelper interface
 	virtual void ClearSelectionSet() override;
-	virtual void DeleteSelectedItems(bool bShouldTransact = true) override;
 	// End of FSpriteSelectionHelper interface
 
 	// FGCObject interface
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	// End of FGCObject interface
 
+	void DeleteSelectedItems();
 	void SetEditorContext(class ISpriteSelectionContext* InNewEditorContext);
 	class ISpriteSelectionContext* GetEditorContext() const;
 

@@ -31,11 +31,6 @@ void FSpriteSelectionHelper::ClearSelectionSet()
 	SelectedItemSet.Empty();
 }
 
-void FSpriteSelectionHelper::DeleteSelectedItems(bool bShouldTransact)
-{
-	//@TODO: Allow deletion of sockets, etc... here
-}
-
 void FSpriteSelectionHelper::SelectItem(TSharedPtr<FSelectedItem> NewItem)
 {
 	SelectedItemSet.Add(NewItem);
@@ -207,75 +202,102 @@ void FSpriteGeometryEditingHelper::ClearSelectionSet()
 	EditorContext->InvalidateViewportAndHitProxies();
 }
 
-void FSpriteGeometryEditingHelper::DeleteSelectedItems(bool bShouldTransact)
+void FSpriteGeometryEditingHelper::DeleteSelectedItems()
 {
-	// Make a set of polygon-vertices "pairs" to delete
+	// Determine which vertices or entire shapes should be deleted
 	TSet<FShapeVertexPair> CompositeIndicesSet;
 	TSet<int32> ShapesToDeleteSet;
 
-	FSpriteGeometryCollection& Geometry = GetGeometryChecked();
-
-	for (TSharedPtr<FSelectedItem> SelectionIt : GetSelectionSet())
+	if (IsEditingGeometry())
 	{
-		if (const FSpriteSelectedVertex* SelectedVertex = SelectionIt->CastTo<const FSpriteSelectedVertex>(FSelectionTypes::Vertex))
-		{
-			CompositeIndicesSet.Add(FShapeVertexPair(SelectedVertex->ShapeIndex, SelectedVertex->VertexIndex));
+		FSpriteGeometryCollection& Geometry = GetGeometryChecked();
 
-			if (SelectedVertex->IsA(FSelectionTypes::Edge)) // add the "next" point for the edge
-			{
-				const int32 NextIndex = (SelectedVertex->VertexIndex + 1) % Geometry.Shapes[SelectedVertex->ShapeIndex].Vertices.Num();
-				CompositeIndicesSet.Add(FShapeVertexPair(SelectedVertex->ShapeIndex, NextIndex));
-			}
-		}
-		else if (const FSpriteSelectedShape* SelectedShape = SelectionIt->CastTo<const FSpriteSelectedShape>(FSelectionTypes::GeometryShape))
+		for (TSharedPtr<FSelectedItem> SelectionIt : GetSelectionSet())
 		{
-			ShapesToDeleteSet.Add(SelectedShape->ShapeIndex);
+			if (const FSpriteSelectedVertex* SelectedVertex = SelectionIt->CastTo<const FSpriteSelectedVertex>(FSelectionTypes::Vertex))
+			{
+				CompositeIndicesSet.Add(FShapeVertexPair(SelectedVertex->ShapeIndex, SelectedVertex->VertexIndex));
+
+				if (SelectedVertex->IsA(FSelectionTypes::Edge)) // add the "next" point for the edge
+				{
+					const int32 NextIndex = (SelectedVertex->VertexIndex + 1) % Geometry.Shapes[SelectedVertex->ShapeIndex].Vertices.Num();
+					CompositeIndicesSet.Add(FShapeVertexPair(SelectedVertex->ShapeIndex, NextIndex));
+				}
+			}
+			else if (const FSpriteSelectedShape* SelectedShape = SelectionIt->CastTo<const FSpriteSelectedShape>(FSelectionTypes::GeometryShape))
+			{
+				ShapesToDeleteSet.Add(SelectedShape->ShapeIndex);
+			}
 		}
 	}
 
-	if ((CompositeIndicesSet.Num() > 0) || (ShapesToDeleteSet.Num() > 0))
+	// See if anything else can be deleted
+	bool bCanDeleteNonGeometry = false;
+	for (const TSharedPtr<FSelectedItem> SelectedItem : GetSelectionSet())
+	{
+		if (SelectedItem->CanBeDeleted())
+		{
+			bCanDeleteNonGeometry = true;
+			break;
+		}
+	}
+
+	// Now delete the stuff that was selected in the correct order so that indices aren't messed up
+	const bool bDeletingGeometry = (CompositeIndicesSet.Num() > 0) || (ShapesToDeleteSet.Num() > 0);
+	if (bDeletingGeometry || bCanDeleteNonGeometry)
 	{
 		EditorContext->BeginTransaction(LOCTEXT("DeleteSelectionTransaction", "Delete Selection"));
-
-		// Delete the selected vertices first, as they may cause entire shapes to need to be deleted (sort so we delete from the back first)
-		TArray<FShapeVertexPair> CompositeIndices = CompositeIndicesSet.Array();
-		CompositeIndices.Sort([](const FShapeVertexPair& A, const FShapeVertexPair& B) { return (A.VertexIndex > B.VertexIndex); });
-		for (const FShapeVertexPair& Composite : CompositeIndices)
-		{
-			const int32 ShapeIndex = Composite.ShapeIndex;
-			const int32 VertexIndex = Composite.VertexIndex;
-			if (DeleteVertexInPolygonInternal(Geometry, ShapeIndex, VertexIndex))
-			{
-				ShapesToDeleteSet.Add(ShapeIndex);
-			}
-		}
-
-		// Delete the selected shapes (plus any shapes that became empty due to selected vertices)
-		if (ShapesToDeleteSet.Num() > 0)
-		{
-			// Sort so we delete from the back first
-			TArray<int32> ShapesToDeleteIndicies = ShapesToDeleteSet.Array();
-			ShapesToDeleteIndicies.Sort([](const int32& A, const int32& B) { return (A > B); });
-			for (const int32 ShapeToDeleteIndex : ShapesToDeleteIndicies)
-			{
-				Geometry.Shapes.RemoveAt(ShapeToDeleteIndex);
-			}
-		}
-
-		Geometry.GeometryType = ESpritePolygonMode::FullyCustom;
 		EditorContext->MarkTransactionAsDirty();
 
-		//@TODO: Should allow deleting other things when geometry is also selected!
-		//FSpriteGeometryEditingHelper::DeleteSelectedItems(/*bShouldTransact=*/ false);
+		if (bDeletingGeometry)
+		{
+			FSpriteGeometryCollection& Geometry = GetGeometryChecked();
 
-		ClearSelectionSet();
+			// Delete the selected vertices first, as they may cause entire shapes to need to be deleted (sort so we delete from the back first)
+			TArray<FShapeVertexPair> CompositeIndices = CompositeIndicesSet.Array();
+			CompositeIndices.Sort([](const FShapeVertexPair& A, const FShapeVertexPair& B) { return (A.VertexIndex > B.VertexIndex); });
+			for (const FShapeVertexPair& Composite : CompositeIndices)
+			{
+				const int32 ShapeIndex = Composite.ShapeIndex;
+				const int32 VertexIndex = Composite.VertexIndex;
+				if (DeleteVertexInPolygonInternal(Geometry, ShapeIndex, VertexIndex))
+				{
+					ShapesToDeleteSet.Add(ShapeIndex);
+				}
+			}
+
+			// Delete the selected shapes (plus any shapes that became empty due to selected vertices)
+			if (ShapesToDeleteSet.Num() > 0)
+			{
+				// Sort so we delete from the back first
+				TArray<int32> ShapesToDeleteIndicies = ShapesToDeleteSet.Array();
+				ShapesToDeleteIndicies.Sort([](const int32& A, const int32& B) { return (A > B); });
+				for (const int32 ShapeToDeleteIndex : ShapesToDeleteIndicies)
+				{
+					Geometry.Shapes.RemoveAt(ShapeToDeleteIndex);
+				}
+			}
+
+			Geometry.GeometryType = ESpritePolygonMode::FullyCustom;
+		}
+
+		// Delete everything else
+		if (bCanDeleteNonGeometry)
+		{
+			for (TSharedPtr<FSelectedItem> SelectedItem : GetSelectionSet())
+			{
+				if (SelectedItem->CanBeDeleted())
+				{
+					SelectedItem->DeleteThisItem();
+				}
+			}
+		}
+
 		EditorContext->EndTransaction();
-		ResetAddPolygonMode();
 	}
-	else
-	{
-		FSpriteGeometryEditingHelper::DeleteSelectedItems(/*bShouldTransact=*/ true);
-	}
+
+	ClearSelectionSet();
+	ResetAddPolygonMode();
 }
 
 void FSpriteGeometryEditingHelper::AddReferencedObjects(FReferenceCollector& Collector)

@@ -93,6 +93,23 @@ FVector FSpriteSelectedSocket::GetWorldPos() const
 	return FVector::ZeroVector;
 }
 
+void FSpriteSelectedSocket::DeleteThisItem()
+{
+	if (UPrimitiveComponent* PreviewComponent = PreviewComponentPtr.Get())
+	{
+		if (PreviewComponent->DoesSocketExist(SocketName))
+		{
+			if (UPaperSpriteComponent* SpriteComponent = Cast<UPaperSpriteComponent>(PreviewComponent))
+			{
+				if (UPaperSprite* SpriteAsset = SpriteComponent->GetSprite())
+				{
+					SpriteAsset->RemoveSocket(SocketName);
+				}
+			}
+		}
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////
 // FSocketEditingHelper
 

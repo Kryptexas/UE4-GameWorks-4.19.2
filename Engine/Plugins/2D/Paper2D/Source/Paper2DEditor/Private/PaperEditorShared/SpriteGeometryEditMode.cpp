@@ -380,7 +380,7 @@ void FSpriteGeometryEditMode::BindCommands(TSharedPtr<FUICommandList> CommandLis
 	// Geometry editing commands
 	CommandList->MapAction(
 		Commands.DeleteSelection,
-		FExecuteAction::CreateRaw(&SpriteGeometryHelper, &FSpriteGeometryEditingHelper::DeleteSelectedItems, /*bShouldTransact=*/ true),
+		FExecuteAction::CreateRaw(&SpriteGeometryHelper, &FSpriteGeometryEditingHelper::DeleteSelectedItems),
 		FCanExecuteAction::CreateRaw(&SpriteGeometryHelper, &FSpriteGeometryEditingHelper::CanDeleteSelection));
 	CommandList->MapAction(
 		Commands.AddBoxShape,

@@ -57,6 +57,17 @@ public:
 		return false;
 	}
 
+	// Can this item be deleted?
+	virtual bool CanBeDeleted() const
+	{
+		return true;
+	}
+
+	// Delete this item
+	virtual void DeleteThisItem()
+	{
+	}
+
 	virtual ~FSelectedItem() {}
 };
 
