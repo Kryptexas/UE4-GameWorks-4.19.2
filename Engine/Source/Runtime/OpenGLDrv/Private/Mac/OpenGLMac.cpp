@@ -1001,6 +1001,21 @@ void FMacOpenGL::ProcessQueryGLInt()
 
 void FMacOpenGL::ProcessExtensions(const FString& ExtensionsString)
 {
+	// Get the Vendor ID by parsing the renderer string
+	FString VendorName( ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VENDOR)));
+	if (VendorName.Contains(TEXT("Intel ")))
+	{
+		GRHIVendorId = 0x8086;
+	}
+	else if (VendorName.Contains(TEXT("NVIDIA ")))
+	{
+		GRHIVendorId = 0x10DE;
+	}
+	else if (VendorName.Contains(TEXT("ATi ")) || VendorName.Contains(TEXT("AMD ")))
+	{
+		GRHIVendorId = 0x1002;
+	}
+	
 	ProcessQueryGLInt();
 	FOpenGL3::ProcessExtensions(ExtensionsString);
 	
