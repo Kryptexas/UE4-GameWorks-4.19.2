@@ -792,6 +792,14 @@ public:
 		}
 		TokenType = TOKEN_Const;
 	}
+	void SetConstChar(TCHAR InChar)
+	{
+		//@TODO: Treating this like a string for now, nothing consumes it
+		(FPropertyBase&)*this = FPropertyBase(CPT_String);
+		String[0] = InChar;
+		String[1] = 0;
+		TokenType = TOKEN_Const;
+	}
 	//!!struct constants
 
 	// Getters.
