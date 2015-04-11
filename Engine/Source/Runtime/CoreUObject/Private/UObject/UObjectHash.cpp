@@ -656,9 +656,88 @@ void LockUObjectHashTablesForGC()
 }
 
 /**
-* Releases UObject hash tables lock after GC has finished running
-*/
+ * Releases UObject hash tables lock after GC has finished running
+ */
 void UnlockUObjectHashTablesForGC()
 {
 	FUObjectHashTables::Get().Unlock();
 }
+
+void LogHashStatisticsInternal(TMultiMap<int32, UObjectBase*>& Hash, FOutputDevice& Ar, const bool bShowHashBucketCollisionInfo)
+{
+	TArray<int32> HashBuckets;
+	// Get the set of keys in use, which is the number of hash buckets
+	int32 SlotsInUse = Hash.GetKeys(HashBuckets);
+
+	int32 TotalCollisions = 0;
+	int32 MinCollisions = OBJECT_HASH_BINS;
+	int32 MaxCollisions = 0;
+	int32 MaxBin = 0;
+
+	// Dump how many slots are in use
+	Ar.Logf(TEXT("Slots in use %d"), SlotsInUse);
+
+	// Work through each slot and figure out how many collisions
+	for (auto HashBucket : HashBuckets)
+	{
+		int32 Collisions = 0;
+
+		for (TMultiMap<int32, UObjectBase*>::TConstKeyIterator HashIt(Hash, HashBucket); HashIt; ++HashIt)
+		{
+			// There's one collision per object in a given bucket
+			Collisions++;
+		}
+
+		// Keep the global stats
+		TotalCollisions += Collisions;
+		if (Collisions > MaxCollisions)
+		{
+			MaxBin = HashBucket;
+		}
+		MaxCollisions = FMath::Max<int32>(Collisions, MaxCollisions);
+		MinCollisions = FMath::Min<int32>(Collisions, MinCollisions);
+
+		if (bShowHashBucketCollisionInfo)
+		{
+			// Now log the output
+			Ar.Logf(TEXT("\tSlot %d has %d collisions"), HashBucket, Collisions);
+		}
+	}
+	Ar.Logf(TEXT(""));
+
+	// Dump the first 30 objects in the worst bin for inspection
+	Ar.Logf(TEXT("Worst hash bucket contains:"));
+	int32 Count = 0;
+	for (TMultiMap<int32, UObjectBase*>::TConstKeyIterator HashIt(Hash, MaxBin); HashIt && Count < 30; ++HashIt)
+	{
+		UObject* Object = (UObject*)HashIt.Value();
+		Ar.Logf(TEXT("\tObject is %s (%s)"), *Object->GetName(), *Object->GetFullName());
+		Count++;
+	}
+	Ar.Logf(TEXT(""));
+
+	// Now dump how efficient the hash is
+	Ar.Logf(TEXT("Collision Stats: Best Case (%d), Average Case (%d), Worst Case (%d)"),
+		MinCollisions,
+		FMath::FloorToInt(((float)TotalCollisions / (float)SlotsInUse)),
+		MaxCollisions);
+}
+
+void LogHashStatistics(FOutputDevice& Ar, const bool bShowHashBucketCollisionInfo)
+{
+	Ar.Logf(TEXT("Hash efficiency statistics for the Object Hash"));
+	Ar.Logf(TEXT("-------------------------------------------------"));
+	Ar.Logf(TEXT(""));
+	LogHashStatisticsInternal(ObjectHash, Ar, bShowHashBucketCollisionInfo);
+	Ar.Logf(TEXT(""));
+}
+
+void LogHashOuterStatistics(FOutputDevice& Ar, const bool bShowHashBucketCollisionInfo)
+{
+	Ar.Logf(TEXT("Hash efficiency statistics for the Outer Object Hash"));
+	Ar.Logf(TEXT("-------------------------------------------------"));
+	Ar.Logf(TEXT(""));
+	LogHashStatisticsInternal(ObjectHashOuter, Ar, bShowHashBucketCollisionInfo);
+	Ar.Logf(TEXT(""));
+}
+
