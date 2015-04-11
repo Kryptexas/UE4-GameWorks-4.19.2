@@ -2470,14 +2470,8 @@ namespace UnrealBuildTool
 				BaseDirectory = Path.Combine(BaseDirectory, ModuleBinariesSubDir);
 			}
 
-			string BinarySuffix = "";
-			if ((PluginInfo != null) && (BinaryType != UEBuildBinaryType.DynamicLinkLibrary))
-			{
-				BinarySuffix = "-Static";
-			}
-
 			// append the architecture to the end of the binary name
-            BinarySuffix = BuildPlatform.ApplyArchitectureName(BinarySuffix);
+            string BinarySuffix = BuildPlatform.ApplyArchitectureName("");
 
 			string OutBinaryPath = "";
 			// Append binary file name
