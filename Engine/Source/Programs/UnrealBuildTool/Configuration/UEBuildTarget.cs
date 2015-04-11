@@ -2503,7 +2503,7 @@ namespace UnrealBuildTool
 
 			// append the binary name
 			bool bIncludeConfiguration = (LocalConfig != UnrealTargetConfiguration.Development && !bForceNameAsForDevelopment);
-			string OutBinaryPath = Path.Combine(BaseDirectory, MakeBinaryFileName(BinaryName, Platform, Configuration, BinaryType, bIncludeConfiguration));
+			string OutBinaryPath = Path.Combine(BaseDirectory, MakeBinaryFileName(BinaryName, Platform, LocalConfig, BinaryType, bIncludeConfiguration));
 			return BuildPlatform.FinalizeBinaryPaths(OutBinaryPath);
 		}
 
