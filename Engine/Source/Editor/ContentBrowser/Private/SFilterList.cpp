@@ -3,6 +3,7 @@
 
 #include "ContentBrowserPCH.h"
 #include "FrontendFilters.h"
+#include "ContentBrowserFrontEndFilterExtension.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -381,20 +382,46 @@ void SFilterList::Construct( const FArguments& InArgs )
 
 	TSharedPtr<FFrontendFilterCategory> DefaultCategory = MakeShareable( new FFrontendFilterCategory(LOCTEXT("FrontendFiltersCategory", "Other Filters"), LOCTEXT("FrontendFiltersCategoryTooltip", "Filter assets by all filters in this category.")) );
 
-	// Add all frontend filters here
+	// Add all built-in frontend filters here
 	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_CheckedOut(DefaultCategory)) );
 	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_Modified(DefaultCategory)) );
 	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_ShowOtherDevelopers(DefaultCategory)) );
 	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_ReplicatedBlueprint(DefaultCategory)) );
 	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_ShowRedirectors(DefaultCategory)) );
 	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_InUseByLoadedLevels(DefaultCategory)) );
-	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_ArbitraryComparisonOperation(DefaultCategory)) ); //@TODO: Needs to be extensible
+	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_ArbitraryComparisonOperation(DefaultCategory)) );
 
-	for(auto Iter = InArgs._ExtraFrontendFilters.CreateConstIterator(); Iter; ++Iter)
+	// Add any global user-defined frontend filters
+	for (TObjectIterator<UContentBrowserFrontEndFilterExtension> ExtensionIt(RF_NoFlags); ExtensionIt; ++ExtensionIt)
+	{
+		if (UContentBrowserFrontEndFilterExtension* PotentialExtension = *ExtensionIt)
+		{
+			if (PotentialExtension->HasAnyFlags(RF_ClassDefaultObject) && !PotentialExtension->GetClass()->HasAnyCastFlag(CLASS_Deprecated | CLASS_Abstract))
+			{
+				// Grab the filters
+				TArray< TSharedRef<FFrontendFilter> > ExtendedFrontendFilters;
+				PotentialExtension->AddFrontEndFilterExtensions(DefaultCategory, ExtendedFrontendFilters);
+				AllFrontendFilters.Append(ExtendedFrontendFilters);
+
+				// Grab the categories
+				for (const TSharedRef<FFrontendFilter>& FilterRef : ExtendedFrontendFilters)
+				{
+					TSharedPtr<FFrontendFilterCategory> Category = FilterRef->GetCategory();
+					if (Category.IsValid())
+					{
+						AllFrontendFilterCategories.AddUnique(Category);
+					}
+				}
+			}
+		}
+	}
+
+	// Add in filters specific to this invocation
+	for (auto Iter = InArgs._ExtraFrontendFilters.CreateConstIterator(); Iter; ++Iter)
 	{
 		TSharedRef<FFrontendFilter> Filter = (*Iter);
 		TSharedPtr<FFrontendFilterCategory> Category = Filter->GetCategory();
-		if ( Category.IsValid() )
+		if (Category.IsValid())
 		{
 			AllFrontendFilterCategories.AddUnique( Category );
 		}
@@ -405,15 +432,17 @@ void SFilterList::Construct( const FArguments& InArgs )
 	AllFrontendFilterCategories.Add(DefaultCategory);
 
 	// Auto add all inverse filters
-	for ( auto FilterIt = AllFrontendFilters.CreateConstIterator(); FilterIt; ++FilterIt )
+	for (auto FilterIt = AllFrontendFilters.CreateConstIterator(); FilterIt; ++FilterIt)
 	{
 		SetFrontendFilterActive(*FilterIt, false);
 	}
 
+	FilterBox = SNew(SWrapBox)
+		.UseAllottedWidth(true);
+
 	ChildSlot
 	[
-		SAssignNew(FilterBox, SWrapBox)
-		.UseAllottedWidth(true)
+		FilterBox.ToSharedRef()
 	];
 }
 
