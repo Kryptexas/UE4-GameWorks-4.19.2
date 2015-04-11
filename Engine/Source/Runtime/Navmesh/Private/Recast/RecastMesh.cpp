@@ -774,10 +774,10 @@ static bool removeVertex(rcContext* ctx, rcPolyMesh& mesh, const unsigned short 
 	// Generate temp vertex array for triangulation.
 	for (int i = 0; i < nhole; ++i)
 	{
-		const int pi = hole[i];
-		tverts[i*4+0] = mesh.verts[pi*3+0];
-		tverts[i*4+1] = mesh.verts[pi*3+1];
-		tverts[i*4+2] = mesh.verts[pi*3+2];
+		const int holeVertIndex = hole[i];
+		tverts[i*4+0] = mesh.verts[holeVertIndex*3+0];
+		tverts[i*4+1] = mesh.verts[holeVertIndex*3+1];
+		tverts[i*4+2] = mesh.verts[holeVertIndex*3+2];
 		tverts[i*4+3] = 0;
 		thole[i] = i;
 	}
