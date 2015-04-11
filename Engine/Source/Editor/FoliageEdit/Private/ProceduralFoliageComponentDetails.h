@@ -15,7 +15,6 @@ public:
 private:
 	FReply OnResimulateClicked();
 	bool IsResimulateEnabled() const;
-	FText GetResimulateTooltipText() const;
 private:
 	TArray< TWeakObjectPtr<class UProceduralFoliageComponent> > SelectedComponents;
 
