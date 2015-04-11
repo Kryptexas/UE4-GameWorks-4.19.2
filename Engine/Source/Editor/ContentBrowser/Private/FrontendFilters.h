@@ -113,6 +113,8 @@ public:
 	virtual FText GetDisplayName() const override;
 	virtual FText GetToolTipText() const override;
 	virtual void ModifyContextMenu(FMenuBuilder& MenuBuilder) override;
+	virtual void SaveSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString) const override;
+	virtual void LoadSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString) override;
 
 	// IFilter implementation
 	virtual bool PassesFilter(FAssetFilterType InItem) const override;

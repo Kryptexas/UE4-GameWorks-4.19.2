@@ -291,6 +291,30 @@ void FFrontendFilter_ArbitraryComparisonOperation::ModifyContextMenu(FMenuBuilde
 	MenuBuilder.EndSection();
 }
 
+void FFrontendFilter_ArbitraryComparisonOperation::SaveSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString) const
+{
+	GConfig->SetString(*IniSection, *(SettingsString + TEXT(".Key")), *TagName.ToString(), IniFilename);
+	GConfig->SetString(*IniSection, *(SettingsString + TEXT(".Value")), *TargetTagValue, IniFilename);
+	GConfig->SetString(*IniSection, *(SettingsString + TEXT(".Op")), *FString::FromInt((int32)ComparisonOp), IniFilename);
+}
+
+void FFrontendFilter_ArbitraryComparisonOperation::LoadSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString)
+{
+	FString TagNameAsString;
+	if (GConfig->GetString(*IniSection, *(SettingsString + TEXT(".Key")), TagNameAsString, IniFilename))
+	{
+		TagName = *TagNameAsString;
+	}
+
+	GConfig->GetString(*IniSection, *(SettingsString + TEXT(".Value")), TargetTagValue, IniFilename);
+
+	int32 OpAsInteger;
+	if (GConfig->GetInt(*IniSection, *(SettingsString + TEXT(".Op")), OpAsInteger, IniFilename))
+	{
+		ComparisonOp = (ETextFilterComparisonOperation)OpAsInteger;
+	}
+}
+
 void FFrontendFilter_ArbitraryComparisonOperation::SetComparisonOperation(ETextFilterComparisonOperation NewOp)
 {
 	ComparisonOp = NewOp;

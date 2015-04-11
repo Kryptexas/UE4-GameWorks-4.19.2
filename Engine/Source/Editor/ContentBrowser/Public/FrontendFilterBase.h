@@ -46,6 +46,12 @@ public:
 	/** Called when the right-click context menu is being built for this filter */
 	virtual void ModifyContextMenu(FMenuBuilder& MenuBuilder) { }
 
+	/** Called when the state of a particular Content Browser is being saved to INI */
+	virtual void SaveSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString) const {}
+
+	/** Called when the state of a particular Content Browser is being loaded from INI */
+	virtual void LoadSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString) {}
+
 	// IFilter implementation
 	DECLARE_DERIVED_EVENT( FFrontendFilter, IFilter<FAssetFilterType>::FChangedEvent, FChangedEvent );
 	virtual FChangedEvent& OnChanged() override { return ChangedEvent; }

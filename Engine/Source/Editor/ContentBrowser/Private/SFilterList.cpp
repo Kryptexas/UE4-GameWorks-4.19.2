@@ -650,12 +650,13 @@ void SFilterList::SaveSettings(const FString& IniFilename, const FString& IniSec
 		}
 		else if ( Filter->GetFrontendFilter().IsValid() )
 		{
+			const TSharedPtr<FFrontendFilter>& FrontendFilter = Filter->GetFrontendFilter();
 			if ( ActiveFrontendFilterString.Len() > 0 )
 			{
 				ActiveFrontendFilterString += TEXT(",");
 			}
 
-			const FString FilterName = Filter->GetFrontendFilter()->GetName();
+			const FString FilterName = FrontendFilter->GetName();
 			ActiveFrontendFilterString += FilterName;
 
 			if ( Filter->IsEnabled() )
@@ -667,6 +668,9 @@ void SFilterList::SaveSettings(const FString& IniFilename, const FString& IniSec
 
 				EnabledFrontendFilterString += FilterName;
 			}
+
+			const FString CustomSettingsString = FString::Printf(TEXT("%s.CustomSettings.%s"), *SettingsString, *FilterName);
+			FrontendFilter->SaveSettings(IniFilename, IniSection, CustomSettingsString);
 		}
 	}
 
@@ -674,8 +678,6 @@ void SFilterList::SaveSettings(const FString& IniFilename, const FString& IniSec
 	GConfig->SetString(*IniSection, *(SettingsString + TEXT(".EnabledTypeFilters")), *EnabledTypeFilterString, IniFilename);
 	GConfig->SetString(*IniSection, *(SettingsString + TEXT(".ActiveFrontendFilters")), *ActiveFrontendFilterString, IniFilename);
 	GConfig->SetString(*IniSection, *(SettingsString + TEXT(".EnabledFrontendFilters")), *EnabledFrontendFilterString, IniFilename);
-
-	//@TODO: Allow filters to save information out here (and read it back in at the bottom of LoadSettings)
 }
 
 void SFilterList::LoadSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString)
@@ -732,12 +734,12 @@ void SFilterList::LoadSettings(const FString& IniFilename, const FString& IniSec
 		EnabledFrontendFilterString.ParseIntoArray(EnabledFrontendFilterNames, TEXT(","), /*bCullEmpty=*/true);
 
 		// For each FrontendFilter, add any that were active and enable any that were previously enabled
-		for ( auto FrontendFilterIt = AllFrontendFilters.CreateConstIterator(); FrontendFilterIt; ++FrontendFilterIt )
+		for ( auto FrontendFilterIt = AllFrontendFilters.CreateIterator(); FrontendFilterIt; ++FrontendFilterIt )
 		{
-			const TSharedRef<FFrontendFilter>& FrontendFilter = *FrontendFilterIt;
-			if ( !IsFrontendFilterInUse(FrontendFilter) )
+			TSharedRef<FFrontendFilter>& FrontendFilter = *FrontendFilterIt;
+			const FString& FilterName = FrontendFilter->GetName();
+			if (!IsFrontendFilterInUse(FrontendFilter))
 			{
-				const FString& FilterName = FrontendFilter->GetName();
 				if ( FrontendFilterNames.Contains(FilterName) )
 				{
 					TSharedRef<SFilter> NewFilter = AddFilter(FrontendFilter);
@@ -748,6 +750,9 @@ void SFilterList::LoadSettings(const FString& IniFilename, const FString& IniSec
 					}
 				}
 			}
+
+			const FString CustomSettingsString = FString::Printf(TEXT("%s.CustomSettings.%s"), *SettingsString, *FilterName);
+			FrontendFilter->LoadSettings(IniFilename, IniSection, CustomSettingsString);
 		}
 	}
 }
