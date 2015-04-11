@@ -757,6 +757,11 @@ bool AAIController::HasPartialPath() const
 	return (PathFollowingComponent != NULL) && (PathFollowingComponent->HasPartialPath());
 }
 
+bool AAIController::IsFollowingAPath() const
+{
+	return (PathFollowingComponent != nullptr) && PathFollowingComponent->HasValidPath();
+}
+
 FVector AAIController::GetImmediateMoveDestination() const
 {
 	return (PathFollowingComponent) ? PathFollowingComponent->GetCurrentTargetLocation() : FVector::ZeroVector;

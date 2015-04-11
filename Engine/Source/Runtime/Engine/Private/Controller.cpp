@@ -562,6 +562,12 @@ bool AController::ShouldPostponePathUpdates() const
 	return Pawn ? Pawn->ShouldPostponePathUpdates() : false;
 }
 
+bool AController::IsFollowingAPath() const
+{
+	UPathFollowingComponent* PathFollowingComp = FindComponentByClass<UPathFollowingComponent>();
+	return (PathFollowingComp != nullptr) && PathFollowingComp->HasValidPath();
+}
+
 void AController::UpdateNavigationComponents()
 {
 	UPathFollowingComponent* PathFollowingComp = FindComponentByClass<UPathFollowingComponent>();

@@ -336,6 +336,11 @@ public:
 	virtual UAIPerceptionComponent* GetPerceptionComponent() override { return GetAIPerceptionComponent(); }
 
 	//----------------------------------------------------------------------//
+	// INavAgentInterface
+	//----------------------------------------------------------------------//
+	virtual bool IsFollowingAPath() const override;
+
+	//----------------------------------------------------------------------//
 	// Actions
 	//----------------------------------------------------------------------//
 	bool PerformAction(UPawnAction& Action, EAIRequestPriority::Type Priority, UObject* const Instigator = NULL);

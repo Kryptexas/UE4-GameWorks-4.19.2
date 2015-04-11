@@ -247,6 +247,7 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	FVector GetPathDestination() const;
 
 	FORCEINLINE const FNavPathSharedPtr GetPath() const { return Path; }
+	FORCEINLINE bool HasValidPath() const { return Path.IsValid() && Path->IsValid(); }
 	bool HasDirectPath() const;
 
 	/** readable name of current status */

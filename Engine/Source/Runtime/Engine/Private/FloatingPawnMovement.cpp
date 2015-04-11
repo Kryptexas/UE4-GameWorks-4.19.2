@@ -15,7 +15,6 @@ UFloatingPawnMovement::UFloatingPawnMovement(const FObjectInitializer& ObjectIni
 	ResetMoveState();
 }
 
-
 void UFloatingPawnMovement::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 	if (ShouldSkipUpdate(DeltaTime))
@@ -33,13 +32,14 @@ void UFloatingPawnMovement::TickComponent(float DeltaTime, enum ELevelTick TickT
 	const AController* Controller = PawnOwner->GetController();
 	if (Controller && Controller->IsLocalController())
 	{
-		if (Controller->IsLocalPlayerController())
+		// apply input for local players but also for AI that's not following a navigation path at the moment
+		if (Controller->IsLocalPlayerController() == true || Controller->IsFollowingAPath() == false)
 		{
 			ApplyControlInputToVelocity(DeltaTime);
 		}
 		// if it's not player controller, but we do have a controller, then it's AI
-		// and we need to limit the speed
-		else if (IsExceedingMaxSpeed(MaxSpeed))
+		// (that's not following a path) and we need to limit the speed
+		else if (IsExceedingMaxSpeed(MaxSpeed) == false)
 		{
 			Velocity = Velocity.GetUnsafeNormal() * MaxSpeed;
 		}
@@ -79,7 +79,6 @@ void UFloatingPawnMovement::TickComponent(float DeltaTime, enum ELevelTick TickT
 	}
 };
 
-
 bool UFloatingPawnMovement::LimitWorldBounds()
 {
 	AWorldSettings* WorldSettings = PawnOwner ? PawnOwner->GetWorldSettings() : NULL;
@@ -97,7 +96,6 @@ bool UFloatingPawnMovement::LimitWorldBounds()
 
 	return false;
 }
-
 
 void UFloatingPawnMovement::ApplyControlInputToVelocity(float DeltaTime)
 {
@@ -141,7 +139,6 @@ void UFloatingPawnMovement::ApplyControlInputToVelocity(float DeltaTime)
 
 	ConsumeInputVector();
 }
-
 
 bool UFloatingPawnMovement::ResolvePenetration(const FVector& Adjustment, const FHitResult& Hit, const FRotator& NewRotation)
 {
