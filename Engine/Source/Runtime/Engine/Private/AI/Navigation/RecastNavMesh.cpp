@@ -928,15 +928,72 @@ FNavLocation ARecastNavMesh::GetRandomPoint(TSharedPtr<const FNavigationQueryFil
 	return RandomPt;
 }
 
-bool ARecastNavMesh::GetRandomPointInRadius(const FVector& Origin, float Radius, FNavLocation& OutResult, TSharedPtr<const FNavigationQueryFilter> Filter, const UObject* QueryOwner) const
+bool ARecastNavMesh::GetRandomReachablePointInRadius(const FVector& Origin, float Radius, FNavLocation& OutResult, TSharedPtr<const FNavigationQueryFilter> Filter, const UObject* QueryOwner) const
 {
-	bool bSuccess = false;
-	if (RecastNavMeshImpl)
+	if (RecastNavMeshImpl == nullptr || RecastNavMeshImpl->DetourNavMesh == nullptr || Radius <= 0.f)
 	{
-		bSuccess = RecastNavMeshImpl->GetRandomPointInRadius(Origin, Radius, OutResult, GetRightFilterRef(Filter), QueryOwner);
+		return false;
 	}
 
-	return bSuccess;
+	const FNavigationQueryFilter& FilterInstance = GetRightFilterRef(Filter);
+
+	FRecastSpeciaLinkFilter LinkFilter(UNavigationSystem::GetCurrent(GetWorld()), QueryOwner);
+	INITIALIZE_NAVQUERY_WLINKFILTER(NavQuery, FilterInstance.GetMaxSearchNodes(), LinkFilter);
+
+	// inits to "pass all"
+	const dtQueryFilter* QueryFilter = (static_cast<const FRecastQueryFilter*>(FilterInstance.GetImplementation()))->GetAsDetourQueryFilter();
+	ensure(QueryFilter);
+	if (QueryFilter)
+	{
+		// find starting poly
+		// convert start/end pos to Recast coords
+		const float Extent[3] = { Radius, Radius, Radius };
+		float RecastOrigin[3];
+		Unr2RecastVector(Origin, RecastOrigin);
+		NavNodeRef OriginPolyID = INVALID_NAVNODEREF;
+		NavQuery.findNearestPoly(RecastOrigin, Extent, QueryFilter, &OriginPolyID, nullptr);
+
+		dtPolyRef Poly;
+		float RandPt[3];
+		dtStatus Status = NavQuery.findRandomPointAroundCircle(OriginPolyID, RecastOrigin, Radius
+			, QueryFilter, FMath::FRand, &Poly, RandPt);
+
+		if (dtStatusSucceed(Status))
+		{
+			OutResult = FNavLocation(Recast2UnrealPoint(RandPt), Poly);
+			return true;
+		}
+		else
+		{
+			OutResult = FNavLocation(Origin, OriginPolyID);
+		}
+	}
+
+	return false;
+}
+
+bool ARecastNavMesh::GetRandomPointInNavigableRadius(const FVector& Origin, float Radius, FNavLocation& OutResult, TSharedPtr<const FNavigationQueryFilter> Filter, const UObject* Querier) const
+{
+	const FVector ProjectionExtent(NavDataConfig.DefaultQueryExtent.X, NavDataConfig.DefaultQueryExtent.Y, BIG_NUMBER);
+	OutResult = FNavLocation(FNavigationSystem::InvalidLocation);
+	
+	// this is super naive implementation for now. We give it 10 tries, and fail if it's not enough. 
+	// The proper solution would involve processing nearby&in-radius tiles in batches until the whole radius of the query is exhausted
+	static const int32 IterationsLimit = 10;
+	int32 Interation = 0;
+	do 
+	{
+		const float RandomAngle = 2.f * PI * FMath::FRand();
+		const float U = FMath::FRand() + FMath::FRand();
+		const float RandomRadius = Radius * (U > 1 ? 2.f - U : U);
+		const FVector RandomOffset(FMath::Cos(RandomAngle) * RandomRadius, FMath::Sin(RandomAngle) * RandomRadius, 0);
+		FVector RandomLocationInRadius = Origin + RandomOffset;
+
+		// naive implementation 
+		ProjectPoint(RandomLocationInRadius, OutResult, ProjectionExtent, Filter);
+	} while (OutResult.HasNodeRef() == false && ++Interation < IterationsLimit);
+
+	return OutResult.HasNodeRef() == true;
 }
 
 bool ARecastNavMesh::GetRandomPointInCluster(NavNodeRef ClusterRef, FNavLocation& OutLocation) const

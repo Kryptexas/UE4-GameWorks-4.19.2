@@ -123,6 +123,7 @@ public:
 
 	/** Returns a random location on the navmesh within Radius from Origin. 
 	 *	@return false if no valid navigable location available in specified area */
+	DEPRECATED(4.8, "GetRandomPointInRadius is deprecated, please use ANavigationData::GetRandomReachablePointInRadius")
 	bool GetRandomPointInRadius(const FVector& Origin, float Radius, FNavLocation& OutLocation, const FNavigationQueryFilter& Filter, const UObject* Owner) const;
 
 	/** Returns a random location on the navmesh within cluster */

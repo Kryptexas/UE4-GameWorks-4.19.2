@@ -231,6 +231,9 @@ struct FNavLocation
 	FNavLocation() : Location(FVector::ZeroVector), NodeRef(INVALID_NAVNODEREF) {}
 	explicit FNavLocation(const FVector& InLocation, NavNodeRef InNodeRef = INVALID_NAVNODEREF) 
 		: Location(InLocation), NodeRef(InNodeRef) {}
+
+	/** checks if location has associated navigation node ref */
+	FORCEINLINE bool HasNodeRef() const { return NodeRef != INVALID_NAVNODEREF; }
 };
 
 /** Describes node in navigation path */
