@@ -104,6 +104,9 @@ FWorldDelegates::FWorldEvent FWorldDelegates::OnPreWorldFinishDestroy;
 FWorldDelegates::FOnLevelChanged FWorldDelegates::LevelAddedToWorld;
 FWorldDelegates::FOnLevelChanged FWorldDelegates::LevelRemovedFromWorld;
 FWorldDelegates::FWorldGetAssetTags FWorldDelegates::GetAssetTags;
+#if WITH_EDITOR
+FWorldDelegates::FLevelScriptCreationEvent FWorldDelegates::LevelScriptBlueprintCreated;
+#endif // WITH_EDITOR
 
 UWorld::UWorld( const FObjectInitializer& ObjectInitializer )
 :	UObject(ObjectInitializer)

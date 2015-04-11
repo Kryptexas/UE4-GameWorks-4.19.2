@@ -71,6 +71,11 @@ public:
 	void RefreshAll();
 
 	/**
+	 * Populates the action database with all level script actions from all active editor worlds.
+	 */
+	void RefreshWorlds();
+
+	/**
 	 * Finds the database entry for the specified class and wipes it, 
 	 * repopulating it with a fresh set of associated node-spawners. 
 	 *

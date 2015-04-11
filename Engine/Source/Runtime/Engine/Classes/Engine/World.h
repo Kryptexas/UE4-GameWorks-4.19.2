@@ -3229,6 +3229,14 @@ public:
 	// called by UWorld::GetAssetRegistryTags()
 	static FWorldGetAssetTags GetAssetTags;
 
+#if WITH_EDITOR
+	// Delegate type for Levelscript blueprint creation events
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FLevelScriptCreationEvent, ULevel*, UWorld* );
+
+	// Called when a ULevel has a level script blueprint created for it.
+	static FLevelScriptCreationEvent LevelScriptBlueprintCreated;
+#endif
+
 private:
 	FWorldDelegates() {}
 };

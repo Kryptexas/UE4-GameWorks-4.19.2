@@ -1659,6 +1659,8 @@ ULevelScriptBlueprint* ULevel::GetLevelScriptBlueprint(bool bDontCreate)
 		// LevelScript blueprints should not be standalone
 		LevelScriptBlueprint->ClearFlags(RF_Standalone);
 		ULevel::LevelDirtiedEvent.Broadcast();
+		// Broadcast Levelscript creation.
+		FWorldDelegates::LevelScriptBlueprintCreated.Broadcast(this, OwningWorld);
 	}
 
 	// Ensure that friendly name is always up-to-date
