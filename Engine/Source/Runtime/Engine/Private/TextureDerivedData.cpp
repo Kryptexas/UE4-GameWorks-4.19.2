@@ -1291,11 +1291,9 @@ void FTexturePlatformData::Serialize(FArchive& Ar, UTexture* Owner)
 	SerializePlatformData(Ar, this, Owner, bCooking, bStreamable);
 }
 
-// @BLACK_TUSK_CHANGE: BEGIN - romillar@microsoft.com - Pass streamable flag for inlining mips
 void FTexturePlatformData::SerializeCooked(FArchive& Ar, UTexture* Owner, bool bStreamable)
 {
 	SerializePlatformData(Ar, this, Owner, true, bStreamable);
-	// @BLACK_TUSK_CHANGE: END - romillar@microsoft.com 
 	if (Ar.IsLoading() && Mips.Num() > 0)
 	{
 		SizeX = Mips[0].SizeX;
