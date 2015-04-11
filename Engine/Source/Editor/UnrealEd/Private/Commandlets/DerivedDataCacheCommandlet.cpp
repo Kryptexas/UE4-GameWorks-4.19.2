@@ -81,6 +81,11 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 			PackageFilter |= NORMALIZE_ExcludeContentPackages;
 		}
 
+		if ( Switches.Contains(TEXT("PROJECTONLY")) )
+		{
+			PackageFilter |= NORMALIZE_ExcludeEnginePackages;
+		}
+
 		if ( !Switches.Contains(TEXT("DEV")) )
 		{
 			PackageFilter |= NORMALIZE_ExcludeDeveloperPackages;
