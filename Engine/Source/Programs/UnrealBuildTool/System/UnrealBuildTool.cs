@@ -917,6 +917,10 @@ namespace UnrealBuildTool
                             BuildConfiguration.bXGEExport = true;
                             BuildConfiguration.bAllowXGE = true;
                         }
+						else if (LowercaseArg == "-noubtmakefiles")
+						{
+							BuildConfiguration.bUseUBTMakefiles = false;
+						}
 						else if (LowercaseArg == "-invalidatemakefilesonly")
 						{
 							UnrealBuildTool.bIsInvalidatingMakefilesOnly = true;
