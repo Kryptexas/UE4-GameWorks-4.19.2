@@ -774,7 +774,7 @@ FString FSCSEditorTreeNodeComponentBase::GetDisplayString() const
 	{
 		return VariableName.ToString();
 	}
-	else if (IsNative() && (ComponentTemplate != NULL))
+	else if ( ComponentTemplate != nullptr )
 	{
 		return ComponentTemplate->GetFName().ToString();
 	}
