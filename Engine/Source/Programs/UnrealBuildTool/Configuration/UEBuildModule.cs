@@ -876,14 +876,8 @@ namespace UnrealBuildTool
 
 		/**
 		 * Gathers and binds binaries for this module and all of it's dependent modules
-		 *
-		 * @param	Target				The target we are currently building
-		 * @param	Binaries			Dictionary of all binaries we've gathered so far
-		 * @param	ExecutableBinary	The binary for the target's main executable (used only when linking monolithically)
-		 * @param	bBuildOnlyModules	True to build only specific modules, false for all
-		 * @param	ModulesToBuild		The specific modules to build
 		 */
-		public virtual void RecursivelyProcessUnboundModules(UEBuildTarget Target, Dictionary<string, UEBuildBinary> Binaries, UEBuildBinary ExecutableBinary)
+		public virtual void RecursivelyProcessUnboundModules()
 		{
 		}
 
@@ -2016,7 +2010,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		public override void RecursivelyProcessUnboundModules(UEBuildTarget Target, Dictionary<string, UEBuildBinary> Binaries, UEBuildBinary ExecutableBinary)
+		public override void RecursivelyProcessUnboundModules()
 		{
 			try
 			{
@@ -2039,48 +2033,18 @@ namespace UnrealBuildTool
 					// Skip modules that are included with the target (externals)
 					if( !DependencyModule.bIncludedInTarget )
 					{
-						if( !Binaries.ContainsKey( DependencyModule.Name ) )
-						{
-							UEBuildBinary BinaryToBindTo;
-							if (Target.ShouldCompileMonolithic())
-							{
-								// When linking monolithically, any unbound modules will be linked into the main executable
-								BinaryToBindTo = ExecutableBinary;
-							}
-							else
-							{
-								// Is this a plugin module?
-								var PluginInfo = Plugins.GetPluginInfoForModule( DependencyName );
+						bool bIsCrossTarget = PlatformSpecificDynamicallyLoadedModuleNames.Contains(DependencyName) && !DynamicallyLoadedModuleNames.Contains(DependencyName);
 
-								string[] OutputFilePaths = Target.MakeBinaryPaths(DependencyModule.Name, Target.GetAppName() + "-" + DependencyModule.Name, UEBuildBinaryType.DynamicLinkLibrary, Target.TargetType, PluginInfo, "");
+						// Get the binary that this module should be bound to
+						UEBuildBinary BinaryToBindTo = Target.FindOrAddBinaryForModule(DependencyName, bIsCrossTarget);
+						BinaryToBindTo.AddModule(DependencyName);
 
-								// If it's an engine module, output intermediates to the engine intermediates directory. 
-								string IntermediateDirectory = Binary.Config.IntermediateDirectory;
-								if (IntermediateDirectory != Target.EngineIntermediateDirectory && Path.GetFullPath(DependencyModule.ModuleDirectory).StartsWith(Path.GetFullPath(BuildConfiguration.RelativeEnginePath)))
-								{
-									IntermediateDirectory = Target.EngineIntermediateDirectory;
-								}
+						// Bind this module
+						DependencyModule.Binary = BinaryToBindTo;
+						DependencyModule.bIncludedInTarget = true;
 
-								// When using modular linkage, unbound modules will be linked into their own DLL files
-								UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration( InType: UEBuildBinaryType.DynamicLinkLibrary,
-																									InOutputFilePaths: OutputFilePaths,
-																									InIntermediateDirectory: IntermediateDirectory,
-																									bInAllowExports: true,
-																									InModuleNames: new List<string> { DependencyModule.Name },
-																									bInIsCrossTarget: PlatformSpecificDynamicallyLoadedModuleNames.Contains(DependencyName) && !DynamicallyLoadedModuleNames.Contains(DependencyName) );
-
-								BinaryToBindTo = new UEBuildBinaryCPP( Target, Config );
-							}
-
-							Binaries[ DependencyModule.Name ] = BinaryToBindTo;
-
-							// Bind this module
-							DependencyModule.Binary = BinaryToBindTo;
-							DependencyModule.bIncludedInTarget = true;
-
-							// Also add binaries for this module's dependencies
-							DependencyModule.RecursivelyProcessUnboundModules( Target, Binaries, ExecutableBinary );
-						}
+						// Also add binaries for this module's dependencies
+						DependencyModule.RecursivelyProcessUnboundModules();
 					}
 
 					if (Target.ShouldCompileMonolithic() == false)

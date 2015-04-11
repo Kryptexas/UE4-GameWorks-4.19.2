@@ -160,7 +160,10 @@ namespace UnrealBuildTool
 			bHasModuleRules = bInHasModuleRules;
             bIsCrossTarget = bInIsCrossTarget;
 			ProjectFilePath = InProjectFilePath;
-			ModuleNames = InModuleNames;
+			if(InModuleNames != null)
+			{
+				ModuleNames.AddRange(InModuleNames);
+			}
 		}
 	}
 
@@ -249,11 +252,8 @@ namespace UnrealBuildTool
 		/// Process all modules that aren't yet bound, creating binaries for modules that don't yet have one (if needed),
 		/// and updating modules for circular dependencies.
 		/// </summary>
-		/// <param name="ExecutableBinary">The executable binary, which links against all unbound modules when building monolithically</param>
-		/// <returns>List of newly-created binaries (may be empty)</returns>
-		public virtual List<UEBuildBinary> ProcessUnboundModules(UEBuildBinary ExecutableBinary)
+		public virtual void ProcessUnboundModules()
 		{
-			return null;
 		}
 
 		/// <summary>
@@ -402,11 +402,7 @@ namespace UnrealBuildTool
 	/// </summary>
 	public class UEBuildBinaryCPP : UEBuildBinary
 	{
-		public HashSet<string> ModuleNames
-		{
-			get;
-			private set;
-		}
+		public readonly List<string> ModuleNames;
 		private bool bCreateImportLibrarySeparately;
 		private bool bIncludeDependentLibrariesInLibrary;
 
@@ -417,7 +413,7 @@ namespace UnrealBuildTool
 		public UEBuildBinaryCPP( UEBuildTarget InTarget, UEBuildBinaryConfiguration InConfig )
 			: base( InTarget, InConfig )
 		{
-			ModuleNames = new HashSet<string>(InConfig.ModuleNames);
+			ModuleNames = new List<string>(InConfig.ModuleNames);
 			bCreateImportLibrarySeparately = InConfig.bCreateImportLibrarySeparately;
 			bIncludeDependentLibrariesInLibrary = InConfig.bIncludeDependentLibrariesInLibrary;
 		}
@@ -493,43 +489,18 @@ namespace UnrealBuildTool
 		/// Process all modules that aren't yet bound, creating binaries for modules that don't yet have one (if needed),
 		/// and updating modules for circular dependencies.
 		/// </summary>
-		/// <param name="ExecutableBinary">The executable binary, which links against all unbound modules when building monolithically</param>
 		/// <returns>List of newly-created binaries (may be empty)</returns>
-		public override List<UEBuildBinary> ProcessUnboundModules(UEBuildBinary ExecutableBinary)
+		public override void ProcessUnboundModules()
 		{
-			var Binaries = new Dictionary<string, UEBuildBinary>( StringComparer.InvariantCultureIgnoreCase );
 			if (Config.bHasModuleRules)
 			{
-				foreach (var ModuleName in ModuleNames)
+				// Modules may be added to this binary during this process, so don't foreach over ModuleNames
+				for(int Idx = 0; Idx < ModuleNames.Count; Idx++)
 				{
-					var Module = Target.FindOrCreateModuleByName(ModuleName);
-					Module.RecursivelyProcessUnboundModules(Target, Binaries, ExecutableBinary);
+					UEBuildModule Module = Target.FindOrCreateModuleByName(ModuleNames[Idx]);
+					Module.RecursivelyProcessUnboundModules();
 				}
 			}
-			else
-			{
-				// There's only one module in this case, so just bind it to this binary
-				foreach (var ModuleName in ModuleNames)
-				{
-					Binaries.Add(ModuleName, this);
-				}
-			}
-
-			// Now build a final list of newly-created binaries that were bound to.  The hash may contain duplicates, so
-			// we filter those out here.
-			var BinaryList = new List<UEBuildBinary>();
-			foreach( var CurBinary in Binaries.Values )
-			{
-				// Never include ourselves in the new binary list (monolithic case)
-				if( CurBinary != this )
-				{
-					if( !BinaryList.Contains( CurBinary ) )
-					{
-						BinaryList.Add( CurBinary );
-					}
-				}
-			}
-			return BinaryList;
 		}
 
 		/// <summary>
