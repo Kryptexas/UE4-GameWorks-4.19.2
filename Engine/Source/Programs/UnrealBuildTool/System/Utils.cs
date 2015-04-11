@@ -204,6 +204,7 @@ namespace UnrealBuildTool
 		}
 
 		[Serializable]
+		[DebuggerDisplay("\\{{Key}={Value}\\}")]
 		public struct EnvVar
 		{
 			[XmlAttribute("Key")]
@@ -212,6 +213,8 @@ namespace UnrealBuildTool
 			[XmlAttribute("Value")]
 			public string Value;
 		}
+
+		private static XmlSerializer EnvVarListSerializer = XmlSerializer.FromTypes(new Type[]{ typeof(List<EnvVar>) })[0];
 
 		[DllImport("kernel32.dll", SetLastError=true)]
 		private static extern int GetShortPathName(string pathName, StringBuilder shortName, int cbShortName);
@@ -322,8 +325,7 @@ namespace UnrealBuildTool
 					using (var Stream = new StreamReader(EnvOutputFileName))
 					using (var Reader = XmlReader.Create(Stream, Settings))
 					{
-						var Serializer = new XmlSerializer(typeof(List<EnvVar>));
-						EnvVars = (List<EnvVar>)Serializer.Deserialize(Reader);
+						EnvVars = (List<EnvVar>)EnvVarListSerializer.Deserialize(Reader);
 					}
 				}
 				catch (Exception e)
