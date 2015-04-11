@@ -2037,7 +2037,6 @@ namespace UnrealBuildTool
 
 						// Get the binary that this module should be bound to
 						UEBuildBinary BinaryToBindTo = Target.FindOrAddBinaryForModule(DependencyName, bIsCrossTarget);
-						BinaryToBindTo.AddModule(DependencyName);
 
 						// Bind this module
 						DependencyModule.Binary = BinaryToBindTo;
