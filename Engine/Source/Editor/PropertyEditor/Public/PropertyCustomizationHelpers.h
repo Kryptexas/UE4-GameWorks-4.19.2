@@ -42,7 +42,7 @@ namespace PropertyCustomizationHelpers
 	PROPERTYEDITOR_API TArray<UFactory*> GetNewAssetFactoriesForClasses(const TArray<const UClass*>& Classes);
 
 	/** Build a combo button allowing access to text property localization utilities */
-	PROPERTYEDITOR_API TSharedRef<SWidget> MakeTextLocalizationButton(TSharedRef<IPropertyHandle> InPropertyHandle);
+	PROPERTYEDITOR_API TSharedRef<SWidget> MakeTextLocalizationButton(const TSharedRef<IPropertyHandle>& InPropertyHandle);
 }
 
 /** Delegate used to get a generic object */
