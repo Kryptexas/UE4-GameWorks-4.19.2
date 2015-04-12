@@ -1683,7 +1683,12 @@ public:
 
 	/** set value of bCanEverAffectNavigation flag and update navigation octree if needed */
 	void SetCanEverAffectNavigation(bool bRelevant);
+	
+protected:
+	/** Makes sure navigation system has up to date information regarding component's navigation relevancy and if it can affect navigation at all */
+	void HandleCanEverAffectNavigationChange();
 
+public:
 	DEPRECATED(4.5, "UPrimitiveComponent::DisableNavigationRelevance() is deprecated, use SetCanEverAffectNavigation() instead.")
 	void DisableNavigationRelevance()
 	{

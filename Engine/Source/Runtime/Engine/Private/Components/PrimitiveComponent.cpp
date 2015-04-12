@@ -585,7 +585,7 @@ void UPrimitiveComponent::PostEditChangeProperty(FPropertyChangedEvent& Property
 	// so it needs to be called directly here
 	if (PropertyThatChanged && PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bCanEverAffectNavigation))
 	{
-		UNavigationSystem::UpdateNavOctree(this);
+		HandleCanEverAffectNavigationChange();
 	}
 }
 
@@ -1693,18 +1693,23 @@ void UPrimitiveComponent::SetCanEverAffectNavigation(bool bRelevant)
 	{
 		bCanEverAffectNavigation = bRelevant;
 
-		// update octree if already registered
-		if (bRegistered)
+		HandleCanEverAffectNavigationChange();
+	}
+}
+
+void UPrimitiveComponent::HandleCanEverAffectNavigationChange()
+{
+	// update octree if already registered
+	if (bRegistered)
+	{
+		if (bCanEverAffectNavigation)
 		{
-			if (bRelevant)
-			{
-				bNavigationRelevant = IsNavigationRelevant();
-				UNavigationSystem::OnComponentRegistered(this);
-			}
-			else
-			{
-				UNavigationSystem::OnComponentUnregistered(this);
-			}
+			bNavigationRelevant = IsNavigationRelevant();
+			UNavigationSystem::OnComponentRegistered(this);
+		}
+		else
+		{
+			UNavigationSystem::OnComponentUnregistered(this);
 		}
 	}
 }
