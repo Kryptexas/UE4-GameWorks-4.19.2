@@ -442,6 +442,11 @@ namespace UnrealBuildTool
 		public bool bOutputPubliclyDistributable = false;
 
 		/// <summary>
+		/// Specifies the configuration whose binaries do not require a "-Platform-Configuration" suffix.
+		/// </summary>
+		public UnrealTargetConfiguration UndecoratedConfiguration = UnrealTargetConfiguration.Development;
+
+		/// <summary>
 		/// A list of additional plugins which need to be built for this target. Game and editor targets can use the EnabledPlugins 
 		/// setting in their config files to control this.
 		/// </summary>
@@ -643,16 +648,6 @@ namespace UnrealBuildTool
 		{
 		}
 
-
-		/// <summary>
-		/// Returns true if this target's output path needs to be the same as for the development configuration.
-		/// Currently only used by the CrashReportClient.
-		/// </summary>
-		/// <returns>true if this target's output path needs to be the same as for the development configuration.</returns>
-		public virtual bool ForceNameAsForDevelopment()
-		{
-			return false;
-		}
 
 		/// <summary>
 		/// Setup the global environment for building this target

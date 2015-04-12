@@ -8,6 +8,7 @@ public class CrashReportClientTarget : TargetRules
 	public CrashReportClientTarget(TargetInfo Target)
 	{
 		Type = TargetType.Program;
+		UndecoratedConfiguration = UnrealTargetConfiguration.Shipping;
 	}
 
 	//
@@ -51,11 +52,6 @@ public class CrashReportClientTarget : TargetRules
 		{
 			OutExtraModuleNames.Add("EditorStyle");
 		}
-	}
-
-	public override bool ForceNameAsForDevelopment()
-	{
-		return true;
 	}
 
 	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
