@@ -8,6 +8,7 @@ class FEdModeFoliage;
 class IDetailLayoutBuilder;
 class IDetailCategoryBuilder;
 class IDetailPropertyRow;
+class IPropertyHandle;
 
 class FFoliageTypeCustomizationHelpers
 {

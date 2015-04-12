@@ -2,6 +2,11 @@
 
 #include "UnrealEd.h"
 #include "FoliageTypeCustomizationHelpers.h"
+#include "FoliageType.h"
+#include "IDetailPropertyRow.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailCategoryBuilder.h"
+#include "PropertyHandle.h"
 
 void FFoliageTypeCustomizationHelpers::ModifyFoliagePropertyRow(IDetailPropertyRow* PropertyRow, const TAttribute<EVisibility>& InVisibility, const TAttribute<bool>& InEnabled)
 {

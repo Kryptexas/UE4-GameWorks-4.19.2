@@ -20,6 +20,7 @@
 #include "BlueprintEditorUtils.h"	// for FindBlueprintForGraph()
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "BlueprintActionFilter.h"	// for FBlueprintActionContext
+#include "Engine/LevelScriptBlueprint.h" // for ULevelScriptBlueprint
 
 // used below in FBlueprintNodeSpawnerFactory::MakeMacroNodeSpawner()
 #include "K2Node_MacroInstance.h"
