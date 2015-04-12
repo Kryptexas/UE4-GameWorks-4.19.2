@@ -7,7 +7,7 @@ UPaperExtractSpritesSettings::UPaperExtractSpritesSettings(const FObjectInitiali
 	: Super(ObjectInitializer)
 {
 	OutlineColor = FLinearColor::Yellow;
-	TextureTint = FLinearColor::Gray;
+	ViewportTextureTint = FLinearColor::Gray;
 	BackgroundColor = FLinearColor(0.1f, 0.1f, 0.1f);
 }
 

@@ -33,9 +33,9 @@ public:
 	UPROPERTY(Category = Settings, EditAnywhere)
 	FLinearColor OutlineColor;
 
-	// Tint the texture to help increase outline visibility
+	// Apply a tint to the texture in the viewport to improve outline visibility in this editor
 	UPROPERTY(Category = Settings, EditAnywhere)
-	FLinearColor TextureTint;
+	FLinearColor ViewportTextureTint;
 
 	// The viewport background color
 	UPROPERTY(Category = Settings, EditAnywhere, meta=(HideAlphaChannel))
