@@ -657,6 +657,9 @@ namespace UnrealBuildTool
 		/** Target as defined by the VCProject and passed via the command line. Not necessarily the same as internal name. */
 		public UnrealTargetConfiguration Configuration;
 
+		/** TargetInfo object which can be passed to RulesCompiler */
+		public TargetInfo TargetInfo;
+
 		/** Root directory for the active project. Typically contains the .uproject file, or the engine root. */
 		public string ProjectDirectory;
 
@@ -815,6 +818,8 @@ namespace UnrealBuildTool
 			OnlyModules = InDesc.OnlyModules;
 
 			TargetType = Rules.Type;
+
+			TargetInfo = new TargetInfo(Platform, Configuration, Rules.Type, bCompileMonolithic);
 
 			// Construct the output paths for this target's executable
 			string OutputDirectory;
@@ -1167,7 +1172,7 @@ namespace UnrealBuildTool
 			{
 				// Create the module rules
 				string ModuleRulesFileName;
-				ModuleRules Rules = RulesCompiler.CreateModuleRules(ModuleName, GetTargetInfo(), out ModuleRulesFileName);
+				ModuleRules Rules = RulesCompiler.CreateModuleRules(ModuleName, TargetInfo, out ModuleRulesFileName);
 
 				// Add the rules file itself
 				FileNames.Add(ModuleRulesFileName);
@@ -1850,11 +1855,10 @@ namespace UnrealBuildTool
 			UEBuildBinaryCPP BinaryCPP = ExecutableBinary as UEBuildBinaryCPP;
 			if (BinaryCPP != null)
 			{
-				TargetInfo CurrentTarget = new TargetInfo(Platform, Configuration, TargetType);
 				foreach (var TargetModuleName in BinaryCPP.ModuleNames)
 				{
 					string UnusedFilename;
-					ModuleRules CheckRules = RulesCompiler.CreateModuleRules(TargetModuleName, CurrentTarget, out UnusedFilename);
+					ModuleRules CheckRules = RulesCompiler.CreateModuleRules(TargetModuleName, TargetInfo, out UnusedFilename);
 					if ((CheckRules != null) && (CheckRules.Type != ModuleRules.ModuleType.External))
 					{
 						PrivateDependencyModuleNames.Add(TargetModuleName);
@@ -2175,7 +2179,7 @@ namespace UnrealBuildTool
 			{
 				// Find all the precompiled module names.
 				List<string> PrecompiledModuleNames = new List<string>();
-				Rules.GetModulesToPrecompile(new TargetInfo(Platform, Configuration, TargetType), PrecompiledModuleNames);
+				Rules.GetModulesToPrecompile(TargetInfo, PrecompiledModuleNames);
 
 				// Add all the enabled plugins to the precompiled module list. Plugins are always precompiled, even if bPrecompile is not set, so we should precompile their dependencies.
 				foreach(PluginInfo Plugin in BuildPlugins)
@@ -2274,11 +2278,11 @@ namespace UnrealBuildTool
 			string[] OutputFilePaths;
 			if(TargetType == TargetRules.TargetType.Game && UnrealBuildTool.RunningRocket())
 			{
-				OutputFilePaths = MakeBinaryPaths(ModuleName, "UE4Game-" + ModuleName, Platform, Configuration, BinaryType, TargetType, Plugin, Rules.UndecoratedConfiguration);
+				OutputFilePaths = MakeBinaryPaths(ModuleName, "UE4Game-" + ModuleName, BinaryType, Plugin);
 			}
 			else
 			{
-				OutputFilePaths = MakeBinaryPaths(ModuleName, AppName + "-" + ModuleName, Platform, Configuration, BinaryType, TargetType, Plugin, Rules.UndecoratedConfiguration);
+				OutputFilePaths = MakeBinaryPaths(ModuleName, AppName + "-" + ModuleName, BinaryType, Plugin);
 			}
 
 			// Get the intermediate path
@@ -2403,8 +2407,7 @@ namespace UnrealBuildTool
 		}
 
 		/** Given a UBT-built binary name (e.g. "Core"), returns a relative path to the binary for the current build configuration (e.g. "../Binaries/Win64/Core-Win64-Debug.lib") */
-		public static string[] MakeBinaryPaths(string ModuleName, string BinaryName, UnrealTargetPlatform Platform, 
-			UnrealTargetConfiguration Configuration, UEBuildBinaryType BinaryType, TargetRules.TargetType TargetType, PluginInfo PluginInfo, UnrealTargetConfiguration UndecoratedConfiguration)
+		private string[] MakeBinaryPaths(string ModuleName, string BinaryName, UEBuildBinaryType BinaryType, PluginInfo PluginInfo)
 		{
 			// Determine the binary extension for the platform and binary type.
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
@@ -2424,7 +2427,7 @@ namespace UnrealBuildTool
 				// Plugins can be binary-only and can have no rules object
 				if (PluginInfo == null || !String.IsNullOrEmpty(RulesFilename))
 				{
-					ModuleRules ModuleRulesObj = RulesCompiler.CreateModuleRules(ModuleName, new TargetInfo(Platform, Configuration, TargetType), out RulesFilename);
+					ModuleRules ModuleRulesObj = RulesCompiler.CreateModuleRules(ModuleName, TargetInfo, out RulesFilename);
 					if (ModuleRulesObj != null)
 					{
 						ModuleBinariesSubDir = ModuleRulesObj.BinariesSubFolder;
@@ -2463,7 +2466,7 @@ namespace UnrealBuildTool
 			}
 
 			// append the binary name
-			string OutBinaryPath = Path.Combine(BaseDirectory, MakeBinaryFileName(BinaryName, Platform, LocalConfig, UndecoratedConfiguration, BinaryType));
+			string OutBinaryPath = Path.Combine(BaseDirectory, MakeBinaryFileName(BinaryName, Platform, LocalConfig, Rules.UndecoratedConfiguration, BinaryType));
 			return BuildPlatform.FinalizeBinaryPaths(OutBinaryPath);
 		}
 
@@ -2533,7 +2536,7 @@ namespace UnrealBuildTool
 		{
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 			List<string> PlatformExtraModules = new List<string>();
-			BuildPlatform.GetExtraModules(new TargetInfo(Platform, Configuration, TargetType), this, ref PlatformExtraModules);
+			BuildPlatform.GetExtraModules(TargetInfo, this, ref PlatformExtraModules);
 			ExtraModuleNames.AddRange(PlatformExtraModules);			
 		}
 
@@ -2614,7 +2617,7 @@ namespace UnrealBuildTool
 				List<UEBuildBinaryConfiguration> RulesBuildBinaryConfigurations = new List<UEBuildBinaryConfiguration>();
 				List<string> RulesExtraModuleNames = new List<string>();
 				Rules.SetupBinaries(
-					new TargetInfo(Platform, Configuration, TargetType),
+					TargetInfo,
 					ref RulesBuildBinaryConfigurations,
 					ref RulesExtraModuleNames
 					);
@@ -2660,7 +2663,7 @@ namespace UnrealBuildTool
 				LinkEnvironmentConfiguration RulesLinkEnvConfig = GlobalLinkEnvironment.Config;
 				CPPEnvironmentConfiguration RulesCPPEnvConfig = GlobalCompileEnvironment.Config;
 				SetupDefaultGlobalEnvironment(
-						new TargetInfo(Platform, Configuration, TargetType),
+						TargetInfo,
 						ref RulesLinkEnvConfig,
 						ref RulesCPPEnvConfig
 						);
@@ -2687,7 +2690,7 @@ namespace UnrealBuildTool
 					Rules.ShouldCompileMonolithic(Platform, Configuration))
 				{
 					Rules.SetupGlobalEnvironment(
-						new TargetInfo(Platform, Configuration, TargetType),
+						TargetInfo,
 						ref RulesLinkEnvConfig,
 						ref RulesCPPEnvConfig
 						);
@@ -2906,12 +2909,6 @@ namespace UnrealBuildTool
 			UEBuildPlatform.GetBuildPlatform(Platform).SetUpProjectEnvironment(Platform);
 		}
 
-		/** Constructs a TargetInfo object for this target. */
-		public TargetInfo GetTargetInfo()
-		{
-			return new TargetInfo(Platform, Configuration, TargetType);
-		}
-
 		/** Registers a module with this target. */
 		public void RegisterModule(UEBuildModule Module)
 		{
@@ -2925,14 +2922,12 @@ namespace UnrealBuildTool
 			UEBuildModule Module;
 			if (!Modules.TryGetValue(ModuleName, out Module))
 			{
-				TargetInfo TargetInfo = GetTargetInfo();
-
 				// Create the module!  (It will be added to our hash table in its constructor)
 
 				// @todo projectfiles: Cross-platform modules can appear here during project generation, but they may have already
 				//   been filtered out by the project generator.  This causes the projects to not be added to directories properly.
 				string ModuleFileName;
-				var RulesObject = RulesCompiler.CreateModuleRules(ModuleName, GetTargetInfo(), out ModuleFileName);
+				var RulesObject = RulesCompiler.CreateModuleRules(ModuleName, TargetInfo, out ModuleFileName);
 				var ModuleDirectory = Path.GetDirectoryName(ModuleFileName);
 
 				// Making an assumption here that any project file path that contains '../../'

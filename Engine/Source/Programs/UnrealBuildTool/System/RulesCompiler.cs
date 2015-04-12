@@ -26,20 +26,36 @@ namespace UnrealBuildTool
 		/// Target type (if known)
 		public readonly TargetRules.TargetType? Type;
 
+		/// Whether the target is monolithic (if known)
+		public readonly bool? bIsMonolithic;
+
 		/// <summary>
 		/// Constructs a TargetInfo
 		/// </summary>
 		/// <param name="InitPlatform">Target platform</param>
 		/// <param name="InitConfiguration">Target build configuration</param>
-		public TargetInfo( UnrealTargetPlatform InitPlatform, UnrealTargetConfiguration InitConfiguration, TargetRules.TargetType? InitType = null )
+		public TargetInfo( UnrealTargetPlatform InitPlatform, UnrealTargetConfiguration InitConfiguration )
 		{
 			Platform = InitPlatform;
 			Configuration = InitConfiguration;
-			Type = InitType;
 
 			// get the platform's architecture
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 			Architecture = BuildPlatform.GetActiveArchitecture();
+		}
+
+		/// <summary>
+		/// Constructs a TargetInfo
+		/// </summary>
+		/// <param name="InitPlatform">Target platform</param>
+		/// <param name="InitConfiguration">Target build configuration</param>
+		/// <param name="InitType">Target type</param>
+		/// <param name="bInitIsMonolithic">Whether the target is monolithic</param>
+		public TargetInfo( UnrealTargetPlatform InitPlatform, UnrealTargetConfiguration InitConfiguration, TargetRules.TargetType InitType, bool bInitIsMonolithic )
+			: this(InitPlatform, InitConfiguration)
+		{
+			Type = InitType;
+			bIsMonolithic = bInitIsMonolithic;
 		}
 
 		/// <summary>
@@ -66,13 +82,11 @@ namespace UnrealBuildTool
         {
             get
             {
-                if (!Type.HasValue)
+                if (!bIsMonolithic.HasValue)
                 {
-                    throw new BuildException("Trying to access TargetInfo.IsMonolithic when TargetInfo.Type is not set. Make sure IsMonolithic is used only in ModuleRules.");
+                    throw new BuildException("Trying to access TargetInfo.IsMonolithic when bIsMonolithic is not set. Make sure IsMonolithic is used only in ModuleRules.");
                 }
-                return Type == TargetRules.TargetType.Client ||
-                     Type == TargetRules.TargetType.Game ||
-                     Type == TargetRules.TargetType.Server;
+                return bIsMonolithic.Value;
             }
         }
     }
@@ -1431,7 +1445,7 @@ namespace UnrealBuildTool
 
 			UnrealTargetPlatform LocalPlatform = Target.Platform;
 			UnrealTargetConfiguration LocalConfiguration = Target.Configuration;
-			TargetInfo LocalTarget = new TargetInfo(LocalPlatform, LocalConfiguration, Target.Type);
+			TargetInfo LocalTarget = new TargetInfo(LocalPlatform, LocalConfiguration, Target.Type.Value, Target.bIsMonolithic.Value);
 
 			// The build module must define a type named 'Rules' that derives from our 'ModuleRules' type.  
 			var RulesObjectType = RulesAssembly.GetType( ModuleName );

@@ -1725,7 +1725,7 @@ namespace UnrealBuildTool
                                         ECompilationResult UHTResult = ECompilationResult.OtherCompilationError;
                                         if (!ExternalExecution.ExecuteHeaderToolIfNecessary(Target, GlobalCompileEnvironment:null, UObjectModules:TargetUObjectModules, ModuleInfoFileName:ModuleInfoFileName, UHTResult:ref UHTResult))
                                         {
-                                            Log.TraceInformation("UnrealHeaderTool failed for target '" + Target.GetTargetName() + "' (platform: " + Target.GetTargetInfo().Platform.ToString() + ", module info: " + ModuleInfoFileName + ").");
+                                            Log.TraceInformation("UnrealHeaderTool failed for target '" + Target.GetTargetName() + "' (platform: " + Target.Platform.ToString() + ", module info: " + ModuleInfoFileName + ").");
                                             BuildResult = UHTResult;
                                             break;
                                         }
@@ -2128,7 +2128,7 @@ namespace UnrealBuildTool
                         {
                             // Invoke our deep include scanner to figure out whether any of the files included by this source file have
                             // changed since the build product was built
-                            var FileBuildPlatform = UEBuildPlatform.GetBuildPlatform( Target.GetTargetInfo().Platform );
+                            var FileBuildPlatform = UEBuildPlatform.GetBuildPlatform( Target.Platform );
                             CPPEnvironment.FindAndCacheAllIncludedFiles( Target, PrerequisiteItem, FileBuildPlatform, PrerequisiteItem.CachedCPPIncludeInfo, bOnlyCachedDependencies:false );
                         }
                     }
