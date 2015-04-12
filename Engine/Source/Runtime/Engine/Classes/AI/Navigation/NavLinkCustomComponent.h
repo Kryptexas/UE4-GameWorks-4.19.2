@@ -40,7 +40,7 @@ class ENGINE_API UNavLinkCustomComponent : public UNavRelevantComponent, public 
 
 	// BEGIN UNavRelevantComponent Interface
 	virtual void GetNavigationData(FNavigationRelevantData& Data) const override;
-	virtual void CalcBounds() override;
+	virtual void CalcAndCacheBounds() const override;
 	// END UNavRelevantComponent Interface
 
 	// BEGIN UActorComponent Interface

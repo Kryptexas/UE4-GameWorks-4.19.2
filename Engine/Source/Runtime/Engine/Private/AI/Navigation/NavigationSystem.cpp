@@ -2473,11 +2473,12 @@ void UNavigationSystem::UpdateNavOctreeElement(UObject* ElementOwner, INavReleva
 		UpdateInfo.PrevBounds = CurrentBounds;
 		UpdateInfo.bHasPrevData = bAlreadyExists;
 	}
+
+	UpdateNavOctreeParentChain(ElementOwner, /*bSkipElementOwnerUpdate=*/ true);
 }
 
-void UNavigationSystem::UpdateNavOctreeParentChain(UObject* ElementOwner)
+void UNavigationSystem::UpdateNavOctreeParentChain(UObject* ElementOwner, bool bSkipElementOwnerUpdate)
 {
-	INavRelevantInterface* ElementInterface = Cast<INavRelevantInterface>(ElementOwner);
 	const int32 UpdateFlags = OctreeUpdate_ParentChain | OctreeUpdate_Refresh;
 
 	TArray<FWeakObjectPtr> ChildNodes;
@@ -2485,10 +2486,15 @@ void UNavigationSystem::UpdateNavOctreeParentChain(UObject* ElementOwner)
 
 	if (ChildNodes.Num() == 0)
 	{
-		UpdateNavOctreeElement(ElementOwner, ElementInterface, UpdateFlags);
+		if (bSkipElementOwnerUpdate == false)
+		{
+			INavRelevantInterface* ElementInterface = Cast<INavRelevantInterface>(ElementOwner);
+			UpdateNavOctreeElement(ElementOwner, ElementInterface, UpdateFlags);
+		}
 		return;
 	}
 
+	INavRelevantInterface* ElementInterface = Cast<INavRelevantInterface>(ElementOwner);
 	TArray<INavRelevantInterface*> ChildNavInterfaces;
 	ChildNavInterfaces.AddZeroed(ChildNodes.Num());
 	

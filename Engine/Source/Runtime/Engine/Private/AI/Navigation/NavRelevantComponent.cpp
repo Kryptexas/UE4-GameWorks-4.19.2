@@ -12,7 +12,7 @@ void UNavRelevantComponent::OnRegister()
 {
 	Super::OnRegister();
 
-	CalcBounds();
+	CalcAndCacheBounds();
 
 	UNavigationSystem::OnComponentRegistered(this);
 }
@@ -36,16 +36,28 @@ bool UNavRelevantComponent::IsNavigationRelevant() const
 
 void UNavRelevantComponent::UpdateNavigationBounds()
 {
-	CalcBounds();
+	CalcAndCacheBounds();
+}
+
+UObject* UNavRelevantComponent::GetNavigationParent() const
+{
+	AActor* OwnerActor = GetOwner();
+	return OwnerActor && OwnerActor->GetRootComponent() ? static_cast<UObject*>(OwnerActor->GetRootComponent()) : static_cast<UObject*>(OwnerActor);
 }
 
 void UNavRelevantComponent::CalcBounds()
 {
-	AActor* OwnerActor = GetOwner();
+	CalcAndCacheBounds();
+}
+
+void UNavRelevantComponent::CalcAndCacheBounds() const
+{
+	const AActor* OwnerActor = GetOwner();
 	const FVector MyLocation = OwnerActor ? OwnerActor->GetActorLocation() : FVector::ZeroVector;
 
 	Bounds = FBox::BuildAABB(MyLocation, FVector(100.0f, 100.0f, 100.0f));
 }
+
 
 void UNavRelevantComponent::SetNavigationRelevancy(bool bRelevant)
 {

@@ -19,20 +19,24 @@ class ENGINE_API UNavRelevantComponent : public UActorComponent, public INavRele
 	virtual FBox GetNavigationBounds() const override;
 	virtual bool IsNavigationRelevant() const override;
 	virtual void UpdateNavigationBounds() override;
+	virtual UObject* GetNavigationParent() const override;
 	// End INavRelevantInterface Interface
 
+	DEPRECATED(4.8, "This function is deprecated. Use CalcAndCacheBounds instead")
 	virtual void CalcBounds();
+	
+	virtual void CalcAndCacheBounds() const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
 	void SetNavigationRelevancy(bool bRelevant);
 
 	/** force refresh in navigation octree */
 	void RefreshNavigationModifiers();
+	
+protected:
 
 	/** bounds for navigation octree */
-	FBox Bounds;
-
-protected:
+	mutable FBox Bounds;
 
 	UPROPERTY()
 	uint32 bNavigationRelevant : 1;

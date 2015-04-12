@@ -98,7 +98,7 @@ void UNavLinkCustomComponent::GetNavigationData(FNavigationRelevantData& Data) c
 	}
 }
 
-void UNavLinkCustomComponent::CalcBounds()
+void UNavLinkCustomComponent::CalcAndCacheBounds() const
 {
 	Bounds = FBox(0);
 	Bounds += GetStartPoint();
