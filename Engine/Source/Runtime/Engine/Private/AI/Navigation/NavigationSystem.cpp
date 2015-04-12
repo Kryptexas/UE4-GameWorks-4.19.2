@@ -2508,8 +2508,11 @@ void UNavigationSystem::UpdateNavOctreeParentChain(UObject* ElementOwner, bool b
 		}
 	}
 
-	UnregisterNavOctreeElement(ElementOwner, ElementInterface, UpdateFlags);
-	RegisterNavOctreeElement(ElementOwner, ElementInterface, UpdateFlags);
+	if (bSkipElementOwnerUpdate == false)
+	{
+		UnregisterNavOctreeElement(ElementOwner, ElementInterface, UpdateFlags);
+		RegisterNavOctreeElement(ElementOwner, ElementInterface, UpdateFlags);
+	}
 
 	for (int32 Idx = 0; Idx < ChildNodes.Num(); Idx++)
 	{
