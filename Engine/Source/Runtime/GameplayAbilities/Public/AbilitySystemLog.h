@@ -38,9 +38,7 @@ GAMEPLAYABILITIES_API DECLARE_LOG_CATEGORY_EXTERN(VLogAbilitySystem, Warning, Al
 	UE_VLOG_HISTOGRAM(OwnerActor, VLogAbilitySystem, Log, GraphName, LineName, NewPt); \
 }
 
-#define ABILITY_LOG_TOKENPASTE_INNER(x,y) x##y
-#define ABILITY_LOG_TOKENPASTE(x,y) ABILITY_LOG_TOKENPASTE_INNER(x,y)
-#define ABILITY_LOG_SCOPE( Format, ... ) AbilitySystemLogScope ABILITY_LOG_TOKENPASTE(LogScope,__LINE__)( FString::Printf(Format, ##__VA_ARGS__));
+#define ABILITY_LOG_SCOPE( Format, ... ) AbilitySystemLogScope PREPROCESSOR_JOIN(LogScope,__LINE__)( FString::Printf(Format, ##__VA_ARGS__));
 
 struct AbilitySystemLogScope
 {
