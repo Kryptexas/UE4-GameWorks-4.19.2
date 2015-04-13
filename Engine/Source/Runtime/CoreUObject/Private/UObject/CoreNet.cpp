@@ -8,7 +8,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogCoreNet, Log, All);
 
-DEFINE_STAT(STAT_NetSerializeFast_Array);
+DEFINE_STAT(STAT_NetSerializeFastArray);
+DEFINE_STAT(STAT_NetSerializeFastArray_BuildMap);
 
 /*-----------------------------------------------------------------------------
 	FClassNetCache implementation.

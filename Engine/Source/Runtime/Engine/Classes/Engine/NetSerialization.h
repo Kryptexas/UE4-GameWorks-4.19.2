@@ -382,6 +382,7 @@ struct FFastArraySerializer
 template< typename Type, typename SerializerType >
 bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDeltaSerializeInfo& Parms, SerializerType& ArraySerializer )
 {
+	SCOPE_CYCLE_COUNTER(STAT_NetSerializeFastArray);
 	class UScriptStruct* InnerStruct = Type::StaticStruct();
 
 	if ( Parms.bUpdateUnmappedObjects || Parms.Writer == NULL )
@@ -391,7 +392,7 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 		//---------------
 		if (ArraySerializer.ItemMap.Num() != Items.Num())
 		{
-			SCOPE_CYCLE_COUNTER(STAT_NetSerializeFast_Array);
+			SCOPE_CYCLE_COUNTER(STAT_NetSerializeFastArray_BuildMap);
 			UE_LOG(LogNetSerialization, Verbose, TEXT("FastArrayDeltaSerialize: Recreating Items map. Struct: %s, Items.Num: %d Map.Num: %d"), *InnerStruct->GetOwnerStruct()->GetName(), Items.Num(), ArraySerializer.ItemMap.Num() );
 
 			ArraySerializer.ItemMap.Empty();
