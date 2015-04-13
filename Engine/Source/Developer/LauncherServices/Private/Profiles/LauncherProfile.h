@@ -722,7 +722,7 @@ public:
 		HideFileServerWindow = false;
 		DeployIncremental = false;
 
-		
+		CreateReleaseVersion = false;
 		GeneratePatch = false;
 		CreateDLC = false;
 
