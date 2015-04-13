@@ -1,0 +1,235 @@
+﻿INTSourceChangelist:2469295
+Availability: Public
+Title:머티리얼 - 프레넬 사용 비법
+Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
+Description:Fresnel 머티리얼 노드 사용법 안내입니다.
+Related: Engine/Rendering/Materials/Functions/Reference/VectorOps
+Related: Engine/Rendering/Materials/Editor/Interface
+Related: Engine/Rendering/Materials/ExpressionReference/Utility
+
+
+[TOC(start:2 end:3)]
+
+![](FN_Fresnel_Sample.png)
+
+## 개요
+
+영화나 시네마틱 제작시 캐릭터의 실루엣을 더욱 강조시키는 방법이 필요할 때가 종종 있습니다. 이 라이팅 기법은 림 / 에지 (테두리) 라이팅이라고도 하며,
+라이트를 추가하여 배경에서 캐릭터 실루엣을 도드라지게 하는 데 도움이 됩니다. 이 방법은 영화에는 꽤나 잘 통하지만, 3D 씬에 라이트를 추가하면 
+복잡도가 증가하여 관리하기가 급격히 힘들어질 수 있습니다. 그때문에 언리얼 엔진 4 (UE4) 에서는 아티스트가 캐릭터의 머티리얼을 사용해서 동일한 기본 효과를 시뮬레이션하는 솔루션이 제공됩니다.
+이런 식으로 아티스트는 이펙트의 모양과 느낌을 더욱 세밀히 제어하고, 심지어 라이팅되지 않은 오브젝트에 라이팅을 더하는 데 사용하여 퍼포먼스를 절약할 수도 있습니다.
+
+
+## 프레넬이란
+
+Fresnel 은 관찰자가 바라보는 각도에 따라 반사되는 빛의 세기가 달라지는 현상을 설명하는 데 사용되는 용어입니다.
+예를 들어 물 웅덩이 위에 서서 수직으로 내려다보는 경우, 반사되는 수면이 많이 보이지 않을 것입니다.
+머리를 움직여 물 웅덩이의 수면이 시선과 평행이 되어갈수록, 수면의 반사면이 많아지는 것이 보일 것입니다.
+
+UE4 에서 Fresnel 머티리얼 표현식 노드는 표면 노멀과 카메라까지의 방향의 내적을 기반으로 감쇠 계산을 합니다.
+표면 노멀이 카메라를 바로 향하면 출력값은 0, 즉 발생하는 프레넬 이펙트가 없습니다.
+표면 노멀이 카메라에 수직인 경우 출력값은 1, 즉 최대치의 프레넬 이펙트가 발생합니다.
+그런 다음 그 결과를 [0,1] 범위로 제한시켜 가운데 음수 컬러가 생기지 않도록 합니다. 다음 그림은 이 개념을 나타냅니다.
+
+![](FN_Caculation_Example.png)
+
+구체 중앙의 0 인 부분은 프레넬 이펙트가 없는 것이 보입니다. 왜냐면 카메라가 바로 표면 노멀쪽을 향하고 있기 때문입니다.
+표면 노멀과 카메라가 수직이 되어갈 수록, 즉 1 에 가까울 수록 프레넬 이펙트가 더욱 잘 보이게 되는데,
+바로 그러한 작동방식 유형이 필요한 것입니다.
+
+
+## 프레넬 노드 분석
+
+Fresnel 노드를 검색하면 **Utility** 와 **Vector Ops** 아래 Fresnel 이 있습니다.
+위의 두 노드는 이름도 같고 하는 일도 같지만, 사용 구성법이 다릅니다.
+
+### 프레넬 유틸리티
+
+**Utility** 아래 있는 프레넬은 이 비법에서 사용되는 것으로, 둘 중에서 구성이나 사용법이 간단합니다.
+처음에는 이 버전을 사용했다가 노드 작동 방식을 이해한 후 다른 버전을 사용할 것을 **강력 추천** 합니다.
+
+![](FN_Fresnel_Node.png)
+
+| 프로퍼티 | 설명|
+|--------- | ---------- |
+| **ExponentIn** | 지수 입력 - 프레넬 이펙트 감쇠를 제어합니다. |
+| **BaseReflectFrctionIn** | 기본 리플렉션 굴절 입력 - 표면을 직접 봤을 때의 스페큘러 리플렉션의 굴절율을 나타냅니다. 이 값을 1 로 설정하면 사실상 프레넬이 꺼집니다. |
+| **Normal** | 노멀 - 여기에 노멀을 입력시켜 프레넬 이펙트의 렌더링 방식에 영향을 끼칠 수 있습니다. 이 프로퍼티는 노멀 맵이나 벡터 3 입력 중 하나를 제공하는 것으로는 설정할 수 없습니다. |
+
+Fresnel 머티리얼 표현식의 값을 조절하는 데는 두 가지 옵션이 있습니다.
+* 머티리얼 그래프에서 Fresnel 머티리얼 표현식을 선택한 다음 **디테일** 패널을 통해 값을 입력합니다.
+	![](FN_Change_Via_Details.png)
+* 머티리얼 그래프에 Constant 또는 Scalar 노드를 추가한 다음 각각의 입력에 연결합니다.
+	![](FN_Change_In_Graph.png)
+
+[region:tip]
+노멀 맵을 사용할 때, **Transform** 표현식 노드를 추가하도록 하세요. 그러면 노멀 맵이 탄젠트 스페이스에서 월드 스페이스로 변환됩니다. 이러한 변환 없이는 노멀 맵이 의도한 대로 프레넬에 영향을 끼치지 못할 수 있습니다.
+[/region] 
+
+
+### 프레넬 벡터 옵스
+
+**Vector Ops** 아래 있는 Fresnel 은 상세한 설정이 가능한 버전으로, 프레넬 렌더링 방식의 다양한 부분에 영향을 끼칠 수 있습니다.
+하지만 이러한 부가 기능이 단점이 될 수도 있는데, 설정을 잘못 하면 프레넬 렌더링 방식에 부작용 내지 오류가 생길 수 있기 때문입니다.
+**Utility** 아래 있는 Fresnel 로 원하는 결과를 얻을 수 없을 때만 사용해야 할 것입니다.
+
+![](FN_Fresnel_Node_VO.png)
+
+| 프로퍼티 | 설명|
+|--------- | ---------- |
+| **Normal Vector (V3)** | 노멀 벡터 - 여기에 노멀을 입력시켜 프레넬 이펙트 렌더링 방식에 영향을 끼칠 수 있습니다. 이 프로퍼티는 노멀 맵이나 벡터 3 입력 중 하나를 제공하는 것으로는 설정할 수 없습니다. |
+| **Camera Vector(V3)** | 카메라 벡터 - 카메라와 표면 노멀의 내적을 구하는 데 사용되는 카메라 이펙트가 가능합니다. |
+| **Invert Fresnel(B)** | 프레넬 반전 - 프레넬 이펙트를 반전시킬 수 있습니다. 프레넬을 중앙이나 가장자리에서만 적용시키고자 하는 경우에 유용합니다. |
+| **Power(S)** | 제곱 - 프레넬 이펙트의 제곱 조절이 가능합니다. 수치를 크게 할 경우 프레넬에 영향받는 영역이 협소해 지며, 작을 수록 넓어집니다. |
+| **Use Cheap Contrast(B)** | 
+This will allow the Fresnel to muse a cheaper method for calculating contrast between lights and darks. |
+| **Cheap Contrast Dark (S)** | This controls how dark the Fresnel will be. This will only have an affect if **Use Cheap Contrast** is enabled.  |
+| **Cheap Contrast Bright (S)** | This controls how bright the Fresnel effect will be. This will only have an affect if **Use Cheap Contrast** is enabled.|
+
+
+## How to Use Fresnel in your Material 
+
+Creating a Material that uses Fresnel can be accomplished in the following steps. 
+
+1. For this example, we are going to create a new Material however you can still apply the concepts learned here to any existing Material you want. 
+	To create a new Material, use the mouse and **Right-Click** in the **Content Browser** and then select Material from the Create Basic Asset list. 
+	Once the Material is created, name it **Fresnel_Material**. 
+
+	![](FN_Creat_New_Material.png)
+
+1. Open up the new Material by **Double-Clicking** on it with the **Left Mouse Button** in the **Content Browser** . 
+	Once the Material is opened, locate the needed Material Expression nodes by searching for them in the **Palette** search menu.
+	To place Material Expression nodes into the the Material Graph, first select the node you want to place with the **Left Mouse Button** and with the **Left Mouse Button** still held down, drag the node into the Material Graph. 
+	For this Material, the following type and amount of nodes are needed. 
+
+	| Node Name | Amount|
+	| -------| --------|
+	| **Vector Parameter Node**| 2|
+	| **Scalar Node** | 2|
+	| **Fresnel Node**| 1|
+
+	When completed, your Material Graph should look like this. 
+
+	![](FN_Adding_Nodes.png)
+
+	[region:note]
+	When you search for the Fresnel Material Expression, you will find two different types that you can choose from. For this How - To, we will only be using the Fresnel that can be found under **Utility**.
+	[/region]
+
+1. Now that the required Material Expression nodes have been added to the Material Graph, it is now time to start connecting everything together and giving the parameters base values. 
+	For this example, we are going to be using the following Parameter names and default values. 
+	|Name | Value |
+	|-----| ------|
+	| **Base_Color**| 0.5, 0.5, 0.5|
+	| **Roughness**|0.5|
+	| **Fresnel_Color**|1.0, 0.0, 0.0|
+	| **Fresnel_Exp**|0.8|
+
+	When completed, your Material graph should look like this. 
+
+	![](FN_Completed_Materail.png)
+
+1. Once you have everything hooked up, make sure to **Apply** and **Save** your Material. After saving the Material, you can then close down the Material editor.
+
+	![](FN_Apply_Save.png)
+
+1. With the Material now compiled, saved, and closed, locate the Material in the **Content Browser**, and **Right-Click** on it with the mouse. 
+	From the menu that pops up, select the **Create Material Instance** option. Once you do this, a new Material Instance will be created. 
+	When completed, your **Content Browser** should look like this. 	
+	![](FN_Create_New_Material_Instance.png)
+
+1. Open up the newly created Material Instance by **Double-Clicking** on it in the **Content Browser** with the **Left Mouse Button**. 
+	Once the Material Instance is open, you can begin to adjust the Material Instance parameters by first, enabling the parameter you want to edit by clicking on the grayed out box that is next to parameter name. 
+	Once this has been done, the parameter can then be edited. For example, if you enable the **Fresnel_Exp** parameter, you can increase or decrease the effect the Fresnel has on the surface. 
+
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	HE-OJQCUusY
+	[/PARAMLITERAL]
+	[/OBJECT]
+
+[region:tip]
+Remember that inputting bigger numbers into **Fresnel_Exp** will push the Fresnel effect closer and closer to the edges and lower numbers will bring the effect closer to the center. 
+Here is an example of what happens to the Fresnel when the **Fresnel_Exp** value is to different values. 
+Notice how as the number increases, the Fresnel effect is pushed closer and closer to the edges of the mesh like in the following example.
+![](FN_Different_Fresnel_Exp_Values.png)
+[/region]
+
+
+## Fresnel & Normal Maps
+
+If you input a Normal Map into the Normal input of the Fresnel, you will see that you can effect the surface in a number of very interesting ways. 
+This is because of the Normal maps influence over the surface normal. As we learned before, the Fresnel works by checking to see if the surface normal is perpendicular to the camera or not. 
+If it is perpendicular to the camera, then the Fresnel effect will take place. On a smooth sphere, this means that the Fresnel will only take place at the edges of object. 
+However when a Normal map is introduced, we change the surface normal to no longer be smooth, allowing the Fresnel effect to take happen in places that it normally would not if the 
+surface Normal had been smooth. 
+
+For a visual example at what is going on, take a look at the following image showing the effect the surface normal has on the Fresnel. 
+On the left hand side, 1, is what the Fresnel node will out put with a flat surface normal. Now take a look at the right hand side, 2. 
+In this image, a Normal map was input which drastically changes the surface normal. 
+Because the surface normal is no longer flat everywhere, you get more of the Fresnel being displayed. 
+
+![](FN_Effect_On_Surface_Normal.png)
+
+In the image below, we can see how different Normal maps can affect the Fresnel in different ways. 
+
+![](FN_Fresnel_&_Normal_Map.png)
+
+The Material that was used to create the images above was the same Material that was created before but with the following modifications made. 
+
+* The Materials **Blend Mode** was changed from **Default** to **Translucent**
+* The final output for the Fresnel that was plugged into the **Emissive Color** input was also plugged into the **Opacity** input.
+* A new 2D Texture Sampler was added and plugged into the **Normal** input. **Tech_Hex_Tile_N** from the Starter Content was used as the Normal texture.
+* A new Scalar Parameter was added that is multiplied by a **Texture Coordinates** expression to implement some basic uniform titling on the Normal map. 
+
+![](FN_Adding_Normal_Map.png)
+
+
+The Fresnel Material Expression can also be supplied with a Normal map that can effect the way the Fresnel is rendered. 
+This is particularly useful if you want to use the Fresnel to display something like an energy shield on a Material but still have that Material look normal when the shield is not active. 
+To achieve this using the Material above, the following things need to be done.
+
+1. First change the **Base Color** and **Roughness** to use the **T_Brick_Clay_New_D** texture from the Starter Content. 
+
+1. Next change the Normal input so that it uses T_Brick_Clay_New_N, which can also be found in the Starter Content. 
+
+1. Next search for a **Transform** Expression node in the Palette and add it to the Material graph. Make sure that it is set to transform from Tangent to World space. 
+
+1. Connect the old Normal map texture node into the input of the Transform node and connect its output into the Normal input on the Fresnel node and when completed, your Material should look something like this. 
+
+![](FN_Fresnel_Normal_Input.png)	
+
+Notice how the bricks look like they have nothing to do with the Fresnel. 
+You can even take this one step by adding an **Multiply** and **Constant** Expression node and then using that to control the intensity of Fresnel effect. 
+Here is how that would look when added to the Material from above. 
+
+![](FN_Controal_Fresnel_Effect.png)
+
+By adjusting the **Constant** that was added, you can control how the Fresnel effects the surface. 
+Setting the number to 0 turns off the effect and setting it to anything else will gradually reveal the effect like in the example below.
+
+![](FN_Effect_Amount.png)
+
+
+## Other Uses for Fresnel 
+
+Due to the way Fresnel works, it can be used to do other things besides just rim lighting. 
+Here are some examples of using the Fresnel node to do other things than just rim lighting. 
+
+* **Input Blending** You can use the Fresnel as the alpha for a LERP  to control how inputs to the LERP are combined together. 
+	![](FN_Lerp_Blending.png)
+
+
+## Conclusion 
+
+Adding Fresnel to a Material is a great way to help better illuminate a character's silhouette or to help show an energy shield special effect. 
+Remember that Fresnel works based off of viewing angle and surface normal's, so if you want to add some interesting detail to the Fresnel try using a Normal map that has a little random noise in it. 
+Also do not forget that you can use Fresnel Material Expression to help blend between two different inputs which is very handy for visual effects like fire or smoke.
+
+
