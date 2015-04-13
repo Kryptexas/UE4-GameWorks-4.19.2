@@ -502,6 +502,13 @@ bool FBuildPatchFileConstructor::ConstructFileFromChunks( const FString& Filenam
 	}
 #endif
 	
+#if PLATFORM_ANDROID || PLATFORM_ANDROIDGL4 || PLATFORM_ANDROIDES31
+	if (bSuccess)
+	{
+		IFileManager::Get().SetTimeStamp(*NewFilename, FDateTime::UtcNow());
+	}
+#endif
+
 	// Delete the staging file if unsuccessful by means of construction fail (i.e. keep if canceled or download issue)
 	if( !bSuccess && FBuildPatchInstallError::GetErrorState() == EBuildPatchInstallError::FileConstructionFail )
 	{
