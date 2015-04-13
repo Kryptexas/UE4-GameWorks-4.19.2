@@ -70,7 +70,7 @@ public:
 		SLATE_ARGUMENT( TSharedPtr<IPropertyHandle>, PropertyHandle )
 		/** Thumbnail pool */
 		SLATE_ARGUMENT( TSharedPtr<FAssetThumbnailPool>, ThumbnailPool )
-		/** Classes that are allowed in the asset picker */
+		/** Class that is allowed in the asset picker */
 		SLATE_ARGUMENT( UClass*, AllowedClass )
 		/** Optional list of factories which may be used to create new assets */
 		SLATE_ARGUMENT( TOptional<TArray<UFactory*>>, NewAssetFactories )

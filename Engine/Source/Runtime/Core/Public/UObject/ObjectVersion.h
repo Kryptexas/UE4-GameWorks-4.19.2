@@ -492,6 +492,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_DEPRECATE_USER_WIDGET_DESIGN_SIZE,
 	// Make the editor views array dynamically sized
 	VER_UE4_ADD_EDITOR_VIEWS,
+	// Updated foliage to work with either FoliageType assets or blueprint classes
+	VER_UE4_FOLIAGE_WITH_ASSET_OR_CLASS,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

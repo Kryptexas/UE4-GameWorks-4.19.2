@@ -102,7 +102,7 @@ bool FProceduralFoliageComponentDetails::IsResimulateEnabled() const
 {
 	for(const TWeakObjectPtr<UProceduralFoliageComponent>& Component : SelectedComponents)
 	{
-		if(Component.IsValid() && Component->FoliageSpawner && Component->FoliageSpawner->GetTypes().Num() > 0)
+		if(Component.IsValid() && Component->FoliageSpawner && Component->FoliageSpawner->GetFoliageTypes().Num() > 0)
 		{
 			return true;
 		}
