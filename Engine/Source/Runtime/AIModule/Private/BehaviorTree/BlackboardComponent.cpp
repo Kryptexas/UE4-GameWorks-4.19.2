@@ -278,7 +278,7 @@ int32 UBlackboardComponent::GetNumKeys() const
 	return BlackboardAsset ? BlackboardAsset->GetNumKeys() : 0;
 }
 
-FDelegateHandle UBlackboardComponent::RegisterObserver(FBlackboard::FKey KeyID, UObject* NotifyOwner, FOnBlackboardChange ObserverDelegate)
+FDelegateHandle UBlackboardComponent::RegisterObserver(FBlackboard::FKey KeyID, UObject* NotifyOwner, FOnBlackboardChangeNotification ObserverDelegate)
 {
 	for (auto It = Observers.CreateConstKeyIterator(KeyID); It; ++It)
 	{
@@ -295,15 +295,17 @@ FDelegateHandle UBlackboardComponent::RegisterObserver(FBlackboard::FKey KeyID, 
 	return Handle;
 }
 
-void UBlackboardComponent::UnregisterObserver(FBlackboard::FKey KeyID, FOnBlackboardChange ObserverDelegate)
+void UBlackboardComponent::UnregisterObserver(FBlackboard::FKey KeyID, FDelegateHandle ObserverHandle)
 {
-	for (auto It = Observers.CreateKeyIterator(KeyID); It; ++It)
+	// this loop is only here for deprecated code support. Will go away
+	// DEPRECATED BEGIN
+	for (auto It = Observers_DEPRECATED.CreateKeyIterator(KeyID); It; ++It)
 	{
-		if (It.Value().DEPRECATED_Compare(ObserverDelegate))
+		if (It.Value().GetHandle() == ObserverHandle)
 		{
 			for (auto HandleIt = ObserverHandles.CreateIterator(); HandleIt; ++HandleIt)
 			{
-				if (HandleIt.Value() == It.Value().GetHandle())
+				if (HandleIt.Value() == ObserverHandle)
 				{
 					HandleIt.RemoveCurrent();
 					break;
@@ -314,10 +316,8 @@ void UBlackboardComponent::UnregisterObserver(FBlackboard::FKey KeyID, FOnBlackb
 			break;
 		}
 	}
-}
+	// DEPRECATED END
 
-void UBlackboardComponent::UnregisterObserver(FBlackboard::FKey KeyID, FDelegateHandle ObserverHandle)
-{
 	for (auto It = Observers.CreateKeyIterator(KeyID); It; ++It)
 	{
 		if (It.Value().GetHandle() == ObserverHandle)
@@ -341,6 +341,18 @@ void UBlackboardComponent::UnregisterObserversFrom(UObject* NotifyOwner)
 {
 	for (auto It = ObserverHandles.CreateKeyIterator(NotifyOwner); It; ++It)
 	{
+		// deprecated code support
+		// DEPRECATED BEGIN
+		for (auto ObsIt = Observers_DEPRECATED.CreateIterator(); ObsIt; ++ObsIt)
+		{
+			if (ObsIt.Value().GetHandle() == It.Value())
+			{
+				ObsIt.RemoveCurrent();
+				break;
+			}
+		}
+		// DEPRECATED END
+
 		for (auto ObsIt = Observers.CreateIterator(); ObsIt; ++ObsIt)
 		{
 			if (ObsIt.Value().GetHandle() == It.Value())
@@ -380,10 +392,23 @@ void UBlackboardComponent::NotifyObservers(FBlackboard::FKey KeyID) const
 	}
 	else
 	{
-		for (TMultiMap<uint8, FOnBlackboardChange>::TConstKeyIterator KeyIt(Observers, KeyID); KeyIt; ++KeyIt)
+		// DEPRECATED BEGIN
+		for (TMultiMap<uint8, FOnBlackboardChange>::TConstKeyIterator KeyIt(Observers_DEPRECATED, KeyID); KeyIt; ++KeyIt)
 		{
 			const FOnBlackboardChange& ObserverDelegate = KeyIt.Value();
 			ObserverDelegate.ExecuteIfBound(*this, KeyID);
+		}
+		// DEPRECATED END
+
+		for (TMultiMap<uint8, FOnBlackboardChangeNotification>::TKeyIterator KeyIt(Observers, KeyID); KeyIt; ++KeyIt)
+		{
+			const FOnBlackboardChangeNotification& ObserverDelegate = KeyIt.Value();
+			const bool bWantsToContinueObserving = ObserverDelegate.IsBound() && (ObserverDelegate.Execute(*this, KeyID) == EBlackboardNotificationResult::ContinueObserving);
+
+			if (bWantsToContinueObserving == false)
+			{
+				KeyIt.RemoveCurrent();
+			}
 		}
 	}
 }
@@ -443,8 +468,17 @@ FString UBlackboardComponent::GetDebugInfoString(EBlackboardDescription::Type Mo
 		DebugString += TEXT("Observed Keys:\n");
 
 		TArray<uint8> ObserversKeys;
-		if (Observers.GetKeys(ObserversKeys) > 0)
+		if (Observers.Num() > 0
+			// DEPRECATED BEGIN
+			|| Observers_DEPRECATED.Num() > 0
+			// DEPRECATED END
+			)
 		{
+			Observers.GetKeys(ObserversKeys);
+			// DEPRECATED BEGIN
+			Observers_DEPRECATED.GetKeys(ObserversKeys);
+			// DEPRECATED END
+
 			for (int32 KeyIndex = 0; KeyIndex < ObserversKeys.Num(); ++KeyIndex)
 			{
 				const FBlackboard::FKey KeyID = ObserversKeys[KeyIndex];
@@ -873,4 +907,45 @@ FVector UBlackboardComponent::GetValueAsVector(FBlackboard::FKey KeyID) const
 FRotator UBlackboardComponent::GetValueAsRotator(FBlackboard::FKey KeyID) const
 {
 	return GetValue<UBlackboardKeyType_Rotator>(KeyID);
+}
+
+//----------------------------------------------------------------------//
+// DEPRECATED
+//----------------------------------------------------------------------//
+FDelegateHandle UBlackboardComponent::RegisterObserver(FBlackboard::FKey KeyID, UObject* NotifyOwner, FOnBlackboardChange ObserverDelegate)
+{
+	for (auto It = Observers_DEPRECATED.CreateConstKeyIterator(KeyID); It; ++It)
+	{
+		// If the pair's value matches, return a pointer to it.
+		if (It.Value().GetHandle() == ObserverDelegate.GetHandle())
+		{
+			return It.Value().GetHandle();
+		}
+	}
+
+	FDelegateHandle Handle = Observers_DEPRECATED.Add(KeyID, ObserverDelegate).GetHandle();
+	ObserverHandles.Add(NotifyOwner, Handle);
+
+	return Handle;
+}
+
+void UBlackboardComponent::UnregisterObserver(FBlackboard::FKey KeyID, FOnBlackboardChange ObserverDelegate)
+{
+	for (auto It = Observers_DEPRECATED.CreateKeyIterator(KeyID); It; ++It)
+	{
+		if (It.Value().DEPRECATED_Compare(ObserverDelegate))
+		{
+			for (auto HandleIt = ObserverHandles.CreateIterator(); HandleIt; ++HandleIt)
+			{
+				if (HandleIt.Value() == It.Value().GetHandle())
+				{
+					HandleIt.RemoveCurrent();
+					break;
+				}
+			}
+
+			It.RemoveCurrent();
+			break;
+		}
+	}
 }

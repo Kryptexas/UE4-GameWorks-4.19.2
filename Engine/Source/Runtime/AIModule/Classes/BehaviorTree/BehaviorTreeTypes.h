@@ -44,8 +44,15 @@ namespace FBlackboard
 	const FKey InvalidKey = FKey(-1);
 }
 
+enum class EBlackboardNotificationResult : uint8
+{
+	RemoveObserver,
+	ContinueObserving
+};
+
 // delegate defines
 DECLARE_DELEGATE_TwoParams(FOnBlackboardChange, const UBlackboardComponent&, FBlackboard::FKey /*key ID*/);
+DECLARE_DELEGATE_RetVal_TwoParams(EBlackboardNotificationResult, FOnBlackboardChangeNotification, const UBlackboardComponent&, FBlackboard::FKey /*key ID*/);
 
 namespace BTSpecialChild
 {

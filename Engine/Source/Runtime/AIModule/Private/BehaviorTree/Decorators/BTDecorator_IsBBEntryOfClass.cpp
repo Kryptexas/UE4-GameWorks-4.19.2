@@ -26,7 +26,7 @@ bool UBTDecorator_IsBBEntryOfClass::CalculateRawConditionValue(UBehaviorTreeComp
 	return false;
 }
 
-void UBTDecorator_IsBBEntryOfClass::OnBlackboardChange(const UBlackboardComponent& Blackboard, FBlackboard::FKey ChangedKeyID)
+EBlackboardNotificationResult UBTDecorator_IsBBEntryOfClass::OnBlackboardKeyValueChange(const UBlackboardComponent& Blackboard, FBlackboard::FKey ChangedKeyID)
 {
 	check(Cast<UBehaviorTreeComponent>(Blackboard.GetBrainComponent()));
 	check(BlackboardKey.GetSelectedKeyID() == ChangedKeyID);
@@ -36,6 +36,8 @@ void UBTDecorator_IsBBEntryOfClass::OnBlackboardChange(const UBlackboardComponen
 	{
 		static_cast<UBehaviorTreeComponent*>(Blackboard.GetBrainComponent())->RequestExecution(this);
 	}
+
+	return EBlackboardNotificationResult::ContinueObserving;
 }
 
 void UBTDecorator_IsBBEntryOfClass::DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const

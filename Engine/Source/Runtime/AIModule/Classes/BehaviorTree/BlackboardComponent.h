@@ -67,7 +67,11 @@ public:
 	bool HasValidAsset() const;
 
 	/** register observer for blackboard key */
+	DEPRECATED(4.8, "FOnBlackboardChange delegate has been deprecated. Please use FOnBlackboardChangeNotification instead.")
 	FDelegateHandle RegisterObserver(FBlackboard::FKey KeyID, UObject* NotifyOwner, FOnBlackboardChange ObserverDelegate);
+
+	/** register observer for blackboard key */
+	FDelegateHandle RegisterObserver(FBlackboard::FKey KeyID, UObject* NotifyOwner, FOnBlackboardChangeNotification ObserverDelegate);
 
 	/** unregister observer from blackboard key */
 	DELEGATE_DEPRECATED("This overload of UnregisterObserver is deprecated, instead pass the result of RegisterObserver.")
@@ -283,9 +287,15 @@ protected:
 	UPROPERTY(transient)
 	TArray<UBlackboardKeyType*> KeyInstances;
 
-	/** observers registered for blackboard keys */
-	TMultiMap<uint8, FOnBlackboardChange> Observers;
+private:
+	/** observers registered for blackboard keys
+	 *	@note this is a legacy variable, left hanging only to support deprecated code until it does away */
+	TMultiMap<uint8, FOnBlackboardChange> Observers_DEPRECATED;
 
+protected:
+	/** observers registered for blackboard keys */
+	mutable TMultiMap<uint8, FOnBlackboardChangeNotification> Observers;
+	
 	/** observers registered from owner objects */
 	TMultiMap<UObject*, FDelegateHandle> ObserverHandles;
 
