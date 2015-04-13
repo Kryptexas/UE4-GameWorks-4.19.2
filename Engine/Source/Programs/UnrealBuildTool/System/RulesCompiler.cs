@@ -12,6 +12,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// Information about a target, passed along when creating a module descriptor
 	/// </summary>
+	[Serializable]
 	public class TargetInfo
 	{
 		/// Target platform
