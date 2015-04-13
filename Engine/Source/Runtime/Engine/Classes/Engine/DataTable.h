@@ -194,7 +194,7 @@ private:
 
 
 /** Handle to a particular row in a table*/
-USTRUCT(BlueprintType)
+USTRUCT()
 struct ENGINE_API FDataTableRowHandle
 {
 	GENERATED_USTRUCT_BODY()
