@@ -2156,6 +2156,10 @@ bool DeleteLayerIfAllZero(ULandscapeComponent* const Component, const uint8* con
 void FLandscapeEditDataInterface::SetAlphaData(ULandscapeLayerInfoObject* const LayerInfo, const int32 X1, const int32 Y1, const int32 X2, const int32 Y2, const uint8* Data, int32 Stride, ELandscapeLayerPaintingRestriction::Type PaintingRestriction /*= None*/, bool bWeightAdjust /*= true*/, bool bTotalWeightAdjust /*= false*/)
 {
 	check(LayerInfo != NULL);
+	if (LayerInfo->bNoWeightBlend)
+	{
+		bWeightAdjust = false;
+	}
 
 	if (Stride == 0)
 	{
