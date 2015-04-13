@@ -19,15 +19,6 @@ DEFINE_LOG_CATEGORY(LogAbilitySystemComponent);
 
 #define LOCTEXT_NAMESPACE "AbilitySystemComponent"
 
-
-int32 DebugGameplayCues = 0;
-static FAutoConsoleVariableRef CVarDebugGameplayCues(
-	TEXT("AbilitySystem.DebugGameplayCues"),
-	DebugGameplayCues,
-	TEXT("Enables Debugging for GameplayCue events"),
-	ECVF_Default
-	);
-
 /** Enable to log out all render state create, destroy and updatetransform events */
 #define LOG_RENDER_STATE 0
 
@@ -580,13 +571,15 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	FActiveGameplayEffectHandle	MyHandle;
 	bool bInvokeGameplayCueApplied = UGameplayEffect::INSTANT_APPLICATION != Spec.GetDuration(); // Cache this now before possibly modifying predictive instant effect to infinite duration effect.
 
+	FActiveGameplayEffect* AppliedEffect = nullptr;
+
 	FGameplayEffectSpec* OurCopyOfSpec = nullptr;
 	TSharedPtr<FGameplayEffectSpec> StackSpec;
 	float Duration = bTreatAsInfiniteDuration ? UGameplayEffect::INFINITE_DURATION : Spec.GetDuration();
 	{
 		if (Duration != UGameplayEffect::INSTANT_APPLICATION)
 		{
-			FActiveGameplayEffect* AppliedEffect = ActiveGameplayEffects.ApplyGameplayEffectSpec(Spec, PredictionKey);
+			AppliedEffect = ActiveGameplayEffects.ApplyGameplayEffectSpec(Spec, PredictionKey);
 			if (!AppliedEffect)
 			{
 				return FActiveGameplayEffectHandle();
@@ -595,13 +588,17 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 			MyHandle = AppliedEffect->Handle;
 			OurCopyOfSpec = &(AppliedEffect->Spec);
 
-			ABILITY_VLOG(OwnerActor, Log, TEXT("Applied %s"), *OurCopyOfSpec->Def->GetFName().ToString());
-
-			for (FGameplayModifierInfo Modifier : Spec.Def->Modifiers)
+			// Log results of applied GE spec
+			if (UE_LOG_ACTIVE(VLogAbilitySystem, Log))
 			{
-				float Magnitude = 0.f;
-				Modifier.ModifierMagnitude.AttemptCalculateMagnitude(Spec, Magnitude);
-				ABILITY_VLOG(OwnerActor, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *EGameplayModOpToString(Modifier.ModifierOp), Magnitude);
+				ABILITY_VLOG(OwnerActor, Log, TEXT("Applied %s"), *OurCopyOfSpec->Def->GetFName().ToString());
+
+				for (FGameplayModifierInfo Modifier : Spec.Def->Modifiers)
+				{
+					float Magnitude = 0.f;
+					Modifier.ModifierMagnitude.AttemptCalculateMagnitude(Spec, Magnitude);
+					ABILITY_VLOG(OwnerActor, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *EGameplayModOpToString(Modifier.ModifierOp), Magnitude);
+				}
 			}
 		}
 
@@ -621,16 +618,29 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 		}
 	}
 	
+
 	// We still probably want to apply tags and stuff even if instant?
-	if (bInvokeGameplayCueApplied)
+	if (bInvokeGameplayCueApplied && AppliedEffect && !AppliedEffect->bIsInhibited)
 	{
 		// We both added and activated the GameplayCue here.
 		// On the client, who will invoke the gameplay cue from an OnRep, he will need to look at the StartTime to determine
 		// if the Cue was actually added+activated or just added (due to relevancy)
 
 		// Fixme: what if we wanted to scale Cue magnitude based on damage? E.g, scale an cue effect when the GE is buffed?
-		InvokeGameplayCueEvent(*OurCopyOfSpec, EGameplayCueEvent::OnActive);
-		InvokeGameplayCueEvent(*OurCopyOfSpec, EGameplayCueEvent::WhileActive);
+
+		if (OurCopyOfSpec->StackCount > Spec.StackCount)
+		{
+			// Because PostReplicatedChange will get called from modifying the stack count
+			// (and not PostReplicatedAdd) we won't know which GE was modified.
+			// So instead we need to explicitly RPC the client so it knows the GC needs updating
+			NetMulticast_InvokeGameplayCueAddedAndWhileActive_FromSpec(*OurCopyOfSpec, PredictionKey);
+		}
+		else
+		{
+			// Otherwise these will get replicated to the client when the GE gets added to the replicated array
+			InvokeGameplayCueEvent(*OurCopyOfSpec, EGameplayCueEvent::OnActive);
+			InvokeGameplayCueEvent(*OurCopyOfSpec, EGameplayCueEvent::WhileActive);
+		}
 	}
 	
 	// Execute the GE at least once (if instant, this will execute once and be done. If persistent, it was added to ActiveGameplayEffects above)
@@ -736,13 +746,16 @@ void UAbilitySystemComponent::ExecuteGameplayEffect(FGameplayEffectSpec &Spec, F
 	// Effects with no period and that aren't instant application should never be executed
 	check( (Spec.GetDuration() == UGameplayEffect::INSTANT_APPLICATION || Spec.GetPeriod() != UGameplayEffect::NO_PERIOD) );
 
-	ABILITY_VLOG(OwnerActor, Log, TEXT("Executed %s"), *Spec.Def->GetFName().ToString());
-	
-	for (FGameplayModifierInfo Modifier : Spec.Def->Modifiers)
+	if (UE_LOG_ACTIVE(VLogAbilitySystem, Log))
 	{
-		float Magnitude = 0.f;
-		Modifier.ModifierMagnitude.AttemptCalculateMagnitude(Spec, Magnitude);
-		ABILITY_VLOG(OwnerActor, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *EGameplayModOpToString(Modifier.ModifierOp), Magnitude);
+		ABILITY_VLOG(OwnerActor, Log, TEXT("Executed %s"), *Spec.Def->GetFName().ToString());
+		
+		for (FGameplayModifierInfo Modifier : Spec.Def->Modifiers)
+		{
+			float Magnitude = 0.f;
+			Modifier.ModifierMagnitude.AttemptCalculateMagnitude(Spec, Magnitude);
+			ABILITY_VLOG(OwnerActor, Log, TEXT("         %s: %s %f"), *Modifier.Attribute.GetName(), *EGameplayModOpToString(Modifier.ModifierOp), Magnitude);
+		}
 	}
 
 	ActiveGameplayEffects.ExecuteActiveEffectsFrom(Spec, PredictionKey);
@@ -840,16 +853,13 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpecFo
 		ABILITY_LOG(Warning, TEXT("InvokeGameplayCueEvent Actor %s that has no gameplay effect!"), ActorAvatar ? *ActorAvatar->GetName() : TEXT("NULL"));
 		return;
 	}
-
-	if (DebugGameplayCues)
-	{
-		ABILITY_LOG(Warning, TEXT("InvokeGameplayCueEvent: %s"), *Spec.ToSimpleString());
-	}
 	
 	float ExecuteLevel = Spec.GetLevel();
 
 	FGameplayCueParameters CueParameters;
 	CueParameters.EffectContext = Spec.GetContext();
+	CueParameters.AggregatedSourceTags = Spec.AggregatedSourceTags;
+	CueParameters.AggregatedTargetTags = Spec.AggregatedTargetTags;
 
 	for (FGameplayEffectCue CueInfo : Spec.Def->GameplayCues)
 	{
@@ -872,12 +882,6 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpecFo
 		CueParameters.NormalizedMagnitude = CueInfo.NormalizeLevel(ExecuteLevel);
 
 		UAbilitySystemGlobals::Get().GetGameplayCueManager()->HandleGameplayCues(ActorAvatar, CueInfo.GameplayCueTags, EventType, CueParameters);
-
-		if (DebugGameplayCues && Spec.GetContext().GetHitResult())
-		{
-			DrawDebugSphere(GetWorld(), Spec.GetContext().GetHitResult()->Location, 30.f, 32, FColor::Red, true, 30.f);
-			ABILITY_LOG(Warning, TEXT("   %s"), *CueInfo.GameplayCueTags.ToString());
-		}
 	}
 }
 
@@ -998,6 +1002,15 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAdded_Implementation
 	if (IsOwnerActorAuthoritative() || PredictionKey.IsLocalClientKey() == false)
 	{
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive, EffectContext);
+	}
+}
+
+void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAddedAndWhileActive_FromSpec_Implementation(const FGameplayEffectSpecForRPC& Spec, FPredictionKey PredictionKey)
+{
+	if (IsOwnerActorAuthoritative() || PredictionKey.IsLocalClientKey() == false)
+	{
+		InvokeGameplayCueEvent(Spec, EGameplayCueEvent::OnActive);
+		InvokeGameplayCueEvent(Spec, EGameplayCueEvent::WhileActive);
 	}
 }
 

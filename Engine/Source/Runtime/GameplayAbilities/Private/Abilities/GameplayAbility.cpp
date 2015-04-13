@@ -482,18 +482,32 @@ void UGameplayAbility::CancelAbility(const FGameplayAbilitySpecHandle Handle, co
 	}
 }
 
-void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility)
+bool UGameplayAbility::IsEndAbilityValid(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const
 {
+	check(ActorInfo);
+
 	// Protect against EndAbility being called multiple times
 	// Ending an AbilityState may cause this to be invoked again
 	if (bIsActive == false && GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::NonInstanced)
 	{
-		return;
+		return false;
 	}
 
 	// check to see if this is an NonInstanced or if the ability is active.
-	FGameplayAbilitySpec* Spec = ActorInfo ? ActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(Handle) : nullptr;
-	if ((Spec != nullptr) ? Spec->IsActive() : IsActive())
+	const FGameplayAbilitySpec* Spec = ActorInfo ? ActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(Handle) : nullptr;
+	const bool bIsSpecActive = (Spec != nullptr) ? Spec->IsActive() : IsActive();
+
+	if (!bIsSpecActive)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility)
+{
+	if (IsEndAbilityValid(Handle, ActorInfo))
 	{
 		// Give blueprint a chance to react
 		K2_OnEndAbility();
@@ -671,11 +685,11 @@ bool UGameplayAbility::CheckCooldown(const FGameplayAbilitySpecHandle Handle, co
 		check(ActorInfo->AbilitySystemComponent.IsValid());
 		if (CooldownTags->Num() > 0 && ActorInfo->AbilitySystemComponent->HasAnyMatchingGameplayTags(*CooldownTags))
 		{
-			const FGameplayTag& CoooldownTag = UAbilitySystemGlobals::Get().ActivateFailCooldownTag;
+			const FGameplayTag& CooldownTag = UAbilitySystemGlobals::Get().ActivateFailCooldownTag;
 
-			if (OptionalRelevantTags && CoooldownTag.IsValid())
+			if (OptionalRelevantTags && CooldownTag.IsValid())
 			{
-				OptionalRelevantTags->AddTag(CoooldownTag);
+				OptionalRelevantTags->AddTag(CooldownTag);
 			}
 
 			return false;
@@ -1188,7 +1202,8 @@ bool UGameplayAbility::IsPredictingClient() const
 		bool bIsLocallyControlled = GetCurrentActorInfo()->IsLocallyControlled();
 		bool bIsAuthority = GetCurrentActorInfo()->IsNetAuthority();
 
-		if (!bIsAuthority && bIsLocallyControlled && GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::LocalPredicted)
+		// LocalPredicted and ServerInitiated are both valid because in both those modes the ability also runs on the client
+		if (!bIsAuthority && bIsLocallyControlled && (GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::LocalPredicted || GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::ServerInitiated))
 		{
 			return true;
 		}

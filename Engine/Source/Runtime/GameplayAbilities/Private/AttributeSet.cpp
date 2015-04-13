@@ -23,12 +23,14 @@ void FGameplayAttribute::SetNumericValueChecked(float NewValue, class UAttribute
 	Dest->PreAttributeChange(*this, NewValue);
 	NumericProperty->SetFloatingPointPropertyValue(ValuePtr, NewValue);
 
+#if ENABLE_VISUAL_LOG
 	// draw a graph of the changes to the attribute in the visual logger
 	AActor* OwnerActor = Dest->GetOwningAbilitySystemComponent()->OwnerActor;
 	if (OwnerActor)
 	{
 		ABILITY_VLOG_ATTRIBUTE_GRAPH(OwnerActor, Log, GetName(), OldValue, NewValue);
 	}
+#endif
 }
 
 float FGameplayAttribute::GetNumericValue(const UAttributeSet* Src) const

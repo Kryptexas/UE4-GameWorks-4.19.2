@@ -66,14 +66,20 @@ UAbilityTask_PlayMontageAndWait* UAbilityTask_PlayMontageAndWait::CreatePlayMont
 
 void UAbilityTask_PlayMontageAndWait::Activate()
 {
+	UGameplayAbility* MyAbility = Ability.Get();
+	if (MyAbility == nullptr)
+	{
+		return;
+	}
+
 	bool bPlayedMontage = false;
 
-	if (AbilitySystemComponent.IsValid() && Ability.IsValid())
+	if (AbilitySystemComponent.IsValid())
 	{
-		const FGameplayAbilityActorInfo* ActorInfo = Ability->GetCurrentActorInfo();
+		const FGameplayAbilityActorInfo* ActorInfo = MyAbility->GetCurrentActorInfo();
 		if (ActorInfo->AnimInstance.IsValid())
 		{
-			if (AbilitySystemComponent->PlayMontage(Ability.Get(), Ability->GetCurrentActivationInfo(), MontageToPlay, Rate, StartSection) > 0.f)
+			if (AbilitySystemComponent->PlayMontage(MyAbility, MyAbility->GetCurrentActivationInfo(), MontageToPlay, Rate, StartSection) > 0.f)
 			{
 				// Playing a montage could potentially fire off a callback into game code which could kill this ability! Early out if we are  pending kill.
 				if (IsPendingKill())
@@ -82,7 +88,7 @@ void UAbilityTask_PlayMontageAndWait::Activate()
 					return;
 				}
 
-				InterruptedHandle = Ability->OnGameplayAbilityCancelled.AddUObject(this, &UAbilityTask_PlayMontageAndWait::OnMontageInterrupted);
+				InterruptedHandle = MyAbility->OnGameplayAbilityCancelled.AddUObject(this, &UAbilityTask_PlayMontageAndWait::OnMontageInterrupted);
 
 				BlendingOutDelegate.BindUObject(this, &UAbilityTask_PlayMontageAndWait::OnMontageBlendingOut);
 				ActorInfo->AnimInstance->Montage_SetBlendingOutDelegate(BlendingOutDelegate);
@@ -94,7 +100,7 @@ void UAbilityTask_PlayMontageAndWait::Activate()
 
 	if (!bPlayedMontage)
 	{
-		ABILITY_LOG(Warning, TEXT("UAbilityTask_PlayMontageAndWait called in Ability %s failed to play montage; Task Instance Name %s."), *Ability->GetName(), *InstanceName.ToString());
+		ABILITY_LOG(Warning, TEXT("UAbilityTask_PlayMontageAndWait called in Ability %s failed to play montage; Task Instance Name %s."), *MyAbility->GetName(), *InstanceName.ToString());
 		OnCancelled.Broadcast();
 	}
 }

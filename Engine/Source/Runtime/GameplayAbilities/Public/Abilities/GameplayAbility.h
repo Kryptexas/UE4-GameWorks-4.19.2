@@ -416,6 +416,9 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = Ability, DisplayName = "OnEndAbility")
 	void K2_OnEndAbility();
 
+	/** Check if the ability can be ended */
+	bool IsEndAbilityValid(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const;
+
 	/** Native function, called if an ability ends normally or abnormally. If bReplicate is set to true, try to replicate the ending to the client/server */
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility);
 
@@ -578,7 +581,7 @@ public:
 	bool IsSupportedForNetworking() const override;
 
 	/** Returns the gameplay effect used to determine cooldown */
-	class UGameplayEffect* GetCooldownGameplayEffect() const;
+	virtual class UGameplayEffect* GetCooldownGameplayEffect() const;
 
 	/** Returns the gameplay effect used to apply cost */
 	class UGameplayEffect* GetCostGameplayEffect() const;

@@ -55,8 +55,8 @@ TArray<TWeakObjectPtr<AActor> >	AGameplayAbilityTargetActor_Radius::PerformOverl
 	bool bTraceComplex = false;
 	
 	FCollisionQueryParams Params(RadiusTargetingOverlap, bTraceComplex);
-	Params.bReturnPhysicalMaterial = true;
-	Params.bTraceAsyncScene = true;
+	Params.bReturnPhysicalMaterial = false;
+	Params.bTraceAsyncScene = false;
 
 	TArray<FOverlapResult> Overlaps;
 

@@ -614,6 +614,10 @@ public:
 
 	// ----------------------------------------------
 
+	/** If true, cues will only trigger when GE modifiers succeed being applied (whether through modifiers or executions) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Display)
+	bool bRequireModifierSuccessToTriggerCues;
+
 	/** Cues to trigger non-simulated reactions in response to this GameplayEffect such as sounds, particle effects, etc */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Display)
 	TArray<FGameplayEffectCue>	GameplayCues;
@@ -1133,6 +1137,12 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpecForRPC
 	FGameplayEffectContextHandle EffectContext; // This tells us how we got here (who / what applied us)
 
 	UPROPERTY()
+	FGameplayTagContainer AggregatedSourceTags;
+
+	UPROPERTY()
+	FGameplayTagContainer AggregatedTargetTags;
+
+	UPROPERTY()
 	float Level;
 
 	FGameplayEffectContextHandle GetContext() const
@@ -1200,7 +1210,7 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffect : public FFastArraySerializer
 		return Spec.GetPeriod();
 	}
 
-	void CheckOngoingTagRequirements(const FGameplayTagContainer& OwnerTags, struct FActiveGameplayEffectsContainer& OwningContainer);
+	void CheckOngoingTagRequirements(const FGameplayTagContainer& OwnerTags, struct FActiveGameplayEffectsContainer& OwningContainer, bool bInvokeGameplayCueEvents = false);
 
 	void PrintAll() const;
 
@@ -1239,6 +1249,10 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffect : public FFastArraySerializer
 	UPROPERTY()
 	bool bIsInhibited;
 
+	/** When replicated down, we cue the GC events until the entire list of active gameplay effects has been received */
+	mutable bool bPendingRepOnActiveGC;
+	mutable bool bPendingRepWhileActiveGC;
+
 	bool IsPendingRemove;
 
 	FOnActiveGameplayEffectRemoved	OnRemovedDelegate;
@@ -1268,6 +1282,7 @@ struct FActiveGameplayEffectQuery
 		, OwningTagContainer_Rejection(nullptr)
 		, EffectTagContainer_Rejection(nullptr)
 		, EffectSource(nullptr)
+		, EffectDef(nullptr)
 	{
 	}
 
@@ -1277,6 +1292,7 @@ struct FActiveGameplayEffectQuery
 		, OwningTagContainer_Rejection(nullptr)
 		, EffectTagContainer_Rejection(nullptr)
 		, EffectSource(nullptr)
+		, EffectDef(nullptr)
 	{
 	}
 
@@ -1303,6 +1319,9 @@ struct FActiveGameplayEffectQuery
 
 	// Matches on GameplayEffects which come from this source
 	const UObject* EffectSource;
+
+	// Matches on GameplayEffects with this definition
+	const UGameplayEffect* EffectDef;
 
 	// Handles to ignore as matches, even if other criteria is met
 	TArray<FActiveGameplayEffectHandle> IgnoreHandles;
@@ -1440,10 +1459,7 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 
 	void CheckDuration(FActiveGameplayEffectHandle Handle);
 
-	bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms)
-	{
-		return FastArrayDeltaSerialize<FActiveGameplayEffect>(GameplayEffects_Internal, DeltaParms, *this);
-	}
+	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms);
 
 	void PreDestroy();	
 
@@ -1526,6 +1542,9 @@ private:
 	TArray<FActiveGameplayEffect>	GameplayEffects_Internal;
 
 	void InternalUpdateNumericalAttribute(FGameplayAttribute Attribute, float NewValue, const FGameplayEffectModCallbackData* ModData);
+
+	/** Cached pointer to current mod data needed for callbacks. We cache it in the AGE struct to avoid passing it through all the delegate/aggregator plumbing */
+	const struct FGameplayEffectModCallbackData* CurrentModcallbackData;
 	
 	/**
 	 * Helper function to execute a mod on owned attributes
@@ -1546,8 +1565,8 @@ private:
 	void InternalOnActiveGameplayEffectAdded(FActiveGameplayEffect& Effect);
 	void InternalOnActiveGameplayEffectRemoved(const FActiveGameplayEffect& Effect);
 
-	void RemoveActiveGameplayEffectGrantedTagsAndModifiers(const FActiveGameplayEffect& Effect);
-	void AddActiveGameplayEffectGrantedTagsAndModifiers(FActiveGameplayEffect& Effect);
+	void RemoveActiveGameplayEffectGrantedTagsAndModifiers(const FActiveGameplayEffect& Effect, bool bInvokeGameplayCueEvents);
+	void AddActiveGameplayEffectGrantedTagsAndModifiers(FActiveGameplayEffect& Effect, bool bInvokeGameplayCueEvents);
 
 	/** Updates tag dependency map when a GameplayEffect is removed */
 	void RemoveActiveEffectTagDependency(const FGameplayTagContainer& Tags, FActiveGameplayEffectHandle Handle);

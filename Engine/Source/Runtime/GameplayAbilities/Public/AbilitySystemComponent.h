@@ -478,6 +478,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 
 	UFUNCTION(NetMulticast, unreliable)
 	void NetMulticast_InvokeGameplayCueAdded(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext);
+	
+	UFUNCTION(NetMulticast, unreliable)
+	void NetMulticast_InvokeGameplayCueAddedAndWhileActive_FromSpec(const FGameplayEffectSpecForRPC& Spec, FPredictionKey PredictionKey);
 
 	// GameplayCues can also come on their own. These take an optional effect context to pass through hit result, etc
 	void ExecuteGameplayCue(const FGameplayTag GameplayCueTag, FGameplayEffectContextHandle EffectContext = FGameplayEffectContextHandle());
@@ -492,7 +495,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	/** Removes any GameplayCue added on its own, i.e. not as part of a GameplayEffect. */
 	void RemoveAllGameplayCues();
 	
-	void InvokeGameplayCueEvent(const FGameplayEffectSpecForRPC &Spec, EGameplayCueEvent::Type EventType);
+	void InvokeGameplayCueEvent(const FGameplayEffectSpecForRPC& Spec, EGameplayCueEvent::Type EventType);
 
 	void InvokeGameplayCueEvent(const FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, FGameplayEffectContextHandle EffectContext = FGameplayEffectContextHandle());
 
@@ -734,19 +737,11 @@ public:
 	
 	virtual void BindAbilityActivationToInputComponent(UInputComponent* InputComponent, FGameplayAbiliyInputBinds BindInfo);
 
-	virtual void AbilityInputPressed(int32 InputID);
-
-	virtual void AbilityInputReleased(int32 InputID);
-
-	void AbilitySpecInputPressed(FGameplayAbilitySpec& Spec);
-
-	void AbilitySpecInputReleased(FGameplayAbilitySpec& Spec);
-
-	UFUNCTION(BlueprintCallable, Category="Abilities")
-	virtual void InputConfirm();
-
-	UFUNCTION(BlueprintCallable, Category="Abilities")
-	virtual void InputCancel();
+	virtual void AbilityLocalInputPressed(int32 InputID);
+	virtual void AbilityLocalInputReleased(int32 InputID);
+	
+	virtual void LocalInputConfirm();
+	virtual void LocalInputCancel();
 	
 	/** Replicate that an ability has ended/canceled, to the client or server as appropriate */
 	void	ReplicateEndOrCancelAbility(FGameplayAbilitySpecHandle Handle, FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ability, bool bWasCanceled);
@@ -755,15 +750,19 @@ public:
 	int32 GenericConfirmInputID;
 	int32 GenericCancelInputID;
 
-	bool IsGenericConfirmInputBound(int32 InputID) const	{ return ((InputID == GenericConfirmInputID) && ConfirmCallbacks.IsBound()); }
-	bool IsGenericCancelInputBound(int32 InputID) const		{ return ((InputID == GenericCancelInputID) && CancelCallbacks.IsBound()); }
+	bool IsGenericConfirmInputBound(int32 InputID) const	{ return ((InputID == GenericConfirmInputID) && GenericLocalConfirmCallbacks.IsBound()); }
+	bool IsGenericCancelInputBound(int32 InputID) const		{ return ((InputID == GenericCancelInputID) && GenericLocalCancelCallbacks.IsBound()); }
 
+	/** Generic local callback for generic ConfirmEvent that any ability can listen to */
+	FAbilityConfirmOrCancel	GenericLocalConfirmCallbacks;
 
-	FAbilityAbilityKey	AbilityKeyPressCallbacks;
-	FAbilityAbilityKey	AbilityKeyReleaseCallbacks;
-	FAbilityConfirmOrCancel	ConfirmCallbacks;
-	FAbilityConfirmOrCancel	CancelCallbacks;
+	/** Generic local callback for generic CancelEvent that any ability can listen to */
+	FAbilityConfirmOrCancel	GenericLocalCancelCallbacks;
+
+	/** A generic callback anytime an ability is activated (started) */	
 	FGenericAbilityDelegate AbilityActivatedCallbacks;
+
+	/** A generic callback anytime an ability is commited (cost/cooldown applied) */
 	FGenericAbilityDelegate AbilityCommitedCallbacks;
 	FAbilityFailedDelegate AbilityFailedCallbacks;
 
@@ -987,24 +986,13 @@ public:
 	UFUNCTION(Server, reliable, WithValidation)
 	void ServerSetInputReleased(FGameplayAbilitySpecHandle AbilityHandle);
 
-	void ConsumeAbilityConfirmCancel();
+	/** Called on local player always. Called on server only if bReplicateInputDirectly is set on the GameplayAbility. */
+	void AbilitySpecInputPressed(FGameplayAbilitySpec& Spec);
 
-	void ConsumeAbilityTargetData();
+	/** Called on local player always. Called on server only if bReplicateInputDirectly is set on the GameplayAbility. */
+	void AbilitySpecInputReleased(FGameplayAbilitySpec& Spec);
 
-	//Note: Ability key state is stored on the ability spec, not here on the ASC with confirm/cancel.
-	bool ReplicatedConfirmAbility;
-	bool ReplicatedCancelAbility;
-
-	FGameplayAbilityTargetDataHandle ReplicatedTargetData;
-
-	/** ReplicatedTargetData was received */
-	FAbilityTargetData	ReplicatedTargetDataDelegate;
-
-	/** ReplicatedTargetData was 'cancelled' for this activation */
-	FAbilityConfirmOrCancel	ReplicatedTargetDataCancelledDelegate;
-
-	/** Targeting actor rejected a confirmation attempt */
-	FTargetingRejectedConfirmation TargetingRejectedConfirmationDelegate;
+	// ---------------------------------------------------------------------
 
 	/** Tasks that run on simulated proxies */
 	UPROPERTY(ReplicatedUsing=OnRep_SimulatedTasks)

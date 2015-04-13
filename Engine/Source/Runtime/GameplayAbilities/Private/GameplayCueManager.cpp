@@ -12,6 +12,14 @@
 #include "UnrealEd.h"
 #endif
 
+int32 DisplayGameplayCues = 0;
+static FAutoConsoleVariableRef CVarDisplayGameplayCues(TEXT("AbilitySystem.DisplayGameplayCues"),	DisplayGameplayCues, TEXT("Display GameplayCue events in world as text."), ECVF_Default	);
+
+int32 DisableGameplayCues = 0;
+static FAutoConsoleVariableRef CVarDisableGameplayCues(TEXT("AbilitySystem.DisableGameplayCues"),	DisableGameplayCues, TEXT("Disables all GameplayCue events in the world."), ECVF_Default );
+
+float DisplayGameplayCueDuration = 5.f;
+static FAutoConsoleVariableRef CVarDurationeGameplayCues(TEXT("AbilitySystem.GameplayCue.DisplayDuration"),	DisplayGameplayCueDuration, TEXT("Disables all GameplayCue events in the world."), ECVF_Default );
 
 UGameplayCueManager::UGameplayCueManager(const FObjectInitializer& PCIP)
 : Super(PCIP)
@@ -33,12 +41,23 @@ void UGameplayCueManager::HandleGameplayCues(AActor* TargetActor, const FGamepla
 
 void UGameplayCueManager::HandleGameplayCue(AActor* TargetActor, FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters)
 {
+	if (DisableGameplayCues)
+	{
+		return;
+	}
+
 	if (TargetActor == nullptr)
 	{
 		ABILITY_LOG(Warning, TEXT("UGameplayCueManager::HandleGameplayCue called on null TargetActor. GameplayCueTag: %s."), *GameplayCueTag.ToString());
 		return;
 	}
 
+	if (DisplayGameplayCues)
+	{
+		FString DebugStr = FString::Printf(TEXT("%s - %s"), *GameplayCueTag.ToString(), *EGameplayCueEventToString(EventType) );
+		FColor DebugColor = FColor::Green;
+		DrawDebugString(TargetActor->GetWorld(), FVector(0.f, 0.f, 100.f), DebugStr, TargetActor, DebugColor, DisplayGameplayCueDuration);
+	}
 
 	// GameplayCueTags could have been removed from the dictionary but not content. When the content is resaved the old tag will be cleaned up, but it could still come through here
 	// at runtime. Since we only populate the map with dictionary gameplaycue tags, we may not find it here.
@@ -113,6 +132,11 @@ void UGameplayCueManager::HandleGameplayCueNotify_Internal(AActor* TargetActor, 
 					if (auto WeakPtrPtr = InnerMap->Find(DataIdx))
 					{
 						SpawnedInstancedCue = WeakPtrPtr->Get();
+						// If the cue is scheduled to be destroyed, don't reuse it, create a new one instead
+						if (SpawnedInstancedCue && SpawnedInstancedCue->GetLifeSpan() > 0.f)
+						{
+							SpawnedInstancedCue = nullptr;
+						}
 					}
 				}
 

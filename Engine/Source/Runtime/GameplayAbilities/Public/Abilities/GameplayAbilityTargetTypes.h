@@ -116,6 +116,11 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData
 		return FVector::ZeroVector;
 	}
 
+	virtual FTransform GetEndPointTransform() const
+	{
+		return FTransform(GetEndPoint());
+	}
+
 	// -------------------------------------
 
 	virtual UScriptStruct* GetScriptStruct()

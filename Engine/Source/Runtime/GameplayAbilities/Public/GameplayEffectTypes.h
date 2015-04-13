@@ -29,6 +29,8 @@ GAMEPLAYABILITIES_API FString EGameplayModToString(int32 Type);
 
 GAMEPLAYABILITIES_API FString EGameplayModEffectToString(int32 Type);
 
+GAMEPLAYABILITIES_API FString EGameplayCueEventToString(int32 Type);
+
 UENUM(BlueprintType)
 namespace EGameplayModOp
 {
@@ -708,6 +710,14 @@ struct FGameplayCueParameters
 	/** The original tag of the gameplay cue */
 	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
 	FGameplayTag OriginalTag;
+
+	/** The aggregated source tags taken from the effect spec */
+	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
+	FGameplayTagContainer AggregatedSourceTags;
+
+	/** The aggregated target tags taken from the effect spec */
+	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
+	FGameplayTagContainer AggregatedTargetTags;
 };
 
 UENUM(BlueprintType)

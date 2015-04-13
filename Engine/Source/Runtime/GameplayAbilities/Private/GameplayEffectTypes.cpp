@@ -97,41 +97,78 @@ void FGameplayEffectContext::AddHitResult(const FHitResult InHitResult, bool bRe
 
 bool FGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
-	Ar << Instigator;
-	Ar << EffectCauser;
-
-	uint8 HasActorByte = (Actors.Num() > 0);
-	Ar.SerializeBits(&HasActorByte, 1);
-	if (HasActorByte == 1)
+	uint8 RepBits = 0;
+	if (Ar.IsSaving())
 	{
-		Ar << Actors;
+		if (Instigator.IsValid() )
+		{
+			RepBits |= 1 << 0;
+		}
+		if (EffectCauser.IsValid() )
+		{
+			RepBits |= 1 << 1;
+		}
+		if (SourceObject.IsValid() )
+		{
+			RepBits |= 1 << 2;
+		}
+		if (Actors.Num() > 0)
+		{
+			RepBits |= 1 << 3;
+		}
+		if (HitResult.IsValid())
+		{
+			RepBits |= 1 << 4;
+		}
+		if (bHasWorldOrigin)
+		{
+			RepBits |= 1 << 5;
+		}
 	}
 
-	uint8 HasHitResultsByte = HitResult.IsValid();
-	Ar.SerializeBits(&HasHitResultsByte, 1);
-	if (Ar.IsLoading())
+	Ar.SerializeBits(&RepBits, 6);
+
+	if (RepBits & (1 << 0))
 	{
-		if (HasHitResultsByte)
+		Ar << Instigator;
+	}
+	if (RepBits & (1 << 1))
+	{
+		Ar << EffectCauser;
+	}
+	if (RepBits & (1 << 2))
+	{
+		Ar << SourceObject;
+	}
+	if (RepBits & (1 << 3))
+	{
+		Ar << Actors;;
+	}
+	if (RepBits & (1 << 4))
+	{
+		if (Ar.IsLoading())
 		{
 			if (!HitResult.IsValid())
 			{
 				HitResult = TSharedPtr<FHitResult>(new FHitResult());
 			}
 		}
-		AddInstigator(Instigator.Get(), EffectCauser.Get()); // Just to initialize InstigatorAbilitySystemComponent
-	}
-
-	if (HasHitResultsByte == 1)
-	{
 		HitResult->NetSerialize(Ar, Map, bOutSuccess);
 	}
-	uint8 HasWorldOriginByte = bHasWorldOrigin;
-	Ar.SerializeBits(&HasWorldOriginByte, 1);
-	bHasWorldOrigin = HasWorldOriginByte & 1;
-	if (bHasWorldOrigin)
+	if (RepBits & (1 << 5))
 	{
 		Ar << WorldOrigin;
+		bHasWorldOrigin = true;
 	}
+	else
+	{
+		bHasWorldOrigin = false;
+	}
+
+	if (Ar.IsLoading())
+	{
+		AddInstigator(Instigator.Get(), EffectCauser.Get()); // Just to initialize InstigatorAbilitySystemComponent
+	}	
 	
 	bOutSuccess = true;
 	return true;
@@ -226,6 +263,12 @@ FString EGameplayModOpToString(int32 Type)
 FString EGameplayModEffectToString(int32 Type)
 {
 	static UEnum *e = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayModEffect"));
+	return e->GetEnumName(Type);
+}
+
+FString EGameplayCueEventToString(int32 Type)
+{
+	static UEnum *e = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayCueEvent"));
 	return e->GetEnumName(Type);
 }
 

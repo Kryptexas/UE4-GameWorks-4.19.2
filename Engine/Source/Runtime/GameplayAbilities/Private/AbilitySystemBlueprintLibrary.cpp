@@ -321,6 +321,21 @@ FVector UAbilitySystemBlueprintLibrary::GetTargetDataEndPoint(FGameplayAbilityTa
 	return FVector::ZeroVector;
 }
 
+FTransform UAbilitySystemBlueprintLibrary::GetTargetDataEndPointTransform(FGameplayAbilityTargetDataHandle TargetData, int32 Index)
+{
+	if (TargetData.Data.IsValidIndex(Index))
+	{
+		FGameplayAbilityTargetData* Data = TargetData.Data[Index].Get();
+		if (Data)
+		{
+			return Data->GetEndPointTransform();
+		}
+	}
+
+	return FTransform::Identity;
+}
+
+
 // -------------------------------------------------------------------------------------
 
 
@@ -357,6 +372,11 @@ AActor*	UAbilitySystemBlueprintLibrary::EffectContextGetOriginalInstigatorActor(
 AActor*	UAbilitySystemBlueprintLibrary::EffectContextGetEffectCauser(FGameplayEffectContextHandle EffectContext)
 {
 	return EffectContext.GetEffectCauser();
+}
+
+UObject* UAbilitySystemBlueprintLibrary::EffectContextGetSourceObject(FGameplayEffectContextHandle EffectContext)
+{
+	return const_cast<UObject*>( EffectContext.GetSourceObject() );
 }
 
 FVector UAbilitySystemBlueprintLibrary::EffectContextGetOrigin(FGameplayEffectContextHandle EffectContext)
@@ -489,6 +509,12 @@ bool UAbilitySystemBlueprintLibrary::GetGameplayCueDirection(AActor* TargetActor
 
 	Direction = FVector::ZeroVector;
 	return false;
+}
+
+bool UAbilitySystemBlueprintLibrary::DoesGameplayCueMeetTagRequirements(FGameplayCueParameters Parameters, FGameplayTagRequirements& SourceTagReqs, FGameplayTagRequirements& TargetTagReqs)
+{
+	return SourceTagReqs.RequirementsMet(Parameters.AggregatedSourceTags)
+		&& TargetTagReqs.RequirementsMet(Parameters.AggregatedSourceTags);
 }
 
 // ---------------------------------------------------------------------------------------
