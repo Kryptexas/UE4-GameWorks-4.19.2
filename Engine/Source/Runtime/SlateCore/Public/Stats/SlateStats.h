@@ -501,27 +501,27 @@ public:
 
 /** Track a Slate Stat, also adding it to the hierarchy if we are capturing hierarchical stats this frame. */
 #define SLATE_CYCLE_COUNTER_SCOPE(StatCounterWes) \
-	FSlateStatCycleCounterScopeHierarchical<(SLATE_STATS_DETAIL_LEVEL != SLATE_STATS_DETAIL_LEVEL_OFF)> TrackStat_##StatCounterWes(StatCounterWes)
+	FSlateStatCycleCounterScopeHierarchical<(SLATE_STATS_DETAIL_LEVEL != SLATE_STATS_DETAIL_LEVEL_OFF)> PREPROCESSOR_JOIN(TrackStat,__LINE__)(StatCounterWes)
 
 /** Track a Slate Stat, also adding it to the hierarchy if we are capturing hierarchical stats this frame. With a given detail level so it can be compiled out. */
 #define SLATE_CYCLE_COUNTER_SCOPE_DETAILED(DetailLevel, StatCounterWes) \
-	FSlateStatCycleCounterScopeHierarchical<(DetailLevel <= SLATE_STATS_DETAIL_LEVEL) && (DetailLevel != SLATE_STATS_DETAIL_LEVEL_OFF)> TrackStat_##StatCounterWes(StatCounterWes)
+	FSlateStatCycleCounterScopeHierarchical<(DetailLevel <= SLATE_STATS_DETAIL_LEVEL) && (DetailLevel != SLATE_STATS_DETAIL_LEVEL_OFF)> PREPROCESSOR_JOIN(TrackStat,__LINE__)(StatCounterWes)
 
 /** Track a Slate Stat, also adding it to the hierarchy if we are capturing hierarchical stats this frame, along with custom context. */
 #define SLATE_CYCLE_COUNTER_SCOPE_CUSTOM(StatCounterWes,CustomName) \
-	FSlateStatCycleCounterScopeHierarchical<(SLATE_STATS_DETAIL_LEVEL != SLATE_STATS_DETAIL_LEVEL_OFF)> TrackStat_##StatCounterWes(StatCounterWes, CustomName)
+	FSlateStatCycleCounterScopeHierarchical<(SLATE_STATS_DETAIL_LEVEL != SLATE_STATS_DETAIL_LEVEL_OFF)> PREPROCESSOR_JOIN(TrackStat,__LINE__)(StatCounterWes, CustomName)
 
 /** Track a Slate Stat, also adding it to the hierarchy if we are capturing hierarchical stats this frame, along with custom context. With a given detail level so it can be compiled out. */
 #define SLATE_CYCLE_COUNTER_SCOPE_CUSTOM_DETAILED(DetailLevel, StatCounterWes,CustomName) \
-	FSlateStatCycleCounterScopeHierarchical<(DetailLevel <= SLATE_STATS_DETAIL_LEVEL) && (DetailLevel != SLATE_STATS_DETAIL_LEVEL_OFF)> TrackStat_##StatCounterWes(StatCounterWes, CustomName)
+	FSlateStatCycleCounterScopeHierarchical<(DetailLevel <= SLATE_STATS_DETAIL_LEVEL) && (DetailLevel != SLATE_STATS_DETAIL_LEVEL_OFF)> PREPROCESSOR_JOIN(TrackStat,__LINE__)(StatCounterWes, CustomName)
 
 /** Track a Slate Stat, only for flattened display. Slightly cheaper than checking dynamically. It doesn't make sense to have a custom version as flattened stats don't gather custom data right now. */
 #define SLATE_CYCLE_COUNTER_SCOPE_FLAT(StatCounterWes) \
-	FSlateStatCycleCounterScopeFlat<(SLATE_STATS_DETAIL_LEVEL != SLATE_STATS_DETAIL_LEVEL_OFF)> TrackStat_##StatCounterWes(StatCounterWes)
+	FSlateStatCycleCounterScopeFlat<(SLATE_STATS_DETAIL_LEVEL != SLATE_STATS_DETAIL_LEVEL_OFF)> PREPROCESSOR_JOIN(TrackStat,__LINE__)(StatCounterWes)
 
 /** Track a Slate Stat, only for flattened display. Slightly cheaper than checking dynamically. With a given detail level so it can be compiled out. */
 #define SLATE_CYCLE_COUNTER_SCOPE_FLAT_DETAILED(DetailLevel, StatCounterWes) \
-	FSlateStatCycleCounterScopeFlat<(DetailLevel <= SLATE_STATS_DETAIL_LEVEL) && (DetailLevel != SLATE_STATS_DETAIL_LEVEL_OFF)> TrackStat_##StatCounterWes(StatCounterWes)
+	FSlateStatCycleCounterScopeFlat<(DetailLevel <= SLATE_STATS_DETAIL_LEVEL) && (DetailLevel != SLATE_STATS_DETAIL_LEVEL_OFF)> PREPROCESSOR_JOIN(TrackStat,__LINE__)(StatCounterWes)
 
 #define SLATE_STATS_END_FRAME(CurrentTime) FSlateStatCycleCounter::EndFrame(CurrentTime)
 

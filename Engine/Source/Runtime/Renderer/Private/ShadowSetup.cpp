@@ -1943,7 +1943,6 @@ inline void FSceneRenderer::GatherShadowsForPrimitiveInner(
 					continue;
 				}
 
-				FPrimitiveSceneProxy* PrimitiveProxy = PrimitiveSceneInfoCompact.Proxy;
 				FLightSceneProxy* RESTRICT LightProxy = ProjectedShadowInfo->GetLightSceneInfo().Proxy;
 
 				const FVector LightDirection = LightProxy->GetDirection();

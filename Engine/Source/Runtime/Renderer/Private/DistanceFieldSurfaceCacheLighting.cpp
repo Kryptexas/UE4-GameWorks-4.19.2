@@ -3514,12 +3514,6 @@ void RenderIrradianceCacheInterpolation(
 
 		const bool bBindIrradiance = bUseDistanceFieldGI && bFinalInterpolation;
 
-		FTextureRHIParamRef RenderTargets[2] =
-		{
-			BentNormalInterpolationTarget->GetRenderTargetItem().TargetableTexture,
-			bBindIrradiance ? IrradianceInterpolationTarget->GetRenderTargetItem().TargetableTexture : NULL
-		};
-
 		FTextureRHIParamRef DepthBuffer = SplatDepthStencilBuffer ? SplatDepthStencilBuffer->GetRenderTargetItem().TargetableTexture : NULL;
 
 		// PS4 fast clear which is only triggered through SetRenderTargetsAndClear adds 3ms of GPU idle time currently
@@ -3545,6 +3539,12 @@ void RenderIrradianceCacheInterpolation(
 		}
 		else
 		{
+			FTextureRHIParamRef RenderTargets[2] =
+			{
+				BentNormalInterpolationTarget->GetRenderTargetItem().TargetableTexture,
+				bBindIrradiance ? IrradianceInterpolationTarget->GetRenderTargetItem().TargetableTexture : NULL
+			};
+
 			SetRenderTargets(RHICmdList, ARRAY_COUNT(RenderTargets) - (bBindIrradiance ? 0 : 1), RenderTargets, DepthBuffer, 0, NULL);
 
 			FLinearColor ClearColors[2] = {FLinearColor(0, 0, 0, 0), FLinearColor(0, 0, 0, 0)};

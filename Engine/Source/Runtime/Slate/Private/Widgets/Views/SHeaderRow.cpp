@@ -612,18 +612,18 @@ void SHeaderRow::RegenerateWidgets()
 					TWeakPtr<SBorder> WeakSizingGrip = SizingGrip;
 					auto SizingGrip_OnMouseButtonDown = [&SomeColumn, WeakSizingGrip](const FGeometry&, const FPointerEvent&) -> FReply
 					{
-						TSharedPtr<SBorder> SizingGrip = WeakSizingGrip.Pin();
-						if ( SizingGrip.IsValid() )
+						TSharedPtr<SBorder> SizingGripPtr = WeakSizingGrip.Pin();
+						if ( SizingGripPtr.IsValid() )
 						{
-							return FReply::Handled().CaptureMouse(SizingGrip.ToSharedRef());
+							return FReply::Handled().CaptureMouse(SizingGripPtr.ToSharedRef());
 						}
 						return FReply::Unhandled();
 					};
 
 					auto SizingGrip_OnMouseButtonUp = [&SomeColumn, WeakSizingGrip](const FGeometry&, const FPointerEvent&) -> FReply
 					{
-						TSharedPtr<SBorder> SizingGrip = WeakSizingGrip.Pin();
-						if ( SizingGrip.IsValid() && SizingGrip->HasMouseCapture() )
+						TSharedPtr<SBorder> SizingGripPtr = WeakSizingGrip.Pin();
+						if ( SizingGripPtr.IsValid() && SizingGripPtr->HasMouseCapture() )
 						{
 							return FReply::Handled().ReleaseMouseCapture();
 						}
@@ -632,8 +632,8 @@ void SHeaderRow::RegenerateWidgets()
 
 					auto SizingGrip_OnMouseMove = [&SomeColumn, WeakSizingGrip](const FGeometry&, const FPointerEvent& InPointerEvent) -> FReply
 					{
-						TSharedPtr<SBorder> SizingGrip = WeakSizingGrip.Pin();
-						if ( SizingGrip.IsValid() && SizingGrip->HasMouseCapture() )
+						TSharedPtr<SBorder> SizingGripPtr = WeakSizingGrip.Pin();
+						if ( SizingGripPtr.IsValid() && SizingGripPtr->HasMouseCapture() )
 						{
 							// The sizing grip has been moved, so update our columns size from the movement delta
 							const float NewWidth = SomeColumn.GetWidth() + InPointerEvent.GetCursorDelta().X;

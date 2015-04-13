@@ -384,7 +384,10 @@ void FLayoutUV::FindCharts( const TMultiMap<int32,int32>& OverlappingCorners )
 			}
 		}
 
+		PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 		uint32 NumTris = 0;
+		PRAGMA_POP
+
 		for( int32 i = 0; i < Charts.Num(); i++ )
 		{
 			FMeshChart& Chart = Charts[i];
@@ -604,9 +607,9 @@ void FLayoutUV::ScaleCharts( float UVScale )
 	{
 		uint32 NumMaxedOut = 0;
 		float ScaledUVArea = 0.0f;
-		for( int32 i = 0; i < Charts.Num(); i++ )
+		for( int32 ChartIndex = 0; ChartIndex < Charts.Num(); ChartIndex++ )
 		{
-			FMeshChart& Chart = Charts[i];
+			FMeshChart& Chart = Charts[ChartIndex];
 
 			FVector2D ChartSize	= Chart.MaxUV - Chart.MinUV;
 			FVector2D ChartSizeScaled = ChartSize * Chart.UVScale * UniformScale;
@@ -661,21 +664,21 @@ void FLayoutUV::ScaleCharts( float UVScale )
 	{
 		uint32 NumMaxedOut = 0;
 		float ScaledUVArea = 0.0f;
-		for( int32 i = 0; i < Charts.Num(); i++ )
+		for( int32 ChartIndex = 0; ChartIndex < Charts.Num(); ChartIndex++ )
 		{
-			FMeshChart& Chart = Charts[i];
+			FMeshChart& Chart = Charts[ChartIndex];
 
 			for( int k = 0; k < 2; k++ )
 			{
-				const float MaxChartSize = TextureResolution - 1.0f;
+				const float MaximumChartSize = TextureResolution - 1.0f;
 				const float ChartSize = Chart.MaxUV[k] - Chart.MinUV[k];
 				const float ChartSizeScaled = ChartSize * Chart.UVScale[k] * NonuniformScale;
 
 				const float Epsilon = 0.01f;
-				if( ChartSizeScaled + Epsilon > MaxChartSize )
+				if( ChartSizeScaled + Epsilon > MaximumChartSize )
 				{
 					// Scale oversized charts to max size
-					Chart.UVScale[k] = MaxChartSize / ChartSize;
+					Chart.UVScale[k] = MaximumChartSize / ChartSize;
 					NumMaxedOut++;
 				}
 				else

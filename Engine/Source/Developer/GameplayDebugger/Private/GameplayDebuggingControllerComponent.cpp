@@ -444,11 +444,13 @@ void UGameplayDebuggingControllerComponent::ToggleDebugCamera()
 		// and ungly @HACK to be able to spawn camera in game world rather then
 		// in editor world (if running PIE). Hate it, but it works, and 
 		// this is a debugging tool		
-		FActorSpawnParameters SpawnInfo;
-		SpawnInfo.bNoCollisionFail = true;
-		SpawnInfo.Owner = PlayerOwner->GetWorldSettings();
-		SpawnInfo.Instigator = PlayerOwner->Instigator;
-		DebugCameraController = GetWorld()->SpawnActor<ADebugCameraController>(SpawnInfo);
+		{
+			FActorSpawnParameters SpawnInfo;
+			SpawnInfo.bNoCollisionFail = true;
+			SpawnInfo.Owner = PlayerOwner->GetWorldSettings();
+			SpawnInfo.Instigator = PlayerOwner->Instigator;
+			DebugCameraController = GetWorld()->SpawnActor<ADebugCameraController>(SpawnInfo);
+		}
 
 		if (DebugCameraController.IsValid())
 		{
