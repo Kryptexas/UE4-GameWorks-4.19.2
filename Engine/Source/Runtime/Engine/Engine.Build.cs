@@ -67,13 +67,15 @@ public class Engine : ModuleRules
 				"SlateReflector",
 				"Landscape",
                 "UMG",
-				"Projects"
+				"Projects",
+				"Niagara"
 			}
         );
 
         CircularlyReferencedDependentModules.Add("AIModule");
 		CircularlyReferencedDependentModules.Add("Landscape");
         CircularlyReferencedDependentModules.Add("UMG");
+		CircularlyReferencedDependentModules.Add("Niagara");
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
