@@ -181,6 +181,8 @@ int32 FMaterialAttributesInput::CompileWithDefault(class FMaterialCompiler* Comp
 		}
 	}
 
+	SetConnectedProperty(Property, Ret != INDEX_NONE);
+
 	if( Ret == INDEX_NONE )
 	{
 		Ret = GetDefaultExpressionForMaterialProperty(Compiler, Property);
@@ -800,7 +802,9 @@ bool FMaterialResource::OutputsVelocityOnBasePass() const
 
 bool FMaterialResource::IsNonmetal() const
 {
-	return !Material->Metallic.IsConnected() && !Material->Specular.IsConnected();
+	return !Material->bUseMaterialAttributes ?
+			(!Material->Metallic.IsConnected() && !Material->Specular.IsConnected()) :
+			!(Material->MaterialAttributes.IsConnected(MP_Specular) || Material->MaterialAttributes.IsConnected(MP_Metallic));
 }
 
 bool FMaterialResource::UseLmDirectionality() const
