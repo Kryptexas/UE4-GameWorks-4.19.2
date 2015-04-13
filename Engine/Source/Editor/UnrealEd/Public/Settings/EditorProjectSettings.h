@@ -42,3 +42,64 @@ private:
 	UPROPERTY(EditAnywhere, config, Category=Units, meta=(Tooltip="The default units to use for location and distance measurements on editor user interfaces when not explicitly specified by the user."))
 	EDefaultLocationUnit DefaultInputUnits;
 };
+
+/**
+* 2D layer settings
+*/
+USTRUCT()
+struct UNREALED_API FMode2DLayer
+{
+	GENERATED_USTRUCT_BODY()
+
+	FMode2DLayer()
+	: Name(TEXT("Default"))
+	, Depth(0)
+	{ }
+
+	/** Whether snapping to surfaces in the world is enabled */
+	UPROPERTY(EditAnywhere, config, Category = Layer)
+	FString Name;
+
+	/** The amount of depth to apply when snapping to surfaces */
+	UPROPERTY(EditAnywhere, config, Category = Layer)
+	float Depth;
+};
+
+UENUM()
+enum class ELevelEditor2DAxis : uint8
+{
+	X,
+	Y,
+	Z
+};
+
+/**
+* Implements the Project specific 2D viewport settings.
+*/
+UCLASS(config=Editor)
+class UNREALED_API ULevelEditor2DSettings : public UObject
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+	/** If enabled will allow 2D mode */
+	UPROPERTY(EditAnywhere, config, Category = General, meta = (DisplayName = "Enable 2D Mode"))
+	bool bMode2DEnabled;
+
+	/** When enabled and active snap layer is valid, items dropped in the viewport will be dropped on the appropriate Y distance away */
+	UPROPERTY(EditAnywhere, config, Category = LayerSnapping, AdvancedDisplay)
+	bool bEnableLayerSnap;
+
+	/** Will try to use snap settings from SnapLayers */
+	UPROPERTY(EditAnywhere, config, Category = LayerSnapping, AdvancedDisplay)
+	int32 ActiveSnapLayerIndex;
+
+	/** Snap axis */
+	UPROPERTY(EditAnywhere, config, Category = LayerSnapping)
+	ELevelEditor2DAxis SnapAxis;
+
+	/** Snap layers that are displayed in the viewport toolbar */
+	UPROPERTY(EditAnywhere, config, Category = LayerSnapping)
+	TArray<FMode2DLayer> SnapLayers;
+};
+

@@ -66,3 +66,15 @@ void UEditorProjectAppearanceSettings::PostInitProperties()
 	FUnitConversion::Settings().SetGlobalUnitDisplay(ConvertGlobalUnitDisplay(UnitDisplay));
 	FUnitConversion::Settings().SetDefaultInputUnit(ConvertDefaultInputUnits(DefaultInputUnits));
 }
+
+
+
+/* ULevelEditor2DSettings
+*****************************************************************************/
+
+ULevelEditor2DSettings::ULevelEditor2DSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer),
+	  SnapAxis(ELevelEditor2DAxis::Y)
+{
+}
+

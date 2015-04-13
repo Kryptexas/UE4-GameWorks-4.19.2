@@ -9,6 +9,7 @@
 #include "TutorialMetaData.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Settings/EditorProjectSettings.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewport"
 

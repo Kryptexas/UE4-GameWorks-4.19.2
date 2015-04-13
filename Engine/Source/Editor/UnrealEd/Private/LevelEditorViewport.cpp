@@ -49,6 +49,7 @@
 #include "NotificationManager.h"
 #include "SNotificationList.h"
 #include "ComponentEditorUtils.h"
+#include "Settings/EditorProjectSettings.h"
 
 DEFINE_LOG_CATEGORY(LogEditorViewport);
 
@@ -998,9 +999,16 @@ static FActorPositionTraceResult TraceForPositionOn2DLayer(const FViewportCursor
 	const ULevelEditor2DSettings* Settings2D = GetDefault<ULevelEditor2DSettings>();
 	check(Settings2D->SnapLayers.IsValidIndex(Settings2D->ActiveSnapLayerIndex));
 
-	float Offset = Settings2D->SnapLayers[Settings2D->ActiveSnapLayerIndex].LayerOffset;
-	FVector PlaneCenter(0, Offset, 0);
-	FVector PlaneNormal(0, -1, 0);
+	float Offset = Settings2D->SnapLayers[Settings2D->ActiveSnapLayerIndex].Depth;
+	FVector PlaneCenter(0, 0, 0);
+	FVector PlaneNormal(0, 0, 0);
+
+	switch (Settings2D->SnapAxis)
+	{
+	case ELevelEditor2DAxis::X: PlaneCenter.X = Offset; PlaneNormal.X = -1; break;
+	case ELevelEditor2DAxis::Y: PlaneCenter.Y = Offset; PlaneNormal.Y = -1; break;
+	case ELevelEditor2DAxis::Z: PlaneCenter.Z = Offset; PlaneNormal.Z = -1; break;
+	}
 
 	FActorPositionTraceResult Result;
 	float Numerator = FVector::DotProduct(PlaneCenter - Cursor.GetOrigin(), PlaneNormal);

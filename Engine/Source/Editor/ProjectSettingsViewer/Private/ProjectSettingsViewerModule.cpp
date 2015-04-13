@@ -290,6 +290,13 @@ protected:
 			LOCTEXT("AppearanceSettingsDescription", "Settings pertaining to the appearance of the editor"),
 			GetMutableDefault<UEditorProjectAppearanceSettings>()
 		);
+
+		// view port settings
+		SettingsModule.RegisterSettings("Project", "Editor", "2D",
+			LOCTEXT("Editor2DSettingsName", "2D"),
+			LOCTEXT("Editor2DSettingsDescription", "Configure the settings for the 2D Level Editor."),
+			GetMutableDefault<ULevelEditor2DSettings>()
+		);
 	}
 
 	/** Unregisters all settings. */
