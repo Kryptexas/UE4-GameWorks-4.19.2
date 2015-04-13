@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2469295
+﻿INTSourceChangelist:2510170
 Availability: Public
 Title:머티리얼 - 프레넬 사용 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -81,66 +81,65 @@ Fresnel 머티리얼 표현식의 값을 조절하는 데는 두 가지 옵션�
 | **Camera Vector(V3)** | 카메라 벡터 - 카메라와 표면 노멀의 내적을 구하는 데 사용되는 카메라 이펙트가 가능합니다. |
 | **Invert Fresnel(B)** | 프레넬 반전 - 프레넬 이펙트를 반전시킬 수 있습니다. 프레넬을 중앙이나 가장자리에서만 적용시키고자 하는 경우에 유용합니다. |
 | **Power(S)** | 제곱 - 프레넬 이펙트의 제곱 조절이 가능합니다. 수치를 크게 할 경우 프레넬에 영향받는 영역이 협소해 지며, 작을 수록 넓어집니다. |
-| **Use Cheap Contrast(B)** | 
-This will allow the Fresnel to muse a cheaper method for calculating contrast between lights and darks. |
-| **Cheap Contrast Dark (S)** | This controls how dark the Fresnel will be. This will only have an affect if **Use Cheap Contrast** is enabled.  |
-| **Cheap Contrast Bright (S)** | This controls how bright the Fresnel effect will be. This will only have an affect if **Use Cheap Contrast** is enabled.|
+| **Use Cheap Contrast(B)** | 싼 대비 사용 - 밝은 부분과 어두운 부분 사이의 대비를 계산하는 데 프레넬이 싼 메소드를 사용하도록 합니다. |
+| **Cheap Contrast Dark (S)** | 싼 대비 암도 - 프레넬의 어두운 정도를 조절합니다. **Use Cheap Contrast** 옵션이 켜져있을 때만 영향을 끼칩니다. |
+| **Cheap Contrast Bright (S)** | 싼 대비 명도 - 프레넬 이펙트의 밝은 정도를 조절합니다. **Use Cheap Contrast** 옵션이 켜져있을 때만 영향을 끼칩니다. |
 
 
-## How to Use Fresnel in your Material 
+## 머티리얼에 프레넬을 사용하는 법
 
-Creating a Material that uses Fresnel can be accomplished in the following steps. 
+프레넬을 사용하는 머티리얼을 만드는 법은 다음과 같습니다.
 
-1. For this example, we are going to create a new Material however you can still apply the concepts learned here to any existing Material you want. 
-	To create a new Material, use the mouse and **Right-Click** in the **Content Browser** and then select Material from the Create Basic Asset list. 
-	Once the Material is created, name it **Fresnel_Material**. 
+1. 이번 예제에서는 새로운 머티리얼을 만들어 보겠지만, 여기서 배운 것을 기존 머티리얼에 얼마든지 적용해도 됩니다.
+	머티리얼을 새로 만들려면, **콘텐츠 브라우저** 에 **우클릭** 한 다음 _기본 애셋 생성_ 아래에서 **머티리얼** 을 선택합니다.
+	머티리얼이 생성되면 이름을 **Fresnel_Material** 이라 합니다. 
 
 	![](FN_Creat_New_Material.png)
 
-1. Open up the new Material by **Double-Clicking** on it with the **Left Mouse Button** in the **Content Browser** . 
-	Once the Material is opened, locate the needed Material Expression nodes by searching for them in the **Palette** search menu.
-	To place Material Expression nodes into the the Material Graph, first select the node you want to place with the **Left Mouse Button** and with the **Left Mouse Button** still held down, drag the node into the Material Graph. 
-	For this Material, the following type and amount of nodes are needed. 
+1. **콘텐츠 브라우저** 에서 새로 만든 머티리얼에 **더블클릭** 하여 엽니다.
+	머티리얼이 열리면, 필요한 머티리얼 표현식을 **팔레트** 검색 메뉴에서 검색합니다.
+	머티리얼 그래프에 머티리얼 표현식을 추가하려면, 먼저 배치하고자 하는 노드를 **좌클릭** 유지한 상태에서 머티리얼 그래프에 끌어 놓습니다.
+	이 머티리얼에 필요한 노드의 유형과 양은 다음과 같습니다.
 
-	| Node Name | Amount|
+	| 노드 이름 | 양 |
 	| -------| --------|
 	| **Vector Parameter Node**| 2|
 	| **Scalar Node** | 2|
 	| **Fresnel Node**| 1|
 
-	When completed, your Material Graph should look like this. 
+	완료된 머티리얼 그래프 모습은 다음과 같을 것입니다.
 
 	![](FN_Adding_Nodes.png)
 
 	[region:note]
-	When you search for the Fresnel Material Expression, you will find two different types that you can choose from. For this How - To, we will only be using the Fresnel that can be found under **Utility**.
+	Fresnel 머티리얼 표현식을 검색해 보면, 두 가지 유형이 나옵니다. 이번 비법 안내에서는 **Utility** 아래에서 찾을 수 있는 프레넬만 사용하겠습니다.
 	[/region]
 
-1. Now that the required Material Expression nodes have been added to the Material Graph, it is now time to start connecting everything together and giving the parameters base values. 
-	For this example, we are going to be using the following Parameter names and default values. 
-	|Name | Value |
+1. 머티리얼 그래프에 필요한 머티리얼 표현식 노드가 추가되었으니, 모든 것을 연결하고 파라미터에 기본 값을 줄 차례입니다.
+	이번 예제에서 사용할 파라미터 이름과 기본 값은 다음과 같습니다.
+	| 이름 | 값 |
 	|-----| ------|
 	| **Base_Color**| 0.5, 0.5, 0.5|
 	| **Roughness**|0.5|
 	| **Fresnel_Color**|1.0, 0.0, 0.0|
 	| **Fresnel_Exp**|0.8|
 
-	When completed, your Material graph should look like this. 
+	완료된 머티리얼 그래프 모습은 다음과 같을 것입니다.
 
 	![](FN_Completed_Materail.png)
 
-1. Once you have everything hooked up, make sure to **Apply** and **Save** your Material. After saving the Material, you can then close down the Material editor.
+1. 모든 것을 연결하고나면 머티리얼을 **적용** 후 **저장** 하도록 합니다. 머티리얼을 저장한 이후에는 머티리얼 에디터를 닫을 수 있을 것입니다.
 
 	![](FN_Apply_Save.png)
 
-1. With the Material now compiled, saved, and closed, locate the Material in the **Content Browser**, and **Right-Click** on it with the mouse. 
-	From the menu that pops up, select the **Create Material Instance** option. Once you do this, a new Material Instance will be created. 
-	When completed, your **Content Browser** should look like this. 	
+1. 머티리얼을 컴파일, 저장 후 닫았으면, **콘텐츠 브라우저** 에서 머티리얼을 찾은 다음 **우클릭** 합니다.
+	뜨는 메뉴에서 **머티리얼 인스턴스 생성** 옵션을 선택합니다. 그러면 새로운 머티리얼 인스턴스가 생성됩니다.
+	완료된 **콘텐츠 브라우저** 모습은 다음과 같을 것입니다.
 	![](FN_Create_New_Material_Instance.png)
 
-1. Open up the newly created Material Instance by **Double-Clicking** on it in the **Content Browser** with the **Left Mouse Button**. 
-	Once the Material Instance is open, you can begin to adjust the Material Instance parameters by first, enabling the parameter you want to edit by clicking on the grayed out box that is next to parameter name. 
-	Once this has been done, the parameter can then be edited. For example, if you enable the **Fresnel_Exp** parameter, you can increase or decrease the effect the Fresnel has on the surface. 
+1. **콘텐츠 브라우저** 에서 새로 생성된 머티리얼 인스턴스에 **더블클릭** 하여 엽니다.
+	머티리얼 인스턴스가 열리면, 먼저 파라미터 이름 옆에 회색으로 탈색된 박스를 클릭하여 편집하고자 하는 파라미터를 활성화시키는 것으로 머티리얼 인스턴스 파라미터 조정을 시작하면 됩니다.
+	이 작업이 완료된 이후에는 파라미터를 편집할 수 있습니다. 예를 들어 **Fresnel_Exp** 파라미터를 활성화시켰다면, 표면의 프레넬 이펙트를 늘이고 줄일 수 있습니다.
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -155,81 +154,81 @@ Creating a Material that uses Fresnel can be accomplished in the following steps
 	[/OBJECT]
 
 [region:tip]
-Remember that inputting bigger numbers into **Fresnel_Exp** will push the Fresnel effect closer and closer to the edges and lower numbers will bring the effect closer to the center. 
-Here is an example of what happens to the Fresnel when the **Fresnel_Exp** value is to different values. 
-Notice how as the number increases, the Fresnel effect is pushed closer and closer to the edges of the mesh like in the following example.
+**Fresnel_Exp** 의 값이 커질수록 프레넬 이펙트가 가장자리에, 작을 수록 중앙에 가까워진다는 점 기억하세요.
+**Fresnel_Exp** 값이 프레넬에 영향을 끼치는 예제는 아래와 같습니다.
+수치가 커질수록 프레넬 이펙트가 메시 가장자리에 가까워지는 것을 볼 수 있습니다.
 ![](FN_Different_Fresnel_Exp_Values.png)
 [/region]
 
 
-## Fresnel & Normal Maps
+## 프레넬 & 노멀 맵
 
-If you input a Normal Map into the Normal input of the Fresnel, you will see that you can effect the surface in a number of very interesting ways. 
-This is because of the Normal maps influence over the surface normal. As we learned before, the Fresnel works by checking to see if the surface normal is perpendicular to the camera or not. 
-If it is perpendicular to the camera, then the Fresnel effect will take place. On a smooth sphere, this means that the Fresnel will only take place at the edges of object. 
-However when a Normal map is introduced, we change the surface normal to no longer be smooth, allowing the Fresnel effect to take happen in places that it normally would not if the 
-surface Normal had been smooth. 
+프레넬의 노멀 입력에 노멀 맵을 입력하면, 표면의 이펙트에 매우 재미난 방식으로 영향을 끼치는 것이 보일 것입니다.
+표면 노멀에 대한 노멀 맵의 영향력 때문인데요. 앞서 배운대로 프레넬은 표면 노멀이 카메라에 수직인가 아닌가를 검사하는 방식으로 작동합니다.
+카메라에 수직이라면, 프레넬 이펙트가 발생합니다. 부드러운 구체에서라면, 프레넬은 오브젝트의 가장자리에서만 일어난다는 뜻입니다.
+하지만 노멀 맵을 도입하면 표면의 노멀이 더이상 매끄럽지 않게 되어, 원래 부드러운 상태였다면 정상적으로 발생하지 않았을 
+프레넬 이펙트가 가능합니다.
 
-For a visual example at what is going on, take a look at the following image showing the effect the surface normal has on the Fresnel. 
-On the left hand side, 1, is what the Fresnel node will out put with a flat surface normal. Now take a look at the right hand side, 2. 
-In this image, a Normal map was input which drastically changes the surface normal. 
-Because the surface normal is no longer flat everywhere, you get more of the Fresnel being displayed. 
+어떻게 돌아가는지에 대한 시각적 예제로, 표면 노멀이 프레넬에 미치는 영향을 다음 이미지에서 살펴보세요.
+왼쪽의 1 은 표면 노멀이 평평한 상태에서 출력된 프레넬 노드입니다. 이제 오른편의 2 번을 살펴봅시다.
+이 그림에서 노멀 맵을 입력하여 표면 노멀이 급격하게 변동되었습니다.
+모든 곳에 표면 노멀이 더이상 평평하지 않기 때문에, 프레넬이 더욱 많이 나타납니다.
 
 ![](FN_Effect_On_Surface_Normal.png)
 
-In the image below, we can see how different Normal maps can affect the Fresnel in different ways. 
+아래 그림에서는 다양한 노멀 맵이 프레넬에 어떤 식으로 영향을 끼치는지 확인할 수 있습니다.
 
 ![](FN_Fresnel_&_Normal_Map.png)
 
-The Material that was used to create the images above was the same Material that was created before but with the following modifications made. 
+위 그림을 만드는 데 사용된 머티리얼은 전에 사용된 것과 같은 머티리얼이지만 다음과 같은 변경사항이 있었습니다.
 
-* The Materials **Blend Mode** was changed from **Default** to **Translucent**
-* The final output for the Fresnel that was plugged into the **Emissive Color** input was also plugged into the **Opacity** input.
-* A new 2D Texture Sampler was added and plugged into the **Normal** input. **Tech_Hex_Tile_N** from the Starter Content was used as the Normal texture.
-* A new Scalar Parameter was added that is multiplied by a **Texture Coordinates** expression to implement some basic uniform titling on the Normal map. 
+* 머티리얼의 **Blend Mode** 가 **Default** 에서 **Translucent** 으로 변경되었습니다.
+* **이미시브 컬러** 입력에 연결된 프레넬의 최종 출력이 **오파시티** 입력에도 연결되었습니다.
+* 2D Texture Sampler 를 새로 추가하여 **노멀** 입력에 연결했습니다. 노멀 텍스처로는 시작용 콘텐츠의 **Tech_Hex_Tile_N** 이 사용되었습니다.
+* Scalar Parameter 를 새로 추가한 뒤 **Texture Coordinates** 표현식을 곱하여 노멀 맵에 기본적인 균등 타일링 효과를 구현했습니다.
 
 ![](FN_Adding_Normal_Map.png)
 
 
-The Fresnel Material Expression can also be supplied with a Normal map that can effect the way the Fresnel is rendered. 
-This is particularly useful if you want to use the Fresnel to display something like an energy shield on a Material but still have that Material look normal when the shield is not active. 
-To achieve this using the Material above, the following things need to be done.
+Fresnel 머티리얼 표현식에도 노멀 맵을 제공하여 프레넬 렌더링 방식에 영향을 끼칠 수 있습니다.
+프레넬을 사용하여 머티리얼에 에너지 쉴드같은 것을 표현하면서, 쉴드 작동 상태가 아닐 때도 머티리얼이 정상적으로 보이도록 하고자 할 때 특히나 좋습니다.
+위의 머티리얼을 사용해서 이러한 효과를 내는 방법은 다음과 같습니다.
 
-1. First change the **Base Color** and **Roughness** to use the **T_Brick_Clay_New_D** texture from the Starter Content. 
+1. 먼저 **베이스 컬러** 와 **러프니스** 가 시작용 콘텐츠의 **T_Brick_Clay_New_D** 텍스처를 사용하도록 바꿉니다.
 
-1. Next change the Normal input so that it uses T_Brick_Clay_New_N, which can also be found in the Starter Content. 
+1. 다음으로 노멀 입력이 마찬가지로 시작용 콘텐츠에서 찾을 수 있는 T_Brick_Clay_New_N 텍스처를 사용하도록 바꿉니다.
 
-1. Next search for a **Transform** Expression node in the Palette and add it to the Material graph. Make sure that it is set to transform from Tangent to World space. 
+1. 그리고 팔레트에서 **Transform** 표현식 노드를 검색한 다음 머티리얼 그래프에 추가합니다. 탄젠트에서 월드 스페이스로 변환하도록 설정되었는지 확인합니다.
 
-1. Connect the old Normal map texture node into the input of the Transform node and connect its output into the Normal input on the Fresnel node and when completed, your Material should look something like this. 
+1. 예전 노멀 맵 텍스처 노드를 Transform 노드의 입력에 연결한 뒤 그 출력을 Fresnel 노드의 Normal 입력에 연결합니다. 완료된 머티리얼 모습은 다음과 같을 것입니다.
 
 ![](FN_Fresnel_Normal_Input.png)	
 
-Notice how the bricks look like they have nothing to do with the Fresnel. 
-You can even take this one step by adding an **Multiply** and **Constant** Expression node and then using that to control the intensity of Fresnel effect. 
-Here is how that would look when added to the Material from above. 
+벽돌이 프레넬과는 무관한 것처럼 보이는 것이 보입니다.
+여기에 한 발짝 더 나아가 **Multiply** 와 **Constant** 표현식 노드를 추가하여 프레넬 이펙트의 강도 조절용으로 사용할 수도 있습니다.
+위의 머티리얼에 추가시킨 모습은 다음과 같습니다.
 
 ![](FN_Controal_Fresnel_Effect.png)
 
-By adjusting the **Constant** that was added, you can control how the Fresnel effects the surface. 
-Setting the number to 0 turns off the effect and setting it to anything else will gradually reveal the effect like in the example below.
+추가시킨 **Constant** 를 조절하는 것으로 표면의 프레넬 이펙트를 조절할 수 있습니다.
+수치를 0 으로 설정하면 이펙트가 꺼지고, 그 외의 값으로 설정하면 아래 예제에서처럼 이펙트가 서서히 드러납니다.
 
 ![](FN_Effect_Amount.png)
 
 
-## Other Uses for Fresnel 
+## 프레넬의 다른 용도
 
-Due to the way Fresnel works, it can be used to do other things besides just rim lighting. 
-Here are some examples of using the Fresnel node to do other things than just rim lighting. 
+프레넬의 작동 방식으로 인해 림 라이팅 말고도 다른 방식으로 사용할 수 있습니다.
+림 라이팅 이외의 용도로 프레넬을 사용하는 예제는 다음과 같습니다.
 
-* **Input Blending** You can use the Fresnel as the alpha for a LERP  to control how inputs to the LERP are combined together. 
+* **Input Blending** 입력 블렌딩 - Fresnel 을 LERP 의 알파로 사용하여 입력이 선형보간에 합쳐지는 방식을 제어할 수 있습니다.
 	![](FN_Lerp_Blending.png)
 
 
-## Conclusion 
+## 결론
 
-Adding Fresnel to a Material is a great way to help better illuminate a character's silhouette or to help show an energy shield special effect. 
-Remember that Fresnel works based off of viewing angle and surface normal's, so if you want to add some interesting detail to the Fresnel try using a Normal map that has a little random noise in it. 
-Also do not forget that you can use Fresnel Material Expression to help blend between two different inputs which is very handy for visual effects like fire or smoke.
+머티리얼에 프레넬을 추가하면 캐릭터의 실루엣을 더욱 빛나게 만들거나 에너지 쉴드 특수 효과를 나타내는 데 큰 도움이 됩니다.
+기억할 점은, 프레넬은 표면 노멀을 보는 각도에 따라 작동하므로, 프레넬에 재미난 디테일을 추가하려면 약간의 노이즈가 낀 노멀 맵을 사용해 보시기 바랍니다.
+또 한가지, 프레넬은 두 가지 입력을 블렌딩하는 데도 사용할 수 있는데, 불이나 연기같은 시각 효과에 매우 편리하게 쓰입니다.
 
 

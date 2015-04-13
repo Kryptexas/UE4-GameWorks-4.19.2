@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2426077
+﻿INTSourceChangelist:2508448
 Availability:Public
 Title:플랫폼 개발
 Crumbs:%ROOT%
 Description:PC 이외 다른 플랫폼 대상 개발에 대한 정보입니다.
+Navigation:platform
 
 [VAR:Params]
 [PARAM:image]
@@ -88,6 +89,9 @@ platforms
 		* [](Platforms/Oculus "%Platforms/Oculus:description%")
 			* [](Platforms/Oculus/BestPractices "%Platforms/Oculus/BestPractices:description%")
 			* [](Platforms/Oculus/QuickStart "%Platforms/Oculus/QuickStart:description%")
+		* [](Platforms/GearVR "%Platforms/GearVR:Description%")
+			* [](Platforms/GearVR/QuickStart "%Platforms/GearVR:Description%")
+			* [](Platforms/GearVR/BestPractices "%Platforms/GearVR:Description%")
 	[/PARAM]
 [/OBJECT]
 

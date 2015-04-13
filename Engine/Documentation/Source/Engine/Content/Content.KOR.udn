@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2498976
+﻿INTSourceChangelist:2509035
 Availability:Public
 Title:콘텐츠 관리하기
 Crumbs:%ROOT%, Engine
@@ -92,6 +92,8 @@ contentcreator
 * 스켈레탈 애니메이션
 * 텍스처
 * 사운드 (WAV)
+* IES 라이트 프로파일
+* Nvidia APEX 파일 (APB 및 APX)
 [/EXCERPT:External]
 --------------------->
 
