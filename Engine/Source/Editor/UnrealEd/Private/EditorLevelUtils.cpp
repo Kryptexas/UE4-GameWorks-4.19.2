@@ -420,9 +420,6 @@ namespace EditorLevelUtils
 
 			EditorDestroyLevel(InLevel);
 
-			// Scrub any levelscript actions so GC can take effect
-			FWorldDelegates::LevelRemovedFromWorld.Broadcast( InLevel, OwningWorld );
-
 			// Redraw the main editor viewports.
 			FEditorSupportDelegates::RedrawAllViewports.Broadcast();
 
