@@ -79,6 +79,7 @@ public class UnrealEd : ModuleRules
                 "Http",
 				"UnrealAudio",
                 "Niagara",
+                "VectorVM",
 			}
 		);
 
@@ -125,6 +126,7 @@ public class UnrealEd : ModuleRules
 				"HeadMountedDisplay",
 				"MeshPaint",
                 "Foliage",
+                "VectorVM",
 			}
 		);
 
@@ -223,6 +225,7 @@ public class UnrealEd : ModuleRules
 				"BlueprintGraph",
 				"NiagaraEditor",
                 "Niagara",
+                "VectorVM",
 			}
 			);
 
