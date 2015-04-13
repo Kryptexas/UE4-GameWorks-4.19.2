@@ -3754,6 +3754,7 @@ void ASkeletalMeshActor::PreviewSetAnimPosition(FName SlotName, int32 ChannelInd
 		SkeletalMeshComponent->RefreshSlaveComponents();
 		SkeletalMeshComponent->UpdateComponentToWorld();
 	}
+	SkeletalMeshComponent->FlipEditableSpaceBases();
 }
 
 
@@ -4543,7 +4544,7 @@ FPrimitiveViewRelevance FSkeletalMeshSceneProxy::GetViewRelevance(const FSceneVi
 
 bool FSkeletalMeshSceneProxy::CanBeOccluded() const
 {
-	return !MaterialRelevance.bDisableDepthTest;
+	return !MaterialRelevance.bDisableDepthTest && !ShouldRenderCustomDepth();
 }
 
 /** Util for getting LOD index currently used by this SceneProxy. */
@@ -4648,7 +4649,6 @@ void FSkeletalMeshSceneProxy::UpdateMorphMaterialUsage_GameThread(bool bNeedsMor
 		}
 	}
 }
-
 
 USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

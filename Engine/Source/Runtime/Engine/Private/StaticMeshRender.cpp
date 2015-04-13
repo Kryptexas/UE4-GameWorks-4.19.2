@@ -851,7 +851,7 @@ void FStaticMeshSceneProxy::OnTransformChanged()
 
 bool FStaticMeshSceneProxy::CanBeOccluded() const
 {
-	return !MaterialRelevance.bDisableDepthTest;
+	return !MaterialRelevance.bDisableDepthTest && !ShouldRenderCustomDepth();
 }
 
 FPrimitiveViewRelevance FStaticMeshSceneProxy::GetViewRelevance(const FSceneView* View)
@@ -934,7 +934,7 @@ void FStaticMeshSceneProxy::GetLightRelevance(const FLightSceneProxy* LightScene
 					bLightMapped = false;
 				}
 
-				if (InteractionType != LIT_Dynamic && InteractionType != LIT_CachedSignedDistanceFieldShadowMap2D)
+				if (InteractionType != LIT_Dynamic)
 				{
 					bDynamic = false;
 				}

@@ -884,7 +884,7 @@ void FLandscapeComponentSceneProxy::GetLightRelevance(const FLightSceneProxy* Li
 			bLightMapped = false;
 		}
 
-		if (InteractionType != LIT_Dynamic && InteractionType != LIT_CachedSignedDistanceFieldShadowMap2D)
+		if (InteractionType != LIT_Dynamic)
 		{
 			bDynamic = false;
 		}
