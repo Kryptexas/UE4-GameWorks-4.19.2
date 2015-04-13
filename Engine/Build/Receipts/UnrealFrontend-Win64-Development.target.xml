@@ -186,6 +186,9 @@
     <BuildProduct Path="$(EngineDir)\Binaries\Win64\UnrealFrontend-Serialization.dll" Type="DynamicLibrary" />
     <BuildProduct Path="$(EngineDir)\Binaries\Win64\UnrealFrontend-Serialization.pdb" Type="SymbolFile" />
     <BuildProduct Path="$(EngineDir)\Intermediate\Build\Win64\UnrealFrontend\Development\UnrealFrontend-Serialization.lib" Type="ImportLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win64\UnrealFrontend-Messaging.dll" Type="DynamicLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win64\UnrealFrontend-Messaging.pdb" Type="SymbolFile" />
+    <BuildProduct Path="$(EngineDir)\Intermediate\Build\Win64\UnrealFrontend\Development\UnrealFrontend-Messaging.lib" Type="ImportLibrary" />
     <BuildProduct Path="$(EngineDir)\Binaries\Win64\UnrealFrontend-AutomationController.dll" Type="DynamicLibrary" />
     <BuildProduct Path="$(EngineDir)\Binaries\Win64\UnrealFrontend-AutomationController.pdb" Type="SymbolFile" />
     <BuildProduct Path="$(EngineDir)\Intermediate\Build\Win64\UnrealFrontend\Development\UnrealFrontend-AutomationController.lib" Type="ImportLibrary" />
@@ -213,9 +216,6 @@
     <BuildProduct Path="$(EngineDir)\Binaries\Win64\UnrealFrontend-SourceCodeAccess.dll" Type="DynamicLibrary" />
     <BuildProduct Path="$(EngineDir)\Binaries\Win64\UnrealFrontend-SourceCodeAccess.pdb" Type="SymbolFile" />
     <BuildProduct Path="$(EngineDir)\Intermediate\Build\Win64\UnrealFrontend\Development\UnrealFrontend-SourceCodeAccess.lib" Type="ImportLibrary" />
-    <BuildProduct Path="$(EngineDir)\Binaries\Win64\UnrealFrontend-Messaging.dll" Type="DynamicLibrary" />
-    <BuildProduct Path="$(EngineDir)\Binaries\Win64\UnrealFrontend-Messaging.pdb" Type="SymbolFile" />
-    <BuildProduct Path="$(EngineDir)\Intermediate\Build\Win64\UnrealFrontend\Development\UnrealFrontend-Messaging.lib" Type="ImportLibrary" />
     <BuildProduct Path="$(EngineDir)\Binaries\Win64\UnrealFrontend-ProfilerClient.dll" Type="DynamicLibrary" />
     <BuildProduct Path="$(EngineDir)\Binaries\Win64\UnrealFrontend-ProfilerClient.pdb" Type="SymbolFile" />
     <BuildProduct Path="$(EngineDir)\Intermediate\Build\Win64\UnrealFrontend\Development\UnrealFrontend-ProfilerClient.lib" Type="ImportLibrary" />
@@ -257,7 +257,7 @@
     <BuildProduct Path="$(EngineDir)\Intermediate\Build\Win64\UnrealFrontend\Development\UnrealFrontend-TargetDeviceServices.lib" Type="ImportLibrary" />
     <BuildProduct Path="$(EngineDir)\Plugins\Developer\VisualStudioSourceCodeAccess\Binaries\Win64\UnrealFrontend-VisualStudioSourceCodeAccess.dll" Type="DynamicLibrary" />
     <BuildProduct Path="$(EngineDir)\Plugins\Developer\VisualStudioSourceCodeAccess\Binaries\Win64\UnrealFrontend-VisualStudioSourceCodeAccess.pdb" Type="SymbolFile" />
-    <BuildProduct Path="$(EngineDir)\Intermediate\Build\Win64\UnrealFrontend\Development\UnrealFrontend-VisualStudioSourceCodeAccess.lib" Type="ImportLibrary" />
+    <BuildProduct Path="$(EngineDir)\Intermediate\Build\Win64\UnrealFrontend\Development\Plugins\Dynamic\UnrealFrontend-VisualStudioSourceCodeAccess.lib" Type="ImportLibrary" />
   </BuildProducts>
   <RuntimeDependencies>
     <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/ICU/icu4c-53_1/Win64/VS2013/icudt53.dll" />

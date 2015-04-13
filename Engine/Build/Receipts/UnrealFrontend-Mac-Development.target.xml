@@ -60,6 +60,8 @@
     <BuildProduct Path="$(EngineDir)/Binaries/Mac/UnrealFrontend.app/Contents/MacOS/UnrealFrontend-MetalShaderFormat.dylib" Type="DynamicLibrary" />
     <BuildProduct Path="$(EngineDir)/Binaries/Mac/UnrealFrontend.app/Contents/MacOS/UnrealFrontend-Networking.dylib" Type="DynamicLibrary" />
     <BuildProduct Path="$(EngineDir)/Binaries/Mac/UnrealFrontend.app/Contents/MacOS/UnrealFrontend-Serialization.dylib" Type="DynamicLibrary" />
+    <BuildProduct Path="$(EngineDir)/Binaries/Mac/UnrealFrontend.app/Contents/MacOS/UnrealFrontend-Messaging.dylib" Type="DynamicLibrary" />
+    <BuildProduct Path="$(EngineDir)/Binaries/Mac/UnrealFrontend.app/Contents/MacOS/UnrealFrontend-Settings.dylib" Type="DynamicLibrary" />
     <BuildProduct Path="$(EngineDir)/Binaries/Mac/UnrealFrontend.app/Contents/MacOS/UnrealFrontend-AutomationController.dylib" Type="DynamicLibrary" />
     <BuildProduct Path="$(EngineDir)/Binaries/Mac/UnrealFrontend.app/Contents/MacOS/UnrealFrontend-AutomationMessages.dylib" Type="DynamicLibrary" />
     <BuildProduct Path="$(EngineDir)/Binaries/Mac/UnrealFrontend.app/Contents/MacOS/UnrealFrontend-UnrealEdMessages.dylib" Type="DynamicLibrary" />
@@ -72,8 +74,6 @@
     <BuildProduct Path="$(EngineDir)/Binaries/Mac/UnrealFrontend.app/Contents/MacOS/UnrealFrontend-LauncherServices.dylib" Type="DynamicLibrary" />
     <BuildProduct Path="$(EngineDir)/Binaries/Mac/UnrealFrontend.app/Contents/MacOS/UnrealFrontend-SessionMessages.dylib" Type="DynamicLibrary" />
     <BuildProduct Path="$(EngineDir)/Binaries/Mac/UnrealFrontend.app/Contents/MacOS/UnrealFrontend-SourceCodeAccess.dylib" Type="DynamicLibrary" />
-    <BuildProduct Path="$(EngineDir)/Binaries/Mac/UnrealFrontend.app/Contents/MacOS/UnrealFrontend-Settings.dylib" Type="DynamicLibrary" />
-    <BuildProduct Path="$(EngineDir)/Binaries/Mac/UnrealFrontend.app/Contents/MacOS/UnrealFrontend-Messaging.dylib" Type="DynamicLibrary" />
     <BuildProduct Path="$(EngineDir)/Binaries/Mac/UnrealFrontend.app/Contents/MacOS/UnrealFrontend-ProfilerClient.dylib" Type="DynamicLibrary" />
     <BuildProduct Path="$(EngineDir)/Binaries/Mac/UnrealFrontend.app/Contents/MacOS/UnrealFrontend-ProfilerMessages.dylib" Type="DynamicLibrary" />
     <BuildProduct Path="$(EngineDir)/Binaries/Mac/UnrealFrontend.app/Contents/MacOS/UnrealFrontend-ProjectLauncher.dylib" Type="DynamicLibrary" />

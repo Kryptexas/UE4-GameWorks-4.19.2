@@ -48,6 +48,9 @@
     <BuildProduct Path="$(EngineDir)\Binaries\Win64\UnrealLightmass-Serialization.dll" Type="DynamicLibrary" />
     <BuildProduct Path="$(EngineDir)\Binaries\Win64\UnrealLightmass-Serialization.pdb" Type="SymbolFile" />
     <BuildProduct Path="$(EngineDir)\Intermediate\Build\Win64\UnrealLightmass\Development\UnrealLightmass-Serialization.lib" Type="ImportLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win64\UnrealLightmass-Settings.dll" Type="DynamicLibrary" />
+    <BuildProduct Path="$(EngineDir)\Binaries\Win64\UnrealLightmass-Settings.pdb" Type="SymbolFile" />
+    <BuildProduct Path="$(EngineDir)\Intermediate\Build\Win64\UnrealLightmass\Development\UnrealLightmass-Settings.lib" Type="ImportLibrary" />
   </BuildProducts>
   <RuntimeDependencies>
     <RuntimeDependency Path="$(EngineDir)/Binaries/ThirdParty/ICU/icu4c-53_1/Win64/VS2013/icudt53.dll" />

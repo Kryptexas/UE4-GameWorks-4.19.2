@@ -21,6 +21,7 @@
     <BuildProduct Path="$(EngineDir)/Binaries/Mac/UnrealLightmass-DerivedDataCache.dylib" Type="DynamicLibrary" />
     <BuildProduct Path="$(EngineDir)/Binaries/Mac/NotForLicensees/UnrealLightmass-DDCUtils.dylib" Type="DynamicLibrary" />
     <BuildProduct Path="$(EngineDir)/Binaries/Mac/UnrealLightmass-Serialization.dylib" Type="DynamicLibrary" />
+    <BuildProduct Path="$(EngineDir)/Binaries/Mac/UnrealLightmass-Settings.dylib" Type="DynamicLibrary" />
   </BuildProducts>
   <RuntimeDependencies />
 </BuildReceipt>
