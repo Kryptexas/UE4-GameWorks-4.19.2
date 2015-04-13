@@ -1943,12 +1943,17 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 
 	// Editor mesh
 	bool bUsingEditorMesh = false;
+	FLandscapeSplineMeshEntry SplineEditorMeshEntry;
 	if (UsableMeshes.Num() == 0 && OuterSplines->SplineEditorMesh != nullptr)
 	{
-		FLandscapeSplineMeshEntry SplineEditorMeshEntry;
 		SplineEditorMeshEntry.Mesh = OuterSplines->SplineEditorMesh;
-		SplineEditorMeshEntry.Scale.X = 3;
-		SplineEditorMeshEntry.Offset.Y = 0.5f;
+		SplineEditorMeshEntry.MaterialOverrides = {};
+		SplineEditorMeshEntry.bCenterH = true;
+		SplineEditorMeshEntry.Offset = {0.0f, 0.5f};
+		SplineEditorMeshEntry.bScaleToWidth = true;
+		SplineEditorMeshEntry.Scale = {3, 1, 1};
+		SplineEditorMeshEntry.ForwardAxis = ESplineMeshAxis::X;
+		SplineEditorMeshEntry.UpAxis = ESplineMeshAxis::Z;
 		UsableMeshes.Add(&SplineEditorMeshEntry);
 		bUsingEditorMesh = true;
 	}
