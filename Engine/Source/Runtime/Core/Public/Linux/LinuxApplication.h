@@ -80,7 +80,15 @@ private:
 
 	TCHAR ConvertChar( SDL_Keysym Keysym );
 
-	TSharedPtr< FLinuxWindow > FindEventWindow( SDL_Event *pEvent );
+	/**
+	 * Finds a window associated with the event (if there is such an association).
+	 *
+	 * @param Event event in question
+	 * @param bOutWindowlessEvent whether or not the event needs to have a window at all
+	 *
+	 * @return pointer to the window, if any
+	 */
+	TSharedPtr< FLinuxWindow > FindEventWindow(SDL_Event *Event, bool& bOutWindowlessEvent);
 
 	void UpdateMouseCaptureWindow( SDL_HWindow TargetWindow );
 
