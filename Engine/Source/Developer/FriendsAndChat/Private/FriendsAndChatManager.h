@@ -101,7 +101,8 @@ private:
 	// cached analytics provider for pushing events
 	TSharedPtr<IAnalyticsProvider> Provider;
 	// map of chat id to # of messages sent
-	TMap<FString, int32> ChatCounts;
+	TMap<FString, int32> PrivateChatCounts;
+	TMap<FString, int32> ChannelChatCounts;
 };
 
 /**

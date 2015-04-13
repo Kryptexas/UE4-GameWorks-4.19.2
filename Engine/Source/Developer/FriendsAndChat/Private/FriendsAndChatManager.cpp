@@ -2276,15 +2276,13 @@ void FFriendsAndChatAnalytics::RecordToggleChat(const FString& Channel, bool bEn
 
 void FFriendsAndChatAnalytics::RecordPrivateChat(const FString& ToUser)
 {
-	int32& Count = ChatCounts.FindOrAdd(ToUser);
+	int32& Count = PrivateChatCounts.FindOrAdd(ToUser);
 	Count += 1;
-	int32& TotalCount = ChatCounts.FindOrAdd(TEXT("TotalPrivate"));
-	TotalCount += 1;
 }
 
 void FFriendsAndChatAnalytics::RecordChannelChat(const FString& ToChannel)
 {
-	int32& Count = ChatCounts.FindOrAdd(ToChannel);
+	int32& Count = ChannelChatCounts.FindOrAdd(ToChannel);
 	Count += 1;
 }
 
@@ -2298,16 +2296,29 @@ void FFriendsAndChatAnalytics::FlushChatStats()
 			TSharedPtr<FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
 			if (UserId.IsValid())
 			{
-				TArray<FAnalyticsEventAttribute> Attributes;
-				for (auto It = ChatCounts.CreateConstIterator(); It; ++It)
+				auto RecordSocialChatCountsEvents = [=](const TMap<FString, int32>& ChatCounts, const FString& ChatType)
 				{
-					Attributes.Add(FAnalyticsEventAttribute(It.Key(), It.Value()));
-				}
-				Provider->RecordEvent(TEXT("Social.Chat.Counts"), Attributes);
+					if (ChatCounts.Num())
+					{
+						TArray<FAnalyticsEventAttribute> Attributes;
+						for (const auto& Pair : ChannelChatCounts)
+						{
+							Attributes.Empty(3);
+							Attributes.Emplace(TEXT("Name"), Pair.Key);
+							Attributes.Emplace(TEXT("Type"), ChatType);
+							Attributes.Emplace(TEXT("Count"), Pair.Value);
+							Provider->RecordEvent("Social.Chat.Counts.2", Attributes);
+						}
+					}
+				};
+
+				RecordSocialChatCountsEvents(ChannelChatCounts, TEXT("Channel"));
+				RecordSocialChatCountsEvents(PrivateChatCounts, TEXT("Private"));
 			}
 		}
 	}
-	ChatCounts.Empty();
+	ChannelChatCounts.Empty();
+	PrivateChatCounts.Empty();
 }
 
 void FFriendsAndChatAnalytics::AddPresenceAttributes(const FUniqueNetId& UserId, TArray<FAnalyticsEventAttribute>& Attributes) const
