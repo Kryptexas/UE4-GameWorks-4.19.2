@@ -1851,6 +1851,8 @@ void ULevel::ApplyWorldOffset(const FVector& InWorldOffset, bool bWorldShift)
 			ModelComponents[CompIdx]->ApplyWorldOffset(InWorldOffset, bWorldShift);
 		}
 	}
+
+	FWorldDelegates::PostApplyLevelOffset.Broadcast(this, OwningWorld, InWorldOffset, bWorldShift);
 }
 
 void ULevel::RegisterActorForAutoReceiveInput(AActor* Actor, const int32 PlayerIndex)

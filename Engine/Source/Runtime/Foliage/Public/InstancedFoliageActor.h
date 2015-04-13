@@ -45,7 +45,6 @@ public:
 	// Begin AActor interface.
 	// we don't want to have our components automatically destroyed by the Blueprint code
 	virtual void RerunConstructionScripts() override {}
-	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	virtual bool IsLevelBoundsRelevant() const override { return false; }
 #if WITH_EDITOR
 	virtual void Destroyed() override;
@@ -171,11 +170,13 @@ private:
 #if WITH_EDITOR
 	void OnLevelActorMoved(AActor* InActor);
 	void OnLevelActorDeleted(AActor* InActor);
+	void OnPostApplyLevelOffset(ULevel* InLevel, UWorld* InWorld, const FVector& InOffset, bool bWorldShift);
 #endif
 private:
 #if WITH_EDITOR
 	FDelegateHandle OnLevelActorMovedDelegateHandle;
 	FDelegateHandle OnLevelActorDeletedDelegateHandle;
+	FDelegateHandle OnPostApplyLevelOffsetDelegateHandle;
 #endif
 
 };
