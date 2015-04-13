@@ -108,6 +108,18 @@ bool FJsonObjectConverter::UStructToJsonObject(const UStruct* StructDefinition, 
 
 bool FJsonObjectConverter::UStructToJsonAttributes(const UStruct* StructDefinition, const void* Struct, TMap< FString, TSharedPtr<FJsonValue> >& OutJsonAttributes, int64 CheckFlags, int64 SkipFlags)
 {
+	if (StructDefinition == FJsonObjectWrapper::StaticStruct())
+	{
+		// Just copy it into the object
+		const FJsonObjectWrapper* ProxyObject = (const FJsonObjectWrapper *)Struct;
+
+		if (ProxyObject->JsonObject.IsValid())
+		{
+			OutJsonAttributes = ProxyObject->JsonObject->Values;
+		}
+		return true;
+	}
+
 	for (TFieldIterator<UProperty> It(StructDefinition); It; ++It)
 	{
 		UProperty* Property = *It;
@@ -374,6 +386,15 @@ bool FJsonObjectConverter::JsonObjectToUStruct(const TSharedRef<FJsonObject>& Js
 
 bool FJsonObjectConverter::JsonAttributesToUStruct(const TMap< FString, TSharedPtr<FJsonValue> >& JsonAttributes, const UStruct* StructDefinition, void* OutStruct, int64 CheckFlags, int64 SkipFlags)
 {
+	if (StructDefinition == FJsonObjectWrapper::StaticStruct())
+	{
+		// Just copy it into the object
+		FJsonObjectWrapper* ProxyObject = (FJsonObjectWrapper *)OutStruct;
+		ProxyObject->JsonObject = MakeShareable(new FJsonObject());
+		ProxyObject->JsonObject->Values = JsonAttributes;
+		return true;
+	}
+
 	// iterate over the struct properties
 	for(TFieldIterator<UProperty> PropIt(StructDefinition); PropIt; ++PropIt)
 	{
