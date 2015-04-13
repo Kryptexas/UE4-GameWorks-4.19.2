@@ -50,7 +50,7 @@ void FStatsMemoryDumpCommand::InternalRun()
 		for( const auto& Meta : MetadataMessages )
 		{
 			FName LongName = Meta.NameAndInfo.GetRawName();
-			const FString Desc = FStatNameAndInfo::GetDescriptionFrom( LongName );
+			const FString Desc = FStatNameAndInfo::GetShortNameFrom( LongName ).GetPlainNameString();
 			const bool bContainsUObject = Desc.Contains( TEXT( "//" ) );
 			if( bContainsUObject )
 			{
