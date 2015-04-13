@@ -85,6 +85,11 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory1* InDXGIFactory1,D3D_FEATURE_LEV
 		GMaxRHIFeatureLevel = ERHIFeatureLevel::ES2;
 		GMaxRHIShaderPlatform = SP_PCD3D_ES2;
 	}
+	else if ((FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES31")) || FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES3_1"))) && !GIsEditor)
+	{
+		GMaxRHIFeatureLevel = ERHIFeatureLevel::ES3_1;
+		GMaxRHIShaderPlatform = SP_PCD3D_ES3_1;
+	}
 	else if(FeatureLevel == D3D_FEATURE_LEVEL_11_0)
 	{
 		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM5;

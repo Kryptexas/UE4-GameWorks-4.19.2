@@ -93,6 +93,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = AI, meta = (DisplayName = "Environment Querying System"))
 	bool bEQSEditor;
 
+	/** Enables Environment Queries editor */
+	UPROPERTY(EditAnywhere, config, Category = Rendering, meta = (DisplayName = "Enable Metal/High-end mobile rendering preview"))
+	bool bFeatureLevelES31Preview;
+
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
 	 *

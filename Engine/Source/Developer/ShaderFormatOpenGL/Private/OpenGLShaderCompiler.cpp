@@ -69,7 +69,7 @@ static FORCEINLINE bool IsES2Platform(GLSLVersion Version)
 
 static FORCEINLINE bool IsPCES2Platform(GLSLVersion Version)
 {
-	return (Version == GLSL_150_ES2 || Version == GLSL_150_ES2_NOUB);
+	return (Version == GLSL_150_ES2 || Version == GLSL_150_ES2_NOUB || Version == GLSL_150_ES3_1);
 }
 
 // This function should match OpenGLShaderPlatformSeparable
@@ -78,7 +78,7 @@ static FORCEINLINE bool SupportsSeparateShaderObjects(GLSLVersion Version)
 	// Only desktop shader platforms can use separable shaders for now,
 	// the generated code relies on macros supplied at runtime to determine whether
 	// shaders may be separable and/or linked.
-	return Version == GLSL_150 || Version == GLSL_150_MAC || Version == GLSL_150_ES2 || Version == GLSL_150_ES2_NOUB|| Version == GLSL_430;
+	return Version == GLSL_150 || Version == GLSL_150_MAC || Version == GLSL_150_ES2 || Version == GLSL_150_ES2_NOUB || Version == GLSL_150_ES3_1 || Version == GLSL_430;
 }
 
 /*------------------------------------------------------------------------------
@@ -1190,6 +1190,7 @@ static void OpenGLVersionFromGLSLVersion(GLSLVersion InVersion, int& OutMajorVer
 			break;
 		case GLSL_150_ES2:
 		case GLSL_150_ES2_NOUB:
+		case GLSL_150_ES3_1:
 			OutMajorVersion = 3;
 			OutMinorVersion = 2;
 			break;
@@ -1519,6 +1520,7 @@ static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FS
 	{
 		case GLSL_150:
 		case GLSL_150_ES2:
+		case GLSL_150_ES3_1:
 			VersionSwitch = TEXT(" -gl3 -separateshaders");
 			break;
 
@@ -1620,6 +1622,13 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 		case GLSL_150_ES2_NOUB:
 			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL"), 1);
 			AdditionalDefines.SetDefine(TEXT("ES2_PROFILE"), 1);
+			HlslCompilerTarget = HCT_FeatureLevelSM4;
+			AdditionalDefines.SetDefine(TEXT("row_major"), TEXT(""));
+			break;
+
+		case GLSL_150_ES3_1:
+			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL"), 1);
+			AdditionalDefines.SetDefine(TEXT("ES3_1_PROFILE"), 1);
 			HlslCompilerTarget = HCT_FeatureLevelSM4;
 			AdditionalDefines.SetDefine(TEXT("row_major"), TEXT(""));
 			break;

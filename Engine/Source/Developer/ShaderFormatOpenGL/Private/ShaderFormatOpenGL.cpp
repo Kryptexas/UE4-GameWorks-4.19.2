@@ -15,6 +15,7 @@ static FName NAME_GLSL_ES2(TEXT("GLSL_ES2"));
 static FName NAME_GLSL_ES2_WEBGL(TEXT("GLSL_ES2_WEBGL"));
 static FName NAME_GLSL_150_ES2(TEXT("GLSL_150_ES2"));
 static FName NAME_GLSL_150_ES2_NOUB(TEXT("GLSL_150_ES2_NOUB"));
+static FName NAME_GLSL_150_ES3_1(TEXT("GLSL_150_ES3_1"));
 static FName NAME_GLSL_ES2_IOS(TEXT("GLSL_ES2_IOS"));
 static FName NAME_GLSL_310_ES_EXT(TEXT("GLSL_310_ES_EXT"));
  
@@ -29,6 +30,7 @@ class FShaderFormatGLSL : public IShaderFormat
 		UE_SHADER_GLSL_ES2_VER = 14,
 		UE_SHADER_GLSL_150ES2_VER = 17,
 		UE_SHADER_GLSL_150ES2NOUB_VER = 1,
+		UE_SHADER_GLSL_150ES3_1_VER = 1,
 		UE_SHADER_GLSL_ES2_VER_WEBGL  = 15,
 		UE_SHADER_GLSL_ES2_IOS_VER  = 5,
 		UE_SHADER_GLSL_310_ES_EXT_VER = 3,
@@ -42,6 +44,7 @@ class FShaderFormatGLSL : public IShaderFormat
 				Format == NAME_GLSL_ES2 || 
 				Format == NAME_GLSL_150_ES2 ||
 				Format == NAME_GLSL_150_ES2_NOUB ||
+				Format == NAME_GLSL_150_ES3_1 ||
                 Format == NAME_GLSL_ES2_WEBGL ||
 				Format == NAME_GLSL_ES2_IOS ||
 				Format == NAME_GLSL_310_ES_EXT
@@ -72,6 +75,10 @@ public:
 		else if (Format == NAME_GLSL_150_ES2)
 		{
 			GLSLVersion = UE_SHADER_GLSL_150ES2_VER;
+		}
+		else if (Format == NAME_GLSL_150_ES3_1)
+		{
+			GLSLVersion = UE_SHADER_GLSL_150ES3_1_VER;
 		}
 		else if (Format == NAME_GLSL_150_ES2_NOUB)
 		{
@@ -105,6 +112,7 @@ public:
 		OutFormats.Add(NAME_GLSL_ES2);
 		OutFormats.Add(NAME_GLSL_ES2_WEBGL);
 		OutFormats.Add(NAME_GLSL_150_ES2);
+		OutFormats.Add(NAME_GLSL_150_ES3_1);
 		OutFormats.Add(NAME_GLSL_ES2_IOS);
 		OutFormats.Add(NAME_GLSL_310_ES_EXT);
 		OutFormats.Add(NAME_GLSL_150_ES2_NOUB);
@@ -149,7 +157,11 @@ public:
 		}
 		else if (Format == NAME_GLSL_ES2_IOS )
 		{
-			CompileShader_Windows_OGL(Input, Output, WorkingDirectory, GLSL_ES2_IOS);
+			CompileShader_Windows_OGL(Input, Output, WorkingDirectory, GLSL_150_ES3_1);
+		}
+		else if (Format == NAME_GLSL_150_ES3_1)
+		{
+			CompileShader_Windows_OGL(Input, Output, WorkingDirectory, GLSL_150_ES3_1);
 		}
 		else if (Format == NAME_GLSL_150_ES2_NOUB)
 		{

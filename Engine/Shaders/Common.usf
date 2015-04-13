@@ -130,8 +130,12 @@
 	#define SM4_PROFILE 1
 	#define FCOLOR_COMPONENT_SWIZZLE .bgra  
 #elif ES2_PROFILE || ES3_1_PROFILE
-	//@todo ES3_1 GL
-	#define FEATURE_LEVEL FEATURE_LEVEL_ES2
+	#if ES3_1_PROFILE
+		#define FEATURE_LEVEL FEATURE_LEVEL_ES3_1
+	#else
+		//@todo ES3_1 GL
+		#define FEATURE_LEVEL FEATURE_LEVEL_ES2
+	#endif
 
 	#if COMPILER_GLSL_ES2 
 		// Swizzle as we only support GL_BGRA on non-ES2 platforms that have that extension
@@ -1069,7 +1073,7 @@ struct FWriteToSliceGeometryOutput
 
 // Helper macro to globally ignore requests for non-offset world positions in materials when lower than shader model 4. We do this
 // because we are using an extra interpolator for this second world position, and in < SM4 there may not be enough
-#define USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS	(NEEDS_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS && FEATURE_LEVEL >= FEATURE_LEVEL_SM4)
+#define USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS	(NEEDS_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS && FEATURE_LEVEL >= FEATURE_LEVEL_ES3_1)
 
 /** Used for calculating vertex positions and UVs when drawing with DrawRectangle */
 void DrawRectangle( in float4 InPosition, in float2 InTexCoord, out float4 OutPosition, out float2 OutTexCoord)

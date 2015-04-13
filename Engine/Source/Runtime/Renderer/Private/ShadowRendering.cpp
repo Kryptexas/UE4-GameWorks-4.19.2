@@ -1018,17 +1018,18 @@ void FShadowDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* 
 						true,
 						false,
 						false,
-						Scene->GetFeatureLevel(),
+						FeatureLevel,
 						StaticMesh->VertexFactory,
 						MaterialRenderProxy,
 						bTwoSided,
 						StaticMesh->ReverseCulling),
-					Scene->GetFeatureLevel()
+					FeatureLevel
 					);
 			}
 		}
 		if ( bLitOpaque )
 		{
+			const auto FeatureLevel = Scene->GetFeatureLevel();
 			OverrideWithDefaultMaterialForShadowDepth(MaterialRenderProxy, Material, false, Scene->GetFeatureLevel()); 
 
 			// Add the static mesh to the shadow's subject draw list.
@@ -1040,12 +1041,12 @@ void FShadowDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* 
 					true,
 					false,
 					false,
-					Scene->GetFeatureLevel(),
+					FeatureLevel,
 					StaticMesh->VertexFactory,
 					MaterialRenderProxy,
 					bTwoSided,
 					StaticMesh->ReverseCulling),
-				Scene->GetFeatureLevel()
+				FeatureLevel
 				);
 		}
 	}

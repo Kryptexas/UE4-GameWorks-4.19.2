@@ -719,9 +719,15 @@ struct FOpenGL3 : public FOpenGLBase
 
 	static FORCEINLINE ERHIFeatureLevel::Type GetFeatureLevel()
 	{
-		if (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2")) && !GIsEditor)
+		static bool bForceES2 = FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2"));
+		static bool bForceES3_1 = FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES31")) || FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES3_1"));
+		if (bForceES2 && !GIsEditor)
 		{
 			return ERHIFeatureLevel::ES2;
+		}
+		else if (bForceES3_1 && !GIsEditor)
+		{
+			return ERHIFeatureLevel::ES3_1;
 		}
 		// Shader platform & RHI feature level
 		switch(GetMajorVersion())
@@ -743,6 +749,12 @@ struct FOpenGL3 : public FOpenGLBase
 		if (bForceFeatureLevelES2)
 		{
 			return SP_OPENGL_PCES2;
+		}
+
+		static bool bForceFeatureLevelES3_1 = (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES31")) || FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES3_1"))) && !GIsEditor;
+		if (bForceFeatureLevelES3_1)
+		{
+			return SP_OPENGL_PCES3_1;
 		}
 
 		// Shader platform

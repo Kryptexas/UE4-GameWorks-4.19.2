@@ -15,7 +15,7 @@ enum EShaderFrequency
 	SF_Vertex			= 0,
 	SF_Hull				= 1,
 	SF_Domain			= 2,
-	SF_Pixel			= 3,
+	SF_Pixel				= 3,
 	SF_Geometry			= 4,
 	SF_Compute			= 5,
 
@@ -44,8 +44,12 @@ enum EShaderPlatform
 	SP_OPENGL_SM4_MAC	= 12,
 	SP_METAL_MRT			= 13,
 	SP_OPENGL_ES31_EXT	= 14,
+	/** Used when running in Feature Level ES3_1 in D3D11. */
+	SP_PCD3D_ES3_1		= 15,
+	/** Used when running in Feature Level ES3_1 in OpenGL. */
+	SP_OPENGL_PCES3_1	= 16,
 
-	SP_NumPlatforms		= 15,
+	SP_NumPlatforms		= 17,
 	SP_NumBits			= 5,
 };
 static_assert(SP_NumPlatforms <= (1 << SP_NumBits), "SP_NumPlatforms will not fit on SP_NumBits");
@@ -580,7 +584,7 @@ enum class ESimpleRenderTargetMode
 
 inline bool IsPCPlatform(const EShaderPlatform Platform)
 {
-	return Platform == SP_PCD3D_SM5 || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_ES2 || Platform ==  SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2;
+	return Platform == SP_PCD3D_SM5 || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_ES2 || Platform == SP_PCD3D_ES3_1 || Platform ==  SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_PCES3_1;
 }
 
 /** Whether the shader platform corresponds to the ES2 feature level. */
@@ -592,7 +596,7 @@ inline bool IsES2Platform(const EShaderPlatform Platform)
 /** Whether the shader platform corresponds to the ES2 feature level. */
 inline bool IsMobilePlatform(const EShaderPlatform Platform)
 {
-	return IsES2Platform(Platform) || Platform == SP_METAL;
+	return IsES2Platform(Platform) || Platform == SP_METAL || Platform == SP_PCD3D_ES3_1 || Platform == SP_OPENGL_PCES3_1;
 }
 
 inline bool IsOpenGLPlatform(const EShaderPlatform Platform)
@@ -628,6 +632,8 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_OPENGL_ES2_IOS:
 		return ERHIFeatureLevel::ES2;
 	case SP_METAL:
+	case SP_PCD3D_ES3_1:
+	case SP_OPENGL_PCES3_1:
 		return ERHIFeatureLevel::ES3_1;
 	default:
 		check(0);
@@ -646,8 +652,12 @@ inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatur
 		return InFeatureLevel <= ERHIFeatureLevel::SM4;
 	case SP_PCD3D_ES2:
 		return InFeatureLevel <= ERHIFeatureLevel::ES2;
+	case SP_PCD3D_ES3_1:
+		return InFeatureLevel <= ERHIFeatureLevel::ES3_1;
 	case SP_OPENGL_PCES2:
 		return InFeatureLevel <= ERHIFeatureLevel::ES2;
+	case SP_OPENGL_PCES3_1:
+		return InFeatureLevel <= ERHIFeatureLevel::ES3_1;
 	case SP_OPENGL_ES2:
 		return InFeatureLevel <= ERHIFeatureLevel::ES2;
 	case SP_OPENGL_ES2_WEBGL: 
