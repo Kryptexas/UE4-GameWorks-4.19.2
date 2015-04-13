@@ -102,9 +102,9 @@ Atmospheric Fog アクタには以下のプロパティが格納されます。
 [REGION:imagetable]
 | ![Atmo0.5_4.png](Atmo0.5_4.png)(w:460) | ![Atmo0.35_4.png](Atmo0.35_4.png)(w:460) |
 | ------ | ------ |
-| Decay Height of 0.5 (8 km) | Decay Height が 0.35 (2.744 km) |
+| Decay Height が 0.5 (8 km) | Decay Height が 0.35 (2.744 km) |
 | ![Atmo1.0_4.png](Atmo1.0_4.png)(w:460) | ![Atmo1.0_1.png](Atmo1.0_1.png)(w:460) |
-| Decay Height of 1.0 (64 km) and Max Scattering of 4 | Decay Height が 1.0 (64 km) で Max Scattering が 1 |
+| Decay Height が 1.0 (64 km) で Max Scattering が 4 | Decay Height が 1.0 (64 km) で Max Scattering が 1 |
 [/REGION]
 [/EXCERPT:examples]
 <!---Includes
