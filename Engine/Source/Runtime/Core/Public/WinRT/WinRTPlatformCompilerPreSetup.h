@@ -78,15 +78,22 @@
 		__pragma (warning(disable:4995)) \
 		__pragma (warning(disable:4996))
 
-	#define PRAGMA_POP \
-		__pragma(warning(pop))
-
 	#define PRAGMA_ENABLE_DEPRECATION_WARNINGS \
 		__pragma (warning(push)) \
 		__pragma (warning(default:4995)) \
 		__pragma (warning(default:4996))
 
 #endif // DISABLE_DEPRECATION
+
+#ifndef PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
+	#define PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS \
+		__pragma (warning(push))
+#endif // PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
+
+#ifndef PRAGMA_POP
+	#define PRAGMA_POP \
+		__pragma(warning(pop))
+#endif // PRAGMA_POP
 
 #if _MSC_VER
 #define EMIT_CUSTOM_WARNING_AT_LINE(Line, Warning) \

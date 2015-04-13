@@ -76,9 +76,18 @@
 		_Pragma ("clang diagnostic push") \
 		_Pragma ("clang diagnostic warning \"-Wdeprecated-declarations\"")
 
+#endif // DISABLE_DEPRECATION
+
+#ifndef PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
+	#define PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS \
+		_Pragma ("clang diagnostic push") \
+		_Pragma ("clang diagnostic ignored \"-Wshadow\"")
+#endif // PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
+
+#ifndef PRAGMA_POP
 	#define PRAGMA_POP \
 		_Pragma("clang diagnostic pop")
-#endif // DISABLE_DEPRECATION
+#endif // PRAGMA_POP
 
 #ifndef EMIT_CUSTOM_WARNING_AT_LINE
 #define EMIT_CUSTOM_WARNING_AT_LINE(Line, Warning) \
