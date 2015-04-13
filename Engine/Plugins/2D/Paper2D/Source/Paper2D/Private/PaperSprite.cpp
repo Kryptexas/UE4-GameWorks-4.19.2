@@ -7,6 +7,10 @@
 
 #include "PaperCustomVersion.h"
 #include "PaperGeomTools.h"
+#include "PaperRuntimeSettings.h"
+#include "PaperSpriteComponent.h"
+#include "PaperFlipbookComponent.h"
+#include "SpriteDrawCall.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"

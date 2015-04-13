@@ -10,17 +10,17 @@
 class FPaperTileMapRenderSceneProxy : public FPaperRenderSceneProxy
 {
 public:
-	FPaperTileMapRenderSceneProxy(const UPaperTileMapComponent* InComponent);
+	FPaperTileMapRenderSceneProxy(const class UPaperTileMapComponent* InComponent);
 
 	// FPrimitiveSceneProxy interface.
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	// End of FPrimitiveSceneProxy interface.
 
-	void SetBatchesHack(TArray<FSpriteDrawCallRecord>& InBatchedSprites)
+	void SetBatchesHack(TArray<struct FSpriteDrawCallRecord>& InBatchedSprites)
 	{
 		BatchedSprites = InBatchedSprites;
 	}
 protected:
 	//@TODO: Not thread safe
-	const UPaperTileMap* TileMap;
+	const class UPaperTileMap* TileMap;
 };

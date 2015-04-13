@@ -1,6 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DPrivatePCH.h"
+#include "PaperTerrainActor.h"
+#include "PaperTerrainMaterial.h"
+#include "PaperTerrainComponent.h"
+#include "PaperTerrainSplineComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
 // APaperTerrainActor

@@ -3,6 +3,7 @@
 #include "Paper2DPrivatePCH.h"
 #include "PaperFlipbook.h"
 #include "PaperCustomVersion.h"
+#include "PaperFlipbookComponent.h"
 
 #if WITH_EDITORONLY_DATA
 #include "Runtime/Engine/Public/ComponentReregisterContext.h"

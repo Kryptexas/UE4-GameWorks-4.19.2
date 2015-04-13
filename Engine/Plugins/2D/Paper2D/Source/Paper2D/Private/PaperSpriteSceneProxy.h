@@ -10,13 +10,13 @@
 class FPaperSpriteSceneProxy : public FPaperRenderSceneProxy
 {
 public:
-	FPaperSpriteSceneProxy(const UPaperSpriteComponent* InComponent);
+	FPaperSpriteSceneProxy(const class UPaperSpriteComponent* InComponent);
 
 	// FPrimitiveSceneProxy interface
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	// End of FPrimitiveSceneProxy interface
 
-	void SetSprite_RenderThread(const FSpriteDrawCallRecord& NewDynamicData, int32 SplitIndex);
+	void SetSprite_RenderThread(const struct FSpriteDrawCallRecord& NewDynamicData, int32 SplitIndex);
 
 protected:
 
@@ -26,6 +26,6 @@ protected:
 
 	UMaterialInterface* AlternateMaterial;
 	int32 MaterialSplitIndex;
-	const UPaperSprite* SourceSprite;
-	TArray<FSpriteDrawCallRecord> AlternateBatchedSprites;
+	const class UPaperSprite* SourceSprite;
+	TArray<struct FSpriteDrawCallRecord> AlternateBatchedSprites;
 };

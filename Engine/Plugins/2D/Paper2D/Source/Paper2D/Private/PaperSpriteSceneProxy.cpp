@@ -6,6 +6,8 @@
 #include "SceneManagement.h"
 #include "EngineGlobals.h"
 #include "Engine/Engine.h"
+#include "PaperSpriteComponent.h"
+#include "SpriteDrawCall.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FPaperSpriteSceneProxy

@@ -3,6 +3,9 @@
 #include "Paper2DPrivatePCH.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicsEngine/BodySetup2D.h"
+#include "PaperTileMap.h"
+#include "PaperTileLayer.h"
+#include "PaperRuntimeSettings.h"
 
 #define LOCTEXT_NAMESPACE "Paper2D"
 

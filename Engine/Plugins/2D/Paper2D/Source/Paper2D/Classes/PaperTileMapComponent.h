@@ -3,7 +3,7 @@
 #pragma once
 
 #include "PaperSprite.h"
-
+#include "PaperTileLayer.h"
 #include "PaperTileMapComponent.generated.h"
 
 /**
@@ -36,13 +36,13 @@ private:
 	int32 TileHeight_DEPRECATED;
 
 	UPROPERTY()
-	UPaperTileSet* DefaultLayerTileSet_DEPRECATED;
+	class UPaperTileSet* DefaultLayerTileSet_DEPRECATED;
 
 	UPROPERTY()
 	UMaterialInterface* Material_DEPRECATED;
 
 	UPROPERTY()
-	TArray<UPaperTileLayer*> TileLayers_DEPRECATED;
+	TArray<class UPaperTileLayer*> TileLayers_DEPRECATED;
 
 public:
 	// The tile map used by this component

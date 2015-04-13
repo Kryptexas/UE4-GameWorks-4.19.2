@@ -11,6 +11,7 @@
 #include "EngineGlobals.h"
 #include "SceneManagement.h"
 #include "Engine/Engine.h"
+#include "SpriteDrawCall.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FPaperSpriteVertex

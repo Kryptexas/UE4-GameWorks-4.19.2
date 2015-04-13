@@ -10,6 +10,7 @@
 #include "Runtime/Core/Public/Misc/MapErrors.h"
 #include "Runtime/CoreUObject/Public/Misc/UObjectToken.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "SpriteDrawCall.h"
 
 #define LOCTEXT_NAMESPACE "Paper2D"
 

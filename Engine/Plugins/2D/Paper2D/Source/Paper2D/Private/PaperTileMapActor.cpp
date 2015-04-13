@@ -1,6 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DPrivatePCH.h"
+#include "PaperTileMapActor.h"
+#include "PaperTileMapComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
 // APaperTileMapActor

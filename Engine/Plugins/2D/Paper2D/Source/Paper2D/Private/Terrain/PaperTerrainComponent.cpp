@@ -7,6 +7,9 @@
 #include "PaperGeomTools.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicsEngine/ConvexElem.h"
+#include "PaperTerrainComponent.h"
+#include "PaperTerrainSplineComponent.h"
+#include "PaperTerrainMaterial.h"
 
 #define PAPER_USE_MATERIAL_SLOPES 1
 
@@ -27,10 +30,11 @@ static FBox2D GetSpriteRenderDataBounds2D(const TArray<FVector4>& Data)
 
 //////////////////////////////////////////////////////////////////////////
 
-FTerrainSpriteStamp::FTerrainSpriteStamp(const UPaperSprite* InSprite, float InTime, bool bIsEndCap) : Sprite(InSprite)
-, Time(InTime)
-, Scale(1.0f)
-, bCanStretch(!bIsEndCap)
+FTerrainSpriteStamp::FTerrainSpriteStamp(const UPaperSprite* InSprite, float InTime, bool bIsEndCap)
+	: Sprite(InSprite)
+	, Time(InTime)
+	, Scale(1.0f)
+	, bCanStretch(!bIsEndCap)
 {
 	const FBox2D Bounds2D = GetSpriteRenderDataBounds2D(InSprite->BakedRenderData);
 	NominalWidth = FMath::Max<float>(Bounds2D.GetSize().X, 1.0f);

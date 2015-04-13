@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "PaperSprite.h"
+#include "SpriteDrawCall.h"
+
 #define TEST_BATCHING 0
 
 //////////////////////////////////////////////////////////////////////////

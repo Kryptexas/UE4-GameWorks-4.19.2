@@ -7,6 +7,9 @@
 #include "EngineGlobals.h"
 #include "SceneManagement.h"
 #include "Engine/Engine.h"
+#include "PaperTileMap.h"
+#include "PaperTileLayer.h"
+#include "PaperTileMapComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FPaperTileMapRenderSceneProxy

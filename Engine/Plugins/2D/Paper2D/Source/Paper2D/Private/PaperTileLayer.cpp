@@ -5,6 +5,9 @@
 #include "ComponentReregisterContext.h"
 #include "PhysicsEngine/BoxElem.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "PaperTileMap.h"
+#include "PaperTileLayer.h"
+#include "PaperTileMapComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FTileMapLayerReregisterContext
