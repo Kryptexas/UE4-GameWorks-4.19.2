@@ -106,7 +106,7 @@ FSlateShaderResource* FWebBrowserWindow::GetTexture()
 	{
         if (bTextureDataDirty)
         {
-            UpdatableTexture->UpdateTexture(TextureData);
+            UpdatableTexture->UpdateTextureThreadSafe(TextureData);
             bTextureDataDirty = false;
         }
 		return UpdatableTexture->GetSlateResource();
@@ -483,11 +483,6 @@ void FWebBrowserWindow::OnPaint(CefRenderHandler::PaintElementType Type, const C
                 FMemory::Memcpy(TextureData.GetData() + ( ViewportSize.X * RowIndex + Rect.x ) * 4 , static_cast<const uint8*>(Buffer) + (Width * RowIndex + Rect.x) * 4, WriteWidth);
             }
         }
-	}
-
-	if (UpdatableTexture != nullptr)
-	{
-		UpdatableTexture->UpdateTextureThreadSafe(TextureData);
 	}
 
     bTextureDataDirty = true;
