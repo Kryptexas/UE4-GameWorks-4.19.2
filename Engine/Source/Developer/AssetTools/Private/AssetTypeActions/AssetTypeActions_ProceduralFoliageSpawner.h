@@ -10,4 +10,5 @@ public:
 	virtual FColor GetTypeColor() const override { return FColor(89, 134, 178); }
 	virtual UClass* GetSupportedClass() const override;
 	virtual uint32 GetCategories() override { return EAssetTypeCategories::Misc; }
+	virtual bool CanFilter() override;
 };

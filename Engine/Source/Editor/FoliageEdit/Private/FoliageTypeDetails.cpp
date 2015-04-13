@@ -98,7 +98,17 @@ void FFoliageTypeDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 
 	TMap<const FName, IDetailPropertyRow*> PropertyRowsByName;
 	AddSubcategoryProperties(DetailBuilder, PlacementName, &PropertyRowsByName);
-	AddSubcategoryProperties(DetailBuilder, ProceduralName);
+
+	// If enabled, show the properties for procedural placement
+	if (GetDefault<UEditorExperimentalSettings>()->bProceduralFoliage)
+	{
+		AddSubcategoryProperties(DetailBuilder, ProceduralName);
+	}
+	else
+	{
+		FFoliageTypeCustomizationHelpers::HideFoliageCategory(DetailBuilder, ProceduralName);
+	}
+	
 	AddSubcategoryProperties(DetailBuilder, InstanceSettingsName);
 
 	// Custom visibility overrides for the scale axes

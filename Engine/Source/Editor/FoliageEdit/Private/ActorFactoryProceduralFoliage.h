@@ -11,6 +11,7 @@ class UActorFactoryProceduralFoliage : public UActorFactoryBoxVolume
 	GENERATED_UCLASS_BODY()
 
 	// Begin UActorFactory Interface
+	virtual bool PreSpawnActor(UObject* Asset, FTransform& InOutLocation);
 	virtual bool CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg ) override;
 	virtual void PostSpawnActor( UObject* Asset, AActor* NewActor) override;
 	virtual void PostCreateBlueprint( UObject* Asset, AActor* CDO ) override;

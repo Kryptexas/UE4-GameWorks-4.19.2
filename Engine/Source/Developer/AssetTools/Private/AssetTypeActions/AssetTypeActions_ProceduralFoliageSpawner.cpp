@@ -7,3 +7,8 @@ UClass* FAssetTypeActions_ProceduralFoliageSpawner::GetSupportedClass() const
 {
 	return UProceduralFoliageSpawner::StaticClass();
 }
+
+bool FAssetTypeActions_ProceduralFoliageSpawner::CanFilter()
+{
+	return GetDefault<UEditorExperimentalSettings>()->bProceduralFoliage;
+}

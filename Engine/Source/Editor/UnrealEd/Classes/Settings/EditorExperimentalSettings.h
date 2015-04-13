@@ -21,6 +21,10 @@ class UNREALED_API UEditorExperimentalSettings
 
 public:
 
+	/** Allows usage of the procedural foliage system */
+	UPROPERTY(EditAnywhere, config, Category = Foliage, meta = (DisplayName = "Procedural Foliage"))
+	bool bProceduralFoliage;
+
 	/** Allows usage of the Localization Dashboard */
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Localization Dashboard"))
 	bool bEnableLocalizationDashboard;
@@ -88,7 +92,7 @@ public:
 	/** Enables Environment Queries editor */
 	UPROPERTY(EditAnywhere, config, Category = AI, meta = (DisplayName = "Environment Querying System"))
 	bool bEQSEditor;
-	
+
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
 	 *

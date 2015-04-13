@@ -24,3 +24,8 @@ uint32 UProceduralFoliageSpawnerFactory::GetMenuCategories() const
 {
 	return EAssetTypeCategories::Misc;
 }
+
+bool UProceduralFoliageSpawnerFactory::ShouldShowInNewMenu() const
+{
+	return GetDefault<UEditorExperimentalSettings>()->bProceduralFoliage;
+}
