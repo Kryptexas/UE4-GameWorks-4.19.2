@@ -47,7 +47,8 @@ typedef uint32 CodeSkipSizeType;
 //
 // Blueprint VM intrinsic return value declaration.
 //
-#define RESULT_DECL void*const Result
+#define RESULT_PARAM Z_Param__Result
+#define RESULT_DECL void*const RESULT_PARAM
 
 /** Space where UFunctions are asking to be called */
 namespace FunctionCallspace

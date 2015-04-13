@@ -48,6 +48,6 @@ class ENGINE_API UDataTableFunctionLibrary : public UBlueprintFunctionLibrary
         
         P_FINISH;
         
-		*(bool*)Result = Generic_GetDataTableRowFromName(Table, RowName, OutRowPtr);
+		*(bool*)RESULT_PARAM = Generic_GetDataTableRowFromName(Table, RowName, OutRowPtr);
     }
 };

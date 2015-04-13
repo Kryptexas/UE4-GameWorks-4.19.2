@@ -46,7 +46,7 @@ public:
 
 		P_FINISH;
 
-		*(bool*)Result = bResult;
+		*(bool*)RESULT_PARAM = bResult;
 	}
 
 	UFUNCTION(BlueprintCallable, CustomThunk, Category = "StructBox", meta = (CustomStructureParam = "CustomStruct"))

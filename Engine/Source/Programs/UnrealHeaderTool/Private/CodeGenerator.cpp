@@ -3762,13 +3762,13 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FUHTStringBuilder& RPCWrap
 		TypeText = ReplacementText;
 
 		FString DefaultValueText;
-		FString ParamPrefix;
+		FString ParamPrefix = TEXT("Z_Param_");
 
 		// if this property is an out parm, add the REF tag
 		if (Param->PropertyFlags & CPF_OutParm)
 		{
 			EvalModifierText += TEXT("_REF");
-			ParamPrefix = TEXT("Out_");
+			ParamPrefix += TEXT("Out_");
 		}
 
 		// if this property requires a specialization, add a comma to the type name so we can print it out easily
@@ -3895,7 +3895,7 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FUHTStringBuilder& RPCWrap
 		ReplacementText += ReturnType;
 		ApplyAlternatePropertyExportText(Return, ReplacementText);
 		ReturnType = ReplacementText;
-		RPCWrappers.Logf(TEXT("*(%s%s*)Result="), *ReturnType, *ReturnExtendedType);
+		RPCWrappers.Logf(TEXT("*(%s%s*)") TEXT(PREPROCESSOR_TO_STRING(RESULT_PARAM)) TEXT("="), *ReturnType, *ReturnExtendedType);
 	}
 
 	// export the call to the C++ version

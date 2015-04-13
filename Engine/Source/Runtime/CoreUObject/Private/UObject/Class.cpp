@@ -3786,7 +3786,7 @@ void UFunction::Invoke(UObject* Obj, FFrame& Stack, RESULT_DECL)
 	}
 
 	TGuardValue<UFunction*> NativeFuncGuard(Stack.CurrentNativeFunction, this);
-	return (Obj->*Func)(Stack, Result);
+	return (Obj->*Func)(Stack, RESULT_PARAM);
 }
 
 void UFunction::Serialize( FArchive& Ar )
