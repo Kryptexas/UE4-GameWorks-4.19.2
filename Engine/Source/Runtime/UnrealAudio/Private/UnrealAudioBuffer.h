@@ -21,7 +21,7 @@ namespace UAudio
 
 		virtual ~IIntermediateBuffer() {}
 
-		virtual void Initialize(uint32 InNumSamples, uint32 SampleBytes) = 0;
+		virtual void Initialize(uint32 InNumSamples) = 0;
 		virtual bool Write(uint8* Buffer, uint32 Size) = 0;
 		virtual bool Read(uint8* Buffer, uint32 Size) = 0;
 

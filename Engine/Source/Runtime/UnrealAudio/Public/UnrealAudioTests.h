@@ -23,17 +23,7 @@ namespace UAudio
 	* @return True if test succeeds.
 	*/
 	bool UNREALAUDIO_API TestDeviceOutputSimple(double TestTime);
-	
-	/**
-	* TestDeviceInputSimple
-	*
-	* Test which test input device functionality by feeding input device data to output device data (pass through).
-	* If you have a connected microphone on your system (set to default) you should hear the mic input feed through output speakers.
-	* @param TestTime The amount of time to run the test in seconds (negative value means to run indefinitely)
-	* @return True if test succeeds.
-	*/
-	bool UNREALAUDIO_API TestDeviceInputSimple(double TestTime);
-	
+
 	/**
 	* TestDeviceOutputRandomizedFm
 	*
@@ -53,14 +43,5 @@ namespace UAudio
 	*/
 	bool UNREALAUDIO_API TestDeviceOutputNoisePan(double TestTime);
 
-	/**
-	* TestDeviceInputRandomizedDelay
-	*
-	* Test input device functionality with a bit more fun that the simple test. You should hear the input data randomly delayed by various amounts
-	* with randomized feedback and wetness. Should sound robotic and "interesting".
-	* @param TestTime The amount of time to run the test in seconds (negative value means to run indefinitely)
-	* @return True if test succeeds.
-	*/
-	bool UNREALAUDIO_API TestDeviceInputRandomizedDelay(double TestTime);
 }
 

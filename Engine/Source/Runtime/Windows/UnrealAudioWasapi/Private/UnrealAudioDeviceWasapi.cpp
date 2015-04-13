@@ -155,14 +155,11 @@ namespace UAudio
 		bool GetDevicePlatformApi(EDeviceApi::Type & OutType) const override;
 		bool GetNumOutputDevices(uint32& OutNumDevices) const override;
 		bool GetOutputDeviceInfo(const uint32 DeviceIndex, FDeviceInfo& OutInfo) const override;
-		bool GetNumInputDevices(uint32& OutNumDevices) const override;
-		bool GetInputDeviceInfo(const uint32 DeviceIndex, FDeviceInfo& OutInfo) const override;
 		bool GetDefaultOutputDeviceIndex(uint32& OutDefaultIndex) const override;
-		bool GetDefaultInputDeviceIndex(uint32& OutDefaultIndex) const override;
 		bool StartStream() override;
 		bool StopStream() override;
 		bool ShutdownStream() override;
-		bool GetLatency(uint32& OutputDeviceLatency, uint32& InputDeviceLatency) const override;
+		bool GetLatency(uint32& OutputDeviceLatency) const override;
 		bool GetFrameRate(uint32& OutFrameRate) const override;
 
 		// FRunnable
@@ -183,26 +180,14 @@ namespace UAudio
 			/** The windows device enumerator. Used to query connected audio devices. */
 			IMMDeviceEnumerator* DeviceEnumerator;
 
-			/** Allows creation and initialization of audio input stream from audio engine and hardware buffer of audio endpoint device*/
-			IAudioClient* CaptureClient;
-
 			/** Allows creation and initialization of audio output stream from audio engine and hardware buffer of audio endpoint device*/
 			IAudioClient* RenderClient;
-
-			/** Allows reading data input from capture endpoint buffer */
-			IAudioCaptureClient* CaptureService;
 
 			/** Allows writing data output to capture endpoint buffer */
 			IAudioRenderClient* RenderService;
 
-			/** Handle used to notify when new input data is ready to be read in from hardware */
-			HANDLE CaptureEvent;
-
 			/** Handle used to notify when hardware is ready for new audio data to be written to it*/
 			HANDLE RenderEvent;
-
-			/** Intermediate buffer used to store audio data from input device, converted to user data format (float)*/
-			IIntermediateBuffer* CaptureIntermediateBuffer;
 
 			/** Intermediate buffer used to store audio data from user callback, converted to hardware native format*/
 			IIntermediateBuffer* RenderIntermediateBuffer;
@@ -212,21 +197,14 @@ namespace UAudio
 
 			FWasapiInfo()
 				: DeviceEnumerator(nullptr)
-				, CaptureClient(nullptr)
 				, RenderClient(nullptr)
-				, CaptureService(nullptr)
 				, RenderService(nullptr)
-				, CaptureEvent(0)
 				, RenderEvent(0)
-				, CaptureIntermediateBuffer(nullptr)
 				, RenderIntermediateBuffer(nullptr)
 				, bDevicesOpen(false)
 			{
 			}
 		};
-
-		/** The number of active input devices detected by WASAPI */
-		uint32 InputDeviceCount;
 
 		/** The number of active output devices detected by WASAPI */
 		uint32 OutputDeviceCount;
@@ -243,14 +221,14 @@ namespace UAudio
 	private:
 
 		// IUnrealAudioDeviceModule
-		bool OpenDevices(const FCreateStreamParams& CreateStreamParams) override;
+		bool OpenDevice(const FCreateStreamParams& CreateStreamParams) override;
 
 		// Helper functions
-		bool OpenDevice(uint32 DeviceIndex, EStreamType::Type StreamType);
-		bool GetDeviceCount(EDataFlow DataFlow, uint32& NumDevices) const;
-		bool GetDeviceInfo(EDataFlow DataFlow, const uint32 DeviceINdex, FDeviceInfo& DeviceInfo) const;
-		bool GetDefaultDeviceIndex(EDataFlow DataFlow, uint32& OutDeviceIndex) const;
-		void GetDeviceBufferSize(uint32& DeviceBufferSize, EStreamType::Type StreamType);
+		bool OpenDevice(uint32 DeviceIndex);
+		bool GetDeviceCount(uint32& NumDevices) const;
+		bool GetDeviceInfo(const uint32 DeviceINdex, FDeviceInfo& DeviceInfo) const;
+		bool GetDefaultDeviceIndex(uint32& OutDeviceIndex) const;
+		void GetDeviceBufferSize(uint32& DeviceBufferSize);
 	};
 
 	/** 
@@ -258,8 +236,7 @@ namespace UAudio
 	*/
 
 	FUnrealAudioWasapi::FUnrealAudioWasapi()
-		: InputDeviceCount(0)
-		, OutputDeviceCount(0)
+		: OutputDeviceCount(0)
 		, bInitialized(false)
 		, bComInitialized(false)
 	{
@@ -304,15 +281,10 @@ namespace UAudio
 
 	bool FUnrealAudioWasapi::GetNumOutputDevices(uint32& OutNumDevices) const
 	{
-		return GetDeviceCount(eRender, OutNumDevices);
+		return GetDeviceCount(OutNumDevices);
 	}
 
-	bool FUnrealAudioWasapi::GetNumInputDevices(uint32& OutNumDevices) const
-	{
-		return GetDeviceCount(eCapture, OutNumDevices);
-	}
-
-	bool FUnrealAudioWasapi::GetDeviceCount(EDataFlow DataFlow, uint32& OutNumDevices) const
+	bool FUnrealAudioWasapi::GetDeviceCount(uint32& OutNumDevices) const
 	{
 		if (!bInitialized || !WasapiInfo.DeviceEnumerator)
 		{
@@ -322,7 +294,7 @@ namespace UAudio
 		IMMDeviceCollection* Devices = nullptr;
 		HRESULT Result = S_OK;
 
-		Result = WasapiInfo.DeviceEnumerator->EnumAudioEndpoints(DataFlow, DEVICE_STATE_ACTIVE, &Devices);
+		Result = WasapiInfo.DeviceEnumerator->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, &Devices);
 		CLEANUP_ON_FAIL(Result);
 
 		Result = Devices->GetCount(&OutNumDevices);
@@ -335,15 +307,10 @@ namespace UAudio
 
 	bool FUnrealAudioWasapi::GetOutputDeviceInfo(const uint32 DeviceIndex, FDeviceInfo& OutInfo) const
 	{
-		return GetDeviceInfo(eRender, DeviceIndex, OutInfo);
+		return GetDeviceInfo(DeviceIndex, OutInfo);
 	}
 
-	bool FUnrealAudioWasapi::GetInputDeviceInfo(const uint32 DeviceIndex, FDeviceInfo& OutInfo) const
-	{
-		return GetDeviceInfo(eCapture, DeviceIndex, OutInfo);
-	}
-
-	bool FUnrealAudioWasapi::GetDeviceInfo(EDataFlow DataFlow, const uint32 DeviceIndex, FDeviceInfo& DeviceInfo) const
+	bool FUnrealAudioWasapi::GetDeviceInfo(const uint32 DeviceIndex, FDeviceInfo& DeviceInfo) const
 	{
 		if (!bInitialized || !WasapiInfo.DeviceEnumerator)
 		{
@@ -361,14 +328,14 @@ namespace UAudio
 		WAVEFORMATEX* WaveFormatEx = nullptr;
 		HRESULT Result = S_OK;
 
-		Result = WasapiInfo.DeviceEnumerator->EnumAudioEndpoints(DataFlow, DEVICE_STATE_ACTIVE, &Devices);
+		Result = WasapiInfo.DeviceEnumerator->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, &Devices);
 		CLEANUP_ON_FAIL(Result);
 
 		uint32 NumDevices = 0;
 		Result = Devices->GetCount(&NumDevices);
 		CLEANUP_ON_FAIL(Result);
 
-		Result = WasapiInfo.DeviceEnumerator->GetDefaultAudioEndpoint(DataFlow, eConsole, &DefaultDevice);
+		Result = WasapiInfo.DeviceEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &DefaultDevice);
 		CLEANUP_ON_FAIL(Result);
 
 		Result = Devices->Item(DeviceIndex, &Device);
@@ -396,7 +363,6 @@ namespace UAudio
 		DeviceInfo.FriendlyName = FString(DeviceNameProperty.pwszVal);
 		DeviceInfo.bIsSystemDefault = (DeviceInfo.FriendlyName == FString(DefaultDeviceNameProperty.pwszVal));
 		DeviceInfo.NumChannels = WaveFormatEx->nChannels;
-		DeviceInfo.StreamType = (DataFlow == eCapture) ? EStreamType::INPUT : EStreamType::OUTPUT;
 		DeviceInfo.FrameRate = WaveFormatEx->nSamplesPerSec;
 
 		// Figure out native supported data formats of the device
@@ -478,18 +444,13 @@ Cleanup:
 
 	bool FUnrealAudioWasapi::GetDefaultOutputDeviceIndex(uint32& OutDefaultIndex) const
 	{
-		return GetDefaultDeviceIndex(eRender, OutDefaultIndex);
+		return GetDefaultDeviceIndex(OutDefaultIndex);
 	}
 
-	bool FUnrealAudioWasapi::GetDefaultInputDeviceIndex(uint32& OutDefaultIndex) const
-	{
-		return GetDefaultDeviceIndex(eCapture, OutDefaultIndex);
-	}
-
-	bool FUnrealAudioWasapi::GetDefaultDeviceIndex(EDataFlow DataFlow, uint32& OutDeviceIndex) const
+	bool FUnrealAudioWasapi::GetDefaultDeviceIndex(uint32& OutDeviceIndex) const
 	{
 		uint32 NumDevices = 0;
-		if (!GetDeviceCount(DataFlow, NumDevices))
+		if (!GetDeviceCount(NumDevices))
 		{
 			return false;
 		}
@@ -499,7 +460,7 @@ Cleanup:
 		for (uint32 DeviceIndex = 0; DeviceIndex < NumDevices; ++DeviceIndex)
 		{
 			FDeviceInfo DeviceInfo;
-			if (!GetDeviceInfo(DataFlow, DeviceIndex, DeviceInfo))
+			if (!GetDeviceInfo(DeviceIndex, DeviceInfo))
 			{
 				return false;
 			}
@@ -515,7 +476,7 @@ Cleanup:
 		return bFoundDeviceIndex;
 	}
 
-	bool FUnrealAudioWasapi::OpenDevices(const FCreateStreamParams& CreateStreamParams)
+	bool FUnrealAudioWasapi::OpenDevice(const FCreateStreamParams& CreateStreamParams)
 	{
 		if (!bInitialized || WasapiInfo.bDevicesOpen)
 		{
@@ -526,29 +487,16 @@ Cleanup:
 
 		StreamInfo.FrameRate = INDEX_NONE;
 
-		// If we have input stream params, we try to open an input device
-		if (CreateStreamParams.InputDeviceIndex != INDEX_NONE)
-		{
-			if (!OpenDevice(CreateStreamParams.InputDeviceIndex, EStreamType::INPUT))
-			{
-				return false;
-			}
-			FStreamDeviceInfo& StreamDeviceInfo = StreamInfo.GetDeviceInfo(EStreamType::INPUT);
-			StreamInfo.FrameRate = FMath::Min(StreamInfo.FrameRate, StreamDeviceInfo.FrameRate);
-		}
-		
 		check(CreateStreamParams.OutputDeviceIndex != INDEX_NONE);
-		if (!OpenDevice(CreateStreamParams.OutputDeviceIndex, EStreamType::OUTPUT))
+		if (!OpenDevice(CreateStreamParams.OutputDeviceIndex))
 		{
 			return false;
 		}
-		FStreamDeviceInfo& StreamDeviceInfo = StreamInfo.GetDeviceInfo(EStreamType::OUTPUT);
-		StreamInfo.FrameRate = FMath::Min(StreamInfo.FrameRate, StreamDeviceInfo.FrameRate);
-
+		StreamInfo.FrameRate = FMath::Min(StreamInfo.FrameRate, StreamInfo.DeviceInfo.FrameRate);
 		return true;
 	}
 
-	bool FUnrealAudioWasapi::OpenDevice(uint32 DeviceIndex, EStreamType::Type StreamType)
+	bool FUnrealAudioWasapi::OpenDevice(uint32 DeviceIndex)
 	{
 		check(WasapiInfo.DeviceEnumerator);
 
@@ -558,12 +506,10 @@ Cleanup:
 		FDeviceInfo DeviceInfo;
 		HRESULT Result = S_OK;
 
-		EDataFlow DataFlow = (StreamType == EStreamType::INPUT) ? eCapture : eRender;
-
-		Result = WasapiInfo.DeviceEnumerator->EnumAudioEndpoints(DataFlow, DEVICE_STATE_ACTIVE, &DeviceList);
+		Result = WasapiInfo.DeviceEnumerator->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, &DeviceList);
 		CLEANUP_ON_FAIL(Result);
 
-		if (!GetDeviceInfo(DataFlow, DeviceIndex, DeviceInfo))
+		if (!GetDeviceInfo(DeviceIndex, DeviceInfo))
 		{
 			Result = S_FALSE;
 			goto Cleanup;
@@ -572,11 +518,11 @@ Cleanup:
 		Result = DeviceList->Item(DeviceIndex, &Device);
 		CLEANUP_ON_FAIL(Result);
 
-		FStreamDeviceInfo& StreamDeviceInfo = StreamInfo.GetDeviceInfo(StreamType);
+		FStreamDeviceInfo& StreamDeviceInfo = StreamInfo.DeviceInfo;
 
 		StreamDeviceInfo.DeviceIndex = DeviceIndex;
 
-		IAudioClient*& AudioClient = (StreamType == EStreamType::INPUT) ? WasapiInfo.CaptureClient : WasapiInfo.RenderClient;
+		IAudioClient*& AudioClient = WasapiInfo.RenderClient;
 		check(AudioClient == nullptr);
 
 		Result = Device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, (void**)&AudioClient);
@@ -595,10 +541,10 @@ Cleanup:
 		{
 			StreamDeviceInfo.bPerformFormatConversion = true;
 		}
-		SetupBufferFormatConvertInfo(StreamType);
+		SetupBufferFormatConvertInfo();
 
 		// Initialize the raw buffer used to write into
-		uint32 BufferSize = StreamDeviceInfo.NumChannels * StreamInfo.BlockSize * GetNumBytesForFormat(EStreamFormat::FLT);
+		uint32 BufferSize = StreamDeviceInfo.NumChannels * StreamInfo.BlockSize * sizeof(float);
 		StreamDeviceInfo.UserBuffer.Init(0, BufferSize);
 
 	Cleanup:
@@ -634,12 +580,12 @@ Cleanup:
 		}
 
 		check(StreamInfo.Thread != nullptr);
-		check(WasapiInfo.CaptureClient != nullptr || WasapiInfo.RenderClient != nullptr);
+		check(WasapiInfo.RenderClient != nullptr);
 
 		// Tell the stream update that we are stopping
 		Stop();
 
-			// Wait for the thread to finish
+		// Wait for the thread to finish
 		StreamInfo.Thread->WaitForCompletion();
 
 		check(StreamInfo.State == EStreamState::STOPPED);
@@ -651,16 +597,6 @@ Cleanup:
 		// clean up any audio resources
 		HRESULT Result = S_OK;
 		bool bSuccess = true;
-
-		if (WasapiInfo.CaptureClient)
-		{
-			Result = WasapiInfo.CaptureClient->Stop();
-			if (FAILED(Result))
-			{
-				bSuccess = false;
-				UA_DEVICE_PLATFORM_ERROR("Failed to stop capture client.");
-			}
-		}
 
 		if (WasapiInfo.RenderClient)
 		{
@@ -687,16 +623,8 @@ Cleanup:
 			StopStream();
 		}
 
-		SAFE_RELEASE(WasapiInfo.CaptureClient);
-		SAFE_RELEASE(WasapiInfo.CaptureService);
 		SAFE_RELEASE(WasapiInfo.RenderClient);
 		SAFE_RELEASE(WasapiInfo.RenderService);
-
-		if (WasapiInfo.CaptureEvent)
-		{
-			CloseHandle(WasapiInfo.CaptureEvent);
-			WasapiInfo.CaptureEvent = nullptr;
-		}
 
 		if (WasapiInfo.RenderEvent)
 		{
@@ -708,10 +636,9 @@ Cleanup:
 		return true;
 	}
 
-	bool FUnrealAudioWasapi::GetLatency(uint32& OutputDeviceLatency, uint32& InputDeviceLatency) const
+	bool FUnrealAudioWasapi::GetLatency(uint32& OutputDeviceLatency) const
 	{
-		OutputDeviceLatency = StreamInfo.GetDeviceInfo(EStreamType::OUTPUT).Latency;
-		InputDeviceLatency = StreamInfo.GetDeviceInfo(EStreamType::INPUT).Latency;
+		OutputDeviceLatency = StreamInfo.DeviceInfo.Latency;
 		return true;
 	}
 
@@ -729,21 +656,15 @@ Cleanup:
 		bool bThreadComInitialized = FWindowsPlatformMisc::CoInitialize();
 
 		// Get local stack versions of various wasapi info we need for the device thread
-		WAVEFORMATEX* InputFormat = nullptr;
 		WAVEFORMATEX* OutputFormat = nullptr;
-		bool bWasInputBufferRead = false;
-		bool bWasOutputBufferWritten = false;
-		bool bWasInputBufferWritten = false;
-		bool bOutputCallbackCalled = false;
-		BYTE* DeviceByteBuffer = nullptr;		// byte buffer to hold input data from input device
-		uint32 CaptureBufferFrameCount = 0;		// how many frames read in from input device
-		::DWORD CaptureFlags = 0;				// flags from wasapi on audio input
-		FStreamDeviceInfo& InputDeviceInfo = StreamInfo.GetDeviceInfo(EStreamType::INPUT);
-		FStreamDeviceInfo& OutputDeviceInfo = StreamInfo.GetDeviceInfo(EStreamType::OUTPUT);
+		BYTE* DeviceByteBuffer = nullptr;
+		FStreamDeviceInfo& OutputDeviceInfo = StreamInfo.DeviceInfo;
 		uint32 NumBytesRenderFormat = GetNumBytesForFormat(OutputDeviceInfo.DeviceDataFormat);
-		uint32 NumBytesCaptureFormat = GetNumBytesForFormat(InputDeviceInfo.DeviceDataFormat);
-		uint32 InputDeviceSamples = StreamInfo.BlockSize * InputDeviceInfo.NumChannels;
 		uint32 OutputDeviceSamples = StreamInfo.BlockSize * OutputDeviceInfo.NumChannels;
+
+		bool bWasUserCallbackMade = false;
+		bool bWasUserBufferWritten = false;
+
 		HRESULT Result = S_OK;
 		FCallbackInfo CallbackInfo;
 
@@ -752,360 +673,165 @@ Cleanup:
 		// Number used to compute the REFERENCE_TIME for callback periods (REF_TIME is 100 nanoseconds)
 		static const uint64 REF_TIMES_PER_SECOND = 10000000;
 
-		// If we are trying to get audio from an input device, set up a capture stream
-		if (WasapiInfo.CaptureClient)
+		// We haven't set up an actual render service yet
+		check(WasapiInfo.RenderService == nullptr);
+
+		Result = WasapiInfo.RenderClient->GetMixFormat(&OutputFormat);
+		CLEANUP_ON_FAIL(Result);
+
+		// Compute the callback buffer period using the buffer size
+		REFERENCE_TIME CallbackBufferPeriod = (REFERENCE_TIME)((StreamInfo.BlockSize * REF_TIMES_PER_SECOND) / OutputFormat->nSamplesPerSec);
+
+		Result = WasapiInfo.RenderClient->Initialize(
+			AUDCLNT_SHAREMODE_SHARED,				// Other clients can use this input device
+			AUDCLNT_STREAMFLAGS_EVENTCALLBACK,		// Processing of the buffer by client is event driven
+			CallbackBufferPeriod,					// the size of the buffer in 100-nanosecond units (REF_TIME)
+			0,										// always 0 in shared mode 
+			OutputFormat,							// the output format to use
+			nullptr									// audio session guid, we're ignoring
+		);
+		CLEANUP_ON_FAIL(Result);
+
+		// Get the output latency
+		REFERENCE_TIME OutputLatency = 0;
+		WasapiInfo.RenderClient->GetStreamLatency(&OutputLatency);
+		OutputDeviceInfo.Latency = (1000 * OutputLatency) / REF_TIMES_PER_SECOND;
+
+		Result = WasapiInfo.RenderClient->GetService(__uuidof(IAudioRenderClient), (void**)&WasapiInfo.RenderService);
+		CLEANUP_ON_FAIL(Result);
+
+		WasapiInfo.RenderEvent = CreateEvent(nullptr, false, false, nullptr);
+		if (!WasapiInfo.RenderEvent)
 		{
-
-			// We haven't set up an actual capture service yet
-			check(WasapiInfo.CaptureService == nullptr);
-			
-			Result = WasapiInfo.CaptureClient->GetMixFormat(&InputFormat);
-			CLEANUP_ON_FAIL(Result);
-
-			// The actual buffer size we're going to use, independent of the actual buffer size we want. 
-			// Compute the callback buffer period using the buffer size
-			REFERENCE_TIME CallbackBufferPeriod = (REFERENCE_TIME)((StreamInfo.BlockSize * REF_TIMES_PER_SECOND) / InputFormat->nSamplesPerSec);
-
-			Result = WasapiInfo.CaptureClient->Initialize(
-				AUDCLNT_SHAREMODE_SHARED,				// Other clients can use this input device
-				AUDCLNT_STREAMFLAGS_EVENTCALLBACK,		// Processing of the buffer by client is event driven
-				CallbackBufferPeriod,					// the size of the buffer in 100-nanosecond units (REF_TIME)
-				0,										// always 0 in shared mode 
-				InputFormat,							// the input format to use
-				nullptr									// audio session guid, we're ignoring
-			);
-			CLEANUP_ON_FAIL(Result);
-
-			REFERENCE_TIME InputLatency = 0;
-			WasapiInfo.CaptureClient->GetStreamLatency(&InputLatency);
-
-			// Get the reported device latency -- note for WASAPI, this can only be called after Initialize on capture client
-			InputDeviceInfo.Latency = (1000 * InputLatency) / REF_TIMES_PER_SECOND;
-
-			Result = WasapiInfo.CaptureClient->GetService(__uuidof(IAudioCaptureClient), (void**)&WasapiInfo.CaptureService);
-			CLEANUP_ON_FAIL(Result);
-
-			WasapiInfo.CaptureEvent = CreateEvent(nullptr, false, false, nullptr);
-			if (!WasapiInfo.CaptureClient)
-			{
-				Result = HRESULT_FROM_WIN32(GetLastError());
-				CLEANUP_ON_FAIL(Result);
-			}
-			Result = WasapiInfo.CaptureClient->SetEventHandle(WasapiInfo.CaptureEvent);
-			CLEANUP_ON_FAIL(Result);
-
-			uint32 ReadBufferSize = 0;
-			Result = WasapiInfo.CaptureClient->GetBufferSize(&ReadBufferSize);
-			CLEANUP_ON_FAIL(Result);
-
-			uint32 WriteBufferSize = StreamInfo.BlockSize * InputDeviceInfo.NumChannels;
-			ReadBufferSize *= InputDeviceInfo.NumChannels;
-
-			WasapiInfo.CaptureIntermediateBuffer = IIntermediateBuffer::CreateIntermediateBuffer(InputDeviceInfo.DeviceDataFormat);
-			check(WasapiInfo.CaptureIntermediateBuffer);
-			WasapiInfo.CaptureIntermediateBuffer->Initialize(ReadBufferSize + WriteBufferSize, NumBytesCaptureFormat);
-
-			Result = WasapiInfo.CaptureClient->Reset();
-			CLEANUP_ON_FAIL(Result);
-
-			Result = WasapiInfo.CaptureClient->Start();
+			Result = HRESULT_FROM_WIN32(GetLastError());
 			CLEANUP_ON_FAIL(Result);
 		}
 
-		if (WasapiInfo.RenderClient)
-		{
-			// We haven't set up an actual render service yet
-			check(WasapiInfo.RenderService == nullptr);
+		Result = WasapiInfo.RenderClient->SetEventHandle(WasapiInfo.RenderEvent);
+		CLEANUP_ON_FAIL(Result);
 
-			Result = WasapiInfo.RenderClient->GetMixFormat(&OutputFormat);
-			CLEANUP_ON_FAIL(Result);
+		uint32 ReadBufferSize = 0;
+		Result = WasapiInfo.RenderClient->GetBufferSize(&ReadBufferSize);
+		CLEANUP_ON_FAIL(Result);
 
-			// Compute the callback buffer period using the buffer size
-			REFERENCE_TIME CallbackBufferPeriod = (REFERENCE_TIME)((StreamInfo.BlockSize * REF_TIMES_PER_SECOND) / OutputFormat->nSamplesPerSec);
+		uint32 WriteBufferSize = StreamInfo.BlockSize* OutputDeviceInfo.NumChannels;
 
-			Result = WasapiInfo.RenderClient->Initialize(
-				AUDCLNT_SHAREMODE_SHARED,				// Other clients can use this input device
-				AUDCLNT_STREAMFLAGS_EVENTCALLBACK,		// Processing of the buffer by client is event driven
-				CallbackBufferPeriod,					// the size of the buffer in 100-nanosecond units (REF_TIME)
-				0,										// always 0 in shared mode 
-				OutputFormat,							// the output format to use
-				nullptr									// audio session guid, we're ignoring
-			);
-			CLEANUP_ON_FAIL(Result);
+		ReadBufferSize *= OutputDeviceInfo.NumChannels;
 
-			// Get the output latency
-			REFERENCE_TIME OutputLatency = 0;
-			WasapiInfo.RenderClient->GetStreamLatency(&OutputLatency);
-			OutputDeviceInfo.Latency = (1000 * OutputLatency) / REF_TIMES_PER_SECOND;
+		WasapiInfo.RenderIntermediateBuffer = IIntermediateBuffer::CreateIntermediateBuffer(OutputDeviceInfo.DeviceDataFormat);
+		check(WasapiInfo.RenderIntermediateBuffer);
+		WasapiInfo.RenderIntermediateBuffer->Initialize(ReadBufferSize + WriteBufferSize);
 
-			Result = WasapiInfo.RenderClient->GetService(__uuidof(IAudioRenderClient), (void**)&WasapiInfo.RenderService);
-			CLEANUP_ON_FAIL(Result);
+		Result = WasapiInfo.RenderClient->Reset();
+		CLEANUP_ON_FAIL(Result);
 
-			WasapiInfo.RenderEvent = CreateEvent(nullptr, false, false, nullptr);
-			if (!WasapiInfo.RenderEvent)
-			{
-				Result = HRESULT_FROM_WIN32(GetLastError());
-				CLEANUP_ON_FAIL(Result);
-			}
-
-			Result = WasapiInfo.RenderClient->SetEventHandle(WasapiInfo.RenderEvent);
-			CLEANUP_ON_FAIL(Result);
-
-			uint32 ReadBufferSize = 0;
-			Result = WasapiInfo.RenderClient->GetBufferSize(&ReadBufferSize);
-			CLEANUP_ON_FAIL(Result);
-
-			uint32 WriteBufferSize = StreamInfo.BlockSize* OutputDeviceInfo.NumChannels;
-
-			ReadBufferSize *= OutputDeviceInfo.NumChannels;
-
-			WasapiInfo.RenderIntermediateBuffer = IIntermediateBuffer::CreateIntermediateBuffer(OutputDeviceInfo.DeviceDataFormat);
-			check(WasapiInfo.RenderIntermediateBuffer);
-			WasapiInfo.RenderIntermediateBuffer->Initialize(ReadBufferSize + WriteBufferSize, NumBytesRenderFormat);
-
-			Result = WasapiInfo.RenderClient->Reset();
-			CLEANUP_ON_FAIL(Result);
-
-			Result = WasapiInfo.RenderClient->Start();
-			CLEANUP_ON_FAIL(Result);
-		}
+		Result = WasapiInfo.RenderClient->Start();
+		CLEANUP_ON_FAIL(Result);
 
 		// Set up the device buffer (buffer read from and written directly to the device in the native device format)
 
 		// If we have an input stream, set up our device buffer size to accommodate
 		uint32 DeviceBufferSize = 0;
-		if (StreamInfo.StreamType == EStreamType::INPUT)
-		{
-			uint32 DeviceBufferInput = 0;
-			GetDeviceBufferSize(DeviceBufferInput, EStreamType::INPUT);
-
-			uint32 DeviceBufferOutput = 0;
-			GetDeviceBufferSize(DeviceBufferOutput, EStreamType::OUTPUT);
-
-			DeviceBufferSize = FMath::Max(DeviceBufferInput, DeviceBufferOutput);
-		}
-		else
-		{
-			GetDeviceBufferSize(DeviceBufferSize, StreamInfo.StreamType);
-		}
+		GetDeviceBufferSize(DeviceBufferSize);
 
 		StreamInfo.DeviceBuffer.Init(0, DeviceBufferSize);
 		uint32 Count = 0;
 
 		// Prepare the struct which will be used to make audio callbacks
 		CallbackInfo.OutBuffer = (float *)OutputDeviceInfo.UserBuffer.GetData();;
-		CallbackInfo.InBuffer = (float *)InputDeviceInfo.UserBuffer.GetData();;
 		CallbackInfo.NumFrames = StreamInfo.BlockSize;
 		CallbackInfo.NumChannels = OutputDeviceInfo.NumChannels;
-		CallbackInfo.NumInputChannels = InputDeviceInfo.NumChannels;
 		CallbackInfo.StreamTime = 0.0;
 		CallbackInfo.UserData = StreamInfo.UserData;
 		CallbackInfo.StatusFlags = 0;
 		CallbackInfo.OutputSpeakers = OutputDeviceInfo.Speakers;
 		CallbackInfo.FrameRate = OutputDeviceInfo.FrameRate;
 
-		/**
-		
-		The update loop performs the following stages:
-
-		1. Prepare input audio to feed into user callback
-			- input was pushed into intermediate buffer from previous update tick
-			- input is retrieved from intermediate buffer
-			- input is converted from device format from device buffer to user format in user buffer
-
-		2. Perform the user callback
-			- user callback is called with possible input data from stage 1
-			- return value of user callback is evaluated (success or failure) to determine the state of the thread loop
-
-		3. Convert user callback data buffer format to device data buffer format
-			- write results to intermediate output buffer
-
-		4. Get new audio input from device
-			- get input data from audio device
-			- push the input data to the intermediate buffer so that in next update it can be given to user callback
-
-		5. Write audio to output buffer
-			- get output data from intermediate buffer
-			- write output data to render device
-
-		*/
-
 		while (StreamInfo.State != EStreamState::STOPPING)
 		{
-			//UE_LOG(LogUnrealAudioDevice, Display, TEXT("Device Callback (%d)"), ++Count);
-
-			// Stage 1
-
-			if (!bWasInputBufferRead)
+			if (!bWasUserCallbackMade)
 			{
-				if (WasapiInfo.CaptureClient)
+				CallbackInfo.StatusFlags = 0;
+				CallbackInfo.StreamTime = StreamInfo.StreamTime;
+				memset((void*)CallbackInfo.OutBuffer, 0, StreamInfo.BlockSize*OutputDeviceInfo.NumChannels*sizeof(float));
+				if (!StreamInfo.CallbackFunction(CallbackInfo))
 				{
-					// Read data from the intermediate buffer so that it can be fed to the user callback
-					if (InputDeviceInfo.bPerformFormatConversion)
-					{
-						bWasInputBufferRead = WasapiInfo.CaptureIntermediateBuffer->Read(StreamInfo.DeviceBuffer.GetData(), InputDeviceSamples);
-						if (bWasInputBufferRead)
-						{
-							ConvertBufferFormat(InputDeviceInfo.UserBuffer, StreamInfo.DeviceBuffer, EStreamType::INPUT);
-						}
-					}
-					else
-					{
-						bWasInputBufferRead = WasapiInfo.CaptureIntermediateBuffer->Read(InputDeviceInfo.UserBuffer.GetData(), InputDeviceSamples);
-					}
+					StreamInfo.State = EStreamState::STOPPING;
 				}
-				else
-				{
-					// If there was no audio to read in (i.e. we are in device output only) pretend like we read audio input
-					bWasInputBufferRead = true;
-				}
-
-				// Stage 2
-
-				if (bWasInputBufferRead)
-				{
-					// Report to callback if the input device reported any discontinuities in the input stream
-					CallbackInfo.StatusFlags = 0;
-					if (CaptureFlags & AUDCLNT_BUFFERFLAGS_DATA_DISCONTINUITY)
-					{
-						CallbackInfo.StatusFlags |= EStreamFlowStatus::INPUT_OVERFLOW;
-					}
-
-					CallbackInfo.StreamTime = StreamInfo.StreamTime;
-
-					// Zero out the output buffer before calling the user callback
-					memset((void*)CallbackInfo.OutBuffer, 0, StreamInfo.BlockSize*OutputDeviceInfo.NumChannels*sizeof(float));
-
-					// Make the user callback
-					bool bSuccess = StreamInfo.CallbackFunction(CallbackInfo);
-
-					UpdateStreamTimeTick();
-
-					// Check if we need to stop the device thread
-					if (!bSuccess)
-					{
-						// Now stop the thread...
-						StreamInfo.State = EStreamState::STOPPING;
-					}
-				}
+				UpdateStreamTimeTick();
+				bWasUserCallbackMade = true;
 			}
 
-			// Stage 3
-
-			if (WasapiInfo.RenderClient && bWasInputBufferRead)
+			if (bWasUserCallbackMade)
 			{
 				if (OutputDeviceInfo.bPerformFormatConversion)
 				{
-					ConvertBufferFormat(StreamInfo.DeviceBuffer, OutputDeviceInfo.UserBuffer, EStreamType::OUTPUT);
-					bWasOutputBufferWritten = WasapiInfo.RenderIntermediateBuffer->Write(StreamInfo.DeviceBuffer.GetData(), OutputDeviceSamples);
+					ConvertBufferFormat(StreamInfo.DeviceBuffer, OutputDeviceInfo.UserBuffer);
+					bWasUserBufferWritten = WasapiInfo.RenderIntermediateBuffer->Write(StreamInfo.DeviceBuffer.GetData(), OutputDeviceSamples);
 				}
 				else
 				{
-					bWasOutputBufferWritten = WasapiInfo.RenderIntermediateBuffer->Write(OutputDeviceInfo.UserBuffer.GetData(), OutputDeviceSamples);
+					bWasUserBufferWritten = WasapiInfo.RenderIntermediateBuffer->Write(OutputDeviceInfo.UserBuffer.GetData(), OutputDeviceSamples);
 				}
 			}
 			else
 			{
-				bWasOutputBufferWritten = true;
+				bWasUserBufferWritten = true;
 			}
 
-			// Stage 4
-
-			if (WasapiInfo.CaptureClient)
+			// If the user output buffer was not pushed to the intermediate buffer, wait for the 
+			// next render event from the device before going on
+			if (bWasUserCallbackMade && !bWasUserBufferWritten)
 			{
-				// if we didn't read from the input buffer then, pause this thread until we get an event
-				// signal from the input audio client (this will get sent as soon as the device has read an input buffer)
-				if (!bWasInputBufferRead)
-				{
-					WaitForSingleObject(WasapiInfo.CaptureEvent, INFINITE);
-				}
+				WaitForSingleObject(WasapiInfo.RenderEvent, INFINITE);
+			}
 
-				Result = WasapiInfo.CaptureService->GetBuffer(&DeviceByteBuffer, &CaptureBufferFrameCount, &CaptureFlags, nullptr, nullptr);
+			uint32 OutputBufferFrameCount = 0;
+			uint32 OutputBufferFramePadding = 0;
+
+			// Get render buffer from stream
+			Result = WasapiInfo.RenderClient->GetBufferSize(&OutputBufferFrameCount);
+			CLEANUP_ON_FAIL(Result);
+
+			Result = WasapiInfo.RenderClient->GetCurrentPadding(&OutputBufferFramePadding);
+			CLEANUP_ON_FAIL(Result);
+
+			OutputBufferFrameCount -= OutputBufferFramePadding;
+
+			if (OutputBufferFrameCount != 0)
+			{
+				Result = WasapiInfo.RenderService->GetBuffer(OutputBufferFrameCount, &DeviceByteBuffer);
 				CLEANUP_ON_FAIL(Result);
 
-				bool bCaptureSuccess = false;
-				if (CaptureBufferFrameCount != 0)
+				// Read the next buffer from the intermediate output buffer
+				uint32 ReadSamples = OutputBufferFrameCount * OutputDeviceInfo.NumChannels;
+				bool bSuccess = WasapiInfo.RenderIntermediateBuffer->Read((uint8*)DeviceByteBuffer, ReadSamples);
+				if (bSuccess)
 				{
-					uint32 WriteSamples = CaptureBufferFrameCount * InputDeviceInfo.NumChannels;
-					bWasInputBufferWritten = WasapiInfo.CaptureIntermediateBuffer->Write((uint8*)DeviceByteBuffer, WriteSamples);
-					if (bWasInputBufferWritten)
-					{
-						bCaptureSuccess = true;
-						Result = WasapiInfo.CaptureService->ReleaseBuffer(CaptureBufferFrameCount);
-						CLEANUP_ON_FAIL(Result);
-					}
+					Result = WasapiInfo.RenderService->ReleaseBuffer(OutputBufferFrameCount, 0);
+					CLEANUP_ON_FAIL(Result);
 				}
-
-				if (!bCaptureSuccess)
+				else
 				{
-					// We failed to read data from input device, releasing 0 bytes will release the capture buffer
-					Result = WasapiInfo.CaptureService->ReleaseBuffer(0);
+					Result = WasapiInfo.RenderService->ReleaseBuffer(0, 0);
 					CLEANUP_ON_FAIL(Result);
 				}
 			}
 
-			// Stage 5
-
-			if (WasapiInfo.RenderClient)
+			if (bWasUserBufferWritten)
 			{
-				// If the user output buffer was not pushed to the intermediate buffer, wait for the 
-				// next render event from the device before going on
-				if (bWasInputBufferRead && !bWasOutputBufferWritten)
-				{
-					WaitForSingleObject(WasapiInfo.RenderEvent, INFINITE);
-				}
-
-				uint32 OutputBufferFrameCount = 0;
-				uint32 OutputBufferFramePadding = 0;
-
-				// Get render buffer from stream
-				Result = WasapiInfo.RenderClient->GetBufferSize(&OutputBufferFrameCount);
-				CLEANUP_ON_FAIL(Result);
-
-				Result = WasapiInfo.RenderClient->GetCurrentPadding(&OutputBufferFramePadding);
-				CLEANUP_ON_FAIL(Result);
-
-				OutputBufferFrameCount -= OutputBufferFramePadding;
-
-				if (OutputBufferFrameCount != 0)
-				{
-					Result = WasapiInfo.RenderService->GetBuffer(OutputBufferFrameCount, &DeviceByteBuffer);
-					CLEANUP_ON_FAIL(Result);
-
-					// Read the next buffer from the intermediate output buffer
-					uint32 ReadSamples = OutputBufferFrameCount * OutputDeviceInfo.NumChannels;
-					bool bSuccess = WasapiInfo.RenderIntermediateBuffer->Read((uint8*)DeviceByteBuffer, ReadSamples);
-					if (bSuccess)
-					{
-						Result = WasapiInfo.RenderService->ReleaseBuffer(OutputBufferFrameCount, 0);
-						CLEANUP_ON_FAIL(Result);
-					}
-					else
-					{
-						Result = WasapiInfo.RenderService->ReleaseBuffer(0, 0);
-						CLEANUP_ON_FAIL(Result);
-					}
-				}
-			}
-
-			if (bWasOutputBufferWritten)
-			{
-				bWasInputBufferRead = false;
+				bWasUserCallbackMade = false;
 			}
 		}
 
 		Cleanup:
 
-		CoTaskMemFree(InputFormat);
 		CoTaskMemFree(OutputFormat);
-
 		if (bThreadComInitialized)
 		{
 			FWindowsPlatformMisc::CoUninitialize();
 		}
-
 		StreamInfo.State = EStreamState::STOPPED;
-
 		return 0;
 	}
 
@@ -1119,11 +845,10 @@ Cleanup:
 
 	}
 
-	void FUnrealAudioWasapi::GetDeviceBufferSize(uint32& DeviceBufferSize, EStreamType::Type StreamType)
+	void FUnrealAudioWasapi::GetDeviceBufferSize(uint32& DeviceBufferSize)
 	{
-		FStreamDeviceInfo& DeviceInfo = StreamInfo.GetDeviceInfo(StreamType);
-		uint32 NumBytes = GetNumBytesForFormat(DeviceInfo.DeviceDataFormat);
-		uint32 NumChannels = DeviceInfo.NumChannels;
+		uint32 NumBytes = GetNumBytesForFormat(StreamInfo.DeviceInfo.DeviceDataFormat);
+		uint32 NumChannels = StreamInfo.DeviceInfo.NumChannels;
 		DeviceBufferSize = StreamInfo.BlockSize * NumChannels * NumBytes;
 	}
 }

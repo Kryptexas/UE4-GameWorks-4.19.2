@@ -376,39 +376,6 @@ namespace Test
 	};
 
 	/**
-	* FPassThrough
-	* A simple input pass-through to output (mic->speakers). Should hear a bit of delay from input to output due to device latency.
-	*/
-	class FPassThrough : public IGenerator
-	{
-	public:
-		FPassThrough(double LifeTime);
-		~FPassThrough();
-
-		bool GetNextBuffer(FCallbackInfo& CallbackInfo) override;
-	};
-
-	/**
-	* FSimpleRandomizedDelayer
-	* An simple randomized delay line that delays input audio stream by various amount to great effect. 
-	*/
-	class FInputDelay : public IGenerator
-	{
-	public:
-		FInputDelay(double LifeTime);
-		~FInputDelay();
-
-		bool GetNextBuffer(FCallbackInfo& CallbackInfo) override;
-
-	private:
-		void Init();
-
-		bool bInit;
-		FDelay Delay;
-		TArray<float> DelayOutput;
-	};
-
-	/**
 	* FNoisePan
 	* An simple test which generates noise and pans it clockwise
 	*/

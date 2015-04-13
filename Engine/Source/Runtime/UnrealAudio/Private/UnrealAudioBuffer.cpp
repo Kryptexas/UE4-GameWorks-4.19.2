@@ -24,7 +24,7 @@ namespace UAudio
 			}
 		}
 
-		void Initialize(uint32 InNumSamples, uint32 SampleBytes) override
+		void Initialize(uint32 InNumSamples) override
 		{
 			DataBuffer = new T[InNumSamples];
 			memset((void*)DataBuffer, 0, InNumSamples * sizeof(T));

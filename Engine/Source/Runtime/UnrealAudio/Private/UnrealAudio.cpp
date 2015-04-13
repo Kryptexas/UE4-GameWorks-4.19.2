@@ -16,9 +16,6 @@ IMPLEMENT_MODULE(UAudio::FUnrealAudioModule, UnrealAudio);
 
 namespace UAudio
 {
-
-
-
 	FUnrealAudioModule::FUnrealAudioModule()
 		: UnrealAudioDevice(nullptr)
 	{
@@ -28,12 +25,32 @@ namespace UAudio
 	{
 	}
 
-	void FUnrealAudioModule::Initialize()
+	bool FUnrealAudioModule::Initialize()
 	{
-		UnrealAudioDevice = FModuleManager::LoadModulePtr<IUnrealAudioDeviceModule>(GetDeviceModuleName());
+		ModuleName = GetDefaultDeviceModuleName();
+		return InitializeInternal();
+	}
+
+	bool FUnrealAudioModule::Initialize(const FString& DeviceModuleName)
+	{
+		FString Name("UnrealAudio");
+		Name += DeviceModuleName;
+		ModuleName = *Name;
+		return InitializeInternal();
+	}
+
+	bool FUnrealAudioModule::InitializeInternal()
+	{
+		bool bSuccess = false;
+		UnrealAudioDevice = FModuleManager::LoadModulePtr<IUnrealAudioDeviceModule>(ModuleName);
 		if (UnrealAudioDevice)
 		{
-			if (!UnrealAudioDevice->Initialize())
+			if (UnrealAudioDevice->Initialize())
+			{
+				bSuccess = true;
+				InitializeTests(this);
+			}
+			else
 			{
 				UE_LOG(LogUnrealAudio, Error, TEXT("Failed to initialize audio device module."));
 				UnrealAudioDevice = nullptr;
@@ -43,8 +60,7 @@ namespace UAudio
 		{
 			UnrealAudioDevice = CreateDummyDeviceModule();
 		}
-
-		InitializeTests(this);
+		return bSuccess;
 	}
 
 	void FUnrealAudioModule::Shutdown()
@@ -63,7 +79,7 @@ namespace UAudio
 	}
 
 
-	FName FUnrealAudioModule::GetDeviceModuleName() const
+	FName FUnrealAudioModule::GetDefaultDeviceModuleName() const
 	{
 		// TODO: Pull the device module name to use from an engine ini or an audio ini file
 		return FName(AUDIO_DEVICE_DEVICE_MODULE_NAME);

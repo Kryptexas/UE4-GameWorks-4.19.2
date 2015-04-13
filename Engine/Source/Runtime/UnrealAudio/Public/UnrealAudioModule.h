@@ -18,8 +18,14 @@ namespace UAudio
 	public:
 		virtual ~IUnrealAudioModule() {}
 
-		virtual void Initialize()
+		virtual bool Initialize()
 		{
+			return false;
+		}
+
+		virtual bool Initialize(const FString& DeviceModuleName)
+		{
+			return false;
 		}
 
 		virtual void Shutdown()

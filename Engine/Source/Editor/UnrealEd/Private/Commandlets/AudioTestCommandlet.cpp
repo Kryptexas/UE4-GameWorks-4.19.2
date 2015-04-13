@@ -11,10 +11,14 @@ DEFINE_LOG_CATEGORY_STATIC(AudioTestCommandlet, Log, All);
 /** Unreal audio module ptr */
 static UAudio::IUnrealAudioModule* UnrealAudioModule = nullptr;
 
-static bool UnrealAudioLoad()
+static bool UnrealAudioLoad(const FString* DeviceApi = nullptr)
 {
 	UnrealAudioModule = FModuleManager::LoadModulePtr<UAudio::IUnrealAudioModule>(FName("UnrealAudio"));
-	if (UnrealAudioModule)
+	if (DeviceApi)
+	{
+		UnrealAudioModule->Initialize(*DeviceApi);
+	}
+	else
 	{
 		UnrealAudioModule->Initialize();
 	}
@@ -57,15 +61,6 @@ static bool TestAudioDeviceAll()
 		return false;
 	}
 
-	if (!UAudio::TestDeviceInputSimple(10))
-	{
-		return false;
-	}
-
-	if (!UAudio::TestDeviceInputRandomizedDelay(10))
-	{
-		return false;
-	}
 	return true;
 }
 
@@ -79,11 +74,6 @@ static bool TestAudioDeviceOutputSimple()
 	return UAudio::TestDeviceOutputSimple(-1);
 }
 
-static bool TestAudioDeviceInputSimple()
-{
-	return UAudio::TestDeviceInputSimple(-1);
-}
-
 static bool TestAudioDeviceOutputFm()
 {
 	return UAudio::TestDeviceOutputRandomizedFm(-1);
@@ -92,11 +82,6 @@ static bool TestAudioDeviceOutputFm()
 static bool TestAudioDeviceOutputPan()
 {
 	return UAudio::TestDeviceOutputNoisePan(-1);
-}
-
-static bool TestAudioDeviceInputDelay()
-{
-	return UAudio::TestDeviceInputRandomizedDelay(-1);
 }
 
 /**
@@ -119,8 +104,6 @@ enum EAudioTests
 	AUDIO_TEST_DEVICE_OUTPUT_SIMPLE,
 	AUDIO_TEST_DEVICE_OUTPUT_FM,
 	AUDIO_TEST_DEVICE_OUTPUT_PAN,
-	AUDIO_TEST_DEVICE_INPUT_SIMPLE,
-	AUDIO_TEST_DEVICE_INPUT_DELAY,
 	AUDIO_TESTS
 };
 
@@ -131,8 +114,6 @@ static AudioTestInfo AudioTestInfoList[] =
 	{ "device", "out",			TestAudioDeviceOutputSimple }, // AUDIO_TEST_DEVICE_OUTPUT_SIMPLE
 	{ "device", "out_fm",		TestAudioDeviceOutputFm		}, // AUDIO_TEST_DEVICE_OUTPUT_FM
 	{ "device", "out_pan",		TestAudioDeviceOutputPan	}, // AUDIO_TEST_DEVICE_OUTPUT_PAN
-	{ "device", "in",			TestAudioDeviceInputSimple	}, // AUDIO_TEST_DEVICE_INPUT_SIMPLE
-	{ "device", "in_delay",		TestAudioDeviceInputDelay	}, // AUDIO_TEST_DEVICE_INPUT_DELAY
 };
 static_assert(ARRAY_COUNT(AudioTestInfoList) == AUDIO_TESTS, "Mismatched info list and test enumeration");
 
@@ -163,16 +144,32 @@ int32 UAudioTestCommandlet::Main(const FString& InParams)
 	TArray<FString> Switches;
 	UCommandlet::ParseCommandLine(*InParams, Tokens, Switches);
 
-	if (Tokens.Num() != 3)
+	if (Tokens.Num() < 3 || Tokens.Num() > 4)
 	{
 		PrintUsage();
 		return 0;
 	}
+	int32 CategoryNameIndex = 1;
+	int32 TestNameIndex = 2;
 
-	if (!UnrealAudioLoad())
+	if (Tokens.Num() == 4)
 	{
-		UE_LOG(AudioTestCommandlet, Display, TEXT("Failed to load unreal audio module. Exiting."));
-		return 0;
+		FString DeviceApiName(Tokens[1]);
+		if (!UnrealAudioLoad(&DeviceApiName))
+		{
+			UE_LOG(AudioTestCommandlet, Display, TEXT("Failed to load unreal audio module. Exiting."));
+			return 0;
+		}
+		CategoryNameIndex++;
+		TestNameIndex++;
+	}
+	else
+	{
+		if (!UnrealAudioLoad())
+		{
+			UE_LOG(AudioTestCommandlet, Display, TEXT("Failed to load unreal audio module. Exiting."));
+			return 0;
+		}
 	}
 
 	check(UnrealAudioModule != nullptr);
@@ -180,9 +177,9 @@ int32 UAudioTestCommandlet::Main(const FString& InParams)
 	bool FoundTest = false;
 	for (uint32 Index = 0; Index < AUDIO_TESTS; ++Index)
 	{
-		if (AudioTestInfoList[Index].CategoryName == Tokens[1])
+		if (AudioTestInfoList[Index].CategoryName == Tokens[CategoryNameIndex])
 		{
-			if (AudioTestInfoList[Index].TestName == Tokens[2])
+			if (AudioTestInfoList[Index].TestName == Tokens[TestNameIndex])
 			{
 				FoundTest = true;
 				if (AudioTestInfoList[Index].TestFunction())

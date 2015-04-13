@@ -103,21 +103,6 @@ namespace UAudio
 	}
 
 	/**
-	* EDeviceDataFlow
-	* An enumeration used to specify the flow of audio on the device
-	*/
-	namespace EStreamType
-	{
-		enum Type
-		{
-			INPUT,			/** The audio device streams audio into the application (e.g. microphone) */
-			OUTPUT,			/** The audio device only streams audio out of the application */
-			COUNT,			/** The count of stream types. */
-			UNKNOWN,		/** Unknown stream type. */
-		};
-	}
-
-	/**
 	* EStreamStatus
 	* An enumeration to specify the flow status of the audio stream.
 	*/
@@ -125,7 +110,6 @@ namespace UAudio
 	{
 		enum Flag
 		{
-			INPUT_OVERFLOW		= (1 << 0),		/** The input stream is has too much data */
 			OUTPUT_UNDERFLOW	= (1 << 1)		/** The output stream has too little data */
 		};
 	}
@@ -203,17 +187,11 @@ namespace UAudio
 		/** The number of buffer output frames */
 		uint32 NumFrames;
 
-		/** A pointer to a buffer of float data which is passed in from device input. */
-		float* InBuffer;
-
 		/** Array of outputs speakers */
 		TArray<ESpeaker::Type> OutputSpeakers;
 
 		/** The number of channels in output. */
 		int32 NumChannels;
-
-		/** The number of input channels in input stream. */
-		int32 NumInputChannels;
 
 		/** The current status flags of the input and output buffers */
 		StreamStatus StatusFlags;
@@ -254,9 +232,6 @@ namespace UAudio
 		/** The data format of the device (e.g. float). */
 		EStreamFormat::Type StreamFormat;
 
-		/** What type of device it is (input, output, or both). */
-		EStreamType::Type StreamType;
-
 		/** What speakers this device supports (if output device) */
 		TArray<ESpeaker::Type> Speakers;
 
@@ -268,7 +243,6 @@ namespace UAudio
 			, NumChannels(0)
 			, FrameRate(0)
 			, StreamFormat(EStreamFormat::UNKNOWN)
-			, StreamType(EStreamType::UNKNOWN)
 			, bIsSystemDefault(false)
 		{}
 	};
@@ -279,9 +253,6 @@ namespace UAudio
 	*/
 	struct FCreateStreamParams
 	{
-		/** The index of the device to use for audio input. Initialized to INDEX_NONE, which means no device input. */
-		uint32 InputDeviceIndex;
-
 		/** The index of the device to use for audio output. Must be defined. */
 		uint32 OutputDeviceIndex;
 
@@ -291,14 +262,18 @@ namespace UAudio
 		/** The function pointer of a user callback function to generate audio samples to output device. */
 		StreamCallback CallbackFunction;
 
+		/** The preferred frame rate of the audio stream (this may be platform dependent) */
+		uint32 FrameRate;
+
 		/** Pointer to store user data. Passed in callback function. */
 		void* UserData;
 
 		/** Constructor */
 		FCreateStreamParams()
-			: InputDeviceIndex(INDEX_NONE)
-			, OutputDeviceIndex(INDEX_NONE)
+			: OutputDeviceIndex(INDEX_NONE)
 			, CallbackBlockSize(512)
+			, CallbackFunction(nullptr)
+			, FrameRate(48000)
 			, UserData(nullptr)
 		{}
 	};
@@ -362,21 +337,6 @@ namespace UAudio
 		*/
 		virtual bool GetOutputDeviceInfo(const uint32 DeviceIndex, FDeviceInfo& OutInfo) const = 0;
 
-		/** 
-		* Returns the number of input devices. 
-		* @param OutNumDevices The number of input devices.
-		* @return true if succeeded.
-		*/
-		virtual bool GetNumInputDevices(uint32& OutNumDevices) const = 0;
-
-		/** 
-		* Returns information about the input device at the given index. 
-		* @param DeviceIndex The index of the input device.
-		* @param OutInfo Information struct about the device.
-		* @return true if succeeded.
-		*/
-		virtual bool GetInputDeviceInfo(const uint32 DeviceIndex, FDeviceInfo& OutInfo) const = 0;
-
 		/**
 		* Returns the default output device index.
 		* @param OutDefaultIndex The default device index.
@@ -384,14 +344,6 @@ namespace UAudio
 		* @note The default device is specified by the OS default device output.
 		*/
 		virtual bool GetDefaultOutputDeviceIndex(uint32& OutDefaultIndex) const = 0;
-
-		/**
-		* Returns the default input device index.
-		* @param OutDefaultIndex The default device index.
-		* @return true if succeeded.
-		* @note The default device is specified by the OS default device input.
-		*/
-		virtual bool GetDefaultInputDeviceIndex(uint32& OutDefaultIndex) const = 0;
 
 		/**
 		* Starts the device audio stream.
@@ -422,7 +374,7 @@ namespace UAudio
 		* @note The device stream needs to have been started for this return anything. A return of 0 means
 		* the device hasn't started or that device hasn't been initialized.
 		*/
-		virtual bool GetLatency(uint32& OutputDeviceLatency, uint32& InputDeviceLatency) const = 0;
+		virtual bool GetLatency(uint32& OutputDeviceLatency) const = 0;
 
 		/**
 		* Returns the frame rate of the audio devices.
@@ -546,9 +498,6 @@ namespace UAudio
 			/** The overall framerate of the stream. This may be different from device frame rate. */
 			uint32 FrameRate;
 
-			/** The type of stream this is (input or output) */
-			EStreamType::Type StreamType;
-
 			/** The current state of the stream. */
 			EStreamState::Type State;
 
@@ -576,13 +525,13 @@ namespace UAudio
 			/** A byte array used to store data to and from audio devices. */
 			TArray<uint8> DeviceBuffer;
 
-			/** An array of device-specific information for input and output devices. */
-			FStreamDeviceInfo DeviceInfo[EStreamType::COUNT];
+			/** device-specific information for output device. */
+			FStreamDeviceInfo DeviceInfo;
 
 			/** Constructor */
 			FStreamInfo()
 			{
-				// Just call intialize since it will get called when starting up a new stream.
+				// Just call initialize since it will get called when starting up a new stream.
 				Initialize();
 			}
 
@@ -590,7 +539,6 @@ namespace UAudio
 			void Initialize()
 			{
 				FrameRate = 0;
-				StreamType = EStreamType::COUNT;
 				State = EStreamState::CLOSED;
 				StreamTime = 0.0;
 				StreamDelta = 0.0;
@@ -599,39 +547,14 @@ namespace UAudio
 				Thread = nullptr;
 				UserData = nullptr;
 				BlockSize = 0;
-
-				for (uint32 Id = 0; Id < EStreamType::COUNT; ++Id)
-				{
-					DeviceInfo[Id].Initialize();
-				}
-			}
-
-			/** Helper function to get specific convert information based on stream type */
-			FBufferFormatConvertInfo& GetConvertInfo(EStreamType::Type StreamType)
-			{
-				check(StreamType < EStreamType::COUNT);
-				return DeviceInfo[StreamType].BufferFormatConvertInfo;
-			}
-
-			/** Helper function to get device info based on stream type */
-			FStreamDeviceInfo& GetDeviceInfo(EStreamType::Type StreamType)
-			{
-				check(StreamType < EStreamType::COUNT);
-				return DeviceInfo[StreamType];
-			}
-
-			/** Helper function to get device info based on stream type const overload */
-			const FStreamDeviceInfo& GetDeviceInfo(EStreamType::Type StreamType) const
-			{
-				check(StreamType < EStreamType::COUNT);
-				return DeviceInfo[StreamType];
+				DeviceInfo.Initialize();
 			}
 		};
 
 	protected: // Protected Methods
 
 		/** Opens audio devices given the input params. Implemented per platform */
-		virtual bool OpenDevices(const FCreateStreamParams& Params) = 0;
+		virtual bool OpenDevice(const FCreateStreamParams& Params) = 0;
 
 		/** Called before opening up new streams. */
 		void Reset();
@@ -640,10 +563,10 @@ namespace UAudio
 		uint32 GetNumBytesForFormat(EStreamFormat::Type Format) const;
 
 		/** Sets up any convert information for given stream type (figures out to/from convert format and channel formats) */
-		void SetupBufferFormatConvertInfo(EStreamType::Type StreamType);
+		void SetupBufferFormatConvertInfo();
 
 		/** Performs actual buffer format and channel conversion */
-		bool ConvertBufferFormat(TArray<uint8>& OutputBuffer, TArray<uint8>& InputBuffer, EStreamType::Type StreamType);
+		bool ConvertBufferFormat(TArray<uint8>& OutputBuffer, TArray<uint8>& InputBuffer);
 
 		/** Updates the sample-accurate stream time value. */
 		void UpdateStreamTimeTick();
@@ -673,9 +596,6 @@ namespace UAudio
 		/** An array of possible frame rates that can exist with any audio device. */
 		static const uint32 PossibleFrameRates[];
 		static const uint32 MaxPossibleFrameRates;
-
-		/** An object which listens to device errors. */
-		IDeviceErrorListener* DeviceErrorListener;
 
 		/** Device stream info struct */
 		FStreamInfo StreamInfo;

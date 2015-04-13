@@ -19,18 +19,21 @@ namespace UAudio
 		FUnrealAudioModule();
 		~FUnrealAudioModule();
 
-		void Initialize() override;
+		bool Initialize() override;
+		bool Initialize(const FString& DeviceModuleName) override;
 		void Shutdown() override;
 
 		class IUnrealAudioDeviceModule* GetDeviceModule();
 
-		FName GetDeviceModuleName() const;
+		FName GetDefaultDeviceModuleName() const;
 
 	private:
 
+		bool InitializeInternal();
 		static void InitializeTests(FUnrealAudioModule* Module);
 
 		class IUnrealAudioDeviceModule* UnrealAudioDevice;
+		FName ModuleName;
 	};
 }
 

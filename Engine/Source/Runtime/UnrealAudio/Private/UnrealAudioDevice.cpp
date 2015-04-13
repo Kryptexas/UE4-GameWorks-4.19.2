@@ -30,7 +30,6 @@ namespace UAudio
 	const uint32 IUnrealAudioDeviceModule::MaxPossibleFrameRates = 11;
 
 	IUnrealAudioDeviceModule::IUnrealAudioDeviceModule()
-		: DeviceErrorListener(nullptr)
 	{
 	}
 
@@ -47,25 +46,13 @@ namespace UAudio
 
 		Reset();
 
-		if (OpenDevices(Params))
+		if (OpenDevice(Params))
 		{
-			if (Params.InputDeviceIndex != INDEX_NONE)
-			{
-				// This stream also streams audio in (every audio stream streams output)
-				StreamInfo.StreamType = EStreamType::INPUT;
-			}
-			else
-			{
-				// This stream is only streaming audio out
-				StreamInfo.StreamType = EStreamType::OUTPUT;
-			}
-
 			StreamInfo.State = EStreamState::STOPPED;
 			StreamInfo.CallbackFunction = Params.CallbackFunction;
 			StreamInfo.UserData = Params.UserData;
 			StreamInfo.BlockSize = Params.CallbackBlockSize;
 			StreamInfo.StreamDelta = (double)StreamInfo.BlockSize / StreamInfo.FrameRate;
-
 			bSuccess = true;
 		}
 
@@ -80,12 +67,6 @@ namespace UAudio
 	void IUnrealAudioDeviceModule::OnDeviceError(const EDeviceError::Type ErrorType, const FString& ErrorDetails, const FString& FileName, int32 LineNumber) const
 	{
 		UE_LOG(LogUnrealAudioDevice, Error, TEXT("Audio Device Error: (%s) : %s (%s::%d)"), EDeviceError::ToString(ErrorType), *ErrorDetails, *FileName, LineNumber);
-
-		// And broadcast to listener if one is setup
-		if (DeviceErrorListener)
-		{
-			DeviceErrorListener->OnDeviceError(ErrorType, ErrorDetails, FileName, LineNumber);
-		}
 	}
 
 	void IUnrealAudioDeviceModule::Reset()
@@ -138,25 +119,7 @@ namespace UAudio
 			return true;
 		}
 
-		bool GetNumInputDevices(uint32& OutNumDevices) const override
-		{
-			OutNumDevices = 0;
-			return true;
-		}
-
-		bool GetInputDeviceInfo(const uint32 DeviceIndex, FDeviceInfo& OutInfo) const override
-		{
-			memset((void*)&OutInfo, 0, sizeof(FDeviceInfo));
-			return true;
-		}
-
 		bool GetDefaultOutputDeviceIndex(uint32& OutDefaultIndex) const override
-		{
-			OutDefaultIndex = 0;
-			return true;
-		}
-
-		bool GetDefaultInputDeviceIndex(uint32& OutDefaultIndex) const override
 		{
 			OutDefaultIndex = 0;
 			return true;
@@ -177,10 +140,9 @@ namespace UAudio
 			return true;
 		}
 
-		bool GetLatency(uint32& OutputDeviceLatency, uint32& InputDeviceLatency) const override
+		bool GetLatency(uint32& OutputDeviceLatency) const override
 		{
 			OutputDeviceLatency = 0;
-			InputDeviceLatency = 0;
 			return true;
 		}
 
@@ -190,7 +152,7 @@ namespace UAudio
 			return true;
 		}
 
-		bool OpenDevices(const FCreateStreamParams& Params) override
+		bool OpenDevice(const FCreateStreamParams& Params) override
 		{
 			return true;
 		}
