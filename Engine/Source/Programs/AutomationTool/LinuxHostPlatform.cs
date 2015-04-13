@@ -52,7 +52,8 @@ namespace AutomationTool
 
 		public override string LocalBuildsLogFolder
 		{
-			get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Library/Logs/Unreal Engine/LocalBuildLogs"); }
+			// @FIXME: should use xdg-user-dir DOCUMENTS
+			get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Documents/Unreal Engine/LocalBuildLogs"); }
 		}
 
 		public override string P4Exe
