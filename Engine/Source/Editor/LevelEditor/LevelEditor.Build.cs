@@ -74,7 +74,6 @@ public class LevelEditor : ModuleRules
 				"Layers",
 				"Levels",
                 "WorldBrowser",
-				"TaskBrowser",
 				"EditorWidgets",
 				"AssetTools",
 				"WorkspaceMenuStructure",
