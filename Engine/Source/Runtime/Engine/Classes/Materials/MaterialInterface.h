@@ -58,7 +58,7 @@ struct ENGINE_API FMaterialRelevance
 	uint32 bOutputsVelocityInBasePass : 1;
 
 	UPROPERTY()
-	uint16 LightingProfileMask;
+	uint16 ShadingModelMask;
 
 	/** Default constructor. */
 	FMaterialRelevance()
@@ -69,7 +69,7 @@ struct ENGINE_API FMaterialRelevance
 		, bNormalTranslucency(false)
 		, bDisableDepthTest(false)		
 		, bOutputsVelocityInBasePass(true)
-		, LightingProfileMask(0)
+		, ShadingModelMask(0)
 	{}
 
 	/** Bitwise OR operator.  Sets any relevance bits which are present in either FMaterialRelevance. */
@@ -81,7 +81,7 @@ struct ENGINE_API FMaterialRelevance
 		bSeparateTranslucency |= B.bSeparateTranslucency;
 		bNormalTranslucency |= B.bNormalTranslucency;
 		bDisableDepthTest |= B.bDisableDepthTest;
-		LightingProfileMask |= B.LightingProfileMask;
+		ShadingModelMask |= B.ShadingModelMask;
 		bOutputsVelocityInBasePass |= B.bOutputsVelocityInBasePass;
 		return *this;
 	}

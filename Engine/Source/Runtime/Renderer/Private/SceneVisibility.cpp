@@ -795,7 +795,7 @@ static void ComputeRelevanceForView(
 			}
 		}
 		
-		View.LightingProfilesActiveInView |= ViewRelevance.LightingProfileRelevanceMask;
+		View.ShadingModelMaskInView |= ViewRelevance.ShadingModelMaskRelevance;
 		
 		if (ViewRelevance.bRenderCustomDepth)
 		{
@@ -934,7 +934,7 @@ struct FRelevancePacket
 	FRelevancePrimSet<FPrimitiveSceneProxy*> CustomDepthSet;
 	FRelevancePrimSet<FPrimitiveSceneInfo*> UpdateStaticMeshes;
 	FRelevancePrimSet<FPrimitiveSceneInfo*> VisibleEditorPrimitives;
-	uint16 CombinedLightingProfileMask;
+	uint16 CombinedShadingModelMask;
 
 	FRelevancePacket(
 		FRHICommandListImmediate& InRHICmdList,
@@ -956,7 +956,7 @@ struct FRelevancePacket
 		, OutHasDynamicMeshElementsMasks(InOutHasDynamicMeshElementsMasks)
 		, OutHasDynamicEditorMeshElementsMasks(InOutHasDynamicEditorMeshElementsMasks)
 		, MarkMasks(InMarkMasks)
-		, CombinedLightingProfileMask(0)
+		, CombinedShadingModelMask(0)
 	{
 	}
 
@@ -968,7 +968,7 @@ struct FRelevancePacket
 
 	void ComputeRelevance()
 	{
-		CombinedLightingProfileMask = 0;
+		CombinedShadingModelMask = 0;
 		SCOPE_CYCLE_COUNTER(STAT_ComputeViewRelevance);
 		for (int32 Index = 0; Index < Input.NumPrims; Index++)
 		{
@@ -1028,7 +1028,7 @@ struct FRelevancePacket
 				}
 			}
 
-			CombinedLightingProfileMask |= ViewRelevance.LightingProfileRelevanceMask;			
+			CombinedShadingModelMask |= ViewRelevance.ShadingModelMaskRelevance;			
 
 			if (ViewRelevance.bRenderCustomDepth)
 			{
@@ -1152,7 +1152,7 @@ struct FRelevancePacket
 		{
 			WriteView.PrimitiveVisibilityMap[NotDrawRelevant.Prims[Index]] = false;
 		}
-		WriteView.LightingProfilesActiveInView |= CombinedLightingProfileMask;
+		WriteView.ShadingModelMaskInView |= CombinedShadingModelMask;
 		VisibleEditorPrimitives.AppendTo(WriteView.VisibleEditorPrimitives);
 		VisibleDynamicPrimitives.AppendTo(WriteView.VisibleDynamicPrimitives);
 		WriteView.TranslucentPrimSet.AppendScenePrimitives(SortedTranslucencyPrims.Prims, SortedTranslucencyPrims.NumPrims, SortedSeparateTranslucencyPrims.Prims, SortedSeparateTranslucencyPrims.NumPrims);

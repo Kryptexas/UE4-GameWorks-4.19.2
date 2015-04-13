@@ -211,7 +211,7 @@ void FViewInfo::Init()
 	bIgnoreExistingQueries = false;
 	bDisableQuerySubmissions = false;
 	bDisableDistanceBasedFadeTransitions = false;	
-	LightingProfilesActiveInView = 0;
+	ShadingModelMaskInView = 0;
 	NumVisibleStaticMeshElements = 0;
 	PrecomputedVisibilityData = 0;
 

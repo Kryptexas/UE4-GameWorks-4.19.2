@@ -9,7 +9,7 @@
 struct FPrimitiveViewRelevance
 {
 	/* The LightingProfile supported by this primitive, as a bitmask. */
-	uint16 LightingProfileRelevanceMask;
+	uint16 ShadingModelMaskRelevance;
 	/** The primitive's static elements are rendered for the view. */
 	uint32 bStaticRelevance : 1; 
 	/** The primitive's dynamic elements are rendered for the view. */
@@ -56,7 +56,7 @@ struct FPrimitiveViewRelevance
 
 	/** Initialization constructor. */
 	FPrimitiveViewRelevance():
-		LightingProfileRelevanceMask(0),
+		ShadingModelMaskRelevance(0),
 		bStaticRelevance(false),
 		bDynamicRelevance(false),
 		bDrawRelevance(false),
@@ -78,7 +78,7 @@ struct FPrimitiveViewRelevance
 	/** Bitwise OR operator.  Sets any relevance bits which are present in either FPrimitiveViewRelevance. */
 	FPrimitiveViewRelevance& operator|=(const FPrimitiveViewRelevance& B)
 	{
-		LightingProfileRelevanceMask |= B.LightingProfileRelevanceMask;
+		ShadingModelMaskRelevance |= B.ShadingModelMaskRelevance;
 		bStaticRelevance |= B.bStaticRelevance != 0;
 		bDynamicRelevance |= B.bDynamicRelevance != 0;
 		bDrawRelevance |= B.bDrawRelevance != 0;

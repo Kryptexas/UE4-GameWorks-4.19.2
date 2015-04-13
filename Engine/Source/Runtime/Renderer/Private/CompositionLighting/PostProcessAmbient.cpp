@@ -136,7 +136,7 @@ void FRCPassPostProcessAmbient::Process(FRenderingCompositePassContext& Context)
 	// Ambient cubemap specular will be applied in the reflection environment pass if it is enabled
 	const bool bApplySpecular = View.Family->EngineShowFlags.ReflectionEnvironment == 0 || NumReflectionCaptures == 0;
 
-	bool bClearCoatNeeded = (View.LightingProfilesActiveInView & (1 << MSM_ClearCoat)) != 0;
+	bool bClearCoatNeeded = (View.ShadingModelMaskInView & (1 << MSM_ClearCoat)) != 0;
 	if (bClearCoatNeeded)
 	{
 		Render<true>(Context);
