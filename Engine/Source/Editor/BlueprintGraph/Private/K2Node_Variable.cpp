@@ -647,17 +647,20 @@ void UK2Node_Variable::AutowireNewNode(UEdGraphPin* FromPin)
 					if(FromPin->PinType.PinSubCategoryObject == PropertyOwner || dynamic_cast<UClass*>(FromPin->PinType.PinSubCategoryObject.Get())->IsChildOf(PropertyOwner))
 					{
 						UEdGraphPin* TargetPin = FindPin(K2Schema->PN_Self);
-						TargetPin->PinType.PinSubCategoryObject = PropertyOwner;
-
-						if(K2Schema->TryCreateConnection(FromPin, TargetPin))
+						if (TargetPin)
 						{
-							bConnected = true;
+							TargetPin->PinType.PinSubCategoryObject = PropertyOwner;
 
-							// Setup the VariableReference correctly since it may no longer be a self member
-							VariableReference.SetFromField<UProperty>(GetPropertyForVariable(), false);
-							TargetPin->bHidden = false;
-							FromPin->GetOwningNode()->NodeConnectionListChanged();
-							this->NodeConnectionListChanged();
+							if(K2Schema->TryCreateConnection(FromPin, TargetPin))
+							{
+								bConnected = true;
+
+								// Setup the VariableReference correctly since it may no longer be a self member
+								VariableReference.SetFromField<UProperty>(GetPropertyForVariable(), false);
+								TargetPin->bHidden = false;
+								FromPin->GetOwningNode()->NodeConnectionListChanged();
+								this->NodeConnectionListChanged();
+							}
 						}
 					}
 				}
