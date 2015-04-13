@@ -5234,6 +5234,8 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			TEXT("PostProcessVolume"),
 			TEXT("PrecomputedVisibilityOverrideVolume"),
 			TEXT("PrecomputedVisibilityVolume"),
+			TEXT("ProceduralFoliageVolume"),
+			TEXT("ProceduralFoliageBlockingVolume"),
 			TEXT("RadialForceActor"),
 			TEXT("RadialForceComponent"),
 			TEXT("ReflectionCapture"),
