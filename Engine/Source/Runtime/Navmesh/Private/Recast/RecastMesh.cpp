@@ -272,7 +272,9 @@ static bool diagonalie(int i, int j, int n, const int* verts, int* indices)
 // polygon P in the neighborhood of the i endpoint.
 static bool	inCone(int i, int j, int n, const int* verts, int* indices)
 {
+	PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 	const int* pi = &verts[(indices[i] & 0x0fffffff) * 4];
+	PRAGMA_POP
 	const int* pj = &verts[(indices[j] & 0x0fffffff) * 4];
 	const int* pi1 = &verts[(indices[next(i, n)] & 0x0fffffff) * 4];
 	const int* pin1 = &verts[(indices[prev(i, n)] & 0x0fffffff) * 4];

@@ -1330,7 +1330,9 @@ static bool diagonalie(int i, int j, int n, const unsigned short* verts, const u
 // polygon P in the neighborhood of the i endpoint.
 static bool	inCone(int i, int j, int n, const unsigned short* verts, const unsigned short* indices)
 {
+	PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 	const unsigned short* pi = &verts[(indices[i] & 0x7fff) * 4];
+	PRAGMA_POP
 	const unsigned short* pj = &verts[(indices[j] & 0x7fff) * 4];
 	const unsigned short* pi1 = &verts[(indices[TileCacheFunc::next(i, n)] & 0x7fff) * 4];
 	const unsigned short* pin1 = &verts[(indices[TileCacheFunc::prev(i, n)] & 0x7fff) * 4];

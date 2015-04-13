@@ -1244,6 +1244,7 @@ void TMeshSimplifier<T, NumAttributes>::Collapse( TSimpEdge<T>* edge )
 	numVerts--;
 }
 
+PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 template< typename T, uint32 NumAttributes >
 void TMeshSimplifier<T, NumAttributes>::SimplifyMesh( float maxError, int minTris )
 {
@@ -1634,6 +1635,7 @@ void TMeshSimplifier<T, NumAttributes>::SimplifyMesh( float maxError, int minTri
 
 	//common->Printf( "simplified numVerts %i, numTris %i\n", numVerts, numTris );
 }
+PRAGMA_POP
 
 template< typename T, uint32 NumAttributes >
 void TMeshSimplifier<T, NumAttributes>::OutputMesh( T* verts, uint32* indexes ) {
