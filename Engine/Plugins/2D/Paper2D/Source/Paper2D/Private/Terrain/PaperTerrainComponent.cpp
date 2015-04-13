@@ -328,8 +328,37 @@ static void SimplifyPolygon(TArray<FVector2D> &SplinePolyVertices2D, TArray<floa
 	}
 }
 
+// Makes sure all spline points are constrained to the XZ plane
+void UPaperTerrainComponent::ConstrainSplinePointsToXZ()
+{
+	if (AssociatedSpline != nullptr)
+	{
+		bool bSplineChanged = false;
+		auto& Points = AssociatedSpline->SplineInfo.Points;
+		int32 NumPoints = Points.Num();
+		for (int PointIndex = 0; PointIndex < NumPoints; ++PointIndex)
+		{
+			auto& CurrentPoint = Points[PointIndex];
+			if (CurrentPoint.ArriveTangent.Y != 0 || CurrentPoint.LeaveTangent.Y != 0 || CurrentPoint.OutVal.Y != 0)
+			{
+				CurrentPoint.ArriveTangent.Y = 0;
+				CurrentPoint.LeaveTangent.Y = 0;
+				CurrentPoint.OutVal.Y = 0;
+				bSplineChanged = true;
+			}
+		}
+
+		if (bSplineChanged)
+		{
+			AssociatedSpline->UpdateSpline();
+		}
+	}
+}
+
 void UPaperTerrainComponent::OnSplineEdited()
 {
+	ConstrainSplinePointsToXZ();
+
 	// Ensure we have the data structure for the desired collision method
 	if (SpriteCollisionDomain == ESpriteCollisionMode::Use3DPhysics)
 	{
