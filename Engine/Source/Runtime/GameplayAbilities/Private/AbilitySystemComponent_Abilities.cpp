@@ -1725,14 +1725,14 @@ void UAbilitySystemComponent::BindToInputComponent(UInputComponent* InputCompone
 	// Pressed event
 	{
 		FInputActionBinding AB(ConfirmBindName, IE_Pressed);
-		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::InputConfirm);
+		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::LocalInputConfirm);
 		InputComponent->AddActionBinding(AB);
 	}
 
 	// 
 	{
 		FInputActionBinding AB(CancelBindName, IE_Pressed);
-		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::InputCancel);
+		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::LocalInputCancel);
 		InputComponent->AddActionBinding(AB);
 	}
 }
@@ -1752,14 +1752,14 @@ void UAbilitySystemComponent::BindAbilityActivationToInputComponent(UInputCompon
 		// Pressed event
 		{
 			FInputActionBinding AB(FName(*BindStr), IE_Pressed);
-			AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::AbilityInputPressed, idx);
+			AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::AbilityLocalInputPressed, idx);
 			InputComponent->AddActionBinding(AB);
 		}
 
 		// Released event
 		{
 			FInputActionBinding AB(FName(*BindStr), IE_Released);
-			AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::AbilityInputReleased, idx);
+			AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::AbilityLocalInputReleased, idx);
 			InputComponent->AddActionBinding(AB);
 		}
 	}
@@ -1768,14 +1768,14 @@ void UAbilitySystemComponent::BindAbilityActivationToInputComponent(UInputCompon
 	if (BindInfo.ConfirmTargetCommand.IsEmpty() == false)
 	{
 		FInputActionBinding AB(FName(*BindInfo.ConfirmTargetCommand), IE_Pressed);
-		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::InputConfirm);
+		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::LocalInputConfirm);
 		InputComponent->AddActionBinding(AB);
 	}
 	
 	if (BindInfo.CancelTargetCommand.IsEmpty() == false)
 	{
 		FInputActionBinding AB(FName(*BindInfo.CancelTargetCommand), IE_Pressed);
-		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::InputCancel);
+		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::LocalInputCancel);
 		InputComponent->AddActionBinding(AB);
 	}
 
@@ -1789,18 +1789,18 @@ void UAbilitySystemComponent::BindAbilityActivationToInputComponent(UInputCompon
 	}
 }
 
-void UAbilitySystemComponent::AbilityInputPressed(int32 InputID)
+void UAbilitySystemComponent::AbilityLocalInputPressed(int32 InputID)
 {
 	// Consume the input if this InputID is overloaded with GenericConfirm/Cancel and the GenericConfim/Cancel callback is bound
 	if (IsGenericConfirmInputBound(InputID))
 	{
-		InputConfirm();
+		LocalInputConfirm();
 		return;
 	}
 
 	if (IsGenericCancelInputBound(InputID))
 	{
-		InputCancel();
+		LocalInputCancel();
 		return;
 	}
 
@@ -1836,7 +1836,7 @@ void UAbilitySystemComponent::AbilityInputPressed(int32 InputID)
 	}
 }
 
-void UAbilitySystemComponent::AbilityInputReleased(int32 InputID)
+void UAbilitySystemComponent::AbilityLocalInputReleased(int32 InputID)
 {
 	ABILITYLIST_SCOPE_LOCK();
 	for (FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
@@ -1930,17 +1930,17 @@ void UAbilitySystemComponent::AbilitySpecInputReleased(FGameplayAbilitySpec& Spe
 	}
 }
 
-void UAbilitySystemComponent::InputConfirm()
+void UAbilitySystemComponent::LocalInputConfirm()
 {
-	FAbilityConfirmOrCancel Temp = ConfirmCallbacks;
-	ConfirmCallbacks.Clear();
+	FAbilityConfirmOrCancel Temp = GenericLocalConfirmCallbacks;
+	GenericLocalConfirmCallbacks.Clear();
 	Temp.Broadcast();
 }
 
-void UAbilitySystemComponent::InputCancel()
+void UAbilitySystemComponent::LocalInputCancel()
 {	
-	FAbilityConfirmOrCancel Temp = CancelCallbacks;
-	CancelCallbacks.Clear();
+	FAbilityConfirmOrCancel Temp = GenericLocalCancelCallbacks;
+	GenericLocalCancelCallbacks.Clear();
 	Temp.Broadcast();
 }
 
