@@ -671,7 +671,7 @@ namespace UnrealBuildTool
 				string IntermediateSourceFolder = Path.Combine(Path.GetDirectoryName(GetUProjectFile()), "Intermediate", "Source");
                 UProjectInfo.AddProject(GetUProjectFile(), Directory.Exists(SourceFolder) || Directory.Exists(IntermediateSourceFolder));
             }
-            else if(!RunningRocket())
+            else
             {
                 UProjectInfo.FillProjectInfo();
             }
