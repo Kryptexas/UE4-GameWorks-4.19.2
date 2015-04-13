@@ -76,6 +76,7 @@ public:
 	virtual IConsoleCommand* RegisterConsoleCommand(const TCHAR* Name, const TCHAR* Help, const FConsoleCommandWithWorldAndArgsDelegate& Command, uint32 Flags) override;
 	virtual IConsoleCommand* RegisterConsoleCommand(const TCHAR* Name, const TCHAR* Help, const FConsoleCommandWithOutputDeviceDelegate& Command, uint32 Flags) override;
 	virtual IConsoleCommand* RegisterConsoleCommand(const TCHAR* Name, const TCHAR* Help, uint32 Flags) override;
+	virtual IConsoleObject* FindConsoleObject(const TCHAR* Name) const;
 	virtual IConsoleVariable* FindConsoleVariable(const TCHAR* Name) const override;
 	virtual void ForEachConsoleObject(const FConsoleObjectVisitor& Visitor, const TCHAR* ThatStartsWith) const override;
 	virtual bool ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevice& Ar, UWorld* InWorld) override;
@@ -125,13 +126,6 @@ private: // ----------------------------------------------------
 	 * inefficient but this code is not performance critical
 	 */
 	static FString GetTextSection(const TCHAR* &It);
-
-	/**
-	 * Find a console variable or command
-	 * @param Name must not be 0
-	 * @return 0 if the object wasn't found
-	 */
-	IConsoleObject* FindConsoleObject(const TCHAR* Name) const;
 
 	/** same as FindConsoleObject() but ECVF_CreatedFromIni are not filtered out (for internal use) */
 	IConsoleObject* FindConsoleObjectUnfiltered(const TCHAR* Name) const;
