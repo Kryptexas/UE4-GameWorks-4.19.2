@@ -6,10 +6,14 @@
 #include "Text.h"
 #include "TextHistory.h"
 #include "ICUCulture.h"
+
+PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #include <unicode/coll.h>
 #include <unicode/sortkey.h>
 #include <unicode/numfmt.h>
 #include <unicode/msgfmt.h>
+PRAGMA_POP
+
 #include "ICUUtilities.h"
 #include "ICUTextCharacterIterator.h"
 

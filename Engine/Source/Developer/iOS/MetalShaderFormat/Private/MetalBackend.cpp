@@ -7,7 +7,11 @@
 #include "hlslcc_private.h"
 #include "MetalBackend.h"
 #include "compiler.h"
+
+PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #include "glsl_parser_extras.h"
+PRAGMA_POP
+
 #include "hash_table.h"
 #include "ir_rvalue_visitor.h"
 #include "PackUniformBuffers.h"
