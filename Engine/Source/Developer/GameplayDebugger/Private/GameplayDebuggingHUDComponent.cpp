@@ -156,7 +156,11 @@ void AGameplayDebuggingHUDComponent::DrawMenu(const float X, const float Y, clas
 		}
 
 		const FString KeyDesc = ActivationKeyName != ActivationKeyDisplayName ? FString::Printf(TEXT("(%s key)"), *ActivationKeyName) : TEXT("");
-		const FString HeaderDesc = FString::Printf(TEXT("Tap %s %s to close, use Numpad to toggle categories"), *ActivationKeyDisplayName, *KeyDesc);
+		FString HeaderDesc = FString::Printf(TEXT("Tap %s %s to close, use Numpad numbers to toggle categories"), *ActivationKeyDisplayName, *KeyDesc);
+		if (UGameplayDebuggerSettings::StaticClass()->GetDefaultObject<UGameplayDebuggerSettings>()->UseAlternateKeys())
+		{
+			HeaderDesc = FString::Printf(TEXT("Tap %s %s to close, use Alt + number to toggle categories"), *ActivationKeyDisplayName, *KeyDesc);
+		}
 
 		float HeaderWidth = 0.0f;
 		CalulateStringSize(DefaultContext, DefaultContext.Font, HeaderDesc, HeaderWidth, MaxHeight);
@@ -171,6 +175,16 @@ void AGameplayDebuggingHUDComponent::DrawMenu(const float X, const float Y, clas
 			MaxHeight = FMath::Max(MaxHeight, StrHeight);
 		}
 
+		{
+			const int32 DebugCameraIndex = Categories.Add(FDebugCategoryView());
+			CategoriesWidth.AddZeroed(1);
+			Categories[DebugCameraIndex].Desc = FString::Printf(TEXT(" %s[Tab]: %s  "), GDC && GDC->GetDebugCameraController().IsValid() ? TEXT("{Green}") : TEXT("{White}"), TEXT("Debug Camera"));
+			float StrHeight = 0.0f;
+			CalulateStringSize(DefaultContext, DefaultContext.Font, Categories[DebugCameraIndex].Desc, CategoriesWidth[DebugCameraIndex], StrHeight);
+			TotalWidth += CategoriesWidth[DebugCameraIndex];
+			MaxHeight = FMath::Max(MaxHeight, StrHeight);
+		}
+
 		TotalWidth = FMath::Max(TotalWidth, HeaderWidth);
 
 		FCanvasTileItem TileItem(FVector2D(10, 10), GWhiteTexture, FVector2D(TotalWidth + 20, MaxHeight + 20), FColor(0, 0, 0, 20));
@@ -179,15 +193,15 @@ void AGameplayDebuggingHUDComponent::DrawMenu(const float X, const float Y, clas
 
 		PrintString(DefaultContext, FColorList::LightBlue, HeaderDesc, MenuStartX + 2.f, MenuStartY + 2.f);
 
-			float XPos = MenuStartX + 20.f;
-			for (int32 i = 0; i < Categories.Num(); i++)
-			{
-				const bool bIsActive = GameplayDebuggerSettings(GetDebuggingReplicator()).CheckFlag(Categories[i].View) ? true : false;
-				const bool bIsDisabled = Categories[i].View == EAIDebugDrawDataView::NavMesh ? false : (DebugComponent && DebugComponent->GetSelectedActor() ? false: true);
+		float XPos = MenuStartX + 20.f;
+		for (int32 i = 0; i < Categories.Num(); i++)
+		{
+			const bool bIsActive = GameplayDebuggerSettings(GetDebuggingReplicator()).CheckFlag(Categories[i].View) ? true : false;
+			const bool bIsDisabled = Categories[i].View == EAIDebugDrawDataView::NavMesh ? false : (DebugComponent && DebugComponent->GetSelectedActor() ? false: true);
 
-				PrintString(DefaultContext, bIsDisabled ? (bIsActive ? FColorList::DarkGreen  : FColorList::LightGrey) : (bIsActive ? FColorList::Green : FColorList::White), Categories[i].Desc, XPos, MenuStartY + MaxHeight + 2.f);
-				XPos += CategoriesWidth[i];
-			}
+			PrintString(DefaultContext, bIsDisabled ? (bIsActive ? FColorList::DarkGreen  : FColorList::LightGrey) : (bIsActive ? FColorList::Green : FColorList::White), Categories[i].Desc, XPos, MenuStartY + MaxHeight + 2.f);
+			XPos += CategoriesWidth[i];
+		}
 		DefaultContext.Font = OldFont;
 	}
 
@@ -209,6 +223,7 @@ void AGameplayDebuggingHUDComponent::DrawDebugComponentData(APlayerController* M
 	const FVector ScreenLoc = SelectedActor ? ProjectLocation(DefaultContext, SelectedActor->GetActorLocation() + FVector(0.f, 0.f, SelectedActor->GetSimpleCollisionHalfHeight())) : FVector::ZeroVector;
 
 	OverHeadContext = FPrintContext(GEngine->GetSmallFont(), Canvas, ScreenLoc.X, ScreenLoc.Y);
+	DefaultContext.CursorY += 20;
 
 	FGameplayDebuggerSettings DebuggerSettings = GameplayDebuggerSettings(GetDebuggingReplicator());
 	bool bForceOverhead = false;

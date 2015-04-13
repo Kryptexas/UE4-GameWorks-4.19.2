@@ -63,6 +63,8 @@ public:
 		return Settings;
 	}
 
+	bool UseAlternateKeys() { return bUseAlternateKeys; }
+
 	const FGDTCustomViewNames& GetCustomViewNames() { return CustomViewNames; }
 
 #if ADD_LEVEL_EDITOR_EXTENSIONS
@@ -110,6 +112,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, config, Category = "GameplayDebugger")
 	bool GameView5;
+
+	UPROPERTY(EditAnywhere, config, Category = "GameplayDebugger")
+	bool bUseAlternateKeys;
 
 	// Holds an event delegate that is executed when a setting has changed.
 	FSettingChangedEvent SettingChangedEvent;
