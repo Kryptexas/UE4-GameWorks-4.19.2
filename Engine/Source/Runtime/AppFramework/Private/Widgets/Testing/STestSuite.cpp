@@ -935,27 +935,14 @@ public:
 						.Text( LOCTEXT("Col0Row2Visibility", "Col0Row2 Visibility") )
 						.OnClicked( Col0Row2Vis, &FVisibilityCycler::CycleVisibility )
 					]
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					[
-						SNew(SButton)
-						.Text( LOCTEXT("Col0Row3Visibility", "Col0Row3 Visibility") )
-						.OnClicked( Col0Row3Vis, &FVisibilityCycler::CycleVisibility )
-					]
+
 				]
 				+SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(SButton)
-					.Text( LOCTEXT("Center0Visibility", "Center0 Visibility") )
-					.OnClicked( Center0Vis, &FVisibilityCycler::CycleVisibility )
-				]
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(SButton)
-					.Text( LOCTEXT("Center1Visibility", "Center1 Visibility") )
-					.OnClicked( Center1Vis, &FVisibilityCycler::CycleVisibility )
+					.Text( LOCTEXT("CenterVisibility", "CenterVis Visibility") )
+					.OnClicked( CenterVis, &FVisibilityCycler::CycleVisibility )
 				]
 				+SHorizontalBox::Slot()
 				.AutoWidth()
@@ -974,21 +961,7 @@ public:
 						SNew(SButton)
 						.Text( LOCTEXT("Col2Row1Visibility", "Col2Row1 Visibility") )
 						.OnClicked( Col2Row1Vis, &FVisibilityCycler::CycleVisibility )
-					]
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					[
-						SNew(SButton)
-						.Text( LOCTEXT("Col2Row2Visibility", "Col2Row2 Visibility") )
-						.OnClicked( Col2Row2Vis, &FVisibilityCycler::CycleVisibility )
-					]
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					[
-						SNew(SButton)
-						.Text( LOCTEXT("Col2Row3Visibility", "Col2Row3 Visibility") )
-						.OnClicked( Col2Row3Vis, &FVisibilityCycler::CycleVisibility )
-					]
+					]					
 				]
 			]
 			+ SVerticalBox::Slot()
@@ -1000,15 +973,15 @@ public:
 				+ SSplitter::Slot()
 				[
 					SAssignNew(Nested0, SSplitter)
-					.Orientation(Orient_Vertical)
-					.ResizeMode( ESplitterResizeMode::Fill )
-					+SSplitter::Slot()
+						.Orientation(Orient_Vertical)
+						.ResizeMode( ESplitterResizeMode::Fill )
+						+SSplitter::Slot()
 					[
 						SNew(SBorder)
 							.Visibility(Col0Row0Vis, &FVisibilityCycler::GetVisibility)
 						[
 							SNew(STextBlock)
-								.Text( LOCTEXT("Col0Row0", "Col 0 Row 0 (Fraction Of Parent)") )
+								.Text( LOCTEXT("Col0Row0", "Col 0 Row 0") )
 						]
 					]
 					+SSplitter::Slot()
@@ -1016,89 +989,49 @@ public:
 						SNew(SBorder)
 							.Visibility(Col0Row1Vis, &FVisibilityCycler::GetVisibility)
 						[
-							SNew(STextBlock) .Text( LOCTEXT("Col0Row1", "Col 0 Row 1 (Fraction Of Parent)") )
+							SNew(STextBlock) .Text( LOCTEXT("Col0Row1", "Col 0 Row 1") )
 						]
 					]
 					+SSplitter::Slot()
-					.Value(100.0f)
-					.SizeRule( SSplitter::ManualSize)
 					[
 						SNew(SBorder)
 							.Visibility(Col0Row2Vis, &FVisibilityCycler::GetVisibility)
 						[
-							SNew(STextBlock) .Text( LOCTEXT("Col0Row2", "Col 0 Row 2 (Manual Size)") )
+							SNew(STextBlock) .Text( LOCTEXT("Col0Row2", "Col 0 Row 2") )
 						]
-					]
-					+SSplitter::Slot()
-					[
-						SNew(SBorder)
-							.Visibility(Col0Row3Vis, &FVisibilityCycler::GetVisibility)
-						[
-							SNew(STextBlock) .Text( LOCTEXT("Col0Row3", "Col 0 Row 3 (Fraction Of Parent)") )
-						]
-					]
-				]
-				+ SSplitter::Slot()
-				.Value(50.0f)
-				.SizeRule( SSplitter::ManualSize )
-				[
-					SNew(SBorder)
-						.Visibility(Center0Vis, &FVisibilityCycler::GetVisibility)
-					[
-						SNew(STextBlock) .Text( LOCTEXT("Center0", "Center 0 (Manual Size)") )
 					]
 				]
 				+ SSplitter::Slot()
 				. SizeRule( SSplitter::SizeToContent )
 				[
 					SNew(SBorder)
-						.Visibility(Center1Vis, &FVisibilityCycler::GetVisibility)
+						.Visibility(CenterVis, &FVisibilityCycler::GetVisibility)
 						.Padding( 5.0f )
 					[
 						SNew(SButton)
 							.OnClicked( this, &SSplitterTest::FlipTopLevelSplitter )
-							.Text( LOCTEXT("Center1", "Center 1 (Size To Content)\nRe-orient Splitter") )
+							.Text( LOCTEXT("Re-orient", "Re-orient") )
 					]
 				]
 				+ SSplitter::Slot()
 				[
 					SAssignNew(Nested1, SSplitter)
-					.Orientation(Orient_Vertical)
-					.ResizeMode( ESplitterResizeMode::Fill )
-					+SSplitter::Slot()
+						.Orientation(Orient_Vertical)
+						.ResizeMode( ESplitterResizeMode::Fill )
+						+SSplitter::Slot()
 					[
 						SNew(SBorder)
 							.Visibility(Col2Row0Vis, &FVisibilityCycler::GetVisibility)
 						[
-							SNew(STextBlock) .Text( LOCTEXT("Col2Row0", "Col 2 Row 0 (Fraction Of Parent)") )
+							SNew(STextBlock) .Text( LOCTEXT("Col2Row0", "Col 2 Row 0") )
 						]
 					]
 					+SSplitter::Slot()
-					.Value(100.0f)
-					.SizeRule( SSplitter::ManualSize)
 					[
 						SNew(SBorder)
 							.Visibility(Col2Row1Vis, &FVisibilityCycler::GetVisibility)
 						[
-							SNew(STextBlock) .Text( LOCTEXT("Col2Row1", "Col 2 Row 1 (Manual Size)") )
-						]
-					]
-					+SSplitter::Slot()
-					.Value(100.0f)
-					.SizeRule( SSplitter::ManualSize)
-					[
-						SNew(SBorder)
-							.Visibility(Col2Row2Vis, &FVisibilityCycler::GetVisibility)
-						[
-							SNew(STextBlock) .Text( LOCTEXT("Col2Row2", "Col 2 Row 2 (Manual Size)") )
-						]
-					]
-					+SSplitter::Slot()
-					[
-						SNew(SBorder)
-							.Visibility(Col2Row3Vis, &FVisibilityCycler::GetVisibility)
-						[
-							SNew(STextBlock) .Text( LOCTEXT("Col2Row3", "Col 2 Row 3 (Fraction Of Parent)") )
+							SNew(STextBlock) .Text( LOCTEXT("Col2Row1", "Col 1 Row 1") )
 						]
 					]
 				]
@@ -1110,13 +1043,9 @@ public:
 		: Col0Row0Vis( new FVisibilityCycler() )
 		, Col0Row1Vis( new FVisibilityCycler() )
 		, Col0Row2Vis( new FVisibilityCycler() )
-		, Col0Row3Vis( new FVisibilityCycler() )
-		, Center0Vis( new FVisibilityCycler() )
-		, Center1Vis( new FVisibilityCycler() )
+		, CenterVis( new FVisibilityCycler() )
 		, Col2Row0Vis( new FVisibilityCycler() )
 		, Col2Row1Vis( new FVisibilityCycler() )
-		, Col2Row2Vis( new FVisibilityCycler() )
-		, Col2Row3Vis( new FVisibilityCycler() )
 	{
 	}
 
@@ -1133,15 +1062,12 @@ protected:
 	TSharedRef<FVisibilityCycler> Col0Row0Vis;
 	TSharedRef<FVisibilityCycler> Col0Row1Vis;
 	TSharedRef<FVisibilityCycler> Col0Row2Vis;
-	TSharedRef<FVisibilityCycler> Col0Row3Vis;
 
-	TSharedRef<FVisibilityCycler> Center0Vis;
-	TSharedRef<FVisibilityCycler> Center1Vis;
+	TSharedRef<FVisibilityCycler> CenterVis;
 
 	TSharedRef<FVisibilityCycler> Col2Row0Vis;
 	TSharedRef<FVisibilityCycler> Col2Row1Vis;
-	TSharedRef<FVisibilityCycler> Col2Row2Vis;
-	TSharedRef<FVisibilityCycler> Col2Row3Vis;
+		
 
 	TSharedPtr<SSplitter> TopLeveSplitter;
 	TSharedPtr<SSplitter> Nested0;
