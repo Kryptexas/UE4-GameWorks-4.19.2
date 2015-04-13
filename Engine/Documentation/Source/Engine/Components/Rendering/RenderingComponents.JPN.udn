@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2460163
+﻿INTSourceChangelist:2508900
 Availability:Public
 Title:レンダリング コンポーネント
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -14,11 +14,11 @@ Related:Engine/Blueprints/UserGuide/Components
 
 **AtmosphericFogComponents** は、レベル内の雲やアンビエント フォグなどのフォグ エフェクト作成に使用します。このコンポーネントには、配置時にレベルでのエフェクトがどのように生成されるかに影響を及ぼす調整可能な設定がいくつかあります。 
 
-このタイプのコンポーネントで **Decay Height** 設定 (霧密度の減衰の高さを制御します。すなわち、値が低ければ霧の密度が高くなります。一方、値が高ければ霧が薄くなり、散乱が少なくなります) を様々な値に変えた使用例を以下に示します。詳細は[](Engine/Actors/FogEffects/AtmosphericFog) ページをご覧ください。 
+このタイプのコンポーネントで **Decay Height** 設定 (霧密度の減衰の高さを制御します。すなわち、値が低ければ霧の密度が高くなります。一方、値が高ければ霧が薄くなり、散乱が少なくなります) を様々な値に変えた使用例を以下に示します。詳細は [](Engine/Actors/FogEffects/AtmosphericFog) ページをご覧ください。 
 
 [INCLUDE:Engine/Actors/FogEffects/AtmosphericFog#examples]
 
-## 指数関数的ハイトフォグ
+## Exponential Height Fog コンポーネント
 
 **ExponentialHeightFogComponent** は、フォグ エフェクト作成に使用しますが、フォグの高さに関連する密度も伴います。 
 
@@ -57,7 +57,7 @@ Related:Engine/Blueprints/UserGuide/Components
 
 **CustomMeshComponent** では、カスタム仕様のトライアングル メッシュ ジオメトリを指定できます。 
 
-## Poseable（変形可能）メッシュ コンポーネント
+## Poseable（変形可能）Mesh コンポーネント
 
 **PoseableMeshComponent** では、**ブループリント** を介してボーンを変形させることができます。 
 
@@ -69,9 +69,9 @@ Related:Engine/Blueprints/UserGuide/Components
 
 デカールを使った作業の詳細については、以下のページをご覧ください。 
 
-* [](Engine/Actors/DecalActor). 
-* [](Resources/ContentExamples/Decals/1_1). 
-* [デカールのコンテンツ サンプル](Resources/ContentExamples/Materials#Decalsマップ). 
+* [](Engine/Actors/DecalActor) 
+* [](Resources/ContentExamples/Decals/1_1) 
+* [デカールのコンテンツ サンプル](Resources/ContentExamples/Materials#Decalsマップ) 
 
 ## インスタンス化されたスタティックメッシュのコンポーネント
 
@@ -142,10 +142,10 @@ Related:Engine/Blueprints/UserGuide/Components
 ![](text2.png)(w:500)
 
 
-## ベクターフィールド コンポーネント
+## ベクター フィールド コンポーネント
 
-**VectorFieldComponent** は、 [ベクターフィールド](Engine/Rendering/ParticleSystems/VectorFields) を参照するために使用します。ベクターフィールドはベロシティ ベクターのグリッド付きの 3D コンテナで、GPU スプライトのベロシティまたは加速度を決定するために使用します。 
-ベクターフィールドは、レベル内での突風などの小規模エフェクトから、大規模なブリザード (猛吹雪) まで使用することができます。詳細は [ローカル ベクターフィールド](Resources/ContentExamples/EffectsGallery/2_A) および [グローバル ベクターフィールド](Resources/ContentExamples/EffectsGallery/2_B) をご覧ください。 
+**VectorFieldComponent** は、 [ベクター フィールド](Engine/Rendering/ParticleSystems/VectorFields) を参照するために使用します。ベクターフィールドはベロシティ ベクターのグリッド付きの 3D コンテナで、GPU スプライトのベロシティまたは加速度を決定するために使用します。 
+ベクター フィールドは、レベル内での突風などの小規模エフェクトから、大規模なブリザード (猛吹雪) まで使用することができます。詳細は [ローカル ベクター フィールド](Resources/ContentExamples/EffectsGallery/2_A) および [グローバル ベクター フィールド](Resources/ContentExamples/EffectsGallery/2_B) をご覧ください。 
 
 ![](Resources/ContentExamples/EffectsGallery/2_B/image050.png)(w:640)
 
