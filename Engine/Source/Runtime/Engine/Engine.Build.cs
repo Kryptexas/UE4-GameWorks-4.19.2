@@ -55,7 +55,6 @@ public class Engine : ModuleRules
 				"EngineSettings",
 				"SynthBenchmark",
                 "AIModule",
-				"VectorVM",
 				"DatabaseSupport",
 			}
 		);
@@ -66,7 +65,6 @@ public class Engine : ModuleRules
 				"Networking",
 				"Sockets",
 				"SlateReflector",
-				"VectorVM",
 				"Landscape",
                 "UMG",
 				"Projects"

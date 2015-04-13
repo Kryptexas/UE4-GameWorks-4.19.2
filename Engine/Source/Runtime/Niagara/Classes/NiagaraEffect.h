@@ -2,9 +2,11 @@
 
 #pragma once
 #include "NiagaraSimulation.h"
-#include "NiagaraEffectRenderer.h"
+#include "Engine/NiagaraEffectRenderer.h"
 #include "List.h"
+#include "Runtime/VectorVM/Public/VectorVMDataObject.h"
 #include "NiagaraEffect.generated.h"
+
 
 UCLASS(MinimalAPI)
 class UNiagaraEffect : public UObject
@@ -12,7 +14,7 @@ class UNiagaraEffect : public UObject
 	GENERATED_UCLASS_BODY()
 
 public:
-	ENGINE_API FNiagaraEmitterProperties *AddEmitterProperties();
+	NIAGARA_API FNiagaraEmitterProperties* AddEmitterProperties();
 
 	void Init()
 	{
@@ -30,7 +32,7 @@ public:
 		return EmitterProps.Num();
 	}
 
-	ENGINE_API void CreateEffectRendererProps(TSharedPtr<FNiagaraSimulation> Sim);
+	NIAGARA_API void CreateEffectRendererProps(TSharedPtr<FNiagaraSimulation> Sim);
 
 	virtual void PostLoad() override; 
 	virtual void PreSave() override;
@@ -41,12 +43,6 @@ private:
 	TArray<FNiagaraEmitterProperties>EmitterPropsSerialized;
 
 	TArray<FNiagaraEmitterProperties*> EmitterProps;
-};
-
-
-class FNiagaraEmitterProp
-{
-
 };
 
 
@@ -71,17 +67,7 @@ public:
 		InitEmitters(InAsset);
 	}
 
-	void InitEmitters(UNiagaraEffect *InAsset)
-	{
-		check(InAsset);
-		for (int i = 0; i < InAsset->GetNumEmitters(); i++)
-		{
-			FNiagaraEmitterProperties *Props = InAsset->GetEmitterProperties(i);
-			FNiagaraSimulation *Sim = new FNiagaraSimulation(Props);
-			Emitters.Add(MakeShareable(Sim));
-		}
-	}
-
+	NIAGARA_API void InitEmitters(UNiagaraEffect *InAsset);
 	void InitRenderModules(ERHIFeatureLevel::Type InFeatureLevel)
 	{
 		for (TSharedPtr<FNiagaraSimulation> Sim : Emitters)
@@ -106,7 +92,7 @@ public:
 		RenderModuleupdate();
 	}
 
-	ENGINE_API TSharedPtr<FNiagaraSimulation> AddEmitter(FNiagaraEmitterProperties *Properties);
+	NIAGARA_API TSharedPtr<FNiagaraSimulation> AddEmitter(FNiagaraEmitterProperties *Properties);
 
 	void SetConstant(FNiagaraVariableInfo ID, const float Value)
 	{
@@ -136,7 +122,6 @@ public:
 
 		// pass the constants down to the emitter
 		// TODO: should probably just pass a pointer to the table
-		FBox EffectBounds;
 		EffectBounds.Init();
 
 		for (TSharedPtr<FNiagaraSimulation>&it : Emitters)
@@ -149,14 +134,7 @@ public:
 		}
 	}
 
-	void RenderModuleupdate()
-	{
-		FNiagaraSceneProxy *NiagaraProxy = static_cast<FNiagaraSceneProxy*>(Component->SceneProxy);
-		if (NiagaraProxy)
-		{
-			NiagaraProxy->UpdateEffectRenderers(this);
-		}
-	}
+	NIAGARA_API void RenderModuleupdate();
 
 	FNiagaraSimulation *GetEmitter(uint32 idx)
 	{
@@ -168,8 +146,10 @@ public:
 
 	TArray< TSharedPtr<FNiagaraSimulation> > &GetEmitters()	{ return Emitters; }
 
+	FBox GetEffectBounds()	{ return EffectBounds;  }
 private:
 	UNiagaraComponent *Component;
+	FBox EffectBounds;
 
 	/** Local constant table. */
 	FNiagaraConstantMap Constants;

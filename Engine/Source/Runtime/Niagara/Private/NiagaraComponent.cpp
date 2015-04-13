@@ -1,14 +1,14 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "Components/NiagaraComponent.h"
-#include "Engine/NiagaraScript.h"
+#include "NiagaraPrivate.h"
+#include "NiagaraComponent.h"
+#include "NiagaraScript.h"
 #include "VectorVM.h"
 #include "ParticleHelper.h"
 #include "Particles/ParticleResources.h"
-#include "Engine/NiagaraEffectRenderer.h"
-#include "Engine/NiagaraEffect.h"
-#include "Engine/NiagaraSimulation.h"
+#include "NiagaraEffectRenderer.h"
+#include "NiagaraEffect.h"
+#include "NiagaraSimulation.h"
 #include "MeshBatch.h"
 #include "SceneUtils.h"
 #include "ComponentReregisterContext.h"
@@ -251,21 +251,13 @@ int32 UNiagaraComponent::GetNumMaterials() const
 FBoxSphereBounds UNiagaraComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	FBox SimBounds(ForceInit);
-
-	/*
-	if (Effect)
+	if (EffectInstance)
 	{
-		for (FNiagaraSimulation Sim : Effect->Emitters)
-		{
-			SimBounds += Sim->GetBounds();
-		}
+		FBoxSphereBounds BSBounds(EffectInstance->GetEffectBounds());
+		//BSBounds.Origin = LocalToWorld.GetLocation();
+		return BSBounds;
 	}
-	*/
-	{
-		SimBounds.Min = FVector(-HALF_WORLD_MAX,-HALF_WORLD_MAX,-HALF_WORLD_MAX);
-		SimBounds.Max = FVector(+HALF_WORLD_MAX,+HALF_WORLD_MAX,+HALF_WORLD_MAX);
-	}
-	return FBoxSphereBounds(SimBounds);
+	return FBoxSphereBounds();
 }
 
 FPrimitiveSceneProxy* UNiagaraComponent::CreateSceneProxy()

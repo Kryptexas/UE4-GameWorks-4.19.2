@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Niagara/NiagaraCommon.h"
+#include "NiagaraCommon.h"
 
 #include "NiagaraComponent.generated.h"
 
@@ -118,8 +118,8 @@ private:
 * @see ANiagaraActor
 * @see UNiagaraEffect
 */
-UCLASS()
-class ENGINE_API UNiagaraComponent : public UPrimitiveComponent
+UCLASS(MinimalAPI)
+class UNiagaraComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 private:
@@ -144,7 +144,7 @@ public:
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	// End UPrimitiveComponent Interface
 
-	void SetAsset(UNiagaraEffect* InAsset);
+	NIAGARA_API void SetAsset(UNiagaraEffect* InAsset);
 	UNiagaraEffect* GetAsset() const { return Asset; }
 
 	FNiagaraEffectInstance* GetEffectInstance()	const { return EffectInstance; }
@@ -156,7 +156,7 @@ public:
 #endif // WITH_EDITOR
 	// End UObject interface.
 
-	static const TArray<FNiagaraVariableInfo>& GetSystemConstants();
+	NIAGARA_API static const TArray<FNiagaraVariableInfo>& GetSystemConstants();
 
 };
 
@@ -179,7 +179,7 @@ public:
 	void SetDynamicData_RenderThread(struct FNiagaraDynamicDataBase* NewDynamicData);
 	TArray<class NiagaraEffectRenderer*>& GetEffectRenderers() { return EffectRenderers; }
 	void AddEffectRenderer(NiagaraEffectRenderer* Renderer)	{ EffectRenderers.Add(Renderer); }
-	ENGINE_API void UpdateEffectRenderers(FNiagaraEffectInstance* InEffect);
+	void UpdateEffectRenderers(FNiagaraEffectInstance* InEffect);
 
 private:
 	void ReleaseRenderThreadResources();

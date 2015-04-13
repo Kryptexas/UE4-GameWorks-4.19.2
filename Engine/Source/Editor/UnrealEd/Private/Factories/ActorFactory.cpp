@@ -26,8 +26,8 @@ ActorFactory.cpp:
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 
-#include "Engine/NiagaraActor.h"
-#include "Engine/NiagaraEffect.h"
+#include "NiagaraActor.h"
+#include "NiagaraEffect.h"
 
 #include "VectorField/VectorField.h"
 

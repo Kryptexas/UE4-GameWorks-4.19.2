@@ -13,7 +13,6 @@
 #include "Misc/UObjectToken.h"
 #include "Components/SplineMeshComponent.h"
 #include "Components/ModelComponent.h"
-#include "Components/NiagaraComponent.h"
 #include "Components/ShapeComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"

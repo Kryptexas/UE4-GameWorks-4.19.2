@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Niagara/NiagaraCommon.h"
+#include "NiagaraCommon.h"
 #include "NiagaraNodeConstant.generated.h"
 
 UCLASS(MinimalAPI, Deprecated)

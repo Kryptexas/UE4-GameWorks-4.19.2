@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "Niagara/NiagaraCommon.h"
+#include "NiagaraCommon.h"
+
 
 //List of operations supported by the Niagara compiler(s) as visible from the outside.
 //Additional information about each operation is added in FNiagaraOpInfo::Init
@@ -65,6 +66,8 @@
 	NiagaraOp(Sample)\
 	NiagaraOp(Write)\
 	NiagaraOp(EventBroadcast)\
+	NiagaraOp(EaseIn)\
+	NiagaraOp(EaseInOut)\
 
 enum class ENiagaraExpressionResultLocation
 {
@@ -75,6 +78,8 @@ enum class ENiagaraExpressionResultLocation
 	BufferConstants,
 	Unknown,
 };
+
+
 
 typedef TSharedPtr<class FNiagaraExpression> TNiagaraExprPtr;
 
@@ -201,3 +206,4 @@ public:
 	TNiagaraExprPtr Expression;
 	UEdGraphPin* OutputPin;
 };
+

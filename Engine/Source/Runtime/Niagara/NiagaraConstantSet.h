@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Niagara/NiagaraCommon.h"
+#include "NiagaraCommon.h"
 #include "NiagaraConstantSet.generated.h"
 
 
@@ -123,6 +123,7 @@ public:
 
 	virtual bool Serialize(FArchive &Ar)
 	{
+		// TODO: can't serialize the data object constants at the moment; need to figure that out
 		Ar << ScalarConstants << VectorConstants << MatrixConstants;
 		return true;
 	}

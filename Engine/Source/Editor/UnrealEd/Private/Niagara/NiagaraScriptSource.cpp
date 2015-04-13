@@ -1,8 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
-#include "Engine/NiagaraScript.h"
-#include "Engine/NiagaraConstants.h"
+#include "NiagaraScript.h"
+#include "NiagaraConstants.h"
 #include "NiagaraEditorModule.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -89,8 +89,8 @@ void UNiagaraScriptSource::PostLoad()
 		ScriptOwner->ConditionalPostLoad();
 		//FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::Get().LoadModuleChecked<FNiagaraEditorModule>(TEXT("NiagaraEditor"));
 		//NiagaraEditorModule.CompileScript(ScriptOwner);	
-		Compile();
 	}
+	Compile();
 #endif
 }
 

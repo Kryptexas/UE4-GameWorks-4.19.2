@@ -6,9 +6,7 @@ NiagaraSimulation.h: Niagara emitter simulation class
 #pragma once
 
 #include "NiagaraScript.h"
-#include "NiagaraSpriteRendererProperties.h"
-#include "Components/NiagaraComponent.h"
-#include "Runtime/VectorVM/Public/VectorVM.h"
+#include "NiagaraComponent.h"
 #include "NiagaraSimulation.generated.h"
 
 DECLARE_CYCLE_STAT(TEXT("Tick"), STAT_NiagaraTick, STATGROUP_Niagara);
@@ -62,7 +60,7 @@ public:
 	TEnumAsByte<EEmitterRenderModuleType> RenderModuleType;
 
 	UPROPERTY()
-	UNiagaraEffectRendererProperties *RendererProperties;
+	class UNiagaraEffectRendererProperties *RendererProperties;
 
 	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
 	FNiagaraConstantMap ExternalConstants;		// these are the update script constants from the effect editor; will be added to the emitter's constant map
@@ -79,8 +77,8 @@ public:
 struct FNiagaraSimulation
 {
 public:
-	explicit ENGINE_API FNiagaraSimulation(FNiagaraEmitterProperties *InProps);
-	ENGINE_API FNiagaraSimulation(FNiagaraEmitterProperties *Props, ERHIFeatureLevel::Type InFeatureLevel);
+	explicit FNiagaraSimulation(FNiagaraEmitterProperties *InProps);
+	FNiagaraSimulation(FNiagaraEmitterProperties *Props, ERHIFeatureLevel::Type InFeatureLevel);
 	virtual ~FNiagaraSimulation()
 	{}
 
@@ -101,19 +99,19 @@ public:
 	
 	bool IsEnabled()const 	{ return bIsEnabled;  }
 
-	ENGINE_API void SetRenderModuleType(EEmitterRenderModuleType Type, ERHIFeatureLevel::Type FeatureLevel);
+	void NIAGARA_API SetRenderModuleType(EEmitterRenderModuleType Type, ERHIFeatureLevel::Type FeatureLevel);
 
 	int32 GetNumParticles()	{ return Data.GetNumParticles(); }
 
 	FNiagaraEmitterProperties *GetProperties()	{ return Props; }
 	void SetProperties(FNiagaraEmitterProperties *InProps);
 
-	ENGINE_API float GetTotalCPUTime();
-	ENGINE_API int	GetTotalBytesUsed();
+	float NIAGARA_API GetTotalCPUTime();
+	int	NIAGARA_API GetTotalBytesUsed();
 
-	ENGINE_API void SetSpawnScript(UNiagaraScript* Script);
-	ENGINE_API void SetUpdateScript(UNiagaraScript* Script);
-	ENGINE_API void SetEnabled(bool bEnabled);
+	void NIAGARA_API SetSpawnScript(UNiagaraScript* Script);
+	void NIAGARA_API SetUpdateScript(UNiagaraScript* Script);
+	void NIAGARA_API SetEnabled(bool bEnabled);
 private:
 	FNiagaraEmitterProperties *Props;		// points to an entry in the array of FNiagaraProperties stored in the EffectInstance (itself pointing to the effect's properties)
 

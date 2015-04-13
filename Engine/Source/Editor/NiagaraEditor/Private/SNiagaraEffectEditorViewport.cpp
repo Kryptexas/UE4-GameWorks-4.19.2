@@ -8,8 +8,8 @@
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
 #include "NiagaraEditor.h"
 #include "ComponentReregisterContext.h"
-#include "Components/NiagaraComponent.h"
-#include "Engine/NiagaraEffect.h"
+#include "NiagaraComponent.h"
+#include "NiagaraEffect.h"
 #include "SDockTab.h"
 #include "Engine/TextureCube.h"
 

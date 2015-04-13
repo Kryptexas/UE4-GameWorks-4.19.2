@@ -3,7 +3,7 @@
 #include "UnrealEd.h"
 #include "BlueprintGraphDefinitions.h"
 #include "GraphEditorSettings.h"
-#include "Engine/NiagaraScript.h"
+#include "NiagaraScript.h"
 
 void UNiagaraNodeFunctionCall::PostLoad()
 {

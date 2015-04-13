@@ -1,6 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
+#include "CurveVector.h"
 #include "VectorVMPrivate.h"
+#include "VectorVMDataObject.h"
 #include "ModuleManager.h"
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, VectorVM);
@@ -772,6 +774,42 @@ struct FVectorKernelCompose : public TQuatenaryVectorKernel<FVectorKernelCompose
 	}
 };
 
+// Ken Perlin's smootherstep function (zero first and second order derivatives at 0 and 1)
+// calculated separately for each channel of Src2
+struct FVectorKernelEaseIn : public TTrinaryVectorKernel<FVectorKernelEaseIn>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, const VectorRegister& Src0, const VectorRegister& Src1, const VectorRegister& Src2)
+	{
+		VectorRegister X = VectorMin( VectorDivide(VectorSubtract(Src2, Src0), VectorSubtract(Src1, Src0)), MakeVectorRegister(1.0f, 1.0f, 1.0f, 1.0f) );
+		X = VectorMax(X, MakeVectorRegister(0.0f, 0.0f, 0.0f, 0.0f));
+
+		VectorRegister X3 = VectorMultiply( VectorMultiply(X, X), X);
+		VectorRegister N6 = MakeVectorRegister(6.0f, 6.0f, 6.0f, 6.0f);
+		VectorRegister N15 = MakeVectorRegister(15.0f, 15.0f, 15.0f, 15.0f);
+		VectorRegister T = VectorSubtract( VectorMultiply(X, N6), N15 );
+		T = VectorAdd(VectorMultiply(X, T), MakeVectorRegister(10.0f, 10.0f, 10.0f, 10.0f));
+
+		*Dst = VectorMultiply(X3, T);
+	}
+};
+
+// smoothly runs 0->1->0
+struct FVectorKernelEaseInOut : public TUnaryVectorKernel<FVectorKernelEaseInOut>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, const VectorRegister& Src0)
+	{
+		VectorRegister T = VectorMultiply(Src0, MakeVectorRegister(2.0f, 2.0f, 2.0f, 2.0f));
+		T = VectorSubtract(T, MakeVectorRegister(1.0f, 1.0f, 1.0f, 1.0f));
+		VectorRegister X2 = VectorMultiply(T, T);
+		
+		VectorRegister R = VectorMultiply(X2, MakeVectorRegister(0.9604f, 0.9604f, 0.9604f, 0.9604f));
+		R = VectorSubtract(R, MakeVectorRegister(1.96f, 1.96f, 1.96f, 1.96f));
+		R = VectorMultiply(R, X2);
+		*Dst = VectorAdd(R, MakeVectorRegister(1.0f, 1.0f, 1.0f, 1.0f));
+	}
+};
+
+
 struct FVectorKernelOutput : public TUnaryVectorKernel<FVectorKernelOutput>
 {
 	static void VM_FORCEINLINE DoKernel(VectorRegister* Dst, VectorRegister Src0)
@@ -901,8 +939,11 @@ void VectorVM::Exec(
 			case EOp::lessthan: FVectorKernelLessThan::Exec(Context); break;
 			case EOp::sample: FVectorKernelSample::Exec(Context); break;
 			case EOp::bufferwrite: FVectorKernelBufferWrite::Exec(Context); break;
+			case EOp::eventbroadcast: break;
+			case EOp::easein: FVectorKernelEaseIn::Exec(Context); break;
+			case EOp::easeinout: FVectorKernelEaseInOut::Exec(Context); break;
 			case EOp::output: FVectorKernelOutput::Exec(Context); break;
-
+				
 			// Execution always terminates with a "done" opcode.
 			case EOp::done:
 				break;

@@ -4,7 +4,7 @@
 
 #include "INiagaraCompiler.h"
 #include "CompilerResultsLog.h"
-#include "Niagara/NiagaraScriptConstantData.h"
+#include "NiagaraScriptConstantData.h"
 
 /** Base class for Niagara compilers. Children of this will include a compiler for the VectorVM and for Compute shaders. Possibly others. */
 class NIAGARAEDITOR_API FNiagaraCompiler : public INiagaraCompiler

@@ -1,7 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "Engine/NiagaraEffect.h"
+
+#include "NiagaraPrivate.h"
+#include "NiagaraEffect.h"
 
 
 
@@ -71,3 +72,26 @@ TSharedPtr<FNiagaraSimulation> FNiagaraEffectInstance::AddEmitter(FNiagaraEmitte
 
 	return Sim;
 }
+
+
+void FNiagaraEffectInstance::RenderModuleupdate()
+{
+	FNiagaraSceneProxy *NiagaraProxy = static_cast<FNiagaraSceneProxy*>(Component->SceneProxy);
+	if (NiagaraProxy)
+	{
+		NiagaraProxy->UpdateEffectRenderers(this);
+	}
+}
+
+
+void FNiagaraEffectInstance::InitEmitters(UNiagaraEffect *InAsset)
+{
+	check(InAsset);
+	for (int i = 0; i < InAsset->GetNumEmitters(); i++)
+	{
+		FNiagaraEmitterProperties *Props = InAsset->GetEmitterProperties(i);
+		FNiagaraSimulation *Sim = new FNiagaraSimulation(Props);
+		Emitters.Add(MakeShareable(Sim));
+	}
+}
+

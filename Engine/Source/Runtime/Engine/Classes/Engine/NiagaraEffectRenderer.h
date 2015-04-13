@@ -9,7 +9,7 @@ NiagaraEffectRenderer.h: Base class for Niagara render modules
 #include "ParticleHelper.h"
 #include "ParticleVertexFactory.h"
 #include "ParticleBeamTrailVertexFactory.h"
-#include "Components/NiagaraComponent.h"
+#include "NiagaraComponent.h"
 #include "NiagaraEffectRendererProperties.h"
 #include "NiagaraSpriteRendererProperties.h"
 #include "NiagaraRibbonRendererProperties.h"
@@ -123,7 +123,7 @@ private:
 /**
 * NiagaraEffectRendererSprites renders an FNiagaraSimulation as sprite particles
 */
-class NiagaraEffectRendererSprites : public NiagaraEffectRenderer
+class ENGINE_API NiagaraEffectRendererSprites : public NiagaraEffectRenderer
 {
 public:	
 
@@ -167,7 +167,7 @@ private:
 * NiagaraEffectRendererRibbon renders an FNiagaraSimulation as a ribbon connecting all particles
 * in order by particle age.
 */
-class NiagaraEffectRendererRibbon : public NiagaraEffectRenderer
+class ENGINE_API NiagaraEffectRendererRibbon : public NiagaraEffectRenderer
 {
 public:
 	NiagaraEffectRendererRibbon(ERHIFeatureLevel::Type FeatureLevel, UNiagaraEffectRendererProperties *Props);

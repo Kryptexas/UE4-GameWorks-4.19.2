@@ -3,8 +3,8 @@
 #pragma once
 #include "NiagaraActor.generated.h"
 
-UCLASS()
-class ENGINE_API ANiagaraActor : public AActor
+UCLASS(MinimalAPI)
+class ANiagaraActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
@@ -29,7 +29,7 @@ private_subobject:
 
 public:
 	/** Returns NiagaraComponent subobject **/
-	class UNiagaraComponent* GetNiagaraComponent() const;
+	NIAGARA_API class UNiagaraComponent* GetNiagaraComponent() const;
 #if WITH_EDITORONLY_DATA
 	/** Returns SpriteComponent subobject **/
 	class UBillboardComponent* GetSpriteComponent() const;

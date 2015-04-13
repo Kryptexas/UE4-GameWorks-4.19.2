@@ -1,8 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "Engine/NiagaraScript.h"
-#include "Engine/NiagaraScriptSourceBase.h"
+#include "NiagaraPrivate.h"
+#include "NiagaraScript.h"
+#include "NiagaraScriptSourceBase.h"
 
 
 

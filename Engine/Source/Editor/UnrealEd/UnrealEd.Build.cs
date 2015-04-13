@@ -53,6 +53,7 @@ public class UnrealEd : ModuleRules
                 "SuperSearch",
 				"OutputLog",
 				"Landscape",
+                "Niagara",
 			}
 		);
 
@@ -77,6 +78,7 @@ public class UnrealEd : ModuleRules
 				"BlueprintGraph",
                 "Http",
 				"UnrealAudio",
+                "Niagara",
 			}
 		);
 
@@ -220,6 +222,7 @@ public class UnrealEd : ModuleRules
              	"CollectionManager",
 				"BlueprintGraph",
 				"NiagaraEditor",
+                "Niagara",
 			}
 			);
 

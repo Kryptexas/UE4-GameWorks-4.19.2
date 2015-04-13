@@ -4,7 +4,7 @@
 
 #include "BlueprintGraphDefinitions.h"
 #include "GraphEditorSettings.h"
-#include "Components/NiagaraComponent.h"
+#include "NiagaraComponent.h"
 
 #include "INiagaraEditor.h"
 #include "INiagaraCompiler.h"

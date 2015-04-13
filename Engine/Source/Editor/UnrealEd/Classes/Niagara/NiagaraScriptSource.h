@@ -2,7 +2,7 @@
 
 
 #pragma once
-#include "Engine/NiagaraScriptSourceBase.h"
+#include "NiagaraScriptSourceBase.h"
 #include "NiagaraScriptSource.generated.h"
 
 

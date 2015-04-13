@@ -1,10 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
-#include "Engine/NiagaraActor.h"
-#include "Components/NiagaraComponent.h"
-#include "Engine/NiagaraEffect.h"
+#include "NiagaraPrivate.h"
+#include "NiagaraActor.h"
+#include "NiagaraComponent.h"
+#include "NiagaraEffect.h"
 
 ANiagaraActor::ANiagaraActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
