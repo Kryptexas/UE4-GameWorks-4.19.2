@@ -268,18 +268,25 @@ private:
 };
 
 /** Saved editor viewport state information */
+USTRUCT()
 struct ENGINE_API FLevelViewportInfo
 {
+	GENERATED_BODY()
+
 	/** Where the camera is positioned within the viewport. */
+	UPROPERTY()
 	FVector CamPosition;
 
 	/** The camera's position within the viewport. */
+	UPROPERTY()
 	FRotator CamRotation;
 
 	/** The zoom value  for orthographic mode. */
+	UPROPERTY()
 	float CamOrthoZoom;
 
 	/** Whether camera settings have been systematically changed since the last level viewport update. */
+	UPROPERTY()
 	bool CamUpdated;
 
 	FLevelViewportInfo()
@@ -297,7 +304,8 @@ struct ENGINE_API FLevelViewportInfo
 		, CamUpdated(false)
 	{
 	}
-
+	
+	// Needed for backwards compatibility for VER_UE4_ADD_EDITOR_VIEWS, can be removed along with it
 	friend FArchive& operator<<( FArchive& Ar, FLevelViewportInfo& I )
 	{
 		Ar << I.CamPosition;
@@ -691,8 +699,11 @@ public:
 	/** The current renderer feature level of this world */
 	ERHIFeatureLevel::Type						FeatureLevel;
 	
-	/** Saved editor viewport states - one for each view type. Indexed using ELevelViewportType above.							*/
-	FLevelViewportInfo							EditorViews[4];
+#if WITH_EDITORONLY_DATA
+	/** Saved editor viewport states - one for each view type. Indexed using ELevelViewportType from UnrealEdTypes.h.	*/
+	UPROPERTY(NonTransactional)
+	TArray<FLevelViewportInfo>					EditorViews;
+#endif
 
 	/** 
 	 * Set the CurrentLevel for this world. 

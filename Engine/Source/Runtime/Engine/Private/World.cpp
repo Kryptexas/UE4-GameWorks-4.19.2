@@ -50,6 +50,7 @@
 	#include "Editor/UnrealEd/Classes/ThumbnailRendering/WorldThumbnailInfo.h"
 	#include "SlateBasics.h"
 	#include "Editor/Kismet/Public/FindInBlueprintManager.h"
+	#include "Editor/UnrealEd/Classes/Editor/UnrealEdTypes.h"
 #endif
 
 #include "MallocProfiler.h"
@@ -126,6 +127,7 @@ UWorld::UWorld( const FObjectInitializer& ObjectInitializer )
 	TimerManager = new FTimerManager();
 #if WITH_EDITOR
 	bBroadcastSelectionChange = true; //Ed Only
+	EditorViews.SetNum(ELevelViewportType::LVT_MAX);
 #endif // WITH_EDITOR
 
 	FWorldDelegates::OnPostWorldCreation.Broadcast(this);
@@ -145,10 +147,35 @@ void UWorld::Serialize( FArchive& Ar )
 
 	Ar << PersistentLevel;
 
-	Ar << EditorViews[0];
-	Ar << EditorViews[1];
-	Ar << EditorViews[2];
-	Ar << EditorViews[3];
+	if (Ar.UE4Ver() < VER_UE4_ADD_EDITOR_VIEWS)
+	{
+		for (int32 i = 0; i < 4; ++i)
+		{
+			FLevelViewportInfo TempViewportInfo;
+			Ar << TempViewportInfo;
+#if WITH_EDITOR
+			if (Ar.IsLoading())
+			{
+				EditorViews.Add(TempViewportInfo);
+			}
+#endif
+		}
+	}
+#if WITH_EDITOR
+	if ( Ar.IsLoading() )
+	{
+		for (FLevelViewportInfo& ViewportInfo : EditorViews)
+		{
+			ViewportInfo.CamUpdated = true;
+
+			if ( ViewportInfo.CamOrthoZoom == 0.f )
+			{
+				ViewportInfo.CamOrthoZoom = DEFAULT_ORTHOZOOM;
+			}
+		}
+		EditorViews.SetNum(ELevelViewportType::LVT_MAX);
+	}
+#endif
 
 	if (Ar.UE4Ver() < VER_UE4_REMOVE_SAVEGAMESUMMARY)
 	{
