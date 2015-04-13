@@ -144,7 +144,7 @@ protected:
 	uint32 bAutoCreateNavigationData:1;
 
 	UPROPERTY(config, EditAnywhere, Category=NavigationSystem)
-	uint32 bAllowClientSideNavigation_Experimental:1;
+	uint32 bAllowClientSideNavigation:1;
 
 	/** gets set to true if gathering navigation data (like in navoctree) is required due to the need of navigation generation 
 	 *	Is always true in Editor Mode. In other modes it depends on bRebuildAtRuntime of every required NavigationData class' CDO
@@ -476,7 +476,7 @@ public:
 
 	bool ShouldGenerateNavigationEverywhere() const { return bWholeWorldNavigable; }
 
-	virtual bool ShouldLoadNavigationOnClient(ANavigationData* NavData = nullptr) const { return bAllowClientSideNavigation_Experimental; }
+	virtual bool ShouldLoadNavigationOnClient(ANavigationData* NavData = nullptr) const { return bAllowClientSideNavigation; }
 
 	FBox GetWorldBounds() const;
 	
