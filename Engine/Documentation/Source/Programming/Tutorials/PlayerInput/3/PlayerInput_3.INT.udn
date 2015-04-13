@@ -21,7 +21,7 @@ Description:Binding input to C++ code
 
 %Steps%
 
-1. In **Visual Studio**, open "MyActor.h" and add the following code to the bottom of MyPawn's class definition:
+1. In **Visual Studio**, open "MyPawn.h" and add the following code to the bottom of MyPawn's class definition:
 
 		//Input functions
 		void Move_XAxis(float AxisValue);
