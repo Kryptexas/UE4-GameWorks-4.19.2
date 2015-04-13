@@ -6,6 +6,7 @@
 #include "BehaviorTreeDelegates.h"
 #include "TimerManager.h"
 #include "VisualLogger/VisualLogger.h"
+#include "GameplayDebuggerSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameplayDebugging, Log, All);
 
