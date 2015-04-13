@@ -103,7 +103,12 @@ TSharedPtr<FJsonValue> FJsonObjectConverter::UPropertyToJsonValue(UProperty* Pro
 
 bool FJsonObjectConverter::UStructToJsonObject(const UStruct* StructDefinition, const void* Struct, TSharedRef<FJsonObject> OutJsonObject, int64 CheckFlags, int64 SkipFlags)
 {
-	for(TFieldIterator<UProperty> It(StructDefinition); It; ++It)
+	return UStructToJsonAttributes(StructDefinition, Struct, OutJsonObject->Values, CheckFlags, SkipFlags);
+}
+
+bool FJsonObjectConverter::UStructToJsonAttributes(const UStruct* StructDefinition, const void* Struct, TMap< FString, TSharedPtr<FJsonValue> >& OutJsonAttributes, int64 CheckFlags, int64 SkipFlags)
+{
+	for (TFieldIterator<UProperty> It(StructDefinition); It; ++It)
 	{
 		UProperty* Property = *It;
 
@@ -130,7 +135,7 @@ bool FJsonObjectConverter::UStructToJsonObject(const UStruct* StructDefinition, 
 		}
 
 		// set the value on the output object
-		OutJsonObject->SetField(VariableName, JsonValue);
+		OutJsonAttributes.Add(VariableName, JsonValue);
 	}
 
 	return true;
