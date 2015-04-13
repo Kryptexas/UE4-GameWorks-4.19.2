@@ -182,6 +182,9 @@ private:
 	/** Overlay used to display UI on top of sequencer */
 	TWeakPtr<SOverlay> SequencerOverlay;
 
+	/** A text block which is displayed in the overlay when no animation is selected. */
+	TWeakPtr<STextBlock> NoAnimationTextBlock;
+
 	/** Manager for handling bindings to sequence animations */
 	TSharedPtr<class FUMGSequencerObjectBindingManager> SequencerObjectBindingManager;
 

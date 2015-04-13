@@ -459,9 +459,22 @@ TSharedRef<SWidget> FWidgetBlueprintEditor::CreateSequencerWidget()
 		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("Sequencer")));
 	SequencerOverlay = SequencerOverlayRef;
 
+	TSharedRef<STextBlock> NoAnimationTextBlockRef = 
+		SNew(STextBlock)
+		.TextStyle(FEditorStyle::Get(), "UMGEditor.NoAnimationFont")
+		.Text(LOCTEXT("NoAnimationSelected", "No Animation Selected"));
+	NoAnimationTextBlock = NoAnimationTextBlockRef;
+
 	SequencerOverlayRef->AddSlot(0)
 	[
 		GetSequencer()->GetSequencerWidget()
+	];
+
+	SequencerOverlayRef->AddSlot(1)
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+	[
+		NoAnimationTextBlockRef
 	];
 
 	return SequencerOverlayRef;
@@ -549,30 +562,24 @@ void FWidgetBlueprintEditor::ChangeViewedAnimation( UWidgetAnimation& InAnimatio
 	SequencerObjectBindingManager->InitPreviewObjects();
 
 	TSharedPtr<SOverlay> SequencerOverlayPin = SequencerOverlay.Pin();
-	if( &InAnimationToView == UWidgetAnimation::GetNullAnimation() && SequencerOverlayPin.IsValid() )
+	if (SequencerOverlayPin.IsValid())
 	{
-		Sequencer->GetSequencerWidget()->SetEnabled(false);
-		// Disable sequencer from interaction
-		SequencerOverlayPin->AddSlot(1)
-		.HAlign(HAlign_Center)
-		.VAlign(VAlign_Center)
-		[
-			SNew( STextBlock )
-			.TextStyle( FEditorStyle::Get(), "UMGEditor.NoAnimationFont" )
-			.Text( LOCTEXT("NoAnimationSelected","No Animation Selected") )
-		];
-
-		SequencerOverlayPin->SetVisibility( EVisibility::HitTestInvisible );
+		TSharedPtr<STextBlock> NoAnimationTextBlockPin = NoAnimationTextBlock.Pin();
+		if( &InAnimationToView == UWidgetAnimation::GetNullAnimation())
+		{
+			// Disable sequencer from interaction
+			Sequencer->GetSequencerWidget()->SetEnabled(false);
+			NoAnimationTextBlockPin->SetVisibility(EVisibility::Visible);
+			SequencerOverlayPin->SetVisibility( EVisibility::HitTestInvisible );
+		}
+		else
+		{
+			// Allow sequencer to be interacted with
+			Sequencer->GetSequencerWidget()->SetEnabled(true);
+			NoAnimationTextBlockPin->SetVisibility(EVisibility::Collapsed);
+			SequencerOverlayPin->SetVisibility( EVisibility::SelfHitTestInvisible );
+		}
 	}
-	else if( SequencerOverlayPin.IsValid() && SequencerOverlayPin->GetNumWidgets() > 1 )
-	{
-		Sequencer->GetSequencerWidget()->SetEnabled(true);
-
-		SequencerOverlayPin->RemoveSlot(1);
-		// Allow sequencer to be interacted with
-		SequencerOverlayPin->SetVisibility( EVisibility::SelfHitTestInvisible );
-	}
-
 	InvalidatePreview();
 }
 
