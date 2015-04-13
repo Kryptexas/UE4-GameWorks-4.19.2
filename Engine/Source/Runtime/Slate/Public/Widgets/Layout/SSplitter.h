@@ -13,7 +13,7 @@ namespace ESplitterResizeMode
 
 class FLayoutGeometry;
 /**
- * SSPlitter divides its allotted area into N segments, where N is the number of children it has.
+ * SSplitter divides its allotted area into N segments, where N is the number of children it has.
  * It allows the users to resize the children along the splitters axis: that is, horizontally or vertically.
  */
 class SLATE_API SSplitter : public SPanel
@@ -26,9 +26,7 @@ public:
 		/** Get the DesiredSize() of the content */
 		SizeToContent,
 		/** Use a fraction of the parent's size */
-		FractionOfParent,
-		/** Use the SizeValue of the slot as an absolute size */
-		AbsoluteSize,
+		FractionOfParent
 	};
 
 	DECLARE_DELEGATE_OneParam(
