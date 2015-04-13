@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2498895
+﻿INTSourceChangelist:2508900
 Availability:Public
 Title:Shape コンポーネント
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -34,7 +34,7 @@ Shape コンポーネントを使用して他のオブジェクト周囲にコ�
 
 ![](capsule_component.png)
 
-上の画面では、新規 **Character Blueprint** 作成時に **CapsuleComponent** が自動的に作成され、キャラクターのコリジョン設定を提供し、ワールド内のオブジェクトと交差するのを防ぎます。**CapsuleComponent** は、**Generate Overlap Events** または **Generate Hit Events** も行うことが可能であり、こうしたイベントのいずれかが起こった場合にスクリプトを提供することができます。 
+上の画面では、新規 **Character Blueprint** 作成時に **CapsuleComponent** が自動的に作成され、キャラクターのコリジョン設定を提供し、ワールド内のオブジェクトと交差するのを防ぎます。**CapsuleComponent** は、**Overlap Events** または **Hit Events** を生成して、こうしたイベントのいずれかが起こった場合にスクリプトを提供することもできます。 
 
 
 ## Sphere コンポーネント
