@@ -251,7 +251,9 @@ void FCompositionLighting::ProcessBeforeBasePass(FRHICommandListImmediate& RHICm
 		// Add the passes we want to add to the graph (commenting a line means the pass is not inserted into the graph) ----------
 
 		// decals are before AmbientOcclusion so the decal can output a normal that AO is affected by
-		if(Context.View.Family->EngineShowFlags.Decals && IsDBufferEnabled()) 
+		if (Context.View.Family->EngineShowFlags.Decals &&
+			!Context.View.Family->EngineShowFlags.ShaderComplexity &&
+			IsDBufferEnabled()) 
 		{
 			AddDeferredDecalsBeforeBasePass(Context);
 		}
