@@ -52,7 +52,7 @@ public:
 			FString ShaderFormat = TargetedShaderFormats[ShaderFormatIdx];
 			if(PossibleShaderFormats.Contains(FName(*ShaderFormat)) == false)
 			{
-				TargetedShaderFormats.Remove(ShaderFormat);
+				TargetedShaderFormats.RemoveAt(ShaderFormatIdx);
 			}
 		}
 #endif // WITH_ENGINE
