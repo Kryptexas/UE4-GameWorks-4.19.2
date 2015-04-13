@@ -166,6 +166,20 @@ void USkeleton::Serialize( FArchive& Ar )
 #endif
 }
 
+void USkeleton::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	USkeleton* This = CastChecked<USkeleton>(InThis);
+
+#if WITH_EDITORONLY_DATA
+	for (auto Iter = This->AnimRetargetSources.CreateIterator(); Iter; ++Iter)
+	{		
+		Collector.AddReferencedObject(Iter.Value().ReferenceMesh, This);
+	}
+#endif
+
+	Super::AddReferencedObjects( This, Collector );
+}
+
 /** Remove this function when VER_UE4_REFERENCE_SKELETON_REFACTOR is removed. */
 void USkeleton::ConvertToFReferenceSkeleton()
 {

@@ -595,6 +595,8 @@ public:
 	virtual void PostInitProperties() override;
 	virtual void Serialize(FArchive& Ar) override;
 
+	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+
 	/** 
 	 * Create RefLocalPoses from InSkelMesh
 	 * 
