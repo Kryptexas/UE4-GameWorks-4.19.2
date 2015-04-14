@@ -323,11 +323,11 @@ private:
 	/** Current value.  Mutable so that we can cache the value locally when using a bound Getter (allows const ref return value.) */
 	mutable ObjectType Value;
 
+	/** true when this attribute was explicitly set by a consumer, false when the attribute's value is set to the default*/
+	bool bIsSet;
+
 	/** Bound member function for this attribute (may be NULL if no function is bound.)  When set, all attempts
 		to read the attribute's value will instead call this delegate to generate the value. */
 	/** Our attribute's 'getter' delegate */
 	FGetter Getter;
-
-	/** true when this attribute was explicitly set by a consumer, false when the attribute's value is set to the default*/
-	bool bIsSet;
 };
