@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2472981
+﻿INTSourceChangelist:2491917
 Availability:Public
 Title:プロパティのレプリケーション
 Crumbs:%ROOT%, Gameplay, Gameplay/Networking, Gameplay/Networking/Actors
@@ -20,7 +20,7 @@ Related:Gameplay/Networking/Actors/RPCs
 ## レプリケーション用のプロパティを設定
 
 プロパティのレプリケーションにはいくつかの設定が必要です。
-プロパティを定義したアクタクラスのヘッダに、 UPROPERTY 宣言へのパラメータの1つとして �replicated' キーワードがあることを確認してください。
+プロパティを定義したアクタクラスのヘッダに、 UPROPERTY 宣言へのパラメータの1つとして `replicated` キーワードがあることを確認してください。
 
 	class ENGINE_API AActor : public UObject
 	{
@@ -42,4 +42,4 @@ Related:Gameplay/Networking/Actors/RPCs
 		bReplicates = true;
 	}
 
-プロパティのレプリケーションは以上です。メンバ変数 �Owner' は、現時点でインスタンス化されているこのアクタ型のすべてのコピーを接続先クライアントすべてに同期します（この場合は基底アクタクラス）
+プロパティのレプリケーションは以上です。メンバ変数 `Owner` は、現時点でインスタンス化されているこのアクタ型のすべてのコピーを接続先クライアントすべてに同期します（この場合は基底アクタクラス）。
