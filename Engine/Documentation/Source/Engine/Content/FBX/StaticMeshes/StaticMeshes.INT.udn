@@ -29,7 +29,7 @@ Description:Setting up, exporting, and importing Static Meshes using the FBX con
 ## Overview
 
 [EXCERPT:FBX_StaticMesh]
-The _StaticMesh_ support in the FBX import pipeline makes getting meshes from 3D applications into Unreal Engine 4 a simple, painless task. Not only are the meshes imported, but also the textures (diffuse and normal map only) used in the materials applied to those meshes in the 3D application will be imported and materials will be automatically created and applied to the imported meshes.
+The _StaticMesh_ support in the FBX import pipeline makes getting meshes from 3D applications into Unreal Engine 4 a simple, painless task. When meshes are imported, the textures used in the materials applied to those meshes in their respective 3D application (diffuse and normal map only) are also imported and, in turn, used to generate the materials applied to the mesh in UE4.
 [/EXCERPT:FBX_StaticMesh]
 
 Features supported for importing _Static Meshes_ using FBX:
@@ -294,7 +294,7 @@ _Static Meshes_ can be exported individually or multiple meshes can be exported 
 	![import_file.jpg](import_file.png)
 
 	[REGION:note]
-		The imported path of the imported asset depends on the current location of the **Content Browser** while importing. Make sure to navigate to the appropriate folder prior to performing the import. You may also drag the imported assets into a new folder once import is complete.
+		The path of the imported asset depends on the current location of the **Content Browser** while importing. Make sure to navigate to the appropriate folder prior to performing the import. You may also drag the imported assets into a new folder once import is complete.
 	[/REGION]
 
 1. Choose the appropriate settings in the **Import** dialog. The defaults should be sufficient in most cases. See the [FBX Import Dialog](Engine/Content/FBX/ImportOptions) section for complete details of all of the settings.   
