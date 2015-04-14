@@ -580,7 +580,12 @@ bool FGearVR::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 	else if (FParse::Command(&Cmd, TEXT("OVRGLOBALMENU")))
 	{
-		ovr_StartSystemActivity(OvrMobile, PUI_GLOBAL_MENU, NULL);
+		// fire off the global menu from the render thread
+		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(OVRGlobalMenu,
+			FGearVR*, Plugin, this,
+			{
+				Plugin->StartOVRGlobalMenu();
+			});
 	}
 
 	return false;
@@ -1389,6 +1394,16 @@ void FGearVR::ShutdownRendering()
 	{
 		pGearVRBridge->Shutdown();
 		pGearVRBridge = nullptr;
+	}
+}
+
+void FGearVR::StartOVRGlobalMenu()
+{
+	check(IsInRenderingThread());
+
+	if (OvrMobile)
+	{
+		ovr_StartSystemActivity(OvrMobile, PUI_GLOBAL_MENU, NULL);
 	}
 }
 

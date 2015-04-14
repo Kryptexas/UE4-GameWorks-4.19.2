@@ -171,6 +171,7 @@ public:
 	TRefCountPtr<FGearVRBridge> pGearVRBridge;
 
 	void ShutdownRendering();
+	void StartOVRGlobalMenu();
 
 private:
 	FGearVR* getThis() { return this; }
