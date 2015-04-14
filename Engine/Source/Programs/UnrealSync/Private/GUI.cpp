@@ -859,7 +859,7 @@ public:
 								PreviewSyncCheckBox.ToSharedRef()
 							]
 					]
-					+ SHorizontalBox::Slot().AutoWidth().Padding(FMargin(30, 0, 0, 0))
+					+ SHorizontalBox::Slot().AutoWidth().Padding(30, 0, 0, 0)
 						[
 							SNew(SButton).HAlign(HAlign_Right)
 							.OnClicked(this, &SMainTabWidget::OnSync)
@@ -867,6 +867,15 @@ public:
 							.VAlign(VAlign_Center)
 							[
 								SNew(STextBlock).Text(FText::FromString("Sync!"))
+							]
+						]
+					+ SHorizontalBox::Slot().AutoWidth()
+						[
+							SNew(SButton).HAlign(HAlign_Right)
+							.OnClicked(this, &SMainTabWidget::RunUE4)
+							.VAlign(VAlign_Center)
+							[
+								SNew(STextBlock).Text(FText::FromString("Run UE4"))
 							]
 						]
 				]
@@ -1066,6 +1075,22 @@ private:
 	FReply OnReloadLabels()
 	{
 		FUnrealSync::StartLoadingData();
+
+		return FReply::Handled();
+	}
+
+	/**
+	 * Executes UE4Editor.exe for current branch.
+	 */
+	FReply RunUE4()
+	{
+#if PLATFORM_WINDOWS
+		auto ProcessPath = FPaths::Combine(*FPaths::GetPath(FPlatformProcess::GetApplicationName(FPlatformProcess::GetCurrentProcessId())), TEXT("UE4Editor.exe"));
+#else
+		// Needs to be implemented on other platforms.
+#endif
+
+		RunProcess(ProcessPath);
 
 		return FReply::Handled();
 	}

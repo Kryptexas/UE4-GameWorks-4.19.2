@@ -12,7 +12,7 @@ DECLARE_DELEGATE_RetVal_OneParam(bool, FOnProcessMadeProgress, const FString&)
  *
  * @returns True if succeeded. False otherwise.
  */
-bool RunProcess(const FString& ExecutablePath, const FString& CommandLine);
+bool RunProcess(const FString& ExecutablePath, const FString& CommandLine = FString());
 
 /**
  * Helper function to run custom command line and catch output.
