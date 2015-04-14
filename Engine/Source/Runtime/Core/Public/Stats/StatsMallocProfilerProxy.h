@@ -38,6 +38,11 @@ public:
 
 	static CORE_API FStatsMallocProfilerProxy* Get();
 
+	/**
+	 * @return true, if the command line has the memory profiler token
+	 */
+	static CORE_API bool HasMemoryProfilerToken();
+
 	void SetState( bool bNewState );
 
 	bool GetState() const

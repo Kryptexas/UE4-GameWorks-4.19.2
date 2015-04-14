@@ -47,10 +47,17 @@ FStatsMallocProfilerProxy* FStatsMallocProfilerProxy::Get()
 	if( Instance == nullptr )
 	{
 		Instance = new FStatsMallocProfilerProxy( GMalloc );
+		// Initialize stats metadata.
+		// We need to do here, after all hardcoded names have been initialized.
+		Instance->InitializeStatsMetadata();
 	}
 	return Instance;
 }
 
+bool FStatsMallocProfilerProxy::HasMemoryProfilerToken()
+{
+	return FParse::Param( FCommandLine::Get(), TEXT( "MemoryProfiler" ) );
+}
 
 void FStatsMallocProfilerProxy::SetState( bool bNewState )
 {

@@ -1933,11 +1933,6 @@ uint32 FWindowsPlatformMisc::GetLastError()
 	return (uint32)::GetLastError();
 }
 
-const TCHAR* FWindowsPlatformMisc::GetNativeCommandLine()
-{
-	return ::GetCommandLine();
-}
-
 bool FWindowsPlatformMisc::CoInitialize()
 {
 	HRESULT hr = ::CoInitialize(NULL);

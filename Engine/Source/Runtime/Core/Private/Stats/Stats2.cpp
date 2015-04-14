@@ -1066,9 +1066,7 @@ void FThreadStats::CheckForCollectingStartupStats()
 	}
 
 	// Now we can safely enable malloc profiler.
-	// @TODO yrx 2014-12-01 Investigate if we can enable it earlier.
-	const bool bEnableMallocProfiler = FParse::Param( FCommandLine::Get(), TEXT("MemoryProfiler") );
-	if( bEnableMallocProfiler )
+	if( FStatsMallocProfilerProxy::HasMemoryProfilerToken() )
 	{
 		// Enable all available groups and enable malloc profiler.
 		IStatGroupEnableManager::Get().StatGroupEnableManagerCommand( TEXT("all") );

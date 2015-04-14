@@ -1256,13 +1256,16 @@ static void StatCmd(FString InCmd)
 		FCommandStatsFile::Get().Stop();
 		FThreadStats::DisableRawStats();
 
-		if( FStatsMallocProfilerProxy::Get()->GetState() )
+		if( FStatsMallocProfilerProxy::HasMemoryProfilerToken() )
 		{
-			// Disable memory profiler and restore default stats groups.
-			FStatsMallocProfilerProxy::Get()->SetState( false );		
-			IStatGroupEnableManager::Get().StatGroupEnableManagerCommand( TEXT("default") );
+			if( FStatsMallocProfilerProxy::Get()->GetState() )
+			{
+				// Disable memory profiler and restore default stats groups.
+				FStatsMallocProfilerProxy::Get()->SetState( false );
+				IStatGroupEnableManager::Get().StatGroupEnableManagerCommand( TEXT( "default" ) );
+			}
 		}
-
+		
 		Stats.ResetStatsForRawStats();
 
 		// Disable displaying the raw stats memory overhead.
