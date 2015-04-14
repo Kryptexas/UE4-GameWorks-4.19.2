@@ -7,6 +7,7 @@
 #include "ExceptionHandling.h"
 #include "FileManagerGeneric.h"
 #include "TaskGraphInterfaces.h"
+#include "StatsMallocProfilerProxy.h"
 #include "Runtime/Core/Public/Modules/ModuleVersion.h"
 
 #include "Projects.h"
@@ -696,6 +697,15 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		// Fail, shipping builds will crash if setting command line fails
 		return -1;
 	}
+
+#if	STATS
+	// Create the stats malloc profiler proxy.
+	if( FStatsMallocProfilerProxy::HasMemoryProfilerToken() )
+	{
+		// Assumes no concurrency here.
+		GMalloc = FStatsMallocProfilerProxy::Get();
+	}
+#endif // STATS
 
 	// Set GameName, based on the command line
 	if (LaunchSetGameName(CmdLine) == false)
