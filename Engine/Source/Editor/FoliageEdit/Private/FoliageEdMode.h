@@ -329,6 +329,9 @@ public:
 	/** Set/Clear selection for foliage instances of specific type  */
 	void SelectInstances(const UFoliageType* Settings, bool bSelect);
 
+	/** Find and select instances that don't have valid base or 'off-ground' */
+	void SelectInvalidInstances(const UFoliageType* Settings);
+
 	/** Add desired instances. Uses foliage settings to determine location/scale/rotation and whether instances should be ignored */
 	static void AddInstances(UWorld* InWorld, const TArray<FDesiredFoliageInstance>& DesiredInstances);
 

@@ -42,6 +42,7 @@ public:
 	TSharedPtr< FUICommandInfo > ShowFoliageTypeInCB;
 	TSharedPtr< FUICommandInfo > SelectAllInstances;
 	TSharedPtr< FUICommandInfo > DeselectAllInstances;
+	TSharedPtr< FUICommandInfo > SelectInvalidInstances;
 	/**
 	 * Initialize commands
 	 */

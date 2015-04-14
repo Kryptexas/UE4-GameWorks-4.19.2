@@ -555,6 +555,12 @@ void SFoliageEdit::BindCommands()
 		FExecuteAction::CreateSP(this, &SFoliageEdit::OnDeselectAllInstances),
 		FCanExecuteAction(),
 		FIsActionChecked());
+
+	UICommandList->MapAction(
+		Commands.SelectInvalidInstances,
+		FExecuteAction::CreateSP(this, &SFoliageEdit::OnSelectInvalidInstances),
+		FCanExecuteAction(),
+		FIsActionChecked());
 }
 
 TSharedRef<SWidget> SFoliageEdit::BuildToolBar()
@@ -790,21 +796,25 @@ FReply SFoliageEdit::OnDrop_ListView(const FGeometry& MyGeometry, const FDragDro
 TSharedPtr<SWidget> SFoliageEdit::ConstructFoliageMeshContextMenu() const
 {
 	const FFoliageEditCommands& Commands = FFoliageEditCommands::Get();
-	
 	FMenuBuilder MenuBuilder(true, UICommandList);
-	MenuBuilder.AddMenuEntry(Commands.RemoveFoliageType);
 
-	MenuBuilder.AddSubMenu(
-		LOCTEXT( "ReplaceFoliageType", "Replace Foliage Type" ),
-		LOCTEXT ("ReplaceFoliageType_ToolTip", "Replaces selected foliage type with another foliage type asset"),
-		FNewMenuDelegate::CreateSP(this, &SFoliageEdit::FillReplaceFoliageTypeSubmenu));
-
-	MenuBuilder.AddMenuEntry(Commands.ShowFoliageTypeInCB);
-
-	if (IsSelectTool() || IsLassoSelectTool())
+	if (MeshTreeWidget->GetSelectedItems().Num() > 0)
 	{
-		MenuBuilder.AddMenuEntry(Commands.SelectAllInstances);
-		MenuBuilder.AddMenuEntry(Commands.DeselectAllInstances);
+		MenuBuilder.AddMenuEntry(Commands.RemoveFoliageType);
+
+		MenuBuilder.AddSubMenu(
+			LOCTEXT( "ReplaceFoliageType", "Replace Foliage Type" ),
+			LOCTEXT ("ReplaceFoliageType_ToolTip", "Replaces selected foliage type with another foliage type asset"),
+			FNewMenuDelegate::CreateSP(this, &SFoliageEdit::FillReplaceFoliageTypeSubmenu));
+
+		MenuBuilder.AddMenuEntry(Commands.ShowFoliageTypeInCB);
+
+		if (IsSelectTool() || IsLassoSelectTool())
+		{
+			MenuBuilder.AddMenuEntry(Commands.SelectAllInstances);
+			MenuBuilder.AddMenuEntry(Commands.DeselectAllInstances);
+			MenuBuilder.AddMenuEntry(Commands.SelectInvalidInstances);
+		}
 	}
 
 	return MenuBuilder.MakeWidget();
@@ -1129,6 +1139,16 @@ void SFoliageEdit::OnDeselectAllInstances()
 	{
 		UFoliageType* FoliageType = MeshUIPtr->Settings;
 		FoliageEditMode->SelectInstances(FoliageType, false);
+	}
+}
+
+void SFoliageEdit::OnSelectInvalidInstances()
+{
+	auto MeshUIList = MeshTreeWidget->GetSelectedItems();
+	for (FFoliageMeshUIInfoPtr MeshUIPtr : MeshUIList)
+	{
+		const UFoliageType* FoliageType = MeshUIPtr->Settings;
+		FoliageEditMode->SelectInvalidInstances(FoliageType);
 	}
 }
 

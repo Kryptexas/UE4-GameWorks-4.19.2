@@ -1194,6 +1194,90 @@ void FEdModeFoliage::RemoveSelectedInstances(UWorld* InWorld)
 	GEditor->EndTransaction();
 }
 
+TAutoConsoleVariable<float> CVarOffGroundTreshold(
+	TEXT("foliage.OffGroundThreshold"),
+	5.0f,
+	TEXT("Maximum distance from base component (in local space) at which instance is still considered as valid"));
+
+void FEdModeFoliage::SelectInvalidInstances(const UFoliageType* Settings)
+{
+	UWorld* InWorld = GetWorld();
+	
+	static FName NAME_FoliageGroundCheck = FName("FoliageGroundCheck");
+	FCollisionQueryParams QueryParams(NAME_FoliageGroundCheck, true);
+	QueryParams.bReturnFaceIndex = false;
+	FCollisionShape SphereShape;
+	SphereShape.SetSphere(0.f);
+	float InstanceOffGroundLocalThreshold = CVarOffGroundTreshold.GetValueOnGameThread();
+		
+	for (FFoliageMeshInfoIterator It(InWorld, Settings); It; ++It)
+	{
+		FFoliageMeshInfo* MeshInfo = (*It);
+		AInstancedFoliageActor* IFA = It.GetActor();
+		int32 NumInstances = MeshInfo->Instances.Num();
+		TArray<FHitResult> Hits; Hits.Reserve(16);
+
+		TArray<int32> InvalidInstances;
+		
+		for (int32 InstanceIdx = 0; InstanceIdx < NumInstances; ++InstanceIdx)
+		{
+			FFoliageInstance& Instance = MeshInfo->Instances[InstanceIdx];
+			UActorComponent* CurrentInstanceBase = IFA->InstanceBaseCache.GetInstanceBasePtr(Instance.BaseId).Get();
+			bool bInvalidInstance = true;
+
+			if (CurrentInstanceBase != nullptr)
+			{
+				FVector InstanceTraceRange = Instance.GetInstanceWorldTransform().TransformVector(FVector(0.f, 0.f, 1000.f));
+				FVector Start = Instance.Location + InstanceTraceRange;
+				FVector End = Instance.Location - InstanceTraceRange;
+				
+				InWorld->SweepMultiByObjectType(Hits, Start, End, FQuat::Identity, FCollisionObjectQueryParams(ECC_WorldStatic), SphereShape, QueryParams);
+				
+				for (const FHitResult& Hit : Hits)
+				{
+					UPrimitiveComponent* HitComponent = Hit.GetComponent();
+					if (HitComponent->IsCreatedByConstructionScript())
+					{
+						continue;
+					}
+																
+					UModelComponent* ModelComponent = Cast<UModelComponent>(HitComponent);
+					if (ModelComponent)
+					{
+						ABrush* BrushActor = ModelComponent->GetModel()->FindBrush(Hit.Location);
+						if (BrushActor)
+						{
+							HitComponent = BrushActor->GetBrushComponent();
+						}
+					}
+					
+					if (HitComponent == CurrentInstanceBase)
+					{
+						FVector InstanceWorldZOffset = Instance.GetInstanceWorldTransform().TransformVector(FVector(0.f, 0.f, Instance.ZOffset));
+						float DistanceToGround = FVector::Dist(Instance.Location, Hit.Location + InstanceWorldZOffset);
+						float InstanceWorldTreshold = Instance.GetInstanceWorldTransform().TransformVector(FVector(0.f, 0.f, InstanceOffGroundLocalThreshold)).Size();
+																								
+						if ((DistanceToGround - InstanceWorldTreshold) <= KINDA_SMALL_NUMBER)
+						{
+							bInvalidInstance = false;
+						}
+					}
+				}
+			}
+			
+			if (bInvalidInstance)
+			{
+				InvalidInstances.Add(InstanceIdx);
+			}
+		}
+
+		if (InvalidInstances.Num() > 0)
+		{
+			MeshInfo->SelectInstances(IFA, true, InvalidInstances);
+		}
+	}
+}
+
 void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere, float Pressure)
 {
 	// Adjust instance density first

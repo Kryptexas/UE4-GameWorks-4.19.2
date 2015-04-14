@@ -189,6 +189,9 @@ private:
 
 	/** Handler for 'Deselect All' command  */
 	void OnDeselectAllInstances();
+
+	/** Handler for 'Select Invalid Instances' command  */
+	void OnSelectInvalidInstances();
 	
 	/** Toggle all meshes on/off */
 	ECheckBoxState GetState_AllMeshes() const;
