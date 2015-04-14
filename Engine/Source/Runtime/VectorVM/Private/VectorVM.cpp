@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "CurveVector.h"
 #include "VectorVMPrivate.h"
+#include "CurveVector.h"
 #include "VectorVMDataObject.h"
 #include "ModuleManager.h"
 
