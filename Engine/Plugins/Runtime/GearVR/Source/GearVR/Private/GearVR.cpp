@@ -198,7 +198,7 @@ void FGearVR::PoseToOrientationAndPosition(const ovrPosef& InPose, FQuat& OutOri
 
 void FGearVR::GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition)
 {
-	const ovrSensorState ss = ovrHmd_GetSensorState(OvrHmd, ovr_GetTimeInSeconds() + MotionPredictionInSeconds, true);
+	const ovrSensorState ss = ovr_GetPredictedSensorState(OvrMobile, ovr_GetTimeInSeconds() + MotionPredictionInSeconds);
 	const ovrPosef& pose = ss.Predicted.Pose;
 
 	PoseToOrientationAndPosition(pose, CurrentOrientation, CurrentPosition);
@@ -580,7 +580,7 @@ bool FGearVR::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 	else if (FParse::Command(&Cmd, TEXT("OVRGLOBALMENU")))
 	{
-		ovr_StartPackageActivity(OvrMobile, PUI_CLASS_NAME, PUI_GLOBAL_MENU);
+		ovr_StartSystemActivity(OvrMobile, PUI_GLOBAL_MENU, NULL);
 	}
 
 	return false;
@@ -760,7 +760,7 @@ void FGearVR::CalculateStereoViewOffset(const EStereoscopicPass StereoPassType, 
 
 void FGearVR::ResetOrientationAndPosition(float yaw)
 {
-	const ovrSensorState ss = ovrHmd_GetSensorState(OvrHmd, ovr_GetTimeInSeconds(), true);
+	const ovrSensorState ss = ovr_GetPredictedSensorState(OvrMobile, ovr_GetTimeInSeconds());
 	const ovrPosef& pose = ss.Recorded.Pose;
 	const OVR::Quatf orientation = OVR::Quatf(pose.Orientation);
 
@@ -996,6 +996,7 @@ void FGearVR::Startup()
 	UE_LOG(LogHMD, Log, TEXT("GearVR starting with CPU: %d GPU: %d"), CpuLevel, GpuLevel);
 
 	FMemory::Memzero(VrModeParms);
+	VrModeParms.SkipWindowFullscreenReset = true;
 	VrModeParms.AsynchronousTimeWarp = true;
 	VrModeParms.DistortionFileName = NULL;
 	VrModeParms.EnableImageServer = false;
@@ -1255,8 +1256,6 @@ void FGearVR::PreRenderView_RenderThread(FSceneView& View)
 	if (!RenderParams_RenderThread.ShowFlags.Rendering)
 		return;
 
-	const ovrEyeType eyeIdx = (View.StereoPass == eSSP_LEFT_EYE) ? ovrEye_Left : ovrEye_Right;
-
 	FQuat	CurrentHmdOrientation = RenderParams_RenderThread.CurHmdOrientation;
 	FVector	CurrentHmdPosition = RenderParams_RenderThread.CurHmdPosition;
 
@@ -1296,7 +1295,7 @@ void FGearVR::PreRenderViewFamily_RenderThread(FSceneViewFamily& ViewFamily)
 	{
 		Lock::Locker lock(&UpdateOnRTLock);
 
-		const ovrSensorState ss = ovrHmd_GetSensorState(OvrHmd, ovr_GetTimeInSeconds(), true);
+		const ovrSensorState ss = ovr_GetPredictedSensorState(OvrMobile, ovr_GetTimeInSeconds());
 		const ovrPosef& pose = ss.Predicted.Pose;
 
 		PoseToOrientationAndPosition(pose, RenderParams_RenderThread.CurHmdOrientation, RenderParams_RenderThread.CurHmdPosition);
@@ -1528,6 +1527,7 @@ void FGearVR::FGearVRBridge::FinishRendering()
 			glBindTexture(GL_TEXTURE_2D, 0 );
 
 			ovr_WarpSwap(Plugin->OvrMobile, &SwapParms);
+			ovr_HandleDeviceStateChanges(Plugin->OvrMobile);
 			CurrentSwapChainIndex = (CurrentSwapChainIndex + 1) % 3;
 		}
 	}
@@ -1549,6 +1549,8 @@ void FGearVR::FGearVRBridge::Init()
 			SwapChainTextures[Eye][i] = 0;
 		}
 	}
+
+	SwapParms = InitTimeWarpParms();
 }
 
 void FGearVR::FGearVRBridge::Reset()
@@ -1582,13 +1584,13 @@ void FGearVR::FGearVRBridge::UpdateViewport(const FViewport& Viewport, FRHIViewp
 	GLuint RTTexId = *(GLuint*)RT->GetNativeResource();
 
 	FMatrix ProjMat = Plugin->GetStereoProjectionMatrix(eSSP_LEFT_EYE, 90.0f);
-	const Matrix4f proj = Plugin->ToMatrix4f(ProjMat);
+	const ovrMatrix4f proj = Plugin->ToMatrix4f(ProjMat);
  //	const Matrix4f proj = Matrix4f::PerspectiveRH( FOV, 1.0f, 1.0f, 100.0f);
- 	SwapParms.Images[0][0].TexCoordsFromTanAngles = TanAngleMatrixFromProjection( proj );
+ 	SwapParms.Images[0][0].TexCoordsFromTanAngles = TanAngleMatrixFromProjection( &proj );
 // 	SwapParms.Images[0][0].TexId = RTTexId;
 // 	SwapParms.Images[0][0].Pose = Plugin->RenderParams_RenderThread.EyeRenderPose[0];
 // 
- 	SwapParms.Images[1][0].TexCoordsFromTanAngles = TanAngleMatrixFromProjection( proj );
+ 	SwapParms.Images[1][0].TexCoordsFromTanAngles = TanAngleMatrixFromProjection( &proj );
 // 	SwapParms.Images[1][0].TexId = RTTexId;
 // 	SwapParms.Images[1][0].Pose = Plugin->RenderParams_RenderThread.EyeRenderPose[1];
 

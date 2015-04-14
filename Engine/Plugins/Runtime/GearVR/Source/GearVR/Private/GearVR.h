@@ -17,12 +17,13 @@
 
 #include "../Src/Kernel/OVR_Math.h"
 #include "../Src/Kernel/OVR_Threads.h"
-#include "../Src/OVR_CAPI.h"
 #include "../Src/Kernel/OVR_Color.h"
 #include "../Src/Kernel/OVR_Timer.h"
 
 #include "OVR.h"
 #include "VrApi.h"
+#include "VrApi_Helpers.h"
+#include "VrApi_Android.h"
 
 #include <GLES2/gl2.h>
 
@@ -153,7 +154,7 @@ public:
 
 	public:
 		bool				bFirstTime;
-		TimeWarpParms		SwapParms;
+		ovrTimeWarpParms	SwapParms;
 
 	private:
 		FGearVR*			Plugin;
@@ -417,7 +418,6 @@ private: // data
 	ovrModeParms			VrModeParms;
 
 	ovrHmdInfo				HmdInfo;
-	ovrSensorDesc			SensorDesc;
 
 	FIntPoint				EyeViewportSize; // size of the viewport (for one eye). At the moment it is a half of RT.
 	
