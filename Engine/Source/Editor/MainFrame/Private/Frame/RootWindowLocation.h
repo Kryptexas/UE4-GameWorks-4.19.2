@@ -32,28 +32,44 @@ public:
 		: WindowSize( VectorFromSettings(TEXT("WindowSize"), FVector2D(1280,720)) )
 		, InitiallyMaximized( BoolFromSettings(TEXT("InitiallyMaximized"), true) )
 	{
-		// Find the default centered screen position
-		FDisplayMetrics DisplayMetrics;
-		FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
-		const FVector2D DisplayTopLeft(DisplayMetrics.PrimaryDisplayWorkAreaRect.Left, DisplayMetrics.PrimaryDisplayWorkAreaRect.Top);
-		const FVector2D DisplaySize(DisplayMetrics.PrimaryDisplayWorkAreaRect.Right - DisplayMetrics.PrimaryDisplayWorkAreaRect.Left, 
-									DisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom - DisplayMetrics.PrimaryDisplayWorkAreaRect.Top);
-		FVector2D DefaultPosition = DisplayTopLeft + (DisplaySize - WindowSize) * 0.5f;
-
-		ScreenPosition = VectorFromSettings(TEXT("ScreenPosition"), DefaultPosition);
+		ScreenPosition = VectorFromSettings(TEXT("ScreenPosition"), GetCenteredScreenPosition() );
 	}
 	
 	/**
-	 * Creates and initializes a new instance.
+	 * Creates and initializes a new instance with the specified size.
+	 */
+	FRootWindowLocation(FVector2D InWindowSize, bool InInitiallyMaximized)
+		: WindowSize(InWindowSize)
+		, InitiallyMaximized(InInitiallyMaximized)
+	{
+		ScreenPosition = GetCenteredScreenPosition();
+	}
+
+	/**
+	 * Creates and initializes a new instance with the specified position and size.
 	 */
 	FRootWindowLocation( FVector2D InScreenPosition, FVector2D InWindowSize, bool InInitiallyMaximized )
-		: ScreenPosition(InScreenPosition)
+		: ScreenPosition( InScreenPosition )
 		, WindowSize( InWindowSize )
-		, InitiallyMaximized(InInitiallyMaximized)
+		, InitiallyMaximized( InInitiallyMaximized )
 	{ }
 
 
 public:
+
+	/**
+	 * Set centered screen position based on the size
+	 */
+	FVector2D GetCenteredScreenPosition() const
+	{
+		// Find the default centered screen position
+		FDisplayMetrics DisplayMetrics;
+		FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
+		const FVector2D DisplayTopLeft(DisplayMetrics.PrimaryDisplayWorkAreaRect.Left, DisplayMetrics.PrimaryDisplayWorkAreaRect.Top);
+		const FVector2D DisplaySize(DisplayMetrics.PrimaryDisplayWorkAreaRect.Right - DisplayMetrics.PrimaryDisplayWorkAreaRect.Left,
+									DisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom - DisplayMetrics.PrimaryDisplayWorkAreaRect.Top);
+		return DisplayTopLeft + (DisplaySize - WindowSize) * 0.5f;
+	}
 
 	/**
 	 * Saves this structure to the INI file.

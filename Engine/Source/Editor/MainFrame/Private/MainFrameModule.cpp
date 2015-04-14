@@ -62,11 +62,9 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersivePIE )
 			DefaultWindowLocation.InitiallyMaximized = false;
 
 			DefaultWindowLocation.WindowSize = GetProjectBrowserWindowSize();
+			DefaultWindowLocation.ScreenPosition = DefaultWindowLocation.GetCenteredScreenPosition();
 
-			// Do not let the user adjust the fixed size
 			bIsUserSizable = true;
-
-			// Since this will appear to be a dialog, there is no need to allow maximizing or minimizing
 			bSupportsMaximize = true;
 			bSupportsMinimize = true;
 
