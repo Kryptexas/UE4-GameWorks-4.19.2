@@ -326,8 +326,8 @@ public:
 	 *
 	 * Sample usage:
 	 *
-	 *       TArray<AStaticMeshActor*> ActorsInSelectionRect;
-	 * 		Canvas->GetActorsInSelectionRectangle<AStaticMeshActor>(FirstPoint,SecondPoint,ActorsInSelectionRect);
+	 *      TArray<AStaticMeshActor*> ActorsInSelectionRect;
+	 * 		GetActorsInSelectionRectangle<AStaticMeshActor>(FirstPoint,SecondPoint,ActorsInSelectionRect);
 	 *
 	 *
 	 * @param FirstPoint					The first point, or anchor of the marquee box. Where the dragging of the marquee started in screen space.
