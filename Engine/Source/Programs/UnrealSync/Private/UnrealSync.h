@@ -239,6 +239,11 @@ public:
 	static void TerminateLoadingProcess();
 
 	/**
+	 * Terminates P4 syncing process.
+	 */
+	static void TerminateSyncingProcess();
+
+	/**
 	 * Method to receive p4 data loading finished event.
 	 *
 	 * @param Data Loaded data.

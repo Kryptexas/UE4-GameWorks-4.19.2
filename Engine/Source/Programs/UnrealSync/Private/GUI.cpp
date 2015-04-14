@@ -738,10 +738,12 @@ class SMainTabWidget : public SCompoundWidget
 		EActiveTimerReturnType ExecuteRequests(double CurrentTime, float DeltaTime)
 		{
 			FScopeLock Lock(&RequestsMutex);
-			while (Requests.Num())
+			for (int32 ReqId = 0; ReqId < Requests.Num(); ++ReqId)
 			{
-				Requests.Pop().Execute();
+				Requests[ReqId].Execute();
 			}
+
+			Requests.Empty(4);
 
 			return EActiveTimerReturnType::Continue;
 		}
@@ -882,6 +884,14 @@ public:
 					+ SHorizontalBox::Slot()
 					+ SHorizontalBox::Slot().AutoWidth()
 					[
+						SAssignNew(CancelButton, SButton)
+						.OnClicked(this, &SMainTabWidget::OnCancelButtonClick)
+						[
+							SNew(STextBlock).Text(FText::FromString("Cancel"))
+						]
+					]
+					+ SHorizontalBox::Slot().AutoWidth()
+					[
 						GoBackButton.ToSharedRef()
 					]
 				]
@@ -923,13 +933,14 @@ public:
 	virtual ~SMainTabWidget()
 	{
 		FUnrealSync::TerminateLoadingProcess();
+		FUnrealSync::TerminateSyncingProcess();
 	}
 
 private:
 	/**
 	 * Queues adding lines to the log for execution on Slate rendering thread.
 	 */
-	void ExternalThreadAddLinesToLog(TArray<TSharedPtr<FString> > Lines)
+	void ExternalThreadAddLinesToLog(TSharedPtr<TArray<TSharedPtr<FString> > > Lines)
 	{
 		ExternalThreadsDispatcher->AddRenderingThreadRequest(FExternalThreadsDispatcher::FRenderingThreadRequest::CreateSP(this, &SMainTabWidget::AddLinesToLog, Lines));
 	}
@@ -939,9 +950,9 @@ private:
 	 *
 	 * @param Lines Lines to add.
 	 */
-	void AddLinesToLog(TArray<TSharedPtr<FString> > Lines)
+	void AddLinesToLog(TSharedPtr<TArray<TSharedPtr<FString> > > Lines)
 	{
-		for (const auto& Line : Lines)
+		for (const auto& Line : *Lines)
 		{
 			LogLines.Add(Line);
 		}
@@ -986,6 +997,18 @@ private:
 	}
 
 	/**
+	 * Performs a procedure that needs to be done when GoBack button is clicked.
+	 * It tells the app to go back to the beginning.
+	 */
+	void GoBack()
+	{
+		Switcher->SetActiveWidgetIndex(0);
+		LogLines.Empty();
+		LogListView->RequestListRefresh();
+		OnReloadLabels();
+	}
+
+	/**
 	 * Function that is called on when go back button is clicked.
 	 * It tells the app to go back to the beginning.
 	 *
@@ -993,10 +1016,23 @@ private:
 	 */
 	FReply OnGoBackButtonClick()
 	{
-		Switcher->SetActiveWidgetIndex(0);
-		LogLines.Empty();
-		LogListView->RequestListRefresh();
-		OnReloadLabels();
+		GoBack();
+
+		return FReply::Handled();
+	}
+
+	/**
+	 * Function that is called on when cancel button is clicked.
+	 * It tells the app to cancel the sync and go back to the beginning.
+	 *
+	 * @returns Tells that this event was handled.
+	 */
+	FReply OnCancelButtonClick()
+	{
+		FUnrealSync::TerminateLoadingProcess();
+		FUnrealSync::TerminateSyncingProcess();
+
+		ExternalThreadsDispatcher->AddRenderingThreadRequest(FExternalThreadsDispatcher::FRenderingThreadRequest::CreateSP(this, &SMainTabWidget::GoBack));
 
 		return FReply::Handled();
 	}
@@ -1053,6 +1089,7 @@ private:
 			FUnrealSync::FOnSyncProgress::CreateRaw(this, &SMainTabWidget::SyncingProgress));
 
 		GoBackButton->SetEnabled(false);
+		CancelButton->SetEnabled(true);
 
 		return FReply::Handled();
 	}
@@ -1078,11 +1115,11 @@ private:
 		FString Line;
 		FString Rest;
 
-		TArray<TSharedPtr<FString> > Lines;
+		TSharedPtr<TArray<TSharedPtr<FString> > > Lines = MakeShareable(new TArray<TSharedPtr<FString> >());
 
 		while (Buffer.Split("\n", &Line, &Rest))
 		{
-			Lines.Add(MakeShareable(new FString(Line)));
+			Lines->Add(MakeShareable(new FString(Line)));
 
 			Buffer = Rest;
 		}
@@ -1099,6 +1136,7 @@ private:
 	 */
 	void SyncingFinished(bool bSuccess)
 	{
+		CancelButton->SetEnabled(false);
 		GoBackButton->SetEnabled(true);
 	}
 
@@ -1195,6 +1233,8 @@ private:
 
 	/* Go back button reference. */
 	TSharedPtr<SButton> GoBackButton;
+	/* Cancel button reference. */
+	TSharedPtr<SButton> CancelButton;
 
 	/* Array of sync command line providers. */
 	TArray<TSharedRef<ILabelNameProvider> > SyncCommandLineProviders;

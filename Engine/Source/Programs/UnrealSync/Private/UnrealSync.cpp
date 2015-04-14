@@ -291,9 +291,9 @@ public:
 	 * @param OnSyncProgress Delegate to run when syncing process has made progress.
 	 */
 	FSyncingThread(FSyncSettings Settings, ILabelNameProvider& LabelNameProvider, const FUnrealSync::FOnSyncFinished& OnSyncFinished, const FUnrealSync::FOnSyncProgress& OnSyncProgress)
-		: Settings(MoveTemp(Settings)), LabelNameProvider(LabelNameProvider), OnSyncFinished(OnSyncFinished), OnSyncProgress(OnSyncProgress)
+		: Settings(MoveTemp(Settings)), LabelNameProvider(LabelNameProvider), OnSyncFinished(OnSyncFinished), OnSyncProgress(OnSyncProgress), bTerminate(false)
 	{
-		FRunnableThread::Create(this, TEXT("Syncing thread"));
+		Thread = FRunnableThread::Create(this, TEXT("Syncing thread"));
 	}
 
 	/**
@@ -308,8 +308,32 @@ public:
 
 		FString Label = LabelNameProvider.GetLabelName();
 		FString Game = LabelNameProvider.GetGameName();
+
+		struct FProcessStopper
+		{
+			FProcessStopper(bool& bStop, FUnrealSync::FOnSyncProgress& OuterSyncProgress)
+				: bStop(bStop), OuterSyncProgress(OuterSyncProgress) {}
+
+			bool OnProgress(const FString& Text)
+			{
+				if (OuterSyncProgress.IsBound())
+				{
+					if (!OuterSyncProgress.Execute(Text))
+					{
+						bStop = true;
+					}
+				}
+
+				return !bStop;
+			}
+
+		private:
+			bool& bStop;
+			FUnrealSync::FOnSyncProgress& OuterSyncProgress;
+		};
 		
-		bool bSuccess = FUnrealSync::Sync(Settings, Label, Game, OnSyncProgress);
+		FProcessStopper Stopper(bTerminate, OnSyncProgress);
+		bool bSuccess = FUnrealSync::Sync(Settings, Label, Game, FUnrealSync::FOnSyncProgress::CreateRaw(&Stopper, &FProcessStopper::OnProgress));
 
 		if (OnSyncProgress.IsBound())
 		{
@@ -321,7 +345,23 @@ public:
 		return 0;
 	}
 
+	/**
+	 * Stops process runnning in the background and terminates wait for the
+	 * watcher thread to finish.
+	 */
+	void Terminate()
+	{
+		bTerminate = true;
+		Thread->WaitForCompletion();
+	}
+
 private:
+	/* Tells the thread to terminate the process. */
+	bool bTerminate;
+
+	/* Handle for thread object. */
+	FRunnableThread* Thread;
+
 	/* Sync settings. */
 	FSyncSettings Settings;
 
@@ -334,6 +374,14 @@ private:
 	/* Delegate that will be run when syncing process has finished. */
 	FUnrealSync::FOnSyncProgress OnSyncProgress;
 };
+
+void FUnrealSync::TerminateSyncingProcess()
+{
+	if (SyncingThread.IsValid())
+	{
+		SyncingThread->Terminate();
+	}
+}
 
 void FUnrealSync::LaunchSync(FSyncSettings Settings, ILabelNameProvider& LabelNameProvider, const FOnSyncFinished& OnSyncFinished, const FOnSyncProgress& OnSyncProgress)
 {
