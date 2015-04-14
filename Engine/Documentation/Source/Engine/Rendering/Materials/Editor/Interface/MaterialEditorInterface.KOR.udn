@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2225741
+﻿INTSourceChangelist:2510725
 Availability: Public
 Title:머티리얼 에디터 UI
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/Editor
@@ -213,7 +213,7 @@ HLSL 코드 패널도 있으나, 기본적으로는 표시되지 않습니다. �
 | --- | --- |
 | **A** | Add |
 | **B** | BumpOffset |
-| **C** | ComponentMask |
+| **C** | Comment |
 | **D** | Divide |
 | **E** | Power |
 | **F** | MaterialFunctionCall |
@@ -232,5 +232,5 @@ HLSL 코드 패널도 있으나, 기본적으로는 표시되지 않습니다. �
 | **2** | Constant2Vector |
 | **3** | Constant3Vector |
 | **4** | Constant4Vector |
-| **Shift + C**  | Comment |
+| **Shift + C**  | ComponentMask |
 

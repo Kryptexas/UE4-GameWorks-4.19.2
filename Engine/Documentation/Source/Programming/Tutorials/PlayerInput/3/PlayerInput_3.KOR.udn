@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2502586
+﻿INTSourceChangelist:2510275
 Availability: Public
 Title:3. 게임 액션 프로그래밍 및 바인딩
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerInput
@@ -22,7 +22,7 @@ Description:C++ 코드에 입력을 바인딩합니다.
 
 %Steps%
 
-1. **Visual Studio** 에서 "MyActor.h" 를 열고 다음 코드를 MyPawn 클래스 정의 하단에 추가합니다:
+1. **Visual Studio** 에서 "MyPawn.h" 를 열고 다음 코드를 MyPawn 클래스 정의 하단에 추가합니다:
 
 		//입력 함수
 		void Move_XAxis(float AxisValue);
