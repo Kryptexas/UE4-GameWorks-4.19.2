@@ -135,7 +135,7 @@ Description:ランドスケープツールの Paint モードのガイド
 レイヤーはマテリアルで作成します。レイヤーとランドスケープ マテリアルに関する詳細は、 [](Engine/Landscape\Materials) をご覧ください。
 
 
-### Layer Info Object
+### Layer Info Objects
 
 Layer Info Object は、ランドスケープ レイヤーに関する情報を格納するアセットです。全てのランドスケープレイヤーに Layer Info Object を割り当てなくてはいけません。さもなければペイントができません。Layer Info Object はランドスケープ ツールで作成します。
 
