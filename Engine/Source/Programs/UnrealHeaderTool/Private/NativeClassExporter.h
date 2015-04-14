@@ -78,7 +78,7 @@ private:
 	FUHTStringBuilder EnhancedUObjectConstructorsMacroCall;
 
 	/** Generated function implementations that belong in the cpp file, split into multiple files base on line count **/
-	TArray<FUHTStringBuilderLineCounter> GeneratedFunctionBodyTextSplit;
+	TArray<TUniqueObj<FUHTStringBuilderLineCounter>> GeneratedFunctionBodyTextSplit;
 	/** Declarations of generated functions for this module**/
 	FUHTStringBuilder GeneratedFunctionDeclarations;
 	/** Declarations of generated functions for cross module**/
