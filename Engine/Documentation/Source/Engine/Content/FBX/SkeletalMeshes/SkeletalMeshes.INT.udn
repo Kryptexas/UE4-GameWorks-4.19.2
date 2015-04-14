@@ -35,10 +35,10 @@ morph targets can be transferred using the FBX format all within the same file i
 imported and materials will be automatically created and applied to the imported meshes.
 [/EXCERPT:FBX_SkeletalMeshes]
 
-Features supported for importing Static Meshes using FBX:
+Features supported for importing Skeletal Meshes using FBX:
 
 
-* [_Skeletal Meshes_ with materials including textures](#Materials)
+* [Materials including textures](#Materials)
 * [Animations](#Animations)
 * [Morph Targets](#MorphTargets)
 * Multiple UV sets
@@ -390,7 +390,7 @@ _Skeletal Meshes_ can be exported individually or multiple meshes can be exporte
 	![import_file.jpg](import_file.jpg)(w:764 h:362)
   
 	[REGION:note]
-		The imported path of the imported asset depends on the current location of the **Content Browser** while importing. Make sure to navigate to the appropriate folder prior to performing the import. You may also drag the imported assets into a new folder once import is complete.
+		The path of the imported asset depends on the current location of the **Content Browser** while importing. Make sure to navigate to the appropriate folder prior to performing the import. You may also drag the imported assets into a new folder once import is complete.
 	[/REGION]
    
 1. Choose the appropriate settings in the **FBX Import Options** dialog. The defaults should be sufficient when importing a mesh that does not share an existing Skeleton. See the [FBX Import Dialog](Engine/Content/FBX/ImportOptions) section for complete details of all of the settings.   
