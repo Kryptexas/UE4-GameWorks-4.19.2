@@ -82,6 +82,7 @@ void UDataTable::Serialize( FArchive& Ar )
 
 	if(Ar.IsLoading())
 	{
+		EmptyTable();
 		LoadStructData(Ar);
 	}
 	else if(Ar.IsSaving())

@@ -81,9 +81,30 @@ FDataTableEditor::FDataTableEditor()
 
 FDataTableEditor::~FDataTableEditor()
 {
+	GEditor->UnregisterForUndo(this);
+
 	if (DataTable.IsValid())
 	{
 		SaveLayoutData();
+	}
+}
+
+void FDataTableEditor::PostUndo(bool bSuccess)
+{
+	HandleUndoRedo();
+}
+
+void FDataTableEditor::PostRedo(bool bSuccess)
+{
+	HandleUndoRedo();
+}
+
+void FDataTableEditor::HandleUndoRedo()
+{
+	if (DataTable.IsValid())
+	{
+		HandlePostChange();
+		CallbackOnDataTableUndoRedo.ExecuteIfBound();
 	}
 }
 
@@ -95,11 +116,7 @@ void FDataTableEditor::PostChange(const class UUserDefinedStruct* Struct, FStruc
 {
 	if (Struct && DataTable.IsValid() && (DataTable->RowStruct == Struct))
 	{
-		// We need to cache and restore the selection here as RefreshCachedDataTable will re-create the list view items
-		const FName CachedSelection = HighlightedRowName;
-		HighlightedRowName = NAME_None;
-		RefreshCachedDataTable();
-		RestoreCachedSelection(CachedSelection, true/*bUpdateEvenIfValid*/);
+		HandlePostChange();
 	}
 }
 
@@ -112,12 +129,17 @@ void FDataTableEditor::PostChange(const UDataTable* Changed, FDataTableEditorUti
 	FStringAssetReference::InvalidateTag(); // Should be removed after UE-5615 is fixed
 	if (Changed == DataTable.Get())
 	{
-		// We need to cache and restore the selection here as RefreshCachedDataTable will re-create the list view items
-		const FName CachedSelection = HighlightedRowName;
-		HighlightedRowName = NAME_None;
-		RefreshCachedDataTable();
-		RestoreCachedSelection(CachedSelection, true/*bUpdateEvenIfValid*/);
+		HandlePostChange();
 	}
+}
+
+void FDataTableEditor::HandlePostChange()
+{
+	// We need to cache and restore the selection here as RefreshCachedDataTable will re-create the list view items
+	const FName CachedSelection = HighlightedRowName;
+	HighlightedRowName = NAME_None;
+	RefreshCachedDataTable();
+	RestoreCachedSelection(CachedSelection, true/*bUpdateEvenIfValid*/);
 }
 
 void FDataTableEditor::InitDataTableEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UDataTable* Table )
@@ -144,6 +166,9 @@ void FDataTableEditor::InitDataTableEditor( const EToolkitMode::Type Mode, const
 	
 	FDataTableEditorModule& DataTableEditorModule = FModuleManager::LoadModuleChecked<FDataTableEditorModule>( "DataTableEditor" );
 	AddMenuExtender(DataTableEditorModule.GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
+
+	// Support undo/redo
+	GEditor->RegisterForUndo(this);
 
 	// @todo toolkit world centric editing
 	/*// Setup our tool's layout
@@ -279,6 +304,7 @@ TSharedRef<ITableRow> FDataTableEditor::MakeRowNameWidget(FDataTableEditorRowLis
 				SNew(STextBlock)
 				.ColorAndOpacity(this, &FDataTableEditor::GetRowTextColor, InRowDataPtr->RowId)
 				.Text(InRowDataPtr->DisplayName)
+				.HighlightText(this, &FDataTableEditor::GetFilterText)
 			]
 		];
 }
@@ -313,6 +339,7 @@ TSharedRef<SWidget> FDataTableEditor::MakeCellWidget(FDataTableEditorRowListView
 				.TextStyle(FEditorStyle::Get(), "DataTableEditor.CellText")
 				.ColorAndOpacity(this, &FDataTableEditor::GetRowTextColor, InRowDataPtr->RowId)
 				.Text(InRowDataPtr->CellData[ColumnIndex])
+				.HighlightText(this, &FDataTableEditor::GetFilterText)
 				.ToolTipText(FText::Format(LOCTEXT("ColumnRowNameFmt", "{0}: {1}"), AvailableColumns[ColumnIndex]->DisplayName, InRowDataPtr->CellData[ColumnIndex]))
 			];
 	}
@@ -345,8 +372,14 @@ void FDataTableEditor::OnRowSelectionChanged(FDataTableEditorRowListViewDataPtr 
 	}
 }
 
-void FDataTableEditor::OnSearchTextChanged(const FText& SearchText)
+FText FDataTableEditor::GetFilterText() const
 {
+	return ActiveFilterText;
+}
+
+void FDataTableEditor::OnFilterTextChanged(const FText& InFilterText)
+{
+	ActiveFilterText = InFilterText;
 	UpdateVisibleRows();
 }
 
@@ -416,8 +449,7 @@ void FDataTableEditor::RefreshCachedDataTable()
 
 void FDataTableEditor::UpdateVisibleRows()
 {
-	const FText& ActiveSearchText = (SearchBox.IsValid()) ? SearchBox->GetText() : FText::GetEmpty();
-	if (ActiveSearchText.IsEmptyOrWhitespace())
+	if (ActiveFilterText.IsEmptyOrWhitespace())
 	{
 		VisibleRows = AvailableRows;
 	}
@@ -425,12 +457,12 @@ void FDataTableEditor::UpdateVisibleRows()
 	{
 		VisibleRows.Empty(AvailableRows.Num());
 
-		const FString& ActiveSearchString = ActiveSearchText.ToString();
+		const FString& ActiveFilterString = ActiveFilterText.ToString();
 		for (const FDataTableEditorRowListViewDataPtr& RowData : AvailableRows)
 		{
 			bool bPassesFilter = false;
 
-			if (RowData->DisplayName.ToString().Contains(ActiveSearchString))
+			if (RowData->DisplayName.ToString().Contains(ActiveFilterString))
 			{
 				bPassesFilter = true;
 			}
@@ -438,7 +470,7 @@ void FDataTableEditor::UpdateVisibleRows()
 			{
 				for (const FText& CellText : RowData->CellData)
 				{
-					if (CellText.ToString().Contains(ActiveSearchString))
+					if (CellText.ToString().Contains(ActiveFilterString))
 					{
 						bPassesFilter = true;
 						break;
@@ -530,8 +562,9 @@ TSharedRef<SVerticalBox> FDataTableEditor::CreateContentBox()
 		+SVerticalBox::Slot()
 		.AutoHeight()
 		[
-			SAssignNew(SearchBox, SSearchBox)
-			.OnTextChanged(this, &FDataTableEditor::OnSearchTextChanged)
+			SNew(SSearchBox)
+			.InitialText(this, &FDataTableEditor::GetFilterText)
+			.OnTextChanged(this, &FDataTableEditor::OnFilterTextChanged)
 		]
 		+SVerticalBox::Slot()
 		[
@@ -586,6 +619,7 @@ TSharedRef<SWidget> FDataTableEditor::CreateRowEditorBox()
 	auto RowEditor = SNew(SRowEditor, DataTable.Get());
 	RowEditor->RowSelectedCallback.BindSP(this, &FDataTableEditor::SetHighlightedRow);
 	CallbackOnRowHighlighted.BindSP(RowEditor, &SRowEditor::SelectRow);
+	CallbackOnDataTableUndoRedo.BindSP(RowEditor, &SRowEditor::HandleUndoRedo);
 	return RowEditor;
 }
 
@@ -615,6 +649,12 @@ TSharedRef<SDockTab> FDataTableEditor::SpawnTab_DataTable( const FSpawnTabArgs& 
 	check( Args.GetTabId().TabType == DataTableTabId );
 
 	DataTable = Cast<UDataTable>(GetEditingObject());
+
+	// Support undo/redo
+	if (DataTable.IsValid())
+	{
+		DataTable->SetFlags(RF_Transactional);
+	}
 
 	LoadLayoutData();
 

@@ -59,7 +59,8 @@ public:
 	}
 };
 
-SRowEditor::SRowEditor() : SCompoundWidget()
+SRowEditor::SRowEditor() 
+	: SCompoundWidget()
 {
 }
 
@@ -67,22 +68,21 @@ SRowEditor::~SRowEditor()
 {
 }
 
-void SRowEditor::OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent)
+void SRowEditor::NotifyPreChange( UProperty* PropertyAboutToChange )
 {
-	check(PropertyChangedEvent.MemberProperty
-		&& PropertyChangedEvent.MemberProperty->GetOwnerStruct()
-		&& (PropertyChangedEvent.MemberProperty->GetOwnerStruct() == GetScriptStruct()));
+	check(DataTable.IsValid());
+	DataTable->Modify();
 
-	// TODO:
-	// FNotifyHook won't be called, because the struct has no "property-path" from DT object. THe struct is seen as detached.
-	// But the notification must be called somewhere.
+	FDataTableEditorUtils::BroadcastPreChange(DataTable.Get(), FDataTableEditorUtils::EDataTableChangeInfo::RowData);
+}
 
-	FDataTableEditorUtils::BroadcastPostChange(DataTable.Get(), FDataTableEditorUtils::EDataTableChangeInfo::RowDataPostChangeOnly);
+void SRowEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged )
+{
+	check(DataTable.IsValid());
 
-	if (DataTable.IsValid())
-	{
-		DataTable->MarkPackageDirty();
-	}
+	FDataTableEditorUtils::BroadcastPostChange(DataTable.Get(), FDataTableEditorUtils::EDataTableChangeInfo::RowData);
+
+	DataTable->MarkPackageDirty();
 }
 
 void SRowEditor::PreChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info)
@@ -254,6 +254,12 @@ void SRowEditor::SelectRow(FName InName)
 	OnSelectionChanged(NewSelectedName, ESelectInfo::Direct);
 }
 
+void SRowEditor::HandleUndoRedo()
+{
+	RefreshNameList();
+	Restore();
+}
+
 FReply SRowEditor::OnAddClicked()
 {
 	if (DataTable.IsValid())
@@ -330,9 +336,9 @@ void SRowEditor::Construct(const FArguments& InArgs, UDataTable* Changed)
 		ViewArgs.bAllowSearch = false;
 		ViewArgs.bHideSelectionTip = false;
 		ViewArgs.bShowActorLabel = false;
+		ViewArgs.NotifyHook = this;
 
 		StructureDetailsView = PropertyModule.CreateStructureDetailView(ViewArgs, CurrentRow, true/*bShowObjects*/, LOCTEXT("RowValue", "Row Value"));
-		StructureDetailsView->GetOnFinishedChangingPropertiesDelegate().AddSP(this, &SRowEditor::OnFinishedChangingProperties);
 	}
 
 	RefreshNameList();

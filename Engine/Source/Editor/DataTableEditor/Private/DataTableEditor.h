@@ -4,7 +4,7 @@
 
 #include "IDataTableEditor.h"
 #include "Toolkits/AssetEditorToolkit.h"
-
+#include "EditorUndoClient.h"
 #include "Kismet2/StructureEditorUtils.h"
 #include "DataTableEditorUtils.h"
 
@@ -15,6 +15,7 @@ DECLARE_DELEGATE_OneParam(FOnRowHighlighted, FName /*Row name*/);
 
 /** Viewer/editor for a DataTable */
 class FDataTableEditor : public IDataTableEditor
+	, public FEditorUndoClient
 	, public FStructureEditorUtils::INotifyOnStructChanged
 	, public FDataTableEditorUtils::INotifyOnDataTableChanged
 {
@@ -46,6 +47,11 @@ public:
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 
+	// FEditorUndoClient
+	virtual void PostUndo(bool bSuccess) override;
+	virtual void PostRedo(bool bSuccess) override;
+	void HandleUndoRedo();
+
 	// INotifyOnStructChanged
 	virtual void PreChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info) override;
 	virtual void PostChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info) override;
@@ -53,6 +59,8 @@ public:
 	// INotifyOnDataTableChanged
 	virtual void PreChange(const UDataTable* Changed, FDataTableEditorUtils::EDataTableChangeInfo Info) override;
 	virtual void PostChange(const UDataTable* Changed, FDataTableEditorUtils::EDataTableChangeInfo Info) override;
+
+	void HandlePostChange();
 
 	void SetHighlightedRow(FName Name);
 
@@ -64,7 +72,9 @@ private:
 
 	void RestoreCachedSelection(const FName InCachedSelection, const bool bUpdateEvenIfValid = false);
 
-	void OnSearchTextChanged(const FText& SearchText);
+	FText GetFilterText() const;
+
+	void OnFilterTextChanged(const FText& InFilterText);
 
 	FSlateColor GetRowTextColor(FName RowName) const;
 
@@ -144,18 +154,21 @@ private:
 	/** Widths of data table cell columns */
 	TArray<FColumnWidth> ColumnWidths;
 
-	/** Search box */
-	TSharedPtr<SSearchBox> SearchBox;
-
 	/* The DataTable that is active in the editor */
 	TAssetPtr<UDataTable> DataTable;
 
 	/** The layout data for the currently loaded data table */
 	TSharedPtr<FJsonObject> LayoutData;
 
+	/** The name of the currently selected row */
 	FName HighlightedRowName;
 
+	/** The current filter text applied to the data table */
+	FText ActiveFilterText;
+
 	FOnRowHighlighted CallbackOnRowHighlighted;
+
+	FSimpleDelegate CallbackOnDataTableUndoRedo;
 
 	/**	The tab id for the data table tab */
 	static const FName DataTableTabId;

@@ -9,6 +9,7 @@ DECLARE_DELEGATE_OneParam(FOnRowModified, FName /*Row name*/);
 DECLARE_DELEGATE_OneParam(FOnRowSelected, FName /*Row name*/);
 
 class SRowEditor : public SCompoundWidget
+	, public FNotifyHook
 	, public FStructureEditorUtils::INotifyOnStructChanged
 	, public FDataTableEditorUtils::INotifyOnDataTableChanged
 {
@@ -18,6 +19,10 @@ public:
 
 	SRowEditor();
 	virtual ~SRowEditor();
+
+	// FNotifyHook
+	virtual void NotifyPreChange( UProperty* PropertyAboutToChange ) override;
+	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged ) override;
 
 	// INotifyOnStructChanged
 	virtual void PreChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info) override;
@@ -51,8 +56,6 @@ private:
 	TSharedRef<SWidget> OnGenerateWidget(TSharedPtr<FName> InItem);
 	void OnSelectionChanged(TSharedPtr<FName> InItem, ESelectInfo::Type InSeletionInfo);
 
-	void OnFinishedChangingProperties(const struct FPropertyChangedEvent& PropertyChangedEvent);
-
 	FReply OnAddClicked();
 	FReply OnRemoveClicked();
 	FReply OnMoveRowClicked(FDataTableEditorUtils::ERowMoveDirection MoveDirection);
@@ -64,4 +67,6 @@ public:
 	void Construct(const FArguments& InArgs, UDataTable* Changed);
 
 	void SelectRow(FName Name);
+
+	void HandleUndoRedo();
 };

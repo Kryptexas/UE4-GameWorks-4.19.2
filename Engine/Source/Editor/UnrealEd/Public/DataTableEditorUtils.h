@@ -33,9 +33,11 @@ typedef TSharedPtr<FDataTableEditorRowListViewData>  FDataTableEditorRowListView
 
 struct UNREALED_API FDataTableEditorUtils
 {
-	enum EDataTableChangeInfo
+	enum class EDataTableChangeInfo
 	{
-		RowDataPostChangeOnly,
+		/** The data corresponding to a single row has been changed */
+		RowData,
+		/** The data corresponding to the entire list of rows has been changed */
 		RowList,
 	};
 
