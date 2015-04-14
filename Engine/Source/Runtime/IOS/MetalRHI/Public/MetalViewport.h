@@ -13,5 +13,6 @@ public:
 	FMetalViewport(void* WindowHandle, uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen);
 	~FMetalViewport();
 
+	void Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen);
 };
 

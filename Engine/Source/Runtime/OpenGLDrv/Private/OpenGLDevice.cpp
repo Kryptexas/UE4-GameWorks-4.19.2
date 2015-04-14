@@ -145,8 +145,7 @@ void FOpenGLDynamicRHI::RHIBeginFrame()
 #if PLATFORM_ANDROID //adding #if since not sure if this is required for any other platform.
 	//we need to differential between 0 (backbuffer) and lastcolorRT.
 	FOpenGLContextState& ContextState = GetContextStateForCurrentContext();
-	ContextState.LastES2ColorRT = 0xFFFFFFFF;
-	ContextState.LastES2DepthRT = 0xFFFFFFFF;
+	ContextState.LastES2ColorRTResource = 0xFFFFFFFF;
 	PendingState.DepthStencil = 0 ;
 #endif
 }

@@ -27,6 +27,8 @@ public:
 
 	virtual void AddExternalInputDevice(TSharedPtr<class IInputDevice> InputDevice);
 
+	static void OrientationChanged(UIDeviceOrientation orientation);
+
 protected:
 	virtual void InitializeWindow( const TSharedRef< FGenericWindow >& Window, const TSharedRef< FGenericWindowDefinition >& InDefinition, const TSharedPtr< FGenericWindow >& InParent, const bool bShowImmediately ) override;
 
@@ -44,4 +46,7 @@ private:
 	bool bHasLoadedInputPlugins;
 
 	TArray< TSharedRef< FIOSWindow > > Windows;
+
+	static FCriticalSection CriticalSection;
+	static bool bOrientationChanged;
 };

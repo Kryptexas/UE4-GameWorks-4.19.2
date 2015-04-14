@@ -89,6 +89,13 @@ void FMetalDynamicRHI::RHIDispatchIndirectComputeShader(FVertexBufferRHIParamRef
 
 void FMetalDynamicRHI::RHISetViewport(uint32 MinX,uint32 MinY,float MinZ,uint32 MaxX,uint32 MaxY,float MaxZ)
 {
+	// Ensure viewport fits inside the currently bound RT.
+	FIntPoint TargetDims = FMetalManager::Get()->GetBoundRenderTargetDimensions();
+	MinX = FMath::Min(MinX, (uint32)TargetDims.X);
+	MaxX = FMath::Min(MaxX, (uint32)TargetDims.X);
+	MinY = FMath::Min(MinY, (uint32)TargetDims.Y);
+	MaxY = FMath::Min(MaxY, (uint32)TargetDims.Y);
+	
 	MTLViewport Viewport;
 	Viewport.originX = MinX;
 	Viewport.originY = MinY;

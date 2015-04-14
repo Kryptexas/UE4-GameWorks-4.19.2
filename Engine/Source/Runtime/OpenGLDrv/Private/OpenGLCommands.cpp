@@ -1678,31 +1678,33 @@ void FOpenGLDynamicRHI::RHISetRenderTargets(
 		// @todo-mobile
 
 		FOpenGLContextState& ContextState = GetContextStateForCurrentContext();
-		GLuint NewColorRT = PendingState.RenderTargets[0] ? PendingState.RenderTargets[0]->Resource : 0;
-		// If the color buffer did not change and we are disabling depth, do not switch depth and assume 
+		GLuint NewColorRTResource = PendingState.RenderTargets[0] ? PendingState.RenderTargets[0]->Resource : 0;
+		GLenum NewColorTargetType = PendingState.RenderTargets[0] ? PendingState.RenderTargets[0]->Target : 0;
+		// If the color buffer did not change and we are disabling depth, do not switch depth and assume
 		// the high level will disable depth test/write (so we can avoid a logical buffer store);
 		// if both are set to nothing, then it's an endframe so we don't want to switch either...
 		if (NewDepthStencilRT == NULL && PendingState.DepthStencil != NULL)
 		{
+			const bool bColorBufferUnchanged = ContextState.LastES2ColorRTResource == NewColorRTResource && ContextState.LastES2ColorTargetType == NewColorTargetType;
 #if PLATFORM_ANDROID
 			//color RT being 0 means backbuffer is being used. Hence taking only comparison with previous RT into consideration. Fixes black screen issue.
-			if ( ContextState.LastES2ColorRT == NewColorRT)
+			if (bColorBufferUnchanged)
 #else
-			if (NewColorRT == 0 || ContextState.LastES2ColorRT == NewColorRT)
+			if (NewColorRTResource == 0 || bColorBufferUnchanged)
 #endif
 			{
 				return;
 			}
 			else
 			{
-				ContextState.LastES2ColorRT = NewColorRT;
-				ContextState.LastES2DepthRT = NewDepthStencilRT ? NewDepthStencilRT->Resource : 0;
+				ContextState.LastES2ColorRTResource = NewColorRTResource;
+				ContextState.LastES2ColorTargetType = NewColorTargetType;
 			}
 		}
 		else
 		{
-			ContextState.LastES2ColorRT = NewColorRT;
-			ContextState.LastES2DepthRT = NewDepthStencilRT ? NewDepthStencilRT->Resource : 0;
+				ContextState.LastES2ColorRTResource = NewColorRTResource;
+				ContextState.LastES2ColorTargetType = NewColorTargetType;
 		}
 	}
 	PendingState.DepthStencil = NewDepthStencilRT;

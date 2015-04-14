@@ -163,6 +163,9 @@ public:
 	void SetComputeShader(FMetalComputeShader* InComputeShader);
 	void Dispatch(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ);
 
+	void ResizeBackBuffer(uint32 InSizeX, uint32 InSizeY);
+	FIntPoint GetBoundRenderTargetDimensions() { return BoundRenderTargetDimensions; }
+
 protected:
 	FMetalManager();
 	void InitFrame();
@@ -284,6 +287,9 @@ protected:
 	void CommitGraphicsResourceTables();
 
 	void CommitNonComputeShaderConstants();
+
+	/** The dimensions of the currently bound RT */
+	FIntPoint BoundRenderTargetDimensions;
 
 private:
 	

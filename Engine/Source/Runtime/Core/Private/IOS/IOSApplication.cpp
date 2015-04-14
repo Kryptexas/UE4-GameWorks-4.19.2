@@ -9,6 +9,10 @@
 #include "IInputInterface.h"
 #include "IInputDevice.h"
 
+
+FCriticalSection FIOSApplication::CriticalSection;
+bool FIOSApplication::bOrientationChanged = false;
+
 FIOSApplication* FIOSApplication::CreateIOSApplication()
 {
 	return new FIOSApplication();
@@ -75,6 +79,20 @@ void FIOSApplication::PollGameDeviceState( const float TimeDelta )
 		(*DeviceIt)->Tick(TimeDelta);
 		(*DeviceIt)->SendControllerEvents();
 	}
+
+	FScopeLock Lock(&CriticalSection);
+	if(bOrientationChanged && Windows.Num() > 0)
+	{
+		int32 WindowX,WindowY, WindowWidth,WindowHeight;
+		Windows[0]->GetFullScreenInfo(WindowX, WindowY, WindowWidth, WindowHeight);
+
+		GenericApplication::GetMessageHandler()->OnSizeChanged(Windows[0],WindowWidth,WindowHeight, false);
+		GenericApplication::GetMessageHandler()->OnResizingWindow(Windows[0]);
+		FDisplayMetrics DisplayMetrics;
+		FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
+		BroadcastDisplayMetricsChanged(DisplayMetrics);
+		bOrientationChanged = false;
+	}
 }
 
 FPlatformRect FIOSApplication::GetWorkArea( const FPlatformRect& CurrentWindow ) const
@@ -96,4 +114,10 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 TSharedRef< FGenericWindow > FIOSApplication::MakeWindow()
 {
 	return FIOSWindow::Make();
+}
+
+void FIOSApplication::OrientationChanged(UIDeviceOrientation orientation)
+{
+	FScopeLock Lock(&CriticalSection);
+	bOrientationChanged = true;
 }

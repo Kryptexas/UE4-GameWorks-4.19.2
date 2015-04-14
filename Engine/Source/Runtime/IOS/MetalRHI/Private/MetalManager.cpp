@@ -221,6 +221,8 @@ FMetalManager::FMetalManager()
 		FIOSPlatformRHIFramePacer::InitWithEvent( FrameReadyEvent );
 	}
 	
+	BoundRenderTargetDimensions = FIntPoint(0,0);
+	
 	InitFrame();
 }
 
@@ -595,9 +597,47 @@ void FMetalManager::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
 		return;
 	}
 
+	// commit pending commands on the old render target
+	if (CurrentContext)
+	{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		//		if (NumDrawCalls == 0)
+		//		{
+		//			NSLog(@"There were %d draw calls for an RT in frame %lld", NumDrawCalls, GFrameCounter);
+		//		}
+#endif
+		
+		[CurrentContext endEncoding];
+		NumDrawCalls = 0;
+		
+		[CurrentContext release];
+		
+		// commit the buffer for this context
+		[CurrentCommandBuffer commit];
+		UNTRACK_OBJECT(CurrentCommandBuffer);
+		[CurrentCommandBuffer release];
+
+		// Check if CurrentCommandBuffer was rendering to the BackBuffer.
+		if( PreviousRenderTargetsInfo.NumColorRenderTargets == 1 )
+		{
+			const FRHIRenderTargetView& RenderTargetView = PreviousRenderTargetsInfo.ColorRenderTarget[0];
+			FMetalSurface& Surface = *GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
+			if(&Surface == &BackBuffer->Surface && CurrentDrawable != nil)
+			{
+				// release our record of it to ensure we are allocated a new drawable.
+				CurrentDrawable = nil;
+				BackBuffer->Surface.Texture = nil;
+			}
+		}
+		
+		// create the command buffer for this frame
+		CreateCurrentCommandBuffer(false);
+	}
+	
 	// back this up for next frame
 	PreviousRenderTargetsInfo = RenderTargetsInfo;
 
+	FIntPoint MaxDimensions(0,0);
 	// at this point, we need to fully set up an encoder/command buffer, so make a new one (autoreleased)
 	MTLRenderPassDescriptor* RenderPass = [MTLRenderPassDescriptor renderPassDescriptor];
 
@@ -619,6 +659,9 @@ void FMetalManager::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
 			FMetalSurface& Surface = *GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
 			FormatKey = Surface.FormatKey;
 		
+			MaxDimensions.X = FMath::Max((uint32)MaxDimensions.X, Surface.SizeX);
+			MaxDimensions.Y = FMath::Max((uint32)MaxDimensions.Y, Surface.SizeY);
+
 			// if this is the back buffer, make sure we have a usable drawable
 			ConditionalUpdateBackBuffer(Surface);
             
@@ -685,6 +728,9 @@ void FMetalManager::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
 	if (RenderTargetsInfo.DepthStencilRenderTarget.Texture != nullptr)
 	{
 		FMetalSurface& Surface= *GetMetalSurfaceFromRHITexture(RenderTargetsInfo.DepthStencilRenderTarget.Texture);
+		MaxDimensions.X = FMath::Max((uint32)MaxDimensions.X, Surface.SizeX);
+		MaxDimensions.Y = FMath::Max((uint32)MaxDimensions.Y, Surface.SizeY);
+
 		if (Surface.Texture != nil)
 		{
 			MTLRenderPassDepthAttachmentDescriptor* DepthAttachment = [[MTLRenderPassDepthAttachmentDescriptor alloc] init];
@@ -728,34 +774,12 @@ void FMetalManager::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
 		}
 	}
 
+	BoundRenderTargetDimensions = MaxDimensions;
+
 	// update hash for the depth buffer
 	SET_HASH(OFFSET_DEPTH_ENABLED, NUMBITS_DEPTH_ENABLED, (Pipeline.DepthTargetFormat == MTLPixelFormatInvalid ? 0 : 1));
 	SET_HASH(OFFSET_STENCIL_ENABLED, NUMBITS_STENCIL_ENABLED, (Pipeline.StencilTargetFormat == MTLPixelFormatInvalid ? 0 : 1));
 	SET_HASH(OFFSET_SAMPLE_COUNT, NUMBITS_SAMPLE_COUNT, Pipeline.SampleCount);
-
-	// commit pending commands on the old render target
-	if (CurrentContext)
-	{
-#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-//		if (NumDrawCalls == 0)
-//		{
-//			NSLog(@"There were %d draw calls for an RT in frame %lld", NumDrawCalls, GFrameCounter);
-//		}
-#endif
-
-		[CurrentContext endEncoding];
-		NumDrawCalls = 0;
-
-		[CurrentContext release];
-
-		// commit the buffer for this context
-		[CurrentCommandBuffer commit];
-		UNTRACK_OBJECT(CurrentCommandBuffer);
-		[CurrentCommandBuffer release];
-
-		// create the command buffer for this frame
-		CreateCurrentCommandBuffer(false);
-	}
 
 	// make a new render context to use to render to the framebuffer
 	CurrentContext = [CurrentCommandBuffer renderCommandEncoderWithDescriptor:RenderPass];
@@ -1012,4 +1036,22 @@ void FMetalManager::Dispatch(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY,
 	MTLSize Threadgroups = MTLSizeMake(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 	//@todo-rco: setThreadgroupMemoryLength?
 	[CurrentComputeContext dispatchThreadgroups:Threadgroups threadsPerThreadgroup:ThreadgroupCounts];
+}
+
+void FMetalManager::ResizeBackBuffer(uint32 InSizeX, uint32 InSizeY)
+{
+	IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];
+	FIOSView* GLView = AppDelegate.IOSView;
+	[GLView UpdateRenderWidth:InSizeX andHeight:InSizeY];
+	FRHIResourceCreateInfo CreateInfo;
+	BackBuffer = (FMetalTexture2D*)(FTexture2DRHIParamRef)RHICreateTexture2D(InSizeX, InSizeY, PF_B8G8R8A8, 1, 1, TexCreate_RenderTargetable | TexCreate_Presentable, CreateInfo);
+
+	// ensure a new drawable is created when this new backbuffer is used:
+	PreviousRenderTargetsInfo.NumColorRenderTargets = 0;
+	CurrentDrawable = nil;
+	BackBuffer->Surface.Texture = nil;
+	
+	// get the size of the window
+	CGRect ViewFrame = [[IOSAppDelegate GetDelegate].IOSView frame];
+	check(ViewFrame.size.width == InSizeX && ViewFrame.size.height == InSizeY);
 }

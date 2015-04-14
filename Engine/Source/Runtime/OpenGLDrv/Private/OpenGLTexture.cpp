@@ -1405,8 +1405,32 @@ TOpenGLTexture<RHIResourceType>::~TOpenGLTexture()
 
 		if( Resource != 0 )
 		{
-			OpenGLRHI->InvalidateTextureResourceInCache( Resource );
-			FOpenGL::DeleteTextures( 1, &Resource );
+			switch(Target)
+			{
+				case GL_TEXTURE_2D:
+ 				case GL_TEXTURE_2D_MULTISAMPLE:
+				case GL_TEXTURE_3D:
+				case GL_TEXTURE_CUBE_MAP:
+				case GL_TEXTURE_2D_ARRAY:
+				case GL_TEXTURE_CUBE_MAP_ARRAY:
+				{
+					OpenGLRHI->InvalidateTextureResourceInCache( Resource );
+					FOpenGL::DeleteTextures( 1, &Resource );
+					break;
+				}
+				case GL_RENDERBUFFER:
+				{
+					if (!(this->GetFlags() & TexCreate_Presentable))
+					{
+						glDeleteRenderbuffers(1, &Resource);
+					}
+					break;
+				}
+				default:
+				{
+					checkNoEntry();
+				}
+			}
 		}
 		
 		if(TextureRange)
