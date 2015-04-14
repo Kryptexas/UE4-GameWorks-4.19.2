@@ -15,6 +15,159 @@
 #include "SThrobber.h"
 
 /**
+ * Performs a dialog when running editor is detected.
+ */
+class SEditorRunningDlg : public SCompoundWidget
+{
+public:
+	enum class EResponse
+	{
+		ForceSync,
+		Retry,
+		Cancel
+	};
+
+	SLATE_BEGIN_ARGS(SEditorRunningDlg)	{}
+		SLATE_ATTRIBUTE(TSharedPtr<SWindow>, ParentWindow)
+		SLATE_ATTRIBUTE(FText, Message)
+		SLATE_ATTRIBUTE(float, WrapMessageAt)
+	SLATE_END_ARGS()
+
+	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+	void Construct(const FArguments& InArgs)
+	{
+		ParentWindow = InArgs._ParentWindow.Get();
+		ParentWindow->SetWidgetToFocusOnActivate(SharedThis(this));
+
+		Response = EResponse::Retry;
+
+		FSlateFontInfo MessageFont(FCoreStyle::Get().GetFontStyle("StandardDialog.LargeFont"));
+
+		this->ChildSlot
+			[
+				SNew(SBorder)
+				.BorderImage(FCoreStyle::Get().GetBrush("ToolPanel.GroupBorder"))
+				[
+					SNew(SVerticalBox)
+
+					+ SVerticalBox::Slot()
+					.HAlign(HAlign_Fill)
+					.VAlign(VAlign_Fill)
+					.FillHeight(1.0f)
+					.MaxHeight(550)
+					.Padding(12.0f)
+					[
+						SNew(SScrollBox)
+
+						+ SScrollBox::Slot()
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("UE4EditorInstanceDetectedDialog", "UE4Editor detected currently running on the system. Please close it before proceeding."))
+							.Font(MessageFont)
+							.WrapTextAt(InArgs._WrapMessageAt)
+						]
+					]
+
+					+ SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0.0f)
+						[
+							SNew(SHorizontalBox)
+							+ SHorizontalBox::Slot()
+							+ SHorizontalBox::Slot()
+								.AutoWidth()
+								.HAlign(HAlign_Right)
+								.VAlign(VAlign_Bottom)
+								.Padding(2.f)
+								[
+									SNew(SUniformGridPanel)
+									.SlotPadding(FCoreStyle::Get().GetMargin("StandardDialog.SlotPadding"))
+									.MinDesiredSlotWidth(FCoreStyle::Get().GetFloat("StandardDialog.MinDesiredSlotWidth"))
+									.MinDesiredSlotHeight(FCoreStyle::Get().GetFloat("StandardDialog.MinDesiredSlotHeight"))
+									+ SUniformGridPanel::Slot(0, 0)
+									[
+										SNew(SButton)
+										.Text(LOCTEXT("CancelSync", "Cancel sync"))
+										.OnClicked(this, &SEditorRunningDlg::HandleButtonClicked, EResponse::Cancel)
+										.ContentPadding(FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding"))
+										.HAlign(HAlign_Center)
+									]
+									+ SUniformGridPanel::Slot(1, 0)
+									[
+										SNew(SButton)
+										.Text(LOCTEXT("RetryEditorRunning", "Retry if editor is running"))
+										.OnClicked(this, &SEditorRunningDlg::HandleButtonClicked, EResponse::Retry)
+										.ContentPadding(FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding"))
+										.HAlign(HAlign_Center)
+									]
+									+ SUniformGridPanel::Slot(2, 0)
+									[
+										SNew(SButton)
+										.Text(LOCTEXT("ForceSync", "Force sync"))
+										.OnClicked(this, &SEditorRunningDlg::HandleButtonClicked, EResponse::ForceSync)
+										.ContentPadding(FCoreStyle::Get().GetMargin("StandardDialog.ContentPadding"))
+										.HAlign(HAlign_Center)
+									]
+								]
+						]
+				]
+			];
+	}
+	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+	/**
+	 * Shows modal dialog window and gets it's response.
+	 */
+	static EResponse ShowAndGetResponse()
+	{
+		TSharedPtr<SWindow> OutWindow = SNew(SWindow)
+			.Title(LOCTEXT("UE4EditorInstanceDetected", "UE4Editor instance detected!"))
+			.SizingRule(ESizingRule::Autosized)
+			.AutoCenter(EAutoCenter::PreferredWorkArea)
+			.SupportsMinimize(false).SupportsMaximize(false);
+
+		TSharedPtr<SEditorRunningDlg> OutDialog = SNew(SEditorRunningDlg)
+			.ParentWindow(OutWindow)
+			.WrapMessageAt(512.0f);
+
+		OutWindow->SetContent(OutDialog.ToSharedRef());
+
+		FSlateApplication::Get().AddModalWindow(OutWindow.ToSharedRef(), FGlobalTabmanager::Get()->GetRootWindow());
+
+		return OutDialog->GetResponse();
+	}
+
+private:
+	/**
+	 * Gets response from this dialog widget.
+	 *
+	 * @returns Response.
+	 */
+	EResponse GetResponse() const
+	{
+		return Response;
+	}
+
+	/**
+	 * Handles button click on any dialog button.
+	 */
+	FReply HandleButtonClicked(EResponse Response)
+	{
+		this->Response = Response;
+
+		ParentWindow->RequestDestroyWindow();
+
+		return FReply::Handled();
+	}
+
+	/** Parent window pointer */
+	TSharedPtr<SWindow> ParentWindow;
+
+	/** Saved response */
+	EResponse Response;
+};
+
+/**
  * Simple text combo box widget.
  */
 class SSimpleTextComboBox : public SCompoundWidget
@@ -1108,6 +1261,11 @@ private:
 	 */
 	FReply OnSync()
 	{
+		if (CheckIfEditorIsRunning())
+		{
+			return FReply::Handled();
+		}
+
 		FSyncSettings Settings(
 			ArtistSyncCheckBox->IsChecked(),
 			PreviewSyncCheckBox->IsChecked(),
@@ -1241,6 +1399,64 @@ private:
 		RadioSelection->Add(Name, Widget);
 		SyncCommandLineProviders.Add(Widget);
 	}
+
+	/**
+	 * Checks if the editor is currently running on the system and asks user to
+	 * close it.
+	 *
+	 * @returns False if editor is not opened or user forced to continue.
+	 *          Otherwise true.
+	 */
+	bool CheckIfEditorIsRunning()
+	{
+		auto Response = SEditorRunningDlg::EResponse::Retry;
+		bool bEditorIsRunning = false;
+			 
+		while (Response == SEditorRunningDlg::EResponse::Retry && ((bEditorIsRunning = CheckForEditorProcess()) == true))
+		{
+			Response = SEditorRunningDlg::ShowAndGetResponse();
+		}
+
+		return bEditorIsRunning && Response != SEditorRunningDlg::EResponse::ForceSync;
+	}
+
+	/**
+	 * Checks if the editor is currently running on the system.
+	 *
+	 * @returns False if editor is not opened. Otherwise true.
+	 */
+	bool CheckForEditorProcess()
+	{
+		for (const auto& PossibleExecutablePath : GetPossibleExecutablePaths())
+		{
+			if (IsRunningProcess(PossibleExecutablePath))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+#if PLATFORM_WINDOWS
+	/**
+	 * Returns possible colliding UE4Editor executables.
+	 *
+	 * @returns Array of possible executables.
+	 */
+	static TArray<FString> GetPossibleExecutablePaths()
+	{
+		FString BasePath = FPaths::GetPath(FPlatformProcess::GetApplicationName(FPlatformProcess::GetCurrentProcessId()));
+
+		TArray<FString> Out;
+
+		Out.Add(FPaths::Combine(*BasePath, TEXT("UE4Editor.exe")));
+		Out.Add(FPaths::Combine(*BasePath, TEXT("UE4Editor-Win32-Debug.exe")));
+		Out.Add(FPaths::Combine(*BasePath, TEXT("UE4Editor-Win64-Debug.exe")));
+
+		return Out;
+	}
+#endif
 
 	/* Main widget switcher. */
 	TSharedPtr<SWidgetSwitcher> Switcher;

@@ -35,3 +35,14 @@ bool RunProcessOutput(const FString& ExecutablePath, const FString& CommandLine,
  * @returns True if succeeded. False otherwise.
  */
 bool RunProcessProgress(const FString& ExecutablePath, const FString& CommandLine, const FOnProcessMadeProgress& OnUATMadeProgress);
+
+#if PLATFORM_WINDOWS
+/**
+ * Checks if process is currently running given full image path.
+ *
+ * @param FullImagePath Full path to the process executable.
+ *
+ * @returns True if it's running. False otherwise.
+ */
+bool IsRunningProcess(const FString& FullImagePath);
+#endif
