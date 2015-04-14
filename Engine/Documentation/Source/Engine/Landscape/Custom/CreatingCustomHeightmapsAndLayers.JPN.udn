@@ -62,7 +62,7 @@ Photoshop でレイヤーを作成する場合は、次の設定を使って新�
 1. マテリアルを作成したら、それをランドスケープ アクタに適用します。このような感じになります。 
 ![](Landscape_Applied_Material.png)
 1. マテリアルを適用したら、 **Layer Info** をいくつかランドスケープ アクタに追加してみましょう。各レイヤーに対象の **Layer Info** オブジェクトを追加します。 
-ここでは、 3 つ追加していきます。**Layer Info** オブジェクトについては、[ペイント モード](Engine/Landscape/Editing/PaintMode) の [Layer Info Objects](Engine/Landscape/Editing/PaintMode#LayerInfOobjects) セクションを参照してください。追加すると、**[Target Layers]** セクションはこのようになります。 
+ここでは、 3 つ追加していきます。**Layer Info** オブジェクトについては、[ペイント モード](Engine/Landscape/Editing/PaintMode) の [Layer Info Objects](Engine/Landscape/Editing/PaintMode#LayerInfoObjects) セクションを参照してください。追加すると、**[Target Layers]** セクションはこのようになります。 
 ![](Landscape_Target_Layers.png)
 1. では、レイヤーをインポートします。手順は、レイヤーのインポート先となる **Target Layer** を **右クリック** してから、表示されたダイアログ ボックスからインポートしたいレイヤーを選択するだけです。 
 ![](Landscape_Import_Layer_Option.png)
