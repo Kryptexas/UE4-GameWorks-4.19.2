@@ -115,6 +115,8 @@ void FDefaultGameMoviePlayer::Initialize()
 		MovieViewport->SetViewportInterface( MovieStreamer->GetViewportInterface().ToSharedRef() );
 	}
 	
+	MovieViewport->SetActive(true);
+
 	// Register the movie viewport so that it can receive user input.
 	if (!FPlatformProperties::SupportsWindowedMode())
 	{
