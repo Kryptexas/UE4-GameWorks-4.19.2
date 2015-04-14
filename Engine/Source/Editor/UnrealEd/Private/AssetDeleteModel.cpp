@@ -290,7 +290,7 @@ bool FAssetDeleteModel::ComputeCanReplaceReferences()
 		PendingDeletedObjects.Add(PendingDelete->GetObject());
 	}
 
-	return ObjectTools::AreObjectsValidForReplace(PendingDeletedObjects);
+	return ObjectTools::AreObjectsOfEquivalantType(PendingDeletedObjects);
 }
 
 bool FAssetDeleteModel::CanReplaceReferences() const
@@ -314,6 +314,31 @@ bool FAssetDeleteModel::CanReplaceReferencesWith( const FAssetData& InAssetData 
 	if ( AssetDataClass == nullptr )
 	{
 		return true;
+	}
+
+	// Filter out blueprints of different types
+	if (FirstPendingDelete->IsChildOf(UBlueprint::StaticClass()) && AssetDataClass->IsChildOf(UBlueprint::StaticClass()))
+	{
+		// Get BP parent classes
+		static const FName ParentClassName("ParentClass");
+		const UClass* OriginalBPClass = CastChecked<UBlueprint>(PendingDeletes[0]->GetObject())->ParentClass;
+		const FString* BPClassNameToTest = InAssetData.TagsAndValues.Find(ParentClassName);
+
+		if (BPClassNameToTest && !BPClassNameToTest->IsEmpty())
+		{
+			UClass* ParentClass = FindObject<UClass>(NULL, **BPClassNameToTest);
+			if (!ParentClass)
+			{
+				ParentClass = LoadObject<UClass>(NULL, **BPClassNameToTest);
+			}
+
+			if (!ParentClass || !ParentClass->IsChildOf(OriginalBPClass))
+			{
+				// If we couldn't determine the asset parent class (e.g. because the ParentClass tag wasn't present in the FAssetData), or if
+				// the asset parent class wasn't equal to or derived from the pending delete BP class, filter i
+				return true;
+			}
+		}
 	}
 
 	// Only show objects that are of replaceable because their classes are compatible.

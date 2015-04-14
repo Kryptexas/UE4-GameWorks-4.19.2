@@ -3430,27 +3430,6 @@ namespace ObjectTools
 		return bIsPlaceable && !bIsAbstractOrDeprecated && !bIsSkeletonClass;
 	}
 
-	bool AreObjectsValidForReplace(const TArray<UObject*>& InProposedObjects)
-	{
-		if (InProposedObjects.Num() > 0)
-		{
-			// Make sure we don't have any blueprinted components
-			for (TArray<UObject*>::TConstIterator ProposedObjIter(InProposedObjects); ProposedObjIter; ++ProposedObjIter)
-			{
-				UObject* CurProposedObj = *ProposedObjIter;
-				check(CurProposedObj);
-				
-				const UBlueprint* BlueprintObject = Cast<UBlueprint>(CurProposedObj);
-				if (BlueprintObject && BlueprintObject->GeneratedClass->IsChildOf(UActorComponent::StaticClass()))
-				{
-					return false;
-				}
-			}
-		}
-		// If we haven't found any classes we deem illegal just make sure they are all the same type.
-		return AreObjectsOfEquivalantType(InProposedObjects);
-	}
-
 	bool AreObjectsOfEquivalantType( const TArray<UObject*>& InProposedObjects )
 	{
 		if ( InProposedObjects.Num() > 0 )
@@ -3470,6 +3449,14 @@ namespace ObjectTools
 				check( CurProposedObj );
 
 				const UClass* CurProposedClass = CurProposedObj->GetClass();
+
+				if (ComparisonClass->IsChildOf(UBlueprint::StaticClass()) && CurProposedClass->IsChildOf(UBlueprint::StaticClass()))
+				{
+					if (*CastChecked<UBlueprint>(ComparisonObject)->ParentClass != *CastChecked<UBlueprint>(CurProposedObj)->ParentClass)
+					{
+						return false;
+					}
+				}
 
 				if ( !AreClassesInterchangeable( ComparisonClass, CurProposedClass ) )
 				{
