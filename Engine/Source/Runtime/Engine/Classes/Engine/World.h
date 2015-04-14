@@ -2948,7 +2948,7 @@ public:
 	void NotifyOfBlueprintDebuggingAssociation(class UBlueprint* Blueprint, UObject* DebugObject);
 
 	/** Broadcasts that the number of levels has changed. */
-	void BroadcastLevelsChanged() { LevelsChangedEvent.Broadcast(); }
+	void BroadcastLevelsChanged();
 
 	/** Returns the LevelsChangedEvent member. */
 	FOnLevelsChangedEvent& OnLevelsChanged() { return LevelsChangedEvent; }
@@ -3245,11 +3245,11 @@ public:
 	static FWorldGetAssetTags GetAssetTags;
 
 #if WITH_EDITOR
-	// Delegate type for Levelscript blueprint creation events
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FLevelScriptCreationEvent, ULevel*, UWorld* );
+	// Delegate called when levelscript actions need refreshing
+	DECLARE_MULTICAST_DELEGATE_OneParam(FRefreshLevelScriptActionsEvent, UWorld*);
 
-	// Called when a ULevel has a level script blueprint created for it.
-	static FLevelScriptCreationEvent LevelScriptBlueprintCreated;
+	// Called when changes in the levels require blueprint actions to be refreshed.
+	static FRefreshLevelScriptActionsEvent RefreshLevelScriptActions;
 #endif
 
 private:

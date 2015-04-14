@@ -466,10 +466,9 @@ namespace BlueprintActionDatabaseImpl
 	/**
 	 * Callback to re-evaluate all level blueprints owned by the world when the layout has changed
 	 * 
-	 * @param  Level			The level that has added/removed.
 	 * @param  World			The owner of the level and the world to be re-evaluated.
 	 */
-	static void OnLevelsChanged(ULevel* Level, UWorld* World);
+	static void OnRefreshLevelScripts(UWorld* World);
 
 	/**
 	 * Returns TRUE if the Object is valid for the database
@@ -914,7 +913,7 @@ static void BlueprintActionDatabaseImpl::OnWorldDestroyed(UWorld* DestroyedWorld
 }
 
 //------------------------------------------------------------------------------
-static void BlueprintActionDatabaseImpl::OnLevelsChanged(ULevel* Level, UWorld* World)
+static void BlueprintActionDatabaseImpl::OnRefreshLevelScripts(UWorld* World)
 {
 	FBlueprintActionDatabase::Get().RefreshAssetActions( (UObject*)World );
 }
@@ -981,9 +980,7 @@ FBlueprintActionDatabase::FBlueprintActionDatabase()
 
 	GEngine->OnWorldAdded().AddStatic(&BlueprintActionDatabaseImpl::OnWorldAdded);
 	GEngine->OnWorldDestroyed().AddStatic(&BlueprintActionDatabaseImpl::OnWorldDestroyed);
-	FWorldDelegates::LevelAddedToWorld.AddStatic(&BlueprintActionDatabaseImpl::OnLevelsChanged);
-	FWorldDelegates::LevelRemovedFromWorld.AddStatic(&BlueprintActionDatabaseImpl::OnLevelsChanged);
-	FWorldDelegates::LevelScriptBlueprintCreated.AddStatic(&BlueprintActionDatabaseImpl::OnLevelsChanged);
+	FWorldDelegates::RefreshLevelScriptActions.AddStatic(&BlueprintActionDatabaseImpl::OnRefreshLevelScripts);
 
 	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
 	HotReloadSupport.OnHotReload().AddStatic(&BlueprintActionDatabaseImpl::OnProjectHotReloaded);
@@ -1253,12 +1250,13 @@ void FBlueprintActionDatabase::RefreshAssetActions(UObject* const AssetObject)
 		}
 	}
 
-	UWorld* WorldAsset = Cast<UWorld>( AssetObject );
-	if( WorldAsset && WorldAsset->WorldType == EWorldType::Editor )
+	UWorld* WorldAsset = Cast<UWorld>(AssetObject);
+	if (WorldAsset && WorldAsset->WorldType == EWorldType::Editor)
 	{
 		for( auto Level : WorldAsset->GetLevels() )
 		{
-			if(UBlueprint* LevelScript = Cast<UBlueprint>(Level->GetLevelScriptBlueprint(true)))
+			UBlueprint* LevelScript = Cast<UBlueprint>(Level->GetLevelScriptBlueprint(true));
+			if (Level->bIsVisible && LevelScript)
 			{
 				AddBlueprintGraphActions(LevelScript, AssetActionList);
 				if (UClass* SkeletonClass = LevelScript->SkeletonGeneratedClass)
@@ -1266,11 +1264,11 @@ void FBlueprintActionDatabase::RefreshAssetActions(UObject* const AssetObject)
 					GetClassMemberActions(SkeletonClass, AssetActionList);
 				}
 				// Register for change and compilation notifications
-				if( !LevelScript->OnChanged().IsBoundToObject( this ))
+				if (!LevelScript->OnChanged().IsBoundToObject(this))
 				{
 					LevelScript->OnChanged().AddRaw(this, &FBlueprintActionDatabase::OnBlueprintChanged);
 				}
-				if( !LevelScript->OnCompiled().IsBoundToObject( this ))
+				if (!LevelScript->OnCompiled().IsBoundToObject(this))
 				{
 					LevelScript->OnCompiled().AddRaw(this, &FBlueprintActionDatabase::OnBlueprintChanged);
 				}

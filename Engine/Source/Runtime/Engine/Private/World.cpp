@@ -107,7 +107,7 @@ FWorldDelegates::FOnLevelChanged FWorldDelegates::LevelRemovedFromWorld;
 FWorldDelegates::FLevelOffsetEvent FWorldDelegates::PostApplyLevelOffset;
 FWorldDelegates::FWorldGetAssetTags FWorldDelegates::GetAssetTags;
 #if WITH_EDITOR
-FWorldDelegates::FLevelScriptCreationEvent FWorldDelegates::LevelScriptBlueprintCreated;
+FWorldDelegates::FRefreshLevelScriptActionsEvent FWorldDelegates::RefreshLevelScriptActions;
 #endif // WITH_EDITOR
 
 UWorld::UWorld( const FObjectInitializer& ObjectInitializer )
@@ -1545,6 +1545,14 @@ void UWorld::NotifyOfBlueprintDebuggingAssociation(class UBlueprint* Blueprint, 
 	{
 		BlueprintObjectsBeingDebugged.Remove(Key);
 	}
+#endif	//#if WITH_EDITOR
+}
+
+void UWorld::BroadcastLevelsChanged()
+{
+	LevelsChangedEvent.Broadcast();
+#if WITH_EDITOR
+	FWorldDelegates::RefreshLevelScriptActions.Broadcast(this);
 #endif	//#if WITH_EDITOR
 }
 
