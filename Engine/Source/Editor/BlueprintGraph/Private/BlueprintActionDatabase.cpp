@@ -903,19 +903,28 @@ static void BlueprintActionDatabaseImpl::OnAssetRenamed(FAssetData const& AssetI
 //------------------------------------------------------------------------------
 static void BlueprintActionDatabaseImpl::OnWorldAdded(UWorld* NewWorld)
 {
-	FBlueprintActionDatabase::Get().RefreshAssetActions( (UObject*)NewWorld );
+	if (IsObjectValidForDatabase(NewWorld))
+	{
+		FBlueprintActionDatabase::Get().RefreshAssetActions((UObject*)NewWorld);
+	}
 }
 
 //------------------------------------------------------------------------------
 static void BlueprintActionDatabaseImpl::OnWorldDestroyed(UWorld* DestroyedWorld)
 {
-	FBlueprintActionDatabase::Get().ClearAssetActions( (UObject*)DestroyedWorld );
+	if (IsObjectValidForDatabase(DestroyedWorld))
+	{
+		FBlueprintActionDatabase::Get().ClearAssetActions((UObject*)DestroyedWorld);
+	}
 }
 
 //------------------------------------------------------------------------------
 static void BlueprintActionDatabaseImpl::OnRefreshLevelScripts(UWorld* World)
 {
-	FBlueprintActionDatabase::Get().RefreshAssetActions( (UObject*)World );
+	if (IsObjectValidForDatabase(World))
+	{
+		FBlueprintActionDatabase::Get().RefreshAssetActions((UObject*)World);
+	}
 }
 
 //------------------------------------------------------------------------------
