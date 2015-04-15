@@ -716,7 +716,7 @@ namespace Rocket
 		public override void DoBuild(GUBP bp)
 		{
 			BuildProducts = new List<string>();
-			if(!bp.ParseParam("NoDDC"))
+			if(!bp.ParseParam("NoDDC") && bp.ParseParam("WithDDC"))
 			{
 				// Delete the output file
 				string OutputFile = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "DerivedDataCache", "Compressed.ddp");
