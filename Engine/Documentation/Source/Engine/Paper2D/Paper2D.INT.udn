@@ -1,7 +1,7 @@
+﻿Availability:Public
 Title: Paper 2D
 Crumbs: %ROOT%, Engine
 Description:Paper 2D is a sprite-based system for creating 2D and 2D/3D hybrid games entirely within Unreal Engine 4.
-Availability:Public
 
 [REGION:banner]
 ![](paper2d_banner.png)
