@@ -692,7 +692,6 @@ namespace Rocket
 			ProjectNames = InProjectNames;
 
 			AddDependency(GUBP.RootEditorNode.StaticGetFullName(HostPlatform));
-			AgentSharingGroup = "Editor" + StaticGetHostPlatformSuffix(InHostPlatform);
 		}
 
 		public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform)
