@@ -605,6 +605,10 @@ namespace Rocket
 			StripRocketNode StripNode = (StripRocketNode)bp.FindNode(StripRocketNode.StaticGetFullName(HostPlatform));
 			CopyManifestFilesToOutput(FilterNode.StrippedManifestPath, StripNode.StrippedDir, OutputDir);
 
+			// Write the UE4CommandLine.txt file with the 
+			string CommandLineFile = CommandUtils.CombinePaths(OutputDir, "UE4CommandLine.txt");
+			CommandUtils.WriteAllText(CommandLineFile, "-installedengine -rocket");
+
 			// Create a dummy build product
 			BuildProducts = new List<string>();
 			SaveRecordOfSuccessAndAddToBuildProducts();
