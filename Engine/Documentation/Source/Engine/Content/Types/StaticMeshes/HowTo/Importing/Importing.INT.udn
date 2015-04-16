@@ -50,7 +50,7 @@ There are many tools within UE4 that can help you create assets for your levels.
 
 ## Set Up
 
-If you are creating a level in UE4, chances are that you have made some 3D models in another application and now you are ready to put that model into UE4.  In order to make sure that the transition from your 3D modeling software, whether it be 3Ds Maya or Max, or some other modeling program, there are a few things to check.  First, it is very useful to remember while modeling and before exporting that the measurement used in UE4 is unreal units and 1 unreal unit equals 1 centimeter.  Also, there are only certain file types that can be imported into UE4, so FBX is recommended for 3D objects, and make sure that any textures and materials applied to your mesh is also of supported file types.
+If you are creating a level in UE4, chances are that you have made some 3D models in another application and now you are ready to put that model into UE4.  In order to make sure that the transition from your 3D modeling software, whether it be Maya, 3ds Max, or some other modeling program, there are a few things to check.  First, it is very useful to remember while modeling and before exporting that the measurement used in UE4 is Unreal Units and that 1 Unreal Unit equals 1 centimeter.  Also, only certain file types that can be imported into UE4, FBX being the file format recommended for 3D objects. Likewise, make sure that any textures and materials applied to your static mesh are supported file types.
 
 ## Exporting
 
