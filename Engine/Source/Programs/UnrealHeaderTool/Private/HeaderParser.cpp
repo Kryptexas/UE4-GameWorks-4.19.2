@@ -7437,6 +7437,7 @@ bool FHeaderParser::DefaultValueStringCppFormatToInnerFormat(const UProperty* Pr
 		static const UScriptStruct* Vector2DStruct = FindObjectChecked<UScriptStruct>(CoreUObjectPackage, TEXT("Vector2D"));
 		static const UScriptStruct* RotatorStruct = FindObjectChecked<UScriptStruct>(CoreUObjectPackage, TEXT("Rotator"));
 		static const UScriptStruct* LinearColorStruct = FindObjectChecked<UScriptStruct>(CoreUObjectPackage, TEXT("LinearColor"));
+		static const UScriptStruct* ColorStruct = FindObjectChecked<UScriptStruct>(CoreUObjectPackage, TEXT("Color"));
 
 		const UStructProperty* StructProperty = CastChecked<UStructProperty>(Property);
 		if( StructProperty->Struct == VectorStruct )
@@ -7557,6 +7558,57 @@ bool FHeaderParser::DefaultValueStringCppFormatToInnerFormat(const UProperty* Pr
 					}
 					FLinearColor Color;
 					if( FDefaultValueHelper::ParseLinearColor(Parameters, Color) )
+					{
+						OutForm = Color.ToString();
+					}
+				}
+			}
+		}
+		else if( StructProperty->Struct == ColorStruct )
+		{
+			if( FDefaultValueHelper::Is( CppForm, TEXT("FColor::White") ) )
+			{
+				OutForm = FColor::White.ToString();
+			}
+			else if ( FDefaultValueHelper::Is( CppForm, TEXT("FColor::Black") ) )
+			{
+				OutForm = FColor::Black.ToString();
+			}
+			else if ( FDefaultValueHelper::Is( CppForm, TEXT("FColor::Red") ) )
+			{
+				OutForm = FColor::Red.ToString();
+			}
+			else if ( FDefaultValueHelper::Is( CppForm, TEXT("FColor::Green") ) )
+			{
+				OutForm = FColor::Green.ToString();
+			}
+			else if ( FDefaultValueHelper::Is( CppForm, TEXT("FColor::Blue") ) )
+			{
+				OutForm = FColor::Blue.ToString();
+			}
+			else if (FDefaultValueHelper::Is(CppForm, TEXT("FColor::Yellow")))
+			{
+				OutForm = FColor::Yellow.ToString();
+			}
+			else if ( FDefaultValueHelper::Is( CppForm, TEXT("FColor::Cyan") ) )
+			{
+				OutForm = FColor::Cyan.ToString();
+			}
+			else if ( FDefaultValueHelper::Is( CppForm, TEXT("FColor::Magenta") ) )
+			{
+				OutForm = FColor::Magenta.ToString();
+			}
+			else
+			{
+				FString Parameters;
+				if( FDefaultValueHelper::GetParameters(CppForm, TEXT("FColor"), Parameters) )
+				{
+					if( FDefaultValueHelper::Is(Parameters, TEXT("ForceInit")) )
+					{
+						return true;
+					}
+					FColor Color;
+					if( FDefaultValueHelper::ParseColor(Parameters, Color) )
 					{
 						OutForm = Color.ToString();
 					}
