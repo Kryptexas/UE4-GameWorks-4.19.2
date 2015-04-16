@@ -257,6 +257,9 @@ private:
 	/** Holds a flag indicating whether the tracer is running. */
 	bool Running;
 
+	/** Handle to the registered TickDelegate. */
+	FDelegateHandle TickDelegateHandle;
+
 	/** Holds the trace actions queue. */
 	TQueue<TFunction<void()>, EQueueMode::Mpsc> Traces;
 
