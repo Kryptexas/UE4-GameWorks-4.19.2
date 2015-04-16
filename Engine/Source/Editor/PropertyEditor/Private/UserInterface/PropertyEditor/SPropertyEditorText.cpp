@@ -58,22 +58,6 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 		];
 	}
 
-	if (InPropertyEditor->PropertyIsA(UTextProperty::StaticClass()))
-	{
-		const TSharedRef< FPropertyNode > PropertyNode = InPropertyEditor->GetPropertyNode();
-		const TSharedRef< IPropertyHandle > PropertyHandle = PropertyEditor->GetPropertyHandle();
-
-		// text properties require some extra controls to allow for localization functionality
-		HorizontalBox->AddSlot()
-			.AutoWidth()
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Center)
-			.Padding(2.0f, 0.0f, 0.0f, 0.0f)
-			[
-				PropertyCustomizationHelpers::MakeTextLocalizationButton(PropertyHandle)
-			];
-	}
-
 	if( InPropertyEditor->PropertyIsA( UObjectPropertyBase::StaticClass() ) )
 	{
 		// Object properties should display their entire text in a tooltip
