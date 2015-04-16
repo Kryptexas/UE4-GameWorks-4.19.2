@@ -1703,47 +1703,6 @@ void FStaticMeshEditor::DoDecomp(float InAccuracy, int32 InMaxHullVerts)
 	}
 }
 
-void FStaticMeshEditor::OnExportLightmapMesh( bool IsFBX )
-{
-	check(StaticMesh);		//must have a mesh to perform this operation
-
-	TArray <UStaticMesh*> StaticMeshArray;
-	StaticMeshArray.Add(StaticMesh);
-
-	FString Directory;
-	if (PromptUserForDirectory(Directory, *LOCTEXT("StaticMeshEditor_ExportToPromptTitle", "Export to...").ToString(), *FEditorDirectories::Get().GetLastDirectory(ELastDirectory::MESH_IMPORT_EXPORT)))
-	{
-		FEditorDirectories::Get().SetLastDirectory(ELastDirectory::MESH_IMPORT_EXPORT, Directory); // Save path as default for next time.
-
-		bool bAnyErrorOccurred = FbxMeshUtils::ExportAllLightmapModels(StaticMeshArray, Directory, IsFBX);
-		if (bAnyErrorOccurred)
-		{
-			FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("StaticMeshEditor_LightmapExportFailure", "Some static meshes failed to export or provided warnings.  Please check the Log Window for details."));
-		}
-	}
-}
-
-void FStaticMeshEditor::OnImportLightmapMesh( bool IsFBX )
-{
-	check(StaticMesh);		//must have a mesh to perform this operation
-
-	TArray <UStaticMesh*> StaticMeshArray;
-	StaticMeshArray.Add(StaticMesh);
-
-	FString Directory;
-	if (PromptUserForDirectory(Directory, *LOCTEXT("ImportFrom", "Import from...").ToString(), *FEditorDirectories::Get().GetLastDirectory(ELastDirectory::MESH_IMPORT_EXPORT)))
-	{
-		FEditorDirectories::Get().SetLastDirectory(ELastDirectory::MESH_IMPORT_EXPORT, Directory); // Save path as default for next time.
-
-		bool bAnyErrorOccurred = FbxMeshUtils::ImportAllLightmapModels(StaticMeshArray, Directory, IsFBX);
-		if (bAnyErrorOccurred)
-		{
-			FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("StaticMeshEditor_LightmapImportFailure", "Some static meshes failed to import or provided warnings.  Please check the Log Window for details."));
-		}
-		Viewport->RefreshViewport();
-	}
-}
-
 TSet< int32 >& FStaticMeshEditor::GetSelectedEdges()
 {
 	return Viewport->GetSelectedEdges();

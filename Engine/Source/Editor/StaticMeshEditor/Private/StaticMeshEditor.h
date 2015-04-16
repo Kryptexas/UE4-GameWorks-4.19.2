@@ -156,12 +156,6 @@ private:
 	/** Callback for creating sphyl collision. */
 	void OnCollisionSphyl();
 
-	/** Event for exporting the light map channel of a static mesh to an intermediate file for Max/Maya */
-	void OnExportLightmapMesh( bool IsFBX );
-
-	/** Event for importing the light map channel to a static mesh from an intermediate file from Max/Maya */
-	void OnImportLightmapMesh( bool IsFBX );
-
 	/**
 	* Quick and dirty way of creating box vertices from a box collision representation
 	* Grossly inefficient, but not time critical
