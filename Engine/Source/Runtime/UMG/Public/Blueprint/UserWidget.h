@@ -306,7 +306,7 @@ public:
 	 * Gets a value indicating if the widget is interactive.
 	 */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="User Interface | Interaction")
-	virtual bool IsInteractable() const;
+	bool IsInteractable() const;
 
 	/**
 	 * Called when keyboard focus is given to this widget.  This event does not bubble.
