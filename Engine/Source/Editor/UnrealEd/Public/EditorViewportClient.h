@@ -256,29 +256,10 @@ public:
 	 *
 	 * @return		The current state of the realtime flag.
 	 */
-	bool ToggleRealtime()
-	{ 
-		SetRealtime(!bIsRealtime);
-		return bIsRealtime;
-	}
+	bool ToggleRealtime();
 
 	/** Sets whether or not the viewport updates in realtime. */
-	void SetRealtime( bool bInRealtime, bool bStoreCurrentValue = false )
-	{ 
-		if( bStoreCurrentValue )
-		{
-			//Cache the Realtime and ShowStats flags
-			bStoredRealtime = bIsRealtime;
-			bStoredShowStats = bShowStats;
-		}
-		
-		bIsRealtime	= bInRealtime;
-
-		if( !bIsRealtime )
-		{
-			SetShowStats(false);
-		}
-	}
+	void SetRealtime(bool bInRealtime, bool bStoreCurrentValue = false);
 
 	/** @return		True if viewport is in realtime mode, false otherwise. */
 	bool IsRealtime() const				
@@ -736,10 +717,7 @@ public:
 	 *
 	 * @param	bWantStats	true if stats should be displayed
 	 */
-	void SetShowStats( bool bWantStats )
-	{
-		bShowStats = bWantStats;
-	}
+	void SetShowStats( bool bWantStats );
 	
 	/**
 	 * Sets how the viewport is displayed (lit, wireframe, etc) for the current viewport type
@@ -1007,6 +985,9 @@ public:
 	void OverrideFarClipPlane(const float InFarPlane);
 
 protected:
+	/** Invalidates the viewport widget (if valid) to register its active timer */
+	void InvalidateViewportWidget();
+
 	/** Subclasses may override the near clipping plane. Set to a negative value to disable the override. */
 	void OverrideNearClipPlane(float InNearPlane);
 
@@ -1448,6 +1429,9 @@ private:
 
 	/** If true, we are in Game View mode*/
 	bool bInGameViewMode;
+
+	/** If true, the viewport widget should be invalidated on the next tick (needed to ensure thread safety) */
+	bool bShouldInvalidateViewportWidget;
 };
 
 

@@ -276,6 +276,7 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 	, NearPlane(-1.0f)
 	, FarPlane(0.0f)
 	, bInGameViewMode(false)
+	, bShouldInvalidateViewportWidget(false)
 {
 	if (ModeTools == nullptr)
 	{
@@ -367,6 +368,33 @@ FEditorViewportClient::~FEditorViewportClient()
 	}
 }
 
+bool FEditorViewportClient::ToggleRealtime()
+{
+	SetRealtime(!bIsRealtime);
+	return bIsRealtime;
+}
+
+void FEditorViewportClient::SetRealtime(bool bInRealtime, bool bStoreCurrentValue)
+{
+	if (bStoreCurrentValue)
+	{
+		//Cache the Realtime and ShowStats flags
+		bStoredRealtime = bIsRealtime;
+		bStoredShowStats = bShowStats;
+	}
+
+	bIsRealtime = bInRealtime;
+
+	if (!bIsRealtime)
+	{
+		SetShowStats(false);
+	}
+	else
+	{
+		bShouldInvalidateViewportWidget = true;
+	}
+}
+
 void FEditorViewportClient::RestoreRealtime(const bool bAllowDisable)
 {
 	if (bAllowDisable)
@@ -378,13 +406,27 @@ void FEditorViewportClient::RestoreRealtime(const bool bAllowDisable)
 	{
 		bIsRealtime |= bStoredRealtime;
 		bShowStats |= bStoredShowStats;
-	}
+	}	
 
-	if (EditorViewportWidget.IsValid() && ( bIsRealtime || bShowStats ))
+	if (bIsRealtime)
 	{
-		// Invalidate the viewport widget to re-register its active timer
+		bShouldInvalidateViewportWidget = true;
+	}
+}
+
+void FEditorViewportClient::SetShowStats(bool bWantStats)
+{
+	bShowStats = bWantStats;
+}
+
+void FEditorViewportClient::InvalidateViewportWidget()
+{
+	if (EditorViewportWidget.IsValid())
+	{
+		// Invalidate the viewport widget to register its active timer
 		EditorViewportWidget.Pin()->Invalidate();
 	}
+	bShouldInvalidateViewportWidget = false;
 }
 
 void FEditorViewportClient::RedrawRequested(FViewport* InViewport)
@@ -935,6 +977,12 @@ void FEditorViewportClient::Tick(float DeltaTime)
 		{
 			Invalidate();
 		}
+	}
+
+	// Invalidate the viewport widget if pending
+	if (bShouldInvalidateViewportWidget)
+	{
+		InvalidateViewportWidget();
 	}
 
 	// Tick the editor modes
