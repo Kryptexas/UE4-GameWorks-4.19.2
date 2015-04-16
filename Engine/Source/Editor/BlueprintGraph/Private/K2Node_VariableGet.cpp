@@ -4,6 +4,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
 #include "ScopedTransaction.h"
+#include "Kismet/KismetTextLibrary.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FKCHandler_VariableGet
