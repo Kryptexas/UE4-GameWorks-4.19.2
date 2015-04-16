@@ -176,8 +176,10 @@ void ProcessImportMeshMaterials(TArray<FSkeletalMaterial>& Materials, FSkeletalM
 		Materials.Add( FSkeletalMaterial( Material, bEnableShadowCasting ) );
 	}
 
-	// Pad the material pointers.
-	while( ImportedMaterials.Num() > Materials.Num() )
+	int32 NumMaterialsToAdd = FMath::Max<int32>( ImportedMaterials.Num(), ImportData.MaxMaterialIndex + 1 );
+
+	// Pad the material pointers
+	while( NumMaterialsToAdd > Materials.Num() )
 	{
 		Materials.Add( FSkeletalMaterial( NULL, true ) );
 	}
