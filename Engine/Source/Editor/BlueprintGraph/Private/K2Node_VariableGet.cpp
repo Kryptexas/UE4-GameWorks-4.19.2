@@ -349,7 +349,7 @@ void UK2Node_VariableGet::GetContextMenuActions(const FGraphNodeContextMenuBuild
 void UK2Node_VariableGet::TogglePurity()
 {
 	FText TransactionTitle;
-	if(bIsPureGet)
+	if(!bIsPureGet)
 	{
 		TransactionTitle = LOCTEXT("TogglePureGet", "Convert to Pure Get");
 	}
