@@ -3,6 +3,8 @@
 #pragma once
 
 #include "Core.h"
+#include "SlateCore.h"
+#include "SlateFwd.h"
 
 class FMapPakDownloader
 {
@@ -43,5 +45,13 @@ private:
 	// Relative dir of Pak files 
 	FString PakLocation;
 
+	// In Loading screen level.
+	bool IsTransitionLevel; 
+	
+	// Loading Screen Widget.
+	TSharedPtr<SWidget> LoadingWidget;
+
+	//  Progress
+	TSharedPtr<class FloatOption>  ProgressContainter;
 };
 

@@ -370,7 +370,7 @@ public class HTML5Platform : Platform
     public override List<string> GetCookExtraMaps()
     {
         var Maps = new List<string>();
-        Maps.Add("/Engine/Maps/Loading");
+        Maps.Add("/Engine/Maps/Entry");
         return Maps; 
     }
 

@@ -5,6 +5,7 @@
 #include "MapPakDownloader.h"
 #include "emscripten.h"
 #include "Misc/Guid.h"
+#include "SlateExtras.h"
 
 DECLARE_DELEGATE_OneParam(FDelegateFString, FString)
 DECLARE_DELEGATE_OneParam(FDelegateInt32, int32)
@@ -72,7 +73,27 @@ public:
 
 };
 
+class FloatOption : public TSharedFromThis<FloatOption>
+{
+public: 
+	FloatOption() : 
+		Value(0.0f) 
+	{} 
+	void SetFloat(float InFloat)
+	{ 
+		Value = InFloat; 
+	}
+	TOptional<float> GetFloat() const
+	{ 
+		return Value; 
+	}
+private: 
+	float Value;
+};
+
+
 FMapPakDownloader::FMapPakDownloader()
+	:IsTransitionLevel(false)
 {}
 
 bool FMapPakDownloader::Init()
@@ -94,6 +115,38 @@ bool FMapPakDownloader::Init()
 	// Create directory. 
 	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 	PlatformFile.CreateDirectory(*PakLocation);
+
+	ProgressContainter = MakeShareable(new FloatOption());
+
+    // Thin progress bar. Change this widget if you want a custom loading screen. 
+	LoadingWidget = SNew(SBox)
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Center)
+		[
+			SNew(SBox)
+			.VAlign(VAlign_Fill)
+			.HAlign(HAlign_Fill)
+			.HeightOverride(FOptionalSize(4))
+			.WidthOverride(FOptionalSize(300))
+			[
+				SNew(SProgressBar)
+				.Percent(ProgressContainter->AsShared(), &FloatOption::GetFloat)
+				.BorderPadding(FVector2D(0, 0))	
+				.BarFillType(EProgressBarFillType::LeftToRight)
+			]
+		];
+
+	// Hook up PostLoad 
+	FSimpleDelegate PostLoadHandler = FSimpleDelegate::CreateLambda([=](){
+		{
+			if (IsTransitionLevel)
+			{
+				GEngine->GameViewport->AddViewportWidgetContent(LoadingWidget->AsShared());
+			}
+		}
+	});
+
+	FCoreUObjectDelegates::PostLoadMap.Add(PostLoadHandler);
 
 	return true;
 }
@@ -118,16 +171,21 @@ void FMapPakDownloader::CachePak()
 											// Get hold of the world.
 											TObjectIterator<UWorld> It;
 											UWorld* ItWorld = *It;
+											if (IsTransitionLevel)
+												GEngine->GameViewport->RemoveViewportWidgetContent(LoadingWidget->AsShared());
 
 											UE_LOG(LogMapPakDownloader, Warning, TEXT("Travel to %s"), *MapToCache);
 											// Make engine Travel to the cached Map. 
 											GEngine->SetClientTravel(ItWorld, *MapToCache, TRAVEL_Absolute);
 
+											IsTransitionLevel = false; 
+											ProgressContainter->SetFloat(0.0f); 
 											// delete the HTTP request. 
 											delete PakRequest; 
 										});
 
 	FDelegateInt32 OnFileDownloadProgress = FDelegateInt32::CreateLambda([=](int32 Progress){
+												ProgressContainter->SetFloat((float)Progress/100.0f);
 												UE_LOG(LogMapPakDownloader, Warning, TEXT(" %s %d%% downloaded"), *PakRequest->GetFileName(), Progress);
 											});
 
@@ -156,12 +214,28 @@ void FMapPakDownloader::CachePak()
 
 void FMapPakDownloader::Cache(FString& Map, FString& InLastMap, void* InDynData)
 {
-	MapToCache = Map;
-	LastMap = InLastMap;
-
-	if (!FPackageName::DoesPackageExist(Map))
+	bool UseMapDownloader = false;
+	if (GConfig)
 	{
-		CachePak();
-		Map = TEXT("/Engine/Maps/Loading");
+		GConfig->GetBool(TEXT("/Script/HTML5PlatformEditor.HTML5TargetSettings"), TEXT("UseAsyncLevelLoading"), UseMapDownloader, GEngineIni);
+	}
+
+	if (UseMapDownloader)
+	{
+		MapToCache = Map;
+		LastMap = InLastMap;
+
+		FString OutLongPackageName;
+		FString OutFileName;
+
+		if (!FPackageName::SearchForPackageOnDisk(Map, &OutLongPackageName, &OutFileName, false))
+		{
+			UE_LOG(LogMapPakDownloader, Warning, TEXT("Caching.... %s"), *Map);
+			CachePak();
+			Map = TEXT("/Engine/Maps/Entry");
+			IsTransitionLevel = true;
+		}
+
 	}
 }
+
