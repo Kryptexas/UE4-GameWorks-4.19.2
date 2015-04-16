@@ -580,15 +580,25 @@ public:
 
 	/**
 	 *  Test the collision of the supplied component at the supplied location/rotation, and determine the set of components that it overlaps.
+	 *  @note This overload taking rotation as a FQuat is slightly faster than the version using FRotator.
+	 *  @note This simply calls the virtual ComponentOverlapMultiImpl() which can be overridden to implement custom behavior.
 	 *  @param  OutOverlaps     Array of overlaps found between this component in specified pose and the world
 	 *  @param  World			World to use for overlap test
-	 *  @param  Pos             Location to place the component's geometry at to test against the world
-	 *  @param  Rot             Rotation to place components' geometry at to test against the world
+	 *  @param  Pos             Location of component's geometry for the test against the world
+	 *  @param  Rot             Rotation of component's geometry for the test against the world
 	 *  @param  TestChannel		The 'channel' that this ray is in, used to determine which components to hit
-	 *	@param	ObjectQueryParams	List of object types it's looking for. When this enters, we do object query with component shape
+	 *  @param	ObjectQueryParams	List of object types it's looking for. When this enters, we do object query with component shape
 	 *  @return true if OutOverlaps contains any blocking results
 	 */
-	virtual bool ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* World, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams = FCollisionObjectQueryParams::DefaultObjectQueryParam) const;
+	bool ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* World, const FVector& Pos, const FQuat& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams = FCollisionObjectQueryParams::DefaultObjectQueryParam) const;
+	bool ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* World, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams = FCollisionObjectQueryParams::DefaultObjectQueryParam) const;
+
+protected:
+
+	// Override this method for custom behavior.
+	virtual bool ComponentOverlapMultiImpl(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* World, const FVector& Pos, const FQuat& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams = FCollisionObjectQueryParams::DefaultObjectQueryParam) const;
+
+public:
 
 	/** 
 	 *	Event called when a component hits (or is hit by) something solid. This could happen due to things like Character movement, using Set Location with 'sweep' enabled, or physics simulation.
@@ -1346,19 +1356,11 @@ public:
 	// End UObject interface.
 
 	//Begin USceneComponent Interface
-	/**
-	 * Tries to move the component by a movement vector (Delta) and sets rotation to NewRotation.
-	 * Assumes that the component's current location is valid and that the component does fit in its current Location.
-	 * Dispatches blocking hit notifications (if bSweep is true), and calls UpdateOverlaps() after movement to update overlap state.
-	 * 
-	 * @param Delta			The desired location change in world space.
-	 * @param NewRotation	The new desired rotation in world space.
-	 * @param bSweep		Should we sweep to the destination location, stopping short of the target if blocked by something. Note:If the component has no collision this will have no effect.
-	 * @param Hit			Optional output describing the blocking hit that stopped the move, if any.
-	 * @param MoveFlags		Flags controlling behavior of the move. @see EMoveComponentFlags
-	 * @return				True if some movement occurred, false if no movement occurred.
-	 */
-	virtual bool MoveComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit = NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags) override;
+
+protected:
+	virtual bool MoveComponentImpl(const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* OutHit = NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags) override;
+	
+public:
 	virtual bool IsWorldGeometry() const override;
 	virtual ECollisionEnabled::Type GetCollisionEnabled() const override;
 	virtual ECollisionResponse GetCollisionResponseToChannel(ECollisionChannel Channel) const override;
@@ -1630,13 +1632,23 @@ public:
 	
 	/** 
 	 *  Test the collision of the supplied component at the supplied location/rotation, and determine if it overlaps this component
+	 *  @note This overload taking rotation as a FQuat is slightly faster than the version using FRotator.
+	 *  @note This simply calls the virtual ComponentOverlapComponentImpl() which can be overridden to implement custom behavior.
 	 *  @param  PrimComp        Component to use geometry from to test against this component. Transform of this component is ignored.
 	 *  @param  Pos             Location to place PrimComp geometry at 
 	 *  @param  Rot             Rotation to place PrimComp geometry at 
 	 *  @param	Params			Parameter for trace. TraceTag is only used.
 	 *  @return true if PrimComp overlaps this component at the specified location/rotation
 	 */
-	virtual bool ComponentOverlapComponent(class UPrimitiveComponent* PrimComp, const FVector Pos, const FRotator Rot, const FCollisionQueryParams& Params);
+	bool ComponentOverlapComponent(class UPrimitiveComponent* PrimComp, const FVector Pos, const FQuat& Rot, const FCollisionQueryParams& Params);
+	bool ComponentOverlapComponent(class UPrimitiveComponent* PrimComp, const FVector Pos, const FRotator Rot, const FCollisionQueryParams& Params);
+
+protected:
+
+	// Override this method for custom behavior.
+	virtual bool ComponentOverlapComponentImpl(class UPrimitiveComponent* PrimComp, const FVector Pos, const FQuat& Rot, const FCollisionQueryParams& Params);
+
+public:
 	
 	/** 
 	 *  Test the collision of the supplied Sphere at the supplied location, and determine if it overlaps this component
@@ -1736,3 +1748,27 @@ public:
 
 	bool ContainsData() const;
 };
+
+
+//////////////////////////////////////////////////////////////////////////
+// PrimitiveComponent inlines
+
+FORCEINLINE_DEBUGGABLE bool UPrimitiveComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* World, const FVector& Pos, const FQuat& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
+{
+	return ComponentOverlapMultiImpl(OutOverlaps, World, Pos, Rot, TestChannel, Params, ObjectQueryParams);
+}
+
+FORCEINLINE_DEBUGGABLE bool UPrimitiveComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* World, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
+{
+	return ComponentOverlapMultiImpl(OutOverlaps, World, Pos, Rot.Quaternion(), TestChannel, Params, ObjectQueryParams);
+}
+
+FORCEINLINE_DEBUGGABLE bool UPrimitiveComponent::ComponentOverlapComponent(class UPrimitiveComponent* PrimComp, const FVector Pos, const FQuat& Rot, const FCollisionQueryParams& Params)
+{
+	return ComponentOverlapComponentImpl(PrimComp, Pos, Rot, Params);
+}
+
+FORCEINLINE_DEBUGGABLE bool UPrimitiveComponent::ComponentOverlapComponent(class UPrimitiveComponent* PrimComp, const FVector Pos, const FRotator Rot, const FCollisionQueryParams& Params)
+{
+	return ComponentOverlapComponentImpl(PrimComp, Pos, Rot.Quaternion(), Params);
+}

@@ -1850,7 +1850,7 @@ bool USkeletalMeshComponent::SweepComponent( FHitResult& OutHit, const FVector S
 	return bHaveHit;
 }
 
-bool USkeletalMeshComponent::ComponentOverlapComponent(class UPrimitiveComponent* PrimComp,const FVector Pos,const FRotator Rot,const struct FCollisionQueryParams& Params)
+bool USkeletalMeshComponent::ComponentOverlapComponentImpl(class UPrimitiveComponent* PrimComp,const FVector Pos,const FQuat& Quat,const struct FCollisionQueryParams& Params)
 {
 	//we do not support skeletal mesh vs skeletal mesh overlap test
 	if (PrimComp->IsA<USkeletalMeshComponent>())
@@ -1859,10 +1859,10 @@ bool USkeletalMeshComponent::ComponentOverlapComponent(class UPrimitiveComponent
 		return false;
 	}
 
-	if(FBodyInstance* BI = PrimComp->GetBodyInstance())
+	if (FBodyInstance* BI = PrimComp->GetBodyInstance())
 	{
-		return BI->OverlapTestForBodies(Pos, Rot.Quaternion(), Bodies);
-					}
+		return BI->OverlapTestForBodies(Pos, Quat, Bodies);
+	}
 
 	return false;
 }
@@ -1880,7 +1880,7 @@ bool USkeletalMeshComponent::OverlapComponent(const FVector& Pos, const FQuat& R
 	return false;
 }
 
-bool USkeletalMeshComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const UWorld* World, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
+bool USkeletalMeshComponent::ComponentOverlapMultiImpl(TArray<struct FOverlapResult>& OutOverlaps, const UWorld* World, const FVector& Pos, const FQuat& Quat, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
 {
 	OutOverlaps.Reset();
 
@@ -1899,7 +1899,7 @@ bool USkeletalMeshComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>
 	for (const FBodyInstance* Body : Bodies)
 	{
 		checkSlow(Body);
-		if (Body->OverlapMulti(OutOverlaps, World, &WorldToComponent, Pos, Rot, TestChannel, ParamsWithSelf, ResponseParams, ObjectQueryParams))
+		if (Body->OverlapMulti(OutOverlaps, World, &WorldToComponent, Pos, Quat, TestChannel, ParamsWithSelf, ResponseParams, ObjectQueryParams))
 		{
 			bHaveBlockingHit = true;
 		}

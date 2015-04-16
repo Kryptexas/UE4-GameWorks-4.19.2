@@ -1318,7 +1318,7 @@ FCollisionShape UPrimitiveComponent::GetCollisionShape(float Inflation) const
 	return FCollisionShape::MakeBox(Bounds.BoxExtent + Inflation);
 }
 
-bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit, EMoveComponentFlags MoveFlags)
+bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& NewRotationQuat, bool bSweep, FHitResult* OutHit, EMoveComponentFlags MoveFlags)
 {
 	SCOPE_CYCLE_COUNTER(STAT_MoveComponentTime);
 
@@ -1354,10 +1354,7 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 		return false;
 	}
 
-	if (!bWorldToComponentUpdated)
-	{
-		UpdateComponentToWorld();
-	}
+	ConditionalUpdateComponentToWorld();
 
 	// Init HitResult
 	FHitResult BlockingHit(1.f);
@@ -1374,8 +1371,7 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 	if (DeltaSizeSq <= MinMovementDistSq)
 	{
 		// Skip if no vector or rotation.
-		const FQuat NewQuat = NewRotation.Quaternion();
-		if( NewQuat.Equals(ComponentToWorld.GetRotation()) )
+		if (NewRotationQuat.Equals(ComponentToWorld.GetRotation()))
 		{
 			// copy to optional output param
 			if (OutHit)
@@ -1397,7 +1393,7 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 	if ( !bSweep )
 	{
 		// not sweeping, just go directly to the new transform
-		bMoved = InternalSetWorldLocationAndRotation(TraceEnd, NewRotation, bSkipPhysicsMove);
+		bMoved = InternalSetWorldLocationAndRotation(TraceEnd, NewRotationQuat, bSkipPhysicsMove);
 	}
 	else
 	{
@@ -1430,7 +1426,7 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 			FComponentQueryParams Params(Name_MoveComponent, Actor);
 			FCollisionResponseParams ResponseParam;
 			InitSweepCollisionParams(Params, ResponseParam);
-			bool const bHadBlockingHit = GetWorld()->ComponentSweepMulti(Hits, this, TraceStart, TraceEnd, GetComponentRotation(), Params);
+			bool const bHadBlockingHit = GetWorld()->ComponentSweepMulti(Hits, this, TraceStart, TraceEnd, GetComponentQuat(), Params);
 
 			if (Hits.Num() > 0)
 			{
@@ -1537,7 +1533,7 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 			// However any rotation was set at the end and not swept, so we can't assume the overlaps at the end location are correct if rotation changed.
 			if (PendingOverlaps.Num() == 0 && CVarAllowCachedOverlaps->GetInt())
 			{
-				if (Actor && Actor->GetRootComponent() == this && AreSymmetricRotations(NewRotation.Quaternion(), ComponentToWorld.GetRotation(), ComponentToWorld.GetScale3D()))
+				if (Actor && Actor->GetRootComponent() == this && AreSymmetricRotations(NewRotationQuat, ComponentToWorld.GetRotation(), ComponentToWorld.GetScale3D()))
 				{
 					// We know we are not overlapping any new components at the end location.
 					// Keep known overlapping child components, as long as we know their overlap status could not have changed (ie they are positioned relative to us).
@@ -1580,7 +1576,7 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 			if (CVarAllowCachedOverlaps->GetInt() && Actor && Actor->GetRootComponent() == this && !IsDeferringMovementUpdates())
 			{
 				// Only if we know that we won't change our overlap status with children by moving.
-				if (AreSymmetricRotations(NewRotation.Quaternion(), ComponentToWorld.GetRotation(), ComponentToWorld.GetScale3D()) &&
+				if (AreSymmetricRotations(NewRotationQuat, ComponentToWorld.GetRotation(), ComponentToWorld.GetScale3D()) &&
 					AreAllCollideableDescendantsRelative())
 				{
 					OverlapsAtEndLocation = OverlappingComponents;
@@ -1590,7 +1586,7 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 		}
 
 		// Update the location.  This will teleport any child components as well (not sweep).
-		bMoved = InternalSetWorldLocationAndRotation(NewLocation, NewRotation, bSkipPhysicsMove);
+		bMoved = InternalSetWorldLocationAndRotation(NewLocation, NewRotationQuat, bSkipPhysicsMove);
 	}
 
 	// Handle overlap notifications.
@@ -1745,7 +1741,7 @@ bool UPrimitiveComponent::SweepComponent(struct FHitResult& OutHit, const FVecto
 	return BodyInstance.Sweep(OutHit, Start, End, CollisionShape, bTraceComplex);
 }
 
-bool UPrimitiveComponent::ComponentOverlapComponent(class UPrimitiveComponent* PrimComp, const FVector Pos, const FRotator Rot, const struct FCollisionQueryParams& Params)
+bool UPrimitiveComponent::ComponentOverlapComponentImpl(class UPrimitiveComponent* PrimComp, const FVector Pos, const FQuat& Quat, const struct FCollisionQueryParams& Params)
 {
 	// if target is skeletalmeshcomponent and do not support singlebody physics
 	USkeletalMeshComponent * OtherComp = Cast<USkeletalMeshComponent>(PrimComp);
@@ -1759,7 +1755,7 @@ bool UPrimitiveComponent::ComponentOverlapComponent(class UPrimitiveComponent* P
 	{
 		TArray<FBodyInstance*> Bodies;
 		Bodies.Add(GetBodyInstance());
-		return BI->OverlapTestForBodies(Pos, Rot.Quaternion(), Bodies);
+		return BI->OverlapTestForBodies(Pos, Quat, Bodies);
 	}
 
 	return false;
@@ -2182,7 +2178,7 @@ void UPrimitiveComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOver
 					FComponentQueryParams Params(NAME_UpdateOverlaps);
 					Params.bTraceAsyncScene = bCheckAsyncSceneOnMove;
 					Params.AddIgnoredActors(MoveIgnoreActors);
-					MyWorld->ComponentOverlapMulti(Overlaps, this, GetComponentLocation(), GetComponentRotation(), Params);
+					MyWorld->ComponentOverlapMulti(Overlaps, this, GetComponentLocation(), GetComponentQuat(), Params);
 
 					for( int32 ResultIdx=0; ResultIdx<Overlaps.Num(); ResultIdx++ )
 					{
@@ -2277,12 +2273,12 @@ void UPrimitiveComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOver
 	}
 }
 
-bool UPrimitiveComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const UWorld* World, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
+bool UPrimitiveComponent::ComponentOverlapMultiImpl(TArray<struct FOverlapResult>& OutOverlaps, const UWorld* World, const FVector& Pos, const FQuat& Quat, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
 {
 	FComponentQueryParams ParamsWithSelf = Params;
 	ParamsWithSelf.AddIgnoredComponent(this);
 	OutOverlaps.Reset();
-	return BodyInstance.OverlapMulti(OutOverlaps, World, /*pWorldToComponent=*/ nullptr, Pos, Rot, TestChannel, ParamsWithSelf, FCollisionResponseParams(GetCollisionResponseToChannels()), ObjectQueryParams);
+	return BodyInstance.OverlapMulti(OutOverlaps, World, /*pWorldToComponent=*/ nullptr, Pos, Quat, TestChannel, ParamsWithSelf, FCollisionResponseParams(GetCollisionResponseToChannels()), ObjectQueryParams);
 }
 
 void UPrimitiveComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )

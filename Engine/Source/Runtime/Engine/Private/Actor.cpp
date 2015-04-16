@@ -2667,7 +2667,7 @@ bool AActor::SetActorLocation(const FVector& NewLocation, bool bSweep, FHitResul
 	if (RootComponent)
 	{
 		const FVector Delta = NewLocation - GetActorLocation();
-		return RootComponent->MoveComponent( Delta, GetActorRotation(), bSweep, OutSweepHitResult );
+		return RootComponent->MoveComponent(Delta, GetActorQuat(), bSweep, OutSweepHitResult);
 	}
 	else if (OutSweepHitResult)
 	{
@@ -2681,7 +2681,17 @@ bool AActor::SetActorRotation(FRotator NewRotation)
 {
 	if (RootComponent)
 	{
-		return RootComponent->MoveComponent( FVector::ZeroVector, NewRotation, true );
+		return RootComponent->MoveComponent(FVector::ZeroVector, NewRotation, true);
+	}
+
+	return false;
+}
+
+bool AActor::SetActorRotation(const FQuat& NewRotation)
+{
+	if (RootComponent)
+	{
+		return RootComponent->MoveComponent(FVector::ZeroVector, NewRotation, true);
 	}
 
 	return false;
@@ -2692,7 +2702,22 @@ bool AActor::SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotati
 	if (RootComponent)
 	{
 		const FVector Delta = NewLocation - GetActorLocation();
-		return RootComponent->MoveComponent( Delta, NewRotation, bSweep, OutSweepHitResult );
+		return RootComponent->MoveComponent(Delta, NewRotation, bSweep, OutSweepHitResult);
+	}
+	else if (OutSweepHitResult)
+	{
+		*OutSweepHitResult = FHitResult();
+	}
+
+	return false;
+}
+
+bool AActor::SetActorLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep, FHitResult* OutSweepHitResult)
+{
+	if (RootComponent)
+	{
+		const FVector Delta = NewLocation - GetActorLocation();
+		return RootComponent->MoveComponent(Delta, NewRotation, bSweep, OutSweepHitResult);
 	}
 	else if (OutSweepHitResult)
 	{
@@ -2733,6 +2758,18 @@ void AActor::AddActorWorldOffset(FVector DeltaLocation, bool bSweep, FHitResult*
 }
 
 void AActor::AddActorWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
+{
+	if (RootComponent)
+	{
+		RootComponent->AddWorldRotation(DeltaRotation, bSweep, OutSweepHitResult);
+	}
+	else if (OutSweepHitResult)
+	{
+		*OutSweepHitResult = FHitResult();
+	}
+}
+
+void AActor::AddActorWorldRotation(const FQuat& DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	if (RootComponent)
 	{
@@ -2809,6 +2846,18 @@ void AActor::AddActorLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResu
 	}
 }
 
+void AActor::AddActorLocalRotation(const FQuat& DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
+{
+	if (RootComponent)
+	{
+		RootComponent->AddLocalRotation(DeltaRotation, bSweep, OutSweepHitResult);
+	}
+	else if (OutSweepHitResult)
+	{
+		*OutSweepHitResult = FHitResult();
+	}
+}
+
 void AActor::AddActorLocalTransform(const FTransform& NewTransform, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	if(RootComponent)
@@ -2834,6 +2883,18 @@ void AActor::SetActorRelativeLocation(FVector NewRelativeLocation, bool bSweep, 
 }
 
 void AActor::SetActorRelativeRotation(FRotator NewRelativeRotation, bool bSweep, FHitResult* OutSweepHitResult)
+{
+	if (RootComponent)
+	{
+		RootComponent->SetRelativeRotation(NewRelativeRotation, bSweep, OutSweepHitResult);
+	}
+	else if (OutSweepHitResult)
+	{
+		*OutSweepHitResult = FHitResult();
+	}
+}
+
+void AActor::SetActorRelativeRotation(const FQuat& NewRelativeRotation, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	if (RootComponent)
 	{

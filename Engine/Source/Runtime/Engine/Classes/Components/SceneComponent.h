@@ -251,6 +251,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="SetRelativeRotation", AdvancedDisplay="bSweep,SweepHitResult"))
 	void K2_SetRelativeRotation(FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult);
 	void SetRelativeRotation(FRotator NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+	void SetRelativeRotation(const FQuat& NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
 
 	/** Set the transform of this component relative to its parent */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="SetRelativeTransform"))
@@ -278,6 +279,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="AddRelativeRotation", AdvancedDisplay="bSweep,SweepHitResult"))
 	void K2_AddRelativeRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult);
 	void AddRelativeRotation(FRotator DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+	void AddRelativeRotation(const FQuat& DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
 
 	/** Adds a delta to the location of this component in its local reference frame */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="AddLocalOffset", Keywords="location position"))
@@ -289,6 +291,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="AddLocalRotation", AdvancedDisplay="bSweep,SweepHitResult"))
 	void K2_AddLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult);
 	void AddLocalRotation(FRotator DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+	void AddLocalRotation(const FQuat& DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
 
 
 	/** Adds a delta to the transform of this component in its local reference frame. Scale is unchanged. */
@@ -307,6 +310,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="SetWorldRotation", AdvancedDisplay="bSweep,SweepHitResult"))
 	void K2_SetWorldRotation(FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult);
 	void SetWorldRotation(FRotator NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+	void SetWorldRotation(const FQuat& NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
 
 
 	/** Set the relative scale of this component to put it at the supplied scale in world space. */
@@ -329,6 +333,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="AddWorldRotation", AdvancedDisplay="bSweep,SweepHitResult"))
 	void K2_AddWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult);
 	void AddWorldRotation(FRotator DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+	void AddWorldRotation(const FQuat& DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
 
 	/** Adds a delta to the transform of this component in world space. Scale is unchanged. */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="AddWorldTransform"))
@@ -525,6 +530,9 @@ public:
 	virtual FName GetComponentInstanceDataType() const override;
 	// End ActorComponent interface
 
+	// Call UpdateComponentToWorld if bWorldToComponentUpdated is false.
+	void ConditionalUpdateComponentToWorld();
+
 	// Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostInterpChange(UProperty* PropertyThatChanged) override;
@@ -542,7 +550,7 @@ protected:
 	 * Internal helper, for use from MoveComponent().  Special codepath since the normal setters call MoveComponent.
 	 * @return: true if location or rotation was changed.
 	 */
-	bool InternalSetWorldLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bNoPhysics=false);
+	bool InternalSetWorldLocationAndRotation(FVector NewLocation, const FQuat& NewQuat, bool bNoPhysics=false);
 
 	virtual void OnUpdateTransform(bool bSkipPhysicsMove);
 
@@ -552,7 +560,7 @@ protected:
 private:
 
 	void PropagateTransformUpdate(bool bTransformChanged, bool bSkipPhysicsMove = false);
-	void UpdateComponentToWorldWithParent(USceneComponent * Parent, bool bSkipPhysicsMove);
+	void UpdateComponentToWorldWithParent(USceneComponent* Parent, bool bSkipPhysicsMove, const FQuat& RelativeRotationQuat);
 
 
 public:
@@ -564,7 +572,9 @@ public:
 	 * Tries to move the component by a movement vector (Delta) and sets rotation to NewRotation.
 	 * Assumes that the component's current location is valid and that the component does fit in its current Location.
 	 * Dispatches blocking hit notifications (if bSweep is true), and calls UpdateOverlaps() after movement to update overlap state.
-	 * 
+	 *
+	 * @note This simply calls the virtual MoveComponentImpl() which can be overridden to implement custom behavior.
+	 * @note The overload taking rotation as an FQuat is slightly faster than the version using FRotator (which will be converted to an FQuat)..
 	 * @param Delta			The desired location change in world space.
 	 * @param NewRotation	The new desired rotation in world space.
 	 * @param bSweep		True to do a swept move, which will stop at a blocking collision. False to do a simple teleport, which will not stop for collisions.
@@ -572,7 +582,15 @@ public:
 	 * @param MoveFlags		Flags controlling behavior of the move. @see EMoveComponentFlags
 	 * @return				True if some movement occurred, false if no movement occurred.
 	 */
-	virtual bool MoveComponent( const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* Hit=NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags );
+	bool MoveComponent( const FVector& Delta, const FQuat& NewRotation,    bool bSweep, FHitResult* Hit=NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags );
+	bool MoveComponent( const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* Hit=NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags );
+
+protected:
+
+	// Override this method for custom behavior.
+	virtual bool MoveComponentImpl( const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* Hit=NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags );
+
+public:
 
 
 	/** Returns true if movement is currently within the scope of an FScopedMovementUpdate. */
@@ -731,17 +749,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="SetRelativeLocationAndRotation"))
 	void K2_SetRelativeLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult);
 	void SetRelativeLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+	void SetRelativeLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
 
 	/** Set which parts of the relative transform should be relative to parent, and which should be relative to world */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetAbsolute(bool bNewAbsoluteLocation = false, bool bNewAbsoluteRotation = false, bool bNewAbsoluteScale = false);
 
-	/** Set the relative location & FRotator rotation of this component to put it at the supplied pose in world space. */
+	/** Set the relative location and FRotator rotation of this component to put it at the supplied pose in world space. */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="SetWorldLocationAndRotation"))
 	void K2_SetWorldLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult);
 	void SetWorldLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
 
-	/** Set the relative location & FQuat rotation of this component to put it at the supplied pose in world space. */
+	/** Set the relative location and FQuat rotation of this component to put it at the supplied pose in world space. */
 	void SetWorldLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
 
 	/** Special version of SetWorldLocationAndRotation that does not affect physics. */
@@ -785,10 +804,11 @@ public:
 	 * If the socket is not found, then it returns the component's location and rotation in world space.
 	 * @param InSocketName the name of the socket to find
 	 * @param OutLocation (out) set to the world space location of the socket
-	 * @param OutRotation (optional out) if specified, set to the world space rotation of the socket
+	 * @param OutRotation (out) set to the world space rotation of the socket
 	 * @return whether or not the socket was found
 	 */
 	void GetSocketWorldLocationAndRotation(FName InSocketName, FVector& OutLocation, FRotator& OutRotation) const;
+	void GetSocketWorldLocationAndRotation(FName InSocketName, FVector& OutLocation, FQuat& OutRotation) const;
 
 	/**
 	 * Called to see if it's possible to attach another scene component as a child.
@@ -826,6 +846,65 @@ protected:
 		return (IsOwnerRunningUserConstructionScript()) || !(IsRegistered() && (Mobility == EComponentMobility::Static || (!bIgnoreStationary && Mobility == EComponentMobility::Stationary)));
 	}
 };
+
+
+//////////////////////////////////////////////////////////////////////////
+// USceneComponent inlines
+
+FORCEINLINE_DEBUGGABLE void USceneComponent::ConditionalUpdateComponentToWorld()
+{
+	if (!bWorldToComponentUpdated)
+	{
+		UpdateComponentToWorld();
+	}
+}
+
+FORCEINLINE_DEBUGGABLE bool USceneComponent::MoveComponent(const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* Hit, EMoveComponentFlags MoveFlags)
+{
+	return MoveComponentImpl(Delta, NewRotation, bSweep, Hit, MoveFlags);
+}
+
+FORCEINLINE_DEBUGGABLE bool USceneComponent::MoveComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* Hit, EMoveComponentFlags MoveFlags)
+{
+	return MoveComponentImpl(Delta, NewRotation.Quaternion(), bSweep, Hit, MoveFlags);
+}
+
+FORCEINLINE_DEBUGGABLE void USceneComponent::SetRelativeLocation(FVector NewLocation, bool bSweep, FHitResult* OutSweepHitResult)
+{
+	SetRelativeLocationAndRotation(NewLocation, RelativeRotation, bSweep, OutSweepHitResult);
+}
+
+FORCEINLINE_DEBUGGABLE void USceneComponent::SetRelativeRotation(FRotator NewRotation, bool bSweep, FHitResult* OutSweepHitResult)
+{
+	SetRelativeLocationAndRotation(RelativeLocation, NewRotation, bSweep, OutSweepHitResult);
+}
+
+FORCEINLINE_DEBUGGABLE void USceneComponent::SetRelativeRotation(const FQuat& NewRotation, bool bSweep, FHitResult* OutSweepHitResult)
+{
+	SetRelativeLocationAndRotation(RelativeLocation, NewRotation, bSweep, OutSweepHitResult);
+}
+
+FORCEINLINE_DEBUGGABLE void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult* OutSweepHitResult)
+{
+	SetRelativeLocationAndRotation(NewLocation, NewRotation.Quaternion(), bSweep, OutSweepHitResult);
+}
+
+FORCEINLINE_DEBUGGABLE void USceneComponent::AddRelativeLocation(FVector DeltaLocation, bool bSweep, FHitResult* OutSweepHitResult)
+{
+	SetRelativeLocationAndRotation(RelativeLocation + DeltaLocation, RelativeRotation, bSweep, OutSweepHitResult);
+}
+
+FORCEINLINE_DEBUGGABLE void USceneComponent::AddRelativeRotation(FRotator DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
+{
+	SetRelativeLocationAndRotation(RelativeLocation, RelativeRotation + DeltaRotation, bSweep, OutSweepHitResult);
+}
+
+FORCEINLINE_DEBUGGABLE void USceneComponent::SetWorldRotation(const FRotator NewRotation, bool bSweep, FHitResult* OutSweepHitResult)
+{
+	SetWorldRotation(NewRotation.Quaternion(), bSweep, OutSweepHitResult);
+}
+
+//////////////////////////////////////////////////////////////////////////
 
 /** 
  *  Component instance cached data base class for scene components. 
@@ -962,7 +1041,7 @@ FORCEINLINE const FScopedMovementUpdate::TBlockingHitArray& FScopedMovementUpdat
 	return BlockingHits;
 }
 
-FORCEINLINE void FScopedMovementUpdate::AppendBlockingHit(const FHitResult& Hit)
+FORCEINLINE_DEBUGGABLE void FScopedMovementUpdate::AppendBlockingHit(const FHitResult& Hit)
 {
 	BlockingHits.Add(Hit);
 }
