@@ -758,11 +758,17 @@ public:
 		{
 			for (FLightMapRef& LightMapRef : CachedStaticLighting.LODDataLightMap)
 			{
-				LightMapRef->AddReferencedObjects(Collector);
+				if (LightMapRef != nullptr)
+				{
+					LightMapRef->AddReferencedObjects(Collector);
+				}
 			}
 			for (FShadowMapRef& ShadowMapRef : CachedStaticLighting.LODDataShadowMap)
 			{
-				ShadowMapRef->AddReferencedObjects(Collector);
+				if (ShadowMapRef != nullptr)
+				{
+					ShadowMapRef->AddReferencedObjects(Collector);
+				}
 			}		
 		}
 	}
