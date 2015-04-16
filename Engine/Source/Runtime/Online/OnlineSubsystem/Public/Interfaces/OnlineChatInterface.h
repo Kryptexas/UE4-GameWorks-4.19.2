@@ -160,13 +160,14 @@ public:
 	/**
 	 * Kick off request for creating a chat room with a provided configuration
 	 * 
-	 * @param UserId id of user that is joining
+	 * @param UserId id of user that is creating the room
+	 * @param RoomId name of room to create
 	 * @param RoomConfig configuration for the room
 	 * @param Nickname display name for the chat room. Name must be unique and is reserved for duration of join
 	 *
 	 * @return if successfully started the async operation
 	 */
-	virtual bool CreateRoom(const FUniqueNetId& UserId, const FChatRoomConfig& RoomConfig, const FString& Nickname) = 0;
+	virtual bool CreateRoom(const FUniqueNetId& UserId, const FChatRoomId& RoomId, const FString& Nickname) = 0;
 	
 	/**
 	 * Kick off request for joining a public chat room
