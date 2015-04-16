@@ -1436,6 +1436,28 @@ void UActorChannel::CleanupReplicators( const bool bKeepReplicators )
 	ActorReplicator = NULL;
 }
 
+void UActorChannel::DestroyActorAndComponents()
+{
+	// Destroy any sub-objects we created
+	for ( int32 i = 0; i < CreateSubObjects.Num(); i++ )
+	{
+		if ( CreateSubObjects[i].IsValid() )
+		{
+			UObject *SubObject = CreateSubObjects[i].Get();
+			Actor->OnSubobjectDestroyFromReplication(SubObject);
+			SubObject->MarkPendingKill();
+		}
+	}
+
+	CreateSubObjects.Empty();
+
+	// Destroy the actor
+	if ( Actor != NULL )
+	{
+		Actor->Destroy( true );
+	}
+}
+
 bool UActorChannel::CleanUp( const bool bForDestroy )
 {
 	const bool bIsServer = Connection->Driver->IsServer();
@@ -1467,21 +1489,7 @@ bool UActorChannel::CleanUp( const bool bForDestroy )
 			{
 				UE_LOG(LogNetDormancy, Verbose, TEXT("Channel[%d] '%s' Destroying Actor."), ChIndex, *Describe() );
 
-				// Destroy any sub-objects we created
-				for ( int32 i = 0; i < CreateSubObjects.Num(); i++ )
-				{
-					if ( CreateSubObjects[i].IsValid() )
-					{
-						UObject *SubObject = CreateSubObjects[i].Get();
-						Actor->OnSubobjectDestroyFromReplication(SubObject);
-						SubObject->MarkPendingKill();
-					}
-				}
-
-				CreateSubObjects.Empty();
-
-				// Destroy the actor
-				Actor->Destroy( true );
+				DestroyActorAndComponents();
 			}
 		}
 	}
@@ -1933,9 +1941,25 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 
 		TSharedRef< FObjectReplicator > & Replicator = FindOrCreateReplicator( RepObj );
 
+		if ( Connection->InternalAck && ( Bunch.bOpen || RepObj != Actor  ) )
+		{
+			// Receive network checksum
+			if ( !Replicator->ReadNetworkChecksum( Bunch ) )
+			{
+				UE_LOG( LogNet, Warning, TEXT( "UActorChannel::ProcessBunch: ReadNetworkChecksum failed. RepObj: %s, Channel: %i"), RepObj ? *RepObj->GetFullName() : TEXT( "NULL" ), ChIndex );
+
+				DestroyActorAndComponents();
+				Actor = NULL;
+
+				// Mark as broken so we stop trying to process bunches on this channel
+				Broken = 1;
+				break;
+			}
+		}
+
 		bool bHasUnmapped = false;
 
-		if ( !Replicator.Get().ReceivedBunch( Bunch, RepFlags, bHasUnmapped ) )
+		if ( !Replicator->ReceivedBunch( Bunch, RepFlags, bHasUnmapped ) )
 		{
 			UE_LOG( LogNet, Error, TEXT( "UActorChannel::ProcessBunch: Replicator.ReceivedBunch failed.  Closing connection. RepObj: %s, Channel: %i"), RepObj ? *RepObj->GetFullName() : TEXT( "NULL" ), ChIndex  );
 			Connection->Close();
@@ -2285,6 +2309,11 @@ void UActorChannel::BeginContentBlock( UObject* Obj, FOutBunch &Bunch )
 
 	if ( IsActor )
 	{
+		if ( Connection->InternalAck && OpenPacketId.First == INDEX_NONE )
+		{
+			// Write network checksum
+			ActorReplicator->WriteNetworkChecksum( Bunch );
+		}
 		NETWORK_PROFILER(GNetworkProfiler.TrackBeginContentBlock(Obj, Bunch.GetNumBits() - NumStartingBits));
 		return;
 	}
@@ -2306,6 +2335,12 @@ void UActorChannel::BeginContentBlock( UObject* Obj, FOutBunch &Bunch )
 			UClass *ObjClass = Obj->GetClass();
 			Bunch << ObjClass;
 		}
+	}
+
+	if ( Connection->InternalAck )
+	{
+		// Write network checksum
+		FindOrCreateReplicator( Obj )->WriteNetworkChecksum( Bunch );
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

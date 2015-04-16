@@ -250,6 +250,8 @@ protected:
 	TSharedRef< FObjectReplicator > & FindOrCreateReplicator(UObject *Obj);
 	bool ObjectHasReplicator(UObject *Obj);	// returns whether we have already created a replicator for this object or not
 
+	void DestroyActorAndComponents();
+
 	virtual bool CleanUp( const bool bForDestroy ) override;
 
 	/** Closes the actor channel but with a 'dormant' flag set so it can be reopened */

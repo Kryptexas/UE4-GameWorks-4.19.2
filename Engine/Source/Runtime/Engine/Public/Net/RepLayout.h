@@ -243,7 +243,7 @@ class FRepLayout
 	friend class FRepState;
 
 public:
-	FRepLayout() : FirstNonCustomParent( 0 ), RoleIndex( -1 ), RemoteRoleIndex( -1 ), Owner( NULL ) {}
+	FRepLayout() : FirstNonCustomParent( 0 ), RoleIndex( -1 ), RemoteRoleIndex( -1 ), Owner( NULL ), NetworkChecksum( 0 ) {}
 
 	void OpenAcked( FRepState * RepState ) const;
 
@@ -317,6 +317,9 @@ public:
 
 	// Serializes all replicated properties of a UObject in or out of an archive (depending on what type of archive it is)
 	ENGINE_API void SerializeObjectReplicatedProperties(UObject* Object, FArchive & Ar) const;
+
+	void WriteNetworkChecksum( FOutBunch& Bunch );
+	bool ReadNetworkChecksum( FInBunch& Bunch );
 
 private:
 	void RebuildConditionalProperties( FRepState * RESTRICT	RepState, const FRepChangedPropertyTracker& ChangedTracker, const FReplicationFlags& RepFlags ) const;
@@ -449,4 +452,6 @@ private:
 	int32						RemoteRoleIndex;
 
 	UObject *					Owner;						// Either a UCkass or UFunction
+
+	uint32						NetworkChecksum;
 };

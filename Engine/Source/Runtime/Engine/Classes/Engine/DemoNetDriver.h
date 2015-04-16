@@ -67,15 +67,10 @@ class ENGINE_API UDemoNetDriver : public UNetDriver
 
 	void		SaveCheckpoint();
 
-	bool		bRestoreSpectatorPosition;
-	FVector		SpectatorLocation;
-	FRotator	SpectatorRotation;
-
 	FArchive*	GotoCheckpointArchive;
 	int64		GotoCheckpointSkipExtraTimeInMS;
 
 	void		LoadCheckpoint();
-
 
 private:
 	bool		bIsFastForwarding;

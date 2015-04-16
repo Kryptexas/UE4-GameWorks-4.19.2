@@ -154,4 +154,7 @@ public:
 	}
 
 	void QueuePropertyRepNotify( UObject* Object, UProperty * Property, const int32 ElementIndex, TArray< uint8 > & MetaData );
+
+	void WriteNetworkChecksum( FOutBunch& Bunch );
+	bool ReadNetworkChecksum( FInBunch& Bunch );
 };

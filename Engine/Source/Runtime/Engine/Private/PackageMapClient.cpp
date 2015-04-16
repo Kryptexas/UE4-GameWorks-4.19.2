@@ -649,7 +649,7 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 					return NetGUID;
 				}
 
-				if ( Package->GetGuid() != PackageGuid && CVarIgnorePackageMismatch.GetValueOnGameThread() == 0 )
+				if ( Package->GetGuid() != PackageGuid && !GuidCache->ShouldIgnorePackageMismatch() )
 				{
 					UE_LOG( LogNetPackageMap, Error, TEXT( "UPackageMapClient::InternalLoadObject: Default object package guid mismatch! PathName: %s, ObjOuter: %s, GUID1: %s, GUID2: %s " ), *PathName, ObjOuter != NULL ? *ObjOuter->GetPathName() : TEXT( "NULL" ), *Package->GetGuid().ToString(), *PackageGuid.ToString() );
 					Object = NULL;
@@ -1263,10 +1263,9 @@ UObject* UPackageMapClient::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, c
 //	FNetGUIDCache
 //----------------------------------------------------------------------------------------
 
-FNetGUIDCache::FNetGUIDCache( UNetDriver * InDriver ) : Driver( InDriver )
+FNetGUIDCache::FNetGUIDCache( UNetDriver * InDriver ) : IsExportingNetGUIDBunch( false ), Driver( InDriver ), bIgnorePackageMismatchOverride( false )
 {
 	UniqueNetIDs[0] = UniqueNetIDs[1] = 0;
-	IsExportingNetGUIDBunch = false;
 }
 
 class FArchiveCountMemGUID : public FArchive
@@ -1653,7 +1652,7 @@ void FNetGUIDCache::AsyncPackageCallback(const FName& PackageName, UPackage * Pa
 		CacheObject->bIsBroken = true;
 		UE_LOG( LogNetPackageMap, Error, TEXT( "AsyncPackageCallback: Package FAILED to load. Path: %s, NetGUID: %s" ), *PackageName.ToString(), *NetGUID.ToString() );
 	}
-	else if ( Package->GetGuid() != CacheObject->PackageGuid && CVarIgnorePackageMismatch.GetValueOnGameThread() == 0 )
+	else if ( Package->GetGuid() != CacheObject->PackageGuid && !ShouldIgnorePackageMismatch() )
 	{
 		CacheObject->bIsBroken = true;
 		UE_LOG( LogNetPackageMap, Error, TEXT( "AsyncPackageCallback: Package GUID mismatch! Path: %s, NetGUID: %s, GUID1: %s, GUID2: %s" ), *PackageName.ToString(), *NetGUID.ToString(), *Package->GetGuid().ToString(), *CacheObject->PackageGuid.ToString() );
@@ -1852,7 +1851,7 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 			}
 		}
 
-		if ( Package->GetGuid() != CacheObjectPtr->PackageGuid && CVarIgnorePackageMismatch.GetValueOnGameThread() == 0 )
+		if ( Package->GetGuid() != CacheObjectPtr->PackageGuid && !ShouldIgnorePackageMismatch() )
 		{
 			// If the package guid doesn't match, don't allow it to load
 			CacheObjectPtr->bIsBroken = true;
@@ -2043,6 +2042,11 @@ void FNetGUIDCache::GenerateFullNetGUIDPath_r( const FNetworkGUID& NetGUID, FStr
 	}
 }
 
+bool FNetGUIDCache::ShouldIgnorePackageMismatch() const
+{
+	return bIgnorePackageMismatchOverride || CVarIgnorePackageMismatch.GetValueOnGameThread();
+};
+
 //------------------------------------------------------
 // Debug command to see how many times we've exported each NetGUID
 // Used for measuring inefficiencies. Some duplication is unavoidable since we cannot garuntee atomicicity across multiple channels.
@@ -2080,7 +2084,5 @@ FAutoConsoleCommand	ListNetGUIDExportsCommand(
 	TEXT( "Lists open actor channels" ), 
 	FConsoleCommandDelegate::CreateStatic(ListNetGUIDExports)
 	);
-
-
 
 // ----------------------------------------------------------------
