@@ -66,8 +66,8 @@ struct FDelegateDispatchDetails
 	{}
 };
 
-UPlayerInput::UPlayerInput(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+UPlayerInput::UPlayerInput()
+	: Super()
 {
 	SetFlags(RF_Transactional);
 	MouseSamplingTotal = +0.0083f;
@@ -298,35 +298,57 @@ bool UPlayerInput::InputGesture(const FKey Gesture, const EInputEvent Event, con
 	return true;
 }
 
-float UPlayerInput::GetMouseSensitivity()
+bool UPlayerInput::GetAxisProperties(const FKey AxisKey, FInputAxisProperties& OutAxisProperties)
 {
 	ConditionalInitAxisProperties();
 
-	const FInputAxisProperties* const XAxisProps = AxisProperties.Find(EKeys::MouseX);
-	if (XAxisProps)
+	const FInputAxisProperties* const AxisProps = AxisProperties.Find(AxisKey);
+	if (AxisProps)
 	{
-		return XAxisProps->Sensitivity;
+		OutAxisProperties = *AxisProps;
+		return true;
 	}
-	const FInputAxisProperties* const YAxisProps = AxisProperties.Find(EKeys::MouseY);
-	if (YAxisProps)
+
+	return false;
+}
+
+void UPlayerInput::SetAxisProperties(const FKey AxisKey, const FInputAxisProperties& InAxisProperties)
+{
+	for (FInputAxisConfigEntry& AxisConfigEntry : AxisConfig)
 	{
-		return YAxisProps->Sensitivity;
+		if (AxisConfigEntry.AxisKeyName == AxisKey)
+		{
+			AxisConfigEntry.AxisProperties = InAxisProperties;
+		}
 	}
-	return 1.0f;
+
+	AxisProperties.Empty(AxisProperties.Num());
+}
+
+float UPlayerInput::GetMouseSensitivity()
+{
+	FInputAxisProperties MouseAxisProps;
+	if (GetAxisProperties(EKeys::MouseX, MouseAxisProps) || GetAxisProperties(EKeys::MouseY, MouseAxisProps))
+	{
+		return MouseAxisProps.Sensitivity;
+	}
+
+	return 1.f;
 }
 
 void UPlayerInput::SetMouseSensitivity(const float Sensitivity)
 {
-	for (FInputAxisConfigEntry& AxisConfigEntry : AxisConfig)
+	FInputAxisProperties MouseAxisProps;
+	if (GetAxisProperties(EKeys::MouseX, MouseAxisProps))
 	{
-		const FKey AxisKey = AxisConfigEntry.AxisKeyName;
-		if (AxisKey == EKeys::MouseX || AxisKey == EKeys::MouseY)
-		{
-			AxisConfigEntry.AxisProperties.Sensitivity = Sensitivity;
-		}
+		MouseAxisProps.Sensitivity = Sensitivity;
+		SetAxisProperties(EKeys::MouseX, MouseAxisProps);
 	}
-
-	AxisProperties.Empty();
+	if (GetAxisProperties(EKeys::MouseY, MouseAxisProps))
+	{
+		MouseAxisProps.Sensitivity = Sensitivity;
+		SetAxisProperties(EKeys::MouseY, MouseAxisProps);
+	}
 }
 
 void UPlayerInput::SetMouseSensitivityToDefault()
@@ -337,7 +359,9 @@ void UPlayerInput::SetMouseSensitivityToDefault()
 		const FKey AxisKey = AxisConfigEntry.AxisKeyName;
 		if (AxisKey == EKeys::MouseX)
 		{
+			PRAGMA_DISABLE_DEPRECATION_WARNINGS
 			SetMouseSensitivity(AxisConfigEntry.AxisProperties.Sensitivity);
+			PRAGMA_ENABLE_DEPRECATION_WARNINGS
 			break;
 		}
 	}
@@ -448,7 +472,7 @@ struct FAxisDelegate
 void UPlayerInput::AddActionMapping(const FInputActionKeyMapping& KeyMapping)
 {
 	ActionMappings.AddUnique(KeyMapping);
-	ActionKeyMap.Empty();
+	ActionKeyMap.Empty(ActionKeyMap.Num());
 }
 
 void UPlayerInput::RemoveActionMapping(const FInputActionKeyMapping& KeyMapping)
@@ -458,7 +482,7 @@ void UPlayerInput::RemoveActionMapping(const FInputActionKeyMapping& KeyMapping)
 		if (ActionMappings[ActionIndex] == KeyMapping)
 		{
 			ActionMappings.RemoveAtSwap(ActionIndex);
-			ActionKeyMap.Empty();
+			ActionKeyMap.Empty(ActionKeyMap.Num());
 			// we don't break because the mapping may have been in the array twice
 		}
 	}
@@ -467,7 +491,7 @@ void UPlayerInput::RemoveActionMapping(const FInputActionKeyMapping& KeyMapping)
 void UPlayerInput::AddAxisMapping(const FInputAxisKeyMapping& KeyMapping)
 {
 	AxisMappings.AddUnique(KeyMapping);
-	AxisKeyMap.Empty();
+	AxisKeyMap.Empty(AxisKeyMap.Num());
 }
 
 void UPlayerInput::RemoveAxisMapping(const FInputAxisKeyMapping& InKeyMapping)
@@ -479,7 +503,7 @@ void UPlayerInput::RemoveAxisMapping(const FInputAxisKeyMapping& InKeyMapping)
 			&& KeyMapping.Key == InKeyMapping.Key)
 		{
 			AxisMappings.RemoveAtSwap(AxisIndex);
-			AxisKeyMap.Empty();
+			AxisKeyMap.Empty(AxisKeyMap.Num());
 			// we don't break because the mapping may have been in the array twice
 		}
 	}
@@ -490,7 +514,7 @@ void UPlayerInput::AddEngineDefinedActionMapping(const FInputActionKeyMapping& A
 	EngineDefinedActionMappings.AddUnique(ActionMapping);
 	for (TObjectIterator<UPlayerInput> It; It; ++It)
 	{
-		It->ActionKeyMap.Empty();
+		It->ActionKeyMap.Empty(It->ActionKeyMap.Num());
 	}
 }
 
@@ -499,7 +523,7 @@ void UPlayerInput::AddEngineDefinedAxisMapping(const FInputAxisKeyMapping& AxisM
 	EngineDefinedAxisMappings.AddUnique(AxisMapping);
 	for (TObjectIterator<UPlayerInput> It; It; ++It)
 	{
-		It->AxisKeyMap.Empty();
+		It->AxisKeyMap.Empty(It->AxisKeyMap.Num());
 	}
 }
 
@@ -512,9 +536,9 @@ void UPlayerInput::ForceRebuildingKeyMaps(const bool bRestoreDefaults)
 		ActionMappings = GetDefault<UInputSettings>()->ActionMappings;
 	}
 
-	ActionKeyMap.Empty();
-	AxisKeyMap.Empty();
-	AxisProperties.Empty();
+	ActionKeyMap.Empty(ActionKeyMap.Num());
+	AxisKeyMap.Empty(AxisKeyMap.Num());
+	AxisProperties.Empty(AxisProperties.Num());
 }
 
 void UPlayerInput::ConditionalBuildKeyMappings()
@@ -779,8 +803,7 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 
 		for (uint8 EventIndex = 0; EventIndex < IE_MAX; ++EventIndex)
 		{
-			KeyState->EventCounts[EventIndex] = KeyState->EventAccumulator[EventIndex];
-			KeyState->EventAccumulator[EventIndex].Empty();
+			KeyState->EventCounts[EventIndex] = MoveTemp(KeyState->EventAccumulator[EventIndex]);
 		}
 
 		if ( (KeyState->SampleCountAccumulator > 0) || (Key == EKeys::MouseX) || (Key == EKeys::MouseY) )

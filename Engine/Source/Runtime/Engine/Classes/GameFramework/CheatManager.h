@@ -304,6 +304,14 @@ class ENGINE_API UCheatManager : public UObject
 	UFUNCTION(exec)
 	void SetWorldOrigin();
 
+	/** Exec function to return the mouse sensitivity to its default value */
+	UFUNCTION(exec)
+	void SetMouseSensitivityToDefault();
+
+	/** Backwards compatibility exec function for people used to it instead of using InvertAxisKey */
+	UFUNCTION(exec)
+	void InvertMouse();
+
 	/**
 	 * This will move the player and set their rotation to the passed in values.
 	 * This actually does the location / rotation setting.  Additionally it will set you as ghost as the level may have

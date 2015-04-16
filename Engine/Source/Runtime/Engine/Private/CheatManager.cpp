@@ -1118,6 +1118,33 @@ void UCheatManager::SetWorldOrigin()
 	World->RequestNewWorldOrigin(NewOrigin);
 }
 
+void UCheatManager::SetMouseSensitivityToDefault()
+{
+	UPlayerInput* PlayerInput = GetOuterAPlayerController()->PlayerInput;
+	if (PlayerInput)
+	{
+		// find default sensitivity restore to that
+		for (const FInputAxisConfigEntry& AxisConfigEntry : GetDefault<UInputSettings>()->AxisConfig)
+		{
+			const FKey AxisKey = AxisConfigEntry.AxisKeyName;
+			if (AxisKey == EKeys::MouseX)
+			{
+				PlayerInput->SetMouseSensitivity(AxisConfigEntry.AxisProperties.Sensitivity);
+				break;
+			}
+		}
+	}
+}
+
+void UCheatManager::InvertMouse()
+{
+	UPlayerInput* PlayerInput = GetOuterAPlayerController()->PlayerInput;
+	if (PlayerInput)
+	{
+		PlayerInput->InvertAxisKey(EKeys::MouseY);
+	}
+}
+
 void UCheatManager::LogOutBugItGoToLogFile( const FString& InScreenShotDesc, const FString& InGoString, const FString& InLocString )
 {
 #if ALLOW_DEBUG_FILES
