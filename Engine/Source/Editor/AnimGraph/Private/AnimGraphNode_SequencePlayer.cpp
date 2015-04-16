@@ -130,52 +130,6 @@ FText UAnimGraphNode_SequencePlayer::GetTitleGivenAssetInfo(const FText& AssetNa
 	}
 }
 
-void UAnimGraphNode_SequencePlayer::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
-{
-	if ((ContextMenuBuilder.FromPin == NULL) || (UAnimationGraphSchema::IsPosePin(ContextMenuBuilder.FromPin->PinType) && (ContextMenuBuilder.FromPin->Direction == EGPD_Input)))
-	{
-		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(ContextMenuBuilder.CurrentGraph);
-
-		if (UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Blueprint))
-		{
-			// Load the asset registry module
-			FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-
-			FARFilter Filter;
-			Filter.ClassNames.Add(UAnimSequence::StaticClass()->GetFName());
-			Filter.bRecursiveClasses = true;
-
-			// Filter by skeleton
-			FAssetData SkeletonData(AnimBlueprint->TargetSkeleton);
-			Filter.TagsAndValues.Add(TEXT("Skeleton"), SkeletonData.GetExportTextName());
-
-			// Find matching assets and add an entry for each one
-			TArray<FAssetData> SequenceList;
-			AssetRegistryModule.Get().GetAssets(Filter, /*out*/ SequenceList);
-
-			for (auto AssetIt = SequenceList.CreateConstIterator(); AssetIt; ++AssetIt)
-			{
-				const FAssetData& Asset = *AssetIt;
-
-				// Try to determine if the asset is additive (can't do it right now if the asset is unloaded)
-				bool bAdditive = false;
-				if (Asset.IsAssetLoaded())
-				{
-					if (UAnimSequence* Sequence = Cast<UAnimSequence>(Asset.GetAsset()))
-					{
-						bAdditive = Sequence->IsValidAdditive();
-					}
-				}
-
-				// Create the menu item
-				const FText Title = UAnimGraphNode_SequencePlayer::GetTitleGivenAssetInfo(FText::FromName(Asset.AssetName), bAdditive);
-				TSharedPtr<FNewSequencePlayerAction> NewAction(new FNewSequencePlayerAction(Asset, Title));
-				ContextMenuBuilder.AddAction( NewAction );
-			}
-		}
-	}
-}
-
 FText UAnimGraphNode_SequencePlayer::GetMenuCategory() const
 {
 	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Animation);

@@ -55,18 +55,6 @@ void UAnimGraphNode_WheelHandler::ValidateAnimNodePostCompile(class FCompilerRes
 	}
 }
 
-void UAnimGraphNode_WheelHandler::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
-{
-	UAnimBlueprint* Blueprint = Cast<UAnimBlueprint> (FBlueprintEditorUtils::FindBlueprintForGraph(ContextMenuBuilder.CurrentGraph));
-
-	if (Blueprint &&  Blueprint->ParentClass->IsChildOf(UVehicleAnimInstance::StaticClass()))
-	{
-		Super::GetMenuEntries( ContextMenuBuilder );
-	}
-
-	// else we don't show
-}
-
 bool UAnimGraphNode_WheelHandler::IsCompatibleWithGraph(const UEdGraph* TargetGraph) const
 {
 	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph);

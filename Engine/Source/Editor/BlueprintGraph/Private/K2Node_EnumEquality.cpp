@@ -4,7 +4,6 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "K2ActionMenuBuilder.h" // for FK2ActionMenuBuilder::AddNewNodeAction()
 #include "K2Node_EnumEquality.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
@@ -176,44 +175,6 @@ void UK2Node_EnumEquality::GetConditionalFunction(FName& FunctionName, UClass** 
 {
 	FunctionName = GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, EqualEqual_ByteByte);
 	*FunctionClass = UKismetMathLibrary::StaticClass();
-}
-
-void UK2Node_EnumEquality::GetMenuEntries(FGraphContextMenuBuilder& Context) const
-{
-	Super::GetMenuEntries(Context);
-
-	bool bShowEnumEquality = (Context.FromPin == NULL);
-
-	if (Context.FromPin != NULL)
-	{
-		// Show it on pin drags for output enums or input bools
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-
-		if ((Context.FromPin->Direction == EGPD_Output) && (Context.FromPin->PinType.PinCategory == K2Schema->PC_Byte))
-		{
-			if (Cast<UEnum>(Context.FromPin->PinType.PinSubCategoryObject.Get()))
-			{
-				bShowEnumEquality = true;
-			}
-		}
-		else if ((Context.FromPin->Direction == EGPD_Input) && (Context.FromPin->PinType.PinCategory == K2Schema->PC_Boolean))
-		{
-			bShowEnumEquality = true;
-		}
-	}
-
-	if (bShowEnumEquality)
-	{
-		UK2Node* EnumNodeTemplate = Context.CreateTemplateNode<UK2Node_EnumEquality>();
-
-		const FString Category = TEXT("Utilities| Enum");
-		const FText MenuDesc = EnumNodeTemplate->GetNodeTitle(ENodeTitleType::ListView);
-		const FString Tooltip = EnumNodeTemplate->GetTooltipText().ToString();
-		const FString Keywords = EnumNodeTemplate->GetKeywords();
-
-		TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(Context, Category, MenuDesc, Tooltip, 0, Keywords);
-		NodeAction->NodeTemplate = EnumNodeTemplate;
-	}
 }
 
 FNodeHandlingFunctor* UK2Node_EnumEquality::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const

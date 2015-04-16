@@ -4,7 +4,6 @@
 #include "SBlueprintFavoritesPalette.h"
 #include "Engine.h"
 #include "KismetClasses.h"
-#include "K2ActionMenuBuilder.h"
 #include "BlueprintActionMenuUtils.h"
 #include "BlueprintActionMenuBuilder.h"
 #include "BlueprintActionFilter.h" // for FBlueprintActionContext

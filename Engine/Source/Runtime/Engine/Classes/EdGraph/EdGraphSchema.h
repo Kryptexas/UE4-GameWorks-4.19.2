@@ -365,10 +365,7 @@ public:
 	// The selected objects
 	TArray<UObject*> SelectedObjects;
 public:
-	ENGINE_API FGraphContextMenuBuilder(const UEdGraph* InGraph) 
-		: CurrentGraph(InGraph)
-	{
-	}
+	ENGINE_API FGraphContextMenuBuilder(const UEdGraph* InGraph);
 };
 
 /** This is a response from GetGraphDisplayInformation */

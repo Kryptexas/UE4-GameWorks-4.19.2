@@ -23,7 +23,6 @@ class FGeomPoly;
 class FGeomObject;
 class FScopedTransaction;
 class UFactory;
-struct FBlueprintGraphActionListBuilder;
 
 
 /** The shorthand identifier used for editor modes */
@@ -86,8 +85,6 @@ struct UNREALED_API FEditorDelegates
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnFocusViewportOnActors, const TArray<AActor*>&);
 	/** delegate type for triggering when a map is opened */
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnMapOpened, const FString& /* Filename */, bool /*bAsTemplate*/);
-	/** delegate type for triggering when the Blueprint ContextMenu is created */
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnBlueprintContextMenuCreated, FBlueprintGraphActionListBuilder &/*ContextMenuBuilder*/);
 	/** Delegate used for entering or exiting an editor mode */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnEditorModeTransitioned, FEdMode* /*Mode*/);
 	/** delegate type for when a user requests to delete certain assets... DOES NOT mean the asset(s) will be deleted (the user could cancel) */
@@ -185,8 +182,6 @@ struct UNREALED_API FEditorDelegates
 	static FOnEditorCameraMoved OnEditorCameraMoved;
 	/** Called when the editor camera is moved */
 	static FOnDollyPerspectiveCamera OnDollyPerspectiveCamera;
-	/** Called when the Blueprint ContextMenu is created */
-	static FOnBlueprintContextMenuCreated OnBlueprintContextMenuCreated;
 	/** Called on editor shutdown after packages have been successfully saved */
 	static FSimpleMulticastDelegate OnShutdownPostPackagesSaved;
 	/** Called when the user requests certain assets be deleted (DOES NOT imply that the asset will be deleted... the user could cancel) */

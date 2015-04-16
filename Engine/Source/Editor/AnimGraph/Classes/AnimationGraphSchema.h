@@ -36,7 +36,6 @@ class UAnimationGraphSchema : public UEdGraphSchema_K2
 	FName DefaultEvaluationHandlerName;
 
 	// Begin UEdGraphSchema interface.
-	virtual void GetGraphContextActions(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
 	virtual FLinearColor GetPinTypeColor(const FEdGraphPinType& PinType) const override;
 	virtual EGraphType GetGraphType(const UEdGraph* TestEdGraph) const override;
 	virtual void CreateDefaultNodesForGraph(UEdGraph& Graph) const override;
@@ -67,9 +66,6 @@ class UAnimationGraphSchema : public UEdGraphSchema_K2
 
 	/** Update the specified node to a new asset */
 	static void UpdateNodeWithAsset(class UK2Node* K2Node, UAnimationAsset* Asset);
-
-	// @todo document
-	void GetStateMachineMenuItems(FGraphContextMenuBuilder& ContextMenuBuilder) const;
 
 	// @todo document
 	ANIMGRAPH_API static bool IsPosePin(const FEdGraphPinType& PinType);

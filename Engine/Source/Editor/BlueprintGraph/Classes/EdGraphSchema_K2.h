@@ -165,50 +165,6 @@ private:
 	FBlueprintMetadata() {}
 };
 
-/** Information about what we want to call this function on */
-struct FFunctionTargetInfo
-{
-	enum EFunctionTarget
-	{
-		EFT_Default, // Just call function on target object
-		EFT_Actor, // Create an Actor node and wire to target
-		EFT_Component // Create a component variable ref node and wire to target
-	};
-
-	/** What kind of call function action are we creating */
-	EFunctionTarget FunctionTarget;
-
-	/** If CFO_Actor, call on these Actors. */
-	TArray< TWeakObjectPtr<AActor> > Actors;
-
-	/** If CFO_Component, call on this component variable of blueprint */
-	FName ComponentPropertyName;
-
-	// Constructor
-	FFunctionTargetInfo()
-		: FunctionTarget(EFT_Default)
-		, ComponentPropertyName(NAME_None)
-	{}
-
-	FFunctionTargetInfo(TArray<AActor*>& InActors)
-		: FunctionTarget(EFT_Actor)
-		, ComponentPropertyName(NAME_None)
-	{
-		for ( int32 ActorIndex = 0; ActorIndex < InActors.Num(); ActorIndex++ )
-		{
-			if ( InActors[ActorIndex] != NULL )
-			{
-				Actors.Add( TWeakObjectPtr<AActor>( InActors[ActorIndex] ) );
-			}
-		}
-	}
-
-	FFunctionTargetInfo( FName InComponentPropertyName )
-		: FunctionTarget(EFT_Component)
-		, ComponentPropertyName(InComponentPropertyName)
-	{}
-};
-
 USTRUCT()
 // Structure used to automatically convert blueprintcallable functions (that have blueprint parameter) calls (in bp graph) 
 // into their never versions (with class param instead of blueprint).
@@ -385,7 +341,6 @@ public:
 
 public:
 	// Begin EdGraphSchema Interface
-	virtual void GetGraphContextActions(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
 	virtual void GetContextMenuActions(const UEdGraph* CurrentGraph, const UEdGraphNode* InGraphNode, const UEdGraphPin* InGraphPin, class FMenuBuilder* MenuBuilder, bool bIsDebugging) const override;
 	virtual const FPinConnectionResponse CanCreateConnection(const UEdGraphPin* A, const UEdGraphPin* B) const override;
 	virtual bool TryCreateConnection(UEdGraphPin* A, UEdGraphPin* B) const override;
@@ -953,10 +908,9 @@ public:
 	 * @param	InDestGraph			Graph we will be using action for (may be NULL)
 	 * @param	InFunctionTypes		Combination of EFunctionType to indicate types of functions accepted
 	 * @param	bInCalledForEach	Call for each element in an array (a node accepts array)
-	 * @param	InTargetInfo		Allows spawning nodes which also create a target variable as well
 	 * @param	OutReason			Allows callers to receive a localized string containing more detail when the function is determined to be invalid (optional)
 	 */
-	bool CanFunctionBeUsedInGraph(const UClass* InClass, const UFunction* InFunction, const UEdGraph* InDestGraph, uint32 InFunctionTypes, bool bInCalledForEach, const FFunctionTargetInfo& InTargetInfo, FText* OutReason = nullptr) const;
+	bool CanFunctionBeUsedInGraph(const UClass* InClass, const UFunction* InFunction, const UEdGraph* InDestGraph, uint32 InFunctionTypes, bool bInCalledForEach, FText* OutReason = nullptr) const;
 
 	/**
 	 * Makes connections into/or out of the gateway node, connect directly to the associated networks on the opposite side of the tunnel
@@ -982,12 +936,6 @@ public:
 	 * Make links from all data pins from InOutputNode output to InInputNode input.
 	 */
 	void LinkDataPinFromOutputToInput(UEdGraphNode* InOutputNode, UEdGraphNode* InInputNode) const;
-
-	/** Function that returns _all_ nodes we could place */
-	static void GetAllActions(struct FBlueprintPaletteListBuilder& PaletteBuilder);
-
-	/** Helper method to add items valid to the palette list */
-	static void GetPaletteActions(struct FBlueprintPaletteListBuilder& ActionMenuBuilder, TWeakObjectPtr<UClass> FilterClass = NULL);
 
 	/** some inherited schemas don't want anim-notify actions listed, so this is an easy way to check that */
 	virtual bool DoesSupportAnimNotifyActions() const { return true; }

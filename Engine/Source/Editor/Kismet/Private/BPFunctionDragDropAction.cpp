@@ -6,7 +6,7 @@
 #include "BlueprintEditorUtils.h"
 #include "GraphEditorDragDropAction.h"
 #include "BPFunctionDragDropAction.h"
-#include "K2ActionMenuBuilder.h" // for FK2ActionMenuBuilder::AddSpawnInfoForFunction()
+#include "BlueprintFunctionNodeSpawner.h"
 
 #define LOCTEXT_NAMESPACE "FunctionDragDropAction"
 
@@ -208,24 +208,21 @@ FReply FKismetFunctionDragDropAction::DroppedOnPanel(TSharedRef<SWidget> const& 
 	FReply Reply = FReply::Unhandled();
 
 	// The ActionNode set during construction points to the Graph, this is suitable for displaying the mouse decorator but needs to be more complete based on the current graph
-	FGraphActionListBuilderBase::ActionGroup DropActionSet(TSharedPtr<FEdGraphSchemaAction>(NULL));
-	GetDropAction(Graph, DropActionSet);
+	UBlueprintFunctionNodeSpawner* FunctionNodeSpawner = nullptr;
+	FunctionNodeSpawner = GetDropAction(Graph);
 
-	if (DropActionSet.Actions.Num() > 0)
+	if (FunctionNodeSpawner)
 	{
-		// we really only expect there to be one action
-		TSharedPtr<FEdGraphSchemaAction> FirstDropAction = DropActionSet.Actions[0];
-
 		FText CannotDropReason = FText::GetEmpty();
-		if (!CanBeDroppedDelegate.IsBound() || CanBeDroppedDelegate.Execute(FirstDropAction, GetHoveredGraph(), CannotDropReason))
+		if (!CanBeDroppedDelegate.IsBound() || CanBeDroppedDelegate.Execute(nullptr, GetHoveredGraph(), CannotDropReason))
 		{
 			UFunction const* Function = GetFunctionProperty();
 			if ((Function != NULL) && UEdGraphSchema_K2::CanUserKismetCallFunction(Function))
 			{
 				AnalyticCallback.ExecuteIfBound();
 
-				TArray<UEdGraphPin*> DummyPins;
-				DropActionSet.PerformAction(&Graph, DummyPins, GraphPosition);
+				IBlueprintNodeBinder::FBindingSet Bindings;
+				FunctionNodeSpawner->Invoke(&Graph, Bindings, GraphPosition);
 
 				Reply = FReply::Handled();
 			}
@@ -246,7 +243,7 @@ UFunction const* FKismetFunctionDragDropAction::GetFunctionProperty() const
 }
 
 //------------------------------------------------------------------------------
-void FKismetFunctionDragDropAction::GetDropAction(UEdGraph& Graph, FGraphActionListBuilderBase::ActionGroup& DropActionOut) const
+UBlueprintFunctionNodeSpawner* FKismetFunctionDragDropAction::GetDropAction(UEdGraph& Graph) const
 {
 	if (UEdGraph const* const HoveredGraph = &Graph)
 	{
@@ -262,16 +259,11 @@ void FKismetFunctionDragDropAction::GetDropAction(UEdGraph& Graph, FGraphActionL
 
 			if (UFunction const* Function = GetFunctionProperty())
 			{
-				// Use schema function to make 'spawn action'
-				FK2ActionMenuBuilder::AddSpawnInfoForFunction(Function, false, FFunctionTargetInfo(), CallOnMember, TEXT(""), K2Schema->AG_LevelReference, TempListBuilder);
-				// we expect a single action
-				if (ensure(TempListBuilder.GetNumActions() == 1))
-				{
-					DropActionOut = TempListBuilder.GetAction(0);
-				}
+				return UBlueprintFunctionNodeSpawner::Create(Function);
 			}
 		}
 	}
+	return nullptr;
 }
 
 /*******************************************************************************

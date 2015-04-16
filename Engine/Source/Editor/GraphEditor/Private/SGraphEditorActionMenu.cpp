@@ -3,8 +3,6 @@
 
 #include "GraphEditorCommon.h"
 #include "SGraphEditorActionMenu.h"
-#include "BlueprintEditorUtils.h"
-#include "K2ActionMenuBuilder.h" // for FBlueprintGraphActionListBuilder
 
 SGraphEditorActionMenu::~SGraphEditorActionMenu()
 {
@@ -41,7 +39,7 @@ void SGraphEditorActionMenu::Construct( const FArguments& InArgs )
 void SGraphEditorActionMenu::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 {
 	// Build up the context object
-	FBlueprintGraphActionListBuilder ContextMenuBuilder(GraphObj);
+	FGraphContextMenuBuilder ContextMenuBuilder(GraphObj);
 	if (DraggedFromPins.Num() > 0)
 	{
 		ContextMenuBuilder.FromPin = DraggedFromPins[0];

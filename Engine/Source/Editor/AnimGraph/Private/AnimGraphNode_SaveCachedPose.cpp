@@ -5,7 +5,6 @@
 #include "GraphEditorActions.h"
 #include "ScopedTransaction.h"
 #include "Kismet2NameValidators.h"
-#include "K2ActionMenuBuilder.h" // for FK2ActionMenuBuilder::AddNewNodeAction()
 #include "AnimGraphNode_SaveCachedPose.h"
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
@@ -67,26 +66,6 @@ FText UAnimGraphNode_SaveCachedPose::GetNodeTitle(ENodeTitleType::Type TitleType
 FString UAnimGraphNode_SaveCachedPose::GetNodeCategory() const
 {
 	return TEXT("Cached Poses");
-}
-
-void UAnimGraphNode_SaveCachedPose::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
-{
-	//@TODO: Check the type of the from pin to make sure it's a pose
-	if ((ContextMenuBuilder.FromPin == NULL) || (ContextMenuBuilder.FromPin->Direction == EGPD_Output))
-	{
-		// Disallow the graph being cached from residing in a state for safety and sanity; the tree is in effect it's own graph entirely and should be treated that way
-		const bool bNotInStateMachine = ContextMenuBuilder.CurrentGraph->GetOuter()->IsA(UAnimBlueprint::StaticClass());
-
-		if (bNotInStateMachine)
-		{
-			// Offer save cached pose
-			UAnimGraphNode_SaveCachedPose* SaveCachedPose = NewObject<UAnimGraphNode_SaveCachedPose>();
-			SaveCachedPose->CacheName = TEXT("SavedPose") + FString::FromInt(FMath::Rand());
-
-			TSharedPtr<FEdGraphSchemaAction_K2NewNode> SaveCachedPoseAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, GetNodeCategory(), LOCTEXT("NewSaveCachedPose", "New Save cached pose..."), SaveCachedPose->GetTooltipText().ToString(), 0, SaveCachedPose->GetKeywords());
-			SaveCachedPoseAction->NodeTemplate = SaveCachedPose;
-		}
-	}
 }
 
 void UAnimGraphNode_SaveCachedPose::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const

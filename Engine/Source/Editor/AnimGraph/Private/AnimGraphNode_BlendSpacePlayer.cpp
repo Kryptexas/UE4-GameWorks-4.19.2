@@ -69,12 +69,6 @@ FText UAnimGraphNode_BlendSpacePlayer::GetNodeTitle(ENodeTitleType::Type TitleTy
 	return CachedNodeTitles[TitleType];
 }
 
-void UAnimGraphNode_BlendSpacePlayer::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
-{
-	const bool bWantAimOffsets = false;
-	GetBlendSpaceEntries(bWantAimOffsets, ContextMenuBuilder);
-}
-
 void UAnimGraphNode_BlendSpacePlayer::ValidateAnimNodeDuringCompilation(class USkeleton* ForSkeleton, class FCompilerResultsLog& MessageLog)
 {
 	if (Node.BlendSpace == NULL)

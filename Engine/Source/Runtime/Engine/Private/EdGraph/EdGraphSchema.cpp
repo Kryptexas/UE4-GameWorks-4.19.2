@@ -129,6 +129,15 @@ void FCategorizedGraphActionListBuilder::AddActionList(TArray<TSharedPtr<FEdGrap
 }
 
 /////////////////////////////////////////////////////
+// FGraphContextMenuBuilder
+
+FGraphContextMenuBuilder::FGraphContextMenuBuilder(const UEdGraph* InGraph) 
+	: CurrentGraph(InGraph)
+{
+	OwnerOfTemporaries =  NewObject<UEdGraph>((UObject*)GetTransientPackage());
+}
+
+/////////////////////////////////////////////////////
 // FEdGraphSchemaAction_NewNode
 
 #define SNAP_GRID (16) // @todo ensure this is the same as SNodePanel::GetSnapGridSize()

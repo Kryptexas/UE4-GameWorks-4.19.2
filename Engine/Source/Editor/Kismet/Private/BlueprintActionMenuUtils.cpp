@@ -16,7 +16,6 @@
 #include "K2Node_VariableGet.h"
 #include "K2Node_VariableSet.h"
 #include "KismetEditorUtilities.h"	// for CanPasteNodes()
-#include "K2ActionMenuBuilder.h"
 #include "BlueprintEditorSettings.h"
 #include "Engine/Selection.h"
 #include "Engine/LevelScriptActor.h"
@@ -668,34 +667,31 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 
 	MenuOut.RebuildActionList();
 
-	if (!BlueprintSettings->bForceLegacyMenuingSystem)
+	for (UEdGraph const* Graph : Context.Graphs)
 	{
-		for (UEdGraph const* Graph : Context.Graphs)
+		if (FKismetEditorUtilities::CanPasteNodes(Graph))
 		{
-			if (FKismetEditorUtilities::CanPasteNodes(Graph))
-			{
-				// @TODO: Grey out menu option with tooltip if one of the nodes cannot paste into this graph
-				TSharedPtr<FEdGraphSchemaAction> PasteHereAction(new FEdGraphSchemaAction_K2PasteHere(TEXT(""), LOCTEXT("PasteHereMenuName", "Paste here"), TEXT(""), MainMenuSectionGroup));
-				MenuOut.AddAction(PasteHereAction);
-				break;
-			}
+			// @TODO: Grey out menu option with tooltip if one of the nodes cannot paste into this graph
+			TSharedPtr<FEdGraphSchemaAction> PasteHereAction(new FEdGraphSchemaAction_K2PasteHere(TEXT(""), LOCTEXT("PasteHereMenuName", "Paste here"), TEXT(""), MainMenuSectionGroup));
+			MenuOut.AddAction(PasteHereAction);
+			break;
 		}
+	}
 
-		if (bIsContextSensitive && bCanHaveActorComponents && !bAddComponentsSection)
-		{
-			FText SelectComponentMsg = LOCTEXT("SelectComponentForEvents", "Select a Component to see available Events & Functions");
-			FText SelectComponentToolTip = LOCTEXT("SelectComponentForEventsTooltip", "Select a Component in the MyBlueprint tab to see available Events and Functions in this menu.");
-			TSharedPtr<FEdGraphSchemaAction> MsgAction = TSharedPtr<FEdGraphSchemaAction>(new FEdGraphSchemaAction_Dummy(TEXT(""), SelectComponentMsg, SelectComponentToolTip.ToString(), ComponentsSectionGroup));
-			MenuOut.AddAction(MsgAction);
-		}
+	if (bIsContextSensitive && bCanHaveActorComponents && !bAddComponentsSection)
+	{
+		FText SelectComponentMsg = LOCTEXT("SelectComponentForEvents", "Select a Component to see available Events & Functions");
+		FText SelectComponentToolTip = LOCTEXT("SelectComponentForEventsTooltip", "Select a Component in the MyBlueprint tab to see available Events and Functions in this menu.");
+		TSharedPtr<FEdGraphSchemaAction> MsgAction = TSharedPtr<FEdGraphSchemaAction>(new FEdGraphSchemaAction_Dummy(TEXT(""), SelectComponentMsg, SelectComponentToolTip.ToString(), ComponentsSectionGroup));
+		MenuOut.AddAction(MsgAction);
+	}
 
-		if (bIsContextSensitive && bCanOperateOnLevelActors && !bAddLevelActorsSection)
-		{
-			FText SelectActorsMsg = LOCTEXT("SelectActorForEvents", "Select Actor(s) to see available Events & Functions");
-			FText SelectActorsToolTip = LOCTEXT("SelectActorForEventsTooltip", "Select Actor(s) in the level to see available Events and Functions in this menu.");
-			TSharedPtr<FEdGraphSchemaAction> MsgAction = TSharedPtr<FEdGraphSchemaAction>(new FEdGraphSchemaAction_Dummy(TEXT(""), SelectActorsMsg, SelectActorsToolTip.ToString(), LevelActorSectionGroup));
-			MenuOut.AddAction(MsgAction);
-		}
+	if (bIsContextSensitive && bCanOperateOnLevelActors && !bAddLevelActorsSection)
+	{
+		FText SelectActorsMsg = LOCTEXT("SelectActorForEvents", "Select Actor(s) to see available Events & Functions");
+		FText SelectActorsToolTip = LOCTEXT("SelectActorForEventsTooltip", "Select Actor(s) in the level to see available Events and Functions in this menu.");
+		TSharedPtr<FEdGraphSchemaAction> MsgAction = TSharedPtr<FEdGraphSchemaAction>(new FEdGraphSchemaAction_Dummy(TEXT(""), SelectActorsMsg, SelectActorsToolTip.ToString(), LevelActorSectionGroup));
+		MenuOut.AddAction(MsgAction);
 	}
 }
 
@@ -704,54 +700,19 @@ void FBlueprintActionMenuUtils::MakeFavoritesMenu(FBlueprintActionContext const&
 {
 	MenuOut.Empty();
 
+	FBlueprintActionFilter MenuFilter;
+	MenuFilter.Context = Context;
+	MenuFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(BlueprintActionMenuUtilsImpl::IsNonFavoritedAction));
+
+	uint32 SectionFlags = 0x00;
 	const UBlueprintEditorSettings* BlueprintSettings = GetDefault<UBlueprintEditorSettings>();
-	if (!BlueprintSettings->bForceLegacyMenuingSystem)
+	if (BlueprintSettings->bFlattenFavoritesMenus)
 	{
-		FBlueprintActionFilter MenuFilter;
-		MenuFilter.Context = Context;
-		MenuFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(BlueprintActionMenuUtilsImpl::IsNonFavoritedAction));
-
-		uint32 SectionFlags = 0x00;
-		if (BlueprintSettings->bFlattenFavoritesMenus)
-		{
-			SectionFlags = FBlueprintActionMenuBuilder::FlattenCategoryHierarcy;
-		}
-
-		MenuOut.AddMenuSection(MenuFilter, FText::GetEmpty(), BlueprintActionMenuUtilsImpl::MainMenuSectionGroup, SectionFlags);
-		MenuOut.RebuildActionList();
+		SectionFlags = FBlueprintActionMenuBuilder::FlattenCategoryHierarcy;
 	}
-	else
-	{
-		check(Context.Blueprints.Num() > 0);
-		FBlueprintPaletteListBuilder LegacyMenuBuilder(Context.Blueprints[0]);
-		UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		FK2ActionMenuBuilder(K2Schema).GetPaletteActions(LegacyMenuBuilder, /*ClassFilter =*/nullptr);
 
-		UEditorUserSettings& EditorUserSettings = GEditor->AccessEditorUserSettings();
-		// grab the user's favorites
-		UBlueprintPaletteFavorites const* BlueprintFavorites = EditorUserSettings.BlueprintFavorites;
-		check(BlueprintFavorites != nullptr);
-
-		for (int32 ActionIndex = 0; ActionIndex < LegacyMenuBuilder.GetNumActions(); ++ActionIndex)
-		{
-			FGraphActionListBuilderBase::ActionGroup& ActionGroup = LegacyMenuBuilder.GetAction(ActionIndex);
-			if (!ensure(ActionGroup.Actions.Num() == 1))
-			{
-				continue;
-			}
-
-			TSharedPtr<FEdGraphSchemaAction> Action = ActionGroup.Actions[0];
-			if (!Action.IsValid())
-			{
-				continue;
-			}
-
-			if (BlueprintFavorites->IsFavorited(Action))
-			{
-				MenuOut.AddAction(Action);
-			}
-		}
-	} 	
+	MenuOut.AddMenuSection(MenuFilter, FText::GetEmpty(), BlueprintActionMenuUtilsImpl::MainMenuSectionGroup, SectionFlags);
+	MenuOut.RebuildActionList();
 }
 
 //------------------------------------------------------------------------------

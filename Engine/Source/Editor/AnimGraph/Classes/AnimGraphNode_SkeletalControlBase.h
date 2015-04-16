@@ -21,7 +21,6 @@ public:
 	// UAnimGraphNode_Base interface
 	ANIMGRAPH_API virtual FString GetNodeCategory() const override;
 	ANIMGRAPH_API virtual void CreateOutputPins() override;
-	ANIMGRAPH_API virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
 	// End of UAnimGraphNode_Base interface
 
 	// Draw function for supporting visualization

@@ -3,7 +3,6 @@
 #include "AnimGraphPrivatePCH.h"
 #include "AnimGraphNode_SkeletalControlBase.h"
 #include "AnimationGraphSchema.h"
-#include "K2ActionMenuBuilder.h" // for FK2ActionMenuBuilder::AddNewNodeAction()
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_SkeletalControlBase
@@ -55,19 +54,6 @@ void UAnimGraphNode_SkeletalControlBase::CreateOutputPins()
 {
 	const UAnimationGraphSchema* Schema = GetDefault<UAnimationGraphSchema>();
 	CreatePin(EGPD_Output, Schema->PC_Struct, TEXT(""), FComponentSpacePoseLink::StaticStruct(), /*bIsArray=*/ false, /*bIsReference=*/ false, TEXT("Pose"));
-}
-
-void UAnimGraphNode_SkeletalControlBase::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
-{
-	UAnimGraphNode_Base* TemplateNode = NewObject<UAnimGraphNode_Base>(GetTransientPackage(), GetClass());
-
-	FString Category = TemplateNode->GetNodeCategory();
-	FText MenuDesc = GetControllerDescription();
-	FString Tooltip = GetControllerDescription().ToString();
-	FString Keywords = TemplateNode->GetKeywords();
-
-	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category, MenuDesc, Tooltip, 0, Keywords);
-	NodeAction->NodeTemplate = TemplateNode;
 }
 
 void UAnimGraphNode_SkeletalControlBase::ConvertToComponentSpaceTransform(const USkeletalMeshComponent* SkelComp, const FTransform & InTransform, FTransform & OutCSTransform, int32 BoneIndex, EBoneControlSpace Space) const

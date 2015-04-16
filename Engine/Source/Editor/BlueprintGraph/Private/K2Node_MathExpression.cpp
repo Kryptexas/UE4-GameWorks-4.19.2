@@ -5,7 +5,6 @@
 #include "BlueprintGraphClasses.h"
 #include "Kismet2NameValidators.h"
 #include "EdGraphUtilities.h"
-#include "K2ActionMenuBuilder.h" // for FK2ActionMenuBuilder::AddNewNodeAction()
 #include "BasicTokenParser.h"
 #include "UnrealMathUtility.h"
 #include "BlueprintEditorUtils.h"
@@ -2403,19 +2402,6 @@ void UK2Node_MathExpression::PostEditChangeProperty(struct FPropertyChangedEvent
 	{
 		RebuildExpression(Expression);
 	}
-}
-
-//------------------------------------------------------------------------------
-void UK2Node_MathExpression::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
-{
-	UK2Node_MathExpression* TemplateNode = NewObject<UK2Node_MathExpression>(GetTransientPackage(), GetClass());
-
-	const FString Category = TEXT("");
-	const FText   MenuDesc = LOCTEXT("AddMathExprMenuOption", "Add Math Expression...");
-	const FString Tooltip  = TEXT("Create a new mathematical expression");
-
-	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category, MenuDesc, Tooltip);
-	NodeAction->NodeTemplate = TemplateNode;
 }
 
 //------------------------------------------------------------------------------

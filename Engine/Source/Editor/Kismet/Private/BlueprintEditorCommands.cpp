@@ -5,11 +5,10 @@
 #include "SlateBasics.h"
 #include "BlueprintEditorCommands.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "Editor/BlueprintGraph/Public/K2ActionMenuBuilder.h" // for AddEventForFunction(), ...
 #include "Engine/Selection.h"
 #include "Engine/LevelScriptActor.h"
-
-struct FBlueprintPaletteListBuilder;
+#include "BlueprintFunctionNodeSpawner.h" 
+#include "BlueprintEventNodeSpawner.h" 
 
 #define LOCTEXT_NAMESPACE ""
 
@@ -157,43 +156,36 @@ public:
 	/**
 	 * Creates an action to be used for placing a node into the graph
 	 *
-	 * @param	InPaletteBuilder	The Blueprint palette the action should be created for
-	 * @param	InDestGraph			The graph the action should be created for
+	 * @param	InDestGraph					The graph the action should be created for
+	 * @param	InOutDestPosition			Position to start placing nodes, will be updated to be at the next safe position for node placement
+	 * @param	OutNodes					All nodes spawned by this operation
 	 *
-	 * @return						A fully prepared action containing the information to spawn the node
+	 * @return								A fully prepared action containing the information to spawn the node
 	 */
-	virtual void GetActions(FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) = 0;
+	virtual void GetActions(UEdGraph* InDestGraph, FVector2D& InOutDestPosition, TArray<UEdGraphNode*>& OutNodes) = 0;
 };
 
 class FEdGraphNodeSpawnInfo : public FNodeSpawnInfo
 {
 public:
-	FEdGraphNodeSpawnInfo(UClass* InClass) : NodeClass(InClass), GraphNode(NULL) {}
+	FEdGraphNodeSpawnInfo(UClass* InClass) : NodeClass(InClass) {}
 
 	// FNodeSpawnInfo interface
-	virtual void GetActions(FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) override
+	virtual void GetActions(UEdGraph* InDestGraph, FVector2D& InOutDestPosition, TArray<UEdGraphNode*>& OutNodes) override
 	{
 		TSharedPtr<FEdGraphSchemaAction_NewNode> NewActionNode = TSharedPtr<FEdGraphSchemaAction_NewNode>(new FEdGraphSchemaAction_NewNode);
 
-		if (!GraphNode.IsValid())
-		{
-			GraphNode = InPaletteBuilder.CreateTemplateNode<UEdGraphNode>(NodeClass);
-		}
-		ensureMsgf( GraphNode->GetClass() == NodeClass, TEXT("FEdGraphNodeSpawnInfo::GetAction() class mismatch (GraphNode class %s, NodeClass %s"), *GraphNode->GetClass()->GetName(), *NodeClass->GetName() );
+		IBlueprintNodeBinder::FBindingSet Bindings;
+		UEdGraphNode* GraphNode = UBlueprintNodeSpawner::Create(NodeClass)->Invoke(InDestGraph, Bindings, InOutDestPosition);
 
-		// the NodeTemplate UPROPERTY takes ownership of GraphNode's lifetime (hence it being a weak-pointer here)
-		NewActionNode->NodeTemplate = GraphNode.Get();
-
-		InPaletteBuilder.AddAction(NewActionNode);
+		InOutDestPosition.Y = FMath::Max(InOutDestPosition.Y, GraphNode->NodePosY + UEdGraphSchema_K2::EstimateNodeHeight(GraphNode));
+		OutNodes.Add(GraphNode);
 	}
 	// End of FNodeSpawnInfo interface
 
 private:
 	/** The class type the node should be */
 	UClass* NodeClass;
-
-	/** The graph node to place into the action to spawn it in the graph */
-	TWeakObjectPtr<UEdGraphNode> GraphNode;
 };
 
 class FFunctionNodeSpawnInfo : public FNodeSpawnInfo
@@ -202,9 +194,9 @@ public:
 	FFunctionNodeSpawnInfo(UFunction* InFunctionPtr) : FunctionPtr(InFunctionPtr) {}
 
 	// FNodeSpawnInfo interface
-	virtual void GetActions(FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) override
+	virtual void GetActions(UEdGraph* InDestGraph, FVector2D& InOutDestPosition, TArray<UEdGraphNode*>& OutNodes) override
 	{
-		const UBlueprint* Blueprint = InPaletteBuilder.Blueprint;
+		const UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(InDestGraph);
 
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		if(NodeSpawnInfoHelpers::IsFunctionAvailableAsEvent(Blueprint, FunctionPtr))
@@ -212,7 +204,11 @@ public:
 			UFunction* FunctionEvent = NodeSpawnInfoHelpers::FindEventFunctionForClass(Blueprint, FunctionPtr);
 			if(FunctionEvent)
 			{
-				FK2ActionMenuBuilder::AddEventForFunction(InPaletteBuilder, FunctionEvent);
+				IBlueprintNodeBinder::FBindingSet Bindings;
+				UEdGraphNode* GraphNode = UBlueprintEventNodeSpawner::Create(FunctionEvent)->Invoke(InDestGraph, Bindings, InOutDestPosition);
+
+				InOutDestPosition.Y = FMath::Max(InOutDestPosition.Y, GraphNode->NodePosY + UEdGraphSchema_K2::EstimateNodeHeight(GraphNode));
+				OutNodes.Add(GraphNode);
 			}
 		}
 		else
@@ -225,9 +221,13 @@ public:
 				FunctionTypes |= UEdGraphSchema_K2::EFunctionType::FT_Imperative;
 			}
 
-			if(K2Schema->CanFunctionBeUsedInGraph(Blueprint->GeneratedClass, FunctionPtr, InDestGraph, FunctionTypes, false, FFunctionTargetInfo()))
+			if(K2Schema->CanFunctionBeUsedInGraph(Blueprint->GeneratedClass, FunctionPtr, InDestGraph, FunctionTypes, false))
 			{
-				FK2ActionMenuBuilder::AddSpawnInfoForFunction(FunctionPtr, false, FFunctionTargetInfo(), FMemberReference(), TEXT(""), K2Schema->AG_LevelReference, InPaletteBuilder);
+				IBlueprintNodeBinder::FBindingSet Bindings;
+				UEdGraphNode* GraphNode = UBlueprintFunctionNodeSpawner::Create(FunctionPtr)->Invoke(InDestGraph, Bindings, InOutDestPosition);
+
+				InOutDestPosition.Y = FMath::Max(InOutDestPosition.Y, GraphNode->NodePosY + UEdGraphSchema_K2::EstimateNodeHeight(GraphNode));
+				OutNodes.Add(GraphNode);
 			}
 		}
 	}
@@ -244,9 +244,12 @@ public:
 	FMacroNodeSpawnInfo(UEdGraph* InMacroGraph) : MacroGraph(InMacroGraph) {}
 
 	// FNodeSpawnInfo interface
-	virtual void GetActions(FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) override
+	virtual void GetActions(UEdGraph* InDestGraph, FVector2D& InOutDestPosition, TArray<UEdGraphNode*>& OutNodes) override
 	{
-		FK2ActionMenuBuilder::AttachMacroGraphAction(InPaletteBuilder, MacroGraph);
+		IBlueprintNodeBinder::FBindingSet Bindings;
+		UK2Node_MacroInstance* MacroInstanceNode = Cast<UK2Node_MacroInstance>(UBlueprintNodeSpawner::Create(UK2Node_MacroInstance::StaticClass())->Invoke(InDestGraph, Bindings, InOutDestPosition));
+		MacroInstanceNode->SetMacroGraph(MacroGraph);
+		MacroInstanceNode->ReconstructNode();
 	}
 	// End of FNodeSpawnInfo interface
 
@@ -259,22 +262,20 @@ class FActorRefSpawnInfo : public FNodeSpawnInfo
 {
 public:
 	// FNodeSpawnInfo interface
-	virtual void GetActions(FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) override
+	virtual void GetActions(UEdGraph* InDestGraph, FVector2D& InOutDestPosition, TArray<UEdGraphNode*>& OutNodes) override
 	{
-		const UBlueprint* Blueprint = InPaletteBuilder.Blueprint;
+		const UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(InDestGraph);
 		USelection* SelectedLvlActors = GEditor->GetSelectedActors();
 
 		if ((Blueprint != nullptr) && Blueprint->ParentClass->IsChildOf<ALevelScriptActor>() && (SelectedLvlActors->Num() > 0))
 		{
 			for (FSelectionIterator LvlActorIt(*SelectedLvlActors); LvlActorIt; ++LvlActorIt)
 			{
-				UK2Node_Literal* TemplateRefNode = InPaletteBuilder.CreateTemplateNode<UK2Node_Literal>();
+				IBlueprintNodeBinder::FBindingSet Bindings;
+				UK2Node_Literal* TemplateRefNode = Cast<UK2Node_Literal>(UBlueprintNodeSpawner::Create(UK2Node_Literal::StaticClass())->Invoke(InDestGraph, Bindings, InOutDestPosition));
 				TemplateRefNode->SetObjectRef(*LvlActorIt);
 
-				TSharedPtr<FEdGraphSchemaAction_NewNode> NewActionNode = TSharedPtr<FEdGraphSchemaAction_NewNode>(new FEdGraphSchemaAction_NewNode);
-				NewActionNode->NodeTemplate = TemplateRefNode;
-
-				InPaletteBuilder.AddAction(NewActionNode);
+				OutNodes.Add(TemplateRefNode);
 			}
 		}
 	}
@@ -395,7 +396,7 @@ void FBlueprintSpawnNodeCommands::RegisterCommands()
 }
 
 
-void FBlueprintSpawnNodeCommands::GetGraphActionByChord(FInputChord& InChord, FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) const
+void FBlueprintSpawnNodeCommands::GetGraphActionByChord(FInputChord& InChord, UEdGraph* InDestGraph, FVector2D& InOutDestPosition, TArray<UEdGraphNode*>& OutNodes) const
 {
 	if(InChord.IsValidChord())
 	{
@@ -403,7 +404,7 @@ void FBlueprintSpawnNodeCommands::GetGraphActionByChord(FInputChord& InChord, FB
 		{
 			if(NodeCommands[x]->CommandInfo->GetActiveChord().Get() == InChord)
 			{
-				NodeCommands[x]->GetActions(InPaletteBuilder, InDestGraph);
+				NodeCommands[x]->GetActions(InDestGraph, InOutDestPosition, OutNodes);
 			}
 		}
 	}

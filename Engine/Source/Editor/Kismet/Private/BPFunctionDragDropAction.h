@@ -71,7 +71,7 @@ protected:
 	UFunction const* GetFunctionProperty() const;
 
 	/** Constructs an action to execute, placing a function call node for the associated function */
-	void GetDropAction(UEdGraph& Graph, FGraphActionListBuilderBase::ActionGroup& DropActionOut) const;
+	class UBlueprintFunctionNodeSpawner* GetDropAction(UEdGraph& Graph) const;
 };
 
 /*******************************************************************************

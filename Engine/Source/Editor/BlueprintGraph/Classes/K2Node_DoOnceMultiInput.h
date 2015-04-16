@@ -13,7 +13,6 @@ class UK2Node_DoOnceMultiInput : public UK2Node
 	UPROPERTY()
 	int32 NumAdditionalInputs;
 
-	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 
 	/** Reference to the integer that contains */

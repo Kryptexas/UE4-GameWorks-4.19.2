@@ -2,7 +2,6 @@
 
 #include "AIGraphPrivatePCH.h"
 #include "SGraphEditorActionMenuAI.h"
-#include "K2ActionMenuBuilder.h" // for FBlueprintGraphActionListBuilder
 #include "AIGraphSchema.h"
 
 SGraphEditorActionMenuAI::~SGraphEditorActionMenuAI()
@@ -41,7 +40,7 @@ void SGraphEditorActionMenuAI::Construct( const FArguments& InArgs )
 void SGraphEditorActionMenuAI::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 {
 	// Build up the context object
-	FBlueprintGraphActionListBuilder ContextMenuBuilder(GraphObj);
+	FGraphContextMenuBuilder ContextMenuBuilder(GraphObj);
 	if (GraphNode != NULL)
 	{
 		ContextMenuBuilder.SelectedObjects.Add(GraphNode);

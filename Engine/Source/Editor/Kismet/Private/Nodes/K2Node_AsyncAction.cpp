@@ -16,44 +16,6 @@ UK2Node_AsyncAction::UK2Node_AsyncAction(const FObjectInitializer& ObjectInitial
 	ProxyActivateFunctionName = GET_FUNCTION_NAME_CHECKED(UBlueprintAsyncActionBase, Activate);
 }
 
-void UK2Node_AsyncAction::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
-{
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	EGraphType GraphType = K2Schema->GetGraphType(ContextMenuBuilder.CurrentGraph);
-	const bool bAllowLatentFuncs = (GraphType == GT_Ubergraph || GraphType == GT_Macro);
-
-
-	if (bAllowLatentFuncs)
-	{
-		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
-		{
-			UClass* TestClass = *ClassIt;
-			if ( TestClass->IsChildOf(UBlueprintAsyncActionBase::StaticClass()) && !TestClass->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated) )
-			{
-				for (TFieldIterator<UFunction> FuncIt(TestClass, EFieldIteratorFlags::ExcludeSuper); FuncIt; ++FuncIt)
-				{
-					// See if the function is a static factory method for online proxies
-					UFunction* CandidateFunction = *FuncIt;
-
-					UObjectProperty* ReturnProperty = Cast<UObjectProperty>(CandidateFunction->GetReturnProperty());
-					const bool bValidReturnType = ( ReturnProperty != nullptr ) && ( ReturnProperty->PropertyClass != nullptr ) && ( ReturnProperty->PropertyClass->IsChildOf(UBlueprintAsyncActionBase::StaticClass()) );
-
-					if (CandidateFunction->HasAllFunctionFlags(FUNC_Static) && bValidReturnType)
-					{
-						// Create a node template for this factory method
-						UK2Node_AsyncAction* NodeTemplate = NewObject<UK2Node_AsyncAction>(ContextMenuBuilder.OwnerOfTemporaries);
-						NodeTemplate->ProxyFactoryFunctionName = CandidateFunction->GetFName();
-						NodeTemplate->ProxyFactoryClass = TestClass;
-						NodeTemplate->ProxyClass = ReturnProperty->PropertyClass;
-
-						CreateDefaultMenuEntry(NodeTemplate, ContextMenuBuilder);
-					}
-				}
-			}
-		}
-	}
-}
-
 void UK2Node_AsyncAction::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	// these nested loops are combing over the same classes/functions the

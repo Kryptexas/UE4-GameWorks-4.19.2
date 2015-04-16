@@ -90,11 +90,12 @@ public:
 	/**
 	 * Returns a graph action assigned to the passed in chord
 	 *
-	 * @param InChord			The chord to use for lookup
-	 * @param InPaletteBuilder	The Blueprint palette to create the graph action for, used for validation purposes and to link any important node data to the blueprint
-	 * @param InDestGraph		The graph to create the graph action for, used for validation purposes and to link any important node data to the graph
+	 * @param InChord					The chord to use for lookup
+	 * @param InDestGraph				The graph to create the graph action for, used for validation purposes and to link any important node data to the graph
+	 * @param InOutDestPosition			Position to start placing nodes, will be updated to be at the next safe position for node placement
+	 * @param OutNodes					All nodes spawned by this operation
 	 */
-	void GetGraphActionByChord(FInputChord& InChord, struct FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) const;
+	void GetGraphActionByChord(FInputChord& InChord, UEdGraph* InDestGraph, FVector2D& InOutDestPosition, TArray<UEdGraphNode*>& OutNodes) const;
 
 private:
 	/** An array of all the possible commands for spawning nodes */

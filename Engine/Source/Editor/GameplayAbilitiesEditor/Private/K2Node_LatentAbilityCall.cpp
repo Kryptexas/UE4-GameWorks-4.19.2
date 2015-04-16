@@ -48,41 +48,6 @@ bool UK2Node_LatentAbilityCall::IsCompatibleWithGraph(UEdGraph const* TargetGrap
 	return bIsCompatible;
 }
 
-void UK2Node_LatentAbilityCall::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
-{
-	if (!IsCompatibleWithGraph(ContextMenuBuilder.CurrentGraph))
-	{
-		return;
-	}
-
-	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
-	{
-		UClass* TestClass = *ClassIt;
-		if (TestClass->IsChildOf(UAbilityTask::StaticClass()) && !TestClass->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated))
-		{
-			for (TFieldIterator<UFunction> FuncIt(TestClass, EFieldIteratorFlags::ExcludeSuper); FuncIt; ++FuncIt)
-			{
-				// See if the function is a static factory method for online proxies
-				UFunction* CandidateFunction = *FuncIt;
-
-				UObjectProperty* ReturnProperty = Cast<UObjectProperty>(CandidateFunction->GetReturnProperty());
-				const bool bValidReturnType = (ReturnProperty != nullptr) && (ReturnProperty->PropertyClass != nullptr) && (ReturnProperty->PropertyClass->IsChildOf(UAbilityTask::StaticClass()));
-
-				if (CandidateFunction->HasAllFunctionFlags(FUNC_Static) && bValidReturnType)
-				{
-					// Create a node template for this factory method
-					UK2Node_LatentAbilityCall* NodeTemplate = NewObject<UK2Node_LatentAbilityCall>(ContextMenuBuilder.OwnerOfTemporaries);
-					NodeTemplate->ProxyFactoryFunctionName = CandidateFunction->GetFName();
-					NodeTemplate->ProxyFactoryClass = TestClass;
-					NodeTemplate->ProxyClass = ReturnProperty->PropertyClass;
-
-					CreateDefaultMenuEntry(NodeTemplate, ContextMenuBuilder);
-				}
-			}
-		}
-	}
-}
-
 void UK2Node_LatentAbilityCall::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	// these nested loops are combing over the same classes/functions the

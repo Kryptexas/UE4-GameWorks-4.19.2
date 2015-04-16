@@ -4,7 +4,6 @@
 #include "SBlueprintLibraryPalette.h"
 #include "ClassViewerModule.h" // for FClassViewerInitializationOptions
 #include "ClassViewerFilter.h" // for FClassViewerFilterFuncs
-#include "K2ActionMenuBuilder.h"
 #include "BlueprintPaletteFavorites.h"
 #include "BlueprintActionFilter.h"
 #include "BlueprintActionMenuBuilder.h"

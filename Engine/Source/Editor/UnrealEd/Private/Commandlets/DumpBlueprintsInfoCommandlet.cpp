@@ -3,7 +3,6 @@
 #include "UnrealEd.h"
 #include "ObjectEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
-#include "K2ActionMenuBuilder.h"
 #include "EdGraphSchema_K2_Actions.h"
 #include "K2Node.h"
 #include "AnimationGraph.h"
@@ -108,9 +107,6 @@ DumpBlueprintsInfo commandlet params: \n\
                         '{1}' and '{2}' as placeholders for filenames, like so:\n\
                         -diffcmd=\"AraxisP4Diff.exe {2} {1}\".                 \n\
 \n\
-    -legacy             Uses the old way of constructing Blueprint action      \n\
-                        menus.                                                 \n\
-\n\
     -name=<Filename>    Overrides the default filename. Leave off the extention\n\
                         (this will add .json to the end). When -multifile is   \n\
                         supplied, the class name will be postfixed to the name.\n\
@@ -144,7 +140,6 @@ DumpBlueprintsInfo commandlet params: \n\
 		BPDUMP_DoNotDumpActionInfo  = (1<<7),
 		BPDUMP_RecordTiming			= (1<<8),
 		BPDUMP_SelectAllObjTypes    = (1<<9), 
-		BPDUMP_UseLegacyMenuBuilder = (1<<10),
 
 		BPDUMP_ActionDatabaseInfo   = (1<<11),
 
@@ -299,7 +294,7 @@ DumpBlueprintsInfo commandlet params: \n\
 	 *
 	 * @return The amount of time (in seconds) that the menu building took.
 	 */
-	static double GetPaletteMenuActions(FBlueprintPaletteListBuilder& ActionListBuilder, UClass* PaletteFilter);
+	static double GetPaletteMenuActions(FCategorizedGraphActionListBuilder& PaletteBuilder, UBlueprint* Blueprint, UClass* PaletteFilter);
 
 	/**
 	 * Dumps all palette actions listed for the specified blueprint. Determines
@@ -368,7 +363,7 @@ DumpBlueprintsInfo commandlet params: \n\
 	 * into the DumpActionList(), while dumping context information to go along 
 	 * with it (to give the reader context).
 	 */
-	static void DumpContextActionList(uint32 Indent, FBlueprintGraphActionListBuilder ActionBuilder, FArchive* FileOutWriter);
+	static void DumpContextActionList(uint32 Indent, FGraphContextMenuBuilder ActionBuilder, UBlueprint* Blueprint, FArchive* FileOutWriter);
 
 	/**
 	 * Assumes that the specified ActionListBuilder is configured with all the 
@@ -378,13 +373,13 @@ DumpBlueprintsInfo commandlet params: \n\
 	 *
 	 * @return The amount of time (in seconds) that the menu building took.
 	 */
-	static double GetContextMenuActions(FBlueprintGraphActionListBuilder& ActionListBuilder);
+	static double GetContextMenuActions(FGraphContextMenuBuilder ActionBuilder, UBlueprint* Blueprint);
 
 	/**
 	 * Looks at the filter/context items set on the specified GraphActionListBuilder
 	 * and writes them out, to provide context with any dumped actions.
 	 */
-	static void DumpContextInfo(uint32 Indent, FBlueprintGraphActionListBuilder const& ActionBuilder, FArchive* FileOutWriter);
+	static void DumpContextInfo(uint32 Indent, FGraphContextMenuBuilder ActionBuilder, UBlueprint* Blueprint, FArchive* FileOutWriter);
 
 	/**
 	 * A utility function aimed at determining whether we should open a diff for
@@ -592,10 +587,6 @@ DumpBlueprintInfoUtils::CommandletOptions::CommandletOptions(TArray<FString> con
 		else if (!Switch.Compare("time", ESearchCase::IgnoreCase))
 		{
 			NewDumpFlags |= BPDUMP_RecordTiming;
-		}
-		else if (!Switch.Compare("legacy", ESearchCase::IgnoreCase))
-		{
-			NewDumpFlags |= BPDUMP_UseLegacyMenuBuilder;
 		}
 		else if (Switch.StartsWith("name="))
 		{
@@ -1107,7 +1098,7 @@ static bool DumpBlueprintInfoUtils::DumpActionDatabaseInfo(uint32 Indent, FArchi
 {
 	bool bWroteToFile = false;
 
-	uint32 const DbInfoMask = (BPDUMP_UseLegacyMenuBuilder | BPDUMP_ActionDatabaseInfo);
+	uint32 const DbInfoMask = BPDUMP_ActionDatabaseInfo;
 	if ((CommandOptions.DumpFlags & DbInfoMask) == BPDUMP_ActionDatabaseInfo)
 	{
 		UE_LOG(LogBlueprintInfoDump, Display, TEXT("%sDumping Database info..."), *BuildIndentString(Indent, true));
@@ -1489,28 +1480,20 @@ static void DumpBlueprintInfoUtils::DumpInfoForClass(uint32 Indent, UClass* Blue
 }
 
 //------------------------------------------------------------------------------
-static double DumpBlueprintInfoUtils::GetPaletteMenuActions(FBlueprintPaletteListBuilder& PaletteBuilder, UClass* PaletteFilter)
+static double DumpBlueprintInfoUtils::GetPaletteMenuActions(FCategorizedGraphActionListBuilder& PaletteBuilder, UBlueprint* Blueprint, UClass* PaletteFilter)
 {
 	PaletteBuilder.Empty();
 	UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
 	double MenuBuildDuration = 0.0;
 	
-	if (CommandOptions.DumpFlags & BPDUMP_UseLegacyMenuBuilder)
-	{
+	FBlueprintActionContext FilterContext;
+	FilterContext.Blueprints.Add(const_cast<UBlueprint*>(Blueprint));
+
+	FBlueprintActionMenuBuilder MenuBuilder(nullptr);
+	{			
 		FScopedDurationTimer DurationTimer(MenuBuildDuration);
-		FK2ActionMenuBuilder(K2Schema).GetPaletteActions(PaletteBuilder, PaletteFilter);
-	}
-	else
-	{
-		FBlueprintActionContext FilterContext;
-		FilterContext.Blueprints.Add(const_cast<UBlueprint*>(PaletteBuilder.Blueprint));
-		
-		FBlueprintActionMenuBuilder MenuBuilder(nullptr);
-		{			
-			FScopedDurationTimer DurationTimer(MenuBuildDuration);
-			FBlueprintActionMenuUtils::MakePaletteMenu(FilterContext, PaletteFilter, MenuBuilder);
-		}
+		FBlueprintActionMenuUtils::MakePaletteMenu(FilterContext, PaletteFilter, MenuBuilder);
 		PaletteBuilder.Append(MenuBuilder);
 	}
 
@@ -1569,8 +1552,8 @@ static void DumpBlueprintInfoUtils::DumpPalette(uint32 Indent, UBlueprint* Bluep
 	}
 	else
 	{
-		FBlueprintPaletteListBuilder PaletteBuilder(Blueprint, TEXT("Library"));
-		double MenuBuildDuration = GetPaletteMenuActions(PaletteBuilder, ClassFilter);
+		FCategorizedGraphActionListBuilder PaletteBuilder;
+		double MenuBuildDuration = GetPaletteMenuActions(PaletteBuilder, Blueprint, ClassFilter);
 
 		BeginPaletteEntry += NestedIndent + "\"FilterClass\" : \"" + FilterClassName + "\",\n";
 		if (CommandOptions.DumpFlags & BPDUMP_RecordTiming)
@@ -1782,9 +1765,18 @@ static void DumpBlueprintInfoUtils::DumpGraphContextActions(uint32 Indent, UEdGr
 
 	FileOutWriter->Serialize(TCHAR_TO_ANSI(*BeginGraphEntry), BeginGraphEntry.Len());
 
-	FBlueprintGraphActionListBuilder ActionBuilder(Graph);
+	UObject* GraphOuter = Graph->GetOuter();
+	UBlueprint* Blueprint = Cast<UBlueprint>(GraphOuter);
+	while ((Blueprint == nullptr) && (GraphOuter != nullptr))
+	{
+		GraphOuter = GraphOuter->GetOuter();
+		Blueprint = Cast<UBlueprint>(GraphOuter);
+	}
+	check(Blueprint != nullptr);
+
+	FGraphContextMenuBuilder ActionBuilder(Graph);
 	UE_LOG(LogBlueprintInfoDump, Display, TEXT("%sDumping graph context actions..."), *BuildIndentString(Indent, true));
-	DumpContextActionList(Indent, ActionBuilder, FileOutWriter);
+	DumpContextActionList(Indent, ActionBuilder, Blueprint, FileOutWriter);
 
 	if (CommandOptions.DumpFlags & BPDUMP_SelectAllObjTypes)
 	{
@@ -1808,20 +1800,11 @@ static void DumpBlueprintInfoUtils::DumpGraphContextActions(uint32 Indent, UEdGr
 					FString ActorSelectionEntry = "," + IndentedNewline + "\"LevelActorMenu-" + Class->GetName() + "\" : \n";
 					FileOutWriter->Serialize(TCHAR_TO_ANSI(*ActorSelectionEntry), ActorSelectionEntry.Len());
 
-					DumpContextActionList(Indent, ActionBuilder, FileOutWriter);
+					DumpContextActionList(Indent, ActionBuilder, Blueprint, FileOutWriter);
 				}
 			}
 		}
 	}
-
-	UObject* GraphOuter = Graph->GetOuter();
-	UBlueprint* Blueprint = Cast<UBlueprint>(GraphOuter);
-	while ((Blueprint == nullptr) && (GraphOuter != nullptr))
-	{
-		GraphOuter = GraphOuter->GetOuter();
-		Blueprint = Cast<UBlueprint>(GraphOuter);
-	}
-	check(Blueprint != nullptr);
 
 	TArray<UObjectProperty*> ComponentProperties;
 	GetComponentProperties(Blueprint, ComponentProperties);
@@ -1841,7 +1824,7 @@ static void DumpBlueprintInfoUtils::DumpGraphContextActions(uint32 Indent, UEdGr
 
 		ActionBuilder.SelectedObjects.Empty();
 		ActionBuilder.SelectedObjects.Add(Component);
-		DumpContextActionList(Indent, ActionBuilder, FileOutWriter);
+		DumpContextActionList(Indent, ActionBuilder, Blueprint, FileOutWriter);
 	}
 
 	FString EndGraphEntry;
@@ -1867,7 +1850,7 @@ static void DumpBlueprintInfoUtils::DumpGraphContextActions(uint32 Indent, UEdGr
 //------------------------------------------------------------------------------
 static bool DumpBlueprintInfoUtils::DumpPinContextActions(uint32 Indent, UEdGraph* Graph, FArchive* FileOutWriter)
 {
-	FBlueprintGraphActionListBuilder ContextMenuBuilder(Graph);
+	FGraphContextMenuBuilder ContextMenuBuilder(Graph);
 
 	bool bWroteToFile = false;
 	if (!CommandOptions.PinType.IsEmpty())
@@ -2015,7 +1998,7 @@ static bool DumpBlueprintInfoUtils::DumpTypeTreeActions(uint32 Indent, UEdGraph*
 //------------------------------------------------------------------------------
 static void DumpBlueprintInfoUtils::DumpContextualPinTypeActions(uint32 Indent, UEdGraph* Graph, FEdGraphPinType const& PinType, FArchive* FileOutWriter)
 {
-	FBlueprintGraphActionListBuilder ContextMenuBuilder(Graph);
+	FGraphContextMenuBuilder ContextMenuBuilder(Graph);
 
 	UK2Node_Composite* DummyNode = NewObject<UK2Node_Composite>(Graph);
 	UEdGraphPin* DummyPin = DummyNode->CreatePin(
@@ -2029,14 +2012,15 @@ static void DumpBlueprintInfoUtils::DumpContextualPinTypeActions(uint32 Indent, 
 	);
 	ContextMenuBuilder.FromPin = DummyPin;
 
-	DumpContextActionList(Indent, ContextMenuBuilder, FileOutWriter);
+	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Graph);
+	DumpContextActionList(Indent, ContextMenuBuilder, Blueprint, FileOutWriter);
 	FileOutWriter->Serialize(TCHAR_TO_ANSI(TEXT(",\n")), 2);
 	DummyPin->Direction = EGPD_Output;
-	DumpContextActionList(Indent, ContextMenuBuilder, FileOutWriter);
+	DumpContextActionList(Indent, ContextMenuBuilder, Blueprint, FileOutWriter);
 }
 
 //------------------------------------------------------------------------------
-static void DumpBlueprintInfoUtils::DumpContextActionList(uint32 Indent, FBlueprintGraphActionListBuilder ActionBuilder, FArchive* FileOutWriter)
+static void DumpBlueprintInfoUtils::DumpContextActionList(uint32 Indent, FGraphContextMenuBuilder ActionBuilder, UBlueprint* Blueprint, FArchive* FileOutWriter)
 {
 	ActionBuilder.Empty();
 
@@ -2056,7 +2040,7 @@ static void DumpBlueprintInfoUtils::DumpContextActionList(uint32 Indent, FBluepr
 		UE_LOG(LogBlueprintInfoDump, Display, TEXT("%sDumping pin actions: %s"), *BuildIndentString(Indent, true), *PinTypeLog);
 	}
 	
-	double MenuBuildDuration = GetContextMenuActions(ActionBuilder);
+	double MenuBuildDuration = GetContextMenuActions(ActionBuilder, Blueprint);
 
 	FString const ContextEntryIndent = BuildIndentString(Indent);
 	FString BeginContextEntry = FString::Printf(TEXT("%s{\n"), *ContextEntryIndent);
@@ -2067,7 +2051,7 @@ static void DumpBlueprintInfoUtils::DumpContextActionList(uint32 Indent, FBluepr
 	}
 	FileOutWriter->Serialize(TCHAR_TO_ANSI(*BeginContextEntry), BeginContextEntry.Len());
 
-	DumpContextInfo(Indent + 1, ActionBuilder, FileOutWriter);
+	DumpContextInfo(Indent + 1, ActionBuilder, Blueprint, FileOutWriter);
 	FileOutWriter->Serialize(TCHAR_TO_ANSI(TEXT(",\n")), 2);
 	DumpActionList(Indent + 1, ActionBuilder, FileOutWriter);
 
@@ -2076,53 +2060,44 @@ static void DumpBlueprintInfoUtils::DumpContextActionList(uint32 Indent, FBluepr
 }
 
 //------------------------------------------------------------------------------
-static double DumpBlueprintInfoUtils::GetContextMenuActions(FBlueprintGraphActionListBuilder& ActionBuilder)
+static double DumpBlueprintInfoUtils::GetContextMenuActions(FGraphContextMenuBuilder ActionBuilder, UBlueprint* Blueprint)
 {
 	ActionBuilder.Empty();
 	check(ActionBuilder.CurrentGraph != nullptr);
 
 	double MenuBuildDuration = 0.0;
+	
+	FBlueprintActionContext FilterContext;
+	FilterContext.Blueprints.Add(const_cast<UBlueprint*>(Blueprint));
+	FilterContext.Graphs.Add(const_cast<UEdGraph*>(ActionBuilder.CurrentGraph));
 
-	UEdGraphSchema const* GraphSchema = GetDefault<UEdGraphSchema>(ActionBuilder.CurrentGraph->Schema);
-	if (CommandOptions.DumpFlags & BPDUMP_UseLegacyMenuBuilder)
+	if (ActionBuilder.FromPin != nullptr)
+	{
+		FilterContext.Pins.Add(const_cast<UEdGraphPin*>(ActionBuilder.FromPin));
+	}
+
+	TArray<UProperty*> SelectedProperties;
+	for (UObject* SelectedObj : ActionBuilder.SelectedObjects)
+	{
+		if (UProperty* SelectedProperty = Cast<UObjectProperty>(SelectedObj))
+		{
+			FilterContext.SelectedObjects.Add(SelectedProperty);
+		}
+	}
+
+	FBlueprintActionMenuBuilder MenuBuilder(nullptr);
 	{
 		FScopedDurationTimer DurationTimer(MenuBuildDuration);
-		GraphSchema->GetGraphContextActions(ActionBuilder);
+		FBlueprintActionMenuUtils::MakeContextMenu(FilterContext, /*bIsContextSensitive =*/true, 
+			(EContextTargetFlags::TARGET_Blueprint | EContextTargetFlags::TARGET_NodeTarget | EContextTargetFlags::TARGET_PinObject | EContextTargetFlags::TARGET_SiblingPinObjects), MenuBuilder);
 	}
-	else
-	{
-		FBlueprintActionContext FilterContext;
-		FilterContext.Blueprints.Add(const_cast<UBlueprint*>(ActionBuilder.Blueprint));
-		FilterContext.Graphs.Add(const_cast<UEdGraph*>(ActionBuilder.CurrentGraph));
-		
-		if (ActionBuilder.FromPin != nullptr)
-		{
-			FilterContext.Pins.Add(const_cast<UEdGraphPin*>(ActionBuilder.FromPin));
-		}
-		
-		TArray<UProperty*> SelectedProperties;
-		for (UObject* SelectedObj : ActionBuilder.SelectedObjects)
-		{
-			if (UProperty* SelectedProperty = Cast<UObjectProperty>(SelectedObj))
-			{
-				FilterContext.SelectedObjects.Add(SelectedProperty);
-			}
-		}
-		
-		FBlueprintActionMenuBuilder MenuBuilder(nullptr);
-		{
-			FScopedDurationTimer DurationTimer(MenuBuildDuration);
-			FBlueprintActionMenuUtils::MakeContextMenu(FilterContext, /*bIsContextSensitive =*/true, 
-				(EContextTargetFlags::TARGET_Blueprint | EContextTargetFlags::TARGET_NodeTarget | EContextTargetFlags::TARGET_PinObject | EContextTargetFlags::TARGET_SiblingPinObjects), MenuBuilder);
-		}
-		ActionBuilder.Append(MenuBuilder);
-	}
+	ActionBuilder.Append(MenuBuilder);
 
 	return MenuBuildDuration;
 }
 
 //------------------------------------------------------------------------------
-static void DumpBlueprintInfoUtils::DumpContextInfo(uint32 Indent, FBlueprintGraphActionListBuilder const& ActionBuilder, FArchive* FileOutWriter)
+static void DumpBlueprintInfoUtils::DumpContextInfo(uint32 Indent, FGraphContextMenuBuilder ActionBuilder, UBlueprint* Blueprint, FArchive* FileOutWriter)
 {
 	FString const ContextEntryIndent = BuildIndentString(Indent);
 	++Indent;

@@ -94,17 +94,6 @@ FString UAnimGraphNode_StateMachineBase::GetNodeCategory() const
 	return TEXT("State Machines");
 }
 
-void UAnimGraphNode_StateMachineBase::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
-{
-	if ((ContextMenuBuilder.FromPin == NULL) || ((ContextMenuBuilder.FromPin->Direction == EGPD_Input) && (ContextMenuBuilder.FromPin->PinType.PinSubCategoryObject == FPoseLink::StaticStruct())))
-	{
-		TSharedPtr<FEdGraphSchemaAction_K2NewNode> MenuEntry = CreateDefaultMenuEntry(ContextMenuBuilder);
-
-		MenuEntry->MenuDescription = LOCTEXT("AddNewStateMachine", "Add New State Machine...");
-		MenuEntry->TooltipDescription = LOCTEXT("AddNewStateMachine_Tooltip", "Create a new state machine").ToString();
-	}
-}
-
 void UAnimGraphNode_StateMachineBase::PostPlacedNewNode()
 {
 	// Create a new animation graph

@@ -3,7 +3,6 @@
 
 #include "AnimGraphPrivatePCH.h"
 #include "AnimGraphNode_Base.h"
-#include "K2ActionMenuBuilder.h" // for FK2ActionMenuBuilder::AddNewNodeAction()
 #include "AnimationGraphSchema.h"
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
@@ -216,11 +215,6 @@ FString UAnimGraphNode_Base::GetNodeCategory() const
 	return TEXT("Misc.");
 }
 
-void UAnimGraphNode_Base::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
-{
-	CreateDefaultMenuEntry(ContextMenuBuilder);
-}
-
 void UAnimGraphNode_Base::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const
 {
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "AnimGraphNode" ) ));
@@ -250,21 +244,6 @@ void UAnimGraphNode_Base::GetMenuActions(FBlueprintActionDatabaseRegistrar& Acti
 FText UAnimGraphNode_Base::GetMenuCategory() const
 {
 	return FText::FromString(GetNodeCategory());
-}
-
-TSharedPtr<FEdGraphSchemaAction_K2NewNode> UAnimGraphNode_Base::CreateDefaultMenuEntry(FGraphContextMenuBuilder& ContextMenuBuilder) const
-{
-	UAnimGraphNode_Base* TemplateNode = NewObject<UAnimGraphNode_Base>(GetTransientPackage(), GetClass());
-
-	FString Category = TemplateNode->GetNodeCategory();
-	FText MenuDesc = TemplateNode->GetNodeTitle(ENodeTitleType::ListView);
-	FString Tooltip = TemplateNode->GetTooltipText().ToString();
-	FString Keywords = TemplateNode->GetKeywords();
-
-	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category, MenuDesc, Tooltip, 0, Keywords);
-	NodeAction->NodeTemplate = TemplateNode;
-
-	return NodeAction;
 }
 
 void UAnimGraphNode_Base::GetPinAssociatedProperty(const UScriptStruct* NodeType, UEdGraphPin* InputPin, UProperty*& OutProperty, int32& OutIndex)

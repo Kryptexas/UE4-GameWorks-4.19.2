@@ -9,7 +9,6 @@
 #include "BlueprintEditor.h"
 #include "SMyBlueprint.h"
 #include "BlueprintEditorUtils.h"
-#include "K2ActionMenuBuilder.h" // for FBlueprintPaletteListBuilder
 #include "BlueprintActionMenuBuilder.h"
 #include "BlueprintActionFilter.h"
 #include "BlueprintActionMenuUtils.h"

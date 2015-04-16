@@ -21,7 +21,5 @@ class UAnimGraphNode_BlendSpaceBase : public UAnimGraphNode_Base
 	// End of UAnimGraphNode_Base interface
 
 protected:
-	static void GetBlendSpaceEntries(bool bWantAimOffsets, FGraphContextMenuBuilder& ContextMenuBuilder);
-
 	UBlendSpaceBase* GetBlendSpace() const { return Cast<UBlendSpaceBase>(GetAnimationAsset()); }
 };
