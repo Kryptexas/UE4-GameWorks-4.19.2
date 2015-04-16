@@ -26,7 +26,7 @@ TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FGitSourceControlS
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FGitSourceControlState::FindHistoryRevision(const FString& InRevision) const
@@ -39,12 +39,20 @@ TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FGitSourceControlS
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FGitSourceControlState::GetBaseRevForMerge() const
 {
-	// @todo get revision of the merge-base (https://www.kernel.org/pub/software/scm/git/docs/git-merge-base.html)
+	for(const auto& Revision : History)
+	{
+		// look for the the SHA1 id of the file, not the commit id (revision)
+		if(Revision->FileHash == PendingMergeBaseFileHash)
+		{
+			return Revision;
+		}
+	}
+
 	return nullptr;
 }
 

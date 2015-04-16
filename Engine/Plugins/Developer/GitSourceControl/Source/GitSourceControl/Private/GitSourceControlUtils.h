@@ -84,7 +84,7 @@ void GetBranchName(const FString& InPathToGitBinary, const FString& InRepository
 bool RunCommand(const FString& InCommand, const FString& InPathToGitBinary, const FString& InRepositoryRoot, const TArray<FString>& InParameters, const TArray<FString>& InFiles, TArray<FString>& OutResults, TArray<FString>& OutErrorMessages);
 
 /**
- * Run a Git commit command by batches.
+ * Run a Git "commit" command by batches.
  *
  * @param	InPathToGitBinary	The path to the Git binary
  * @param	InRepositoryRoot	The Git repository from where to run the command - usually the Game directory (can be empty)
@@ -96,7 +96,7 @@ bool RunCommand(const FString& InCommand, const FString& InPathToGitBinary, cons
 bool RunCommit(const FString& InPathToGitBinary, const FString& InRepositoryRoot, const TArray<FString>& InParameters, const TArray<FString>& InFiles, TArray<FString>& OutResults, TArray<FString>& OutErrorMessages);
 
 /**
- * Run a Git status command and parse it.
+ * Run a Git "status" command and parse it.
  *
  * @param	InPathToGitBinary	The path to the Git binary
  * @param	InRepositoryRoot	The Git repository from where to run the command - usually the Game directory (can be empty)
@@ -107,7 +107,7 @@ bool RunCommit(const FString& InPathToGitBinary, const FString& InRepositoryRoot
 bool RunUpdateStatus(const FString& InPathToGitBinary, const FString& InRepositoryRoot, const TArray<FString>& InFiles, TArray<FString>& OutErrorMessages, TArray<FGitSourceControlState>& OutStates);
 
 /**
- * Run a Git show command to dump the binary content of a revision into a file.
+ * Run a Git "show" command to dump the binary content of a revision into a file.
  *
  * @param	InPathToGitBinary	The path to the Git binary
  * @param	InRepositoryRoot	The Git repository from where to run the command - usually the Game directory (can be empty)
@@ -118,11 +118,16 @@ bool RunUpdateStatus(const FString& InPathToGitBinary, const FString& InReposito
 bool RunDumpToFile(const FString& InPathToGitBinary, const FString& InRepositoryRoot, const FString& InParameter, const FString& InDumpFileName);
 
 /**
- * Parse the array of strings results of a 'git log' command
- * @param	InResults			The results (from StdOut) as an array per-line
+ * Run a Git "log" command and parse it.
+ *
+ * @param	InPathToGitBinary	The path to the Git binary
+ * @param	InRepositoryRoot	The Git repository from where to run the command - usually the Game directory (can be empty)
+ * @param	InFile				The file to be operated on
+ * @param	bMergeConflict		In case of a merge conflict, we also need to get the tip of the "remote branch" (MERGE_HEAD) before the log of the "current branch" (HEAD)
+ * @param	OutErrorMessages	Any errors (from StdErr) as an array per-line
  * @param	OutHistory			The history of the file
  */
-void ParseLogResults(const TArray<FString>& InResults, TGitSourceControlHistory& OutHistory);
+bool RunGetHistory(const FString& InPathToGitBinary, const FString& InRepositoryRoot, const FString& InFile, bool bMergeConflict, TArray<FString>& OutErrorMessages, TGitSourceControlHistory& OutHistory);
 
 /**
  * Helper function for various commands to update cached states.
