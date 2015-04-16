@@ -88,19 +88,20 @@ namespace GitDependencies
 		static int Main(string[] Args)
 		{
 			// Build the argument list. Remove any double-hyphens from the start of arguments for conformity with other Epic tools.
-			List<string> ArgsList = new List<string>();
-			foreach (string Arg in Args)
-			{
-				ArgsList.Add(Arg.StartsWith("--")? Arg.Substring(1) : Arg);
-			}
+			List<string> ArgsList = new List<string>(Args);
+			NormalizeArguments(ArgsList);
+
+			// Find the default arguments from the UE4_GITDEPS_ARGS environment variable. These arguments do not cause an error if duplicated or redundant, but can still override defaults.
+			List<string> DefaultArgsList = SplitArguments(System.Environment.GetEnvironmentVariable("UE4_GITDEPS_ARGS"));
+			NormalizeArguments(DefaultArgsList);
 
 			// Parse the parameters
-			int NumThreads = int.Parse(ParseParameter(ArgsList, "-threads=", "4"));
-			int MaxRetries = int.Parse(ParseParameter(ArgsList, "-max-retries=", "4"));
+			int NumThreads = int.Parse(ParseParameter(ArgsList, DefaultArgsList, "-threads=", "4"));
+			int MaxRetries = int.Parse(ParseParameter(ArgsList, DefaultArgsList, "-max-retries=", "4"));
 			bool bDryRun = ParseSwitch(ArgsList, "-dry-run");
 			bool bHelp = ParseSwitch(ArgsList, "-help");
-			float CacheSizeMultiplier = float.Parse(ParseParameter(ArgsList, "-cache-size-multiplier=", "2"));
-			int CacheDays = int.Parse(ParseParameter(ArgsList, "-cache-days=", "7"));
+			float CacheSizeMultiplier = float.Parse(ParseParameter(ArgsList, DefaultArgsList, "-cache-size-multiplier=", "2"));
+			int CacheDays = int.Parse(ParseParameter(ArgsList, DefaultArgsList, "-cache-days=", "7"));
 			string RootPath = ParseParameter(ArgsList, "-root=", Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "../../..")));
 
 			// Parse the cache path. A specific path can be set using -catch=<PATH> or the UE4_GITDEPS environment variable, otherwise we look for a parent .git directory
@@ -109,7 +110,7 @@ namespace GitDependencies
 			string CachePath = null;
 			if (!ParseSwitch(ArgsList, "-no-cache"))
 			{
-				string CachePathParam = ParseParameter(ArgsList, "-cache=", System.Environment.GetEnvironmentVariable("UE4_GITDEPS"));
+				string CachePathParam = ParseParameter(ArgsList, DefaultArgsList, "-cache=", System.Environment.GetEnvironmentVariable("UE4_GITDEPS"));
 				if (String.IsNullOrEmpty(CachePathParam))
 				{
 					string CheckPath = Path.GetFullPath(RootPath);
@@ -142,7 +143,7 @@ namespace GitDependencies
 			}
 
 			// Setup network proxy from argument list or environment variable
-			string ProxyUrl = ParseParameter(ArgsList, "-proxy=", null);
+			string ProxyUrl = ParseParameter(ArgsList, DefaultArgsList, "-proxy=", null);
 			if(String.IsNullOrEmpty(ProxyUrl))
 			{
 				ProxyUrl = Environment.GetEnvironmentVariable("HTTP_PROXY");
@@ -159,11 +160,11 @@ namespace GitDependencies
 				UriBuilder ProxyBuilder = new UriBuilder(ProxyUrl);
 				if(String.IsNullOrEmpty(ProxyBuilder.UserName))
 				{
-					ProxyBuilder.UserName = ParseParameter(ArgsList, "-proxy-user=", null);
+					ProxyBuilder.UserName = ParseParameter(ArgsList, DefaultArgsList, "-proxy-user=", null);
 				}
 				if(String.IsNullOrEmpty(ProxyBuilder.Password))
 				{
-					ProxyBuilder.Password = ParseParameter(ArgsList, "-proxy-password=", null);
+					ProxyBuilder.Password = ParseParameter(ArgsList, DefaultArgsList, "-proxy-password=", null);
 				}
 				Proxy = ProxyBuilder.Uri;
 			}
@@ -241,6 +242,8 @@ namespace GitDependencies
 				Log.WriteLine("   Excluded folders: {0}", (ExcludeFolders.Count == 0)? "none" : String.Join(", ", ExcludeFolders));
 				Log.WriteLine("   Proxy server: {0}", (Proxy == null)? "none" : Proxy.ToString());
 				Log.WriteLine("   Download cache: {0}", (CachePath == null)? "disabled" : CachePath);
+				Log.WriteLine();
+				Log.WriteLine("Default arguments can be set through the UE4_GITDEPS_ARGS environment variable.");
 				return 0;
 			}
 
@@ -253,6 +256,49 @@ namespace GitDependencies
 				return 1;
 			}
 			return 0;
+		}
+
+		static void NormalizeArguments(List<string> ArgsList)
+		{
+			for(int Idx = 0; Idx < ArgsList.Count; Idx++)
+			{
+				if(ArgsList[Idx].StartsWith("--"))
+				{
+					ArgsList[Idx] = ArgsList[Idx].Substring(1);
+				}
+			}
+		}
+
+		static List<string> SplitArguments(string Text)
+		{
+			List<string> ArgsList = new List<string>();
+			if(!String.IsNullOrEmpty(Text))
+			{
+				for(int Idx = 0; Idx < Text.Length; Idx++)
+				{
+					if(!Char.IsWhiteSpace(Text[Idx]))
+					{
+						StringBuilder Arg = new StringBuilder();
+						for(bool bInQuotes = false; Idx < Text.Length; Idx++)
+						{
+							if(!bInQuotes && Char.IsWhiteSpace(Text[Idx]))
+							{
+								break;
+							}
+							else if(Text[Idx] == '\"')
+							{
+								bInQuotes ^= true;
+							}
+							else
+							{
+								Arg.Append(Text[Idx]);
+							}
+						}
+						ArgsList.Add(Arg.ToString());
+					}
+				}
+			}
+			return ArgsList;
 		}
 
 		static bool ParseSwitch(List<string> ArgsList, string Name)
@@ -281,6 +327,11 @@ namespace GitDependencies
 				}
 			}
 			return Value;
+		}
+
+		static string ParseParameter(List<string> ArgsList, List<string> DefaultArgsList, string Prefix, string Default)
+		{
+			return ParseParameter(ArgsList, Prefix, ParseParameter(DefaultArgsList, Prefix, Default));
 		}
 
 		static IEnumerable<string> ParseParameters(List<string> ArgsList, string Prefix)
