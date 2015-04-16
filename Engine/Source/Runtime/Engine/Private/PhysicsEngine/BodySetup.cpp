@@ -473,7 +473,7 @@ public:
 		}
 	}
 
-	void FAddShapesHelper::AddConvexElemsToRigidActor_AssumesLocked() const
+	void AddConvexElemsToRigidActor_AssumesLocked() const
 	{
 		float ContactOffsetFactor, MaxContactOffset;
 		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
