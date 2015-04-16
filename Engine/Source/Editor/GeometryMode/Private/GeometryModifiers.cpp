@@ -1377,7 +1377,13 @@ void UGeomModifier_Pen::Apply()
 		//tool->SetCurrentModifier( tool->GetModifier(0) );
 
 		//force a rebuild of the brush (otherwise the auto-update will do it and this will result in the undo buffer being incorrect)
+
+
+		ABrush::SetNeedRebuild(ResultingBrush->GetLevel());
+		
 		FBSPOps::RebuildBrush( ResultingBrush->Brush );
+
+		GEditor->RebuildAlteredBSP();
 
 		GEditor->RedrawLevelEditingViewports(true);
 	}
@@ -1565,7 +1571,7 @@ bool UGeomModifier_Pen::InputKey(FEditorViewportClient* ViewportClient, FViewpor
 		}
 		else if( Key == EKeys::Enter )
 		{
-			if (!DoesFinalLineIntersectWithShape(ShapeVertices, ShapeVertices[0]))
+			if (ShapeVertices.Num() > 0 && !DoesFinalLineIntersectWithShape(ShapeVertices, ShapeVertices[0]))
 			{
 				Apply();
 				bResult = true;

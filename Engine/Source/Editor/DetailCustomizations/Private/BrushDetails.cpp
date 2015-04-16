@@ -112,6 +112,8 @@ void FBrushDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 
 		static void OnClassPicked(UClass* InChosenClass, TSharedRef<IPropertyHandle> BrushBuilderHandle, IDetailLayoutBuilder* InDetailLayout)
 		{
+			FSlateApplication::Get().DismissAllMenus();
+
 			TArray<UObject*> OuterObjects;
 			BrushBuilderHandle->GetOuterObjects(OuterObjects);
 
@@ -145,9 +147,11 @@ void FBrushDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 				{
 					NewObject.Builder->Build(NewObject.Brush->GetWorld(), NewObject.Brush);
 				}
+
+				GEditor->RebuildAlteredBSP();
 			}
 
-			FSlateApplication::Get().DismissAllMenus();
+
 
 			InDetailLayout->ForceRefreshDetails();
 		}
