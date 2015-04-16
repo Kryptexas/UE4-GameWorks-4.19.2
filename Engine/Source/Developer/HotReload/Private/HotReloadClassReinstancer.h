@@ -116,6 +116,12 @@ public:
 	// End of FSerializableObject interface
 
 	virtual bool IsClassObjectReplaced() const override  { return true; }
+
+protected:
+
+	// FBlueprintCompileReinstancer interface
+	virtual bool ShouldPreserveRootComponentOfReinstancedActor() const override { return false; }
+	// End of FBlueprintCompileReinstancer interface
 };
 
 #endif // WITH_ENGINE

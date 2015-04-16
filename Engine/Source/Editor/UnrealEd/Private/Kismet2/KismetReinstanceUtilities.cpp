@@ -391,7 +391,7 @@ void FBlueprintCompileReinstancer::ReinstanceInner(bool bForceAlwaysReinstance)
 		if (bShouldReinstance)
 		{
 			UE_LOG(LogBlueprint, Log, TEXT("BlueprintCompileReinstancer: Doing a full reinstance on class '%s'"), *GetPathNameSafe(ClassToReinstance));
-			ReplaceInstancesOfClass(DuplicatedClass, ClassToReinstance, OriginalCDO, &ObjectsThatShouldUseOldStuff, IsClassObjectReplaced());
+			ReplaceInstancesOfClass(DuplicatedClass, ClassToReinstance, OriginalCDO, &ObjectsThatShouldUseOldStuff, IsClassObjectReplaced(), ShouldPreserveRootComponentOfReinstancedActor());
 		}
 		else if (ClassToReinstance->IsChildOf<UActorComponent>())
 		{
@@ -779,7 +779,7 @@ void FActorReplacementHelper::AttachChildActors(USceneComponent* RootComponent, 
 	}
 }
 
-void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UClass* NewClass, UObject*	OriginalCDO, TSet<UObject*>* ObjectsThatShouldUseOldStuff, bool bClassObjectReplaced)
+void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UClass* NewClass, UObject*	OriginalCDO, TSet<UObject*>* ObjectsThatShouldUseOldStuff, bool bClassObjectReplaced, bool bPreserveRootComponent)
 {
 	USelection* SelectedActors;
 	bool bSelectionChanged = false;
@@ -906,7 +906,10 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 				// Unregister any native components, might have cached state based on properties we are going to overwrite
 				NewActor->UnregisterAllComponents(); 
 
-				UEditorEngine::CopyPropertiesForUnrelatedObjects(OldActor, NewActor);
+				UEngine::FCopyPropertiesForUnrelatedObjectsParams Params;
+				Params.bPreserveRootComponent = bPreserveRootComponent;
+				UEngine::CopyPropertiesForUnrelatedObjects(OldActor, NewActor, Params);
+
 				// reset properties/streams
 				NewActor->ResetPropertiesForConstruction(); 
 				// register native components
