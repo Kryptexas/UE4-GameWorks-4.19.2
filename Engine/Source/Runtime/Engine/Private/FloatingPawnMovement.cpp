@@ -140,8 +140,8 @@ void UFloatingPawnMovement::ApplyControlInputToVelocity(float DeltaTime)
 	ConsumeInputVector();
 }
 
-bool UFloatingPawnMovement::ResolvePenetration(const FVector& Adjustment, const FHitResult& Hit, const FRotator& NewRotation)
+bool UFloatingPawnMovement::ResolvePenetrationImpl(const FVector& Adjustment, const FHitResult& Hit, const FQuat& NewRotationQuat)
 {
-	bPositionCorrected |= Super::ResolvePenetration(Adjustment, Hit, NewRotation);
+	bPositionCorrected |= Super::ResolvePenetrationImpl(Adjustment, Hit, NewRotationQuat);
 	return bPositionCorrected;
 }

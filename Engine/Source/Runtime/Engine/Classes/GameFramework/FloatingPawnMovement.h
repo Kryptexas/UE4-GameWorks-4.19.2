@@ -23,7 +23,10 @@ class ENGINE_API UFloatingPawnMovement : public UPawnMovementComponent
 
 	//Begin UMovementComponent Interface
 	virtual float GetMaxSpeed() const override { return MaxSpeed; }
-	virtual bool ResolvePenetration(const FVector& Adjustment, const FHitResult& Hit, const FRotator& NewRotation) override;
+
+protected:
+	virtual bool ResolvePenetrationImpl(const FVector& Adjustment, const FHitResult& Hit, const FQuat& NewRotation) override;
+public:
 	//End UMovementComponent Interface
 
 	/** Maximum velocity magnitude allowed for the controlled Pawn. */

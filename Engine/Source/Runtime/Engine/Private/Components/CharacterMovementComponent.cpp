@@ -1989,10 +1989,10 @@ float UCharacterMovementComponent::GetMaxSpeed() const
 }
 
 
-bool UCharacterMovementComponent::ResolvePenetration(const FVector& Adjustment, const FHitResult& Hit, const FRotator& NewRotation)
+bool UCharacterMovementComponent::ResolvePenetrationImpl(const FVector& Adjustment, const FHitResult& Hit, const FQuat& NewRotation)
 {
 	// If movement occurs, mark that we teleported, so we don't incorrectly adjust velocity based on a potentially very different movement than our movement direction.
-	bJustTeleported |= Super::ResolvePenetration(Adjustment, Hit, NewRotation);
+	bJustTeleported |= Super::ResolvePenetrationImpl(Adjustment, Hit, NewRotation);
 	return bJustTeleported;
 }
 
