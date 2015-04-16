@@ -55,6 +55,8 @@ class BLUEPRINTGRAPH_API UK2Node_SpawnActorFromClass : public UK2Node
 	UEdGraphPin* GetSpawnTransformPin() const;
 	/** Get the spawn NoCollisionFail input pin */
 	UEdGraphPin* GetNoCollisionFailPin() const;
+	/** Get the actor owner pin */
+	UEdGraphPin* GetOwnerPin() const;
 	/** Get the result output pin */
 	UEdGraphPin* GetResultPin() const;
 
