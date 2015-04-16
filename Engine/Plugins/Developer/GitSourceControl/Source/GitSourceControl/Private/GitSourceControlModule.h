@@ -13,6 +13,7 @@ UE4GitPlugin is a simple Git Source Control Plugin for Unreal Engine
 Written and contributed by Sebastien Rombauts (sebastien.rombauts@gmail.com)
 
 ### Supported features
+- initialize a new Git local repository ('git init') to manage your UE4 Game Project.
 - display status icons to show modified/added/deleted/untracked files
 - show history of a file
 - diff against depot or between previous versions of a file
@@ -24,7 +25,6 @@ Written and contributed by Sebastien Rombauts (sebastien.rombauts@gmail.com)
 - merge blueprints to solve a merge or rebase conflict
 
 ### What *cannot* be done presently
-- initialize a new Git local repository ('git init') to manage your UE4 Game Project.
 - tags: implement ISourceControlLabel to manage git tags
 - .uproject file state si not visible in the current Editor
 - Branch is not in the current Editor workflow (but on Epic Roadmap)
@@ -32,6 +32,7 @@ Written and contributed by Sebastien Rombauts (sebastien.rombauts@gmail.com)
 - Amend a commit is not in the current Editor workflow
 - configure user name & email ('git config user.name' & git config user.email')
 - Linux is not supported by the SourceControlProvider (#define SOURCE_CONTROL_WITH_SLATE	!PLATFORM_LINUX)
+- git-annex and/or git-media
 
 ### Known issues:
 - global menu "Submit to source control" leads to many lines of Logs "is outside repository"
@@ -42,7 +43,6 @@ Written and contributed by Sebastien Rombauts (sebastien.rombauts@gmail.com)
 - displaying states of 'Engine' assets (also needs management of 'out of tree' files)
 - issue #22: A Move/Rename leaves a redirector file behind
 - issue #11: Add the "Resolve" operation introduced in Editor 4.3
-- improve the 'Init' window text, hide it if connection is already done, auto connect
 - reverting an asset does not seem to update content in Editor! Issue in Editor?
 - renaming a Blueprint in Editor leaves a tracker file, AND modify too much the asset to enable git to track its history through renaming
 - file history show Changelist as signed integer instead of hexadecimal SHA1

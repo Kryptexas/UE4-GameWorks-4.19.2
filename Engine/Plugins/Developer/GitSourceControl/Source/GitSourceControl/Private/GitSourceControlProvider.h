@@ -21,6 +21,7 @@ public:
 	/** Constructor */
 	FGitSourceControlProvider() 
 		: bGitAvailable(false)
+		, bGitRepositoryFound(false)
 	{
 	}
 
@@ -53,6 +54,12 @@ public:
 	 */
 	void CheckGitAvailability();
 
+	/** Is git binary found and working. */
+	inline bool IsGitAvailable() const
+	{
+		return bGitAvailable;
+	}
+
 	/** Get the path to the root of the Git repository: can be the GameDir itself, or any parent directory */
 	inline const FString& GetPathToRepositoryRoot() const
 	{
@@ -84,6 +91,9 @@ private:
 
 	/** Is git binary found and working. */
 	bool bGitAvailable;
+
+	/** Is git repository found. */
+	bool bGitRepositoryFound;
 
 	/** Helper function for Execute() */
 	TSharedPtr<class IGitSourceControlWorker, ESPMode::ThreadSafe> CreateWorker(const FName& InOperationName) const;

@@ -26,4 +26,10 @@ private:
 	FText GetPathToRepositoryRoot() const;
 	FText GetUserName() const;
 	FText GetUserEmail() const;
+
+	/** Delegate to initialize a new Git repository */
+	EVisibility CanInitializeGitRepository() const;
+	FReply OnClickedInitializeGitRepository();
+	void OnCheckedCreateGitIgnore(ECheckBoxState NewCheckedState);
+	bool bAutoCreateGitIgnore;
 };
