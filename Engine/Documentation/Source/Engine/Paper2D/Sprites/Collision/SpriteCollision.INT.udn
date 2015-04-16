@@ -49,7 +49,7 @@ The toolbar buttons can be used to add additional polygons or snap vertices to t
 (#2dcollision)
 ## 2D Collision
 
-There is an initial *experimental* integration of Box2D 2.3.1 and various associated changes to enable 2D physics in the 
+There is an initial **experimental** integration of Box2D 2.3.1 and various associated changes to enable 2D physics in the 
 engine. This is a totally unsupported and undocumented prototype, exercise great caution and do not use in production. 
 The current build only includes precompiled libraries of Box2D for Win32 and Win64, so 2D collision will not work on 
 other platforms. Collision detection and response is automatic when the 2D domain is selected in a sprite, but queries 
@@ -57,7 +57,7 @@ like point traces must be separately enabled in the Physics project settings (bE
 
 The integration supports collision detection and response (including Unreal collision channels/filtering), rigid body 
 simulation, and ray casts. Non-zero extent queries, sweep tests, and overlap tests are not implemented yet. Things like 
-CharacterMovementComponent and MoveComponent with bSweep=true rely on these sorts of queries and don’t work correctly yet.
+CharacterMovementComponent and MoveComponent with bSweep=true rely on these sorts of queries and don't work correctly yet.
 
 The long term integration strategy is to make it a first class citizen, where the same techniques and knowledge used in 
 3D scenes will directly apply to 2D scenes; for example, there'll only be one Overlap event, not a separate 2D and 3D 

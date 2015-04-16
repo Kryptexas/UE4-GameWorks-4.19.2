@@ -23,13 +23,9 @@ This page will show you how to add, access and modify Flipbook Components in a B
 
 ## Adding a Flipbook Component
 
-You can add a Flipbook Component to a Blueprint from the **Components** tab of a Blueprint. 
+You can add a Flipbook Component to a Blueprint from the **Components** window of a Blueprint. 
 
-1. With a Blueprint open, in the upper-right corner, click the **Components** tab. 
-
-	![](Components0.png)
-
-1. From the **Components** tab, click the **Add Component** button inside the **Components** window. 
+1. Inside a Blueprint, click the **Add Component** button inside the **Components** window and search for and add a **Paper Flipbook**. 
 
 	![](Components1.png)	
 
@@ -39,15 +35,15 @@ You can add a Flipbook Component to a Blueprint from the **Components** tab of a
 
 	You can then begin adjusting the **Properties** of the Flipbook Component inside the **Details** panel. 
 
-You can also add Flipbook Components to Blueprints by using the **Replace With Composited Blueprint** option. 
+You can also add Flipbook Components to Blueprints by using **Blueprint/Add Script** option. 
 
 1.	With a **Flipbook** placed inside your level and selected, head to the **Details** panel. 
 
-1.	Towards the bottom of the **Details** panel, select the **Replace With Composited Blueprint** option. 
+1.	Click the **Blueprint/Add Script** button. 
 
 	![](Components3.png)
 
-	This will create a new Blueprint and assign the Flipbook selected as a component of it automatically. 
+	This will create a new Blueprint (prompting you to enter a name) and assign the Flipbook selected as a component of it automatically. 
 
 ## Flipbook Component Properties
 
@@ -73,15 +69,19 @@ And finally, set the color for the Sprite to use with the **Sprite Color** optio
 
 ### Collision Properties
 
-As of this time since Flipbooks are still not quite production ready and are in the Early Access state and as such do not currently support any form of collision. You can use a **Box**, **Capsule** or **Sphere** Component in conjunction with a Flipbook to provide the associated collision results you need (in yellow below). 
+Although it is possible to apply collision directly to a Flipbook (see [](Engine\Paper2D\Flipbooks\Editor) for more information), it is recommended that a collision shape be used instead for performance reasons. For example, you can use a **Box**, **Capsule** or **Sphere** Component in conjunction with a Flipbook to provide the associated collision results you need. 
+
+For example, clicking the **Add Component** button inside your Blueprint and search for **Collision**: 
 
 ![](Collision1.png)
 
+You can now apply different shapes to use as the collision for your Flipbook rather than specifying it on the Flipbook itself. 
+
 An example of such is indicated below. 
 
-![](Collision2.png)(w:720)
+![](Collision2.png)(w:820)
 
-Above we've parented our Flipbook to a Sphere (called **Collision**), adjusted the size of the collision with **Sphere Radius**, enabled Physics with the **Simulate Physics** option and used the **Locked Axis** option to lock physics simulation to only the Y axis, then finally set its collision to **BlockAll** so that it collides with everything in the level. With this setup, we have a circular Actor that can be placed in our level that reacts to other Actors in the level and simulates physics appropriately along one axis. 
+Above we've created a simple blinking box Blueprint and added a Box Collision component to provide the collision for the box by changing the **Box Extent** values to encapsulate our box and changing the **Collision Presets** to **Block All** to provide the actual collision. 
 
 ## Working with Flipbook Components
 

@@ -20,7 +20,7 @@ After you've created a Flipbook, you can then open it for editing in the **Flipb
 
 1. **Double-click** on a Flipbook inside the **Content Browser** (or **Right-click** on a Flipbook and select **Edit**). 
 
-	![](EditFlipbook.png)(w:440)
+	![](EditFlipbook.png)
 
 1.	This will open the **Flipbook Editor** window. 
 
@@ -53,10 +53,6 @@ Each of the **Tool Bar** options are described in the table below:
 |![](Toolbar4.png)(w:60)| Toggles the display of the bounds of the Static Mesh in the viewport. |
 |![](Toolbar5.png)(w:60)| Toggles the display of the simplified collision mesh of the static mesh, if one has been assigned (**Alt+C**). |
 |![](Toolbar6.png)(w:60)| Displays the pivot location of the sprite in the viewport. |
-
-[REGION:note]
-Flipbooks do not currently support any form of collision. You can use a Capsule or Box Component in conjunction with a Flipbook to provide the associated collision shape.
-[/REGION]
 
 ### Viewport
 
@@ -108,6 +104,27 @@ The **Details** panel inside the **Flipbook Editor** is where you determine the 
 
 ![](DetailsPanel.png)
 
+
+#### Collision Source
+
+![](CollisionSource.png)
+
+While it is possible to set collision on a **Flipbook** by using the **Collision Source** dropdown to either: 
+
+* Have no collision applied to the Flipbook. 
+* Have non-animated collision only applied to the first frame of the animation. 
+* Have the collision changed each frame of the animation (very expensive in terms of performance and not recommended). 
+
+In many cases it may make more sense to attach a Collision Component (for example, a Box Component) to a socket on the Flipbook Component rather than directly generating collision from source frames, especially if you want some collision regions to overlap while others block. 
+
+Character Movement still relies on the collision capsule, in most cases you want to use a different collision channel for the Flipbook than BlockAll to prevent the capsule from getting stuck on the Flipbook (move/be blocked based on the capsule, and test for overlap or collision with projectiles based on the Flipbook). 
+
+[REGION:note]
+See the section on Collision in the [](Engine\Paper2D\Flipbooks\Components) documentation for more information. 
+[/REGION]
+
+
+
 ## Editing Flipbooks
 
 If you are working with a blank Flipbook, you can add sprites to the Flipbook in a couple of different ways. 
@@ -118,7 +135,7 @@ You can **Drag-drop** a Sprite (or Flipbook) asset onto the Timeline from the **
 
 Which will add the Sprite(s) to the Timeline as well as update the **Key Frames** section inside the **Details** panel. 
 
-![](Adding2.png)
+![](Adding2.png)(w:720)
 
 You can also click the **+** sign in the **Key Frames** section of the **Details** panel. 
 

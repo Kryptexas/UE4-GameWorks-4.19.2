@@ -1,14 +1,14 @@
 Title:Paper 2D Tile Sets / Tile Maps
 Crumbs: %ROOT%, Engine, Engine/Paper2D
 Description:Overview of how to create Tile Sets and Tile Maps for use within Paper 2D. 
-Availability:Docs
+Availability:Public
 Related: Engine\Paper2D\Sprites\Collision
 Related: Engine\Paper2D\Flipbooks
 Related: Engine/Rendering/Materials
 Related: Engine/Content/Types/Textures
 
 [REGION:warning]
-The features on this page are currently in the **experimental stage** of development. Aspects may not yet be fully supported, use at your own risk. 
+The features on this page are currently in the **experimental stage** and as such, some aspects may not yet be fully supported. 
 [/REGION]
 
 
@@ -93,7 +93,7 @@ Inside the **Tile Editor** preview window the currently selected Tile and its as
 
 ![](CurrentlySelectedTile.png)
 
-In our example, we've increased the Tile Width and Tile Height to 128. 
+In our example, we've increased the Tile Width and Tile Height to 64 to match our tile size. 
 
 [REGION:lightbox]
 [![](UpdatedTileSheet.png)(w:800)](UpdatedTileSheet.png)
@@ -115,15 +115,36 @@ In addition to setting Tile Width and Tile Height, you can use the following set
 | **Drawing Offset** | The drawing offset for tiles from this set (in pixels). |
 | **Background Color** | The background color displayed in the tile set viewer. |
 
-[REGION:note]
-There are additional settings inside the **Details** panel for per tile adjustments, however these are considered **experimental** in the current release.
-[/REGION]
+### Per Tile Settings / Applying Tile Collision
 
+Also inside the **Details** panel, you can specify per tile settings (such as applying collision to a particluar tile). 
+
+**To apply collision to a tile**: 
+
+1. Select the tile in the viewport (1) then click the type of shape you want to use for collision (2). 
+
+	![](Collision_1.png)
+
+1. The shape will be applied and can be further edited inside the **Tile Editor** window. 
+
+	![](Collision_2.png)
+
+	Note the tile number you are editing (green box above), you will need this to apply settings to this particluar tile. 
+
+1. In the **Details** panel under the **Sprite** section, find the selected tile and change to the desired **Geometry Type**. 
+
+	![](Collision_3.png)
+
+	[REGION:note]
+	For information on sprite collision types, see the [](Engine\Paper2D\Sprites\Collision) documentation. 
+	[/REGION]
+	
+This will set this tile up for collsion based on the specificed geometry type and shape used. For the collision to actually take affect in-game, when creating your **Tile Map** you will need to set the **Sprite Collision Domain** (see below for information on creating/using Tile Maps). 
 
 
 ## Creating Tile Maps
 
-Tile Maps are also created inside the **Content Browser** and edited inside the **Tile Map Editor**. 
+Tile Maps are created inside the **Content Browser** and edited inside the **Tile Map Editor**. 
 
 ### New Tile Map
 
@@ -168,8 +189,25 @@ Above in the **Toolbox** window (1), you can switch between different Tile Sets 
 
 The center window, the **Viewport** (2), is used for filling out the Tile Map layout. Using the tools from the Toolbox, you can fill in tiles on the map to create the desired effect by painting, erasing or filling the tiles that comprise your Tile Map. This is where you can "paint" how you want your map to appear in-game. 
 
-In the **Details** panel (3), you can configure how many layers your Tile Map consists of as well as adjust various settings such as the width/height of the Tile Map itself, the width/height of the Tiles that comprise the map, the scaling factor between pixels and Unreal Units, etc. 
+In the **Details** panel (3), you can configure how many layers your Tile Map consists of as well as adjust various settings such as the width/height of the Tile Map itself, the width/height of the Tiles that comprise the map, the scaling factor between pixels and Unreal Units, the type of collision to use, etc. 
 
+### Enabling Collision for your Tile Map
+
+As noted in the Tile Set section, once you've specified which tiles use collision and which do not, you will also need to set your Tile Map to use a collision type. You can do so from the **Details** panel under the **Collision** section. 
+
+![](Collision_4.png)
+
+You can set the collision thickness (which is the extrusion thickness of collision geometry when using a 3D collision domain) as well as the Collision Domain itself (which determines if the Tile Map should have collision geometry and participate in the physical world). 
+
+[REGION:warning]
+The **Use 2D Physics** option is currently experimental and may not work properly, it is suggested that the **Use 3D Physics** option be used instead. 
+[/REGION]
+
+When you play in your level, you can check which tiles have collision and which do not with the **Show Collision** console command.
+ 
+![](ShowCollision.png)
+
+Above, the upper most ground tiles that the player walks on have collision applied to them while the lower ground and water tiles do not. 
 
 ## Example Tile Map Workflow
 
@@ -213,6 +251,14 @@ Below is an example of a typical workflow for creating a Tile Map.
 
 	![](ExampleMap.png)(w:800)
 
+1.	Be sure to enable collision from the **Collision** section of the **Details** panel. 
+
+	![](Collision_4.png)
+
+	[REGION:note]
+	You must have specified in your Tile Set which tiles have collision and which do not for collision to take effect. 
+	[/REGION]
+	
 1.	Drag the Tile Map asset into your level and scale or move based on your needs. 
 
 	![](ExampleGameImage.png)(w:800)
