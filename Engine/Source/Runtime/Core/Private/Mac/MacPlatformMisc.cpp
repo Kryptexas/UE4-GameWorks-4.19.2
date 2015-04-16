@@ -399,7 +399,9 @@ void FMacPlatformMisc::PlatformTearDown()
 {
 	if (CommandletActivity)
 	{
-		[[NSProcessInfo processInfo] endActivity:CommandletActivity];
+		MainThreadCall(^{
+			[[NSProcessInfo processInfo] endActivity:CommandletActivity];
+		}, NSDefaultRunLoopMode, false);
 		CommandletActivity = nil;
 	}
 	FApplePlatformSymbolication::EnableCoreSymbolication(false);
