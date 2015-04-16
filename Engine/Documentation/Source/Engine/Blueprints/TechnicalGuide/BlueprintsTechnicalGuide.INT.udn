@@ -6,7 +6,7 @@ Description:Technical guide for programmers working with Blueprints.
 
 Blueprints are a powerful new feature introduced in Unreal Engine 4.  
 
-In short, Blueprints are a way to create new UClasses without the need for writing or compiling code.  When you create a blueprint, you can choose to extend a 'native' C++ class or another Blueprint 
+In short, Blueprints are a way to create new UClasses without the need for writing or compiling code.  When you create a Blueprint, you can choose to extend a 'native' C++ class or another Blueprint 
 class.  You can then add, arrange, and customize components, implement custom logic using a visual scripting language, respond to events and interactions, define custom variables, handle input, and 
 generally create a fully custom object type.
 
@@ -26,6 +26,7 @@ of factors, such as a fence that automatically sizes itself to fill a gap betwee
 	[PARAM:links]
 		* [](Engine/Blueprints/TechnicalGuide/Compiler "%Engine/Blueprints/TechnicalGuide/Compiler:description%")
 		* [](Engine/Blueprints/TechnicalGuide/ExtendingBlueprints "%Engine/Blueprints/TechnicalGuide/ExtendingBlueprints:description%")
+		* [](Engine/Blueprints/TechnicalGuide/Guidelines "%Engine/Blueprints/TechnicalGuide/Guidelines:description%")
 	[/PARAM]
 [/OBJECT]
 

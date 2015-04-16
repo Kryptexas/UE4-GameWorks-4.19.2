@@ -2,6 +2,7 @@ Availability:Public
 Title:Exposing Gameplay Elements to Blueprints
 Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
 Description:Technical guide for gameplay programmers exposing gameplay elements to Blueprints.
+Related: Engine/Blueprints/TechnicalGuide/Guidelines
 
 [TOC(start:2)]
 
@@ -16,6 +17,8 @@ rate of the gun to work on a curve. Rather than having to recode the fire rate o
 game, the designer can simply go into the Blueprint and change the fire rate directly, saving both the designer 
 and the programmer time. 
 
+For more details about optimizing the C++/Blueprints distribution in your project, or tips to keep in mind when
+creating an API exposed to Blueprints, see the [](Engine/Blueprints/TechnicalGuide/Guidelines).
 
 ## Making Classes Blueprintable
 
@@ -29,7 +32,7 @@ The simplest form of declaration for a Blueprintable class is similar to the fol
 	UCLASS(Blueprintable)
 	class AMyBlueprintableClass : AActor
 	{
-		GENERATED_UCLASS_BODY()
+		GENERATED_BODY()
 	}
 
 

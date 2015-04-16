@@ -1,7 +1,7 @@
 Availability:Public
 Title:Blueprint Compiler Overview
 Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
-Description:Guide for programmers extending Blueprints.
+Description:The steps of the Blueprint compilation process
 
 [TOC(start:2 end:2)]
 

@@ -200,6 +200,17 @@ Through the use of _Blueprints_, designers can prototype, implement, or modify v
 	[/OBJECT]
 	[OBJECT:TopicCompact]
 		[PARAM:image]
+		![](BestPractices_Topic.png)
+		[/PARAM]
+		[PARAM:title]
+			Blueprint Best Practices
+		[/PARAM]
+		[PARAM:path]
+		[RELATIVE:Engine\Blueprints\BestPractices]
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:TopicCompact]
+		[PARAM:image]
 			![](UsingBPComms_Topic.png)
 		[/PARAM]
 		[PARAM:title]
