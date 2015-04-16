@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2512557
+﻿INTSourceChangelist:2513017
 Availability:Public
 Title: 페이퍼 2D
 Crumbs: %ROOT%, Engine
@@ -27,7 +27,9 @@ Description:Paper 2D 는 언리얼 엔진 4 안에서만 2D 및 2D/3D 혼합 게
 		* [](Engine\Paper2D\Flipbooks"%Engine\Paper2D\Flipbooks:description%")
 			* [](Engine/Paper2D/Flipbooks/Editor "%Engine/Paper2D/Flipbooks/Editor:description%")
 			* [](Engine\Paper2D\Flipbooks\Components "%Engine\Paper2D\Flipbooks\Components:description%")
+		<!-- Not yet ready for release.
 		* [](Engine\Paper2D\TileMaps"%Engine\Paper2D\TileMaps:description%")
+		-->
 		* [](Resources/ContentExamples/Paper2D "%Resources/ContentExamples/Paper2D:description%")
 		* [페이퍼 2D 비디오 튜토리얼](https://docs.unrealengine.com/latest/INT/Videos/index.html?category=2D)
 	[/PARAM]
