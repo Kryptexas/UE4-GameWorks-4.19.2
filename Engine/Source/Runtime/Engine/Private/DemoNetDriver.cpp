@@ -366,6 +366,7 @@ bool UDemoNetDriver::InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool
 	}
 
 	GuidCache->SetIgnorePackageMismatchOverride( true );
+	GuidCache->SetShouldUseNetworkChecksum( true );
 
 	check( World != NULL );
 
@@ -741,7 +742,8 @@ static void SerializeGuidCache( TSharedPtr< class FNetGUIDCache > GuidCache, FAr
 		*CheckpointArchive << It.Key();
 		*CheckpointArchive << It.Value().OuterGUID;
 		*CheckpointArchive << PathName;
-		*CheckpointArchive << It.Value().PackageGuid;
+		*CheckpointArchive << It.Value().NetworkChecksum;
+		*CheckpointArchive << It.Value().PackageChecksum;
 
 		uint8 Flags = 0;
 		
@@ -1575,7 +1577,8 @@ void UDemoNetDriver::LoadCheckpoint()
 
 		*GotoCheckpointArchive << CacheObject.OuterGUID;
 		*GotoCheckpointArchive << PathName;
-		*GotoCheckpointArchive << CacheObject.PackageGuid;
+		*GotoCheckpointArchive << CacheObject.NetworkChecksum;
+		*GotoCheckpointArchive << CacheObject.PackageChecksum;
 
 		CacheObject.PathName = FName( *PathName );
 

@@ -243,7 +243,7 @@ class FRepLayout
 	friend class FRepState;
 
 public:
-	FRepLayout() : FirstNonCustomParent( 0 ), RoleIndex( -1 ), RemoteRoleIndex( -1 ), Owner( NULL ), NetworkChecksum( 0 ) {}
+	FRepLayout() : FirstNonCustomParent( 0 ), RoleIndex( -1 ), RemoteRoleIndex( -1 ), Owner( NULL ) {}
 
 	void OpenAcked( FRepState * RepState ) const;
 
@@ -452,6 +452,4 @@ private:
 	int32						RemoteRoleIndex;
 
 	UObject *					Owner;						// Either a UCkass or UFunction
-
-	uint32						NetworkChecksum;
 };

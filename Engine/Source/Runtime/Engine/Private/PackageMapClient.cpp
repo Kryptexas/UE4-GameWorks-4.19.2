@@ -34,6 +34,13 @@ UPackageMapClient::UPackageMapClient(const FObjectInitializer& ObjectInitializer
 {
 }
 
+static uint32 GetPackageChecksum( const UPackage* Package )
+{
+	const FGuid Guid = Package->GetGuid();
+
+	return FCrc::MemCrc32( &Guid, sizeof( FGuid ) );
+}
+
 /**
  *	This is the meat of the PackageMap class which serializes a reference to Object.
  */
@@ -312,8 +319,9 @@ struct FExportFlags
 	{
 		struct
 		{
-			uint8 bHasPath		: 1;
-			uint8 bNoLoad		: 1;
+			uint8 bHasPath				: 1;
+			uint8 bNoLoad				: 1;
+			uint8 bHasNetworkChecksum	: 1;
 		};
 
 		uint8	Value;
@@ -371,6 +379,8 @@ void UPackageMapClient::InternalWriteObject( FArchive & Ar, FNetworkGUID NetGUID
 	//   note: Default NetGUID is implied to always send path
 	FExportFlags ExportFlags;
 
+	ExportFlags.bHasNetworkChecksum = GuidCache->ShouldUseNetworkChecksum() ? 1 : 0;
+
 	if ( NetGUID.IsDefault() )
 	{
 		// Only the client sends default guids
@@ -427,20 +437,23 @@ void UPackageMapClient::InternalWriteObject( FArchive & Ar, FNetworkGUID NetGUID
 		// Serialize Name of object
 		Ar << ObjectPathName;
 
-		FNetGuidCacheObject* CacheObject = GuidCache->ObjectLookup.Find( NetGUID );
+		uint32 NetworkChecksum = 0;
+		uint32 PackageChecksum = 0;
+
+		if ( ExportFlags.bHasNetworkChecksum )
+		{
+			NetworkChecksum = GuidCache->GetNetworkChecksum( Object );
+			Ar << NetworkChecksum;
+		}
 
 		if ( bIsPackage )
 		{
-			FGuid PackageGuid = CastChecked< const UPackage >( Object )->GetGuid();
-			Ar << PackageGuid;
-
-			UE_LOG( LogNetPackageMap, VeryVerbose, TEXT( "InternalWriteObject: Package: %s, GUID: %s" ), *ObjectPathName, *PackageGuid.ToString() );
-
-			if ( CacheObject != NULL )
-			{
-				CacheObject->PackageGuid = PackageGuid;
-			}
+			PackageChecksum = GetPackageChecksum( CastChecked< const UPackage >( Object ) );
+			Ar << PackageChecksum;
+			UE_LOG( LogNetPackageMap, VeryVerbose, TEXT( "InternalWriteObject: Package: %s, GUID: %u" ), *ObjectPathName, PackageChecksum );
 		}
+
+		FNetGuidCacheObject* CacheObject = GuidCache->ObjectLookup.Find( NetGUID );
 
 		if ( CacheObject != NULL )
 		{
@@ -448,6 +461,8 @@ void UPackageMapClient::InternalWriteObject( FArchive & Ar, FNetworkGUID NetGUID
 			CacheObject->OuterGUID			= OuterNetGUID;
 			CacheObject->bNoLoad			= ExportFlags.bNoLoad;
 			CacheObject->bIgnoreWhenMissing = ExportFlags.bNoLoad;
+			CacheObject->NetworkChecksum	= NetworkChecksum;
+			CacheObject->PackageChecksum	= PackageChecksum;
 		}
 
 		if ( GuidCache->IsExportingNetGUIDBunch )
@@ -471,7 +486,7 @@ static void SanityCheckExport(
 	const UObject *			Object, 
 	const FNetworkGUID &	NetGUID, 
 	const FString &			ExpectedPathName, 
-	const FGuid &			ExpectedPackageGuid, 
+	const uint32			ExpectedPackageChecksum,
 	const UObject *			ExpectedOuter, 
 	const FNetworkGUID &	ExpectedOuterGUID,
 	const FExportFlags &	ExportFlags )
@@ -489,9 +504,9 @@ static void SanityCheckExport(
 			UE_LOG( LogNetPackageMap, Warning, TEXT( "SanityCheckExport: CacheObject->OuterGUID != ExpectedOuterGUID. NetGUID: %s, Object: %s, Expected: %s" ), *NetGUID.ToString(), *Object->GetPathName(), *ExpectedPathName );
 		}
 
-		if ( CacheObject->PackageGuid != ExpectedPackageGuid )
+		if ( CacheObject->PackageChecksum != ExpectedPackageChecksum )
 		{
-			UE_LOG( LogNetPackageMap, Warning, TEXT( "SanityCheckExport: CacheObject->PackageGuid != ExpectedPackageGuid. NetGUID: %s, Object: %s, Expected: %s" ), *NetGUID.ToString(), *Object->GetPathName(), *ExpectedPathName );
+			UE_LOG( LogNetPackageMap, Warning, TEXT( "SanityCheckExport: CacheObject->PackageChecksum != ExpectedPackageChecksum. NetGUID: %s, Object: %s, Expected: %s" ), *NetGUID.ToString(), *Object->GetPathName(), *ExpectedPathName );
 		}
 	}
 	else
@@ -587,16 +602,22 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 		FNetworkGUID OuterGUID = InternalLoadObject( Ar, ObjOuter, InternalLoadObjectRecursionCount + 1 );
 
 		FString PathName;
-		FGuid	PackageGuid;
+		uint32	NetworkChecksum = 0;
+		uint32	PackageChecksum = 0;
 
 		Ar << PathName;
+
+		if ( ExportFlags.bHasNetworkChecksum )
+		{
+			Ar << NetworkChecksum;
+		}
 
 		const bool bIsPackage = NetGUID.IsStatic() && !OuterGUID.IsValid();
 
 		if ( bIsPackage )
 		{
-			Ar << PackageGuid;
-			UE_LOG( LogNetPackageMap, VeryVerbose, TEXT( "InternalLoadObject: Package: %s, GUID: %s" ), *PathName, *PackageGuid.ToString() );
+			Ar << PackageChecksum;
+			UE_LOG( LogNetPackageMap, VeryVerbose, TEXT( "InternalLoadObject: Package: %s, GUID: %u" ), *PathName, PackageChecksum );
 		}
 
 		if ( Ar.IsError() )
@@ -612,7 +633,7 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 		if ( Object != NULL )
 		{
 			// If we already have the object, just do some sanity checking and return
-			SanityCheckExport( GuidCache.Get(), Object, NetGUID, PathName, PackageGuid, ObjOuter, OuterGUID, ExportFlags );
+			SanityCheckExport( GuidCache.Get(), Object, NetGUID, PathName, PackageChecksum, ObjOuter, OuterGUID, ExportFlags );
 			return NetGUID;
 		}
 
@@ -649,9 +670,9 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 					return NetGUID;
 				}
 
-				if ( Package->GetGuid() != PackageGuid && !GuidCache->ShouldIgnorePackageMismatch() )
+				if ( !GuidCache->ShouldIgnorePackageMismatch() && GetPackageChecksum( Package ) != PackageChecksum )
 				{
-					UE_LOG( LogNetPackageMap, Error, TEXT( "UPackageMapClient::InternalLoadObject: Default object package guid mismatch! PathName: %s, ObjOuter: %s, GUID1: %s, GUID2: %s " ), *PathName, ObjOuter != NULL ? *ObjOuter->GetPathName() : TEXT( "NULL" ), *Package->GetGuid().ToString(), *PackageGuid.ToString() );
+					UE_LOG( LogNetPackageMap, Error, TEXT( "UPackageMapClient::InternalLoadObject: Default object package guid mismatch! PathName: %s, ObjOuter: %s, GUID1: %u, GUID2: %u " ), *PathName, ObjOuter != NULL ? *ObjOuter->GetPathName() : TEXT( "NULL" ), GetPackageChecksum( Package ), PackageChecksum );
 					Object = NULL;
 					return NetGUID;
 				}
@@ -680,7 +701,7 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 		const bool bIgnoreWhenMissing = ExportFlags.bNoLoad;
 
 		// Register this path and outer guid combo with the net guid
-		GuidCache->RegisterNetGUIDFromPath_Client( NetGUID, PathName, OuterGUID, PackageGuid, ExportFlags.bNoLoad, bIgnoreWhenMissing );
+		GuidCache->RegisterNetGUIDFromPath_Client( NetGUID, PathName, OuterGUID, NetworkChecksum, PackageChecksum, ExportFlags.bNoLoad, bIgnoreWhenMissing );
 
 		// Try again now that we've registered the path
 		Object = GuidCache->GetObjectFromNetGUID( NetGUID, GuidCache->IsExportingNetGUIDBunch );
@@ -1263,7 +1284,7 @@ UObject* UPackageMapClient::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, c
 //	FNetGUIDCache
 //----------------------------------------------------------------------------------------
 
-FNetGUIDCache::FNetGUIDCache( UNetDriver * InDriver ) : IsExportingNetGUIDBunch( false ), Driver( InDriver ), bIgnorePackageMismatchOverride( false )
+FNetGUIDCache::FNetGUIDCache( UNetDriver * InDriver ) : IsExportingNetGUIDBunch( false ), Driver( InDriver ), bUseNetworkChecksum( false ), bIgnorePackageMismatchOverride( false )
 {
 	UniqueNetIDs[0] = UniqueNetIDs[1] = 0;
 }
@@ -1325,6 +1346,8 @@ void FNetGUIDCache::CleanReferences()
 		check( It.Key().IsValid() );
 		checkf( ObjectLookup.FindRef( It.Value() ).Object == It.Key(), TEXT("Failed to validate NetGUIDLookup map in UPackageMap. GUID '%s' was not in the ObjectLookup map with with object '%s'."), *It.Value().ToString(), *It.Key().Get()->GetPathName());
 	}
+
+	ClassChecksumMap.Empty();
 
 	FArchiveCountMemGUID CountBytesAr;
 
@@ -1571,7 +1594,7 @@ void FNetGUIDCache::RegisterNetGUID_Client( const FNetworkGUID& NetGUID, const U
  *	Associates a net guid with a path, that can be loaded or found later
  *  This function is only called on the client
  */
-void FNetGUIDCache::RegisterNetGUIDFromPath_Client( const FNetworkGUID& NetGUID, const FString& PathName, const FNetworkGUID& OuterGUID, const FGuid& PackageGuid, const bool bNoLoad, const bool bIgnoreWhenMissing )
+void FNetGUIDCache::RegisterNetGUIDFromPath_Client( const FNetworkGUID& NetGUID, const FString& PathName, const FNetworkGUID& OuterGUID, const uint32 NetworkChecksum, const uint32 PackageChecksum, const bool bNoLoad, const bool bIgnoreWhenMissing )
 {
 	check( !IsNetGUIDAuthority() );		// Server never calls this locally
 	check( !NetGUID.IsDefault() );
@@ -1611,7 +1634,8 @@ void FNetGUIDCache::RegisterNetGUIDFromPath_Client( const FNetworkGUID& NetGUID,
 
 	CacheObject.PathName			= FName( *PathName );
 	CacheObject.OuterGUID			= OuterGUID;
-	CacheObject.PackageGuid			= PackageGuid;
+	CacheObject.NetworkChecksum		= NetworkChecksum;
+	CacheObject.PackageChecksum		= PackageChecksum;
 	CacheObject.bNoLoad				= bNoLoad;
 	CacheObject.bIgnoreWhenMissing	= bIgnoreWhenMissing;
 
@@ -1652,10 +1676,10 @@ void FNetGUIDCache::AsyncPackageCallback(const FName& PackageName, UPackage * Pa
 		CacheObject->bIsBroken = true;
 		UE_LOG( LogNetPackageMap, Error, TEXT( "AsyncPackageCallback: Package FAILED to load. Path: %s, NetGUID: %s" ), *PackageName.ToString(), *NetGUID.ToString() );
 	}
-	else if ( Package->GetGuid() != CacheObject->PackageGuid && !ShouldIgnorePackageMismatch() )
+	else if ( !ShouldIgnorePackageMismatch() && GetPackageChecksum( Package ) != CacheObject->PackageChecksum )
 	{
 		CacheObject->bIsBroken = true;
-		UE_LOG( LogNetPackageMap, Error, TEXT( "AsyncPackageCallback: Package GUID mismatch! Path: %s, NetGUID: %s, GUID1: %s, GUID2: %s" ), *PackageName.ToString(), *NetGUID.ToString(), *Package->GetGuid().ToString(), *CacheObject->PackageGuid.ToString() );
+		UE_LOG( LogNetPackageMap, Error, TEXT( "AsyncPackageCallback: Package GUID mismatch! Path: %s, NetGUID: %s, GUID1: %u, GUID2: %u" ), *PackageName.ToString(), *NetGUID.ToString(), GetPackageChecksum( Package ), CacheObject->PackageChecksum );
 	}
 }
 
@@ -1851,11 +1875,24 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 			}
 		}
 
-		if ( Package->GetGuid() != CacheObjectPtr->PackageGuid && !ShouldIgnorePackageMismatch() )
+		if ( !ShouldIgnorePackageMismatch() && GetPackageChecksum( Package ) != CacheObjectPtr->PackageChecksum )
 		{
 			// If the package guid doesn't match, don't allow it to load
 			CacheObjectPtr->bIsBroken = true;
-			UE_LOG( LogNetPackageMap, Error, TEXT( "GetObjectFromNetGUID: Package GUID mismatch! Path: %s, NetGUID: %s, GUID1: %s, GUID2: %s" ), *CacheObjectPtr->PathName.ToString(), *NetGUID.ToString(), *Package->GetGuid().ToString(), *CacheObjectPtr->PackageGuid.ToString() );
+			UE_LOG( LogNetPackageMap, Error, TEXT( "GetObjectFromNetGUID: Package GUID mismatch! Path: %s, NetGUID: %s, GUID1: %u, GUID2: %u" ), *CacheObjectPtr->PathName.ToString(), *NetGUID.ToString(), GetPackageChecksum( Package ), CacheObjectPtr->PackageChecksum );
+			return NULL;
+		}
+	}
+
+	if ( CacheObjectPtr->NetworkChecksum != 0 )
+	{
+		const uint32 NetworkChecksum = GetNetworkChecksum( Object );
+
+		if ( CacheObjectPtr->NetworkChecksum != NetworkChecksum )
+		{
+			UE_LOG( LogNetPackageMap, Warning, TEXT( "GetObjectFromNetGUID: Network checksum mismatch. FullNetGUIDPath: %s, %u, %u" ), *FullNetGUIDPath( NetGUID ), CacheObjectPtr->NetworkChecksum, NetworkChecksum );
+
+			CacheObjectPtr->bIsBroken = true;
 			return NULL;
 		}
 	}
@@ -2042,10 +2079,113 @@ void FNetGUIDCache::GenerateFullNetGUIDPath_r( const FNetworkGUID& NetGUID, FStr
 	}
 }
 
+static uint32 GetNetFieldChecksum( const UField* NetField, const uint32 Checksum )
+{
+	uint32 LocalChecksum = FCrc::StrCrc32( *NetField->GetName(), Checksum );
+
+	LocalChecksum = FCrc::StrCrc32( *NetField->GetClass()->GetName(), LocalChecksum );
+
+	const UFunction* Function = Cast< UFunction >( NetField );
+
+	if ( Function != NULL )
+	{
+		// Build checksum based on function parameter list
+		for ( TFieldIterator< UProperty > It( Function ); It && ( It->PropertyFlags & ( CPF_Parm | CPF_ReturnParm ) ) == CPF_Parm; ++It )
+		{
+			LocalChecksum = FCrc::StrCrc32( *It->GetName(), LocalChecksum );
+		}
+
+		return LocalChecksum;
+	}
+
+	const UArrayProperty* ArrayProperty = Cast< UArrayProperty >( NetField );
+
+	if ( ArrayProperty != NULL )
+	{
+		return GetNetFieldChecksum( ArrayProperty->Inner, Checksum );
+	}
+
+	const UStructProperty* StructProperty = Cast< UStructProperty >( NetField );
+
+	if ( StructProperty != NULL )
+	{
+		LocalChecksum = FCrc::StrCrc32( *StructProperty->Struct->GetName(), LocalChecksum );
+
+		for ( TFieldIterator< UProperty > It( StructProperty->Struct ); It; ++It )
+		{
+			LocalChecksum = GetNetFieldChecksum( *It, LocalChecksum );
+		}
+
+		return LocalChecksum;
+	}
+
+	return FCrc::StrCrc32( *NetField->GetName(), Checksum );
+}
+
+uint32 FNetGUIDCache::GetClassNetworkChecksum( const UClass* Class )
+{
+	uint32 Checksum = ClassChecksumMap.FindRef( Class );
+
+	if ( Checksum != 0 )
+	{
+		return Checksum;
+	}
+
+	if ( Class->GetSuperClass() != NULL )
+	{
+		Checksum = GetClassNetworkChecksum( Class->GetSuperClass() );
+	}
+
+	Checksum = FCrc::StrCrc32( *Class->GetName(), Checksum );
+
+	for( int32 i = 0; i < Class->NetFields.Num(); i++ )
+	{
+		Checksum = GetNetFieldChecksum( Class->NetFields[i], Checksum );
+	}
+
+	// Can't be 0
+	if ( Checksum == 0 )
+	{
+		Checksum = 1;
+	}
+
+	ClassChecksumMap.Add( Class, Checksum );
+
+	return Checksum;
+}
+
+uint32 FNetGUIDCache::GetNetworkChecksum( const UObject* Obj )
+{
+	if ( Obj == NULL )
+	{
+		return 0;
+	}
+
+	// If Obj is already a class, we can use that directly
+	const UClass* Class = Cast< UClass >( Obj );
+
+	if ( Class != NULL )
+	{
+		return GetClassNetworkChecksum( Class );
+	}
+
+	return GetClassNetworkChecksum( Obj->GetClass() );
+}
+
 bool FNetGUIDCache::ShouldIgnorePackageMismatch() const
 {
 	return bIgnorePackageMismatchOverride || CVarIgnorePackageMismatch.GetValueOnGameThread();
 };
+
+void FNetGUIDCache::SetShouldUseNetworkChecksum( const bool bInUseNetworkChecksum )
+{
+	bUseNetworkChecksum = bInUseNetworkChecksum;
+}
+
+bool FNetGUIDCache::ShouldUseNetworkChecksum() const
+{
+	return bUseNetworkChecksum;
+}
 
 //------------------------------------------------------
 // Debug command to see how many times we've exported each NetGUID

@@ -2180,67 +2180,6 @@ uint16 FRepLayout::AddParentProperty( UProperty * Property, int32 ArrayIndex )
 
 extern bool IsCustomDeltaProperty( UProperty * Property );
 
-static uint32 GetNetFieldChecksum( UField* NetField, const uint32 Checksum )
-{
-	uint32 LocalChecksum = FCrc::StrCrc32( *NetField->GetName(), Checksum );
-
-	LocalChecksum = FCrc::StrCrc32( *NetField->GetClass()->GetName(), LocalChecksum );
-
-	//UE_LOG( LogNetTraffic, Error, TEXT( "GetNetFieldChecksum: %s, %s" ), *NetField->GetName(), *NetField->GetClass()->GetName() );
-
-	UFunction* Function = Cast< UFunction >( NetField );
-	
-	if ( Function != NULL )
-	{
-		// Build checksum based on function parameter list
-		for ( TFieldIterator< UProperty > It( Function ); It && ( It->PropertyFlags & ( CPF_Parm | CPF_ReturnParm ) ) == CPF_Parm; ++It )
-		{
-			LocalChecksum = FCrc::StrCrc32( *It->GetName(), LocalChecksum );
-		}
-
-		return LocalChecksum;
-	}
-
-	UArrayProperty* ArrayProperty = Cast< UArrayProperty >( NetField );
-
-	if ( ArrayProperty != NULL )
-	{
-		return GetNetFieldChecksum( ArrayProperty->Inner, Checksum );
-	}
-
-	UStructProperty* StructProperty = Cast< UStructProperty >( NetField );
-
-	if ( StructProperty != NULL )
-	{
-		LocalChecksum = FCrc::StrCrc32( *StructProperty->Struct->GetName(), LocalChecksum );
-
-		for ( TFieldIterator< UProperty > It( StructProperty->Struct ); It; ++It )
-		{
-			LocalChecksum = GetNetFieldChecksum( *It, LocalChecksum );
-		}
-
-		return LocalChecksum;
-	}
-
-	return FCrc::StrCrc32( *NetField->GetName(), Checksum );
-}
-
-static uint32 GetClassNetworkChecksum( UClass* Class )
-{
-	uint32 Checksum = Class->GetSuperClass() != NULL ? GetClassNetworkChecksum( Class->GetSuperClass() ) : 0;
-
-	Checksum = FCrc::StrCrc32( *Class->GetName(), Checksum );
-
-	for( int32 i = 0; i < Class->NetFields.Num(); i++ )
-	{
-		Checksum = GetNetFieldChecksum( Class->NetFields[i], Checksum );
-	}
-
-	//UE_LOG( LogNetTraffic, Error, TEXT( "GetClassNetworkChecksum: %s, %u" ), *Class->GetName(), Checksum );
-
-	return Checksum;
-}
-
 void FRepLayout::InitFromObjectClass( UClass * InObjectClass )
 {
 	RoleIndex				= -1;
@@ -2370,24 +2309,7 @@ void FRepLayout::InitFromObjectClass( UClass * InObjectClass )
 		}
 	}
 
-	// Initialize NetworkChecksum
-	NetworkChecksum = GetClassNetworkChecksum( InObjectClass );
-
 	Owner = InObjectClass;
-}
-
-void FRepLayout::WriteNetworkChecksum( FOutBunch& Bunch )
-{
-	Bunch << NetworkChecksum;
-}
-
-bool FRepLayout::ReadNetworkChecksum( FInBunch& Bunch )
-{
-	uint32 SerializedChecksum = 0;
-
-	Bunch << SerializedChecksum;
-
-	return SerializedChecksum == NetworkChecksum;
 }
 
 void FRepLayout::InitFromFunction( UFunction * InFunction )

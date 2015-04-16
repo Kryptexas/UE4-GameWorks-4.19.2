@@ -390,16 +390,6 @@ void FObjectReplicator::ReceivedNak( int32 NakPacketId )
 	}
 }
 
-void FObjectReplicator::WriteNetworkChecksum( FOutBunch& Bunch )
-{
-	RepLayout->WriteNetworkChecksum( Bunch );
-}
-
-bool FObjectReplicator::ReadNetworkChecksum( FInBunch& Bunch )
-{
-	return RepLayout->ReadNetworkChecksum( Bunch );
-}
-
 bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags& RepFlags, bool & bOutHasUnmapped )
 {
 	UObject* Object = GetObject();

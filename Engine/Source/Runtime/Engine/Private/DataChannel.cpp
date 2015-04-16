@@ -1855,6 +1855,11 @@ void UActorChannel::ReceivedBunch( FInBunch & Bunch )
 
 void UActorChannel::ProcessBunch( FInBunch & Bunch )
 {
+	if ( Broken )
+	{
+		return;
+	}
+
 	const bool bIsServer = Connection->Driver->IsServer();
 
 	FReplicationFlags RepFlags;
@@ -1881,7 +1886,10 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 			check( !bSpawnedNewActor );
 			UE_LOG(LogNet, Warning, TEXT("UActorChannel::ProcessBunch: SerializeNewActor failed to find/spawn actor. Actor: %s, Channel: %i"), NewChannelActor ? *NewChannelActor->GetFullName() : TEXT( "NULL" ), ChIndex);
 			Broken = 1;
-			FNetControlMessage<NMT_ActorChannelFailure>::Send(Connection, ChIndex);
+			if ( !Connection->InternalAck )
+			{
+				FNetControlMessage<NMT_ActorChannelFailure>::Send(Connection, ChIndex);
+			}
 			return;
 		}
 
@@ -1940,22 +1948,6 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 		}
 
 		TSharedRef< FObjectReplicator > & Replicator = FindOrCreateReplicator( RepObj );
-
-		if ( Connection->InternalAck && ( Bunch.bOpen || RepObj != Actor  ) )
-		{
-			// Receive network checksum
-			if ( !Replicator->ReadNetworkChecksum( Bunch ) )
-			{
-				UE_LOG( LogNet, Warning, TEXT( "UActorChannel::ProcessBunch: ReadNetworkChecksum failed. RepObj: %s, Channel: %i"), RepObj ? *RepObj->GetFullName() : TEXT( "NULL" ), ChIndex );
-
-				DestroyActorAndComponents();
-				Actor = NULL;
-
-				// Mark as broken so we stop trying to process bunches on this channel
-				Broken = 1;
-				break;
-			}
-		}
 
 		bool bHasUnmapped = false;
 
@@ -2309,11 +2301,6 @@ void UActorChannel::BeginContentBlock( UObject* Obj, FOutBunch &Bunch )
 
 	if ( IsActor )
 	{
-		if ( Connection->InternalAck && OpenPacketId.First == INDEX_NONE )
-		{
-			// Write network checksum
-			ActorReplicator->WriteNetworkChecksum( Bunch );
-		}
 		NETWORK_PROFILER(GNetworkProfiler.TrackBeginContentBlock(Obj, Bunch.GetNumBits() - NumStartingBits));
 		return;
 	}
@@ -2335,12 +2322,6 @@ void UActorChannel::BeginContentBlock( UObject* Obj, FOutBunch &Bunch )
 			UClass *ObjClass = Obj->GetClass();
 			Bunch << ObjClass;
 		}
-	}
-
-	if ( Connection->InternalAck )
-	{
-		// Write network checksum
-		FindOrCreateReplicator( Obj )->WriteNetworkChecksum( Bunch );
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -2477,8 +2458,13 @@ UObject* UActorChannel::ReadContentBlockHeader(FInBunch & Bunch, bool& bObjectDe
 		// If this is a stably named sub-object, we shouldn't need to create it
 		if ( SubObj == NULL )
 		{
-			UE_LOG( LogNetTraffic, Error, TEXT( "ReadContentBlockHeader: Stably named sub-object not found. Actor: %s" ), *Actor->GetName() );
-			Bunch.SetError();
+			// (ignore though if this is for replays)
+			if ( !Connection->InternalAck )
+			{
+				UE_LOG( LogNetTraffic, Error, TEXT( "ReadContentBlockHeader: Stably named sub-object not found. Actor: %s" ), *Actor->GetName() );
+				Bunch.SetError();
+			}
+
 			return NULL;
 		}
 
@@ -2516,8 +2502,13 @@ UObject* UActorChannel::ReadContentBlockHeader(FInBunch & Bunch, bool& bObjectDe
 		// Valid NetGUID but no class was resolved - this is an error
 		if ( SubObj == NULL )
 		{
-			UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReadContentBlockHeader: Unable to read sub-object class (SubObj == NULL). Actor: %s" ), *Actor->GetName() );
-			Bunch.SetError();
+			// (unless we're using replays, which could be backwards compatibility kicking in)
+			if ( !Connection->InternalAck )
+			{
+				UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReadContentBlockHeader: Unable to read sub-object class (SubObj == NULL). Actor: %s" ), *Actor->GetName() );
+				Bunch.SetError();
+			}
+
 			return NULL;
 		}
 	}
