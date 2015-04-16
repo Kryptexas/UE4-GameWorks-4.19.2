@@ -27,7 +27,7 @@ private:
 	const static int32 NumBaseInputs = 1;
 
 	static int32 GetMaxInputPinsNum();
-	static FString GetNameForPin(int32 PinIndex, bool In);
+	static FText GetNameForPin(int32 PinIndex, bool In);
 
 	FEdGraphPinType GetInType() const;
 	FEdGraphPinType GetOutType() const;
