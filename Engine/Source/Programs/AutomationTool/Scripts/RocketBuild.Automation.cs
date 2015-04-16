@@ -738,7 +738,7 @@ namespace Rocket
 		public override void DoBuild(GUBP bp)
 		{
 			BuildProducts = new List<string>();
-			if(!bp.ParseParam("NoDDC") && bp.ParseParam("WithDDC"))
+			if(!bp.ParseParam("NoDDC"))
 			{
 				string EditorExe = CommandUtils.GetEditorCommandletExe(CommandUtils.CmdEnv.LocalRoot, HostPlatform);
 
