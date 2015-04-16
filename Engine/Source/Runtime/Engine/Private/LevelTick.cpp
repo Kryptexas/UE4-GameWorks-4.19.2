@@ -729,6 +729,22 @@ private:
 	}
 };
 
+void UWorld::UpdateActorComponentEndOfFrameUpdateState(UActorComponent* Component) const
+{
+	if (ComponentsThatNeedEndOfFrameUpdate.Contains(Component))
+	{
+		FMarkComponentEndOfFrameUpdateState::Set(Component, EComponentMarkedForEndOfFrameUpdateState::Marked);
+	}
+	else if (ComponentsThatNeedEndOfFrameUpdate_OnGameThread.Contains(Component))
+	{
+		FMarkComponentEndOfFrameUpdateState::Set(Component, EComponentMarkedForEndOfFrameUpdateState::MarkedForGameThread);
+	}
+	else
+	{
+		FMarkComponentEndOfFrameUpdateState::Set(Component, EComponentMarkedForEndOfFrameUpdateState::Unmarked);
+	}
+}
+
 void UWorld::MarkActorComponentForNeededEndOfFrameUpdate(UActorComponent* Component, bool bForceGameThread)
 {
 	check(!bPostTickComponentUpdate); // can't call this while we are doing the updates

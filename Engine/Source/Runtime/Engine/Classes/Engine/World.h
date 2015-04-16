@@ -2574,6 +2574,13 @@ public:
 	void MarkActorComponentForNeededEndOfFrameUpdate(class UActorComponent* Component, bool bForceGameThread);
 
 	/**
+	 * Updates an ActorComponent's cached state of whether it has been marked for end of frame update based on the current
+	 * state of the World's NeedsEndOfFrameUpdate arrays
+	 * @param Component - Component to update the cached state of
+	 */
+	void UpdateActorComponentEndOfFrameUpdateState(class UActorComponent* Component) const;
+
+	/**
 	 * Send all render updates to the rendering thread.
 	 * @param OutCompletion - all async updates are added to this array, they typically need to be completed before GC or anything else
 	 */

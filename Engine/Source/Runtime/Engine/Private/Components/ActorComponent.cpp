@@ -520,6 +520,8 @@ void UActorComponent::PostEditUndo()
 		{
 			Owner->AddOwnedComponent(this);
 		}
+
+		GetWorld()->UpdateActorComponentEndOfFrameUpdateState(this);
 	}
 	Super::PostEditUndo();
 }
