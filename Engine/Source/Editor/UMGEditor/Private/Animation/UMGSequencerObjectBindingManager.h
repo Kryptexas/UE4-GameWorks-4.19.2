@@ -41,8 +41,9 @@ private:
 private:
 	/** Mapping of preview objects to sequencer guids */
 	TMap<TWeakObjectPtr<UObject>, FGuid> PreviewObjectToGuidMap;
+	TMap<TWeakObjectPtr<UObject>, FGuid> SlotContentPreviewObjectToGuidMap;
 	TMultiMap<FGuid, TWeakObjectPtr<UObject>> GuidToPreviewObjectsMap;
-
+	TMultiMap<FGuid, TWeakObjectPtr<UObject>> GuidToSlotContentPreviewObjectsMap;
 
 	UWidgetAnimation* WidgetAnimation;
 

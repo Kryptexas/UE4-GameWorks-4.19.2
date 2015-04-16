@@ -530,13 +530,16 @@ FGuid FSequencer::GetHandleToObject( UObject* Object )
 
 	FGuid ObjectGuid = ObjectBindingManager->FindGuidForObject( *FocusedMovieScene, *Object );
 
-	// Make sure that the possessable is still valid, if it's not remove the binding so new one 
-	// can be created.  This can happen due to undo.
-	FMovieScenePossessable* Possessable = FocusedMovieScene->FindPossessable(ObjectGuid);
-	if ( Possessable == nullptr )
+	if (ObjectGuid.IsValid())
 	{
-		ObjectBindingManager->UnbindPossessableObjects(ObjectGuid);
-		ObjectGuid.Invalidate();
+		// Make sure that the possessable is still valid, if it's not remove the binding so new one 
+		// can be created.  This can happen due to undo.
+		FMovieScenePossessable* Possessable = FocusedMovieScene->FindPossessable(ObjectGuid);
+		if (Possessable == nullptr )
+		{
+			ObjectBindingManager->UnbindPossessableObjects(ObjectGuid);
+			ObjectGuid.Invalidate();
+		}
 	}
 	
 	bool bPossessableAdded = false;
