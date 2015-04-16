@@ -2852,6 +2852,7 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 					&& (Pin->LinkedTo.Num() == 0))
 					{
 						UK2Node_MakeArray* MakeArrayNode = SpawnIntermediateNode<UK2Node_MakeArray>(MacroInstanceNode, SourceGraph);
+						MakeArrayNode->NumInputs = 0; // the generated array should be empty
 						MakeArrayNode->AllocateDefaultPins();
 						UEdGraphPin* MakeArrayOut = MakeArrayNode->GetOutputPin();
 						check(MakeArrayOut);
