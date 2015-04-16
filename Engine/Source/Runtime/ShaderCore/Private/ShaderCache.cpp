@@ -128,7 +128,8 @@ FArchive& operator<<( FArchive& Ar, FShaderCache& Info )
 }
 
 FShaderCache::FShaderCache()
-: bCurrentDepthStencilTarget(false)
+: StreamingKey(0)
+, bCurrentDepthStencilTarget(false)
 , CurrentNumRenderTargets(0)
 , CurrentShaderState(nullptr)
 , bIsPreDraw(false)
@@ -305,6 +306,39 @@ FComputeShaderRHIRef FShaderCache::GetComputeShader(EShaderPlatform Platform, TA
 		PrebindShader(Key);
 	}
 	return Shader;
+}
+
+void FShaderCache::InternalLogStreamingKey(uint32 StreamKey, bool const bActive)
+{
+	// Defer to the render thread to avoid race conditions
+	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+	FShaderCacheInternalLogLevel,
+	FShaderCache*,Cache,Cache,
+	uint32,StreamKey,StreamKey,
+	bool,bActive,bActive,
+	{
+		if(bActive)
+		{
+			Cache->ActiveStreamingKeys.Add(StreamKey);
+		}
+		else
+		{
+			Cache->ActiveStreamingKeys.Remove(StreamKey);
+		}
+		
+		uint32 NewStreamingKey = 0;
+		for(uint32 Key : Cache->ActiveStreamingKeys)
+		{
+			NewStreamingKey ^= Key;
+		}
+		Cache->StreamingKey = NewStreamingKey;
+		
+		if(!Cache->ShadersToDraw.Contains(NewStreamingKey))
+		{
+			FShaderPlatformCache& PlatformCache = Cache->Caches.FindOrAdd(GMaxRHIShaderPlatform);
+			Cache->ShadersToDraw.Add(NewStreamingKey, PlatformCache.StreamingDrawStates.FindRef(NewStreamingKey));
+		}
+	});
 }
 
 void FShaderCache::InternalLogShader(EShaderPlatform Platform, EShaderFrequency Frequency, FSHAHash Hash, TArray<uint8> const& Code)
@@ -742,20 +776,23 @@ void FShaderCache::InternalLogDraw(uint8 IndexType)
 			Id = PlatformCache.DrawStates.Add(CurrentDrawKey);
 		}
 		
-		TSet<int32>& ShaderDrawSet = PlatformCache.ShaderDrawStates.FindOrAdd(BoundShaderState);
+		TSet<int32>& ShaderDrawSet = PlatformCache.StreamingDrawStates.FindOrAdd(StreamingKey).ShaderDrawStates.FindOrAdd(BoundShaderState);
 		if( !ShaderDrawSet.Contains(Id.AsInteger()) )
 		{
 			ShaderDrawSet.Add(Id.AsInteger());
 		}
 		
 		// No need to predraw this shader draw key - we've already done it
-		ShadersToDraw.FindRef(BoundShaderState).Remove(Id.AsInteger());
+		for(auto StreamingMap : ShadersToDraw)
+		{
+			StreamingMap.Value.ShaderDrawStates.FindRef(BoundShaderState).Remove(Id.AsInteger());
+		}
 	}
 }
 
 void FShaderCache::InternalPreDrawShaders(FRHICommandList& RHICmdList)
 {
-	if ( bUseShaderPredraw && ShadersToDraw.Num() > 0 )
+	if ( bUseShaderPredraw && ShadersToDraw.FindRef(StreamingKey).ShaderDrawStates.Num() > 0 )
 	{
 		bIsPreDraw = true;
 		
@@ -789,7 +826,8 @@ void FShaderCache::InternalPreDrawShaders(FRHICommandList& RHICmdList)
 		RHICmdList.SetViewport(0, 0, FLT_MIN, 3, 3, FLT_MAX);
 		
 		int64 TimeForPredrawing = 0;
-		for ( auto It = ShadersToDraw.CreateIterator(); (PredrawBatchTime == -1 || TimeForPredrawing < PredrawBatchTime) && It; ++It )
+		TMap<FShaderCacheBoundState, TSet<int32>>& ShaderDrawStates = ShadersToDraw.FindOrAdd(StreamingKey).ShaderDrawStates;
+		for ( auto It = ShaderDrawStates.CreateIterator(); (PredrawBatchTime == -1 || TimeForPredrawing < PredrawBatchTime) && It; ++It )
 		{
 			uint32 Start = FPlatformTime::Cycles();
 			
@@ -818,7 +856,7 @@ void FShaderCache::InternalPreDrawShaders(FRHICommandList& RHICmdList)
 
 		RHICmdList.SetViewport(Viewport[0], Viewport[1], DepthRange[0], Viewport[2], Viewport[3], DepthRange[1]);
 		
-		if ( ShadersToDraw.Num() == 0 )
+		if ( ShadersToDraw.FindOrAdd(StreamingKey).ShaderDrawStates.Num() == 0 )
 		{
 			PredrawRTs.Empty();
 			PredrawBindings.Empty();
@@ -871,13 +909,21 @@ void FShaderCache::PrebindShader(FShaderCacheKey const& Key)
 							BoundShaderStates.Add(State, BoundState);
 							if (bUseShaderPredraw)
 							{
-								ShadersToDraw.Add(State, PlatformCache.ShaderDrawStates.FindOrAdd(State));
+								TSet<int32>& StreamCache = PlatformCache.StreamingDrawStates.FindOrAdd(StreamingKey).ShaderDrawStates.FindOrAdd(State);
+								if(!ShadersToDraw.FindOrAdd(StreamingKey).ShaderDrawStates.Contains(State))
+								{
+									ShadersToDraw.FindOrAdd(StreamingKey).ShaderDrawStates.Add(State, StreamCache);
+								}
 							}
 						}
 					}
 					else if (bUseShaderPredraw)
 					{
-						ShadersToDraw.Add(State, PlatformCache.ShaderDrawStates.FindOrAdd(State));
+						TSet<int32>& StreamCache = PlatformCache.StreamingDrawStates.FindOrAdd(StreamingKey).ShaderDrawStates.FindOrAdd(State);
+						if(!ShadersToDraw.FindOrAdd(StreamingKey).ShaderDrawStates.Contains(State))
+						{
+							ShadersToDraw.FindOrAdd(StreamingKey).ShaderDrawStates.Add(State, StreamCache);
+						}
 					}
 				}
 			}
