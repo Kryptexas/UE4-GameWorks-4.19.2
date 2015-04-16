@@ -50,7 +50,7 @@ When a player is up close to a Static Mesh you have placed in your level, you wa
 
 ## Set Up
 
-This How To does require that you have some sort of mesh saved as a **.FBX** that you can import into UE4 already.  It does not have to be a complicated mesh.  In this example, we will be using just a simple polygon sphere made in Maya.
+This How To does require that you already have some sort of mesh saved as a **.FBX** that you can import into UE4. For this example, we will be using a simple polygon sphere made in Maya.
 
 Once you have exported your mesh, launch UE4. If you have a project that you would like to work with, feel free to use it for this How To.  Otherwise, go to the **New Project** tab and select the Blueprint First Person Template making sure that **Starter Content** is enabled.  If it is not, you may not have some of the assets that we will be using later and it may become hard to follow along.
 
@@ -84,7 +84,7 @@ In this example we are only importing 1 LOD which will give us a total of 2, but
 
 ![](ImportLODLevel2.png)
 
-Now that the mesh for LOD1 has been imported, we are going to mess around with a few of the values to demonstrate the power of LODs.  We are going to take a look at one more option inside the **LOD Settings** section of the **Details** panel, **Auto Compute LOD Distances**.  What this does is tell when to switch from one LOD to another by equally dividing the percent of screen size by the amount of LODs.  For example, in this case, we have two LODs, so when the mesh takes up 50 percent or more of the screen, LOD0 will appear.  When the mesh takes up less than 50 percent of the screen, LOD1 will appear.  If there are three LODs, than LOD0 will appear when the mesh takes up 66.7 percent of the screen or more, LOD1 will appear between that value and 33.3 percent, and LOD2 will appear if the mesh takes up less than 33.3 percent of the screen.  This may not be very helpful in this case however as the mesh we are using will more often than not take up less than 50 percent of the screen.  We can manually change these values, however, by unchecking **Auto Compute LOD Distances** (in green below) and manually adjust the **Screen Size** value for the individual LODs (in yellow below.)
+Now that the mesh for LOD1 has been imported, we are going adjust a few of the values to demonstrate the power of LODs.  The first option inside the **LOD Settings** section of the Details panel we are going to look at is **Auto Compute LOD Distances**.  What this does is tell when to switch from one LOD to another by equally dividing the percent of screen size by the amount of LODs.  For example, in this case, we have two LODs, so when the mesh takes up 50 percent or more of the screen, LOD0 will appear.  When the mesh takes up less than 50 percent of the screen, LOD1 will appear.  If there are three LODs, than LOD0 will appear when the mesh takes up 66.7 percent of the screen or more, LOD1 will appear between that value and 33.3 percent, and LOD2 will appear if the mesh takes up less than 33.3 percent of the screen.  This may not be very helpful in this case however as the mesh we are using will more often than not take up less than 50 percent of the screen.  We can manually change these values, however, by unchecking **Auto Compute LOD Distances** (in green below) and manually adjust the **Screen Size** value for the individual LODs (in yellow below.)
 
 ![](AutoComputeLODDist.png)
 
@@ -99,6 +99,6 @@ After you have done this, save your mesh and go back to the **Level Editor**.  Y
 ![](LODExampleFar.png)
 ![](LODExampleNear.png)
 
-Note that as we moved farther away, only the cube in the foreground took up more than 1 percent of the screen, so it was still at LOD0, or the cube.  However, the meshes in the back became smaller as we moved away and thus took less than 1 percent, and switched to LOD1 (or the golden spheres in this example.)  Also note that this scales with screen size, if you detach the Viewport and scale it, the percentage of what the mesh covers will scale with the size of the Viewport, and thus change which LOD it uses.
+Note that as we moved farther away, only the cube in the foreground took up more than 1 percent of the screen, so it was still at LOD0, or the cube.  However, the meshes in the back became smaller as we moved away and thus took less than 1 percent, and switched to LOD1 (or the golden spheres in this example.)  Also note that LODs scale with screen size so if you detach the Viewport and resize it, the percentage of what the mesh covers will scale with the size of the Viewport and, thus, change LODs accordingly.
 
-Obviously changing a cube to a sphere is not the most practical use of LODs, but this gives you an illustration of how to use them.  Now you are ready to apply LODs to the meshes in your level so that they look good up close but are optimized for performance from far away.
+Obviously changing a cube to a sphere is not the most practical use of LODs, but this example illustrates how LODs function.  Now you are ready to apply LODs to the meshes in your level so that they look good up close but are optimized for performance when further away.
