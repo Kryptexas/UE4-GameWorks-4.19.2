@@ -194,10 +194,6 @@ private:
 	UPROPERTY(config)
 	TArray<FString>	GameplayCueNotifyPaths;
 
-	/** Fully load all gameplay cues from the object library */
-	UPROPERTY(config)
-	bool	GameplayCueNotifyFullyLoad;
-
 	/** Set to true if you want clients to try to predict gameplay effects done to targets. If false it will only predict self effects */
 	UPROPERTY(config)
 	bool	PredictTargetGameplayEffects;

@@ -44,29 +44,6 @@
  *	
  */
 
-
-USTRUCT()
-struct FGameplayCueNotifyData
-{
-	GENERATED_USTRUCT_BODY()
-
-	FGameplayCueNotifyData()
-	: LoadedGameplayCueClass(nullptr)
-	, ParentDataIdx( INDEX_NONE )
-	{
-	}
-
-	UPROPERTY(VisibleDefaultsOnly, Category=GameplayCue, meta=(AllowedClasses="GameplayCueNotify"))
-	FStringAssetReference	GameplayCueNotifyObj;
-
-	UPROPERTY()
-	UClass*					LoadedGameplayCueClass;
-
-	FGameplayTag			GameplayCueTag;
-
-	int32 ParentDataIdx;
-};
-
 /** Type of payload to pass along with this cue */
 UENUM()
 enum class EGameplayCuePayloadType : uint8
@@ -163,18 +140,18 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	/** Force any instanced GameplayCueNotifies to stop */
 	virtual void EndGameplayCuesFor(AActor* TargetActor);
 
+	/** Returns the cached instance cue. Creates it if it doesn't exist */
+	virtual AGameplayCueNotify_Actor* GetInstancedCueActor(AActor* TargetActor, UClass* CueClass);
+
 	// -------------------------------------------------------------
 	//  Loading GameplayCueNotifies from ObjectLibraries
 	// -------------------------------------------------------------
 
 	/** Loading soft refs to all GameplayCueNotifies */
-	void LoadObjectLibraryFromPaths(const TArray<FString>& Paths, bool bFullyLoad);
+	void LoadObjectLibraryFromPaths(const TArray<FString>& Paths);
 
-	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)
-	TArray<FGameplayCueNotifyData>	GameplayCueData;
-
-	/** Maps GameplayCue Tag to index into above GameplayCues array. */
-	TMap<FGameplayTag, int32>	GameplayCueDataMap;
+	UPROPERTY(transient)
+	UGameplayCueSet* GlobalCueSet;
 	
 	UPROPERTY(transient)
 	UObjectLibrary* GameplayCueNotifyActorObjectLibrary;
@@ -192,14 +169,14 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 
 	FStreamableManager	StreamableManager;
 
-	// Fixme: we can combine the AActor* and the int32 into a single struct with a decent hash and avoid double map lookups
-	TMap<TWeakObjectPtr<AActor>, TMap<int32, TWeakObjectPtr<AGameplayCueNotify_Actor>>>		NotifyMapActor;
-
-	static FGameplayTag	BaseGameplayCueTag();
+	// Fixme: we can combine the AActor* and the FGameplayTag into a single struct with a decent hash and avoid double map lookups
+	TMap<TWeakObjectPtr<AActor>, TMap<TWeakObjectPtr<UClass>, TWeakObjectPtr<AGameplayCueNotify_Actor>>>		NotifyMapActor;
 
 	void PrintGameplayCueNotifyMap();
 
 #if WITH_EDITOR
+	bool IsAssetInLoadedPaths(UObject *Object) const;
+
 	/** Handles updating an object library when a new asset is created */
 	void HandleAssetAdded(UObject *Object);
 
@@ -213,8 +190,6 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 
 protected:
 
-	virtual void HandleGameplayCueNotify_Internal(AActor* TargetActor, int32 DataIdx, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
-
 #if WITH_EDITOR
 	//This handles the case where GameplayCueNotifications have changed between sessions, which is possible in editor.
 	void ReloadObjectLibrary(UWorld* World, const UWorld::InitializationValues IVS);
@@ -222,15 +197,9 @@ protected:
 
 	void LoadObjectLibrary_Internal();
 
-	void AddGameplayCueData_Internal(FGameplayTag  GameplayCueTag, FStringAssetReference StringRef);
-
-	void AddAssetDataList_Internal(const TArray<FAssetData>& AssetDataList, FName TagPropertyName);
-
-	void BuildAccelerationMap_Internal();
+	void BuildCuesToAddToGlobalSet(const TArray<FAssetData>& AssetDataList, FName TagPropertyName, bool bAsyncLoadAfterAdd, TArray<struct FGameplayCueReferencePair>& OutCuesToAdd);
 
 	TArray<FString>	LoadedPaths;
-
-	bool bFullyLoad;
 
 	/** List of gameplay cue executes that haven't been processed yet */
 	UPROPERTY()

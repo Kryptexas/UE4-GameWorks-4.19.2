@@ -4,6 +4,7 @@
 #include "AbilitySystemComponent.h"
 #include "GameplayCueInterface.h"
 #include "GameplayTagsModule.h"
+#include "GameplayCueSet.h"
 
 UGameplayCueInterface::UGameplayCueInterface(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
@@ -76,6 +77,20 @@ void IGameplayCueInterface::HandleGameplayCue(AActor *Self, FGameplayTag Gamepla
 				bShouldContinue = bForwardToParent;
 				bFoundHandler = true;
 				Func = Func->GetSuperFunction();
+			}
+		}
+	}
+
+	if (bShouldContinue)
+	{
+		TArray<UGameplayCueSet*> Sets;
+		GetGameplayCueSets(Sets);
+		for (UGameplayCueSet* Set : Sets)
+		{
+			bShouldContinue = Set->HandleGameplayCue(Self, GameplayCueTag, EventType, Parameters);
+			if (!bShouldContinue)
+			{
+				break;
 			}
 		}
 	}

@@ -28,6 +28,8 @@ UGameplayCueManager::UGameplayCueManager(const FObjectInitializer& PCIP)
 	bAccelerationMapOutdated = true;
 	RegisteredEditorCallbacks = false;
 #endif
+
+	GlobalCueSet = NewNamedObject<UGameplayCueSet>(this, TEXT("GlobalCueSet"));
 }
 
 
@@ -59,14 +61,9 @@ void UGameplayCueManager::HandleGameplayCue(AActor* TargetActor, FGameplayTag Ga
 		DrawDebugString(TargetActor->GetWorld(), FVector(0.f, 0.f, 100.f), DebugStr, TargetActor, DebugColor, DisplayGameplayCueDuration);
 	}
 
-	// GameplayCueTags could have been removed from the dictionary but not content. When the content is resaved the old tag will be cleaned up, but it could still come through here
-	// at runtime. Since we only populate the map with dictionary gameplaycue tags, we may not find it here.
-	int32* Ptr=GameplayCueDataMap.Find(GameplayCueTag);
-	if (Ptr)
-	{
-		int32 DataIdx = *Ptr;
-		HandleGameplayCueNotify_Internal(TargetActor, DataIdx, EventType, Parameters);	
-	}
+	// Give the global set a chance
+	check(GlobalCueSet);
+	GlobalCueSet->HandleGameplayCue(TargetActor, GameplayCueTag, EventType, Parameters);
 
 	// Use the interface even if it's not in the map
 	IGameplayCueInterface* GameplayCueInterface = Cast<IGameplayCueInterface>(TargetActor);
@@ -76,105 +73,14 @@ void UGameplayCueManager::HandleGameplayCue(AActor* TargetActor, FGameplayTag Ga
 	}
 }
 
-void UGameplayCueManager::HandleGameplayCueNotify_Internal(AActor* TargetActor, int32 DataIdx, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters)
-{	
-	if (DataIdx != INDEX_NONE)
-	{
-		check(GameplayCueData.IsValidIndex(DataIdx));
-
-		FGameplayCueNotifyData& CueData = GameplayCueData[DataIdx];
-
-		// If object is not loaded yet
-		if (CueData.LoadedGameplayCueClass == nullptr)
-		{
-			// Ignore removed events if this wasn't already loaded (only call Removed if we handled OnActive/WhileActive)
-			if (EventType == EGameplayCueEvent::Removed)
-			{
-				return;
-			}
-
-			// See if the object is loaded but just not hooked up here
-			CueData.LoadedGameplayCueClass = FindObject<UClass>(nullptr, *CueData.GameplayCueNotifyObj.ToString());
-			if (CueData.LoadedGameplayCueClass == nullptr)
-			{
-				// Not loaded: start async loading and return
-				StreamableManager.SimpleAsyncLoad(CueData.GameplayCueNotifyObj);
-
-				ABILITY_LOG(Warning, TEXT("GameplayCueNotify %s was not loaded when GameplayCue was invoked. Starting async loading."), *CueData.GameplayCueNotifyObj.ToString());
-				return;
-			}
-		}
-
-		// Handle the Notify if we found something
-		if (UGameplayCueNotify_Static* NonInstancedCue = Cast<UGameplayCueNotify_Static>(CueData.LoadedGameplayCueClass->ClassDefaultObject))
-		{
-			if (NonInstancedCue->HandlesEvent(EventType))
-			{
-				NonInstancedCue->HandleGameplayCue(TargetActor, EventType, Parameters);
-				if (!NonInstancedCue->IsOverride)
-				{
-					HandleGameplayCueNotify_Internal(TargetActor, CueData.ParentDataIdx, EventType, Parameters);
-				}
-			}
-			else
-			{
-				//Didn't even handle it, so IsOverride should not apply.
-				HandleGameplayCueNotify_Internal(TargetActor, CueData.ParentDataIdx, EventType, Parameters);
-			}
-		}
-		else if (AGameplayCueNotify_Actor* InstancedCue = Cast<AGameplayCueNotify_Actor>(CueData.LoadedGameplayCueClass->ClassDefaultObject))
-		{
-			if (InstancedCue->HandlesEvent(EventType))
-			{
-				AGameplayCueNotify_Actor* SpawnedInstancedCue = nullptr;
-				if (auto InnerMap = NotifyMapActor.Find(TargetActor))
-				{
-					if (auto WeakPtrPtr = InnerMap->Find(DataIdx))
-					{
-						SpawnedInstancedCue = WeakPtrPtr->Get();
-						// If the cue is scheduled to be destroyed, don't reuse it, create a new one instead
-						if (SpawnedInstancedCue && SpawnedInstancedCue->GetLifeSpan() > 0.f)
-						{
-							SpawnedInstancedCue = nullptr;
-						}
-					}
-				}
-
-				//Get our instance. We should probably have a flag or something to determine if we want to reuse or stack instances. That would mean changing our map to have a list of active instances.
-				if (SpawnedInstancedCue == nullptr)
-				{
-					// We don't have an instance for this, and we need one, so make one
-					//SpawnedInstancedCue = static_cast<AGameplayCueNotify_Actor*>(StaticDuplicateObject(InstancedCue, this, TEXT("None"), ~RF_RootSet));
-					FActorSpawnParameters SpawnParams;
-					SpawnParams.Owner = TargetActor;
-					SpawnedInstancedCue = TargetActor->GetWorld()->SpawnActor<AGameplayCueNotify_Actor>(InstancedCue->GetClass(), TargetActor->GetActorLocation(), TargetActor->GetActorRotation(), SpawnParams);
-					auto& InnerMap = NotifyMapActor.FindOrAdd(TargetActor);
-					InnerMap.Add(DataIdx) = SpawnedInstancedCue;
-				}
-				check(SpawnedInstancedCue);
-				SpawnedInstancedCue->HandleGameplayCue(TargetActor, EventType, Parameters);
-				if (!SpawnedInstancedCue->IsOverride)
-				{
-					HandleGameplayCueNotify_Internal(TargetActor, CueData.ParentDataIdx, EventType, Parameters);
-				}
-			}
-			else
-			{
-				//Didn't even handle it, so IsOverride should not apply.
-				HandleGameplayCueNotify_Internal(TargetActor, CueData.ParentDataIdx, EventType, Parameters);
-			}
-		}
-	}
-}
-
 void UGameplayCueManager::EndGameplayCuesFor(AActor* TargetActor)
 {
-	TMap<int32, TWeakObjectPtr<AGameplayCueNotify_Actor>> FoundMapActor;
+	TMap<TWeakObjectPtr<UClass>, TWeakObjectPtr<AGameplayCueNotify_Actor>> FoundMapActor;
 	if (NotifyMapActor.RemoveAndCopyValue(TargetActor, FoundMapActor))
 	{
 		for (auto It = FoundMapActor.CreateConstIterator(); It; ++It)
 		{
-			AGameplayCueNotify_Actor* InstancedCue =  It.Value().Get();
+			AGameplayCueNotify_Actor* InstancedCue = It.Value().Get();
 			if (InstancedCue)
 			{
 				InstancedCue->OnOwnerDestroyed();
@@ -183,9 +89,34 @@ void UGameplayCueManager::EndGameplayCuesFor(AActor* TargetActor)
 	}
 }
 
+AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* TargetActor, UClass* CueClass)
+{
+	if (auto InnerMap = NotifyMapActor.Find(TargetActor))
+	{
+		if (auto WeakPtrPtr = InnerMap->Find(CueClass))
+		{
+			return WeakPtrPtr->Get();
+		}
+	}
+
+	// We don't have an instance for this, and we need one, so make one
+	AGameplayCueNotify_Actor* SpawnedCue = nullptr;
+	if (ensure(TargetActor) && ensure(CueClass))
+	{
+		SpawnedCue = TargetActor->GetWorld()->SpawnActor<AGameplayCueNotify_Actor>(CueClass, TargetActor->GetActorLocation(), TargetActor->GetActorRotation());
+		if (ensure(SpawnedCue))
+		{
+			auto& InnerMap = NotifyMapActor.Add(TargetActor);
+			InnerMap.Add(CueClass) = SpawnedCue;
+		}
+	}
+
+	return SpawnedCue;
+}
+
 // ------------------------------------------------------------------------
 
-void UGameplayCueManager::LoadObjectLibraryFromPaths(const TArray<FString>& InPaths, bool InFullyLoad)
+void UGameplayCueManager::LoadObjectLibraryFromPaths(const TArray<FString>& InPaths)
 {
 	if (!GameplayCueNotifyActorObjectLibrary)
 	{
@@ -197,7 +128,6 @@ void UGameplayCueManager::LoadObjectLibraryFromPaths(const TArray<FString>& InPa
 	}
 
 	LoadedPaths = InPaths;
-	bFullyLoad = InFullyLoad;
 
 	LoadObjectLibrary_Internal();
 #if WITH_EDITOR
@@ -238,7 +168,15 @@ void UGameplayCueManager::LoadObjectLibrary_Internal()
 	GameplayCueNotifyActorObjectLibrary->LoadBlueprintAssetDataFromPaths(LoadedPaths);
 	GameplayCueNotifyStaticObjectLibrary->LoadBlueprintAssetDataFromPaths(LoadedPaths);		//No separate cycle counter for this.
 
-	if (bFullyLoad)
+	// ---------------------------------------------------------
+	// Determine loading scheme.
+	// Sync at startup in commandlets like cook.
+	// Async at startup in all other cases
+	// ---------------------------------------------------------
+
+	const bool bSyncFullyLoad = IsRunningCommandlet();
+	const bool bAsyncLoadAtStartup = !bSyncFullyLoad;
+	if (bSyncFullyLoad)
 	{
 #if STATS
 		FString PerfMessage = FString::Printf(TEXT("Fully Loaded GameplayCueNotify object library"));
@@ -258,16 +196,18 @@ void UGameplayCueManager::LoadObjectLibrary_Internal()
 	TArray<FAssetData> StaticAssetDatas;
 	GameplayCueNotifyStaticObjectLibrary->GetAssetDataList(StaticAssetDatas);
 
-	GameplayCueData.Empty();
-	GameplayCueDataMap.Empty();
+	check(GlobalCueSet);
+	GlobalCueSet->Empty();
 
-	AddAssetDataList_Internal(ActorAssetDatas, GET_MEMBER_NAME_CHECKED(AGameplayCueNotify_Actor, GameplayCueName));
-	AddAssetDataList_Internal(StaticAssetDatas, GET_MEMBER_NAME_CHECKED(UGameplayCueNotify_Static, GameplayCueName));
+	TArray<FGameplayCueReferencePair> CuesToAdd;
+	BuildCuesToAddToGlobalSet(ActorAssetDatas, GET_MEMBER_NAME_CHECKED(AGameplayCueNotify_Actor, GameplayCueName), bAsyncLoadAtStartup, CuesToAdd);
+	BuildCuesToAddToGlobalSet(StaticAssetDatas, GET_MEMBER_NAME_CHECKED(UGameplayCueNotify_Static, GameplayCueName), bAsyncLoadAtStartup, CuesToAdd);
 
-	BuildAccelerationMap_Internal();
+	check(GlobalCueSet);
+	GlobalCueSet->AddCues(CuesToAdd);
 }
 
-void UGameplayCueManager::AddAssetDataList_Internal(const TArray<FAssetData>& AssetDataList, FName TagPropertyName)
+void UGameplayCueManager::BuildCuesToAddToGlobalSet(const TArray<FAssetData>& AssetDataList, FName TagPropertyName, bool bAsyncLoadAfterAdd, TArray<FGameplayCueReferencePair>& OutCuesToAdd)
 {
 	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
 
@@ -291,7 +231,13 @@ void UGameplayCueManager::AddAssetDataList_Internal(const TArray<FAssetData>& As
 				// Add a new NotifyData entry to our flat list for this one
 				FStringAssetReference StringRef;
 				StringRef.AssetLongPathname = *GeneratedClassTag;
-				AddGameplayCueData_Internal(GameplayCueTag, StringRef);				
+
+				OutCuesToAdd.Add(FGameplayCueReferencePair(GameplayCueTag, StringRef));
+
+				if (bAsyncLoadAfterAdd)
+				{
+					StreamableManager.SimpleAsyncLoad(StringRef);
+				}
 			}
 			else
 			{
@@ -299,80 +245,6 @@ void UGameplayCueManager::AddAssetDataList_Internal(const TArray<FAssetData>& As
 			}
 		}
 	}
-}
-
-void UGameplayCueManager::AddGameplayCueData_Internal(FGameplayTag  GameplayCueTag, FStringAssetReference StringRef)
-{
-	// Check for duplicates: we may want to remove this eventually.
-	for (FGameplayCueNotifyData Data : GameplayCueData)
-	{
-		if (Data.GameplayCueTag == GameplayCueTag)
-		{
-			ABILITY_LOG(Warning, TEXT("AddGameplayCueData_Internal called for [%s,%s] when it already existed [%s,%s]. Skipping."), *GameplayCueTag.ToString(), *StringRef.AssetLongPathname, *Data.GameplayCueTag.ToString(), *Data.GameplayCueNotifyObj.AssetLongPathname);
-			return;
-		}
-	}
-
-	FGameplayCueNotifyData NewData;
-	NewData.GameplayCueNotifyObj = StringRef;
-	NewData.GameplayCueTag = GameplayCueTag;
-
-	UObject* FoundObject = FindObject<UObject>(nullptr, *NewData.GameplayCueNotifyObj.ToString());
-
-	GameplayCueData.Add(NewData);
-}
-
-void UGameplayCueManager::BuildAccelerationMap_Internal()
-{
-	// ---------------------------------------------------------
-	//	Build up the rest of the acceleration map: every GameplayCue tag should have an entry in the map that points to the index into GameplayCueData to use when it is invoked.
-	//	(or to -1 if no GameplayCueNotify is associated with that tag)
-	// 
-	// ---------------------------------------------------------
-
-	GameplayCueDataMap.Empty();
-	GameplayCueDataMap.Add(BaseGameplayCueTag()) = INDEX_NONE;
-
-	for (int32 idx = 0; idx < GameplayCueData.Num(); ++idx)
-	{
-		GameplayCueDataMap.FindOrAdd(GameplayCueData[idx].GameplayCueTag) = idx;
-	}
-
-	FGameplayTagContainer AllGameplayCueTags = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagChildren(BaseGameplayCueTag());
-
-
-	// Create entries for children.
-	// E.g., if "a.b" notify exists but "a.b.c" does not, point "a.b.c" entry to "a.b"'s notify.
-	for (FGameplayTag ThisGameplayCueTag : AllGameplayCueTags)
-	{
-		if (GameplayCueDataMap.Contains(ThisGameplayCueTag))
-		{
-			continue;
-		}
-
-		FGameplayTag Parent = ThisGameplayCueTag.RequestDirectParent();
-
-		GameplayCueDataMap.Add(ThisGameplayCueTag) = GameplayCueDataMap.FindChecked(Parent);
-	}
-
-
-	// Build up parentIdx on each item in GameplayCUeData
-	for (FGameplayCueNotifyData& Data : GameplayCueData)
-	{
-		FGameplayTag Parent = Data.GameplayCueTag.RequestDirectParent();
-		while(Parent != BaseGameplayCueTag())
-		{
-			int32* idxPtr = GameplayCueDataMap.Find(Parent);
-			if (idxPtr)
-			{
-				Data.ParentDataIdx = *idxPtr;
-				break;
-			}
-			Parent = Parent.RequestDirectParent();
-		}
-	}
-
-	// PrintGameplayCueNotifyMap();
 }
 
 int32 UGameplayCueManager::FinishLoadingGameplayCueNotifies()
@@ -388,6 +260,19 @@ void UGameplayCueManager::BeginLoadingGameplayCueNotify(FGameplayTag GameplayCue
 
 #if WITH_EDITOR
 
+bool UGameplayCueManager::IsAssetInLoadedPaths(UObject *Object) const
+{
+	for (const FString& Path : LoadedPaths)
+	{
+		if (Object->GetPathName().StartsWith(Path))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void UGameplayCueManager::HandleAssetAdded(UObject *Object)
 {
 	UBlueprint* Blueprint = Cast<UBlueprint>(Object);
@@ -396,18 +281,26 @@ void UGameplayCueManager::HandleAssetAdded(UObject *Object)
 		UGameplayCueNotify_Static* StaticCDO = Cast<UGameplayCueNotify_Static>(Blueprint->GeneratedClass->ClassDefaultObject);
 		AGameplayCueNotify_Actor* ActorCDO = Cast<AGameplayCueNotify_Actor>(Blueprint->GeneratedClass->ClassDefaultObject);
 		
-		FStringAssetReference StringRef;
-		StringRef.AssetLongPathname = Blueprint->GeneratedClass->GetPathName();
-		
-		if (StaticCDO)
+		if (StaticCDO || ActorCDO)
 		{
-			AddGameplayCueData_Internal(StaticCDO->GameplayCueTag, StringRef);
-			BuildAccelerationMap_Internal();
-		}
-		else if (ActorCDO)
-		{
-			AddGameplayCueData_Internal(ActorCDO->GameplayCueTag, StringRef);
-			BuildAccelerationMap_Internal();
+			if (IsAssetInLoadedPaths(Object))
+			{
+				FStringAssetReference StringRef;
+				StringRef.AssetLongPathname = Blueprint->GeneratedClass->GetPathName();
+
+				TArray<FGameplayCueReferencePair> CuesToAdd;
+				if (StaticCDO)
+				{
+					CuesToAdd.Add(FGameplayCueReferencePair(StaticCDO->GameplayCueTag, StringRef));
+				}
+				else if (ActorCDO)
+				{
+					CuesToAdd.Add(FGameplayCueReferencePair(ActorCDO->GameplayCueTag, StringRef));
+				}
+
+				check(GlobalCueSet);
+				GlobalCueSet->AddCues(CuesToAdd);
+			}
 		}
 	}
 }
@@ -430,15 +323,10 @@ void UGameplayCueManager::HandleAssetDeleted(UObject *Object)
 
 	if (StringRefToRemove.IsValid())
 	{
-		for (int32 idx = 0; idx < GameplayCueData.Num(); ++idx)
-		{
-			if (GameplayCueData[idx].GameplayCueNotifyObj == StringRefToRemove)
-			{
-				GameplayCueData.RemoveAt(idx);
-				BuildAccelerationMap_Internal();
-				break;
-			}
-		}
+		TArray<FStringAssetReference> StringRefs;
+		StringRefs.Add(StringRefToRemove);
+		check(GlobalCueSet);
+		GlobalCueSet->RemoveCuesByStringRefs(StringRefs);
 	}
 }
 
@@ -446,26 +334,8 @@ void UGameplayCueManager::HandleAssetDeleted(UObject *Object)
 
 void UGameplayCueManager::PrintGameplayCueNotifyMap()
 {
-	FGameplayTagContainer AllGameplayCueTags = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagChildren(BaseGameplayCueTag());
-
-	for (FGameplayTag ThisGameplayCueTag : AllGameplayCueTags)
-	{
-		int32 idx = GameplayCueDataMap.FindChecked(ThisGameplayCueTag);
-		if (idx != INDEX_NONE)
-		{
-			ABILITY_LOG(Warning, TEXT("   %s -> %d"), *ThisGameplayCueTag.ToString(), idx);
-		}
-		else
-		{
-			ABILITY_LOG(Warning, TEXT("   %s -> unmapped"), *ThisGameplayCueTag.ToString());
-		}
-	}
-}
-
-FGameplayTag UGameplayCueManager::BaseGameplayCueTag()
-{
-	static FGameplayTag  BaseGameplayCueTag = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTag(TEXT("GameplayCue"), false);
-	return BaseGameplayCueTag;
+	check(GlobalCueSet);
+	GlobalCueSet->PrintCues();
 }
 
 static void	PrintGameplayCueNotifyMapConsoleCommandFunc(UWorld* InWorld)

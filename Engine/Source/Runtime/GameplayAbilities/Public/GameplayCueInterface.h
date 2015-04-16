@@ -22,6 +22,9 @@ class GAMEPLAYABILITIES_API IGameplayCueInterface
 
 	virtual void HandleGameplayCues(AActor *Self, const FGameplayTagContainer& GameplayCueTags, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
 
+	/** Return the cue sets used by this object. This is optional and it is possible to leave this list empty. */
+	virtual void GetGameplayCueSets(TArray<class UGameplayCueSet*>& OutSets) const {}
+
 	/** Default native handler, called if no tag matches found */
 	virtual void GameplayCueDefaultHandler(EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
 
