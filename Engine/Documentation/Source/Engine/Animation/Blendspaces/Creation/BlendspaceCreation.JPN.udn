@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2181887
-Availability:Public
+﻿Availability:Public
 Title:ブレンド スペースの作成
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Blendspaces
 Description:アニメーション ブループリント アセットの AnimGraph に使用するブレンド スペースの他入力アニメーション ブレンディング アセットの新規作成ガイド
@@ -25,7 +24,7 @@ Description:アニメーション ブループリント アセットの AnimGrap
 [/VAR]
 
 
-_ブレンド_ スペースは通常のアセットで、他のアセット同様コンテンツ ブラウザで作成しなければいけません。　
+_ブレンド_ スペースは通常のアセットで、他のアセット同様コンテンツ ブラウザで作成しなければいけません。
 
 **新規 _ブレンド スペース_ を作成する**
 
@@ -37,7 +36,7 @@ _ブレンド_ スペースは通常のアセットで、他のアセット同�
 
 	![](SkeletonList.png)
 
-1. 新しい _ブレンド スペース_ アセットが **コンテンツ ブラウザ** の指定場所に表示されます。
+1. 新しい _Blend Space_ アセットが **コンテンツ ブラウザ** の指定場所に表示されます。
 
 	![Create Blueprint - Asset Created](bs_create_asset.png)
 
@@ -46,6 +45,6 @@ _ブレンド_ スペースは通常のアセットで、他のアセット同�
 	[REGION:imagetable]
 	| ![](AssetBrowserBlendList.png)(h:400) | ![](ContextMenuBlendList.png)(h:400) |
 	| :---: | :---: |
-	| **アセット ブラウザ** | **コンテクスト メニュー** |
+	| **アセット ブラウザ** | **コンテキスト メニュー** |
 	[/REGION]
 
