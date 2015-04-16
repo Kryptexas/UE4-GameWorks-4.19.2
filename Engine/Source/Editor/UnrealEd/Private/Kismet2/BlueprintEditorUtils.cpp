@@ -6018,12 +6018,15 @@ UK2Node_Timeline* FBlueprintEditorUtils::FindNodeForTimeline(UBlueprint* Bluepri
 	return NULL; // no node found
 }
 
-bool FBlueprintEditorUtils::RenameTimeline(UBlueprint* Blueprint, const FName& OldName, const FName& NewName)
+bool FBlueprintEditorUtils::RenameTimeline(UBlueprint* Blueprint, const FName& OldNameRef, const FName& NewName)
 {
 	check(Blueprint);
 
 	bool bRenamed = false;
 
+	// make a copy, in case we alter the value of what is referenced by 
+	// OldNameRef through the course of this function
+	FName OldName = OldNameRef;
 
 	TSharedPtr<INameValidatorInterface> NameValidator = MakeShareable(new FKismetNameValidator(Blueprint));
 	const FString NewTemplateName = UTimelineTemplate::TimelineVariableNameToTemplateName(NewName);
