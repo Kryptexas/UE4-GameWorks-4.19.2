@@ -154,6 +154,94 @@ public class MacPlatform : Platform
 		PrintRunTime();
 	}
 
+	public override void ProcessArchivedProject(ProjectParams Params, DeploymentContext SC)
+	{
+		string ExeName = SC.StageExecutables[0];
+		string BundlePath = CombinePaths(SC.ArchiveDirectory, SC.ShortProjectName + ".app");
+
+		if (SC.bIsCombiningMultiplePlatforms)
+		{
+			// when combining multiple platforms, don't merge the content into the .app, use the one in the Binaries directory
+			BundlePath = CombinePaths(SC.ArchiveDirectory, SC.ShortProjectName, "Binaries", "Mac", ExeName + ".app");
+			if (!Directory.Exists(BundlePath))
+			{
+				// if the .app wasn't there, just skip out (we don't require executables when combining)
+				return;
+			}
+		}
+
+		string TargetPath = CombinePaths(BundlePath, "Contents", "UE4");
+		if (!SC.bIsCombiningMultiplePlatforms)
+		{
+			if (!Directory.Exists(BundlePath))
+			{
+				string SourceBundlePath = CombinePaths(SC.ArchiveDirectory, SC.ShortProjectName, "Binaries", "Mac", ExeName + ".app");
+				if (!Directory.Exists(SourceBundlePath))
+				{
+					SourceBundlePath = CombinePaths(SC.ArchiveDirectory, "Engine", "Binaries", "Mac", ExeName + ".app");
+				}
+				Directory.Move(SourceBundlePath, BundlePath);
+			}
+
+			if (DirectoryExists(TargetPath))
+			{
+				Directory.Delete(TargetPath, true);
+			}
+
+			// First, move all files and folders inside he app bundle
+			string[] StagedFiles = Directory.GetFiles(SC.ArchiveDirectory, "*", SearchOption.TopDirectoryOnly);
+			foreach (string FilePath in StagedFiles)
+			{
+				string TargetFilePath = CombinePaths(TargetPath, Path.GetFileName(FilePath));
+				Directory.CreateDirectory(Path.GetDirectoryName(TargetFilePath));
+				File.Move(FilePath, TargetFilePath);
+			}
+
+			string[] StagedDirectories = Directory.GetDirectories(SC.ArchiveDirectory, "*", SearchOption.TopDirectoryOnly);
+			foreach (string DirPath in StagedDirectories)
+			{
+				string DirName = Path.GetFileName(DirPath);
+				if (!DirName.EndsWith(".app"))
+				{
+					string TargetDirPath = CombinePaths(TargetPath, DirName);
+					Directory.CreateDirectory(Path.GetDirectoryName(TargetDirPath));
+					Directory.Move(DirPath, TargetDirPath);
+				}
+			}
+		}
+
+		// Update executable name, icon and entry in Info.plist
+		string UE4GamePath = CombinePaths(BundlePath, "Contents", "MacOS", ExeName);
+		if (ExeName != SC.ShortProjectName && File.Exists(UE4GamePath))
+		{
+			string GameExePath = CombinePaths(BundlePath, "Contents", "MacOS", SC.ShortProjectName);
+			File.Delete(GameExePath);
+			File.Move(UE4GamePath, GameExePath);
+
+			string DefaultIconPath = CombinePaths(BundlePath, "Contents", "Resources", "UE4.icns");
+			string CustomIconSrcPath = CombinePaths(BundlePath, "Contents", "Resources", "Application.icns");
+			string CustomIconDestPath = CombinePaths(BundlePath, "Contents", "Resources", SC.ShortProjectName + ".icns");
+			if (File.Exists(CustomIconSrcPath))
+			{
+				File.Delete(DefaultIconPath);
+				File.Move(CustomIconSrcPath, CustomIconDestPath);
+			}
+			else
+			{
+				File.Move(DefaultIconPath, CustomIconDestPath);
+			}
+
+			string InfoPlistPath = CombinePaths(BundlePath, "Contents", "Info.plist");
+			string InfoPlistContents = File.ReadAllText(InfoPlistPath);
+			InfoPlistContents = InfoPlistContents.Replace(ExeName, SC.ShortProjectName);
+			InfoPlistContents = InfoPlistContents.Replace("<string>UE4</string>", "<string>" + SC.ShortProjectName + "</string>");
+			File.Delete(InfoPlistPath);
+			File.WriteAllText(InfoPlistPath, InfoPlistContents);
+		}
+
+		Directory.CreateDirectory(CombinePaths(TargetPath, ExeName.StartsWith("UE4Game") ? "Engine" : SC.ShortProjectName, "Binaries", "Mac"));
+	}
+
 	public override ProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
 	{
 		if (!File.Exists(ClientApp))
