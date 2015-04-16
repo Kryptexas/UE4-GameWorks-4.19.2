@@ -800,7 +800,7 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 			FJsonInternationalizationArchiveSerializer ArchiveSerializer;
 			FJsonInternationalizationManifestSerializer ManifestSerializer;
 
-			FTextLocalizationManager::Get().RegenerateResources(ConfigFilePath, ArchiveSerializer, ManifestSerializer);
+			FTextLocalizationManager::Get().LoadFromManifestAndArchives(ConfigFilePath, ArchiveSerializer, ManifestSerializer);
 		}
 	}
 #endif
@@ -3027,7 +3027,7 @@ bool UUnrealEdEngine::Exec_Mode( const TCHAR* Str, FOutputDevice& Ar )
 		FJsonInternationalizationArchiveSerializer ArchiveSerializer;
 		FJsonInternationalizationManifestSerializer ManifestSerializer;
 
-		FTextLocalizationManager::Get().RegenerateResources(ConfigFilePath, ArchiveSerializer, ManifestSerializer);
+		FTextLocalizationManager::Get().LoadFromManifestAndArchives(ConfigFilePath, ArchiveSerializer, ManifestSerializer);
 	}
 #endif
 

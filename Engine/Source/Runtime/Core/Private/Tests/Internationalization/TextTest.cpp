@@ -464,7 +464,7 @@ bool FTextTest::RunTest (const FString& Parameters)
 
 			{
 				// Serialize the full, bulky FText that is a composite of most of the other FTextHistories.
-				FMemoryWriter Ar(FormattedHistoryAsEnglish, /*bIsPersistent=*/ true);
+				FMemoryWriter Ar(FormattedHistoryAsEnglish);
 				Ar << FormattedTestLayer2;
 				Ar.Close();
 			}
@@ -523,7 +523,7 @@ bool FTextTest::RunTest (const FString& Parameters)
 				{
 					// Serialize the full, bulky FText that is a composite of most of the other FTextHistories.
 					// We don't care how this may be translated, we will be serializing this in as LEET.
-					FMemoryWriter Ar(FormattedHistoryAsFrenchCanadian, /*bIsPersistent=*/ true);
+					FMemoryWriter Ar(FormattedHistoryAsFrenchCanadian);
 					Ar << FormattedTestLayer2;
 					Ar.Close();
 				}
@@ -532,7 +532,7 @@ bool FTextTest::RunTest (const FString& Parameters)
 					FText InvariantFText = FText::FromString(InvariantString);
 
 					// Serialize an invariant FText
-					FMemoryWriter Ar(InvariantFTextData, /*bIsPersistent=*/ true);
+					FMemoryWriter Ar(InvariantFTextData);
 					Ar << InvariantFText;
 					Ar.Close();
 				}
@@ -546,12 +546,12 @@ bool FTextTest::RunTest (const FString& Parameters)
 			FText FormattedFrenchCanadianTextHistoryAsLeet;
 
 			{
-				FMemoryReader Ar(FormattedHistoryAsEnglish, /*bIsPersistent=*/ true);
+				FMemoryReader Ar(FormattedHistoryAsEnglish);
 				Ar << FormattedEnglishTextHistoryAsLeet;
 				Ar.Close();
 			}
 			{
-				FMemoryReader Ar(FormattedHistoryAsFrenchCanadian, /*bIsPersistent=*/ true);
+				FMemoryReader Ar(FormattedHistoryAsFrenchCanadian);
 				Ar << FormattedFrenchCanadianTextHistoryAsLeet;
 				Ar.Close();
 			}
@@ -580,7 +580,7 @@ bool FTextTest::RunTest (const FString& Parameters)
 
 				FText InvariantFText;
 
-				FMemoryReader Ar(InvariantFTextData, /*bIsPersistent=*/ true);
+				FMemoryReader Ar(InvariantFTextData);
 				Ar << InvariantFText;
 				Ar.Close();
 

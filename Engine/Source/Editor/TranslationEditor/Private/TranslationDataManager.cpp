@@ -571,7 +571,7 @@ void FTranslationDataManager::PreviewAllTranslationsInEditor()
 	FJsonInternationalizationArchiveSerializer LocalizationArchiveSerializer;
 	FJsonInternationalizationManifestSerializer LocalizationManifestSerializer;
 
-	FTextLocalizationManager::Get().RegenerateResources(ConfigFilePath, LocalizationArchiveSerializer, LocalizationManifestSerializer);
+	FTextLocalizationManager::Get().LoadFromManifestAndArchives(ConfigFilePath, LocalizationArchiveSerializer, LocalizationManifestSerializer);
 }
 
 void FTranslationDataManager::PopulateSearchResultsUsingFilter(const FString& SearchFilter)

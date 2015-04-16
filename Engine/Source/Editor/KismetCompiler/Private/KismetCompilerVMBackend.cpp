@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	KismetCompilerVMBackend.cpp
@@ -376,8 +376,8 @@ public:
 				Writer << EX_TextConst;
 				
 				EmitStringLiteral(FTextInspector::GetSourceString(Term->TextLiteral)? *FTextInspector::GetSourceString(Term->TextLiteral) : TEXT(""));
-				EmitStringLiteral(FTextInspector::GetKey(Term->TextLiteral)? *FTextInspector::GetKey(Term->TextLiteral) : TEXT(""));
-				EmitStringLiteral(FTextInspector::GetNamespace(Term->TextLiteral)? *FTextInspector::GetNamespace(Term->TextLiteral) : TEXT(""));
+				EmitStringLiteral(FTextInspector::GetKey(Term->TextLiteral).Get(TEXT("")));
+				EmitStringLiteral(FTextInspector::GetNamespace(Term->TextLiteral).Get(TEXT("")));
 			}
 			else if (CoerceProperty->IsA(UFloatProperty::StaticClass()))
 			{

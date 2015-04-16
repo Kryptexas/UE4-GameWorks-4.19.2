@@ -179,8 +179,8 @@ void STranslationPickerEditWidget::Construct(const FArguments& InArgs)
 	bool bShouldGatherForLocalization = FTextInspector::ShouldGatherForLocalization(PickedText);
 
 	// Get all the data we need and format it properly
-	const FString* NamespaceString = FTextInspector::GetNamespace(PickedText);
-	const FString* KeyString = FTextInspector::GetKey(PickedText);
+	TOptional<FString> NamespaceString = FTextInspector::GetNamespace(PickedText);
+	TOptional<FString> KeyString = FTextInspector::GetKey(PickedText);
 	const FString* SourceString = FTextInspector::GetSourceString(PickedText);
 	const FString& TranslationString = FTextInspector::GetDisplayString(PickedText);
 	FString LocresFullPath;
@@ -188,16 +188,16 @@ void STranslationPickerEditWidget::Construct(const FArguments& InArgs)
 	FString ManifestAndArchiveNameString;
 	if (NamespaceString && KeyString)
 	{
-		TSharedPtr<FString, ESPMode::ThreadSafe> TextTableName = FTextLocalizationManager::Get().GetTableName(*NamespaceString, *KeyString);
-		LocresFullPath = *TextTableName;
-		if (TextTableName.IsValid())
+		FString LocResId;
+		if (FTextLocalizationManager::Get().GetLocResID(NamespaceString.GetValue(), KeyString.GetValue(), LocResId))
 		{
-			ManifestAndArchiveNameString = FPaths::GetBaseFilename(*TextTableName);
+			LocresFullPath = *LocResId;
+			ManifestAndArchiveNameString = FPaths::GetBaseFilename(*LocResId);
 		}
 	}
 
-	FText Namespace = NamespaceString != nullptr ? FText::FromString(*NamespaceString) : FText::GetEmpty();
-	FText Key = KeyString != nullptr ? FText::FromString(*KeyString) : FText::GetEmpty();
+	FText Namespace = FText::FromString(NamespaceString.Get(TEXT("")));
+	FText Key = FText::FromString(KeyString.Get(TEXT("")));
 	FText Source = SourceString != nullptr ? FText::FromString(*SourceString) : FText::GetEmpty();
 	FText ManifestAndArchiveName = FText::FromString(ManifestAndArchiveNameString);
 	FText Translation = FText::FromString(TranslationString);
@@ -209,13 +209,13 @@ void STranslationPickerEditWidget::Construct(const FArguments& InArgs)
 
 	// Save the necessary data in UTranslationUnit for later.  This is what we pass to TranslationDataManager to save our edits
 	TranslationUnit = NewObject<UTranslationUnit>();
-	TranslationUnit->Namespace = NamespaceString != nullptr ? *NamespaceString : "";
+	TranslationUnit->Namespace = NamespaceString.Get(TEXT(""));
 	TranslationUnit->Source = SourceString != nullptr ? *SourceString : "";
 	TranslationUnit->Translation = TranslationString;
 	TranslationUnit->LocresPath = LocresFullPath;
 	
 	// Can only save if we have all the required information
-	bool bHasRequiredLocalizationInfo = NamespaceString != nullptr && SourceString != nullptr && LocresFullPath.Len() > 0;
+	bool bHasRequiredLocalizationInfo = NamespaceString.IsSet() && SourceString != nullptr && LocresFullPath.Len() > 0;
 
 	TSharedRef<SHorizontalBox> LocalizationInfoAndSaveButtonSlot = SNew(SHorizontalBox);
 

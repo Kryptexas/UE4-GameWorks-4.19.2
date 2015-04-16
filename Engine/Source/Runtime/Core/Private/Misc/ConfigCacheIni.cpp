@@ -105,7 +105,7 @@ class FTextFriendHelper
 		else
 		{
 			return FString::Printf( TEXT( "NSLOCTEXT(\"%s\",\"%s\",\"%s\")" ),
-				FTextInspector::GetNamespace(Text) ? **FTextInspector::GetNamespace(Text) : TEXT(""), FTextInspector::GetKey(Text) ? **FTextInspector::GetKey(Text) : TEXT(""), *Str );
+				*FTextInspector::GetNamespace(Text).Get(TEXT("")), *FTextInspector::GetKey(Text).Get(TEXT("")), *Str );
 		}
 #undef LOC_DEFINE_REGION
 	}

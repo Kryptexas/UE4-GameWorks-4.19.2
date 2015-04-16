@@ -74,7 +74,7 @@ TSharedPtr<const FCompositeFont> FLegacySlateFontInfoCache::GetFallbackFont()
 	FScopeLock Lock(&FallbackFontCS);
 
 	// The fallback font can change if the active culture is changed
-	const int32 CurrentHistoryVersion = FTextLocalizationManager::Get().GetHeadCultureRevision();
+	const int32 CurrentHistoryVersion = FTextLocalizationManager::Get().GetTextRevision();
 
 	if (!FallbackFont.IsValid() || FallbackFontHistoryVersion != CurrentHistoryVersion)
 	{
@@ -95,7 +95,7 @@ const FFontData& FLegacySlateFontInfoCache::GetFallbackFontData()
 	FScopeLock Lock(&FallbackFontDataCS);
 
 	// The fallback font can change if the active culture is changed
-	const int32 CurrentHistoryVersion = FTextLocalizationManager::Get().GetHeadCultureRevision();
+	const int32 CurrentHistoryVersion = FTextLocalizationManager::Get().GetTextRevision();
 
 	if (!FallbackFontData.IsValid() || FallbackFontDataHistoryVersion != CurrentHistoryVersion)
 	{

@@ -28,20 +28,20 @@ bool FTextInspector::ShouldGatherForLocalization(const FText& Text)
 	return Text.ShouldGatherForLocalization();
 }
 
-const FString* FTextInspector::GetNamespace(const FText& Text)
+TOptional<FString> FTextInspector::GetNamespace(const FText& Text)
 {
-	TSharedPtr< FString, ESPMode::ThreadSafe > Namespace;
-	TSharedPtr< FString, ESPMode::ThreadSafe > Key;
-	FTextLocalizationManager::Get().FindKeyNamespaceFromDisplayString(Text.DisplayString, Namespace, Key);
-	return Namespace.Get();
+	FString Namespace;
+	FString Key;
+	const bool WasNamespaceAndKeyFound = FTextLocalizationManager::Get().FindNamespaceAndKeyFromDisplayString(Text.DisplayString, Namespace, Key);
+	return WasNamespaceAndKeyFound ? TOptional<FString>(Namespace) : TOptional<FString>();
 }
 
-const FString* FTextInspector::GetKey(const FText& Text)
+TOptional<FString> FTextInspector::GetKey(const FText& Text)
 {
-	TSharedPtr< FString, ESPMode::ThreadSafe > Namespace;
-	TSharedPtr< FString, ESPMode::ThreadSafe > Key;
-	FTextLocalizationManager::Get().FindKeyNamespaceFromDisplayString(Text.DisplayString, Namespace, Key);
-	return Key.Get();
+	FString Namespace;
+	FString Key;
+	const bool WasNamespaceAndKeyFound = FTextLocalizationManager::Get().FindNamespaceAndKeyFromDisplayString(Text.DisplayString, Namespace, Key);
+	return WasNamespaceAndKeyFound ? TOptional<FString>(Key) : TOptional<FString>();
 }
 
 const FString* FTextInspector::GetSourceString(const FText& Text)
@@ -54,7 +54,7 @@ const FString& FTextInspector::GetDisplayString(const FText& Text)
 	return Text.DisplayString.Get();
 }
 
-const TSharedRef<FString, ESPMode::ThreadSafe> FTextInspector::GetSharedDisplayString(const FText& Text)
+const FTextDisplayStringRef FTextInspector::GetSharedDisplayString(const FText& Text)
 {
 	return Text.DisplayString;
 }
@@ -296,7 +296,7 @@ FText::FText( FString InSourceString )
 }
 
 FText::FText( FString InSourceString, FString InNamespace, FString InKey, int32 InFlags )
-	: DisplayString( FTextLocalizationManager::Get().GetString(InNamespace, InKey, &InSourceString) )
+	: DisplayString( FTextLocalizationManager::Get().GetDisplayString(InNamespace, InKey, &InSourceString) )
 	, Flags(InFlags)
 {
 	History = MakeShareable(new FTextHistory_Base(InSourceString));
@@ -530,7 +530,7 @@ FString FText::GetInvariantTimeZone()
 
 bool FText::FindText( const FString& Namespace, const FString& Key, FText& OutText, const FString* const SourceString )
 {
-	TSharedPtr< FString, ESPMode::ThreadSafe > FoundString = FTextLocalizationManager::Get().FindString( Namespace, Key );
+	TSharedPtr< FString, ESPMode::ThreadSafe > FoundString = FTextLocalizationManager::Get().FindDisplayString( Namespace, Key );
 
 	if ( FoundString.IsValid() )
 	{
@@ -557,19 +557,14 @@ CORE_API FArchive& operator<<( FArchive& Ar, FText& Value )
 		// Namespaces and keys are no longer stored in the FText, we need to read them in and discard
 		if( Ar.UE4Ver() >= VER_UE4_ADDED_NAMESPACE_AND_KEY_DATA_TO_FTEXT )
 		{
-			TSharedPtr< FString, ESPMode::ThreadSafe > Namespace;
-			TSharedPtr< FString, ESPMode::ThreadSafe > Key;
+			FString Namespace;
+			FString Key;
 
-			Namespace = MakeShareable( new FString() );
-			Ar << *Namespace;
-
-			Key = MakeShareable( new FString() );
-			Ar << *Key;
+			Ar << Namespace;
+			Ar << Key;
 
 			// Get the DisplayString using the namespace, key, and source string.
-			const FString& NamespaceStr = Namespace.Get() ? *Namespace : TEXT("");
-			const FString& KeyStr = Key.Get() ? *Key : TEXT("");
-			Value.DisplayString = FTextLocalizationManager::Get().GetString(NamespaceStr, KeyStr, &SourceStringToImplantIntoHistory);
+			Value.DisplayString = FTextLocalizationManager::Get().GetDisplayString(Namespace, Key, &SourceStringToImplantIntoHistory);
 		}
 	}
 
@@ -858,14 +853,15 @@ bool FTextSnapshot::IsDisplayStringEqualTo(const FText& InText) const
 }
 
 FScopedTextIdentityPreserver::FScopedTextIdentityPreserver(FText& InTextToPersist)
-	: Flags(InTextToPersist.Flags)
+	: HadFoundNamespaceAndKey(false)
+	, Flags(InTextToPersist.Flags)
 	, TextToPersist(InTextToPersist)
 {
 	// Empty display strings can't have a namespace or key.
 	if (GIsEditor && !InTextToPersist.DisplayString->IsEmpty())
 	{
 		// Save off namespace and key to be restored later.
-		FTextLocalizationManager::Get().FindKeyNamespaceFromDisplayString(InTextToPersist.DisplayString, Namespace, Key);
+		HadFoundNamespaceAndKey = FTextLocalizationManager::Get().FindNamespaceAndKeyFromDisplayString(InTextToPersist.DisplayString, Namespace, Key);
 	}
 }
 
@@ -874,7 +870,7 @@ FScopedTextIdentityPreserver::~FScopedTextIdentityPreserver()
 	// Never persist identities in non-editor situations
 	// If we don't have a key, then the old identity wasn't valid and shouldn't be preserved.
 	// Never persist identities for immutable (i.e. code LOCTEXT declared) text.
-	if(GIsEditor && Key.IsValid() && (Flags & ETextFlag::Immutable) == 0)
+	if(GIsEditor && HadFoundNamespaceAndKey && (Flags & ETextFlag::Immutable) == 0)
 	{
 		// Get the text's new source string.
 		const FString* SourceString = FTextInspector::GetSourceString(TextToPersist);
@@ -886,7 +882,7 @@ FScopedTextIdentityPreserver::~FScopedTextIdentityPreserver()
 		TextToPersist.History = MakeShareable(new FTextHistory_Base(*SourceString));
 
 		// Create/update the display string instance for this identity in the text localization manager...
-		const TSharedRef<FString, ESPMode::ThreadSafe> DisplayString = FTextLocalizationManager::Get().GetString(Namespace.IsValid() ? *Namespace : TEXT(""), *Key, SourceString);
+		const FTextDisplayStringRef DisplayString = FTextLocalizationManager::Get().GetDisplayString(Namespace, Key, SourceString);
 
 		// ... and set it so that the text's history's serialization will properly map this display string instance back to the identity we intended to preserve and restore.
 		TextToPersist.DisplayString = DisplayString;

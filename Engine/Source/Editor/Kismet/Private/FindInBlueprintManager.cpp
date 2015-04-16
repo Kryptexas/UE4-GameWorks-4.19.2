@@ -62,7 +62,7 @@ namespace FiBSerializationHelpers
 	const FString Serialize(Type& InValue, bool bInIncludeSize)
 	{
 		TArray<uint8> SerializedData;
-		FMemoryWriter Ar(SerializedData, /*bIsPersistent=*/ true);
+		FMemoryWriter Ar(SerializedData);
 
 		Ar << InValue;
 		Ar.Close();
@@ -72,7 +72,7 @@ namespace FiBSerializationHelpers
 		if(bInIncludeSize)
 		{
 			SerializedData.Empty();
-			FMemoryWriter ArWithLength(SerializedData, /*bIsPersistent=*/ true);
+			FMemoryWriter ArWithLength(SerializedData);
 			int32 Length = Result.Len();
 			ArWithLength << Length;
 
@@ -102,7 +102,7 @@ namespace FiBSerializationHelpers
 	{
 		TArray<uint8> DerivedData;
 		DecodeFromStream(InStream, sizeof(Type), DerivedData);
-		FMemoryReader SizeOfDataAr(DerivedData, /*bIsPersistent=*/ true);
+		FMemoryReader SizeOfDataAr(DerivedData);
 
 		Type ReturnValue;
 		SizeOfDataAr << ReturnValue;
@@ -115,7 +115,7 @@ namespace FiBSerializationHelpers
 	{
 		TArray<uint8> DerivedData;
 		DecodeFromStream(InStream, InBytes, DerivedData);
-		FMemoryReader SizeOfDataAr(DerivedData, /*bIsPersistent=*/ true);
+		FMemoryReader SizeOfDataAr(DerivedData);
 
 		Type ReturnValue;
 		SizeOfDataAr << ReturnValue;
@@ -1370,7 +1370,7 @@ FText FFindInBlueprintSearchManager::ConvertHexStringToFText(FString InHexString
 
 	FText ResultText;
 
-	FMemoryReader Ar(SerializedData, /*bIsPersistent=*/ true);
+	FMemoryReader Ar(SerializedData);
 	Ar << ResultText;
 	Ar.Close();
 
@@ -1380,7 +1380,7 @@ FText FFindInBlueprintSearchManager::ConvertHexStringToFText(FString InHexString
 FString FFindInBlueprintSearchManager::ConvertFTextToHexString(FText InValue)
 {
 	TArray<uint8> SerializedData;
-	FMemoryWriter Ar(SerializedData, /*bIsPersistent=*/ true);
+	FMemoryWriter Ar(SerializedData);
 
 	Ar << InValue;
 	Ar.Close();
