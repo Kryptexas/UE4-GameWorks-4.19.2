@@ -1166,7 +1166,7 @@ void FSlateRHIRenderer::ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture)
 {
 	if (IsInRenderingThread())
 	{
-		Texture->GetRenderResource()->InitResource();
+		Texture->GetRenderResource()->ReleaseResource();
 	}
 	else
 	{
