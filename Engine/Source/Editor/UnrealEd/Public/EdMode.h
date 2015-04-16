@@ -289,6 +289,8 @@ public:
 			, bIsTransform(false)
 		{
 		}
+		
+		void GetTransformAndColor(UObject* BestSelectedItem, bool bIsSelected, FTransform& OutLocalTransform, FString& OutValidationMessage, FColor& OutDrawColor) const;
 	};
 
 protected:
@@ -305,6 +307,9 @@ protected:
 	 * @param OutInfos An array of widget info structures (output).
 	 */
 	void GetPropertyWidgetInfos(const UStruct* InStruct, const void* InContainer, TArray<FPropertyWidgetInfo>& OutInfos) const;
+
+	/** Finds the best item to display widgets for (preferring selected components over selected actors) */
+	virtual UObject* GetItemToTryDisplayingWidgetsFor(FTransform& OutWidgetToWorld) const;
 
 	/** Name of the property currently being edited */
 	FString EditedPropertyName;

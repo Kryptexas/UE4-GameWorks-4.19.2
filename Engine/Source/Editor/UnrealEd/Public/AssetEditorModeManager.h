@@ -16,6 +16,7 @@ public:
 	// FEditorModeTools interface
 	virtual class USelection* GetSelectedActors() const override;
 	virtual class USelection* GetSelectedObjects() const override;
+	virtual class USelection* GetSelectedComponents() const override;
 	virtual UWorld* GetWorld() const override;
 	// End of FEditorModeTools interface
 
@@ -23,5 +24,6 @@ public:
 protected:
 	class USelection* ActorSet;
 	class USelection* ObjectSet;
+	class USelection* ComponentSet;
 	class FPreviewScene* PreviewScene;
 };
