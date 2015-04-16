@@ -2083,18 +2083,21 @@ public class GUBP : BuildCommand
                     }
                 }
                 {
-                    var Platforms = bp.GetMonolithicPlatformsForUProject(HostPlatform, InGameProj, true);
-                    foreach (var Plat in Platforms)
+                    if (!GameProj.Options(HostPlatform).bPromoteEditorOnly)
                     {
-                        AddDependency(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, GameProj, Plat));
-						if(Plat == UnrealTargetPlatform.Win32 && GameProj.Properties.Targets.ContainsKey(TargetRules.TargetType.Game))
-						{
-							if(GameProj.Properties.Targets[TargetRules.TargetType.Game].Rules.GUBP_BuildWindowsXPMonolithics())
-							{
-								AddDependency(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, GameProj, Plat, true));
-							}
-						}
-					}
+                        var Platforms = bp.GetMonolithicPlatformsForUProject(HostPlatform, InGameProj, true);
+                        foreach (var Plat in Platforms)
+                        {
+                            AddDependency(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, GameProj, Plat));
+                            if (Plat == UnrealTargetPlatform.Win32 && GameProj.Properties.Targets.ContainsKey(TargetRules.TargetType.Game))
+                            {
+                                if (GameProj.Properties.Targets[TargetRules.TargetType.Game].Rules.GUBP_BuildWindowsXPMonolithics())
+                                {
+                                    AddDependency(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, GameProj, Plat, true));
+                                }
+                            }
+                        }
+                    }
 				}
 			}
         }

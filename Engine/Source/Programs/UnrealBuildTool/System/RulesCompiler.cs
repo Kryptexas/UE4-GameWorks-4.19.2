@@ -867,7 +867,8 @@ namespace UnrealBuildTool
             public bool bTestWithShared = false;
             public bool bIsMassive = false;
             public bool bCustomWorkflowForPromotion = false;
-			public bool bIsNonCode = false;			
+			public bool bIsNonCode = false;
+            public bool bPromoteEditorOnly = false;
         }
         public virtual GUBPProjectOptions GUBP_IncludeProjectInPromotedBuild_EditorTypeOnly(UnrealTargetPlatform HostPlatform)
         {
