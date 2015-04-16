@@ -220,7 +220,7 @@ namespace OneSky
                 return null;
             }
 
-            url += "&file_format=" + fileFormat + "&locale=" + cultureName;
+            url += "&file_format=" + fileFormat + "&locale=" + cultureName + "&is_keeping_all_strings=false";
 
             return Task.Factory.StartNew(() => {
 
