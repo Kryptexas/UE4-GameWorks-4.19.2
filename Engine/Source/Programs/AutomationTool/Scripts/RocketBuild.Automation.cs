@@ -261,8 +261,6 @@ namespace Rocket
 			{ 
 				AddDependency(GUBP.SingleInternalToolsNode.StaticGetFullName(UnrealTargetPlatform.Win64, VersionSelector));
 			}
-
-			AgentSharingGroup = "BuildRocket" + StaticGetHostPlatformSuffix(HostPlatform);
 		}
 
 		public static string StaticGetFullName(UnrealTargetPlatform HostPlatform)
@@ -319,8 +317,6 @@ namespace Rocket
 					AddDependency(GUBP.GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, bp.Branch.BaseEngineProject, TargetPlatform, Precompiled: InCodeTargetPlatforms.Contains(TargetPlatform)));
 				}
 			}
-
-			AgentSharingGroup = "BuildRocket" + StaticGetHostPlatformSuffix(HostPlatform);
 		}
 
 		public static string StaticGetFullName(UnrealTargetPlatform HostPlatform)
@@ -447,8 +443,6 @@ namespace Rocket
 			{
 				AddDependency(StripRocketNode.StaticGetFullName(SourceHostPlatform));
 			}
-
-			AgentSharingGroup = "BuildRocket" + StaticGetHostPlatformSuffix(HostPlatform);
 		}
 
 		public override int CISFrequencyQuantumShift(GUBP bp)
