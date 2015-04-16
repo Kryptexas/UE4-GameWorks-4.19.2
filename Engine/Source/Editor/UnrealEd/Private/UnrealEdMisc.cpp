@@ -921,8 +921,8 @@ void FUnrealEdMisc::CB_MapChange( uint32 InFlags )
 	// Minor things like brush subtraction will set it to "0".
 
 	if( InFlags != MapChangeEventFlags::Default )
-	{	
-		GEditor->EditorClearComponents();
+	{
+		World->ClearWorldComponents();
 
 		// Note: CleanupWorld is being abused here to detach components and some other stuff
 		// CleanupWorld should only be called before destroying the world

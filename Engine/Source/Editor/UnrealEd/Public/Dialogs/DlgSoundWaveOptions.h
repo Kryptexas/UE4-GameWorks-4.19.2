@@ -5,6 +5,34 @@ typedef TSharedPtr< struct FPreviewInfoContainer > FSoundWaveCompressionListItem
 
 typedef SListView< FSoundWaveCompressionListItemPtr > SSoundWaveCompressionListView;
 
+/** 
+ * Info used to setup the rows of the sound quality previewer
+ */
+class FPreviewInfo
+{
+public:
+	FPreviewInfo(int32 Quality);
+
+	~FPreviewInfo() 
+	{ 
+		Cleanup(); 
+	}
+
+	void Cleanup();
+
+	int32 QualitySetting;
+
+	int32 OriginalSize;
+
+	int32 OggVorbisSize;
+	int32 XMASize;
+	int32 PS3Size;
+
+	uint8* DecompressedOggVorbis;
+	uint8* DecompressedXMA;
+	uint8* DecompressedPS3;
+};
+
 class UNREALED_API SSoundWaveCompressionOptions : public SCompoundWidget
 {
 public:

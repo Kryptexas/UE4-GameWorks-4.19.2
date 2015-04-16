@@ -1798,7 +1798,8 @@ void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& Cl
 
 	GUnrealEd->CurrentLODParentActor = NULL;
 	SelectNone( true, true );
-	EditorClearComponents();
+
+	ContextWorld->ClearWorldComponents();
 	ClearPreviewComponents();
 	// Remove all active groups, they belong to a map being unloaded
 	ContextWorld->ActiveGroupActors.Empty();
@@ -2517,7 +2518,7 @@ bool UEditorEngine::Map_Import( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 		
 		ResetTransaction( LocalizedImportingMap );
 		GWarn->BeginSlowTask( LocalizedImportingMap, true );
-		EditorClearComponents();
+		InWorld->ClearWorldComponents();
 		InWorld->CleanupWorld();
 		ImportObject<UWorld>(InWorld->GetOuter(), InWorld->GetFName(), RF_Transactional, TempFname );
 		GWarn->EndSlowTask();
@@ -5490,10 +5491,6 @@ bool UEditorEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice& A
 	{		
 		bProcessed = HandleCleanBSPMaterialCommand( Str, Ar, InWorld );
 	}
-	else if( FParse::Command(&Str,TEXT("CREATESMFROMBSP")) )
-	{
-		bProcessed = HandleCreateMeshFromBSPCommand( Str, Ar );
-	}
 	else if( FParse::Command(&Str,TEXT("AUTOMERGESM")) )
 	{		
 		bProcessed = HandleAutoMergeStaticMeshCommand( Str, Ar );
@@ -6181,12 +6178,6 @@ bool UEditorEngine::HandleCleanBSPMaterialCommand( const TCHAR* Str, FOutputDevi
 	return true;
 }
 
-bool UEditorEngine::HandleCreateMeshFromBSPCommand( const TCHAR* Str, FOutputDevice& Ar )
-{
-	// TODO_STATICMESH: Remove this command.
-	return true;
-}
-
 bool UEditorEngine::HandleAutoMergeStaticMeshCommand( const TCHAR* Str, FOutputDevice& Ar )
 {
 	AutoMergeStaticMeshes();
@@ -6291,27 +6282,6 @@ bool UEditorEngine::HandleRemoveArchtypeFlagCommand( const TCHAR* Str, FOutputDe
 		}
 	}
 	return true;
-}
-
-UClass* UEditorEngine::GetClassFromPairMap( FString ClassName )
-{
-	UClass* ClassToUse = FindObject<UClass>(ANY_PACKAGE,*ClassName);
-	for( int32 i = 0; i < ClassMapPair.Num(); i++ )
-	{
-		const FString& Str = ClassMapPair[i];
-		int32 DelimIdx = Str.Find(TEXT("/"), ESearchCase::CaseSensitive);
-		if( DelimIdx >= 0 )
-		{
-			const FString Key = Str.Left(DelimIdx);
-			const FString Value = Str.Mid(DelimIdx+1);
-			if( FCString::Stricmp( *ClassName, *Key ) == 0 )
-			{
-				ClassToUse = FindObject<UClass>(ANY_PACKAGE,*Value);
-				break;
-			}
-		}
-	}	
-	return ClassToUse;
 }
 
 /**

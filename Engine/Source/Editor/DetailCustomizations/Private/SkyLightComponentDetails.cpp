@@ -69,7 +69,10 @@ FReply FSkyLightComponentDetails::OnUpdateSkyCapture()
 {
 	if( SkyLight.IsValid() )
 	{
-		GEditor->UpdateSkyCaptures();
+		if (UWorld* SkyLightWorld = SkyLight->GetWorld())
+		{
+			SkyLightWorld->UpdateAllSkyCaptures();
+		}
 	}
 
 	return FReply::Handled();
