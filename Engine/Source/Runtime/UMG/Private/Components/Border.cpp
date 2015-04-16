@@ -181,7 +181,7 @@ FReply UBorder::HandleMouseDoubleClick(const FGeometry& Geometry, const FPointer
 	return FReply::Unhandled();
 }
 
-void UBorder::SetBrush(FSlateBrush& Brush)
+void UBorder::SetBrush(const FSlateBrush& Brush)
 {
 	Background = Brush;
 

@@ -76,7 +76,7 @@ const FSlateBrush* UImage::ConvertImage(TAttribute<FSlateBrush> InImageAsset) co
 	return &Brush;
 }
 
-void UImage::SetBrush(FSlateBrush& InBrush)
+void UImage::SetBrush(const FSlateBrush& InBrush)
 {
 	Brush = InBrush;
 
