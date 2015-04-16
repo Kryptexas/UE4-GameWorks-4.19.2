@@ -303,6 +303,12 @@ public:
 	virtual void OnPaint_Implementation(FPaintContext& Context) const;
 
 	/**
+	 * Gets a value indicating if the widget is interactive.
+	 */
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, Category="User Interface | Interaction")
+	virtual bool IsInteractable() const;
+
+	/**
 	 * Called when keyboard focus is given to this widget.  This event does not bubble.
 	 *
 	 * @param MyGeometry The Geometry of the widget receiving the event
@@ -718,6 +724,15 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="User Interface|Animation")
 	void StopAnimation(const UWidgetAnimation* InAnimation);
 
+	/**
+	 * Pauses an already running animation in this widget
+	 * 
+	 * @param The name of the animation to pause
+	 * @return the time point the animation was at when it was paused.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="User Interface|Animation")
+	float PauseAnimation(const UWidgetAnimation* InAnimation);
+
 	/** Called when a sequence player is finished playing an animation */
 	void OnAnimationFinishedPlaying(UUMGSequencePlayer& Player );
 
@@ -845,8 +860,13 @@ protected:
 
 	virtual void NativeConstruct();
 	virtual void NativeDestruct();
+
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime);
 	virtual void NativePaint( FPaintContext& InContext ) const;
+
+	virtual bool NativeIsInteractable() const;
+	virtual bool NativeSupportsKeyboardFocus() const;
+
 	virtual FReply NativeOnFocusReceived( const FGeometry& InGeometry, const FFocusEvent& InFocusEvent );
 	virtual void NativeOnFocusLost( const FFocusEvent& InFocusEvent );
 	virtual FReply NativeOnKeyChar( const FGeometry& InGeometry, const FCharacterEvent& InCharEvent );

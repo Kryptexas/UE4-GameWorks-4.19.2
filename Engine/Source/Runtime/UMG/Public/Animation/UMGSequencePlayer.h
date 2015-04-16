@@ -28,6 +28,9 @@ public:
 	/** Pauses a running animation */
 	void Pause();
 
+	/** Gets the current time position in the player (in seconds). */
+	double GetTimeCursorPosition() const { return TimeCursorPosition; }
+
 	/** @return The current animation being played */
 	const UWidgetAnimation* GetAnimation() const { return Animation; }
 

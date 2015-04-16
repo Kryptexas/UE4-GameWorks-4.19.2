@@ -74,11 +74,21 @@ int32 SObjectWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGe
 	return MaxLayer;
 }
 
+bool SObjectWidget::IsInteractable() const
+{
+	if ( CanRouteEvent() )
+	{
+		return WidgetObject->NativeIsInteractable();
+	}
+
+	return false;
+}
+
 bool SObjectWidget::SupportsKeyboardFocus() const
 {
 	if ( CanRouteEvent() )
 	{
-		return WidgetObject->bSupportsKeyboardFocus;
+		return WidgetObject->NativeSupportsKeyboardFocus();
 	}
 
 	return false;

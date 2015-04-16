@@ -244,6 +244,23 @@ void UUserWidget::StopAnimation(const UWidgetAnimation* InAnimation)
 	}
 }
 
+float UUserWidget::PauseAnimation(const UWidgetAnimation* InAnimation)
+{
+	if ( InAnimation )
+	{
+		// @todo UMG sequencer - Restart animations which have had Play called on them?
+		UUMGSequencePlayer** FoundPlayer = ActiveSequencePlayers.FindByPredicate([&] (const UUMGSequencePlayer* Player) { return Player->GetAnimation() == InAnimation; });
+
+		if ( FoundPlayer )
+		{
+			( *FoundPlayer )->Pause();
+			return (float)( *FoundPlayer )->GetTimeCursorPosition();
+		}
+	}
+
+	return 0;
+}
+
 void UUserWidget::OnAnimationFinishedPlaying( UUMGSequencePlayer& Player )
 {
 	OnAnimationFinished( Player.GetAnimation() );
@@ -728,6 +745,16 @@ void UUserWidget::TickActionsAndAnimation(const FGeometry& MyGeometry, float InD
 void UUserWidget::NativePaint( FPaintContext& InContext ) const 
 {
 	OnPaint( InContext );
+}
+
+bool UUserWidget::NativeIsInteractable() const
+{
+	return IsInteractable();
+}
+
+bool UUserWidget::NativeSupportsKeyboardFocus() const
+{
+	return bSupportsKeyboardFocus;
 }
 
 FReply UUserWidget::NativeOnFocusReceived( const FGeometry& InGeometry, const FFocusEvent& InFocusEvent )
