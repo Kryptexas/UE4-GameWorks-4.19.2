@@ -156,7 +156,7 @@ namespace EditorViewButtonHelper
 /**
  * Static mesh editor test
  */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST( FStaticMeshEditorTest, "Editor.Content.Static Mesh Editor Test", EAutomationTestFlags::ATF_Editor )
+IMPLEMENT_SIMPLE_AUTOMATION_TEST( FStaticMeshEditorTest, "System.Editor.Content.Static Mesh Editor Test", EAutomationTestFlags::ATF_Editor )
 
 /**
  * Take screenshots of the SME window with each of the toolbar buttons toggled separately

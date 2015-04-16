@@ -4,7 +4,7 @@
 #include "UnitConversion.h"
 
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUnitUnitTests, "Core.Math.Unit Conversion", EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUnitUnitTests, "System.Core.Math.Unit Conversion", EAutomationTestFlags::ATF_SmokeTest)
 
 bool IsRoughlyEqual(double One, double Two, float Epsilon)
 {

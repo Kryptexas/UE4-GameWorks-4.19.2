@@ -7,7 +7,7 @@
 #include "Future.h"
 
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAsyncTest, "Core.Async.Async", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAsyncTest, "System.Core.Async.Async", EAutomationTestFlags::ATF_Editor)
 
 
 bool FAsyncTest::RunTest(const FString& Parameters)

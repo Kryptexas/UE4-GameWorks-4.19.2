@@ -11,7 +11,7 @@ PRAGMA_DISABLE_OPTIMIZATION
 #define LOCTEXT_NAMESPACE "Core.Tests.TextFormatTest"
 
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTextTest, "Core.Misc.Text", EAutomationTestFlags::ATF_None)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTextTest, "System.Core.Misc.Text", EAutomationTestFlags::ATF_None)
 
 namespace
 {
@@ -638,7 +638,7 @@ bool FTextTest::RunTest (const FString& Parameters)
 
 #if UE_ENABLE_ICU
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FICUTextTest, "Core.Misc.ICUText", EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FICUTextTest, "System.Core.Misc.ICUText", EAutomationTestFlags::ATF_SmokeTest)
 
 bool FICUTextTest::RunTest (const FString& Parameters)
 {

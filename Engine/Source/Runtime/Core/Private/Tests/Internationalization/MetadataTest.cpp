@@ -5,7 +5,7 @@
 #include "Internationalization/InternationalizationMetadata.h"
 
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMetadataTest, "Core.Misc.Internationalization Metadata", EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMetadataTest, "System.Core.Misc.Internationalization Metadata", EAutomationTestFlags::ATF_SmokeTest)
 
 bool FMetadataTest::RunTest( const FString& Parameters )
 {

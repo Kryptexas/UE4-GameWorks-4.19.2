@@ -988,7 +988,7 @@ uint8 VectorVM::CreateSrcOperandMask(VectorVM::EOperandType Type1, VectorVM::EOp
 	Automation test for the VM.
 ------------------------------------------------------------------------------*/
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVectorVMTest, "Core.Math.Vector VM", EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVectorVMTest, "System.Core.Math.Vector VM", EAutomationTestFlags::ATF_SmokeTest)
 
 bool FVectorVMTest::RunTest(const FString& Parameters)
 {

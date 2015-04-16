@@ -108,7 +108,7 @@ bool FStartFTestsOnMap::Update()
  */
 
 // create test base class
-IMPLEMENT_COMPLEX_AUTOMATION_TEST_PRIVATE(FFunctionalTestingMapsBase, "Maps.Functional Testing", (EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_Editor))
+IMPLEMENT_COMPLEX_AUTOMATION_TEST_PRIVATE(FFunctionalTestingMapsBase, "Project.Maps.Functional Testing", (EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_Editor))
 // implement specific class with non-standard overrides
 class FFunctionalTestingMaps : public FFunctionalTestingMapsBase
 {

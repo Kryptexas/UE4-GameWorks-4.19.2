@@ -55,7 +55,7 @@ namespace GameProjectAutomationUtils
 /**
 * Automation test to clean up old test project files
 */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBuildPromotionNewProjectCleanupTest, "Promotion.Project Promotion Pass.Step 1 Blank Project Creation.Cleanup Potential Project Location", EAutomationTestFlags::ATF_Editor);
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBuildPromotionNewProjectCleanupTest, "System.Promotion.Project Promotion Pass.Step 1 Blank Project Creation.Cleanup Potential Project Location", EAutomationTestFlags::ATF_Editor);
 bool FBuildPromotionNewProjectCleanupTest::RunTest(const FString& Parameters)
 {
 	FString DesiredProjectFilename = GameProjectAutomationUtils::GetDesiredProjectFilename();
@@ -90,7 +90,7 @@ bool FBuildPromotionNewProjectCleanupTest::RunTest(const FString& Parameters)
 /**
 * Automation test to create a new project
 */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBuildPromotionNewProjectCreateTest, "Promotion.Project Promotion Pass.Step 1 Blank Project Creation.Create Project", EAutomationTestFlags::ATF_Editor);
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBuildPromotionNewProjectCreateTest, "System.Promotion.Project Promotion Pass.Step 1 Blank Project Creation.Create Project", EAutomationTestFlags::ATF_Editor);
 bool FBuildPromotionNewProjectCreateTest::RunTest(const FString& Parameters)
 {
 	FString DesiredProjectFilename = GameProjectAutomationUtils::GetDesiredProjectFilename();
@@ -135,7 +135,7 @@ bool FBuildPromotionNewProjectCreateTest::RunTest(const FString& Parameters)
 /**
 * Automation test to create a simple level and save it
 */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBuildPromotionNewProjectMapTest, "Promotion.Project Promotion Pass.Step 2 Basic Level Creation.Create Basic Level", EAutomationTestFlags::ATF_Editor);
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBuildPromotionNewProjectMapTest, "System.Promotion.Project Promotion Pass.Step 2 Basic Level Creation.Create Basic Level", EAutomationTestFlags::ATF_Editor);
 bool FBuildPromotionNewProjectMapTest::RunTest(const FString& Parameters)
 {
 	//New level

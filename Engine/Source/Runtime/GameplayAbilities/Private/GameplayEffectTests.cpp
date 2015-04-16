@@ -295,7 +295,7 @@ public:
 	virtual uint32 GetRequiredDeviceNum() const override { return 1; }
 
 protected:
-	virtual FString GetBeautifiedTestName() const override { return "AbilitySystem.GameplayEffects"; }
+	virtual FString GetBeautifiedTestName() const override { return "System.AbilitySystem.GameplayEffects"; }
 	virtual void GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const override
 	{
 		for (const FString& TestName : TestFunctionNames)
