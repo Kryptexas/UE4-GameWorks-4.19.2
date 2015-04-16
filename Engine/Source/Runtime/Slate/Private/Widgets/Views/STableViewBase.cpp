@@ -231,7 +231,7 @@ void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCur
 			PanelGeometryLastTick = PanelGeometry;
 
 			// We never create the ItemsPanel if the user did not specify all the parameters required to successfully make a list.
-			ScrollIntoView( PanelGeometry );
+			const EScrollIntoViewResult ScrollIntoViewResult = ScrollIntoView( PanelGeometry );
 
 			const FReGenerateResults ReGenerateResults = ReGenerateItems( PanelGeometry );
 			LastGenerateResults = ReGenerateResults;
@@ -291,12 +291,20 @@ void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCur
 				ScrollBar->SetState( OffsetFraction, ThumbSizeFraction );
 			}
 
-			NotifyItemScrolledIntoView();
-
-			bWasAtEndOfList = ScrollBar->DistanceFromBottom() < KINDA_SMALL_NUMBER ? true : false;
+			bWasAtEndOfList = (ScrollBar->DistanceFromBottom() < KINDA_SMALL_NUMBER);
 
 			bItemsNeedRefresh = false;
 			ItemsPanel->SetRefreshPending(false);
+
+			if (ScrollIntoViewResult == EScrollIntoViewResult::Deferred)
+			{
+				// We call this rather than just leave bItemsNeedRefresh as true to ensure that EnsureTickToRefresh is registered
+				RequestListRefresh();
+			}
+			else
+			{
+				NotifyItemScrolledIntoView();
+			}
 		}
 	}
 }

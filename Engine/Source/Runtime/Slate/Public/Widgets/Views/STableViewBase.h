@@ -229,12 +229,20 @@ protected:
 	/** @return how many items there are in the TArray being observed */
 	virtual int32 GetNumItemsBeingObserved() const = 0;
 
+	enum class EScrollIntoViewResult
+	{
+		/** The function scrolled an item (if set) into view (or the item was already in view) */
+		Success,
+		/** The function did not have enough data to scroll the given item into view, so it should be deferred until the next Tick */
+		Deferred,
+	};
+
 	/**
 	 * If there is a pending request to scroll an item into view, do so.
 	 * 
 	 * @param ListViewGeometry  The geometry of the listView; can be useful for centering the item.
 	 */
-	virtual void ScrollIntoView(const FGeometry& ListViewGeometry) = 0;
+	virtual EScrollIntoViewResult ScrollIntoView(const FGeometry& ListViewGeometry) = 0;
 
 	/**
 	 * Called when an item has entered the visible geometry to check to see if the ItemScrolledIntoView delegate should be fired.
