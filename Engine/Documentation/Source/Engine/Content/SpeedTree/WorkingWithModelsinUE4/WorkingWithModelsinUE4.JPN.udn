@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2386160
+﻿INTSourceChangelist:2501098
 Availability:Public
 Title:UE4 でモデルを使用して作業する
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Speedtree
@@ -20,7 +20,7 @@ Description:アンリアル エンジン 4 で SpeedTree モデルを使用し�
 
 ### 風
 
-シーンに風を追加します。これは、風方向源オブジェクトを追加することで行います (**Window** -> **class viewer** の順序で選択し、"WindDirectionalSource" を検索し、シーンにドラッグします)。**Speed** プロパティは、デフォルトで 1.0 になります。これは、SpeedTree モデルの最大風とみなされます。この値を 0.1 などのように低くすると穏やかな風で開始します。
+シーンに風を追加します。これは、風方向源オブジェクトを追加することで行います (**Window** -> **Class Viewer** の順序で選択し、"WindDirectionalSource" を検索し、シーンにドラッグします)。**Speed** プロパティは、デフォルトで 1.0 になります。これは、SpeedTree モデルの最大風とみなされます。この値を 0.1 などのように低くすると穏やかな風で開始します。
 
 ### 詳細度 (LOD)
 
