@@ -172,6 +172,7 @@ FGameplayAbilitySpec:: FGameplayAbilitySpec(FGameplayAbilitySpecDef& InDef, FAct
 	, RemoveAfterActivation(false)
 	, PendingRemove(false)
 {
+	Handle.GenerateNewHandle();
 	InDef.AssignedHandle = Handle;
 	GameplayEffectHandle = InGameplayEffectHandle;
 }
