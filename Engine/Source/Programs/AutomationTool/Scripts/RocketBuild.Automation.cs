@@ -740,21 +740,43 @@ namespace Rocket
 			BuildProducts = new List<string>();
 			if(!bp.ParseParam("NoDDC") && bp.ParseParam("WithDDC"))
 			{
+				string EditorExe = CommandUtils.GetEditorCommandletExe(CommandUtils.CmdEnv.LocalRoot, HostPlatform);
+
 				// Delete the output file
-				string OutputFile = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "DerivedDataCache", "Compressed.ddp");
-				CommandUtils.DeleteFile(OutputFile);
+				string OutputPakFile = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "DerivedDataCache", "Compressed.ddp");
+				string OutputTxtFile = Path.ChangeExtension(OutputPakFile, ".txt");
 
 				// Generate DDC for all the non-code projects. We don't necessarily have editor DLLs for the code projects, but they should be the same as their blueprint counterparts.
+				List<string> ProjectPakFiles = new List<string>();
 				foreach(string ProjectName in ProjectNames)
 				{
 					BranchInfo.BranchUProject Project = bp.Branch.FindGameChecked(ProjectName);
 					if(!Project.Properties.bIsCodeBasedProject)
 					{
-						CommandUtils.Log("Running RocketEditor to generate engine DDC data for {0} on {1}", Project.GameName, TargetPlatforms);
-						CommandUtils.DDCCommandlet(Project.FilePath, CommandUtils.GetEditorCommandletExe(CommandUtils.CmdEnv.LocalRoot, HostPlatform), null, TargetPlatforms, "-fill -DDC=CreateInstalledEnginePak -MergePaks");
+						CommandUtils.Log("Generating DDC data for {0} on {1}", Project.GameName, TargetPlatforms);
+						CommandUtils.DDCCommandlet(Project.FilePath, EditorExe, null, TargetPlatforms, "-fill -DDC=CreateInstalledEnginePak -ProjectOnly");
+
+						string ProjectPakFile = CommandUtils.CombinePaths(Path.GetDirectoryName(OutputPakFile), String.Format("Compressed-{0}.ddp", ProjectName));
+						CommandUtils.DeleteFile(ProjectPakFile);
+						CommandUtils.RenameFile(OutputPakFile, ProjectPakFile);
+						BuildProducts.Add(ProjectPakFile);
+
+						string ProjectTxtFile = Path.ChangeExtension(ProjectPakFile, ".txt");
+						CommandUtils.DeleteFile(ProjectTxtFile);
+						CommandUtils.RenameFile(OutputTxtFile, ProjectTxtFile);
+						BuildProducts.Add(ProjectTxtFile);
+
+						ProjectPakFiles.Add(Path.GetFileName(ProjectPakFile));
 					}
 				}
-				BuildProducts.Add(OutputFile);
+
+				// Generate DDC for the editor, and merge all the other PAK files in
+				CommandUtils.Log("Generating DDC data for engine content on {0}", TargetPlatforms);
+				CommandUtils.DDCCommandlet(null, EditorExe, null, TargetPlatforms, "-fill -DDC=CreateInstalledEnginePak " + CommandUtils.MakePathSafeToUseWithCommandLine("-MergePaks=" + String.Join("+", ProjectPakFiles)));
+
+				// Add the final PAK file as output
+				BuildProducts.Add(OutputPakFile);
+				BuildProducts.Add(OutputTxtFile);
 			}
 			SaveRecordOfSuccessAndAddToBuildProducts();
 		}

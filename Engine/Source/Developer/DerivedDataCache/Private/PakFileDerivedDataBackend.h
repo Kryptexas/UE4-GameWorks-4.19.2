@@ -359,20 +359,26 @@ public:
 		// Get all the existing keys
 		TArray<FString> KeyNames;
 		OtherPak->CacheItems.GenerateKeyArray(KeyNames);
-		UE_LOG(LogDerivedDataCache, Display, TEXT("Found %d entries."), KeyNames.Num());
 
-		// Copy them all to the new cache
-		TArray<uint8> Buffer;
-		for(int32 Idx = 0; Idx < KeyNames.Num(); Idx++)
+		// Find all the keys to copy
+		TArray<FString> CopyKeyNames;
+		for(const FString& KeyName : KeyNames)
 		{
-			if(!CachedDataProbablyExists(*KeyNames[Idx]))
+			if(!CachedDataProbablyExists(*KeyName))
 			{
-				Buffer.Reset();
-				if(OtherPak->GetCachedData(*KeyNames[Idx], Buffer))
-				{
-					UE_LOG(LogDerivedDataCache, Display, TEXT("[%d/%d] Copying %s (%d bytes)..."), Idx + 1, KeyNames.Num(), *KeyNames[Idx], Buffer.Num());
-					PutCachedData(*KeyNames[Idx], Buffer, false);
-				}
+				CopyKeyNames.Add(KeyName);
+			}
+		}
+		UE_LOG(LogDerivedDataCache, Display, TEXT("Merging %d entries (%d skipped)."), CopyKeyNames.Num(), KeyNames.Num() - CopyKeyNames.Num());
+
+		// Copy them all to the new cache. Don't use the overloaded get/put methods (which may compress/decompress); copy the raw data directly.
+		TArray<uint8> Buffer;
+		for(const FString& CopyKeyName : CopyKeyNames)
+		{
+			Buffer.Reset();
+			if(OtherPak->FPakFileDerivedDataBackend::GetCachedData(*CopyKeyName, Buffer))
+			{
+				FPakFileDerivedDataBackend::PutCachedData(*CopyKeyName, Buffer, false);
 			}
 		}
 	}
@@ -404,6 +410,14 @@ public:
 			InputPak.GetCachedData(*KeyNames[KeyIndex], Buffer);
 			OutputPak.PutCachedData(*KeyNames[KeyIndex], Buffer, false);
 		}
+
+		// Write out a TOC listing for debugging
+		FStringOutputDevice Output;
+		for(int KeyIndex = 0; KeyIndex < KeyNames.Num(); KeyIndex++)
+		{
+			Output.Logf(TEXT("%s") LINE_TERMINATOR, *KeyNames[KeyIndex]);
+		}
+		FFileHelper::SaveStringToFile(Output, *FPaths::Combine(*FPaths::GetPath(OutputFilename), *(FPaths::GetBaseFilename(OutputFilename) + TEXT(".txt"))));
 		return true;
 	}
 
