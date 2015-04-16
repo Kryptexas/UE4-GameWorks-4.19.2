@@ -1499,6 +1499,11 @@ public class GUBP : BuildCommand
 			}
 			else
 			{
+				if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux && bp.HostPlatforms[0] != UnrealTargetPlatform.Linux)
+				{
+					throw new AutomationException("Linux is not (yet?) able to cross-compile nodes for platform {0}, did you forget -NoPC / -NoMac?", bp.HostPlatforms[0]);
+				}
+
 				return bp.HostPlatforms[0];
 			}
 		}
