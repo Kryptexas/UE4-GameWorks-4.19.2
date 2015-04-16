@@ -256,16 +256,39 @@ bool UCSVImportFactory::Reimport( UObject* Obj, const FString& Path )
 
 TArray<FString> UCSVImportFactory::DoImportDataTable(UDataTable* TargetDataTable, const FString& DataToImport)
 {
+	// Are we importing JSON data?
+	const bool bIsJSON = CurrentFilename.EndsWith(TEXT(".json"));
+	if (bIsJSON)
+	{
+		return TargetDataTable->CreateTableFromJSONString(DataToImport);
+	}
+
 	return TargetDataTable->CreateTableFromCSVString(DataToImport);
 }
 
 TArray<FString> UCSVImportFactory::DoImportCurveTable(UCurveTable* TargetCurveTable, const FString& DataToImport, const ERichCurveInterpMode ImportCurveInterpMode)
 {
+	// Are we importing JSON data?
+	const bool bIsJSON = CurrentFilename.EndsWith(TEXT(".json"));
+	if (bIsJSON)
+	{
+		return TargetCurveTable->CreateTableFromJSONString(DataToImport, ImportCurveInterpMode);
+	}
+
 	return TargetCurveTable->CreateTableFromCSVString(DataToImport, ImportCurveInterpMode);
 }
 
 TArray<FString> UCSVImportFactory::DoImportCurve(UCurveBase* TargetCurve, const FString& DataToImport)
 {
+	// Are we importing JSON data?
+	const bool bIsJSON = CurrentFilename.EndsWith(TEXT(".json"));
+	if (bIsJSON)
+	{
+		TArray<FString> Result;
+		Result.Add(LOCTEXT("Error_CannotImportCurveFromJSON", "Cannot import a curve from JSON. Please use CSV instead.").ToString());
+		return Result;
+	}
+
 	return TargetCurve->CreateCurveFromCSVString(DataToImport);
 }
 
@@ -314,24 +337,12 @@ int32 UReimportDataTableFactory::GetPriority() const
 	return ImportPriority;
 }
 
-TArray<FString> UReimportDataTableFactory::DoImportDataTable(UDataTable* TargetDataTable, const FString& DataToImport)
-{
-	// Are we importing JSON data?
-	const bool bIsJSON = CurrentFilename.EndsWith(TEXT(".json"));
-	if (bIsJSON)
-	{
-		return TargetDataTable->CreateTableFromJSONString(DataToImport);
-	}
-
-	// Fallback to CSV
-	return UCSVImportFactory::DoImportDataTable(TargetDataTable, DataToImport);
-}
-
 ////////////////////////////////////////////////////////////////////////////
 //
 UReimportCurveTableFactory::UReimportCurveTableFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	Formats.Add(TEXT("json;JavaScript Object Notation"));
 }
 
 bool UReimportCurveTableFactory::CanReimport( UObject* Obj, TArray<FString>& OutFilenames )

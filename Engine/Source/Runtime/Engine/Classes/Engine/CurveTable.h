@@ -63,7 +63,10 @@ class UCurveTable
 	}
 
 	/** Output entire contents of table as a string */
-	ENGINE_API FString GetTableAsString();
+	ENGINE_API FString GetTableAsString() const;
+
+	/** Output entire contents of table as CSV */
+	ENGINE_API FString GetTableAsCSV() const;
 
 	/** Output entire contents of table as JSON */
 	ENGINE_API FString GetTableAsJSON() const;
@@ -79,6 +82,15 @@ class UCurveTable
 	 *	@return	Set of problems encountered while processing input
 	 */
 	ENGINE_API TArray<FString> CreateTableFromCSVString(const FString& InString, ERichCurveInterpMode InterpMode = RCIM_Linear);
+
+	/** 
+	 *	Create table from JSON string. 
+	 *	RowCurve must be defined before calling this function. 
+	 *  @param InString The string representing the CurveTable
+	 *  @param InterpMode The mode of interpolation to use for the curves
+	 *	@return	Set of problems encountered while processing input
+	 */
+	ENGINE_API TArray<FString> CreateTableFromJSONString(const FString& InString, ERichCurveInterpMode InterpMode = RCIM_Linear);
 
 	/** Empty the table info (will not clear RowCurve) */
 	ENGINE_API void EmptyTable();
