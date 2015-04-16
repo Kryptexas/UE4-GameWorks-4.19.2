@@ -1068,8 +1068,10 @@ bool FSlateRHIRenderer::GenerateDynamicImageResource( FName ResourceName, uint32
  */
 void FSlateRHIRenderer::FlushCommands() const
 {
-	check(!IsInSlateThread());
-	FlushRenderingCommands();
+	if( IsInGameThread() )
+	{
+		FlushRenderingCommands();
+	}
 }
 
 /**
