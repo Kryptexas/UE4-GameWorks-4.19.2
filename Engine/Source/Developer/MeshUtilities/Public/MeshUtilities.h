@@ -221,7 +221,8 @@ public:
 		const FMeshMergingSettings& InSettings,
 		const FString& PackageName, 
 		TArray<UObject*>& OutAssetsToSync, 
-		FVector& OutMergedActorLocation) const = 0;
+		FVector& OutMergedActorLocation, 
+		bool bSilent=false) const = 0;
 	
 	/**
 	 *	Merges list of actors into single proxy mesh

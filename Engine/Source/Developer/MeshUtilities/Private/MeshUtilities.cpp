@@ -134,7 +134,8 @@ private:
 		const FString& PackageName,
 		TArray<UObject*>& 
 		OutAssetsToSync, 
-		FVector& OutMergedActorLocation) const override;
+		FVector& OutMergedActorLocation, 
+		bool bSilent=false) const override;
 	
 	virtual void CreateProxyMesh( 
 		const TArray<AActor*>& Actors, 
@@ -4120,7 +4121,8 @@ void FMeshUtilities::MergeActors(
 	const FMeshMergingSettings& InSettings, 
 	const FString& InPackageName, 
 	TArray<UObject*>& OutAssetsToSync, 
-	FVector& OutMergedActorLocation) const
+	FVector& OutMergedActorLocation, 
+	bool bSilent) const
 {
 	TArray<UStaticMeshComponent*> ComponentsToMerge;
 	ComponentsToMerge.Reserve(SourceActors.Num());
@@ -4381,7 +4383,7 @@ void FMeshUtilities::MergeActors(
 			StaticMesh->Materials.Add(Material);
 		}
 		
-		StaticMesh->Build();
+		StaticMesh->Build(bSilent);
 		StaticMesh->PostEditChange();
 
 		OutAssetsToSync.Add(StaticMesh);

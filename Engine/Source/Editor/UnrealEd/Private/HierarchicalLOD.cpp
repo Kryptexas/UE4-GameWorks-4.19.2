@@ -117,7 +117,11 @@ void FHierarchicalLODBuilder::BuildClusters(class ULevel* InLevel)
 		{
 			for (auto& Asset: LodActor->SubObjects)
 			{
-				AssetsToDelete.Add(Asset);
+				// @TOOD: This is not permanent fix
+				if (Asset)
+				{
+					AssetsToDelete.Add(Asset);
+				}
 			}
 			World->DestroyActor(LodActor);
 		}
@@ -265,7 +269,7 @@ void FHierarchicalLODBuilder::MergeClusters(class ULevel* InLevel, const int32 L
 		{
 			if(Cluster.IsValid())
 			{
-				GWarn->StatusUpdate(Index, TotalValidCluster, LOCTEXT("HierarchicalLOD_BuildActor", "Building Actor"));
+				GWarn->StatusForceUpdate(Index, TotalValidCluster, LOCTEXT("HierarchicalLOD_BuildActor", "Building Actor"));
 				UE_LOG(LogLODGenerator, Log, TEXT("%d. %0.2f (%s)"), ++Index, Cluster.GetCost(), *Cluster.ToString());
 				if (bBuildActor)
 				{
@@ -577,7 +581,7 @@ void FLODCluster::BuildActor(class UWorld* InWorld, class ULevel* InLevel, const
 				else
 				{
 					FMeshMergingSettings MergeSetting;
-					MeshUtilities.MergeActors(Actors, MergeSetting, AssetsPath, OutAssets, OutProxyLocation );
+					MeshUtilities.MergeActors(Actors, MergeSetting, AssetsPath, OutAssets, OutProxyLocation, true );
 				}
 
 				UStaticMesh* MainMesh=NULL;
