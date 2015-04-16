@@ -5620,7 +5620,10 @@ FString FBlueprintEditor::GetDocLinkForSelectedNode()
 			FString DocLink = SelectedGraphNode->GetDocumentationLink();
 			FString DocExcerpt = SelectedGraphNode->GetDocumentationExcerptName();
 
-			DocumentationLink = FEditorClassUtils::GetDocumentationLinkFromExcerpt(DocLink, DocExcerpt);
+			if (!DocLink.IsEmpty() && !DocExcerpt.IsEmpty())
+			{
+				DocumentationLink = FEditorClassUtils::GetDocumentationLinkFromExcerpt(DocLink, DocExcerpt);
+			}
 		}
 	}
 
