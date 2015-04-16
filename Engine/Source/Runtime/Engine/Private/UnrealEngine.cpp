@@ -8955,6 +8955,14 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 			}
 		}
 
+		for (TObjectIterator<UObject> It(RF_PendingKill); It; ++It)
+		{
+			if (It->GetTypedOuter<UWorld>())
+			{
+				break;
+			}
+		}
+
 		// Stop all audio to remove references to current level.
 		if (FAudioDevice* AudioDevice = WorldContext.World()->GetAudioDevice())
 		{
