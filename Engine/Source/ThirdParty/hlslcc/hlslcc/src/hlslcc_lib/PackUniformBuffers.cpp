@@ -1357,6 +1357,9 @@ struct SSamplerNameVisitor : public ir_rvalue_visitor
 					SamplerToTextureMap[SamplerStateVar->name].insert(SamplerVar->name);
 					TextureToSamplerMap[SamplerVar->name].insert(SamplerStateVar->name);
 
+					check(SamplerStateVar->name);
+					TextureIR->SamplerStateName = SamplerStateVar->name;
+
 					// Remove the reference to the hlsl sampler
 					ralloc_free(TextureIR->SamplerState);
 					TextureIR->SamplerState = NULL;

@@ -2393,6 +2393,11 @@ struct _mesa_glsl_parse_state *state)
 		if (SamplerStateDeRef)
 		{
 			texop->SamplerState = SamplerStateDeRef->clone(ctx, NULL);
+			auto* VarDeRef = SamplerStateDeRef->as_dereference_variable();
+			if (VarDeRef && VarDeRef->var && VarDeRef->var->name)
+			{
+				texop->SamplerStateName = VarDeRef->var->name;
+			}
 		}
 
 		// txs sets its own return type. Which is void, so it doesn't need to be converted.

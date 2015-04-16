@@ -603,6 +603,25 @@ static void BuildMetalShaderOutput(
 		}
 	}
 
+	if (FCStringAnsi::Strncmp(ShaderSource, SamplerStatesPrefix, SamplerStatesPrefixLen) == 0)
+	{
+		ShaderSource += SamplerStatesPrefixLen;
+		while (*ShaderSource && *ShaderSource != '\n')
+		{
+			int32 Index = ParseNumber(ShaderSource);
+			verify(Match(ShaderSource, ':'));
+			FString SamplerState = ParseIdentifier(ShaderSource);
+
+			if (Match(ShaderSource, '\n'))
+			{
+				break;
+			}
+
+			// Skip the comma.
+			verify(Match(ShaderSource, ','));
+		}
+	}
+
 	if (FCStringAnsi::Strncmp(ShaderSource, NumThreadsPrefix, NumThreadsPrefixLen) == 0)
 	{
 		ShaderSource += NumThreadsPrefixLen;

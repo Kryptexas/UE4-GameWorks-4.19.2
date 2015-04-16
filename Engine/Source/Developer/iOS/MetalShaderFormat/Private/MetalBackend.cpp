@@ -789,15 +789,12 @@ protected:
 							if (SamplerStateFound != ParseState->TextureToSamplerMap.end())
 							{
 								auto& SamplerStates = SamplerStateFound->second;
-								if (SamplerStates.size() == 1)
+								for (auto& SamplerState : SamplerStates)
 								{
+									int32 SamplerStateIndex = Buffers.GetUniqueSamplerStateIndex(SamplerState, true);
 									ralloc_asprintf_append(
 										buffer,
-										"sampler s%d [[ sampler(%d) ]], ", Entry->offset, Entry->offset);
-								}
-								else
-								{
-									check(SamplerStates.empty());
+										"sampler s%d [[ sampler(%d) ]], ",  SamplerStateIndex, SamplerStateIndex);
 								}
 							}
 
@@ -1123,7 +1120,9 @@ protected:
 			auto* Texture = tex->sampler->variable_referenced();
 			check(Texture);
 			auto* Entry = ParseState->FindPackedSamplerEntry(Texture->name);
-			ralloc_asprintf_append(buffer, "s%d, ", Entry->offset);
+			int32 SamplerStateIndex = Buffers.GetUniqueSamplerStateIndex(tex->SamplerStateName, false);
+			check(SamplerStateIndex != INDEX_NONE);
+			ralloc_asprintf_append(buffer, "s%d, ", SamplerStateIndex);
 			if (tex->sampler->type->sampler_array)
 			{
 				// Need to split the coordinate
@@ -2541,6 +2540,16 @@ protected:
 				print_extern_vars(state, &image_variables);
 				ralloc_asprintf_append(buffer, "\n");
 			}
+		}
+
+		if (Buffers.UniqueSamplerStates.Num() > 0)
+		{
+			ralloc_asprintf_append(buffer, "// @SamplerStates: ");
+			for (int32 Index = 0; Index < Buffers.UniqueSamplerStates.Num(); ++Index)
+			{
+				ralloc_asprintf_append(buffer, "%s%d:%s", Index > 0 ? "," : "", Index, Buffers.UniqueSamplerStates[Index].c_str());
+			}
+			ralloc_asprintf_append(buffer, "\n");
 		}
 
 		if (Frequency == compute_shader)

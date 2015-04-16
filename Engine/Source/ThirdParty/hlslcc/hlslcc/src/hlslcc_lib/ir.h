@@ -1545,7 +1545,7 @@ public:
 	ir_texture(enum ir_texture_opcode op, const SSourceLocation& InSourceLocation)
 		: op(op), sampler(nullptr), coordinate(nullptr), 
 		projector(nullptr), shadow_comparitor(nullptr), offset(nullptr),
-		channel(ir_channel_none), SamplerState(nullptr)
+		channel(ir_channel_none), SamplerState(nullptr), SamplerStateName("")
 	{
 		SourceLocation = InSourceLocation;
 		this->ir_type = ir_type_texture;
@@ -1626,6 +1626,7 @@ public:
 	ir_texture_channel channel;
 
 	// HLSL-only
+	std::string SamplerStateName;
 	ir_rvalue* SamplerState;
 };
 
