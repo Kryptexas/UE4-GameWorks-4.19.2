@@ -699,7 +699,7 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
-	if( !GRenderingRealtimeClock.GetGamePaused() )
+	if( !View.Family->bWorldIsPaused )
 	{
 		ViewState->TemporalAAHistoryRT = PassOutputs[0].PooledRenderTarget;
 		check( ViewState->TemporalAAHistoryRT );

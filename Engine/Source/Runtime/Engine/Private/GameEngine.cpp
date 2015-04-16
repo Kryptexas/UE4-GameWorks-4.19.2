@@ -930,16 +930,6 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			}
 		}
 
-		// tell renderer about GWorld->IsPaused(), before rendering
-		{
-			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-				SetPaused,
-				bool, bGamePaused, Context.World()->IsPaused(),
-			{
-				GRenderingRealtimeClock.SetGamePaused(bGamePaused);
-			});
-		}
-
 		if (!bIdleMode && !IsRunningDedicatedServer() && !IsRunningCommandlet())
 		{
 			// Render everything.

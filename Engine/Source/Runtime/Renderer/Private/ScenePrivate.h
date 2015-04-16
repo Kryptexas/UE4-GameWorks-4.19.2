@@ -552,7 +552,7 @@ public:
 	}
 
 	// @param SampleCount 0 or 1 for no TemporalAA 
-	void SetupTemporalAA(uint32 SampleCount)
+	void SetupTemporalAA(uint32 SampleCount, const FSceneViewFamily& Family)
 	{
 		if(!SampleCount)
 		{
@@ -561,7 +561,7 @@ public:
 
 		TemporalAASampleCount = FMath::Min(SampleCount, (uint32)255);
 		
-		if( !GRenderingRealtimeClock.GetGamePaused() )
+		if (!Family.bWorldIsPaused)
 		{
 			TemporalAASampleIndex++;
 		}

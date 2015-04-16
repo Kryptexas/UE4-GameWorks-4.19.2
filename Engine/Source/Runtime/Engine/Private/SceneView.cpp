@@ -1473,6 +1473,7 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 	bRealtimeUpdate(CVS.bRealtimeUpdate),
 	bDeferClear(CVS.bDeferClear),
 	bResolveScene(CVS.bResolveScene),
+	bWorldIsPaused(false),
 	GammaCorrection(CVS.GammaCorrection)
 {
 	// If we do not pass a valid scene pointer then SetWorldTimes must be called to initialized with valid times.
@@ -1497,11 +1498,21 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 
 	// instead of checking IsGameWorld on rendering thread to see if we allow this flag to be disabled 
 	// we force it on in the game thread.
-	if(IsInGameThread())
+	if(IsInGameThread() && Scene)
 	{
-		if ( Scene && Scene->GetWorld() && Scene->GetWorld()->IsGameWorld() )
+		UWorld* World = Scene->GetWorld();
+
+		if (World)
 		{
-			EngineShowFlags.LOD = 1;
+			if (World->IsGameWorld())
+			{
+				EngineShowFlags.LOD = 1;
+			}
+
+			if (World->IsPaused())
+			{
+				bWorldIsPaused = true;
+			}
 		}
 	}
 

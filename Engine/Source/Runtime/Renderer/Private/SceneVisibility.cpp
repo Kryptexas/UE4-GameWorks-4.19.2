@@ -1678,7 +1678,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 						float SamplesX[] = { -8.0f/16.0f, 0.0/16.0f };
 						float SamplesY[] = { /* - */ 0.0f/16.0f, 8.0/16.0f };
 					#endif
-					ViewState->SetupTemporalAA(ARRAY_COUNT(SamplesX));
+					ViewState->SetupTemporalAA(ARRAY_COUNT(SamplesX), ViewFamily);
 					uint32 Index = ViewState->GetCurrentTemporalAASampleIndex();
 					SampleX = SamplesX[ Index ];
 					SampleY = SamplesY[ Index ];
@@ -1692,7 +1692,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 					// Rolling circle pattern (A,B,C).
 					float SamplesX[] = { -2.0f/3.0f,  2.0/3.0f,  0.0/3.0f };
 					float SamplesY[] = { -2.0f/3.0f,  0.0/3.0f,  2.0/3.0f };
-					ViewState->SetupTemporalAA(ARRAY_COUNT(SamplesX));
+					ViewState->SetupTemporalAA(ARRAY_COUNT(SamplesX), ViewFamily);
 					uint32 Index = ViewState->GetCurrentTemporalAASampleIndex();
 					SampleX = SamplesX[ Index ];
 					SampleY = SamplesY[ Index ];
@@ -1708,7 +1708,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 					// Rolling circle pattern (N,E,S,W).
 					float SamplesX[] = { -2.0f/16.0f,  6.0/16.0f, 2.0/16.0f, -6.0/16.0f };
 					float SamplesY[] = { -6.0f/16.0f, -2.0/16.0f, 6.0/16.0f,  2.0/16.0f };
-					ViewState->SetupTemporalAA(ARRAY_COUNT(SamplesX));
+					ViewState->SetupTemporalAA(ARRAY_COUNT(SamplesX), ViewFamily);
 					uint32 Index = ViewState->GetCurrentTemporalAASampleIndex();
 					SampleX = SamplesX[ Index ];
 					SampleY = SamplesY[ Index ];
@@ -1723,7 +1723,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 					// Rolling circle pattern (N,E,S,W).
 					float SamplesX[] = {  0.0f/2.0f,  1.0/2.0f,  0.0/2.0f, -1.0/2.0f };
 					float SamplesY[] = { -1.0f/2.0f,  0.0/2.0f,  1.0/2.0f,  0.0/2.0f };
-					ViewState->SetupTemporalAA(ARRAY_COUNT(SamplesX));
+					ViewState->SetupTemporalAA(ARRAY_COUNT(SamplesX), ViewFamily);
 					uint32 Index = ViewState->GetCurrentTemporalAASampleIndex();
 					SampleX = SamplesX[ Index ];
 					SampleY = SamplesY[ Index ];
@@ -1731,7 +1731,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 				else if( TemporalAASamples == 8 )
 				{
 					// This works better than various orderings of 8xMSAA.
-					ViewState->SetupTemporalAA(8);
+					ViewState->SetupTemporalAA(8, ViewFamily);
 					uint32 Index = ViewState->GetCurrentTemporalAASampleIndex();
 					SampleX = Halton( Index, 2 ) - 0.5f;
 					SampleY = Halton( Index, 3 ) - 0.5f;
@@ -1739,7 +1739,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 				else
 				{
 					// More than 8 samples can improve quality.
-					ViewState->SetupTemporalAA(TemporalAASamples);
+					ViewState->SetupTemporalAA(TemporalAASamples, ViewFamily);
 					uint32 Index = ViewState->GetCurrentTemporalAASampleIndex();
 					SampleX = Halton( Index, 2 ) - 0.5f;
 					SampleY = Halton( Index, 3 ) - 0.5f;
@@ -1769,7 +1769,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 		else if(ViewState)
 		{
 			// no TemporalAA
-			ViewState->SetupTemporalAA(1);
+			ViewState->SetupTemporalAA(1, ViewFamily);
 		}
 
 		if ( ViewState )
@@ -1825,7 +1825,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 					ViewState->PrevViewMatrices = ViewState->PendingPrevViewMatrices;
 
 					// check for pause so we can keep motion blur in paused mode (doesn't work in editor)
-					if(!GRenderingRealtimeClock.GetGamePaused())
+					if(!ViewFamily.bWorldIsPaused)
 					{
 						// pending is needed as we are in init view and still need to render.
 						ViewState->PendingPrevViewMatrices = View.ViewMatrices;
@@ -1833,7 +1833,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 				}
 				// we don't use DeltaTime as it can be 0 (in editor) and is computed by subtracting floats (loses precision over time)
 				// Clamp DeltaWorldTime to reasonable values for the purposes of motion blur, things like TimeDilation can make it very small
-				if(!GRenderingRealtimeClock.GetGamePaused())
+				if (!ViewFamily.bWorldIsPaused)
 				{
 					ViewState->MotionBlurTimeScale			= bEnableTimeScale ? (1.0f / (FMath::Max(View.Family->DeltaWorldTime, .00833f) * 30.0f)) : 1.0f;
 				}
@@ -2347,7 +2347,7 @@ void FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 		InitDynamicShadows(RHICmdList);
 	}
 
-	if(ViewFamily.EngineShowFlags.MotionBlur && GRenderingRealtimeClock.GetGamePaused())
+	if(ViewFamily.EngineShowFlags.MotionBlur && ViewFamily.bWorldIsPaused)
 	{
 		// so we can keep motion blur in paused mode
 

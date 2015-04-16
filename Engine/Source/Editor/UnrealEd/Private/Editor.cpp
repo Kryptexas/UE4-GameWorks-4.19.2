@@ -1450,16 +1450,6 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Commit changes to the BSP model.
 	EditorContext.World()->CommitModelSurfaces();
 	EditorContext.World()->SendAllEndOfFrameUpdates();
-	
-	{
-		// tell renderer about EditorContext.World()->IsPaused(), before rendering
-		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-			SetPaused,
-			bool, bGamePaused, EditorContext.World()->IsPaused(),
-		{
-			GRenderingRealtimeClock.SetGamePaused(bGamePaused);
-		});
-	}
 
 	bool bUpdateLinkedOrthoViewports = false;
 	/////////////////////////////
