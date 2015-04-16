@@ -106,7 +106,6 @@ const TCHAR* UTextProperty::ImportText_Internal( const TCHAR* Buffer, void* Data
 		BufferAsString = FString(Temp);
 	}
 
-	FScopedTextIdentityPreserver Preserver(*Text);
 	*Text = FText::FromString(FString(BufferAsString));
 
 	return Buffer;
