@@ -149,7 +149,9 @@ void UWorld::Serialize( FArchive& Ar )
 
 	if (Ar.UE4Ver() < VER_UE4_ADD_EDITOR_VIEWS)
 	{
+#if WITH_EDITOR
 		EditorViews.SetNum(4);
+#endif
 		for (int32 i = 0; i < 4; ++i)
 		{
 			FLevelViewportInfo TempViewportInfo;

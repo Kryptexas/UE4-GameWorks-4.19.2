@@ -18,6 +18,7 @@
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/GameMode.h"
 #include "GameFramework/PlayerInput.h"
+#include "GameFramework/InputSettings.h"
 #include "Components/BrushComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCheatManager, Log, All);
