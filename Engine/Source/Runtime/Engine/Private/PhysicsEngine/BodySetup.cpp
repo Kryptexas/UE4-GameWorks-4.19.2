@@ -585,9 +585,11 @@ private:
 
 	PxShape* AttachShape(const PxGeometry& PGeom, const PxMaterial& PMaterial, const PxTransform& PLocalPose, const float ContactOffset, PxShapeFlags PShapeFlags = PxShapeFlag::eVISUALIZATION | PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eSIMULATION_SHAPE) const
 	{
-		PxShape* PNewShape = PDestActor->createShape(PGeom, *PMaterial, PLocalPose, PShapeFlags);
+		PxShape* PNewShape = PDestActor->createShape(PGeom, PMaterial, PShapeFlags);
 		if (PNewShape)
 		{
+			PNewShape->setLocalPose(PLocalPose);
+
 			if (NewShapes)
 			{
 				NewShapes->Add(PNewShape);
