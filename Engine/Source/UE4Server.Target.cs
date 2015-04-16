@@ -32,6 +32,11 @@ public class UE4ServerTarget : TargetRules
     {
     }
 
+	public override bool ShouldUseSharedBuildEnvironment(TargetInfo Target)
+	{
+		return true;
+	}
+
 	public override bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
 	{
 		// It is valid for only server platforms

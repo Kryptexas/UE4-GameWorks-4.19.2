@@ -27,6 +27,11 @@ public class UE4EditorTarget : TargetRules
 	{
 	}
 
+	public override bool ShouldUseSharedBuildEnvironment(TargetInfo Target)
+	{
+		return true;
+	}
+
 	public override void GetModulesToPrecompile(TargetInfo Target, List<string> ModuleNames)
 	{
 		ModuleNames.Add("Launch");

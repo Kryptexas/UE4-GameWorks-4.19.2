@@ -658,7 +658,7 @@ namespace UnrealBuildTool.IOS
 
 		public override bool PrepTargetForDeployment(UEBuildTarget InTarget)
 		{
-			string GameName = InTarget.AppName;
+			string GameName = InTarget.TargetName;
 			string BuildPath = (GameName == "UE4Game" ? "../../Engine" : InTarget.ProjectDirectory) + "/Binaries/IOS";
 			string ProjectDirectory = InTarget.ProjectDirectory;
 			bool bIsUE4Game = GameName.Contains("UE4Game");

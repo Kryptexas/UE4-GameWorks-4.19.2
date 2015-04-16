@@ -11,7 +11,7 @@ namespace UnrealBuildTool
 	public class UEBuildGame : UEBuildTarget
 	{
 		public UEBuildGame(TargetDescriptor InDesc, TargetRules InRulesObject)
-			: base(GetDefaultAppName(InDesc, InRulesObject, ""), InDesc, InRulesObject)
+			: base(InDesc, InRulesObject, "UE4")
 		{
 			if (ShouldCompileMonolithic())
 			{

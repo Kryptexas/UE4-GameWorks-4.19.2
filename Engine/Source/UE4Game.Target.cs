@@ -52,6 +52,11 @@ public class UE4GameTarget : TargetRules
 		}
 	}
 
+	public override bool ShouldUseSharedBuildEnvironment(TargetInfo Target)
+	{
+		return true;
+	}
+
 	public override void GetModulesToPrecompile(TargetInfo Target, List<string> ModuleNames)
 	{
 		// Add all the precompiled modules for this target

@@ -33,6 +33,11 @@ public class UE4ClientTarget : TargetRules
     {
     }
 
+	public override bool ShouldUseSharedBuildEnvironment(TargetInfo Target)
+	{
+		return true;
+	}
+
     public override List<UnrealTargetPlatform> GUBP_GetPlatforms_MonolithicOnly(UnrealTargetPlatform HostPlatform)
     {
 		List<UnrealTargetPlatform> Platforms = null;

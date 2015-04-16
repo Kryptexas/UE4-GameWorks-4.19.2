@@ -11,7 +11,7 @@ namespace UnrealBuildTool
     public class UEBuildClient : UEBuildTarget
 	{
 		public UEBuildClient(TargetDescriptor InDesc, TargetRules InRulesObject)
-            : base(GetDefaultAppName(InDesc, InRulesObject, "Client"), InDesc, InRulesObject)
+            : base(InDesc, InRulesObject, "UE4Client")
         {
             if (ShouldCompileMonolithic())
             {

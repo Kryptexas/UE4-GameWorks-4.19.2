@@ -663,11 +663,10 @@ namespace UnrealBuildTool
 		{
 		}
 
-
 		/// <summary>
 		/// Setup the global environment for building this target
-		/// IMPORTANT: Game targets will *not* have this function called unless they are built as monolithic targets.
-		/// This is due to non-monolithic games generating a shared executable.
+		/// IMPORTANT: Game targets will *not* have this function called if they use the shared build environment.
+		/// See ShouldUseSharedBuildEnvironment().
 		/// </summary>
 		/// <param name="Target">The target information - such as platform and configuration</param>
 		/// <param name="OutLinkEnvironmentConfiguration">Output link environment settings</param>
@@ -678,6 +677,18 @@ namespace UnrealBuildTool
 			ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
 			)
 		{
+		}
+
+		/// <summary>
+		/// Allows a target to choose whether to use the shared build environment for a given configuration. Using
+		/// the shared build environment allows binaries to be reused between targets, but prevents customizing the
+		/// compile environment through SetupGlobalEnvironment().
+		/// </summary>
+		/// <param name="Target">Information about the target</param>
+		/// <returns>True if the target should use the shared build environment</returns>
+		public virtual bool ShouldUseSharedBuildEnvironment(TargetInfo Target)
+		{
+			return UnrealBuildTool.RunningRocket() || (Target.Type != TargetType.Program && !Target.IsMonolithic);
 		}
 
 		/// <summary>
@@ -1425,6 +1436,39 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="ModuleName">Name of the module</param>
 		/// <param name="Target">Information about the target associated with this module</param>
+		/// <param name="Rules">Output </param>
+		/// <returns>Compiled module rule info</returns>
+		public static bool TryCreateModuleRules( string ModuleName, TargetInfo Target, out ModuleRules Rules )
+		{
+			if(GetModuleFilename( ModuleName ) == null)
+			{
+				Rules = null;
+				return false;
+			}
+			else
+			{
+				Rules = CreateModuleRules( ModuleName, Target );
+				return true;
+			}
+		}
+
+		/// <summary>
+		/// Creates an instance of a module rules descriptor object for the specified module name
+		/// </summary>
+		/// <param name="ModuleName">Name of the module</param>
+		/// <param name="Target">Information about the target associated with this module</param>
+		/// <returns>Compiled module rule info</returns>
+		public static ModuleRules CreateModuleRules( string ModuleName, TargetInfo Target )
+		{
+			string ModuleFileName;
+			return CreateModuleRules(ModuleName, Target, out ModuleFileName);
+		}
+
+		/// <summary>
+		/// Creates an instance of a module rules descriptor object for the specified module name
+		/// </summary>
+		/// <param name="ModuleName">Name of the module</param>
+		/// <param name="Target">Information about the target associated with this module</param>
 		/// <param name="ModuleFileName">The original source file name for the Module.cs file for this module</param>
 		/// <returns>Compiled module rule info</returns>
 		public static ModuleRules CreateModuleRules( string ModuleName, TargetInfo Target, out string ModuleFileName )
@@ -1891,7 +1935,7 @@ namespace UnrealBuildTool
 					BuildTarget = new UEBuildServer(Desc, RulesObject);
 					break;
 				case TargetRules.TargetType.Program:
-					BuildTarget = new UEBuildTarget(Desc.TargetName, Desc, RulesObject);
+					BuildTarget = new UEBuildTarget(Desc, RulesObject, null);
 					break;
 			}
 

@@ -11,7 +11,7 @@ namespace UnrealBuildTool
 	public class UEBuildEditor : UEBuildTarget
 	{
 		public UEBuildEditor(TargetDescriptor InDesc, TargetRules InRulesObject)
-			: base(GetDefaultAppName(InDesc, InRulesObject, "Editor"), InDesc, InRulesObject)
+			: base(InDesc, InRulesObject, "UE4Editor")
 		{
 		}
 

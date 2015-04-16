@@ -11,7 +11,7 @@ namespace UnrealBuildTool
 	public class UEBuildServer : UEBuildTarget
 	{
 		public UEBuildServer(TargetDescriptor InDesc, TargetRules InRulesObject)
-			: base(GetDefaultAppName(InDesc, InRulesObject, "Server"), InDesc, InRulesObject)
+			: base(InDesc, InRulesObject, "UE4Server")
 		{
 		}
 
