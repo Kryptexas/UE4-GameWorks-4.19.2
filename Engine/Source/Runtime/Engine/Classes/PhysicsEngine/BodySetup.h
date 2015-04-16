@@ -227,13 +227,8 @@ public:
 	 *   Add the shapes defined by this body setup to the supplied PxRigidBody. 
 	 */
 	ENGINE_API void AddShapesToRigidActor_AssumesLocked(FBodyInstance* OwningInstance, physx::PxRigidActor* PDestActor, EPhysicsSceneType SceneType, FVector& Scale3D, physx::PxMaterial* SimpleMaterial, TArray<UPhysicalMaterial*>& ComplexMaterials, FShapeData& ShapeData, const FTransform& RelativeTM = FTransform::Identity, TArray<physx::PxShape*>* NewShapes = NULL);
-
-private:
-	void AddSpheresToRigidActor_AssumesLocked(physx::PxRigidActor* PDestActor, const FTransform& RelativeTM, float MinScale, float MinScaleAbs, TArray<physx::PxShape*>* NewShapes) const;
-	void AddBoxesToRigidActor_AssumesLocked(physx::PxRigidActor* PDestActor, const FTransform& RelativeTM, const FVector& Scale3D, const FVector& Scale3DAbs, TArray<physx::PxShape*>* NewShapes) const;
-	void AddSphylsToRigidActor_AssumesLocked(physx::PxRigidActor* PDestActor, const FTransform& RelativeTM, const FVector& Scale3D, const FVector& Scale3DAbs, TArray<physx::PxShape*>* NewShapes) const;
-	void AddConvexElemsToRigidActor_AssumesLocked(physx::PxRigidActor* PDestActor, const FTransform& RelativeTM, const FVector& Scale3D, const FVector& Scale3DAbs, TArray<physx::PxShape*>* NewShapes) const;
-	void AddTriMeshToRigidActor_AssumesLocked(physx::PxRigidActor* PDestActor, const FVector& Scale3D, const FVector& Scale3DAbs, TArray<physx::PxShape*>* NewShapes) const;
 #endif // WITH_PHYSX
+
+	friend struct FAddShapesHelper;
 
 };
