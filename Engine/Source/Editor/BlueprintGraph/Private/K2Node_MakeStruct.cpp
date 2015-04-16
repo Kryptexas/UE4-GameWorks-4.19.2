@@ -78,10 +78,31 @@ void UK2Node_MakeStruct::FMakeStructPinManager::CustomizePinData(UEdGraphPin* Pi
 	}
 }
 
-bool UK2Node_MakeStruct::FMakeStructPinManager::CanTreatPropertyAsOptional(UProperty* TestProperty) const
+static bool CanBeExposed(const UProperty* Property, bool bIncludeEditOnly = true)
+{
+	if (Property)
 	{
-		return UK2Node_MakeStruct::CanBeExposed(TestProperty);
+		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+		check(Schema);
+
+		FEdGraphPinType DumbGraphPinType;
+		const bool bConvertable = Schema->ConvertPropertyToPinType(Property, /*out*/ DumbGraphPinType);
+
+		//TODO: remove CPF_Edit in a future release
+		const bool bVisible = (bIncludeEditOnly ? Property->HasAnyPropertyFlags(CPF_BlueprintVisible | CPF_Edit) : Property->HasAnyPropertyFlags(CPF_BlueprintVisible)) && !(Property->ArrayDim > 1);
+		const bool bBlueprintReadOnly = Property->HasAllPropertyFlags(CPF_BlueprintReadOnly);
+		if (bVisible && bConvertable && !bBlueprintReadOnly)
+		{
+			return true;
+		}
 	}
+	return false;
+}
+
+bool UK2Node_MakeStruct::FMakeStructPinManager::CanTreatPropertyAsOptional(UProperty* TestProperty) const
+{
+	return CanBeExposed(TestProperty);
+}
 
 UK2Node_MakeStruct::UK2Node_MakeStruct(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -205,34 +226,18 @@ FLinearColor UK2Node_MakeStruct::GetNodeTitleColor() const
 	return UK2Node::GetNodeTitleColor();
 }
 
-bool UK2Node_MakeStruct::CanBeExposed(const UProperty* Property)
-{
-	if(Property)
-	{
-		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-		check(Schema);
-
-		FEdGraphPinType DumbGraphPinType;
-		const bool bConvertable = Schema->ConvertPropertyToPinType(Property, /*out*/ DumbGraphPinType);
-
-		//TODO: remove CPF_Edit in a future release
-		const bool bVisible = Property->HasAnyPropertyFlags(CPF_BlueprintVisible|CPF_Edit) && !(Property->ArrayDim > 1);
-		const bool bBlueprintReadOnly = Property->HasAllPropertyFlags(CPF_BlueprintReadOnly);
-		if(bVisible && bConvertable && !bBlueprintReadOnly)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-bool UK2Node_MakeStruct::CanBeMade(const UScriptStruct* Struct)
+bool UK2Node_MakeStruct::CanBeMade(const UScriptStruct* Struct, bool bIncludeEditOnly )
 {
 	if (Struct && !Struct->HasMetaData(TEXT("HasNativeMake")))
 	{
+		if (UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Struct))
+		{
+			return true;
+		}
+
 		for (TFieldIterator<UProperty> It(Struct); It; ++It)
 		{
-			if(CanBeExposed(*It))
+			if (CanBeExposed(*It, bIncludeEditOnly))
 			{
 				return true;
 			}
@@ -303,7 +308,7 @@ void UK2Node_MakeStruct::GetMenuActions(FBlueprintActionDatabaseRegistrar& Actio
 	for (TObjectIterator<UScriptStruct> StructIt; StructIt; ++StructIt)
 	{
 		UScriptStruct const* Struct = (*StructIt);
-		if (!UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Struct) || !CanBeMade(Struct))
+		if (!CanBeMade(Struct, false))
 		{
 			continue;
 		}
