@@ -10,6 +10,8 @@
 
 DECLARE_STATS_GROUP(TEXT("Kismet Reinstancer"), STATGROUP_KismetReinstancer, STATCAT_Advanced);
 
+class FReinstanceFinalizer;
+
 class UNREALED_API FBlueprintCompileReinstancer : public TSharedFromThis<FBlueprintCompileReinstancer>, public FGCObject
 {
 protected:
@@ -92,10 +94,12 @@ public:
 
 	virtual bool IsClassObjectReplaced() const { return false; }
 
+	void FinalizeFastReinstancing(TArray<UObject*>& ObjectsToReplace);
 protected:
-	void ReinstanceInner(bool bForceAlwaysReinstance);
 
-	void ReinstanceFast();
+	TSharedPtr<FReinstanceFinalizer> ReinstanceInner(bool bForceAlwaysReinstance);
+
+	TSharedPtr<FReinstanceFinalizer> ReinstanceFast();
 
 	void CompileChildren();
 
