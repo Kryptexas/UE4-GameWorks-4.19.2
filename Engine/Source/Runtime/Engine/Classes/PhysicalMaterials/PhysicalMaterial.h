@@ -54,8 +54,8 @@ class ENGINE_API UPhysicalMaterial : public UObject
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PhysicalMaterial)
 	bool bOverrideFrictionCombineMode;
 
-	/** Restitution or 'bouncyness' of this surface. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = PhysicalMaterial, meta = (UIMin=0, UIMax=1, ClampMin=0, ClampMax=1))
+	/** Restitution or 'bounciness of this surface. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = PhysicalMaterial)
 	float Restitution;
 
 	/** Restitution combine mode, controls how restitution is computed for multiple materials. */
