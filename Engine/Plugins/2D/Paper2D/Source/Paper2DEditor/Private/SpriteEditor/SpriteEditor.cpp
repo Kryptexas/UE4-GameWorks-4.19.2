@@ -268,7 +268,25 @@ TSharedRef<SDockTab> FSpriteEditor::SpawnTab_Viewport(const FSpawnTabArgs& Args)
 	return SNew(SDockTab)
 		.Label(LOCTEXT("ViewportTab_Title", "Viewport"))
 		[
-			ViewportPtr.ToSharedRef()
+			SNew(SOverlay)
+
+			// The sprite editor viewport
+			+SOverlay::Slot()
+			[
+				ViewportPtr.ToSharedRef()
+			]
+
+			// Bottom-right corner text indicating the preview nature of the sprite editor
+			+SOverlay::Slot()
+			.Padding(10)
+			.VAlign(VAlign_Bottom)
+			.HAlign(HAlign_Right)
+			[
+				SNew(STextBlock)
+				.Visibility(EVisibility::HitTestInvisible)
+				.TextStyle(FEditorStyle::Get(), "Graph.CornerText")
+				.Text(this, &FSpriteEditor::GetCurrentModeCornerText)
+			]
 		];
 }
 
@@ -544,6 +562,21 @@ void FSpriteEditor::CreateModeToolbarWidgets(FToolBarBuilder& IgnoredBuilder)
 	ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterCollisionEditMode);
 	ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterRenderingEditMode);
 	AddToolbarWidget(ToolbarBuilder.MakeWidget());
+}
+
+FText FSpriteEditor::GetCurrentModeCornerText() const
+{
+	switch (GetCurrentMode())
+	{
+	case ESpriteEditorMode::EditCollisionMode:
+		return LOCTEXT("EditCollisionGeometry_CornerText", "Edit Collision");
+	case ESpriteEditorMode::EditRenderingGeomMode:
+		return LOCTEXT("EditRenderGeometry_CornerText", "Edit Render Geometry");
+	case ESpriteEditorMode::EditSourceRegionMode:
+		return LOCTEXT("EditSourceRegion_CornerText", "Edit Source Region");
+	default:
+		return FText::GetEmpty();
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////

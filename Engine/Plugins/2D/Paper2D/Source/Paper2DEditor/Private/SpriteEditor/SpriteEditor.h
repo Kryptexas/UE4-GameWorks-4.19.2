@@ -69,4 +69,6 @@ protected:
 	TSharedRef<SDockTab> SpawnTab_SpriteList(const FSpawnTabArgs& Args);
 
 	void CreateModeToolbarWidgets(FToolBarBuilder& ToolbarBuilder);
+
+	FText GetCurrentModeCornerText() const;
 };

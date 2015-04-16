@@ -259,7 +259,7 @@ TSharedRef<SDockTab> FFlipbookEditor::SpawnTab_Viewport(const FSpawnTabArgs& Arg
 			[
 				SNew(SOverlay)
 
-				// The sprite editor viewport
+				// The flipbook editor viewport
 				+SOverlay::Slot()
 				[
 					ViewportPtr.ToSharedRef()
