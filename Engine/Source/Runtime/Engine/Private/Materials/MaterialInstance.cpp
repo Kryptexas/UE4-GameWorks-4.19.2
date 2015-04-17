@@ -2313,19 +2313,21 @@ void UMaterialInstance::OverrideBlendableSettings(class FSceneView& View, float 
 		// do we partly want to fade this one in.
 		if(Weight < 1.0f)
 		{
-			UMaterialInstanceDynamic* MID = View.State->GetReusableMID((UMaterialInterface*)this);
+			UMaterial* Base = Material->GetBaseMaterial();
+
+			UMaterialInstanceDynamic* MID = View.State->GetReusableMID((UMaterialInterface*)Base);//, (UMaterialInterface*)this);
 
 			if(MID)
 			{
-				MID->K2_CopyMaterialInstanceParameters((UMaterialInterface*)Material);
+				MID->K2_CopyMaterialInstanceParameters((UMaterialInterface*)Base);
 
-				FPostProcessMaterialNode NewNode(MID, Material->BlendableLocation, Material->BlendablePriority);
+				FPostProcessMaterialNode NewNode(MID, Base->BlendableLocation, Base->BlendablePriority);
 
 				// it's the first material, no blending needed
 				Dest.BlendableManager.PushBlendableData(1.0f, NewNode);
 
 				// can be optimized
-				PostProcessMaterialNode = IteratePostProcessMaterialNodes(Dest, Material, Iterator);
+				PostProcessMaterialNode = IteratePostProcessMaterialNodes(Dest, Base, Iterator);
 			}
 		}
 	}
