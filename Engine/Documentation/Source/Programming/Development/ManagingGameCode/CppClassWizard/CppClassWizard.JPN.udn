@@ -1,7 +1,9 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2374181
+Availability:Public
 Title:C++ クラス ウィザード
 Crumbs: %ROOT%, Programming, Programming\Development
 Description:UE4のC++ クラス ウィザードの概要
+Version:4.5
 
 %Globals:OSSelect%
 
@@ -30,9 +32,9 @@ _C++ Class Wizard_ はユーザー固有の機能を拡張するために、ネ�
 
 	追加したいクラスを選択して ![](button_Next.png) ボタンをクリックします。
 
-1. 新規のクラスの **名前** の入力を求められます。名前を入力して ![](button_Create.png) ボタンをクリックします。ヘッダファイル（.h）とソースファイル（.cpp）が作成されました。
-	[REGION:lightbox]
+1. 新規のクラスの **名前** の入力を求められます。名前を入力して ![](button_Create.png) ボタンをクリックします。ヘッダファイル (.h) とソースファイル (.cpp) が作成されました。
 
+	[REGION:lightbox]
 		[![](NameNewActor.png)(w:600)](NameNewActor.png)
 	[/REGION]
 	[REGION:note]
@@ -48,7 +50,7 @@ _C++ Class Wizard_ はユーザー固有の機能を拡張するために、ネ�
 		OS
 		[/PARAMLITERAL]
 		[PARAMLITERAL:id]
-		windows
+		Windows
 		[/PARAMLITERAL]
 		[PARAMLITERAL:active]
 		active_button_content
@@ -65,7 +67,7 @@ _C++ Class Wizard_ はユーザー固有の機能を拡張するために、ネ�
 		OS
 		[/PARAMLITERAL]
 		[PARAMLITERAL:id]
-		mac
+		Mac
 		[/PARAMLITERAL]
 		[PARAMLITERAL:active]
 		[/PARAMLITERAL]
