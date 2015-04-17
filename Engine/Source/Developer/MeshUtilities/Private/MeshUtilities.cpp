@@ -3966,6 +3966,18 @@ bool FMeshUtilities::ConstructRawMesh(
 	{
 		Vertex = CtoM.TransformFVector4(Vertex);
 	}
+	for (FVector& TangentX : OutRawMesh.WedgeTangentX)
+	{
+		TangentX = CtoM.TransformVectorNoScale(TangentX);
+	}
+	for (FVector& TangentY : OutRawMesh.WedgeTangentY)
+	{
+		TangentY = CtoM.TransformVectorNoScale(TangentY);
+	}
+	for (FVector& TangentZ : OutRawMesh.WedgeTangentZ)
+	{
+		TangentZ = CtoM.TransformVectorNoScale(TangentZ);
+	}
 
 	const bool bIsMirrored = CtoM.GetDeterminant() < 0.f;
 	if (bIsMirrored)
