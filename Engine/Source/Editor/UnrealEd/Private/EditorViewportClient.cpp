@@ -649,8 +649,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 		{
 			if (bUsingOrbitCamera)
 			{
-				ViewInitOptions.ViewRotationMatrix = ViewTransform.ComputeOrbitMatrix();
-				ViewInitOptions.ViewOrigin = FVector::ZeroVector;
+				ViewInitOptions.ViewRotationMatrix = FTranslationMatrix(ViewLocation) * ViewTransform.ComputeOrbitMatrix();
 			}
 			else
 			{
