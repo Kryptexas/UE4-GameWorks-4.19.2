@@ -604,7 +604,7 @@ bool FEdModeTileMap::UseActiveToolAtLocation(const FViewportCursorLocation& Ray)
 	};
 }
 
-bool BlitLayer(UPaperTileLayer* SourceLayer, UPaperTileLayer* TargetLayer, int32 OffsetX = 0, int32 OffsetY = 0)
+bool BlitLayer(UPaperTileLayer* SourceLayer, UPaperTileLayer* TargetLayer, int32 OffsetX = 0, int32 OffsetY = 0, bool bBlitEmptyTiles = false)
 {
 	FScopedTransaction Transaction(LOCTEXT("TileMapPaintAction", "Tile Painting"));
 
@@ -629,9 +629,9 @@ bool BlitLayer(UPaperTileLayer* SourceLayer, UPaperTileLayer* TargetLayer, int32
 				continue;
 			}
 
-			FPaperTileInfo Ink = SourceLayer->GetCell(SourceX, SourceY);
+			const FPaperTileInfo Ink = SourceLayer->GetCell(SourceX, SourceY);
 
-			if (TargetLayer->GetCell(TargetX, TargetY) != Ink)
+			if ((Ink.IsValid() || bBlitEmptyTiles) && (TargetLayer->GetCell(TargetX, TargetY) != Ink))
 			{
 				if (!bChangedSomething)
 				{
