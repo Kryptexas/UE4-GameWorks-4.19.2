@@ -1681,6 +1681,24 @@ private:
 		UE_CLOG(!EnumClass, LogClass, Fatal, TEXT("Couldn't find enum '%s'"), EnumPath);
 		return EnumClass->GetEnumText(Value);
 	}
+
+	/**
+	 *
+	 * Renames enum values to use duplicated enum name instead of base one, e.g.:
+	 * 
+	 * MyEnum::MyVal
+	 * MyEnum::MyEnum_MAX
+	 * 
+	 * becomes
+	 * 
+	 * MyDuplicatedEnum::MyVal
+	 * MyDuplicatedEnum::MyDuplicatedEnum_MAX
+	 * 
+	 **/
+	void RenameNamesAfterDuplication();
+
+	/** Gets name of enum "this" is duplicate of. If we're not duplicating, just returns "this" name. */
+	FString GetBaseEnumNameOnDuplication() const;
 };
 
 /*-----------------------------------------------------------------------------
