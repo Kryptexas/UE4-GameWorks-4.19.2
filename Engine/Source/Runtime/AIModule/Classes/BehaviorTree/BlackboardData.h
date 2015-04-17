@@ -84,6 +84,7 @@ public:
 #if WITH_EDITOR
 	virtual void PreEditChange(class FEditPropertyChain& PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	void PropagateKeyChangesToDerivedBlackboardAssets();
 #endif
 
 	/** @return true if blackboard keys are not conflicting with parent key chain */
