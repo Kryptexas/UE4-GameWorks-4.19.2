@@ -30,6 +30,9 @@ class ENGINE_API UNavRelevantComponent : public UActorComponent, public INavRele
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
 	void SetNavigationRelevancy(bool bRelevant);
 
+	/** force relevancy and skip attaching navigation data to owner's root entry */
+	void ForceNavigationRelevancy(bool bForce);
+
 	/** force refresh in navigation octree */
 	void RefreshNavigationModifiers();
 	
@@ -40,4 +43,8 @@ protected:
 
 	UPROPERTY()
 	uint32 bNavigationRelevant : 1;
+
+	/** attach navigation data to entry for owner's root component (depends on its relevancy) */
+	UPROPERTY()
+	uint32 bAttachToOwnersRoot : 1;
 };
