@@ -3,7 +3,7 @@
 #include "CorePrivatePCH.h"
 
 #include "TextHistory.h"
-#include "PropertyPortflags.h"
+#include "PropertyPortFlags.h"
 
 ///////////////////////////////////////
 // FTextHistory
