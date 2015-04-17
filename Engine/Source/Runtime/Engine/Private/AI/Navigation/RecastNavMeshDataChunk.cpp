@@ -160,9 +160,8 @@ TArray<uint32> URecastNavMeshDataChunk::AttachTiles(FPImplRecastNavMesh* NavMesh
 	TArray<uint32> Result;
 	Result.Reserve(Tiles.Num());
 
-	const bool bIsGame = NavMeshImpl->NavMeshOwner->GetWorld()->IsGameWorld();
-
 #if WITH_RECAST	
+	const bool bIsGame = NavMeshImpl->NavMeshOwner->GetWorld()->IsGameWorld();
 	dtNavMesh* NavMesh = NavMeshImpl->DetourNavMesh;
 
 	for (FRecastTileData& TileData : Tiles)
@@ -229,9 +228,8 @@ TArray<uint32> URecastNavMeshDataChunk::DetachTiles(FPImplRecastNavMesh* NavMesh
 	TArray<uint32> Result;
 	Result.Reserve(Tiles.Num());
 
-	const bool bIsGame = NavMeshImpl->NavMeshOwner->GetWorld()->IsGameWorld();
-
 #if WITH_RECAST	
+	const bool bIsGame = NavMeshImpl->NavMeshOwner->GetWorld()->IsGameWorld();
 	dtNavMesh* NavMesh = NavMeshImpl->DetourNavMesh;
 
 	for (FRecastTileData& TileData : Tiles)
