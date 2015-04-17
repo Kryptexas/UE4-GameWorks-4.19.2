@@ -1636,7 +1636,7 @@ bool FRecastTileGenerator::HasDataToBuild() const
 		|| Modifiers.Num()
 		|| OffmeshLinks.Num()
 		|| RawGeometry.Num()
-		|| InclusionBounds.Num();
+		|| (InclusionBounds.Num() && NavigationRelevantData.Num() > 0);
 }
 
 void FRecastTileGenerator::DoWork()
