@@ -1208,3 +1208,7 @@ void FCachedActorLabels::Populate(UWorld* World, const TSet<AActor*>& IgnoredAct
 	}
 	ActorLabels.Shrink();
 }
+
+//////////////////////////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE
