@@ -51,7 +51,7 @@ namespace Gu
 		PxU32 size=0;
 
 		const Vec3V _initialSearchDir = aToB.p;
-		Vec3V v = V3Sel(FIsGrtr(V3Dot(_initialSearchDir, _initialSearchDir), zero), _initialSearchDir, V3UnitX());
+		Vec3V closest = V3Sel(FIsGrtr(V3Dot(_initialSearchDir, _initialSearchDir), zero), _initialSearchDir, V3UnitX());
 
 		
 		// ML: eps2 is the square value of an epsilon value which applied in the termination condition for two shapes overlap.
@@ -72,9 +72,7 @@ namespace Gu
 		Vec3V closA(zeroV), closB(zeroV);
 		FloatV sDist = FMax();
 		FloatV minDist = sDist;
-		Vec3V closAA;   
-		Vec3V closBB;
-
+		Vec3V prevClosest = closest;
 		
 		BoolV bNotTerminated = bTrue;
 		BoolV bCon = bTrue;
@@ -82,45 +80,42 @@ namespace Gu
 		do
 		{
 			minDist = sDist;
-			closAA = closA;
-			closBB = closB;
+			prevClosest = closest;
 
-			const Vec3V supportA=a.supportRelative(V3Neg(v), aToB);
-			const Vec3V supportB=b.supportLocal(v);
+			const Vec3V supportA=a.supportRelative(V3Neg(closest), aToB);
+			const Vec3V supportB=b.supportLocal(closest);
 			
 			//calculate the support point
 			const Vec3V support = V3Sub(supportA, supportB);
-			const FloatV signDist = V3Dot(v, support);
+			const FloatV signDist = V3Dot(closest, support);
 			const FloatV tmp0 = FSub(sDist, signDist);
 
 			PX_ASSERT(size < 4);
 			A[size]=supportA;
 			B[size]=supportB;
-			Q[size++]=support;   
+			Q[size]=support;   
 	
 			if(FAllGrtr(FMul(epsRel, sDist), tmp0))
 			{
-				const Vec3V n = V3Normalize(V3Sub(closB, closA));
-				closestA = closA;
-				closestB = closB;
+				getClosestPoint(Q, A, B, closest, closestA, closestB, size);
+				const Vec3V n = V3Normalize(V3Neg(closest));
 				sqDist = sDist;
 				normal = n;
 				return GJK_NON_INTERSECT;
 			}  
+			size++;
 
 			//calculate the closest point between two convex hull
-			const Vec3V tempV = GJKCPairDoSimplex(Q, A, B, support, supportA, supportB, size, closA, closB);
-			v = tempV;
-			sDist = V3Dot(v, v);
+			closest = GJKCPairDoSimplex(Q, A, B, support, size);
+			sDist = V3Dot(closest, closest);
 			bCon = FIsGrtr(minDist, sDist);
 			bNotTerminated = BAnd(FIsGrtr(sDist, eps2), bCon);
 		}while(BAllEq(bNotTerminated, bTrue));
 		
-		closA = V3Sel(bCon, closA, closAA);
-		closB = V3Sel(bCon, closB, closBB);
+		getClosestPoint(Q, A, B, prevClosest, closestA, closestB, size);
 		closestA = closA;
 		closestB = closB;
-		normal = V3Normalize(V3Sub(closB, closA));
+		normal = V3Normalize(V3Neg(prevClosest));
 		sqDist = FSel(bCon, sDist, minDist);
 		
 		return PxGJKStatus(BAllEq(bCon, bTrue) == 1 ? GJK_CONTACT : GJK_DEGENERATE);
@@ -136,8 +131,6 @@ namespace Gu
 		Vec3V Q[4];
 		Vec3V A[4];
 		Vec3V B[4];
-
-		const Vec3V zeroV = V3Zero();
 		const FloatV zero = FZero();
 		const BoolV bTrue = BTTTT();
 		PxU32 size=0;
@@ -157,21 +150,18 @@ namespace Gu
 		//which avoids ill-conditioned terminations. 
 		const FloatV epsRel = FLoad(0.000225f);//1.5%.
 		
-		Vec3V closA(zeroV), closB(zeroV);
 		FloatV sDist = FMax();
 		FloatV minDist = sDist;
-		Vec3V closAA;   
-		Vec3V closBB;
 
 		
 		BoolV bNotTerminated = bTrue;
 		BoolV bCon = bTrue;
+		Vec3V prevV = v;
 		
 		do
 		{
 			minDist = sDist;
-			closAA = closA;
-			closBB = closB;
+			prevV = v;
 
 			const Vec3V supportA=a.supportLocal(V3Neg(v));
 			const Vec3V supportB=b.supportLocal(v);
@@ -184,34 +174,30 @@ namespace Gu
 			PX_ASSERT(size < 4);
 			A[size]=supportA;
 			B[size]=supportB;
-			Q[size++]=support;
+			Q[size]=support;
 	
 			if(FAllGrtr(FMul(epsRel, sDist), tmp0))
 			{
-				const Vec3V n = V3Normalize(V3Sub(closB, closA));
-				closestA = closA;
-				closestB = closB;
+				getClosestPoint(Q, A, B, v, closestA, closestB, size);
+				normal = V3Normalize(V3Neg(v));
 				sqDist = sDist;
-				normal = n;
 				return GJK_NON_INTERSECT;
 			}
 
+			size++;
+
 			//calculate the closest point between two convex hull
-			const Vec3V tempV = GJKCPairDoSimplex(Q, A, B, support, supportA, supportB, size, closA, closB);
+			const Vec3V tempV = GJKCPairDoSimplex(Q, A, B, support, size);
 			v = tempV;
 			sDist = V3Dot(v, v);
 			bCon = FIsGrtr(minDist, sDist);
 			bNotTerminated = BAnd(FIsGrtr(sDist, eps2), bCon);
 		}while(BAllEq(bNotTerminated, bTrue));
 
-		closA = V3Sel(bCon, closA, closAA);
-		closB = V3Sel(bCon, closB, closBB);
 
-		closestA = closA;
-		closestB = closB;
-		normal = V3Normalize(V3Sub(closB, closA));
+		getClosestPoint(Q, A, B, v, closestA, closestB, size);
+		normal = V3Normalize(V3Neg(prevV));
 		sqDist = FSel(bCon, sDist, minDist);
-
 		return PxGJKStatus(BAllEq(bCon, bTrue) == 1 ? GJK_CONTACT : GJK_DEGENERATE);
 	}
 

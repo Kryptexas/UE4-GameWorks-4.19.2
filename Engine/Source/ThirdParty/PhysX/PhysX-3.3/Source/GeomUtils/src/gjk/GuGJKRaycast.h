@@ -72,45 +72,45 @@ namespace Gu
 		Vec3V B[4] = {initialSupportB, zeroV, zeroV, zeroV}; //ConvexHull b simplex set
 		 
 
-		Vec3V v = V3Neg(Q[0]);
+		Vec3V closest = Q[0];
 		Vec3V supportA = initialSupportA;
 		Vec3V supportB = initialSupportB;
 		Vec3V support = Q[0];
 	
 
-		const FloatV minMargin = FMin(a.getMinMargin(), b.getMinMargin());
+		const FloatV minMargin = FMin(a.getSweepMargin(), b.getSweepMargin());
 		const FloatV eps1 = FMul(minMargin, FLoad(0.1f));
+		const FloatV inflationPlusEps(FAdd(eps1, inflation));
 		const FloatV eps2 = FMul(eps1, eps1);
 
-		const FloatV inflation2 = FAdd(FMul(inflation, inflation), eps2);
+		const FloatV inflation2 = FMul(inflationPlusEps, inflationPlusEps);
 
-		Vec3V closA(initialSupportA), closB(initialSupportB);
-		FloatV sDist = V3Dot(v, v);
+		//Vec3V closA(initialSupportA), closB(initialSupportB);
+		FloatV sDist = V3Dot(closest, closest);
 		FloatV minDist = sDist;
-		Vec3V closAA = initialSupportA;
-		//Vec3V closBB = initialSupportB;
 		
 		BoolV bNotTerminated = FIsGrtr(sDist, eps2);
 		BoolV bCon = bTrue;
 
-		Vec3V nor = v;
+		Vec3V nor = closest;
+		Vec3V prevClosest = closest;
 		
 		while(BAllEq(bNotTerminated, bTrue))
 		{
 			
 			minDist = sDist;
-			closAA = closA;
+			prevClosest = closest;
 
-			const Vec3V vNorm = V3Normalize(v);
-			const Vec3V nvNorm = V3Neg(vNorm);
+			const Vec3V vNorm = V3Neg(V3Normalize(closest));
+			//const Vec3V nvNorm = V3Neg(vNorm);
 
 			supportA=a.supportSweepLocal(vNorm);
-			supportB=V3Add(x, b.supportSweepLocal(nvNorm));
+			supportB=V3Add(x, b.supportSweepLocal(V3Neg(vNorm)));
 		
 			//calculate the support point
 			support = V3Sub(supportA, supportB);
 			const Vec3V w = V3Neg(support);
-			const FloatV vw = FSub(V3Dot(vNorm, w), inflation);
+			const FloatV vw = FSub(V3Dot(vNorm, w), inflationPlusEps);
 			const FloatV vr = V3Dot(vNorm, r);
 			if(FAllGrtr(vw, zero))
 			{
@@ -145,10 +145,10 @@ namespace Gu
 						Q[1]=V3Sub(A[1], b1);
 						Q[2]=V3Sub(A[2], b2);
 
-						supportB = V3Add(x, b.supportSweepLocal(nvNorm));
+						supportB = V3Add(x, b.supportSweepLocal(V3Neg(vNorm)));
 						support = V3Sub(supportA, supportB);
 						minDist = maxDist;
-						nor = v;
+						nor = closest;
 						//size=0;
 					}
 				}
@@ -160,9 +160,8 @@ namespace Gu
 			Q[size++]=support;
 	
 			//calculate the closest point between two convex hull
-			const Vec3V tempV = GJKCPairDoSimplex(Q, A, B, support, supportA, supportB, size, closA, closB);
-			v = V3Neg(tempV);
-			sDist = V3Dot(tempV, tempV);
+			closest = GJKCPairDoSimplex(Q, A, B, support, size);
+			sDist = V3Dot(closest, closest);
 			
 			bCon = FIsGrtr(minDist, sDist);
 			bNotTerminated = BAnd(FIsGrtr(sDist, inflation2), bCon);
@@ -172,11 +171,13 @@ namespace Gu
 		//ML:if the Minkowski sum of two objects are too close to the original(eps2 > sDist), we can't take v because we will lose lots of precision. Therefore, we will take
 		//previous configuration's normal which should give us a reasonable approximation. This effectively means that, when we do a sweep with inflation, we always keep v because
 		//the shapes converge separated. If we do a sweep without inflation, we will usually use the previous configuration's normal.
-		nor = V3Sel(BAnd(FIsGrtr(sDist, eps2), bCon), v, nor);
-		nor =  V3Neg(V3Normalize(nor));
+		nor = V3Sel(BAnd(FIsGrtr(sDist, eps2), bCon), closest, nor);
+		nor =  V3Normalize(nor);
 		normal = nor;
 		lambda = _lambda;
-		closA = V3Sel(bCon, closA, closAA);
+		const Vec3V closestP = V3Sel(bCon, closest, prevClosest);
+		Vec3V closA = zeroV, closB = zeroV;
+		getClosestPoint(Q, A, B, closestP, closA, closB, size);
 		closestA = V3Sel(aQuadratic, V3NegScaleSub(nor, a.getMargin(), closA), closA);  
 		
 		return true;
@@ -227,43 +228,44 @@ namespace Gu
 		Vec3V B[4] = {initialSupportB, zeroV, zeroV, zeroV}; //ConvexHull b simplex set
 		 
 
-		Vec3V v = V3Neg(Q[0]);
+		Vec3V closest = Q[0];
 		Vec3V supportA = initialSupportA;
 		Vec3V supportB = initialSupportB;
 		Vec3V support = Q[0];
 
-		const FloatV minMargin = FMin(a.getMinMargin(), b.getMinMargin());
+		const FloatV minMargin = FMin(a.getSweepMargin(), b.getSweepMargin());
 		const FloatV eps1 = FMul(minMargin, FLoad(0.1f));
+		const FloatV inflationPlusEps(FAdd(eps1, inflation));
 		const FloatV eps2 = FMul(eps1, eps1);
 
-		const FloatV inflation2 = FAdd(FMul(inflation, inflation), eps2);
+		const FloatV inflation2 = FMul(inflationPlusEps, inflationPlusEps);
 
-		Vec3V closA(initialSupportA), closB(initialSupportB);
-		FloatV sDist = V3Dot(v, v);
+		FloatV sDist = V3Dot(closest, closest);
 		FloatV minDist = sDist;
-		Vec3V closAA = initialSupportA;
+		
 		
 		BoolV bNotTerminated = FIsGrtr(sDist, eps2);
 		BoolV bCon = bTrue;
 
-		Vec3V nor = v;
+		Vec3V prevClosest = closest;
+
+		Vec3V nor = closest;
 		
 		while(BAllEq(bNotTerminated, bTrue))
 		{
 			
 			minDist = sDist;
-			closAA = closA;
+			prevClosest = closest;
 
-			const Vec3V vNorm = V3Normalize(v);
-			const Vec3V nvNorm = V3Neg(vNorm);
+			const Vec3V vNorm = V3Neg(V3Normalize(closest));
 
 			supportA=a.supportSweepRelative(vNorm, aToB);
-			supportB=V3Add(x, b.supportSweepLocal(nvNorm));
+			supportB=V3Add(x, b.supportSweepLocal(V3Neg(vNorm)));
 		
 			//calculate the support point
 			support = V3Sub(supportA, supportB);
 			const Vec3V w = V3Neg(support);
-			const FloatV vw = FSub(V3Dot(vNorm, w), inflation);
+			const FloatV vw = FSub(V3Dot(vNorm, w), inflationPlusEps);
 			const FloatV vr = V3Dot(vNorm, r);
 			if(FAllGrtr(vw, zero))
 			{
@@ -298,11 +300,11 @@ namespace Gu
 						Q[1]=V3Sub(A[1], b1);
 						Q[2]=V3Sub(A[2], b2);
 
-						supportB = V3Add(x, b.supportSweepLocal(nvNorm));
+						supportB = V3Add(x, b.supportSweepLocal(V3Neg(vNorm)));
 				
 						support = V3Sub(supportA, supportB);
 						minDist = maxDist;
-						nor = v;
+						nor = closest;
 						//size=0;
 					}
 				}
@@ -314,25 +316,25 @@ namespace Gu
 			Q[size++]=support;
 	
 			//calculate the closest point between two convex hull
-			const Vec3V tempV = GJKCPairDoSimplex(Q, A, B, support, supportA, supportB, size, closA, closB);
-			v = V3Neg(tempV);
-			sDist = V3Dot(tempV, tempV);
+			closest = GJKCPairDoSimplex(Q, A, B, support, size);
+			sDist = V3Dot(closest, closest);
 
 			bCon = FIsGrtr(minDist, sDist);
 			bNotTerminated = BAnd(FIsGrtr(sDist, inflation2), bCon);
 		}
 
-
 		const BoolV aQuadratic = a.isMarginEqRadius();
 		//ML:if the Minkowski sum of two objects are too close to the original(eps2 > sDist), we can't take v because we will lose lots of precision. Therefore, we will take
 		//previous configuration's normal which should give us a reasonable approximation. This effectively means that, when we do a sweep with inflation, we always keep v because
 		//the shapes converge separated. If we do a sweep without inflation, we will usually use the previous configuration's normal.
-		nor = V3Sel(BAnd(FIsGrtr(sDist, eps2), bCon), v, nor);
-		nor =  V3Neg(V3Normalize(nor));
+		nor = V3Sel(BAnd(FIsGrtr(sDist, eps2), bCon), closest, nor);
+		nor =  V3Normalize(nor);
 		normal = nor;
 		lambda = _lambda;
-		closA = V3Sel(bCon, closA, closAA);
-		closestA = V3Sel(aQuadratic, V3NegScaleSub(nor, a.getMargin(), closA), closA); 
+		const Vec3V closestP = V3Sel(bCon, closest, prevClosest);
+		Vec3V closA = zeroV, closB = zeroV;
+		getClosestPoint(Q, A, B, closestP, closA, closB, size);
+		closestA = V3Sel(aQuadratic, V3NegScaleSub(nor, a.getMargin(), closA), closA);  
 		
 		return true;
 	}

@@ -202,6 +202,11 @@ namespace Gu
 			return Ps::aos::BTTTT();
 		}
 
+		PX_FORCE_INLINE Ps::aos::FloatV getSweepMargin() const
+		{
+			return Ps::aos::FZero();
+		}
+
 
 		Ps::aos::FloatV radius;		//!< Sphere's center, w component is radius
 

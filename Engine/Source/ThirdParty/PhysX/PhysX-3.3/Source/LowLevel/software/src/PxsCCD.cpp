@@ -412,15 +412,7 @@ PxReal PxsCCDPair::sweepFindToi(PxsThreadContext& context, PxReal dt, PxU32 pass
 	mPenetration	= penetration;
 	mPenetrationPostStep = penetrationPostStep;
 
-	//Work out world-space hit point. Calculating this depends on whether we swapped the shapes or not.
-	if(mG1 < mG0)
-	{
-		mMinToiPoint = sweepPoint + toi * trA;
-	}
-	else
-	{
-		mMinToiPoint = sweepPoint + toi * trB;
-	}
+	mMinToiPoint = sweepPoint;
 
 	mMinToiNormal	= sweepNormal;
 

@@ -17,6 +17,7 @@
 #include "PsVecMath.h"
 #include "PsFPU.h"
 #include "PsUtilities.h"
+#include "CmIDPool.h"
 
 #if defined __SPU__ || (defined __GNUC__ && defined _DEBUG)
 #define PX_EPA_FORCE_INLINE
@@ -27,8 +28,9 @@
 namespace physx
 {
 
-//#define MaxEdges 128
 #define MaxEdges 32
+#define MaxFacets 64
+#define MaxSupportPoints 64
 
 namespace Gu
 {
@@ -38,9 +40,9 @@ namespace Gu
 	
 	class EdgeBuffer;
 	class Edge;
-	class EPAFacetManager;
+	typedef Cm::InlineDeferredIDPool<MaxFacets>	EPAFacetManager;
 
-	class Facet
+	class Facet	
 	{
 	public:
 	
@@ -49,7 +51,7 @@ namespace Gu
 		}
 
 		PX_FORCE_INLINE Facet(const PxU32 _i0, const PxU32 _i1, const PxU32 _i2)
-			:  m_UDist(0),  m_lambda1(0.f), m_lambda2(0.f), m_obsolete(false), m_inHeap(false)  //, m_recipDet(0.f)
+			: m_obsolete(false), m_inHeap(false)
 		{
 			m_indices[0]= Ps::toI8(_i0);
 			m_indices[1]= Ps::toI8(_i1);
@@ -76,77 +78,60 @@ namespace Gu
 			return (PxU32)m_indices[i]; 
 		} 
 
+		//create ajacency information
 		bool link(const PxU32 edge0, Facet* PX_RESTRICT  facet, const PxU32 edge1);
-		//void link(const PxU32 edge0, Facet* PX_RESTRICT  facet, const PxU32 edge1);
 
 		PX_FORCE_INLINE bool isObsolete() const { return m_obsolete; }
 
-		PX_FORCE_INLINE Ps::aos::Vec3V getClosest() const 
-		{ 
-			return Ps::aos::V3LoadA(&m_closest.x); 
-		}
+		//calculate the signed distance from a point to a plane
+		PX_FORCE_INLINE Ps::aos::FloatV getPlaneDist(const Ps::aos::Vec3VArg p, const Ps::aos::Vec3V* PX_RESTRICT aBuf, const Ps::aos::Vec3V* PX_RESTRICT bBuf) const; 
 
+		//check to see whether the triangle is a valid triangle, calculate plane normal and plane distance at the same time
 		PX_EPA_FORCE_INLINE Ps::aos::BoolV isValid2(const PxU32 i0, const PxU32 i1, const PxU32 i2, const Ps::aos::Vec3V* PX_RESTRICT aBuf, const Ps::aos::Vec3V* PX_RESTRICT bBuf, 
-			const Ps::aos::FloatVArg lower, const Ps::aos::FloatVArg upper, PxI32& b1);
+		const Ps::aos::FloatVArg lower, const Ps::aos::FloatVArg upper);
 
-		PX_FORCE_INLINE Ps::aos::FloatV getDist() const 
-		{ 
-			return Ps::aos::FLoad(PX_FR(m_UDist));
-		}
-
+		//return the absolute value for the plane distance from origin 
 		PX_FORCE_INLINE Ps::aos::FloatV getPlaneDist() const 
 		{ 
-			return Ps::aos::FLoad(m_planeD);
+			return Ps::aos::FLoad(m_planeDist);
 		}
 
+		//return the plane normal
 		PX_FORCE_INLINE Ps::aos::Vec3V getPlaneNormal()const
 		{
-			return Ps::aos::V3LoadA(&m_planeN.x); 
+			return m_planeNormal; 
 		}
 
+		//calculate the closest points for a shape pair
 		void getClosestPoint(const Ps::aos::Vec3V* PX_RESTRICT aBuf, const Ps::aos::Vec3V* PX_RESTRICT bBuf, Ps::aos::Vec3V& closestA, Ps::aos::Vec3V& closestB) const;
 		
-		void silhouette(const Ps::aos::Vec3VArg w, EdgeBuffer& edgeBuffer, EPAFacetManager& manager);
+		//performs a flood fill over the boundary of the current polytope. 
+		void silhouette(const Ps::aos::Vec3VArg w, const Ps::aos::Vec3V* PX_RESTRICT aBuf, const Ps::aos::Vec3V* PX_RESTRICT bBuf, EdgeBuffer& edgeBuffer, EPAFacetManager& manager);
 		
+
+		//m_planeDist is positive
 		bool operator <(const Facet& b) const
 		{
-			return m_UDist < b.m_UDist;
-		}
-		bool operator > (const Facet& b) const
-		{
-			return m_UDist > b.m_UDist;
-		}
-		bool operator <=(const Facet& b) const
-		{
-			return m_UDist <= b.m_UDist;
-		}
-		bool operator >=(const Facet& b) const
-		{
-			return m_UDist >= b.m_UDist;
+			return m_planeDist < b.m_planeDist;
 		}
 	 
-		PX_FORCE_INLINE void silhouette(const PxU32 index, const Ps::aos::Vec3VArg w, EdgeBuffer& edgeBuffer, EPAFacetManager& manager);
+		//store all the boundary facets for the new polytope in the edgeBuffer and free indices when an old facet isn't part of the boundary anymore
+		PX_FORCE_INLINE void silhouette(const PxU32 index, const Ps::aos::Vec3VArg w, const Ps::aos::Vec3V* PX_RESTRICT aBuf, const Ps::aos::Vec3V* PX_RESTRICT bBuf, EdgeBuffer& edgeBuffer, 
+			EPAFacetManager& manager);
 
+		Ps::aos::Vec3V m_planeNormal;																										//16
+		PxF32 m_planeDist;																													//20
 		
-		
-		//don't change the variable order, otherwise, m_planeN might not be 16 byte align and the loading will got problem
-		PX_ALIGN(16, PxVec3 m_closest);																										//12
-		PxU32 m_UDist;																														//16
-		PxVec3 m_planeN;																													//28
-		PxF32 m_planeD;																														//32
-		
-		PxF32 m_lambda1;																													//36
-		PxF32 m_lambda2;																													//40
-		
-		Facet* PX_RESTRICT m_adjFacets[3]; //the triangle adjacent to edge i in this triangle												//52
-		PxI8 m_adjEdges[3]; //the edge connected with the corresponding triangle															//55
-		PxI8 m_indices[3]; //the index of vertices of the triangle																			//58
-		bool m_obsolete; //a flag to denote whether the triangle is visible from the new support point										//59
-		bool m_inHeap;																														//60
-		PxU8 m_FacetId;																														//61																									//73
+		Facet* PX_RESTRICT m_adjFacets[3]; //the triangle adjacent to edge i in this triangle												//32
+		PxI8 m_adjEdges[3]; //the edge connected with the corresponding triangle															//35
+		PxI8 m_indices[3]; //the index of vertices of the triangle																			//38
+		bool m_obsolete; //a flag to denote whether the triangle are still part of the bundeary of the new polytope							//39
+		bool m_inHeap;	//a flag to indicate whether the triangle is in the heap															//40
+		PxU8 m_FacetId;																														//41																									//73
 
 	};
 
+	
 	class Edge 
 	{
 	public:
@@ -164,12 +149,14 @@ namespace Gu
 		PX_FORCE_INLINE Facet *getFacet() const { return m_facet; }
 		PX_FORCE_INLINE PxU32 getIndex() const { return m_index; }
 
+		//get out the associated start vertex index in this edge from the facet
 		PX_FORCE_INLINE PxU32 getSource() const
 		{
 			PX_ASSERT(m_index < 3);
 			return (*m_facet)[m_index];
 		}
 
+		//get out the associated end vertex index in this edge from the facet
 		PX_FORCE_INLINE PxU32 getTarget() const
 		{
 			PX_ASSERT(m_index < 3);
@@ -230,13 +217,10 @@ namespace Gu
 		PxU32 m_Size;
 	};
 
-
+	//ML: calculate MTD points for a shape pair
 	PX_FORCE_INLINE void Facet::getClosestPoint(const Ps::aos::Vec3V* PX_RESTRICT aBuf, const Ps::aos::Vec3V* PX_RESTRICT bBuf, Ps::aos::Vec3V& closestA, Ps::aos::Vec3V& closestB) const 
 	{
 		using namespace Ps::aos;
-
-		const FloatV lambda1 = FLoad(m_lambda1);
-		const FloatV lambda2 = FLoad(m_lambda2);
 		
 		const Vec3V pa0(aBuf[m_indices[0]]);
 		const Vec3V pa1(aBuf[m_indices[1]]);
@@ -246,6 +230,25 @@ namespace Gu
 		const Vec3V pb1(bBuf[m_indices[1]]);
 		const Vec3V pb2(bBuf[m_indices[2]]);
 
+		const Vec3V p0 = V3Sub(pa0, pb0);
+		const Vec3V p1 = V3Sub(pa1, pb1);
+		const Vec3V p2 = V3Sub(pa2, pb2);
+
+		const Vec3V v1 = V3Sub(p1, p0);
+		const Vec3V v2 = V3Sub(p2, p0);
+
+		const FloatV v1dv1 = V3Dot(v1, v1);
+		const FloatV v1dv2 = V3Dot(v1, v2);
+		const FloatV v2dv2 = V3Dot(v2, v2);
+
+		const FloatV p0dv1 = V3Dot(p0, v1); //V3Dot(V3Sub(p0, origin), v1);
+		const FloatV p0dv2 = V3Dot(p0, v2);
+
+		const FloatV det = FNegScaleSub(v1dv2, v1dv2, FMul(v1dv1, v2dv2));//FSub( FMul(v1dv1, v2dv2), FMul(v1dv2, v1dv2) ); // non-negative
+		const FloatV recip = FRecip(det);
+
+		const FloatV lambda1 = FMul(FNegScaleSub(p0dv1, v2dv2, FMul(p0dv2, v1dv2)), recip);
+		const FloatV lambda2 = FMul(FNegScaleSub(p0dv2, v1dv1, FMul(p0dv1, v1dv2)), recip);
 
 		const Vec3V a0 = V3Scale(V3Sub(pa1, pa0), lambda1);
 		const Vec3V a1 = V3Scale(V3Sub(pa2, pa0), lambda2);
@@ -255,6 +258,7 @@ namespace Gu
 		closestB = V3Add(V3Add(b0, b1), pb0);
 	}
 
+	//ML: create adjacency informations for both facets
 	PX_FORCE_INLINE bool Facet::link(const PxU32 edge0, Facet * PX_RESTRICT facet, const PxU32 edge1) 
 	{
 		m_adjFacets[edge0] = facet;
