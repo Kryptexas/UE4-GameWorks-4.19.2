@@ -66,7 +66,6 @@ void UHTML5SDKSettings::QueryKnownBrowserLocations()
 #endif
 	};
 
-	bool bDirty = false;
 	for (const auto& Loc : PossibleLocations)
 	{
 		if (FPlatformFileManager::Get().GetPlatformFile().FileExists(*Loc.Path) || FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*Loc.Path))
@@ -75,13 +74,7 @@ void UHTML5SDKSettings::QueryKnownBrowserLocations()
 			NewDevice.DeviceName = Loc.Name;
 			NewDevice.DevicePath.FilePath = Loc.Path;
 			DeviceMap.Add(NewDevice);
-			bDirty = true;
 		}
-	}
-
-	if (bDirty)
-	{
-		UpdateGlobalUserConfigFile();
 	}
 }
 
