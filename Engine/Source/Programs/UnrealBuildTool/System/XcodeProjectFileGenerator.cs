@@ -1100,6 +1100,11 @@ namespace UnrealBuildTool
 							WantProjectFileForTarget = true;
 						}
 					}
+
+					if (bGeneratingRocketProjectFiles && TargetName.EndsWith("Server"))
+					{
+						WantProjectFileForTarget = false;
+					}
 				}
 
 				if (WantProjectFileForTarget)
