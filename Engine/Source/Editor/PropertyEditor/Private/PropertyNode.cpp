@@ -7,6 +7,7 @@
 #include "ScopedTransaction.h"
 #include "PropertyRestriction.h"
 #include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
+#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "Engine/UserDefinedStruct.h"
 
 FPropertySettings& FPropertySettings::Get()
@@ -2332,7 +2333,7 @@ void FPropertyNode::PropagatePropertyChange( UObject* ModifiedObject, const TCHA
 
 	if (Object->HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject))
 	{
-		// Object is a default suobject, collect all instances.
+		// Object is a default subobject, collect all instances.
 		Object->GetArchetypeInstances(ArchetypeInstances);
 	}
 	else if (Object->HasAnyFlags(RF_DefaultSubObject) && Object->GetOuter()->HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject))
@@ -2345,6 +2346,12 @@ void FPropertyNode::PropagatePropertyChange( UObject* ModifiedObject, const TCHA
 			Object = Object->GetOuter();	
 			Object->GetArchetypeInstances(ArchetypeInstances);
 		}
+	}
+
+	static FName FNAME_EditableWhenInherited = GET_MEMBER_NAME_CHECKED(UActorComponent,bEditableWhenInherited);
+	if (GetProperty()->GetFName() == FNAME_EditableWhenInherited && ModifiedObject->IsA<UActorComponent>() && FString(TEXT("False")) == NewValue)
+	{
+		FBlueprintEditorUtils::HandleDisableEditableWhenInherited(ModifiedObject, ArchetypeInstances);
 	}
 
 	FPropertyNode* Parent = GetParentNode();

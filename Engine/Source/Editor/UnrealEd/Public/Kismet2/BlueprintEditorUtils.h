@@ -1271,4 +1271,9 @@ public:
 	 * Returns a class name for the specified class that has no automatic suffixes, but is otherwise unmodified.  Class can be nullptr.
 	 */
 	static FString GetClassNameWithoutSuffix(const UClass* Class);
+
+	/**
+	 * Remove overridden component templates from instance component handlers when a parent class disables editable when inherited boolean.
+	 */
+	static void HandleDisableEditableWhenInherited(UObject* ModifiedObject, TArray<UObject*>& ArchetypeInstances);
 };

@@ -7745,5 +7745,24 @@ UK2Node_FunctionResult* FBlueprintEditorUtils::FindOrCreateFunctionResultNode(UK
 	return FunctionResult;
 }
 
+void FBlueprintEditorUtils::HandleDisableEditableWhenInherited(UObject* ModifiedObject, TArray<UObject*>& ArchetypeInstances)
+{
+	for (int32 Index = ArchetypeInstances.Num() - 1; Index >= 0; --Index)
+	{
+		UObject* ArchetypeInstance = ArchetypeInstances[Index];
+		if (ArchetypeInstance != ModifiedObject)
+		{
+			UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(ArchetypeInstance->GetOuter());
+			if (BPGC)
+			{
+				UInheritableComponentHandler* ICH = BPGC->GetInheritableComponentHandler(false);
+				check(ICH);
+
+				ICH->RemoveOverridenComponentTemplate(ICH->FindKey(CastChecked<UActorComponent>(ArchetypeInstance)));
+			}
+		}
+	}
+}
+
 #undef LOCTEXT_NAMESPACE
 

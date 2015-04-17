@@ -65,7 +65,13 @@ private:
 	bool IsRecordNecessary(const FComponentOverrideRecord& Record) const;
 
 public:
+
+	// Begin UObject interface
+	virtual void PostLoad() override;
+	// End UObject interface
+
 	UActorComponent* CreateOverridenComponentTemplate(FComponentKey Key);
+	void RemoveOverridenComponentTemplate(FComponentKey Key);
 	void UpdateOwnerClass(UBlueprintGeneratedClass* OwnerClass);
 	void ValidateTemplates();
 	bool IsValid() const;
