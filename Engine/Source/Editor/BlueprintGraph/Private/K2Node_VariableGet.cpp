@@ -5,6 +5,7 @@
 #include "KismetCompiler.h"
 #include "ScopedTransaction.h"
 #include "Kismet/KismetTextLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FKCHandler_VariableGet
