@@ -219,6 +219,10 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		{
 			ServerPlatforms += TEXT("+Win64");
 		}
+		else if (PlatformInfo->TargetPlatformName == FName("MacServer"))
+		{
+			ServerPlatforms += TEXT("+Mac");
+		}
 		else if (PlatformInfo->TargetPlatformName == FName("LinuxNoEditor"))
 		{
 			Platforms += TEXT("+Linux");
