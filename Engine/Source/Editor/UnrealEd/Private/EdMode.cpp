@@ -1096,8 +1096,11 @@ UObject* FEdMode::GetItemToTryDisplayingWidgetsFor(FTransform& OutLocalToWorld) 
 		AActor* SelectedActor = GetFirstSelectedActorInstance();
 		if (SelectedActor != nullptr)
 		{
-			BestSelectedItem = SelectedActor;
-			OutLocalToWorld = SelectedActor->GetRootComponent()->GetComponentToWorld();
+			if (USceneComponent* RootComponent = SelectedActor->GetRootComponent())
+			{
+				BestSelectedItem = SelectedActor;
+				OutLocalToWorld = RootComponent->GetComponentToWorld();
+			}
 		}
 	}
 	else
