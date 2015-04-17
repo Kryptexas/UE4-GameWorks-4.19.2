@@ -521,7 +521,7 @@ static bool AttemptApplyObjToComponent(UObject* ObjToUse, USceneComponent* Compo
 			{
 				if (bTest)
 				{
-					bResult = true;
+					bResult = false;
 				}
 				else
 				{
@@ -536,7 +536,7 @@ static bool AttemptApplyObjToComponent(UObject* ObjToUse, USceneComponent* Compo
 			{
 				if (bTest)
 				{
-					bResult = true;
+					bResult = false;
 				}
 				else
 				{
