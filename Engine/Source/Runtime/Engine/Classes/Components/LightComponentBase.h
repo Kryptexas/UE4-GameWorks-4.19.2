@@ -93,8 +93,13 @@ class ENGINE_API ULightComponentBase : public USceneComponent
 	float DynamicEditorTextureScale;
 #endif
 
+	/** Sets whether this light casts shadows */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
 	void SetCastShadows(bool bNewValue);
+
+	/** Gets the light color as a linear color */
+	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
+	FLinearColor GetLightColor() const;
 
 	virtual void Serialize(FArchive& Ar) override;
 

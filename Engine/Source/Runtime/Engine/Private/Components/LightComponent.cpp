@@ -78,6 +78,11 @@ void ULightComponentBase::SetCastShadows(bool bNewValue)
 	}
 }
 
+FLinearColor ULightComponentBase::GetLightColor() const
+{
+	return FLinearColor(LightColor);
+}
+
 void ULightComponentBase::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
