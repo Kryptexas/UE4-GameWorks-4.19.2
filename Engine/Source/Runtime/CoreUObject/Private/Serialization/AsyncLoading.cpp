@@ -177,9 +177,22 @@ static FORCEINLINE bool IsTimeLimitExceeded(double InTickStartTime, bool bUseTim
 		double CurrentTime = FPlatformTime::Seconds();
 		bTimeLimitExceeded = CurrentTime - InTickStartTime > InTimeLimit;
 
-		// Log single operations that take longer than timelimit (but only in cooked builds)
-		if (FPlatformProperties::RequiresCookedData() && (CurrentTime - InTickStartTime) > (1.5 * InTimeLimit))
+		// One time init for ini override if we should log a warning when time limit is exceeded
+		static struct FWarnIfTimeLimitExeeded
 		{
+			bool Value;
+			FWarnIfTimeLimitExeeded()
+			{
+				check(GConfig);
+				bool bConfigValue = true; // Default to true
+				GConfig->GetBool(TEXT("Core.System"), TEXT("WarnIfTimeLimitExeeded"), bConfigValue, GEngineIni);
+				Value = bConfigValue;
+			}
+		} WarnIfTimeLimitExeeded;
+
+		// Log single operations that take longer than time limit (but only in cooked builds)
+		if (FPlatformProperties::RequiresCookedData() && WarnIfTimeLimitExeeded.Value && (CurrentTime - InTickStartTime) > (1.5 * InTimeLimit))
+		{			
 			UE_LOG(LogStreaming, Warning, TEXT("IsTimeLimitExceeded: %s %s took (less than) %5.2f ms"),
 				InLastTypeOfWorkPerformed ? InLastTypeOfWorkPerformed : TEXT("unknown"),
 				InLastObjectWorkWasPerformedOn ? *InLastObjectWorkWasPerformedOn->GetFullName() : TEXT("nullptr"),
@@ -398,7 +411,7 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTim
 		
 	for (int32 PackageIndex = 0; PackageIndex < LoadedPackagesToProcess.Num(); ++PackageIndex)
 	{
-		if (PackageIndex % 20 == 0 && IsTimeLimitExceeded(TickStartTime, bUseTimeLimit, TimeLimit))
+		if (PackageIndex % 20 == 0 && IsTimeLimitExceeded(TickStartTime, bUseTimeLimit, TimeLimit, TEXT("ProcessLoadedPackages")))
 		{
 			break;
 		}
@@ -461,13 +474,13 @@ EAsyncPackageState::Type FAsyncLoadingThread::TickAsyncLoading(bool bUseTimeLimi
 		TimeLimitUsedForPreloading = FPlatformTime::Seconds() - TickStartTime;
 	}
 
-	if (!IsTimeLimitExceeded(TickStartTime, bUseTimeLimit, TimeLimit))
+	if (!IsTimeLimitExceeded(TickStartTime, bUseTimeLimit, TimeLimit, TEXT("Pre-ProcessLoadedPackages")))
 	{
 		double RemainingTimeLimit = FMath::Max(0.0, TimeLimit - TimeLimitUsedForPreloading);
 		Result = ProcessLoadedPackages(bUseTimeLimit, bUseFullTimeLimit, RemainingTimeLimit, ExcludeType);
 	}
 
-	if (!IsTimeLimitExceeded(TickStartTime, bUseTimeLimit, TimeLimit))
+	if (Result != EAsyncPackageState::TimeOut && !IsTimeLimitExceeded(TickStartTime, bUseTimeLimit, TimeLimit, TEXT("Pre-EmptyReferencedObjects")))
 	{
 		FScopeLock QueueLock(&QueueCritical);
 		FScopeLock LoadedLock(&LoadedPackagesCritical);
@@ -1388,7 +1401,6 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadObjects()
 
 	// New objects might have been loaded during PostLoad.
 	Result = (PreLoadIndex == ObjLoaded.Num()) && (PostLoadIndex == ObjLoaded.Num()) ? EAsyncPackageState::Complete : EAsyncPackageState::TimeOut;
-	UE_CLOG(PreLoadIndex < ObjLoaded.Num(), LogStreaming, Fatal, TEXT("Objects have been loading in PostLoad. This is no longer allowed."));
 
 	return Result;
 }
