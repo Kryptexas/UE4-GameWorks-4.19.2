@@ -899,7 +899,7 @@ void FWorldTileCollectionModel::DeselectLevels(const FWorldTileLayer& InLayer)
 	}
 }
 
-const TSet<FName>& FWorldTileCollectionModel::GetPreviewStreamingLevels() const
+const TMap<FName, int32>& FWorldTileCollectionModel::GetPreviewStreamingLevels() const
 {
 	return PreviewVisibleTiles;
 }
@@ -922,7 +922,7 @@ void FWorldTileCollectionModel::UpdateStreamingPreview(FVector2D InLocation, boo
 
 			for (const auto& VisibleLevel : DistanceVisibleLevels)
 			{
-				PreviewVisibleTiles.Add(VisibleLevel.StreamingLevel->GetWorldAssetPackageFName());
+				PreviewVisibleTiles.Add(VisibleLevel.StreamingLevel->GetWorldAssetPackageFName(), VisibleLevel.LODIndex);
 			}
 		}
 	}

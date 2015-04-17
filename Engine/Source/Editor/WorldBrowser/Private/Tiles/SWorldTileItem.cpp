@@ -389,7 +389,8 @@ int32 SWorldTileItem::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 		LayerId = SNodePanel::SNode::OnPaint(Args, AllottedGeometry, ClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 		
 		const bool bSelected = (IsItemSelected() || bAffectedByMarquee);
-		const bool bHighlighted = (WorldModel->GetPreviewStreamingLevels().Find(TileModel->TileDetails->PackageName) != nullptr);
+		const int32* PreviewLODIndex = WorldModel->GetPreviewStreamingLevels().Find(TileModel->TileDetails->PackageName);
+		const bool bHighlighted = (PreviewLODIndex != nullptr);
 
 		// Draw the node's selection/highlight.
 		if (bSelected || bHighlighted)
@@ -400,7 +401,13 @@ int32 SWorldTileItem::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 			FSlateLayoutTransform LayoutTransform(Scale, AllottedGeometry.GetAccumulatedLayoutTransform().GetTranslation() - InflateAmount);
 			FSlateRenderTransform RenderTransform(Scale, AllottedGeometry.GetAccumulatedRenderTransform().GetTranslation() - InflateAmount);
 			FPaintGeometry SelectionGeometry(LayoutTransform, RenderTransform, (AllottedGeometry.GetLocalSize()*AllottedGeometry.Scale + InflateAmount*2)/Scale);
-										
+			FLinearColor HighlightColor = FLinearColor::White;
+			if (PreviewLODIndex)
+			{
+				// Highlight LOD tiles in different color to normal tiles
+				HighlightColor = (*PreviewLODIndex == INDEX_NONE) ? FLinearColor::Green : FLinearColor(0.3f,1.0f,0.3f);
+			}
+													
 			FSlateDrawElement::MakeBox(
 				OutDrawElements,
 				LayerId + 1,
@@ -408,7 +415,7 @@ int32 SWorldTileItem::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 				GetShadowBrush(bSelected || bHighlighted),
 				ClippingRect,
 				ESlateDrawEffect::None,
-				bHighlighted ? FLinearColor::Green : FLinearColor::White
+				HighlightColor
 				);
 		}
 
