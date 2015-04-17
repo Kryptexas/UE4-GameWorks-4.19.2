@@ -66,10 +66,6 @@ private:
 
 public:
 
-	// Begin UObject interface
-	virtual void PostLoad() override;
-	// End UObject interface
-
 	UActorComponent* CreateOverridenComponentTemplate(FComponentKey Key);
 	void RemoveOverridenComponentTemplate(FComponentKey Key);
 	void UpdateOwnerClass(UBlueprintGeneratedClass* OwnerClass);
@@ -96,6 +92,11 @@ public:
 #endif
 
 public:
+
+	// Begin UObject interface
+	virtual void PostLoad() override;
+	// End UObject interface
+
 	void PreloadAllTempates();
 	void PreloadAll();
 
