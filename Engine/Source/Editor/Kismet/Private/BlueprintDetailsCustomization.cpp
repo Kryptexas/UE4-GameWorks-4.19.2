@@ -2452,6 +2452,23 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 						.OnCheckStateChanged( this, &FBlueprintGraphActionDetails::OnIsPureFunctionModified )
 				];
 			}
+			if (IsConstFunctionVisible())
+			{
+				Category.AddCustomRow( LOCTEXT( "FunctionConst_Tooltip", "Const" ), true )
+				.NameContent()
+				[
+					SNew(STextBlock)
+					.Text( LOCTEXT( "FunctionConst_Tooltip", "Const" ) )
+					.ToolTipText( LOCTEXT("FunctionIsConst_Tooltip", "Force this to be a const function?") )
+					.Font( IDetailLayoutBuilder::GetDetailFont() )
+				]
+				.ValueContent()
+				[
+					SNew( SCheckBox )
+					.IsChecked( this, &FBlueprintGraphActionDetails::GetIsConstFunction )
+					.OnCheckStateChanged( this, &FBlueprintGraphActionDetails::OnIsConstFunctionModified )
+				];
+			}
 		}
 
 		if (IsCustomEvent())
@@ -3730,6 +3747,50 @@ ECheckBoxState FBlueprintGraphActionDetails::GetIsPureFunction() const
 		return ECheckBoxState::Undetermined;
 	}
 	return (EntryNode->ExtraFlags & FUNC_BlueprintPure) ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
+}
+
+bool FBlueprintGraphActionDetails::IsConstFunctionVisible() const
+{
+	bool bSupportedType = false;
+	bool bIsEditable = false;
+	UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
+	if(FunctionEntryNode)
+	{
+		UBlueprint* Blueprint = FunctionEntryNode->GetBlueprint();
+
+		bSupportedType = FunctionEntryNode->IsA<UK2Node_FunctionEntry>();
+		bIsEditable = FunctionEntryNode->IsEditable();
+	}
+	return bSupportedType && bIsEditable;
+}
+
+void FBlueprintGraphActionDetails::OnIsConstFunctionModified( const ECheckBoxState NewCheckedState )
+{
+	UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
+	auto Function = FindFunction();
+	auto EntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode);
+	if(EntryNode && Function)
+	{
+		const FScopedTransaction Transaction( LOCTEXT( "ChangeConst", "Change Const" ) );
+		EntryNode->Modify();
+		Function->Modify();
+
+		//set flags on function entry node also
+		EntryNode->ExtraFlags	^= FUNC_Const;
+		Function->FunctionFlags ^= FUNC_Const;
+		OnParamsChanged(FunctionEntryNode);
+	}
+}
+
+ECheckBoxState FBlueprintGraphActionDetails::GetIsConstFunction() const
+{
+	UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
+	auto EntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode);
+	if(!EntryNode)
+	{
+		return ECheckBoxState::Undetermined;
+	}
+	return (EntryNode->ExtraFlags & FUNC_Const) ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
 }
 
 FReply FBaseBlueprintGraphActionDetails::OnAddNewInputClicked()

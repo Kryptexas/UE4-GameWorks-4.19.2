@@ -1205,6 +1205,64 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 		{
 			Context.Function->SetMetaData(FBlueprintMetadata::MD_CallInEditor, TEXT( "true" ));
 		}
+
+		// Set the required function flags
+		if (Context.CanBeCalledByKismet())
+		{
+			Context.Function->FunctionFlags |= FUNC_BlueprintCallable;
+		}
+
+		if (Context.IsInterfaceStub())
+		{
+			Context.Function->FunctionFlags |= FUNC_BlueprintEvent;
+		}
+
+		// Inherit extra flags from the entry node
+		if (Context.EntryPoint)
+		{
+			Context.Function->FunctionFlags |= Context.EntryPoint->ExtraFlags;
+		}
+
+		// First try to get the overriden function from the super class
+		UFunction* OverridenFunction = Context.Function->GetSuperFunction();
+		// If we couldn't find it, see if we can find an interface class in our inheritance to get it from
+		if (!OverridenFunction && Context.Blueprint)
+		{
+			bool bInvalidInterface = false;
+			OverridenFunction = FBlueprintEditorUtils::FindFunctionInImplementedInterfaces( Context.Blueprint, Context.Function->GetFName(), &bInvalidInterface );
+			if(bInvalidInterface)
+			{
+				MessageLog.Warning(TEXT("Blueprint tried to implement invalid interface."));
+			}
+		}
+
+		// Inherit flags and validate against overridden function if it exists
+		if (OverridenFunction)
+		{
+			Context.Function->FunctionFlags |= (OverridenFunction->FunctionFlags & (FUNC_FuncInherit | FUNC_Public | FUNC_Protected | FUNC_Private));
+
+			if ((Context.Function->FunctionFlags & FUNC_AccessSpecifiers) != (OverridenFunction->FunctionFlags & FUNC_AccessSpecifiers))
+			{
+				MessageLog.Error(*LOCTEXT("IncompatibleAccessSpecifier_Error", "Access specifier is not compatible the parent function @@").ToString(), Context.EntryPoint);
+			}
+
+			const uint32 OverrideFlagsToCheck = (FUNC_FuncOverrideMatch & ~FUNC_AccessSpecifiers);
+			if ((Context.Function->FunctionFlags & OverrideFlagsToCheck) != (OverridenFunction->FunctionFlags & OverrideFlagsToCheck))
+			{
+				MessageLog.Error(*LOCTEXT("IncompatibleOverrideFlags_Error", "Overriden function is not compatible with the parent function @@. Check flags: Exec, Final, Static.").ToString(), Context.EntryPoint);
+			}
+
+			// Copy metadata from parent function as well
+			UMetaData::CopyMetadata(OverridenFunction, Context.Function);
+		}
+		else
+		{
+			// If this is the root of a blueprint-defined function or event, and if it's public, make it overrideable
+			if( !Context.IsEventGraph() && !Context.Function->HasAnyFunctionFlags(FUNC_Private) )
+			{
+				Context.Function->FunctionFlags |= FUNC_BlueprintEvent;
+			}
+		}
 		
 		// Link it
 		//@TODO: should this be in regular or reverse order?
@@ -1515,64 +1573,6 @@ void FKismetCompilerContext::FinishCompilingFunction(FKismetFunctionContext& Con
 	UFunction* Function = Context.Function;
 	Function->Bind();
 	Function->StaticLink(true);
-
-	// Set the required function flags
-	if (Context.CanBeCalledByKismet())
-	{
-		Function->FunctionFlags |= FUNC_BlueprintCallable;
-	}
-
-	if (Context.IsInterfaceStub())
-	{
-		Function->FunctionFlags |= FUNC_BlueprintEvent;
-	}
-
-	// Inherit extra flags from the entry node
-	if (Context.EntryPoint)
-	{
-		Function->FunctionFlags |= Context.EntryPoint->ExtraFlags;
-	}
-
-	// First try to get the overriden function from the super class
-	UFunction* OverridenFunction = Function->GetSuperFunction();
-	// If we couldn't find it, see if we can find an interface class in our inheritance to get it from
-	if (!OverridenFunction && Context.Blueprint)
-	{
-		bool bInvalidInterface = false;
-		OverridenFunction = FBlueprintEditorUtils::FindFunctionInImplementedInterfaces( Context.Blueprint, Function->GetFName(), &bInvalidInterface );
-		if(bInvalidInterface)
-			{
-				MessageLog.Warning(TEXT("Blueprint tried to implement invalid interface."));
-			}
-		}
-
-	// Inherit flags and validate against overridden function if it exists
-	if (OverridenFunction)
-	{
-		Function->FunctionFlags |= (OverridenFunction->FunctionFlags & (FUNC_FuncInherit | FUNC_Public | FUNC_Protected | FUNC_Private));
-
-		if ((Function->FunctionFlags & FUNC_AccessSpecifiers) != (OverridenFunction->FunctionFlags & FUNC_AccessSpecifiers))
-		{
-			MessageLog.Error(*LOCTEXT("IncompatibleAccessSpecifier_Error", "Access specifier is not compatible the parent function @@").ToString(), Context.EntryPoint);
-		}
-
-		const uint32 OverrideFlagsToCheck = (FUNC_FuncOverrideMatch & ~FUNC_AccessSpecifiers);
-		if ((Function->FunctionFlags & OverrideFlagsToCheck) != (OverridenFunction->FunctionFlags & OverrideFlagsToCheck))
-		{
-			MessageLog.Error(*LOCTEXT("IncompatibleOverrideFlags_Error", "Overriden function is not compatible with the parent function @@. Check flags: Exec, Final, Static.").ToString(), Context.EntryPoint);
-		}
-
-		// Copy metadata from parent function as well
-		UMetaData::CopyMetadata(OverridenFunction, Function);
-	}
-	else
-	{
-		// If this is the root of a blueprint-defined function or event, and if it's public, make it overrideable
-		if( !Context.IsEventGraph() && !Function->HasAnyFunctionFlags(FUNC_Private) )
-		{
-			Function->FunctionFlags |= FUNC_BlueprintEvent;
-		}
-	}
 
 	// Set function flags and calculate cached values so the class can be used immediately
 	Function->ParmsSize = 0;
