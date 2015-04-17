@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2415423
+﻿INTSourceChangelist:2515625
+Availability:Public
 Title:Paper2D 스프라이트
 Crumbs: %ROOT%, Engine, Engine/Paper2D
 Description:언리얼 엔진 4 의 스프라이트에 대한 설명 및 그 제작 방법입니다.
-Availability:Public
 Related: Engine\Paper2D\Sprites\Editor
 Related: Engine\Paper2D\Sprites\Collision
 Related: Engine\Paper2D\Sprites\RenderGeometry
@@ -132,6 +132,10 @@ Related: Engine/Content/Types/Textures
 ### JSON 파일에서 임포트하기
 
 **Paper 2D** 에는 **Adobe Flash CS6** 나 **Texture Packer** 같은 툴에서 익스포트 가능한 JSON 포맷 스프라이트 시트 설명에 대한 임포터가 포함되어 있습니다. 레퍼런싱된 텍스처를 임포트하고 각 스프라이트에 대한 스프라이트 애셋을 만들어 줍니다. 임포터는 모든 스프라이트가 애니메이션의 프레임이라 가정하기도 하므로, 개별 스프라이트에 더해 항상 플립북을 생성할 것입니다. 생성된 플립북이 필요치 않은 경우 지우면 됩니다.
+
+[REGION:note]
+임포트 옵션 관련 상세 내용은 [](Engine\Paper2D\Importing) 문서를 참고하세요.
+[/REGION]
 
 
 ## 스프라이트 머티리얼 만들기

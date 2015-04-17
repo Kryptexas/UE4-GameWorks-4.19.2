@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2396981
+﻿INTSourceChangelist:2514684
 Availability: Public
 Title:스태틱 메시 - 콜리전 셋업 비법
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes, Engine/Content/Types/StaticMeshes/HowTo
@@ -148,7 +148,7 @@ UE4 에서는 스태틱 메시에 여러가지 일을 시킬 수 있는데, 게�
 
 ## 물리 시뮬레이션 및 콜리전 프리셋
 
-스태틱 메시에 콜리전이 생겼으니, 이제 물리 시뮬레이션이 가능합니다. 스태틱 메시 에디터 툴바 왼쪽 부분의 **저장** 버튼을 클릭하여 의자 메시를 저장한 다음 **콘텐츠 브라우저** 에서 **SM_Chair** 를 찾습니다. 메시 사본을 끌어 레벨에 놓은 다음 선택한 채로 **디테일** 패널을 봅니다. **디테일** 패널의 **Physics** 섹션에 첫 번째 옵션인 **Simulate Physics** 가 기본으로 _false_ 일 것입니다. 그 상태로 레벨을 플레이하면, 캐릭터가 메시를 통과해 걸을 수는 없어도 프로젝타일에는 영향을 받지 않습니다.
+스태틱 메시에 콜리전이 생겼으니, 이제 물리 시뮬레이션이 가능합니다. 스태틱 메시 에디터 툴바 왼쪽 부분의 **저장** 버튼을 클릭하여 의자 메시를 저장한 다음 **콘텐츠 브라우저** 에서 **SM_Chair** 를 찾습니다. 메시 사본을 끌어 레벨에 놓은 다음 선택한 채로 **디테일** 패널을 봅니다. **디테일** 패널의 **Physics** 섹션에 첫 번째 옵션인 **Simulate Physics** 가 기본으로 _false_ 일 것입니다. 그 상태로 레벨을 플레이하면, 캐릭터가 메시를 통과해 걸을 수 없으며, 탄환을 발사해도 메시에 전혀 영향을 끼치지 못할 것입니다.
 
 ![](PhysicsDetailsPanel.png)
 

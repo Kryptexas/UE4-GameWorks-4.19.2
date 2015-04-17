@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2466035
+﻿INTSourceChangelist:2515048
 Availability:Public
 Title: 블루프린트 비주얼 스크립팅
 Crumbs: %ROOT%, Engine
@@ -197,6 +197,17 @@ _Blueprint_ 를 통해 디자이너는 사실상 어떤 게임플레이 요소�
 		[/PARAM]
 		[PARAM:path]
 		[RELATIVE:Engine\Blueprints\UserGuide\CheatSheet]
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:TopicCompact]
+		[PARAM:image]
+		![](BestPractices_Topic.png)
+		[/PARAM]
+		[PARAM:title]
+			블루프린트 실전 사례
+		[/PARAM]
+		[PARAM:path]
+		[RELATIVE:Engine\Blueprints\BestPractices]
 		[/PARAM]
 	[/OBJECT]
 	[OBJECT:TopicCompact]

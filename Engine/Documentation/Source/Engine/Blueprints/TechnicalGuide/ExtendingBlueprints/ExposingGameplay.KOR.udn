@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2481366
+﻿INTSourceChangelist:2515048
 Availability:Public
 Title:블루프린트에 게임플레이 요소 노출시키기
 Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
 Description:게임플레이 요소를 블루프린트에 노출시키는 게임플레이 프로그래머를 위한 기술 안내서입니다.
+Related: Engine/Blueprints/TechnicalGuide/Guidelines
 
 [TOC(start:2)]
 
@@ -17,6 +18,8 @@ Description:게임플레이 요소를 블루프린트에 노출시키는 게임�
 직접 발사속도를 변경하면 되니, 디자이너에게도 프로그래머에게도 
 시간 절약입니다.
 
+프로젝트의 C++/블루프린트 배포 최적화 관련 상세 정보, 또는 블루프린트에 노출되는 API 제작시 
+유념할 팁에 대해서는 [](Engine/Blueprints/TechnicalGuide/Guidelines) 문서를 참고하세요.
 
 ## Blueprintable 클래스 만들기
 
@@ -30,7 +33,7 @@ Blueprintable 클래스에 대한 가장 단순한 형태의 선언은 다음과
 	UCLASS(Blueprintable)
 	class AMyBlueprintableClass : AActor
 	{
-		GENERATED_UCLASS_BODY()
+		GENERATED_BODY()
 	}
 
 

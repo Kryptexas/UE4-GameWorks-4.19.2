@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2213914
+﻿INTSourceChangelist:2515048
 Availability:Public
 Title:블루프린트 컴파일러 개요
 Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
-Description:블루프린트를 확장해 쓰는 프로그래머를 위한 안내서입니다.
+Description:블루프린트를 컴파일 프로세스 안내입니다.
 
 [TOC(start:2 end:2)]
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2436839
+﻿INTSourceChangelist:2514808
 Availability: Public
 Title:스태틱 메시 - 소켓 셋업 및 사용 비법
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes, Engine/Content/Types/StaticMeshes/HowTo
@@ -99,7 +99,7 @@ UE4 에서 레벨을 제작하는 도중, 스태틱 메시에 무언가를 붙�
 
 ![](FireAttachToFrame.png)
 
-**SM_DoorFrame** 를 선택했으면, 오브젝트를 어디에 붙이겠냐고 묻습니다. 리스트에는 **None** 과 스태틱 메시에 생성해 둔 소켓이 전부 나열됩니다. **Fire** 와 **P_Fire** 라는 파티클 이펙트를 선택하면, 스태틱 메시의 소켓 위치에 마법처럼 달라붙습니다. 이제 파티클 이펙트가 스태틱 메시에 붙었습니다.
+**SM_DoorFrame** 를 선택했으면, 오브젝트를 어디에 붙이겠냐고 묻습니다. 리스트에는 **None** 과 스태틱 메시용으로 생성한 소켓이 전부 나열됩니다. **Fire** 와 **P_Fire** 라는 파티클 이펙트를 선택하면, 스태틱 메시의 소켓 위치에 마법처럼 달라붙습니다. 이제 파티클 이펙트가 스태틱 메시에 붙었습니다.
 
 ![](ChooseSocket.png)
 ![](FireInFrameComplete.png)
@@ -135,6 +135,6 @@ UE4 에서 레벨을 제작하는 도중, 스태틱 메시에 무언가를 붙�
 
 ![](DoorSocketComplete.png)
 
-[](Engine/Content/Types/StaticMeshes/HowTo/SettingCollision "%Engine/Content/Types/StaticMeshes/HowTo/SettingCollision:Description%") 을 거치지 않고 오신 경우, **SM_Door** 에는 기본적으로 콜리전이 설정되어 있지 않을 것입니다. 그 상태에서 레벨을 플레이해 보면, 플레이어는 그냥 견고한 문을 지나가 버리는데, 좋지 않지요. 플레이어가 문이 닫혔을 때는 걸어 지나가지 못하도록 스태틱 메시 에디터 안에서 문에 단순한 박스 콜리전을 설정해 줍니다. 그 방법을 잘 모르겠는 경우, [](Engine/Content/Types/StaticMeshes/HowTo/SettingCollision "%Engine/Content/Types/StaticMeshes/HowTo/SettingCollision:Description%") 문서를 참고하세요.
+기본적으로 **SM_Door** 에는 콜리전이 설정되어 있지 않을 것입니다. 그 상태에서 레벨을 플레이해 보면, 플레이어는 그냥 견고한 문을 지나가 버리는데, 좋지 않지요. 플레이어가 문이 닫혔을 때는 걸어 지나가지 못하도록 스태틱 메시 에디터 안에서 문에 단순한 박스 콜리전을 설정해 줍니다. 그 방법을 잘 모르겠는 경우, [](Engine/Content/Types/StaticMeshes/HowTo/SettingCollision "%Engine/Content/Types/StaticMeshes/HowTo/SettingCollision:Description%") 문서를 참고하세요.
 
 이제 플레이어가 지나갈 수 없는 견고한 문이 되었으니, 블루프린트를 사용하여 문이 열리고 닫힐 수 있도록 작동방식 스크립트를 짜면 됩니다. 그것까지는 이 비법의 범위를 넘어서는 일이긴 하지만, 플레이어를 막을 수 있는 문을 만들어 문틀에 붙였으니, 문을 여닫는 방법에 대해서는 [](Engine/Blueprints/UserGuide/Timelines/Examples/OpeningDoors) 문서를 참고해 주시기 바랍니다.

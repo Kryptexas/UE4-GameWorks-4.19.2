@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2415423
+﻿INTSourceChangelist:2515627
+Availability:Public
 Title:스프라이트 에디터 참고서
 Crumbs: %ROOT%, Engine, Engine/Paper2D
 Description:UPaperSprite, 페이퍼 스프라이트 애셋 미리보기 및 편집용 툴입니다.
-Availability:Public
 Related: Engine\Paper2D\Sprites\Collision
 Related: Engine\Paper2D\Sprites\RenderGeometry
 Related: Engine\Paper2D\Flipbooks

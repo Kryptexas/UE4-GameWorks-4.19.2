@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2381777
+﻿INTSourceChangelist:2515048
 Availability:Public
 Title:블루프린트 테크니컬 가이드
 Crumbs: %ROOT%, Programming
@@ -27,6 +27,7 @@ Blueprint (블루프린트)는 언리얼 엔진 4 에 도입된 강력한 신기
 	[PARAM:links]
 		* [](Engine/Blueprints/TechnicalGuide/Compiler "%Engine/Blueprints/TechnicalGuide/Compiler:description%")
 		* [](Engine/Blueprints/TechnicalGuide/ExtendingBlueprints "%Engine/Blueprints/TechnicalGuide/ExtendingBlueprints:description%")
+		* [](Engine/Blueprints/TechnicalGuide/Guidelines "%Engine/Blueprints/TechnicalGuide/Guidelines:description%")
 	[/PARAM]
 [/OBJECT]
 

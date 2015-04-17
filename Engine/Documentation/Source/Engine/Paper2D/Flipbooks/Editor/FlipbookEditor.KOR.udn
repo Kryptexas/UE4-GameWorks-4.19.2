@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2412328
+﻿INTSourceChangelist:2514961
 Availability:Public
 Title:플립북 에디터 참고서
 Crumbs: %ROOT%, Engine, Engine/Paper2D, Engine/Paper2D/Flipbooks
@@ -21,7 +21,7 @@ Related: Engine/Content/Types/Textures
 
 1. **콘텐츠 브라우저** 안에서 플립북을 **더블클릭** 합니다 (또는 플립북에 **우클릭** 한 뒤 **편집** 을 선택합니다).
 
-	![](EditFlipbook.png)(w:440)
+	![](EditFlipbook.png)
 
 1.	그러면 **플립북 에디터** 창이 열립니다.
 
@@ -54,10 +54,6 @@ Related: Engine/Content/Types/Textures
 |![](Toolbar4.png)(w:60)| 뷰포트 내 스태틱 메시의 바운드 표시를 토글합니다. |
 |![](Toolbar5.png)(w:60)| 스태틱 메시에 단순화된 콜리전 메시가 할당된 경우, 그 표시를 토글합니다 (**Alt+C**). |
 |![](Toolbar6.png)(w:60)| 뷰포트에서 스프라이트의 피벗 위치를 표시합니다. |
-
-[REGION:note]
-플립북은 현재 어떠한 형태의 콜리전도 지원하지 않습니다. 플립북에 캡슐이나 박스 컴포넌트를 같이 사용하여 비슷한 콜리전 모양을 제공해 줄 수는 있습니다.
-[/REGION]
 
 ### 뷰포트
 
@@ -109,6 +105,27 @@ Related: Engine/Content/Types/Textures
 
 ![](DetailsPanel.png)
 
+
+#### 콜리전 소스
+
+![](CollisionSource.png)
+
+**플립북** 에 콜리전을 설정하는 방법은, **Collision Source** (콜리전 소스) 드롭다운을 사용해서 다음과 같이 할 수 있습니다:
+
+* 플립북에 콜리전을 적용하지 않습니다.
+* 애니메이션이 없는 콜리전을 애니메이션 첫 프레임에만 적용합니다.
+* 애니메이션 매 프레임마다 콜리전을 변경합니다 (퍼포먼스면에서 매우 비싸므로 추천하지 않습니다).
+
+거의 소스 프레임에서 콜리전을 바로 생성하기 보다는, 플립북 컴포넌트의 소켓에 (박스 컴포넌트같은) 콜리전 컴포넌트를 붙이게 마련입니다. 일부 콜리전 구역이 다른 블록과 겹치도록 하려는 경우엔 특히나 더 그렇지요.
+
+캐릭터 무브먼트는 여전히 콜리전 캡슐에 의존하며, 대부분의 경우 플립북의 콜리전 채널은 BlockAll 이외의 것을 사용하여 캡슐이 플립북에 걸리지 않도록 하는 것이 좋습니다 (캡슐을 기준으로 이동/블록시키며, 플립북을 기준으로 프로젝타일 관련 오버랩 또는 콜리전 테스트를 합니다).
+
+[REGION:note]
+자세한 정보는 [](Engine\Paper2D\Flipbooks\Components) 문서의 콜리전 부분을 참고하세요.
+[/REGION]
+
+
+
 ## 플립북 편집
 
 공백 플립북으로 작업중이라면, 플립북에 스프라이트를 추가하는 방법은 두 가지 정도 있습니다.
@@ -119,7 +136,7 @@ Related: Engine/Content/Types/Textures
 
 그러면 스프라이트가 타임라인에 추가될 뿐만 아니라 **디테일** 패널 안에 **키 프레임** 섹션이 업데이트됩니다.
 
-![](Adding2.png)
+![](Adding2.png)(w:720)
 
 **디테일** 패널의 **키 프레임** 섹션에 **+** 부호를 클릭해도 됩니다.
 
