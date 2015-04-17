@@ -5198,11 +5198,6 @@ void FHeaderParser::CompileDelegateDeclaration(FUnrealSourceFile& SourceFile, FC
 		RequireSymbol(TEXT(","), CurrentScopeName);
 	}
 
-	// Skip whitespaces to get InputPos exactly on beginning of function name.
-	while (FChar::IsWhitespace(PeekChar())) { GetChar(); }
-
-	FuncInfo.InputPos = InputPos;
-
 	// Get the delegate name
 	if (!GetIdentifier(FuncInfo.Function))
 	{
@@ -5531,11 +5526,6 @@ void FHeaderParser::CompileFunctionDeclaration(FUnrealSourceFile& SourceFile, FC
 	{
 		GetVarType(AllClasses, GetCurrentScope(), ReturnType, 0, NULL, EPropertyDeclarationStyle::None, EVariableCategory::Return);
 	}
-
-	// Skip whitespaces to get InputPos exactly on beginning of function name.
-	while (FChar::IsWhitespace(PeekChar())) { GetChar(); }
-
-	FuncInfo.InputPos = InputPos;
 
 	// Get function or operator name.
 	if (!GetIdentifier(FuncInfo.Function))

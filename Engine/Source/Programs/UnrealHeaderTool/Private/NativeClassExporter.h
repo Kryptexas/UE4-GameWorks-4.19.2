@@ -376,15 +376,14 @@ private:
 	void ExportNativeFunctionHeader(const FFuncInfo& FunctionData, FUHTStringBuilder& HeaderOutput, EExportFunctionType::Type FunctionType, EExportFunctionHeaderStyle::Type FunctionHeaderStyle, const TCHAR* ExtraParam = NULL);
 
 	/**
-	* Runs checks whether necessary RPC functions exist for function described by FunctionData.
+	* Exports checks if function exists
 	*
 	* @param	FunctionData			Data representing the function to export.
 	* @param	ClassName				Name of currently parsed class.
-	* @param	ImplementationPosition	Position in source file of _Implementation function for function described by FunctionData.
-	* @param	ValidatePosition		Position in source file of _Validate function for function described by FunctionData.
-	* @param	SourceFile				Currently analyzed source file.
+	* @param	bHasImplementation		Whether class has declared a version of FunctionData with _Implementation suffix.
+	* @param	bHasValidate			Whether class has declared a version of FunctionData with _Validate suffix.
 	*/
-	void CheckRPCFunctions(const FFuncInfo& FunctionData, const FString& ClassName, int32 ImplementationPosition, int32 ValidatePosition, const FUnrealSourceFile& SourceFile);
+	void CheckRPCFunctions(const FFuncInfo& FunctionData, const FString& ClassName, bool bHasImplementation, bool bHasValidate, const FUnrealSourceFile& SourceFile, int32 GeneratedBodyLine);
 
 	/**
 	 * Exports the native stubs for the list of functions specified
@@ -551,13 +550,4 @@ public:
 	* @return FString with function parameters.
 	*/
 	FString GetFunctionParameterString(UFunction* Function);
-
-	/**
-	 * Checks if function is missing "virtual" specifier.
-	 * 
-	 * @param SourceFile SourceFile where function is declared.
-	 * @param FunctionNamePosition Position of name of function in SourceFile.
-	 * @return true if function misses "virtual" specifier, false otherwise.
-	 */
-	bool IsMissingVirtualSpecifier(const FString& SourceFile, int32 FunctionNamePosition) const;
 };
