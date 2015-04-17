@@ -1156,7 +1156,8 @@ void SNewClassDialog::FinishClicked()
 
 		FText FailReason;
 		const TSet<FString>& DisallowedHeaderNames = FSourceCodeNavigation::GetSourceFileDatabase().GetDisallowedHeaderNames();
-		if (GameProjectUtils::AddCodeToProject(NewClassName, NewClassPath, *SelectedModuleInfo, ParentClassInfo, DisallowedHeaderNames, HeaderFilePath, CppFilePath, FailReason))
+		const GameProjectUtils::EAddCodeToProjectResult AddCodeResult = GameProjectUtils::AddCodeToProject(NewClassName, NewClassPath, *SelectedModuleInfo, ParentClassInfo, DisallowedHeaderNames, HeaderFilePath, CppFilePath, FailReason);
+		if (AddCodeResult == GameProjectUtils::EAddCodeToProjectResult::Succeeded)
 		{
 			OnAddedToProject.ExecuteIfBound( NewClassName, NewClassPath, SelectedModuleInfo->ModuleName );
 
@@ -1177,7 +1178,7 @@ void SNewClassDialog::FinishClicked()
 				{
 					// Code successfully added, notify the user. We are either running on a platform that does not support source access or a file was not given so don't ask about editing the file
 					const FText Message = FText::Format( 
-						LOCTEXT("AddCodeSuccessWithHotReload", "Successfully added class {0}, however you must recompile {1} before it will appear in the Content Browser.")
+						LOCTEXT("AddCodeSuccessWithHotReload", "Successfully added class '{0}', however you must recompile the '{1}' module before it will appear in the Content Browser.")
 						, FText::FromString(NewClassName), FText::FromString(SelectedModuleInfo->ModuleName) );
 					FMessageDialog::Open(EAppMsgType::Ok, Message);
 				}
@@ -1198,7 +1199,7 @@ void SNewClassDialog::FinishClicked()
 				{
 					// Code successfully added, notify the user and ask about opening the IDE now
 					const FText Message = FText::Format( 
-						LOCTEXT("AddCodeSuccessWithHotReloadAndSync", "Successfully added class {0}, however you must recompile {1} before it will appear in the Content Browser.\n\nWould you like to edit the code now?")
+						LOCTEXT("AddCodeSuccessWithHotReloadAndSync", "Successfully added class '{0}', however you must recompile the '{1}' module before it will appear in the Content Browser.\n\nWould you like to edit the code now?")
 						, FText::FromString(NewClassName), FText::FromString(SelectedModuleInfo->ModuleName) );
 					bEditSourceFilesNow = ( FMessageDialog::Open( EAppMsgType::YesNo, Message ) == EAppReturnType::Yes );
 				}
@@ -1230,15 +1231,31 @@ void SNewClassDialog::FinishClicked()
 			// Successfully created the code and potentially opened the IDE. Close the dialog.
 			CloseContainingWindow();
 		}
-		else
+		else if (AddCodeResult == GameProjectUtils::EAddCodeToProjectResult::FailedToHotReload)
 		{
-			// @todo show fail reason in error label
-			// Failed to add code
-			const FText Message = FText::Format( LOCTEXT("AddCodeFailed_Native", "Failed to add or compile class {0}. {1}\n\nWould you like to open the Output Log to see more details?"), FText::FromString(NewClassName), FailReason );
+			OnAddedToProject.ExecuteIfBound( NewClassName, NewClassPath, SelectedModuleInfo->ModuleName );
+
+			// Prevent periodic validity checks. This is to prevent a brief error message about the class already existing while you are exiting.
+			bPreventPeriodicValidityChecksUntilNextChange = true;
+
+			// Failed to compile new code
+			const FText Message = FText::Format(
+				LOCTEXT("AddCodeFailed_HotReloadFailed", "Successfully added class '{0}', however you must recompile the '{1}' module before it will appear in the Content Browser. {2}\n\nWould you like to open the Output Log to see more details?")
+				, FText::FromString(NewClassName), FText::FromString(SelectedModuleInfo->ModuleName), FailReason );
 			if( FMessageDialog::Open(EAppMsgType::YesNo, Message) == EAppReturnType::Yes )
 			{
 				FGlobalTabmanager::Get()->InvokeTab(FName("OutputLog"));
 			}
+
+			// We did manage to add the code itself, so we can close the dialog.
+			CloseContainingWindow();
+		}
+		else
+		{
+			// @todo show fail reason in error label
+			// Failed to add code
+			const FText Message = FText::Format( LOCTEXT("AddCodeFailed_AddCodeFailed", "Failed to add class '{0}'. {1}"), FText::FromString(NewClassName), FailReason );
+			FMessageDialog::Open(EAppMsgType::Ok, Message);
 		}
 	}
 }
