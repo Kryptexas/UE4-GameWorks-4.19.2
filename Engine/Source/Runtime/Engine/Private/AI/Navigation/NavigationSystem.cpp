@@ -611,21 +611,19 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 
 		// All navigation actors are registered
 		// Add NavMesh parts from all sub-levels that were streamed in prior NavMesh registration
-		if (World->IsGameWorld())
+		const auto& Levels = World->GetLevels();
+		for (ULevel* Level : Levels)
 		{
-			const auto& Levels = World->GetLevels();
-			for (ULevel* Level : Levels)
+			if (!Level->IsPersistentLevel() && Level->bIsVisible)
 			{
-				if (!Level->IsPersistentLevel() && Level->bIsVisible)
+				for (ANavigationData* NavData : NavDataSet)
 				{
-					for (ANavigationData* NavData : NavDataSet)
-					{
-						NavData->OnStreamingLevelAdded(Level, World);
-					}
+					NavData->OnStreamingLevelAdded(Level, World);
 				}
 			}
 		}
-		else if (World->GetLevels().Num() > 1)
+
+		if (!World->IsGameWorld() && World->GetLevels().Num() > 1)
 		{
 			// this is a bit of a @hack for the time being until we reorganize navigation data instances (4.9?)
 			// the point of this hack is to force editor-time navmesh rebuilding if we have any sublevels
@@ -2048,15 +2046,11 @@ void UNavigationSystem::InitializeForWorld(UWorld* World, FNavigationSystem::EMo
 			NavSys = CreateNavigationSystem(World);
 		}
 
-		// Remove old chunk data from all levels
+		// Remove old/stale chunk data from all levels, when navigation auto-update is enabled
 		// In case navigation system will be created chunks will be regenerated anyway
-		if (Mode == FNavigationSystem::EditorMode)
+		if (Mode == FNavigationSystem::EditorMode && bNavigationAutoUpdateEnabled)
 		{
-			const auto& Levels = World->GetLevels();
-			for (ULevel* Level : Levels)
-			{
-				Level->NavDataChunks.Empty();
-			}
+			DiscardNavigationDataChunks(World);
 		}
 
 		if (NavSys)
@@ -2888,6 +2882,8 @@ void UNavigationSystem::GatherNavigationBounds()
 
 void UNavigationSystem::Build()
 {
+	DiscardNavigationDataChunks(GetWorld());
+	
 	if (IsThereAnywhereToBuildNavigation() == false)
 	{
 		return;
@@ -3360,6 +3356,23 @@ ERuntimeGenerationType UNavigationSystem::GetRuntimeGenerationType() const
 	}
 	
 	return RuntimeGenerationType;
+}
+
+void UNavigationSystem::DiscardNavigationDataChunks(UWorld* InWorld)
+{
+	check(InWorld);
+	const auto& Levels = InWorld->GetLevels();
+	for (ULevel* Level : Levels)
+	{
+		for (UNavigationDataChunk* NavChunk : Level->NavDataChunks)
+		{
+			if (NavChunk != nullptr)
+			{
+				NavChunk->MarkPendingKill();
+			}
+		}
+		Level->NavDataChunks.Empty();
+	}
 }
 
 //----------------------------------------------------------------------//

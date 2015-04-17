@@ -896,6 +896,9 @@ private:
 	 */
 	ERuntimeGenerationType GetRuntimeGenerationType() const;
 
+	/** Discards all navigation data chunks in all sub-levels */
+	static void DiscardNavigationDataChunks(UWorld* InWorld);
+
 	//----------------------------------------------------------------------//
 	// DEPRECATED
 	//----------------------------------------------------------------------//
