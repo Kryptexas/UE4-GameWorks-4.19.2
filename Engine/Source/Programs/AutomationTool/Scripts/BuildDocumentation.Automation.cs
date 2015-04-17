@@ -26,6 +26,11 @@ class ToolsForDocumentationNode : GUBP.CompileNode
         return StaticGetFullName(HostPlatform);
     }
 
+	public override int CISFrequencyQuantumShift(GUBP bp)
+	{
+		return base.CISFrequencyQuantumShift(bp) + 3;
+	}
+
 	public override UE4Build.BuildAgenda GetAgenda(GUBP bp)
     {
         var Agenda = new UE4Build.BuildAgenda();
