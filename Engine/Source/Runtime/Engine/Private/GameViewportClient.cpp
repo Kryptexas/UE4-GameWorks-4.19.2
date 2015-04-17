@@ -60,7 +60,10 @@ int32 UGameViewportClient::NumViewportsShowingCollision = 0;
 /** Those sound stat flags which are enabled on this viewport */
 FViewportClient::ESoundShowFlags::Type UGameViewportClient::SoundShowFlags = FViewportClient::ESoundShowFlags::Disabled;
 
-DEFINE_STAT(STAT_UIDrawingTime);
+/**
+ * UI Stats
+ */
+DECLARE_CYCLE_STAT(TEXT("UI Drawing Time"),STAT_UIDrawingTime,STATGROUP_UI);
 
 static TAutoConsoleVariable<int32> CVarSetBlackBordersEnabled(
 	TEXT("r.BlackBorders"),

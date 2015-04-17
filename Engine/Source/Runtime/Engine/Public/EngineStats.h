@@ -152,11 +152,6 @@ DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("Navmesh cumulative build Time"),STAT
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Navmesh build time"),STAT_Navigation_BuildTime,STATGROUP_Navigation, );
 
 /**
- * UI Stats
- */
-DECLARE_CYCLE_STAT_EXTERN(TEXT("UI Drawing Time"),STAT_UIDrawingTime,STATGROUP_UI, );
-
-/**
 * Canvas Stats
 */
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Flush Time"),STAT_Canvas_FlushTime,STATGROUP_Canvas, );	

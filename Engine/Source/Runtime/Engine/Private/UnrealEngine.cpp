@@ -109,8 +109,6 @@ IMPLEMENT_MODULE( FEngineModule, Engine );
 
 #define LOCTEXT_NAMESPACE "UnrealEngine"
 
-DECLARE_CYCLE_STAT(TEXT("DrawStats"),STAT_DrawStats,STATGROUP_StatSystem);
-
 void FEngineModule::StartupModule()
 {
 	// Setup delegate callback for ProfilingHelpers to access current map name
@@ -6886,14 +6884,13 @@ bool UEngine::ShouldThrottleCPUUsage() const
  */
 void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas* CanvasObject, TArray<FDebugDisplayProperty>& DebugProperties, const FVector& ViewLocation, const FRotator& ViewRotation )
 {
+	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "DrawStatsHUD" ), STAT_DrawStatsHUD, STATGROUP_StatSystem );
+
 	// We cannot draw without a canvas
 	if (Canvas == NULL)
 	{
 		return;
 	}
-#if STATS
-	uint32 DrawStatsBeginTime = FPlatformTime::Cycles();
-#endif
 
 	//@todo joeg: Move this stuff to a function, make safe to use on consoles by
 	// respecting the various safe zones, and make it compile out.
@@ -7221,11 +7218,6 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 			}
 		}
 	}
-#endif
-
-#if STATS
-	uint32 DrawStatsEndTime = FPlatformTime::Cycles();
-	SET_CYCLE_COUNTER(STAT_DrawStats, DrawStatsEndTime - DrawStatsBeginTime);
 #endif
 }
 
