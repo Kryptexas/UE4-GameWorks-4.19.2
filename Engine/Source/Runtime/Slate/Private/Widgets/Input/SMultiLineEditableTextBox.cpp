@@ -37,15 +37,10 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 	TAttribute<FMargin> Padding = InArgs._Padding.IsSet() ? InArgs._Padding : InArgs._Style->Padding;
 	TAttribute<FMargin> HScrollBarPadding = InArgs._HScrollBarPadding.IsSet() ? InArgs._HScrollBarPadding : InArgs._Style->HScrollBarPadding;
 	TAttribute<FMargin> VScrollBarPadding = InArgs._VScrollBarPadding.IsSet() ? InArgs._VScrollBarPadding : InArgs._Style->VScrollBarPadding;
+	TAttribute<FSlateFontInfo> Font = InArgs._Font.IsSet() ? InArgs._Font : InArgs._Style->Font;
 	TAttribute<FSlateColor> ForegroundColor = InArgs._ForegroundColor.IsSet() ? InArgs._ForegroundColor : InArgs._Style->ForegroundColor;
 	TAttribute<FSlateColor> BackgroundColor = InArgs._BackgroundColor.IsSet() ? InArgs._BackgroundColor : InArgs._Style->BackgroundColor;
 	ReadOnlyForegroundColor = InArgs._ReadOnlyForegroundColor.IsSet() ? InArgs._ReadOnlyForegroundColor : InArgs._Style->ReadOnlyForegroundColor;
-
-	TAttribute<FSlateFontInfo> Font;
-	if (InArgs._Font.IsSet())
-	{
-		Font = InArgs._Font;
-	}
 
 	TSharedPtr<SScrollBar> HScrollBar = InArgs._HScrollBar;
 	if (!HScrollBar.IsValid())
@@ -100,6 +95,9 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 					.OnCursorMoved( InArgs._OnCursorMoved )
 					.ContextMenuExtender( InArgs._ContextMenuExtender )
 					.Justification(InArgs._Justification)
+					.RevertTextOnEscape(InArgs._RevertTextOnEscape)
+					.SelectAllTextWhenFocused(InArgs._SelectAllTextWhenFocused)
+					.ClearKeyboardFocusOnCommit(InArgs._ClearKeyboardFocusOnCommit)
 					.LineHeightPercentage(InArgs._LineHeightPercentage)
 					.Margin(InArgs._Margin)
 					.WrapTextAt(InArgs._WrapTextAt)

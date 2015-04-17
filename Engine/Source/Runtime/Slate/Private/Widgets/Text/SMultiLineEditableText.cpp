@@ -269,6 +269,9 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 	OnTextChanged = InArgs._OnTextChanged;
 	OnTextCommitted = InArgs._OnTextCommitted;
 	OnCursorMoved = InArgs._OnCursorMoved;
+	bSelectAllTextWhenFocused = InArgs._SelectAllTextWhenFocused;
+	bClearKeyboardFocusOnCommit = InArgs._ClearKeyboardFocusOnCommit;
+	bRevertTextOnEscape = InArgs._RevertTextOnEscape;
 	OnHScrollBarUserScrolled = InArgs._OnHScrollBarUserScrolled;
 	OnVScrollBarUserScrolled = InArgs._OnVScrollBarUserScrolled;
 
@@ -534,6 +537,14 @@ FReply SMultiLineEditableText::OnFocusReceived( const FGeometry& MyGeometry, con
 			{
 				TextInputMethodSystem->ActivateContext(TextInputMethodContext.ToSharedRef());
 			}
+		}
+		// Store undo state to use for escape key reverts
+		MakeUndoState(OriginalText);
+
+		// Select All Text
+		if(SelectAllTextWhenFocused())
+		{
+			SelectAllText();
 		}
 
 		UpdateCursorHighlight();
@@ -1758,6 +1769,28 @@ void SMultiLineEditableText::Refresh()
 	}
 }
 
+void SMultiLineEditableText::RestoreOriginalText()
+{
+	if(HasTextChangedFromOriginal())
+	{
+		SaveText(OriginalText.Text);
+
+		// Let outsiders know that the text content has been changed
+		OnTextChanged.ExecuteIfBound(OriginalText.Text);
+	}
+}
+
+bool SMultiLineEditableText::HasTextChangedFromOriginal() const
+{
+	bool bHasChanged = false;
+	if(!IsReadOnly.Get())
+	{
+		const FText EditedText = GetEditableText();
+		bHasChanged = !EditedText.EqualTo(OriginalText.Text);
+	}
+	return bHasChanged;
+}
+
 bool SMultiLineEditableText::CanExecuteSelectAll() const
 {
 	bool bCanExecute = true;
@@ -1908,7 +1941,31 @@ void SMultiLineEditableText::SetHasDragSelectedSinceFocused( bool Value )
 
 FReply SMultiLineEditableText::OnEscape()
 {
-	return FReply::Unhandled();
+	FReply MyReply = FReply::Unhandled();
+
+	if(AnyTextSelected())
+	{
+		// Clear selection
+		ClearSelection();
+		UpdateCursorHighlight();
+		MyReply = FReply::Handled();
+	}
+
+	if(!GetIsReadOnly())
+	{
+		// Restore the text if the revert flag is set
+		if(bRevertTextOnEscape.Get() && HasTextChangedFromOriginal())
+		{
+			RestoreOriginalText();
+			// Release input focus
+			if(bClearKeyboardFocusOnCommit.Get())
+			{
+				FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::Cleared);
+			}
+			MyReply = FReply::Handled();
+		}
+	}
+	return MyReply;
 }
 
 void SMultiLineEditableText::OnEnter()
@@ -1930,6 +1987,12 @@ void SMultiLineEditableText::OnEnter()
 		// Reload underlying value now it is committed  (commit may alter the value) 
 		// so it can be re-displayed in the edit box if it retains focus
 		LoadText();
+		// Release input focus
+		if(bClearKeyboardFocusOnCommit.Get())
+		{
+			ClearSelection();
+			FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::Cleared);
+		}
 	}
 }
 

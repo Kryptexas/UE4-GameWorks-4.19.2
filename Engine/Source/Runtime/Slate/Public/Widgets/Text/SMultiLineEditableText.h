@@ -33,6 +33,9 @@ public:
 		, _IsReadOnly(false)
 		, _OnTextChanged()
 		, _OnTextCommitted()
+		, _SelectAllTextWhenFocused(false)
+		, _RevertTextOnEscape(false)
+		, _ClearKeyboardFocusOnCommit(true)
 		, _OnCursorMoved()
 		, _ContextMenuExtender()
 		, _ModiferKeyForNewLine(EModifierKey::None)
@@ -83,6 +86,15 @@ public:
 
 		/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
 		SLATE_EVENT(FOnTextCommitted, OnTextCommitted)
+
+		/** Whether to select all text when the user clicks to give focus on the widget */
+		SLATE_ATTRIBUTE(bool, SelectAllTextWhenFocused)
+
+		/** Whether to allow the user to back out of changes when they press the escape key */
+		SLATE_ATTRIBUTE(bool, RevertTextOnEscape)
+
+		/** Whether to clear keyboard focus when pressing enter to commit changes */
+		SLATE_ATTRIBUTE(bool, ClearKeyboardFocusOnCommit)
 
 		/** Called whenever the horizontal scrollbar is moved by the user */
 		SLATE_EVENT(FOnUserScrolled, OnHScrollBarUserScrolled)
@@ -152,6 +164,12 @@ public:
 
 	/** Refresh this text box immediately, rather than wait for the usual caching mechanisms to take affect on the text Tick */
 	void Refresh();
+
+	/** Restores the text to the original state */
+	void RestoreOriginalText();
+
+	/** Returns whether the current text varies from the original */
+	bool HasTextChangedFromOriginal() const;
 
 private:
 	
@@ -626,6 +644,12 @@ private:
 	/** Whether to select all text when the user clicks to give focus on the widget */
 	TAttribute< bool > bSelectAllTextWhenFocused;
 
+	/** True if any changes should be reverted if we recieve an escape key */
+	TAttribute< bool > bRevertTextOnEscape;
+
+	/** True if we want the text control to lose focus on an text commit/revert events */
+	TAttribute< bool > bClearKeyboardFocusOnCommit;
+
 	/** True if we're currently selecting text by dragging the mouse cursor with the left button held down */
 	bool bIsDragSelecting;
 
@@ -646,6 +670,9 @@ private:
 
 	/** Undo state that will be pushed if text is actually changed between calls to StartChangingText() and FinishChangingText() */
 	FUndoState StateBeforeChangingText;
+
+	/** Original text undo state */
+	FUndoState OriginalText;
 
 	/** True if we're currently (potentially) changing the text string */
 	bool bIsChangingText;
