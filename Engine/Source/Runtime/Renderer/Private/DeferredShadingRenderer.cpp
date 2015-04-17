@@ -735,7 +735,15 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	if (ClearMethodCVar)
 	{
-		switch (ClearMethodCVar->GetValueOnRenderThread())
+		int32 clearMethod = ClearMethodCVar->GetValueOnRenderThread();
+
+		if (clearMethod == 0 && !ViewFamily.EngineShowFlags.Game)
+		{
+			// Do not clear the scene only if the view family is in game mode.
+			clearMethod = 1;
+		}
+
+		switch (clearMethod)
 		{
 		case 0: // No clear
 			{

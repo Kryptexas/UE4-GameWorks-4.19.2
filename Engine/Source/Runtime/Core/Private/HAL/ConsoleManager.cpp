@@ -1617,7 +1617,7 @@ static TAutoConsoleVariable<int32> CVarMobileReduceLoadedMips(
 static TAutoConsoleVariable<int32> CVarSetClearSceneMethod(
 	TEXT("r.ClearSceneMethod"),
 	1,
-	TEXT("Select how scene rendertarget clears are handled\n")
+	TEXT("Select how the g-buffer is cleared in game mode (only affects deferred shading).\n")
 	TEXT(" 0: No clear\n")
 	TEXT(" 1: RHIClear (default)\n")
 	TEXT(" 2: Quad at max z"),

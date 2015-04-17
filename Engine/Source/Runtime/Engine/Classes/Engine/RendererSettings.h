@@ -238,7 +238,7 @@ class ENGINE_API URendererSettings
 
 	UPROPERTY(config, EditAnywhere, Category=Optimizations, meta=(
 		ConsoleVariable="r.ClearSceneMethod",DisplayName="Clear Scene",
-		ToolTip="Control how the scene is cleared before rendering"))
+		ToolTip="Select how the g-buffer is cleared in game mode (only affects deferred shading)."))
 	TEnumAsByte<EClearSceneOptions::Type> ClearSceneMethod;
 
 	UPROPERTY(config, EditAnywhere, Category=Optimizations, meta=(
