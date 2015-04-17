@@ -2594,7 +2594,7 @@ private:
 		FProcHandle ProcessHandle;
 	};
 
-	TArray<FPlayOnPCInfo>	PlayOnLocalPCSessions;
+	TArray<FPlayOnPCInfo> PlayOnLocalPCSessions;
 
 	bool bPlayOnLocalPcSession;
 
@@ -2624,7 +2624,7 @@ private:
 	FRotator LastViewRotation;
 	
 	/** Are the lastview/rotation variables valid */
-	bool	bLastViewAndLocationValid;
+	bool bLastViewAndLocationValid;
 
 protected:
 
@@ -2702,7 +2702,7 @@ public:
 	 *
 	 * @return	true if the label ends with a number.
 	 */
-	//DEPRECATED(4.8, "This function is deprecated.  Please use FActorLabelUtilities::SplitActorLabel instead")
+	DEPRECATED(4.8, "This function is deprecated.  Please use FActorLabelUtilities::SplitActorLabel instead")
 	bool SplitActorLabel( FString& InOutLabel, int32& OutIdx ) const;
 
 	/**
@@ -2712,7 +2712,7 @@ public:
 	 * @param	NewActorLabel			The new label string to assign to the actor.  If empty, the actor will have a default label.
 	 * @param	InExistingActorLabels	(optional) Pointer to a set of actor labels that are currently in use
 	 */
-	//DEPRECATED(4.8, "This function is deprecated.  Please use FActorLabelUtilities::SetActorLabelUnique instead")
+	DEPRECATED(4.8, "This function is deprecated.  Please use FActorLabelUtilities::SetActorLabelUnique instead")
 	void SetActorLabelUnique( AActor* Actor, const FString& NewActorLabel, const FCachedActorLabels* InExistingActorLabels = nullptr ) const;
 
 private:
@@ -2720,7 +2720,7 @@ private:
 };
 
 //////////////////////////////////////////////////////////////////////////
-// UEditorEngine
+// FActorLabelUtilities
 
 struct UNREALED_API FActorLabelUtilities
 {
@@ -2742,7 +2742,6 @@ public:
 	 * @param	NewActorLabel			The new label string to assign to the actor.  If empty, the actor will have a default label.
 	 * @param	InExistingActorLabels	(optional) Pointer to a set of actor labels that are currently in use
 	 */
-	//DEPRECATED(4.8, "This function is deprecated.  Please use FActorLabelUtilities::SetActorLabelUnique instead")
 	static void SetActorLabelUnique(AActor* Actor, const FString& NewActorLabel, const FCachedActorLabels* InExistingActorLabels = nullptr);
 
 private:

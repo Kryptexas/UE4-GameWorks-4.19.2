@@ -246,7 +246,7 @@ void UActorFactory::PostSpawnActor( UObject* Asset, AActor* NewActor)
 	// Subclasses may implement this to modify the actor after it has been spawned
 	if (Asset)
 	{
-		GEditor->SetActorLabelUnique(NewActor, Asset->GetName());
+		FActorLabelUtilities::SetActorLabelUnique(NewActor, Asset->GetName());
 	}
 }
 

@@ -636,7 +636,7 @@ UObject* ULevelFactory::FactoryCreateText
 
 									// Place the group in the map so we can find it later.
 									NewGroups.Add( GroupName, SpawnedGroupActor);
-									GEditor->SetActorLabelUnique(SpawnedGroupActor, GroupName);
+									FActorLabelUtilities::SetActorLabelUnique(SpawnedGroupActor, GroupName);
 								}
 
 								// If we're copying a sub-group, add add duplicated group to original parent
