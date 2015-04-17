@@ -2411,10 +2411,10 @@ EConvertibleLaptopMode FWindowsPlatformMisc::GetConvertibleLaptopMode()
 IPlatformChunkInstall* FWindowsPlatformMisc::GetPlatformChunkInstall()
 {
 	static IPlatformChunkInstall* ChunkInstall = nullptr;
-	IPlatformChunkInstallModule* PlatformChunkInstallModule = FModuleManager::LoadModulePtr<IPlatformChunkInstallModule>("HTTPChunkInstaller");
 	if (!ChunkInstall)
 	{
 #if !(WITH_EDITORONLY_DATA || IS_PROGRAM)
+		static IPlatformChunkInstallModule* PlatformChunkInstallModule = FModuleManager::LoadModulePtr<IPlatformChunkInstallModule>("HTTPChunkInstaller");
 		if (PlatformChunkInstallModule != NULL)
 		{
 			// Attempt to grab the platform installer
