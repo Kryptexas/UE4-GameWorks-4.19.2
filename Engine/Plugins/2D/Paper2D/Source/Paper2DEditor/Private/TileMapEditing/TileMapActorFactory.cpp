@@ -15,22 +15,20 @@ UTileMapActorFactory::UTileMapActorFactory(const FObjectInitializer& ObjectIniti
 
 void UTileMapActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 {
+	Super::PostSpawnActor(Asset, NewActor);
+
 	APaperTileMapActor* TypedActor = CastChecked<APaperTileMapActor>(NewActor);
 	UPaperTileMapComponent* RenderComponent = TypedActor->GetRenderComponent();
 	check(RenderComponent);
 
 	if (UPaperTileMap* TileMap = Cast<UPaperTileMap>(Asset))
 	{
-		GEditor->SetActorLabelUnique(NewActor, TileMap->GetName());
-
 		RenderComponent->UnregisterComponent();
 		RenderComponent->TileMap = TileMap;
 		RenderComponent->RegisterComponent();
 	}
 	else if (UPaperTileSet* TileSet = Cast<UPaperTileSet>(Asset))
 	{
-		GEditor->SetActorLabelUnique(NewActor, TileSet->GetName());
-
 		if (RenderComponent->TileMap != nullptr)
 		{
 			RenderComponent->UnregisterComponent();

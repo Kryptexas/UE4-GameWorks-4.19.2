@@ -15,10 +15,10 @@ UTerrainSplineActorFactory::UTerrainSplineActorFactory(const FObjectInitializer&
 
 void UTerrainSplineActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 {
+	Super::PostSpawnActor(Asset, NewActor);
+
 	if (UPaperTerrainMaterial* TerrainMaterial = Cast<UPaperTerrainMaterial>(Asset))
 	{
-		GEditor->SetActorLabelUnique(NewActor, TerrainMaterial->GetName());
-
 		APaperTerrainActor* TypedActor = CastChecked<APaperTerrainActor>(NewActor);
 		UPaperTerrainComponent* RenderComponent = TypedActor->GetRenderComponent();
 		check(RenderComponent);

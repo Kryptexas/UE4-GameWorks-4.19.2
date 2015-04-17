@@ -15,10 +15,10 @@ UPaperFlipbookActorFactory::UPaperFlipbookActorFactory(const FObjectInitializer&
 
 void UPaperFlipbookActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 {
+	Super::PostSpawnActor(Asset, NewActor);
+
 	if (UPaperFlipbook* Flipbook = Cast<UPaperFlipbook>(Asset))
 	{
-		GEditor->SetActorLabelUnique(NewActor, Flipbook->GetName());
-
 		APaperFlipbookActor* TypedActor = CastChecked<APaperFlipbookActor>(NewActor);
 		UPaperFlipbookComponent* RenderComponent = TypedActor->GetRenderComponent();
 		check(RenderComponent);
