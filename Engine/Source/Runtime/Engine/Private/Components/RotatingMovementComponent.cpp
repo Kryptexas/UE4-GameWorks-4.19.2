@@ -36,5 +36,5 @@ void URotatingMovementComponent::TickComponent(float DeltaTime, enum ELevelTick 
 	}
 
 	const bool bEnableCollision = false;
-	MoveUpdatedComponent(DeltaLocation, NewRotation.Rotator(), bEnableCollision);
+	MoveUpdatedComponent(DeltaLocation, NewRotation, bEnableCollision);
 }
