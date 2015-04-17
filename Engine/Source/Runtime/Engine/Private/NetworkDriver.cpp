@@ -813,35 +813,7 @@ void UNetDriver::InternalProcessRemoteFunction
 
 	TArray< UProperty * > LocalOutParms;
 
-	// Form the RPC parameters.
-	if( Stack )
-	{
-		// this only happens for native replicated functions called from script
-		// because in that case, the C++ function itself handles evaluating the parameters
-		// so we cannot do that before calling CallRemoteFunction() as we do with all other cases
-		FMemory::Memzero( Parms, Function->ParmsSize );
-
-		for( TFieldIterator<UProperty> It(Function); It && (It->PropertyFlags & (CPF_Parm|CPF_ReturnParm))==CPF_Parm; ++It )
-		{
-			uint8* CurrentPropAddr = It->ContainerPtrToValuePtr<uint8>(Parms);
-			if ( Cast<UBoolProperty>(*It) && It->ArrayDim == 1 )
-			{
-				// we're going to get '1' returned for bools that are set, so we need to manually mask it in to the proper place
-				bool bValue = false;
-				Stack->Step(Stack->Object, &bValue);
-				if (bValue)
-				{
-					((UBoolProperty*)*It)->SetPropertyValue( CurrentPropAddr, true );
-				}
-			}
-			else
-			{
-				Stack->Step(Stack->Object, CurrentPropAddr);
-			}
-		}
-		checkSlow(*Stack->Code==EX_EndFunctionParms);
-	}
-	else
+	if( Stack == nullptr )
 	{
 		// Look for CPF_OutParm's, we'll need to copy these into the local parameter memory manually
 		// The receiving side will pull these back out when needed

@@ -389,13 +389,38 @@ void UObject::CallFunction( FFrame& Stack, RESULT_DECL, UFunction* Function )
 
 	if (Function->FunctionFlags & FUNC_Native)
 	{
-		// Call native networkable function.
-		uint8 Buffer[1024];
+		uint8* Buffer = (uint8*)FMemory_Alloca(Function->ParmsSize);
 		int32 FunctionCallspace = GetFunctionCallspace( Function, Buffer, &Stack );
 		uint8* SavedCode = NULL;
 		if (FunctionCallspace & FunctionCallspace::Remote)
 		{
+			// Call native networkable function.
+
 			SavedCode = Stack.Code; // Since this is native, we need to rollback the stack if we are calling both remotely and locally
+
+			FMemory::Memzero( Buffer, Function->ParmsSize );
+
+			// Form the RPC parameters.
+			for( TFieldIterator<UProperty> It(Function); It && (It->PropertyFlags & (CPF_Parm|CPF_ReturnParm))==CPF_Parm; ++It )
+			{
+				uint8* CurrentPropAddr = It->ContainerPtrToValuePtr<uint8>(Buffer);
+				if ( Cast<UBoolProperty>(*It) && It->ArrayDim == 1 )
+				{
+					// we're going to get '1' returned for bools that are set, so we need to manually mask it in to the proper place
+					bool bValue = false;
+					Stack.Step(Stack.Object, &bValue);
+					if (bValue)
+					{
+						((UBoolProperty*)*It)->SetPropertyValue( CurrentPropAddr, true );
+					}
+				}
+				else
+				{
+					Stack.Step(Stack.Object, CurrentPropAddr);
+				}
+			}
+			checkSlow(*Stack.Code==EX_EndFunctionParms);
+
 			CallRemoteFunction(Function, Buffer, Stack.OutParms, &Stack);
 		}
 
