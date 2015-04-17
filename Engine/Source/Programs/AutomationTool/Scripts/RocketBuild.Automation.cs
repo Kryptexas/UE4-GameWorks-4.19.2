@@ -255,12 +255,6 @@ namespace Rocket
 				AddDependency(GUBP.ToolsNode.StaticGetFullName(OtherHostPlatform));
 				AddDependency(GUBP.InternalToolsNode.StaticGetFullName(OtherHostPlatform));
 			}
-
-			SingleTargetProperties VersionSelector = bp.Branch.FindProgram("UnrealVersionSelector"); 
-			if (VersionSelector.Rules != null) 
-			{ 
-				AddDependency(GUBP.SingleInternalToolsNode.StaticGetFullName(UnrealTargetPlatform.Win64, VersionSelector));
-			}
 		}
 
 		public static string StaticGetFullName(UnrealTargetPlatform HostPlatform)

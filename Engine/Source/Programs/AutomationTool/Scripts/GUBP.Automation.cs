@@ -1901,15 +1901,6 @@ public class GUBP : BuildCommand
             AddDependency(RootEditorNode.StaticGetFullName(HostPlatform));
             AddDependency(ToolsNode.StaticGetFullName(HostPlatform));
             AddDependency(InternalToolsNode.StaticGetFullName(HostPlatform));
-
-			if(InHostPlatform == UnrealTargetPlatform.Win64)
-			{
-				var VersionSelector = bp.Branch.FindProgram("UnrealVersionSelector"); 
-				if (VersionSelector.Rules != null) 
-				{ 
-					AddDependency(SingleInternalToolsNode.StaticGetFullName(HostPlatform, VersionSelector));
-				}
-			}
         }
         public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform)
         {

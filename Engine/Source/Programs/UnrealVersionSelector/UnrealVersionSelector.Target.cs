@@ -55,16 +55,9 @@ public class UnrealVersionSelectorTarget : TargetRules
     public override bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly, out bool SeparateNode, out bool CrossCompile)
 	{
 		CrossCompile = false;
-		if (InHostPlatform == UnrealTargetPlatform.Win32 || InHostPlatform == UnrealTargetPlatform.Win64)
-		{
-			bInternalToolOnly = true;
-			SeparateNode = true;
-			return true;
-		}
-
 		bInternalToolOnly = false;
 		SeparateNode = false;
-		return false;
+		return InHostPlatform == UnrealTargetPlatform.Win64;
 	}
 	public override List<UnrealTargetConfiguration> GUBP_ToolConfigs(UnrealTargetPlatform InHostPlatform)
 	{
