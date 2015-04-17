@@ -180,11 +180,11 @@ float* FBoneDataVertexBuffer::LockData()
 	return Data;
 }
 
-void FBoneDataVertexBuffer::UnlockData()
+void FBoneDataVertexBuffer::UnlockData(uint32 SizeInBytes)
 {
 	check(IsValidRef(BoneBuffer));
 	check(IsInRenderingThread() && AllocBlock && AllocSize);
-	FRHICommandListExecutor::GetImmediateCommandList().UpdateVertexBuffer(BoneBuffer.VertexBufferRHI, AllocBlock, AllocSize);
+	FRHICommandListExecutor::GetImmediateCommandList().UpdateVertexBuffer(BoneBuffer.VertexBufferRHI, AllocBlock, SizeInBytes ? SizeInBytes : 4);
 	FMemory::Free(AllocBlock);
 	AllocBlock = nullptr;
 	AllocSize = 0;
@@ -405,7 +405,7 @@ public:
 
 			bool bLocalPerBoneMotionBlur = false;
 			
-			if (FeatureLevel >= ERHIFeatureLevel::SM4 && GPrevPerBoneMotionBlur.IsLocked())
+			if (FeatureLevel >= ERHIFeatureLevel::SM4 && GPrevPerBoneMotionBlur.IsAppendStarted())
 			{
 				// we are in the velocity rendering pass
 
@@ -513,7 +513,7 @@ public:
 
 		bool bIsGPUCached = false;
 
-		if (GEnableGPUSkinCache && GGPUSkinCache.SetVertexStreamFromCache(RHICmdList, BatchElement.UserIndex, Shader, VertexFactory, BatchElement.MinVertexIndex, GPrevPerBoneMotionBlur.IsLocked(), GPUSkinCacheStreamFloatOffset, GPUSkinCacheStreamStride, GPUSkinCacheStreamBuffer))
+		if (GEnableGPUSkinCache && GGPUSkinCache.SetVertexStreamFromCache(RHICmdList, BatchElement.UserIndex, Shader, VertexFactory, BatchElement.MinVertexIndex, GPrevPerBoneMotionBlur.IsAppendStarted(), GPUSkinCacheStreamFloatOffset, GPUSkinCacheStreamStride, GPUSkinCacheStreamBuffer))
 		{
 			bIsGPUCached = true;
 		}

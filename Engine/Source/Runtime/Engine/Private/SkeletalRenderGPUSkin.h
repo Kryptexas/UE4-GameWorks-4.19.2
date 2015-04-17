@@ -188,10 +188,10 @@ public:
 	uint32 GetSizeX() const;
 
 	/** so we update only during velocity rendering pass */
-	bool IsLocked() const;
+	bool IsAppendStarted() const;
 
 	/** needed before AppendData() ccan be called */
-	ENGINE_API void LockData();
+	ENGINE_API void StartAppend();
 
 	/**
 	 * use between LockData() and UnlockData()
@@ -201,8 +201,8 @@ public:
 	 */
 	uint32 AppendData(FBoneSkinning *DataStart, uint32 BoneCount);
 
-	/** only call if LockData() */
-	ENGINE_API void UnlockData();
+	/** only call if StartAppend() */
+	ENGINE_API void EndAppend();
 
 	/** @return 0 if there should be no bone based motion blur (no previous data available or it's not active) */
 	FBoneDataVertexBuffer* GetReadData();

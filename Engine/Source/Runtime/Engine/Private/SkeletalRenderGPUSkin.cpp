@@ -1106,7 +1106,7 @@ uint32 FPreviousPerBoneMotionBlur::GetSizeX() const
 	return PerChunkBoneMatricesTexture[0].GetSizeX();
 }
 
-bool FPreviousPerBoneMotionBlur::IsLocked() const
+bool FPreviousPerBoneMotionBlur::IsAppendStarted() const
 {
 	return LockedData != 0;
 }
@@ -1118,7 +1118,7 @@ void FPreviousPerBoneMotionBlur::InitIfNeeded()
 		InitResources();
 	}
 }
-void FPreviousPerBoneMotionBlur::LockData()
+void FPreviousPerBoneMotionBlur::StartAppend()
 {
 	check(!LockedData);
 	check(IsInRenderingThread());
@@ -1162,16 +1162,17 @@ uint32 FPreviousPerBoneMotionBlur::AppendData(FBoneSkinning *DataStart, uint32 B
 	}
 }
 
-void FPreviousPerBoneMotionBlur::UnlockData()
+void FPreviousPerBoneMotionBlur::EndAppend()
 {
-	if(IsLocked())
+	if(IsAppendStarted())
 	{
 		check(IsInRenderingThread());
-		LockedTexelPosition.Set(0);
 		LockedTexelCount = 0;
 		LockedData = 0;
 
-		PerChunkBoneMatricesTexture[GetWriteBufferIndex()].UnlockData();
+		// we use float4
+		PerChunkBoneMatricesTexture[GetWriteBufferIndex()].UnlockData(LockedTexelPosition.GetValue() * 4 * sizeof(float));
+		LockedTexelPosition.Set(0);
 
 		AdvanceBufferIndex();
 	}

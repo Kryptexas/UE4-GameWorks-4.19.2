@@ -738,7 +738,7 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 	FPooledRenderTargetDesc Desc = FVelocityRendering::GetRenderTargetDesc();
 	GRenderTargetPool.FindFreeElement(Desc, VelocityRT, TEXT("Velocity"));
 
-	GPrevPerBoneMotionBlur.LockData();
+	GPrevPerBoneMotionBlur.StartAppend();
 
 	BeginVelocityRendering(RHICmdList, VelocityRT, true);
 	
@@ -757,7 +757,7 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	
-	GPrevPerBoneMotionBlur.UnlockData();
+	GPrevPerBoneMotionBlur.EndAppend();
 
 	// to be able to observe results with VisualizeTexture
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, VelocityRT);

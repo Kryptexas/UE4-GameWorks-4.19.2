@@ -1401,7 +1401,7 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHI
 	if (FVelocityRendering::OutputsToGBuffer())
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_RenderBasePass_GPrevPerBoneMotionBlur_LockData);
-		GPrevPerBoneMotionBlur.LockData();
+		GPrevPerBoneMotionBlur.StartAppend();
 	}
 
 	if(ViewFamily.EngineShowFlags.LightMapDensity && AllowDebugViewmodes())
@@ -1440,7 +1440,7 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHI
 	if (FVelocityRendering::OutputsToGBuffer())
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_RenderBasePass_GPrevPerBoneMotionBlur_UnlockData);
-		GPrevPerBoneMotionBlur.UnlockData();
+		GPrevPerBoneMotionBlur.EndAppend();
 	}
 
 	return bDirty;
