@@ -49,6 +49,11 @@ public abstract class BaseLinuxPlatform : Platform
 			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Config"), "PerfCounters.json", false, null, CommandUtils.CombinePaths(SC.RelativeProjectRootForStage, "Saved/Config"), true);
 		}
 
+		// stage libLND
+		{
+			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), "libLND*.so");
+		}
+
 		// assume that we always have to deploy OpenAL (FIXME: should be automatic)
 		{
 			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/OpenAL/", SC.PlatformDir), "libopenal.so.1", false, null, CombinePaths("Engine/Binaries", SC.PlatformDir));

@@ -33,7 +33,7 @@ if [ -e /etc/os-release ]; then
   source /etc/os-release
   # Ubuntu/Debian/Mint
   if [[ "$ID" == "ubuntu" ]] || [[ "$ID_LIKE" == "ubuntu" ]] || [[ "$ID" == "debian" ]] || [[ "$ID_LIKE" == "debian" ]]; then
-    # Install all necessary dependencies
+    # Install the necessary dependencies (require clang-3.5, although 3.3 and 3.6 should work too for this release)
     DEPS="mono-xbuild \
       mono-dmcs \
       libmono-microsoft-build-tasks-v4.0-4.0-cil \
@@ -42,10 +42,15 @@ if [ -e /etc/os-release ]; then
       libmono-system-management4.0-cil
       libmono-system-xml-linq4.0-cil
       libmono-corlib4.0-cil
-      libqt4-dev
-      dos2unix
-      cmake
+      clang-3.5
       "
+
+    # these tools are only needed to build third-party software which is prebuilt for Ubuntu.
+    if [[ "$ID" != "ubuntu" ]]; then
+      DEPS+="libqt4-dev \
+             cmake
+            "
+    fi
 
     for DEP in $DEPS; do
       if ! dpkg -s $DEP > /dev/null 2>&1; then

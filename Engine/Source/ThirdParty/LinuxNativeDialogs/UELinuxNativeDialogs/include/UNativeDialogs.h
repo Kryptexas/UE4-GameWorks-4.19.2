@@ -52,7 +52,7 @@ struct UFileDialogHints
 	//! (optional) title to put on open file dialog
 	const char* WindowTitle;
 	//! (optional) select a default file in the dialog
-    const char* DefaultFile;
+	const char* DefaultFile;
 };
 
 #define DEFAULT_UFILEDIALOGHINTS { \
@@ -85,23 +85,26 @@ typedef enum {
 	UFontDialogBoldItalic = 3
 } UFontDialogFontFlags;
 
-typedef enum
-{
-	UFontDialogNoButtons = 1,
-	UFontDialogDontUseNativeDialog = 2
-} UFontDialogOptionFlags;
-
 struct UFontDialogHints
 {
-    UFontDialogOptionFlags Options;
+	float InitialPointSize;
+	int InitialPixelSize;
+	const char* InitialFontName;
+	const char* WindowTitle;
 };
 
 #define DEFAULT_UFONTDIALOGHINTS { \
+	0.0f, \
+	0 ,  \
+	NULL, \
+	NULL \
 }
 
 typedef struct UFontDialogResult
 {
 	const char* fontName;
+	float pointSize;
+	int pixelSize;
 	UFontDialogFontFlags flags;
 } UFontDialogResult;
 
