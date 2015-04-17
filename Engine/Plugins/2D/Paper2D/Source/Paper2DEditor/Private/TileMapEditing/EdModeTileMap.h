@@ -9,7 +9,8 @@ namespace ETileMapEditorTool
 	{
 		Paintbrush,
 		Eraser,
-		PaintBucket
+		PaintBucket,
+		EyeDropper
 	};
 }
 
@@ -53,6 +54,7 @@ public:
 	ETileMapEditorTool::Type GetActiveTool() const;
 
 	void SetActivePaint(UPaperTileSet* TileSet, FIntPoint TopLeft, FIntPoint Dimensions);
+	void SetActivePaintFromLayer(UPaperTileLayer* SourceLayer, FIntPoint TopLeft, FIntPoint Dimensions);
 
 	void DestructiveResizePreviewComponent(int32 NewWidth, int32 NewHeight);
 
@@ -67,6 +69,7 @@ public:
 protected:
 	bool UseActiveToolAtLocation(const FViewportCursorLocation& Ray);
 
+	bool SelectTiles(const FViewportCursorLocation& Ray);
 	bool PaintTiles(const FViewportCursorLocation& Ray);
 	bool EraseTiles(const FViewportCursorLocation& Ray);
 	bool FloodFillTiles(const FViewportCursorLocation& Ray);
@@ -102,12 +105,20 @@ public:
 	int32 GetCursorWidth() const;
 	int32 GetCursorHeight() const;
 protected:
+	// Were we previously painting?
+	bool bWasPainting;
+
+	// Are we currently painting?
 	bool bIsPainting;
 
 	// Ink source
 	bool bHasValidInkSource;
-	FIntPoint PaintSourceTopLeft;
 	
+	// State for eyedropper
+	bool bWasHoldingSelectWhenPaintingStarted;
+	FIntPoint EyeDropperStart;
+	FIntRect LastEyeDropperBounds;
+
 	//
 	FTransform DrawPreviewSpace;
 

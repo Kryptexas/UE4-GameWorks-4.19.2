@@ -221,6 +221,12 @@ void FTileMapEdModeToolkit::BindCommands()
 		FExecuteAction::CreateSP(this, &FTileMapEdModeToolkit::OnSelectTool, ETileMapEditorTool::PaintBucket),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &FTileMapEdModeToolkit::IsToolSelected, ETileMapEditorTool::PaintBucket) );
+	ToolkitCommands->MapAction(
+		Commands.SelectEyeDropperTool,
+		FExecuteAction::CreateSP(this, &FTileMapEdModeToolkit::OnSelectTool, ETileMapEditorTool::EyeDropper),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FTileMapEdModeToolkit::IsToolSelected, ETileMapEditorTool::EyeDropper),
+		FIsActionButtonVisible::CreateSP(this, &FTileMapEdModeToolkit::IsToolSelected, ETileMapEditorTool::EyeDropper));
 
 	// Selection actions
 	ToolkitCommands->MapAction(
@@ -267,6 +273,7 @@ TSharedRef<SWidget> FTileMapEdModeToolkit::BuildToolBar() const
 
 	FToolBarBuilder ToolsToolbar(ToolkitCommands, FMultiBoxCustomization::None);
 	{
+		ToolsToolbar.AddToolBarButton(Commands.SelectEyeDropperTool);
 		ToolsToolbar.AddToolBarButton(Commands.SelectPaintTool);
 		ToolsToolbar.AddToolBarButton(Commands.SelectEraserTool);
 		ToolsToolbar.AddToolBarButton(Commands.SelectFillTool);

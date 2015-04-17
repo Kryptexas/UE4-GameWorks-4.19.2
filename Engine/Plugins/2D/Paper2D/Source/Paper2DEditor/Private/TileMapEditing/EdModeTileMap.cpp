@@ -79,8 +79,10 @@ struct FHorizontalSpan
 const FEditorModeID FEdModeTileMap::EM_TileMap(TEXT("EM_TileMap"));
 
 FEdModeTileMap::FEdModeTileMap()
-	: bIsPainting(false)
+	: bWasPainting(false)
+	, bIsPainting(false)
 	, bHasValidInkSource(false)
+	, bWasHoldingSelectWhenPaintingStarted(false)
 	, bIsLastCursorValid(false)
 	, DrawPreviewDimensionsLS(0.0f, 0.0f, 0.0f)
 	, EraseBrushSize(1)
@@ -225,12 +227,26 @@ bool FEdModeTileMap::InputKey(FEditorViewportClient* InViewportClient, FViewport
 	const bool bIsCtrlDown = ( ( InKey == EKeys::LeftControl || InKey == EKeys::RightControl ) && InEvent != IE_Released ) || InViewport->KeyState( EKeys::LeftControl ) || InViewport->KeyState( EKeys::RightControl );
 	const bool bIsShiftDown = ( ( InKey == EKeys::LeftShift || InKey == EKeys::RightShift ) && InEvent != IE_Released ) || InViewport->KeyState( EKeys::LeftShift ) || InViewport->KeyState( EKeys::RightShift );
 
+	//@TODO: Don't need to do this always, but any time Shift is pressed or released
+	RefreshBrushSize();
+
 	if (InViewportClient->EngineShowFlags.ModeWidgets)
 	{
 		// Does the user want to paint right now?
+		bWasPainting = bIsPainting;
 		const bool bUserWantsPaint = bIsLeftButtonDown;
 		bool bAnyPaintAbleActorsUnderCursor = false;
 		bIsPainting = bUserWantsPaint;
+
+		if (!bWasPainting && bIsPainting)
+		{
+			// Starting to paint, record if Shift was down which indicates a select instead of the regular tool
+			bWasHoldingSelectWhenPaintingStarted = bIsShiftDown;
+		}
+		else if (bWasPainting && !bIsPainting)
+		{
+			// Stopping painting
+		}
 
 		const FViewportCursorLocation Ray = CalculateViewRay(InViewportClient, InViewport);
 
@@ -241,6 +257,7 @@ bool FEdModeTileMap::InputKey(FEditorViewportClient* InViewportClient, FViewport
 			bHandled = true;
 			bAnyPaintAbleActorsUnderCursor = UseActiveToolAtLocation(Ray);
 		}
+		bWasPainting = bIsPainting;
 
 		// Also absorb other mouse buttons, and Ctrl/Alt/Shift events that occur while we're painting as these would cause
 		// the editor viewport to start panning/dollying the camera
@@ -326,10 +343,17 @@ void FEdModeTileMap::Render(const FSceneView* View, FViewport* Viewport, FPrimit
 			const int32 CursorWidth = GetCursorWidth();
 			const int32 CursorHeight = GetCursorHeight();
 
-			const FVector TL(ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(LastCursorTileX + 0, LastCursorTileY + 0, LastCursorTileZ)));
-			const FVector TR(ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(LastCursorTileX + CursorWidth, LastCursorTileY + 0, LastCursorTileZ)));
-			const FVector BL(ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(LastCursorTileX + 0, LastCursorTileY + CursorHeight, LastCursorTileZ)));
-			const FVector BR(ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(LastCursorTileX + CursorWidth, LastCursorTileY + CursorHeight, LastCursorTileZ)));
+			FIntRect CursorRange(LastCursorTileX, LastCursorTileY, LastCursorTileX + CursorWidth, LastCursorTileY + CursorHeight);
+
+			if ((GetActiveTool() == ETileMapEditorTool::EyeDropper) && bIsPainting)
+			{
+				CursorRange = LastEyeDropperBounds;
+			}
+
+			const FVector TL(ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(CursorRange.Min.X, CursorRange.Min.Y, LastCursorTileZ)));
+			const FVector TR(ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(CursorRange.Max.X, CursorRange.Min.Y, LastCursorTileZ)));
+			const FVector BL(ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(CursorRange.Min.X, CursorRange.Max.Y, LastCursorTileZ)));
+			const FVector BR(ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(CursorRange.Max.X, CursorRange.Max.Y, LastCursorTileZ)));
 
 			PDI->DrawLine(TL, TR, CursorWireColor, SDPG_Foreground, 0.0f, DepthBias);
 			PDI->DrawLine(TR, BR, CursorWireColor, SDPG_Foreground, 0.0f, DepthBias);
@@ -364,7 +388,7 @@ void FEdModeTileMap::DrawHUD(FEditorViewportClient* ViewportClient, FViewport* V
 	static const FText NoTilesForTool = LOCTEXT("NoInkToolDesc", "No tile selected");
 
 	FText ToolDescription = UnknownTool;
-	switch (ActiveTool)
+	switch (GetActiveTool())
 	{
 	case ETileMapEditorTool::Eraser:
 		ToolDescription = LOCTEXT("EraserTool", "Erase");
@@ -376,6 +400,10 @@ void FEdModeTileMap::DrawHUD(FEditorViewportClient* ViewportClient, FViewport* V
 		break;
 	case ETileMapEditorTool::PaintBucket:
 		ToolDescription = bHasValidInkSource ? LOCTEXT("PaintBucketTool", "Fill") : NoTilesForTool;
+		bDrawToolDescription = true;
+		break;
+	case ETileMapEditorTool::EyeDropper:
+		ToolDescription = LOCTEXT("EyeDropperTool", "Select");
 		bDrawToolDescription = true;
 		break;
 	}
@@ -560,13 +588,14 @@ UPaperTileLayer* FEdModeTileMap::GetSelectedLayerUnderCursor(const FViewportCurs
 
 bool FEdModeTileMap::UseActiveToolAtLocation(const FViewportCursorLocation& Ray)
 {
-	switch (ActiveTool)
+	switch (GetActiveTool())
 	{
+	case ETileMapEditorTool::EyeDropper:
+		return SelectTiles(Ray);
 	case ETileMapEditorTool::Paintbrush:
 		return PaintTiles(Ray);
 	case ETileMapEditorTool::Eraser:
 		return EraseTiles(Ray);
-		break;
 	case ETileMapEditorTool::PaintBucket:
 		return FloodFillTiles(Ray);
 	default:
@@ -625,6 +654,38 @@ bool BlitLayer(UPaperTileLayer* SourceLayer, UPaperTileLayer* TargetLayer, int32
 	if (!bChangedSomething)
 	{
 		Transaction.Cancel();
+	}
+
+	return bPaintedOnSomething;
+}
+
+bool FEdModeTileMap::SelectTiles(const FViewportCursorLocation& Ray)
+{
+	bool bPaintedOnSomething = false;
+
+	int32 DestTileX;
+	int32 DestTileY;
+
+	if (UPaperTileLayer* TargetLayer = GetSelectedLayerUnderCursor(Ray, /*out*/ DestTileX, /*out*/ DestTileY))
+	{
+		FIntPoint EyeDropperEnd = FIntPoint(DestTileX, DestTileY);
+		if (!bWasPainting)
+		{
+			EyeDropperStart = EyeDropperEnd;
+		}
+
+		FIntRect SelectionBounds(EyeDropperStart, EyeDropperStart);
+		SelectionBounds.Include(EyeDropperEnd);
+		SelectionBounds.Max.X += 1;
+		SelectionBounds.Max.Y += 1;
+
+		if (!bWasPainting || (SelectionBounds != LastEyeDropperBounds))
+		{
+			SetActivePaintFromLayer(TargetLayer, SelectionBounds.Min, SelectionBounds.Size());
+		}
+
+		LastEyeDropperBounds = SelectionBounds;
+		bPaintedOnSomething = true;
 	}
 
 	return bPaintedOnSomething;
@@ -886,6 +947,39 @@ void FEdModeTileMap::SetActivePaint(UPaperTileSet* TileSet, FIntPoint TopLeft, F
 	RefreshBrushSize();
 }
 
+void FEdModeTileMap::SetActivePaintFromLayer(UPaperTileLayer* SourceLayer, FIntPoint TopLeft, FIntPoint Dimensions)
+{
+	if ((Dimensions.X == 0) || (Dimensions.Y == 0))
+	{
+		bHasValidInkSource = false;
+	}
+	else
+	{
+		bHasValidInkSource = true;
+	}
+
+	DestructiveResizePreviewComponent(Dimensions.X, Dimensions.Y);
+
+	UPaperTileMap* PreviewMap = CursorPreviewComponent->TileMap;
+	UPaperTileLayer* PreviewLayer = GetSourceInkLayer();
+	for (int32 Y = 0; Y < PreviewMap->MapHeight; ++Y)
+	{
+		for (int32 X = 0; X < PreviewMap->MapWidth; ++X)
+		{
+			const int32 SourceX = X + TopLeft.X;
+			const int32 SourceY = Y + TopLeft.Y;
+
+			FPaperTileInfo TileInfo = SourceLayer->GetCell(SourceX, SourceY);
+
+			PreviewLayer->SetCell(X, Y, TileInfo);
+		}
+	}
+
+	CursorPreviewComponent->MarkRenderStateDirty();
+
+	RefreshBrushSize();
+}
+
 void FEdModeTileMap::FlipSelectionHorizontally()
 {
 	UPaperTileMap* PreviewMap = CursorPreviewComponent->TileMap;
@@ -997,8 +1091,11 @@ void FEdModeTileMap::RotateTilesInSelection(bool bIsClockwise)
 bool FEdModeTileMap::IsToolReadyToBeUsed() const
 {
 	bool bToolIsReadyToDraw = false;
-	switch (ActiveTool)
+	switch (GetActiveTool())
 	{
+	case ETileMapEditorTool::EyeDropper:
+		bToolIsReadyToDraw = true;
+		break;
 	case ETileMapEditorTool::Paintbrush:
 		bToolIsReadyToDraw = bHasValidInkSource;
 		break;
@@ -1015,6 +1112,7 @@ bool FEdModeTileMap::IsToolReadyToBeUsed() const
 
 	return bToolIsReadyToDraw;
 }
+
 void FEdModeTileMap::RotateSelectionCW()
 {
 	RotateTilesInSelection(/*bIsClockwise=*/ true);
@@ -1135,15 +1233,22 @@ void FEdModeTileMap::SetActiveTool(ETileMapEditorTool::Type NewTool)
 
 ETileMapEditorTool::Type FEdModeTileMap::GetActiveTool() const
 {
-	return ActiveTool;
+	// Force the eyedropper active when Shift is held (or if it was held when painting started, even if it was released later)
+	const bool bHoldingShift = FSlateApplication::Get().GetModifierKeys().IsShiftDown();
+	const bool bWasHoldingShift = bIsPainting && bWasHoldingSelectWhenPaintingStarted;
+	
+	return (bHoldingShift || bWasHoldingShift) ? ETileMapEditorTool::EyeDropper : ActiveTool;
 }
 
 int32 FEdModeTileMap::GetBrushWidth() const
 {
 	int32 BrushWidth = 1;
 
-	switch (ActiveTool)
+	switch (GetActiveTool())
 	{
+	case ETileMapEditorTool::EyeDropper:
+		BrushWidth = FMath::Max<int32>(LastEyeDropperBounds.Width(), 1);
+		break;
 	case ETileMapEditorTool::Paintbrush:
 		BrushWidth = GetSourceInkLayer()->LayerWidth;
 		break;
@@ -1165,8 +1270,11 @@ int32 FEdModeTileMap::GetBrushHeight() const
 {
 	int32 BrushHeight = 1;
 	
-	switch (ActiveTool)
+	switch (GetActiveTool())
 	{
+	case ETileMapEditorTool::EyeDropper:
+		BrushHeight = FMath::Max<int32>(LastEyeDropperBounds.Height(), 1);
+		break;
 	case ETileMapEditorTool::Paintbrush:
 		BrushHeight = GetSourceInkLayer()->LayerHeight;
 		break;
@@ -1186,13 +1294,13 @@ int32 FEdModeTileMap::GetBrushHeight() const
 
 int32 FEdModeTileMap::GetCursorWidth() const
 {
-	const int32 CursorWidth = ((ActiveTool == ETileMapEditorTool::PaintBucket) || !bHasValidInkSource) ? 1 : GetBrushWidth();
+	const int32 CursorWidth = ((GetActiveTool() == ETileMapEditorTool::PaintBucket) || !bHasValidInkSource) ? 1 : GetBrushWidth();
 	return CursorWidth;
 }
 
 int32 FEdModeTileMap::GetCursorHeight() const
 {
-	const int32 CursorHeight = ((ActiveTool == ETileMapEditorTool::PaintBucket) || !bHasValidInkSource) ? 1 : GetBrushHeight();
+	const int32 CursorHeight = ((GetActiveTool() == ETileMapEditorTool::PaintBucket) || !bHasValidInkSource) ? 1 : GetBrushHeight();
 	return CursorHeight;
 }
 
@@ -1200,8 +1308,11 @@ void FEdModeTileMap::RefreshBrushSize()
 {
 	const bool bShowPreviewDesired = !DrawPreviewDimensionsLS.IsNearlyZero();
 
-	switch (ActiveTool)
+	switch (GetActiveTool())
 	{
+	case ETileMapEditorTool::EyeDropper:
+		CursorPreviewComponent->SetVisibility(!bIsPainting);
+		break;
 	case ETileMapEditorTool::Paintbrush:
 		CursorPreviewComponent->SetVisibility(bShowPreviewDesired);
 		break;

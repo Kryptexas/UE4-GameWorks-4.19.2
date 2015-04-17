@@ -29,6 +29,7 @@ public:
 	TSharedPtr<FUICommandInfo> SelectPaintTool;
 	TSharedPtr<FUICommandInfo> SelectEraserTool;
 	TSharedPtr<FUICommandInfo> SelectFillTool;
+	TSharedPtr<FUICommandInfo> SelectEyeDropperTool;
 
 	// Show toggles
 	TSharedPtr<FUICommandInfo> SetShowCollision;
