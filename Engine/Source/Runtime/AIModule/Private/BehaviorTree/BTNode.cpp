@@ -11,7 +11,6 @@
 
 UBTNode::UBTNode(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-	NodeName = "";
 	ParentNode = NULL;
 	TreeAsset = NULL;
 	ExecutionIndex = 0;
@@ -141,6 +140,11 @@ UBTNode* UBTNode::GetNodeInstance(const UBehaviorTreeComponent& OwnerComp, uint8
 UBTNode* UBTNode::GetNodeInstance(FBehaviorTreeSearchData& SearchData) const
 {
 	return GetNodeInstance(SearchData.OwnerComp, GetNodeMemory<uint8>(SearchData));
+}
+
+FString UBTNode::GetNodeName() const
+{
+	return NodeName.Len() ? NodeName : UBehaviorTreeTypes::GetShortTypeName(this);
 }
 
 FString UBTNode::GetRuntimeDescription(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity) const

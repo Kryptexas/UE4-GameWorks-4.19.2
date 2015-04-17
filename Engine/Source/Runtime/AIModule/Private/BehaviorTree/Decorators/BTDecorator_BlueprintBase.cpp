@@ -38,8 +38,6 @@ void UBTDecorator_BlueprintBase::InitializeProperties()
 		BlueprintNodeHelpers::CollectPropertyData(this, StopAtClass, PropertyData);
 
 		bIsObservingBB = BlueprintNodeHelpers::HasAnyBlackboardSelectors(this, StopAtClass);
-
-		NodeName = BlueprintNodeHelpers::GetNodeName(this);
 	}
 }
 

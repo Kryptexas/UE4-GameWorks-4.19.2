@@ -27,12 +27,6 @@ UBTService_BlueprintBase::UBTService_BlueprintBase(const FObjectInitializer& Obj
 	}
 }
 
-void UBTService_BlueprintBase::PostInitProperties()
-{
-	Super::PostInitProperties();
-	NodeName = BlueprintNodeHelpers::GetNodeName(this);
-}
-
 void UBTService_BlueprintBase::SetOwner(AActor* InActorOwner)
 {
 	ActorOwner = InActorOwner;
