@@ -2070,67 +2070,7 @@ namespace UnrealBuildTool
 				throw new ModuleProcessingException(this, ex);
 			}
 		}
-
-
-		/// <summary>
-		/// Determines where generated code files will be stored for this module
-		/// </summary>
-		/// <param name="ModuleDirectory">Module's base directory</param>
-		/// <param name="ModuleName">Name of module</param>
-		/// <returns></returns>
-		public static string GetGeneratedCodeDirectoryForModule(UEBuildTarget Target, string ModuleDirectory, string ModuleName)
-		{
-			string BaseDirectory = null;
-			if (Target.ShouldCompileMonolithic() || Target.TargetType == TargetRules.TargetType.Program || UnrealBuildTool.RunningRocket())
-			{
-				// Monolithic configurations, programs and Rocket games have their intermediate headers stored under their respective project folders.
-				string RootDirectory = UnrealBuildTool.GetUProjectPath();
-				if (String.IsNullOrEmpty(RootDirectory))
-				{
-					// Intermediates under Engine intermediate folder (program name will be appended later)
-					RootDirectory = Path.GetFullPath(BuildConfiguration.RelativeEnginePath);
-				}
-				BaseDirectory = Path.Combine(RootDirectory, BuildConfiguration.PlatformIntermediateFolder, Target.GetTargetName(), "Inc");
-			}
-			else if (Plugins.IsPluginModule(ModuleName))
-			{
-				// Plugin module
-				string PluginIntermediateIncPath;
-				{ 
-					PluginInfo Plugin = Plugins.GetPluginInfoForModule(ModuleName);
-					if (Plugin.LoadedFrom == PluginInfo.LoadedFromType.Engine)
-					{
-						// Plugin folder is in the engine directory
-						PluginIntermediateIncPath = Path.GetFullPath(Path.Combine(BuildConfiguration.RelativeEnginePath, BuildConfiguration.PlatformIntermediateFolder));
-					}
-					else
-					{
-						// Plugin folder is in the project directory
-						PluginIntermediateIncPath   = Path.GetFullPath(Path.Combine( Target.ProjectDirectory, BuildConfiguration.PlatformIntermediateFolder));
-					}
-					PluginIntermediateIncPath = Path.Combine(PluginIntermediateIncPath, "Inc", "Plugins");
-				}
-				BaseDirectory = PluginIntermediateIncPath;
-			}
-			else
-			{
-				var AllProjectFolders = UEBuildTarget.DiscoverAllGameFolders();		// @todo ubtmake: This will be called again and again for every UObject module (80+)
-				BaseDirectory = AllProjectFolders.Find(ProjectFolder => Utils.IsFileUnderDirectory( ModuleDirectory, ProjectFolder ));
-				if (BaseDirectory == null)
-				{
-					// Must be an engine module or program module
-					BaseDirectory = ProjectFileGenerator.EngineRelativePath;
-				}
-
-				BaseDirectory = Path.GetFullPath(Path.Combine(BaseDirectory, BuildConfiguration.PlatformIntermediateFolder, "Inc"));
-			}
-
-			// Construct the intermediate path.
-			var GeneratedCodeDirectory = Path.Combine(BaseDirectory, ModuleName);
-			return GeneratedCodeDirectory + Path.DirectorySeparatorChar;
-		}
-
-	};
+	}
 
 	/** A module that is compiled from C++ CLR code. */
 	class UEBuildModuleCPPCLR : UEBuildModuleCPP

@@ -1600,14 +1600,8 @@ namespace UnrealBuildTool
 		/// <param name="InModuleFileRelativeToEngineDirectory">The module file relative to the engine directory</param>
 		/// <param name="IsGameModule">true if it is a game module, false if not</param>
 		/// <param name="RulesObject">The module rules object itself</param>
-		public static void AddDefaultIncludePathsToModuleRules(UEBuildTarget BuildTarget, string InModuleName, string InModuleFilename, string InModuleFileRelativeToEngineDirectory, bool IsGameModule, ref ModuleRules RulesObject)
+		public static void AddDefaultIncludePathsToModuleRules(string InModuleName, string InModuleFilename, string InModuleFileRelativeToEngineDirectory, bool IsGameModule, ModuleRules RulesObject)
 		{
-			// Core is a special-case... leave it alone
-			if (InModuleName == "Core")
-			{
-				return;
-			}
-
 			// Grab the absolute path of the Engine/Source folder for use later
 			string AbsEngineSourceDirectory = Path.Combine(ProjectFileGenerator.RootRelativePath, "Engine/Source");
 			AbsEngineSourceDirectory = Path.GetFullPath(AbsEngineSourceDirectory);
@@ -1649,8 +1643,6 @@ namespace UnrealBuildTool
 			// Setup the directories for Classes, Public, and Intermediate			
 			string ClassesDirectory = Path.Combine(ModuleDirectoryRelativeToEngineSourceDirectory, "Classes/");	// @todo uht: Deprecate eventually.  Or force it to be manually specified...
 			string PublicDirectory = Path.Combine(ModuleDirectoryRelativeToEngineSourceDirectory, "Public/");
-			string IntermediateDirectory = UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(BuildTarget, Path.GetDirectoryName(InModuleFilename), InModuleName);
-			IntermediateDirectory = Utils.CleanDirectorySeparators(Utils.MakePathRelativeTo(IntermediateDirectory, Path.Combine(ProjectFileGenerator.RootRelativePath, "Engine/Source")), '/');
 
 			if (IsGameModule || IsPluginModule)
 			{
@@ -1704,7 +1696,6 @@ namespace UnrealBuildTool
 			}
 
 			string IncludePath_Classes = "";
-			string IncludePath_Intermediates = IntermediateDirectory;
 			string IncludePath_Public = "";
 
 			bool bModulePathIsRooted = Path.IsPathRooted(ModuleDirectoryRelativeToEngineSourceDirectory);
@@ -1725,10 +1716,6 @@ namespace UnrealBuildTool
 			if (IncludePath_Classes.Length > 0)
 			{
 				RulesObject.PublicIncludePaths.Add(IncludePath_Classes);
-			}
-			if (IncludePath_Intermediates.Length > 0)
-			{
-				RulesObject.PublicIncludePaths.Add(IncludePath_Intermediates);
 			}
 			if (IncludePath_Public.Length > 0)
 			{

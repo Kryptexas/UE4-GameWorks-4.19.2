@@ -1009,7 +1009,7 @@ namespace UnrealBuildTool
 				foreach (var ModuleName in ModuleList)
 				{
 					var Module = GetModuleByName(ModuleName);
-					var ModuleIncludeDir = UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(this, Module.ModuleDirectory, ModuleName).Replace("\\", "/");
+					var ModuleIncludeDir = GetGeneratedCodeDirectoryForModule(Module.ModuleDirectory, ModuleName).Replace("\\", "/");
 					if (!UnrealBuildTool.RunningRocket() || !ModuleIncludeDir.StartsWith(BaseEngineBuildDataFolder, StringComparison.InvariantCultureIgnoreCase))
 					{
 						if (Directory.Exists(ModuleIncludeDir))
@@ -1457,7 +1457,7 @@ namespace UnrealBuildTool
 							// If we've got this far and there are no source files then it's likely we're running Rocket and ignoring
 							// engine files, so we don't need a .generated.cpp either
 							UEBuildModuleCPP.AutoGenerateCppInfoClass.BuildInfoClass BuildInfo = null;
-							UHTModuleInfo.GeneratedCPPFilenameBase = Path.Combine( UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(this, UHTModuleInfo.ModuleDirectory, UHTModuleInfo.ModuleName), UHTModuleInfo.ModuleName ) + ".generated";
+							UHTModuleInfo.GeneratedCPPFilenameBase = Path.Combine( GetGeneratedCodeDirectoryForModule(UHTModuleInfo.ModuleDirectory, UHTModuleInfo.ModuleName), UHTModuleInfo.ModuleName ) + ".generated";
 							if (DependencyModuleCPP.SourceFilesToBuild.Count != 0)
 							{
 								BuildInfo = new UEBuildModuleCPP.AutoGenerateCppInfoClass.BuildInfoClass( UHTModuleInfo.GeneratedCPPFilenameBase + "*.cpp" );
@@ -2322,6 +2322,64 @@ namespace UnrealBuildTool
 			return Binary;
 		}
 
+		/// <summary>
+		/// Determines where generated code files will be stored for this module
+		/// </summary>
+		/// <param name="ModuleDirectory">Module's base directory</param>
+		/// <param name="ModuleName">Name of module</param>
+		/// <returns></returns>
+		string GetGeneratedCodeDirectoryForModule(string ModuleDirectory, string ModuleName)
+		{
+			string BaseDirectory = null;
+			if (ShouldCompileMonolithic() || TargetType == TargetRules.TargetType.Program || UnrealBuildTool.RunningRocket())
+			{
+				// Monolithic configurations, programs and Rocket games have their intermediate headers stored under their respective project folders.
+				string RootDirectory = UnrealBuildTool.GetUProjectPath();
+				if (String.IsNullOrEmpty(RootDirectory))
+				{
+					// Intermediates under Engine intermediate folder (program name will be appended later)
+					RootDirectory = Path.GetFullPath(BuildConfiguration.RelativeEnginePath);
+				}
+				BaseDirectory = Path.Combine(RootDirectory, BuildConfiguration.PlatformIntermediateFolder, GetTargetName(), "Inc");
+			}
+			else if (Plugins.IsPluginModule(ModuleName))
+			{
+				// Plugin module
+				string PluginIntermediateIncPath;
+				{ 
+					PluginInfo Plugin = Plugins.GetPluginInfoForModule(ModuleName);
+					if (Plugin.LoadedFrom == PluginInfo.LoadedFromType.Engine)
+					{
+						// Plugin folder is in the engine directory
+						PluginIntermediateIncPath = Path.GetFullPath(Path.Combine(BuildConfiguration.RelativeEnginePath, BuildConfiguration.PlatformIntermediateFolder));
+					}
+					else
+					{
+						// Plugin folder is in the project directory
+						PluginIntermediateIncPath   = Path.GetFullPath(Path.Combine( ProjectDirectory, BuildConfiguration.PlatformIntermediateFolder));
+					}
+					PluginIntermediateIncPath = Path.Combine(PluginIntermediateIncPath, "Inc", "Plugins");
+				}
+				BaseDirectory = PluginIntermediateIncPath;
+			}
+			else
+			{
+				var AllProjectFolders = UEBuildTarget.DiscoverAllGameFolders();		// @todo ubtmake: This will be called again and again for every UObject module (80+)
+				BaseDirectory = AllProjectFolders.Find(ProjectFolder => Utils.IsFileUnderDirectory( ModuleDirectory, ProjectFolder ));
+				if (BaseDirectory == null)
+				{
+					// Must be an engine module or program module
+					BaseDirectory = ProjectFileGenerator.EngineRelativePath;
+				}
+
+				BaseDirectory = Path.GetFullPath(Path.Combine(BaseDirectory, BuildConfiguration.PlatformIntermediateFolder, "Inc"));
+			}
+
+			// Construct the intermediate path.
+			var GeneratedCodeDirectory = Path.Combine(BaseDirectory, ModuleName);
+			return GeneratedCodeDirectory + Path.DirectorySeparatorChar;
+		}
+
 		/**
 		 * @return true if debug information is created, false otherwise.
 		 */
@@ -2890,11 +2948,16 @@ namespace UnrealBuildTool
 					}
 				}
 
-				// Don't generate include paths for third party modules.  They don't follow our conventions.
-				if (RulesObject.Type != ModuleRules.ModuleType.External)
+				// Don't generate include paths for third party modules; they don't follow our conventions. Core is a special-case... leave it alone
+				if (RulesObject.Type != ModuleRules.ModuleType.External && ModuleName != "Core")
 				{
 					// Add the default include paths to the module rules, if they exist.
-					RulesCompiler.AddDefaultIncludePathsToModuleRules(this, ModuleName, ModuleFileName, ModuleFileRelativeToEngineDirectory, IsGameModule: IsGameModule, RulesObject: ref RulesObject);
+					RulesCompiler.AddDefaultIncludePathsToModuleRules(ModuleName, ModuleFileName, ModuleFileRelativeToEngineDirectory, IsGameModule, RulesObject);
+
+					// Add the path to the generated headers 
+					string ModuleGeneratedCodePath = GetGeneratedCodeDirectoryForModule(Path.GetDirectoryName(ModuleFileName), ModuleName);
+					ModuleGeneratedCodePath = Utils.CleanDirectorySeparators(Utils.MakePathRelativeTo(ModuleGeneratedCodePath, Path.Combine(ProjectFileGenerator.RootRelativePath, "Engine/Source")), '/');
+					RulesObject.PublicIncludePaths.Add(ModuleGeneratedCodePath);
 				}
 
 				// Figure out whether we need to build this module
