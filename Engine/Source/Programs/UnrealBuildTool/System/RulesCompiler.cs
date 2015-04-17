@@ -869,6 +869,7 @@ namespace UnrealBuildTool
             public bool bCustomWorkflowForPromotion = false;
 			public bool bIsNonCode = false;
             public bool bPromoteEditorOnly = true;
+			public string GroupName = null;
 		}
         public virtual GUBPProjectOptions GUBP_IncludeProjectInPromotedBuild_EditorTypeOnly(UnrealTargetPlatform HostPlatform)
         {
@@ -878,6 +879,7 @@ namespace UnrealBuildTool
             if (!String.IsNullOrEmpty(TargetName) && ( TargetName.StartsWith("TP_") || TargetName.StartsWith("FP_")) )
             {
                 Result.bTestWithShared = true;
+				Result.GroupName = "Templates";
             }
             return Result;
         }
