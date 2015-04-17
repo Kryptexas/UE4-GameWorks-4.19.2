@@ -16,7 +16,6 @@ public class UnrealSync : ModuleRules
 				"Projects",
 				"Slate",
 				"SlateCore",
-				"SlateReflector",
 				"StandaloneRenderer",
 				"XmlParser",
 				"JSON"
