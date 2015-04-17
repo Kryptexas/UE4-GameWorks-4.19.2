@@ -564,6 +564,11 @@ void ARecastNavMesh::PostInitProperties()
 	}
 }
 
+FVector ARecastNavMesh::GetModifiedQueryExtent(const FVector& QueryExtent) const
+{
+	return FVector(QueryExtent.X, QueryExtent.Y, QueryExtent.Z + FMath::Max(0.0f, VerticalDeviationFromGroundCompensation));
+}
+
 void ARecastNavMesh::OnNavAreaAdded(const UClass* NavAreaClass, int32 AgentIndex)
 {
 	Super::OnNavAreaAdded(NavAreaClass, AgentIndex);
@@ -1044,7 +1049,8 @@ void ARecastNavMesh::BatchProjectPoints(TArray<FNavigationProjectionWork>& Workl
 	ensure(QueryFilter);
 	if (QueryFilter)
 	{
-		FVector RcExtent = Unreal2RecastPoint(Extent).GetAbs();
+		const FVector ModifiedExtent = GetModifiedQueryExtent(Extent);
+		FVector RcExtent = Unreal2RecastPoint(ModifiedExtent).GetAbs();
 		float ClosestPoint[3];
 		dtPolyRef PolyRef;
 
@@ -1057,7 +1063,7 @@ void ARecastNavMesh::BatchProjectPoints(TArray<FNavigationProjectionWork>& Workl
 			if (PolyRef > 0)
 			{
 				const FVector& UnrealClosestPoint = Recast2UnrealPoint(ClosestPoint);
-				if (FVector::DistSquared(UnrealClosestPoint, Workload[Idx].Point) <= Extent.SizeSquared())
+				if (FVector::DistSquared(UnrealClosestPoint, Workload[Idx].Point) <= ModifiedExtent.SizeSquared())
 				{
 					Workload[Idx].OutLocation = FNavLocation(UnrealClosestPoint, PolyRef);
 					Workload[Idx].bResult = true;
@@ -1170,7 +1176,7 @@ float ARecastNavMesh::FindDistanceToWall(const FVector& StartLoc, TSharedPtr<con
 		return 0.f;
 	}
 
-	const FVector& NavExtent = GetDefaultQueryExtent();
+	const FVector NavExtent = GetModifiedQueryExtent(GetDefaultQueryExtent());
 	const float Extent[3] = { NavExtent.X, NavExtent.Z, NavExtent.Y };
 
 	const FVector RecastStart = Unreal2RecastPoint(StartLoc);
@@ -1650,7 +1656,7 @@ bool ARecastNavMesh::AdjustLocationWithFilter(const FVector& StartLoc, FVector& 
 {
 	INITIALIZE_NAVQUERY(NavQuery, Filter.GetMaxSearchNodes());
 
-	const FVector& NavExtent = GetDefaultQueryExtent();
+	const FVector NavExtent = GetModifiedQueryExtent(GetDefaultQueryExtent());
 	const float Extent[3] = { NavExtent.X, NavExtent.Z, NavExtent.Y };
 
 	const dtQueryFilter* QueryFilter = ((const FRecastQueryFilter*)(Filter.GetImplementation()))->GetAsDetourQueryFilter();
@@ -1843,7 +1849,7 @@ void ARecastNavMesh::BatchRaycast(TArray<FNavigationRaycastWork>& Workload, TSha
 		return;
 	}
 	
-	const FVector& NavExtent = GetDefaultQueryExtent();
+	const FVector NavExtent = GetModifiedQueryExtent(GetDefaultQueryExtent());
 	const float Extent[3] = { NavExtent.X, NavExtent.Z, NavExtent.Y };
 
 	for (auto& WorkItem : Workload)

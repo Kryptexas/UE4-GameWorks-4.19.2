@@ -634,8 +634,12 @@ public:
 	// Recast runtime params
 	//----------------------------------------------------------------------//
 	/** Euclidean distance heuristic scale used while pathfinding */
-	UPROPERTY(EditAnywhere, Category=Pathfinding, config, meta=(ClampMin = "0.1"))
+	UPROPERTY(EditAnywhere, Category = Query, config, meta = (ClampMin = "0.1"))
 	float HeuristicScale;
+
+	/** Value added to each search height to compensate for error between navmesh polys and walkable geometry  */
+	UPROPERTY(EditAnywhere, Category = Query, config, meta = (ClampMin = "0.0"))
+	float VerticalDeviationFromGroundCompensation;
 
 	/** broadcast for navmesh updates */
 	FOnNavMeshUpdate OnNavMeshUpdate;
@@ -922,6 +926,10 @@ public:
 	void RebuildTile(const TArray<FIntPoint>& Tiles);
 
 protected:
+
+	/** Returns query extent including adjustments for voxelization error compensation */
+	FVector GetModifiedQueryExtent(const FVector& QueryExtent) const;
+
 	// @todo docuement
 	UPrimitiveComponent* ConstructRenderingComponentImpl();
 

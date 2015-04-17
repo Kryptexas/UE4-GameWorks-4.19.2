@@ -729,7 +729,7 @@ void FPImplRecastNavMesh::Raycast2D(const FVector& StartLoc, const FVector& EndL
 	FRecastSpeciaLinkFilter LinkFilter(UNavigationSystem::GetCurrent(NavMeshOwner->GetWorld()), Owner);
 	INITIALIZE_NAVQUERY(NavQuery, InQueryFilter.GetMaxSearchNodes(), LinkFilter);
 
-	const FVector& NavExtent = NavMeshOwner->GetDefaultQueryExtent();
+	const FVector NavExtent = NavMeshOwner->GetModifiedQueryExtent(NavMeshOwner->GetDefaultQueryExtent());
 	const float Extent[3] = { NavExtent.X, NavExtent.Z, NavExtent.Y };
 
 	const FVector RecastStart = Unreal2RecastPoint(StartLoc);
@@ -936,7 +936,7 @@ bool FPImplRecastNavMesh::InitPathfinding(const FVector& UnrealStart, const FVec
 	FVector& RecastStart, dtPolyRef& StartPoly,
 	FVector& RecastEnd, dtPolyRef& EndPoly) const
 {
-	const FVector& NavExtent = NavMeshOwner->GetDefaultQueryExtent();
+	const FVector NavExtent = NavMeshOwner->GetModifiedQueryExtent(NavMeshOwner->GetDefaultQueryExtent());
 	const float Extent[3] = { NavExtent.X, NavExtent.Z, NavExtent.Y };
 
 	const FVector RecastStartToProject = Unreal2RecastPoint(UnrealStart);
@@ -1340,7 +1340,8 @@ bool FPImplRecastNavMesh::GetRandomPointInRadius(const FVector& Origin, float Ra
 	{
 		// find starting poly
 		// convert start/end pos to Recast coords
-		const float Extent[3] = {Radius, Radius, Radius};
+		const FVector NavExtent = NavMeshOwner->GetModifiedQueryExtent(FVector(Radius, Radius, Radius));
+		const float Extent[3] = { NavExtent.X, NavExtent.Z, NavExtent.Y };
 		float RecastOrigin[3];
 		Unr2RecastVector(Origin, RecastOrigin);
 		NavNodeRef OriginPolyID = INVALID_NAVNODEREF;
@@ -1406,7 +1407,8 @@ bool FPImplRecastNavMesh::ProjectPointToNavMesh(const FVector& Point, FNavLocati
 	{
 		float ClosestPoint[3];
 
-		FVector RcExtent = Unreal2RecastPoint( Extent ).GetAbs();
+		const FVector ModifiedExtent = NavMeshOwner->GetModifiedQueryExtent(Extent);
+		FVector RcExtent = Unreal2RecastPoint(ModifiedExtent).GetAbs();
 	
 		FVector RcPoint = Unreal2RecastPoint( Point );
 		dtPolyRef PolyRef;
@@ -1417,9 +1419,9 @@ bool FPImplRecastNavMesh::ProjectPointToNavMesh(const FVector& Point, FNavLocati
 			// one last step required due to recast's BVTree imprecision
 			const FVector& UnrealClosestPoint = Recast2UnrVector(ClosestPoint);			
 			const FVector ClosestPointDelta = UnrealClosestPoint - Point;
-			if (FMath::Abs(ClosestPointDelta.X) <= Extent.X &&
-				FMath::Abs(ClosestPointDelta.Y) <= Extent.Y &&
-				FMath::Abs(ClosestPointDelta.Z) <= Extent.Z)
+			if (FMath::Abs(ClosestPointDelta.X) <= ModifiedExtent.X &&
+				FMath::Abs(ClosestPointDelta.Y) <= ModifiedExtent.Y &&
+				FMath::Abs(ClosestPointDelta.Z) <= ModifiedExtent.Z)
 			{
 				bSuccess = true;
 				Result = FNavLocation(UnrealClosestPoint, PolyRef);
@@ -1448,8 +1450,9 @@ bool FPImplRecastNavMesh::ProjectPointMulti(const FVector& Point, TArray<FNavLoc
 	ensure(QueryFilter);
 	if (QueryFilter)
 	{
+		const FVector ModifiedExtent = NavMeshOwner->GetModifiedQueryExtent(Extent);
 		const FVector AdjustedPoint(Point.X, Point.Y, (MaxZ + MinZ) * 0.5f);
-		const FVector AdjustedExtent(Extent.X, Extent.Y, (MaxZ - MinZ) * 0.5f);
+		const FVector AdjustedExtent(ModifiedExtent.X, ModifiedExtent.Y, (MaxZ - MinZ) * 0.5f);
 
 		const FVector RcPoint = Unreal2RecastPoint( AdjustedPoint );
 		const FVector RcExtent = Unreal2RecastPoint( AdjustedExtent ).GetAbs();
@@ -1507,7 +1510,7 @@ NavNodeRef FPImplRecastNavMesh::FindNearestPoly(FVector const& Loc, FVector cons
 		float RecastLoc[3];
 		Unr2RecastVector(Loc, RecastLoc);
 		float RecastExtent[3];
-		Unr2RecastSizeVector(Extent, RecastExtent);
+		Unr2RecastSizeVector(NavMeshOwner->GetModifiedQueryExtent(Extent), RecastExtent);
 
 		NavNodeRef OutRef;
 		dtStatus Status = NavQuery.findNearestPoly(RecastLoc, RecastExtent, QueryFilter, &OutRef, NULL);
@@ -1543,7 +1546,7 @@ bool FPImplRecastNavMesh::GetPolysWithinPathingDistance(FVector const& StartLoc,
 	}
 
 	// @todo this should be configurable in some kind of FindPathQuery structure
-	const FVector& NavExtent = NavMeshOwner->GetDefaultQueryExtent();
+	const FVector NavExtent = NavMeshOwner->GetModifiedQueryExtent(NavMeshOwner->GetDefaultQueryExtent());
 	const float Extent[3] = { NavExtent.X, NavExtent.Z, NavExtent.Y };
 
 	float RecastStartPos[3];
