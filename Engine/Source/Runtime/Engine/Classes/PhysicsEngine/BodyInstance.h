@@ -643,6 +643,8 @@ public:
 
 	bool UseAsyncScene(const FPhysScene* PhysScene) const;
 
+	bool HasSharedShapes() const{ return bHasSharedShapes; }
+
 	/** Indicates whether this body should use the async scene. Must be called before body is init'd, will assert otherwise. Will have no affect if there is no async scene. */
 	void SetUseAsyncScene(bool bNewUseAsyncScene);
 
@@ -801,11 +803,17 @@ public:
 	DEPRECATED(4.8, "Please call ApplyMaterialToShape_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
 	static void ApplyMaterialToShape(physx::PxShape* PShape, physx::PxMaterial* PSimpleMat, TArray<UPhysicalMaterial*>& ComplexPhysMats)
 	{
-		ApplyMaterialToShape_AssumesLocked(PShape, PSimpleMat, ComplexPhysMats);
+		ApplyMaterialToShape_AssumesLocked(PShape, PSimpleMat, ComplexPhysMats, false);
 	}
 
-	/** Note: This function is not thread safe. Make sure you obtain the appropriate PhysX scene lock before calling it*/
-	static void ApplyMaterialToShape_AssumesLocked(physx::PxShape* PShape, physx::PxMaterial* PSimpleMat, TArray<UPhysicalMaterial*>& ComplexPhysMats);
+	/** 
+	 *  Apply a material directly to the passed in shape. Note this function is very advanced and requires knowledge of shape sharing as well as threading. Note: assumes the appropriate locks have been obtained
+	 *  @param  PShape					The shape we are applying the material to
+	 *  @param  PSimpleMat				The material to use if a simple shape is provided (or complex materials are empty)
+	 *  @param  ComplexPhysMats			The array of materials to apply if a complex shape is provided
+	 *	@param	bSharedShape			If this is true it means you've already detached the shape from all actors that use it (attached shared shapes are not writable).
+	 */
+	static void ApplyMaterialToShape_AssumesLocked(physx::PxShape* PShape, physx::PxMaterial* PSimpleMat, const TArray<UPhysicalMaterial*>& ComplexPhysMats, const bool bSharedShape);
 
 	DEPRECATED(4.8, "Please call ApplyMaterialToInstanceShapes_AssumesLocked and make sure you obtain the appropriate PhysX scene locks")
 	void ApplyMaterialToInstanceShapes(physx::PxMaterial* PSimpleMat, TArray<UPhysicalMaterial*>& ComplexPhysMats)
@@ -1005,6 +1013,9 @@ public:
 	class b2Body* BodyInstancePtr;
 
 #endif	//WITH_BOX2D
+
+private:
+	bool bHasSharedShapes;
 };
 
 template<>

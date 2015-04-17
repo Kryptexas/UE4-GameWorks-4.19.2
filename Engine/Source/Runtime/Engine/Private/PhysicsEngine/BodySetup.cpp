@@ -316,16 +316,18 @@ PxMaterial* GetDefaultPhysMaterial()
 /** Helper struct for adding shapes into an actor.*/
 struct FAddShapesHelper
 {
-	FAddShapesHelper(UBodySetup* InBodySetup, FBodyInstance* InOwningInstance, physx::PxRigidActor* InPDestActor, FVector& InScale3D, physx::PxMaterial* InSimpleMaterial, TArray<UPhysicalMaterial*>& InComplexMaterials, FShapeData& InShapeData, const FTransform& InRelativeTM, TArray<physx::PxShape*>* InNewShapes)
+	FAddShapesHelper(UBodySetup* InBodySetup, FBodyInstance* InOwningInstance, physx::PxRigidActor* InPDestActor, EPhysicsSceneType InSceneType, FVector& InScale3D, physx::PxMaterial* InSimpleMaterial, TArray<UPhysicalMaterial*>& InComplexMaterials, FShapeData& InShapeData, const FTransform& InRelativeTM, TArray<physx::PxShape*>* InNewShapes, const bool InShapeSharing)
 	: BodySetup(InBodySetup)
 	, OwningInstance(InOwningInstance)
 	, PDestActor(InPDestActor)
+	, SceneType(InSceneType)
 	, Scale3D(InScale3D)
 	, SimpleMaterial(InSimpleMaterial)
 	, ComplexMaterials(InComplexMaterials)
 	, ShapeData(InShapeData)
 	, RelativeTM(InRelativeTM)
 	, NewShapes(InNewShapes)
+	, bShapeSharing(InShapeSharing)
 	{
 		SetupNonUniformHelper(Scale3D, MinScale, MinScaleAbs, Scale3DAbs);
 		{
@@ -346,12 +348,14 @@ struct FAddShapesHelper
 	UBodySetup* BodySetup;
 	FBodyInstance* OwningInstance;
 	physx::PxRigidActor* PDestActor;
+	EPhysicsSceneType SceneType;
 	FVector& Scale3D;
-	const physx::PxMaterial* SimpleMaterial;
+	physx::PxMaterial* SimpleMaterial;
 	const TArray<UPhysicalMaterial*>& ComplexMaterials;
 	const FShapeData& ShapeData;
 	const FTransform& RelativeTM;
 	TArray<physx::PxShape*>* NewShapes;
+	const bool bShapeSharing;
 
 	float MinScaleAbs;
 	float MinScale;
@@ -362,7 +366,6 @@ public:
 	{
 		float ContactOffsetFactor, MaxContactOffset;
 		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
-		PxMaterial* PDefaultMat = GetDefaultPhysMaterial();
 
 		for (int32 i = 0; i < BodySetup->AggGeom.SphereElems.Num(); i++)
 		{
@@ -380,7 +383,7 @@ public:
 				ensure(PLocalPose.isValid());
 				{
 					const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PSphereGeom.radius);
-					AttachShape(PSphereGeom, *PDefaultMat, PLocalPose, ContactOffset);
+					AttachShape_AssumesLocked(PSphereGeom, PLocalPose, ContactOffset);
 				}
 			}
 			else
@@ -394,7 +397,6 @@ public:
 	{
 		float ContactOffsetFactor, MaxContactOffset;
 		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
-		PxMaterial* PDefaultMat = GetDefaultPhysMaterial();
 
 		for (int32 i = 0; i < BodySetup->AggGeom.BoxElems.Num(); i++)
 		{
@@ -416,7 +418,7 @@ public:
 				ensure(PLocalPose.isValid());
 				{
 					const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PBoxGeom.halfExtents.minElement());
-					AttachShape(PBoxGeom, *PDefaultMat, PLocalPose, ContactOffset);
+					AttachShape_AssumesLocked(PBoxGeom, PLocalPose, ContactOffset);
 				}
 			}
 			else
@@ -430,7 +432,6 @@ public:
 	{
 		float ContactOffsetFactor, MaxContactOffset;
 		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
-		PxMaterial* PDefaultMat = GetDefaultPhysMaterial();
 
 		float ScaleRadius = FMath::Max(Scale3DAbs.X, Scale3DAbs.Y);
 		float ScaleLength = Scale3DAbs.Z;
@@ -463,7 +464,7 @@ public:
 				ensure(PLocalPose.isValid());
 				{
 					const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PCapsuleGeom.radius);
-					AttachShape(PCapsuleGeom, *PDefaultMat, PLocalPose, ContactOffset);
+					AttachShape_AssumesLocked(PCapsuleGeom, PLocalPose, ContactOffset);
 				}
 			}
 			else
@@ -473,11 +474,10 @@ public:
 		}
 	}
 
-	void AddConvexElemsToRigidActor_AssumesLocked() const
+	void FAddShapesHelper::AddConvexElemsToRigidActor_AssumesLocked() const
 	{
 		float ContactOffsetFactor, MaxContactOffset;
 		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
-		PxMaterial* PDefaultMat = GetDefaultPhysMaterial();
 
 		for (int32 i = 0; i < BodySetup->AggGeom.ConvexElems.Num(); i++)
 		{
@@ -512,7 +512,7 @@ public:
 						ensure(PLocalPose.isValid());
 						{
 							const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PBoundsExtents.minElement());
-							AttachShape(PConvexGeom, *PDefaultMat, PLocalPose, ContactOffset);
+							AttachShape_AssumesLocked(PConvexGeom, PLocalPose, ContactOffset);
 						}
 					}
 					else
@@ -536,7 +536,6 @@ public:
 	{
 		float ContactOffsetFactor, MaxContactOffset;
 		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
-		PxMaterial* PDefaultMat = GetDefaultPhysMaterial();
 
 		if (BodySetup->TriMesh || BodySetup->TriMeshNegX)
 		{
@@ -567,7 +566,7 @@ public:
 
 					// Create without 'sim shape' flag, problematic if it's kinematic, and it gets set later anyway.
 					{
-						if (!AttachShape(PTriMeshGeom, *PDefaultMat, PLocalPose, MaxContactOffset, PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eVISUALIZATION))
+						if (!AttachShape_AssumesLocked(PTriMeshGeom, PLocalPose, MaxContactOffset, PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eVISUALIZATION))
 						{
 							UE_LOG(LogPhysics, Log, TEXT("Can't create new mesh shape in AddShapesToRigidActor"));
 						}
@@ -583,9 +582,11 @@ public:
 
 private:
 
-	PxShape* AttachShape(const PxGeometry& PGeom, const PxMaterial& PMaterial, const PxTransform& PLocalPose, const float ContactOffset, PxShapeFlags PShapeFlags = PxShapeFlag::eVISUALIZATION | PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eSIMULATION_SHAPE) const
+	PxShape* AttachShape_AssumesLocked(const PxGeometry& PGeom, const PxTransform& PLocalPose, const float ContactOffset, PxShapeFlags PShapeFlags = PxShapeFlag::eVISUALIZATION | PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eSIMULATION_SHAPE) const
 	{
-		PxShape* PNewShape = PDestActor->createShape(PGeom, PMaterial, PShapeFlags);
+		const PxMaterial* PMaterial = GetDefaultPhysMaterial(); 
+		PxShape* PNewShape = bShapeSharing ? GPhysXSDK->createShape(PGeom, *PMaterial, /*isExclusive =*/ false, PShapeFlags) : PDestActor->createShape(PGeom, *PMaterial, PShapeFlags);
+
 		if (PNewShape)
 		{
 			PNewShape->setLocalPose(PLocalPose);
@@ -596,6 +597,21 @@ private:
 			}
 
 			PNewShape->setContactOffset(ContactOffset);
+
+			const bool bSyncFlags = bShapeSharing || SceneType == PST_Sync;
+			const FShapeFilterData& Filters = ShapeData.FilterData;
+			const bool bComplexShape = PNewShape->getGeometryType() == PxGeometryType::eTRIANGLEMESH;
+
+			PNewShape->setQueryFilterData(bComplexShape ? Filters.QueryComplexFilter : Filters.QuerySimpleFilter);
+			PNewShape->setFlags( (bSyncFlags ? ShapeData.SyncShapeFlags : ShapeData.AsyncShapeFlags) | (bComplexShape ? ShapeData.ComplexShapeFlags : ShapeData.SimpleShapeFlags));
+			PNewShape->setSimulationFilterData(Filters.SimFilter);
+			FBodyInstance::ApplyMaterialToShape_AssumesLocked(PNewShape, SimpleMaterial, ComplexMaterials, bShapeSharing);
+
+			if(bShapeSharing)
+			{
+				PDestActor->attachShape(*PNewShape);
+				PNewShape->release();
+			}
 		}
 
 		return PNewShape;
@@ -606,15 +622,14 @@ private:
 
 
 
-void UBodySetup::AddShapesToRigidActor_AssumesLocked(FBodyInstance* OwningInstance, physx::PxRigidActor* PDestActor, EPhysicsSceneType SceneType, FVector& Scale3D, physx::PxMaterial* SimpleMaterial, TArray<UPhysicalMaterial*>& ComplexMaterials, FShapeData& ShapeData, const FTransform& RelativeTM, TArray<physx::PxShape*>* NewShapes)
+void UBodySetup::AddShapesToRigidActor_AssumesLocked(FBodyInstance* OwningInstance, physx::PxRigidActor* PDestActor, EPhysicsSceneType SceneType, FVector& Scale3D, physx::PxMaterial* SimpleMaterial, TArray<UPhysicalMaterial*>& ComplexMaterials, FShapeData& ShapeData, const FTransform& RelativeTM, TArray<physx::PxShape*>* NewShapes, bool bShapeSharing)
 {
 #if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 	// in editor, there are a lot of things relying on body setup to create physics meshes
 	CreatePhysicsMeshes();
 #endif
 
-	TArray<PxShape*> Shapes;
-	FAddShapesHelper AddShapesHelper(this, OwningInstance, PDestActor, Scale3D, SimpleMaterial, ComplexMaterials, ShapeData, RelativeTM, &Shapes);
+	FAddShapesHelper AddShapesHelper(this, OwningInstance, PDestActor, SceneType, Scale3D, SimpleMaterial, ComplexMaterials, ShapeData, RelativeTM, NewShapes, bShapeSharing);
 
 	// Create shapes for simple collision if we do not want to use the complex collision mesh 
 	// for simple queries as well
@@ -633,72 +648,12 @@ void UBodySetup::AddShapesToRigidActor_AssumesLocked(FBodyInstance* OwningInstan
 		AddShapesHelper.AddTriMeshToRigidActor_AssumesLocked();
 	}
 
-	for (PxShape* Shape : Shapes)
+	if (OwningInstance)
 	{
-		FShapeFilterData& Filters = ShapeData.FilterData;
-		// Apply provided materials
-		// If a triangle mesh, need to get array of materials...
-		if (Shape->getGeometryType() == PxGeometryType::eTRIANGLEMESH)
+		if (PxRigidBody* RigidBody = OwningInstance->GetPxRigidBody_AssumesLocked())
 		{
-			TArray<PxMaterial*> PComplexMats;
-			PComplexMats.AddUninitialized(ComplexMaterials.Num());
-			for (int MatIdx = 0; MatIdx < ComplexMaterials.Num(); MatIdx++)
-			{
-				check(ComplexMaterials[MatIdx] != NULL);
-				PComplexMats[MatIdx] = ComplexMaterials[MatIdx]->GetPhysXMaterial();
-				check(PComplexMats[MatIdx] != NULL);
-			}
-
-			if (PComplexMats.Num())
-			{
-				Shape->setMaterials(PComplexMats.GetData(), PComplexMats.Num());
-			}
-			else
-			{
-				UE_LOG(LogPhysics, Warning, TEXT("FBodyInstance::UpdatePhysicalMaterials : PComplexMats is empty - falling back on simple physical material."));
-				Shape->setMaterials(&SimpleMaterial, 1);
-			}
-
-			Shape->setQueryFilterData(Filters.QueryComplexFilter);
-
-			if (SceneType == PST_Sync)
-			{
-				Shape->setFlags(ShapeData.SyncShapeFlags | ShapeData.ComplexShapeFlags);
-			}
-			else
-			{
-				Shape->setFlags(ShapeData.AsyncShapeFlags | ShapeData.ComplexShapeFlags);
-			}
+			RigidBody->setRigidBodyFlags(ShapeData.SyncBodyFlags);
 		}
-		// Simple shape, 
-		else
-		{
-			Shape->setMaterials(&SimpleMaterial, 1);
-			Shape->setQueryFilterData(Filters.QuerySimpleFilter);
-
-			if (SceneType == PST_Sync)
-			{
-				Shape->setFlags(ShapeData.SyncShapeFlags | ShapeData.SimpleShapeFlags);
-			}
-			else
-			{
-				Shape->setFlags(ShapeData.AsyncShapeFlags | ShapeData.SimpleShapeFlags);
-			}
-		}
-		Shape->setSimulationFilterData(Filters.SimFilter);
-
-		if (OwningInstance)
-		{
-			if (PxRigidBody* RigidBody = OwningInstance->GetPxRigidBody_AssumesLocked())
-			{
-				RigidBody->setRigidBodyFlags(ShapeData.SyncBodyFlags);
-			}
-		}
-	}
-
-	if (NewShapes)
-	{
-		(*NewShapes) = MoveTemp(Shapes);
 	}
 }
 

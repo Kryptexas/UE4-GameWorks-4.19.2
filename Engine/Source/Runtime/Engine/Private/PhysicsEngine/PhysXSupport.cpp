@@ -397,10 +397,11 @@ PxFilterFlags PhysXSimFilterShader(	PxFilterObjectAttributes attributes0, PxFilt
 		pairFlags |= (PxPairFlag::eNOTIFY_TOUCH_FOUND | PxPairFlag::eNOTIFY_TOUCH_PERSISTS | PxPairFlag::eNOTIFY_CONTACT_POINTS );
 	}
 
-	if ((FilterFlags0&EPDF_ModifyContacts) || (FilterFlags1&EPDF_ModifyContacts))
+	//TODO: have to temporarily turn this off while getting a fix for shared shape crash
+	/*if ((FilterFlags0&EPDF_ModifyContacts) || (FilterFlags1&EPDF_ModifyContacts))
 	{
 		pairFlags |= (PxPairFlag::eMODIFY_CONTACTS);
-	}
+	}*/	
 
 	return PxFilterFlags();
 }
