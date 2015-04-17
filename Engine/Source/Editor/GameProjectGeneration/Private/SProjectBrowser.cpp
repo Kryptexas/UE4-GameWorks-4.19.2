@@ -964,6 +964,17 @@ bool SProjectBrowser::OpenProject( const FString& InProjectFile )
 	// Get the identifier for the project
 	FString ProjectIdentifier;
 	FDesktopPlatformModule::Get()->GetEngineIdentifierForProject(ProjectFile, ProjectIdentifier);
+
+	// Abort straight away if the project engine version is newer than the current engine version
+	FEngineVersion EngineVersion;
+	if (FDesktopPlatformModule::Get()->TryParseStockEngineVersion(ProjectIdentifier, EngineVersion))
+	{
+		if (FEngineVersion::GetNewest(EngineVersion, GEngineVersion, nullptr) == EVersionComparison::First)
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("CantLoadNewerProject", "Unable to open this project, as it was made with a newer version of the Unreal Engine."));
+			return false;
+		}
+	}
 	
 	// Get the identifier for the current engine
 	FString CurrentIdentifier = FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier();

@@ -198,6 +198,26 @@ bool FDesktopPlatformBase::IsStockEngineRelease(const FString &Identifier)
 	return !FGuid::Parse(Identifier, Guid);
 }
 
+bool FDesktopPlatformBase::TryParseStockEngineVersion(const FString& Identifier, FEngineVersion& OutVersion)
+{
+	TCHAR* End;
+
+	uint64 Major = FCString::Strtoui64(*Identifier, &End, 10);
+	if (Major > MAX_uint16 || *(End++) != '.')
+	{
+		return false;
+	}
+
+	uint64 Minor = FCString::Strtoui64(End, &End, 10);
+	if (Minor > MAX_uint16 || *End != 0)
+	{
+		return false;
+	}
+
+	OutVersion = FEngineVersion(Major, Minor, 0, 0, TEXT(""));
+	return true;
+}
+
 bool FDesktopPlatformBase::IsSourceDistribution(const FString &EngineRootDir)
 {
 	// Check for the existence of a SourceBuild.txt file
