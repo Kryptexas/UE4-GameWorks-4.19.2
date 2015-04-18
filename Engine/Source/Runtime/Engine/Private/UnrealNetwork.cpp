@@ -14,9 +14,10 @@ enum ENetworkVersionHistory
 	HISTORY_INTERNAL_ACK		= 3,				// We no longer save packet/channel sequence in stream. We can derive this for 100% reliable connections.
 	HISTORY_REPLAY_CHECKSUMS	= 4,				// We now save replay checksums into stream for backwards compatibility checks
 	HISTORY_REPLAY_CHECKSUMS2	= 5,				// Saving package and network checksum to packagemap, no longer save checksum in BeginContentBlockHeader
+	HISTORY_REPLAY_CHECKSUMS3	= 6,				// Various network checksum fixes
 };
 
-const uint32 FNetworkVersion::InternalProtocolVersion = HISTORY_REPLAY_CHECKSUMS2;
+const uint32 FNetworkVersion::InternalProtocolVersion = HISTORY_REPLAY_CHECKSUMS3;
 
 uint32 FNetworkVersion::GetLocalNetworkVersion()
 {
@@ -41,7 +42,7 @@ uint32 FNetworkVersion::GetLocalNetworkVersion()
 	// Hash with internal protocol version
 	uint32 LocalNetworkVersion = FCrc::MemCrc32( &InternalProtocolVersion, sizeof( InternalProtocolVersion ), VersionHash );
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if 0//!(UE_BUILD_SHIPPING || UE_BUILD_TEST)	// DISABLED FOR NOW, MESSES UP COPIED BUILDS
 	if ( !GEngineVersion.IsPromotedBuild() )
 	{
 		// Further hash with machine id if this is a non promoted build

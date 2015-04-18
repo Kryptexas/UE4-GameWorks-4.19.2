@@ -2149,6 +2149,12 @@ int32 FRepLayout::InitFromProperty_r( UProperty * Property, int32 Offset, int32 
 		{
 			FORCEINLINE bool operator()( UProperty & A, UProperty & B ) const
 			{
+				// Ensure stable sort
+				if ( A.GetOffset_ForGC() == B.GetOffset_ForGC() )
+				{
+					return A.GetName() < B.GetName();
+				}
+
 				return A.GetOffset_ForGC() < B.GetOffset_ForGC();
 			}
 		};
