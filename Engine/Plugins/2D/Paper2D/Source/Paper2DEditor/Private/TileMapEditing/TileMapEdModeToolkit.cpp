@@ -3,7 +3,7 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "EdModeTileMap.h"
 #include "TileMapEdModeToolkit.h"
-#include "../TileSetEditor.h"
+#include "TileSetEditor/TileSetSelectorViewport.h"
 #include "SContentReference.h"
 #include "TileMapEditorCommands.h"
 #include "Engine/Selection.h"
