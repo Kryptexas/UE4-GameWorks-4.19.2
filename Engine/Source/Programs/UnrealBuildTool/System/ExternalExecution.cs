@@ -134,7 +134,7 @@ namespace UnrealBuildTool
 				PrivateHeaders           = Info.PrivateUObjectHeaders      .Select((Header) => Header.AbsolutePath).ToList(),
 				PCH                      = Info.PCH,
 				GeneratedCPPFilenameBase = Info.GeneratedCPPFilenameBase,
-				SaveExportedHeaders      = true, // Rocket just regenerates all headers to the project directory now
+				SaveExportedHeaders      = !UnrealBuildTool.IsEngineInstalled() || !Utils.IsFileUnderDirectory(Info.ModuleDirectory, BuildConfiguration.RelativeEnginePath),
 				UHTGeneratedCodeVersion = Info.GeneratedCodeVersion,
 			}).ToList();
 		}
