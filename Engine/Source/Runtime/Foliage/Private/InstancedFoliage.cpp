@@ -1746,10 +1746,13 @@ void AInstancedFoliageActor::SelectInstance(UInstancedStaticMeshComponent* InCom
 		{
 			FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 
-			check(MeshInfo.Component);
-			MeshInfo.Component->ClearInstanceSelection();
-			MeshInfo.Component->MarkRenderStateDirty();
-			MeshInfo.SelectedIndices.Empty();
+			if (MeshInfo.Instances.Num() > 0)
+			{
+				check(MeshInfo.Component);
+				MeshInfo.Component->ClearInstanceSelection();
+				MeshInfo.Component->MarkRenderStateDirty();
+				MeshInfo.SelectedIndices.Empty();
+			}	
 		}
 	}
 
