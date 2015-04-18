@@ -7,6 +7,7 @@
 #include "AssetToolsModule.h"
 #include "ContentBrowserModule.h"
 #include "PaperFlipbookHelpers.h"
+#include "PaperFlipbookFactory.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

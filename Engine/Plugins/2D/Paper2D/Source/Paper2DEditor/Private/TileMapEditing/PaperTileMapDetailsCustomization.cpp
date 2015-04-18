@@ -7,6 +7,7 @@
 #include "EdModeTileMap.h"
 #include "PropertyEditing.h"
 #include "AssetToolsModule.h"
+#include "PaperTileMapPromotionFactory.h"
 
 #include "STileLayerList.h"
 #include "ScopedTransaction.h"

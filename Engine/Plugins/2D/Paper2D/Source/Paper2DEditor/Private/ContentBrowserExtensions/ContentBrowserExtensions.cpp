@@ -3,6 +3,8 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "ContentBrowserModule.h"
 #include "ContentBrowserExtensions.h"
+#include "PaperSpriteFactory.h"
+#include "PaperTileSetFactory.h"
 
 #include "ExtractSprites/SPaperExtractSpritesDialog.h"
 

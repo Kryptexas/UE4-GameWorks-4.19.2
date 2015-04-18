@@ -23,6 +23,8 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 
+#include "PaperSpriteFactory.h"
+
 #define LOCTEXT_NAMESPACE "SpriteEditor"
 
 //////////////////////////////////////////////////////////////////////////

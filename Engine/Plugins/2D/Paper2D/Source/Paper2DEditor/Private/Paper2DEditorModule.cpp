@@ -15,6 +15,7 @@
 // Sprite support
 #include "SpriteAssetTypeActions.h"
 #include "PaperSpriteAssetBroker.h"
+#include "PaperSpriteThumbnailRenderer.h"
 #include "SpriteEditor/SpriteDetailsCustomization.h"
 #include "SpriteEditor/SpriteComponentDetailsCustomization.h"
 #include "SpriteEditor/SpritePolygonCollectionCustomization.h"
@@ -24,10 +25,12 @@
 // Flipbook support
 #include "FlipbookAssetTypeActions.h"
 #include "PaperFlipbookAssetBroker.h"
+#include "PaperFlipbookThumbnailRenderer.h"
 #include "FlipbookEditor/FlipbookComponentDetailsCustomization.h"
 
 // Tile set support
 #include "TileSetAssetTypeActions.h"
+#include "PaperTileSetThumbnailRenderer.h"
 
 // Tile map support
 #include "TileMapEditing/TileMapAssetTypeActions.h"

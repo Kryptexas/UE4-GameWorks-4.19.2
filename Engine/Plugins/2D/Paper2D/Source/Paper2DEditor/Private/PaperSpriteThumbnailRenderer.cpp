@@ -2,6 +2,7 @@
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "CanvasTypes.h"
+#include "PaperSpriteThumbnailRenderer.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UPaperSpriteThumbnailRenderer
