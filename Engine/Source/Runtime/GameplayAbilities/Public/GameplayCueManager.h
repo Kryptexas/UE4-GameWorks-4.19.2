@@ -2,6 +2,8 @@
 
 #pragma once
 
+class UGameplayCueSet;
+
 #include "GameplayTags.h"
 #include "GameplayEffect.h"
 #include "GameplayCueNotify_Actor.h"

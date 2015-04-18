@@ -2,7 +2,8 @@
 
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayCueSet.h"
-
+#include "GameplayCueManager.h"
+#include "GameplayCueNotify_Static.h"
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
