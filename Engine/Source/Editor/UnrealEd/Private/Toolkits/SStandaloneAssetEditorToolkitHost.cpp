@@ -322,6 +322,7 @@ FReply SStandaloneAssetEditorToolkitHost::OnKeyDown( const FGeometry& MyGeometry
 			}
 		}
 
+		//@TODO: This seems wrong (should prioritize it but not totally block it)
 		if (ActiveToolkit.IsValid())
 		{
 			// A toolkit tab is active, so direct all command processing to it
