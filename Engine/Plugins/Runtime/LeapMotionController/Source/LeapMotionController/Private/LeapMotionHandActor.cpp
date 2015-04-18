@@ -29,7 +29,12 @@ ALeapMotionBoneActor* ALeapMotionHandActor::GetBoneActor(ELeapBone LeapBone) con
 {
 	if (BoneActors.Num())
 	{
-		return BoneActors[(int)LeapBone - 1 + bShowArm];
+		bool HasArm = (BoneActors.Num() == int(ELeapBone::Finger4Tip) + 1);
+		int Index = (int)LeapBone - 1 + HasArm;
+		if (0 <= Index && Index < BoneActors.Num())
+		{
+			return BoneActors[Index];
+		}
 	}
 	return nullptr;
 }
