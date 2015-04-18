@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "PaperJsonImporterPrivatePCH.h"
+#include "PaperSpriteSheetImporterPrivatePCH.h"
 #include "Paper2DClasses.h"
 #include "Json.h"
 #include "PaperJSONHelpers.h"
@@ -26,13 +26,13 @@ TSharedPtr<FJsonObject> ParseJSON(const FString& FileContents, const FString& Na
 		}
 		else
 		{
-			UE_LOG(LogPaperJsonImporter, Warning, TEXT("Failed to parse sprite descriptor file '%s'.  Error: '%s'"), *NameForErrors, *Reader->GetErrorMessage());
+			UE_LOG(LogPaperSpriteSheetImporter, Warning, TEXT("Failed to parse sprite descriptor file '%s'.  Error: '%s'"), *NameForErrors, *Reader->GetErrorMessage());
 			return nullptr;
 		}
 	}
 	else
 	{
-		UE_LOG(LogPaperJsonImporter, Warning, TEXT("Sprite descriptor file '%s' was empty.  This sprite cannot be imported."), *NameForErrors);
+		UE_LOG(LogPaperSpriteSheetImporter, Warning, TEXT("Sprite descriptor file '%s' was empty.  This sprite cannot be imported."), *NameForErrors);
 		return nullptr;
 	}
 }
@@ -49,7 +49,7 @@ TSharedPtr<FJsonObject> ParseJSON(FArchive* const Stream, const FString& NameFor
 	}
 	else
 	{
-		UE_LOG(LogPaperJsonImporter, Warning, TEXT("Failed to parse sprite descriptor file '%s'.  Error: '%s'"), *NameForErrors, *Reader->GetErrorMessage());
+		UE_LOG(LogPaperSpriteSheetImporter, Warning, TEXT("Failed to parse sprite descriptor file '%s'.  Error: '%s'"), *NameForErrors, *Reader->GetErrorMessage());
 		return nullptr;
 	}
 }
@@ -77,29 +77,29 @@ bool ParseMetaBlock(const FString& NameForErrors, TSharedPtr<FJsonObject>& Sprit
 		if (AppName.StartsWith(FlashPrefix) || AppName.StartsWith(TexturePackerPrefix))
 		{
 			// Cool, we (mostly) know how to handle these sorts of files!
-			UE_LOG(LogPaperJsonImporter, Log, TEXT("Parsing sprite sheet exported from '%s'"), *AppName);
+			UE_LOG(LogPaperSpriteSheetImporter, Log, TEXT("Parsing sprite sheet exported from '%s'"), *AppName);
 		}
 		else if (!AppName.IsEmpty())
 		{
 			// It's got an app tag inside a meta block, so we'll take a crack at it
-			UE_LOG(LogPaperJsonImporter, Warning, TEXT("Unexpected 'app' named '%s' while parsing sprite descriptor file '%s'.  Parsing will continue but the format may not be fully supported"), *AppName, *NameForErrors);
+			UE_LOG(LogPaperSpriteSheetImporter, Warning, TEXT("Unexpected 'app' named '%s' while parsing sprite descriptor file '%s'.  Parsing will continue but the format may not be fully supported"), *AppName, *NameForErrors);
 		}
 		else
 		{
 			// Probably not a sprite sheet
-			UE_LOG(LogPaperJsonImporter, Warning, TEXT("Failed to parse sprite descriptor file '%s'.  Expected 'app' key indicating the exporter (might not be a sprite sheet)"), *NameForErrors);
+			UE_LOG(LogPaperSpriteSheetImporter, Warning, TEXT("Failed to parse sprite descriptor file '%s'.  Expected 'app' key indicating the exporter (might not be a sprite sheet)"), *NameForErrors);
 			bLoadedSuccessfully = false;
 		}
 
 		if (OutImage.IsEmpty())
 		{
-			UE_LOG(LogPaperJsonImporter, Warning, TEXT("Failed to parse sprite descriptor file '%s'.  Expected valid 'image' tag"), *NameForErrors);
+			UE_LOG(LogPaperSpriteSheetImporter, Warning, TEXT("Failed to parse sprite descriptor file '%s'.  Expected valid 'image' tag"), *NameForErrors);
 			bLoadedSuccessfully = false;
 		}
 	}
 	else
 	{
-		UE_LOG(LogPaperJsonImporter, Warning, TEXT("Failed to parse sprite descriptor file '%s'.  Missing meta block"), *NameForErrors);
+		UE_LOG(LogPaperSpriteSheetImporter, Warning, TEXT("Failed to parse sprite descriptor file '%s'.  Missing meta block"), *NameForErrors);
 		bLoadedSuccessfully = false;
 	}
 	return bLoadedSuccessfully;
@@ -200,7 +200,7 @@ static bool ParseFramesFromSpriteHash(TSharedPtr<FJsonObject> ObjectBlock, TArra
 		}
 		else
 		{
-			UE_LOG(LogPaperJsonImporter, Warning, TEXT("Frame %s is in an unexpected format"), *Frame.FrameName.ToString());
+			UE_LOG(LogPaperSpriteSheetImporter, Warning, TEXT("Frame %s is in an unexpected format"), *Frame.FrameName.ToString());
 			bLoadedSuccessfully = false;
 		}
 
@@ -260,7 +260,7 @@ static bool ParseFramesFromSpriteArray(const TArray<TSharedPtr<FJsonValue>>& Arr
 		}
 		else
 		{
-			UE_LOG(LogPaperJsonImporter, Warning, TEXT("Frame %s is in an unexpected format"), *Frame.FrameName.ToString());
+			UE_LOG(LogPaperSpriteSheetImporter, Warning, TEXT("Frame %s is in an unexpected format"), *Frame.FrameName.ToString());
 			bLoadedSuccessfully = false;
 		}
 	}
@@ -368,14 +368,14 @@ bool FPaperJsonSpriteSheetImporter::Import(TSharedPtr<FJsonObject> SpriteDescrip
 			}
 			else
 			{
-				UE_LOG(LogPaperJsonImporter, Warning, TEXT("Failed to parse sprite descriptor file '%s'.  Missing frames block"), *NameForErrors);
+				UE_LOG(LogPaperSpriteSheetImporter, Warning, TEXT("Failed to parse sprite descriptor file '%s'.  Missing frames block"), *NameForErrors);
 				bLoadedSuccessfully = false;
 			}
 		}
 
 		if (bLoadedSuccessfully && Frames.Num() == 0)
 		{
-			UE_LOG(LogPaperJsonImporter, Warning, TEXT("Failed to parse sprite descriptor file '%s'.  No frames loaded"), *NameForErrors);
+			UE_LOG(LogPaperSpriteSheetImporter, Warning, TEXT("Failed to parse sprite descriptor file '%s'.  No frames loaded"), *NameForErrors);
 			bLoadedSuccessfully = false;
 		}
 	}
@@ -436,7 +436,7 @@ bool FPaperJsonSpriteSheetImporter::ImportTextures(const FString& LongPackagePat
 
 		if (ImportedTexture == nullptr)
 		{
-			UE_LOG(LogPaperJsonImporter, Warning, TEXT("Failed to import sprite sheet image '%s'."), *SourceSheetImageFilename);
+			UE_LOG(LogPaperSpriteSheetImporter, Warning, TEXT("Failed to import sprite sheet image '%s'."), *SourceSheetImageFilename);
 			bLoadedSuccessfully = false;
 		}
 		else

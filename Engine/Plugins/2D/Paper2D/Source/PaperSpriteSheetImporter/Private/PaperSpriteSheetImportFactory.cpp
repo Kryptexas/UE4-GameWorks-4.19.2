@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "PaperJsonImporterPrivatePCH.h"
+#include "PaperSpriteSheetImporterPrivatePCH.h"
 #include "Paper2DClasses.h"
 #include "Json.h"
 #include "PaperJSONHelpers.h"
@@ -9,12 +9,13 @@
 #include "PackageTools.h"
 #include "PaperSpriteSheet.h"
 #include "PaperJsonSpriteSheetImporter.h"
-#include "ReimportPaperJsonImporterFactory.h"
+#include "PaperSpriteSheetImportFactory.h"
+#include "PaperSpriteSheetReimportFactory.h"
 
 //////////////////////////////////////////////////////////////////////////
-// UPaperJsonImporterFactory
+// UPaperSpriteSheetImportFactory
 
-UPaperJsonImporterFactory::UPaperJsonImporterFactory(const FObjectInitializer& ObjectInitializer)
+UPaperSpriteSheetImportFactory::UPaperSpriteSheetImportFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bCreateNew = false;
@@ -28,12 +29,12 @@ UPaperJsonImporterFactory::UPaperJsonImporterFactory(const FObjectInitializer& O
 	Formats.Add(TEXT("paper2dsprites;Spritesheet JSON file"));
 }
 
-FText UPaperJsonImporterFactory::GetToolTip() const
+FText UPaperSpriteSheetImportFactory::GetToolTip() const
 {
-	return NSLOCTEXT("Paper2D", "PaperJsonImporterFactoryDescription", "Sprite sheets exported from Adobe Flash");
+	return NSLOCTEXT("Paper2D", "PaperJsonImporterFactoryDescription", "Sprite sheets exported from Adobe Flash or Texture Packer");
 }
 
-UObject* UPaperJsonImporterFactory::FactoryCreateText(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const TCHAR*& Buffer, const TCHAR* BufferEnd, FFeedbackContext* Warn)
+UObject* UPaperSpriteSheetImportFactory::FactoryCreateText(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const TCHAR*& Buffer, const TCHAR* BufferEnd, FFeedbackContext* Warn)
 {
 	Flags |= RF_Transactional;
 
@@ -58,9 +59,8 @@ UObject* UPaperJsonImporterFactory::FactoryCreateText(UClass* InClass, UObject* 
 	FPaperJsonSpriteSheetImporter Importer;
 
 	// Are we reimporting?
-	if (IsA(UReimportPaperJsonImporterFactory::StaticClass()))
+	if (UPaperSpriteSheetReimportFactory* CurrentReimportFactory = Cast<UPaperSpriteSheetReimportFactory>(this))
 	{
-		UReimportPaperJsonImporterFactory* CurrentReimportFactory = Cast<UReimportPaperJsonImporterFactory>(this);
 		Importer.SetReimportData(CurrentReimportFactory->ExistingTextureName, CurrentReimportFactory->ExistingTexture, CurrentReimportFactory->ExistingSpriteNames, CurrentReimportFactory->ExistingSprites);
 	}
 

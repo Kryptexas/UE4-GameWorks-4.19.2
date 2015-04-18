@@ -23,7 +23,7 @@
 			"Type" : "Editor"
 		},
 		{
-			"Name" : "PaperJsonImporter",
+			"Name" : "PaperSpriteSheetImporter",
 			"Type" : "Editor"
 		},
 		{

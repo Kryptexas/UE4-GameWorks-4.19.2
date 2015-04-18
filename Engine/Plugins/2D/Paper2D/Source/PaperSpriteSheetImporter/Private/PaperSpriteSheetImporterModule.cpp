@@ -1,15 +1,14 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "PaperJsonImporterPrivatePCH.h"
+#include "PaperSpriteSheetImporterPrivatePCH.h"
 
 #include "AssetToolsModule.h"
 #include "PaperSpriteSheetAssetTypeActions.h"
 
-
 //////////////////////////////////////////////////////////////////////////
-// FPaperJsonImporterModule
+// FPaperSpriteSheetImporterModule
 
-class FPaperJsonImporterModule : public FDefaultModuleImpl
+class FPaperSpriteSheetImporterModule : public FDefaultModuleImpl
 {
 public:
 	virtual void StartupModule() override
@@ -39,5 +38,5 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
-IMPLEMENT_MODULE(FPaperJsonImporterModule, PaperJsonImporter);
-DEFINE_LOG_CATEGORY(LogPaperJsonImporter);
+IMPLEMENT_MODULE(FPaperSpriteSheetImporterModule, PaperSpriteSheetImporter);
+DEFINE_LOG_CATEGORY(LogPaperSpriteSheetImporter);

@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include "PaperJsonImporterFactory.generated.h"
+#include "PaperSpriteSheetImportFactory.generated.h"
 
-// Imports a paper animated sprite (and associated paper sprites and textures) from an Adobe Flash CS6 exported JSON file
+// Imports a sprite sheet (and associated paper sprites and textures) from a JSON file exported from Adobe Flash CS6, Texture Packer, or other compatible tool
 UCLASS()
-class UPaperJsonImporterFactory : public UFactory
+class UPaperSpriteSheetImportFactory : public UFactory
 {
 	GENERATED_UCLASS_BODY()
 

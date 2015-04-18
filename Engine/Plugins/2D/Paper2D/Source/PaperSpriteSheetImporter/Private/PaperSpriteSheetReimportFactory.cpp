@@ -1,13 +1,15 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "PaperJsonImporterPrivatePCH.h"
-#include "ReimportPaperJsonImporterFactory.h"
+#include "PaperSpriteSheetImporterPrivatePCH.h"
+#include "PaperSpriteSheetReimportFactory.h"
 #include "PaperSpriteSheet.h"
 
 #define LOCTEXT_NAMESPACE "PaperJsonImporter"
 
+//////////////////////////////////////////////////////////////////////////
+// UPaperSpriteSheetReimportFactory
 
-UReimportPaperJsonImporterFactory::UReimportPaperJsonImporterFactory(const FObjectInitializer& ObjectInitializer)
+UPaperSpriteSheetReimportFactory::UPaperSpriteSheetReimportFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	SupportedClass = UPaperSpriteSheet::StaticClass();
@@ -16,7 +18,7 @@ UReimportPaperJsonImporterFactory::UReimportPaperJsonImporterFactory(const FObje
 	bText = true;
 }
 
-bool UReimportPaperJsonImporterFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)
+bool UPaperSpriteSheetReimportFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)
 {
 	UPaperSpriteSheet* SpriteSheet = Cast<UPaperSpriteSheet>(Obj);
 	if (SpriteSheet && SpriteSheet->AssetImportData)
@@ -27,7 +29,7 @@ bool UReimportPaperJsonImporterFactory::CanReimport(UObject* Obj, TArray<FString
 	return false;
 }
 
-void UReimportPaperJsonImporterFactory::SetReimportPaths(UObject* Obj, const TArray<FString>& NewReimportPaths)
+void UPaperSpriteSheetReimportFactory::SetReimportPaths(UObject* Obj, const TArray<FString>& NewReimportPaths)
 {
 	UPaperSpriteSheet* SpriteSheet = Cast<UPaperSpriteSheet>(Obj);
 	if (SpriteSheet && ensure(NewReimportPaths.Num() == 1))
@@ -36,7 +38,7 @@ void UReimportPaperJsonImporterFactory::SetReimportPaths(UObject* Obj, const TAr
 	}
 }
 
-EReimportResult::Type UReimportPaperJsonImporterFactory::Reimport(UObject* Obj)
+EReimportResult::Type UPaperSpriteSheetReimportFactory::Reimport(UObject* Obj)
 {
 	UPaperSpriteSheet* SpriteSheet = Cast<UPaperSpriteSheet>(Obj);
 	if (!SpriteSheet)
@@ -59,7 +61,7 @@ EReimportResult::Type UReimportPaperJsonImporterFactory::Reimport(UObject* Obj)
 	EReimportResult::Type Result = EReimportResult::Failed;
 	if (UFactory::StaticImportObject(SpriteSheet->GetClass(), SpriteSheet->GetOuter(), *SpriteSheet->GetName(), RF_Public | RF_Standalone, *Filename, nullptr, this))
 	{
-		UE_LOG(LogPaperJsonImporter, Log, TEXT("Imported successfully"));
+		UE_LOG(LogPaperSpriteSheetImporter, Log, TEXT("Imported successfully"));
 		// Try to find the outer package so we can dirty it up
 		if (SpriteSheet->GetOuter())
 		{
@@ -73,14 +75,14 @@ EReimportResult::Type UReimportPaperJsonImporterFactory::Reimport(UObject* Obj)
 	}
 	else
 	{
-		UE_LOG(LogPaperJsonImporter, Warning, TEXT("-- import failed"));
+		UE_LOG(LogPaperSpriteSheetImporter, Warning, TEXT("-- import failed"));
 		Result = EReimportResult::Failed;
 	}
 
 	return Result;
 }
 
-int32 UReimportPaperJsonImporterFactory::GetPriority() const
+int32 UPaperSpriteSheetReimportFactory::GetPriority() const
 {
 	return ImportPriority;
 }

@@ -1,11 +1,13 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "ReimportPaperJsonImporterFactory.generated.h"
+
+#include "PaperSpriteSheetImportFactory.h"
+#include "PaperSpriteSheetReimportFactory.generated.h"
 
 // Imports a paper animated sprite (and associated paper sprites and textures) from an Adobe Flash CS6 exported JSON file
 UCLASS()
-class UReimportPaperJsonImporterFactory : public UPaperJsonImporterFactory, public FReimportHandler
+class UPaperSpriteSheetReimportFactory : public UPaperSpriteSheetImportFactory, public FReimportHandler
 {
 	GENERATED_UCLASS_BODY()
 
