@@ -6,11 +6,6 @@
 #include "OnlineChatInterface.h"
 
 /**
- * Id of a party instance
- */
-typedef FUniqueNetId FOnlinePartyId;
-
-/**
  * Key value data that can be sent to party members
  */
 typedef FOnlineKeyValuePairs<FString, FVariantData> FOnlinePartyAttrs;
@@ -102,10 +97,19 @@ namespace EPartyPermissions
  */
 struct FPartyConfiguration
 {
+	FPartyConfiguration()
+		: JoinPerms(EPartyPermissions::FriendsOnly)
+		, MaxMembers(0)
+	{}
+
 	/** Permission for configuring party */
 	EPartyPermissions::Type JoinPerms;
 	/** Maximum active members allowed */
 	int32 MaxMembers;
+	/** PartyId to use - largely for debug purposes*/
+	FString PartyId;
+	/** Password to use */
+	FString Password;
 };
 
 namespace EPartyState
@@ -313,7 +317,7 @@ public:
 	 *
 	 * @return true if task was started
 	 */
-	virtual bool CreateParty(const FUniqueNetId& LocalUserId, const FPartyConfiguration& PartyConfig, const FOnCreatePartyComplete& Delegate = FOnCreatePartyComplete(), const FString& UserRoomId = TEXT("")) = 0;
+	virtual bool CreateParty(const FUniqueNetId& LocalUserId, const FPartyConfiguration& PartyConfig, const FOnCreatePartyComplete& Delegate = FOnCreatePartyComplete()) = 0;
 
 	/**
 	 * Update an existing party with new configuration

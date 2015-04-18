@@ -1330,3 +1330,7 @@ struct FOnlineNotification
 */
 typedef FString FNotificationTransportId;
 
+/**
+* Id of a party instance
+*/
+typedef FUniqueNetId FOnlinePartyId;
