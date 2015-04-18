@@ -1420,27 +1420,30 @@ void FOnlineSessionSteam::TickPendingInvites(float DeltaTime)
 {
 	if (PendingInvite.PendingInviteType != ESteamSession::None)
 	{
-		if (OnSessionUserInviteAcceptedDelegates.IsBound())
+		for (int32 UserIndex = 0; UserIndex < MAX_LOCAL_PLAYERS; UserIndex++)
 		{
-			FOnlineAsyncItem* NewEvent = NULL;
-			FUniqueNetIdSteam FriendId(0);
-			if (PendingInvite.PendingInviteType == ESteamSession::LobbySession)
+			if (OnSessionInviteAcceptedDelegates[UserIndex].IsBound())
 			{
-				NewEvent = new FOnlineAsyncEventSteamLobbyInviteAccepted(SteamSubsystem, FriendId, PendingInvite.LobbyId);
-			}
-			else
-			{
-				NewEvent = new FOnlineAsyncEventSteamInviteAccepted(SteamSubsystem, FriendId, PendingInvite.ServerIp);
-			}
+				FOnlineAsyncItem* NewEvent = NULL;
+				FUniqueNetIdSteam FriendId(0);
+				if (PendingInvite.PendingInviteType == ESteamSession::LobbySession)
+				{
+					NewEvent = new FOnlineAsyncEventSteamLobbyInviteAccepted(SteamSubsystem, FriendId, PendingInvite.LobbyId);
+				}
+				else
+				{
+					NewEvent = new FOnlineAsyncEventSteamInviteAccepted(SteamSubsystem, FriendId, PendingInvite.ServerIp);
+				}
 
-			if (NewEvent)
-			{
-				UE_LOG_ONLINE(Verbose, TEXT("%s"), *NewEvent->ToString());
-				SteamSubsystem->QueueAsyncOutgoingItem(NewEvent);
-			}
+				if (NewEvent)
+				{
+					UE_LOG_ONLINE(Verbose, TEXT("%s"), *NewEvent->ToString());
+					SteamSubsystem->QueueAsyncOutgoingItem(NewEvent);
+				}
 
-			// Clear the invite
-			PendingInvite.PendingInviteType = ESteamSession::None;
+				// Clear the invite
+				PendingInvite.PendingInviteType = ESteamSession::None;
+			}
 		}
 	}
 }

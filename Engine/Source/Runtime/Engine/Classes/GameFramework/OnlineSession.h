@@ -7,8 +7,6 @@
 #pragma once
 #include "OnlineSession.generated.h"
 
-class FOnlineSessionSearchResult;
-
 UCLASS(config=Game)
 class ENGINE_API UOnlineSession : public UObject
 {
@@ -30,9 +28,6 @@ public:
 
 	/** End the online session specified */
 	virtual void EndOnlineSession(FName SessionName) {};
-
-	/** Called when a user accepts an invite */
-	virtual void OnSessionUserInviteAccepted(const bool bWasSuccess, const int32 ControllerId, TSharedPtr< FUniqueNetId > UserId, const FOnlineSessionSearchResult & InviteResult) {};
 };
 
 

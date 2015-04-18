@@ -5,6 +5,7 @@
 #include "EngineBaseTypes.h"
 #include "GameInstance.generated.h"
 
+
 // 
 // 	EWelcomeScreen, 	//initial screen.  Used for platforms where we may not have a signed in user yet.
 // 	EMessageScreen, 	//message screen.  Used to display a message - EG unable to connect to game.
@@ -20,6 +21,7 @@ namespace GameInstanceState
 }
 
 class FOnlineSessionSearchResult;
+
 
 /**
  * GameInstance: high-level manager object for an instance of the running game.
@@ -42,10 +44,6 @@ protected:
 
 	UPROPERTY()
 	TArray<ULocalPlayer*> LocalPlayers;		// List of locally participating players in this game instance
-	
-	// Delegate handle that stores delegate for when an invite is accepted by a user
-	FDelegateHandle OnSessionUserInviteAcceptedDelegateHandle;
-	
 public:
 
 	FString PIEMapName;
@@ -159,11 +157,4 @@ public:
 	virtual void			HandleDemoPlaybackFailure( EDemoPlayFailure::Type FailureType, const FString& ErrorString = TEXT("") ) { }
 
 	static void				AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-
-    /** Delegate that is called when a user has accepted an invite. */
-	void HandleSessionUserInviteAccepted(const bool bWasSuccess, const int32 ControllerId, TSharedPtr< FUniqueNetId > UserId, const FOnlineSessionSearchResult & InviteResult);
-	
-	/** Overridable implementation of HandleSessionUserInviteAccepted, which does nothing but call this function */
-	virtual void OnSessionUserInviteAccepted(const bool bWasSuccess, const int32 ControllerId, TSharedPtr< FUniqueNetId > UserId, const FOnlineSessionSearchResult & InviteResult);
-
 };

@@ -1140,28 +1140,12 @@ void FOnlineAsyncTaskSteamFindLobby::TriggerDelegates()
 {
 	if (bWasSuccessful && SearchSettings->SearchResults.Num() > 0)
 	{
-		if (bIsUsingNetIdDelegate)
-		{
-			OnFindLobbyCompleteWithNetIdDelegate.Broadcast(bWasSuccessful, LocalUserNum, MakeShareable<FUniqueNetId>(new FUniqueNetIdSteam(SteamUser()->GetSteamID())), SearchSettings->SearchResults[0]);
-			
-		}
-		else
-		{
-			OnFindLobbyCompleteDelegates.Broadcast(LocalUserNum, bWasSuccessful, SearchSettings->SearchResults[0]);
-		}
+		OnFindLobbyCompleteDelegates.Broadcast(LocalUserNum, bWasSuccessful, SearchSettings->SearchResults[0]);
 	}
 	else
 	{
 		FOnlineSessionSearchResult EmptyResult;
-		if (bIsUsingNetIdDelegate)
-		{
-			OnFindLobbyCompleteWithNetIdDelegate.Broadcast(bWasSuccessful, LocalUserNum, MakeShareable<FUniqueNetId>(new FUniqueNetIdSteam(SteamUser()->GetSteamID())), EmptyResult);
-		}
-		else
-		{
-			OnFindLobbyCompleteDelegates.Broadcast(LocalUserNum, bWasSuccessful, EmptyResult);
-		}
-
+		OnFindLobbyCompleteDelegates.Broadcast(LocalUserNum, bWasSuccessful, EmptyResult);
 	}
 }
 
@@ -1188,7 +1172,7 @@ void FOnlineAsyncEventSteamLobbyInviteAccepted::Finalize()
 		SessionInt->CurrentSessionSearch = MakeShareable(new FOnlineSessionSearch());
 		SessionInt->CurrentSessionSearch->SearchState = EOnlineAsyncTaskState::InProgress;
 
-		FOnlineAsyncTaskSteamFindLobby* NewTask = new FOnlineAsyncTaskSteamFindLobby(Subsystem, LobbyId, SessionInt->CurrentSessionSearch, LocalUserNum, SessionInt->OnSessionUserInviteAcceptedDelegates);
+		FOnlineAsyncTaskSteamFindLobby* NewTask = new FOnlineAsyncTaskSteamFindLobby(Subsystem, LobbyId, SessionInt->CurrentSessionSearch, LocalUserNum, SessionInt->OnSessionInviteAcceptedDelegates[LocalUserNum]);
 		Subsystem->QueueAsyncTask(NewTask);
 	}
 	else

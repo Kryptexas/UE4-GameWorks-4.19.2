@@ -37,7 +37,7 @@
 	IOnlineFriendsPtr Friends;
 
 	/** Delegate for handling an accepted invite */
-	FOnSessionUserInviteAcceptedDelegate OnSessionUserInviteAcceptedDelegate;
+	FOnSessionInviteAcceptedDelegate OnSessionInviteAcceptedDelegate;
 
 	/** Delegate for creating a new session */
 	FOnCreateSessionCompleteDelegate OnCreateSessionCompleteDelegate;
@@ -69,7 +69,7 @@
 
 	/** Handles for the above delegates */
 	FDelegateHandle OnReadFriendsListCompleteDelegateHandle;
-	FDelegateHandle OnSessionUserInviteAcceptedDelegateHandle;
+	FDelegateHandle OnSessionInviteAcceptedDelegateHandle;
 	FDelegateHandle OnCreateSessionCompleteDelegateHandle;
 	FDelegateHandle OnStartSessionCompleteDelegateHandle;
 	FDelegateHandle OnEndSessionCompleteDelegateHandle;
@@ -120,7 +120,7 @@
 	 * @param SessionName name of session to join
 	 * @param SearchResult the session to join
 	 */
-	void JoinSession(int32 ControllerId, FName SessionName, const FOnlineSessionSearchResult& SearchResult);
+	void JoinSession(int32 LocalUserNum, FName SessionName, const FOnlineSessionSearchResult& SearchResult);
 
 	/**
 	 * Transition from ending a session to destroying a session
@@ -151,12 +151,11 @@
     /**
      * Delegate fired when an invite request has been accepted (via external client)
      *
-	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
-	 * @param ControllerId the controller number of the accepting user
-	 * @param UserId the user being invited
-	 * @param InviteResult the search/settings for the session we're joining via invite
+     * @param LocalUserNum local user accepting invite
+     * @param bWasSuccessful true if the async action completed without error, false if there was an error
+     * @param SearchResult search result containing the invite data
      */
-	void OnSessionUserInviteAccepted(const bool bWasSuccessful, const int32 LocalUserNum, TSharedPtr< FUniqueNetId > UserId, const FOnlineSessionSearchResult& SearchResult);
+	void OnSessionInviteAccepted(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& SearchResult);
 
 	/**
 	 * Delegate fired when a session create request has completed

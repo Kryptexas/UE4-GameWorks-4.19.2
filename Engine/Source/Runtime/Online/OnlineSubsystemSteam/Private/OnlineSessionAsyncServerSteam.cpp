@@ -1155,27 +1155,12 @@ void FOnlineAsyncTaskSteamFindServer::TriggerDelegates()
 	{
 		if (bWasSuccessful && SearchSettings->SearchResults.Num() > 0)
 		{
-			if (bIsUsingNetIdDelegate)
-			{
-				FindServerInviteCompleteWithUserIdDelegates.Broadcast(bWasSuccessful, LocalUserNum, MakeShareable<FUniqueNetId>(new FUniqueNetIdSteam(SteamUser()->GetSteamID())), SearchSettings->SearchResults[0]);
-			}
-			else
-			{
-				FindServerInviteCompleteDelegates.Broadcast(LocalUserNum, bWasSuccessful, SearchSettings->SearchResults[0]);
-			}
-			
+			FindServerInviteCompleteDelegates.Broadcast(LocalUserNum, bWasSuccessful, SearchSettings->SearchResults[0]);
 		}
 		else
 		{
 			FOnlineSessionSearchResult EmptyResult;
-			if (bIsUsingNetIdDelegate)
-			{
-				FindServerInviteCompleteWithUserIdDelegates.Broadcast(bWasSuccessful, LocalUserNum, MakeShareable<FUniqueNetId>(new FUniqueNetIdSteam(SteamUser()->GetSteamID())), EmptyResult);
-			}
-			else
-			{
-				FindServerInviteCompleteDelegates.Broadcast(LocalUserNum, bWasSuccessful, EmptyResult);
-			}
+			FindServerInviteCompleteDelegates.Broadcast(LocalUserNum, bWasSuccessful, EmptyResult);
 		}
 	}
 }
@@ -1238,7 +1223,7 @@ void FOnlineAsyncEventSteamInviteAccepted::Finalize()
 		if (bIsValid)
 		{
 			SessionInt->CurrentSessionSearch->QuerySettings.Set(FName(SEARCH_STEAM_HOSTIP), IpAddr->ToString(false), EOnlineComparisonOp::Equals);
-			FOnlineAsyncTaskSteamFindServer* NewTask = new FOnlineAsyncTaskSteamFindServer(Subsystem, SearchSettings, LocalUserNum, SessionInt->OnSessionUserInviteAcceptedDelegates);
+			FOnlineAsyncTaskSteamFindServer* NewTask = new FOnlineAsyncTaskSteamFindServer(Subsystem, SearchSettings, LocalUserNum, SessionInt->OnSessionInviteAcceptedDelegates[LocalUserNum]);
 			Subsystem->QueueAsyncTask(NewTask);
 		}
 	}

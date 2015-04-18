@@ -297,9 +297,6 @@ public:
 	virtual void TriggerDelegates() override;
 };
 
-DECLARE_MULTICAST_DELEGATE_FourParams(FOnAsyncFindLobbyCompleteWithNetId, const bool, const int32, TSharedPtr< FUniqueNetId >, const class FOnlineSessionSearchResult&);
-typedef FOnAsyncFindLobbyCompleteWithNetId::FDelegate FOnAsyncFindLobbyCompleteDelegateWithNetId;
-
 /** 
  *  Async task for any search query to find Steam lobbies based on search criteria
  */
@@ -315,12 +312,8 @@ private:
 	TSharedPtr<class FOnlineSessionSearch> SearchSettings;
 	/** User that initiated the request */
 	int32 LocalUserNum;
-	/** Delegates to fire when the search is complete. Only one of these will be called based on which constructor was used. */
+	/** Delegate to fire when the search is complete */
 	FOnSingleSessionResultComplete OnFindLobbyCompleteDelegates;
-	FOnAsyncFindLobbyCompleteWithNetId OnFindLobbyCompleteWithNetIdDelegate;
-	/** This is true if the delegate passed in to the constructor was a FOnAsyncFindLobbyCompleteWithNetId delegate, false otherwise. */
-	bool bIsUsingNetIdDelegate;
-
 	/** Cached instance of Steam interface */
 	ISteamMatchmaking* SteamMatchmakingPtr;
 
@@ -341,20 +334,7 @@ public:
 		SearchSettings(InSearchSettings),
 		LocalUserNum(InLocalUserNum),
 		OnFindLobbyCompleteDelegates(InOnFindLobbyCompleteDelegates),
-        bIsUsingNetIdDelegate(false),
-        SteamMatchmakingPtr(SteamMatchmaking())
-	{
-	}
-
-	FOnlineAsyncTaskSteamFindLobby(class FOnlineSubsystemSteam* InSubsystem, const FUniqueNetIdSteam& InLobbyId, const TSharedPtr<FOnlineSessionSearch>& InSearchSettings, int32 InLocalUserNum, const FOnAsyncFindLobbyCompleteWithNetId& InOnFindLobbyCompleteDelegates) :
-		FOnlineAsyncTaskSteam(InSubsystem, k_uAPICallInvalid),
-		bInit(false),
-		LobbyId(InLobbyId),
-		SearchSettings(InSearchSettings),
-		LocalUserNum(InLocalUserNum),
-		OnFindLobbyCompleteWithNetIdDelegate(InOnFindLobbyCompleteDelegates),
-		bIsUsingNetIdDelegate(true),
-        SteamMatchmakingPtr(SteamMatchmaking())
+		SteamMatchmakingPtr(SteamMatchmaking())
 	{
 	}
 
