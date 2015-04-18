@@ -1385,39 +1385,6 @@ public:
 	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const;
 };
 
-/**
-* A material render proxy for font rendering
-*/
-class FFontMaterialRenderProxy : public FMaterialRenderProxy
-{
-public:
-
-	/** parent material instance for fallbacks */
-	const FMaterialRenderProxy* const Parent;
-	/** font which supplies the texture pages */
-	const class UFont* Font;
-	/** index to the font texture page to use by the intance */
-	const int32 FontPage;
-	/** font parameter name for finding the matching parameter */
-	const FName& FontParamName;
-
-	/** Initialization constructor. */
-	FFontMaterialRenderProxy(const FMaterialRenderProxy* InParent,const class UFont* InFont,const int32 InFontPage, const FName& InFontParamName)
-	:	Parent(InParent)
-	,	Font(InFont)
-	,	FontPage(InFontPage)
-	,	FontParamName(InFontParamName)
-	{
-		check(Parent);
-		check(Font);
-	}
-
-	// FMaterialRenderProxy interface.
-	virtual const class FMaterial* GetMaterial(ERHIFeatureLevel::Type InFeatureLevel) const;
-	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const;
-	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const;
-	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const;
-};
 
 /**
  * A material render proxy which overrides the selection color

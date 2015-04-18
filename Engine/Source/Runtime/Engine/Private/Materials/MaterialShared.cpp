@@ -1697,43 +1697,6 @@ bool FLightingDensityMaterialRenderProxy::GetVectorValue(const FName ParameterNa
 }
 
 /*-----------------------------------------------------------------------------
-	FFontMaterialRenderProxy
------------------------------------------------------------------------------*/
-
-const class FMaterial* FFontMaterialRenderProxy::GetMaterial(ERHIFeatureLevel::Type InFeatureLevel) const
-{
-	return Parent->GetMaterial(InFeatureLevel);
-}
-
-bool FFontMaterialRenderProxy::GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
-{
-	return Parent->GetVectorValue(ParameterName, OutValue, Context);
-}
-
-bool FFontMaterialRenderProxy::GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const
-{
-	return Parent->GetScalarValue(ParameterName, OutValue, Context);
-}
-
-bool FFontMaterialRenderProxy::GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const
-{
-	// find the matching font parameter
-	if( ParameterName == FontParamName &&
-		Font->Textures.IsValidIndex(FontPage) )
-	{
-		// use the texture page from the font specified for the parameter
-		UTexture2D* Texture = Font->Textures[FontPage];
-		if( Texture && Texture->Resource )
-		{
-			*OutValue = Texture;
-			return true;
-		}		
-	}
-	// try parent if not valid parameter
-	return Parent->GetTextureValue(ParameterName,OutValue,Context);
-}
-
-/*-----------------------------------------------------------------------------
 	FOverrideSelectionColorMaterialRenderProxy
 -----------------------------------------------------------------------------*/
 
