@@ -28,17 +28,25 @@ public:
 	virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	// End of SWidget interface
 
 private:
 	void OnAssetsDropped(const class FAssetDragDropOp& DragDropOp);
+	void RebuildPerFrameBG();
 
 	TSharedRef<SWidget> GenerateContextMenu();
 	EVisibility NoFramesWarningVisibility() const;
 private:
+	TSharedPtr<SHorizontalBox> BackgroundPerFrameSlices;
+	TSharedPtr<class STimelineHeader> TimelineHeader;
+	TSharedPtr<class SFlipbookTimelineTrack> TimelineTrack;
+
 	TAttribute<class UPaperFlipbook*> FlipbookBeingEdited;
 	TAttribute<float> PlayTime;
 	TSharedPtr<FUICommandList> CommandList;
 	FOnFlipbookKeyframeSelectionChanged OnSelectionChanged;
 	int32 SlateUnitsPerFrame;
+	int32 NumFramesFromLastRebuild;
+	int32 NumKeyFramesFromLastRebuild;
 };

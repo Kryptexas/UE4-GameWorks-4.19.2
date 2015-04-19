@@ -36,17 +36,6 @@ public:
 		Rebuild();
 	}
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
-	{
-		UPaperFlipbook* Flipbook = FlipbookBeingEdited.Get();
-		int32 NewNumFrames = (Flipbook != nullptr) ? Flipbook->GetNumFrames() : 0;
-		if (NewNumFrames != NumFramesFromLastRebuild)
-		{
-			Rebuild();
-		}
-	}
-
-private:
 	void Rebuild()
 	{
 		MainBoxPtr->ClearChildren();
@@ -56,7 +45,7 @@ private:
 		if ((Flipbook != nullptr) && (LocalSlateUnitsPerFrame > 0))
 		{
 			const int32 NumFrames = Flipbook->GetNumFrames();
-			for (int32 FrameIdx = 0; FrameIdx < NumFrames; ++FrameIdx)
+			for (int32 FrameIndex = 0; FrameIndex < NumFrames; ++FrameIndex)
 			{
 				MainBoxPtr->AddSlot()
 					.AutoWidth()
@@ -66,7 +55,7 @@ private:
 						.HAlign(HAlign_Center)
 						[
 							SNew(STextBlock)
-							.Text(FText::AsNumber(FrameIdx))
+							.Text(FText::AsNumber(FrameIndex))
 						]
 					];
 			}
