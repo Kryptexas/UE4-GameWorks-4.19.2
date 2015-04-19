@@ -15,6 +15,30 @@ namespace ETileMapEditorTool
 }
 
 //////////////////////////////////////////////////////////////////////////
+// FTileMapDirtyRegion
+
+struct FTileMapDirtyRegion
+{
+public:
+	TWeakObjectPtr<UPaperTileMapComponent> ComponentPtr;
+	FBox DirtyRegionInWorldSpace;
+
+public:
+	FTileMapDirtyRegion()
+	{
+	}
+
+	FTileMapDirtyRegion(UPaperTileMapComponent* InComponent, const FBox& DirtyRegionInTileSpace);
+
+	void PushToNavSystem() const;
+	
+	UPaperTileMapComponent* GetComponent() const
+	{
+		return ComponentPtr.Get();
+	}
+};
+
+//////////////////////////////////////////////////////////////////////////
 // FEdModeTileMap
 
 class FEdModeTileMap : public FEdMode
@@ -34,6 +58,7 @@ public:
 	virtual bool UsesToolkits() const override;
 	virtual void Enter() override;
 	virtual void Exit() override;
+	virtual void Tick(FEditorViewportClient* ViewportClient, float DeltaTime) override;
 	virtual bool MouseEnter(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) override;
 	virtual bool MouseLeave(FEditorViewportClient* ViewportClient, FViewport* Viewport) override;
 	virtual bool MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) override;
@@ -94,6 +119,10 @@ protected:
 	void RotateTilesInSelection(bool bIsClockwise);
 
 	bool IsToolReadyToBeUsed() const;
+
+	bool BlitLayer(UPaperTileLayer* SourceLayer, UPaperTileLayer* TargetLayer, FBox& OutDirtyRect, int32 OffsetX = 0, int32 OffsetY = 0, bool bBlitEmptyTiles = false);
+
+	void FlushPendingDirtyRegions();
 public:
 	UPaperTileMapComponent* FindSelectedComponent() const;
 
@@ -141,6 +170,11 @@ protected:
 
 	UPaperTileMapComponent* CursorPreviewComponent;
 
+	// Nav mesh rebuilding
+	float TimeUntilNavMeshRebuild;
+	TArray<FTileMapDirtyRegion> PendingDirtyRegions;
+
+	//
 	ETileMapEditorTool::Type ActiveTool;
 	mutable FTransform ComponentToWorld;
 };

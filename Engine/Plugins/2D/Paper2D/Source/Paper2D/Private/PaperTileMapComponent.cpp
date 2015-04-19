@@ -28,6 +28,7 @@ UPaperTileMapComponent::UPaperTileMapComponent(const FObjectInitializer& ObjectI
 
 	CastShadow = false;
 	bUseAsOccluder = false;
+	bCanEverAffectNavigation = true;
 }
 
 FPrimitiveSceneProxy* UPaperTileMapComponent::CreateSceneProxy()
