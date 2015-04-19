@@ -1462,7 +1462,22 @@ void UEditorEngine::PlayUsingLauncher()
 
 		// Setup launch profile, keep the setting here to a minimum.
 		ILauncherProfileRef LauncherProfile = LauncherServicesModule.CreateProfile(TEXT("Play On Device"));
-		LauncherProfile->SetBuildGame(bPlayUsingLauncherHasCode && bPlayUsingLauncherHasCompiler);
+		bool bAlwaysBuild = GetDefault<ULevelEditorPlaySettings>()->BuildGameBeforeLaunch;
+		if ((bPlayUsingLauncherHasCode || bAlwaysBuild) && bPlayUsingLauncherHasCompiler)
+		{
+			LauncherProfile->SetBuildGame((bPlayUsingLauncherHasCode || bAlwaysBuild) && bPlayUsingLauncherHasCompiler);
+
+			// set the build configuration to be the same as the running editor
+			FString ExeName = FUnrealEdMisc::Get().GetExecutableForCommandlets();
+			if (ExeName.Contains(TEXT("Debug")))
+			{
+				LauncherProfile->SetBuildConfiguration(EBuildConfigurations::Debug);
+			}
+			else
+			{
+				LauncherProfile->SetBuildConfiguration(EBuildConfigurations::Development);
+			}
+		}
 
 		// select the quickest cook mode based on which in editor cook mode is enabled
 		bool bIncrimentalCooking = true;

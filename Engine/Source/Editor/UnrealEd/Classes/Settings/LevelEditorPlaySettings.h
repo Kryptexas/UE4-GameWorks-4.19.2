@@ -190,6 +190,12 @@ public:
 	UPROPERTY(config , EditAnywhere, Category=PlayInStandaloneGame, AdvancedDisplay)
 	FString AdditionalLaunchParameters;
 
+public:
+
+	/** The width of the new view port window in pixels (0 = use the desktop's screen resolution). */
+	UPROPERTY(config, EditAnywhere, Category = PlayOnDevice)
+	bool BuildGameBeforeLaunch;
+
 private:
 
 	/** NetMode to use for Play In Editor. */
