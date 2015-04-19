@@ -22,6 +22,8 @@ public:
 	// End of TCommand<> interface
 
 public:
+	TSharedPtr<FUICommandInfo> AddKeyFrame;
+
 	TSharedPtr<FUICommandInfo> SetShowGrid;
 	TSharedPtr<FUICommandInfo> SetShowBounds;
 	TSharedPtr<FUICommandInfo> SetShowCollision;

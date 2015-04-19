@@ -161,6 +161,11 @@ void FPaperStyle::Initialize()
 		StyleSet->Set("FlipbookEditor.SetShowCollision.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Collision_40x"), Icon20x20));
 		StyleSet->Set("FlipbookEditor.SetShowPivot", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowPivot_40x"), Icon40x40));
 		StyleSet->Set("FlipbookEditor.SetShowPivot.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowPivot_40x"), Icon20x20));
+		StyleSet->Set("FlipbookEditor.SetShowSockets", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowSockets_40x"), Icon40x40));
+		StyleSet->Set("FlipbookEditor.SetShowSockets.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowSockets_40x"), Icon20x20));
+
+		StyleSet->Set("FlipbookEditor.AddKeyFrame", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/FlipbookEditor/icon_Flipbook_AddKey_40x"), Icon40x40));
+		StyleSet->Set("FlipbookEditor.AddKeyFrame.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/FlipbookEditor/icon_Flipbook_AddKey_40x"), Icon20x20));
 
 		StyleSet->Set("FlipbookEditor.RegionGrabHandle", new BOX_BRUSH("Sequencer/ScrubHandleWhole", FMargin(6.f / 13.f, 10 / 24.f, 6 / 13.f, 10 / 24.f)));
 		StyleSet->Set("FlipbookEditor.RegionBody", new BOX_BRUSH("Common/Scrollbar_Thumb", FMargin(4.f / 16.f)));

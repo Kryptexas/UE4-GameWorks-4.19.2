@@ -84,6 +84,7 @@ protected:
 			SetPlaybackPosition(0.0f);
 		}
 	}
+
 protected:
 	void BindCommands();
 	void ExtendMenu();
@@ -96,6 +97,8 @@ protected:
 	void DuplicateSelection();
 	void SetSelection(int32 NewSelection);
 	bool HasValidSelection() const;
+
+	void AddKeyFrameAtCurrentTime();
 	void AddNewKeyFrameAtEnd();
 	void AddNewKeyFrameBefore();
 	void AddNewKeyFrameAfter();
