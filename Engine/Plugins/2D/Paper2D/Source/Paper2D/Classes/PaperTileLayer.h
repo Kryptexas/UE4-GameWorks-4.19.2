@@ -130,6 +130,10 @@ class PAPER2D_API UPaperTileLayer : public UObject
 	bool bHiddenInGame;
 
 protected:
+	// The color of this layer (multiplied with the tile map color and passed to the material as a vertex color)
+	UPROPERTY(EditAnywhere, Category=Sprite)
+	FLinearColor LayerColor;
+
 	// The allocated width of the tile data (used to handle resizing without data loss)
 	UPROPERTY()
 	int32 AllocatedWidth;
@@ -178,6 +182,13 @@ public:
 
 	// Adds collision to the specified body setup
 	void AugmentBodySetup(UBodySetup* ShapeBodySetup);
+
+	// Gets the layer-specific color multiplier
+	FLinearColor GetLayerColor() const;
+
+	// Sets the layer-specific color multiplier (Note: does not invalidate any components using this layer!)
+	void SetLayerColor(FLinearColor NewColor);
+
 protected:
 	void ReallocateAndCopyMap();
 };

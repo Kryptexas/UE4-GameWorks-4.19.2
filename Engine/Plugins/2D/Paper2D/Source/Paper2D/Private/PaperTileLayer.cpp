@@ -93,6 +93,7 @@ protected:
 
 UPaperTileLayer::UPaperTileLayer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, LayerColor(FLinearColor::White)
 {
 	LayerWidth = 4;
 	LayerHeight = 4;
@@ -243,6 +244,16 @@ void UPaperTileLayer::AugmentBodySetup(UBodySetup* ShapeBodySetup)
 			}
 		}
 	}
+}
+
+FLinearColor UPaperTileLayer::GetLayerColor() const
+{
+	return LayerColor;
+}
+
+void UPaperTileLayer::SetLayerColor(FLinearColor NewColor)
+{
+	LayerColor = NewColor;
 }
 
 void UPaperTileLayer::ConvertToTileSetPerCell()

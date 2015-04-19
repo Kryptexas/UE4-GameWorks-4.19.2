@@ -15,6 +15,7 @@
 
 UPaperTileMapComponent::UPaperTileMapComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, TileMapColor(FLinearColor::White)
 {
 	BodyInstance.SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 
@@ -226,14 +227,14 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 			continue;
 		}
 
-		FLinearColor DrawColor = FLinearColor::White;
+		FLinearColor DrawColor = TileMapColor * Layer->GetLayerColor();
 #if WITH_EDITORONLY_DATA
 		if (Layer->bHiddenInEditor)
 		{
 			continue;
 		}
 
-		DrawColor.A = Layer->LayerOpacity;
+		DrawColor.A *= Layer->LayerOpacity;
 #endif
 
 		FSpriteDrawCallRecord* CurrentBatch = nullptr;
@@ -463,5 +464,39 @@ UPaperTileLayer* UPaperTileMapComponent::AddNewLayer()
 	return Result;
 }
 
+FLinearColor UPaperTileMapComponent::GetTileMapColor() const
+{
+	return TileMapColor;
+}
+
+void UPaperTileMapComponent::SetTileMapColor(FLinearColor NewColor)
+{
+	TileMapColor = NewColor;
+	MarkRenderStateDirty();
+}
+
+FLinearColor UPaperTileMapComponent::GetLayerColor(int32 Layer) const
+{
+	if (TileMap->TileLayers.IsValidIndex(Layer))
+	{
+		return TileMap->TileLayers[Layer]->GetLayerColor();
+	}
+	else
+	{
+		return FLinearColor::White;
+	}
+}
+
+void UPaperTileMapComponent::SetLayerColor(FLinearColor NewColor, int32 Layer)
+{
+	if (OwnsTileMap())
+	{
+		if (TileMap->TileLayers.IsValidIndex(Layer))
+		{
+			TileMap->TileLayers[Layer]->SetLayerColor(NewColor);
+			MarkRenderStateDirty();
+		}
+	}
+}
 
 #undef LOCTEXT_NAMESPACE

@@ -50,6 +50,10 @@ private:
 	UPROPERTY()
 	TArray<class UPaperTileLayer*> TileLayers_DEPRECATED;
 
+	// The color of the tile map (multiplied with the per-layer color and passed to the material as a vertex color)
+	UPROPERTY(EditAnywhere, Category=Materials)
+	FLinearColor TileMapColor;
+
 public:
 	// The tile map used by this component
 	UPROPERTY(Category=Setup, EditAnywhere, BlueprintReadOnly)
@@ -105,9 +109,27 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Sprite")
 	void ResizeMap(int32 NewWidthInTiles, int32 NewHeightInTiles);
 
-	// Creates and adds a new layer to the tile map (Note: This will only work on components that own their own tile map(OwnsTileMap returns true), you cannot modify standalone tile map assets)
+	// Creates and adds a new layer to the tile map
+	// Note: This will only work on components that own their own tile map (OwnsTileMap returns true), you cannot modify standalone tile map assets
 	UFUNCTION(BlueprintCallable, Category="Sprite")
 	class UPaperTileLayer* AddNewLayer();
+
+	// Gets the tile map global color multiplier (multiplied with the per-layer color and passed to the material as a vertex color)
+	UFUNCTION(BlueprintPure, Category="Sprite")
+	FLinearColor GetTileMapColor() const;
+
+	// Sets the tile map global color multiplier (multiplied with the per-layer color and passed to the material as a vertex color)
+	UFUNCTION(BlueprintCallable, Category="Sprite")
+	void SetTileMapColor(FLinearColor NewColor);
+
+	// Gets the per-layer color multiplier for a specific layer (multiplied with the tile map color and passed to the material as a vertex color)
+	UFUNCTION(BlueprintPure, Category = "Sprite")
+	FLinearColor GetLayerColor(int32 Layer = 0) const;
+
+	// Sets the per-layer color multiplier for a specific layer (multiplied with the tile map color and passed to the material as a vertex color)
+	// Note: This will only work on components that own their own tile map (OwnsTileMap returns true), you cannot modify standalone tile map assets
+	UFUNCTION(BlueprintCallable, Category = "Sprite")
+	void SetLayerColor(FLinearColor NewColor, int32 Layer = 0);
 };
 
 // Allow the old name to continue to work for one release
