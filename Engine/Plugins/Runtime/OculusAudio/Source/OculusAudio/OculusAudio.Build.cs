@@ -34,6 +34,7 @@ namespace UnrealBuildTool.Rules
             if (Target.Platform == UnrealTargetPlatform.Win64)
             {
 				PrivateDependencyModuleNames.AddRange(new string[] { "LibOVRAudio" });
+				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Oculus/Audio/Win64/ovraudio64.dll"));
             }
 
             AddThirdPartyPrivateStaticDependencies(Target, "DX11Audio");
