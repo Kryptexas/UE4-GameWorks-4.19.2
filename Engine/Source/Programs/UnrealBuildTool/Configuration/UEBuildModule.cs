@@ -66,24 +66,24 @@ namespace UnrealBuildTool
 			{
 				return ModuleType;
 			}
-			foreach (PluginInfo.PluginModuleInfo ModuleInfo in Info.Modules)
+			foreach (ModuleDescriptor ModuleInfo in Info.Descriptor.Modules)
 			{
 				if (ModuleInfo.Name == ModuleName)
 				{
 					switch (ModuleInfo.Type)
 					{
-						case PluginInfo.PluginModuleType.Developer:
+						case ModuleHostType.Developer:
 							ModuleType = UEBuildModuleType.Developer;
 							break;
-						case PluginInfo.PluginModuleType.Editor:
-						case PluginInfo.PluginModuleType.EditorNoCommandlet:
+						case ModuleHostType.Editor:
+						case ModuleHostType.EditorNoCommandlet:
 							ModuleType = UEBuildModuleType.Editor;
 							break;
-						case PluginInfo.PluginModuleType.Program:
+						case ModuleHostType.Program:
 							ModuleType = UEBuildModuleType.Program;
 							break;
-						case PluginInfo.PluginModuleType.Runtime:
-						case PluginInfo.PluginModuleType.RuntimeNoCommandlet:
+						case ModuleHostType.Runtime:
+						case ModuleHostType.RuntimeNoCommandlet:
 							ModuleType = UEBuildModuleType.Runtime;
 							break;
 						default:

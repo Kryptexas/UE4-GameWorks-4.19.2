@@ -213,9 +213,9 @@ namespace AutomationTool
 						{
 							if (Plugin.Name == PluginName && !Plugin.bEnabledByDefault && !RetVal)
 							{
-								foreach (var Module in Plugin.Modules)
+								foreach (var Module in Plugin.Descriptor.Modules)
 								{
-									if (Module.Platforms.Count > 0 && Module.Platforms.Contains(TargetPlatformType) && !RetVal)
+									if(Module.IsCompiledInConfiguration(TargetPlatformType, TargetRules.TargetType.Game))
 									{
 										RetVal = true;
 										break;

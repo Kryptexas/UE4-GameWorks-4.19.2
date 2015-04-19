@@ -10,17 +10,6 @@ namespace UnrealBuildTool
 {
 	public class PluginInfo
 	{
-		public enum PluginModuleType
-		{
-			Runtime,
-			RuntimeNoCommandlet,
-			Developer,
-			Editor,
-			EditorNoCommandlet,
-			/** Program-only plugin */
-			Program,
-		}
-
 		public enum LoadedFromType
 		{
 			// Plugin is built-in to the engine
@@ -29,18 +18,6 @@ namespace UnrealBuildTool
 			// Project-specific plugin, stored within a game project directory
 			GameProject
 		};
-
-		public struct PluginModuleInfo
-		{
-			// Name of this module
-			public string Name;
-
-			// Type of module
-			public PluginModuleType Type;
-
-			// List of platforms supported by this modules
-			public List<UnrealTargetPlatform> Platforms;
-		}
 		
 		// Whether or not the plugin should be built
 		public bool bShouldBuild;
@@ -51,8 +28,8 @@ namespace UnrealBuildTool
 		// Path to the plugin's root directory
 		public string Directory;
 
-		// List of modules in this plugin
-		public readonly List<PluginModuleInfo> Modules = new List<PluginModuleInfo>();
+		// The plugin descriptor
+		public PluginDescriptor Descriptor;
 
 		// Whether this plugin is enabled by default
 		public bool bEnabledByDefault;
@@ -127,10 +104,6 @@ namespace UnrealBuildTool
 
 	public class Plugins
 	{
-		/// Latest supported version for plugin descriptor files.  We can still usually load older versions, but not newer version.
-		/// NOTE: This constant exists in PluginManager C++ code as well.
-		private static int LatestPluginDescriptorFileVersion = 3;	// IMPORTANT: Remember to also update EProjectFileVersion in PluginManagerShared.h when this changes!
-		
 		/// File extension of plugin descriptor files.  NOTE: This constant exists in UnrealBuildTool code as well.
 		/// NOTE: This constant exists in PluginManager C++ code as well.
 		private static string PluginDescriptorFileExtension = ".uplugin";
@@ -145,228 +118,15 @@ namespace UnrealBuildTool
 		/// <returns>New PluginInfo for the loaded descriptor.</returns>
 		private static PluginInfo LoadPluginDescriptor( FileInfo PluginFileInfo, PluginInfo.LoadedFromType LoadedFrom )
 		{
-			// Load the file up (JSon format)
-			Dictionary<string, object> PluginDescriptorDict;
-			{
-				string FileContent;
-				using( var StreamReader = new StreamReader( PluginFileInfo.FullName ) )
-				{
-					FileContent = StreamReader.ReadToEnd();
-				}
-
-				// Parse the Json into a dictionary
-				var CaseSensitiveJSonDict = fastJSON.JSON.Instance.ToObject< Dictionary< string, object > >( FileContent );
-
-				// Convert to a case-insensitive dictionary, so that we can be more tolerant of hand-typed files
-				PluginDescriptorDict = new Dictionary<string, object>( CaseSensitiveJSonDict, StringComparer.InvariantCultureIgnoreCase );
-			}
-
-
-			// File version check
-			long PluginVersionNumber;
-			{
-				// Try to get the version of the plugin
-				object PluginVersionObject;
-				if( !PluginDescriptorDict.TryGetValue( "FileVersion", out PluginVersionObject ) )
-				{
-					if( !PluginDescriptorDict.TryGetValue( "PluginFileVersion", out PluginVersionObject ) )
-					{
-						throw new BuildException( "Plugin descriptor file '{0}' does not contain a valid FileVersion entry", PluginFileInfo.FullName );
-					}
-				}
-
-				if( !( PluginVersionObject is long ) )
-				{
-					throw new BuildException( "Unable to parse the version number of the plugin descriptor file '{0}'", PluginFileInfo.FullName );
-				}
-
-				PluginVersionNumber = (long)PluginVersionObject;
-				if( PluginVersionNumber > LatestPluginDescriptorFileVersion )
-				{
-					throw new BuildException( "Plugin descriptor file '{0}' appears to be in a newer version ({1}) of the file format that we can load (max version: {2}).", PluginFileInfo.FullName, PluginVersionNumber, LatestPluginDescriptorFileVersion );
-				}
-
-				// @todo plugin: Should we also test the engine version here?  (we would need to load it from build.properties)
-			}
-			
-
-			// NOTE: At this point, we can use PluginVersionNumber to handle backwards compatibility when loading the rest of the file!
-
-
-			var PluginInfo = new PluginInfo();
-			PluginInfo.LoadedFrom = LoadedFrom;
-			PluginInfo.Directory = PluginFileInfo.Directory.FullName;
-			PluginInfo.Name = Path.GetFileName(PluginInfo.Directory);
-
-			// Determine whether the plugin should be enabled by default
-			object EnabledByDefaultObject;
-			if(PluginDescriptorDict.TryGetValue("EnabledByDefault", out EnabledByDefaultObject) && (EnabledByDefaultObject is bool))
-			{
-				PluginInfo.bEnabledByDefault = (bool)EnabledByDefaultObject;
-			}
-
-			// This plugin might have some modules that we need to know about.  Let's take a look.
-			{
-				object ModulesObject;
-				if( PluginDescriptorDict.TryGetValue( "Modules", out ModulesObject ) )
-				{
-					if( !( ModulesObject is Array ) )
-					{
-						throw new BuildException( "Found a 'Modules' entry in plugin descriptor file '{0}', but it doesn't appear to be in the array format that we were expecting.", PluginFileInfo.FullName );
-					}
-					
-					var ModulesArray = (Array)ModulesObject;
-					foreach( var ModuleObject in ModulesArray )
-					{
-						var ModuleDict = new Dictionary<string,object>( (Dictionary< string, object >)ModuleObject, StringComparer.InvariantCultureIgnoreCase );
-
-						var PluginModuleInfo = new PluginInfo.PluginModuleInfo();
-
-						// Module name
-						{
-							// All modules require a name to be set
-							object ModuleNameObject;
-							if( !ModuleDict.TryGetValue( "Name", out ModuleNameObject ) )
-							{
-								throw new BuildException( "Found a 'Module' entry with a missing 'Name' field in plugin descriptor file '{0}'", PluginFileInfo.FullName );
-							}
-							string ModuleName = (string)ModuleNameObject;
-
-							// @todo plugin: Locate this module right now and validate it?  Repair case?
-							PluginModuleInfo.Name = ModuleName;
-						}
-
-						
-						// Module type
-						{
-							// Check to see if the user specified the module's type
-							object ModuleTypeObject;
-							if( !ModuleDict.TryGetValue( "Type", out ModuleTypeObject ) )
-							{
-								throw new BuildException( "Found a Module entry '{0}' with a missing 'Type' field in plugin descriptor file '{1}'", PluginModuleInfo.Name, PluginFileInfo.FullName );
-							}
-							string ModuleTypeString = (string)ModuleTypeObject;
-
-							// Check to see if this is a valid type
-							bool FoundValidType = false;
-							foreach( PluginInfo.PluginModuleType PossibleType in Enum.GetValues( typeof( PluginInfo.PluginModuleType ) ) )
-							{
-								if( ModuleTypeString.Equals( PossibleType.ToString(), StringComparison.InvariantCultureIgnoreCase ) )
-								{
-									FoundValidType = true;
-									PluginModuleInfo.Type = PossibleType;
-									break;
-								}
-							}
-							if( !FoundValidType )
-							{
-								throw new BuildException( "Module entry '{0}' specified an unrecognized module Type '{1}' in plugin descriptor file '{0}'", PluginModuleInfo.Name, ModuleTypeString, PluginFileInfo.FullName );
-							}
-						}
-
-						// Supported platforms
-						PluginModuleInfo.Platforms = new List<UnrealTargetPlatform>();
-
-						// look for white and blacklists
-						object WhitelistObject, BlacklistObject;
-						ModuleDict.TryGetValue( "WhitelistPlatforms", out WhitelistObject );
-						ModuleDict.TryGetValue( "BlacklistPlatforms", out BlacklistObject );
-
-						if (WhitelistObject != null && BlacklistObject != null)
-						{
-							throw new BuildException( "Found a module '{0}' with both blacklist and whitelist platform lists in plugin file '{1}'", PluginModuleInfo.Name, PluginFileInfo.FullName );
-						}
-
-						// now process the whitelist
-						if (WhitelistObject != null)
-						{
-							if (!(WhitelistObject is Array))
-							{
-								throw new BuildException("Found a 'WhitelistPlatforms' entry in plugin descriptor file '{0}', but it doesn't appear to be in the array format that we were expecting.", PluginFileInfo.FullName);
-							}
-
-							// put the whitelist array directly into the plugin's modulelist
-							ConvertPlatformArrayToList((Array)WhitelistObject, ref PluginModuleInfo.Platforms, PluginFileInfo.FullName);
-						}
-						// handle the blacklist (or lack of blacklist and whitelist which means all platforms)
-						else
-						{
-							// start with all platforms supported
-							foreach (UnrealTargetPlatform Platform in Enum.GetValues( typeof( UnrealTargetPlatform ) ) )
-							{
-								PluginModuleInfo.Platforms.Add(Platform);
-							}
-
-							// if we want to disallow some platforms, then pull them out now
-							if (BlacklistObject != null)
-							{
-								if (!(BlacklistObject is Array))
-								{
-									throw new BuildException("Found a 'BlacklistPlatforms' entry in plugin descriptor file '{0}', but it doesn't appear to be in the array format that we were expecting.", PluginFileInfo.FullName);
-								}
-
-								// put the whitelist array directly into the plugin's modulelist
-								List<UnrealTargetPlatform> Blacklist = new List<UnrealTargetPlatform>();
-								ConvertPlatformArrayToList((Array)BlacklistObject, ref Blacklist, PluginFileInfo.FullName);
-
-								// now remove them from the module platform list
-								foreach (UnrealTargetPlatform Platform in Blacklist)
-								{
-									PluginModuleInfo.Platforms.Remove(Platform);
-								}
-							}
-						}
-						
-						object ModuleShouldBuild;
-						if( ModuleDict.TryGetValue( "bShouldBuild", out ModuleShouldBuild ) )
-						{
-							PluginInfo.bShouldBuild = (Int64)ModuleShouldBuild == 1 ? true : false;
-						}
-						else
-						{
-							PluginInfo.bShouldBuild = true;
-						}
-
-						if (PluginInfo.bShouldBuild)
-						{
-							// add to list of modules
-							PluginInfo.Modules.Add(PluginModuleInfo);
-						}
-					}
-				}
-				else
-				{
-					// Plugin contains no modules array.  That's fine.
-				}
-			}
-
-			return PluginInfo;
+			// Create the plugin info object
+			PluginInfo Info = new PluginInfo();
+			Info.LoadedFrom = LoadedFrom;
+			Info.Directory = PluginFileInfo.Directory.FullName;
+			Info.Name = Path.GetFileName(Info.Directory);
+			Info.Descriptor = PluginDescriptor.FromFile(PluginFileInfo.FullName);
+			return Info;
 		}
 
-		private static void ConvertPlatformArrayToList(Array PlatformNameList, ref List<UnrealTargetPlatform> Platforms, string ModuleFilename)
-		{
-			// look up each platform name in the array
-			foreach (string PlatformName in PlatformNameList)
-			{
-				// case-insensitive enum matching
-				bool bFoundValidType = false;
-				foreach( UnrealTargetPlatform PossiblePlatform in Enum.GetValues( typeof( UnrealTargetPlatform ) ) )
-				{
-					if( PlatformName.Equals( PossiblePlatform.ToString(), StringComparison.InvariantCultureIgnoreCase ) )
-					{
-						bFoundValidType = true;
-						// add it to the output!
-						Platforms.Add(PossiblePlatform);
-						break;
-					}
-				}
-
-				if( !bFoundValidType )
-				{
-					throw new BuildException( "Module entry specified unknown platform '{0}' in plugin descriptor file '{1}'", PlatformName, ModuleFilename );
-				}
-			}
-		}
 
 
 		/// <summary>
@@ -457,7 +217,7 @@ namespace UnrealBuildTool
 				ModulesToPluginMapVar = new Dictionary<string,PluginInfo>( StringComparer.InvariantCultureIgnoreCase );
 				foreach( var CurPluginInfo in AllPlugins )
 				{
-					foreach( var Module in CurPluginInfo.Modules )
+					foreach( var Module in CurPluginInfo.Descriptor.Modules )
 					{
 						// Make sure a different plugin doesn't already have a module with this name
 						// @todo plugin: Collisions like this could happen because of third party plugins added to a project, which isn't really ideal.

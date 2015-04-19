@@ -197,7 +197,7 @@
     <Compile Include="fastJSON\SafeDictionary.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Configuration\UEBuildConfiguration.cs" />
-    <Compile Include="Configuration\UEBuildTarget.cs" />    
+    <Compile Include="Configuration\UEBuildTarget.cs" />
     <Compile Include="System\ActionGraph.cs" />
     <Compile Include="System\ActionHistory.cs" />
     <Compile Include="System\BuildException.cs" />
@@ -207,6 +207,8 @@
     <Compile Include="System\FlatCPPIncludeDepencencyCache.cs" />
     <Compile Include="System\Distcc.cs" />
     <Compile Include="System\CMakefileGenerator.cs" />
+    <Compile Include="System\ModuleDescriptor.cs" />
+    <Compile Include="System\PluginDescriptor.cs" />
     <Compile Include="System\QMakefileGenerator.cs" />
     <Compile Include="System\ModuleProcessingException.cs" />
     <Compile Include="System\MakefileGenerator.cs" />
@@ -249,6 +251,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Configuration\EngineConfiguration.cs" />
+    <Compile Include="Utilities\JsonObject.cs" />
     <Compile Include="Utilities\XmlConfigLoader.cs" />
     <Compile Include="Windows\UEBuildWindows.cs" />
     <Compile Include="Windows\VCEnvironment.cs" />

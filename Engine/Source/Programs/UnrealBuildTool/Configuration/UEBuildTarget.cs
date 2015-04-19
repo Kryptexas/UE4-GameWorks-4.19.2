@@ -1852,9 +1852,9 @@ namespace UnrealBuildTool
 			}
 			foreach (PluginInfo Plugin in DependentPlugins)
 			{
-				foreach (PluginInfo.PluginModuleInfo Module in Plugin.Modules)
+				foreach (ModuleDescriptor Module in Plugin.Descriptor.Modules)
 				{
-					if(ShouldIncludePluginModule(Plugin, Module))
+					if(Module.IsCompiledInConfiguration(Platform, TargetType))
 					{
 						PrivateDependencyModuleNames.Add(Module.Name);
 					}
@@ -2134,9 +2134,9 @@ namespace UnrealBuildTool
         public void AddPlugin(PluginInfo Plugin)
 		{
 			UEBuildBinaryType BinaryType = ShouldCompileMonolithic() ? UEBuildBinaryType.StaticLibrary : UEBuildBinaryType.DynamicLinkLibrary;
-			foreach(PluginInfo.PluginModuleInfo Module in Plugin.Modules)
+			foreach(ModuleDescriptor Module in Plugin.Descriptor.Modules)
 			{
-				if (ShouldIncludePluginModule(Plugin, Module))
+				if (Module.IsCompiledInConfiguration(Platform, TargetType))
 				{
 					string ModuleFileName = RulesCompiler.GetModuleFilename(Module.Name);
 					bool bHasSource = (!String.IsNullOrEmpty(ModuleFileName) && Directory.EnumerateFiles(Path.GetDirectoryName(ModuleFileName), "*.cpp", SearchOption.AllDirectories).Any());
@@ -2171,9 +2171,9 @@ namespace UnrealBuildTool
 				// Add all the enabled plugins to the precompiled module list. Plugins are always precompiled, even if bPrecompile is not set, so we should precompile their dependencies.
 				foreach(PluginInfo Plugin in BuildPlugins)
 				{
-					foreach(PluginInfo.PluginModuleInfo Module in Plugin.Modules)
+					foreach(ModuleDescriptor Module in Plugin.Descriptor.Modules)
 					{
-						if (ShouldIncludePluginModule(Plugin, Module))
+						if (Module.IsCompiledInConfiguration(Platform, TargetType))
 						{
 							PrecompiledModuleNames.Add(Module.Name);
 						}
@@ -2448,35 +2448,6 @@ namespace UnrealBuildTool
 
 			// Allow the platform to customize the output path (and output several executables at once if necessary)
 			return UEBuildPlatform.GetBuildPlatform(Platform).FinalizeBinaryPaths(BinaryPath);
-		}
-
-		/// <summary>
-		/// Determines whether the given plugin module is part of the current build.
-		/// </summary>
-		private bool ShouldIncludePluginModule(PluginInfo Plugin, PluginInfo.PluginModuleInfo Module)
-		{
-			// Check it can be built for this platform...
-			if (Module.Platforms.Contains(Platform))
-			{
-				// ...and that it's appropriate for the current build environment.
-				switch (Module.Type)
-				{
-					case PluginInfo.PluginModuleType.Runtime:
-					case PluginInfo.PluginModuleType.RuntimeNoCommandlet:
-						return true;
-
-					case PluginInfo.PluginModuleType.Developer:
-						return UEBuildConfiguration.bBuildDeveloperTools;
-
-					case PluginInfo.PluginModuleType.Editor:
-					case PluginInfo.PluginModuleType.EditorNoCommandlet:
-						return UEBuildConfiguration.bBuildEditor;
-
-					case PluginInfo.PluginModuleType.Program:
-						return TargetType == TargetRules.TargetType.Program;
-				}
-			}
-			return false;
 		}
 
 		/** Sets up the modules for the target. */
