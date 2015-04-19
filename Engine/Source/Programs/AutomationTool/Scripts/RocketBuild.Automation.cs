@@ -592,7 +592,7 @@ namespace Rocket
 			}
 			else
 			{
-				AgentSharingGroup = "CopyRocket" + StaticGetHostPlatformSuffix(HostPlatform);
+				AgentSharingGroup = "RocketGroup" + StaticGetHostPlatformSuffix(HostPlatform);
 			}
 
 			AddDependency(FilterRocketNode.StaticGetFullName(HostPlatform));
@@ -660,7 +660,7 @@ namespace Rocket
 			}
 			else
 			{
-				AgentSharingGroup = "CopyRocket" + StaticGetHostPlatformSuffix(HostPlatform);
+				AgentSharingGroup = "RocketGroup" + StaticGetHostPlatformSuffix(HostPlatform);
 			}
 
 			AddDependency(GUBP.ToolsForCompileNode.StaticGetFullName(HostPlatform));
