@@ -658,6 +658,10 @@ namespace Rocket
 			{
 				AddDependency(GUBP.WaitForSharedPromotionUserInput.StaticGetFullName(false));
 			}
+			else
+			{
+				AgentSharingGroup = "CopyRocket" + StaticGetHostPlatformSuffix(HostPlatform);
+			}
 
 			AddDependency(GUBP.ToolsForCompileNode.StaticGetFullName(HostPlatform));
 			AddDependency(GUBP.RootEditorNode.StaticGetFullName(HostPlatform));
