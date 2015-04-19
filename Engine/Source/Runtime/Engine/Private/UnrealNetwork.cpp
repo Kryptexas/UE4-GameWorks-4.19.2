@@ -15,9 +15,10 @@ enum ENetworkVersionHistory
 	HISTORY_REPLAY_CHECKSUMS	= 4,				// We now save replay checksums into stream for backwards compatibility checks
 	HISTORY_REPLAY_CHECKSUMS2	= 5,				// Saving package and network checksum to packagemap, no longer save checksum in BeginContentBlockHeader
 	HISTORY_REPLAY_CHECKSUMS3	= 6,				// Various network checksum fixes
+	HISTORY_REPLAY_CHECKSUMS4	= 7,				// Added multi-cast RPC's to network checksum
 };
 
-const uint32 FNetworkVersion::InternalProtocolVersion = HISTORY_REPLAY_CHECKSUMS3;
+const uint32 FNetworkVersion::InternalProtocolVersion = HISTORY_REPLAY_CHECKSUMS4;
 
 uint32 FNetworkVersion::GetLocalNetworkVersion()
 {
@@ -25,7 +26,7 @@ uint32 FNetworkVersion::GetLocalNetworkVersion()
 	{
 		const uint32 LocalNetworkVersion = GetLocalNetworkVersionOverride.Execute();
 
-		UE_LOG( LogNet, Log, TEXT( "GetLocalNetworkVersionOverride: LocalNetworkVersion: %i" ), LocalNetworkVersion );
+		UE_LOG( LogNet, Log, TEXT( "GetLocalNetworkVersionOverride: LocalNetworkVersion: %u" ), LocalNetworkVersion );
 
 		return LocalNetworkVersion;
 	}

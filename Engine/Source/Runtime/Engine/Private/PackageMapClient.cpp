@@ -2128,7 +2128,7 @@ static uint32 SortedStructFieldsChecksum( const UStruct* Struct, uint32 Checksum
 	return Checksum;
 }
 
-static bool GDebugChecksum = false;
+static bool GDebugChecksum		= false;
 static int GDebugChecksumIndent = 0;
 
 static uint32 GetPropertyChecksum( const UProperty* Property, uint32 Checksum )
@@ -2197,11 +2197,12 @@ uint32 FNetGUIDCache::GetClassNetworkChecksum( const UClass* Class )
 
 	Checksum = FCrc::StrCrc32( *Class->GetName().ToLower(), Checksum );
 
-	// Grab all of the net properties from the replicated fields
-	// (we don't need to check functions here, we do that on demand when considering them for backwards compatibility)
 	TArray< UProperty* > NetProperties;
+	TArray< UFunction* > MulticastFunctions;
 
-	for( int32 i = 0; i < Class->NetFields.Num(); i++ )
+	// Grab all of the net properties from the replicated fields
+
+	for ( int32 i = 0; i < Class->NetFields.Num(); i++ )
 	{
 		UProperty* Property = Cast< UProperty >( Class->NetFields[i] );
 
@@ -2209,13 +2210,55 @@ uint32 FNetGUIDCache::GetClassNetworkChecksum( const UClass* Class )
 		{
 			NetProperties.Add( Property );
 		}
+
+		UFunction* Function = Cast< UFunction >( Class->NetFields[i] );
+
+		if ( Function != NULL && ( Function->FunctionFlags & FUNC_NetMulticast ) )
+		{
+			MulticastFunctions.Add( Function );
+		}
 	}
 
+	// Sort properties by offset/name
 	SortProperties( NetProperties );
 
-	for( int32 i = 0; i < NetProperties.Num(); i++ )
+	for ( int32 i = 0; i < NetProperties.Num(); i++ )
 	{
 		Checksum = GetPropertyChecksum( NetProperties[i], Checksum );
+	}
+
+	struct FCompareUFieldNames
+	{
+		FORCEINLINE bool operator()( UField& A, UField& B ) const
+		{
+			return A.GetName() < B.GetName();
+		}
+	};
+
+	// Sort multi-cast functions by name
+	Sort( MulticastFunctions.GetData(), MulticastFunctions.Num(), FCompareUFieldNames() );
+
+	// Grab all multi-cast RPC's (we don't need to worry about client RPC's, except for our spectator player controller, which we'll special case)
+	for ( UFunction* Function : MulticastFunctions )
+	{
+		// Evolve checksum on function name
+		Checksum = FCrc::StrCrc32( *Function->GetName().ToLower(), Checksum );
+
+		TArray< UProperty * > Parms;
+
+		for ( TFieldIterator< UProperty > It( Function ); It && ( It->PropertyFlags & ( CPF_Parm | CPF_ReturnParm ) ) == CPF_Parm; ++It )
+		{
+			Parms.Add( *It );
+		}
+		
+		// Sort parameters by offset/name
+		SortProperties( Parms );
+
+		// Evolve checksum on sorted function parameters
+		for ( UProperty* Parm : Parms )
+		{
+			Checksum = GetPropertyChecksum( Parm, Checksum );
+		}
 	}
 
 	// Can't be 0
