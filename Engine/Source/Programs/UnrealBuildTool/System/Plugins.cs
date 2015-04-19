@@ -43,65 +43,6 @@ namespace UnrealBuildTool
 		}
 	}
 
-	class PluginReferenceDescriptor
-	{
-		public string Name;
-		public bool bEnabled;
-		public List<UnrealTargetPlatform> WhitelistPlatforms = new List<UnrealTargetPlatform>();
-		public List<UnrealTargetPlatform> BlacklistPlatforms = new List<UnrealTargetPlatform>();
-
-		public PluginReferenceDescriptor(string InName, bool bInEnabled)
-		{
-			Name = InName;
-			bEnabled = bInEnabled;
-		}
-
-		public static PluginReferenceDescriptor FromJson(Dictionary<string, object> Dictionary)
-		{
-			PluginReferenceDescriptor Descriptor = new PluginReferenceDescriptor((string)Dictionary["Name"], (bool)Dictionary["Enabled"]);
-			TryParsePlatformList(Dictionary, "WhitelistPlatforms", Descriptor.WhitelistPlatforms);
-			TryParsePlatformList(Dictionary, "BlacklistPlatforms", Descriptor.BlacklistPlatforms);
-			return Descriptor;
-		}
-
-		public bool IsEnabledForPlatform(UnrealTargetPlatform Platform)
-		{
-			if(!bEnabled)
-			{
-				return false;
-			}
-			if(WhitelistPlatforms.Count > 0 && !WhitelistPlatforms.Contains(Platform))
-			{
-				return false;
-			}
-			if(BlacklistPlatforms.Contains(Platform))
-			{
-				return false;
-			}
-			return true;
-		}
-
-		static void TryParsePlatformList(Dictionary<string, object> Dictionary, string FieldName, List<UnrealTargetPlatform> Platforms)
-		{
-			object ArrayObject;
-			if(Dictionary.TryGetValue(FieldName, out ArrayObject))
-			{
-				foreach(string PlatformName in ((object[])ArrayObject).Select(x => (string)x))
-				{
-					UnrealTargetPlatform Platform;
-					if(Enum.TryParse(PlatformName, true, out Platform))
-					{
-						Platforms.Add(Platform);
-					}
-					else
-					{
-						throw new BuildException("Unknown platform name '{0}'", PlatformName);
-					}
-				}
-			}
-		}
-	}
-
 	public class Plugins
 	{
 		/// File extension of plugin descriptor files.  NOTE: This constant exists in UnrealBuildTool code as well.

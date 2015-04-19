@@ -307,39 +307,22 @@ namespace UnrealBuildTool
 		public static List<string> GetEnabledPlugins(string ProjectFileName, List<string> DefaultEnabledPlugins, UnrealTargetPlatform Platform)
 		{
 			// Parse the project file
-			string ProjectFile = File.ReadAllText(ProjectFileName);
-			try
+			ProjectDescriptor Project = ProjectDescriptor.FromFile(ProjectFileName);
+
+			// Get the list of plugins
+			List<string> EnabledPlugins = new List<string>(DefaultEnabledPlugins);
+			foreach(PluginReferenceDescriptor Plugin in Project.Plugins)
 			{
-				List<string> EnabledPlugins = new List<string>(DefaultEnabledPlugins);
-
-				// Create a case-insensitive dictionary of the contents
-				Dictionary<string, object> Descriptor = fastJSON.JSON.Instance.ToObject<Dictionary<string, object>>(ProjectFile);
-				Descriptor = new Dictionary<string,object>(Descriptor, StringComparer.InvariantCultureIgnoreCase);
-
-				// Get the list of plugins
-				object PluginsObject;
-				if(Descriptor.TryGetValue("Plugins", out PluginsObject))
+				if(Plugin.IsEnabledForPlatform(Platform))
 				{
-					object[] PluginsArrayObject = (object[])PluginsObject;
-					foreach(object PluginObject in PluginsArrayObject)
-					{
-						PluginReferenceDescriptor Plugin = PluginReferenceDescriptor.FromJson((Dictionary<string, object>)PluginObject);
-						if(Plugin.IsEnabledForPlatform(Platform))
-						{
-							EnabledPlugins.Add(Plugin.Name);
-						}
-						else
-						{
-							EnabledPlugins.RemoveAll(x => x.Equals(Plugin.Name, StringComparison.CurrentCultureIgnoreCase));
-						}
-					}
+					EnabledPlugins.Add(Plugin.Name);
 				}
-				return EnabledPlugins;
+				else
+				{
+					EnabledPlugins.RemoveAll(x => x.Equals(Plugin.Name, StringComparison.CurrentCultureIgnoreCase));
+				}
 			}
-			catch(BuildException Exception)
-			{
-				throw new BuildException("While parsing '{0}': {1}", ProjectFileName, Exception.ToString());
-			}
+			return EnabledPlugins;
 		}
 	}
 }

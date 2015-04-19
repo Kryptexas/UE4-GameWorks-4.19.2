@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -78,58 +79,130 @@ namespace UnrealBuildTool
 		public static PluginDescriptor FromFile(string FileName)
 		{
 			JsonObject RawObject = JsonObject.FromFile(FileName);
-
-			PluginDescriptor Descriptor = new PluginDescriptor();
-
-			// Read the version
-			if(!RawObject.TryGetNumericField("FileVersion", out Descriptor.FileVersion))
+			try
 			{
-				if(!RawObject.TryGetNumericField("PluginFileVersion", out Descriptor.FileVersion))
+				PluginDescriptor Descriptor = new PluginDescriptor();
+
+				// Read the version
+				if(!RawObject.TryGetIntegerField("FileVersion", out Descriptor.FileVersion))
 				{
-					throw new BuildException("Plugin descriptor file '{0}' does not contain a valid FileVersion entry", FileName);
+					if(!RawObject.TryGetIntegerField("PluginFileVersion", out Descriptor.FileVersion))
+					{
+						throw new BuildException("Plugin descriptor file '{0}' does not contain a valid FileVersion entry", FileName);
+					}
 				}
-			}
 
-			// Check it's not newer than the latest version we can parse
-			if(Descriptor.FileVersion > (int)PluginDescriptorVersion.Latest)
-			{
-				throw new BuildException( "Plugin descriptor file '{0}' appears to be in a newer version ({1}) of the file format that we can load (max version: {2}).", FileName, Descriptor.FileVersion, (int)PluginDescriptorVersion.Latest);
-			}
+				// Check it's not newer than the latest version we can parse
+				if(Descriptor.FileVersion > (int)PluginDescriptorVersion.Latest)
+				{
+					throw new BuildException( "Plugin descriptor file '{0}' appears to be in a newer version ({1}) of the file format that we can load (max version: {2}).", FileName, Descriptor.FileVersion, (int)PluginDescriptorVersion.Latest);
+				}
 
-			// Read the other fields
-			RawObject.TryGetNumericField("Version", out Descriptor.Version);
-			RawObject.TryGetStringField("VersionName", out Descriptor.VersionName);
-			RawObject.TryGetStringField("FriendlyName", out Descriptor.FriendlyName);
-			RawObject.TryGetStringField("Description", out Descriptor.Description);
+				// Read the other fields
+				RawObject.TryGetIntegerField("Version", out Descriptor.Version);
+				RawObject.TryGetStringField("VersionName", out Descriptor.VersionName);
+				RawObject.TryGetStringField("FriendlyName", out Descriptor.FriendlyName);
+				RawObject.TryGetStringField("Description", out Descriptor.Description);
 
-			if (!RawObject.TryGetStringField("Category", out Descriptor.Category))
-			{
-				// Category used to be called CategoryPath in .uplugin files
-				RawObject.TryGetStringField("CategoryPath", out Descriptor.Category);
-			}
+				if (!RawObject.TryGetStringField("Category", out Descriptor.Category))
+				{
+					// Category used to be called CategoryPath in .uplugin files
+					RawObject.TryGetStringField("CategoryPath", out Descriptor.Category);
+				}
         
-			// Due to a difference in command line parsing between Windows and Mac, we shipped a few Mac samples containing
-			// a category name with escaped quotes. Remove them here to make sure we can list them in the right category.
-			if (Descriptor.Category != null && Descriptor.Category.Length >= 2 && Descriptor.Category.StartsWith("\"") && Descriptor.Category.EndsWith("\""))
-			{
-				Descriptor.Category = Descriptor.Category.Substring(1, Descriptor.Category.Length - 2);
+				// Due to a difference in command line parsing between Windows and Mac, we shipped a few Mac samples containing
+				// a category name with escaped quotes. Remove them here to make sure we can list them in the right category.
+				if (Descriptor.Category != null && Descriptor.Category.Length >= 2 && Descriptor.Category.StartsWith("\"") && Descriptor.Category.EndsWith("\""))
+				{
+					Descriptor.Category = Descriptor.Category.Substring(1, Descriptor.Category.Length - 2);
+				}
+
+				RawObject.TryGetStringField("CreatedBy", out Descriptor.CreatedBy);
+				RawObject.TryGetStringField("CreatedByURL", out Descriptor.CreatedByURL);
+				RawObject.TryGetStringField("DocsURL", out Descriptor.DocsURL);
+
+				JsonObject[] ModulesArray;
+				if(RawObject.TryGetObjectArrayField("Modules", out ModulesArray))
+				{
+					Descriptor.Modules = Array.ConvertAll(ModulesArray, x => ModuleDescriptor.FromJsonObject(x));
+				}
+
+				RawObject.TryGetBoolField("EnabledByDefault", out Descriptor.bEnabledByDefault);
+				RawObject.TryGetBoolField("CanContainContent", out Descriptor.bCanContainContent);
+				RawObject.TryGetBoolField("IsBetaVersion", out Descriptor.bIsBetaVersion);
+
+				return Descriptor;
 			}
-
-			RawObject.TryGetStringField("CreatedBy", out Descriptor.CreatedBy);
-			RawObject.TryGetStringField("CreatedByURL", out Descriptor.CreatedByURL);
-			RawObject.TryGetStringField("DocsURL", out Descriptor.DocsURL);
-
-			JsonObject[] ModulesArray;
-			if(RawObject.TryGetObjectArrayField("Modules", out ModulesArray))
+			catch(JsonParseException ParseException)
 			{
-				Descriptor.Modules = Array.ConvertAll(ModulesArray, x => ModuleDescriptor.FromJsonObject(x));
+				throw new JsonParseException("{0} (in {1})", ParseException.Message, FileName);
 			}
+		}
+	}
 
-			RawObject.TryGetBoolField("EnabledByDefault", out Descriptor.bEnabledByDefault);
-			RawObject.TryGetBoolField("CanContainContent", out Descriptor.bCanContainContent);
-			RawObject.TryGetBoolField("IsBetaVersion", out Descriptor.bIsBetaVersion);
+	[DebuggerDisplay("Name={Name}")]
+	public class PluginReferenceDescriptor
+	{
+		// Name of the plugin
+		public string Name;
 
+		// Whether it should be enabled by default
+		public bool bEnabled;
+
+		// Description of the plugin for users that do not have it installed.
+		public string Description;
+
+		// If enabled, list of platforms for which the plugin should be enabled (or all platforms if blank).
+		UnrealTargetPlatform[] WhitelistPlatforms;
+
+		// If enabled, list of platforms for which the plugin should be disabled.
+		UnrealTargetPlatform[] BlacklistPlatforms;
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="InName">Name of the plugin</param>
+		/// <param name="bInEnabled">Whether the plugin is enabled</param>
+		public PluginReferenceDescriptor(string InName, bool bInEnabled)
+		{
+			Name = InName;
+			bEnabled = bInEnabled;
+		}
+
+		/// <summary>
+		/// Construct a PluginReferenceDescriptor from a Json object
+		/// </summary>
+		/// <param name="RawObject">The Json object containing a plugin reference descriptor</param>
+		/// <returns>New PluginReferenceDescriptor object</returns>
+		public static PluginReferenceDescriptor FromJsonObject(JsonObject RawObject)
+		{
+			PluginReferenceDescriptor Descriptor = new PluginReferenceDescriptor(RawObject.GetStringField("Name"), RawObject.GetBoolField("Enabled"));
+			RawObject.TryGetStringField("Description", out Descriptor.Description);
+			RawObject.TryGetEnumArrayField<UnrealTargetPlatform>("WhitelistPlatforms", out Descriptor.WhitelistPlatforms);
+			RawObject.TryGetEnumArrayField<UnrealTargetPlatform>("BlacklistPlatforms", out Descriptor.BlacklistPlatforms);
 			return Descriptor;
 		}
-	};
+
+		/// <summary>
+		/// Determines if this reference enables the plugin for a given platform
+		/// </summary>
+		/// <param name="Platform">The platform to check</param>
+		/// <returns>True if the plugin should be enabled</returns>
+		public bool IsEnabledForPlatform(UnrealTargetPlatform Platform)
+		{
+			if(!bEnabled)
+			{
+				return false;
+			}
+			if(WhitelistPlatforms != null && WhitelistPlatforms.Length > 0 && !WhitelistPlatforms.Contains(Platform))
+			{
+				return false;
+			}
+			if(BlacklistPlatforms != null && BlacklistPlatforms.Contains(Platform))
+			{
+				return false;
+			}
+			return true;
+		}
+	}
 }

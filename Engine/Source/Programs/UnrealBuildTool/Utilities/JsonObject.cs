@@ -6,6 +6,13 @@ using System.Text;
 
 namespace UnrealBuildTool
 {
+	public class JsonParseException : Exception
+	{
+		public JsonParseException(string Format, params string[] Args) : base(String.Format(Format, Args))
+		{
+		}
+	}
+
 	public class JsonObject
 	{
 		Dictionary<string, object> RawObject;
@@ -27,7 +34,7 @@ namespace UnrealBuildTool
 			string StringValue;
 			if(!TryGetStringField(FieldName, out StringValue))
 			{
-				throw new BuildException("Missing or invalid '{0}' field", FieldName);
+				throw new JsonParseException("Missing or invalid '{0}' field", FieldName);
 			}
 			return StringValue;
 		}
@@ -47,6 +54,16 @@ namespace UnrealBuildTool
 			}
 		}
 
+		public string[] GetStringArrayField(string FieldName)
+		{
+			string[] StringValues;
+			if(!TryGetStringArrayField(FieldName, out StringValues))
+			{
+				throw new JsonParseException("Missing or invalid '{0}' field", FieldName);
+			}
+			return StringValues;
+		}
+
 		public bool TryGetStringArrayField(string FieldName, out string[] Result)
 		{
 			object RawValue;
@@ -60,6 +77,16 @@ namespace UnrealBuildTool
 				Result = null;
 				return false;
 			}
+		}
+
+		public bool GetBoolField(string FieldName)
+		{
+			bool BoolValue;
+			if(!TryGetBoolField(FieldName, out BoolValue))
+			{
+				throw new JsonParseException("Missing or invalid '{0}' field", FieldName);
+			}
+			return BoolValue;
 		}
 
 		public bool TryGetBoolField(string FieldName, out bool Result)
@@ -77,10 +104,21 @@ namespace UnrealBuildTool
 			}
 		}
 
-		public bool TryGetNumericField(string FieldName, out int Result)
+		public bool TryGetIntegerField(string FieldName, out int Result)
 		{
 			object RawValue;
 			if(!RawObject.TryGetValue(FieldName, out RawValue) || !int.TryParse(RawValue.ToString(), out Result))
+			{
+				Result = 0;
+				return false;
+			}
+			return true;
+		}
+
+		public bool TryGetUnsignedIntegerField(string FieldName, out uint Result)
+		{
+			object RawValue;
+			if(!RawObject.TryGetValue(FieldName, out RawValue) || !uint.TryParse(RawValue.ToString(), out Result))
 			{
 				Result = 0;
 				return false;
@@ -93,7 +131,7 @@ namespace UnrealBuildTool
 			T EnumValue;
 			if(!TryGetEnumField(FieldName, out EnumValue))
 			{
-				throw new BuildException("Missing or invalid '{0}' field", FieldName);
+				throw new JsonParseException("Missing or invalid '{0}' field", FieldName);
 			}
 			return EnumValue;
 		}

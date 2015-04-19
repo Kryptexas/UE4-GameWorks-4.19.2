@@ -209,6 +209,7 @@
     <Compile Include="System\CMakefileGenerator.cs" />
     <Compile Include="System\ModuleDescriptor.cs" />
     <Compile Include="System\PluginDescriptor.cs" />
+    <Compile Include="System\ProjectDescriptor.cs" />
     <Compile Include="System\QMakefileGenerator.cs" />
     <Compile Include="System\ModuleProcessingException.cs" />
     <Compile Include="System\MakefileGenerator.cs" />
