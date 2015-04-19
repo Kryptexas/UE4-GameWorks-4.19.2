@@ -2487,7 +2487,7 @@ namespace UnrealBuildTool
 			// Add the list of plugins enabled by default
 			if (UEBuildConfiguration.bCompileAgainstEngine)
 			{
-				EnabledPluginNames.AddRange(ValidPlugins.Where(x => x.bEnabledByDefault).Select(x => x.Name));
+				EnabledPluginNames.AddRange(ValidPlugins.Where(x => x.Descriptor.bEnabledByDefault).Select(x => x.Name));
 			}
 
 			// Update the plugin list for game targets

@@ -19,9 +19,6 @@ namespace UnrealBuildTool
 			GameProject
 		};
 		
-		// Whether or not the plugin should be built
-		public bool bShouldBuild;
-
 		// Plugin name
 		public string Name;
 
@@ -30,9 +27,6 @@ namespace UnrealBuildTool
 
 		// The plugin descriptor
 		public PluginDescriptor Descriptor;
-
-		// Whether this plugin is enabled by default
-		public bool bEnabledByDefault;
 
 		// Where does this plugin live?
 		public LoadedFromType LoadedFrom;
