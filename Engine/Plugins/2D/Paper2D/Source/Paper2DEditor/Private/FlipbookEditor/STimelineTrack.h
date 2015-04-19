@@ -24,16 +24,16 @@ public:
 	float WidgetWidth;
 	FPaperFlipbookKeyFrame KeyFrameData;
 	int32 SourceFrameIndex;
+	FText BodyText;
 	TWeakObjectPtr<UPaperFlipbook> SourceFlipbook;
 	FScopedTransaction Transaction;
 
+	// FDragDropOperation interface
 	virtual TSharedPtr<SWidget> GetDefaultDecorator() const override;
-
 	virtual void OnDragged(const class FDragDropEvent& DragDropEvent) override;
-
 	virtual void Construct() override;
-
 	virtual void OnDrop(bool bDropWasHandled, const FPointerEvent& MouseEvent) override;
+	// End of FDragDropOperation interface
 
 	void AppendToFlipbook(UPaperFlipbook* DestinationFlipbook);
 
@@ -79,6 +79,7 @@ protected:
 	FReply KeyframeOnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 
 	FText GetKeyframeAssetName() const;
+	FText GetKeyframeText() const;
 	FText GetKeyframeTooltip() const;
 
 	TSharedRef<SWidget> GenerateContextMenu();
