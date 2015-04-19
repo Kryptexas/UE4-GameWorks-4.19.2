@@ -15,7 +15,7 @@ public:
 		, _PlayTime(0)
 	{}
 
-	SLATE_ATTRIBUTE(float, SlateUnitsPerFrame)
+		SLATE_ATTRIBUTE(float, SlateUnitsPerFrame)
 		SLATE_ATTRIBUTE(class UPaperFlipbook*, FlipbookBeingEdited)
 		SLATE_ATTRIBUTE(float, PlayTime)
 	SLATE_END_ARGS()
@@ -41,7 +41,7 @@ public:
 		MainBoxPtr->ClearChildren();
 
 		UPaperFlipbook* Flipbook = FlipbookBeingEdited.Get();
-		float LocalSlateUnitsPerFrame = SlateUnitsPerFrame.Get();
+		const float LocalSlateUnitsPerFrame = SlateUnitsPerFrame.Get();
 		if ((Flipbook != nullptr) && (LocalSlateUnitsPerFrame > 0))
 		{
 			const int32 NumFrames = Flipbook->GetNumFrames();

@@ -26,20 +26,19 @@ void SFlipbookTimeline::Construct(const FArguments& InArgs, TSharedPtr<FUIComman
 	OnSelectionChanged = InArgs._OnSelectionChanged;
 	CommandList = InCommandList;
 
-	SlateUnitsPerFrame = 32;
+	SlateUnitsPerFrame = 64.0f;
 
 	BackgroundPerFrameSlices = SNew(SHorizontalBox);
 
 	TimelineHeader = SNew(STimelineHeader)
-		.SlateUnitsPerFrame(SlateUnitsPerFrame)
+		.SlateUnitsPerFrame(this, &SFlipbookTimeline::GetSlateUnitsPerFrame)
 		.FlipbookBeingEdited(FlipbookBeingEdited)
 		.PlayTime(PlayTime);
 
 	TimelineTrack = SNew(SFlipbookTimelineTrack, CommandList)
-		.SlateUnitsPerFrame(SlateUnitsPerFrame)
+		.SlateUnitsPerFrame(this, &SFlipbookTimeline::GetSlateUnitsPerFrame)
 		.FlipbookBeingEdited(FlipbookBeingEdited)
 		.OnSelectionChanged(OnSelectionChanged);
-
 
 	ChildSlot
 	[
@@ -228,6 +227,26 @@ int32 SFlipbookTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Allott
 	return LayerId;
 }
 
+FReply SFlipbookTimeline::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	if (MouseEvent.IsControlDown())
+	{
+		const float DirectionScale = 0.08f;
+		const float MinFrameSize = 16.0f;
+		const float Direction = MouseEvent.GetWheelDelta();
+		const float NewUnitsPerFrame = FMath::Max(MinFrameSize, SlateUnitsPerFrame * (1.0f + Direction * DirectionScale));
+		SlateUnitsPerFrame = NewUnitsPerFrame;
+		
+		CheckForRebuild(/*bRebuildAll=*/ true);
+
+		return FReply::Handled();
+	}
+	else
+	{
+		return FReply::Unhandled();
+	}
+}
+
 TSharedRef<SWidget> SFlipbookTimeline::GenerateContextMenu()
 {
 	FMenuBuilder MenuBuilder(true, CommandList);
@@ -260,17 +279,22 @@ FReply SFlipbookTimeline::OnMouseButtonUp(const FGeometry& MyGeometry, const FPo
 
 void SFlipbookTimeline::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
+	CheckForRebuild();
+}
+
+void SFlipbookTimeline::CheckForRebuild(bool bRebuildAll)
+{
 	UPaperFlipbook* Flipbook = FlipbookBeingEdited.Get();
 
 	const int32 NewNumKeyframes = (Flipbook != nullptr) ? Flipbook->GetNumKeyFrames() : 0;
-	if (NewNumKeyframes != NumKeyFramesFromLastRebuild)
+	if ((NewNumKeyframes != NumKeyFramesFromLastRebuild) || bRebuildAll)
 	{
 		NumKeyFramesFromLastRebuild = NewNumKeyframes;
 		TimelineTrack->Rebuild();
 	}
 
 	const int32 NewNumFrames = (Flipbook != nullptr) ? Flipbook->GetNumFrames() : 0;
-	if (NewNumFrames != NumFramesFromLastRebuild)
+	if ((NewNumFrames != NumFramesFromLastRebuild) || bRebuildAll)
 	{
 		NumFramesFromLastRebuild = NewNumFrames;
 		TimelineHeader->Rebuild();

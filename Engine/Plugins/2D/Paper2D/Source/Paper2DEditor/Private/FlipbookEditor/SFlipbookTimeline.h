@@ -27,6 +27,7 @@ public:
 	virtual void OnDragLeave(const FDragDropEvent& DragDropEvent) override;
 	virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	// End of SWidget interface
@@ -37,6 +38,9 @@ private:
 
 	TSharedRef<SWidget> GenerateContextMenu();
 	EVisibility NoFramesWarningVisibility() const;
+	void CheckForRebuild(bool bRebuildAll = false);
+
+	float GetSlateUnitsPerFrame() const { return SlateUnitsPerFrame; }
 private:
 	TSharedPtr<SHorizontalBox> BackgroundPerFrameSlices;
 	TSharedPtr<class STimelineHeader> TimelineHeader;
@@ -46,7 +50,9 @@ private:
 	TAttribute<float> PlayTime;
 	TSharedPtr<FUICommandList> CommandList;
 	FOnFlipbookKeyframeSelectionChanged OnSelectionChanged;
-	int32 SlateUnitsPerFrame;
+	float SlateUnitsPerFrame;
+
+	// Observer values (used to detect if the widget needs to be rebuilt)
 	int32 NumFramesFromLastRebuild;
 	int32 NumKeyFramesFromLastRebuild;
 };
