@@ -184,6 +184,11 @@ UPaperTileMap* UPaperTileLayer::GetTileMap() const
 	return CastChecked<UPaperTileMap>(GetOuter());
 }
 
+int32 UPaperTileLayer::GetLayerIndex() const
+{
+	return GetTileMap()->TileLayers.Find(const_cast<UPaperTileLayer*>(this));
+}
+
 FPaperTileInfo UPaperTileLayer::GetCell(int32 X, int32 Y) const
 {
 	if ((X < 0) || (X >= LayerWidth) || (Y < 0) || (Y >= LayerHeight))

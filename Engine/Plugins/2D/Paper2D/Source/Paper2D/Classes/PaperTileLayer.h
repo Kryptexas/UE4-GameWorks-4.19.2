@@ -158,15 +158,22 @@ public:
 #endif
 	// End of UObject interface
 
+	// Returns the parent tile map
 	class UPaperTileMap* GetTileMap() const;
 
+	// Returns the index of this layer in the parent tile map
+	int32 GetLayerIndex() const;
+
+	// Returns the tile information about the specified cell
 	FPaperTileInfo GetCell(int32 X, int32 Y) const;
+
+	// Sets the tile information about the specified cell
 	void SetCell(int32 X, int32 Y, const FPaperTileInfo& NewValue);
 
-	// This is a destructive operation!
+	// Reallocates the map.  This is a destructive operation that does not copy data across!
 	void DestructiveAllocateMap(int32 NewWidth, int32 NewHeight);
 	
-	// This tries to preserve contents
+	// Reallocates the map.  This tries to preserve contents.
 	void ResizeMap(int32 NewWidth, int32 NewHeight);
 
 	// Adds collision to the specified body setup
