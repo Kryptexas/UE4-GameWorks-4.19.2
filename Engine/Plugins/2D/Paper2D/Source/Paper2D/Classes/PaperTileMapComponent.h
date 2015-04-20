@@ -130,6 +130,9 @@ public:
 	// Note: This will only work on components that own their own tile map (OwnsTileMap returns true), you cannot modify standalone tile map assets
 	UFUNCTION(BlueprintCallable, Category = "Sprite")
 	void SetLayerColor(FLinearColor NewColor, int32 Layer = 0);
+
+	// Returns the wireframe color to use for this component.
+	FLinearColor GetWireframeColor() const;
 };
 
 // Allow the old name to continue to work for one release

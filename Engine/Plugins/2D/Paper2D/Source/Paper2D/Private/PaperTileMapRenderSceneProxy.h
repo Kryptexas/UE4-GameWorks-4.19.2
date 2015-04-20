@@ -20,6 +20,10 @@ public:
 	{
 		BatchedSprites = InBatchedSprites;
 	}
+
+protected:
+	void DrawBoundsForLayer(FPrimitiveDrawInterface* PDI, const FLinearColor& Color, int32 LayerIndex) const;
+
 protected:
 	//@TODO: Not thread safe
 	const class UPaperTileMap* TileMap;

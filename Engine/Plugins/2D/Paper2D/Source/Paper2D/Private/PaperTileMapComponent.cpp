@@ -499,4 +499,9 @@ void UPaperTileMapComponent::SetLayerColor(FLinearColor NewColor, int32 Layer)
 	}
 }
 
+FLinearColor UPaperTileMapComponent::GetWireframeColor() const
+{
+	return TileMapColor;
+}
+
 #undef LOCTEXT_NAMESPACE

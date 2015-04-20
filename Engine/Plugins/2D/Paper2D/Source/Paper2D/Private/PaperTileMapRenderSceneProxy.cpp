@@ -20,10 +20,28 @@ FPaperTileMapRenderSceneProxy::FPaperTileMapRenderSceneProxy(const UPaperTileMap
 {
 	if (const UPaperTileMapComponent* InTileComponent = Cast<const UPaperTileMapComponent>(InComponent))
 	{
+		WireframeColor = InTileComponent->GetWireframeColor();
 		TileMap = InTileComponent->TileMap;
 		Material = InTileComponent->GetMaterial(0);
 		MaterialRelevance = InTileComponent->GetMaterialRelevance(GetScene().GetFeatureLevel());
 	}
+}
+
+void FPaperTileMapRenderSceneProxy::DrawBoundsForLayer(FPrimitiveDrawInterface* PDI, const FLinearColor& Color, int32 LayerIndex) const
+{
+	// Slight depth bias so that the wireframe grid overlay doesn't z-fight with the tiles themselves
+	const float DepthBias = 0.0001f;
+
+	const FMatrix& LocalToWorld = GetLocalToWorld();
+	const FVector TL(LocalToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(0, 0, LayerIndex)));
+	const FVector TR(LocalToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(TileMap->MapWidth, 0, LayerIndex)));
+	const FVector BL(LocalToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(0, TileMap->MapHeight, LayerIndex)));
+	const FVector BR(LocalToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(TileMap->MapWidth, TileMap->MapHeight, LayerIndex)));
+
+	PDI->DrawLine(TL, TR, Color, SDPG_Foreground, 0.0f, DepthBias);
+	PDI->DrawLine(TR, BR, Color, SDPG_Foreground, 0.0f, DepthBias);
+	PDI->DrawLine(BR, BL, Color, SDPG_Foreground, 0.0f, DepthBias);
+	PDI->DrawLine(BL, TL, Color, SDPG_Foreground, 0.0f, DepthBias);
 }
 
 void FPaperTileMapRenderSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const
@@ -45,8 +63,6 @@ void FPaperTileMapRenderSceneProxy::GetDynamicMeshElements(const TArray<const FS
 			//@TODO: RenderThread race condition
 			if (TileMap != nullptr)
 			{
-				FColor WireframeColor = FColor(0, 255, 255, 255);
-
 				if ((View->Family->EngineShowFlags.Collision /*@TODO: && bIsCollisionEnabled*/) && AllowDebugViewmodes())
 				{
 					if (UBodySetup2D* BodySetup2D = Cast<UBodySetup2D>(TileMap->BodySetup))
@@ -125,15 +141,7 @@ void FPaperTileMapRenderSceneProxy::GetDynamicMeshElements(const TArray<const FS
 						{
 							if (LayerIndex != SelectedLayerIndex)
 							{
-								const FVector TL(LocalToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(0, 0, LayerIndex)));
-								const FVector TR(LocalToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(TileMap->MapWidth, 0, LayerIndex)));
-								const FVector BL(LocalToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(0, TileMap->MapHeight, LayerIndex)));
-								const FVector BR(LocalToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(TileMap->MapWidth, TileMap->MapHeight, LayerIndex)));
-
-								PDI->DrawLine(TL, TR, OverrideColor, DPG, 0.0f, DepthBias);
-								PDI->DrawLine(TR, BR, OverrideColor, DPG, 0.0f, DepthBias);
-								PDI->DrawLine(BR, BL, OverrideColor, DPG, 0.0f, DepthBias);
-								PDI->DrawLine(BL, TL, OverrideColor, DPG, 0.0f, DepthBias);
+								DrawBoundsForLayer(PDI, OverrideColor, LayerIndex);
 							}
 						}
 
@@ -163,6 +171,11 @@ void FPaperTileMapRenderSceneProxy::GetDynamicMeshElements(const TArray<const FS
 								PDI->DrawLine(LocalToWorld.TransformPosition(Start), LocalToWorld.TransformPosition(End), OverrideColor, DPG, 0.0f, DepthBias);
 							}
 						}
+					}
+					else
+					{
+						// Draw layer 0 even when not selected, so you can see where the tile map is in the editor
+						DrawBoundsForLayer(PDI, WireframeColor, 0);
 					}
 				}
 #endif
