@@ -42,6 +42,7 @@ if [ -e /etc/os-release ]; then
       libmono-system-management4.0-cil
       libmono-system-xml-linq4.0-cil
       libmono-corlib4.0-cil
+      libmono-windowsbase4.0-cil
       clang-3.5
       "
 
