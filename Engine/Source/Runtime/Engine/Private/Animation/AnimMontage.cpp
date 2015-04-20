@@ -1101,22 +1101,11 @@ void FAnimMontageInstance::MontageSync_Follow(struct FAnimMontageInstance* NewLe
 	MontageSync_StopFollowing();
 
 	// Follow new leader
+	// Note: we don't really care about detecting loops there, there's no real harm in doing so.
 	if (NewLeaderMontageInstance && (NewLeaderMontageInstance != this))
 	{
 		NewLeaderMontageInstance->MontageSyncFollowers.AddUnique(this);
 		MontageSyncLeader = NewLeaderMontageInstance;
-
-		// Prevent creating a loop
-		FAnimMontageInstance* TestNode = MontageSyncLeader;
-		while (TestNode != NULL)
-		{
-			if (TestNode->MontageSyncLeader == this)
-			{
-				TestNode->MontageSync_StopFollowing();
-				break;
-			}
-			TestNode = TestNode->MontageSyncLeader;
-		}
 	}
 }
 
@@ -1142,77 +1131,63 @@ void FAnimMontageInstance::MontageSync_StopFollowing()
 	}
 }
 
+uint32 FAnimMontageInstance::MontageSync_GetFrameCounter() const
+{
+	return (GFrameCounter % MAX_uint32);
+}
+
 bool FAnimMontageInstance::MontageSync_HasBeenUpdatedThisFrame() const
 {
-	return (MontageSyncUpdateFrameCounter == (GFrameCounter % MAX_uint32));
+	return (MontageSyncUpdateFrameCounter == MontageSync_GetFrameCounter());
 }
 
-FAnimMontageInstance* FAnimMontageInstance::MontageSync_GetTopMostLeader() const
+void FAnimMontageInstance::MontageSync_PreUpdate()
 {
-	FAnimMontageInstance* TopMostLeader = MontageSyncLeader;
-	if (TopMostLeader)
+	// If we are being synchronized to a leader
+	// And our leader HASN'T been updated yet, then we need to synchronize ourselves now.
+	// We're basically synchronizing to last frame's values.
+	// If we want to avoid that frame of lag, a tick prerequisite should be put between the follower and the leader.
+	if (MontageSyncLeader && !MontageSyncLeader->MontageSync_HasBeenUpdatedThisFrame())
 	{
-		while (TopMostLeader->MontageSyncLeader)
-		{
-			TopMostLeader = MontageSyncLeader->MontageSyncLeader;
-		}
-	}
-	return TopMostLeader;
-}
-
-void FAnimMontageInstance::MontageSync_Update()
-{
-	// If we've already been updated this frame, we're good.
-	if (MontageSync_HasBeenUpdatedThisFrame())
-	{
-		return;
-	}
-
-	// Find top most leader so he can update all of his followers.
-	FAnimMontageInstance* TopMostLeader = MontageSync_GetTopMostLeader();
-	if (TopMostLeader)
-	{
-		TopMostLeader->MontageSync_SyncFollowers();
-	}
-	else
-	{
-		MontageSync_SyncFollowers();
+		MontageSync_PerformSyncToLeader();
 	}
 }
 
-void FAnimMontageInstance::MontageSync_SyncFollowers()
+void FAnimMontageInstance::MontageSync_PostUpdate()
 {
 	// Tag ourselves as updated this frame.
-	MontageSyncUpdateFrameCounter = (GFrameCounter % MAX_uint32);
+	MontageSyncUpdateFrameCounter = MontageSync_GetFrameCounter();
 
-	// Sync our followers if any
-	if (MontageSyncFollowers.Num() > 0)
+	// If we are being synchronized to a leader
+	// And our leader HAS already been updated, then we can synchronize ourselves now.
+	// To make sure we are in sync before rendering.
+	if (MontageSyncLeader && MontageSyncLeader->MontageSync_HasBeenUpdatedThisFrame())
 	{
-		const float LeaderPosition = GetPosition();
-		const float LeaderPlayRate = GetPlayRate();
-		const FName LeaderCurrentSectionName = GetCurrentSection();
-		const FName LeaderNextSectionName = GetNextSection();
+		MontageSync_PerformSyncToLeader();
+	}
+}
 
-		for (auto MontageSyncFollower : MontageSyncFollowers)
+void FAnimMontageInstance::MontageSync_PerformSyncToLeader()
+{
+	if (MontageSyncLeader)
+	{
+		// Sync follower position only if significant error.
+		// We don't want continually 'teleport' it, which could have side-effects and skip AnimNotifies.
+		const float LeaderPosition = MontageSyncLeader->GetPosition();
+		const float FollowerPosition = GetPosition();
+		if (FMath::Abs(FollowerPosition - LeaderPosition) > KINDA_SMALL_NUMBER)
 		{
-			// Sync follower position only if significant error.
-			// We don't want continually 'teleport' then, which could have side-effects and skip AnimNotifies.
-			const float FollowerPosition = MontageSyncFollower->GetPosition();
-			if (FMath::Abs(FollowerPosition - LeaderPosition) > KINDA_SMALL_NUMBER)
-			{
-				MontageSyncFollower->SetPosition(LeaderPosition);
-			}
+			SetPosition(LeaderPosition);
+		}
 
-			MontageSyncFollower->SetPlayRate(LeaderPlayRate);
+		SetPlayRate(MontageSyncLeader->GetPlayRate());
 
-			// If source and target share same section names, keep them in sync as well. So we properly handle jumps and loops.
-			if ((LeaderCurrentSectionName != NAME_None) && (MontageSyncFollower->GetCurrentSection() == LeaderCurrentSectionName))
-			{
-				MontageSyncFollower->SetNextSectionName(LeaderCurrentSectionName, LeaderNextSectionName);
-			}
-
-			// Mark follower as updated, and let it update his own followers if needed.
-			MontageSyncFollower->MontageSync_SyncFollowers();
+		// If source and target share same section names, keep them in sync as well. So we properly handle jumps and loops.
+		const FName LeaderCurrentSectionName = MontageSyncLeader->GetCurrentSection();
+		if ((LeaderCurrentSectionName != NAME_None) && (GetCurrentSection() == LeaderCurrentSectionName))
+		{
+			const FName LeaderNextSectionName = MontageSyncLeader->GetNextSection();
+			SetNextSectionName(LeaderCurrentSectionName, LeaderNextSectionName);
 		}
 	}
 }
@@ -1334,8 +1309,6 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 			RefreshNextPrevSections();
 		}
 #endif
-		// Update Montage Synchronization first.
-		MontageSync_Update();
 
 		// if no weight, no reason to update, and if not playing, we don't need to advance
 		// this portion is to advance position

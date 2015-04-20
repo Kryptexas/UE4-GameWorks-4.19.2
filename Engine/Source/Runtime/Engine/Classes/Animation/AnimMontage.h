@@ -219,6 +219,10 @@ public:
 	void MontageSync_StopLeading();
 	/** Stop following our leader */
 	void MontageSync_StopFollowing();
+	/** PreUpdate - Sync if updated before Leader. */
+	void MontageSync_PreUpdate();
+	/** PostUpdate - Sync if updated after Leader. */
+	void MontageSync_PostUpdate();
 
 private:
 	/** Followers this Montage will synchronize */
@@ -228,14 +232,12 @@ private:
 	/** Frame counter to sync montages once per frame */
 	uint32 MontageSyncUpdateFrameCounter;
 
-	/** Update montage synchronzation */
-	void MontageSync_Update();
-	/* Get top most leader for synchronization */
-	FAnimMontageInstance* MontageSync_GetTopMostLeader() const;
 	/** true if montage has been updated this frame */
 	bool MontageSync_HasBeenUpdatedThisFrame() const;
-	/** Synchronize this montage's followers */
-	void MontageSync_SyncFollowers();
+	/** This frame's counter, to track which Montages have been updated */
+	uint32 MontageSync_GetFrameCounter() const;
+	/** Synchronize ourselves to our leader */
+	void MontageSync_PerformSyncToLeader();
 
 public:
 	FAnimMontageInstance()

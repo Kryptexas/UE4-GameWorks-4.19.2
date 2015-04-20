@@ -1820,7 +1820,9 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 				RootMotionParams = (RootMotionMode != ERootMotionMode::IgnoreRootMotion) ? &ExtractedRootMotion : &LocalExtractedRootMotion;
 			}
 
+			MontageInstance->MontageSync_PreUpdate();
 			MontageInstance->Advance(DeltaSeconds, RootMotionParams, bUsingBlendedRootMotion);
+			MontageInstance->MontageSync_PostUpdate();
 
 			if (!MontageInstance->IsValid())
 			{
