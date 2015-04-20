@@ -62,7 +62,7 @@ void UBTTaskNode::ReceivedMessage(UBrainComponent* BrainComp, const FAIMessage& 
 	check(OwnerComp);
 	
 	const uint16 InstanceIdx = OwnerComp->FindInstanceContainingNode(this);
-	if (InstanceIdx)
+	if (OwnerComp->InstanceStack.IsValidIndex(InstanceIdx))
 	{
 		uint8* NodeMemory = GetNodeMemory<uint8>(OwnerComp->InstanceStack[InstanceIdx]);
 		OnMessage(*OwnerComp, NodeMemory, Message.MessageName, Message.RequestID, Message.Status == FAIMessage::Success);
