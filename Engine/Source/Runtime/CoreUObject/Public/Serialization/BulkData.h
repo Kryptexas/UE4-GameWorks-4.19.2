@@ -208,6 +208,20 @@ struct COREUOBJECT_API FUntypedBulkData
 	uint32 GetBulkDataFlags() const;
 
 	/**
+	 * Sets the passed in bulk data alignment.
+	 *
+	 * @param BulkDataAlignmentToSet	Bulk data alignment to set
+	 */
+	void SetBulkDataAlignment( uint32 BulkDataAlignmentToSet );
+
+	/**
+	* Gets the current bulk data alignment.
+	*
+	* @return Bulk data alignment currently set
+	*/
+	uint32 GetBulkDataAlignment() const;
+
+	/**
 	 * Clears the passed in bulk data flags.
 	 *
 	 * @param BulkDataFlagsToClear	Bulk data flags to clear
@@ -409,6 +423,8 @@ private:
 	int64					BulkDataOffsetInFile;
 	/** Size of bulk data on disk or INDEX_NONE if no association														*/
 	int32					BulkDataSizeOnDisk;
+	/** Alignment of bulk data																							*/
+	int32					BulkDataAlignment;
 
 	/** Pointer to cached bulk data																						*/
 	void*				BulkData;
@@ -531,6 +547,7 @@ struct COREUOBJECT_API FFloatBulkData : public FUntypedBulkData
 class FFormatContainer
 {
 	TMap<FName, FByteBulkData*> Formats;
+	uint32 Alignment;
 public:
 	~FFormatContainer()
 	{
@@ -558,7 +575,7 @@ public:
 		}
 		Formats.Empty();
 	}
-	COREUOBJECT_API void Serialize(FArchive& Ar, UObject* Owner, const TArray<FName>* FormatsToSave = NULL, bool bSingleUse = true);
+	COREUOBJECT_API void Serialize(FArchive& Ar, UObject* Owner, const TArray<FName>* FormatsToSave = NULL, bool bSingleUse = true, uint32 Alignment = DEFAULT_ALIGNMENT);
 };
 
 #endif
