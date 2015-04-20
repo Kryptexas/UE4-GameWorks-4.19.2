@@ -63,6 +63,14 @@ void FChunkManifestGenerator::OnLastPackageLoaded( UPackage* Package )
 	}
 }
 
+void FChunkManifestGenerator::OnLastPackageLoaded( const FName& PackageName )
+{
+	if ( !AssetsLoadedWithLastPackage.Contains(PackageName))
+	{
+		AssetsLoadedWithLastPackage.Add(PackageName);
+	}
+}
+
 bool FChunkManifestGenerator::CleanTempPackagingDirectory(const FString& Platform) const
 {
 	FString TmpPackagingDir = GetTempPackagingDirectoryForPlatform(Platform);
@@ -200,8 +208,76 @@ void FChunkManifestGenerator::Initialize(bool InGenerateChunks)
 	}
 }
 
+void FChunkManifestGenerator::AddPackageToChunkManifest(const FName& PackageFName, const FString& PackagePathName, const FString& SandboxFilename, const FString& LastLoadedMapName, FSandboxPlatformFile* InSandboxFile)
+{
+	TArray<int32> TargetChunks;
+	TArray<int32> ExistingChunkIDs;
+
+	if (!bGenerateChunks)
+	{
+		TargetChunks.AddUnique(0);
+		ExistingChunkIDs.AddUnique(0);
+	}
+
+	if (bGenerateChunks)
+	{
+		// Try to determine if this package has been loaded as a result of loading a map package.
+		FString MapThisAssetWasLoadedWith;
+		if (!LastLoadedMapName.IsEmpty())
+		{
+			if (AssetsLoadedWithLastPackage.Contains(PackageFName))
+			{
+				MapThisAssetWasLoadedWith = LastLoadedMapName;
+			}
+		}
+
+		// Collect all chunk IDs associated with this package from the asset registry
+		TArray<int32> RegistryChunkIDs = GetAssetRegistryChunkAssignments(PackageFName);
+		ExistingChunkIDs = GetExistingPackageChunkAssignments(PackageFName);
+
+		// Try to call game-specific delegate to determine the target chunk ID
+		// FString Name = Package->GetPathName();
+		if (FGameDelegates::Get().GetAssignStreamingChunkDelegate().IsBound())
+		{
+			FGameDelegates::Get().GetAssignStreamingChunkDelegate().ExecuteIfBound(PackagePathName, MapThisAssetWasLoadedWith, RegistryChunkIDs, ExistingChunkIDs, TargetChunks);
+		}
+		else
+		{
+			//Take asset registry assignments and existing assignments
+			TargetChunks.Append(RegistryChunkIDs);
+			TargetChunks.Append(ExistingChunkIDs);
+		}
+	}
+
+	NotifyPackageWasCooked(SandboxFilename, PackageFName);
+
+	bool bAssignedToChunk = false;
+	// if the delegate requested a specific chunk assignment, add them package to it now.
+	for (const auto& PackageChunk : TargetChunks)
+	{
+		AddPackageToManifest(SandboxFilename, PackageFName, PackageChunk);
+		bAssignedToChunk = true;
+	}
+	// If the delegate requested to remove the package from any chunk, remove it now
+	for (const auto& PackageChunk : ExistingChunkIDs)
+	{
+		if (!TargetChunks.Contains(PackageChunk))
+		{
+			RemovePackageFromManifest(PackageFName, PackageChunk);
+		}
+	}
+
+	if (!bAssignedToChunk)
+	{
+		NotifyPackageWasNotAssigned(SandboxFilename, PackageFName);
+	}
+}
+
 void FChunkManifestGenerator::AddPackageToChunkManifest(UPackage* Package, const FString& SandboxFilename, const FString& LastLoadedMapName, FSandboxPlatformFile* InSandboxFile)
 {
+#if 0
+	AddPackageToChunkManifest(Package->GetFName(), Package->GetPathName(), SandboxFilename, LastLoadedMapName, InSandboxFile);
+#else
 	TArray<int32> TargetChunks;
 	TArray<int32> ExistingChunkIDs;
 	
@@ -264,6 +340,7 @@ void FChunkManifestGenerator::AddPackageToChunkManifest(UPackage* Package, const
 	{
 		NotifyPackageWasNotAssigned(SandboxFilename, PackageFName);
 	}
+#endif
 }
 
 void FChunkManifestGenerator::PrepareToLoadNewPackage(const FString& Filename)

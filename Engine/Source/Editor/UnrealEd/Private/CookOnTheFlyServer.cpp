@@ -42,6 +42,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogCook, Log, All);
 #define DEBUG_COOKONTHEFLY 0
 #define OUTPUT_TIMING 0
 
+#define USEASSETREGISTRYFORDEPENDENTPACKAGES 1
+#define VERIFY_GETDEPENDENTPACKAGES 0 // verify has false hits because old serialization method for generating dependencies had errors (included transient objects which shouldn't be in asset registry), but you can still use verify to build a list then cross check against transient objects.  
+
 #if OUTPUT_TIMING
 
 
@@ -628,6 +631,7 @@ public:
 		, RootSet(InRootSet)
 	{
 		ArIsObjectReferenceCollector = true;
+		ArIsSaving = true;
 
 		for ( const auto& Object : RootSet )
 		{
@@ -657,9 +661,92 @@ public:
 	virtual FString GetArchiveName() const override { return TEXT("FArchiveFindReferences"); }
 };
 
+
+void UCookOnTheFlyServer::GetDependentPackages( const TSet<UPackage*>& RootPackages, TSet<FName>& FoundPackages )
+{
+static const FName AssetRegistryName("AssetRegistry");
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryName);
+	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+
+	TArray<FName> FoundPackagesArray;
+	for ( const UPackage* RootPackage : RootPackages)
+	{
+		FoundPackagesArray.Add( RootPackage->GetFName() );
+		FoundPackages.Add( RootPackage->GetFName() );
+	}
+
+
+	int FoundPackagesCounter = 0;
+	while ( FoundPackagesCounter < FoundPackagesArray.Num() )
+	{
+
+		TArray<FName> PackageDependencies;
+		verify( AssetRegistry.GetDependencies(FoundPackagesArray[FoundPackagesCounter], PackageDependencies) );
+		++FoundPackagesCounter;
+		for ( const auto& PackageDependency : PackageDependencies )
+		{
+			if ( FoundPackages.Contains(PackageDependency) == false )
+			{
+				FoundPackages.Add(PackageDependency);
+				FoundPackagesArray.Add( PackageDependency );
+			}
+			
+		}
+	}	
+
+
+#if VERIFY_GETDEPENDENTPACKAGES
+
+	TSet<UObject*> RootSet;
+	TSet<UObject*> FoundObjects;
+	for (UPackage* Package : RootPackages)
+	{
+		TArray<UObject*> ObjectsInPackage;
+		GetObjectsWithOuter(Package, ObjectsInPackage, true);
+		for (UObject* Obj : ObjectsInPackage)
+		{
+			RootSet.Add(Obj);
+			FoundObjects.Add(Obj);
+		}
+	}
+
+	TArray<UObject*> Exclude;
+	FArchiveFindReferences ArFindReferences( RootSet, FoundObjects, Exclude );
+
+	TSet<UPackage*> NewFoundPackages;
+	for ( const auto& Obj : FoundObjects )
+	{
+		NewFoundPackages.Add( Obj->GetOutermost() );
+	}
+
+
+	// verify that the old code (directly above) functions the same as the new code
+
+	for (const UPackage* NewPackage : NewFoundPackages)
+	{
+		UE_LOG(LogCook, Display, TEXT("Old Found package %s"), *NewPackage->GetFName().ToString());
+	}
+	for (const auto& CurrentPackage : FoundPackages )
+	{
+		UE_LOG(LogCook, Display, TEXT("New Found package %s"), *CurrentPackage.ToString());
+	}
+
+	for ( const UPackage* NewPackage : NewFoundPackages )
+	{
+		if (FoundPackages.Contains(NewPackage->GetFName()) == false)
+		{
+			UE_LOG(LogCook, Display, TEXT("Package was missing from new generated packages list %s"), *NewPackage->GetFName().ToString());
+		}
+		//check( FoundPackages.Contains( NewPackage->GetFName() ) );
+	}
+	check(NewFoundPackages.Num() == FoundPackages.Num());
+
+#endif
+
+}
+
 void UCookOnTheFlyServer::GetDependencies( const TSet<UPackage*>& Packages, TSet<UObject*>& Found)
 {
-
 	TSet<UObject*> RootSet;
 
 	for (UPackage* Package : Packages)
@@ -675,65 +762,16 @@ void UCookOnTheFlyServer::GetDependencies( const TSet<UPackage*>& Packages, TSet
 
 	TArray<UObject*> Exclude;
 	FArchiveFindReferences ArFindReferences( RootSet, Found, Exclude );
-
-	// Iterate through the object list
-	/*for( FObjectIterator It; It; ++It )
-	{
-		// if this object is within the package specified, serialize the object
-		// into a specialized archive which logs object names encountered during
-		// serialization -- rjp
-		if ( It->IsIn(Pkg) )
-		{
-			if ( It->GetOuter() == Pkg )
-			{
-				FArchiveFindReferences ArFindReferences( Pkg, *It, Found, Exclude );
-			}
-			else if ( bRecurse )
-			{
-				// Two options -
-				// a) this object is a function or something (which we don't care about)
-				// b) this object is inside a group inside the specified package (which we do care about)
-				UObject* CurrentObject = *It;
-				UObject* CurrentOuter = It->GetOuter();
-				while ( CurrentObject && CurrentOuter )
-				{
-					// this object is a UPackage (a group inside a package)
-					// abort
-					if ( CurrentObject->GetClass() == UPackage::StaticClass() )
-						break;
-
-					// see if this object's outer is a UPackage
-					if ( CurrentOuter->GetClass() == UPackage::StaticClass() )
-					{
-						// if this object's outer is our original package, the original object (It)
-						// wasn't inside a group, it just wasn't at the base level of the package
-						// (its Outer wasn't the Pkg, it was something else e.g. a function, state, etc.)
-						/// ....just skip it
-						if ( CurrentOuter == Pkg )
-							break;
-
-						// otherwise, we've successfully found an object that was in the package we
-						// were searching, but would have been hidden within a group - let's log it
-						FArchiveFindReferences ArFindReferences( CurrentOuter, CurrentObject, Found, Exclude );
-						break;
-					}
-
-					CurrentObject = CurrentOuter;
-					CurrentOuter = CurrentObject->GetOuter();
-				}
-			}
-		}
-	}*/
 }
 
 
-void UCookOnTheFlyServer::GenerateManifestInfo( UPackage* Package, const TArray<FName>& TargetPlatformNames )
+void UCookOnTheFlyServer::GenerateManifestInfo(UPackage* Package, const TArray<FName>& TargetPlatformNames)
 {
-	if ( !CookByTheBookOptions )
+	if (!CookByTheBookOptions)
 		return;
-	
+
 	// generate dependency information for this package
-	
+
 
 	TSet<UPackage*> RootPackages;
 	RootPackages.Add(Package);
@@ -743,13 +781,13 @@ void UCookOnTheFlyServer::GenerateManifestInfo( UPackage* Package, const TArray<
 	// load sublevels
 	UWorld* World = UWorld::FindWorldInPackage(Package);
 
-	if ( World )
+	if (World)
 	{
 		for (const auto& StreamingLevel : World->StreamingLevels)
 		{
-			if ( StreamingLevel->GetLoadedLevel() )
+			if (StreamingLevel->GetLoadedLevel())
 			{
-				RootPackages.Add(StreamingLevel->GetLoadedLevel()->GetOutermost() );
+				RootPackages.Add(StreamingLevel->GetLoadedLevel()->GetOutermost());
 			}
 		}
 
@@ -761,11 +799,11 @@ void UCookOnTheFlyServer::GenerateManifestInfo( UPackage* Package, const TArray<
 			World->WorldComposition->CollectTilesToCook(NewPackagesToCook);
 		}
 
-		for ( const auto& PackageName : NewPackagesToCook)
+		for (const auto& PackageName : NewPackagesToCook)
 		{
-			UPackage* PackageToCook = LoadPackage( NULL, *PackageName, LOAD_None );
+			UPackage* PackageToCook = LoadPackage(NULL, *PackageName, LOAD_None);
 
-			RootPackages.Add( PackageToCook );
+			RootPackages.Add(PackageToCook);
 			//GetDependencies( PackageToCook, Dependencies );
 
 			// Dependencies.Add(PackageToCook);
@@ -773,62 +811,116 @@ void UCookOnTheFlyServer::GenerateManifestInfo( UPackage* Package, const TArray<
 
 		LastLoadedMapName = Package->GetName();
 	}
+#if USEASSETREGISTRYFORDEPENDENTPACKAGES
+
+	static const FName AssetRegistryName("AssetRegistry");
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryName);
+	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+
+	TSet<FName> Packages;
+
+	GetDependentPackages(RootPackages, Packages);
+
+	auto GetPackageFName = [](const FName& Name) { return Name; };
+
+#if VERIFY_GETDEPENDENTPACKAGES
 
 	TSet<UObject*> Dependencies; 
 	GetDependencies( RootPackages, Dependencies );
 
+	TSet<UPackage*> VerifyPackages;
+	for ( const auto& Object : Dependencies )
+	{
+		VerifyPackages.Add( Object->GetOutermost() );
+	}
+	check( VerifyPackages.Num() == Packages.Num() );
+
+
+
+	for ( const auto& VerifyPackage : VerifyPackages )
+	{
+		check( Packages.Contains( VerifyPackage->GetFName() ) );
+
+		TArray<FName> PackagePaths;
+		AssetRegistry.GetPackagePathsByPackageName(VerifyPackage->GetFName(), PackagePaths);
+		check( PackagePaths.Num() == 0 );
+
+		check( PackagePaths[0].ToString() == VerifyPackage->GetPathName() );
+	}
+
+
+#endif
+
+#else
+	TSet<UObject*> Dependencies;
+	GetDependencies(RootPackages, Dependencies);
+
+	TSet<UPackage*> Packages;
+	for (const auto& Object : Dependencies)
+	{
+		Packages.Add(Object->GetOutermost());
+	}
+
+	auto GetPackageFName = [](const UPackage* Package) { return Package->GetFName(); };
+#endif
+
+
+
 
 	FName StandardFilename = GetCachedStandardPackageFileFName(Package);
 
-	TSet<UPackage*> Packages;
-	for ( const auto& Object : Dependencies )
-	{
-		Packages.Add( Object->GetOutermost() );
-	}
-
-	if (CookByTheBookOptions->bGenerateDependeciesForMaps
-		&& Package->ContainsMap()
-		&& (World != nullptr)
-		)
+	if (CookByTheBookOptions &&
+		CookByTheBookOptions->bGenerateDependenciesForMaps &&
+		Package->ContainsMap() &&
+		(World != nullptr))
 	{
 		TSet <FName> Names;
 		for (auto Object : Packages)
 		{
-			Names.Add(Object->GetFName());
+			Names.Add(GetPackageFName(Object));
 		}
-		MapDependencyGraph.Add(Package->GetFName(), Names);
+		CookByTheBookOptions->MapDependencyGraph.Add(Package->GetFName(), Names);
 	}
 
 	// update the manifests with generated dependencies
-	for ( const auto& PlatformName : TargetPlatformNames )
+	for (const auto& PlatformName : TargetPlatformNames)
 	{
 		FChunkManifestGenerator* ManifestGenerator = CookByTheBookOptions->ManifestGenerators.FindChecked(PlatformName);
 
-		if ( CookByTheBookOptions->bGenerateStreamingInstallManifests )
+		if (CookByTheBookOptions && CookByTheBookOptions->bGenerateStreamingInstallManifests)
 		{
-			ManifestGenerator->PrepareToLoadNewPackage( StandardFilename.ToString() );
+			ManifestGenerator->PrepareToLoadNewPackage(StandardFilename.ToString());
 		}
 
-		for ( const auto& DependentPackage : Packages )
+		for (const auto& DependentPackage : Packages)
 		{
-			ManifestGenerator->OnLastPackageLoaded( DependentPackage  );
+			ManifestGenerator->OnLastPackageLoaded(DependentPackage);
 		}
-	
-		for ( const auto& DependentPackage  : Packages )
+
+		for (const auto& DependentPackage : Packages)
 		{
-			FString Filename = GetCachedPackageFilename( DependentPackage );
+			FString Filename = GetCachedPackageFilename(DependentPackage);
 			if (!Filename.IsEmpty())
 			{
 				// Populate streaming install manifests
 				FString SandboxFilename = ConvertToFullSandboxPath(*Filename, true);
 				//UE_LOG(LogCook, Display, TEXT("Adding package to manifest %s, %s, %s"), *DependentPackage->GetName(), *SandboxFilename, *LastLoadedMapName);
+#if USEASSETREGISTRYFORDEPENDENTPACKAGES
+				// Determine the package name and path
+				// FString PackageName = FPackageName::FilenameToLongPackageName(PackageFilename);
+				// FString PackagePath = FPackageName::GetLongPackagePath(DependentPackage.ToString());
+				FString PackagePath = DependentPackage.ToString();
+
+				ManifestGenerator->AddPackageToChunkManifest(DependentPackage, PackagePath, SandboxFilename, LastLoadedMapName, SandboxFile.GetOwnedPointer());
+#else
 				ManifestGenerator->AddPackageToChunkManifest(DependentPackage, SandboxFilename, LastLoadedMapName, SandboxFile.GetOwnedPointer());
+#endif
 			}
 		}
 	}
 }
 
-bool UCookOnTheFlyServer::IsCookingInEditor() const 
+bool UCookOnTheFlyServer::IsCookingInEditor() const
 {
 	return CurrentCookMode == ECookMode::CookByTheBookFromTheEditor || CurrentCookMode == ECookMode::CookOnTheFlyFromTheEditor;;
 }
@@ -1002,6 +1094,16 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			}
 		}
 		
+		if( CookByTheBookOptions && CookByTheBookOptions->bErrorOnEngineContentUse )
+		{
+			FString DLCPath = FPaths::GamePluginsDir() / CookByTheBookOptions->DlcName / FString(TEXT("Content"));
+			if ( ToBuild.GetFilename().ToString().StartsWith(DLCPath) == false ) // if we don't start with the dlc path then we shouldn't be cooking this data 
+			{
+				UE_LOG(LogCook, Error, TEXT("Engine content %s is being referenced by DLC!"), *ToBuild.GetFilename().ToString() );
+				bShouldCook = false;
+			}
+		}
+
 		if ( bShouldCook ) // if we should cook the package then cook it otherwise add it to the list of already cooked packages below
 		{
 			SCOPE_TIMER(AllOfLoadPackage);
@@ -2002,7 +2104,6 @@ void UCookOnTheFlyServer::Initialize( ECookMode::Type DesiredCookMode, ECookInit
 	if ( IsCookByTheBookMode() )
 	{
 		CookByTheBookOptions = new FCookByTheBookOptions();
-		CookByTheBookOptions->bGenerateStreamingInstallManifests = IsCookFlagSet(ECookInitializationFlags::GenerateStreamingInstallManifest);
 	}
 
 	ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
@@ -2744,8 +2845,10 @@ void UCookOnTheFlyServer::CollectFilesToCook(TArray<FString>& FilesInPath, const
 			}
 		}
 
-		if (CookByTheBookOptions->bGenerateDependeciesForMaps) 
-			MapDependencyGraph.Add(FName(TEXT("ContentDirectoryAssets")), ContentDirectoryAssets);
+		if (CookByTheBookOptions && CookByTheBookOptions->bGenerateDependenciesForMaps) 
+		{
+			CookByTheBookOptions->MapDependencyGraph.Add(FName(TEXT("ContentDirectoryAssets")), ContentDirectoryAssets);
+		}
 	}
 }
 
@@ -2873,8 +2976,10 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 		}
 	}
 
-	if (CookByTheBookOptions->bGenerateDependeciesForMaps)
+	if (CookByTheBookOptions->bGenerateDependenciesForMaps)
 	{
+		auto& MapDependencyGraph = CookByTheBookOptions->MapDependencyGraph;
+
 		FString MapDependencyGraphFile = FPaths::GameDir()/ TEXT("MapDependencyGraph.json");
 		// dump dependency graph. 
 		FString DependencyString; 
@@ -3050,8 +3155,8 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 	CookByTheBookOptions->bCancel = false;
 	CookByTheBookOptions->CookTime = 0.0f;
 	CookByTheBookOptions->CookStartTime = FPlatformTime::Seconds();
-	CookByTheBookOptions->bGenerateDependeciesForMaps = CookByTheBookStartupOptions.bGenerateDependeciesForMaps;
-	
+	CookByTheBookOptions->bGenerateStreamingInstallManifests = CookByTheBookStartupOptions.bGenerateStreamingInstallManifests;
+	CookByTheBookOptions->bGenerateDependenciesForMaps = CookByTheBookStartupOptions.bGenerateDependenciesForMaps;
 	CookByTheBookOptions->CreateReleaseVersion = CreateReleaseVersion;
 
 	bool bCookAll = (CookOptions & ECookByTheBookOptions::CookAll) != ECookByTheBookOptions::None;
@@ -3085,7 +3190,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 			Platforms.Add( Platform );
 			ManifestGenerator = new FChunkManifestGenerator(Platforms);
 			ManifestGenerator->CleanManifestDirectories();
-			ManifestGenerator->Initialize( CookByTheBookOptions->bGenerateStreamingInstallManifests);
+			ManifestGenerator->Initialize( CookByTheBookOptions->bGenerateStreamingInstallManifests );
 
 			CookByTheBookOptions->ManifestGenerators.Add(PlatformName, ManifestGenerator);
 		}

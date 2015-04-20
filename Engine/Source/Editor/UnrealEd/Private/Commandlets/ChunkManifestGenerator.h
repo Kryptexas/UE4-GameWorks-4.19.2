@@ -163,6 +163,23 @@ class FChunkManifestGenerator
 	}
 
 	/**
+	* Returns an array of chunks IDs for a package that have been assigned in the editor.
+	*/
+	FORCEINLINE TArray<int32> GetAssetRegistryChunkAssignments(const FName& PackageFName)
+	{
+		//get the objects in this package
+		TArray<int32> RegistryChunkIDs;
+		for ( const auto& AssetData : AssetRegistryData )
+		{
+			if ( AssetData.PackageName == PackageFName ) 
+			{
+				RegistryChunkIDs.Append( AssetData.ChunkIDs );
+			}
+		}
+		return RegistryChunkIDs;
+	}
+
+	/**
 	 * Deletes the temporary packaging directory for the specified platform.
 	 */
 	bool CleanTempPackagingDirectory(const FString& Platform) const;
@@ -236,6 +253,7 @@ public:
 	 * @param the SandboxPlatformFile used during cook
 	 */
 	void AddPackageToChunkManifest(UPackage* Package, const FString& SandboxFilename, const FString& LastLoadedMapName, FSandboxPlatformFile* SandboxFile);
+	void AddPackageToChunkManifest(const FName& PackageFName, const FString& PackagePathName, const FString& SandboxFilename, const FString& LastLoadedMapName, FSandboxPlatformFile* InSandboxFile);
 	
 
 	/**
@@ -252,6 +270,15 @@ public:
 	 * @param Package Package which was loaded 
 	 */
 	void OnLastPackageLoaded( UPackage* Package );
+
+
+	/**
+	 * Collects all the packages loaded 
+	 * Does the same as other overload of OnLastPackageLoaded except takes in the name of the package as a fname 
+	 * 
+	 * @param Package name
+	 */
+	void OnLastPackageLoaded( const FName& PackageName );
 
 	/**
 	 * The cooker is about to load a new package from the list, reset AssetsLoadedWithLastPackage

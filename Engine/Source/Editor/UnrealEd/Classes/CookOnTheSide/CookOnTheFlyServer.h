@@ -22,7 +22,7 @@ enum class ECookInitializationFlags
 	AutoTick = 0x10,				// enable ticking (only works in the editor)
 	AsyncSave = 0x20,				// save packages async
 	IncludeServerMaps = 0x80,		// should we include the server maps when cooking
-	GenerateStreamingInstallManifest = 0x100,  // should we generate streaming install manifest
+	UseSerializationForPackageDependencies = 0x100, // should we use the serialization code path for generating package dependencies (old method will be depricated)
 };
 ENUM_CLASS_FLAGS(ECookInitializationFlags);
 
@@ -585,17 +585,21 @@ private:
 	struct FCookByTheBookOptions
 	{
 	public:
-		FCookByTheBookOptions() : bGenerateStreamingInstallManifests(false),
+		FCookByTheBookOptions() : bLeakTest(false),
+			bGenerateStreamingInstallManifests(false),
+			bGenerateDependenciesForMaps(false),
 			bRunning(false),
 			CookTime( 0.0 ),
 			CookStartTime( 0.0 ), 
-			bGenerateDependeciesForMaps(false)
+			bErrorOnEngineContentUse(false)
 		{ }
 
 		/** Should we test for UObject leaks */
 		bool bLeakTest;
 		/** Should we generate streaming install manifests (only valid option in cook by the book) */
 		bool bGenerateStreamingInstallManifests;
+		/** Should we generate a seperate manifest for map dependencies */
+		bool bGenerateDependenciesForMaps;
 		/** Is cook by the book currently running */
 		bool bRunning;
 		/** Cancel has been queued will be processed next tick */
@@ -608,12 +612,13 @@ private:
 		TSet<FWeakObjectPtr> LastGCItems;
 		/** Map of platform name to manifest generator, manifest is only used in cook by the book however it needs to be maintained across multiple cook by the books. */
 		TMap<FName, FChunkManifestGenerator*> ManifestGenerators;
+		/** Dependency graph of maps as root objects. */
+		TMap< FName, TSet <FName> > MapDependencyGraph; 
 		/** If a cook is cancelled next cook will need to resume cooking */ 
 		TArray<FFilePlatformRequest> PreviousCookRequests; 
 		double CookTime;
 		double CookStartTime;
-		/** Generate Map dependencies */
-		bool bGenerateDependeciesForMaps;
+		bool bErrorOnEngineContentUse;
 	};
 	FCookByTheBookOptions* CookByTheBookOptions;
 	
@@ -638,8 +643,6 @@ private:
 	bool bIsSavingPackage; // used to stop recursive mark package dirty functions
 
 	//////////////////////////////////////////////////////////////////////////
-	// Dependency graph of maps as root objects. 
-	TMap< FName, TSet <FName> > MapDependencyGraph; 
 
 	// data about the current package being processed
 	struct FReentryData
@@ -745,12 +748,16 @@ public:
 		FString DLCName;
 		FString CreateReleaseVersion;
 		FString BasedOnReleaseVersion;
-		bool bGenerateDependeciesForMaps; 
+		bool bGenerateStreamingInstallManifests; 
+		bool bGenerateDependenciesForMaps; 
+		bool bErrorOnEngineContentUse; // this is a flag for dlc, will cause the cooker to error if the dlc references engine content
 
 		FCookByTheBookStartupOptions() :
 			CookOptions(ECookByTheBookOptions::None),
 			DLCName(FString()),
-			bGenerateDependeciesForMaps(false)
+			bGenerateStreamingInstallManifests(false),
+			bGenerateDependenciesForMaps(false),
+			bErrorOnEngineContentUse(false)
 		{ }
 	};
 
@@ -954,6 +961,16 @@ private:
 	 * @param Found return value, all objects which package is dependent on
 	 */
 	void GetDependencies( const TSet<UPackage*>& Packages, TSet<UObject*>& Found);
+
+
+	/**
+	 * GetDependencies
+	 * 
+	 * @param Packages List of packages to use as the root set for dependency checking
+	 * @param Found return value, all objects which package is dependent on
+	 */
+	void GetDependentPackages( const TSet<UPackage*>& Packages, TSet<FName>& Found);
+
 	/**
 	 * GenerateManifestInfo
 	 * generate the manifest information for a given package
