@@ -288,7 +288,7 @@ void FCurveTableEditor::CacheDataTableForEditing()
 	static const float CellPadding = 10.0f;
 
 	// Column titles, taken from the longest curve
-	AvailableColumns.Empty(Curves[LongestCurveIndex]->GetNumKeys());
+	AvailableColumns.Reset(Curves[LongestCurveIndex]->GetNumKeys());
 	for (auto It(Curves[LongestCurveIndex]->GetKeyIterator()); It; ++It)
 	{
 		const FText ColumnText = FText::AsNumber(It->Time);
@@ -302,7 +302,7 @@ void FCurveTableEditor::CacheDataTableForEditing()
 	}
 
 	// Each curve is a row entry
-	AvailableRows.Empty(Curves.Num());
+	AvailableRows.Reset(Curves.Num());
 	for (int32 CurvesIdx = 0; CurvesIdx < Curves.Num(); ++CurvesIdx)
 	{
 		const FName& CurveName = Names[CurvesIdx];

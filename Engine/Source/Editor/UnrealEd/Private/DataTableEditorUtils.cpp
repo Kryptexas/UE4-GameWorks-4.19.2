@@ -206,7 +206,7 @@ void FDataTableEditorUtils::CacheDataTableForEditing(const UDataTable* DataTable
 	static const float CellPadding = 10.0f;
 
 	// Populate the column data
-	OutAvailableColumns.Empty(StructProps.Num());
+	OutAvailableColumns.Reset(StructProps.Num());
 	for (const UProperty* Prop : StructProps)
 	{
 		FDataTableEditorColumnHeaderDataPtr CachedColumnData = MakeShareable(new FDataTableEditorColumnHeaderData());
@@ -218,7 +218,7 @@ void FDataTableEditorUtils::CacheDataTableForEditing(const UDataTable* DataTable
 	}
 
 	// Populate the row data
-	OutAvailableRows.Empty(DataTable->RowMap.Num());
+	OutAvailableRows.Reset(DataTable->RowMap.Num());
 	for (auto RowIt = DataTable->RowMap.CreateConstIterator(); RowIt; ++RowIt)
 	{
 		FDataTableEditorRowListViewDataPtr CachedRowData = MakeShareable(new FDataTableEditorRowListViewData());
