@@ -154,6 +154,7 @@ struct FViewMatrices
 		PreShadowTranslation = FVector::ZeroVector;
 		PreViewTranslation = FVector::ZeroVector;
 		ViewOrigin = FVector::ZeroVector;
+		TemporalAASample = FVector2D::ZeroVector;
 	}
 
 	/** ViewToClip : UE4 projection matrix projects such that clip space Z=1 is the near plane, and Z=0 is the infinite far plane. */
@@ -169,13 +170,14 @@ struct FViewMatrices
 	/** During GetDynamicMeshElements this will be the correct cull volume for shadow stuff */
 	const FConvexVolume* GetDynamicMeshElementsShadowCullFrustum;
 	/** If the above is non-null, a translation that is applied to world-space before transforming by one of the shadow matrices. */
-	FVector PreShadowTranslation;
+	FVector		PreShadowTranslation;
 	/** The translation to apply to the world before TranslatedViewProjectionMatrix. Usually it is -ViewOrigin but with rereflections this can differ */
 	FVector		PreViewTranslation;
 	/** To support ortho and other modes this is redundant, in world space */
 	FVector		ViewOrigin;
 	/** Scale applied by the projection matrix in X and Y. */
-	FVector2D ProjectionScale;
+	FVector2D	ProjectionScale;
+	FVector2D	TemporalAASample;
 	/**
 	 * Scale factor to use when computing the size of a sphere in pixels.
 	 * 
