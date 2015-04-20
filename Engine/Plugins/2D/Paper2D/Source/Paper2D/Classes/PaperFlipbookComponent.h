@@ -69,7 +69,7 @@ public:
 	virtual UPaperFlipbook* GetFlipbook();
 
 	/** DEPRECATED! Use GetMaterial() instead.  Gets the material used by this instance */
-	//@TODO: DEPRECATED(4.5, "GetSpriteMaterial has been replaced by GetMaterial")
+	DEPRECATED(4.5, "GetSpriteMaterial has been replaced by GetMaterial")
 	UFUNCTION(BlueprintCallable, Category="Sprite", meta=(DeprecatedFunction, DeprecationMessage="Use GetMaterial instead"))
 	UMaterialInterface* GetSpriteMaterial() const;
 
