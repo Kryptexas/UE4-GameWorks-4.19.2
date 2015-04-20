@@ -2,6 +2,7 @@
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "PaperTileSetFactory.h"
+#include "TileSetEditor/TileSetEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "Paper2D"
 
@@ -18,8 +19,9 @@ UPaperTileSetFactory::UPaperTileSetFactory(const FObjectInitializer& ObjectIniti
 
 UObject* UPaperTileSetFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
-	auto NewTileSet = NewObject<UPaperTileSet>(InParent, Class, Name, Flags | RF_Transactional);
+	UPaperTileSet* NewTileSet = NewObject<UPaperTileSet>(InParent, Class, Name, Flags | RF_Transactional);
 	NewTileSet->TileSheet = InitialTexture;
+	NewTileSet->BackgroundColor = GetDefault<UTileSetEditorSettings>()->DefaultBackgroundColor;
 
 	return NewTileSet;
 }

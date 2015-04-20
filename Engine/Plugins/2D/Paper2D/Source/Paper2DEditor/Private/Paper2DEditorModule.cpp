@@ -32,12 +32,14 @@
 // Tile set support
 #include "TileSetAssetTypeActions.h"
 #include "PaperTileSetThumbnailRenderer.h"
+#include "TileSetEditor/TileSetEditorSettings.h"
 
 // Tile map support
 #include "TileMapEditing/TileMapAssetTypeActions.h"
 #include "TileMapEditing/PaperTileMapAssetBroker.h"
 #include "TileMapEditing/EdModeTileMap.h"
 #include "TileMapEditing/PaperTileMapDetailsCustomization.h"
+#include "TileMapEditing/TileMapEditorSettings.h"
 
 // Atlas support
 #include "Atlasing/AtlasAssetTypeActions.h"
@@ -270,6 +272,16 @@ private:
 				LOCTEXT("FlipbookEditorSettingsName", "Flipbook Editor"),
 				LOCTEXT("FlipbookEditorSettingsDescription", "Configure the look and feel of the Flipbook Editor."),
 				GetMutableDefault<UFlipbookEditorSettings>());
+
+			SettingsModule->RegisterSettings("Editor", "ContentEditors", "TileMapEditor",
+				LOCTEXT("TileMapEditorSettingsName", "Tile Map Editor"),
+				LOCTEXT("TileMapEditorSettingsDescription", "Configure the look and feel of the Tile Map Editor."),
+				GetMutableDefault<UFlipbookEditorSettings>());
+
+			SettingsModule->RegisterSettings("Editor", "ContentEditors", "TileSetEditor",
+				LOCTEXT("TileSetEditorSettingsName", "Tile Set Editor"),
+				LOCTEXT("TileSetEditorSettingsDescription", "Configure the look and feel of the Tile Set Editor."),
+				GetMutableDefault<UTileSetEditorSettings>());
 		}
 	}
 
@@ -277,6 +289,8 @@ private:
 	{
 		if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 		{
+			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "TileSetEditor");
+			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "TileMapEditor");
 			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "FlipbookEditor");
 			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "SpriteEditor");
 			SettingsModule->UnregisterSettings("Project", "Plugins", "Paper2D");

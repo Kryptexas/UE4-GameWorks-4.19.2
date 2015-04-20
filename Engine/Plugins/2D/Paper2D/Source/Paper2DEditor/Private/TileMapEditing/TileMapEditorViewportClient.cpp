@@ -10,6 +10,7 @@
 #include "Runtime/Engine/Public/ComponentReregisterContext.h"
 #include "CanvasTypes.h"
 #include "Engine/Selection.h"
+#include "TileMapEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "TileMapEditor"
 
@@ -35,7 +36,7 @@ FTileMapEditorViewportClient::FTileMapEditorViewportClient(TWeakPtr<FTileMapEdit
 	bManipulationDirtiedSomething = false;
 	ScopedTransaction = nullptr;
 
-	DrawHelper.bDrawGrid = false;
+	DrawHelper.bDrawGrid = GetDefault<UTileMapEditorSettings>()->bShowGridByDefault;
 	DrawHelper.bDrawPivot = false;
 	bShowPivot = true;
 
@@ -127,7 +128,7 @@ FLinearColor FTileMapEditorViewportClient::GetBackgroundColor() const
 	}
 	else
 	{
-		return FEditorViewportClient::GetBackgroundColor();
+		return GetDefault<UTileMapEditorSettings>()->DefaultBackgroundColor;
 	}
 }
 

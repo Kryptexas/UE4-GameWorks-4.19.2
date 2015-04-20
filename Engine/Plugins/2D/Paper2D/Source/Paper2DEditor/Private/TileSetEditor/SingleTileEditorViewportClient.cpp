@@ -5,6 +5,7 @@
 #include "SpriteEditor/SpriteEditorCommands.h"
 #include "PaperEditorShared/SpriteGeometryEditMode.h"
 #include "ScopedTransaction.h"
+#include "TileSetEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "TileSetEditor"
 
@@ -24,7 +25,7 @@ FSingleTileEditorViewportClient::FSingleTileEditorViewportClient(UPaperTileSet* 
 	// The tile map editor fully supports mode tools and isn't doing any incompatible stuff with the Widget
 	Widget->SetUsesEditorModeTools(ModeTools);
 
-	DrawHelper.bDrawGrid = true;//@TODO:
+	DrawHelper.bDrawGrid = GetDefault<UTileSetEditorSettings>()->bShowGridByDefault;
 	DrawHelper.bDrawPivot = false;
 
 	PreviewScene = &OwnedPreviewScene;

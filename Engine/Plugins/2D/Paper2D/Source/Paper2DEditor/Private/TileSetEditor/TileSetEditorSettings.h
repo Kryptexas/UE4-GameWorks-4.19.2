@@ -2,22 +2,22 @@
 
 #pragma once
 
-#include "FlipbookEditorSettings.generated.h"
+#include "TileSetEditorSettings.generated.h"
 
-// Settings for the Paper2D sprite editor
+// Settings for the Paper2D tile set editor
 UCLASS(config=EditorUserSettings)
-class UFlipbookEditorSettings : public UObject
+class UTileSetEditorSettings : public UObject
 {
 	GENERATED_BODY()
 
 public:
-	UFlipbookEditorSettings();
+	UTileSetEditorSettings();
 
-	/** Background color in the flipbook editor */
+	/** Default background color for new tile set assets */
 	UPROPERTY(config, EditAnywhere, Category=Background, meta=(HideAlphaChannel))
-	FColor BackgroundColor;
+	FColor DefaultBackgroundColor;
 
 	/** Should the grid be shown by default when the editor is opened? */
-	UPROPERTY(config, EditAnywhere, Category=Background)
+	UPROPERTY(config, EditAnywhere, Category="Tile Editor")
 	bool bShowGridByDefault;
 };
