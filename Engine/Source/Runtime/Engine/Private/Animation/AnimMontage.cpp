@@ -974,6 +974,10 @@ void FAnimMontageInstance::Terminate()
 		// terminating, trigger end
 		Inst->QueueMontageEndedEvent(FQueuedMontageEndedEvent(OldMontage, bInterrupted, OnMontageEnded));
 	}
+
+	// Clear any active synchronization
+	MontageSync_StopFollowing();
+	MontageSync_StopLeading();
 }
 
 bool FAnimMontageInstance::JumpToSectionName(FName const & SectionName, bool bEndOfSection)
@@ -1089,6 +1093,128 @@ FName FAnimMontageInstance::GetSectionNameFromID(int32 const & SectionID) const
 	}
 
 	return NAME_None;
+}
+
+void FAnimMontageInstance::MontageSync_Follow(struct FAnimMontageInstance* NewLeaderMontageInstance)
+{
+	// Stop following previous leader if any.
+	MontageSync_StopFollowing();
+
+	// Follow new leader
+	if (NewLeaderMontageInstance && (NewLeaderMontageInstance != this))
+	{
+		NewLeaderMontageInstance->MontageSyncFollowers.AddUnique(this);
+		MontageSyncLeader = NewLeaderMontageInstance;
+
+		// Prevent creating a loop
+		FAnimMontageInstance* TestNode = MontageSyncLeader;
+		while (TestNode != NULL)
+		{
+			if (TestNode->MontageSyncLeader == this)
+			{
+				TestNode->MontageSync_StopFollowing();
+				break;
+			}
+			TestNode = TestNode->MontageSyncLeader;
+		}
+	}
+}
+
+void FAnimMontageInstance::MontageSync_StopLeading()
+{
+	for (auto MontageSyncFollower : MontageSyncFollowers)
+	{
+		if (MontageSyncFollower)
+		{
+			ensure(MontageSyncFollower->MontageSyncLeader == this);
+			MontageSyncFollower->MontageSyncLeader = NULL;
+		}
+	}
+	MontageSyncFollowers.Empty();
+}
+
+void FAnimMontageInstance::MontageSync_StopFollowing()
+{
+	if (MontageSyncLeader)
+	{
+		MontageSyncLeader->MontageSyncFollowers.RemoveSingleSwap(this);
+		MontageSyncLeader = NULL;
+	}
+}
+
+bool FAnimMontageInstance::MontageSync_HasBeenUpdatedThisFrame() const
+{
+	return (MontageSyncUpdateFrameCounter == (GFrameCounter % MAX_uint32));
+}
+
+FAnimMontageInstance* FAnimMontageInstance::MontageSync_GetTopMostLeader() const
+{
+	FAnimMontageInstance* TopMostLeader = MontageSyncLeader;
+	if (TopMostLeader)
+	{
+		while (TopMostLeader->MontageSyncLeader)
+		{
+			TopMostLeader = MontageSyncLeader->MontageSyncLeader;
+		}
+	}
+	return TopMostLeader;
+}
+
+void FAnimMontageInstance::MontageSync_Update()
+{
+	// If we've already been updated this frame, we're good.
+	if (MontageSync_HasBeenUpdatedThisFrame())
+	{
+		return;
+	}
+
+	// Find top most leader so he can update all of his followers.
+	FAnimMontageInstance* TopMostLeader = MontageSync_GetTopMostLeader();
+	if (TopMostLeader)
+	{
+		TopMostLeader->MontageSync_SyncFollowers();
+	}
+	else
+	{
+		MontageSync_SyncFollowers();
+	}
+}
+
+void FAnimMontageInstance::MontageSync_SyncFollowers()
+{
+	// Tag ourselves as updated this frame.
+	MontageSyncUpdateFrameCounter = (GFrameCounter % MAX_uint32);
+
+	// Sync our followers if any
+	if (MontageSyncFollowers.Num() > 0)
+	{
+		const float LeaderPosition = GetPosition();
+		const float LeaderPlayRate = GetPlayRate();
+		const FName LeaderCurrentSectionName = GetCurrentSection();
+		const FName LeaderNextSectionName = GetNextSection();
+
+		for (auto MontageSyncFollower : MontageSyncFollowers)
+		{
+			// Sync follower position only if significant error.
+			// We don't want continually 'teleport' then, which could have side-effects and skip AnimNotifies.
+			const float FollowerPosition = MontageSyncFollower->GetPosition();
+			if (FMath::Abs(FollowerPosition - LeaderPosition) > KINDA_SMALL_NUMBER)
+			{
+				MontageSyncFollower->SetPosition(LeaderPosition);
+			}
+
+			MontageSyncFollower->SetPlayRate(LeaderPlayRate);
+
+			// If source and target share same section names, keep them in sync as well. So we properly handle jumps and loops.
+			if ((LeaderCurrentSectionName != NAME_None) && (MontageSyncFollower->GetCurrentSection() == LeaderCurrentSectionName))
+			{
+				MontageSyncFollower->SetNextSectionName(LeaderCurrentSectionName, LeaderNextSectionName);
+			}
+
+			// Mark follower as updated, and let it update his own followers if needed.
+			MontageSyncFollower->MontageSync_SyncFollowers();
+		}
+	}
 }
 
 void FAnimMontageInstance::UpdateWeight(float DeltaTime)
@@ -1208,6 +1334,9 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 			RefreshNextPrevSections();
 		}
 #endif
+		// Update Montage Synchronization first.
+		MontageSync_Update();
+
 		// if no weight, no reason to update, and if not playing, we don't need to advance
 		// this portion is to advance position
 		// If we just reached zero weight, still tick this frame to fire end of animation events.

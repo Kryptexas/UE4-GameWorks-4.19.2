@@ -209,6 +209,34 @@ private:
 	UPROPERTY()
 	float PlayRate;
 
+	/** Montage to Montage Synchronization.
+	 * A montage can only have a single leader. A leader can have multiple followers.
+	 * Synchronization is performed once *before* any of the leader or followers are updated this frame.
+	 * So essentially performed a frame late, so tick order between montages is not an issue. */
+public:
+	ENGINE_API void MontageSync_Follow(struct FAnimMontageInstance* NewLeaderMontageInstance);
+	/** Stop leading, release all followers. */
+	void MontageSync_StopLeading();
+	/** Stop following our leader */
+	void MontageSync_StopFollowing();
+
+private:
+	/** Followers this Montage will synchronize */
+	TArray<struct FAnimMontageInstance*> MontageSyncFollowers;
+	/** Leader this Montage will follow */
+	struct FAnimMontageInstance* MontageSyncLeader;
+	/** Frame counter to sync montages once per frame */
+	uint32 MontageSyncUpdateFrameCounter;
+
+	/** Update montage synchronzation */
+	void MontageSync_Update();
+	/* Get top most leader for synchronization */
+	FAnimMontageInstance* MontageSync_GetTopMostLeader() const;
+	/** true if montage has been updated this frame */
+	bool MontageSync_HasBeenUpdatedThisFrame() const;
+	/** Synchronize this montage's followers */
+	void MontageSync_SyncFollowers();
+
 public:
 	FAnimMontageInstance()
 		: Montage(NULL)
@@ -222,6 +250,8 @@ public:
 		, PreviousWeight(0.f)
 		, Position(0.f)
 		, PlayRate(1.f)
+		, MontageSyncLeader(NULL)
+		, MontageSyncUpdateFrameCounter(INDEX_NONE)
 	{
 	}
 
@@ -237,6 +267,8 @@ public:
 		, PreviousWeight(0.f)	
 		, Position(0.f)
 		, PlayRate(1.f)
+		, MontageSyncLeader(NULL)
+		, MontageSyncUpdateFrameCounter(INDEX_NONE)
 	{
 	}
 
