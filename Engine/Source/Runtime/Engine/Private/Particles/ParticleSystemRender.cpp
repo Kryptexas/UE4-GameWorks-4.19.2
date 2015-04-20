@@ -1243,7 +1243,6 @@ void FDynamicMeshEmitterData::Init( bool bInSelected,
 		InEmitterInstance->SpriteTemplate->LODLevels[InEmitterInstance->CurrentLODLevelIndex]
 		);
 
-	check(IsInGameThread());
 	for (int32 i = 0; i < MeshMaterials.Num(); ++i)
 	{
 		UMaterialInterface* RenderMaterial = MeshMaterials[i];
