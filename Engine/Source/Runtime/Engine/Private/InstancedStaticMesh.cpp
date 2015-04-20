@@ -1440,7 +1440,7 @@ bool UInstancedStaticMeshComponent::GetInstanceTransform(int32 InstanceIndex, FT
 	return true;
 }
 
-bool UInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace)
+bool UInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace, bool bMarkRenderStateDirty)
 {
 	if (!PerInstanceSMData.IsValidIndex(InstanceIndex))
 	{
@@ -1472,7 +1472,10 @@ bool UInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex,
 	PartialNavigationUpdate(InstanceIndex);
 
 	ReleasePerInstanceRenderData();
-	MarkRenderStateDirty();
+	if (bMarkRenderStateDirty)
+	{
+		MarkRenderStateDirty();
+	}
 
 	return true;
 }

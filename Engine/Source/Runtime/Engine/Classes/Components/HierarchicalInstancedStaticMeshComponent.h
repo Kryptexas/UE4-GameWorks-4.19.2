@@ -125,7 +125,7 @@ public:
 	// UInstancedStaticMesh interface
 	virtual int32 AddInstance(const FTransform& InstanceTransform) override;
 	virtual bool RemoveInstance(int32 InstanceIndex) override;
-	virtual bool UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace) override;
+	virtual bool UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace, bool bMarkRenderStateDirty = false) override;
 	virtual void ClearInstances() override;
 
 
