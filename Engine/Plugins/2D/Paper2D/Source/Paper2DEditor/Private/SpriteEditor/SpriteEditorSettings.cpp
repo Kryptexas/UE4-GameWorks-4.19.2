@@ -8,5 +8,6 @@
 
 USpriteEditorSettings::USpriteEditorSettings()
 	: BackgroundColor(55, 55, 55)
+	, bShowGridByDefault(false)
 {
 }
