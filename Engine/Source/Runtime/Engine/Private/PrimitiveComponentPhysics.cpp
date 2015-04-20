@@ -723,8 +723,6 @@ void UPrimitiveComponent::WeldTo(USceneComponent* InParent, FName InSocketName /
 
 void UPrimitiveComponent::UnWeldFromParent()
 {
-
-
 	FBodyInstance* NewRootBI = GetBodyInstance(NAME_None, false);
 	UWorld* CurrentWorld = GetWorld();
 	if (NewRootBI == NULL || NewRootBI->bWelded == false || CurrentWorld == nullptr || IsPendingKill())
@@ -745,11 +743,12 @@ void UPrimitiveComponent::UnWeldFromParent()
 				//create new root
 				RootBI->UnWeld(NewRootBI);	//don't bother fixing up shapes if RootComponent is about to be deleted
 			}
-			
-			NewRootBI->bWelded = false;
-			NewRootBI->WeldParent = NULL;
 
-			bool bHasBodySetup = GetBodySetup() != NULL;
+			NewRootBI->bWelded = false;
+			const FBodyInstance* PrevWeldParent = NewRootBI->WeldParent;
+			NewRootBI->WeldParent = nullptr;
+
+			bool bHasBodySetup = GetBodySetup() != nullptr;
 
 			//if BodyInstance hasn't already been created we need to initialize it
 			if (bHasBodySetup && NewRootBI->IsValidBodyInstance() == false)
@@ -758,6 +757,11 @@ void UPrimitiveComponent::UnWeldFromParent()
 				NewRootBI->bAutoWeld = false;
 				NewRootBI->InitBody(GetBodySetup(), GetComponentToWorld(), this, CurrentWorld->GetPhysicsScene());
 				NewRootBI->bAutoWeld = bPrevAutoWeld;
+			}
+
+			if(PrevWeldParent == nullptr)	//our parent is kinematic so no need to do any unwelding/rewelding of children
+			{
+				return;
 			}
 
 			//now weld its children to it
@@ -774,11 +778,9 @@ void UPrimitiveComponent::UnWeldFromParent()
 					{
 						RootBI->UnWeld(ChildBI);
 					}
-					
-					if (bHasBodySetup)
-					{
-						NewRootBI->Weld(ChildBI, ChildBI->OwnerComponent->GetSocketTransform(ChildrenLabels[ChildIdx]));
-					}
+
+					//At this point, NewRootBI must be kinematic because it's being unwelded. It's up to the code that simulates to call Weld on the children as needed
+					ChildBI->WeldParent = nullptr;	//null because we are currently kinematic
 				}
 			}
 		}
