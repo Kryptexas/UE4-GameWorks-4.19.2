@@ -94,12 +94,6 @@ FUMGViewportClient::FUMGViewportClient(FPreviewScene* InPreviewScene)
 
 FUMGViewportClient::~FUMGViewportClient()
 {
-
-}
-
-void FUMGViewportClient::AddReferencedObjects(FReferenceCollector & Collector)
-{
-
 }
 
 void FUMGViewportClient::Tick(float InDeltaTime)
@@ -183,6 +177,8 @@ void FUMGViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 
 	Canvas->Clear(BackgroundColor);
 
+	// workaround for hacky renderer code that uses GFrameNumber to decide whether to resize render targets
+	--GFrameNumber;
 	GetRendererModule().BeginRenderingViewFamily(Canvas, &ViewFamily);
 
 	// Remove temporary debug lines.
@@ -197,13 +193,6 @@ void FUMGViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 		World->ForegroundLineBatcher->Flush();
 	}
 	
-	//FCanvas* DebugCanvas = Viewport->GetDebugCanvas();
-
-	//UDebugDrawService::Draw(ViewFamily.EngineShowFlags, Viewport, View, DebugCanvas);
-
-	//
-	//FlushRenderingCommands();
-
 	Viewport = ViewportBackup;
 }
 
@@ -338,7 +327,7 @@ class SAutoRefreshViewport : public SViewport
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
 	{
 		Viewport->Invalidate();
-		Viewport->InvalidateDisplay();
+		//Viewport->InvalidateDisplay();
 
 		Viewport->Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 		ViewportClient->Tick(InDeltaTime);
@@ -481,7 +470,10 @@ AActor* UViewport::Spawn(TSubclassOf<AActor> ActorClass)
 	if ( ViewportWidget.IsValid() )
 	{
 		UWorld* World = GetViewportWorld();
-		return World->SpawnActor<AActor>(ActorClass, FVector(0, 0, 0), FRotator());
+		FActorSpawnParameters SpawnParameters;
+		SpawnParameters.bNoCollisionFail = true;
+
+		return World->SpawnActor<AActor>(ActorClass, FVector(0, 0, 0), FRotator(), SpawnParameters);
 	}
 
 	// TODO UMG Report spawning actor error before the world is ready.
