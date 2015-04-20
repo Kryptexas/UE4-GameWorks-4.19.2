@@ -323,6 +323,12 @@ void UIpNetDriver::ProcessRemoteFunction(class AActor* Actor, UFunction* Functio
 				}
 			}			
 
+			// Replicate any RPCs to the replay net driver so that they can get saved in network replays
+			UNetDriver* NetDriver = GEngine->FindNamedNetDriver(GetWorld(), NAME_DemoNetDriver);
+			if (NetDriver)
+			{
+				NetDriver->ProcessRemoteFunction(Actor, Function, Parameters, OutParms, Stack, SubObject);
+			}
 			// Return here so we don't call InternalProcessRemoteFunction again at the bottom of this function
 			return;
 		}
