@@ -647,6 +647,8 @@ public:
 						// Expand the drop target just in case, so that what we dropped is visible.
 						OwnerWidget->Private_SetItemExpansion(*MyItem, true);
 					}
+
+					return DropReply;
 				}
 			}
 
