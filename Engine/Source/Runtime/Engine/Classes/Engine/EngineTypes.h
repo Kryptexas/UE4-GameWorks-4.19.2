@@ -1621,6 +1621,8 @@ struct ENGINE_API FHitResult
 		Result.ImpactNormal = -Result.ImpactNormal;
 		return Result;
 	}
+
+	FString ToString() const;
 };
 
 
