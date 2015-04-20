@@ -160,14 +160,19 @@ struct GAMEPLAYABILITIES_API FScalableFloat
 
 	FScalableFloat()
 		: Value(0.f)
-		, FinalCurve(NULL)
+		, FinalCurve(nullptr)
 	{
 	}
 
 	FScalableFloat(float InInitialValue)
 		: Value(InInitialValue)
-		, FinalCurve(NULL)
+		, FinalCurve(nullptr)
 	{
+	}
+
+	~FScalableFloat()
+	{
+		UnRegisterOnCurveTablePostReimport();
 	}
 
 public:
@@ -182,24 +187,12 @@ public:
 
 	bool IsStatic() const
 	{
-		return (Curve.RowName == NAME_None);
+		return Curve.RowName.IsNone();
 	}
 
-	void SetValue(float NewValue)
-	{
-		Value = NewValue;
-		Curve.CurveTable = NULL;
-		Curve.RowName = NAME_None;
-		FinalCurve = NULL;
-	}
+	void SetValue(float NewValue);
 
-	void SetScalingValue(float InCoeffecient, FName InRowName, UCurveTable * InTable)
-	{
-		Value = InCoeffecient;
-		Curve.RowName = InRowName;
-		Curve.CurveTable = InTable;
-		FinalCurve = NULL;
-	}
+	void SetScalingValue(float InCoeffecient, FName InRowName, UCurveTable * InTable);
 
 	void LockValueAtLevel(float Level, FGlobalCurveDataOverride *GlobalOverrides)
 	{
@@ -226,6 +219,20 @@ public:
 	bool operator!=(const FScalableFloat& Other) const;
 
 private:
+
+	/** Conditionally register the OnCurveTablePostReimport function with the re-import manager */
+	void RegisterOnCurveTablePostReimport() const;
+
+	/** Conditionally unregister the OnCurveTablePostReimport function from the re-import manager */
+	void UnRegisterOnCurveTablePostReimport() const;
+
+#if WITH_EDITOR
+	/** Function to call when the curve table has been re-imported */
+	void OnCurveTablePostReimport(UObject* InObject, bool);
+
+	/** Handle to the delegate called when the curve table has been re-imported */
+	mutable FDelegateHandle OnCurveTablePostReimportHandle;
+#endif // WITH_EDITOR
 
 	// Cached direct pointer to RichCurve we should evaluate
 	mutable FRichCurve* FinalCurve;

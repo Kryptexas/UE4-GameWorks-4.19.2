@@ -153,8 +153,10 @@ float FScalableFloat::GetValueAtLevel(float Level) const
 	{
 		if (FinalCurve == nullptr)
 		{
-			static const FString ContextString = TEXT("FScalableFloat::FinalizeCurveData");
+			static const FString ContextString = TEXT("FScalableFloat::GetValueAtLevel");
 			FinalCurve = Curve.GetCurve(ContextString);
+
+			RegisterOnCurveTablePostReimport();
 		}
 
 		if (FinalCurve != nullptr)
@@ -169,6 +171,58 @@ float FScalableFloat::GetValueAtLevel(float Level) const
 
 	return Value;
 }
+
+void FScalableFloat::SetValue(float NewValue)
+{
+	UnRegisterOnCurveTablePostReimport();
+
+	Value = NewValue;
+	Curve.CurveTable = nullptr;
+	Curve.RowName = NAME_None;
+	FinalCurve = nullptr;
+}
+
+void FScalableFloat::SetScalingValue(float InCoeffecient, FName InRowName, UCurveTable * InTable)
+{
+	UnRegisterOnCurveTablePostReimport();
+
+	Value = InCoeffecient;
+	Curve.RowName = InRowName;
+	Curve.CurveTable = InTable;
+	FinalCurve = nullptr;
+}
+
+void FScalableFloat::RegisterOnCurveTablePostReimport() const
+{
+#if WITH_EDITOR
+	if (!OnCurveTablePostReimportHandle.IsValid())
+	{
+		// Register our interest in knowing when our referenced curve table is changed, so that we can update FinalCurve appropriately
+		OnCurveTablePostReimportHandle = FReimportManager::Instance()->OnPostReimport().AddRaw(this, &FScalableFloat::OnCurveTablePostReimport);
+	}
+#endif // WITH_EDITOR
+}
+
+void FScalableFloat::UnRegisterOnCurveTablePostReimport() const
+{
+#if WITH_EDITOR
+	if (OnCurveTablePostReimportHandle.IsValid())
+	{
+		FReimportManager::Instance()->OnPostReimport().Remove(OnCurveTablePostReimportHandle);
+	}
+#endif // WITH_EDITOR
+}
+
+#if WITH_EDITOR
+void FScalableFloat::OnCurveTablePostReimport(UObject* InObject, bool)
+{
+	if (Curve.CurveTable && Curve.CurveTable == InObject)
+	{
+		// Reset FinalCurve so that GetValueAtLevel will re-cache it the next time it gets called
+		FinalCurve = nullptr;
+	}
+}
+#endif // WITH_EDITOR
 
 bool FGameplayAttribute::operator==(const FGameplayAttribute& Other) const
 {
