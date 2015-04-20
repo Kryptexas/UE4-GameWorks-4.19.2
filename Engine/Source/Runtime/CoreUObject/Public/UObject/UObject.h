@@ -536,8 +536,8 @@ public:
 		};
 
 		FName Name;
-		FString Value;
 		ETagType Type;
+		FString Value;
 
 		FAssetRegistryTag(FName InName, const FString& InValue, ETagType InType)
 			: Name(InName), Value(InValue), Type(InType) {}
