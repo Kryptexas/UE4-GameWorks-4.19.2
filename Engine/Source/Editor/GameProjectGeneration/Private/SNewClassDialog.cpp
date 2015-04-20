@@ -237,7 +237,7 @@ void SNewClassDialog::Construct( const FArguments& InArgs )
 				.ShowPageList(false)
 
 				.ButtonStyle(FEditorStyle::Get(), "FlatButton.Default")
-				.CancelButtonStyle(FEditorStyle::Get(), "FlatButton.Warning")
+				.CancelButtonStyle(FEditorStyle::Get(), "FlatButton.Default")
 				.FinishButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
 				.ButtonTextStyle(FEditorStyle::Get(), "LargeText")
 				.ForegroundColor(FEditorStyle::Get().GetSlateColor("WhiteBrush"))

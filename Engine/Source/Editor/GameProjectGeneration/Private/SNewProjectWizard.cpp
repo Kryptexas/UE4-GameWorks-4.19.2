@@ -358,7 +358,7 @@ void SNewProjectWizard::Construct( const FArguments& InArgs )
 			[
 				SAssignNew(MainWizard, SWizard)
 				.ButtonStyle(FEditorStyle::Get(), "FlatButton.Default")
-				.CancelButtonStyle(FEditorStyle::Get(), "FlatButton.Warning")
+				.CancelButtonStyle(FEditorStyle::Get(), "FlatButton.Default")
 				.FinishButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
 				.ButtonTextStyle(FEditorStyle::Get(), "LargeText")
 				.ForegroundColor(FEditorStyle::Get().GetSlateColor("WhiteBrush"))
