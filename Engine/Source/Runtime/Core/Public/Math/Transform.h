@@ -1142,7 +1142,7 @@ FORCEINLINE FVector4 FTransform::TransformFVector4NoScale(const FVector4& V) con
 
 	//Transform using QST is following
 	//QST(P) = Q*S*P*-Q + T where Q = quaternion, S = scale, T = translation
-	FVector4 Transform = Rotation*V;
+	FVector4 Transform = Rotation.RotateVector(V);
 	if (V.W == 1.f)
 	{
 		Transform += FVector4(Translation, 1.f);
@@ -1162,7 +1162,7 @@ FORCEINLINE FVector4 FTransform::TransformFVector4(const FVector4& V) const
 	//Transform using QST is following
 	//QST(P) = Q*S*P*-Q + T where Q = quaternion, S = scale, T = translation
 
-	FVector4 Transform = (Rotation*(Scale3D*V));
+	FVector4 Transform = (Rotation.RotateVector(Scale3D*V));
 	if (V.W == 1.f)
 	{
 		Transform += FVector4(Translation, 1.f);
@@ -1175,12 +1175,14 @@ FORCEINLINE FVector4 FTransform::TransformFVector4(const FVector4& V) const
 
 FORCEINLINE FVector FTransform::TransformPosition(const FVector& V) const
 {
-	return TransformFVector4(FVector4(V.X,V.Y,V.Z,1.0f));
+	DiagnosticCheckNaN_All();
+	return Rotation.RotateVector(Scale3D*V) + Translation;
 }
 
 FORCEINLINE FVector FTransform::TransformPositionNoScale(const FVector& V) const
 {
-	return TransformFVector4NoScale(FVector4(V.X,V.Y,V.Z,1.0f));
+	DiagnosticCheckNaN_All();
+	return Rotation.RotateVector(V) + Translation;
 }
 
 FORCEINLINE FVector FTransform::TransformVector(const FVector& V) const

@@ -1446,12 +1446,45 @@ FORCEINLINE FVector4 FTransform::TransformFVector4(const FVector4& V) const
 
 FORCEINLINE FVector FTransform::TransformPosition(const FVector& V) const
 {
-	return TransformFVector4(FVector4(V.X,V.Y,V.Z,1.0f));
+	DiagnosticCheckNaN_All();
+
+	const VectorRegister InputVectorW0 = VectorLoadFloat3_W0(&V);
+
+	//Transform using QST is following
+	//QST(P) = Q*S*P*-Q + T where Q = quaternion, S = scale, T = translation
+	const VectorRegister InverseRotation = MAKE_QUATINV_VECTORREGISTER(Rotation);
+
+	//FQuat Transform = Rotation*FQuat(Scale*V.X, Scale*V.Y, Scale*V.Z, 0.f)*Rotation.Inverse();
+	const VectorRegister ScaledVec = VectorMultiply(Scale3D, InputVectorW0);
+	const VectorRegister TempStorage = VectorQuaternionMultiply2(Rotation, ScaledVec);
+	const VectorRegister RotatedVec = VectorQuaternionMultiply2(TempStorage, InverseRotation);
+
+	const VectorRegister TranslatedVec = VectorAdd(RotatedVec, Translation);
+
+	FVector Result;
+	VectorStoreFloat3(TranslatedVec, &Result);
+	return Result;
 }
 
 FORCEINLINE FVector FTransform::TransformPositionNoScale(const FVector& V) const
 {
-	return TransformFVector4NoScale(FVector4(V.X,V.Y,V.Z,1.0f));
+	DiagnosticCheckNaN_All();
+
+	const VectorRegister InputVectorW0 = VectorLoadFloat3_W0(&V);
+
+	//Transform using QST is following
+	//QST(P) = Q*S*P*-Q + T where Q = quaternion, S = 1.0f, T = translation
+	const VectorRegister InverseRotation = MAKE_QUATINV_VECTORREGISTER(Rotation);
+
+	//FQuat Transform = Rotation*FQuat(V.X, V.Y, V.Z, 0.f)*Rotation.Inverse();
+	const VectorRegister TempStorage = VectorQuaternionMultiply2(Rotation, InputVectorW0);
+	const VectorRegister RotatedVec = VectorQuaternionMultiply2(TempStorage, InverseRotation);
+
+	const VectorRegister TranslatedVec = VectorAdd(RotatedVec, Translation);
+
+	FVector Result;
+	VectorStoreFloat3(TranslatedVec, &Result);
+	return Result;
 }
 
 FORCEINLINE FVector FTransform::TransformVector(const FVector& V) const
