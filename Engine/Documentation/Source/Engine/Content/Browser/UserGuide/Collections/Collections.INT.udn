@@ -29,16 +29,22 @@ Under the hood, Collections are really just lists of references to given assets.
 [/EXCERPT:Collections]
 
 [REGION:note]
-	**Note**: The Collections tab may not be available by default. To open the Collections tab, simply open the **View Options** drop down menu, then click on **Show Collections**.	
+	**Note**: The Collections panel may not be available by default. To open the Collections panel, simply open the **View Options** drop down menu, then click on **Show Collections**.	
 [/REGION]
 ![](ViewCollections.png)
 
 
 ## Creating Collections
 
+To create your first Collection click on the add Collection icon in the top right corner of the Collections panel and name. 
+
+![](AddNewCollections.png)
+
+After your first Collection has been created, additional Collections are as easy as **right-clicking** within the **Collections** panel and entering a name for the new Collection.		
+
 ![](Collections_New.png)
 
-Creating a Collection is as easy as **right-clicking** within the **Collections** panel and entering a name for the new Collection.
+
 
 ## Collection Types
 
