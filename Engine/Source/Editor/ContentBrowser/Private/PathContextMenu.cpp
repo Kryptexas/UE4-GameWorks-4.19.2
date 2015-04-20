@@ -126,7 +126,7 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 					NAME_None,
 					EUserInterfaceActionType::Button,
 					false,
-					FSlateIcon( FEditorStyle::GetStyleSetName(), "ContentBrowser.PathActions.NewAsset" )
+					FSlateIcon()
 					);
 			}
 
@@ -183,7 +183,7 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 					LOCTEXT("SetColorTooltip", "Sets the color this folder should appear as."),
 					FNewMenuDelegate::CreateRaw( this, &FPathContextMenu::MakeSetColorSubMenu ),
 					false,
-					FSlateIcon( FEditorStyle::GetStyleSetName(), "ContentBrowser.PathActions.SetColor" )
+					FSlateIcon()
 					);
 			}
 			else
@@ -192,7 +192,7 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 				MenuBuilder.AddMenuEntry(
 					LOCTEXT("SetColor", "Set Color"),
 					LOCTEXT("SetColorTooltip", "Sets the color this folder should appear as."),
-					FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.PathActions.SetColor"),
+					FSlateIcon(),
 					FUIAction( FExecuteAction::CreateSP( this, &FPathContextMenu::ExecutePickColor ) )
 					);
 			}			
@@ -208,7 +208,7 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 				MenuBuilder.AddMenuEntry(
 					LOCTEXT("SaveFolder", "Save All"),
 					LOCTEXT("SaveFolderTooltip", "Saves all modified assets in this folder."),
-					FSlateIcon(FEditorStyle::GetStyleSetName(), "MainFrame.SaveAll"),
+					FSlateIcon(),
 					FUIAction( FExecuteAction::CreateSP( this, &FPathContextMenu::ExecuteSaveFolder ) )
 					);
     
@@ -216,7 +216,7 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 				MenuBuilder.AddMenuEntry(FGenericCommands::Get().Delete, NAME_None,
 					LOCTEXT("DeleteFolder", "Delete"),
 					LOCTEXT("DeleteFolderTooltip", "Removes this folder and all assets it contains."),
-					FSlateIcon( FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.Delete" )
+					FSlateIcon()
 					);
 
 				// Reference Viewer
