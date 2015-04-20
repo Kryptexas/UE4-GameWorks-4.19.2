@@ -7334,9 +7334,6 @@ void FBlueprintEditor::UpdatePreviewActor(UBlueprint* InBlueprint, bool bInForce
 			{
 				PreviewBlueprint->SimpleConstructionScript->SetComponentEditorActorInstance(PreviewActor);
 			}
-
-			// Run the construction scripts again, otherwise the actor will appear as though it's had a script pass first, rather than the default properties as shown in the details panel
-			PreviewActor->RerunConstructionScripts();
 		}
 	}
 	else if ( PreviewActor )
