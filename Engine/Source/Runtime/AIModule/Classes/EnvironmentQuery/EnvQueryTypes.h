@@ -822,7 +822,7 @@ public:
 			Deadline = -1.0f;
 		}
 
-		operator bool() const
+		FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const
 		{
 			return CurrentItem < Instance->Items.Num() && !Instance->bFoundSingleResult && (Deadline < 0 || FPlatformTime::Seconds() < Deadline);
 		}
