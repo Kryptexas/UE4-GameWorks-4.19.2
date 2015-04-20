@@ -7,6 +7,7 @@
 #include "SContentReference.h"
 #include "TileMapEditorCommands.h"
 #include "Engine/Selection.h"
+#include "SAssetDropTarget.h"
 
 #define LOCTEXT_NAMESPACE "Paper2D"
 
@@ -81,7 +82,12 @@ void FTileMapEdModeToolkit::Init(const TSharedPtr<IToolkitHost>& InitToolkitHost
 		// The palette widget
 		+SOverlay::Slot()
 		[
-			TileSetPalette.ToSharedRef()
+			SNew(SAssetDropTarget)
+			.OnIsAssetAcceptableForDrop(this, &FTileMapEdModeToolkit::OnAssetDraggedOver)
+			.OnAssetDropped(this, &FTileMapEdModeToolkit::OnChangeTileSet)
+			[
+				TileSetPalette.ToSharedRef()
+			]
 		]
 		// The no tile set selected warning text/button
 		+SOverlay::Slot()
@@ -321,6 +327,11 @@ FReply FTileMapEdModeToolkit::ClickedOnTileSetPaletteCornerText()
 	TileSetAssetReferenceWidget->OpenAssetPickerMenu();
 
 	return FReply::Handled();
+}
+
+bool FTileMapEdModeToolkit::OnAssetDraggedOver(const UObject* InObject) const
+{
+	return Cast<UPaperTileSet>(InObject) != nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////

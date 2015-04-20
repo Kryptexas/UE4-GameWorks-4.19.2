@@ -28,7 +28,8 @@ public class Paper2DEditor : ModuleRules
 				"ContentBrowser",
 				"WorkspaceMenuStructure",
 				"EditorStyle",
-				"MeshPaint"
+				"MeshPaint",
+				"EditorWidgets"
 			}
 			);
 

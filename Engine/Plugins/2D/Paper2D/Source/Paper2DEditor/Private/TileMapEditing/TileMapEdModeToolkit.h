@@ -40,6 +40,8 @@ protected:
 	EVisibility GetTileSetPaletteCornerTextVisibility() const;
 	FReply ClickedOnTileSetPaletteCornerText();
 
+	bool OnAssetDraggedOver(const UObject* InObject) const;
+
 private:
 	class FEdModeTileMap* TileMapEditor;
 
