@@ -45,36 +45,111 @@ const TCHAR* GetTabs(int32 NumTabs)
 	return TabString + TabPos;
 }
 
-bool HasIdentifierExactMatch(const FString &ClassDefinition, const FString& Identifier)
+/**
+ * Finds exact match of Identifier in string. Returns nullptr if none is found.
+ *
+ * @param StringBegin Start of string to search.
+ * @param StringEnd End of string to search.
+ * @param Identifier Identifier to find.
+ * @return Pointer to Identifier match within string. nullptr if none found.
+ */
+const TCHAR* FindIdentifierExactMatch(const TCHAR* StringBegin, const TCHAR* StringEnd, const FString& Identifier)
 {
-	int32 SearchStartPosition = INDEX_NONE;
+	int32 StringLen = StringEnd - StringBegin;
+
+	// Check for exact match first.
+	if (FCString::Strncmp(StringBegin, *Identifier, StringLen) == 0)
+	{
+		return StringBegin;
+	}
+
+	auto FindLen = Identifier.Len();
+	auto StringToSearch = StringBegin;
 
 	for (;;)
 	{
-		auto IdentifierStartIndex = ClassDefinition.Find(Identifier, ESearchCase::CaseSensitive, ESearchDir::FromStart, SearchStartPosition);
-
-		// Class definition not found
-		if (IdentifierStartIndex == INDEX_NONE
-			// ClassDefinition can't start with CppImplName. If it starts, we'll get compiler error anyway
-			|| IdentifierStartIndex == 0)
+		auto IdentifierStart = FCString::Strstr(StringToSearch, *Identifier);
+		if (IdentifierStart == nullptr)
 		{
-			return false;
+			// Not found.
+			return nullptr;
 		}
 
-		// To find exact match, previous and next character can't be parts of identifier.
-		if (!FChar::IsIdentifier(ClassDefinition[IdentifierStartIndex - 1])
-			&& !FChar::IsIdentifier(ClassDefinition[IdentifierStartIndex + Identifier.Len()]))
+		if ((IdentifierStart > StringEnd) || (IdentifierStart + FindLen + 1 > StringEnd))
 		{
-			return true;
+			// Found match is out of string range.
+			return nullptr;
 		}
 
-		// Exact match not found, continue search starting just after the end of identifier
-		SearchStartPosition = IdentifierStartIndex + Identifier.Len() + 1;
+		if ((IdentifierStart == StringBegin) && (!FChar::IsIdentifier(*(IdentifierStart + FindLen + 1))))
+		{
+			// Found match is at the beginning of string.
+			return IdentifierStart;
 		}
+
+		if ((IdentifierStart + FindLen == StringEnd) && (!FChar::IsIdentifier(*(IdentifierStart - 1))))
+		{
+			// Found match ends with end of string.
+			return IdentifierStart;
+		}
+
+		if ((!FChar::IsIdentifier(*(IdentifierStart + FindLen)))
+			&& (!FChar::IsIdentifier(*(IdentifierStart - 1))))
+		{
+			// Found match is in the middle of string
+			return IdentifierStart;
+		}
+
+		// Didn't find exact match, nor got to end of search string. Keep on searching.
+		StringToSearch = IdentifierStart + FindLen;
+	}
 
 	// We should never get here.
 	checkNoEntry();
-	return false;
+	return nullptr;
+}
+
+/**
+ * Finds exact match of Identifier in string. Returns nullptr if none is found.
+ *
+ * @param String String to search.
+ * @param Identifier Identifier to find.
+ * @return Index to Identifier match within String. INDEX_NONE if none found.
+ */
+int32 FindIdentifierExactMatch(const FString& String, const FString& Identifier)
+{
+	auto IdentifierPtr = FindIdentifierExactMatch(*String, *String + String.Len(), Identifier);
+	if (IdentifierPtr == nullptr)
+	{
+		return INDEX_NONE;
+	}
+
+	return IdentifierPtr - *String;
+}
+
+/**
+* Checks if exact match of Identifier is in String.
+*
+* @param StringBegin Start of string to search.
+* @param StringEnd End of string to search.
+* @param Identifier Identifier to find.
+* @return true if Identifier is within string, false otherwise.
+*/
+bool HasIdentifierExactMatch(const TCHAR* StringBegin, const TCHAR* StringEnd, const FString& Find)
+{
+	return FindIdentifierExactMatch(StringBegin, StringEnd, Find) != nullptr;
+}
+
+/**
+* Checks if exact match of Identifier is in String.
+*
+* @param String String to search.
+* @param Identifier Identifier to find.
+* @return true if Identifier is within String, false otherwise.
+*/
+bool HasIdentifierExactMatch(const FString &String, const FString& Identifier)
+{
+	return FindIdentifierExactMatch(String, Identifier) != INDEX_NONE;
 }
 
 /////////////////////////////////////////////////////
@@ -3536,8 +3611,56 @@ FString GetFunctionConstModifierString(UFunction* Function)
 	return FString();
 }
 
-void FNativeClassHeaderGenerator::CheckRPCFunctions(const FFuncInfo& FunctionData, const FString& ClassName, bool bHasImplementation, bool bHasValidate, const FUnrealSourceFile& SourceFile, int32 GeneratedBodyLine)
+/**
+ * Converts Position within File to Line and Column.
+ *
+ * @param File File contents.
+ * @param Position Position in string to convert.
+ * @param OutLine Result line.
+ * @param OutColumn Result column.
+ */
+void GetLineAndColumnFromPositionInFile(const FString& File, int32 Position, int32& OutLine, int32& OutColumn)
 {
+	OutLine = 1;
+	OutColumn = 1;
+
+	int32 i;
+	for (i = 1; i <= Position; ++i)
+	{
+		if (File[i] == '\n')
+		{
+			++OutLine;
+			OutColumn = 0;
+		}
+		else
+		{
+			++OutColumn;
+		}
+	}
+}
+
+bool FNativeClassHeaderGenerator::IsMissingVirtualSpecifier(const FString& SourceFile, int32 FunctionNamePosition) const
+{
+	auto IsEndOfSearchChar = [](TCHAR C) { return (C == TEXT('}')) || (C == TEXT('{')) || (C == TEXT(';')); };
+
+	// Find first occurrence of "}", ";", "{" going backwards from ImplementationPosition.
+	int32 EndOfSearchCharIndex = SourceFile.FindLastCharByPredicate(IsEndOfSearchChar, FunctionNamePosition);
+	check(EndOfSearchCharIndex != INDEX_NONE);
+
+	// Then find if there is "virtual" keyword starting from position of found character to ImplementationPosition
+	return !HasIdentifierExactMatch(&SourceFile[EndOfSearchCharIndex], &SourceFile[FunctionNamePosition], TEXT("virtual"));
+}
+
+FString CreateClickableErrorMessage(const FString& Filename, int32 Line, int32 Column)
+{
+	return FString::Printf(TEXT("%s(%d,%d): error: "), *Filename, Line, Column);
+}
+
+void FNativeClassHeaderGenerator::CheckRPCFunctions(const FFuncInfo& FunctionData, const FString& ClassName, int32 ImplementationPosition, int32 ValidatePosition, const FUnrealSourceFile& SourceFile)
+{
+	bool bHasImplementation = ImplementationPosition != INDEX_NONE;
+	bool bHasValidate = ValidatePosition != INDEX_NONE;
+
 	auto Function = FunctionData.FunctionReference;
 	auto FunctionReturnType = GetFunctionReturnString(Function);
 	auto ConstModifier = GetFunctionConstModifierString(Function) + TEXT(" ");
@@ -3554,6 +3677,8 @@ void FNativeClassHeaderGenerator::CheckRPCFunctions(const FFuncInfo& FunctionDat
 	check(bNeedsImplementation || bNeedsValidate);
 
 	auto ParameterString = GetFunctionParameterString(Function);
+	const auto& Filename = SourceFile.GetFilename();
+	const auto& FileContent = SourceFile.GetContent();
 
 	//
 	// Get string with function specifiers, listing why we need _Implementation or _Validate functions.
@@ -3580,17 +3705,42 @@ void FNativeClassHeaderGenerator::CheckRPCFunctions(const FFuncInfo& FunctionDat
 	AssertMessage.Logf(TEXT("."));
 
 	//
-	// Add proper checks if necessary.
+	// Check if functions are missing.
 	//
+	int32 Line;
+	int32 Column;
+	GetLineAndColumnFromPositionInFile(FileContent, FunctionData.InputPos, Line, Column);
 	if (bNeedsImplementation && !bHasImplementation)
 	{
-		// FullFilePath(LineNumber): error:
-		FError::Throwf(TEXT("%s(%d): error: %s Declare function %s %s(%s) %sin class %s."), *SourceFile.GetFilename(), GeneratedBodyLine, *AssertMessage, *FunctionReturnType, *FunctionData.CppImplName, *ParameterString, *ConstModifier, *ClassName);
+		FString ErrorPosition = CreateClickableErrorMessage(Filename, Line, Column);
+		FString FunctionDecl = FString::Printf(TEXT("virtual %s %s::%s(%s) %s"), *FunctionReturnType, *ClassName, *FunctionData.CppImplName, *ParameterString, *ConstModifier);
+		FError::Throwf(TEXT("%s%s Declare function %s"), *ErrorPosition, *AssertMessage, *FunctionDecl);
 	}
 	
 	if (bNeedsValidate && !bHasValidate)
 	{
-		FError::Throwf(TEXT("%s(%d): error: %s Declare function bool %s(%s) %sin class %s."), *SourceFile.GetFilename(), GeneratedBodyLine, *AssertMessage, *FunctionData.CppValidationImplName, *ParameterString, *ConstModifier, *ClassName);
+		FString ErrorPosition = CreateClickableErrorMessage(Filename, Line, Column);
+		FString FunctionDecl = FString::Printf(TEXT("virtual bool %s::%s(%s) %s"), *ClassName, *FunctionData.CppValidationImplName, *ParameterString, *ConstModifier);
+		FError::Throwf(TEXT("%s%s Declare function %s"), *ErrorPosition, *AssertMessage, *FunctionDecl);
+	}
+
+	//
+	// If all needed functions are declared, check if they have virtual specifiers.
+	//
+	if (bNeedsImplementation && bHasImplementation && IsMissingVirtualSpecifier(FileContent, ImplementationPosition))
+	{
+		GetLineAndColumnFromPositionInFile(FileContent, ImplementationPosition, Line, Column);
+		FString ErrorPosition = CreateClickableErrorMessage(Filename, Line, Column);
+		FString FunctionDecl = FString::Printf(TEXT("%s %s::%s(%s) %s"), *FunctionReturnType, *ClassName, *FunctionData.CppImplName, *ParameterString, *ConstModifier);
+		FError::Throwf(TEXT("%sDeclared function %sis not marked as virtual."), *ErrorPosition, *FunctionDecl);
+	}
+
+	if (bNeedsValidate && bHasValidate && IsMissingVirtualSpecifier(FileContent, ValidatePosition))
+	{
+		GetLineAndColumnFromPositionInFile(FileContent, ValidatePosition, Line, Column);
+		FString ErrorPosition = CreateClickableErrorMessage(Filename, Line, Column);
+		FString FunctionDecl = FString::Printf(TEXT("bool %s::%s(%s) %s"), *ClassName, *FunctionData.CppValidationImplName, *ParameterString, *ConstModifier);
+		FError::Throwf(TEXT("%sDeclared function %sis not marked as virtual."), *ErrorPosition, *FunctionDecl);
 	}
 }
 
@@ -3853,7 +4003,6 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FUHTStringBuilder& RPCWrap
 	auto ClassName = Function->GetOwnerClass()->GetName();
 
 	auto FunctionName = Function->GetName();
-
 	bool bHasImplementation = HasIdentifierExactMatch(ClassDefinition, FunctionData.CppImplName);
 	bool bHasValidate = HasIdentifierExactMatch(ClassDefinition, FunctionData.CppValidationImplName);
 
@@ -3986,9 +4135,20 @@ void FNativeClassHeaderGenerator::ExportNativeFunctions(FUnrealSourceFile& Sourc
 			auto ClassDefinition = FString(ClassEnd - ClassStart, ClassStart);
 
 			auto FunctionName = Function->GetName();
+			int32 ClassDefinitionStartPosition = ClassStart - *SourceFile.GetContent();
 
-			bool bHasImplementation = HasIdentifierExactMatch(ClassDefinition, FunctionData.CppImplName);
-			bool bHasValidate = HasIdentifierExactMatch(ClassDefinition, FunctionData.CppValidationImplName);
+			int32 ImplementationPosition = FindIdentifierExactMatch(ClassDefinition, FunctionData.CppImplName);
+			if (ImplementationPosition != INDEX_NONE)
+			{
+				ImplementationPosition += ClassDefinitionStartPosition;
+			}
+			int32 ValidatePosition = FindIdentifierExactMatch(ClassDefinition, FunctionData.CppValidationImplName);
+			if (ValidatePosition != INDEX_NONE)
+			{
+				ValidatePosition += ClassDefinitionStartPosition;
+			}
+			bool bHasImplementation = ImplementationPosition != INDEX_NONE;
+			bool bHasValidate = ValidatePosition != INDEX_NONE;
 
 			//Emit warning here if necessary
 			FUHTStringBuilder FunctionDeclaration;
@@ -4019,9 +4179,9 @@ void FNativeClassHeaderGenerator::ExportNativeFunctions(FUnrealSourceFile& Sourc
 			// Versions that skip function autodeclaration throw an error when a function is missing.
 			if ((SourceFile.GetGeneratedCodeVersionForStruct(Class) > EGeneratedCodeVersion::V1) && ClassRange.bHasGeneratedBody)
 			{
-				CheckRPCFunctions(FunctionData, Class->HasAnyClassFlags(CLASS_Interface) ? *(FString(TEXT("I")) + ClassName) : NameLookupCPP.GetNameCPP(Class), bHasImplementation, bHasValidate, SourceFile, Class->HasAnyClassFlags(CLASS_Interface) ? ClassData->GetInterfaceGeneratedBodyLine() : ClassData->GetGeneratedBodyLine());
+				auto Name = Class->HasAnyClassFlags(CLASS_Interface) ? *(FString(TEXT("I")) + ClassName) : NameLookupCPP.GetNameCPP(Class);
+				CheckRPCFunctions(FunctionData, Name, ImplementationPosition, ValidatePosition, SourceFile);
 			}
-			
 		}
 
 		if (bMultiLineUFUNCTION)

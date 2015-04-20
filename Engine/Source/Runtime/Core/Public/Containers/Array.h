@@ -910,6 +910,42 @@ public:
 	}
 
 	/**
+	 * Finds element within the array starting from StartIndex and going backwards. Uses predicate to match element.
+	 *
+	 * @param Pred Predicate taking array element and returns true if element matches search criteria, false otherwise.
+	 * @param StartIndex Index of element from which to start searching.
+	 *
+	 * @returns Index of the found element. INDEX_NONE otherwise.
+	 */
+	template <typename Predicate>
+	int32 FindLastByPredicate(Predicate Pred, int32 StartIndex) const
+	{
+		const ElementType* RESTRICT End = GetData() + StartIndex;
+		for (const ElementType* RESTRICT Data = End, *RESTRICT DataStart = Data - StartIndex; Data != DataStart;)
+		{
+			--Data;
+			if (Pred(*Data))
+			{
+				return static_cast<int32>(Data - DataStart);
+			}
+		}
+		return INDEX_NONE;
+	}
+
+	/**
+	* Finds element within the array starting from the end. Uses predicate to match element.
+	*
+	* @param Pred Predicate taking array element and returns true if element matches search criteria, false otherwise.
+	*
+	* @returns Index of the found element. INDEX_NONE otherwise.
+	*/
+	template <typename Predicate>
+	int32 FindLastByPredicate(Predicate Pred) const
+	{
+		return FindLastByPredicate(Pred, ArrayNum);
+	}
+
+	/**
 	 * Finds element within the array that fulfills given predicate.
 	 *
 	 * @param MatchFunctorType A functor object with implemented

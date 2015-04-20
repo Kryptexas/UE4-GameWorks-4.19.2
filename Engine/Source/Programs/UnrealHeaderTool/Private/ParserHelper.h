@@ -887,6 +887,8 @@ struct FFuncInfo
 	bool		bSealedEvent;
 	/** Delegate macro line in header. */
 	int32		MacroLine;
+	/** Position in file where this function was declared. Points to first char of function name. */
+	int32 InputPos;
 	//@}
 
 	/** Constructor. */
@@ -902,6 +904,7 @@ struct FFuncInfo
 		, RPCResponseId(0)
 		, bSealedEvent(false)
 		, MacroLine(-1)
+		, InputPos(-1)
 	{}
 
 	FFuncInfo(const FFuncInfo& Other)
@@ -914,6 +917,7 @@ struct FFuncInfo
 		, RPCId(Other.RPCId)
 		, RPCResponseId(Other.RPCResponseId)
 		, MacroLine(Other.MacroLine)
+		, InputPos(Other.InputPos)
 	{
 		Function.Clone(Other.Function);
 		if (FunctionReference)

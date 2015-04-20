@@ -1049,6 +1049,34 @@ public:
 	}
 
 	/**
+	* Searches the string for the last occurrence of a character
+	*
+	* @param Pred Predicate that takes TCHAR and returns true if TCHAR matches search criteria, false otherwise.
+	* @param StartIndex Index of element from which to start searching. Defaults to last TCHAR in string.
+	*
+	* @return Index of found TCHAR, INDEX_NONE otherwise.
+	*/
+	template <typename Predicate>
+	FORCEINLINE int32 FindLastCharByPredicate(Predicate Pred, int32 StartIndex) const
+	{
+		return Data.FindLastByPredicate(Pred, StartIndex);
+	}
+
+	/**
+	* Searches the string for the last occurrence of a character
+	*
+	* @param Pred Predicate that takes TCHAR and returns true if TCHAR matches search criteria, false otherwise.
+	* @param StartIndex Index of element from which to start searching. Defaults to last TCHAR in string.
+	*
+	* @return Index of found TCHAR, INDEX_NONE otherwise.
+	*/
+	template <typename Predicate>
+	FORCEINLINE int32 FindLastCharByPredicate(Predicate Pred) const
+	{
+		return Data.FindLastByPredicate(Pred, Data.Num() - 1);
+	}
+
+	/**
 	 * Lexicographically tests whether this string is equivalent to the Other given string
 	 * 
 	 * @param Other 	The string test against
