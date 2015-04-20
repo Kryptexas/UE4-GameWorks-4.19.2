@@ -2228,23 +2228,27 @@ FModifierKeysState FSlateApplication::GetModifierKeys() const
 
 void FSlateApplication::OnShutdown()
 {
+	CloseAllWindowsImmediately();
+}
+
+void FSlateApplication::CloseAllWindowsImmediately()
+{
 	// Clean up our tooltip window
-	TSharedPtr< SWindow > PinnedToolTipWindow( ToolTipWindow.Pin() );
-	if( PinnedToolTipWindow.IsValid() )
+	TSharedPtr< SWindow > PinnedToolTipWindow(ToolTipWindow.Pin());
+	if (PinnedToolTipWindow.IsValid())
 	{
 		PinnedToolTipWindow->RequestDestroyWindow();
 		ToolTipWindow.Reset();
 	}
 
-	for( int32 WindowIndex = 0; WindowIndex < SlateWindows.Num(); ++WindowIndex )
+	for (int32 WindowIndex = 0; WindowIndex < SlateWindows.Num(); ++WindowIndex)
 	{
 		// Destroy all top level windows.  This will also request that all children of each window be destroyed
-		RequestDestroyWindow( SlateWindows[WindowIndex] );
+		RequestDestroyWindow(SlateWindows[WindowIndex]);
 	}
 
 	DestroyWindowsImmediately();
 }
-
 
 void FSlateApplication::DestroyWindowsImmediately()
 {

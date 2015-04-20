@@ -851,6 +851,9 @@ public:
 	/** Called when the slate application is being shut down. */
 	void OnShutdown();
 
+	/** Closes all active windows immediately */
+	void CloseAllWindowsImmediately();
+
 	/**
 	 * Destroy the native and slate windows in the array provided.
 	 *
