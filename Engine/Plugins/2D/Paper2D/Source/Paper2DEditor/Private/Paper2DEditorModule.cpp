@@ -7,6 +7,7 @@
 #include "PropertyEditorModule.h"
 #include "PaperStyle.h"
 #include "PaperEditorCommands.h"
+#include "PaperEditorShared/SpriteGeometryEditMode.h"
 
 #include "AssetEditorToolkit.h"
 #include "ModuleManager.h"
@@ -19,14 +20,14 @@
 #include "SpriteEditor/SpriteDetailsCustomization.h"
 #include "SpriteEditor/SpriteComponentDetailsCustomization.h"
 #include "SpriteEditor/SpritePolygonCollectionCustomization.h"
-
-#include "PaperEditorShared/SpriteGeometryEditMode.h"
+#include "SpriteEditor/SpriteEditorSettings.h"
 
 // Flipbook support
 #include "FlipbookAssetTypeActions.h"
 #include "PaperFlipbookAssetBroker.h"
 #include "PaperFlipbookThumbnailRenderer.h"
 #include "FlipbookEditor/FlipbookComponentDetailsCustomization.h"
+#include "FlipbookEditor/FlipbookEditorSettings.h"
 
 // Tile set support
 #include "TileSetAssetTypeActions.h"
@@ -258,8 +259,17 @@ private:
 			SettingsModule->RegisterSettings("Project", "Plugins", "Paper2D",
 				LOCTEXT("RuntimeSettingsName", "Paper 2D"),
 				LOCTEXT("RuntimeSettingsDescription", "Configure the Paper 2D plugin"),
-				GetMutableDefault<UPaperRuntimeSettings>()
-			);
+				GetMutableDefault<UPaperRuntimeSettings>());
+
+			SettingsModule->RegisterSettings("Editor", "ContentEditors", "SpriteEditor",
+				LOCTEXT("SpriteEditorSettingsName", "Sprite Editor"),
+				LOCTEXT("SpriteEditorSettingsDescription", "Configure the look and feel of the Sprite Editor."),
+				GetMutableDefault<USpriteEditorSettings>());
+
+			SettingsModule->RegisterSettings("Editor", "ContentEditors", "FlipbookEditor",
+				LOCTEXT("FlipbookEditorSettingsName", "Flipbook Editor"),
+				LOCTEXT("FlipbookEditorSettingsDescription", "Configure the look and feel of the Flipbook Editor."),
+				GetMutableDefault<UFlipbookEditorSettings>());
 		}
 	}
 
@@ -267,6 +277,8 @@ private:
 	{
 		if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 		{
+			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "FlipbookEditor");
+			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "SpriteEditor");
 			SettingsModule->UnregisterSettings("Project", "Plugins", "Paper2D");
 		}
 	}

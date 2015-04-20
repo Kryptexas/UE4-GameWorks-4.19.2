@@ -8,6 +8,7 @@
 #include "ScopedTransaction.h"
 #include "CanvasTypes.h"
 #include "PaperEditorShared/SocketEditing.h"
+#include "FlipbookEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "FlipbookEditor"
 
@@ -116,7 +117,7 @@ bool FFlipbookEditorViewportClient::InputKey(FViewport* Viewport, int32 Controll
 
 FLinearColor FFlipbookEditorViewportClient::GetBackgroundColor() const
 {
-	return FEditorViewportClient::GetBackgroundColor();
+	return GetDefault<UFlipbookEditorSettings>()->BackgroundColor;
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -23,6 +23,7 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 
+#include "SpriteEditorSettings.h"
 #include "PaperSpriteFactory.h"
 
 #define LOCTEXT_NAMESPACE "SpriteEditor"
@@ -948,7 +949,7 @@ void FSpriteEditorViewportClient::TrackingStopped()
 
 FLinearColor FSpriteEditorViewportClient::GetBackgroundColor() const
 {
-	return FEditorViewportClient::GetBackgroundColor();
+	return GetDefault<USpriteEditorSettings>()->BackgroundColor;
 }
 
 FVector2D FSpriteEditorViewportClient::SelectedItemConvertWorldSpaceDeltaToLocalSpace(const FVector& WorldSpaceDelta) const
