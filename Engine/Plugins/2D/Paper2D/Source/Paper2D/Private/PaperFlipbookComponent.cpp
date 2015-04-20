@@ -456,6 +456,27 @@ bool UPaperFlipbookComponent::IsReversing() const
 	return bPlaying && bReversePlayback;
 }
 
+void UPaperFlipbookComponent::SetPlaybackPositionInFrames(int32 NewFramePosition, bool bFireEvents)
+{
+	const float Framerate = GetFlipbookFramerate();
+	const float NewTime = (Framerate > 0.0f) ? (NewFramePosition / Framerate) : 0.0f;
+	SetPlaybackPosition(NewTime, bFireEvents);
+}
+
+int32 UPaperFlipbookComponent::GetPlaybackPositionInFrames() const
+{
+	const float Framerate = GetFlipbookFramerate();
+	const int32 NumFrames = GetFlipbookLengthInFrames();
+	if (NumFrames > 0)
+	{
+		return FMath::Clamp<int32>(FMath::TruncToInt(AccumulatedTime * Framerate), 0, NumFrames - 1);
+	}
+	else
+	{
+		return 0;
+	}
+}
+
 void UPaperFlipbookComponent::SetPlaybackPosition(float NewPosition, bool bFireEvents)
 {
 	float OldPosition = AccumulatedTime;
