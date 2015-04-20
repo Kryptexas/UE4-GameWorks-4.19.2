@@ -3848,6 +3848,18 @@ void UFunction::Serialize( FArchive& Ar )
 		Ar << RepOffset;
 	}
 
+#if !UE_BLUEPRINT_EVENTGRAPH_FASTCALLS
+	// We need to serialize these values even if the feature is disabled, in order to keep the serialization stream in sync
+	UFunction* EventGraphFunction = nullptr;
+	int32 EventGraphCallOffset = 0;
+#endif
+
+	if (Ar.UE4Ver() >= VER_UE4_SERIALIZE_BLUEPRINT_EVENTGRAPH_FASTCALLS_IN_UFUNCTION)
+	{
+		Ar << EventGraphFunction;
+		Ar << EventGraphCallOffset;
+	}
+
 	// Precomputation.
 	if ((Ar.GetPortFlags() & PPF_Duplicate) != 0)
 	{

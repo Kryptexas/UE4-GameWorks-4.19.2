@@ -1197,10 +1197,10 @@ public:
 	UProperty* FirstPropertyToInit;
 
 #if UE_BLUEPRINT_EVENTGRAPH_FASTCALLS
-	// The event graph this function calls in to
+	// The event graph this function calls in to (persistent)
 	UFunction* EventGraphFunction;
 
-	// The state offset inside of the event graph
+	// The state offset inside of the event graph (persistent)
 	int32 EventGraphCallOffset;
 #endif
 

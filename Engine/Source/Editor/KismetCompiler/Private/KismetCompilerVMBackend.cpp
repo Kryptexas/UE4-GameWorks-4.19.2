@@ -715,10 +715,6 @@ public:
 
 				if ((FunctionToCall->FirstPropertyToInit == nullptr) && (FunctionToCall->PostConstructLink == nullptr))
 				{
-					FEventGraphFastCallPair& Pair = *new (CompilerContext.NewClass->FastCallPairs) FEventGraphFastCallPair();
-					Pair.FunctionToPatch = FunctionContext.Function;
-					Pair.EventGraphCallOffset = OffsetWithinUbergraph;
-
 					FunctionContext.Function->EventGraphFunction = FunctionToCall;
 					FunctionContext.Function->EventGraphCallOffset = OffsetWithinUbergraph;
 				}

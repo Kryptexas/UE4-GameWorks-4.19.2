@@ -84,7 +84,7 @@ void UBlueprintGeneratedClass::PostLoad()
 
 #if UE_BLUEPRINT_EVENTGRAPH_FASTCALLS
 	// Patch the fast calls (needed as we can't bump engine version to serialize it directly in UFunction right now)
-	for (const FEventGraphFastCallPair& Pair : FastCallPairs)
+	for (const FEventGraphFastCallPair& Pair : FastCallPairs_DEPRECATED)
 	{
 		Pair.FunctionToPatch->EventGraphFunction = UberGraphFunction;
 		Pair.FunctionToPatch->EventGraphCallOffset = Pair.EventGraphCallOffset;
@@ -691,7 +691,7 @@ void UBlueprintGeneratedClass::PurgeClass(bool bRecompilingOnLoad)
 #endif //WITH_EDITOR
 
 #if UE_BLUEPRINT_EVENTGRAPH_FASTCALLS
-	FastCallPairs.Empty();
+	FastCallPairs_DEPRECATED.Empty();
 #endif
 }
 
