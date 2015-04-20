@@ -195,7 +195,10 @@ void UAIPerceptionComponent::OnUnregister()
 
 void UAIPerceptionComponent::OnOwnerEndPlay(EEndPlayReason::Type EndPlayReason)
 {
-	CleanUp();
+	if (EndPlayReason != EEndPlayReason::EndPlayInEditor && EndPlayReason != EEndPlayReason::Quit)
+	{
+		CleanUp();
+	}
 }
 
 void UAIPerceptionComponent::CleanUp()
@@ -206,6 +209,11 @@ void UAIPerceptionComponent::CleanUp()
 		if (AIPerceptionSys != nullptr)
 		{
 			AIPerceptionSys->UnregisterListener(*this);
+			AActor* MutableBodyActor = GetMutableBodyActor();
+			if (MutableBodyActor)
+			{
+				AIPerceptionSys->UnregisterSource(*MutableBodyActor);
+			}
 		}
 
 		if (HasAnyFlags(RF_BeginDestroyed) == false)
@@ -352,6 +360,11 @@ const AActor* UAIPerceptionComponent::GetBodyActor() const
 	}
 
 	return Cast<AActor>(GetOuter());
+}
+
+AActor* UAIPerceptionComponent::GetMutableBodyActor()
+{
+	return const_cast<AActor*>(GetBodyActor());
 }
 
 void UAIPerceptionComponent::RegisterStimulus(AActor* Source, const FAIStimulus& Stimulus)

@@ -147,7 +147,7 @@ protected:
 	UPROPERTY(Transient)
 	AAIController* AIOwner;
 
-	FPerceptionChannelFilter PerceptionFilter;
+	FPerceptionChannelWhitelist PerceptionFilter;
 
 private:
 	TActorPerceptionContainer PerceptualData;
@@ -185,8 +185,9 @@ public:
 	
 	void GetLocationAndDirection(FVector& Location, FVector& Direction) const;
 	const AActor* GetBodyActor() const;
+	AActor* GetMutableBodyActor();
 
-	FORCEINLINE const FPerceptionChannelFilter GetPerceptionFilter() const { return PerceptionFilter; }
+	FORCEINLINE const FPerceptionChannelWhitelist GetPerceptionFilter() const { return PerceptionFilter; }
 
 	FGenericTeamId GetTeamIdentifier() const;
 	FORCEINLINE FPerceptionListenerID GetListenerId() const { return PerceptionListenerId; }

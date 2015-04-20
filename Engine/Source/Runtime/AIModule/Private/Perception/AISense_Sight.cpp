@@ -257,6 +257,9 @@ float UAISense_Sight::Update()
 
 		if (InvalidTargets.Num() > 0)
 		{
+			// this should not be happening since UAIPerceptionSystem::OnPerceptionStimuliSourceEndPlay introduction
+			UE_VLOG(GetPerceptionSystem(), LogAIPerception, Error, TEXT("Invalid sight targets found during UAISense_Sight::Update call"));
+
 			for (const auto& TargetId : InvalidTargets)
 			{
 				// remove affected queries
@@ -285,6 +288,44 @@ void UAISense_Sight::RegisterEvent(const FAISightEvent& Event)
 void UAISense_Sight::RegisterSource(AActor& SourceActor)
 {
 	RegisterTarget(SourceActor, Sort);
+}
+
+void UAISense_Sight::UnregisterSource(AActor& SourceActor)
+{
+	const FAISightTarget::FTargetId AsTargetId = SourceActor.GetFName();
+	FAISightTarget* AsTarget = ObservedTargets.Find(AsTargetId);
+	if (AsTarget != nullptr)
+	{
+		RemoveAllQueriesToTarget(AsTargetId, DontSort);
+	}
+}
+
+void UAISense_Sight::CleanseInvalidSources()
+{
+	bool bInvalidSourcesFound = false;
+	for (TMap<FName, FAISightTarget>::TIterator ItTarget(ObservedTargets); ItTarget; ++ItTarget)
+	{
+		if (ItTarget->Value.Target.IsValid() == false)
+		{
+			// remove affected queries
+			RemoveAllQueriesToTarget(ItTarget->Key, DontSort);
+			// remove target itself
+			ItTarget.RemoveCurrent();
+
+			bInvalidSourcesFound = true;
+		}
+	}
+
+	if (bInvalidSourcesFound)
+	{
+		// remove holes
+		ObservedTargets.Compact();
+		SortQueries();
+	}
+	else
+	{
+		UE_VLOG(GetPerceptionSystem(), LogAIPerception, Error, TEXT("UAISense_Sight::CleanseInvalidSources called and no invalid targets were found"));
+	}
 }
 
 bool UAISense_Sight::RegisterTarget(AActor& TargetActor, FQueriesOperationPostProcess PostProcess)
@@ -429,20 +470,9 @@ void UAISense_Sight::OnListenerRemovedImpl(const FPerceptionListener& UpdatedLis
 
 	DigestedProperties.FindAndRemoveChecked(UpdatedListener.GetListenerID());
 
-	if (UpdatedListener.Listener.IsValid())
-	{
-		// see if this listener is a Target as well
-		const FAISightTarget::FTargetId AsTargetId = UpdatedListener.GetBodyActorName();
-		FAISightTarget* AsTarget = ObservedTargets.Find(AsTargetId);
-		if (AsTarget != NULL)
-		{
-			RemoveAllQueriesToTarget(AsTargetId, Sort);			
-		}
-	}
-	else
-	{
-		//@todo quite possible there are left over sight queries with this listener as target
-	}
+	// note: there use to be code to remove all queries _to_ listener here as well
+	// but that was wrong - the fact that a listener gets unregistered doesn't have to
+	// mean it's being removed from the game altogether.
 }
 
 void UAISense_Sight::RemoveAllQueriesByListener(const FPerceptionListener& Listener, FQueriesOperationPostProcess PostProcess)
@@ -473,7 +503,7 @@ void UAISense_Sight::RemoveAllQueriesByListener(const FPerceptionListener& Liste
 	}
 }
 
-void UAISense_Sight::RemoveAllQueriesToTarget(const FName& TargetId, FQueriesOperationPostProcess PostProcess)
+void UAISense_Sight::RemoveAllQueriesToTarget(const FAISightTarget::FTargetId& TargetId, FQueriesOperationPostProcess PostProcess)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_Sense_Sight);
 

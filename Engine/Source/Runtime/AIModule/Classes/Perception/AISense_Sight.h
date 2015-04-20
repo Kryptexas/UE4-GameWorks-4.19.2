@@ -147,6 +147,8 @@ public:
 	void RegisterEvent(const FAISightEvent& Event);	
 
 	virtual void RegisterSource(AActor& SourceActors) override;
+	virtual void UnregisterSource(AActor& SourceActor) override;
+	virtual void CleanseInvalidSources() override;
 	
 protected:
 	virtual float Update() override;
@@ -165,7 +167,7 @@ protected:
 		Sort
 	};
 	void RemoveAllQueriesByListener(const FPerceptionListener& Listener, FQueriesOperationPostProcess PostProcess);
-	void RemoveAllQueriesToTarget(const FName& TargetId, FQueriesOperationPostProcess PostProcess);
+	void RemoveAllQueriesToTarget(const FAISightTarget::FTargetId& TargetId, FQueriesOperationPostProcess PostProcess);
 
 	/** returns information whether new LoS queries have been added */
 	bool RegisterTarget(AActor& TargetActor, FQueriesOperationPostProcess PostProcess);

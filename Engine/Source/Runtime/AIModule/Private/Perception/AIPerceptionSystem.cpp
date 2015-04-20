@@ -31,11 +31,13 @@ UAIPerceptionSystem::UAIPerceptionSystem(const FObjectInitializer& ObjectInitial
 	: Super(ObjectInitializer)
 	, PerceptionAgingRate(0.3f)
 	, bSomeListenersNeedUpdateDueToStimuliAging(false)
+	, bStimuliSourcesRefreshRequired(false)
 	, CurrentTime(0.f)
 {
+	StimuliSourceEndPlayDelegate.BindDynamic(this, &UAIPerceptionSystem::OnPerceptionStimuliSourceEndPlay);
 }
 
-void UAIPerceptionSystem::RegisterSenseClass(TSubclassOf<UAISense> SenseClass)
+FAISenseID UAIPerceptionSystem::RegisterSenseClass(TSubclassOf<UAISense> SenseClass)
 {
 	check(SenseClass);
 	FAISenseID SenseID = UAISense::GetSenseID(SenseClass);
@@ -47,7 +49,7 @@ void UAIPerceptionSystem::RegisterSenseClass(TSubclassOf<UAISense> SenseClass)
 		if (SenseID.IsValid() == false)
 		{
 			// @todo log a message here
-			return;
+			return FAISenseID::InvalidID();
 		}
 	}
 
@@ -73,6 +75,8 @@ void UAIPerceptionSystem::RegisterSenseClass(TSubclassOf<UAISense> SenseClass)
 		UE_VLOG(this, LogAIPerception, Log, TEXT("Registering sense %s"), *Senses[SenseID]->GetName());
 #endif
 	}
+
+	return SenseID;
 }
 
 UWorld* UAIPerceptionSystem::GetWorld() const
@@ -99,11 +103,10 @@ TStatId UAIPerceptionSystem::GetStatId() const
 	RETURN_QUICK_DECLARE_CYCLE_STAT(UAIPerceptionSystem, STATGROUP_Tickables);
 }
 
-
 void UAIPerceptionSystem::RegisterSource(FAISenseID SenseID, AActor& SourceActor)
 {
 	ensure(IsSenseInstantiated(SenseID));
-	SourcesToRegister.Add(FPerceptionSourceRegistration(SenseID, &SourceActor));
+	SourcesToRegister.AddUnique(FPerceptionSourceRegistration(SenseID, &SourceActor));
 }
 
 void UAIPerceptionSystem::PerformSourceRegistration()
@@ -113,9 +116,17 @@ void UAIPerceptionSystem::PerformSourceRegistration()
 	for (const auto& PercSource : SourcesToRegister)
 	{
 		AActor* SourceActor = PercSource.Source.Get();
-		if (SourceActor)
+		if (SourceActor != nullptr && SourceActor->IsPendingKillPending() == false)
 		{
 			Senses[PercSource.SenseID]->RegisterSource(*SourceActor);
+
+			// hook into notification about actor's EndPlay to remove it as a source 
+			SourceActor->OnEndPlay.AddUnique(StimuliSourceEndPlayDelegate);
+
+			// store information we have this actor as given sense's source
+			FPerceptionStimuliSource& StimuliSource = RegisteredStimuliSources.FindOrAdd(SourceActor);
+			StimuliSource.SourceActor = SourceActor;
+			StimuliSource.RelevantSenses.AcceptChannel(PercSource.SenseID);
 		}
 	}
 
@@ -164,6 +175,34 @@ void UAIPerceptionSystem::Tick(float DeltaSeconds)
 
 		bool bNeedsUpdate = false;
 
+		if (bStimuliSourcesRefreshRequired == true)
+		{
+			// this is a bit naive, but we don't get notifications from the engine which Actor ended play, 
+			// we just know one did. Let's just refresh the map removing all no-longer-valid instances
+			// @todo: we should be just calling senses directly here to unregister specific source
+			// but at this point source actor is invalid already so we can't really pin and use it
+			// this will go away once OnEndPlay broadcast passes in its instigator
+			FPerceptionChannelWhitelist SensesToUpdate;
+			for (auto It = RegisteredStimuliSources.CreateIterator(); It; ++It)
+			{
+				if (It->Value.SourceActor.IsValid() == false)
+				{
+					SensesToUpdate.MergeFilterIn(It->Value.RelevantSenses);
+					It.RemoveCurrent();
+				}
+			}
+
+			for (FPerceptionChannelWhitelist::FConstIterator It(SensesToUpdate); It && Senses.IsValidIndex(*It); ++It)
+			{
+				if (Senses[*It] != nullptr)
+				{
+					Senses[*It]->CleanseInvalidSources();
+				}
+			}
+
+			bStimuliSourcesRefreshRequired = false;
+		}
+		
 		if (SourcesToRegister.Num() > 0)
 		{
 			PerformSourceRegistration();
@@ -311,12 +350,33 @@ void UAIPerceptionSystem::UnregisterListener(UAIPerceptionComponent& Listener)
 	}
 }
 
+void UAIPerceptionSystem::UnregisterSource(AActor& SourceActor)
+{
+	SourceActor.OnEndPlay.Remove(StimuliSourceEndPlayDelegate);
+
+	const FPerceptionStimuliSource* StimuliSource = RegisteredStimuliSources.Find(&SourceActor);
+	if (StimuliSource)
+	{
+		for (int32 SenseID = 0; SenseID < Senses.Num(); ++SenseID)
+		{
+			if (StimuliSource->RelevantSenses.ShouldRespondToChannel(Senses[SenseID]->GetSenseID()))
+			{
+				Senses[SenseID]->UnregisterSource(SourceActor);
+			}
+		}
+	}
+	else
+	{
+		UE_VLOG(this, LogAIPerception, Log, TEXT("UnregisterSource called for %s but it doesn't seem to be registered as a source"), *SourceActor.GetName());
+	}
+}
+
 void UAIPerceptionSystem::OnListenerRemoved(const FPerceptionListener& NewListener)
 {
 	UAISense** SenseInstance = Senses.GetData();
 	for (int32 SenseID = 0; SenseID < Senses.Num(); ++SenseID, ++SenseInstance)
 	{
-		if (*SenseInstance != nullptr)
+		if (*SenseInstance != nullptr && NewListener.HasSense((*SenseInstance)->GetSenseID()))
 		{
 			(*SenseInstance)->OnListenerRemoved(NewListener);
 		}
@@ -400,21 +460,32 @@ bool UAIPerceptionSystem::RegisterPerceptionStimuliSource(UObject* WorldContext,
 		if (World && World->GetAISystem())
 		{
 			UAISystem* AISys = Cast<UAISystem>(World->GetAISystem());
-			if (AISys && AISys->GetPerceptionSystem())
+			if (AISys != nullptr && AISys->GetPerceptionSystem() != nullptr)
 			{
-				const FAISenseID SenseID = UAISense::GetSenseID(Sense);
-				if (AISys->GetPerceptionSystem()->IsSenseInstantiated(SenseID) == false)
+				// just a cache
+				UAIPerceptionSystem* PerceptionSys = AISys->GetPerceptionSystem();
+
+				FAISenseID SenseID = UAISense::GetSenseID(Sense);
+				if (PerceptionSys->IsSenseInstantiated(SenseID) == false)
 				{
-					AISys->GetPerceptionSystem()->RegisterSenseClass(Sense);
+					SenseID = PerceptionSys->RegisterSenseClass(Sense);
 				}
 
-				AISys->GetPerceptionSystem()->RegisterSource(SenseID, *Target);
+				PerceptionSys->RegisterSource(SenseID, *Target);
 				bResult = true;
 			}
 		}
 	}
 
 	return bResult;
+}
+
+void UAIPerceptionSystem::OnPerceptionStimuliSourceEndPlay(EEndPlayReason::Type EndPlayReason)
+{
+	// this tells us just that _a_ source has been removed. We need to parse through all sources and find which one was it
+	// this is a fall-back behavior, if source gets unregistered manually this function won't get called 
+	// note, the actual work will be done on system's tick
+	bStimuliSourcesRefreshRequired = true;
 }
 
 TSubclassOf<UAISense> UAIPerceptionSystem::GetSenseClassForStimulus(UObject* WorldContext, const FAIStimulus& Stimulus)

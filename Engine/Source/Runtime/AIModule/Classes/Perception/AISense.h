@@ -89,6 +89,10 @@ public:
 
 	//virtual void RegisterSources(TArray<AActor&> SourceActors) {}
 	virtual void RegisterSource(AActor& SourceActors){}
+	virtual void UnregisterSource(AActor& SourceActors){}
+	// @note this function should not be needed once AActor.OnEndPlay broadcast includes instigator as one of its params
+	// since implementations on this function would end up being more expensive then precise UnregisterSource calls
+	virtual void CleanseInvalidSources() {}
 	virtual void RegisterWrappedEvent(UAISenseEvent& PerceptionEvent);
 	virtual FAISenseID UpdateSenseID();
 

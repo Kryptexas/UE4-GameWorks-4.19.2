@@ -42,10 +42,18 @@ protected:
 	UPROPERTY(config, EditAnywhere, Category = Perception)
 	float PerceptionAgingRate;
 
+	FActorEndPlaySignature::FDelegate StimuliSourceEndPlayDelegate;
+
+	// not a UPROPERTY on purpose so that we have a control over when stuff gets removed from the map
+	TMap<const AActor*, FPerceptionStimuliSource> RegisteredStimuliSources;
+
 	/** gets set to true if as as result of stimuli aging (that's done outside of Tick, on timer)
 	 *	one of listeners requires an update. The update, as usual is tone in Tick where 
 	 *	bSomeListenersNeedUpdateDueToStimuliAging gets reset to false */
 	uint32 bSomeListenersNeedUpdateDueToStimuliAging : 1;
+
+	/** gets set to true when perception system gets notified about a stimuli source's end play */
+	uint32 bStimuliSourcesRefreshRequired : 1;
 
 	struct FDelayedStimulus
 	{
@@ -65,6 +73,11 @@ protected:
 		FPerceptionSourceRegistration(FAISenseID InSenseID, AActor* SourceActor)
 			: SenseID(InSenseID), Source(SourceActor)
 		{}
+
+		FORCEINLINE bool operator==(const FPerceptionSourceRegistration& Other) const
+		{
+			return SenseID == Other.SenseID && Source == Other.Source;
+		}
 	};
 	TArray<FPerceptionSourceRegistration> SourcesToRegister;
 
@@ -103,11 +116,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AI|Perception")
 	void ReportEvent(UAISenseEvent* PerceptionEvent);
 
-	UFUNCTION(BlueprintCallable, Category = "AI|Perception", meta = (WorldContext = "WorldContext"))
+	UFUNCTION(BlueprintCallable, Category = "AI|Perception", meta = (HidePin = "WorldContext", DefaultToSelf = "WorldContext"))
 	static void ReportPerceptionEvent(UObject* WorldContext, UAISenseEvent* PerceptionEvent);
 	
 	template<typename FSenseClass>
 	void RegisterSource(AActor& SourceActor);
+
+	/** 
+	 *	unregisters given actor from the list of active stimuli sources
+	 */
+	void UnregisterSource(AActor& SourceActor);
 
 	void RegisterDelayedStimulus(FPerceptionListenerID ListenerId, float Delay, AActor* Instigator, const FAIStimulus& Stimulus);
 
@@ -115,15 +133,19 @@ public:
 
 	static void MakeNoiseImpl(AActor* NoiseMaker, float Loudness, APawn* NoiseInstigator, const FVector& NoiseLocation);
 
-	UFUNCTION(BlueprintCallable, Category = "AI|Perception", meta = (WorldContext = "WorldContext"))
+	UFUNCTION(BlueprintCallable, Category = "AI|Perception", meta = (HidePin = "WorldContext", DefaultToSelf = "WorldContext"))
 	static bool RegisterPerceptionStimuliSource(UObject* WorldContext, TSubclassOf<UAISense> Sense, AActor* Target);
 
-	void RegisterSenseClass(TSubclassOf<UAISense> SenseClass);
+	FAISenseID RegisterSenseClass(TSubclassOf<UAISense> SenseClass);
 
 	UFUNCTION(BlueprintCallable, Category = "AI|Perception")
 	static TSubclassOf<UAISense> GetSenseClassForStimulus(UObject* WorldContext, const FAIStimulus& Stimulus);
 	
 protected:
+
+	UFUNCTION()
+	void OnPerceptionStimuliSourceEndPlay(EEndPlayReason::Type EndPlayReason);
+	
 	/** requests registration of a given actor as a perception data source for specified sense */
 	void RegisterSource(FAISenseID SenseID, AActor& SourceActor);
 
