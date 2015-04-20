@@ -862,10 +862,15 @@ public:
 	bool HasAuthority() const;
 
 	/** 
-	 * BLUEPRINT INTERNAL USE ONLY for Add Component nodes
-	 * Creates a new component owned by this Actor based a component template found in the owning Blueprint.
-	 * Automatic attachment causes the first component created to become the root component, and all subsequent components
-	 * will be attached to the root component.  In manual mode, it is up to the user to attach or set as root
+	 * Creates a new component and assigns ownership to the Actor this is 
+	 * called for. Automatic attachment causes the first component created to 
+	 * become the root, and all subsequent components to be attached under that 
+	 * root. When bManualAttachment is set, automatic attachment is 
+	 * skipped and it is up to the user to attach the resulting component (or 
+	 * set it up as the root) themselves.
+	 *
+	 * @see UK2Node_AddComponent	DO NOT CALL MANUALLY - BLUEPRINT INTERNAL USE ONLY (for Add Component nodes)
+	 *
 	 * @param TemplateName					The name of the Component Template to use.
 	 * @param bManualAttachment				Whether manual or automatic attachment is to be used
 	 * @param RelativeTransform				The relative transform between the new component and its attach parent (automatic only)

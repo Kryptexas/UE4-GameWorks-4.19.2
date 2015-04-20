@@ -27,6 +27,8 @@ struct FBlueprintActionUiSpec
 	FText	Keywords;
 	FName   IconName;
 	FLinearColor IconTint;
+	FString DocLink;
+	FString DocExcerptTag;
 };
 
 /*******************************************************************************

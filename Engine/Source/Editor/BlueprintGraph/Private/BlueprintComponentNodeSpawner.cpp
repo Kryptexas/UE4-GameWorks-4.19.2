@@ -48,7 +48,7 @@ static FText BlueprintComponentNodeSpawnerImpl::GetDefaultMenuCategory(TSubclass
 UBlueprintComponentNodeSpawner* UBlueprintComponentNodeSpawner::Create(const FComponentTypeEntry& Entry)
 {
 	UClass* ComponentClass = Entry.ComponentClass;
-	if (ComponentClass == nullptr )
+	if (ComponentClass == nullptr)
 	{
 		// unloaded class, must be blueprint created. Create an entry. We'll load the class when we spawn the node:
 
@@ -70,6 +70,8 @@ UBlueprintComponentNodeSpawner* UBlueprintComponentNodeSpawner::Create(const FCo
 			MenuSignature.Keywords = FText::FromString(TEXT(" "));
 		}
 		MenuSignature.IconName = FClassIconFinder::FindIconNameForClass(nullptr);
+		MenuSignature.DocLink  = TEXT("Shared/GraphNodes/Blueprint/UK2Node_AddComponent");
+		MenuSignature.DocExcerptTag = TEXT("AddComponent");
 
 		return NodeSpawner;
 	}
@@ -99,6 +101,8 @@ UBlueprintComponentNodeSpawner* UBlueprintComponentNodeSpawner::Create(const FCo
 		MenuSignature.Keywords = FText::FromString(TEXT(" "));
 	}
 	MenuSignature.IconName = FClassIconFinder::FindIconNameForClass(AuthoritativeClass);
+	MenuSignature.DocLink  = TEXT("Shared/GraphNodes/Blueprint/UK2Node_AddComponent");
+	MenuSignature.DocExcerptTag = AuthoritativeClass->GetName();
 
 	return NodeSpawner;
 }
@@ -128,7 +132,7 @@ UEdGraphNode* UBlueprintComponentNodeSpawner::Invoke(UEdGraph* ParentGraph, FBin
 		UBlueprint* Blueprint = AddCompNode->GetBlueprint();
 		
 		UFunction* AddComponentFunc = FindFieldChecked<UFunction>(AActor::StaticClass(), UK2Node_AddComponent::GetAddComponentFunctionName());
-		AddCompNode->FunctionReference.SetFromField<UFunction>(AddComponentFunc, FBlueprintEditorUtils::IsActorBased(Blueprint));
+		AddCompNode->FunctionReference.SetFromField<UFunction>(AddComponentFunc, !bIsTemplateNode && FBlueprintEditorUtils::IsActorBased(Blueprint));
 
 		UserDelegate.ExecuteIfBound(NewNode, bIsTemplateNode);
 	};

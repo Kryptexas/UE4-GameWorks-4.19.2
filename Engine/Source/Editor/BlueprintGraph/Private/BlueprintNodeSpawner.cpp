@@ -200,6 +200,29 @@ FBlueprintActionUiSpec const& UBlueprintNodeSpawner::PrimeDefaultUiSpec(UEdGraph
 		bTemplateNodeFetched = true;
 	}
 
+	//--------------------------------------
+	// Verify Documentation Link
+	//--------------------------------------
+
+	if (MenuSignature.DocExcerptTag.IsEmpty())
+	{
+		NodeTemplate = bTemplateNodeFetched ? NodeTemplate : GetTemplateNode(TargetGraph);
+		if (NodeTemplate != nullptr)
+		{
+			MenuSignature.DocLink = NodeTemplate->GetDocumentationLink();
+			MenuSignature.DocExcerptTag = NodeTemplate->GetDocumentationExcerptName();
+		}
+
+		// if a target graph was provided, then we've done all we can to spawn a
+		// template node... we have to default to something
+		if (MenuSignature.DocExcerptTag.IsEmpty() && (TargetGraph != nullptr))
+		{
+			// want to set it to something so we won't end up back in this condition
+			MenuSignature.DocExcerptTag = TEXT(" ");
+		}
+		bTemplateNodeFetched = true;
+	}
+
 	return MenuSignature;
 }
 

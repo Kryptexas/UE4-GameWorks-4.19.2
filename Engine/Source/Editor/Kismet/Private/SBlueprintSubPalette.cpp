@@ -301,8 +301,7 @@ void SBlueprintSubPalette::RefreshActionsList(bool bPreserveExpansion)
 //------------------------------------------------------------------------------
 TSharedRef<SWidget> SBlueprintSubPalette::OnCreateWidgetForAction(FCreateWidgetForActionData* const InCreateData)
 {
-	return SNew(SBlueprintPaletteItem, InCreateData, BlueprintEditorPtr.Pin())
-		.ShowClassInTooltip(true);
+	return SNew(SBlueprintPaletteItem, InCreateData, BlueprintEditorPtr.Pin());
 }
 
 //------------------------------------------------------------------------------

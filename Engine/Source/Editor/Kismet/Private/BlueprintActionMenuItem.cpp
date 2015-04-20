@@ -7,6 +7,7 @@
 #include "BlueprintEditorUtils.h"	// for AnalyticsTrackNewNode(), MarkBlueprintAsModified(), etc.
 #include "ScopedTransaction.h"
 #include "SNodePanel.h"				// for GetSnapGridSize()
+#include "IDocumentation.h"			// for GetPage()
 
 #define LOCTEXT_NAMESPACE "BlueprintActionMenuItem"
 
@@ -210,6 +211,12 @@ FBlueprintActionMenuItem::FBlueprintActionMenuItem(UBlueprintNodeSpawner const* 
 	Category = UiSpec.Category.ToString();
 	TooltipDescription = UiSpec.Tooltip.ToString();
 	Keywords = UiSpec.Keywords;
+	DocExcerptRef.DocLink = UiSpec.DocLink;
+	DocExcerptRef.DocExcerptName = UiSpec.DocExcerptTag;
+	// we may fill out the UiSpec's DocLink with whitespace (so we can tell the
+	// difference between an empty DocLink and one that still needs to be filled 
+	// out), but this could cause troubles later with FDocumentation::GetPage()
+	DocExcerptRef.DocLink.Trim();
 }
 
 //------------------------------------------------------------------------------
@@ -341,6 +348,12 @@ void FBlueprintActionMenuItem::AppendBindings(const FBlueprintActionContext& Con
 	Keywords  = UiSpec.Keywords;	
 	IconBrush = FEditorStyle::GetBrush(UiSpec.IconName);
 	IconTint  = UiSpec.IconTint;
+	DocExcerptRef.DocLink = UiSpec.DocLink;
+	DocExcerptRef.DocExcerptName = UiSpec.DocExcerptTag;
+	// we may fill out the UiSpec's DocLink with whitespace (so we can tell the
+	// difference between an empty DocLink and one that still needs to be filled 
+	// out), but this could cause troubles later with FDocumentation::GetPage()
+	DocExcerptRef.DocLink.Trim();
 }
 
 //------------------------------------------------------------------------------
@@ -348,6 +361,24 @@ FSlateBrush const* FBlueprintActionMenuItem::GetMenuIcon(FSlateColor& ColorOut)
 {
 	ColorOut = IconTint;
 	return IconBrush;
+}
+
+//------------------------------------------------------------------------------
+const FBlueprintActionMenuItem::FDocExcerptRef& FBlueprintActionMenuItem::GetDocumentationExcerpt() const
+{
+	return DocExcerptRef;
+}
+
+//------------------------------------------------------------------------------
+bool FBlueprintActionMenuItem::FDocExcerptRef::IsValid() const
+{
+	if (DocLink.IsEmpty())
+	{
+		return false;
+	}
+
+	TSharedRef<IDocumentationPage> DocumentationPage = IDocumentation::Get()->GetPage(DocLink, /*Config =*/nullptr);
+	return DocumentationPage->HasExcerpt(DocExcerptName);
 }
 
 //------------------------------------------------------------------------------
