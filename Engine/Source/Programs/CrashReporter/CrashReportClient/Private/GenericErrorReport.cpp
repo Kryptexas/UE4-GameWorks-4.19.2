@@ -73,17 +73,9 @@ bool FGenericErrorReport::SetUserComment(const FText& UserComment, bool bAllowTo
 		DynamicSignaturesNode->AppendChildNode(TEXT("Parameter3"), UserComment.ToString());
 	}
 	
-	FString MachineIDandUserID;
 	// Set global user name ID: will be added to the report
 	extern FCrashDescription& GetCrashDescription();
-	if( FRocketSupport::IsRocket() )
-	{
-		MachineIDandUserID = FString::Printf( TEXT( "!MachineId:%s!EpicAccountId:%s" ), *GetCrashDescription().MachineId, *GetCrashDescription().EpicAccountId );
-	}
-	else
-	{
-		MachineIDandUserID = FString::Printf( TEXT( "!MachineId:%s!Name:%s" ), *GetCrashDescription().MachineId, *GetCrashDescription().UserName );
-	}
+	FString MachineIDandUserID = FString::Printf( TEXT( "!MachineId:%s!EpicAccountId:%s!Name:%s" ), *GetCrashDescription().MachineId, *GetCrashDescription().EpicAccountId, *GetCrashDescription().UserName );
 
 	// Add or update a user ID.
 	FXmlNode* Parameter4Node = DynamicSignaturesNode->FindChildNode(TEXT("Parameter4"));

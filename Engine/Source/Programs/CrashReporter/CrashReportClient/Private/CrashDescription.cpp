@@ -215,13 +215,9 @@ void FCrashDescription::InitializeIDs()
 	// The Epic ID can be looked up from this ID.
 	EpicAccountId = FPlatformMisc::GetEpicAccountId();
 
-	// Get the user name only for non-UE4 releases.
-	if( !FRocketSupport::IsRocket() )
-	{
-		// Remove periods from internal user names to match AutoReporter user names
-		// The name prefix is read by CrashRepository.AddNewCrash in the website code
-		UserName = FString( FPlatformProcess::UserName() ).Replace( TEXT( "." ), TEXT( "" ) );
-	}
+	// Remove periods from user names to match AutoReporter user names
+	// The name prefix is read by CrashRepository.AddNewCrash in the website code
+	UserName = FString( FPlatformProcess::UserName() ).Replace( TEXT( "." ), TEXT( "" ) );
 }
 
 void FCrashDescription::SendAnalytics()

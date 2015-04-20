@@ -200,15 +200,7 @@ void FDiagnoseReportWorker::DoWork()
 
 FText FCrashReportUtil::FormatDiagnosticText( const FText& DiagnosticText, const FString MachineId, const FString EpicAccountId, const FString UserNameNoDot )
 {
-	if( FRocketSupport::IsRocket() )
-	{
-		return FText::Format( LOCTEXT( "CrashReportClientCallstackPattern", "MachineId:{0}\nEpicAccountId:{1}\n\n{2}" ), FText::FromString( MachineId ), FText::FromString( EpicAccountId ), DiagnosticText );
-	}
-	else
-	{
-		return FText::Format( LOCTEXT( "CrashReportClientCallstackPattern", "MachineId:{0}\n\n{1}" ), FText::FromString( MachineId ), DiagnosticText );
-	}
-
+	return FText::Format( LOCTEXT( "CrashReportClientCallstackPattern", "MachineId:{0}\nEpicAccountId:{1}\n\n{2}" ), FText::FromString( MachineId ), FText::FromString( EpicAccountId ), DiagnosticText );
 }
 
 #undef LOCTEXT_NAMESPACE
