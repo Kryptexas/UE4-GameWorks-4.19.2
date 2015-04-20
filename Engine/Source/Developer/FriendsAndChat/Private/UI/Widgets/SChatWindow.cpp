@@ -90,6 +90,7 @@ public:
 					[
 						SNew(SBorder)
 						.BorderImage(&FriendStyle.ChatFooterBrush)
+						.BorderBackgroundColor(this, &SChatWindowImpl::GetTimedFadeSlateColor)
 						.Padding(FMargin(10, 10, 10, 10))
 						[
 							SNew(SHorizontalBox)
