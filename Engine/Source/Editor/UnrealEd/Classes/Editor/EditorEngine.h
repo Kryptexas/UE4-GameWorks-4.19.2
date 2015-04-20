@@ -2694,6 +2694,8 @@ public:
 	DEPRECATED(4.8, "This function is deprecated.  Please use FActorLabelUtilities::SetActorLabelUnique instead")
 	void SetActorLabelUnique( AActor* Actor, const FString& NewActorLabel, const FCachedActorLabels* InExistingActorLabels = nullptr ) const;
 
+	virtual void HandleTravelFailure(UWorld* InWorld, ETravelFailure::Type FailureType, const FString& ErrorString);
+
 private:
 	FTimerHandle CleanupPIEOnlineSessionsTimerHandle;
 };

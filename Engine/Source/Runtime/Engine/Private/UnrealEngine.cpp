@@ -7898,35 +7898,20 @@ void UEngine::HandleTravelFailure(UWorld* InWorld, ETravelFailure::Type FailureT
 	if (InWorld == NULL)
 	{
 		UE_LOG(LogNet, Error, TEXT("TravelFailure: %s, Reason for Failure: '%s' with a NULL UWorld"), ETravelFailure::ToString(FailureType), *ErrorString);
-		return;
 	}
-
-	UE_LOG(LogNet, Log, TEXT("TravelFailure: %s, Reason for Failure: '%s'"), ETravelFailure::ToString(FailureType), *ErrorString);
-
-	// Give the GameInstance a chance to handle the failure.
-	HandleTravelFailure_NotifyGameInstance(InWorld, FailureType);
-
-	ENetMode NetMode = GetNetMode(InWorld);
-
-	switch (FailureType)
+	else
 	{
-	case ETravelFailure::PackageMissing:
-	case ETravelFailure::PackageVersion:
-	case ETravelFailure::NoDownload:
-	case ETravelFailure::NoLevel:
-	case ETravelFailure::InvalidURL:
-	case ETravelFailure::TravelFailure:
-	case ETravelFailure::CheatCommands:
-	case ETravelFailure::PendingNetGameCreateFailure:
-	default:
-		break;
+		UE_LOG(LogNet, Log, TEXT("TravelFailure: %s, Reason for Failure: '%s'"), ETravelFailure::ToString(FailureType), *ErrorString);
+
+		// Give the GameInstance a chance to handle the failure.
+		HandleTravelFailure_NotifyGameInstance(InWorld, FailureType);
+
+		// Cancel pending net game if there was one
+		CancelPending(InWorld);
+
+		// Any of these errors should attempt to load back to some stable map
+		CallHandleDisconnectForFailure(InWorld, InWorld->GetNetDriver());
 	}
-
-	// Cancel pending net game if there was one
-	CancelPending(InWorld);
-
-	// Any of these errors should attempt to load back to some stable map
-	CallHandleDisconnectForFailure(InWorld, InWorld->GetNetDriver());
 }
 
 void UEngine::HandleNetworkFailure(UWorld *World, UNetDriver *NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString)
