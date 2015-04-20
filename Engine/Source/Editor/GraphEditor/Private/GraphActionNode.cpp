@@ -506,7 +506,6 @@ TSharedPtr<FGraphActionNode> FGraphActionNode::FindMatchingParent(FString const&
 		if (ChildNode->IsCategoryNode())
 		{
 			if ((NodeToAdd->SectionID == ChildNode->SectionID) &&
-				(NodeToAdd->Grouping  == ChildNode->Grouping)  &&
 				(ParentName == ChildNode->DisplayText.ToString()))
 			{
 				FoundCategoryNode = ChildNode;
