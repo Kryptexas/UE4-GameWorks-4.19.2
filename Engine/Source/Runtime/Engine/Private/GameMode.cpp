@@ -499,6 +499,8 @@ void AGameMode::RestartPlayer(AController* NewPlayer)
 			NewPlayer->SetControlRotation( NewControllerRot );
 
 			SetPlayerDefaults(NewPlayer->GetPawn());
+
+			K2_OnRestartPlayer(NewPlayer);
 		}
 	}
 
