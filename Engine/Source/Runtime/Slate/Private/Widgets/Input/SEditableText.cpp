@@ -1936,7 +1936,7 @@ void SEditableText::SaveText()
 }
 
 
-void SEditableText::SummonContextMenu( const FVector2D& InLocation )
+void SEditableText::SummonContextMenu(const FVector2D& InLocation, TSharedPtr<SWindow> ParentWindow)
 {
 	// Set the menu to automatically close when the user commits to a choice
 	const bool bShouldCloseWindowAfterMenuSelection = true;
@@ -1984,7 +1984,8 @@ void SEditableText::SummonContextMenu( const FVector2D& InLocation )
 	ActiveContextMenu.PrepareToSummon();
 
 	const bool bFocusImmediately = true;
-	TSharedPtr< SWindow > ContextMenuWindow = FSlateApplication::Get().PushMenu( SharedThis( this ), MenuBuilder.MakeWidget(), InLocation, FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu ), bFocusImmediately );
+	TSharedRef<SWidget> MenuParent = ParentWindow.IsValid() ? StaticCastSharedRef<SWidget>(ParentWindow.ToSharedRef()) : SharedThis(this);
+	TSharedPtr< SWindow > ContextMenuWindow = FSlateApplication::Get().PushMenu(MenuParent, MenuBuilder.MakeWidget(), InLocation, FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu), bFocusImmediately );
 	
 	// Make sure the window is valid.  It's possible for the parent to already be in the destroy queue, for example if the editable text was configured to dismiss it's window during OnTextCommitted.
 	if( ContextMenuWindow.IsValid() )

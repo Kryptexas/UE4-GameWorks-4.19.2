@@ -307,7 +307,7 @@ class SLATE_API ITextEditorWidget
 
 	virtual TSharedRef< SWidget > GetWidget() = 0;
 
-	virtual void SummonContextMenu( const FVector2D& InLocation ) = 0;
+	virtual void SummonContextMenu(const FVector2D& InLocation, TSharedPtr<SWindow> ParentWindow = TSharedPtr<SWindow>()) = 0;
 
 	virtual void LoadText() = 0;
 };
