@@ -105,7 +105,7 @@ private:
 	FORCEINLINE void UpdateCacheIternal(FText const& InText) const
 	{
 		bool bShowNodesAndPinsUnlocalized;
-		GConfig->GetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorGameAgnosticIni );
+		GConfig->GetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorSettingsIni );
 
 		if (bShowNodesAndPinsUnlocalized)
 		{

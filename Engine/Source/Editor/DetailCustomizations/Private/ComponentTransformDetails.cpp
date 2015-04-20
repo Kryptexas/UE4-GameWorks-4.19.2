@@ -66,7 +66,7 @@ FComponentTransformDetails::FComponentTransformDetails( const TArray< TWeakObjec
 	, bEditingRotationInUI( false )
 	, HiddenFieldMask( 0 )
 {
-	GConfig->GetBool(TEXT("SelectionDetails"), TEXT("PreserveScaleRatio"), bPreserveScaleRatio, GEditorUserSettingsIni);
+	GConfig->GetBool(TEXT("SelectionDetails"), TEXT("PreserveScaleRatio"), bPreserveScaleRatio, GEditorPerProjectIni);
 
 }
 
@@ -636,7 +636,7 @@ ECheckBoxState FComponentTransformDetails::IsPreserveScaleRatioChecked() const
 void FComponentTransformDetails::OnPreserveScaleRatioToggled( ECheckBoxState NewState )
 {
 	bPreserveScaleRatio = (NewState == ECheckBoxState::Checked) ? true : false;
-	GConfig->SetBool(TEXT("SelectionDetails"), TEXT("PreserveScaleRatio"), bPreserveScaleRatio, GEditorUserSettingsIni);
+	GConfig->SetBool(TEXT("SelectionDetails"), TEXT("PreserveScaleRatio"), bPreserveScaleRatio, GEditorPerProjectIni);
 }
 
 FText FComponentTransformDetails::GetLocationText() const

@@ -204,7 +204,7 @@ void UEditorLoadingSavingSettings::CheckSourceControlCompatability()
 			if (SettingsModule != nullptr)
 			{
 				// Ensure that the advanced properties are visible
-				GConfig->SetBool(TEXT("DetailCategoriesAdvanced"), TEXT("EditorLoadingSavingSettings.AutoReimport"), true, GEditorUserSettingsIni);
+				GConfig->SetBool(TEXT("DetailCategoriesAdvanced"), TEXT("EditorLoadingSavingSettings.AutoReimport"), true, GEditorPerProjectIni);
 				SettingsModule->ShowViewer("Editor", "General", "LoadingSaving");
 			}
 		});

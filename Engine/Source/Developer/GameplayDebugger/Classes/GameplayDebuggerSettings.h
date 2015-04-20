@@ -31,7 +31,7 @@ struct FGDTCustomViewNames
 	FString GameView5;
 };
 
-UCLASS(config = EditorUserSettings)
+UCLASS(config = EditorPerProjectUserSettings)
 class GAMEPLAYDEBUGGER_API UGameplayDebuggerSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()

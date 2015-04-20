@@ -81,13 +81,13 @@ void SColorPicker::Construct( const FArguments& InArgs )
 
 	bool bAdvancedSectionExpanded = false;
 
-	if (!FPaths::FileExists(GEditorUserSettingsIni))
+	if (!FPaths::FileExists(GEditorPerProjectIni))
 	{
 		bool WheelMode = true;
 
-		GConfig->GetBool(TEXT("ColorPickerUI"), TEXT("bWheelMode"), WheelMode, GEditorUserSettingsIni);
-		GConfig->GetBool(TEXT("ColorPickerUI"), TEXT("bAdvancedSectionExpanded"), bAdvancedSectionExpanded, GEditorUserSettingsIni);
-		GConfig->GetBool(TEXT("ColorPickerUI"), TEXT("bSRGBEnabled"), SColorThemesViewer::bSRGBEnabled, GEditorUserSettingsIni);
+		GConfig->GetBool(TEXT("ColorPickerUI"), TEXT("bWheelMode"), WheelMode, GEditorPerProjectIni);
+		GConfig->GetBool(TEXT("ColorPickerUI"), TEXT("bAdvancedSectionExpanded"), bAdvancedSectionExpanded, GEditorPerProjectIni);
+		GConfig->GetBool(TEXT("ColorPickerUI"), TEXT("bSRGBEnabled"), SColorThemesViewer::bSRGBEnabled, GEditorPerProjectIni);
 
 		CurrentMode = WheelMode ? EColorPickerModes::Wheel : EColorPickerModes::Spectrum;
 	}
@@ -1124,9 +1124,9 @@ FLinearColor SColorPicker::GetGradientStartColor( EColorPickerChannels Channel )
 
 void SColorPicker::HandleAdvancedAreaExpansionChanged( bool Expanded )
 {
-	if (FPaths::FileExists(GEditorUserSettingsIni))
+	if (FPaths::FileExists(GEditorPerProjectIni))
 	{
-		GConfig->SetBool(TEXT("ColorPickerUI"), TEXT("bAdvancedSectionExpanded"), Expanded, GEditorUserSettingsIni);
+		GConfig->SetBool(TEXT("ColorPickerUI"), TEXT("bAdvancedSectionExpanded"), Expanded, GEditorPerProjectIni);
 	}
 }
 
@@ -1323,9 +1323,9 @@ FReply SColorPicker::HandleColorPickerModeButtonClicked()
 {
 	CycleMode();
 
-	if (FPaths::FileExists(GEditorUserSettingsIni))
+	if (FPaths::FileExists(GEditorPerProjectIni))
 	{
-		GConfig->SetBool(TEXT("ColorPickerUI"), TEXT("bWheelMode"), CurrentMode == EColorPickerModes::Wheel, GEditorUserSettingsIni);
+		GConfig->SetBool(TEXT("ColorPickerUI"), TEXT("bWheelMode"), CurrentMode == EColorPickerModes::Wheel, GEditorPerProjectIni);
 	}
 
 	return FReply::Handled();
@@ -1426,9 +1426,9 @@ void SColorPicker::HandleSRGBCheckBoxCheckStateChanged( ECheckBoxState InIsCheck
 {
 	SColorThemesViewer::bSRGBEnabled = (InIsChecked == ECheckBoxState::Checked);
 
-	if (FPaths::FileExists(GEditorUserSettingsIni))
+	if (FPaths::FileExists(GEditorPerProjectIni))
 	{
-		GConfig->SetBool(TEXT("ColorPickerUI"), TEXT("bSRGBEnabled"), SColorThemesViewer::bSRGBEnabled, GEditorUserSettingsIni);
+		GConfig->SetBool(TEXT("ColorPickerUI"), TEXT("bSRGBEnabled"), SColorThemesViewer::bSRGBEnabled, GEditorPerProjectIni);
 	}
 }
 

@@ -266,7 +266,7 @@ SLevelEditor::~SLevelEditor()
 	LevelEditorModule.OnNotificationBarChanged().RemoveAll( this );
 	
 	GetMutableDefault<UEditorExperimentalSettings>()->OnSettingChanged().RemoveAll( this );
-	GEditor->AccessEditorUserSettings().OnUserSettingChanged().RemoveAll( this );
+	GetMutableDefault<UEditorPerProjectUserSettings>()->OnUserSettingChanged().RemoveAll( this );
 	FEditorModeRegistry::Get().OnRegisteredModesChanged().RemoveAll( this );
 
 	FEditorDelegates::MapChange.RemoveAll(this);

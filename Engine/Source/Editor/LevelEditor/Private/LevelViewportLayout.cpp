@@ -236,9 +236,9 @@ void FLevelViewportLayout::InitCommonLayoutFromString( const FString& SpecificLa
 	{
 		const FString& IniSection = FLayoutSaveRestore::GetAdditionalLayoutConfigIni();
 
-		GConfig->GetBool(*IniSection, *(SpecificLayoutString + TEXT(".bIsMaximized")), bShouldBeMaximized, GEditorUserSettingsIni);
-		GConfig->GetBool(*IniSection, *(SpecificLayoutString + TEXT(".bIsImmersive")), bShouldBeImmersive, GEditorUserSettingsIni);
-		GConfig->GetInt(*IniSection, *(SpecificLayoutString + TEXT(".MaximizedViewportID")), MaximizedViewportID, GEditorUserSettingsIni);
+		GConfig->GetBool(*IniSection, *(SpecificLayoutString + TEXT(".bIsMaximized")), bShouldBeMaximized, GEditorPerProjectIni);
+		GConfig->GetBool(*IniSection, *(SpecificLayoutString + TEXT(".bIsImmersive")), bShouldBeImmersive, GEditorPerProjectIni);
+		GConfig->GetInt(*IniSection, *(SpecificLayoutString + TEXT(".MaximizedViewportID")), MaximizedViewportID, GEditorPerProjectIni);
 	}
 	// Replacement layouts (those selected by the user via a command) don't start maximized so the layout can be seen clearly.
 	if (!bIsReplacement && bIsMaximizeSupported && MaximizedViewportID >= 0 && MaximizedViewportID < Viewports.Num() && (bShouldBeMaximized || bShouldBeImmersive))
@@ -268,9 +268,9 @@ void FLevelViewportLayout::SaveCommonLayoutString( const FString& SpecificLayout
 		}
 	}
 
-	GConfig->SetBool(*IniSection, *(SpecificLayoutString + TEXT(".bIsMaximized")), bIsMaximizeSupported && bIsMaximized, GEditorUserSettingsIni);
-	GConfig->SetBool(*IniSection, *(SpecificLayoutString + TEXT(".bIsImmersive")), bIsImmersive, GEditorUserSettingsIni);
-	GConfig->SetInt(*IniSection, *(SpecificLayoutString + TEXT(".MaximizedViewportID")), MaximizedViewportID, GEditorUserSettingsIni);
+	GConfig->SetBool(*IniSection, *(SpecificLayoutString + TEXT(".bIsMaximized")), bIsMaximizeSupported && bIsMaximized, GEditorPerProjectIni);
+	GConfig->SetBool(*IniSection, *(SpecificLayoutString + TEXT(".bIsImmersive")), bIsImmersive, GEditorPerProjectIni);
+	GConfig->SetInt(*IniSection, *(SpecificLayoutString + TEXT(".MaximizedViewportID")), MaximizedViewportID, GEditorPerProjectIni);
 }
 
 void FLevelViewportLayout::RequestMaximizeViewport( TSharedRef<class SLevelViewport> ViewportToMaximize, const bool bWantMaximize, const bool bWantImmersive, const bool bAllowAnimation )

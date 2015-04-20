@@ -10,6 +10,7 @@
 #include "TargetPlatform.h"
 #include "PlatformInfo.h"
 #include "SSearchBox.h"
+#include "Settings/EditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "ProjectBrowser"
 
@@ -262,7 +263,7 @@ void SProjectBrowser::Construct( const FArguments& InArgs )
 				.VAlign(VAlign_Center)
 				[
 					SNew(SCheckBox)			
-					.IsChecked(GEditor->GetGameAgnosticSettings().bLoadTheMostRecentlyLoadedProjectAtStartup ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+					.IsChecked(GetDefault<UEditorSettings>()->bLoadTheMostRecentlyLoadedProjectAtStartup ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 					.OnCheckStateChanged(this, &SProjectBrowser::OnAutoloadLastProjectChanged)
 					.Content()
 					[
@@ -1142,7 +1143,7 @@ FReply SProjectBrowser::OnBrowseToProjectClicked()
 
 	// Find the first valid project file to select by default
 	FString DefaultFolder = FEditorDirectories::Get().GetLastDirectory(ELastDirectory::PROJECT);
-	for ( auto ProjectIt = GEditor->GetGameAgnosticSettings().RecentlyOpenedProjectFiles.CreateConstIterator(); ProjectIt; ++ProjectIt )
+	for ( auto ProjectIt = GetDefault<UEditorSettings>()->RecentlyOpenedProjectFiles.CreateConstIterator(); ProjectIt; ++ProjectIt )
 	{
 		if ( IFileManager::Get().FileSize(**ProjectIt) > 0 )
 		{
@@ -1269,14 +1270,14 @@ void SProjectBrowser::OnFilterTextChanged(const FText& InText)
 
 void SProjectBrowser::OnAutoloadLastProjectChanged(ECheckBoxState NewState)
 {
-	UEditorGameAgnosticSettings &Settings = GEditor->AccessGameAgnosticSettings();
-	Settings.bLoadTheMostRecentlyLoadedProjectAtStartup = (NewState == ECheckBoxState::Checked);
+	UEditorSettings *Settings = GetMutableDefault<UEditorSettings>();
+	Settings->bLoadTheMostRecentlyLoadedProjectAtStartup = (NewState == ECheckBoxState::Checked);
 
-	UProperty* AutoloadProjectProperty = FindField<UProperty>(Settings.GetClass(), "bLoadTheMostRecentlyLoadedProjectAtStartup");
+	UProperty* AutoloadProjectProperty = FindField<UProperty>(Settings->GetClass(), "bLoadTheMostRecentlyLoadedProjectAtStartup");
 	if (AutoloadProjectProperty != NULL)
 	{
 		FPropertyChangedEvent PropertyUpdateStruct(AutoloadProjectProperty);
-		Settings.PostEditChangeProperty(PropertyUpdateStruct);
+		Settings->PostEditChangeProperty(PropertyUpdateStruct);
 	}
 }
 

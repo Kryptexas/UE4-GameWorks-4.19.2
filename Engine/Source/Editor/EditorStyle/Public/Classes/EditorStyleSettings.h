@@ -26,7 +26,7 @@ enum EColorVisionDeficiency
 /**
  * Implements the Editor style settings.
  */
-UCLASS(config=EditorUserSettings)
+UCLASS(config=EditorPerProjectUserSettings)
 class EDITORSTYLE_API UEditorStyleSettings
 	: public UObject
 {

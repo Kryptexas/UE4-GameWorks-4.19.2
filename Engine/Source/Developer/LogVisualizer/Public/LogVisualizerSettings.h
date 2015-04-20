@@ -43,7 +43,7 @@ struct FVisualLoggerFilters
 
 struct FCategoryFiltersManager;
 
-UCLASS(config = EditorUserSettings)
+UCLASS(config = EditorPerProjectUserSettings)
 class LOGVISUALIZER_API ULogVisualizerSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()

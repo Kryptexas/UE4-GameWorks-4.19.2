@@ -1527,7 +1527,7 @@ void FHotReloadModule::UpdateModuleCompileData(FName ModuleName)
 void FHotReloadModule::ReadModuleCompilationInfoFromConfig(FName ModuleName, FModuleCompilationData& CompileData)
 {
 	FString DateTimeString;
-	if (GConfig->GetString(*HotReloadDefs::CompilationInfoConfigSection, *FString::Printf(TEXT("%s.TimeStamp"), *ModuleName.ToString()), DateTimeString, GEditorUserSettingsIni))
+	if (GConfig->GetString(*HotReloadDefs::CompilationInfoConfigSection, *FString::Printf(TEXT("%s.TimeStamp"), *ModuleName.ToString()), DateTimeString, GEditorPerProjectIni))
 	{
 		FDateTime TimeStamp;
 		if (!DateTimeString.IsEmpty() && FDateTime::Parse(DateTimeString, TimeStamp))
@@ -1536,7 +1536,7 @@ void FHotReloadModule::ReadModuleCompilationInfoFromConfig(FName ModuleName, FMo
 			CompileData.FileTimeStamp = TimeStamp;
 
 			FString CompileMethodString;
-			if (GConfig->GetString(*HotReloadDefs::CompilationInfoConfigSection, *FString::Printf(TEXT("%s.LastCompileMethod"), *ModuleName.ToString()), CompileMethodString, GEditorUserSettingsIni))
+			if (GConfig->GetString(*HotReloadDefs::CompilationInfoConfigSection, *FString::Printf(TEXT("%s.LastCompileMethod"), *ModuleName.ToString()), CompileMethodString, GEditorPerProjectIni))
 			{
 				if (CompileMethodString.Equals(HotReloadDefs::CompileMethodRuntime, ESearchCase::IgnoreCase))
 				{
@@ -1559,7 +1559,7 @@ void FHotReloadModule::WriteModuleCompilationInfoToConfig(FName ModuleName, cons
 		DateTimeString = CompileData.FileTimeStamp.ToString();
 	}
 
-	GConfig->SetString(*HotReloadDefs::CompilationInfoConfigSection, *FString::Printf(TEXT("%s.TimeStamp"), *ModuleName.ToString()), *DateTimeString, GEditorUserSettingsIni);
+	GConfig->SetString(*HotReloadDefs::CompilationInfoConfigSection, *FString::Printf(TEXT("%s.TimeStamp"), *ModuleName.ToString()), *DateTimeString, GEditorPerProjectIni);
 
 	FString CompileMethodString = HotReloadDefs::CompileMethodUnknown;
 	if (CompileData.CompileMethod == EModuleCompileMethod::Runtime)
@@ -1571,7 +1571,7 @@ void FHotReloadModule::WriteModuleCompilationInfoToConfig(FName ModuleName, cons
 		CompileMethodString = HotReloadDefs::CompileMethodExternal;
 	}
 
-	GConfig->SetString(*HotReloadDefs::CompilationInfoConfigSection, *FString::Printf(TEXT("%s.LastCompileMethod"), *ModuleName.ToString()), *CompileMethodString, GEditorUserSettingsIni);
+	GConfig->SetString(*HotReloadDefs::CompilationInfoConfigSection, *FString::Printf(TEXT("%s.LastCompileMethod"), *ModuleName.ToString()), *CompileMethodString, GEditorPerProjectIni);
 }
 
 bool FHotReloadModule::GetModuleFileTimeStamp(FName ModuleName, FDateTime& OutFileTimeStamp) const

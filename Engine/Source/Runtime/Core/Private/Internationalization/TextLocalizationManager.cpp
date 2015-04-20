@@ -57,7 +57,7 @@ void EndInitTextLocalization()
 #endif // !UE_BUILD_SHIPPING
 #if WITH_EDITOR
 		// See if we've been provided a culture override in the editor
-		if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), RequestedCultureName, GEditorGameAgnosticIni ))
+		if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), RequestedCultureName, GEditorSettingsIni ))
 		{
 			//UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ editor configuration."), *CultureName);
 		}
@@ -705,7 +705,7 @@ void FTextLocalizationManager::LoadLocalizationResourcesForCulture(const FString
 		LocalizationPaths += FPaths::GetToolTipLocalizationPaths();
 
 		bool bShouldLoadLocalizedPropertyNames = true;
-		if( !GConfig->GetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEditorGameAgnosticIni ) )
+		if( !GConfig->GetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEditorSettingsIni ) )
 		{
 			GConfig->GetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEngineIni );
 		}

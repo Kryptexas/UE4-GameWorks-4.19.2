@@ -1976,7 +1976,7 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 	}
 
 	// Save last opened level name.
-	GConfig->SetString(TEXT("EditorStartup"), TEXT("LastLevel"), *LongMapPackageName, GEditorUserSettingsIni);
+	GConfig->SetString(TEXT("EditorStartup"), TEXT("LastLevel"), *LongMapPackageName, GEditorPerProjectIni);
 
 	// Deactivate any editor modes when loading a new map
 	GLevelEditorModeTools().DeactivateAllModes();
@@ -3167,7 +3167,7 @@ void FEditorFileUtils::LoadDefaultMapAtStartup()
 	// Last opened map.
 	if (GetDefault<UEditorLoadingSavingSettings>()->LoadLevelAtStartup == ELoadLevelAtStartup::LastOpened)
 	{
-		GConfig->GetString(TEXT("EditorStartup"), TEXT("LastLevel"), EditorStartupMap, GEditorUserSettingsIni);
+		GConfig->GetString(TEXT("EditorStartup"), TEXT("LastLevel"), EditorStartupMap, GEditorPerProjectIni);
 	}
 	// Default project map.
 	if (EditorStartupMap.IsEmpty()) {
@@ -3262,7 +3262,7 @@ void FEditorFileUtils::FindAllSubmittableConfigFiles(TMap<FString, TSharedPtr<cl
 	for (const FString& ConfigFilename : ConfigFilenames)
 	{
 		// Only check files which are intended to be under source control
-		if (FPaths::GetCleanFilename(ConfigFilename) != TEXT("DefaultEditorUserSettings.ini"))
+		if (FPaths::GetCleanFilename(ConfigFilename) != TEXT("DefaultEditorPerProjectUserSettings.ini"))
 		{
 			FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(ConfigFilename, EStateCacheUsage::Use);
 

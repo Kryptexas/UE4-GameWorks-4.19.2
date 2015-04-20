@@ -4,12 +4,13 @@
 
 #include "Engine/Brush.h"
 #include "Engine/Engine.h"
-#include "EditorUserSettings.h"
+#include "EditorPerProjectUserSettings.h"
 #include "Transactor.h"
 #include "../Settings/LevelEditorPlaySettings.h"
 #include "../Settings/LevelEditorViewportSettings.h"
 #include "EditorEngine.generated.h"
 
+class UEditorSettings;
 class APlayerStart;
 class FAssetData;
 class FPoly;
@@ -535,14 +536,6 @@ public:
 	UPROPERTY(transient)
 	class UTextureRenderTarget2D* ScratchRenderTarget256;
 
-	/** Global instance of the editor user settings */
-	UPROPERTY()
-	class UEditorUserSettings* EditorUserSettings;
-
-	/** Global instance of the game agnostic editor settings */
-	UPROPERTY()
-	class UEditorGameAgnosticSettings* GameAgnosticSettings;
-
 	/** A mesh component used to preview in editor without spawning a static mesh actor. */
 	UPROPERTY(transient)
 	class UStaticMeshComponent* PreviewMeshComp;
@@ -766,20 +759,6 @@ public:
 	 * @param		InWorld			World in which to create the builder brush.
 	 */
 	void InitBuilderBrush( UWorld* InWorld );
-
-	/** Returns the global instance of the editor user settings class. */
-	const UEditorUserSettings& GetEditorUserSettings() const;
-	UEditorUserSettings& AccessEditorUserSettings();
-
-	/** Saves the user settings to disk. */
-	void SaveEditorUserSettings();
-
-	/** Returns the global instance of the game agnostic editor settings class. */
-	const UEditorGameAgnosticSettings& GetGameAgnosticSettings() const;
-	UEditorGameAgnosticSettings& AccessGameAgnosticSettings();
-
-	/** Saves the game agnostic settings to disk. */
-	void SaveGameAgnosticSettings();
 
 	/** Access user setting for audio mute. */
 	bool IsRealTimeAudioMuted() const;

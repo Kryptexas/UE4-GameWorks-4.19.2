@@ -14,15 +14,15 @@ UInternationalizationSettingsModel::UInternationalizationSettingsModel( const FO
 void UInternationalizationSettingsModel::SaveDefaults()
 {
 	FString SavedCultureName;
-	GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), SavedCultureName, GEditorGameAgnosticIni );
+	GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), SavedCultureName, GEditorSettingsIni );
 	GConfig->SetString( TEXT("Internationalization"), TEXT("Culture"), *SavedCultureName, GEngineIni );
 
 	bool bShouldLoadLocalizedPropertyNames = true;
-	GConfig->GetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEditorGameAgnosticIni );
+	GConfig->GetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEditorSettingsIni );
 	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEngineIni );
 
 	bool bShowNodesAndPinsUnlocalized = false;
-	GConfig->GetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorGameAgnosticIni );
+	GConfig->GetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorSettingsIni );
 	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEngineIni );
 }
 
@@ -31,15 +31,15 @@ void UInternationalizationSettingsModel::ResetToDefault()
 {
 	FString SavedCultureName;
 	GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), SavedCultureName, GEngineIni );
-	GConfig->SetString( TEXT("Internationalization"), TEXT("Culture"), *SavedCultureName, GEditorGameAgnosticIni );
+	GConfig->SetString( TEXT("Internationalization"), TEXT("Culture"), *SavedCultureName, GEditorSettingsIni );
 
 	bool bShouldLoadLocalizedPropertyNames = true;
 	GConfig->GetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEngineIni );
-	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEditorGameAgnosticIni );
+	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEditorSettingsIni );
 
 	bool bShowNodesAndPinsUnlocalized = false;
 	GConfig->GetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEngineIni );
-	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorGameAgnosticIni );
+	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorSettingsIni );
 
 	SettingChangedEvent.Broadcast();
 }
@@ -48,7 +48,7 @@ void UInternationalizationSettingsModel::ResetToDefault()
 FString UInternationalizationSettingsModel::GetCultureName() const
 {
 	FString SavedCultureName;
-	if( !GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), SavedCultureName, GEditorGameAgnosticIni ) )
+	if( !GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), SavedCultureName, GEditorSettingsIni ) )
 	{
 		GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), SavedCultureName, GEngineIni );
 	}
@@ -58,7 +58,7 @@ FString UInternationalizationSettingsModel::GetCultureName() const
 
 void UInternationalizationSettingsModel::SetCultureName(const FString& CultureName)
 {
-	GConfig->SetString( TEXT("Internationalization"), TEXT("Culture"), *CultureName, GEditorGameAgnosticIni );
+	GConfig->SetString( TEXT("Internationalization"), TEXT("Culture"), *CultureName, GEditorSettingsIni );
 	SettingChangedEvent.Broadcast();
 }
 
@@ -66,7 +66,7 @@ void UInternationalizationSettingsModel::SetCultureName(const FString& CultureNa
 bool UInternationalizationSettingsModel::ShouldLoadLocalizedPropertyNames() const
 {
 	bool bShouldLoadLocalizedPropertyNames = true;
-	if( !GConfig->GetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEditorGameAgnosticIni ) )
+	if( !GConfig->GetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEditorSettingsIni ) )
 	{
 		GConfig->GetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEngineIni );
 	}
@@ -76,14 +76,14 @@ bool UInternationalizationSettingsModel::ShouldLoadLocalizedPropertyNames() cons
 
 void UInternationalizationSettingsModel::ShouldLoadLocalizedPropertyNames(const bool Value)
 {
-	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), Value, GEditorGameAgnosticIni );
+	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), Value, GEditorSettingsIni );
 	SettingChangedEvent.Broadcast();
 }
 
 bool UInternationalizationSettingsModel::ShouldShowNodesAndPinsUnlocalized() const
 {
 	bool bShowNodesAndPinsUnlocalized = false;
-	if( !GConfig->GetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorGameAgnosticIni ) )
+	if( !GConfig->GetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorSettingsIni ) )
 	{
 		GConfig->GetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEngineIni );
 	}
@@ -92,5 +92,5 @@ bool UInternationalizationSettingsModel::ShouldShowNodesAndPinsUnlocalized() con
 
 void UInternationalizationSettingsModel::ShouldShowNodesAndPinsUnlocalized(const bool Value)
 {
-	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), Value, GEditorGameAgnosticIni );
+	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), Value, GEditorSettingsIni );
 }

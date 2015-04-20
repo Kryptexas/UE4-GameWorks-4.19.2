@@ -613,21 +613,21 @@ void SDesignerView::SetStartupResolution()
 {
 	// Use previously set resolution (or create new entries using default values)
 	// Width
-	if (!GConfig->GetInt(*ConfigSectionName, TEXT("PreviewWidth"), PreviewWidth, GEditorUserSettingsIni))
+	if (!GConfig->GetInt(*ConfigSectionName, TEXT("PreviewWidth"), PreviewWidth, GEditorPerProjectIni))
 	{
-		GConfig->SetInt(*ConfigSectionName, TEXT("PreviewWidth"), DefaultResolutionWidth, GEditorUserSettingsIni);
+		GConfig->SetInt(*ConfigSectionName, TEXT("PreviewWidth"), DefaultResolutionWidth, GEditorPerProjectIni);
 		PreviewWidth = DefaultResolutionWidth;
 	}
 	// Height
-	if (!GConfig->GetInt(*ConfigSectionName, TEXT("PreviewHeight"), PreviewHeight, GEditorUserSettingsIni))
+	if (!GConfig->GetInt(*ConfigSectionName, TEXT("PreviewHeight"), PreviewHeight, GEditorPerProjectIni))
 	{
-		GConfig->SetInt(*ConfigSectionName, TEXT("PreviewHeight"), DefaultResolutionHeight, GEditorUserSettingsIni);
+		GConfig->SetInt(*ConfigSectionName, TEXT("PreviewHeight"), DefaultResolutionHeight, GEditorPerProjectIni);
 		PreviewHeight = DefaultResolutionHeight;
 	}
 	// Aspect Ratio
-	if (!GConfig->GetString(*ConfigSectionName, TEXT("PreviewAspectRatio"), PreviewAspectRatio, GEditorUserSettingsIni))
+	if (!GConfig->GetString(*ConfigSectionName, TEXT("PreviewAspectRatio"), PreviewAspectRatio, GEditorPerProjectIni))
 	{
-		GConfig->SetString(*ConfigSectionName, TEXT("PreviewAspectRatio"), *DefaultAspectRatio, GEditorUserSettingsIni);
+		GConfig->SetString(*ConfigSectionName, TEXT("PreviewAspectRatio"), *DefaultAspectRatio, GEditorPerProjectIni);
 		PreviewAspectRatio = DefaultAspectRatio;
 	}
 }
@@ -2061,9 +2061,9 @@ void SDesignerView::HandleOnCommonResolutionSelected(int32 Width, int32 Height, 
 	PreviewHeight = Height;
 	PreviewAspectRatio = AspectRatio;
 
-	GConfig->SetInt(*ConfigSectionName, TEXT("PreviewWidth"), Width, GEditorUserSettingsIni);
-	GConfig->SetInt(*ConfigSectionName, TEXT("PreviewHeight"), Height, GEditorUserSettingsIni);
-	GConfig->SetString(*ConfigSectionName, TEXT("PreviewAspectRatio"), *AspectRatio, GEditorUserSettingsIni);
+	GConfig->SetInt(*ConfigSectionName, TEXT("PreviewWidth"), Width, GEditorPerProjectIni);
+	GConfig->SetInt(*ConfigSectionName, TEXT("PreviewHeight"), Height, GEditorPerProjectIni);
+	GConfig->SetString(*ConfigSectionName, TEXT("PreviewAspectRatio"), *AspectRatio, GEditorPerProjectIni);
 
 	if ( UUserWidget* DefaultWidget = GetDefaultWidget() )
 	{

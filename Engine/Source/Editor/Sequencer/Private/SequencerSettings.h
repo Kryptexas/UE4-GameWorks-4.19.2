@@ -20,7 +20,7 @@ namespace ESequencerCurveVisibility
 }
 
 /** Serializable options for sequencer. */
-UCLASS(config=EditorUserSettings)
+UCLASS(config=EditorPerProjectUserSettings)
 class USequencerSettings : public UObject
 {
 public:

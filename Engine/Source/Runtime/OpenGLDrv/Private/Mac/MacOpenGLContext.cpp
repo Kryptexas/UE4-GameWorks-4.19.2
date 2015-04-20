@@ -15,7 +15,7 @@
 
 #if WITH_EDITOR
 #define MAC_OPENGL_SETTINGS TEXT("/Script/MacGraphicsSwitching.MacGraphicsSwitchingSettings")
-#define MAC_OPENGL_INI GEditorGameAgnosticIni
+#define MAC_OPENGL_INI GEditorSettingsIni
 #else
 #define MAC_OPENGL_SETTINGS TEXT("OpenGL")
 #define MAC_OPENGL_INI GEngineIni

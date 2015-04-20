@@ -419,7 +419,7 @@ void FPropertyTable::PasteTextAtCell( const FString& Text, const TSharedRef< IPr
 	RowStrings[CurrentRowIdx++].ParseIntoArray(CellStrings, TEXT("\t"), false);
 
 	// Get the maximum paste operations before displaying the slow task
-	int32 NumPasteOperationsBeforeWarning = GEditor->AccessEditorUserSettings().PropertyMatrix_NumberOfPasteOperationsBeforeWarning;
+	int32 NumPasteOperationsBeforeWarning = GetDefault<UEditorPerProjectUserSettings>()->PropertyMatrix_NumberOfPasteOperationsBeforeWarning;
 	
 	const bool bShowCancelButton = false;
 	const bool bShowProgressDialog = SelectedCells.Num() > NumPasteOperationsBeforeWarning;

@@ -290,7 +290,7 @@ void FBlueprintSpawnNodeCommands::RegisterCommands()
 	const FString ConfigSection = TEXT("BlueprintSpawnNodes");
 	const FString SettingName = TEXT("Node");
 	TArray< FString > NodeSpawns;
-	GConfig->GetArray(*ConfigSection, *SettingName, NodeSpawns, GEditorUserSettingsIni);
+	GConfig->GetArray(*ConfigSection, *SettingName, NodeSpawns, GEditorPerProjectIni);
 
 	for(int32 x = 0; x < NodeSpawns.Num(); ++x)
 	{

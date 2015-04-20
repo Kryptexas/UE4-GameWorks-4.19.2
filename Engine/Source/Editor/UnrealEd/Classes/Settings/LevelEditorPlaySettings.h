@@ -109,7 +109,7 @@ public:
 /**
  * Implements the Editor's play settings.
  */
-UCLASS(config=EditorUserSettings)
+UCLASS(config=EditorPerProjectUserSettings)
 class UNREALED_API ULevelEditorPlaySettings
 	: public UObject
 {

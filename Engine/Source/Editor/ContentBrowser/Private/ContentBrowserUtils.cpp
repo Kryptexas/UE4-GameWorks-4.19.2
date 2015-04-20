@@ -1334,11 +1334,11 @@ const TSharedPtr<FLinearColor> ContentBrowserUtils::LoadColor(const FString& Fol
 		}
 		
 		// Loads the color of folder at the given path from the config
-		if(FPaths::FileExists(GEditorUserSettingsIni))
+		if(FPaths::FileExists(GEditorPerProjectIni))
 		{
 			// Create a new entry from the config, skip if it's default
 			FString ColorStr;
-			if(GConfig->GetString(TEXT("PathColor"), *InPath, ColorStr, GEditorUserSettingsIni))
+			if(GConfig->GetString(TEXT("PathColor"), *InPath, ColorStr, GEditorPerProjectIni))
 			{
 				FLinearColor Color;
 				if(Color.InitFromString(ColorStr) && !Color.Equals(ContentBrowserUtils::GetDefaultColor()))
@@ -1377,9 +1377,9 @@ void ContentBrowserUtils::SaveColor(const FString& FolderPath, const TSharedPtr<
 	auto SaveColorInternal = [](const FString& InPath, const TSharedPtr<FLinearColor>& InFolderColor)
 	{
 		// Saves the color of the folder to the config
-		if(FPaths::FileExists(GEditorUserSettingsIni))
+		if(FPaths::FileExists(GEditorPerProjectIni))
 		{
-			GConfig->SetString(TEXT("PathColor"), *InPath, *InFolderColor->ToString(), GEditorUserSettingsIni);
+			GConfig->SetString(TEXT("PathColor"), *InPath, *InFolderColor->ToString(), GEditorPerProjectIni);
 		}
 
 		// Update the map too
@@ -1389,9 +1389,9 @@ void ContentBrowserUtils::SaveColor(const FString& FolderPath, const TSharedPtr<
 	auto RemoveColorInternal = [](const FString& InPath)
 	{
 		// Remove the color of the folder from the config
-		if(FPaths::FileExists(GEditorUserSettingsIni))
+		if(FPaths::FileExists(GEditorPerProjectIni))
 		{
-			GConfig->RemoveKey(TEXT("PathColor"), *InPath, GEditorUserSettingsIni);
+			GConfig->RemoveKey(TEXT("PathColor"), *InPath, GEditorPerProjectIni);
 		}
 
 		// Update the map too
@@ -1423,11 +1423,11 @@ bool ContentBrowserUtils::HasCustomColors( TArray< FLinearColor >* OutColors )
 	// Check to see how many paths are currently using this color
 	// Note: we have to use the config, as paths which haven't been rendered yet aren't registered in the map
 	bool bHasCustom = false;
-	if (FPaths::FileExists(GEditorUserSettingsIni))
+	if (FPaths::FileExists(GEditorPerProjectIni))
 	{
 		// Read individual entries from a config file.
 		TArray< FString > Section; 
-		GConfig->GetSection( TEXT("PathColor"), Section, GEditorUserSettingsIni );
+		GConfig->GetSection( TEXT("PathColor"), Section, GEditorPerProjectIni );
 
 		for( int32 SectionIndex = 0; SectionIndex < Section.Num(); SectionIndex++ )
 		{

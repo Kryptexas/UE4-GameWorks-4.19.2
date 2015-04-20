@@ -69,6 +69,8 @@
 #include "UnrealEngine.h"
 #include "AI/Navigation/NavLinkRenderingComponent.h"
 
+#include "Settings/EditorSettings.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 
 /** Used for the "tagsounds" and "checksounds" commands only			*/
@@ -1099,7 +1101,7 @@ void UEditorEngine::HandleTransactorUndo( FUndoSessionContext SessionContext, bo
 
 bool UEditorEngine::AreEditorAnalyticsEnabled() const 
 {
-	return GetGameAgnosticSettings().bEditorAnalyticsEnabled;
+	return GetDefault<UEditorSettings>()->bEditorAnalyticsEnabled;
 }
 
 void UEditorEngine::CreateStartupAnalyticsAttributes( TArray<FAnalyticsEventAttribute>& StartSessionAttributes ) const
@@ -1121,7 +1123,7 @@ UTransactor* UEditorEngine::CreateTrans()
 {
 	int32 UndoBufferSize;
 
-	if (!GConfig->GetInt(TEXT("Undo"), TEXT("UndoBufferSize"), UndoBufferSize, GEditorUserSettingsIni))
+	if (!GConfig->GetInt(TEXT("Undo"), TEXT("UndoBufferSize"), UndoBufferSize, GEditorPerProjectIni))
 	{
 		UndoBufferSize = 16;
 	}

@@ -76,9 +76,9 @@ public:
 	 */
 	void SaveToIni( )
 	{
-		GConfig->SetString( TEXT("RootWindow"), TEXT("ScreenPosition"), *ScreenPosition.ToString(), GEditorUserSettingsIni );
-		GConfig->SetString( TEXT("RootWindow"), TEXT("WindowSize"), *WindowSize.ToString(), GEditorUserSettingsIni );
-		GConfig->SetBool( TEXT("RootWindow"), TEXT("InitiallyMaximized"), InitiallyMaximized, GEditorUserSettingsIni );
+		GConfig->SetString( TEXT("RootWindow"), TEXT("ScreenPosition"), *ScreenPosition.ToString(), GEditorPerProjectIni );
+		GConfig->SetString( TEXT("RootWindow"), TEXT("WindowSize"), *WindowSize.ToString(), GEditorPerProjectIni );
+		GConfig->SetBool( TEXT("RootWindow"), TEXT("InitiallyMaximized"), InitiallyMaximized, GEditorPerProjectIni );
 	}
 
 
@@ -88,7 +88,7 @@ private:
 	{
 		FVector2D ReturnValue = DefaultValue;
 		FString ValueAsString;
-		if ( GConfig->GetString(TEXT("RootWindow"), SettingName, ValueAsString, GEditorUserSettingsIni) && ReturnValue.InitFromString(ValueAsString) )
+		if ( GConfig->GetString(TEXT("RootWindow"), SettingName, ValueAsString, GEditorPerProjectIni) && ReturnValue.InitFromString(ValueAsString) )
 		{
 			// Successfully loaded setting
 			return ReturnValue;
@@ -102,7 +102,7 @@ private:
 	static bool BoolFromSettings( const TCHAR* SettingName, bool DefaultValue )
 	{
 		bool ReturnValue;
-		if ( GConfig->GetBool(TEXT("RootWindow"), SettingName, ReturnValue, GEditorUserSettingsIni) )
+		if ( GConfig->GetBool(TEXT("RootWindow"), SettingName, ReturnValue, GEditorPerProjectIni) )
 		{
 			return ReturnValue;
 		}

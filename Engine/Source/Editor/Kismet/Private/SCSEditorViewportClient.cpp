@@ -125,7 +125,7 @@ FSCSEditorViewportClient::FSCSEditorViewportClient(TWeakPtr<FBlueprintEditor>& I
 	EngineShowFlags.SelectionOutline = GetDefault<ULevelEditorViewportSettings>()->bUseSelectionOutline;
 
 	// Set if the grid will be drawn
-	DrawHelper.bDrawGrid = GEditor->GetEditorUserSettings().bSCSEditorShowGrid;
+	DrawHelper.bDrawGrid = GetDefault<UEditorPerProjectUserSettings>()->bSCSEditorShowGrid;
 
 	// now add floor
 	EditorFloorComp = NewObject<UStaticMeshComponent>(GetTransientPackage(), TEXT("EditorFloorComp"));
@@ -143,8 +143,8 @@ FSCSEditorViewportClient::FSCSEditorViewportClient(TWeakPtr<FBlueprintEditor>& I
 	}
 
 	EditorFloorComp->SetRelativeScale3D(FVector(3.f, 3.f, 1.f));
-	EditorFloorComp->SetVisibility(GEditor->GetEditorUserSettings().bSCSEditorShowFloor);
-	EditorFloorComp->SetCollisionEnabled(GEditor->GetEditorUserSettings().bSCSEditorShowFloor? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
+	EditorFloorComp->SetVisibility(GetDefault<UEditorPerProjectUserSettings>()->bSCSEditorShowFloor);
+	EditorFloorComp->SetCollisionEnabled(GetDefault<UEditorPerProjectUserSettings>()->bSCSEditorShowFloor? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
 	PreviewScene->AddComponent(EditorFloorComp, FTransform::Identity);
 
 	// Turn off so that actors added to the world do not have a lifespan (so they will not auto-destroy themselves).
@@ -773,37 +773,43 @@ void FSCSEditorViewportClient::ToggleIsSimulateEnabled()
 
 bool FSCSEditorViewportClient::GetShowFloor() 
 {
-	return GEditor->GetEditorUserSettings().bSCSEditorShowFloor;
+	return GetDefault<UEditorPerProjectUserSettings>()->bSCSEditorShowFloor;
 }
 
 void FSCSEditorViewportClient::ToggleShowFloor() 
 {
-	bool bShowFloor = GEditor->AccessEditorUserSettings().bSCSEditorShowFloor;
+	auto* Settings = GetMutableDefault<UEditorPerProjectUserSettings>();
+
+	bool bShowFloor = Settings->bSCSEditorShowFloor;
 	bShowFloor = !bShowFloor;
 	
 	EditorFloorComp->SetVisibility(bShowFloor);
 	EditorFloorComp->SetCollisionEnabled(bShowFloor? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
 	GetWorld()->SendAllEndOfFrameUpdates();
 
-	GEditor->AccessEditorUserSettings().bSCSEditorShowFloor = bShowFloor;
+	Settings->bSCSEditorShowFloor = bShowFloor;
+	Settings->PostEditChange();
 
 	Invalidate();
 }
 
 bool FSCSEditorViewportClient::GetShowGrid() 
 {
-	return GEditor->GetEditorUserSettings().bSCSEditorShowGrid;
+	return GetDefault<UEditorPerProjectUserSettings>()->bSCSEditorShowGrid;
 }
 
 void FSCSEditorViewportClient::ToggleShowGrid() 
 {
-	bool bShowGrid = GEditor->AccessEditorUserSettings().bSCSEditorShowGrid;
+	auto* Settings = GetMutableDefault<UEditorPerProjectUserSettings>();
+
+	bool bShowGrid = Settings->bSCSEditorShowGrid;
 	bShowGrid = !bShowGrid;
 
 	DrawHelper.bDrawGrid = bShowGrid;
 
-	GEditor->AccessEditorUserSettings().bSCSEditorShowGrid = bShowGrid;
-
+	Settings->bSCSEditorShowGrid = bShowGrid;
+	Settings->PostEditChange();
+	
 	Invalidate();
 }
 

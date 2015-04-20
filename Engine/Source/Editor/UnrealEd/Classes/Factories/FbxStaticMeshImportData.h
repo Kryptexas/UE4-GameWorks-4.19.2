@@ -21,7 +21,7 @@ namespace EVertexColorImportOption
 	};
 }
 
-UCLASS(config=EditorUserSettings, AutoExpandCategories=(Options), MinimalAPI)
+UCLASS(config=EditorPerProjectUserSettings, AutoExpandCategories=(Options), MinimalAPI)
 class UFbxStaticMeshImportData : public UFbxMeshImportData
 {
 	GENERATED_UCLASS_BODY()

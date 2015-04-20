@@ -1953,7 +1953,7 @@ bool FStaticLightingSystem::FinishLightmassProcess()
 			}
 		
 			bool bShowLightingBuildInfo = false;
-			GConfig->GetBool( TEXT("LightingBuildOptions"), TEXT("ShowLightingBuildInfo"), bShowLightingBuildInfo, GEditorUserSettingsIni );
+			GConfig->GetBool( TEXT("LightingBuildOptions"), TEXT("ShowLightingBuildInfo"), bShowLightingBuildInfo, GEditorPerProjectIni );
 			if( bShowLightingBuildInfo )
 			{
 				StatsViewerModule.GetPage(EStatsPage::LightingBuildInfo)->Show();

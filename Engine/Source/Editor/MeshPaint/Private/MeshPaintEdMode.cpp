@@ -4076,7 +4076,7 @@ void FEdModeMeshPaint::SetBrushRadiiDefault( float InBrushRadius )
 	GetBrushRadiiLimits(MinBrushRadius, MaxBrushRadius);	
 
 	InBrushRadius = (float)FMath::Clamp(InBrushRadius, MinBrushRadius, MaxBrushRadius);
-	GConfig->SetFloat( TEXT("MeshPaintEdit"), TEXT("DefaultBrushRadius"), InBrushRadius, GEditorUserSettingsIni );
+	GConfig->SetFloat( TEXT("MeshPaintEdit"), TEXT("DefaultBrushRadius"), InBrushRadius, GEditorPerProjectIni );
 }
 
 float FEdModeMeshPaint::GetBrushRadiiDefault() const
@@ -4085,7 +4085,7 @@ float FEdModeMeshPaint::GetBrushRadiiDefault() const
 	GetBrushRadiiLimits(MinBrushRadius, MaxBrushRadius);
 
 	float BrushRadius = 128.f;
-	GConfig->GetFloat( TEXT("MeshPaintEdit"), TEXT("DefaultBrushRadius"), BrushRadius, GEditorUserSettingsIni );
+	GConfig->GetFloat( TEXT("MeshPaintEdit"), TEXT("DefaultBrushRadius"), BrushRadius, GEditorPerProjectIni );
 	BrushRadius = (float)FMath::Clamp(BrushRadius, MinBrushRadius, MaxBrushRadius);
 	return BrushRadius;
 }

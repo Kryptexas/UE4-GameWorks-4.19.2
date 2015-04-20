@@ -13,7 +13,7 @@
 /**
  * Implements the Level Editor's loading and saving settings.
  */
-UCLASS(config=EditorUserSettings)
+UCLASS(config=EditorPerProjectUserSettings)
 class UNREALED_API UContentBrowserSettings
 	: public UObject
 {

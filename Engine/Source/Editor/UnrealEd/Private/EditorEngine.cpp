@@ -41,6 +41,8 @@
 #include "ContentBrowserModule.h"
 #include "ISourceCodeAccessModule.h"
 
+#include "Settings/EditorSettings.h"
+
 #include "Editor/MainFrame/Public/MainFrame.h"
 #include "AnimationUtils.h"
 #include "AudioDecompress.h"
@@ -411,7 +413,7 @@ static bool GetSmallToolBarIcons()
 
 static bool GetDisplayMultiboxHooks()
 {
-	return GEditor->AccessEditorUserSettings().bDisplayUIExtensionPoints;
+	return GetDefault<UEditorPerProjectUserSettings>()->bDisplayUIExtensionPoints;
 }
 
 void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
@@ -1599,79 +1601,8 @@ float UEditorEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmooth
 	return MaxTickRate;
 }
 
-const UEditorUserSettings& UEditorEngine::GetEditorUserSettings() const
-{
-	if (EditorUserSettings == NULL)
-	{
-		auto ConstThis = const_cast< UEditorEngine* >( this );	// Hack because Header Generator doesn't yet support mutable keyword
-		ConstThis->EditorUserSettings = NewObject<UEditorUserSettings>();
-	}
-	return *EditorUserSettings;
-}
-
-UEditorUserSettings& UEditorEngine::AccessEditorUserSettings()
-{
-	if (EditorUserSettings == NULL)
-	{
-		EditorUserSettings = NewObject<UEditorUserSettings>();
-	}
-	return *EditorUserSettings;
-}
-
-void UEditorEngine::SaveEditorUserSettings()
-{
-	if (!FUnrealEdMisc::Get().IsDeletePreferences())
-	{
-		AccessEditorUserSettings().SaveConfig();
-	}
-}
-
-const UEditorGameAgnosticSettings& UEditorEngine::GetGameAgnosticSettings() const
-{
-	if (GameAgnosticSettings == NULL)
-	{
-		auto ConstThis = const_cast< UEditorEngine* >( this );	// Hack because Header Generator doesn't yet support mutable keyword
-		ConstThis->GameAgnosticSettings = NewObject<UEditorGameAgnosticSettings>();
-		
-		// Load config from file, but only if we are not the build machine since game agnostic settings may put the builder in an unclean state
-		if ( !GIsBuildMachine )
-		{
-			ConstThis->GameAgnosticSettings->LoadConfig(UEditorGameAgnosticSettings::StaticClass(), *GEditorGameAgnosticIni);
-		}
-	}
-	return *GameAgnosticSettings;
-}
-
-UEditorGameAgnosticSettings& UEditorEngine::AccessGameAgnosticSettings()
-{
-	if (GameAgnosticSettings == NULL)
-	{
-		GameAgnosticSettings = NewObject<UEditorGameAgnosticSettings>();
-		
-		// Load config from file, but only if we are not the build machine since game agnostic settings may put the builder in an unclean state
-		if ( !GIsBuildMachine )
-		{
-			GameAgnosticSettings->LoadConfig(UEditorGameAgnosticSettings::StaticClass(), *GEditorGameAgnosticIni);
-		}
-	}
-	return *GameAgnosticSettings;
-}
-
-void UEditorEngine::SaveGameAgnosticSettings()
-{
-	// Save config to file, but only if we are not the build machine since game agnostic settings may put the builder in an unclean state
-	if ( !GIsBuildMachine )
-	{
-		AccessGameAgnosticSettings().SaveConfig(CPF_Config, *GEditorGameAgnosticIni);
-	}
-}
-
 bool UEditorEngine::IsRealTimeAudioMuted() const
 {
-	if (EditorUserSettings == NULL)
-	{
-		return true;
-	}
 	return GetDefault<ULevelEditorMiscSettings>()->bEnableRealTimeAudio ? false : true;
 }
 
@@ -5378,7 +5309,7 @@ bool UEditorEngine::ShouldThrottleCPUUsage() const
 
 	if( !bIsForeground )
 	{
-		const UEditorUserSettings* Settings = GetDefault<UEditorUserSettings>();
+		const UEditorPerProjectUserSettings* Settings = GetDefault<UEditorPerProjectUserSettings>();
 		bShouldThrottle = Settings->bThrottleCPUWhenNotForeground;
 
 		// Check if we should throttle due to all windows being minimized
@@ -5864,7 +5795,7 @@ void UEditorEngine::UpdateRecentlyLoadedProjectFiles()
 	{
 		const FString AbsoluteProjectPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*FPaths::GetProjectFilePath());
 		// Update the recently loaded project files. Move this project file to the front of the list
-		TArray<FString>& RecentlyOpenedProjectFiles = AccessGameAgnosticSettings().RecentlyOpenedProjectFiles;
+		TArray<FString>& RecentlyOpenedProjectFiles = GetMutableDefault<UEditorSettings>()->RecentlyOpenedProjectFiles;
 		RecentlyOpenedProjectFiles.Remove( AbsoluteProjectPath );
 		RecentlyOpenedProjectFiles.Insert( AbsoluteProjectPath, 0 );
 
@@ -5885,7 +5816,7 @@ void UEditorEngine::UpdateRecentlyLoadedProjectFiles()
 			RecentlyOpenedProjectFiles.RemoveAt(MaxRecentProjectFiles, RecentlyOpenedProjectFiles.Num() - MaxRecentProjectFiles);
 		}
 
-		AccessGameAgnosticSettings().PostEditChange();
+		GetMutableDefault<UEditorSettings>()->PostEditChange();
 	}
 }
 
@@ -5914,7 +5845,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 		bShouldLoadRecentProjects = false;
 	}
 
-	AccessGameAgnosticSettings().bLoadTheMostRecentlyLoadedProjectAtStartup = bShouldLoadRecentProjects;
+	GetMutableDefault<UEditorSettings>()->bLoadTheMostRecentlyLoadedProjectAtStartup = bShouldLoadRecentProjects;
 
 #if PLATFORM_MAC
 	if ( !GIsBuildMachine )
@@ -5935,7 +5866,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 		{
 			if(FSlateApplication::IsInitialized())
 			{
-				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("UpdateMacOSX_Body","Please update to the latest version of Mac OS X for best performance."), LOCTEXT("UpdateMacOSX_Title","Update Mac OS X"), TEXT("UpdateMacOSX"), GEditorGameAgnosticIni );
+				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("UpdateMacOSX_Body","Please update to the latest version of Mac OS X for best performance."), LOCTEXT("UpdateMacOSX_Title","Update Mac OS X"), TEXT("UpdateMacOSX"), GEditorSettingsIni );
 				Info.ConfirmText = LOCTEXT( "OK", "OK");
 				Info.bDefaultToSupressInTheFuture = true;
 				FSuppressableWarningDialog OSUpdateWarning( Info );
@@ -5982,7 +5913,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 		{
 			if(FSlateApplication::IsInitialized())
 			{
-				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("UnsupportedGPUWarning_Body","The current graphics card does not meet the minimum specification, for best performance an NVIDIA GeForce 470 GTX or AMD Radeon 6870 HD series card or higher is recommended. Rendering performance and compatibility are not guaranteed with this graphics card."), LOCTEXT("UnsupportedGPUWarning_Title","Unsupported Graphics Card"), TEXT("UnsupportedGPUWarning"), GEditorGameAgnosticIni );
+				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("UnsupportedGPUWarning_Body","The current graphics card does not meet the minimum specification, for best performance an NVIDIA GeForce 470 GTX or AMD Radeon 6870 HD series card or higher is recommended. Rendering performance and compatibility are not guaranteed with this graphics card."), LOCTEXT("UnsupportedGPUWarning_Title","Unsupported Graphics Card"), TEXT("UnsupportedGPUWarning"), GEditorSettingsIni );
 				Info.ConfirmText = LOCTEXT( "OK", "OK");
 				Info.bDefaultToSupressInTheFuture = true;
 				FSuppressableWarningDialog OSUpdateWarning( Info );
@@ -6029,7 +5960,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 		{
 			if(FSlateApplication::IsInitialized())
 			{
-				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("SlowGPUWarning_Body","The current graphics card is slower than the recommanded specification of an NVIDIA GeForce 470 GTX or AMD Radeon 6870 HD series card or higher, performance may be low."), LOCTEXT("SlowGPUWarning_Title","Slow Graphics Card"), TEXT("SlowGPUWarning"), GEditorGameAgnosticIni );
+				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("SlowGPUWarning_Body","The current graphics card is slower than the recommanded specification of an NVIDIA GeForce 470 GTX or AMD Radeon 6870 HD series card or higher, performance may be low."), LOCTEXT("SlowGPUWarning_Title","Slow Graphics Card"), TEXT("SlowGPUWarning"), GEditorSettingsIni );
 				Info.ConfirmText = LOCTEXT( "OK", "OK");
 				Info.bDefaultToSupressInTheFuture = true;
 				FSuppressableWarningDialog OSUpdateWarning( Info );
@@ -6046,7 +5977,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 		{
 			if(FSlateApplication::IsInitialized())
 			{
-				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("LowRAMWarning_Body","For best performance install at least 8GB of RAM."), LOCTEXT("LowRAMWarning_Title","Low RAM"), TEXT("LowRAMWarning"), GEditorGameAgnosticIni );
+				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("LowRAMWarning_Body","For best performance install at least 8GB of RAM."), LOCTEXT("LowRAMWarning_Title","Low RAM"), TEXT("LowRAMWarning"), GEditorSettingsIni );
 				Info.ConfirmText = LOCTEXT( "OK", "OK");
 				Info.bDefaultToSupressInTheFuture = true;
 				FSuppressableWarningDialog OSUpdateWarning( Info );
@@ -6063,7 +5994,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 		{
 			if(FSlateApplication::IsInitialized())
 			{
-				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("SlowCPUWarning_Body","For best performance a Quad-core Intel or AMD processor, 2.5 GHz or faster is recommended."), LOCTEXT("SlowCPUWarning_Title","CPU Performance Warning"), TEXT("SlowCPUWarning"), GEditorGameAgnosticIni );
+				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("SlowCPUWarning_Body","For best performance a Quad-core Intel or AMD processor, 2.5 GHz or faster is recommended."), LOCTEXT("SlowCPUWarning_Title","CPU Performance Warning"), TEXT("SlowCPUWarning"), GEditorSettingsIni );
 				Info.ConfirmText = LOCTEXT( "OK", "OK");
 				Info.bDefaultToSupressInTheFuture = true;
 				FSuppressableWarningDialog OSUpdateWarning( Info );

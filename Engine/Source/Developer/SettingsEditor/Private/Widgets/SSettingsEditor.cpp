@@ -557,7 +557,7 @@ FReply SSettingsEditor::HandleExportButtonClicked()
 	{
 		if (LastExportDir.IsEmpty())
 		{
-			LastExportDir = FPaths::GetPath(GEditorUserSettingsIni);
+			LastExportDir = FPaths::GetPath(GEditorPerProjectIni);
 		}
 
 		FString DefaultFileName = FString::Printf(TEXT("%s Backup %s.ini"), *SelectedSection->GetDisplayName().ToString(), *FDateTime::Now().ToString(TEXT("%Y-%m-%d %H%M%S")));
@@ -607,7 +607,7 @@ FReply SSettingsEditor::HandleImportButtonClicked()
 		TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
 		void* ParentWindowHandle = (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid()) ? ParentWindow->GetNativeWindow()->GetOSWindowHandle() : nullptr;
 
-		if (FDesktopPlatformModule::Get()->OpenFileDialog(ParentWindowHandle, LOCTEXT("ImportSettingsDialogTitle", "Import settings...").ToString(), FPaths::GetPath(GEditorUserSettingsIni), TEXT(""), TEXT("Config files (*.ini)|*.ini"), EFileDialogFlags::None, OutFiles))
+		if (FDesktopPlatformModule::Get()->OpenFileDialog(ParentWindowHandle, LOCTEXT("ImportSettingsDialogTitle", "Import settings...").ToString(), FPaths::GetPath(GEditorPerProjectIni), TEXT(""), TEXT("Config files (*.ini)|*.ini"), EFileDialogFlags::None, OutFiles))
 		{
 			if (SelectedSection->Import(OutFiles[0]) && SelectedSection->Save())
 			{

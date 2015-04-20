@@ -78,12 +78,12 @@ FEditorModeTools::~FEditorModeTools()
 void FEditorModeTools::LoadConfig(void)
 {
 	GConfig->GetBool(TEXT("FEditorModeTools"),TEXT("ShowWidget"),bShowWidget,
-		GEditorUserSettingsIni);
+		GEditorPerProjectIni);
 
 	const bool bGetRawValue = true;
 	int32 Bogus = (int32)GetCoordSystem(bGetRawValue);
 	GConfig->GetInt(TEXT("FEditorModeTools"),TEXT("CoordSystem"),Bogus,
-		GEditorUserSettingsIni);
+		GEditorPerProjectIni);
 	SetCoordSystem((ECoordSystem)Bogus);
 
 
@@ -92,10 +92,10 @@ void FEditorModeTools::LoadConfig(void)
 
 void FEditorModeTools::SaveConfig(void)
 {
-	GConfig->SetBool(TEXT("FEditorModeTools"), TEXT("ShowWidget"), bShowWidget, GEditorUserSettingsIni);
+	GConfig->SetBool(TEXT("FEditorModeTools"), TEXT("ShowWidget"), bShowWidget, GEditorPerProjectIni);
 
 	const bool bGetRawValue = true;
-	GConfig->SetInt(TEXT("FEditorModeTools"), TEXT("CoordSystem"), (int32)GetCoordSystem(bGetRawValue), GEditorUserSettingsIni);
+	GConfig->SetInt(TEXT("FEditorModeTools"), TEXT("CoordSystem"), (int32)GetCoordSystem(bGetRawValue), GEditorPerProjectIni);
 
 	SaveWidgetSettings();
 }
@@ -820,7 +820,7 @@ void FEditorModeTools::CycleWidgetMode (void)
 /**Save Widget Settings to Ini file*/
 void FEditorModeTools::SaveWidgetSettings(void)
 {
-	GEditor->SaveEditorUserSettings();
+	GetMutableDefault<UEditorPerProjectUserSettings>()->SaveConfig();
 }
 
 /**Load Widget Settings from Ini file*/

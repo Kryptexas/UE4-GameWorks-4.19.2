@@ -22,7 +22,7 @@ enum EFBXImportType
 	FBXIT_MAX,
 };
 
-UCLASS(config=EditorUserSettings, AutoExpandCategories=(FTransform), HideCategories=Object, MinimalAPI)
+UCLASS(config=EditorPerProjectUserSettings, AutoExpandCategories=(FTransform), HideCategories=Object, MinimalAPI)
 class UFbxImportUI : public UObject
 {
 	GENERATED_UCLASS_BODY()

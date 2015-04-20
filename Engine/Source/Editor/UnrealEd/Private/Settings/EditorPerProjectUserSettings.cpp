@@ -4,9 +4,9 @@
 #include "MessageLog.h"
 #include "BlueprintPaletteFavorites.h"
 
-#define LOCTEXT_NAMESPACE "EditorUserSettings"
+#define LOCTEXT_NAMESPACE "EditorPerProjectUserSettings"
 
-UEditorUserSettings::UEditorUserSettings(const FObjectInitializer& ObjectInitializer)
+UEditorPerProjectUserSettings::UEditorPerProjectUserSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	//Default to high quality
@@ -15,7 +15,7 @@ UEditorUserSettings::UEditorUserSettings(const FObjectInitializer& ObjectInitial
 	BlueprintFavorites = CreateDefaultSubobject<UBlueprintPaletteFavorites>(TEXT("BlueprintFavorites"));
 }
 
-void UEditorUserSettings::PostInitProperties()
+void UEditorPerProjectUserSettings::PostInitProperties()
 {
 	Super::PostInitProperties();
 
@@ -24,7 +24,7 @@ void UEditorUserSettings::PostInitProperties()
 	MaterialQualityLevelVar->Set(MaterialQualityLevel, ECVF_SetByScalability);
 }
 
-void UEditorUserSettings::PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent )
+void UEditorPerProjectUserSettings::PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent )
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
@@ -37,7 +37,10 @@ void UEditorUserSettings::PostEditChangeProperty( FPropertyChangedEvent& Propert
 		GDistributionType = (bUseCurvesForDistributions) ? 0 : 1;
 	}
 
-	GEditor->SaveEditorUserSettings();
+	if (!FUnrealEdMisc::Get().IsDeletePreferences())
+	{
+		SaveConfig();
+	}
 
 	UserSettingChangedEvent.Broadcast(Name);
 }

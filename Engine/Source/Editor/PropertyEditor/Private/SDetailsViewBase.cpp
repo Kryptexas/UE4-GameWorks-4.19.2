@@ -884,13 +884,13 @@ void SDetailsViewBase::SaveExpandedItems()
 			if (!bShouldSave)
 			{
 				TArray<FString> DummyExpandedPropertyItems;
-				GConfig->GetSingleLineArray(TEXT("DetailPropertyExpansion"), *Struct->GetName(), DummyExpandedPropertyItems, GEditorUserSettingsIni);
+				GConfig->GetSingleLineArray(TEXT("DetailPropertyExpansion"), *Struct->GetName(), DummyExpandedPropertyItems, GEditorPerProjectIni);
 				bShouldSave = DummyExpandedPropertyItems.Num() > 0;
 			}
 
 			if (bShouldSave)
 			{
-				GConfig->SetSingleLineArray(TEXT("DetailPropertyExpansion"), *Struct->GetName(), ExpandedPropertyItems, GEditorUserSettingsIni);
+				GConfig->SetSingleLineArray(TEXT("DetailPropertyExpansion"), *Struct->GetName(), ExpandedPropertyItems, GEditorPerProjectIni);
 			}
 		}
 	}
@@ -901,12 +901,12 @@ void SDetailsViewBase::SaveExpandedItems()
 		if (!bShouldSave)
 		{
 			FString DummyExpandedCustomItemsString;
-			GConfig->GetString(TEXT("DetailCustomWidgetExpansion"), *BestBaseStruct->GetName(), DummyExpandedCustomItemsString, GEditorUserSettingsIni);
+			GConfig->GetString(TEXT("DetailCustomWidgetExpansion"), *BestBaseStruct->GetName(), DummyExpandedCustomItemsString, GEditorPerProjectIni);
 			bShouldSave = !DummyExpandedCustomItemsString.IsEmpty();
 		}
 		if (bShouldSave)
 		{
-			GConfig->SetString(TEXT("DetailCustomWidgetExpansion"), *BestBaseStruct->GetName(), *ExpandedCustomItemsString, GEditorUserSettingsIni);
+			GConfig->SetString(TEXT("DetailCustomWidgetExpansion"), *BestBaseStruct->GetName(), *ExpandedCustomItemsString, GEditorPerProjectIni);
 		}
 	}
 }
@@ -929,13 +929,13 @@ void SDetailsViewBase::RestoreExpandedItems(TSharedPtr<FPropertyNode> InitialSta
 	//while a valid class, and we're either the same as the base class (for multiple actors being selected and base class is AActor) OR we're not down to AActor yet)
 	for (UStruct* Struct = BestBaseStruct; Struct && ((BestBaseStruct == Struct) || (Struct != AActor::StaticClass())); Struct = Struct->GetSuperStruct())
 	{
-		GConfig->GetSingleLineArray(TEXT("DetailPropertyExpansion"), *Struct->GetName(), ExpandedPropertyItems, GEditorUserSettingsIni);
+		GConfig->GetSingleLineArray(TEXT("DetailPropertyExpansion"), *Struct->GetName(), ExpandedPropertyItems, GEditorPerProjectIni);
 		SetExpandedItems(StartNode, ExpandedPropertyItems);
 	}
 
 	if (BestBaseStruct)
 	{
-		GConfig->GetString(TEXT("DetailCustomWidgetExpansion"), *BestBaseStruct->GetName(), ExpandedCustomItems, GEditorUserSettingsIni);
+		GConfig->GetString(TEXT("DetailCustomWidgetExpansion"), *BestBaseStruct->GetName(), ExpandedCustomItems, GEditorPerProjectIni);
 		TArray<FString> ExpandedCustomItemsArray;
 		ExpandedCustomItems.ParseIntoArray(ExpandedCustomItemsArray, TEXT(","), true);
 

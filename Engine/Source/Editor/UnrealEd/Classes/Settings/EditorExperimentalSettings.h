@@ -13,7 +13,7 @@
 /**
  * Implements Editor settings for experimental features.
  */
-UCLASS(config=EditorUserSettings)
+UCLASS(config=EditorPerProjectUserSettings)
 class UNREALED_API UEditorExperimentalSettings
 	: public UObject
 {

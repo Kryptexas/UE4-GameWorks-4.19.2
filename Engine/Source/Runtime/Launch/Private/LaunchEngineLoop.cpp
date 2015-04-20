@@ -1111,7 +1111,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// after SystemSettings.ini file loading so we get the right state,
 	// before ConsoleVariables.ini so the local developer can always override.
 	// before InitializeCVarsForActiveDeviceProfile() so the platform can override user settings
-	Scalability::LoadState((bHasEditorToken && !GEditorGameAgnosticIni.IsEmpty()) ? GEditorGameAgnosticIni : GGameUserSettingsIni);
+	Scalability::LoadState((bHasEditorToken && !GEditorSettingsIni.IsEmpty()) ? GEditorSettingsIni : GGameUserSettingsIni);
 
 	// Set all CVars which have been setup in the device profiles.
 	UDeviceProfileManager::InitializeCVarsForActiveDeviceProfile();
@@ -2578,7 +2578,7 @@ bool FEngineLoop::AppInit( )
 		if(CurrentProject != nullptr && CurrentProject->Modules.Num() > 0)
 		{
 			bool bNeedCompile = false;
-			GConfig->GetBool(TEXT("/Script/UnrealEd.EditorLoadingSavingSettings"), TEXT("bForceCompilationAtStartup"), bNeedCompile, GEditorUserSettingsIni);
+			GConfig->GetBool(TEXT("/Script/UnrealEd.EditorLoadingSavingSettings"), TEXT("bForceCompilationAtStartup"), bNeedCompile, GEditorPerProjectIni);
 
 			if(!bNeedCompile)
 			{

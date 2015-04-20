@@ -100,7 +100,7 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 				TEXT("AssetEditorToolkitTabLocation"), 
 				*ObjectsToEdit[0]->GetPathName(), 
 				reinterpret_cast<int32&>(SavedAssetEditorToolkitTabLocation), 
-				GEditorUserSettingsIni
+				GEditorPerProjectIni
 				);
 
 			const FName AssetEditorToolkitTab = (SavedAssetEditorToolkitTabLocation == EAssetEditorToolkitTabLocation::Docked) ? "DockedToolkit" : "StandaloneToolkit";

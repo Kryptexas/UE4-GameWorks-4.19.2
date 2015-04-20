@@ -32,13 +32,13 @@ struct SBlueprintLibraryPaletteUtils
 	 */
 	static void AddSelectedToFavorites(FPaletteActionGetter ActionGetter)
 	{
-		UEditorUserSettings const& EditorUserSettings = GEditor->AccessEditorUserSettings();
-		if (ActionGetter.IsBound() && (EditorUserSettings.BlueprintFavorites != NULL))
+		const UEditorPerProjectUserSettings* EditorPerProjectUserSettings = GetDefault<UEditorPerProjectUserSettings>();
+		if (ActionGetter.IsBound() && (EditorPerProjectUserSettings->BlueprintFavorites != NULL))
 		{
 			TArray< TSharedPtr<FEdGraphSchemaAction> > SelectedActions;
 			ActionGetter.Execute(SelectedActions);
 
-			EditorUserSettings.BlueprintFavorites->AddFavorites(SelectedActions);
+			EditorPerProjectUserSettings->BlueprintFavorites->AddFavorites(SelectedActions);
 		}
 	}
 
@@ -50,13 +50,13 @@ struct SBlueprintLibraryPaletteUtils
 	 */
 	static void RemoveSelectedFavorites(FPaletteActionGetter ActionGetter)
 	{
-		UEditorUserSettings const& EditorUserSettings = GEditor->AccessEditorUserSettings();
-		if (ActionGetter.IsBound() && (EditorUserSettings.BlueprintFavorites != NULL))
+		const UEditorPerProjectUserSettings* EditorPerProjectUserSettings = GetDefault<UEditorPerProjectUserSettings>();
+		if (ActionGetter.IsBound() && (EditorPerProjectUserSettings->BlueprintFavorites != NULL))
 		{
 			TArray< TSharedPtr<FEdGraphSchemaAction> > SelectedActions;
 			ActionGetter.Execute(SelectedActions);
 
-			EditorUserSettings.BlueprintFavorites->RemoveFavorites(SelectedActions);
+			EditorPerProjectUserSettings->BlueprintFavorites->RemoveFavorites(SelectedActions);
 		}
 	}
 
@@ -72,15 +72,15 @@ struct SBlueprintLibraryPaletteUtils
 	{
 		bool bCanAnyBeFavorited = false;
 
-		UEditorUserSettings const& EditorUserSettings = GEditor->AccessEditorUserSettings();
-		if (ActionGetter.IsBound() && (EditorUserSettings.BlueprintFavorites != NULL))
+		const UEditorPerProjectUserSettings* EditorPerProjectUserSettings = GetDefault<UEditorPerProjectUserSettings>();
+		if (ActionGetter.IsBound() && (EditorPerProjectUserSettings->BlueprintFavorites != NULL))
 		{
 			TArray< TSharedPtr<FEdGraphSchemaAction> > SelectedActions;
 			ActionGetter.Execute(SelectedActions);
 
 			for (TSharedPtr<FEdGraphSchemaAction> Action : SelectedActions)
 			{
-				if (EditorUserSettings.BlueprintFavorites->CanBeFavorited(Action) && !EditorUserSettings.BlueprintFavorites->IsFavorited(Action))
+				if (EditorPerProjectUserSettings->BlueprintFavorites->CanBeFavorited(Action) && !EditorPerProjectUserSettings->BlueprintFavorites->IsFavorited(Action))
 				{
 					bCanAnyBeFavorited = true;
 					break;
@@ -102,15 +102,15 @@ struct SBlueprintLibraryPaletteUtils
 	{
 		bool bCanAnyBeRemoved = false;
 
-		UEditorUserSettings const& EditorUserSettings = GEditor->AccessEditorUserSettings();
-		if (ActionGetter.IsBound() && (EditorUserSettings.BlueprintFavorites != NULL))
+		const UEditorPerProjectUserSettings* EditorPerProjectUserSettings = GetDefault<UEditorPerProjectUserSettings>();
+		if (ActionGetter.IsBound() && (EditorPerProjectUserSettings->BlueprintFavorites != NULL))
 		{
 			TArray< TSharedPtr<FEdGraphSchemaAction> > SelectedActions;
 			ActionGetter.Execute(SelectedActions);
 
 			for (TSharedPtr<FEdGraphSchemaAction> Action : SelectedActions)
 			{
-				if (EditorUserSettings.BlueprintFavorites->IsFavorited(Action))
+				if (EditorPerProjectUserSettings->BlueprintFavorites->IsFavorited(Action))
 				{
 					bCanAnyBeRemoved = true;
 					break;

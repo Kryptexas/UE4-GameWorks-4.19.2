@@ -1172,7 +1172,7 @@ void SNewClassDialog::FinishClicked()
 			bPreventPeriodicValidityChecksUntilNextChange = true;
 
 			// Display a nag if we didn't automatically hot-reload for the newly added class
-			const bool bWasHotReloaded = GEditor->AccessEditorUserSettings().bAutomaticallyHotReloadNewClasses;
+			const bool bWasHotReloaded = GetDefault<UEditorPerProjectUserSettings>()->bAutomaticallyHotReloadNewClasses;
 			if( bWasHotReloaded )
 			{
 				FNotificationInfo Notification( FText::Format( LOCTEXT("AddedClassSuccessNotification", "Added new class {0}"), FText::FromString(NewClassName) ) );

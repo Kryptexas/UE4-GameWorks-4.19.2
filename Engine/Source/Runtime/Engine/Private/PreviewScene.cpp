@@ -190,7 +190,7 @@ void FPreviewScene::SetSkyBrightness(float SkyBrightness)
 void FPreviewScene::LoadSettings(const TCHAR* Section)
 {
 	FRotator LightDir;
-	if ( GConfig->GetRotator( Section, TEXT("LightDir"), LightDir, GEditorUserSettingsIni ) )
+	if ( GConfig->GetRotator( Section, TEXT("LightDir"), LightDir, GEditorPerProjectIni ) )
 	{
 		SetLightDirection( LightDir );
 	}
@@ -198,5 +198,5 @@ void FPreviewScene::LoadSettings(const TCHAR* Section)
 
 void FPreviewScene::SaveSettings(const TCHAR* Section)
 {
-	GConfig->SetRotator( Section, TEXT("LightDir"), GetLightDirection(), GEditorUserSettingsIni );
+	GConfig->SetRotator( Section, TEXT("LightDir"), GetLightDirection(), GEditorPerProjectIni );
 }

@@ -128,11 +128,16 @@ uint32					GScreenshotResolutionY			= 0;						/* Y Resolution for high res shots
 uint64					GMakeCacheIDIndex				= 0;						/* Cache ID */
 
 FString				GEngineIni;													/* Engine ini filename */
+
+/** Editor ini file locations - stored per engine version (shared across all projects). Migrated between versions on first run. */
 FString				GEditorIni;													/* Editor ini filename */
 FString				GEditorKeyBindingsIni;										/* Editor Key Bindings ini file */
 FString				GEditorLayoutIni;											/* Editor UI Layout ini filename */
-FString				GEditorUserSettingsIni;										/* Editor User Settings ini filename */
-FString				GEditorGameAgnosticIni;										/* Editor Settings (shared between games) ini filename */
+FString				GEditorSettingsIni;											/* Editor Settings ini filename */
+
+/** Editor per-project ini files - stored per project. */
+FString				GEditorPerProjectIni;										/* Editor User Settings ini filename */
+
 FString				GCompatIni;
 FString				GLightmassIni;												/* Lightmass settings ini filename */
 FString				GScalabilityIni;											/* Scalability settings ini filename */
@@ -140,7 +145,7 @@ FString				GInputIni;													/* Input ini filename */
 FString				GGameIni;													/* Game ini filename */
 FString				GGameUserSettingsIni;										/* User Game Settings ini filename */
 
-float					GNearClippingPlane				= 10.0f;					/* Near clipping plane */
+float					GNearClippingPlane				= 10.0f;				/* Near clipping plane */
 
 bool					GExitPurge						= false;
 

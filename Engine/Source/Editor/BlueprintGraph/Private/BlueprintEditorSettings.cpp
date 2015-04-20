@@ -3,7 +3,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintEditorSettings.h"
 #include "Editor/UnrealEd/Classes/Settings/EditorExperimentalSettings.h"
-#include "Editor/UnrealEd/Classes/Editor/EditorUserSettings.h"
+#include "Editor/UnrealEd/Classes/Editor/EditorPerProjectUserSettings.h"
 
 UBlueprintEditorSettings::UBlueprintEditorSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -38,14 +38,14 @@ UBlueprintEditorSettings::UBlueprintEditorSettings(const FObjectInitializer& Obj
 	bDrawMidpointArrowsInBlueprints = ExperimentalSettings->bDrawMidpointArrowsInBlueprints;
 
 	// settings that were moved out of editor-user settings...
-	UEditorUserSettings const* UserSettings = GetDefault<UEditorUserSettings>();
+	UEditorPerProjectUserSettings const* UserSettings = GetDefault<UEditorPerProjectUserSettings>();
 	bShowActionMenuItemSignatures = UserSettings->bDisplayActionListItemRefIds;
 
 	FString const ClassConfigKey = GetClass()->GetPathName();
 
 	bool bOldSaveOnCompileVal = false;
 	// backwards compatibility: handle the case where users have already switched this on
-	if (GConfig->GetBool(*ClassConfigKey, TEXT("bSaveOnCompile"), bOldSaveOnCompileVal, GEditorUserSettingsIni) && bOldSaveOnCompileVal)
+	if (GConfig->GetBool(*ClassConfigKey, TEXT("bSaveOnCompile"), bOldSaveOnCompileVal, GEditorPerProjectIni) && bOldSaveOnCompileVal)
 	{
 		SaveOnCompile = SoC_SuccessOnly;
 	}

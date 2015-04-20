@@ -116,7 +116,7 @@ private:
 		bool bNoFavorites = false;
 		GConfig->GetBool(TEXT("BlueprintEditor.Palette"), TEXT("bUseLegacyLayout"), bNoFavorites, GEditorIni);
 
-		UBlueprintPaletteFavorites const* const BlueprintFavorites = GEditor->EditorUserSettings->BlueprintFavorites;
+		UBlueprintPaletteFavorites const* const BlueprintFavorites = GetDefault<UEditorPerProjectUserSettings>()->BlueprintFavorites;
 
 		EVisibility CurrentVisibility = EVisibility::Hidden;
 		if (!bNoFavorites && BlueprintFavorites && BlueprintFavorites->CanBeFavorited(ActionPtr.Pin()))
@@ -154,9 +154,9 @@ private:
 	ECheckBoxState GetFavoritedState() const
 	{
 		ECheckBoxState FavoriteState = ECheckBoxState::Unchecked;
-		if (ActionPtr.IsValid() && (GEditor != nullptr))
+		if (ActionPtr.IsValid())
 		{
-			const UEditorUserSettings& EditorSettings = GEditor->GetEditorUserSettings();
+			const UEditorPerProjectUserSettings& EditorSettings = *GetDefault<UEditorPerProjectUserSettings>();
 			if (UBlueprintPaletteFavorites* BlueprintFavorites = EditorSettings.BlueprintFavorites)
 			{
 				FavoriteState = BlueprintFavorites->IsFavorited(ActionPtr.Pin()) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -175,11 +175,11 @@ private:
 	{
 		if (InNewState == ECheckBoxState::Checked)
 		{
-			GEditor->EditorUserSettings->BlueprintFavorites->AddFavorite(ActionPtr.Pin());
+			GetMutableDefault<UEditorPerProjectUserSettings>()->BlueprintFavorites->AddFavorite(ActionPtr.Pin());
 		}
 		else
 		{
-			GEditor->EditorUserSettings->BlueprintFavorites->RemoveFavorite(ActionPtr.Pin());
+			GetMutableDefault<UEditorPerProjectUserSettings>()->BlueprintFavorites->RemoveFavorite(ActionPtr.Pin());
 		}
 	}	
 

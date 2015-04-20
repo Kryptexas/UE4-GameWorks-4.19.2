@@ -51,8 +51,8 @@ void SSurfaceProperties::Construct( const FArguments& InArgs )
 	bPreserveScaleRatio = false;
 	bUseRelativeScaling = false;
 
-	GConfig->GetBool(TEXT("SelectionDetails"), TEXT("PreserveScaleRatio"), bPreserveScaleRatio, GEditorUserSettingsIni);
-	GConfig->GetBool(TEXT("SelectionDetails"), TEXT("UseRelativeScaling"), bUseRelativeScaling, GEditorUserSettingsIni);
+	GConfig->GetBool(TEXT("SelectionDetails"), TEXT("PreserveScaleRatio"), bPreserveScaleRatio, GEditorPerProjectIni);
+	GConfig->GetBool(TEXT("SelectionDetails"), TEXT("UseRelativeScaling"), bUseRelativeScaling, GEditorPerProjectIni);
 
 	static const float ScalingValues[] = { 1.0f / 16, 1.0f / 8, 1.0f / 4, 1.0f / 2, 1, 2, 4, 8, 16 };
 	for(int Idx = 0; Idx < ARRAY_COUNT(ScalingValues); Idx++)
@@ -880,7 +880,7 @@ void SSurfaceProperties::OnCustomPanValueCommitted( int32 NewValue, ETextCommit:
 void SSurfaceProperties::OnScaleLabelClicked( )
 {
 	bUseRelativeScaling = !bUseRelativeScaling;
-	GConfig->SetBool(TEXT("SurfaceSelection"), TEXT("UseRelativeScaling"), bUseRelativeScaling, GEditorUserSettingsIni);
+	GConfig->SetBool(TEXT("SurfaceSelection"), TEXT("UseRelativeScaling"), bUseRelativeScaling, GEditorPerProjectIni);
 }
 
 FText SSurfaceProperties::GetScalingLabel() const
@@ -949,7 +949,7 @@ void SSurfaceProperties::OnPreserveScaleRatioToggled( ECheckBoxState NewState )
 {
 	bPreserveScaleRatio = (NewState == ECheckBoxState::Checked) ? true : false;
 	CachedScalingValueV = CachedScalingValueU;
-	GConfig->SetBool(TEXT("SurfaceSelection"), TEXT("PreserveScaleRatio"), bPreserveScaleRatio, GEditorUserSettingsIni);
+	GConfig->SetBool(TEXT("SurfaceSelection"), TEXT("PreserveScaleRatio"), bPreserveScaleRatio, GEditorPerProjectIni);
 }
 
 void SSurfaceProperties::OnCustomRotateValueCommitted(int32 NewValue, ETextCommit::Type CommitInfo)

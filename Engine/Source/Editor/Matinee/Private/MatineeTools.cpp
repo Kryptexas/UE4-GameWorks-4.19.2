@@ -1600,7 +1600,7 @@ void FMatinee::SetSnapEnabled(bool bInSnapEnabled)
 	}
 
 	// Save to ini when it changes.
-	GConfig->SetBool( TEXT("Matinee"), TEXT("SnapEnabled"), bSnapEnabled, GEditorUserSettingsIni );
+	GConfig->SetBool( TEXT("Matinee"), TEXT("SnapEnabled"), bSnapEnabled, GEditorPerProjectIni );
 }
 
 
@@ -1611,7 +1611,7 @@ void FMatinee::SetSnapTimeToFrames( bool bInValue )
 	bSnapTimeToFrames = bInValue;
 
 	// Save to ini when it changes.
-	GConfig->SetBool( TEXT("Matinee"), TEXT("SnapTimeToFrames"), bSnapTimeToFrames, GEditorUserSettingsIni );
+	GConfig->SetBool( TEXT("Matinee"), TEXT("SnapTimeToFrames"), bSnapTimeToFrames, GEditorPerProjectIni );
 
 	// Go ahead and apply the change right now if we need to
 	if( IsInitialized() && bSnapToFrames && bSnapTimeToFrames )
@@ -1628,7 +1628,7 @@ void FMatinee::SetFixedTimeStepPlayback( bool bInValue )
 	bFixedTimeStepPlayback = bInValue;
 	
 	// Save to ini when it changes.
-	GConfig->SetBool( TEXT("Matinee"), TEXT("FixedTimeStepPlayback"), bFixedTimeStepPlayback, GEditorUserSettingsIni );
+	GConfig->SetBool( TEXT("Matinee"), TEXT("FixedTimeStepPlayback"), bFixedTimeStepPlayback, GEditorPerProjectIni );
 
 	// Update fixed time step state
 	UpdateFixedTimeStepPlayback();
@@ -1655,7 +1655,7 @@ void FMatinee::SetPreferFrameNumbers( bool bInValue )
 	bPreferFrameNumbers = bInValue;
 
 	// Save to ini when it changes.
-	GConfig->SetBool( TEXT("Matinee"), TEXT("PreferFrameNumbers"), bPreferFrameNumbers, GEditorUserSettingsIni );
+	GConfig->SetBool( TEXT("Matinee"), TEXT("PreferFrameNumbers"), bPreferFrameNumbers, GEditorPerProjectIni );
 }
 
 
@@ -1666,7 +1666,7 @@ void FMatinee::SetShowTimeCursorPosForAllKeys( bool bInValue )
 	bShowTimeCursorPosForAllKeys = bInValue;
 
 	// Save to ini when it changes.
-	GConfig->SetBool( TEXT("Matinee"), TEXT("ShowTimeCursorPosForAllKeys"), bShowTimeCursorPosForAllKeys, GEditorUserSettingsIni );
+	GConfig->SetBool( TEXT("Matinee"), TEXT("ShowTimeCursorPosForAllKeys"), bShowTimeCursorPosForAllKeys, GEditorPerProjectIni );
 }
 
 

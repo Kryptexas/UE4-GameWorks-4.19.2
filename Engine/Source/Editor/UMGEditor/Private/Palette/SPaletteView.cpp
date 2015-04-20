@@ -271,7 +271,7 @@ void SPaletteView::LoadItemExpansion()
 	for ( TSharedPtr<FWidgetViewModel>& ViewModel : WidgetViewModels )
 	{
 		bool IsExpanded;
-		if ( GConfig->GetBool(TEXT("WidgetTemplatesExpanded"), *ViewModel->GetName().ToString(), IsExpanded, GEditorUserSettingsIni) && IsExpanded )
+		if ( GConfig->GetBool(TEXT("WidgetTemplatesExpanded"), *ViewModel->GetName().ToString(), IsExpanded, GEditorPerProjectIni) && IsExpanded )
 		{
 			WidgetTemplatesView->SetItemExpansion(ViewModel, true);
 		}
@@ -284,7 +284,7 @@ void SPaletteView::SaveItemExpansion()
 	for ( TSharedPtr<FWidgetViewModel>& ViewModel : WidgetViewModels )
 	{
 		const bool IsExpanded = WidgetTemplatesView->IsItemExpanded(ViewModel);
-		GConfig->SetBool(TEXT("WidgetTemplatesExpanded"), *ViewModel->GetName().ToString(), IsExpanded, GEditorUserSettingsIni);
+		GConfig->SetBool(TEXT("WidgetTemplatesExpanded"), *ViewModel->GetName().ToString(), IsExpanded, GEditorPerProjectIni);
 	}
 }
 

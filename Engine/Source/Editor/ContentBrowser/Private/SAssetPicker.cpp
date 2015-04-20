@@ -480,10 +480,10 @@ void SAssetPicker::LoadSettings()
 		// Load all our data using the settings string as a key in the user settings ini
 		if (FilterListPtr.IsValid())
 		{
-			FilterListPtr->LoadSettings(GEditorUserSettingsIni, SContentBrowser::SettingsIniSection, SettingsString);
+			FilterListPtr->LoadSettings(GEditorPerProjectIni, SContentBrowser::SettingsIniSection, SettingsString);
 		}
 		
-		AssetViewPtr->LoadSettings(GEditorUserSettingsIni, SContentBrowser::SettingsIniSection, SettingsString);
+		AssetViewPtr->LoadSettings(GEditorPerProjectIni, SContentBrowser::SettingsIniSection, SettingsString);
 	}
 }
 
@@ -496,10 +496,10 @@ void SAssetPicker::SaveSettings() const
 		// Save all our data using the settings string as a key in the user settings ini
 		if (FilterListPtr.IsValid())
 		{
-			FilterListPtr->SaveSettings(GEditorUserSettingsIni, SContentBrowser::SettingsIniSection, SettingsString);
+			FilterListPtr->SaveSettings(GEditorPerProjectIni, SContentBrowser::SettingsIniSection, SettingsString);
 		}
 
-		AssetViewPtr->SaveSettings(GEditorUserSettingsIni, SContentBrowser::SettingsIniSection, SettingsString);
+		AssetViewPtr->SaveSettings(GEditorPerProjectIni, SContentBrowser::SettingsIniSection, SettingsString);
 	}
 }
 

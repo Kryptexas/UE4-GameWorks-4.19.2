@@ -9,7 +9,7 @@
 /**
  * Implements settings for the graph editor.
  */
-UCLASS(config=EditorUserSettings)
+UCLASS(config=EditorPerProjectUserSettings)
 class GRAPHEDITOR_API UGraphEditorSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()

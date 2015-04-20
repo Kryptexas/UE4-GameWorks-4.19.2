@@ -16,6 +16,8 @@
 #include "SHyperlink.h"
 #include "SOutputLogDialog.h"
 
+#include "Settings/EditorSettings.h"
+
 #define LOCTEXT_NAMESPACE "NewProjectWizard"
 
 FName SNewProjectWizard::TemplatePageName = TEXT("Template");
@@ -300,7 +302,7 @@ void SNewProjectWizard::Construct( const FArguments& InArgs )
 	bLastGlobalValidityCheckSuccessful = true;
 	bLastNameAndLocationValidityCheckSuccessful = true;
 	bPreventPeriodicValidityChecksUntilNextChange = false;
-	bCopyStarterContent = GEditor ? GEditor->AccessGameAgnosticSettings().bCopyStarterContentPreference : true;
+	bCopyStarterContent = GEditor ? GetDefault<UEditorSettings>()->bCopyStarterContentPreference : true;
 
 	IHardwareTargetingModule& HardwareTargeting = IHardwareTargetingModule::Get();
 
@@ -1288,7 +1290,7 @@ void SNewProjectWizard::SetDefaultProjectLocation( )
 	FString DefaultProjectFilePath;
 	
 	// First, try and use the first previously used path that still exists
-	for ( const FString& CreatedProjectPath : GEditor->GetGameAgnosticSettings().CreatedProjectPaths )
+	for ( const FString& CreatedProjectPath : GetDefault<UEditorSettings>()->CreatedProjectPaths )
 	{
 		if ( IFileManager::Get().DirectoryExists(*CreatedProjectPath) )
 		{
@@ -1458,10 +1460,11 @@ bool SNewProjectWizard::CreateProject( const FString& ProjectFile )
 		CreatedProjectPath.AppendChar('/');
 	}
 
-	GEditor->AccessGameAgnosticSettings().CreatedProjectPaths.Remove(CreatedProjectPath);
-	GEditor->AccessGameAgnosticSettings().CreatedProjectPaths.Insert(CreatedProjectPath, 0);
-	GEditor->AccessGameAgnosticSettings().bCopyStarterContentPreference = bCopyStarterContent;
-	GEditor->AccessGameAgnosticSettings().PostEditChange();
+	auto* Settings = GetMutableDefault<UEditorSettings>();
+	Settings->CreatedProjectPaths.Remove(CreatedProjectPath);
+	Settings->CreatedProjectPaths.Insert(CreatedProjectPath, 0);
+	Settings->bCopyStarterContentPreference = bCopyStarterContent;
+	Settings->PostEditChange();
 
 	return true;
 }

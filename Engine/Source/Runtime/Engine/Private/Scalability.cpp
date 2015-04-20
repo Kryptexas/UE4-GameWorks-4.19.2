@@ -293,7 +293,7 @@ void ProcessCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 		{
 			FQualityLevels State = Scalability::BenchmarkQualityLevels();
 			Scalability::SetQualityLevels(State);
-			Scalability::SaveState(GIsEditor ? GEditorGameAgnosticIni : GGameUserSettingsIni);
+			Scalability::SaveState(GIsEditor ? GEditorSettingsIni : GGameUserSettingsIni);
 			bPrintUsage = false;
 			bPrintCurrentSettings = true;
 		}
@@ -310,7 +310,7 @@ void ProcessCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 			int32 RequestedQualityLevel = FCString::Atoi(*Token);
 			QualityLevels.SetFromSingleQualityLevel(RequestedQualityLevel);
 			SetQualityLevels(QualityLevels);
-			Scalability::SaveState(GIsEditor ? GEditorGameAgnosticIni : GGameUserSettingsIni);
+			Scalability::SaveState(GIsEditor ? GEditorSettingsIni : GGameUserSettingsIni);
 
 			bPrintUsage = false;
 		}

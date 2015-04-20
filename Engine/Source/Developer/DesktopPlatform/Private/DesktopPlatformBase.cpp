@@ -893,10 +893,10 @@ bool FDesktopPlatformBase::EnumerateProjectsKnownByEngine(const FString &Identif
 
 	// Load the config file
 	FConfigFile GameAgnosticConfig;
-	FConfigCacheIni::LoadExternalIniFile(GameAgnosticConfig, TEXT("EditorGameAgnostic"), NULL, *GameAgnosticConfigDir, false);
+	FConfigCacheIni::LoadExternalIniFile(GameAgnosticConfig, TEXT("EditorSettings"), NULL, *GameAgnosticConfigDir, false);
 
 	// Find the editor game-agnostic settings
-	FConfigSection* Section = GameAgnosticConfig.Find(TEXT("/Script/UnrealEd.EditorGameAgnosticSettings"));
+	FConfigSection* Section = GameAgnosticConfig.Find(TEXT("/Script/UnrealEd.EditorSettings"));
 	if(Section != NULL)
 	{
 		// Add in every path that the user has ever created a project file. This is to catch new projects showing up in the user's project folders

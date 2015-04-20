@@ -1090,7 +1090,7 @@ void FMaterialEditor::LoadEditorSettings()
 
 	// Primitive type
 	int32 PrimType;
-	if(GConfig->GetInt(TEXT("MaterialEditor"), TEXT("PrimType"), PrimType, GEditorUserSettingsIni))
+	if(GConfig->GetInt(TEXT("MaterialEditor"), TEXT("PrimType"), PrimType, GEditorPerProjectIni))
 	{
 		Viewport->OnSetPreviewPrimitive((EThumbnailPrimType)PrimType);
 	}
@@ -1115,7 +1115,7 @@ void FMaterialEditor::SaveEditorSettings()
 		EditorOptions->SaveConfig();
 	}
 
-	GConfig->SetInt(TEXT("MaterialEditor"), TEXT("PrimType"), Viewport->PreviewPrimType, GEditorUserSettingsIni);
+	GConfig->SetInt(TEXT("MaterialEditor"), TEXT("PrimType"), Viewport->PreviewPrimType, GEditorPerProjectIni);
 }
 
 FText FMaterialEditor::GetCodeViewText() const

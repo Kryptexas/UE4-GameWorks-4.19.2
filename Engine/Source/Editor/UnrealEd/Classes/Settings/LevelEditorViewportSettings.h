@@ -183,7 +183,7 @@ struct UNREALED_API FSnapToSurfaceSettings
 /**
  * Implements the Level Editor's view port settings.
  */
-UCLASS(config=EditorUserSettings)
+UCLASS(config=EditorPerProjectUserSettings)
 class UNREALED_API ULevelEditorViewportSettings
 	: public UObject
 {

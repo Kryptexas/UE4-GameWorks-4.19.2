@@ -80,7 +80,7 @@ void FMaterialEditorSpawnNodeCommands::RegisterCommands()
 	const FString ConfigSection = TEXT("MaterialEditorSpawnNodes");
 	const FString SettingName = TEXT("Node");
 	TArray< FString > NodeSpawns;
-	GConfig->GetArray(*ConfigSection, *SettingName, NodeSpawns, GEditorUserSettingsIni);
+	GConfig->GetArray(*ConfigSection, *SettingName, NodeSpawns, GEditorPerProjectIni);
 
 	for(int32 x = 0; x < NodeSpawns.Num(); ++x)
 	{

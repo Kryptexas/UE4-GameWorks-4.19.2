@@ -64,7 +64,7 @@ struct FAutoReimportDirectoryConfig
 /**
  * Implements the Level Editor's loading and saving settings.
  */
-UCLASS(config=EditorUserSettings, autoexpandcategories=(AutoSave, AutoReimport, Blueprints))
+UCLASS(config=EditorPerProjectUserSettings, autoexpandcategories=(AutoSave, AutoReimport, Blueprints))
 class UNREALED_API UEditorLoadingSavingSettings
 	: public UObject
 {

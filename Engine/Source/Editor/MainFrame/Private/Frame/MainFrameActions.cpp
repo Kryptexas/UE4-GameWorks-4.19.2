@@ -11,6 +11,7 @@
 #include "SourceCodeNavigation.h"
 #include "SOutputLogDialog.h"
 
+#include "Settings/EditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "MainFrameActions"
 
@@ -228,7 +229,7 @@ void FMainFrameActionCallbacks::CacheProjectNames()
 	ProjectNames.Empty();
 
 	// The switch project menu is filled with recently opened project files
-	ProjectNames = GEditor->GetGameAgnosticSettings().RecentlyOpenedProjectFiles;
+	ProjectNames = GetDefault<UEditorSettings>()->RecentlyOpenedProjectFiles;
 }
 
 void FMainFrameActionCallbacks::NewProject( bool bAllowProjectOpening, bool bAllowProjectCreate )
@@ -716,7 +717,7 @@ void FMainFrameActionCallbacks::ResetLayout()
 	}
 
 	// make a backup
-	GEditor->SaveEditorUserSettings();
+	GetMutableDefault<UEditorPerProjectUserSettings>()->SaveConfig();
 
 	FString BackupEditorLayoutIni = FString::Printf(TEXT("%s_Backup.ini"), *FPaths::GetBaseFilename(GEditorLayoutIni, false));
 

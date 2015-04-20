@@ -30,7 +30,7 @@ struct FTutorialProgress
 };
 
 /** Tutorial settings used to track completion state */
-UCLASS(config=EditorGameAgnostic)
+UCLASS(config=EditorSettings)
 class UTutorialStateSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()

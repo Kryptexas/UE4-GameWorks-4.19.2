@@ -13,7 +13,7 @@ enum ESaveOnCompile
 	SoC_Always UMETA(DisplayName = "Always"),
 };
  
-UCLASS(config=EditorUserSettings)
+UCLASS(config=EditorPerProjectUserSettings)
 class BLUEPRINTGRAPH_API UBlueprintEditorSettings
 	:	public UObject
 {

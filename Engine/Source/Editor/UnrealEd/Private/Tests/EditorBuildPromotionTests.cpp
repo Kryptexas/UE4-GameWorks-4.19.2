@@ -244,8 +244,8 @@ namespace EditorBuildPromotionTestUtils
 	static void ExportEditorSettings(const FString& TargetFilename)
 	{
 		FInputBindingManager::Get().SaveInputBindings();
-		GConfig->Flush(false, GEditorUserSettingsIni);
-		IFileManager::Get().Copy(*TargetFilename, *GEditorUserSettingsIni);
+		GConfig->Flush(false, GEditorPerProjectIni);
+		IFileManager::Get().Copy(*TargetFilename, *GEditorPerProjectIni);
 	}
 
 	/**
@@ -255,9 +255,9 @@ namespace EditorBuildPromotionTestUtils
 	*/
 	static void ImportEditorSettings(const FString& TargetFilename)
 	{
-		GConfig->Flush(true, GEditorUserSettingsIni);
-		IFileManager::Get().Copy(*GEditorUserSettingsIni, *TargetFilename);
-		GConfig->LoadFile(GEditorUserSettingsIni);
+		GConfig->Flush(true, GEditorPerProjectIni);
+		IFileManager::Get().Copy(*GEditorPerProjectIni, *TargetFilename);
+		GConfig->LoadFile(GEditorPerProjectIni);
 	}
 
 	/**
@@ -922,14 +922,14 @@ namespace EditorBuildPromotionTestUtils
 		FLightingBuildOptions LightingBuildOptions;
 
 		// Retrieve settings from ini.
-		GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("OnlyBuildSelected"), LightingBuildOptions.bOnlyBuildSelected, GEditorUserSettingsIni);
-		GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("OnlyBuildCurrentLevel"), LightingBuildOptions.bOnlyBuildCurrentLevel, GEditorUserSettingsIni);
-		GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("OnlyBuildSelectedLevels"), LightingBuildOptions.bOnlyBuildSelectedLevels, GEditorUserSettingsIni);
-		GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("OnlyBuildVisibility"), LightingBuildOptions.bOnlyBuildVisibility, GEditorUserSettingsIni);
-		GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("UseErrorColoring"), LightingBuildOptions.bUseErrorColoring, GEditorUserSettingsIni);
-		GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("ShowLightingBuildInfo"), LightingBuildOptions.bShowLightingBuildInfo, GEditorUserSettingsIni);
+		GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("OnlyBuildSelected"), LightingBuildOptions.bOnlyBuildSelected, GEditorPerProjectIni);
+		GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("OnlyBuildCurrentLevel"), LightingBuildOptions.bOnlyBuildCurrentLevel, GEditorPerProjectIni);
+		GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("OnlyBuildSelectedLevels"), LightingBuildOptions.bOnlyBuildSelectedLevels, GEditorPerProjectIni);
+		GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("OnlyBuildVisibility"), LightingBuildOptions.bOnlyBuildVisibility, GEditorPerProjectIni);
+		GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("UseErrorColoring"), LightingBuildOptions.bUseErrorColoring, GEditorPerProjectIni);
+		GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("ShowLightingBuildInfo"), LightingBuildOptions.bShowLightingBuildInfo, GEditorPerProjectIni);
 		int32 QualityLevel;
-		GConfig->GetInt(TEXT("LightingBuildOptions"), TEXT("QualityLevel"), QualityLevel, GEditorUserSettingsIni);
+		GConfig->GetInt(TEXT("LightingBuildOptions"), TEXT("QualityLevel"), QualityLevel, GEditorPerProjectIni);
 		QualityLevel = FMath::Clamp<int32>(QualityLevel, Quality_Preview, Quality_Production);
 		LightingBuildOptions.QualityLevel = (ELightingBuildQuality)QualityLevel;
 
@@ -2319,7 +2319,7 @@ namespace BuildPromotionTestHelper
 		bool Lighting_BuildLighting_Part1()
 		{
 			//Set production quality
-			GConfig->SetInt(TEXT("LightingBuildOptions"), TEXT("QualityLevel"), (int32)ELightingBuildQuality::Quality_Production, GEditorUserSettingsIni);
+			GConfig->SetInt(TEXT("LightingBuildOptions"), TEXT("QualityLevel"), (int32)ELightingBuildQuality::Quality_Production, GEditorPerProjectIni);
 			UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Set the lighting quality to Production"));
 
 			//Force AutoApplyLighting on

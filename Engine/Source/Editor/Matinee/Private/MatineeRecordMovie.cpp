@@ -195,20 +195,20 @@ FReply SMatineeRecordMovie::OnOK()
 	Options.CustomRes = FString::Printf( TEXT("%dx%d"), CaptureWidth, CaptureHeight );
 	Options.DisableTextureStreaming = bDisableTextureStreaming;
 
-	GConfig->SetBool( TEXT("MatineeCreateMovieOptions"), TEXT("CloseEditor"), Options.CloseEditor, GEditorUserSettingsIni );
-	GConfig->SetBool( TEXT("MatineeCreateMovieOptions"), TEXT("Compress"), Options.Compress, GEditorUserSettingsIni );
-	GConfig->SetInt(  TEXT("MatineeCreateMovieOptions"), TEXT("CaptureResolutionFPS"), Options.CaptureResolutionFPS, GEditorUserSettingsIni );
-	GConfig->SetInt(  TEXT("MatineeCreateMovieOptions"), TEXT("CaptureResolutionIndex"), Options.CaptureResolutionIndex, GEditorUserSettingsIni );
-	GConfig->SetInt(  TEXT("MatineeCreateMovieOptions"), TEXT("CaptureTypeIndex"), Options.CaptureTypeIndex, GEditorUserSettingsIni );
-	GConfig->SetBool( TEXT("MatineeCreateMovieOptions"), TEXT("CinematicMode"), Options.CinematicMode, GEditorUserSettingsIni );
-	GConfig->SetBool( TEXT("MatineeCreateMovieOptions"), TEXT("DisableMovement"), Options.DisableMovement, GEditorUserSettingsIni );
-	GConfig->SetBool( TEXT("MatineeCreateMovieOptions"), TEXT("DisableTurning"), Options.DisableTurning, GEditorUserSettingsIni );
-	GConfig->SetBool( TEXT("MatineeCreateMovieOptions"), TEXT("HidePlayer"), Options.HidePlayer, GEditorUserSettingsIni );
-	GConfig->SetBool( TEXT("MatineeCreateMovieOptions"), TEXT("HideHUD"), Options.HideHUD, GEditorUserSettingsIni );
-	GConfig->SetBool( TEXT("MatineeCreateMovieOptions"), TEXT("DisableTextureStreaming"), Options.DisableTextureStreaming, GEditorUserSettingsIni );
-	GConfig->SetString( TEXT("MatineeCreateMovieOptions"), TEXT("CustomRes"), *Options.CustomRes, GEditorUserSettingsIni );
+	GConfig->SetBool( TEXT("MatineeCreateMovieOptions"), TEXT("CloseEditor"), Options.CloseEditor, GEditorPerProjectIni );
+	GConfig->SetBool( TEXT("MatineeCreateMovieOptions"), TEXT("Compress"), Options.Compress, GEditorPerProjectIni );
+	GConfig->SetInt(  TEXT("MatineeCreateMovieOptions"), TEXT("CaptureResolutionFPS"), Options.CaptureResolutionFPS, GEditorPerProjectIni );
+	GConfig->SetInt(  TEXT("MatineeCreateMovieOptions"), TEXT("CaptureResolutionIndex"), Options.CaptureResolutionIndex, GEditorPerProjectIni );
+	GConfig->SetInt(  TEXT("MatineeCreateMovieOptions"), TEXT("CaptureTypeIndex"), Options.CaptureTypeIndex, GEditorPerProjectIni );
+	GConfig->SetBool( TEXT("MatineeCreateMovieOptions"), TEXT("CinematicMode"), Options.CinematicMode, GEditorPerProjectIni );
+	GConfig->SetBool( TEXT("MatineeCreateMovieOptions"), TEXT("DisableMovement"), Options.DisableMovement, GEditorPerProjectIni );
+	GConfig->SetBool( TEXT("MatineeCreateMovieOptions"), TEXT("DisableTurning"), Options.DisableTurning, GEditorPerProjectIni );
+	GConfig->SetBool( TEXT("MatineeCreateMovieOptions"), TEXT("HidePlayer"), Options.HidePlayer, GEditorPerProjectIni );
+	GConfig->SetBool( TEXT("MatineeCreateMovieOptions"), TEXT("HideHUD"), Options.HideHUD, GEditorPerProjectIni );
+	GConfig->SetBool( TEXT("MatineeCreateMovieOptions"), TEXT("DisableTextureStreaming"), Options.DisableTextureStreaming, GEditorPerProjectIni );
+	GConfig->SetString( TEXT("MatineeCreateMovieOptions"), TEXT("CustomRes"), *Options.CustomRes, GEditorPerProjectIni );
 
-	GConfig->Flush( false, GEditorUserSettingsIni );
+	GConfig->Flush( false, GEditorPerProjectIni );
 
 	FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 	if ( Mode != NULL && Mode->InterpEd != NULL )
@@ -246,19 +246,19 @@ FReply SMatineeRecordMovie::OnCancel()
 void SMatineeRecordMovie::InitializeOptions()
 {
 	// Retrieve settings from ini.
-	GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("CloseEditor"), Options.CloseEditor, GEditorUserSettingsIni );
-	GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("Compress"), Options.Compress, GEditorUserSettingsIni );
-	GConfig->GetInt(  TEXT("MatineeCreateMovieOptions"), TEXT("CaptureResolutionFPS"), Options.CaptureResolutionFPS, GEditorUserSettingsIni );
-	GConfig->GetInt(  TEXT("MatineeCreateMovieOptions"), TEXT("CaptureResolutionIndex"), Options.CaptureResolutionIndex, GEditorUserSettingsIni );
-	GConfig->GetInt(  TEXT("MatineeCreateMovieOptions"), TEXT("CaptureTypeIndex"), Options.CaptureTypeIndex, GEditorUserSettingsIni );
-	GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("CinematicMode"), Options.CinematicMode, GEditorUserSettingsIni );
-	GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("DisableMovement"), Options.DisableMovement, GEditorUserSettingsIni );
-	GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("DisableTurning"), Options.DisableTurning, GEditorUserSettingsIni );
-	GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("HidePlayer"), Options.HidePlayer, GEditorUserSettingsIni );
-	GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("HideHUD"), Options.HideHUD, GEditorUserSettingsIni );
-	GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("DisableTextureStreaming"), Options.DisableTextureStreaming, GEditorUserSettingsIni );
+	GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("CloseEditor"), Options.CloseEditor, GEditorPerProjectIni );
+	GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("Compress"), Options.Compress, GEditorPerProjectIni );
+	GConfig->GetInt(  TEXT("MatineeCreateMovieOptions"), TEXT("CaptureResolutionFPS"), Options.CaptureResolutionFPS, GEditorPerProjectIni );
+	GConfig->GetInt(  TEXT("MatineeCreateMovieOptions"), TEXT("CaptureResolutionIndex"), Options.CaptureResolutionIndex, GEditorPerProjectIni );
+	GConfig->GetInt(  TEXT("MatineeCreateMovieOptions"), TEXT("CaptureTypeIndex"), Options.CaptureTypeIndex, GEditorPerProjectIni );
+	GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("CinematicMode"), Options.CinematicMode, GEditorPerProjectIni );
+	GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("DisableMovement"), Options.DisableMovement, GEditorPerProjectIni );
+	GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("DisableTurning"), Options.DisableTurning, GEditorPerProjectIni );
+	GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("HidePlayer"), Options.HidePlayer, GEditorPerProjectIni );
+	GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("HideHUD"), Options.HideHUD, GEditorPerProjectIni );
+	GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("DisableTextureStreaming"), Options.DisableTextureStreaming, GEditorPerProjectIni );
 
-	GConfig->GetString( TEXT("MatineeCreateMovieOptions"), TEXT("CustomRes"), Options.CustomRes, GEditorUserSettingsIni );
+	GConfig->GetString( TEXT("MatineeCreateMovieOptions"), TEXT("CustomRes"), Options.CustomRes, GEditorPerProjectIni );
 
 	// setup format strings
 	CaptureFormats.Empty();

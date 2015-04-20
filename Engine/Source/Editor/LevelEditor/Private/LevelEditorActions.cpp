@@ -458,8 +458,9 @@ void FLevelEditorActionCallbacks::AttachToSocketSelection(const FName SocketName
 
 void FLevelEditorActionCallbacks::SetMaterialQualityLevel( EMaterialQualityLevel::Type NewQualityLevel )
 {
-	GUnrealEd->AccessEditorUserSettings().MaterialQualityLevel = NewQualityLevel;
-	GUnrealEd->AccessEditorUserSettings().PostEditChange();
+	auto* Settings = GetMutableDefault<UEditorPerProjectUserSettings>();
+	Settings->MaterialQualityLevel = NewQualityLevel;
+	Settings->PostEditChange();
 
 	//Ensure the material quality cvar is also set.
 	static IConsoleVariable* MaterialQualityLevelVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MaterialQualityLevel"));
@@ -502,10 +503,10 @@ bool FLevelEditorActionCallbacks::IsFeatureLevelPreviewChecked(ERHIFeatureLevel:
 
 void FLevelEditorActionCallbacks::ConfigureLightingBuildOptions( const FLightingBuildOptions& Options )
 {
-	GConfig->SetBool( TEXT("LightingBuildOptions"), TEXT("OnlyBuildSelected"),		Options.bOnlyBuildSelected,			GEditorUserSettingsIni );
-	GConfig->SetBool( TEXT("LightingBuildOptions"), TEXT("OnlyBuildCurrentLevel"),	Options.bOnlyBuildCurrentLevel,		GEditorUserSettingsIni );
-	GConfig->SetBool( TEXT("LightingBuildOptions"), TEXT("OnlyBuildSelectedLevels"),Options.bOnlyBuildSelectedLevels,	GEditorUserSettingsIni );
-	GConfig->SetBool( TEXT("LightingBuildOptions"), TEXT("OnlyBuildVisibility"),	Options.bOnlyBuildVisibility,		GEditorUserSettingsIni );
+	GConfig->SetBool( TEXT("LightingBuildOptions"), TEXT("OnlyBuildSelected"),		Options.bOnlyBuildSelected,			GEditorPerProjectIni );
+	GConfig->SetBool( TEXT("LightingBuildOptions"), TEXT("OnlyBuildCurrentLevel"),	Options.bOnlyBuildCurrentLevel,		GEditorPerProjectIni );
+	GConfig->SetBool( TEXT("LightingBuildOptions"), TEXT("OnlyBuildSelectedLevels"),Options.bOnlyBuildSelectedLevels,	GEditorPerProjectIni );
+	GConfig->SetBool( TEXT("LightingBuildOptions"), TEXT("OnlyBuildVisibility"),	Options.bOnlyBuildVisibility,		GEditorPerProjectIni );
 }
 
 
@@ -566,7 +567,7 @@ void FLevelEditorActionCallbacks::BuildLightingOnly_VisibilityOnly_Execute()
 bool FLevelEditorActionCallbacks::LightingBuildOptions_UseErrorColoring_IsChecked()
 {
 	bool bUseErrorColoring = false;
-	GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("UseErrorColoring"), bUseErrorColoring, GEditorUserSettingsIni);
+	GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("UseErrorColoring"), bUseErrorColoring, GEditorPerProjectIni);
 	return bUseErrorColoring;
 }
 
@@ -574,15 +575,15 @@ bool FLevelEditorActionCallbacks::LightingBuildOptions_UseErrorColoring_IsChecke
 void FLevelEditorActionCallbacks::LightingBuildOptions_UseErrorColoring_Toggled()
 {
 	bool bUseErrorColoring = false;
-	GConfig->GetBool( TEXT("LightingBuildOptions"), TEXT("UseErrorColoring"), bUseErrorColoring, GEditorUserSettingsIni );
-	GConfig->SetBool( TEXT("LightingBuildOptions"), TEXT("UseErrorColoring"), !bUseErrorColoring, GEditorUserSettingsIni );
+	GConfig->GetBool( TEXT("LightingBuildOptions"), TEXT("UseErrorColoring"), bUseErrorColoring, GEditorPerProjectIni );
+	GConfig->SetBool( TEXT("LightingBuildOptions"), TEXT("UseErrorColoring"), !bUseErrorColoring, GEditorPerProjectIni );
 }
 
 
 bool FLevelEditorActionCallbacks::LightingBuildOptions_ShowLightingStats_IsChecked()
 {
 	bool bShowLightingBuildInfo = false;
-	GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("ShowLightingBuildInfo"), bShowLightingBuildInfo, GEditorUserSettingsIni);
+	GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("ShowLightingBuildInfo"), bShowLightingBuildInfo, GEditorPerProjectIni);
 	return bShowLightingBuildInfo;
 }
 
@@ -590,8 +591,8 @@ bool FLevelEditorActionCallbacks::LightingBuildOptions_ShowLightingStats_IsCheck
 void FLevelEditorActionCallbacks::LightingBuildOptions_ShowLightingStats_Toggled()
 {
 	bool bShowLightingBuildInfo = false;
-	GConfig->GetBool( TEXT("LightingBuildOptions"), TEXT("ShowLightingBuildInfo"), bShowLightingBuildInfo, GEditorUserSettingsIni );
-	GConfig->SetBool( TEXT("LightingBuildOptions"), TEXT("ShowLightingBuildInfo"), !bShowLightingBuildInfo, GEditorUserSettingsIni );
+	GConfig->GetBool( TEXT("LightingBuildOptions"), TEXT("ShowLightingBuildInfo"), bShowLightingBuildInfo, GEditorPerProjectIni );
+	GConfig->SetBool( TEXT("LightingBuildOptions"), TEXT("ShowLightingBuildInfo"), !bShowLightingBuildInfo, GEditorPerProjectIni );
 }
 
 
@@ -630,13 +631,13 @@ void FLevelEditorActionCallbacks::BuildLODsOnly_Execute()
 bool FLevelEditorActionCallbacks::IsLightingQualityChecked( ELightingBuildQuality TestQuality )
 {
 	int32 CurrentQualityLevel;
-	GConfig->GetInt(TEXT("LightingBuildOptions"), TEXT("QualityLevel"), CurrentQualityLevel, GEditorUserSettingsIni);
+	GConfig->GetInt(TEXT("LightingBuildOptions"), TEXT("QualityLevel"), CurrentQualityLevel, GEditorPerProjectIni);
 	return TestQuality == CurrentQualityLevel;
 }
 
 void FLevelEditorActionCallbacks::SetLightingQuality( ELightingBuildQuality NewQuality )
 {
-	GConfig->SetInt(TEXT("LightingBuildOptions"), TEXT("QualityLevel"), (int32)NewQuality, GEditorUserSettingsIni);
+	GConfig->SetInt(TEXT("LightingBuildOptions"), TEXT("QualityLevel"), (int32)NewQuality, GEditorPerProjectIni);
 }
 
 void FLevelEditorActionCallbacks::SetLightingToolShowBounds()
@@ -2146,9 +2147,11 @@ bool FLevelEditorActionCallbacks::OnGetTransformWidgetVisibility()
 
 void FLevelEditorActionCallbacks::OnAllowTranslucentSelection()
 {
+	auto* Settings = GetMutableDefault<UEditorPerProjectUserSettings>();
+
 	// Toggle 'allow select translucent'
-	GEditor->AccessEditorUserSettings().bAllowSelectTranslucent = !GEditor->AccessEditorUserSettings().bAllowSelectTranslucent;
-	GEditor->AccessEditorUserSettings().PostEditChange();
+	Settings->bAllowSelectTranslucent = !Settings->bAllowSelectTranslucent;
+	Settings->PostEditChange();
 
 	// Need to refresh hit proxies as we changed what should be rendered into them
 	GUnrealEd->RedrawAllViewports();
@@ -2156,7 +2159,7 @@ void FLevelEditorActionCallbacks::OnAllowTranslucentSelection()
 
 bool FLevelEditorActionCallbacks::OnIsAllowTranslucentSelectionEnabled()
 {
-	return GEditor->GetEditorUserSettings().bAllowSelectTranslucent == true;
+	return GetDefault<UEditorPerProjectUserSettings>()->bAllowSelectTranslucent == true;
 }
 
 void FLevelEditorActionCallbacks::OnAllowGroupSelection()

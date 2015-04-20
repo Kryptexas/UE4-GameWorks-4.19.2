@@ -62,7 +62,7 @@ void FMainFrameHandler::ShutDownEditor()
 	// Delete user settings, if requested
 	if (FUnrealEdMisc::Get().IsDeletePreferences())
 	{
-		IFileManager::Get().Delete(*GEditorUserSettingsIni);
+		IFileManager::Get().Delete(*GEditorPerProjectIni);
 	}
 
 	// Take a screenshot of this project for the project browser

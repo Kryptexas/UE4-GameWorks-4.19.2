@@ -895,26 +895,26 @@ void SContentBrowser::SaveSettings() const
 {
 	const FString& SettingsString = InstanceName.ToString();
 
-	GConfig->SetBool(*SettingsIniSection, *(SettingsString + TEXT(".SourcesExpanded")), bSourcesViewExpanded, GEditorUserSettingsIni);
-	GConfig->SetBool(*SettingsIniSection, *(SettingsString + TEXT(".Locked")), bIsLocked, GEditorUserSettingsIni);
+	GConfig->SetBool(*SettingsIniSection, *(SettingsString + TEXT(".SourcesExpanded")), bSourcesViewExpanded, GEditorPerProjectIni);
+	GConfig->SetBool(*SettingsIniSection, *(SettingsString + TEXT(".Locked")), bIsLocked, GEditorPerProjectIni);
 
 	for(int32 SlotIndex = 0; SlotIndex < PathAssetSplitterPtr->GetChildren()->Num(); SlotIndex++)
 	{
 		float SplitterSize = PathAssetSplitterPtr->SlotAt(SlotIndex).SizeValue.Get();
-		GConfig->SetFloat(*SettingsIniSection, *(SettingsString + FString::Printf(TEXT(".VerticalSplitter.SlotSize%d"), SlotIndex)), SplitterSize, GEditorUserSettingsIni);
+		GConfig->SetFloat(*SettingsIniSection, *(SettingsString + FString::Printf(TEXT(".VerticalSplitter.SlotSize%d"), SlotIndex)), SplitterSize, GEditorPerProjectIni);
 	}
 	
 	for(int32 SlotIndex = 0; SlotIndex < PathCollectionSplitterPtr->GetChildren()->Num(); SlotIndex++)
 	{
 		float SplitterSize = PathCollectionSplitterPtr->SlotAt(SlotIndex).SizeValue.Get();
-		GConfig->SetFloat(*SettingsIniSection, *(SettingsString + FString::Printf(TEXT(".HorizontalSplitter.SlotSize%d"), SlotIndex)), SplitterSize, GEditorUserSettingsIni);
+		GConfig->SetFloat(*SettingsIniSection, *(SettingsString + FString::Printf(TEXT(".HorizontalSplitter.SlotSize%d"), SlotIndex)), SplitterSize, GEditorPerProjectIni);
 	}
 
 	// Save all our data using the settings string as a key in the user settings ini
-	FilterListPtr->SaveSettings(GEditorUserSettingsIni, SettingsIniSection, SettingsString);
-	PathViewPtr->SaveSettings(GEditorUserSettingsIni, SettingsIniSection, SettingsString);
-	CollectionViewPtr->SaveSettings(GEditorUserSettingsIni, SettingsIniSection, SettingsString);
-	AssetViewPtr->SaveSettings(GEditorUserSettingsIni, SettingsIniSection, SettingsString);
+	FilterListPtr->SaveSettings(GEditorPerProjectIni, SettingsIniSection, SettingsString);
+	PathViewPtr->SaveSettings(GEditorPerProjectIni, SettingsIniSection, SettingsString);
+	CollectionViewPtr->SaveSettings(GEditorPerProjectIni, SettingsIniSection, SettingsString);
+	AssetViewPtr->SaveSettings(GEditorPerProjectIni, SettingsIniSection, SettingsString);
 }
 
 const FName SContentBrowser::GetInstanceName() const
@@ -1009,16 +1009,16 @@ void SContentBrowser::LoadSettings(const FName& InInstanceName)
 	// Test to see if we should load legacy settings from a previous instance name
 	// First make sure there aren't any existing settings with the given instance name
 	bool TestBool;
-	if ( !GConfig->GetBool(*SettingsIniSection, *(SettingsString + TEXT(".SourcesExpanded")), TestBool, GEditorUserSettingsIni) )
+	if ( !GConfig->GetBool(*SettingsIniSection, *(SettingsString + TEXT(".SourcesExpanded")), TestBool, GEditorPerProjectIni) )
 	{
 		// If there were not any settings and we are Content Browser 1, see if we have any settings under the legacy name "LevelEditorContentBrowser"
-		if ( InInstanceName.ToString() == TEXT("ContentBrowserTab1") && GConfig->GetBool(*SettingsIniSection, TEXT("LevelEditorContentBrowser.SourcesExpanded"), TestBool, GEditorUserSettingsIni) )
+		if ( InInstanceName.ToString() == TEXT("ContentBrowserTab1") && GConfig->GetBool(*SettingsIniSection, TEXT("LevelEditorContentBrowser.SourcesExpanded"), TestBool, GEditorPerProjectIni) )
 		{
 			// We have found some legacy settings with the old ID, use them. These settings will be saved out to the new id later
 			SettingsString = TEXT("LevelEditorContentBrowser");
 		}
 		// else see if we are Content Browser 2, and see if we have any settings under the legacy name "MajorContentBrowserTab"
-		else if ( InInstanceName.ToString() == TEXT("ContentBrowserTab2") && GConfig->GetBool(*SettingsIniSection, TEXT("MajorContentBrowserTab.SourcesExpanded"), TestBool, GEditorUserSettingsIni) )
+		else if ( InInstanceName.ToString() == TEXT("ContentBrowserTab2") && GConfig->GetBool(*SettingsIniSection, TEXT("MajorContentBrowserTab.SourcesExpanded"), TestBool, GEditorPerProjectIni) )
 		{
 			// We have found some legacy settings with the old ID, use them. These settings will be saved out to the new id later
 			SettingsString = TEXT("MajorContentBrowserTab");
@@ -1026,28 +1026,28 @@ void SContentBrowser::LoadSettings(const FName& InInstanceName)
 	}
 
 	// Now that we have determined the appropriate settings string, actually load the settings
-	GConfig->GetBool(*SettingsIniSection, *(SettingsString + TEXT(".SourcesExpanded")), bSourcesViewExpanded, GEditorUserSettingsIni);
-	GConfig->GetBool(*SettingsIniSection, *(SettingsString + TEXT(".Locked")), bIsLocked, GEditorUserSettingsIni);
+	GConfig->GetBool(*SettingsIniSection, *(SettingsString + TEXT(".SourcesExpanded")), bSourcesViewExpanded, GEditorPerProjectIni);
+	GConfig->GetBool(*SettingsIniSection, *(SettingsString + TEXT(".Locked")), bIsLocked, GEditorPerProjectIni);
 
 	for(int32 SlotIndex = 0; SlotIndex < PathAssetSplitterPtr->GetChildren()->Num(); SlotIndex++)
 	{
 		float SplitterSize = PathAssetSplitterPtr->SlotAt(SlotIndex).SizeValue.Get();
-		GConfig->GetFloat(*SettingsIniSection, *(SettingsString + FString::Printf(TEXT(".VerticalSplitter.SlotSize%d"), SlotIndex)), SplitterSize, GEditorUserSettingsIni);
+		GConfig->GetFloat(*SettingsIniSection, *(SettingsString + FString::Printf(TEXT(".VerticalSplitter.SlotSize%d"), SlotIndex)), SplitterSize, GEditorPerProjectIni);
 		PathAssetSplitterPtr->SlotAt(SlotIndex).SizeValue = SplitterSize;
 	}
 	
 	for(int32 SlotIndex = 0; SlotIndex < PathCollectionSplitterPtr->GetChildren()->Num(); SlotIndex++)
 	{
 		float SplitterSize = PathCollectionSplitterPtr->SlotAt(SlotIndex).SizeValue.Get();
-		GConfig->GetFloat(*SettingsIniSection, *(SettingsString + FString::Printf(TEXT(".HorizontalSplitter.SlotSize%d"), SlotIndex)), SplitterSize, GEditorUserSettingsIni);
+		GConfig->GetFloat(*SettingsIniSection, *(SettingsString + FString::Printf(TEXT(".HorizontalSplitter.SlotSize%d"), SlotIndex)), SplitterSize, GEditorPerProjectIni);
 		PathCollectionSplitterPtr->SlotAt(SlotIndex).SizeValue = SplitterSize;
 	}
 
 	// Save all our data using the settings string as a key in the user settings ini
-	FilterListPtr->LoadSettings(GEditorUserSettingsIni, SettingsIniSection, SettingsString);
-	PathViewPtr->LoadSettings(GEditorUserSettingsIni, SettingsIniSection, SettingsString);
-	CollectionViewPtr->LoadSettings(GEditorUserSettingsIni, SettingsIniSection, SettingsString);
-	AssetViewPtr->LoadSettings(GEditorUserSettingsIni, SettingsIniSection, SettingsString);
+	FilterListPtr->LoadSettings(GEditorPerProjectIni, SettingsIniSection, SettingsString);
+	PathViewPtr->LoadSettings(GEditorPerProjectIni, SettingsIniSection, SettingsString);
+	CollectionViewPtr->LoadSettings(GEditorPerProjectIni, SettingsIniSection, SettingsString);
+	AssetViewPtr->LoadSettings(GEditorPerProjectIni, SettingsIniSection, SettingsString);
 }
 
 void SContentBrowser::SourcesChanged(const TArray<FString>& SelectedPaths, const TArray<FCollectionNameType>& SelectedCollections)

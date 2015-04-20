@@ -246,15 +246,15 @@ void FLiveEditorManager::Initialize()
 	FindDevices();
 	MIDIBuffer = new PmEvent[DEFAULT_BUFFER_SIZE];
 
-	GConfig->GetArray(TEXT("LiveEditor"), TEXT("ActiveBlueprintTemplates"), ActiveBlueprintTemplates, GEditorUserSettingsIni);
+	GConfig->GetArray(TEXT("LiveEditor"), TEXT("ActiveBlueprintTemplates"), ActiveBlueprintTemplates, GEditorPerProjectIni);
 	for ( int32 i = ActiveBlueprintTemplates.Num()-1; i >= 0; --i )
 	{
 		FString &Name = ActiveBlueprintTemplates[i];
 		if ( !FPackageName::DoesPackageExist(*Name) )
 		{
 			ActiveBlueprintTemplates.RemoveAt(i);
-			GConfig->SetArray(TEXT("LiveEditor"), TEXT("ActiveBlueprintTemplates"), ActiveBlueprintTemplates, GEditorUserSettingsIni);
-			GConfig->Flush(false, GEditorUserSettingsIni);
+			GConfig->SetArray(TEXT("LiveEditor"), TEXT("ActiveBlueprintTemplates"), ActiveBlueprintTemplates, GEditorPerProjectIni);
+			GConfig->Flush(false, GEditorPerProjectIni);
 		}
 	}
 
@@ -478,8 +478,8 @@ void FLiveEditorManager::SelectLiveEditorBlueprint( UBlueprint *Blueprint )
 			BlueprintName = BlueprintName.LeftChop(2);
 		UE_LOG( LiveEditorManagerLog, Log, TEXT("%s"), *BlueprintName );
 		ActiveBlueprintTemplates.AddUnique( BlueprintName );
-		GConfig->SetArray(TEXT("LiveEditor"), TEXT("ActiveBlueprintTemplates"), ActiveBlueprintTemplates, GEditorUserSettingsIni);
-		GConfig->Flush(false, GEditorUserSettingsIni);
+		GConfig->SetArray(TEXT("LiveEditor"), TEXT("ActiveBlueprintTemplates"), ActiveBlueprintTemplates, GEditorPerProjectIni);
+		GConfig->Flush(false, GEditorPerProjectIni);
 	}
 }
 
@@ -581,8 +581,8 @@ bool FLiveEditorManager::Remove( const FString &Name )
 	DeActivate( Name );
 	
 	ActiveBlueprintTemplates.Remove( Name );
-	GConfig->SetArray(TEXT("LiveEditor"), TEXT("ActiveBlueprintTemplates"), ActiveBlueprintTemplates, GEditorUserSettingsIni);
-	GConfig->Flush(false, GEditorUserSettingsIni);
+	GConfig->SetArray(TEXT("LiveEditor"), TEXT("ActiveBlueprintTemplates"), ActiveBlueprintTemplates, GEditorPerProjectIni);
+	GConfig->Flush(false, GEditorPerProjectIni);
 	return true;
 }
 
@@ -938,10 +938,10 @@ bool FLiveEditorManager::SaveDeviceData( const FLiveEditorDeviceData &DeviceData
 	}
 
 	FString SectionName = FString::Printf( TEXT("LiveEditor.%s"), *DeviceData.DeviceName );
-	GConfig->SetInt( *SectionName, TEXT("ButtonSignalDown"), DeviceData.ButtonSignalDown, GEditorUserSettingsIni );
-	GConfig->SetInt( *SectionName, TEXT("ButtonSignalUp"), DeviceData.ButtonSignalUp, GEditorUserSettingsIni );
-	GConfig->SetInt( *SectionName, TEXT("ContinuousIncrement"), DeviceData.ContinuousIncrement, GEditorUserSettingsIni );
-	GConfig->SetInt( *SectionName, TEXT("ContinuousDecrement"), DeviceData.ContinuousDecrement, GEditorUserSettingsIni );
+	GConfig->SetInt( *SectionName, TEXT("ButtonSignalDown"), DeviceData.ButtonSignalDown, GEditorPerProjectIni );
+	GConfig->SetInt( *SectionName, TEXT("ButtonSignalUp"), DeviceData.ButtonSignalUp, GEditorPerProjectIni );
+	GConfig->SetInt( *SectionName, TEXT("ContinuousIncrement"), DeviceData.ContinuousIncrement, GEditorPerProjectIni );
+	GConfig->SetInt( *SectionName, TEXT("ContinuousDecrement"), DeviceData.ContinuousDecrement, GEditorPerProjectIni );
 
 	return true;
 }
@@ -950,17 +950,17 @@ bool FLiveEditorManager::LoadDeviceData( const FString &DeviceName, FLiveEditorD
 {
 	FString SectionName = FString::Printf( TEXT("LiveEditor.%s"), *DeviceName );
 	TArray< FString > Section; 
-	if ( !GConfig->GetSection( *SectionName, Section, GEditorUserSettingsIni ) )
+	if ( !GConfig->GetSection( *SectionName, Section, GEditorPerProjectIni ) )
 	{
 		return false;
 	}
 
 	DeviceData.DeviceName = DeviceName;
 	DeviceData.ConfigState = FLiveEditorDeviceData::CONFIGURED;
-	GConfig->GetInt( *SectionName, TEXT("ButtonSignalDown"), DeviceData.ButtonSignalDown, GEditorUserSettingsIni );
-	GConfig->GetInt( *SectionName, TEXT("ButtonSignalUp"), DeviceData.ButtonSignalUp, GEditorUserSettingsIni );
-	GConfig->GetInt( *SectionName, TEXT("ContinuousIncrement"), DeviceData.ContinuousIncrement, GEditorUserSettingsIni );
-	GConfig->GetInt( *SectionName, TEXT("ContinuousDecrement"), DeviceData.ContinuousDecrement, GEditorUserSettingsIni );
+	GConfig->GetInt( *SectionName, TEXT("ButtonSignalDown"), DeviceData.ButtonSignalDown, GEditorPerProjectIni );
+	GConfig->GetInt( *SectionName, TEXT("ButtonSignalUp"), DeviceData.ButtonSignalUp, GEditorPerProjectIni );
+	GConfig->GetInt( *SectionName, TEXT("ContinuousIncrement"), DeviceData.ContinuousIncrement, GEditorPerProjectIni );
+	GConfig->GetInt( *SectionName, TEXT("ContinuousDecrement"), DeviceData.ContinuousDecrement, GEditorPerProjectIni );
 
 	return true;
 }

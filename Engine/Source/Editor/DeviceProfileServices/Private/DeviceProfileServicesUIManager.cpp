@@ -102,7 +102,7 @@ void FDeviceProfileServicesUIManager::SetProfile( const FString& DeviceProfileNa
 		// Get the existing items
 		for( int32 ItemIdx = 0 ; ItemIdx < MaxItems; ++ItemIdx )
 		{
-			if ( GConfig->GetString( *INISection, *FString::Printf( TEXT("%s%d"), *INIKeyBase, ItemIdx ), CurItem, GEditorUserSettingsIni ) )
+			if ( GConfig->GetString( *INISection, *FString::Printf( TEXT("%s%d"), *INIKeyBase, ItemIdx ), CurItem, GEditorPerProjectIni ) )
 			{
 				CurItems.Add( CurItem );
 			}
@@ -124,14 +124,14 @@ void FDeviceProfileServicesUIManager::SetProfile( const FString& DeviceProfileNa
 		CurItems.Insert( DeviceProfileName, 0 );
 
 		// Clear the ini section
-		GConfig->EmptySection( *INISection, GEditorUserSettingsIni );
+		GConfig->EmptySection( *INISection, GEditorPerProjectIni );
 
 		// Re-write the .ini file
 		for ( int32 ItemIdx = 0; ItemIdx < CurItems.Num(); ++ItemIdx )
 		{
-			GConfig->SetString( *INISection, *FString::Printf( TEXT("%s%d"), *INIKeyBase, ItemIdx ), *CurItems[ItemIdx], GEditorUserSettingsIni );
+			GConfig->SetString( *INISection, *FString::Printf( TEXT("%s%d"), *INIKeyBase, ItemIdx ), *CurItems[ItemIdx], GEditorPerProjectIni );
 		}
 
-		GConfig->Flush( false, GEditorUserSettingsIni );
+		GConfig->Flush( false, GEditorPerProjectIni );
 	}
 }

@@ -361,7 +361,7 @@ FContextMenuTargetProfile::FContextMenuTargetProfile(const FBlueprintActionConte
 	FString const BpConfigKey = BpSettings->GetClass()->GetPathName();
 
 	bool bOldUseTargetContextForNodeMenu = true;
-	if (GConfig->GetBool(*BpConfigKey, TEXT("bUseTargetContextForNodeMenu"), bOldUseTargetContextForNodeMenu, GEditorUserSettingsIni) && !bOldUseTargetContextForNodeMenu)
+	if (GConfig->GetBool(*BpConfigKey, TEXT("bUseTargetContextForNodeMenu"), bOldUseTargetContextForNodeMenu, GEditorPerProjectIni) && !bOldUseTargetContextForNodeMenu)
 	{
 		SavedTargetFlags = 0;
 	}

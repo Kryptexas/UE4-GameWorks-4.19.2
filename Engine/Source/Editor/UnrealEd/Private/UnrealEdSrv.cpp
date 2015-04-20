@@ -276,7 +276,7 @@ UPackage* UUnrealEdEngine::GeneratePackageThumbnailsIfRequired( const TCHAR* Str
 				}
 
 				bool bPrintThumbnailDiagnostics = false;
-				GConfig->GetBool(TEXT("Thumbnails"), TEXT("Debug"), bPrintThumbnailDiagnostics, GEditorUserSettingsIni);
+				GConfig->GetBool(TEXT("Thumbnails"), TEXT("Debug"), bPrintThumbnailDiagnostics, GEditorPerProjectIni);
 
 				const FObjectThumbnail* ExistingThumbnail = ThumbnailTools::FindCachedThumbnail( CurObject->GetFullName() );
 				if (bPrintThumbnailDiagnostics)

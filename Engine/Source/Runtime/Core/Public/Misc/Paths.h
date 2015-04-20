@@ -8,12 +8,12 @@
  */
 class CORE_API FPaths
 {
+public:
+
 	/**
 	 * Should the "saved" directory structures be rooted in the user dir or relative to the "engine/game" 
 	 */
 	static bool ShouldSaveToUserDir();
-
-public:
 
 	/** 
 	 * Returns the base directory of the "core" engine that can be shared across

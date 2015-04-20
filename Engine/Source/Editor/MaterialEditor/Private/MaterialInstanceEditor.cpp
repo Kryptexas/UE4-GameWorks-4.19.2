@@ -849,10 +849,10 @@ void FMaterialInstanceEditor::SaveSettings()
 		PreviewVC->PreviewScene.SaveSettings(TEXT("MaterialInstanceEditor"));
 	}
 
-	GConfig->SetBool(TEXT("MaterialInstanceEditor"), TEXT("bShowGrid"), PreviewVC->IsTogglePreviewGridChecked(), GEditorUserSettingsIni);
-	GConfig->SetBool(TEXT("MaterialInstanceEditor"), TEXT("bDrawGrid"), PreviewVC->IsRealtime(), GEditorUserSettingsIni);
-	GConfig->SetInt(TEXT("MaterialInstanceEditor"), TEXT("PrimType"), PreviewVC->PreviewPrimType, GEditorUserSettingsIni);
-	GConfig->SetBool(TEXT("MaterialInstanceEditor"), TEXT("bWantsMobileStats"), IsToggleMobileStatsChecked(), GEditorUserSettingsIni);
+	GConfig->SetBool(TEXT("MaterialInstanceEditor"), TEXT("bShowGrid"), PreviewVC->IsTogglePreviewGridChecked(), GEditorPerProjectIni);
+	GConfig->SetBool(TEXT("MaterialInstanceEditor"), TEXT("bDrawGrid"), PreviewVC->IsRealtime(), GEditorPerProjectIni);
+	GConfig->SetInt(TEXT("MaterialInstanceEditor"), TEXT("PrimType"), PreviewVC->PreviewPrimType, GEditorPerProjectIni);
+	GConfig->SetBool(TEXT("MaterialInstanceEditor"), TEXT("bWantsMobileStats"), IsToggleMobileStatsChecked(), GEditorPerProjectIni);
 }
 
 void FMaterialInstanceEditor::LoadSettings()
@@ -861,10 +861,10 @@ void FMaterialInstanceEditor::LoadSettings()
 	bool bShowGrid=false;
 	int32 PrimType=static_cast<EThumbnailPrimType>( TPT_Sphere );
 	bool bWantsMobileStats=false;
-	GConfig->GetBool(TEXT("MaterialInstanceEditor"), TEXT("bShowGrid"), bShowGrid, GEditorUserSettingsIni);
-	GConfig->GetBool(TEXT("MaterialInstanceEditor"), TEXT("bDrawGrid"), bRealtime, GEditorUserSettingsIni);
-	GConfig->GetInt(TEXT("MaterialInstanceEditor"), TEXT("PrimType"), PrimType, GEditorUserSettingsIni);
-	GConfig->GetBool(TEXT("MaterialInstanceEditor"), TEXT("bWantsMobileStats"), bWantsMobileStats, GEditorUserSettingsIni);
+	GConfig->GetBool(TEXT("MaterialInstanceEditor"), TEXT("bShowGrid"), bShowGrid, GEditorPerProjectIni);
+	GConfig->GetBool(TEXT("MaterialInstanceEditor"), TEXT("bDrawGrid"), bRealtime, GEditorPerProjectIni);
+	GConfig->GetInt(TEXT("MaterialInstanceEditor"), TEXT("PrimType"), PrimType, GEditorPerProjectIni);
+	GConfig->GetBool(TEXT("MaterialInstanceEditor"), TEXT("bWantsMobileStats"), bWantsMobileStats, GEditorPerProjectIni);
 
 	if (bWantsMobileStats)
 	{

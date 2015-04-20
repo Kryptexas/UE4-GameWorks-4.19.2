@@ -1781,7 +1781,7 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 		verify(GConfig->GetInt(TEXT("DevOptions.StaticLighting"), TEXT("MaxTriangleIrradiancePhotonCacheSamples"), Scene.GeneralSettings.MaxTriangleIrradiancePhotonCacheSamples, GLightmassIni));
 
 		int32 CheckQualityLevel;
-		GConfig->GetInt( TEXT("LightingBuildOptions"), TEXT("QualityLevel"), CheckQualityLevel, GEditorUserSettingsIni);
+		GConfig->GetInt( TEXT("LightingBuildOptions"), TEXT("QualityLevel"), CheckQualityLevel, GEditorPerProjectIni);
 		CheckQualityLevel = FMath::Clamp<int32>(CheckQualityLevel, Quality_Preview, Quality_Production);
 		UE_LOG(LogLightmassSolver, Log, TEXT("LIGHTMASS: Writing scene settings: Quality level %d (%d in INI)"), (int32)(QualityLevel), CheckQualityLevel);
 		if (CheckQualityLevel != QualityLevel)
@@ -1799,7 +1799,7 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 		default:
 			{
 				bool bUseErrorColoring = false;
-				GConfig->GetBool( TEXT("LightingBuildOptions"), TEXT("UseErrorColoring"),		bUseErrorColoring,					GEditorUserSettingsIni );
+				GConfig->GetBool( TEXT("LightingBuildOptions"), TEXT("UseErrorColoring"),		bUseErrorColoring,					GEditorPerProjectIni );
 				Scene.GeneralSettings.bUseErrorColoring = bUseErrorColoring;
 				if (bUseErrorColoring == false)
 				{
@@ -2598,7 +2598,7 @@ bool FLightmassProcessor::BeginRun()
 
 	// Check to see if swarm should be run minimized (it should by default)
 	bool bMinimizeSwarm = true;
-	GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("MinimizeSwarm"), bMinimizeSwarm, GEditorGameAgnosticIni);
+	GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("MinimizeSwarm"), bMinimizeSwarm, GEditorSettingsIni);
 	if ( bMinimizeSwarm )
 	{
 		UE_LOG(LogLightmassSolver, Log,  TEXT("Swarm will be run minimized") );

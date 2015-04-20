@@ -8,7 +8,7 @@
 /**
  * Implements the Level Editor's miscellaneous settings.
  */
-UCLASS(config=EditorUserSettings)
+UCLASS(config=EditorPerProjectUserSettings)
 class UNREALED_API ULevelEditorMiscSettings
 	: public UObject
 {

@@ -10,7 +10,7 @@
 #pragma once
 #include "PersonaOptions.generated.h"
 
-UCLASS(hidecategories=Object, config=EditorUserSettings)
+UCLASS(hidecategories=Object, config=EditorPerProjectUserSettings)
 class UNREALED_API UPersonaOptions : public UObject
 {
 	GENERATED_UCLASS_BODY()

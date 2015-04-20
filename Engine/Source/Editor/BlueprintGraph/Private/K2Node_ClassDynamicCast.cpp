@@ -67,7 +67,6 @@ void UK2Node_ClassDynamicCast::AllocateDefaultPins()
 
 FLinearColor UK2Node_ClassDynamicCast::GetNodeTitleColor() const
 {
-	const UEditorUserSettings& Options = GEditor->AccessEditorUserSettings();
 	return GetDefault<UGraphEditorSettings>()->ClassPinTypeColor;
 }
 

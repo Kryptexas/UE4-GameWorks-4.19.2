@@ -608,7 +608,7 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateDevicePreviewMenu() const
 	{
 		// Build the menu from the contents of the game ini
 		//@todo This should probably be using GConfig->GetText [10/21/2013 justin.sargent]
-		if ( GConfig->GetString( *INISection, *FString::Printf( TEXT("%s%d"), *INIKeyBase, ItemIdx ), CurItem, GEditorUserSettingsIni ) )
+		if ( GConfig->GetString( *INISection, *FString::Printf( TEXT("%s%d"), *INIKeyBase, ItemIdx ), CurItem, GEditorPerProjectIni ) )
 		{
 			const FName PlatformIcon = UIManager->GetDeviceIconName( CurItem );
 

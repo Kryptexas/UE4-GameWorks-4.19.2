@@ -340,7 +340,7 @@ void FObjectPropertyNode::InternalInitChildNodes( FName SinglePropertyName )
 		if (MetaDataVisibilityCheckString.Len())
 		{
 			//ensure that the metadata visibility string is actually set to true in order to show this property
-			GConfig->GetBool(TEXT("UnrealEd.PropertyFilters"), *MetaDataVisibilityCheckString, bMetaDataAllowVisible, GEditorUserSettingsIni);
+			GConfig->GetBool(TEXT("UnrealEd.PropertyFilters"), *MetaDataVisibilityCheckString, bMetaDataAllowVisible, GEditorPerProjectIni);
 		}
 
 		if (bMetaDataAllowVisible)

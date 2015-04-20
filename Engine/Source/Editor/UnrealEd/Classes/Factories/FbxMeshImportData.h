@@ -15,7 +15,7 @@ enum EFBXNormalImportMethod
 /**
  * Import data and options used when importing any mesh from FBX
  */
-UCLASS(config=EditorUserSettings, configdonotcheckdefaults, abstract)
+UCLASS(config=EditorPerProjectUserSettings, configdonotcheckdefaults, abstract)
 class UFbxMeshImportData : public UFbxAssetImportData
 {
 	GENERATED_UCLASS_BODY()

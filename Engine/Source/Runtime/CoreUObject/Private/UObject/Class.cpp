@@ -3605,9 +3605,17 @@ const FString UClass::GetConfigName() const
 	{
 		return GGameIni;
 	}
-	else if ( ClassConfigName == NAME_EditorGameAgnostic )
+	else if ( ClassConfigName == NAME_EditorSettings )
 	{
-		return GEditorGameAgnosticIni;
+		return GEditorSettingsIni;
+	}
+	else if ( ClassConfigName == NAME_EditorLayout )
+	{
+		return GEditorLayoutIni;
+	}
+	else if ( ClassConfigName == NAME_EditorKeyBindings )
+	{
+		return GEditorKeyBindingsIni;
 	}
 	else if( ClassConfigName == NAME_None )
 	{

@@ -1289,22 +1289,22 @@ void FLevelCollectionModel::LoadSettings()
 {
 	// Display paths
 	bool bDisplayPathsSetting = false;
-	GConfig->GetBool(*ConfigIniSection, TEXT("DisplayPaths"), bDisplayPathsSetting, GEditorUserSettingsIni);
+	GConfig->GetBool(*ConfigIniSection, TEXT("DisplayPaths"), bDisplayPathsSetting, GEditorPerProjectIni);
 	SetDisplayPathsState(bDisplayPathsSetting);
 
 	// Display actors count
 	bool bDisplayActorsCountSetting = false;
-	GConfig->GetBool(*ConfigIniSection, TEXT("DisplayActorsCount"), bDisplayActorsCountSetting, GEditorUserSettingsIni);
+	GConfig->GetBool(*ConfigIniSection, TEXT("DisplayActorsCount"), bDisplayActorsCountSetting, GEditorPerProjectIni);
 	SetDisplayActorsCountState(bDisplayActorsCountSetting);
 }
 	
 void FLevelCollectionModel::SaveSettings()
 {
 	// Display paths
-	GConfig->SetBool(*ConfigIniSection, TEXT("DisplayPaths"), GetDisplayPathsState(), GEditorUserSettingsIni);
+	GConfig->SetBool(*ConfigIniSection, TEXT("DisplayPaths"), GetDisplayPathsState(), GEditorPerProjectIni);
 
 	// Display actors count
-	GConfig->SetBool(*ConfigIniSection, TEXT("DisplayActorsCount"), GetDisplayActorsCountState(), GEditorUserSettingsIni);
+	GConfig->SetBool(*ConfigIniSection, TEXT("DisplayActorsCount"), GetDisplayActorsCountState(), GEditorPerProjectIni);
 }
 
 void FLevelCollectionModel::RefreshBrowser_Executed()

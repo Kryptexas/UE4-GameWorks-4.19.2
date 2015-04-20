@@ -296,7 +296,7 @@ bool FUDNParser::LoadLink( const FString& Link, TArray<FString>& ContentLines )
 		UDNParserLog.Error(FText::Format(LOCTEXT("LoadingError", "Loading document '{0}' failed."), FText::FromString(SourcePath)));
 	}
 
-	if ( !bLoadSuccess && GEditor->EditorUserSettings->bDisplayDocumentationLink )
+	if ( !bLoadSuccess && GetDefault<UEditorPerProjectUserSettings>()->bDisplayDocumentationLink )
 	{
 		UDNParserLog.Open();
 	}
@@ -322,7 +322,7 @@ bool FUDNParser::Parse(const FString& Link, TArray<FExcerpt>& OutExcerpts, FUDNP
 		}
 		else
 		{
-			if ( GEditor->EditorUserSettings->bDisplayDocumentationLink )
+			if ( GetDefault<UEditorPerProjectUserSettings>()->bDisplayDocumentationLink )
 			{
 				UDNParserLog.Open();
 			}
@@ -347,7 +347,7 @@ bool FUDNParser::GetExcerptContent( const FString& Link, FExcerpt& Excerpt )
 	}
 	else
 	{
-		if ( GEditor->EditorUserSettings->bDisplayDocumentationLink )
+		if ( GetDefault<UEditorPerProjectUserSettings>()->bDisplayDocumentationLink )
 		{
 			UDNParserLog.Open();
 		}
@@ -529,7 +529,7 @@ bool FUDNParser::ParseLineIntoSymbols(int32 LineNumber, const FString& Line, TAr
 			FMessageLog UDNParserLog(UDNParseErrorLog);
 			UDNParserLog.Error(FText::Format(LOCTEXT("TokenParseError", "Line {0}: Token '{1}' could not be parsed properly."), FText::AsNumber(LineNumber), FText::FromString(Line)));
 
-			if ( GEditor->EditorUserSettings->bDisplayDocumentationLink )
+			if ( GetDefault<UEditorPerProjectUserSettings>()->bDisplayDocumentationLink )
 			{
 				UDNParserLog.Open();
 			}
@@ -648,7 +648,7 @@ FUDNLine FUDNParser::ParseLineIntoUDNContent(int32 LineNumber, const FString& Li
 					}
 					else
 					{
-						if ( GEditor->EditorUserSettings->bDisplayDocumentationLink )
+						if ( GetDefault<UEditorPerProjectUserSettings>()->bDisplayDocumentationLink )
 						{
 							UDNParserLog.Open();
 						}
@@ -674,7 +674,7 @@ FUDNLine FUDNParser::ParseLineIntoUDNContent(int32 LineNumber, const FString& Li
 	}
 	else
 	{
-		if ( GEditor->EditorUserSettings->bDisplayDocumentationLink )
+		if ( GetDefault<UEditorPerProjectUserSettings>()->bDisplayDocumentationLink )
 		{
 			UDNParserLog.Open();
 		}
@@ -1021,7 +1021,7 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& InLink,
 		bCriticalError = true;
 	}
 
-	if ( bCriticalError && GEditor->EditorUserSettings->bDisplayDocumentationLink )
+	if ( bCriticalError && GetDefault<UEditorPerProjectUserSettings>()->bDisplayDocumentationLink )
 	{
 		UDNParserLog.Open();
 	}

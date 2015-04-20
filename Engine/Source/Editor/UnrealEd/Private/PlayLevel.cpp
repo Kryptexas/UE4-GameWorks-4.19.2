@@ -1772,7 +1772,7 @@ void UEditorEngine::PlayForMovieCapture()
 	{
 		bool bCloseEditor = false;
 
-		GConfig->GetBool(TEXT("MatineeCreateMovieOptions"), TEXT("CloseEditor"), bCloseEditor, GEditorUserSettingsIni);
+		GConfig->GetBool(TEXT("MatineeCreateMovieOptions"), TEXT("CloseEditor"), bCloseEditor, GEditorPerProjectIni);
 
 		if (bCloseEditor)
 		{

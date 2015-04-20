@@ -154,7 +154,7 @@ namespace PackageTools
 		bool bSuccessfullyCompleted = true;
 
 		// whether or not to suppress the ask to fully load message
-		bool bSuppress = GEditor->AccessEditorUserSettings().bSuppressFullyLoadPrompt;
+		bool bSuppress = GetDefault<UEditorPerProjectUserSettings>()->bSuppressFullyLoadPrompt;
 
 		// Make sure they are all fully loaded.
 		bool bNeedsUpdate = false;

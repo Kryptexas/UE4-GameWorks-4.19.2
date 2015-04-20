@@ -3137,7 +3137,7 @@ GameProjectUtils::EAddCodeToProjectResult GameProjectUtils::AddCodeToProject_Int
 		// Notify that we've created a brand new module
 		FSourceCodeNavigation::AccessOnNewModuleAdded().Broadcast(*GameModuleName);
 	}
-	else if (GEditor->AccessEditorUserSettings().bAutomaticallyHotReloadNewClasses)
+	else if (GetDefault<UEditorPerProjectUserSettings>()->bAutomaticallyHotReloadNewClasses)
 	{
 		FModuleStatus ModuleStatus;
 		const FName ModuleFName = *ModuleInfo.ModuleName;

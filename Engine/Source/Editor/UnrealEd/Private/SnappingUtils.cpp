@@ -91,7 +91,6 @@ public:
 	bool SnapToBSPVertex( FVector& Location, FVector GridBase, FRotator& Rotation );
 
 private:
-	static const UEditorUserSettings& GetEditorUserSettings();
 
 	/** Vertex snapping implementation */
 	FVertexSnappingImpl VertexSnappingImpl;
@@ -356,11 +355,6 @@ bool FEditorViewportSnapping::SnapToBSPVertex(FVector& Location, FVector GridBas
 	}
 
 	return bSnapped;
-}
-
-const UEditorUserSettings& FEditorViewportSnapping::GetEditorUserSettings()
-{
-	return GEditor->GetEditorUserSettings();
 }
 
 void FEditorViewportSnapping::ClearSnappingHelpers( bool bClearImmediately )

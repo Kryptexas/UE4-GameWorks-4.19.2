@@ -7,7 +7,7 @@
 /**
  * Implements the settings for the Widget Blueprint Designer.
  */
-UCLASS(config=EditorUserSettings)
+UCLASS(config=EditorPerProjectUserSettings)
 class UMGEDITOR_API UWidgetDesignerSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()

@@ -398,6 +398,6 @@ private:
 
 public: 
 
-	/** The section of EditorUserSettings in which to save content browser settings */
+	/** The section of EditorPerProjectUserSettings in which to save content browser settings */
 	static const FString SettingsIniSection;
 };

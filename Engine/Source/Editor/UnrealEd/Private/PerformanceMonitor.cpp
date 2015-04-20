@@ -8,6 +8,8 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 
+#include "Settings/EditorSettings.h"
+
 #define LOCTEXT_NAMESPACE "PerformanceMonitor"
 
 const double AutoApplyScalabilityTimeout = 10;
@@ -155,7 +157,7 @@ bool FPerformanceMonitor::WillAutoScalabilityHelp() const
 Scalability::FQualityLevels FPerformanceMonitor::GetAutoScalabilityQualityLevels() const
 {
 	const Scalability::FQualityLevels ExistingLevels = Scalability::GetQualityLevels();
-	Scalability::FQualityLevels NewLevels = GEditor->GetGameAgnosticSettings().EngineBenchmarkResult;
+	Scalability::FQualityLevels NewLevels = GetDefault<UEditorSettings>()->EngineBenchmarkResult;
 
 	// Make sure we don't turn settings up if the user has turned them down for any reason
 	NewLevels.ResolutionQuality		= FMath::Min(NewLevels.ResolutionQuality, ExistingLevels.ResolutionQuality);
@@ -171,12 +173,12 @@ Scalability::FQualityLevels FPerformanceMonitor::GetAutoScalabilityQualityLevels
 
 void FPerformanceMonitor::AutoApplyScalability()
 {
-	GEditor->AccessGameAgnosticSettings().AutoApplyScalabilityBenchmark();
+	GetMutableDefault<UEditorSettings>()->AutoApplyScalabilityBenchmark();
 
 	Scalability::FQualityLevels NewLevels = FPerformanceMonitor::GetAutoScalabilityQualityLevels();
 
 	Scalability::SetQualityLevels(NewLevels);
-	Scalability::SaveState(GEditorGameAgnosticIni);
+	Scalability::SaveState(GEditorSettingsIni);
 	GEditor->RedrawAllViewports();
 
 	const bool bAutoApplied = true;
@@ -216,10 +218,10 @@ void FPerformanceMonitor::ShowPerformanceWarning(FText MessageText)
 
 void FPerformanceMonitor::CancelPerformanceNotification()
 {
-	UEditorUserSettings& EditorUserSettings = GEditor->AccessEditorUserSettings();
-	EditorUserSettings.bMonitorEditorPerformance = false;
-	EditorUserSettings.PostEditChange();
-	EditorUserSettings.SaveConfig();
+	UEditorPerProjectUserSettings* EditorUserSettings = GetMutableDefault<UEditorPerProjectUserSettings>();
+	EditorUserSettings->bMonitorEditorPerformance = false;
+	EditorUserSettings->PostEditChange();
+	EditorUserSettings->SaveConfig();
 
 	Reset();
 }
@@ -249,7 +251,7 @@ void FPerformanceMonitor::Tick(float DeltaTime)
 	FineMovingAverage.Tick(FPlatformTime::Seconds(), GAverageFPS);
 	CoarseMovingAverage.Tick(FPlatformTime::Seconds(), GAverageFPS);
 
-	bool bMonitorEditorPerformance = GEditor->GetEditorUserSettings().bMonitorEditorPerformance;
+	bool bMonitorEditorPerformance = GetDefault<UEditorPerProjectUserSettings>()->bMonitorEditorPerformance;
 	if( !bMonitorEditorPerformance || !bIsNotificationAllowed )
 	{
 		return;
@@ -308,7 +310,7 @@ void FPerformanceMonitor::Tick(float DeltaTime)
 	}
 	else
 	{
-		if( GEditor->GetGameAgnosticSettings().IsScalabilityBenchmarkValid() )
+		if( GetDefault<UEditorSettings>()->IsScalabilityBenchmarkValid() )
 		{
 			return;
 		}

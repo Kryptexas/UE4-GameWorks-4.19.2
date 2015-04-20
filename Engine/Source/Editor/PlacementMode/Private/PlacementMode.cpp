@@ -29,8 +29,8 @@ FPlacementMode::~FPlacementMode()
 
 void FPlacementMode::Initialize()
 {
-	//GConfig->GetFloat(TEXT("PlacementMode"), TEXT("AssetThumbnailScale"), AssetThumbnailScale, GEditorUserSettingsIni);
-	//GConfig->GetBool( TEXT( "PlacementMode" ), TEXT( "ShowOtherDeveloperAssets" ), ShowOtherDeveloperAssets, GEditorUserSettingsIni );
+	//GConfig->GetFloat(TEXT("PlacementMode"), TEXT("AssetThumbnailScale"), AssetThumbnailScale, GEditorPerProjectIni);
+	//GConfig->GetBool( TEXT( "PlacementMode" ), TEXT( "ShowOtherDeveloperAssets" ), ShowOtherDeveloperAssets, GEditorPerProjectIni );
 }
 
 bool FPlacementMode::UsesToolkits() const

@@ -2,10 +2,10 @@
 
 #pragma once
 #include "Scalability.h"
-#include "EditorGameAgnosticSettings.generated.h"
+#include "EditorSettings.generated.h"
 
-UCLASS(config=EditorGameAgnostic)
-class UEditorGameAgnosticSettings : public UObject
+UCLASS(config=EditorSettings)
+class UNREALED_API UEditorSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()
 

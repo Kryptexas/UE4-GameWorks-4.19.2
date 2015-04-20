@@ -71,7 +71,7 @@ void FCategoryPropertyNode::InitChildNodes()
 				{
 					//ensure that the metadata visibility string is actually set to true in order to show this property
 					// @todo Remove this
-					GConfig->GetBool(TEXT("UnrealEd.PropertyFilters"), *MetaDataVisibilityCheckString, bMetaDataAllowVisible, GEditorUserSettingsIni);
+					GConfig->GetBool(TEXT("UnrealEd.PropertyFilters"), *MetaDataVisibilityCheckString, bMetaDataAllowVisible, GEditorPerProjectIni);
 				}
 			}
 

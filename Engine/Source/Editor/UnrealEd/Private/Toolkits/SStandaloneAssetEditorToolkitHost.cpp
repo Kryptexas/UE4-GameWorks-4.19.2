@@ -368,7 +368,7 @@ void SStandaloneAssetEditorToolkitHost::OnTabClosed(TSharedRef<SDockTab> TabClos
 						TEXT("AssetEditorToolkitTabLocation"), 
 						*ObjectBeingEdited->GetPathName(), 
 						static_cast<int32>(AssetEditorToolkitTabLocation), 
-						GEditorUserSettingsIni
+						GEditorPerProjectIni
 						);
 				}
 			}

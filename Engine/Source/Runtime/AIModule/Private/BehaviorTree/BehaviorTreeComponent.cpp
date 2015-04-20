@@ -2243,7 +2243,7 @@ bool UBehaviorTreeComponent::IsDebuggerActive()
 
 		if (GFrameCounter != PrevFrameCounter)
 		{
-			GConfig->GetBool(TEXT("/Script/UnrealEd.EditorUserSettings"), TEXT("bAlwaysGatherBehaviorTreeDebuggerData"), bAlwaysGatherData, GEditorUserSettingsIni);
+			GConfig->GetBool(TEXT("/Script/UnrealEd.EditorPerProjectUserSettings"), TEXT("bAlwaysGatherBehaviorTreeDebuggerData"), bAlwaysGatherData, GEditorPerProjectIni);
 			PrevFrameCounter = GFrameCounter;
 		}
 

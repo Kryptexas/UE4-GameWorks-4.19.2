@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include "EditorUserSettings.generated.h"
+#include "EditorPerProjectUserSettings.generated.h"
 
 
 UCLASS(minimalapi, autoexpandcategories=(ViewportControls, ViewportLookAndFeel, LevelEditing, SourceControl, Content, Startup),
 	   hidecategories=(Object, Options, Grid, RotationGrid),
-	   config=EditorUserSettings)
-class UEditorUserSettings : public UObject
+	   config=EditorPerProjectUserSettings)
+class UEditorPerProjectUserSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -102,7 +102,7 @@ public:
 public:
 
 	/** Delegate for when a user setting has changed */
-	DECLARE_EVENT_OneParam(UEditorUserSettings, FUserSettingChangedEvent, FName /*PropertyName*/);
+	DECLARE_EVENT_OneParam(UEditorPerProjectUserSettings, FUserSettingChangedEvent, FName /*PropertyName*/);
 	FUserSettingChangedEvent& OnUserSettingChanged() { return UserSettingChangedEvent; }
 
 	// Begin UObject Interface

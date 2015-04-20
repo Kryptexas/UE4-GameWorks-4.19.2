@@ -9,6 +9,7 @@
 #include "DefaultValueHelper.h"
 #include "EngineBuildSettings.h"
 #include "Paths.h"
+#include "ConfigManifest.h"
 
 #if WITH_EDITOR
 	#define INI_CACHE 1
@@ -2237,6 +2238,11 @@ void FConfigCacheIni::SetArray
 )
 {
 	FConfigFile* File = Find( Filename, 1 );
+	if (!File)
+	{
+		return;
+	}
+	
 	FConfigSection* Sec  = File->Find( Section );
 	if( !Sec )
 		Sec = &File->Add( Section, FConfigSection() );
@@ -2816,6 +2822,9 @@ static FString GetDestIniFilename(const TCHAR* BaseIniName, const TCHAR* Platfor
 
 void FConfigCacheIni::InitializeConfigSystem()
 {
+	// Perform any upgrade we need before we load any configuration files
+	FConfigManifest::UpgradeFromPreviousVersions();
+
 	// create GConfig
 	GConfig = new FConfigCacheIni(EConfigCacheType::DiskBacked);
 
@@ -2849,16 +2858,21 @@ void FConfigCacheIni::InitializeConfigSystem()
 	FConfigCacheIni::LoadGlobalIniFile(GInputIni, TEXT("Input"));
 #if WITH_EDITOR
 	// load some editor specific .ini files
-	FConfigCacheIni::LoadGlobalIniFile(GEditorIni, TEXT("Editor"));
-	FConfigCacheIni::LoadGlobalIniFile(GEditorLayoutIni, TEXT("EditorLayout"));
-	FConfigCacheIni::LoadGlobalIniFile(GEditorUserSettingsIni, TEXT("EditorUserSettings"));
-	FConfigCacheIni::LoadGlobalIniFile(GEditorKeyBindingsIni, TEXT("EditorKeyBindings"));
 
-	// Game agnostic editor ini file. Only load this config if we are not the build machine as it would introduce a non-deterministic state
+	// Upgrade editor user settings before loading the editor per project user settings
+	FConfigManifest::MigrateEditorUserSettings();
+	FConfigCacheIni::LoadGlobalIniFile(GEditorPerProjectIni, TEXT("EditorPerProjectUserSettings"));
+
+
+	// Project agnostic editor ini files. Only load these configs if we are not the build machine as it would introduce a non-deterministic state
 	if ( !GIsBuildMachine )
 	{
-		const FString GameAgnosticEditorSettingsDir = FPaths::Combine(*FPaths::GameAgnosticSavedDir(), TEXT("Config")) + TEXT("/");
-		FConfigCacheIni::LoadGlobalIniFile(GEditorGameAgnosticIni, TEXT("EditorGameAgnostic"), NULL, false, false, true, *GameAgnosticEditorSettingsDir);
+		const FString EditorSettingsDir = FPaths::Combine(*FPaths::GameAgnosticSavedDir(), TEXT("Config")) + TEXT("/");
+
+		FConfigCacheIni::LoadGlobalIniFile(GEditorIni, TEXT("Editor"), NULL, false, false, true, *EditorSettingsDir);
+		FConfigCacheIni::LoadGlobalIniFile(GEditorSettingsIni, TEXT("EditorSettings"), NULL, false, false, true, *EditorSettingsDir);
+		FConfigCacheIni::LoadGlobalIniFile(GEditorLayoutIni, TEXT("EditorLayout"), NULL, false, false, true, *EditorSettingsDir);
+		FConfigCacheIni::LoadGlobalIniFile(GEditorKeyBindingsIni, TEXT("EditorKeyBindings"), NULL, false, false, true, *EditorSettingsDir);
 	}
 #endif
 #if PLATFORM_DESKTOP

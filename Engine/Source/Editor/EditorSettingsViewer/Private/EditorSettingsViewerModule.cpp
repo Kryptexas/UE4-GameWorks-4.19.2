@@ -142,7 +142,7 @@ protected:
 		SettingsModule.RegisterSettings("Editor", "General", "UserSettings",
 			LOCTEXT("UserSettingsName", "Miscellaneous"),
 			LOCTEXT("UserSettingsDescription", "Customize the behavior, look and feel of the editor."),
-			&GEditor->AccessEditorUserSettings()
+			GetMutableDefault<UEditorPerProjectUserSettings>()
 		);
 
 		// experimental features

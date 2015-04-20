@@ -110,6 +110,8 @@
 #include "EngineStats.h"
 #include "Engine/SimpleConstructionScript.h"
 
+#include "Settings/EditorSettings.h"
+
 #define LOCTEXT_NAMESPACE "UnrealEd.Editor"
 
 TArray<FTickableEditorObject*> FTickableEditorObject::TickableObjects;

@@ -50,7 +50,7 @@ public:
 	void Construct(const FArguments& InArgs)
 	{
 		FString OptionalBranchPrefix;
-		GConfig->GetString(TEXT("LevelEditor"), TEXT("ProjectNameWatermarkPrefix"), /*out*/ OptionalBranchPrefix, GEditorUserSettingsIni);
+		GConfig->GetString(TEXT("LevelEditor"), TEXT("ProjectNameWatermarkPrefix"), /*out*/ OptionalBranchPrefix, GEditorPerProjectIni);
 
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("Branch"), FText::FromString(OptionalBranchPrefix));

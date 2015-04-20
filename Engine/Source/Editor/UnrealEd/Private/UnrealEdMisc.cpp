@@ -1405,7 +1405,7 @@ void FUnrealEdMisc::SwitchProject(const FString& GameOrProjectFileName, bool bWa
 		const FText Message = FText::Format( LOCTEXT( "SwitchProjectWarning", "The editor will restart to switch to the {CurrentProjectName} project.  You will be prompted to save any changes before the editor restarts.  Continue switching projects?" ), Arguments ); 
 
 		// Present the user with a warning that changing projects has to restart the editor
-		FSuppressableWarningDialog::FSetupInfo Info( Message, Title, "Warning_SwitchProject", GEditorGameAgnosticIni );
+		FSuppressableWarningDialog::FSetupInfo Info( Message, Title, "Warning_SwitchProject", GEditorSettingsIni );
 		Info.ConfirmText = LOCTEXT( "Yes", "Yes" );
 		Info.CancelText = LOCTEXT( "No", "No" );
 

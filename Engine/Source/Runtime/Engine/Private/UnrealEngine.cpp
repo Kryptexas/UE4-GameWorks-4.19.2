@@ -1218,7 +1218,7 @@ void UEngine::ParseCommandline()
 
 	if( !GIsEditor && MatineeScreenshotOptions.bStartWithMatineeCapture )
 	{
-		GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("HideHUD"), MatineeScreenshotOptions.bHideHud, GEditorUserSettingsIni );
+		GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("HideHUD"), MatineeScreenshotOptions.bHideHud, GEditorPerProjectIni );
 	}
 
 	// If we are capturing a matinee movie and we want to dump the buffer visualization shots too, for on all required functionality

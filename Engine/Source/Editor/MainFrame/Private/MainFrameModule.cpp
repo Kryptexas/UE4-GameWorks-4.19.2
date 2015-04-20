@@ -347,7 +347,7 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 		/** @return Returns true if frame rate and memory should be displayed in the UI */
 		static EVisibility ShouldShowFrameRateAndMemory()
 		{
-			return GEditor->GetEditorUserSettings().bShowFrameRateAndMemory ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed;
+			return GetDefault<UEditorPerProjectUserSettings>()->bShowFrameRateAndMemory ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed;
 		}
 	};
 
@@ -638,7 +638,7 @@ void FMainFrameModule::StartupModule( )
 	ModuleCompileStartTime = 0.0f;
 
 	// migrate old layout settings
-	FLayoutSaveRestore::MigrateConfig(GEditorUserSettingsIni, GEditorLayoutIni);
+	FLayoutSaveRestore::MigrateConfig(GEditorPerProjectIni, GEditorLayoutIni);
 }
 
 

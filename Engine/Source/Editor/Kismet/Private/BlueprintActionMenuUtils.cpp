@@ -139,9 +139,9 @@ static bool BlueprintActionMenuUtilsImpl::IsUnBoundSpawner(FBlueprintActionFilte
 //------------------------------------------------------------------------------
 static bool BlueprintActionMenuUtilsImpl::IsNonFavoritedAction(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
 {
-	UEditorUserSettings& EditorUserSettings = GEditor->AccessEditorUserSettings();
+	const UEditorPerProjectUserSettings* EditorPerProjectUserSettings = GetDefault<UEditorPerProjectUserSettings>();
 	// grab the user's favorites
-	UBlueprintPaletteFavorites const* BlueprintFavorites = EditorUserSettings.BlueprintFavorites;
+	UBlueprintPaletteFavorites const* BlueprintFavorites = EditorPerProjectUserSettings->BlueprintFavorites;
 	checkSlow(BlueprintFavorites != nullptr);
 
 	return !BlueprintFavorites->IsFavorited(BlueprintAction);
