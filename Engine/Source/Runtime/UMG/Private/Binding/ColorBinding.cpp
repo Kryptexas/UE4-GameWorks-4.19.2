@@ -53,7 +53,7 @@ FSlateColor UColorBinding::GetSlateValue() const
 
 		if ( bNeedsConversion.Get(true) )
 		{
-			FLinearColor LinearValue;
+			FLinearColor LinearValue(ForceInitToZero);
 			if ( SourcePath.GetValue<FLinearColor>(Source, LinearValue) )
 			{
 				bNeedsConversion = true;
@@ -73,7 +73,7 @@ FLinearColor UColorBinding::GetLinearValue() const
 	{
 		if ( !bNeedsConversion.Get(false) )
 		{
-			FLinearColor LinearValue;
+			FLinearColor LinearValue(ForceInitToZero);
 			if ( SourcePath.GetValue<FLinearColor>(Source, LinearValue) )
 			{
 				bNeedsConversion = false;

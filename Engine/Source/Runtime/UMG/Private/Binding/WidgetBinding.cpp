@@ -34,7 +34,7 @@ UWidget* UWidgetBinding::GetValue() const
 
 	if ( UObject* Source = SourceObject.Get() )
 	{
-		UObject* Value;
+		UObject* Value = nullptr;
 		if ( SourcePath.GetValue<UObject*>(Source, Value) )
 		{
 			if ( UWidget* Widget = Cast<UWidget>(Value) )

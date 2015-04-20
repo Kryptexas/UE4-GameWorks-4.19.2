@@ -25,7 +25,7 @@ float UFloatBinding::GetValue() const
 
 	if ( UObject* Source = SourceObject.Get() )
 	{
-		float Value;
+		float Value = 0;
 		if ( SourcePath.GetValue<float>(Source, Value) )
 		{
 			return Value;

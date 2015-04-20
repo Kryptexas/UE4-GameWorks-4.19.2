@@ -43,7 +43,7 @@ FText UTextBinding::GetTextValue() const
 	{
 		if ( !bNeedsConversion.Get(false) )
 		{
-			FText TextValue;
+			FText TextValue = FText::GetEmpty();
 			if ( SourcePath.GetValue<FText>(Source, TextValue) )
 			{
 				bNeedsConversion = false;
@@ -83,7 +83,7 @@ FString UTextBinding::GetStringValue() const
 
 		if ( bNeedsConversion.Get(true) )
 		{
-			FText TextValue;
+			FText TextValue = FText::GetEmpty();
 			if ( SourcePath.GetValue<FText>(Source, TextValue) )
 			{
 				bNeedsConversion = true;

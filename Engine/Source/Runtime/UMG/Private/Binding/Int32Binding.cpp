@@ -25,7 +25,7 @@ int32 UInt32Binding::GetValue() const
 
 	if ( UObject* Source = SourceObject.Get() )
 	{
-		int32 Value;
+		int32 Value = 0;
 		if ( SourcePath.GetValue<int32>(Source, Value) )
 		{
 			return Value;

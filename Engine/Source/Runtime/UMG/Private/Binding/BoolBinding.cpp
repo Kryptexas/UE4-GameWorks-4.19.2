@@ -25,7 +25,7 @@ bool UBoolBinding::GetValue() const
 
 	if ( UObject* Source = SourceObject.Get() )
 	{
-		bool Value;
+		bool Value = false;
 		if ( SourcePath.GetValue<bool>(Source, Value) )
 		{
 			return Value;

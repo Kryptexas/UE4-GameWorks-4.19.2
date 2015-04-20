@@ -37,7 +37,7 @@ ECheckBoxState UCheckedStateBinding::GetValue() const
 	{
 		if ( bConversion.Get(EConversion::None) == EConversion::None )
 		{
-			uint8 Value;
+			uint8 Value = 0;
 			if ( SourcePath.GetValue<uint8>(Source, Value) )
 			{
 				bConversion = EConversion::None;
@@ -47,7 +47,7 @@ ECheckBoxState UCheckedStateBinding::GetValue() const
 
 		if ( bConversion.Get(EConversion::Bool) == EConversion::Bool )
 		{
-			bool Value;
+			bool Value = false;
 			if ( SourcePath.GetValue<bool>(Source, Value) )
 			{
 				bConversion = EConversion::Bool;

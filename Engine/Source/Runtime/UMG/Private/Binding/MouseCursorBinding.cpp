@@ -35,7 +35,7 @@ EMouseCursor::Type UMouseCursorBinding::GetValue() const
 
 	if ( UObject* Source = SourceObject.Get() )
 	{
-		uint8 Value;
+		uint8 Value = 0;
 		if ( SourcePath.GetValue<uint8>(Source, Value) )
 		{
 			return static_cast<EMouseCursor::Type>( Value );
