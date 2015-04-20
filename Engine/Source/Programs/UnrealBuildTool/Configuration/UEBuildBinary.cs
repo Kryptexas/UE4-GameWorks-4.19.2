@@ -847,7 +847,6 @@ namespace UnrealBuildTool
 			Action LinkAction = new Action(ActionType.Compile);
 			LinkAction.WorkingDirectory = Path.GetFullPath(".");
 			LinkAction.CommandPath = System.IO.Path.Combine(LinkAction.WorkingDirectory, @"..", @"Binaries", @"Win32", @"NotForLicensees", @"UnrealCodeAnalyzer.exe");
-			LinkAction.bIsVCCompiler = false;
 			LinkAction.ProducedItems.Add(OutputFile);
 			LinkAction.PrerequisiteItems.AddRange(BinaryLinkEnvironment.InputFiles);
 			LinkAction.CommandArguments = @"-AnalyzePCHFile -PCHFile=""" + ModulePrivatePCH.AbsolutePath + @""" -OutputFile=""" + OutputFileName + @""" -HeaderDataPath=""" + IntermediatePath + @""" -UsageThreshold " + BuildConfiguration.UCAUsageThreshold.ToString(CultureInfo.InvariantCulture);

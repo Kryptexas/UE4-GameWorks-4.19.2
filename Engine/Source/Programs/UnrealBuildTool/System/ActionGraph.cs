@@ -62,9 +62,6 @@ namespace UnrealBuildTool
 		/** True if this action is allowed to be run on a remote machine when a distributed build system is being used, such as XGE */
 		public bool bCanExecuteRemotely = false;
 
-		/** True if this action is using the Visual C++ compiler.  Some build systems may be able to optimize for this case. */
-		public bool bIsVCCompiler = false;
-
 		/** True if this action is using the GCC compiler.  Some build systems may be able to optimize for this case. */
 		public bool bIsGCCCompiler = false;
 

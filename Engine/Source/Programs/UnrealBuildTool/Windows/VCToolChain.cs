@@ -1250,11 +1250,6 @@ namespace UnrealBuildTool
 					CompileAction.CommandPath = EnvVars.CompilerPath;
 				}
 
-				if( !WindowsPlatform.bCompileWithClang && !BuildConfiguration.bRunUnrealCodeAnalyzer )
-				{
-					CompileAction.bIsVCCompiler = true;
-				}
-
 				string UnrealCodeAnalyzerArguments = "";
 				if (BuildConfiguration.bRunUnrealCodeAnalyzer)
 				{
