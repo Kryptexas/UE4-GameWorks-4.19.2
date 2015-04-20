@@ -62,21 +62,70 @@ struct FProcMeshVertex
 	{}
 };
 
+USTRUCT()
+struct FProcMeshSection
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Vertex buffer for proc mesh */
+	UPROPERTY()
+	TArray<FProcMeshVertex> ProcVertexBuffer;
+	/** Index buffer for proc mesh */
+	UPROPERTY()
+	TArray<int32> ProcIndexBuffer;
+	/** Local bounds of mesh */
+	UPROPERTY()
+	FBox SectionLocalBox;
+	/** Should we build collision data for traingles in this section */
+	UPROPERTY()
+	bool bEnableCollision;
+
+	FProcMeshSection()
+	: SectionLocalBox(0)
+	, bEnableCollision(false)
+	{}
+
+	/** Reset this section, clear all mesh info. */
+	void Reset()
+	{
+		ProcVertexBuffer.Empty();
+		ProcIndexBuffer.Empty();
+		SectionLocalBox.Init();
+		bEnableCollision = false;
+	}
+};
+
 /** Component that allows you to specify custom triangle mesh geometry */
 UCLASS(hidecategories=(Object,LOD), meta=(BlueprintSpawnableComponent), ClassGroup=Rendering)
-class PROCEDURALMESHCOMPONENT_API UProceduralMeshComponent : public UMeshComponent
+class PROCEDURALMESHCOMPONENT_API UProceduralMeshComponent : public UMeshComponent, public IInterface_CollisionDataProvider
 {
 	GENERATED_UCLASS_BODY()
 
 	/** Add triangle to the geometry to use on this triangle mesh. Must call BuildMesh before geometry can be seen. */
 	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh", meta=(AutoCreateRefTerm = "Normals,UV0,VertexColors,Tangents" ))
-	void CreateMesh(const TArray<FVector>& Vertices, const TArray<int32>& Triangles, const TArray<FVector>& Normals, const TArray<FVector2D>& UV0, const TArray<FColor>& VertexColors, const TArray<FProcMeshTangent>& Tangents);
+	void CreateMeshSection(int32 SectionIndex, const TArray<FVector>& Vertices, const TArray<int32>& Triangles, const TArray<FVector>& Normals, const TArray<FVector2D>& UV0, const TArray<FColor>& VertexColors, const TArray<FProcMeshTangent>& Tangents, bool bCreateCollision);
 
+	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh")
+	void ClearMeshSection(int32 SectionIndex);
+
+	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh")
+	void ClearAllMeshSections();
+
+
+	// Begin Interface_CollisionDataProvider Interface
+	virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) override;
+	virtual bool ContainsPhysicsTriMeshData(bool InUseAllTriData) const override;
+	virtual bool WantsNegXTriMesh() override{ return false; }
+	// End Interface_CollisionDataProvider Interface
+
+	/** Collision data */
+	UPROPERTY()
+	class UBodySetup* ProcMeshBodySetup;
 
 private:
-
 	// Begin UPrimitiveComponent interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual class UBodySetup* GetBodySetup() override;
 	// End UPrimitiveComponent interface.
 
 	// Begin UMeshComponent interface.
@@ -87,14 +136,21 @@ private:
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	// Begin USceneComponent interface.
 
-	// Members below are updated when BuildMesh is called.
+	/** Update LocalBounds member from the local box of each section */
+	void UpdateLocalBounds();
+	/** Ensure ProcMeshBodySetup is allocated and configured */
+	void CreateProcMeshBodySetup();
+	/** Mark collision data as dirty, and re-create on instance if necessary */
+	void UpdateCollision();
 
-	/** Vertex buffer for proc mesh */
-	TArray<FProcMeshVertex> ProcVertexBuffer;
-	/** Index buffer for proc mesh */
-	TArray<int32> ProcIndexBuffer;
-	/** Local bounds of mesh */
+	/** Array of sections of mesh */
+	UPROPERTY()
+	TArray<FProcMeshSection> ProcMeshSections;
+
+	/** Local space bounds of mesh */
+	UPROPERTY()
 	FBoxSphereBounds LocalBounds;
+
 
 	friend class FProceduralMeshSceneProxy;
 };
