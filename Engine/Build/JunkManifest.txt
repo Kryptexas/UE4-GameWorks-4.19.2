@@ -18,6 +18,7 @@ Engine\Binaries\Win64\UE4Editor-LinuxTarget*.*
 Engine\Binaries\Win64\UE4Editor-AndroidTarget*.*
 Engine\Binaries\Win64\UE4Editor-IOSPlatformEditor*.*
 Engine\Binaries\Win64\UE4Editor-TaskBrowser*.*
+Engine\Binaries\Win64\UE4Editor-Levels*.*
 Engine\Binaries\Win64\*-ProjectWorkflows.*
 Engine\Binaries\Win64\*-WorkflowEditor.*
 Engine\Binaries\Win64\*-Workflows.*
@@ -37,6 +38,7 @@ Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\*-CameraDebugger.*
 Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\*-CameraEditor.*
 Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\*-SessionLauncher.*
 Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\*-TaskBrowser.*
+Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\*-Levels.*
 Engine\Binaries\Mac\*-MessagingDebugger.*
 Engine\Binaries\Win64\*-DDCUtils*.*
 Engine\Binaries\Win64\*-MessagingDebugger.*

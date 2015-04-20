@@ -72,7 +72,6 @@ public class LevelEditor : ModuleRules
 				"SessionFrontend",
 				"AutomationWindow",
 				"Layers",
-				"Levels",
                 "WorldBrowser",
 				"EditorWidgets",
 				"AssetTools",

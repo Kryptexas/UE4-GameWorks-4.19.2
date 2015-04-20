@@ -5,7 +5,6 @@
 #include "Toolkits/AssetEditorManager.h"
 #include "LevelModel.h"
 #include "LevelCollectionModel.h"
-#include "LevelBrowserSettings.h"
 #include "Engine/Selection.h"
 #include "Engine/LevelStreaming.h"
 #include "AssetRegistryModule.h"
@@ -744,14 +743,14 @@ FString FLevelModel::GetLightmassSizeString() const
 	FString MemorySizeString;
 	ULevel* Level = GetLevelObject();
 
-	if (Level && GetDefault<ULevelBrowserSettings>()->bDisplayLightmassSize)
-	{
-		// Update metrics
-		static const float ByteConversion = 1.0f / 1024.0f;
-		float LightmapSize = Level->LightmapTotalSize * ByteConversion;
-		
-		MemorySizeString += FString::Printf(TEXT( "%.2f" ), LightmapSize);
-	}
+	//if (Level && GetDefault<ULevelBrowserSettings>()->bDisplayLightmassSize)
+	//{
+	//	// Update metrics
+	//	static const float ByteConversion = 1.0f / 1024.0f;
+	//	float LightmapSize = Level->LightmapTotalSize * ByteConversion;
+	//	
+	//	MemorySizeString += FString::Printf(TEXT( "%.2f" ), LightmapSize);
+	//}
 
 	return MemorySizeString;
 }
@@ -761,14 +760,14 @@ FString FLevelModel::GetFileSizeString() const
 	FString MemorySizeString;
 	ULevel* Level = GetLevelObject();
 
-	if (Level && GetDefault<ULevelBrowserSettings>()->bDisplayFileSize)
-	{
-		// Update metrics
-		static const float ByteConversion = 1.0f / 1024.0f;
-		float FileSize = Level->GetOutermost()->GetFileSize() * ByteConversion * ByteConversion;
-		
-		MemorySizeString += FString::Printf(TEXT( "%.2f" ), FileSize);
-	}
+	//if (Level && GetDefault<ULevelBrowserSettings>()->bDisplayFileSize)
+	//{
+	//	// Update metrics
+	//	static const float ByteConversion = 1.0f / 1024.0f;
+	//	float FileSize = Level->GetOutermost()->GetFileSize() * ByteConversion * ByteConversion;
+	//	
+	//	MemorySizeString += FString::Printf(TEXT( "%.2f" ), FileSize);
+	//}
 
 	return MemorySizeString;
 }

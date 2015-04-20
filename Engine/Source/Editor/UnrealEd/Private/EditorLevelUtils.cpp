@@ -15,7 +15,6 @@
 #include "LevelEditor.h"
 #include "ScopedTransaction.h"
 #include "ActorEditorUtils.h"
-#include "Editor/Levels/Public/LevelEdMode.h"
 #include "ContentStreaming.h"
 #include "PackageTools.h"
 
@@ -388,17 +387,6 @@ namespace EditorLevelUtils
 	
 	bool RemoveLevelFromWorld(ULevel* InLevel)
 	{
-		// If we're removing a level, lets make sure to close the level transform mode if its the same level currently selected for edit
-		FEdModeLevel* LevelMode = static_cast<FEdModeLevel*>(GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Level ));		
-		if( LevelMode )
-		{
-			ULevelStreaming* LevelStream = FLevelUtils::FindStreamingLevel( InLevel ); 
-			if( LevelMode->IsEditing( LevelStream ) )
-			{
-				GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Level );
-			}
-		}
-
 		if (GEditor->Layers.IsValid())
 		{
 			GEditor->Layers->RemoveLevelLayerInformation( InLevel );
@@ -707,13 +695,6 @@ namespace EditorLevelUtils
 			if (Level->OwningWorld == NULL || Level->OwningWorld->PersistentLevel != Level )
 			{
 				StreamingLevel = FLevelUtils::FindStreamingLevel( Level );
-			}
-
-			// If were hiding a level, lets make sure to close the level transform mode if its the same level currently selected for edit
-			FEdModeLevel* LevelMode = static_cast<FEdModeLevel*>(GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Level ));
-			if( LevelMode && LevelMode->IsEditing( StreamingLevel ) )
-			{
-				GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Level );
 			}
 
 			//create a transaction so we can undo the visibilty toggle
