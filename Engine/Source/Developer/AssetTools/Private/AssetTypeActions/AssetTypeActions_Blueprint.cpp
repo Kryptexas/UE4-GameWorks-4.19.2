@@ -11,6 +11,7 @@
 #include "ISourceControlModule.h"
 #include "MessageLog.h"
 #include "Engine/BlueprintGeneratedClass.h"
+#include "ContentBrowserModule.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -175,26 +176,13 @@ void FAssetTypeActions_Blueprint::ExecuteNewDerivedBlueprint(TWeakObjectPtr<UBlu
 		FString Name;
 		FString PackageName;
 		CreateUniqueAssetName(Object->GetOutermost()->GetName(), TEXT("_Child"), PackageName, Name);
+		const FString PackagePath = FPackageName::GetLongPackagePath(PackageName);
 
-		UPackage* Package = CreatePackage(NULL, *PackageName);
-		if (ensure(Package))
-		{
-			// Create and init a new Blueprint
-			UBlueprint* NewBP = FKismetEditorUtilities::CreateBlueprint(TargetParentClass, Package, FName(*Name), BPTYPE_Normal, TargetParentBP->GetClass(), UBlueprintGeneratedClass::StaticClass());
-			if (NewBP)
-			{
-				// Notify the asset registry
-				FAssetRegistryModule::AssetCreated(NewBP);
+		UBlueprintFactory* BlueprintFactory = NewObject<UBlueprintFactory>();
+		BlueprintFactory->ParentClass = TargetParentClass;
 
-				// the editor should be opened AFTER being added to the asset 
-				// registry (some systems could queue off of the asset registry 
-				// add event, and already having that blueprint open can be odd)
-				FAssetEditorManager::Get().OpenEditorForAsset(NewBP);
-
-				// Mark the package dirty...
-				Package->MarkPackageDirty();
-			}
-		}
+		FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+		ContentBrowserModule.Get().CreateNewAsset(Name, PackagePath, UBlueprint::StaticClass(), BlueprintFactory);
 	}
 }
 
