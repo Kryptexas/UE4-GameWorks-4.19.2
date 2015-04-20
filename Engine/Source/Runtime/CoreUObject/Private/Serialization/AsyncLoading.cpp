@@ -458,9 +458,7 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTim
 
 
 EAsyncPackageState::Type FAsyncLoadingThread::TickAsyncLoading(bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit, FName ExcludeType)
-{	
-	SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_TickAsyncLoadingGameThread);
-
+{
 	TGuardValue<bool> InAsyncLoadingTickGuard(bIsInAsyncLoadingTick, true);
 
 	static bool bWasAsyncLoading = false;
@@ -1652,9 +1650,12 @@ void FlushAsyncLoading(FName ExcludeType/*=NAME_None*/)
 
 		// Flush async loaders by not using a time limit. Needed for e.g. garbage collection.
 		UE_LOG(LogStreaming, Log,  TEXT("Flushing async loaders.") );
-		while (IsAsyncLoading())
 		{
-			FAsyncLoadingThread::Get().TickAsyncLoading(false, false, 0, ExcludeType);
+			SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_TickAsyncLoadingGameThread);
+			while (IsAsyncLoading())
+			{
+				FAsyncLoadingThread::Get().TickAsyncLoading(false, false, 0, ExcludeType);
+			}
 		}
 
 		if (ExcludeType == NAME_None)
@@ -1689,7 +1690,10 @@ EAsyncPackageState::Type ProcessAsyncLoading(bool bUseTimeLimit, bool bUseFullTi
 {
 	SCOPE_CYCLE_COUNTER(STAT_AsyncLoadingTime);
 
-	FAsyncLoadingThread::Get().TickAsyncLoading(bUseTimeLimit, bUseFullTimeLimit, TimeLimit, ExcludeType);
+	{
+		SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_TickAsyncLoadingGameThread);
+		FAsyncLoadingThread::Get().TickAsyncLoading(bUseTimeLimit, bUseFullTimeLimit, TimeLimit, ExcludeType);
+	}
 
 	return IsAsyncLoading() ? EAsyncPackageState::TimeOut : EAsyncPackageState::Complete;
 }
