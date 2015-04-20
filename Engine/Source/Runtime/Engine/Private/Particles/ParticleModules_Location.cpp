@@ -1864,6 +1864,12 @@ USkeletalMeshComponent* UParticleModuleLocationBoneSocket::GetSkeletalMeshCompon
 			//@todo. Warn about this...
 		}
 	}
+
+	if (USkeletalMeshComponent* SkelMesh = Cast<USkeletalMeshComponent>(PSysComp->GetAttachParent()))
+	{
+		return SkelMesh;
+	}
+
 	return NULL;
 }
 
