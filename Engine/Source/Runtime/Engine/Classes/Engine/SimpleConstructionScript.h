@@ -92,6 +92,13 @@ private:
 	/** Helper function to find an appropriate child node index that can be promoted to the parent's level */
 	int32 FindPromotableChildNodeIndex(USCS_Node* InParentNode) const;
 
+	/** 
+	 * Helper function to repair invalid SCS hierarchies (like when a 
+	 * Blueprint's super class has had all it components removed, and one of  
+	 * this Blueprint's components is promoted to scene root). 
+	 */
+	void FixupSceneNodeHierarchy();
+
 #if WITH_EDITOR
 	/** Helper function to find the current scene root component template and/or owning SCS node */
 	USceneComponent* GetSceneRootComponentTemplate(USCS_Node** OutSCSNode = nullptr) const;
