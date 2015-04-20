@@ -461,7 +461,10 @@ public:
 
 	/** CRC for CDO calculated right after the latest compilation used by Reinstancer to check if default values were changed */
 	UPROPERTY(transient, duplicatetransient)
-	uint32 CrcPreviousCompiledCDO;
+	uint32 CrcLastCompiledCDO;
+
+	UPROPERTY(transient, duplicatetransient)
+	uint32 CrcLastCompiledSignature;
 
 	bool bCachedDependenciesUpToDate;
 	TSet<TWeakObjectPtr<UBlueprint>> CachedDependencies;
