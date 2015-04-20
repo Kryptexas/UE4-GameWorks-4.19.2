@@ -397,3 +397,12 @@ FReply SObjectWidget::OnMotionDetected(const FGeometry& MyGeometry, const FMotio
 
 	return FReply::Unhandled();
 }
+
+FNavigationReply SObjectWidget::OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent)
+{
+	FNavigationReply Reply = SCompoundWidget::OnNavigation(MyGeometry, InNavigationEvent);
+
+	// TODO Notify blueprint
+
+	return Reply;
+}

@@ -70,6 +70,8 @@ class SObjectWidget : public SCompoundWidget, public FGCObject
 	virtual FReply OnTouchEnded(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent) override;
 	virtual FReply OnMotionDetected(const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent) override;
 
+	virtual FNavigationReply OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent) override;
+
 private:
 
 	/** The UWidget that created this SObjectWidget who needs to be kept alive. */
