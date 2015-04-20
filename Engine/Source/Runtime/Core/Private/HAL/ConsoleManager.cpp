@@ -873,7 +873,7 @@ void FConsoleManager::LoadHistoryIfNeeded()
 	FConfigFile Ini;
 
 	FString ConfigPath = FPaths::GeneratedConfigDir() + TEXT("ConsoleHistory.ini");
-	ProcessIniContents(*ConfigPath, *ConfigPath, &Ini, false, false, false);
+	ProcessIniContents(*ConfigPath, *ConfigPath, &Ini, false, false);
 
 	const FString History = TEXT("History");
 

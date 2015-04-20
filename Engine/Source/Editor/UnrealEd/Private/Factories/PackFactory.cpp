@@ -418,7 +418,7 @@ UObject* UPackFactory::FactoryCreateBinary
 						NewFile.UpdateSections(*EngineIniFilename, *RedirectsSection);
 
 						FString FinalIniFileName;
-						GConfig->LoadGlobalIniFile(FinalIniFileName, *RedirectsSection, NULL, NULL, true);
+						GConfig->LoadGlobalIniFile(FinalIniFileName, *RedirectsSection, NULL, true);
 
 						FLinkerLoad::AddGameNameRedirect(*LongOldGameName, *LongNewGameName);
 						FLinkerLoad::AddGameNameRedirect(*ConfigParameters.GameName, *LongNewGameName);

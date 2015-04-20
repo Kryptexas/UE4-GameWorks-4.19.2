@@ -27,7 +27,7 @@ const FString& GetSettingsIni()
 		if(SourceControlSettingsIni.Len() == 0)
 		{
 			const FString SourceControlSettingsDir = FPaths::GeneratedConfigDir();
-			FConfigCacheIni::LoadGlobalIniFile(SourceControlSettingsIni, TEXT("SourceControlSettings"), NULL, NULL, false, false, true, *SourceControlSettingsDir);
+			FConfigCacheIni::LoadGlobalIniFile(SourceControlSettingsIni, TEXT("SourceControlSettings"), NULL, false, false, true, *SourceControlSettingsDir);
 		}
 		return SourceControlSettingsIni;
 	}
@@ -39,7 +39,7 @@ const FString& GetGlobalSettingsIni()
 	if(SourceControlGlobalSettingsIni.Len() == 0)
 	{
 		const FString SourceControlSettingsDir = FPaths::EngineSavedDir() + TEXT("Config/");
-		FConfigCacheIni::LoadGlobalIniFile(SourceControlGlobalSettingsIni, TEXT("SourceControlSettings"), NULL, NULL, false, false, true, *SourceControlSettingsDir);
+		FConfigCacheIni::LoadGlobalIniFile(SourceControlGlobalSettingsIni, TEXT("SourceControlSettings"), NULL, false, false, true, *SourceControlSettingsDir);
 	}
 	return SourceControlGlobalSettingsIni;
 }
