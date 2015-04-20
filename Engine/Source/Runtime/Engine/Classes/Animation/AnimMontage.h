@@ -209,11 +209,16 @@ private:
 	UPROPERTY()
 	float PlayRate;
 
-	/** Montage to Montage Synchronization.
-	 * A montage can only have a single leader. A leader can have multiple followers.
-	 * Synchronization is performed once *before* any of the leader or followers are updated this frame.
-	 * So essentially performed a frame late, so tick order between montages is not an issue. */
 public:
+	/** Montage to Montage Synchronization.
+	 *
+	 * A montage can only have a single leader. A leader can have multiple followers.
+	 * Loops cause no harm.
+	 * If Follower gets ticked before Leader, then synchronization will be performed with a frame of lag.
+	 *		Essentially correcting the previous frame. Which is enough for simple cases (i.e. no timeline jumps from notifies).
+	 * If Follower gets ticked after Leader, then synchronization will be exact and support more complex cases (i.e. timeline jumps).
+	 *		This can be enforced by setting up tick pre-requisites if desired.
+	 */
 	ENGINE_API void MontageSync_Follow(struct FAnimMontageInstance* NewLeaderMontageInstance);
 	/** Stop leading, release all followers. */
 	void MontageSync_StopLeading();
