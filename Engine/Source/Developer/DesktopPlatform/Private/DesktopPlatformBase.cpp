@@ -864,18 +864,18 @@ void FDesktopPlatformBase::GetProjectBuildProducts(const FString& ProjectDir, TA
 	}
 }
 
-bool FDesktopPlatformBase::EnumerateProjectsKnownByEngine(const FString &Identifier, bool bIncludeNativeProjects, TArray<FString> &OutProjectFileNames)
+FString FDesktopPlatformBase::GetEngineSavedConfigDirectory(const FString& Identifier)
 {
 	// Get the engine root directory
 	FString RootDir;
-	if(!GetEngineRootDirFromIdentifier(Identifier, RootDir))
+	if (!GetEngineRootDirFromIdentifier(Identifier, RootDir))
 	{
-		return false;
+		return FString();
 	}
 
 	// Get the path to the game agnostic settings
 	FString UserDir;
-	if(IsStockEngineRelease(Identifier))
+	if (IsStockEngineRelease(Identifier))
 	{
 		UserDir = FPaths::Combine(FPlatformProcess::UserSettingsDir(), *FString(EPIC_PRODUCT_IDENTIFIER), *Identifier);
 	}
@@ -885,7 +885,24 @@ bool FDesktopPlatformBase::EnumerateProjectsKnownByEngine(const FString &Identif
 	}
 
 	// Get the game agnostic config dir
-	FString GameAgnosticConfigDir = UserDir / TEXT("Saved/Config") / ANSI_TO_TCHAR(FPlatformProperties::PlatformName());
+	return UserDir / TEXT("Saved/Config") / ANSI_TO_TCHAR(FPlatformProperties::PlatformName());
+}
+
+bool FDesktopPlatformBase::EnumerateProjectsKnownByEngine(const FString &Identifier, bool bIncludeNativeProjects, TArray<FString> &OutProjectFileNames)
+{
+	// Get the engine root directory
+	FString RootDir;
+	if (!GetEngineRootDirFromIdentifier(Identifier, RootDir))
+	{
+		return false;
+	}
+
+	FString GameAgnosticConfigDir = GetEngineSavedConfigDirectory(Identifier);
+
+	if (GameAgnosticConfigDir.Len() == 0)
+	{
+		return false;
+	}
 
 	// Find all the created project directories. Start with the default project creation path.
 	TArray<FString> SearchDirectories;

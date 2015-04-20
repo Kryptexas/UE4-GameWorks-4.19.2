@@ -236,6 +236,14 @@ public:
 	virtual bool GetDefaultEngineRootDir(FString &OutRootDir) = 0;
 
 	/**
+	* Gets the root directory for the engine's saved config files
+	*
+	* @param	Identifier		Identifier for the engine
+	* @return	The absoluate path to the engines Saved/Config directory
+	*/
+	virtual FString GetEngineSavedConfigDirectory(const FString& Identifier) = 0;
+
+	/**
 	* Checks if the given engine identifier is for an stock engine release.
 	*
 	* @param	Identifier			Engine identifier to check

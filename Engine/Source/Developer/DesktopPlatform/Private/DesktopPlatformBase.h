@@ -23,6 +23,7 @@ public:
 
 	virtual bool GetDefaultEngineIdentifier(FString &OutIdentifier) override;
 	virtual bool GetDefaultEngineRootDir(FString &OutRootDir) override;
+	virtual FString GetEngineSavedConfigDirectory(const FString& Identifier) override;
 	virtual bool IsPreferredEngineIdentifier(const FString &Identifier, const FString &OtherIdentifier) override;
 
 	virtual bool IsStockEngineRelease(const FString &Identifier) override;
