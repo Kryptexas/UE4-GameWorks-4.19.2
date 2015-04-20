@@ -50,7 +50,7 @@ void UEnvQueryTest_Distance::RunTest(FEnvQueryInstance& QueryInstance) const
 		case EEnvTestDistance::Distance3D:	
 			for (FEnvQueryInstance::ItemIterator It(this, QueryInstance); It; ++It)
 			{
-				const FVector ItemLocation = GetItemLocation(QueryInstance, *It);
+				const FVector ItemLocation = GetItemLocation(QueryInstance, It.GetIndex());
 				for (int32 ContextIndex = 0; ContextIndex < ContextLocations.Num(); ContextIndex++)
 				{
 					const float Distance = CalcDistance3D(ItemLocation, ContextLocations[ContextIndex]);
@@ -62,7 +62,7 @@ void UEnvQueryTest_Distance::RunTest(FEnvQueryInstance& QueryInstance) const
 		case EEnvTestDistance::Distance2D:	
 			for (FEnvQueryInstance::ItemIterator It(this, QueryInstance); It; ++It)
 			{
-				const FVector ItemLocation = GetItemLocation(QueryInstance, *It);
+				const FVector ItemLocation = GetItemLocation(QueryInstance, It.GetIndex());
 				for (int32 ContextIndex = 0; ContextIndex < ContextLocations.Num(); ContextIndex++)
 				{
 					const float Distance = CalcDistance2D(ItemLocation, ContextLocations[ContextIndex]);
@@ -74,7 +74,7 @@ void UEnvQueryTest_Distance::RunTest(FEnvQueryInstance& QueryInstance) const
 		case EEnvTestDistance::DistanceZ:	
 			for (FEnvQueryInstance::ItemIterator It(this, QueryInstance); It; ++It)
 			{
-				const FVector ItemLocation = GetItemLocation(QueryInstance, *It);
+				const FVector ItemLocation = GetItemLocation(QueryInstance, It.GetIndex());
 				for (int32 ContextIndex = 0; ContextIndex < ContextLocations.Num(); ContextIndex++)
 				{
 					const float Distance = CalcDistanceZ(ItemLocation, ContextLocations[ContextIndex]);

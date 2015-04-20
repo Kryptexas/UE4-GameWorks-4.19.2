@@ -142,7 +142,7 @@ public:
 	/** helper: get location of item */
 	FORCEINLINE FVector GetItemLocation(FEnvQueryInstance& QueryInstance, const FEnvQueryInstance::ItemIterator& Iterator) const
 	{
-		return GetItemLocation(QueryInstance, *Iterator);
+		return GetItemLocation(QueryInstance, Iterator.GetIndex());
 	}
 
 	/** helper: get location of item */
@@ -151,7 +151,7 @@ public:
 	/** helper: get location of item */
 	FORCEINLINE FRotator GetItemRotation(FEnvQueryInstance& QueryInstance, const FEnvQueryInstance::ItemIterator& Iterator) const
 	{
-		return GetItemRotation(QueryInstance, *Iterator);
+		return GetItemRotation(QueryInstance, Iterator.GetIndex());
 	}
 
 	/** helper: get actor from item */
@@ -160,7 +160,7 @@ public:
 	/** helper: get actor from item */
 	FORCEINLINE AActor* GetItemActor(FEnvQueryInstance& QueryInstance, const FEnvQueryInstance::ItemIterator& Iterator) const
 	{
-		return GetItemActor(QueryInstance, *Iterator);
+		return GetItemActor(QueryInstance, Iterator.GetIndex());
 	}
 
 	/** normalize scores in range */

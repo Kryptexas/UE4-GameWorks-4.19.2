@@ -77,8 +77,8 @@ void UEnvQueryTest_Trace::RunTest(FEnvQueryInstance& QueryInstance) const
 
 	for (FEnvQueryInstance::ItemIterator It(this, QueryInstance); It; ++It)
 	{
-		const FVector ItemLocation = GetItemLocation(QueryInstance, *It) + FVector(0,0,ItemZ);
-		AActor* ItemActor = GetItemActor(QueryInstance, *It);
+		const FVector ItemLocation = GetItemLocation(QueryInstance, It.GetIndex()) + FVector(0, 0, ItemZ);
+		AActor* ItemActor = GetItemActor(QueryInstance, It.GetIndex());
 
 		for (int32 ContextIndex = 0; ContextIndex < ContextLocations.Num(); ContextIndex++)
 		{
