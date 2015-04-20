@@ -541,14 +541,7 @@ void UPrimitiveComponent::PostEditChangeProperty(FPropertyChangedEvent& Property
 			CachedMaxDrawDistance = LDMaxDrawDistance;
 		}
 
-		if (PropertyName == NAME_SimulatePhysics)
-		{
-			if (AttachParent != NULL && IsSimulatingPhysics())
-			{
-				UE_LOG(LogPrimitiveComponent, Warning, TEXT("%s is simulating physics but has an attach parent. Detaching."), *GetPathName());
-				DetachFromParent();
-			}
-		}
+
 
 		// we need to reregister the primitive if the min draw distance changed to propagate the change to the rendering thread
 		if (PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, MinDrawDistance))
