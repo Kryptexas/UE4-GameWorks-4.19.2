@@ -323,6 +323,37 @@ const FString& UField::GetMetaData(const FName& Key) const
 	return MetaDataString;
 }
 
+const FText UField::GetMetaDataText(const TCHAR* MetaDataKey, const FString LocalizationNamespace, const FString LocalizationKey) const
+{
+	FText LocalizedMetaData;
+	if ( !( FText::FindText( LocalizationNamespace, LocalizationKey, /*OUT*/LocalizedMetaData ) ) )
+	{
+		FString DefaultMetaData;
+		if( HasMetaData( MetaDataKey ))
+		{
+			DefaultMetaData = GetMetaData(MetaDataKey);
+			LocalizedMetaData = FText::FromString(DefaultMetaData);
+		}
+	}
+
+	return LocalizedMetaData;
+}
+
+const FText UField::GetMetaDataText(const FName& MetaDataKey, const FString LocalizationNamespace, const FString LocalizationKey) const
+{
+	FText LocalizedMetaData;
+	if ( !( FText::FindText( LocalizationNamespace, LocalizationKey, /*OUT*/LocalizedMetaData ) ) )
+	{
+		FString DefaultMetaData;
+		if( HasMetaData( MetaDataKey ))
+		{
+			DefaultMetaData = GetMetaData(MetaDataKey);
+			LocalizedMetaData = FText::FromString(DefaultMetaData);
+		}
+	}
+	return LocalizedMetaData;
+}
+
 /**
  * Sets the metadata value associated with the key
  * 

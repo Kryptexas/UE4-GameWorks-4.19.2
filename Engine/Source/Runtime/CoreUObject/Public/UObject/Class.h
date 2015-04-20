@@ -116,6 +116,26 @@ class COREUOBJECT_API UField : public UObject
 	const FString& GetMetaData(const FName& Key) const;
 
 	/**
+	 * Find the metadata value associated with the key and localization namespace and key
+	 *
+	 * @param Key						The key to lookup in the metadata
+	 * @param LocalizationNamespace		Namespace to lookup in the localization manager
+	 * @param LocalizationKey			Key to lookup in the localization manager
+	 * @return							Localized metadata if available, defaults to whatever is provided via GetMetaData
+	 */
+	const FText UField::GetMetaDataText(const TCHAR* MetaDataKey, const FString LocalizationNamespace = FString(), const FString LocalizationKey = FString()) const;
+
+	/**
+	 * Find the metadata value associated with the key and localization namespace and key
+	 *
+	 * @param Key						The key to lookup in the metadata
+	 * @param LocalizationNamespace		Namespace to lookup in the localization manager
+	 * @param LocalizationKey			Key to lookup in the localization manager
+	 * @return							Localized metadata if available, defaults to whatever is provided via GetMetaData
+	 */
+	const FText UField::GetMetaDataText(const FName& MetaDataKey, const FString LocalizationNamespace = FString(), const FString LocalizationKey = FString()) const;
+
+	/**
 	 * Sets the metadata value associated with the key
 	 * 
 	 * @param Key The key to lookup in the metadata
