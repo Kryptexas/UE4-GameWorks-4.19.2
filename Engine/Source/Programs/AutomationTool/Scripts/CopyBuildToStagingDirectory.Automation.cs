@@ -247,7 +247,7 @@ public partial class Project : CommandUtils
             SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Plugins", DLCName, "Binaries"), "UE4Server-*.dll", true, null, null, true);
             
             // Put all of the cooked dir into the staged dir
-            if (SC.DedicatedServer)
+            if (SC.DedicatedServer || Params.DLCIncludeEngineContent)
             {
                 // Dedicated server cook doesn't save shaders so no Engine dir is created
                 SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Plugins", DLCName, "Saved", "Cooked", SC.CookPlatform), "*", true, new[] { "AssetRegistry.bin" }, "", true, !Params.UsePak(SC.StageTargetPlatform));

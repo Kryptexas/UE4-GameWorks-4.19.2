@@ -157,6 +157,8 @@ private:
 	ECheckBoxState HandleBuildDLCCheckBoxIsChecked() const;
 	void HandleDLCNameCommitted(const FText& NewText, ETextCommit::Type CommitType);
 	FText HandleDLCNameTextBlockText() const;
+	void HandleDLCIncludeEngineContentCheckBoxCheckStateChanged(ECheckBoxState NewState);
+	ECheckBoxState SProjectLauncherCookByTheBookSettings::HandleDLCIncludeEngineContentCheckBoxIsChecked() const;
 	
 
 

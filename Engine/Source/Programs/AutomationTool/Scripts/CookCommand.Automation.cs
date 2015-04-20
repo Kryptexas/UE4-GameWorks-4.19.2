@@ -174,6 +174,10 @@ public partial class Project : CommandUtils
                 if (Params.HasDLCName)
                 {
                     CommandletParams += " -dlcname=" + Params.DLCName;
+                    if ( !Params.DLCIncludeEngineContent )
+                    {
+                        CommandletParams += " -errorOnEngineContentUse";
+                    }
                 }
                 // don't include the based on release version unless we are cooking dlc or creating a new release version
                 // in this case the based on release version is used in packaging

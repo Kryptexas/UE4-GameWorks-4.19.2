@@ -842,13 +842,15 @@ public:
 	 */
 	virtual void SetGeneratePatch( bool InShouldGeneratePatch ) = 0;
 
-	virtual bool IsCreatingDLC() const = 0;
 
+	virtual bool IsCreatingDLC() const = 0;
 	virtual void SetCreateDLC(bool InBuildDLC) = 0;
 
 	virtual FString GetDLCName() const = 0;
-
 	virtual void SetDLCName(const FString& InDLCName) = 0;
+
+	virtual bool IsDLCIncludingEngineContent() const = 0;
+	virtual void SetDLCIncludeEngineContent(bool InDLCIncludeEngineContent) = 0;
 
 
     /**

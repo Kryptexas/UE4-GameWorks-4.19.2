@@ -34,6 +34,8 @@ class UCookCommandlet
 	bool bUnversioned;
 	/** Generate manifests for building streaming install packages */
 	bool bGenerateStreamingInstallManifests;
+	/** Error if we access engine content (useful for dlc) */
+	bool bErrorOnEngineContentUse;
 	/** All commandline tokens */
 	TArray<FString> Tokens;
 	/** All commandline switches */

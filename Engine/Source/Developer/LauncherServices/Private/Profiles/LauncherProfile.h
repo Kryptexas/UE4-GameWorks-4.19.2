@@ -6,6 +6,7 @@
 #define LAUNCHERSERVICES_ADDEDPATCHSOURCECONTENTPATH 12
 #define LAUNCHERSERVICES_ADDEDRELEASEVERSION 13
 #define LAUNCHERSERVICES_REMOVEDPATCHSOURCECONTENTPATH 14
+#define LAUNCHERSERVICES_ADDEDDLCINCLUDEENGINECONTENT 15
 
 /**
 * Implements a simple profile which controls the desired output of the Launcher for simple
@@ -286,20 +287,30 @@ public:
 	{
 		return CreateDLC;
 	}
+	virtual void SetCreateDLC(bool InBuildDLC) override
+	{
+		CreateDLC = InBuildDLC;
+	}
 
 	virtual FString GetDLCName() const override
 	{
 		return DLCName;
 	}
-
-	virtual void SetCreateDLC(bool InBuildDLC) override
-	{
-		CreateDLC = InBuildDLC;
-	}
 	virtual void SetDLCName(const FString& InDLCName) override
 	{
 		DLCName = InDLCName;
 	}
+
+	virtual bool IsDLCIncludingEngineContent() const
+	{
+		return DLCIncludeEngineContent;
+	}
+	virtual void SetDLCIncludeEngineContent(bool InDLCIncludeEngineContent)
+	{
+		DLCIncludeEngineContent = InDLCIncludeEngineContent;
+	}
+
+
 
 	virtual bool IsCreatingReleaseVersion() const override
 	{
@@ -618,6 +629,16 @@ public:
 			GeneratePatch = false;
 		}
 
+		if (Version >= LAUNCHERSERVICES_ADDEDDLCINCLUDEENGINECONTENT)
+		{
+			Archive << DLCIncludeEngineContent;
+		}
+		else if (Archive.IsLoading())
+		{
+			DLCIncludeEngineContent = false;
+		}
+		
+
 		if ( Version >= LAUNCHERSERVICES_ADDEDRELEASEVERSION )
 		{
 			Archive << CreateReleaseVersion;
@@ -725,6 +746,7 @@ public:
 		CreateReleaseVersion = false;
 		GeneratePatch = false;
 		CreateDLC = false;
+		DLCIncludeEngineContent = false;
 
 		// default launch settings
 		LaunchMode = ELauncherProfileLaunchModes::DefaultRole;
@@ -1292,9 +1314,10 @@ private:
 	// name of the dlc we are going to build (the name of the dlc plugin)
 	FString DLCName;
 
-	
-
-
+	// should the dlc include engine content in the current dlc 
+	//  engine content which was not referenced by original release
+	//  otherwise error on any access of engine content during dlc cook
+	bool DLCIncludeEngineContent;
 
 	// Holds a flag indicating whether to use incremental deployment
 	bool DeployIncremental;

@@ -476,6 +476,23 @@ TSharedRef<SWidget> SProjectLauncherCookByTheBookSettings::MakeComplexWidget()
 								.OnTextCommitted(this, &SProjectLauncherCookByTheBookSettings::HandleDLCNameCommitted)
 							]
 						]
+
+					+ SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+						[
+							// unreal pak check box
+							SNew(SCheckBox)
+							.IsChecked(this, &SProjectLauncherCookByTheBookSettings::HandleDLCIncludeEngineContentCheckBoxIsChecked)
+							.OnCheckStateChanged(this, &SProjectLauncherCookByTheBookSettings::HandleDLCIncludeEngineContentCheckBoxCheckStateChanged)
+							.Padding(FMargin(4.0f, 0.0f))
+							.ToolTipText(LOCTEXT("HandleDLCIncludeEngineContentCheckBoxTooltip", "If checked, dlc will include engine content which was not included in original release, if not checked will error when accessing content from engine directory."))
+							.Content()
+							[
+								SNew(STextBlock)
+								.Text(LOCTEXT("HandleDLCIncludeEngineContentCheckBoxText", "Include engine content"))
+							]
+						]
 					// end generate dlc 
 					//////////////////////////////////////////////////////////////////////////
 			]
@@ -1388,8 +1405,6 @@ void SProjectLauncherCookByTheBookSettings::HandleBasedOnReleaseVersionNameCommi
 	}
 
 }
-
-
 FText SProjectLauncherCookByTheBookSettings::HandleDLCNameTextBlockText() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
@@ -1440,6 +1455,42 @@ ECheckBoxState SProjectLauncherCookByTheBookSettings::HandleBuildDLCCheckBoxIsCh
 
 	return ECheckBoxState::Unchecked;
 }
+
+
+
+// Callback for check state changes of the 'UnrealPak' check box.
+void SProjectLauncherCookByTheBookSettings::HandleDLCIncludeEngineContentCheckBoxCheckStateChanged(ECheckBoxState NewState)
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		SelectedProfile->SetDLCIncludeEngineContent(NewState == ECheckBoxState::Checked);
+	}
+}
+
+// Callback for determining the checked state of the 'UnrealPak' check box.
+ECheckBoxState SProjectLauncherCookByTheBookSettings::HandleDLCIncludeEngineContentCheckBoxIsChecked() const
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		if (SelectedProfile->IsDLCIncludingEngineContent())
+		{
+			return ECheckBoxState::Checked;
+		}
+	}
+
+	return ECheckBoxState::Unchecked;
+}
+
+
+
+
+
+
+
 
 
 #undef LOCTEXT_NAMESPACE

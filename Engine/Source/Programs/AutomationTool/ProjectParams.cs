@@ -200,6 +200,7 @@ namespace AutomationTool
             this.CreateReleaseVersion = InParams.CreateReleaseVersion;
             this.GeneratePatch = InParams.GeneratePatch;
             this.DLCName = InParams.DLCName;
+            this.DLCIncludeEngineContent = InParams.DLCIncludeEngineContent;
             this.NewCook = InParams.NewCook;
             this.OldCook = InParams.OldCook;
             this.AdditionalCookerOptions = InParams.AdditionalCookerOptions;
@@ -345,6 +346,7 @@ namespace AutomationTool
             string CreateReleaseVersion = null,
             bool? GeneratePatch = null,
             string DLCName = null,
+            bool? DLCIncludeEngineContent = null,
             bool? NewCook = null,
             bool? OldCook = null,
 			bool? CrashReporter = null,
@@ -448,6 +450,7 @@ namespace AutomationTool
             this.GeneratePatch = GetParamValueIfNotSpecified(Command, GeneratePatch, this.GeneratePatch, "GeneratePatch");
             this.AdditionalCookerOptions = ParseParamValueIfNotSpecified(Command, AdditionalCookerOptions, "AdditionalCookerOptions", String.Empty);
             this.DLCName = ParseParamValueIfNotSpecified(Command, DLCName, "DLCName", String.Empty);
+            this.DLCIncludeEngineContent = GetParamValueIfNotSpecified(Command, DLCIncludeEngineContent, this.DLCIncludeEngineContent, "DLCIncludeEngineContent");
 			this.SkipCook = GetParamValueIfNotSpecified(Command, SkipCook, this.SkipCook, "skipcook");
 			if (this.SkipCook)
 			{
@@ -1036,6 +1039,12 @@ namespace AutomationTool
         /// Name of dlc to cook and package (if this paramter is supplied cooks the dlc and packages it into the dlc directory)
         /// </summary>
         public string DLCName;
+
+        /// <summary>
+        /// Enable cooking of engine content when cooking dlc 
+        ///  not included in original release but is referenced by current cook
+        /// </summary>
+        public bool DLCIncludeEngineContent;
 
         /// <summary>
         /// Cook: Additional cooker options to include on the cooker commandline
@@ -1928,6 +1937,11 @@ namespace AutomationTool
 				throw new AutomationException("Can't use both -cook and -cookonthefly.");
 			}
 
+            if (!HasDLCName && DLCIncludeEngineContent)
+            {
+                throw new AutomationException("DLCIncludeEngineContent flag is only valid when cooking dlc.");
+            }
+
             if ((IsGeneratingPatch || HasDLCName) && !HasBasedOnReleaseVersion)
             {
                 throw new AutomationException("Require based on release version to build patches or dlc");
@@ -1995,6 +2009,7 @@ namespace AutomationTool
                 CommandUtils.Log("CreateReleaseVersion={0}", CreateReleaseVersion);
                 CommandUtils.Log("BasedOnReleaseVersion={0}", BasedOnReleaseVersion);
                 CommandUtils.Log("DLCName={0}", DLCName);
+                CommandUtils.Log("DLCIncludeEngineContent={0}", DLCIncludeEngineContent);
                 CommandUtils.Log("AdditionalCookerOptions={0}", AdditionalCookerOptions);
 				CommandUtils.Log("DedicatedServer={0}", DedicatedServer);
 				CommandUtils.Log("DirectoriesToCook={0}", DirectoriesToCook.ToString());
