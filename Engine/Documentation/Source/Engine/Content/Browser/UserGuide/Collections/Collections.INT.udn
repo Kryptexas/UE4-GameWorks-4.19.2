@@ -36,7 +36,7 @@ Under the hood, Collections are really just lists of references to given assets.
 
 ## Creating Collections
 
-To create your first Collection click on the add Collection icon in the top right corner of the Collections panel and name. 
+To create your first Collection **left-click** on the add Collection icon in the top right corner of the Collections panel and name. 
 
 ![](AddNewCollections.png)
 
