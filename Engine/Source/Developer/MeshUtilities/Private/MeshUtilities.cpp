@@ -3964,7 +3964,7 @@ bool FMeshUtilities::ConstructRawMesh(
 	FTransform CtoM = InMeshComponent->ComponentToWorld;
 	for (FVector& Vertex : OutRawMesh.VertexPositions)
 	{
-		Vertex = CtoM.TransformFVector4(Vertex);
+		Vertex = CtoM.TransformPosition(Vertex);
 	}
 	for (FVector& TangentX : OutRawMesh.WedgeTangentX)
 	{
