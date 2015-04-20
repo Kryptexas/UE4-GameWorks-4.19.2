@@ -372,6 +372,11 @@ void UEdGraphNode::OnUpdateCommentText( const FString& NewComment )
 	NodeComment	= NewComment;
 }
 
+FText UEdGraphNode::GetKeywords() const
+{
+	return GetClass()->GetMetaDataText(TEXT("Keywords"), TEXT("UObjectKeywords"), GetClass()->GetFullGroupName(false));
+}
+
 #endif	//#if WITH_EDITOR
 
 /////////////////////////////////////////////////////

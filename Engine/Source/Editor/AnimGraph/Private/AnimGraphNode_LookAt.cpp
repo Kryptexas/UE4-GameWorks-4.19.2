@@ -18,11 +18,6 @@ FText UAnimGraphNode_LookAt::GetControllerDescription() const
 	return LOCTEXT("LookAtNode", "Look At");
 }
 
-FString UAnimGraphNode_LookAt::GetKeywords() const
-{
-	return TEXT("Look At, Follow, Trace, Track");
-}
-
 FText UAnimGraphNode_LookAt::GetTooltipText() const
 {
 	return LOCTEXT("AnimGraphNode_LookAt_Tooltip", "This node allow a bone to trace or follow another bone");

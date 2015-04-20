@@ -146,7 +146,7 @@ public:
 	/** Get default category for this function in action menu */
 	static FString GetDefaultCategoryForFunction(const UFunction* Function, const FString& BaseCategory);
 	/** Get keywords for this function in the action menu */
-	static FString GetKeywordsForFunction(const UFunction* Function);
+	static FText GetKeywordsForFunction(const UFunction* Function);
 	/** Should be drawn compact for this function */
 	static bool ShouldDrawCompact(const UFunction* Function);
 	/** Get the compact name for this function */

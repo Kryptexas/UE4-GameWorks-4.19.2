@@ -162,6 +162,11 @@ FBlueprintActionUiSpec const& UBlueprintNodeSpawner::PrimeDefaultUiSpec(UEdGraph
 		NodeTemplate = bTemplateNodeFetched ? NodeTemplate : GetTemplateNode(TargetGraph);
 		if (NodeTemplate != nullptr)
 		{
+			if (NodeClass == UK2Node_IfThenElse::StaticClass())
+			{
+				bool bIsAvail = true;
+				bIsAvail = false;
+			}
 			MenuSignature.Keywords = NodeTemplate->GetKeywords();
 		}
 		// if a target graph was provided, then we've done all we can to spawn a
@@ -169,7 +174,7 @@ FBlueprintActionUiSpec const& UBlueprintNodeSpawner::PrimeDefaultUiSpec(UEdGraph
 		if (MenuSignature.Keywords.IsEmpty() && (TargetGraph != nullptr))
 		{
 			// want to set it to something so we won't end up back in this condition
-			MenuSignature.Keywords = TEXT(" ");
+			MenuSignature.Keywords = FText::FromString(TEXT(" "));
 		}
 		bTemplateNodeFetched = true;
 	}

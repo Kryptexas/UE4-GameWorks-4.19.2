@@ -143,13 +143,13 @@ FText UK2Node_MacroInstance::GetTooltipText() const
 	return CachedTooltip;
 }
 
-FString UK2Node_MacroInstance::GetKeywords() const
+FText UK2Node_MacroInstance::GetKeywords() const
 {
 	// This might need to be refined, but seems better than providing no keywords:
 	UBlueprint* MacroBP = MacroGraphReference.GetBlueprint();
 	if (MacroBP)
 	{
-		return MacroBP->BlueprintDescription;
+		return FText::FromString(MacroBP->BlueprintDescription);
 	}
 	return UK2Node_Tunnel::GetKeywords();
 }

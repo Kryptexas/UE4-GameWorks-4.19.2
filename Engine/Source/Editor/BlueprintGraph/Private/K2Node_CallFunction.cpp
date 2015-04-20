@@ -1337,7 +1337,7 @@ FString UK2Node_CallFunction::GetDefaultCategoryForFunction(const UFunction* Fun
 }
 
 
-FString UK2Node_CallFunction::GetKeywordsForFunction(const UFunction* Function)
+FText UK2Node_CallFunction::GetKeywordsForFunction(const UFunction* Function)
 {
 	// If the friendly name and real function name do not match add the real function name friendly name as a keyword.
 	FString Keywords;
@@ -1352,15 +1352,18 @@ FString UK2Node_CallFunction::GetKeywordsForFunction(const UFunction* Function)
 		Keywords += GetCompactNodeTitle(Function);
 	}
 
-	FString MetaKeywords = Function->GetMetaData(FBlueprintMetadata::MD_FunctionKeywords);
+	FText MetadataKeywords = Function->GetMetaDataText(FBlueprintMetadata::MD_FunctionKeywords, TEXT("UObjectKeywords"), Function->GetFullGroupName(false));
+	FText ResultKeywords;
 
-	if (!MetaKeywords.IsEmpty())
+	if (!MetadataKeywords.IsEmpty())
 	{
-		Keywords.AppendChar(TEXT(' '));
-		Keywords += MetaKeywords;
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Name"), FText::FromString(Keywords));
+		Args.Add(TEXT("MetadataKeywords"), MetadataKeywords);
+		ResultKeywords = FText::Format(FText::FromString("{Name} {MetadataKeywords}"), Args);
 	}
 
-	return Keywords;
+	return ResultKeywords;
 }
 
 void UK2Node_CallFunction::SetFromFunction(const UFunction* Function)

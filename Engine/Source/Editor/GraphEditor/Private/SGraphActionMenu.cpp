@@ -664,7 +664,7 @@ void SGraphActionMenu::GenerateFilteredItems(bool bPreserveExpansion)
 			// Combine the actions string, separate with \n so terms don't run into each other, and remove the spaces (incase the user is searching for a variable)
 			// In the case of groups containing multiple actions, they will have been created and added at the same place in the code, using the same description
 			// and keywords, so we only need to use the first one for filtering.
-			FString SearchText = CurrentAction.Actions[0]->MenuDescription.ToString() + LINE_TERMINATOR + CurrentAction.Actions[0]->GetSearchTitle().ToString() + LINE_TERMINATOR + CurrentAction.Actions[0]->Keywords + LINE_TERMINATOR +CurrentAction.Actions[0]->Category;
+			FString SearchText = CurrentAction.Actions[0]->GetSearchTitle().ToString() + LINE_TERMINATOR + CurrentAction.Actions[0]->GetSearchKeywords().ToString() + LINE_TERMINATOR +CurrentAction.Actions[0]->Category;
 			SearchText = SearchText.Replace( TEXT( " " ), TEXT( "" ) );
 			// Get the 'weight' of this in relation to the filter
 			EachWeight = GetActionFilteredWeight( CurrentAction, FilterTerms, SanitizedFilterTerms );
@@ -768,11 +768,11 @@ int32 SGraphActionMenu::GetActionFilteredWeight( const FGraphActionListBuilderBa
 		// Combine the actions string, separate with \n so terms don't run into each other, and remove the spaces (incase the user is searching for a variable)
 		// In the case of groups containing multiple actions, they will have been created and added at the same place in the code, using the same description
 		// and keywords, so we only need to use the first one for filtering.
-		FString SearchText = InCurrentAction.Actions[0]->MenuDescription.ToString() + LINE_TERMINATOR + InCurrentAction.Actions[Action]->GetSearchTitle().ToString() + LINE_TERMINATOR + InCurrentAction.Actions[Action]->Keywords + LINE_TERMINATOR +InCurrentAction.Actions[Action]->Category;
+		FString SearchText = InCurrentAction.Actions[Action]->GetSearchTitle().ToString() + LINE_TERMINATOR + InCurrentAction.Actions[Action]->GetSearchKeywords().ToString() + LINE_TERMINATOR +InCurrentAction.Actions[Action]->Category;
 		SearchText = SearchText.Replace( TEXT( " " ), TEXT( "" ) );
 
 		// First the keywords
-		InCurrentAction.Actions[Action]->Keywords.ParseIntoArray( EachEntry.Array, TEXT(" "), true );
+		InCurrentAction.Actions[Action]->GetSearchKeywords().ToString().ParseIntoArray( EachEntry.Array, TEXT(" "), true );
 		EachEntry.Weight = 10;
 		WeightedArrayList.Add( EachEntry );
 

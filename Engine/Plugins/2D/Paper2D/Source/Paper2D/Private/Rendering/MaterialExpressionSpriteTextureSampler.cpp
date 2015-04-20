@@ -39,10 +39,13 @@ void UMaterialExpressionSpriteTextureSampler::GetCaption(TArray<FString>& OutCap
 }
 
 #if WITH_EDITOR
-FString UMaterialExpressionSpriteTextureSampler::GetKeywords() const
+FText UMaterialExpressionSpriteTextureSampler::GetKeywords() const
 {
-	FString ParentKeywords = Super::GetKeywords();
-	return ParentKeywords + TEXT(" Paper2D Sprite");
+	FText ParentKeywords = Super::GetKeywords();
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("ParentKeywords"), ParentKeywords);
+	return FText::Format(LOCTEXT("SpriteTextureSamplerKeywords", "{ParentKeywords} Paper2D Sprite"), Args);
 }
 
 bool UMaterialExpressionSpriteTextureSampler::CanRenameNode() const

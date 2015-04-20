@@ -40,11 +40,6 @@ FText UK2Node_EnumEquality::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return NSLOCTEXT("K2Node_EnumEquality", "EqualEnum", "Equal (Enum)");
 }
 
-FString UK2Node_EnumEquality::GetKeywords() const
-{
-	return TEXT("==");
-}
-
 void UK2Node_EnumEquality::PostReconstructNode()
 {
 	PinConnectionListChanged(GetInput1Pin());

@@ -70,7 +70,7 @@ struct ENGINE_API FEdGraphSchemaAction
 
 	/** This is just an arbitrary dump of extra text that search will match on, in addition to the description and tooltip, e.g., Add might have the keyword Math */
 	UPROPERTY()
-	FString Keywords;
+	FText Keywords;
 
 	/** This is a priority number for overriding alphabetical order in the action list (higher value  == higher in the list) */
 	UPROPERTY()
@@ -83,6 +83,10 @@ struct ENGINE_API FEdGraphSchemaAction
 	/** Search title for the action (doesn't have to be set when instantiated, will be constructed by GetSearchTitle() if left empty)*/
 	UPROPERTY()
 	FText CachedSearchTitle;
+
+	/** Search keywords for the action (doesn't have to be set when instantiated, will be constructed by GetSearchTitle() if left empty)*/
+	UPROPERTY()
+	FText CachedSearchKeywords;
 
 	FEdGraphSchemaAction() 
 		: Grouping(0)
@@ -127,15 +131,25 @@ struct ENGINE_API FEdGraphSchemaAction
 	{
 		if(CachedSearchTitle.IsEmpty())
 		{
-			if(const FString* SourceString = FTextInspector::GetSourceString(MenuDescription))
-			{
-				FFormatNamedArguments Args;
-				Args.Add(TEXT("LocalizedTitle"), MenuDescription);
-				Args.Add(TEXT("SourceTitle"), FText::FromString(*SourceString));
-				CachedSearchTitle = FText::Format(FText::FromString("{LocalizedTitle} {SourceTitle}"), Args);
-			}
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("LocalizedTitle"), MenuDescription);
+			Args.Add(TEXT("SourceTitle"), FText::FromString(MenuDescription.BuildSourceString()));
+			CachedSearchTitle = FText::Format(FText::FromString("{LocalizedTitle} {SourceTitle}"), Args);
 		}
 		return CachedSearchTitle;
+	}
+
+	/** Retrieves the full searchable title for this action */
+	FText GetSearchKeywords()
+	{
+		if(CachedSearchKeywords.IsEmpty())
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("LocalizedKeywords"), Keywords);
+			Args.Add(TEXT("SourceKeywords"), FText::FromString(Keywords.BuildSourceString()));
+			CachedSearchKeywords = FText::Format(FText::FromString("{LocalizedKeywords} {SourceKeywords}"), Args);
+		}
+		return CachedSearchKeywords;
 	}
 
 	// GC.

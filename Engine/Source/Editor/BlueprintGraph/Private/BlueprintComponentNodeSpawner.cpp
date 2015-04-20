@@ -63,9 +63,12 @@ UBlueprintComponentNodeSpawner* UBlueprintComponentNodeSpawner::Create(const FCo
 		MenuSignature.MenuName = FText::Format(LOCTEXT("AddComponentMenuName", "Add {0}"), ComponentTypeName);
 		MenuSignature.Category = LOCTEXT("BlueprintComponentCategory", "Custom");
 		MenuSignature.Tooltip = FText::Format(LOCTEXT("AddComponentTooltip", "Spawn a {0}"), ComponentTypeName);
-		// add at least one character, so that PrimeDefaultMenuSignature() doesn't 
+		// add at least one character, so that PrimeDefaultUiSpec() doesn't 
 		// attempt to query the template node
-		MenuSignature.Keywords.AppendChar(TEXT(' '));
+		if (MenuSignature.Keywords.IsEmpty())
+		{
+			MenuSignature.Keywords = FText::FromString(TEXT(" "));
+		}
 		MenuSignature.IconName = FClassIconFinder::FindIconNameForClass(nullptr);
 
 		return NodeSpawner;
@@ -88,10 +91,13 @@ UBlueprintComponentNodeSpawner* UBlueprintComponentNodeSpawner::Create(const FCo
 	MenuSignature.MenuName = FText::Format(LOCTEXT("AddComponentMenuName", "Add {0}"), ComponentTypeName);
 	MenuSignature.Category = BlueprintComponentNodeSpawnerImpl::GetDefaultMenuCategory(AuthoritativeClass);
 	MenuSignature.Tooltip  = FText::Format(LOCTEXT("AddComponentTooltip", "Spawn a {0}"), ComponentTypeName);
-	MenuSignature.Keywords = AuthoritativeClass->GetMetaData(FBlueprintMetadata::MD_FunctionKeywords);
-	// add at least one character, so that PrimeDefaultMenuSignature() doesn't 
+	MenuSignature.Keywords = AuthoritativeClass->GetMetaDataText(*FBlueprintMetadata::MD_FunctionKeywords.ToString(), TEXT("UObjectKeywords"), AuthoritativeClass->GetFullGroupName(false));
+	// add at least one character, so that PrimeDefaultUiSpec() doesn't 
 	// attempt to query the template node
-	MenuSignature.Keywords.AppendChar(TEXT(' '));
+	if (MenuSignature.Keywords.IsEmpty())
+	{
+		MenuSignature.Keywords = FText::FromString(TEXT(" "));
+	}
 	MenuSignature.IconName = FClassIconFinder::FindIconNameForClass(AuthoritativeClass);
 
 	return NodeSpawner;

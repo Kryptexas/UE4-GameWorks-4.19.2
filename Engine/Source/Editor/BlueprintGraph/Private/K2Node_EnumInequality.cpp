@@ -25,10 +25,6 @@ FText UK2Node_EnumInequality::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return NSLOCTEXT("K2Node_EnumInequality", "NotEqualEnum", "NotEqual (Enum)");
 }
 
-FString UK2Node_EnumInequality::GetKeywords() const
-{
-	return TEXT("!=");
-}
 void UK2Node_EnumInequality::GetConditionalFunction(FName& FunctionName, UClass** FunctionClass) const
 {
 	FunctionName = GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, NotEqual_ByteByte);

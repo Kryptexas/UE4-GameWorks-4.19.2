@@ -49,7 +49,7 @@ class UK2Node_Event : public UK2Node_EditablePinBase
 	// Begin UEdGraphNode interface
 	BLUEPRINTGRAPH_API virtual void AllocateDefaultPins() override;
 	BLUEPRINTGRAPH_API virtual FText GetTooltipText() const override;
-	BLUEPRINTGRAPH_API virtual FString GetKeywords() const override;	
+	BLUEPRINTGRAPH_API virtual FText GetKeywords() const override;	
 	BLUEPRINTGRAPH_API virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	BLUEPRINTGRAPH_API virtual FLinearColor GetNodeTitleColor() const override;
 	BLUEPRINTGRAPH_API virtual bool CanPasteHere(const UEdGraph* TargetGraph) const override;

@@ -56,11 +56,15 @@ UBlueprintVariableNodeSpawner* UBlueprintVariableNodeSpawner::Create(TSubclassOf
 		MenuSignature.MenuName = FText::Format(LOCTEXT("SetterMenuName", "Set {0}"), VarName);
 		MenuSignature.Tooltip  = UK2Node_VariableSet::GetPropertyTooltip(VarProperty);
 	}
-	// add at least one character, so that PrimeDefaultMenuSignature() doesn't 
+	// add at least one character, so that PrimeDefaultUiSpec() doesn't 
 	// attempt to query the template node
 	//
 	// @TODO: maybe UPROPERTY() fields should have keyword metadata like functions
-	MenuSignature.Keywords = TEXT(" ");
+	if (MenuSignature.Keywords.IsEmpty())
+	{
+		// want to set it to something so we won't end up back in this condition
+		MenuSignature.Keywords = FText::FromString(TEXT(" "));
+	}
 	MenuSignature.IconName = UK2Node_Variable::GetVarIconFromPinType(NodeSpawner->GetVarType(), MenuSignature.IconTint);
 
 	//--------------------------------------
@@ -125,9 +129,13 @@ UBlueprintVariableNodeSpawner* UBlueprintVariableNodeSpawner::Create(TSubclassOf
 		MenuSignature.MenuName = FText::Format(LOCTEXT("LocalSetterMenuName", "Set {0}"), VarName);
 		MenuSignature.Tooltip  = UK2Node_VariableSet::GetBlueprintVarTooltip(VarDesc);
 	}
-	// add at least one character, so that PrimeDefaultMenuSignature() doesn't 
+	// add at least one character, so that PrimeDefaultUiSpec() doesn't 
 	// attempt to query the template node
-	MenuSignature.Keywords = TEXT(" ");
+	if (MenuSignature.Keywords.IsEmpty())
+	{
+		// want to set it to something so we won't end up back in this condition
+		MenuSignature.Keywords = FText::FromString(TEXT(" "));
+	}
 	MenuSignature.IconName = UK2Node_Variable::GetVarIconFromPinType(NodeSpawner->GetVarType(), MenuSignature.IconTint);
 
 	return NodeSpawner;

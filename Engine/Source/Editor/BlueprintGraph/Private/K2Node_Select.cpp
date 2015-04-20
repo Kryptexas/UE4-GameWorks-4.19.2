@@ -291,11 +291,6 @@ FText UK2Node_Select::GetTooltipText() const
 	return LOCTEXT("SelectNodeTooltip", "Return the option at Index, (first option is indexed at 0)");
 }
 
-FString UK2Node_Select::GetKeywords() const
-{
-	return TEXT("Ternary If");
-}
-
 FText UK2Node_Select::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	return LOCTEXT("Select", "Select");

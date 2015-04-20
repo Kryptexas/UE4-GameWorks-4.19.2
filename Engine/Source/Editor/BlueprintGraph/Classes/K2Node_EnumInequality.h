@@ -7,7 +7,7 @@
 #include "K2Node_EnumInequality.generated.h"
 
 
-UCLASS(MinimalAPI)
+UCLASS(MinimalAPI, meta=(Keywords = "!="))
 class UK2Node_EnumInequality : public UK2Node_EnumEquality
 {
 	GENERATED_UCLASS_BODY()
@@ -15,7 +15,6 @@ class UK2Node_EnumInequality : public UK2Node_EnumEquality
 	// Begin UEdGraphNode interface
 	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual FString GetKeywords() const override;
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface

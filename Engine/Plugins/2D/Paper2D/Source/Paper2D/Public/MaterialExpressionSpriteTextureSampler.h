@@ -26,7 +26,7 @@ class PAPER2D_API UMaterialExpressionSpriteTextureSampler : public UMaterialExpr
 	// UMaterialExpression interface
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 #if WITH_EDITOR
-	virtual FString GetKeywords() const override;
+	virtual FText GetKeywords() const override;
 	virtual bool CanRenameNode() const override;
 	virtual void GetExpressionToolTip(TArray<FString>& OutToolTip) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;

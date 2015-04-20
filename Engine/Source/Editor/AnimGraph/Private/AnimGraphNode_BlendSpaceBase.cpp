@@ -37,7 +37,7 @@ struct FNewBlendSpacePlayerAction : public FEdGraphSchemaAction_K2NewNode
 		Category = TEXT("Animations");
 
 		// Grab extra keywords
-		Keywords = BlendSpace->GetPathName();
+		Keywords = FText::FromString(BlendSpace->GetPathName());
 	}
 };
 

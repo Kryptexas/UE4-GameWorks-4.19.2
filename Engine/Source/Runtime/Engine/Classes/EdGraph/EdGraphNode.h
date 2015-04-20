@@ -309,7 +309,7 @@ public:
 	 *
 	 * @TODO: Should search keywords be localized? Probably.
 	 */
-	virtual FString GetKeywords() const { return TEXT(""); }
+	virtual FText GetKeywords() const;
 	 
 	/**
 	 * Returns the link used for external documentation for the graph node

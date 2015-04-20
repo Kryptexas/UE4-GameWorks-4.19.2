@@ -100,7 +100,11 @@ UBlueprintEventNodeSpawner* UBlueprintEventNodeSpawner::Create(UFunction const* 
 	FString const FuncCategory = UK2Node_CallFunction::GetDefaultCategoryForFunction(EventFunc, TEXT(""));
 	MenuSignature.Category = FText::FromString(LOCTEXT("AddEventCategory", "Add Event").ToString() + TEXT("|") + FuncCategory);
 	//MenuSignature.Tooltip, will be pulled from the node template
-	MenuSignature.Keywords = UK2Node_CallFunction::GetKeywordsForFunction(EventFunc).AppendChar(TEXT(' '));
+	MenuSignature.Keywords = UK2Node_CallFunction::GetKeywordsForFunction(EventFunc);
+	if (MenuSignature.Keywords.IsEmpty())
+	{
+		MenuSignature.Keywords = FText::FromString(TEXT(" "));
+	}
 	MenuSignature.IconName = TEXT("GraphEditor.Event_16x");
 
 	return NodeSpawner;

@@ -141,9 +141,9 @@ FText UK2Node_Event::GetTooltipText() const
 	return CachedTooltip;
 }
 
-FString UK2Node_Event::GetKeywords() const
+FText UK2Node_Event::GetKeywords() const
 {
-	FString Keywords;
+	FText Keywords;
 
 	UFunction* Function = EventReference.ResolveMember<UFunction>(GetBlueprintClassFromNode());
 	if (Function != NULL)

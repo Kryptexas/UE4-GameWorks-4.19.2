@@ -35,7 +35,7 @@ public:
 		Category = TEXT("Animations");
 
 		// Grab extra keywords
-		Keywords = InAssetInfo.ObjectPath.ToString();
+		Keywords = FText::FromName(InAssetInfo.ObjectPath);
 	}
 
 	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) override

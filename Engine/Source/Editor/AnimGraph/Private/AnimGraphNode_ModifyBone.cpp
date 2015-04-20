@@ -19,11 +19,6 @@ FText UAnimGraphNode_ModifyBone::GetControllerDescription() const
 	return LOCTEXT("TransformModifyBone", "Transform (Modify) Bone");
 }
 
-FString UAnimGraphNode_ModifyBone::GetKeywords() const
-{
-	return TEXT("Modify, Transform");
-}
-
 FText UAnimGraphNode_ModifyBone::GetTooltipText() const
 {
 	return LOCTEXT("AnimGraphNode_ModifyBone_Tooltip", "The Transform Bone node alters the transform - i.e. Translation, Rotation, or Scale - of the bone");

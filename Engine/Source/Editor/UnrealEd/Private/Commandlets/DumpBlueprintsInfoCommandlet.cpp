@@ -1690,7 +1690,7 @@ static void DumpBlueprintInfoUtils::DumpActionMenuItem(uint32 Indent, FGraphActi
 		TooltipStr = TooltipStr.Replace(TEXT("\n"), *(IndentedNewline + BuildIndentString(TooltipFieldLabel.Len(), /*bUseSpaces =*/true)));
 
 		ActionEntry += IndentedNewline + TooltipFieldLabel + TooltipStr + "\",";
-		ActionEntry += IndentedNewline + "\"Keywords\"    : \"" + PrimeAction->Keywords + "\",";
+		ActionEntry += IndentedNewline + "\"Keywords\"    : \"" + PrimeAction->Keywords.ToString() + "\",";
 		ActionEntry += IndentedNewline + "\"SearchTitle\" : \"" + PrimeAction->GetSearchTitle().ToString() + "\",";
 		ActionEntry += IndentedNewline + FString::Printf(TEXT("\"Grouping\"    : %d"), PrimeAction->Grouping);
 		

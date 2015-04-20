@@ -326,7 +326,7 @@ class ENGINE_API UMaterialExpression : public UObject
 
 #if WITH_EDITOR
 	/** Returns the keywords that should be used when searching for this expression */
-	virtual FString GetKeywords() const {return TEXT("");}
+	virtual FText GetKeywords() const {return FText::GetEmpty();}
 
 	/**
 	 * Recursively gets a list of all expressions that are connected to this
