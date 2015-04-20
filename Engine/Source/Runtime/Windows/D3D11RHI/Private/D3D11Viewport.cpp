@@ -470,7 +470,7 @@ FViewportRHIRef FD3D11DynamicRHI::RHICreateViewport(void* WindowHandle,uint32 Si
 
 void FD3D11DynamicRHI::RHIResizeViewport(FViewportRHIParamRef ViewportRHI,uint32 SizeX,uint32 SizeY,bool bIsFullscreen)
 {
-	DYNAMIC_CAST_D3D11RESOURCE(Viewport,Viewport);
+	FD3D11Viewport* Viewport = ResourceCast(ViewportRHI);
 
 	check( IsInGameThread() );
 	Viewport->Resize(SizeX,SizeY,bIsFullscreen);
@@ -499,7 +499,7 @@ void FD3D11DynamicRHI::RHITick( float DeltaTime )
 
 void FD3D11DynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI, FTextureRHIParamRef RenderTarget)
 {
-	DYNAMIC_CAST_D3D11RESOURCE(Viewport,Viewport);
+	FD3D11Viewport* Viewport = ResourceCast(ViewportRHI);
 
 	SCOPE_CYCLE_COUNTER(STAT_D3D11PresentTime);
 
@@ -520,7 +520,7 @@ void FD3D11DynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI,
 
 void FD3D11DynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,bool bPresent,bool bLockToVsync)
 {
-	DYNAMIC_CAST_D3D11RESOURCE(Viewport,Viewport);
+	FD3D11Viewport* Viewport = ResourceCast(ViewportRHI);
 
 	SCOPE_CYCLE_COUNTER(STAT_D3D11PresentTime);
 
@@ -609,7 +609,7 @@ void FD3D11DynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer()
 
 FTexture2DRHIRef FD3D11DynamicRHI::RHIGetViewportBackBuffer(FViewportRHIParamRef ViewportRHI)
 {
-	DYNAMIC_CAST_D3D11RESOURCE(Viewport,Viewport);
+	FD3D11Viewport* Viewport = ResourceCast(ViewportRHI);
 
 	return Viewport->GetBackBuffer();
 }

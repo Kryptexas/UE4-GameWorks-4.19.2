@@ -1397,3 +1397,113 @@ private:
 	FCustomPresentRHIRef CustomPresent;
 };
 
+template<class T>
+struct TOpenGLResourceTraits
+{
+};
+template<>
+struct TOpenGLResourceTraits<FRHIVertexDeclaration>
+{
+	typedef FOpenGLVertexDeclaration TConcreteType;
+};
+template<>
+struct TOpenGLResourceTraits<FRHIVertexShader>
+{
+	typedef FOpenGLVertexShader TConcreteType;
+};
+template<>
+struct TOpenGLResourceTraits<FRHIGeometryShader>
+{
+	typedef FOpenGLGeometryShader TConcreteType;
+};
+template<>
+struct TOpenGLResourceTraits<FRHIHullShader>
+{
+	typedef FOpenGLHullShader TConcreteType;
+};
+template<>
+struct TOpenGLResourceTraits<FRHIDomainShader>
+{
+	typedef FOpenGLDomainShader TConcreteType;
+};
+template<>
+struct TOpenGLResourceTraits<FRHIPixelShader>
+{
+	typedef FOpenGLPixelShader TConcreteType;
+};
+template<>
+struct TOpenGLResourceTraits<FRHIComputeShader>
+{
+	typedef FOpenGLComputeShader TConcreteType;
+};
+template<>
+struct TOpenGLResourceTraits<FRHIBoundShaderState>
+{
+	typedef FOpenGLBoundShaderState TConcreteType;
+};
+template<>
+struct TOpenGLResourceTraits<FRHITexture3D>
+{
+	typedef FOpenGLTexture3D TConcreteType;
+};
+template<>
+struct TOpenGLResourceTraits<FRHITexture>
+{
+	typedef FOpenGLTexture TConcreteType;
+};
+template<>
+struct TOpenGLResourceTraits<FRHITexture2D>
+{
+	typedef FOpenGLTexture2D TConcreteType;
+};
+template<>
+struct TOpenGLResourceTraits<FRHITexture2DArray>
+{
+	typedef FOpenGLTexture2DArray TConcreteType;
+};
+template<>
+struct TOpenGLResourceTraits<FRHITextureCube>
+{
+	typedef FOpenGLTextureCube TConcreteType;
+};
+template<>
+struct TOpenGLResourceTraits<FRHIRenderQuery>
+{
+	typedef FOpenGLRenderQuery TConcreteType;
+};
+template<>
+struct TOpenGLResourceTraits<FRHIUniformBuffer>
+{
+	typedef FOpenGLUniformBuffer TConcreteType;
+};
+template<>
+struct TOpenGLResourceTraits<FRHIIndexBuffer>
+{
+	typedef FOpenGLIndexBuffer TConcreteType;
+};
+template<>
+struct TOpenGLResourceTraits<FRHIStructuredBuffer>
+{
+	typedef FOpenGLStructuredBuffer TConcreteType;
+};
+template<>
+struct TOpenGLResourceTraits<FRHIVertexBuffer>
+{
+	typedef FOpenGLVertexBuffer TConcreteType;
+};
+template<>
+struct TOpenGLResourceTraits<FRHIShaderResourceView>
+{
+	typedef FOpenGLShaderResourceView TConcreteType;
+};
+template<>
+struct TOpenGLResourceTraits<FRHIUnorderedAccessView>
+{
+	typedef FOpenGLUnorderedAccessView TConcreteType;
+};
+
+template<>
+struct TOpenGLResourceTraits<FRHIViewport>
+{
+	typedef FOpenGLViewport TConcreteType;
+};

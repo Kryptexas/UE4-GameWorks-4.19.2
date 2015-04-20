@@ -508,3 +508,24 @@ struct FOpenGLRHIState : public FOpenGLCommonState
 		FOpenGLCommonState::CleanupResources();
 	}
 };
+
+template<>
+struct TOpenGLResourceTraits<FRHISamplerState>
+{
+	typedef FOpenGLSamplerState TConcreteType;
+};
+template<>
+struct TOpenGLResourceTraits<FRHIRasterizerState>
+{
+	typedef FOpenGLRasterizerState TConcreteType;
+};
+template<>
+struct TOpenGLResourceTraits<FRHIDepthStencilState>
+{
+	typedef FOpenGLDepthStencilState TConcreteType;
+};
+template<>
+struct TOpenGLResourceTraits<FRHIBlendState>
+{
+	typedef FOpenGLBlendState TConcreteType;
+};

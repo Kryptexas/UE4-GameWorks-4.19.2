@@ -37,7 +37,7 @@ FStructuredBufferRHIRef FMetalDynamicRHI::RHICreateStructuredBuffer(uint32 Strid
 
 void* FMetalDynamicRHI::RHILockStructuredBuffer(FStructuredBufferRHIParamRef StructuredBufferRHI,uint32 Offset,uint32 Size,EResourceLockMode LockMode)
 {
-	DYNAMIC_CAST_METALRESOURCE(StructuredBuffer,StructuredBuffer);
+	FMetalStructuredBuffer* StructuredBuffer = ResourceCast(StructuredBufferRHI);
 
 	// just return the memory plus the offset
 	return ((uint8*)[StructuredBuffer->Buffer contents]) + Offset;

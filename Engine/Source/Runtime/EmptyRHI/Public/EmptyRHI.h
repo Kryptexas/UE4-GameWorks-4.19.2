@@ -8,10 +8,6 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogEmpty, Display, All)
 
-/** This is a macro that casts a dynamically bound RHI reference to the appropriate type. */
-#define DYNAMIC_CAST_EMPTYRESOURCE(Type,Name) \
-	FEmpty##Type* Name = (FEmpty##Type*)Name##RHI;
-
 // Empty RHI public headers.
 #include "EmptyState.h"
 #include "EmptyResources.h"
@@ -33,11 +29,15 @@ public:
 	virtual void Init();
 	virtual void Shutdown();
 
-	// The RHI methods are defined as virtual functions in URenderHardwareInterface.
+	template<typename TRHIType>
+	static FORCEINLINE typename TEmptyResourceTraits<TRHIType>::TConcreteType* ResourceCast(TRHIType* Resource)
+	{
+		return static_cast<TEmptyResourceTraits<TRHIType>::TConcreteType*>(Resource);
+	}
+
 	#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) virtual Type RHI##Name ParameterTypesAndNames
 	#include "RHIMethods.h"
 	#undef DEFINE_RHIMETHOD
-
 };
 
 /** Implements the Empty module as a dynamic RHI providing module. */

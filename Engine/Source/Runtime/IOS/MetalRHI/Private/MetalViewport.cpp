@@ -34,7 +34,7 @@ void FMetalDynamicRHI::RHIResizeViewport(FViewportRHIParamRef ViewportRHI,uint32
 {
 	check( IsInGameThread() );
 
-	DYNAMIC_CAST_METALRESOURCE(Viewport,Viewport);
+	FMetalViewport* Viewport = ResourceCast(ViewportRHI);
 	Viewport->Resize(SizeX,SizeY,bIsFullscreen);
 }
 

@@ -37,10 +37,6 @@
 #define OPENGL_USE_BINDABLE_UNIFORMS 0
 #define OPENGL_USE_BLIT_FOR_BACK_BUFFER 1
 
-/** This is a macro that casts a dynamically bound RHI reference to the appropriate OpenGL type. */
-#define DYNAMIC_CAST_OPENGLRESOURCE(Type,Name) \
-	FOpenGL##Type* Name = (FOpenGL##Type*)Name##RHI;
-
 // OpenGL RHI public headers.
 #include "OpenGLUtil.h"
 #include "OpenGLState.h"
@@ -304,6 +300,12 @@ public:
 	// FDynamicRHI interface.
 	virtual void Init();
 	virtual void Shutdown();
+
+	template<typename TRHIType>
+	static FORCEINLINE typename TOpenGLResourceTraits<TRHIType>::TConcreteType* ResourceCast(TRHIType* Resource)
+	{
+		return static_cast<typename TOpenGLResourceTraits<TRHIType>::TConcreteType*>(Resource);
+	}
 
 	#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) virtual Type RHI##Name ParameterTypesAndNames
 	#include "RHIMethods.h"

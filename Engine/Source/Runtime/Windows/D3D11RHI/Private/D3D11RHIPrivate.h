@@ -20,10 +20,6 @@ DECLARE_LOG_CATEGORY_EXTERN(LogD3D11RHI, Log, All);
 #include "D3D11RHIBasePrivate.h"
 #include "StaticArray.h"
 
-/** This is a macro that casts a dynamically bound RHI reference to the appropriate D3D type. */
-#define DYNAMIC_CAST_D3D11RESOURCE(Type,Name) \
-	FD3D11##Type* Name = (FD3D11##Type*)Name##RHI;
-
 // D3D RHI public headers.
 #include "D3D11Util.h"
 #include "D3D11State.h"
@@ -290,6 +286,12 @@ public:
 	// FDynamicRHI interface.
 	virtual void Init() override;
 	virtual void Shutdown() override;
+
+	template<typename TRHIType>
+	static FORCEINLINE typename TD3D11ResourceTraits<TRHIType>::TConcreteType* ResourceCast(TRHIType* Resource)
+	{
+		return static_cast<typename TD3D11ResourceTraits<TRHIType>::TConcreteType*>(Resource);
+	}
 
 	/**
 	 * Reads a D3D query's data into the provided buffer.
@@ -584,6 +586,7 @@ protected:
 	void ReadSurfaceDataMSAARaw(FRHICommandList_RecursiveHazardous& RHICmdList, FTextureRHIParamRef TextureRHI, FIntRect Rect, TArray<uint8>& OutData, FReadSurfaceDataFlags InFlags);
 
 	friend struct FD3DGPUProfiler;
+
 };
 
 struct FD3D11Adapter

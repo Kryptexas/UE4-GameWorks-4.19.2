@@ -1089,8 +1089,8 @@ FTexture2DRHIRef FD3D11DynamicRHI::RHIAsyncCreateTexture2D(uint32 SizeX,uint32 S
 
 void FD3D11DynamicRHI::RHICopySharedMips(FTexture2DRHIParamRef DestTexture2DRHI,FTexture2DRHIParamRef SrcTexture2DRHI)
 {
-	DYNAMIC_CAST_D3D11RESOURCE(Texture2D,DestTexture2D);
-	DYNAMIC_CAST_D3D11RESOURCE(Texture2D,SrcTexture2D);
+	FD3D11Texture2D* DestTexture2D = ResourceCast(DestTexture2DRHI);
+	FD3D11Texture2D* SrcTexture2D = ResourceCast(SrcTexture2DRHI);
 
 	// Use the GPU to asynchronously copy the old mip-maps into the new texture.
 	const uint32 NumSharedMips = FMath::Min(DestTexture2D->GetNumMips(),SrcTexture2D->GetNumMips());
@@ -1134,7 +1134,7 @@ void FD3D11DynamicRHI::RHIGetResourceInfo(FTextureRHIParamRef Ref, FRHIResourceI
 
 FShaderResourceViewRHIRef FD3D11DynamicRHI::RHICreateShaderResourceView(FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel)
 {
-	DYNAMIC_CAST_D3D11RESOURCE(Texture2D,Texture2D);
+	FD3D11Texture2D* Texture2D = ResourceCast(Texture2DRHI);
 
 	D3D11_TEXTURE2D_DESC TextureDesc;
 	Texture2D->GetResource()->GetDesc(&TextureDesc);
@@ -1154,7 +1154,7 @@ FShaderResourceViewRHIRef FD3D11DynamicRHI::RHICreateShaderResourceView(FTexture
 
 FShaderResourceViewRHIRef FD3D11DynamicRHI::RHICreateShaderResourceView(FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel, uint8 NumMipLevels, uint8 Format)
 {
-	DYNAMIC_CAST_D3D11RESOURCE(Texture2D,Texture2D);
+	FD3D11Texture2D* Texture2D = ResourceCast(Texture2DRHI);
 
 	D3D11_TEXTURE2D_DESC TextureDesc;
 	Texture2D->GetResource()->GetDesc(&TextureDesc);
@@ -1241,7 +1241,7 @@ uint32 FD3D11DynamicRHI::RHIComputeMemorySize(FTextureRHIParamRef TextureRHI)
  */
 FTexture2DRHIRef FD3D11DynamicRHI::RHIAsyncReallocateTexture2D(FTexture2DRHIParamRef Texture2DRHI, int32 NewMipCount, int32 NewSizeX, int32 NewSizeY, FThreadSafeCounter* RequestStatus)
 {
-	DYNAMIC_CAST_D3D11RESOURCE(Texture2D,Texture2D);
+	FD3D11Texture2D* Texture2D = ResourceCast(Texture2DRHI);
 
 	// Allocate a new texture.
 	FRHIResourceCreateInfo CreateInfo;
@@ -1410,7 +1410,7 @@ void TD3D11Texture2D<RHIResourceType>::Unlock(uint32 MipIndex,uint32 ArrayIndex)
 void* FD3D11DynamicRHI::RHILockTexture2D(FTexture2DRHIParamRef TextureRHI,uint32 MipIndex,EResourceLockMode LockMode,uint32& DestStride,bool bLockWithinMiptail)
 {
 	check(TextureRHI);
-	DYNAMIC_CAST_D3D11RESOURCE(Texture2D,Texture);
+	FD3D11Texture2D* Texture = ResourceCast(TextureRHI);
 	ConditionalClearShaderResource(Texture);
 	return Texture->Lock(MipIndex,0,LockMode,DestStride);
 }
@@ -1418,26 +1418,26 @@ void* FD3D11DynamicRHI::RHILockTexture2D(FTexture2DRHIParamRef TextureRHI,uint32
 void FD3D11DynamicRHI::RHIUnlockTexture2D(FTexture2DRHIParamRef TextureRHI,uint32 MipIndex,bool bLockWithinMiptail)
 {
 	check(TextureRHI);
-	DYNAMIC_CAST_D3D11RESOURCE(Texture2D,Texture);
+	FD3D11Texture2D* Texture = ResourceCast(TextureRHI);
 	Texture->Unlock(MipIndex,0);
 }
 
 void* FD3D11DynamicRHI::RHILockTexture2DArray(FTexture2DArrayRHIParamRef TextureRHI,uint32 TextureIndex,uint32 MipIndex,EResourceLockMode LockMode,uint32& DestStride,bool bLockWithinMiptail)
 {
-	DYNAMIC_CAST_D3D11RESOURCE(Texture2DArray,Texture);
+	FD3D11Texture2DArray* Texture = ResourceCast(TextureRHI);
 	ConditionalClearShaderResource(Texture);
 	return Texture->Lock(MipIndex,TextureIndex,LockMode,DestStride);
 }
 
 void FD3D11DynamicRHI::RHIUnlockTexture2DArray(FTexture2DArrayRHIParamRef TextureRHI,uint32 TextureIndex,uint32 MipIndex,bool bLockWithinMiptail)
 {
-	DYNAMIC_CAST_D3D11RESOURCE(Texture2DArray,Texture);
+	FD3D11Texture2DArray* Texture = ResourceCast(TextureRHI);
 	Texture->Unlock(MipIndex,TextureIndex);
 }
 
 void FD3D11DynamicRHI::RHIUpdateTexture2D(FTexture2DRHIParamRef TextureRHI,uint32 MipIndex,const FUpdateTextureRegion2D& UpdateRegion,uint32 SourcePitch,const uint8* SourceData)
 {
-    DYNAMIC_CAST_D3D11RESOURCE(Texture2D,Texture);
+    FD3D11Texture2D* Texture = ResourceCast(TextureRHI);
 
     D3D11_BOX DestBox =
 	{
@@ -1453,7 +1453,7 @@ void FD3D11DynamicRHI::RHIUpdateTexture2D(FTexture2DRHIParamRef TextureRHI,uint3
 
 void FD3D11DynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI,uint32 MipIndex,const FUpdateTextureRegion3D& UpdateRegion,uint32 SourceRowPitch,uint32 SourceDepthPitch,const uint8* SourceData)
 {
-	DYNAMIC_CAST_D3D11RESOURCE(Texture3D,Texture);
+	FD3D11Texture3D* Texture = ResourceCast(TextureRHI);
 
 	D3D11_BOX DestBox =
 	{
@@ -1482,14 +1482,14 @@ FTextureCubeRHIRef FD3D11DynamicRHI::RHICreateTextureCubeArray(uint32 Size, uint
 
 void* FD3D11DynamicRHI::RHILockTextureCubeFace(FTextureCubeRHIParamRef TextureCubeRHI,uint32 FaceIndex,uint32 ArrayIndex,uint32 MipIndex,EResourceLockMode LockMode,uint32& DestStride,bool bLockWithinMiptail)
 {
-	DYNAMIC_CAST_D3D11RESOURCE(TextureCube,TextureCube);
+	FD3D11TextureCube* TextureCube = ResourceCast(TextureCubeRHI);
 	ConditionalClearShaderResource(TextureCube);
 	uint32 D3DFace = GetD3D11CubeFace((ECubeFace)FaceIndex);
 	return TextureCube->Lock(MipIndex,D3DFace + ArrayIndex * 6,LockMode,DestStride);
 }
 void FD3D11DynamicRHI::RHIUnlockTextureCubeFace(FTextureCubeRHIParamRef TextureCubeRHI,uint32 FaceIndex,uint32 ArrayIndex,uint32 MipIndex,bool bLockWithinMiptail)
 {
-	DYNAMIC_CAST_D3D11RESOURCE(TextureCube,TextureCube);
+	FD3D11TextureCube* TextureCube = ResourceCast(TextureCubeRHI);
 	uint32 D3DFace = GetD3D11CubeFace((ECubeFace)FaceIndex);
 	TextureCube->Unlock(MipIndex,D3DFace + ArrayIndex * 6);
 }

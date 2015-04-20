@@ -41,7 +41,7 @@ bool FEmptyDynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI,
 {
 	check(IsInRenderingThread());
 
-	DYNAMIC_CAST_EMPTYRESOURCE(RenderQuery,Query);
+	FEmptyRenderQuery* Query = ResourceCast(QueryRHI);
 
 	return false;
 }

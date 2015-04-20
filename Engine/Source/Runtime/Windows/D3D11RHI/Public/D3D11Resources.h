@@ -780,3 +780,130 @@ public:
 
 void ReturnPooledTexture2D(int32 MipCount, EPixelFormat PixelFormat, ID3D11Texture2D* InResource);
 void ReleasePooledTextures();
+
+template<class T>
+struct TD3D11ResourceTraits
+{
+};
+template<>
+struct TD3D11ResourceTraits<FRHIVertexDeclaration>
+{
+	typedef FD3D11VertexDeclaration TConcreteType;
+};
+template<>
+struct TD3D11ResourceTraits<FRHIVertexShader>
+{
+	typedef FD3D11VertexShader TConcreteType;
+};
+template<>
+struct TD3D11ResourceTraits<FRHIGeometryShader>
+{
+	typedef FD3D11GeometryShader TConcreteType;
+};
+template<>
+struct TD3D11ResourceTraits<FRHIHullShader>
+{
+	typedef FD3D11HullShader TConcreteType;
+};
+template<>
+struct TD3D11ResourceTraits<FRHIDomainShader>
+{
+	typedef FD3D11DomainShader TConcreteType;
+};
+template<>
+struct TD3D11ResourceTraits<FRHIPixelShader>
+{
+	typedef FD3D11PixelShader TConcreteType;
+};
+template<>
+struct TD3D11ResourceTraits<FRHIComputeShader>
+{
+	typedef FD3D11ComputeShader TConcreteType;
+};
+template<>
+struct TD3D11ResourceTraits<FRHIBoundShaderState>
+{
+	typedef FD3D11BoundShaderState TConcreteType;
+};
+template<>
+struct TD3D11ResourceTraits<FRHITexture3D>
+{
+	typedef FD3D11Texture3D TConcreteType;
+};
+template<>
+struct TD3D11ResourceTraits<FRHITexture>
+{
+	typedef FD3D11Texture TConcreteType;
+};
+template<>
+struct TD3D11ResourceTraits<FRHITexture2D>
+{
+	typedef FD3D11Texture2D TConcreteType;
+};
+template<>
+struct TD3D11ResourceTraits<FRHITexture2DArray>
+{
+	typedef FD3D11Texture2DArray TConcreteType;
+};
+template<>
+struct TD3D11ResourceTraits<FRHITextureCube>
+{
+	typedef FD3D11TextureCube TConcreteType;
+};
+template<>
+struct TD3D11ResourceTraits<FRHIRenderQuery>
+{
+	typedef FD3D11RenderQuery TConcreteType;
+};
+template<>
+struct TD3D11ResourceTraits<FRHIUniformBuffer>
+{
+	typedef FD3D11UniformBuffer TConcreteType;
+};
+template<>
+struct TD3D11ResourceTraits<FRHIIndexBuffer>
+{
+	typedef FD3D11IndexBuffer TConcreteType;
+};
+template<>
+struct TD3D11ResourceTraits<FRHIStructuredBuffer>
+{
+	typedef FD3D11StructuredBuffer TConcreteType;
+};
+template<>
+struct TD3D11ResourceTraits<FRHIVertexBuffer>
+{
+	typedef FD3D11VertexBuffer TConcreteType;
+};
+template<>
+struct TD3D11ResourceTraits<FRHIShaderResourceView>
+{
+	typedef FD3D11ShaderResourceView TConcreteType;
+};
+template<>
+struct TD3D11ResourceTraits<FRHIUnorderedAccessView>
+{
+	typedef FD3D11UnorderedAccessView TConcreteType;
+};
+
+template<>
+struct TD3D11ResourceTraits<FRHISamplerState>
+{
+	typedef FD3D11SamplerState TConcreteType;
+};
+template<>
+struct TD3D11ResourceTraits<FRHIRasterizerState>
+{
+	typedef FD3D11RasterizerState TConcreteType;
+};
+template<>
+struct TD3D11ResourceTraits<FRHIDepthStencilState>
+{
+	typedef FD3D11DepthStencilState TConcreteType;
+};
+template<>
+struct TD3D11ResourceTraits<FRHIBlendState>
+{
+	typedef FD3D11BlendState TConcreteType;
+};
+

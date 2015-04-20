@@ -1694,7 +1694,7 @@ void FOpenGLDynamicRHI::RHIGetResourceInfo(FTextureRHIParamRef Ref, FRHIResource
 
 FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel)
 {
-	DYNAMIC_CAST_OPENGLRESOURCE(Texture2D,Texture2D);
+	FOpenGLTexture2D* Texture2D = ResourceCast(Texture2DRHI);
 
 	FOpenGLShaderResourceView *View = 0;
 
@@ -1724,7 +1724,7 @@ FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FTextur
 
 FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel, uint8 NumMipLevels, uint8 Format)
 {
-	DYNAMIC_CAST_OPENGLRESOURCE(Texture2D,Texture2D);
+	FOpenGLTexture2D* Texture2D = ResourceCast(Texture2DRHI);
 
 	FOpenGLShaderResourceView *View = 0;
 
@@ -1840,7 +1840,7 @@ FTexture2DRHIRef FOpenGLDynamicRHI::RHIAsyncReallocateTexture2D(FTexture2DRHIPar
 {
 	VERIFY_GL_SCOPE();
 
-	DYNAMIC_CAST_OPENGLRESOURCE(Texture2D,Texture2D);
+	FOpenGLTexture2D* Texture2D = ResourceCast(Texture2DRHI);
 
 	// Allocate a new texture.
 	FOpenGLTexture2D* NewTexture2D = (FOpenGLTexture2D*)CreateOpenGLTexture(NewSizeX,NewSizeY,false,false, Texture2D->GetFormat(),NewMipCount,1,1, Texture2D->GetFlags());
@@ -1932,25 +1932,25 @@ ETextureReallocationStatus FOpenGLDynamicRHI::RHICancelAsyncReallocateTexture2D(
 
 void* FOpenGLDynamicRHI::RHILockTexture2D(FTexture2DRHIParamRef TextureRHI,uint32 MipIndex,EResourceLockMode LockMode,uint32& DestStride,bool bLockWithinMiptail)
 {
-	DYNAMIC_CAST_OPENGLRESOURCE(Texture2D,Texture);
+	FOpenGLTexture2D* Texture = ResourceCast(TextureRHI);
 	return Texture->Lock(MipIndex,0,LockMode,DestStride);
 }
 
 void FOpenGLDynamicRHI::RHIUnlockTexture2D(FTexture2DRHIParamRef TextureRHI,uint32 MipIndex,bool bLockWithinMiptail)
 {
-	DYNAMIC_CAST_OPENGLRESOURCE(Texture2D,Texture);
+	FOpenGLTexture2D* Texture = ResourceCast(TextureRHI);
 	Texture->Unlock(MipIndex, 0);
 }
 
 void* FOpenGLDynamicRHI::RHILockTexture2DArray(FTexture2DArrayRHIParamRef TextureRHI,uint32 TextureIndex,uint32 MipIndex,EResourceLockMode LockMode,uint32& DestStride,bool bLockWithinMiptail)
 {
-	DYNAMIC_CAST_OPENGLRESOURCE(Texture2DArray,Texture);
+	FOpenGLTexture2DArray* Texture = ResourceCast(TextureRHI);
 	return Texture->Lock(MipIndex,TextureIndex,LockMode,DestStride);
 }
 
 void FOpenGLDynamicRHI::RHIUnlockTexture2DArray(FTexture2DArrayRHIParamRef TextureRHI,uint32 TextureIndex,uint32 MipIndex,bool bLockWithinMiptail)
 {
-	DYNAMIC_CAST_OPENGLRESOURCE(Texture2DArray,Texture);
+	FOpenGLTexture2DArray* Texture = ResourceCast(TextureRHI);
 	Texture->Unlock(MipIndex, TextureIndex);
 }
 
@@ -1959,7 +1959,7 @@ void FOpenGLDynamicRHI::RHIUpdateTexture2D(FTexture2DRHIParamRef TextureRHI,uint
 	VERIFY_GL_SCOPE();
 	check( FOpenGL::SupportsPixelBuffers() );
 
-	DYNAMIC_CAST_OPENGLRESOURCE(Texture2D,Texture);
+	FOpenGLTexture2D* Texture = ResourceCast(TextureRHI);
 
 	// Use a texture stage that's not likely to be used for draws, to avoid waiting
 	FOpenGLContextState& ContextState = GetContextStateForCurrentContext();
@@ -1991,7 +1991,7 @@ void FOpenGLDynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI,uint
 {
 	VERIFY_GL_SCOPE();
 	check( FOpenGL::SupportsPixelBuffers() && FOpenGL::SupportsTexture3D() );
-	DYNAMIC_CAST_OPENGLRESOURCE(Texture3D,Texture);
+	FOpenGLTexture3D* Texture = ResourceCast(TextureRHI);
 
 	// Use a texture stage that's not likely to be used for draws, to avoid waiting
 	FOpenGLContextState& ContextState = GetContextStateForCurrentContext();
@@ -2086,13 +2086,13 @@ FTextureCubeRHIRef FOpenGLDynamicRHI::RHICreateTextureCubeArray( uint32 Size, ui
 
 void* FOpenGLDynamicRHI::RHILockTextureCubeFace(FTextureCubeRHIParamRef TextureCubeRHI,uint32 FaceIndex,uint32 ArrayIndex,uint32 MipIndex,EResourceLockMode LockMode,uint32& DestStride,bool bLockWithinMiptail)
 {
-	DYNAMIC_CAST_OPENGLRESOURCE(TextureCube,TextureCube);
+	FOpenGLTextureCube* TextureCube = ResourceCast(TextureCubeRHI);
 	return TextureCube->Lock(MipIndex,FaceIndex + 6 * ArrayIndex,LockMode,DestStride);
 }
 
 void FOpenGLDynamicRHI::RHIUnlockTextureCubeFace(FTextureCubeRHIParamRef TextureCubeRHI,uint32 FaceIndex,uint32 ArrayIndex,uint32 MipIndex,bool bLockWithinMiptail)
 {
-	DYNAMIC_CAST_OPENGLRESOURCE(TextureCube,TextureCube);
+	FOpenGLTextureCube* TextureCube = ResourceCast(TextureCubeRHI);
 	TextureCube->Unlock(MipIndex,FaceIndex + ArrayIndex * 6);
 }
 

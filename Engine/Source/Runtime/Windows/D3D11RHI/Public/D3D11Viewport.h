@@ -130,3 +130,8 @@ private:
 	DXGI_MODE_DESC SetupDXGI_MODE_DESC() const;
 };
 
+template<>
+struct TD3D11ResourceTraits<FRHIViewport>
+{
+	typedef FD3D11Viewport TConcreteType;
+};

@@ -40,7 +40,7 @@ FRenderQueryRHIRef FD3D11DynamicRHI::RHICreateRenderQuery(ERenderQueryType Query
 bool FD3D11DynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI,uint64& OutResult,bool bWait)
 {
 	check(IsInRenderingThread());
-	DYNAMIC_CAST_D3D11RESOURCE(RenderQuery,Query);
+	FD3D11RenderQuery* Query = ResourceCast(QueryRHI);
 
 	bool bSuccess = true;
 	if(!Query->bResultIsCached)
@@ -69,7 +69,7 @@ bool FD3D11DynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI,
 // Occlusion/Timer queries.
 void FD3D11DynamicRHI::RHIBeginRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 {
-	DYNAMIC_CAST_D3D11RESOURCE(RenderQuery,Query);
+	FD3D11RenderQuery* Query = ResourceCast(QueryRHI);
 
 	if(Query->QueryType == RQT_Occlusion)
 	{
@@ -85,7 +85,7 @@ void FD3D11DynamicRHI::RHIBeginRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 
 void FD3D11DynamicRHI::RHIEndRenderQuery(FRenderQueryRHIParamRef QueryRHI)
 {
-	DYNAMIC_CAST_D3D11RESOURCE(RenderQuery,Query);
+	FD3D11RenderQuery* Query = ResourceCast(QueryRHI);
 	Query->bResultIsCached = false; // for occlusion queries, this is redundant with the one in begin
 	Direct3DDeviceIMContext->End(Query->Resource);
 
