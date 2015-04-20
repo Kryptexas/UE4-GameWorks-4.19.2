@@ -1187,26 +1187,27 @@ FORCEINLINE FVector FTransform::TransformPositionNoScale(const FVector& V) const
 
 FORCEINLINE FVector FTransform::TransformVector(const FVector& V) const
 {
-	DiagnosticCheckNaN_Rotate();
-	DiagnosticCheckNaN_Scale3D();
+	DiagnosticCheckNaN_All();
 	return Rotation.RotateVector(Scale3D*V);
 }
 
 FORCEINLINE FVector FTransform::TransformVectorNoScale(const FVector& V) const
 {
-	DiagnosticCheckNaN_Rotate();
+	DiagnosticCheckNaN_All();
 	return Rotation.RotateVector(V);
 }
 
 // do backward operation when inverse, translation -> rotation -> scale
 FORCEINLINE FVector FTransform::InverseTransformPosition(const FVector &V) const
 {
+	DiagnosticCheckNaN_All();
 	return ( Rotation.UnrotateVector(V-Translation) ) * GetSafeScaleReciprocal(Scale3D);
 }
 
 // do backward operation when inverse, translation -> rotation
 FORCEINLINE FVector FTransform::InverseTransformPositionNoScale(const FVector &V) const
 {
+	DiagnosticCheckNaN_All();
 	return ( Rotation.UnrotateVector(V-Translation) );
 }
 
@@ -1214,12 +1215,14 @@ FORCEINLINE FVector FTransform::InverseTransformPositionNoScale(const FVector &V
 // do backward operation when inverse, translation -> rotation -> scale
 FORCEINLINE FVector FTransform::InverseTransformVector(const FVector &V) const
 {
+	DiagnosticCheckNaN_All();
 	return ( Rotation.UnrotateVector(V) ) * GetSafeScaleReciprocal(Scale3D);
 }
 
 // do backward operation when inverse, translation -> rotation
 FORCEINLINE FVector FTransform::InverseTransformVectorNoScale(const FVector &V) const
 {
+	DiagnosticCheckNaN_All();
 	return ( Rotation.UnrotateVector(V) );
 }
 
