@@ -28,6 +28,12 @@ Collections serve as a way to organize sets of assets into personally defined gr
 Under the hood, Collections are really just lists of references to given assets. The assets themselves are not moved into the Collection. This means that a single asset can exist in any number of Collections, and you can create as many Collections as you wish.
 [/EXCERPT:Collections]
 
+[REGION:note]
+	**Note**: The Collections tab may not be available by default. To open the Collections tab, simply open the **View Options** drop down menu, then click on **Show Collections**.	
+[/REGION]
+![](ViewCollections.png)
+
+
 ## Creating Collections
 
 ![](Collections_New.png)
