@@ -151,6 +151,10 @@ public:
 	/** Physics representation of the instance bodies */
 	TArray<FBodyInstance*> InstanceBodies;
 
+	/** Serialization of all the InstanceBodies. Helps speed up physics creation time*/
+	UPROPERTY()
+	class UPhysicsSerializer* PhysicsSerializer;
+
 	// Begin UActorComponent interface 
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
 	virtual FName GetComponentInstanceDataType() const override;

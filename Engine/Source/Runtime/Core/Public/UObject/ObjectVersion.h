@@ -494,6 +494,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_ADD_EDITOR_VIEWS,
 	// Updated foliage to work with either FoliageType assets or blueprint classes
 	VER_UE4_FOLIAGE_WITH_ASSET_OR_CLASS,
+	// Allows PhysicsSerializer to serialize shapes and actors for faster load times
+	VER_UE4_BODYINSTANCE_BINARY_SERIALIZATION,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

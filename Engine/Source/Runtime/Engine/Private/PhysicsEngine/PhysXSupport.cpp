@@ -6,6 +6,8 @@
 
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+#include "PhysicsEngine/ConvexElem.h"
 
 #if WITH_PHYSX
 
@@ -880,6 +882,43 @@ void FPhysxSharedData::DumpSharedMemoryUsage(FOutputDevice* Ar)
 	{
 		Ar->Logf(TEXT("%-10d %s (%d)"), It.Value().MemorySize, *It.Key(), It.Value().Count );
 	}
+}
+
+void AddToCollection(PxCollection* PCollection, PxBase* PBase)
+{
+	if (PBase)
+	{
+		PCollection->add(*PBase);
+	}
+}
+
+PxCollection* MakePhysXCollection(const TArray<UPhysicalMaterial*>& PhysicalMaterials, const TArray<UBodySetup*>& BodySetups, uint64 BaseId)
+{
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_CreateSharedData);
+	PxCollection* PCollection = PxCreateCollection();
+	for (UPhysicalMaterial* PhysicalMaterial : PhysicalMaterials)
+	{
+		if (PhysicalMaterial)
+		{
+			PCollection->add(*PhysicalMaterial->GetPhysXMaterial());
+		}
+	}
+
+	for (UBodySetup* BodySetup : BodySetups)
+	{
+		AddToCollection(PCollection, BodySetup->TriMesh);
+		AddToCollection(PCollection, BodySetup->TriMeshNegX);
+
+		for (const FKConvexElem& ConvexElem : BodySetup->AggGeom.ConvexElems)
+		{
+			AddToCollection(PCollection, ConvexElem.ConvexMesh);
+			AddToCollection(PCollection, ConvexElem.ConvexMeshNegX);
+		}
+	}
+
+	PxSerialization::createSerialObjectIds(*PCollection, PxSerialObjectId(BaseId));
+
+	return PCollection;
 }
 
 #endif // WITH_PHYSX

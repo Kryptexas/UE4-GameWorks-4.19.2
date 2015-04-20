@@ -370,6 +370,14 @@ public:
 	TSharedPtr<TArray<ANSICHAR>> CharDebugName;
 #endif	//WITH_PHYSX
 
+	/** Internal use. Physics-engine id of the actor used during serialization. Needs to be outside the ifdef for serialization purposes*/
+	UPROPERTY()
+	uint64 RigidActorSyncId;
+
+	/** Internal use. Physics-engine id of the actor used during serialization.  Needs to be outside the ifdef for serialization purposes*/
+	UPROPERTY()
+	uint64 RigidActorAsyncId;
+
 	/** Per instance data used to initialize dynamic instances */
 	/** Initial physx velocity to apply to dynamic instances */
 	FVector InitialLinearVelocity;
@@ -419,7 +427,7 @@ public:
 	 *	@param InRBScene The physics scene to put the bodies into
 	 *	@param InAggregate Aggregate to place the bodies into, be aware for PhysX we can only have 128 elements in an aggregate!
 	 */
-	static void InitBodies(TArray<FBodyInstance*>& Bodies, TArray<FTransform>& Transforms, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL, bool Defer = false);
+	static void InitBodies(TArray<FBodyInstance*>& Bodies, TArray<FTransform>& Transforms, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL, bool Defer = false, class UPhysicsSerializer* PhysicsSerializer = nullptr);
 
 	/** Validate a body transform, outputting debug info
 	 *	@param Transform Transform to debug
@@ -625,8 +633,14 @@ public:
 	/** Find the correct PhysicalMaterial for simple geometry on this body */
 	UPhysicalMaterial* GetSimplePhysicalMaterial() const;
 
+	/** Find the correct PhysicalMaterial for simple geometry on a given body and owner. This is really for internal use during serialization */
+	static UPhysicalMaterial* GetSimplePhysicalMaterial(const FBodyInstance* BodyInstance, TWeakObjectPtr<UPrimitiveComponent> Owner, TWeakObjectPtr<UBodySetup> BodySetupPtr);
+
 	/** Get the complex PhysicalMaterial array for this body */
 	TArray<UPhysicalMaterial*> GetComplexPhysicalMaterials() const;
+
+	/** Find the correct PhysicalMaterial for simple geometry on a given body and owner. This is really for internal use during serialization */
+	static void GetComplexPhysicalMaterials(const FBodyInstance* BodyInstance, TWeakObjectPtr<UPrimitiveComponent> Owner, TArray<UPhysicalMaterial*>& OutPhysicalMaterials);
 
 	/** Get the complex PhysicalMaterials for this body */
 	void GetComplexPhysicalMaterials(TArray<UPhysicalMaterial*> &PhysMaterials) const;
@@ -1006,6 +1020,7 @@ private:
 	friend class UCollisionProfile;
 	friend class FBodyInstanceCustomization;
 	friend struct FInitBodiesHelper;
+	friend class FDerivedDataPhysXBinarySerializer;
 
 #if WITH_BOX2D
 

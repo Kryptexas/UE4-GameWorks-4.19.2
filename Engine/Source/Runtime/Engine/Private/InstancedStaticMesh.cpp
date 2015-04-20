@@ -10,6 +10,7 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "InstancedStaticMesh.h"
 #include "../../Renderer/Private/ScenePrivate.h"
+#include "PhysicsSerializer.h"
 
 const int32 InstancedStaticMeshMaxTexCoord = 8;
 
@@ -729,6 +730,8 @@ UInstancedStaticMeshComponent::UInstancedStaticMeshComponent(const FObjectInitia
 {
 	Mobility = EComponentMobility::Movable;
 	BodyInstance.bSimulatePhysics = false;
+
+	PhysicsSerializer = ObjectInitializer.CreateDefaultSubobject<UPhysicsSerializer>(this, TEXT("PhysicsSerializer"));
 }
 
 #if WITH_EDITOR
@@ -997,6 +1000,15 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 		    Instance->CopyBodyInstancePropertiesFrom(&BodyInstance);
 		    Instance->InstanceBodyIndex = i; // Set body index 
 		    Instance->bAutoWeld = false;
+
+#if WITH_PHYSX
+			Instance->RigidActorSyncId = i+1;
+
+			if(GetWorld()->GetPhysicsScene()->HasAsyncScene())
+			{
+				Instance->RigidActorAsyncId = Instance->RigidActorSyncId + NumBodies;
+			}
+#endif
     
 		    // make sure we never enable bSimulatePhysics for ISMComps
 		    Instance->bSimulatePhysics = false;
@@ -1004,7 +1016,20 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 
 		if (NumBodies > 0)
 		{
-			FBodyInstance::InitBodies(InstanceBodies, Transforms, BodySetup, this, GetWorld()->GetPhysicsScene(), nullptr, true);
+			TArray<UBodySetup*> BodySetups;
+			TArray<UPhysicalMaterial*> PhysicalMaterials;
+
+			BodySetups.Add(BodySetup);
+			TWeakObjectPtr<UPrimitiveComponent> WeakSelfPtr(this);
+			FBodyInstance::GetComplexPhysicalMaterials(&BodyInstance, WeakSelfPtr, PhysicalMaterials);
+			PhysicalMaterials.Add(FBodyInstance::GetSimplePhysicalMaterial(&BodyInstance, WeakSelfPtr, TWeakObjectPtr<UBodySetup>(BodySetup)));
+
+			PhysicsSerializer->CreatePhysicsData(BodySetups, PhysicalMaterials);
+			
+			FBodyInstance::InitBodies(InstanceBodies, Transforms, BodySetup, this, GetWorld()->GetPhysicsScene(), nullptr, true, PhysicsSerializer);
+
+			//Serialize physics data for fast path cooking
+			PhysicsSerializer->SerializePhysics(InstanceBodies, BodySetups, PhysicalMaterials);
 		}
 	}
 }

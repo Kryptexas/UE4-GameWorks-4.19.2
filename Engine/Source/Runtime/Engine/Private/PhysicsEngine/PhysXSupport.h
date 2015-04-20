@@ -426,6 +426,8 @@ private:
 
 };
 
+ENGINE_API PxCollection* MakePhysXCollection(const TArray<UPhysicalMaterial*>& PhysicalMaterials, const TArray<UBodySetup*>& BodySetups, uint64 BaseId);
+
 /** Utility wrapper for a uint8 TArray for loading into PhysX. */
 class FPhysXInputStream : public PxInputStream
 {
