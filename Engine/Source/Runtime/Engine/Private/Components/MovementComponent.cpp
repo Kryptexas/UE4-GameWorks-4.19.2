@@ -125,6 +125,11 @@ void UMovementComponent::OnRegister()
 	{
 		SnapUpdatedComponentToPlane();
 	}
+
+#if WITH_EDITOR
+	// Reset so next PIE session warns.
+	bEditorWarnedStaticMobilityMove = false;
+#endif
 }
 
 void UMovementComponent::RegisterComponentTickFunctions(bool bRegister)
@@ -235,8 +240,28 @@ bool UMovementComponent::IsInWater() const
 
 bool UMovementComponent::ShouldSkipUpdate(float DeltaTime) const
 {
-	if (UpdatedComponent == NULL || UpdatedComponent->Mobility != EComponentMobility::Movable)
+	if (UpdatedComponent == nullptr)
 	{
+		return true;
+	}
+		
+	if (UpdatedComponent->Mobility != EComponentMobility::Movable)
+	{
+#if WITH_EDITOR
+		if (!bEditorWarnedStaticMobilityMove)
+		{
+			if (UWorld * World = GetWorld())
+			{
+				if (World->HasBegunPlay() && IsRegistered())
+				{
+					const_cast<UMovementComponent*>(this)->bEditorWarnedStaticMobilityMove = true;
+					FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidMove", "Mobility of {0} : {1} has to be 'Movable' if you'd like to move it with {2}. "),
+						FText::FromString(GetNameSafe(UpdatedComponent->GetOwner())), FText::FromString(UpdatedComponent->GetName()), FText::FromString(GetClass()->GetName())));
+				}
+			}
+		}
+#endif
+
 		return true;
 	}
 

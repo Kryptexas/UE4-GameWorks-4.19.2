@@ -85,6 +85,11 @@ class ENGINE_API UMovementComponent : public UActorComponent
 
 private:
 
+#if WITH_EDITOR
+	// Warned about trying to move something with static mobility.
+	uint32 bEditorWarnedStaticMobilityMove:1;
+#endif
+
 	/**
 	 * Setting that controls behavior when movement is restricted to a 2D plane defined by a specific axis/normal,
 	 * so that movement along the locked axis is not be possible.
