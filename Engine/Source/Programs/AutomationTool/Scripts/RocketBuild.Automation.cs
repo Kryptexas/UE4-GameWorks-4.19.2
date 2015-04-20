@@ -100,13 +100,13 @@ namespace Rocket
 				if(ShouldDoSeriousThingsLikeP4CheckinAndPostToMCP())
 				{
 					string OutputDir = CommandUtils.CombinePaths(CommandUtils.RootSharedTempStorageDirectory(), "Rocket", "Automated", GetBuildLabel(), CommandUtils.GetGenericPlatformName(HostPlatform));
-					bp.AddNode(new CopyRocketNode(HostPlatform, OutputDir, true));
+					bp.AddNode(new CopyRocketNode(HostPlatform, CodeTargetPlatforms, OutputDir, true));
 					bp.AddNode(new CopyRocketSymbolsNode(bp, HostPlatform, CodeTargetPlatforms, OutputDir + "Symbols", true));
 				}
 				else
 				{
 					string OutputDir = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "LocalBuilds", "Rocket", CommandUtils.GetGenericPlatformName(HostPlatform));
-					bp.AddNode(new CopyRocketNode(HostPlatform, OutputDir, false));
+					bp.AddNode(new CopyRocketNode(HostPlatform, CodeTargetPlatforms, OutputDir, false));
 					bp.AddNode(new CopyRocketSymbolsNode(bp, HostPlatform, CodeTargetPlatforms, OutputDir + "Symbols", false));
 				}
 
@@ -461,12 +461,16 @@ namespace Rocket
 			AddRuleForBuildProducts(Filter, bp, GUBP.RootEditorNode.StaticGetFullName(HostPlatform), FileFilterType.Include);
 			AddRuleForBuildProducts(Filter, bp, GUBP.ToolsNode.StaticGetFullName(HostPlatform), FileFilterType.Include);
 
+			// Include the editor headers
+			UnzipAndAddRuleForHeaders(GUBP.RootEditorNode.StaticGetFullName(HostPlatform), Filter, FileFilterType.Include);
+
 			// Include the build dependencies for every code platform
 			foreach(UnrealTargetPlatform CodeTargetPlatform in CodeTargetPlatforms)
 			{
 				UnrealTargetPlatform SourceHostPlatform = RocketBuild.GetSourceHostPlatform(bp, HostPlatform, CodeTargetPlatform);
-				string FileListPath = GUBP.GamePlatformMonolithicsNode.StaticGetBuildDependenciesPath(SourceHostPlatform, CodeTargetPlatform);
+				string FileListPath = GUBP.GamePlatformMonolithicsNode.StaticGetBuildDependenciesPath(SourceHostPlatform, bp.Branch.BaseEngineProject, CodeTargetPlatform);
 				Filter.AddRuleForFiles(UnrealBuildTool.Utils.ReadClass<UnrealBuildTool.ExternalFileList>(FileListPath).FileNames, CommandUtils.CmdEnv.LocalRoot, FileFilterType.Include);
+				UnzipAndAddRuleForHeaders(GUBP.GamePlatformMonolithicsNode.StaticGetArchivedHeadersPath(HostPlatform, bp.Branch.BaseEngineProject, CodeTargetPlatform), Filter, FileFilterType.Include);
 			}
 
 			// Add the monolithic binaries
@@ -568,6 +572,12 @@ namespace Rocket
 			Filter.AddRuleForFiles(Node.BuildProducts, CommandUtils.CmdEnv.LocalRoot, Type);
 		}
 
+		static void UnzipAndAddRuleForHeaders(string ZipFileName, FileFilter Filter, FileFilterType Type)
+		{
+			IEnumerable<string> FileNames = CommandUtils.UnzipFiles(ZipFileName, CommandUtils.CmdEnv.LocalRoot);
+			Filter.AddRuleForFiles(FileNames, CommandUtils.CmdEnv.LocalRoot, FileFilterType.Include);
+		}
+
 		public static void WriteManifest(string FileName, IEnumerable<string> Files)
 		{
 			CommandUtils.CreateDirectory(Path.GetDirectoryName(FileName));
@@ -578,10 +588,12 @@ namespace Rocket
 	public class CopyRocketNode : GUBP.HostPlatformNode
 	{
 		public readonly string OutputDir;
+		public List<UnrealTargetPlatform> CodeTargetPlatforms;
 
-		public CopyRocketNode(UnrealTargetPlatform HostPlatform, string InOutputDir, bool bWaitForPromotion) : base(HostPlatform)
+		public CopyRocketNode(UnrealTargetPlatform HostPlatform, List<UnrealTargetPlatform> InCodeTargetPlatforms, string InOutputDir, bool bWaitForPromotion) : base(HostPlatform)
 		{
 			OutputDir = InOutputDir;
+			CodeTargetPlatforms = new List<UnrealTargetPlatform>(InCodeTargetPlatforms);
 
 			// If this is a CIS build, we need to wait for the promotable trigger before running. If not, make an agent sharing group so that the samples node can use our build products.
 			if(bWaitForPromotion)
@@ -611,6 +623,17 @@ namespace Rocket
 		public override void DoBuild(GUBP bp)
 		{
 			CommandUtils.DeleteDirectoryContents(OutputDir);
+
+			// Extract the editor headers
+			CommandUtils.UnzipFiles(GUBP.RootEditorNode.StaticGetFullName(HostPlatform), CommandUtils.CmdEnv.LocalRoot);
+
+			// Extract all the headers for code target platforms
+			foreach(UnrealTargetPlatform CodeTargetPlatform in CodeTargetPlatforms)
+			{
+				UnrealTargetPlatform SourceHostPlatform = RocketBuild.GetSourceHostPlatform(bp, HostPlatform, CodeTargetPlatform);
+				string ZipFileName = GUBP.GamePlatformMonolithicsNode.StaticGetArchivedHeadersPath(SourceHostPlatform, bp.Branch.BaseEngineProject, CodeTargetPlatform);
+				CommandUtils.UnzipFiles(ZipFileName, CommandUtils.CmdEnv.LocalRoot);
+			}
 
 			// Copy the depot files to the output directory
 			FilterRocketNode FilterNode = (FilterRocketNode)bp.FindNode(FilterRocketNode.StaticGetFullName(HostPlatform));

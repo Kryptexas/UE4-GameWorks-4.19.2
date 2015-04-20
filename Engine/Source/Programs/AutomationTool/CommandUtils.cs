@@ -2097,6 +2097,36 @@ namespace AutomationTool
 				return Enum.GetName(typeof(UnrealBuildTool.UnrealTargetPlatform), Platform);
 			}
 		}
+
+		/// <summary>
+		/// Creates a zip file containing the given input files
+		/// </summary>
+		/// <param name="ZipFileName">Filename for the zip</param>
+		/// <param name="Filter">Filter which selects files to be included in the zip</param>
+		/// <param name="BaseDirectory">Base directory to store relative paths in the zip file to</param>
+		public static void ZipFiles(string ZipFileName, string BaseDirectory, FileFilter Filter)
+		{
+			Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile();
+			foreach(string FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
+			{
+				Zip.AddFile(Path.Combine(BaseDirectory, FilteredFile), Path.GetDirectoryName(FilteredFile));
+			}
+			CommandUtils.CreateDirectory(Path.GetDirectoryName(ZipFileName));
+			Zip.Save(ZipFileName);
+		}
+
+		/// <summary>
+		/// Extracts the contents of a zip file
+		/// </summary>
+		/// <param name="ZipFileName">Name of the zip file</param>
+		/// <param name="BaseDirectory">Output directory</param>
+		/// <returns>List of files written</returns>
+		public static IEnumerable<string> UnzipFiles(string ZipFileName, string BaseDirectory)
+		{
+			Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile(ZipFileName);
+			Zip.ExtractAll(BaseDirectory, Ionic.Zip.ExtractExistingFileAction.OverwriteSilently);
+			return Zip.EntryFileNames.Select(x => Path.Combine(BaseDirectory, x));
+		}
 	}
 
 

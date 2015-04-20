@@ -822,6 +822,25 @@ public class GUBP : BuildCommand
         {
             return true;
         }
+		public override void DoBuild(GUBP bp)
+		{
+			base.DoBuild(bp);
+
+			if(!bp.BranchOptions.bNoInstalledEngine)
+			{
+				FileFilter Filter = new FileFilter();
+				Filter.Include("/Engine/Intermediate/Build/" + HostPlatform.ToString() + "/UE4Editor/Inc/...");
+				Filter.Include("/Engine/Plugins/.../Intermediate/Build/" + HostPlatform.ToString() + "/UE4Editor/Inc/...");
+
+				string ZipFileName = StaticGetArchivedHeadersPath(HostPlatform);
+				CommandUtils.ZipFiles(ZipFileName, CommandUtils.CmdEnv.LocalRoot, Filter);
+				BuildProducts.Add(ZipFileName);
+			}
+		}
+		public static string StaticGetArchivedHeadersPath(UnrealTargetPlatform HostPlatform)
+		{
+			return CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Saved", "Precompiled", "Headers-RootEditor" + StaticGetHostPlatformSuffix(HostPlatform) + ".zip");
+		}
         public override UE4Build.BuildAgenda GetAgenda(GUBP bp)
         {
             var Agenda = new UE4Build.BuildAgenda();
@@ -1700,9 +1719,18 @@ public class GUBP : BuildCommand
 				}
 
 				// Write the resulting file list out to disk
-				string OutputFileListPath = StaticGetBuildDependenciesPath(HostPlatform, TargetPlatform);
+				string OutputFileListPath = StaticGetBuildDependenciesPath(HostPlatform, GameProj, TargetPlatform);
 				UnrealBuildTool.Utils.WriteClass<UnrealBuildTool.ExternalFileList>(FileList, OutputFileListPath, "");
 				AddBuildProduct(OutputFileListPath);
+
+				// Archive all the headers
+				FileFilter Filter = new FileFilter();
+				Filter.Include("/Engine/Intermediate/Build/" + HostPlatform.ToString() + "/UE4/Inc/...");
+				Filter.Include("/Engine/Plugins/.../Intermediate/Build/" + HostPlatform.ToString() + "/UE4/Inc/...");
+
+				string ZipFileName = StaticGetArchivedHeadersPath(HostPlatform, GameProj, TargetPlatform);
+				CommandUtils.ZipFiles(ZipFileName, CommandUtils.CmdEnv.LocalRoot, Filter);
+				BuildProducts.Add(ZipFileName);
 			}
 		}
 
@@ -1775,34 +1803,16 @@ public class GUBP : BuildCommand
             return Agenda;
         }
 
-		public static string StaticGetBuildDependenciesPath(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform TargetPlatform)
+		public static string StaticGetArchivedHeadersPath(UnrealTargetPlatform HostPlatform, BranchInfo.BranchUProject GameProj, UnrealTargetPlatform TargetPlatform)
 		{
-			return CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine/Saved/BuildDependencies/" + TargetPlatform.ToString() + StaticGetHostPlatformSuffix(HostPlatform) + ".xml");
+			return CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Saved", "Precompiled", "Headers-" + StaticGetFullName(HostPlatform, GameProj, TargetPlatform) + ".zip");
+		}
+
+		public static string StaticGetBuildDependenciesPath(UnrealTargetPlatform HostPlatform, BranchInfo.BranchUProject GameProj, UnrealTargetPlatform TargetPlatform)
+		{
+			return CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Saved", "Precompiled", "BuildDependencies-" + StaticGetFullName(HostPlatform, GameProj, TargetPlatform) + ".xml");
 		}
     }
-
-	public static class HeadersNode
-	{
-		public static void ZipHeaders(IEnumerable<string> HeaderFiles, string ZipFileName)
-		{
-			string NormalizedPrefix = CommandUtils.ConvertSeparators(PathSeparator.Slash, CmdEnv.LocalRoot).TrimEnd('/') + "/";
-
-			Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile();
-			foreach(string HeaderFile in HeaderFiles)
-			{
-				string NormalizedDirectoryName = CommandUtils.ConvertSeparators(PathSeparator.Slash, Path.GetDirectoryName(HeaderFile));
-				if(NormalizedDirectoryName.StartsWith(NormalizedPrefix))
-				{
-					Zip.AddFile(HeaderFile, NormalizedDirectoryName.Substring(NormalizedPrefix.Length));
-				}
-				else
-				{
-					throw new AutomationException("Header file '{0}' was not under root directory ('{1}')", NormalizedDirectoryName, NormalizedPrefix);
-				}
-			}
-			Zip.Save(ZipFileName);
-		}
-	}
 
     public class SuccessNode : GUBPNode
     {
