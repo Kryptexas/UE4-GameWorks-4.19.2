@@ -127,6 +127,8 @@ struct FReplaceReferenceHelper
 // FBlueprintCompileReinstancer
 
 TSet<TWeakObjectPtr<UBlueprint>> FBlueprintCompileReinstancer::DependentBlueprintsToRefresh = TSet<TWeakObjectPtr<UBlueprint>>();
+TSet<TWeakObjectPtr<UBlueprint>> FBlueprintCompileReinstancer::DependentBlueprintsToRecompile = TSet<TWeakObjectPtr<UBlueprint>>();
+TSet<TWeakObjectPtr<UBlueprint>> FBlueprintCompileReinstancer::DependentBlueprintsToByteRecompile = TSet<TWeakObjectPtr<UBlueprint>>();
 
 FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToReinstance, bool bIsBytecodeOnly, bool bSkipGC)
 	: ClassToReinstance(InClassToReinstance)
@@ -237,7 +239,7 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 		check(GeneratingBP || GIsAutomationTesting);
 		if(GeneratingBP)
 		{
-			ClassToReinstanceDefaultValuesCRC = GeneratingBP->CrcPreviousCompiledCDO;
+			ClassToReinstanceDefaultValuesCRC = GeneratingBP->CrcLastCompiledCDO;
 			FBlueprintEditorUtils::GetDependentBlueprints(GeneratingBP, Dependencies);
 		}
 	}
@@ -431,7 +433,7 @@ TSharedPtr<FReinstanceFinalizer> FBlueprintCompileReinstancer::ReinstanceInner(b
 			const UBlueprintGeneratedClass* BPClassB = Cast<const UBlueprintGeneratedClass>(ClassToReinstance);
 			const UBlueprint* BP = Cast<const UBlueprint>(ClassToReinstance->ClassGeneratedBy);
 
-			const bool bTheSameDefaultValues = (BP != nullptr) && (ClassToReinstanceDefaultValuesCRC != 0) && (BP->CrcPreviousCompiledCDO == ClassToReinstanceDefaultValuesCRC);
+			const bool bTheSameDefaultValues = (BP != nullptr) && (ClassToReinstanceDefaultValuesCRC != 0) && (BP->CrcLastCompiledCDO == ClassToReinstanceDefaultValuesCRC);
 			const bool bTheSameLayout = (BPClassA != nullptr) && (BPClassB != nullptr) && FStructUtils::TheSameLayout(BPClassA, BPClassB, true);
 			const bool bAllowedToDoFastPath = bTheSameDefaultValues && bTheSameLayout;
 			if (bAllowedToDoFastPath)
@@ -458,6 +460,34 @@ void FBlueprintCompileReinstancer::ListDependentBlueprintsToRefresh(const TArray
 	}
 }
 
+void FBlueprintCompileReinstancer::EnlistDependentBlueprintToRecompile(UBlueprint* BP, bool bBytecodeOnly)
+{
+	if (IsValid(BP))
+	{
+		if (bBytecodeOnly)
+		{
+			DependentBlueprintsToByteRecompile.Add(BP);
+		}
+		else
+		{
+			DependentBlueprintsToRecompile.Add(BP);
+		}
+	}
+}
+
+void FBlueprintCompileReinstancer::BlueprintWasRecompiled(UBlueprint* BP, bool bBytecodeOnly)
+{
+	if (IsValid(BP))
+	{
+		DependentBlueprintsToRefresh.Remove(BP);
+		DependentBlueprintsToByteRecompile.Remove(BP);
+		if (!bBytecodeOnly)
+		{
+			DependentBlueprintsToRecompile.Remove(BP);
+		}
+	}
+}
+
 void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance)
 {
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ReinstanceObjects);
@@ -477,6 +507,30 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 
 		if (QueueToReinstance.Num() && (QueueToReinstance[0] == SharedThis))
 		{
+			while (DependentBlueprintsToRecompile.Num())
+			{
+				auto Iter = DependentBlueprintsToRecompile.CreateIterator();
+				TWeakObjectPtr<UBlueprint> BPPtr = *Iter;
+				Iter.RemoveCurrent();
+				if (auto BP = BPPtr.Get())
+				{
+					FKismetEditorUtilities::CompileBlueprint(BP, false, bSkipGarbageCollection);
+				}
+			}
+
+			while (DependentBlueprintsToByteRecompile.Num())
+			{
+				auto Iter = DependentBlueprintsToByteRecompile.CreateIterator();
+				TWeakObjectPtr<UBlueprint> BPPtr = *Iter;
+				Iter.RemoveCurrent();
+				if (auto BP = BPPtr.Get())
+				{
+					FKismetEditorUtilities::RecompileBlueprintBytecode(BP);
+				}
+			}
+
+			ensure(0 == DependentBlueprintsToRecompile.Num());
+
 			TArray<TSharedPtr<FReinstanceFinalizer>> Finalizers;
 
 			// All children were recompiled. It's safe to reinstance.
@@ -488,13 +542,6 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 					Finalizers.Push(Finalizer);
 				}
 				QueueToReinstance[Idx]->bHasReinstanced = true;
-
-				auto LocalClassToReinstance = QueueToReinstance[Idx]->ClassToReinstance;
-				UBlueprint* BP = LocalClassToReinstance ? Cast<UBlueprint>(LocalClassToReinstance->ClassGeneratedBy) : nullptr;
-				if (BP)
-				{
-					DependentBlueprintsToRefresh.Remove(BP);
-				}
 			}
 			QueueToReinstance.Empty();
 

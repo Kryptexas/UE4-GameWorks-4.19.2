@@ -17,6 +17,8 @@ class UNREALED_API FBlueprintCompileReinstancer : public TSharedFromThis<FBluepr
 protected:
 
 	static TSet<TWeakObjectPtr<UBlueprint>> DependentBlueprintsToRefresh;
+	static TSet<TWeakObjectPtr<UBlueprint>> DependentBlueprintsToRecompile;
+	static TSet<TWeakObjectPtr<UBlueprint>> DependentBlueprintsToByteRecompile;
 
 	/** Reference to the class we're actively reinstancing */
 	UClass* ClassToReinstance;
@@ -57,6 +59,8 @@ public:
 	// End of FSerializableObject interface
 
 	void ListDependentBlueprintsToRefresh(const TArray<UBlueprint*>& DependentBPs);
+	void EnlistDependentBlueprintToRecompile(UBlueprint* BP, bool bBytecodeOnly);
+	void BlueprintWasRecompiled(UBlueprint* BP, bool bBytecodeOnly);
 
 	static TSharedPtr<FBlueprintCompileReinstancer> Create(UClass* InClassToReinstance, bool bIsBytecodeOnly = false, bool bSkipGC = false)
 	{

@@ -11,6 +11,7 @@
 
 #include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetReinstanceUtilities.h"
+#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 
 #include "UserDefinedStructureCompilerUtils.h"
 #include "Engine/UserDefinedStruct.h"
@@ -47,7 +48,7 @@ public:
 };
 
 // Compiles a blueprint.
-void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded)
+void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TSharedPtr<FBlueprintCompileReinstancer> Reinstancer, TArray<UObject*>* ObjLoaded)
 {
 	FBlueprintIsBeingCompiledHelper BeingCompiled(Blueprint);
 
@@ -60,6 +61,16 @@ void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, 
 	}
 	else
 	{
+		const uint32 PreviousSignatureCrc = Blueprint->CrcLastCompiledSignature;
+		const bool bIsFullCompile = CompileOptions.DoesRequireBytecodeGeneration() && (Blueprint->BlueprintType != BPTYPE_Interface);
+		const bool bRecompileDependencies = bIsFullCompile && !Blueprint->bIsRegeneratingOnLoad && Reinstancer.IsValid();
+
+		TArray<UBlueprint*> StoredDependentBlueprints;
+		if (bRecompileDependencies)
+		{
+			FBlueprintEditorUtils::GetDependentBlueprints(Blueprint, StoredDependentBlueprints);
+		}
+
 		// Loop through all external compiler delegates attempting to compile the blueprint.
 		bool Compiled = false;
 		for ( IBlueprintCompiler* Compiler : Compilers )
@@ -86,6 +97,22 @@ void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, 
 				FKismetCompilerContext Compiler(Blueprint, Results, CompileOptions, ObjLoaded);
 				Compiler.Compile();
 				check(Compiler.NewClass);
+			}
+		}
+
+		if (bRecompileDependencies)
+		{
+			Reinstancer->BlueprintWasRecompiled(Blueprint, CompileOptions.CompileType == EKismetCompileType::BytecodeOnly);
+
+			const bool bSignatureWasChanged = PreviousSignatureCrc != Blueprint->CrcLastCompiledSignature;
+			UE_LOG(LogK2Compiler, Verbose, TEXT("Signature of Blueprint '%s' %s changed"), *GetNameSafe(Blueprint), bSignatureWasChanged ? TEXT("was") : TEXT("was not"));
+
+			if (bSignatureWasChanged)
+			{
+				for (auto CurrentBP : StoredDependentBlueprints)
+				{
+					Reinstancer->EnlistDependentBlueprintToRecompile(CurrentBP, !CurrentBP->IsPossiblyDirty());
+				}
 			}
 		}
 	}
@@ -125,7 +152,7 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 		SkeletonResults.bSilentMode = true;
 		FKismetCompilerOptions SkeletonCompileOptions;
 		SkeletonCompileOptions.CompileType = EKismetCompileType::SkeletonOnly;
-		CompileBlueprintInner(Blueprint, SkeletonCompileOptions, SkeletonResults, ObjLoaded);
+		CompileBlueprintInner(Blueprint, SkeletonCompileOptions, SkeletonResults, ParentReinstancer, ObjLoaded);
 	}
 
 	// If this was a full compile, take appropriate actions depending on the success of failure of the compile
@@ -134,7 +161,7 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileGeneratedClass);
 
 		// Perform the full compile
-		CompileBlueprintInner(Blueprint, CompileOptions, Results, ObjLoaded);
+		CompileBlueprintInner(Blueprint, CompileOptions, Results, ParentReinstancer, ObjLoaded);
 
 		if (Results.NumErrors == 0)
 		{
@@ -177,7 +204,7 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 			FKismetCompilerOptions StubCompileOptions(CompileOptions);
 			StubCompileOptions.CompileType = EKismetCompileType::StubAfterFailure;
 
-			CompileBlueprintInner(Blueprint, StubCompileOptions, StubResults, ObjLoaded);
+			CompileBlueprintInner(Blueprint, StubCompileOptions, StubResults, StubReinstancer, ObjLoaded);
 
 			StubReinstancer->UpdateBytecodeReferences();
 			if( !Blueprint->bIsRegeneratingOnLoad )
