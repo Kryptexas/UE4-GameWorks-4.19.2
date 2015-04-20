@@ -267,9 +267,7 @@ TSharedRef<SWidget> FTileMapEdModeToolkit::BuildToolBar() const
 {
 	const FTileMapEditorCommands& Commands = FTileMapEditorCommands::Get();
 
-	
-	//@TODO: Add icons for these commands and force this toolbar to use small icons mode
-	FToolBarBuilder SelectionFlipToolsToolbar(ToolkitCommands, FMultiBoxCustomization::None);
+	FToolBarBuilder SelectionFlipToolsToolbar(ToolkitCommands, FMultiBoxCustomization::None, TSharedPtr<FExtender>(), Orient_Horizontal, /*bForceSmallIcons=*/ true);
 	{
 		SelectionFlipToolsToolbar.AddToolBarButton(Commands.FlipSelectionHorizontally, NAME_None, LOCTEXT("FlipHorizontalShortLabel", "|X"));
 		SelectionFlipToolsToolbar.AddToolBarButton(Commands.FlipSelectionVertically, NAME_None, LOCTEXT("FlipVerticalShortLabel", "|Y"));
@@ -291,7 +289,8 @@ TSharedRef<SWidget> FTileMapEdModeToolkit::BuildToolBar() const
 		+SHorizontalBox::Slot()
 		.FillWidth(1.f)
 		.HAlign(HAlign_Left)
-		.Padding(4.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		.Padding(0.0f, 0.0f)
 		[
 			SNew(SBorder)
 			.Padding(0)

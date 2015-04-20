@@ -56,10 +56,23 @@ void FPaperStyle::Initialize()
 	{
 		StyleSet->Set("TileMapEditor.EnterTileMapEditMode", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_TileMapEdModeIcon_40x"), Icon40x40));
 
+		StyleSet->Set("TileMapEditor.RotateSelectionCW", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_RotateCW_40x"), Icon40x40));
+		StyleSet->Set("TileMapEditor.RotateSelectionCW.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_RotateCW_40x"), Icon20x20));
+		StyleSet->Set("TileMapEditor.RotateSelectionCCW", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_RotateCCW_40x"), Icon40x40));
+		StyleSet->Set("TileMapEditor.RotateSelectionCCW.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_RotateCCW_40x"), Icon20x20));
+		StyleSet->Set("TileMapEditor.FlipSelectionHorizontally", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_MirrorHorizontal_40x"), Icon40x40));
+		StyleSet->Set("TileMapEditor.FlipSelectionHorizontally.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_MirrorHorizontal_40x"), Icon20x20));
+		StyleSet->Set("TileMapEditor.FlipSelectionVertically", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_MirrorVertical_40x"), Icon40x40));
+		StyleSet->Set("TileMapEditor.FlipSelectionVertically.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_MirrorVertical_40x"), Icon20x20));
+
 		StyleSet->Set("TileMapEditor.SelectPaintTool", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_PaintBrush_40x"), Icon40x40));
+		StyleSet->Set("TileMapEditor.SelectPaintTool.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_PaintBrush_40x"), Icon20x20));
 		StyleSet->Set("TileMapEditor.SelectEraserTool", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_Eraser_40x"), Icon40x40));
+		StyleSet->Set("TileMapEditor.SelectEraserTool.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_Eraser_40x"), Icon20x20));
 		StyleSet->Set("TileMapEditor.SelectFillTool", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_PaintBucket_40x"), Icon40x40));
+		StyleSet->Set("TileMapEditor.SelectFillTool.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_PaintBucket_40x"), Icon20x20));
 		StyleSet->Set("TileMapEditor.SelectEyeDropperTool", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_EyeDropper_40x"), Icon40x40));
+		StyleSet->Set("TileMapEditor.SelectEyeDropperTool.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_EyeDropper_40x"), Icon20x20));
 
 		StyleSet->Set("TileMapEditor.AddNewLayerAbove", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_TileMapEditor_AddNewLayerAbove_40x"), Icon40x40));
 		StyleSet->Set("TileMapEditor.AddNewLayerAbove.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_TileMapEditor_AddNewLayerAbove_40x"), Icon20x20));
