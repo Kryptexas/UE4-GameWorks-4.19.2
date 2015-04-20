@@ -16,3 +16,9 @@ public:
 	void Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen);
 };
 
+template<>
+struct TMetalResourceTraits<FRHIViewport>
+{
+	typedef FMetalViewport TConcreteType;
+};
+

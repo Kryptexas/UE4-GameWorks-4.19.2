@@ -611,8 +611,3 @@ struct TMetalResourceTraits<FRHIBlendState>
 {
 	typedef FMetalBlendState TConcreteType;
 };
-template<>
-struct TMetalResourceTraits<FRHIViewport>
-{
-	typedef FMetalViewport TConcreteType;
-};

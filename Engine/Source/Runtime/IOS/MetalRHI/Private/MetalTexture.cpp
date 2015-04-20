@@ -545,7 +545,7 @@ void FMetalDynamicRHI::RHIUnlockTexture2DArray(FTexture2DArrayRHIParamRef Textur
 
 void FMetalDynamicRHI::RHIUpdateTexture2D(FTexture2DRHIParamRef TextureRHI, uint32 MipIndex, const struct FUpdateTextureRegion2D& UpdateRegion, uint32 SourcePitch, const uint8* SourceData)
 {	
-	FMetalTexture3D* Texture = ResourceCast(TextureRHI);
+	FMetalTexture2D* Texture = ResourceCast(TextureRHI);
 
 }
 
