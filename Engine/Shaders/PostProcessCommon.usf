@@ -48,16 +48,6 @@ float4 PostprocessInput4MinMax;
 float4 PostprocessInput5MinMax;
 float4 PostprocessInput6MinMax;
 
-// Single pixel RT used for EyeAdaptation, use function EyeAdaptationLookup() to access.
-Texture2D EyeAdaptation;
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
-//Provides access to the EyeAdaptation RT. Only available in SM5.
-float EyeAdaptationLookup()
-{
-	return EyeAdaptation.Load(int3(0, 0, 0)).r;
-}
-#endif
-
 // viewport width, height, 1/width, 1/height (scaled to the current rendertarget resolution), depends on SetViewportAndCallRHI() call
 float4 ViewportSize;
 // in pixels (scaled to the current rendertarget resolution), float4(minx,miny,maxx,maxy), depends on SetViewportAndCallRHI() call

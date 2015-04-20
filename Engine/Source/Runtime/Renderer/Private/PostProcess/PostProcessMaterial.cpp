@@ -26,24 +26,38 @@ public:
 		return (Material->GetMaterialDomain() == MD_PostProcess) && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const class FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FMaterialShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+
+		OutEnvironment.SetDefine(TEXT("POST_PROCESS_MATERIAL"), 1);
+	}
+
+
 	FPostProcessMaterialVS( )	{ }
 	FPostProcessMaterialVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FMaterialShader(Initializer)
 	{
+		PostprocessParameter.Bind(Initializer.ParameterMap);
 	}
 
 	void SetParameters(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context )
 	{
-		FMaterialShader::SetParameters(RHICmdList, GetVertexShader(), Context.View);
+		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
+		FMaterialShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
+		PostprocessParameter.SetVS(ShaderRHI, Context, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
 	}
 
 	// Begin FShader interface
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FMaterialShader::Serialize(Ar);
+		Ar << PostprocessParameter;
 		return bShaderHasOutdatedParameters;
 	}
 	//  End FShader interface 
+private:
+	FPostProcessPassParameters PostprocessParameter;
 };
 
 IMPLEMENT_MATERIAL_SHADER_TYPE(,FPostProcessMaterialVS,TEXT("PostProcessMaterialShaders"),TEXT("MainVS"),SF_Vertex);
@@ -62,6 +76,13 @@ public:
 	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material)
 	{
 		return (Material->GetMaterialDomain() == MD_PostProcess) && IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const class FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FMaterialShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+
+		OutEnvironment.SetDefine(TEXT("POST_PROCESS_MATERIAL"), 1);
 	}
 
 	FPostProcessMaterialPS() {}

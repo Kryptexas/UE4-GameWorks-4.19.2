@@ -66,7 +66,6 @@ FMaterialShader::FMaterialShader(const FMaterialShaderType::CompiledShaderInitia
 	LightAttenuation.Bind(Initializer.ParameterMap, TEXT("LightAttenuationTexture"));
 	LightAttenuationSampler.Bind(Initializer.ParameterMap, TEXT("LightAttenuationTextureSampler"));
 	AtmosphericFogTextureParameters.Bind(Initializer.ParameterMap);
-	PostprocessParameter.Bind(Initializer.ParameterMap);
 	EyeAdaptation.Bind(Initializer.ParameterMap, TEXT("EyeAdaptation"));
 	// only used it Material has expression that requires PerlinNoiseGradientTexture
 	PerlinNoiseGradientTexture.Bind(Initializer.ParameterMap,TEXT("PerlinNoiseGradientTexture"));
@@ -348,7 +347,6 @@ bool FMaterialShader::Serialize(FArchive& Ar)
 		Ar << DebugDescription;
 	}
 	Ar << AtmosphericFogTextureParameters;
-	Ar << PostprocessParameter;
 	Ar << EyeAdaptation;
 	Ar << PerlinNoiseGradientTexture;
 	Ar << PerlinNoiseGradientTextureSampler;

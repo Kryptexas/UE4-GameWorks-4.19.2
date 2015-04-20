@@ -6,6 +6,7 @@
 
 #include "Common.usf"
 #include "PostProcessCommon.usf"
+#include "EyeAdaptationCommon.usf"
 
 // for VisualizeBloomOverlayPS
 // xyz:Bloom1Tint.rgb, w:unused

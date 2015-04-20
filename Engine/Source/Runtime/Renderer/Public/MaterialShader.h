@@ -148,7 +148,6 @@ private:
 
 	// For materials using atmospheric fog color 
 	FAtmosphereShaderTextureParameters AtmosphericFogTextureParameters;
-	FPostProcessPassParameters PostprocessParameter;
 
 	//Use of the eye adaptation texture here is experimental and potentially dangerous as it can introduce a feedback loop. May be removed.
 	FShaderResourceParameter EyeAdaptation;

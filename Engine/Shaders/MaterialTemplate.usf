@@ -935,7 +935,12 @@ MaterialFloat2 GetLightmapUVs(FMaterialPixelParameters Parameters)
 #endif
 }
 
-#if NEEDS_SCENE_TEXTURES || USES_EYE_ADAPTATION
+#if USES_EYE_ADAPTATION
+#include "EyeAdaptationCommon.usf"
+#endif
+
+#if POST_PROCESS_MATERIAL
+// only Postprocess material bind PostprocessInput0, PostprocessInput0Size, PostprocessInput0MinMax ...
 #include "PostProcessCommon.usf"			// PostprocessInput0
 #endif
 
@@ -970,6 +975,34 @@ float3 GetShadingModelColor(FGBufferData GBuffer)
 #endif
 }
 
+float4 GetPostProcessInputSize(uint Index)
+{
+#if POST_PROCESS_MATERIAL
+		 if (Index == 0)	return PostprocessInput0Size;
+	else if (Index == 1)	return PostprocessInput1Size;
+	else if (Index == 2)	return PostprocessInput2Size;
+	else if (Index == 3)	return PostprocessInput3Size;
+	else if (Index == 4)	return PostprocessInput4Size;
+	else if (Index == 5)	return PostprocessInput5Size;
+	else if (Index == 6)	return PostprocessInput6Size;
+#endif
+	return 1.0f;
+}
+
+float4 GetPostProcessInputMinMax(uint Index)
+{
+#if POST_PROCESS_MATERIAL
+		 if (Index == 0)	return PostprocessInput0MinMax;
+	else if (Index == 1)	return PostprocessInput1MinMax;
+	else if (Index == 2)	return PostprocessInput2MinMax;
+	else if (Index == 3)	return PostprocessInput3MinMax;
+	else if (Index == 4)	return PostprocessInput4MinMax;
+	else if (Index == 5)	return PostprocessInput5MinMax;
+	else if (Index == 6)	return PostprocessInput6MinMax;
+#endif
+	return 1.0f;
+}
+
 /** Applies an offset to the scene texture lookup and decodes the HDR linear space color. */
 float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 {
@@ -992,6 +1025,7 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 	else if (SceneTextureIndex == 11)	return ScreenSpaceData.GBuffer.Roughness;
 	else if (SceneTextureIndex == 12)	return ScreenSpaceData.GBuffer.GBufferAO;
 	else if (SceneTextureIndex == 13)	return ScreenSpaceData.GBuffer.CustomDepth;
+#if POST_PROCESS_MATERIAL
 	else if (SceneTextureIndex == 14)	if (bFiltered) { return Texture2DSample(PostprocessInput0, BilinearTextureSampler0, UV);} else { return Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);} 
 	else if (SceneTextureIndex == 15)	if (bFiltered) { return Texture2DSample(PostprocessInput1, BilinearTextureSampler0, UV);} else { return Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UV);} 
 	else if (SceneTextureIndex == 16)	if (bFiltered) { return Texture2DSample(PostprocessInput2, BilinearTextureSampler0, UV);} else { return Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, UV);} 
@@ -999,6 +1033,7 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 	else if (SceneTextureIndex == 18)	if (bFiltered) { return Texture2DSample(PostprocessInput4, BilinearTextureSampler0, UV);} else { return Texture2DSample(PostprocessInput4, PostprocessInput4Sampler, UV);} 
 	else if (SceneTextureIndex == 19)	if (bFiltered) { return Texture2DSample(PostprocessInput5, BilinearTextureSampler0, UV);} else { return Texture2DSample(PostprocessInput5, PostprocessInput5Sampler, UV);} 
 	else if (SceneTextureIndex == 20)	if (bFiltered) { return Texture2DSample(PostprocessInput6, BilinearTextureSampler0, UV);} else { return Texture2DSample(PostprocessInput6, PostprocessInput6Sampler, UV);} 
+#endif // POST_PROCESS_MATERIAL
 	else if (SceneTextureIndex == 21)	return ScreenSpaceData.GBuffer.DecalMask;
 	else if (SceneTextureIndex == 22)	return float4(GetShadingModelColor(ScreenSpaceData.GBuffer), 1);
 	else if (SceneTextureIndex == 23)	return ScreenSpaceData.AmbientOcclusion;
@@ -1037,6 +1072,7 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 		case 12: return ScreenSpaceData.GBuffer.GBufferAO;
 		// PPI_CustomDepth
 		case 13: return ScreenSpaceData.GBuffer.CustomDepth;
+#if POST_PROCESS_MATERIAL
 		// PPI_PostprocessInput0
 		case 14: return Texture2DSample(PostprocessInput0, bFiltered ? BilinearTextureSampler0 : PostprocessInput0Sampler, UV);
 		// PPI_PostprocessInput1
@@ -1051,6 +1087,7 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 		case 19: return Texture2DSample(PostprocessInput5, bFiltered ? BilinearTextureSampler0 : PostprocessInput5Sampler, UV);
 		// PPI_PostprocessInput6
 		case 20: return Texture2DSample(PostprocessInput6, bFiltered ? BilinearTextureSampler0 : PostprocessInput6Sampler, UV);
+#endif // __POST_PROCESS_COMMON__
 		// PPI_DecalMask
 		case 21: return ScreenSpaceData.GBuffer.DecalMask;
 		// PPI_ShadingModel

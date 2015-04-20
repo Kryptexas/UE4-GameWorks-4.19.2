@@ -2498,14 +2498,7 @@ protected:
 		{
 			int Index = SceneTextureId - PPI_PostProcessInput0;
 
-			if(bInvert)
-			{
-				return AddCodeChunk(MCT_Float2, TEXT("PostprocessInput%dSize.zw"), Index);
-			}
-			else
-			{
-				return AddCodeChunk(MCT_Float2, TEXT("PostprocessInput%dSize.xy"), Index);
-			}
+			return AddCodeChunk(MCT_Float2, TEXT("GetPostProcessInputSize(%d).%s"), Index, bInvert ? TEXT("zw") : TEXT("xy"));
 		}
 		else
 		{
@@ -2538,7 +2531,7 @@ protected:
 		{
 			int Index = SceneTextureId - PPI_PostProcessInput0;
 
-			return AddCodeChunk(MCT_Float2,TEXT("PostprocessInput%dMinMax.xy"), Index);
+			return AddCodeChunk(MCT_Float2, TEXT("GetPostProcessInputMinMax(%d).xy"), Index);
 		}
 		else
 		{			
@@ -2562,7 +2555,7 @@ protected:
 		{
 			int Index = SceneTextureId - PPI_PostProcessInput0;
 
-			return AddCodeChunk(MCT_Float2,TEXT("PostprocessInput%dMinMax.zw"), Index);
+			return AddCodeChunk(MCT_Float2, TEXT("GetPostProcessInputMinMax(%d).zw"), Index);
 		}
 		else
 		{			

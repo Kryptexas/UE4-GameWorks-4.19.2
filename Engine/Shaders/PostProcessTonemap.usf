@@ -8,6 +8,7 @@
 #include "PostProcessCommon.usf"
 #include "TonemapCommon.usf"
 #include "GammaCorrectionCommon.usf"
+#include "EyeAdaptationCommon.usf"
 //
 // 64x64 tiling noise texture, optimized to have mostly high frequency content
 Texture2D NoiseTexture;
