@@ -536,6 +536,11 @@ namespace UnrealBuildTool
 		private string ConfigurationNameVar = String.Empty;
 
 
+        /// <summary>
+        /// Allows a Program Target to specify it's own solution folder path
+        /// </summary>
+        public string SolutionDirectory = String.Empty;
+
 		/// <summary>
 		/// If true, the built target goes into the Engine/Binaries/<PLATFORM> folder
 		/// </summary>
