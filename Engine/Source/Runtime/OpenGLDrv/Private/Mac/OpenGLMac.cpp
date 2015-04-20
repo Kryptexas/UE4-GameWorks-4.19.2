@@ -1152,6 +1152,57 @@ void FMacOpenGL::ProcessQueryGLInt()
 
 void FMacOpenGL::ProcessExtensions(const FString& ExtensionsString)
 {
+	// Get the Vendor ID by parsing the renderer string
+	FString VendorName( ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VENDOR)));
+	if (VendorName.Contains(TEXT("Intel")))
+	{
+		GRHIVendorId = 0x8086;
+	}
+	else if (VendorName.Contains(TEXT("NVIDIA")))
+	{
+		GRHIVendorId = 0x10DE;
+	}
+	else if (VendorName.Contains(TEXT("ATi")) || VendorName.Contains(TEXT("AMD")))
+	{
+		GRHIVendorId = 0x1002;
+	}
+	
+	if(GRHIVendorId == 0)
+	{
+		// Get the current renderer ID
+		CGLContextObj Current = CGLGetCurrentContext();
+		GLint RendererID = 0;
+		CGLError Error = CGLGetParameter(Current, kCGLCPCurrentRendererID, &RendererID);
+		if(Error == kCGLNoError)
+		{
+			switch(RendererID & 0x000ff000)
+			{
+				case 0x00021000:
+				{
+					GRHIVendorId = 0x1002;
+					break;
+				}
+				case 0x00022000:
+				{
+					GRHIVendorId = 0x10DE;
+					break;
+				}
+				case 0x00024000:
+				{
+					GRHIVendorId = 0x8086;
+					break;
+				}
+				default:
+				{
+					// Unknown GPU vendor - assuming Intel!
+					GRHIVendorId = 0x8086;
+					break;
+				}
+			}
+		}
+	}
+	check(GRHIVendorId != 0);
+	
 	ProcessQueryGLInt();
 	FOpenGL3::ProcessExtensions(ExtensionsString);
 	

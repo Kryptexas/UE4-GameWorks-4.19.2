@@ -416,18 +416,48 @@ void FPlatformOpenGLContext::VerifyCurrentContext()
 			
 			// Get the Vendor ID by parsing the renderer string
 			FString VendorName( ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VENDOR)));
-			if (VendorName.Contains(TEXT("Intel ")))
+			if (VendorName.Contains(TEXT("Intel")))
 			{
 				PlatformContext->VendorID = 0x8086;
 			}
-			else if (VendorName.Contains(TEXT("NVIDIA ")))
+			else if (VendorName.Contains(TEXT("NVIDIA")))
 			{
 				PlatformContext->VendorID = 0x10DE;
 			}
-			else if (VendorName.Contains(TEXT("ATi ")) || VendorName.Contains(TEXT("AMD ")))
+			else if (VendorName.Contains(TEXT("ATi")) || VendorName.Contains(TEXT("AMD")))
 			{
 				PlatformContext->VendorID = 0x1002;
 			}
+			
+			if(PlatformContext->VendorID == 0)
+			{
+				// Get the current renderer ID
+				switch(RendererID & 0x000ff000)
+				{
+					case 0x00021000:
+					{
+						PlatformContext->VendorID = 0x1002;
+						break;
+					}
+					case 0x00022000:
+					{
+						PlatformContext->VendorID = 0x10DE;
+						break;
+					}
+					case 0x00024000:
+					{
+						PlatformContext->VendorID = 0x8086;
+						break;
+					}
+					default:
+					{
+						// Unknown GPU vendor - assuming Intel!
+						PlatformContext->VendorID = 0x8086;
+						break;
+					}
+				}
+			}
+			check(PlatformContext->VendorID != 0);
 			
 			// Renderer IDs matchup to driver kexts, so switching based on them will allow us to target workarouds to many GPUs
 			// which exhibit the same unfortunate driver bugs without having to parse their individual ID strings.
