@@ -116,7 +116,30 @@ The darker color indicates a higher performance cost of those pixels. This infor
 
 * We currently only support deferred decals and they only work on static objects.
 * Normal blending is currently not wrapping around the object.
-* Mip map computation is not done yet so you might see 2x2 block artifacts on object borders.
 * Streaming is not yet hooked up so make sure the texture is not streamed.
 * Masking decals (not affecting other object) is not fully implemented.
 
+## The 2x2 block artifacts fix
+
+Decals may have 2x2 pixels block artifacts on edges as shown in the screenshot below.
+
+![](2x2_artifacts.bmp)
+
+This is where the node "Decal Mipmap Level" comes in. This node must be used with  has a very big performance impact.
+
+![](decal_mipmap_material_1.png)
+
+And using it fixes the artifacts on the decal that benefits from it.
+
+![](2x2_no_artifacts.bmp)
+
+### Missing SampleTexture UV
+
+Now this node is so expensive from a computing point of view, that it doesn't have UV input as the SampleTexture. But in case of a tilling, you can still do so by patching up the mipmap level manualy. Here is an example to have a 2^4 = 16 tiling repetition.
+
+![](decal_mipmap_material_2.png)
+
+### Current limitations
+
+* DecalMipmapLevel doesn't support UV
+* DecalMipmapLevel doesn't work with anysotropic filtering

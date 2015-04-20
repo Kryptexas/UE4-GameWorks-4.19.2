@@ -312,6 +312,14 @@ Engine/Rendering/Materials/ExpressionReference/Custom#customtexture
 [/VAR]
 [/EXCERPT:UMaterialExpressionCustomTexture]
 
+[EXCERPT:UMaterialExpressionDecalMipmapLevel]
+The DecalMipmapLevel is used to explitily compute a decal's texture's mipmap level assuming there is no custom uv, to avoid the 2x2 pixel mipmap artefacts on the edges where the decal is project to.
+
+[VAR:ToolTipFullLink]
+Engine/Actors/DecalActor/DecalUserGuide
+[/VAR]
+[/EXCERPT:UMaterialExpressionDecalMipmapLevel]
+
 [EXCERPT:UMaterialExpressionDepthFade]
 The DepthFade expression is used to hide unsightly seams that take place when translucent objects intersect with opaque ones. 
 

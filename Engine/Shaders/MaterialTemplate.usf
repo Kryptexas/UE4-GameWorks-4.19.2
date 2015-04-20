@@ -260,6 +260,62 @@ struct FMaterialVertexParameters
 	FMaterialParticleParameters Particle;
 };
 
+
+#ifdef DECAL_RENDERSTAGE
+	/*
+	 * Material node DecalMipmapLevel's code designed to avoid the 2x2 pixels artefacts on the edges around where the decal
+	 * is projected to. The technique is fetched from (http://www.humus.name/index.php?page=3D&ID=84).
+	 *
+	 * The problem around edges of the meshes, is that the hardware computes the mipmap level according to ddx(uv) and ddy(uv),
+	 * but since the pixel shader are invocated by group of 2x2 pixels, then on edges some pixel might be getting the
+	 * current depth of an differet mesh that the other pixel of the same groups. If this mesh is very far from the other
+	 * mesh of the same group of pixel, then one of the delta might be very big, leading to choosing a low mipmap level for this
+	 * group of 4 pixels, causing the artefacts.
+	 */
+	float2 ComputeDecalUVFromScreenPosition(float4 ScreenPosition)
+	{
+		half SceneW = PreviousDepth(ScreenPosition);
+		float4 DecalVector = mul(float4(ScreenPosition.xy / ScreenPosition.w * SceneW, SceneW, 1), ScreenToDecal);
+		DecalVector.xyz /= DecalVector.w;
+		DecalVector = DecalVector * 0.5f + 0.5f;
+		DecalVector.xyz = DecalVector.zyx;
+		return DecalVector.xy;
+	}
+
+	float ComputeDecalMipmapLevel(FMaterialPixelParameters Parameters, float2 TextureSize)
+	{
+		/*
+		 * Assuming where in a pixel shader invocation, then we compute manualy compute two d(uv)/d(x)
+		 * with the pixels's left and right neighbours.
+		 */
+		float4 ScreenDeltaX = ddx(Parameters.ScreenPosition);
+		float2 UvDiffX0 = Parameters.TexCoords[0] - ComputeDecalUVFromScreenPosition(Parameters.ScreenPosition - ScreenDeltaX);
+		float2 UvDiffX1 = ComputeDecalUVFromScreenPosition(Parameters.ScreenPosition + ScreenDeltaX) - Parameters.TexCoords[0];
+
+		/*
+		 * So we have two diff on the X axis, we want the one that has the smallest length
+		 * to avoid the 2x2 pixels mipmap artefacts on the edges. 
+		 */
+		float2 UvPixelDiffX = (dot(UvDiffX0, UvDiffX0) < dot(UvDiffX1, UvDiffX1) ? UvDiffX0 : UvDiffX1) * TextureSize;
+	
+		// do same for the Y axis
+		float4 ScreenDeltaY = ddy(Parameters.ScreenPosition);
+		float2 UvDiffY0 = Parameters.TexCoords[0] - ComputeDecalUVFromScreenPosition(Parameters.ScreenPosition - ScreenDeltaY);
+		float2 UvDiffY1 = ComputeDecalUVFromScreenPosition(Parameters.ScreenPosition + ScreenDeltaY) - Parameters.TexCoords[0];
+		float2 UvPixelDiffY = (dot(UvDiffY0, UvDiffY0) < dot(UvDiffY1, UvDiffY1) ? UvDiffY0 : UvDiffY1) * TextureSize;
+
+		// Computes the mipmap level
+		float MaxDiff = max(dot(UvPixelDiffX, UvPixelDiffX), dot(UvPixelDiffY, UvPixelDiffY));
+		return 0.5 * log2(MaxDiff);
+	}
+#else
+	float ComputeDecalMipmapLevel(FMaterialPixelParameters Parameters, float2 TextureSize)
+	{
+		return 0.0f;
+	}
+#endif //DECAL_RENDERSTAGE
+
+
 #if HAS_PRIMITIVE_UNIFORM_BUFFER
 
 /** Transforms a vector from tangent space to world space, prescaling by an amount calculated previously */

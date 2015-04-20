@@ -2386,6 +2386,25 @@ protected:
 			);
 	}
 
+	virtual int32 TextureDecalMipmapLevel(int32 TextureSizeInput) override
+	{
+		EMaterialValueType TextureSizeType = GetParameterType(TextureSizeInput);
+
+		if (TextureSizeType != MCT_Float2)
+		{
+			Errorf(TEXT("Unmatching conversion %s -> float2"), DescribeType(TextureSizeType));
+			return INDEX_NONE;
+		}
+
+		FString TextureSize = CoerceParameter(TextureSizeInput, MCT_Float2);
+
+		return AddCodeChunk(
+			MCT_Float1,
+			TEXT("ComputeDecalMipmapLevel(Parameters,%s)"),
+			*TextureSize
+			);
+	}
+
 	virtual int32 PixelDepth() override
 	{
 		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)

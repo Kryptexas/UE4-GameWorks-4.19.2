@@ -102,6 +102,8 @@ public:
 	virtual int32 TextureCoordinate(uint32 CoordinateIndex, bool UnMirrorU, bool UnMirrorV) = 0;
 	virtual int32 TextureSample(int32 Texture,int32 Coordinate,enum EMaterialSamplerType SamplerType,int32 MipValueIndex=INDEX_NONE,ETextureMipValueMode MipValueMode=TMVM_None,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) = 0;
 
+	virtual int32 TextureDecalMipmapLevel(int32 TextureSizeInput) = 0;
+
 	virtual int32 Texture(UTexture* Texture,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) = 0;
 	virtual int32 TextureParameter(FName ParameterName,UTexture* DefaultTexture,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) = 0;
 
@@ -258,6 +260,8 @@ public:
 		{ return Compiler->TextureSample(InTexture,Coordinate,SamplerType,MipValueIndex,MipValueMode,SamplerSource); }
 
 	virtual int32 TextureCoordinate(uint32 CoordinateIndex, bool UnMirrorU, bool UnMirrorV) override { return Compiler->TextureCoordinate(CoordinateIndex, UnMirrorU, UnMirrorV); }
+
+	virtual int32 TextureDecalMipmapLevel(int32 TextureSizeInput) override { return Compiler->TextureDecalMipmapLevel(TextureSizeInput); }
 
 	virtual int32 Texture(UTexture* InTexture,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) override { return Compiler->Texture(InTexture,SamplerSource); }
 	virtual int32 TextureParameter(FName ParameterName,UTexture* DefaultValue,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) override { return Compiler->TextureParameter(ParameterName,DefaultValue,SamplerSource); }

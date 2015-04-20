@@ -31,6 +31,7 @@
 #include "Materials/MaterialExpressionCustom.h"
 #include "Materials/MaterialExpressionDDX.h"
 #include "Materials/MaterialExpressionDDY.h"
+#include "Materials/MaterialExpressionDecalMipmapLevel.h"
 #include "Materials/MaterialExpressionDepthFade.h"
 #include "Materials/MaterialExpressionDepthOfFieldFunction.h"
 #include "Materials/MaterialExpressionDeriveNormalZ.h"
@@ -8483,6 +8484,60 @@ const TCHAR* UMaterialExpressionAntialiasedTextureMask::GetRequirements()
 void UMaterialExpressionAntialiasedTextureMask::SetDefaultTexture()
 {
 	Texture = LoadObject<UTexture2D>(NULL, TEXT("/Engine/EngineResources/DefaultTexture.DefaultTexture"), NULL, LOAD_None, NULL);
+}
+
+//
+//	UMaterialExpressionDecalMipmapLevel
+//
+UMaterialExpressionDecalMipmapLevel::UMaterialExpressionDecalMipmapLevel(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, ConstWidth(256.0f)
+	, ConstHeight(ConstWidth)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FString NAME_Vectors;
+		FConstructorStatics()
+			: NAME_Vectors(LOCTEXT("Utils", "Utils").ToString())
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	MenuCategories.Add(ConstructorStatics.NAME_Vectors);
+	bCollapsed = true;
+}
+
+int32 UMaterialExpressionDecalMipmapLevel::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+{
+	if (Material->MaterialDomain != MD_DeferredDecal)
+	{
+		return CompilerError(Compiler, TEXT("Node only works for the deferred decal material domain."));
+	}
+
+	int32 TextureSizeInput = INDEX_NONE;
+
+	if (TextureSize.Expression)
+	{
+		TextureSizeInput = TextureSize.Compile(Compiler);
+	}
+	else
+	{
+		TextureSizeInput = Compiler->Constant2(ConstWidth, ConstHeight);
+	}
+
+	if (TextureSizeInput == INDEX_NONE)
+	{
+		return INDEX_NONE;
+	}
+
+	return Compiler->TextureDecalMipmapLevel(TextureSizeInput);
+}
+
+void UMaterialExpressionDecalMipmapLevel::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Decal Mipmap Level"));
 }
 
 UMaterialExpressionDepthFade::UMaterialExpressionDepthFade(const FObjectInitializer& ObjectInitializer)
