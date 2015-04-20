@@ -23,8 +23,6 @@ protected:
 	/** Reference to the online sessions interface */
 	IOnlineSessionPtr SessionInt;
 
-	/** Delegate when an invite has been accepted from an external source */
-	FOnSessionInviteAcceptedDelegate OnSessionInviteAcceptedDelegate;
 	/** Delegate for destroying a session after previously ending it */
 	FOnEndSessionCompleteDelegate OnEndForJoinSessionCompleteDelegate;
 	/** Delegate for joining a new session after previously destroying it */
@@ -159,6 +157,17 @@ protected:
 	void DestroyExistingSession_Impl(FDelegateHandle& OutResult, FName SessionName, FOnDestroySessionCompleteDelegate& Delegate);
 
 protected:
+
+	/**
+	* Called from GameInstance when the user accepts an invite
+	*
+	* @param bWasSuccess true if invite was accepted successfully
+	* @param ControllerId the controller index of the user being invited
+	* @param UserId the user being invited
+	* @param InviteResult the search/settings result for the session we're joining via invite
+	*/
+	void OnSessionUserInviteAccepted(const bool bWasSuccess, const int32 ControllerId, TSharedPtr<FUniqueNetId> UserId, const FOnlineSessionSearchResult& InviteResult) override;
+
 	/**
 	 * Delegate fired when the joining process for an online session has completed
 	 *
@@ -174,16 +183,7 @@ protected:
 	 * @param SessionName name of session to join
 	 * @param SearchResult the session to join
 	 */
-	virtual void JoinSession(int32 LocalUserNum, FName SessionName, const FOnlineSessionSearchResult& SearchResult);
-
-	/**
-	 * Delegate fired when an invite request has been accepted (via external UI)
-	 *
-	 * @param LocalUserNum local user accepting invite
-	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
-	 * @param SearchResult search result containing the invite data
-	 */
-	virtual void OnSessionInviteAccepted(int32 LocalUserNum, bool bWasSuccessful, const class FOnlineSessionSearchResult& SearchResult);
+	virtual void JoinSession(FName SessionName, const FOnlineSessionSearchResult& SearchResult);
 
 public:
 

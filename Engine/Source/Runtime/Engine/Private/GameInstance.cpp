@@ -8,6 +8,9 @@
 #include "EnginePrivate.h"
 #include "Engine/GameInstance.h"
 #include "Engine/Engine.h"
+#include "OnlineSubsystem.h"
+#include "OnlineSessionInterface.h"
+#include "GameFramework/OnlineSession.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
@@ -33,11 +36,31 @@ UEngine* UGameInstance::GetEngine() const
 void UGameInstance::Init()
 {
 	ReceiveInit();
+
+	const auto OnlineSub = IOnlineSubsystem::Get();
+	if (OnlineSub != nullptr)
+	{
+		IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
+		if (SessionInt.IsValid())
+		{
+			SessionInt->AddOnSessionUserInviteAcceptedDelegate_Handle(FOnSessionUserInviteAcceptedDelegate::CreateUObject(this, &UGameInstance::HandleSessionUserInviteAccepted));
+		}
+	}
 }
 
 void UGameInstance::Shutdown()
 {
 	ReceiveShutdown();
+
+	const auto OnlineSub = IOnlineSubsystem::Get();
+	if (OnlineSub != nullptr)
+	{
+		IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
+		if (SessionInt.IsValid())
+		{
+			SessionInt->ClearOnSessionUserInviteAcceptedDelegate_Handle(OnSessionUserInviteAcceptedDelegateHandle);
+		}
+	}
 
 	// Clear the world context pointer to prevent further access.
 	WorldContext = nullptr;
@@ -592,4 +615,43 @@ void UGameInstance::AddReferencedObjects(UObject* InThis, FReferenceCollector& C
 	}
 
 	Super::AddReferencedObjects(This, Collector);
+}
+
+void UGameInstance::HandleSessionUserInviteAccepted(const bool bWasSuccess, const int32 ControllerId, TSharedPtr< FUniqueNetId > UserId, const FOnlineSessionSearchResult &	InviteResult)
+{
+	OnSessionUserInviteAccepted(bWasSuccess, ControllerId, UserId, InviteResult);
+}
+
+void UGameInstance::OnSessionUserInviteAccepted(const bool bWasSuccess, const int32 ControllerId, TSharedPtr< FUniqueNetId > UserId, const FOnlineSessionSearchResult &	InviteResult)
+{
+	UE_LOG(LogPlayerManagement, Verbose, TEXT("OnSessionUserInviteAccepted LocalUserNum: %d bSuccess: %d"), ControllerId, bWasSuccess);
+	// Don't clear invite accept delegate
+
+	if (bWasSuccess)
+	{
+		if (InviteResult.IsValid())
+		{
+			for (ULocalPlayer* LocalPlayer : LocalPlayers)
+			{
+				// Route the call to the actual user that accepted the invite
+				if (LocalPlayer->GetCachedUniqueNetId() == UserId)
+				{
+					LocalPlayer->GetOnlineSession()->OnSessionUserInviteAccepted(bWasSuccess, ControllerId, UserId, InviteResult);
+					return;
+				}
+			}
+
+			// Go ahead and have the active local player handle accepting the invite. A game can detect that the user id is different and handle
+			// it how it needs to.
+			ULocalPlayer* LocalPlayer = GetFirstGamePlayer();
+			if (LocalPlayer)
+			{
+				LocalPlayer->GetOnlineSession()->OnSessionUserInviteAccepted(bWasSuccess, ControllerId, UserId, InviteResult);
+			}
+		}
+		else
+		{
+			UE_LOG(LogPlayerManagement, Warning, TEXT("Invite accept returned invalid search result."));
+		}
+	}
 }

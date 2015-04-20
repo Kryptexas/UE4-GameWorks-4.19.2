@@ -153,18 +153,6 @@ typedef FOnPingSearchResultsComplete::FDelegate FOnPingSearchResultsCompleteDele
  * to clean up any existing state before accepting the invite. The invite must be
  * accepted by calling JoinSession() after clean up has completed
  *
- * @param LocalUserNum the controller number of the accepting user
- * @param bWasSuccessful the session was found and is joinable, false otherwise
- * @param InviteResult the search/settings for the session we're joining via invite
- */
-typedef FOnSingleSessionResultComplete FOnSessionInviteAccepted;
-typedef FOnSessionInviteAccepted::FDelegate FOnSessionInviteAcceptedDelegate;
-
-/**
- * Called when a user accepts a session invitation. Allows the game code a chance
- * to clean up any existing state before accepting the invite. The invite must be
- * accepted by calling JoinSession() after clean up has completed
- *
  * @param bWasSuccessful true if the async action completed without error, false if there was an error
  * @param ControllerId the controller number of the accepting user
  * @param UserId the user being invited
@@ -631,17 +619,6 @@ public:
 	 * @return true if successful, false otherwise
 	 */
 	virtual bool SendSessionInviteToFriends(const FUniqueNetId& LocalUserId, FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Friends) = 0;
-
-	/**
-	 * Called when a user accepts a session invitation. Allows the game code a chance
-	 * to clean up any existing state before accepting the invite. The invite must be
-	 * accepted by calling JoinSession() after clean up has completed
-	 *
-	 * @param LocalUserNum the controller number of the accepting user
-	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
-	 * @param InviteResult the search/settings for the session we're joining via invite
-	 */
-	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnSessionInviteAccepted, bool, const FOnlineSessionSearchResult&);
 
 	/**
 	 * Called when a user accepts a session invitation. Allows the game code a chance
