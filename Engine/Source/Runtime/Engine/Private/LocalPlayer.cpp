@@ -1053,7 +1053,7 @@ bool ULocalPlayer::HandlePauseCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWor
 	}
 	
 
-	return !ViewportClient->bIsPlayInEditorViewport;
+	return true;
 }
 
 bool ULocalPlayer::HandleListMoveBodyCommand( const TCHAR* Cmd, FOutputDevice& Ar )
