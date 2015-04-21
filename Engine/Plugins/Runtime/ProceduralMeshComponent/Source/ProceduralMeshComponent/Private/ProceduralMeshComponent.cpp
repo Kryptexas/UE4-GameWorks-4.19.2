@@ -445,10 +445,12 @@ void UProceduralMeshComponent::UpdateCollision()
 	// Ensure we have a BodySetup
 	CreateProcMeshBodySetup();
 
+#if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 	// Clear current mesh data
 	ProcMeshBodySetup->InvalidatePhysicsData();
 	// Create new mesh data
 	ProcMeshBodySetup->CreatePhysicsMeshes();
+#endif // WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 
 	// Create new instance state if desired
 	if(bCreatePhysState)
