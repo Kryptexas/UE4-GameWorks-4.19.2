@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2503067
+﻿INTSourceChangelist:2516218
 Availability:Public
 Title:ランドスケープ ギズモ
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
@@ -30,7 +30,7 @@ Description:ランドスケープの修正に使用するギズモの操作ガ�
 ## 概要
 
 
-ランドスケープ ギズモは、指定領域を定義する点においてボリュームと類似した、エディタ限定のアクタです。目的は、そのランドスケープ上の別の位置へコピーしたり、別のランドスケープや高さマップ ジェネレータ (world machine 、terresculptor) で使用するためにエクスポートすることができるように、ランドスケープの領域に対して高さとレイヤーデータを維持することです。
+ランドスケープ ギズモは、指定領域を定義する点においてボリュームと類似した、エディタ限定のアクタです。目的は、そのランドスケープ上の別の位置へコピーしたり、別のランドスケープや高さマップ ジェネレータ (World Machine, Terresculptor,...) で使用するためにエクスポートすることができるように、ランドスケープの領域に対して高さとレイヤーデータを維持することです。
 
 ![](Using_Gizom_Tool.gif)(convert:false)
 
@@ -79,7 +79,7 @@ Description:ランドスケープの修正に使用するギズモの操作ガ�
 **選択したリージョンをコピーするには、次のようにします。**
 
 
-1. Sculpt モードで、 **[Region Selection]** スカルプト ツールを選びます。
+1. **Sculpt** モードで、 **[Region Selection]** スカルプト ツールを選びます。
 
 	![Region Select](Engine/Landscape/Editing/SculptMode/Landscape_RegionSelect.png)
 1. ブラシ ストロークを使ってランドスケープからリージョンを選択します。手順は、法線ペイントの場合と同様です。  
