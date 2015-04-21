@@ -1968,6 +1968,12 @@ public:
 		FuncMap.Add(NewFunction->GetFName(), NewFunction);
 	}
 
+	// Remove a function from the function map
+	void RemoveFunctionFromFunctionMap(UFunction* Function)
+	{
+		FuncMap.Remove(Function->GetFName());
+	}
+
 	UFunction* FindFunctionByName(FName InName, EIncludeSuperFlag::Type IncludeSuper = EIncludeSuperFlag::IncludeSuper) const;
 
 	// UObject interface.
