@@ -183,7 +183,7 @@ FAutoConsoleVariableRef CVarAOMaxViewDistance(
 	ECVF_Cheat | ECVF_RenderThreadSafe
 	);
 
-float GAOViewFadeDistanceScale = .2f;
+float GAOViewFadeDistanceScale = .7f;
 FAutoConsoleVariableRef CVarAOViewFadeDistanceScale(
 	TEXT("r.AOViewFadeDistanceScale"),
 	GAOViewFadeDistanceScale,
