@@ -73,6 +73,17 @@ public:
 	virtual IBuildInstallerPtr StartBuildInstall( IBuildManifestPtr CurrentManifest, IBuildManifestPtr InstallManifest, const FString& InstallDirectory, FBuildPatchBoolManifestDelegate OnCompleteDelegate ) = 0;
 
 	/**
+	 * Starts an installer thread for the provided manifests, only producing the necessary stage. Useful for handling specific install directory write access requirements yourself.
+	 * The staged files will be in the provided staging directory as StagingDirectory/Install/
+	 * @param	CurrentManifest			The manifest that the current install was generated from (if applicable)
+	 * @param	InstallManifest			The manifest to be installed
+	 * @param	InstallDirectory		The directory to install the App to - this should still be the real install directory. It may be read from for patching.
+	 * @param	OnCompleteDelegate		The delegate to call on completion
+	 * @return		An interface to the created installer. Will be an invalid ptr if error.
+	 */
+	virtual IBuildInstallerPtr StartBuildInstallStageOnly( IBuildManifestPtr CurrentManifest, IBuildManifestPtr InstallManifest, const FString& InstallDirectory, FBuildPatchBoolManifestDelegate OnCompleteDelegate ) = 0;
+
+	/**
 	 * Sets the directory used for staging intermediate files.
 	 * @param StagingDir	The staging directory
 	 */

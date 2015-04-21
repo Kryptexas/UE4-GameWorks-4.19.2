@@ -75,7 +75,8 @@ public:
 	virtual IBuildManifestPtr LoadManifestFromFile( const FString& Filename ) override;
 	virtual IBuildManifestPtr MakeManifestFromData( const TArray<uint8>& ManifestData ) override;
 	virtual bool SaveManifestToFile( const FString& Filename, IBuildManifestRef Manifest, bool bUseBinary = true ) override;
-	virtual IBuildInstallerPtr StartBuildInstall( IBuildManifestPtr CurrentManifest, IBuildManifestPtr InstallManifest, const FString& InstallDirectory, FBuildPatchBoolManifestDelegate OnCompleteDelegate ) override;
+	virtual IBuildInstallerPtr StartBuildInstall(IBuildManifestPtr CurrentManifest, IBuildManifestPtr InstallManifest, const FString& InstallDirectory, FBuildPatchBoolManifestDelegate OnCompleteDelegate) override;
+	virtual IBuildInstallerPtr StartBuildInstallStageOnly(IBuildManifestPtr CurrentManifest, IBuildManifestPtr InstallManifest, const FString& InstallDirectory, FBuildPatchBoolManifestDelegate OnCompleteDelegate) override;
 	virtual void SetStagingDirectory( const FString& StagingDir ) override;
 	virtual void SetCloudDirectory( const FString& CloudDir ) override;
 	virtual void SetBackupDirectory( const FString& BackupDir ) override;

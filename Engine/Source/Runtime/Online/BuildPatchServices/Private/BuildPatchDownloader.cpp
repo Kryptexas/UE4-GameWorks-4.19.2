@@ -304,14 +304,14 @@ uint32 FBuildPatchDownloader::Run()
 				FileDataArray.Reset();
 				FileDataArray.AddUninitialized( FileSize );
 				int64 BytesRead = 0;
-				while ( BytesRead < FileSize )
+				while ( BytesRead < FileSize && !FBuildPatchInstallError::HasFatalError() )
 				{
 					const int64 ReadLen = FMath::Min<int64>( BytesPerCall, FileSize - BytesRead );
 					Reader->Serialize( FileDataArray.GetData() + BytesRead, ReadLen );
 					BytesRead += ReadLen;
 					OnDownloadProgress( NextGuid, BytesRead );
 				}
-				bSuccess = Reader->Close();
+				bSuccess = Reader->Close() && !FBuildPatchInstallError::HasFatalError();
 				delete Reader;
 			}
 			OnDownloadComplete( NextGuid, DownloadUrl, FileDataArray, bSuccess, INDEX_NONE );
