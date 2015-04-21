@@ -286,7 +286,7 @@ SDL_PrivateSendMouseMotion(SDL_Window * window, SDL_MouseID mouseID, int relativ
     return posted;
 }
 
-static SDL_MouseClickState *GetMouseClickState(SDL_Mouse *mouse, Uint8 button)
+SDL_MouseClickState *GetMouseClickState(SDL_Mouse *mouse, Uint8 button)
 {
     if (button >= mouse->num_clickstates) {
         int i, count = button + 1;
@@ -303,6 +303,38 @@ static SDL_MouseClickState *GetMouseClickState(SDL_Mouse *mouse, Uint8 button)
     return &mouse->clickstate[button];
 }
 
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+Uint8
+SDL_HandleMouseButtonClickState(SDL_Mouse * mouse, Uint8 state, Uint8 button)
+{
+    Uint8 click_count;
+    SDL_MouseClickState *clickstate = GetMouseClickState(mouse, button);
+    if (clickstate) {
+        if (state == SDL_PRESSED) {
+            Uint32 now = SDL_GetTicks();
+
+            if (SDL_TICKS_PASSED(now, clickstate->last_timestamp + SDL_double_click_time) ||
+                SDL_abs(mouse->x - clickstate->last_x) > SDL_double_click_radius ||
+                SDL_abs(mouse->y - clickstate->last_y) > SDL_double_click_radius) {
+                clickstate->click_count = 0;
+            }
+            clickstate->last_timestamp = now;
+            clickstate->last_x = mouse->x;
+            clickstate->last_y = mouse->y;
+            if (clickstate->click_count < 255) {
+                ++clickstate->click_count;
+            }
+        }
+        click_count = clickstate->click_count;
+    } else {
+        click_count = 1;
+    }
+    return click_count;
+}
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
+
 int
 SDL_SendMouseButton(SDL_Window * window, SDL_MouseID mouseID, Uint8 state, Uint8 button)
 {
@@ -310,7 +342,11 @@ SDL_SendMouseButton(SDL_Window * window, SDL_MouseID mouseID, Uint8 state, Uint8
     int posted;
     Uint32 type;
     Uint32 buttonstate = mouse->buttonstate;
+/* EG BEGIN */
+#ifndef SDL_WITH_EPIC_EXTENSIONS
     SDL_MouseClickState *clickstate = GetMouseClickState(mouse, button);
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
     Uint8 click_count;
 
     /* Figure out which event to perform */
@@ -339,6 +375,10 @@ SDL_SendMouseButton(SDL_Window * window, SDL_MouseID mouseID, Uint8 state, Uint8
     }
     mouse->buttonstate = buttonstate;
 
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+    click_count = SDL_HandleMouseButtonClickState(mouse, state, button);
+#else
     if (clickstate) {
         if (state == SDL_PRESSED) {
             Uint32 now = SDL_GetTicks();
@@ -359,7 +399,8 @@ SDL_SendMouseButton(SDL_Window * window, SDL_MouseID mouseID, Uint8 state, Uint8
     } else {
         click_count = 1;
     }
-
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
     /* Post the event, if desired */
     posted = 0;
     if (SDL_GetEventState(type) == SDL_ENABLE) {

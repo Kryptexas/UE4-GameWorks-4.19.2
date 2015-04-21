@@ -92,6 +92,11 @@ typedef struct
 
     /* Driver-dependent data. */
     void *driverdata;
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+    SDL_bool initiate_window_drag; /* Used to initiate the window drag in the hit-test area */
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
 } SDL_Mouse;
 
 
@@ -121,6 +126,16 @@ extern int SDL_SendMouseWheel(SDL_Window * window, SDL_MouseID mouseID, int x, i
 
 /* Shutdown the mouse subsystem */
 extern void SDL_MouseQuit(void);
+
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+/* TODO: describe */
+extern SDL_MouseClickState *GetMouseClickState(SDL_Mouse *mouse, Uint8 button);
+
+/* TODO: describe */
+extern Uint8 SDL_HandleMouseButtonClickState(SDL_Mouse * mouse, Uint8 state, Uint8 button);
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
 
 #endif /* _SDL_mouse_c_h */
 

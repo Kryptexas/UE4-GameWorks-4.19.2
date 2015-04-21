@@ -369,7 +369,7 @@ InitiateWindowResize(_THIS, const SDL_WindowData *data, const SDL_Point *point, 
 }
 
 static SDL_bool
-ProcessHitTest(_THIS, const SDL_WindowData *data, const XEvent *xev)
+ProcessHitTest(_THIS, SDL_WindowData *data, const XEvent *xev)
 {
     SDL_Window *window = data->window;
     SDL_bool ret = SDL_FALSE;
@@ -379,8 +379,19 @@ ProcessHitTest(_THIS, const SDL_WindowData *data, const XEvent *xev)
         const SDL_HitTestResult rc = window->hit_test(window, &point, window->hit_test_data);
         switch (rc) {
             case SDL_HITTEST_DRAGGABLE: {
+/* EG BEGIN */
+#ifndef SDL_WITH_EPIC_EXTENSIONS
                     InitiateWindowMove(_this, data, &point);
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
                     ret = SDL_TRUE;
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+                    SDL_Mouse *mouse = SDL_GetMouse();
+                    mouse->initiate_window_drag = SDL_TRUE;
+                    SDL_SendWindowEvent(data->window, SDL_WINDOWEVENT_HIT_TEST,  xev->xbutton.x,  xev->xbutton.y);
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
                 }
                 break;
             case SDL_HITTEST_RESIZE_TOPLEFT: {
@@ -430,6 +441,58 @@ ProcessHitTest(_THIS, const SDL_WindowData *data, const XEvent *xev)
 
     return ret;
 }
+
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+static SDL_bool
+PreProcessHitTestForMaximizeRestore(_THIS, SDL_WindowData *data, const XEvent *xev)
+{
+    SDL_Window *window = data->window;
+    SDL_bool ret = SDL_FALSE;
+    Uint32 SDL_double_click_time = 500;
+    int SDL_double_click_radius = 1;
+    if (window->hit_test) {
+        const SDL_Point point = { xev->xbutton.x, xev->xbutton.y };
+        const SDL_HitTestResult rc = window->hit_test(window, &point, window->hit_test_data);
+        if(rc == SDL_HITTEST_DRAGGABLE) {
+            SDL_Mouse *mouse = SDL_GetMouse();
+            Uint8 clicks = SDL_HandleMouseButtonClickState(mouse, SDL_PRESSED, xev->xbutton.button);
+            if(clicks == 2) {
+                data->initiate_maximize = SDL_TRUE;
+                ret = SDL_TRUE;
+            }
+        }
+    }
+    return ret;
+}
+
+
+static SDL_bool
+ProcessMaximizeRestore(_THIS, SDL_WindowData *data, Uint8 button)
+{
+    SDL_Window *window = data->window;
+    SDL_bool ret = SDL_FALSE;
+    Uint32 SDL_double_click_release_time = 300;
+
+    if(data->initiate_maximize == SDL_TRUE) {
+        SDL_Mouse *mouse = SDL_GetMouse();
+        SDL_MouseClickState *clickstate = GetMouseClickState(mouse, button);
+        Uint32 now = SDL_GetTicks();
+         if (!SDL_TICKS_PASSED(now, clickstate->last_timestamp + SDL_double_click_release_time)) {
+            Uint32 flag = SDL_GetWindowFlags( data->window );
+            if ( flag & SDL_WINDOW_MAXIMIZED ) {
+                SDL_RestoreWindow(data->window);
+            } else {
+                SDL_MaximizeWindow(data->window);
+            }
+         }
+         data->initiate_maximize = SDL_FALSE;
+         ret = SDL_TRUE;
+    }
+    return ret;
+}
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
 
 static void
 X11_DispatchEvent(_THIS)
@@ -874,6 +937,27 @@ X11_DispatchEvent(_THIS)
 
                 SDL_SendMouseMotion(data->window, 0, 0, xevent.xmotion.x, xevent.xmotion.y);
             }
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+            if( mouse->initiate_window_drag == SDL_TRUE ) {
+                if( data->initiate_maximize == SDL_FALSE ) {
+                    if(!(xevent.xmotion.state & Button1Mask)) {
+                        mouse->initiate_window_drag = SDL_FALSE;
+                    }  else if( xevent.xmotion.state & Button1Mask ) {
+                        const SDL_Point point = { xevent.xmotion.x, xevent.xmotion.y };
+                        InitiateWindowMove(_this, data, &point);
+                        mouse->initiate_window_drag = SDL_FALSE;
+                    
+                        /* In the case when the user double clicked the title bar but starts 
+                        draging the window we have to reset it here. */
+                        data->initiate_maximize = SDL_FALSE; 
+                    }
+                } else {
+                    mouse->initiate_window_drag == SDL_FALSE;
+                }
+            }
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
         }
         break;
 
@@ -883,12 +967,14 @@ X11_DispatchEvent(_THIS)
                 SDL_SendMouseWheel(data->window, 0, 0, ticks);
             } else {
                 if(xevent.xbutton.button == Button1) {
-                    if (ProcessHitTest(_this, data, &xevent)) {
 /* EG BEGIN */
 #ifdef SDL_WITH_EPIC_EXTENSIONS
-                        SDL_SendWindowEvent(data->window, SDL_WINDOWEVENT_HIT_TEST, 0, 0);
+                    if(PreProcessHitTestForMaximizeRestore(_this, data, &xevent)) {
+                        break;
+                    } else
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
 /* EG END */
+                    if (ProcessHitTest(_this, data, &xevent)) {
                         break;  /* don't pass this event on to app. */
                     }
                 }
@@ -896,8 +982,17 @@ X11_DispatchEvent(_THIS)
             }
         }
         break;
-
     case ButtonRelease:{
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+            /* Let's check here if the user initiated a maximize/restore event. */
+            if(xevent.xbutton.button == Button1) {
+                if(ProcessMaximizeRestore(_this, data, xevent.xbutton.button)) {
+                    break;
+                }
+            }
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
             SDL_SendMouseButton(data->window, 0, SDL_RELEASED, xevent.xbutton.button);
         }
         break;

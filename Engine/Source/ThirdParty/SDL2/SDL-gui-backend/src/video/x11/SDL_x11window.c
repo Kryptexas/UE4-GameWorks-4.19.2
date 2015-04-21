@@ -322,6 +322,11 @@ SetupWindowData(_THIS, SDL_Window * window, Window w, BOOL created)
             /* Tell x11 to clip mouse */
         }
     }
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+    data->initiate_maximize = SDL_FALSE;
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
 
     /* All done! */
     window->driverdata = data;

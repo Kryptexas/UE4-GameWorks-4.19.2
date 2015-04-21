@@ -81,6 +81,11 @@ typedef struct
 #if SDL_VIDEO_OPENGL_EGL  
     EGLSurface egl_surface;
 #endif
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+    SDL_bool initiate_maximize;
+#endif // SDL_WITH_EPIC_EXTENSIONS
+/* EG END */
 } SDL_WindowData;
 
 extern void X11_SetNetWMState(_THIS, Window xwindow, Uint32 flags);
