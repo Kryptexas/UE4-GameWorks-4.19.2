@@ -1416,6 +1416,7 @@ void FRCPassPostProcessVisualizeMotionBlur::Process(FRenderingCompositePassConte
 	}
 
 	const FSceneView& View = Context.View;
+	const FSceneViewFamily& ViewFamily = *(View.Family);
 
 	FIntPoint TexSize = InputDesc->Extent;
 
@@ -1461,6 +1462,50 @@ void FRCPassPostProcessVisualizeMotionBlur::Process(FRenderingCompositePassConte
 		SrcSize,
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
+
+	// this is a helper class for FCanvas to be able to get screen size
+	class FRenderTargetTemp : public FRenderTarget
+	{
+	public:
+		const FSceneView& View;
+		const FTexture2DRHIRef Texture;
+
+		FRenderTargetTemp(const FSceneView& InView, const FTexture2DRHIRef InTexture)
+			: View(InView), Texture(InTexture)
+		{
+		}
+		virtual FIntPoint GetSizeXY() const
+		{
+			return View.ViewRect.Size();
+		};
+		virtual const FTexture2DRHIRef& GetRenderTargetTexture() const
+		{
+			return Texture;
+		}
+	} TempRenderTarget(View, (const FTexture2DRHIRef&)DestRenderTarget.TargetableTexture);
+
+	FCanvas Canvas(&TempRenderTarget, NULL, ViewFamily.CurrentRealTime, ViewFamily.CurrentWorldTime, ViewFamily.DeltaWorldTime, Context.GetFeatureLevel());
+
+	float X = 30;
+	float Y = 8;
+	const float YStep = 14;
+	const float ColumnWidth = 250;
+
+	FString Line;
+
+	Line = FString::Printf(TEXT("Visualize MotionBlur"));
+	Canvas.DrawShadowedString(X, Y += YStep, *Line, GetStatsFont(), FLinearColor(1, 1, 1));
+	
+	Line = FString::Printf(TEXT("%d"), ViewFamily.FrameNumber);
+	Canvas.DrawShadowedString(X, Y += YStep, TEXT("FrameNumber:"), GetStatsFont(), FLinearColor(1, 1, 1));
+	Canvas.DrawShadowedString(X + ColumnWidth, Y, *Line, GetStatsFont(), FLinearColor(1, 1, 1));
+
+	Line = FString::Printf(TEXT("%d"), ViewFamily.bWorldIsPaused ? 1 : 0);
+	Canvas.DrawShadowedString(X, Y += YStep, TEXT("WorldIsPaused:"), GetStatsFont(), FLinearColor(1, 1, 1));
+	Canvas.DrawShadowedString(X + ColumnWidth, Y, *Line, GetStatsFont(), FLinearColor(1, 1, 1));
+
+	Canvas.Flush_RenderThread(Context.RHICmdList);
+
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }

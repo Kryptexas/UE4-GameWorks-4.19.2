@@ -739,6 +739,15 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 	GRenderTargetPool.FindFreeElement(Desc, VelocityRT, TEXT("Velocity"));
 
 	{
+		static const auto MotionBlurDebugVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MotionBlurDebug"));
+
+		if(MotionBlurDebugVar->GetValueOnRenderThread())
+		{
+			UE_LOG(LogEngine, Log, TEXT("r.MotionBlurDebug: FrameNumber=%d Pause=%d"), ViewFamily.FrameNumber, ViewFamily.bWorldIsPaused ? 1 : 0);
+		}
+	}
+
+	{
 		GPrevPerBoneMotionBlur.StartAppend(ViewFamily.bWorldIsPaused);
 
 		BeginVelocityRendering(RHICmdList, VelocityRT, true);

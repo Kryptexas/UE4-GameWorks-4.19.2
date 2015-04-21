@@ -38,6 +38,16 @@ static FBoneMatricesUniformShaderParameters GBoneUniformStruct;
 	template class FactoryClass<false>;	\
 	template class FactoryClass<true>;
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+static TAutoConsoleVariable<int32> CVarVelocityTest(
+	TEXT("r.VelocityTest"),
+	0,
+	TEXT("Allows to enable some low level testing code for the velocity rendering (Affects object motion blur and TemporalAA).")
+	TEXT(" 0: off (default)")
+	TEXT(" 1: add random data to the buffer where we store skeletal mesh bone data to test if the code (good to test in PAUSED as well)."),
+	ECVF_Cheat | ECVF_RenderThreadSafe);
+#endif // if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
 /*-----------------------------------------------------------------------------
  FSharedPoolPolicyData
  -----------------------------------------------------------------------------*/
@@ -366,6 +376,13 @@ public:
 		Ar << BoneMatrices;
 		Ar << PreviousBoneMatrices;
 	}
+
+	/** Are we are in the velocity rendering pass or render velocity in the base pass? */
+	bool IsRenderingVelocity() const
+	{
+		return BoneIndexOffset.IsBound();
+	}
+
 	/**
 	* Set any shader data specific to this vertex factory
 	*/
@@ -407,10 +424,23 @@ public:
 			
 			if (FeatureLevel >= ERHIFeatureLevel::SM4 && GPrevPerBoneMotionBlur.IsAppendStarted())
 			{
+				const bool bWorldIsPaused = View.Family->bWorldIsPaused;
+
 				// we are in the velocity rendering pass
 
 				// 0xffffffff or valid index
 				uint32 OldBoneDataIndex = ShaderData.GetOldBoneData(FrameNumber);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+				{
+					static const auto MotionBlurDebugVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MotionBlurDebug"));
+
+					if (MotionBlurDebugVar->GetValueOnRenderThread())
+					{
+						UE_LOG(LogEngine, Log, TEXT("%s"), *ShaderData.GetDebugString(VertexFactory, OldBoneDataIndex));
+					}
+				}
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 				// Read old data if it was written last frame (normal data) or this frame (e.g. split screen)
 				bLocalPerBoneMotionBlur = (OldBoneDataIndex != 0xffffffff);
@@ -438,10 +468,19 @@ public:
 						);
 				}
 				FScopeLock Lock(&ShaderData.OldBoneDataLock);
+
+				const FGPUBaseSkinVertexFactory* GPUVertexFactory = (const FGPUBaseSkinVertexFactory*)VertexFactory;
+
 				// if we haven't copied the data yet we skip the update (e.g. split screen)
 				if(ShaderData.IsOldBoneDataUpdateNeeded(FrameNumber))
 				{
-					const FGPUBaseSkinVertexFactory* GPUVertexFactory = (const FGPUBaseSkinVertexFactory*)VertexFactory;
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+					if (CVarVelocityTest.GetValueOnRenderThread())
+					{
+						FBoneSkinning Tab[10];
+						GPrevPerBoneMotionBlur.AppendData(Tab, (FMath::Rand() % 55) + 1);
+					}
+#endif // if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 					// copy the bone data and tell the instance where it can pick it up next frame
 					// append data to a buffer we bind next frame to read old matrix data for motion blur
@@ -449,7 +488,6 @@ public:
 					GPUVertexFactory->SetOldBoneDataStartIndex(FrameNumber, OldBoneDataStartIndex);
 				}
 			}
-
 			SetShaderValue(RHICmdList, Shader->GetVertexShader(), PerBoneMotionBlur, bLocalPerBoneMotionBlur);
 		}
 	}

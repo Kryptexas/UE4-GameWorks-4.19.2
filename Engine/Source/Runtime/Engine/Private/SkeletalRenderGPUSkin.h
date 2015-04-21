@@ -189,9 +189,9 @@ public:
 
 	/** so we update only during velocity rendering pass */
 	bool IsAppendStarted() const;
-	
+
 	/** needed before AppendData() ccan be called */
-	ENGINE_API void StartAppend();
+	ENGINE_API void StartAppend(bool bWorldIsPaused);
 
 	/**
 	 * use between LockData() and UnlockData()
@@ -206,6 +206,8 @@ public:
 
 	/** @return 0 if there should be no bone based motion blur (no previous data available or it's not active) */
 	FBoneDataVertexBuffer* GetReadData();
+
+	FString GetDebugString() const;
 
 private:
 
