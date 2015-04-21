@@ -3827,6 +3827,15 @@ public class GUBP : BuildCommand
         GUBPNodes[Node].RemovePseudodependency(Dep);
     }
 
+    public void RemoveAllPseudodependenciesFromNode(string Node)
+    {
+        if (!GUBPNodes.ContainsKey(Node))
+        {
+            throw new AutomationException("Node {0} not found", Node);
+        }
+        GUBPNodes[Node].FullNamesOfPseudosependencies.Clear();
+    }
+
     List<string> GetDependencies(string NodeToDo, bool bFlat = false, bool ECOnly = false)
     {
         var Result = new List<string>();
