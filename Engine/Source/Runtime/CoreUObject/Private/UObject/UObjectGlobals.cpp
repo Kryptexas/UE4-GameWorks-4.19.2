@@ -1976,7 +1976,7 @@ FObjectInitializer::FObjectInitializer() :
 Obj(nullptr),
 	ObjectArchetype(nullptr),
 	bCopyTransientsFromClassDefaults(false),
-	bShouldIntializePropsFromArchetype(true),
+	bShouldIntializePropsFromArchetype(false),
 	bSubobjectClassInitializationAllowed(true),
 	InstanceGraph(nullptr),
 	LastConstructedObject(nullptr)
