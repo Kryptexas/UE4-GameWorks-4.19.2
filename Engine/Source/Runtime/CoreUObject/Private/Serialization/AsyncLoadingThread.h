@@ -97,7 +97,8 @@ public:
 					check(GConfig);
 					bool bConfigValue = true;
 					GConfig->GetBool(TEXT("Core.System"), TEXT("AsyncLoadingThreadEnabled"), bConfigValue, GEngineIni);
-					Value = bConfigValue && FPlatformProcess::SupportsMultithreading();
+					bool bCommandLineNoAsyncThread = false;
+					Value = bConfigValue && FApp::ShouldUseThreadingForPerformance() && !FParse::Param(FCommandLine::Get(), TEXT("NoAsyncLoadingThread"));
 				}
 				else
 				{
@@ -106,6 +107,18 @@ public:
 			}
 		} AsyncLoadingThreadEnabled;
 		return AsyncLoadingThreadEnabled.Value;
+	}
+
+	/** Sets the current state of async loading */
+	FORCEINLINE void SetIsInAsyncLoadingTick(bool InTick)
+	{
+		bIsInAsyncLoadingTick = InTick;
+	}
+
+	/** Gets the current state of async loading */
+	FORCEINLINE bool GetIsInAsyncLoadingTick() const
+	{
+		return bIsInAsyncLoadingTick;
 	}
 
 	/** Returns true if packages are currently being loaded on the async thread */
@@ -121,7 +134,11 @@ public:
 		bool bResult = false;
 		if (IsMultithreaded())
 		{
-			bResult = FPlatformTLS::GetCurrentThreadId() == AsyncLoadingThreadID;
+			// We still need to report we're in async loading thread even if 
+			// we're on game thread but inside of async loading code (PostLoad mostly)
+			// to make it behave exactly like the non-threaded version
+			bResult = FPlatformTLS::GetCurrentThreadId() == AsyncLoadingThreadID || 
+				(IsInGameThread() && FAsyncLoadingThread::Get().bIsInAsyncLoadingTick);
 		}
 		else
 		{

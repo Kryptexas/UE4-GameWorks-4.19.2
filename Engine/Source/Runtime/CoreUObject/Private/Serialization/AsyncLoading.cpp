@@ -212,6 +212,29 @@ FAsyncLoadingThread& FAsyncLoadingThread::Get()
 	return GAsyncLoader;
 }
 
+/** Just like TGuardValue for FAsyncLoadingThread::bIsInAsyncLoadingTick but only works for the game thread */
+struct FAsyncLoadingTickScope
+{
+	bool bWasInTick;
+	FAsyncLoadingTickScope()
+		: bWasInTick(false)
+	{
+		if (IsInGameThread())
+		{
+			FAsyncLoadingThread& AsyncLoadingThread = FAsyncLoadingThread::Get();
+			bWasInTick = AsyncLoadingThread.GetIsInAsyncLoadingTick();
+			AsyncLoadingThread.SetIsInAsyncLoadingTick(true);
+		}
+	}
+	~FAsyncLoadingTickScope()
+	{
+		if (IsInGameThread())
+		{
+			FAsyncLoadingThread::Get().SetIsInAsyncLoadingTick(bWasInTick);
+		}
+	}
+};
+
 void FAsyncLoadingThread::InitializeAsyncThread()
 {
 	AsyncThreadReady.Increment();
@@ -276,6 +299,8 @@ void FAsyncLoadingThread::QueuePackage(const FAsyncPackageDesc& Package)
 int32 FAsyncLoadingThread::CreateAsyncPackagesFromQueue()
 {
 	SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_CreateAsyncPackagesFromQueue);
+
+	FAsyncLoadingTickScope InAsyncLoadingTick;
 
 	int32 NumCreated = 0;
 	checkSlow(IsInAsyncLoadThread());
@@ -459,9 +484,6 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTim
 
 EAsyncPackageState::Type FAsyncLoadingThread::TickAsyncLoading(bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit, FName ExcludeType)
 {
-	TGuardValue<bool> InAsyncLoadingTickGuard(bIsInAsyncLoadingTick, true);
-
-	static bool bWasAsyncLoading = false;
 	EAsyncPackageState::Type Result = EAsyncPackageState::Complete;	
 	double TickStartTime = FPlatformTime::Seconds();
 	double TimeLimitUsedForPreloading = 0;
@@ -763,6 +785,11 @@ bool FAsyncPackage::GiveUpTimeSlice()
  */
 void FAsyncPackage::BeginAsyncLoad()
 {
+	if (IsInGameThread())
+	{
+		FAsyncLoadingThread::Get().SetIsInAsyncLoadingTick(true);
+	}
+
 	// this won't do much during async loading except increase the load count which causes IsLoading to return true
 	BeginLoad();
 }
@@ -777,6 +804,11 @@ void FAsyncPackage::EndAsyncLoad()
 
 	// this won't do much during async loading except decrease the load count which causes IsLoading to return false
 	EndLoad();
+
+	if (IsInGameThread())
+	{
+		FAsyncLoadingThread::Get().SetIsInAsyncLoadingTick(false);
+	}
 
 	if (!bLoadHasFailed)
 	{
@@ -1409,6 +1441,7 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadDeferredObjects(double InTickSta
 
 	EAsyncPackageState::Type Result = EAsyncPackageState::Complete;
 	TGuardValue<bool> GuardIsRoutingPostLoad(FUObjectThreadContext::Get().IsRoutingPostLoad, true);
+	FAsyncLoadingTickScope InAsyncLoadingTick;
 
 	LastObjectWorkWasPerformedOn = nullptr;
 	LastTypeOfWorkPerformed = TEXT("postloading_gamethread");
