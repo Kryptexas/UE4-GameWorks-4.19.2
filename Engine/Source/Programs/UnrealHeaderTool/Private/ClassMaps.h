@@ -8,26 +8,12 @@
 #include "HeaderProvider.h"
 
 #include "UnrealSourceFile.h"
+#include "ClassDeclarationMetaData.h"
 
 struct FManifestModule;
 class FUnrealSourceFile;
 class FUnrealTypeDefinitionInfo;
 
-/** Structure that holds class meta data generated from its UCLASS declaration */
-struct FClassDeclarationMetaData
-{
-	uint64 ClassFlags;
-	TMap<FName, FString> MetaData;
-	FString ClassWithin;
-	FString ConfigName;
-	TArray<FString> HideCategories;
-	TArray<FString> ShowSubCatgories;
-	TArray<FString> HideFunctions;
-	TArray<FString> AutoExpandCategories;
-	TArray<FString> AutoCollapseCategories;
-	TArray<FString> DependsOn;
-	TArray<FString> ClassGroupNames;
-};
 
 
 extern TMap<FString, TSharedRef<FUnrealSourceFile> > GUnrealSourceFilesMap;

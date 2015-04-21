@@ -256,15 +256,6 @@ public:
 	 */
 	static ECompilationResult::Type ParseHeaders(FClasses& AllClasses, FHeaderParser& HeaderParser, FUnrealSourceFile& SourceFile, bool bParseSubclasses);
 
-	/**
-	 * Parse Class's properties to generate its declaration data.
-	 *
-	 * @param	InClassSpecifiers Class properties collected from its UCLASS macro
-	 * @param	InRequiredAPIMacroIfPresent *_API macro if present (empty otherwise)
-	 * @param	OutClassData Parsed class meta data
-	 */
-	static void ParseClassProperties(const TArray<FPropertySpecifier>& InClassSpecifiers, const FString& InRequiredAPIMacroIfPresent, FClassDeclarationMetaData& OutClassData);
-
 protected:
 	friend struct FScriptLocation;
 
@@ -459,9 +450,12 @@ protected:
 	// Parse the parameter list of a function or delegate declaration
 	void ParseParameterList(FClasses& AllClasses, UFunction* Function, bool bExpectCommaBeforeName = false, TMap<FName, FString>* MetaData = NULL);
 
+public:
 	// Throws if a specifier value wasn't provided
 	static void RequireSpecifierValue(const FPropertySpecifier& Specifier, bool bRequireExactlyOne = false);
 	static FString RequireExactlyOneSpecifierValue(const FPropertySpecifier& Specifier);
+
+protected:
 
 	/**
 	 * Parse rest of the module's source files.
