@@ -61,6 +61,7 @@ namespace EDOFMode
 }
 
 struct FCollisionNotifyInfo;
+template <bool bCompileStatic> struct FInitBodiesHelper;
 
 USTRUCT()
 struct ENGINE_API FCollisionResponse
@@ -436,14 +437,15 @@ public:
 	 */
 	static bool ValidateTransform(const FTransform &Transform, const FString& DebugName, const UBodySetup* Setup);
 
-	/** Standalone path to batch initialise large amounts of static bodies, which will be deferred till the next scene update for fast scene addition.
+	/** Standalone path to batch initialize large amounts of static bodies, which will be deferred till the next scene update for fast scene addition.
 	 *	@param Bodies
 	 *	@param Transforms
 	 *	@param BodySetup
 	 *	@param PrimitiveComp
 	 *	@param InRBScene
+	 *  @param PhysicsSerializer
 	 */
-	static void InitStaticBodies(TArray<FBodyInstance*>& Bodies, TArray<FTransform>& Transforms, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene);
+	static void InitStaticBodies(TArray<FBodyInstance*>& Bodies, TArray<FTransform>& Transforms, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, UPhysicsSerializer* PhysicsSerializer);
 
 	/** Obtains the appropriate PhysX scene lock for READING and executes the passed in lambda. */
 	void ExecuteOnPhysicsReadOnly(TFunctionRef<void()> Func) const;
@@ -1019,7 +1021,9 @@ private:
 
 	friend class UCollisionProfile;
 	friend class FBodyInstanceCustomization;
-	friend struct FInitBodiesHelper;
+	
+	friend struct FInitBodiesHelper<true>;
+	friend struct FInitBodiesHelper<false>;
 	friend class FDerivedDataPhysXBinarySerializer;
 
 #if WITH_BOX2D

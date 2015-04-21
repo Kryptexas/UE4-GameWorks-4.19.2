@@ -984,10 +984,9 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_UInstancedStaticMeshComponent_CreateAllInstanceBodies);
 
-	UBodySetup* BodySetup = GetBodySetup();
-	if (BodySetup)
+	if (UBodySetup* BodySetup = GetBodySetup())
 	{
-	    int32 NumBodies = PerInstanceSMData.Num();
+	    const int32 NumBodies = PerInstanceSMData.Num();
 	    InstanceBodies.SetNumUninitialized(NumBodies);
     
 	    TArray<FTransform> Transforms;
@@ -1028,7 +1027,14 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 
 			PhysicsSerializer->CreatePhysicsData(BodySetups, PhysicalMaterials);
 			
-			FBodyInstance::InitBodies(InstanceBodies, Transforms, BodySetup, this, GetWorld()->GetPhysicsScene(), nullptr, true, PhysicsSerializer);
+			if(Mobility == EComponentMobility::Static)
+			{
+				FBodyInstance::InitStaticBodies(InstanceBodies, Transforms, BodySetup, this, GetWorld()->GetPhysicsScene(), PhysicsSerializer);
+			}else
+			{
+				FBodyInstance::InitBodies(InstanceBodies, Transforms, BodySetup, this, GetWorld()->GetPhysicsScene(), nullptr, true, PhysicsSerializer);
+			}
+			
 
 			//Serialize physics data for fast path cooking
 			PhysicsSerializer->SerializePhysics(InstanceBodies, BodySetups, PhysicalMaterials);
