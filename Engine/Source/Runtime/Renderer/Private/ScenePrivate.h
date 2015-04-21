@@ -983,7 +983,7 @@ class FDistanceFieldSceneData
 {
 public:
 
-	FDistanceFieldSceneData();
+	FDistanceFieldSceneData(EShaderPlatform ShaderPlatform);
 	~FDistanceFieldSceneData();
 
 	void AddPrimitive(FPrimitiveSceneInfo* InPrimitive);
@@ -1030,6 +1030,8 @@ public:
 
 	/** Used to detect atlas reallocations, since objects store UVs into the atlas and need to be updated when it changes. */
 	int32 AtlasGeneration;
+
+	bool bTrackPrimitives;
 };
 
 /** Stores data for an allocation in the FIndirectLightingCache. */
