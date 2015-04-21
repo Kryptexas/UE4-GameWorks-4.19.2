@@ -5196,7 +5196,7 @@ void FHeaderParser::CompileFunctionDeclaration(FUnrealSourceFile& SourceFile, FC
 
 			else
 			{
-				UE_LOG(LogCompile, Warning, TEXT("BlueprintImplementableEvents should not be virtual. Use BlueprintNativeEvent instead."));
+				//UE_LOG(LogCompile, Warning, TEXT("BlueprintImplementableEvents should not be virtual. Use BlueprintNativeEvent instead."));
 			}
 		}
 	}
