@@ -44,7 +44,16 @@ namespace Test
 
 	static float WrapTwoPi(float Value)
 	{
-		return FMath::UnwindRadians(Value) + PI;
+		while (Value > TWO_PI)
+		{
+			Value -= TWO_PI;
+		}
+
+		while (Value < 0)
+		{
+			Value += TWO_PI;
+		}
+		return Value;
 	}
 
 	static float Lerp(float StartX, float EndX, float StartY, float EndY, float Alpha)
@@ -98,12 +107,7 @@ namespace Test
 
 	bool FTimer::IsDone() const
 	{
-		bool bIsDone = TotalTime >= 0.0f && CurrentTime >= TotalTime;
-		if (bIsDone)
-		{
-			printf("test");
-		}
-		return bIsDone;
+		return TotalTime >= 0.0f && CurrentTime >= TotalTime;;
 	}
 
 	void FTimer::Start(double InTotalTime)
@@ -121,63 +125,6 @@ namespace Test
 	float FTimer::GetTotalTime() const
 	{
 		return TotalTime;
-	}
-
-	/************************************************************************/
-	/* FFader																*/
-	/************************************************************************/
-
-	FFader::FFader(float FadeInEase, float FadeOutEase)
-		: FadeInEase(FadeInEase)
-		, FadeOutEase(FadeOutEase)
-		, FadeValue(0.0f)
-		, FadeState(EFadeState::OFF)
-	{
-	}
-
-	FFader::~FFader()
-	{
-	}
-
-	float FFader::Update()
-	{
-		if (FadeState == EFadeState::FADE_IN)
-		{
-			FadeValue += (1.0f - FadeValue) * FadeInEase;
-			if (1.0f - FadeValue < 0.0001f)
-			{
-				FadeState = EFadeState::ON;
-				FadeValue = 1.0f;
-			}
-		}
-		else if (FadeState == EFadeState::FADE_OUT)
-		{
-			FadeValue += (0.0f - FadeValue) * FadeOutEase;
-			if (FadeValue < 0.0001f)
-			{
-				FadeValue = 0.0f;
-				FadeState = EFadeState::OFF;
-			}
-		}
-		return FadeValue;
-
-	}
-
-	void FFader::Fade(bool bFadeIn)
-	{
-		if (bFadeIn)
-		{
-			FadeState = EFadeState::FADE_IN;
-		}
-		else
-		{
-			FadeState = EFadeState::FADE_OUT;
-		}
-	}
-
-	void FFader::Toggle()
-	{
-		Fade(FadeState == EFadeState::FADE_OUT || FadeState == EFadeState::OFF);
 	}
 
 	/************************************************************************/
@@ -215,8 +162,8 @@ namespace Test
 	/************************************************************************/
 
 	FLowPass::FLowPass()
-		: Frequency(0.0f)
-		, Quality(1.0f)
+		: Quality(1.0f)
+		, Frequency(0.0f)
 	{
 	}
 
@@ -257,10 +204,54 @@ namespace Test
 	}
 
 	/************************************************************************/
-	/* FRamp																*/
+	/* FLinEnv														*/
 	/************************************************************************/
 
-	FRamp::FRamp()
+	FLinEnv::FLinEnv()
+		: CurrValue(0.0f)
+		, EndValue(0.0f)
+		, bIsDone(false)
+	{
+	}
+
+	FLinEnv::~FLinEnv()
+	{
+	}
+
+	void FLinEnv::Start(float End, float Time)
+	{
+		if (Time == 0.0f)
+		{
+			bIsDone = true;
+			CurrValue = End;
+		}
+		else
+		{
+			bIsDone = false;
+			EndValue = End;
+			DeltaValue = (End - CurrValue) / (Time * CallbackData.FrameRate);
+		}
+	}
+
+	float FLinEnv::Update()
+	{
+		if (FMath::Abs(CurrValue - EndValue) < 0.001f)
+		{
+			bIsDone = true;
+			CurrValue = EndValue;
+		}
+		else
+		{
+			CurrValue += DeltaValue;
+		}
+		return CurrValue;
+	}
+
+	/************************************************************************/
+	/* FSaw																	*/
+	/************************************************************************/
+
+	FSaw::FSaw()
 		: CurrValue(0.0f)
 		, DeltaValue(0.0f)
 		, Frequency(0.0f)
@@ -269,35 +260,36 @@ namespace Test
 	{
 	}
 
-	FRamp::~FRamp()
+	FSaw::~FSaw()
 	{
 	}
 
-	void FRamp::SetFrequency(float InFrequency)
+	void FSaw::SetFrequency(float InFrequency)
 	{
 		check(CallbackData.FrameRate > 0.0f);
 		Frequency = InFrequency;
 		DeltaValue = Frequency / CallbackData.FrameRate;
 	}
 
-	void FRamp::SetScaleAdd(float InScale, float InAdd)
+	void FSaw::SetScaleAdd(float InScale, float InAdd)
 	{
 		Scale = InScale;
 		Add = InAdd;
 	}
 
-	float FRamp::Update()
+	float FSaw::Update()
 	{
+		float Result = CurrValue;
 		CurrValue += DeltaValue;
-		if (CurrValue >= 1.0f)
+		while (CurrValue >= 1.0f)
 		{
 			CurrValue -= 1.0f;
 		}
-		else if (CurrValue <= 0.0f)
+		while (CurrValue <= 0.0f)
 		{
 			CurrValue += 1.0f;
 		}
-		return Scale * CurrValue + Add;
+		return Scale * Result + Add;
 	}
 
 	/************************************************************************/
@@ -410,7 +402,7 @@ namespace Test
 
 	void FPan::SetPan(float InPan)
 	{
-		Pan = InPan;
+		Pan = FMath::Clamp(InPan, 0.0f, 1.0f);
 	}
 
 	void FPan::Spatialize(float Value, float* Frame)
@@ -670,21 +662,13 @@ namespace Test
 
 	FSimpleOutput::FSimpleOutput(double LifeTime)
 		: IGenerator(LifeTime)
-		, BaseFreqHz(220.0f)
-		, PhaseDelta(0.0f)
 		, Amplitude(0.5f)
-		, NumNonLfeSpeakers(0)
-		, LFEIndex(-1)
+		, ChannelTimer(1.0f)
 	{
 	}
 
 	FSimpleOutput::~FSimpleOutput()
 	{
-	}
-
-	bool FSimpleOutput::IsInit()
-	{
-		return NumNonLfeSpeakers == 0;
 	}
 
 	bool FSimpleOutput::GetNextBuffer(FCallbackInfo& CallbackInfo)
@@ -694,58 +678,19 @@ namespace Test
 			return true;
 		}
 
-		// phase delta is radians per frame, or amount to increment the current phase each frame
-		if (IsInit())
+		if (Sinusoids.Num() == 0)
 		{
-			check(CallbackData.FrameRate > 0);
-			PhaseDelta = (TWO_PI * BaseFreqHz) / CallbackData.FrameRate;
-			NumNonLfeSpeakers = 0;
-			for (int32 Chan = 0; Chan < CallbackInfo.NumChannels; ++Chan)
+			ChannelTimer.Start(1.0f);
+			CurrentChannelOut = 0;
+			for (int32 i = 0; i < CallbackInfo.NumChannels; ++i)
 			{
-				if (CallbackInfo.OutputSpeakers[Chan] == ESpeaker::LOW_FREQUENCY)
+				FChannelSine ChannelSine;
+				ChannelSine.SineOsc.SetFrequency(220.0f * (1 + i));
+				if (i == CurrentChannelOut)
 				{
-					LFEIndex = Chan;
+					ChannelSine.Fader.Start(1.0f, 0.1f);
 				}
-				else
-				{
-					++NumNonLfeSpeakers;
-				}
-			}
-
-			SpeakerInfo.Init(FSpeakerInfo(), NumNonLfeSpeakers);
-			for (int32 Index = 0; Index < NumNonLfeSpeakers; ++Index)
-			{
-				SpeakerInfo[Index].MaxHarmonic = FMath::RandRange(3, 12);
-				SpeakerInfo[Index].Time = (float) FMath::RandRange(1, 8) / 16.0f;
-			}
-		}
-
-		for (int32 Index = 0; Index < SpeakerInfo.Num(); ++Index)
-		{
-			FSpeakerInfo& Info = SpeakerInfo[Index++];
-			if (Info.Timer.Update())
-			{
-				Info.bOn = !Info.bOn;
-				if (Info.bOn)
-				{
-					if (Info.bDirection)
-					{
-						Info.Harmonic++;
-					}
-					else
-					{
-						Info.Harmonic--;
-					}
-					if (Info.Harmonic >= Info.MaxHarmonic)
-					{
-						Info.bDirection = false;
-					}
-					else if (Info.Harmonic == 1)
-					{
-						Info.bDirection = true;
-					}
-				}
-				Info.Timer.Start(Info.Time);
+				Sinusoids.Add(ChannelSine);
 			}
 		}
 
@@ -755,24 +700,24 @@ namespace Test
 			int32 SpeakerIndex = 0;
 			for (int32 Channel = 0; Channel < CallbackInfo.NumChannels; ++Channel)
 			{
-				// Ignore the LFE speaker
-				if (Channel == LFEIndex)
+				FSineOsc& SineOsc = Sinusoids[Channel].SineOsc;
+				FLinEnv& Fader = Sinusoids[Channel].Fader;
+				float Value = SineOsc.Update();
+				Value *= Fader.Update();
+				Value *= Amplitude;
+				CallbackInfo.OutBuffer[FrameIndex + Channel] = Value;
+
+				if (Fader.IsDone() && Channel == CurrentChannelOut)
 				{
-					continue;
+					Fader.Start(0.0f, 0.5f);
 				}
+			}
 
-				FSpeakerInfo& Info = SpeakerInfo[SpeakerIndex++];
-				float Value = Amplitude * FMath::Sin(Info.Phase);
-
-				Info.Fader.Fade(Info.bOn);
-
-				CallbackInfo.OutBuffer[FrameIndex + Channel] = Info.Fader.Update()*Value;
-
-				// Increment the phase, an octave up for each channel
-				Info.Phase += (PhaseDelta * (float)Info.Harmonic);
-
-				// Wrap the phase
-				Info.Phase = WrapTwoPi(Info.Phase);
+			if (ChannelTimer.Update())
+			{
+				CurrentChannelOut = (CurrentChannelOut + 1) % CallbackInfo.NumChannels;
+				Sinusoids[CurrentChannelOut].Fader.Start(1.0f, 0.1f);
+				ChannelTimer.Start(1.0f);
 			}
 		}
 		return true;

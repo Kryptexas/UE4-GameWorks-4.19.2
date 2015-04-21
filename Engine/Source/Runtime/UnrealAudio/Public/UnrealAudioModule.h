@@ -4,8 +4,8 @@
 
 #include "ModuleInterface.h"
 
-// Only enable unreal audio on windows
-#if PLATFORM_WINDOWS
+// Only enable unreal audio on windows or mac
+#if PLATFORM_WINDOWS || PLATFORM_MAC
 #define ENABLE_UNREAL_AUDIO 1
 #else
 #define ENABLE_UNREAL_AUDIO 0

@@ -7,8 +7,11 @@
 
 #if ENABLE_UNREAL_AUDIO
 
-#define AUDIO_DEVICE_DEVICE_MODULE_NAME "UnrealAudioWasapi"
-//#define AUDIO_DEVICE_DEVICE_MODULE_NAME TEXT("UnrealAudioXAudio2")
+#if PLATFORM_WINDOWS
+#define AUDIO_DEFAULT_DEVICE_MODULE_NAME "UnrealAudioXAudio2"
+#elif PLATFORM_MAC
+#define AUDIO_DEFAULT_DEVICE_MODULE_NAME "UnrealAudioCoreAudio"
+#endif
 
 DEFINE_LOG_CATEGORY(LogUnrealAudio);
 
@@ -71,7 +74,7 @@ namespace UAudio
 		}
 
 		EDeviceApi::Type DeviceApi;
-		if (UnrealAudioDevice->GetDevicePlatformApi(DeviceApi) && DeviceApi == EDeviceApi::DUMMY)
+		if (UnrealAudioDevice && UnrealAudioDevice->GetDevicePlatformApi(DeviceApi) && DeviceApi == EDeviceApi::DUMMY)
 		{
 			delete UnrealAudioDevice;
 			UnrealAudioDevice = nullptr;
@@ -82,7 +85,7 @@ namespace UAudio
 	FName FUnrealAudioModule::GetDefaultDeviceModuleName() const
 	{
 		// TODO: Pull the device module name to use from an engine ini or an audio ini file
-		return FName(AUDIO_DEVICE_DEVICE_MODULE_NAME);
+		return FName(AUDIO_DEFAULT_DEVICE_MODULE_NAME);
 	}
 
 

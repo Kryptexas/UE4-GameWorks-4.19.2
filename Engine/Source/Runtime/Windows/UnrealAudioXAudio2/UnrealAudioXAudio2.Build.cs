@@ -6,11 +6,8 @@ public class UnrealAudioXAudio2 : ModuleRules
 {
 	public UnrealAudioXAudio2(TargetInfo Target)
 	{
-		PrivateIncludePaths.AddRange(
-			new string[] {
-				"Runtime/UnrealAudio/Private",
-			}
-)		;
+		PrivateIncludePaths.Add("Runtime/UnrealAudio/Private");
+		PublicIncludePaths.Add("Runtime/UnrealAudio/Public");
 
 		PrivateIncludePathModuleNames.Add("TargetPlatform");
 
@@ -20,12 +17,8 @@ public class UnrealAudioXAudio2 : ModuleRules
 				"CoreUObject",
 			}
 		);
-
-		PublicDependencyModuleNames.AddRange(
-			new string[] {
-				"UnrealAudio"
-			}
-		);
+		
+		PublicDependencyModuleNames.Add("UnrealAudio");
 
 		AddThirdPartyPrivateStaticDependencies(Target, 
 			"DX11Audio"

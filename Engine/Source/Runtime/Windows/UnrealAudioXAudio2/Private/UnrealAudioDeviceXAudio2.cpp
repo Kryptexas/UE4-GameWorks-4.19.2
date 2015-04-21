@@ -45,19 +45,19 @@ static const TCHAR* GetXAudio2Error(HRESULT Result)
 
 #define CLEANUP_ON_FAIL(Result)						\
 	if (FAILED(Result))								\
-		{												\
+	{												\
 		const TCHAR* Err = GetXAudio2Error(Result);	\
 		UA_DEVICE_PLATFORM_ERROR(Err);				\
 		goto Cleanup;								\
-		}
+	}
 
 #define RETURN_FALSE_ON_FAIL(Result)				\
 	if (FAILED(Result))								\
-		{												\
+	{												\
 		const TCHAR* Err = GetXAudio2Error(Result);	\
 		UA_DEVICE_PLATFORM_ERROR(Err);				\
 		return false;								\
-		}
+	}
 
 namespace UAudio
 {
@@ -253,6 +253,11 @@ namespace UAudio
 
 	bool FUnrealAudioXAudio2::Initialize()
 	{
+		if (bInitialized)
+		{
+			return false;
+		}
+
 		bComInitialized = FWindowsPlatformMisc::CoInitialize();
 		HRESULT Result = XAudio2Create(&XAudio2Info.XAudio2System);
 		RETURN_FALSE_ON_FAIL(Result);
@@ -409,7 +414,7 @@ namespace UAudio
 
 	bool FUnrealAudioXAudio2::StopStream()
 	{
-		if (!bInitialized || StreamInfo.State == EStreamState::CLOSED || StreamInfo.State == EStreamState::STOPPED || StreamInfo.State == EStreamState::STOPPING)
+		if (!bInitialized || StreamInfo.State == EStreamState::SHUTDOWN || StreamInfo.State == EStreamState::STOPPED || StreamInfo.State == EStreamState::STOPPING)
 		{
 			return false;
 		}
@@ -433,7 +438,7 @@ namespace UAudio
 
 	bool FUnrealAudioXAudio2::ShutdownStream()
 	{
-		if (!bInitialized || StreamInfo.State == EStreamState::CLOSED)
+		if (!bInitialized || StreamInfo.State == EStreamState::SHUTDOWN)
 		{
 			return false;
 		}
@@ -453,17 +458,19 @@ namespace UAudio
 		CloseHandle(XAudio2Info.OutputBufferEndEvent);
 		XAudio2Info.OutputBufferEndEvent = nullptr;
 
-		StreamInfo.State = EStreamState::CLOSED;
+		StreamInfo.State = EStreamState::SHUTDOWN;
 		return true;
 	}
 
 	bool FUnrealAudioXAudio2::GetLatency(uint32& OutputDeviceLatency) const
 	{
+		OutputDeviceLatency = StreamInfo.DeviceInfo.Latency;
 		return true;
 	}
 
 	bool FUnrealAudioXAudio2::GetFrameRate(uint32& OutFrameRate) const
 	{
+		OutFrameRate = StreamInfo.FrameRate;
 		return true;
 	}
 

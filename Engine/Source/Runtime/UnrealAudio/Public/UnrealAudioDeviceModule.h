@@ -10,9 +10,9 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogUnrealAudioDevice, Log, All);
 
-#define UA_DEVICE_PLATFORM_ERROR(INFO)	(OnDeviceError(EDeviceError::PLATFORM, INFO, FString(__FILE__), __LINE__))
-#define AU_DEVICE_PARAM_ERROR(INFO)		(OnDeviceError(EDeviceError::INVALID_PARAMETER, INFO, FString(__FILE__), __LINE__))
-#define AU_DEVICE_WARNING(INFO)			(OnDeviceError(EDeviceError::WARNING, INFO, FString(__FILE__), __LINE__))
+#define UA_DEVICE_PLATFORM_ERROR(INFO)	(UAudio::OnDeviceError(EDeviceError::PLATFORM, INFO, FString(__FILE__), __LINE__))
+#define AU_DEVICE_PARAM_ERROR(INFO)		(UAudio::OnDeviceError(EDeviceError::INVALID_PARAMETER, INFO, FString(__FILE__), __LINE__))
+#define AU_DEVICE_WARNING(INFO)			(UAudio::OnDeviceError(EDeviceError::WARNING, INFO, FString(__FILE__), __LINE__))
 
 
 namespace UAudio
@@ -95,7 +95,7 @@ namespace UAudio
 	{
 		enum Type
 		{
-			CLOSED,				/** The stream is closed */
+			SHUTDOWN,			/** The stream is shutdown */
 			STOPPED,			/** The stream was running and is now stopped */
 			RUNNING,			/** The stream is running (currently streaming callbacks) */
 			STOPPING,			/** The stream is currently stopping*/
@@ -110,7 +110,7 @@ namespace UAudio
 	{
 		enum Flag
 		{
-			OUTPUT_UNDERFLOW	= (1 << 1)		/** The output stream has too little data */
+			OUTPUT_OVERFLOW	= (1 << 1)		/** The output stream has too little or too much data */
 		};
 	}
 	typedef uint8 StreamStatus;
@@ -141,6 +141,7 @@ namespace UAudio
 			TOP_BACK_LEFT,
 			TOP_BACK_CENTER,
 			TOP_BACK_RIGHT,
+			UNUSED,
 			SPEAKER_TYPE_COUNT
 		};
 
@@ -167,12 +168,32 @@ namespace UAudio
 				case TOP_BACK_LEFT:				return TEXT("TOP_BACK_LEFT");
 				case TOP_BACK_CENTER:			return TEXT("TOP_BACK_CENTER");
 				case TOP_BACK_RIGHT:			return TEXT("TOP_BACK_RIGHT");
+				case UNUSED:					return TEXT("UNUSED");
 				default:						return TEXT("UKNOWN");
 			}
 			return TEXT("");
 		}
 	};
 
+	/**
+	Static array specifying which frame rates to check for support on audio devices.
+	http://en.wikipedia.org/wiki/Sampling_%28signal_processing%29
+	*/
+	const uint32 PossibleFrameRates[] =
+	{
+		8000,		/** Used for telephony, walkie talkies, ok for human speech. */
+		11025,		/** Quarter sample rate of CD's, low-quality PCM */
+		16000,		/** Rate used for VOIP (which is why VOIP sounds slightly better than normal phones), wide-band extension over normal telephony */
+		22050,		/** Half CD sample rate, low quality PCM */
+		32000,		/** MiniDV, digital FM radio, decent wireless microphones */
+		44100,		/** CD's, MPEG-1 (MP3), covers 20kHz bandwidth of human hearing with room for LP ripple. */
+		48000,		/** Standard rate used by "professional" film and audio guys: mixing console, digital recorders, etc */
+		88200,		/** Used for recording equipment intended for CDs */
+		96000,		/** DVD audio, high-def audio, 2x the 48khz "professional" sample rate. */
+		176400,		/** Rate used by HDCD recorders. */
+		192000,		/** HD-DVD and blue ray audio, 4x the 48khz "professional" sample rate. */
+	};
+	const uint32 MaxPossibleFrameRates = 11;
 
 	/**
 	* FCallbackInfo
@@ -187,11 +208,14 @@ namespace UAudio
 		/** The number of buffer output frames */
 		uint32 NumFrames;
 
-		/** Array of outputs speakers */
-		TArray<ESpeaker::Type> OutputSpeakers;
-
 		/** The number of channels in output. */
 		int32 NumChannels;
+
+		/** The number of total samples (NumFrames*NumChannels). */
+		int32 NumSamples;
+
+		/** Array of outputs speakers */
+		TArray<ESpeaker::Type> OutputSpeakers;
 
 		/** The current status flags of the input and output buffers */
 		StreamStatus StatusFlags;
@@ -229,11 +253,17 @@ namespace UAudio
 		/** The frame rate of the device. */
 		uint32 FrameRate;
 
+		/** The possible frame rates of the device. */
+		TArray<uint32> PossibleFrameRates;
+
 		/** The data format of the device (e.g. float). */
 		EStreamFormat::Type StreamFormat;
 
 		/** What speakers this device supports (if output device) */
 		TArray<ESpeaker::Type> Speakers;
+
+		/** Device latency (if available) */
+		uint32 Latency;
 
 		/** Whether or not it is the OS default device for the type. */
 		bool bIsSystemDefault;
@@ -241,10 +271,11 @@ namespace UAudio
 		FDeviceInfo()
 			: FriendlyName(TEXT("Uknown"))
 			, NumChannels(0)
-			, FrameRate(0)
 			, StreamFormat(EStreamFormat::UNKNOWN)
+			, Latency(0)
 			, bIsSystemDefault(false)
-		{}
+		{
+		}
 	};
 
 	/**
@@ -279,28 +310,21 @@ namespace UAudio
 	};
 
 	/**
-	* IDeviceErrorListener
-	* An optional class that defines an error listener interface. Used for handling or logging any audio device errors which may have occurred.
-	*/
-	class UNREALAUDIO_API IDeviceErrorListener
-	{
-	public:
-		virtual void OnDeviceError(const EDeviceError::Type Error, const FString& ErrorDetails, const FString& FileName, int32 LineNumber) const = 0;
-	};
-
-	/**
 	* IUnrealAudioDeviceModule
 	* Main audio device module, needs to be implemented for every specific platform API.
 	*/
-	class UNREALAUDIO_API IUnrealAudioDeviceModule : public IModuleInterface,
-													 public IDeviceErrorListener
+	class UNREALAUDIO_API IUnrealAudioDeviceModule : public IModuleInterface
 	{
 	public:
 		/** Constructor */
-		IUnrealAudioDeviceModule();
+		IUnrealAudioDeviceModule()
+		{
+		}
 
 		/** Virtual destructor */
-		virtual ~IUnrealAudioDeviceModule();
+		virtual ~IUnrealAudioDeviceModule()
+		{
+		}
 
 		/** 
 		* Initializes the audio device module. 
@@ -390,16 +414,27 @@ namespace UAudio
 		* @param Params The parameters needed to create an audio stream.
 		* @return true if succeeded.
 		*/
-		bool CreateStream(const FCreateStreamParams& Params);
+		bool CreateStream(const FCreateStreamParams& Params)
+		{
+			checkf(StreamInfo.State == EStreamState::SHUTDOWN, TEXT("Stream state can't be open if creating a new one."));
+			checkf(Params.OutputDeviceIndex != INDEX_NONE, TEXT("Input or output stream params need to be set."));
 
-		/**
-		* Function called when an error occurs in the device code.
-		* @param Error The error type that occurred.
-		* @param ErrorDetails A string of specific details about the error.
-		* @param FileName The file that the error occurred in.
-		* @param LineNumber The line number that the error occurred in.
-		*/
-		void OnDeviceError(const EDeviceError::Type Error, const FString& ErrorDetails, const FString& FileName, int32 LineNumber) const override;
+			bool bSuccess = false;
+
+			Reset();
+
+			if (OpenDevice(Params))
+			{
+				StreamInfo.State = EStreamState::STOPPED;
+				StreamInfo.CallbackFunction = Params.CallbackFunction;
+				StreamInfo.UserData = Params.UserData;
+				StreamInfo.BlockSize = Params.CallbackBlockSize;
+				StreamInfo.StreamDelta = (double)StreamInfo.BlockSize / StreamInfo.FrameRate;
+				bSuccess = true;
+			}
+
+			return bSuccess;
+		}
 
 	protected:
 
@@ -443,7 +478,7 @@ namespace UAudio
 			uint32 NumChannels;
 
 			/** The reported latency of this device. */
-			uint64 Latency;
+			uint32 Latency;
 
 			/** The native framerate of this device. */
 			uint32 FrameRate;
@@ -539,7 +574,7 @@ namespace UAudio
 			void Initialize()
 			{
 				FrameRate = 0;
-				State = EStreamState::CLOSED;
+				State = EStreamState::SHUTDOWN;
 				StreamTime = 0.0;
 				StreamDelta = 0.0;
 
@@ -557,10 +592,10 @@ namespace UAudio
 		virtual bool OpenDevice(const FCreateStreamParams& Params) = 0;
 
 		/** Called before opening up new streams. */
-		void Reset();
-
-		/** Helper function to get number of bytes for a given stream format. */
-		uint32 GetNumBytesForFormat(EStreamFormat::Type Format) const;
+		void Reset()
+		{
+			StreamInfo.Initialize();
+		}
 
 		/** Sets up any convert information for given stream type (figures out to/from convert format and channel formats) */
 		void SetupBufferFormatConvertInfo();
@@ -569,7 +604,10 @@ namespace UAudio
 		bool ConvertBufferFormat(TArray<uint8>& OutputBuffer, TArray<uint8>& InputBuffer);
 
 		/** Updates the sample-accurate stream time value. */
-		void UpdateStreamTimeTick();
+		FORCEINLINE void UpdateStreamTimeTick()
+		{
+			StreamInfo.StreamTime += StreamInfo.StreamDelta;
+		}
 
 		/** Templated function to convert to float from any other format type. */
 		template <typename FromType, typename ToType>
@@ -593,17 +631,42 @@ namespace UAudio
 
 	protected: // Protected Data
 
-		/** An array of possible frame rates that can exist with any audio device. */
-		static const uint32 PossibleFrameRates[];
-		static const uint32 MaxPossibleFrameRates;
-
 		/** Device stream info struct */
 		FStreamInfo StreamInfo;
 	};
 
 	// Exported Functions
+
+	/** Creates a dummy audio device */
 	UNREALAUDIO_API IUnrealAudioDeviceModule* CreateDummyDeviceModule();
-}
+
+	/**
+	* Function called when an error occurs in the device code.
+	* @param Error The error type that occurred.
+	* @param ErrorDetails A string of specific details about the error.
+	* @param FileName The file that the error occurred in.
+	* @param LineNumber The line number that the error occurred in.
+	*/
+	static inline void OnDeviceError(const EDeviceError::Type Error, const FString& ErrorDetails, const FString& FileName, int32 LineNumber)
+	{
+		UE_LOG(LogUnrealAudioDevice, Error, TEXT("Audio Device Error: (%s) : %s (%s::%d)"), EDeviceError::ToString(Error), *ErrorDetails, *FileName, LineNumber);
+	}
+
+	/** Helper function to get number of bytes for a given stream format. */
+	static inline uint32 GetNumBytesForFormat(EStreamFormat::Type Format)
+	{
+		switch (Format)
+		{
+			case EStreamFormat::FLT:		return 4;
+			case EStreamFormat::DBL:		return 8;
+			case EStreamFormat::INT_16:		return 2;
+			case EStreamFormat::INT_24:		return 3;
+			case EStreamFormat::INT_32:		return 4;
+			default:						return 0;
+		}
+	}
+
+} // namespace UAudio
 
 #endif // #if ENABLE_UNREAL_AUDIO
 

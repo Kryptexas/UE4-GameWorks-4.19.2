@@ -14,19 +14,6 @@ namespace UAudio
 	 * so we need to support converting byte buffers to and from various formats.
 	 */
 
-	uint32 IUnrealAudioDeviceModule::GetNumBytesForFormat(EStreamFormat::Type Format) const
-	{
-		switch (Format)
-		{
-			case EStreamFormat::FLT:		return 4;
-			case EStreamFormat::DBL:		return 8;
-			case EStreamFormat::INT_16:		return 2;
-			case EStreamFormat::INT_24:		return 3;
-			case EStreamFormat::INT_32:		return 4;
-			default:						return 0;
-		}
-	}
-
 	void IUnrealAudioDeviceModule::SetupBufferFormatConvertInfo()
 	{
 		FBufferFormatConvertInfo& ConvertInfo = StreamInfo.DeviceInfo.BufferFormatConvertInfo;

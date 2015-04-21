@@ -6,11 +6,9 @@ public class UnrealAudioWasapi : ModuleRules
 {
 	public UnrealAudioWasapi(TargetInfo Target)
 	{
-		PrivateIncludePaths.AddRange(
-			new string[] {
-				"Runtime/UnrealAudio/Private",
-			}
-)		;
+		PrivateIncludePaths.Add("Runtime/UnrealAudio/Private");
+		PublicIncludePaths.Add("Runtime/UnrealAudio/Public");
+
 
 		PrivateIncludePathModuleNames.Add("TargetPlatform");
 
@@ -21,10 +19,7 @@ public class UnrealAudioWasapi : ModuleRules
 			}
 		);
 
-		PublicDependencyModuleNames.AddRange(
-			new string[] {
-				"UnrealAudio"
-			}
-		);
+		PublicDependencyModuleNames.Add("UnrealAudio");
+
 	}
 }

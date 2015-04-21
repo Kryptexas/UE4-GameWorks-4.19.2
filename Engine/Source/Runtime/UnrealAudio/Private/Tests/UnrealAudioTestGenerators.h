@@ -43,36 +43,46 @@ namespace Test
 	};
 
 	/**
-	* FFader
-	* A simple sample-accurate fader
+	* FLinEnv
+	* A simple linear envelope
 	*/
-	class FFader
+	class FLinEnv
 	{
-	private:
-		struct EFadeState
-		{
-			enum Type
-			{
-				FADE_IN,
-				FADE_OUT,
-				OFF,
-				ON
-			};
-		};
-
 	public:
-		FFader(float FadeInEase, float FadeOutEase);
-		~FFader();
+		FLinEnv();
+		~FLinEnv();
 
+		void Start(float End, float TimeSec);
 		float Update();
-		void Fade(bool bFadeIn);
-		void Toggle();
+		bool IsDone() const { return bIsDone; }
 
 	private:
-		float FadeInEase;
-		float FadeOutEase;
-		float FadeValue;
-		EFadeState::Type FadeState;
+		float CurrValue;
+		float DeltaValue;
+		float EndValue;
+		bool bIsDone;
+	};
+
+	/**
+	* FSaw
+	* A simple saw-wave class
+	*/
+	class FSaw
+	{
+	public:
+		FSaw();
+		~FSaw();
+
+		void SetFrequency(float InFrequency);
+		void SetScaleAdd(float InScale, float InAdd);
+		float Update();
+
+	private:
+		float CurrValue;
+		float DeltaValue;
+		float Frequency;
+		float Scale;
+		float Add;
 	};
 
 	/**
@@ -119,27 +129,6 @@ namespace Test
 		float Frequency;
 	};
 
-	/**
-	* FRamp
-	* A linear time-ramp class.
-	*/
-	class FRamp
-	{
-	public:
-		FRamp();
-		~FRamp();
-
-		void SetFrequency(float InFrequency);
-		void SetScaleAdd(float InScale, float InAdd);
-		float Update();
-
-	private:
-		float CurrValue;
-		float DeltaValue;
-		float Frequency;
-		float Scale;
-		float Add;
-	};
 
 	/**
 	* FSineOsc
@@ -272,38 +261,16 @@ namespace Test
 		bool GetNextBuffer(FCallbackInfo& CallbackInfo) override;
 
 	private:
-		bool IsInit();
-
-		struct FSpeakerInfo
+		struct FChannelSine
 		{
-			float Phase;
-			FFader Fader;
-			int32 Harmonic;
-			int32 MaxHarmonic;
-			FTimer Timer;
-			float Time;
-			bool bDirection;
-			bool bOn;
-
-			FSpeakerInfo()
-				: Phase(0.0f)
-				, Fader(0.01f, 0.0001f)
-				, Harmonic(1)
-				, MaxHarmonic(10)
-				, Timer(1.0f)
-				, Time(1.0f)
-				, bDirection(true)
-				, bOn(false)
-			{
-			}
+			FSineOsc SineOsc;
+			FLinEnv Fader;
 		};
 
-		float BaseFreqHz;
-		float PhaseDelta;
+		TArray<FChannelSine> Sinusoids;
 		float Amplitude;
-		TArray<FSpeakerInfo> SpeakerInfo;
-		int32 NumNonLfeSpeakers;
-		int32 LFEIndex;
+		uint32 CurrentChannelOut;
+		FTimer ChannelTimer;
 	};
 
 
@@ -362,7 +329,7 @@ namespace Test
 			TArray<float> SpeakerMap;
 			FLowPass LowPass;
 			FPan Panner;
-			FRamp PanRamp;
+			FSaw PanRamp;
 			FSineOsc FilterLFO;
 			bool bInit;
 		};
@@ -390,7 +357,7 @@ namespace Test
 		float Amp;
 		FLowPass LowPass;
 		FPan Panner;
-		FRamp PanRamp;
+		FSaw PanRamp;
 		FSineOsc FilterLFO;
 		FDelay Delay;
 		bool bInit;

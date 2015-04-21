@@ -37,7 +37,7 @@ namespace UAudio
 		}
 
 		
-		UE_LOG(LogUnrealAudio, Display, TEXT("Querying which audio device API we're using..."), );
+		UE_LOG(LogUnrealAudio, Display, TEXT("Querying which audio device API we're using..."));
 		EDeviceApi::Type DeviceApi;
 		if (!UnrealAudioDevice->GetDevicePlatformApi(DeviceApi))
 		{
@@ -54,16 +54,16 @@ namespace UAudio
 			return true;
 		}
 
-		UE_LOG(LogUnrealAudio, Display, TEXT("Querying the number of output devices for current system..."), );
+		UE_LOG(LogUnrealAudio, Display, TEXT("Querying the number of output devices for current system..."));
 		uint32 NumOutputDevices = 0;
 		if (!UnrealAudioDevice->GetNumOutputDevices(NumOutputDevices))
 		{
 			UE_LOG(LogUnrealAudio, Display, TEXT("Failed."));
 			return false;
 		}
-		UE_LOG(LogUnrealAudio, Display, TEXT("Success: %d Number of Output Devices"), NumOutputDevices);
+		UE_LOG(LogUnrealAudio, Display, TEXT("Success: %d Output Devices Found"), NumOutputDevices);
 
-		UE_LOG(LogUnrealAudio, Display, TEXT("Retrieving output device info for each output device..."), );
+		UE_LOG(LogUnrealAudio, Display, TEXT("Retrieving output device info for each output device..."));
 		for (uint32 DeviceIndex = 0; DeviceIndex < NumOutputDevices; ++DeviceIndex)
 		{
 			FDeviceInfo DeviceInfo;
@@ -188,7 +188,7 @@ namespace UAudio
 		// Block until the synthesizer is done
 		while (!Generator->IsDone())
 		{
-			Sleep(1);
+			FPlatformProcess::Sleep(1);
 		}
 
 		// Stop the output stream (which blocks until its actually freed)
@@ -213,7 +213,7 @@ namespace UAudio
 	bool TestDeviceOutputSimple(double LifeTime)
 	{
 		Test::FSimpleOutput SimpleOutput(LifeTime);
-		return DoOutputTest("output randomized FM synthesis", LifeTime, &SimpleOutput);
+		return DoOutputTest("output simple test", LifeTime, &SimpleOutput);
 	}
 
 	bool TestDeviceOutputRandomizedFm(double LifeTime)

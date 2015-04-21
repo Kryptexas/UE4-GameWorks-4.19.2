@@ -233,7 +233,7 @@ public class UnrealEd : ModuleRules
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
 			PublicDependencyModuleNames.Add("XAudio2");
-			PublicDependencyModuleNames.Add("UnrealAudioWasapi");
+			PublicDependencyModuleNames.Add("UnrealAudioXAudio2");
 
 			AddThirdPartyPrivateStaticDependencies(Target, 
 				"UEOgg",
@@ -243,6 +243,11 @@ public class UnrealEd : ModuleRules
 				);
 
 			
+		}
+
+		if (Target.Platform == UnrealTargetPlatform.Mac)
+		{
+			PublicDependencyModuleNames.Add("UnrealAudioCoreAudio");
 		}
 
         if (Target.Platform == UnrealTargetPlatform.HTML5)
