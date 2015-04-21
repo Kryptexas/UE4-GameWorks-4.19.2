@@ -179,7 +179,7 @@ public:
 			
 			// Update the value
 			EntryPtr->Value = Value;
-			checkSlow( EntryPtr->Key == Key );
+//			checkSlow( EntryPtr->Key == Key );
 			// Mark as the most recent
 			MarkAsRecent( EntryPtr );
 		}
