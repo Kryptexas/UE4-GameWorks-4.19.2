@@ -2839,6 +2839,8 @@ bool UGameViewportClient::HandleScreenshotCommand( const TCHAR* Cmd, FOutputDevi
 
 		GScreenMessagesRestoreState = GAreScreenMessagesEnabled;
 		GAreScreenMessagesEnabled = false;
+		GScreenshotResolutionX = Viewport->GetSizeXY().X;
+		GScreenshotResolutionY = Viewport->GetSizeXY().Y;
 	}
 	return true;
 }
