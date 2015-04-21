@@ -13,6 +13,7 @@
 #include "ObjectEditorUtils.h"		// for IsFunctionHiddenFromClass()/IsVariableCategoryHiddenFromClass()
 #include "K2Node_VariableSet.h"
 #include "K2Node_VariableGet.h"
+#include "K2Node_CallArrayFunction.h" // for IsFunctionMissingPinParam()
 // "impure" node types (utilized in BlueprintActionFilterImpl::IsImpure)
 #include "K2Node_IfThenElse.h"
 #include "K2Node_MultiGate.h"
@@ -280,6 +281,11 @@ namespace BlueprintActionFilterImpl
 	 * @return 
 	 */
 	static bool IsFunctionMissingPinParam(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
+
+	/**
+	 * 
+	 */
+	static bool ArrayFunctionHasParamOfType(const UFunction* ArrayFunction, UEdGraph const* InGraph, const FEdGraphPinType& DesiredPinType, bool bWantOutput);
 
 	/**
 	 * 
@@ -1142,7 +1148,8 @@ static bool BlueprintActionFilterImpl::IsFunctionMissingPinParam(FBlueprintActio
 	if (UFunction const* AssociatedFunc = BlueprintAction.GetAssociatedFunction())
 	{
 		UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		bool const bIsEventSpawner = BlueprintAction.GetNodeClass()->IsChildOf<UK2Node_Event>();
+		bool const bIsEventSpawner  = BlueprintAction.GetNodeClass()->IsChildOf<UK2Node_Event>();
+		bool const bIsArrayFunction = BlueprintAction.GetNodeClass()->IsChildOf<UK2Node_CallArrayFunction>();
 
 		for (int32 PinIndex = 0; !bIsFilteredOut && (PinIndex < Filter.Context.Pins.Num()); ++PinIndex)
 		{
@@ -1162,8 +1169,9 @@ static bool BlueprintActionFilterImpl::IsFunctionMissingPinParam(FBlueprintActio
 				// the function signature would have them as inputs), so we 
 				// want to flip the connotation here
 				bool const bWantsOutputConnection = (PinDir == EGPD_Input) ^ bIsEventSpawner;
-
-				if (K2Schema->FunctionHasParamOfType(AssociatedFunc, K2Node->GetGraph(), PinType, bWantsOutputConnection))
+				
+				if ( K2Schema->FunctionHasParamOfType(AssociatedFunc, K2Node->GetGraph(), PinType, bWantsOutputConnection) || 
+					(bIsArrayFunction && ArrayFunctionHasParamOfType(AssociatedFunc, K2Node->GetGraph(), PinType, bWantsOutputConnection)) )
 				{
 					bIsFilteredOut = false;
 				}
@@ -1173,11 +1181,63 @@ static bool BlueprintActionFilterImpl::IsFunctionMissingPinParam(FBlueprintActio
 					bIsFilteredOut = bIsEventSpawner || !IsPinCompatibleWithTargetSelf(ContextPin, BlueprintAction);
 				}
 			}
-			
 		}
 	}
 
 	return bIsFilteredOut;
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintActionFilterImpl::ArrayFunctionHasParamOfType(const UFunction* ArrayFunction, UEdGraph const* InGraph, const FEdGraphPinType& DesiredPinType, bool bWantOutput)
+{
+	UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+	TSet<FString> HiddenPins;
+	FBlueprintEditorUtils::GetHiddenPinsForFunction(InGraph, ArrayFunction, HiddenPins);
+
+	FName ParamTag = FBlueprintMetadata::MD_ArrayDependentParam;
+	if (DesiredPinType.bIsArray)
+	{
+		ParamTag = FBlueprintMetadata::MD_ArrayParam;
+	}
+	const FString FlaggedParamMetaData = ArrayFunction->GetMetaData(ParamTag);
+
+	TArray<FString> WildcardPinNames;
+	FlaggedParamMetaData.ParseIntoArray(WildcardPinNames, TEXT(","), /*CullEmpty =*/true);
+
+	for (TFieldIterator<UProperty> PropIt(ArrayFunction); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
+	{
+		UProperty* FuncParam = *PropIt;
+		const FString ParamName = FuncParam->GetName();
+
+		const bool bIsFunctionInput = !FuncParam->HasAnyPropertyFlags(CPF_OutParm) || FuncParam->HasAnyPropertyFlags(CPF_ReferenceParm);
+		if (bWantOutput == bIsFunctionInput)
+		{
+			continue;
+		}
+
+		if (!WildcardPinNames.Contains(ParamName) || HiddenPins.Contains(ParamName))
+		{
+			continue;
+		}
+
+		FEdGraphPinType ParamPinType;
+		if (K2Schema->ConvertPropertyToPinType(FuncParam, ParamPinType))
+		{
+			ParamPinType.PinCategory = UEdGraphSchema_K2::PC_Wildcard;
+
+			const FEdGraphPinType& InputType  = (bIsFunctionInput) ? ParamPinType : DesiredPinType;
+			const FEdGraphPinType& OutputType = (bIsFunctionInput) ? DesiredPinType : ParamPinType;
+
+			if (K2Schema->ArePinTypesCompatible(OutputType, InputType))
+			{
+				return true;
+			}
+		}
+
+	}
+
+	return false;
 }
 
 //------------------------------------------------------------------------------
@@ -1707,6 +1767,14 @@ FBlueprintActionFilter const& FBlueprintActionFilter::operator&=(FBlueprintActio
 bool FBlueprintActionFilter::IsFilteredByThis(FBlueprintActionInfo& BlueprintAction) const
 {
 	FBlueprintActionFilter const& FilterRef = *this;
+
+	// for debugging purposes:
+// 	FBlueprintActionUiSpec UiSpec = BlueprintAction.NodeSpawner->GetUiSpec(Context, BlueprintAction.GetBindings());
+// 	bool bDebugBreak = false;
+// 	if (UiSpec.MenuName.ToString().Contains("Set Array Elem"))
+// 	{
+// 		bDebugBreak = true;
+// 	}
 
 	bool bIsFiltered = false;
 	// iterate backwards so that custom user test are ran first (and the slow

@@ -159,6 +159,9 @@ public:
 	static const FName MD_DynamicOutputType;
 	/** Metadata that flags the function output param that will be controlled by the "MD_DynamicOutputType" pin */
 	static const FName MD_DynamicOutputParam;
+
+	static const FName MD_ArrayParam;
+	static const FName MD_ArrayDependentParam;
 	
 private:
 	// This class should never be instantiated
