@@ -1269,6 +1269,18 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 		{
 			UpdateOverlaps();
 		}
+
+		AActor* Owner = GetOwner();
+
+		if (Owner && Owner->GetRootComponent() == this)
+		{
+			Owner->AttachmentReplication.AttachParent = AttachParent->GetAttachmentRootActor();
+			Owner->AttachmentReplication.LocationOffset = RelativeLocation;
+			Owner->AttachmentReplication.RotationOffset = RelativeRotation;
+			Owner->AttachmentReplication.RelativeScale3D = RelativeScale3D;
+			Owner->AttachmentReplication.AttachSocket = InSocketName;
+			Owner->AttachmentReplication.AttachComponent = AttachParent;
+		}
 	}
 }
 
@@ -1281,13 +1293,15 @@ void USceneComponent::DetachFromParent(bool bMaintainWorldPosition, bool bCallMo
 {
 	if(AttachParent != NULL)
 	{
+		AActor* Owner = GetOwner();
+
 		if (UPrimitiveComponent * PrimComp = Cast<UPrimitiveComponent>(this))
 		{
 			PrimComp->UnWeldFromParent();
 		}
 
 		// Make sure parent points to us if we're registered
-		checkf(!bRegistered || AttachParent->AttachChildren.Contains(this), TEXT("Attempt to detach SceneComponent '%s' owned by '%s' from AttachParent '%s' while not attached."), *GetName(), (GetOwner() ? *GetOwner()->GetName() : TEXT("Unowned")), *AttachParent->GetName());
+		checkf(!bRegistered || AttachParent->AttachChildren.Contains(this), TEXT("Attempt to detach SceneComponent '%s' owned by '%s' from AttachParent '%s' while not attached."), *GetName(), (Owner ? *Owner->GetName() : TEXT("Unowned")), *AttachParent->GetName());
 
 		if (bCallModify)
 		{
@@ -1303,9 +1317,9 @@ void USceneComponent::DetachFromParent(bool bMaintainWorldPosition, bool bCallMo
 #if WITH_EDITOR
 		if(GEngine)
 		{
-			if(GetOwner() && this == GetOwner()->GetRootComponent())
+			if(Owner && this == Owner->GetRootComponent())
 			{
-				GEngine->BroadcastLevelActorDetached(GetOwner(), AttachParent->GetOwner());
+				GEngine->BroadcastLevelActorDetached(Owner, AttachParent->GetOwner());
 			}
 		}
 #endif
@@ -1329,6 +1343,11 @@ void USceneComponent::DetachFromParent(bool bMaintainWorldPosition, bool bCallMo
 		if (IsRegistered() && !bDisableDetachmentUpdateOverlaps)
 		{
 			UpdateOverlaps();
+		}
+
+		if (Owner && Owner->GetRootComponent() == this)
+		{
+			Owner->AttachmentReplication.AttachParent = nullptr;
 		}
 	}
 }

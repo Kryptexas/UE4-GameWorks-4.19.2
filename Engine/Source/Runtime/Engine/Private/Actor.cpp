@@ -1227,14 +1227,6 @@ void AActor::AttachRootComponentTo(USceneComponent* InParent, FName InSocketName
 	if(RootComponent && InParent)
 	{
 		RootComponent->AttachTo(InParent, InSocketName, AttachLocationType, bWeldSimulatedBodies);
-
-
-		AttachmentReplication.AttachParent = InParent->GetAttachmentRootActor();
-		AttachmentReplication.LocationOffset = RootComponent->RelativeLocation;
-		AttachmentReplication.RotationOffset = RootComponent->RelativeRotation;
-		AttachmentReplication.RelativeScale3D = RootComponent->RelativeScale3D;
-		AttachmentReplication.AttachSocket = InSocketName;
-		AttachmentReplication.AttachComponent = InParent;
 	}
 }
 
@@ -1282,14 +1274,6 @@ void AActor::AttachRootComponentToActor(AActor* InParentActor, FName InSocketNam
 		if (ParentRootComponent)
 		{
 			RootComponent->AttachTo(ParentRootComponent, InSocketName, AttachLocationType, bWeldSimulatedBodies );
-
-
-			AttachmentReplication.AttachParent = InParentActor;
-			AttachmentReplication.LocationOffset = RootComponent->RelativeLocation;
-			AttachmentReplication.RotationOffset = RootComponent->RelativeRotation;
-			AttachmentReplication.RelativeScale3D = RootComponent->RelativeScale3D;
-			AttachmentReplication.AttachSocket = InSocketName;
-			AttachmentReplication.AttachComponent = NULL;
 		}
 	}
 }
@@ -1311,7 +1295,6 @@ void AActor::DetachRootComponentFromParent(bool bMaintainWorldPosition)
 	if(RootComponent)
 	{
 		RootComponent->DetachFromParent(bMaintainWorldPosition);
-		AttachmentReplication.AttachParent = NULL;
 	}
 }
 

@@ -231,11 +231,11 @@ public:
 	ENetRole GetRemoteRole() const;
 
 	/** Used for replication of our RootComponent's position and velocity */
-	UPROPERTY(ReplicatedUsing=OnRep_ReplicatedMovement)
+	UPROPERTY(Transient, ReplicatedUsing=OnRep_ReplicatedMovement)
 	struct FRepMovement ReplicatedMovement;
 
 	/** Used for replicating attachment of this actor's RootComponent to another actor. */
-	UPROPERTY(replicatedUsing=OnRep_AttachmentReplication)
+	UPROPERTY(Transient, replicatedUsing=OnRep_AttachmentReplication)
 	struct FRepAttachment AttachmentReplication;
 
 	/** Called on client when updated AttachmentReplication value is received for this actor. */
