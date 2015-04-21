@@ -58,42 +58,23 @@ namespace UnrealBuildTool
 		public static readonly string EditorFolder = String.Format("{0}Editor{0}", Path.DirectorySeparatorChar);
 		public static readonly string ProgramsFolder = String.Format("{0}Programs{0}", Path.DirectorySeparatorChar);
 
-		public static UEBuildModuleType GetPluginModuleType(string ModuleName)
+		public static UEBuildModuleType GetModuleTypeFromDescriptor(ModuleDescriptor Module)
 		{
-			UEBuildModuleType ModuleType = UEBuildModuleType.Unknown;
-			PluginInfo Info = Plugins.GetPluginInfoForModule(ModuleName);
-			if (null == Info)
+			switch (Module.Type)
 			{
-				return ModuleType;
+				case ModuleHostType.Developer:
+					return UEBuildModuleType.Developer;
+				case ModuleHostType.Editor:
+				case ModuleHostType.EditorNoCommandlet:
+					return UEBuildModuleType.Editor;
+				case ModuleHostType.Program:
+					return UEBuildModuleType.Program;
+				case ModuleHostType.Runtime:
+				case ModuleHostType.RuntimeNoCommandlet:
+					return UEBuildModuleType.Runtime;
+				default:
+					throw new BuildException("Unhandled module type {0}", Module.Type.ToString());
 			}
-			foreach (ModuleDescriptor ModuleInfo in Info.Descriptor.Modules)
-			{
-				if (ModuleInfo.Name == ModuleName)
-				{
-					switch (ModuleInfo.Type)
-					{
-						case ModuleHostType.Developer:
-							ModuleType = UEBuildModuleType.Developer;
-							break;
-						case ModuleHostType.Editor:
-						case ModuleHostType.EditorNoCommandlet:
-							ModuleType = UEBuildModuleType.Editor;
-							break;
-						case ModuleHostType.Program:
-							ModuleType = UEBuildModuleType.Program;
-							break;
-						case ModuleHostType.Runtime:
-						case ModuleHostType.RuntimeNoCommandlet:
-							ModuleType = UEBuildModuleType.Runtime;
-							break;
-						default:
-							throw new BuildException("Unhandled plugin module type {0}", ModuleInfo.Type.ToString());
-					}
-					// break out of loop
-					break;
-				}
-			}
-			return ModuleType;
 		}
 
 		public static UEBuildModuleType GetEngineModuleTypeBasedOnLocation(string ModuleName, UEBuildModuleType ModuleType, string ModuleFileRelativeToEngineDirectory)
