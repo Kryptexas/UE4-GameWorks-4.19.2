@@ -181,45 +181,9 @@ namespace UnrealBuildTool
 						Plugins.FindPluginsIn(GamePluginsDirectory, PluginInfo.LoadedFromType.GameProject, ref AllPluginsVar);
 					}
 				}
-
-				// Also keep track of which modules map to which plugins
-				ModulesToPluginMapVar = new Dictionary<string,PluginInfo>( StringComparer.InvariantCultureIgnoreCase );
-				foreach( var CurPluginInfo in AllPlugins )
-				{
-					foreach( var Module in CurPluginInfo.Descriptor.Modules )
-					{
-						// Make sure a different plugin doesn't already have a module with this name
-						// @todo plugin: Collisions like this could happen because of third party plugins added to a project, which isn't really ideal.
-						if( ModuleNameToPluginMap.ContainsKey( Module.Name ) )
-						{
-							throw new BuildException( "Found a plugin in '{0}' which describes a module '{1}', but a module with this name already exists in plugin '{2}'!", CurPluginInfo.Directory, Module.Name, ModuleNameToPluginMap[ Module.Name ].Directory );
-						}
-						ModulesToPluginMapVar.Add( Module.Name, CurPluginInfo );						
-					}
-				}
 			}
 		}
 
-
-		/// <summary>
-		/// Checks to see if this module is a plugin module, and if it is, returns the PluginInfo for that module, otherwise null.
-		/// </summary>
-		/// <param name="ModuleName">Name of the module to check</param>
-		/// <returns>The PluginInfo for this module, if the module is a plugin module.  Otherwise, returns null</returns>
-		public static PluginInfo GetPluginInfoForModule( string ModuleName )
-		{
-			PluginInfo FoundPluginInfo;
-			if( ModuleNameToPluginMap.TryGetValue( ModuleName, out FoundPluginInfo ) )
-			{
-				return FoundPluginInfo;
-			}
-			else
-			{
-				return null;
-			}
-		}
-
-	
 		/// Access the list of all plugins.  We'll scan for plugins when this is called the first time.
 		public static List< PluginInfo > AllPlugins
 		{
@@ -230,22 +194,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/// Access a mapping of modules to their respective owning plugin.  Dictionary is case-insensitive.
-		private static Dictionary< string, PluginInfo > ModuleNameToPluginMap
-		{
-			get
-			{
-				DiscoverAllPlugins();
-				return ModulesToPluginMapVar;
-			}
-		}
-
-	
-
 		/// List of all plugins we've found so far in this session
 		private static List< PluginInfo > AllPluginsVar = null;
-
-		/// Maps plugin modules to the plugin that owns them
-		private static Dictionary< string, PluginInfo > ModulesToPluginMapVar = null;
 	}
 }
