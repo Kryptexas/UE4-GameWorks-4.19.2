@@ -372,6 +372,12 @@ public class DeploymentContext //: ProjectParams
 		// Stage all the build products needed at runtime
 		foreach(BuildProduct BuildProduct in Receipt.BuildProducts)
 		{
+			// allow missing files if needed
+			if (Receipt.bRequireDependenciesToExist == false && File.Exists(BuildProduct.Path) == false)
+			{
+				continue;
+			}
+
 			if(BuildProduct.Type == BuildProductType.Executable || BuildProduct.Type == BuildProductType.DynamicLibrary || BuildProduct.Type == BuildProductType.RequiredResource)
 			{
 				StageFile(StagedFileType.NonUFS, BuildProduct.Path);
@@ -385,6 +391,12 @@ public class DeploymentContext //: ProjectParams
 		// Also stage any additional runtime dependencies, like ThirdParty DLLs
 		foreach(RuntimeDependency RuntimeDependency in Receipt.RuntimeDependencies)
 		{
+			// allow missing files if needed
+			if (Receipt.bRequireDependenciesToExist == false && File.Exists(RuntimeDependency.Path) == false)
+			{
+				continue;
+			}
+
 			StageFile(StagedFileType.NonUFS, RuntimeDependency.Path, RuntimeDependency.StagePath);
 		}
 	}

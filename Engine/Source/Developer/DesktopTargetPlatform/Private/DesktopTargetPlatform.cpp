@@ -41,8 +41,12 @@ void FDesktopTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutForm
 	static FName NAME_GLSL_430(TEXT("GLSL_430"));
 	static FName NAME_GLSL_150_MAC(TEXT("GLSL_150_MAC"));
 	
-//	OutFormats.AddUnique(NAME_PCD3D_SM5);
-//	OutFormats.AddUnique(NAME_PCD3D_SM4);
+#if PLATFORM_WINDOWS
+	// right now, only windows can properly compile D3D shaders (this won't corrupt the DDC, but it will 
+	// make it so that packages cooked on Mac/Linux will only run on Windows with -opengl)
+	OutFormats.AddUnique(NAME_PCD3D_SM5);
+	OutFormats.AddUnique(NAME_PCD3D_SM4);
+#endif
 	OutFormats.AddUnique(NAME_GLSL_150);
 	OutFormats.AddUnique(NAME_GLSL_430);
 	OutFormats.AddUnique(NAME_GLSL_150_MAC);

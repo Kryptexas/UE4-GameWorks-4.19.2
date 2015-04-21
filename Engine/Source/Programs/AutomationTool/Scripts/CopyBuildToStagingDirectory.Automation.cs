@@ -1369,17 +1369,40 @@ public partial class Project : CommandUtils
 				{
 					string ReceiptBaseDir = Params.IsCodeBasedProject? Path.GetDirectoryName(Params.RawProjectPath) : EngineDir;
 
-					// Read the receipt
-					string ReceiptFileName = BuildReceipt.GetDefaultPath(ReceiptBaseDir, Target, StagePlatform, Config, "");
-					if(!File.Exists(ReceiptFileName))
+					bool bRequireStagedFilesToExist = true;
+					UnrealTargetPlatform[] ReceiptPlatforms = { StagePlatform };
+					// @todo josha: This should ask the platform somehow instead of being hardcoded
+					if (StagePlatform == UnrealTargetPlatform.Desktop)
 					{
-						throw new AutomationException("Missing receipt '{0}'. Check that this target has been built.", Path.GetFileName(ReceiptFileName));
+						ReceiptPlatforms = new UnrealTargetPlatform[] { UnrealTargetPlatform.Win32, UnrealTargetPlatform.Win64, UnrealTargetPlatform.Mac, UnrealTargetPlatform.Linux };
+						bRequireStagedFilesToExist = false;
 					}
 
-					// Convert the paths to absolute
-					BuildReceipt Receipt = BuildReceipt.Read(ReceiptFileName);
-					Receipt.ExpandPathVariables(EngineDir, Path.GetDirectoryName(Params.RawProjectPath));
-					TargetsToStage.Add(Receipt);
+					foreach (UnrealTargetPlatform ReceiptPlatform in ReceiptPlatforms)
+					{
+						// Read the receipt
+						string ReceiptFileName = BuildReceipt.GetDefaultPath(ReceiptBaseDir, Target, ReceiptPlatform, Config, "");
+						if(!File.Exists(ReceiptFileName))
+						{
+							if (bRequireStagedFilesToExist)
+							{
+								// if we aren't collecting multiple platforms, then it is expected to exist
+								throw new AutomationException("Missing receipt '{0}'. Check that this target has been built.", Path.GetFileName(ReceiptFileName));
+							}
+							else
+							{
+								// if it's multiple platforms, then allow missing receipts
+								continue;
+							}
+
+						}
+
+						// Convert the paths to absolute
+						BuildReceipt Receipt = BuildReceipt.Read(ReceiptFileName);
+						Receipt.ExpandPathVariables(EngineDir, Path.GetDirectoryName(Params.RawProjectPath));
+						Receipt.SetDependenciesToBeRequired(bRequireStagedFilesToExist);
+						TargetsToStage.Add(Receipt);
+					}
 				}
 			}
 

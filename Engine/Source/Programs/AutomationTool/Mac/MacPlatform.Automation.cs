@@ -239,7 +239,12 @@ public class MacPlatform : Platform
 			File.WriteAllText(InfoPlistPath, InfoPlistContents);
 		}
 
-		Directory.CreateDirectory(CombinePaths(TargetPath, ExeName.StartsWith("UE4Game") ? "Engine" : SC.ShortProjectName, "Binaries", "Mac"));
+		if (!SC.bIsCombiningMultiplePlatforms)
+		{
+			// creating this directory when the content isn't moved into the application causes it 
+			// to fail to load, and isn't needed
+			Directory.CreateDirectory(CombinePaths(TargetPath, ExeName.StartsWith("UE4Game") ? "Engine" : SC.ShortProjectName, "Binaries", "Mac"));
+		}
 	}
 
 	public override ProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
