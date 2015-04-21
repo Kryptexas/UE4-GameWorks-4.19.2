@@ -1165,7 +1165,7 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 
 		if(Value >= 0.0)
 		{
-			FinalPostProcessSettings.ScreenPercentage = Value;
+			FinalPostProcessSettings.ScreenPercentage *= Value / 100.0f;
 		}
 	}
 
