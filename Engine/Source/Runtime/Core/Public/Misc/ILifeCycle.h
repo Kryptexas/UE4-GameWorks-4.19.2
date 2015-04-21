@@ -4,7 +4,7 @@
 
 
 /**
- * Interface for controlling an object’s start/stop life cycle.
+ * Interface for controlling an object's start/stop life cycle.
  */
 class ILifeCycle
 {
