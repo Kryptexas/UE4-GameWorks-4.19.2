@@ -13,6 +13,7 @@
 #include "SDockTab.h"
 
 #include "CookerSettings.h"
+#include "Runtime/Engine/Classes/Engine/DeveloperSettings.h"
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
 #include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
 #include "Runtime/Engine/Classes/Sound/AudioSettings.h"
@@ -31,6 +32,14 @@
 
 static const FName ProjectSettingsTabName("ProjectSettings");
 
+/** Holds auto discovered settings information so that they can be unloaded automatically when refreshing. */
+struct FRegisteredSettings
+{
+	FName ContainerName;
+	FName CategoryName;
+	FName SectionName;
+};
+
 
 /**
  * Implements the ProjectSettingsViewer module.
@@ -38,8 +47,15 @@ static const FName ProjectSettingsTabName("ProjectSettings");
 class FProjectSettingsViewerModule
 	: public IModuleInterface
 	, public ISettingsViewer
+	, public FTickableEditorObject
 {
 public:
+
+	FProjectSettingsViewerModule()
+	{
+		bTicking = false;
+		bInvalidated = false;
+	}
 
 	// ISettingsViewer interface
 
@@ -73,18 +89,36 @@ public:
 			RegisterProjectSettings(*SettingsModule);
 			RegisterEditorSettings(*SettingsModule);
 
+			RegisterAutoDiscoveredSettings(*SettingsModule);
+
 			SettingsModule->RegisterViewer("Project", *this);
 		}
 
 		FGlobalTabmanager::Get()->RegisterNomadTabSpawner(ProjectSettingsTabName, FOnSpawnTab::CreateRaw(this, &FProjectSettingsViewerModule::HandleSpawnSettingsTab))
 			.SetDisplayName(LOCTEXT("ProjectSettingsTabTitle", "Project Settings"))
 			.SetMenuType(ETabSpawnerMenuType::Hidden);
+
+		FModuleManager::Get().OnModulesChanged().AddRaw(this, &FProjectSettingsViewerModule::ModulesChangesCallback);
+
+		bTicking = true;
 	}
 
 	virtual void ShutdownModule() override
 	{
+		bTicking = false;
+
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ProjectSettingsTabName);
 		UnregisterSettings();
+
+		FModuleManager::Get().OnModulesChanged().RemoveAll(this);
+	}
+
+	void ModulesChangesCallback(FName ModuleName, EModuleChangeReason ReasonForChange)
+	{
+		if ( ReasonForChange == EModuleChangeReason::ModuleLoaded )
+		{
+			bInvalidated = true;
+		}
 	}
 
 	virtual bool SupportsDynamicReloading() override
@@ -174,14 +208,6 @@ protected:
 			GetMutableDefault<UAnimationSettings>()
 		);
 
-		/*
-		// network settings
-		SettingsModule.RegisterSettings("Project", "Engine", "NetworkManager",
-			LOCTEXT("GameNetworkManagerSettingsName", "Network Manager"),
-			LOCTEXT("GameNetworkManagerSettingsDescription", "Game Network Manager settings."),
-			GetMutableDefault<UGameNetworkManagerSettings>()
-		);*/
-
 		// network settings
 		SettingsModule.RegisterSettings("Project", "Engine", "Network",
 			LOCTEXT("NetworkSettingsName", "Network"),
@@ -260,22 +286,48 @@ protected:
 			LOCTEXT("MovieSettingsDescription", "Movie player settings"),
 			GetMutableDefault<UMoviePlayerSettings>()
 		);
-/*
-		// game session
-		SettingsModule.RegisterSettings("Project", "Project", "GameSession",
-			LOCTEXT("GameSessionettingsName", "Game Session"),
-			LOCTEXT("GameSessionSettingsDescription", "Game Session settings."),
-			GetMutableDefault<UGameSessionSettings>()
-		);
-
-		// head-up display
-		SettingsModule.RegisterSettings("Project", "Project", "HUD",
-			LOCTEXT("HudSettingsName", "HUD"),
-			LOCTEXT("HudSettingsDescription", "Head-up display (HUD) settings."),
-			GetMutableDefault<UHudSettings>()
-		);*/
 	}
 
+	void RegisterAutoDiscoveredSettings(ISettingsModule& SettingsModule)
+	{
+		// Find game object
+		for ( TObjectIterator<UDeveloperSettings> SettingsIt(RF_NoFlags); SettingsIt; ++SettingsIt )
+		{
+			if ( UDeveloperSettings* Settings = *SettingsIt )
+			{
+				// Only Add the CDO of any UDeveloperSettings objects.
+				if ( Settings->HasAnyFlags(RF_ClassDefaultObject) && !Settings->GetClass()->HasAnyCastFlag(CLASS_Deprecated | CLASS_Abstract) )
+				{
+					FRegisteredSettings Registered;
+					Registered.ContainerName = Settings->GetContainerName();
+					Registered.CategoryName = Settings->GetCategoryName();
+					Registered.SectionName = Settings->GetSectionName();
+
+					TSharedPtr<SWidget> CustomWidget = Settings->GetCustomSettingsWidget();
+					if ( CustomWidget.IsValid() )
+					{
+						// Add Settings
+						SettingsModule.RegisterSettings(Registered.ContainerName, Registered.CategoryName, Registered.SectionName,
+							Settings->GetSectionText(),
+							Settings->GetSectionDescription(),
+							CustomWidget.ToSharedRef()
+							);
+					}
+					else
+					{
+						// Add Settings
+						SettingsModule.RegisterSettings(Registered.ContainerName, Registered.CategoryName, Registered.SectionName,
+							Settings->GetSectionText(),
+							Settings->GetSectionDescription(),
+							Settings
+							);
+					}
+
+					AutoDiscoveredSettings.Add(Registered);
+				}
+			}
+		}
+	}
 
 	/**
 	 * Registers Editor settings.
@@ -307,6 +359,7 @@ protected:
 		if (SettingsModule != nullptr)
 		{
 			SettingsModule->UnregisterViewer("Project");
+
 			// engine settings
 			SettingsModule->UnregisterSettings("Project", "Engine", "General");
 			SettingsModule->UnregisterSettings("Project", "Engine", "CrowdManager");
@@ -316,7 +369,6 @@ protected:
 			SettingsModule->UnregisterSettings("Project", "Engine", "Collision");
 			SettingsModule->UnregisterSettings("Project", "Engine", "Physics");
 			SettingsModule->UnregisterSettings("Project", "Engine", "Rendering");
-//			SettingsModule->UnregisterSettings("Project", "Engine", "NetworkManager");
 
 			// project settings
 			SettingsModule->UnregisterSettings("Project", "Project", "General");
@@ -328,10 +380,51 @@ protected:
 			// Editor settings
 			SettingsModule->UnregisterSettings("Editor", "Editor", "Appearance");
 
-//			SettingsModule->UnregisterSettings("Project", "Project", "GameSession");
-//			SettingsModule->UnregisterSettings("Project", "Project", "HUD");
+			UnregisterAutoDiscoveredSettings(*SettingsModule);
 		}
 	}
+
+	void UnregisterAutoDiscoveredSettings(ISettingsModule& SettingsModule)
+	{
+		// Unregister any auto discovers settings.
+		for ( const FRegisteredSettings& Settings : AutoDiscoveredSettings )
+		{
+			SettingsModule.UnregisterSettings(Settings.ContainerName, Settings.CategoryName, Settings.SectionName);
+		}
+
+		AutoDiscoveredSettings.Reset();
+	}
+
+private:
+
+	/** FTickableEditorObject interface */
+	void Tick(float DeltaTime) override
+	{
+		if ( bInvalidated )
+		{
+			ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
+			if ( SettingsModule != nullptr )
+			{
+				UnregisterAutoDiscoveredSettings(*SettingsModule);
+				RegisterAutoDiscoveredSettings(*SettingsModule);
+			}
+
+			bInvalidated = false;
+		}
+	}
+
+	bool IsTickable() const override
+	{
+		return bTicking;
+	}
+
+	TStatId GetStatId() const override
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FProjectSettingsViewerModule, STATGROUP_Tickables);
+	}
+
+	/** FTickableEditorObject interface */
 
 private:
 
@@ -366,6 +459,15 @@ private:
 
 	/** Holds a pointer to the settings editor's view model. */
 	TWeakPtr<ISettingsEditorModel> SettingsEditorModelPtr;
+
+	/** The list of auto discovered settings that need to be unregistered. */
+	TArray<FRegisteredSettings> AutoDiscoveredSettings;
+
+	/** When new modules are loaded we invalidate the list of autodiscovered settings and re-discover them. */
+	bool bInvalidated;
+
+	/** Should we be ticking? */
+	bool bTicking;
 };
 
 
