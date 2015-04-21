@@ -16,7 +16,7 @@
 		{
 			"Name" : "ProceduralMeshComponent",
 			"Type" : "Runtime",
-			"BlacklistPlatforms" : [ "HTML5" ]
+			"BlacklistPlatforms" : [ "HTML5", "IOS", "Android" ]
 		}
 	]
 }
