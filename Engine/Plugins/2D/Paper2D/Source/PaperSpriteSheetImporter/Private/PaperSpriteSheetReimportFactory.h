@@ -5,7 +5,7 @@
 #include "PaperSpriteSheetImportFactory.h"
 #include "PaperSpriteSheetReimportFactory.generated.h"
 
-// Imports a paper animated sprite (and associated paper sprites and textures) from an Adobe Flash CS6 exported JSON file
+// Reimports a UPaperSpriteSheet asset
 UCLASS()
 class UPaperSpriteSheetReimportFactory : public UPaperSpriteSheetImportFactory, public FReimportHandler
 {
@@ -17,11 +17,4 @@ class UPaperSpriteSheetReimportFactory : public UPaperSpriteSheetImportFactory, 
 	virtual EReimportResult::Type Reimport(UObject* Obj) override;
 	virtual int32 GetPriority() const override;
 	// End FReimportHandler interface
-
-	TArray<FString> ExistingSpriteNames;
-	TArray< TAssetPtr<class UPaperSprite> > ExistingSprites;
-	
-	FString ExistingTextureName;
-	UTexture2D* ExistingTexture;
 };
-

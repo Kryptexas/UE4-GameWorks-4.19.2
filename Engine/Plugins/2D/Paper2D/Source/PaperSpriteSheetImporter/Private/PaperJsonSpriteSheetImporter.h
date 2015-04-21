@@ -41,21 +41,43 @@ public:
 	bool ImportFromArchive(FArchive* Archive, const FString& NameForErrors);
 
 	bool ImportTextures(const FString& LongPackagePath, const FString& SourcePath);
+
 	bool PerformImport(const FString& LongPackagePath, EObjectFlags Flags, UPaperSpriteSheet* SpriteSheet);
 
-	void SetReimportData(const FString& ExistingImageName, UTexture2D* ExistingTexture, const TArray<FString>& ExistingSpriteNames, const TArray< TAssetPtr<class UPaperSprite> >& ExistingSpriteAssetPtrs);
+	void SetReimportData(const TArray<FString>& ExistingSpriteNames, const TArray< TAssetPtr<class UPaperSprite> >& ExistingSpriteAssetPtrs);
+
+	static UTexture2D* ImportOrReimportTexture(UTexture2D* ExistingTexture, const FString& TextureSourcePath, const FString& DestinationAssetFolder);
+	static UTexture2D* ImportTexture(const FString& TextureSourcePath, const FString& DestinationAssetFolder);
 
 protected:
 	bool Import(TSharedPtr<FJsonObject> SpriteDescriptorObject, const FString& NameForErrors);
 	UPaperSprite* FindExistingSprite(const FString& Name);
 
+protected:
 	TArray<FSpriteFrame> Frames;
-	FString Image;
+
+	FString ImageName;
 	UTexture2D* ImageTexture;
 
+	FString ComputedNormalMapName;
+	UTexture2D* NormalMapTexture;
+
+public:
 	bool bIsReimporting;
- 	FString ExistingTextureName;					// Name of the last imported texture
-	UTexture2D* ExistingTexture;					// And the texture itself
-	TMap<FString, UPaperSprite*> ExistingSprites;	// Map of a sprite name (as seen in the importer) -> UPaperSprite
+
+	// The name of the default or diffuse texture during a previous import
+	FString ExistingBaseTextureName;
+
+	// The asset that was created for ExistingBaseTextureName during a previous import
+	UTexture2D* ExistingBaseTexture;
+
+	// The name of the normal map texture during a previous import (if any)
+	FString ExistingNormalMapTextureName;
+
+	// The asset that was created for ExistingNormalMapTextureName  during a previous import (if any)
+	UTexture2D* ExistingNormalMapTexture;
+
+	// Map of a sprite name (as seen in the importer) -> UPaperSprite
+	TMap<FString, UPaperSprite*> ExistingSprites;
 };
 

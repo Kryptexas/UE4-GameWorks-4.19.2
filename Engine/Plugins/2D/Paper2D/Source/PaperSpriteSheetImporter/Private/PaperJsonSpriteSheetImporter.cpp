@@ -10,6 +10,7 @@
 #include "PackageTools.h"
 #include "ObjectTools.h"
 #include "PaperSpriteSheet.h"
+#include "PaperImporterSettings.h"
 
 TSharedPtr<FJsonObject> ParseJSON(const FString& FileContents, const FString& NameForErrors)
 {
@@ -314,18 +315,20 @@ static ESpritePivotMode::Type GetBestPivotType(FVector2D JsonPivot)
 	}
 }
 
-// FPaperJsonSpriteSheetImporter
 ////////////////////////////////////////////
+// FPaperJsonSpriteSheetImporter
 
-FPaperJsonSpriteSheetImporter::FPaperJsonSpriteSheetImporter() : bIsReimporting(false)
+FPaperJsonSpriteSheetImporter::FPaperJsonSpriteSheetImporter()
+	: ImageTexture(nullptr)
+	, NormalMapTexture(nullptr)
+	, bIsReimporting(false)
+	, ExistingBaseTexture(nullptr)
+	, ExistingNormalMapTexture(nullptr)
 {
 }
 
-void FPaperJsonSpriteSheetImporter::SetReimportData(const FString& InExistingTextureName, UTexture2D* InExistingTexture, const TArray<FString>& ExistingSpriteNames, const TArray< TAssetPtr<class UPaperSprite> >& ExistingSpriteAssetPtrs)
+void FPaperJsonSpriteSheetImporter::SetReimportData(const TArray<FString>& ExistingSpriteNames, const TArray< TAssetPtr<class UPaperSprite> >& ExistingSpriteAssetPtrs)
 {
-	ExistingTextureName = InExistingTextureName;
-	ExistingTexture = InExistingTexture;
-
 	check(ExistingSpriteNames.Num() == ExistingSpriteAssetPtrs.Num());
 	if (ExistingSpriteNames.Num() == ExistingSpriteAssetPtrs.Num())
 	{
@@ -348,7 +351,7 @@ void FPaperJsonSpriteSheetImporter::SetReimportData(const FString& InExistingTex
 
 bool FPaperJsonSpriteSheetImporter::Import(TSharedPtr<FJsonObject> SpriteDescriptorObject, const FString& NameForErrors)
 {
-	bool bLoadedSuccessfully = ParseMetaBlock(NameForErrors, SpriteDescriptorObject, Image);
+	bool bLoadedSuccessfully = ParseMetaBlock(NameForErrors, SpriteDescriptorObject, /*out*/ ImageName);
 	if (bLoadedSuccessfully)
 	{
 		TSharedPtr<FJsonObject> ObjectFrameBlock = FPaperJSONHelpers::ReadObject(SpriteDescriptorObject, TEXT("frames"));
@@ -373,7 +376,7 @@ bool FPaperJsonSpriteSheetImporter::Import(TSharedPtr<FJsonObject> SpriteDescrip
 			}
 		}
 
-		if (bLoadedSuccessfully && Frames.Num() == 0)
+		if (bLoadedSuccessfully && (Frames.Num() == 0))
 		{
 			UE_LOG(LogPaperSpriteSheetImporter, Warning, TEXT("Failed to parse sprite descriptor file '%s'.  No frames loaded"), *NameForErrors);
 			bLoadedSuccessfully = false;
@@ -400,73 +403,113 @@ bool FPaperJsonSpriteSheetImporter::ImportFromArchive(FArchive* Archive, const F
 bool FPaperJsonSpriteSheetImporter::ImportTextures(const FString& LongPackagePath, const FString& SourcePath)
 {
 	bool bLoadedSuccessfully = true;
-	bool bFoundExistingTexture = false;
-	const FString TargetSubPath = LongPackagePath + TEXT("/Textures");
+	const FString TargetSubPath = LongPackagePath / TEXT("Textures");
 
-	const FString SourceSheetImageFilename = FPaths::Combine(*SourcePath, *Image);
-	TArray<FString> SheetFileNames;
-	SheetFileNames.Add(SourceSheetImageFilename);
-
-	if (bIsReimporting && (ExistingTextureName == Image) && (ExistingTexture != nullptr))
+	// Load the base texture
+	const FString SourceSheetImageFilename = FPaths::Combine(*SourcePath, *ImageName);
+	ImageTexture = ImportOrReimportTexture((bIsReimporting && (ExistingBaseTextureName == ImageName)) ? ExistingBaseTexture : nullptr, SourceSheetImageFilename, TargetSubPath);
+	if (ImageTexture == nullptr)
 	{
-		ImageTexture = ExistingTexture;
-		bFoundExistingTexture = true;
+		UE_LOG(LogPaperSpriteSheetImporter, Warning, TEXT("Failed to import sprite sheet image '%s'."), *SourceSheetImageFilename);
+		bLoadedSuccessfully = false;
 	}
 
-	// Import the texture if we need to
-	bool bNeedsImport = !bIsReimporting || (bIsReimporting && !bFoundExistingTexture);
-
-	if (bIsReimporting && bFoundExistingTexture)
+	// Try reimporting the normal map
+	// Note: We are checking to see if the *base* texture has been renamed, since the .JSON doesn't actually store a name for the normal map.
+	// If the base name has changed, we start from scratch for the normal map too, rather than reimport it even if the old computed one still exists
+	if (bIsReimporting && (ExistingBaseTextureName == ImageName) && (ExistingNormalMapTexture != nullptr))
 	{
-		if (!FReimportManager::Instance()->Reimport(ImageTexture, /*bAskForNewFileIfMissing=*/ true))
+		if (FReimportManager::Instance()->Reimport(ExistingNormalMapTexture, /*bAskForNewFileIfMissing=*/ true))
 		{
-			bNeedsImport = true;
+			NormalMapTexture = ExistingNormalMapTexture;
+			ComputedNormalMapName = ExistingNormalMapTextureName;
 		}
 	}
 
-	if (bNeedsImport)
+	// If we weren't reimporting (or failed the reimport), try scanning for a normal map (which may not exist, and that is not an error)
+	if (NormalMapTexture == nullptr)
 	{
-		FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+		const UPaperImporterSettings* ImporterSettings = GetDefault<UPaperImporterSettings>();
 
-		UReimportTextureFactory* ReimportFactory = nullptr;
+		// Create a list of names to test of the form [ImageName-[BaseMapSuffix]][NormalMapSuffix] or [ImageName][NormalMapSuffix], preferring the former
+		const FString ImageNameNoExtension = FPaths::GetBaseFilename(ImageName);
+		const FString ImageTypeExtension = FPaths::GetExtension(ImageName, /*bIncludeDot=*/ true);
+		const FString NormalMapNameNoSuffix = ImporterSettings->RemoveSuffixFromBaseMapName(ImageNameNoExtension);
 
-		TArray<UObject*> ImportedSheets = AssetToolsModule.Get().ImportAssets(SheetFileNames, TargetSubPath, ReimportFactory);
+		TArray<FString> NamesToTest;
+		ImporterSettings->GenerateNormalMapNamesToTest(NormalMapNameNoSuffix, /*inout*/ NamesToTest);
+		ImporterSettings->GenerateNormalMapNamesToTest(ImageNameNoExtension, /*inout*/ NamesToTest);
 
-		UTexture2D* ImportedTexture = (ImportedSheets.Num() > 0) ? Cast<UTexture2D>(ImportedSheets[0]) : nullptr;
-
-		if (ImportedTexture == nullptr)
+		// Test each name for a file we can try to import
+		for (const FString& NameToTestNoExtension : NamesToTest)
 		{
-			UE_LOG(LogPaperSpriteSheetImporter, Warning, TEXT("Failed to import sprite sheet image '%s'."), *SourceSheetImageFilename);
-			bLoadedSuccessfully = false;
-		}
-		else
-		{
-			// Change the compression settings
-			//@TODO: Should we always be doing this (particularly the TF_Nearest seems potentially undesirable; maybe make it a property of the sprite sheet asset?)
-			ImportedTexture->Modify();
-			ImportedTexture->LODGroup = TEXTUREGROUP_UI;
-			ImportedTexture->CompressionSettings = TC_EditorIcon;
-			ImportedTexture->Filter = TF_Nearest;
-			ImportedTexture->PostEditChange();
-		}
+			const FString NameToTest = NameToTestNoExtension + ImageTypeExtension;
+			const FString NormalMapSourceImageFilename = FPaths::Combine(*SourcePath, *NameToTest);
 
-		ImageTexture = ImportedTexture;
+			if (FPaths::FileExists(NormalMapSourceImageFilename))
+			{
+				NormalMapTexture = ImportTexture(NormalMapSourceImageFilename, TargetSubPath);
+				if (NormalMapTexture != nullptr)
+				{
+					ComputedNormalMapName = NameToTest;
+				}
+				break;
+			}
+		}
 	}
 
 	return bLoadedSuccessfully;
 }
 
+UTexture2D* FPaperJsonSpriteSheetImporter::ImportOrReimportTexture(UTexture2D* ExistingTexture, const FString& TextureSourcePath, const FString& DestinationAssetFolder)
+{
+	UTexture2D* ResultTexture = nullptr;
+
+	// Try reimporting if we have an existing texture
+	if (ExistingTexture != nullptr)
+	{
+		if (FReimportManager::Instance()->Reimport(ExistingTexture, /*bAskForNewFileIfMissing=*/ true))
+		{
+			ResultTexture = ExistingTexture;
+		}
+	}
+
+	// If that fails, import the original textures
+	if (ResultTexture == nullptr)
+	{
+		ResultTexture = ImportTexture(TextureSourcePath, DestinationAssetFolder);
+	}
+
+	return ResultTexture;
+}
+
+UTexture2D* FPaperJsonSpriteSheetImporter::ImportTexture(const FString& TextureSourcePath, const FString& DestinationAssetFolder)
+{
+	FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+
+	TArray<FString> TextureFileNames;
+	TextureFileNames.Add(TextureSourcePath);
+	TArray<UObject*> ImportedSheets = AssetToolsModule.Get().ImportAssets(TextureFileNames, DestinationAssetFolder);
+
+	UTexture2D* ImportedTexture = (ImportedSheets.Num() > 0) ? Cast<UTexture2D>(ImportedSheets[0]) : nullptr;
+
+	if (ImportedTexture != nullptr)
+	{
+		// Change the compression settings
+		//@TODO: Should we always be doing this (particularly the TF_Nearest seems potentially undesirable; maybe make it a property of the sprite sheet asset?)
+		ImportedTexture->Modify();
+		ImportedTexture->LODGroup = TEXTUREGROUP_UI;
+		ImportedTexture->CompressionSettings = TC_EditorIcon;
+		ImportedTexture->Filter = TF_Nearest;
+		ImportedTexture->PostEditChange();
+	}
+
+	return ImportedTexture;
+}
+
 UPaperSprite* FPaperJsonSpriteSheetImporter::FindExistingSprite(const FString& Name)
 {
-	UPaperSprite**ExistingSprite = ExistingSprites.Find(Name);
-	if (ExistingSprite != nullptr)
-	{
-		return *ExistingSprite;
-	}
-	else
-	{
-		return nullptr;
-	}
+	return ExistingSprites.FindRef(Name);
 }
 
 bool FPaperJsonSpriteSheetImporter::PerformImport(const FString& LongPackagePath, EObjectFlags Flags, UPaperSpriteSheet* SpriteSheet)
@@ -523,6 +566,16 @@ bool FPaperJsonSpriteSheetImporter::PerformImport(const FString& LongPackagePath
 		TargetSprite->Modify();
 		FSpriteAssetInitParameters SpriteInitParams;
 		SpriteInitParams.Texture = ImageTexture;
+
+		if (NormalMapTexture != nullptr)
+		{
+			// Put the normal map into the additional textures array and ask for a lit material instead of unlit
+			SpriteInitParams.AdditionalTextures.Add(NormalMapTexture);
+
+			const UPaperImporterSettings* ImporterSettings = GetDefault<UPaperImporterSettings>();
+			ImporterSettings->PopulateMaterialsIntoInitParams(/*inout*/ SpriteInitParams);
+		}
+
 		SpriteInitParams.Offset = Frame.SpritePosInSheet;
 		SpriteInitParams.Dimension = Frame.SpriteSizeInSheet;
 		SpriteInitParams.bNewlyCreated = true;
@@ -555,8 +608,10 @@ bool FPaperJsonSpriteSheetImporter::PerformImport(const FString& LongPackagePath
 		TargetSprite->PostEditChange();
 	}
 
-	SpriteSheet->TextureName = Image;
+	SpriteSheet->TextureName = ImageName;
 	SpriteSheet->Texture = ImageTexture;
+	SpriteSheet->NormalMapTextureName = ComputedNormalMapName;
+	SpriteSheet->NormalMapTexture = NormalMapTexture;
 
 	GWarn->EndSlowTask();
 	return true;

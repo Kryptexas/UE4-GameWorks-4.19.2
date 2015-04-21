@@ -1371,20 +1371,32 @@ void UPaperSprite::InitializeSprite(const FSpriteAssetInitParameters& InitParams
 
 		if (bUseMaskedTexture)
 		{
-			if (UMaterialInterface* MaskedMaterial = LoadObject<UMaterialInterface>(nullptr, *DefaultSettings->DefaultMaskedMaterialName.ToString(), nullptr, LOAD_None, nullptr))
+			if (InitParams.MaskedMaterialOverride != nullptr)
+			{
+				DefaultMaterial = InitParams.MaskedMaterialOverride;
+			}
+			else if (UMaterialInterface* MaskedMaterial = Cast<UMaterialInterface>(DefaultSettings->DefaultMaskedMaterialName.TryLoad()))
 			{
 				DefaultMaterial = MaskedMaterial;
 			}
 		}
 		else
 		{
-			if (UMaterialInterface* TranslucentMaterial = LoadObject<UMaterialInterface>(nullptr, *DefaultSettings->DefaultTranslucentMaterialName.ToString(), nullptr, LOAD_None, nullptr))
+			if (InitParams.TranslucentMaterialOverride != nullptr)
+			{
+				DefaultMaterial = InitParams.TranslucentMaterialOverride;
+			}
+			else if (UMaterialInterface* TranslucentMaterial = Cast<UMaterialInterface>(DefaultSettings->DefaultTranslucentMaterialName.TryLoad()))
 			{
 				DefaultMaterial = TranslucentMaterial;
 			}
 		}
 
-		if (UMaterialInterface* OpaqueMaterial = LoadObject<UMaterialInterface>(nullptr, *DefaultSettings->DefaultOpaqueMaterialName.ToString(), nullptr, LOAD_None, nullptr))
+		if (InitParams.OpaqueMaterialOverride != nullptr)
+		{
+			AlternateMaterial = InitParams.OpaqueMaterialOverride;
+		}
+		else if (UMaterialInterface* OpaqueMaterial = Cast<UMaterialInterface>(DefaultSettings->DefaultOpaqueMaterialName.TryLoad()))
 		{
 			AlternateMaterial = OpaqueMaterial;
 		}
@@ -1399,6 +1411,8 @@ void UPaperSprite::InitializeSprite(const FSpriteAssetInitParameters& InitParams
 	{
 		SourceTextureDimension.Set(0, 0);
 	}
+	AdditionalSourceTextures = InitParams.AdditionalTextures;
+
 	SourceUV = InitParams.Offset;
 	SourceDimension = InitParams.Dimension;
 

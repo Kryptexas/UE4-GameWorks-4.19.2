@@ -8,7 +8,6 @@
 #include "AssetRegistryModule.h"
 #include "PackageTools.h"
 #include "PaperSpriteSheet.h"
-#include "PaperJsonSpriteSheetImporter.h"
 #include "PaperSpriteSheetImportFactory.h"
 #include "PaperSpriteSheetReimportFactory.h"
 
@@ -56,14 +55,6 @@ UObject* UPaperSpriteSheetImportFactory::FactoryCreateText(UClass* InClass, UObj
 	const FString NameForErrors(InName.ToString());
 	const FString FileContent(BufferEnd - Buffer, Buffer);
 	
-	FPaperJsonSpriteSheetImporter Importer;
-
-	// Are we reimporting?
-	if (UPaperSpriteSheetReimportFactory* CurrentReimportFactory = Cast<UPaperSpriteSheetReimportFactory>(this))
-	{
-		Importer.SetReimportData(CurrentReimportFactory->ExistingTextureName, CurrentReimportFactory->ExistingTexture, CurrentReimportFactory->ExistingSpriteNames, CurrentReimportFactory->ExistingSprites);
-	}
-
 	if (Importer.ImportFromString(FileContent, NameForErrors) &&
 		Importer.ImportTextures(LongPackagePath, CurrentSourcePath))
 	{

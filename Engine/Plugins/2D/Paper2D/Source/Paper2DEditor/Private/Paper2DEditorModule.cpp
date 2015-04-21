@@ -12,6 +12,7 @@
 #include "AssetEditorToolkit.h"
 #include "ModuleManager.h"
 #include "ContentBrowserExtensions/ContentBrowserExtensions.h"
+#include "PaperImporterSettings.h"
 
 // Sprite support
 #include "SpriteAssetTypeActions.h"
@@ -282,6 +283,11 @@ private:
 				LOCTEXT("TileSetEditorSettingsName", "Tile Set Editor"),
 				LOCTEXT("TileSetEditorSettingsDescription", "Configure the look and feel of the Tile Set Editor."),
 				GetMutableDefault<UTileSetEditorSettings>());
+
+			SettingsModule->RegisterSettings("Editor", "General", "Paper2DImport",
+				LOCTEXT("PaperImporterSettingsName", "Paper2D - Import"),
+				LOCTEXT("PaperImporterSettingsDescription", "Configure how assets get imported or converted to sprites."),
+				GetMutableDefault<UPaperImporterSettings>());
 		}
 	}
 
@@ -289,6 +295,7 @@ private:
 	{
 		if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 		{
+			SettingsModule->UnregisterSettings("Editor", "General", "Paper2DImport");
 			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "TileSetEditor");
 			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "TileMapEditor");
 			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "FlipbookEditor");

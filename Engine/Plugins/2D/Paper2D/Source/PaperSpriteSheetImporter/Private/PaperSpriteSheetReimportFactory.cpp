@@ -15,7 +15,6 @@ UPaperSpriteSheetReimportFactory::UPaperSpriteSheetReimportFactory(const FObject
 	SupportedClass = UPaperSpriteSheet::StaticClass();
 
 	bCreateNew = false;
-	bText = true;
 }
 
 bool UPaperSpriteSheetReimportFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)
@@ -53,11 +52,14 @@ EReimportResult::Type UPaperSpriteSheetReimportFactory::Reimport(UObject* Obj)
 		return EReimportResult::Failed;
 	}
 
-	ExistingSpriteNames = SpriteSheet->SpriteNames;
-	ExistingSprites = SpriteSheet->Sprites;
-	ExistingTextureName = SpriteSheet->TextureName;
-	ExistingTexture = SpriteSheet->Texture;
+	// Configure the importer with the reimport settings
+	Importer.SetReimportData(SpriteSheet->SpriteNames, SpriteSheet->Sprites);
+	Importer.ExistingBaseTextureName = SpriteSheet->TextureName;
+	Importer.ExistingBaseTexture = SpriteSheet->Texture;
+	Importer.ExistingNormalMapTextureName = SpriteSheet->NormalMapTextureName;
+	Importer.ExistingNormalMapTexture = SpriteSheet->NormalMapTexture;
 
+	// Run the import again
 	EReimportResult::Type Result = EReimportResult::Failed;
 	if (UFactory::StaticImportObject(SpriteSheet->GetClass(), SpriteSheet->GetOuter(), *SpriteSheet->GetName(), RF_Public | RF_Standalone, *Filename, nullptr, this))
 	{
@@ -86,5 +88,7 @@ int32 UPaperSpriteSheetReimportFactory::GetPriority() const
 {
 	return ImportPriority;
 }
+
+//////////////////////////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

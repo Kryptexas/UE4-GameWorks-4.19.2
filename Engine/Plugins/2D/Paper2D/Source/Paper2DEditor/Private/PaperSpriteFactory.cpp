@@ -1,7 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
+#include "PaperImporterSettings.h"
 #include "PaperSpriteFactory.h"
+#include "AssetRegistryModule.h"
+#include "PackageTools.h"
 
 #define LOCTEXT_NAMESPACE "Paper2D"
 
@@ -31,6 +34,7 @@ UObject* UPaperSpriteFactory::FactoryCreateNew(UClass* Class, UObject* InParent,
 
 	FSpriteAssetInitParameters SpriteInitParams;
 	SpriteInitParams.bNewlyCreated = true;
+
 	if (bUseSourceRegion)
 	{
 		SpriteInitParams.Texture = InitialTexture;
@@ -41,6 +45,40 @@ UObject* UPaperSpriteFactory::FactoryCreateNew(UClass* Class, UObject* InParent,
 	{
 		SpriteInitParams.SetTextureAndFill(InitialTexture);
 	}
+
+	if (InitialTexture != nullptr)
+	{
+		// Look for an associated normal map to go along with the base map
+		const FString SanitizedBasePackageName = PackageTools::SanitizePackageName(InitialTexture->GetOutermost()->GetName());
+		const FString PackagePath = FPackageName::GetLongPackagePath(SanitizedBasePackageName);
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+
+		const UPaperImporterSettings* ImporterSettings = GetDefault<UPaperImporterSettings>();
+
+		const FString NormalMapNameNoSuffix = ImporterSettings->RemoveSuffixFromBaseMapName(InitialTexture->GetName());
+
+		TArray<FString> NamesToTest;
+		ImporterSettings->GenerateNormalMapNamesToTest(NormalMapNameNoSuffix, /*inout*/ NamesToTest);
+		ImporterSettings->GenerateNormalMapNamesToTest(InitialTexture->GetName(), /*inout*/ NamesToTest);
+
+		// Test each name for an existing asset
+		for (const FString& NameToTest : NamesToTest)
+		{
+			const FString ObjectPathToTest = PackagePath / (NameToTest + FString(TEXT(".")) + NameToTest);
+			FAssetData AssetData = AssetRegistryModule.Get().GetAssetByObjectPath(*ObjectPathToTest);
+
+			if (AssetData.IsValid())
+			{
+				if (UTexture2D* NormalMapTexture = Cast<UTexture2D>(AssetData.GetAsset()))
+				{
+					SpriteInitParams.AdditionalTextures.Add(NormalMapTexture);
+					ImporterSettings->PopulateMaterialsIntoInitParams(/*inout*/ SpriteInitParams);
+					break;
+				}
+			}
+		}
+	}
+
 	NewSprite->InitializeSprite(SpriteInitParams);
 
 	return NewSprite;

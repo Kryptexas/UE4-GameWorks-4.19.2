@@ -256,6 +256,9 @@ struct FSpriteAssetInitParameters
 		, Offset(FVector2D::ZeroVector)
 		, Dimension(FVector2D::ZeroVector)
 		, bNewlyCreated(false)
+		, OpaqueMaterialOverride(nullptr)
+		, TranslucentMaterialOverride(nullptr)
+		, MaskedMaterialOverride(nullptr)
 	{
 	}
 
@@ -279,6 +282,9 @@ public:
 	// The texture to use
 	UTexture2D* Texture;
 
+	// Additional textures to use
+	TArray<UTexture2D*> AdditionalTextures;
+
 	// The offset within the texture (in pixels)
 	FVector2D Offset;
 
@@ -287,6 +293,15 @@ public:
 
 	// Is this sprite newly created (should we pull the default pixels/uu and materials from the project settings)?
 	bool bNewlyCreated;
+
+	// The material to use for opaque sprites if set
+	UMaterialInterface* OpaqueMaterialOverride;
+
+	// The material to use for translucent sprites if set
+	UMaterialInterface* TranslucentMaterialOverride;
+
+	// The material to use for masked sprites if set
+	UMaterialInterface* MaskedMaterialOverride;
 };
 
 UENUM()
