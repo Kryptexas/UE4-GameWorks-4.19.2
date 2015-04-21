@@ -141,7 +141,7 @@ void FGraphCompilerContext::FindNodesByClass(const UEdGraph* Graph, TSubclassOf<
 	for (int32 NodeIndex = 0; NodeIndex < Graph->Nodes.Num(); ++NodeIndex)
 	{
 		UEdGraphNode* Node = Graph->Nodes[NodeIndex];
-		if (Node->IsA(NodeClass))
+		if (Node && Node->IsA(NodeClass))
 		{
 			FoundNodes.Add(Node);
 		}

@@ -1036,7 +1036,7 @@ void FKismetCompilerContext::PruneIsolatedNodes(const TArray<UEdGraphNode*>& Roo
 	for (int32 NodeIndex = 0; NodeIndex < GraphNodes.Num(); ++NodeIndex)
 	{
 		UEdGraphNode* Node = GraphNodes[NodeIndex];
-		if (!Visitor.VisitedNodes.Contains(Node) && !IsNodePure(Node))
+		if (!Node || !Visitor.VisitedNodes.Contains(Node) && !IsNodePure(Node))
 		{
 			if (!CanIgnoreNode(Node))
 			{
@@ -1044,9 +1044,12 @@ void FKismetCompilerContext::PruneIsolatedNodes(const TArray<UEdGraphNode*>& Roo
 				//MessageLog.Warning(TEXT("Node @@ will never be executed and is being pruned"), Node);
 			}
 
-			if (!ShouldForceKeepNode(Node))
+			if (!Node || !ShouldForceKeepNode(Node))
 			{
-				Node->BreakAllNodeLinks();
+				if (Node)
+				{
+					Node->BreakAllNodeLinks();
+				}
 				GraphNodes.RemoveAtSwap(NodeIndex);
 				--NodeIndex;
 			}
