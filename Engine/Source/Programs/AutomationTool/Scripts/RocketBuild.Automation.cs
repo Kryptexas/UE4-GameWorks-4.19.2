@@ -487,9 +487,6 @@ namespace Rocket
 				Filter.AddRuleForFile(GUBP.MakeFeaturePacksNode.GetOutputFile(Project), CommandUtils.CmdEnv.LocalRoot, FileFilterType.Include);
 			}
 
-			// Include the DDC
-			AddRuleForBuildProducts(Filter, bp, BuildDerivedDataCacheNode.StaticGetFullName(HostPlatform), FileFilterType.Include);
-
 			// Include all the templates
 			foreach (string Template in CurrentTemplates)
 			{
