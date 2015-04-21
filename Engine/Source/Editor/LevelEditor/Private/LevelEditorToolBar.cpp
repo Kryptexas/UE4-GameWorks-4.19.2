@@ -35,7 +35,7 @@
 #include "GameFramework/WorldSettings.h"
 #include "EngineUtils.h"
 #include "GameMapsSettings.h"
-
+#include "ScopedTransaction.h"
 
 namespace LevelEditorActionHelpers
 {
