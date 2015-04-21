@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateBasics.h"
-#include "EditorStyle.h"
+#include "STaskGraphStyle.h"
 #include "SProfileVisualizer.h"
 #include "TaskGraphInterfaces.h"
 #include "STaskGraph.h"
