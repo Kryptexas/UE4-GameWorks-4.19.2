@@ -301,11 +301,11 @@ void AActor::OnSubobjectCreatedFromReplication(UObject *NewSubobject)
 	}
 }
 
-/** Called on the actor when a new subobject is dynamically created via replication */
-void AActor::OnSubobjectDestroyFromReplication(UObject *NewSubobject)
+/** Called on the actor when a subobject is dynamically destroyed via replication */
+void AActor::OnSubobjectDestroyFromReplication(UObject *Subobject)
 {
-	check(NewSubobject);
-	if ( UActorComponent * Component = Cast<UActorComponent>(NewSubobject) )
+	check(Subobject);
+	if ( UActorComponent * Component = Cast<UActorComponent>(Subobject) )
 	{
 		Component->DestroyComponent();
 	}

@@ -299,8 +299,8 @@ public:
 	/** Called on the actor when a new subobject is dynamically created via replication */
 	virtual void OnSubobjectCreatedFromReplication(UObject *NewSubobject);
 
-	/** Called on the actor when a new subobject is dynamically created via replication */
-	virtual void OnSubobjectDestroyFromReplication(UObject *NewSubobject);
+	/** Called on the actor when a subobject is dynamically destroyed via replication */
+	virtual void OnSubobjectDestroyFromReplication(UObject *Subobject);
 
 	/** Called on the actor right before replication occurs */
 	virtual void PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker );
