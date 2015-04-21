@@ -383,6 +383,7 @@ public:
 	static const FText UnEscapedCloseBraceOutsideOfArgumentBlock;
 	static const FText SerializationFailureError;
 
+	friend class FTextFormatHelper;
 	friend class FTextSnapshot;
 	friend class FTextInspector;
 	friend class FInternationalization;
@@ -394,10 +395,6 @@ public:
 	friend class FTextHistory_ArgumentDataFormat;
 	friend class FTextHistory_OrderedFormat;
 	friend class FScopedTextIdentityPreserver;
-
-#if !UE_ENABLE_ICU
-	friend class FLegacyTextHelper;
-#endif
 };
 
 /** A snapshot of an FText at a point in time that can be used to detect changes in the FText, including live-culture changes */

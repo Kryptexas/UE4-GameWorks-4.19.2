@@ -472,6 +472,429 @@ FText FText::Format(const FText& Fmt,const FText& v1,const FText& v2,const FText
 	return FText::Format(Fmt, Arguments);
 }
 
+class FTextFormatHelper
+{
+private:
+	enum class EEscapeState
+	{
+		None,
+		BeginEscaping,
+		Escaping,
+		EndEscaping,
+	};
+
+	enum class EBlockState
+	{
+		None,
+		InBlock,
+	};
+
+public:
+	DECLARE_DELEGATE_RetVal_OneParam( const FFormatArgumentValue*, FGetArgumentValue, const FString& );
+
+	static int32 EstimateArgumentValueLength(const FFormatArgumentValue& ArgumentValue)
+	{
+		switch(ArgumentValue.Type)
+		{
+		case EFormatArgumentType::Text:
+			return ArgumentValue.TextValue->ToString().Len();
+		case EFormatArgumentType::Int:
+		case EFormatArgumentType::UInt:
+		case EFormatArgumentType::Float:
+		case EFormatArgumentType::Double:
+			return 16;
+		default:
+			break;
+		}
+
+		return 0;
+	}
+
+	static void EnumerateParameters(const FText& Pattern, TArray<FString>& ParameterNames)
+	{
+		const FString& PatternString = Pattern.ToString();
+
+		EEscapeState EscapeState = EEscapeState::None;
+		EBlockState BlockState = EBlockState::None;
+
+		FString ParameterName;
+
+		for(int32 i = 0; i < PatternString.Len(); ++i)
+		{
+			switch( EscapeState )
+			{
+			case EEscapeState::None:
+				{
+					switch( PatternString[i] )
+					{
+					case '`':	{ EscapeState = EEscapeState::BeginEscaping; } break;
+					}
+				}
+				break;
+			case EEscapeState::BeginEscaping:
+				{
+					switch( PatternString[i] )
+					{
+						// Only begin EEscapeState::Escaping if there's a syntax character.
+					case '{':
+					case '}':
+						{
+							EscapeState = EEscapeState::Escaping;
+						}
+						break;
+						// Cancel beginning EEscapeState::Escaping if the escape is itself escaped.
+					case '`':
+						{
+							EscapeState = EEscapeState::None;
+						}
+						break;
+						// Cancel beginning EEscapeState::Escaping if not a syntax character.
+					default:
+						{
+							EscapeState = EEscapeState::None;
+						}
+						break;
+					}
+				}
+				break;
+			case EEscapeState::Escaping:
+				{
+					switch( PatternString[i] )
+					{
+					case '`':	{ EscapeState = EEscapeState::EndEscaping; } break;
+					}
+				}
+				break;
+			case EEscapeState::EndEscaping:
+				{
+					switch( PatternString[i] )
+					{
+					case '`':	{ EscapeState = EEscapeState::Escaping; } break; // Cancel ending EEscapeState::Escaping if the escape is itself escaped, copy over escaped character.
+					default:	{ EscapeState = EEscapeState::None; } break;
+					}
+				}
+				break;
+			}
+
+			if(EscapeState == EEscapeState::None)
+			{
+				switch( BlockState )
+				{
+				case EBlockState::None:
+					{
+						switch( PatternString[i] )
+						{
+						case '{':
+							{
+								BlockState = EBlockState::InBlock;
+							}
+							break;
+						default:
+							{
+							}
+							break;
+						}
+					}
+					break;
+				case EBlockState::InBlock:
+					{
+						switch( PatternString[i] )
+						{
+						case '}':
+							{
+								/** The following does a case-sensitive "TArray::AddUnique" by first checking to see if
+								the parameter is in the ParameterNames list (using a case-sensitive comparison) followed
+								by adding it to the ParameterNames */
+
+								bool bIsCaseSensitiveUnique = true;
+								for(auto It = ParameterNames.CreateConstIterator(); It; ++It)
+								{
+									if(It->Equals(ParameterName))
+									{
+										bIsCaseSensitiveUnique = false;
+									}
+								}
+								if(bIsCaseSensitiveUnique)
+								{
+									ParameterNames.Add( ParameterName );
+								}
+								ParameterName.Empty();
+								BlockState = EBlockState::None;
+							}
+							break;
+						default:
+							{
+								ParameterName += PatternString[i];
+							}
+							break;
+						}
+					}
+					break;
+				}
+			}
+		}
+	}
+
+	static FText Format(const FText& Pattern, const int32 EstimatedArgumentValuesLength, FGetArgumentValue GetArgumentValue, const TSharedPtr<FTextHistory, ESPMode::ThreadSafe>& InHistory, bool bInRebuildText, bool bInRebuildAsSource)
+	{
+		checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+		//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
+
+		const FString& PatternString = bInRebuildAsSource ? Pattern.BuildSourceString() : Pattern.ToString();
+
+		// Guesstimate the result string size to minimize reallocations (it's okay to be a little bit over)
+		// We'll assume that each argument will be replaced once, plus a bit of slack
+		FString ResultString;
+		ResultString.Reserve(PatternString.Len() + EstimatedArgumentValuesLength + 8);
+
+		EEscapeState EscapeState = EEscapeState::None;
+		EBlockState BlockState = EBlockState::None;
+
+		FString ArgumentName;
+
+		for(int32 i = 0; i < PatternString.Len(); ++i)
+		{
+			switch( EscapeState )
+			{
+			case EEscapeState::None:
+				{
+					switch( PatternString[i] )
+					{
+					case '`':	{ EscapeState = EEscapeState::BeginEscaping; } break;
+					}
+				}
+				break;
+			case EEscapeState::BeginEscaping:
+				{
+					switch( PatternString[i] )
+					{
+						// Only begin EEscapeState::Escaping if there's a syntax character.
+					case '{':
+					case '}':
+						{
+							EscapeState = EEscapeState::Escaping;
+							ResultString += PatternString[i]; // Characters are escaped, copy over.
+						}
+						break;
+						// Cancel beginning EEscapeState::Escaping if the escape is itself escaped.
+					case '`':
+						{
+							EscapeState = EEscapeState::None;
+						}
+						break;
+						// Cancel beginning EEscapeState::Escaping if not a syntax character.
+					default:
+						{
+							EscapeState = EEscapeState::None;
+							ResultString += '`'; // Insert previously ignored escape marker.
+						}
+						break;
+					}
+				}
+				break;
+			case EEscapeState::Escaping:
+				{
+					switch( PatternString[i] )
+					{
+					case '`':	{ EscapeState = EEscapeState::EndEscaping; } break;
+					default:	{ ResultString += PatternString[i]; } break; // Characters are escaped, copy over.
+					}
+				}
+				break;
+			case EEscapeState::EndEscaping:
+				{
+					switch( PatternString[i] )
+					{
+					case '`':	{ EscapeState = EEscapeState::Escaping; ResultString += PatternString[i]; } break; // Cancel ending EEscapeState::Escaping if the escape is itself escaped, copy over escaped character.
+					default:	{ EscapeState = EEscapeState::None; } break;
+					}
+				}
+				break;
+			}
+
+			if(EscapeState == EEscapeState::None)
+			{
+				switch( BlockState )
+				{
+				case EBlockState::None:
+					{
+						switch( PatternString[i] )
+						{
+						case '{':
+							{
+								BlockState = EBlockState::InBlock;
+							}
+							break;
+						default:
+							{
+								ResultString += PatternString[i]; // Copy over characters.
+							}
+							break;
+						}
+					}
+					break;
+				case EBlockState::InBlock:
+					{
+						switch( PatternString[i] )
+						{
+						case '}':
+							{
+							
+								const FFormatArgumentValue* const PossibleArgumentValue = GetArgumentValue.Execute(ArgumentName);
+								if( PossibleArgumentValue )
+								{
+									const FFormatArgumentValue& ArgumentValue = *PossibleArgumentValue;
+									switch(ArgumentValue.Type)
+									{
+									case EFormatArgumentType::Text:
+										{
+											// When doing a rebuild, all FText arguments need to be rebuilt during the Format
+											if( bInRebuildText )
+											{
+												ArgumentValue.TextValue->Rebuild();
+											}
+
+											ResultString += bInRebuildAsSource ? ArgumentValue.TextValue->BuildSourceString() : ArgumentValue.TextValue->ToString();
+										}
+										break;
+									case EFormatArgumentType::Int:
+										{
+											ResultString += FText::AsNumber(ArgumentValue.IntValue).ToString();
+										}
+										break;
+									case EFormatArgumentType::UInt:
+										{
+											ResultString += FText::AsNumber(ArgumentValue.UIntValue).ToString();
+										}
+										break;
+									case EFormatArgumentType::Float:
+										{
+											ResultString += FText::AsNumber(ArgumentValue.FloatValue).ToString();
+										}
+										break;
+									case EFormatArgumentType::Double:
+										{
+											ResultString += FText::AsNumber(ArgumentValue.DoubleValue).ToString();
+										}
+										break;
+									}
+								}
+								else
+								{
+									ResultString += TEXT("{");
+									ResultString += ArgumentName;
+									ResultString += TEXT("}");
+								}
+								ArgumentName.Reset();
+								BlockState = EBlockState::None;
+							}
+							break;
+						default:
+							{
+								ArgumentName += PatternString[i];
+							}
+							break;
+						}
+					}
+					break;
+				}
+			}
+		}
+
+		FText Result = FText(MoveTemp(ResultString));
+		Result.History = InHistory;
+		if (!GIsEditor)
+		{
+			Result.Flags = Result.Flags | ETextFlag::Transient;
+		}
+		return Result;
+	}
+};
+
+void FText::GetFormatPatternParameters(const FText& Pattern, TArray<FString>& ParameterNames)
+{
+	FTextFormatHelper::EnumerateParameters(Pattern, ParameterNames);
+}
+
+FText FText::Format(const FText& Pattern, const FFormatNamedArguments& Arguments)
+{
+	return FormatInternal(Pattern, Arguments, false, false);
+}
+
+FText FText::Format(const FText& Pattern, const FFormatOrderedArguments& Arguments)
+{
+	return FormatInternal(Pattern, Arguments, false, false);
+}
+
+FText FText::Format(const FText& Pattern, const TArray< FFormatArgumentData > InArguments)
+{
+	return FormatInternal(Pattern, InArguments, false, false);
+}
+
+FText FText::FormatInternal(const FText& Pattern, const FFormatNamedArguments& Arguments, bool bInRebuildText, bool bInRebuildAsSource)
+{
+	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
+
+	int32 EstimatedArgumentValuesLength = 0;
+	for (const auto& Arg : Arguments)
+	{
+		EstimatedArgumentValuesLength += FTextFormatHelper::EstimateArgumentValueLength(Arg.Value);
+	}
+
+	auto GetArgumentValue = [&Arguments](const FString& ArgumentName) -> const FFormatArgumentValue*
+	{
+		return Arguments.Find(ArgumentName);
+	};
+
+	return FTextFormatHelper::Format(Pattern, EstimatedArgumentValuesLength, FTextFormatHelper::FGetArgumentValue::CreateLambda(GetArgumentValue), MakeShareable(new FTextHistory_NamedFormat(Pattern, Arguments)), bInRebuildText, bInRebuildAsSource);
+}
+
+FText FText::FormatInternal(const FText& Pattern, const FFormatOrderedArguments& Arguments, bool bInRebuildText, bool bInRebuildAsSource)
+{
+	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
+
+	int32 EstimatedArgumentValuesLength = 0;
+	for (const auto& Arg : Arguments)
+	{
+		EstimatedArgumentValuesLength += FTextFormatHelper::EstimateArgumentValueLength(Arg);
+	}
+
+	auto GetArgumentValue = [&Arguments](const FString& ArgumentName) -> const FFormatArgumentValue*
+	{
+		int32 ArgumentIndex = INDEX_NONE;
+		if( ArgumentName.IsNumeric() )
+		{
+			ArgumentIndex = FCString::Atoi(*ArgumentName);
+		}
+		return ArgumentIndex != INDEX_NONE && ArgumentIndex < Arguments.Num() ? &(Arguments[ArgumentIndex]) : nullptr;
+	};
+
+	return FTextFormatHelper::Format(Pattern, EstimatedArgumentValuesLength, FTextFormatHelper::FGetArgumentValue::CreateLambda(GetArgumentValue), MakeShareable(new FTextHistory_OrderedFormat(Pattern, Arguments)), bInRebuildText, bInRebuildAsSource);
+}
+
+FText FText::FormatInternal(const FText& Pattern, const TArray< struct FFormatArgumentData > Arguments, bool bInRebuildText, bool bInRebuildAsSource)
+{
+	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
+	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
+
+	int32 EstimatedArgumentValuesLength = 0;
+	FFormatNamedArguments FormatNamedArguments;
+	for (const auto& Arg : Arguments)
+	{
+		EstimatedArgumentValuesLength += FTextFormatHelper::EstimateArgumentValueLength(Arg.ArgumentValue);
+		FormatNamedArguments.Add(Arg.ArgumentName.ToString(), FFormatArgumentValue(Arg.ArgumentValue));
+	}
+
+	auto GetArgumentValue = [&FormatNamedArguments](const FString& ArgumentName) -> const FFormatArgumentValue*
+	{
+		return FormatNamedArguments.Find(ArgumentName);
+	};
+
+	return FTextFormatHelper::Format(Pattern, EstimatedArgumentValuesLength, FTextFormatHelper::FGetArgumentValue::CreateLambda(GetArgumentValue), MakeShareable(new FTextHistory_ArgumentDataFormat(Pattern, Arguments)), bInRebuildText, bInRebuildAsSource);
+}
+
 /**
 * Generate an FText that represents the passed number in the passed culture
 */
