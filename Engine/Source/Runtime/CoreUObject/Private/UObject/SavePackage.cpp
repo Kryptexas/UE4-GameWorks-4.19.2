@@ -2380,6 +2380,10 @@ EObjectMark UPackage::GetObjectMarksForTargetPlatform( const class ITargetPlatfo
 #define UE_FINISH_LOG_COOK_TIME()
 #endif
 
+#if WITH_EDITOR
+COREUOBJECT_API extern bool GOutputCookingWarnings;
+#endif
+
 bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename, 
 	FOutputDevice* Error, FLinkerLoad* Conform, bool bForceByteSwapping, bool bWarnOfLongFilename, uint32 SaveFlags, 
 	const class ITargetPlatform* TargetPlatform, const FDateTime&  FinalTimeStamp, bool bSlowTask)
@@ -3012,6 +3016,25 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				Linker->Summary.NameOffset = Linker->Tell();
 				SavePackageState->UpdateLinkerWithMarkedNames(Linker);
 
+#if WITH_EDITOR
+				if ( GOutputCookingWarnings )
+				{
+					// check the name list for uniqueobjectnamefor cooking
+					static FName NAME_UniqueObjectNameForCooking(TEXT("UniqueObjectNameForCooking"));
+
+					for (const auto& NameInUse : Linker->NameMap)
+					{
+						if (NameInUse.GetComparisonIndex() == NAME_UniqueObjectNameForCooking.GetComparisonIndex())
+						{
+							//UObject *Object = FindObject<UObject>( ANY_PACKAGE, *NameInUse.ToString());
+
+							// error
+							// check(Object);
+							UE_LOG(LogSavePackage, Warning, TEXT("Saving object into cooked package which was created at cook time, Object Name %s"), *NameInUse.ToString());
+						}
+					}
+				}
+#endif
 
 				UE_LOG_COOK_TIME(TEXT("Serialize Summary"));
 
@@ -3075,6 +3098,26 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 						new( Linker->ExportMap )FObjectExport( Obj );
 					}
 				}
+
+
+
+#if WITH_EDITOR
+				if (GOutputCookingWarnings)
+				{
+					// check the name list for uniqueobjectnamefor cooking
+					static FName NAME_UniqueObjectNameForCooking(TEXT("UniqueObjectNameForCooking"));
+
+					for (const auto& Export : Linker->ExportMap)
+					{
+						const auto& NameInUse = Export.ObjectName;
+						if (NameInUse.GetComparisonIndex() == NAME_UniqueObjectNameForCooking.GetComparisonIndex())
+						{
+							UE_LOG(LogSavePackage, Warning, TEXT("Saving object into cooked package which was created at cook time, Object Name %s, Full Path %s, Class %s"), *NameInUse.ToString(), *Export.Object->GetFullName(), *Export.Object->GetClass()->GetName());
+						}
+					}
+				}
+#endif
+
 
 				UE_LOG_COOK_TIME(TEXT("Build Export Map"));
 

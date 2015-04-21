@@ -1772,13 +1772,16 @@ UObject* StaticAllocateObject
 	UObject* Obj = NULL;
 	if(InName == NAME_None)
 	{
-		InName = MakeUniqueObjectName( InOuter, InClass );
 #if WITH_EDITOR
+		static FName NAME_UniqueObjectNameForCooking(TEXT("UniqueObjectNameForCooking"));
 		if ( GOutputCookingWarnings && GetTransientPackage() != InOuter->GetOutermost() )
 		{
-			UE_LOG(LogUObjectGlobals, Warning, TEXT("Shouldn't create dynamic objects whilest cooking, if they are saved, they will be saved with unique names, this will damage patch sizes on release.  Package %s, Object %s."), *InOuter->GetOutermost()->GetName(), *InName.ToString() );
+			InName = MakeUniqueObjectName(InOuter, InClass, NAME_UniqueObjectNameForCooking);
 		}
+		else
 #endif
+		InName = MakeUniqueObjectName(InOuter, InClass);
+
 	}
 	else
 	{
