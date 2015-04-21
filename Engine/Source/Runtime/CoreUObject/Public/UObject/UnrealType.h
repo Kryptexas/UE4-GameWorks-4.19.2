@@ -2906,12 +2906,7 @@ public:
 	 * Rehashes the keys in the map.
 	 * This function must be called to create a valid map.
 	 */
-	void Rehash()
-	{
-		Map->Rehash(MapLayout, [=](const void* Src) {
-			return KeyProp->GetValueTypeHash(Src);
-		});
-	}
+	COREUOBJECT_API void Rehash();
 
 	/**
 	 * Finds the index of an element in a map which matches the key in another pair.

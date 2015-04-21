@@ -789,3 +789,11 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UMapProperty, UProperty,
 		static_assert(sizeof(FScriptMap) == sizeof(TMap<uint32, uint8>), "FScriptMap and TMap<uint32, uint8> must be interchangable.");
 	}
 );
+
+void FScriptMapHelper::Rehash()
+{
+	// Moved out-of-line to maybe fix a weird link error
+	Map->Rehash(MapLayout, [=](const void* Src) {
+		return KeyProp->GetValueTypeHash(Src);
+	});
+}
