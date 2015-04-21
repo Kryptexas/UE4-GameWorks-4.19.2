@@ -223,6 +223,40 @@ FArchive& operator<<(FArchive& Ar, FNumberFormattingOptions& Value)
 	return Ar;
 }
 
+uint32 GetTypeHash( const FNumberFormattingOptions& Key )
+{
+	uint32 Hash = 0;
+	Hash = HashCombine(Hash, GetTypeHash(Key.UseGrouping));
+	Hash = HashCombine(Hash, GetTypeHash(Key.RoundingMode));
+	Hash = HashCombine(Hash, GetTypeHash(Key.MinimumIntegralDigits));
+	Hash = HashCombine(Hash, GetTypeHash(Key.MaximumIntegralDigits));
+	Hash = HashCombine(Hash, GetTypeHash(Key.MinimumFractionalDigits));
+	Hash = HashCombine(Hash, GetTypeHash(Key.MaximumFractionalDigits));
+	return Hash;
+}
+
+bool FNumberFormattingOptions::IsIdentical( const FNumberFormattingOptions& Other ) const
+{
+	return UseGrouping == Other.UseGrouping
+		&& RoundingMode == Other.RoundingMode
+		&& MinimumIntegralDigits == Other.MinimumIntegralDigits
+		&& MaximumIntegralDigits == Other.MaximumIntegralDigits
+		&& MinimumFractionalDigits == Other.MinimumFractionalDigits
+		&& MaximumFractionalDigits == Other.MaximumFractionalDigits;
+}
+
+const FNumberFormattingOptions& FNumberFormattingOptions::DefaultWithGrouping()
+{
+	static const FNumberFormattingOptions Options = FNumberFormattingOptions().SetUseGrouping(true);
+	return Options;
+}
+
+const FNumberFormattingOptions& FNumberFormattingOptions::DefaultNoGrouping()
+{
+	static const FNumberFormattingOptions Options = FNumberFormattingOptions().SetUseGrouping(false);
+	return Options;
+}
+
 bool FText::bEnableErrorCheckingResults = ENABLE_TEXT_ERROR_CHECKING_RESULTS;
 bool FText::bSuppressWarnings = false;
 

@@ -116,6 +116,18 @@ struct CORE_API FNumberFormattingOptions
 	FNumberFormattingOptions& SetMaximumFractionalDigits( int32 InValue ){ MaximumFractionalDigits = InValue; return *this; }
 
 	friend FArchive& operator<<(FArchive& Ar, FNumberFormattingOptions& Value);
+
+	/** Get the hash code to use for the given formatting options */
+	friend uint32 GetTypeHash( const FNumberFormattingOptions& Key );
+
+	/** Check to see if our formatting options match the other formatting options */
+	bool IsIdentical( const FNumberFormattingOptions& Other ) const;
+
+	/** Get the default number formatting options with grouping enabled */
+	static const FNumberFormattingOptions& DefaultWithGrouping();
+
+	/** Get the default number formatting options with grouping disabled */
+	static const FNumberFormattingOptions& DefaultNoGrouping();
 };
 
 class FCulture;

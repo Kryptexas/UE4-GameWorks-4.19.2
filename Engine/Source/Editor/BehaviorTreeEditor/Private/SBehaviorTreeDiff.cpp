@@ -466,12 +466,9 @@ FText SBehaviorTreeDiff::FBehaviorTreeDiffPanel::GetTitle() const
 	if (!RevisionInfo.Revision.IsEmpty())
 	{
 		// Don't use grouping on the revision or CL numbers to match how Perforce displays them
-		static const FNumberFormattingOptions RevisionFormatOptions = FNumberFormattingOptions()
-			.SetUseGrouping(false);
-
 		const FText DateText = FText::AsDate(RevisionInfo.Date, EDateTimeStyle::Short);
 		const FText RevisionText = FText::FromString(RevisionInfo.Revision);
-		const FText ChangelistText = FText::AsNumber(RevisionInfo.Changelist, &RevisionFormatOptions);
+		const FText ChangelistText = FText::AsNumber(RevisionInfo.Changelist, &FNumberFormattingOptions::DefaultNoGrouping());
 
 		if (bShowAssetName)
 		{

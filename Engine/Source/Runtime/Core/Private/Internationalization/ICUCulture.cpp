@@ -44,10 +44,10 @@ namespace
 		return Ptr.ToSharedRef();
 	}
 
-	TSharedRef<const icu::DecimalFormat> CreateDecimalFormat( const icu::Locale& ICULocale )
+	TSharedRef<const icu::DecimalFormat, ESPMode::ThreadSafe> CreateDecimalFormat( const icu::Locale& ICULocale )
 	{
 		UErrorCode ICUStatus = U_ZERO_ERROR;
-		TSharedPtr<const icu::DecimalFormat> Ptr = MakeShareable( static_cast<icu::DecimalFormat*>(icu::NumberFormat::createInstance( ICULocale, ICUStatus )) );
+		TSharedPtr<const icu::DecimalFormat, ESPMode::ThreadSafe> Ptr = MakeShareable( static_cast<icu::DecimalFormat*>(icu::NumberFormat::createInstance( ICULocale, ICUStatus )) );
 		checkf(Ptr.IsValid(), TEXT("Creating a decimal format object failed using locale %s. Perhaps this locale has no data."), StringCast<TCHAR>(ICULocale.getName()).Get());
 		return Ptr.ToSharedRef();
 	}
@@ -98,6 +98,7 @@ namespace
 
 FCulture::FICUCultureImplementation::FICUCultureImplementation(const FString& LocaleName)
 	: ICULocale( TCHAR_TO_ANSI( *LocaleName ) )
+	, ICUDecimalFormatLRUCache( 10 )
 {
 
 }
@@ -289,31 +290,70 @@ TSharedRef<const icu::Collator, ESPMode::ThreadSafe> FCulture::FICUCultureImplem
 	}
 }
 
-TSharedRef<const icu::DecimalFormat> FCulture::FICUCultureImplementation::GetDecimalFormatter(const FNumberFormattingOptions* const Options)
+TSharedRef<const icu::DecimalFormat, ESPMode::ThreadSafe> FCulture::FICUCultureImplementation::GetDecimalFormatter(const FNumberFormattingOptions* const Options)
 {
-	if (!ICUDecimalFormat.IsValid())
+	if (!ICUDecimalFormat_DefaultForCulture.IsValid())
 	{
-		ICUDecimalFormat = CreateDecimalFormat( ICULocale );
+		ICUDecimalFormat_DefaultForCulture = CreateDecimalFormat( ICULocale );
 	}
 
-	const bool bIsDefault = Options == NULL;
-	const TSharedRef<const icu::DecimalFormat> DefaultFormatter( ICUDecimalFormat.ToSharedRef() );
-	if(bIsDefault)
+	const bool bIsCultureDefault = Options == nullptr;
+	const TSharedRef<const icu::DecimalFormat, ESPMode::ThreadSafe> DefaultFormatter( ICUDecimalFormat_DefaultForCulture.ToSharedRef() );
+	if (bIsCultureDefault)
 	{
 		return DefaultFormatter;
 	}
-	else
+	else if (FNumberFormattingOptions::DefaultWithGrouping().IsIdentical(*Options))
 	{
-		const TSharedRef<icu::DecimalFormat> Formatter( static_cast<icu::DecimalFormat*>(DefaultFormatter->clone()) );
-		if(Options)
+		if (!ICUDecimalFormat_DefaultWithGrouping.IsValid())
 		{
+			const TSharedRef<icu::DecimalFormat, ESPMode::ThreadSafe> Formatter( static_cast<icu::DecimalFormat*>(DefaultFormatter->clone()) );
 			Formatter->setGroupingUsed(Options->UseGrouping);
 			Formatter->setRoundingMode(UEToICU(Options->RoundingMode));
 			Formatter->setMinimumIntegerDigits(Options->MinimumIntegralDigits);
 			Formatter->setMaximumIntegerDigits(Options->MaximumIntegralDigits);
 			Formatter->setMinimumFractionDigits(Options->MinimumFractionalDigits);
 			Formatter->setMaximumFractionDigits(Options->MaximumFractionalDigits);
+			ICUDecimalFormat_DefaultWithGrouping = Formatter;
 		}
+		return ICUDecimalFormat_DefaultWithGrouping.ToSharedRef();
+	}
+	else if (FNumberFormattingOptions::DefaultNoGrouping().IsIdentical(*Options))
+	{
+		if (!ICUDecimalFormat_DefaultNoGrouping.IsValid())
+		{
+			const TSharedRef<icu::DecimalFormat, ESPMode::ThreadSafe> Formatter( static_cast<icu::DecimalFormat*>(DefaultFormatter->clone()) );
+			Formatter->setGroupingUsed(Options->UseGrouping);
+			Formatter->setRoundingMode(UEToICU(Options->RoundingMode));
+			Formatter->setMinimumIntegerDigits(Options->MinimumIntegralDigits);
+			Formatter->setMaximumIntegerDigits(Options->MaximumIntegralDigits);
+			Formatter->setMinimumFractionDigits(Options->MinimumFractionalDigits);
+			Formatter->setMaximumFractionDigits(Options->MaximumFractionalDigits);
+			ICUDecimalFormat_DefaultNoGrouping = Formatter;
+		}
+		return ICUDecimalFormat_DefaultNoGrouping.ToSharedRef();
+	}
+	else
+	{
+		/*
+		FScopeLock ScopeLock(&ICUDecimalFormatLRUCacheCS);
+
+		const TSharedPtr<const icu::DecimalFormat, ESPMode::ThreadSafe> CachedFormatter = ICUDecimalFormatLRUCache.AccessItem(*Options);
+		if (CachedFormatter.IsValid())
+		{
+			return CachedFormatter.ToSharedRef();
+		}
+		*/
+		const TSharedRef<icu::DecimalFormat, ESPMode::ThreadSafe> Formatter( static_cast<icu::DecimalFormat*>(DefaultFormatter->clone()) );
+		Formatter->setGroupingUsed(Options->UseGrouping);
+		Formatter->setRoundingMode(UEToICU(Options->RoundingMode));
+		Formatter->setMinimumIntegerDigits(Options->MinimumIntegralDigits);
+		Formatter->setMaximumIntegerDigits(Options->MaximumIntegralDigits);
+		Formatter->setMinimumFractionDigits(Options->MinimumFractionalDigits);
+		Formatter->setMaximumFractionDigits(Options->MaximumFractionalDigits);
+
+		//ICUDecimalFormatLRUCache.Add(*Options, Formatter);
+
 		return Formatter;
 	}
 }

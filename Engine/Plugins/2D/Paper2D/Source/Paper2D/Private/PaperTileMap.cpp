@@ -373,11 +373,7 @@ FText UPaperTileMap::GenerateNewLayerName(UPaperTileMap* TileMap)
 	do
 	{
 		TileMap->LayerNameIndex++;
-
-		FNumberFormattingOptions NoGroupingFormat;
-		NoGroupingFormat.SetUseGrouping(false);
-
-		TestLayerName = FText::Format(LOCTEXT("NewLayerNameFormatString", "Layer {0}"), FText::AsNumber(TileMap->LayerNameIndex, &NoGroupingFormat));
+		TestLayerName = FText::Format(LOCTEXT("NewLayerNameFormatString", "Layer {0}"), FText::AsNumber(TileMap->LayerNameIndex, &FNumberFormattingOptions::DefaultNoGrouping()));
 	} while (ExistingNames.Contains(TestLayerName.ToString()));
 
 	return TestLayerName;
