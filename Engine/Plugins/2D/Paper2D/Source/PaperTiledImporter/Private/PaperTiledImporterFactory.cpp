@@ -242,6 +242,25 @@ UObject* UPaperTiledImporterFactory::FactoryCreateText(UClass* InClass, UObject*
 				FPropertyChangedEvent InteractiveRebuildTileSet(nullptr, EPropertyChangeType::Interactive);
 				TileSetAsset->PostEditChangeProperty(InteractiveRebuildTileSet);
 
+				// Copy across terrain information
+				const int32 MaxTerrainTypes = 0xFE;
+				const uint8 NoTerrainMembershipIndex = 0xFF;
+				if (TileSetData.TerrainTypes.Num() > MaxTerrainTypes)
+				{
+					UE_LOG(LogPaperTiledImporter, Warning, TEXT("Tile set '%s' contains more than %d terrain types, ones above this will be ignored."), *TileSetData.Name, MaxTerrainTypes);
+				}
+				const int32 NumTerrainsToCopy = FMath::Min<int32>(TileSetData.TerrainTypes.Num(), MaxTerrainTypes);
+				for (int32 TerrainIndex = 0; TerrainIndex < NumTerrainsToCopy; ++TerrainIndex)
+				{
+					const FTiledTerrain& SourceTerrain = TileSetData.TerrainTypes[TerrainIndex];
+
+					FPaperTileSetTerrain DestTerrain;
+					DestTerrain.TerrainName = SourceTerrain.TerrainName;
+					DestTerrain.CenterTileIndex = SourceTerrain.SolidTileLocalIndex;
+
+					TileSetAsset->AddTerrainDescription(DestTerrain);
+				}
+
 				// Copy across per-tile metadata
 				const int32 NumTilesCreated = TileSetAsset->GetTileCount();
 				for (const auto& KV : TileSetData.PerTileData)
@@ -251,8 +270,19 @@ UObject* UPaperTiledImporterFactory::FactoryCreateText(UClass* InClass, UObject*
 
 					if (FPaperTileMetadata* TargetTileData = TileSetAsset->GetMutableTileMetadata(TileIndex))
 					{
-						//@TODO: TileData.TerrainIndices
+						// Convert collision geometry
 						FTiledObject::AddToSpriteGeometryCollection(FVector2D::ZeroVector, SourceTileData.Objects, TargetTileData->CollisionData);
+						
+						// Convert terrain memberhsip
+						for (int32 Index = 0; Index < 4; ++Index)
+						{
+							const int32 SourceTerrainIndex = SourceTileData.TerrainIndices[Index];
+
+							const uint8 DestTerrainIndex = ((SourceTerrainIndex >= 0) && (SourceTerrainIndex < NumTerrainsToCopy)) ? (uint8)SourceTerrainIndex : NoTerrainMembershipIndex;
+							TargetTileData->TerrainMembership[Index] = DestTerrainIndex;
+						}
+
+						//@TODO: Convert metadata?
 					}
 				}
 				

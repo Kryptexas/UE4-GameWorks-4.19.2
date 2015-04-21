@@ -233,6 +233,12 @@ void FTileMapEdModeToolkit::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &FTileMapEdModeToolkit::IsToolSelected, ETileMapEditorTool::EyeDropper),
 		FIsActionButtonVisible::CreateSP(this, &FTileMapEdModeToolkit::IsToolSelected, ETileMapEditorTool::EyeDropper));
+	ToolkitCommands->MapAction(
+		Commands.SelectTerrainTool,
+		FExecuteAction::CreateSP(this, &FTileMapEdModeToolkit::OnSelectTool, ETileMapEditorTool::TerrainBrush),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FTileMapEdModeToolkit::IsToolSelected, ETileMapEditorTool::TerrainBrush),
+		FIsActionButtonVisible::CreateSP(this, &FTileMapEdModeToolkit::DoesSelectedTileSetHaveTerrains));
 
 	// Selection actions
 	ToolkitCommands->MapAction(
@@ -263,6 +269,18 @@ bool FTileMapEdModeToolkit::IsToolSelected(ETileMapEditorTool::Type QueryTool) c
 	return (TileMapEditor->GetActiveTool() == QueryTool);
 }
 
+bool FTileMapEdModeToolkit::DoesSelectedTileSetHaveTerrains() const
+{
+	if (UPaperTileSet* CurrentTileSet = CurrentTileSetPtr.Get())
+	{
+		return CurrentTileSet->GetNumTerrains() > 0;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 TSharedRef<SWidget> FTileMapEdModeToolkit::BuildToolBar() const
 {
 	const FTileMapEditorCommands& Commands = FTileMapEditorCommands::Get();
@@ -281,6 +299,11 @@ TSharedRef<SWidget> FTileMapEdModeToolkit::BuildToolBar() const
 		ToolsToolbar.AddToolBarButton(Commands.SelectPaintTool);
 		ToolsToolbar.AddToolBarButton(Commands.SelectEraserTool);
 		ToolsToolbar.AddToolBarButton(Commands.SelectFillTool);
+		ToolsToolbar.AddToolBarButton(Commands.SelectTerrainTool);
+
+		//@TODO: TileMapTerrain: Ugly styling
+		FUIAction DummyAction;
+		ToolsToolbar.AddComboButton(DummyAction, FOnGetContent::CreateSP(this, &FTileMapEdModeToolkit::GenerateTerrainMenu));
 	}
 
 	return
@@ -314,6 +337,39 @@ TSharedRef<SWidget> FTileMapEdModeToolkit::BuildToolBar() const
 				ToolsToolbar.MakeWidget()
 			]
 		];
+}
+
+TSharedRef<SWidget> FTileMapEdModeToolkit::GenerateTerrainMenu()
+{
+	FMenuBuilder TerrainMenu(/*bInShouldCloseWindowAfterMenuSelection=*/ true, ToolkitCommands);
+
+	if (UPaperTileSet* TileSet = CurrentTileSetPtr.Get())
+	{
+		const FText MenuHeading = FText::Format(LOCTEXT("TerrainMenu", "Terrain types for {0}"), FText::AsCultureInvariant(TileSet->GetName()));
+		TerrainMenu.BeginSection(NAME_None, MenuHeading);
+
+		for (int32 TerrainIndex = 0; TerrainIndex < TileSet->GetNumTerrains(); ++TerrainIndex)
+		{
+			FPaperTileSetTerrain TerrainInfo = TileSet->GetTerrain(TerrainIndex);
+
+			const FText TerrainName = FText::AsCultureInvariant(TerrainInfo.TerrainName);
+			const FText TerrainLabel = FText::Format(LOCTEXT("TerrainLabel", "Terrain '{0}'"), TerrainName);
+			const FText TerrainTooltip = FText::Format(LOCTEXT("TerrainTooltip", "Change the active terrain brush type to '{0}'"), TerrainName);
+			FUIAction TerrainSwitchAction(FExecuteAction::CreateSP(this, &FTileMapEdModeToolkit::SetTerrainBrush, TerrainIndex));
+
+			TerrainMenu.AddMenuEntry(TerrainLabel, TerrainTooltip, FSlateIcon(), TerrainSwitchAction);
+		}
+
+		TerrainMenu.EndSection();
+	}
+
+	return TerrainMenu.MakeWidget();
+}
+
+void FTileMapEdModeToolkit::SetTerrainBrush(int32 NewTerrainTypeIndex)
+{
+	//@TODO: TileMapTerrain: Do something here...
+	UE_LOG(LogInit, Warning, TEXT("Set terrain brush to %d"), NewTerrainTypeIndex);
 }
 
 EVisibility FTileMapEdModeToolkit::GetTileSetPaletteCornerTextVisibility() const

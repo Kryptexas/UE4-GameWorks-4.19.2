@@ -125,6 +125,24 @@ FIntPoint UPaperTileSet::GetTileXYFromTextureUV(const FVector2D& TextureUV, bool
 	return FIntPoint(X, Y);
 }
 
+bool UPaperTileSet::AddTerrainDescription(FPaperTileSetTerrain NewTerrain)
+{
+	if (Terrains.Num() < 254)
+	{
+		Terrains.Add(NewTerrain);
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+int32 UPaperTileSet::GetTerrainMembership(const FPaperTileInfo& TileInfo) const
+{
+	return INDEX_NONE; //@TODO: TileMapTerrain: Implement this
+}
+
 #if WITH_EDITOR
 
 #include "PaperTileMapComponent.h"

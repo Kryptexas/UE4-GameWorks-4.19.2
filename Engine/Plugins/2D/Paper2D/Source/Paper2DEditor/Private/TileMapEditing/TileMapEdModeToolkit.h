@@ -35,7 +35,11 @@ protected:
 	void OnSelectTool(ETileMapEditorTool::Type NewTool);
 	bool IsToolSelected(ETileMapEditorTool::Type QueryTool) const;
 
+	bool DoesSelectedTileSetHaveTerrains() const;
+
 	TSharedRef<SWidget> BuildToolBar() const;
+	TSharedRef<SWidget> GenerateTerrainMenu();
+	void SetTerrainBrush(int32 NewTerrainTypeIndex);
 
 	EVisibility GetTileSetPaletteCornerTextVisibility() const;
 	FReply ClickedOnTileSetPaletteCornerText();

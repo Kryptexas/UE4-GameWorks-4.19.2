@@ -10,7 +10,8 @@ namespace ETileMapEditorTool
 		Paintbrush,
 		Eraser,
 		PaintBucket,
-		EyeDropper
+		EyeDropper,
+		TerrainBrush
 	};
 }
 
@@ -98,6 +99,7 @@ protected:
 	bool PaintTiles(const FViewportCursorLocation& Ray);
 	bool EraseTiles(const FViewportCursorLocation& Ray);
 	bool FloodFillTiles(const FViewportCursorLocation& Ray);
+	bool PaintTilesWithTerrain(const FViewportCursorLocation& Ray);
 
 
 	void UpdatePreviewCursor(const FViewportCursorLocation& Ray);

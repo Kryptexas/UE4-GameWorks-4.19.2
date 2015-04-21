@@ -504,6 +504,10 @@ void FEdModeTileMap::DrawHUD(FEditorViewportClient* ViewportClient, FViewport* V
 		ToolDescription = LOCTEXT("EyeDropperTool", "Select");
 		bDrawToolDescription = true;
 		break;
+	case ETileMapEditorTool::TerrainBrush:
+		ToolDescription = LOCTEXT("TerrainTool", "Terrain"); //@TODO: TileMapTerrain: Show the current terrain name?
+		bDrawToolDescription = true;
+		break;
 	}
 
 	if (bDrawToolDescription && !DrawPreviewDimensionsLS.IsNearlyZero())
@@ -696,6 +700,8 @@ bool FEdModeTileMap::UseActiveToolAtLocation(const FViewportCursorLocation& Ray)
 		return EraseTiles(Ray);
 	case ETileMapEditorTool::PaintBucket:
 		return FloodFillTiles(Ray);
+	case ETileMapEditorTool::TerrainBrush:
+		return PaintTilesWithTerrain(Ray);
 	default:
 		check(false);
 		return false;
@@ -1026,6 +1032,78 @@ bool FEdModeTileMap::FloodFillTiles(const FViewportCursorLocation& Ray)
 	return bPaintedOnSomething;
 }
 
+bool FEdModeTileMap::PaintTilesWithTerrain(const FViewportCursorLocation& Ray)
+{
+	bool bPaintedOnSomething = false;
+	bool bChangedSomething = false;
+
+	// Validate that the tool we're using can be used right now
+	if (!HasValidSelection())
+	{
+		return false;
+	}
+
+	int DestTileX;
+	int DestTileY;
+
+	if (UPaperTileLayer* TargetLayer = GetSelectedLayerUnderCursor(Ray, /*out*/ DestTileX, /*out*/ DestTileY))
+	{
+		UPaperTileMap* TileMap = TargetLayer->GetTileMap();
+		const int32 LayerIndex = TargetLayer->GetLayerIndex();
+
+		FBox DirtyRect(ForceInitToZero);
+
+		if ((DestTileX >= 0) && (DestTileY >= 0) && (DestTileX < TileMap->MapWidth) & (DestTileY < TileMap->MapHeight))
+		{
+			FScopedTransaction Transaction(LOCTEXT("TileMapTerrainBrushAction", "Terrain Brush"));
+
+			for (int32 OY = -1; OY <= 1; ++OY)
+			{
+				for (int32 OX = -1; OX <= 1; ++OX)
+				{
+					const int32 DX = DestTileX + OX;
+					const int32 DY = DestTileY + OY;
+					FPaperTileInfo PreviousTileInfo = TargetLayer->GetCell(DX, DY);
+
+					//@TODO: TileMapTerrain: Implement this
+					FPaperTileInfo NewInk = PreviousTileInfo;
+
+					if (PreviousTileInfo != NewInk)
+					{
+						if (!bChangedSomething)
+						{
+							TargetLayer->SetFlags(RF_Transactional);
+							TargetLayer->Modify();
+							bChangedSomething = true;
+						}
+
+						DirtyRect += FVector(DX, DY, LayerIndex);
+
+						TargetLayer->SetCell(DX, DY, NewInk);
+					}
+				}
+			}
+
+			if (bChangedSomething)
+			{
+				if (DirtyRect.IsValid)
+				{
+					new (PendingDirtyRegions) FTileMapDirtyRegion(FindSelectedComponent(), DirtyRect);
+				}
+
+				TileMap->PostEditChange();
+			}
+
+			if (!bChangedSomething)
+			{
+				Transaction.Cancel();
+			}
+		}
+	}
+
+	return bPaintedOnSomething;
+}
+
 void FEdModeTileMap::DestructiveResizePreviewComponent(int32 NewWidth, int32 NewHeight)
 {
 	UPaperTileMap* PreviewMap = CursorPreviewComponent->TileMap;
@@ -1234,6 +1312,9 @@ bool FEdModeTileMap::IsToolReadyToBeUsed() const
 	case ETileMapEditorTool::PaintBucket:
 		bToolIsReadyToDraw = bHasValidInkSource;
 		break;
+	case ETileMapEditorTool::TerrainBrush:
+		bToolIsReadyToDraw = bHasValidInkSource; //@TODO: TileMapTerrain: What to do here...
+		break;
 	default:
 		check(false);
 		break;
@@ -1387,6 +1468,9 @@ int32 FEdModeTileMap::GetBrushWidth() const
 	case ETileMapEditorTool::PaintBucket:
 		BrushWidth = GetSourceInkLayer()->LayerWidth;
 		break;
+	case ETileMapEditorTool::TerrainBrush:
+		BrushWidth = 1;
+		break;
 	default:
 		check(false);
 		break;
@@ -1412,6 +1496,9 @@ int32 FEdModeTileMap::GetBrushHeight() const
 		break;
 	case ETileMapEditorTool::PaintBucket:
 		BrushHeight = GetSourceInkLayer()->LayerHeight;
+		break;
+	case ETileMapEditorTool::TerrainBrush:
+		BrushHeight = 1;
 		break;
 	default:
 		check(false);
@@ -1450,6 +1537,9 @@ void FEdModeTileMap::RefreshBrushSize()
 		break;
 	case ETileMapEditorTool::PaintBucket:
 		CursorPreviewComponent->SetVisibility(false);
+		break;
+	case ETileMapEditorTool::TerrainBrush:
+		CursorPreviewComponent->SetVisibility(bShowPreviewDesired); //@TODO: TileMapTerrain
 		break;
 	default:
 		check(false);

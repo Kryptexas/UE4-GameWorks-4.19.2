@@ -8,6 +8,8 @@
 
 #include "PaperTileSet.generated.h"
 
+struct FPaperTileInfo;
+
 // Information about a single tile in a tile set
 USTRUCT()
 struct PAPER2D_API FPaperTileMetadata
@@ -18,10 +20,19 @@ public:
 	UPROPERTY(EditAnywhere, Category=Sprite)
 	FSpriteGeometryCollection CollisionData;
 
+	// Indexes into the Terrains array of the owning tile set, in counterclockwise order starting from top-left
+	// 0xFF indicates no membership.
+	UPROPERTY()
+	uint8 TerrainMembership[4];
+
 public:
 	FPaperTileMetadata()
 	{
 		CollisionData.GeometryType = ESpritePolygonMode::FullyCustom;
+		TerrainMembership[0] = 0xFF;
+		TerrainMembership[1] = 0xFF;
+		TerrainMembership[2] = 0xFF;
+		TerrainMembership[3] = 0xFF;
 	}
 
 	// Does this tile have collision information?
@@ -31,6 +42,19 @@ public:
 	}
 };
 
+// Information about a terrain type
+USTRUCT()
+struct PAPER2D_API FPaperTileSetTerrain
+{
+public:
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, Category=Sprite)
+	FString TerrainName;
+
+	UPROPERTY()
+	int32 CenterTileIndex;
+};
 
 /**
  * A tile set is a collection of tiles pulled from a texture that can be used to fill out a tile map.
@@ -94,6 +118,10 @@ protected:
 	UPROPERTY(EditAnywhere, EditFixedSize, Category=Sprite)
 	TArray<FPaperTileMetadata> ExperimentalPerTileData;
 
+	// Terrain information
+	UPROPERTY()//@TODO: TileMapTerrains: (EditAnywhere, Category=Sprite)
+	TArray<FPaperTileSetTerrain> Terrains;
+
 protected:
 
 	// Reallocates the ExperimentalPerTileData array to the specified size.
@@ -136,4 +164,18 @@ public:
 
 	// Converts the texture-space coordinates into tile coordinates
 	FIntPoint GetTileXYFromTextureUV(const FVector2D& TextureUV, bool bRoundUp) const;
+
+	// Adds a new terrain to this tile set (returns false if the maximum number of terrains has already been reached)
+	bool AddTerrainDescription(FPaperTileSetTerrain NewTerrain);
+
+	// Returns the number of terrains this tile set has
+	int32 GetNumTerrains() const
+	{
+		return Terrains.Num();
+	}
+
+	FPaperTileSetTerrain GetTerrain(int32 Index) const { return Terrains.IsValidIndex(Index) ? Terrains[Index] : FPaperTileSetTerrain(); }
+
+	// Returns the terrain type this tile is a member of, or INDEX_NONE if it is not part of a terrain
+	int32 GetTerrainMembership(const FPaperTileInfo& TileInfo) const;
 };
