@@ -628,7 +628,7 @@ void FMacApplication::ResendEvent(NSEvent* Event)
 
 void FMacApplication::ProcessMouseMovedEvent(const FDeferredMacEvent& Event)
 {
-	TSharedPtr<FMacWindow> EventWindow = Event.Window.Pin();
+	TSharedPtr<FMacWindow> EventWindow = Event.Window.IsValid() ? Event.Window.Pin() : nullptr;
 	if (EventWindow.IsValid() && EventWindow->IsRegularWindow())
 	{
 		bool IsMouseOverTitleBar = false;
