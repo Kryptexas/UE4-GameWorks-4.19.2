@@ -206,7 +206,9 @@ static FORCEINLINE bool IsTimeLimitExceeded(double InTickStartTime, bool bUseTim
 
 uint32 FAsyncLoadingThread::AsyncLoadingThreadID = 0;
 
+#if LOOKING_FOR_PERF_ISSUES
 FThreadSafeCounter FAsyncLoadingThread::BlockingCycles = 0;
+#endif
 
 FAsyncLoadingThread& FAsyncLoadingThread::Get()
 {
@@ -584,9 +586,11 @@ void FAsyncLoadingThread::TickAsyncThread(bool bUseTimeLimit, bool bUseFullTimeL
 		bShouldCancelLoading = false;
 	}
 
+#if LOOKING_FOR_PERF_ISSUES
 	// Update stats
 	SET_FLOAT_STAT( STAT_AsyncIO_AsyncLoadingBlockingTime, FPlatformTime::ToSeconds( BlockingCycles.GetValue() ) );
 	BlockingCycles.Set( 0 );
+#endif
 }
 
 void FAsyncLoadingThread::Stop()
@@ -1690,6 +1694,10 @@ void FlushAsyncLoading(FName ExcludeType/*=NAME_None*/)
 			while (IsAsyncLoading())
 			{
 				FAsyncLoadingThread::Get().TickAsyncLoading(false, false, 0, ExcludeType);
+				if (FAsyncLoadingThread::Get().IsMultithreaded())
+				{
+					FPlatformProcess::SleepNoStats(0.0001f);
+				}
 			}
 		}
 
@@ -2114,17 +2122,21 @@ void FArchiveAsync::Serialize( void* Data, int64 Count )
 	// Ensure we aren't reading beyond the end of the file
 	checkf( CurrentPos + Count <= TotalSize(), TEXT("Seeked past end of file %s (%lld / %lld)"), *FileName, CurrentPos + Count, TotalSize() );
 
+#if LOOKING_FOR_PERF_ISSUES
 	uint32 StartCycles = 0;
 	bool	bIOBlocked	= false;
+#endif
 
 	// Make sure serialization request fits entirely in already precached region.
 	if( !PrecacheBufferContainsRequest( CurrentPos, Count ) )
 	{
 		DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FArchiveAsync::Serialize.PrecacheBufferContainsRequest" ), STAT_ArchiveAsync_Serialize_PrecacheBufferContainsRequest, STATGROUP_AsyncLoad );
 
+#if LOOKING_FOR_PERF_ISSUES
 		// Keep track of time we started to block.
 		StartCycles = FPlatformTime::Cycles();
 		bIOBlocked	= true;
+#endif
 
 		// Busy wait for region to be precached.
 		FPlatformProcess::ConditionalSleep( [&]()
@@ -2146,6 +2158,7 @@ void FArchiveAsync::Serialize( void* Data, int64 Count )
 	FPlatformProcess::ConditionalSleep( [&]()
 	{
 		SHUTDOWN_IF_EXIT_REQUESTED;
+#if LOOKING_FOR_PERF_ISSUES
 		// Only update StartTime if we haven't already started blocking I/O above.
 		if( !bIOBlocked )
 		{
@@ -2153,6 +2166,7 @@ void FArchiveAsync::Serialize( void* Data, int64 Count )
 			StartCycles = FPlatformTime::Cycles();
 			bIOBlocked = true;
 		}
+#endif
 		if( !FPlatformProcess::SupportsMultithreading() )
 		{
 			FIOSystem::Get().TickSingleThreaded();
@@ -2161,19 +2175,17 @@ void FArchiveAsync::Serialize( void* Data, int64 Count )
 	} );
 
 	// Update stats if we were blocked.
-#if STATS
+#if LOOKING_FOR_PERF_ISSUES
 	if( bIOBlocked )
 	{
 		const int32 BlockingCycles = int32(FPlatformTime::Cycles() - StartCycles);
 		FAsyncLoadingThread::BlockingCycles.Add( BlockingCycles );
-		
-#if LOOKING_FOR_PERF_ISSUES
+
 		UE_LOG(LogStreaming, Warning, TEXT("FArchiveAsync::Serialize: %5.2fms blocking on read from '%s' (Offset: %lld, Size: %lld)"), 
 			FPlatformTime::ToMilliseconds(BlockingCycles), 
 			*FileName, 
 			CurrentPos, 
 			Count );
-#endif
 	}
 #endif
 

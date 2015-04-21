@@ -51,8 +51,10 @@ class FAsyncLoadingThread : public FRunnable
 	/** Async loading thread ID */
 	static uint32 AsyncLoadingThreadID;
 
+#if LOOKING_FOR_PERF_ISSUES
 	/** Thread safe counter used to accumulate cycles spent on blocking. Using stats may generate to many stats messages. */
 	static FThreadSafeCounter BlockingCycles;
+#endif
 
 	FAsyncLoadingThread();
 	virtual ~FAsyncLoadingThread();
