@@ -585,11 +585,11 @@ void FLinuxWindow::GetNativeBordersSize(int32& OutLeftBorderWidth, int32& OutTop
 void FLinuxWindow::CacheNativeProperties()
 {
 	// cache border sizes
-	SDL_Rect Borders;
-	if (SDL_GetWindowBordersSize(HWnd, &Borders) == 0)
+	int Top, Left;
+	if (SDL_GetWindowBordersSize(HWnd, &Top, &Left, nullptr, nullptr) == 0)
 	{
-		LeftBorderWidth = Borders.x;
-		TopBorderHeight = Borders.y;
+		LeftBorderWidth = Left;
+		TopBorderHeight = Top;
 	}
 
 	bValidNativePropertiesCache = true;

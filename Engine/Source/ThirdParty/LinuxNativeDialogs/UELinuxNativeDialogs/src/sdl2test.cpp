@@ -6,7 +6,7 @@
 using std::cout;
 
 int main(int argc, char* argv[]){
-
+  SDL_SetHint("SDL_VIDEO_X11_REQUIRE_XRANDR", "1");  // workaround for misbuilt SDL libraries on X11.
   SDL_Init(SDL_INIT_VIDEO); // Init SDL2
   
   // Create a window. Window mode MUST include SDL_WINDOW_OPENGL for use with OpenGL.
