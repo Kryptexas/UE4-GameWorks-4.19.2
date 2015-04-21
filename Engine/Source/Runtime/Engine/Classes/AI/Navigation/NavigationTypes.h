@@ -358,19 +358,19 @@ struct ENGINE_API FNavAgentProperties : public FMovementProperties
 	GENERATED_USTRUCT_BODY()
 
 	/** Radius of the capsule used for navigation/pathfinding. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MovementProperties)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties, meta=(DisplayName="Nav Agent Radius"))
 	float AgentRadius;
 
 	/** Total height of the capsule used for navigation/pathfinding. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MovementProperties)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties, meta=(DisplayName="Nav Agent Height"))
 	float AgentHeight;
 
 	/** Step height to use, or -1 for default value from navdata's config. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MovementProperties)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties, meta=(DisplayName="Nav Agent Step Height"))
 	float AgentStepHeight;
 
 	/** Scale factor to apply to height of bounds when searching for navmesh to project to when nav walking */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MovementProperties)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MovementProperties)
 	float NavWalkingSearchHeightScale;
 
 	FNavAgentProperties(float Radius = -1.f, float Height = -1.f)
