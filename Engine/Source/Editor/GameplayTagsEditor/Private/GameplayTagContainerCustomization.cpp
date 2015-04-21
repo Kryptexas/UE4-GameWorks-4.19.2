@@ -175,7 +175,7 @@ FReply FGameplayTagContainerCustomization::OnClearAllButtonClicked()
 
 	for (int32 ContainerIdx = 0; ContainerIdx < EditableContainers.Num(); ++ContainerIdx)
 	{
-		UObject* OwnerObj = EditableContainers[ContainerIdx].TagContainerOwner;
+		UObject* OwnerObj = EditableContainers[ContainerIdx].TagContainerOwner.Get();
 		FGameplayTagContainer* Container = EditableContainers[ContainerIdx].TagContainer;
 
 		if (OwnerObj && Container)
