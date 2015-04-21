@@ -611,7 +611,7 @@ namespace Manzana
 							string Trimmed = Filename.Trim();
 							string SourceFilename = BaseFolder + "\\" + Trimmed;
 							SourceFilename = SourceFilename.Replace('/', '\\');
-							string DestFilename = "/Documents/" + Trimmed.Replace("cookeddata/", "cacheddata/");
+							string DestFilename = "/Documents/" + Trimmed.Replace("cookeddata/", "");
 							DestFilename = DestFilename.Replace('\\', '/');
 							WriteProgressLine("Copying '{0}' -> '{1}' ...", 0, SourceFilename, DestFilename);
 							CopyFileToPhone(SourceFilename, DestFilename, 1024 * 1024);
