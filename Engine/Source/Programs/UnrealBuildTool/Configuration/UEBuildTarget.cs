@@ -2487,13 +2487,9 @@ namespace UnrealBuildTool
 			{
 				BuildPlugins.AddRange(ValidPlugins);
 			}
-			else if (ShouldCompileMonolithic() || TargetType == TargetRules.TargetType.Program)
-			{
-				BuildPlugins.AddRange(EnabledPlugins);
-			}
 			else
 			{
-				BuildPlugins.AddRange(ValidPlugins);
+				BuildPlugins.AddRange(EnabledPlugins);
 			}
 		}
 
