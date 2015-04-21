@@ -2,6 +2,7 @@
 
 #include "TranslationEditorPrivatePCH.h"
 #include "TranslationPickerWidget.h"
+#include "TranslationPickerEditWindow.h"
 
 #define LOCTEXT_NAMESPACE "TranslationPicker"
 
@@ -107,6 +108,9 @@ bool TranslationPickerManager::OpenPickerWindow()
 	if (!PickerWindow.IsValid())
 	{
 		TSharedRef<SWindow> NewWindow = SWindow::MakeCursorDecorator();
+		NewWindow->SetSizingRule(ESizingRule::FixedSize);
+		// The Edit window and Floating window should be roughly the same size, so it isn't too distracting switching between them
+		NewWindow->Resize(FVector2D(STranslationPickerEditWindow::DefaultEditWindowWidth, STranslationPickerEditWindow::DefaultEditWindowHeight));
 		NewWindow->MoveWindowTo(FSlateApplication::Get().GetCursorPos());
 		PickerWindow = NewWindow;
 

@@ -19,6 +19,25 @@ void STranslationPickerFloatingWindow::Construct(const FArguments& InArgs)
 	];
 }
 
+void STranslationPickerFloatingWindow::GetTextFromChildWidgets(TSharedRef<SWidget> Widget)
+{
+	FChildren* Children = Widget->GetChildren();
+
+	TArray<TSharedRef<SWidget>> ChildrenArray;
+	for (int ChildIndex = 0; ChildIndex < Children->Num(); ++ChildIndex)
+	{
+		ChildrenArray.Add(Children->GetChildAt(ChildIndex));
+	}
+
+	for (int ChildIndex = 0; ChildIndex < Children->Num(); ++ChildIndex)
+	{
+		// Pull out any FText from this child widget
+		GetTextFromWidget(Children->GetChildAt(ChildIndex));
+		// Recursively search this child's children for their FText
+		GetTextFromChildWidgets(Children->GetChildAt(ChildIndex));
+	}
+}
+
 void STranslationPickerFloatingWindow::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	FWidgetPath Path = FSlateApplication::Get().LocateWindowUnderMouse(FSlateApplication::Get().GetCursorPos(), FSlateApplication::Get().GetInteractiveTopLevelWindows(), true);
@@ -30,7 +49,6 @@ void STranslationPickerFloatingWindow::Tick( const FGeometry& AllottedGeometry, 
 		{
 			// Clear all previous text and widgets
 			PickedTexts.Empty();
-			WindowContents->SetContentWidget(SNew(SBox));
 
 			// Search everything under the cursor for any FText we know how to parse
 			for (int32 PathIndex = Path.Widgets.Num() - 1; PathIndex >= 0; PathIndex--)
@@ -47,19 +65,17 @@ void STranslationPickerFloatingWindow::Tick( const FGeometry& AllottedGeometry, 
 				{
 					GetTextFromWidget(Tooltip->AsWidget());
 				}
+
+				// Currently LocateWindowUnderMouse doesn't return hit-test invisible widgets
+				// So recursively search all child widgets of the deepest widget in our path in case there is hit-test invisible text in the deeper children
+				// GetTextFromWidget prevents adding the same FText twice, so shouldn't be any harm
+				if (PathIndex == (Path.Widgets.Num() - 1))
+				{
+					GetTextFromChildWidgets(PathWidget);
+				}
 			}
 
-			auto TextsBox = SNew(SVerticalBox);
-
-			// Display name of the current language
-			TextsBox->AddSlot()
-				.AutoHeight()
-				.Padding(FMargin(5))
-				[
-					SNew(STextBlock)
-					.Text(FText::FromString(FInternationalization::Get().GetCurrentCulture()->GetDisplayName()))
-					.Justification(ETextJustify::Center)
-				];
+			TSharedRef<SVerticalBox> TextsBox = SNew(SVerticalBox);
 
 			// Add a new Translation Picker Edit Widget for each picked text
 			for (FText PickedText : PickedTexts)
@@ -77,26 +93,41 @@ void STranslationPickerFloatingWindow::Tick( const FGeometry& AllottedGeometry, 
 					];
 			}
 
-			FText Instructions = FText::GetEmpty();
-			if (PickedTexts.Num() >= 1)
-			{
-				Instructions = LOCTEXT("TranslationPickerEscToEdit", "Press Esc to edit this translation");
-			}
-			else
-			{
-				Instructions = LOCTEXT("TranslationPickerHoverToViewEditEscToQuit", "Hover over text to view/edit translation, or press Esc to quit");
-			}
-
-			TextsBox->AddSlot()
+			WindowContents->SetContentWidget(
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.Padding(0)
 				.AutoHeight()
 				.Padding(FMargin(5))
 				[
 					SNew(STextBlock)
-					.Text(Instructions)
+					.Text(FText::FromString(FInternationalization::Get().GetCurrentCulture()->GetDisplayName()))
 					.Justification(ETextJustify::Center)
-				];
-
-			WindowContents->SetContentWidget(TextsBox);
+				]
+			+ SVerticalBox::Slot()
+				.Padding(0)
+				.FillHeight(1)
+				.Padding(FMargin(5))
+				[
+					SNew(SScrollBox)
+					.Orientation(EOrientation::Orient_Vertical)
+					.ScrollBarAlwaysVisible(true)
+					+SScrollBox::Slot()
+						.Padding(FMargin(0))
+						[
+									TextsBox
+						]
+				]
+			+ SVerticalBox::Slot()
+				.Padding(0)
+				.AutoHeight()
+				.Padding(FMargin(5))
+				[
+					SNew(STextBlock)
+					.Text(PickedTexts.Num() >= 1 ? LOCTEXT("TranslationPickerEscToEdit", "Press Esc to edit translation(s)") : LOCTEXT("TranslationPickerHoverToViewEditEscToQuit", "Hover over text to view/edit translation, or press Esc to quit"))
+					.Justification(ETextJustify::Center)
+				]
+			);
 		}
 	}
 
@@ -104,7 +135,7 @@ void STranslationPickerFloatingWindow::Tick( const FGeometry& AllottedGeometry, 
 	FSlateApplication::Get().SetKeyboardFocus(SharedThis(this), EKeyboardFocusCause::SetDirectly);
 	if (ParentWindow.IsValid())
 	{
-		FVector2D WindowSize = ParentWindow.Pin()->GetDesiredSize();
+		FVector2D WindowSize = ParentWindow.Pin()->GetSizeInScreen();
 		FVector2D DesiredPosition = FSlateApplication::Get().GetCursorPos();
 		DesiredPosition.X -= FSlateApplication::Get().GetCursorSize().X;
 		DesiredPosition.Y += FSlateApplication::Get().GetCursorSize().Y;
@@ -123,14 +154,13 @@ FText STranslationPickerFloatingWindow::GetTextFromWidget(TSharedRef<SWidget> Wi
 {
 	FText OriginalText = FText::GetEmpty();
 
-	// Parse STextBlocks
 	STextBlock* TextBlock = (STextBlock*)&Widget.Get();
+
+	// Have to parse the various widget types to find the FText
 	if ((Widget->GetTypeAsString() == "STextBlock" && TextBlock))
 	{
 		OriginalText = TextBlock->GetText();
 	}
-
-	// Parse SToolTips
 	else if (Widget->GetTypeAsString() == "SToolTip")
 	{
 		SToolTip* ToolTip = ((SToolTip*)&Widget.Get());
@@ -143,13 +173,63 @@ FText STranslationPickerFloatingWindow::GetTextFromWidget(TSharedRef<SWidget> Wi
 			}
 		}
 	}
-	// Parse SDocumentationToolTips
 	else if (Widget->GetTypeAsString() == "SDocumentationToolTip")
 	{
 		SDocumentationToolTip* DocumentationToolTip = (SDocumentationToolTip*)&Widget.Get();
 		if (DocumentationToolTip != nullptr)
 		{
 			OriginalText = DocumentationToolTip->GetTextTooltip();
+		}
+	}
+	else if (Widget->GetTypeAsString() == "SEditableText")
+	{
+		SEditableText* EditableText = (SEditableText*)&Widget.Get();
+		if (EditableText != nullptr)
+		{
+			// Always return the hint text because that's the only thing that will be translatable
+			OriginalText = EditableText->GetHintText();
+		}
+	}
+	else if (Widget->GetTypeAsString() == "SRichTextBlock")
+	{
+		SRichTextBlock* RichTextBlock = (SRichTextBlock*)&Widget.Get();
+		if (RichTextBlock != nullptr)
+		{
+			OriginalText = RichTextBlock->GetText();
+		}
+	}
+	else if (Widget->GetTypeAsString() == "SMultiLineEditableText")
+	{
+		SMultiLineEditableText* MultiLineEditableText = (SMultiLineEditableText*)&Widget.Get();
+		if (MultiLineEditableText != nullptr)
+		{
+			// Always return the hint text because that's the only thing that will be translatable
+			OriginalText = MultiLineEditableText->GetHintText();
+		}
+	}
+	else if (Widget->GetTypeAsString() == "SMultiLineEditableTextBox")
+	{
+		SMultiLineEditableTextBox* MultiLineEditableTextBox = (SMultiLineEditableTextBox*)&Widget.Get();
+		if (MultiLineEditableTextBox != nullptr)
+		{
+			OriginalText = MultiLineEditableTextBox->GetText();
+		}
+	}
+	else if (Widget->GetTypeAsString() == "SButton")
+	{
+		SButton* Button = (SButton*)&Widget.Get();
+
+		// It seems like the LocateWindowUnderMouse() function will sometimes return an SButton but not the FText inside the button?
+		// So try to find the first FText child of a button just in case
+		FChildren* Children = Button->GetChildren();
+		for (int ChildIndex = 0; ChildIndex < Children->Num(); ++ChildIndex)
+		{
+			TSharedRef<SWidget> ChildWidget = Children->GetChildAt(ChildIndex);
+			OriginalText = GetTextFromWidget(ChildWidget);
+			if (!OriginalText.IsEmpty())
+			{
+				break;
+			}
 		}
 	}
 	
@@ -191,16 +271,17 @@ FReply STranslationPickerFloatingWindow::OnKeyDown(const FGeometry& MyGeometry, 
 		{
 			TSharedRef<SWindow> NewWindow = SNew(SWindow)
 				.Title(LOCTEXT("TranslationPickerEditWindowTitle", "Edit Translation(s)"))
-				.SupportsMaximize(false)
-				.SupportsMinimize(false)
 				.CreateTitleBar(true)
-				.SizingRule(ESizingRule::Autosized);
+				.SizingRule(ESizingRule::UserSized);
 
-			NewWindow->SetContent(
-				SNew(STranslationPickerEditWindow)
+			TSharedRef<STranslationPickerEditWindow> EditWindow = SNew(STranslationPickerEditWindow)
 				.ParentWindow(NewWindow)
-				.PickedTexts(PickedTexts)
-				);
+				.PickedTexts(PickedTexts);
+
+			NewWindow->SetContent(EditWindow);
+
+			// Make this roughly the same size as the Edit Window, so when you press Esc to edit, the window is in basically the same size
+			NewWindow->Resize(FVector2D(STranslationPickerEditWindow::DefaultEditWindowWidth, STranslationPickerEditWindow::DefaultEditWindowHeight));
 
 			TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
 			if (RootWindow.IsValid())
@@ -212,7 +293,7 @@ FReply STranslationPickerFloatingWindow::OnKeyDown(const FGeometry& MyGeometry, 
 				FSlateApplication::Get().AddWindow(NewWindow);
 			}
 
-			FVector2D WindowSize = ParentWindow.Pin()->GetDesiredSize();
+			FVector2D WindowSize = ParentWindow.Pin()->GetSizeInScreen();
 			FVector2D DesiredPosition = FSlateApplication::Get().GetCursorPos();
 			DesiredPosition.X -= FSlateApplication::Get().GetCursorSize().X;
 			DesiredPosition.Y += FSlateApplication::Get().GetCursorSize().Y;

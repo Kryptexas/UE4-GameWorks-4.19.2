@@ -56,6 +56,10 @@ class STranslationPickerEditWindow : public SCompoundWidget
 
 	void Construct(const FArguments& InArgs);
 
+	// Default dimensions of the Translation Picker edit window (floating window also uses these sizes, so it matches roughly)
+	static const int32 DefaultEditWindowWidth;
+	static const int32 DefaultEditWindowHeight;
+
 private:
 
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;

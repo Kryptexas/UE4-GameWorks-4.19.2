@@ -22,6 +22,9 @@ private:
 	/** Pull the FText reference out of an SWidget */
 	FText GetTextFromWidget(TSharedRef<SWidget> Widget);
 
+	/** Pull the FText reference out of the child widgets of an SWidget */
+	void GetTextFromChildWidgets(TSharedRef<SWidget> Widget);
+
 	/** Handle key presses */
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 
