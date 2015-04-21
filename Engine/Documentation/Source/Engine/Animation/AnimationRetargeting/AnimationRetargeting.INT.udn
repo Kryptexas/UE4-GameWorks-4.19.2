@@ -26,7 +26,7 @@ Please see [Animation Retargeting (Different Skeletons)](Engine\Animation\Retarg
 
 ## Why Use Retargeting?
 
-Consider three characters that you would like to share aniamtion: A base character, a short stocky version, and a tall skinny version.
+Consider three characters that you would like to share animation: A base character, a short stocky version, and a tall skinny version.
 
 [VAR:Chars]w:300[/VAR]
 
