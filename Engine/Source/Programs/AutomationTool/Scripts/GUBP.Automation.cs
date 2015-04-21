@@ -185,6 +185,7 @@ public class GUBP : BuildCommand
             public List<UnrealTargetPlatform> PlatformsToRemove = new List<UnrealTargetPlatform>();
 			public List<string> ExcludeNodes = new List<string>();
 			public List<UnrealTargetPlatform> ExcludePlatformsForEditor = new List<UnrealTargetPlatform>();
+            public List<UnrealTargetPlatform> RemovePlatformFromPromotable = new List<UnrealTargetPlatform>();
 			public bool bNoAutomatedTesting = false;
 			public bool bNoDocumentation = false;
 			public bool bNoInstalledEngine = false;
@@ -5433,34 +5434,42 @@ public class GUBP : BuildCommand
         Log("************************* TimeIndex:           		    {0}", TimeIndex);        
 
 
-        GUBPNodes = new Dictionary<string, GUBPNode>();
-
-        Branch = new BranchInfo(HostPlatforms);
-
+        GUBPNodes = new Dictionary<string, GUBPNode>();        
+        Branch = new BranchInfo(HostPlatforms);        
         if (IsBuildMachine || ParseParam("AllPlatforms"))
         {
             ActivePlatforms = new List<UnrealTargetPlatform>();
+            var BranchCodeProjects = new List<BranchInfo.BranchUProject>();
             foreach (var GameProj in Branch.CodeProjects)
             {
-                foreach (var Kind in BranchInfo.MonolithicKinds)
+                if (BranchOptions.ExcludeNodes.Contains(GameProj.GameName))
                 {
-                    if (GameProj.Properties.Targets.ContainsKey(Kind))
+                    continue;
+                }
+                else
+                {
+                    BranchCodeProjects.Add(GameProj);
+                    foreach (var Kind in BranchInfo.MonolithicKinds)
                     {
-                        var Target = GameProj.Properties.Targets[Kind];
-                        foreach (var HostPlatform in HostPlatforms)
+                        if (GameProj.Properties.Targets.ContainsKey(Kind))
                         {
-                            var Platforms = Target.Rules.GUBP_GetPlatforms_MonolithicOnly(HostPlatform);
-							var AdditionalPlatforms = Target.Rules.GUBP_GetBuildOnlyPlatforms_MonolithicOnly(HostPlatform);
-							var AllPlatforms = Platforms.Union(AdditionalPlatforms);
-							foreach (var Plat in AllPlatforms)
+                            var Target = GameProj.Properties.Targets[Kind];
+                            foreach (var HostPlatform in HostPlatforms)
                             {
-                                if (Target.Rules.SupportsPlatform(Plat) && !ActivePlatforms.Contains(Plat))
+                                var Platforms = Target.Rules.GUBP_GetPlatforms_MonolithicOnly(HostPlatform);
+                                var AdditionalPlatforms = Target.Rules.GUBP_GetBuildOnlyPlatforms_MonolithicOnly(HostPlatform);
+                                var AllPlatforms = Platforms.Union(AdditionalPlatforms);
+                                foreach (var Plat in AllPlatforms)
                                 {
-                                    ActivePlatforms.Add(Plat);
+                                    if (Target.Rules.SupportsPlatform(Plat) && !ActivePlatforms.Contains(Plat))
+                                    {
+                                        ActivePlatforms.Add(Plat);
+                                    }
                                 }
                             }
                         }
                     }
+                    Branch.CodeProjects = BranchCodeProjects;
                 }
             }
         }
@@ -6180,7 +6189,7 @@ public class GUBP : BuildCommand
 
                 foreach (var HostPlatform in HostPlatforms)
                 {
-					if (!BranchOptions.ExcludePlatformsForEditor.Contains(HostPlatform))
+                    if (!BranchOptions.ExcludePlatformsForEditor.Contains(HostPlatform) && !BranchOptions.RemovePlatformFromPromotable.Contains(HostPlatform))
 					{
 						var Options = CodeProj.Options(HostPlatform);
 						AnySeparate = AnySeparate || Options.bSeparateGamePromotion;
@@ -6280,11 +6289,6 @@ public class GUBP : BuildCommand
                 }
             }
         }
-        foreach (var NodeToDo in GUBPNodes)
-        {
-            ComputeDependentCISFrequencyQuantumShift(NodeToDo.Key);
-        }
-
 		// Make sure that everything that's listed as a frequency barrier is completed with the given interval
 		foreach(KeyValuePair<string, sbyte> Barrier in BranchOptions.FrequencyBarriers)
 		{
@@ -6329,6 +6333,49 @@ public class GUBP : BuildCommand
 		var FullNodeDependedOnBy = new Dictionary<string, string>();
 		var FullNodeDependentPromotions = new Dictionary<string, string>();		
 		var SeparatePromotables = new List<string>();
+        {
+            foreach (var NodeToDo in GUBPNodes)
+            {
+                if (GUBPNodes[NodeToDo.Key].IsSeparatePromotable())
+                {
+                    SeparatePromotables.Add(GUBPNodes[NodeToDo.Key].GetFullName());
+                    List<string> Dependencies = new List<string>();
+                    Dependencies = GetECDependencies(NodeToDo.Key);
+                    foreach (var Dep in Dependencies)
+                    {
+                        if (!GUBPNodes.ContainsKey(Dep))
+                        {
+                            throw new AutomationException("Node {0} is not in the graph.  It is a dependency of {1}.", Dep, NodeToDo);
+                        }
+                        if (!GUBPNodes[Dep].IsPromotableAggregate())
+                        {
+                            if (!GUBPNodes[Dep].DependentPromotions.Contains(NodeToDo.Key))
+                            {
+                                GUBPNodes[Dep].DependentPromotions.Add(NodeToDo.Key);
+                            }
+                        }
+                    }
+                }
+            }
+            foreach (var NodeToDo in GUBPNodes)
+            {
+                ComputeDependentCISFrequencyQuantumShift(NodeToDo.Key);
+            }
+            foreach (var NodeToDo in GUBPNodes)
+            {
+                var Deps = GUBPNodes[NodeToDo.Key].DependentPromotions;
+                string All = "";
+                foreach (var Dep in Deps)
+                {
+                    if (All != "")
+                    {
+                        All += " ";
+                    }
+                    All += Dep;
+                }
+                FullNodeDependentPromotions.Add(NodeToDo.Key, All);
+            }
+        }	
         {
             Log("******* {0} GUBP Nodes", GUBPNodes.Count);
             var SortedNodes = TopologicalSort(new HashSet<string>(GUBPNodes.Keys), LocalOnly: true, DoNotConsiderCompletion: true);
@@ -6586,47 +6633,7 @@ public class GUBP : BuildCommand
                 }
                 NodesToDo.UnionWith(Fringe);
             }
-        }
-		if(!bOnlyNode)
-		{
-			foreach(var NodeToDo in NodesToDo)
-			{
-				if(GUBPNodes[NodeToDo].IsSeparatePromotable())
-				{
-					SeparatePromotables.Add(GUBPNodes[NodeToDo].GetFullName());
-					List<string> Dependencies = new List<string>();
-					Dependencies = GetECDependencies(NodeToDo);
-					foreach(var Dep in Dependencies)
-					{
-						if(!GUBPNodes.ContainsKey(Dep))
-						{
-							throw new AutomationException("Node {0} is not in the graph.  It is a dependency of {1}.", Dep, NodeToDo);
-						}
-						if(!GUBPNodes[Dep].IsPromotableAggregate())
-						{
-							if (!GUBPNodes[Dep].DependentPromotions.Contains(NodeToDo))
-							{
-								GUBPNodes[Dep].DependentPromotions.Add(NodeToDo);
-							}
-						}
-					}
-				}
-			}
-			foreach(var NodeToDo in NodesToDo)
-			{
-				var Deps = GUBPNodes[NodeToDo].DependentPromotions;
-				string All = "";
-				foreach (var Dep in Deps)
-				{
-					if (All != "")
-					{
-						All += " ";
-					}
-					All += Dep;
-				}
-				FullNodeDependentPromotions.Add(NodeToDo, All);				
-			}
-		}		
+        }		
 		if (TimeIndex != 0)
 		{
 			Log("Culling based on time index");
@@ -7308,8 +7315,7 @@ public class GUBP : BuildCommand
         {
             Log("List only, done.");
             return;
-        }
-
+        }    
         var BuildProductToNodeMap = new Dictionary<string, string>();
 		foreach (var NodeToDo in OrdereredToDo)
         {
