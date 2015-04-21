@@ -880,8 +880,8 @@ private:
 };
 
 
-// Untyped set type for accessing TSet data, like FScriptArray for TArray.
-// Must have the same memory representation as a TSet.
+// Untyped bit array type for accessing TBitArray data, like FScriptArray for TArray.
+// Must have the same memory representation as a TBitArray.
 class FScriptBitArray
 {
 public:

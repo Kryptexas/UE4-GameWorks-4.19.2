@@ -1175,6 +1175,17 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 	return Str;
 }
 
+/**
+ * Returns the hash value for an element of this property.
+ */
+uint32 UProperty::GetValueTypeHash(const void* Src) const
+{
+	check(PropertyFlags & CPF_HasGetValueTypeHash); // make sure the type is hashable
+	check(Src);
+	return GetValueTypeHashInternal(Src);
+}
+
+
 IMPLEMENT_CORE_INTRINSIC_CLASS(UProperty, UField,
 	{
 	}

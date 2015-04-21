@@ -420,12 +420,7 @@ public:
 	/**
 	 * Returns the hash value for an element of this property.
 	 */
-	uint32 GetValueTypeHash(const void* Src) const
-	{
-		check(PropertyFlags & CPF_HasGetValueTypeHash); // make sure the type is hashable
-		check(Src);
-		return GetValueTypeHashInternal(Src);
-	}
+	uint32 GetValueTypeHash(const void* Src) const;
 
 protected:
 	virtual void CopyValuesInternal( void* Dest, void const* Src, int32 Count  ) const
