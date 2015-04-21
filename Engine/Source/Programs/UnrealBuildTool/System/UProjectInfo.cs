@@ -327,5 +327,28 @@ namespace UnrealBuildTool
 			}
 			return EnabledPlugins;
 		}
+
+		/// <summary>
+		/// Determine if a plugin is enabled for a given project
+		/// </summary>
+		/// <param name="Project">The project to check</param>
+		/// <param name="Plugin">Information about the plugin</param>
+		/// <param name="Platform">The target platform</param>
+		/// <returns>True if the plugin should be enabled for this project</returns>
+		public static bool IsPluginEnabledForProject(PluginInfo Plugin, ProjectDescriptor Project, UnrealTargetPlatform Platform)
+		{
+			bool bEnabled = Plugin.Descriptor.bEnabledByDefault || Plugin.LoadedFrom == PluginInfo.LoadedFromType.GameProject;
+			if(Project.Plugins != null)
+			{
+				foreach(PluginReferenceDescriptor PluginReference in Project.Plugins)
+				{
+					if(String.Compare(PluginReference.Name, Plugin.Name, true) == 0)
+					{
+						bEnabled = PluginReference.IsEnabledForPlatform(Platform);
+					}
+				}
+			}
+			return bEnabled;
+		}
 	}
 }

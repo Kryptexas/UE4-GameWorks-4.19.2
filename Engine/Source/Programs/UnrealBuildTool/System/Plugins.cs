@@ -51,15 +51,43 @@ namespace UnrealBuildTool
 		/// <param name="PluginFile">The path to the plugin file to load</param>
 		/// <param name="LoadedFrom">Where the plugin was loaded from</param>
 		/// <returns>New PluginInfo for the loaded descriptor.</returns>
-		private static PluginInfo LoadPluginDescriptor( FileInfo PluginFileInfo, PluginInfo.LoadedFromType LoadedFrom )
+		public static PluginInfo ReadPlugin(string PluginFileName, PluginInfo.LoadedFromType LoadedFrom)
 		{
 			// Create the plugin info object
 			PluginInfo Info = new PluginInfo();
 			Info.LoadedFrom = LoadedFrom;
-			Info.Directory = PluginFileInfo.Directory.FullName;
+			Info.Directory = Path.GetDirectoryName(Path.GetFullPath(PluginFileName));
 			Info.Name = Path.GetFileName(Info.Directory);
-			Info.Descriptor = PluginDescriptor.FromFile(PluginFileInfo.FullName);
+			Info.Descriptor = PluginDescriptor.FromFile(PluginFileName);
 			return Info;
+		}
+
+		/// <summary>
+		/// Read all the plugins available to a given project
+		/// </summary>
+		/// <param name="ProjectFileName">Path to the project file</param>
+		/// <returns>Sequence of PluginInfo objects, one for each discovered plugin</returns>
+		public static List<PluginInfo> ReadAvailablePlugins(string ProjectFileName)
+		{
+			List<PluginInfo> Plugins = new List<PluginInfo>();
+
+			// Read all the engine plugins
+			string EnginePluginsDir = Path.Combine(BuildConfiguration.RelativeEnginePath, "Plugins");
+			foreach(string PluginFileName in EnumeratePlugins(EnginePluginsDir))
+			{
+				PluginInfo Plugin = ReadPlugin(PluginFileName, PluginInfo.LoadedFromType.Engine);
+				Plugins.Add(Plugin);
+			}
+
+			// Read all the project plugins
+			string ProjectPluginsDir = Path.Combine(Path.GetDirectoryName(ProjectFileName), "Plugins");
+			foreach(string PluginFileName in EnumeratePlugins(ProjectPluginsDir))
+			{
+				PluginInfo Plugin = ReadPlugin(PluginFileName, PluginInfo.LoadedFromType.GameProject);
+				Plugins.Add(Plugin);
+			}
+
+			return Plugins;
 		}
 
 		/// <summary>
@@ -87,7 +115,7 @@ namespace UnrealBuildTool
 			foreach(DirectoryInfo ChildDirectory in ParentDirectory.EnumerateDirectories())
 			{
 				int InitialFileNamesCount = FileNames.Count;
-				foreach(FileInfo PluginFileInfo in ParentDirectory.EnumerateFiles("*.uplugin", SearchOption.TopDirectoryOnly))
+				foreach(FileInfo PluginFileInfo in ChildDirectory.EnumerateFiles("*.uplugin", SearchOption.TopDirectoryOnly))
 				{
 					FileNames.Add(PluginFileInfo.FullName);
 				}
@@ -124,7 +152,7 @@ namespace UnrealBuildTool
 					{
 						// Load the plugin info and keep track of it
 						var PluginDescriptorFile = new FileInfo(PluginDescriptorFileName);
-						var PluginInfo = LoadPluginDescriptor(PluginDescriptorFile, LoadedFrom);
+						var PluginInfo = ReadPlugin(PluginDescriptorFile.FullName, LoadedFrom);
 
 						Plugins.Add(PluginInfo);
 						bFoundPlugin = true;

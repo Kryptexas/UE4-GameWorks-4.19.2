@@ -18,7 +18,7 @@ namespace UnrealBuildTool
 		Latest = LatestPlusOne - 1
 	}
 
-	class ProjectDescriptor
+	public class ProjectDescriptor
 	{
 		// Descriptor version number. */
 		public int FileVersion;
