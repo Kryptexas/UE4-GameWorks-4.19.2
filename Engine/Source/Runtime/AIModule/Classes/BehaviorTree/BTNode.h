@@ -293,5 +293,6 @@ const T* UBTNode::GetNodeMemory(const FBehaviorTreeInstance& BTInstance) const
 template<typename T>
 T* UBTNode::GetSpecialNodeMemory(uint8* NodeMemory) const
 {
-	return (T*)(NodeMemory - ((GetSpecialMemorySize() + 3) & ~3));
+	const int32 SpecialMemorySize = GetSpecialMemorySize();
+	return SpecialMemorySize ? (T*)(NodeMemory - ((SpecialMemorySize + 3) & ~3)) : nullptr;
 }
