@@ -21,6 +21,11 @@
 #define PHYSX_MEMORY_STATS		0
 #endif
 
+// binary serialization requires 128 byte alignment
+#ifndef PHYSX_SERIALIZATION_ALIGNMENT
+#define PHYSX_SERIALIZATION_ALIGNMENT 128
+#endif
+
 #define PHYSX_MEMORY_STAT_ONLY (0)
 
 #if USE_SCENE_LOCK

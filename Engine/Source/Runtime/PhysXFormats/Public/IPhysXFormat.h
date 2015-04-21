@@ -94,6 +94,3 @@ public:
 	 */
 	virtual ~IPhysXFormat( ) { }
 };
-
-// binary serialization requires 128 byte alignment
-#define PHYSX_SERIALIZATION_ALIGNMENT 128
