@@ -941,12 +941,8 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpecHandle
 {
 	GENERATED_USTRUCT_BODY()
 
-	FGameplayEffectSpecHandle() { }
-	FGameplayEffectSpecHandle(FGameplayEffectSpec* DataPtr)
-		: Data(DataPtr)
-	{
-
-	}
+	FGameplayEffectSpecHandle();
+	FGameplayEffectSpecHandle(FGameplayEffectSpec* DataPtr);
 
 	TSharedPtr<FGameplayEffectSpec>	Data;
 

@@ -481,3 +481,15 @@ const FGameplayTagContainer& FTagContainerAggregator::GetSpecTags() const
 	CacheIsValid = false;
 	return CapturedSpecTags;
 }
+
+
+FGameplayEffectSpecHandle::FGameplayEffectSpecHandle()
+{
+
+}
+
+FGameplayEffectSpecHandle::FGameplayEffectSpecHandle(FGameplayEffectSpec* DataPtr)
+	: Data(DataPtr)
+{
+
+}
