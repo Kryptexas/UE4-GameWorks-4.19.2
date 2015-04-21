@@ -7,6 +7,7 @@
 #include "MovieSceneFloatTrack.h"
 #include "MovieSceneVectorTrack.h"
 #include "MovieSceneBoolTrack.h"
+#include "MovieSceneByteTrack.h"
 #include "MovieSceneColorTrack.h"
 #include "ScopedTransaction.h"
 #include "MovieSceneSection.h"
@@ -17,6 +18,7 @@
 #include "MovieSceneFloatSection.h"
 #include "MovieSceneVectorSection.h"
 #include "MovieSceneBoolSection.h"
+#include "MovieSceneByteSection.h"
 #include "MovieSceneColorSection.h"
 #include "MovieSceneToolHelpers.h"
 #include "PropertyTrackEditor.h"
@@ -269,6 +271,22 @@ public:
 	}
 };
 
+/**
+* An implementation of byte property sections
+*/
+class FBytePropertySection : public FPropertySection
+{
+public:
+	FBytePropertySection(UMovieSceneSection& InSectionObject, FName SectionName)
+		: FPropertySection(InSectionObject, SectionName) {}
+
+	virtual void GenerateSectionLayout(class ISectionLayoutBuilder& LayoutBuilder) const override
+	{
+		UMovieSceneByteSection* ByteSection = Cast<UMovieSceneByteSection>(&SectionObject);
+		LayoutBuilder.SetSectionAsKeyArea(MakeShareable(new FIntegralKeyArea(ByteSection->GetCurve())));
+	}
+};
+
 FPropertyTrackEditor::FPropertyTrackEditor( TSharedRef<ISequencer> InSequencer )
 	: FMovieSceneTrackEditor( InSequencer ) 
 {
@@ -276,6 +294,7 @@ FPropertyTrackEditor::FPropertyTrackEditor( TSharedRef<ISequencer> InSequencer )
 	ISequencerObjectChangeListener& ObjectChangeListener = InSequencer->GetObjectChangeListener();
 	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_FloatProperty ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedPropertyChanged<float, UMovieSceneFloatTrack> );
 	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_BoolProperty ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedPropertyChanged<bool, UMovieSceneBoolTrack> );
+	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_ByteProperty ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedPropertyChanged<uint8, UMovieSceneByteTrack>);
 	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_Vector ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedVectorPropertyChanged );
 	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_Vector4 ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedVectorPropertyChanged );
 	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_Vector2D ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedVectorPropertyChanged );
@@ -293,6 +312,7 @@ FPropertyTrackEditor::~FPropertyTrackEditor()
 		ISequencerObjectChangeListener& ObjectChangeListener = Sequencer->GetObjectChangeListener();
 		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_FloatProperty).RemoveAll(this);
 		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_BoolProperty).RemoveAll(this);
+		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_ByteProperty).RemoveAll(this);
 		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_Vector).RemoveAll(this);
 		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_Vector4).RemoveAll(this);
 		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_Vector2D).RemoveAll(this);
@@ -314,6 +334,7 @@ bool FPropertyTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) co
 	// We support animatable floats and bools and colors
 	return Type == UMovieSceneFloatTrack::StaticClass() ||
 		Type == UMovieSceneBoolTrack::StaticClass() ||
+		Type == UMovieSceneByteTrack::StaticClass() ||
 		Type == UMovieSceneVectorTrack::StaticClass() ||
 		Type == UMovieSceneColorTrack::StaticClass();
 }
@@ -327,6 +348,7 @@ TSharedRef<ISequencerSection> FPropertyTrackEditor::MakeSectionInterface( UMovie
 	TSharedRef<ISequencerSection> NewSection = TSharedRef<ISequencerSection>(
 		SectionClass == UMovieSceneColorTrack::StaticClass() ? new FColorPropertySection( SectionObject, Track->GetTrackName() ) :
 		SectionClass == UMovieSceneBoolTrack::StaticClass() ? new FBoolPropertySection( SectionObject, Track->GetTrackName() ) :
+		SectionClass == UMovieSceneByteTrack::StaticClass() ? new FBytePropertySection(SectionObject, Track->GetTrackName()) :
 		SectionClass == UMovieSceneVectorTrack::StaticClass() ? new FVectorPropertySection( SectionObject, Track->GetTrackName() ) :
 		SectionClass == UMovieSceneFloatTrack::StaticClass() ? new FFloatPropertySection( SectionObject, Track->GetTrackName() ) :
 		new FPropertySection( SectionObject, Track->GetTrackName() )
