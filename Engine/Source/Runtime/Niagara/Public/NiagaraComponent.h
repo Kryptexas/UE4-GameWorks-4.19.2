@@ -118,8 +118,8 @@ private:
 * @see ANiagaraActor
 * @see UNiagaraEffect
 */
-UCLASS(MinimalAPI)
-class UNiagaraComponent : public UPrimitiveComponent
+UCLASS()
+class NIAGARA_API UNiagaraComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 private:
@@ -144,7 +144,7 @@ public:
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	// End UPrimitiveComponent Interface
 
-	NIAGARA_API void SetAsset(UNiagaraEffect* InAsset);
+	void SetAsset(UNiagaraEffect* InAsset);
 	UNiagaraEffect* GetAsset() const { return Asset; }
 
 	FNiagaraEffectInstance* GetEffectInstance()	const { return EffectInstance; }
@@ -156,8 +156,7 @@ public:
 #endif // WITH_EDITOR
 	// End UObject interface.
 
-	NIAGARA_API static const TArray<FNiagaraVariableInfo>& GetSystemConstants();
-
+	static const TArray<FNiagaraVariableInfo>& GetSystemConstants();
 };
 
 

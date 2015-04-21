@@ -8,13 +8,13 @@
 #include "NiagaraEffect.generated.h"
 
 
-UCLASS(MinimalAPI)
-class UNiagaraEffect : public UObject
+UCLASS()
+class NIAGARA_API UNiagaraEffect : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
 public:
-	NIAGARA_API FNiagaraEmitterProperties* AddEmitterProperties();
+	FNiagaraEmitterProperties* AddEmitterProperties();
 
 	void Init()
 	{
@@ -32,7 +32,7 @@ public:
 		return EmitterProps.Num();
 	}
 
-	NIAGARA_API void CreateEffectRendererProps(TSharedPtr<FNiagaraSimulation> Sim);
+	void CreateEffectRendererProps(TSharedPtr<FNiagaraSimulation> Sim);
 
 	virtual void PostLoad() override; 
 	virtual void PreSave() override;
