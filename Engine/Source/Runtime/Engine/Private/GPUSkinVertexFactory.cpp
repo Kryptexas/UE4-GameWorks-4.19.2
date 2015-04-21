@@ -435,7 +435,7 @@ public:
 				{
 					static const auto MotionBlurDebugVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MotionBlurDebug"));
 
-					if (MotionBlurDebugVar->GetValueOnRenderThread())
+					if (MotionBlurDebugVar && MotionBlurDebugVar->GetValueOnRenderThread())
 					{
 						UE_LOG(LogEngine, Log, TEXT("%s"), *ShaderData.GetDebugString(VertexFactory, OldBoneDataIndex));
 					}
