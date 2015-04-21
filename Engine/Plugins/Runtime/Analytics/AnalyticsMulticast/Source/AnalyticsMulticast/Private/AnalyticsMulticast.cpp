@@ -1,13 +1,13 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "Runtime/Analytics/AnalyticsMulticast/Private/AnalyticsMulticastPrivatePCH.h"
+#include "AnalyticsMulticastPrivatePCH.h"
 
 #include "Core.h"
 #include "Guid.h"
 #include "Json.h"
 #include "SecureHash.h"
-#include "Runtime/Analytics/AnalyticsMulticast/Public/AnalyticsMulticast.h"
-#include "Runtime/Analytics/Analytics/Public/Analytics.h"
+#include "AnalyticsMulticast.h"
+#include "Analytics.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAnalytics, Display, All);
 
