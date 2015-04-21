@@ -268,13 +268,13 @@ ENGINE_API  FArchive& operator<<(FArchive& Ar, FVisualLogLine& LogLine);
 ENGINE_API  FArchive& operator<<(FArchive& Ar, FVisualLogStatusCategory& Status);
 ENGINE_API  FArchive& operator<<(FArchive& Ar, FVisualLogEntry& LogEntry);
 
-FORCEINLINE
+inline
 bool operator==(const FVisualLogEvent& Left, const FVisualLogEvent& Right) 
 { 
 	return Left.Name == Right.Name; 
 }
 
-FORCEINLINE
+inline
 FVisualLogEvent::FVisualLogEvent(const FVisualLogEventBase& Event)
 : Counter(1)
 {
@@ -283,7 +283,7 @@ FVisualLogEvent::FVisualLogEvent(const FVisualLogEventBase& Event)
 	Verbosity = Event.Verbosity;
 }
 
-FORCEINLINE
+inline
 FVisualLogEvent& FVisualLogEvent::operator= (const FVisualLogEventBase& Event)
 {
 	Name = Event.Name;
@@ -292,7 +292,7 @@ FVisualLogEvent& FVisualLogEvent::operator= (const FVisualLogEventBase& Event)
 	return *this;
 }
 
-FORCEINLINE
+inline
 FVisualLogLine::FVisualLogLine(const FName& InCategory, ELogVerbosity::Type InVerbosity, const FString& InLine)
 : Line(InLine)
 , Category(InCategory)
@@ -302,7 +302,7 @@ FVisualLogLine::FVisualLogLine(const FName& InCategory, ELogVerbosity::Type InVe
 
 }
 
-FORCEINLINE
+inline
 FVisualLogLine::FVisualLogLine(const FName& InCategory, ELogVerbosity::Type InVerbosity, const FString& InLine, int64 InUserData)
 : Line(InLine)
 , Category(InCategory)
@@ -312,19 +312,19 @@ FVisualLogLine::FVisualLogLine(const FName& InCategory, ELogVerbosity::Type InVe
 
 }
 
-FORCEINLINE
+inline
 void FVisualLogStatusCategory::Add(const FString& Key, const FString& Value)
 {
 	Data.Add(FString(Key).AppendChar(TEXT('|')) + Value);
 }
 
-FORCEINLINE
+inline
 void FVisualLogStatusCategory::AddChild(const FVisualLogStatusCategory& Child)
 {
 	Children.Add(Child);
 }
 
-FORCEINLINE
+inline
 FVisualLogShapeElement::FVisualLogShapeElement(EVisualLoggerShapeElement InType)
 : Verbosity(ELogVerbosity::All)
 , TransformationMatrix(FMatrix::Identity)
@@ -335,7 +335,7 @@ FVisualLogShapeElement::FVisualLogShapeElement(EVisualLoggerShapeElement InType)
 
 }
 
-FORCEINLINE
+inline
 FVisualLogShapeElement::FVisualLogShapeElement(const FString& InDescription, const FColor& InColor, uint16 InThickness, const FName& InCategory)
 : Category(InCategory)
 , Verbosity(ELogVerbosity::All)
@@ -350,32 +350,32 @@ FVisualLogShapeElement::FVisualLogShapeElement(const FString& InDescription, con
 	SetColor(InColor);
 }
 
-FORCEINLINE
+inline
 void FVisualLogShapeElement::SetColor(const FColor& InColor)
 {
 	Color = ((InColor.DWColor() >> 30) << 6)	| (((InColor.DWColor() & 0x00ff0000) >> 22) << 4)	| (((InColor.DWColor() & 0x0000ff00) >> 14) << 2)	| ((InColor.DWColor() & 0x000000ff) >> 6);
 }
 
-FORCEINLINE
+inline
 EVisualLoggerShapeElement FVisualLogShapeElement::GetType() const
 {
 	return Type;
 }
 
-FORCEINLINE
+inline
 void FVisualLogShapeElement::SetType(EVisualLoggerShapeElement InType)
 {
 	Type = InType;
 }
 
-FORCEINLINE
+inline
 FColor FVisualLogShapeElement::GetFColor() const
 {
 	return FColor(((Color & 0xc0) << 24) | ((Color & 0x30) << 18) | ((Color & 0x0c) << 12) | ((Color & 0x03) << 6));
 }
 
 
-FORCEINLINE
+inline
 int32 FVisualLogEntry::FindStatusIndex(const FString& CategoryName)
 {
 	for (int32 TestCategoryIndex = 0; TestCategoryIndex < Status.Num(); TestCategoryIndex++)

@@ -45,7 +45,7 @@ FVisualLogEntry::FVisualLogEntry(const class AActor* InActor, TArray<TWeakObject
 		TimeStamp = InActor->GetWorld()->TimeSeconds;
 		Location = InActor->GetActorLocation();
 		InActor->GrabDebugSnapshot(this);
-		if (Children != NULL)
+		if (Children != nullptr)
 		{
 			TWeakObjectPtr<UObject>* WeakActorPtr = Children->GetData();
 			for (int32 Index = 0; Index < Children->Num(); ++Index, ++WeakActorPtr)
@@ -72,7 +72,7 @@ FVisualLogEntry::FVisualLogEntry(float InTimeStamp, FVector InLocation, const UO
 	{
 		AsActor->GrabDebugSnapshot(this);
 	}
-	if (Children != NULL)
+	if (Children != nullptr)
 	{
 		TWeakObjectPtr<UObject>* WeakActorPtr = Children->GetData();
 		for (int32 Index = 0; Index < Children->Num(); ++Index, ++WeakActorPtr)

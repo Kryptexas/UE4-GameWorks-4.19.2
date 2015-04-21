@@ -136,12 +136,8 @@ public:
 	static void EventLog(const class UObject* LogOwner, const FName EventTag1, const FVisualLogEventBase& Event1, const FVisualLogEventBase& Event2, const FVisualLogEventBase& Event3, const FVisualLogEventBase& Event4);
 	static void EventLog(const class UObject* LogOwner, const FName EventTag1, const FVisualLogEventBase& Event1, const FVisualLogEventBase& Event2, const FVisualLogEventBase& Event3, const FVisualLogEventBase& Event4, const FVisualLogEventBase& Event5);
 	static void EventLog(const class UObject* LogOwner, const FName EventTag1, const FVisualLogEventBase& Event1, const FVisualLogEventBase& Event2, const FVisualLogEventBase& Event3, const FVisualLogEventBase& Event4, const FVisualLogEventBase& Event5, const FVisualLogEventBase& Event6);
-
-	FORCEINLINE
-	static void EventLog(const class UObject* LogOwner, const FVisualLogEventBase& Event1, const FName EventTag1 = NAME_None, const FName EventTag2 = NAME_None, const FName EventTag3 = NAME_None, const FName EventTag4 = NAME_None, const FName EventTag5 = NAME_None, const FName EventTag6 = NAME_None)
-	{
-		EventLog(LogOwner, EventTag1, Event1, EventTag2, EventTag3, EventTag4, EventTag5, EventTag6);
-	}
+	
+	static void EventLog(const class UObject* LogOwner, const FVisualLogEventBase& Event1, const FName EventTag1 = NAME_None, const FName EventTag2 = NAME_None, const FName EventTag3 = NAME_None, const FName EventTag4 = NAME_None, const FName EventTag5 = NAME_None, const FName EventTag6 = NAME_None);
 
 	// static getter
 	static FVisualLogger& Get()
@@ -165,19 +161,19 @@ public:
 	static class UObject* FindRedirection(const class UObject* Object);
 
 	/** blocks all categories from logging. It can be bypassed with white list for categories */
-	FORCEINLINE void BlockAllCategories(bool InBlock) { bBlockedAllCategories = InBlock; }
+	void BlockAllCategories(bool InBlock) { bBlockedAllCategories = InBlock; }
 
 	/** checks if all categories are blocked */
-	FORCEINLINE bool IsBlockedForAllCategories() const { return !!bBlockedAllCategories; }
+	bool IsBlockedForAllCategories() const { return !!bBlockedAllCategories; }
 
 	/** Returns white list for modifications */
-	FORCEINLINE TArray<class FName>& GetWhiteList() { return CategoriesWhiteList; }
+	TArray<class FName>& GetWhiteList() { return CategoriesWhiteList; }
 
-	FORCEINLINE bool IsWhiteListed(const FName& Name) const { return CategoriesWhiteList.Find(Name) != INDEX_NONE; }
+	bool IsWhiteListed(const FName& Name) const { return CategoriesWhiteList.Find(Name) != INDEX_NONE; }
 
-	FORCEINLINE void AddCategortyToWhiteList(class FName Category) { CategoriesWhiteList.AddUnique(Category); }
+	void AddCategortyToWhiteList(class FName Category) { CategoriesWhiteList.AddUnique(Category); }
 
-	FORCEINLINE void ClearWhiteList() { CategoriesWhiteList.Reset();  }
+	void ClearWhiteList() { CategoriesWhiteList.Reset(); }
 
 	/** Generates and returns Id unique for given timestamp - used to connect different logs between (ex. text log with geometry shape) */
 	int32 GetUniqueId(float Timestamp);
@@ -214,9 +210,12 @@ public:
 	/**  Removes previously registered extension */
 	void UnregisterExtension(FName TagName, FVisualLogExtensionInterface* ExtensionInterface) { AllExtensions.Remove(TagName); }
 	/** returns extension identified by given tag */
-	FVisualLogExtensionInterface* GetExtensionForTag(const FName TagName) { return AllExtensions.Contains(TagName) ? AllExtensions[TagName] : NULL; }
+	FVisualLogExtensionInterface* GetExtensionForTag(const FName TagName) { return AllExtensions.Contains(TagName) ? AllExtensions[TagName] : nullptr; }
 	/** Returns reference to map with all registered extension */
 	TMap<FName, FVisualLogExtensionInterface*>& GetAllExtensions() { return AllExtensions; }
+
+	/** internal check for each usage of visual logger */
+	static bool CheckVisualLogInputInternal(const class UObject* Object, const struct FLogCategoryBase& Category, ELogVerbosity::Type Verbosity, UWorld **World, FVisualLogEntry **CurrentEntry);
 
 private:
 	FVisualLogger();
@@ -259,9 +258,5 @@ protected:
 	/** Handle for timer used to serialize all waiting logs */
 	FTimerHandle VisualLoggerCleanupTimerHandle;
 };
-
-
-#include "VisualLogger.inl"
-
 
 #endif //ENABLE_VISUAL_LOG
