@@ -783,7 +783,7 @@ private:
 	void SendChatMessage()
 	{
 		const FText& CurrentText = ChatTextBox->GetText();
-		if (CheckLimit(CurrentText) && !CurrentText.IsEmptyOrWhitespace())
+		if (CheckLimit(CurrentText))
 		{
 			if (DisplayViewModel->SendMessage(CurrentText))
 			{
