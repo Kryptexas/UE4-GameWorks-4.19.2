@@ -158,7 +158,7 @@ namespace Rocket
 				{
 					TargetPlatforms.Add(UnrealTargetPlatform.Linux);
 				}
-				if(HostPlatform == UnrealTargetPlatform.Win64)
+				if(HostPlatform == UnrealTargetPlatform.Win64 || HostPlatform == UnrealTargetPlatform.Mac )
 				{
 					TargetPlatforms.Add(UnrealTargetPlatform.HTML5);
 				}
@@ -217,6 +217,10 @@ namespace Rocket
 
 		public static UnrealTargetPlatform GetSourceHostPlatform(GUBP bp, UnrealTargetPlatform HostPlatform, UnrealTargetPlatform TargetPlatform)
 		{
+            if (TargetPlatform == UnrealTargetPlatform.HTML5 && HostPlatform == UnrealTargetPlatform.Mac && bp.HostPlatforms.Contains(UnrealTargetPlatform.Win64))
+            {
+                return UnrealTargetPlatform.Win64;
+            }
 			if (TargetPlatform == UnrealTargetPlatform.Android && HostPlatform == UnrealTargetPlatform.Mac && bp.HostPlatforms.Contains(UnrealTargetPlatform.Win64))
 			{
 				return UnrealTargetPlatform.Win64;
@@ -406,7 +410,7 @@ namespace Rocket
 			AddDependency(GUBP.RootEditorNode.StaticGetFullName(HostPlatform));
 			AddDependency(GUBP.ToolsNode.StaticGetFullName(HostPlatform));
 
-			// Get all the external file lists. Android on Mac uses the same files as Win64.
+			// Get all the external file lists. Android/HTML5 on Mac uses the same files as Win64.
 			foreach(UnrealTargetPlatform CodeTargetPlatform in CodeTargetPlatforms)
 			{
 				UnrealTargetPlatform SourceHostPlatform = RocketBuild.GetSourceHostPlatform(bp, HostPlatform, CodeTargetPlatform);
