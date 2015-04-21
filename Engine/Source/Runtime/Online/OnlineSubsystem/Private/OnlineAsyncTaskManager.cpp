@@ -167,7 +167,7 @@ void FOnlineAsyncTaskManager::AddToInQueue(FOnlineAsyncTask* NewTask)
 void FOnlineAsyncTaskManager::PopFromInQueue()
 {
 	// assert if not game thread
-	check(FPlatformTLS::GetCurrentThreadId() == OnlineThreadId);
+	check(FPlatformTLS::GetCurrentThreadId() == OnlineThreadId || !FPlatformProcess::SupportsMultithreading());
 
 	FScopeLock Lock(&InQueueLock);
 	InQueue.RemoveAt(0);
