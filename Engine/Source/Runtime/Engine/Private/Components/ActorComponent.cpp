@@ -938,7 +938,7 @@ void UActorComponent::OnComponentDestroyed()
 
 void UActorComponent::K2_DestroyComponent(UObject* Object)
 {
-	AActor* Owner = GetOwner();
+	AActor* Owner = (Object != this ? GetOwner() : nullptr);
 	if (Owner == NULL || Owner == Object)
 	{
 		DestroyComponent();
