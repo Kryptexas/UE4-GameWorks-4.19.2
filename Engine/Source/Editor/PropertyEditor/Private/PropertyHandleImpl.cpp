@@ -1853,6 +1853,26 @@ FPropertyAccess::Result FPropertyHandleBase::GetPerObjectValues( TArray<FString>
 	return Result;
 }
 
+TArray<FName> GetValidEnumEntries(UProperty* Property, const UEnum* InEnum)
+{
+	TArray<FName> ValidEnumValues;
+
+	static const FName ValidEnumValuesName("ValidEnumValues");
+	if (Property->HasMetaData(ValidEnumValuesName))
+	{
+		TArray<FString> ValidEnumValuesAsString;
+
+		Property->GetMetaData(ValidEnumValuesName).ParseIntoArray(ValidEnumValuesAsString, TEXT(","));
+		for (auto& Value : ValidEnumValuesAsString)
+		{
+			Value.Trim();
+			ValidEnumValues.Add(*UEnum::GenerateFullEnumName(InEnum, *Value));
+		}
+	}
+
+	return ValidEnumValues;
+}
+
 bool FPropertyHandleBase::GeneratePossibleValues(TArray< TSharedPtr<FString> >& OutOptionStrings, TArray< FText >& OutToolTips, TArray<bool>& OutRestrictedItems)
 {
 	UProperty* Property = GetProperty();
@@ -1876,6 +1896,8 @@ bool FPropertyHandleBase::GeneratePossibleValues(TArray< TSharedPtr<FString> >& 
 
 		check( Enum );
 
+		const TArray<FName> ValidEnumValues = GetValidEnumEntries(Property, Enum);
+
 		//NumEnums() - 1, because the last item in an enum is the _MAX item
 		for( int32 EnumIndex = 0; EnumIndex < Enum->NumEnums() - 1; ++EnumIndex )
 		{
@@ -1885,6 +1907,10 @@ bool FPropertyHandleBase::GeneratePossibleValues(TArray< TSharedPtr<FString> >& 
 
 			// Ignore hidden enums
 			bool bShouldBeHidden = Enum->HasMetaData(TEXT("Hidden"), EnumIndex ) || Enum->HasMetaData(TEXT("Spacer"), EnumIndex );
+			if (!bShouldBeHidden && ValidEnumValues.Num() != 0)
+			{
+				bShouldBeHidden = ValidEnumValues.Find(Enum->GetEnum(EnumIndex)) == INDEX_NONE;
+			}
 
 			if( !bShouldBeHidden )
 			{

@@ -5,63 +5,27 @@
 #include "UnitConversion.h"
 
 template<typename NumericType>
-TNumericUnitTypeInterface<NumericType>::TNumericUnitTypeInterface(EUnit InUnits, bool bInAllowUnitRangeAdaption)
-	: Units(InUnits), bAllowUnitRangeAdaption(bInAllowUnitRangeAdaption)
+TNumericUnitTypeInterface<NumericType>::TNumericUnitTypeInterface(EUnit InUnits)
+	: UnderlyingUnits(InUnits)
 {}
-
-template<typename NumericType>
-TNumericUnitTypeInterface<NumericType>::~TNumericUnitTypeInterface()
-{
-	FUnitConversion::Settings().OnDisplaySettingsChanged().RemoveAll(this);
-}
-
-
-template<typename NumericType>
-void TNumericUnitTypeInterface<NumericType>::UseDefaultInputUnits()
-{
-	FUnitConversion::Settings().OnDisplaySettingsChanged().AddRaw(this, &TNumericUnitTypeInterface<NumericType>::OnGlobalUnitSettingChanged);
-	OnGlobalUnitSettingChanged();
-}
-
-template<typename NumericType>
-void TNumericUnitTypeInterface<NumericType>::OnGlobalUnitSettingChanged()
-{
-	const EUnit Default = FUnitConversion::Settings().GetDefaultInputUnit();
-	if (FUnitConversion::AreUnitsCompatible(Default, Units))
-	{
-		DefaultInputUnits = Default;
-	}
-	else
-	{
-		DefaultInputUnits.Reset();
-	}
-}
-
-template<typename NumericType>
-FNumericUnit<NumericType> TNumericUnitTypeInterface<NumericType>::QuantizeUnitsToBestFit(const NumericType& InValue, EUnit InUnits) const
-{
-	// Use the default input units for 0
-	if (InValue == 0 && DefaultInputUnits.IsSet() && FUnitConversion::AreUnitsCompatible(DefaultInputUnits.GetValue(), InUnits))
-	{
-		return FNumericUnit<NumericType>(0, FUnitConversion::ConvertToGlobalDisplayRange(DefaultInputUnits.GetValue()));
-	}
-	return FUnitConversion::QuantizeUnitsToBestFit(InValue, InUnits);
-}
 
 template<typename NumericType>
 FString TNumericUnitTypeInterface<NumericType>::ToString(const NumericType& Value) const
 {
 	using namespace LexicalConversion;
 
-	NumericType ValueToUse = Value;
-	EUnit DisplayUnits = FUnitConversion::ConvertToGlobalDisplayRange(Units);
+	FNumericUnit<NumericType> FinalValue(Value, UnderlyingUnits);
 
-	if (DisplayUnits != Units)
+	if (FixedDisplayUnits.IsSet())
 	{
-		ValueToUse = FUnitConversion::Convert(ValueToUse, Units, DisplayUnits);
+		auto Converted = FinalValue.ConvertTo(FixedDisplayUnits.GetValue());
+		if (Converted.IsSet())
+		{
+			return ToSanitizedString(Converted.GetValue());
+		}
 	}
 	
-	return ToSanitizedString(bAllowUnitRangeAdaption ? QuantizeUnitsToBestFit(ValueToUse, DisplayUnits) : FNumericUnit<NumericType>(ValueToUse, DisplayUnits));
+	return ToSanitizedString(FinalValue);
 }
 
 template<typename NumericType>
@@ -71,17 +35,17 @@ TOptional<NumericType> TNumericUnitTypeInterface<NumericType>::FromString(const 
 
 	// Always parse in as a double, to allow for input of higher-order units with decimal numerals into integral types (eg, inputting 0.5km as 500m)
 	FNumericUnit<double> NewValue;
-	bool bEvalResult = TryParseString( NewValue, *InString ) && FUnitConversion::AreUnitsCompatible( NewValue.Units, Units );
+	bool bEvalResult = TryParseString( NewValue, *InString ) && FUnitConversion::AreUnitsCompatible( NewValue.Units, UnderlyingUnits );
 	if (bEvalResult)
 	{
 		// Convert the number into the correct units
 		EUnit SourceUnits = NewValue.Units;
-		if (SourceUnits == EUnit::Unspecified && DefaultInputUnits.IsSet())
+		if (SourceUnits == EUnit::Unspecified && FixedDisplayUnits.IsSet())
 		{
 			// Use the default supplied input units
-			SourceUnits = DefaultInputUnits.GetValue();
+			SourceUnits = FixedDisplayUnits.GetValue();
 		}
-		return FUnitConversion::Convert(NewValue.Value, SourceUnits, Units);
+		return FUnitConversion::Convert(NewValue.Value, SourceUnits, UnderlyingUnits);
 	}
 	else
 	{
@@ -99,4 +63,14 @@ template<typename NumericType>
 bool TNumericUnitTypeInterface<NumericType>::IsCharacterValid(TCHAR InChar) const
 {
 	return true;
+}
+
+template<typename NumericType>
+void TNumericUnitTypeInterface<NumericType>::SetupFixedDisplay(const NumericType& InValue)
+{
+	EUnit DisplayUnit = FUnitConversion::CalculateDisplayUnit(InValue, UnderlyingUnits);
+	if (DisplayUnit != EUnit::Unspecified)
+	{
+		FixedDisplayUnits = DisplayUnit;
+	}
 }

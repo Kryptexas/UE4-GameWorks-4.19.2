@@ -71,21 +71,14 @@ template<typename> struct FNumericUnit;
 template<typename NumericType>
 struct TNumericUnitTypeInterface : TDefaultNumericTypeInterface<NumericType>
 {
-	/** The units that we should treat this value as */
-	EUnit Units;
+	/** The underlying units which the numeric type are specfied in. */
+	const EUnit UnderlyingUnits;
 
-	/** Optional units to use for input when no units where specified */
-	TOptional<EUnit> DefaultInputUnits;
-
-	/** True if we are allowed to display this unit to the user as a more relevant related unit type (e.g. 10000 m shows as 10 km) */
-	bool bAllowUnitRangeAdaption;
+	/** Optional units that this type interface will be fixed on */
+	TOptional<EUnit> FixedDisplayUnits;
 
 	/** Constructor */
-	TNumericUnitTypeInterface(EUnit InUnits, bool bInAllowUnitRangeAdaption = true);
-	~TNumericUnitTypeInterface();
-
-	/** Set up this interface to use the global default input units */
-	void UseDefaultInputUnits();
+	TNumericUnitTypeInterface(EUnit InUnits);
 
 	/** Convert this type to a string */
 	virtual FString ToString(const NumericType& Value) const override;
@@ -93,11 +86,11 @@ struct TNumericUnitTypeInterface : TDefaultNumericTypeInterface<NumericType>
 	/** Attempt to parse a numeral with our units from the specified string. */
 	virtual TOptional<NumericType> FromString(const FString& ValueString) override;
 
-	/** Called by this class to quantize the specified value to the best unit */
-	virtual FNumericUnit<NumericType> QuantizeUnitsToBestFit(const NumericType& InValue, EUnit InUnits) const;
-
 	/** Check whether the specified typed character is valid */
 	virtual bool IsCharacterValid(TCHAR InChar) const override;
+
+	/** Set up this interface to use a fixed display unit based on the specified value */
+	void SetupFixedDisplay(const NumericType& InValue);
 
 private:
 	/** Called when the global unit settings have changed, if this type interface is using the default input units */

@@ -354,15 +354,12 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 	const bool bHideRotationField = ( HiddenFieldMask & ( 1 << ETransformField::Rotation ) ) != 0;
 	const bool bHideScaleField = ( HiddenFieldMask & ( 1 << ETransformField::Scale ) ) != 0;
 
-	VectorUnits = EUnit::Centimeters;
-
 	// Location
 	if(!bHideLocationField)
 	{
 		TSharedPtr<INumericTypeInterface<float>> TypeInterface;
 		if( FUnitConversion::Settings().ShouldDisplayUnits() )
 		{
-			UseDefaultInputUnits();
 			TypeInterface = SharedThis(this);
 		}
 
@@ -569,53 +566,29 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FComponentTransformDetails::Tick( float DeltaTime ) 
 {
 	CacheTransform();
-	CacheCommonLocationUnits();
+	if (!FixedDisplayUnits.IsSet())
+	{
+		CacheCommonLocationUnits();
+	}
 }
 
 void FComponentTransformDetails::CacheCommonLocationUnits()
 {
-	// Calculate the largest units
-	TOptional<EUnit> LargestUnit;
-	auto SetLargestUnit = [&](EUnit NewUnit)
+	float LargestValue = 0.f;
+	if (CachedLocation.X.IsSet() && CachedLocation.X.GetValue() > LargestValue)
 	{
-		if (!LargestUnit.IsSet() || (uint8)NewUnit > (uint8)LargestUnit.GetValue())
-		{
-			LargestUnit = NewUnit;
-		}
-	};
-
-	if (CachedLocation.X.IsSet() && CachedLocation.X.GetValue() != 0)
-	{
-		SetLargestUnit(FUnitConversion::QuantizeUnitsToBestFit(CachedLocation.X.GetValue(), Units).Units);
+		LargestValue = CachedLocation.X.GetValue();
 	}
-	if (CachedLocation.Y.IsSet() && CachedLocation.Y.GetValue() != 0)
+	if (CachedLocation.X.IsSet() && CachedLocation.Y.GetValue() > LargestValue)
 	{
-		SetLargestUnit(FUnitConversion::QuantizeUnitsToBestFit(CachedLocation.Y.GetValue(), Units).Units);
+		LargestValue = CachedLocation.Y.GetValue();
 	}
-	if (CachedLocation.Z.IsSet() && CachedLocation.Z.GetValue() != 0)
+	if (CachedLocation.X.IsSet() && CachedLocation.Z.GetValue() > LargestValue)
 	{
-		SetLargestUnit(FUnitConversion::QuantizeUnitsToBestFit(CachedLocation.Z.GetValue(), Units).Units);
+		LargestValue = CachedLocation.Z.GetValue();
 	}
 
-	if (LargestUnit.IsSet())
-	{
-		VectorUnits = LargestUnit.GetValue();
-	}
-	else if (DefaultInputUnits.IsSet())
-	{
-		VectorUnits	= DefaultInputUnits.GetValue();
-	}
-	else
-	{
-		VectorUnits = EUnit::Unspecified;
-	}
-
-	VectorUnits = FUnitConversion::ConvertToGlobalDisplayRange(VectorUnits);
-}
-
-FNumericUnit<float> FComponentTransformDetails::QuantizeUnitsToBestFit(const float& InValue, EUnit InUnits) const
-{
-	return FNumericUnit<float>(FUnitConversion::Convert(InValue, InUnits, VectorUnits), VectorUnits);
+	SetupFixedDisplay(LargestValue);
 }
 
 bool FComponentTransformDetails::GetIsEnabled() const
@@ -1122,7 +1095,6 @@ void FComponentTransformDetails::OnSetLocation( float NewValue, ETextCommit::Typ
 	}
 
 	CacheTransform();
-	CacheCommonLocationUnits();
 
 	GUnrealEd->RedrawLevelEditingViewports();
 }

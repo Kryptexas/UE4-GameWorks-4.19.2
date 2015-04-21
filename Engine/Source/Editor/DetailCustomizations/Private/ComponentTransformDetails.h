@@ -34,8 +34,6 @@ public:
 	virtual void Tick( float DeltaTime ) override;
 	virtual void SetOnRebuildChildren( FSimpleDelegate OnRebuildChildren ) override{}
 
-	virtual FNumericUnit<float> QuantizeUnitsToBestFit(const float& InValue, EUnit InUnits) const override;
-
 	void HideTransformField(const ETransformField::Type InTransformField)
 	{
 		HiddenFieldMask |= (1 << InTransformField);
@@ -330,6 +328,4 @@ private:
 	bool bEditingRotationInUI;
 	/** Bitmask to indicate which fields should be hidden (if any) */
 	uint8 HiddenFieldMask;
-	/** Enum specifying the most appropriate units for the whole vector to be displayed in */
-	EUnit VectorUnits;
 };

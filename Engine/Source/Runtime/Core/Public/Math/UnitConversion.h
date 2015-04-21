@@ -5,7 +5,8 @@
 #include "Optional.h"
 #include "Function.h"
 
-/** Enum *must* be zero-indexed and sequential */
+/** Enum *must* be zero-indexed and sequential. Must be grouped by relevance and ordered by magnitude. */
+/** Enum *must* match the mirrored enum that exists in CoreUObject/Classes/Object.h for the purposes of UObject reflection */
 enum class EUnit
 {
 	/** Scalar distance/length units */
@@ -45,9 +46,13 @@ enum class EUnit
 	Unspecified
 };
 
-enum class EGlobalUnitDisplay
+/** Enumeration that specifies particular classes of unit */
+enum class EUnitType
 {
-	None, Metric, Imperial
+	Distance, Angle, Speed, Temperature, Mass, Force, Frequency, DataSize, LuminousFlux, Time,
+
+	// Symbolic entry - do not use directly
+	NumberOf,
 };
 
 template<typename NumericType> struct FNumericUnit;
@@ -56,19 +61,17 @@ template<typename NumericType> struct FNumericUnit;
 class CORE_API FUnitSettings
 {
 public:
-	
+
 	FUnitSettings();
 
 	/** Check whether unit display is globally enabled or disabled */
-	bool ShouldDisplayUnits() { return GlobalUnitDisplay != EGlobalUnitDisplay::None; }
-
-	/** Get/set the global unit display to either mertic, imperial, or none */
-	EGlobalUnitDisplay GetGlobalUnitDisplay() { return GlobalUnitDisplay; }
-	void SetGlobalUnitDisplay(EGlobalUnitDisplay InGlobalUnitDisplay) { GlobalUnitDisplay = InGlobalUnitDisplay; SettingChangedEvent.Broadcast(); }
+	bool ShouldDisplayUnits() { return bGlobalUnitDisplay; }
+	void SetShouldDisplayUnits(bool bInGlobalUnitDisplay) { bGlobalUnitDisplay = bInGlobalUnitDisplay; SettingChangedEvent.Broadcast(); }
 	
-	/** Default unit to use for text input when no unit was specified. Can be EUnit::Unspecified. Check for compatibility with property units using AreUnitsCompatible */
-	EUnit GetDefaultInputUnit() { return DefaultInputUnit; }
-	void SetDefaultInputUnit(EUnit InDefaultInputUnit) { DefaultInputUnit = InDefaultInputUnit; SettingChangedEvent.Broadcast(); }
+	/** Get the specific valid units to display the specified type of unit in */
+	const TArray<EUnit>& GetDisplayUnits(EUnitType InType);
+	void SetDisplayUnits(EUnitType InType, const TArray<EUnit>& Units);
+	void SetDisplayUnits(EUnitType InType, EUnit Units);
 
 	/** Returns an event delegate that is executed when a display setting has changed. (GlobalUnitDisplay or DefaultInputUnits) */
 	DECLARE_EVENT(FUnitSettings, FDisplaySettingChanged);
@@ -76,11 +79,11 @@ public:
 
 private:
 
-	/** Globally check how we should display units on user interfaces */
-	EGlobalUnitDisplay GlobalUnitDisplay;
+	/** Global toggle controlling whether we should display units or not */
+	bool bGlobalUnitDisplay;
 
-	/** Default unit to use for text input when no unit was specified. Can be EUnit::Unspecified. Check for compatibility with property units using AreUnitsCompatible */
-	EUnit DefaultInputUnit;
+	/** Arrays of units that are valid to display on interfaces */
+	TArray<EUnit> DisplayUnits[(uint8)EUnitType::NumberOf + 1];
 	
 	/** Holds an event delegate that is executed when a display setting has changed. */
 	FDisplaySettingChanged SettingChangedEvent;
@@ -95,6 +98,12 @@ struct CORE_API FUnitConversion
 	static bool AreUnitsCompatible(EUnit From, EUnit To)
 	{
 		return From == EUnit::Unspecified || To == EUnit::Unspecified || Types[(uint8)From] == Types[(uint8)To];
+	}
+
+	/** Check whether a unit is of the specified type */
+	static bool IsUnitOfType(EUnit Unit, EUnitType Type)
+	{
+		return Unit != EUnit::Unspecified && Types[(uint8)Unit] == Type;
 	}
 
 	/** Convert the specified number from one unit to another. Does nothing if the units are incompatible. */
@@ -150,9 +159,6 @@ struct CORE_API FUnitConversion
 
 	/** Helper function to find a unit from a string (name or display string) */
 	static TOptional<EUnit> UnitFromString(const TCHAR* UnitString);
-
-	/** Perform metric <-> imperial conversion on the specified unit according to the GlobalUnitDisplay setting */
-	static EUnit ConvertToGlobalDisplayRange(EUnit InUnit);
 
 private:
 
@@ -248,13 +254,51 @@ public:
 		return FNumericUnit<T>(NewValue, NewUnits);
 	}
 
-private:
-
-	/** Private enumeration that specifies particular classes of unit */
-	enum class EUnitType
+	/** Quantizes this number to the most appropriate unit for user friendly presentation (e.g. 1000m returns 1km), adhereing to global display settings. */
+	template<typename T>
+	static EUnit CalculateDisplayUnit(T Value, EUnit InUnits)
 	{
-		Distance, Angle, Speed, Temperature, Mass, Force, Frequency, DataSize, LuminousFlux, Time
-	};
+		if (InUnits == EUnit::Unspecified)
+		{
+			return EUnit::Unspecified;
+		}
+
+		const TArray<EUnit>& DisplayUnits = Settings().GetDisplayUnits(Types[(uint8)InUnits]);
+		if (DisplayUnits.Num() == 0)
+		{
+			return QuantizeUnitsToBestFit(Value, InUnits).Units;
+		}
+		else if (DisplayUnits.Num() == 1)
+		{
+			return DisplayUnits[0];
+		}
+
+		// If the value we were given was 0, change it to something we can actually work with
+		if (Value == 0)
+		{
+			Value = 1;
+		}
+
+		int32 BestIndex = 0;
+		for (int32 Index = 0; Index < DisplayUnits.Num() - 1; ++Index)
+		{
+			double This = Convert(Value, InUnits, DisplayUnits[Index]);
+			double Next = Convert(Value, InUnits, DisplayUnits[Index + 1]);
+
+			if (FMath::Abs(FMath::LogX(10.0f, This)) < FMath::Abs(FMath::LogX(10.0f, Next)))
+			{
+				BestIndex = Index;
+			}
+			else
+			{
+				BestIndex = Index + 1;
+			}
+		}
+
+		return DisplayUnits[BestIndex];
+	}
+
+private:
 
 	/** Structure used to match units when parsing */
 	struct FParseCandidate

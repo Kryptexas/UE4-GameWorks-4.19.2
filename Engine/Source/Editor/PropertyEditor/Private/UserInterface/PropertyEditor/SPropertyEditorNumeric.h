@@ -93,7 +93,6 @@ public:
 			&& !PropertyNode->GetProperty()->GetBoolMetaData("NoSpinbox");
 
 		// Set up the correct type interface if we want to display units on the property editor
-		TSharedPtr<INumericTypeInterface<NumericType>> TypeInterface;
 		if (FUnitConversion::Settings().ShouldDisplayUnits())
 		{
 			const FString& Units = InPropertyEditor->GetProperty()->GetMetaData(TEXT("Units"));
@@ -101,17 +100,14 @@ public:
 
 			if (PropertyUnits.IsSet())
 			{
-				bool bAllowUnitRangeAdaption = true;
-				const auto& AllowRageAdaptionString = Property->GetMetaData(TEXT("AllowUnitRangeAdaption"));
-				if (!AllowRageAdaptionString.IsEmpty())
-				{
-					LexicalConversion::FromString(bAllowUnitRangeAdaption, *AllowRageAdaptionString);
-				}
-
 				// Create the type interface and set up the default input units if they are compatible
-				auto* Impl = new TNumericUnitTypeInterface<NumericType>(PropertyUnits.GetValue(), bAllowUnitRangeAdaption);
-				Impl->UseDefaultInputUnits();
-				TypeInterface = MakeShareable(Impl);
+				TypeInterface = MakeShareable(new TNumericUnitTypeInterface<NumericType>(PropertyUnits.GetValue()));
+
+				auto Value = OnGetValue();
+				if (Value.IsSet())
+				{
+					TypeInterface->SetupFixedDisplay(Value.GetValue());
+				}
 			}
 		}
 
@@ -242,6 +238,11 @@ private:
 			// We don't create a transaction for each property change when using the slider.  Only once when the slider first is moved
 			EPropertyValueSetFlags::Type Flags = (EPropertyValueSetFlags::InteractiveChange | EPropertyValueSetFlags::NotTransactable);
 			PropertyHandle->SetValue( NewValue, Flags );
+
+			if (TypeInterface.IsValid() && !TypeInterface->FixedDisplayUnits.IsSet())
+			{
+				TypeInterface->SetupFixedDisplay(NewValue);
+			}
 		}
 	}
 
@@ -249,6 +250,11 @@ private:
 	{
 		const TSharedRef< IPropertyHandle > PropertyHandle = PropertyEditor->GetPropertyHandle();
 		PropertyHandle->SetValue( NewValue );
+
+		if (TypeInterface.IsValid() && !TypeInterface->FixedDisplayUnits.IsSet())
+		{
+			TypeInterface->SetupFixedDisplay(NewValue);
+		}
 	}
 	
 	/**
@@ -279,6 +285,9 @@ private:
 	}
 
 private:
+
+	TSharedPtr<TNumericUnitTypeInterface<NumericType>> TypeInterface;	
+
 	TSharedPtr< class FPropertyEditor > PropertyEditor;
 
 	TSharedPtr< class SWidget > PrimaryWidget;
