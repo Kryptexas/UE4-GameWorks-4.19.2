@@ -394,6 +394,7 @@ public:
 	void RemoveRecords( int32 Count = 1 );
 	int32 GetRecordCount() const;
 
+	const UObject* GetPrimaryObject() const { return PrimaryObject; }
 	/**
 	 * Outputs the contents of the ObjectMap to the specified output device.
 	 */
@@ -555,6 +556,9 @@ class UTransactor : public UObject
 	 * Set passed object as the primary context object for transactions
 	 */
 	virtual void SetPrimaryUndoObject( UObject* Object ) PURE_VIRTUAL(UTransactor::MakePrimaryUndoObject,);
+
+	virtual bool IsObjectInTransationBuffer( const UObject* Object ) const { return false; }
+
 
 	// @todo document
 	virtual ITransaction* CreateInternalTransaction() PURE_VIRTUAL(UTransactor::CreateInternalTransaction,return NULL;);

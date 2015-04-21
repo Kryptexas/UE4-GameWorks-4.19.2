@@ -727,3 +727,21 @@ void UTransBuffer::SetPrimaryUndoObject(UObject* PrimaryObject)
 		}
 	}
 }
+
+bool UTransBuffer::IsObjectInTransationBuffer( const UObject* Object ) const
+{
+	TArray<UObject*> TransactionObjects;
+	for( const FTransaction& Transaction : UndoBuffer )
+	{
+		Transaction.GetTransactionObjects(TransactionObjects);
+
+		if( TransactionObjects.Contains(Object) )
+		{
+			return true;
+		}
+		
+		TransactionObjects.Reset();
+	}
+
+	return false;
+}

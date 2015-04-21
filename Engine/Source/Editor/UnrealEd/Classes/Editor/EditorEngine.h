@@ -824,6 +824,7 @@ public:
 	bool RedoTransaction();
 	bool IsTransactionActive();
 	FText GetTransactionName() const;
+	bool IsObjectInTransactionBuffer( const UObject* Object ) const;
 
 	/**
 	 * Rebuilds the map.

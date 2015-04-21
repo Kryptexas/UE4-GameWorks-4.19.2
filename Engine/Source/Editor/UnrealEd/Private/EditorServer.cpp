@@ -1272,6 +1272,11 @@ FText UEditorEngine::GetTransactionName() const
 	return Trans->GetUndoContext(false).Title;
 }
 
+bool UEditorEngine::IsObjectInTransactionBuffer( const UObject* Object ) const
+{
+	return Trans->IsObjectInTransationBuffer(Object);
+}
+
 bool UEditorEngine::Map_Select( UWorld* InWorld, const TCHAR* Str, FOutputDevice& Ar)
 {
 	const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "SelectBrushes", "Select Brushes") );

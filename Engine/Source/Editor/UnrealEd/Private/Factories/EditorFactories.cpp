@@ -5945,6 +5945,12 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 
 		CleanUp();
 
+		// Reimporting can have dangerous effects if the mesh is still in the transaction buffer.  Reset the transaction buffer if this is the case
+		if( GEditor->IsObjectInTransactionBuffer( SkeletalMesh ) )
+		{
+			GEditor->ResetTransaction( LOCTEXT("ReimportSkeletalMeshTransactionReset", "Reimporting a skeletal mesh which was in the undo buffer") );
+		}
+
 		return bSuccess ? EReimportResult::Succeeded : EReimportResult::Failed;
 	}
 	else
