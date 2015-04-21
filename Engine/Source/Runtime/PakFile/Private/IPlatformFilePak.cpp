@@ -726,6 +726,11 @@ bool FPakPlatformFile::Mount(const TCHAR* InPakFilename, uint32 PakOrder, const 
 			{
 				Pak->SetMountPoint(InPath);
 			}
+			FString PakFilename = InPakFilename;
+			if ( PakFilename.EndsWith(TEXT("_P.pak")) )
+			{
+				PakOrder += 100;
+			}
 			{
 				// Add new pak file
 				FScopeLock ScopedLock(&PakListCritical);
