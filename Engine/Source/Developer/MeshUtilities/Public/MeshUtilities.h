@@ -87,6 +87,19 @@ struct FMeshMergingSettings
 	
 	/** Whether merged mesh should have pivot at world origin, or at first merged component otherwise */
 	bool bPivotPointAtZero;
+
+	/** Whether to merge source materials into one flat material */
+	bool bMergeMaterials;
+	/** Whether to export normal maps for material merging */
+	bool bExportNormalMap;
+	/** Whether to export metallic maps for material merging */
+	bool bExportMetallicMap;
+	/** Whether to export roughness maps for material merging */
+	bool bExportRoughnessMap;
+	/** Whether to export specular maps for material merging */
+	bool bExportSpecularMap;
+	/** Merged material texture atlas resolution */
+	int32 MergedMaterialAtlasResolution;
 		
 	/** Default settings. */
 	FMeshMergingSettings()
@@ -95,6 +108,12 @@ struct FMeshMergingSettings
 		, TargetLightMapResolution(256)
 		, bImportVertexColors(false)
 		, bPivotPointAtZero(false)
+		, bMergeMaterials(false)
+		, bExportNormalMap(true)
+		, bExportMetallicMap(false)
+		, bExportRoughnessMap(false)
+		, bExportSpecularMap(false)
+		, MergedMaterialAtlasResolution(1024)
 	{
 	}
 };

@@ -52,6 +52,25 @@ private:
 
 	ECheckBoxState GetPlaceInWorld() const;
 	void SetPlaceInWorld(ECheckBoxState NewValue);
+
+	/** Material merging */
+	bool IsMaterialMergingEnabled() const;
+	ECheckBoxState GetMergeMaterials() const;
+	void SetMergeMaterials(ECheckBoxState NewValue);
+
+	ECheckBoxState GetExportNormalMap() const;
+	void SetExportNormalMap(ECheckBoxState NewValue);
+
+	ECheckBoxState GetExportMetallicMap() const;
+	void SetExportMetallicMap(ECheckBoxState NewValue);
+
+	ECheckBoxState GetExportRoughnessMap() const;
+	void SetExportRoughnessMap(ECheckBoxState NewValue);
+
+	ECheckBoxState GetExportSpecularMap() const;
+	void SetExportSpecularMap(ECheckBoxState NewValue);
+
+	void SetMergedMaterialAtlasResolution(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
 	
 	/** Called when actors selection is changed */
 	void OnActorSelectionChanged(const TArray<UObject*>& NewSelection, bool bForceRefresh=false);
@@ -85,4 +104,7 @@ private:
 	/**  */
 	TArray<TSharedPtr<FString>>	LightMapResolutionOptions;
 	TArray<TSharedPtr<FString>>	LightMapChannelOptions;
+	
+	/**  */
+	TArray<TSharedPtr<FString>>	MergedMaterialResolutionOptions;
 };

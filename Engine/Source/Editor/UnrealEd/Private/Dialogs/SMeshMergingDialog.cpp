@@ -32,6 +32,7 @@ SMeshMergingDialog::~SMeshMergingDialog()
 	LevelEditor.OnActorSelectionChanged().RemoveAll(this);
 }
 
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SMeshMergingDialog::Construct(const FArguments& InArgs)
 {
 	ParentWindow = InArgs._ParentWindow;
@@ -40,15 +41,17 @@ void SMeshMergingDialog::Construct(const FArguments& InArgs)
 	LevelEditor.OnActorSelectionChanged().AddSP(this, &SMeshMergingDialog::OnActorSelectionChanged);
 	
 
-	// Setup available resolutions for lightmap
+	// Setup available resolutions for lightmap and merged materials
 	const int32 MinTexResolution = 1 << FTextureLODGroup().MinLODMipCount;
 	const int32 MaxTexResolution = 1 << FTextureLODGroup().MaxLODMipCount;
-	for (int32 LightmapRes = MinTexResolution; LightmapRes <= MaxTexResolution; LightmapRes*=2)
+	for (int32 TexRes = MinTexResolution; TexRes <= MaxTexResolution; TexRes*=2)
 	{
-		LightMapResolutionOptions.Add(MakeShareable(new FString(FString::FormatAsNumber(LightmapRes))));
+		LightMapResolutionOptions.Add(MakeShareable(new FString(FString::FormatAsNumber(TexRes))));
+		MergedMaterialResolutionOptions.Add(MakeShareable(new FString(FString::FormatAsNumber(TexRes))));
 	}
 
 	MergingSettings.TargetLightMapResolution = FMath::Clamp(MergingSettings.TargetLightMapResolution, MinTexResolution, MaxTexResolution);
+	MergingSettings.MergedMaterialAtlasResolution = FMath::Clamp(MergingSettings.MergedMaterialAtlasResolution, MinTexResolution, MaxTexResolution);
 		
 	// Setup available UV channels for an atlased lightmap
 	for (int32 Index = 0; Index < MAX_MESH_TEXTURE_COORDS; Index++)
@@ -192,7 +195,109 @@ void SMeshMergingDialog::Construct(const FArguments& InArgs)
 						SNew(STextBlock).Text(LOCTEXT("PlaceInWorldLabel", "Place In World"))
 					]
 				]
-						
+
+				// Merge materials
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+				[
+					SNew(SCheckBox)
+					.Type(ESlateCheckBoxType::CheckBox)
+					.IsChecked(this, &SMeshMergingDialog::GetMergeMaterials)
+					.OnCheckStateChanged(this, &SMeshMergingDialog::SetMergeMaterials)
+					.Content()
+					[
+						SNew(STextBlock).Text(LOCTEXT("MergeMaterialsLabel", "Merge Materials"))
+					]
+				]
+				// Export normal map
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+				[
+					SNew(SCheckBox)
+					.Type(ESlateCheckBoxType::CheckBox)
+					.IsChecked(this, &SMeshMergingDialog::GetExportNormalMap)
+					.OnCheckStateChanged(this, &SMeshMergingDialog::SetExportNormalMap)
+					.IsEnabled(this, &SMeshMergingDialog::IsMaterialMergingEnabled)
+					.Content()
+					[
+						SNew(STextBlock).Text(LOCTEXT("ExportNormalMapLabel", "Export Normal Map"))
+					]
+				]
+				// Export metallic map
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+				[
+					SNew(SCheckBox)
+					.Type(ESlateCheckBoxType::CheckBox)
+					.IsChecked(this, &SMeshMergingDialog::GetExportMetallicMap)
+					.OnCheckStateChanged(this, &SMeshMergingDialog::SetExportMetallicMap)
+					.IsEnabled(this, &SMeshMergingDialog::IsMaterialMergingEnabled)
+					.Content()
+					[
+						SNew(STextBlock).Text(LOCTEXT("ExportMetallicMapLabel", "Export Metallic Map"))
+					]
+				]
+				// Export roughness map
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+				[
+					SNew(SCheckBox)
+					.Type(ESlateCheckBoxType::CheckBox)
+					.IsChecked(this, &SMeshMergingDialog::GetExportRoughnessMap)
+					.OnCheckStateChanged(this, &SMeshMergingDialog::SetExportRoughnessMap)
+					.IsEnabled(this, &SMeshMergingDialog::IsMaterialMergingEnabled)
+					.Content()
+					[
+						SNew(STextBlock).Text(LOCTEXT("ExportRoughnessMapLabel", "Export Roughness Map"))
+					]
+				]
+				// Export specular map
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+				[
+					SNew(SCheckBox)
+					.Type(ESlateCheckBoxType::CheckBox)
+					.IsChecked(this, &SMeshMergingDialog::GetExportSpecularMap)
+					.OnCheckStateChanged(this, &SMeshMergingDialog::SetExportSpecularMap)
+					.IsEnabled(this, &SMeshMergingDialog::IsMaterialMergingEnabled)
+					.Content()
+					[
+						SNew(STextBlock).Text(LOCTEXT("ExportSpecularMapLabel", "Export Specular Map"))
+					]
+				]
+				
+				// Merged texture size
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+				[
+					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("MergedMaterialAtlasResolutionLabel", "Merged Material Atlas Resolution:"))
+					]
+												
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					.Padding(4,0,4,0)
+					[
+						SNew(STextComboBox)
+						.IsEnabled(this, &SMeshMergingDialog::IsMaterialMergingEnabled)
+						.OptionsSource(&MergedMaterialResolutionOptions)
+						.InitiallySelectedItem(MergedMaterialResolutionOptions[FMath::FloorLog2(MergingSettings.MergedMaterialAtlasResolution)])
+						.OnSelectionChanged(this, &SMeshMergingDialog::SetMergedMaterialAtlasResolution)
+					]
+				]
+														
 				// Asset name and picker
 				+SVerticalBox::Slot()
 				.AutoHeight()
@@ -262,6 +367,7 @@ void SMeshMergingDialog::Construct(const FArguments& InArgs)
 		]
 	];
 }
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 FReply SMeshMergingDialog::OnCancelClicked()
 {
@@ -345,6 +451,66 @@ void SMeshMergingDialog::SetPlaceInWorld(ECheckBoxState NewValue)
 	bPlaceInWorld = (ECheckBoxState::Checked == NewValue);
 }
 
+bool SMeshMergingDialog::IsMaterialMergingEnabled() const
+{
+	return MergingSettings.bMergeMaterials;
+}
+
+ECheckBoxState SMeshMergingDialog::GetMergeMaterials() const
+{
+	return (MergingSettings.bMergeMaterials ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+}
+
+void SMeshMergingDialog::SetMergeMaterials(ECheckBoxState NewValue)
+{
+	MergingSettings.bMergeMaterials = (ECheckBoxState::Checked == NewValue);
+}
+
+ECheckBoxState SMeshMergingDialog::GetExportNormalMap() const
+{
+	return (MergingSettings.bExportNormalMap ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+}
+
+void SMeshMergingDialog::SetExportNormalMap(ECheckBoxState NewValue)
+{
+	MergingSettings.bExportNormalMap = (ECheckBoxState::Checked == NewValue);
+}
+
+ECheckBoxState SMeshMergingDialog::GetExportMetallicMap() const
+{
+	return (MergingSettings.bExportMetallicMap ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+}
+
+void SMeshMergingDialog::SetExportMetallicMap(ECheckBoxState NewValue)
+{
+	MergingSettings.bExportMetallicMap = (ECheckBoxState::Checked == NewValue);
+}
+
+ECheckBoxState SMeshMergingDialog::GetExportRoughnessMap() const
+{
+	return (MergingSettings.bExportRoughnessMap ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+}
+
+void SMeshMergingDialog::SetExportRoughnessMap(ECheckBoxState NewValue)
+{
+	MergingSettings.bExportRoughnessMap = (ECheckBoxState::Checked == NewValue);
+}
+
+ECheckBoxState SMeshMergingDialog::GetExportSpecularMap() const
+{
+	return (MergingSettings.bExportSpecularMap ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+}
+
+void SMeshMergingDialog::SetExportSpecularMap(ECheckBoxState NewValue)
+{
+	MergingSettings.bExportSpecularMap = (ECheckBoxState::Checked == NewValue);
+}
+
+void SMeshMergingDialog::SetMergedMaterialAtlasResolution(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo)
+{
+	TTypeFromString<int32>::FromString(MergingSettings.MergedMaterialAtlasResolution, **NewSelection);
+}
+
 void SMeshMergingDialog::GenerateNewPackageName()
 {
 	MergedMeshPackageName = FPackageName::FilenameToLongPackageName(FPaths::GameContentDir() + TEXT("SM_MERGED"));
@@ -417,7 +583,7 @@ void SMeshMergingDialog::RunMerging()
 		OpenMsgDlgInt(EAppMsgType::Ok, Message, NSLOCTEXT("UnrealEd", "FailedToMergeActors_Title", "Unable to merge actors"));
 		return;
 	}
-	
+		
 	FVector MergedActorLocation;
 	TArray<UObject*> AssetsToSync;
 	MeshUtilities.MergeActors(Actors, MergingSettings, MergedMeshPackageName, AssetsToSync, MergedActorLocation);

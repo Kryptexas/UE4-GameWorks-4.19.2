@@ -4128,6 +4128,165 @@ bool PropagatePaintedColorsToRawMesh(UStaticMeshComponent* StaticMeshComponent, 
 	return false;
 }
 
+static void CopyTextureRect(const FColor* Src, const FIntPoint& SrcSize, FColor* Dst, const FIntPoint& DstSize, const FIntPoint& DstPos)
+{
+	int32 RowLength = SrcSize.X*sizeof(FColor);
+	FColor* RowDst = Dst + DstSize.X*DstPos.Y;
+	const FColor* RowSrc = Src;
+	
+	for (int32 RowIdx = 0; RowIdx < SrcSize.Y; ++RowIdx)
+	{
+		FMemory::Memcpy(RowDst + DstPos.X, RowSrc, RowLength);
+		
+		RowDst+= DstSize.X;
+		RowSrc+= SrcSize.X;
+	}
+}
+
+struct FRawMeshExt
+{
+	FRawMeshExt() 
+	{}
+		
+	FRawMesh	MeshLOD[MAX_STATIC_MESH_LODS];
+	FString		AssetPackageName;
+	FVector		Pivot;	
+};
+
+static void MergeMaterials(UWorld* InWorld, const TArray<UMaterialInterface*>& InMaterialList, TArray<FRawMeshExt>& InOutMeshes, MaterialExportUtils::FFlattenMaterial& OutMergedMaterial)
+{
+	using namespace MaterialExportUtils;
+	
+	int32 AtlasGridSize = FMath::CeilToInt(FMath::Sqrt(InMaterialList.Num()));
+	FIntPoint AtlasTextureSize = OutMergedMaterial.DiffuseSize;
+	FIntPoint ExportTextureSize	= AtlasTextureSize/AtlasGridSize;
+	int32 AtlasNumSamples = AtlasTextureSize.X*AtlasTextureSize.Y;
+	
+	bool bExportNormal		= (OutMergedMaterial.NormalSize != FIntPoint::ZeroValue);
+	bool bExportMetallic	= (OutMergedMaterial.MetallicSize != FIntPoint::ZeroValue);
+	bool bExportRoughness	= (OutMergedMaterial.RoughnessSize != FIntPoint::ZeroValue);
+	bool bExportSpecular	= (OutMergedMaterial.SpecularSize != FIntPoint::ZeroValue);
+
+	// Pre-allocate buffers for texture atlas
+	OutMergedMaterial.DiffuseSamples.Reserve(AtlasNumSamples);
+	OutMergedMaterial.DiffuseSamples.SetNumZeroed(AtlasNumSamples);
+	if (bExportNormal)
+	{
+		check(OutMergedMaterial.NormalSize == OutMergedMaterial.DiffuseSize);
+		OutMergedMaterial.NormalSamples.Reserve(AtlasNumSamples);
+		OutMergedMaterial.NormalSamples.SetNumZeroed(AtlasNumSamples);
+	}
+	if (bExportMetallic)
+	{
+		check(OutMergedMaterial.MetallicSize == OutMergedMaterial.DiffuseSize);
+		OutMergedMaterial.MetallicSamples.Reserve(AtlasNumSamples);
+		OutMergedMaterial.MetallicSamples.SetNumZeroed(AtlasNumSamples);
+	}
+	if (bExportRoughness)
+	{
+		check(OutMergedMaterial.RoughnessSize == OutMergedMaterial.DiffuseSize);
+		OutMergedMaterial.RoughnessSamples.Reserve(AtlasNumSamples);
+		OutMergedMaterial.RoughnessSamples.SetNumZeroed(AtlasNumSamples);
+	}
+	if (bExportSpecular)
+	{
+		check(OutMergedMaterial.SpecularSize == OutMergedMaterial.DiffuseSize);
+		OutMergedMaterial.SpecularSamples.Reserve(AtlasNumSamples);
+		OutMergedMaterial.SpecularSamples.SetNumZeroed(AtlasNumSamples);
+	}
+
+	int32 AtlasRowIdx = 0;
+	int32 AtlasColIdx = 0;
+	FIntPoint AtlasTargetPos = FIntPoint(0,0);
+	TArray<FVector2D> UVOffsets;
+					
+	// Flatten all materials and merge them into one material using texture atlases
+	for (const UMaterialInterface* Material : InMaterialList)
+	{
+		FFlattenMaterial FlatMaterial;
+		FlatMaterial.DiffuseSize	= ExportTextureSize;
+		FlatMaterial.NormalSize		= bExportNormal ? ExportTextureSize : FIntPoint::ZeroValue;
+		FlatMaterial.MetallicSize	= bExportMetallic ? ExportTextureSize : FIntPoint::ZeroValue;
+		FlatMaterial.RoughnessSize	= bExportRoughness ? ExportTextureSize : FIntPoint::ZeroValue;;
+		FlatMaterial.SpecularSize	= bExportSpecular ? ExportTextureSize : FIntPoint::ZeroValue;;
+
+		ExportMaterial(InWorld, const_cast<UMaterialInterface*>(Material), FlatMaterial);
+
+		if (FlatMaterial.DiffuseSamples.Num() > 0)
+		{
+			CopyTextureRect(FlatMaterial.DiffuseSamples.GetData(), ExportTextureSize, OutMergedMaterial.DiffuseSamples.GetData(), AtlasTextureSize, AtlasTargetPos);
+		}
+
+		if (FlatMaterial.NormalSamples.Num() > 0)
+		{
+			CopyTextureRect(FlatMaterial.NormalSamples.GetData(), ExportTextureSize, OutMergedMaterial.NormalSamples.GetData(), AtlasTextureSize, AtlasTargetPos);
+		}
+
+		if (FlatMaterial.MetallicSamples.Num() > 0)
+		{
+			CopyTextureRect(FlatMaterial.MetallicSamples.GetData(), ExportTextureSize, OutMergedMaterial.MetallicSamples.GetData(), AtlasTextureSize, AtlasTargetPos);
+		}
+
+		if (FlatMaterial.RoughnessSamples.Num() > 0)
+		{
+			CopyTextureRect(FlatMaterial.RoughnessSamples.GetData(), ExportTextureSize, OutMergedMaterial.RoughnessSamples.GetData(), AtlasTextureSize, AtlasTargetPos);
+		}
+
+		if (FlatMaterial.SpecularSamples.Num() > 0)
+		{
+			CopyTextureRect(FlatMaterial.SpecularSamples.GetData(), ExportTextureSize, OutMergedMaterial.SpecularSamples.GetData(), AtlasTextureSize, AtlasTargetPos);
+		}
+
+		UVOffsets.Add(FVector2D(
+			(float)AtlasTargetPos.X/AtlasTextureSize.X, 
+			(float)AtlasTargetPos.Y/AtlasTextureSize.Y));
+		
+		AtlasColIdx++;
+		if (AtlasColIdx >= AtlasGridSize)
+		{
+			AtlasColIdx = 0;
+			AtlasRowIdx++;
+		}
+
+		AtlasTargetPos = FIntPoint(AtlasColIdx*ExportTextureSize.X, AtlasRowIdx*ExportTextureSize.Y);
+	}
+
+	// Adjust UVs
+	FVector2D UVScale = FVector2D(
+		(float)ExportTextureSize.X/AtlasTextureSize.X, 
+		(float)ExportTextureSize.Y/AtlasTextureSize.Y);
+
+	for (int32 MeshIndex = 0; MeshIndex < InOutMeshes.Num(); ++MeshIndex)
+	{
+		for (int32 LODIndex = 0; LODIndex < MAX_STATIC_MESH_LODS; ++LODIndex)
+		{
+			FRawMesh& RawMesh = InOutMeshes[MeshIndex].MeshLOD[LODIndex];
+
+			for (int32 UVChannelIdx = 0; UVChannelIdx < MAX_MESH_TEXTURE_COORDS; ++UVChannelIdx)
+			{
+				TArray<FVector2D>& UVs = RawMesh.WedgeTexCoords[UVChannelIdx];
+				if (UVs.Num() > 0)
+				{
+					for (int32 i = 0; i < UVs.Num(); i+=3)
+					{
+						int32 FaceMaterialIndex = RawMesh.FaceMaterialIndices[i/3];
+						FVector2D UVOffset = UVOffsets[FaceMaterialIndex];
+
+						UVs[i+0] = UVs[i+0]*UVScale + UVOffset;
+						UVs[i+1] = UVs[i+1]*UVScale + UVOffset;
+						UVs[i+2] = UVs[i+2]*UVScale + UVOffset;
+					}
+				}
+			}
+			
+			for (int32& FaceMaterialIndex : RawMesh.FaceMaterialIndices)
+			{
+				FaceMaterialIndex = 0;
+			}
+		}
+	}
+}
+
 void FMeshUtilities::MergeActors(
 	const TArray<AActor*>& SourceActors, 
 	const FMeshMergingSettings& InSettings, 
@@ -4154,16 +4313,6 @@ void FMeshUtilities::MergeActors(
 			}
 		}
 	}
-
-	struct FRawMeshExt
-	{
-		FRawMeshExt() 
-		{}
-		
-		FRawMesh	MeshLOD[MAX_STATIC_MESH_LODS];
-		FString		AssetPackageName;
-		FVector		Pivot;	
-	};
 	
 	typedef FIntPoint FMeshIdAndLOD;
 	
@@ -4172,8 +4321,7 @@ void FMeshUtilities::MergeActors(
 	TArray<FRawMeshExt>								SourceMeshes;
 	bool											bWithVertexColors[MAX_STATIC_MESH_LODS] = {};
 	bool											bOcuppiedUVChannels[MAX_STATIC_MESH_LODS][MAX_MESH_TEXTURE_COORDS] = {};
-	
-	
+		
 	// Convert collected static mesh components into raw meshes
 	SourceMeshes.Reserve(ComponentsToMerge.Num());
 	SourceMeshes.SetNum(ComponentsToMerge.Num());
@@ -4247,6 +4395,24 @@ void FMeshUtilities::MergeActors(
 				}
 			}
 		}
+	}
+
+	MaterialExportUtils::FFlattenMaterial MergedFlatMaterial;
+	
+	if (InSettings.bMergeMaterials)
+	{
+		FIntPoint AtlasTextureSize			= FIntPoint(InSettings.MergedMaterialAtlasResolution, InSettings.MergedMaterialAtlasResolution);
+		MergedFlatMaterial.DiffuseSize		= AtlasTextureSize;
+		MergedFlatMaterial.NormalSize		= InSettings.bExportNormalMap ? AtlasTextureSize : FIntPoint::ZeroValue;
+		MergedFlatMaterial.MetallicSize		= InSettings.bExportMetallicMap ? AtlasTextureSize : FIntPoint::ZeroValue;
+		MergedFlatMaterial.RoughnessSize	= InSettings.bExportRoughnessMap ? AtlasTextureSize : FIntPoint::ZeroValue;
+		MergedFlatMaterial.SpecularSize		= InSettings.bExportSpecularMap ? AtlasTextureSize : FIntPoint::ZeroValue;
+			
+		UWorld* World = SourceActors[0]->GetWorld();
+		MergeMaterials(World, UniqueMaterials, SourceMeshes, MergedFlatMaterial);
+		
+		// We assume all materials was merged into MergedFlatMaterial
+		UniqueMaterials.Empty();
 	}
 
 	FRawMeshExt MergedMesh;
@@ -4384,6 +4550,30 @@ void FMeshUtilities::MergeActors(
 			}
 		}
 
+		if (InSettings.bMergeMaterials)
+		{
+			FString MaterialAssetName;
+			FString MaterialPackageName;
+			if (InPackageName.IsEmpty())
+			{
+				MaterialAssetName = TEXT("M_MERGED_") + FPackageName::GetShortName(MergedMesh.AssetPackageName);
+				MaterialPackageName = FPackageName::GetLongPackagePath(MergedMesh.AssetPackageName) + TEXT("/") + MaterialAssetName;
+			}
+			else
+			{
+				MaterialAssetName = FPackageName::GetShortName(InPackageName);
+				MaterialPackageName = InPackageName;
+			}
+
+			UPackage* MaterialPackage = CreatePackage(NULL, *MaterialPackageName);
+			check(MaterialPackage);
+			MaterialPackage->FullyLoad();
+			MaterialPackage->Modify();
+
+			UMaterial* MergedMaterial = CreateMaterial(MergedFlatMaterial, MaterialPackage, MaterialAssetName, RF_Public|RF_Standalone, OutAssetsToSync);
+			UniqueMaterials.Add(MergedMaterial);
+		}
+	
 		// Assign materials
 		for (UMaterialInterface* Material : UniqueMaterials)
 		{
