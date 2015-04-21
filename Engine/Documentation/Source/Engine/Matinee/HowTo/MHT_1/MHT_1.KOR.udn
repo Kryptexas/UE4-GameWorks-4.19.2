@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2438434
+﻿INTSourceChangelist:2517729
 Availability: Public
 Title:문 구성하기
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
@@ -58,7 +58,7 @@ Description:마티네를 통해 자동으로 열리고 닫히는 문을 구성�
 
 	![](MHT1_DoorCollision.png)
 
-	_주: 이 문에는 콜리전이 적용되지 않았기에, 위 단계로 콜리전을 확보시켜 줍니다._
+	_주: 위 단계로 문에 콜리전이 적용되도록 합니다._
 
 1. **레벨 뷰포트** 에서 **SM_Door** 를 선택한 상태로 **디테일** 패널을 찾습니다. **트랜스폼** 아래 **회전** 세팅에서 **Z** 값을 **-180** 으로 설정합니다. 
 
@@ -141,7 +141,7 @@ Description:마티네를 통해 자동으로 열리고 닫히는 문을 구성�
 
 	![](MHT1_AddKey.png)(w:780)
 
-1. **마티네** 창을 최소화시킨 다음 **레벨 뷰포트** 로 돌아갑니다. **SM_Door** 가 선택된 상태로 있을 테니, **E** 키를 쳐 **회전** 모드로 들어갑니다. 
+1. **마티네** 창을 최소화시킨 다음 **레벨 뷰포트** 로 돌아갑니다. **SM_Door** 가 선택된 상태에서, **E** 키를 쳐 **회전** 모드로 들어갑니다. 
 
 	![](MHT1_RotateWidget.png)
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2499033
+﻿INTSourceChangelist:2518095
 Availability: Public
 Title:콜렉션
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
@@ -29,11 +29,23 @@ Description:콘텐츠 브라우저 내에서의 콜렉션 사용법에 대한 �
 내부적으로 콜렉션은 그저 주어진 애셋에 대한 레퍼런스 리스트일 뿐으로, 애셋 자체가 콜렉션 안으로 이동되는 것은 아닙니다. 즉 하나의 애셋이 다수의 콜렉션에 있을 수 있으며, 콜렉션은 원하는 만큼 많이 만들 수 있습니다.
 [/EXCERPT:Collections]
 
+[REGION:note]
+	**주**: 콜렉션 패널은 기본으로 켜있지 않을 수 있습니다. 콜렉션 패널을 열려면, **뷰 옵션** 드롭다운 메뉴 아래 **콜렉션 표시** 를 클릭하면 됩니다.
+[/REGION]
+![](ViewCollections.png)
+
+
 ## 콜렉션 만들기
+
+첫 콜렉션을 만들려면, 콜렉션 패널 우상단 구석의 콜렉션 추가 아이콘을 **좌클릭** 하고 이름을 입력합니다.
+
+![](AddNewCollections.png)
+
+첫 콜렉션 생성 이후, 콜렉션 추가는 **콜렉션** 패널에 **우클릭** 한 다음 새 콜렉션 이름을 입력해 주기만 하면 됩니다.
 
 ![](Collections_New.png)
 
-콜렉션은 콜렉션 패널에 우클릭한 다음 새 이름을 지어주는 것으로 쉽게 만들 수 있습니다.
+
 
 ## 콜렉션 유형
 

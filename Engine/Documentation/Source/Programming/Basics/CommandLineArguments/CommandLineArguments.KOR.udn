@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2431752
+﻿INTSourceChangelist:2517505
 Availability: Public
 Title: 명령줄 인수
 Crumbs: %ROOT%, Engine, Engine/Basics
@@ -99,7 +99,7 @@ URL은 맵 이름 또는 서버 IP 주소 / 부가 파라미터 시리즈의 두
 * `DEVCON`: 개발자용 보안 연결을 끕니다 (암호화되지 않은 소켓을 사용합니다)
 * `DUMPFILEIOSTATS`: 파일 IO 통계를 추적하여 로그합니다.
 * `DUMPUDKSURVEY`: UDK 하드웨어 조사를 덤프하기만 합니다. 업로드하지 않습니다.
-* `FATASCRIPTWARNINGS`: 디버깅으로부터의 스크립트 경고를 치명적인 것으로 간주합니다.
+* `FATALSCRIPTWARNINGS`: 디버깅으로부터의 스크립트 경고를 치명적인 것으로 간주합니다.
 * `FINAL_RELEASE`: FINAL_RELEASE 매크로를 스크립트 컴파일용으로 설정합니다.
 * `FIXEDSEED`: 난수 발생기를 고정된 값 0으로 초기화시킵니다.
 * `FIXUPTANGENTS`: 분포의 레거시 탄젠트를 자동으로 고칩니다.
@@ -263,6 +263,7 @@ URL은 맵 이름 또는 서버 IP 주소 / 부가 파라미터 시리즈의 두
 * `numbots` (예: `numbots=[봇 수]`)
 
  
+
 
 
 
