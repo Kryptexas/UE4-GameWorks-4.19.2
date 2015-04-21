@@ -304,18 +304,6 @@ DEFINE_STAT(STAT_PumpMessages);
 DEFINE_STAT(STAT_CPUTimePct);
 DEFINE_STAT(STAT_CPUTimePctRelative);
 
-DEFINE_STAT(STAT_AsyncIO_FulfilledReadCount);
-DEFINE_STAT(STAT_AsyncIO_FulfilledReadSize);
-DEFINE_STAT(STAT_AsyncIO_CanceledReadCount);
-DEFINE_STAT(STAT_AsyncIO_CanceledReadSize);
-DEFINE_STAT(STAT_AsyncIO_OutstandingReadCount);
-DEFINE_STAT(STAT_AsyncIO_OutstandingReadSize);
-DEFINE_STAT(STAT_AsyncIO_UncompressorWaitTime);
-DEFINE_STAT(STAT_AsyncIO_AsyncLoadingBlockingTime);
-DEFINE_STAT(STAT_AsyncIO_AsyncPackagePrecacheWaitTime);
-DEFINE_STAT(STAT_AsyncIO_Bandwidth);
-DEFINE_STAT(STAT_AsyncIO_PlatformReadTime);
-
 DEFINE_LOG_CATEGORY(LogHAL);
 DEFINE_LOG_CATEGORY(LogMac);
 DEFINE_LOG_CATEGORY(LogLinux);

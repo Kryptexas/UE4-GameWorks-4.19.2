@@ -71,18 +71,6 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Pump Messages"),STAT_PumpMessages,STATGROUP_Thre
 DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("Percentage CPU utilization"),STAT_CPUTimePct,STATGROUP_Threading, CORE_API);
 DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("Percentage CPU utilization (relative to one core)"),STAT_CPUTimePctRelative,STATGROUP_Threading, CORE_API);
 
-DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Fulfilled read count"),STAT_AsyncIO_FulfilledReadCount,STATGROUP_AsyncIO, CORE_API);
-DECLARE_MEMORY_STAT_EXTERN(TEXT("Fulfilled read size"),STAT_AsyncIO_FulfilledReadSize,STATGROUP_AsyncIO, CORE_API);
-DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Canceled read count"),STAT_AsyncIO_CanceledReadCount,STATGROUP_AsyncIO, CORE_API);
-DECLARE_MEMORY_STAT_EXTERN(TEXT("Canceled read size"),STAT_AsyncIO_CanceledReadSize,STATGROUP_AsyncIO, CORE_API);
-DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Outstanding read count"),STAT_AsyncIO_OutstandingReadCount,STATGROUP_AsyncIO, CORE_API);
-DECLARE_MEMORY_STAT_EXTERN(TEXT("Outstanding read size"),STAT_AsyncIO_OutstandingReadSize,STATGROUP_AsyncIO, CORE_API);
-DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("Platform read time"),STAT_AsyncIO_PlatformReadTime,STATGROUP_AsyncIO, CORE_API);
-DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("Uncompressor wait time"),STAT_AsyncIO_UncompressorWaitTime,STATGROUP_AsyncIO, CORE_API);
-DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("Async loading block time"),STAT_AsyncIO_AsyncLoadingBlockingTime,STATGROUP_AsyncIO, CORE_API);
-DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("Async package precache wait time"),STAT_AsyncIO_AsyncPackagePrecacheWaitTime,STATGROUP_AsyncIO, CORE_API);
-DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("Bandwidth (MByte/ sec)"),STAT_AsyncIO_Bandwidth,STATGROUP_AsyncIO, CORE_API);
-
 /**
  * Math stats
  */ 
