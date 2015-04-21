@@ -262,8 +262,7 @@ public:
 		UActorChannel *		OwningChannel,
 		UProperty *			Property, 
 		FOutBunch &			Bunch, 
-		int32				ArrayIndex, 
-		int32 &				LastArrayIndex, 
+		uint32				ArrayIndex, 
 		bool &				bContentBlockWritten ) const;
 
 	bool ReplicateProperties( 
@@ -273,7 +272,6 @@ public:
 		UActorChannel *				OwningChannel,
 		FOutBunch &					Writer, 
 		const FReplicationFlags &	RepFlags,
-		int32 &						LastIndex, 
 		bool &						bContentBlockWritten ) const;
 
 	void SendProperties( 
@@ -284,7 +282,6 @@ public:
 		UActorChannel *				OwningChannel,
 		FOutBunch &					Writer, 
 		TArray< uint16 >	 &		Changed, 
-		int32 &						LastIndex, 
 		bool &						bContentBlockWritten ) const;
 
 	ENGINE_API void InitFromObjectClass( UClass * InObjectClass );

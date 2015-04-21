@@ -124,8 +124,35 @@ struct FNetworkDemoHeader
 	friend FArchive& operator << ( FArchive& Ar, FNetworkDemoHeader& Header )
 	{
 		Ar << Header.Magic;
+
+		// Check magic value
+		if ( Header.Magic != NETWORK_DEMO_MAGIC )
+		{
+			UE_LOG( LogDemo, Error, TEXT( "Header.Magic != NETWORK_DEMO_MAGIC" ) );
+			Ar.SetError();
+			return Ar;
+		}
+
 		Ar << Header.Version;
+
+		// Check version
+		if ( Header.Version != NETWORK_DEMO_VERSION )
+		{
+			UE_LOG( LogDemo, Error, TEXT( "Header.Version != NETWORK_DEMO_VERSION" ) );
+			Ar.SetError();
+			return Ar;
+		}
+
+		// Check internal version
 		Ar << Header.InternalProtocolVersion;
+
+		if ( Header.InternalProtocolVersion != FNetworkVersion::InternalProtocolVersion )
+		{
+			UE_LOG( LogDemo, Error, TEXT( "Header.InternalProtocolVersion != FNetworkVersion::InternalProtocolVersion" ) );
+			Ar.SetError();
+			return Ar;
+		}
+
 		Ar << Header.EngineNetVersion;
 		Ar << Header.LevelName;
 
@@ -226,29 +253,11 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 
 	(*FileAr) << DemoHeader;
 
-	// Check magic value
-	if ( DemoHeader.Magic != NETWORK_DEMO_MAGIC )
+	if ( FileAr->IsError() )
 	{
 		Error = FString( TEXT( "Demo file is corrupt" ) );
 		UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::InitConnect: %s" ), *Error );
 		GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::Corrupt, Error );
-		return false;
-	}
-
-	// Check version
-	if ( DemoHeader.Version != NETWORK_DEMO_VERSION )
-	{
-		Error = FString( TEXT( "Demo file version is incorrect" ) );
-		UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::InitConnect: %s" ), *Error );
-		GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::InvalidVersion, Error );
-		return false;
-	}
-
-	if ( DemoHeader.InternalProtocolVersion != FNetworkVersion::InternalProtocolVersion )
-	{
-		Error = FString( TEXT( "Engine internal network version is incorrect" ) );
-		UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::InitConnect: %s" ), *Error );
-		GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::InvalidVersion, Error );
 		return false;
 	}
 

@@ -15,14 +15,14 @@ class COREUOBJECT_API FFieldNetCache
 {
 public:
 	UField* Field;
-	int32 FieldNetIndex;
+	int32	FieldNetIndex;
+	uint32	FieldChecksum;
 	FFieldNetCache()
 	{}
-	FFieldNetCache( UField* InField, int32 InFieldNetIndex )
-	: Field(InField), FieldNetIndex(InFieldNetIndex)
+	FFieldNetCache( UField* InField, int32 InFieldNetIndex, uint32 InFieldChecksum )
+		: Field(InField), FieldNetIndex(InFieldNetIndex), FieldChecksum(InFieldChecksum)
 	{}
 };
-
 
 //
 // Information about a class, cached for network coordination.
@@ -32,52 +32,86 @@ class COREUOBJECT_API FClassNetCache
 	friend class FClassNetCacheMgr;
 public:
 	FClassNetCache();
-	FClassNetCache( UClass* Class );
-	int32 GetMaxIndex()
+	FClassNetCache( const UClass* Class );
+
+	int32 GetMaxIndex() const
 	{
-		return FieldsBase+Fields.Num();
+		return FieldsBase + Fields.Num();
 	}
-	FFieldNetCache* GetFromField( UObject* Field )
+
+	const FFieldNetCache* GetFromField( const UObject* Field ) const
 	{
-		FFieldNetCache* Result=NULL;
-		for( FClassNetCache* C=this; C; C=C->Super )
+		FFieldNetCache* Result = NULL;
+
+		for ( const FClassNetCache* C= this; C; C = C->Super )
 		{
-			if( (Result=C->FieldMap.FindRef(Field))!=NULL )
+			if ( ( Result = C->FieldMap.FindRef( Field ) ) != NULL )
 			{
 				break;
 			}
 		}
 		return Result;
 	}
-	FFieldNetCache* GetFromIndex( int32 Index )
+
+	const FFieldNetCache* GetFromChecksum( const uint32 Checksum ) const
 	{
-		for( FClassNetCache* C=this; C; C=C->Super )
+		FFieldNetCache* Result = NULL;
+
+		for ( const FClassNetCache* C = this; C; C = C->Super )
 		{
-			if( Index>=C->FieldsBase && Index<C->FieldsBase+C->Fields.Num() )
+			if ( ( Result = C->FieldChecksumMap.FindRef( Checksum ) ) != NULL )
+			{
+				break;
+			}
+		}
+		return Result;
+	}
+
+	const FFieldNetCache* GetFromIndex( const int32 Index ) const
+	{
+		for ( const FClassNetCache* C = this; C; C = C->Super )
+		{
+			if ( Index >= C->FieldsBase && Index < C->FieldsBase + C->Fields.Num() )
 			{
 				return &C->Fields[Index-C->FieldsBase];
 			}
 		}
 		return NULL;
 	}
+
+	uint32 GetClassChecksum() const { return ClassChecksum; }
+
 private:
 	int32								FieldsBase;
-	FClassNetCache *					Super;
-	TWeakObjectPtr< UClass >			Class;
+	const FClassNetCache*				Super;
+	TWeakObjectPtr< const UClass >		Class;
+	uint32								ClassChecksum;
 	TArray< FFieldNetCache >			Fields;
-	TMap< UObject *, FFieldNetCache * > FieldMap;
+	TMap< UObject*, FFieldNetCache* >	FieldMap;
+	TMap< uint32, FFieldNetCache* >		FieldChecksumMap;
 };
 
 
 class COREUOBJECT_API FClassNetCacheMgr
 {
 public:
+	FClassNetCacheMgr() : bDebugChecksum( false ), DebugChecksumIndent( 0 ) { }
+
 	/** get the cached field to index mappings for the given class */
-	FClassNetCache *	GetClassNetCache( UClass * Class );
-	void				ClearClassNetCache();
+	const FClassNetCache*	GetClassNetCache( const UClass* Class );
+	void					ClearClassNetCache();
+
+	void				SortProperties( TArray< UProperty* >& Properties ) const;
+	uint32				SortedStructFieldsChecksum( const UStruct* Struct, uint32 Checksum ) const;
+	uint32				GetPropertyChecksum( const UProperty* Property, uint32 Checksum ) const;
+	uint32				GetFunctionChecksum( const UFunction* Function, uint32 Checksum ) const;
+	uint32				GetFieldChecksum( const UField* Field, uint32 Checksum ) const;
+
+	bool				bDebugChecksum;
+	int					DebugChecksumIndent;
 
 private:
-	TMap< TWeakObjectPtr< UClass >, FClassNetCache * > ClassFieldIndices;
+	TMap< TWeakObjectPtr< const UClass >, FClassNetCache* > ClassFieldIndices;
 };
 
 

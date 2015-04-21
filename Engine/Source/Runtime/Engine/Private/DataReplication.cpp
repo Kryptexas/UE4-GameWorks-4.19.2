@@ -390,7 +390,71 @@ void FObjectReplicator::ReceivedNak( int32 NakPacketId )
 	}
 }
 
-bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags& RepFlags, bool & bOutHasUnmapped )
+const FFieldNetCache* FObjectReplicator::ReadField( const FClassNetCache* ClassCache, FInBunch& Bunch ) const
+{
+	if ( Connection->InternalAck )
+	{
+		// Replays use checksum rather than index
+		uint32 Checksum = 0;
+		Bunch << Checksum;
+
+		if ( Bunch.IsError() )
+		{
+			UE_LOG( LogNet, Error, TEXT( "ReadField: Error reading checksum: %s" ), *GetObject()->GetFullName() );
+			return NULL;
+		}
+
+		if ( Checksum == 0 )
+		{
+			return NULL;	// We're done
+		}
+
+		const FFieldNetCache * FieldNetCache = ClassCache->GetFromChecksum( Checksum );
+
+		if ( FieldNetCache == NULL )
+		{
+			UE_LOG( LogNet, Error, TEXT( "ReadField: GetFromChecksum failed: %s" ), *GetObject()->GetFullName() );
+			Bunch.SetError();
+			return NULL;
+		}
+
+		return FieldNetCache;
+	}
+
+	const int32 RepIndex = Bunch.ReadInt( ClassCache->GetMaxIndex() + 1 );
+
+	if ( Bunch.IsError() )
+	{
+		UE_LOG( LogNet, Error, TEXT( "ReadField: Error reading RepIndex: %s" ), *GetObject()->GetFullName() );
+		return NULL;
+	}
+
+	if ( RepIndex == ClassCache->GetMaxIndex() )
+	{
+		return NULL;	// We're done
+	}
+
+	if ( RepIndex > ClassCache->GetMaxIndex() )
+	{
+		// We shouldn't be receiving this bunch of this object has no properties or RPC functions to process
+		UE_LOG( LogNet, Error, TEXT( "ReadField: RepIndex too large: %s" ), *GetObject()->GetFullName() );
+		Bunch.SetError();
+		return NULL;
+	}
+	
+	const FFieldNetCache * FieldNetCache = ClassCache->GetFromIndex( RepIndex );
+
+	if ( FieldNetCache == NULL )
+	{
+		UE_LOG( LogNet, Error, TEXT( "ReadField: GetFromIndex failed: %s" ), *GetObject()->GetFullName() );
+		Bunch.SetError();
+		return NULL;
+	}
+
+	return FieldNetCache;
+}
+
+bool FObjectReplicator::ReceivedBunch( FInBunch& Bunch, const FReplicationFlags& RepFlags, bool& bOutHasUnmapped )
 {
 	UObject* Object = GetObject();
 
@@ -404,7 +468,7 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags&
 
 	const bool bIsServer = ( OwningChannel->Connection->Driver->ServerConnection == NULL );
 
-	FClassNetCache * ClassCache = OwningChannel->Connection->Driver->NetCache->GetClassNetCache( ObjectClass );
+	const FClassNetCache * ClassCache = OwningChannel->Connection->Driver->NetCache->GetClassNetCache( ObjectClass );
 
 	if ( ClassCache == NULL )
 	{
@@ -414,42 +478,26 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags&
 
 	bool bThisBunchReplicatedProperties = false;
 
-	// First RepIndex.
-	int32 RepIndex = Bunch.ReadInt( ClassCache->GetMaxIndex() + 1 );
+	// Read first field
+	const FFieldNetCache * FieldCache = ReadField( ClassCache, Bunch );
 
 	if ( Bunch.IsError() )
 	{
-		UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: Error reading bunch 1: %s" ), *Object->GetFullName() );
+		UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: Error reading field 1: %s" ), *Object->GetFullName() );
 		return false;
 	}
-
-	if ( RepIndex == ClassCache->GetMaxIndex() )
-	{
-		// There are no actual replicated properties or functions in this bunch. That is ok - we may have gotten this
-		// actor/subobject because we want the client to spawn one (but we arent actually replicating properties on it)
-		return true;
-	}
-
-	if ( RepIndex > ClassCache->GetMaxIndex() )
-	{
-		// We shouldn't be receiving this bunch of this object has no properties or RPC functions to process
-		UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: RepIndex too large: %s" ), *Object->GetFullName() );
-		return false;
-	}
-
-	FFieldNetCache * FieldCache = ClassCache->GetFromIndex( RepIndex );
 
 	if ( FieldCache == NULL )
 	{
-		UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: FieldCache == NULL: %s" ), *Object->GetFullName() );
-		return false;
+		// There are no actual replicated properties or functions in this bunch. That is ok - we may have gotten this
+		// actor/sub-object because we want the client to spawn one (but we aren't actually replicating properties on it)
+		return true;
 	}
 
 	while ( FieldCache )
 	{
 		// Receive properties from the net.
-		UProperty * ReplicatedProp	= NULL;
-		int32		LastIndex		= 0;
+		UProperty* ReplicatedProp = NULL;
 
 		while ( FieldCache && ( ReplicatedProp = Cast< UProperty >( FieldCache->Field ) ) != NULL )
 		{
@@ -476,7 +524,7 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags&
 				static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("net.Replication.DebugProperty"));
 				if (CVar && !CVar->GetString().IsEmpty() && ReplicatedProp->GetName().Contains(CVar->GetString()) )
 				{
-					UE_LOG(LogNet, Log, TEXT("Replicating Property[%d] %s on %s"), RepIndex, *ReplicatedProp->GetName(), *Object->GetName());
+					UE_LOG(LogNet, Log, TEXT("Replicating Property[%d] %s on %s"), ReplicatedProp->RepIndex, *ReplicatedProp->GetName(), *Object->GetName());
 					DebugProperty = true;
 				}
 			}
@@ -493,16 +541,14 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags&
 			else
 			{
 				// Receive array index.
-				int32 Element = 0;
+				uint32 Element = 0;
 				if ( ReplicatedProp->ArrayDim != 1 )
 				{
-					// Serialize index as delta from previous index to increase chance we'll only use 1 byte
-					uint32 idx;
-					Bunch.SerializeIntPacked( idx );
-					Element = static_cast< int32 >( idx ) + LastIndex;
-					LastIndex = Element;
+					check( ReplicatedProp->ArrayDim >= 2 );
 
-					if ( Element >= ReplicatedProp->ArrayDim )
+					Bunch.SerializeIntPacked( Element );
+
+					if ( Element >= (uint32)ReplicatedProp->ArrayDim )
 					{
 						UE_LOG( LogNet, Error, TEXT( "Element index too large %s in %s" ), *ReplicatedProp->GetName(), *Object->GetFullName() );
 						return false;
@@ -569,35 +615,13 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags&
 				QueuePropertyRepNotify( Object, ReplicatedProp, Element, MetaData );
 			}	
 			
-			// Next.
-			RepIndex = Bunch.ReadInt( ClassCache->GetMaxIndex() + 1 );
+			// Read next field
+			FieldCache = ReadField( ClassCache, Bunch );
 
 			if ( Bunch.IsError() )
 			{
-				UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: Error reading bunch 2: %s" ), *Object->GetFullName() );
+				UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: Error reading field 2: %s" ), *Object->GetFullName() );
 				return false;
-			}
-
-			if ( RepIndex > ClassCache->GetMaxIndex() )
-			{
-				UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: RepIndex too large: %s" ), *Object->GetFullName() );
-				return false;
-			}
-			
-			if ( RepIndex == ClassCache->GetMaxIndex() )
-			{
-				// We're done
-				FieldCache = NULL;
-			}
-			else
-			{
-				FieldCache = ClassCache->GetFromIndex( RepIndex );
-
-				if ( FieldCache == NULL )
-				{
-					UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: FieldCache == NULL: %s" ), *Object->GetFullName() );
-					return false;
-				}
 			}
 		}
 
@@ -688,39 +712,17 @@ bool FObjectReplicator::ReceivedBunch( FInBunch &Bunch, const FReplicationFlags&
 			}
 
 			// Next.
-			RepIndex = Bunch.ReadInt( ClassCache->GetMaxIndex() + 1 );
+			FieldCache = ReadField( ClassCache, Bunch );
 
 			if ( Bunch.IsError() )
 			{
-				UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: Error reading bunch 2: %s" ), *Object->GetFullName() );
+				UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: Error reading field 3: %s" ), *Object->GetFullName() );
 				return false;
-			}
-
-			if ( RepIndex > ClassCache->GetMaxIndex() )
-			{
-				UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: RepIndex too large: %s" ), *Object->GetFullName() );
-				return false;
-			}
-
-			if ( RepIndex == ClassCache->GetMaxIndex() )
-			{
-				// We're done
-				FieldCache = NULL;
-			}
-			else
-			{
-				FieldCache = ClassCache->GetFromIndex( RepIndex );
-
-				if ( FieldCache == NULL )
-				{
-					UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: FieldCache == NULL: %s" ), *Object->GetFullName() );
-					return false;
-				}
 			}
 		}
 		else if ( FieldCache )
 		{
-			UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: Invalid replicated field %i in %s" ), RepIndex, *Object->GetFullName() );
+			UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: Invalid replicated field %i in %s" ), FieldCache->FieldNetIndex, *Object->GetFullName() );
 			return false;
 		}
 	}
@@ -783,7 +785,7 @@ static FORCEINLINE FPropertyRetirement ** UpdateAckedRetirements( FPropertyRetir
 	return Rec;
 }
 
-void FObjectReplicator::ReplicateCustomDeltaProperties( FOutBunch & Bunch, FReplicationFlags RepFlags, int32& LastIndex, bool & bContentBlockWritten )
+void FObjectReplicator::ReplicateCustomDeltaProperties( FOutBunch & Bunch, FReplicationFlags RepFlags, bool & bContentBlockWritten )
 {
 	if ( LifetimeCustomDeltaProperties.Num() == 0 )
 	{
@@ -876,7 +878,7 @@ void FObjectReplicator::ReplicateCustomDeltaProperties( FOutBunch & Bunch, FRepl
 		OldState = NewState; 
 
 		// Write header, and data to send to the actual bunch
-		RepLayout->WritePropertyHeader( Object, ObjectClass, OwningChannel, It, Bunch, Index, LastIndex, bContentBlockWritten );
+		RepLayout->WritePropertyHeader( Object, ObjectClass, OwningChannel, It, Bunch, Index, bContentBlockWritten );
 
 		const int NumStartingBits = Bunch.GetNumBits();
 
@@ -908,14 +910,13 @@ bool FObjectReplicator::ReplicateProperties( FOutBunch & Bunch, FReplicationFlag
 
 	const int32 StartingBitNum = Bunch.GetNumBits();
 
-	bool	bContentBlockWritten	= false;
-	int32	LastIndex				= 0;
+	bool bContentBlockWritten = false;
 
 	// Replicate all the custom delta properties (fast arrays, etc)
-	ReplicateCustomDeltaProperties( Bunch, RepFlags, LastIndex, bContentBlockWritten );
+	ReplicateCustomDeltaProperties( Bunch, RepFlags, bContentBlockWritten );
 
 	// Replicate properties in the layout
-	RepLayout->ReplicateProperties( RepState, (uint8*)Object, ObjectClass, OwningChannel, Bunch, RepFlags, LastIndex, bContentBlockWritten );
+	RepLayout->ReplicateProperties( RepState, (uint8*)Object, ObjectClass, OwningChannel, Bunch, RepFlags, bContentBlockWritten );
 
 	// LastUpdateEmpty - this is done before dequeing the multicasted unreliable functions on purpose as they should not prevent
 	// an actor channel from going dormant.

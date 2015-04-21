@@ -592,7 +592,6 @@ bool FRepLayout::ReplicateProperties(
 	UActorChannel *				OwningChannel,
 	FOutBunch &					Writer, 
 	const FReplicationFlags &	RepFlags,
-	int32 &						LastIndex, 
 	bool &						bContentBlockWritten ) const
 {
 	SCOPE_CYCLE_COUNTER( STAT_NetReplicateDynamicPropTime );
@@ -750,10 +749,10 @@ bool FRepLayout::ReplicateProperties(
 #endif
 
 		// For RepLayout properties, we hijack the first non custom property, and use that to identify these properties
-		WritePropertyHeader( (UObject*)Data, ObjectClass, OwningChannel, Parents[FirstNonCustomParent].Property, Writer, 0, LastIndex, bContentBlockWritten );
+		WritePropertyHeader( (UObject*)Data, ObjectClass, OwningChannel, Parents[FirstNonCustomParent].Property, Writer, 0, bContentBlockWritten );
 
 		// Send the final merged change list
-		SendProperties( RepState, RepFlags, Data, ObjectClass, OwningChannel, Writer, Changed, LastIndex, bContentBlockWritten );
+		SendProperties( RepState, RepFlags, Data, ObjectClass, OwningChannel, Writer, Changed, bContentBlockWritten );
 
 #ifdef ENABLE_SUPER_CHECKSUMS
 		Writer.WriteBit( bIsAllAcked ? 1 : 0 );
@@ -1098,14 +1097,14 @@ void FRepLayout::WritePropertyHeader(
 	UActorChannel *		OwningChannel,
 	UProperty *			Property, 
 	FOutBunch &			Bunch, 
-	int32				ArrayIndex, 
-	int32 &				LastArrayIndex, 
+	uint32				ArrayIndex, 
 	bool &				bContentBlockWritten ) const
 {
 	UNetConnection * Connection = OwningChannel->Connection;
 
 	// Get class network info cache.
-	FClassNetCache * ClassCache = Connection->Driver->NetCache->GetClassNetCache( ObjectClass );
+	const FClassNetCache* ClassCache = Connection->Driver->NetCache->GetClassNetCache( ObjectClass );
+
 	check( ClassCache );
 
 	if ( !bContentBlockWritten )
@@ -1117,29 +1116,28 @@ void FRepLayout::WritePropertyHeader(
 	const int NumStartingBits = Bunch.GetNumBits();
 
 	// Get the network friend property index to replicate
-	// Swap Role/RemoteRole while we're at it
-	FFieldNetCache * FieldCache
-		=	Property->GetFName() == NAME_Role
-		?	ClassCache->GetFromField( Connection->Driver->RemoteRoleProperty )
-		:	Property->GetFName() == NAME_RemoteRole
-		?	ClassCache->GetFromField( Connection->Driver->RoleProperty )
-		:	ClassCache->GetFromField( Property );
+	const FFieldNetCache * FieldCache = ClassCache->GetFromField( Property );
 
 	checkSlow( FieldCache );
 
 	// Send property name and optional array index.
 	check( FieldCache->FieldNetIndex <= ClassCache->GetMaxIndex() );
 
-	Bunch.WriteIntWrapped( FieldCache->FieldNetIndex, ClassCache->GetMaxIndex() + 1 );
+	if ( Connection->InternalAck )
+	{
+		uint32 Checksum = FieldCache->FieldChecksum;
+		Bunch << Checksum;
+	}
+	else
+	{
+		Bunch.WriteIntWrapped( FieldCache->FieldNetIndex, ClassCache->GetMaxIndex() + 1 );
+	}
 
 	NET_CHECKSUM( Bunch );
 
 	if ( Property->ArrayDim != 1 )
 	{
-		// Serialize index as delta from previous index to increase chance we'll only use 1 byte
-		uint32 idx = static_cast<uint32>( ArrayIndex - LastArrayIndex );
-		Bunch.SerializeIntPacked(idx);
-		LastArrayIndex = ArrayIndex;
+		Bunch.SerializeIntPacked( ArrayIndex );
 	}
 
 	NETWORK_PROFILER(GNetworkProfiler.TrackWritePropertyHeader(Property, Bunch.GetNumBits() - NumStartingBits));
@@ -1153,7 +1151,6 @@ void FRepLayout::SendProperties(
 	UActorChannel	*			OwningChannel,
 	FOutBunch &					Writer, 
 	TArray< uint16 > &			Changed, 
-	int32 &						LastIndex, 
 	bool &						bContentBlockWritten ) const
 {
 #ifdef ENABLE_PROPERTY_CHECKSUMS

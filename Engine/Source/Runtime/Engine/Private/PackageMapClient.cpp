@@ -1347,8 +1347,6 @@ void FNetGUIDCache::CleanReferences()
 		checkf( ObjectLookup.FindRef( It.Value() ).Object == It.Key(), TEXT("Failed to validate NetGUIDLookup map in UPackageMap. GUID '%s' was not in the ObjectLookup map with with object '%s'."), *It.Value().ToString(), *It.Key().Get()->GetPathName());
 	}
 
-	ClassChecksumMap.Empty();
-
 	FArchiveCountMemGUID CountBytesAr;
 
 	ObjectLookup.CountBytes( CountBytesAr );
@@ -2079,197 +2077,9 @@ void FNetGUIDCache::GenerateFullNetGUIDPath_r( const FNetworkGUID& NetGUID, FStr
 	}
 }
 
-static uint32 GetPropertyChecksum( const UProperty* Property, uint32 Checksum );
-
-static void SortProperties( TArray< UProperty* >& Properties )
-{
-	// Sort NetProperties so that their ClassReps are sorted by memory offset
-	struct FCompareUFieldOffsets
-	{
-		FORCEINLINE bool operator()( UProperty & A, UProperty & B ) const
-		{
-			// Ensure stable sort
-			if ( A.GetOffset_ForGC() == B.GetOffset_ForGC() )
-			{
-				return A.GetName() < B.GetName();
-			}
-
-			return A.GetOffset_ForGC() < B.GetOffset_ForGC();
-		}
-	};
-
-	Sort( Properties.GetData(), Properties.Num(), FCompareUFieldOffsets() );
-}
-
-static uint32 SortedStructFieldsChecksum( const UStruct* Struct, uint32 Checksum )
-{
-	// Generate a list that we can sort, to make sure we process these deterministically
-	TArray< UProperty * > Fields;
-
-	for ( TFieldIterator< UProperty > It( Struct ); It; ++It )
-	{
-		if ( It->PropertyFlags & CPF_RepSkip )
-		{
-			continue;
-		}
-
-		Fields.Add( *It );
-	}
-
-	// Sort them
-	SortProperties( Fields );
-
-	// Evolve the checksum on the sorted list
-	for ( auto Field : Fields )
-	{
-		Checksum = GetPropertyChecksum( Field, Checksum );
-	}
-
-	return Checksum;
-}
-
-static bool GDebugChecksum		= false;
-static int GDebugChecksumIndent = 0;
-
-static uint32 GetPropertyChecksum( const UProperty* Property, uint32 Checksum )
-{
-	if ( GDebugChecksum )
-	{
-		UE_LOG( LogNetPackageMap, Warning, TEXT( "%s%s [%s] [%u] [%u]" ), FCString::Spc( 2 * GDebugChecksumIndent ), *Property->GetName().ToLower(), *Property->GetClass()->GetName().ToLower(), Property->ArrayDim, Checksum );
-	}
-
-	// Evolve checksum on name
-	Checksum = FCrc::StrCrc32( *Property->GetName().ToLower(), Checksum );
-	
-	// Evolve checksum on class name
-	Checksum = FCrc::StrCrc32( *Property->GetClass()->GetName().ToLower(), Checksum );
-
-	// Evolve checksum on array dim (to detect when static arrays change size)
-	// We use a string to be endian agnostic
-	Checksum = FCrc::StrCrc32( *FString::Printf( TEXT( "%u" ), Property->ArrayDim ), Checksum );
-
-	const UArrayProperty* ArrayProperty = Cast< UArrayProperty >( Property );
-
-	// Evolve checksum on array inner
-	if ( ArrayProperty != NULL )
-	{
-		return GetPropertyChecksum( ArrayProperty->Inner, Checksum );
-	}
-
-	const UStructProperty* StructProperty = Cast< UStructProperty >( Property );
-
-	// Evolve checksum on property struct fields
-	if ( StructProperty != NULL )
-	{
-		if ( GDebugChecksum )
-		{
-			UE_LOG( LogNetPackageMap, Warning, TEXT( "%s [%s] [%u]" ), FCString::Spc( 2 * GDebugChecksumIndent ), *StructProperty->Struct->GetName().ToLower(), Checksum );
-		}
-
-		// Evolve checksum on struct name
-		Checksum = FCrc::StrCrc32( *StructProperty->Struct->GetName().ToLower(), Checksum );
-
-		GDebugChecksumIndent++;
-
-		Checksum = SortedStructFieldsChecksum( StructProperty->Struct, Checksum );
-
-		GDebugChecksumIndent--;
-	}
-
-	return Checksum;
-}
-
 uint32 FNetGUIDCache::GetClassNetworkChecksum( const UClass* Class )
 {
-	uint32 Checksum = GDebugChecksum ? 0 : ClassChecksumMap.FindRef( Class );
-
-	if ( Checksum != 0 )
-	{
-		return Checksum;
-	}
-
-	if ( Class->GetSuperClass() != NULL )
-	{
-		Checksum = GetClassNetworkChecksum( Class->GetSuperClass() );
-	}
-
-	GDebugChecksumIndent++;
-
-	Checksum = FCrc::StrCrc32( *Class->GetName().ToLower(), Checksum );
-
-	TArray< UProperty* > NetProperties;
-	TArray< UFunction* > MulticastFunctions;
-
-	// Grab all of the net properties from the replicated fields
-
-	for ( int32 i = 0; i < Class->NetFields.Num(); i++ )
-	{
-		UProperty* Property = Cast< UProperty >( Class->NetFields[i] );
-
-		if ( Property != NULL )
-		{
-			NetProperties.Add( Property );
-		}
-
-		UFunction* Function = Cast< UFunction >( Class->NetFields[i] );
-
-		if ( Function != NULL && ( Function->FunctionFlags & FUNC_NetMulticast ) )
-		{
-			MulticastFunctions.Add( Function );
-		}
-	}
-
-	// Sort properties by offset/name
-	SortProperties( NetProperties );
-
-	for ( int32 i = 0; i < NetProperties.Num(); i++ )
-	{
-		Checksum = GetPropertyChecksum( NetProperties[i], Checksum );
-	}
-
-	struct FCompareUFieldNames
-	{
-		FORCEINLINE bool operator()( UField& A, UField& B ) const
-		{
-			return A.GetName() < B.GetName();
-		}
-	};
-
-	// Sort multi-cast functions by name
-	Sort( MulticastFunctions.GetData(), MulticastFunctions.Num(), FCompareUFieldNames() );
-
-	// Grab all multi-cast RPC's (we don't need to worry about client RPC's, except for our spectator player controller, which we'll special case)
-	for ( UFunction* Function : MulticastFunctions )
-	{
-		// Evolve checksum on function name
-		Checksum = FCrc::StrCrc32( *Function->GetName().ToLower(), Checksum );
-
-		TArray< UProperty * > Parms;
-
-		for ( TFieldIterator< UProperty > It( Function ); It && ( It->PropertyFlags & ( CPF_Parm | CPF_ReturnParm ) ) == CPF_Parm; ++It )
-		{
-			Parms.Add( *It );
-		}
-		
-		// Sort parameters by offset/name
-		SortProperties( Parms );
-
-		// Evolve checksum on sorted function parameters
-		for ( UProperty* Parm : Parms )
-		{
-			Checksum = GetPropertyChecksum( Parm, Checksum );
-		}
-	}
-
-	// Can't be 0
-	if ( Checksum == 0 )
-	{
-		Checksum = 1;
-	}
-
-	ClassChecksumMap.Add( Class, Checksum );
-
-	return Checksum;
+	return Driver->NetCache->GetClassNetCache( Class )->GetClassChecksum();
 }
 
 uint32 FNetGUIDCache::GetNetworkChecksum( const UObject* Obj )
@@ -2279,26 +2089,10 @@ uint32 FNetGUIDCache::GetNetworkChecksum( const UObject* Obj )
 		return 0;
 	}
 
-	GDebugChecksum = false;
-	GDebugChecksumIndent = 0;
-
-#if 0
-	if ( Obj->GetName().Contains( TEXT( "Default__ShooterGameState" ) ) )
-	{
-		GDebugChecksum = true;
-
-		UE_LOG( LogNetPackageMap, Warning, TEXT( "OBJECT: %s" ), *Obj->GetName() );
-	}
-#endif
-
 	// If Obj is already a class, we can use that directly
 	const UClass* Class = Cast< UClass >( Obj );
 
-	const uint32 Checksum = ( Class == NULL ) ? GetClassNetworkChecksum( Obj->GetClass() ) : GetClassNetworkChecksum( Class );
-
-	GDebugChecksum = false;
-
-	return Checksum;
+	return ( Class != NULL ) ? GetClassNetworkChecksum( Class ) : GetClassNetworkChecksum( Obj->GetClass() );
 }
 
 bool FNetGUIDCache::ShouldIgnorePackageMismatch() const

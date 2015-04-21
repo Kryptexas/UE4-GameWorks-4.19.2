@@ -82,8 +82,6 @@ public:
 	TMap< TWeakObjectPtr< UObject >, FNetworkGUID >	NetGUIDLookup;
 	int32											UniqueNetIDs[2];
 
-	TMap< TWeakObjectPtr< UClass >, uint32 >		ClassChecksumMap;
-
 	bool											IsExportingNetGUIDBunch;
 
 	UNetDriver *									Driver;

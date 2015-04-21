@@ -711,15 +711,16 @@ void UNetDriver::InternalProcessRemoteFunction
 	UObject* TargetObj = SubObject ? SubObject : Actor;
 
 	// Make sure this function exists for both parties.
-	FClassNetCache* ClassCache = NetCache->GetClassNetCache( TargetObj->GetClass() );
+	const FClassNetCache* ClassCache = NetCache->GetClassNetCache( TargetObj->GetClass() );
 	if (!ClassCache)
 	{
 		DEBUG_REMOTEFUNCTION(TEXT("ClassNetCache empty, not calling %s::%s"), *Actor->GetName(), *Function->GetName());
 		return;
 	}
 		
-	FFieldNetCache* FieldCache = ClassCache->GetFromField( Function );
-	if (!FieldCache)
+	const FFieldNetCache* FieldCache = ClassCache->GetFromField( Function );
+
+	if ( !FieldCache )
 	{
 		DEBUG_REMOTEFUNCTION(TEXT("FieldCache empty, not calling %s::%s"), *Actor->GetName(), *Function->GetName());
 		return;
@@ -802,8 +803,16 @@ void UNetDriver::InternalProcessRemoteFunction
 	const int NumStartingHeaderBits = Bunch.GetNumBits();
 
 	//UE_LOG(LogScript, Log, TEXT("   Call %s"),Function->GetFullName());
-	check( FieldCache->FieldNetIndex <= ClassCache->GetMaxIndex() );
-	Bunch.WriteIntWrapped(FieldCache->FieldNetIndex, ClassCache->GetMaxIndex()+1);
+	if ( Connection->InternalAck )
+	{
+		uint32 Checksum = FieldCache->FieldChecksum;
+		Bunch << Checksum;
+	}
+	else
+	{
+		check( FieldCache->FieldNetIndex <= ClassCache->GetMaxIndex() );
+		Bunch.WriteIntWrapped(FieldCache->FieldNetIndex, ClassCache->GetMaxIndex()+1);
+	}
 
 	const int HeaderBits = Bunch.GetNumBits() - NumStartingHeaderBits;
 
@@ -1252,9 +1261,9 @@ bool UNetDriver::HandleNetDumpServerRPCCommand( const TCHAR* Cmd, FOutputDevice&
 
 			if ( Function != NULL && Function->FunctionFlags & FUNC_NetServer )
 			{
-				FClassNetCache * ClassCache = NetCache->GetClassNetCache( *ClassIt );
+				const FClassNetCache * ClassCache = NetCache->GetClassNetCache( *ClassIt );
 
-				FFieldNetCache * FieldCache = ClassCache->GetFromField( Function );
+				const FFieldNetCache * FieldCache = ClassCache->GetFromField( Function );
 
 				TArray< UProperty * > Parms;
 
