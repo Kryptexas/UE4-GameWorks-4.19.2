@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2516198
+Availability:Public
 Title:カスタム仕様の高さマップとレイヤーの作成と使用
 Crumbs: %ROOT%, Engine, Engine/Landscape
 Description:ランドスケープ用のカスタム仕様の高さマップとレイヤーの作成と使用
@@ -114,12 +115,12 @@ Photoshop でレイヤーを作成する場合は、次の設定を使って新�
 
 PC 上に高さマップを保存したら、ランドスケープ ツールの中で使ってみましょう。 
 1. ランドスケープ ツールを開いたら、 [**Manage Mode.**](Engine/Landscape/Editing/ManageMode) へ行きます。
+
 	![](Landscape_Open_Manage_Mode.png)
 
-
 1. **ファイルからインポート** するオプションを選択します。
-	![](Engine\Landscape\Creation\Landscape_Import_Section.png)
 
+	![](Engine\Landscape\Creation\Landscape_Import_Section.png)
 
 1. **Heightmap File** セクションからインポートしたい高さマップを選択します。 
 
