@@ -139,7 +139,9 @@ FDistanceFieldSceneData::FDistanceFieldSceneData(EShaderPlatform ShaderPlatform)
 	, InstancedSurfelBuffers(NULL)
 	, AtlasGeneration(0)
 {
-	bTrackPrimitives = DoesPlatformSupportDistanceFieldAO(ShaderPlatform) || DoesPlatformSupportDistanceFieldShadowing(ShaderPlatform);
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));
+
+	bTrackPrimitives = (DoesPlatformSupportDistanceFieldAO(ShaderPlatform) || DoesPlatformSupportDistanceFieldShadowing(ShaderPlatform)) && CVar->GetValueOnGameThread() != 0;
 }
 
 FDistanceFieldSceneData::~FDistanceFieldSceneData() 
@@ -178,6 +180,8 @@ void FDistanceFieldSceneData::UpdatePrimitive(FPrimitiveSceneInfo* InPrimitive)
 		&& Proxy->AffectsDistanceFieldLighting()
 		&& Proxy->SupportsDistanceFieldRepresentation() 
 		&& !PendingAddOperations.Contains(InPrimitive)
+		// This is needed to prevent infinite buildup when DF features are off such that the pending operations don't get consumed
+		&& !PendingUpdateOperations.Contains(InPrimitive)
 		// This can happen when the primitive fails to allocate from the SDF atlas
 		&& InPrimitive->DistanceFieldInstanceIndices.Num() > 0)
 	{
