@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateBasics.h"
-#include "EditorStyle.h"
+#include "TaskGraphStyle.h"
 #include "TaskGraphInterfaces.h"
 #include "VisualizerEvents.h"
 #include "STimeline.h"
@@ -12,7 +12,7 @@ void STimeline::Construct( const FArguments& InArgs )
 	MaxValue = InArgs._MaxValue;
 	FixedLabelSpacing = InArgs._FixedLabelSpacing;
 
-	BackgroundImage = FEditorStyle::GetBrush("TaskGraph.Background");
+	BackgroundImage = FTaskGraphStyle::Get()->GetBrush("TaskGraph.Background");
 
 	Zoom = 1.0f;
 	Offset = 0.0f;
@@ -31,7 +31,7 @@ int32 STimeline::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 	const FColor SelectedBarColor( 255, 255, 255, 255 );
 
 	// Paint inside the border only. 
-	const FVector2D BorderPadding = FEditorStyle::GetVector("ProgressBar.BorderPadding");
+	const FVector2D BorderPadding = FTaskGraphStyle::Get()->GetVector("TaskGraph.ProgressBar.BorderPadding");
 	const FSlateRect ForegroundClippingRect = AllottedGeometry.GetClippingRect().InsetBy(FMargin(BorderPadding.X, BorderPadding.Y)).IntersectionWith(MyClippingRect);
 
 	const float OffsetX = DrawingOffsetX; // BorderPadding.X

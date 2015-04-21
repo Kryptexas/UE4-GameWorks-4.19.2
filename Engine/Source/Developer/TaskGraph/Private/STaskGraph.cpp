@@ -8,6 +8,7 @@
 #include "Tickable.h"
 #include "SProfileVisualizer.h"
 #include "SDockTab.h"
+#include "TaskGraphStyle.h"
 
 /**
  * Creates Visualizer using Visualizer profile data format
@@ -114,6 +115,7 @@ static TSharedPtr< FDelayedVisualizerSpawner > GDelayedVisualizerSpawner;
 
 void InitProfileVisualizer()
 {
+	FTaskGraphStyle::Initialize();
 	if( GDelayedVisualizerSpawner.IsValid() == false )
 	{
 		GDelayedVisualizerSpawner = MakeShareable( new FDelayedVisualizerSpawner() );
@@ -122,6 +124,7 @@ void InitProfileVisualizer()
 
 void ShutdownProfileVisualizer()
 {
+	FTaskGraphStyle::Shutdown();
 	GDelayedVisualizerSpawner.Reset();
 }
 

@@ -16,8 +16,7 @@ void SProfileVisualizer::Construct( const FArguments& InArgs )
 	HeaderMessageText = InArgs._HeaderMessageText;
 	HeaderMessageTextColor = InArgs._HeaderMessageTextColor;
 
-	const FSlateBrush* ContentAreaBrush = FEditorStyle::GetBrush( "Docking.Tab", ".ContentAreaBrush" );
-
+	const FSlateBrush* ContentAreaBrush = FTaskGraphStyle::Get()->GetBrush("TaskGraph.ContentAreaBrush");
 	ChildSlot
 	[
 		SNew(SVerticalBox)

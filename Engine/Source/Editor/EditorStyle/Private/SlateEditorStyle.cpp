@@ -635,19 +635,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 			);
 	}
 
-	// TaskGraph
-	{
-		Set( "TaskGraph.Background", new BOX_BRUSH( "Common/ProgressBar_Background", FMargin(5.f/12.f) ) );
-		Set( "TaskGraph.Normal", new BOX_BRUSH( "Common/TaskGraph_Normal", FMargin(5.f/12.f) ) );
-		Set( "TaskGraph.Selected", new BOX_BRUSH( "Common/TaskGraph_Selected", FMargin(5.f/12.f) ) );
-		Set( "TaskGraph.Mono", new BOX_BRUSH( "Common/TaskGraph_Mono", FMargin(5.f/12.f) ) );
-		Set( "TaskGraph.BorderPadding", FVector2D(1,0) );
-		Set( "TaskGraph.SortUp", new IMAGE_BRUSH( "Common/SortUpArrow", Icon8x4 ) );
-		Set( "TaskGraph.SortDown", new IMAGE_BRUSH( "Common/SortDownArrow", Icon8x4 ) );
-		Set( "TaskGraph.Home", new IMAGE_BRUSH( "Icons/Home16x16", Icon16x16 ) );
-		Set( "TaskGraph.ToParent", new IMAGE_BRUSH( "Icons/ToParent", Icon16x16 ) );
-	}
-
 	// Tool panels
 	{
 		Set( "ToolPanel.GroupBorder", new BOX_BRUSH( "Common/GroupBorder", FMargin(4.0f/16.0f) ) );
@@ -1820,10 +1807,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		);
 	}
 
-	// Stats visualizer
-	{
-		Set( "StatsHeader", new BOX_BRUSH( "Common/TableViewHeader", 4.f/32.f ) );
-	}
+
 
 	// Package Migration
 	{
