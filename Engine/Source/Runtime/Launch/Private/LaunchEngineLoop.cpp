@@ -1063,7 +1063,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 #if STATS
 	FThreadStats::StartThread();
-	UE_LOG( LogStats, Log, TEXT( "Stats thread started" ) );
 #endif
 
 	if (FPlatformProcess::SupportsMultithreading())

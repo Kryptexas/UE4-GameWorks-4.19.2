@@ -1119,6 +1119,8 @@ void FThreadStats::StartThread()
 	FStartupMessages::Get().AddThreadMetadata( NAME_GameThread, FPlatformTLS::GetCurrentThreadId() );
 
 	CheckForCollectingStartupStats();
+
+	UE_LOG( LogStats, Log, TEXT( "Stats thread started" ) );
 }
 
 static FGraphEventRef LastFramesEvents[MAX_STAT_LAG];
