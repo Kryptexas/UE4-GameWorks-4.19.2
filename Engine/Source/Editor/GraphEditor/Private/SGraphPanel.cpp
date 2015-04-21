@@ -1332,7 +1332,7 @@ void SGraphPanel::OnGraphChanged(const FEdGraphEditAction& EditAction)
 
 			for (auto Node : EditAction.Nodes)
 			{
-				RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateStatic(AddNodeDelegateWrapper, this, const_cast<UEdGraphNode*>(Node), (HasKeyboardFocus() || HasFocusedDescendants()) ) );
+				RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateStatic(AddNodeDelegateWrapper, this, const_cast<UEdGraphNode*>(Node), EditAction.bUserInvoked ) );
 			}
 		}
 		if (bWasSelectAction)

@@ -28,15 +28,19 @@ struct FEdGraphEditAction
 	class UEdGraph* Graph;
 	/** [Optional] The object the action occurred on */
 	TSet<const class UEdGraphNode*> Nodes;
+	/** Whether the user invoked this change or not */
+	bool bUserInvoked;
 
 	FEdGraphEditAction()
 		: Action(GRAPHACTION_Default)
 		, Graph (NULL)
+		, bUserInvoked(false)
 	{}
 
-	explicit FEdGraphEditAction(EEdGraphActionType InAction, class UEdGraph* InGraph, class UEdGraphNode* InNode)
+	explicit FEdGraphEditAction(EEdGraphActionType InAction, class UEdGraph* InGraph, class UEdGraphNode* InNode, bool bInUserInvoked)
 		: Action(InAction) 
 		, Graph(InGraph)
+		, bUserInvoked(bInUserInvoked)
 	{
 		Nodes.Add(InNode);
 	}

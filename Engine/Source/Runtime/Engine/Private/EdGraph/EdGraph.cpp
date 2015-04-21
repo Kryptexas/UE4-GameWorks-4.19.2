@@ -147,7 +147,7 @@ void UEdGraph::AddNode( UEdGraphNode* NodeToAdd, bool bFromUI/* = false*/, bool 
 		AddNodeAction = (EEdGraphActionType)( ((int32)AddNodeAction) | GRAPHACTION_SelectNode );
 	}
 
-	FEdGraphEditAction Action(AddNodeAction, this, NodeToAdd);
+	FEdGraphEditAction Action(AddNodeAction, this, NodeToAdd, bFromUI);
 	
 	NotifyGraphChanged( Action );
 }
