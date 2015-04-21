@@ -1097,7 +1097,7 @@ namespace UnrealBuildTool
 			}
 
 			// For Mac, generate the dSYM file if the config file is set to do so
-			if (BuildConfiguration.bGeneratedSYMFile == true && (!bIsBuildingLibrary || LinkEnvironment.Config.bIsBuildingDLL))
+			if ((BuildConfiguration.bGeneratedSYMFile == true || BuildConfiguration.bUsePDBFiles == true) && (!bIsBuildingLibrary || LinkEnvironment.Config.bIsBuildingDLL))
 			{
 				Log.TraceInformation("Generating dSYM file for {0} - this will add some time to your build...", Path.GetFileName(OutputFile.AbsolutePath));
 				RemoteOutputFile = GenerateDebugInfo(OutputFile);
@@ -1326,6 +1326,19 @@ namespace UnrealBuildTool
 
         public override void AddFilesToReceipt(BuildReceipt Receipt, UEBuildBinary Binary)
 		{
+			string DebugExtension = UEBuildPlatform.GetBuildPlatform(Binary.Target.Platform).GetDebugInfoExtension(Binary.Config.Type);
+			if(DebugExtension == ".dsym")
+			{
+				foreach (string OutputFilePath in Binary.Config.OutputFilePaths)
+				{
+					string DsymInfo = OutputFilePath + ".dSYM/Contents/Info.plist";
+					Receipt.AddBuildProduct(DsymInfo, BuildProductType.SymbolFile);
+
+					string DsymDylib = OutputFilePath + ".dSYM/Contents/Resources/DWARF/" + Path.GetFileName(OutputFilePath);
+					Receipt.AddBuildProduct(DsymDylib, BuildProductType.SymbolFile);
+				}
+			}
+
 			if (Binary.Target.GlobalLinkEnvironment.Config.bIsBuildingConsoleApplication)
 			{
 				return;
