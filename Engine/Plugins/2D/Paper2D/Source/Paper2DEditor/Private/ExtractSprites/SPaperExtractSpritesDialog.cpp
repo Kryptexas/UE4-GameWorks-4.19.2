@@ -425,7 +425,7 @@ void SPaperExtractSpritesDialog::CreateExtractedSprites()
 	TArray<UObject*> ObjectsToSync;
 
 	// Create the factory used to generate the sprite
-	auto SpriteFactory = NewObject<UPaperSpriteFactory>();
+	UPaperSpriteFactory* SpriteFactory = NewObject<UPaperSpriteFactory>();
 	SpriteFactory->InitialTexture = SourceTexture;
 
 	// Create the sprite

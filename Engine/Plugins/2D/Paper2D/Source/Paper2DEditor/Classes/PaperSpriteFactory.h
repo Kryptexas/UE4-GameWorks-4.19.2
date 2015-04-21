@@ -21,13 +21,8 @@ class UPaperSpriteFactory : public UFactory
 	FVector2D InitialSourceUV;
 	FVector2D InitialSourceDimension;
 
-
 	// UFactory interface
 	virtual bool ConfigureProperties() override;
 	virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) override;
 	// End of UFactory interface
-
-protected:
-	/** A pointer to the window that is asking the user to select a parent class */
-//	TSharedPtr<SWindow> PickerWindow;
 };
