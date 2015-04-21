@@ -1337,6 +1337,14 @@ namespace UnrealBuildTool
 					string DsymDylib = OutputFilePath + ".dSYM/Contents/Resources/DWARF/" + Path.GetFileName(OutputFilePath);
 					Receipt.AddBuildProduct(DsymDylib, BuildProductType.SymbolFile);
 				}
+
+				for (int i = 0; i < Receipt.BuildProducts.Count; i++)
+				{
+					if(Path.GetExtension(Receipt.BuildProducts[i].Path) == DebugExtension)
+					{
+						Receipt.BuildProducts.RemoveAt(i--);
+					}
+				}
 			}
 
 			if (Binary.Target.GlobalLinkEnvironment.Config.bIsBuildingConsoleApplication)
