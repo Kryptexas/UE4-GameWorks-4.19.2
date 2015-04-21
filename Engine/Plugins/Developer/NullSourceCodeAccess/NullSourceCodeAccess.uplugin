@@ -1,0 +1,22 @@
+{
+	"FileVersion" : 3,
+	"FriendlyName" : "Null Source Code Access",
+	"Version" : 1,
+	"VersionName" : "1.0",
+	"CreatedBy" : "Salamanderrake" ,
+	"CreatedByURL" : "/dev/null",
+	"EngineVersion" : "4.7.0",
+	"Description" : "Allows access to c++ projects while only looking for clang++",
+	"Category" : "Developer.Source Code Access",
+	"EnabledByDefault" : true,
+	
+	"Modules" :
+	[
+		{
+			"Name" : "NullSourceCodeAccess",
+			"Type" : "Developer",
+			"WhitelistPlatforms" : [ "Linux" ],
+			"LoadingPhase" : "PreDefault"
+		}
+	]
+}
