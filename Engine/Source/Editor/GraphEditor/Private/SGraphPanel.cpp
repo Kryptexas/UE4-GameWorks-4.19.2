@@ -384,15 +384,17 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 				TArray< TSharedRef<SWidget> > NodePins;
 				ChildNode->GetPins(NodePins);
 
-				const FVector2D NodeLoc = ChildNode->GetPosition();
-				const FGeometry SynthesizedNodeGeometry(GraphCoordToPanelCoord(NodeLoc), AllottedGeometry.AbsolutePosition, FVector2D::ZeroVector, 1.f);
+				const FVector2D NodeGraphLoc = ChildNode->GetPosition();
+				const FVector2D NodePanelLoc = GraphCoordToPanelCoord(NodeGraphLoc);
+				const FGeometry SynthesizedNodeGeometry(NodePanelLoc, AllottedGeometry.AbsolutePosition, ChildNode->GetDesiredSize(), 1.f);
 
 				for (TArray< TSharedRef<SWidget> >::TConstIterator NodePinIterator(NodePins); NodePinIterator; ++NodePinIterator)
 				{
 					const SGraphPin& PinWidget = static_cast<const SGraphPin&>((*NodePinIterator).Get());
-					FVector2D PinLoc = NodeLoc + PinWidget.GetNodeOffset();
 
-					const FGeometry SynthesizedPinGeometry(GraphCoordToPanelCoord(PinLoc), AllottedGeometry.AbsolutePosition, FVector2D::ZeroVector, 1.f);
+					FVector2D PinPanelLoc = NodePanelLoc + (PinWidget.GetCachedPinOffsetInNodeSpace() * ZoomFactor);
+					const FGeometry SynthesizedPinGeometry(PinPanelLoc, AllottedGeometry.AbsolutePosition, PinWidget.GetCachedPinSize() * ZoomFactor, 1.f);
+
 					PinGeometries.Add(*NodePinIterator, FArrangedWidget(*NodePinIterator, SynthesizedPinGeometry));
 				}
 

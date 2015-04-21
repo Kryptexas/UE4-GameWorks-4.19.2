@@ -76,7 +76,7 @@ SGraphPin::SGraphPin()
 	, bShowLabel(true)
 	, bIsMovingLinks(false)
 	, PinColorModifier(FLinearColor::White)
-	, CachedNodeOffset(FVector2D::ZeroVector)
+	, CachedPinGeometry(FVector2D::ZeroVector, FVector2D::ZeroVector)
 {
 	IsEditable = true;
 
@@ -720,8 +720,9 @@ FReply SGraphPin::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dra
 
 void SGraphPin::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	CachedNodeOffset = AllottedGeometry.AbsolutePosition/AllottedGeometry.Scale - OwnerNodePtr.Pin()->GetUnscaledPosition();
-	CachedNodeOffset.Y += AllottedGeometry.Size.Y * 0.5f;
+	const FVector2D CachedNodeOffset = (AllottedGeometry.AbsolutePosition/AllottedGeometry.Scale) - OwnerNodePtr.Pin()->GetUnscaledPosition();
+	const FVector2D CachedPinSize = AllottedGeometry.Size;
+	CachedPinGeometry = FSlateRect(CachedNodeOffset, CachedNodeOffset + CachedPinSize);
 }
 
 UEdGraphPin* SGraphPin::GetPinObj() const
@@ -753,9 +754,14 @@ EVisibility SGraphPin::IsPinVisibleAsAdvanced() const
 	return (bIsAdvancedPin && bHideAdvancedPin && bCanBeHidden) ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
-FVector2D SGraphPin::GetNodeOffset() const
+FVector2D SGraphPin::GetCachedPinOffsetInNodeSpace() const
 {
-	return CachedNodeOffset;
+	return CachedPinGeometry.GetTopLeft();
+}
+
+FVector2D SGraphPin::GetCachedPinSize() const
+{
+	return CachedPinGeometry.GetSize();
 }
 
 FText SGraphPin::GetPinLabel() const

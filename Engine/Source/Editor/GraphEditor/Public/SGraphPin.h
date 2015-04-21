@@ -105,8 +105,11 @@ public:
 	/** If pin in node is visible at all */
 	EVisibility IsPinVisibleAsAdvanced() const;
 
-	/** Gets Node Offset */
-	FVector2D GetNodeOffset() const;
+	/** Get the cached offset from owning node to our approximate position within that node so that we can guess the pin location when the node itself is culled from the graph */
+	FVector2D GetCachedPinOffsetInNodeSpace() const;
+
+	/** Get the cached size of the pin the last time it was available so that we can guess the pin size when the node itself is culled from the graph */
+	FVector2D GetCachedPinSize() const;
 
 protected:
 	FText GetPinLabel() const;
@@ -180,8 +183,12 @@ protected:
 	/** Color modifier for use by the connection drawing policy */
 	FLinearColor PinColorModifier;
 
-	/** Cached offset from owning node to approximate position of culled pins */
-	FVector2D CachedNodeOffset;
+	/**
+	 * Minimal cached geometry data used to approximate the pin location when the node itself is culled from the graph
+	 * The top-left of the rect provides the cached offset from owning node to our approximate position within that node
+	 * The remainder of the rect provides the cached size of the pin the last time it was available
+	 */
+	FSlateRect CachedPinGeometry;
 
 	TSet< TWeakObjectPtr<UEdGraphPin> > HoverPinSet;
 

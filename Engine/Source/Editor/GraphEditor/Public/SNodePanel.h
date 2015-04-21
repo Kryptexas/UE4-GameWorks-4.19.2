@@ -231,6 +231,8 @@ namespace ENodeZone
 	};
 }
 
+class FNodePanelCullingCache;
+
 class GRAPHEDITOR_API SNodePanel : public SPanel
 {
 public:
@@ -797,6 +799,9 @@ protected:
 	/** The graph node widgets owned by this panel */
 	TSlotlessChildren<SNode> Children;
 	TSlotlessChildren<SNode> VisibleChildren;
+
+	/** Manages the cached information about which nodes are currently visible in the graph */
+	TSharedRef<FNodePanelCullingCache> CullingCache;
 
 	/** The node that the user is dragging. Null when they are not dragging a node. */
 	TWeakPtr<SNode> NodeUnderMousePtr;
