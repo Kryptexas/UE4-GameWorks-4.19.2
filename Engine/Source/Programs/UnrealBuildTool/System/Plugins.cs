@@ -168,17 +168,6 @@ namespace UnrealBuildTool
 
 
 		/// <summary>
-		/// Returns true if the specified module name is part of a plugin
-		/// </summary>
-		/// <param name="ModuleName">Name of the module to check</param>
-		/// <returns>True if this is a plugin module</returns>
-		public static bool IsPluginModule( string ModuleName )
-		{
-			return ModuleNameToPluginMap.ContainsKey( ModuleName );
-		}
-
-		
-		/// <summary>
 		/// Checks to see if this module is a plugin module, and if it is, returns the PluginInfo for that module, otherwise null.
 		/// </summary>
 		/// <param name="ModuleName">Name of the module to check</param>

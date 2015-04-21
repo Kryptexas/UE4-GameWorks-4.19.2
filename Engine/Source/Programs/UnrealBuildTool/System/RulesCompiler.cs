@@ -1643,13 +1643,11 @@ namespace UnrealBuildTool
 				}
 			}
 
-			var IsPluginModule = Plugins.IsPluginModule( InModuleName );
-
 			// Setup the directories for Classes, Public, and Intermediate			
 			string ClassesDirectory = Path.Combine(ModuleDirectoryRelativeToEngineSourceDirectory, "Classes/");	// @todo uht: Deprecate eventually.  Or force it to be manually specified...
 			string PublicDirectory = Path.Combine(ModuleDirectoryRelativeToEngineSourceDirectory, "Public/");
 
-			if (IsGameModule || IsPluginModule)
+			if(!Utils.IsFileUnderDirectory(InModuleFilename, AbsEngineSourceDirectory))
 			{
 				// This will be either the format 
 				//		../<Game>/Source/<Module>
