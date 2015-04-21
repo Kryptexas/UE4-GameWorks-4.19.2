@@ -255,6 +255,47 @@ FLinearColor FLinearColor::HSVToLinearRGB() const
 						A);
 }
 
+
+FLinearColor FLinearColor::LerpUsingHSV( const FLinearColor& From, const FLinearColor& To, const float Progress )
+{
+	const FLinearColor FromHSV = From.LinearRGBToHSV();
+	const FLinearColor ToHSV = To.LinearRGBToHSV();
+
+	float FromHue = FromHSV.R;
+	float ToHue = ToHSV.R;
+
+	// Take the shortest path to the new hue
+	if( FMath::Abs( FromHue - ToHue ) > 180.0f )
+	{
+		if( ToHue > FromHue )
+		{
+			FromHue += 360.0f;
+		}
+		else
+		{
+			ToHue += 360.0f;
+		}
+	}
+
+	float NewHue = FMath::Lerp( FromHue, ToHue, Progress );
+
+	NewHue = FMath::Fmod( NewHue, 360.0f );
+	if( NewHue < 0.0f )
+	{
+		NewHue += 360.0f;
+	}
+
+	const float NewSaturation = FMath::Lerp( FromHSV.G, ToHSV.G, Progress );
+	const float NewValue = FMath::Lerp( FromHSV.B, ToHSV.B, Progress );
+	FLinearColor Interpolated = FLinearColor( NewHue, NewSaturation, NewValue ).HSVToLinearRGB();
+
+	const float NewAlpha = FMath::Lerp( From.A, To.A, Progress );
+	Interpolated.A = NewAlpha;
+
+	return Interpolated;
+}
+
+
 /**
 * Makes a random but quite nice color.
 */

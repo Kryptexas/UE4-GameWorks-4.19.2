@@ -754,6 +754,18 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "Lerp (LinearColor)"), Category="Math|Color")
 	static FLinearColor LinearColorLerp(FLinearColor A, FLinearColor B, float Alpha);
 
+	/**
+	 * Linearly interpolates between two colors by the specified Alpha amount (100% of A when Alpha=0 and 100% of B when Alpha=1).  The interpolation is performed in HSV color space taking the shortest path to the new color's hue.  This can give better results than a normal lerp, but is much more expensive.  The incoming colors are in RGB space, and the output color will be RGB.  The alpha value will also be interpolated.
+	 * 
+	 * @param	A		The color and alpha to interpolate from as linear RGBA
+	 * @param	B		The color and alpha to interpolate to as linear RGBA
+	 * @param	Alpha	Scalar interpolation amount (usually between 0.0 and 1.0 inclusive)
+	 * 
+	 * @return	The interpolated color in linear RGB space along with the interpolated alpha value
+	 */
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "Lerp Using HSV (LinearColor)"), Category="Math|Color")
+	static FLinearColor LinearColorLerpUsingHSV(FLinearColor A, FLinearColor B, float Alpha);
+
 	/* Element-wise multiplication of two linear colors (R*R, G*G, B*B, A*A) */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "LinearColor * (LinearColor)", CompactNodeTitle = "*"), Category="Math|Color")
 	static FLinearColor Multiply_LinearColorLinearColor(FLinearColor A, FLinearColor B);

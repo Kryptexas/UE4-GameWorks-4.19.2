@@ -1016,6 +1016,11 @@ FLinearColor UKismetMathLibrary::LinearColorLerp(FLinearColor A, FLinearColor B,
 	return A + Alpha * (B - A);
 }
 
+FLinearColor UKismetMathLibrary::LinearColorLerpUsingHSV(FLinearColor A, FLinearColor B, float Alpha)
+{
+	return FLinearColor::LerpUsingHSV( A, B, Alpha );
+}
+
 FLinearColor UKismetMathLibrary::Multiply_LinearColorLinearColor(FLinearColor A, FLinearColor B)
 {
 	return A * B;
