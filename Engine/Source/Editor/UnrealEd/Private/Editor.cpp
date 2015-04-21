@@ -700,7 +700,7 @@ namespace EditorUtilities
 									StartIndex = FindTargetComponentIndex;
 									break;
 								}
-								CheckComponent = CastChecked<UActorComponent>(CheckComponent->GetArchetype(), ECastCheckedType::NullAllowed);
+								CheckComponent = Cast<UActorComponent>(CheckComponent->GetArchetype());
 							}
 							if (TargetComponent)
 							{
