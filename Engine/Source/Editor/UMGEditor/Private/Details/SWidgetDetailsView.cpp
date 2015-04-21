@@ -11,7 +11,7 @@
 #include "DetailWidgetExtensionHandler.h"
 #include "EditorClassUtils.h"
 
-#include "Customizations/DetailCustomizations.h"
+#include "Customizations/UMGDetailCustomizations.h"
 #include "Customizations/SlateBrushCustomization.h"
 #include "Customizations/SlateFontInfoCustomization.h"
 

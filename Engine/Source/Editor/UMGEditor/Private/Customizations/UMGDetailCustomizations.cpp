@@ -2,7 +2,7 @@
 
 #include "UMGEditorPrivatePCH.h"
 
-#include "DetailCustomizations.h"
+#include "UMGDetailCustomizations.h"
 #include "BlueprintModes/WidgetBlueprintApplicationModes.h"
 #include "PropertyEditing.h"
 #include "ObjectEditorUtils.h"
