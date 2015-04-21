@@ -592,6 +592,7 @@ void FBlueprintCompileReinstancer::UpdateBytecodeReferences()
 				continue;
 			}
 
+			bool bBPWasChanged = false;
 			// For each function defined in this blueprint, run through the bytecode, and update any refs from the old properties to the new
 			for( TFieldIterator<UFunction> FuncIter(BPClass, EFieldIteratorFlags::ExcludeSuper); FuncIter; ++FuncIter )
 			{
@@ -599,13 +600,21 @@ void FBlueprintCompileReinstancer::UpdateBytecodeReferences()
 				if( CurrentFunction->Script.Num() > 0 )
 				{
 					FArchiveReplaceObjectRef<UObject> ReplaceAr(CurrentFunction, FieldMappings, /*bNullPrivateRefs=*/ false, /*bIgnoreOuterRef=*/ true, /*bIgnoreArchetypeRef=*/ true);
+					bBPWasChanged |= (0 != ReplaceAr.GetCount());
 				}
 			}
 
 			FArchiveReplaceObjectRef<UObject> ReplaceInBPAr(*DependentBP, FieldMappings, false, true, true);
 			if (ReplaceInBPAr.GetCount())
 			{
+				bBPWasChanged = true;
 				UE_LOG(LogBlueprint, Log, TEXT("UpdateBytecodeReferences: %d references from %s was replaced in BP %s"), ReplaceInBPAr.GetCount(), *GetPathNameSafe(ClassToReinstance), *GetPathNameSafe(*DependentBP));
+			}
+
+			auto CompiledBlueprint = UBlueprint::GetBlueprintFromClass(ClassToReinstance);
+			if (bBPWasChanged && CompiledBlueprint && !CompiledBlueprint->bIsRegeneratingOnLoad)
+			{
+				DependentBlueprintsToRefresh.Add(*DependentBP);
 			}
 		}
 	}

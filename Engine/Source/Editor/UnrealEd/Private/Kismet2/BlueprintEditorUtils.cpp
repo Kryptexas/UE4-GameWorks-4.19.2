@@ -2615,6 +2615,9 @@ void FBlueprintEditorUtils::GatherDependencies(const UBlueprint* InBlueprint, TS
 
 	check(InBlueprint);
 	Dependencies.Empty();
+
+	FGatherDependenciesHelper::ProcessHierarchy(InBlueprint->ParentClass, Dependencies);
+
 	for (const auto& InterfaceDesc : InBlueprint->ImplementedInterfaces)
 	{
 		UBlueprint* InterfaceBP = InterfaceDesc.Interface ? Cast<UBlueprint>(InterfaceDesc.Interface->ClassGeneratedBy) : NULL;

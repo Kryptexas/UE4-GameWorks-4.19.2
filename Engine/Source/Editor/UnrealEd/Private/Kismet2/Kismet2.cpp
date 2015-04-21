@@ -923,6 +923,18 @@ void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj
 	{
 		BlueprintPackage->SetDirtyFlag(bStartedWithUnsavedChanges);
 	}
+
+	if (!BlueprintObj->bIsRegeneratingOnLoad)
+	{
+		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_NotifyBlueprintChanged);
+
+		BlueprintObj->BroadcastCompiled();
+
+		if (GEditor)
+		{
+			GEditor->BroadcastBlueprintCompiled();
+		}
+	}
 }
 
 /** Recompiles the bytecode of a blueprint only.  Should only be run for recompiling dependencies during compile on load */
