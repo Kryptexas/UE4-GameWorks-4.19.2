@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2500361
+﻿INTSourceChangelist:2511899
 Availability:Public
 Title:1.コンテンツを UE4 のプロジェクトへインポートする
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
@@ -35,7 +35,7 @@ Description:アンリアル エンジン 4 で使用できる重要な外部コ�
 アセットのインポートは手動でも行えますが、 UE4 の場合はアセットを自動でインポートしディスク上のディレクトリ構造に追加します。プロジェクトのディレクトリにアセットを追加中に UE4 を起動すると、そのアセットはすぐにインポートされます (または UE4 の次回起動時にインポートされます)。最後に、すべてのファイルが UE4 のプロジェクトのディレクトリ構造によって定義された場所の **コンテンツ ブラウザ** に自動的に表示されます。 
 
 [REGION:tip]
-ヒント：UE4 外で作成されたコンテンツはすべて UE4 プロジェクトのディレクトリに保存して、自動でインポートされるようにしてください。 
+ヒント：UE4 外で作成されたコンテンツはすべて UE4 プロジェクトのディレクトリに保存して、自動でインポートされるようにしてください。
 [/REGION]
 
 <!--
@@ -73,8 +73,8 @@ Description:アンリアル エンジン 4 で使用できる重要な外部コ�
 	使い方が非常に特殊な形式もあります。.raw ファイルはハイトマップとしてランドスケープ エディタへインポートすることが可能ですが、.hdr ファイル タイプと .dds 形式は **Cubemaps** に使用されます。
 
 	サポート対象の画像ファイルについては、 (Engine/Content/Types/Textures/Importing) を参照してください。[**%Engine/Content/Types/Textures/Importing:title%**] (Engine/Content/Types/Textures/Importing) 
-	[/PARAM]
 
+	[/PARAM]
 [/OBJECT]
 
 <!--
