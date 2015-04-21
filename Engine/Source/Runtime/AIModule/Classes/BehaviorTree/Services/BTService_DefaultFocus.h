@@ -31,7 +31,7 @@ class AIMODULE_API UBTService_DefaultFocus : public UBTService_BlackboardBase
 	UPROPERTY()
 	uint8 FocusPriority;
 
-	UBTService_DefaultFocus(const FObjectInitializer& ObjectInitializer);
+	UBTService_DefaultFocus(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual uint16 GetInstanceMemorySize() const override { return sizeof(FBTFocusMemory); }
 	virtual void OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;

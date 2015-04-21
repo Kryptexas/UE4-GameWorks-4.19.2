@@ -22,7 +22,7 @@ class ENGINE_API UVoiceChannel : public UChannel
 	/**
 	 * Default constructor
 	 */
-	UVoiceChannel(const FObjectInitializer& ObjectInitializer)
+	UVoiceChannel(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get())
 		: UChannel(ObjectInitializer)
 	{
 		// Register with the network channel system

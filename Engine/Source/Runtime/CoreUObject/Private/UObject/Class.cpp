@@ -430,6 +430,19 @@ UStruct::UStruct( EStaticConstructor, int32 InSize, EObjectFlags InFlags )
 {
 }
 
+UStruct::UStruct(UStruct* InSuperStruct, SIZE_T ParamsSize, SIZE_T Alignment)
+	: UField(FObjectInitializer::Get())
+	, SuperStruct(InSuperStruct)
+	, Children(NULL)
+	, PropertiesSize(ParamsSize ? ParamsSize : (InSuperStruct ? InSuperStruct->GetPropertiesSize() : 0))
+	, MinAlignment(Alignment ? Alignment : (FMath::Max(InSuperStruct ? InSuperStruct->GetMinAlignment() : 1, 1)))
+	, PropertyLink(NULL)
+	, RefLink(NULL)
+	, DestructorLink(NULL)
+	, PostConstructLink(NULL)
+{
+}
+
 UStruct::UStruct(const FObjectInitializer& ObjectInitializer, UStruct* InSuperStruct, SIZE_T ParamsSize, SIZE_T Alignment )
 :	UField			(ObjectInitializer)
 ,   SuperStruct		( InSuperStruct )
@@ -3788,6 +3801,17 @@ UFunction::UFunction(const FObjectInitializer& ObjectInitializer, UFunction* InS
 {
 }
 
+UFunction::UFunction(UFunction* InSuperFunction, uint32 InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize)
+	: UStruct(InSuperFunction, ParamsSize)
+	, FunctionFlags(InFunctionFlags)
+	, RepOffset(InRepOffset)
+	, RPCId(0)
+	, RPCResponseId(0)
+	, FirstPropertyToInit(NULL)
+{
+}
+
+
 void UFunction::InitializeDerivedMembers()
 {
 	NumParms = 0;
@@ -3990,6 +4014,12 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UFunction, UStruct,
 
 UDelegateFunction::UDelegateFunction(const FObjectInitializer& ObjectInitializer, UFunction* InSuperFunction, uint32 InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize)
 	: UFunction(ObjectInitializer, InSuperFunction, InFunctionFlags, InRepOffset, ParamsSize)
+{
+
+}
+
+UDelegateFunction::UDelegateFunction(UFunction* InSuperFunction, uint32 InFunctionFlags, uint16 InRepOffset, SIZE_T ParamsSize)
+	: UFunction(InSuperFunction, InFunctionFlags, InRepOffset, ParamsSize)
 {
 
 }

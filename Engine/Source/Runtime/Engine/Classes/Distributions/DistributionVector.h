@@ -118,7 +118,7 @@ class ENGINE_API UDistributionVector : public UDistribution
 	virtual FVector GetVectorValue(float F = 0);
 
 
-	UDistributionVector(const FObjectInitializer& ObjectInitializer)
+	UDistributionVector(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get())
 	:	Super(ObjectInitializer)
 	,   bCanBeBaked(true)
 	,   bIsDirty(true) // make sure the FRawDistribution is initialized

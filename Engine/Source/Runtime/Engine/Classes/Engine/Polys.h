@@ -586,7 +586,7 @@ class UPolys : public UObject
 	TTransArray<FPoly> Element;
 
 	// Constructors.
-	UPolys(const FObjectInitializer& ObjectInitializer)
+	UPolys(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get())
 	:  UObject(ObjectInitializer)
 	, Element( this )
 	{}

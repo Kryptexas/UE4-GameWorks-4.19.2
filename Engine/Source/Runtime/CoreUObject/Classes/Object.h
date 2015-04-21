@@ -881,7 +881,7 @@ public:
 	/**
 	 * Default UObject constructor.
 	 */
-	UObject(const FObjectInitializer& ObjectInitializer);
+	UObject(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 #if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	UObject(FVTableHelper& Helper);

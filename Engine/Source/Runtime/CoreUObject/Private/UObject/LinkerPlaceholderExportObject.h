@@ -18,7 +18,7 @@ class ULinkerPlaceholderExportObject : public UObject, public FLinkerPlaceholder
 public:
 	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(ULinkerPlaceholderExportObject, UObject, /*TStaticFlags =*/0, CoreUObject, /*TStaticCastFlags =*/0, NO_API)
 
-	ULinkerPlaceholderExportObject(const FObjectInitializer& ObjectInitializer);
+	ULinkerPlaceholderExportObject(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// UObject interface
 	virtual void BeginDestroy() override;

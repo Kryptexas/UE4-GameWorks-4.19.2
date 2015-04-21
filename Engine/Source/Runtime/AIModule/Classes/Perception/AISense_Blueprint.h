@@ -28,7 +28,7 @@ protected:
 	TArray<UAISenseEvent*> UnprocessedEvents;
 
 public:
-	UAISense_Blueprint(const FObjectInitializer& ObjectInitializer);
+	UAISense_Blueprint(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	//void RegisterEvent(const FAITeamStimulusEvent& Event);	
 

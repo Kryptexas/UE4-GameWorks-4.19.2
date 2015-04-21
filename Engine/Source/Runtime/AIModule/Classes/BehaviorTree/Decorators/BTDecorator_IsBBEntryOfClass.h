@@ -11,7 +11,7 @@ class AIMODULE_API UBTDecorator_IsBBEntryOfClass : public UBTDecorator_Blackboar
 	GENERATED_BODY()
 		
 public:
-	UBTDecorator_IsBBEntryOfClass(const FObjectInitializer& ObjectInitializer);
+	UBTDecorator_IsBBEntryOfClass(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
 

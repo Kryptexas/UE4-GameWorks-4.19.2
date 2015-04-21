@@ -18,7 +18,7 @@ class AIMODULE_API UAIPerceptionSystem : public UObject, public FTickableGameObj
 	
 public:
 
-	UAIPerceptionSystem(const FObjectInitializer& ObjectInitializer);
+	UAIPerceptionSystem(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// We need to implement GetWorld() so that any EQS-related blueprints (such as blueprint contexts) can implement
 	// GetWorld() and so provide access to blueprint nodes using hidden WorldContextObject parameters.

@@ -41,7 +41,7 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
-	UBlackboardComponent(const FObjectInitializer& ObjectInitializer);
+	UBlackboardComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** BEGIN UActorComponent overrides */
 	virtual void InitializeComponent() override;

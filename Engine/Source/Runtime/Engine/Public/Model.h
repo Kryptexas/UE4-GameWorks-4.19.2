@@ -418,7 +418,7 @@ private:
 public:
 
 	// Constructors.
-	UModel(const FObjectInitializer& ObjectInitializer);
+	UModel(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	ENGINE_API void Initialize();
 	ENGINE_API void Initialize(ABrush* Owner, bool InRootOutside = true);
 

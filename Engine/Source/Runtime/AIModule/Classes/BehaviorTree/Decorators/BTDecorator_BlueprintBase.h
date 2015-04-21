@@ -29,7 +29,7 @@ class AIMODULE_API UBTDecorator_BlueprintBase : public UBTDecorator
 	GENERATED_BODY()
 
 public:
-	UBTDecorator_BlueprintBase(const FObjectInitializer& ObjectInitializer);
+	UBTDecorator_BlueprintBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** initialize data about blueprint defined properties */
 	void InitializeProperties();

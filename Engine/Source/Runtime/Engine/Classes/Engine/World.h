@@ -1066,7 +1066,7 @@ public:
 	/**
 	 * UWorld default constructor
 	 */
-	UWorld( const FObjectInitializer& ObjectInitializer );
+	UWorld(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
 	// LINE TRACE
 

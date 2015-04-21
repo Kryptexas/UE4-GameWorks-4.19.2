@@ -30,6 +30,13 @@ static inline void PreloadInnerStructMembers(UStructProperty* StructProperty)
 	UStructProperty.
 -----------------------------------------------------------------------------*/
 
+UStructProperty::UStructProperty(ECppProperty, int32 InOffset, uint64 InFlags, UScriptStruct* InStruct)
+	: UProperty(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags)
+	, Struct(InStruct)
+{
+	ElementSize = Struct->PropertiesSize;
+}
+
 UStructProperty::UStructProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UScriptStruct* InStruct )
 	:	UProperty( ObjectInitializer, EC_CppProperty, InOffset, InFlags )
 	,	Struct( InStruct )

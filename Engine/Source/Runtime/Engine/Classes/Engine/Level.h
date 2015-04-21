@@ -512,7 +512,7 @@ public:
 
 	// Constructor.
 	ENGINE_API void Initialize(const FURL& InURL);
-	ULevel(const FObjectInitializer& ObjectInitializer);
+	ULevel(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 #if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */

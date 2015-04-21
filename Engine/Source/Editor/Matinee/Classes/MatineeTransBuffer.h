@@ -14,9 +14,6 @@ class UMatineeTransBuffer : public UTransBuffer
 {
 public:
 	GENERATED_BODY()
-	UMatineeTransBuffer(const FObjectInitializer& ObjectInitializer)
-		:	UTransBuffer(ObjectInitializer)
-	{ }
 
 	/**  
 	 * Begin a Matinee specific transaction

@@ -35,7 +35,7 @@ public:
 	/** Called to deselect everything */
 	static FSimpleMulticastDelegate SelectNoneEvent;
 
-	USelection(const FObjectInitializer& ObjectInitializer);
+	USelection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	typedef ClassArray::TIterator TClassIterator;
 	typedef ClassArray::TConstIterator TClassConstIterator;

@@ -26,6 +26,13 @@ public:
 	 */
 	COREUOBJECT_API UTextBuffer (const FObjectInitializer& ObjectInitializer, const TCHAR* InText);
 
+	/**
+	 * Creates and initializes a new text buffer.
+	 *
+	 * @param InText - The initial text.
+	 */
+	COREUOBJECT_API UTextBuffer(const TCHAR* InText);
+
 public:
 
 	/**

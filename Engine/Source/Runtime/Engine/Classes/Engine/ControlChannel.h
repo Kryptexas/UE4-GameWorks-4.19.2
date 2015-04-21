@@ -49,7 +49,7 @@ class ENGINE_API UControlChannel
 	/**
 	 * Default constructor
 	 */
-	UControlChannel(const FObjectInitializer& ObjectInitializer)
+	UControlChannel(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get())
 		: UChannel(ObjectInitializer)
 	{
 		ChannelClasses[CHTYPE_Control]      = GetClass();

@@ -103,5 +103,5 @@ class UPaperExtractSpriteGridSettings : public UObject
 	UPROPERTY(Category = Grid, EditAnywhere, meta = (UIMin = 0, ClampMin = 0))
 	int32 SpacingY;
 
-	UPaperExtractSpriteGridSettings(const FObjectInitializer& ObjectInitializer);
+	UPaperExtractSpriteGridSettings(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };

@@ -316,7 +316,7 @@ public:
 #endif
 
 	// Constructors.
-	ENGINE_API UNetDriver(const FObjectInitializer& ObjectInitializer);
+	ENGINE_API UNetDriver(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
 	// Begin UObject interface.

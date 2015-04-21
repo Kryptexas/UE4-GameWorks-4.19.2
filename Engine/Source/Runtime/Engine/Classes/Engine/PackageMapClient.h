@@ -105,7 +105,7 @@ class ENGINE_API UPackageMapClient : public UPackageMap
 public:
 	GENERATED_BODY()
 
-	UPackageMapClient(const FObjectInitializer & ObjectInitializer);
+	UPackageMapClient(const FObjectInitializer & ObjectInitializer = FObjectInitializer::Get());
 
 	void Initialize(UNetConnection * InConnection, TSharedPtr<FNetGUIDCache> InNetGUIDCache)
 	{

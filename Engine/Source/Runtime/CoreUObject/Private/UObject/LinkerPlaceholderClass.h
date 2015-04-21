@@ -19,7 +19,7 @@ class ULinkerPlaceholderClass : public UClass, public TLinkerImportPlaceholder<U
 public:
 	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(ULinkerPlaceholderClass, UClass, /*TStaticFlags =*/0, CoreUObject, /*TStaticCastFlags =*/0, NO_API)
 
-	ULinkerPlaceholderClass(const FObjectInitializer& ObjectInitializer);
+	ULinkerPlaceholderClass(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// UObject interface.
 	static  void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
