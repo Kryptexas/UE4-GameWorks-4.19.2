@@ -1889,8 +1889,8 @@ void FEditorViewportClient::InputAxisForOrbit(FViewport* InViewport, const FVect
 
 		FVector TransformedDelta = RotMat.InverseFast().TransformVector(DeltaLocation);
 
-		SetViewLocation( GetViewLocation() + TransformedDelta );
 		SetLookAtLocation( GetLookAtLocation() + TransformedDelta );
+		SetViewLocation(ViewTransform.ComputeOrbitMatrix().Inverse().GetOrigin());
 
 		FEditorViewportStats::Using(IsPerspective() ? FEditorViewportStats::CAT_PERSPECTIVE_MOUSE_ORBIT_PAN : FEditorViewportStats::CAT_ORTHOGRAPHIC_MOUSE_ORBIT_PAN);
 	}
