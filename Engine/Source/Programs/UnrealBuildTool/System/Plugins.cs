@@ -62,7 +62,41 @@ namespace UnrealBuildTool
 			return Info;
 		}
 
+		/// <summary>
+		/// Find paths to all the plugins under a given parent directory (recursively)
+		/// </summary>
+		/// <param name="ParentDirectory">Parent directory to look in. Plugins will be found in any *subfolders* of this directory.</param>
+		/// <param name="FileNames">List of filenames. Will have all the discovered .uplugin files appended to it.</param>
+		public static IEnumerable<string> EnumeratePlugins(string ParentDirectory)
+		{
+			List<string> FileNames = new List<string>();
+			if(Directory.Exists(ParentDirectory))
+			{
+				EnumeratePluginsInternal(new DirectoryInfo(ParentDirectory), FileNames);
+			}
+			return FileNames;
+		}
 
+		/// <summary>
+		/// Find paths to all the plugins under a given parent directory (recursively)
+		/// </summary>
+		/// <param name="ParentDirectory">Parent directory to look in. Plugins will be found in any *subfolders* of this directory.</param>
+		/// <param name="FileNames">List of filenames. Will have all the discovered .uplugin files appended to it.</param>
+		static void EnumeratePluginsInternal(DirectoryInfo ParentDirectory, List<string> FileNames)
+		{
+			foreach(DirectoryInfo ChildDirectory in ParentDirectory.EnumerateDirectories())
+			{
+				int InitialFileNamesCount = FileNames.Count;
+				foreach(FileInfo PluginFileInfo in ParentDirectory.EnumerateFiles("*.uplugin", SearchOption.TopDirectoryOnly))
+				{
+					FileNames.Add(PluginFileInfo.FullName);
+				}
+				if(FileNames.Count == InitialFileNamesCount)
+				{
+					EnumeratePluginsInternal(ChildDirectory, FileNames);
+				}
+			}
+		}
 
 		/// <summary>
 		/// Recursively locates all plugins in the specified folder, appending to the incoming list
