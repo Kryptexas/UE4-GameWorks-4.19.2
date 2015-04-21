@@ -409,11 +409,11 @@ void UK2Node_VariableGet::ExpandNode(class FKismetCompilerContext& CompilerConte
 		// Based on if the type is an "Object" or a "Class" changes which function to use
 		if (ValuePin->PinType.PinCategory == UObject::StaticClass()->GetName())
 		{
-			IsValidFunction->SetFromFunction(UKismetSystemLibrary::StaticClass()->FindFunctionByName("IsValid"));
+			IsValidFunction->SetFromFunction(UKismetSystemLibrary::StaticClass()->FindFunctionByName(GET_MEMBER_NAME_CHECKED(UKismetSystemLibrary, IsValid)));
 		}
 		else if (ValuePin->PinType.PinCategory == UClass::StaticClass()->GetName())
 		{
-			IsValidFunction->SetFromFunction(UKismetSystemLibrary::StaticClass()->FindFunctionByName("IsValidClass"));
+			IsValidFunction->SetFromFunction(UKismetSystemLibrary::StaticClass()->FindFunctionByName(GET_MEMBER_NAME_CHECKED(UKismetSystemLibrary, IsValidClass)));
 		}
 		IsValidFunction->AllocateDefaultPins();
 		CompilerContext.MessageLog.NotifyIntermediateObjectCreation(IsValidFunction, this);
