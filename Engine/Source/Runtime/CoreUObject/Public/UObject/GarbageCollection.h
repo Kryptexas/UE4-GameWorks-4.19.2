@@ -25,6 +25,7 @@ enum EGCReferenceType
 	GCRT_FixedArray,
 	GCRT_AddStructReferencedObjects,
 	GCRT_AddReferencedObjects,
+	GCRT_AddTMapReferencedObjects,
 	GCRT_EndOfStream,
 };
 

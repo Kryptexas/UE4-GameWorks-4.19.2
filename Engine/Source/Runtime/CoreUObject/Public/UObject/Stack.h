@@ -45,6 +45,7 @@ enum EPropertyType
 	CPT_LazyObjectReference,
 	CPT_AssetObjectReference,
 	CPT_Double,
+	CPT_Map,
 
 	// when you add new property types, make sure you add the corresponding entry
 	// in the PropertyTypeToNameMap array in ScriptCompiler.cpp!!
@@ -346,6 +347,8 @@ inline VariableSizeType FFrame::ReadVariableSize( UField** ExpressionField/*=NUL
 		case CPT_AssetObjectReference: Result = sizeof(FAssetPtr);
 			break;
 		case CPT_Text: Result = sizeof(FText);
+			break;
+		case CPT_Map: Result = sizeof(FScriptMap);
 			break;
 		default:
 			UE_LOG(LogScriptFrame, Fatal, TEXT("Unhandled property type in FFrame::ReadVariableSize(): %u"), NullPropertyType);

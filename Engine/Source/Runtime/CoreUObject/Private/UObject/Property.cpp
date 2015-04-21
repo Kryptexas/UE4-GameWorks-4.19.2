@@ -688,6 +688,11 @@ int32 UProperty::SetupOffset()
 	return Offset_Internal + GetSize();
 }
 
+void UProperty::SetOffset_Internal(int32 NewOffset)
+{
+	Offset_Internal = NewOffset;
+}
+
 bool UProperty::SameType(const UProperty* Other) const
 {
 	return Other && (this->GetClass() == Other->GetClass());

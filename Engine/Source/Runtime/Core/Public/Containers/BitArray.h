@@ -29,6 +29,8 @@ class TConstSetBitIterator;
 template<typename Allocator = FDefaultBitArrayAllocator,typename OtherAllocator = FDefaultBitArrayAllocator>
 class TConstDualSetBitIterator;
 
+class FScriptBitArray;
+
 
 /**
  * Serializer (predefined for no friend injection in gcc 411)
@@ -155,9 +157,9 @@ protected:
  * An array of Booleans.  They stored in one bit/Boolean.  There are iterators that efficiently iterate over only set bits.
  */
 template<typename Allocator /*= FDefaultBitArrayAllocator*/>
-class TBitArray : protected Allocator::template ForElementType<uint32>
+class TBitArray
 {
-	typedef typename Allocator::template ForElementType<uint32> Super;
+	friend class FScriptBitArray;
 
 public:
 
@@ -236,7 +238,7 @@ private:
 	template <typename BitArrayType>
 	static FORCEINLINE typename TEnableIf<TContainerTraits<BitArrayType>::MoveWillEmptyContainer>::Type MoveOrCopy(BitArrayType& ToArray, BitArrayType& FromArray)
 	{
-		ToArray.Super::MoveToEmpty((Super&)FromArray);
+		ToArray.AllocatorInstance.MoveToEmpty(FromArray.AllocatorInstance);
 
 		ToArray  .NumBits = FromArray.NumBits;
 		ToArray  .MaxBits = FromArray.MaxBits;
@@ -291,7 +293,7 @@ public:
 		if(bReallocate)
 		{
 			// Allocate memory for the new bits.
-			const uint32 MaxDWORDs = this->CalculateSlack(
+			const uint32 MaxDWORDs = AllocatorInstance.CalculateSlack(
 				(NumBits + NumBitsPerDWORD - 1) / NumBitsPerDWORD,
 				(MaxBits + NumBitsPerDWORD - 1) / NumBitsPerDWORD,
 				sizeof(uint32)
@@ -625,29 +627,32 @@ public:
 
 	FORCEINLINE const uint32* GetData() const
 	{
-		return (uint32*)this->GetAllocation();
+		return (uint32*)AllocatorInstance.GetAllocation();
 	}
 
 	FORCEINLINE uint32* GetData()
 	{
-		return (uint32*)this->GetAllocation();
+		return (uint32*)AllocatorInstance.GetAllocation();
 	}
 
 private:
-	int32 NumBits;
-	int32 MaxBits;
+	typedef typename Allocator::template ForElementType<uint32> AllocatorType;
+
+	AllocatorType AllocatorInstance;
+	int32         NumBits;
+	int32         MaxBits;
 
 	void Realloc(int32 PreviousNumBits)
 	{
 		const int32 PreviousNumDWORDs = (PreviousNumBits + NumBitsPerDWORD - 1) / NumBitsPerDWORD;
 		const int32 MaxDWORDs = (MaxBits + NumBitsPerDWORD - 1) / NumBitsPerDWORD;
 
-		this->ResizeAllocation(PreviousNumDWORDs,MaxDWORDs,sizeof(uint32));
+		AllocatorInstance.ResizeAllocation(PreviousNumDWORDs,MaxDWORDs,sizeof(uint32));
 
 		if(MaxDWORDs)
 		{
 			// Reset the newly allocated slack DWORDs.
-			FMemory::Memzero((uint32*)this->GetAllocation() + PreviousNumDWORDs,(MaxDWORDs - PreviousNumDWORDs) * sizeof(uint32));
+			FMemory::Memzero((uint32*)AllocatorInstance.GetAllocation() + PreviousNumDWORDs,(MaxDWORDs - PreviousNumDWORDs) * sizeof(uint32));
 		}
 	}
 };
@@ -872,4 +877,139 @@ private:
 		// If the Nth bit was the lowest set bit of BitMask, then this gives us N
 		CurrentBitIndex = BaseBitIndex + NumBitsPerDWORD - 1 - FMath::CountLeadingZeros(this->Mask);
 	}
+};
+
+
+// Untyped set type for accessing TSet data, like FScriptArray for TArray.
+// Must have the same memory representation as a TSet.
+class FScriptBitArray
+{
+public:
+	/**
+	 * Minimal initialization constructor.
+	 * @param Value - The value to initial the bits to.
+	 * @param InNumBits - The initial number of bits in the array.
+	 */
+	FScriptBitArray()
+		: NumBits(0)
+		, MaxBits(0)
+	{
+	}
+
+	bool IsValidIndex(int32 Index) const
+	{
+		return Index >= 0 && Index < NumBits;
+	}
+
+	FBitReference operator[](int32 Index)
+	{
+		check(IsValidIndex(Index));
+		return FBitReference(GetData()[Index / NumBitsPerDWORD], 1 << (Index & (NumBitsPerDWORD - 1)));
+	}
+
+	FConstBitReference operator[](int32 Index) const
+	{
+		check(IsValidIndex(Index));
+		return FConstBitReference(GetData()[Index / NumBitsPerDWORD], 1 << (Index & (NumBitsPerDWORD - 1)));
+	}
+
+	void Empty(int32 Slack = 0)
+	{
+		NumBits = 0;
+
+		// If the expected number of bits doesn't match the allocated number of bits, reallocate.
+		if (MaxBits != Slack)
+		{
+			MaxBits = Slack;
+			Realloc(0);
+		}
+	}
+
+	int32 Add(const bool Value)
+	{
+		const int32 Index = NumBits;
+		const bool bReallocate = (NumBits + 1) > MaxBits;
+
+		NumBits++;
+
+		if(bReallocate)
+		{
+			// Allocate memory for the new bits.
+			const uint32 MaxDWORDs = AllocatorInstance.CalculateSlack(
+				(NumBits + NumBitsPerDWORD - 1) / NumBitsPerDWORD,
+				(MaxBits + NumBitsPerDWORD - 1) / NumBitsPerDWORD,
+				sizeof(uint32)
+				);
+			MaxBits = MaxDWORDs * NumBitsPerDWORD;
+			Realloc(NumBits - 1);
+		}
+
+		(*this)[Index] = Value;
+
+		return Index;
+	}
+
+private:
+	typedef FDefaultBitArrayAllocator::ForElementType<uint32> AllocatorType;
+
+	AllocatorType AllocatorInstance;
+	int32         NumBits;
+	int32         MaxBits;
+
+	// This function isn't intended to be called, just to be compiled to validate the correctness of the type.
+	static void CheckConstraints()
+	{
+		typedef FScriptBitArray ScriptType;
+		typedef TBitArray<>     RealType;
+
+		// Check that the class footprint is the same
+		static_assert(sizeof (ScriptType) == sizeof (RealType), "FScriptBitArray's size doesn't match TBitArray");
+		static_assert(ALIGNOF(ScriptType) == ALIGNOF(RealType), "FScriptBitArray's alignment doesn't match TBitArray");
+
+		// Check member sizes
+		static_assert(sizeof(DeclVal<ScriptType>().AllocatorInstance) == sizeof(DeclVal<RealType>().AllocatorInstance), "FScriptBitArray's AllocatorInstance member size does not match TBitArray's");
+		static_assert(sizeof(DeclVal<ScriptType>().NumBits)           == sizeof(DeclVal<RealType>().NumBits),           "FScriptBitArray's NumBits member size does not match TBitArray's");
+		static_assert(sizeof(DeclVal<ScriptType>().MaxBits)           == sizeof(DeclVal<RealType>().MaxBits),           "FScriptBitArray's MaxBits member size does not match TBitArray's");
+
+		// Check member offsets
+		static_assert(STRUCT_OFFSET(ScriptType, AllocatorInstance) == STRUCT_OFFSET(RealType, AllocatorInstance), "FScriptBitArray's AllocatorInstance member offset does not match TBitArray's");
+		static_assert(STRUCT_OFFSET(ScriptType, NumBits)           == STRUCT_OFFSET(RealType, NumBits),           "FScriptBitArray's NumBits member offset does not match TBitArray's");
+		static_assert(STRUCT_OFFSET(ScriptType, MaxBits)           == STRUCT_OFFSET(RealType, MaxBits),           "FScriptBitArray's MaxBits member offset does not match TBitArray's");
+	}
+
+	FORCEINLINE uint32* GetData()
+	{
+		return (uint32*)AllocatorInstance.GetAllocation();
+	}
+
+	FORCEINLINE const uint32* GetData() const
+	{
+		return (const uint32*)AllocatorInstance.GetAllocation();
+	}
+
+	void Realloc(int32 PreviousNumBits)
+	{
+		const int32 PreviousNumDWORDs = (PreviousNumBits + NumBitsPerDWORD - 1) / NumBitsPerDWORD;
+		const int32 MaxDWORDs = (MaxBits + NumBitsPerDWORD - 1) / NumBitsPerDWORD;
+
+		AllocatorInstance.ResizeAllocation(PreviousNumDWORDs, MaxDWORDs, sizeof(uint32));
+
+		if (MaxDWORDs)
+		{
+			// Reset the newly allocated slack DWORDs.
+			FMemory::Memzero((uint32*)AllocatorInstance.GetAllocation() + PreviousNumDWORDs, (MaxDWORDs - PreviousNumDWORDs) * sizeof(uint32));
+		}
+	}
+
+public:
+	// These should really be private, because they shouldn't be called, but there's a bunch of code
+	// that needs to be fixed first.
+	FScriptBitArray(const FScriptBitArray&) { check(false); }
+	void operator=(const FScriptBitArray&) { check(false); }
+};
+
+template <>
+struct TIsZeroConstructType<FScriptBitArray>
+{
+	enum { Value = true };
 };

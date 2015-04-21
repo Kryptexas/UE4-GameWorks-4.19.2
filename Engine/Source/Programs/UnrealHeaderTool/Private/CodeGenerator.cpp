@@ -1001,12 +1001,20 @@ void FNativeClassHeaderGenerator::OutputProperty(FString& Meta, FOutputDevice& O
 		}
 		OutputDevice.Log(*PropertyNew(Meta, Prop, OuterString, PropMacroOuterClass, TEXT(""), Spaces, *SourceStruct));
 	}
-	UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Prop);
-	if (ArrayProperty)
+
+	if (UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Prop))
 	{
 		FString InnerOuterString = FString::Printf(TEXT("NewProp_%s"), *Prop->GetName());
 		FString PropMacroOuterArray = TEXT("FObjectInitializer(), EC_CppProperty, 0");
 		OutputDevice.Log(*PropertyNew(Meta, ArrayProperty->Inner, InnerOuterString, PropMacroOuterArray, TEXT("_Inner"), Spaces));
+	}
+
+	if (UMapProperty* MapProperty = Cast<UMapProperty>(Prop))
+	{
+		FString InnerOuterString = FString::Printf(TEXT("NewProp_%s"), *Prop->GetName());
+		FString PropMacroOuterMap = TEXT("FObjectInitializer(), EC_CppProperty, ");
+		OutputDevice.Log(*PropertyNew(Meta, MapProperty->KeyProp,   InnerOuterString, PropMacroOuterMap + TEXT("0"), TEXT("_KeyProp"),   Spaces));
+		OutputDevice.Log(*PropertyNew(Meta, MapProperty->ValueProp, InnerOuterString, PropMacroOuterMap + TEXT("1"), TEXT("_ValueProp"), Spaces));
 	}
 }
 
@@ -1056,17 +1064,29 @@ static void FindNoExportStructs(TArray<UScriptStruct*>& Structs, UStruct* Start)
 			}
 		}
 
-		for ( TFieldIterator<UProperty> ItInner(Start, EFieldIteratorFlags::ExcludeSuper); ItInner; ++ItInner )
+		for (UProperty* Prop : TFieldRange<UProperty>(Start, EFieldIteratorFlags::ExcludeSuper))
 		{
-			UStructProperty* InnerStruct = Cast<UStructProperty>(*ItInner);
-			UArrayProperty* InnerArray = Cast<UArrayProperty>(*ItInner);
-			if (InnerArray)
+			if (UStructProperty* StructProp = Cast<UStructProperty>(Prop))
 			{
-				InnerStruct = Cast<UStructProperty>(InnerArray->Inner);
+				FindNoExportStructs(Structs, StructProp->Struct);
 			}
-			if (InnerStruct)
+			else if (UArrayProperty* ArrayProp = Cast<UArrayProperty>(Prop))
 			{
-				FindNoExportStructs(Structs, InnerStruct->Struct);
+				if (UStructProperty* InnerStructProp = Cast<UStructProperty>(ArrayProp->Inner))
+				{
+					FindNoExportStructs(Structs, InnerStructProp->Struct);
+				}
+			}
+			else if (UMapProperty* MapProp = Cast<UMapProperty>(Prop))
+			{
+				if (UStructProperty* KeyStructProp = Cast<UStructProperty>(MapProp->KeyProp))
+				{
+					FindNoExportStructs(Structs, KeyStructProp->Struct);
+				}
+				if (UStructProperty* ValueStructProp = Cast<UStructProperty>(MapProp->ValueProp))
+				{
+					FindNoExportStructs(Structs, ValueStructProp->Struct);
+				}
 			}
 		}
 		Start = Start->GetSuperStruct();
@@ -3052,8 +3072,7 @@ void ExportProtoDeclaration(FOutputDevice& Out, const FString& MessageName, TFie
 		if (PropClass != UInterfaceProperty::StaticClass() && PropClass != UObjectProperty::StaticClass())
 		{
 			bool bIsRepeated = false;
-			UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property);
-			if (ArrayProperty != NULL)
+			if (UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property))
 			{
 				UClass* InnerPropClass = ArrayProperty->Inner->GetClass();
 				if (InnerPropClass != UInterfaceProperty::StaticClass() && InnerPropClass != UObjectProperty::StaticClass())
@@ -3069,6 +3088,10 @@ void ExportProtoDeclaration(FOutputDevice& Out, const FString& MessageName, TFie
 				{
 					FError::Throwf(TEXT("ExportProtoDeclaration - Unhandled property type '%s': %s"), *PropClass->GetName(), *Property->GetPathName());
 				}
+			}
+			else if (UMapProperty* MapProperty = Cast<UMapProperty>(Property))
+			{
+				FError::Throwf(TEXT("ExportProtoDeclaration - Map properties not yet supported '%s': %s"), *PropClass->GetName(), *Property->GetPathName());
 			}
 			else if(Property->ArrayDim != 1)
 			{
@@ -3245,6 +3268,12 @@ void ExportMCPDeclaration(FOutputDevice& Out, const FString& MessageName, TField
 			if (ArrayProperty != NULL)
 			{
 				// skip array generation for Java, this should result in a List<TYPE> declaration, but we can do this by hand for now.
+				continue;
+			}
+			// TODO Implement maps
+			UMapProperty* MapProperty = Cast<UMapProperty>(Property);
+			if (MapProperty != NULL)
+			{
 				continue;
 			}
 			/*bool bIsRepeated = false;
@@ -3476,6 +3505,7 @@ void FNativeClassHeaderGenerator::ExportEventParm(UFunction* Function, FUHTStrin
 			Cast<UStrProperty>(Prop) ||
 			Cast<UTextProperty>(Prop) ||
 			Cast<UArrayProperty>(Prop) ||
+			Cast<UMapProperty>(Prop) ||
 			Cast<UInterfaceProperty>(Prop)
 			)
 		{
@@ -3550,6 +3580,7 @@ FString FNativeClassHeaderGenerator::GetNullParameterValue( UProperty* Prop, boo
 		return TEXT("FText::GetEmpty()");
 	}
 	else if ( PropClass == UArrayProperty::StaticClass()
+		||    PropClass == UMapProperty::StaticClass()
 		||    PropClass == UDelegateProperty::StaticClass()
 		||    PropClass == UMulticastDelegateProperty::StaticClass() )
 	{

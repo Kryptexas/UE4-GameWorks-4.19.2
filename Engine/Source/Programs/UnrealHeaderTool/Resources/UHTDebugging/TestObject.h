@@ -21,6 +21,9 @@ public:
 	UPROPERTY()
 	ECppEnum EnumProperty;
 
+	UPROPERTY()
+	TMap<int32, FString> TestMap;
+
 	UFUNCTION()
 	void CodeGenTestForEnumClasses(ECppEnum Val);
 

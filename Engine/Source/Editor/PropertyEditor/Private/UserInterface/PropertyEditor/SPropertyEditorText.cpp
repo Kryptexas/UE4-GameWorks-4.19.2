@@ -92,6 +92,7 @@ bool SPropertyEditorText::Supports( const TSharedRef< FPropertyEditor >& InPrope
 		||	Property->IsA(UTextProperty::StaticClass())
 		||	(Property->IsA(UObjectPropertyBase::StaticClass()) && !Property->HasAnyPropertyFlags(CPF_InstancedReference))
 		||	Property->IsA(UInterfaceProperty::StaticClass())
+		||	Property->IsA(UMapProperty::StaticClass())
 		) )
 	{
 		return true;

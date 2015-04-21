@@ -9,6 +9,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "Engine/UserDefinedStruct.h"
+#include "Misc/ScopeExit.h"
 
 FPropertySettings& FPropertySettings::Get()
 {
@@ -2354,10 +2355,13 @@ void FPropertyNode::PropagatePropertyChange( UObject* ModifiedObject, const TCHA
 		FBlueprintEditorUtils::HandleDisableEditableWhenInherited(ModifiedObject, ArchetypeInstances);
 	}
 
-	FPropertyNode* Parent = GetParentNode();
-	UArrayProperty* ParentArrayProp  = Cast<UArrayProperty>(Parent->GetProperty());	
+	FPropertyNode*  Parent          = GetParentNode();
+	UProperty*      ParentProp      = Parent->GetProperty();
+	UArrayProperty* ParentArrayProp = Cast<UArrayProperty>(ParentProp);
+	UProperty*      Prop            = GetProperty();
+	UMapProperty*   MapProp         = Cast<UMapProperty>(Prop);
 
-	if (ParentArrayProp != NULL && ParentArrayProp->Inner != GetProperty())
+	if (ParentArrayProp != NULL && ParentArrayProp->Inner != Prop)
 	{
 		ParentArrayProp = NULL;
 	}
@@ -2391,20 +2395,57 @@ void FPropertyNode::PropagatePropertyChange( UObject* ModifiedObject, const TCHA
 			uint8* Addr = GetValueBaseAddress( (uint8*)ActualObjToChange );
 			if (Addr != NULL)
 			{
-				if (ParentArrayProp != NULL)
+				if (MapProp != NULL)
 				{
-					uint8* ArrayAddr = ParentNode->GetValueBaseAddress( (uint8*)ActualObjToChange );
-					ParentArrayProp->ExportText_Direct(OrgValue, ArrayAddr, ArrayAddr, NULL, PPF_Localized );
+					// Read previous value back into object
+					uint8* PreviousMap = (uint8*)FMemory::Malloc(MapProp->GetSize(), MapProp->GetMinAlignment());
+					ON_SCOPE_EXIT
+					{
+						FMemory::Free(PreviousMap);
+					};
+
+					MapProp->InitializeValue(PreviousMap);
+					ON_SCOPE_EXIT
+					{
+						MapProp->DestroyValue(PreviousMap);
+					};
+
+					MapProp->ImportText(*PreviousValue, PreviousMap, PPF_Localized, ModifiedObject);
+
+					uint8* ModifiedObjectAddr = GetValueBaseAddress( (uint8*)ModifiedObject );
+
+					auto ModifiedObjectAddrPtr = (TMap<int32, FString>*)ModifiedObjectAddr;
+
+					// Serialize differences from the 'default' (the old object)
+					TArray<uint8> Data;
+					{
+						FMemoryWriter Ar(Data);
+						MapProp->SerializeItem(Ar, Addr, PreviousMap);
+					}
+
+					// Deserialize differences back over the new object
+					{
+						FMemoryReader Ar(Data);
+						MapProp->SerializeItem(Ar, Addr, ModifiedObjectAddr);
+					}
 				}
 				else
 				{
-					GetProperty()->ExportText_Direct(OrgValue, Addr, Addr, NULL, PPF_Localized );
-				}
+					if (ParentArrayProp != NULL)
+					{
+						uint8* ArrayAddr = ParentNode->GetValueBaseAddress( (uint8*)ActualObjToChange );
+						ParentArrayProp->ExportText_Direct(OrgValue, ArrayAddr, ArrayAddr, NULL, PPF_Localized );
+					}
+					else
+					{
+						Prop->ExportText_Direct(OrgValue, Addr, Addr, NULL, PPF_Localized );
+					}
 
-				// Check if the original value was the default value and change it only then
-				if (OrgValue == PreviousValue)
-				{
-					GetProperty()->ImportText( NewValue, Addr, PPF_Localized, ActualObjToChange );
+					// Check if the original value was the default value and change it only then
+					if (OrgValue == PreviousValue)
+					{
+						Prop->ImportText( NewValue, Addr, PPF_Localized, ActualObjToChange );
+					}
 				}
 			}
 		}

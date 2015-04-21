@@ -33,7 +33,8 @@ public:
  * @param Alignment		Alignment, must be a power of two
  * @return				Aligned value
  */
-template< class T > inline T Align( const T Ptr, int32 Alignment )
+template <typename T>
+inline CONSTEXPR T Align( const T Ptr, int32 Alignment )
 {
 	return (T)(((PTRINT)Ptr + Alignment - 1) & ~(Alignment-1));
 }
@@ -548,3 +549,12 @@ template <typename LHS, typename RHS>
 struct TOr : TOrValue<LHS::Value, RHS>
 {
 };
+
+
+/**
+ * Equivalent to std::declval.  
+ *
+ * Note that this function is unimplemented, and is only intended to be used in unevaluated contexts, like sizeof and trait expressions.
+ */
+template <typename T>
+T&& DeclVal();

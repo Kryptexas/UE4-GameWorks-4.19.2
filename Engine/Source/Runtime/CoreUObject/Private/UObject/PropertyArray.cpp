@@ -24,34 +24,27 @@ bool UArrayProperty::Identical( const void* A, const void* B, uint32 PortFlags )
 	checkSlow(Inner);
 
 	FScriptArrayHelper ArrayHelperA(this, A);
-	FScriptArrayHelper ArrayHelperB(this, B);
 
 	const int32 ArrayNum = ArrayHelperA.Num();
-	if ( ArrayNum != (B ? ArrayHelperB.Num() : 0) )
+	if ( B == NULL )
+	{
+		return ArrayNum == 0;
+	}
+
+	FScriptArrayHelper ArrayHelperB(this, B);
+	if ( ArrayNum != ArrayHelperB.Num() )
 	{
 		return false;
 	}
 
-	if ( B != NULL )
+	for ( int32 ArrayIndex = 0; ArrayIndex < ArrayNum; ArrayIndex++ )
 	{
-		for ( int32 ArrayIndex = 0; ArrayIndex < ArrayNum; ArrayIndex++ )
+		if ( !Inner->Identical( ArrayHelperA.GetRawPtr(ArrayIndex), ArrayHelperB.GetRawPtr(ArrayIndex), PortFlags) )
 		{
-			if ( !Inner->Identical( ArrayHelperA.GetRawPtr(ArrayIndex), ArrayHelperB.GetRawPtr(ArrayIndex), PortFlags) )
-			{
-				return false;
-			}
+			return false;
 		}
 	}
-	else
-	{
-		for ( int32 ArrayIndex = 0; ArrayIndex < ArrayNum; ArrayIndex++ )
-		{
-			if ( !Inner->Identical( ArrayHelperA.GetRawPtr(ArrayIndex), 0, PortFlags) )
-			{
-				return false;
-			}
-		}
-	}
+
 	return true;
 }
 void UArrayProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const

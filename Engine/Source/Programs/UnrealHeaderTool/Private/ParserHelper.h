@@ -74,6 +74,8 @@ public:
 	uint64              PropertyFlags;
 	ERefQualifier::Type RefQualifier; // This is needed because of legacy stuff - FString mangles the flags for reasons that have become lost in time but we need this info for testing for invalid replicated function signatures.
 
+	TSharedPtr<FPropertyBase> MapKeyProp;
+
 	/**
 	 * A mask of EPropertyHeaderExportFlags which are used for modifying how this property is exported to the native class header
 	 */

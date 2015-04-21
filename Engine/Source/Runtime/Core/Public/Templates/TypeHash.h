@@ -85,9 +85,14 @@ inline uint32 GetTypeHash( const int64 A )
 	return (uint32)A+((uint32)(A>>32) * 23);
 }
 
-inline uint32 GetTypeHash( const float& Value )
+inline uint32 GetTypeHash( float Value )
 {
 	return *(uint32*)&Value;
+}
+
+inline uint32 GetTypeHash( double Value )
+{
+	return GetTypeHash(*(uint64*)&Value);
 }
 
 inline uint32 GetTypeHash( const TCHAR* S )

@@ -826,6 +826,14 @@ public:
 						TokenReturnCount = REFERENCE_INFO.ReturnCount;
 						AddReferencedObjects(CurrentObject, ReferenceCollector);
 					}
+					else if( REFERENCE_INFO.Type == GCRT_AddTMapReferencedObjects )
+					{
+						void*         Map         = StackEntryData + REFERENCE_INFO.Offset;
+						UMapProperty* MapProperty = (UMapProperty*)TokenStream->ReadPointer( TokenStreamIndex );
+						TokenReturnCount = REFERENCE_INFO.ReturnCount;
+						FSimpleObjectReferenceCollectorArchive CollectorArchive(CurrentObject, ReferenceCollector);
+						MapProperty->SerializeItem(CollectorArchive, Map, nullptr);
+					}
 					else if( REFERENCE_INFO.Type == GCRT_EndOfStream )
 					{
 						// Break out of loop.
@@ -1426,6 +1434,19 @@ bool UArrayProperty::ContainsObjectReference() const
  *
  * @return true if property (or sub- properties) contain a UObject reference, false otherwise
  */
+bool UMapProperty::ContainsObjectReference() const
+{
+	check(KeyProp);
+	check(ValueProp);
+	return KeyProp->ContainsObjectReference() || ValueProp->ContainsObjectReference();
+}
+
+/**
+ * Returns true if this property, or in the case of e.g. array or struct properties any sub- property, contains a
+ * UObject reference.
+ *
+ * @return true if property (or sub- properties) contain a UObject reference, false otherwise
+ */
 bool UStructProperty::ContainsObjectReference() const
 {
 	// prevent recursion in the case of structs containing dynamic arrays of themselves
@@ -1470,6 +1491,14 @@ bool UArrayProperty::ContainsWeakObjectReference() const
 {
 	check(Inner);
 	return Inner->ContainsWeakObjectReference();
+}
+
+// Returns true if this property contains a weak UObject reference.
+bool UMapProperty::ContainsWeakObjectReference() const
+{
+	check(KeyProp);
+	check(ValueProp);
+	return KeyProp->ContainsWeakObjectReference() || ValueProp->ContainsWeakObjectReference();
 }
 
 // Returns true if this property contains a weak UObject reference.
@@ -1617,6 +1646,20 @@ void UArrayProperty::EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset)
 		{
 			UE_LOG(LogGarbage, Fatal, TEXT("Encountered unknown property containing object or name reference: %s in %s"), *Inner->GetFullName(), *GetFullName() );
 		}
+	}
+}
+
+
+/**
+ * Emits tokens used by realtime garbage collection code to passed in OwnerClass' ReferenceTokenStream. The offset emitted is relative
+ * to the passed in BaseOffset which is used by e.g. arrays of structs.
+ */
+void UMapProperty::EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset)
+{
+	if (ContainsObjectReference())
+	{
+		OwnerClass.ReferenceTokenStream.EmitReferenceInfo(FGCReferenceInfo(GCRT_AddTMapReferencedObjects, BaseOffset + GetOffset_ForGC()));
+		OwnerClass.ReferenceTokenStream.EmitPointer((const void*)this);
 	}
 }
 

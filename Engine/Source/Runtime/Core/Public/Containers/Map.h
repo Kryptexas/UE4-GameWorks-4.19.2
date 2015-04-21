@@ -852,11 +852,14 @@ private:
 	};
 };
 
+class FScriptMap;
+
 /** A TMapBase specialization that only allows a single value associated with each key.*/
 template<typename KeyType,typename ValueType,typename SetAllocator /*= FDefaultSetAllocator*/,typename KeyFuncs /*= TDefaultMapKeyFuncs<KeyType,ValueType,false>*/>
 class TMap : public TSortableMapBase<KeyType, ValueType, SetAllocator, KeyFuncs>
 {
 	friend struct TContainerTraits<TMap>;
+	friend class  FScriptMap;
 
 	static_assert(!KeyFuncs::bAllowDuplicateKeys, "TMap cannot be instantiated with a KeyFuncs which allows duplicate keys");
 
@@ -1176,6 +1179,121 @@ public:
 		return Super::Num();
 	}
 };
+
+struct FScriptMapLayout
+{
+	int32 KeyOffset;
+	int32 ValueOffset;
+
+	FScriptSetLayout SetLayout;
+};
+
+// Untyped map type for accessing TMap data, like FScriptArray for TArray.
+// Must have the same memory representation as a TMap.
+class FScriptMap
+{
+public:
+	static FScriptMapLayout GetScriptLayout(int32 KeySize, int32 KeyAlignment, int32 ValueSize, int32 ValueAlignment)
+	{
+		FScriptMapLayout Result;
+
+		// TPair<Key, Value>
+		FStructBuilder PairStruct;
+		Result.KeyOffset   = PairStruct.AddMember(KeySize,   KeyAlignment);
+		Result.ValueOffset = PairStruct.AddMember(ValueSize, ValueAlignment);
+		Result.SetLayout   = FScriptSet::GetScriptLayout(PairStruct.GetSize(),  PairStruct.GetAlignment());
+
+		return Result;
+	}
+
+	FScriptMap()
+	{
+	}
+
+	bool IsValidIndex(int32 Index) const
+	{
+		return Pairs.IsValidIndex(Index);
+	}
+
+	int32 Num() const
+	{
+		return Pairs.Num();
+	}
+
+	int32 GetMaxIndex() const
+	{
+		return Pairs.GetMaxIndex();
+	}
+
+	void* GetData(int32 Index, const FScriptMapLayout& Layout)
+	{
+		return Pairs.GetData(Index, Layout.SetLayout);
+	}
+
+	const void* GetData(int32 Index, const FScriptMapLayout& Layout) const
+	{
+		return Pairs.GetData(Index, Layout.SetLayout);
+	}
+
+	void Empty(int32 Slack, const FScriptMapLayout& Layout)
+	{
+		Pairs.Empty(Slack, Layout.SetLayout);
+	}
+
+	void RemoveAt(int32 Index, const FScriptMapLayout& Layout)
+	{
+		Pairs.RemoveAt(Index, Layout.SetLayout);
+	}
+
+	/**
+	 * Adds an uninitialized object to the map.
+	 * The map will need rehashing at some point after this call to make it valid.
+	 *
+	 * @return  The index of the added element.
+	 */
+	int32 AddUninitialized(const FScriptMapLayout& Layout)
+	{
+		return Pairs.AddUninitialized(Layout.SetLayout);
+	}
+
+	void Rehash(const FScriptMapLayout& Layout, TFunctionRef<uint32 (const void*)> GetKeyHash)
+	{
+		Pairs.Rehash(Layout.SetLayout, GetKeyHash);
+	}
+
+private:
+	FScriptSet Pairs;
+
+	// This function isn't intended to be called, just to be compiled to validate the correctness of the type.
+	static void CheckConstraints()
+	{
+		typedef FScriptMap        ScriptType;
+		typedef TMap<int32, int8> RealType;
+
+		// Check that the class footprint is the same
+		static_assert(sizeof (ScriptType) == sizeof (RealType), "FScriptMap's size doesn't match TMap");
+		static_assert(ALIGNOF(ScriptType) == ALIGNOF(RealType), "FScriptMap's alignment doesn't match TMap");
+
+		// Check member sizes
+		static_assert(sizeof(DeclVal<ScriptType>().Pairs) == sizeof(DeclVal<RealType>().Pairs), "FScriptMap's Pairs member size does not match TMap's");
+
+		// Check member offsets
+		static_assert(STRUCT_OFFSET(ScriptType, Pairs) == STRUCT_OFFSET(RealType, Pairs), "FScriptMap's Pairs member offset does not match TMap's");
+	}
+
+public:
+	// These should really be private, because they shouldn't be called, but there's a bunch of code
+	// that needs to be fixed first.
+	FScriptMap(const FScriptMap&) { check(false); }
+	void operator=(const FScriptMap&) { check(false); }
+};
+
+template <>
+struct TIsZeroConstructType<FScriptMap>
+{
+	enum { Value = true };
+};
+
 
 template <typename KeyType, typename ValueType, typename SetAllocator,typename KeyFuncs>
 struct TContainerTraits<TMap<KeyType, ValueType, SetAllocator, KeyFuncs>> : public TContainerTraitsBase<TMap<KeyType, ValueType, SetAllocator, KeyFuncs>>
