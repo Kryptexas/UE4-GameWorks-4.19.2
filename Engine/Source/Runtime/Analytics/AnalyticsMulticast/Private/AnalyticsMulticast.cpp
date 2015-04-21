@@ -36,6 +36,19 @@ public:
 	virtual ~FAnalyticsProviderMulticast();
 
 	bool HasValidProviders() const { return Providers.Num() > 0; }
+
+	virtual void SetBuildInfo(const FString& InBuildInfo) override;
+	virtual void SetGender(const FString& InGender) override;
+	virtual void SetLocation(const FString& InLocation) override;
+	virtual void SetAge(const int32 InAge) override;
+
+	virtual void RecordItemPurchase(const FString& ItemId, int ItemQuantity, const TArray<FAnalyticsEventAttribute>& EventAttrs) override;
+	virtual void RecordCurrencyPurchase(const FString& GameCurrencyType, int GameCurrencyAmount, const TArray<FAnalyticsEventAttribute>& EventAttrs) override;
+	virtual void RecordCurrencyGiven(const FString& GameCurrencyType, int GameCurrencyAmount, const TArray<FAnalyticsEventAttribute>& EventAttrs) override;
+	virtual void RecordError(const FString& Error, const TArray<FAnalyticsEventAttribute>& EventAttrs) override;
+	virtual void RecordProgress(const FString& ProgressType, const FString& ProgressHierarchy, const TArray<FAnalyticsEventAttribute>& EventAttrs) override;
+	virtual void RecordProgress(const FString& ProgressType, const TArray<FString>& ProgressHierarchy, const TArray<FAnalyticsEventAttribute>& EventAttrs) override;
+
 private:
 	TArray<TSharedPtr<IAnalyticsProvider> > Providers;
 	TArray<FString> ProviderModules;
@@ -223,3 +236,84 @@ void FAnalyticsProviderMulticast::RecordCurrencyGiven( const FString& GameCurren
 		(*it)->RecordCurrencyGiven(GameCurrencyType, GameCurrencyAmount);
 	}
 }
+
+void FAnalyticsProviderMulticast::SetBuildInfo(const FString& InBuildInfo)
+{
+	for (auto Provider : Providers)
+	{
+		Provider->SetBuildInfo(InBuildInfo);
+	}
+}
+
+void FAnalyticsProviderMulticast::SetGender(const FString& InGender)
+{
+	for (auto Provider : Providers)
+	{
+		Provider->SetGender(InGender);
+	}
+}
+
+void FAnalyticsProviderMulticast::SetLocation(const FString& InLocation)
+{
+	for (auto Provider : Providers)
+	{
+		Provider->SetLocation(InLocation);
+	}
+}
+
+void FAnalyticsProviderMulticast::SetAge(const int32 InAge)
+{
+	for (auto Provider : Providers)
+	{
+		Provider->SetAge(InAge);
+	}
+}
+
+void FAnalyticsProviderMulticast::RecordItemPurchase(const FString& ItemId, int ItemQuantity, const TArray<FAnalyticsEventAttribute>& EventAttrs)
+{
+	for (auto Provider : Providers)
+	{
+		Provider->RecordItemPurchase(ItemId, ItemQuantity, EventAttrs);
+	}
+}
+
+void FAnalyticsProviderMulticast::RecordCurrencyPurchase(const FString& GameCurrencyType, int GameCurrencyAmount, const TArray<FAnalyticsEventAttribute>& EventAttrs)
+{
+	for (auto Provider : Providers)
+	{
+		Provider->RecordCurrencyPurchase(GameCurrencyType, GameCurrencyAmount, EventAttrs);
+	}
+}
+
+void FAnalyticsProviderMulticast::RecordCurrencyGiven(const FString& GameCurrencyType, int GameCurrencyAmount, const TArray<FAnalyticsEventAttribute>& EventAttrs)
+{
+	for (auto Provider : Providers)
+	{
+		Provider->RecordCurrencyGiven(GameCurrencyType, GameCurrencyAmount, EventAttrs);
+	}
+}
+
+void FAnalyticsProviderMulticast::RecordError(const FString& Error, const TArray<FAnalyticsEventAttribute>& EventAttrs)
+{
+	for (auto Provider : Providers)
+	{
+		Provider->RecordError(Error, EventAttrs);
+	}
+}
+
+void FAnalyticsProviderMulticast::RecordProgress(const FString& ProgressType, const FString& ProgressHierarchy, const TArray<FAnalyticsEventAttribute>& EventAttrs)
+{
+	for (auto Provider : Providers)
+	{
+		Provider->RecordProgress(ProgressType, ProgressHierarchy, EventAttrs);
+	}
+}
+
+void FAnalyticsProviderMulticast::RecordProgress(const FString& ProgressType, const TArray<FString>& ProgressHierarchy, const TArray<FAnalyticsEventAttribute>& EventAttrs)
+{
+	for (auto Provider : Providers)
+	{
+		Provider->RecordProgress(ProgressType, ProgressHierarchy, EventAttrs);
+	}
+}
+
