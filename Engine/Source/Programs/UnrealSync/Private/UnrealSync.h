@@ -92,18 +92,23 @@ struct FSyncSettings
 	/* Preview sync? */
 	bool bPreview;
 
+	/* Auto-clobber sync? */
+	bool bAutoClobber;
+
 	/* Override sync step. If set then it overrides collecting sync steps and uses this one instead. */
 	FString OverrideSyncStep;
 
-	FSyncSettings(bool bArtist, bool bPreview, FString OverrideSyncStep = FString())
+	FSyncSettings(bool bArtist, bool bPreview, bool bAutoClobber, FString OverrideSyncStep = FString())
 		: bArtist(bArtist)
 		, bPreview(bPreview)
+		, bAutoClobber(bAutoClobber)
 		, OverrideSyncStep(MoveTemp(OverrideSyncStep))
 	{ }
 
 	FSyncSettings(const FSyncSettings&& Other)
-		: bArtist(MoveTemp(Other.bArtist))
-		, bPreview(MoveTemp(Other.bPreview))
+		: bArtist(Other.bArtist)
+		, bPreview(Other.bPreview)
+		, bAutoClobber(Other.bAutoClobber)
 		, OverrideSyncStep(MoveTemp(Other.OverrideSyncStep))
 	{ }
 };

@@ -4,6 +4,7 @@
 #include "GUI.h"
 #include "P4DataCache.h"
 #include "P4Env.h"
+#include "XmlParser.h"
 
 #include "RequiredProgramMainCPPInclude.h"
 
@@ -402,7 +403,22 @@ void SyncingMessage(const FUnrealSync::FOnSyncProgress& OnSyncProgress, const FS
 	}
 }
 
-#include "XmlParser.h"
+/**
+ * Contains file and revision specification as sync step.
+ */
+struct FSyncStep
+{
+	FSyncStep(FString FileSpec, FString RevSpec)
+		: FileSpec(MoveTemp(FileSpec)), RevSpec(MoveTemp(RevSpec))
+	{}
+
+	const FString& GetFileSpec() const { return FileSpec; }
+	const FString& GetRevSpec() const { return RevSpec; }
+
+private:
+	FString FileSpec;
+	FString RevSpec;
+};
 
 /**
  * Parses sync rules XML content and fills array with sync steps
@@ -413,7 +429,7 @@ void SyncingMessage(const FUnrealSync::FOnSyncProgress& OnSyncProgress, const FS
  * @param ContentRevisionSpec Content revision spec.
  * @param ProgramRevisionSpec Program revision spec.
  */
-void FillWithSyncSteps(TArray<FString>& SyncSteps, const FString& SyncRules, const FString& ContentRevisionSpec, const FString& ProgramRevisionSpec)
+void FillWithSyncSteps(TArray<FSyncStep>& SyncSteps, const FString& SyncRules, const FString& ContentRevisionSpec, const FString& ProgramRevisionSpec)
 {
 	TSharedRef<FXmlFile> Doc = MakeShareable(new FXmlFile(SyncRules, EConstructMethod::ConstructFromBuffer));
 
@@ -443,7 +459,17 @@ void FillWithSyncSteps(TArray<FString>& SyncSteps, const FString& SyncRules, con
 				SyncStep += ContentRevisionSpec;
 			}
 
-			SyncSteps.Add(SyncStep);
+			int32 AtLastPos = INDEX_NONE;
+			SyncStep.FindLastChar('@', AtLastPos);
+
+			int32 HashLastPos = INDEX_NONE;
+			SyncStep.FindLastChar('#', HashLastPos);
+
+			int32 RevSpecSeparatorPos = FMath::Max<int32>(AtLastPos, HashLastPos);
+
+			check(RevSpecSeparatorPos != INDEX_NONE); // At least one rev specifier needed here.
+			
+			SyncSteps.Add(FSyncStep(SyncStep.Mid(0, RevSpecSeparatorPos), SyncStep.Mid(RevSpecSeparatorPos)));
 		}
 	}
 }
@@ -477,7 +503,7 @@ bool FUnrealSync::Sync(const FSyncSettings& Settings, const FString& Label, cons
 	SyncingMessage(OnSyncProgress, "Syncing to label: " + Label);
 
 	auto ProgramRevisionSpec = "@" + Label;
-	TArray<FString> SyncSteps;
+	TArray<FSyncStep> SyncSteps;
 
 	if (Settings.bArtist)
 	{
@@ -500,7 +526,7 @@ bool FUnrealSync::Sync(const FSyncSettings& Settings, const FString& Label, cons
 			*FP4Env::Get().GetBranch(), Game.IsEmpty() ? TEXT("Samples") : *Game);
 
 		FString SyncRules;
-		if (!FP4Env::RunP4Output("print -q " + ArtistSyncRulesPath + "#head", SyncRules))
+		if (!FP4Env::RunP4Output("print -q " + ArtistSyncRulesPath + "#head", SyncRules) || SyncRules.IsEmpty())
 		{
 			return false;
 		}
@@ -511,15 +537,74 @@ bool FUnrealSync::Sync(const FSyncSettings& Settings, const FString& Label, cons
 	}
 	else
 	{
-		SyncSteps.Add((Settings.OverrideSyncStep.IsEmpty() ? "/..." : Settings.OverrideSyncStep) + ProgramRevisionSpec); // all files to label
+		SyncSteps.Add(FSyncStep(Settings.OverrideSyncStep.IsEmpty() ? "/..." : Settings.OverrideSyncStep, ProgramRevisionSpec)); // all files to label
 	}
+
+	class FSyncCollectAndPassThrough
+	{
+	public:
+		FSyncCollectAndPassThrough(const FOnSyncProgress& Progress)
+			: Progress(Progress)
+		{ }
+
+		operator FOnSyncProgress() const
+		{
+			return FOnSyncProgress::CreateRaw(this, &FSyncCollectAndPassThrough::OnProgress);
+		}
+
+		bool OnProgress(const FString& Text)
+		{
+			Log += Text;
+
+			return Progress.Execute(Text);
+		}
+
+		void ProcessLog()
+		{
+			Log = Log.Replace(TEXT("\r"), TEXT(""));
+			const FRegexPattern CantClobber(TEXT("Can't clobber writable file ([^\\n]+)"));
+
+			FRegexMatcher Match(CantClobber, Log);
+
+			while (Match.FindNext())
+			{
+				CantClobbers.Add(Log.Mid(
+					Match.GetCaptureGroupBeginning(1),
+					Match.GetCaptureGroupEnding(1) - Match.GetCaptureGroupBeginning(1)));
+			}
+		}
+
+		const TArray<FString>& GetCantClobbers() const { return CantClobbers; }
+
+	private:
+		const FOnSyncProgress& Progress;
+
+		FString Log;
+
+		TArray<FString> CantClobbers;
+	};
 
 	FString CommandPrefix = FString("sync ") + (Settings.bPreview ? "-n " : "") + FP4Env::Get().GetBranch();
 	for(const auto& SyncStep : SyncSteps)
 	{
-		if (!FP4Env::RunP4Progress(CommandPrefix + SyncStep, OnSyncProgress))
+		FSyncCollectAndPassThrough ErrorsCollector(OnSyncProgress);
+		if (!FP4Env::RunP4Progress(CommandPrefix + SyncStep.GetFileSpec() + SyncStep.GetRevSpec(), ErrorsCollector))
 		{
-			return false;
+			if (!Settings.bAutoClobber)
+			{
+				return false;
+			}
+
+			ErrorsCollector.ProcessLog();
+
+			FString AutoClobberCommandPrefix("sync -f ");
+			for (const auto& CantClobber : ErrorsCollector.GetCantClobbers())
+			{
+				if (!FP4Env::RunP4Progress(AutoClobberCommandPrefix + CantClobber + SyncStep.GetRevSpec(), OnSyncProgress))
+				{
+					return false;
+				}
+			}
 		}
 	}
 

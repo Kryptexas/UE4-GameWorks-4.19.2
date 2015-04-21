@@ -319,6 +319,7 @@ public:
 	 */
 	void Add(const FString& Value)
 	{
+		CurrentOption = 0;
 		OptionsSource.Add(MakeShareable(new FString(Value)));
 	}
 
@@ -347,6 +348,7 @@ public:
 	 */
 	void Clear()
 	{
+		CurrentOption = -1;
 		OptionsSource.Empty();
 	}
 
@@ -423,7 +425,7 @@ public:
 		 * @param Name Name of the item.
 		 * @param Content Content widget to store by this item.
 		 */
-		FItem(SRadioContentSelection& Parent, int32 Id, const FString& Name, TSharedRef<SWidget> Content)
+		FItem(SRadioContentSelection& Parent, int32 Id, FText Name, TSharedRef<SWidget> Content)
 			: Parent(Parent), Id(Id), Name(Name), Content(Content)
 		{
 
@@ -445,7 +447,7 @@ public:
 					.IsChecked(this, &FItem::IsCheckboxChecked)
 					[
 						SNew(STextBlock)
-						.Text(FText::FromString(GetName()))
+						.Text(Name)
 					]
 				]
 				+ SVerticalBox::Slot().VAlign(VAlign_Fill).Padding(19.0f, 2.0f, 2.0f, 2.0f)
@@ -454,16 +456,6 @@ public:
 				];
 		}
 
-		/**
-		 * Gets this item name.
-		 *
-		 * @returns Item name.
-		 */
-		const FString& GetName() const
-		{
-			return Name;
-		}
-		
 		/**
 		 * Gets this item content widget.
 		 *
@@ -526,7 +518,7 @@ public:
 		/* Item id. */
 		int32 Id;
 		/* Item name. */
-		FString Name;
+		FText Name;
 
 		/* Outer item widget. */
 		TSharedPtr<SWidget> WholeItemWidget;
@@ -561,7 +553,7 @@ public:
 	 * @param Name Name of the widget in this selection.
 	 * @param Content The widget itself.
 	 */
-	void Add(const FString& Name, TSharedRef<SWidget> Content)
+	void Add(FText Name, TSharedRef<SWidget> Content)
 	{
 		TSharedRef<FItem> Item = MakeShareable(new FItem(*this, Items.Num(), Name, Content));
 		Item->Init();
@@ -1046,17 +1038,17 @@ public:
 	{
 		RadioSelection = SNew(SRadioContentSelection);
 
-		AddToRadioSelection("Sync to the latest promoted", SNew(SLatestPromoted));
-		AddToRadioSelection("Sync to chosen promoted label", SNew(SPickPromoted).Title(FText::FromString("Pick promoted label: ")));
-		AddToRadioSelection("Sync to chosen promotable label since last promoted", SNew(SPickPromotable).Title(FText::FromString("Pick promotable label: ")));
-		AddToRadioSelection("Sync to any chosen label", SNew(SPickAny).Title(FText::FromString("Pick label: ")));
+		AddToRadioSelection(LOCTEXT("SyncToLatestPromoted", "Sync to the latest promoted"), SNew(SLatestPromoted));
+		AddToRadioSelection(LOCTEXT("SyncToChosenPromoted", "Sync to chosen promoted label"), SNew(SPickPromoted).Title(LOCTEXT("PickPromotedLabel", "Pick promoted label: ")));
+		AddToRadioSelection(LOCTEXT("SyncToChosenPromotable", "Sync to chosen promotable label since last promoted"), SNew(SPickPromotable).Title(LOCTEXT("PickPromotableLabel", "Pick promotable label: ")));
+		AddToRadioSelection(LOCTEXT("SyncToAnyChosen", "Sync to any chosen label"), SNew(SPickAny).Title(LOCTEXT("PickLabel", "Pick label: ")));
 
 		PickGameWidget = SNew(SPickGameWidget)
 			.OnGamePicked(this, &SMainTabWidget::OnCurrentGameChanged);
 
 		ArtistSyncCheckBox = SNew(SCheckBox)
 			[
-				SNew(STextBlock).Text(FText::FromString("Artist sync?"))
+				SNew(STextBlock).Text(LOCTEXT("ArtistSync", "Artist sync?"))
 			];
 
 #if UE_BUILD_DEBUG
@@ -1073,14 +1065,19 @@ public:
 
 		PreviewSyncCheckBox = SNew(SCheckBox)
 			[
-				SNew(STextBlock).Text(FText::FromString("Preview sync?"))
+				SNew(STextBlock).Text(LOCTEXT("PreviewSync", "Preview sync?"))
+			];
+
+		AutoClobberSyncCheckBox = SNew(SCheckBox)
+			[
+				SNew(STextBlock).Text(LOCTEXT("AutoClobberSync", "Auto-clobber sync?"))
 			];
 
 		GoBackButton = SNew(SButton)
 			.IsEnabled(false)
 			.OnClicked(this, &SMainTabWidget::OnGoBackButtonClick)
 			[
-				SNew(STextBlock).Text(FText::FromString("Go back"))
+				SNew(STextBlock).Text(LOCTEXT("GoBack", "Go back"))
 			];
 
 		TSharedPtr<SVerticalBox> MainBox;
@@ -1111,6 +1108,14 @@ public:
 						]
 					]
 					+ SHorizontalBox::Slot().HAlign(HAlign_Fill)
+					+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Top).Padding(0.0f, 0.0f, 10.0f, 0.0f)
+					[
+						SNew(SVerticalBox)
+						+SVerticalBox::Slot()
+						[
+							AutoClobberSyncCheckBox.ToSharedRef()
+						]
+					]
 					+ SHorizontalBox::Slot().AutoWidth()
 					[
 						SNew(SVerticalBox)
@@ -1119,9 +1124,9 @@ public:
 							ArtistSyncCheckBox.ToSharedRef()
 						]
 						+ SVerticalBox::Slot()
-							[
-								PreviewSyncCheckBox.ToSharedRef()
-							]
+						[
+							PreviewSyncCheckBox.ToSharedRef()
+						]
 					]
 					+ SHorizontalBox::Slot().AutoWidth().Padding(30, 0, 0, 0)
 						[
@@ -1376,6 +1381,7 @@ private:
 		FSyncSettings Settings(
 			ArtistSyncCheckBox->IsChecked(),
 			PreviewSyncCheckBox->IsChecked(),
+			AutoClobberSyncCheckBox->IsChecked(),
 			OverrideSyncStep);
 
 		Switcher->SetActiveWidgetIndex(1);
@@ -1501,7 +1507,7 @@ private:
 	 * @param Widget Widget to add.
 	 */
 	template <typename TWidgetType>
-	void AddToRadioSelection(const FString& Name, TSharedRef<TWidgetType> Widget)
+	void AddToRadioSelection(FText Name, TSharedRef<TWidgetType> Widget)
 	{
 		RadioSelection->Add(Name, Widget);
 		SyncCommandLineProviders.Add(Widget);
@@ -1577,6 +1583,8 @@ private:
 	TSharedPtr<SCheckBox> ArtistSyncCheckBox;
 	/* Check box to tell if this should be a preview sync. */
 	TSharedPtr<SCheckBox> PreviewSyncCheckBox;
+	/* Check box to tell if this should be a auto-clobber sync. */
+	TSharedPtr<SCheckBox> AutoClobberSyncCheckBox;
 
 	/* External thread requests dispatcher. */
 	TSharedRef<FExternalThreadsDispatcher, ESPMode::ThreadSafe> ExternalThreadsDispatcher;
