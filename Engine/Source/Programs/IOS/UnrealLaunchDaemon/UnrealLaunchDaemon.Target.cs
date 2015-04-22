@@ -11,6 +11,7 @@ public class UnrealLaunchDaemonTarget : TargetRules
 		bUsesSlate = false;
 		//PlatformType = TargetRules.TargetPlatformType.Mobile;
 		//bRequiresUnrealHeaderGeneration = true;
+		AdditionalPlugins.Add("UdpMessaging");
 	}
 
 	//

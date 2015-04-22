@@ -462,8 +462,9 @@ namespace UnrealBuildTool
 		public UnrealTargetConfiguration UndecoratedConfiguration = UnrealTargetConfiguration.Development;
 
 		/// <summary>
-		/// A list of additional plugins which need to be built for this target. Game and editor targets can use the EnabledPlugins 
-		/// setting in their config files to control this.
+		/// A list of additional plugins which need to be included in this target. This allows referencing non-optional plugin modules
+		/// which cannot be disabled, and allows building against specific modules in program targets which do not fit the categories
+		/// in ModuleHostType.
 		/// </summary>
 		public List<string> AdditionalPlugins = new List<string>();		
 
