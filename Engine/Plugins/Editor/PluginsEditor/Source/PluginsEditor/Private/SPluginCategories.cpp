@@ -66,10 +66,10 @@ void SPluginCategories::RebuildAndFilterCategoryTree()
 		RootPluginCategories.Reset();
 
 		// Add the root level categories
-		TSharedRef<FPluginCategoryTreeItem> BuiltInCategory = MakeShareable(new FPluginCategoryTreeItem(NULL, TEXT("BuiltIn"), TEXT("Built-in"), LOCTEXT("BuiltInCategoryName", "Built-in")));
-		RootPluginCategories.Add( BuiltInCategory );
 		TSharedRef<FPluginCategoryTreeItem> InstalledCategory = MakeShareable(new FPluginCategoryTreeItem(NULL, TEXT("Installed"), TEXT("Installed"), LOCTEXT("InstalledCategoryName", "Installed")));
 		RootPluginCategories.Add( InstalledCategory );
+		TSharedRef<FPluginCategoryTreeItem> ProjectCategory = MakeShareable(new FPluginCategoryTreeItem(NULL, TEXT("Project"), TEXT("Project"), LOCTEXT("ProjectCategoryName", "Project")));
+		RootPluginCategories.Add( ProjectCategory );
 
 
 		const TArray< FPluginStatus > Plugins = IPluginManager::Get().QueryStatusForAllPlugins();
@@ -82,11 +82,11 @@ void SPluginCategories::RebuildAndFilterCategoryTree()
 			FPluginCategoryTreeItemPtr CategoryForPlugin;
 			if( PluginStatus.bIsBuiltIn )
 			{
-				CategoryForPlugin = BuiltInCategory;
+				CategoryForPlugin = InstalledCategory;
 			}
 			else
 			{
-				CategoryForPlugin = InstalledCategory;
+				CategoryForPlugin = ProjectCategory;
 			}
 			check( CategoryForPlugin.IsValid() );
 			FString ItemCategoryPath = CategoryForPlugin->GetCategoryPath();

@@ -37,7 +37,7 @@ private:
 	void OnPluginTextFilterChanged();
 
 	/** Recursively gathers plugins from a category and all sub-categories.  Updates the PluginListItems structure. */
-	void GetPluginsRecursively( const TSharedPtr< class FPluginCategoryTreeItem >& Category );
+	void GetPlugins( const TSharedPtr< class FPluginCategoryTreeItem >& Category );
 
 	/** Called to generate a widget for the specified list item */
 	TSharedRef<ITableRow> PluginListView_OnGenerateRow( FPluginListItemPtr Item, const TSharedRef<STableViewBase>& OwnerTable );

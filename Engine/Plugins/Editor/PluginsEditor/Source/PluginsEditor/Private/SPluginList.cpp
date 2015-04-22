@@ -65,15 +65,8 @@ TSharedRef<ITableRow> SPluginList::PluginListView_OnGenerateRow( FPluginListItem
 
 
 
-void SPluginList::GetPluginsRecursively( const TSharedPtr< FPluginCategoryTreeItem >& Category )
+void SPluginList::GetPlugins( const TSharedPtr< FPluginCategoryTreeItem >& Category )
 {
-	// Process sub-categories
-	for( auto SubCategoryIt( Category->GetSubCategories().CreateConstIterator() ); SubCategoryIt; ++SubCategoryIt )
-	{
-		const auto& SubCategory = *SubCategoryIt;
-		GetPluginsRecursively( SubCategory );
-	}
-
 	// Add plugins from this category
 	const TArray< TSharedPtr< FPluginStatus > >& Plugins = Category->GetPlugins();
 	for( auto PluginIt( Plugins.CreateConstIterator() ); PluginIt; ++PluginIt )
@@ -107,7 +100,7 @@ void SPluginList::RebuildAndFilterPluginList()
 		const auto& SelectedCategory = OwnerWeak.Pin()->GetSelectedCategory();
 		if( SelectedCategory.IsValid() )
 		{
-			GetPluginsRecursively( SelectedCategory );
+			GetPlugins( SelectedCategory );
 		}
 
 		// Sort the plugins alphabetically
