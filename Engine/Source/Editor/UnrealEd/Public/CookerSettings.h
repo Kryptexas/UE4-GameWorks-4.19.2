@@ -9,11 +9,10 @@
 #include "CookerSettings.generated.h"
 
 /**
- * Implements per-project cooker settings exposed to the editor
+ * Various cooker settings.
  */
-UCLASS(config=Engine, defaultconfig)
-class UNREALED_API UCookerSettings
-	: public UObject
+UCLASS(config=Engine, defaultconfig, meta=(DisplayName="Cooker"))
+class UNREALED_API UCookerSettings : public UDeveloperSettings
 {
 	GENERATED_UCLASS_BODY()
 

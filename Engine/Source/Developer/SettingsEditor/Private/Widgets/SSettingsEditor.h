@@ -184,6 +184,9 @@ private:
 	/** Callback for determining the visibility of the settings view. */
 	EVisibility HandleSettingsViewVisibility() const;
 
+	/** Callback when the timer has been ticked to refresh the categories latently. */
+	EActiveTimerReturnType UpdateCategoriesCallback(double InCurrentTime, float InDeltaTime);
+
 private:
 
 	/** Holds the vertical box for settings categories. */
@@ -209,4 +212,7 @@ private:
 
 	/** Delegate called when this settings editor requests that the user be notified that the application needs to be restarted for some setting changes to take effect */
 	FSimpleDelegate OnApplicationRestartRequiredDelegate;
+
+	/** Is the active timer registered to refresh categories after the settings changed. */
+	bool bIsActiveTimerRegistered;
 };

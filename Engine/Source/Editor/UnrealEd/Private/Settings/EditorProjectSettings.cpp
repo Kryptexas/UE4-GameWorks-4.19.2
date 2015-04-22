@@ -44,8 +44,9 @@ TArray<EUnit> ToRawUnits(const TArray<TEnumAsByte<EUnit>>& In)
 	return Units;	
 }
 
-UEditorProjectAppearanceSettings::UEditorProjectAppearanceSettings(const FObjectInitializer&)
-	: UnitDisplay_DEPRECATED(EUnitDisplay::Invalid)
+UEditorProjectAppearanceSettings::UEditorProjectAppearanceSettings(const FObjectInitializer& Initializer)
+	: Super(Initializer)
+	, UnitDisplay_DEPRECATED(EUnitDisplay::Invalid)
 	, DefaultInputUnits_DEPRECATED(EDefaultLocationUnit::Invalid)
 {
 }

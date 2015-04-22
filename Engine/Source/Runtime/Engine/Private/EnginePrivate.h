@@ -7,6 +7,7 @@ EnginePrivate.h: Unreal engine private header file.
 #pragma once
 #include "CoreUObject.h"
 #include "EngineDefines.h"
+#include "Engine/DeveloperSettings.h"
 #include "GameMapsSettings.h"
 #include "EngineStats.h"
 #include "EngineLogs.h"

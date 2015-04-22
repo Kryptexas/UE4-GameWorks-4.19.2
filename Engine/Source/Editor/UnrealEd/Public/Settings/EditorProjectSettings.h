@@ -6,9 +6,11 @@
 
 #include "EditorProjectSettings.generated.h"
 
-/** Editor project appearance settings. Stored in default config, per-project */
-UCLASS(config=Editor, defaultconfig)
-class UNREALED_API UEditorProjectAppearanceSettings : public UObject
+/**
+ * Editor project appearance settings. Stored in default config, per-project
+ */
+UCLASS(config=Editor, defaultconfig, meta=(DisplayName="Appearance"))
+class UNREALED_API UEditorProjectAppearanceSettings : public UDeveloperSettings
 {
 public:
 	GENERATED_BODY()
@@ -100,10 +102,10 @@ enum class ELevelEditor2DAxis : uint8
 };
 
 /**
-* Implements the Project specific 2D viewport settings.
-*/
-UCLASS(config=Editor)
-class UNREALED_API ULevelEditor2DSettings : public UObject
+ * Configure the settings for the 2D Level Editor
+ */
+UCLASS(config=Editor, meta=(DisplayName="2D"))
+class UNREALED_API ULevelEditor2DSettings : public UDeveloperSettings
 {
 	GENERATED_UCLASS_BODY()
 

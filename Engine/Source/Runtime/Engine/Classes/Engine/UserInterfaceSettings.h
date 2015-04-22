@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "Curves/CurveFloat.h"
 #include "UserInterfaceSettings.generated.h"
 
@@ -38,11 +39,10 @@ class UWidget;
 class UDPICustomScalingRule;
 
 /**
- * Implements user interface related settings.
+ * User Interface settings that control Slate and UMG.
  */
-UCLASS(config=Engine, defaultconfig)
-class ENGINE_API UUserInterfaceSettings
-	: public UObject
+UCLASS(config=Engine, defaultconfig, meta=(DisplayName="User Interface"))
+class ENGINE_API UUserInterfaceSettings : public UDeveloperSettings
 {
 	GENERATED_UCLASS_BODY()
 

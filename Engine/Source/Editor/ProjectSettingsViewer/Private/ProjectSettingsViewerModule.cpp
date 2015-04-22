@@ -47,15 +47,8 @@ struct FRegisteredSettings
 class FProjectSettingsViewerModule
 	: public IModuleInterface
 	, public ISettingsViewer
-	, public FTickableEditorObject
 {
 public:
-
-	FProjectSettingsViewerModule()
-	{
-		bTicking = false;
-		bInvalidated = false;
-	}
 
 	// ISettingsViewer interface
 
@@ -87,9 +80,6 @@ public:
 		{
 			RegisterEngineSettings(*SettingsModule);
 			RegisterProjectSettings(*SettingsModule);
-			RegisterEditorSettings(*SettingsModule);
-
-			RegisterAutoDiscoveredSettings(*SettingsModule);
 
 			SettingsModule->RegisterViewer("Project", *this);
 		}
@@ -97,30 +87,14 @@ public:
 		FGlobalTabmanager::Get()->RegisterNomadTabSpawner(ProjectSettingsTabName, FOnSpawnTab::CreateRaw(this, &FProjectSettingsViewerModule::HandleSpawnSettingsTab))
 			.SetDisplayName(LOCTEXT("ProjectSettingsTabTitle", "Project Settings"))
 			.SetMenuType(ETabSpawnerMenuType::Hidden);
-
-		FModuleManager::Get().OnModulesChanged().AddRaw(this, &FProjectSettingsViewerModule::ModulesChangesCallback);
-
-		bTicking = true;
 	}
 
 	virtual void ShutdownModule() override
 	{
-		bTicking = false;
-
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ProjectSettingsTabName);
 		UnregisterSettings();
-
-		FModuleManager::Get().OnModulesChanged().RemoveAll(this);
 	}
-
-	void ModulesChangesCallback(FName ModuleName, EModuleChangeReason ReasonForChange)
-	{
-		if ( ReasonForChange == EModuleChangeReason::ModuleLoaded )
-		{
-			bInvalidated = true;
-		}
-	}
-
+	
 	virtual bool SupportsDynamicReloading() override
 	{
 		return true;
@@ -140,20 +114,6 @@ protected:
 			LOCTEXT("GeneralEngineSettingsName", "General Settings"),
 			LOCTEXT("ProjectGeneralSettingsDescription", "General options and defaults for the game engine."),
 			GetMutableDefault<UEngine>()
-		);
-
-		// audio settings
-		SettingsModule.RegisterSettings("Project", "Engine", "Audio",
-			LOCTEXT("EngineAudioSettingsName", "Audio"),
-			LOCTEXT("ProjectAudioSettingsDescription", "Audio settings."),
-			GetMutableDefault<UAudioSettings>()
-		);
-
-		// collision settings
-		SettingsModule.RegisterSettings("Project", "Engine", "Collision",
-			LOCTEXT("ProjectCollisionSettingsName", "Collision"),
-			LOCTEXT("ProjectCollisionSettingsDescription", "Set up and modify collision settings."),
-			GetMutableDefault<UCollisionProfile>()
 		);
 
 		// command console settings
@@ -199,48 +159,6 @@ protected:
 			LOCTEXT("CrowdManagerSettingsName", "Crowd Manager"),
 			LOCTEXT("CrowdManagerSettingsDescription", "Settings for the AI Crowd Manager."),
 			GetMutableDefault<UCrowdManager>()
-			);
-
-		// Physics settings
-		SettingsModule.RegisterSettings("Project", "Engine", "Animation",
-			LOCTEXT("EngineAnimationSettingsName", "Animation"),
-			LOCTEXT("ProjectAnimationSettingsDescription", "Default animation settings."),
-			GetMutableDefault<UAnimationSettings>()
-		);
-
-		// network settings
-		SettingsModule.RegisterSettings("Project", "Engine", "Network",
-			LOCTEXT("NetworkSettingsName", "Network"),
-			LOCTEXT("NetworkSettingsDescription", "Network settings."),
-			GetMutableDefault<UNetworkSettings>()
-		);
-
-		// Physics settings
-		SettingsModule.RegisterSettings("Project", "Engine", "Physics",
-			LOCTEXT("EnginePhysicsSettingsName", "Physics"),
-			LOCTEXT("ProjectPhysicsSettingsDescription", "Default physics settings."),
-			GetMutableDefault<UPhysicsSettings>()
-		);
-
-		// Rendering settings
-		SettingsModule.RegisterSettings("Project", "Engine", "Rendering",
-			LOCTEXT("EngineRenderingSettingsName", "Rendering"),
-			LOCTEXT("ProjectRenderingSettingsDescription", "Rendering settings."),
-			GetMutableDefault<URendererSettings>()
-		);
-
-		// UI settings
-		SettingsModule.RegisterSettings("Project", "Engine", "UI",
-			LOCTEXT("EngineUISettingsName", "User Interface"),
-			LOCTEXT("ProjectUISettingsDescription", "User Interface settings that control Slate and UMG."),
-			GetMutableDefault<UUserInterfaceSettings>()
-		);
-
-		// Cooker settings
-		SettingsModule.RegisterSettings("Project", "Engine", "Cooker",
-			LOCTEXT("CookerSettingsName", "Cooker"),
-			LOCTEXT("CookerSettingsDescription", "Various cooker settings."),
-			GetMutableDefault<UCookerSettings>()
 			);
 	}
 
@@ -288,69 +206,6 @@ protected:
 		);
 	}
 
-	void RegisterAutoDiscoveredSettings(ISettingsModule& SettingsModule)
-	{
-		// Find game object
-		for ( TObjectIterator<UDeveloperSettings> SettingsIt(RF_NoFlags); SettingsIt; ++SettingsIt )
-		{
-			if ( UDeveloperSettings* Settings = *SettingsIt )
-			{
-				// Only Add the CDO of any UDeveloperSettings objects.
-				if ( Settings->HasAnyFlags(RF_ClassDefaultObject) && !Settings->GetClass()->HasAnyCastFlag(CLASS_Deprecated | CLASS_Abstract) )
-				{
-					FRegisteredSettings Registered;
-					Registered.ContainerName = Settings->GetContainerName();
-					Registered.CategoryName = Settings->GetCategoryName();
-					Registered.SectionName = Settings->GetSectionName();
-
-					TSharedPtr<SWidget> CustomWidget = Settings->GetCustomSettingsWidget();
-					if ( CustomWidget.IsValid() )
-					{
-						// Add Settings
-						SettingsModule.RegisterSettings(Registered.ContainerName, Registered.CategoryName, Registered.SectionName,
-							Settings->GetSectionText(),
-							Settings->GetSectionDescription(),
-							CustomWidget.ToSharedRef()
-							);
-					}
-					else
-					{
-						// Add Settings
-						SettingsModule.RegisterSettings(Registered.ContainerName, Registered.CategoryName, Registered.SectionName,
-							Settings->GetSectionText(),
-							Settings->GetSectionDescription(),
-							Settings
-							);
-					}
-
-					AutoDiscoveredSettings.Add(Registered);
-				}
-			}
-		}
-	}
-
-	/**
-	 * Registers Editor settings.
-	 *
-	 * @param SettingsModule A reference to the settings module.
-	 */
-	void RegisterEditorSettings( ISettingsModule& SettingsModule )
-	{
-		// Appearance settings
-		SettingsModule.RegisterSettings("Project", "Editor", "Appearance",
-			LOCTEXT("AppearanceSettingsName", "Appearance"),
-			LOCTEXT("AppearanceSettingsDescription", "Settings pertaining to the appearance of the editor"),
-			GetMutableDefault<UEditorProjectAppearanceSettings>()
-		);
-
-		// view port settings
-		SettingsModule.RegisterSettings("Project", "Editor", "2D",
-			LOCTEXT("Editor2DSettingsName", "2D"),
-			LOCTEXT("Editor2DSettingsDescription", "Configure the settings for the 2D Level Editor."),
-			GetMutableDefault<ULevelEditor2DSettings>()
-		);
-	}
-
 	/** Unregisters all settings. */
 	void UnregisterSettings()
 	{
@@ -379,52 +234,8 @@ protected:
 
 			// Editor settings
 			SettingsModule->UnregisterSettings("Editor", "Editor", "Appearance");
-
-			UnregisterAutoDiscoveredSettings(*SettingsModule);
 		}
 	}
-
-	void UnregisterAutoDiscoveredSettings(ISettingsModule& SettingsModule)
-	{
-		// Unregister any auto discovers settings.
-		for ( const FRegisteredSettings& Settings : AutoDiscoveredSettings )
-		{
-			SettingsModule.UnregisterSettings(Settings.ContainerName, Settings.CategoryName, Settings.SectionName);
-		}
-
-		AutoDiscoveredSettings.Reset();
-	}
-
-private:
-
-	/** FTickableEditorObject interface */
-	void Tick(float DeltaTime) override
-	{
-		if ( bInvalidated )
-		{
-			ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
-
-			if ( SettingsModule != nullptr )
-			{
-				UnregisterAutoDiscoveredSettings(*SettingsModule);
-				RegisterAutoDiscoveredSettings(*SettingsModule);
-			}
-
-			bInvalidated = false;
-		}
-	}
-
-	bool IsTickable() const override
-	{
-		return bTicking;
-	}
-
-	TStatId GetStatId() const override
-	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FProjectSettingsViewerModule, STATGROUP_Tickables);
-	}
-
-	/** FTickableEditorObject interface */
 
 private:
 
@@ -459,15 +270,6 @@ private:
 
 	/** Holds a pointer to the settings editor's view model. */
 	TWeakPtr<ISettingsEditorModel> SettingsEditorModelPtr;
-
-	/** The list of auto discovered settings that need to be unregistered. */
-	TArray<FRegisteredSettings> AutoDiscoveredSettings;
-
-	/** When new modules are loaded we invalidate the list of autodiscovered settings and re-discover them. */
-	bool bInvalidated;
-
-	/** Should we be ticking? */
-	bool bTicking;
 };
 
 

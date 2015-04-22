@@ -15,7 +15,7 @@ enum class EDeveloperSettingsContainer : uint8
 /**
  * The base class of any auto discovered settings object.
  */
-UCLASS(abstract)
+UCLASS(Abstract)
 class ENGINE_API UDeveloperSettings : public UObject
 {
 	GENERATED_BODY()
@@ -23,6 +23,8 @@ class ENGINE_API UDeveloperSettings : public UObject
 public:
 	UDeveloperSettings(const FObjectInitializer& ObjectInitializer);
 
+	/** Gets the container type, Project or Editor */
+	EDeveloperSettingsContainer GetContainerType() const { return Container; }
 	/** Gets the settings container name for the settings, either Project or Editor */
 	FName GetContainerName() const;
 	/** Gets the category for the settings, some high level grouping like, Editor, Engine, Game...etc. */
@@ -38,7 +40,7 @@ public:
 #endif
 
 	/** Gets a custom widget for the settings.  This is only for very custom situations. */
-	virtual TSharedPtr<SWidget> GetCustomSettingsWidget() const;
+	virtual TSharedPtr<class SWidget> GetCustomSettingsWidget() const;
 
 private:
 	/**

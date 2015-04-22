@@ -10,11 +10,10 @@
 #include "AnimationSettings.generated.h"
 
 /**
- * Implements project settings for the animation settings
+ * Default animation settings.
  */
-UCLASS(config=Engine, defaultconfig)
-class ENGINE_API UAnimationSettings
-	: public UObject
+UCLASS(config=Engine, defaultconfig, meta=(DisplayName="Animation"))
+class ENGINE_API UAnimationSettings : public UDeveloperSettings
 {
 	GENERATED_UCLASS_BODY()
 

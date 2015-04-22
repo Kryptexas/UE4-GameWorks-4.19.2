@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Engine/DeveloperSettings.h"
+
 /**
  *	This will hold all of our enums and types and such that we need to
  *	use in multiple files where the enum can't be mapped to a specific file.
@@ -134,11 +136,10 @@ struct ENGINE_API FCustomProfile
 
 
 /**
- * Implements a collision profile for the collision sub-system.
+ * Set up and modify collision settings.
  */
-UCLASS(abstract, config=Engine, defaultconfig, MinimalAPI)
-class UCollisionProfile
-	: public UObject
+UCLASS(abstract, config=Engine, defaultconfig, MinimalAPI, meta=(DisplayName="Collision"))
+class UCollisionProfile : public UDeveloperSettings
 {
 	GENERATED_UCLASS_BODY()
 

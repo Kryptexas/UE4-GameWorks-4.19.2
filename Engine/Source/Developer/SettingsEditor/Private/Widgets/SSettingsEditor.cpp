@@ -31,6 +31,7 @@ SSettingsEditor::~SSettingsEditor()
 
 void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditorModelRef& InModel )
 {
+	bIsActiveTimerRegistered = false;
 	Model = InModel;
 	SettingsContainer = InModel->GetSettingsContainer();
 	OnApplicationRestartRequiredDelegate = InArgs._OnApplicationRestartRequired;
@@ -834,9 +835,21 @@ EVisibility SSettingsEditor::HandleSettingsBoxVisibility() const
 
 void SSettingsEditor::HandleSettingsContainerCategoryModified( const FName& CategoryName )
 {
-	ReloadCategories();
+	if ( !bIsActiveTimerRegistered )
+	{
+		bIsActiveTimerRegistered = true;
+		RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SSettingsEditor::UpdateCategoriesCallback));
+	}
 }
 
+EActiveTimerReturnType SSettingsEditor::UpdateCategoriesCallback(double InCurrentTime, float InDeltaTime)
+{
+	bIsActiveTimerRegistered = false;
+
+	ReloadCategories();
+
+	return EActiveTimerReturnType::Stop;
+}
 
 bool SSettingsEditor::HandleSettingsViewEnabled() const
 {

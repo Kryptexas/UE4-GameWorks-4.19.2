@@ -22,6 +22,7 @@
 #include "EngineMinimal.h" // 
 
 #include "Engine/EngineBaseTypes.h"
+#include "Engine/DeveloperSettings.h"
 #include "Camera/CameraTypes.h"
 #include "Engine/EngineTypes.h"
 #include "Sound/AmbientSound.h"

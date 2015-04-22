@@ -84,11 +84,10 @@ namespace ESettingsLockedAxis
 
 
 /**
- * Implements project settings for the physics sub-system.
+ * Default physics settings.
  */
-UCLASS(config=Engine, defaultconfig)
-class ENGINE_API UPhysicsSettings
-	: public UObject
+UCLASS(config=Engine, defaultconfig, meta=(DisplayName="Physics"))
+class ENGINE_API UPhysicsSettings : public UDeveloperSettings
 {
 	GENERATED_UCLASS_BODY()
 

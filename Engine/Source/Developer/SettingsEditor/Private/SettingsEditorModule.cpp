@@ -3,9 +3,17 @@
 #include "SettingsEditorPrivatePCH.h"
 #include "ISettingsEditorModule.h"
 #include "NotificationManager.h"
-
+#include "ISettingsModule.h"
 
 #define LOCTEXT_NAMESPACE "SSettingsEditor"
+
+/** Holds auto discovered settings information so that they can be unloaded automatically when refreshing. */
+struct FRegisteredSettings
+{
+	FName ContainerName;
+	FName CategoryName;
+	FName SectionName;
+};
 
 
 /** Manages the notification for when the application needs to be restarted due to a settings change */
@@ -104,12 +112,43 @@ class FSettingsEditorModule
 {
 public:
 
+	FSettingsEditorModule()
+		: bAreSettingsStale(true)
+	{
+	}
+
+	// IModuleInterface interface
+
+	virtual void StartupModule() override
+	{
+		FModuleManager::Get().OnModulesChanged().AddRaw(this, &FSettingsEditorModule::ModulesChangesCallback);
+	}
+
+	virtual void ShutdownModule() override
+	{
+		ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
+		if ( SettingsModule != nullptr )
+		{
+			UnregisterAutoDiscoveredSettings(*SettingsModule);
+		}
+
+		FModuleManager::Get().OnModulesChanged().RemoveAll(this);
+	}
+
 	// ISettingsEditorModule interface
 
 	virtual TSharedRef<SWidget> CreateEditor( const TSharedRef<ISettingsEditorModel>& Model ) override
 	{
-		return SNew(SSettingsEditor, Model)
+		UpdateSettings(true);
+
+		TSharedRef<SWidget> Editor = SNew(SSettingsEditor, Model)
 			.OnApplicationRestartRequired(FSimpleDelegate::CreateRaw(this, &FSettingsEditorModule::OnApplicationRestartRequired));
+
+		ClearStaleEditorWidgets();
+		EditorWidgets.Add(Editor);
+
+		return Editor;
 	}
 
 	virtual ISettingsEditorModelRef CreateModel( const TSharedRef<ISettingsContainer>& SettingsContainer ) override
@@ -129,7 +168,118 @@ public:
 
 private:
 
+	void ModulesChangesCallback(FName ModuleName, EModuleChangeReason ReasonForChange)
+	{
+		ClearStaleEditorWidgets();
+		bAreSettingsStale = true;
+		UpdateSettings();
+	}
+
+	void UpdateSettings(bool bForce = false)
+	{
+		if ( (AnyActiveSettingsEditor() && bAreSettingsStale) || bForce )
+		{
+			bAreSettingsStale = false;
+
+			ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
+			if ( SettingsModule != nullptr )
+			{
+				UnregisterAutoDiscoveredSettings(*SettingsModule);
+				RegisterAutoDiscoveredSettings(*SettingsModule);
+			}
+		}
+	}
+
+	void ClearStaleEditorWidgets()
+	{
+		for ( int32 i = 0; i < EditorWidgets.Num(); i++ )
+		{
+			if ( !EditorWidgets[i].IsValid() )
+			{
+				EditorWidgets.RemoveAtSwap(i);
+				i--;
+			}
+		}
+	}
+
+	bool AnyActiveSettingsEditor()
+	{
+		return EditorWidgets.Num() > 0;
+	}
+
+private:
+
+	void RegisterAutoDiscoveredSettings(ISettingsModule& SettingsModule)
+	{
+		// Find game object
+		for ( TObjectIterator<UDeveloperSettings> SettingsIt(RF_NoFlags); SettingsIt; ++SettingsIt )
+		{
+			if ( UDeveloperSettings* Settings = *SettingsIt )
+			{
+				// Only Add the CDO of any UDeveloperSettings objects.
+				if ( Settings->HasAnyFlags(RF_ClassDefaultObject) && !Settings->GetClass()->HasAnyCastFlag(CLASS_Deprecated) )
+				{
+					// Ignore the setting if it's specifically the UDeveloperSettings
+					if ( Settings->GetClass() == UDeveloperSettings::StaticClass() )
+					{
+						continue;
+					}
+
+					FRegisteredSettings Registered;
+					Registered.ContainerName = Settings->GetContainerName();
+					Registered.CategoryName = Settings->GetCategoryName();
+					Registered.SectionName = Settings->GetSectionName();
+
+					TSharedPtr<SWidget> CustomWidget = Settings->GetCustomSettingsWidget();
+					if ( CustomWidget.IsValid() )
+					{
+						// Add Settings
+						SettingsModule.RegisterSettings(Registered.ContainerName, Registered.CategoryName, Registered.SectionName,
+							Settings->GetSectionText(),
+							Settings->GetSectionDescription(),
+							CustomWidget.ToSharedRef()
+							);
+					}
+					else
+					{
+						// Add Settings
+						SettingsModule.RegisterSettings(Registered.ContainerName, Registered.CategoryName, Registered.SectionName,
+							Settings->GetSectionText(),
+							Settings->GetSectionDescription(),
+							Settings
+							);
+					}
+
+					AutoDiscoveredSettings.Add(Registered);
+				}
+			}
+		}
+	}
+
+	void UnregisterAutoDiscoveredSettings(ISettingsModule& SettingsModule)
+	{
+		// Unregister any auto discovers settings.
+		for ( const FRegisteredSettings& Settings : AutoDiscoveredSettings )
+		{
+			SettingsModule.UnregisterSettings(Settings.ContainerName, Settings.CategoryName, Settings.SectionName);
+		}
+
+		AutoDiscoveredSettings.Reset();
+	}
+
+private:
+
 	FApplicationRestartRequiredNotification ApplicationRestartRequiredNotification;
+
+	/** The list of auto discovered settings that need to be unregistered. */
+	TArray<FRegisteredSettings> AutoDiscoveredSettings;
+
+	/** Living editor widgets that have been handed out. */
+	TArray< TWeakPtr<SWidget> > EditorWidgets;
+
+	/** Flag if the settings are stale currently and need to be refreshed. */
+	bool bAreSettingsStale;
 };
 
 
