@@ -749,9 +749,9 @@ FString FHeaderParser::GetContext()
 {
 	auto* FileScope = GetCurrentFileScope();
 
-	FString Filename = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*FileScope->GetSourceFile()->GetFilename());
+	FString ScopeFilename = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*FileScope->GetSourceFile()->GetFilename());
 
-	return FString::Printf(TEXT("%s(%i)"), *Filename, InputLine);
+	return FString::Printf(TEXT("%s(%i)"), *ScopeFilename, InputLine);
 }
 
 /*-----------------------------------------------------------------------------

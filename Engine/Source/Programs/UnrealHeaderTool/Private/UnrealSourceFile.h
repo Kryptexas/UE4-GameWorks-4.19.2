@@ -16,9 +16,14 @@ class FUnrealSourceFile
 {
 public:
 	// Constructor.
-	FUnrealSourceFile(UPackage* Package, FString Filename, FString Content)
-		: Scope(MakeShareable(new FFileScope(*(FString(TEXT("__")) + FPaths::GetBaseFilename(Filename) + FString(TEXT("__File"))), this))),
-		Filename(MoveTemp(Filename)), Package(Package), bHasChanged(false), Content(MoveTemp(Content)), bParsed(false), bDependenciesResolved(false)
+	FUnrealSourceFile(UPackage* InPackage, FString InFilename, FString InContent)
+		: Scope                (MakeShareable(new FFileScope(*(FString(TEXT("__")) + FPaths::GetBaseFilename(Filename) + FString(TEXT("__File"))), this)))
+		, Filename             (MoveTemp(InFilename))
+		, Package              (InPackage)
+		, bHasChanged          (false)
+		, Content              (MoveTemp(InContent))
+		, bParsed              (false)
+		, bDependenciesResolved(false)
 	{
 		if (GetStrippedFilename() != "Object")
 		{

@@ -12,8 +12,9 @@ class FUnrealTypeDefinitionInfo
 {
 public:
 	// Constructor
-	FUnrealTypeDefinitionInfo(FUnrealSourceFile& SourceFile, int32 LineNumber)
-		: SourceFile(SourceFile), LineNumber(LineNumber)
+	FUnrealTypeDefinitionInfo(FUnrealSourceFile& InSourceFile, int32 InLineNumber)
+		: SourceFile(InSourceFile)
+		, LineNumber(InLineNumber)
 	{}
 
 	/**

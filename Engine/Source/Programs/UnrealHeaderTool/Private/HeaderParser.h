@@ -82,9 +82,9 @@ public:
 	/**
 	 * Sets nesting scope.
 	 */
-	void SetScope(FScope* Scope)
+	void SetScope(FScope* InScope)
 	{
-		this->Scope = Scope;
+		this->Scope = InScope;
 	}
 
 	/** Statement that caused the nesting. */
@@ -129,8 +129,11 @@ class FSimplifiedParsingClassInfo
 {
 public:
 	// Constructor.
-	FSimplifiedParsingClassInfo(FString ClassName, FString BaseClassName, int32 ClassDefLine, bool bClassIsAnInterface)
-		: ClassName(MoveTemp(ClassName)), BaseClassName(MoveTemp(BaseClassName)), ClassDefLine(ClassDefLine), bClassIsAnInterface(bClassIsAnInterface)
+	FSimplifiedParsingClassInfo(FString InClassName, FString InBaseClassName, int32 InClassDefLine, bool bInClassIsAnInterface)
+		: ClassName          (MoveTemp(InClassName))
+		, BaseClassName      (MoveTemp(InBaseClassName))
+		, ClassDefLine       (InClassDefLine)
+		, bClassIsAnInterface(bInClassIsAnInterface)
 	{}
 
 	/**
