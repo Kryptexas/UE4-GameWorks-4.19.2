@@ -131,24 +131,9 @@ TSharedRef<SDockTab> FCurveAssetEditor::SpawnTab_CurveAsset( const FSpawnTabArgs
 		];
 
 	UCurveBase* Curve = Cast<UCurveBase>(GetEditingObject());
-	UCurveFloat* FloatCurve = Cast<UCurveFloat>(Curve);
-	UCurveVector* VectorCurve = Cast<UCurveVector>(Curve);
-	UCurveLinearColor* LinearColorCurve = Cast<UCurveLinearColor>(Curve);
 
-	FCurveOwnerInterface* CurveOwner = NULL;
-	if(FloatCurve != NULL)
-	{
-		CurveOwner = FloatCurve;
-	}
-	else if(LinearColorCurve != NULL)
-	{
-		CurveOwner = LinearColorCurve;
-	}
-	else
-	{
-		CurveOwner = VectorCurve;
-	}
-
+	FCurveOwnerInterface* CurveOwner = Curve;
+	
 	if (CurveOwner != NULL)
 	{
 		check(TrackWidget.IsValid());
