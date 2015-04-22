@@ -10,6 +10,7 @@
 #include "OnlineFriendsInterface.h"
 #include "OnlineEventsInterface.h"
 #include "OnlineSessionInterface.h"
+#include "OnlinePartyInterface.h"
 #include "OnlineExternalUIInterface.h"
 #include "VoiceInterface.h"
 #include "OnlineTitleFileInterface.h"
@@ -36,6 +37,13 @@ namespace Online
 	 * @return Interface pointer for the appropriate session service
 	 */
 	IMPLEMENT_GET_INTERFACE(Session);
+
+	/**
+	 * Get the interface for accessing the party services
+	 * @param SubsystemName - Name of the requested online service
+	 * @return Interface pointer for the appropriate party service
+	 */
+	IMPLEMENT_GET_INTERFACE(Party);
 
 	/** 
 	 * Get the interface for accessing the player friends services

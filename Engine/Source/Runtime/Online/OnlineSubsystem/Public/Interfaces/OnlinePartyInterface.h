@@ -143,8 +143,10 @@ public:
 	EPartyState::Type State;
 	/** Current state of configuration */
 	FPartyConfiguration Config;
-	/** unique id of hte party */
+	/** unique id of the party */
 	TSharedPtr<FOnlinePartyId> PartyId;
+	/** leader of the party */
+	TSharedPtr<FUniqueNetId> PartyLeader;
 	/** password needed for private parties */
 	FString Password;
 	/** id of chat room associated with the party */
