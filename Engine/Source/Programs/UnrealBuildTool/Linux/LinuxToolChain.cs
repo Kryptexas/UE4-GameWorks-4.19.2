@@ -326,6 +326,7 @@ namespace UnrealBuildTool
 				if (CompilerVersionGreaterOrEqual(3, 6, 0))
 				{
 					Result += " -Wno-unused-local-typedef";	// clang is being overly strict here? PhysX headers trigger this.
+					Result += " -Wno-inconsistent-missing-override";	// these have to be suppressed for UE 4.8, should be fixed later.
 				}
             }
 
