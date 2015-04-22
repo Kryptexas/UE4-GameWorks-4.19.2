@@ -387,15 +387,30 @@ void FAssetContextMenu::MakeAssetActionsSubMenu(FMenuBuilder& MenuBuilder)
 		}
 
 		// Property Matrix
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("PropertyMatrix", "Bulk Edit via Property Matrix..."),
-			LOCTEXT("PropertyMatrixTooltip", "Opens the property matrix editor for the selected assets."),
-			FSlateIcon(),
-			FUIAction(
-			FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecutePropertyMatrix),
-			FCanExecuteAction::CreateSP(this, &FAssetContextMenu::CanExecuteProperties)
-			)
-			);
+		bool bCanUsePropertyMatrix = true;
+		static FName MaterialName(TEXT("Material"));
+		static FName MaterialInstanceConstantName(TEXT("MaterialInstanceConstant"));
+		for (auto& Asset : SelectedAssets)
+		{
+			if (Asset.AssetClass == MaterialName || Asset.AssetClass == MaterialInstanceName)
+			{
+				bCanUsePropertyMatrix = false;
+				break;
+			}
+		}
+
+		if (bCanUsePropertyMatrix)
+		{
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("PropertyMatrix", "Bulk Edit via Property Matrix..."),
+				LOCTEXT("PropertyMatrixTooltip", "Opens the property matrix editor for the selected assets."),
+				FSlateIcon(),
+				FUIAction(
+				FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecutePropertyMatrix),
+				FCanExecuteAction::CreateSP(this, &FAssetContextMenu::CanExecuteProperties)
+				)
+				);
+		}
 
 		// Chunk actions
 		if (GetDefault<UEditorExperimentalSettings>()->bContextMenuChunkAssignments)
