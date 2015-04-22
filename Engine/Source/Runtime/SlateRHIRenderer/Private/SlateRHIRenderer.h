@@ -94,8 +94,8 @@ private:
 		FViewportRHIRef ViewportRHI;
 		/** The depth buffer texture if any */
 		FTexture2DRHIRef DepthStencil;
-		/** The render target texture (if rendering into a texture */
-		FTexture2DRHIRef RenderTargetTexture;
+		
+		//FTexture2DRHIRef RenderTargetTexture;
 		/** The OS Window handle (for recreating the viewport) */
 		void* OSWindow;
 		/** The actual width of the viewport */
@@ -112,6 +112,7 @@ private:
 		bool bFullscreen;
 		/** The desired pixel format for this viewport */
 		EPixelFormat PixelFormat;
+		IViewportRenderTargetProvider* RTProvider;
 	
 		/** FRenderResource interface */
 		virtual void InitRHI() override;
@@ -125,7 +126,8 @@ private:
 				DesiredHeight(0),
 				bRequiresStencilTest(false),
 				bFullscreen(false),
-				PixelFormat(EPixelFormat::PF_Unknown)
+				PixelFormat(EPixelFormat::PF_Unknown),
+				RTProvider(nullptr)
 		{
 
 		}
@@ -137,6 +139,18 @@ private:
 
 		void ConditionallyUpdateDepthBuffer(bool bInRequiresStencilTest);
 		void RecreateDepthBuffer_RenderThread();
+
+		FTexture2DRHIRef GetRenderTargetTexture() const
+		{
+			if (RTProvider)
+			{
+				FSlateRenderTargetRHI* SlateTarget = (FSlateRenderTargetRHI*)(RTProvider->GetViewportRenderTargetTexture());
+				return SlateTarget->GetTypedResource();
+			}
+			return nullptr;
+		}
+
+	private:		
 	};
 public:
 	FSlateRHIRenderer( TSharedPtr<FSlateRHIResourceManager> InResourceManager, TSharedPtr<FSlateFontCache> InFontCache, TSharedPtr<FSlateFontMeasure> InFontMeasure );
@@ -225,7 +239,7 @@ public:
 
 	virtual void PrepareToTakeScreenshot(const FIntRect& Rect, TArray<FColor>* OutColorData) override;
 
-	virtual void SetWindowRenderTarget(const SWindow& Window, FTexture2DRHIParamRef RT) override;
+	virtual void SetWindowRenderTarget(const SWindow& Window, class IViewportRenderTargetProvider* Provider) override;
 
 private:
 	/** Loads all known textures from Slate styles */

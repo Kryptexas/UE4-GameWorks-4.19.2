@@ -649,7 +649,7 @@ void FSteamVRHMD::PreRenderView_RenderThread(FSceneView& View)
  	View.UpdateViewMatrix();
 }
 
-void FSteamVRHMD::PreRenderViewFamily_RenderThread(FSceneViewFamily& ViewFamily)
+void FSteamVRHMD::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily)
 {
 	check(IsInRenderingThread());
 	GetActiveRHIBridgeImpl()->BeginRendering();

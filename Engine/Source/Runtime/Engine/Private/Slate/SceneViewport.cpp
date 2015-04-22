@@ -17,8 +17,7 @@ FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SV
 	, CachedMousePos(-1, -1)
 	, PreCaptureMousePos(-1, -1)
 	, SoftwareCursorPosition( 0, 0 )
-	, bIsSoftwareCursorVisible( false )
-	, SlateRenderTargetHandle( NULL )
+	, bIsSoftwareCursorVisible( false )	
 	, DebugCanvasDrawer( new FDebugCanvasDrawer )
 	, ViewportWidget( InViewportWidget )
 	, NumMouseSamplesX( 0 )
@@ -31,9 +30,12 @@ FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SV
 	, bPlayInEditorGetsMouseControl( true )
 	, bPlayInEditorIsSimulate( false )
 	, bCursorHiddenDueToCapture( false )
-	, MousePosBeforeHiddenDueToCapture( -1, -1 )
+	, MousePosBeforeHiddenDueToCapture( -1, -1 )	
+	, NumBufferedFrames(1)
+	, CurrentBufferedTargetIndex(0)
 {
 	bIsSlateViewport = true;
+	RenderThreadSlateTexture = new FSlateRenderTargetRHI(nullptr, 0, 0);
 }
 
 FSceneViewport::~FSceneViewport()
@@ -127,8 +129,11 @@ bool FSceneViewport::KeyState( FKey Key ) const
 void FSceneViewport::Destroy()
 {
 	ViewportClient = NULL;
-
+	
 	UpdateViewportRHI( true, 0, 0, EWindowMode::Windowed );
+
+	delete RenderThreadSlateTexture;
+	RenderThreadSlateTexture = nullptr;
 }
 
 int32 FSceneViewport::GetMouseX() const
@@ -874,7 +879,8 @@ void FSceneViewport::OnViewportClosed()
 
 FSlateShaderResource* FSceneViewport::GetViewportRenderTargetTexture() const
 { 
-	return SlateRenderTargetHandle; 
+	check(IsInGameThread());
+	return BufferedSlateHandles[CurrentBufferedTargetIndex];
 }
 
 void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::Type NewWindowMode, int32 InPosX, int32 InPosY)
@@ -1081,6 +1087,38 @@ FCanvas* FSceneViewport::GetDebugCanvas()
 	return DebugCanvasDrawer->GetGameThreadDebugCanvas();
 }
 
+const FTexture2DRHIRef& FSceneViewport::GetRenderTargetTexture() const
+{
+	if (IsInRenderingThread())
+	{
+		return RenderTargetTextureRenderThreadRHI;
+	}
+	return 	RenderTargetTextureRHI;
+}
+
+FSlateShaderResource* FSceneViewport::GetViewportRenderTargetTexture()
+{
+	if (IsInRenderingThread())
+	{
+		return RenderThreadSlateTexture;
+	}
+	return BufferedSlateHandles[CurrentBufferedTargetIndex];
+}
+
+void FSceneViewport::SetRenderTargetTextureRenderThread(FTexture2DRHIRef& RT)
+{
+	check(IsInRenderingThread());
+	RenderTargetTextureRenderThreadRHI = RT;
+	if (RT.IsValid())
+	{
+		RenderThreadSlateTexture->SetRHIRef(RenderTargetTextureRenderThreadRHI, RT->GetSizeX(), RT->GetSizeY());
+	}
+	else
+	{
+		RenderThreadSlateTexture->SetRHIRef(nullptr, 0, 0);
+	}
+}
+
 void FSceneViewport::UpdateViewportRHI(bool bDestroyed, uint32 NewSizeX, uint32 NewSizeY, EWindowMode::Type NewWindowMode)
 {
 	// Make sure we're not in the middle of streaming textures.
@@ -1119,10 +1157,13 @@ void FSceneViewport::UpdateViewportRHI(bool bDestroyed, uint32 NewSizeX, uint32 
 		else
 		{
 			// Enqueue a render command to delete the handle.  It must be deleted on the render thread after the resource is released
-			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(DeleteSlateRenderTarget, FSlateRenderTargetRHI*&, SlateRenderTargetHandle, SlateRenderTargetHandle,
+			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(DeleteSlateRenderTarget, TArray<FSlateRenderTargetRHI*>&, BufferedSlateHandles, BufferedSlateHandles,
 			{
-				delete SlateRenderTargetHandle;
-				SlateRenderTargetHandle = NULL;
+				for (int32 i = 0; i < BufferedSlateHandles.Num(); ++i)
+				{
+					delete BufferedSlateHandles[i];
+				}
+				BufferedSlateHandles.Empty();				
 			});
 
 		}
@@ -1132,6 +1173,9 @@ void FSceneViewport::UpdateViewportRHI(bool bDestroyed, uint32 NewSizeX, uint32 
 void FSceneViewport::EnqueueBeginRenderFrame()
 {
 	check( IsInGameThread() );
+
+	CurrentBufferedTargetIndex = (CurrentBufferedTargetIndex + 1) % BufferedSlateHandles.Num();
+	RenderTargetTextureRHI = BufferedRenderTargetsRHI[CurrentBufferedTargetIndex];
 
 	// check if we need to reallocate rendertarget for HMD and update HMD rendering viewport 
 	if (GEngine->StereoRenderingDevice.IsValid() && IsStereoRenderingAllowed())
@@ -1169,6 +1213,18 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 		}
 	}
 
+
+	//set the rendertarget visible to the render thread
+	//must come before any render thread frame handling.
+	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+		SetRenderThreadViewportTarget,
+		FSceneViewport*, Viewport, this,
+		FTexture2DRHIRef, RT, RenderTargetTextureRHI,		
+		{
+
+		Viewport->SetRenderTargetTextureRenderThread(RT);			
+	});		
+
 	FViewport::EnqueueBeginRenderFrame();
 
 	if (GEngine->StereoRenderingDevice.IsValid())
@@ -1181,17 +1237,18 @@ void FSceneViewport::BeginRenderFrame(FRHICommandListImmediate& RHICmdList)
 {
 	check( IsInRenderingThread() );
 	if (bUseSeparateRenderTarget)
-	{
-		SetRenderTarget(RHICmdList,  RenderTargetTextureRHI,  FTexture2DRHIRef() );
+	{		
+		SetRenderTarget(RHICmdList,  RenderTargetTextureRenderThreadRHI,  FTexture2DRHIRef() );
 	}
 	else if( IsValidRef( ViewportRHI ) ) 
 	{
 		// Get the backbuffer render target to render directly to it
-		RenderTargetTextureRHI = RHICmdList.GetViewportBackBuffer(ViewportRHI);
+		RenderTargetTextureRenderThreadRHI = RHICmdList.GetViewportBackBuffer(ViewportRHI);
+		RenderThreadSlateTexture->SetRHIRef(RenderTargetTextureRenderThreadRHI, RenderTargetTextureRenderThreadRHI->GetSizeX(), RenderTargetTextureRenderThreadRHI->GetSizeY());
 		if (GRHIRequiresEarlyBackBufferRenderTarget)
 		{
 			// unused set render targets are bad on Metal
-			SetRenderTarget(RHICmdList, RenderTargetTextureRHI, FTexture2DRHIRef());
+			SetRenderTarget(RHICmdList, RenderTargetTextureRenderThreadRHI, FTexture2DRHIRef());
 		}
 	}
 }
@@ -1201,9 +1258,9 @@ void FSceneViewport::EndRenderFrame(FRHICommandListImmediate& RHICmdList, bool b
 	check( IsInRenderingThread() );
 	if (bUseSeparateRenderTarget)
 	{
-		if (SlateRenderTargetHandle)
-		{
-			RHICmdList.CopyToResolveTarget( RenderTargetTextureRHI, SlateRenderTargetHandle->GetRHIRef(), false, FResolveParams() );
+		if (BufferedSlateHandles[CurrentBufferedTargetIndex])
+		{			
+			RHICmdList.CopyToResolveTarget(RenderTargetTextureRenderThreadRHI, RenderTargetTextureRenderThreadRHI, false, FResolveParams());
 		}
 	}
 	else
@@ -1211,7 +1268,8 @@ void FSceneViewport::EndRenderFrame(FRHICommandListImmediate& RHICmdList, bool b
 		// Set the active render target(s) to nothing to release references in the case that the viewport is resized by slate before we draw again
 		SetRenderTarget(RHICmdList,  FTexture2DRHIRef(), FTexture2DRHIRef() );
 		// Note: this releases our reference but does not release the resource as it is owned by slate (this is intended)
-		RenderTargetTextureRHI.SafeRelease();
+		RenderTargetTextureRenderThreadRHI.SafeRelease();
+		RenderThreadSlateTexture->SetRHIRef(nullptr, 0, 0);
 	}
 }
 
@@ -1257,6 +1315,38 @@ void FSceneViewport::SwapStatCommands( const FSceneViewport& OtherViewport )
 	}
 }
 
+/** Queue an update to the Window's RT on the Renderthread */
+void FSceneViewport::WindowRenderTargetUpdate(FSlateRenderer* Renderer, SWindow* Window)
+{	
+	check(IsInGameThread());
+	if (Renderer)
+	{
+		if (bUseSeparateRenderTarget)
+		{
+			if (Window)
+			{
+				// We need to pass a texture to the renderer only for stereo rendering. Otherwise, Editor will be rendered incorrectly.
+				if (GEngine->IsStereoscopic3D(this))
+				{
+					//todo: mw Make this function take an FSlateTexture* rather than a void*
+					Renderer->SetWindowRenderTarget(*Window, static_cast<IViewportRenderTargetProvider*>(this));
+				}
+				else
+				{
+					Renderer->SetWindowRenderTarget(*Window, nullptr);
+				}
+			}
+		}
+		else
+		{
+			if (Window)
+			{
+				Renderer->SetWindowRenderTarget(*Window, nullptr);
+			}
+		}
+	}
+}
+
 void FSceneViewport::InitDynamicRHI()
 {
 	if(bRequiresHitProxyStorage)
@@ -1274,43 +1364,83 @@ void FSceneViewport::InitDynamicRHI()
 		{
 			GEngine->StereoRenderingDevice->CalculateRenderTargetSize(TexSizeX, TexSizeY);
 		}
-		FTexture2DRHIRef ShaderResourceTextureRHI;
+				
+		check(BufferedSlateHandles.Num() == BufferedRenderTargetsRHI.Num() && BufferedSlateHandles.Num() == BufferedShaderResourceTexturesRHI.Num());
+
+		//todo, get from HMD
+		NumBufferedFrames = 3;
+
+
+		if (BufferedSlateHandles.Num() != NumBufferedFrames)
+		{
+			//clear existing entries
+			for (int32 i = 0; i < BufferedSlateHandles.Num(); ++i)
+			{
+				if (!BufferedSlateHandles[i])
+				{
+					BufferedSlateHandles[i] = new FSlateRenderTargetRHI(nullptr, 0, 0);
+				}
+				BufferedRenderTargetsRHI[i] = nullptr;
+				BufferedShaderResourceTexturesRHI[i] = nullptr;
+			}
+
+			//add sufficient entires for buffering.
+			for (int32 i = BufferedSlateHandles.Num(); i < NumBufferedFrames; i++)
+			{
+				BufferedSlateHandles.Add(new FSlateRenderTargetRHI(nullptr, 0, 0));
+				BufferedRenderTargetsRHI.Add(nullptr);
+				BufferedShaderResourceTexturesRHI.Add(nullptr);
+			}
+		}
 
 		FRHIResourceCreateInfo CreateInfo;
-		RHICreateTargetableShaderResource2D( TexSizeX, TexSizeY, PF_B8G8R8A8, 1, TexCreate_None, TexCreate_RenderTargetable, false, CreateInfo, RenderTargetTextureRHI, ShaderResourceTextureRHI );
+		FTexture2DRHIRef BufferedRTRHI;
+		FTexture2DRHIRef BufferedSRVRHI;
 
-		if( !SlateRenderTargetHandle )
+		
+		for (int32 i = 0; i < NumBufferedFrames; ++i)
 		{
-			SlateRenderTargetHandle = new FSlateRenderTargetRHI( ShaderResourceTextureRHI, TexSizeX, TexSizeY );
-			//UE_LOG(LogSlate, Log, TEXT("SRTH: %p, %d x %d"), ShaderResourceTextureRHI.GetReference(), TexSizeX, TexSizeY);
-		}
-		else
-		{
-			//UE_LOG(LogSlate, Log, TEXT("SRTH: %p, %d x %d, prev %p"), ShaderResourceTextureRHI.GetReference(), TexSizeX, TexSizeY, SlateRenderTargetHandle->GetRHIRef().GetReference());
-			SlateRenderTargetHandle->SetRHIRef( ShaderResourceTextureRHI, TexSizeX, TexSizeY );
+			RHICreateTargetableShaderResource2D(TexSizeX, TexSizeY, PF_B8G8R8A8, 1, TexCreate_None, TexCreate_RenderTargetable, false, CreateInfo, BufferedRTRHI, BufferedSRVRHI);
+			BufferedRenderTargetsRHI[i] = BufferedRTRHI;
+			BufferedShaderResourceTexturesRHI[i] = BufferedSRVRHI;
+
+			BufferedSlateHandles[i]->SetRHIRef(BufferedShaderResourceTexturesRHI[0], TexSizeX, TexSizeY);
 		}
 
-		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow(ViewportWidget.Pin().ToSharedRef(), WidgetPath);
-		if (Window.IsValid())
+		// clear out any extra entries we have hanging around
+		for (int32 i = NumBufferedFrames; i < BufferedSlateHandles.Num(); ++i)
 		{
-			// We need to pass a texture to the renderer only for stereo rendering. Otherwise, Editor will be rendered incorrectly.
-			if (GEngine->IsStereoscopic3D(this))
-			{
-				Renderer->SetWindowRenderTarget(*Window, RenderTargetTextureRHI);
-			}
-			else
-			{
-				Renderer->SetWindowRenderTarget(*Window, nullptr);
-			}
+			BufferedSlateHandles[i]->SetRHIRef(nullptr, 0, 0);
+			BufferedRenderTargetsRHI[i] = nullptr;
+			BufferedShaderResourceTexturesRHI[i] = nullptr;
 		}
+
+		CurrentBufferedTargetIndex = 0;
+		RenderTargetTextureRHI = BufferedShaderResourceTexturesRHI[CurrentBufferedTargetIndex];
+
+		
 	}
 	else
 	{
-		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow(ViewportWidget.Pin().ToSharedRef(), WidgetPath);
-		if (Window.IsValid())
-		{
-			Renderer->SetWindowRenderTarget(*Window, nullptr);
-		}
+		check(BufferedSlateHandles.Num() == 0);
+		BufferedSlateHandles.Add(nullptr);	
+		BufferedRenderTargetsRHI.Add(nullptr);
+		BufferedShaderResourceTexturesRHI.Add(nullptr);
+		NumBufferedFrames = 1;
+
+		RenderTargetTextureRHI = nullptr;		
+	}
+
+	//how is this useful at all?  Pinning a weakptr to get a non-threadsafe shared ptr?  Pinning a weakptr is supposed to be protecting me from my weakptr dying underneath me...
+	TSharedPtr<SWidget> PinnedViewport = ViewportWidget.Pin();
+	if (PinnedViewport.IsValid())
+	{
+
+		FWidgetPath WidgetPath;
+		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow(PinnedViewport.ToSharedRef(), WidgetPath);
+		TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
+		
+		WindowRenderTargetUpdate(Renderer.Get(), Window.Get());
 	}
 }
 
@@ -1320,10 +1450,13 @@ void FSceneViewport::ReleaseDynamicRHI()
 
 	ViewportRHI.SafeRelease();
 
-	if( SlateRenderTargetHandle )
+	for (int32 i = 0; i < BufferedSlateHandles.Num(); ++i)
 	{
-		SlateRenderTargetHandle->ReleaseDynamicRHI();
-	}
+		if (BufferedSlateHandles[i])
+		{
+			BufferedSlateHandles[i]->ReleaseDynamicRHI();
+		}
+	}	
 }
 
 void FSceneViewport::SetPreCaptureMousePosFromSlateCursor()

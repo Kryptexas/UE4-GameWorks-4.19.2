@@ -368,7 +368,7 @@ void FSimpleHMD::PreRenderView_RenderThread(FSceneView& View)
 	check(IsInRenderingThread());
 }
 
-void FSimpleHMD::PreRenderViewFamily_RenderThread(FSceneViewFamily& ViewFamily)
+void FSimpleHMD::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily)
 {
 	check(IsInRenderingThread());
 }

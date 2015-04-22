@@ -271,9 +271,7 @@ public:
 	 */
 	virtual FVector GetPositionOffset() const { return FVector::ZeroVector; }
 
-	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FSceneView& View, const FIntPoint& TextureSize) {}
-
-	virtual void DrawSingleEyeDistortionSDK_RenderThread(FRHICommandListImmediate& RHICmdList, const FSceneView& View, const FTexture2DRHIRef& InputTexture) {}
+	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FSceneView& View, const FIntPoint& TextureSize) {}	
 
 	/**
 	 * This method is able to change screen settings right before any drawing occurs. 
@@ -320,6 +318,8 @@ public:
 	virtual FVector2D GetTextureOffsetRight() const {return FVector2D::ZeroVector;}
 	virtual FVector2D GetTextureScaleLeft() const {return FVector2D::ZeroVector;}
 	virtual FVector2D GetTextureScaleRight() const {return FVector2D::ZeroVector;}
+
+	virtual bool NeedsUpscalePostProcessPass()  { return false; }
 
 	/**
 	 * Record analytics

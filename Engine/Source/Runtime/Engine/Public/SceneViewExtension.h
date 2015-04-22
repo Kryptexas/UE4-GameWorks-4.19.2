@@ -22,7 +22,7 @@ public:
 	/**
 	 * Called on render thread at the start of rendering.
 	 */
-	virtual void PreRenderViewFamily_RenderThread(FSceneViewFamily& InViewFamily) = 0;
+	virtual void PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) = 0;
 
 	/**
 	 * Called on render thread at the start of rendering, for each view, after PreRenderViewFamily_RenderThread call.

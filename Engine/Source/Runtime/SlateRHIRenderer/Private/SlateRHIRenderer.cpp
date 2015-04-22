@@ -72,8 +72,7 @@ void FSlateRHIRenderer::FViewportInfo::InitRHI()
 void FSlateRHIRenderer::FViewportInfo::ReleaseRHI()
 {
 	DepthStencil.SafeRelease();
-	ViewportRHI.SafeRelease();
-	RenderTargetTexture.SafeRelease();
+	ViewportRHI.SafeRelease();	
 }
 
 void FSlateRHIRenderer::FViewportInfo::ConditionallyUpdateDepthBuffer(bool bInRequiresStencilTest)
@@ -406,11 +405,12 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 		// should have been created by the game thread
 		check( IsValidRef(ViewportInfo.ViewportRHI) );
 
-		FTexture2DRHIRef BackBuffer = (ViewportInfo.RenderTargetTexture) ? 
-			ViewportInfo.RenderTargetTexture : RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI);
+		FTexture2DRHIRef ViewportRT = ViewportInfo.GetRenderTargetTexture();
+		FTexture2DRHIRef BackBuffer = (ViewportRT) ?
+		ViewportRT : RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI);
 		
-		const uint32 ViewportWidth  = (ViewportInfo.RenderTargetTexture) ? ViewportInfo.RenderTargetTexture->GetSizeX() : ViewportInfo.Width;
-		const uint32 ViewportHeight = (ViewportInfo.RenderTargetTexture) ? ViewportInfo.RenderTargetTexture->GetSizeY() : ViewportInfo.Height;
+		const uint32 ViewportWidth = (ViewportRT) ? ViewportRT->GetSizeX() : ViewportInfo.Width;
+		const uint32 ViewportHeight = (ViewportRT) ? ViewportRT->GetSizeY() : ViewportInfo.Height;
 
 		RHICmdList.BeginDrawingViewport( ViewportInfo.ViewportRHI, FTextureRHIRef() );
 		RHICmdList.SetViewport( 0,0,0,ViewportWidth, ViewportHeight, 0.0f ); 
@@ -452,9 +452,9 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 	}
 
 	bool bNeedCallFinishFrameForStereo = false;
-	if (GEngine && IsValidRef(ViewportInfo.RenderTargetTexture) && GEngine->StereoRenderingDevice.IsValid())
+	if (GEngine && IsValidRef(ViewportInfo.GetRenderTargetTexture()) && GEngine->StereoRenderingDevice.IsValid())
 	{
-		GEngine->StereoRenderingDevice->RenderTexture_RenderThread(RHICmdList, RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI), ViewportInfo.RenderTargetTexture);
+		GEngine->StereoRenderingDevice->RenderTexture_RenderThread(RHICmdList, RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI), ViewportInfo.GetRenderTargetTexture());
 		bNeedCallFinishFrameForStereo = true;
 	}
 
@@ -1216,11 +1216,11 @@ void FSlateRHIRenderer::RequestResize( const TSharedPtr<SWindow>& Window, uint32
 	}
 }
 
-void FSlateRHIRenderer::SetWindowRenderTarget(const SWindow& Window, FTexture2DRHIParamRef RT)
-{
+void FSlateRHIRenderer::SetWindowRenderTarget(const SWindow& Window, IViewportRenderTargetProvider* Provider)
+{	
 	FViewportInfo* ViewInfo = WindowToViewportInfo.FindRef(&Window);
 	if (ViewInfo)
 	{
-		ViewInfo->RenderTargetTexture = RT;
+		ViewInfo->RTProvider = Provider;
 	}
 }

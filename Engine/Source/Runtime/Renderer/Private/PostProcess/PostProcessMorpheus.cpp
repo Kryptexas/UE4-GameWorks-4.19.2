@@ -241,24 +241,7 @@ void FRCPassPostProcessMorpheus::Process(FRenderingCompositePassContext& Context
 		SrcSize
 		);
 #elif PLATFORM_PS4
-
-		FRenderingCompositeOutputRef* OutputRef = Context.Pass->GetInput(ePId_Input0);
-		check(OutputRef);
-		
-		FRenderingCompositeOutput* Input = OutputRef->GetOutput();
-		TRefCountPtr<IPooledRenderTarget> InputPooledElement;
-
-		if (Input)
-		{
-			InputPooledElement = Input->RequestInput();
-		}
-
-		check(InputPooledElement);
-		
-		check(!InputPooledElement->IsFree());
-
-		const FTextureRHIRef& SrcTexture = InputPooledElement->GetRenderTargetItem().ShaderResourceTexture;		
-		GEngine->HMDDevice->DrawSingleEyeDistortionSDK_RenderThread(Context.RHICmdList, View, SrcTexture->GetTexture2D());		
+	checkf(false, TEXT("PS4 uses SDK distortion."));
 #else
 	checkf(false, TEXT("Unsupported path.  Morpheus should be disabled."));
 #endif

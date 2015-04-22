@@ -1289,7 +1289,7 @@ void FGearVR::PreRenderView_RenderThread(FSceneView& View)
 	}
 }
 
-void FGearVR::PreRenderViewFamily_RenderThread(FSceneViewFamily& ViewFamily)
+void FGearVR::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& ViewFamily)
 {
 	check(IsInRenderingThread());
 

@@ -138,3 +138,10 @@ protected:
 	// Holds the resource.
 	ResourceType ShaderResource;
 };
+
+class IViewportRenderTargetProvider
+{
+public:
+	virtual FSlateShaderResource* GetViewportRenderTargetTexture() = 0;
+};
+
