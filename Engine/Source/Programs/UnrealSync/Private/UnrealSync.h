@@ -131,6 +131,11 @@ public:
 	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnSyncProgress, const FString&);
 
 	/**
+	 * Tells if UnrealSync was run with -Debug param.
+	 */
+	static bool IsDebugParameterSet();
+
+	/**
 	 * This method copies UnrealSync to temp location and run it from there,
 	 * and updates (if needed).
 	 *

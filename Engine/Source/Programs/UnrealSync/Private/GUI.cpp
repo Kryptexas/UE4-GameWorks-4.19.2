@@ -1051,13 +1051,7 @@ public:
 				SNew(STextBlock).Text(LOCTEXT("ArtistSync", "Artist sync?"))
 			];
 
-#if UE_BUILD_DEBUG
-		auto bDebug = FParse::Param(FCommandLine::Get(), TEXT("Debug"));
-#else
-		const auto bDebug = false;
-#endif
-
-		if (!bDebug)
+		if (!FUnrealSync::IsDebugParameterSet())
 		{
 			// Checked by default.
 			ArtistSyncCheckBox->ToggleCheckedState();
@@ -1184,7 +1178,7 @@ public:
 				Switcher.ToSharedRef()
 			];
 
-		if (bDebug)
+		if (FUnrealSync::IsDebugParameterSet())
 		{
 			MainBox->InsertSlot(2).AutoHeight()
 				[

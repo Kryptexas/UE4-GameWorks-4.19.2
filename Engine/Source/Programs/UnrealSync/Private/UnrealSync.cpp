@@ -23,7 +23,8 @@ bool FUnrealSync::RunDetachedUS(const FString& USPath, bool bDoNotRunFromCopy, b
 	FString CommandLine = FString()
 		+ (bDoNotRunFromCopy ? TEXT("-DoNotRunFromCopy ") : TEXT(""))
 		+ (bDoNotUpdateOnStartUp ? TEXT("-DoNotUpdateOnStartUp ") : TEXT(""))
-		+ (bPassP4Env ? *FP4Env::Get().GetCommandLine()	: TEXT(""));
+		+ (FUnrealSync::IsDebugParameterSet() ? TEXT("-Debug ") : TEXT(""))
+		+ (bPassP4Env ? *FP4Env::Get().GetCommandLine() : TEXT(""));
 
 	return RunProcess(USPath, CommandLine);
 }
@@ -34,6 +35,7 @@ bool FUnrealSync::DeleteIfExistsAndCopyFile(const FString& To, const FString& Fr
 
 	if (PlatformPhysical.FileExists(*To) && !PlatformPhysical.DeleteFile(*To))
 	{
+		UE_LOG(LogUnrealSync, Warning, TEXT("Deleting existing file '%s' failed."), *To);
 		return false;
 	}
 
@@ -609,6 +611,13 @@ bool FUnrealSync::Sync(const FSyncSettings& Settings, const FString& Label, cons
 	}
 
 	return true;
+}
+
+bool FUnrealSync::IsDebugParameterSet()
+{
+	const auto bDebug = FParse::Param(FCommandLine::Get(), TEXT("Debug"));
+
+	return bDebug;
 }
 
 bool FUnrealSync::Initialization(const TCHAR* CommandLine)
