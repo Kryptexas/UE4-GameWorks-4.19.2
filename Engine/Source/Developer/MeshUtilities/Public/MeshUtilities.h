@@ -231,7 +231,10 @@ public:
 	 *
 	 * @param SourceActors				List of actors to merge
 	 * @param InSettings				Settings to use
-	 * @param PackageName				Destination package name for a generated assets
+	 * @param InOuter					Outer if required
+	 * @param InBasePackageName			Destination package name for a generated assets. Used if Outer is null. 
+	 * @param UseLOD					-1 if you'd like to build for all LODs. If you specify, that LOD mesh for source meshes will be used to merge the mesh
+	 *									This is used by hierarchical building LODs
 	 * @param OutAssetsToSync			Merged mesh assets
 	 * @param OutMergedActorLocation	World position of merged mesh
 	 */
@@ -239,7 +242,8 @@ public:
 		const TArray<AActor*>& SourceActors,
 		const FMeshMergingSettings& InSettings,
 		UPackage* InOuter,
-		const FString& BasePackageName,
+		const FString& InBasePackageName,
+		int32 UseLOD, // does not build all LODs but only use this LOD to create base mesh
 		TArray<UObject*>& OutAssetsToSync, 
 		FVector& OutMergedActorLocation, 
 		bool bSilent=false) const = 0;

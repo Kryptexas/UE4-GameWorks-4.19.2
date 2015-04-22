@@ -614,7 +614,7 @@ void FLODCluster::BuildActor(class UWorld* InWorld, class ULevel* InLevel, const
 				{
 					FMeshMergingSettings MergeSetting;
 					MergeSetting.bMergeMaterials = true;
-					MeshUtilities.MergeActors(Actors, MergeSetting, AssetsOuter, PackageName, OutAssets, OutProxyLocation, true );
+					MeshUtilities.MergeActors(Actors, MergeSetting, AssetsOuter, PackageName, LODIdx+1, OutAssets, OutProxyLocation, true );
 				}
 
 				// this is ideally the way we should do, but 
