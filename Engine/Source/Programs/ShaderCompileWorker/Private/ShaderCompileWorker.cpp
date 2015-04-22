@@ -538,7 +538,7 @@ int32 GuardedMain(int32 argc, TCHAR* argv[])
 
 	LastCompileTime = FPlatformTime::Seconds();
 
-	FString InCommunicating = argv[6];
+	FString InCommunicating = (argc > 6) ? argv[6] : FString();
 #if PLATFORM_SUPPORTS_NAMED_PIPES
 	const bool bThroughFile = GShaderCompileUseXGE || (InCommunicating == FString(TEXT("-communicatethroughfile")));
 	const bool bThroughNamedPipe = (InCommunicating == FString(TEXT("-communicatethroughnamedpipe")));
@@ -562,7 +562,7 @@ int32 GuardedMainWrapper(int32 ArgC, TCHAR* ArgV[], const TCHAR* CrashOutputFile
 {
 	// We need to know whether we are using XGE now, in case an exception
 	// is thrown before we parse the command line inside GuardedMain.
-	GShaderCompileUseXGE = FCString::Strcmp(ArgV[6], TEXT("-xge")) == 0;
+	GShaderCompileUseXGE = (ArgC > 6) && FCString::Strcmp(ArgV[6], TEXT("-xge")) == 0;
 
 	int32 ReturnCode = 0;
 #if PLATFORM_WINDOWS

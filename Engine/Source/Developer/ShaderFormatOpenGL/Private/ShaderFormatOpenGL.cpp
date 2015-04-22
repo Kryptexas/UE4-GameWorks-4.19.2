@@ -157,7 +157,7 @@ public:
 		}
 		else if (Format == NAME_GLSL_ES2_IOS )
 		{
-			CompileShader_Windows_OGL(Input, Output, WorkingDirectory, GLSL_150_ES3_1);
+			CompileShader_Windows_OGL(Input, Output, WorkingDirectory, GLSL_ES2_IOS);
 		}
 		else if (Format == NAME_GLSL_150_ES3_1)
 		{
