@@ -240,7 +240,7 @@ struct FLocalizationTargetSettings
 {
 	GENERATED_USTRUCT_BODY()
 
-	FLocalizationTargetSettings::FLocalizationTargetSettings()
+	FLocalizationTargetSettings()
 		: Guid(FGuid::NewGuid())
 		, ConflictStatus(ELocalizationTargetConflictStatus::Unknown)
 		, NativeCultureIndex(INDEX_NONE)
