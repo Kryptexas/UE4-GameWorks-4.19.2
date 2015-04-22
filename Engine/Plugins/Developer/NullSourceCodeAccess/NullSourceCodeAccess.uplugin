@@ -1,6 +1,6 @@
 {
 	"FileVersion" : 3,
-	"FriendlyName" : "Null Source Code Access",
+    "FriendlyName": "Linux Compiler-only Integration",
 	"Version" : 1,
 	"VersionName" : "1.0",
 	"CreatedBy" : "Salamanderrake" ,
