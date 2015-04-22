@@ -888,8 +888,8 @@ const uint32 FBuildGenerationChunkCache::FChunkReader::BytesLeft()
 
 /* FBuildGenerationChunkCache implementation
 *****************************************************************************/
-FBuildGenerationChunkCache::FBuildGenerationChunkCache(const FDateTime& DataAgeThreshold)
-	: DataAgeThreshold(DataAgeThreshold)
+FBuildGenerationChunkCache::FBuildGenerationChunkCache(const FDateTime& InDataAgeThreshold)
+	: DataAgeThreshold(InDataAgeThreshold)
 {
 }
 
@@ -904,12 +904,12 @@ TSharedRef< FBuildGenerationChunkCache::FChunkReader > FBuildGenerationChunkCach
 			double OldestAccessTime = FPlatformTime::Seconds();
 			for( auto ChunkCacheIt = ChunkCache.CreateConstIterator(); ChunkCacheIt; ++ChunkCacheIt )
 			{
-				const FString& ChunkFilePath = ChunkCacheIt.Key();
+				const FString& ChunkCacheFilePath = ChunkCacheIt.Key();
 				const FChunkFile& ChunkFile = ChunkCacheIt.Value().Get();
 				if( ChunkFile.GetLastAccessTime() < OldestAccessTime )
 				{
 					OldestAccessTime = ChunkFile.GetLastAccessTime();
-					OldestAccessChunk = ChunkFilePath;
+					OldestAccessChunk = ChunkCacheFilePath;
 				}
 			}
 			ChunkCache.Remove( OldestAccessChunk );
@@ -1474,28 +1474,28 @@ bool FBuildDataGenerator::FindExistingChunkData( const uint64& ChunkHash, const 
 					{
 						TArray<FGuid> ChunksReferenced;
 						BuildManifest->GetDataList(ChunksReferenced);
-						for (const auto& ChunkGuid : ChunksReferenced)
+						for (const auto& ReferencedChunkGuid : ChunksReferenced)
 						{
-							uint64 ChunkHash;
-							if (BuildManifest->GetChunkHash(ChunkGuid, ChunkHash))
+							uint64 ReferencedChunkHash;
+							if (BuildManifest->GetChunkHash(ReferencedChunkGuid, ReferencedChunkHash))
 							{
-								if (ChunkHash != 0)
+								if (ReferencedChunkHash != 0)
 								{
-									TArray< FGuid >& HashChunkList = ExistingChunkHashInventory.FindOrAdd(ChunkHash);
-									if (!HashChunkList.Contains(ChunkGuid))
+									TArray< FGuid >& HashChunkList = ExistingChunkHashInventory.FindOrAdd(ReferencedChunkHash);
+									if (!HashChunkList.Contains(ReferencedChunkGuid))
 									{
 										++NumChunksFound;
-										HashChunkList.Add(ChunkGuid);
+										HashChunkList.Add(ReferencedChunkGuid);
 									}
 								}
 								else
 								{
-									GLog->Logf(TEXT("BuildDataGenerator: INFO: Ignored an existing chunk %s with a failed hash value of zero to avoid performance problems while chunking"), *ChunkGuid.ToString());
+									GLog->Logf(TEXT("BuildDataGenerator: INFO: Ignored an existing chunk %s with a failed hash value of zero to avoid performance problems while chunking"), *ReferencedChunkGuid.ToString());
 								}
 							}
 							else
 							{
-								GLog->Logf(TEXT("BuildDataGenerator: WARNING: Missing chunk hash for %s in manifest %s"), *ChunkGuid.ToString(), *ManifestFile);
+								GLog->Logf(TEXT("BuildDataGenerator: WARNING: Missing chunk hash for %s in manifest %s"), *ReferencedChunkGuid.ToString(), *ManifestFile);
 							}
 						}
 					}
@@ -1919,8 +1919,8 @@ void FBuildDataGenerator::StripIgnoredFiles( TArray< FString >& AllFiles, const 
 	struct FRemoveMatchingStrings
 	{ 
 		const TSet<FString>& IgnoreList;
-		FRemoveMatchingStrings( const TSet<FString>& IgnoreList )
-			: IgnoreList(IgnoreList) {}
+		FRemoveMatchingStrings( const TSet<FString>& InIgnoreList )
+			: IgnoreList(InIgnoreList) {}
 
 		bool operator()(const FString& RemovalCandidate) const
 		{

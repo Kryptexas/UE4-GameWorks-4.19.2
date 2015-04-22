@@ -112,7 +112,6 @@ bool FBuildPatchDownloader::Init()
 
 uint32 FBuildPatchDownloader::Run()
 {
-	FString ErrorString;
 	SetRunning( true );
 	SetInited( true );
 

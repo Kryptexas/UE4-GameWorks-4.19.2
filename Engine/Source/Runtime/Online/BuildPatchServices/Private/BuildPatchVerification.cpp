@@ -25,13 +25,13 @@ private:
 	FString SelectFullFilePath(const FString& BuildFile);
 };
 
-FBuildPatchVerificationImpl::FBuildPatchVerificationImpl(const FBuildPatchAppManifestRef& Manifest, const FBuildPatchFloatDelegate& ProgressDelegate, const FBuildPatchBoolRetDelegate& ShouldPauseDelegate, const FString& VerifyDirectory, const FString& StagedFileDirectory, bool bUseStageDirectory)
-	: Manifest(Manifest)
-	, ProgressDelegate(ProgressDelegate)
-	, ShouldPauseDelegate(ShouldPauseDelegate)
-	, VerifyDirectory(VerifyDirectory)
-	, StagedFileDirectory(StagedFileDirectory)
-	, bUseStageDirectory(bUseStageDirectory)
+FBuildPatchVerificationImpl::FBuildPatchVerificationImpl(const FBuildPatchAppManifestRef& InManifest, const FBuildPatchFloatDelegate& InProgressDelegate, const FBuildPatchBoolRetDelegate& InShouldPauseDelegate, const FString& InVerifyDirectory, const FString& InStagedFileDirectory, bool bInUseStageDirectory)
+	: Manifest(InManifest)
+	, ProgressDelegate(InProgressDelegate)
+	, ShouldPauseDelegate(InShouldPauseDelegate)
+	, VerifyDirectory(InVerifyDirectory)
+	, StagedFileDirectory(InStagedFileDirectory)
+	, bUseStageDirectory(bInUseStageDirectory)
 	, CurrentBuildPercentage(0)
 	, CurrentFileWeight(0)
 {}

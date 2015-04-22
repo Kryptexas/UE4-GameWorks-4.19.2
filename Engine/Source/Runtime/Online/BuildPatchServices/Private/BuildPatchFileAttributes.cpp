@@ -24,38 +24,40 @@ private:
 	bool SetExecutableFlag(const FString& Filepath);
 };
 
-FBuildPatchFileAttributesImpl::FBuildPatchFileAttributesImpl(const FBuildPatchAppManifestRef& NewManifest, const FBuildPatchAppManifestPtr& OldManifest, const FString& VerifyDirectory, const FString& StagedFileDirectory, bool bUseStageDirectory)
-	: NewManifest(NewManifest)
-	, OldManifest(OldManifest)
-	, VerifyDirectory(VerifyDirectory)
-	, StagedFileDirectory(StagedFileDirectory)
-	, bUseStageDirectory(bUseStageDirectory)
+FBuildPatchFileAttributesImpl::FBuildPatchFileAttributesImpl(const FBuildPatchAppManifestRef& InNewManifest, const FBuildPatchAppManifestPtr& InOldManifest, const FString& InVerifyDirectory, const FString& InStagedFileDirectory, bool bInUseStageDirectory)
+	: NewManifest(InNewManifest)
+	, OldManifest(InOldManifest)
+	, VerifyDirectory(InVerifyDirectory)
+	, StagedFileDirectory(InStagedFileDirectory)
+	, bUseStageDirectory(bInUseStageDirectory)
 {}
 
 bool FBuildPatchFileAttributesImpl::ApplyAttributes(bool bForce)
 {
 	// We need to set attributes for all files in the new build that require it
-	TArray<FString> BuildFiles;
-	NewManifest->GetFileList(BuildFiles);
-	for (const FString& BuildFile : BuildFiles)
-	{
-		// Break if quitting
-		if (FBuildPatchInstallError::HasFatalError())
-		{
-			break;
-		}
+    {
+        TArray<FString> BuildFiles;
+        NewManifest->GetFileList(BuildFiles);
+        for (const FString& BuildFile : BuildFiles)
+        {
+            // Break if quitting
+            if (FBuildPatchInstallError::HasFatalError())
+            {
+                break;
+            }
 
-		const FFileManifestData* FileManifest = NewManifest->GetFileManifest(BuildFile);
-		if (FileManifest != nullptr)
-		{
-			// Apply
-			const bool bHasAttrib = FileManifest->bIsReadOnly || FileManifest->bIsCompressed || FileManifest->bIsUnixExecutable;
-			if (bHasAttrib || bForce)
-			{
-				SetupFileAttributes(SelectFullFilePath(BuildFile), *FileManifest);
-			}
-		}
-	}
+            const FFileManifestData* FileManifest = NewManifest->GetFileManifest(BuildFile);
+            if (FileManifest != nullptr)
+            {
+                // Apply
+                const bool bHasAttrib = FileManifest->bIsReadOnly || FileManifest->bIsCompressed || FileManifest->bIsUnixExecutable;
+                if (bHasAttrib || bForce)
+                {
+                    SetupFileAttributes(SelectFullFilePath(BuildFile), *FileManifest);
+                }
+            }
+        }
+    }
 
 	// We also need to check if any attributes have been removed, unless we forced anyway
 	if (OldManifest.IsValid() && !bForce)

@@ -125,9 +125,9 @@ FCustomFieldData::FCustomFieldData()
 {
 }
 
-FCustomFieldData::FCustomFieldData(const FString& Key, const FString& Value)
-	: Key(Key)
-	, Value(Value)
+FCustomFieldData::FCustomFieldData(const FString& InKey, const FString& InValue)
+	: Key(InKey)
+	, Value(InValue)
 {
 }
 

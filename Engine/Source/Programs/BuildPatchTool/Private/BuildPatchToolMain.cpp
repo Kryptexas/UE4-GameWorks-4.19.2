@@ -98,8 +98,8 @@ struct FCommandLineMatcher
 {
 	const FString Command;
 
-	FCommandLineMatcher(FString Command)
-		: Command(MoveTemp(Command))
+	FCommandLineMatcher(FString InCommand)
+		: Command(MoveTemp(InCommand))
 	{}
 
 	FORCEINLINE bool operator()(const FString& ToMatch) const
