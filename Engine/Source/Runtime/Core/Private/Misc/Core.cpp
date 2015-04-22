@@ -256,7 +256,6 @@ DEFINE_STAT(STAT_AnimationMemory);
 DEFINE_STAT(STAT_PrecomputedVisibilityMemory);
 DEFINE_STAT(STAT_PrecomputedShadowDepthMapMemory);
 DEFINE_STAT(STAT_PrecomputedLightVolumeMemory);
-DEFINE_STAT(STAT_StaticMeshTotalMemory);
 DEFINE_STAT(STAT_SkeletalMeshVertexMemory);
 DEFINE_STAT(STAT_SkeletalMeshIndexMemory);
 DEFINE_STAT(STAT_SkeletalMeshMotionBlurSkinningMemory);
@@ -268,14 +267,6 @@ DEFINE_STAT(STAT_PhysSceneWriteLock);
 
 DEFINE_STAT(STAT_ReflectionCaptureTextureMemory);
 DEFINE_STAT(STAT_ReflectionCaptureMemory);
-
-DEFINE_STAT(STAT_StaticMeshTotalMemory2);
-DEFINE_STAT(STAT_StaticMeshVertexMemory);
-DEFINE_STAT(STAT_ResourceVertexColorMemory);
-DEFINE_STAT(STAT_InstVertexColorMemory);
-DEFINE_STAT(STAT_StaticMeshIndexMemory);
-DEFINE_STAT(STAT_StaticMeshDistanceFieldMemory);
-
 
 /** Threading stats objects */
 

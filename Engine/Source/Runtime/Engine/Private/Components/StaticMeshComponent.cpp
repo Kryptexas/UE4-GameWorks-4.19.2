@@ -23,6 +23,8 @@
 
 #define LOCTEXT_NAMESPACE "StaticMeshComponent"
 
+DECLARE_MEMORY_STAT( TEXT( "StaticMesh VxColor Inst Mem" ), STAT_InstVertexColorMemory, STATGROUP_MemoryStaticMesh );
+
 class FStaticMeshComponentInstanceData : public FSceneComponentInstanceData
 {
 public:
