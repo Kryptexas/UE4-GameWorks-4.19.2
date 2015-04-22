@@ -1,9 +1,11 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SettingsEditorPrivatePCH.h"
+
 #include "ISettingsEditorModule.h"
 #include "NotificationManager.h"
 #include "ISettingsModule.h"
+#include "Engine/DeveloperSettings.h"
 
 #define LOCTEXT_NAMESPACE "SSettingsEditor"
 
