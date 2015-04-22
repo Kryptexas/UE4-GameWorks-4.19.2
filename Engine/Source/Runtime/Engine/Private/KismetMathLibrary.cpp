@@ -1179,6 +1179,11 @@ FDateTime UKismetMathLibrary::Subtract_DateTimeTimespan( FDateTime A, FTimespan 
 }
 
 
+FTimespan UKismetMathLibrary::Subtract_DateTimeDateTime(FDateTime A, FDateTime B)
+{
+	return A - B;
+}
+
 bool UKismetMathLibrary::EqualEqual_DateTimeDateTime( FDateTime A, FDateTime B )
 {
 	return A == B;
