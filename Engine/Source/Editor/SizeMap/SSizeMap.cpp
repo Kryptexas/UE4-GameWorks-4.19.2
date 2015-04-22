@@ -127,7 +127,7 @@ namespace SizeMapInternals
 		{
 			// We ended up with bytes, so show a decimal number
 			BestSizeString = FString::Printf( TEXT( "%s %s" ), 
-				*FText::AsNumber( SizeInBytes ).ToString(), 
+				*FText::AsNumber( static_cast<uint64>(SizeInBytes) ).ToString(), 
 				*LOCTEXT( "Bytes", "bytes" ).ToString() );
 		}
 		else
@@ -160,7 +160,7 @@ namespace SizeMapInternals
 }
 
 
-void SSizeMap::GatherDependenciesRecursively( FAssetRegistryModule& AssetRegistryModule, TSharedPtr<FAssetThumbnailPool>& AssetThumbnailPool, TMap<FName, TSharedPtr<FTreeMapNodeData>>& VisitedAssetPackageNames, const TArray<FName>& AssetPackageNames, const TSharedPtr<FTreeMapNodeData>& Node, TSharedPtr<FTreeMapNodeData>& SharedRootNode, int32& NumAssetsWhichFailedToLoad )
+void SSizeMap::GatherDependenciesRecursively( FAssetRegistryModule& AssetRegistryModule, TSharedPtr<FAssetThumbnailPool>& InAssetThumbnailPool, TMap<FName, TSharedPtr<FTreeMapNodeData>>& VisitedAssetPackageNames, const TArray<FName>& AssetPackageNames, const TSharedPtr<FTreeMapNodeData>& Node, TSharedPtr<FTreeMapNodeData>& SharedRootNode, int32& NumAssetsWhichFailedToLoad )
 {
 	for( const FName AssetPackageName : AssetPackageNames )
 	{
@@ -288,7 +288,7 @@ void SSizeMap::GatherDependenciesRecursively( FAssetRegistryModule& AssetRegistr
 
 								
 						// Now visit all of the assets that we are referencing
-						GatherDependenciesRecursively( AssetRegistryModule, AssetThumbnailPool, VisitedAssetPackageNames, ReferencedAssetPackageNames, ChildTreeMapNode, SharedRootNode, NumAssetsWhichFailedToLoad );
+						GatherDependenciesRecursively( AssetRegistryModule, InAssetThumbnailPool, VisitedAssetPackageNames, ReferencedAssetPackageNames, ChildTreeMapNode, SharedRootNode, NumAssetsWhichFailedToLoad );
 
 					}
 					else

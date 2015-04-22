@@ -279,7 +279,7 @@ void FTreeMap::MakeStandardTreeNode( const FTreeMapOptions& Options, FTreeMap::E
 }
 
 
-void FTreeMap::MakeSquarifiedTreeNode( const FTreeMapOptions& Options, const FTreeMapNodeRef& Node )
+void FTreeMap::MakeSquarifiedTreeNode( const FTreeMapOptions& Options, const FTreeMapNodeRef& InNode )
 {
 	// NOTE: This algorithm is explained in the paper titled, "Squarified Treemaps", by Mark Bruls, Kees Huizing, and Jarke J.van Wijk
 
@@ -417,8 +417,8 @@ void FTreeMap::MakeSquarifiedTreeNode( const FTreeMapOptions& Options, const FTr
 	};
 
 	// Squarify it!
-	auto ChildrenCopy = Node->Children;
-	FTreeMapRect SubRect = Node->Rect;
+	auto ChildrenCopy = InNode->Children;
+	FTreeMapRect SubRect = InNode->Rect;
 	do
 	{
 		const auto SubRectShortestSide = FMath::Min( SubRect.Size.X, SubRect.Size.Y );
@@ -557,10 +557,10 @@ FTreeMapNodeDataPtr ITreeMap::ParseOPMLToTreeMapData( const FString& OPMLFilePat
 			const auto& RootName = XmlRoot->GetTag();
 			if( RootName.Equals( TEXT( "opml" ), ESearchCase::IgnoreCase ) )
 			{
-				for( const auto& XmlNode : XmlRoot->GetChildrenNodes() )
+				for( const auto& OuterXmlNode : XmlRoot->GetChildrenNodes() )
 				{
-					const auto& NodeName = XmlNode->GetTag();
-					if( NodeName.Equals( TEXT( "body" ), ESearchCase::IgnoreCase ) )
+					const auto& OuterNodeName = OuterXmlNode->GetTag();
+					if( OuterNodeName.Equals( TEXT( "body" ), ESearchCase::IgnoreCase ) )
 					{
 						struct Local
 						{
@@ -635,7 +635,7 @@ FTreeMapNodeDataPtr ITreeMap::ParseOPMLToTreeMapData( const FString& OPMLFilePat
 						RootNodeData = MakeShareable( new FTreeMapNodeData() );
 						RootNodeData->Parent = NULL;
 						RootNodeData->Name = RootNodeName;
-						Local::RecursivelyCreateNodes( RootNodeData.ToSharedRef(), *XmlNode );
+						Local::RecursivelyCreateNodes( RootNodeData.ToSharedRef(), *OuterXmlNode );
 					}
 					else
 					{
