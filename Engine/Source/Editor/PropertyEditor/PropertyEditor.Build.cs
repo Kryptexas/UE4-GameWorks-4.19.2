@@ -40,7 +40,8 @@ public class PropertyEditor : ModuleRules
                 "AssetRegistry",
                 "AssetTools",
 				"ClassViewer",
-                "ContentBrowser"
+                "ContentBrowser",
+				"ConfigEditor",
 			}
 		);
 
@@ -57,6 +58,7 @@ public class PropertyEditor : ModuleRules
 				"EditorWidgets",
 				"Documentation",
                 "RHI",
+				"ConfigEditor",
 			}
 		);
 

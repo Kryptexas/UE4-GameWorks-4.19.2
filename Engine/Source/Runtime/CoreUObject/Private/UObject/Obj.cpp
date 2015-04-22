@@ -1868,9 +1868,9 @@ void UObject::UpdateSingleSectionOfConfigFile(const FString& ConfigIniName)
 	GConfig->LoadGlobalIniFile(FinalIniFileName, *GetClass()->ClassConfigName.ToString(), NULL, true);
 }
 
-void UObject::UpdateDefaultConfigFile()
+void UObject::UpdateDefaultConfigFile(const FString& SpecificFileLocation)
 {
-	UpdateSingleSectionOfConfigFile(GetDefaultConfigFilename());
+	UpdateSingleSectionOfConfigFile(SpecificFileLocation.IsEmpty() ? GetDefaultConfigFilename() : SpecificFileLocation);
 }
 
 void UObject::UpdateGlobalUserConfigFile()

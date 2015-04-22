@@ -779,7 +779,7 @@ public:
 	/**
 	 * Saves just the section(s) for this class into the default ini file for the class (with just the changes from base)
 	 */
-	void UpdateDefaultConfigFile();
+	void UpdateDefaultConfigFile(const FString& SpecificFileLocation = "");
 
 	/**
 	 * Saves just the section(s) for this class into the global user ini file for the class (with just the changes from base)

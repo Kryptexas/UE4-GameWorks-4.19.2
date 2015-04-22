@@ -42,7 +42,8 @@ public class DetailCustomizations : ModuleRules
                 "HardwareTargeting",
 				"SharedSettingsWidgets",
                 "AIModule", 
-                "MeshUtilities"
+                "MeshUtilities",
+				"ConfigEditor",
 			}
 		);
 

@@ -496,6 +496,14 @@ namespace PropertyEditorHelpers
 			return;
 		}
 
+		if (NodeProperty->HasAnyPropertyFlags(CPF_GlobalConfig|CPF_Config))
+		{
+			if (NodeProperty->HasMetaData(TEXT("ConfigHierarchyEditable")))
+			{
+				OutRequiredButtons.Add( EPropertyButton::EditConfigHierarchy );
+			}
+		}
+
 		//////////////////////////////
 		// Handle an array property.
 		if( NodeProperty->IsA(UArrayProperty::StaticClass() ) )
@@ -802,6 +810,10 @@ namespace PropertyEditorHelpers
 
 		case EPropertyButton::NewBlueprint:
 			NewButton = PropertyCustomizationHelpers::MakeNewBlueprintButton( FSimpleDelegate::CreateSP( PropertyEditor, &FPropertyEditor::MakeNewBlueprint )  );
+			break;
+
+		case EPropertyButton::EditConfigHierarchy:
+			NewButton = PropertyCustomizationHelpers::MakeEditConfigHierarchyButton(FSimpleDelegate::CreateSP(PropertyEditor, &FPropertyEditor::EditConfigHierarchy));
 			break;
 
 		default:

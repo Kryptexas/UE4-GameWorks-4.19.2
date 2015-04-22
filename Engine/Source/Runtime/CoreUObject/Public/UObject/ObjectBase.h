@@ -1050,6 +1050,9 @@ namespace UM
 
 		/// [PropertyMetadata] Used for float and integer properties.  Specifies the highest that the value slider should represent.
 		UIMax,
+
+		/// [PropertyMetadata] Property is serialized to config and we should be able to set it anywhere along the config hierarchy.
+		ConfigHierarchyEditable,
 	};
 
 	// Metadata usable in UPROPERTY for customizing the behavior of Persona and UMG

@@ -248,6 +248,18 @@ namespace PropertyCustomizationHelpers
 			.OnActorSelected( OnActorSelectedFromPicker );
 	}
 
+	TSharedRef<SWidget> MakeEditConfigHierarchyButton(FSimpleDelegate OnEditConfigClicked, TAttribute<FText> OptionalToolTipText, TAttribute<bool> IsEnabled)
+	{
+		return
+			SNew(SPropertyEditorButton)
+			.Text(LOCTEXT("EditConfigHierarchyButtonLabel", "Edit Config Hierarchy"))
+			.ToolTipText(OptionalToolTipText.Get().IsEmpty() ? LOCTEXT("EditConfigHierarchyButtonToolTipText", "Edit the config values of this property") : OptionalToolTipText)
+			.Image(FEditorStyle::GetBrush("DetailsView.EditRawProperties"))
+			.OnClickAction(OnEditConfigClicked)
+			.IsEnabled(IsEnabled)
+			.IsFocusable(false);
+	}
+
 	UBoolProperty* GetEditConditionProperty(const UProperty* InProperty, bool& bNegate)
 	{
 		UBoolProperty* EditConditionProperty = NULL;
