@@ -2846,7 +2846,7 @@ namespace UnrealBuildTool
 						else
 						{
 							ModuleType = UEBuildModule.GetEngineModuleTypeBasedOnLocation(ModuleName, ModuleType, ModuleFileRelativeToEngineDirectory);
-							if (ModuleName == "UdpMessaging")
+							if (ModuleName == "UdpMessaging" || ModuleName == "MessagingDebugger")
 							{
 								ModuleType = UEBuildModuleType.Runtime;
 							}
