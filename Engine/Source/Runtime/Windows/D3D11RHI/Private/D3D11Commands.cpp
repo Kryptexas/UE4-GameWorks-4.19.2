@@ -1925,6 +1925,10 @@ void FD3D11DynamicRHI::RHIEnableDepthBoundsTest(bool bEnable,float MinDepth,floa
 #endif
 }
 
+void FD3D11DynamicRHI::RHISubmitCommandsHint()
+{
+
+}
 IRHICommandContext* FD3D11DynamicRHI::RHIGetDefaultContext()
 {
 	return this;

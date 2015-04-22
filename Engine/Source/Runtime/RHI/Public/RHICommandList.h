@@ -1094,6 +1094,14 @@ struct FRHICommandEndOcclusionQueryBatch : public FRHICommand<FRHICommandEndOccl
 	RHI_API void Execute(FRHICommandListBase& CmdList);
 };
 
+struct FRHICommandSubmitCommandsHint : public FRHICommand<FRHICommandSubmitCommandsHint>
+{
+	FORCEINLINE_DEBUGGABLE FRHICommandSubmitCommandsHint()
+	{
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
 struct FRHICommandBeginScene : public FRHICommand<FRHICommandBeginScene>
 {
 	FORCEINLINE_DEBUGGABLE FRHICommandBeginScene()
@@ -1823,7 +1831,17 @@ public:
 		new (AllocCommand<FRHICommandEndOcclusionQueryBatch>()) FRHICommandEndOcclusionQueryBatch();
 	}
 
-	// These 6 are special in that they must be called on the immediate command list and they force a flush only when we are not doing RHI thread
+	FORCEINLINE_DEBUGGABLE void SubmitCommandsHint()
+	{
+		if (Bypass())
+		{
+			CMD_CONTEXT(SubmitCommandsHint)();
+			return;
+		}
+		new (AllocCommand<FRHICommandSubmitCommandsHint>()) FRHICommandSubmitCommandsHint();
+	}	
+
+// These 6 are special in that they must be called on the immediate command list and they force a flush only when we are not doing RHI thread
 	void BeginScene();
 	void EndScene();
 	void BeginDrawingViewport(FViewportRHIParamRef Viewport, FTextureRHIParamRef RenderTargetRHI);

@@ -369,6 +369,12 @@ void FRHICommandEndOcclusionQueryBatch::Execute(FRHICommandListBase& CmdList)
 	INTERNAL_DECORATOR(EndOcclusionQueryBatch)();
 }
 
+void FRHICommandSubmitCommandsHint::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(SubmitCommandsHint);
+	INTERNAL_DECORATOR(SubmitCommandsHint)();
+}
+
 void FRHICommandBeginScene::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(BeginScene);

@@ -1292,6 +1292,11 @@ DEFINE_RHIMETHOD_CMDLIST_0(
 	,
 	);
 
+DEFINE_RHIMETHOD_CMDLIST_0(
+	void,SubmitCommandsHint,
+	,
+	);
+
 // This method is queued with an RHIThread, otherwise it will flush after it is queued; without an RHI thread there is no benefit to queuing this frame advance commands
 DEFINE_RHIMETHOD_CMDLIST_2(
 	void,BeginDrawingViewport,

@@ -3543,6 +3543,9 @@ void FOpenGLDynamicRHI::RHIEnableDepthBoundsTest(bool bEnable,float MinDepth,flo
 	}
 }
 
+void FOpenGLDynamicRHI::RHISubmitCommandsHint()
+{
+}
 IRHICommandContext* FOpenGLDynamicRHI::RHIGetDefaultContext()
 {
 	return this;
