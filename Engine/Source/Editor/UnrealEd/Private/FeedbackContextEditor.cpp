@@ -477,7 +477,7 @@ void FFeedbackContextEditor::ProgressReported( const float TotalProgressInterp, 
 			}
 
 			BuildProgressWidget->SetBuildProgressPercent(TotalProgressInterp * 100, 100);
-			TickSlate(SlowTaskWindow.Pin());
+			TickSlate(BuildProgressWindow.Pin());
 		}
 		else if (SlowTaskWindow.IsValid())
 		{
