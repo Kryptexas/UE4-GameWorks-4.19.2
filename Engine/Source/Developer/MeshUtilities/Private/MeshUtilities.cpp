@@ -4514,7 +4514,7 @@ void FMeshUtilities::MergeActors(
 		else
 		{
 			AssetName = FPackageName::GetShortName(InPackageName);
-			PackageName = InPackageName;
+			PackageName = FPackageName::GetLongPackagePath(InPackageName);
 		}
 
 		UPackage* Package = CreatePackage(NULL, *PackageName);
