@@ -3523,8 +3523,8 @@ UClass::UClass(const FObjectInitializer& ObjectInitializer)
 ,	ClassCastFlags(0)
 ,	ClassWithin( UObject::StaticClass() )
 ,	ClassGeneratedBy(NULL)
-,	ClassDefaultObject(NULL)
 ,	bCooked(false)
+,	ClassDefaultObject(NULL)
 {
 	// If you add properties here, please update the other constructors and PurgeClass()
 }
@@ -3539,8 +3539,8 @@ UClass::UClass(const FObjectInitializer& ObjectInitializer, UClass* InBaseClass 
 ,	ClassCastFlags(0)
 ,	ClassWithin( UObject::StaticClass() )
 ,	ClassGeneratedBy(NULL)
-,	ClassDefaultObject(NULL)
 ,	bCooked(false)
+,	ClassDefaultObject(NULL)
 {
 	// If you add properties here, please update the other constructors and PurgeClass()
 
@@ -3594,9 +3594,9 @@ UClass::UClass
 ,	ClassWithin				( NULL )
 ,	ClassGeneratedBy		( NULL )
 ,	ClassConfigName			()
+,	bCooked					( false )
 ,	NetFields				()
 ,	ClassDefaultObject		( NULL )
-,	bCooked( false )
 {
 	// If you add properties here, please update the other constructors and PurgeClass()
 
