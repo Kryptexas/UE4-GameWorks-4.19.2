@@ -142,6 +142,8 @@ private:
 
 	friend class FActorComponentInstanceData;
 
+	AActor* Owner;
+
 	UPROPERTY()
 	TArray<FSimpleMemberReference> UCSModifiedProperties;
 
