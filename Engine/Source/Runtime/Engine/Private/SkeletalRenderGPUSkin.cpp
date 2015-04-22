@@ -585,7 +585,7 @@ void InitAPEXClothVertexFactoryComponents(typename VertexFactoryType::DataType* 
 		VertexBuffers.APEXClothVertexBuffer,STRUCT_OFFSET(FApexClothPhysToRenderVertData,TangentBaryCoordsAndDist),sizeof(FApexClothPhysToRenderVertData),VET_Float4);
 	// indices for reference physics mesh vertices
 	VertexFactoryData->SimulIndicesComponent = FVertexStreamComponent(
-		VertexBuffers.APEXClothVertexBuffer,STRUCT_OFFSET(FApexClothPhysToRenderVertData,SimulMeshVertIndices),sizeof(FApexClothPhysToRenderVertData),VET_Short4);
+		VertexBuffers.APEXClothVertexBuffer,STRUCT_OFFSET(FApexClothPhysToRenderVertData,SimulMeshVertIndices),sizeof(FApexClothPhysToRenderVertData),VET_UShort4);
 }
 
 /** 

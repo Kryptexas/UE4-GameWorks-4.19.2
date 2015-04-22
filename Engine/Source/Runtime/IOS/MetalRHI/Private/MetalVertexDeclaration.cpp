@@ -10,20 +10,24 @@ static MTLVertexFormat TranslateElementTypeToMTLType(EVertexElementType Type)
 {
 	switch (Type)
 	{
-		case VET_Float1:		return MTLVertexFormatFloat;
-		case VET_Float2:		return MTLVertexFormatFloat2;
-		case VET_Float3:		return MTLVertexFormatFloat3;
-		case VET_Float4:		return MTLVertexFormatFloat4;
+		case VET_Float1:			return MTLVertexFormatFloat;
+		case VET_Float2:			return MTLVertexFormatFloat2;
+		case VET_Float3:			return MTLVertexFormatFloat3;
+		case VET_Float4:			return MTLVertexFormatFloat4;
 		case VET_PackedNormal:	return MTLVertexFormatUChar4Normalized;
-		case VET_UByte4:		return MTLVertexFormatUChar4;
+		case VET_UByte4:			return MTLVertexFormatUChar4;
 		case VET_UByte4N:		return MTLVertexFormatUChar4Normalized;
 		case VET_Color:			return MTLVertexFormatUChar4Normalized;
-		case VET_Short2:		return MTLVertexFormatShort2;
-		case VET_Short4:		return MTLVertexFormatShort4;
+		case VET_Short2:			return MTLVertexFormatShort2;
+		case VET_Short4:			return MTLVertexFormatShort4;
 		case VET_Short2N:		return MTLVertexFormatShort2Normalized;
 		case VET_Half2:			return MTLVertexFormatHalf2;
 		case VET_Half4:			return MTLVertexFormatHalf4;
 		case VET_Short4N:		return MTLVertexFormatShort4Normalized;
+		case VET_UShort2:		return MTLVertexFormatUShort2;
+		case VET_UShort4:		return MTLVertexFormatUShort4;
+		case VET_UShort2N:		return MTLVertexFormatUShort2Normalized;
+		case VET_UShort4N:		return MTLVertexFormatUShort4Normalized;
 		default:				UE_LOG(LogMetal, Fatal, TEXT("Unknown vertex element type!")); return MTLVertexFormatFloat;
 	};
 
@@ -33,16 +37,16 @@ static uint32 TranslateElementTypeToSize(EVertexElementType Type)
 {
 	switch (Type)
 	{
-		case VET_Float1:		return 4;
-		case VET_Float2:		return 8;
-		case VET_Float3:		return 12;
-		case VET_Float4:		return 16;
+		case VET_Float1:			return 4;
+		case VET_Float2:			return 8;
+		case VET_Float3:			return 12;
+		case VET_Float4:			return 16;
 		case VET_PackedNormal:	return 4;
-		case VET_UByte4:		return 4;
+		case VET_UByte4:			return 4;
 		case VET_UByte4N:		return 4;
 		case VET_Color:			return 4;
-		case VET_Short2:		return 4;
-		case VET_Short4:		return 8;
+		case VET_Short2:			return 4;
+		case VET_Short4:			return 8;
 		case VET_Short2N:		return 4;
 		case VET_Half2:			return 4;
 		case VET_Half4:			return 8;
