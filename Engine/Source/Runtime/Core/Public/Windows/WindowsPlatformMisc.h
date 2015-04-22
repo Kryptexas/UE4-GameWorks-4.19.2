@@ -46,7 +46,10 @@ struct CORE_API FWindowsPlatformMisc
 	{
 		if (IsDebuggerPresent())
 		{
-			::DebugBreak();
+			// Prefer __debugbreak() instead of ::DebugBreak() on Windows platform, so the code pointer isn't left
+			// inside the DebugBreak() Windows system library (which we usually won't have symbols for), and avoids
+			// us having to "step out" to get back to Unreal code.
+			__debugbreak();
 		}
 	}
 #endif
