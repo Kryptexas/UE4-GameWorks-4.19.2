@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2415499
+﻿INTSourceChangelist:2519584
 Availability: Public
 Title:콜리전 반응
 Crumbs: %ROOT%, Engine, Engine/Physics
@@ -80,7 +80,7 @@ Description:콜리전, 콜리전 반응, 콜리전 프리셋에 대한 모든 �
 | ^ | _Use Simple Collision as Complex_ - 모든 것에 컨벡스 콜리전을 사용합니다. |
 | ^ | _Use Complex Collision as Simple_ - 심플 콜리전이 필요한 곳에도 폴리별 콜리전을 사용합니다. |
 | [REGION:tablesection] **피직스 애셋 내 피직스 바디** [/REGION] ||
-| **Colision Response** | 콜리전 반응 - 피직스 애셋 내 특정 피직스 바디가 충돌 할것인지 말것인지 입니다. |
+| **Collision Response** | 콜리전 반응 - 피직스 애셋 내 특정 피직스 바디가 충돌 할것인지 말것인지 입니다. |
 
 ## 상호작용
 

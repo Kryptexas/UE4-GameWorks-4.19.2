@@ -1,0 +1,82 @@
+﻿INTSourceChangelist:2508659
+Availability:Public
+Title:2. 기어 VR 프로젝트 구성
+Crumbs:%ROOT%, Platforms/GearVR
+Description:기어 VR 헤드셋과 사용할 C++ 기반 UE4 프로젝트 구성 방법입니다.
+Navigation:platform
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[예전 단계](Platforms/GearVR/QuickStart/1 "%Platforms/GearVR/QuickStart/1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵스타트 홈](Platforms/GearVR/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Platforms/GearVR/QuickStart/3 "%Platforms/GearVR/QuickStart/3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+
+1. 프로젝트 생성 및 컴파일이 완료되면, Visual Studio 2013 이 (설치된 경우) 에디터와 함께 자동으로 열립니다.
+
+	![](GVR_Editor_Opened.png)
+
+1. UE4 에디터가 로드되면, **메인 툴바** 에서 **창** 탭을 열고 **플러그인** 메뉴 항목을 선택합니다.
+
+	![](GVR_Plugins_Menu.gif)(convert:false)
+
+1. 플러그인 메뉴에서 **Head Mounted Displays** 섹션으로 가서 **Oculus** 옵션을 **disable**, **Gear VR** 옵션을 **enable** 합니다. 그런 다음 **지금 재시작** 버튼을 눌러 에디터를 재시작, 변경내용이 적용되도록 합니다.
+
+	![](GVR_Plugin_Options_Toggle.png)
+
+1. 에디터가 재시작되면 **메인 툴바** 에서 **편집** - **프로젝트 세팅** 을 선택한 다음, **APKPacking** 섹션의 안드로이드 지원에 대한 **Configure Now** (지금 환경설정) 버튼을 클릭합니다.
+
+	![](GVR_Android_Setup_01.gif)(convert:false)
+
+1. 다음 **Minimum SDK Version** 을 **9** 에서 **19** 로 변경합니다.
+
+	![](GVR_Android_SDK_Version.png)
+
+1. 다음 **Configure the Android Manifest for deployment to Gear VR** 체크박스를 클릭하여 활성화시킵니다.
+
+	[Region:note]
+	이렇게 해 주지 않으면 프로젝트가 기어 VR 헤드셋에서 실행되지 않으므로 매우 중요합니다.
+	[/region]
+
+	![](GVR_Deployment_Checkbox.png)
+
+1. 다음 **Android SDK** 섹션 아래 개발 PC 의 안드로이드 SDK 파일 위치를 채웁니다.
+	Tegra 파일을 설치한 위치에 필요한 폴더를 찾을 수 있습니다.
+	
+	[Region:note]
+	이미 TADP 를 설치했다면 이 정보가 채워져 있을 것입니다. 여기서 뭔가 바꿔야 하는 이유는, 정보가 없거나 잘못된 위치로 되어있을 경우입니다.
+	[/region]
+
+	![](GVR_Android_SDK_Setup.png)
+
+1. 마지막으로 **파일** > **패키지 프로젝트** > **패킹 세팅** 에서 **Full Rebuild** (전체 리빌드) 체크를 해제하여 반복처리 속도를 높입니다.
+
+	[Region:note]
+	기억할 것은 프로젝트의 최종 퍼블리싱 단계에서는 이 옵션을 다시 켜 줘야 기어 VR 헤드셋에서 의도한 대로 작동할 것입니다.
+	[/region]
+
+	![](GVR_Disable_FullReBuild.gif)(convert:false)
+
+	<!-- This was step six, removed based on Josh Adams advice.
+	1. Next in the **Android Package Name** section give your project a name. For this example we will be using the following name **com.Company.GearVR_QS**. 
+
+	![](GVR_Android_Game_Name.png)
+
+	[REGION:note]
+	If using UE 4.7.0 or earlier the name that is used here must match the name that is used for the project or you app could have issues running on your Smartphone.
+	[/region]
+	-->
+
+%Steps%

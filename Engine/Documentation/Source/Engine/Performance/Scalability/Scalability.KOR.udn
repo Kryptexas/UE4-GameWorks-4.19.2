@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:2362484
+﻿INTSourceChangelist:2519469
 Availability:Public
 Title: Scalability, 엔진 퀄리티
-Crumbs: %ROOT%, Engine
+Crumbs: %ROOT%, Engine, Engine/Performance
 Description:퀄리티와 퍼포먼스 조절을 위한 옵션입니다.
 
 [VAR:Topic]
@@ -26,7 +26,7 @@ Description:퀄리티와 퍼포먼스 조절을 위한 옵션입니다.
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Engine/Performance/Scalability:title%](Engine/Rendering/rendering_topic.png)
+		![%Engine/Performance/Scalability/ScalabilityReference:title%](Engine/Performance/Scalability/ScalabilityReference/scalability_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/light_icon.png)(convert:false)
@@ -56,5 +56,5 @@ Description:퀄리티와 퍼포먼스 조절을 위한 옵션입니다.
 
 [REGION:topics third]
 %Engine/Performance/Scalability/ScalabilityAndYou:topiccompact%
-%Engine/Performance/Scalability/ScalabilityReference:topiccompact%
+%Engine/Performance/Scalability/ScalabilityReference:TopicCompact%
 [/REGION]

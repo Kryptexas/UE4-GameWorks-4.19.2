@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2514961
+﻿INTSourceChangelist:2520578
+Availability:Public
 Title:페이퍼 2D 타일 세트 / 타일 맵
 Crumbs: %ROOT%, Engine, Engine/Paper2D
 Description:페이퍼 2D 안에서 사용할 타일 세트 및 타일 맵 제작 방법 개요입니다.
-Availability:Public
 Related: Engine\Paper2D\Sprites\Collision
 Related: Engine\Paper2D\Flipbooks
 Related: Engine/Rendering/Materials

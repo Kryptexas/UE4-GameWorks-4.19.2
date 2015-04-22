@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2398724
+﻿INTSourceChangelist:2519819
 Availability:Public
 Title: 애니메이션 리타게팅 (동일 스켈레톤)
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -141,7 +141,7 @@ Description:리타게팅은 비율이 크게 다른 캐릭터간에 애니메이
 
 <!----
 
-If you are creating all of your animations for a single Skeletal Mesh and retargeting them to some other variations, then the information presented so far will get you a nice retargeted result. The reason it works is that using just one original Skeletal Mesh as the base is like a one-way connection, from the original to all the variations. But what happens if you need special aniamtions just for the variants?
+If you are creating all of your animations for a single Skeletal Mesh and retargeting them to some other variations, then the information presented so far will get you a nice retargeted result. The reason it works is that using just one original Skeletal Mesh as the base is like a one-way connection, from the original to all the variations. But what happens if you need special animations just for the variants?
 
 Consider if we needed a special set of animations for our tall character, such as a different idle animation. An animator could take that Skeletal Mesh, create the necessary animation, then import it using the same Skeleton asset as before, but there is now a problem. Since the original proportions of the Skeleton asset were based off the Base Character's proportions, the animation will be distorted.
 j

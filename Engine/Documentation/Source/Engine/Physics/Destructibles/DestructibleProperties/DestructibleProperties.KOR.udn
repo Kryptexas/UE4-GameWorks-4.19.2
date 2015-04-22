@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2277813
+﻿INTSourceChangelist:2519684
 Availability:Public
 Title:디스트럭터블 프로퍼티 매트릭스
 Crumbs: %ROOT%, Engine
@@ -65,7 +65,7 @@ Description:디스트럭터블 메시 에디터에서 디스트럭터블 액터�
 | **Debris Timeout** | 잔해 타임아웃 - "잔해" 깊이 이하의 청크에 타임아웃을 적용할지 입니다. |
 | **Debris Max Separation** | 잔해 최대 분리거리 - 이 깊이 이하의 "잔해" 청크가 원점에서 너무 멀어지면 제거시킬 것인지 입니다. 
 | **Crumble Smallest Chunks** | 설정하면 가장 작은 청크도 (NxDestructibleActorDesc 에 Crumble 파티클 시스템이 지정된 경우) 플루이드 크럼블을 통해서든, 지정된 것이 없으면 그냥 청크를 제거해서든, 분해시킬 수 있게 됩니다. |
-| **Accurate Raycasts** | 정확한 레이캐스트 - 설정하면 rayCast 함수는 가장 가까이 보이는 청크 범위 안에서 자손 청크와의 콜리전 검사를 합니다. 부모 콜리전 볼륨이 그래픽 메시에 꼭 들어맞지 않는 경우 레이캐스트의 위치와 노멀 결과가 나아집니다. 그러나 반환되는 청크 인덱스는 항상 교차되어 보이는 부모의 인덱스가 됩니다. |
+| **Accurate Raycasts** | 정확한 레이캐스트 - 설정하면 RayCast 함수는 가장 가까이 보이는 청크 범위 안에서 자손 청크와의 콜리전 검사를 합니다. 부모 콜리전 볼륨이 그래픽 메시에 꼭 들어맞지 않는 경우 레이캐스트의 위치와 노멀 결과가 나아집니다. 그러나 반환되는 청크 인덱스는 항상 교차되어 보이는 부모의 인덱스가 됩니다. |
 | **Use Valid Bounds** | 유효 바운드 사용 - 설정하면 NxDestructibleParameters 의 validBounds 가 사용됩니다. 이 바운드는 디스트럭터블 액터의 원점으로 (로테이션과 스케일은 제외한) 트랜슬레이션을 적용합니다. 청크나 청크 아일랜드가 그 바운드 밖으로 벗어나면 소멸됩니다. |
 | **Form Extended Structures** | 확장 구조물 형성 - 이 옵션이 설정되고 디스트럭터블 액터가 애초부터 스태틱인 경우, 역시 이 옵션이 설정되어 있는 다른 스태틱 디스트럭터블과 접해있으면 확장 서포트 구조물의 일부가 됩니다. |
 | [REGION:tablesection] _Fracture Effects - Per Depth Level_ (프랙처 이펙트 - 깊이 레벨별) [/REGION] ||
