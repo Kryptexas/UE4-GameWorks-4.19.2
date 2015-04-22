@@ -6,6 +6,8 @@
 #include "OnlineSharingFacebook.h"
 #include "OnlineFriendsFacebook.h"
 
+#import <FBSDKCoreKit/FBSDKCoreKit.h>
+
 // FOnlineFriendFacebook
 
 TSharedRef<FUniqueNetId> FOnlineFriendFacebook::GetUserId() const

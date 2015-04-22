@@ -6,6 +6,7 @@
 #include "OnlineSharingFacebook.h"
 #include "ImageCore.h"
 
+#import <FBSDKCoreKit/FBSDKCoreKit.h>
 #import <FBSDKShareKit/FBSDKShareKit.h>
 
 FOnlineSharingFacebook::FOnlineSharingFacebook(class FOnlineSubsystemFacebook* InSubsystem)
