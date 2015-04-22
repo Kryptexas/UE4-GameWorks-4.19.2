@@ -1005,7 +1005,7 @@ void ULandscapeHeightfieldCollisionComponent::UpdateHeightfieldRegion(int32 Comp
 		if (BodyInstance.RigidActorSync)
 		{
 			TArray<PxShape*, TInlineAllocator<8>> PShapes;
-			PShapes.AddZeroed(BodyInstance.RigidActorSync->getNbShapes());
+			PShapes.AddUninitialized(BodyInstance.RigidActorSync->getNbShapes());
 			int32 NumShapes = BodyInstance.RigidActorSync->getShapes(PShapes.GetData(), PShapes.Num());
 			if (NumShapes > 1)
 			{
