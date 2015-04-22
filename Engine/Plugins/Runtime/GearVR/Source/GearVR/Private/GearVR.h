@@ -129,7 +129,7 @@ public:
 	class FGearVRBridge : public FRHICustomPresent
 	{
 	public:
-		FGearVRBridge(FGearVR* plugin, uint32 RenderTargetWidth, uint32 RenderTargetHeight, float FOV );
+		FGearVRBridge(FGearVR* plugin, uint32 RenderTargetWidth, uint32 RenderTargetHeight, float FOV, int32 MinimumVsyncs);
 
 		// Returns true if it is initialized and used.
 		bool IsInitialized() const { return bInitialized; }
@@ -165,6 +165,7 @@ public:
 
 		uint32				RenderTargetWidth;
 		uint32				RenderTargetHeight;
+		int32				MinimumVsyncs;
 		float				FOV;
 	};
 
@@ -371,6 +372,9 @@ private: // data
 	/** The width and height of the stereo render target */
 	int32 RenderTargetWidth;
 	int32 RenderTargetHeight;
+
+	/** Clamp warpswap to once every N vsyncs.  1 = 60Hz, 2 = 30Hz, etc. */
+	int32 MinimumVsyncs;
 
 	/** Motion prediction (in seconds). 0 - no prediction */
 	double MotionPredictionInSeconds;
