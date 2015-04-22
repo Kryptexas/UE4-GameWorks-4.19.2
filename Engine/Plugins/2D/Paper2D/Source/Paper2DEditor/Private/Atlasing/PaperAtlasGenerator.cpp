@@ -185,11 +185,11 @@ void FPaperAtlasGenerator::HandleAssetChangedEvent(UPaperSpriteAtlas* Atlas)
 
 		// An atlas is ALSO forced dirty if the dimensions have changed
 		// We're just grabbing a fixed atlas size here for now
-		int32 AtlasWidth = Atlas->MaxWidth;
-		int32 AtlasHeight = Atlas->MaxHeight;
-		int32 BytesPerPixel = sizeof(FColor);
+		const int32 AtlasWidth = Atlas->MaxWidth;
+		const int32 AtlasHeight = Atlas->MaxHeight;
+		const int32 BytesPerPixel = sizeof(FColor);
 
-		bool bAtlasDirty = RemappedAtlasForceDirty[AtlasIndex] || AtlasTexture->GetSizeX() != AtlasWidth || AtlasTexture->GetSizeY() != AtlasHeight;
+		const bool bAtlasDirty = RemappedAtlasForceDirty[AtlasIndex] || (AtlasTexture->GetImportedSize() != FIntPoint(AtlasWidth, AtlasHeight));
 
 		// Propagate texture settings
 		AtlasTexture->CompressionSettings = Atlas->CompressionSettings;

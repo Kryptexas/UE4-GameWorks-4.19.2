@@ -146,8 +146,8 @@ void SPaperExtractSpritesDialog::Construct(const FArguments& InArgs, UTexture2D*
 	ExtractSpriteGridSettings = NewObject<UPaperExtractSpriteGridSettings>();
 	ExtractSpriteGridSettings->AddToRoot();
 	ExtractSpriteGridSettings->NamingTemplate = "Sprite_{0}";
-	ExtractSpriteGridSettings->CellWidth = InSourceTexture->GetSizeX();
-	ExtractSpriteGridSettings->CellHeight = InSourceTexture->GetSizeY();
+	ExtractSpriteGridSettings->CellWidth = InSourceTexture->GetImportedSize().X;
+	ExtractSpriteGridSettings->CellHeight = InSourceTexture->GetImportedSize().Y;
 
 	PreviewExtractedSprites();
 
@@ -340,8 +340,11 @@ void SPaperExtractSpritesDialog::PreviewExtractedSprites()
 		if (SourceTexture != nullptr)
 		{
 			int32 ExtractedRectIndex = ExtractSpriteGridSettings->NamingStartIndex;
-			int32 TextureWidth = SourceTexture->GetSizeX();
-			int32 TextureHeight = SourceTexture->GetSizeY();
+
+			const FIntPoint TextureSize(SourceTexture->GetImportedSize());
+			const int32 TextureWidth = TextureSize.X;
+			const int32 TextureHeight = TextureSize.Y;
+
 			int NumExtractedCellsY = 0;
 			for (int32 Y = ExtractSpriteGridSettings->MarginY; Y + ExtractSpriteGridSettings->CellHeight <= TextureHeight; Y += ExtractSpriteGridSettings->CellHeight + ExtractSpriteGridSettings->SpacingY)
 			{

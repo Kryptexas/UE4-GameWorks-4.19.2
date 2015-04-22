@@ -305,7 +305,8 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 
 					if (SourceTexture != LastSourceTexture)
 					{
-						InverseTextureSize = FVector2D(1.0f / SourceTexture->GetSizeX(), 1.0f / SourceTexture->GetSizeY());
+						const FVector2D TextureSize(SourceTexture->GetImportedSize());
+						InverseTextureSize = FVector2D(1.0f / TextureSize.X, 1.0f / TextureSize.Y);
 
 						if (TileInfo.TileSet != nullptr)
 						{

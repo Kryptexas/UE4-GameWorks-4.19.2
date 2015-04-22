@@ -22,8 +22,9 @@ int32 UPaperTileSet::GetTileCount() const
 	if (TileSheet != nullptr)
 	{
 		checkSlow((TileWidth > 0) && (TileHeight > 0));
-		const int32 TextureWidth = TileSheet->GetSizeX();
-		const int32 TextureHeight = TileSheet->GetSizeY();
+		const FIntPoint TextureSize = TileSheet->GetImportedSize();
+		const int32 TextureWidth = TextureSize.X;
+		const int32 TextureHeight = TextureSize.Y;
 
 		const int32 CellsX = (TextureWidth - (Margin * 2) + Spacing) / (TileWidth + Spacing);
 		const int32 CellsY = (TextureHeight - (Margin * 2) + Spacing) / (TileHeight + Spacing);
@@ -41,7 +42,7 @@ int32 UPaperTileSet::GetTileCountX() const
 	if (TileSheet != nullptr)
 	{
 		checkSlow(TileWidth > 0);
-		const int32 TextureWidth = TileSheet->GetSizeX();
+		const int32 TextureWidth = TileSheet->GetImportedSize().X;
 		const int32 CellsX = (TextureWidth - (Margin * 2) + Spacing) / (TileWidth + Spacing);
 		return CellsX;
 	}
@@ -56,7 +57,7 @@ int32 UPaperTileSet::GetTileCountY() const
 	if (TileSheet != nullptr)
 	{
 		checkSlow(TileHeight > 0);
-		const int32 TextureHeight = TileSheet->GetSizeY();
+		const int32 TextureHeight = TileSheet->GetImportedSize().Y;
 		const int32 CellsY = (TextureHeight - (Margin * 2) + Spacing) / (TileHeight + Spacing);
 		return CellsY;
 	}

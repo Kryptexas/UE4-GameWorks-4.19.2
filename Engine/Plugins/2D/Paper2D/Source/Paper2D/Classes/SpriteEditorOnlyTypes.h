@@ -268,7 +268,7 @@ struct FSpriteAssetInitParameters
 		Texture = InTexture;
 		if (Texture != nullptr)
 		{
-			Dimension = FVector2D(Texture->GetSizeX(), Texture->GetSizeY());
+			Dimension = FVector2D(Texture->GetImportedSize());
 			Offset = FVector2D::ZeroVector;
 		}
 		else

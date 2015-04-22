@@ -520,8 +520,8 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 		{
 			// If this is a brand new sprite that didn't have a texture set previously, act like we were factoried with the texture
 			SourceUV = FVector2D::ZeroVector;
-			SourceDimension = FVector2D(SourceTexture->GetSizeX(), SourceTexture->GetSizeY());
-			SourceTextureDimension = FVector2D(SourceTexture->GetSizeX(), SourceTexture->GetSizeY());
+			SourceDimension = FVector2D(SourceTexture->GetImportedSize());
+			SourceTextureDimension = SourceDimension;
 		}
 		bBothModified = true;
 	}
@@ -686,9 +686,9 @@ bool UPaperSprite::NeedRescaleSpriteData()
 	if (UTexture2D* Texture = GetSourceTexture())
 	{
 		Texture->ConditionalPostLoad();
-		FIntPoint TextureSize = Texture->GetImportedSize();
-		bool bTextureSizeIsZero = TextureSize.X == 0 || TextureSize.Y == 0;
-		return !SourceTextureDimension.IsZero() && !bTextureSizeIsZero && (TextureSize.X != SourceTextureDimension.X || TextureSize.Y != SourceTextureDimension.Y);
+		const FIntPoint TextureSize = Texture->GetImportedSize();
+		const bool bTextureSizeIsZero = (TextureSize.X == 0) || (TextureSize.Y == 0);
+		return !SourceTextureDimension.IsZero() && !bTextureSizeIsZero && ((TextureSize.X != SourceTextureDimension.X) || (TextureSize.Y != SourceTextureDimension.Y));
 	}
 
 	return false;
@@ -831,12 +831,7 @@ void UPaperSprite::RebuildRenderData()
 	if (EffectiveTexture)
 	{
 		EffectiveTexture->ConditionalPostLoad();
-		const int32 TextureWidth = EffectiveTexture->GetSizeX();
-		const int32 TextureHeight = EffectiveTexture->GetSizeY();
-		if (ensure((TextureWidth > 0) && (TextureHeight > 0)))
-		{
-			TextureSize = FVector2D(TextureWidth, TextureHeight);
-		}
+		TextureSize = FVector2D(EffectiveTexture->GetImportedSize());
 	}
 	const float InverseWidth = 1.0f / TextureSize.X;
 	const float InverseHeight = 1.0f / TextureSize.Y;
@@ -1784,6 +1779,11 @@ void UPaperSprite::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITORONLY_DATA
+	if (UTexture2D* EffectiveTexture = GetBakedTexture())
+	{
+		EffectiveTexture->ConditionalPostLoad();
+	}
+	
 	const int32 PaperVer = GetLinkerCustomVersion(FPaperCustomVersion::GUID);
 
 	bool bRebuildCollision = false;

@@ -1125,8 +1125,9 @@ bool FSpriteEditorViewportClient::ConvertMarqueeToSourceTextureSpace(/*out*/FVec
 			Swap(TextureSpaceStartPos.Y, TextureSpaceEndPos.Y);
 		}
 
-		const int32 SourceTextureWidth = SpriteSourceTexture->GetSizeX();
-		const int32 SourceTextureHeight = SpriteSourceTexture->GetSizeY();
+		const FIntPoint SourceTextureSize(SpriteSourceTexture->GetImportedSize());
+		const int32 SourceTextureWidth = SourceTextureSize.X;
+		const int32 SourceTextureHeight = SourceTextureSize.Y;
 		TextureSpaceStartPos.X = FMath::Clamp((int)TextureSpaceStartPos.X, 0, SourceTextureWidth - 1);
 		TextureSpaceStartPos.Y = FMath::Clamp((int)TextureSpaceStartPos.Y, 0, SourceTextureHeight - 1);
 		TextureSpaceEndPos.X = FMath::Clamp((int)TextureSpaceEndPos.X, 0, SourceTextureWidth - 1);
