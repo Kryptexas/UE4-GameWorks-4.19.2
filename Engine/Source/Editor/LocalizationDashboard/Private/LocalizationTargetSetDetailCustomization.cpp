@@ -197,7 +197,6 @@ void FLocalizationTargetSetDetailCustomization::RebuildTargetsList()
 			TargetObjectsPropertyHandle->AccessRawData(RawData);
 			void* RawDatum = RawData.Top();
 			TArray<ULocalizationTarget*>& TargetObjectsArray = *(reinterpret_cast< TArray<ULocalizationTarget*>* >(RawDatum));
-
 			FString NewTargetName = "NewTarget";
 			auto TargetNameIsIdentical = [&](ULocalizationTarget* Target) -> bool
 			{
@@ -210,7 +209,8 @@ void FLocalizationTargetSetDetailCustomization::RebuildTargetsList()
 			}
 
 			NewTarget->Settings.Name = NewTargetName;
-			NewTarget->Settings.NativeCultureStatistics.CultureName = FInternationalization::Get().GetCurrentCulture()->GetName();
+			const int32 NativeCultureIndex = NewTarget->Settings.SupportedCulturesStatistics.Add( FCultureStatistics(FInternationalization::Get().GetCurrentCulture()->GetName()) );
+			NewTarget->Settings.NativeCultureIndex = NativeCultureIndex;
 
 			const UObject* SetValue = NewTarget;
 			TargetObjectPropertyHandle->SetValue(SetValue);

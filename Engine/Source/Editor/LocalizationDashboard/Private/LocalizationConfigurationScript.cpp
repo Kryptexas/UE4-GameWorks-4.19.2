@@ -130,8 +130,7 @@ namespace LocalizationConfigurationScript
 			ConfigSection.Add( TEXT("ManifestName"), FPaths::GetCleanFilename(GetManifestPath(Target)) );
 			ConfigSection.Add( TEXT("ArchiveName"), FPaths::GetCleanFilename(GetArchivePath(Target, FString())) );
 
-			ConfigSection.Add( TEXT("SourceCulture"), Target->Settings.NativeCultureStatistics.CultureName );
-			ConfigSection.Add( TEXT("CulturesToGenerate"), Target->Settings.NativeCultureStatistics.CultureName );
+			ConfigSection.Add( TEXT("SourceCulture"), Target->Settings.SupportedCulturesStatistics[Target->Settings.NativeCultureIndex].CultureName );
 			for (const FCultureStatistics& CultureStatistics : Target->Settings.SupportedCulturesStatistics)
 			{
 				ConfigSection.Add( TEXT("CulturesToGenerate"), CultureStatistics.CultureName );
@@ -406,28 +405,21 @@ namespace LocalizationConfigurationScript
 			}
 			ConfigSection.Add( TEXT("DestinationPath"), DestinationPath );
 
-			TArray<const FCultureStatistics*> AllCultureStatistics;
-			AllCultureStatistics.Add(&Target->Settings.NativeCultureStatistics);
-			for (const FCultureStatistics& SupportedCultureStatistics : Target->Settings.SupportedCulturesStatistics)
-			{
-				AllCultureStatistics.Add(&SupportedCultureStatistics);
-			}
-
 			const auto& AddCultureToGenerate = [&](const int32 Index)
 			{
-				ConfigSection.Add( TEXT("CulturesToGenerate"), AllCultureStatistics[Index]->CultureName );
+				ConfigSection.Add( TEXT("CulturesToGenerate"), Target->Settings.SupportedCulturesStatistics[Index].CultureName );
 			};
 
 			// Export for a specific culture.
 			if (CultureName.IsSet())
 			{
-				const int32 CultureIndex = AllCultureStatistics.IndexOfByPredicate([CultureName](const FCultureStatistics* Culture) { return Culture->CultureName == CultureName.GetValue(); });
+				const int32 CultureIndex = Target->Settings.SupportedCulturesStatistics.IndexOfByPredicate([CultureName](const FCultureStatistics& Culture) { return Culture.CultureName == CultureName.GetValue(); });
 				AddCultureToGenerate(CultureIndex);
 			}
 			// Export for all cultures.
 			else
 			{
-				for (int32 CultureIndex = 0; CultureIndex < AllCultureStatistics.Num(); ++CultureIndex)
+				for (int32 CultureIndex = 0; CultureIndex < Target->Settings.SupportedCulturesStatistics.Num(); ++CultureIndex)
 				{
 					AddCultureToGenerate(CultureIndex);
 				}
@@ -537,16 +529,9 @@ namespace LocalizationConfigurationScript
 			ConfigSection.Add( TEXT("ManifestName"), FString::Printf( TEXT("%s.%s"), *Target->Settings.Name, TEXT("manifest") ) );
 			ConfigSection.Add( TEXT("ResourceName"), FString::Printf( TEXT("%s.%s"), *Target->Settings.Name, TEXT("locres") ) );
 
-			TArray<const FCultureStatistics*> AllCultureStatistics;
-			AllCultureStatistics.Add(&Target->Settings.NativeCultureStatistics);
-			for (const FCultureStatistics& SupportedCultureStatistics : Target->Settings.SupportedCulturesStatistics)
+			for (const FCultureStatistics& CultureStatistics : Target->Settings.SupportedCulturesStatistics)
 			{
-				AllCultureStatistics.Add(&SupportedCultureStatistics);
-			}
-
-			for (const FCultureStatistics* CultureStatistics : AllCultureStatistics)
-			{
-				ConfigSection.Add( TEXT("CulturesToGenerate"), CultureStatistics->CultureName );
+				ConfigSection.Add( TEXT("CulturesToGenerate"), CultureStatistics.CultureName );
 			}
 		}
 

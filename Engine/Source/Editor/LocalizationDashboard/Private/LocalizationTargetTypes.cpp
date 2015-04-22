@@ -219,12 +219,6 @@ bool FGatherTextFromMetaDataConfiguration::Validate(const FString& RootDirectory
 	return false;
 }
 
-FLocalizationTargetSettings::FLocalizationTargetSettings()
-	: Guid(FGuid::NewGuid())
-	, ConflictStatus(ELocalizationTargetConflictStatus::Unknown)
-{
-}
-
 namespace
 {
 	class FWordCountCSVParser
@@ -236,7 +230,10 @@ namespace
 		{
 			// Load CSV file to string.
 			FString CSVString;
-			FFileHelper::LoadFileToString(CSVString, *CSVFilePath);
+			if (!FFileHelper::LoadFileToString(CSVString, *CSVFilePath))
+			{
+				return false;
+			}
 
 			// Parse CSV file string.
 			FCsvParser CSVParser(CSVString);
@@ -256,12 +253,6 @@ namespace
 			if ( !Instance.ParseWordCountRow(CSVRows.Top(), WordCounts) )
 			{
 				return false;
-			}
-
-			uint32* NativeWordCount = WordCounts.Find(Target.NativeCultureStatistics.CultureName);
-			if (NativeWordCount)
-			{
-				Target.NativeCultureStatistics.WordCount = *NativeWordCount;
 			}
 
 			for (FCultureStatistics& SupportedCultureStatistics : Target.SupportedCulturesStatistics)
@@ -344,12 +335,6 @@ namespace
 				return false;
 			}
 
-			// Parse native culture word count.
-			{
-				const uint32 WordCount = static_cast<uint32>( FCString::Atoi(WordCountRow[1]) );
-				OutCultureWordCounts.Add(Target.NativeCultureStatistics.CultureName, WordCount);
-			}
-
 			// Parse supported culture word counts.
 			for (int32 j = MandatoryColumnNames.Num(); j < WordCountRow.Num(); ++j)
 			{
@@ -389,7 +374,15 @@ bool ULocalizationTarget::IsMemberOfEngineTargetSet() const
 bool ULocalizationTarget::UpdateWordCountsFromCSV()
 {
 	const FString CSVFilePath = LocalizationConfigurationScript::GetWordCountCSVPath(this);
-	return FWordCountCSVParser::Execute(Settings, CSVFilePath);
+	const bool Succeeded = FWordCountCSVParser::Execute(Settings, CSVFilePath);
+	if (!Succeeded)
+	{
+		for (FCultureStatistics& CultureStatistics : Settings.SupportedCulturesStatistics)
+		{
+			CultureStatistics.WordCount = 0;
+		}
+	}
+	return Succeeded;
 }
 
 void ULocalizationTarget::UpdateStatusFromConflictReport()
@@ -476,18 +469,11 @@ bool ULocalizationTarget::RenameTargetAndFiles(const FString& NewName)
 		NamedPaths.Add(LocalizationConfigurationScript::GetWordCountCSVPath(this));
 		NamedPaths.Add(LocalizationConfigurationScript::GetConflictReportPath(this));
 
-		TArray<const FCultureStatistics*> Cultures;
-		Cultures.Add(&Settings.NativeCultureStatistics);
 		for (const FCultureStatistics& Culture : Settings.SupportedCulturesStatistics)
 		{
-			Cultures.Add(&Culture);
-		}
-
-		for (const FCultureStatistics* Culture : Cultures)
-		{
-			NamedPaths.Add(LocalizationConfigurationScript::GetArchivePath(this, Culture->CultureName));
-			NamedPaths.Add(LocalizationConfigurationScript::GetDefaultPOPath(this, Culture->CultureName));
-			NamedPaths.Add(LocalizationConfigurationScript::GetLocResPath(this, Culture->CultureName));
+			NamedPaths.Add(LocalizationConfigurationScript::GetArchivePath(this, Culture.CultureName));
+			NamedPaths.Add(LocalizationConfigurationScript::GetDefaultPOPath(this, Culture.CultureName));
+			NamedPaths.Add(LocalizationConfigurationScript::GetLocResPath(this, Culture.CultureName));
 		}
 
 		NamedPaths.Add(LocalizationConfigurationScript::GetDataDirectory(this));

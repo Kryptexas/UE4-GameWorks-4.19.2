@@ -21,33 +21,19 @@ TSharedRef<SWidget> SLocalizationTargetEditorCultureRow::GenerateWidgetForColumn
 {
 	TSharedPtr<SWidget> Return;
 
-	if (ColumnName == "Culture")
+	if (ColumnName == "IsNative")
 	{
-		const auto& NativeCultureIconVisibilityLambda = [this]()
-		{
-			return IsNativeCultureForTarget() ? EVisibility::Visible : EVisibility::Hidden;
-		};
+		Return = SNew(SCheckBox)
+			.Style(&FCoreStyle::Get().GetWidgetStyle< FCheckBoxStyle >("RadioButton"))
+			.IsChecked_Lambda([this](){return IsNativeCultureForTarget() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;})
+			.OnCheckStateChanged(this, &SLocalizationTargetEditorCultureRow::OnNativeCultureCheckStateChanged);
+	}
+	else if (ColumnName == "Culture")
+	{
 		// Culture Name
-		return SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.HAlign(HAlign_Center)
-			.VAlign(VAlign_Center)
-			.Padding(4.0f)
-			[
-				SNew(SImage)
-				.Visibility_Lambda(NativeCultureIconVisibilityLambda)
-				.Image(FEditorStyle::GetBrush("LocalizationTargetEditor.NativeCulture"))
-			]
-		+SHorizontalBox::Slot()
-			.AutoWidth()
-			.HAlign(HAlign_Left)
-			.VAlign(VAlign_Center)
-			[
-				SNew(STextBlock)
-				.Text(this, &SLocalizationTargetEditorCultureRow::GetCultureDisplayName)
-				.ToolTipText(this, &SLocalizationTargetEditorCultureRow::GetCultureName)
-			];
+		Return = SNew(STextBlock)
+			.Text(this, &SLocalizationTargetEditorCultureRow::GetCultureDisplayName)
+			.ToolTipText(this, &SLocalizationTargetEditorCultureRow::GetCultureName);
 	}
 	else if(ColumnName == "WordCount")
 	{
@@ -174,14 +160,7 @@ FCultureStatistics* SLocalizationTargetEditorCultureRow::GetCultureStatistics() 
 	FLocalizationTargetSettings* const TargetSettings = GetTargetSettings();
 	if (TargetSettings)
 	{
-		if (CultureIndex == INDEX_NONE)
-		{
-			return &TargetSettings->NativeCultureStatistics;
-		}
-		else
-		{
-			return &TargetSettings->SupportedCulturesStatistics[CultureIndex];
-		}
+		return &TargetSettings->SupportedCulturesStatistics[CultureIndex];
 	}
 	return nullptr;
 }
@@ -199,7 +178,42 @@ FCulturePtr SLocalizationTargetEditorCultureRow::GetCulture() const
 bool SLocalizationTargetEditorCultureRow::IsNativeCultureForTarget() const
 {
 	FLocalizationTargetSettings* const TargetSettings = GetTargetSettings();
-	return &(TargetSettings->NativeCultureStatistics) == GetCultureStatistics();
+	return TargetSettings->SupportedCulturesStatistics.IsValidIndex(TargetSettings->NativeCultureIndex) && &(TargetSettings->SupportedCulturesStatistics[TargetSettings->NativeCultureIndex]) == GetCultureStatistics();
+}
+
+void SLocalizationTargetEditorCultureRow::OnNativeCultureCheckStateChanged( const ECheckBoxState CheckState )
+{
+	FLocalizationTargetSettings* const TargetSettings = GetTargetSettings();
+	
+	if (TargetSettings && TargetSettingsPropertyHandle.IsValid() && TargetSettingsPropertyHandle->IsValidHandle() && CheckState == ECheckBoxState::Checked)
+	{
+		const FText FormatPattern = LOCTEXT("ChangingNativeCultureWarningMessage", "This action can not be undone and all translations be permanently lost. Are you sure you would like to set the native culture to {CultureName}?");
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("CultureName"), GetCultureDisplayName());
+		const FText MessageText = FText::Format(FormatPattern, Arguments);
+		const FText TitleText = LOCTEXT("ChangingNativeCultureWarningDialogTitle", "Change Native Culture");
+
+		switch(FMessageDialog::Open(EAppMsgType::YesNo, MessageText, &TitleText))
+		{
+		case EAppReturnType::Yes:
+			{
+				ULocalizationTarget* const LocalizationTarget = GetTarget();
+				if (LocalizationTarget)
+				{
+					// Delete data files.
+					const FString DataDirectory = LocalizationConfigurationScript::GetDataDirectory(LocalizationTarget);
+					IFileManager::Get().DeleteDirectory(*DataDirectory, false, true);
+				}
+
+				UpdateTargetFromReports();
+
+				TargetSettingsPropertyHandle->NotifyPreChange();
+				TargetSettings->NativeCultureIndex = CultureIndex;
+				TargetSettingsPropertyHandle->NotifyPostChange();
+			}
+			break;
+		}
+	}
 }
 
 uint32 SLocalizationTargetEditorCultureRow::GetWordCount() const
@@ -215,7 +229,7 @@ uint32 SLocalizationTargetEditorCultureRow::GetWordCount() const
 uint32 SLocalizationTargetEditorCultureRow::GetNativeWordCount() const
 {
 	FLocalizationTargetSettings* const TargetSettings = GetTargetSettings();
-	return TargetSettings ? TargetSettings->NativeCultureStatistics.WordCount : 0;
+	return TargetSettings && TargetSettings->SupportedCulturesStatistics.IsValidIndex(TargetSettings->NativeCultureIndex) ? TargetSettings->SupportedCulturesStatistics[TargetSettings->NativeCultureIndex].WordCount : 0;
 }
 
 FText SLocalizationTargetEditorCultureRow::GetCultureDisplayName() const
@@ -255,16 +269,6 @@ void SLocalizationTargetEditorCultureRow::UpdateTargetFromReports()
 
 		if (TargetSettingsPropertyHandle.IsValid() && TargetSettingsPropertyHandle->IsValidHandle())
 		{
-			const TSharedPtr<IPropertyHandle> NativeCultureStatisticsPropertyHandle = TargetSettingsPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FLocalizationTargetSettings, NativeCultureStatistics));
-			if (NativeCultureStatisticsPropertyHandle.IsValid() && NativeCultureStatisticsPropertyHandle->IsValidHandle())
-			{
-				const TSharedPtr<IPropertyHandle> WordCountPropertyHandle = NativeCultureStatisticsPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FCultureStatistics, WordCount));
-				if (WordCountPropertyHandle.IsValid() && WordCountPropertyHandle->IsValidHandle())
-				{
-					WordCountPropertyHandles.Add(WordCountPropertyHandle);
-				}
-			}
-
 			const TSharedPtr<IPropertyHandle> SupportedCulturesStatisticsPropertyHandle = TargetSettingsPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FLocalizationTargetSettings, SupportedCulturesStatistics));
 			if (SupportedCulturesStatisticsPropertyHandle.IsValid() && SupportedCulturesStatisticsPropertyHandle->IsValidHandle())
 			{

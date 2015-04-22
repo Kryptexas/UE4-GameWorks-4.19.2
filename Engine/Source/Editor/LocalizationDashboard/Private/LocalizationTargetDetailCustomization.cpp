@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LocalizationDashboardPrivatePCH.h"
 #include "LocalizationTargetDetailCustomization.h"
@@ -169,48 +169,9 @@ void FLocalizationTargetDetailCustomization::CustomizeDetails(IDetailLayoutBuild
 		RebuildTargetDependenciesBox();
 	});
 
-	PropertyCustomizationMap.Add(GET_MEMBER_NAME_CHECKED(FLocalizationTargetSettings, NativeCultureStatistics), [&](const TSharedRef<IPropertyHandle>& MemberPropertyHandle, IDetailCategoryBuilder& DetailCategoryBuilder)
+	PropertyCustomizationMap.Add(GET_MEMBER_NAME_CHECKED(FLocalizationTargetSettings, NativeCultureIndex), [&](const TSharedRef<IPropertyHandle>& MemberPropertyHandle, IDetailCategoryBuilder& DetailCategoryBuilder)
 	{
-		NativeCultureStatisticsPropertyHandle = MemberPropertyHandle;
-		NativeCultureNamePropertyHandle = NativeCultureStatisticsPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FCultureStatistics, CultureName));
-
-		if (NativeCultureNamePropertyHandle.IsValid() && NativeCultureNamePropertyHandle->IsValidHandle())
-		{
-			NativeCultureNamePropertyHandle->MarkHiddenByCustomization();
-			FDetailWidgetRow& NativeCultureRow = DetailCategoryBuilder.AddCustomRow( NativeCultureNamePropertyHandle->GetPropertyDisplayName() );
-
-			FString NativeCultureName;
-			NativeCultureNamePropertyHandle->GetValue(NativeCultureName);
-			FCulturePtr NativeCulture = FInternationalization::Get().GetCulture(NativeCultureName);
-
-			NativeCultureRow.NameContent()
-				[
-					NativeCultureNamePropertyHandle->CreatePropertyNameWidget(LOCTEXT("NativeCultureNameLabel", "Native Culture"))
-				];
-
-			NativeCultureRow.ValueContent()
-				[
-					SAssignNew(NativeCultureComboButton, SComboButton)
-					.ButtonContent()
-					[
-						SNew(STextBlock)
-						.Text(this, &FLocalizationTargetDetailCustomization::GetNativeCultureDisplayName)
-						.ToolTipText(this, &FLocalizationTargetDetailCustomization::GetNativeCultureName)
-					]
-					.HasDownArrow(true)
-						.MenuContent()
-						[
-							SNew(SBox)
-							.MaxDesiredHeight(400.0f)
-							.MaxDesiredWidth(300.0f)
-							[
-								SNew(SCulturePicker)
-								.OnSelectionChanged(this, &FLocalizationTargetDetailCustomization::OnNativeCultureSelected)
-								.InitialSelection(NativeCulture)
-							]
-						]
-				];
-		}
+		NativeCultureIndexPropertyHandle = MemberPropertyHandle;
 	});
 
 	PropertyCustomizationMap.Add(GET_MEMBER_NAME_CHECKED(FLocalizationTargetSettings, SupportedCulturesStatistics), [&](const TSharedRef<IPropertyHandle>& MemberPropertyHandle, IDetailCategoryBuilder& DetailCategoryBuilder)
@@ -260,21 +221,30 @@ void FLocalizationTargetDetailCustomization::CustomizeDetails(IDetailLayoutBuild
 						.HeaderRow
 						(
 						SNew(SHeaderRow)
+						+SHeaderRow::Column("IsNative")
+						.DefaultLabel( NSLOCTEXT("LocalizationCulture", "IsNativeColumnLabel", "Native"))
+						.HAlignHeader(HAlign_Center)
+						.HAlignCell(HAlign_Center)
+						.VAlignCell(VAlign_Center)
+						.FillWidth(0.1f)
 						+SHeaderRow::Column("Culture")
 						.DefaultLabel( NSLOCTEXT("LocalizationCulture", "CultureColumnLabel", "Culture"))
 						.HAlignHeader(HAlign_Fill)
 						.HAlignCell(HAlign_Fill)
 						.VAlignCell(VAlign_Center)
+						.FillWidth(0.2f)
 						+SHeaderRow::Column("WordCount")
 						.DefaultLabel( NSLOCTEXT("LocalizationCulture", "WordCountColumnLabel", "Word Count"))
 						.HAlignHeader(HAlign_Center)
 						.HAlignCell(HAlign_Fill)
 						.VAlignCell(VAlign_Center)
+						.FillWidth(0.4f)
 						+SHeaderRow::Column("Actions")
 						.DefaultLabel( NSLOCTEXT("LocalizationCulture", "ActionsColumnLabel", "Actions"))
 						.HAlignHeader(HAlign_Center)
 						.HAlignCell(HAlign_Center)
 						.VAlignCell(VAlign_Center)
+						.FillWidth(0.3f)
 						)
 					]
 				+SVerticalBox::Slot()
@@ -681,53 +651,6 @@ ECheckBoxState FLocalizationTargetDetailCustomization::IsTargetDependencyChecked
 	return LocalizationTarget->Settings.TargetDependencies.Contains(OtherLocalizationTarget->Settings.Guid) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-FText FLocalizationTargetDetailCustomization::GetNativeCultureName() const
-{
-	FCulturePtr NativeCulture;
-
-	if(NativeCultureNamePropertyHandle.IsValid() && NativeCultureNamePropertyHandle->IsValidHandle())
-	{
-		FString Value;
-		NativeCultureNamePropertyHandle->GetValue(Value);
-		NativeCulture = FInternationalization::Get().GetCulture(Value);
-	}
-
-	return NativeCulture.IsValid() ? FText::FromString(NativeCulture->GetName()) : FText::GetEmpty();
-}
-
-FText FLocalizationTargetDetailCustomization::GetNativeCultureDisplayName() const
-{
-	FCulturePtr NativeCulture;
-
-	if(NativeCultureNamePropertyHandle.IsValid() && NativeCultureNamePropertyHandle->IsValidHandle())
-	{
-		FString Value;
-		NativeCultureNamePropertyHandle->GetValue(Value);
-		NativeCulture = FInternationalization::Get().GetCulture(Value);
-	}
-
-	return NativeCulture.IsValid() ? FText::FromString(NativeCulture->GetDisplayName()) : FText::GetEmpty();
-}
-
-void FLocalizationTargetDetailCustomization::OnNativeCultureSelected(FCulturePtr SelectedCulture, ESelectInfo::Type SelectInfo)
-{
-	if(NativeCultureNamePropertyHandle.IsValid() && NativeCultureNamePropertyHandle->IsValidHandle())
-	{
-		NativeCultureNamePropertyHandle->SetValue(SelectedCulture->GetName());
-	}
-	if (NativeCultureComboButton.IsValid())
-	{
-		NativeCultureComboButton->SetIsOpen(false);
-	}
-
-	// TODO:	If the selected culture is an existing supported culture:
-	//			copy that supported culture's statistics to the native culture statistics
-	//			remove the supported culture's statistics
-
-	// TODO: Warn about this action invalidating all word counts and, realistically, invalidating all existing translations.
-	// Possibly offer an option to delete all archives?
-}
-
 void FLocalizationTargetDetailCustomization::Gather()
 {
 	if (LocalizationTarget.IsValid())
@@ -856,16 +779,6 @@ void FLocalizationTargetDetailCustomization::UpdateTargetFromReports()
 
 		if (TargetSettingsPropertyHandle.IsValid() && TargetSettingsPropertyHandle->IsValidHandle())
 		{
-			const TSharedPtr<IPropertyHandle> NativeCultureStatisticsPropHandle = TargetSettingsPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FLocalizationTargetSettings, NativeCultureStatistics));
-			if (NativeCultureStatisticsPropHandle.IsValid() && NativeCultureStatisticsPropHandle->IsValidHandle())
-			{
-				const TSharedPtr<IPropertyHandle> WordCountPropertyHandle = NativeCultureStatisticsPropHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FCultureStatistics, WordCount));
-				if (WordCountPropertyHandle.IsValid() && WordCountPropertyHandle->IsValidHandle())
-				{
-					WordCountPropertyHandles.Add(WordCountPropertyHandle);
-				}
-			}
-
 			const TSharedPtr<IPropertyHandle> SupportedCulturesStatisticsPropHandle = TargetSettingsPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FLocalizationTargetSettings, SupportedCulturesStatistics));
 			if (SupportedCulturesStatisticsPropHandle.IsValid() && SupportedCulturesStatisticsPropHandle->IsValidHandle())
 			{
@@ -901,7 +814,6 @@ void FLocalizationTargetDetailCustomization::UpdateTargetFromReports()
 
 void FLocalizationTargetDetailCustomization::BuildListedCulturesList()
 {
-	ListedCultureStatisticProperties.AddUnique(NativeCultureStatisticsPropertyHandle);
 	const TSharedPtr<IPropertyHandleArray> SupportedCulturesStatisticsArrayPropertyHandle = SupportedCulturesStatisticsPropertyHandle->AsArray();
 	if (SupportedCulturesStatisticsArrayPropertyHandle.IsValid())
 	{
@@ -913,6 +825,20 @@ void FLocalizationTargetDetailCustomization::BuildListedCulturesList()
 			ListedCultureStatisticProperties.AddUnique(CultureStatisticsProperty);
 		}
 	}
+
+	const auto& CultureSorter = [](const TSharedPtr<IPropertyHandle>& Left, const TSharedPtr<IPropertyHandle>& Right) -> bool
+	{
+		const TSharedPtr<IPropertyHandle> LeftNameHandle = Left->GetChildHandle(GET_MEMBER_NAME_CHECKED(FCultureStatistics, CultureName));
+		const TSharedPtr<IPropertyHandle> RightNameHandle = Right->GetChildHandle(GET_MEMBER_NAME_CHECKED(FCultureStatistics, CultureName));
+
+		FString LeftName;
+		LeftNameHandle->GetValue(LeftName);
+		FString RightName;
+		RightNameHandle->GetValue(RightName);
+
+		return LeftName < RightName;
+	};
+	ListedCultureStatisticProperties.Sort(CultureSorter);
 }
 
 void FLocalizationTargetDetailCustomization::RebuildListedCulturesList()
@@ -954,18 +880,6 @@ TSharedRef<ITableRow> FLocalizationTargetDetailCustomization::OnGenerateCultureR
 
 bool FLocalizationTargetDetailCustomization::IsCultureSelectableAsSupported(FCulturePtr Culture)
 {
-	// Can't select the native culture.
-	if (NativeCultureNamePropertyHandle.IsValid() && NativeCultureNamePropertyHandle->IsValidHandle())
-	{
-		FString NativeCultureName;
-		NativeCultureNamePropertyHandle->GetValue(NativeCultureName);
-		const FCulturePtr NativeCulture = FInternationalization::Get().GetCulture(NativeCultureName);
-		if (NativeCulture == Culture)
-		{
-			return false;
-		}
-	}
-
 	auto Is = [&](const TSharedPtr<IPropertyHandle>& SupportedCultureStatisticProperty)
 	{
 		// Can't select existing supported cultures.
@@ -995,6 +909,17 @@ void FLocalizationTargetDetailCustomization::OnNewSupportedCultureSelected(FCult
 		SupportedCulturesStatisticsPropertyHandle->AsArray()->AddItem();
 		SelectedNewCulture = SelectedCulture;
 		NewEntryIndexToBeInitialized = NewElementIndex;
+
+		if (NativeCultureIndexPropertyHandle.IsValid() && NativeCultureIndexPropertyHandle->IsValidHandle())
+		{
+			int32 NativeCultureIndex;
+			NativeCultureIndexPropertyHandle->GetValue(NativeCultureIndex);
+			if (NativeCultureIndex == INDEX_NONE)
+			{
+				NativeCultureIndex = NewElementIndex;
+				NativeCultureIndexPropertyHandle->SetValue(NativeCultureIndex);
+			}
+		}
 
 		// Refresh UI.
 		if (SupportedCulturePicker.IsValid())

@@ -207,10 +207,9 @@ FText SLocalizationDashboardTargetRow::GetCulturesText() const
 	if (TargetSettings)
 	{
 		TArray<FString> OrderedCultureNames;
-		OrderedCultureNames.Add(TargetSettings->NativeCultureStatistics.CultureName);
-		for (auto& ForeignCultureStatistics : TargetSettings->SupportedCulturesStatistics)
+		for (const auto& CultureStatistics : TargetSettings->SupportedCulturesStatistics)
 		{
-			OrderedCultureNames.Add(ForeignCultureStatistics.CultureName);
+			OrderedCultureNames.Add(CultureStatistics.CultureName);
 		}
 
 		FString Result;
@@ -239,13 +238,13 @@ FText SLocalizationDashboardTargetRow::GetCulturesText() const
 uint32 SLocalizationDashboardTargetRow::GetWordCount() const
 {
 	FLocalizationTargetSettings* const TargetSettings = GetTargetSettings();
-	return TargetSettings ? TargetSettings->NativeCultureStatistics.WordCount : 0;
+	return TargetSettings && TargetSettings->SupportedCulturesStatistics.IsValidIndex(TargetSettings->NativeCultureIndex) ? TargetSettings->SupportedCulturesStatistics[TargetSettings->NativeCultureIndex].WordCount : 0;
 }
 
 uint32 SLocalizationDashboardTargetRow::GetNativeWordCount() const
 {
 	FLocalizationTargetSettings* const TargetSettings = GetTargetSettings();
-	return TargetSettings ? TargetSettings->NativeCultureStatistics.WordCount : 0;
+	return TargetSettings && TargetSettings->SupportedCulturesStatistics.IsValidIndex(TargetSettings->NativeCultureIndex) ? TargetSettings->SupportedCulturesStatistics[TargetSettings->NativeCultureIndex].WordCount : 0;
 }
 
 FText SLocalizationDashboardTargetRow::GetWordCountText() const
@@ -458,15 +457,12 @@ void SLocalizationDashboardTargetRow::Delete()
 		ULocalizationTarget* const LocalizationTarget = GetTarget();
 		if (LocalizationTarget)
 		{
-			FText TitleText;
-			FText MessageText;
-
 			// Setup dialog for deleting target.
 			const FText FormatPattern = NSLOCTEXT("LocalizationDashboard", "DeleteTargetConfirmationDialogMessage", "This action can not be undone and data will be permanently lost. Are you sure you would like to delete {TargetName}?");
 			FFormatNamedArguments Arguments;
 			Arguments.Add(TEXT("TargetName"), FText::FromString(LocalizationTarget->Settings.Name));
-			MessageText = FText::Format(FormatPattern, Arguments);
-			TitleText = NSLOCTEXT("LocalizationDashboard", "DeleteTargetConfirmationDialogTitle", "Confirm Target Deletion");
+			const FText MessageText = FText::Format(FormatPattern, Arguments);
+			const FText TitleText = NSLOCTEXT("LocalizationDashboard", "DeleteTargetConfirmationDialogTitle", "Confirm Target Deletion");
 
 			switch(FMessageDialog::Open(EAppMsgType::OkCancel, MessageText, &TitleText))
 			{

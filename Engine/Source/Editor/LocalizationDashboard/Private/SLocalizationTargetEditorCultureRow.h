@@ -19,6 +19,7 @@ private:
 	FCulturePtr GetCulture() const;
 	bool IsNativeCultureForTarget() const;
 
+	void OnNativeCultureCheckStateChanged(const ECheckBoxState CheckState);
 	uint32 GetWordCount() const;
 	uint32 GetNativeWordCount() const;
 

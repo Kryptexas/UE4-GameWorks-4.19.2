@@ -208,6 +208,13 @@ struct FCultureStatistics
 	{
 	}
 
+	FCultureStatistics(const FString& InCultureName)
+		: CultureName(InCultureName)
+		, WordCount(0)
+	{
+	}
+
+
 	/* The ISO name for this culture. */
 	UPROPERTY(config, EditAnywhere, Category = "Culture")
 	FString CultureName;
@@ -233,7 +240,12 @@ struct FLocalizationTargetSettings
 {
 	GENERATED_USTRUCT_BODY()
 
-	FLocalizationTargetSettings();
+	FLocalizationTargetSettings::FLocalizationTargetSettings()
+		: Guid(FGuid::NewGuid())
+		, ConflictStatus(ELocalizationTargetConflictStatus::Unknown)
+		, NativeCultureIndex(INDEX_NONE)
+	{
+	}
 
 	/* Unique name for the target. */
 	UPROPERTY(config, EditAnywhere, Category = "Target")
@@ -270,9 +282,9 @@ struct FLocalizationTargetSettings
 	UPROPERTY(config, EditAnywhere, Category = "Gather")
 	FGatherTextFromMetaDataConfiguration GatherFromMetaData;
 
-	/* The culture in which the source text is written in. */
+	/* The index of the native culture among the supported cultures. */
 	UPROPERTY(config, EditAnywhere, Category = "Cultures")
-	FCultureStatistics NativeCultureStatistics;
+	int32 NativeCultureIndex;
 
 	/* Cultures for which the source text is being localized for.*/
 	UPROPERTY(config, EditAnywhere, Category = "Cultures")
