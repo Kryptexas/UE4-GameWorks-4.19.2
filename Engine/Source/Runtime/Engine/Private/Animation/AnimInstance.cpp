@@ -1480,6 +1480,9 @@ void UAnimInstance::GetSlotWeight(FName const & SlotNodeName, float& out_SlotNod
 
 void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FA2Pose & SourcePose, FA2Pose & BlendedPose, float SlotNodeWeight)
 {
+	//Accessing MontageInstances from this function is not safe (as this can be called during Parallel Anim Evaluation!
+	//Any montage data you need to add should be part of MontageEvaluationData
+
 	SCOPE_CYCLE_COUNTER(STAT_AnimNativeEvaluatePoses);
 	if (SlotNodeWeight <= ZERO_ANIMWEIGHT_THRESH)
 	{
@@ -1494,32 +1497,30 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FA2Pose & SourceP
 	// first pass we go through collect weights and valid montages. 
 	float TotalWeight = 0.f;
 	float NonAdditiveWeight = 0.f;
-	for (auto Iter = MontageInstances.CreateConstIterator(); Iter; ++Iter)
+	for (const FMontageEvaluationState& EvalState : MontageEvaluationData)
 	{
-		FAnimMontageInstance * MontageInstance = (*Iter);
-		if (MontageInstance->IsValid() && MontageInstance->Montage->IsValidSlot(SlotNodeName) && (MontageInstance->Weight > ZERO_ANIMWEIGHT_THRESH))
+		if (EvalState.Montage->IsValidSlot(SlotNodeName))
 		{
-			FAnimTrack const * const AnimTrack = MontageInstance->Montage->GetAnimationData(SlotNodeName);
+			FAnimTrack const * const AnimTrack = EvalState.Montage->GetAnimationData(SlotNodeName);
 
 			// Find out additive type for pose.
 			EAdditiveAnimationType const AdditiveAnimType = AnimTrack->IsAdditive() 
 				? (AnimTrack->IsRotationOffsetAdditive() ? AAT_RotationOffsetMeshSpace : AAT_LocalSpaceBase)
 				: AAT_None;
 
-			FSlotEvaluationPose NewPose(MontageInstance, MontageInstance->Weight, AdditiveAnimType);
+			FSlotEvaluationPose NewPose(EvalState.MontageWeight, AdditiveAnimType);
 			
 			// Bone array has to be allocated prior to calling GetPoseFromAnimTrack
 			NewPose.Pose.Bones.AddUninitialized(RequiredBones.GetNumBones());
 
 			// Extract pose from Track
-			UAnimMontage const * const MontageAsset = MontageInstance->Montage;
-			FAnimExtractContext ExtractionContext(MontageInstance->GetPosition(), MontageInstance->Montage->HasRootMotion() && RootMotionMode != ERootMotionMode::NoRootMotionExtraction);
+			FAnimExtractContext ExtractionContext(EvalState.MontagePosition, EvalState.Montage->HasRootMotion() && RootMotionMode != ERootMotionMode::NoRootMotionExtraction);
 			FAnimationRuntime::GetPoseFromAnimTrack(*AnimTrack, RequiredBones, NewPose.Pose.Bones, ExtractionContext);
 
-			TotalWeight += MontageInstance->Weight;
+			TotalWeight += EvalState.MontageWeight;
 			if (AdditiveAnimType == AAT_None)
 			{
-				NonAdditiveWeight += MontageInstance->Weight;
+				NonAdditiveWeight += EvalState.MontageWeight;
 				NonAdditivePoses.Add(NewPose);
 			}
 			else
@@ -2744,6 +2745,18 @@ void UAnimInstance::LockAIResources(bool bLockMovement, bool LockAILogic)
 void UAnimInstance::UnlockAIResources(bool bUnlockMovement, bool UnlockAILogic)
 {
 	UE_LOG(LogAnimation, Error, TEXT("%s: UnlockAIResources is no longer supported. Please use UnlockAIResourcesWithAnimation instead."), *GetName());
+}
+
+void UAnimInstance::UpdateMontageEvaluationData()
+{
+	MontageEvaluationData.Empty(MontageInstances.Num());
+	for (FAnimMontageInstance* MontageInstance : MontageInstances)
+	{
+		if (MontageInstance->Montage && MontageInstance->Weight > ZERO_ANIMWEIGHT_THRESH)
+		{
+			MontageEvaluationData.Add(FMontageEvaluationState(MontageInstance->Montage, MontageInstance->Weight, MontageInstance->GetPosition()));
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE 
