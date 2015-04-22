@@ -50,16 +50,24 @@ public:
  	 */
  	UPROPERTY(GlobalConfig, EditAnywhere, Category=Memory, Meta = (DisplayName = "Port to use when deploying game from the editor", ClampMin="49152", ClampMax="65535"))
  	int32 DeployServerPort;
+
+
+	/**
+	* Setting to control which template to use
+	*/
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Packaging, Meta = (DisplayName = "Use new template [experimental]"))
+	bool UseExperimentalTemplate;
+
 	/**
 	 * Use a loading level and download maps during transitions.                                                                     
 	 */
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Packaging, Meta = (DisplayName = "Download Maps on the fly [experimental]"))
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Packaging, Meta = (DisplayName = "Download maps on the fly [experimental]"))
 	bool UseAsyncLevelLoading;
 
 	/**
 	 * Generate Delta Pak files for these level transitions.
 	 */
-	UPROPERTY(GlobalConfig, EditAnywhere, Category = Packaging, Meta = (DisplayName = "Level transitions for delta paks [experimental]"))
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Packaging, Meta = (DisplayName = "Level transitions for delta paks [experimental,depends on download maps]"))
 	TArray<FHTML5LevelTransitions> LevelTransitions;
 
 };

@@ -99,7 +99,12 @@ public class HTML5Platform : Platform
         File.SetAttributes(Path.Combine(PackagePath, GameExe) + ".mem", FileAttributes.Normal);
 
         // put the HTML file to the package directory
-        string TemplateFile = Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Build", "HTML5", "Game.html.template");
+
+        bool UseExperimentalTemplate = false;
+        ConfigCache.GetBool("/Script/HTML5PlatformEditor.HTML5TargetSettings", "UseExperimentalTemplate", out UseExperimentalTemplate);
+        string TemplateFileName = UseExperimentalTemplate ? "GameX.html.template" : "Game.html.template";
+
+        string TemplateFile = Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Build", "HTML5", TemplateFileName);
         string OutputFile = Path.Combine(PackagePath, (Params.ClientConfigsToBuild[0].ToString() != "Development" ? (Params.ShortProjectName + "-HTML5-" + Params.ClientConfigsToBuild[0].ToString()) : Params.ShortProjectName)) + ".html";
 
         // find Heap Size.
