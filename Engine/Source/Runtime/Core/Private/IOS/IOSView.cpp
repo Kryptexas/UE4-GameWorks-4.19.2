@@ -252,17 +252,14 @@ id<MTLDevice> GMetalDevice = nil;
 			// grab the MetalLayer and typecast it to match what's in layerClass
 			CAMetalLayer* MetalLayer = (CAMetalLayer*)self.layer;
 			CGSize drawableSize = CGSizeMake(Width, Height);
-			check( drawableSize.width == self.bounds.size.width && drawableSize.height == self.bounds.size.height);
-			
-			drawableSize.width  *= self.contentScaleFactor;
-			drawableSize.height *= self.contentScaleFactor;
-			
+			check( drawableSize.width == (self.bounds.size.width * self.contentScaleFactor) && drawableSize.height == (self.bounds.size.height * self.contentScaleFactor));
+
 			MetalLayer.drawableSize = drawableSize;
 		}
 		return;
 	}
 #endif
-	check( ([EAGLContext currentContext] == Context));
+
 	// Allocate color buffer based on the current layer size
 	glBindRenderbuffer(GL_RENDERBUFFER, OnScreenColorRenderBuffer);
 	check(glGetError() == 0);

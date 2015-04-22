@@ -200,7 +200,9 @@ FMetalManager::FMetalManager()
 	// get the size of the window
 	CGRect ViewFrame = [[IOSAppDelegate GetDelegate].IOSView frame];
 	FRHIResourceCreateInfo CreateInfo;
-	BackBuffer = (FMetalTexture2D*)(FTexture2DRHIParamRef)RHICreateTexture2D(ViewFrame.size.width, ViewFrame.size.height, PF_B8G8R8A8, 1, 1, TexCreate_RenderTargetable | TexCreate_Presentable, CreateInfo);
+
+	float ScalingFactor = [[IOSAppDelegate GetDelegate].IOSView contentScaleFactor];
+	BackBuffer = (FMetalTexture2D*)(FTexture2DRHIParamRef)RHICreateTexture2D(ViewFrame.size.width*ScalingFactor, ViewFrame.size.height*ScalingFactor, PF_B8G8R8A8, 1, 1, TexCreate_RenderTargetable | TexCreate_Presentable, CreateInfo);
 
 //@todo-rco: What Size???
 	// make a buffer for each shader type
@@ -1054,7 +1056,8 @@ void FMetalManager::ResizeBackBuffer(uint32 InSizeX, uint32 InSizeY)
 	CurrentDrawable = nil;
 	BackBuffer->Surface.Texture = nil;
 	
-	// get the size of the window
+	// check the size of the window
+	float ScalingFactor = [[IOSAppDelegate GetDelegate].IOSView contentScaleFactor];
 	CGRect ViewFrame = [[IOSAppDelegate GetDelegate].IOSView frame];
-	check(ViewFrame.size.width == InSizeX && ViewFrame.size.height == InSizeY);
+	check(ScalingFactor * ViewFrame.size.width == InSizeX && ScalingFactor * ViewFrame.size.height == InSizeY);
 }
