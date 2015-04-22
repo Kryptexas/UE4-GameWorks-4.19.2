@@ -168,7 +168,7 @@ public:
 			return FileSize;
 		}
 		else
-			#endif
+		#endif
 		{
 			struct stat FileInfo;
 			fstat(FileHandle, &FileInfo);
@@ -942,8 +942,6 @@ bool FLinuxPlatformFile::CreateDirectoriesFromPath(const TCHAR* Path)
 
 	for (int32 i=0; i<Len; ++i)
 	{
-		struct stat FileInfo;
-
 		SubPath[i] = DirPath[i];
 
 		if (SubPath[i] == '/')
@@ -951,7 +949,8 @@ bool FLinuxPlatformFile::CreateDirectoriesFromPath(const TCHAR* Path)
 			SubPath[i+1] = 0;
 
 			// directory exists?
-			if (stat(SubPath, &FileInfo) == -1)
+			struct stat SubPathFileInfo;
+			if (stat(SubPath, &SubPathFileInfo) == -1)
 			{
 				// nope. create it.
 				if (mkdir(SubPath, 0755) == -1)
