@@ -906,7 +906,6 @@ void FLinuxPlatformSplash::Show( )
 
 		// Set version info
 		{
-			const FText GameName = FText::FromString( FApp::GetGameName() );
 			const FText Version = FText::FromString( GEngineVersion.ToString( FEngineBuildSettings::IsPerforceBuild() ? EVersionComponent::Branch : EVersionComponent::Patch ) );
 
 			FText VersionInfo;
