@@ -16,7 +16,7 @@ public:
 	FVector Destination;
 
 	UPROPERTY(Category=Sprite, EditAnywhere)
-	UTexture2D* BaseTexture;
+	UTexture* BaseTexture;
 
 	FAdditionalSpriteTextureArray AdditionalTextures;
 

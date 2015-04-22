@@ -22,7 +22,7 @@ struct FPaperSpriteSocket
 	FName SocketName;
 };
 
-typedef TArray<class UTexture2D*, TInlineAllocator<4>> FAdditionalSpriteTextureArray;
+typedef TArray<class UTexture*, TInlineAllocator<4>> FAdditionalSpriteTextureArray;
 
 /**
  * Sprite Asset
@@ -81,7 +81,7 @@ protected:
 
 	// Additional source textures for other slots
 	UPROPERTY(Category=Sprite, EditAnywhere, AssetRegistrySearchable, meta=(DisplayName="Additional Textures"))
-	TArray<UTexture2D*> AdditionalSourceTextures;
+	TArray<UTexture*> AdditionalSourceTextures;
 
 	UPROPERTY()
 	UTexture2D* BakedSourceTexture;

@@ -283,7 +283,7 @@ public:
 	UTexture2D* Texture;
 
 	// Additional textures to use
-	TArray<UTexture2D*> AdditionalTextures;
+	TArray<UTexture*> AdditionalTextures;
 
 	// The offset within the texture (in pixels)
 	FVector2D Offset;

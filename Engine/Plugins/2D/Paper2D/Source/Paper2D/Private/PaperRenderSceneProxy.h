@@ -41,7 +41,7 @@ struct PAPER2D_API FPaperSpriteVertex
 struct PAPER2D_API FSpriteRenderSection
 {
 	UMaterialInterface* Material;
-	UTexture2D* BaseTexture;
+	UTexture* BaseTexture;
 	FAdditionalSpriteTextureArray AdditionalTextures;
 
 	int32 VertexOffset;
