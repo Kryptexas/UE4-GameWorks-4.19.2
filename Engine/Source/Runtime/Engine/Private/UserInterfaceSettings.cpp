@@ -15,6 +15,7 @@ UUserInterfaceSettings::UUserInterfaceSettings(const FObjectInitializer& ObjectI
 	, RenderFocusRule(ERenderFocusRule::NavigationOnly)
 	, ApplicationScale(1)
 {
+	SectionName = TEXT("UI");
 }
 
 void UUserInterfaceSettings::PostInitProperties()

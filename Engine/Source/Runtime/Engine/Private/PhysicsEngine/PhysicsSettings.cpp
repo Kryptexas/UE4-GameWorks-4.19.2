@@ -29,6 +29,7 @@ UPhysicsSettings::UPhysicsSettings(const FObjectInitializer& ObjectInitializer)
 	, AsyncSceneSmoothingFactor(0.99f)
 	, InitialAverageFrameRate(1.f / 60.f)
 {
+	SectionName = TEXT("Physics");
 }
 
 void UPhysicsSettings::PostInitProperties()

@@ -4,14 +4,6 @@
 
 #include "DeveloperSettings.generated.h"
 
-/** The different types of settings container that can be used. */
-UENUM()
-enum class EDeveloperSettingsContainer : uint8
-{
-	Project,
-	Editor
-};
-
 /**
  * The base class of any auto discovered settings object.
  */
@@ -23,14 +15,12 @@ class ENGINE_API UDeveloperSettings : public UObject
 public:
 	UDeveloperSettings(const FObjectInitializer& ObjectInitializer);
 
-	/** Gets the container type, Project or Editor */
-	EDeveloperSettingsContainer GetContainerType() const { return Container; }
 	/** Gets the settings container name for the settings, either Project or Editor */
-	FName GetContainerName() const;
+	virtual FName GetContainerName() const;
 	/** Gets the category for the settings, some high level grouping like, Editor, Engine, Game...etc. */
-	FName GetCategoryName() const;
+	virtual FName GetCategoryName() const;
 	/** The unique name for your section of settings, uses the class's FName. */
-	FName GetSectionName() const;
+	virtual FName GetSectionName() const;
 
 #if WITH_EDITOR
 	/** Gets the section text, uses the classes DisplayName by default. */
@@ -42,7 +32,7 @@ public:
 	/** Gets a custom widget for the settings.  This is only for very custom situations. */
 	virtual TSharedPtr<class SWidget> GetCustomSettingsWidget() const;
 
-private:
+protected:
 	/**
 	 * The category name to use, overrides the one detected by looking at the config=... class metadata.
 	 * Arbitrary category names are not supported, this must map to an existing category we support in the settings
@@ -50,6 +40,6 @@ private:
 	 */
 	FName CategoryName;
 
-	/** The container for these settings. */
-	EDeveloperSettingsContainer Container;
+	/** The Section name, is the short name for the settings.  If not filled in, will be the FName of the class. */
+	FName SectionName;
 };

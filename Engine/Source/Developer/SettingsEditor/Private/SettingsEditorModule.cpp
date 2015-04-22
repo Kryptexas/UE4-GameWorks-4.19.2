@@ -177,7 +177,7 @@ private:
 
 	void UpdateSettings(bool bForce = false)
 	{
-		if ( (AnyActiveSettingsEditor() && bAreSettingsStale) || bForce )
+		if ( ( AnyActiveSettingsEditor() || bForce ) && bAreSettingsStale )
 		{
 			bAreSettingsStale = false;
 

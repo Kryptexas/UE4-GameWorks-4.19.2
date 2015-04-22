@@ -22,6 +22,8 @@ UAnimationSettings::UAnimationSettings(const FObjectInitializer& ObjectInitializ
 	, bTryIntervalKeyRemoval(true)
 
 {
+	SectionName = TEXT("Animation");
+
 	KeyEndEffectorsMatchNameArray.Add(TEXT("IK"));
 	KeyEndEffectorsMatchNameArray.Add(TEXT("eye"));
 	KeyEndEffectorsMatchNameArray.Add(TEXT("weapon"));

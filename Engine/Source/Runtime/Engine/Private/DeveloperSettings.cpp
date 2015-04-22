@@ -7,28 +7,33 @@ UDeveloperSettings::UDeveloperSettings(const FObjectInitializer& ObjectInitializ
 	: UObject(ObjectInitializer)
 {
 	CategoryName = NAME_None;
-	Container = EDeveloperSettingsContainer::Project;
+	SectionName = NAME_None;
 }
 
 FName UDeveloperSettings::GetContainerName() const
 {
-	FName ProjectName(TEXT("Project"));
-	FName EditorName(TEXT("Editor"));
+	static const FName ProjectName(TEXT("Project"));
+	static const FName EditorName(TEXT("Editor"));
 
-	switch ( Container )
+	static const FName EditorUserSettingsName(TEXT("EditorUserSettings"));
+	static const FName EditorPerProjectUserSettingsName(TEXT("EditorPerProjectUserSettings"));
+
+	FName ConfigName = GetClass()->ClassConfigName;
+
+	if ( ConfigName == EditorUserSettingsName || ConfigName == EditorPerProjectUserSettingsName )
 	{
-	case EDeveloperSettingsContainer::Project:
-		return ProjectName;
-	case EDeveloperSettingsContainer::Editor:
 		return EditorName;
-	default:
-		check(false);
-		return NAME_None;
 	}
+	
+	return ProjectName;
 }
 
 FName UDeveloperSettings::GetCategoryName() const
 {
+	static const FName GeneralName(TEXT("General"));
+	static const FName EditorUserSettingsName(TEXT("EditorUserSettings"));
+	static const FName EditorPerProjectUserSettingsName(TEXT("EditorPerProjectUserSettings"));
+
 	if ( CategoryName != NAME_None )
 	{
 		return CategoryName;
@@ -38,6 +43,10 @@ FName UDeveloperSettings::GetCategoryName() const
 	if ( ConfigName == NAME_Engine || ConfigName == NAME_Input )
 	{
 		return NAME_Engine;
+	}
+	else if ( ConfigName == EditorUserSettingsName || ConfigName == EditorPerProjectUserSettingsName )
+	{
+		return GeneralName;
 	}
 	else if ( ConfigName == NAME_Editor || ConfigName == NAME_EditorSettings || ConfigName == NAME_EditorLayout || ConfigName == NAME_EditorKeyBindings )
 	{
@@ -53,6 +62,11 @@ FName UDeveloperSettings::GetCategoryName() const
 
 FName UDeveloperSettings::GetSectionName() const
 {
+	if ( SectionName != NAME_None )
+	{
+		return SectionName;
+	}
+
 	return GetClass()->GetFName();
 }
 

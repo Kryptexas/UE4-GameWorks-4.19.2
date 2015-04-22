@@ -297,7 +297,8 @@ bool FAutoReimportDirectoryConfig::ParseSourceDirectoryAndMountPoint(FString& So
 
 UEditorMiscSettings::UEditorMiscSettings( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
-{ }
+{
+}
 
 
 /* ULevelEditorMiscSettings interface
@@ -307,6 +308,8 @@ ULevelEditorMiscSettings::ULevelEditorMiscSettings( const FObjectInitializer& Ob
 	: Super(ObjectInitializer)
 {
 	bAutoApplyLightingEnable = true;
+	SectionName = TEXT("Misc");
+	CategoryName = TEXT("LevelEditor");
 }
 
 
