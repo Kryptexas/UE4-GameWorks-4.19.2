@@ -496,6 +496,8 @@ public:
 	 */
 	void MakeUniqueModuleFilename( const FName InModuleName, FString& UniqueSuffix, FString& UniqueModuleFileName );
 
+	void AddModuleToModulesList(const FName InModuleName, TSharedRef<FModuleInfo>& ModuleInfo);
+
 private:
 	/** Thread safe module finding routine. */
 	TSharedRef<FModuleInfo>* FindModule(FName InModuleName);
