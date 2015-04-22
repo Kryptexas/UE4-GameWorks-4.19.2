@@ -15,8 +15,23 @@ IMPLEMENT_MODULE( FAnalyticsMulticast, AnalyticsMulticast );
 
 class FAnalyticsProviderMulticast : public IAnalyticsProvider
 {
-public:
+	/** Singleton for analytics */
+	static TSharedPtr<IAnalyticsProvider> Provider;
 	FAnalyticsProviderMulticast(const FAnalyticsMulticast::Config& ConfigValues, const FAnalytics::FProviderConfigurationDelegate& GetConfigValue);
+
+public:
+	static TSharedPtr<IAnalyticsProvider> Create(const FAnalyticsMulticast::Config& ConfigValues, const FAnalytics::FProviderConfigurationDelegate& GetConfigValue)
+	{
+		if (!Provider.IsValid())
+		{
+			Provider = TSharedPtr<IAnalyticsProvider>(new FAnalyticsProviderMulticast(ConfigValues, GetConfigValue));
+		}
+		return Provider;
+	}
+	static void Destroy()
+	{
+		Provider.Reset();
+	}
 
 	virtual bool StartSession(const TArray<FAnalyticsEventAttribute>& Attributes) override;
 	virtual void EndSession() override;
@@ -54,12 +69,15 @@ private:
 	TArray<FString> ProviderModules;
 };
 
+TSharedPtr<IAnalyticsProvider> FAnalyticsProviderMulticast::Provider;
+
 void FAnalyticsMulticast::StartupModule()
 {
 }
 
 void FAnalyticsMulticast::ShutdownModule()
 {
+	FAnalyticsProviderMulticast::Destroy();
 }
 
 TSharedPtr<IAnalyticsProvider> FAnalyticsMulticast::CreateAnalyticsProvider(const FAnalytics::FProviderConfigurationDelegate& GetConfigValue) const
@@ -84,14 +102,7 @@ TSharedPtr<IAnalyticsProvider> FAnalyticsMulticast::CreateAnalyticsProvider(cons
 
 TSharedPtr<IAnalyticsProvider> FAnalyticsMulticast::CreateAnalyticsProvider(const Config& ConfigValues, const FAnalytics::FProviderConfigurationDelegate& GetConfigValue) const
 {
-	TScopedPointer<FAnalyticsProviderMulticast> Provider(new FAnalyticsProviderMulticast(ConfigValues, GetConfigValue));
-	// If we didn't have any valid providers, return NULL
-	if (!Provider->HasValidProviders())
-	{
-		return NULL;
-	}
-	// if we were configured ok, bind thee result to a shared pointer.
-	return TSharedPtr<IAnalyticsProvider>(Provider.Release());
+	return FAnalyticsProviderMulticast::Create(ConfigValues, GetConfigValue);
 }
 
 /**
