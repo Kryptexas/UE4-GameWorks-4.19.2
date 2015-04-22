@@ -377,9 +377,10 @@ public:
 	void IgnoreDeletedFile(const FString& Filename);
 
 	/** Get the number of pending changes to the cache. */
-	int32 GetNumOutstandingChanges() const { return DirtyFiles.Num() + PendingTransactions.Num(); }
+	int32 GetNumOutstandingChanges() const { return DirtyFiles.Num(); }
 
-	/** Get all pending changes to the cache. Transactions must be returned to CompleteTransaction to update the cache. */
+	/** Get pending changes to the cache. Transactions must be returned to CompleteTransaction to update the cache. */
+	TArray<FUpdateCacheTransaction> FilterOutstandingChanges(const TFunctionRef<bool(const FUpdateCacheTransaction&, const FDateTime&)>& InPredicate);
 	TArray<FUpdateCacheTransaction> GetOutstandingChanges();
 
 private:
@@ -389,8 +390,9 @@ private:
 
 	/** Diff the specified set of dirty files (absolute paths, or relative to the monitor directory), adding transactions to the specified array if necessary.
 	 *	Optionally takes a directory state from which we can retrieve current file system state, without having to ask the FS directly.
+	 *  Optionally exclude files that have changed since the specified threshold, to ensure that related events get grouped together correctly.
 	 */
-	void DiffDirtyFiles(const TSet<FImmutableString>& InOutDirtyFiles, TArray<FUpdateCacheTransaction>& InOutTransactions, const FDirectoryState* InFileSystemState = nullptr) const;
+	void DiffDirtyFiles(TMap<FImmutableString, FDateTime>& InDirtyFiles, TArray<FUpdateCacheTransaction>& OutTransactions, const FDirectoryState* InFileSystemState = nullptr, const FDateTime& ThreasholdTime = FDateTime::UtcNow()) const;
 
 	/** Get the absolute path from a transaction filename */
 	FString GetAbsolutePath(const FString& InTransactionPath) const;
@@ -416,11 +418,8 @@ private:
 	TSharedPtr<FAsyncDirectoryReader, ESPMode::ThreadSafe> DirectoryReader;
 	TSharedPtr<FAsyncFileHasher, ESPMode::ThreadSafe> AsyncFileHasher;
 
-	/** A set of dirty files that we will use to report changes to the user */
-	TSet<FImmutableString> DirtyFiles;
-
-	/** A list of pending change transactions to be returned to the user */
-	TArray<FUpdateCacheTransaction> PendingTransactions;
+	/** A map of dirty file times that we will use to report changes to the user */
+	TMap<FImmutableString, FDateTime> DirtyFiles;
 
 	/** Our in-memory view of the cached directory state. */
 	FDirectoryState CachedDirectoryState;
@@ -433,4 +432,5 @@ private:
 
 	/** The time we last retrieved file hashes from the thread */
 	double LastFileHashGetTime;
+
 };

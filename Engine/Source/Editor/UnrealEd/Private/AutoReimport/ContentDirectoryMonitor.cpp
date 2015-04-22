@@ -85,7 +85,13 @@ void FContentDirectoryMonitor::StartProcessing()
 {
 	WorkProgress = TotalWork = 0;
 
-	auto OutstandingChanges = Cache.GetOutstandingChanges();
+	// We only process things that haven't changed for a given threshold
+	auto& FileManager = IFileManager::Get();
+	const FDateTime Threshold = FDateTime::UtcNow() - FTimespan(0, 0, GetDefault<UEditorLoadingSavingSettings>()->AutoReimportThreshold);
+	auto OutstandingChanges = Cache.FilterOutstandingChanges([&](const FUpdateCacheTransaction& Transaction, const FDateTime& TimeOfChange){
+		return TimeOfChange < Threshold;
+	});
+
 	if (OutstandingChanges.Num() != 0)
 	{
 		const auto* Settings = GetDefault<UEditorLoadingSavingSettings>();
@@ -185,11 +191,7 @@ void FContentDirectoryMonitor::ProcessAdditions(const IAssetRegistry& Registry, 
 		FString NewAssetName = ObjectTools::SanitizeObjectName(FPaths::GetBaseFilename(FullFilename));
 		FString PackagePath = PackageTools::SanitizePackageName(MountedContentPath / FPaths::GetPath(Addition.Filename.Get()) / NewAssetName);
 
-		if (FEditorFileUtils::IsMapPackageAsset(PackagePath))
-		{
-			Context.AddMessage(EMessageSeverity::Error, FText::Format(LOCTEXT("Error_ExistingMap", "Attempted to create asset with the same name as a map ({0})."), FText::FromString(PackagePath)));
-		}
-		else if (FindPackage(nullptr, *PackagePath))
+		if (FPackageName::DoesPackageExist(*PackagePath))
 		{
 			Context.AddMessage(EMessageSeverity::Warning, FText::Format(LOCTEXT("Warning_ExistingAsset", "Can't create a new asset at {0} - one already exists."), FText::FromString(PackagePath)));
 		}
@@ -300,13 +302,14 @@ void FContentDirectoryMonitor::ProcessModifications(const IAssetRegistry& Regist
 				{
 					const bool bAssetWasDirty = IsAssetDirty(Asset);
 
-					FString NewAssetName = ObjectTools::SanitizeObjectName(FPaths::GetBaseFilename(Change.Filename.Get()));
-					FString PackagePath = PackageTools::SanitizePackageName(MountedContentPath / FPaths::GetPath(Change.Filename.Get()));
+					const FString NewAssetName = ObjectTools::SanitizeObjectName(FPaths::GetBaseFilename(Change.Filename.Get()));
+					const FString PackagePath = PackageTools::SanitizePackageName(MountedContentPath / FPaths::GetPath(Change.Filename.Get()));
+					const FString FullDestPath = PackagePath / NewAssetName;
 
-					const FText SrcPathText = FText::FromString(Assets[0].PackagePath.ToString() / Assets[0].PackageName.ToString()),
-						DstPathText = FText::FromString(PackagePath / NewAssetName);
+					const FText SrcPathText = FText::FromString(Assets[0].PackageName.ToString()),
+						DstPathText = FText::FromString(FullDestPath);
 
-					if (FEditorFileUtils::IsMapPackageAsset(PackagePath) || FindPackage(nullptr, *PackagePath))
+					if (FPackageName::DoesPackageExist(*FullDestPath))
 					{
 						Context.AddMessage(EMessageSeverity::Warning, FText::Format(LOCTEXT("MoveWarning_ExistingAsset", "Can't move {0} to {1} - one already exists."), SrcPathText, DstPathText));
 					}

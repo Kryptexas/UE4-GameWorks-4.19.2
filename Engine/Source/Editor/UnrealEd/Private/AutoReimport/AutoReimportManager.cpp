@@ -185,12 +185,6 @@ private:
 	/** A list of packages to save when we've added a bunch of assets */
 	TArray<UPackage*> PackagesToSave;
 
-	/** The time when the last change to the cache was reported */
-	FTimeLimit StartProcessingDelay;
-
-	/** The cached number of unprocessed changes we currently have to process */
-	int32 CachedNumUnprocessedChanges;
-
 	/** Reentracy guard for when we are making changes to assets */
 	bool bGuardAssetChanges;
 
@@ -200,7 +194,6 @@ private:
 
 FAutoReimportManager::FAutoReimportManager()
 	: StateMachine(ECurrentState::Idle)
-	, StartProcessingDelay(0.5)
 	, bGuardAssetChanges(false)
 {
 	auto* Settings = GetMutableDefault<UEditorLoadingSavingSettings>();
@@ -348,8 +341,8 @@ void FAutoReimportManager::OnAssetRenamed(const FAssetData& AssetData, const FSt
 	// We move the file with the asset provided it is the only file referenced, and sits right beside the uasset file
 	if (SourceFilesRelativeToOldPath.Num() == 1 && !SourceFilesRelativeToOldPath[0].GetCharArray().ContainsByPredicate([](const TCHAR Char) { return Char == '/' || Char == '\\'; }))
 	{
-		const FString AbsoluteSrcPath = FPaths::ConvertRelativePathToFull(FPackageName::LongPackageNameToFilename(FPackageName::GetLongPackagePath(OldPath)));
-		const FString AbsoluteDstPath = FPaths::ConvertRelativePathToFull(FPackageName::LongPackageNameToFilename(AssetData.PackagePath.ToString()));
+		const FString AbsoluteSrcPath = FPaths::ConvertRelativePathToFull(FPackageName::LongPackageNameToFilename(FPackageName::GetLongPackagePath(OldPath) / TEXT("")));
+		const FString AbsoluteDstPath = FPaths::ConvertRelativePathToFull(FPackageName::LongPackageNameToFilename(AssetData.PackagePath.ToString() / TEXT("")));
 
 		const FString OldAssetName = FPackageName::GetLongPackageAssetName(FPackageName::ObjectPathToPackageName(OldPath));
 		FString NewFileName = FPaths::GetBaseFilename(SourceFilesRelativeToOldPath[0]);
@@ -578,40 +571,32 @@ TOptional<ECurrentState> FAutoReimportManager::Idle()
 		Monitor.Tick();
 	}
 
-	const int32 NumUnprocessedChanges = GetNumUnprocessedChanges();
-	if (NumUnprocessedChanges > 0)
+	const IAssetRegistry& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
+	if (AssetRegistry.IsLoadingAssets())
 	{
-		// Check if we have any more unprocessed changes. If we have, we wait a delay before processing them.
-		if (NumUnprocessedChanges != CachedNumUnprocessedChanges)
+		return TOptional<ECurrentState>();		
+	}
+
+	if (GetNumUnprocessedChanges() > 0)
+	{
+		// We have some changes so kick off the process
+		for (auto& Monitor : DirectoryMonitors)
 		{
-			CachedNumUnprocessedChanges = NumUnprocessedChanges;
-			StartProcessingDelay.Reset();
+			Monitor.StartProcessing();
 		}
-		else
+
+		// Check that we actually have anything to do before kicking off a process
+		const int32 WorkTotal = Utils::Reduce(DirectoryMonitors, [](const FContentDirectoryMonitor& Monitor, int32 Total){
+			return Total + Monitor.GetTotalWork();
+		}, 0);
+
+		if (WorkTotal > 0)
 		{
-			const IAssetRegistry& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
-			if (StartProcessingDelay.Exceeded() && !AssetRegistry.IsLoadingAssets())
-			{
-				// Deal with changes to the file system second
-				for (auto& Monitor : DirectoryMonitors)
-				{
-					Monitor.StartProcessing();
-				}
+			// Create a new feedback context override
+			FeedbackContextOverride = MakeShareable(new FReimportFeedbackContext);
+			FeedbackContextOverride->Initialize(SNew(SReimportFeedback, GetProgressText()));
 
-				// Check that we actually have anything to do before kicking off a process
-				const int32 WorkTotal = Utils::Reduce(DirectoryMonitors, [](const FContentDirectoryMonitor& Monitor, int32 Total){
-					return Total + Monitor.GetTotalWork();
-				}, 0);
-
-				if (WorkTotal > 0)
-				{
-					// Create a new feedback context override
-					FeedbackContextOverride = MakeShareable(new FReimportFeedbackContext);
-					FeedbackContextOverride->Initialize(SNew(SReimportFeedback, GetProgressText()));
-
-					return ECurrentState::ProcessAdditions;
-				}
-			}
+			return ECurrentState::ProcessAdditions;
 		}
 	}
 
@@ -620,8 +605,6 @@ TOptional<ECurrentState> FAutoReimportManager::Idle()
 
 void FAutoReimportManager::Cleanup()
 {
-	CachedNumUnprocessedChanges = 0;
-
 	FeedbackContextOverride->Destroy();
 	FeedbackContextOverride = nullptr;
 }

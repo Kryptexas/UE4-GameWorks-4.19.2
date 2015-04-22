@@ -426,7 +426,6 @@ void FFileCache::Destroy()
 	DirectoryReader = nullptr;
 	AsyncFileHasher = nullptr;
 
-	PendingTransactions.Empty();
 	DirtyFiles.Empty();
 	CachedDirectoryState = FDirectoryState();
 
@@ -580,19 +579,25 @@ TOptional<FString> FFileCache::GetTransactionPath(const FString& InAbsolutePath)
 	}
 }
 
-void FFileCache::DiffDirtyFiles(const TSet<FImmutableString>& InDirtyFiles, TArray<FUpdateCacheTransaction>& InOutTransactions, const FDirectoryState* InFileSystemState) const
+void FFileCache::DiffDirtyFiles(TMap<FImmutableString, FDateTime>& InDirtyFiles, TArray<FUpdateCacheTransaction>& OutTransactions, const FDirectoryState* InFileSystemState, const FDateTime& ThresholdTime) const
 {
 	TArray<uint8> ScratchBuffer;
 	ScratchBuffer.SetNumUninitialized(1024*1024);
 
 	TMap<FImmutableString, FFileData> AddedFiles, ModifiedFiles;
-	TSet<FImmutableString> RemovedFiles;
+	TSet<FImmutableString> RemovedFiles, InvalidDirtyFiles;
 
 	auto& FileManager = IFileManager::Get();
 	auto& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 
-	for (const auto& File : InDirtyFiles)
+	for (const auto& Pair : InDirtyFiles)
 	{
+		if (Pair.Value > ThresholdTime)
+		{
+			continue;
+		}
+
+		const auto& File = Pair.Key;
 		FString AbsoluteFilename = GetAbsolutePath(File.Get());
 		
 		const auto* CachedState = CachedDirectoryState.Files.Find(File);
@@ -610,6 +615,11 @@ void FFileCache::DiffDirtyFiles(const TSet<FImmutableString>& InDirtyFiles, TArr
 				{
 					ModifiedFiles.Add(File, FileData);
 				}
+				else
+				{
+					// File hasn't changed
+					InvalidDirtyFiles.Add(File);
+				}
 			}
 			else
 			{
@@ -621,6 +631,17 @@ void FFileCache::DiffDirtyFiles(const TSet<FImmutableString>& InDirtyFiles, TArr
 		{
 			RemovedFiles.Add(File);
 		}
+		else
+		{
+			// File doesn't exist, and isn't in the cache
+			InvalidDirtyFiles.Add(File);
+		}
+	}
+
+	// Remove any dirty files that aren't dirty
+	for (auto& Filename : InvalidDirtyFiles)
+	{
+		InDirtyFiles.Remove(Filename);
 	}
 
 	// Rename / move detection
@@ -636,7 +657,7 @@ void FFileCache::DiffDirtyFiles(const TSet<FImmutableString>& InDirtyFiles, TArr
 					if (AdIt.Value().FileHash == CachedState->FileHash)
 					{
 						// Found a move destination!
-						InOutTransactions.Add(FUpdateCacheTransaction(*RemoveIt, AdIt.Key(), AdIt.Value()));
+						OutTransactions.Add(FUpdateCacheTransaction(*RemoveIt, AdIt.Key(), AdIt.Value()));
 
 						AdIt.RemoveCurrent();
 						RemoveIt.RemoveCurrent();
@@ -649,31 +670,51 @@ void FFileCache::DiffDirtyFiles(const TSet<FImmutableString>& InDirtyFiles, TArr
 
 	for (auto& RemovedFile : RemovedFiles)
 	{
-		InOutTransactions.Add(FUpdateCacheTransaction(MoveTemp(RemovedFile), EFileAction::Removed));
+		OutTransactions.Add(FUpdateCacheTransaction(MoveTemp(RemovedFile), EFileAction::Removed));
 	}
 	// RemovedFiles is now bogus
 
 	for (auto& Pair : AddedFiles)
 	{
-		InOutTransactions.Add(FUpdateCacheTransaction(MoveTemp(Pair.Key), EFileAction::Added, Pair.Value));
+		OutTransactions.Add(FUpdateCacheTransaction(MoveTemp(Pair.Key), EFileAction::Added, Pair.Value));
 	}
 	// AddedFiles is now bogus
 	
 	for (auto& Pair : ModifiedFiles)
 	{
-		InOutTransactions.Add(FUpdateCacheTransaction(MoveTemp(Pair.Key), EFileAction::Modified, Pair.Value));
+		OutTransactions.Add(FUpdateCacheTransaction(MoveTemp(Pair.Key), EFileAction::Modified, Pair.Value));
 	}
 	// ModifiedFiles is now bogus
 }
 
 TArray<FUpdateCacheTransaction> FFileCache::GetOutstandingChanges()
 {
+	TArray<FUpdateCacheTransaction> PendingTransactions;
 	DiffDirtyFiles(DirtyFiles, PendingTransactions);
 	DirtyFiles.Empty();
+	return PendingTransactions;	
+}
 
-	TArray<FUpdateCacheTransaction> Moved;
-	Swap(PendingTransactions, Moved);
-	return Moved;
+TArray<FUpdateCacheTransaction> FFileCache::FilterOutstandingChanges(const TFunctionRef<bool(const FUpdateCacheTransaction&, const FDateTime&)>& InPredicate)
+{
+	// We don't diff things that have only just changed, to ensure that add/delete pairs correctly get picked up as renames
+	FDateTime Threshold = FDateTime::UtcNow() - FTimespan(0,0,0.5);
+
+	TArray<FUpdateCacheTransaction> AllTransactions;
+	DiffDirtyFiles(DirtyFiles, AllTransactions, nullptr, Threshold);
+
+	TArray<FUpdateCacheTransaction> FilteredTransactions;
+	for (auto& Transaction : AllTransactions)
+	{
+		auto TimeOfChange = DirtyFiles[Transaction.Filename];
+		if (InPredicate(Transaction, TimeOfChange))
+		{
+			DirtyFiles.Remove(Transaction.Filename);
+			FilteredTransactions.Add(MoveTemp(Transaction));
+		}
+	}
+	// Anything left in AllTransactions is discarded
+	return FilteredTransactions;
 }
 
 void FFileCache::IgnoreNewFile(const FString& Filename)
@@ -863,7 +904,8 @@ void FFileCache::ReadStateFromAsyncReader()
 	}
 
 	// Build up a list of dirty files
-	TSet<FImmutableString> LocalDirtyFiles;
+	TMap<FImmutableString, FDateTime> LocalDirtyFiles;
+	auto Now = FDateTime::UtcNow();
 
 	// We already have cached data so we need to compare it with the harvested data
 	// to detect additions, modifications, and removals
@@ -874,7 +916,7 @@ void FFileCache::ReadStateFromAsyncReader()
 		const auto* CachedData = CachedDirectoryState.Files.Find(Filename);
 		if (!CachedData || CachedData->Timestamp != FilenameAndData.Value.Timestamp)
 		{
-			LocalDirtyFiles.Add(Filename);
+			LocalDirtyFiles.Add(Filename, Now);
 		}
 	}
 
@@ -884,7 +926,7 @@ void FFileCache::ReadStateFromAsyncReader()
 		const FImmutableString& Filename = It.Key();
 		if (!LiveState->Files.Contains(Filename))
 		{
-			LocalDirtyFiles.Add(Filename);
+			LocalDirtyFiles.Add(Filename, Now);
 		}
 	}
 
@@ -940,7 +982,13 @@ void FFileCache::ReadStateFromAsyncReader()
 	}
 
 	// Now the only files left in LocalDirtyFiles are things that definitely apply to the current cache, and used to apply to the old cache
-	DirtyFiles = DirtyFiles.Union(LocalDirtyFiles);
+	for (auto& Pair : LocalDirtyFiles)
+	{
+		if (!DirtyFiles.Contains(Pair.Key))
+		{
+			DirtyFiles.Add(MoveTemp(Pair.Key), Pair.Value);
+		}
+	}
 
 	// Update the applicable extensions now that we've updated the cache
 	CachedDirectoryState.Rules = LiveState->Rules;
@@ -948,12 +996,13 @@ void FFileCache::ReadStateFromAsyncReader()
 
 void FFileCache::OnDirectoryChanged(const TArray<FFileChangeData>& FileChanges)
 {
+	FDateTime Now = FDateTime::UtcNow();
 	for (const auto& ThisEntry : FileChanges)
 	{
 		auto TransactionPath = GetTransactionPath(ThisEntry.Filename);
 		if (TransactionPath.IsSet())
 		{
-			DirtyFiles.Add(MoveTemp(TransactionPath.GetValue()));
+			DirtyFiles.Add(MoveTemp(TransactionPath.GetValue()), Now);
 		}
 	}
 }

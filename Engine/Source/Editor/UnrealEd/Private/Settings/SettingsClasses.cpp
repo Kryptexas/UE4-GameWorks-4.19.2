@@ -102,6 +102,7 @@ UEditorLoadingSavingSettings::UEditorLoadingSavingSettings( const FObjectInitial
 	: Super(ObjectInitializer)
 	, bEnableSourceControlCompatabilityCheck(true)
 	, bMonitorContentDirectories(false)
+	, AutoReimportThreshold(3.f)
 	, bAutoCreateAssets(true)
 	, bAutoDeleteAssets(true)
 	, bDetectChangesOnRestart(true)
