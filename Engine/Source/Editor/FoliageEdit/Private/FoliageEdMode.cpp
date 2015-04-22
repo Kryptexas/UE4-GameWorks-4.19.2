@@ -2258,6 +2258,36 @@ void FEdModeFoliage::OnInstanceCountUpdated(const UFoliageType* FoliageType)
 	FoliageMeshList[EntryIndex]->InstanceCountCurrentLevel = InstanceCountCurrentLevel;
 }
 
+void FEdModeFoliage::CalcTotalInstanceCount(int32& OutInstanceCountTotal, int32& OutInstanceCountCurrentLevel)
+{
+	OutInstanceCountTotal = 0;
+	OutInstanceCountCurrentLevel = 0;
+	UWorld* InWorld = GetWorld();
+	ULevel* CurrentLevel = InWorld->GetCurrentLevel(); 
+
+	const int32 NumLevels = InWorld->GetNumLevels();
+	for (int32 LevelIdx = 0; LevelIdx < NumLevels; ++LevelIdx)
+	{
+		ULevel* Level = InWorld->GetLevel(LevelIdx);
+		AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level);
+		if (IFA)
+		{
+			int32 IFAInstanceCount = 0;
+			for (const auto& MeshPair : IFA->FoliageMeshes)
+			{
+				const FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
+				IFAInstanceCount+= MeshInfo.Instances.Num();
+			}
+
+			OutInstanceCountTotal+= IFAInstanceCount;
+			if (CurrentLevel == Level)
+			{
+				OutInstanceCountCurrentLevel+= IFAInstanceCount;
+			}
+		}
+	}
+}
+
 bool FEdModeFoliage::CanPaint(const ULevel* InLevel)
 {
 	for (const auto& MeshUIPtr : FoliageMeshList)

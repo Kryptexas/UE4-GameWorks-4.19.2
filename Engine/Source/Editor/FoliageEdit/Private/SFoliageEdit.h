@@ -204,6 +204,9 @@ private:
 	EColumnSortMode::Type GetMeshColumnSortMode() const;
 	void OnMeshesColumnSortModeChanged(EColumnSortPriority::Type InPriority, const FName& InColumnName, EColumnSortMode::Type InSortMode);
 
+	/** Tooltip text for 'Instance Count" column */
+	FText GetTotalInstanceCountTooltipText() const;
+
 	/** Handler to trigger a refresh of the details view when the active tool changes */
 	void HandleOnToolChanged();
 

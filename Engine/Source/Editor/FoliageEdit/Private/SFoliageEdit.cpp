@@ -444,6 +444,7 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 						+ SHeaderRow::Column(FoliageMeshColumns::ColumnID_InstanceCount)
 						.HeaderContentPadding(FMargin(10, 1, 0, 1))
 						.DefaultLabel(LOCTEXT("InstanceCount", "Count"))
+						.DefaultTooltip(this, &SFoliageEdit::GetTotalInstanceCountTooltipText)
 						.FixedWidth(60.f)
 
 						// save Foliage asset
@@ -1204,6 +1205,17 @@ EColumnSortMode::Type SFoliageEdit::GetMeshColumnSortMode() const
 void SFoliageEdit::OnMeshesColumnSortModeChanged(EColumnSortPriority::Type InPriority, const FName& InColumnName, EColumnSortMode::Type InSortMode)
 {
 	FoliageEditMode->OnFoliageMeshListSortModeChanged(InSortMode);
+}
+
+FText SFoliageEdit::GetTotalInstanceCountTooltipText() const
+{
+	// Probably should cache these values, 
+	// but we call this only occasionally when tooltip is active
+	int32 InstanceCountTotal = 0;
+	int32 InstanceCountCurrentLevel = 0;
+	FoliageEditMode->CalcTotalInstanceCount(InstanceCountTotal, InstanceCountCurrentLevel);
+			
+	return FText::Format(LOCTEXT("FoliageTotalInstanceCount", "Current Level: {0} Total: {1}"), FText::AsNumber(InstanceCountCurrentLevel), FText::AsNumber(InstanceCountTotal));
 }
 
 void SFoliageEdit::HandleOnToolChanged()

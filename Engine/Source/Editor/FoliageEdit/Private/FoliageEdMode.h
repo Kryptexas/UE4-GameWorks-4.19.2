@@ -293,6 +293,9 @@ public:
 	/** Handler for foliage mesh instance count changes */
 	void OnInstanceCountUpdated(const UFoliageType* FoliageType);
 
+	/** Counts total number of instances in current level and across whole world */
+	void CalcTotalInstanceCount(int32& OutInstanceCountTotal, int32& OutInstanceCountCurrentLevel);
+
 	/** Whether any of the selected foliage types can be painted into level */
 	bool CanPaint(const ULevel* InLevel);
 		
