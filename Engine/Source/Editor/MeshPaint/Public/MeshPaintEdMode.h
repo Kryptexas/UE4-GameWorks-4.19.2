@@ -6,6 +6,7 @@
 #include "GenericOctreePublic.h"
 #include "Engine/StaticMesh.h"
 
+class IMeshPaintGeometryAdapter;
 
 /** Mesh paint resource types */
 namespace EMeshPaintResource
@@ -434,20 +435,14 @@ public:
 	/** Applies vertex color painting on LOD0 to all lower LODs. */
 	void ApplyVertexColorsToAllLODs();
 
-	/** Forces all selected meshes to their best LOD. */
-	void ForceBestLOD();
+	/** Forces all selected meshes to their best LOD, or removes the forcing. */
+	void ApplyOrRemoveForceBestLOD(bool bApply);
 
-	/** Forces the passed static mesh component to it's best LOD. */
-	void ForceBestLOD(UStaticMeshComponent* StaticMeshComponent);
-
-	/** Stops forcing selected meshes to their best lod. */
-	void ClearForcedLOD();
-
-	/** Stops the passed static mesh component to it's best lod. */
-	void ClearForcedLOD(UStaticMeshComponent* StaticMeshComponent);
+	/** Forces the static mesh component to it's best LOD, or removes the forcing. */
+	void ApplyOrRemoveForceBestLOD(const IMeshPaintGeometryAdapter& GeometryInfo, UMeshComponent* InMeshComponent, bool bApply);
 
 	/** Applies vertex color painting on LOD0 to all lower LODs. */
-	void ApplyVertexColorsToAllLODs(UStaticMeshComponent* StaticMeshComponent);
+	void ApplyVertexColorsToAllLODs(const IMeshPaintGeometryAdapter& GeometryInfo, UMeshComponent* InMeshComponent);
 
 	/** Fills the vertex colors associated with the currently selected mesh*/
 	void FillInstanceVertexColors();
@@ -505,14 +500,14 @@ public:
 	void CommitAllPaintedTextures();
 
 	/** Clears all texture overrides for this component. */
-	void ClearMeshTextureOverrides(UMeshComponent* InMeshComponent);
+	void ClearMeshTextureOverrides(const IMeshPaintGeometryAdapter& GeometryInfo, UMeshComponent* InMeshComponent);
 
 	/** Clears all texture overrides, removing any pending texture paint changes */
 	void ClearAllTextureOverrides();
 
-	void SetAllTextureOverrides(UMeshComponent* InMeshComponent);
+	void SetAllTextureOverrides(const IMeshPaintGeometryAdapter& GeometryInfo, UMeshComponent* InMeshComponent);
 
-	void SetSpecificTextureOverrideForMesh(UMeshComponent* InMeshComponent, UTexture* Texture);
+	void SetSpecificTextureOverrideForMesh(const IMeshPaintGeometryAdapter& GeometryInfo, UTexture2D* Texture);
 
 	/** Used to tell the texture paint system that we will need to restore the rendertargets */
 	void RestoreRenderTargets();
@@ -652,7 +647,7 @@ private:
 	void PaintMeshVertices( UStaticMeshComponent* StaticMeshComponent, const FMeshPaintParameters& Params, const bool bShouldApplyPaint, FStaticMeshLODResources& LODModel, const FVector& ActorSpaceCameraPosition, const FMatrix& ActorToWorldMatrix, FPrimitiveDrawInterface* PDI, const float VisualBiasDistance );
 
 	/** Paints mesh texture */
-	void PaintMeshTexture( UMeshComponent* MeshComponent, const FMeshPaintParameters& Params, const bool bShouldApplyPaint, const FVector& ActorSpaceCameraPosition, const FMatrix& ActorToWorldMatrix, const float ActorSpaceSquaredBrushRadius, const FVector& ActorSpaceBrushPosition, const class IMeshPaintGeometryAdapter& GeometryInfo );
+	void PaintMeshTexture( UMeshComponent* MeshComponent, const FMeshPaintParameters& Params, const bool bShouldApplyPaint, const FVector& ActorSpaceCameraPosition, const FMatrix& ActorToWorldMatrix, const float ActorSpaceSquaredBrushRadius, const FVector& ActorSpaceBrushPosition, const IMeshPaintGeometryAdapter& GeometryInfo );
 
 	/** Forces real-time perspective viewports */
 	void ForceRealTimeViewports( const bool bEnable, const bool bStoreCurrentState );
@@ -661,13 +656,13 @@ private:
 	void SetViewportShowFlags( const bool bAllowColorViewModes, FEditorViewportClient& Viewport );
 
 	/** Starts painting a texture */
-	void StartPaintingTexture( UMeshComponent* InMeshComponent );
+	void StartPaintingTexture(UMeshComponent* InMeshComponent, const IMeshPaintGeometryAdapter& GeometryInfo);
 
 	/** Paints on a texture */
 	void PaintTexture( const FMeshPaintParameters& InParams,
 					   const TArray< int32 >& InInfluencedTriangles,
 					   const FMatrix& InActorToWorldMatrix,
-					   const class IMeshPaintGeometryAdapter& GeometryInfo);
+					   const IMeshPaintGeometryAdapter& GeometryInfo);
 
 	/** Finishes painting a texture */
 	void FinishPaintingTexture();

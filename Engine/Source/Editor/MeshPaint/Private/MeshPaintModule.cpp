@@ -13,6 +13,26 @@
 //////////////////////////////////////////////////////////////////////////
 // IMeshPaintGeometryAdapter
 
+void IMeshPaintGeometryAdapter::DefaultApplyOrRemoveTextureOverride(UMeshComponent* InMeshComponent, UTexture* SourceTexture, UTexture* OverrideTexture)
+{
+	const ERHIFeatureLevel::Type FeatureLevel = InMeshComponent->GetWorld()->FeatureLevel;
+
+	// Check all the materials on the mesh to see if the user texture is there
+	int32 MaterialIndex = 0;
+	UMaterialInterface* MaterialToCheck = InMeshComponent->GetMaterial(MaterialIndex);
+	while (MaterialToCheck != nullptr)
+	{
+		const bool bIsTextureUsed = DoesMaterialUseTexture(MaterialToCheck, SourceTexture);
+		if (bIsTextureUsed)
+		{
+			MaterialToCheck->OverrideTexture(SourceTexture, OverrideTexture, FeatureLevel);
+		}
+
+		++MaterialIndex;
+		MaterialToCheck = InMeshComponent->GetMaterial(MaterialIndex);
+	}
+}
+
 void IMeshPaintGeometryAdapter::DefaultQueryPaintableTextures(int32 MaterialIndex, UMeshComponent* MeshComponent, int32& OutDefaultIndex, TArray<struct FPaintableTexture>& InOutTextureList)
 {
 	OutDefaultIndex = INDEX_NONE;

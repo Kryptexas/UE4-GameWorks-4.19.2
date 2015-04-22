@@ -235,6 +235,9 @@ void UPaperSpriteComponent::GetUsedTextures(TArray<UTexture*>& OutTextures, EMat
 		}
 	}
 
+	// Add any extra textures
+	//@TODO: 
+
 	// Get any textures referenced by our materials
 	Super::GetUsedTextures(OutTextures, QualityLevel);
 }
