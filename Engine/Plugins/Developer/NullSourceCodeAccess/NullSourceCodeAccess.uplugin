@@ -7,7 +7,7 @@
 	"CreatedByURL" : "/dev/null",
 	"EngineVersion" : "4.7.0",
 	"Description" : "Allows access to c++ projects while only looking for clang++",
-	"Category" : "Developer.Source Code Access",
+	"Category" : "Programming",
 	"EnabledByDefault" : true,
 	
 	"Modules" :
