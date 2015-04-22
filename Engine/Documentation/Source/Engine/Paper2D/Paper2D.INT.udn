@@ -26,6 +26,7 @@ Refer to each section below for more information and the **Paper 2D** map inside
 		* [](Engine\Paper2D\Flipbooks"%Engine\Paper2D\Flipbooks:description%")
 			* [](Engine/Paper2D/Flipbooks/Editor "%Engine/Paper2D/Flipbooks/Editor:description%")
 			* [](Engine\Paper2D\Flipbooks\Components "%Engine\Paper2D\Flipbooks\Components:description%")
+		* [](Engine\Paper2D\HowTo "%Engine\Paper2D\HowTo:description%")
 		* [](Engine\Paper2D\TileMaps"%Engine\Paper2D\TileMaps:description%")
 		* [](Engine\Paper2D\Importing"%Engine\Paper2D\Importing:description%")
 		* [](Resources/ContentExamples/Paper2D "%Resources/ContentExamples/Paper2D:description%")
