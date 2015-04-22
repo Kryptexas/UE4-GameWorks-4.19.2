@@ -78,12 +78,14 @@ private:
 	void ListReferencedObjects();
 	void ListObjectsThatReference();
 	void MakeCollectionWithReferencedAssets(ECollectionShareType::Type ShareType);
+	void ShowSizeMap();
 	void ShowReferenceTree();
 
 	void ReCenterGraphOnNodes(const TSet<UObject*>& Nodes);
 
 	UObject* GetObjectFromSingleSelectedNode() const;
 	bool HasExactlyOneNodeSelected() const;
+	bool HasAtLeastOneNodeSelected() const;
 
 	void OnInitialAssetRegistrySearchComplete();
 private:

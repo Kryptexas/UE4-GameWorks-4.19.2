@@ -54,6 +54,7 @@ public class UnrealEd : ModuleRules
 				"OutputLog",
 				"Landscape",
                 "Niagara",
+				"SizeMap",
 			}
 		);
 
@@ -127,6 +128,7 @@ public class UnrealEd : ModuleRules
 				"MeshPaint",
                 "Foliage",
                 "VectorVM",
+				"TreeMap",
 			}
 		);
 
@@ -198,6 +200,7 @@ public class UnrealEd : ModuleRules
 				"HotReload",
                 "IOSPlatformEditor",
 				"HTML5PlatformEditor",
+				"SizeMap",
 			}
 		);
 

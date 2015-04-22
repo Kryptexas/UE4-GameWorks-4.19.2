@@ -41,6 +41,7 @@
 #include "AnalyticsEventAttribute.h"
 #include "IAnalyticsProvider.h"
 #include "ReferenceViewer.h"
+#include "ISizeMapModule.h"
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
 #include "EditorClassUtils.h"
 #include "ComponentEditorUtils.h"
@@ -1051,6 +1052,38 @@ void FLevelEditorActionCallbacks::ViewReferences_Execute()
 }
 
 bool FLevelEditorActionCallbacks::CanViewReferences()
+{
+	TArray< UObject* > ReferencedAssets;
+	GEditor->GetReferencedAssetsForEditorSelection(ReferencedAssets);
+	return ReferencedAssets.Num() > 0;
+}
+
+void FLevelEditorActionCallbacks::ViewSizeMap_Execute()
+{
+	if( GEditor->GetSelectedActorCount() > 0 )
+	{
+		TArray< UObject* > ReferencedAssets;
+		GEditor->GetReferencedAssetsForEditorSelection( ReferencedAssets );
+
+		if (ReferencedAssets.Num() > 0)
+		{
+			TArray< FName > ViewableObjects;
+			for( auto ObjectIter = ReferencedAssets.CreateConstIterator(); ObjectIter; ++ObjectIter )
+			{
+				// Don't allow user to perform certain actions on objects that aren't actually assets (e.g. Level Script blueprint objects)
+				const auto EditingObject = *ObjectIter;
+				if( EditingObject != NULL && EditingObject->IsAsset() )
+				{
+					ViewableObjects.Add( EditingObject->GetOuter()->GetFName());
+				}
+			}
+
+			ISizeMapModule::Get().InvokeSizeMapTab(ViewableObjects);
+		}
+	}
+}
+
+bool FLevelEditorActionCallbacks::CanViewSizeMap()
 {
 	TArray< UObject* > ReferencedAssets;
 	GEditor->GetReferencedAssetsForEditorSelection(ReferencedAssets);

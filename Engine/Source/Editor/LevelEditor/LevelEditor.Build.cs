@@ -13,6 +13,7 @@ public class LevelEditor : ModuleRules
 				"MainFrame",
                 "PlacementMode",
 				"ReferenceViewer",
+				"SizeMap",
                 "IntroTutorials",
                 "AppFramework"
 			}
@@ -82,6 +83,7 @@ public class LevelEditor : ModuleRules
                 "PlacementMode",
 				"UserFeedback",
 				"ReferenceViewer",
+				"SizeMap",
                 "IntroTutorials"
 			}
 		);

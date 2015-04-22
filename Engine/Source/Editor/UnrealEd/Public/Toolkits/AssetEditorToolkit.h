@@ -232,6 +232,12 @@ private:
 	/** If true ViewReferences_Execute can be called, also caches ViewableObjects */
 	bool CanViewReferences();
 
+	/** Called when "View Size Map" is called for this asset */
+	void ViewSizeMap_Execute();
+
+	/** If true ViewSizeMap_Execute can be called, also caches ViewableObjects */
+	bool CanViewSizeMap();
+
 protected:
 
 	/** For standalone asset editing tool-kits that were switched from world-centric mode on the fly, this stores

@@ -13,6 +13,7 @@
 #include "Toolkits/ToolkitManager.h"
 #include "ConsolidateWindow.h"
 #include "ReferenceViewer.h"
+#include "ISizeMapModule.h"
 
 #include "ReferencedAssetsUtils.h"
 
@@ -445,6 +446,15 @@ bool FAssetContextMenu::AddReferenceMenuOptions(FMenuBuilder& MenuBuilder)
 			FSlateIcon(),
 			FUIAction(
 				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteShowReferenceViewer )
+				)
+			);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("SizeMap", "Size Map..."),
+			LOCTEXT("SizeMapTooltip", "Shows an interactive map of the approximate memory used by this asset and everything it references."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteShowSizeMap )
 				)
 			);
 	}
@@ -1324,6 +1334,20 @@ void FAssetContextMenu::ExecuteShowReferenceViewer()
 	if ( PackageNames.Num() > 0 )
 	{
 		IReferenceViewerModule::Get().InvokeReferenceViewerTab(PackageNames);
+	}
+}
+
+void FAssetContextMenu::ExecuteShowSizeMap()
+{
+	TArray<FName> PackageNames;
+	for ( auto AssetIt = SelectedAssets.CreateConstIterator(); AssetIt; ++AssetIt )
+	{
+		PackageNames.Add(AssetIt->PackageName);
+	}
+
+	if ( PackageNames.Num() > 0 )
+	{
+		ISizeMapModule::Get().InvokeSizeMapTab(PackageNames);
 	}
 }
 

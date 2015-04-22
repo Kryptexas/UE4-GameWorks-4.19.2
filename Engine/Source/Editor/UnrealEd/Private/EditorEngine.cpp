@@ -643,7 +643,10 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("SourceCodeAccess"),
 			TEXT("BehaviorTreeEditor"),
 			TEXT("HardwareTargeting"),
-			TEXT("LocalizationDashboard")
+			TEXT("LocalizationDashboard"),
+			TEXT("ReferenceViewer"),
+			TEXT("TreeMap"),
+			TEXT("SizeMap")
 		};
 
 		FScopedSlowTask ModuleSlowTask(ARRAY_COUNT(ModuleNames));

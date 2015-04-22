@@ -17,6 +17,7 @@ public class ContentBrowser : ModuleRules
 				"SourceControl",
 				"SourceControlWindows",
                 "ReferenceViewer",
+                "SizeMap",
 			}
 		);
 
@@ -49,7 +50,8 @@ public class ContentBrowser : ModuleRules
 				"EditorWidgets",
 				"GameProjectGeneration",
                 "MainFrame",
-                "ReferenceViewer"
+                "ReferenceViewer",
+                "SizeMap",
 			}
 		);
 		

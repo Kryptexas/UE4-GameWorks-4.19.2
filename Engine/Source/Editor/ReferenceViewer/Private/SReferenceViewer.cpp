@@ -8,6 +8,7 @@
 #include "ReferenceViewerActions.h"
 #include "EditorWidgets.h"
 #include "GlobalEditorCommonCommands.h"
+#include "ISizeMapModule.h"
 
 #include "Editor/UnrealEd/Public/ObjectTools.h"
 #include "Engine/Selection.h"
@@ -508,6 +509,11 @@ void SReferenceViewer::RegisterActions()
 		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOneNodeSelected));
 	
 	ReferenceViewerActions->MapAction(
+		FReferenceViewerActions::Get().ShowSizeMap,
+		FExecuteAction::CreateSP(this, &SReferenceViewer::ShowSizeMap),
+		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasAtLeastOneNodeSelected));
+
+	ReferenceViewerActions->MapAction(
 		FReferenceViewerActions::Get().ShowReferenceTree,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::ShowReferenceTree),
 		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOneNodeSelected));
@@ -581,6 +587,27 @@ void SReferenceViewer::MakeCollectionWithReferencedAssets(ECollectionShareType::
 	{
 		FString DefaultName = FText::Format(NSLOCTEXT("UnrealEd", "Resources", "{0}_Resources"), FText::FromString( SelectedObject->GetPathName())).ToString();
 		ObjectTools::ShowReferencedObjs(SelectedObject, DefaultName, ShareType);
+	}
+}
+
+void SReferenceViewer::ShowSizeMap()
+{
+	TArray<FName> SelectedAssetPackageNames;
+
+	TSet<UObject*> SelectedNodes = GraphEditorPtr->GetSelectedNodes();
+	if ( ensure(SelectedNodes.Num()) == 1 )
+	{
+		UEdGraphNode_Reference* ReferenceNode = Cast<UEdGraphNode_Reference>(SelectedNodes.Array()[0]);
+		if ( ReferenceNode )
+		{
+			const FAssetData& AssetData = ReferenceNode->GetAssetData();
+			SelectedAssetPackageNames.AddUnique( AssetData.PackageName );
+		}
+	}
+
+	if( SelectedAssetPackageNames.Num() > 0 )
+	{
+		ISizeMapModule::Get().InvokeSizeMapTab( SelectedAssetPackageNames );
 	}
 }
 
@@ -665,6 +692,16 @@ bool SReferenceViewer::HasExactlyOneNodeSelected() const
 	if ( GraphEditorPtr.IsValid() )
 	{
 		return GraphEditorPtr->GetSelectedNodes().Num() == 1;
+	}
+	
+	return false;
+}
+
+bool SReferenceViewer::HasAtLeastOneNodeSelected() const
+{
+	if ( GraphEditorPtr.IsValid() )
+	{
+		return GraphEditorPtr->GetSelectedNodes().Num() > 0;
 	}
 	
 	return false;

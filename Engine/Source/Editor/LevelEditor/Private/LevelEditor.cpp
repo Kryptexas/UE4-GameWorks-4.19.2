@@ -618,6 +618,12 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::CanViewReferences )
 		);
 
+	ActionList.MapAction( 
+		FGlobalEditorCommonCommands::Get().ViewSizeMap, 
+		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ViewSizeMap_Execute ),
+		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::CanViewSizeMap )
+		);
+
 	const FVector* NullVector = nullptr;
 	ActionList.MapAction(
 		Commands.GoHere,

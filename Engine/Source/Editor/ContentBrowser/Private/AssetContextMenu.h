@@ -155,6 +155,9 @@ private:
 	/** Handler for ShowReferenceViewer */
 	void ExecuteShowReferenceViewer();
 
+	/** Handler for ShowSizeMap */
+	void ExecuteShowSizeMap();
+
 	/** Handler for GoToAssetCode */
 	void ExecuteGoToCodeForAsset(UClass* SelectedClass);
 

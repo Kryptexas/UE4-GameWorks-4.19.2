@@ -790,6 +790,12 @@ public:
 	/** If true ViewReferences_Execute can be called */
 	static bool CanViewReferences();
 
+	/** Called when the ViewSizeMap command is executed */
+	static void ViewSizeMap_Execute();
+
+	/** If true ViewSizeMap_Execute can be called */
+	static bool CanViewSizeMap();
+
 	/** Called to when "Edit Asset" is clicked */
 	static void EditAsset_Clicked( const EToolkitMode::Type ToolkitMode, TWeakPtr< class SLevelEditor > LevelEditor, bool bAskMultiple );
 
