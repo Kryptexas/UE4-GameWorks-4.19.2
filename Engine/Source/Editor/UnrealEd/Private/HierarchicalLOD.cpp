@@ -614,13 +614,13 @@ void FLODCluster::BuildActor(class UWorld* InWorld, class ULevel* InLevel, const
 				{
 					FMeshMergingSettings MergeSetting;
 					MergeSetting.bMergeMaterials = true;
-					MeshUtilities.MergeActors(Actors, MergeSetting, AssetsPath + PackageName, OutAssets, OutProxyLocation, true );
+					MeshUtilities.MergeActors(Actors, MergeSetting, AssetsOuter, PackageName, OutAssets, OutProxyLocation, true );
 				}
 
-				// remove flags of RF_Public since we don't want these assets to be public
+				// this is ideally the way we should do, but 
 				for (auto& AssetIter : OutAssets)
 				{
-					AssetIter->ClearFlags(RF_Public);
+					AssetIter->ClearFlags(RF_Public | RF_Standalone);
 				}
 
 				UStaticMesh* MainMesh=NULL;

@@ -586,7 +586,7 @@ void SMeshMergingDialog::RunMerging()
 		
 	FVector MergedActorLocation;
 	TArray<UObject*> AssetsToSync;
-	MeshUtilities.MergeActors(Actors, MergingSettings, MergedMeshPackageName, AssetsToSync, MergedActorLocation);
+	MeshUtilities.MergeActors(Actors, MergingSettings, NULL, MergedMeshPackageName, AssetsToSync, MergedActorLocation);
 
 	if (AssetsToSync.Num())
 	{

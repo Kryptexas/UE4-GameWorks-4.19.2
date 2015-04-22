@@ -238,7 +238,8 @@ public:
 	virtual void MergeActors(
 		const TArray<AActor*>& SourceActors,
 		const FMeshMergingSettings& InSettings,
-		const FString& PackageName, 
+		UPackage* InOuter,
+		const FString& BasePackageName,
 		TArray<UObject*>& OutAssetsToSync, 
 		FVector& OutMergedActorLocation, 
 		bool bSilent=false) const = 0;
