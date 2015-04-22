@@ -23,6 +23,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogSceneComponent, Log, All);
 FOverlapInfo::FOverlapInfo(UPrimitiveComponent* InComponent, int32 InBodyIndex)
 	: bFromSweep(false)
 {
+	OverlapInfo.Actor = InComponent ? InComponent->GetOwner() : nullptr;
 	OverlapInfo.Component = InComponent;
 	OverlapInfo.Item = InBodyIndex;
 }
