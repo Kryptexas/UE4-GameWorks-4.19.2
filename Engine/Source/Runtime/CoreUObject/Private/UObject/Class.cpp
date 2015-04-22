@@ -1863,9 +1863,9 @@ UScriptStruct::UScriptStruct( EStaticConstructor, int32 InSize, EObjectFlags InF
 #if HACK_HEADER_GENERATOR
 	, StructMacroDeclaredLineNumber(INDEX_NONE)
 #endif
-	, CppStructOps(NULL)
 	, bCppStructOpsFromBaseClass(false)
 	, bPrepareCppStructOpsCompleted(false)
+	, CppStructOps(NULL)
 {
 }
 
@@ -1875,9 +1875,9 @@ UScriptStruct::UScriptStruct(const FObjectInitializer& ObjectInitializer, UScrip
 #if HACK_HEADER_GENERATOR
 	, StructMacroDeclaredLineNumber(INDEX_NONE)
 #endif
-	, CppStructOps(InCppStructOps)
 	, bCppStructOpsFromBaseClass(false)
 	, bPrepareCppStructOpsCompleted(false)
+	, CppStructOps(InCppStructOps)
 {
 	PrepareCppStructOps(); // propgate flags, etc
 }
@@ -1888,9 +1888,9 @@ UScriptStruct::UScriptStruct(const FObjectInitializer& ObjectInitializer)
 #if HACK_HEADER_GENERATOR
 	, StructMacroDeclaredLineNumber(INDEX_NONE)
 #endif
-	, CppStructOps(NULL)
 	, bCppStructOpsFromBaseClass(false)
 	, bPrepareCppStructOpsCompleted(false)
+	, CppStructOps(NULL)
 {
 }
 
@@ -3347,9 +3347,9 @@ bool UClass::HasProperty(UProperty* InProperty) const
  */
 UClass::UClass(const FObjectInitializer& ObjectInitializer)
 :	UStruct( ObjectInitializer )
+,	ClassUnique(0)
 ,	ClassFlags(0)
 ,	ClassCastFlags(0)
-,	ClassUnique(0)
 ,	ClassWithin( UObject::StaticClass() )
 ,	ClassGeneratedBy(NULL)
 ,	ClassDefaultObject(NULL)
@@ -3363,9 +3363,9 @@ UClass::UClass(const FObjectInitializer& ObjectInitializer)
  */
 UClass::UClass(const FObjectInitializer& ObjectInitializer, UClass* InBaseClass )
 :	UStruct( ObjectInitializer, InBaseClass )
+,	ClassUnique(0)
 ,	ClassFlags(0)
 ,	ClassCastFlags(0)
-,	ClassUnique(0)
 ,	ClassWithin( UObject::StaticClass() )
 ,	ClassGeneratedBy(NULL)
 ,	ClassDefaultObject(NULL)
@@ -3417,9 +3417,9 @@ UClass::UClass
 ,	ClassVTableHelperCtorCaller(InClassVTableHelperCtorCaller)
 #endif // WITH_HOT_RELOAD_CTORS
 ,	ClassAddReferencedObjects( InClassAddReferencedObjects )
+,	ClassUnique				( 0 )
 ,	ClassFlags				( InClassFlags | CLASS_Native )
 ,	ClassCastFlags			( InClassCastFlags )
-,	ClassUnique				( 0 )
 ,	ClassWithin				( NULL )
 ,	ClassGeneratedBy		( NULL )
 ,	ClassConfigName			()

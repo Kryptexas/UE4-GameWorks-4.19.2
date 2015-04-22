@@ -255,9 +255,10 @@ protected:
 public:
 	UField* Children;
 	int32 PropertiesSize;
-	TArray<uint8> Script;
 
 	int32 MinAlignment;
+	
+	TArray<uint8> Script;
 
 	/** In memory only: Linked list of properties from most-derived to base **/
 	UProperty* PropertyLink;
@@ -1005,12 +1006,12 @@ public:
 #endif
 
 private:
-	/** Holds the Cpp ctors and dtors, sizeof, etc. Is not owned by this and is not released. **/
-	ICppStructOps* CppStructOps;
 	/** true if these cpp ops are not for me, but rather this is an incomplete cpp ops from my base class. **/
 	bool bCppStructOpsFromBaseClass;
 	/** true if we have performed PrepareCppStructOps **/
 	bool bPrepareCppStructOpsCompleted;
+	/** Holds the Cpp ctors and dtors, sizeof, etc. Is not owned by this and is not released. **/
+	ICppStructOps* CppStructOps;
 public:
 
 	// UObject Interface
@@ -1801,14 +1802,14 @@ public:
 	/** Pointer to a static AddReferencedObjects method. */
 	ClassAddReferencedObjectsType ClassAddReferencedObjects;
 
+	// Class pseudo-unique counter; used to accelerate unique instance name generation
+	int32 ClassUnique;
+
 	// Class flags; See EClassFlags for more information
 	uint32 ClassFlags;
 
 	// Cast flags used to accelerate dynamic_cast<T*> on objects of this type for common T
 	EClassCastFlags ClassCastFlags;
-
-	// Class pseudo-unique counter; used to accelerate unique instance name generation
-	int32 ClassUnique;
 
 	// The required type for the outer of instances of this class.
 	UClass* ClassWithin;
@@ -1826,6 +1827,9 @@ public:
 
 	//
 	FName ClassConfigName;
+
+	// Used to check if the class was cooked or not.
+	bool bCooked;
 
 	// List of replication records
 	TArray<FRepRecord> ClassReps;
@@ -1863,9 +1867,6 @@ public:
 
 	// The class default object; used for delta serialization and object initialization
 	UObject* ClassDefaultObject;
-
-	// Used to check if the class was cooked or not.
-	bool bCooked;
 
 private:
 	/** Map of all functions by name contained in this state */
