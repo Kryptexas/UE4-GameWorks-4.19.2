@@ -141,6 +141,11 @@ public:
 	UPROPERTY()
 	TEnumAsByte<enum ETickingGroup> TickGroup;
 
+protected:
+	/** Internal data that indicates the tick group we actually executed in (it may have been delayed due to prerequisites) **/
+	TEnumAsByte<enum ETickingGroup> ActualTickGroup;
+
+public:
 	/** Bool indicating that this function should execute even if the game is paused. Pause ticks are very limited in capabilities. **/
 	UPROPERTY(EditDefaultsOnly, Category="Tick", AdvancedDisplay)
 	uint32 bTickEvenWhenPaused:1;
@@ -175,10 +180,6 @@ private:
 
 	/** Internal data to track if we have finshed visiting this tick function yet this frame **/
 	int32 TickQueuedGFrameCounter;
-
-protected:
-	/** Internal data that indicates the tick group we actually executed in (it may have been delayed due to prerequisites) **/
-	TEnumAsByte<enum ETickingGroup> ActualTickGroup;
 
 private:
 	/** Completion handle for the task that will run this tick. Caution, this is no reset to nullptr until an unspecified future time **/

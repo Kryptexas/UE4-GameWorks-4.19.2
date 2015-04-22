@@ -780,6 +780,7 @@ private:
 /** Default constructor, intitalizes to reasonable defaults **/
 FTickFunction::FTickFunction()
 	: TickGroup(TG_PrePhysics)
+	, ActualTickGroup(TG_PrePhysics)
 	, bTickEvenWhenPaused(false)
 	, bCanEverTick(false)
 	, bAllowTickOnDedicatedServer(true)
@@ -788,7 +789,6 @@ FTickFunction::FTickFunction()
 	, bTickEnabled(true)
 	, TickVisitedGFrameCounter(0)
 	, TickQueuedGFrameCounter(0)
-	, ActualTickGroup(TG_PrePhysics)
 	, EnableParent(NULL)
 	, TickTaskLevel(NULL)
 {

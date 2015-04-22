@@ -97,8 +97,17 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	/** Current transform of this component, relative to the world */
-	FTransform ComponentToWorld;
+	/** What we are currently attached to. If valid, RelativeLocation etc. are used relative to this object */
+	UPROPERTY(Replicated)
+	class USceneComponent* AttachParent;
+
+	/** List of child SceneComponents that are attached to us. */
+	UPROPERTY(transient)
+	TArray< USceneComponent* > AttachChildren;
+
+	/** Optional socket name on AttachParent that we are attached to. */
+	UPROPERTY(Replicated)
+	FName AttachSocketName;
 
 	/** if true, will call GetCustomLocation instead or returning the location part of ComponentToWorld */
 	UPROPERTY()
@@ -158,35 +167,19 @@ protected:
 	// Transient flag that temporarily disables UpdateOverlaps within DetachFromParent().
 	uint32 bDisableDetachmentUpdateOverlaps:1;
 
-#if WITH_EDITORONLY_DATA
-protected:
-	/** Editor only component used to display the sprite so as to be able to see the location of the Audio Component  */
-	class UBillboardComponent* SpriteComponent;
+	/** Physics Volume in which this SceneComponent is located **/
+	UPROPERTY(transient)
+	class APhysicsVolume* PhysicsVolume;
 
 public:
-	UPROPERTY()
-	uint32 bVisualizeComponent:1;
-#endif
-
-public:
-	/** How often this component is allowed to move, used to make various optimizations. Only safe to set in constructor, use SetMobility() during runtime. */
-	UPROPERTY(Category=Mobility, EditAnywhere, BlueprintReadOnly)
-	TEnumAsByte<EComponentMobility::Type> Mobility;
+	/** Current transform of this component, relative to the world */
+	FTransform ComponentToWorld;
 
 	/** Current bounds of this component */
 	FBoxSphereBounds Bounds;
 
-	/** What we are currently attached to. If valid, RelativeLocation etc. are used relative to this object */
-	UPROPERTY(Replicated)
-	class USceneComponent* AttachParent;
-
-	/** Optional socket name on AttachParent that we are attached to. */
-	UPROPERTY(Replicated)
-	FName AttachSocketName;
-
-	/** List of child SceneComponents that are attached to us. */
-	UPROPERTY(transient)
-	TArray< USceneComponent* > AttachChildren;
+	UPROPERTY()
+	FVector RelativeTranslation_DEPRECATED;
 
 	/** Location of this component relative to its parent */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_Transform, Category = Transform)
@@ -196,8 +189,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_Transform, Category=Transform)
 	FRotator RelativeRotation;
 
-	UPROPERTY()
-	FVector RelativeTranslation_DEPRECATED;
+	/** How often this component is allowed to move, used to make various optimizations. Only safe to set in constructor, use SetMobility() during runtime. */
+	UPROPERTY(Category = Mobility, EditAnywhere, BlueprintReadOnly)
+	TEnumAsByte<EComponentMobility::Type> Mobility;
 
 	/** If detail mode is >= system detail mode, primitive won't be rendered. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=LOD)
@@ -207,8 +201,8 @@ private:
 
 	bool NetUpdateTransform;
 
-	USceneComponent *NetOldAttachParent;
 	FName NetOldAttachSocketName;
+	USceneComponent *NetOldAttachParent;
 
 	UFUNCTION()
 	void OnRep_Transform();
@@ -235,14 +229,7 @@ public:
 	UPROPERTY()
 	FVector ComponentVelocity;
 
-protected:
-
-	/** Physics Volume in which this SceneComponent is located **/
-	UPROPERTY(transient)
-	class APhysicsVolume* PhysicsVolume;
-
 public:
-
 	/** Set the location of this component relative to its parent */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="SetRelativeLocation"))
 	void K2_SetRelativeLocation(FVector NewLocation, bool bSweep, FHitResult& SweepHitResult);
@@ -610,6 +597,16 @@ private:
 	void EndScopedMovementUpdate(class FScopedMovementUpdate& ScopedUpdate);
 
 	friend class FScopedMovementUpdate;
+
+#if WITH_EDITORONLY_DATA
+protected:
+	/** Editor only component used to display the sprite so as to be able to see the location of the Audio Component  */
+	class UBillboardComponent* SpriteComponent;
+
+public:
+	UPROPERTY()
+	uint32 bVisualizeComponent : 1;
+#endif
 
 public:
 
