@@ -2,7 +2,6 @@
 
 
 #include "GameProjectGenerationPrivatePCH.h"
-
 #include "FeaturedClasses.inl"
 
 #include "UnrealEdMisc.h"

@@ -6,6 +6,9 @@ public class GameProjectGeneration : ModuleRules
 {
     public GameProjectGeneration(TargetInfo Target)
 	{
+        PrivateIncludePaths.AddRange(new string[] { "GameProjectGeneration/Private", "GameProjectGeneration/Public", "GameProjectGeneration/Classes" });
+
+
         PrivateIncludePathModuleNames.AddRange(
             new string[] {
 				"AssetRegistry",

@@ -6,6 +6,8 @@
 
 struct FModuleContextInfo;
 struct FAddToProjectConfig;
+struct FNewClassInfo;
+class UTemplateProjectDefs;
 enum class EClassDomain : uint8;
 
 struct FProjectInformation
@@ -31,7 +33,7 @@ struct FProjectInformation
 
 DECLARE_DELEGATE_RetVal_OneParam(bool, FProjectDescriptorModifier, FProjectDescriptor&);
 
-class GameProjectUtils
+class GAMEPROJECTGENERATION_API GameProjectUtils
 {
 public:
 	/** Where is this class located within the Source folder? */
@@ -218,6 +220,19 @@ public:
 
 	/** Returns the contents of the specified template file */
 	static bool ReadTemplateFile(const FString& TemplateFileName, FString& OutFileContents, FText& OutFailReason);
+	
+	/** Writes an output file. OutputFilename includes a path */
+	static bool WriteOutputFile(const FString& OutputFilename, const FString& OutputFileContents, FText& OutFailReason);
+
+	/** Returns a comma delimited string comprised of all the elements in InList. If bPlaceQuotesAroundEveryElement, every element is within quotes. */
+	static FString MakeCommaDelimitedList(const TArray<FString>& InList, bool bPlaceQuotesAroundEveryElement = true);
+
+	/** Checks the name for illegal characters */
+	static bool NameContainsOnlyLegalCharacters(const FString& TestName, FString& OutIllegalCharacters);
+
+	/** Returns a list of #include lines formed from InList */
+	static FString MakeIncludeList(const TArray<FString>& InList);
+
 private:
 
 	static FString GetHardwareConfigString(const FProjectInformation& InProjectInfo);
@@ -239,9 +254,6 @@ private:
 
 	/** Returns the template defs ini filename */
 	static FString GetTemplateDefsFilename();
-
-	/** Checks the name for illegal characters */
-	static bool NameContainsOnlyLegalCharacters(const FString& TestName, FString& OutIllegalCharacters);
 
 	/** Checks the name for an underscore and the existence of XB1 XDK */
 	static bool NameContainsUnderscoreAndXB1Installed(const FString& TestName);
@@ -279,17 +291,8 @@ private:
 	/** Creates the batch file for launching the editor or game */
 	static bool GenerateLaunchBatchFile(const FString& ProjectName, const FString& ProjectFolder, bool bLaunchEditor, TArray<FString>& OutCreatedFiles, FText& OutFailReason);
 
-	/** Writes an output file. OutputFilename includes a path */
-	static bool WriteOutputFile(const FString& OutputFilename, const FString& OutputFileContents, FText& OutFailReason);
-
 	/** Returns the copyright line used at the top of all files */
 	static FString MakeCopyrightLine();
-
-	/** Returns a comma delimited string comprised of all the elements in InList. If bPlaceQuotesAroundEveryElement, every element is within quotes. */
-	static FString MakeCommaDelimitedList(const TArray<FString>& InList, bool bPlaceQuotesAroundEveryElement = true);
-
-	/** Returns a list of #include lines formed from InList */
-	static FString MakeIncludeList(const TArray<FString>& InList);
 
 	/** Generates a header file for a UObject class. OutSyncLocation is a string representing the preferred cursor sync location for this file after creation. */
 	static bool GenerateClassHeaderFile(const FString& NewHeaderFileName, const FString UnPrefixedClassName, const FNewClassInfo ParentClassInfo, const TArray<FString>& ClassSpecifierList, const FString& ClassProperties, const FString& ClassFunctionDeclarations, FString& OutSyncLocation, const FModuleContextInfo& ModuleInfo, bool bDeclareConstructor, FText& OutFailReason);

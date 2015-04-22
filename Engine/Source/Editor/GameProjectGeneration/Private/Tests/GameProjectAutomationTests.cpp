@@ -4,7 +4,7 @@
 
 #include "DesktopPlatformModule.h"
 #include "TargetPlatform.h"
-#include "../GameProjectUtils.h"
+#include "GameProjectUtils.h"
 #include "Tests/AutomationTestSettings.h"
 #include "AutomationEditorCommon.h"
 #include "GameFramework/PlayerStart.h"
