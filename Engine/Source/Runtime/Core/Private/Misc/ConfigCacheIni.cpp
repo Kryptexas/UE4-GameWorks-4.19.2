@@ -20,7 +20,7 @@
 DEFINE_LOG_CATEGORY(LogConfig);
 namespace 
 {
-	FString GenerateHierarchyCacheKey(const TArray<FIniFilename>& IniHierarchy, const FString& IniPath, const FString& BaseIniName)
+	FString GenerateHierarchyCacheKey(const FConfigFileHierarchy& IniHierarchy, const FString& IniPath, const FString& BaseIniName)
 	{
 #if !INI_CACHE
 		return TEXT("");
@@ -32,13 +32,13 @@ namespace
 		KeyLen += BaseIniName.Len();
 		for (const auto& Ini : IniHierarchy)
 		{
-			KeyLen += Ini.Filename.Len();
+			KeyLen += Ini.Value.Filename.Len();
 		}
 		HierKey.Reserve(KeyLen);
 		HierKey += BaseIniName;
 		for (const auto& Ini : IniHierarchy)
 		{
-			HierKey += Ini.Filename;
+			HierKey += Ini.Value.Filename;
 		}
 		HierKey += IniPath;
 
@@ -669,7 +669,7 @@ static void OverrideFromCommandline(FConfigFile* File, const FString& Filename)
  * @param ConfigFile - This is the FConfigFile which will have the contents of the .ini loaded into and Combined()
  *
  **/
-static bool LoadIniFileHierarchy(const TArray<FIniFilename>& HierarchyToLoad, FConfigFile& ConfigFile, const bool bUseCache)
+static bool LoadIniFileHierarchy(const FConfigFileHierarchy& HierarchyToLoad, FConfigFile& ConfigFile, const bool bUseCache)
 {
 	// This shouldn't be getting called if seekfree is enabled on console.
 	check(!GUseSeekFreeLoading || !FPlatformProperties::RequiresCookedData());
@@ -684,9 +684,9 @@ static bool LoadIniFileHierarchy(const TArray<FIniFilename>& HierarchyToLoad, FC
 	{
 		// If no inis exist or only engine (Base*.ini) inis exist, don't load anything
 		int32 NumExistingOptionalInis = 0;
-		for( int32 IniIndex = 0; IniIndex < HierarchyToLoad.Num(); IniIndex++ )
+		for( const auto& HierarchyIt : HierarchyToLoad )
 		{
-			const FIniFilename& IniToLoad = HierarchyToLoad[ IniIndex ];
+			const FIniFilename& IniToLoad = HierarchyIt.Value;
 			if (IniToLoad.bRequired == false &&
 				 (!IsUsingLocalIniFile(*IniToLoad.Filename, NULL) || IFileManager::Get().FileSize(*IniToLoad.Filename) >= 0))
 			{
@@ -700,16 +700,16 @@ static bool LoadIniFileHierarchy(const TArray<FIniFilename>& HierarchyToLoad, FC
 		}
 	}
 
-	int32 FirstCacheIndex = 0;
+	EConfigFileHierarchy FirstCacheIndex = EConfigFileHierarchy::AbsoluteBase;
 #if INI_CACHE
-	if ( bUseCache )
+	if (bUseCache && HierarchyCache.Num() > 0)
 	{
 		// Find the last value in the hierarchy that is cached. We can start the load from there
-		for( int32 IniIndex = 0; IniIndex < HierarchyToLoad.Num(); IniIndex++ )
+		for (auto& HierarchyIt : HierarchyToLoad)
 		{
-			if (HierarchyCache.Find(HierarchyToLoad[IniIndex].CacheKey)) 
+			if (HierarchyCache.Find(HierarchyIt.Value.CacheKey)) 
 			{
-				FirstCacheIndex = IniIndex;
+				FirstCacheIndex = HierarchyIt.Key;
 			}
 		}
 	}
@@ -718,65 +718,66 @@ static bool LoadIniFileHierarchy(const TArray<FIniFilename>& HierarchyToLoad, FC
 	TArray<FDateTime> TimestampsOfInis;
 
 	// Traverse ini list back to front, merging along the way.
-	for( int32 IniIndex = FirstCacheIndex; IniIndex < HierarchyToLoad.Num(); IniIndex++ )
+	for (auto& HierarchyIt : HierarchyToLoad)
 	{
-		const FIniFilename& IniToLoad = HierarchyToLoad[ IniIndex ];
-		const FString& IniFileName = IniToLoad.Filename;
-		bool bDoProcess = true;
+		if (FirstCacheIndex <= HierarchyIt.Key)
+		{
+			const FIniFilename& IniToLoad = HierarchyIt.Value;
+			const FString& IniFileName = IniToLoad.Filename;
+			bool bDoProcess = true;
 #if INI_CACHE
-		bool bShouldCache = IniToLoad.CacheKey.Len() > 0;
-		bShouldCache &= bUseCache;
-		if ( bShouldCache ) // if we are forcing a load don't mess with the cache
-		{
-			auto* CachedConfigFile = HierarchyCache.Find(IniToLoad.CacheKey);
-			if (CachedConfigFile) 
+			bool bShouldCache = IniToLoad.CacheKey.Len() > 0;
+			bShouldCache &= bUseCache;
+			if ( bShouldCache ) // if we are forcing a load don't mess with the cache
 			{
-				ConfigFile = *CachedConfigFile;
-				bDoProcess = false;
-			}
-			ConfigFile.CacheKey = IniToLoad.CacheKey;
-		}
-		else
-		{
-			ConfigFile.CacheKey = TEXT("");
-		}
-#endif
-		if (bDoProcess)
-		{
-			// Spit out friendly error if there was a problem locating .inis (e.g. bad command line parameter or missing folder, ...).
-			if (IsUsingLocalIniFile(*IniFileName, NULL) && (IFileManager::Get().FileSize(*IniFileName) < 0))
-			{
-				if (IniToLoad.bRequired)
+				auto* CachedConfigFile = HierarchyCache.Find(IniToLoad.CacheKey);
+				if (CachedConfigFile) 
 				{
-					//UE_LOG(LogConfig, Error, TEXT("Couldn't locate '%s' which is required to run '%s'"), *IniToLoad.Filename, FApp::GetGameName() );
-					return false;
+					ConfigFile = *CachedConfigFile;
+					bDoProcess = false;
 				}
-				else
+				ConfigFile.CacheKey = IniToLoad.CacheKey;
+			}
+			else
+			{
+				ConfigFile.CacheKey = TEXT("");
+			}
+#endif
+			if (bDoProcess)
+			{
+				// Spit out friendly error if there was a problem locating .inis (e.g. bad command line parameter or missing folder, ...).
+				if (IsUsingLocalIniFile(*IniFileName, NULL) && (IFileManager::Get().FileSize(*IniFileName) < 0))
 				{
-#if INI_CACHE
-					// missing file just add the current config file to the cache
-					if ( bShouldCache )
+					if (IniToLoad.bRequired)
 					{
-							HierarchyCache.Add(IniToLoad.CacheKey, ConfigFile);
+						//UE_LOG(LogConfig, Error, TEXT("Couldn't locate '%s' which is required to run '%s'"), *IniToLoad.Filename, FApp::GetGameName() );
+						return false;
 					}
-#endif
-					continue;
-				}
-			}
-
-			bool bDoEmptyConfig = false;
-			bool bDoCombine = (IniIndex != 0);
-			//UE_LOG(LogConfig, Log,  TEXT( "Combining configFile: %s" ), *IniList(IniIndex) );
-			ProcessIniContents(*HierarchyToLoad.Last().Filename, *IniFileName, &ConfigFile, bDoEmptyConfig, bDoCombine);
+					else
+					{
 #if INI_CACHE
-			if ( bShouldCache )
-			{
-				HierarchyCache.Add(IniToLoad.CacheKey, ConfigFile);
-			}
+						// missing file just add the current config file to the cache
+						if ( bShouldCache )
+						{
+								HierarchyCache.Add(IniToLoad.CacheKey, ConfigFile);
+						}
 #endif
+						continue;
+					}
+				}
+
+				bool bDoEmptyConfig = false;
+				bool bDoCombine = (HierarchyIt.Key != EConfigFileHierarchy::AbsoluteBase);
+				//UE_LOG(LogConfig, Log,  TEXT( "Combining configFile: %s" ), *IniList(IniIndex) );
+				ProcessIniContents(*(HierarchyIt.Value.Filename), *IniFileName, &ConfigFile, bDoEmptyConfig, bDoCombine);
+#if INI_CACHE
+				if ( bShouldCache )
+				{
+					HierarchyCache.Add(IniToLoad.CacheKey, ConfigFile);
+				}
+#endif
+			}
 		}
-
-
 	}
 
 	// Set this configs files source ini hierarchy to show where it was loaded from.
@@ -1289,12 +1290,21 @@ void FConfigFile::ProcessPropertyAndWriteForDefaults( const TArray< FString >& I
 		{
 			// Build a config file out of this default configs hierarchy.
 			FConfigCacheIni Hierarchy(EConfigCacheType::Temporary);
-			const FString& LastFileInHierarchy = SourceIniHierarchy.Last().Filename;
 
-			FConfigFile& DefaultConfigFile = Hierarchy.Add(LastFileInHierarchy, FConfigFile());
-			for (TArray<FIniFilename>::TIterator HierarchyFileIt(SourceIniHierarchy); HierarchyFileIt; ++HierarchyFileIt)
+			EConfigFileHierarchy HighestFileIndex = EConfigFileHierarchy::AbsoluteBase;
+			TArray<EConfigFileHierarchy> ExistingEntries;
+			SourceIniHierarchy.GetKeys(ExistingEntries);
+			for (const EConfigFileHierarchy& NextEntry : ExistingEntries)
 			{
-				DefaultConfigFile.Combine(HierarchyFileIt->Filename);
+				HighestFileIndex = NextEntry > HighestFileIndex ? NextEntry : HighestFileIndex;
+			}
+
+			const FString& LastFileInHierarchy = SourceIniHierarchy.FindChecked(HighestFileIndex).Filename;
+			FConfigFile& DefaultConfigFile = Hierarchy.Add(LastFileInHierarchy, FConfigFile());
+
+			for (const auto& HierarchyFileIt : SourceIniHierarchy)
+			{
+				DefaultConfigFile.Combine(HierarchyFileIt.Value.Filename);
 			}
 
 			// Remove any array elements from the default configs hierearchy, we will add these in below
@@ -2580,7 +2590,7 @@ static void LoadAnIniFile(const FString& FilenameToLoad, FConfigFile& ConfigFile
  * @param DestIniFilename			The name of the destination .ini file - it's loaded and checked against source (e.g. Engine.ini)
  * @param SourceIniFilename			The name of the source .ini file (e.g. DefaultEngine.ini)
  */
-static bool GenerateDestIniFile(FConfigFile& DestConfigFile, const FString& DestIniFilename, const TArray<FIniFilename>& SourceIniHierarchy, bool bAllowGeneratedINIs, const bool bUseHierarchyCache)
+static bool GenerateDestIniFile(FConfigFile& DestConfigFile, const FString& DestIniFilename, const FConfigFileHierarchy& SourceIniHierarchy, bool bAllowGeneratedINIs, const bool bUseHierarchyCache)
 {
 	bool bResult = LoadIniFileHierarchy(SourceIniHierarchy, *DestConfigFile.SourceConfigFile, bUseHierarchyCache);
 	if ( bResult == false )
@@ -2718,9 +2728,8 @@ static FString GetSourceIniFilename(const TCHAR* ConfigDir, const TCHAR* Prefix,
  * @param InPlatformName Platform name, NULL means to use the current platform
  * @param OutHierarchy An array which is to receive the generated hierachy of ini filenames.
  */
-static void GetSourceIniHierarchyFilenames(const TCHAR* InBaseIniName, const TCHAR* InPlatformName, const TCHAR* EngineConfigDir, const TCHAR* SourceConfigDir, TArray<FIniFilename>& OutHierarchy, bool bRequireDefaultIni)
+static void GetSourceIniHierarchyFilenames(const TCHAR* InBaseIniName, const TCHAR* InPlatformName, const TCHAR* EngineConfigDir, const TCHAR* SourceConfigDir, FConfigFileHierarchy& OutHierarchy, bool bRequireDefaultIni)
 {
-	
 	/**************************************************
 	 **** CRITICAL NOTES
 	 **** If you change this function, you need to also change EnumerateCrossPlatformIniFileNames() in EngineConfiguration.cs!!!
@@ -2730,11 +2739,11 @@ static void GetSourceIniHierarchyFilenames(const TCHAR* InBaseIniName, const TCH
 
 	// [[[[ ENGINE DEFAULTS ]]]]
 	// Engine/Config/Base.ini (included in every ini type, required)
-	OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%sBase.ini"), EngineConfigDir), true) );
+	OutHierarchy.Add(EConfigFileHierarchy::AbsoluteBase, FIniFilename(FString::Printf(TEXT("%sBase.ini"), EngineConfigDir), true));
 	// Engine/Config/Base* ini
-	OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%sBase%s.ini"), EngineConfigDir, InBaseIniName), false) );
+	OutHierarchy.Add(EConfigFileHierarchy::EngineDirBase, FIniFilename(FString::Printf(TEXT("%sBase%s.ini"), EngineConfigDir, InBaseIniName), false));
 	// Engine/Config/NotForLicensees/Base* ini
-	OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%sNotForLicensees/Base%s.ini"), EngineConfigDir, InBaseIniName), false) );
+	OutHierarchy.Add(EConfigFileHierarchy::EngineDirBase_NotForLicensees, FIniFilename(FString::Printf(TEXT("%sNotForLicensees/Base%s.ini"), EngineConfigDir, InBaseIniName), false));
 	// Engine/Config/NoRedist/Base* ini
 	/////
 	// NOTE: 4.7
@@ -2750,46 +2759,48 @@ static void GetSourceIniHierarchyFilenames(const TCHAR* InBaseIniName, const TCH
 
 	// [[[[ PROJECT SETTINGS ]]]]
 	// Game/Config/Default* ini
-	OutHierarchy.Add(FIniFilename(GetSourceIniFilename(SourceConfigDir, TEXT("Default"), InBaseIniName), bRequireDefaultIni));
+	OutHierarchy.Add(EConfigFileHierarchy::GameDirDefault, FIniFilename(GetSourceIniFilename(SourceConfigDir, TEXT("Default"), InBaseIniName), bRequireDefaultIni));
 	// Game/Config/DedicatedServer* ini (knowingly NOT in EngineConfiguration.cs because this is a runtime only check)
 	if (IsRunningDedicatedServer())
 	{
-		OutHierarchy.Add(FIniFilename(FString::Printf(TEXT("%s/DedicatedServer%s.ini"), SourceConfigDir, InBaseIniName), false));
+		OutHierarchy.Add(EConfigFileHierarchy::GameDirDedicatedServer, FIniFilename(FString::Printf(TEXT("%s/DedicatedServer%s.ini"), SourceConfigDir, InBaseIniName), false));
 	}
 	// Game/Config/NotForLicensees/Default* ini
-	OutHierarchy.Add(FIniFilename(FString::Printf(TEXT("%sNotForLicensees/Default%s.ini"), SourceConfigDir, InBaseIniName), false));
+	OutHierarchy.Add(EConfigFileHierarchy::GameDirDefault_NotForLicensees, FIniFilename(FString::Printf(TEXT("%sNotForLicensees/Default%s.ini"), SourceConfigDir, InBaseIniName), false));
 	// Game/Config/NoRedist/Default* ini (Checkpointed here before the platform ini divergence)
 	FString HierarchyCheckpointPath = FString::Printf(TEXT("%sNoRedist/Default%s.ini"), SourceConfigDir, InBaseIniName);
-	OutHierarchy.Add(FIniFilename(HierarchyCheckpointPath, false, GenerateHierarchyCacheKey(OutHierarchy, HierarchyCheckpointPath, InBaseIniName)));
+	OutHierarchy.Add(EConfigFileHierarchy::GameDirDefault_NoRedist, FIniFilename(HierarchyCheckpointPath, false, GenerateHierarchyCacheKey(OutHierarchy, HierarchyCheckpointPath, InBaseIniName)));
 	
 	if (PlatformName.Len() > 0)
 	{
 		// [[[[ PLATFORM DEFAULTS AND PROJECT SETTINGS ]]]]
 		// Engine/Config/Platform/Platform* ini
-		OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%s%s/%s%s.ini"), EngineConfigDir, *PlatformName, *PlatformName, InBaseIniName), false) );
+		OutHierarchy.Add(EConfigFileHierarchy::EngineDir_Platform, FIniFilename(FString::Printf(TEXT("%s%s/%s%s.ini"), EngineConfigDir, *PlatformName, *PlatformName, InBaseIniName), false));
 		// Engine/Config/NotForLicensees/Platform/Platform* ini
-		OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%sNotForLicensees/%s/%s%s.ini"), EngineConfigDir, *PlatformName, *PlatformName, InBaseIniName), false) );
+		OutHierarchy.Add(EConfigFileHierarchy::EngineDir_Platform_NotForLicensees, FIniFilename(FString::Printf(TEXT("%sNotForLicensees/%s/%s%s.ini"), EngineConfigDir, *PlatformName, *PlatformName, InBaseIniName), false));
 		// Engine/Config/NoRedist/Platform/Platform* ini
-		OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%sNoRedist/%s/%s%s.ini"), EngineConfigDir, *PlatformName, *PlatformName, InBaseIniName), false) );
+		OutHierarchy.Add(EConfigFileHierarchy::EngineDir_Platform_NoRedist, FIniFilename(FString::Printf(TEXT("%sNoRedist/%s/%s%s.ini"), EngineConfigDir, *PlatformName, *PlatformName, InBaseIniName), false));
 		// Game/Config/Platform/Platform* ini
-		OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%s%s/%s%s.ini"), SourceConfigDir, *PlatformName, *PlatformName, InBaseIniName), false) );
+		OutHierarchy.Add(EConfigFileHierarchy::GameDir_Platform, FIniFilename(FString::Printf(TEXT("%s%s/%s%s.ini"), SourceConfigDir, *PlatformName, *PlatformName, InBaseIniName), false));
 		// Game/Config/NotForLicensee/Platform/Platform* ini
-		OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%sNotForLicensees/%s/%s%s.ini"), SourceConfigDir, *PlatformName, *PlatformName, InBaseIniName), false) );
+		OutHierarchy.Add(EConfigFileHierarchy::GameDir_Platform_NotForLicensees, FIniFilename(FString::Printf(TEXT("%sNotForLicensees/%s/%s%s.ini"), SourceConfigDir, *PlatformName, *PlatformName, InBaseIniName), false));
 		// Game/Config/NoRedist/Platform/Platform* ini
-		OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%sNoRedist/%s/%s%s.ini"), SourceConfigDir, *PlatformName, *PlatformName, InBaseIniName), false) );
+		OutHierarchy.Add(EConfigFileHierarchy::GameDir_Platform_NoRedist, FIniFilename(FString::Printf(TEXT("%sNoRedist/%s/%s%s.ini"), SourceConfigDir, *PlatformName, *PlatformName, InBaseIniName), false));
 	}
 
 	// [[[[ GLOBAL USER OVERRIDES ]]]]
 	// <AppData>/UE4/EngineConfig/User* ini
-	OutHierarchy.Add(FIniFilename(FPaths::Combine(FPlatformProcess::UserSettingsDir(), *FString::Printf(TEXT("Unreal Engine/Engine/Config/User%s.ini"), InBaseIniName)), false));
+	OutHierarchy.Add(EConfigFileHierarchy::UserSettingsDir_EngineDir_User, FIniFilename(FPaths::Combine(FPlatformProcess::UserSettingsDir(), *FString::Printf(TEXT("Unreal Engine/Engine/Config/User%s.ini"), InBaseIniName)), false));
 	// <Documents>/UE4/EngineConfig/User* ini
-	OutHierarchy.Add(FIniFilename(FPaths::Combine(FPlatformProcess::UserDir(), *FString::Printf(TEXT("Unreal Engine/Engine/Config/User%s.ini"), InBaseIniName)), false));
+	OutHierarchy.Add(EConfigFileHierarchy::UserDir_User, FIniFilename(FPaths::Combine(FPlatformProcess::UserDir(), *FString::Printf(TEXT("Unreal Engine/Engine/Config/User%s.ini"), InBaseIniName)), false));
 
 	// [[[[ PROJECT USER OVERRIDES ]]]]
 	// Game/Config/User* ini (Checkpointed here at the end)
 	HierarchyCheckpointPath = FString::Printf(TEXT("%sUser%s.ini"), SourceConfigDir, InBaseIniName);
-	OutHierarchy.Add(FIniFilename(HierarchyCheckpointPath, false, GenerateHierarchyCacheKey(OutHierarchy, HierarchyCheckpointPath, InBaseIniName)));
-	
+	OutHierarchy.Add(EConfigFileHierarchy::GameDir_User, FIniFilename(HierarchyCheckpointPath, false, GenerateHierarchyCacheKey(OutHierarchy, HierarchyCheckpointPath, InBaseIniName)));
+
+	// Ensure the hierarchy is in the correct order.
+	OutHierarchy.KeySort([](const EConfigFileHierarchy& A, const EConfigFileHierarchy& B) { return (A < B); });
 }
 
 /**
@@ -3122,11 +3133,15 @@ void FConfigFile::UpdateSections(const TCHAR* DiskFilename, const TCHAR* IniRoot
 		GetSourceIniHierarchyFilenames(IniRootName, NULL, *FPaths::EngineConfigDir(), *FPaths::SourceConfigDir(), SourceIniHierarchy, false);
 
 		// now chop off this file and any after it
-		for (int32 FileIndex = 0; FileIndex < SourceIniHierarchy.Num(); FileIndex++)
+		for (auto& HierarchyFileIt : SourceIniHierarchy)
 		{
-			if (SourceIniHierarchy[FileIndex].Filename == DiskFilename)
+			if (HierarchyFileIt.Value.Filename == DiskFilename)
 			{
-				SourceIniHierarchy.RemoveAt(FileIndex, SourceIniHierarchy.Num() - FileIndex);
+				for (uint32 FileIdx = (uint32)HierarchyFileIt.Key; FileIdx < (uint32)EConfigFileHierarchy::NumHierarchyFiles; FileIdx++)
+				{
+					SourceIniHierarchy.Remove((EConfigFileHierarchy)FileIdx);
+				}
+
 				break;
 			}
 		}

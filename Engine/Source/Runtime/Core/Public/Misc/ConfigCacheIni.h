@@ -50,6 +50,53 @@ struct FConfigCommandlineOverride
 };
 #endif // !UE_BUILD_SHIPPING
 
+// Possible entries in a config hierarchy
+enum class EConfigFileHierarchy : uint8
+{
+	// Engine/Config/Base.ini
+	AbsoluteBase = 0,
+
+	// Engine/Config/*.ini
+	EngineDirBase,
+	// Engine/Config/NotForLicensees/*.ini
+	EngineDirBase_NotForLicensees,
+	// Engine/Config/NoRedist/*.ini -Not supported at this time.
+	EngineDirBase_NoRedist,
+
+	// Game/Config/*.ini
+	GameDirDefault,
+	// Game/Config/DedicatedServer*.ini
+	GameDirDedicatedServer,
+	// Game/Config/NotForLicensees/*.ini
+	GameDirDefault_NotForLicensees,
+	// Game/Config/NoRedist*.ini
+	GameDirDefault_NoRedist,
+
+	// Engine/Config/PlatformName/PlatformName*.ini
+	EngineDir_Platform,
+	// Engine/Config/NotForLicensees/PlatformName/PlatformName*.ini
+	EngineDir_Platform_NotForLicensees,
+	// Engine/Config/NoRedist/PlatformName/PlatformName*.ini
+	EngineDir_Platform_NoRedist,
+
+	// Game/Config/PlatformName/PlatformName*.ini
+	GameDir_Platform,
+	// Game/Config/NotForLicensees/PlatformName/PlatformName*.ini
+	GameDir_Platform_NotForLicensees,
+	// Game/Config/NoRedist/PlatformName/PlatformName*.ini
+	GameDir_Platform_NoRedist,
+
+	// <UserSettingsDir|AppData>/Unreal Engine/Engine/Config/User*.ini
+	UserSettingsDir_EngineDir_User,
+	// <UserDir|Documents>/Unreal Engine/Engine/Config/User*.ini
+	UserDir_User,
+	// Game/Config/User*.ini
+	GameDir_User,
+
+	// Number of config files in hierarchy.
+	NumHierarchyFiles,
+};
+typedef TMap<EConfigFileHierarchy, FIniFilename> FConfigFileHierarchy;
 
 // One config file.
 
@@ -62,7 +109,7 @@ public:
 	FName Name;
 
 	// The collection of source files which were used to generate this file.
-	TArray< FIniFilename > SourceIniHierarchy;
+	FConfigFileHierarchy SourceIniHierarchy;
 
 	/** The untainted config file which contains the coalesced base/default options. I.e. No Saved/ options*/
 	FConfigFile* SourceConfigFile;
