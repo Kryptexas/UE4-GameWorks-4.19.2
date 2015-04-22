@@ -1225,19 +1225,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "Level.ScriptHighlightIcon16x", new IMAGE_BRUSH( "Icons/icon_levels_Blueprint_hi_16px", Icon16x16 ) );
 		Set( "Level.EmptyIcon16x", new IMAGE_BRUSH( "Icons/Empty_16x", Icon16x16 ) );
 		Set( "Level.ColorIcon40x", new IMAGE_BRUSH( "Icons/icon_levels_back_16px", Icon16x16 ) );
-
-		Set( "Level.ArrowUp", new IMAGE_BRUSH( "Old/ArrowUp", Icon12x12 ) );
-		Set( "Level.ArrowDown", new IMAGE_BRUSH( "Old/ArrowDown", Icon12x12 ) );
-	}
-
-	// Level Browser
-	{
-		Set( "LevelBrowserButton.Normal", new FSlateNoResource() ); // Note: Intentionally transparent background
-		Set( "LevelBrowserButton.Pressed", new BOX_BRUSH( "Common/RoundedSelection_16x", 4.0f/16.0f, SelectionColor_Pressed ) );
-		Set( "LevelBrowserButton.Hovered", new BOX_BRUSH( "Common/RoundedSelection_16x", 4.0f/16.0f, SelectionColor ) );
-
-		Set( "LevelBrowser.LabelFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) );
-		Set( "LevelBrowser.LabelFontBold", TTF_CORE_FONT( "Fonts/Roboto-Bold", 10 ) );
 	}
 
 	// World Browser
@@ -1264,6 +1251,9 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 				.SetColorAndOpacity( FLinearColor(0.9, 0.9f, 0.9f, 0.5f) )
 				.SetShadowOffset( FVector2D::ZeroVector )
 			);
+
+		Set( "WorldBrowser.LabelFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) );
+		Set( "WorldBrowser.LabelFontBold", TTF_CORE_FONT( "Fonts/Roboto-Bold", 10 ) );
 	}
 
 
