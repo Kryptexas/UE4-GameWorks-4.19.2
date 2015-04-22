@@ -27,6 +27,9 @@ public:
 	UFUNCTION()
 	void CodeGenTestForEnumClasses(ECppEnum Val);
 
+	UFUNCTION(Category="Xyz", BlueprintCallable)
+	TArray<UClass*> ReturnArrayOfUClassPtrs();
+
 	UFUNCTION()
 	int32 InlineFunc()
 	{
