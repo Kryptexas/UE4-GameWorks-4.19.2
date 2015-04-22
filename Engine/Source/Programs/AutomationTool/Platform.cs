@@ -508,6 +508,11 @@ namespace AutomationTool
 			return false;
 		}
 
+		public virtual UnrealTargetPlatform[] GetStagePlatforms()
+		{
+			return new UnrealTargetPlatform[] { PlatformType };
+		}
+
 		#endregion
 
 		#region Utilities

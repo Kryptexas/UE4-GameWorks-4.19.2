@@ -1380,16 +1380,13 @@ public partial class Project : CommandUtils
 				{
 					string ReceiptBaseDir = Params.IsCodeBasedProject? Path.GetDirectoryName(Params.RawProjectPath) : EngineDir;
 
-					bool bRequireStagedFilesToExist = true;
-					UnrealTargetPlatform[] ReceiptPlatforms = { StagePlatform };
-					// @todo josha: This should ask the platform somehow instead of being hardcoded
-					if (StagePlatform == UnrealTargetPlatform.Desktop)
-					{
-						ReceiptPlatforms = new UnrealTargetPlatform[] { UnrealTargetPlatform.Win32, UnrealTargetPlatform.Win64, UnrealTargetPlatform.Mac, UnrealTargetPlatform.Linux };
-						bRequireStagedFilesToExist = false;
-					}
+					Platform PlatformInstance = Platform.Platforms[StagePlatform];
+					UnrealTargetPlatform[] SubPlatformsToStage = PlatformInstance.GetStagePlatforms();
 
-					foreach (UnrealTargetPlatform ReceiptPlatform in ReceiptPlatforms)
+					// if we are attempting to gathering multiple platforms, the files aren't required
+					bool bRequireStagedFilesToExist = SubPlatformsToStage.Length == 1;
+
+					foreach (UnrealTargetPlatform ReceiptPlatform in SubPlatformsToStage)
 					{
 						// Read the receipt
 						string ReceiptFileName = BuildReceipt.GetDefaultPath(ReceiptBaseDir, Target, ReceiptPlatform, Config, "");

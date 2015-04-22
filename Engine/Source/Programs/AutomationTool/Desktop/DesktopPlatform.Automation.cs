@@ -23,18 +23,23 @@ public class DesktopPlatform : Platform
 		return false;
 	}
 
-	private static List<UnrealTargetPlatform> DesktopPlatforms = new List<UnrealTargetPlatform>() { 
-		UnrealTargetPlatform.Win32,
-		UnrealTargetPlatform.Win64,
-		UnrealTargetPlatform.Mac,
-		UnrealTargetPlatform.Linux,
-	};
+
+	public override UnrealTargetPlatform[] GetStagePlatforms()
+	{
+		return new UnrealTargetPlatform[] 
+		{
+			UnrealTargetPlatform.Win32,
+//			UnrealTargetPlatform.Win64,
+			UnrealTargetPlatform.Mac,
+			UnrealTargetPlatform.Linux,
+		};
+	}
 
 	public override void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
 	{
 		SC.bIsCombiningMultiplePlatforms = true;
 		string SavedPlatformDir = SC.PlatformDir;
-		foreach (UnrealTargetPlatform DesktopPlatform in DesktopPlatforms)
+		foreach (UnrealTargetPlatform DesktopPlatform in GetStagePlatforms())
 		{
 			Platform SubPlatform = Platform.Platforms[DesktopPlatform];
 			SC.PlatformDir = DesktopPlatform.ToString();
@@ -48,7 +53,7 @@ public class DesktopPlatform : Platform
 	{
 		SC.bIsCombiningMultiplePlatforms = true;
 		string SavedPlatformDir = SC.PlatformDir;
-		foreach (UnrealTargetPlatform DesktopPlatform in DesktopPlatforms)
+		foreach (UnrealTargetPlatform DesktopPlatform in GetStagePlatforms())
 		{
 			Platform SubPlatform = Platform.Platforms[DesktopPlatform];
 			SC.PlatformDir = DesktopPlatform.ToString();
@@ -72,7 +77,7 @@ public class DesktopPlatform : Platform
 	{
 		SC.bIsCombiningMultiplePlatforms = true;
 		string SavedPlatformDir = SC.PlatformDir;
-		foreach (UnrealTargetPlatform DesktopPlatform in DesktopPlatforms)
+		foreach (UnrealTargetPlatform DesktopPlatform in GetStagePlatforms())
 		{
 			Platform SubPlatform = Platform.Platforms[DesktopPlatform];
 			SC.PlatformDir = DesktopPlatform.ToString();
@@ -88,7 +93,7 @@ public class DesktopPlatform : Platform
 
 		SC.bIsCombiningMultiplePlatforms = true;
 		string SavedPlatformDir = SC.PlatformDir;
-		foreach (UnrealTargetPlatform DesktopPlatform in DesktopPlatforms)
+		foreach (UnrealTargetPlatform DesktopPlatform in GetStagePlatforms())
 		{
 			Platform SubPlatform = Platform.Platforms[DesktopPlatform];
 			SC.PlatformDir = DesktopPlatform.ToString();

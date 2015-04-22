@@ -861,6 +861,15 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		Token = FParse::Token( ParsedCmdLine, 0);
 		Token = Token.Trim();
 
+		// if the next token is a project file, then we skip it (which can happen on some platforms that combine
+		// commandlines... this handles extra .uprojects, but if you run with MyGame MyGame, we can't tell if
+		// the second MyGame is a map or not)
+		while (FPaths::GetExtension(Token) == FProjectDescriptor::GetExtension())
+		{
+			Token = FParse::Token(ParsedCmdLine, 0);
+			Token = Token.Trim();
+		}
+
 		if (bFirstTokenIsGameProjectFilePath || bFirstTokenIsGameProjectFileShortName)
 		{
 			// Convert it to relative if possible...
