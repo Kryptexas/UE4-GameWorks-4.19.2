@@ -303,7 +303,7 @@ void URecastNavMeshDataChunk::GatherTiles(const FPImplRecastNavMesh* NavMeshImpl
 			uint8* RawTileCacheData = nullptr;
 			if (NavMeshImpl->NavMeshOwner->SupportsRuntimeGeneration())
 			{
-				FNavMeshTileData TileCacheData = NavMeshImpl->GetTileCacheLayer(Tile->header->x, Tile->header->y, Tile->header->layer);
+				TileCacheData = NavMeshImpl->GetTileCacheLayer(Tile->header->x, Tile->header->y, Tile->header->layer);
 				if (TileCacheData.IsValid())
 				{
 					// Make our own copy of tile cache data
