@@ -1066,9 +1066,9 @@ TSharedRef<SWidget> PropertyCustomizationHelpers::MakeTextLocalizationButton(con
 		{
 		}
 
-		void Construct(const FArguments& InArgs, const TSharedRef<IPropertyHandle>& InPropertyHandle)
+		void Construct(const FArguments& InArgs, const TSharedRef<IPropertyHandle>& InPropHandle)
 		{
-			PropertyHandle = InPropertyHandle;
+			PropertyHandle = InPropHandle;
 
 			FText DisplayText;
 			if (PropertyHandle->GetValueAsDisplayText(DisplayText) == FPropertyAccess::Success)

@@ -86,8 +86,8 @@ namespace Test
 	/* FTimer																*/
 	/************************************************************************/
 
-	FTimer::FTimer(double TotalTime)
-		: TotalTime(TotalTime)
+	FTimer::FTimer(double InTotalTime)
+		: TotalTime(InTotalTime)
 		, StartTime(0.0f)
 		, CurrentTime(0.0f)
 		, LastTime(0.0f)
@@ -860,9 +860,9 @@ namespace Test
 			FilterLFO.SetFrequency(FMath::FRandRange(0.1f, 20.0f));
 			FilterLFO.SetScaleAdd(1000.0f, 2500.0f);
 			LowPass.SetParams(1500.0f, 1.0f);
-			for (int32 ModIndex = 0; ModIndex < Mods.Num(); ++ModIndex)
+			for (OscData& Mod : Mods)
 			{
-				Mods[ModIndex].Reset();
+				Mod.Reset();
 			}
 		}
 	}

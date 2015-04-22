@@ -658,7 +658,6 @@ void UMapProperty::CopyValuesInternal(void* Dest, void const* Src, int32 Count) 
 		return;
 	}
 
-	int32 DestIndex = 0;
 	for (int32 SrcIndex = 0; Num; ++SrcIndex)
 	{
 		if (SrcMapHelper.IsValidIndex(SrcIndex))

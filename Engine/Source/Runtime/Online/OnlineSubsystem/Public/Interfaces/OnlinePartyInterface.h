@@ -132,9 +132,9 @@ namespace EPartyState
 class FOnlinePartyInfo
 {
 public:
-	FOnlinePartyInfo(const TSharedPtr<FOnlinePartyId>& PartyId = TSharedPtr<FOnlinePartyId>())
+	FOnlinePartyInfo(const TSharedPtr<FOnlinePartyId>& InPartyId = TSharedPtr<FOnlinePartyId>())
 		: State(EPartyState::None)
-		, PartyId(PartyId)
+		, PartyId(InPartyId )
 	{}
 
 	virtual ~FOnlinePartyInfo() 

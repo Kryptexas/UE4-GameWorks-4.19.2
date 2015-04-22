@@ -690,7 +690,7 @@ namespace UAudio
 		return bSuccess;
 	}
 
-	bool FUnrealAudioCoreAudio::GetDeviceFrameRates(AudioDeviceID DeviceID, TArray<uint32>& PossibleFrameRates, uint32& DefaultFrameRate)
+	bool FUnrealAudioCoreAudio::GetDeviceFrameRates(AudioDeviceID DeviceID, TArray<uint32>& InPossibleFrameRates, uint32& DefaultFrameRate)
 	{
 		AudioObjectPropertyAddress Property = NEW_OUTPUT_PROPERTY(kAudioDevicePropertyAvailableNominalSampleRates);
 
@@ -717,9 +717,9 @@ namespace UAudio
 			if (SampleRate.mMinimum == SampleRate.mMaximum)
 			{
 				uint32 FrameRate = (uint32)SampleRate.mMinimum;
-				if (!PossibleFrameRates.Contains(FrameRate))
+				if (!InPossibleFrameRates.Contains(FrameRate))
 				{
-					PossibleFrameRates.Add(FrameRate);
+					InPossibleFrameRates.Add(FrameRate);
 				}
 			}
 			else
@@ -741,19 +741,19 @@ namespace UAudio
 		{
 			for (uint32 i = 0; i < MaxPossibleFrameRates; ++i)
 			{
-				uint32 PossibleFrameRate = PossibleFrameRates[i];
+				uint32 PossibleFrameRate = InPossibleFrameRates[i];
 				if (PossibleFrameRate >= LargestMinSampleRateRange && PossibleFrameRate <= SmallestMaxSampleRateRange)
 				{
-					PossibleFrameRates.Add(PossibleFrameRate);
+					InPossibleFrameRates.Add(PossibleFrameRate);
 				}
 			}
 		}
 		// Picking a good default framerate from the supported framerates
-		if (PossibleFrameRates.Contains(48000))
+		if (InPossibleFrameRates.Contains(48000))
 		{
 			DefaultFrameRate = 48000;
 		}
-		else if (PossibleFrameRates.Contains(44100))
+		else if (InPossibleFrameRates.Contains(44100))
 		{
 			DefaultFrameRate = 44100;
 		}

@@ -1450,7 +1450,7 @@ void FFloatBulkData::SerializeElement( FArchive& Ar, void* Data, int32 ElementIn
 	Ar << FloatData;
 }
 
-void FFormatContainer::Serialize(FArchive& Ar, UObject* Owner, const TArray<FName>* FormatsToSave, bool bSingleUse, uint32 Alignment)
+void FFormatContainer::Serialize(FArchive& Ar, UObject* Owner, const TArray<FName>* FormatsToSave, bool bSingleUse, uint32 InAlignment)
 {
 	if (Ar.IsLoading())
 	{
@@ -1461,7 +1461,7 @@ void FFormatContainer::Serialize(FArchive& Ar, UObject* Owner, const TArray<FNam
 			FName Name;
 			Ar << Name;
 			FByteBulkData& Bulk = GetFormat(Name);
-			Bulk.SetBulkDataAlignment(Alignment);
+			Bulk.SetBulkDataAlignment(InAlignment);
 			Bulk.Serialize(Ar, Owner);
 		}
 	}
