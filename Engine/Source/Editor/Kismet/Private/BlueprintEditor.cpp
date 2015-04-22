@@ -7346,6 +7346,12 @@ void FBlueprintEditor::UpdatePreviewActor(UBlueprint* InBlueprint, bool bInForce
 	{
 		InBlueprint->SimpleConstructionScript->EndEditorComponentConstruction();
 	}
+
+	// Update the tree to include any UCS-constructed components
+	if ( SCSEditor.IsValid() )
+	{
+		SCSEditor->UpdateTree();
+	}
 }
 
 void FBlueprintEditor::DestroyPreview()
