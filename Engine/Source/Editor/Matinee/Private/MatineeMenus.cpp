@@ -127,9 +127,7 @@ void FMatinee::GenericTextEntryModeless(const FText& DialogText, const FText& De
 		TextEntryPopup,
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
-		);	
-
-	TextEntryPopup->FocusDefaultWidget();
+		);
 }
 
 void FMatinee::CloseEntryPopupWindow()
@@ -2901,8 +2899,6 @@ void FMatinee::OnContextSaveAsCameraAnimation()
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
 		);
-
-	TextEntry->FocusDefaultWidget();
 }
 
 /**

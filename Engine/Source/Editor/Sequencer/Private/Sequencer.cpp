@@ -344,8 +344,6 @@ void FSequencer::RenameShot(UMovieSceneSection* ShotSection)
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
 		);
-
-	TextEntry->FocusDefaultWidget();
 }
 
 void FSequencer::DeleteSection(class UMovieSceneSection* Section)

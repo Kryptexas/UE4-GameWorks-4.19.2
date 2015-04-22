@@ -228,8 +228,6 @@ FReply FAnimTransitionNodeDetails::OnPromoteToSharedClick(bool RuleShare)
 			FSlateApplication::Get().GetCursorPos(),
 			FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
 			);
-
-		TextEntry->FocusDefaultWidget();
 		TextEntryWidget = TextEntry;
 	}
 

@@ -355,8 +355,6 @@ bool UMatineeTrackDirectorHelper::PreCreateKeyframe( UInterpTrack *Track, float 
 				FSlateApplication::Get().GetCursorPos(),
 				FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
 				);
-
-			TextEntryPopup->FocusDefaultWidget();
 		}
 	}
 
@@ -416,8 +414,6 @@ bool UMatineeTrackEventHelper::PreCreateKeyframe( UInterpTrack *Track, float Key
 			FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
 			);
 	}
-
-	TextEntryPopup->FocusDefaultWidget();
 
 	return false;
 }
@@ -797,8 +793,6 @@ bool UMatineeTrackToggleHelper::PreCreateKeyframe( UInterpTrack *Track, float Ke
 			FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
 			);
 	}
-
-	TextEntryPopup->FocusDefaultWidget();
 
 	return bResult;
 }

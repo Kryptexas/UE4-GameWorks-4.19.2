@@ -1105,8 +1105,6 @@ void SAnimCurvePanel::CreateNewMetadataEntryClicked()
 		SlateApp.GetCursorPos(),
 		FPopupTransitionEffect::TypeInPopup
 		);
-
-	TextEntry->FocusDefaultWidget();
 }
 
 void SAnimCurvePanel::CreateNewMetadataEntry(const FText& CommittedText, ETextCommit::Type CommitType)
@@ -1142,8 +1140,6 @@ void SAnimCurvePanel::CreateNewCurveClicked()
 		SlateApp.GetCursorPos(),
 		FPopupTransitionEffect::TypeInPopup
 		);
-
-	TextEntry->FocusDefaultWidget();
 }
 
 TSharedRef<SWidget> SAnimCurvePanel::CreateCurveContextMenu(FFloatCurve* Curve) const

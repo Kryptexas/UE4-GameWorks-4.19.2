@@ -314,8 +314,6 @@ void SSkeletonSmartNameManager::OnAddClicked()
 		SlateApp.GetCursorPos(),
 		FPopupTransitionEffect::TypeInPopup
 		);
-
-	TextEntry->FocusDefaultWidget();
 }
 
 void SSkeletonSmartNameManager::OnPostUndo()

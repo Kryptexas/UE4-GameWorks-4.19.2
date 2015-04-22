@@ -691,6 +691,9 @@ private:
 	double LastSortTime;
 	double SortDelaySeconds;
 
+	/** Weak ptr to the asset that is waiting to be renamed when scrolled into view, and the window is active */
+	TWeakPtr<struct FAssetViewItem> AwaitingRename;
+
 	/** Set when the user is in the process of naming an asset */
 	TWeakPtr<struct FAssetViewItem> RenamingAsset;
 

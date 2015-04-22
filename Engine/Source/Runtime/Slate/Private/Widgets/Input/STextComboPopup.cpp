@@ -59,6 +59,27 @@ void STextComboPopup::Construct( const FArguments& InArgs )
 	StringCombo->RefreshOptions();
 
 	StringCombo->SetSelectedItem(SelectedItem);
+
+	if (InArgs._AutoFocus)
+	{
+		RegisterActiveTimer(0.016f, FWidgetActiveTimerDelegate::CreateSP(this, &STextComboPopup::TickAutoFocus));
+	}
+}
+
+EActiveTimerReturnType STextComboPopup::TickAutoFocus(double InCurrentTime, float InDeltaTime)
+{
+	TSharedPtr<SWindow> OwnerWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
+	if (!OwnerWindow.IsValid())
+	{
+		return EActiveTimerReturnType::Stop;
+	}
+	else if (FSlateApplication::Get().HasFocusedDescendants(OwnerWindow.ToSharedRef()))
+	{
+		FocusDefaultWidget();
+		return EActiveTimerReturnType::Stop;
+	}
+
+	return EActiveTimerReturnType::Continue;
 }
 
 TSharedRef<SWidget> STextComboPopup::MakeItemWidget( TSharedPtr<FString> StringItem ) 

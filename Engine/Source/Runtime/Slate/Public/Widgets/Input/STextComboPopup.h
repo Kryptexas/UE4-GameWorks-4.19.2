@@ -19,7 +19,7 @@ public:
 	/** The OK button */
 	TSharedPtr< SButton > OkButton;
 
-	SLATE_BEGIN_ARGS( STextComboPopup ) {}
+	SLATE_BEGIN_ARGS( STextComboPopup ) : _AutoFocus(true) {}
 
 		/** Label, placed before combo box */
 		SLATE_TEXT_ARGUMENT( Label )
@@ -29,6 +29,9 @@ public:
 
 		/** Called when the text is chosen. */
 		SLATE_EVENT( FOnTextChosen, OnTextChosen )
+
+		/** When set, this widget will automatically attempt to set focus to itself when it is created, or when its owner window is activated */
+		SLATE_ARGUMENT( bool, AutoFocus )
 
 	SLATE_END_ARGS()
 
@@ -53,6 +56,9 @@ private:
 
 	/** Returns the item to select in the combo popup */
 	FText GetSelectedItem () const;
+	
+	/** Called when AutoFocussing to automatically set focus to this widget */
+	EActiveTimerReturnType TickAutoFocus(double InCurrentTime, float InDeltaTime);
 
 private:
 	/** The text item selected */

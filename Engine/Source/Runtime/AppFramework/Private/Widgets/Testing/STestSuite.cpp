@@ -2117,8 +2117,6 @@ public:
 			FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
 		);
 
-		TextEntry->FocusDefaultWidget();
-
 		return FReply::Handled();
 	}
 

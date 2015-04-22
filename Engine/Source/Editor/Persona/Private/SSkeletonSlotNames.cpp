@@ -403,8 +403,6 @@ void SSkeletonSlotNames::OnAddSlot()
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
 		);
-
-	TextEntry->FocusDefaultWidget();
 }
 
 void SSkeletonSlotNames::OnAddGroup()
@@ -421,8 +419,6 @@ void SSkeletonSlotNames::OnAddGroup()
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
 		);
-
-	TextEntry->FocusDefaultWidget();
 }
 
 void SSkeletonSlotNames::AddSlotPopUpOnCommit(const FText & InNewSlotText, ETextCommit::Type CommitInfo)
@@ -916,8 +912,6 @@ void SSkeletonSlotNames::OnRenameSlot(FName CurrentName)
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
 		);
-
-	TextEntry->FocusDefaultWidget();
 }
 
 void SSkeletonSlotNames::RenameSlot(FName CurrentName, FName NewName)

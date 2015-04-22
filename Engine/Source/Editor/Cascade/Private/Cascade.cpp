@@ -3704,8 +3704,6 @@ void FCascade::OnSetMotionRadius()
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
 		);
-
-	TextEntry->FocusDefaultWidget();
 }
 
 void FCascade::OnViewMode(EViewModeIndex ViewMode)
@@ -3927,8 +3925,6 @@ void FCascade::OnToggleWireframeSphere()
 			FSlateApplication::Get().GetCursorPos(),
 			FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
 			);
-
-		TextEntry->FocusDefaultWidget();
 	}
 	else
 	{
@@ -4820,8 +4816,6 @@ void FCascade::OnRenameEmitter()
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
 		);
-
-	TextEntry->FocusDefaultWidget();
 }
 
 void FCascade::OnDuplicateEmitter(bool bIsShared)

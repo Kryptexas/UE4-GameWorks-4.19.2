@@ -503,8 +503,6 @@ void FStaticMeshLightingInfoStatsPage::GetUserSetStaticLightmapResolution(TWeakP
 			FSlateApplication::Get().GetCursorPos(),
 			FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
 			);
-
-		TextEntry->FocusDefaultWidget();
 	}
 }
 

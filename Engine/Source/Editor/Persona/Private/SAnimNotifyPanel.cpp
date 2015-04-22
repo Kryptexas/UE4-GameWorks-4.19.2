@@ -2729,8 +2729,6 @@ void SAnimNotifyTrack::OnSetTriggerWeightNotifyClicked(int32 NotifyIndex)
 			FSlateApplication::Get().GetCursorPos(),
 			FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
 			);
-
-		TextEntry->FocusDefaultWidget();		
 	}
 }
 
@@ -2753,8 +2751,6 @@ void SAnimNotifyTrack::OnSetDurationNotifyClicked(int32 NotifyIndex)
 			FSlateApplication::Get().GetCursorPos(),
 			FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
 			);
-
-		TextEntry->FocusDefaultWidget();		
 	}
 }
 
@@ -2793,8 +2789,6 @@ void SAnimNotifyTrack::OnNewNotifyClicked()
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
 		);
-
-	TextEntry->FocusDefaultWidget();
 }
 
 void SAnimNotifyTrack::AddNewNotify(const FText& NewNotifyName, ETextCommit::Type CommitInfo)
@@ -3179,8 +3173,6 @@ void SAnimNotifyTrack::OnSetNotifyTimeClicked(int32 NotifyIndex)
 			FSlateApplication::Get().GetCursorPos(),
 			FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
 			);
-
-		TextEntry->FocusDefaultWidget();
 	}
 }
 
@@ -3232,8 +3224,6 @@ void SAnimNotifyTrack::OnSetNotifyFrameClicked(int32 NotifyIndex)
 			FSlateApplication::Get().GetCursorPos(),
 			FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
 			);
-
-		TextEntry->FocusDefaultWidget();
 	}
 }
 
