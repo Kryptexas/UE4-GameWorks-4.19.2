@@ -337,6 +337,11 @@ namespace UnrealBuildTool
             Result += " -Wno-unknown-pragmas";			// Slate triggers this (with its optimize on/off pragmas)
 			Result += " -Wno-invalid-offsetof"; // needed to suppress warnings about using offsetof on non-POD types.
 
+			if (BuildConfiguration.bEnableShadowVariableWarning)
+			{
+				Result += " -Wshadow";
+			}
+
             //Result += " -DOPERATOR_NEW_INLINE=FORCENOINLINE";
 
             // shipping builds will cause this warning with "ensure", so disable only in those case

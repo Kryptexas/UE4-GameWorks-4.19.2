@@ -229,6 +229,11 @@ namespace UnrealBuildTool
 // 			}
 
 			Result += " -Wall -Werror";
+				
+			if (BuildConfiguration.bEnableShadowVariableWarning)
+			{
+				Result += " -Wshadow";
+			}
 
 			Result += " -Wno-unused-variable";
 			Result += " -Wno-unused-value";
