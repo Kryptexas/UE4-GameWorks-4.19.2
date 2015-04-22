@@ -250,5 +250,8 @@ public:
 	LANDSCAPE_API void RecreateCollisionComponents();
 
 	LANDSCAPE_API void RemoveXYOffsets();
+
+	/** Postpones landscape textures baking, usually used during landscape painting to avoid hitches */
+	LANDSCAPE_API void PostponeTextureBaking();
 #endif
 };

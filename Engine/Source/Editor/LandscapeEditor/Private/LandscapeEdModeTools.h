@@ -1313,6 +1313,9 @@ public:
 				MousePositions.Empty(1);
 			}
 			TimeSinceLastMouseMove += DeltaTime;
+
+			// Prevent landscape from baking textures while tool stroke is active
+			EdMode->CurrentToolTarget.LandscapeInfo->PostponeTextureBaking();
 		}
 	}
 

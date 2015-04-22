@@ -3076,6 +3076,22 @@ void ULandscapeInfo::RemoveXYOffsets()
 	}
 }
 
+void ULandscapeInfo::PostponeTextureBaking()
+{
+	const int32 PostponeValue = 60; //frames
+	
+	ALandscape* Landscape = LandscapeActor.Get();
+	if (Landscape)
+	{
+		Landscape->UpdateBakedTexturesCountdown = PostponeValue;
+	}
+
+	for (ALandscapeProxy* Proxy : Proxies)
+	{
+		Proxy->UpdateBakedTexturesCountdown = PostponeValue;
+	}
+}
+
 namespace
 {
 	inline float AdjustStaticLightingResolution(float StaticLightingResolution, int32 NumSubsections, int32 SubsectionSizeQuads, int32 ComponentSizeQuads)
