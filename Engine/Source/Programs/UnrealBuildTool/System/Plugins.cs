@@ -65,7 +65,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Read all the plugins available to a given project
 		/// </summary>
-		/// <param name="ProjectFileName">Path to the project file</param>
+		/// <param name="ProjectFileName">Path to the project file (or null)</param>
 		/// <returns>Sequence of PluginInfo objects, one for each discovered plugin</returns>
 		public static List<PluginInfo> ReadAvailablePlugins(string ProjectFileName)
 		{
@@ -80,11 +80,14 @@ namespace UnrealBuildTool
 			}
 
 			// Read all the project plugins
-			string ProjectPluginsDir = Path.Combine(Path.GetDirectoryName(ProjectFileName), "Plugins");
-			foreach(string PluginFileName in EnumeratePlugins(ProjectPluginsDir))
+			if(!String.IsNullOrEmpty(ProjectFileName))
 			{
-				PluginInfo Plugin = ReadPlugin(PluginFileName, PluginInfo.LoadedFromType.GameProject);
-				Plugins.Add(Plugin);
+				string ProjectPluginsDir = Path.Combine(Path.GetDirectoryName(ProjectFileName), "Plugins");
+				foreach(string PluginFileName in EnumeratePlugins(ProjectPluginsDir))
+				{
+					PluginInfo Plugin = ReadPlugin(PluginFileName, PluginInfo.LoadedFromType.GameProject);
+					Plugins.Add(Plugin);
+				}
 			}
 
 			return Plugins;

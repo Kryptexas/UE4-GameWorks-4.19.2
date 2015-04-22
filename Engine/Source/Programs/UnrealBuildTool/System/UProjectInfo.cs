@@ -300,35 +300,6 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Get the project folder for the given project name
-		/// </summary>
-		/// <param name="InProjectName">Name of the project of interest</param>
-		/// <returns>The project filename, empty string if not found</returns>
-		public static List<string> GetEnabledPlugins(string ProjectFileName, List<string> DefaultEnabledPlugins, UnrealTargetPlatform Platform)
-		{
-			// Parse the project file
-			ProjectDescriptor Project = ProjectDescriptor.FromFile(ProjectFileName);
-
-			// Get the list of plugins
-			List<string> EnabledPlugins = new List<string>(DefaultEnabledPlugins);
-			if(Project.Plugins != null)
-			{
-				foreach(PluginReferenceDescriptor Plugin in Project.Plugins)
-				{
-					if(Plugin.IsEnabledForPlatform(Platform))
-					{
-						EnabledPlugins.Add(Plugin.Name);
-					}
-					else
-					{
-						EnabledPlugins.RemoveAll(x => x.Equals(Plugin.Name, StringComparison.CurrentCultureIgnoreCase));
-					}
-				}
-			}
-			return EnabledPlugins;
-		}
-
-		/// <summary>
 		/// Determine if a plugin is enabled for a given project
 		/// </summary>
 		/// <param name="Project">The project to check</param>
@@ -338,7 +309,7 @@ namespace UnrealBuildTool
 		public static bool IsPluginEnabledForProject(PluginInfo Plugin, ProjectDescriptor Project, UnrealTargetPlatform Platform)
 		{
 			bool bEnabled = Plugin.Descriptor.bEnabledByDefault || Plugin.LoadedFrom == PluginInfo.LoadedFromType.GameProject;
-			if(Project.Plugins != null)
+			if(Project != null && Project.Plugins != null)
 			{
 				foreach(PluginReferenceDescriptor PluginReference in Project.Plugins)
 				{

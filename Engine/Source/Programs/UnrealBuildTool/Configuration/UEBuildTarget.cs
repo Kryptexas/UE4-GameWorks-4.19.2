@@ -677,11 +677,11 @@ namespace UnrealBuildTool
 
 		/** All plugins which are built for this target */
 		[NonSerialized]
-		public List<PluginInfo> BuildPlugins = new List<PluginInfo>();
+		public List<PluginInfo> BuildPlugins;
 
 		/** All plugin dependencies for this target. This differs from the list of plugins that is built for Rocket, where we build everything, but link in only the enabled plugins. */
 		[NonSerialized]
-		public List<PluginInfo> DependentPlugins = new List<PluginInfo>();
+		public List<PluginInfo> EnabledPlugins;
 
 		/** All application binaries; may include binaries not built by this target. */
 		[NonSerialized]
@@ -1848,7 +1848,7 @@ namespace UnrealBuildTool
 					}
 				}
 			}
-			foreach (PluginInfo Plugin in DependentPlugins)
+			foreach (PluginInfo Plugin in EnabledPlugins)
 			{
 				foreach (ModuleDescriptor Module in Plugin.Descriptor.Modules)
 				{
@@ -2442,14 +2442,7 @@ namespace UnrealBuildTool
 		protected virtual void SetupPlugins()
 		{
 			// Filter the plugins list by the current project
-			List<PluginInfo> ValidPlugins = new List<PluginInfo>();
-			foreach (PluginInfo Plugin in Plugins.AllPlugins)
-			{
-				if (Plugin.LoadedFrom != PluginInfo.LoadedFromType.GameProject || Plugin.Directory.StartsWith(ProjectDirectory, StringComparison.InvariantCultureIgnoreCase))
-				{
-					ValidPlugins.Add(Plugin);
-				}
-			}
+			List<PluginInfo> ValidPlugins = Plugins.ReadAvailablePlugins(UnrealBuildTool.GetUProjectFile());
 
 			// Remove any plugins for platforms we don't have
 			foreach (UnrealTargetPlatform TargetPlatform in Enum.GetValues(typeof(UnrealTargetPlatform)))
@@ -2462,36 +2455,43 @@ namespace UnrealBuildTool
 			}
 
 			// Build a list of enabled plugins
-			List<string> EnabledPluginNames = new List<string>(Rules.AdditionalPlugins);
+			EnabledPlugins = new List<PluginInfo>();
 
-			// Add the list of plugins enabled by default
-			if (UEBuildConfiguration.bCompileAgainstEngine)
+			// If we're compiling against the engine, add the plugins enabled for this target
+			if(UEBuildConfiguration.bCompileAgainstEngine)
 			{
-				EnabledPluginNames.AddRange(ValidPlugins.Where(x => x.Descriptor.bEnabledByDefault).Select(x => x.Name));
+				ProjectDescriptor Project = UnrealBuildTool.HasUProjectFile()? ProjectDescriptor.FromFile(UnrealBuildTool.GetUProjectFile()) : null;
+				foreach(PluginInfo ValidPlugin in ValidPlugins)
+				{
+					if(UProjectInfo.IsPluginEnabledForProject(ValidPlugin, Project, Platform))
+					{
+						EnabledPlugins.Add(ValidPlugin);
+					}
+				}
 			}
 
-			// Update the plugin list for game targets
-			if (TargetType != TargetRules.TargetType.Program && UnrealBuildTool.HasUProjectFile())
+			// Add the plugins explicitly required by the target rules
+			foreach(string AdditionalPlugin in Rules.AdditionalPlugins)
 			{
-				// Enable all the game specific plugins by default
-				EnabledPluginNames.AddRange(ValidPlugins.Where(x => x.LoadedFrom == PluginInfo.LoadedFromType.GameProject).Select(x => x.Name));
-
-				// Use the project settings to update the plugin list for this target
-				EnabledPluginNames = UProjectInfo.GetEnabledPlugins(UnrealBuildTool.GetUProjectFile(), EnabledPluginNames, Platform);
+				PluginInfo Plugin = ValidPlugins.FirstOrDefault(ValidPlugin => ValidPlugin.Name == AdditionalPlugin);
+				if(Plugin == null)
+				{
+					throw new BuildException("Plugin '{0}' is in the list of additional plugins for {1}, but was not found.", AdditionalPlugin, TargetName);
+				}
+				if(!EnabledPlugins.Contains(Plugin))
+				{
+					EnabledPlugins.Add(Plugin);
+				}
 			}
-
-			// Set the list of plugins we're dependent on
-			PluginInfo[] EnabledPlugins = ValidPlugins.Where(x => EnabledPluginNames.Contains(x.Name)).Distinct().ToArray();
-			DependentPlugins.AddRange(EnabledPlugins);
 
 			// Set the list of plugins that should be built
 			if (bPrecompile && TargetType != TargetRules.TargetType.Program)
 			{
-				BuildPlugins.AddRange(ValidPlugins);
+				BuildPlugins = new List<PluginInfo>(ValidPlugins);
 			}
 			else
 			{
-				BuildPlugins.AddRange(EnabledPlugins);
+				BuildPlugins = new List<PluginInfo>(EnabledPlugins);
 			}
 		}
 
