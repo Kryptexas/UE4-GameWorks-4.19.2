@@ -392,7 +392,7 @@ void FAssetContextMenu::MakeAssetActionsSubMenu(FMenuBuilder& MenuBuilder)
 		static FName MaterialInstanceConstantName(TEXT("MaterialInstanceConstant"));
 		for (auto& Asset : SelectedAssets)
 		{
-			if (Asset.AssetClass == MaterialName || Asset.AssetClass == MaterialInstanceName)
+			if (Asset.AssetClass == MaterialName || Asset.AssetClass == MaterialInstanceConstantName)
 			{
 				bCanUsePropertyMatrix = false;
 				break;
