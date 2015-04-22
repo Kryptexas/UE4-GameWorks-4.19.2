@@ -75,11 +75,6 @@ public:
 	TSharedPtr< FUICommandInfo > LightingQuality_High;
 	TSharedPtr< FUICommandInfo > LightingQuality_Medium;
 	TSharedPtr< FUICommandInfo > LightingQuality_Preview;
-	TSharedPtr< FUICommandInfo > LightingTools_ShowBounds;
-	TSharedPtr< FUICommandInfo > LightingTools_ShowTraces;
-	TSharedPtr< FUICommandInfo > LightingTools_ShowDirectOnly;
-	TSharedPtr< FUICommandInfo > LightingTools_ShowIndirectOnly;
-	TSharedPtr< FUICommandInfo > LightingTools_ShowIndirectSamples;
 	TSharedPtr< FUICommandInfo > LightingDensity_RenderGrayscale;
 	TSharedPtr< FUICommandInfo > LightingResolution_CurrentLevel;
 	TSharedPtr< FUICommandInfo > LightingResolution_SelectedLevels;
@@ -691,16 +686,6 @@ public:
 	static void BuildLODsOnly_Execute();
 	static void SetLightingQuality( ELightingBuildQuality NewQuality );
 	static bool IsLightingQualityChecked( ELightingBuildQuality TestQuality );
-	static void SetLightingToolShowBounds();
-	static bool IsLightingToolShowBoundsChecked();
-	static void SetLightingToolShowTraces();
-	static bool IsLightingToolShowTracesChecked();
-	static void SetLightingToolShowDirectOnly();
-	static bool IsLightingToolShowDirectOnlyChecked();
-	static void SetLightingToolShowIndirectOnly();
-	static bool IsLightingToolShowIndirectOnlyChecked();
-	static void SetLightingToolShowIndirectSamples();
-	static bool IsLightingToolShowIndirectSamplesChecked();
 	static float GetLightingDensityIdeal();
 	static void SetLightingDensityIdeal( float Value );
 	static float GetLightingDensityMaximum();

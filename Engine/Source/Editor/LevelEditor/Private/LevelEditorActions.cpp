@@ -23,7 +23,6 @@
 #include "Editor/NewLevelDialog/Public/NewLevelDialogModule.h"
 #include "DelegateFilter.h"
 #include "BlueprintUtilities.h"
-#include "LightingTools.h"
 #include "MRUFavoritesList.h"
 #include "Editor/SceneOutliner/Private/SSocketChooser.h"
 #include "SnappingUtils.h"
@@ -644,66 +643,6 @@ bool FLevelEditorActionCallbacks::IsLightingQualityChecked( ELightingBuildQualit
 void FLevelEditorActionCallbacks::SetLightingQuality( ELightingBuildQuality NewQuality )
 {
 	GConfig->SetInt(TEXT("LightingBuildOptions"), TEXT("QualityLevel"), (int32)NewQuality, GEditorPerProjectIni);
-}
-
-void FLevelEditorActionCallbacks::SetLightingToolShowBounds()
-{
-	FLightingToolsSettings& Settings = FLightingToolsSettings::Get();
-	Settings.bShowLightingBounds = !Settings.bShowLightingBounds;
-	Settings.ApplyToggle();
-}
-
-bool FLevelEditorActionCallbacks::IsLightingToolShowBoundsChecked()
-{
-	return FLightingToolsSettings::Get().bShowLightingBounds;
-}
-
-void FLevelEditorActionCallbacks::SetLightingToolShowTraces()
-{
-	FLightingToolsSettings& Settings = FLightingToolsSettings::Get();
-	Settings.bShowShadowTraces = !Settings.bShowShadowTraces;
-	Settings.ApplyToggle();
-}
-
-bool FLevelEditorActionCallbacks::IsLightingToolShowTracesChecked()
-{
-	return FLightingToolsSettings::Get().bShowShadowTraces;
-}
-
-void FLevelEditorActionCallbacks::SetLightingToolShowDirectOnly()
-{
-	FLightingToolsSettings& Settings = FLightingToolsSettings::Get();
-	Settings.bShowDirectOnly = !Settings.bShowDirectOnly;
-	Settings.ApplyToggle();
-}
-
-bool FLevelEditorActionCallbacks::IsLightingToolShowDirectOnlyChecked()
-{
-	return FLightingToolsSettings::Get().bShowDirectOnly;
-}
-
-void FLevelEditorActionCallbacks::SetLightingToolShowIndirectOnly()
-{
-	FLightingToolsSettings& Settings = FLightingToolsSettings::Get();
-	Settings.bShowIndirectOnly = !Settings.bShowIndirectOnly;
-	Settings.ApplyToggle();
-}
-
-bool FLevelEditorActionCallbacks::IsLightingToolShowIndirectOnlyChecked()
-{
-	return FLightingToolsSettings::Get().bShowIndirectOnly;
-}
-
-void FLevelEditorActionCallbacks::SetLightingToolShowIndirectSamples()
-{
-	FLightingToolsSettings& Settings = FLightingToolsSettings::Get();
-	Settings.bShowIndirectSamples = !Settings.bShowIndirectSamples;
-	Settings.ApplyToggle();
-}
-
-bool FLevelEditorActionCallbacks::IsLightingToolShowIndirectSamplesChecked()
-{
-	return FLightingToolsSettings::Get().bShowIndirectSamples;
 }
 
 float FLevelEditorActionCallbacks::GetLightingDensityIdeal()
@@ -2891,11 +2830,6 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( LightingQuality_High, "High", "Sets precomputed lighting quality to high quality", EUserInterfaceActionType::RadioButton, FInputChord() );
 	UI_COMMAND( LightingQuality_Medium, "Medium", "Sets precomputed lighting quality to medium quality", EUserInterfaceActionType::RadioButton, FInputChord() );
 	UI_COMMAND( LightingQuality_Preview, "Preview", "Sets precomputed lighting quality to preview quality (fastest computation time.)", EUserInterfaceActionType::RadioButton, FInputChord() );
-	UI_COMMAND( LightingTools_ShowBounds, "Show Lighting Bounds", "Draws a wireframe sphere for the lighting bounds of the Light Environment, and a point for the center, or multiple points if NumVolumeVisibilitySamples is greater than zero.", EUserInterfaceActionType::ToggleButton, FInputChord() );
-	UI_COMMAND( LightingTools_ShowTraces, "Show Shadow Traces", "Draws lines for any shadow rays that the Light Environment traced. The lines will be white if the light is not shadowed, and red otherwise.", EUserInterfaceActionType::ToggleButton, FInputChord() );
-	UI_COMMAND( LightingTools_ShowDirectOnly, "Show Direct Lighting", "Renders only the influence of direct lighting on the Light Environments.", EUserInterfaceActionType::ToggleButton, FInputChord() );
-	UI_COMMAND( LightingTools_ShowIndirectOnly, "Show Indirect Lighting", "Renders only the influence of indirect lighting on the Light Environments.", EUserInterfaceActionType::ToggleButton, FInputChord() );
-	UI_COMMAND( LightingTools_ShowIndirectSamples, "Show Indirect Lighting Samples", "Draws the indirect lighting samples that contributed to the indirect lighting for the Light Environments.", EUserInterfaceActionType::ToggleButton, FInputChord() );
 	UI_COMMAND( LightingDensity_RenderGrayscale, "Render Grayscale", "Renders the lightmap density.", EUserInterfaceActionType::ToggleButton, FInputChord() );
 	UI_COMMAND( LightingResolution_CurrentLevel, "Current Level", "Adjust only primitives in the current level.", EUserInterfaceActionType::RadioButton, FInputChord() );
 	UI_COMMAND( LightingResolution_SelectedLevels, "Selected Levels", "Adjust only primitives in the selected levels.", EUserInterfaceActionType::RadioButton, FInputChord() );

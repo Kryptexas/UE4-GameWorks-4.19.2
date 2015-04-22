@@ -1328,20 +1328,6 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateBuildMenuContent( TSharedRef<
 			InMenuBuilder.EndSection();
 		}
 
-		/** Generates a lighting tools sub-menu */
-		static void MakeLightingToolsMenu( FMenuBuilder& InMenuBuilder )
-		{
-			InMenuBuilder.BeginSection("LevelEditorBuildLightingTools", LOCTEXT( "LightingToolsHeading", "Light Environments" ) );
-			{
-				InMenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().LightingTools_ShowBounds );
-				InMenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().LightingTools_ShowTraces );
-				InMenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().LightingTools_ShowDirectOnly );
-				InMenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().LightingTools_ShowIndirectOnly );
-				InMenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().LightingTools_ShowIndirectSamples );
-			}
-			InMenuBuilder.EndSection();
-		}
-
 		/** Generates a lighting density sub-menu */
 		static void MakeLightingDensityMenu( FMenuBuilder& InMenuBuilder )
 		{
@@ -1514,11 +1500,6 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateBuildMenuContent( TSharedRef<
 		{
 			InMenuBuilder.BeginSection("LevelEditorBuildLightingInfo", LOCTEXT( "LightingInfoHeading", "Lighting Info Dialogs" ) );
 			{
-				InMenuBuilder.AddSubMenu(
-					LOCTEXT( "LightingToolsSubMenu", "Lighting Tools" ),
-					LOCTEXT( "LightingToolsSubMenu_ToolTip", "Shows the Lighting Tools options." ),
-					FNewMenuDelegate::CreateStatic( &FLightingMenus::MakeLightingToolsMenu ) );
-					
 				InMenuBuilder.AddSubMenu(
 					LOCTEXT( "LightingDensityRenderingSubMenu", "LightMap Density Rendering Options" ),
 					LOCTEXT( "LightingDensityRenderingSubMenu_ToolTip", "Shows the LightMap Density Rendering viewmode options." ),

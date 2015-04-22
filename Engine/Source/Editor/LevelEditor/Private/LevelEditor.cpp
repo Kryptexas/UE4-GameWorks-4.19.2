@@ -1379,32 +1379,6 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		FIsActionChecked::CreateStatic( &FLevelEditorActionCallbacks::IsLightingQualityChecked, (ELightingBuildQuality)Quality_Preview) );
 
 	ActionList.MapAction( 
-		Commands.LightingTools_ShowBounds, 
-		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::SetLightingToolShowBounds ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateStatic( &FLevelEditorActionCallbacks::IsLightingToolShowBoundsChecked ) );
-	ActionList.MapAction( 
-		Commands.LightingTools_ShowTraces, 
-		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::SetLightingToolShowTraces ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateStatic( &FLevelEditorActionCallbacks::IsLightingToolShowTracesChecked ) );
-	ActionList.MapAction( 
-		Commands.LightingTools_ShowDirectOnly, 
-		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::SetLightingToolShowDirectOnly ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateStatic( &FLevelEditorActionCallbacks::IsLightingToolShowDirectOnlyChecked ) );
-	ActionList.MapAction( 
-		Commands.LightingTools_ShowIndirectOnly, 
-		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::SetLightingToolShowIndirectOnly ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateStatic( &FLevelEditorActionCallbacks::IsLightingToolShowIndirectOnlyChecked ) );
-	ActionList.MapAction( 
-		Commands.LightingTools_ShowIndirectSamples, 
-		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::SetLightingToolShowIndirectSamples ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateStatic( &FLevelEditorActionCallbacks::IsLightingToolShowIndirectSamplesChecked ) );
-
-	ActionList.MapAction( 
 		Commands.LightingDensity_RenderGrayscale, 
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::SetLightingDensityRenderGrayscale ),
 		FCanExecuteAction(),
