@@ -71,7 +71,11 @@ struct TCastFlags
 template <typename From, typename To, bool bFromInterface = TIsIInterface<From>::Value, bool bToInterface = TIsIInterface<To>::Value, uint64 CastClass = TCastFlags<To>::Value>
 struct TGetCastType
 {
+#if UCLASS_FAST_ISA_IMPL == 2
+	static const ECastType Value = ECastType::UObjectToUObject;
+#else
 	static const ECastType Value = ECastType::FromCastFlags;
+#endif
 };
 
 template <typename From, typename To                  > struct TGetCastType<From, To, false, false, CASTCLASS_None> { static const ECastType Value = ECastType::UObjectToUObject;     };

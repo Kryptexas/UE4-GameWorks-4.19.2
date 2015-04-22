@@ -420,6 +420,7 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UField, UObject,
 //
 UStruct::UStruct( EStaticConstructor, int32 InSize, EObjectFlags InFlags )
 :	UField			( EC_StaticConstructor, InFlags )
+,	SuperStruct		( nullptr )
 ,	Children		( NULL )
 ,	PropertiesSize	( InSize )
 ,	MinAlignment	( 1 )
@@ -2958,10 +2959,174 @@ void UClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
 	}
 }
 
+#if UCLASS_FAST_ISA_IMPL & 2
+
+	/**
+	 * Tree for fast IsA implementation.
+	 *
+	 * Structure is:
+	 * - every class is located at index Class->ClassTreeIndex.
+	 * - the Class->ClassTreeNumChildren classes immediately following each class are the children of the class.
+	 */
+	class FFastIndexingClassTree
+	{
+		friend class UClass;
+		friend class FFastIndexingClassTreeRegistrar;
+
+		static void Register(UClass* NewClass);
+		static void Unregister(UClass* NewClass);
+
+		static TArray<UClass*>                Classes;
+		static TMap<UClass*, TArray<UClass*>> Orphans;
+		static FCriticalSection               ClassesCriticalSection;
+	};
+
+	void FFastIndexingClassTree::Register(UClass* Class)
+	{
+		FScopeLock Lock(&ClassesCriticalSection);
+
+		UClass* ParentClass = Class->GetSuperClass();
+
+		// If the parent has previously been orphaned, flag the child as orphaned
+		if (TArray<UClass*>* ParentOrphans = Orphans.Find(ParentClass))
+		{
+			ParentOrphans->Add(Class);
+			return;
+		}
+
+		int32 NewIndex;
+		if (ParentClass)
+		{
+			// Can happen if a child is registered *after* the parent
+			if (!Classes.Contains(ParentClass))
+			{
+				Orphans.Add(ParentClass).Add(Class);
+				return;
+			}
+
+			NewIndex = ParentClass->ClassTreeIndex + ParentClass->ClassTreeNumChildren + 1;
+		}
+		else
+		{
+			NewIndex = Classes.Num();
+		}
+
+		// Increment indices of following classes
+		for (auto Index = NewIndex, LastIndex = Classes.Num(); Index != LastIndex; ++Index)
+		{
+			++Classes[Index]->ClassTreeIndex;
+		}
+
+		// Update children count of all parents
+		for (auto* Parent = ParentClass; Parent; Parent = Parent->GetSuperClass())
+		{
+			++Parent->ClassTreeNumChildren;
+		}
+
+		// Add class
+		Class->ClassTreeIndex       = NewIndex;
+		Class->ClassTreeNumChildren = 0;
+		Classes.Insert(Class, NewIndex);
+
+		// Re-register any children orphaned by a previous Unregister call
+		if (TArray<UClass*>* FoundOrphans = Orphans.Find(Class))
+		{
+			TArray<UClass*> OrphansToReregister = MoveTemp(*FoundOrphans);
+			Orphans.Remove(Class);
+			Orphans.Compact();
+
+			for (UClass* Orphan : OrphansToReregister)
+			{
+				Register(Orphan);
+			}
+		}
+	}
+
+	void FFastIndexingClassTree::Unregister(UClass* Class)
+	{
+		FScopeLock Lock(&ClassesCriticalSection);
+
+		UClass* ParentClass = Class->GetSuperClass();
+
+		// Remove class if it was orphaned
+		if (TArray<UClass*>* Children = Orphans.Find(ParentClass))
+		{
+			// Remove the child, or the entire array if it's the only child left.
+			if (Children->Num() != 1)
+			{
+				int32 ChildIndex = Children->Find(Class);
+				check(ChildIndex != INDEX_NONE);
+				Children->RemoveAt(ChildIndex);
+			}
+			else
+			{
+				check(Children->Last() == Class);
+				Orphans.Remove(ParentClass);
+				Orphans.Compact();
+			}
+
+			return;
+		}
+
+		// Remove it and mark its children as orphaned
+		int32 ClassIndex       = Class->ClassTreeIndex;
+		int32 ClassNumChildren = Class->ClassTreeNumChildren;
+		int32 NumRemoved       = ClassNumChildren + 1;
+
+		// Mark any children as orphaned
+		for (int32 Index = ClassIndex + 1, EndIndex = ClassIndex + NumRemoved; Index != EndIndex; ++Index)
+		{
+			Orphans.FindOrAdd(Classes[Index]->GetSuperClass()).Add(Classes[Index]);
+		}
+
+		// Decrement indices of following classes
+		for (int32 Index = ClassIndex + NumRemoved, IndexEnd = Classes.Num(); Index != IndexEnd; ++Index)
+		{
+			Classes[Index]->ClassTreeIndex -= NumRemoved;
+		}
+
+		// Update children count of all parents
+		for (auto* Parent = ParentClass; Parent; Parent = Parent->GetSuperClass())
+		{
+			Parent->ClassTreeNumChildren -= NumRemoved;
+		}
+
+		Classes.RemoveAt(ClassIndex, NumRemoved, false);
+	}
+
+	TArray<UClass*>                FFastIndexingClassTree::Classes;
+	TMap<UClass*, TArray<UClass*>> FFastIndexingClassTree::Orphans;
+	FCriticalSection               FFastIndexingClassTree::ClassesCriticalSection;
+
+	FFastIndexingClassTreeRegistrar::FFastIndexingClassTreeRegistrar()
+	{
+		ClassTreeIndex = -1;
+		FFastIndexingClassTree::Register((UClass*)this);
+	}
+
+	FFastIndexingClassTreeRegistrar::FFastIndexingClassTreeRegistrar(const FFastIndexingClassTreeRegistrar&)
+	{
+		ClassTreeIndex = -1;
+		FFastIndexingClassTree::Register((UClass*)this);
+	}
+
+	FFastIndexingClassTreeRegistrar::~FFastIndexingClassTreeRegistrar()
+	{
+		FFastIndexingClassTree::Unregister((UClass*)this);
+	}
+
+#endif
+
 void UClass::SetSuperStruct(UStruct* NewSuperStruct)
 {
 	UnhashObject(this);
+#if UCLASS_FAST_ISA_IMPL & 2
+	FFastIndexingClassTree::Unregister(this);
+#endif
 	Super::SetSuperStruct(NewSuperStruct);
+#if UCLASS_FAST_ISA_IMPL & 2
+	FFastIndexingClassTree::Register(this);
+#endif
 	HashObject(this);
 }
 
@@ -2971,12 +3136,18 @@ void UClass::Serialize( FArchive& Ar )
 	{
 		// Rehash since SuperStruct will be serialized in UStruct::Serialize
 		UnhashObject(this);
+#if UCLASS_FAST_ISA_IMPL & 2
+	FFastIndexingClassTree::Unregister(this);
+#endif
 	}
 
 	Super::Serialize( Ar );
 
 	if ( Ar.IsLoading() || Ar.IsModifyingWeakAndStrongReferences() )
 	{
+#if UCLASS_FAST_ISA_IMPL & 2
+	FFastIndexingClassTree::Register(this);
+#endif
 		HashObject(this);
 	}
 

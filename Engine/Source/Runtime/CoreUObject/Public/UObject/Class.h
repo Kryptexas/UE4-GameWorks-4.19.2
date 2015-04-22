@@ -8,6 +8,15 @@
 
 #include "ObjectBase.h"
 
+// 1 = old behavior
+// 2 = new behavior
+// 3 = old behavior with checks against the new behavior
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	#define UCLASS_FAST_ISA_IMPL 3
+#else
+	#define UCLASS_FAST_ISA_IMPL 2
+#endif
+
 /*-----------------------------------------------------------------------------
 	Mirrors of mirror structures in Object.h. These are used by generated code 
 	to facilitate correct offsets and alignments for structures containing these '
@@ -1777,16 +1786,50 @@ namespace EIncludeSuperFlag
 	};
 }
 
+
+#if UCLASS_FAST_ISA_IMPL & 2
+
+	class FFastIndexingClassTreeRegistrar
+	{
+	public:
+		FFastIndexingClassTreeRegistrar();
+		FFastIndexingClassTreeRegistrar(const FFastIndexingClassTreeRegistrar&);
+		~FFastIndexingClassTreeRegistrar();
+
+	private:
+		friend class UClass;
+		friend class UObjectBaseUtility;
+		friend class FFastIndexingClassTree;
+
+		bool IsAUsingFastTree(const FFastIndexingClassTreeRegistrar& Parent) const
+		{
+			return ClassTreeIndex - Parent.ClassTreeIndex <= Parent.ClassTreeNumChildren;
+		}
+
+		FFastIndexingClassTreeRegistrar& operator=(const FFastIndexingClassTreeRegistrar&);
+
+		uint32 ClassTreeIndex;
+		uint32 ClassTreeNumChildren;
+	};
+
+#endif
+
+
 /**
  * An object class.
  */
 class COREUOBJECT_API UClass : public UStruct
+#if UCLASS_FAST_ISA_IMPL & 2
+	, private FFastIndexingClassTreeRegistrar
+#endif
 {
 	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UClass,UStruct,0,CoreUObject,CASTCLASS_UClass,NO_API)
 	DECLARE_WITHIN(UPackage)
 
 public:
-
+#if UCLASS_FAST_ISA_IMPL & 2
+	friend class FFastIndexingClassTree;
+#endif
 	friend class FRestoreClassInfo;
 
 	typedef void		(*ClassConstructorType)				(const FObjectInitializer&);
@@ -2277,6 +2320,12 @@ public:
 
 	virtual UObject* GetArchetypeForCDO() const;
 private:
+	#if UCLASS_FAST_ISA_IMPL & 2
+		// For UObjectBaseUtility
+		friend class UObjectBaseUtility;
+		using FFastIndexingClassTreeRegistrar::IsAUsingFastTree;
+	#endif
+
 	// This signature intentionally hides the method declared in UObjectBaseUtility to make it private.
 	// Call IsChildOf instead; Hidden because calling IsA on a class almost always indicates an error where the caller should use IsChildOf.
 	bool IsA(const UClass* Parent) const
