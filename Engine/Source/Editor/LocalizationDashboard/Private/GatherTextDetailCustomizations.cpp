@@ -775,6 +775,7 @@ void FMetaDataTextKeyPatternStructCustomization::CustomizeStructHeader( TSharedR
 			]
 		]
 		.ValueContent()
+		.HAlign(HAlign_Fill)
 		[
 			SNew(SMetaDataTextKeyPatternWidget, PatternPropertyHandle.ToSharedRef())
 		];
