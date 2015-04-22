@@ -792,9 +792,10 @@ namespace GitDependencies
 
 		static bool IsExcludedFolder(string Name, IEnumerable<string> ExcludeFolders)
 		{
+			string RootedName = "/" + Name;
 			foreach(string ExcludeFolder in ExcludeFolders)
 			{
-				if(Name.IndexOf("/" + ExcludeFolder + "/", StringComparison.CurrentCultureIgnoreCase) != -1)
+				if(RootedName.IndexOf("/" + ExcludeFolder + "/", StringComparison.CurrentCultureIgnoreCase) != -1)
 				{
 					return true;
 				}
