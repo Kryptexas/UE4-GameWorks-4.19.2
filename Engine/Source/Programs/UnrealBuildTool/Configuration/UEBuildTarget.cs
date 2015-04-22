@@ -2438,10 +2438,11 @@ namespace UnrealBuildTool
 			ExtraModuleNames.AddRange(PlatformExtraModules);			
 		}
 
-		public void FindValidPlugins(out List<PluginInfo> ValidPlugins, out List<string> EnabledPluginNames)
+		/** Sets up the plugins for this target */
+		protected virtual void SetupPlugins()
 		{
 			// Filter the plugins list by the current project
-			ValidPlugins = new List<PluginInfo>();
+			List<PluginInfo> ValidPlugins = new List<PluginInfo>();
 			foreach (PluginInfo Plugin in Plugins.AllPlugins)
 			{
 				if (Plugin.LoadedFrom != PluginInfo.LoadedFromType.GameProject || Plugin.Directory.StartsWith(ProjectDirectory, StringComparison.InvariantCultureIgnoreCase))
@@ -2461,7 +2462,7 @@ namespace UnrealBuildTool
 			}
 
 			// Build a list of enabled plugins
-			EnabledPluginNames = new List<string>(Rules.AdditionalPlugins);
+			List<string> EnabledPluginNames = new List<string>(Rules.AdditionalPlugins);
 
 			// Add the list of plugins enabled by default
 			if (UEBuildConfiguration.bCompileAgainstEngine)
@@ -2478,15 +2479,6 @@ namespace UnrealBuildTool
 				// Use the project settings to update the plugin list for this target
 				EnabledPluginNames = UProjectInfo.GetEnabledPlugins(UnrealBuildTool.GetUProjectFile(), EnabledPluginNames, Platform);
 			}
-		}
-		
-
-		/** Sets up the plugins for this target */
-		protected virtual void SetupPlugins()
-		{
-			List<PluginInfo> ValidPlugins;
-			List<string> EnabledPluginNames;
-			FindValidPlugins(out ValidPlugins, out EnabledPluginNames);
 
 			// Set the list of plugins we're dependent on
 			PluginInfo[] EnabledPlugins = ValidPlugins.Where(x => EnabledPluginNames.Contains(x.Name)).Distinct().ToArray();
