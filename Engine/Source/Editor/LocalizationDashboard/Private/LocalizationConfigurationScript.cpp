@@ -140,7 +140,7 @@ namespace LocalizationConfigurationScript
 
 		uint32 GatherTextStepIndex = 0;
 		// GatherTextFromSource
-		if (Target->Settings.GatherFromTextFiles.SearchDirectories.Num() && Target->Settings.GatherFromTextFiles.FileExtensions.Num()) // Don't gather from source if there are no source files.
+		if (Target->Settings.GatherFromTextFiles.IsEnabled)
 		{
 			FConfigSection& ConfigSection = Script.GatherTextStep(GatherTextStepIndex++);
 
@@ -150,25 +150,25 @@ namespace LocalizationConfigurationScript
 			// Include Paths
 			for (const auto& IncludePath : Target->Settings.GatherFromTextFiles.SearchDirectories)
 			{
-				ConfigSection.Add( TEXT("IncludePaths"), IncludePath );
+				ConfigSection.Add( TEXT("SearchDirectoryPaths"), IncludePath.Path );
 			}
 
 			// Exclude Paths
-			ConfigSection.Add( TEXT("ExcludePaths"), TEXT("*/Config/Localization/*") );
+			ConfigSection.Add( TEXT("ExcludePathFilters"), TEXT("Config/Localization/*") );
 			for (const auto& ExcludePath : Target->Settings.GatherFromTextFiles.ExcludePathWildcards)
 			{
-				ConfigSection.Add( TEXT("ExcludePaths"), ExcludePath );
+				ConfigSection.Add( TEXT("ExcludePathFilters"), ExcludePath.Pattern );
 			}
 
 			// Source File Search Filters
 			for (const auto& FileExtension : Target->Settings.GatherFromTextFiles.FileExtensions)
 			{
-				ConfigSection.Add( TEXT("SourceFileSearchFilters"), FileExtension );
+				ConfigSection.Add( TEXT("FileNameFilters"), FString::Printf( TEXT("*.%s"), *FileExtension.Pattern) );
 			}
 		}
 
 		// GatherTextFromAssets
-		if (Target->Settings.GatherFromPackages.IncludePathWildcards.Num() && Target->Settings.GatherFromPackages.FileExtensions.Num()) // Don't gather from packages if there are none specified.
+		if (Target->Settings.GatherFromPackages.IsEnabled)
 		{
 			FConfigSection& ConfigSection = Script.GatherTextStep(GatherTextStepIndex++);
 
@@ -178,25 +178,25 @@ namespace LocalizationConfigurationScript
 			// Include Paths
 			for (const auto& IncludePath : Target->Settings.GatherFromPackages.IncludePathWildcards)
 			{
-				ConfigSection.Add( TEXT("IncludePaths"), IncludePath );
+				ConfigSection.Add( TEXT("IncludePathFilters"), IncludePath.Pattern );
 			}
 
 			// Exclude Paths
-			ConfigSection.Add( TEXT("ExcludePaths"), TEXT("*/Content/Localization/*") );
+			ConfigSection.Add( TEXT("ExcludePathFilters"), TEXT("Content/Localization/*") );
 			for (const auto& ExcludePath : Target->Settings.GatherFromPackages.ExcludePathWildcards)
 			{
-				ConfigSection.Add( TEXT("ExcludePaths"), ExcludePath );
+				ConfigSection.Add( TEXT("ExcludePathFilters"), ExcludePath.Pattern );
 			}
 
 			// Package Extensions
 			for (const auto& FileExtension : Target->Settings.GatherFromPackages.FileExtensions)
 			{
-				ConfigSection.Add( TEXT("PackageExtensions"), FileExtension );
+				ConfigSection.Add( TEXT("PackageFileNameFilters"), FString::Printf( TEXT("*.%s"), *FileExtension.Pattern) );
 			}
 		}
 
 		// GatherTextFromMetadata
-		if (Target->Settings.GatherFromMetaData.IncludePathWildcards.Num() && Target->Settings.GatherFromMetaData.KeySpecifications.Num()) // Don't gather from metadata if there are none specified.
+		if (Target->Settings.GatherFromMetaData.IsEnabled)
 		{
 			FConfigSection& ConfigSection = Script.GatherTextStep(GatherTextStepIndex++);
 
@@ -206,21 +206,21 @@ namespace LocalizationConfigurationScript
 			// Include Paths
 			for (const auto& IncludePath : Target->Settings.GatherFromMetaData.IncludePathWildcards)
 			{
-				ConfigSection.Add( TEXT("IncludePaths"), IncludePath );
+				ConfigSection.Add( TEXT("IncludePathFilters"), IncludePath.Pattern );
 			}
 
 			// Exclude Paths
 			for (const auto& ExcludePath : Target->Settings.GatherFromMetaData.ExcludePathWildcards)
 			{
-				ConfigSection.Add( TEXT("ExcludePaths"), ExcludePath );
+				ConfigSection.Add( TEXT("ExcludePathFilters"), ExcludePath.Pattern );
 			}
 
 			// Package Extensions
 			for (const FMetaDataKeyGatherSpecification& Specification : Target->Settings.GatherFromMetaData.KeySpecifications)
 			{
-				ConfigSection.Add( TEXT("InputKeys"), Specification.MetaDataKey );
+				ConfigSection.Add( TEXT("InputKeys"), Specification.MetaDataKey.Name );
 				ConfigSection.Add( TEXT("OutputNamespaces"), Specification.TextNamespace );
-				ConfigSection.Add( TEXT("OutputKeys"), FString::Printf(TEXT("\"%s\""), *Specification.TextKeyPattern) );
+				ConfigSection.Add( TEXT("OutputKeys"), FString::Printf(TEXT("\"%s\""), *Specification.TextKeyPattern.Pattern) );
 			}
 		}
 
@@ -247,24 +247,10 @@ namespace LocalizationConfigurationScript
 			// CommandletClass
 			ConfigSection.Add( TEXT("CommandletClass"), TEXT("GenerateTextLocalizationReport") );
 
-			const FString SourcePath = ContentDirRelativeToGameDir / TEXT("Localization") / Target->Settings.Name;
-			ConfigSection.Add( TEXT("SourcePath"), SourcePath );
-			const FString DestinationPath = ContentDirRelativeToGameDir / TEXT("Localization") / Target->Settings.Name;
-			ConfigSection.Add( TEXT("DestinationPath"), DestinationPath );
-
-			ConfigSection.Add( TEXT("ManifestName"), FString::Printf( TEXT("%s.%s"), *Target->Settings.Name, TEXT("manifest") ) );
-
-			for (const FCultureStatistics& CultureStatistics : Target->Settings.SupportedCulturesStatistics)
-			{
-				ConfigSection.Add( TEXT("CulturesToGenerate"), CultureStatistics.CultureName );
-			}
-
 			ConfigSection.Add( TEXT("bWordCountReport"), TEXT("true") );
-
 			ConfigSection.Add( TEXT("WordCountReportName"), FPaths::GetCleanFilename( GetWordCountCSVPath(Target) ) );
 
 			ConfigSection.Add( TEXT("bConflictReport"), TEXT("true") );
-
 			ConfigSection.Add( TEXT("ConflictReportName"), FPaths::GetCleanFilename( GetConflictReportPath(Target) ) );
 		}
 

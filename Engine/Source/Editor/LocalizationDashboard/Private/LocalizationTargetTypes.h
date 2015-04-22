@@ -14,39 +14,136 @@ enum class ELocalizationTargetConflictStatus : uint8
 };
 
 USTRUCT()
+struct FGatherTextSearchDirectory
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(config, EditAnywhere, Category="Path")
+	FString Path;
+
+	bool Validate(const FString& RootDirectory, FText& OutError) const;
+};
+
+USTRUCT()
+struct FGatherTextIncludePath
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(config, EditAnywhere, Category="Pattern")
+	FString Pattern;
+
+	bool Validate(const FString& RootDirectory, FText& OutError) const;
+};
+
+USTRUCT()
+struct FGatherTextExcludePath
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(config, EditAnywhere, Category="Pattern")
+	FString Pattern;
+
+	bool Validate(FText& OutError) const;
+};
+
+USTRUCT()
+struct FGatherTextFileExtension
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(config, EditAnywhere, Category="Pattern")
+	FString Pattern;
+
+	bool Validate(FText& OutError) const;
+};
+
+USTRUCT()
 struct FGatherTextFromTextFilesConfiguration
 {
 	GENERATED_USTRUCT_BODY()
 
-	/* The paths of directories to be searched for text files, specified relative to the project's root, which may be parsed for text to gather. */
+	static const TArray<FGatherTextFileExtension> DefaultTextFileExtensions;
+
+	FGatherTextFromTextFilesConfiguration()
+		: IsEnabled(true)
+		, FileExtensions(DefaultTextFileExtensions)
+	{
+	}
+
+	/* If enabled, text from text files will be gathered according to this configuration. */
+	UPROPERTY(config, EditAnywhere, Category = "Execution")
+	bool IsEnabled;
+
+	/* The paths of directories to be searched recursively for text files, specified relative to the project's root, which may be parsed for text to gather. */
 	UPROPERTY(config, EditAnywhere, Category = "Filter")
-	TArray<FString> SearchDirectories;
+	TArray<FGatherTextSearchDirectory> SearchDirectories;
 
 	/* Text files whose paths match these wildcard patterns will be excluded from gathering. */
 	UPROPERTY(config, EditAnywhere, Category = "Filter")
-	TArray<FString> ExcludePathWildcards;
+	TArray<FGatherTextExcludePath> ExcludePathWildcards;
 
 	/* Text files whose names match these wildcard patterns may be parsed for text to gather. */
 	UPROPERTY(config, EditAnywhere, Category = "Filter")
-	TArray<FString> FileExtensions;
+	TArray<FGatherTextFileExtension> FileExtensions;
+
+	bool Validate(const FString& RootDirectory, FText& OutError) const;
 };
+
 
 USTRUCT()
 struct FGatherTextFromPackagesConfiguration
 {
 	GENERATED_USTRUCT_BODY()
 
+	static const TArray<FGatherTextFileExtension> DefaultPackageFileExtensions;
+
+	FGatherTextFromPackagesConfiguration()
+		: IsEnabled(true)
+		, FileExtensions(DefaultPackageFileExtensions)
+	{
+	}
+
+	/* If enabled, text from packages will be gathered according to this configuration. */
+	UPROPERTY(config, EditAnywhere, Category = "Execution")
+	bool IsEnabled;
+
 	/* Packages whose paths match these wildcard patterns, specified relative to the project's root, may be processed for gathering. */
 	UPROPERTY(config, EditAnywhere, Category = "Filter")
-	TArray<FString> IncludePathWildcards;
+	TArray<FGatherTextIncludePath> IncludePathWildcards;
 
 	/* Packages whose paths match these wildcard patterns will be excluded from gathering. */
 	UPROPERTY(config, EditAnywhere, Category = "Filter")
-	TArray<FString> ExcludePathWildcards;
+	TArray<FGatherTextExcludePath> ExcludePathWildcards;
 
 	/* Packages whose names match these wildcard patterns may be processed for text to gather. */
 	UPROPERTY(config, EditAnywhere, Category = "Filter")
-	TArray<FString> FileExtensions;
+	TArray<FGatherTextFileExtension> FileExtensions;
+
+	bool Validate(const FString& RootDirectory, FText& OutError) const;
+};
+
+USTRUCT()
+struct FMetaDataTextKeyPattern
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(config, EditAnywhere, Category="Pattern")
+	FString Pattern;
+
+	static const TArray<FString> PossiblePlaceHolders;
+
+	bool Validate(FText& OutError) const;
+};
+
+USTRUCT()
+struct FMetaDataKeyName
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(config, EditAnywhere, Category="Name")
+	FString Name;
+
+	bool Validate(FText& OutError) const;
 };
 
 USTRUCT()
@@ -56,7 +153,7 @@ struct FMetaDataKeyGatherSpecification
 
 	/*  The metadata key for which values will be gathered as text. */
 	UPROPERTY(config, EditAnywhere, Category = "Input")
-	FString MetaDataKey;
+	FMetaDataKeyName MetaDataKey;
 
 	/* The localization namespace in which the gathered text will be output. */
 	UPROPERTY(config, EditAnywhere, Category = "Output")
@@ -67,7 +164,9 @@ struct FMetaDataKeyGatherSpecification
 	{FieldPath} - The fully qualified name of the object upon which the metadata resides.
 	{MetaDataValue} - The value associated with the metadata key. */
 	UPROPERTY(config, EditAnywhere, Category = "Output")
-	FString TextKeyPattern;
+	FMetaDataTextKeyPattern TextKeyPattern;
+
+	bool Validate(FText& OutError) const;
 };
 
 USTRUCT()
@@ -75,17 +174,28 @@ struct FGatherTextFromMetaDataConfiguration
 {
 	GENERATED_USTRUCT_BODY()
 
+	FGatherTextFromMetaDataConfiguration()
+		: IsEnabled(false)
+	{
+	}
+
+	/* If enabled, metadata will be gathered according to this configuration. */
+	UPROPERTY(config, EditAnywhere, Category = "Execution")
+	bool IsEnabled;
+
 	/* Metadata from source files whose paths match these wildcard patterns, specified relative to the project's root, may be processed for gathering. */
 	UPROPERTY(config, EditAnywhere, Category = "Filter")
-	TArray<FString> IncludePathWildcards;
+	TArray<FGatherTextIncludePath> IncludePathWildcards;
 
 	/* Metadata from source files whose paths match these wildcard patterns will be excluded from gathering. */
 	UPROPERTY(config, EditAnywhere, Category = "Filter")
-	TArray<FString> ExcludePathWildcards;
+	TArray<FGatherTextExcludePath> ExcludePathWildcards;
 
 	/* Specifications for how to gather text from specific metadata keys. */
 	UPROPERTY(config, EditAnywhere, Category = "MetaData")
 	TArray<FMetaDataKeyGatherSpecification> KeySpecifications;
+
+	bool Validate(const FString& RootDirectory, FText& OutError) const;
 };
 
 USTRUCT()

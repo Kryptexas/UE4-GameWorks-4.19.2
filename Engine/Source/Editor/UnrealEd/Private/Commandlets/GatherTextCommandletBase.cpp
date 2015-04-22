@@ -218,15 +218,11 @@ int32 UGatherTextCommandletBase::GetPathArrayFromConfig( const TCHAR* Section, c
 	{
 		if (FPaths::IsRelative(OutArr[i]))
 		{
-			if (!FPaths::GameDir().IsEmpty())
-			{
-				OutArr[i] = FPaths::Combine( *( FPaths::GameDir() ), *OutArr[i] );
-			}
-			else
-			{
-				OutArr[i] = FPaths::Combine( *( FPaths::EngineDir() ), *OutArr[i] );
-			}
+			const FString ProjectBasePath = FPaths::GameDir().IsEmpty() ? FPaths::EngineDir() : FPaths::GameDir();
+			OutArr[i] = FPaths::Combine( *ProjectBasePath, *OutArr[i] );
+			OutArr[i] = FPaths::ConvertRelativePathToFull(OutArr[i]);
 		}
+		FPaths::CollapseRelativeDirectories(OutArr[i]);
 	}
 	return count;
 }

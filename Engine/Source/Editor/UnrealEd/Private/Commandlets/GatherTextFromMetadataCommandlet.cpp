@@ -58,41 +58,41 @@ int32 UGatherTextFromMetaDataCommandlet::Main( const FString& Params )
 		FModuleManager::Get().LoadModule(*ModuleName);
 	}
 
-	//Include paths
-	TArray<FString> IncludePaths;
-	GetPathArrayFromConfig(*SectionName, TEXT("IncludePaths"), IncludePaths, GatherTextConfigPath);
+	// IncludePathFilters
+	TArray<FString> IncludePathFilters;
+	GetPathArrayFromConfig(*SectionName, TEXT("IncludePathFilters"), IncludePathFilters, GatherTextConfigPath);
 
-	if (IncludePaths.Num() == 0)
+	// IncludePaths (DEPRECATED)
 	{
-		UE_LOG(LogGatherTextFromMetaDataCommandlet, Error, TEXT("No include paths in section %s"), *SectionName);
-		return -1;
-	}
-
-	for (FString& IncludePath : IncludePaths)
-	{
-		FPaths::NormalizeDirectoryName(IncludePath);
-
-		IncludePath = FPaths::ConvertRelativePathToFull(IncludePath);
-
-		// All paths must ends with "/*"
-		if ( !IncludePath.EndsWith(TEXT("/*")) )
+		TArray<FString> IncludePaths;
+		GetPathArrayFromConfig(*SectionName, TEXT("IncludePaths"), IncludePaths, GatherTextConfigPath);
+		if (IncludePaths.Num())
 		{
-			// If it ends in a slash, add the star.
-			if ( IncludePath.EndsWith(TEXT("/")) )
-			{
-				IncludePath.AppendChar(TEXT('*'));
-			}
-			// If it doesn't end in a slash or slash star, just add slash star.
-			else
-			{
-				IncludePath.Append(TEXT("/*"));
-			}
+			IncludePathFilters.Append(IncludePaths);
+			UE_LOG(LogGatherTextFromMetaDataCommandlet, Warning, TEXT("IncludePaths detected in section %s. IncludePaths is deprecated, please use IncludePathFilters."), *SectionName);
 		}
 	}
 
-	//Exclude paths
-	TArray<FString> ExcludePaths;
-	GetStringArrayFromConfig(*SectionName, TEXT("ExcludePaths"), ExcludePaths, GatherTextConfigPath);
+	if (IncludePathFilters.Num() == 0)
+	{
+		UE_LOG(LogGatherTextFromMetaDataCommandlet, Error, TEXT("No include path filters in section %s."), *SectionName);
+		return -1;
+	}
+
+	// ExcludePathFilters
+	TArray<FString> ExcludePathFilters;
+	GetPathArrayFromConfig(*SectionName, TEXT("ExcludePathFilters"), ExcludePathFilters, GatherTextConfigPath);
+
+	// ExcludePaths (DEPRECATED)
+	{
+		TArray<FString> ExcludePaths;
+		GetPathArrayFromConfig(*SectionName, TEXT("ExcludePaths"), ExcludePaths, GatherTextConfigPath);
+		if (ExcludePaths.Num())
+		{
+			ExcludePathFilters.Append(ExcludePaths);
+			UE_LOG(LogGatherTextFromMetaDataCommandlet, Warning, TEXT("ExcludePaths detected in section %s. ExcludePaths is deprecated, please use ExcludePathFilters."), *SectionName);
+		}
+	}
 
 	FGatherParameters Arguments;
 	GetStringArrayFromConfig(*SectionName, TEXT("InputKeys"), Arguments.InputKeys, GatherTextConfigPath);
@@ -105,7 +105,7 @@ int32 UGatherTextFromMetaDataCommandlet::Main( const FString& Params )
 	}
 
 	// Execute gather.
-	GatherTextFromUObjects(IncludePaths, ExcludePaths, Arguments);
+	GatherTextFromUObjects(IncludePathFilters, ExcludePathFilters, Arguments);
 
 	// Add any manifest dependencies if they were provided
 	TArray<FString> ManifestDependenciesList;

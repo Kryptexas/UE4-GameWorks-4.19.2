@@ -719,52 +719,61 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 		FModuleManager::Get().LoadModule(*ModuleName);
 	}
 
-	//Include paths
-	TArray<FString> IncludePaths;
-	GetPathArrayFromConfig(*SectionName, TEXT("IncludePaths"), IncludePaths, GatherTextConfigPath);
+	// IncludePathFilters
+	TArray<FString> IncludePathFilters;
+	GetPathArrayFromConfig(*SectionName, TEXT("IncludePathFilters"), IncludePathFilters, GatherTextConfigPath);
 
-	if (IncludePaths.Num() == 0)
+	// IncludePaths (DEPRECATED)
 	{
-		UE_LOG(LogGatherTextFromAssetsCommandlet, Error, TEXT("No include paths in section %s"), *SectionName);
-		return -1;
-	}
-
-	for (FString& IncludePath : IncludePaths)
-	{
-		FPaths::NormalizeDirectoryName(IncludePath);
-
-		IncludePath = FPaths::ConvertRelativePathToFull(IncludePath);
-
-		// All paths must ends with "/*"
-		if ( !IncludePath.EndsWith(TEXT("/*")) )
+		TArray<FString> IncludePaths;
+		GetPathArrayFromConfig(*SectionName, TEXT("IncludePaths"), IncludePaths, GatherTextConfigPath);
+		if (IncludePaths.Num())
 		{
-			// If it ends in a slash, add the star.
-			if ( IncludePath.EndsWith(TEXT("/")) )
-			{
-				IncludePath.AppendChar(TEXT('*'));
-			}
-			// If it doesn't end in a slash or slash star, just add slash star.
-			else
-			{
-				IncludePath.Append(TEXT("/*"));
-			}
+			IncludePathFilters.Append(IncludePaths);
+			UE_LOG(LogGatherTextFromAssetsCommandlet, Warning, TEXT("IncludePaths detected in section %s. IncludePaths is deprecated, please use IncludePathFilters."), *SectionName);
 		}
 	}
 
-	//Exclude paths
-	TArray<FString> ExcludePaths;
-	GetStringArrayFromConfig(*SectionName, TEXT("ExcludePaths"), ExcludePaths, GatherTextConfigPath);
-
-	//package extensions
-	TArray<FString> PackageExts;
-	GetStringArrayFromConfig(*SectionName, TEXT("PackageExtensions"), PackageExts, GatherTextConfigPath);
-
-	if (PackageExts.Num() == 0)
+	if (IncludePathFilters.Num() == 0)
 	{
-		UE_LOG(LogGatherTextFromAssetsCommandlet, Warning, TEXT("No package extensions specified in section %s, using defaults"), *SectionName);
+		UE_LOG(LogGatherTextFromAssetsCommandlet, Error, TEXT("No include path filters in section %s."), *SectionName);
+		return -1;
+	}
 
-		PackageExts.Add(FString("*") + FPackageName::GetAssetPackageExtension());
-		PackageExts.Add(FString("*") + FPackageName::GetMapPackageExtension());
+	// ExcludePathFilters
+	TArray<FString> ExcludePathFilters;
+	GetPathArrayFromConfig(*SectionName, TEXT("ExcludePathFilters"), ExcludePathFilters, GatherTextConfigPath);
+
+	// ExcludePaths (DEPRECATED)
+	{
+		TArray<FString> ExcludePaths;
+		GetPathArrayFromConfig(*SectionName, TEXT("ExcludePaths"), ExcludePaths, GatherTextConfigPath);
+		if (ExcludePaths.Num())
+		{
+			ExcludePathFilters.Append(ExcludePaths);
+			UE_LOG(LogGatherTextFromAssetsCommandlet, Warning, TEXT("ExcludePaths detected in section %s. ExcludePaths is deprecated, please use ExcludePathFilters."), *SectionName);
+		}
+	}
+
+	// PackageNameFilters
+	TArray<FString> PackageFileNameFilters;
+	GetStringArrayFromConfig(*SectionName, TEXT("PackageFileNameFilters"), PackageFileNameFilters, GatherTextConfigPath);
+
+	// PackageExtensions (DEPRECATED)
+	{
+		TArray<FString> PackageExtensions;
+		GetStringArrayFromConfig(*SectionName, TEXT("PackageExtensions"), PackageExtensions, GatherTextConfigPath);
+		if (PackageExtensions.Num())
+		{
+			PackageFileNameFilters.Append(PackageExtensions);
+			UE_LOG(LogGatherTextFromAssetsCommandlet, Warning, TEXT("PackageExtensions detected in section %s. PackageExtensions is deprecated, please use PackageFileNameFilters."), *SectionName);
+		}
+	}
+
+	if (PackageFileNameFilters.Num() == 0)
+	{
+		UE_LOG(LogGatherTextFromAssetsCommandlet, Error, TEXT("No package file name filters in section %s."), *SectionName);
+		return -1;
 	}
 
 	//asset class exclude
@@ -831,19 +840,19 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 	//Fill the list of packages to work from.
 	uint8 PackageFilter = NORMALIZE_DefaultFlags;
 	TArray<FString> Unused;	
-	for ( int32 PackageFilenameWildcardIdx = 0; PackageFilenameWildcardIdx < PackageExts.Num(); PackageFilenameWildcardIdx++ )
+	for ( int32 PackageFilenameWildcardIdx = 0; PackageFilenameWildcardIdx < PackageFileNameFilters.Num(); PackageFilenameWildcardIdx++ )
 	{
-		const bool IsAssetPackage = PackageExts[PackageFilenameWildcardIdx] == ( FString( TEXT("*") )+ FPackageName::GetAssetPackageExtension() );
+		const bool IsAssetPackage = PackageFileNameFilters[PackageFilenameWildcardIdx] == ( FString( TEXT("*") )+ FPackageName::GetAssetPackageExtension() );
 
 		TArray<FString> PackageFiles;
-		if ( !NormalizePackageNames( Unused, PackageFiles, PackageExts[PackageFilenameWildcardIdx], PackageFilter) )
+		if ( !NormalizePackageNames( Unused, PackageFiles, PackageFileNameFilters[PackageFilenameWildcardIdx], PackageFilter) )
 		{
-			UE_LOG(LogGatherTextFromAssetsCommandlet, Display, TEXT("No packages found with extension %i: '%s'"), PackageFilenameWildcardIdx, *PackageExts[PackageFilenameWildcardIdx]);
+			UE_LOG(LogGatherTextFromAssetsCommandlet, Display, TEXT("No packages found with extension %i: '%s'"), PackageFilenameWildcardIdx, *PackageFileNameFilters[PackageFilenameWildcardIdx]);
 			continue;
 		}
 		else
 		{
-			UE_LOG(LogGatherTextFromAssetsCommandlet, Display, TEXT("Found %i packages with extension %i: '%s'"), PackageFiles.Num(), PackageFilenameWildcardIdx, *PackageExts[PackageFilenameWildcardIdx]);
+			UE_LOG(LogGatherTextFromAssetsCommandlet, Display, TEXT("Found %i packages with extension %i: '%s'"), PackageFiles.Num(), PackageFilenameWildcardIdx, *PackageFileNameFilters[PackageFilenameWildcardIdx]);
 		}
 
 		//Run through all the files found and add any that pass the include, exclude and filter constraints to OrderedPackageFilesToLoad
@@ -853,7 +862,7 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 
 			bool bExclude = false;
 			//Ensure it matches the include paths if there are some.
-			for (FString& IncludePath : IncludePaths)
+			for (FString& IncludePath : IncludePathFilters)
 			{
 				bExclude = true;
 				if( PackageFile.MatchesWildcard(IncludePath) )
@@ -869,9 +878,9 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 			}
 
 			//Ensure it does not match the exclude paths if there are some.
-			for( int32 ExcludePathIdx=0; !bExclude && ExcludePathIdx<ExcludePaths.Num() ; ++ExcludePathIdx )
+			for (const FString& ExcludePath : ExcludePathFilters)
 			{
-				if( PackageFile.MatchesWildcard(ExcludePaths[ExcludePathIdx]) )
+				if (PackageFile.MatchesWildcard(ExcludePath))
 				{
 					bExclude = true;
 					PackageFilesInExcludePath.Add(PackageFile);

@@ -58,26 +58,47 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 		return -1;
 	}
 
+	// SearchDirectoryPaths
+	TArray<FString> SearchDirectoryPaths;
+	GetPathArrayFromConfig(*SectionName, TEXT("SearchDirectoryPaths"), SearchDirectoryPaths, GatherTextConfigPath);
 
-	//Include paths
-	TArray<FString> IncludePaths;
-	GetStringArrayFromConfig(*SectionName, TEXT("IncludePaths"), IncludePaths, GatherTextConfigPath);
-
-	if (IncludePaths.Num() == 0)
+	// IncludePaths (DEPRECATED)
 	{
-		UE_LOG(LogGatherTextFromSourceCommandlet, Error, TEXT("No include paths in section %s"), *SectionName);
+		TArray<FString> IncludePaths;
+		GetPathArrayFromConfig(*SectionName, TEXT("IncludePaths"), IncludePaths, GatherTextConfigPath);
+		if (IncludePaths.Num())
+		{
+			SearchDirectoryPaths.Append(IncludePaths);
+			UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("IncludePaths detected in section %s. IncludePaths is deprecated, please use SearchDirectoryPaths."), *SectionName);
+		}
+	}
+
+	if (SearchDirectoryPaths.Num() == 0)
+	{
+		UE_LOG(LogGatherTextFromSourceCommandlet, Error, TEXT("No search directory paths in section %s."), *SectionName);
 		return -1;
 	}
 
-	//Exclude paths
+	// Exclude paths
 	TArray<FString> ExcludePaths;
-	GetStringArrayFromConfig(*SectionName, TEXT("ExcludePaths"), ExcludePaths, GatherTextConfigPath);
+	GetPathArrayFromConfig(*SectionName, TEXT("ExcludePaths"), ExcludePaths, GatherTextConfigPath);
 
-	// Check the config section for source filters. e.g. *.cpp
-	TArray<FString> SourceFileSearchFilters;
-	GetStringArrayFromConfig(*SectionName, TEXT("SourceFileSearchFilters"), SourceFileSearchFilters, GatherTextConfigPath);
+	// FileNameFilters
+	TArray<FString> FileNameFilters;
+	GetStringArrayFromConfig(*SectionName, TEXT("FileNameFilters"), FileNameFilters, GatherTextConfigPath);
 
-	if (SourceFileSearchFilters.Num() == 0)
+	// SourceFileSearchFilters (DEPRECATED)
+	{
+		TArray<FString> SourceFileSearchFilters;
+		GetPathArrayFromConfig(*SectionName, TEXT("SourceFileSearchFilters"), SourceFileSearchFilters, GatherTextConfigPath);
+		if (SourceFileSearchFilters.Num())
+		{
+			FileNameFilters.Append(SourceFileSearchFilters);
+			UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("SourceFileSearchFilters detected in section %s. SourceFileSearchFilters is deprecated, please use FileNameFilters."), *SectionName);
+		}
+	}
+
+	if (FileNameFilters.Num() == 0)
 	{
 		UE_LOG(LogGatherTextFromSourceCommandlet, Error, TEXT("No source filters in section %s"), *SectionName);
 		return -1;
@@ -85,38 +106,29 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 
 	//Ensure all filters are unique.
 	TArray<FString> UniqueSourceFileSearchFilters;
-	for (int32 Idx=0; Idx<SourceFileSearchFilters.Num(); Idx++)
+	for (const FString& SourceFileSearchFilter : FileNameFilters)
 	{
-		UniqueSourceFileSearchFilters.AddUnique(SourceFileSearchFilters[Idx]);
+		UniqueSourceFileSearchFilters.AddUnique(SourceFileSearchFilter);
 	}
 
 	// Search in the root folder for each of the wildcard filters specified and build a list of files
 	TArray<FString> AllFoundFiles;
 
-	for (FString& IncludePath : IncludePaths)
+	for (FString& SearchDirectoryPath : SearchDirectoryPaths)
 	{
-		FString ProjectBasePath;
-		if (!FPaths::GameDir().IsEmpty())
-		{
-			ProjectBasePath = FPaths::GameDir();
-		}
-		else
-		{
-			ProjectBasePath = FPaths::EngineDir();
-		}
-
-		if(FPaths::IsRelative(IncludePath))
-		{
-			IncludePath = FPaths::Combine( *ProjectBasePath, *IncludePath );
-			IncludePath = FPaths::ConvertRelativePathToFull(IncludePath);
-			FPaths::CollapseRelativeDirectories(IncludePath);
-		}
-
-		for (int32 SourceFileSearchIdx=0; SourceFileSearchIdx < UniqueSourceFileSearchFilters.Num(); SourceFileSearchIdx++)
+		for (const FString& UniqueSourceFileSearchFilter : UniqueSourceFileSearchFilters)
 		{
 			TArray<FString> RootSourceFiles;
 
-			IFileManager::Get().FindFilesRecursive(RootSourceFiles, *IncludePath, *UniqueSourceFileSearchFilters[SourceFileSearchIdx], true, false,false);
+			IFileManager::Get().FindFilesRecursive(RootSourceFiles, *SearchDirectoryPath, *UniqueSourceFileSearchFilter, true, false,false);
+
+			for (FString& RootSourceFile : RootSourceFiles)
+			{
+				if (FPaths::IsRelative(RootSourceFile))
+				{
+					RootSourceFile = FPaths::ConvertRelativePathToFull(RootSourceFile);
+				}
+			}
 
 			AllFoundFiles.Append(RootSourceFiles);
 		}
@@ -125,18 +137,18 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 	TArray<FString> FilesToProcess;
 	TArray<FString> RemovedList;
 
-	//Run through all the files found and add any that pass the include, exclude and filter constraints to PackageFilesToProcess
-	for( int32 FileIdx=0; FileIdx < AllFoundFiles.Num(); ++FileIdx )
+	//Run through all the files found and add any that pass the exclude and filter constraints to PackageFilesToProcess
+	for (const FString& FoundFile : AllFoundFiles)
 	{
 		bool bExclude = false;
 
 		//Ensure it does not match the exclude paths if there are some.
-		for( int32 ExcludePathIdx=0; ExcludePathIdx < ExcludePaths.Num() ; ++ExcludePathIdx )
+		for (FString& ExcludePath : ExcludePaths)
 		{
-			if( AllFoundFiles[FileIdx].MatchesWildcard( ExcludePaths[ExcludePathIdx] ) )
+			if (FoundFile.MatchesWildcard(ExcludePath) )
 			{
 				bExclude = true;
-				RemovedList.Add( AllFoundFiles[FileIdx] );
+				RemovedList.Add(FoundFile);
 				break;
 			}
 		}
@@ -144,7 +156,7 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 		//If we haven't failed any checks, add it to the array of files to process.
 		if( !bExclude )
 		{
-			FilesToProcess.Add( AllFoundFiles[FileIdx] );
+			FilesToProcess.Add(FoundFile);
 		}
 	}
 	
@@ -152,9 +164,9 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 	if( FilesToProcess.Num() == 0 )
 	{
 		FString SpecifiedDirectoriesString;
-		for (FString& IncludePath : IncludePaths)
+		for (FString& SearchDirectoryPath : SearchDirectoryPaths)
 		{
-			SpecifiedDirectoriesString.Append(FString(SpecifiedDirectoriesString.IsEmpty() ? TEXT("") : TEXT("\n")) + FString::Printf(TEXT("+ %s"), *IncludePath));
+			SpecifiedDirectoriesString.Append(FString(SpecifiedDirectoriesString.IsEmpty() ? TEXT("") : TEXT("\n")) + FString::Printf(TEXT("+ %s"), *SearchDirectoryPath));
 		}
 		for (FString& ExcludePath : ExcludePaths)
 		{
