@@ -6,13 +6,22 @@
 	HierarchicalLOD.h: Hierarchical LOD definition.
 =============================================================================*/
 
-
-// implementation 
-//  http://deim.urv.cat/~rivi/pub/3d/icra04b.pdf
+/**
+ *
+ *	This is a LOD cluster struct that holds list of actors with relevant information
+ *
+ *	http://deim.urv.cat/~rivi/pub/3d/icra04b.pdf
+ *
+ *	This is used by Hierarchical LOD Builder to generates list of clusters 
+ *	that are together in vincinity and build as one actor
+ *
+ **/
 
 struct FLODCluster
 {
+	// constructors
 	FLODCluster(const FLODCluster& Other);
+	FLODCluster(class AActor* Actor1);
 	FLODCluster(class AActor* Actor1, class AActor* Actor2);
 
 	FLODCluster operator+( const FLODCluster& Other ) const;
@@ -20,32 +29,57 @@ struct FLODCluster
 	FLODCluster operator-(const FLODCluster& Other) const;
 	FLODCluster operator-=(const FLODCluster& Other);
 	FLODCluster& operator=(const FLODCluster & Other);
-	// invalidate this cluster - happens when this merged to another cluster
-	void Invalidate();
-	bool IsValid() const;
 
-	const float GetCost() const;
+	// Invalidate current cluster
+	void Invalidate() { bValid = false; }
+	// return true if valid
+	bool IsValid() const {	return bValid; }
+	// should build to actor list
+	bool ShouldBuild() const { return IsValid() && Actors.Num() > 1; }
+
+	// return cost of the cluster, lower is better
+	const float GetCost() const
+	{
+		return (FMath::Pow(Bound.W, 3) / FillingFactor);
+	}
+
+	// return true if this cluster contains ANY of actors of Other
 	bool Contains(FLODCluster& Other) const;
+	// return string of data
 	FString ToString() const;
 	
+	// member variable
+	// list of actors
 	TArray<class AActor*>	Actors;
-	FBox					Bound;
+	// bound of this cluster
+	FSphere					Bound;
+	// filling factor - higher means filled more
 	float					FillingFactor;
-
-	// we don't delete the invalid entry, but mark as invalid when it's not any more valid
-	// it's initialized to be valid
-	bool bValid;
 
 	// if criteria matches, build new LODActor and replace current Actors with that. We don't need 
 	// this clears previous actors and sets to this new actor
 	// this is required when new LOD is created from these actors, this will be replaced
 	// to save memory and to reduce memory increase during this process, we discard previous actors and replace with this actor
 	void BuildActor(class UWorld* InWorld, class ULevel* InLevel, const int32 LODIdx);
-	// Merge two clusters
+
+private:
+	// cluster operations
 	void MergeClusters(const FLODCluster& Other);
 	void SubtractCluster(const FLODCluster& Other);
-	FBox AddActor(class AActor* NewActor);
+
+	// add new actor, this doesn't recalculate filling factor
+	FSphere AddActor(class AActor* NewActor);
+
+	// whether it's valid or not
+	bool bValid;
 };
+
+/**
+ *
+ *	This is Hierarchical LOD builder
+ *
+ * This builds list of clusters and make sure it's sorted in the order of lower cost to high and merge clusters
+ **/
 
 struct UNREALED_API FHierarchicalLODBuilder
 {
@@ -60,20 +94,20 @@ struct UNREALED_API FHierarchicalLODBuilder
 	void Build();
 
 private:
-	// data structure
-	TArray<FLODCluster> Clusters;
+	// data structure - this is only valid within scope since mem stack allocator
+	TArray<FLODCluster, TMemStackAllocator<>> Clusters;
+	// owner world
 	class UWorld*		World;
 
 	// for now it only builds per level, it turns to one actor at the end
 	void BuildClusters(class ULevel* InLevel);
 
 	// initialize Clusters variable - each Actor becomes Cluster
-	void InitializeClusters(class ULevel* InLevel, const int32 LODIdx);
+	void InitializeClusters(class ULevel* InLevel, const int32 LODIdx, float CullCost);
 
-	// Refresh Cluster Distance for ClusterId
-	//void RefreshClusterDistance(int32 ClusterId, const int32 TotalNumClusters, float** InDistanceCacheMatrix);
+	// merge clusters
+	void MergeClustersAndBuildActors(class ULevel* InLevel, const int32 LODIdx, float HighestCost);
 
-	void MergeClusters(class ULevel* InLevel, const int32 LODIdx);
-
-	void FindMST(TArray<FLODCluster>& OutClusters);
+	// find minmal spanning tree of clusters
+	void FindMST();
 };

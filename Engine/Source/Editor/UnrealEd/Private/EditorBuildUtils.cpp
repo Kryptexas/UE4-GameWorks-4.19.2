@@ -331,10 +331,10 @@ bool FEditorBuildUtils::EditorBuild( UWorld* InWorld, EBuildOptions::Type Id, co
 
 				// disable this in build all path, it's very slow, it can be painful
 				// they don't have any collision, but make sure it's added first before doing anything
- 				{
- 					BuildProgressWidget.Pin()->SetBuildType(SBuildProgressWidget::BUILDTYPE_LODs);
- 					TriggerHierarchicalLODBuilder(InWorld, Id);
- 				}
+// 				{
+// 					BuildProgressWidget.Pin()->SetBuildType(SBuildProgressWidget::BUILDTYPE_LODs);
+//					TriggerHierarchicalLODBuilder(InWorld, Id);
+// 				}
 
 				{
 					BuildProgressWidget.Pin()->SetBuildType(SBuildProgressWidget::BUILDTYPE_Paths);

@@ -207,7 +207,7 @@ struct ENGINE_API FHierarchicalSimplification
 
 	/** Desired Bounding Box Size for clustering */
 	UPROPERTY(EditAnywhere, Category=FHierarchicalSimplification, AdvancedDisplay, meta=(UIMin=10.f, ClampMin=10.f))
-	float DesiredBoundBoxSize;
+	float DesiredBoundSize;
 
 	/** Desired Filling Percentage for clustering */
 	UPROPERTY(EditAnywhere, Category=FHierarchicalSimplification, AdvancedDisplay, meta=(ClampMin = "0", ClampMax = "100", UIMin = "0", UIMax = "100"))
@@ -220,10 +220,10 @@ struct ENGINE_API FHierarchicalSimplification
 	FHierarchicalSimplification()
 		: bSimplifyMesh(true)
 		, DrawDistance(5000)
-		, DesiredBoundBoxSize(10000)
-		, DesiredFillingPercentage(30)
+		, DesiredBoundSize(5000)
+		, DesiredFillingPercentage(50)
 	{
-		Setting.ScreenSize = 300;
+		Setting.ScreenSize = 200;
 	}
 };
 

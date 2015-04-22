@@ -88,5 +88,22 @@ void ALODActor::CheckForErrors()
 
 #endif // WITH_EDITOR
 
+FBox ALODActor::GetComponentsBoundingBox(bool bNonColliding) const 
+{
+	FBox BoundBox = Super::GetComponentsBoundingBox(bNonColliding);
+
+	if (bNonColliding)
+	{
+		if (StaticMeshComponent && StaticMeshComponent->StaticMesh)
+		{
+			FBoxSphereBounds StaticBound = StaticMeshComponent->StaticMesh->GetBounds();
+			FBox StaticBoundBox(BoundBox.GetCenter()-StaticBound.BoxExtent, BoundBox.GetCenter()+StaticBound.BoxExtent);
+			BoundBox += StaticBoundBox;
+		}
+	}
+
+	return BoundBox;	
+}
+
 #undef LOCTEXT_NAMESPACE
 
