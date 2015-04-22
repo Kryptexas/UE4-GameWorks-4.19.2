@@ -20,6 +20,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
 
 extern bool GShowSplashScreen;
 
+FIOSCoreDelegates::FOnOpenURL FIOSCoreDelegates::OnOpenURL;
+
 static void SignalHandler(int32 Signal, struct __siginfo* Info, void* Context)
 {
 	static int32 bHasEntered = 0;
@@ -535,6 +537,8 @@ void InstallSignalHandlers()
 	self.bCommandLineReady = true;
 	[self.CommandLineParseTimer invalidate];
 	self.CommandLineParseTimer = nil;
+	
+	FIOSCoreDelegates::OnOpenURL.Broadcast(application, url, sourceApplication, annotation);
 	
 	return YES;
 }

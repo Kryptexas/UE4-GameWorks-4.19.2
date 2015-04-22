@@ -138,10 +138,24 @@ IOnlineTurnBasedPtr FOnlineSubsystemFacebook::GetTurnBasedInterface() const
 	return nullptr;
 }
 
+static void ListenFacebookOpenURL(UIApplication* application, NSURL* url, NSString* sourceApplication, id annotation)
+{
+	[[FBSDKApplicationDelegate sharedInstance] application:application
+												   openURL:url
+										 sourceApplication:sourceApplication
+												annotation:annotation];
+}
+
 bool FOnlineSubsystemFacebook::Init() 
 {
 	bool bSuccessfullyStartedUp = true;
 
+	[FBSDKAppEvents activateApp];
+	FIOSCoreDelegates::OnOpenURL.AddStatic(&ListenFacebookOpenURL);
+	
+	[[FBSDKApplicationDelegate sharedInstance] application:[UIApplication sharedApplication]
+							 didFinishLaunchingWithOptions:[IOSAppDelegate GetDelegate].launchOptions];
+	
 	FacebookIdentity = MakeShareable(new FOnlineIdentityFacebook());
 	FacebookSharing = MakeShareable(new FOnlineSharingFacebook(this));
 	FacebookFriends = MakeShareable(new FOnlineFriendsFacebook(this));

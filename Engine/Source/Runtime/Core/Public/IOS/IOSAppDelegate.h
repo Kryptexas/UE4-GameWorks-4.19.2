@@ -6,6 +6,15 @@
 #import <AVFoundation/AVAudioSession.h>
 #import <GameKit/GKGameCenterViewController.h>
 
+class CORE_API FIOSCoreDelegates
+{
+public:
+	// Broadcast when this application is opened from an external source.
+	DECLARE_MULTICAST_DELEGATE_FourParams(FOnOpenURL, UIApplication*, NSURL*, NSString*, id);
+	static FOnOpenURL OnOpenURL;
+	
+};
+
 @class FIOSView;
 @class IOSViewController;
 @class SlateOpenGLESViewController;
