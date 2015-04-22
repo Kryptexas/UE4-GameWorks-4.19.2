@@ -353,6 +353,9 @@ private: // data
 	/** Interpupillary distance, in meters (user configurable) */
 	float InterpupillaryDistance;
 
+	/** Vector defining center eye offset for head neck model in meters */
+	FVector HeadModel;
+
 	/** World units (UU) to Meters scale.  Read from the level, and used to transform positional tracking data */
 	float WorldToMetersScale;
 	/** Whether world-to-meters scale is overriden or not. */
