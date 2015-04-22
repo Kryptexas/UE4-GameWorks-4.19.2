@@ -56,6 +56,7 @@ FName UDeveloperSettings::GetSectionName() const
 	return GetClass()->GetFName();
 }
 
+#if WITH_EDITOR
 FText UDeveloperSettings::GetSectionText() const
 {
 	return GetClass()->GetDisplayNameText();
@@ -65,6 +66,7 @@ FText UDeveloperSettings::GetSectionDescription() const
 {
 	return GetClass()->GetToolTipText();
 }
+#endif
 
 TSharedPtr<SWidget> UDeveloperSettings::GetCustomSettingsWidget() const
 {
