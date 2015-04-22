@@ -6,6 +6,25 @@
 #include "Core.h"
 #include "ModuleManager.h"
 #include "UniquePtr.h"
+#include "OnlineJsonSerializer.h"
+
+/* Class to hold metadata about an entire replay */
+class FNullReplayInfo : public FOnlineJsonSerializable
+{
+public:
+	FNullReplayInfo() : LengthInMS(0), NetworkVersion(0), Changelist(0) {}
+
+	int32		LengthInMS;
+	uint32		NetworkVersion;
+	uint32		Changelist;
+	
+	// FOnlineJsonSerializable
+	BEGIN_ONLINE_JSON_SERIALIZER
+		ONLINE_JSON_SERIALIZE( "LengthInMS",		LengthInMS );
+		ONLINE_JSON_SERIALIZE( "NetworkVersion",	NetworkVersion );
+		ONLINE_JSON_SERIALIZE( "Changelist",		Changelist );
+	END_ONLINE_JSON_SERIALIZER
+};
 
 /** Default streamer that goes straight to the HD */
 class FNullNetworkReplayStreamer : public INetworkReplayStreamer
@@ -26,8 +45,8 @@ public:
 	virtual void GotoCheckpointIndex( const int32 CheckpointIndex, const FOnCheckpointReadyDelegate& Delegate ) override;
 	virtual void GotoTimeInMS( const uint32 TimeInMS, const FOnCheckpointReadyDelegate& Delegate ) override;
 	virtual FArchive* GetMetadataArchive() override;
-	virtual void UpdateTotalDemoTime( uint32 TimeInMS ) override { }
-	virtual uint32 GetTotalDemoTime() const override { return 0; }
+	virtual void UpdateTotalDemoTime( uint32 TimeInMS ) override;
+	virtual uint32 GetTotalDemoTime() const override { return ReplayInfo.LengthInMS; }
 	virtual bool IsDataAvailable() const override { return true; }
 	virtual void SetHighPriorityTimeRange( const uint32 StartTimeInMS, const uint32 EndTimeInMS ) override { }
 	virtual bool IsDataAvailableForTimeRange( const uint32 StartTimeInMS, const uint32 EndTimeInMS ) override { return true; }
@@ -71,6 +90,9 @@ private:
 
 	/** Current number of checkpoints written. */
 	int32 CurrentCheckpointIndex;
+
+	/** Currently playing or recording replay metadata */
+	FNullReplayInfo ReplayInfo;
 };
 
 class FNullNetworkReplayStreamingFactory : public INetworkReplayStreamingFactory

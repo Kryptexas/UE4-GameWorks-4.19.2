@@ -3,7 +3,6 @@
 #include "NullNetworkReplayStreaming.h"
 #include "Paths.h"
 #include "EngineVersion.h"
-#include "OnlineJsonSerializer.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogNullReplay, Log, All );
 
@@ -26,7 +25,6 @@ public:
 		ONLINE_JSON_SERIALIZE( "time2",			Time2 );
 	END_ONLINE_JSON_SERIALIZER
 };
-
 
 /**
  * Very basic implementation of network replay streaming using the file system
@@ -102,6 +100,29 @@ static FString GetEventFilename( const FString& StreamName, int32 Index )
 	return FPaths::Combine(*GetStreamDirectory(StreamName), TEXT("events"), *FString::Printf( TEXT("event%d"), Index ) );
 }
 
+static FString GetInfoFilename( const FString& StreamName )
+{
+	return GetStreamFullBaseFilename(StreamName) + TEXT(".replayinfo");
+}
+
+static FNullReplayInfo ReadReplayInfo( const FString& StreamName )
+{
+	FNullReplayInfo Info;
+
+	const FString InfoFilename = GetInfoFilename(StreamName);
+	TUniquePtr<FArchive> InfoFileArchive( IFileManager::Get().CreateFileReader( *InfoFilename ) );
+
+	if ( InfoFileArchive.IsValid() )
+	{
+		FString JsonString;
+		*InfoFileArchive << JsonString;
+
+		Info.FromJson(JsonString);
+	}
+
+	return Info;
+}
+
 // Returns a name formatted as "demoX", where X is 0-9.
 // Returns the first value that doesn't yet exist, or if they all exist, returns the oldest one
 // (it will be overwritten).
@@ -165,6 +186,9 @@ void FNullNetworkReplayStreamer::StartStreaming( const FString& CustomName, cons
 
 	if ( !bRecord )
 	{
+		// Load metadata if it exists
+		ReplayInfo = ReadReplayInfo( CurrentStreamName );
+
 		// Open file for reading
 		FileAr.Reset( IFileManager::Get().CreateFileReader( *FullDemoFilename ) );
 		HeaderAr.Reset( IFileManager::Get().CreateFileReader( *FullHeaderFilename ) );
@@ -184,6 +208,10 @@ void FNullNetworkReplayStreamer::StartStreaming( const FString& CustomName, cons
 		StreamerState = EStreamerState::Recording;
 
 		CurrentCheckpointIndex = 0;
+
+		// Set up replay info
+		ReplayInfo.NetworkVersion = ReplayVersion.NetworkVersion;
+		ReplayInfo.Changelist = ReplayVersion.Changelist;
 	}
 
 	// Notify immediately
@@ -192,6 +220,18 @@ void FNullNetworkReplayStreamer::StartStreaming( const FString& CustomName, cons
 
 void FNullNetworkReplayStreamer::StopStreaming()
 {
+	if (StreamerState == EStreamerState::Recording)
+	{
+		// Update metadata file with latest info
+		TUniquePtr<FArchive> ReplayInfoFileAr(IFileManager::Get().CreateFileWriter(*GetInfoFilename(CurrentStreamName)));
+
+		if (ReplayInfoFileAr.IsValid())
+		{
+			FString JsonString = ReplayInfo.ToJson();
+			*ReplayInfoFileAr << JsonString; 
+		}
+	}
+
 	HeaderAr.Reset();
 	FileAr.Reset();
 	MetadataFileAr.Reset();
@@ -233,6 +273,11 @@ FArchive* FNullNetworkReplayStreamer::GetMetadataArchive()
 	}
 
 	return MetadataFileAr.Get();
+}
+
+void FNullNetworkReplayStreamer::UpdateTotalDemoTime(uint32 TimeInMS)
+{
+	ReplayInfo.LengthInMS = TimeInMS;
 }
 
 bool FNullNetworkReplayStreamer::IsLive() const
@@ -291,14 +336,28 @@ void FNullNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersion& 
 		
 		if (Info.SizeInBytes != INDEX_NONE)
 		{
-			Info.Name = Directory;
-			Info.Timestamp = IFileManager::Get().GetTimeStamp( *FullDemoFilePath );
-			Info.bIsLive = IsNamedStreamLive( Directory );			
+			// Read stored info for this replay
+			FNullReplayInfo StoredReplayInfo = ReadReplayInfo( Directory );
+			
+			// Check version. NetworkVersion and changelist of 0 will ignore version check.
+			const bool NetworkVersionMatches = ReplayVersion.NetworkVersion == StoredReplayInfo.NetworkVersion;
+			const bool ChangelistMatches = ReplayVersion.Changelist == StoredReplayInfo.Changelist;
 
-			// Live streams not supported yet
-			if (!Info.bIsLive)
+			const bool NetworkVersionPasses = ReplayVersion.NetworkVersion == 0 || NetworkVersionMatches;
+			const bool ChangelistPasses = ReplayVersion.Changelist == 0 || ChangelistMatches;
+
+			if ( NetworkVersionPasses && ChangelistPasses )
 			{
-				Results.Add(Info);
+				Info.Name = Directory;
+				Info.Timestamp = IFileManager::Get().GetTimeStamp( *FullDemoFilePath );
+				Info.bIsLive = IsNamedStreamLive( Directory );
+				Info.LengthInMS = StoredReplayInfo.LengthInMS;
+
+				// Live streams not supported yet
+				if (!Info.bIsLive)
+				{
+					Results.Add(Info);
+				}
 			}
 		}
 	}
