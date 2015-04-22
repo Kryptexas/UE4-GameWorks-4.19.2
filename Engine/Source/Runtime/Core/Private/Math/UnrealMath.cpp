@@ -8,8 +8,12 @@
 
 DEFINE_LOG_CATEGORY(LogUnrealMath);
 
-DEFINE_STAT(STAT_MathConvertQuatToRotator);
-DEFINE_STAT(STAT_MathConvertRotatorToQuat);
+/**
+* Math stats
+*/
+
+DECLARE_CYCLE_STAT( TEXT( "Convert Rotator to Quat" ), STAT_MathConvertRotatorToQuat, STATGROUP_Math );
+DECLARE_CYCLE_STAT( TEXT( "Convert Quat to Rotator" ), STAT_MathConvertQuatToRotator, STATGROUP_Math );
 
 /*-----------------------------------------------------------------------------
 	Globals
