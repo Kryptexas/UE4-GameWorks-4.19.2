@@ -1437,7 +1437,6 @@ void FSceneViewport::InitDynamicRHI()
 
 		FWidgetPath WidgetPath;
 		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow(PinnedViewport.ToSharedRef(), WidgetPath);
-		TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
 		
 		WindowRenderTargetUpdate(Renderer.Get(), Window.Get());
 	}

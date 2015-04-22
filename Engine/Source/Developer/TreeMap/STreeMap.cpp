@@ -415,14 +415,14 @@ int32 STreeMap::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 								if( !BlendedVisual.NodeData->CenterText.IsEmpty() && BlendedVisual.NodeData->IsLeafNode() )
 								{
 									// If the visual is smaller than the text we're going to draw, try using a smaller font
-									const FSlateFontInfo* CenterTextFont = &BlendedVisual.CenterTextFont;
-									const FVector2D FullTextSize = FontMeasureService->Measure( BlendedVisual.NodeData->CenterText, *CenterTextFont );
+									const FSlateFontInfo* BlendedVisualCenterTextFont = &BlendedVisual.CenterTextFont;
+									const FVector2D FullTextSize = FontMeasureService->Measure( BlendedVisual.NodeData->CenterText, *BlendedVisualCenterTextFont );
 									if( ScreenSpaceVisualSize.X < FullTextSize.X || ScreenSpaceVisualSize.Y < FullTextSize.Y )	// @todo treemap: assumption that NameFont will be smaller than CenterText font
 									{
-										CenterTextFont = &BlendedVisual.NameFont;
+										BlendedVisualCenterTextFont = &BlendedVisual.NameFont;
 									}
 
-									const FVector2D TextSize = FontMeasureService->Measure( BlendedVisual.NodeData->CenterText, *CenterTextFont );
+									const FVector2D TextSize = FontMeasureService->Measure( BlendedVisual.NodeData->CenterText, *BlendedVisualCenterTextFont );
 									const auto TextX = VisualPosition.X + FMath::Max( ChildContainerTextPadding, (float)BlendedVisual.Size.X * 0.5f - TextSize.X * 0.5f );	// Clamp to left edge if cropped, so the user can at least read the beginning
 									const auto TextY = VisualPosition.Y + FMath::Max( ChildContainerTextPadding + NameTextHeight + Name2TextHeight, (float)BlendedVisual.Size.Y * 0.5f - TextSize.Y * 0.5f );	// Clamp to bottom of first line of text if cropped
 
@@ -432,7 +432,7 @@ int32 STreeMap::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 										LayerId,
 										AllottedGeometry.ToOffsetPaintGeometry( ShadowOffset + FVector2D( TextX, TextY ) ),
 										BlendedVisual.NodeData->CenterText,
-										*CenterTextFont,
+										*BlendedVisualCenterTextFont,
 										TextClippingRect,
 										DrawEffects,
 										InWidgetStyle.GetColorAndOpacityTint() * VisualTextColor );
