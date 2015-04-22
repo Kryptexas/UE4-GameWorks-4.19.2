@@ -98,6 +98,12 @@ public:
 		{
 			if (!CurrentMountPaks->Contains(PakFiles[PakIndex]) && !MountedPaks.Contains(PakFiles[PakIndex]))
 			{
+				// TODO: are we a patch?
+// 				if (PakFiles[PakIndex].EndsWith("_P.pak"))
+// 				{
+// 					// bump the read prioritiy 
+// 					++PakReadOrder;
+// 				}
 				if (FCoreDelegates::OnMountPak.IsBound())
 				{
 					auto bSuccess = FCoreDelegates::OnMountPak.Execute(PakFiles[PakIndex], PakReadOrder);

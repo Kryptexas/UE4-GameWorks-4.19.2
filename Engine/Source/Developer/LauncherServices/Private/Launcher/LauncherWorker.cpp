@@ -405,6 +405,17 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 				}
 			}
 
+			if (InProfile->IsGeneratingChunks())
+			{
+				UATCommand += TEXT(" -manifests");
+			}
+
+			if (InProfile->IsGenerateHttpChunkData())
+			{
+				auto Cmd = FString::Printf(TEXT(" -createchunkinstall -chunkinstalldirectory=\"%s\" -chunkinstallversion=\"%s\""), *InProfile->GetHttpChunkDataDirectory(), *InProfile->GetHttpChunkDataReleaseName());
+				UATCommand += Cmd;
+			}
+
 			FCommandDesc Desc;
 			FText Command = FText::Format(LOCTEXT("LauncherCookDesc", "Cook content for {0}"), FText::FromString(Platforms.RightChop(1)));
 			Desc.Name = "Cook Task";

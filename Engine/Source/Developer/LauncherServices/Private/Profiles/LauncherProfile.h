@@ -7,6 +7,7 @@
 #define LAUNCHERSERVICES_ADDEDRELEASEVERSION 13
 #define LAUNCHERSERVICES_REMOVEDPATCHSOURCECONTENTPATH 14
 #define LAUNCHERSERVICES_ADDEDDLCINCLUDEENGINECONTENT 15
+#define LAUNCHERSERVICES_ADDEDGENERATECHUNKS 16
 
 /**
 * Implements a simple profile which controls the desired output of the Launcher for simple
@@ -526,6 +527,26 @@ public:
 		return DeployWithUnrealPak;
 	}
 
+	virtual bool IsGeneratingChunks() const override
+	{
+		return bGenerateChunks;
+	}
+
+	virtual bool IsGenerateHttpChunkData() const override
+	{
+		return bGenerateHttpChunkData;
+	}
+
+	virtual FString GetHttpChunkDataDirectory() const override
+	{
+		return HttpChunkDataDirectory;
+	}
+
+	virtual FString GetHttpChunkDataReleaseName() const override
+	{
+		return HttpChunkDataReleaseName;
+	}
+
 	virtual bool IsValidForLaunch( ) override
 	{
 		return (ValidationErrors.Num() == 0);
@@ -654,6 +675,21 @@ public:
 			CreateDLC = false;
 		}
 
+		if (Version >= LAUNCHERSERVICES_ADDEDGENERATECHUNKS)
+		{
+			Archive << bGenerateChunks;
+			Archive << bGenerateHttpChunkData;
+			Archive << HttpChunkDataDirectory;
+			Archive << HttpChunkDataReleaseName;
+		}
+		else if (Archive.IsLoading())
+		{
+			bGenerateChunks = false;
+			bGenerateHttpChunkData = false;
+			HttpChunkDataDirectory = TEXT("");
+			HttpChunkDataReleaseName = TEXT("");
+		}
+
 		DefaultLaunchRole->Serialize(Archive);
 
 		// serialize launch roles
@@ -748,6 +784,11 @@ public:
 		CreateDLC = false;
 		DLCIncludeEngineContent = false;
 
+		bGenerateChunks = false;
+		bGenerateHttpChunkData = false;
+		HttpChunkDataDirectory = TEXT("");
+		HttpChunkDataReleaseName = TEXT("");
+
 		// default launch settings
 		LaunchMode = ELauncherProfileLaunchModes::DefaultRole;
 		DefaultLaunchRole->SetCommandLine(FString());
@@ -833,6 +874,42 @@ public:
 		{
 			DeployWithUnrealPak = UseUnrealPak;
 
+			Validate();
+		}
+	}
+
+	virtual void SetGenerateChunks(bool bInGenerateChunks) override
+	{
+		if (bGenerateChunks != bInGenerateChunks)
+		{
+			bGenerateChunks = bInGenerateChunks;
+			Validate();
+		}
+	}
+
+	virtual void SetGenerateHttpChunkData(bool bInGenerateHttpChunkData) override
+	{
+		if (bGenerateHttpChunkData != bInGenerateHttpChunkData)
+		{
+			bGenerateHttpChunkData = bInGenerateHttpChunkData;
+			Validate();
+		}
+	}
+
+	virtual void SetHttpChunkDataDirectory(const FString& InHttpChunkDataDirectory) override
+	{
+		if (HttpChunkDataDirectory != InHttpChunkDataDirectory)
+		{
+			HttpChunkDataDirectory = InHttpChunkDataDirectory;
+			Validate();
+		}
+	}
+
+	virtual void SetHttpChunkDataReleaseName(const FString& InHttpChunkDataReleaseName) override
+	{
+		if (HttpChunkDataReleaseName != InHttpChunkDataReleaseName)
+		{
+			HttpChunkDataReleaseName = InHttpChunkDataReleaseName;
 			Validate();
 		}
 	}
@@ -1158,6 +1235,26 @@ protected:
 			ValidationErrors.Add(ELauncherProfileValidationErrors::GeneratingPatchesCanOnlyRunFromByTheBookCookMode);
 		}
 
+		if ( IsGeneratingChunks() && (CookMode != ELauncherProfileCookModes::ByTheBook) )
+		{
+			ValidationErrors.Add(ELauncherProfileValidationErrors::GeneratingChunksRequiresCookByTheBook);
+		}
+
+		if (IsGeneratingChunks() && !IsPackingWithUnrealPak())
+		{
+			ValidationErrors.Add(ELauncherProfileValidationErrors::GeneratingChunksRequiresUnrealPak);
+		}
+
+		if (IsGenerateHttpChunkData() && !IsGeneratingChunks())
+		{
+			ValidationErrors.Add(ELauncherProfileValidationErrors::GeneratingHttpChunkDataRequiresGeneratingChunks);
+		}
+
+		if (IsGenerateHttpChunkData() && (GetHttpChunkDataReleaseName().IsEmpty() || !FPaths::DirectoryExists(*GetHttpChunkDataDirectory())))
+		{
+			ValidationErrors.Add(ELauncherProfileValidationErrors::GeneratingHttpChunkDataRequiresValidDirectoryAndName);
+		}
+
 		// Launch: when launching, all devices that the build is launched on must have content cooked for their platform
 		if ((LaunchMode != ELauncherProfileLaunchModes::DoNotLaunch) && (CookMode != ELauncherProfileCookModes::OnTheFly || CookMode != ELauncherProfileCookModes::OnTheFlyInEditor))
 		{
@@ -1295,6 +1392,18 @@ private:
 
 	// Holds a flag indicating whether content should be packaged with UnrealPak.
 	bool DeployWithUnrealPak;
+
+	// Flag indicating if content should be split into chunks
+	bool bGenerateChunks;
+	
+	// Flag indicating if chunked content should be used to generate HTTPChunkInstall data
+	bool bGenerateHttpChunkData;
+	
+	// Where to store HTTPChunkInstall data
+	FString HttpChunkDataDirectory;
+	
+	// Version name of the HTTPChunkInstall data
+	FString HttpChunkDataReleaseName;
 
 	// create a release version of the content (this can be used to base dlc / patches from)
 	bool CreateReleaseVersion;

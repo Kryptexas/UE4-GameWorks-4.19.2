@@ -125,6 +125,9 @@ private:
 	// Callback for determining the checked state of the 'UnrealPak' check box.
 	ECheckBoxState HandleUnrealPakCheckBoxIsChecked( ) const;
 
+	void HandleGenerateChunksCheckBoxCheckStateChanged(ECheckBoxState NewState);
+	ECheckBoxState HandleGenerateChunksCheckBoxIsChecked() const;
+
 
 	//////////////////////////////////////////////////////////////////////////
 	// creating release version related functions
@@ -159,8 +162,16 @@ private:
 	FText HandleDLCNameTextBlockText() const;
 	void HandleDLCIncludeEngineContentCheckBoxCheckStateChanged(ECheckBoxState NewState);
 	ECheckBoxState HandleDLCIncludeEngineContentCheckBoxIsChecked() const;
-	
 
+	//////////////////////////////////////////////////////////////////////////
+	// Http Chunk Installer options & functions
+	FReply HandleHtppChunkInstallBrowseButtonClicked();
+	void HandleHtppChunkInstallDirectoryTextChanged(const FText& InText);
+	void HandleHtppChunkInstallDirectoryTextCommitted(const FText& InText, ETextCommit::Type CommitInfo);
+	void HandleHttpChunkInstallCheckBoxCheckStateChanged(ECheckBoxState NewState);
+	ECheckBoxState HandleHttpChunkInstallCheckBoxIsChecked() const;
+	FText HandleHttpChunkInstallNameTextBlockText() const;
+	void HandleHtppChunkInstallNameCommitted(const FText& NewText, ETextCommit::Type CommitType);
 
 	/** creates the complex widget. */
 	TSharedRef<SWidget> MakeComplexWidget();
@@ -193,4 +204,7 @@ private:
 
 	/** Holds the current 'Show maps' check box choice. */
 	EShowMapsChoices::Type ShowMapsChoice;
+
+	// Holds the Http Chunk Install directory path text box.
+	TSharedPtr<SEditableTextBox> HttpChunkInstallDirectoryTextBox;
 };

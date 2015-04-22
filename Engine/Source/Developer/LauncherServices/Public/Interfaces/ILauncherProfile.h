@@ -162,6 +162,18 @@ namespace ELauncherProfileValidationErrors
 
 		/** generating patch requires cook by the book mode*/
 		GeneratingPatchesCanOnlyRunFromByTheBookCookMode,
+
+		/** Generating Chunks requires cook by the book mode */
+		GeneratingChunksRequiresCookByTheBook,
+
+		/** Generating Chunks requires UnrealPak */
+		GeneratingChunksRequiresUnrealPak,
+
+		/** Generating http chunk install data requires generating chunks */
+		GeneratingHttpChunkDataRequiresGeneratingChunks,
+
+		/** Generating http chunk install data requires valid install directorys and release name */
+		GeneratingHttpChunkDataRequiresValidDirectoryAndName,
 	};
 }
 
@@ -636,6 +648,34 @@ public:
 	virtual bool IsPackingWithUnrealPak( ) const = 0;
 
 	/**
+	 * Return whether packaging will generate chunk data.
+	 *
+	 * @return true if Chunks will be generated, false otherwise.
+	 */
+	virtual bool IsGeneratingChunks() const = 0;
+	
+	/**
+	 * Return whether packaging will use chunk data to generate http chunk install data.
+	 *
+	 * @return true if data will be generated, false otherwise.
+	 */
+	virtual bool IsGenerateHttpChunkData() const = 0;
+	
+	/**
+	 * Where generated http chunk install data will be stored.
+	 *
+	 * @return true if data will be generated, false otherwise.
+	 */
+	virtual FString GetHttpChunkDataDirectory() const = 0;
+	
+	/**
+	 * What name to tag the generated http chunk install data with.
+	 *
+	 * @return true if data will be generated, false otherwise.
+	 */
+	virtual FString GetHttpChunkDataReleaseName() const = 0;
+
+	/**
 	 * Checks whether the profile's selected project supports Engine maps.
 	 *
 	 * @return true if Engine maps are supported, false otherwise.
@@ -801,6 +841,31 @@ public:
 	 * @see IsPackingWithUnrealPak
 	 */
 	virtual void SetDeployWithUnrealPak( bool UseUnrealPak ) = 0;
+
+	/**
+	 * Set whether packaging will generate chunk data.
+	 *
+	 * @param true if Chunks should be generated, false otherwise.
+	 */
+	virtual void SetGenerateChunks(bool bGenerateChunks) = 0;
+	/**
+	 * Set whether packaging will use chunk data to generate http chunk install data.
+	 *
+	 * @param true if data should be generated, false otherwise.
+	 */
+	virtual void SetGenerateHttpChunkData(bool bGenerateHttpChunkData) = 0;
+	/**
+	 * Set where generated http chunk install data will be stored.
+	 *
+	 * @return the directory path to use.
+	 */	
+	virtual void SetHttpChunkDataDirectory(const FString& InHttpChunkDataDirectory ) = 0;
+	/**
+	 * Set what name to tag the generated http chunk install data with.
+	 *
+	 * @param the name to use.
+	 */	
+	virtual void SetHttpChunkDataReleaseName(const FString& InHttpChunkDataReleaseName ) = 0;
 
 	/**
 	 * Sets the device group to deploy to.

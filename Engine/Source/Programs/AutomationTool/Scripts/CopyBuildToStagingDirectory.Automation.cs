@@ -747,7 +747,7 @@ public partial class Project : CommandUtils
 				string VersionString = Params.ChunkInstallVersionString;
 				string ChunkInstallBasePath = CombinePaths(Params.ChunkInstallDirectory, SC.FinalCookPlatform);
 				string RawDataPath = CombinePaths(ChunkInstallBasePath, VersionString, PakName);
-				string RawDataPakPath = CombinePaths(RawDataPath, PakName + "-" + SC.FinalCookPlatform + ".pak");
+				string RawDataPakPath = CombinePaths(RawDataPath, PakName + "-" + SC.FinalCookPlatform + PostFix + ".pak");
 				//copy the pak chunk to the raw data folder
 				if (InternalUtils.SafeFileExists(RawDataPakPath, true))
 				{
@@ -758,6 +758,17 @@ public partial class Project : CommandUtils
 				if (ChunkID != 0)
 				{
 					InternalUtils.SafeDeleteFile(OutputLocation, true);
+				}
+				if (Params.IsGeneratingPatch)
+				{
+					if (String.IsNullOrEmpty(PatchSourceContentPath))
+					{
+						throw new AutomationException(String.Format("Failed Creating Chunk Install Data. No source pak for patch pak {0} given", OutputLocation));
+					}
+					// If we are generating a patch, then we need to copy the original pak across
+					// for distribution.
+					string SourceRawDataPakPath = CombinePaths(RawDataPath, PakName + "-" + SC.FinalCookPlatform + ".pak");
+					InternalUtils.SafeCopyFile(PatchSourceContentPath, SourceRawDataPakPath);
 				}
 
 				string BuildRoot = MakePathSafeToUseWithCommandLine(RawDataPath);
