@@ -1160,16 +1160,19 @@ namespace UnrealBuildTool
 
 			// @todo plugin: Disallow modules from including plugin modules as dependency modules? (except when the module is part of that plugin)
 
-			// And plugin directories
+			// Get all the root folders for plugins
+			List<string> RootFolders = new List<string>();
+			RootFolders.Add(ProjectFileGenerator.EngineRelativePath);
+			RootFolders.AddRange(AllGameFolders);
+
+			// Find all the plugin source directories
+			foreach(string RootFolder in RootFolders)
 			{
-				foreach( var Plugin in Plugins.AllPlugins )
+				string PluginsFolder = Path.Combine(RootFolder, "Plugins");
+				foreach(string PluginFile in Plugins.EnumeratePlugins(PluginsFolder))
 				{
-					// Plugin source directory
-					var PluginSourceDirectory = Path.Combine( Plugin.Directory, "Source" );
-					if( Directory.Exists( PluginSourceDirectory ) )
-					{
-						Folders.Add( PluginSourceDirectory );	
-					}
+					string PluginDirectory = Path.GetDirectoryName(PluginFile);
+					Folders.Add(Path.Combine(PluginDirectory, "Source"));
 				}
 			}
 
