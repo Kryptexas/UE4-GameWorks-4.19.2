@@ -436,8 +436,8 @@ private:
 			// If the parent process is no longer running, exit
 			if (!FPlatformProcess::IsApplicationRunning(ParentProcessId))
 			{
-				FString InputFilePath = FString(WorkingDirectory) + InputFilename;
-				checkf(IFileManager::Get().FileSize(*InputFilePath) == INDEX_NONE, TEXT("Exiting due to the parent process no longer running and the input file is present!"));
+				FString FilePath = FString(WorkingDirectory) + InputFilename;
+				checkf(IFileManager::Get().FileSize(*FilePath) == INDEX_NONE, TEXT("Exiting due to the parent process no longer running and the input file is present!"));
 				UE_LOG(LogShaders, Log, TEXT("Parent process no longer running, exiting"));
 				FPlatformMisc::RequestExit(false);
 			}
@@ -457,7 +457,7 @@ private:
 		{
 			if (ParentProcessId > 0)
 			{
-				FString InputFilePath = FString(WorkingDirectory) + InputFilename;
+				FString FilePath = FString(WorkingDirectory) + InputFilename;
 
 				bool bParentStillRunning = true;
 				HANDLE ParentProcessHandle = OpenProcess(SYNCHRONIZE, false, ParentProcessId);
@@ -466,7 +466,7 @@ private:
 				{
 					if (!IsUsingNamedPipes())
 					{
-						checkf(IFileManager::Get().FileSize(*InputFilePath) == INDEX_NONE, TEXT("Exiting due to OpenProcess(ParentProcessId) failing and the input file is present!"));
+						checkf(IFileManager::Get().FileSize(*FilePath) == INDEX_NONE, TEXT("Exiting due to OpenProcess(ParentProcessId) failing and the input file is present!"));
 					}
 					UE_LOG(LogShaders, Log, TEXT("Couldn't OpenProcess, Parent process no longer running, exiting"));
 					FPlatformMisc::RequestExit(false);
@@ -481,7 +481,7 @@ private:
 					{
 						if (!IsUsingNamedPipes())
 						{
-							checkf(IFileManager::Get().FileSize(*InputFilePath) == INDEX_NONE, TEXT("Exiting due to WaitForSingleObject(ParentProcessHandle) signaling and the input file is present!"));
+							checkf(IFileManager::Get().FileSize(*FilePath) == INDEX_NONE, TEXT("Exiting due to WaitForSingleObject(ParentProcessHandle) signaling and the input file is present!"));
 						}
 						UE_LOG(LogShaders, Log, TEXT("WaitForSingleObject signaled, Parent process no longer running, exiting"));
 						FPlatformMisc::RequestExit(false);
