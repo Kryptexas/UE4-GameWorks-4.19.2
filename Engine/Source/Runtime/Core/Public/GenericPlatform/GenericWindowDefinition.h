@@ -44,10 +44,11 @@ struct CORE_API FGenericWindowDefinition
 	bool AcceptsInput;
 	bool ActivateWhenFirstShown;
 
+	bool HasCloseButton;
 	bool SupportsMinimize;
 	bool SupportsMaximize;
 
-    bool IsModalWindow;
+	bool IsModalWindow;
 	bool IsRegularWindow;
 	bool HasSizingFrame;
 	bool SizeWillChangeOften;

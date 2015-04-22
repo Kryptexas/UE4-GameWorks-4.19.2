@@ -91,6 +91,7 @@ public:
 		, _FocusWhenFirstShown( true )
 		, _ActivateWhenFirstShown( true )
 		, _UseOSWindowBorder( false )
+		, _HasCloseButton( true )
 		, _SupportsMaximize( true )
 		, _SupportsMinimize( true )
 		, _CreateTitleBar( true )
@@ -141,6 +142,9 @@ public:
 
 		/** Use the default os look for the border of the window */
 		SLATE_ARGUMENT( bool, UseOSWindowBorder )
+
+		/** Does this window have a close button? */
+		SLATE_ARGUMENT( bool, HasCloseButton )
 
 		/** Can this window be maximized? */
 		SLATE_ARGUMENT( bool, SupportsMaximize )
@@ -558,6 +562,9 @@ public:
 	/** @return true if this is a user-sized window with a thick edge */
 	bool HasSizingFrame() const;
 
+	/** @return true if this window has a close button/box on the titlebar area */
+	bool HasCloseBox() const;
+
 	/** @return true if this window has a maximize button/box on the titlebar area */
 	bool HasMaximizeBox() const;
 
@@ -783,7 +790,10 @@ protected:
 
 	/** True if this window displays the os window border instead of drawing one in slate */
 	bool bHasOSWindowBorder : 1;
-	
+
+	/** True if this window displays an enabled close button on the toolbar area */
+	bool bHasCloseButton : 1;
+
 	/** True if this window displays an enabled minimize button on the toolbar area */
 	bool bHasMinimizeButton : 1;
 

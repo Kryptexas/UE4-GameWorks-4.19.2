@@ -117,9 +117,9 @@ void FSourceControlModule::ShowLoginDialog(const FSourceControlLoginClosed& InOn
 		// Create the window
 		SourceControlLoginWindowPtr = SNew(SWindow)
 			.Title( LOCTEXT("SourceControlLoginTitle", "Source Control Login") )
+			.HasCloseButton(false)
 			.SupportsMaximize(false) 
 			.SupportsMinimize(false)
-			.CreateTitleBar(false)
 			.SizingRule( ESizingRule::Autosized );
 
 		// Set the closed callback

@@ -58,7 +58,10 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 	uint32 WindowStyle = 0;
 	if( Definition->IsRegularWindow )
 	{
-		WindowStyle = NSClosableWindowMask;
+		if( Definition->HasCloseButton )
+		{
+			WindowStyle = NSClosableWindowMask;
+		}
 		
 		// In order to support rounded, shadowed windows set the window to be
 		// titled - we'll set the OpenGL view to cover the whole window

@@ -193,6 +193,7 @@ void SWindow::Construct(const FArguments& InArgs)
 	this->bFocusWhenFirstShown = InArgs._FocusWhenFirstShown;
 	this->bActivateWhenFirstShown = InArgs._ActivateWhenFirstShown;
 	this->bHasOSWindowBorder = InArgs._UseOSWindowBorder;
+	this->bHasCloseButton = InArgs._HasCloseButton;
 	this->bHasMinimizeButton = InArgs._SupportsMinimize;
 	this->bHasMaximizeButton = InArgs._SupportsMaximize;
 	this->bHasSizingFrame = !InArgs._IsPopupWindow && InArgs._SizingRule == ESizingRule::UserSized;
@@ -1247,6 +1248,12 @@ bool SWindow::HasSizingFrame() const
 	return bHasSizingFrame;
 }
 
+/** @return true if this window has a close button/box on the titlebar area */
+bool SWindow::HasCloseBox() const
+{
+	return bHasCloseButton;
+}
+
 /** @return true if this window has a maximize button/box on the titlebar area */
 bool SWindow::HasMaximizeBox() const
 {
@@ -1630,6 +1637,7 @@ SWindow::SWindow()
 	, bFocusWhenFirstShown(true)
 	, bActivateWhenFirstShown(true)
 	, bHasOSWindowBorder( false )
+	, bHasCloseButton( false )
 	, bHasMinimizeButton( false )
 	, bHasMaximizeButton( false )
 	, bHasSizingFrame( false )

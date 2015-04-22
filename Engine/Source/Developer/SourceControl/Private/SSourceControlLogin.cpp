@@ -14,47 +14,6 @@
 
 #define LOCTEXT_NAMESPACE "SSourceControlLogin"
 
-class SSourceControlTitleBar : public SBorder
-{
-public:
-	SLATE_BEGIN_ARGS(SSourceControlTitleBar) {}
-
-	/** A reference to the parent window */
-	SLATE_ARGUMENT(TSharedPtr<SWindow>, ParentWindow)
-
-	SLATE_END_ARGS()
-
-	void Construct(const FArguments& InArgs)
-	{
-		ParentWindowPtr = InArgs._ParentWindow;
-
-		SBorder::Construct(SBorder::FArguments()
-			.BorderImage(FEditorStyle::GetBrush("Window.Title.Active"))
-			[
-				SNew(SHorizontalBox)
-				.Visibility( EVisibility::HitTestInvisible )
-				+SHorizontalBox::Slot()
-				.HAlign(HAlign_Center)
-				[
-					SNew(STextBlock)
-					.Text( LOCTEXT("SourceControlLoginTitle", "Source Control Login") )
-					.TextStyle(FEditorStyle::Get(), "Window.TitleText")
-					.Visibility( EVisibility::HitTestInvisible )
-				]
-			]
-		);
-	}
-
-	virtual EWindowZone::Type GetWindowZoneOverride() const override
-	{
-		return EWindowZone::TitleBar;
-	}
-
-private:
-	/** The parent window of this widget */
-	TWeakPtr<SWindow> ParentWindowPtr;
-};
-
 const float SSourceControlLogin::RefreshFrequency = 0.5f;
 
 void SSourceControlLogin::Construct(const FArguments& InArgs)
@@ -79,18 +38,6 @@ void SSourceControlLogin::Construct(const FArguments& InArgs)
 		.Padding(4.0f)
 		[
 			SNew(SVerticalBox)
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-				.FillWidth(1.0f)
-				.Padding(0.0f, 0.0f, 0.0f, 10.0f)
-				[
-					SNew(SSourceControlTitleBar)
-					.ParentWindow(InArgs._ParentWindow)
-				]
-			]
 			+SVerticalBox::Slot()
 			.FillHeight(1.0f)
 			.Padding(0.0f, 6.0f, 0.0f, 0.0f)

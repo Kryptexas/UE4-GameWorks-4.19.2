@@ -165,46 +165,52 @@ protected:
 			return;
 		}
 
-		MinimizeButton = SNew(SButton)
-				.IsFocusable(false)
-				.IsEnabled(OwnerWindow->HasMinimizeBox())
-				.ContentPadding(0)
-				.OnClicked(this, &SWindowTitleBar::MinimizeButton_OnClicked)
-				.Cursor(EMouseCursor::Default)
-				.ButtonStyle(FCoreStyle::Get(), "NoBorder")
-				[
-					SNew(SImage)
-						.Image(this, &SWindowTitleBar::GetMinimizeImage)
-						.ColorAndOpacity(this, &SWindowTitleBar::GetWindowTitleContentColor)
-				]
-			;
+		const bool bHasWindowButtons = OwnerWindow->HasCloseBox() || OwnerWindow->HasMinimizeBox() || OwnerWindow->HasMaximizeBox();
 
-		MaximizeRestoreButton = SNew(SButton)
-				.IsFocusable(false)
-				.IsEnabled(OwnerWindow->HasMaximizeBox())
-				.ContentPadding(0.0f)
-				.OnClicked(this, &SWindowTitleBar::MaximizeRestoreButton_OnClicked)
-				.Cursor(EMouseCursor::Default)
-				.ButtonStyle(FCoreStyle::Get(), "NoBorder")
-				[
-					SNew(SImage)
-						.Image(this, &SWindowTitleBar::GetMaximizeRestoreImage)
-						.ColorAndOpacity(this, &SWindowTitleBar::GetWindowTitleContentColor)
-				]
-			;
+		if (bHasWindowButtons)
+		{
+			MinimizeButton = SNew(SButton)
+					.IsFocusable(false)
+					.IsEnabled(OwnerWindow->HasMinimizeBox())
+					.ContentPadding(0)
+					.OnClicked(this, &SWindowTitleBar::MinimizeButton_OnClicked)
+					.Cursor(EMouseCursor::Default)
+					.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+					[
+						SNew(SImage)
+							.Image(this, &SWindowTitleBar::GetMinimizeImage)
+							.ColorAndOpacity(this, &SWindowTitleBar::GetWindowTitleContentColor)
+					]
+				;
 
-		CloseButton = SNew(SButton)
-				.IsFocusable(false)
-				.ContentPadding(0.0f)
-				.OnClicked(this, &SWindowTitleBar::CloseButton_OnClicked)
-				.Cursor(EMouseCursor::Default)
-				.ButtonStyle(FCoreStyle::Get(), "NoBorder")
-				[
-					SNew(SImage)
-						.Image(this, &SWindowTitleBar::GetCloseImage)
-						.ColorAndOpacity(this, &SWindowTitleBar::GetWindowTitleContentColor)
-				]
-			;
+			MaximizeRestoreButton = SNew(SButton)
+					.IsFocusable(false)
+					.IsEnabled(OwnerWindow->HasMaximizeBox())
+					.ContentPadding(0.0f)
+					.OnClicked(this, &SWindowTitleBar::MaximizeRestoreButton_OnClicked)
+					.Cursor(EMouseCursor::Default)
+					.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+					[
+						SNew(SImage)
+							.Image(this, &SWindowTitleBar::GetMaximizeRestoreImage)
+							.ColorAndOpacity(this, &SWindowTitleBar::GetWindowTitleContentColor)
+					]
+				;
+
+			CloseButton = SNew(SButton)
+					.IsFocusable(false)
+					.IsEnabled(OwnerWindow->HasCloseBox())
+					.ContentPadding(0.0f)
+					.OnClicked(this, &SWindowTitleBar::CloseButton_OnClicked)
+					.Cursor(EMouseCursor::Default)
+					.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+					[
+						SNew(SImage)
+							.Image(this, &SWindowTitleBar::GetCloseImage)
+							.ColorAndOpacity(this, &SWindowTitleBar::GetWindowTitleContentColor)
+					]
+				;
+		}
 
 #if PLATFORM_MAC
 
@@ -215,44 +221,51 @@ protected:
 #else // PLATFORM_MAC
 
 		// Windows UI layout
-		if (ShowAppIcon)
+		if (ShowAppIcon && bHasWindowButtons)
 		{
 			OutLeftContent = SNew(SAppIconWidget)
 				.IconColorAndOpacity(this, &SWindowTitleBar::GetWindowTitleContentColor);
 		}
 		else
 		{
-			OutLeftContent = SNullWidget::NullWidget;
+			OutLeftContent = SNew(SSpacer);
 		}
 
-		OutRightContent = SNew(SBox)
-			.Visibility(EVisibility::SelfHitTestInvisible)
-			.Padding(FMargin(2.0f, 0.0f, 0.0f, 0.0f))
-			[
-				// Minimize
-				SNew(SHorizontalBox)
-					.Visibility(EVisibility::SelfHitTestInvisible)
+		if (bHasWindowButtons)
+		{
+			OutRightContent = SNew(SBox)
+				.Visibility(EVisibility::SelfHitTestInvisible)
+				.Padding(FMargin(2.0f, 0.0f, 0.0f, 0.0f))
+				[
+					// Minimize
+					SNew(SHorizontalBox)
+						.Visibility(EVisibility::SelfHitTestInvisible)
 
-				+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						MinimizeButton.ToSharedRef()
-					]
+					+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							MinimizeButton.ToSharedRef()
+						]
 
-				// Maximize/Restore
-				+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						MaximizeRestoreButton.ToSharedRef()
-					]
+					// Maximize/Restore
+					+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							MaximizeRestoreButton.ToSharedRef()
+						]
 
-				// Close button
-				+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						CloseButton.ToSharedRef()
-					]
-			];
+					// Close button
+					+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							CloseButton.ToSharedRef()
+						]
+				];
+		}
+		else
+		{
+			OutRightContent = SNew(SSpacer);
+		}
 
 #endif // PLATFORM_MAC
 	}
@@ -287,6 +300,12 @@ protected:
 						.TextStyle(&Style->TitleTextStyle)
 						.Text(Title)
 				];
+		}
+
+		// Adjust the center content alignment if needed. Windows without any title bar buttons look better if the title is centered.
+		if (LeftContent == SNullWidget::NullWidget && RightContent == SNullWidget::NullWidget && CenterContentAlignment == EHorizontalAlignment::HAlign_Left)
+		{
+			CenterContentAlignment = EHorizontalAlignment::HAlign_Center;
 		}
 
 		// calculate content dimensions

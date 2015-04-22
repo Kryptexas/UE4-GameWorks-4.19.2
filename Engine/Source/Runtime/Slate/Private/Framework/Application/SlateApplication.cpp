@@ -1592,6 +1592,7 @@ TSharedRef< FGenericWindow > FSlateApplication::MakeWindow( TSharedRef<SWindow> 
 	Definition->AcceptsInput = InSlateWindow->AcceptsInput();
 	Definition->ActivateWhenFirstShown = InSlateWindow->ActivateWhenFirstShown();
 
+	Definition->HasCloseButton = InSlateWindow->HasCloseBox();
 	Definition->SupportsMinimize = InSlateWindow->HasMinimizeBox();
 	Definition->SupportsMaximize = InSlateWindow->HasMaximizeBox();
 
