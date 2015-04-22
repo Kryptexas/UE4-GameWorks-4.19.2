@@ -435,42 +435,37 @@ enum EBufferUsageFlags
 	BUF_AnyDynamic      = (BUF_Dynamic|BUF_Volatile),
 };
 
-#define ENUM_RHI_RESOURCE_TYPES(EnumerationMacro) \
-	EnumerationMacro(SamplerState,None) \
-	EnumerationMacro(RasterizerState,None) \
-	EnumerationMacro(DepthStencilState,None) \
-	EnumerationMacro(BlendState,None) \
-	EnumerationMacro(VertexDeclaration,None) \
-	EnumerationMacro(VertexShader,None) \
-	EnumerationMacro(HullShader,None) \
-	EnumerationMacro(DomainShader,None) \
-	EnumerationMacro(PixelShader,None) \
-	EnumerationMacro(GeometryShader,None) \
-	EnumerationMacro(ComputeShader,None) \
-	EnumerationMacro(BoundShaderState,None) \
-	EnumerationMacro(UniformBuffer,None) \
-	EnumerationMacro(IndexBuffer,None) \
-	EnumerationMacro(VertexBuffer,None) \
-	EnumerationMacro(StructuredBuffer,None) \
-	EnumerationMacro(Texture,None) \
-	EnumerationMacro(Texture2D,Texture) \
-	EnumerationMacro(Texture2DArray,Texture) \
-	EnumerationMacro(Texture3D,Texture) \
-	EnumerationMacro(TextureCube,Texture) \
-	EnumerationMacro(TextureReference,Texture) \
-	EnumerationMacro(RenderQuery,None) \
-	EnumerationMacro(Viewport,None) \
-	EnumerationMacro(UnorderedAccessView,None) \
-	EnumerationMacro(ShaderResourceView,None)
-
 /** An enumeration of the different RHI reference types. */
 enum ERHIResourceType
 {
 	RRT_None,
 
-#define DECLARE_RESOURCETYPE_ENUM(Type,ParentType) RRT_##Type,
-	ENUM_RHI_RESOURCE_TYPES(DECLARE_RESOURCETYPE_ENUM)
-#undef DECLARE_RESOURCETYPE_ENUM
+	RRT_SamplerState,
+	RRT_RasterizerState,
+	RRT_DepthStencilState,
+	RRT_BlendState,
+	RRT_VertexDeclaration,
+	RRT_VertexShader,
+	RRT_HullShader,
+	RRT_DomainShader,
+	RRT_PixelShader,
+	RRT_GeometryShader,
+	RRT_ComputeShader,
+	RRT_BoundShaderState,
+	RRT_UniformBuffer,
+	RRT_IndexBuffer,
+	RRT_VertexBuffer,
+	RRT_StructuredBuffer,
+	RRT_Texture,
+	RRT_Texture2D,
+	RRT_Texture2DArray,
+	RRT_Texture3D,
+	RRT_TextureCube,
+	RRT_TextureReference,
+	RRT_RenderQuery,
+	RRT_Viewport,
+	RRT_UnorderedAccessView,
+	RRT_ShaderResourceView,
 
 	RRT_Num
 };
