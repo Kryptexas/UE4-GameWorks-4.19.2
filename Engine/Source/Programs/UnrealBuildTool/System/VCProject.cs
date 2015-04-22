@@ -916,21 +916,20 @@ namespace UnrealBuildTool
 					"		<Import Project=\"$(UserRootDir)\\Microsoft.Cpp.$(Platform).user.props\" Condition=\"exists('$(UserRootDir)\\Microsoft.Cpp.$(Platform).user.props')\" Label=\"LocalAppDataPlatform\" />" + ProjectFileGenerator.NewLine +
 					"	</ImportGroup>" + ProjectFileGenerator.NewLine);
 
-				VCProjectFileContent.Append(
-					"	<PropertyGroup " + ConditionString + ">" + ProjectFileGenerator.NewLine);
-
 				if (IsStubProject)
 				{
 					string ProjectRelativeUnusedDirectory = NormalizeProjectPath(Path.Combine(ProjectFileGenerator.EngineRelativePath, BuildConfiguration.BaseIntermediateFolder, "Unused"));
 
 					VCProjectFileContent.Append(
+					    "	<PropertyGroup " + ConditionString + ">" + ProjectFileGenerator.NewLine +
 						"		<OutDir>" + ProjectRelativeUnusedDirectory + Path.DirectorySeparatorChar + "</OutDir>" + ProjectFileGenerator.NewLine +
 						"		<IntDir>" + ProjectRelativeUnusedDirectory + Path.DirectorySeparatorChar + "</IntDir>" + ProjectFileGenerator.NewLine +
 						"		<NMakeBuildCommandLine>@rem Nothing to do.</NMakeBuildCommandLine>" + ProjectFileGenerator.NewLine +
 						"		<NMakeReBuildCommandLine>@rem Nothing to do.</NMakeReBuildCommandLine>" + ProjectFileGenerator.NewLine +
 						"		<NMakeCleanCommandLine>@rem Nothing to do.</NMakeCleanCommandLine>" + ProjectFileGenerator.NewLine +
-						"		<NMakeOutput/>" + ProjectFileGenerator.NewLine);
-				}
+						"		<NMakeOutput/>" + ProjectFileGenerator.NewLine +
+                        "	</PropertyGroup>" + ProjectFileGenerator.NewLine);
+                }
 				else
 				{
 					TargetRules TargetRulesObject = Combination.ProjectTarget.TargetRules;
@@ -999,6 +998,9 @@ namespace UnrealBuildTool
 					NMakePath += BuildPlatform.GetBinaryExtension(UEBuildBinaryType.Executable);
 					NMakePath = (BuildPlatform as UEBuildPlatform).ModifyNMakeOutput(NMakePath);
 
+                    VCProjectFileContent.Append(
+                        "	<PropertyGroup " + ConditionString + ">" + ProjectFileGenerator.NewLine);
+
 					string PathStrings = (ProjGenerator != null) ? ProjGenerator.GetVisualStudioPathsEntries(Platform, Configuration, TargetRulesObject.Type, TargetFilePath, ProjectFilePath, NMakePath) : "";
 					if (string.IsNullOrEmpty(PathStrings) || (PathStrings.Contains("<IntDir>") == false))
 					{
@@ -1053,8 +1055,11 @@ namespace UnrealBuildTool
 					VCProjectFileContent.Append("		<NMakeOutput>");
 					VCProjectFileContent.Append(NormalizeProjectPath(NMakePath));
 					VCProjectFileContent.Append("</NMakeOutput>" + ProjectFileGenerator.NewLine);
-				}
-				VCProjectFileContent.Append("	</PropertyGroup>" + ProjectFileGenerator.NewLine);
+				    VCProjectFileContent.Append("	</PropertyGroup>" + ProjectFileGenerator.NewLine);
+
+                    string LayoutDirString = (ProjGenerator != null) ? ProjGenerator.GetVisualStudioLayoutDirSection(Platform, Configuration, ConditionString, Combination.ProjectTarget.TargetRules.Type, Combination.ProjectTarget.TargetFilePath, ProjectFilePath, NMakePath) : "";
+                    VCProjectFileContent.Append(LayoutDirString);
+                }
 
 				if (VCUserFileContent != null && Combination.ProjectTarget != null)
 				{
@@ -1102,9 +1107,6 @@ namespace UnrealBuildTool
 					VCUserFileContent.Append(PlatformUserFileStrings);
 				}
 			}
-
-			string LayoutDirString = (ProjGenerator != null) ? ProjGenerator.GetVisualStudioLayoutDirSection(Platform, Configuration, ConditionString, Combination.ProjectTarget.TargetRules.Type, Combination.ProjectTarget.TargetFilePath, ProjectFilePath) : "";
-			VCProjectFileContent.Append(LayoutDirString);
 		}
 	}
 
