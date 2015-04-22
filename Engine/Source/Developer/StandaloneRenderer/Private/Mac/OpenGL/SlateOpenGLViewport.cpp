@@ -55,7 +55,7 @@ void FSlateOpenGLViewport::SwapBuffers()
 	ContextGuard.Unlock();
 }
 
-void FSlateOpenGLViewport::Resize(int32 Width, int32 Height, bool bFullscreen)
+void FSlateOpenGLViewport::Resize(int32 Width, int32 Height, bool bInFullscreen)
 {
 	FScopeLock Lock(&ContextGuard);
 

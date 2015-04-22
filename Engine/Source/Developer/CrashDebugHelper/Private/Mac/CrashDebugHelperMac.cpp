@@ -526,7 +526,7 @@ bool FCrashDebugHelperMac::ParseCrashDump(const FString& InCrashDumpName, FCrash
 			int32 Build = 0;
 			int32 CLNumber = 0;
 			FString Branch;
-			int32 Result = ParseVersion(*CrashDump, Major, Minor, Build, CLNumber, Branch);
+			Result = ParseVersion(*CrashDump, Major, Minor, Build, CLNumber, Branch);
 			if(Result >= 3)
 			{
 				if (Result < 5)
@@ -557,18 +557,20 @@ bool FCrashDebugHelperMac::CreateMinidumpDiagnosticReport( const FString& InCras
 	
 	FString CrashDump;
 	
-	NSString* CrashDumpPath = InCrashDumpName.GetNSString();
-	NSError* Error = nil;
-    NSData* Data = [NSData dataWithContentsOfFile: CrashDumpPath options: NSMappedRead error: &Error];
-	if(Data && !Error)
-	{
-		PLCrashReport* CrashLog = [[PLCrashReport alloc] initWithData: Data error: &Error];
-		if(CrashLog && !Error)
-		{
-			NSString* Report = [PLCrashReportTextFormatter stringValueForCrashReport: CrashLog withTextFormat: PLCrashReportTextFormatiOS];
-			CrashDump = FString(Report);
-		}
-	}
+    {
+        NSString* CrashDumpPath = InCrashDumpName.GetNSString();
+        NSError* Error = nil;
+        NSData* Data = [NSData dataWithContentsOfFile: CrashDumpPath options: NSMappedRead error: &Error];
+        if(Data && !Error)
+        {
+            PLCrashReport* CrashLog = [[PLCrashReport alloc] initWithData: Data error: &Error];
+            if(CrashLog && !Error)
+            {
+                NSString* Report = [PLCrashReportTextFormatter stringValueForCrashReport: CrashLog withTextFormat: PLCrashReportTextFormatiOS];
+                CrashDump = FString(Report);
+            }
+        }
+    }
 	
 	if ( !CrashDump.IsEmpty() || FFileHelper::LoadFileToString( CrashDump, *InCrashDumpName ) )
 	{
@@ -592,7 +594,7 @@ bool FCrashDebugHelperMac::CreateMinidumpDiagnosticReport( const FString& InCras
 			int32 CLNumber = 0;
 			int32 LineNumber = 0;;
 			
-			int32 Result = ParseVersion(*CrashDump, Major, Minor, Build, CLNumber, Branch);
+			Result = ParseVersion(*CrashDump, Major, Minor, Build, CLNumber, Branch);
 			if(Result >= 3)
 			{
 				CrashInfo.EngineVersion = FEngineVersion(Major, Minor, Build, CLNumber, Branch).ToString();
@@ -638,8 +640,7 @@ bool FCrashDebugHelperMac::CreateMinidumpDiagnosticReport( const FString& InCras
 			while(ModuleLine)
 			{
 				FCrashModuleInfo Module;
-				bool const bOK = ParseModuleLine(ModuleLine, Module);
-				if(bOK)
+				if (ParseModuleLine(ModuleLine, Module))
 				{
 					CrashInfo.Modules.Push(Module);
 					CrashInfo.ModuleNames.Push(FPaths::GetBaseFilename(Module.Name));

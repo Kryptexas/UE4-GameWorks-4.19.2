@@ -129,10 +129,10 @@ FCrashDescription::FCrashDescription( FString WERXMLFilepath ) :
 
 				if( ParsedParameters9.Num() > 1 )
 				{
-					const FString BaseDir = ParsedParameters9[1];
+					const FString BaseDirectory = ParsedParameters9[1];
 
 					TArray<FString> SubDirs;
-					BaseDir.ParseIntoArray( SubDirs, TEXT( "/" ), true );
+					BaseDirectory.ParseIntoArray( SubDirs, TEXT( "/" ), true );
 					const int SubDirsNum = SubDirs.Num();
 					const FString PlatformName = SubDirsNum > 0 ? SubDirs[SubDirsNum - 1] : TEXT("");
 					if( Product.Len() > 0 )

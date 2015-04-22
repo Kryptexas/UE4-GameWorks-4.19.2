@@ -218,11 +218,11 @@ bool FSlateOpenGLRenderer::GenerateDynamicImageResource(FName ResourceName, uint
 }
 
 
-void FSlateOpenGLRenderer::LoadStyleResources( const ISlateStyle& Style )
+void FSlateOpenGLRenderer::LoadStyleResources( const ISlateStyle& InStyle )
 {
 	if ( TextureManager.IsValid() )
 	{
-		TextureManager->LoadStyleResources( Style );
+		TextureManager->LoadStyleResources( InStyle );
 	}
 }
 
