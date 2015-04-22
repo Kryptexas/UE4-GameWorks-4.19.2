@@ -73,14 +73,11 @@ void SPluginCategories::RebuildAndFilterCategoryTree()
 
 
 		const TArray< FPluginStatus > Plugins = IPluginManager::Get().QueryStatusForAllPlugins();
-		for( auto PluginIt( Plugins.CreateConstIterator() ); PluginIt; ++PluginIt )
+		for(const FPluginStatus& Plugin: Plugins)
 		{
-			const auto& PluginStatus = *PluginIt;
-
-
 			// Figure out which base category this plugin belongs in
 			FPluginCategoryTreeItemPtr CategoryForPlugin;
-			if( PluginStatus.bIsBuiltIn )
+			if( Plugin.LoadedFrom == EPluginLoadedFrom::Engine )
 			{
 				CategoryForPlugin = InstalledCategory;
 			}
@@ -92,7 +89,7 @@ void SPluginCategories::RebuildAndFilterCategoryTree()
 			FString ItemCategoryPath = CategoryForPlugin->GetCategoryPath();
 
 
-			const FString& CategoryPath = PluginStatus.CategoryPath;
+			const FString& CategoryPath = Plugin.Descriptor.Category;
 			{
 				// We're expecting the category string to be in the "A.B.C" format.  We'll split up the string here and form
 				// a proper hierarchy in the UI
@@ -143,7 +140,7 @@ void SPluginCategories::RebuildAndFilterCategoryTree()
 			
 			// Associate the plugin with the category
 			// PERFORMANCE NOTE: Copying FPluginStats by value here
-			CategoryForPlugin->AddPlugin( MakeShareable( new FPluginStatus( PluginStatus ) ) );
+			CategoryForPlugin->AddPlugin( MakeShareable( new FPluginStatus( Plugin ) ) );
 		}
 
 

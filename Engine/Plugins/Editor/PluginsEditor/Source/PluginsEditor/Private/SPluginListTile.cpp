@@ -24,10 +24,13 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 	//		-> Maybe a filter for this too?  (show only editor plugins, etc.)
 	// @todo plugedit: Indicate whether plugin has content?  Filter to show only content plugins, and vice-versa?
 
+	// @todo plugedit: Maybe we should do the FileExists check ONCE at plugin load time and not at query time
+
 	// Plugin thumbnail image
-	if( !Item->PluginStatus.Icon128FilePath.IsEmpty() )
+	const FString Icon128FilePath = Item->PluginStatus.PluginDirectory / TEXT("Resources/Icon128.png");
+	if(FPlatformFileManager::Get().GetPlatformFile().FileExists(*Icon128FilePath))
 	{
-		const FName BrushName( *Item->PluginStatus.Icon128FilePath );
+		const FName BrushName( *Icon128FilePath );
 		const FIntPoint Size = FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(BrushName);
 
 		if ((Size.X > 0) && (Size.Y > 0))
@@ -44,13 +47,13 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 	// create documentation link
 	TSharedPtr<SWidget> DocumentationWidget;
 	{
-		if (Item->PluginStatus.DocsURL.IsEmpty())
+		if (Item->PluginStatus.Descriptor.DocsURL.IsEmpty())
 		{
 			DocumentationWidget = SNullWidget::NullWidget;
 		}
 		else
 		{
-			FString DocsURL = Item->PluginStatus.DocsURL;
+			FString DocsURL = Item->PluginStatus.Descriptor.DocsURL;
 			DocumentationWidget = SNew(SHorizontalBox)
 
 			+ SHorizontalBox::Slot()
@@ -78,11 +81,11 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 	// create vendor link
 	TSharedPtr<SWidget> CreatedByWidget;
 	{
-		if (Item->PluginStatus.CreatedBy.IsEmpty())
+		if (Item->PluginStatus.Descriptor.CreatedBy.IsEmpty())
 		{
 			CreatedByWidget = SNullWidget::NullWidget;
 		}
-		else if (Item->PluginStatus.CreatedByURL.IsEmpty())
+		else if (Item->PluginStatus.Descriptor.CreatedByURL.IsEmpty())
 		{
 			CreatedByWidget = SNew(SHorizontalBox)
 
@@ -101,12 +104,12 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 				.Padding(2.0f, 0.0f, 0.0f, 0.0f)
 				[
 					SNew(STextBlock)
-						.Text(FText::FromString(Item->PluginStatus.CreatedBy))
+						.Text(FText::FromString(Item->PluginStatus.Descriptor.CreatedBy))
 				];
 		}
 		else
 		{
-			FString CreatedByURL = Item->PluginStatus.CreatedByURL;
+			FString CreatedByURL = Item->PluginStatus.Descriptor.CreatedByURL;
 			CreatedByWidget = SNew(SHorizontalBox)
 
 			+ SHorizontalBox::Slot()
@@ -124,7 +127,7 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 				.Padding(2.0f, 0.0f, 0.0f, 0.0f)
 				[				
 					SNew(SHyperlink)
-						.Text(FText::FromString(Item->PluginStatus.CreatedBy))
+						.Text(FText::FromString(Item->PluginStatus.Descriptor.CreatedBy))
 						.ToolTipText(FText::Format(LOCTEXT("NavigateToCreatedByURL", "Visit the vendor's web site ({0})"), FText::FromString(CreatedByURL)))
 						.OnNavigate_Lambda([=]() { FPlatformProcess::LaunchURL(*CreatedByURL, nullptr, nullptr); })
 				];
@@ -171,7 +174,7 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 										.Padding(PaddingAmount)
 										[
 											SNew(STextBlock)
-												.Text(FText::FromString(Item->PluginStatus.FriendlyName))
+												.Text(FText::FromString(Item->PluginStatus.Descriptor.FriendlyName))
 												.HighlightText_Raw(&Owner->GetOwner().GetPluginTextFilter(), &FPluginTextFilter::GetRawFilterText)
 												.TextStyle(FPluginStyle::Get(), "PluginTile.NameText")
 										]
@@ -197,7 +200,7 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 															.Padding(0.0f, 0.0f, 3.0f, 2.0f)
 															[
 																SNew(SImage)
-																	.Visibility(Item->PluginStatus.bIsBetaVersion ? EVisibility::Visible : EVisibility::Collapsed)
+																	.Visibility(Item->PluginStatus.Descriptor.bIsBetaVersion ? EVisibility::Visible : EVisibility::Collapsed)
 																	.Image(FPluginStyle::Get()->GetBrush("PluginTile.BetaWarning"))
 															]
 
@@ -207,7 +210,7 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 															.VAlign(VAlign_Bottom)
 															[
 																SNew(STextBlock)
-																	.Text(Item->PluginStatus.bIsBetaVersion ? LOCTEXT("PluginBetaVersionLabel", "BETA Version ") : LOCTEXT("PluginVersionLabel", "Version "))
+																	.Text(Item->PluginStatus.Descriptor.bIsBetaVersion ? LOCTEXT("PluginBetaVersionLabel", "BETA Version ") : LOCTEXT("PluginVersionLabel", "Version "))
 															]
 													]
 
@@ -217,7 +220,7 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 													.Padding( 0.0f, 0.0f, 2.0f, 0.0f )	// Extra padding from the right edge
 													[
 														SNew(STextBlock)
-															.Text(FText::FromString(Item->PluginStatus.VersionName))
+															.Text(FText::FromString(Item->PluginStatus.Descriptor.VersionName))
 															.TextStyle(FPluginStyle::Get(), "PluginTile.VersionNumberText")
 													]
 											]
@@ -232,7 +235,7 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 											.Padding( PaddingAmount )
 											[
 												SNew(STextBlock)
-													.Text(FText::FromString(Item->PluginStatus.Description))
+													.Text(FText::FromString(Item->PluginStatus.Descriptor.Description))
 													.AutoWrapText(true)
 											]
 
@@ -256,24 +259,6 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 																SNew(STextBlock)
 																	.Text(LOCTEXT("EnablePluginCheckbox", "Enabled"))
 															]
-													]
-
-												// Uninstall button
-												+ SHorizontalBox::Slot()
-													.Padding(PaddingAmount)
-													.AutoWidth()
-													[
-														SNew(SButton)
-															.Text(LOCTEXT("PluginUninstallButtonLabel", "Uninstall..."))
-
-															// Don't show 'Uninstall' for built-in plugins
-															.Visibility(EVisibility::Collapsed)
-															// @todo plugins: Not supported yet
-																// .Visibility( Item->PluginStatus.bIsBuiltIn ? EVisibility::Collapsed : EVisibility::Visible )
-
-															.OnClicked(this, &SPluginListTile::OnUninstallButtonClicked)
-															.IsEnabled(false)		// @todo plugedit: Not supported yet
-															.ToolTipText(LOCTEXT("UninstallButtonToolTip", "Allows you to uninstall this plugin.  This will delete the plugin from your project entirely.  You may need to restart the program for this change to take effect."))
 													]
 
 												// docs link
@@ -313,11 +298,11 @@ void SPluginListTile::OnEnablePluginCheckboxChanged(ECheckBoxState NewCheckedSta
 {
 	const bool bNewEnabledState = (NewCheckedState == ECheckBoxState::Checked);
 
-	if (bNewEnabledState && ItemData->PluginStatus.bIsBetaVersion)
+	if (bNewEnabledState && ItemData->PluginStatus.Descriptor.bIsBetaVersion)
 	{
 		FText WarningMessage = FText::Format(
 			LOCTEXT("Warning_EnablingBetaPlugin", "Plugin '{0}' is a beta version and might be unstable or removed without notice. Please use with caution. Are you sure you want to enable the plugin?"),
-			FText::FromString(ItemData->PluginStatus.FriendlyName));
+			FText::FromString(ItemData->PluginStatus.Descriptor.FriendlyName));
 
 		if (EAppReturnType::No == FMessageDialog::Open(EAppMsgType::YesNo, WarningMessage))
 		{
@@ -335,18 +320,5 @@ void SPluginListTile::OnEnablePluginCheckboxChanged(ECheckBoxState NewCheckedSta
 		FMessageDialog::Open(EAppMsgType::Ok, FailMessage);
 	}
 }
-
-
-FReply SPluginListTile::OnUninstallButtonClicked()
-{
-	// not expecting to deal with engine plugins here (they can't be uninstalled)
-	if (ensure(!ItemData->PluginStatus.bIsBuiltIn))
-	{
-		// @todo plugedit: Make this work!
-	}
-
-	return FReply::Handled();
-}
-
 
 #undef LOCTEXT_NAMESPACE

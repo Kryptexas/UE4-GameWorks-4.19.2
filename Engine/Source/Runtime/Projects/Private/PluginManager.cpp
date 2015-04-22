@@ -13,12 +13,9 @@ namespace PluginSystemDefs
 	    NOTE: This constant exists in UnrealBuildTool code as well. */
 	static const TCHAR PluginDescriptorFileExtension[] = TEXT( ".uplugin" );
 
-	/** Relative path to the plugin's 128x128 icon resource file */
-	static const FString RelativeIcon128FilePath( TEXT( "Resources/Icon128.png" ) );
-
 }
 
-FPluginInstance::FPluginInstance(const FString& InFileName, const FPluginDescriptor& InDescriptor, EPluginLoadedFrom::Type InLoadedFrom)
+FPluginInstance::FPluginInstance(const FString& InFileName, const FPluginDescriptor& InDescriptor, EPluginLoadedFrom InLoadedFrom)
 	: Name(FPaths::GetBaseFilename(InFileName))
 	, FileName(InFileName)
 	, Descriptor(InDescriptor)
@@ -66,7 +63,7 @@ void FPluginManager::DiscoverAllPlugins()
 		 * @param	LoadedFrom			Where we're loading these plugins from (game, engine, etc)
 		 * @param	Plugins				The array to be filled in with new plugins including descriptors
 		 */
-		static void FindPluginsRecursively( const FString& PluginsDirectory, const EPluginLoadedFrom::Type LoadedFrom, TArray< TSharedRef<FPluginInstance> >& Plugins )
+		static void FindPluginsRecursively( const FString& PluginsDirectory, const EPluginLoadedFrom LoadedFrom, TArray< TSharedRef<FPluginInstance> >& Plugins )
 		{
 			// NOTE: The logic in this function generally matches that of the C# code for FindPluginsRecursively
 			//       in UnrealBuildTool.  These routines should be kept in sync.
@@ -211,7 +208,7 @@ void FPluginManager::DiscoverAllPlugins()
 		 * @param	LoadedFrom			Where we're loading these plugins from (game, engine, etc)
 		 * @param	Plugins				The array to be filled in with loaded plugin descriptors
 		 */
-		static void FindPluginsIn( const FString& PluginsDirectory, const EPluginLoadedFrom::Type LoadedFrom, TArray< TSharedRef<FPluginInstance> >& Plugins )
+		static void FindPluginsIn( const FString& PluginsDirectory, const EPluginLoadedFrom LoadedFrom, TArray< TSharedRef<FPluginInstance> >& Plugins )
 		{
 			// Make sure the directory even exists
 			if( FPlatformFileManager::Get().GetPlatformFile().DirectoryExists( *PluginsDirectory ) )
@@ -516,32 +513,13 @@ TArray< FPluginStatus > FPluginManager::QueryStatusForAllPlugins() const
 	for( auto PluginIt( AllPlugins.CreateConstIterator() ); PluginIt; ++PluginIt )
 	{
 		const TSharedRef< FPluginInstance >& Plugin = *PluginIt;
-		const FPluginDescriptor& PluginInfo = Plugin->Descriptor;
 		
 		FPluginStatus PluginStatus;
 		PluginStatus.Name = Plugin->Name;
-		PluginStatus.FriendlyName = PluginInfo.FriendlyName;
-		PluginStatus.Version = PluginInfo.Version;
-		PluginStatus.VersionName = PluginInfo.VersionName;
-		PluginStatus.Description = PluginInfo.Description;
-		PluginStatus.CreatedBy = PluginInfo.CreatedBy;
-		PluginStatus.CreatedByURL = PluginInfo.CreatedByURL;
-		PluginStatus.CategoryPath = PluginInfo.Category;
-		PluginStatus.DocsURL = PluginInfo.DocsURL;
 		PluginStatus.PluginDirectory = FPaths::GetPath(Plugin->FileName);
 		PluginStatus.bIsEnabled = Plugin->bEnabled;
-		PluginStatus.bIsBuiltIn = ( Plugin->LoadedFrom == EPluginLoadedFrom::Engine );
-		PluginStatus.bIsEnabledByDefault = PluginInfo.bEnabledByDefault;
-		PluginStatus.bIsBetaVersion = PluginInfo.bIsBetaVersion;
-		PluginStatus.bHasContentFolder = PluginInfo.bCanContainContent;
-		PluginStatus.Modules = PluginInfo.Modules;
-
-		// @todo plugedit: Maybe we should do the FileExists check ONCE at plugin load time and not at query time
-		const FString Icon128FilePath = FPaths::GetPath(Plugin->FileName) / PluginSystemDefs::RelativeIcon128FilePath;
-		if( FPlatformFileManager::Get().GetPlatformFile().FileExists( *Icon128FilePath ) )
-		{
-			PluginStatus.Icon128FilePath = Icon128FilePath;
-		}
+		PluginStatus.Descriptor = Plugin->Descriptor;
+		PluginStatus.LoadedFrom = Plugin->LoadedFrom;
 
 		PluginStatuses.Add( PluginStatus );
 	}

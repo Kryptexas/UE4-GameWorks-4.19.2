@@ -5095,7 +5095,7 @@ void GetScriptPlugins(TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins)
 	for (auto PluginIt(Plugins.CreateConstIterator()); PluginIt; ++PluginIt)
 	{
 		const auto& PluginStatus = *PluginIt;
-		if (PluginStatus.bIsEnabled && PluginStatus.CategoryPath.StartsWith(CodeGeneratorPluginCategory))
+		if (PluginStatus.bIsEnabled && PluginStatus.Descriptor.Category.StartsWith(CodeGeneratorPluginCategory))
 		{
 			auto GeneratorInterface = FModuleManager::LoadModulePtr<IScriptGeneratorPluginInterface>(*PluginStatus.Name);
 			if (GeneratorInterface)

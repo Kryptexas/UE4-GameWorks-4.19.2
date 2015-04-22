@@ -26,9 +26,6 @@ private:
 	/** Called when the enabled checkbox is clicked */
 	void OnEnablePluginCheckboxChanged(ECheckBoxState NewCheckedState);
 
-	/** Called when 'Uninstall' is clicked on a plugin's tile */
-	FReply OnUninstallButtonClicked();
-
 
 private:
 

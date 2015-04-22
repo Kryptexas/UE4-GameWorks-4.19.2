@@ -7,4 +7,4 @@
 
 #include "TextFilter.h"
 
-typedef TTextFilter< const class FPluginStatus& > FPluginTextFilter;
+typedef TTextFilter< const struct FPluginStatus& > FPluginTextFilter;

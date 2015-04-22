@@ -3,41 +3,28 @@
 #pragma once
 
 #include "ModuleDescriptor.h"
+#include "PluginDescriptor.h"
+
+/**
+ * Enum for where a plugin is loaded from
+ */
+enum class EPluginLoadedFrom
+{
+	/** Plugin is built-in to the engine */
+	Engine,
+
+	/** Project-specific plugin, stored within a game project directory */
+	GameProject
+};
 
 
 /**
  * Simple data structure that is filled when querying information about plug-ins.
  */
-class FPluginStatus
+struct FPluginStatus
 {
-public:
-
 	/** The name of this plug-in. */
 	FString Name;
-
-	/** Friendly name for the plug-in. */
-	FString FriendlyName;
-
-	/** Internal version number (not user displayed, but valid for comparisons). */
-	int32 Version;
-
-	/** Friendly version name. */
-	FString VersionName;
-
-	/** Description of the plug-in. */
-	FString Description;
-
-	/** Created by name. */
-	FString CreatedBy;
-
-	/** Created by URL string. */
-	FString CreatedByURL;
-
-	/** Category path (dot-separated list of categories). */
-	FString CategoryPath;
-
-	/** Documentation URL string. */
-	FString DocsURL;
 
 	/** Path to plug-in directory on disk. */
 	FString PluginDirectory;
@@ -45,23 +32,11 @@ public:
 	/** True if plug-in is currently enabled. */
 	bool bIsEnabled;
 
-	/** True if plug-in is enabled by default in all projects. */
-	bool bIsEnabledByDefault;
+	/** Where the plugin was loaded from */
+	EPluginLoadedFrom LoadedFrom;
 
-	/** True if the plug-in is a 'built-in' engine plug-in. */
-	bool bIsBuiltIn;
-
-	/** Full path to the 128x128 thumbnail icon file name (or an empty string if no icon is available). */
-	FString Icon128FilePath;
-
-	/** Marks the plug-in as beta in the UI. */
-	bool bIsBetaVersion;
-
-	/** Whether the plug-in has a content folder. */
-	bool bHasContentFolder;
-
-	/** List of all modules associated with this plugin */
-	TArray<FModuleDescriptor> Modules;
+	/** The plugin descriptor */
+	FPluginDescriptor Descriptor;
 };
 
 

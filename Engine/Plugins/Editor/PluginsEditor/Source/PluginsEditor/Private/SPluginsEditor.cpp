@@ -20,7 +20,7 @@ void SPluginsEditor::Construct( const FArguments& Args )
 		static void PluginStatusToStringArray( const FPluginStatus& PluginStatus, OUT TArray< FString >& StringArray )
 		{
 			// NOTE: Only the friendly name is searchable for now.  We don't display the actual plugin name in the UI.
-			StringArray.Add( PluginStatus.FriendlyName );
+			StringArray.Add( PluginStatus.Descriptor.FriendlyName );
 		}
 	};
 

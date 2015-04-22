@@ -109,7 +109,7 @@ void SPluginList::RebuildAndFilterPluginList()
 			{
 				bool operator()( const FPluginListItemPtr& A, const FPluginListItemPtr& B ) const
 				{
-					return A->PluginStatus.FriendlyName < B->PluginStatus.FriendlyName;
+					return A->PluginStatus.Descriptor.FriendlyName < B->PluginStatus.Descriptor.FriendlyName;
 				}
 			};
 			PluginListItems.Sort( FPluginListItemSorter() );

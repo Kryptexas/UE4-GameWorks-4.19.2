@@ -5,21 +5,6 @@
 #include "PluginDescriptor.h"
 
 /**
- * Enum for where a plugin is loaded from
- */
-struct EPluginLoadedFrom
-{
-	enum Type
-	{
-		/** Plugin is built-in to the engine */
-		Engine,
-
-		/** Project-specific plugin, stored within a game project directory */
-		GameProject
-	};
-};
-
-/**
  * Instance of a plugin in memory
  */
 class FPluginInstance
@@ -35,7 +20,7 @@ public:
 	FPluginDescriptor Descriptor;
 
 	/** Where does this plugin live? */
-	EPluginLoadedFrom::Type LoadedFrom;
+	EPluginLoadedFrom LoadedFrom;
 
 	/** True if the plugin is marked as enabled */
 	bool bEnabled;
@@ -43,7 +28,7 @@ public:
 	/**
 	 * FPlugin constructor
 	 */
-	FPluginInstance(const FString &FileName, const FPluginDescriptor& InDescriptor, EPluginLoadedFrom::Type InLoadedFrom);
+	FPluginInstance(const FString &FileName, const FPluginDescriptor& InDescriptor, EPluginLoadedFrom InLoadedFrom);
 };
 
 /**
