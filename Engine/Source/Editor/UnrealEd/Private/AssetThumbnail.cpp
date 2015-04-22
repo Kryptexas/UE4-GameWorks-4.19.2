@@ -123,10 +123,12 @@ public:
 
 			TSharedPtr<SViewport> Viewport = 
 				SNew( SViewport )
-				.EnableGammaCorrection(false);
+				.EnableGammaCorrection(false)
+				.IgnoreTextureAlpha(false)
+				.EnableBlending(true);
 
 			Viewport->SetViewportInterface( AssetThumbnail.ToSharedRef() );
-			AssetThumbnail->GetViewportRenderTargetTexture(); // Access the render texture to push it on the stack if it isnt already rendered
+			AssetThumbnail->GetViewportRenderTargetTexture(); // Access the render texture to push it on the stack if it isn't already rendered
 
 			InArgs._ThumbnailPool->OnThumbnailRendered().AddSP(this, &SAssetThumbnail::OnThumbnailRendered);
 			InArgs._ThumbnailPool->OnThumbnailRenderFailed().AddSP(this, &SAssetThumbnail::OnThumbnailRenderFailed);

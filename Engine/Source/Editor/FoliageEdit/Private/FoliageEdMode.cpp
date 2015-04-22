@@ -2481,57 +2481,57 @@ void FEdModeFoliage::ReplaceSettingsObject(UFoliageType* OldSettings, UFoliageTy
 	PopulateFoliageMeshList();
 }
 
-UFoliageType* FEdModeFoliage::SaveSettingsObject(UFoliageType* Settings)
+UFoliageType* FEdModeFoliage::SaveFoliageTypeObject(UFoliageType* InFoliageType)
 {
-	FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "FoliageMode_SaveSettingsObject", "Foliage Editing: Save Settings Object"));
+	FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "FoliageMode_SaveFoliageTypeObject", "Foliage Editing: Save Foliage Type Object"));
 
-	UFoliageType* SettingsToSave = nullptr;
+	UFoliageType* TypeToSave = nullptr;
 
-	if (!Settings->IsAsset())
+	if (!InFoliageType->IsAsset())
 	{
 		FString PackageName;
-		UStaticMesh* StaticMesh = Settings->GetStaticMesh();
+		UStaticMesh* StaticMesh = InFoliageType->GetStaticMesh();
 		if (StaticMesh)
 		{
 			// Build default settings asset name and path
-			PackageName = FPackageName::GetLongPackagePath(StaticMesh->GetOutermost()->GetName()) + TEXT("/") + StaticMesh->GetName() + TEXT("_settings");
+			PackageName = FPackageName::GetLongPackagePath(StaticMesh->GetOutermost()->GetName()) + TEXT("/") + StaticMesh->GetName() + TEXT("_FoliageType");
 		}
 		
-		TSharedRef<SDlgPickAssetPath> SettingDlg =
+		TSharedRef<SDlgPickAssetPath> SaveFoliageTypeDialog =
 			SNew(SDlgPickAssetPath)
-			.Title(LOCTEXT("SettingsDialogTitle", "Choose Location for Foliage Settings Asset"))
+			.Title(LOCTEXT("SaveFoliageTypeDialogTitle", "Choose Location for Foliage Type Asset"))
 			.DefaultAssetPath(FText::FromString(PackageName));
 
-		if (SettingDlg->ShowModal() != EAppReturnType::Cancel)
+		if (SaveFoliageTypeDialog->ShowModal() != EAppReturnType::Cancel)
 		{
-			PackageName = SettingDlg->GetFullAssetPath().ToString();
+			PackageName = SaveFoliageTypeDialog->GetFullAssetPath().ToString();
 			UPackage* Package = CreatePackage(nullptr, *PackageName);
-			SettingsToSave = Cast<UFoliageType>(StaticDuplicateObject(Settings, Package, *FPackageName::GetLongPackageAssetName(PackageName)));
-			SettingsToSave->SetFlags(RF_Standalone | RF_Public);
-			SettingsToSave->Modify();
+			TypeToSave = Cast<UFoliageType>(StaticDuplicateObject(InFoliageType, Package, *FPackageName::GetLongPackageAssetName(PackageName)));
+			TypeToSave->SetFlags(RF_Standalone | RF_Public);
+			TypeToSave->Modify();
 
 			// Notify the asset registry
-			FAssetRegistryModule::AssetCreated(SettingsToSave);
+			FAssetRegistryModule::AssetCreated(TypeToSave);
 
-			ReplaceSettingsObject(Settings, SettingsToSave);
+			ReplaceSettingsObject(InFoliageType, TypeToSave);
 		}
 	}
 	else
 	{
-		SettingsToSave = Settings;
+		TypeToSave = InFoliageType;
 	}
 	
 	// Save to disk
-	if (SettingsToSave)
+	if (TypeToSave)
 	{
 		TArray<UPackage*> PackagesToSave; 
-		PackagesToSave.Add(SettingsToSave->GetOutermost());
+		PackagesToSave.Add(TypeToSave->GetOutermost());
 		const bool bCheckDirty = false;
 		const bool bPromptToSave = false;
 		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, bCheckDirty, bPromptToSave);
 	}
 		
-	return SettingsToSave;
+	return TypeToSave;
 }
 
 /** Reapply cluster settings to all the instances */

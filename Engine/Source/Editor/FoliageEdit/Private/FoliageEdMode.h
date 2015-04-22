@@ -326,8 +326,8 @@ public:
 	/** Replace the settings object for this static mesh with the one specified */
 	void ReplaceSettingsObject(UFoliageType* OldSettings, UFoliageType* NewSettings);
 
-	/** Save the settings object as an asset */
-	UFoliageType* SaveSettingsObject(UFoliageType* Settings);
+	/** Save the foliage type object. If it isn't an asset, will prompt the user for a location to save the new asset. */
+	UFoliageType* SaveFoliageTypeObject(UFoliageType* Settings);
 
 	/** Set/Clear selection for foliage instances of specific type  */
 	void SelectInstances(const UFoliageType* Settings, bool bSelect);

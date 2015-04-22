@@ -197,7 +197,7 @@ int32 SSplitter::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 				NormalHandleBrush,
 				MyClippingRect,
 				ShouldBeEnabled( bParentEnabled ),
-				InWidgetStyle.GetColorAndOpacityTint()
+				InWidgetStyle.GetColorAndOpacityTint() * NormalHandleBrush->TintColor.GetSpecifiedColor()
 			);
 		}
 		else
@@ -209,7 +209,7 @@ int32 SSplitter::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 				&Style->HandleHighlightBrush,
 				MyClippingRect,
 				ShouldBeEnabled( bParentEnabled ),
-				InWidgetStyle.GetColorAndOpacityTint()
+				InWidgetStyle.GetColorAndOpacityTint() * Style->HandleHighlightBrush.TintColor.GetSpecifiedColor()
 			);	
 		}
 	}
