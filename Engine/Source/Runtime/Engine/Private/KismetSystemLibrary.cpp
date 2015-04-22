@@ -2919,6 +2919,16 @@ void UKismetSystemLibrary::ControlScreensaver(bool bAllowScreenSaver)
 	FPlatformMisc::ControlScreensaver(bAllowScreenSaver ? FPlatformMisc::EScreenSaverAction::Enable : FPlatformMisc::EScreenSaverAction::Disable);
 }
 
+void UKismetSystemLibrary::SetVolumeButtonsHandledBySystem(bool bEnabled)
+{
+	FPlatformMisc::SetVolumeButtonsHandledBySystem(bEnabled);
+}
+
+bool UKismetSystemLibrary::GetVolumeButtonsHandledBySystem()
+{
+	return FPlatformMisc::GetVolumeButtonsHandledBySystem();
+}
+
 void UKismetSystemLibrary::SetSupressViewportTransitionMessage(UObject* WorldContextObject, bool bState)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);

@@ -626,6 +626,15 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 			Message.KeyEventData.modifier = AKeyEvent_getMetaState(event);
 			Message.KeyEventData.isRepeat = AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_MULTIPLE;
 			FAndroidInputInterface::DeferMessage(Message);
+
+			// allow event to be generated for volume up and down, but conditionally allow system to handle it, too
+			if (keyCode == AKEYCODE_VOLUME_UP || keyCode == AKEYCODE_VOLUME_DOWN)
+			{
+				if (FPlatformMisc::GetVolumeButtonsHandledBySystem())
+				{
+					return 0;
+				}
+			}
 		}
 
 		return 1;

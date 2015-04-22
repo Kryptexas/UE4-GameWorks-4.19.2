@@ -1272,9 +1272,22 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	/**
 	 * Allows or inhibits screensaver
 	 * @param	bAllowScreenSaver		If false, don't allow screensaver if possible, otherwise allow default behavior
-	*/
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
 	static void ControlScreensaver(bool bAllowScreenSaver);
+
+	/**
+	 * Allows or inhibits system default handling of volume up and volume down buttons (Android only)
+	 * @param	bEnabled				If true, allow Android to handle volume up and down events
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
+	static void SetVolumeButtonsHandledBySystem(bool bEnabled);
+
+	/**
+	 * Returns true if system default handling of volume up and volume down buttons enabled (Android only)
+	 */
+	UFUNCTION(BlueprintPure, Category = "Utilities|Platform")
+	static bool GetVolumeButtonsHandledBySystem();
 
 	/**
 	 * Sets the state of the transition message rendered by the viewport. (The blue text displayed when the game is paused and so forth.)
