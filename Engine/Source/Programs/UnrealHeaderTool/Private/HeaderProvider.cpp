@@ -5,8 +5,8 @@
 #include "UnrealSourceFile.h"
 #include "ClassMaps.h"
 
-FHeaderProvider::FHeaderProvider(EHeaderProviderSourceType Type, const FString& Id, bool bAutoInclude/* = false*/)
-	: Type(Type), Id(Id), Cache(nullptr), bAutoInclude(bAutoInclude)
+FHeaderProvider::FHeaderProvider(EHeaderProviderSourceType InType, const FString& InId, bool bInAutoInclude/* = false*/)
+	: Type(InType), Id(InId), Cache(nullptr), bAutoInclude(bInAutoInclude)
 {
 
 }

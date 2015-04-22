@@ -143,8 +143,8 @@ bool FScope::ContainsTypes() const
 
 TMap<UStruct*, TSharedRef<FScope> > FScope::ScopeMap;
 
-FFileScope::FFileScope(FName Name, FUnrealSourceFile* InSourceFile)
-	: SourceFile(InSourceFile), Name(Name)
+FFileScope::FFileScope(FName InName, FUnrealSourceFile* InSourceFile)
+	: SourceFile(InSourceFile), Name(InName)
 {
 
 }
