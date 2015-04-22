@@ -58,7 +58,7 @@ class UCameraComponent : public USceneComponent
 	float PostProcessBlendWeight;
 
 	/** Post process settings to use for this camera. Don't forget to check the properties you want to override */
-	UPROPERTY(Interp, BlueprintReadWrite, Category=CameraSettings, meta=(ShowOnlyInnerProperties))
+	UPROPERTY(Interp, BlueprintReadWrite, Category=CameraSettings)
 	struct FPostProcessSettings PostProcessSettings;
 
 	// UActorComponent interface
