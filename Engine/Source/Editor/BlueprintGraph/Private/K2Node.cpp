@@ -259,8 +259,11 @@ void UK2Node::PinConnectionListChanged(UEdGraphPin* Pin)
 		{
 			const UEdGraphSchema_K2* Schema = Cast<const UEdGraphSchema_K2>(GetSchema());
 
-			Pin->DefaultObject = NULL;
-			Schema->SetPinDefaultValueBasedOnType(Pin);
+			Pin->ResetDefaultValue();
+			if (EEdGraphPinDirection::EGPD_Input == Pin->Direction)
+			{
+				Schema->SetPinDefaultValueBasedOnType(Pin);
+			}
 		}
 	}
 
