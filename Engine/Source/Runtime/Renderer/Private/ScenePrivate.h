@@ -731,9 +731,18 @@ public:
 	}
 
 	// Note: OnStartPostProcessing() needs to be called each frame for each view
-	virtual UMaterialInstanceDynamic* GetReusableMID(class UMaterialInterface* ParentMaterial) override
+	virtual UMaterialInstanceDynamic* GetReusableMID(class UMaterialInterface* InParentMaterial) override
 	{		
 		check(IsInGameThread());
+		check(InParentMaterial);
+
+		auto ParentAsMaterialInstance = Cast<UMaterialInstanceDynamic>(InParentMaterial);
+
+		// fixup MID parents as this is not allowed, take the next MIC or Material.
+		UMaterialInterface* ParentMaterial = ParentAsMaterialInstance ? ParentAsMaterialInstance->Parent : InParentMaterial;
+
+		// this is not allowed and would cause an error later in the code
+		check(!ParentMaterial->IsA(UMaterialInstanceDynamic::StaticClass()));
 
 		if(MIDUsedCount < (uint32)MIDPool.Num())
 		{

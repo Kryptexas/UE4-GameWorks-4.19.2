@@ -2315,7 +2315,7 @@ void UMaterialInstance::OverrideBlendableSettings(class FSceneView& View, float 
 		{
 			UMaterial* Base = Material->GetBaseMaterial();
 
-			UMaterialInstanceDynamic* MID = View.State->GetReusableMID((UMaterialInterface*)Base);//, (UMaterialInterface*)this);
+			UMaterialInstanceDynamic* MID = View.State->GetReusableMID((UMaterialInterface*)this);
 
 			if(MID)
 			{
@@ -2346,7 +2346,7 @@ void UMaterialInstance::OverrideBlendableSettings(class FSceneView& View, float 
 	}
 	else
 	{
-		UMaterialInstanceDynamic* MID = View.State->GetReusableMID((UMaterialInterface*)Material);
+		UMaterialInstanceDynamic* MID = View.State->GetReusableMID((UMaterialInterface*)this);
 
 		if(MID)
 		{
