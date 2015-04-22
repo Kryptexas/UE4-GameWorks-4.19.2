@@ -635,3 +635,12 @@ private:
 
 #endif
 };
+
+//////////////////////////////////////////////////////////////////////////
+// UActorComponent inlines
+
+FORCEINLINE_DEBUGGABLE class AActor* UActorComponent::GetOwner() const
+{
+	checkSlow(Owner == GetTypedOuter<AActor>()); // verify cached value is correct
+	return Owner;
+}

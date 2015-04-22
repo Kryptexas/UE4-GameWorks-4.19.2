@@ -274,13 +274,6 @@ bool UActorComponent::IsOwnerSelected() const
 	return Owner && Owner->IsSelected();
 }
 
-AActor* UActorComponent::GetOwner() const
-{
-	// walk up outer chain to find an Actor
-	checkSlow(Owner == GetTypedOuter<AActor>());
-	return Owner;
-}
-
 UWorld* UActorComponent::GetWorld() const
 {
 	UWorld* ComponentWorld = World;
