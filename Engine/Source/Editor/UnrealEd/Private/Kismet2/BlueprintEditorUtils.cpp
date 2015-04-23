@@ -5870,7 +5870,7 @@ bool FBlueprintEditorUtils::IsSCSComponentProperty(UObjectProperty* MemberProper
 		// associated with a natively added component (which would still be  
 		// accessible through the SCS tree)
 
-		if (OwnerClass == nullptr)
+		if ((OwnerClass == nullptr) || !OwnerClass->IsChildOf<AActor>())
 		{
 			return false;
 		}
