@@ -1626,7 +1626,10 @@ public class GUBP : BuildCommand
                 AddPseudodependency(WaitForTestShared.StaticGetFullName());
                 AgentSharingGroup = "TemplateMonolithics" + StaticGetHostPlatformSuffix(InHostPlatform);
             }
-
+			else if (!bp.BranchOptions.bNoInstalledEngine && GameProj == bp.Branch.BaseEngineProject)
+			{
+				AgentSharingGroup = GameProj.GameName + "_MonolithicsGroup_" + InTargetPlatform + StaticGetHostPlatformSuffix(InHostPlatform);
+			}
         }
 
 		public override string GetDisplayGroupName()
