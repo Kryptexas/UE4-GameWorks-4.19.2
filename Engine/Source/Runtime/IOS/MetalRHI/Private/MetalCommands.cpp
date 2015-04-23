@@ -900,6 +900,11 @@ void FMetalDynamicRHI::RHIEnableDepthBoundsTest(bool bEnable, float MinDepth, fl
 	// not supported
 }
 
+void FMetalDynamicRHI::RHISubmitCommandsHint()
+{
+    
+}
+
 IRHICommandContext* FMetalDynamicRHI::RHIGetDefaultContext()
 {
 	return this;
