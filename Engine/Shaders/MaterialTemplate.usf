@@ -261,7 +261,7 @@ struct FMaterialVertexParameters
 };
 
 
-#ifdef DECAL_RENDERSTAGE
+#if DECAL_RENDERSTAGE && NUM_MATERIAL_TEXCOORDS
 	/*
 	 * Material node DecalMipmapLevel's code designed to avoid the 2x2 pixels artefacts on the edges around where the decal
 	 * is projected to. The technique is fetched from (http://www.humus.name/index.php?page=3D&ID=84).
