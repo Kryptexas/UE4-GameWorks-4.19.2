@@ -1341,7 +1341,7 @@ void UStruct::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
 
-	Ar << SuperStruct;
+	SerializeSuperStruct(Ar);
 	Ar << Children;
 
 	if (Ar.IsLoading())
@@ -1488,6 +1488,11 @@ void UStruct::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collect
 void UStruct::SetSuperStruct(UStruct* NewSuperStruct)
 {
 	SuperStruct = NewSuperStruct;
+}
+
+void UStruct::SerializeSuperStruct(FArchive& Ar)
+{
+	Ar << SuperStruct;
 }
 
 #if WITH_EDITOR
@@ -3130,24 +3135,29 @@ void UClass::SetSuperStruct(UStruct* NewSuperStruct)
 	HashObject(this);
 }
 
+void UClass::SerializeSuperStruct(FArchive& Ar)
+{
+#if UCLASS_FAST_ISA_IMPL & 2
+	FFastIndexingClassTree::Unregister(this);
+#endif
+	Super::SerializeSuperStruct(Ar);
+#if UCLASS_FAST_ISA_IMPL & 2
+	FFastIndexingClassTree::Register(this);
+#endif
+}
+
 void UClass::Serialize( FArchive& Ar )
 {
 	if ( Ar.IsLoading() || Ar.IsModifyingWeakAndStrongReferences() )
 	{
 		// Rehash since SuperStruct will be serialized in UStruct::Serialize
 		UnhashObject(this);
-#if UCLASS_FAST_ISA_IMPL & 2
-	FFastIndexingClassTree::Unregister(this);
-#endif
 	}
 
 	Super::Serialize( Ar );
 
 	if ( Ar.IsLoading() || Ar.IsModifyingWeakAndStrongReferences() )
 	{
-#if UCLASS_FAST_ISA_IMPL & 2
-	FFastIndexingClassTree::Register(this);
-#endif
 		HashObject(this);
 	}
 
