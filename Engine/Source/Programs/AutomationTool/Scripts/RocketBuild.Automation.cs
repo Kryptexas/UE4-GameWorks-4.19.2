@@ -125,6 +125,11 @@ namespace Rocket
 						PromotableNode.AddDependency(BuildGitPromotable.StaticGetFullName(HostPlatform));
 					}
 				}
+
+				// Add a dependency on this being published as part of the shared promotable being labeled
+				GUBP.SharedLabelPromotableSuccessNode LabelPromotableNode = (GUBP.SharedLabelPromotableSuccessNode)bp.FindNode(GUBP.SharedLabelPromotableSuccessNode.StaticGetFullName());
+				LabelPromotableNode.AddDependency(CopyRocketNode.StaticGetFullName(HostPlatform));
+				LabelPromotableNode.AddDependency(CopyRocketSymbolsNode.StaticGetFullName(HostPlatform));
 			}
 		}
 
