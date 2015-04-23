@@ -691,8 +691,8 @@ void UCookOnTheFlyServer::GetDependentPackages( const TSet<UPackage*>& RootPacka
 
 			if (!FPackageName::IsValidLongPackageName(PackageDepdencyString))
 			{			
-				LogCookerMessage(FString::Printf(TEXT("Unable to generate long package name for %s because %s"), *PackageDepdencyString), EMessageSeverity::Warning);
-				UE_LOG(LogCook, Warning, TEXT("Unable to generate long package name for %s because %s"), *PackageDepdencyString); 
+				LogCookerMessage(FString::Printf(TEXT("Unable to generate long package name for %s"), *PackageDepdencyString), EMessageSeverity::Warning);
+				UE_LOG(LogCook, Warning, TEXT("Unable to generate long package name for %s"), *PackageDepdencyString); 
 				continue;
 			}
 
