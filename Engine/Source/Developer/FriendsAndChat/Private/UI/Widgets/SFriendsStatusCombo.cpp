@@ -55,7 +55,7 @@ public:
 					.BorderImage(FCoreStyle::Get().GetBrush("NoBorder"))
 					.Padding(FMargin(0, 0, 25, 0))
 					[
-						SNew(SFriendUserHeader, UserViewModel)
+						SNew(SFriendUserHeader, InUserViewModel)
 						.ShowFriendName(true)
 						.FriendStyle(&FriendStyle)
 					]
