@@ -44,6 +44,7 @@ bool UBTDecorator_CompareBBEntries::CalculateRawConditionValue(UBehaviorTreeComp
 			&& int32(EBlackboardCompare::NotEqual) == int32(EBlackBoardEntryComparison::NotEqual),
 			"These values need to be equal");
 
+		// note that this comparison relies on assumption asserted above
 		return int32(Operator) == int32(Result);
 	}
 
