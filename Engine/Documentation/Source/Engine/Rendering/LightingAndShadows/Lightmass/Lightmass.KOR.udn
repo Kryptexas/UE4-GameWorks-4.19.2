@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2278030
+﻿INTSourceChangelist:2521599
 Availability:Public
 Title: 라이트매스 글로벌 일루미네이션
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
@@ -340,7 +340,7 @@ Lightmass (라이트매스)는, 에리어 섀도잉(area shadowing, 영역 그�
 | **Indirect Lighting Quality** | 간접광 퀄리티 - 라이트매스 GI 솔버에 사용되는 샘플 수에 대한 스케일입니다. 값이 크면 (노이즈, 얼룩 등의) 솔버 부작용이 줄어들지만 빌드 시간은 훨씬 늘어납니다. 참고로 라이트맵 사용에 따른 (텍스처 이음새, 압축 부작용, 텍셀 모양 등의) 부작용에는 영향을 끼치지 않습니다. |
 | **Indirect Lighting Smoothness** | 간접광 부드러움 - 값이 높을수록 간접광이 부드러워져 솔버 노이즈를 숨길 수 있지만, 간접광 그림자와 앰비언트 오클루전도 잃게 됩니다. *Indirect Lighting Quality* 를 최고 퀄리티로 높일 때는 이 값을 어느정도 (.66 이나 .75 로) 낮추는 것이 좋을 수 있습니다. |
 | **Environment Color** | 환경 색 - 씬을 벗어나는 광선이 취하는 색입니다. 환경은 레벨을 둘러싸는 구체로 시각화시킬 수 있는데, 각 방향으로 이 색의 빛을 내뿜습니다. |
-| **Environment Intensity** | 환경 강도 - EnvironmentColor 스케일을 조절하여 HDR 환경 색을 가능케 합니다. |
+| **Environment Intensity** | 환경 강도 - Environment Color 스케일을 조절하여 HDR 환경 색을 가능케 합니다. |
 | **Diffuse Boost** | 디퓨즈 증폭 - 씬 내 모든 머티리얼의 디퓨즈 기여도 스케일입니다. DiffuseBoost 를 올리면 씬의 간접광 강도를 효율적으로 올릴 수 있습니다. DiffuseBoost 가 적용된 이후 디퓨즈의 밝기는 1.0으로 제한됩니다. 머티리얼 에너지 보존 법칙을 유지하기(, 즉 바운스될 때마다 빛이 세 지는게 아니라 약해지게 하기) 위해서입니다. DiffuseBoost 를 올려도 간접광이 밝아지지 않는다면 디퓨즈가 제한되었기 때문으로, 간접광을 증폭시키려면 Light 의 IndirectLightingScale (간접광 스케일)을 대신 사용해야 합니다. |
 | **UseAmbientOcclusion** | 앰비언트 오클루전 사용 - 라이트매스에 의한 스태틱 앰비언트 오클루전 계산을 활성화시켜 라이트맵 속으로 빌드하도록 합니다. |
 | **DirectIlluminationOcclusionFraction** | 직접 조명 오클루전 비율 - 직사광에 적용할 앰비언트 오클루전 비율입니다. |

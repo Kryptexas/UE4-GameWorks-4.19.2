@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2400385
+﻿INTSourceChangelist:2522250
+Availability:Public
 Title:Light Propagation Volumes
 Crumbs:%ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:글로벌 일루미네이션의 동적인 생성을 위한 시스템입니다.
-Availability:Public
 
 [VAR:Topic]
 [OBJECT:Topic]
