@@ -43,7 +43,7 @@ void ModifyVectorByOrientation(FVector& Vec, bool bIsRotation)
 #endif
     {
 #if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_8_0
-        UIInterfaceOrientation Orientation = [[IOSAppDelegate GetDelegate].IOSController interfaceOrientation];
+        Orientation = [[IOSAppDelegate GetDelegate].IOSController interfaceOrientation];
 #endif
     }
 
