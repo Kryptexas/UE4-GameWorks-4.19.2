@@ -2534,6 +2534,24 @@ public class GUBP : BuildCommand
         }
     }
 
+    public class SharedLabelPromotableSuccessNode : AggregateNode
+    {        
+        public SharedLabelPromotableSuccessNode()
+        {
+			AddDependency(SharedLabelPromotableNode.StaticGetFullName(false));
+        }
+
+        public static string StaticGetFullName()
+        {
+            return SharedLabelPromotableNode.StaticGetFullName(false) + "Aggregate";
+        }
+
+		public override string GetFullName()
+		{
+			return StaticGetFullName();
+		}
+    }
+
     public class WaitForTestShared : AggregateNode
     {
         public WaitForTestShared(GUBP bp)
@@ -6232,6 +6250,7 @@ public class GUBP : BuildCommand
             AddNode(new SharedAggregatePromotableNode(this, HostPlatforms));
             AddNode(new WaitForSharedPromotionUserInput(this, false));
             AddNode(new SharedLabelPromotableNode(this, false));
+            AddNode(new SharedLabelPromotableSuccessNode());
             AddNode(new WaitForTestShared(this));
             AddNode(new WaitForSharedPromotionUserInput(this, true));
             AddNode(new SharedLabelPromotableNode(this, true));
