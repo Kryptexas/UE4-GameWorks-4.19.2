@@ -81,7 +81,9 @@ void FLinkerManager::ResetLoaders(UObject* InPkg)
 		if (LinkerToReset)
 		{
 			{
+#if THREADSAFE_UOBJECTS
 				FScopeLock ObjectLoadersLock(&ObjectLoadersCritical);
+#endif
 				for (auto Linker : ObjectLoaders)
 				{
 					// Detach LinkerToReset from other linker's import table.

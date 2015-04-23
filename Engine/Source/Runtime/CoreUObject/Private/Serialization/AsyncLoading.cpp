@@ -53,12 +53,16 @@ class FAsyncObjectsReferencer : FGCObject
 
 	/** List of referenced objects */
 	TArray<UObject*> ReferencedObjects;
+#if THREADSAFE_UOBJECTS
 	/** Critical section for referenced objects list */
 	FCriticalSection ReferencedObjectsCritical;
+#endif
 
 	FORCEINLINE int32 IndexOf(UObject* InObj)
 	{
+#if THREADSAFE_UOBJECTS
 		FScopeLock ReferencedObjectsLock(&ReferencedObjectsCritical);
+#endif
 		for (int32 Index = 0; Index < ReferencedObjects.Num(); ++Index)
 		{
 			if (ReferencedObjects[Index] == InObj)
@@ -77,7 +81,9 @@ public:
 	{
 		Collector.AllowEliminatingReferences(false);
 		{
+#if THREADSAFE_UOBJECTS
 			FScopeLock ReferencedObjectsLock(&ReferencedObjectsCritical);
+#endif
 			Collector.AddReferencedObjects(ReferencedObjects);
 		}
 		Collector.AllowEliminatingReferences(true);
@@ -87,7 +93,11 @@ public:
 	{
 		if (InObject)
 		{
+#if THREADSAFE_UOBJECTS
 			FScopeLock ReferencedObjectsLock(&ReferencedObjectsCritical);
+#else
+			check(IsInGameThread());
+#endif
 			ReferencedObjects.Add(InObject);
 			InObject->ThisThreadAtomicallyClearedRFUnreachable();
 		}
@@ -96,7 +106,9 @@ public:
 	FORCENOINLINE void EmptyReferencedObjects()
 	{
 		const EObjectFlags AsyncFlags = RF_Async | RF_AsyncLoading;
+#if THREADSAFE_UOBJECTS
 		FScopeLock ReferencedObjectsLock(&ReferencedObjectsCritical);
+#endif
 		for (UObject* Obj : ReferencedObjects)
 		{
 			check(Obj);
@@ -110,6 +122,10 @@ public:
 	{
 		const EObjectFlags LoadFlags = RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects;
 		const EObjectFlags AsyncFlags = RF_Async | RF_AsyncLoading;
+
+#if THREADSAFE_UOBJECTS
+		FScopeLock ReferencedObjectsLock(&ReferencedObjectsCritical);
+#endif
 
 		// All of the referenced objects have been created by async loading code and may be in an invalid state so mark them for GC
 		for (auto Object : ReferencedObjects)
@@ -248,7 +264,9 @@ void FAsyncLoadingThread::CancelAsyncLoadingInternal()
 {
 	{
 		// Packages we haven't yet started processing.
+#if THREADSAFE_UOBJECTS
 		FScopeLock QueueLock(&QueueCritical);
+#endif
 		QueuedPackages.Empty();
 	}
 
@@ -265,7 +283,9 @@ void FAsyncLoadingThread::CancelAsyncLoadingInternal()
 
 	{
 		// Packages that are already loaded. May be halfway through PostLoad
+#if THREADSAFE_UOBJECTS
 		FScopeLock LoadedLock(&LoadedPackagesCritical);
+#endif
 		for (auto LoadedPackage : LoadedPackages)
 		{
 			LoadedPackage->Cancel();
@@ -293,7 +313,9 @@ void FAsyncLoadingThread::CancelAsyncLoadingInternal()
 void FAsyncLoadingThread::QueuePackage(const FAsyncPackageDesc& Package)
 {
 	{
+#if THREADSAFE_UOBJECTS
 		FScopeLock QueueLock(&QueueCritical);
+#endif
 		QueuedPackagesCounter.Increment();
 		QueuedPackages.Add(new FAsyncPackageDesc(Package));
 	}
@@ -311,7 +333,9 @@ int32 FAsyncLoadingThread::CreateAsyncPackagesFromQueue()
 
 	TArray<FAsyncPackageDesc*> QueueCopy;
 	{
+#if THREADSAFE_UOBJECTS
 		FScopeLock QueueLock(&QueueCritical);
+#endif
 		QueueCopy = QueuedPackages;
 		QueuedPackages.Empty();
 	}
@@ -327,7 +351,9 @@ int32 FAsyncLoadingThread::CreateAsyncPackagesFromQueue()
 		else
 		{
 			// [BLOCKING] LoadedPackages are accessed on the main thread too, so lock to be able to add a completion callback
+#if THREADSAFE_UOBJECTS
 			FScopeLock LoadedLock(&LoadedPackagesCritical);
+#endif
 			ExistingPackageIndex = FindLoadedPackage(PackageRequest->Name);
 			if (ExistingPackageIndex != INDEX_NONE && PackageRequest->PackageLoadedDelegate.IsBound())
 			{
@@ -400,7 +426,9 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessAsyncLoading(int32& OutPack
 			// We're done, at least on this thread, so we can remove the package now.
 			AddToLoadedPackages(Package);
 			{
+#if THREADSAFE_UOBJECTS
 				FScopeLock LockAsyncPackages(&AsyncPackagesCritical);
+#endif
 				AsyncPackages.RemoveAt(PackageIndex);
 			}
 					
@@ -433,7 +461,9 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTim
 
 	double TickStartTime = FPlatformTime::Seconds();
 	{
+#if THREADSAFE_UOBJECTS
 		FScopeLock LoadedLock(&LoadedPackagesCritical);
+#endif
 		LoadedPackagesToProcess.Append(LoadedPackages);
 		LoadedPackages.Empty();
 	}
@@ -506,8 +536,10 @@ EAsyncPackageState::Type FAsyncLoadingThread::TickAsyncLoading(bool bUseTimeLimi
 
 	if (Result != EAsyncPackageState::TimeOut && !IsTimeLimitExceeded(TickStartTime, bUseTimeLimit, TimeLimit, TEXT("Pre-EmptyReferencedObjects")))
 	{
+#if THREADSAFE_UOBJECTS
 		FScopeLock QueueLock(&QueueCritical);
 		FScopeLock LoadedLock(&LoadedPackagesCritical);
+#endif
 		if (AsyncPackagesCounter.GetValue() == 0 && LoadedPackagesToProcess.Num() == 0)
 		{
 			FDeferredMessageLog::Flush();
@@ -620,7 +652,9 @@ float FAsyncLoadingThread::GetAsyncLoadPercentage(const FName& PackageName)
 {
 	float LoadPercentage = -1.0f;
 	{
+#if THREADSAFE_UOBJECTS
 		FScopeLock LockAsyncPackages(&AsyncPackagesCritical);
+#endif
 		const int32 PackageIndex = FindPackageByName(AsyncPackages, PackageName);
 		if (PackageIndex != INDEX_NONE)
 		{
@@ -629,7 +663,9 @@ float FAsyncLoadingThread::GetAsyncLoadPercentage(const FName& PackageName)
 	}
 	if (LoadPercentage < 0.0f)
 	{
+#if THREADSAFE_UOBJECTS
 		FScopeLock LockLoadedPackages(&LoadedPackagesCritical);
+#endif
 		const int32 PackageIndex = FindPackageByName(LoadedPackages, PackageName);
 		if (PackageIndex != INDEX_NONE)
 		{
@@ -1746,6 +1782,7 @@ bool IsAsyncLoadingCoreUObjectInternal()
 	// GIsInitialLoad guards the async loading thread from being created too early
 	return !GIsInitialLoad && FAsyncLoadingThread::Get().IsAsyncLoadingPackages();
 }
+
 /*----------------------------------------------------------------------------
 	FArchiveAsync.
 ----------------------------------------------------------------------------*/
@@ -1754,15 +1791,19 @@ bool IsAsyncLoadingCoreUObjectInternal()
  * Constructor, initializing all member variables.
  */
 FArchiveAsync::FArchiveAsync( const TCHAR* InFileName )
-:	FileName					( InFileName	)
-,	FileSize					( INDEX_NONE	)
-,	UncompressedFileSize		( INDEX_NONE	)
-,	BulkDataAreaSize			( 0	)
-,	CurrentPos					( 0				)
-,	CompressedChunks			( nullptr			)
-,	CurrentChunkIndex			( 0				)
-,	CompressionFlags			( COMPRESS_None	)
+	: FileName(InFileName)
+	, FileSize(INDEX_NONE)
+	, UncompressedFileSize(INDEX_NONE)
+	, BulkDataAreaSize(0)
+	, CurrentPos(0)
+	, CompressedChunks(nullptr)
+	, CurrentChunkIndex(0)
+	, CompressionFlags(COMPRESS_None)
+	, PlatformIsSinglethreaded(false)
 {
+	/** Cache FPlatformProcess::SupportsMultithreading() value as it shows up too often in profiles */
+	PlatformIsSinglethreaded = !FPlatformProcess::SupportsMultithreading();
+
 	ArIsLoading		= true;
 	ArIsPersistent	= true;
 
@@ -1808,11 +1849,16 @@ FArchiveAsync::FArchiveAsync( const TCHAR* InFileName )
 void FArchiveAsync::FlushCache()
 {
 	// Wait on all outstanding requests.
-	FPlatformProcess::ConditionalSleep( [&]()
+	if (PrecacheReadStatus[CURRENT].GetValue() || PrecacheReadStatus[NEXT].GetValue())
 	{
-		SHUTDOWN_IF_EXIT_REQUESTED;
-		return PrecacheReadStatus[CURRENT].GetValue()==0 && PrecacheReadStatus[NEXT].GetValue()==0;
-	} );
+		SCOPE_CYCLE_COUNTER(STAT_Sleep);
+		FThreadIdleStats::FScopeIdle Scope;
+		do
+		{
+			SHUTDOWN_IF_EXIT_REQUESTED;
+			FPlatformProcess::SleepNoStats(0.0f);
+		} while (PrecacheReadStatus[CURRENT].GetValue() || PrecacheReadStatus[NEXT].GetValue());
+	}
 
 	uint32 Delta = 0;
 
@@ -2024,7 +2070,7 @@ bool FArchiveAsync::Precache( int64 RequestOffset, int64 RequestSize )
 	// Return read status if the current request fits entirely in the precached region.
 	if( PrecacheBufferContainsRequest( RequestOffset, RequestSize ) )
 	{
-		if (!bFinishedReadingCurrent && !FPlatformProcess::SupportsMultithreading())
+		if (!bFinishedReadingCurrent && PlatformIsSinglethreaded)
 		{
 			// Tick async loading when multithreading is disabled.
 			FIOSystem::Get().TickSingleThreaded();
@@ -2117,7 +2163,7 @@ bool FArchiveAsync::Precache( int64 RequestOffset, int64 RequestSize )
  * @param	Data	Pointer to serialize to
  * @param	Count	Number of bytes to read
  */
-void FArchiveAsync::Serialize( void* Data, int64 Count )
+void FArchiveAsync::Serialize(void* Data, int64 Count)
 {
 	// Ensure we aren't reading beyond the end of the file
 	checkf( CurrentPos + Count <= TotalSize(), TEXT("Seeked past end of file %s (%lld / %lld)"), *FileName, CurrentPos + Count, TotalSize() );
@@ -2135,19 +2181,20 @@ void FArchiveAsync::Serialize( void* Data, int64 Count )
 #if LOOKING_FOR_PERF_ISSUES
 		// Keep track of time we started to block.
 		StartCycles = FPlatformTime::Cycles();
-		bIOBlocked	= true;
+		bIOBlocked = true;
 #endif
 
 		// Busy wait for region to be precached.
-		FPlatformProcess::ConditionalSleep( [&]()
+		if (!Precache(CurrentPos, Count))
 		{
-			SHUTDOWN_IF_EXIT_REQUESTED;
-			if( !FPlatformProcess::SupportsMultithreading() )
+			SCOPE_CYCLE_COUNTER(STAT_Sleep);
+			FThreadIdleStats::FScopeIdle Scope;
+			do
 			{
-				FIOSystem::Get().TickSingleThreaded();
-			}
-			return Precache( CurrentPos, Count );
-		} );
+				SHUTDOWN_IF_EXIT_REQUESTED;
+				FPlatformProcess::SleepNoStats(0.0f);
+			} while (!Precache(CurrentPos, Count));
+		}
 
 		// There shouldn't be any outstanding read requests for the main buffer at this point.
 		check( PrecacheReadStatus[CURRENT].GetValue() == 0 );
@@ -2155,24 +2202,29 @@ void FArchiveAsync::Serialize( void* Data, int64 Count )
 	
 	// Make sure to wait till read request has finished before progressing. This can happen if PreCache interface
 	// is not being used for serialization.
-	FPlatformProcess::ConditionalSleep( [&]()
+	if (PrecacheReadStatus[CURRENT].GetValue())
 	{
-		SHUTDOWN_IF_EXIT_REQUESTED;
+		SCOPE_CYCLE_COUNTER(STAT_Sleep);
+		FThreadIdleStats::FScopeIdle Scope;
+		do
+		{
+			SHUTDOWN_IF_EXIT_REQUESTED;
 #if LOOKING_FOR_PERF_ISSUES
-		// Only update StartTime if we haven't already started blocking I/O above.
-		if( !bIOBlocked )
-		{
-			// Keep track of time we started to block.
-			StartCycles = FPlatformTime::Cycles();
-			bIOBlocked = true;
-		}
+			// Only update StartTime if we haven't already started blocking I/O above.
+			if (!bIOBlocked)
+			{
+				// Keep track of time we started to block.
+				StartCycles = FPlatformTime::Cycles();
+				bIOBlocked = true;
+			}
 #endif
-		if( !FPlatformProcess::SupportsMultithreading() )
-		{
-			FIOSystem::Get().TickSingleThreaded();
-		}
-		return PrecacheReadStatus[CURRENT].GetValue() == 0;
-	} );
+			if (PlatformIsSinglethreaded)
+			{
+				FIOSystem::Get().TickSingleThreaded();
+			}
+			FPlatformProcess::SleepNoStats(0.0f);
+		} while (PrecacheReadStatus[CURRENT].GetValue());
+	}
 
 	// Update stats if we were blocked.
 #if LOOKING_FOR_PERF_ISSUES

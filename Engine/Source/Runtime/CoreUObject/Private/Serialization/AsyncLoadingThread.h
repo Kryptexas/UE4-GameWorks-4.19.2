@@ -23,21 +23,27 @@ class FAsyncLoadingThread : public FRunnable
 	FEvent* CancelLoadingEvent;
 	/** [ASYNC/GAME THREAD] List of queued packages to stream */
 	TArray<FAsyncPackageDesc*> QueuedPackages;
+#if THREADSAFE_UOBJECTS
 	/** [ASYNC/GAME THREAD] Package queue critical section */
 	FCriticalSection QueueCritical;
+#endif
 	/** [ASYNC/GAME THREAD] True if the async loading thread received a request to cancel async loading **/
 	FThreadSafeBool bShouldCancelLoading;
 	/** [ASYNC/GAME THREAD] Event used to signal there's queued packages to stream */
 	TArray<FAsyncPackage*> LoadedPackages;	
+#if THREADSAFE_UOBJECTS
 	/** [ASYNC/GAME THREAD] Critical section for LoadedPackages list */
 	FCriticalSection LoadedPackagesCritical;
+#endif
 	/** [GAME THREAD] Event used to signal there's queued packages to stream */
 	TArray<FAsyncPackage*> LoadedPackagesToProcess;
 	
 	/** [ASYNC THREAD] Array of packages that are being preloaded */
 	TArray<FAsyncPackage*> AsyncPackages;
+#if THREADSAFE_UOBJECTS
 	/** We only lock AsyncPackages array to make GetAsyncLoadPercentage thread safe, so we only care about locking Add/Remove operations on the async thread */
 	FCriticalSection AsyncPackagesCritical;
+#endif
 
 	/** [ASYNC/GAME THREAD] Number of package load requests in the async loading queue */
 	FThreadSafeCounter QueuedPackagesCounter;
@@ -94,6 +100,7 @@ public:
 			bool Value;
 			FAsyncLoadingThreadEnabled()
 			{
+#if THREADSAFE_UOBJECTS
 				if (FPlatformProperties::RequiresCookedData())
 				{
 					check(GConfig);
@@ -103,6 +110,7 @@ public:
 					Value = bConfigValue && FApp::ShouldUseThreadingForPerformance() && !FParse::Param(FCommandLine::Get(), TEXT("NoAsyncLoadingThread"));
 				}
 				else
+#endif
 				{
 					Value = false;
 				}
@@ -191,7 +199,9 @@ public:
 
 		InsertIndex = InsertIndex == -1 ? AsyncPackages.Num() : InsertIndex;
 		{
+#if THREADSAFE_UOBJECTS
 			FScopeLock LockAsyncPackages(&AsyncPackagesCritical);
+#endif
 			AsyncPackages.InsertUninitialized(InsertIndex);
 			AsyncPackages[InsertIndex] = Package;
 		}
@@ -297,7 +307,9 @@ private:
 	*/
 	FORCEINLINE void AddToLoadedPackages(FAsyncPackage* Package)
 	{
+#if THREADSAFE_UOBJECTS
 		FScopeLock LoadedLock(&LoadedPackagesCritical);
+#endif
 		LoadedPackages.Add(Package);
 	}
 

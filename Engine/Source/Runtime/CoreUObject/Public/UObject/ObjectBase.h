@@ -20,7 +20,8 @@ typedef	uint64 ScriptPointerType;
 #define USE_COMPILED_IN_NATIVES	1
 #endif
 
-
+/** Set this to 0 to disable UObject thread safety features */
+#define THREADSAFE_UOBJECTS 1
 
 /*-----------------------------------------------------------------------------
 	Core enumerations.

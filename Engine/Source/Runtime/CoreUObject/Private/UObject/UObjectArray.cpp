@@ -63,7 +63,11 @@ void FUObjectArray::AllocateUObjectIndex(UObjectBase* Object, bool bMergingThrea
 		}
 		else
 		{
+#if THREADSAFE_UOBJECTS
 			FScopeLock ObjObjectsLock(&ObjObjectsCritical);
+#else
+			check(IsInGameThread());
+#endif
 			Index = ObjObjects.AddZeroed(1);
 		}
 		check(Index >= ObjFirstGCIndex);

@@ -1294,6 +1294,9 @@ public:
 	};
 	static TMap<FName, FSubobjectRedirect> SubobjectNameRedirects;	
 
+	/* Makes sure active redirects map has been initialized */
+	static bool bActiveRedirectsMapInitialized;
+
 	/** 
 	 * Utility functions to query the object name redirects list for previous names for a class
 	 * @param CurrentClassPath The current name of the class, with a full path
@@ -1415,7 +1418,7 @@ public:
 	/**
 	 * Add redirects to FLinkerLoad static map
 	 */
-	COREUOBJECT_API static void CreateActiveRedirectsMap(const FString& GEngineIniName);
+	static void CreateActiveRedirectsMap(const FString& GEngineIniName);
 
 	/**
 	 * Locates the class adjusted index and its package adjusted index for a given class name in the import map

@@ -1557,6 +1557,8 @@ private:
 	int64							CurrentChunkIndex;
 	/** Compression flags determining compression of CompressedChunks.				*/
 	ECompressionFlags				CompressionFlags;
+	/** Caches the return value of FPlatformMisc::SupportsMultithreading (comes up in profiles often) */
+	bool PlatformIsSinglethreaded;
 };
 
 /*----------------------------------------------------------------------------

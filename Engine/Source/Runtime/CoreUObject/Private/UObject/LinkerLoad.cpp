@@ -53,6 +53,7 @@ TMap<FName, FName> FLinkerLoad::GameNameRedirects;					// Game package name to n
 TMap<FName, FName> FLinkerLoad::StructNameRedirects;				// Old struct name to new struct name mapping
 TMap<FString, FString> FLinkerLoad::PluginNameRedirects;			// Old plugin name to new plugin name mapping
 TMap<FName, FLinkerLoad::FSubobjectRedirect> FLinkerLoad::SubobjectNameRedirects;	
+bool FLinkerLoad::bActiveRedirectsMapInitialized = false;
 
 void FLinkerLoad::AddGameNameRedirect(const FName OldName, const FName NewName)
 {
@@ -68,14 +69,13 @@ void FLinkerLoad::AddGameNameRedirect(const FName OldName, const FName NewName)
  */
 void FLinkerLoad::CreateActiveRedirectsMap(const FString& GEngineIniName)
 {		
-	static bool bAlreadyInitialized_CreateActiveRedirectsMap = false;
-	if (bAlreadyInitialized_CreateActiveRedirectsMap)
+	if (bActiveRedirectsMapInitialized)
 	{
 		return;
 	}
 	else
 	{
-		bAlreadyInitialized_CreateActiveRedirectsMap = true;
+		bActiveRedirectsMapInitialized = true;
 	}
 
 	if (GConfig)
@@ -758,7 +758,9 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::CreateLoader()
 
 #endif
 
-	CreateActiveRedirectsMap( GEngineIni );
+	// This should have been initialized in InitUObject
+	check(bActiveRedirectsMapInitialized);
+
 	if( !Loader )
 	{
 		bool bIsSeekFree = LoadFlags & LOAD_SeekFree;

@@ -283,18 +283,24 @@ public:
 	FORCEINLINE FHashTableLock(FUObjectHashTables& InTables)
 		: Tables(InTables)
 	{
+#if THREADSAFE_UOBJECTS
 		// GC locks everything on the main thread so no need to lock here
 		if (!(IsGarbageCollecting() && IsInGameThread()))
 		{
 			Tables.Lock();
 		}
+#else
+		check(IsInGameThread());
+#endif
 	}
 	FORCEINLINE ~FHashTableLock()
 	{
+#if THREADSAFE_UOBJECTS
 		if (!(IsGarbageCollecting() && IsInGameThread()))
 		{
 			Tables.Unlock();
 		}
+#endif
 	}
 };
 
@@ -831,7 +837,11 @@ void UnhashObject(UObjectBase* Object)
 */
 void LockUObjectHashTablesForGC()
 {
+#if THREADSAFE_UOBJECTS
 	FUObjectHashTables::Get().Lock();
+#else
+	check(IsInGameThread());
+#endif
 }
 
 /**
@@ -839,7 +849,11 @@ void LockUObjectHashTablesForGC()
  */
 void UnlockUObjectHashTablesForGC()
 {
+#if THREADSAFE_UOBJECTS
 	FUObjectHashTables::Get().Unlock();
+#else
+	check(IsInGameThread());
+#endif
 }
 
 void LogHashStatisticsInternal(TMultiMap<int32, UObjectBase*>& Hash, FOutputDevice& Ar, const bool bShowHashBucketCollisionInfo)

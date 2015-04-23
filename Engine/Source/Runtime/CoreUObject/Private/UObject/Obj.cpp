@@ -3541,6 +3541,9 @@ void PreInitUObject()
 
 void InitUObject()
 {
+	// Initialize redirects map
+	FLinkerLoad::CreateActiveRedirectsMap(GEngineIni);
+
 	FCoreDelegates::OnShutdownAfterError.AddStatic(StaticShutdownAfterError);
 	FCoreDelegates::OnExit.AddStatic(StaticExit);
 	FModuleManager::Get().OnProcessLoadedObjectsCallback().AddStatic(ProcessNewlyLoadedUObjects);
