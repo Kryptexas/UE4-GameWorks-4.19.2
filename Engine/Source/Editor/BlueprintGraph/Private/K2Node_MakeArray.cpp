@@ -414,15 +414,30 @@ void UK2Node_MakeArray::GetContextMenuActions(const FGraphNodeContextMenuBuilder
 
 bool UK2Node_MakeArray::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const
 {
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-
 	if(OtherPin->PinType.bIsArray == true && MyPin->Direction == EGPD_Input)
 	{
 		OutReason = NSLOCTEXT("K2Node", "MakeArray_InputIsArray", "Cannot make an array with an input of an array!").ToString();
 		return true;
 	}
 
+	auto Schema = Cast<const UEdGraphSchema_K2>(GetSchema());
+	if (!ensure(Schema) || (ensure(OtherPin) && Schema->IsExecPin(*OtherPin)))
+	{
+		OutReason = NSLOCTEXT("K2Node", "MakeArray_InputIsExec", "Cannot make an array with an execution input!").ToString();
+		return true;
+	}
+
 	return false;
+}
+
+void UK2Node_MakeArray::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
+{
+	auto Schema = Cast<const UEdGraphSchema_K2>(GetSchema());
+	auto OutputPin = GetOutputPin();
+	if (!ensure(Schema) || !ensure(OutputPin) || Schema->IsExecPin(*OutputPin))
+	{
+		MessageLog.Error(*NSLOCTEXT("K2Node", "MakeArray_OutputIsExec", "Uaccepted array type in @@").ToString(), this);
+	}
 }
 
 void UK2Node_MakeArray::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
