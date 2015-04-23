@@ -79,7 +79,7 @@ Ray Traced soft shadows from a point light with a Source Radius of 100.
 
 ## Directional lights
 
-'Light Source Angle' is used to determine how large shadow penumbras are on a directional light.  Ray Traced shadows have very few self-intersection problems and therefore avoid the leaking and over-biasing problems in the distance that traditional shadowmapping is plagued by.
+'Light Source Angle' is used to determine how large shadow penumbras are on a directional light.  Ray Traced shadows have very few self-intersection problems and therefore avoid the leaking and over-biasing problems in the distance that traditional shadow mapping is plagued by.
 
 [REGION:fullwidth]
 	![](DirectionalLightAreaShadows.jpg)
