@@ -27,7 +27,7 @@ public:
 	/** @return The foliage palette that contains the item */
 	const TSharedPtr<SFoliagePalette>& GetFoliagePalette() const;
 
-	const UFoliageType* GetFoliageType() const;
+	const class UFoliageType* GetFoliageType() const;
 
 	/** @return The thumbnail widget for this item */
 	TSharedRef<SWidget> GetThumbnailWidget() const;
