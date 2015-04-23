@@ -86,15 +86,15 @@ FVertexDeclarationRHIRef FMetalDynamicRHI::RHICreateVertexDeclaration(const FVer
 }
 
 
-void FMetalVertexDeclaration::GenerateLayout(const FVertexDeclarationElementList& Elements)
+void FMetalVertexDeclaration::GenerateLayout(const FVertexDeclarationElementList& InElements)
 {
 	Layout = [[MTLVertexDescriptor alloc] init];
 	TRACK_OBJECT(Layout);
 
 	TMap<uint32, uint32> BufferStrides;
-	for (uint32 ElementIndex = 0; ElementIndex < Elements.Num(); ElementIndex++)
+	for (uint32 ElementIndex = 0; ElementIndex < InElements.Num(); ElementIndex++)
 	{
-		const FVertexElement& Element = Elements[ElementIndex];
+		const FVertexElement& Element = InElements[ElementIndex];
 		
 		checkf(Element.Stride == 0 || Element.Offset + TranslateElementTypeToSize(Element.Type) <= Element.Stride, 
 			TEXT("Stream component is bigger than stride: Offset: %d, Size: %d [Type %d], Stride: %d"), Element.Offset, TranslateElementTypeToSize(Element.Type), (uint32)Element.Type, Element.Stride);

@@ -82,7 +82,7 @@ bool FOnlineLeaderboardsIOS::ReadLeaderboardCompletionDelegate(NSArray* players,
                             
                 if (bWasSuccessful)
                 {
-                    bool bWasSuccessful = [scores count] > 0;
+                    bWasSuccessful = [scores count] > 0;
                     UE_LOG(LogOnline, Display, TEXT("FOnlineLeaderboardsIOS::loadScoresWithCompletionHandler() - %s"), (bWasSuccessful ? TEXT("Success!") : TEXT("Failed!, no scores retrieved")));
                     for (GKScore* score in scores)
                     {
@@ -205,7 +205,7 @@ bool FOnlineLeaderboardsIOS::ReadLeaderboards(const TArray< TSharedRef<FUniqueNe
              
                 if (bWasSuccessful)
                 {
-                    bool bWasSuccessful = [players count] > 0;
+                    bWasSuccessful = [players count] > 0;
                     ReadLeaderboardCompletionDelegate(players, InReadObject);
                 }
              }];

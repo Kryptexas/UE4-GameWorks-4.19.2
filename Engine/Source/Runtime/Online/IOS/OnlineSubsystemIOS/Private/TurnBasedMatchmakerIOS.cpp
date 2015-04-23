@@ -94,12 +94,12 @@ void FTurnBasedMatchmakerIOS::DismissMatchmaker()
 
 GKMatchRequest* FTurnBasedMatchmakerIOS::GetGKMatchRequestFromMPMatchRequest(const FTurnBasedMatchRequest& Request) const
 {
-    GKMatchRequest* MatchRequest = [[GKMatchRequest alloc] init];
+    GKMatchRequest* NewMatchRequest = [[GKMatchRequest alloc] init];
 
-    MatchRequest.maxPlayers = Request.GetMaxNumberOfPlayers();
-    MatchRequest.minPlayers = Request.GetMinNumberOfPlayers();
-    MatchRequest.defaultNumberOfPlayers = Request.GetMinNumberOfPlayers();
-    MatchRequest.playerGroup = Request.GetPlayerGroup();
+    NewMatchRequest.maxPlayers = Request.GetMaxNumberOfPlayers();
+    NewMatchRequest.minPlayers = Request.GetMinNumberOfPlayers();
+    NewMatchRequest.defaultNumberOfPlayers = Request.GetMinNumberOfPlayers();
+    NewMatchRequest.playerGroup = Request.GetPlayerGroup();
 
-    return [MatchRequest autorelease];
+    return [NewMatchRequest autorelease];
 }
