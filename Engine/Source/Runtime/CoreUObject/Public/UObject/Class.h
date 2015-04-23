@@ -416,6 +416,11 @@ public:
 	 */
 	virtual void SetSuperStruct(UStruct* NewSuperStruct);
 
+	/**
+	 * Serializes the SuperStruct pointer.
+	 */
+	virtual void SerializeSuperStruct(FArchive& Ar);
+
 	void LinkChild(UField* Child)
 	{
 		Child->Next = Children;
@@ -2043,6 +2048,7 @@ public:
 	// UStruct interface.
 	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) override;
 	virtual void SetSuperStruct(UStruct* NewSuperStruct) override;
+	virtual void SerializeSuperStruct(FArchive& Ar) override;
 	// End of UStruct interface.
 	
 	/**
