@@ -1220,13 +1220,13 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 
 					MotionBlurPass->SetInput(ePId_Input0, MotionBlurColorDepth);
 
-				if(VelocityInput.IsValid())
-				{
-					// blurred screen space velocity for soft masked motion blur
-					MotionBlurPass->SetInput(ePId_Input1, SoftEdgeVelocity);
-					// screen space velocity input from per object velocity rendering
-					MotionBlurPass->SetInput(ePId_Input2, MotionBlurHalfVelocity);
-				}
+					if(VelocityInput.IsValid())
+					{
+						// blurred screen space velocity for soft masked motion blur
+						MotionBlurPass->SetInput(ePId_Input1, SoftEdgeVelocity);
+						// screen space velocity input from per object velocity rendering
+						MotionBlurPass->SetInput(ePId_Input2, MotionBlurHalfVelocity);
+					}
 
 					FRenderingCompositePass* MotionBlurRecombinePass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessMotionBlurRecombine());
 					MotionBlurRecombinePass->SetInput(ePId_Input0, Context.FinalOutput);
