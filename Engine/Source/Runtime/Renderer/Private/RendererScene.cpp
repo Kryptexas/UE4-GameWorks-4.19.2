@@ -2453,7 +2453,7 @@ FSceneInterface* FRendererModule::AllocateScene(UWorld* World, bool bInRequiresH
 	check(IsInGameThread());
 
 	// Create a full fledged scene if we have something to render.
-	if( GIsClient && !IsRunningCommandlet() && !GUsingNullRHI )
+	if (GIsClient && FApp::CanEverRender() && !GUsingNullRHI)
 	{
 		FScene* NewScene = new FScene(World, bInRequiresHitProxies, GIsEditor && !World->IsGameWorld(), bCreateFXSystem, InFeatureLevel);
 		AllocatedScenes.Add(NewScene);

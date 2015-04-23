@@ -40,7 +40,7 @@ void RHIInit(bool bHasEditorToken)
 	{
 		GRHICommandList.LatchBypass(); // read commandline for bypass flag
 
-		if(USE_NULL_RHI || FParse::Param(FCommandLine::Get(),TEXT("nullrhi")) || IsRunningCommandlet() || IsRunningDedicatedServer())
+		if (USE_NULL_RHI || FParse::Param(FCommandLine::Get(),TEXT("nullrhi")) || !FApp::CanEverRender())
 		{
 			InitNullRHI();
 		}

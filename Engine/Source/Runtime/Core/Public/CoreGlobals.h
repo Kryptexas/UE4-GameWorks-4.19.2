@@ -58,6 +58,9 @@ extern CORE_API void(*GFlushStreamingFunc)(void);
 
 #if WITH_ENGINE
 extern CORE_API bool PRIVATE_GIsRunningCommandlet;
+
+/** If true, initialize RHI and set up scene for rendering even when running a commandlet. */
+extern CORE_API bool PRIVATE_GAllowCommandletRendering;
 #endif
 
 #if WITH_EDITORONLY_DATA
@@ -95,6 +98,18 @@ FORCEINLINE bool IsRunningCommandlet()
 {
 #if WITH_ENGINE
 	return PRIVATE_GIsRunningCommandlet;
+#else
+	return false;
+#endif
+}
+
+/**
+ * Check to see if we should initialise RHI and set up scene for rendering even when running a commandlet.
+ */
+FORCEINLINE bool IsAllowCommandletRendering()
+{
+#if WITH_ENGINE
+	return PRIVATE_GAllowCommandletRendering;
 #else
 	return false;
 #endif

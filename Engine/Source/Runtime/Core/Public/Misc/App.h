@@ -21,7 +21,7 @@ public:
 	 */
 	FORCEINLINE static bool CanEverRender()
 	{
-		return !IsRunningCommandlet() && !IsRunningDedicatedServer();
+		return (!IsRunningCommandlet() || IsAllowCommandletRendering()) && !IsRunningDedicatedServer();
 	}
 
 	/**
