@@ -204,10 +204,37 @@ public:
 	/** only call if StartAppend(), if the append wasn't started it silently ignores the call */
 	ENGINE_API void EndAppend();
 
-	/** @return 0 if there should be no bone based motion blur (no previous data available or it's not active) */
-	FBoneDataVertexBuffer* GetReadData();
+	/**
+	 * @param Index 0 .. PER_BONE_BUFFER_COUNT - 1, usually from GetReadBufferIndex()
+	 * @return 0 if there should be no bone based motion blur (no previous data available or it's not active)
+	 */
+	FBoneDataVertexBuffer* GetBoneDataVertexBuffer(uint32 Index)
+	{
+		checkSlow(Index < PER_BONE_BUFFER_COUNT);
+
+		return &PerChunkBoneMatricesTexture[Index];
+	}
 
 	FString GetDebugString() const;
+
+	/** @return 0 .. PER_BONE_BUFFER_COUNT-1 */
+	uint32 GetReadBufferIndex() const
+	{
+		return BufferIndex;
+	}
+
+	/** @return 0 .. PER_BONE_BUFFER_COUNT-1 */
+	uint32 GetWriteBufferIndex() const
+	{
+		uint32 ret = BufferIndex + 1;
+
+		if(ret >= PER_BONE_BUFFER_COUNT)
+		{
+			ret = 0;
+		}
+		return ret;
+	}
+
 
 private:
 
@@ -224,11 +251,6 @@ private:
 
 	bool bWarningBufferSizeExceeded;
 
-	/** @return 0 .. PER_BONE_BUFFER_COUNT-1 */
-	uint32 GetReadBufferIndex() const;
-
-	/** @return 0 .. PER_BONE_BUFFER_COUNT-1 */
-	uint32 GetWriteBufferIndex() const;
 
 	/** to cycle the internal buffer counter */
 	void AdvanceBufferIndex();

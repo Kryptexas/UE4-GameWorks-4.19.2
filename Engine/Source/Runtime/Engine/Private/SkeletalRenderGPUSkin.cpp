@@ -1221,30 +1221,9 @@ void FPreviousPerBoneMotionBlur::EndAppend()
 	}
 }
 
-FBoneDataVertexBuffer* FPreviousPerBoneMotionBlur::GetReadData()
-{
-	return &PerChunkBoneMatricesTexture[GetReadBufferIndex()];
-}
-
 FString FPreviousPerBoneMotionBlur::GetDebugString() const
 {
 	return FString::Printf(TEXT("BufferIndex=%d Pos=%d"), GPrevPerBoneMotionBlur.GetWriteBufferIndex(), GPrevPerBoneMotionBlur.LockedTexelPosition.GetValue());
-}
-
-uint32 FPreviousPerBoneMotionBlur::GetReadBufferIndex() const
-{
-	return BufferIndex;
-}
-
-uint32 FPreviousPerBoneMotionBlur::GetWriteBufferIndex() const
-{
-	uint32 ret = BufferIndex + 1;
-
-	if(ret >= PER_BONE_BUFFER_COUNT)
-	{
-		ret = 0;
-	}
-	return ret;
 }
 
 void FPreviousPerBoneMotionBlur::AdvanceBufferIndex()

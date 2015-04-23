@@ -87,6 +87,13 @@ float4 TextureViewMad;
 // xy:IndividualVelocityScale.xy zw:unused, from postprocess settings
 float4 MotionBlurParameters;
 
+// BoneMatrices and PreviousBoneMatrices for visualization
+
+// The bone matrix buffer stored as 4x3 (3 float4 texels behind each other), all chunks of a skeletal mesh in one
+Buffer<float4> BoneMatrices;
+// buffer with all old bone matrices stored as 4x3 (3 float4 texels behind each other), all chunks of a skeletal mesh in one
+Buffer<float4> PreviousBoneMatrices;
+
 // ------------------------------------------
 
 
@@ -606,6 +613,32 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 
 		OutColor.rgb = lerp(lerp(WorldCheckerboard, TintColor, 0.5f), LineColor, LineMask);
 		OutColor.rgb *= lerp(1.0f, 0.9f, DiskMask);
+	}
+	// visualize BoneBuffers
+	{
+		const int2 LeftTop = int2(16, 90);
+		const int ElementsPerLine = 32;
+		const int Scale = 3;
+		const int LinesPerBuffer = 48;
+		const int GapBetweenBuffers = 8;
+		const int FadeRegion = 16;
+
+		float2 PixelPos = ComputePixelPosCenter(UVAndScreenPos.zw, true);
+		int2 PixelPosInt = ((uint2)PixelPos - LeftTop) / Scale; 
+
+		// 0  and 1 are valid buffers
+		int LineInBuffer = PixelPosInt.y % (LinesPerBuffer + GapBetweenBuffers);
+		int WhichBuffer = PixelPosInt.y / (LinesPerBuffer + GapBetweenBuffers);
+		float Alpha = saturate((LinesPerBuffer - LineInBuffer) / (float)FadeRegion);
+
+		if(PixelPosInt.x >= 0 && PixelPosInt.x < ElementsPerLine && PixelPosInt.y >= 0 && WhichBuffer / 2 == 0 && Alpha > 0)
+		{
+			uint Index = PixelPosInt.x + LineInBuffer * ElementsPerLine;
+
+			float4 Value = WhichBuffer ? BoneMatrices[Index] : PreviousBoneMatrices[Index];
+
+			OutColor.rgb = lerp(OutColor.rgb, Value.rgb, Alpha);
+		}
 	}
 #endif
 }
