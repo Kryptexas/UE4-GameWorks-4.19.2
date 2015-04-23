@@ -769,6 +769,10 @@ bool FApexChunkReport::releaseOnNoChunksVisible(const NxDestructibleActor* destr
 ///////// FApexPhysX3Interface //////////////////////////////////
 void FApexPhysX3Interface::setContactReportFlags(physx::PxShape* PShape, physx::PxPairFlags PFlags, NxDestructibleActor* actor, PxU16 actorChunkIndex)
 {
+	UDestructibleComponent* DestructibleComponent = Cast<UDestructibleComponent>(FPhysxUserData::Get<UPrimitiveComponent>(PShape->userData));
+	check(DestructibleComponent);
+
+	DestructibleComponent->Pair(actorChunkIndex, PShape);
 }
 
 physx::PxPairFlags FApexPhysX3Interface::getContactReportFlags(const physx::PxShape* PShape) const

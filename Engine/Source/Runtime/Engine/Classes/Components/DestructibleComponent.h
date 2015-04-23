@@ -22,14 +22,10 @@ namespace physx
 /** Mapping info for destructible chunk user data. */
 struct FDestructibleChunkInfo
 {
-	/** Index of this chunk info */
-	int32 Index;
 	/** Index of the chunk this data belongs to*/
 	int32 ChunkIndex;
 	/** Component owning this chunk info*/
 	TWeakObjectPtr<class UDestructibleComponent> OwningComponent;
-	/** Physx actor */
-	physx::PxRigidDynamic* Actor;
 };
 #endif // WITH_PHYSX 
 
@@ -75,7 +71,7 @@ class ENGINE_API UDestructibleComponent : public USkinnedMeshComponent
 
 #if WITH_PHYSX
 	/** Per chunk info */
-	TIndirectArray<FDestructibleChunkInfo> ChunkInfos;
+	TArray<FDestructibleChunkInfo> ChunkInfos;
 #endif // WITH_PHYSX 
 
 #if WITH_EDITOR
@@ -164,6 +160,9 @@ public:
 	
 	/** Resets the BodyInstance to the state that is defined in PrevState. */
 	void ResetFakeBodyInstance(FFakeBodyInstanceState& PrevState);
+
+	/** Setup a pair of PxShape and ChunkIndex */
+	void Pair( int32 ChunkIndex, physx::PxShape* PShape );
 #endif // WITH_APEX
 
 	/** This method makes a chunk (fractured piece) visible or invisible.
@@ -230,10 +229,15 @@ private:
 	/** User data wrapper for this component passed to physx */
 	FPhysxUserData PhysxUserData;
 
+	void SetCollisionResponseForShape(physx::PxShape* Shape, int32 ChunkIdx);
+	void SetCollisionResponseForActor(physx::PxRigidDynamic* Actor, int32 ChunkIdx, const FCollisionResponseContainer* ResponseOverride = NULL);
+	void SetCollisionResponseForAllActors(const FCollisionResponseContainer& ResponseOverride);
+
+
+public:
 	/** User data wrapper for the chunks passed to physx */
-	TIndirectArray<FPhysxUserData> PhysxChunkUserData;
+	TArray<FPhysxUserData> PhysxChunkUserData;
 	bool IsChunkLarge(int32 ChunkIdx) const;
-	void SetCollisionResponseForActor(physx::PxRigidDynamic* Actor, int32 ChunkIdx);
 #endif
 };
 

@@ -386,7 +386,7 @@ static void SetHitResultFromShapeAndFaceIndex(const PxShape* PShape,  const PxRi
 	// For destructibles give the ChunkInfo-Index as Item
 	if (bReturnBody && ChunkInfo)
 	{
-		OutResult.Item = ChunkInfo->Index;
+		OutResult.Item = ChunkInfo->ChunkIndex;
 
 		UDestructibleComponent* DMComp = Cast<UDestructibleComponent>(OwningComponent);
 		OutResult.BoneName = DMComp->GetBoneName(UDestructibleComponent::ChunkIdxToBoneIdx(ChunkInfo->ChunkIndex));

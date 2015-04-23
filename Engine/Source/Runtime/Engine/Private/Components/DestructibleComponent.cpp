@@ -351,6 +351,11 @@ void UDestructibleComponent::CreatePhysicsState()
 	BodyInstance.SceneIndexAsync = SceneType == PST_Async ? PhysScene->PhysXSceneIndex[PST_Async] : 0;
 	check(ApexScene);
 
+	ChunkInfos.Reset(ChunkCount);
+	ChunkInfos.AddZeroed(ChunkCount);
+	PhysxChunkUserData.Reset(ChunkCount);
+	PhysxChunkUserData.AddZeroed(ChunkCount);
+
 	// Create an APEX NxDestructibleActor from the Destructible asset and actor descriptor
 	ApexDestructibleActor = static_cast<NxDestructibleActor*>(TheDestructibleMesh->ApexDestructibleAsset->createApexActor(*ActorParams, *ApexScene));
 	check(ApexDestructibleActor);
@@ -358,9 +363,6 @@ void UDestructibleComponent::CreatePhysicsState()
 	// Make a backpointer to this component
 	PhysxUserData = FPhysxUserData(this);
 	ApexDestructibleActor->userData = &PhysxUserData;
-
-	ChunkInfos.Empty();
-	PhysxChunkUserData.Empty();
 
 	// Cache cooked collision data
 	// BRGTODO : cook in asset
@@ -385,7 +387,7 @@ void UDestructibleComponent::CreatePhysicsState()
 		{
 			ApexDestructibleActor->setChunkPhysXActorAwakeState(0, false);
 		}
-	}
+		}
 
 	UpdateBounds();
 #endif	// #if WITH_APEX
@@ -400,11 +402,7 @@ void UDestructibleComponent::DestroyPhysicsState()
 		{
 			if (FPhysScene * PhysScene = World->GetPhysicsScene())
 			{
-				const uint32 SceneType = BodyInstance.UseAsyncScene(PhysScene) ? PST_Async : PST_Sync;
-				PxScene * PScene = PhysScene->GetPhysXScene(SceneType);
-				SCOPED_SCENE_WRITE_LOCK(PScene);
-				ApexDestructibleActor->release();
-				//Deferring here is difficult because a call to CreatePhysicsState will re-use the same chunk info buffer for new chunks. Note this may be possible, but need to fix crash now
+				PhysScene->DeferredCommandHandler.DeferredRelease(ApexDestructibleActor);
 			}
 		}
 		
@@ -472,14 +470,8 @@ void UDestructibleComponent::AddImpulseAtLocation( FVector Impulse, FVector Posi
 			ChunkIdx = BoneIdxToChunkIdx(GetBoneIndex(BoneName));
 		}
 
-		//ApexDestructibleActor->applyDamage(1.0f, Impulse.Size(), U2PVector(Position), U2PVector(Impulse.SafeNormal()), ChunkIdx);
-		for (int32 i=0; i < ChunkInfos.Num(); ++i)
-		{
-			if (ChunkInfos[i].ChunkIndex == ChunkIdx && ChunkInfos[i].Actor)
-			{
-				ChunkInfos[i].Actor->addForce(U2PVector(Impulse), PxForceMode::eIMPULSE);
-			}
-		}
+		PxRigidDynamic* Actor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
+		Actor->addForce(U2PVector(Impulse), PxForceMode::eIMPULSE);
 	}
 #endif
 }
@@ -493,14 +485,8 @@ void UDestructibleComponent::AddForce( FVector Force, FName BoneName /*= NAME_No
 		ChunkIdx = BoneIdxToChunkIdx(GetBoneIndex(BoneName));
 	}
 
-	//ApexDestructibleActor->applyDamage(1.0f, Impulse.Size(), U2PVector(Position), U2PVector(Impulse.SafeNormal()), ChunkIdx);
-	for (int32 i=0; i < ChunkInfos.Num(); ++i)
-	{
-		if (ChunkInfos[i].ChunkIndex == ChunkIdx && ChunkInfos[i].Actor)
-		{
-			ChunkInfos[i].Actor->addForce(U2PVector(Force), bAccelChange ? PxForceMode::eACCELERATION : PxForceMode::eFORCE);
-		}
-	}
+	PxRigidDynamic* Actor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
+	Actor->addForce(U2PVector(Force), bAccelChange ? PxForceMode::eACCELERATION : PxForceMode::eFORCE);
 #endif
 }
 
@@ -515,14 +501,8 @@ void UDestructibleComponent::AddForceAtLocation( FVector Force, FVector Location
 			ChunkIdx = BoneIdxToChunkIdx(GetBoneIndex(BoneName));
 		}
 
-		//ApexDestructibleActor->applyDamage(1.0f, Impulse.Size(), U2PVector(Location), U2PVector(Impulse.SafeNormal()), ChunkIdx);
-		for (int32 i=0; i < ChunkInfos.Num(); ++i)
-		{
-			if (ChunkInfos[i].ChunkIndex == ChunkIdx && ChunkInfos[i].Actor)
-			{
-				ChunkInfos[i].Actor->addForce(U2PVector(Force), PxForceMode::eFORCE);
-			}
-		}
+		PxRigidDynamic* Actor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
+		Actor->addForce(U2PVector(Force), PxForceMode::eFORCE);
 	}
 #endif
 }
@@ -754,8 +734,11 @@ void UDestructibleComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 void UDestructibleComponent::SetDestructibleMesh(class UDestructibleMesh* NewMesh)
 {
 #if WITH_APEX
-	ChunkInfos.Empty();
-	PhysxChunkUserData.Empty();
+	uint32 ChunkCount = NewMesh->ApexDestructibleAsset->getChunkCount();
+	ChunkInfos.Reset(ChunkCount);
+	ChunkInfos.AddZeroed(ChunkCount);
+	PhysxChunkUserData.Reset(ChunkCount);
+	PhysxChunkUserData.AddZeroed(ChunkCount);
 #endif // WITH_APEX
 
 	Super::SetSkeletalMesh( NewMesh );
@@ -817,104 +800,59 @@ FTransform UDestructibleComponent::GetSocketTransform(FName InSocketName, ERelat
 	return ST;
 }
 
+void UDestructibleComponent::Pair( int32 ChunkIndex, PxShape* PShape)
+{
+	FDestructibleChunkInfo* CI;
+	FPhysxUserData* UserData;
+
+	check(ChunkIndex < ChunkInfos.Num());
+
+	CI = &ChunkInfos[ChunkIndex];
+
+					CI->ChunkIndex = ChunkIndex;
+				CI->OwningComponent = this;
+
+	UserData = &PhysxChunkUserData[ChunkIndex];
+	UserData->Set(UserData, CI);
+
+	PShape->userData = UserData;
+
+	PShape->getActor()->userData = UserData;
+
+	PShape->getActor()->setActorFlag(PxActorFlag::eDISABLE_GRAVITY, !BodyInstance.bEnableGravity);
+
+	// Set collision response to non-root chunks
+	if (GetDestructibleMesh()->ApexDestructibleAsset->getChunkParentIndex(ChunkIndex) >= 0)
+	{
+		SetCollisionResponseForShape(PShape, ChunkIndex);
+	}
+}
+
 void UDestructibleComponent::SetChunkVisible( int32 ChunkIndex, bool bVisible )
 {
 	// Bone 0 is a dummy root bone
 	const int32 BoneIndex = ChunkIdxToBoneIdx(ChunkIndex);
-	bool bClearActorFromChunkInfo = false;
 
 	if( bVisible )
 	{
 		UnHideBone(BoneIndex);
-#if WITH_APEX
-		PxRigidDynamic* PActor = ApexDestructibleActor != NULL ? ApexDestructibleActor->getChunkPhysXActor(ChunkIndex) : NULL;
 
-		UDestructibleMesh* DMesh = GetDestructibleMesh();
-
-		if (PActor != NULL)
+		if (NULL != ApexDestructibleActor)
 		{
-			//When we unhide a chunk, it might be the first time - in this case we need to update the transforms (only active transforms get updated after this)
-			//TODO: We can probably move this code somewhere so that it's only done the first time a chunk is created in case chunks are hidden unhidden again and again? (Not sure if this ever happens)
-			const physx::PxMat44 ChunkPoseRT = ApexDestructibleActor->getChunkPose(ChunkIndex);	// Unscaled
-			const physx::PxTransform Transform(ChunkPoseRT);
-			SetChunkWorldRT(ChunkIndex, P2UQuat(Transform.q), P2UVector(Transform.p));
-
-			// If actor has already a chunk info and userdata, we just make sure it is valid and update the 
-			// physx actor if needed. We do NOT do this for FormExtended structures, as in this case, the shapes/actors
-			// are moved to the 1st structure object internally by APEX.
-			if(PActor->userData != NULL && !DMesh->DefaultDestructibleParameters.Flags.bFormExtendedStructures)
+			physx::PxShape** PShapes;
+			const physx::PxU32 PShapeCount = ApexDestructibleActor->getChunkPhysXShapes(PShapes, ChunkIndex);
+			if (PShapeCount > 0)
 			{
-				FDestructibleChunkInfo* CI = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor->userData);
-				checkf(CI, TEXT("If a chunk actor has user data and it is not a DestructibleChunkInfo, something is messed up."));
-				//check(CI->OwningComponent == this);
-
-				if (CI->ChunkIndex != ChunkIndex)
-				{
-					// grab the old actor and clear its user data, as we steal the ChunkInfo here
-					if (CI->Actor && CI->Actor != PActor)
-					{
-						CI->Actor->userData = NULL;
-					}
-					CI->ChunkIndex = ChunkIndex;
-				}
-
-				CI->OwningComponent = this;
-				CI->Actor = PActor;
-			}
-			else if (PActor->userData == NULL)
-			{
-				// Setup the user data to have a proper chunk - actor mapping 
-				FDestructibleChunkInfo* CI = new FDestructibleChunkInfo();
-				int32 InfoIndex = ChunkInfos.Add(CI);
-				CI->Index = InfoIndex;
-				CI->ChunkIndex = ChunkIndex;
-				CI->OwningComponent = this;
-				CI->Actor = PActor;
-
-				PActor->setActorFlag(PxActorFlag::eDISABLE_GRAVITY, !BodyInstance.bEnableGravity);
-
-				FPhysxUserData * UserData = new FPhysxUserData(CI);
-				int32 UserDataIdx = PhysxChunkUserData.Add(UserData);
-				check(InfoIndex == UserDataIdx);
-
-				PActor->userData = UserData;
-
-
-
-				// Set collision response to non-root chunks
-				if (GetDestructibleMesh()->ApexDestructibleAsset->getChunkParentIndex(ChunkIndex) >= 0)
-				{
-					SetCollisionResponseForActor(PActor, ChunkIndex);
-				}
+				const physx::PxMat44 ChunkPoseRT = ApexDestructibleActor->getChunkPose(ChunkIndex);	// Unscaled
+				const physx::PxTransform Transform(ChunkPoseRT);
+				SetChunkWorldRT(ChunkIndex, P2UQuat(Transform.q), P2UVector(Transform.p));
 			}
 		}
-		else
-		{
-			bClearActorFromChunkInfo = true;
-		}
-#endif // WITH_APEX
 	}
 	else
 	{
 		HideBone(BoneIndex, PBO_None);
-		bClearActorFromChunkInfo = true;
 	}
-
-#if WITH_APEX
-	if (bClearActorFromChunkInfo)
-	{
-		// Make sure we clear the physx actor pointer of the chunk info as it might (and probably will) be
-		// invalid from now on
-		for (int32 i=0; i < ChunkInfos.Num(); ++i)
-		{
-			if (ChunkInfos[i].ChunkIndex == ChunkIndex)
-			{
-				ChunkInfos[i].Actor = NULL;
-				break;
-			}
-		}
-	}
-#endif // WITH_APEX
 
 	// Mark the transform as dirty, so the bounds are updated and sent to the render thread
 	MarkRenderTransformDirty();
@@ -1282,13 +1220,13 @@ void UDestructibleComponent::SetEnableGravity(bool bGravityEnabled)
 	Super::SetEnableGravity(bGravityEnabled);
 	
 #if WITH_APEX
-	for (FDestructibleChunkInfo& ChunkInfo : ChunkInfos)
-	 {
-		physx::PxRigidDynamic* Actor = ChunkInfo.Actor;
-		if (Actor)
+	uint32 ChunkCount = ApexDestructibleActor->getNumVisibleChunks();
+	const uint16* ChunkIndices = ApexDestructibleActor->getVisibleChunks();
+	for(uint32 c = 0; c < ChunkCount; c++)
 		{
-			Actor->setActorFlag(PxActorFlag::eDISABLE_GRAVITY, !bGravityEnabled);
-		}
+		PxActor* PActor = ApexDestructibleActor->getChunkPhysXActor(ChunkIndices[c]);
+		check(PActor);
+		PActor->setActorFlag(PxActorFlag::eDISABLE_GRAVITY, !bGravityEnabled);
 	}
 #endif //WITH_APEX
 }
@@ -1326,8 +1264,13 @@ bool UDestructibleComponent::IsChunkLarge(int32 ChunkIdx) const
 #endif // WITH_APEX
 }
 
-void UDestructibleComponent::SetCollisionResponseForActor(PxRigidDynamic* Actor, int32 ChunkIdx)
+void UDestructibleComponent::SetCollisionResponseForActor(PxRigidDynamic* Actor, int32 ChunkIdx, const FCollisionResponseContainer* ResponseOverride /*= NULL*/)
 {
+	if (ApexDestructibleActor == NULL)
+	{
+		return;
+	}
+
 	// Get collision channel and response
 	PxFilterData PQueryFilterData, PSimFilterData;
 	uint8 MoveChannel = GetCollisionObjectType();
@@ -1336,12 +1279,12 @@ void UDestructibleComponent::SetCollisionResponseForActor(PxRigidDynamic* Actor,
 		UDestructibleMesh* TheDestructibleMesh = GetDestructibleMesh();
 		AActor* Owner = GetOwner();
 		bool bLargeChunk = IsChunkLarge(ChunkIdx);
-		const FCollisionResponse& ColResponse = bLargeChunk ? LargeChunkCollisionResponse : SmallChunkCollisionResponse;
+		const FCollisionResponseContainer& UseResponse = ResponseOverride == NULL ? (bLargeChunk ? LargeChunkCollisionResponse.GetResponseContainer() : SmallChunkCollisionResponse.GetResponseContainer()) : *ResponseOverride;
 #if WITH_APEX
 		physx::PxU32 SupportDepth = TheDestructibleMesh->ApexDestructibleAsset->getChunkDepth(ChunkIdx);
 
 		const bool bEnableImpactDamage = IsImpactDamageEnabled(TheDestructibleMesh, SupportDepth);
-		CreateShapeFilterData(MoveChannel, GetUniqueID(), ColResponse.GetResponseContainer(), 0, ChunkIdxToBoneIdx(ChunkIdx), PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, bEnableImpactDamage, false);
+		CreateShapeFilterData(MoveChannel, GetUniqueID(), UseResponse, 0, ChunkIdxToBoneIdx(ChunkIdx), PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, bEnableImpactDamage, false);
 		
 		PQueryFilterData.word3 |= EPDF_SimpleCollision | EPDF_ComplexCollision;
 
@@ -1363,6 +1306,74 @@ void UDestructibleComponent::SetCollisionResponseForActor(PxRigidDynamic* Actor,
 			Shape->setFlag(PxShapeFlag::eVISUALIZATION, true);
 		}
 #endif
+	}
+}
+
+void UDestructibleComponent::SetCollisionResponseForAllActors(const FCollisionResponseContainer& ResponseOverride)
+{
+	if (ApexDestructibleActor == NULL)
+	{
+		return;
+	}
+
+	PxRigidDynamic** PActorBuffer = NULL;
+	PxU32 PActorCount = 0;
+	if (ApexDestructibleActor->acquirePhysXActorBuffer(PActorBuffer, PActorCount))
+	{
+		PxScene* LockedScene = NULL;
+
+		while (PActorCount--)
+		{
+			PxRigidDynamic* PActor = *PActorBuffer++;
+			if (PActor != NULL)
+			{
+				FDestructibleChunkInfo* ChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor->userData);
+				if (ChunkInfo != NULL)
+				{
+					if (!LockedScene)
+					{
+						LockedScene = PActor->getScene();
+						LockedScene->lockWrite();
+						LockedScene->lockRead();
+					}
+					SetCollisionResponseForActor(PActor, ChunkInfo->ChunkIndex, &ResponseOverride);	// ChunkIndex is the last chunk made visible.  But SetCollisionResponseForActor already doesn't respect per-chunk collision properties.
+				}
+			}
+		}
+
+		if (LockedScene)
+		{
+			LockedScene->unlockRead();
+			LockedScene->unlockWrite();
+			LockedScene = NULL;
+		}
+
+		ApexDestructibleActor->releasePhysXActorBuffer();
+	}
+}
+
+void UDestructibleComponent::SetCollisionResponseForShape(PxShape* Shape, int32 ChunkIdx)
+{
+	// Get collision channel and response
+	PxFilterData PQueryFilterData, PSimFilterData;
+	uint8 MoveChannel = GetCollisionObjectType();
+	if (IsCollisionEnabled())
+	{
+		AActor* Owner = GetOwner();
+		bool bLargeChunk = IsChunkLarge(ChunkIdx);
+		const FCollisionResponse& ColResponse = bLargeChunk ? LargeChunkCollisionResponse : SmallChunkCollisionResponse;
+		//TODO: we currently assume chunks will not have impact damage as it's very expensive. Should look into exposing this a bit more
+		CreateShapeFilterData(MoveChannel, (Owner ? Owner->GetUniqueID() : 0), ColResponse.GetResponseContainer(), 0, ChunkIdxToBoneIdx(ChunkIdx), PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, false, false);
+
+		PQueryFilterData.word3 |= EPDF_SimpleCollision | EPDF_ComplexCollision;
+
+		SCOPED_SCENE_WRITE_LOCK(Shape->getActor()->getScene());
+
+		Shape->setQueryFilterData(PQueryFilterData);
+		Shape->setSimulationFilterData(PSimFilterData);
+		Shape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, true);
+		Shape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, true);
+		Shape->setFlag(PxShapeFlag::eVISUALIZATION, true);
 	}
 }
 
