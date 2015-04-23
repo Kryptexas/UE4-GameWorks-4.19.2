@@ -12,10 +12,10 @@ class SInviteItemImpl : public SInviteItem
 {
 public:
 
-	void Construct(const FArguments& InArgs, const TSharedRef<FFriendViewModel>& ViewModel)
+	void Construct(const FArguments& InArgs, const TSharedRef<FFriendViewModel>& InViewModel)
 	{
 		FriendStyle = *InArgs._FriendStyle;
-		this->ViewModel = ViewModel;
+		ViewModel = InViewModel;
 		FFriendViewModel* ViewModelPtr = this->ViewModel.Get();
 
 		SUserWidget::Construct(SUserWidget::FArguments()

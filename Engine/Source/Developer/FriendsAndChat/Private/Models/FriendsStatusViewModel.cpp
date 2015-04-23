@@ -35,9 +35,9 @@ public:
 
 private:
 	FFriendsStatusViewModelImpl(
-		const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager
+		const TSharedRef<FFriendsAndChatManager>& InFriendsAndChatManager
 		)
-		: FriendsAndChatManager(FriendsAndChatManager)
+		: FriendsAndChatManager(InFriendsAndChatManager)
 	{
 		OnlineStateArray.Add(FOnlineState(true, NSLOCTEXT("OnlineState", "OnlineState_Online", "Online"), EOnlinePresenceState::Online));
 		OnlineStateArray.Add(FOnlineState(false, NSLOCTEXT("OnlineState", "OnlineState_Offline", "Offline"), EOnlinePresenceState::Offline));

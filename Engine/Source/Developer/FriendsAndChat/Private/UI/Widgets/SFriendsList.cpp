@@ -16,10 +16,10 @@ class SFriendsListImpl : public SFriendsList
 {
 public:
 
-	void Construct(const FArguments& InArgs, const TSharedRef<FFriendListViewModel>& ViewModel)
+	void Construct(const FArguments& InArgs, const TSharedRef<FFriendListViewModel>& InViewModel)
 	{
 		FriendStyle = *InArgs._FriendStyle;
-		this->ViewModel = ViewModel;
+		ViewModel = InViewModel;
 		ViewModel->OnFriendsListUpdated().AddSP(this, &SFriendsListImpl::RefreshFriendsList);
 		MenuMethod = InArgs._Method;
 

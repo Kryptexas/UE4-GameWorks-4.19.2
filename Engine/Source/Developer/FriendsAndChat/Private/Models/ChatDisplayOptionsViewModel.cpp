@@ -201,8 +201,8 @@ private:
 		OnChatListUpdated().Broadcast();
 	}
 
-	FChatDisplayOptionsViewModelImpl(const TSharedRef<FChatViewModel>& ChatViewModel)
-		: ChatViewModel(ChatViewModel)
+	FChatDisplayOptionsViewModelImpl(const TSharedRef<FChatViewModel>& InChatViewModel)
+		: ChatViewModel(InChatViewModel)
 		, bUseOverrideColor(false)
 		, bInGame(false)
 		, bAllowGlobalChat(true)

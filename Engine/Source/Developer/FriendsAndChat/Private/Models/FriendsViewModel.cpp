@@ -103,13 +103,13 @@ private:
 	}
 
 	FFriendsViewModelImpl(
-		const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager,
-		const TSharedRef<IClanRepository>& ClanRepository,
-		const TSharedRef<IFriendListFactory>& FriendsListFactory
+		const TSharedRef<FFriendsAndChatManager>& InFriendsAndChatManager,
+		const TSharedRef<IClanRepository>& InClanRepository,
+		const TSharedRef<IFriendListFactory>& InFriendsListFactory
 		)
-		: FriendsAndChatManager(FriendsAndChatManager)
-		, ClanRepository(ClanRepository)
-		, FriendsListFactory(FriendsListFactory)
+		: FriendsAndChatManager(InFriendsAndChatManager)
+		, ClanRepository(InClanRepository)
+		, FriendsListFactory(InFriendsListFactory)
 		, bIsPerformingAction(false)
 	{
 	}

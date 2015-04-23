@@ -92,8 +92,8 @@ private:
 		OnFriendsListUpdated().Broadcast();
 	}
 
-	FDefaultFriendListImpl(EFriendsDisplayLists::Type ListType)
-		: ListType(ListType)
+	FDefaultFriendListImpl(EFriendsDisplayLists::Type InListType)
+		: ListType(InListType)
 	{}
 
 private:

@@ -637,10 +637,10 @@ private:
 		}
 	}
 
-	FChatViewModelImpl(const TSharedRef<FFriendsMessageManager>& MessageManager)
+	FChatViewModelImpl(const TSharedRef<FFriendsMessageManager>& InMessageManager)
 		: SelectedViewChannel(EChatMessageType::Global)
 		, SelectedChatChannel(EChatMessageType::Global)
-		, MessageManager(MessageManager)
+		, MessageManager(InMessageManager)
 		, bInGame(false)
 		, bIsDisplayingGlobalChat(false)
 		, bEnableGlobalChat(true)

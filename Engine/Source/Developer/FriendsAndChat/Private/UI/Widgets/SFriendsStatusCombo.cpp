@@ -16,13 +16,13 @@ class SFriendsStatusComboImpl : public SFriendsStatusCombo
 {
 public:
 
-	void Construct(const FArguments& InArgs, const TSharedRef<FFriendsStatusViewModel>& ViewModel, const TSharedRef<FFriendsUserViewModel>& UserViewModel)
+	void Construct(const FArguments& InArgs, const TSharedRef<FFriendsStatusViewModel>& InViewModel, const TSharedRef<FFriendsUserViewModel>& InUserViewModel)
 	{
 		FriendStyle = *InArgs._FriendStyle;
-		this->ViewModel = ViewModel;
-		this->UserViewModel = UserViewModel;
+		ViewModel = InViewModel;
+		UserViewModel = InUserViewModel;
 
-		FFriendsStatusViewModel* ViewModelPtr = &ViewModel.Get();
+		FFriendsStatusViewModel* ViewModelPtr = &InViewModel.Get();
 
 		const TArray<FFriendsStatusViewModel::FOnlineState>& StatusOptions = ViewModelPtr->GetStatusList();
 		SFriendsAndChatCombo::FItemsArray ComboMenuItems;

@@ -11,10 +11,10 @@ class SClanItemImpl : public SClanItem
 {
 public:
 
-	void Construct(const FArguments& InArgs, const TSharedRef<class IClanInfo>& ClanInfo)
+	void Construct(const FArguments& InArgs, const TSharedRef<class IClanInfo>& InClanInfo)
 	{
 		FriendStyle = *InArgs._FriendStyle;
-		this->ClanInfo = ClanInfo;
+		ClanInfo = InClanInfo;
 
 		FFriendsAndChatComboButtonStyle ActionButtonStyle;
 		ActionButtonStyle.ComboButtonStyle = &FriendStyle.ActionComboButtonStyle;

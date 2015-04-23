@@ -14,10 +14,10 @@ class SClanListImpl : public SClanList
 {
 public:
 
-	void Construct(const FArguments& InArgs, const TSharedRef<FClanListViewModel>& ViewModel)
+	void Construct(const FArguments& InArgs, const TSharedRef<FClanListViewModel>& InViewModel)
 	{
 		FriendStyle = *InArgs._FriendStyle;
-		this->ViewModel = ViewModel;
+		ViewModel = InViewModel;
 		//ViewModel->OnFriendsListUpdated().AddSP(this, &SFriendsListImpl::RefreshFriendsList);
 		MenuMethod = InArgs._Method;
 

@@ -43,8 +43,8 @@ private:
 	}
 
 private:
-	FClanInfoViewModelImpl(const TSharedRef<IClanInfo>& ClanInfo)
-		: ClanInfo(ClanInfo) 
+	FClanInfoViewModelImpl(const TSharedRef<IClanInfo>& InClanInfo)
+		: ClanInfo(InClanInfo)
 	{
 	}
 

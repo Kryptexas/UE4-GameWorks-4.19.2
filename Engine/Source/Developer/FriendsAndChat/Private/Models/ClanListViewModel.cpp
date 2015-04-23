@@ -10,9 +10,9 @@ class FClanListViewModelImpl : public FClanListViewModel
 {
 public:
 
-	FClanListViewModelImpl(const TSharedRef<FClanViewModel>& ClanViewModel, EClanDisplayLists::Type ListType)
-		: ViewModel(ClanViewModel)
-		, ListType(ListType)
+	FClanListViewModelImpl(const TSharedRef<FClanViewModel>& InClanViewModel, EClanDisplayLists::Type InListType)
+		: ViewModel(InClanViewModel)
+		, ListType(InListType)
 	{
 	}
 

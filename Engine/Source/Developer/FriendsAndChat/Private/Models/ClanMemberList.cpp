@@ -67,8 +67,8 @@ private:
 		OnFriendsListUpdated().Broadcast();
 	}
 
-	FClanMemberListImpl(TSharedRef<IClanInfo> ClanInfo)
-		: ClanInfo(ClanInfo)
+	FClanMemberListImpl(TSharedRef<IClanInfo> InClanInfo)
+		: ClanInfo(InClanInfo)
 	{}
 
 private:

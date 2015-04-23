@@ -23,8 +23,8 @@ public:
 	/**
 	 * Constructor takes the required details.
 	 */
-	FClanMember(FClanMemberInfo MemberInfo)
-		:MemberInfo(MemberInfo)
+	FClanMember(FClanMemberInfo InMemberInfo)
+		:MemberInfo(InMemberInfo)
 	{ }
 
 public:

@@ -91,10 +91,10 @@ private:
 	}
 
 	FFriendListViewModelImpl( 
-		TSharedRef<IFriendList> FriendsListContainer,
-		EFriendsDisplayLists::Type ListType)
-		: FriendsListContainer(FriendsListContainer)
-		, ListType(ListType)
+		TSharedRef<IFriendList> InFriendsListContainer,
+		EFriendsDisplayLists::Type InListType)
+		: FriendsListContainer(InFriendsListContainer)
+		, ListType(InListType)
 	{
 	}
 

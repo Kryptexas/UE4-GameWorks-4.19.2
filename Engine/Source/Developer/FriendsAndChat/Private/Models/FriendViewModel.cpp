@@ -274,9 +274,9 @@ private:
 	}
 
 	FFriendViewModelImpl(
-		const TSharedRef<IFriendItem>& FriendItem
+		const TSharedRef<IFriendItem>& InFriendItem
 		)
-		: FriendItem(FriendItem)
+		: FriendItem(InFriendItem)
 	{
 	}
 

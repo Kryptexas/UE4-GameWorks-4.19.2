@@ -45,8 +45,8 @@ private:
 	}
 
 private:
-	FClanViewModelImpl(const TSharedRef<IClanRepository>& ClanRepository)
-		: ClanRepository(ClanRepository) 
+	FClanViewModelImpl(const TSharedRef<IClanRepository>& InClanRepository)
+		: ClanRepository(InClanRepository)
 	{
 	}
 

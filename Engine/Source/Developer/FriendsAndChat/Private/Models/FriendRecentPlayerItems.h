@@ -15,8 +15,8 @@ public:
 	 *
 	 * @param RecentPlayer The recent friend.
 	 */
-	FFriendRecentPlayerItem(TSharedPtr< FOnlineRecentPlayer > RecentPlayer)
-		: RecentPlayer(RecentPlayer)
+	FFriendRecentPlayerItem(TSharedPtr< FOnlineRecentPlayer > InRecentPlayer)
+		: RecentPlayer(InRecentPlayer)
 	{ }
 
 public:

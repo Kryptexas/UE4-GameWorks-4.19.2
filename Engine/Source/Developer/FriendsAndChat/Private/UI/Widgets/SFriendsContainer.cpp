@@ -26,9 +26,9 @@ class SFriendsContainerImpl : public SFriendsContainer
 {
 public:
 
-	void Construct(const FArguments& InArgs, const TSharedRef<FFriendsViewModel>& ViewModel)
+	void Construct(const FArguments& InArgs, const TSharedRef<FFriendsViewModel>& InViewModel)
 	{
-		this->ViewModel = ViewModel;
+		ViewModel = InViewModel;
 		FriendStyle = *InArgs._FriendStyle;
 
 		for (int32 ListIndex = 0; ListIndex < EFriendsDisplayLists::MAX_None; ListIndex++)
