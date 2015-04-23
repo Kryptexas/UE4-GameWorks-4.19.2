@@ -1389,7 +1389,7 @@ void FTViewTarget::CheckViewTarget(APlayerController* OwningController)
 					}
 					else
 					{
-						PlayerState = NULL;
+						Target = PlayerState; // this will cause it to update to the next Pawn possessed by the player being viewed
 					}
 				}
 				else
