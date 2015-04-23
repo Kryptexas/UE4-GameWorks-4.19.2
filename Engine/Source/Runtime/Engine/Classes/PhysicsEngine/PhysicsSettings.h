@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Engine/DeveloperSettings.h"
 #include "PhysicsSettings.generated.h"
 
 
