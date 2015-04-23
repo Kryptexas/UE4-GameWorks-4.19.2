@@ -172,6 +172,8 @@ public:
 	// Adds a default layer and pulls the PixelsPerUnrealUnit from the project settings
 	void InitializeNewEmptyTileMap();
 
+	// Creates a clone of this tile map in the specified outer
+	UPaperTileMap* CloneTileMap(UObject* OuterForClone);
 protected:
 	virtual void UpdateBodySetup();
 };

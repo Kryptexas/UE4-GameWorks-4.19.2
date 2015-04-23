@@ -128,11 +128,16 @@ public:
 
 	// Sets the per-layer color multiplier for a specific layer (multiplied with the tile map color and passed to the material as a vertex color)
 	// Note: This will only work on components that own their own tile map (OwnsTileMap returns true), you cannot modify standalone tile map assets
-	UFUNCTION(BlueprintCallable, Category = "Sprite")
+	UFUNCTION(BlueprintCallable, Category="Sprite")
 	void SetLayerColor(FLinearColor NewColor, int32 Layer = 0);
 
 	// Returns the wireframe color to use for this component.
 	FLinearColor GetWireframeColor() const;
+
+	// Makes the tile map asset pointed to by this component editable.  Nothing happens if it was already instanced, but
+	// if the tile map is an asset reference, it is cloned to make a unique instance.
+	UFUNCTION(BlueprintCallable, Category="Sprite")
+	void MakeTileMapEditable();
 };
 
 // Allow the old name to continue to work for one release

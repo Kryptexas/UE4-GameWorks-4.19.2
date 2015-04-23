@@ -505,4 +505,12 @@ FLinearColor UPaperTileMapComponent::GetWireframeColor() const
 	return TileMapColor;
 }
 
+void UPaperTileMapComponent::MakeTileMapEditable()
+{
+	if ((TileMap != nullptr) && !OwnsTileMap())
+	{
+		SetTileMap(TileMap->CloneTileMap(this));
+	}
+}
+
 #undef LOCTEXT_NAMESPACE
