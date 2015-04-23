@@ -91,16 +91,21 @@ void UGameplayCueManager::EndGameplayCuesFor(AActor* TargetActor)
 
 AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* TargetActor, UClass* CueClass)
 {
+	AGameplayCueNotify_Actor* SpawnedCue = nullptr;
 	if (auto InnerMap = NotifyMapActor.Find(TargetActor))
 	{
 		if (auto WeakPtrPtr = InnerMap->Find(CueClass))
 		{
-			return WeakPtrPtr->Get();
+			SpawnedCue = WeakPtrPtr->Get();
+			// If the cue is scheduled to be destroyed, don't reuse it, create a new one instead
+			if (SpawnedCue && SpawnedCue->GetLifeSpan() > 0.0f)
+			{
+				return SpawnedCue;
+			}
 		}
 	}
 
 	// We don't have an instance for this, and we need one, so make one
-	AGameplayCueNotify_Actor* SpawnedCue = nullptr;
 	if (ensure(TargetActor) && ensure(CueClass))
 	{
 		FActorSpawnParameters SpawnParams;

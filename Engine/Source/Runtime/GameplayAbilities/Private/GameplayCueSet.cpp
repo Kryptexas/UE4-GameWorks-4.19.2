@@ -42,13 +42,20 @@ void UGameplayCueSet::AddCues(const TArray<FGameplayCueReferencePair>& CuesToAdd
 			const FStringAssetReference& StringRef = CueRefPair.StringRef;
 
 			// Check for duplicates: we may want to remove this eventually.
+			bool bDupe = false;
 			for (FGameplayCueNotifyData Data : GameplayCueData)
 			{
 				if (Data.GameplayCueTag == GameplayCueTag)
 				{
 					ABILITY_LOG(Warning, TEXT("AddGameplayCueData_Internal called for [%s,%s] when it already existed [%s,%s]. Skipping."), *GameplayCueTag.ToString(), *StringRef.ToString(), *Data.GameplayCueTag.ToString(), *Data.GameplayCueNotifyObj.ToString());
-					return;
+					bDupe = true;
+					break;
 				}
+			}
+
+			if (bDupe)
+			{
+				continue;
 			}
 
 			FGameplayCueNotifyData NewData;
