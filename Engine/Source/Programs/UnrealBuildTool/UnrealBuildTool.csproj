@@ -102,6 +102,8 @@
         <Compile Include="XboxOne\XboxOneToolChain.cs" />
         <Compile Include="XboxOne\XboxOneDeploy.cs" />
         <Compile Include="XboxOne\XboxOneProjectGenerator.cs" />
+        <Compile Include="XboxOne\XboxOneResourceGenerator.cs" />
+        <Compile Include="XboxOne\XboxOneManifestGenerator.cs" />
       </ItemGroup>
     </When>
   </Choose>
@@ -259,8 +261,6 @@
     <Compile Include="Windows\VCEnvironment.cs" />
     <Compile Include="Windows\VCToolChain.cs" />
     <Compile Include="Windows\WindowsProjectGenerator.cs" />
-    <Compile Include="XboxOne\XboxOneResourceGenerator.cs" />
-    <Compile Include="XboxOne\XboxOneManifestGenerator.cs" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
