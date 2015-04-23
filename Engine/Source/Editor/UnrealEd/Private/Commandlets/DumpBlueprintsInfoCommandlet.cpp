@@ -1553,6 +1553,9 @@ static void DumpBlueprintInfoUtils::DumpPalette(uint32 Indent, UBlueprint* Bluep
 	else
 	{
 		FCategorizedGraphActionListBuilder PaletteBuilder;
+		PaletteBuilder.OwnerOfTemporaries = NewObject<UEdGraph>((UObject*)Blueprint);
+		PaletteBuilder.OwnerOfTemporaries->Schema = UEdGraphSchema_K2::StaticClass();
+		PaletteBuilder.OwnerOfTemporaries->SetFlags(RF_Transient);
 		double MenuBuildDuration = GetPaletteMenuActions(PaletteBuilder, Blueprint, ClassFilter);
 
 		BeginPaletteEntry += NestedIndent + "\"FilterClass\" : \"" + FilterClassName + "\",\n";
