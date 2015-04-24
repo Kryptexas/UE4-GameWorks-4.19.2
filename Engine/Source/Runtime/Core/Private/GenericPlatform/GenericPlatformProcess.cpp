@@ -278,7 +278,7 @@ void FGenericPlatformProcess::SleepInfinite()
 
 #endif // PLATFORM_HAS_BSD_TIME 
 
-void FGenericPlatformProcess::ConditionalSleep(const TFunctionRef<bool()>& Condition)
+void FGenericPlatformProcess::ConditionalSleep(const TFunctionRef<bool()>& Condition, float SleepTime /*= 0.0f*/)
 {
 	if (Condition())
 	{
@@ -289,7 +289,7 @@ void FGenericPlatformProcess::ConditionalSleep(const TFunctionRef<bool()>& Condi
 	FThreadIdleStats::FScopeIdle Scope;
 	do
 	{
-		FPlatformProcess::SleepNoStats(0.0f);
+		FPlatformProcess::SleepNoStats(SleepTime);
 	} while (!Condition());
 }
 

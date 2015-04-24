@@ -423,8 +423,9 @@ struct CORE_API FGenericPlatformProcess
 	* Sleep thread until condition is satisfied.
 	*
 	* @param	Condition	Condition to evaluate.
+	* @param	SleepTime	Time to sleep
 	*/
-	static void ConditionalSleep(const TFunctionRef<bool()>& Condition);
+	static void ConditionalSleep(const TFunctionRef<bool()>& Condition, float SleepTime = 0.0f);
 
 	/**
 	 * Creates a new event.
