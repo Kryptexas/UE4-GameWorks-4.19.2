@@ -55,6 +55,54 @@ struct FPluginContentFolder
 	FString ContentPath;
 };
 
+/**
+ * Information about an enabled plugin.
+ */
+class IPlugin
+{
+public:
+	/**
+	 * Gets the plugin name.
+	 *
+	 * @return Name of the plugin.
+	 */
+	virtual FString GetName() const = 0;
+
+	/**
+	 * Get a path to the plugin's directory.
+	 *
+	 * @return Path to the plugin's base directory.
+	 */
+	virtual FString GetBaseDir() const = 0;
+
+	/**
+	 * Get a path to the plugin's content directory.
+	 *
+	 * @return Path to the plugin's content directory.
+	 */
+	virtual FString GetContentDir() const = 0;
+
+	/**
+	 * Get the virtual root path for assets.
+	 *
+	 * @return The mounted root path for assets in this plugin's content folder; typically /PluginName/.
+	 */
+	virtual FString GetMountedAssetPath() const = 0;
+
+	/**
+	 * Determines if the plugin is enabled.
+	 *
+	 * @return True if the plugin is currently enabled.
+	 */
+	virtual bool IsEnabled() const = 0;
+
+	/**
+	 * Determines if the plugin can contain content.
+	 *
+	 * @return True if the plugin can contain content.
+	 */
+	virtual bool CanContainContent() const = 0;
+};
 
 /**
  * PluginManager manages available code and content extensions (both loaded and not loaded).
@@ -96,6 +144,13 @@ public:
 	 * @returns true if the enabled plug-in modules are up to date.
 	 */
 	virtual bool CheckModuleCompatibility( TArray<FString>& OutIncompatibleModules ) = 0;
+
+	/**
+	 * Finds information for an enabled plugin.
+	 *
+	 * @return	 Pointer to the plugin's information, or nullptr.
+	 */
+	virtual IPlugin* FindPlugin(const FString& Name) = 0;
 
 	/**
 	 * Gets status about all currently known plug-ins.
