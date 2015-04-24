@@ -250,7 +250,12 @@
 					int IterationCount = 0;
 					foreach( Crash CrashInstance in Model.Crashes )
 					{
-						IterationCount++;%>
+						IterationCount++;
+						if (IterationCount > 64)
+						{
+							break;
+						}
+						%>
 			
 						<tr class='CrashRow'>
 							<td class="Id"><%=Html.ActionLink( CrashInstance.Id.ToString(), "Show", new { controller = "crashes", id = CrashInstance.Id }, null )%></td>
