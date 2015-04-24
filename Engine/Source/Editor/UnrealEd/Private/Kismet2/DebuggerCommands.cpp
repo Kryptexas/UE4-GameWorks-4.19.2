@@ -31,6 +31,8 @@
 #include "GameFramework/PlayerStart.h"
 #include "Components/CapsuleComponent.h"
 
+#include "IProjectManager.h"
+
 
 #define LOCTEXT_NAMESPACE "DebuggerCommands"
 

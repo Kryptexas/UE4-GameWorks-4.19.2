@@ -29,7 +29,6 @@
 #include "EditorModes.h"
 
 #include "MRUList.h"
-#include "Projects.h"
 
 
 //#include "../Private/GeomFitUtils.h"

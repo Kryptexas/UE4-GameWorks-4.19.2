@@ -42,6 +42,8 @@
 
 #include "ClassIconFinder.h"
 
+#include "IProjectManager.h"
+
 // Core kismet tabs
 #include "SGraphNode.h"
 #include "SSCSEditor.h"

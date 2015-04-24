@@ -12,6 +12,7 @@
 #include "EngineBuildSettings.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "IPluginManager.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 

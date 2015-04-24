@@ -4,6 +4,7 @@
 #include "UnrealEd.h"
 #include "ISourceControlModule.h"
 #include "GameProjectGenerationModule.h"
+#include "IProjectManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUpdateGameProjectCommandlet, Log, All);
 

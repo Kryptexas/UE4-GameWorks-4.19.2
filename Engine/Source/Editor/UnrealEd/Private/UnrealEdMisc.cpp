@@ -41,6 +41,7 @@
 #include "GameMapsSettings.h"
 #include "GeneralProjectSettings.h"
 #include "Lightmass/LightmappedSurfaceCollection.h"
+#include "IProjectManager.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd"
 

@@ -20,6 +20,7 @@
 #include "ToolkitManager.h"
 #include "TargetPlatform.h"
 #include "IIntroTutorials.h"
+#include "IProjectManager.h"
 
 // @todo Editor: remove this circular dependency
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"

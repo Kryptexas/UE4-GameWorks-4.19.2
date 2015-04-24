@@ -8,6 +8,7 @@
 #include "PluginStyle.h"
 #include "GameProjectGenerationModule.h"
 #include "SHyperlink.h"
+#include "IProjectManager.h"
 
 #define LOCTEXT_NAMESPACE "PluginListTile"
 
