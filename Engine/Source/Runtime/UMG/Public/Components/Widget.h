@@ -135,7 +135,7 @@ public:
 	FGetText ToolTipTextDelegate;
 
 	/** Tooltip widget to show when the user hovers over the widget with the mouse */
-	UPROPERTY(EditAnywhere, Category="Behavior", AdvancedDisplay)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Behavior", AdvancedDisplay)
 	UWidget* ToolTipWidget;
 
 	/** A bindable delegate for ToolTipWidget */
