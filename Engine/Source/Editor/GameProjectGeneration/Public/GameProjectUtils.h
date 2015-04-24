@@ -3,6 +3,7 @@
 #pragma once
 
 #include "HardwareTargetingModule.h"
+#include "ProjectDescriptor.h"
 
 struct FModuleContextInfo;
 struct FAddToProjectConfig;
