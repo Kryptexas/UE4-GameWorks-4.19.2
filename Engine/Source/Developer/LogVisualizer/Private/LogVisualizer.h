@@ -21,6 +21,7 @@ DECLARE_DELEGATE_OneParam(FOnItemSelectionChanged, const FVisualLogDevice::FVisu
 DECLARE_DELEGATE_OneParam(FOnObjectSelectionChanged, TSharedPtr<class STimeline>);
 DECLARE_DELEGATE_OneParam(FOnFiltersSearchChanged, const FText&);
 DECLARE_DELEGATE(FOnFiltersChanged);
+DECLARE_DELEGATE_ThreeParams(FOnLogLineSelectionChanged, TSharedPtr<FLogEntryItem> /*SelectedItem*/, int64 /*UserData*/, FName /*TagName*/);
 
 struct FVisualLoggerEvents
 {
@@ -32,6 +33,7 @@ struct FVisualLoggerEvents
 	FOnItemSelectionChanged OnItemSelectionChanged;
 	FOnFiltersChanged OnFiltersChanged;
 	FOnObjectSelectionChanged OnObjectSelectionChanged;
+	FOnLogLineSelectionChanged OnLogLineSelectionChanged;
 };
 
 class FVisualLoggerTimeSliderController;

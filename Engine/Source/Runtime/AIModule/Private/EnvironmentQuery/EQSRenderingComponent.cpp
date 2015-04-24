@@ -43,6 +43,10 @@ FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FSt
 	}
 
 	ActorOwner = InComponent ? InComponent->GetOwner() : NULL;
+
+	const UEQSRenderingComponent* MyRenderComp = Cast<const UEQSRenderingComponent>(InComponent);
+	bDrawOnlyWhenSelected = MyRenderComp && MyRenderComp->bDrawOnlyWhenSelected;
+
 	QueryDataSource = Cast<const IEQSQueryResultSourceInterface>(ActorOwner);
 	if (QueryDataSource == NULL)
 	{
@@ -52,9 +56,6 @@ FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FSt
 			return;
 		}
 	}
-
-	const UEQSRenderingComponent* MyRenderComp = Cast<const UEQSRenderingComponent>(InComponent);
-	bDrawOnlyWhenSelected = MyRenderComp && MyRenderComp->bDrawOnlyWhenSelected;
 
 #if  USE_EQS_DEBUGGER 
 	TArray<EQSDebug::FDebugHelper> DebugItems;
@@ -80,6 +81,9 @@ FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FSt
 		return;
 	}
 
+	const UEQSRenderingComponent* MyRenderComp = Cast<const UEQSRenderingComponent>(InComponent);
+	bDrawOnlyWhenSelected = MyRenderComp && MyRenderComp->bDrawOnlyWhenSelected;
+
 	ActorOwner = InComponent ? InComponent->GetOwner() : NULL;
 	QueryDataSource = Cast<const IEQSQueryResultSourceInterface>(ActorOwner);
 	if (QueryDataSource == NULL)
@@ -90,9 +94,6 @@ FEQSSceneProxy::FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FSt
 			return;
 		}
 	}
-
-	const UEQSRenderingComponent* MyRenderComp = Cast<const UEQSRenderingComponent>(InComponent);
-	bDrawOnlyWhenSelected = MyRenderComp && MyRenderComp->bDrawOnlyWhenSelected;
 }
 
 #if  USE_EQS_DEBUGGER 

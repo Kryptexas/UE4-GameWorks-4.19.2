@@ -71,21 +71,13 @@ void SVisualLoggerLogsList::OnFiltersChanged()
 
 void SVisualLoggerLogsList::LogEntryLineSelectionChanged(TSharedPtr<FLogEntryItem> SelectedItem, ESelectInfo::Type SelectInfo)
 {
-	TMap<FName, FVisualLogExtensionInterface*>& AllExtensions = FVisualLogger::Get().GetAllExtensions();
-	for (auto Iterator = AllExtensions.CreateIterator(); Iterator; ++Iterator)
+	if (SelectedItem.IsValid() == true)
 	{
-		FVisualLogExtensionInterface* Extension = (*Iterator).Value;
-		if (Extension != NULL)
-		{
-			if (SelectedItem.IsValid() == true)
-			{
-				Extension->LogEntryLineSelectionChanged(SelectedItem, SelectedItem->UserData, SelectedItem->TagName);
-			}
-			else
-			{
-				Extension->LogEntryLineSelectionChanged(SelectedItem, 0, NAME_None);
-			}
-		}
+		FLogVisualizer::Get().GetVisualLoggerEvents().OnLogLineSelectionChanged.ExecuteIfBound(SelectedItem, SelectedItem->UserData, SelectedItem->TagName);
+	}
+	else
+	{
+		FLogVisualizer::Get().GetVisualLoggerEvents().OnLogLineSelectionChanged.ExecuteIfBound(SelectedItem, 0, NAME_None);
 	}
 }
 
