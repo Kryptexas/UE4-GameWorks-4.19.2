@@ -278,7 +278,7 @@ void FGenericPlatformProcess::SleepInfinite()
 
 #endif // PLATFORM_HAS_BSD_TIME 
 
-void FGenericPlatformProcess::ConditionalSleep(const TFunction<bool()>& Condition)
+void FGenericPlatformProcess::ConditionalSleep(const TFunctionRef<bool()>& Condition)
 {
 	if (Condition())
 	{
