@@ -390,6 +390,43 @@ void FFileManagerGeneric::FindFiles( TArray<FString>& Result, const TCHAR* InFil
 	GetLowLevel().IterateDirectory( *FPaths::GetPath(Filename), FileMatch );
 }
 
+void FFileManagerGeneric::FindFiles(TArray<FString>& FoundFiles, const TCHAR* Directory, const TCHAR* FileExtension)
+{
+	if (!Directory)
+	{
+		return;
+	}
+
+	FString RootDir(Directory);
+	FString ExtStr = (FileExtension != nullptr) ? FString(FileExtension) : "";
+
+	// No Directory?
+	if (RootDir.Len() < 1)
+	{
+		return;
+	}
+
+	FPaths::NormalizeDirectoryName(RootDir);
+
+	// Don't modify the ExtStr if the user supplied the form "*.EXT" or "*" or "*.*" or "Name.*"
+	if (!ExtStr.Contains(TEXT("*")))
+	{
+		if (ExtStr == "")
+		{
+			ExtStr = "*.*";
+		}
+		else
+		{
+			//Complete the supplied extension with * or *. to yield "*.EXT"
+			ExtStr = (ExtStr.Left(1) == ".") ? "*" + ExtStr : "*." + ExtStr;
+		}
+	}
+
+	// Create the full filter, which is "Directory/*.EXT".
+	FString FinalPath = RootDir + "/" + ExtStr;
+	FindFiles(FoundFiles, *FinalPath, true, false);
+}
+
 bool FFileManagerGeneric::IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor)
 {
 	return GetLowLevel().IterateDirectory( Directory, Visitor );

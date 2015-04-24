@@ -105,6 +105,18 @@ public:
 	/** Finds file or directories. */
 	virtual void FindFiles( TArray<FString>& FileNames, const TCHAR* Filename, bool Files, bool Directories)=0;
 
+	/**
+	 * Finds all the files within the given directory, with optional file extension filter.
+	 *
+	 * @param Directory, the absolute path to the directory to search. Ex: "C:\UE4\Pictures"
+	 *
+	 * @param FileExtension, If FileExtension is NULL, or an empty string "" then all files are found.
+	 * 			Otherwise FileExtension can be of the form .EXT or just EXT and only files with that extension will be returned.
+	 *
+	 * @return FoundFiles, All the files that matched the optional FileExtension filter, or all files if none was specified.
+	 */
+	virtual void FindFiles(TArray<FString>& FoundFiles, const TCHAR* Directory, const TCHAR* FileExtension = nullptr) = 0;
+
 	/** Finds file or directories recursively. */
 	virtual void FindFilesRecursive( TArray<FString>& FileNames, const TCHAR* StartDirectory, const TCHAR* Filename, bool Files, bool Directories, bool bClearFileNames=true) = 0; // utility
 
