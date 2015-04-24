@@ -121,6 +121,19 @@ void FPaperStyle::Initialize()
 			.SetShadowOffset(FVector2D(1.0f, 1.0f))
 			.SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.9f))
 			);
+
+		StyleSet->Set("TileMapEditor.SetShowPivot", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowPivot_40x"), Icon40x40));
+		StyleSet->Set("TileMapEditor.SetShowPivot.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_ShowPivot_40x"), Icon20x20));
+		StyleSet->Set("TileMapEditor.SetShowGrid", new IMAGE_BRUSH(TEXT("Icons/icon_MatEd_Grid_40x"), Icon40x40));
+		StyleSet->Set("TileMapEditor.SetShowGrid.Small", new IMAGE_BRUSH(TEXT("Icons/icon_MatEd_Grid_40x"), Icon20x20));
+		StyleSet->Set("TileMapEditor.SetShowTileGrid", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_ShowTileGrid_40x"), Icon40x40));
+		StyleSet->Set("TileMapEditor.SetShowTileGrid.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_ShowTileGrid_40x"), Icon20x20));
+		StyleSet->Set("TileMapEditor.SetShowLayerGrid", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_ShowLayerGrid_40x"), Icon40x40));
+		StyleSet->Set("TileMapEditor.SetShowLayerGrid.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_ShowLayerGrid_40x"), Icon20x20));
+		StyleSet->Set("TileMapEditor.SetShowBounds", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Bounds_40x"), Icon40x40));
+		StyleSet->Set("TileMapEditor.SetShowBounds.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Bounds_40x"), Icon20x20));
+		StyleSet->Set("TileMapEditor.SetShowCollision", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Collision_40x"), Icon40x40));
+		StyleSet->Set("TileMapEditor.SetShowCollision.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_Collision_40x"), Icon20x20));
 	}
 
 	// Sprite editor

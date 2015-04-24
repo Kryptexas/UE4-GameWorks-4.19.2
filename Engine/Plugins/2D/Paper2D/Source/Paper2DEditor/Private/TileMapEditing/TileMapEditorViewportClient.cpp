@@ -132,6 +132,30 @@ FLinearColor FTileMapEditorViewportClient::GetBackgroundColor() const
 	}
 }
 
+void FTileMapEditorViewportClient::ToggleShowTileGrid()
+{
+	FComponentReregisterContext RefreshComponentHelper(RenderTileMapComponent);
+	RenderTileMapComponent->bShowPerTileGridWhenSelected = !RenderTileMapComponent->bShowPerTileGridWhenSelected;
+	Invalidate();
+}
+
+bool FTileMapEditorViewportClient::IsShowTileGridChecked() const
+{
+	return RenderTileMapComponent->bShowPerTileGridWhenSelected;
+}
+
+void FTileMapEditorViewportClient::ToggleShowLayerGrid()
+{
+	FComponentReregisterContext RefreshComponentHelper(RenderTileMapComponent);
+	RenderTileMapComponent->bShowPerLayerGridWhenSelected = !RenderTileMapComponent->bShowPerLayerGridWhenSelected;
+	Invalidate();
+}
+
+bool FTileMapEditorViewportClient::IsShowLayerGridChecked() const
+{
+	return RenderTileMapComponent->bShowPerLayerGridWhenSelected;
+}
+
 void FTileMapEditorViewportClient::ToggleShowMeshEdges()
 {
 	EngineShowFlags.MeshEdges = !EngineShowFlags.MeshEdges;

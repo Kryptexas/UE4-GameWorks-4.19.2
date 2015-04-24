@@ -59,6 +59,20 @@ public:
 	UPROPERTY(Category=Setup, EditAnywhere, BlueprintReadOnly)
 	class UPaperTileMap* TileMap;
 
+#if WITH_EDITORONLY_DATA
+	// Should this component show a tile grid when the component is selected?
+	UPROPERTY(Category=Rendering, EditAnywhere)
+	bool bShowPerTileGridWhenSelected;
+
+	// Should this component show an outline around each layer when the component is selected?
+	UPROPERTY(Category=Rendering, EditAnywhere)
+	bool bShowPerLayerGridWhenSelected;
+
+	// Should this component show an outline around the first layer when the component is not selected?
+	UPROPERTY(Category=Rendering, EditAnywhere)
+	bool bShowOutlineWhenUnselected;
+#endif
+
 protected:
 	friend class FPaperTileMapRenderSceneProxy;
 

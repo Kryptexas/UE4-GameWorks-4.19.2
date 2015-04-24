@@ -36,6 +36,8 @@ public:
 	TSharedPtr<FUICommandInfo> SetShowCollision;
 	
 	TSharedPtr<FUICommandInfo> SetShowPivot;
+	TSharedPtr<FUICommandInfo> SetShowTileGrid;
+	TSharedPtr<FUICommandInfo> SetShowLayerGrid;
 
 	// Selection actions
 	TSharedPtr<FUICommandInfo> FlipSelectionHorizontally;

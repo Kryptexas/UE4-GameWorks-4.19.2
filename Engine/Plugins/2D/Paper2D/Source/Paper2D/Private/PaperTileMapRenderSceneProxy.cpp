@@ -24,6 +24,10 @@ FPaperTileMapRenderSceneProxy::FPaperTileMapRenderSceneProxy(const UPaperTileMap
 		TileMap = InTileComponent->TileMap;
 		Material = InTileComponent->GetMaterial(0);
 		MaterialRelevance = InTileComponent->GetMaterialRelevance(GetScene().GetFeatureLevel());
+
+		bShowPerTileGrid = InTileComponent->bShowPerTileGridWhenSelected;
+		bShowPerLayerGrid = InTileComponent->bShowPerLayerGridWhenSelected;
+		bShowOutlineWhenUnselected = InTileComponent->bShowOutlineWhenUnselected;
 	}
 }
 
@@ -122,30 +126,34 @@ void FPaperTileMapRenderSceneProxy::GetDynamicMeshElements(const TArray<const FS
 					// Draw separation wires if selected
 					FLinearColor OverrideColor;
 					bool bUseOverrideColor = false;
-
+					bool bEffectivelySelected = false;
 					const bool bShowAsSelected = !(GIsEditor && View->Family->EngineShowFlags.Selection) || IsSelected();
 					if (bShowAsSelected || IsHovered())
 					{
+						bEffectivelySelected = true;
 						bUseOverrideColor = true;
 						OverrideColor = GetSelectionColor(FLinearColor::White, bShowAsSelected, IsHovered());
 					}
 
 					FTransform LocalToWorld(GetLocalToWorld());
 
-					if (bUseOverrideColor)
+					if (bEffectivelySelected)
 					{
 						const int32 SelectedLayerIndex = TileMap->SelectedLayerIndex;
 
-						// Draw a bound for any invisible layers
-						for (int32 LayerIndex = 0; LayerIndex < TileMap->TileLayers.Num(); ++LayerIndex)
+						if (bShowPerLayerGrid)
 						{
-							if (LayerIndex != SelectedLayerIndex)
+							// Draw a bound for every layer but the selected one (and even that one if the per-tile grid is off)
+							for (int32 LayerIndex = 0; LayerIndex < TileMap->TileLayers.Num(); ++LayerIndex)
 							{
-								DrawBoundsForLayer(PDI, OverrideColor, LayerIndex);
+								if ((LayerIndex != SelectedLayerIndex) || !bShowPerTileGrid)
+								{
+									DrawBoundsForLayer(PDI, OverrideColor, LayerIndex);
+								}
 							}
 						}
 
-						if (SelectedLayerIndex != INDEX_NONE)
+						if (bShowPerTileGrid && (SelectedLayerIndex != INDEX_NONE))
 						{
 							// Draw horizontal lines on the selection
 							for (int32 Y = 0; Y <= TileMap->MapHeight; ++Y)
@@ -172,7 +180,7 @@ void FPaperTileMapRenderSceneProxy::GetDynamicMeshElements(const TArray<const FS
 							}
 						}
 					}
-					else
+					else if (bShowOutlineWhenUnselected)
 					{
 						// Draw layer 0 even when not selected, so you can see where the tile map is in the editor
 						DrawBoundsForLayer(PDI, WireframeColor, 0);
