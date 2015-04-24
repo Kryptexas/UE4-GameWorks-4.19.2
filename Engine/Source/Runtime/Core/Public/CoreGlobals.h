@@ -163,12 +163,12 @@ extern CORE_API uint64 GMakeCacheIDIndex;
 extern CORE_API FString GEngineIni;
 
 /** Editor ini file locations - stored per engine version (shared across all projects). Migrated between versions on first run. */
-extern CORE_API FString GEditorIni;
 extern CORE_API FString GEditorLayoutIni;
 extern CORE_API FString GEditorKeyBindingsIni;
 extern CORE_API FString GEditorSettingsIni;
 
 /** Editor per-project ini files - stored per project. */
+extern CORE_API FString GEditorIni;
 extern CORE_API FString GEditorPerProjectIni;
 
 extern CORE_API FString GCompatIni;

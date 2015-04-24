@@ -222,11 +222,9 @@ EConfigManifestVersion FConfigManifest::UpgradeFromVersion(EConfigManifestVersio
 
 		// The initial versioning made the following changes:
 
-		// 1. Move Editor.ini from Game/Saved/Config to Engine/Saved/Config, thus making it project-agnostic
-		// 2. Move EditorLayout.ini from Game/Saved/Config to Engine/Saved/Config, thus making it project-agnostic
-		// 3. Move EditorKeyBindings.ini from Game/Saved/Config to Engine/Saved/Config, thus making it project-agnostic
+		// 1. Move EditorLayout.ini from Game/Saved/Config to Engine/Saved/Config, thus making it project-agnostic
+		// 2. Move EditorKeyBindings.ini from Game/Saved/Config to Engine/Saved/Config, thus making it project-agnostic
 
-		MigrateToAgnosticIni(TEXT("Editor.ini"));
 		MigrateToAgnosticIni(TEXT("EditorLayout.ini"));
 		MigrateToAgnosticIni(TEXT("EditorKeyBindings.ini"));
 		
