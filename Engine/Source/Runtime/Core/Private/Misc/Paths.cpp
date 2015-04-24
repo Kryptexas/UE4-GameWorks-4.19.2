@@ -458,7 +458,7 @@ FString FPaths::GetPath(const FString& InPath)
 
 bool FPaths::FileExists(const FString& InPath)
 {
-	return IFileManager::Get().GetTimeStamp(*InPath) > FDateTime::MinValue();
+	return IFileManager::Get().FileExists(*InPath);
 }
 
 bool FPaths::DirectoryExists(const FString& InPath)

@@ -93,6 +93,9 @@ public:
 	/** Moves/renames a file. */
 	virtual bool Move( const TCHAR* Dest, const TCHAR* Src, bool Replace=1, bool EvenIfReadOnly=0, bool Attributes=0, bool bDoNotRetryOrError=0 )=0;
 
+	/** Checks if a file exists */
+	virtual bool FileExists( const TCHAR* Filename )=0;
+
 	/** Checks if a directory exists. */
 	virtual bool DirectoryExists( const TCHAR* InDirectory )=0;
 

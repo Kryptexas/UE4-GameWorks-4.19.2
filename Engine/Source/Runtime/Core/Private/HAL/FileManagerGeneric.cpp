@@ -330,6 +330,11 @@ bool FFileManagerGeneric::Move( const TCHAR* Dest, const TCHAR* Src, bool Replac
 	return true;
 }
 
+bool FFileManagerGeneric::FileExists( const TCHAR* Filename )
+{
+	return GetLowLevel().FileExists( Filename );
+}
+
 bool FFileManagerGeneric::DirectoryExists( const TCHAR* InDirectory )
 {
 	return GetLowLevel().DirectoryExists( InDirectory );
