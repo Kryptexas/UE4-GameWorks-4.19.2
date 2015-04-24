@@ -28,30 +28,37 @@ void emscripten_log(int flags, ...);
 #define checkNoReentry(...)
 #define checkNoRecursion(...)
 
-#define html5_break_msg(msg, file, line) EM_ASM(alert('Expression ('+msg+') failed in '+file+':'+line+'!\nCheck console for details.\n'))
+inline void html5_break_msg(const char* msg, const char* file, int line) {
+	EM_ASM_ARGS(
+	{
+		var InMsg = Pointer_stringify($0);
+		var InFile = Pointer_stringify($1);
+		alert('Expression ('+InMsg+') failed in '+InFile+':'+$2+'!\nCheck console for details.\n'); 
+	}, msg, file, line);
+}
 
 #define check(expr)			{ if (!(expr)) { \
 		emscripten_log(255, "Expression '" #expr "' failed in " __FILE__ ":" PREPROCESSOR_TO_STRING(__LINE__) "!\n"); \
-		html5_break_msg(#expr, PREPROCESSOR_TO_STRING(__FILE__), PREPROCESSOR_TO_STRING(__LINE__)); \
+		html5_break_msg(#expr, __FILE__, __LINE__); \
 	} \
 }
 #define checkf(expr, ...)	{ if (!(expr)) { \
 		emscripten_log(255, "Expression '" #expr "' failed in " __FILE__ ":" PREPROCESSOR_TO_STRING(__LINE__) "!\n"); \
 		emscripten_log(255, ##__VA_ARGS__); \
 		FDebug::AssertFailed( #expr, __FILE__, __LINE__, ##__VA_ARGS__ ); \
-		html5_break_msg(#expr, PREPROCESSOR_TO_STRING(__FILE__), PREPROCESSOR_TO_STRING(__LINE__)); \
+		html5_break_msg(#expr, __FILE__, __LINE__); \
 	} \
 	CA_ASSUME(expr); \
 }
 #define verify(expr)		{ if(!(expr)) {\
 		emscripten_log(255, "Expression '" #expr "' failed in " __FILE__ ":" PREPROCESSOR_TO_STRING(__LINE__) "!\n"); \
-		html5_break_msg(#expr, PREPROCESSOR_TO_STRING(__FILE__), PREPROCESSOR_TO_STRING(__LINE__)); \
+		html5_break_msg(#expr, __FILE__, __LINE__); \
 	} \
 }
 #define verifyf(expr, ...)	{ if(!(expr)) { \
 		emscripten_log(255, "Expression '" #expr "' failed in " __FILE__ ":" PREPROCESSOR_TO_STRING(__LINE__) "!\n"); \
 		emscripten_log(255, ##__VA_ARGS__); \
-		html5_break_msg(#expr, PREPROCESSOR_TO_STRING(__FILE__), PREPROCESSOR_TO_STRING(__LINE__)); \
+		html5_break_msg(#expr, __FILE__, __LINE__); \
 	} \
 }
 
@@ -66,21 +73,21 @@ void emscripten_log(int flags, ...);
 #define checkSlow(expr, ...)   {if(!(expr)) { \
 		emscripten_log(255, "Expression '" #expr "' failed in " __FILE__ ":" PREPROCESSOR_TO_STRING(__LINE__) "!\n"); \
 		emscripten_log(255, ##__VA_ARGS__); FDebug::AssertFailed( #expr, __FILE__, __LINE__ ); \
-		html5_break_msg(#expr, PREPROCESSOR_TO_STRING(__FILE__), PREPROCESSOR_TO_STRING(__LINE__)); \
+		html5_break_msg(#expr, __FILE__, __LINE__); \
 	} \
 	CA_ASSUME(expr); \
 }
 #define checkfSlow(expr, ...)	{ if(!(expr)) { \
 		emscripten_log(255, "Expression '" #expr "' failed in " __FILE__ ":" PREPROCESSOR_TO_STRING(__LINE__) "!\n"); \
 		emscripten_log(255, ##__VA_ARGS__); FDebug::AssertFailed( #expr, __FILE__, __LINE__, __VA_ARGS__ ); \
-		html5_break_msg(#expr, PREPROCESSOR_TO_STRING(__FILE__), PREPROCESSOR_TO_STRING(__LINE__)); \
+		html5_break_msg(#expr, __FILE__, __LINE__); \
 	} \
 	CA_ASSUME(expr); \
 }
 #define verifySlow(expr)  {if(!(expr)) { \
 		emscripten_log(255, "Expression '" #expr "' failed in " __FILE__ ":" PREPROCESSOR_TO_STRING(__LINE__) "!\n"); \
 		FDebug::AssertFailed( #expr, __FILE__, __LINE__ ); \
-		html5_break_msg(#expr, PREPROCESSOR_TO_STRING(__FILE__), PREPROCESSOR_TO_STRING(__LINE__)); \
+		html5_break_msg(#expr, __FILE__, __LINE__); \
 	} \
 }
 

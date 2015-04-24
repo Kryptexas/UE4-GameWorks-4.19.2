@@ -64,6 +64,11 @@ namespace UnrealBuildTool
             Result += " -Wno-array-bounds"; // some VectorLoads go past the end of the array, but it's okay in that case
             Result += " -Wno-invalid-offsetof"; // too many warnings kills windows clang. 
 
+			if (BuildConfiguration.bEnableShadowVariableWarning)
+			{
+				Result += " -Wshadow";
+			}
+
             // JavsScript option overrides (see src/settings.js)
 
             // we have to specify the full amount of memory with Asm.JS (1.5 G)
@@ -203,8 +208,6 @@ namespace UnrealBuildTool
 				Result += " -s CASE_INSENSITIVE_FS=1 ";
 
 
-                string BaseSDKPath = HTML5SDKInfo.EmscriptenSDKPath();
-				Result += " --js-library \"" + BaseSDKPath + "/Src/library_openal.js\" ";
 			}
 
 			return Result;
