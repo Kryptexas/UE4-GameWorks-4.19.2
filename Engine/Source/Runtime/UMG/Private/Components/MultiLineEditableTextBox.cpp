@@ -68,6 +68,11 @@ void UMultiLineEditableTextBox::SynchronizeProperties()
 //	MyEditableTextBlock->SetIsPassword(IsPassword);
 //	MyEditableTextBlock->SetColorAndOpacity(ColorAndOpacity);
 
+//	MyEditableTextBlock->SetFont(Font);		@todo: can't set the font on an existing multiline text block
+	MyEditableTextBlock->SetTextBoxForegroundColor(ForegroundColor);
+	MyEditableTextBlock->SetTextBoxBackgroundColor(BackgroundColor);
+	MyEditableTextBlock->SetReadOnlyForegroundColor(ReadOnlyForegroundColor);
+
 	// TODO UMG Complete making all properties settable on SMultiLineEditableTextBox
 }
 

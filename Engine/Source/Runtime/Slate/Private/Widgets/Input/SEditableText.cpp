@@ -2151,3 +2151,33 @@ void SEditableText::SetColorAndOpacity(TAttribute<FSlateColor> Color)
 {
 	ColorAndOpacity = Color;
 }
+
+void SEditableText::SetMinDesiredWidth(const TAttribute<float>& InMinDesiredWidth)
+{
+	MinDesiredWidth = InMinDesiredWidth;
+}
+
+void SEditableText::SetIsCaretMovedWhenGainFocus(const TAttribute<bool>& InIsCaretMovedWhenGainFocus)
+{
+	IsCaretMovedWhenGainFocus = InIsCaretMovedWhenGainFocus;
+}
+
+void SEditableText::SetSelectAllTextWhenFocused(const TAttribute<bool>& InSelectAllTextWhenFocused)
+{
+	bSelectAllTextWhenFocused = InSelectAllTextWhenFocused;
+}
+
+void SEditableText::SetRevertTextOnEscape(const TAttribute<bool>& InRevertTextOnEscape)
+{
+	RevertTextOnEscape = InRevertTextOnEscape;
+}
+
+void SEditableText::SetClearKeyboardFocusOnCommit(const TAttribute<bool>& InClearKeyboardFocusOnCommit)
+{
+	ClearKeyboardFocusOnCommit = InClearKeyboardFocusOnCommit;
+}
+
+void SEditableText::SetSelectAllTextOnCommit(const TAttribute<bool>& InSelectAllTextOnCommit)
+{
+	SelectAllTextOnCommit = InSelectAllTextOnCommit;
+}

@@ -184,6 +184,27 @@ public:
 	void SetHintText( const TAttribute< FText >& InHintText );
 
 	/**
+	 * Sets the text color and opacity (overrides Style)
+	 *
+	 * @param  InForegroundColor 	The text color and opacity
+	 */
+	void SetTextBoxForegroundColor(const TAttribute<FSlateColor>& InForegroundColor);
+
+	/**
+	 * Sets the color of the background/border around the editable text (overrides Style) 
+	 *
+	 * @param  InBackgroundColor 	The background/border color
+	 */
+	void SetTextBoxBackgroundColor(const TAttribute<FSlateColor>& InBackgroundColor);
+
+	/**
+	 * Sets the text color and opacity when read-only (overrides Style) 
+	 *
+	 * @param  InReadOnlyForegroundColor 	The read-only text color and opacity
+	 */
+	void SetReadOnlyForegroundColor(const TAttribute<FSlateColor>& InReadOnlyForegroundColor);
+
+	/**
 	 * If InError is a non-empty string the TextBox will the ErrorReporting provided during construction
 	 * If no error reporting was provided, the TextBox will create a default error reporter.
 	 */
@@ -244,6 +265,8 @@ protected:
 	TSharedPtr<class IErrorReportingWidget> ErrorReporting;
 
 private:
+
+	const FEditableTextBoxStyle* Style;
 
 	/** Styling: border image to draw when not hovered or focused */
 	const FSlateBrush* BorderImageNormal;

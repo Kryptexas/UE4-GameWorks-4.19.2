@@ -71,11 +71,19 @@ void UEditableTextBox::SynchronizeProperties()
 
 	MyEditableTextBlock->SetText(TextBinding);
 	MyEditableTextBlock->SetHintText(HintTextBinding);
+	MyEditableTextBlock->SetFont(Font);
+	MyEditableTextBlock->SetTextBoxForegroundColor(ForegroundColor);
+	MyEditableTextBlock->SetTextBoxBackgroundColor(BackgroundColor);
+	MyEditableTextBlock->SetReadOnlyForegroundColor(ReadOnlyForegroundColor);
 	MyEditableTextBlock->SetIsReadOnly(IsReadOnly);
 	MyEditableTextBlock->SetIsPassword(IsPassword);
-//	MyEditableTextBlock->SetColorAndOpacity(ColorAndOpacity);
-
-	// TODO UMG Complete making all properties settable on SEditableTextBox
+	MyEditableTextBlock->SetMinimumDesiredWidth(MinimumDesiredWidth);
+	MyEditableTextBlock->SetPadding(Padding);
+	MyEditableTextBlock->SetIsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus);
+	MyEditableTextBlock->SetSelectAllTextWhenFocused(SelectAllTextWhenFocused);
+	MyEditableTextBlock->SetRevertTextOnEscape(RevertTextOnEscape);
+	MyEditableTextBlock->SetClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit);
+	MyEditableTextBlock->SetSelectAllTextOnCommit(SelectAllTextOnCommit);
 }
 
 FText UEditableTextBox::GetText() const

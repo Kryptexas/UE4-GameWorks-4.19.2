@@ -201,3 +201,68 @@ void SEditableTextBox::SetIsPassword(TAttribute< bool > InIsPassword)
 {
 	EditableText->SetIsPassword(InIsPassword);
 }
+
+
+void SEditableTextBox::SetFont(const TAttribute<FSlateFontInfo>& InFont)
+{
+	TAttribute<FSlateFontInfo> Font = InFont.IsSet() ? InFont : Style->Font;
+
+	EditableText->SetFont(Font);
+}
+
+
+void SEditableTextBox::SetTextBoxForegroundColor(const TAttribute<FSlateColor>& InForegroundColor)
+{
+	TAttribute<FSlateColor> ForegroundColor = InForegroundColor.IsSet() ? InForegroundColor : Style->ForegroundColor;
+
+	SetForegroundColor(ForegroundColor);
+}
+
+void SEditableTextBox::SetTextBoxBackgroundColor(const TAttribute<FSlateColor>& InBackgroundColor)
+{
+	TAttribute<FSlateColor> BackgroundColor = InBackgroundColor.IsSet() ? InBackgroundColor : Style->BackgroundColor;
+
+	SetBorderBackgroundColor(BackgroundColor);
+}
+
+
+void SEditableTextBox::SetReadOnlyForegroundColor(const TAttribute<FSlateColor>& InReadOnlyForegroundColor)
+{
+	ReadOnlyForegroundColor = InReadOnlyForegroundColor.IsSet() ? InReadOnlyForegroundColor : Style->ReadOnlyForegroundColor;
+}
+
+
+void SEditableTextBox::SetMinimumDesiredWidth(const TAttribute<float>& InMinimumDesiredWidth)
+{
+	EditableText->SetMinDesiredWidth(InMinimumDesiredWidth);
+}
+
+
+void SEditableTextBox::SetIsCaretMovedWhenGainFocus(const TAttribute<bool>& InIsCaretMovedWhenGainFocus)
+{
+	EditableText->SetIsCaretMovedWhenGainFocus(InIsCaretMovedWhenGainFocus);
+}
+
+
+void SEditableTextBox::SetSelectAllTextWhenFocused(const TAttribute<bool>& InSelectAllTextWhenFocused)
+{
+	EditableText->SetSelectAllTextWhenFocused(InSelectAllTextWhenFocused);
+}
+
+
+void SEditableTextBox::SetRevertTextOnEscape(const TAttribute<bool>& InRevertTextOnEscape)
+{
+	EditableText->SetRevertTextOnEscape(InRevertTextOnEscape);
+}
+
+
+void SEditableTextBox::SetClearKeyboardFocusOnCommit(const TAttribute<bool>& InClearKeyboardFocusOnCommit)
+{
+	EditableText->SetClearKeyboardFocusOnCommit(InClearKeyboardFocusOnCommit);
+}
+
+
+void SEditableTextBox::SetSelectAllTextOnCommit(const TAttribute<bool>& InSelectAllTextOnCommit)
+{
+	EditableText->SetSelectAllTextOnCommit(InSelectAllTextOnCommit);
+}

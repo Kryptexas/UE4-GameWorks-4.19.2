@@ -30,6 +30,8 @@ namespace
 void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 {
 	check (InArgs._Style);
+	Style = InArgs._Style;
+
 	BorderImageNormal = &InArgs._Style->BackgroundImageNormal;
 	BorderImageHovered = &InArgs._Style->BackgroundImageHovered;
 	BorderImageFocused = &InArgs._Style->BackgroundImageFocused;
@@ -147,6 +149,25 @@ void SMultiLineEditableTextBox::SetText( const TAttribute< FText >& InNewText )
 void SMultiLineEditableTextBox::SetHintText( const TAttribute< FText >& InHintText )
 {
 	EditableText->SetHintText( InHintText );
+}
+
+void SMultiLineEditableTextBox::SetTextBoxForegroundColor(const TAttribute<FSlateColor>& InForegroundColor)
+{
+	TAttribute<FSlateColor> ForegroundColor = InForegroundColor.IsSet() ? InForegroundColor : Style->ForegroundColor;
+
+	SetForegroundColor(ForegroundColor);
+}
+
+void SMultiLineEditableTextBox::SetTextBoxBackgroundColor(const TAttribute<FSlateColor>& InBackgroundColor)
+{
+	TAttribute<FSlateColor> BackgroundColor = InBackgroundColor.IsSet() ? InBackgroundColor : Style->BackgroundColor;
+
+	SetBorderBackgroundColor(BackgroundColor);
+}
+
+void SMultiLineEditableTextBox::SetReadOnlyForegroundColor(const TAttribute<FSlateColor>& InReadOnlyForegroundColor)
+{
+	ReadOnlyForegroundColor = InReadOnlyForegroundColor.IsSet() ? InReadOnlyForegroundColor : Style->ReadOnlyForegroundColor;
 }
 
 void SMultiLineEditableTextBox::SetError( const FText& InError )
