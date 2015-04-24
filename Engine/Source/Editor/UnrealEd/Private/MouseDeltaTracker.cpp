@@ -621,7 +621,7 @@ void FMouseDeltaTracker::ConvertMovementDeltaToDragRot(FEditorViewportClient* In
 
 	if( InViewportClient->GetCurrentWidgetAxis() != EAxisList::None )
 	{
-		InViewportClient->Widget->ConvertMouseMovementToAxisMovement( InViewportClient, InViewportClient->GetWidgetLocation(), InOutDragDelta, OutDrag, OutRotation, OutScale );
+		InViewportClient->Widget->ConvertMouseMovementToAxisMovement( InViewportClient, bUsedDragModifier, InOutDragDelta, OutDrag, OutRotation, OutScale );
 	}
 	else
 	{
