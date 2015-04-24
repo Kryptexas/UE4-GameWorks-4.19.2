@@ -30,6 +30,11 @@ public:
 	 */
 	FPlugin(const FString &FileName, const FPluginDescriptor& InDescriptor, EPluginLoadedFrom InLoadedFrom);
 
+	/**
+	 * Destructor.
+	 */
+	virtual ~FPlugin();
+
 	/* IPluginInfo interface */
 	virtual FString GetName() const override;
 	virtual FString GetBaseDir() const override;

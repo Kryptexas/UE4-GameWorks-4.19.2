@@ -24,6 +24,10 @@ FPlugin::FPlugin(const FString& InFileName, const FPluginDescriptor& InDescripto
 {
 }
 
+FPlugin::~FPlugin()
+{
+}
+
 FString FPlugin::GetName() const
 {
 	return Name;
