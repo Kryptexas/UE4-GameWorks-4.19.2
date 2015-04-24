@@ -390,6 +390,7 @@ void UPaperTileMap::ResizeMap(int32 NewWidth, int32 NewHeight, bool bForceResize
 		for (int32 LayerIndex = 0; LayerIndex < TileLayers.Num(); ++LayerIndex)
 		{
 			UPaperTileLayer* TileLayer = TileLayers[LayerIndex];
+			TileLayer->Modify();
 			TileLayer->ResizeMap(MapWidth, MapHeight);
 		}
 	}
