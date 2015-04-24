@@ -98,6 +98,12 @@ public:
 	virtual bool IsPaused() = 0;
 
 	/**
+	 * Get whether the install can be resumed.
+	 * @return	true if installation is resumable
+	 */
+	virtual bool IsResumable() = 0;
+
+	/**
 	 * Get whether the install failed. Only valid if complete.
 	 * @return	true if installation was a failure
 	 */
@@ -139,9 +145,10 @@ public:
 
 	/**
 	 * Get the text for status of the install process
+	 * @param ShortError		The truncated version of the error
 	 * @return	status of the install process text
 	 */
-	virtual FText GetStatusText() = 0;
+	virtual FText GetStatusText(bool ShortError = false) = 0;
 
 	/**
 	 * Get the update progress

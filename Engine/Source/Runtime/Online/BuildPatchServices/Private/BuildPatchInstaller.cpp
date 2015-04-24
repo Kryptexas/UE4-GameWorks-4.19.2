@@ -273,6 +273,17 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 	}
 	GLog->Logf(TEXT("BuildPatchServices: Requiring %d files"), FilesToConstruct.Num());
 
+	// Make sure all the files won't exceed the maximum path length
+	for (const auto& FileToConstruct : FilesToConstruct)
+	{
+		if ((InstallStagingDir / FileToConstruct).Len() >= MAX_PATH)
+		{
+			GWarn->Logf(TEXT("BuildPatchServices: ERROR: Could not create new file due to exceeding maximum path length %s"), *(InstallStagingDir / FileToConstruct));
+			FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::PathLengthExceeded);
+			return false;
+		}
+	}
+
 	// Create the downloader
 	FBuildPatchDownloader::Create(DataStagingDir, NewBuildManifest, &BuildProgress);
 
@@ -938,6 +949,16 @@ bool FBuildPatchInstaller::IsPaused()
 	return BuildProgress.GetPauseState();
 }
 
+bool FBuildPatchInstaller::IsResumable()
+{
+	FScopeLock Lock( &ThreadLock );
+	if( FBuildPatchInstallError::GetErrorState() == EBuildPatchInstallError::PathLengthExceeded )
+	{
+		return false;
+	}
+	return !BuildStats.ProcessSuccess;
+}
+
 bool FBuildPatchInstaller::HasError()
 {
 	FScopeLock Lock( &ThreadLock );
@@ -968,9 +989,9 @@ FText FBuildPatchInstaller::GetPercentageText()
 	return FText::AsPercent(GetUpdateProgress(), &PercentFormattingOptions);
 }
 
-FText FBuildPatchInstaller::GetStatusText()
+FText FBuildPatchInstaller::GetStatusText( bool ShortError )
 {
-	return BuildProgress.GetStateText();
+	return BuildProgress.GetStateText(ShortError);
 }
 
 float FBuildPatchInstaller::GetUpdateProgress()

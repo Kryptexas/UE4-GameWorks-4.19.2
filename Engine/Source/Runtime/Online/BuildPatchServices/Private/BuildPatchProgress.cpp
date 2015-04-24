@@ -114,6 +114,7 @@ void FBuildPatchProgress::Reset()
 	CurrentState = EBuildPatchProgress::Initializing;
 	CurrentProgress = 0.0f;
 	ErrorText = FText::GetEmpty();
+	ShortErrorText = FText::GetEmpty();
 
 	// Initialize array data
 	for( uint32 idx = 0; idx < EBuildPatchProgress::NUM_PROGRESS_STATES; ++idx )
@@ -149,12 +150,12 @@ void FBuildPatchProgress::SetStateWeight( const EBuildPatchProgress::Type& State
 	}
 }
 
-const FText& FBuildPatchProgress::GetStateText()
+const FText& FBuildPatchProgress::GetStateText( bool ShortError )
 {
 	FScopeLock ScopeLock( &ThreadLock );
 	if( CurrentState == EBuildPatchProgress::Error )
 	{
-		return ErrorText;
+		return ShortError ? ShortErrorText : ErrorText;
 	}
 	return EBuildPatchProgress::ToText( CurrentState );
 }
@@ -230,6 +231,7 @@ void FBuildPatchProgress::UpdateProgressInfo()
 	{
 		CurrentState = EBuildPatchProgress::Error;
 		ErrorText = FBuildPatchInstallError::GetErrorText();
+		ShortErrorText = FBuildPatchInstallError::GetShortErrorText();
 		return;
 	}
 

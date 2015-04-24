@@ -126,6 +126,7 @@ public:
 	virtual bool IsComplete() override;
 	virtual bool IsCanceled() override;
 	virtual bool IsPaused() override;
+	virtual bool IsResumable() override;
 	virtual bool HasError() override;
 	//@todo this is deprecated and shouldn't be used anymore [6/4/2014 justin.sargent]
 	virtual FText GetPercentageText() override;
@@ -134,7 +135,7 @@ public:
 	virtual double GetDownloadSpeed() const override;
 	virtual int64 GetInitialDownloadSize() const override;
 	virtual int64 GetTotalDownloaded() const override;
-	virtual FText GetStatusText() override;
+	virtual FText GetStatusText(bool ShortError = false) override;
 	virtual float GetUpdateProgress() override;
 	virtual FBuildInstallStats GetBuildStatistics() override;
 	virtual FText GetErrorText() override;
