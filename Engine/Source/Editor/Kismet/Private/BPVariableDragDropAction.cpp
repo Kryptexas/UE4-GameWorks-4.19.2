@@ -595,7 +595,7 @@ FReply FKismetVariableDragDropAction::DroppedOnCategory(FString Category)
 bool FKismetVariableDragDropAction::CanVariableBeDropped(const UProperty* InVariableProperty, const UEdGraph& InGraph) const
 {
 	bool bCanVariableBeDropped = false;
-	if (!InVariableProperty)
+	if (InVariableProperty)
 	{
 		UObject* Outer = InVariableProperty->GetOuter();
 
