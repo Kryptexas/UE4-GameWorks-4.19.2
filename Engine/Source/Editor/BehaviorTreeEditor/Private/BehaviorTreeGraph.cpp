@@ -161,6 +161,7 @@ void UBehaviorTreeGraph::OnLoaded()
 	Super::OnLoaded();
 	UpdatePinConnectionTypes();
 	UpdateDeprecatedNodes();
+	RemoveUnknownSubNodes();
 }
 
 void UBehaviorTreeGraph::Initialize()
@@ -235,6 +236,27 @@ void UBehaviorTreeGraph::UpdateDeprecatedNodes()
 
 				ReplaceNodeConnections(Node, NewNode);
 				Nodes[Index] = NewNode;
+			}
+		}
+	}
+}
+
+void UBehaviorTreeGraph::RemoveUnknownSubNodes()
+{
+	for (int32 Index = 0; Index < Nodes.Num(); ++Index)
+	{
+		UBehaviorTreeGraphNode* Node = Cast<UBehaviorTreeGraphNode>(Nodes[Index]);
+		if (Node)
+		{
+			for (int32 SubIdx = Node->SubNodes.Num() - 1; SubIdx >= 0; SubIdx--)
+			{
+				const bool bIsDecorator = Node->Decorators.Contains(Node->SubNodes[SubIdx]);
+				const bool bIsService = Node->Services.Contains(Node->SubNodes[SubIdx]);
+
+				if (!bIsDecorator && !bIsService)
+				{
+					Node->SubNodes.RemoveAt(SubIdx);
+				}
 			}
 		}
 	}

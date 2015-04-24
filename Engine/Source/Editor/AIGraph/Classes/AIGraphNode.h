@@ -29,12 +29,15 @@ class AIGRAPH_API UAIGraphNode : public UEdGraphNode
 	int32 CopySubNodeIndex;
 
 	/** if set, all modifications (including delete/cut) are disabled */
+	UPROPERTY()
 	uint32 bIsReadOnly : 1;
 
 	/** if set, this node will be always considered as subnode */
+	UPROPERTY()
 	uint32 bIsSubNode : 1;
 
 	/** error message for node */
+	UPROPERTY()
 	FString ErrorMessage;
 
 	// Begin UEdGraphNode Interface

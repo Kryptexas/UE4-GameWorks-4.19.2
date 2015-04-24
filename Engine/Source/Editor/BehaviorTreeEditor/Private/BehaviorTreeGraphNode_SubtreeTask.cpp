@@ -37,6 +37,7 @@ bool UBehaviorTreeGraphNode_SubtreeTask::UpdateInjectedNodes()
 	{
 		if (Decorators[Index] && Decorators[Index]->bInjectedNode)
 		{
+			SubNodes.RemoveSingle(Decorators[Index]);
 			Decorators.RemoveAt(Index, 1, false);
 		}
 	}
