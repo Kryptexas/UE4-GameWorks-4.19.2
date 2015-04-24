@@ -16,6 +16,7 @@
 #include "TileSetEditor/TileSetSelectorViewport.h"
 #include "TileSetEditor/SingleTileEditorViewport.h"
 #include "TileSetEditor/SingleTileEditorViewportClient.h"
+#include "TileSetEditor/TileSetEditorCommands.h"
 #include "SpriteEditor/SpriteEditorCommands.h"
 
 #define LOCTEXT_NAMESPACE "TileSetEditor"
@@ -139,7 +140,7 @@ void FTileSetEditor::InitTileSetEditor(const EToolkitMode::Type Mode, const TSha
 
 	TileEditorViewport = SNew(SSingleTileEditorViewport, TileEditorViewportClient);
 
-	//@TODO: FTileSetEditorCommands::Register();
+	FTileSetEditorCommands::Register();
 	FSpriteGeometryEditCommands::Register();
 
 	BindCommands();
@@ -235,6 +236,7 @@ TSharedRef<SDockTab> FTileSetEditor::SpawnTab_SingleTileEditor(const FSpawnTabAr
 
 void FTileSetEditor::BindCommands()
 {
+	// Commands would go here
 }
 
 void FTileSetEditor::ExtendMenu()

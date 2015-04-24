@@ -5,6 +5,7 @@
 #include "SingleTileEditorViewport.h"
 #include "SpriteEditor/SpriteEditorCommands.h"
 #include "SingleTileEditorViewportClient.h"
+#include "TileSetEditorCommands.h"
 
 #define LOCTEXT_NAMESPACE "TileSetEditor"
 
@@ -40,6 +41,9 @@ TSharedRef<SWidget> STileSetEditorViewportToolbar::GenerateShowMenu() const
 	FMenuBuilder ShowMenuBuilder(bInShouldCloseWindowAfterMenuSelection, ViewportRef->GetCommandList());
 	{
 		ShowMenuBuilder.AddMenuEntry(FSpriteGeometryEditCommands::Get().SetShowNormals);
+		// Disabled as the single tile editor doesn't actually create collision, that's done in the tile map component
+		// ShowMenuBuilder.AddMenuEntry(FTileSetEditorCommands::Get().SetShowCollision);
+		ShowMenuBuilder.AddMenuEntry(FTileSetEditorCommands::Get().SetShowGrid);
 	}
 
 	return ShowMenuBuilder.MakeWidget();
@@ -107,6 +111,29 @@ TSharedRef<FEditorViewportClient> SSingleTileEditorViewport::MakeEditorViewportC
 	TypedViewportClient->VisibilityDelegate.BindSP(this, &SSingleTileEditorViewport::IsVisible);
 
 	return TypedViewportClient.ToSharedRef();
+}
+
+void SSingleTileEditorViewport::BindCommands()
+{
+	SEditorViewport::BindCommands();
+
+	FTileSetEditorCommands::Register();
+	const FTileSetEditorCommands& Commands = FTileSetEditorCommands::Get();
+
+	TSharedRef<FSingleTileEditorViewportClient> EditorViewportClientRef = TypedViewportClient.ToSharedRef();
+
+	// Show toggles
+	CommandList->MapAction(
+		Commands.SetShowCollision,
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FEditorViewportClient::SetShowCollision),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(EditorViewportClientRef, &FEditorViewportClient::IsSetShowCollisionChecked));
+
+	CommandList->MapAction(
+		Commands.SetShowGrid,
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FEditorViewportClient::SetShowGrid),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(EditorViewportClientRef, &FEditorViewportClient::IsSetShowGridChecked));
 }
 
 TSharedRef<class SEditorViewport> SSingleTileEditorViewport::GetViewportWidget()

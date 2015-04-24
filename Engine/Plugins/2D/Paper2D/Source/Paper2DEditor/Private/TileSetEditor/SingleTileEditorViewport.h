@@ -25,6 +25,7 @@ public:
 	// SEditorViewport interface
 	virtual TSharedPtr<SWidget> MakeViewportToolbar() override;
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
+	virtual void BindCommands() override;
 	// End of SEditorViewport interface
 
 	// ICommonEditorViewportToolbarInfoProvider interface
