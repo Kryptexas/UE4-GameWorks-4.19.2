@@ -1906,17 +1906,17 @@ bool USceneComponent::MoveComponentImpl( const FVector& Delta, const FQuat& NewR
 	if( Delta.IsZero() )
 	{
 		// Skip if no vector or rotation.
-		if (NewRotation.Equals(ComponentToWorld.GetRotation()))
+		if (NewRotation.Equals(ComponentToWorld.GetRotation(), 1.e-6f))
 		{
 			return true;
 		}
 	}
 
-	// just teleport, sweep is supported for PrimitiveComponents.  this will update child components as well.
-	InternalSetWorldLocationAndRotation(GetComponentLocation() + Delta, NewRotation);
+	// just teleport, sweep is supported for PrimitiveComponents. This will update child components as well.
+	const bool bMoved = InternalSetWorldLocationAndRotation(GetComponentLocation() + Delta, NewRotation);
 
 	// Only update overlaps if not deferring updates within a scope
-	if (!IsDeferringMovementUpdates())
+	if (bMoved && !IsDeferringMovementUpdates())
 	{
 		// need to update overlap detection in case PrimitiveComponents are attached.
 		UpdateOverlaps();

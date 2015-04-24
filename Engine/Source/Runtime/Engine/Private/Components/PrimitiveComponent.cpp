@@ -1362,7 +1362,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 	if (DeltaSizeSq <= MinMovementDistSq)
 	{
 		// Skip if no vector or rotation.
-		if (NewRotationQuat.Equals(ComponentToWorld.GetRotation()))
+		if (NewRotationQuat.Equals(ComponentToWorld.GetRotation(), 1.e-6f))
 		{
 			// copy to optional output param
 			if (OutHit)
