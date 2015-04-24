@@ -14,7 +14,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>An encoded table of buggs by day for the display plugin to use.</summary>
 		public string BuggsByDay { get; set; }
 
-		/// <summary></summary>
+		/// <summary>Time spent in generating this site, formatted as a string.</summary>
 		public string GenerationTime { get; set; }
 	}
 }
