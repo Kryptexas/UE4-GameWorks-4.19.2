@@ -9,7 +9,7 @@
 /** Struct to store information about a stream, returned from search results. */
 struct FNetworkReplayStreamInfo
 {
-	FNetworkReplayStreamInfo() : SizeInBytes( 0 ), LengthInMS( 0 ), NumViewers( 0 ), bIsLive( false ) {}
+	FNetworkReplayStreamInfo() : SizeInBytes( 0 ), LengthInMS( 0 ), NumViewers( 0 ), bIsLive( false ), Changelist( 0 ) {}
 
 	/** The name of the stream (generally this is auto generated, refer to friendly name for UI) */
 	FString Name;
@@ -31,6 +31,9 @@ struct FNetworkReplayStreamInfo
 
 	/** True if the stream is live and the game hasn't completed yet */
 	bool bIsLive;
+
+	/** The changelist of the replay */
+	int32 Changelist;
 };
 
 namespace ENetworkReplayError

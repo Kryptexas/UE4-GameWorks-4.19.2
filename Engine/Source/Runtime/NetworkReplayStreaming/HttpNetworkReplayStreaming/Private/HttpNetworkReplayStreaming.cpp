@@ -18,6 +18,7 @@ public:
 	int32		DemoTimeInMs;
 	int32		NumViewers;
 	bool		bIsLive;
+	int32		Changelist;
 
 	// FOnlineJsonSerializable
 	BEGIN_ONLINE_JSON_SERIALIZER
@@ -29,6 +30,7 @@ public:
 		ONLINE_JSON_SERIALIZE( "DemoTimeInMs",	DemoTimeInMs );
 		ONLINE_JSON_SERIALIZE( "NumViewers",	NumViewers );
 		ONLINE_JSON_SERIALIZE( "bIsLive",		bIsLive );
+		ONLINE_JSON_SERIALIZE( "Changelist",	Changelist );
 	END_ONLINE_JSON_SERIALIZER
 };
 
@@ -1099,7 +1101,8 @@ void FHttpNetworkReplayStreamer::HttpEnumerateSessionsFinished( FHttpRequestPtr 
 			NewStream.SizeInBytes	= ReplayList.Replays[i].SizeInBytes;
 			NewStream.LengthInMS	= ReplayList.Replays[i].DemoTimeInMs;
 			NewStream.NumViewers	= ReplayList.Replays[i].NumViewers;
-			NewStream.bIsLive		= ReplayList.Replays[i].bIsLive;;
+			NewStream.bIsLive		= ReplayList.Replays[i].bIsLive;
+			NewStream.Changelist	= ReplayList.Replays[i].Changelist;
 
 			Streams.Add( NewStream );
 		}
