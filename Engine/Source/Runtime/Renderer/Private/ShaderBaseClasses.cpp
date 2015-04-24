@@ -394,6 +394,7 @@ void FMeshMaterialShader::SetMesh(
 	const FSceneView& View,
 	const FPrimitiveSceneProxy* Proxy,
 	const FMeshBatchElement& BatchElement,
+	float DitheredLODTransitionValue,
 	uint32 DataFlags )
 {
 	// Set the mesh for the vertex factory
@@ -414,6 +415,10 @@ void FMeshMaterialShader::SetMesh(
 	{
 		SetUniformBufferParameter(RHICmdList, ShaderRHI,LODParameter,GetPrimitiveFadeUniformBufferParameter(View, Proxy));
 	}
+	if (NonInstancedDitherLODFactorParameter.IsBound())
+	{
+		SetShaderValue(RHICmdList, ShaderRHI, NonInstancedDitherLODFactorParameter, DitheredLODTransitionValue);
+	}
 }
 
 #define IMPLEMENT_MESH_MATERIAL_SHADER_SetMesh( ShaderRHIParamRef ) \
@@ -424,6 +429,7 @@ void FMeshMaterialShader::SetMesh(
 		const FSceneView& View,					\
 		const FPrimitiveSceneProxy* Proxy,		\
 		const FMeshBatchElement& BatchElement,	\
+		float DitheredLODTransitionValue,		\
 		uint32 DataFlags						\
 	);
 
@@ -438,6 +444,7 @@ bool FMeshMaterialShader::Serialize(FArchive& Ar)
 {
 	bool bShaderHasOutdatedParameters = FMaterialShader::Serialize(Ar);
 	bShaderHasOutdatedParameters |= Ar << VertexFactoryParameters;
+	Ar << NonInstancedDitherLODFactorParameter;
 	return bShaderHasOutdatedParameters;
 }
 

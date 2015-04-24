@@ -250,6 +250,11 @@ bool UMaterialInterface::IsTwoSided(bool bIsInGameThread) const
 	return false;
 }
 
+bool UMaterialInterface::IsDitheredLODTransition(bool bIsInGameThread) const
+{
+	return false;
+}
+
 bool UMaterialInterface::IsMasked(bool bIsInGameThread) const
 {
 	return false;

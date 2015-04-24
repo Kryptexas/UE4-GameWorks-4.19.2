@@ -2002,8 +2002,20 @@ float ENGINE_API ComputeBoundsScreenSize(const FVector4& Origin, const float Sph
  * @param Origin - Origin of the bounds of the mesh in world space
  * @param SphereRadius - Radius of the sphere to use to calculate screen coverage
  * @param View - The view to calculate the LOD level for
+ * @param FactorScale - multiplied by the computed screen size before computing LOD
  */
 int8 ENGINE_API ComputeStaticMeshLOD(const FStaticMeshRenderData* RenderData, const FVector4& Origin, const float SphereRadius, const FSceneView& View, int32 MinLOD, float FactorScale = 1.0f);
+
+/**
+ * Computes the LOD level for the given static meshes render data in the given view, for one of the two temporal LOD samples
+ * @param RenderData - Render data for the mesh
+ * @param Origin - Origin of the bounds of the mesh in world space
+ * @param SphereRadius - Radius of the sphere to use to calculate screen coverage
+ * @param View - The view to calculate the LOD level for
+ * @param FactorScale - multiplied by the computed screen size before computing LOD
+ * @param SampleIndex - index (0 or 1) of the temporal sample to use
+ */
+int8 ENGINE_API ComputeTemporalStaticMeshLOD( const FStaticMeshRenderData* RenderData, const FVector4& Origin, const float SphereRadius, const FSceneView& View, int32 MinLOD, float FactorScale, int32 SampleIndex );
 
 /**
  * Computes the LOD to render for the list of static meshes in the given view.
@@ -2012,7 +2024,36 @@ int8 ENGINE_API ComputeStaticMeshLOD(const FStaticMeshRenderData* RenderData, co
  * @param Origin - Origin of the bounds of the mesh in world space
  * @param SphereRadius - Radius of the sphere to use to calculate screen coverage
  */
-int8 ENGINE_API ComputeLODForMeshes(const TIndirectArray<class FStaticMesh>& StaticMeshes, const FSceneView& View, const FVector4& Origin, float SphereRadius, int32 ForcedLODLevel, float ScreenSizeScale = 1.0f);
+struct FLODMask
+{
+	int8 DitheredLODIndices[2];
+
+	FLODMask()
+	{
+		DitheredLODIndices[0] = MAX_int8;
+		DitheredLODIndices[1] = MAX_int8;
+	}
+
+	void SetLOD(int32 LODIndex)
+	{
+		DitheredLODIndices[0] = LODIndex;
+		DitheredLODIndices[1] = LODIndex;
+	}
+	void SetLODSample(int32 LODIndex, int32 SampleIndex)
+	{
+		DitheredLODIndices[SampleIndex] = (int8)LODIndex;
+	}
+	bool ContainsLOD(int32 LODIndex) const
+	{
+		return DitheredLODIndices[0] == LODIndex || DitheredLODIndices[1] == LODIndex;
+	}
+
+	bool IsDithered() const
+	{
+		return DitheredLODIndices[0] != DitheredLODIndices[1];
+	}
+};
+FLODMask ENGINE_API ComputeLODForMeshes(const TIndirectArray<class FStaticMesh>& StaticMeshes, const FSceneView& View, const FVector4& Origin, float SphereRadius, int32 ForcedLODLevel, float ScreenSizeScale = 1.0f);
 
 class FSharedSamplerState : public FRenderResource
 {

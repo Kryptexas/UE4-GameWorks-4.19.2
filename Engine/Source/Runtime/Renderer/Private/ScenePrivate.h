@@ -313,13 +313,19 @@ class FPrimitiveFadingState
 {
 public:
 	FPrimitiveFadingState()
-		: FrameNumber(0)
+		: FadeTimeScaleBias(ForceInitToZero)
+		, FrameNumber(0)
 		, EndTime(0.0f)
-		, FadeTimeScaleBias(0.0f,0.0f)
 		, bIsVisible(false)
 		, bValid(false)
 	{
 	}
+
+	/** Scale and bias to use on time to calculate fade opacity */
+	FVector2D FadeTimeScaleBias;
+
+	/** The uniform buffer for the fade parameters */
+	FDistanceCullFadeUniformBufferRef UniformBuffer;
 
 	/** Frame number when last updated */
 	uint32 FrameNumber;
@@ -327,12 +333,6 @@ public:
 	/** Time when fade will be finished. */
 	float EndTime;
 	
-	/** Scale and bias to use on time to calculate fade opacity */
-	FVector2D FadeTimeScaleBias;
-
-	/** The uniform buffer for the fade parameters */
-	FDistanceCullFadeUniformBufferRef UniformBuffer;
-
 	/** Currently visible? */
 	bool bIsVisible;
 

@@ -3755,6 +3755,12 @@ bool UMaterial::IsTwoSided(bool bIsInGameThread) const
 	return TwoSided != 0;
 }
 
+bool UMaterial::IsDitheredLODTransition(bool bIsInGameThread) const
+{
+	return DitheredLODTransition != 0;
+}
+
+
 bool UMaterial::IsMasked(bool bIsInGameThread) const
 {
 	return GetBlendMode() == BLEND_Masked;

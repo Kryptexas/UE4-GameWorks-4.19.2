@@ -1433,13 +1433,20 @@ void ClipLODTransition(FMaterialPixelParameters Parameters)
 	ClipLODTransition(Parameters, Parameters.PerInstanceParams.w);
 }
 #elif USE_DITHERED_LOD_TRANSITION
+float NonInstancedDitherLODFactor;
 void ClipLODTransition(FMaterialPixelParameters Parameters)
 {
-	ClipLODTransition(Parameters, NonInstancedDitherLODFactor);
+	if (NonInstancedDitherLODFactor != 0.0)
+	{
+		ClipLODTransition(Parameters, NonInstancedDitherLODFactor);
+	}
 }
 void ClipLODTransition(float2 SVPosition)
 {
-	ClipLODTransition(SVPosition, NonInstancedDitherLODFactor);
+	if (NonInstancedDitherLODFactor != 0.0)
+	{
+		ClipLODTransition(SVPosition, NonInstancedDitherLODFactor);
+	}
 }
 #else
 void ClipLODTransition(FMaterialPixelParameters Parameters)

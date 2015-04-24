@@ -81,6 +81,7 @@ FMaterialInstanceResource::FMaterialInstanceResource(UMaterialInstance* InOwner,
 	, BlendMode(BLEND_Opaque)
 	, ShadingModel(MSM_DefaultLit)
 	, TwoSided(false)
+	, DitheredLODTransition(false)
 {
 }
 
@@ -261,15 +262,18 @@ void FMaterialInstanceResource::GameThread_UpdateOverridableBaseProperties(const
 		*OpacityMaskClipValue = NewOpacityMaskClipValue;
 		*BlendMode = NewBlendMode;
 	});
-	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
+	ENQUEUE_UNIQUE_RENDER_COMMAND_SIXPARAMETER(
 		UpdateOverrideablBaseProperties1,
 		EMaterialShadingModel*, ShadingModel, &ShadingModel,
 		EMaterialShadingModel, NewShadingModel, MaterialInterface->GetShadingModel(),
 		bool*, TwoSided, &TwoSided,
 		bool, NewTwoSided, MaterialInterface->IsTwoSided(),
+		bool*, DitheredLODTransition, &DitheredLODTransition,
+		bool, NewDitheredLODTransition, MaterialInterface->IsDitheredLODTransition(),
 		{
 		*ShadingModel = NewShadingModel;
 		*TwoSided = NewTwoSided;
+		*DitheredLODTransition = NewDitheredLODTransition;
 	});
 }
 
@@ -1649,6 +1653,14 @@ void UMaterialInstance::Serialize(FArchive& Ar)
 					Ar << bTwoSided;
 					BasePropertyOverrides.TwoSided = bTwoSided;
 
+					if( Ar.UE4Ver() >= VER_UE4_MATERIAL_INSTANCE_BASE_PROPERTY_OVERRIDES_DITHERED_LOD_TRANSITION )
+					{
+						Ar	<< BasePropertyOverrides.bOverride_DitheredLODTransition;
+
+						bool bDitheredLODTransition;
+						Ar << bDitheredLODTransition;
+						BasePropertyOverrides.DitheredLODTransition = bDitheredLODTransition;
+					}
 					// unrelated but closest change to bug
 					if( Ar.UE4Ver() < VER_UE4_STATIC_SHADOW_DEPTH_MAPS )
 					{
@@ -2458,6 +2470,14 @@ void UMaterialInstance::GetBasePropertyOverridesHash(FSHAHash& OutHash)const
 		Hash.Update((uint8*)&bUsedIsTwoSided, sizeof(bUsedIsTwoSided));
 		bHasOverrides = true;
 	}
+	bool bUsedIsDitheredLODTransition = IsDitheredLODTransition(true);
+	if (bUsedIsDitheredLODTransition != Mat->IsDitheredLODTransition(true))
+	{
+		const FString HashString = TEXT("bOverride_DitheredLODTransition");
+		Hash.UpdateWithString(*HashString, HashString.Len());
+		Hash.Update((uint8*)&bUsedIsDitheredLODTransition, sizeof(bUsedIsDitheredLODTransition));
+		bHasOverrides = true;
+	}
 
  	if (bHasOverrides)
  	{
@@ -2474,7 +2494,9 @@ bool UMaterialInstance::HasOverridenBaseProperties()const
 		(FMath::Abs(GetOpacityMaskClipValue(true) - Parent->GetOpacityMaskClipValue(true)) > SMALL_NUMBER) ||
 		(GetBlendMode(true) != Parent->GetBlendMode(true)) ||
 		(GetShadingModel(true) != Parent->GetShadingModel(true)) ||
-		(IsTwoSided(true) != Parent->IsTwoSided(true)))
+		(IsTwoSided(true) != Parent->IsTwoSided(true)) ||
+		(IsDitheredLODTransition(true) != Parent->IsDitheredLODTransition(true))
+		)
 		)
 	{
 		return true;
@@ -2565,10 +2587,32 @@ bool UMaterialInstance::IsTwoSided(bool bIsInGameThread) const
 	return RenderThread_IsTwoSided();
 }
 
+bool UMaterialInstance::IsDitheredLODTransition(bool bIsInGameThread) const
+{
+	if (bIsInGameThread)
+	{
+		if (BasePropertyOverrides.bOverride_DitheredLODTransition)
+		{
+			return BasePropertyOverrides.DitheredLODTransition != 0;
+		}
+		// go up the chain if possible
+		return Parent ? Parent->IsDitheredLODTransition(true) : false;
+	}
+
+	//Get the value mirrored in the render proxy.
+	return RenderThread_IsDitheredLODTransition();
+}
+
 bool UMaterialInstance::RenderThread_IsTwoSided() const
 {
 	FMaterialInstanceResource* Proxy = ((FMaterialInstanceResource*)GetRenderProxy(0));
 	return Proxy ? Proxy->IsTwoSided() : false;
+}
+
+bool UMaterialInstance::RenderThread_IsDitheredLODTransition() const
+{
+	FMaterialInstanceResource* Proxy = ((FMaterialInstanceResource*)GetRenderProxy(0));
+	return Proxy ? Proxy->IsDitheredLODTransition() : false;
 }
 
 bool UMaterialInstance::IsMasked(bool bIsInGameThread) const

@@ -222,12 +222,14 @@ public:
 	const FProjectedShadowInfo* TranslucentSelfShadow;
 	FHitProxyId HitProxyId;
 	bool bBackFace;
+	float DitheredLODTransitionValue;
 	bool bUseTranslucentSelfShadowing;
 
 	/** Initialization constructor. */
 	FDrawTranslucentMeshAction(
 		const FViewInfo& InView,
 		bool bInBackFace,
+		float InDitheredLODTransitionValue,
 		FHitProxyId InHitProxyId,
 		const FProjectedShadowInfo* InTranslucentSelfShadow,
 		bool bInUseTranslucentSelfShadowing
@@ -236,6 +238,7 @@ public:
 		TranslucentSelfShadow(InTranslucentSelfShadow),
 		HitProxyId(InHitProxyId),
 		bBackFace(bInBackFace),
+		DitheredLODTransitionValue(InDitheredLODTransitionValue),
 		bUseTranslucentSelfShadowing(bInUseTranslucentSelfShadowing)
 	{}
 
@@ -303,6 +306,7 @@ public:
 					Parameters.Mesh,
 					BatchElementIndex,
 					bBackFace,
+					DitheredLODTransitionValue,
 					typename TBasePassDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData),
 					typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType()
 					);
@@ -367,6 +371,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 	const FMeshBatch& Mesh,
 	const uint64& BatchElementMask,
 	bool bBackFace,
+	float DitheredLODTransitionValue,
 	bool bPreFog,
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 	FHitProxyId HitProxyId
@@ -441,6 +446,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 			FDrawTranslucentMeshAction(
 				View,
 				bBackFace,
+				DitheredLODTransitionValue,
 				HitProxyId,
 				DrawingContext.TranslucentSelfShadow,
 				PrimitiveSceneProxy && PrimitiveSceneProxy->CastsVolumetricTranslucentShadow()
@@ -481,6 +487,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(
 		Mesh,
 		Mesh.Elements.Num()==1 ? 1 : (1<<Mesh.Elements.Num())-1,	// 1 bit set for each mesh element
 		bBackFace,
+		Mesh.DitheredLODTransitionAlpha,
 		bPreFog,
 		PrimitiveSceneProxy,
 		HitProxyId);
@@ -501,6 +508,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawStaticMesh(
 	FHitProxyId HitProxyId
 	)
 {
+	float DitherValue = View.GetDitheredLODTransitionValue(StaticMesh);
 	return DrawMesh(
 		RHICmdList,
 		View,
@@ -508,6 +516,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawStaticMesh(
 		StaticMesh,
 		BatchElementMask,
 		false,
+		DitherValue,
 		bPreFog,
 		PrimitiveSceneProxy,
 		HitProxyId

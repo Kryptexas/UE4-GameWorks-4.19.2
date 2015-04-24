@@ -901,6 +901,14 @@ public:
 		}
 		return false;
 	}
+	virtual bool IsDitheredLODTransition() const  override
+	{ 
+		if (MaterialInterface)
+		{
+			return MaterialInterface->IsDitheredLODTransition();
+		}
+		return false;
+	}
 	virtual bool IsLightFunction() const override
 	{
 		if (Material)

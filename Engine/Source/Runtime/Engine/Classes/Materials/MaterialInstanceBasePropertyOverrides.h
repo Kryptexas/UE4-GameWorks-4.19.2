@@ -25,6 +25,10 @@ struct ENGINE_API FMaterialInstanceBasePropertyOverrides
 
 	/** Enables override of the two sided property. */
 	UPROPERTY(EditAnywhere, Category = Material)
+	bool bOverride_DitheredLODTransition;
+
+	/** Enables override of the two sided property. */
+	UPROPERTY(EditAnywhere, Category = Material)
 	bool bOverride_TwoSided;
 
 	/** If BlendMode is BLEND_Masked, the surface is not rendered where OpacityMask < OpacityMaskClipValue. */
@@ -42,6 +46,10 @@ struct ENGINE_API FMaterialInstanceBasePropertyOverrides
 	/** If the material is two sided or not. */
 	UPROPERTY(EditAnywhere, Category = Material, meta = (editcondition = "bOverride_TwoSided"))
 	uint32 TwoSided : 1;
+
+	/** If the material is two sided or not. */
+	UPROPERTY(EditAnywhere, Category = Material, meta = (editcondition = "bOverride_DitheredLODTransition"))
+	uint32 DitheredLODTransition : 1;
 
 	FMaterialInstanceBasePropertyOverrides();
 

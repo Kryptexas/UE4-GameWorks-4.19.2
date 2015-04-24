@@ -42,9 +42,6 @@ float4 InstancingFadeOutParams;
 	#ifndef USE_INSTANCING_EMULATED
 		#define USE_INSTANCING_EMULATED (0)
 	#endif
-	#if USE_DITHERED_LOD_TRANSITION
-		float NonInstancedDitherLODFactor;
-	#endif
 #endif	// USE_INSTANCING
 
 

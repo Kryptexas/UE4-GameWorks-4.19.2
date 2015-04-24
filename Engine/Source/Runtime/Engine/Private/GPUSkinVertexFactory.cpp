@@ -487,6 +487,7 @@ public:
 
 					// copy the bone data and tell the instance where it can pick it up next frame
 					// append data to a buffer we bind next frame to read old matrix data for motion blur
+					
 					uint32 OldBoneDataStartIndex = GPrevPerBoneMotionBlur.AppendData(ShaderData.BoneMatrices.GetData(), ShaderData.BoneMatrices.Num());
 					GPUVertexFactory->SetOldBoneDataStartIndex(FrameNumber, OldBoneDataStartIndex);
 				}

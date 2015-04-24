@@ -844,6 +844,11 @@ bool FMaterialResource::IsTwoSided() const
 	return MaterialInstance ? MaterialInstance->IsTwoSided() : Material->IsTwoSided();
 }
 
+bool FMaterialResource::IsDitheredLODTransition() const 
+{
+	return MaterialInstance ? MaterialInstance->IsDitheredLODTransition() : Material->IsDitheredLODTransition();
+}
+
 bool FMaterialResource::IsMasked() const 
 {
 	return MaterialInstance ? MaterialInstance->IsMasked() : Material->IsMasked();
@@ -1139,13 +1144,13 @@ void FMaterial::SetupMaterialEnvironment(
 
 	switch(GetBlendMode())
 	{
-	case BLEND_Opaque: OutEnvironment.SetDefine(TEXT("MATERIALBLENDING_SOLID"),TEXT("1")); break;
+	case BLEND_Opaque:
 	case BLEND_Masked:
 		{
 			// Only set MATERIALBLENDING_MASKED if the material is truly masked
 			//@todo - this may cause mismatches with what the shader compiles and what the renderer thinks the shader needs
 			// For example IsTranslucentBlendMode doesn't check IsMasked
-			if(IsMasked())
+			if(!WritesEveryPixel())
 			{
 				OutEnvironment.SetDefine(TEXT("MATERIALBLENDING_MASKED"),TEXT("1"));
 			}
@@ -1186,6 +1191,7 @@ void FMaterial::SetupMaterialEnvironment(
 		OutEnvironment.SetDefine(TEXT("MATERIALDECALRESPONSEMASK"), MaterialDecalResponseMask);
 	}
 
+	OutEnvironment.SetDefine(TEXT("USE_DITHERED_LOD_TRANSITION"), IsDitheredLODTransition() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_TWOSIDED"), IsTwoSided() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_TANGENTSPACENORMAL"), IsTangentSpaceNormal() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("GENERATE_SPHERICAL_PARTICLE_NORMALS"),ShouldGenerateSphericalParticleNormals() ? TEXT("1") : TEXT("0"));
@@ -2327,10 +2333,12 @@ FMaterialInstanceBasePropertyOverrides::FMaterialInstanceBasePropertyOverrides()
 	,bOverride_BlendMode(false)
 	,bOverride_ShadingModel(false)
 	,bOverride_TwoSided(false)
+	,bOverride_DitheredLODTransition(false)
 	,OpacityMaskClipValue(.333333f)
 	,BlendMode(BLEND_Opaque)
 	,ShadingModel(MSM_DefaultLit)
 	,TwoSided(0)
+	,DitheredLODTransition(0)
 {
 
 }
@@ -2341,10 +2349,12 @@ bool FMaterialInstanceBasePropertyOverrides::operator==(const FMaterialInstanceB
 			bOverride_BlendMode == Other.bOverride_BlendMode &&
 			bOverride_ShadingModel == Other.bOverride_ShadingModel &&
 			bOverride_TwoSided == Other.bOverride_TwoSided &&
+			bOverride_DitheredLODTransition == Other.bOverride_DitheredLODTransition &&
 			OpacityMaskClipValue == Other.OpacityMaskClipValue &&
 			BlendMode == Other.BlendMode &&
 			ShadingModel == Other.ShadingModel &&
-			TwoSided == Other.TwoSided;
+			TwoSided == Other.TwoSided &&
+			DitheredLODTransition == Other.DitheredLODTransition;
 }
 
 bool FMaterialInstanceBasePropertyOverrides::operator!=(const FMaterialInstanceBasePropertyOverrides& Other)const

@@ -146,6 +146,7 @@ public:
 
 	const FViewInfo& View;
 	bool bBackFace;
+	float DitheredLODTransitionValue;
 	FHitProxyId HitProxyId;
 
 	inline bool ShouldPackAmbientSH() const
@@ -163,10 +164,12 @@ public:
 	FDrawBasePassForwardShadingDynamicMeshAction(
 		const FViewInfo& InView,
 		const bool bInBackFace,
+		float InDitheredLODTransitionValue,
 		const FHitProxyId InHitProxyId
 		)
 		: View(InView)
 		, bBackFace(bInBackFace)
+		, DitheredLODTransitionValue(InDitheredLODTransitionValue)
 		, HitProxyId(InHitProxyId)
 	{}
 
@@ -214,6 +217,7 @@ public:
 				Parameters.Mesh,
 				BatchElementIndex,
 				bBackFace,
+				DitheredLODTransitionValue,
 				typename TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData),
 				typename TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType>::ContextDataType()
 				);
@@ -264,6 +268,7 @@ bool FBasePassForwardOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 			FDrawBasePassForwardShadingDynamicMeshAction(
 				View,
 				bBackFace,
+				Mesh.DitheredLODTransitionAlpha,
 				HitProxyId
 				)
 			);

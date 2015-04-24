@@ -897,6 +897,7 @@ public:
 	ENGINE_API virtual void GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const;
 	virtual int32 GetMaterialDomain() const = 0; // See EMaterialDomain.
 	virtual bool IsTwoSided() const = 0;
+	virtual bool IsDitheredLODTransition() const = 0;
 	virtual bool IsTangentSpaceNormal() const { return false; }
 	virtual bool ShouldInjectEmissiveIntoLPV() const { return false; }
 	virtual bool ShouldGenerateSphericalParticleNormals() const { return false; }
@@ -1080,6 +1081,12 @@ public:
 	* @return - true on Success
 	*/
 	ENGINE_API bool GetMaterialExpressionSource(FString& OutSource);
+
+	/* Helper function to look at both IsMasked and IsDitheredLODTransition to determine if it writes every pixel */
+	ENGINE_API bool WritesEveryPixel() const
+	{
+		return !IsMasked() && !IsDitheredLODTransition();
+	}
 
 	/** 
 	 * Adds an FMaterial to the global list.
@@ -1446,6 +1453,7 @@ public:
 	ENGINE_API virtual void GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const override;
 	ENGINE_API virtual int32 GetMaterialDomain() const override;
 	ENGINE_API virtual bool IsTwoSided() const override;
+	ENGINE_API virtual bool IsDitheredLODTransition() const override;
 	ENGINE_API virtual bool IsTangentSpaceNormal() const override;
 	ENGINE_API virtual bool ShouldInjectEmissiveIntoLPV() const override;
 	ENGINE_API virtual bool ShouldGenerateSphericalParticleNormals() const override;
@@ -1524,6 +1532,7 @@ public:
 	ENGINE_API virtual const TArray<UTexture*>& GetReferencedTextures() const override;
 
 	ENGINE_API virtual bool GetAllowDevelopmentShaderCompile() const override;
+
 protected:
 	UMaterial* Material;
 	UMaterialInstance* MaterialInstance;

@@ -94,16 +94,19 @@ public:
 
 	const FViewInfo& View;
 	bool bBackFace;
+	float DitheredLODTransitionValue;
 	FHitProxyId HitProxyId;
 
 	/** Initialization constructor. */
 	FDrawTranslucentMeshForwardShadingAction(
 		const FViewInfo& InView,
 		bool bInBackFace,
+		float InDitheredLODTransitionValue,
 		FHitProxyId InHitProxyId
 		):
 		View(InView),
 		bBackFace(bInBackFace),
+		DitheredLODTransitionValue(InDitheredLODTransitionValue),
 		HitProxyId(InHitProxyId)
 	{}
 	
@@ -154,6 +157,7 @@ public:
 				Parameters.Mesh,
 				BatchElementIndex,
 				bBackFace,
+				DitheredLODTransitionValue,
 				typename TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData),
 				typename TBasePassForForwardShadingDrawingPolicy<LightMapPolicyType>::ContextDataType()
 				);
@@ -208,6 +212,7 @@ bool FTranslucencyForwardShadingDrawingPolicyFactory::DrawDynamicMesh(
 			FDrawTranslucentMeshForwardShadingAction(
 				View,
 				bBackFace,
+				Mesh.DitheredLODTransitionAlpha,
 				HitProxyId
 				)
 			);

@@ -159,6 +159,7 @@ public:
 	EBlendMode GetBlendMode()const{ return BlendMode; }
 	EMaterialShadingModel GetShadingModel()const{ return ShadingModel; }
 	bool IsTwoSided()const{ return TwoSided; }
+	bool IsDitheredLODTransition()const{ return DitheredLODTransition; }
 
 private:
 	/**
@@ -194,6 +195,7 @@ private:
 	EBlendMode BlendMode;
 	EMaterialShadingModel ShadingModel;
 	bool TwoSided;
+	bool DitheredLODTransition;
 };
 
 template <> FORCEINLINE TArray<FMaterialInstanceResource::TNamedParameter<float> >& FMaterialInstanceResource::GetValueArray() { return ScalarParameterArray; }

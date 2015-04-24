@@ -96,7 +96,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 			for (uint32 BackFace = 0; BackFace < BackFaceEnd; ++BackFace)
 			{
 				INC_DWORD_STAT(STAT_StaticDrawListMeshDrawCalls);
-
+				float DitherValue = View.GetDitheredLODTransitionValue(*Element.Mesh);
 				DrawingPolicyLink->DrawingPolicy.SetMeshRenderState(
 					RHICmdList, 
 					View,
@@ -104,6 +104,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 					*Element.Mesh,
 					BatchElementIndex,
 					!!BackFace,
+					DitherValue,
 					Element.PolicyData,
 					PolicyContext
 					);

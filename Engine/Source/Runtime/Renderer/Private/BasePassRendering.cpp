@@ -264,6 +264,7 @@ public:
 
 	const FViewInfo& View;
 	bool bBackFace;
+	float DitheredLODTransitionValue;
 	bool bPreFog;
 	FHitProxyId HitProxyId;
 
@@ -271,10 +272,12 @@ public:
 	FDrawBasePassDynamicMeshAction(
 		const FViewInfo& InView,
 		const bool bInBackFace,
+		float InDitheredLODTransitionValue,
 		const FHitProxyId InHitProxyId
 		)
 		: View(InView)
 		, bBackFace(bInBackFace)
+		, DitheredLODTransitionValue(InDitheredLODTransitionValue)
 		, HitProxyId(InHitProxyId)
 	{}
 
@@ -341,6 +344,7 @@ public:
 				Parameters.Mesh,
 				BatchElementIndex,
 				bBackFace,
+				DitheredLODTransitionValue,
 				typename TBasePassDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData),
 				typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType()
 				);
@@ -388,6 +392,7 @@ bool FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 			FDrawBasePassDynamicMeshAction(
 				View,
 				bBackFace,
+				Mesh.DitheredLODTransitionAlpha,
 				HitProxyId
 				)
 			);

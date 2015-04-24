@@ -6,7 +6,7 @@
 #include "StaticMesh.generated.h"
 
 /** The maximum number of static mesh LODs allowed. */
-#define MAX_STATIC_MESH_LODS 4
+#define MAX_STATIC_MESH_LODS 8
 
 // Forward declarations
 class UFoliageType_InstancedStaticMesh;

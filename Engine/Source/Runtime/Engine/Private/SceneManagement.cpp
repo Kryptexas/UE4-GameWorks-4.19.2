@@ -277,6 +277,38 @@ float ComputeBoundsScreenSize( const FVector4& Origin, const float SphereRadius,
 	return FMath::Clamp(ScreenArea / View.ViewRect.Area(), 0.0f, 1.0f);
 }
 
+float ComputeTemporalLODBoundsScreenSize( const FVector& Origin, const float SphereRadius, const FSceneView& View, int32 SampleIndex )
+{
+	// This is radial LOD, not the view parallel computation used in ComputeBoundsScreenSize
+	const float Divisor =  (Origin - View.GetTemporalLODOrigin(SampleIndex)).Size();
+
+	// Get projection multiple accounting for view scaling.
+	const float ScreenMultiple = FMath::Max(View.ViewRect.Width() / 2.0f * View.ViewMatrices.ProjMatrix.M[0][0],
+		View.ViewRect.Height() / 2.0f * View.ViewMatrices.ProjMatrix.M[1][1]);
+
+	const float ScreenRadius = ScreenMultiple * SphereRadius / FMath::Max(Divisor, 1.0f);
+	const float ScreenArea = PI * ScreenRadius * ScreenRadius;
+	return FMath::Clamp(ScreenArea / View.ViewRect.Area(), 0.0f, 1.0f);
+}
+
+int8 ComputeTemporalStaticMeshLOD( const FStaticMeshRenderData* RenderData, const FVector4& Origin, const float SphereRadius, const FSceneView& View, int32 MinLOD, float FactorScale, int32 SampleIndex )
+{
+	const int32 NumLODs = MAX_STATIC_MESH_LODS;
+
+	const float ScreenSize = ComputeTemporalLODBoundsScreenSize(Origin, SphereRadius, View, SampleIndex) * FactorScale;
+
+	// Walk backwards and return the first matching LOD
+	for(int32 LODIndex = NumLODs - 1 ; LODIndex >= 0 ; --LODIndex)
+	{
+		if(RenderData->ScreenSize[LODIndex] > ScreenSize)
+		{
+			return FMath::Max(LODIndex, MinLOD);
+		}
+	}
+
+	return MinLOD;
+}
+
 int8 ComputeStaticMeshLOD( const FStaticMeshRenderData* RenderData, const FVector4& Origin, const float SphereRadius, const FSceneView& View, int32 MinLOD, float FactorScale )
 {
 	const int32 NumLODs = MAX_STATIC_MESH_LODS;
@@ -295,9 +327,9 @@ int8 ComputeStaticMeshLOD( const FStaticMeshRenderData* RenderData, const FVecto
 	return MinLOD;
 }
 
-int8 ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMeshes, const FSceneView& View, const FVector4& Origin, float SphereRadius, int32 ForcedLODLevel, float ScreenSizeScale )
+FLODMask ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMeshes, const FSceneView& View, const FVector4& Origin, float SphereRadius, int32 ForcedLODLevel, float ScreenSizeScale )
 {
-	int8 LODToRender = 0;
+	FLODMask LODToRender;
 
 	// Handle forced LOD level first
 	if(ForcedLODLevel >= 0)
@@ -308,36 +340,68 @@ int8 ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMeshes,
 			const FStaticMesh&  Mesh = StaticMeshes[MeshIndex];
 			MaxLOD = FMath::Max(MaxLOD, Mesh.LODIndex);
 		}
-		LODToRender = FMath::Clamp<int8>(ForcedLODLevel, 0, MaxLOD);
+		LODToRender.SetLOD(FMath::Clamp<int8>(ForcedLODLevel, 0, MaxLOD));
 	}
 	else if (View.Family->EngineShowFlags.LOD)
 	{
-		int32 MinLODFound = INT_MAX;
-		bool bFoundLOD = false;
 		int32 NumMeshes = StaticMeshes.Num();
 
-		const float ScreenSize = ComputeBoundsScreenSize(Origin, SphereRadius, View);
-
-		for(int32 MeshIndex = NumMeshes-1 ; MeshIndex >= 0 ; --MeshIndex)
+		if (NumMeshes && StaticMeshes[0].bDitheredLODTransition)
 		{
-			const FStaticMesh& Mesh = StaticMeshes[MeshIndex];
-
-			float MeshScreenSize = Mesh.ScreenSize * ScreenSizeScale;
-
-			if(MeshScreenSize >= ScreenSize)
+			for (int32 SampleIndex = 0; SampleIndex < 2; SampleIndex++)
 			{
-				LODToRender = Mesh.LODIndex;
-				bFoundLOD = true;
-				break;
+				int32 MinLODFound = INT_MAX;
+				bool bFoundLOD = false;
+				const float ScreenSize = ComputeTemporalLODBoundsScreenSize(Origin, SphereRadius, View, SampleIndex);
+
+				for(int32 MeshIndex = NumMeshes-1 ; MeshIndex >= 0 ; --MeshIndex)
+				{
+					const FStaticMesh& Mesh = StaticMeshes[MeshIndex];
+
+					float MeshScreenSize = Mesh.ScreenSize * ScreenSizeScale;
+
+					if(MeshScreenSize >= ScreenSize)
+					{
+						LODToRender.SetLODSample(Mesh.LODIndex, SampleIndex);
+						bFoundLOD = true;
+						break;
+					}
+
+					MinLODFound = FMath::Min<int32>(MinLODFound, Mesh.LODIndex);
+				}
+				// If no LOD was found matching the screen size, use the lowest in the array instead of LOD 0, to handle non-zero MinLOD
+				if (!bFoundLOD)
+				{
+					LODToRender.SetLODSample(MinLODFound, SampleIndex);
+				}
 			}
-
-			MinLODFound = FMath::Min<int32>(MinLODFound, Mesh.LODIndex);
 		}
-
-		// If no LOD was found matching the screen size, use the lowest in the array instead of LOD 0, to handle non-zero MinLOD
-		if (!bFoundLOD)
+		else
 		{
-			LODToRender = MinLODFound;
+			int32 MinLODFound = INT_MAX;
+			bool bFoundLOD = false;
+			const float ScreenSize = ComputeBoundsScreenSize(Origin, SphereRadius, View);
+
+			for(int32 MeshIndex = NumMeshes-1 ; MeshIndex >= 0 ; --MeshIndex)
+			{
+				const FStaticMesh& Mesh = StaticMeshes[MeshIndex];
+
+				float MeshScreenSize = Mesh.ScreenSize * ScreenSizeScale;
+
+				if(MeshScreenSize >= ScreenSize)
+				{
+					LODToRender.SetLOD(Mesh.LODIndex);
+					bFoundLOD = true;
+					break;
+				}
+
+				MinLODFound = FMath::Min<int32>(MinLODFound, Mesh.LODIndex);
+			}
+			// If no LOD was found matching the screen size, use the lowest in the array instead of LOD 0, to handle non-zero MinLOD
+			if (!bFoundLOD)
+			{
+				LODToRender.SetLOD(MinLODFound);
+			}
 		}
 	}
 	return LODToRender;

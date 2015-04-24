@@ -281,12 +281,14 @@ public:
 	ENGINE_API virtual EBlendMode GetBlendMode(bool bIsGameThread = IsInGameThread()) const override;
 	ENGINE_API virtual EMaterialShadingModel GetShadingModel(bool bIsGameThread = IsInGameThread()) const override;
 	ENGINE_API virtual bool IsTwoSided(bool bIsGameThread = IsInGameThread()) const override;
+	ENGINE_API virtual bool IsDitheredLODTransition(bool bIsGameThread = IsInGameThread()) const override;
 	ENGINE_API virtual bool IsMasked(bool bIsGameThread = IsInGameThread()) const override;
 
 	ENGINE_API float RenderThread_GetOpacityMaskClipValue() const;
 	ENGINE_API EBlendMode RenderThread_GetBlendMode() const;
 	ENGINE_API EMaterialShadingModel RenderThread_GetShadingModel() const;
 	ENGINE_API bool RenderThread_IsTwoSided() const;
+	ENGINE_API bool RenderThread_IsDitheredLODTransition() const;
 	ENGINE_API bool RenderThread_IsMasked() const;
 	
 	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const override;
