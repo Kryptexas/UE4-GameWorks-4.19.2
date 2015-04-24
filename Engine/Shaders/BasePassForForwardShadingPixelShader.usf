@@ -64,7 +64,7 @@ SamplerState	FilteredSceneDepthTextureSampler;
 #endif
 
 
-#if USE_EDITOR_COMPOSITING && (ES2_EMULATION)
+#if USE_EDITOR_COMPOSITING && (MOBILE_EMULATION)
 // @return 0:translucent..1:opaque
 float ClipForEditorPrimitives(FMaterialPixelParameters MaterialParameters)
 {
@@ -269,7 +269,7 @@ void Main(
 #endif
 #endif
 
-#if !MATERIAL_SHADINGMODEL_UNLIT && ES2_EMULATION
+#if !MATERIAL_SHADINGMODEL_UNLIT && MOBILE_EMULATION
 	Color = lerp(Color, DiffuseColor + SpecularColor, View.UnlitViewmodeMask);
 #endif
 
@@ -313,7 +313,7 @@ void Main(
 	#endif
 
 	// Editor primitive depth testing
-	#if USE_EDITOR_COMPOSITING && (ES2_EMULATION)
+	#if USE_EDITOR_COMPOSITING && (MOBILE_EMULATION)
 		#if MATERIALBLENDING_MASKED
 			// some material might have a opacity value
 			OutColor.a = GetMaterialMaskInputRaw(MaterialParameters);
