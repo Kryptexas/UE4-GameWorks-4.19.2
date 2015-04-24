@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "AI/NavigationModifier.h"
 #include "AI/Navigation/NavModifierVolume.h"
+#include "AI/Navigation/NavAreas/NavArea_Null.h"
 
 //----------------------------------------------------------------------//
 // ANavModifierVolume
