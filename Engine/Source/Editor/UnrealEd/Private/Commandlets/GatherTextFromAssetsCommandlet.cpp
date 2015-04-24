@@ -114,8 +114,8 @@ bool UGatherTextFromAssetsCommandlet::FDialogueHelper::ProcessDialogueWave( cons
 			}
 		}
 
-		FString FinalTargetGender = GetGrammaticalGenderString( AccumulatedTargetGender );
-		FString FinalTargetPlurality = GetGrammaticalNumberString( AccumulatedTargetPlurality );
+		FString FinalTargetGender = DialogueContext.Targets.Num() ? GetGrammaticalGenderString( AccumulatedTargetGender ) : TEXT("");
+		FString FinalTargetPlurality = DialogueContext.Targets.Num() ? GetGrammaticalNumberString( AccumulatedTargetPlurality ) : TEXT("");
 
 		// Add the context specific variation
 		{
