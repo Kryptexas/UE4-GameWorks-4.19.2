@@ -16,22 +16,12 @@ extern RHI_API TAutoConsoleVariable<int32> CVarRHICmdWidth;
 class FRHICommandListBase;
 
 
-class IRHICommandContext
-{
-public:
-	virtual ~IRHICommandContext() {}
-
-#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation)
-#define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) virtual Type RHI##Name ParameterTypesAndNames = 0
-#include "RHIMethods.h"
-#undef DEFINE_RHIMETHOD
-#undef DEFINE_RHIMETHOD_CMDLIST
-};
-
 class IRHICommandContextContainer
 {
 public:
-	virtual ~IRHICommandContextContainer() {}
+	virtual ~IRHICommandContextContainer()
+{
+	}
 
 	virtual IRHICommandContext* GetContext()
 	{
@@ -1783,9 +1773,9 @@ public:
 	{
 		if (Bypass())
 		{
-			void* Data = LockVertexBuffer_Internal(VertexBuffer, 0, BufferSize, RLM_WriteOnly);
+			void* Data = GDynamicRHI->RHILockVertexBuffer(VertexBuffer, 0, BufferSize, RLM_WriteOnly);
 			FMemory::Memcpy(Data, Buffer, BufferSize);
-			UnlockVertexBuffer_Internal(VertexBuffer);
+			GDynamicRHI->RHIUnlockVertexBuffer(VertexBuffer);
 			return;
 		}
 		void* Data = Alloc(BufferSize, 16);
@@ -1924,43 +1914,711 @@ public:
 		return bFlushedGlobal;
 	};
 
-	#define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation)
-	#define DEFINE_RHIMETHOD(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
-		FORCEINLINE_DEBUGGABLE Type Name ParameterTypesAndNames \
-		{ \
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_##Name##_Flush); \
-			ImmediateFlush(EImmediateFlushType::FlushRHIThread); \
-			ReturnStatement Name##_Internal ParameterNames; \
+
+
+	FORCEINLINE void GpuTimeBegin(uint32 Hash,bool bCompute)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_GpuTimeBegin_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
+		return GDynamicRHI->RHIGpuTimeBegin(Hash,bCompute);
+	}
+	
+	FORCEINLINE void GpuTimeEnd(uint32 Hash,bool bCompute)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_GpuTimeEnd_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
+		return GDynamicRHI->RHIGpuTimeEnd(Hash,bCompute);
+	}
+	
+	FORCEINLINE FSamplerStateRHIRef CreateSamplerState(const FSamplerStateInitializerRHI& Initializer)
+	{
+		return RHICreateSamplerState(Initializer);
+	}
+	
+	FORCEINLINE FRasterizerStateRHIRef CreateRasterizerState(const FRasterizerStateInitializerRHI& Initializer)
+	{
+		return RHICreateRasterizerState(Initializer);
+	}
+	
+	FORCEINLINE FDepthStencilStateRHIRef CreateDepthStencilState(const FDepthStencilStateInitializerRHI& Initializer)
+	{
+		return RHICreateDepthStencilState(Initializer);
+	}
+	
+	FORCEINLINE FBlendStateRHIRef CreateBlendState(const FBlendStateInitializerRHI& Initializer)
+	{
+		return RHICreateBlendState(Initializer);
+	}
+	
+	FORCEINLINE FVertexDeclarationRHIRef CreateVertexDeclaration(const FVertexDeclarationElementList& Elements)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateVertexDeclaration_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
 		}
-	#define DEFINE_RHIMETHOD_GLOBAL(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
-		FORCEINLINE_DEBUGGABLE Type Name ParameterTypesAndNames \
-		{ \
-			if (GRHIThread) \
-			{ \
-				QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_##Name##_WaitRHI); \
-				ImmediateFlush(EImmediateFlushType::WaitForRHIThread); \
-			} \
-			ReturnStatement Name##_Internal ParameterNames; \
+		return GDynamicRHI->RHICreateVertexDeclaration(Elements);
+	}
+	
+	FORCEINLINE FPixelShaderRHIRef CreatePixelShader(const TArray<uint8>& Code)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreatePixelShader_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
 		}
-	#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
-		FORCEINLINE_DEBUGGABLE Type Name ParameterTypesAndNames \
-		{ \
-			ReturnStatement RHI##Name ParameterNames; \
+		return GDynamicRHI->RHICreatePixelShader(Code);
+	}
+	
+	FORCEINLINE FVertexShaderRHIRef CreateVertexShader(const TArray<uint8>& Code)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateVertexShader_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
 		}
-	#define DEFINE_RHIMETHOD_GLOBALFLUSH(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
-		FORCEINLINE_DEBUGGABLE Type Name ParameterTypesAndNames \
-		{ \
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_##Name##_Flush); \
-			ImmediateFlush(EImmediateFlushType::FlushRHIThread); \
-			TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); \
-			ReturnStatement Name##_Internal ParameterNames; \
+		return GDynamicRHI->RHICreateVertexShader(Code);
+	}
+	
+	FORCEINLINE FHullShaderRHIRef CreateHullShader(const TArray<uint8>& Code)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateHullShader_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
 		}
-	#include "RHIMethods.h"
-	#undef DEFINE_RHIMETHOD
-	#undef DEFINE_RHIMETHOD_CMDLIST
-	#undef DEFINE_RHIMETHOD_GLOBAL
-	#undef DEFINE_RHIMETHOD_GLOBALFLUSH
-	#undef DEFINE_RHIMETHOD_GLOBALTHREADSAFE
+		return GDynamicRHI->RHICreateHullShader(Code);
+	}
+	
+	FORCEINLINE FDomainShaderRHIRef CreateDomainShader(const TArray<uint8>& Code)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateDomainShader_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHICreateDomainShader(Code);
+	}
+	
+	FORCEINLINE FGeometryShaderRHIRef CreateGeometryShader(const TArray<uint8>& Code)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateGeometryShader_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHICreateGeometryShader(Code);
+	}
+	
+	FORCEINLINE FGeometryShaderRHIRef CreateGeometryShaderWithStreamOutput(const TArray<uint8>& Code, const FStreamOutElementList& ElementList, uint32 NumStrides, const uint32* Strides, int32 RasterizedStream)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateGeometryShaderWithStreamOutput_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHICreateGeometryShaderWithStreamOutput(Code, ElementList, NumStrides, Strides, RasterizedStream);
+	}
+	
+	FORCEINLINE FComputeShaderRHIRef CreateComputeShader(const TArray<uint8>& Code)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateComputeShader_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHICreateComputeShader(Code);
+	}
+	
+	FORCEINLINE FBoundShaderStateRHIRef CreateBoundShaderState(FVertexDeclarationRHIParamRef VertexDeclaration, FVertexShaderRHIParamRef VertexShader, FHullShaderRHIParamRef HullShader, FDomainShaderRHIParamRef DomainShader, FPixelShaderRHIParamRef PixelShader, FGeometryShaderRHIParamRef GeometryShader)
+	{
+		return RHICreateBoundShaderState(VertexDeclaration, VertexShader, HullShader, DomainShader, PixelShader, GeometryShader);
+	}
+	
+	FORCEINLINE FUniformBufferRHIRef CreateUniformBuffer(const void* Contents, const FRHIUniformBufferLayout& Layout, EUniformBufferUsage Usage)
+	{
+		return RHICreateUniformBuffer(Contents, Layout, Usage);
+	}
+	
+	FORCEINLINE FIndexBufferRHIRef CreateIndexBuffer(uint32 Stride, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateIndexBuffer_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHICreateIndexBuffer(Stride, Size, InUsage, CreateInfo);
+	}
+	
+	FORCEINLINE void* LockIndexBuffer(FIndexBufferRHIParamRef IndexBuffer, uint32 Offset, uint32 Size, EResourceLockMode LockMode)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_LockIndexBuffer_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
+		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
+		return GDynamicRHI->RHILockIndexBuffer(IndexBuffer, Offset, Size, LockMode);
+	}
+	
+	FORCEINLINE void UnlockIndexBuffer(FIndexBufferRHIParamRef IndexBuffer)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_UnlockIndexBuffer_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
+		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true );  
+		GDynamicRHI->RHIUnlockIndexBuffer(IndexBuffer);
+	}
+	
+	FORCEINLINE FVertexBufferRHIRef CreateVertexBuffer(uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateVertexBuffer_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHICreateVertexBuffer(Size, InUsage, CreateInfo);
+	}
+	
+	FORCEINLINE void* LockVertexBuffer(FVertexBufferRHIParamRef VertexBuffer, uint32 Offset, uint32 SizeRHI, EResourceLockMode LockMode)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_LockVertexBuffer_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
+		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
+		return GDynamicRHI->RHILockVertexBuffer(VertexBuffer, Offset, SizeRHI, LockMode);
+	}
+	
+	FORCEINLINE void UnlockVertexBuffer(FVertexBufferRHIParamRef VertexBuffer)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_UnlockVertexBuffer_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
+		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true );  
+		GDynamicRHI->RHIUnlockVertexBuffer(VertexBuffer);
+	}
+	
+	FORCEINLINE void CopyVertexBuffer(FVertexBufferRHIParamRef SourceBuffer,FVertexBufferRHIParamRef DestBuffer)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CopyVertexBuffer_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread);  
+		GDynamicRHI->RHICopyVertexBuffer(SourceBuffer,DestBuffer);
+	}
+	
+	FORCEINLINE FStructuredBufferRHIRef CreateStructuredBuffer(uint32 Stride, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateStructuredBuffer_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHICreateStructuredBuffer(Stride, Size, InUsage, CreateInfo);
+	}
+	
+	FORCEINLINE void* LockStructuredBuffer(FStructuredBufferRHIParamRef StructuredBuffer, uint32 Offset, uint32 SizeRHI, EResourceLockMode LockMode)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_LockStructuredBuffer_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
+		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
+		return GDynamicRHI->RHILockStructuredBuffer(StructuredBuffer, Offset, SizeRHI, LockMode);
+	}
+	
+	FORCEINLINE void UnlockStructuredBuffer(FStructuredBufferRHIParamRef StructuredBuffer)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_UnlockStructuredBuffer_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
+		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true );  
+		GDynamicRHI->RHIUnlockStructuredBuffer(StructuredBuffer);
+	}
+	
+	FORCEINLINE FUnorderedAccessViewRHIRef CreateUnorderedAccessView(FStructuredBufferRHIParamRef StructuredBuffer, bool bUseUAVCounter, bool bAppendBuffer)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateUnorderedAccessView_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHICreateUnorderedAccessView(StructuredBuffer, bUseUAVCounter, bAppendBuffer);
+	}
+	
+	FORCEINLINE FUnorderedAccessViewRHIRef CreateUnorderedAccessView(FTextureRHIParamRef Texture)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateUnorderedAccessView_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHICreateUnorderedAccessView(Texture);
+	}
+	
+	FORCEINLINE FUnorderedAccessViewRHIRef CreateUnorderedAccessView(FVertexBufferRHIParamRef VertexBuffer, uint8 Format)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateUnorderedAccessView_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHICreateUnorderedAccessView(VertexBuffer, Format);
+	}
+	
+	FORCEINLINE FShaderResourceViewRHIRef CreateShaderResourceView(FStructuredBufferRHIParamRef StructuredBuffer)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateShaderResourceView_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHICreateShaderResourceView(StructuredBuffer);
+	}
+	
+	FORCEINLINE FShaderResourceViewRHIRef CreateShaderResourceView(FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint8 Format)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateShaderResourceView_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHICreateShaderResourceView(VertexBuffer, Stride, Format);
+	}
+	
+	FORCEINLINE uint64 CalcTexture2DPlatformSize(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, uint32& OutAlign)
+	{
+		return RHICalcTexture2DPlatformSize(SizeX, SizeY, Format, NumMips, NumSamples, Flags, OutAlign);
+	}
+	
+	FORCEINLINE uint64 CalcTexture3DPlatformSize(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, uint32& OutAlign)
+	{
+		return RHICalcTexture3DPlatformSize(SizeX, SizeY, SizeZ, Format, NumMips, Flags, OutAlign);
+	}
+	
+	FORCEINLINE uint64 CalcTextureCubePlatformSize(uint32 Size, uint8 Format, uint32 NumMips, uint32 Flags, uint32& OutAlign)
+	{
+		return RHICalcTextureCubePlatformSize(Size, Format, NumMips, Flags, OutAlign);
+	}
+	
+	FORCEINLINE void GetTextureMemoryStats(FTextureMemoryStats& OutStats)
+	{
+		RHIGetTextureMemoryStats(OutStats);
+	}
+	
+	FORCEINLINE bool GetTextureMemoryVisualizeData(FColor* TextureData,int32 SizeX,int32 SizeY,int32 Pitch,int32 PixelSize)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_GetTextureMemoryVisualizeData_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
+		return GDynamicRHI->RHIGetTextureMemoryVisualizeData(TextureData,SizeX,SizeY,Pitch,PixelSize);
+	}
+	
+	FORCEINLINE FTextureReferenceRHIRef CreateTextureReference(FLastRenderTimeContainer* LastRenderTime)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateTextureReference_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHICreateTextureReference(LastRenderTime);
+	}
+	
+	FORCEINLINE void UpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_UpdateTextureReference_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
+		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true );  
+		GDynamicRHI->RHIUpdateTextureReference(TextureRef, NewTexture);
+	}
+	
+	FORCEINLINE FTexture2DRHIRef CreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FRHIResourceCreateInfo& CreateInfo)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateTexture2D_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHICreateTexture2D(SizeX, SizeY, Format, NumMips, NumSamples, Flags, CreateInfo);
+	}
+	
+	FORCEINLINE FTexture2DRHIRef AsyncCreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, void** InitialMipData, uint32 NumInitialMips)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_AsyncCreateTexture2D_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHIAsyncCreateTexture2D(SizeX, SizeY, Format, NumMips, Flags, InitialMipData, NumInitialMips);
+	}
+	
+	FORCEINLINE void CopySharedMips(FTexture2DRHIParamRef DestTexture2D, FTexture2DRHIParamRef SrcTexture2D)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CopySharedMips_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
+		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
+		return GDynamicRHI->RHICopySharedMips(DestTexture2D, SrcTexture2D);
+	}
+	
+	FORCEINLINE FTexture2DArrayRHIRef CreateTexture2DArray(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateTexture2DArray_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHICreateTexture2DArray(SizeX, SizeY, SizeZ, Format, NumMips, Flags, CreateInfo);
+	}
+	
+	FORCEINLINE FTexture3DRHIRef CreateTexture3D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateTexture3D_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHICreateTexture3D(SizeX, SizeY, SizeZ, Format, NumMips, Flags, CreateInfo);
+	}
+	
+	FORCEINLINE void GetResourceInfo(FTextureRHIParamRef Ref, FRHIResourceInfo& OutInfo)
+	{
+		return RHIGetResourceInfo(Ref, OutInfo);
+	}
+	
+	FORCEINLINE FShaderResourceViewRHIRef CreateShaderResourceView(FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateShaderResourceView_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHICreateShaderResourceView(Texture2DRHI, MipLevel);
+	}
+	
+	FORCEINLINE FShaderResourceViewRHIRef CreateShaderResourceView(FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel, uint8 NumMipLevels, uint8 Format)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateShaderResourceView_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHICreateShaderResourceView(Texture2DRHI, MipLevel, NumMipLevels, Format);
+	}
+	
+	FORCEINLINE void GenerateMips(FTextureRHIParamRef Texture)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_GenerateMips_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); return GDynamicRHI->RHIGenerateMips(Texture);
+	}
+	
+	FORCEINLINE uint32 ComputeMemorySize(FTextureRHIParamRef TextureRHI)
+	{
+		return RHIComputeMemorySize(TextureRHI);
+	}
+	
+	FORCEINLINE FTexture2DRHIRef AsyncReallocateTexture2D(FTexture2DRHIParamRef Texture2D, int32 NewMipCount, int32 NewSizeX, int32 NewSizeY, FThreadSafeCounter* RequestStatus)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_AsyncReallocateTexture2D_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
+		return GDynamicRHI->RHIAsyncReallocateTexture2D(Texture2D, NewMipCount, NewSizeX, NewSizeY, RequestStatus);
+	}
+	
+	FORCEINLINE ETextureReallocationStatus FinalizeAsyncReallocateTexture2D(FTexture2DRHIParamRef Texture2D, bool bBlockUntilCompleted)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_FinalizeAsyncReallocateTexture2D_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHIFinalizeAsyncReallocateTexture2D(Texture2D, bBlockUntilCompleted);
+	}
+	
+	FORCEINLINE ETextureReallocationStatus CancelAsyncReallocateTexture2D(FTexture2DRHIParamRef Texture2D, bool bBlockUntilCompleted)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CancelAsyncReallocateTexture2D_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHICancelAsyncReallocateTexture2D(Texture2D, bBlockUntilCompleted);
+	}
+	
+	FORCEINLINE void* LockTexture2D(FTexture2DRHIParamRef Texture, uint32 MipIndex, EResourceLockMode LockMode, uint32& DestStride, bool bLockWithinMiptail)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_LockTexture2D_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
+		return GDynamicRHI->RHILockTexture2D(Texture, MipIndex, LockMode, DestStride, bLockWithinMiptail);
+	}
+	
+	FORCEINLINE void UnlockTexture2D(FTexture2DRHIParamRef Texture, uint32 MipIndex, bool bLockWithinMiptail)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_UnlockTexture2D_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true );  
+		GDynamicRHI->RHIUnlockTexture2D(Texture, MipIndex, bLockWithinMiptail);
+	}
+	
+	FORCEINLINE void* LockTexture2DArray(FTexture2DArrayRHIParamRef Texture, uint32 TextureIndex, uint32 MipIndex, EResourceLockMode LockMode, uint32& DestStride, bool bLockWithinMiptail)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_LockTexture2DArray_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
+		return GDynamicRHI->RHILockTexture2DArray(Texture, TextureIndex, MipIndex, LockMode, DestStride, bLockWithinMiptail);
+	}
+	
+	FORCEINLINE void UnlockTexture2DArray(FTexture2DArrayRHIParamRef Texture, uint32 TextureIndex, uint32 MipIndex, bool bLockWithinMiptail)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_UnlockTexture2DArray_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true );  
+		GDynamicRHI->RHIUnlockTexture2DArray(Texture, TextureIndex, MipIndex, bLockWithinMiptail);
+	}
+	
+	FORCEINLINE void UpdateTexture2D(FTexture2DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion2D& UpdateRegion, uint32 SourcePitch, const uint8* SourceData)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_UpdateTexture2D_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true );  
+		GDynamicRHI->RHIUpdateTexture2D(Texture, MipIndex, UpdateRegion, SourcePitch, SourceData);
+	}
+	
+	FORCEINLINE void UpdateTexture3D(FTexture3DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion3D& UpdateRegion, uint32 SourceRowPitch, uint32 SourceDepthPitch, const uint8* SourceData)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_UpdateTexture3D_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true );  
+		GDynamicRHI->RHIUpdateTexture3D(Texture, MipIndex, UpdateRegion, SourceRowPitch, SourceDepthPitch, SourceData);
+	}
+	
+	FORCEINLINE FTextureCubeRHIRef CreateTextureCube(uint32 Size, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateTextureCube_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHICreateTextureCube(Size, Format, NumMips, Flags, CreateInfo);
+	}
+	
+	FORCEINLINE FTextureCubeRHIRef CreateTextureCubeArray(uint32 Size, uint32 ArraySize, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateTextureCubeArray_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHICreateTextureCubeArray(Size, ArraySize, Format, NumMips, Flags, CreateInfo);
+	}
+	
+	FORCEINLINE void* LockTextureCubeFace(FTextureCubeRHIParamRef Texture, uint32 FaceIndex, uint32 ArrayIndex, uint32 MipIndex, EResourceLockMode LockMode, uint32& DestStride, bool bLockWithinMiptail)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_LockTextureCubeFace_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
+		return GDynamicRHI->RHILockTextureCubeFace(Texture, FaceIndex, ArrayIndex, MipIndex, LockMode, DestStride, bLockWithinMiptail);
+	}
+	
+	FORCEINLINE void UnlockTextureCubeFace(FTextureCubeRHIParamRef Texture, uint32 FaceIndex, uint32 ArrayIndex, uint32 MipIndex, bool bLockWithinMiptail)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_UnlockTextureCubeFace_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true );  
+		GDynamicRHI->RHIUnlockTextureCubeFace(Texture, FaceIndex, ArrayIndex, MipIndex, bLockWithinMiptail);
+	}
+	
+	FORCEINLINE void BindDebugLabelName(FTextureRHIParamRef Texture, const TCHAR* Name)
+	{
+		RHIBindDebugLabelName(Texture, Name);
+	}
+	
+	FORCEINLINE void ReadSurfaceData(FTextureRHIParamRef Texture,FIntRect Rect,TArray<FColor>& OutData,FReadSurfaceDataFlags InFlags)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_ReadSurfaceData_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread);  
+		GDynamicRHI->RHIReadSurfaceData(Texture,Rect,OutData,InFlags);
+	}
+	
+	FORCEINLINE void MapStagingSurface(FTextureRHIParamRef Texture,void*& OutData,int32& OutWidth,int32& OutHeight)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_MapStagingSurface_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread);  
+		GDynamicRHI->RHIMapStagingSurface(Texture,OutData,OutWidth,OutHeight);
+	}
+	
+	FORCEINLINE void UnmapStagingSurface(FTextureRHIParamRef Texture)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_UnmapStagingSurface_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread);  
+		GDynamicRHI->RHIUnmapStagingSurface(Texture);
+	}
+	
+	FORCEINLINE void ReadSurfaceFloatData(FTextureRHIParamRef Texture,FIntRect Rect,TArray<FFloat16Color>& OutData,ECubeFace CubeFace,int32 ArrayIndex,int32 MipIndex)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_ReadSurfaceFloatData_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread);  
+		GDynamicRHI->RHIReadSurfaceFloatData(Texture,Rect,OutData,CubeFace,ArrayIndex,MipIndex);
+	}
+	
+	FORCEINLINE void Read3DSurfaceFloatData(FTextureRHIParamRef Texture,FIntRect Rect,FIntPoint ZMinMax,TArray<FFloat16Color>& OutData)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_Read3DSurfaceFloatData_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread);  
+		GDynamicRHI->RHIRead3DSurfaceFloatData(Texture,Rect,ZMinMax,OutData);
+	}
+	
+	FORCEINLINE FRenderQueryRHIRef CreateRenderQuery(ERenderQueryType QueryType)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateRenderQuery_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		return GDynamicRHI->RHICreateRenderQuery(QueryType);
+	}
+	
+	FORCEINLINE bool GetRenderQueryResult(FRenderQueryRHIParamRef RenderQuery, uint64& OutResult, bool bWait)
+	{
+		return RHIGetRenderQueryResult(RenderQuery, OutResult, bWait);
+	}
+	
+	FORCEINLINE FTexture2DRHIRef GetViewportBackBuffer(FViewportRHIParamRef Viewport)
+	{
+		return RHIGetViewportBackBuffer(Viewport);
+	}
+	
+	FORCEINLINE void AdvanceFrameForGetViewportBackBuffer()
+	{
+		return RHIAdvanceFrameForGetViewportBackBuffer();
+	}
+	
+	FORCEINLINE bool IsDrawingViewport()
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_IsDrawingViewport_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
+		return GDynamicRHI->RHIIsDrawingViewport();
+	}
+	
+	FORCEINLINE void AcquireThreadOwnership()
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_AcquireThreadOwnership_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
+		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
+		return GDynamicRHI->RHIAcquireThreadOwnership();
+	}
+	
+	FORCEINLINE void ReleaseThreadOwnership()
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_ReleaseThreadOwnership_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
+		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
+		return GDynamicRHI->RHIReleaseThreadOwnership();
+	}
+	
+	FORCEINLINE void FlushResources()
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_FlushResources_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
+		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
+		return GDynamicRHI->RHIFlushResources();
+	}
+	
+	FORCEINLINE uint32 GetGPUFrameCycles()
+	{
+		return RHIGetGPUFrameCycles();
+	}
+	
+	FORCEINLINE FViewportRHIRef CreateViewport(void* WindowHandle, uint32 SizeX, uint32 SizeY, bool bIsFullscreen, EPixelFormat PreferredPixelFormat)
+	{
+		return RHICreateViewport(WindowHandle, SizeX, SizeY, bIsFullscreen, PreferredPixelFormat);
+	}
+	
+	FORCEINLINE void ResizeViewport(FViewportRHIParamRef Viewport, uint32 SizeX, uint32 SizeY, bool bIsFullscreen)
+	{
+		RHIResizeViewport(Viewport, SizeX, SizeY, bIsFullscreen);
+	}
+	
+	FORCEINLINE void Tick(float DeltaTime)
+	{
+		RHITick(DeltaTime);
+	}
+	
+	FORCEINLINE void SetStreamOutTargets(uint32 NumTargets,const FVertexBufferRHIParamRef* VertexBuffers,const uint32* Offsets)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_SetStreamOutTargets_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread);  
+		GDynamicRHI->RHISetStreamOutTargets(NumTargets,VertexBuffers,Offsets);
+	}
+	
+	FORCEINLINE void DiscardRenderTargets(bool Depth,bool Stencil,uint32 ColorBitMask)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_DiscardRenderTargets_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread);  
+		GDynamicRHI->RHIDiscardRenderTargets(Depth,Stencil,ColorBitMask);
+	}
+	
+	FORCEINLINE void BlockUntilGPUIdle()
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_BlockUntilGPUIdle_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread);  
+		GDynamicRHI->RHIBlockUntilGPUIdle();
+	}
+	
+	FORCEINLINE void SuspendRendering()
+	{
+		RHISuspendRendering();
+	}
+	
+	FORCEINLINE void ResumeRendering()
+	{
+		RHIResumeRendering();
+	}
+	
+	FORCEINLINE bool IsRenderingSuspended()
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_IsRenderingSuspended_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
+		return GDynamicRHI->RHIIsRenderingSuspended();
+	}
+	
+	FORCEINLINE bool GetAvailableResolutions(FScreenResolutionArray& Resolutions, bool bIgnoreRefreshRate)
+	{
+		return RHIGetAvailableResolutions(Resolutions, bIgnoreRefreshRate);
+	}
+	
+	FORCEINLINE void GetSupportedResolution(uint32& Width, uint32& Height)
+	{
+		RHIGetSupportedResolution(Width, Height);
+	}
+	
+	FORCEINLINE void VirtualTextureSetFirstMipInMemory(FTexture2DRHIParamRef Texture, uint32 FirstMip)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_VirtualTextureSetFirstMipInMemory_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		GDynamicRHI->RHIVirtualTextureSetFirstMipInMemory(Texture, FirstMip);
+	}
+	
+	FORCEINLINE void VirtualTextureSetFirstMipVisible(FTexture2DRHIParamRef Texture, uint32 FirstMip)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_VirtualTextureSetFirstMipVisible_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		GDynamicRHI->RHIVirtualTextureSetFirstMipVisible(Texture, FirstMip);
+	}
+	
+	FORCEINLINE void ExecuteCommandList(FRHICommandList* CmdList)
+	{
+		if(GRHIThread)
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_ExecuteCommandList_WaitRHI);
+			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
+		}
+		GDynamicRHI->RHIExecuteCommandList(CmdList);
+	}
+	
+	FORCEINLINE void* GetNativeDevice()
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_GetNativeDevice_Flush);
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
+		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
+		return GDynamicRHI->RHIGetNativeDevice();
+	}
+	
+	FORCEINLINE class IRHICommandContext* GetDefaultContext()
+	{
+		return RHIGetDefaultContext();
+	}
+	
+	FORCEINLINE class IRHICommandContextContainer* GetCommandContextContainer()
+	{
+		return RHIGetCommandContextContainer();
+	}
+	
 
 };
 
@@ -2072,27 +2730,268 @@ struct FScopedCommandListWaitForTasks
 	}
 };
 
-#define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation)
-#define DEFINE_RHIMETHOD(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation)
-#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation)
 
-#define DEFINE_RHIMETHOD_GLOBAL(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
-	FORCEINLINE_DEBUGGABLE Type RHI##Name ParameterTypesAndNames \
-	{ \
-		ReturnStatement FRHICommandListExecutor::GetImmediateCommandList().Name ParameterNames; \
-	}
+FORCEINLINE FVertexDeclarationRHIRef RHICreateVertexDeclaration(const FVertexDeclarationElementList& Elements)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateVertexDeclaration(Elements);
+}
 
-#define DEFINE_RHIMETHOD_GLOBALFLUSH(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
-	FORCEINLINE_DEBUGGABLE Type RHI##Name ParameterTypesAndNames \
-	{ \
-		ReturnStatement FRHICommandListExecutor::GetImmediateCommandList().Name ParameterNames; \
-	}
-#include "RHIMethods.h"
-#undef DEFINE_RHIMETHOD
-#undef DEFINE_RHIMETHOD_CMDLIST
-#undef DEFINE_RHIMETHOD_GLOBAL
-#undef DEFINE_RHIMETHOD_GLOBALFLUSH
-#undef DEFINE_RHIMETHOD_GLOBALTHREADSAFE
+FORCEINLINE FPixelShaderRHIRef RHICreatePixelShader(const TArray<uint8>& Code)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreatePixelShader(Code);
+}
+
+FORCEINLINE FVertexShaderRHIRef RHICreateVertexShader(const TArray<uint8>& Code)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateVertexShader(Code);
+}
+
+FORCEINLINE FHullShaderRHIRef RHICreateHullShader(const TArray<uint8>& Code)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateHullShader(Code);
+}
+
+FORCEINLINE FDomainShaderRHIRef RHICreateDomainShader(const TArray<uint8>& Code)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateDomainShader(Code);
+}
+
+FORCEINLINE FGeometryShaderRHIRef RHICreateGeometryShader(const TArray<uint8>& Code)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateGeometryShader(Code);
+}
+
+FORCEINLINE FGeometryShaderRHIRef RHICreateGeometryShaderWithStreamOutput(const TArray<uint8>& Code, const FStreamOutElementList& ElementList, uint32 NumStrides, const uint32* Strides, int32 RasterizedStream)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateGeometryShaderWithStreamOutput(Code, ElementList, NumStrides, Strides, RasterizedStream);
+}
+
+FORCEINLINE FComputeShaderRHIRef RHICreateComputeShader(const TArray<uint8>& Code)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateComputeShader(Code);
+}
+
+FORCEINLINE FIndexBufferRHIRef RHICreateIndexBuffer(uint32 Stride, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateIndexBuffer(Stride, Size, InUsage, CreateInfo);
+}
+
+FORCEINLINE void* RHILockIndexBuffer(FIndexBufferRHIParamRef IndexBuffer, uint32 Offset, uint32 Size, EResourceLockMode LockMode)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().LockIndexBuffer(IndexBuffer, Offset, Size, LockMode);
+}
+
+FORCEINLINE void RHIUnlockIndexBuffer(FIndexBufferRHIParamRef IndexBuffer)
+{
+	 FRHICommandListExecutor::GetImmediateCommandList().UnlockIndexBuffer(IndexBuffer);
+}
+
+FORCEINLINE FVertexBufferRHIRef RHICreateVertexBuffer(uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateVertexBuffer(Size, InUsage, CreateInfo);
+}
+
+FORCEINLINE void* RHILockVertexBuffer(FVertexBufferRHIParamRef VertexBuffer, uint32 Offset, uint32 SizeRHI, EResourceLockMode LockMode)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().LockVertexBuffer(VertexBuffer, Offset, SizeRHI, LockMode);
+}
+
+FORCEINLINE void RHIUnlockVertexBuffer(FVertexBufferRHIParamRef VertexBuffer)
+{
+	 FRHICommandListExecutor::GetImmediateCommandList().UnlockVertexBuffer(VertexBuffer);
+}
+
+FORCEINLINE FStructuredBufferRHIRef RHICreateStructuredBuffer(uint32 Stride, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateStructuredBuffer(Stride, Size, InUsage, CreateInfo);
+}
+
+FORCEINLINE void* RHILockStructuredBuffer(FStructuredBufferRHIParamRef StructuredBuffer, uint32 Offset, uint32 SizeRHI, EResourceLockMode LockMode)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().LockStructuredBuffer(StructuredBuffer, Offset, SizeRHI, LockMode);
+}
+
+FORCEINLINE void RHIUnlockStructuredBuffer(FStructuredBufferRHIParamRef StructuredBuffer)
+{
+	 FRHICommandListExecutor::GetImmediateCommandList().UnlockStructuredBuffer(StructuredBuffer);
+}
+
+FORCEINLINE FUnorderedAccessViewRHIRef RHICreateUnorderedAccessView(FStructuredBufferRHIParamRef StructuredBuffer, bool bUseUAVCounter, bool bAppendBuffer)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateUnorderedAccessView(StructuredBuffer, bUseUAVCounter, bAppendBuffer);
+}
+
+FORCEINLINE FUnorderedAccessViewRHIRef RHICreateUnorderedAccessView(FTextureRHIParamRef Texture)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateUnorderedAccessView(Texture);
+}
+
+FORCEINLINE FUnorderedAccessViewRHIRef RHICreateUnorderedAccessView(FVertexBufferRHIParamRef VertexBuffer, uint8 Format)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateUnorderedAccessView(VertexBuffer, Format);
+}
+
+FORCEINLINE FShaderResourceViewRHIRef RHICreateShaderResourceView(FStructuredBufferRHIParamRef StructuredBuffer)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateShaderResourceView(StructuredBuffer);
+}
+
+FORCEINLINE FShaderResourceViewRHIRef RHICreateShaderResourceView(FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint8 Format)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateShaderResourceView(VertexBuffer, Stride, Format);
+}
+
+FORCEINLINE FTextureReferenceRHIRef RHICreateTextureReference(FLastRenderTimeContainer* LastRenderTime)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateTextureReference(LastRenderTime);
+}
+
+FORCEINLINE void RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture)
+{
+	 FRHICommandListExecutor::GetImmediateCommandList().UpdateTextureReference(TextureRef, NewTexture);
+}
+
+FORCEINLINE FTexture2DRHIRef RHICreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FRHIResourceCreateInfo& CreateInfo)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateTexture2D(SizeX, SizeY, Format, NumMips, NumSamples, Flags, CreateInfo);
+}
+
+FORCEINLINE FTexture2DRHIRef RHIAsyncCreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, void** InitialMipData, uint32 NumInitialMips)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().AsyncCreateTexture2D(SizeX, SizeY, Format, NumMips, Flags, InitialMipData, NumInitialMips);
+}
+
+FORCEINLINE void RHICopySharedMips(FTexture2DRHIParamRef DestTexture2D, FTexture2DRHIParamRef SrcTexture2D)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CopySharedMips(DestTexture2D, SrcTexture2D);
+}
+
+FORCEINLINE FTexture2DArrayRHIRef RHICreateTexture2DArray(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateTexture2DArray(SizeX, SizeY, SizeZ, Format, NumMips, Flags, CreateInfo);
+}
+
+FORCEINLINE FTexture3DRHIRef RHICreateTexture3D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateTexture3D(SizeX, SizeY, SizeZ, Format, NumMips, Flags, CreateInfo);
+}
+
+FORCEINLINE FShaderResourceViewRHIRef RHICreateShaderResourceView(FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateShaderResourceView(Texture2DRHI, MipLevel);
+}
+
+FORCEINLINE FShaderResourceViewRHIRef RHICreateShaderResourceView(FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel, uint8 NumMipLevels, uint8 Format)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateShaderResourceView(Texture2DRHI, MipLevel, NumMipLevels, Format);
+}
+
+FORCEINLINE FTexture2DRHIRef RHIAsyncReallocateTexture2D(FTexture2DRHIParamRef Texture2D, int32 NewMipCount, int32 NewSizeX, int32 NewSizeY, FThreadSafeCounter* RequestStatus)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().AsyncReallocateTexture2D(Texture2D, NewMipCount, NewSizeX, NewSizeY, RequestStatus);
+}
+
+FORCEINLINE ETextureReallocationStatus RHIFinalizeAsyncReallocateTexture2D(FTexture2DRHIParamRef Texture2D, bool bBlockUntilCompleted)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().FinalizeAsyncReallocateTexture2D(Texture2D, bBlockUntilCompleted);
+}
+
+FORCEINLINE ETextureReallocationStatus RHICancelAsyncReallocateTexture2D(FTexture2DRHIParamRef Texture2D, bool bBlockUntilCompleted)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CancelAsyncReallocateTexture2D(Texture2D, bBlockUntilCompleted);
+}
+
+FORCEINLINE void* RHILockTexture2D(FTexture2DRHIParamRef Texture, uint32 MipIndex, EResourceLockMode LockMode, uint32& DestStride, bool bLockWithinMiptail)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().LockTexture2D(Texture, MipIndex, LockMode, DestStride, bLockWithinMiptail);
+}
+
+FORCEINLINE void RHIUnlockTexture2D(FTexture2DRHIParamRef Texture, uint32 MipIndex, bool bLockWithinMiptail)
+{
+	 FRHICommandListExecutor::GetImmediateCommandList().UnlockTexture2D(Texture, MipIndex, bLockWithinMiptail);
+}
+
+FORCEINLINE void* RHILockTexture2DArray(FTexture2DArrayRHIParamRef Texture, uint32 TextureIndex, uint32 MipIndex, EResourceLockMode LockMode, uint32& DestStride, bool bLockWithinMiptail)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().LockTexture2DArray(Texture, TextureIndex, MipIndex, LockMode, DestStride, bLockWithinMiptail);
+}
+
+FORCEINLINE void RHIUnlockTexture2DArray(FTexture2DArrayRHIParamRef Texture, uint32 TextureIndex, uint32 MipIndex, bool bLockWithinMiptail)
+{
+	 FRHICommandListExecutor::GetImmediateCommandList().UnlockTexture2DArray(Texture, TextureIndex, MipIndex, bLockWithinMiptail);
+}
+
+FORCEINLINE void RHIUpdateTexture2D(FTexture2DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion2D& UpdateRegion, uint32 SourcePitch, const uint8* SourceData)
+{
+	 FRHICommandListExecutor::GetImmediateCommandList().UpdateTexture2D(Texture, MipIndex, UpdateRegion, SourcePitch, SourceData);
+}
+
+FORCEINLINE void RHIUpdateTexture3D(FTexture3DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion3D& UpdateRegion, uint32 SourceRowPitch, uint32 SourceDepthPitch, const uint8* SourceData)
+{
+	 FRHICommandListExecutor::GetImmediateCommandList().UpdateTexture3D(Texture, MipIndex, UpdateRegion, SourceRowPitch, SourceDepthPitch, SourceData);
+}
+
+FORCEINLINE FTextureCubeRHIRef RHICreateTextureCube(uint32 Size, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateTextureCube(Size, Format, NumMips, Flags, CreateInfo);
+}
+
+FORCEINLINE FTextureCubeRHIRef RHICreateTextureCubeArray(uint32 Size, uint32 ArraySize, uint8 Format, uint32 NumMips, uint32 Flags, FRHIResourceCreateInfo& CreateInfo)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateTextureCubeArray(Size, ArraySize, Format, NumMips, Flags, CreateInfo);
+}
+
+FORCEINLINE void* RHILockTextureCubeFace(FTextureCubeRHIParamRef Texture, uint32 FaceIndex, uint32 ArrayIndex, uint32 MipIndex, EResourceLockMode LockMode, uint32& DestStride, bool bLockWithinMiptail)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().LockTextureCubeFace(Texture, FaceIndex, ArrayIndex, MipIndex, LockMode, DestStride, bLockWithinMiptail);
+}
+
+FORCEINLINE void RHIUnlockTextureCubeFace(FTextureCubeRHIParamRef Texture, uint32 FaceIndex, uint32 ArrayIndex, uint32 MipIndex, bool bLockWithinMiptail)
+{
+	 FRHICommandListExecutor::GetImmediateCommandList().UnlockTextureCubeFace(Texture, FaceIndex, ArrayIndex, MipIndex, bLockWithinMiptail);
+}
+
+FORCEINLINE FRenderQueryRHIRef RHICreateRenderQuery(ERenderQueryType QueryType)
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().CreateRenderQuery(QueryType);
+}
+
+FORCEINLINE void RHIAcquireThreadOwnership()
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().AcquireThreadOwnership();
+}
+
+FORCEINLINE void RHIReleaseThreadOwnership()
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().ReleaseThreadOwnership();
+}
+
+FORCEINLINE void RHIFlushResources()
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().FlushResources();
+}
+
+FORCEINLINE void RHIVirtualTextureSetFirstMipInMemory(FTexture2DRHIParamRef Texture, uint32 FirstMip)
+{
+	 FRHICommandListExecutor::GetImmediateCommandList().VirtualTextureSetFirstMipInMemory(Texture, FirstMip);
+}
+
+FORCEINLINE void RHIVirtualTextureSetFirstMipVisible(FTexture2DRHIParamRef Texture, uint32 FirstMip)
+{
+	 FRHICommandListExecutor::GetImmediateCommandList().VirtualTextureSetFirstMipVisible(Texture, FirstMip);
+}
+
+FORCEINLINE void RHIExecuteCommandList(FRHICommandList* CmdList)
+{
+	 FRHICommandListExecutor::GetImmediateCommandList().ExecuteCommandList(CmdList);
+}
+
+FORCEINLINE void* RHIGetNativeDevice()
+{
+	return FRHICommandListExecutor::GetImmediateCommandList().GetNativeDevice();
+}
+
+
 
 
 #include "RHICommandList.inl"

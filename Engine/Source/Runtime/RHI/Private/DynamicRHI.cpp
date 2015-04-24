@@ -11,8 +11,6 @@
 	#define PLATFORM_ALLOW_NULL_RHI		0
 #endif
 
-#if USE_DYNAMIC_RHI
-
 // Globals.
 FDynamicRHI* GDynamicRHI = NULL;
 
@@ -76,44 +74,4 @@ void RHIExit()
 	}
 }
 
-#define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation)
-
-#define DEFINE_RHIMETHOD_GLOBAL(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
-	RHI_API Type Name##_Internal ParameterTypesAndNames \
-	{ \
-		check(GDynamicRHI); \
-		ReturnStatement GDynamicRHI->RHI##Name ParameterNames; \
-	}
-#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
-	RHI_API Type RHI##Name ParameterTypesAndNames \
-	{ \
-		check(GDynamicRHI); \
-		ReturnStatement GDynamicRHI->RHI##Name ParameterNames; \
-	}
-#define DEFINE_RHIMETHOD_GLOBALFLUSH(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
-	RHI_API Type Name##_Internal ParameterTypesAndNames \
-	{ \
-		check(GDynamicRHI); \
-		ReturnStatement GDynamicRHI->RHI##Name ParameterNames; \
-	}
-#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
-	RHI_API Type Name##_Internal ParameterTypesAndNames \
-	{ \
-		check(GDynamicRHI); \
-		ReturnStatement GDynamicRHI->RHI##Name ParameterNames; \
-	}
-#include "RHIMethods.h"
-#undef DEFINE_RHIMETHOD
-#undef DEFINE_RHIMETHOD_CMDLIST
-#undef DEFINE_RHIMETHOD_GLOBAL
-#undef DEFINE_RHIMETHOD_GLOBALFLUSH
-#undef DEFINE_RHIMETHOD_GLOBALTHREADSAFE
-
-
-#else
-
-// Suppress linker warning "warning LNK4221: no public symbols found; archive member will be inaccessible"
-int32 DynamicRHILinkerHelper;
-
-#endif // USE_DYNAMIC_RHI
 

@@ -1024,42 +1024,8 @@ DECLARE_MEMORY_STAT_POOL_EXTERN(TEXT("Pixel buffer memory"),STAT_PixelBufferMemo
 
 // RHI base resource types.
 #include "RHIResources.h"
+#include "DynamicRHI.h"
 
-//
-// Platform-specific RHI types.
-//
-#if PLATFORM_USES_DYNAMIC_RHI
-	// Use dynamically bound RHIs on PCs and when using the null RHI.
-	#define USE_DYNAMIC_RHI 1
-	#include "DynamicRHI.h"
-#else
-	// Fall back to the null RHI
-	#define USE_DYNAMIC_RHI 1
-	#include "DynamicRHI.h"
-#endif
-
-#if !USE_DYNAMIC_RHI
-	// Define the statically bound RHI methods with the RHI name prefix.
-#define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
-	extern Type Name##_Internal ParameterTypesAndNames
-#define DEFINE_RHIMETHOD_GLOBAL(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
-	extern Type Name##_Internal ParameterTypesAndNames
-#define DEFINE_RHIMETHOD_GLOBALTHREADSAFE(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
-	extern Type RHI##Name ParameterTypesAndNames
-#define DEFINE_RHIMETHOD_GLOBALFLUSH(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
-	extern Type Name##_Internal ParameterTypesAndNames
-#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
-	extern Type Name##_Internal ParameterTypesAndNames
-
-#include "RHIMethods.h"
-#undef DEFINE_RHIMETHOD
-#undef DEFINE_RHIMETHOD_CMDLIST
-#undef DEFINE_RHIMETHOD_GLOBAL
-#undef DEFINE_RHIMETHOD_GLOBALFLUSH
-#undef DEFINE_RHIMETHOD_GLOBALTHREADSAFE
-
-
-#endif
 
 /** Initializes the RHI. */
 extern RHI_API void RHIInit(bool bHasEditorToken);

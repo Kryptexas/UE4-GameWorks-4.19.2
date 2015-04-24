@@ -3,8 +3,6 @@
 #include "NullDrvPrivate.h"
 #include "RHI.h"
 
-#if USE_DYNAMIC_RHI
-
 #include "NullRHI.h"
 #include "RenderResource.h"
 
@@ -73,10 +71,7 @@ This is used to get the same behavior as the old *_OR_IMMEDIATE present modes. *
 uint32 GPresentImmediateThreshold = 100;
 
 
-#else //USE_DYNAMIC_RHI
 
 
 // Suppress linker warning "warning LNK4221: no public symbols found; archive member will be inaccessible"
 int32 NullRHILinkerHelper;
-
-#endif //USE_DYNAMIC_RHI

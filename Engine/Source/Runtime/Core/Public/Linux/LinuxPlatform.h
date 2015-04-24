@@ -43,8 +43,6 @@ typedef FLinuxPlatformTypes FPlatformTypes;
 #define PLATFORM_HAS_BSD_SOCKET_FEATURE_IOCTL		1
 #define PLATFORM_HAS_BSD_IPV6_SOCKETS				1
 
-#define PLATFORM_USES_DYNAMIC_RHI					1
-
 // only enable vectorintrinsics on x86(-64) for now
 #if defined(_M_IX86) || defined(__i386__) || defined(_M_X64) || defined(__x86_64__) || defined (__amd64__) 
 	#define PLATFORM_ENABLE_VECTORINTRINSICS		1

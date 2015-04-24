@@ -533,7 +533,6 @@ void FRHICommandListBase::Reset()
 	NumCommands = 0;
 	Root = nullptr;
 	CommandLink = &Root;
-	static_assert(USE_DYNAMIC_RHI, "static RHIs are not supported.");
 	Context = GDynamicRHI ? RHIGetDefaultContext() : nullptr;
 #if USE_RHICOMMAND_STATE_REDUCTION
 	StateCache = nullptr;

@@ -390,9 +390,9 @@ void FRHICommandEndScene::Execute(FRHICommandListBase& CmdList)
 void FRHICommandUpdateVertexBuffer::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(UpdateVertexBuffer);
-	void* Data = LockVertexBuffer_Internal(VertexBuffer, 0, BufferSize, RLM_WriteOnly);
+	void* Data = GDynamicRHI->RHILockVertexBuffer(VertexBuffer, 0, BufferSize, RLM_WriteOnly);
 	FMemory::Memcpy(Data, Buffer, BufferSize);
-	UnlockVertexBuffer_Internal(VertexBuffer);
+	GDynamicRHI->RHIUnlockVertexBuffer(VertexBuffer);
 }
 
 void FRHICommandBeginFrame::Execute(FRHICommandListBase& CmdList)
