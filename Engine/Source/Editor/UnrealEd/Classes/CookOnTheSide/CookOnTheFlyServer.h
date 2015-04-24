@@ -641,6 +641,7 @@ private:
 	ECookInitializationFlags CookFlags;
 	TAutoPtr<class FSandboxPlatformFile> SandboxFile;
 	bool bIsSavingPackage; // used to stop recursive mark package dirty functions
+	TSet<FName> PackagesKeptFromPreviousCook; // used for iterative cooking this is a list of the packages which were kept from the previous cook
 
 	//////////////////////////////////////////////////////////////////////////
 
@@ -888,14 +889,14 @@ private:
 	/**
 	 * Collect all the files which need to be cooked for a cook by the book session
 	 */
-	void CollectFilesToCook(TArray<FString>& FilesInPath, 
+	void CollectFilesToCook(TArray<FName>& FilesInPath, 
 		const TArray<FString>& CookMaps, const TArray<FString>& CookDirectories, const TArray<FString>& CookCultures, 
 		const TArray<FString>& IniMapSections, bool bCookAll, bool bMapsOnly, bool bNoDev);
 
 	/**
 	 * AddFileToCook add file to cook list 
 	 */
-	void AddFileToCook( TArray<FString>& InOutFilesToCook, const FString &InFilename ) const;
+	void AddFileToCook( TArray<FName>& InOutFilesToCook, const FString &InFilename ) const;
 
 	/**
 	 * Call back from the TickCookOnTheSide when a cook by the book finishes (when started form StartCookByTheBook)
@@ -1003,6 +1004,18 @@ private:
 	 */
 	FString ConvertToFullSandboxPath( const FString &FileName, bool bForWrite = false ) const;
 	FString ConvertToFullSandboxPath( const FString &FileName, bool bForWrite, const FString& PlatformName ) const;
+
+
+
+	/**
+	 * GetSandboxAssetRegistryFilename
+	 * 
+	 * return full path of the asset registry in the sandbox
+	 */
+	const FString GetSandboxAssetRegistryFilename();
+
+	const FString GetCookedAssetRegistryFilename(const FString& PlatformName);
+
 	/**
 	 * Get the sandbox root directory for that platform
 	 * is effected by the CookingDlc settings
@@ -1124,7 +1137,7 @@ private:
 	void GenerateAssetRegistry(const TArray<ITargetPlatform*>& Platforms);
 
 	/** Generates long package names for all files to be cooked */
-	void GenerateLongPackageNames(TArray<FString>& FilesInPath);
+	void GenerateLongPackageNames(TArray<FName>& FilesInPath);
 
 
 	void GetDependencies( UPackage* Package, TArray<UPackage*> Dependencies );

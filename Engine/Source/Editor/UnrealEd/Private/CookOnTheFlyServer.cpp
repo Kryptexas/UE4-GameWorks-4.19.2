@@ -2482,6 +2482,9 @@ void UCookOnTheFlyServer::CleanSandbox( const bool bIterative )
 			TArray<FString> DirectoriesToSkip;
 			TArray<FString> DirectoriesToNotRecurse;
 
+
+			PackagesKeptFromPreviousCook.Empty();
+
 			// See what files are out of date in the sandbox folder
 			for (int32 Index = 0; Index < Platforms.Num(); Index++)
 			{
@@ -2500,6 +2503,7 @@ void UCookOnTheFlyServer::CleanSandbox( const bool bIterative )
 					FDateTime CookedTimestamp = TimestampIt.Value();
 					FString StandardCookedFilename = CookedFilename.Replace(*SandboxDirectory, *(FPaths::GetRelativePathToRoot()));
 					FDateTime DependentTimestamp;
+					FName StandardCookedFileFName = FName(*StandardCookedFilename);
 
 					if (PDInfoModule.DeterminePackageDependentTimeStamp(*(FPaths::GetBaseFilename(StandardCookedFilename, false)), DependentTimestamp) == true)
 					{
@@ -2512,8 +2516,17 @@ void UCookOnTheFlyServer::CleanSandbox( const bool bIterative )
 #endif
 							IFileManager::Get().Delete(*CookedFilename);
 
-							CookedPackages.RemoveFileForPlatform(FName(*StandardCookedFilename), PlatformFName);
+							PackagesKeptFromPreviousCook.Remove(StandardCookedFileFName);
+							CookedPackages.RemoveFileForPlatform(StandardCookedFileFName, PlatformFName);
 						}
+						else
+						{
+							PackagesKeptFromPreviousCook.Add(StandardCookedFileFName);
+						}
+					}
+					else
+					{
+						PackagesKeptFromPreviousCook.Add(StandardCookedFileFName);
 					}
 				}
 			}
@@ -2561,7 +2574,7 @@ void UCookOnTheFlyServer::GenerateAssetRegistry(const TArray<ITargetPlatform*>& 
 	UE_LOG(LogCook, Display, TEXT("Done creating registry. It took %5.2fs."), GenerateAssetRegistryTime);
 }
 
-void UCookOnTheFlyServer::GenerateLongPackageNames(TArray<FString>& FilesInPath)
+void UCookOnTheFlyServer::GenerateLongPackageNames(TArray<FName>& FilesInPath)
 {
 #if 0
 	TArray<FString> FilesInPathReverse;
@@ -2594,7 +2607,7 @@ void UCookOnTheFlyServer::GenerateLongPackageNames(TArray<FString>& FilesInPath)
 
 	for( int32 FileIndex = 0; FileIndex < FilesInPath.Num(); FileIndex++ )
 	{
-		const FString& FileInPath = FilesInPath[FilesInPath.Num() - FileIndex - 1];
+		const FString& FileInPath = FilesInPath[FilesInPath.Num() - FileIndex - 1].ToString();
 		if (FPackageName::IsValidLongPackageName(FileInPath))
 		{
 			const FName FileInPathFName(*FileInPath);
@@ -2616,14 +2629,15 @@ void UCookOnTheFlyServer::GenerateLongPackageNames(TArray<FString>& FilesInPath)
 		}
 	}
 	// Exchange(FilesInPathReverse, FilesInPath);
+	FilesInPath.Empty(FilesInPathReverse.Num());
 	for ( const auto& Files : FilesInPathReverse )
 	{
-		FilesInPath.Add(Files.ToString());
+		FilesInPath.Add(Files);
 	}
 #endif
 }
 
-void UCookOnTheFlyServer::AddFileToCook( TArray<FString>& InOutFilesToCook, const FString &InFilename ) const
+void UCookOnTheFlyServer::AddFileToCook( TArray<FName>& InOutFilesToCook, const FString &InFilename ) const
 { 
 	if (!FPackageName::IsScriptPackage(InFilename))
 	{
@@ -2634,12 +2648,12 @@ void UCookOnTheFlyServer::AddFileToCook( TArray<FString>& InOutFilesToCook, cons
 			InOutFilesToCook.Insert(InFilename, Index );
 		}
 #else
-		InOutFilesToCook.AddUnique(InFilename);
+		InOutFilesToCook.AddUnique(FName(*InFilename));
 #endif
 	}
 }
 
-void UCookOnTheFlyServer::CollectFilesToCook(TArray<FString>& FilesInPath, const TArray<FString> &CookMaps, const TArray<FString> &InCookDirectories, const TArray<FString> &CookCultures, const TArray<FString> &IniMapSections, bool bCookAll, bool bMapsOnly, bool bNoDev)
+void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const TArray<FString> &CookMaps, const TArray<FString> &InCookDirectories, const TArray<FString> &CookCultures, const TArray<FString> &IniMapSections, bool bCookAll, bool bMapsOnly, bool bNoDev)
 {
 	TArray<FString> CookDirectories = InCookDirectories;
 	
@@ -2948,6 +2962,19 @@ FString UCookOnTheFlyServer::ConvertToFullSandboxPath( const FString &FileName, 
 	return Result;
 }
 
+const FString UCookOnTheFlyServer::GetSandboxAssetRegistryFilename()
+{
+	static const FString RegistryFilename = FPaths::GameDir() / TEXT("AssetRegistry.bin");
+	const FString SandboxRegistryFilename = ConvertToFullSandboxPath(*RegistryFilename, true);
+	return SandboxRegistryFilename;
+}
+
+const FString UCookOnTheFlyServer::GetCookedAssetRegistryFilename(const FString& PlatformName )
+{
+	const FString CookedAssetRegistryFilename = GetSandboxAssetRegistryFilename().Replace(TEXT("[Platform]"), *PlatformName);
+	return CookedAssetRegistryFilename;
+}
+
 void UCookOnTheFlyServer::CookByTheBookFinished()
 {
 	check( IsInGameThread() );
@@ -2960,8 +2987,7 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 
 	{
 		// Save modified asset registry with all streaming chunk info generated during cook
-		const FString RegistryFilename = FPaths::GameDir() / TEXT("AssetRegistry.bin");
-		const FString SandboxRegistryFilename = ConvertToFullSandboxPath(*RegistryFilename, true);
+		const FString& SandboxRegistryFilename = GetSandboxAssetRegistryFilename();
 		// the registry filename will be modified when we call save asset registry
 		
 		const FString CookedAssetRegistry = FPaths::GameDir() / TEXT("CookedAssetRegistry.json");
@@ -3207,6 +3233,14 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 			ManifestGenerator->CleanManifestDirectories();
 			ManifestGenerator->Initialize( CookByTheBookOptions->bGenerateStreamingInstallManifests );
 
+
+			if (IsCookFlagSet(ECookInitializationFlags::Iterative) && (PackagesKeptFromPreviousCook.Num() > 0) )
+			{
+				const FString& SandboxRegistryFilename = GetSandboxAssetRegistryFilename();
+				ManifestGenerator->LoadAssetRegistry(GetCookedAssetRegistryFilename(PlatformName.ToString()), &PackagesKeptFromPreviousCook);
+			}
+
+
 			CookByTheBookOptions->ManifestGenerators.Add(PlatformName, ManifestGenerator);
 		}
 	}
@@ -3236,8 +3270,14 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 	}
 	
 	// allow the game to fill out the asset registry, as well as get a list of objects to always cook
-	TArray<FString> FilesInPath;
-	FGameDelegates::Get().GetCookModificationDelegate().ExecuteIfBound(FilesInPath);
+	TArray<FString> FilesInPathStrings;
+	FGameDelegates::Get().GetCookModificationDelegate().ExecuteIfBound(FilesInPathStrings);
+
+	TArray<FName> FilesInPath;
+	for (const auto& FileString : FilesInPathStrings)
+	{
+		FilesInPath.Add(FName(*FileString));
+	}
 
 	// don't resave the global shader map files in dlc
 	if ( !IsCookingDLC() )
@@ -3245,7 +3285,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 		SaveGlobalShaderMapFiles(TargetPlatforms);
 	}
 	
-
+	
 	CollectFilesToCook(FilesInPath, CookMaps, CookDirectories, CookCultures, IniMapSections, bCookAll, bMapsOnly, bNoDev );
 	if (FilesInPath.Num() == 0)
 	{
@@ -3260,9 +3300,10 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 		GenerateLongPackageNames(FilesInPath);
 	}
 	// add all the files for the requested platform to the cook list
-	for ( const auto& FileName : FilesInPath )
+	for ( const auto& FileFName : FilesInPath )
 	{
-		FName FileFName = FName(*FileName);
+		// FName FileFName = FName(*FileName);
+		FString FileName = FileFName.ToString();
 		FName PackageFileFName = GetCachedStandardPackageFileFName(FileFName);
 		
 		if (PackageFileFName != NAME_None)

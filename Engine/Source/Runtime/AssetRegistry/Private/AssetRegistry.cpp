@@ -1313,7 +1313,8 @@ void FAssetRegistry::Serialize(FArchive& Ar)
 {
 	if (Ar.IsSaving())
 	{
-		SaveRegistryData(Ar, CachedAssetsByObjectPath, NumAssets);
+		check(CachedAssetsByObjectPath.Num() == NumAssets);
+		SaveRegistryData(Ar, CachedAssetsByObjectPath);
 	}
 	// load in by building the TMap
 	else
@@ -1340,15 +1341,35 @@ void FAssetRegistry::Serialize(FArchive& Ar)
 	}
 }
 
-void FAssetRegistry::SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, int32 AssetCount)
+void FAssetRegistry::SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data )
 {
 	// serialize number of objects
+	int32 AssetCount = Data.Num();
 	Ar << AssetCount;
 
 	// save out by walking the TMap
 	for (TMap<FName, FAssetData*>::TIterator It(Data); It; ++It)
 	{
 		Ar << *It.Value();
+	}
+}
+
+void FAssetRegistry::LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data )
+{
+	check(Ar.IsLoading());
+	// serialize number of objects
+	int AssetCount = 0;
+	Ar << AssetCount;
+
+	for (int32 AssetIndex = 0; AssetIndex < AssetCount; AssetIndex++)
+	{
+		// make a new asset data object
+		FAssetData *NewAssetData = new FAssetData();
+
+		// load it
+		Ar << *NewAssetData;
+
+		Data.Add(NewAssetData->ObjectPath, NewAssetData);
 	}
 }
 
