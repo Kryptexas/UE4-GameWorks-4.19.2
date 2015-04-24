@@ -2062,7 +2062,7 @@ void UMaterialInstance::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 	UpdateStaticPermutation(StaticParameters);
 
-	if(PropertyChangedEvent.ChangeType == EPropertyChangeType::ValueSet)
+	if (PropertyChangedEvent.ChangeType == EPropertyChangeType::ValueSet || PropertyChangedEvent.ChangeType == EPropertyChangeType::Unspecified)
 	{
 		RecacheMaterialInstanceUniformExpressions(this);
 	}
