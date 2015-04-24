@@ -130,6 +130,11 @@ FLinearColor FCurveTableEditor::GetWorldCentricTabColorScale() const
 }
 
 
+const UCurveTable* FCurveTableEditor::GetCurveTable() const
+{
+	return Cast<const UCurveTable>(GetEditingObject());
+}
+
 TSharedRef<SDockTab> FCurveTableEditor::SpawnTab_CurveTable( const FSpawnTabArgs& Args )
 {
 	check( Args.GetTabId().TabType == CurveTableTabId );
@@ -258,7 +263,7 @@ void FCurveTableEditor::CacheDataTableForEditing()
 {
 	RowNameColumnWidth = 10.0f;
 
-	const UCurveTable* Table = Cast<const UCurveTable>(GetEditingObject());
+	const UCurveTable* Table = GetCurveTable();
 	if (!Table || Table->RowMap.Num() == 0)
 	{
 		AvailableColumns.Empty();
@@ -408,7 +413,7 @@ FOptionalSize FCurveTableEditor::GetRowNameColumnWidth() const
 
 void FCurveTableEditor::OnPostReimport(UObject* InObject, bool)
 {
-	const UCurveTable* Table = Cast<const UCurveTable>(GetEditingObject());
+	const UCurveTable* Table = GetCurveTable();
 	if (Table && Table == InObject)
 	{
 		RefreshCachedCurveTable();
