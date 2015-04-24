@@ -266,11 +266,6 @@ void FSequencerDisplayNode::GetChildKeyAreaNodesRecursively(TArray< TSharedRef<F
 	}
 }
 
-void FSequencerDisplayNode::SetSelectionState( bool bSelect, bool bDeselectOtherNodes )
-{
-	ParentTree.SetSelectionState( AsShared(), bSelect, bDeselectOtherNodes );
-}
-
 void FSequencerDisplayNode::ToggleExpansion()
 {
 	bExpanded = !bExpanded;
@@ -279,12 +274,6 @@ void FSequencerDisplayNode::ToggleExpansion()
 	ParentTree.SaveExpansionState( *this, bExpanded );
 
 	UpdateCachedShotFilteredVisibility();
-}
-
-bool FSequencerDisplayNode::IsSelected() const
-{
-	// Ask the tree if we are selected
-	return ParentTree.IsNodeSelected( SharedThis(this) );
 }
 
 bool FSequencerDisplayNode::IsExpanded() const

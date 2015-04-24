@@ -6,6 +6,7 @@
 #include "Runtime/MovieSceneCore/Public/IMovieScenePlayer.h"
 
 class UMovieScene;
+class FSequencerSelection;
 
 /**
  * Sequencer public interface
@@ -126,4 +127,6 @@ public:
 	virtual void UpdateRuntimeInstances() = 0;
 
 	virtual TSharedRef<ISequencerObjectBindingManager> GetObjectBindingManager() const = 0;
+
+	virtual FSequencerSelection* GetSelection() = 0;
 };

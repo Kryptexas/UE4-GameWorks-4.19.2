@@ -135,22 +135,9 @@ public:
 	virtual void GetChildKeyAreaNodesRecursively(TArray< TSharedRef<class FSectionKeyAreaNode> >& OutNodes) const;
 
 	/**
-	 * Selects or deselects this node
-	 *
-	 * @param bSelect				Whether or not this node should be selected
-	 * @param bDeselectOtherNodes	Whether or not to deselect other nodes
-	 */
-	void SetSelectionState( bool bSelect, bool bDeselectOtherNodes );
-
-	/**
 	 * Toggles the expansion state of this node
 	 */
 	void ToggleExpansion();
-
-	/**
-	 * @return Whether or not this node is selected
-	 */
-	bool IsSelected() const;
 
 	/**
 	 * @return Whether or not this node is expanded                                                              

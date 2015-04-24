@@ -696,15 +696,15 @@ void SSequencer::OnAssetsDropped( const FAssetDragDropOp& DragDropOp )
 		}
 	}
 
-	const TSet< TSharedRef<const FSequencerDisplayNode> >& SelectedNodes = SequencerNodeTree->GetSelectedNodes();
+	const TSet< TSharedRef<const FSequencerDisplayNode> >* SelectedNodes = Sequencer.Pin()->GetSelection()->GetSelectedOutlinerNodes();
 	FGuid TargetObjectGuid;
 	// if exactly one object node is selected, we have a target object guid
 	TSharedPtr<const FSequencerDisplayNode> DisplayNode;
-	if (SelectedNodes.Num() == 1)
+	if (SelectedNodes->Num() == 1)
 	{
-		for (TSet< TSharedRef<const FSequencerDisplayNode> >::TConstIterator It(SelectedNodes); It; ++It)
+		for (TSharedRef<const FSequencerDisplayNode> SelectedNode : *SelectedNodes )
 		{
-			DisplayNode = *It;
+			DisplayNode = SelectedNode;
 		}
 		if (DisplayNode.IsValid() && DisplayNode->GetType() == ESequencerNode::Object)
 		{
@@ -861,24 +861,21 @@ FText SSequencer::GetShotSectionTitle(UMovieSceneSection* ShotSection) const
 
 void SSequencer::DeleteSelectedNodes()
 {
-	const TSet< TSharedRef<const FSequencerDisplayNode> >& SelectedNodes = SequencerNodeTree->GetSelectedNodes();
+	const TSet< TSharedRef<const FSequencerDisplayNode> >* SelectedNodes = Sequencer.Pin()->GetSelection()->GetSelectedOutlinerNodes();
 
-	if( SelectedNodes.Num() > 0 )
+	if( SelectedNodes->Num() > 0 )
 	{
 		const FScopedTransaction Transaction( LOCTEXT("UndoDeletingObject", "Delete Object from MovieScene") );
 
 		FSequencer& SequencerRef = *Sequencer.Pin();
 
-		for( auto It = SelectedNodes.CreateConstIterator(); It; ++It )
+		for( auto SelectedNode : *SelectedNodes )
 		{
-			TSharedRef<const FSequencerDisplayNode> Node = *It;
-
-			if( Node->IsVisible() )
+			if( SelectedNode->IsVisible() )
 			{
 				// Delete everything in the entire node
-				SequencerRef.OnRequestNodeDeleted( Node );
+				SequencerRef.OnRequestNodeDeleted( SelectedNode );
 			}
-
 		}
 	}
 }
