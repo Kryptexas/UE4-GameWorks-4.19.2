@@ -344,6 +344,12 @@ public:
 			}
 		}
 
+		void MaintainBoneDataStartIndex() const
+		{
+			OldBoneFrameNumber[0]++;
+			OldBoneFrameNumber[1]++;
+		}
+
 		/** Checks if we need to update the data for this frame */
 		bool IsOldBoneDataUpdateNeeded(uint32 InFrameNumber) const
 		{
@@ -435,6 +441,11 @@ private:
 	void SetOldBoneDataStartIndex(uint32 FrameNumber, uint32 Index) const
 	{
 		ShaderData.SetOldBoneData(FrameNumber, Index);
+	}
+
+	void MaintainBoneDataStartIndex() const
+	{
+		ShaderData.MaintainBoneDataStartIndex();
 	}
 
 	static bool SupportsTessellationShaders() { return true; }

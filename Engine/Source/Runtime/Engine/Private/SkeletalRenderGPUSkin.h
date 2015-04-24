@@ -220,19 +220,15 @@ public:
 	/** @return 0 .. PER_BONE_BUFFER_COUNT-1 */
 	uint32 GetReadBufferIndex() const
 	{
-		return BufferIndex;
+		// we move the buffers for easier internal so it's a fixed position
+		return 0;
 	}
 
 	/** @return 0 .. PER_BONE_BUFFER_COUNT-1 */
 	uint32 GetWriteBufferIndex() const
 	{
-		uint32 ret = BufferIndex + 1;
-
-		if(ret >= PER_BONE_BUFFER_COUNT)
-		{
-			ret = 0;
-		}
-		return ret;
+		// we move the buffers for easier internal so it's a fixed position
+		return 1;
 	}
 
 
@@ -240,8 +236,6 @@ private:
 
 	/** Stores the bone information with one frame delay, required for per bone motion blur. Buffered to avoid stalls on texture Lock() */
 	FBoneDataVertexBuffer PerChunkBoneMatricesTexture[PER_BONE_BUFFER_COUNT];
-	/** cycles between the buffers to avoid stalls (when CPU would need to wait on GPU) */
-	uint32 BufferIndex;
 	/* !=0 if data is locked, does not change during the lock */
 	float* LockedData;
 	/** only valid if LockedData != 0, advances with every Append() */
@@ -253,7 +247,7 @@ private:
 
 
 	/** to cycle the internal buffer counter */
-	void AdvanceBufferIndex();
+	void AdvanceBufferLocation();
 };
 
 

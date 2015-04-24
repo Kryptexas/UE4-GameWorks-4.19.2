@@ -422,14 +422,14 @@ public:
 
 			bool bLocalPerBoneMotionBlur = false;
 			
-			if (FeatureLevel >= ERHIFeatureLevel::SM4 && GPrevPerBoneMotionBlur.IsAppendStarted())
+			if (FeatureLevel >= ERHIFeatureLevel::SM4 && PreviousBoneMatrices.IsBound())
 			{
 				const bool bWorldIsPaused = View.Family->bWorldIsPaused;
 
 				// we are in the velocity rendering pass
 
 				// 0xffffffff or valid index
-				uint32 OldBoneDataIndex = ShaderData.GetOldBoneData(FrameNumber);
+				uint32 OldBoneDataIndex = ShaderData.GetOldBoneData(bWorldIsPaused ? (FrameNumber - 1) : FrameNumber);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 				{
@@ -477,19 +477,29 @@ public:
 				// if we haven't copied the data yet we skip the update (e.g. split screen)
 				if(ShaderData.IsOldBoneDataUpdateNeeded(FrameNumber))
 				{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-					if (CVarVelocityTest.GetValueOnRenderThread())
+					if (bWorldIsPaused)
 					{
-						FBoneSkinning Tab[10];
-						GPrevPerBoneMotionBlur.AppendData(Tab, (FMath::Rand() % 55) + 1);
+						GPUVertexFactory->MaintainBoneDataStartIndex();
 					}
+					else
+					{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+						if (CVarVelocityTest.GetValueOnRenderThread())
+						{
+							FBoneSkinning Tab[10];
+
+							FMemory::Memset(Tab, 0, sizeof(FBoneSkinning) * 10);
+							// We add some black gap between the elements, to ensure we pick the right data for this frame
+							// wwe create different gap size on alternating frames.
+							GPrevPerBoneMotionBlur.AppendData(Tab, (FrameNumber % 2) + 4);
+						}
 #endif // if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
-					// copy the bone data and tell the instance where it can pick it up next frame
-					// append data to a buffer we bind next frame to read old matrix data for motion blur
-					
-					uint32 OldBoneDataStartIndex = GPrevPerBoneMotionBlur.AppendData(ShaderData.BoneMatrices.GetData(), ShaderData.BoneMatrices.Num());
-					GPUVertexFactory->SetOldBoneDataStartIndex(FrameNumber, OldBoneDataStartIndex);
+						// copy the bone data and tell the instance where it can pick it up next frame
+						// append data to a buffer we bind next frame to read old matrix data for motion blur
+						uint32 OldBoneDataStartIndex = GPrevPerBoneMotionBlur.AppendData(ShaderData.BoneMatrices.GetData(), ShaderData.BoneMatrices.Num());
+						GPUVertexFactory->SetOldBoneDataStartIndex(FrameNumber, OldBoneDataStartIndex);
+					}
 				}
 			}
 			SetShaderValue(RHICmdList, Shader->GetVertexShader(), PerBoneMotionBlur, bLocalPerBoneMotionBlur);

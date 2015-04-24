@@ -17,6 +17,23 @@ static TAutoConsoleVariable<int32> CVarBasePassOutputsVelocity(
 	TEXT(" 1: Renders during the regular base pass adding an extra GBuffer, but allowing motion blur on materials with Time-based WPO."),
 	ECVF_ReadOnly | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarParallelVelocity(
+	TEXT("r.ParallelVelocity"),
+	1,  
+	TEXT("Toggles parallel velocity rendering. Parallel rendering must be enabled for this to have an effect."),
+	ECVF_RenderThreadSafe
+	);
+
+static TAutoConsoleVariable<int32> CVarRHICmdVelocityPassDeferredContexts(
+	TEXT("r.RHICmdVelocityPassDeferredContexts"),
+	1,
+	TEXT("True to use deferred contexts to parallelize velocity pass command list execution."));
+
+bool IsParallelVelocity()
+{
+	return GRHICommandList.UseParallelAlgorithms() && CVarParallelVelocity.GetValueOnRenderThread();
+}
+
 //=============================================================================
 /** Encapsulates the Velocity vertex shader. */
 class FVelocityVS : public FMeshMaterialShader
@@ -628,11 +645,6 @@ public:
 	}
 };
 
-static TAutoConsoleVariable<int32> CVarRHICmdVelocityPassDeferredContexts(
-	TEXT("r.RHICmdVelocityPassDeferredContexts"),
-	1,
-	TEXT("True to use deferred contexts to parallelize velocity pass command list execution."));
-
 void FDeferredShadingSceneRenderer::RenderVelocitiesInnerParallel(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
 	// parallel version
@@ -690,15 +702,6 @@ void FDeferredShadingSceneRenderer::RenderVelocitiesInner(FRHICommandListImmedia
 	}
 }
 
-
-
-static TAutoConsoleVariable<int32> CVarParallelVelocity(
-	TEXT("r.ParallelVelocity"),
-	1,  
-	TEXT("Toggles parallel velocity rendering. Parallel rendering must be enabled for this to have an effect."),
-	ECVF_RenderThreadSafe
-	);
-
 bool FDeferredShadingSceneRenderer::ShouldRenderVelocities() const
 {
 	if (!GPixelFormats[PF_G16R16].Supported)
@@ -753,7 +756,7 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 
 		BeginVelocityRendering(RHICmdList, VelocityRT, true);
 
-		if (GRHICommandList.UseParallelAlgorithms() && CVarParallelVelocity.GetValueOnRenderThread())
+		if (IsParallelVelocity())
 		{
 			RenderVelocitiesInnerParallel(RHICmdList, VelocityRT);
 		}
