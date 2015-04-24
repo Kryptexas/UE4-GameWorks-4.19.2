@@ -498,6 +498,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_BODYINSTANCE_BINARY_SERIALIZATION,
 	// Added fastcall data serialization directly in UFunction
 	VER_UE4_SERIALIZE_BLUEPRINT_EVENTGRAPH_FASTCALLS_IN_UFUNCTION,
+	// Changes to USplineComponent and FInterpCurve
+	VER_UE4_SPLINE_COMPONENT_WITH_ROTATION_AND_SCALE,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

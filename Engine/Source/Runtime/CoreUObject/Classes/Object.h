@@ -601,6 +601,11 @@ struct FInterpCurveFloat
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveFloat)
 	TArray<FInterpCurvePointFloat> Points;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveFloat)
+	bool bIsLooped;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveFloat)
+	float LoopKeyOffset;
 };
 
 
@@ -633,6 +638,11 @@ struct FInterpCurveVector2D
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveVector2D)
 	TArray<FInterpCurvePointVector2D> Points;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveVector2D)
+	bool bIsLooped;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveVector2D)
+	float LoopKeyOffset;
 };
 
 
@@ -665,6 +675,48 @@ struct FInterpCurveVector
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveVector)
 	TArray<FInterpCurvePointVector> Points;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveVector)
+	bool bIsLooped;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveVector)
+	float LoopKeyOffset;
+};
+
+
+
+USTRUCT(noexport)
+struct FInterpCurvePointQuat
+{
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointQuat)
+	float InVal;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointQuat)
+	FQuat OutVal;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointQuat)
+	FQuat ArriveTangent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointQuat)
+	FQuat LeaveTangent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurvePointQuat)
+	TEnumAsByte<enum EInterpCurveMode> InterpMode;
+
+};
+
+
+
+USTRUCT(noexport)
+struct FInterpCurveQuat
+{
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveQuat)
+	TArray<FInterpCurvePointQuat> Points;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveQuat)
+	bool bIsLooped;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveQuat)
+	float LoopKeyOffset;
 };
 
 
@@ -697,6 +749,11 @@ struct FInterpCurveTwoVectors
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveTwoVectors)
 	TArray<FInterpCurvePointTwoVectors> Points;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveTwoVectors)
+	bool bIsLooped;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveTwoVectors)
+	float LoopKeyOffset;
 };
 
 
@@ -729,6 +786,11 @@ struct FInterpCurveLinearColor
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveLinearColor)
 	TArray<FInterpCurvePointLinearColor> Points;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveLinearColor)
+	bool bIsLooped;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=InterpCurveLinearColor)
+	float LoopKeyOffset;
 };
 
 

@@ -100,6 +100,12 @@ private:
 	void OnSetKeyType(EInterpCurveMode Mode);
 	bool IsKeyTypeSet(EInterpCurveMode Mode) const;
 
+	void OnSetVisualizeRollAndScale();
+	bool IsVisualizingRollAndScale() const;
+
+	void OnResetToDefault();
+	bool CanResetToDefault() const;
+
 	/** Generate the submenu containing the available point types */
 	void GenerateSplinePointTypeSubMenu(FMenuBuilder& MenuBuilder) const;
 
@@ -142,6 +148,9 @@ private:
 
 	/** Position on spline we have selected */
 	FVector SelectedSplinePosition;
+
+	/** Cached rotation for this point */
+	FQuat CachedRotation;
 
 	/** Whether we currently allow duplication when dragging */
 	bool bAllowDuplication;

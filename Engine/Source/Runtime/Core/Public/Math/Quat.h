@@ -195,13 +195,21 @@ public:
 	FORCEINLINE FQuat operator*=( const float Scale );
 
 	/**
-	 * Get the result of scaling this rotator.
+	 * Get the result of scaling this quaternion.
 	 *
 	 * @param Scale The scaling factor.
 	 * @return The result of scaling.
 	 */
 	FORCEINLINE FQuat operator*( const float Scale ) const;
 	
+	/**
+	 * Divide this quaternion by scale.
+	 *
+	 * @param Scale What to divide by.
+	 * @return a reference to this after scaling.
+	 */
+	FORCEINLINE FQuat operator/=( const float Scale );
+
 	/**
 	 * Divide this quaternion by scale.
 	 *
@@ -729,9 +737,24 @@ FORCEINLINE FQuat FQuat::operator*( const float Scale ) const
 }
 
 
-FORCEINLINE FQuat FQuat::operator/( const float Scale ) const
+FORCEINLINE FQuat FQuat::operator/=(const float Scale)
 {
-	return FQuat(X / Scale, Y / Scale, Z / Scale, W / Scale);
+	const float Recip = 1.0f / Scale;
+	X *= Recip;
+	Y *= Recip;
+	Z *= Recip;
+	W *= Recip;
+
+	DiagnosticCheckNaN();
+
+	return *this;
+}
+
+
+FORCEINLINE FQuat FQuat::operator/(const float Scale) const
+{
+	const float Recip = 1.0f / Scale;
+	return FQuat(X * Recip, Y * Recip, Z * Recip, W * Recip);
 }
 
 
