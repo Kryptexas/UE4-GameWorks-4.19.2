@@ -590,10 +590,7 @@ namespace Rocket
 			foreach (string Template in CurrentTemplates)
 			{
 				BranchInfo.BranchUProject Project = bp.Branch.FindGameChecked(Template);
-				string TemplateRelativeDirectory = "/" + Utils.StripBaseDirectory(Path.GetDirectoryName(Project.FilePath), CommandUtils.CmdEnv.LocalRoot) + "/";
-				Filter.Include(TemplateRelativeDirectory + "/...");
-				Filter.Exclude(TemplateRelativeDirectory + "/.../Binaries/...");
-				Filter.Exclude(TemplateRelativeDirectory + "/.../Intermediate/...");
+				Filter.Include("/" + Utils.StripBaseDirectory(Path.GetDirectoryName(Project.FilePath), CommandUtils.CmdEnv.LocalRoot).Replace('\\', '/') + "/...");
 			}
 
 			// Include all the standard rules
