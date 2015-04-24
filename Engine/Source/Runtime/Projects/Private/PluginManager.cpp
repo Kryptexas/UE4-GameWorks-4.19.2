@@ -548,6 +548,19 @@ FPlugin* FPluginManager::FindPlugin(const FString& Name)
 	return Plugin;
 }
 
+TArray<IPlugin*> FPluginManager::GetEnabledPlugins()
+{
+	TArray<IPlugin*> Plugins;
+	for(TSharedRef<FPlugin>& PossiblePlugin : AllPlugins)
+	{
+		if(PossiblePlugin->bEnabled)
+		{
+			Plugins.Add(&(PossiblePlugin.Get()));
+		}
+	}
+	return Plugins;
+}
+
 TArray< FPluginStatus > FPluginManager::QueryStatusForAllPlugins() const
 {
 	TArray< FPluginStatus > PluginStatuses;

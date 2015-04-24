@@ -57,6 +57,7 @@ public:
 	virtual bool AreRequiredPluginsAvailable() override;
 	virtual bool CheckModuleCompatibility( TArray<FString>& OutIncompatibleModules ) override;
 	virtual FPlugin* FindPlugin(const FString& Name) override;
+	virtual TArray<IPlugin*> GetEnabledPlugins() override;
 	virtual TArray< FPluginStatus > QueryStatusForAllPlugins() const override;
 	virtual const TArray< FPluginContentFolder >& GetPluginContentFolders() const override;
 

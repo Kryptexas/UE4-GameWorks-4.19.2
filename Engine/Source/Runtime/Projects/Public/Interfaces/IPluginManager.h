@@ -153,6 +153,13 @@ public:
 	virtual IPlugin* FindPlugin(const FString& Name) = 0;
 
 	/**
+	 * Gets an array of all the enabled plugins.
+	 *
+	 * @return	Array of the enabled plugins.
+	 */
+	virtual TArray<IPlugin*> GetEnabledPlugins() = 0;
+
+	/**
 	 * Gets status about all currently known plug-ins.
 	 *
 	 * @return	 Array of plug-in status objects.
