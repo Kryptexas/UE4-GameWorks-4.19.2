@@ -1278,53 +1278,6 @@ namespace EOnlineStatusUpdatePrivacy
 	}
 }
 
-class FJsonValue;
-
-
-/** Notification object, used to send messages between systems */
-struct FOnlineNotification
-{
-	/** A string defining the type of this notification, used to determine how to parse the payload */
-	FString TypeStr;
-
-	/** The payload of this notification */
-	TSharedPtr<FJsonValue> Payload;
-
-	/** User to deliver the notification to.  Can be null for system notifications. */
-	TSharedPtr<FUniqueNetId> ToUserId;
-
-	/** User who sent the notification, optional. */
-	TSharedPtr<FUniqueNetId> FromUserId;
-
-	FOnlineNotification() :
-		Payload(nullptr),
-		ToUserId(nullptr),
-		FromUserId(nullptr)
-	{
-
-	}
-
-	// Treated as a system notification unless ToUserId is added
-	FOnlineNotification(const FString& InTypeStr, const TSharedPtr<FJsonValue>& InPayload)
-		: TypeStr(InTypeStr), Payload(InPayload), ToUserId(nullptr), FromUserId(nullptr)
-	{
-
-	}
-
-	// Notification to a specific user.  FromUserId is optional
-	FOnlineNotification(const FString& InTypeStr, const TSharedPtr<FJsonValue>& InPayload, TSharedPtr<FUniqueNetId> InToUserId)
-		: TypeStr(InTypeStr), Payload(InPayload), ToUserId(InToUserId), FromUserId(nullptr)
-	{
-
-	}
-
-	FOnlineNotification(const FString& InTypeStr, const TSharedPtr<FJsonValue>& InPayload, TSharedPtr<FUniqueNetId> InToUserId, TSharedPtr<FUniqueNetId> InFromUserId)
-		: TypeStr(InTypeStr), Payload(InPayload), ToUserId(InToUserId), FromUserId(InFromUserId)
-	{
-
-	}
-};
-
 /**
 * unique identifier for notification transports
 */

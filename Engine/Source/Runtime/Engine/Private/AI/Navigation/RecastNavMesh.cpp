@@ -1685,6 +1685,8 @@ bool ARecastNavMesh::AdjustLocationWithFilter(const FVector& StartLoc, FVector& 
 
 FPathFindingResult ARecastNavMesh::FindPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query)
 {
+	SCOPE_CYCLE_COUNTER(STAT_Navigation_RecastPathfinding);
+
 	const ANavigationData* Self = Query.NavData.Get();
 	check(Cast<const ARecastNavMesh>(Self));
 

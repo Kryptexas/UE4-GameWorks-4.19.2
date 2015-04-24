@@ -933,32 +933,34 @@ void USoundWave::SerializeCookedPlatformData(FArchive& Ar)
 #if WITH_EDITORONLY_DATA
 	if (Ar.IsCooking() && Ar.IsPersistent())
 	{
-		if (!Ar.CookingTarget()->IsServerOnly())
+		check(!Ar.CookingTarget()->IsServerOnly());
+
+		FName PlatformFormat = Ar.CookingTarget()->GetWaveFormat(this);
+		FString DerivedDataKey;
+		GetStreamedAudioDerivedDataKey(*this, PlatformFormat, DerivedDataKey);
+
+		FStreamedAudioPlatformData *PlatformDataToSave = CookedPlatformData.FindRef(DerivedDataKey);
+
+		if (PlatformDataToSave == NULL)
 		{
-			FName PlatformFormat = Ar.CookingTarget()->GetWaveFormat(this);
-			FString DerivedDataKey;
-			GetStreamedAudioDerivedDataKey(*this, PlatformFormat, DerivedDataKey);
+			PlatformDataToSave = new FStreamedAudioPlatformData();
+			PlatformDataToSave->Cache(*this, PlatformFormat, EStreamedAudioCacheFlags::InlineChunks | EStreamedAudioCacheFlags::Async);
 
-			FStreamedAudioPlatformData *PlatformDataToSave = CookedPlatformData.FindRef(DerivedDataKey);
-
-			if (PlatformDataToSave == NULL)
-			{
-				PlatformDataToSave = new FStreamedAudioPlatformData();
-				PlatformDataToSave->Cache(*this, PlatformFormat, EStreamedAudioCacheFlags::InlineChunks | EStreamedAudioCacheFlags::Async);
-
-				CookedPlatformData.Add(DerivedDataKey, PlatformDataToSave);
-			}
-
-			PlatformDataToSave->FinishCache();
-			PlatformDataToSave->Serialize(Ar, this);
+			CookedPlatformData.Add(DerivedDataKey, PlatformDataToSave);
 		}
+
+		PlatformDataToSave->FinishCache();
+		PlatformDataToSave->Serialize(Ar, this);
 	}
 	else
 #endif // #if WITH_EDITORONLY_DATA
 	{
+		check(!FPlatformProperties::IsServerOnly());
+
 		CleanupCachedRunningPlatformData();
 		check(RunningPlatformData == NULL);
 
+		// Don't serialize streaming data on servers, even if this platform supports streaming in theory
 		RunningPlatformData = new FStreamedAudioPlatformData();
 		RunningPlatformData->Serialize(Ar, this);
 	}

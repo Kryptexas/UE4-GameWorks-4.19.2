@@ -2005,6 +2005,8 @@ void FFriendsAndChatManager::ProcessReceivedGameInvites()
 				ReceivedGameInvites.RemoveAt(Idx--);
 			}
 		}
+
+		OnGameInvitesUpdated().Broadcast();
 	}
 }
 }

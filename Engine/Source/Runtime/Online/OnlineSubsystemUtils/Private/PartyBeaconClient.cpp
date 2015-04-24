@@ -1,6 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
+#include "PartyBeaconClient.h"
+#include "PartyBeaconHost.h"
 #include "OnlineSessionInterface.h"
 
 APartyBeaconClient::APartyBeaconClient(const FObjectInitializer& ObjectInitializer) :
@@ -115,4 +117,10 @@ void APartyBeaconClient::ClientReservationResponse_Implementation(EPartyReservat
 {
 	UE_LOG(LogBeacon, Verbose, TEXT("Party beacon response received %s"), EPartyReservationResult::ToString(ReservationResponse));
 	ReservationRequestComplete.ExecuteIfBound(ReservationResponse);
+}
+
+void APartyBeaconClient::ClientSendReservationUpdates_Implementation(int32 NumRemainingReservations)
+{
+	UE_LOG(LogBeacon, Verbose, TEXT("Party beacon reservations remaining %d"), NumRemainingReservations);
+	ReservationCountUpdate.ExecuteIfBound(NumRemainingReservations);
 }

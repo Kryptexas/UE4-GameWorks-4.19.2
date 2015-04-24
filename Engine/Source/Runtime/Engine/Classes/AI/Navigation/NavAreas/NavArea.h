@@ -75,6 +75,9 @@ public:
 
 	FORCEINLINE bool IsSupportingAgent(int32 AgentIndex) const { return (AgentIndex >= 0 && AgentIndex < 16) ? !!(SupportedAgentsBits & (1 << AgentIndex)) : false; }
 
+	/** called before adding to navigation system */
+	virtual void InitializeArea() {};
+
 	/** Get the fixed area entering cost. */
 	virtual float GetFixedAreaEnteringCost() { return FixedAreaEnteringCost; }
 

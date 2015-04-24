@@ -28,7 +28,7 @@
 #include "Tests/TestVoice.h"
 #include "Tests/TestExternalUIInterface.h"
 
-IMPLEMENT_MODULE( FOnlineSubsystemUtilsModule, OnlineSubsystemUtils );
+IMPLEMENT_MODULE(FOnlineSubsystemUtilsModule, OnlineSubsystemUtils);
 
 void FOnlineSubsystemUtilsModule::StartupModule()
 {

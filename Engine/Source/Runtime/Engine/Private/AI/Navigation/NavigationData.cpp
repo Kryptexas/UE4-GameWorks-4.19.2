@@ -219,6 +219,9 @@ void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActo
 	Super::TickActor(DeltaTime, TickType, ThisTickFunction);
 
 	PurgeUnusedPaths();
+
+	INC_DWORD_STAT_BY(STAT_Navigation_ObservedPathsCount, ObservedPaths.Num());
+
 	if (NextObservedPathsTickInSeconds >= 0.f)
 	{
 		NextObservedPathsTickInSeconds -= DeltaTime;

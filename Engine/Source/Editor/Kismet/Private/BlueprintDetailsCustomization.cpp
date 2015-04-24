@@ -1075,6 +1075,12 @@ void FBlueprintVarActionDetails::PopulateCategories(SMyBlueprint* MyBlueprint, T
 	bool bShowUserVarsOnly = MyBlueprint->ShowUserVarsOnly();
 	UBlueprint* Blueprint = MyBlueprint->GetBlueprintObj();
 	check(Blueprint != NULL);
+	if (Blueprint->SkeletonGeneratedClass == NULL)
+	{
+		UE_LOG(LogBlueprint, Error, TEXT("Blueprint %s has NULL SkeletonGeneratedClass in FBlueprintVarActionDetails::PopulateCategories().  Cannot Populate Categories."), *GetNameSafe(Blueprint));
+		return;
+	}
+
 	check(Blueprint->SkeletonGeneratedClass != NULL);
 	EFieldIteratorFlags::SuperClassFlags SuperClassFlag = EFieldIteratorFlags::ExcludeSuper;
 	if(!bShowUserVarsOnly)

@@ -63,7 +63,7 @@ public:
 
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetBrushFromTexture(UTexture2D* Texture);
+	void SetBrushFromTexture(UTexture2D* Texture, bool bMatchSize = false);
 
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")

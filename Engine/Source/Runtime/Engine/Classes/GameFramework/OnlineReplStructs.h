@@ -6,6 +6,7 @@
 
 #pragma once
 #include "Runtime/Online/OnlineSubsystem/Public/OnlineSubsystemTypes.h"
+#include "Runtime/Online/OnlineSubsystem/Public/UniqueNetIdWrapper.h"
 #include "OnlineReplStructs.generated.h"
 
 /**
@@ -19,14 +20,21 @@ struct FUniqueNetIdRepl
 {
 	GENERATED_USTRUCT_BODY()
 
-	FUniqueNetIdRepl() :
-		UniqueNetId(NULL)
-	{}
-	FUniqueNetIdRepl(TSharedRef<FUniqueNetId> InUniqueNetId) :
+	FUniqueNetIdRepl()
+	{
+	}
+
+	FUniqueNetIdRepl(const FUniqueNetIdWrapper& InWrapper)
+	: UniqueNetId(InWrapper.GetUniqueNetId())
+	{
+	}
+
+	FUniqueNetIdRepl(const TSharedRef<FUniqueNetId>& InUniqueNetId) :
 		UniqueNetId(InUniqueNetId)
 	{
 	}
-	FUniqueNetIdRepl(TSharedPtr<FUniqueNetId> InUniqueNetId) :
+
+	FUniqueNetIdRepl(const TSharedPtr<FUniqueNetId>& InUniqueNetId) :
 		UniqueNetId(InUniqueNetId)
 	{
 	}
@@ -62,9 +70,6 @@ struct FUniqueNetIdRepl
     /** Export contents of this struct as a string */
 	bool ExportTextItem(FString& ValueStr, FUniqueNetIdRepl const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const;
 
-	/** Convert this value to a string */
-	ENGINE_API FString ToString() const;
-
 	/** Network serialization */
 	ENGINE_API bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 
@@ -73,6 +78,12 @@ struct FUniqueNetIdRepl
 
 	/** Serialization to any FArchive */
 	bool Serialize(FArchive& Ar);
+	
+	/** Convert this value to a string */
+	FString ToString() const
+	{
+		return IsValid() ? UniqueNetId->ToString() : TEXT("INVALID");
+	}
 
 	/** Is the FUniqueNetId wrapped in this object valid */
 	bool IsValid() const
@@ -99,7 +110,11 @@ struct FUniqueNetIdRepl
 	/**
 	 * Dereference operator returns a reference to the FUniqueNetId
 	 */
-	FUniqueNetId& operator*() const
+	const FUniqueNetId& operator*() const
+	{
+		return *UniqueNetId;
+	}
+	FUniqueNetId& operator*()
 	{
 		return *UniqueNetId;
 	}
@@ -107,14 +122,34 @@ struct FUniqueNetIdRepl
 	/**
 	 * Arrow operator returns a pointer to this FUniqueNetId
 	 */
-	FUniqueNetId* operator->() const
+	const FUniqueNetId* operator->() const
+	{
+		return UniqueNetId.Get();
+	}
+	FUniqueNetId* operator->()
 	{
 		return UniqueNetId.Get();
 	}
 
-private:
+	/**
+	 * implicit cast operator to FUniqueNetIdWrapper
+	 */
+	FORCEINLINE operator FUniqueNetIdWrapper() const
+	{
+		return FUniqueNetIdWrapper(UniqueNetId);
+	}
 
-	/** UniqueId wrapped */
+	friend inline uint32 GetTypeHash(FUniqueNetIdRepl const& Value)
+	{
+		if (Value.UniqueNetId.IsValid())
+		{
+			return (uint32)(*(*Value).GetBytes());
+		}
+		
+		return 0;
+	}
+
+protected:
 	TSharedPtr<class FUniqueNetId> UniqueNetId;
 };
 

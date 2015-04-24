@@ -57,11 +57,6 @@ bool FUniqueNetIdRepl::ExportTextItem(FString& ValueStr, FUniqueNetIdRepl const&
 	return true;
 }
 
-FString FUniqueNetIdRepl::ToString() const
-{
-	return IsValid() ? UniqueNetId->ToString() : TEXT("INVALID");
-}
-
 void TestUniqueIdRepl(UWorld* InWorld)
 {
 	bool bSuccess = true;

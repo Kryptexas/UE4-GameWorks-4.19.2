@@ -449,21 +449,21 @@ bool FOnlineSessionNull::IsPlayerInSession(FName SessionName, const FUniqueNetId
 
 bool FOnlineSessionNull::StartMatchmaking(const TArray< TSharedRef<FUniqueNetId> >& LocalPlayers, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings)
 {
-	UE_LOG(LogOnline, Warning, TEXT("Matchmaking is not supported on this platform."));
+	UE_LOG(LogOnline, Warning, TEXT("StartMatchmaking is not supported on this platform. Use FindSessions or FindSessionById."));
 	TriggerOnMatchmakingCompleteDelegates(SessionName, false);
 	return false;
 }
 
 bool FOnlineSessionNull::CancelMatchmaking(int32 SearchingPlayerNum, FName SessionName)
 {
-	UE_LOG(LogOnline, Warning, TEXT("Matchmaking is not supported on this platform."));
+	UE_LOG(LogOnline, Warning, TEXT("CancelMatchmaking is not supported on this platform. Use CancelFindSessions."));
 	TriggerOnCancelMatchmakingCompleteDelegates(SessionName, false);
 	return false;
 }
 
 bool FOnlineSessionNull::CancelMatchmaking(const FUniqueNetId& SearchingPlayerId, FName SessionName)
 {
-	UE_LOG(LogOnline, Warning, TEXT("Matchmaking is not supported on this platform."));
+	UE_LOG(LogOnline, Warning, TEXT("CancelMatchmaking is not supported on this platform. Use CancelFindSessions."));
 	TriggerOnCancelMatchmakingCompleteDelegates(SessionName, false);
 	return false;
 }

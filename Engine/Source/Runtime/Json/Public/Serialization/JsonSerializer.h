@@ -47,24 +47,24 @@ public:
 	}
 
 	template <class CharType, class PrintPolicy >
-	static bool Serialize( const TArray< TSharedPtr<FJsonValue> >& Array, const TSharedRef< TJsonWriter< CharType, PrintPolicy > >& Writer )
+	static bool Serialize( const TArray< TSharedPtr<FJsonValue> >& Array, const TSharedRef< TJsonWriter< CharType, PrintPolicy > >& Writer, bool bCloseWriter = true )
 	{
 		TSharedRef< FElement > StartingElement = MakeShareable( new FElement( Array ) );
-		return FJsonSerializer::Serialize<CharType, PrintPolicy>( StartingElement, Writer );
+		return FJsonSerializer::Serialize<CharType, PrintPolicy>( StartingElement, Writer, bCloseWriter );
 	}
 
 	template <class CharType, class PrintPolicy >
-	static bool Serialize( const TSharedRef< FJsonObject >& Object, const TSharedRef< TJsonWriter< CharType, PrintPolicy > >& Writer )
+	static bool Serialize( const TSharedRef< FJsonObject >& Object, const TSharedRef< TJsonWriter< CharType, PrintPolicy > >& Writer, bool bCloseWriter = true )
 	{
 		TSharedRef< FElement > StartingElement = MakeShareable( new FElement( Object ) );
-		return FJsonSerializer::Serialize<CharType, PrintPolicy>( StartingElement, Writer );
+		return FJsonSerializer::Serialize<CharType, PrintPolicy>( StartingElement, Writer, bCloseWriter );
 	}
 
 	template <class CharType, class PrintPolicy >
-	static bool Serialize( const TSharedPtr<FJsonValue >& Value, const FString& Identifier, const TSharedRef< TJsonWriter< CharType, PrintPolicy > >& Writer )
+	static bool Serialize( const TSharedPtr<FJsonValue >& Value, const FString& Identifier, const TSharedRef< TJsonWriter< CharType, PrintPolicy > >& Writer, bool bCloseWriter = true )
 	{
 		TSharedRef< FElement > StartingElement = MakeShareable( new FElement( Identifier, Value ) );
-		return FJsonSerializer::Serialize<CharType, PrintPolicy>( StartingElement, Writer );
+		return FJsonSerializer::Serialize<CharType, PrintPolicy>( StartingElement, Writer, bCloseWriter );
 	}
 
 private:
@@ -222,7 +222,7 @@ private:
 	}
 
 	template <class CharType, class PrintPolicy>
-	static bool Serialize( const TSharedRef<FElement>& StartingElement, const TSharedRef<TJsonWriter<CharType, PrintPolicy>>& Writer )
+	static bool Serialize( const TSharedRef<FElement>& StartingElement, const TSharedRef<TJsonWriter<CharType, PrintPolicy>>& Writer, bool bCloseWriter )
 	{
 		TArray<TSharedRef<FElement>> ElementStack;
 		ElementStack.Push(StartingElement);
@@ -357,6 +357,13 @@ private:
 			}
 		}
 
-		return Writer->Close();
+		if (bCloseWriter)
+		{
+			return Writer->Close();
+		}
+		else
+		{
+			return true;
+		}
 	}
 };

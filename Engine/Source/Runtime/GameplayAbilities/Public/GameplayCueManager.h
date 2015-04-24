@@ -153,7 +153,7 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	void LoadObjectLibraryFromPaths(const TArray<FString>& Paths);
 
 	UPROPERTY(transient)
-	UGameplayCueSet* GlobalCueSet;
+	class UGameplayCueSet* GlobalCueSet;
 	
 	UPROPERTY(transient)
 	UObjectLibrary* GameplayCueNotifyActorObjectLibrary;

@@ -3,7 +3,7 @@
 #include "OnlineSubsystemPrivatePCH.h"
 #include "OnlineNotificationTransportInterface.h"
 #include "OnlineNotificationHandler.h"
-
+#include "OnlineNotification.h"
 
 // SYSTEM NOTIFICATION HANDLERS
 

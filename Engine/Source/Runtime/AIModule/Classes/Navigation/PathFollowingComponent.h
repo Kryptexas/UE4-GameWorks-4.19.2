@@ -191,8 +191,9 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	 *  @param TestGoal - actor to test
 	 *  @param AcceptanceRadius - allowed 2D distance
 	 *  @param bExactSpot - false: increase AcceptanceRadius with agent's radius
+	 *  @param bUseNavAgentGoalLocation - true: if the goal is a nav agent, we will use their nav agent location rather than their actual location
 	 */
-	bool HasReached(const AActor& TestGoal, float AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius, bool bExactSpot = false) const;
+	bool HasReached(const AActor& TestGoal, float AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius, bool bExactSpot = false, bool bUseNavAgentGoalLocation = true) const;
 
 	/** update state of block detection */
 	void SetBlockDetectionState(bool bEnable);

@@ -160,7 +160,7 @@ FNavigationLink UNavLinkCustomComponent::GetLinkModifier() const
 void UNavLinkCustomComponent::SetEnabledArea(TSubclassOf<UNavArea> AreaClass)
 {
 	EnabledAreaClass = AreaClass;
-	if (IsNavigationRelevant() && bLinkEnabled)
+	if (IsNavigationRelevant() && bLinkEnabled && GetWorld() != nullptr )
 	{
 		UNavigationSystem* NavSys = GetWorld()->GetNavigationSystem();
 		NavSys->UpdateCustomLink(this);
@@ -170,7 +170,7 @@ void UNavLinkCustomComponent::SetEnabledArea(TSubclassOf<UNavArea> AreaClass)
 void UNavLinkCustomComponent::SetDisabledArea(TSubclassOf<UNavArea> AreaClass)
 {
 	DisabledAreaClass = AreaClass;
-	if (IsNavigationRelevant() && !bLinkEnabled)
+	if (IsNavigationRelevant() && !bLinkEnabled && GetWorld() != nullptr )
 	{
 		UNavigationSystem* NavSys = GetWorld()->GetNavigationSystem();
 		NavSys->UpdateCustomLink(this);

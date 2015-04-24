@@ -122,6 +122,29 @@ public:
 	*/
 	virtual EOnlinePresenceState::Type GetOnlineStatus() = 0;
 
+	/**
+	* Get the friends filtered list of friends.
+	*
+	* @param OutFriendsList  Array of friends to fill in.
+	* @return the friend list count.
+	*/
+	virtual int32 GetFilteredFriendsList(TArray< TSharedPtr< class IFriendItem > >& OutFriendsList) = 0;
+
+	/**
+	* Get the recent players list.
+	* @return the list.
+	*/
+
+	virtual TArray< TSharedPtr< class IFriendItem > >& GetRecentPlayerList() = 0;
+
+	/**
+	* Get incoming game invite list.
+	*
+	* @param OutFriendsList  Array of friends to fill in.
+	* @return The friend list count.
+	*/
+	virtual int32 GetFilteredGameInviteList(TArray< TSharedPtr< class IFriendItem > >& OutFriendsList) = 0;
+
 	/** 
 	 * Set the application view model to query and perform actions on.
 	 * @param ClientID The ID of the application
@@ -146,6 +169,12 @@ public:
 
 	DECLARE_DELEGATE_RetVal(bool, FAllowFriendsJoinGame);
 	virtual FAllowFriendsJoinGame& AllowFriendsJoinGame() = 0;
+
+	DECLARE_EVENT(IFriendsAndChatManager, FOnFriendsUpdated)
+	virtual FOnFriendsUpdated& OnFriendsListUpdated() = 0;
+
+	DECLARE_EVENT(IFriendsAndChatManager, FOnGameInvitesUpdated)
+	virtual FOnGameInvitesUpdated& OnGameInvitesUpdated() = 0;
 
 public:
 

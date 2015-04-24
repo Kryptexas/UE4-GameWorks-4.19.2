@@ -105,7 +105,7 @@ FString SReflectorTreeWidgetItem::GetReadableLocation() const
 		TSharedPtr<FReflectionMetaData> MetaData = SafeWidget->GetMetaData<FReflectionMetaData>();
 		if ( MetaData.IsValid() && MetaData->Asset.Get() != nullptr )
 		{
-			return MetaData->Asset->GetName() + TEXT(" [") + MetaData->Name.ToString() + TEXT("]");
+			return ( MetaData->Asset.IsValid() ? MetaData->Asset->GetName() : FString( TEXT( "Invalid" ) ) ) + TEXT(" [") + MetaData->Name.ToString() + TEXT("]");
 		}
 	}
 

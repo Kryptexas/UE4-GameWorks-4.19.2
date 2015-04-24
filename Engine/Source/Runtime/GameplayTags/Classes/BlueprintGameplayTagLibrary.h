@@ -76,6 +76,15 @@ class UBlueprintGameplayTagLibrary : public UBlueprintFunctionLibrary
 	static bool DoesContainerMatchAllTagsInContainer(const FGameplayTagContainer& TagContainer, const FGameplayTagContainer& OtherContainer, bool bCountEmptyAsMatch);
 
 	/**
+	* Takes 2 Gameplay Tag Containers Appends the In Container to the In/Out Container
+	*
+	* @param InTagContainer			The container to append.
+	* @param InOutTagContainer		The container that will be appended too.
+	*/
+	UFUNCTION(BlueprintPure, Category = "GameplayTags|Tag Container")
+	static bool AppendGameplayTagContainers(const FGameplayTagContainer& InTagContainer, UPARAM(ref) FGameplayTagContainer& InOutTagContainer);
+
+	/**
 	 * Creates a literal FGameplayTag
 	 *
 	 * @param	Value	value to set the FGameplayTag to
@@ -108,5 +117,6 @@ class UBlueprintGameplayTagLibrary : public UBlueprintFunctionLibrary
 	*/
 	UFUNCTION(BlueprintPure, meta = (BlueprintInternalUseOnly = "TRUE"))
 	static bool DoesTagAssetInterfaceHaveTag(TScriptInterface<IGameplayTagAssetInterface> TagContainerInterface, TEnumAsByte<EGameplayTagMatchType::Type> ContainerTagsMatchType, const FGameplayTag& Tag, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType);
+
 
 };

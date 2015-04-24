@@ -802,16 +802,6 @@ UTimelineTemplate* UBlueprint::FindTimelineTemplateByVariableName(const FName& T
 	return Timeline;
 }
 
-UBlueprint* UBlueprint::GetBlueprintFromClass(const UClass* InClass)
-{
-	UBlueprint* BP = NULL;
-	if(InClass != NULL)
-	{
-		BP = Cast<UBlueprint>(InClass->ClassGeneratedBy);
-	}
-	return BP;
-}
-
 bool UBlueprint::ValidateGeneratedClass(const UClass* InClass)
 {
 	const UBlueprintGeneratedClass* GeneratedClass = Cast<const UBlueprintGeneratedClass>(InClass);
@@ -893,23 +883,37 @@ bool UBlueprint::ValidateGeneratedClass(const UClass* InClass)
 	return true;
 }
 
+#endif // WITH_EDITOR
+
+UBlueprint* UBlueprint::GetBlueprintFromClass(const UClass* InClass)
+{
+	UBlueprint* BP = NULL;
+	if (InClass != NULL)
+	{
+		BP = Cast<UBlueprint>(InClass->ClassGeneratedBy);
+	}
+	return BP;
+}
+
 bool UBlueprint::GetBlueprintHierarchyFromClass(const UClass* InClass, TArray<UBlueprint*>& OutBlueprintParents)
 {
 	OutBlueprintParents.Empty();
 
 	bool bNoErrors = true;
 	const UClass* CurrentClass = InClass;
-	while( UBlueprint* BP = UBlueprint::GetBlueprintFromClass(CurrentClass) )
+	while (UBlueprint* BP = UBlueprint::GetBlueprintFromClass(CurrentClass))
 	{
 		OutBlueprintParents.Add(BP);
+
+#if WITH_EDITORONLY_DATA
 		bNoErrors &= (BP->Status != BS_Error);
+#endif // #if WITH_EDITORONLY_DATA
+
 		CurrentClass = CurrentClass->GetSuperClass();
 	}
 
 	return bNoErrors;
 }
-
-#endif // WITH_EDITOR
 
 ETimelineSigType UBlueprint::GetTimelineSignatureForFunctionByName(const FName& FunctionName, const FName& ObjectPropertyName)
 {

@@ -584,6 +584,11 @@ void UAnimSequenceBase::PostLoad()
 	}
 }
 
+float UAnimSequenceBase::GetPlayLength()
+{
+	return SequenceLength;
+}
+
 void UAnimSequenceBase::SortNotifies()
 {
 	// Sorts using FAnimNotifyEvent::operator<()

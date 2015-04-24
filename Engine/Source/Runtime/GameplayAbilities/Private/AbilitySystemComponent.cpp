@@ -130,6 +130,11 @@ void UAbilitySystemComponent::OnRegister()
 
 // ---------------------------------------------------------
 
+const FActiveGameplayEffect* UAbilitySystemComponent::GetActiveGameplayEffect(const FActiveGameplayEffectHandle Handle) const
+{
+	return ActiveGameplayEffects.GetActiveGameplayEffect(Handle);
+}
+
 bool UAbilitySystemComponent::IsOwnerActorAuthoritative() const
 {
 	return !IsNetSimulating();
@@ -733,6 +738,28 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	}
 
 	return MyHandle;
+}
+
+FActiveGameplayEffectHandle UAbilitySystemComponent::BP_ApplyGameplayEffectSpecToTarget(FGameplayEffectSpecHandle& SpecHandle, UAbilitySystemComponent* Target)
+{
+	FActiveGameplayEffectHandle ReturnHandle;
+	if (SpecHandle.IsValid() && Target)
+	{
+		ReturnHandle = ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), Target);
+	}
+
+	return ReturnHandle;
+}
+
+FActiveGameplayEffectHandle UAbilitySystemComponent::BP_ApplyGameplayEffectSpecToSelf(FGameplayEffectSpecHandle& SpecHandle)
+{
+	FActiveGameplayEffectHandle ReturnHandle;
+	if (SpecHandle.IsValid())
+	{
+		ReturnHandle = ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+	}
+
+	return ReturnHandle;
 }
 
 void UAbilitySystemComponent::ExecutePeriodicEffect(FActiveGameplayEffectHandle	Handle)

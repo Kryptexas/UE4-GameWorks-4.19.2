@@ -212,7 +212,7 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 	}
 
 	/** calculates total length of segments from NextPathPoint to the end of path, plus distance from CurrentPosition to NextPathPoint */
-	float GetLengthFromPosition(FVector SegmentStart, uint32 NextPathPointIndex) const;
+	virtual float GetLengthFromPosition(FVector SegmentStart, uint32 NextPathPointIndex) const;
 
 	FORCEINLINE float GetLength() const
 	{
@@ -261,13 +261,13 @@ public:
 	template<typename PathClass>
 	FORCEINLINE const PathClass* CastPath() const
 	{
-		return PathType == PathClass::Type ? static_cast<PathClass*>(this) : NULL;
+		return PathType.IsA(PathClass::Type) ? static_cast<PathClass*>(this) : NULL;
 	}
 
 	template<typename PathClass>
 	FORCEINLINE PathClass* CastPath()
 	{
-		return PathType == PathClass::Type ? static_cast<PathClass*>(this) : NULL;
+		return PathType.IsA(PathClass::Type) ? static_cast<PathClass*>(this) : NULL;
 	}
 
 	/** enables path observing specified AActor's location and update itself if actor changes location */

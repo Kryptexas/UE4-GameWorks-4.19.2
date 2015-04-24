@@ -94,6 +94,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=AttributeFloat)
 	FGameplayEffectAttributeCaptureDefinition BackingAttribute;
 
+	/** If a curve table entry is specified, the attribute will be used as a lookup into the curve instead of using the attribute directly. */
+	UPROPERTY(EditDefaultsOnly, Category=AttributeFloat)
+	FCurveTableRowHandle AttributeCurve;
+
 	/** Calculation policy in regards to the attribute */
 	UPROPERTY(EditDefaultsOnly, Category=AttributeFloat)
 	EAttributeBasedFloatCalculationType AttributeCalculationType;
@@ -269,6 +273,8 @@ protected:
 	// @hack: @todo: This is temporary to aid in post-load fix-up w/o exposing members publicly
 	friend class UGameplayEffect;
 	friend class FGameplayEffectModifierMagnitudeDetails;
+	friend class UFortGlobals;
+	friend class SMyTownHeroesWidget;
 };
 
 /** 
@@ -991,7 +997,11 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 		return EffectContext;
 	}
 
+	// Appends all tags granted by this gameplay effect spec
 	void GetAllGrantedTags(OUT FGameplayTagContainer& Container) const;
+
+	// Appends all tags that apply to this gameplay effect spec
+	void GetAllAssetTags(OUT FGameplayTagContainer& Container) const;
 
 	/** Sets the magnitude of a SetByCaller modifier */
 	void SetSetByCallerMagnitude(FName DataName, float Magnitude);
@@ -1081,6 +1091,10 @@ public:
 	/** Tags that are granted and that did not come from the UGameplayEffect def. These are replicated. */
 	UPROPERTY()
 	FGameplayTagContainer DynamicGrantedTags;
+
+	/** Tags that are on this effect spec and that did not come from the UGameplayEffect def. These are replicated. */
+	UPROPERTY()
+	FGameplayTagContainer DynamicAssetTags;
 	
 	UPROPERTY()
 	TArray<FModifierSpec> Modifiers;

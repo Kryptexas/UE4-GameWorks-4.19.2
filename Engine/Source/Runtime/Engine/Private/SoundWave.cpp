@@ -162,12 +162,20 @@ void USoundWave::Serialize( FArchive& Ar )
 		Ar << CompressionName;
 	}
 
+	bool bSupportsStreaming = false;
+	if (Ar.IsLoading() && FPlatformProperties::SupportsAudioStreaming())
+	{
+		bSupportsStreaming = true;
+	}
+	else if (Ar.IsCooking() && Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::AudioStreaming))
+	{
+		bSupportsStreaming = true;
+	}
+
 	if (bCooked)
 	{
 		// Only want to cook/load full data if we don't support streaming
-		if (!IsStreaming() ||
-			(Ar.IsLoading() && !FPlatformProperties::SupportsAudioStreaming()) ||
-			(Ar.IsCooking() && !Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::AudioStreaming)))
+		if (!IsStreaming() || !bSupportsStreaming)
 		{
 			if (Ar.IsCooking())
 			{
@@ -203,8 +211,7 @@ void USoundWave::Serialize( FArchive& Ar )
 		if (bCooked)
 		{
 			// only cook/load streaming data if it's supported
-			if ((Ar.IsLoading() && FPlatformProperties::SupportsAudioStreaming()) ||
-				(Ar.IsCooking() && Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::AudioStreaming)))
+			if (bSupportsStreaming)
 			{
 				SerializeCookedPlatformData(Ar);
 			}

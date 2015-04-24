@@ -42,6 +42,13 @@ public:
 	void SetShadowOffset(FVector2D InShadowOffset);
 
 	/**
+	 * Dynamically set the font info for this text block
+	 * 
+	 * @param InFontInfo THe new font info
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Appearance")
+	void SetFont(FSlateFontInfo InFontInfo);
+	/**
 	 *  Set the text justification for this text block
 	 *
 	 *  @param Justification new justification

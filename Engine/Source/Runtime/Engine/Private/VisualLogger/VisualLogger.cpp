@@ -49,11 +49,20 @@ bool FVisualLogger::CheckVisualLogInputInternal(const class UObject* Object, con
 	return true;
 }
 
+FVisualLogEntry* FVisualLogger::GetLastEntryForObject(const class UObject* Object)
+{
+	UObject * LogOwner = FVisualLogger::FindRedirection(Object);
+	return CurrentEntryPerObject.Contains(LogOwner) ? &CurrentEntryPerObject[LogOwner] : nullptr;	
+}
 
 FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, float TimeStamp, ECreateIfNeeded ShouldCreate)
 {
 	FVisualLogEntry* CurrentEntry = nullptr;
 	UObject * LogOwner = FVisualLogger::FindRedirection(Object);
+	if (LogOwner == nullptr)
+	{
+		return nullptr;
+	}
 
 	bool InitializeNewEntry = false;
 

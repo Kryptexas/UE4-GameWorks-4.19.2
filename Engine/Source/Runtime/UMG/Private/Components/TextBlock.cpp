@@ -55,6 +55,15 @@ void UTextBlock::SetShadowOffset(FVector2D InShadowOffset)
 	}
 }
 
+void UTextBlock::SetFont(FSlateFontInfo InFontInfo)
+{
+	Font = InFontInfo;
+	if (MyTextBlock.IsValid())
+	{
+		MyTextBlock->SetFont(Font);
+	}
+}
+
 void UTextBlock::SetJustification( ETextJustify::Type InJustification )
 {
 	Justification = InJustification;

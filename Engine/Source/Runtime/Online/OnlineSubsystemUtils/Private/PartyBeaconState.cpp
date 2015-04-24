@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
-#include "OnlineSubsystemUtilsClasses.h"
+#include "PartyBeaconState.h"
 
 bool FPartyReservation::IsValid() const
 {

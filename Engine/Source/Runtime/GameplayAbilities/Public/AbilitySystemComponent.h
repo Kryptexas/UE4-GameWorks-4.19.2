@@ -46,6 +46,9 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FTargetingRejectedConfirmation, int32);
 /** Called when ability fails to activate, passes along the failed ability and a tag explaining why */
 DECLARE_MULTICAST_DELEGATE_TwoParams(FAbilityFailedDelegate, const UGameplayAbility*, FGameplayTagContainer);
 
+/** Called when ability ends */
+DECLARE_MULTICAST_DELEGATE_OneParam(FAbilityEnded, UGameplayAbility*);
+
 /**
  *	The core ActorComponent for interfacing with the GameplayAbilities System
  */
@@ -249,6 +252,12 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec& GameplayEffect, UAbilitySystemComponent *Target, FPredictionKey PredictionKey=FPredictionKey());
 	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToSelf(OUT FGameplayEffectSpec& GameplayEffect, FPredictionKey PredictionKey = FPredictionKey());
 
+	UFUNCTION(BlueprintCallable, Category = GameplayEffects, meta=(DisplayName = "ApplyGameplayEffectSpecToTarget"))
+	FActiveGameplayEffectHandle BP_ApplyGameplayEffectSpecToTarget(UPARAM(ref) FGameplayEffectSpecHandle& SpecHandle, UAbilitySystemComponent* Target);
+
+	UFUNCTION(BlueprintCallable, Category = GameplayEffects, meta=(DisplayName = "ApplyGameplayEffectSpecToSelf"))
+	FActiveGameplayEffectHandle BP_ApplyGameplayEffectSpecToSelf(UPARAM(ref) FGameplayEffectSpecHandle& SpecHandle);
+	
 	/** Removes GameplayEffect by Handle. StacksToRemove=-1 will remove all stacks. */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = GameplayEffects)
 	bool RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle, int32 StacksToRemove=-1);
@@ -756,6 +765,8 @@ public:
 	/** Generic local callback for generic ConfirmEvent that any ability can listen to */
 	FAbilityConfirmOrCancel	GenericLocalConfirmCallbacks;
 
+	FAbilityEnded AbilityEndedCallbacks;
+
 	/** Generic local callback for generic CancelEvent that any ability can listen to */
 	FAbilityConfirmOrCancel	GenericLocalCancelCallbacks;
 
@@ -767,7 +778,7 @@ public:
 	FAbilityFailedDelegate AbilityFailedCallbacks;
 
 	/** Executes a gameplay event. Returns the number of successful ability activations triggered by the event */
-	int32 HandleGameplayEvent(FGameplayTag EventTag, const FGameplayEventData* Payload);
+	virtual int32 HandleGameplayEvent(FGameplayTag EventTag, const FGameplayEventData* Payload);
 
 	virtual void NotifyAbilityCommit(UGameplayAbility* Ability);
 	virtual void NotifyAbilityActivated(const FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability);
@@ -1004,6 +1015,8 @@ public:
 #if ENABLE_VISUAL_LOG
 	void ClearDebugInstantEffects();
 #endif // ENABLE_VISUAL_LOG
+
+	const FActiveGameplayEffect* GetActiveGameplayEffect(const FActiveGameplayEffectHandle Handle) const;
 
 protected:
 

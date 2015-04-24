@@ -95,7 +95,6 @@ bool UParticleSystemAuditCommandlet::ProcessParticleSystems()
 			bool bSingleLOD = false;
 			bool bFoundEmitter = false;
 			bool bMissingMaterial = false;
-			bool bHasCollisionEnabled = false;
 			bool bHasHighSpawnRateOrBurst = false;
 			for (int32 EmitterIdx = 0; EmitterIdx < PSys->Emitters.Num(); EmitterIdx++)
 			{
@@ -128,14 +127,7 @@ bool UParticleSystemAuditCommandlet::ProcessParticleSystems()
 							{
 								UParticleModule* Module = LODLevel->Modules[ModuleIdx];
 
-								if ( UParticleModuleCollision* CollisionModule = Cast<UParticleModuleCollision>(Module) )
-								{
-									if (CollisionModule->bEnabled == true)
-									{
-										bHasCollisionEnabled = true;
-									}
-								}
-								else if (UParticleModuleSpawn* SpawnModule = Cast<UParticleModuleSpawn>(Module))
+								if (UParticleModuleSpawn* SpawnModule = Cast<UParticleModuleSpawn>(Module))
 								{
 									if ( !bHasHighSpawnRateOrBurst )
 									{
@@ -188,12 +180,6 @@ bool UParticleSystemAuditCommandlet::ProcessParticleSystems()
 			if (bMissingMaterial == true)
 			{
 				ParticleSystemsWithMissingMaterials.Add(PSys->GetPathName());
-			}
-
-			// Note all PSystems that have at least one emitter w/ an enabled collision module...
-			if (bHasCollisionEnabled == true)
-			{
-				ParticleSystemsWithCollisionEnabled.Add(PSys->GetPathName());
 			}
 
 			// Note all 0 LOD case PSystems...
@@ -272,7 +258,6 @@ void UParticleSystemAuditCommandlet::DumpResults()
 	DumpSimplePSysSet(ParticleSystemsWithBadLODCheckTimes, TEXT("PSysBadLODCheckTimes"));
 	DumpSimplePSysSet(ParticleSystemsWithMissingMaterials, TEXT("PSysMissingMaterial"));
 	DumpSimplePSysSet(ParticleSystemsWithNoEmitters, TEXT("PSysNoEmitters"));
-	DumpSimplePSysSet(ParticleSystemsWithCollisionEnabled, TEXT("PSysCollisionEnabled"));
 	DumpSimplePSysSet(ParticleSystemsWithOrientZAxisTowardCamera, TEXT("PSysOrientZTowardsCamera"));
 	DumpSimplePSysSet(ParticleSystemsWithHighSpawnRateOrBurst, TEXT("PSysHighSpawnRateOrBurst"));
 	DumpSimplePSysSet(ParticleSystemsWithFarLODDistance, TEXT("PSysFarLODDistance"));

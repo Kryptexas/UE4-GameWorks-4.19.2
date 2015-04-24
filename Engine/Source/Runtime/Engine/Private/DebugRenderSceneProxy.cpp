@@ -19,7 +19,7 @@ FDebugRenderSceneProxy::FDebugRenderSceneProxy(const UPrimitiveComponent* InComp
 	, ViewFlagName(TEXT("Game"))
 	, TextWithoutShadowDistance(1500)
 	, DrawType(WireMesh)
-	, DrawAlpha(60)
+	, DrawAlpha(100)
 {
 
 }

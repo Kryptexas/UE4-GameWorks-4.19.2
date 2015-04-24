@@ -9,6 +9,7 @@ APartyBeaconHost::APartyBeaconHost(const FObjectInitializer& ObjectInitializer) 
 	State(NULL)
 {
 	BeaconTypeName = PARTY_BEACON_TYPE;
+	ClientBeaconActorClass = APartyBeaconClient::StaticClass();
 	PrimaryActorTick.bCanEverTick = true;
 }
 
@@ -237,6 +238,23 @@ int32 APartyBeaconHost::GetTeamForCurrentPlayer(const FUniqueNetId& PlayerId) co
 	return TeamNum;
 }
 
+void APartyBeaconHost::SendReservationUpdates()
+{
+	if (State && ClientActors.Num() > 0)
+	{
+		int32 NumRemaining = State->GetRemainingReservations();
+		UE_LOG(LogBeacon, Verbose, TEXT("Sending reservation update %d"), NumRemaining);
+		for (AOnlineBeaconClient* ClientActor : ClientActors)
+		{
+			APartyBeaconClient* PartyBeaconClient = Cast<APartyBeaconClient>(ClientActor);
+			if (PartyBeaconClient)
+			{
+				PartyBeaconClient->ClientSendReservationUpdates(NumRemaining);
+			}
+		}
+	}
+}
+
 void APartyBeaconHost::NewPlayerAdded(const FPlayerReservation& NewPlayer)
 {
 	if (NewPlayer.UniqueId.IsValid())
@@ -267,6 +285,7 @@ void APartyBeaconHost::HandlePlayerLogout(const FUniqueNetIdRepl& PlayerId)
 		{
 			if (State->RemovePlayer(PlayerId))
 			{
+				SendReservationUpdates();
 				ReservationChanged.ExecuteIfBound();
 			}
 		}
@@ -401,6 +420,8 @@ EPartyReservationResult::Type APartyBeaconHost::AddPartyReservation(const FParty
 								}
 							}
 
+							SendReservationUpdates();
+
 							// Clean up the game entities for these duplicate players
 							DuplicateReservation.ExecuteIfBound(ReservationRequest);
 
@@ -435,6 +456,8 @@ EPartyReservationResult::Type APartyBeaconHost::AddPartyReservation(const FParty
 							{
 								NewPlayerAdded(PartyMember);
 							}
+
+							SendReservationUpdates();
 
 							ReservationChanged.ExecuteIfBound();
 							if (State->IsBeaconFull())
@@ -479,6 +502,8 @@ void APartyBeaconHost::RemovePartyReservation(const FUniqueNetIdRepl& PartyLeade
 	if (State && State->RemoveReservation(PartyLeader))
 	{
 		CancelationReceived.ExecuteIfBound(*PartyLeader);
+
+		SendReservationUpdates();
 		ReservationChanged.ExecuteIfBound();
 	}
 	else
@@ -537,37 +562,6 @@ void APartyBeaconHost::ProcessCancelReservationRequest(APartyBeaconClient* Clien
 	{
 		RemovePartyReservation(PartyLeader);
 	}
-}
-
-void APartyBeaconHost::ClientConnected(AOnlineBeaconClient* NewClientActor, UNetConnection* ClientConnection)
-{
-	UE_LOG(LogBeacon, Verbose, TEXT("ClientConnected %s from (%s)"), 
-		NewClientActor ? *NewClientActor->GetName() : TEXT("NULL"), 
-		NewClientActor ? *NewClientActor->GetNetConnection()->LowLevelDescribe() : TEXT("NULL"));
-
-	ClientActors.Add(NewClientActor);
-}
-
-void APartyBeaconHost::RemoveClientActor(AOnlineBeaconClient* ClientActor)
-{
-	if (ClientActor)
-	{
-		ClientActors.RemoveSingleSwap(ClientActor);
-	}
-
-	Super::RemoveClientActor(ClientActor);
-}
-
-AOnlineBeaconClient* APartyBeaconHost::SpawnBeaconActor(UNetConnection* ClientConnection)
-{	
-	FActorSpawnParameters SpawnInfo;
-	APartyBeaconClient* BeaconActor = GetWorld()->SpawnActor<APartyBeaconClient>(APartyBeaconClient::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnInfo);
-	if (BeaconActor)
-	{
-		BeaconActor->SetBeaconOwner(this);
-	}
-
-	return BeaconActor;
 }
 
 void APartyBeaconHost::DumpReservations() const

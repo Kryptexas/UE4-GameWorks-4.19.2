@@ -248,7 +248,7 @@ FGameplayAbilitySpecHandle UAbilitySystemComponent::GiveAbility(FGameplayAbility
 	}
 	
 	OnGiveAbility(OwnedSpec);
-	ActivatableAbilities.MarkArrayDirty();
+	MarkAbilitySpecDirty(OwnedSpec);
 
 	return OwnedSpec.Handle;
 }
@@ -401,7 +401,16 @@ void UAbilitySystemComponent::OnGiveAbility(FGameplayAbilitySpec& Spec)
 		}
 	}
 
-	Spec.Ability->OnGiveAbility(AbilityActorInfo.Get(), Spec);
+	// If there's already a primary instance, it should be the one to receive the OnGiveAbility call
+	UGameplayAbility* PrimaryInstance = Spec.GetPrimaryInstance();
+	if (PrimaryInstance)
+	{
+		PrimaryInstance->OnGiveAbility(AbilityActorInfo.Get(), Spec);
+	}
+	else
+	{
+		Spec.Ability->OnGiveAbility(AbilityActorInfo.Get(), Spec);
+	}
 }
 
 void UAbilitySystemComponent::OnRemoveAbility(FGameplayAbilitySpec& Spec)
@@ -617,6 +626,9 @@ void UAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle Hand
 
 	check(Ability);
 	ENetRole OwnerRole = GetOwnerRole();
+
+	// Broadcast that the ability ended
+	AbilityEndedCallbacks.Broadcast(Ability);
 
 	// If AnimatingAbility ended, clear the pointer
 	if (LocalAnimMontageInfo.AnimatingAbility == Ability)
@@ -1488,6 +1500,12 @@ void UAbilitySystemComponent::ClientActivateAbilitySucceedWithEventData_Implemen
 
 		// The spec will now be active, and we need to keep track on the client as well.  Since we cannot call TryActivateAbility, which will increment ActiveCount on the server, we have to do this here.
 		++Spec->ActiveCount;
+
+		if (PredictionKey.bIsServerInitiated)
+		{
+			// We have an active server key, set our key equal to it
+			Spec->ActivationInfo.ServerSetActivationPredictionKey(PredictionKey);
+		}
 		
 		if (AbilityToActivate->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
 		{
@@ -1521,7 +1539,8 @@ bool UAbilitySystemComponent::TriggerAbilityFromGameplayEvent(FGameplayAbilitySp
 		return false;
 	}
 
-	const UGameplayAbility* Ability = Spec->Ability;
+	const UGameplayAbility* InstancedAbility = Spec->GetPrimaryInstance();
+	const UGameplayAbility* Ability = InstancedAbility ? InstancedAbility : Spec->Ability;
 	if (!ensure(Ability))
 	{
 		return false;

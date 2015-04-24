@@ -7,7 +7,7 @@
 
 // forward declarations
 class IOnlineNotificationTransport;
-
+struct FOnlineNotification;
 
 /** Whether a handler function handled a particular notification */
 enum class EOnlineNotificationResult

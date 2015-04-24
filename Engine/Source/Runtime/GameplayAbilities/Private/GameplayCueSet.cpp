@@ -4,6 +4,7 @@
 #include "GameplayCueSet.h"
 #include "GameplayCueManager.h"
 #include "GameplayCueNotify_Static.h"
+#include "GameplayCueManager.h"
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //

@@ -164,8 +164,6 @@ UPawnActionsComponent::UPawnActionsComponent(const FObjectInitializer& ObjectIni
 
 void UPawnActionsComponent::OnUnregister()
 {
-	Super::OnUnregister();
-
 	// call for every regular priority 
 	for (int32 PriorityIndex = 0; PriorityIndex < EAIRequestPriority::MAX; ++PriorityIndex)
 	{
@@ -176,6 +174,8 @@ void UPawnActionsComponent::OnUnregister()
 			Action = Action->ParentAction;
 		}
 	}
+
+	Super::OnUnregister();
 }
 
 void UPawnActionsComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)

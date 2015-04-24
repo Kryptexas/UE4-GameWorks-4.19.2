@@ -162,6 +162,8 @@ protected:
 	/** if set, movement will be finished when velocity is opposite to path direction (runtime flag) */
 	uint32 bCheckMovementAngle : 1;
 
+	uint32 bEnableSimulationReplanOnResume : 1;
+
 	float SeparationWeight;
 	float CollisionQueryRange;
 	float PathOptimizationRange;

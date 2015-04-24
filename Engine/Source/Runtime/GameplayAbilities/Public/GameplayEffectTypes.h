@@ -699,7 +699,7 @@ struct FGameplayCueParameters
 	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
 	float RawMagnitude;
 
-	/** Effect context, contains information about hit reslt, etc */
+	/** Effect context, contains information about hit result, etc */
 	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
 	FGameplayEffectContextHandle EffectContext;
 

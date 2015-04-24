@@ -1166,12 +1166,12 @@ void UBehaviorTreeComponent::ProcessExecutionRequest()
 		}
 		else
 		{
-			// apply new observer changes
-			ApplyDiscardedSearch();
-
 			// rollback search
 			ActiveInstanceIdx = PrevActiveInstanceIdx;
 			CopyInstanceMemoryFromPersistent();
+
+			// apply new observer changes
+			ApplyDiscardedSearch();
 		}
 
 		SearchData.bSearchInProgress = false;

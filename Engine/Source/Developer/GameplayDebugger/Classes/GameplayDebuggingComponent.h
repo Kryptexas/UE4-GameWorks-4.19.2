@@ -200,7 +200,7 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	void SetActorToDebug(AActor* Actor);
 	FORCEINLINE AActor* GetSelectedActor() const
 	{
-		return TargetActor;
+		return TargetActor && TargetActor->IsPendingKill() == false ? TargetActor : nullptr;
 	}
 
 	void SetEQSIndex(int32 Index) { CurrentEQSIndex = Index; }

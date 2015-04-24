@@ -870,6 +870,14 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::FindPath(const FVector& StartL
 		Path.SetSearchReachedLimit(dtStatusDetail(FindPathStatus, DT_OUT_OF_NODES));
 	}
 
+#if ENABLE_VISUAL_LOG
+	if (dtStatusDetail(FindPathStatus, DT_INVALID_CYCLE_PATH))
+	{
+		UE_VLOG(NavMeshOwner, LogNavigation, Error, TEXT("FPImplRecastNavMesh::FindPath resulted in a cyclic path!"));
+		Path.DescribeSelfToVisLog(FVisualLogger::Get().GetLastEntryForObject(NavMeshOwner));
+	}
+#endif // ENABLE_VISUAL_LOG
+
 	Path.MarkReady();
 
 	return DTStatusToNavQueryResult(FindPathStatus);

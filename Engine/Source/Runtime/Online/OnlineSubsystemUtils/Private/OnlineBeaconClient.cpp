@@ -1,6 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
+#include "OnlineBeaconClient.h"
+#include "OnlineBeaconHost.h"
 #include "Net/DataChannel.h"
 #include "Net/UnrealNetwork.h"
 
@@ -25,7 +27,12 @@ void AOnlineBeaconClient::SetBeaconOwner(AOnlineBeaconHostObject* InBeaconOwner)
 	BeaconOwner = InBeaconOwner;
 }
 
-UNetConnection* AOnlineBeaconClient::GetNetConnection() const
+const AActor* AOnlineBeaconClient::GetNetOwner() const
+{
+	return BeaconOwner;
+}
+
+class UNetConnection* AOnlineBeaconClient::GetNetConnection() const
 {
 	return BeaconConnection;
 }
@@ -111,10 +118,10 @@ void AOnlineBeaconClient::DestroyBeacon()
 
 void AOnlineBeaconClient::OnNetCleanup(UNetConnection* Connection)
 {
-	AOnlineBeaconHostObject* BeaconHost = GetBeaconOwner();
-	if (BeaconHost)
+	AOnlineBeaconHostObject* BeaconHostObject = GetBeaconOwner();
+	if (BeaconHostObject)
 	{
-		BeaconHost->RemoveClientActor(this);
+		BeaconHostObject->NotifyClientDisconnected(this);
 	}
 }
 

@@ -124,7 +124,7 @@ struct FExampleArray: public FFastArraySerializer
 	/** Step 4: Copy this, replace example with your names */
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms)
 	{
-	   return FFastArraySerializer::FastArrayDeltaSerialize<FExampleItemEntry, FExampleArray>( Items, DeltaParms );
+	   return FFastArraySerializer::FastArrayDeltaSerialize<FExampleItemEntry, FExampleArray>( Items, DeltaParms, *this );
 	}
 };
 

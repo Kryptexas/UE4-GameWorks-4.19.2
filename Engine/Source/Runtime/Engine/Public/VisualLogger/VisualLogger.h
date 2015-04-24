@@ -199,6 +199,8 @@ public:
 	TArray<FVisualLogDevice*>& GetDevices() { return OutputDevices; }
 	/** Returns  current entry for given TimeStap or creates another one  but first it serialize previous entry as completed to vislog devices. Use VisualLogger::DontCreate to get current entry without serialization*/
 	FVisualLogEntry* GetEntryToWrite(const class UObject* Object, float TimeStamp, ECreateIfNeeded ShouldCreate = ECreateIfNeeded::Create);
+	/** Retrieves last used entry for given UObject*/
+	FVisualLogEntry* GetLastEntryForObject(const class UObject* Object);
 	/** flush and serialize data if timestamp allows it */
 	virtual void Flush() override;
 

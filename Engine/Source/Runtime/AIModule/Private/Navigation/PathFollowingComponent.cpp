@@ -872,7 +872,7 @@ bool UPathFollowingComponent::HasReached(const FVector& TestPoint, float InAccep
 	return HasReachedInternal(TestPoint, GoalRadius, GoalHalfHeight, CurrentLocation, InAcceptanceRadius, bExactSpot ? 0.0f : MinAgentRadiusPct);
 }
 
-bool UPathFollowingComponent::HasReached(const AActor& TestGoal, float InAcceptanceRadius, bool bExactSpot) const
+bool UPathFollowingComponent::HasReached(const AActor& TestGoal, float InAcceptanceRadius, bool bExactSpot, bool bUseNavAgentGoalLocation) const
 {
 	// simple test for stationary agent, used as early finish condition
 	float GoalRadius = 0.0f;
@@ -884,12 +884,15 @@ bool UPathFollowingComponent::HasReached(const AActor& TestGoal, float InAccepta
 		InAcceptanceRadius = MyDefaultAcceptanceRadius;
 	}
 
-	const INavAgentInterface* NavAgent = Cast<const INavAgentInterface>(&TestGoal);
-	if (NavAgent)
+	if (bUseNavAgentGoalLocation)
 	{
-		const FVector GoalMoveOffset = NavAgent->GetMoveGoalOffset(GetOwner());
-		NavAgent->GetMoveGoalReachTest(GetOwner(), GoalMoveOffset, GoalOffset, GoalRadius, GoalHalfHeight);
-		TestPoint = FQuatRotationTranslationMatrix(TestGoal.GetActorQuat(), NavAgent->GetNavAgentLocation()).TransformPosition(GoalOffset);
+		const INavAgentInterface* NavAgent = Cast<const INavAgentInterface>(&TestGoal);
+		if (NavAgent)
+		{
+			const FVector GoalMoveOffset = NavAgent->GetMoveGoalOffset(GetOwner());
+			NavAgent->GetMoveGoalReachTest(GetOwner(), GoalMoveOffset, GoalOffset, GoalRadius, GoalHalfHeight);
+			TestPoint = FQuatRotationTranslationMatrix(TestGoal.GetActorQuat(), NavAgent->GetNavAgentLocation()).TransformPosition(GoalOffset);
+		}
 	}
 
 	const FVector CurrentLocation = MovementComp ? MovementComp->GetActorFeetLocation() : FVector::ZeroVector;

@@ -984,14 +984,16 @@ FGameplayAbilityTargetingLocationInfo UGameplayAbility::MakeTargetLocationInfoFr
 	FGameplayAbilityTargetingLocationInfo ReturnLocation;
 	ReturnLocation.LocationType = EGameplayAbilityTargetingLocationType::ActorTransform;
 	ReturnLocation.SourceActor = GetActorInfo().AvatarActor.Get();
+	ReturnLocation.SourceAbility = this;
 	return ReturnLocation;
 }
 
-FGameplayAbilityTargetingLocationInfo UGameplayAbility::MakeTargetLocationInfoFromOwnerSkeletalMeshComponent(FName SocketName) const
+FGameplayAbilityTargetingLocationInfo UGameplayAbility::MakeTargetLocationInfoFromOwnerSkeletalMeshComponent(FName SocketName)
 {
 	FGameplayAbilityTargetingLocationInfo ReturnLocation;
 	ReturnLocation.LocationType = EGameplayAbilityTargetingLocationType::SocketTransform;
 	ReturnLocation.SourceComponent = GetActorInfo().AnimInstance.IsValid() ? GetActorInfo().AnimInstance.Get()->GetOwningComponent() : NULL;
+	ReturnLocation.SourceAbility = this;
 	ReturnLocation.SourceSocketName = SocketName;
 	return ReturnLocation;
 }

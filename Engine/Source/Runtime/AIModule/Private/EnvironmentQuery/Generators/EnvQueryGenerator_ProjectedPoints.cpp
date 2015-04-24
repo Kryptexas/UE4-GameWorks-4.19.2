@@ -8,6 +8,7 @@
 
 UEnvQueryGenerator_ProjectedPoints::UEnvQueryGenerator_ProjectedPoints(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
+	ProjectionData.TraceMode = EEnvQueryTrace::Navigation;
 	ProjectionData.bCanProjectDown = true;
 	ProjectionData.bCanDisableTrace = true;
 	ProjectionData.ExtentX = 0.0f;

@@ -45,14 +45,22 @@ void UEnvQueryGenerator_OnCircle::PostLoad()
 
 FVector UEnvQueryGenerator_OnCircle::CalcDirection(FEnvQueryInstance& QueryInstance) const
 {
-	AActor* Querier = Cast<AActor>(QueryInstance.Owner.Get());
+	UObject* Querier = QueryInstance.Owner.Get();
 	check(Querier != NULL);
 
-	FVector Direction;
+	// By default (if no defined arc is needed), don't rotate based on querier!  Instead, use a stable rotation
+	// so the points on the circle don't rotate!
+	FVector Direction(FVector::ForwardVector);
 	if (bDefineArc)
 	{
-		// By default, use Querier rotation for arc direction.
-		Direction = Querier->GetActorForwardVector();
+		// Try to use the Querier rotation for arc direction if it has one (by default).  If not, we're already
+		// initialized (above) to a stable rotational direction.
+		AActor* QuerierActor = Cast<AActor>(Querier);
+		if (QuerierActor != nullptr)
+		{
+			Direction = QuerierActor->GetActorForwardVector();
+		}
+
 		if (ArcDirection.DirMode == EEnvDirection::TwoPoints)
 		{
 			TArray<FVector> Start;
@@ -66,7 +74,18 @@ FVector UEnvQueryGenerator_OnCircle::CalcDirection(FEnvQueryInstance& QueryInsta
 			}
 			else
 			{
-				UE_VLOG(Querier, LogEQS, Warning, TEXT("UEnvQueryGenerator_OnCircle::CalcDirection failed to calc direction in %s. Using querier facing."), *QueryInstance.QueryName);
+				if (QuerierActor != NULL)
+				{
+					UE_VLOG(Querier, LogEQS, Warning,
+						TEXT("UEnvQueryGenerator_OnCircle::CalcDirection failed to calc direction in %s. Using querier facing."),
+						*QueryInstance.QueryName);
+				}
+				else
+				{
+					UE_VLOG(Querier, LogEQS, Warning,
+						TEXT("UEnvQueryGenerator_OnCircle::CalcDirection failed to calc direction in %s.  Querier is not an actor, so we'll just use the world 'forward' direction."),
+						*QueryInstance.QueryName);
+				}
 			}
 		}
 		else
@@ -80,13 +99,18 @@ FVector UEnvQueryGenerator_OnCircle::CalcDirection(FEnvQueryInstance& QueryInsta
 			}
 			else
 			{
-				UE_VLOG(Querier, LogEQS, Warning, TEXT("UEnvQueryGenerator_OnCircle::CalcDirection failed to calc direction in %s. Using querier facing."), *QueryInstance.QueryName);
+				if (QuerierActor != NULL)
+				{
+					UE_VLOG(Querier, LogEQS, Warning, TEXT("UEnvQueryGenerator_OnCircle::CalcDirection failed to calc direction in %s. Using querier facing."), *QueryInstance.QueryName);
+				}
+				else
+				{
+					UE_VLOG(Querier, LogEQS, Warning,
+						TEXT("UEnvQueryGenerator_OnCircle::CalcDirection failed to calc direction in %s.  Querier is not an actor, so we'll just use the world 'forward' direction."),
+						*QueryInstance.QueryName);
+				}
 			}
 		}
-	}
-	else
-	{	// Don't rotate based on querier!  Instead, use a stable rotation so the points on the circle don't rotate!
-		Direction = FVector(1, 0, 0);
 	}
 
 	return Direction;

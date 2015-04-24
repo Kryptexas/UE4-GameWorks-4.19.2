@@ -182,6 +182,12 @@ float FAttributeBasedFloat::CalculateMagnitude(const FGameplayEffectSpec& InRele
 		}
 	}
 
+	// if a curve table entry is specified, use the attribute value as a lookup into the curve instead of using it directly
+	if (AttributeCurve.IsValid())
+	{
+		AttributeCurve.Eval(AttribValue, &AttribValue);
+	}
+
 	const float SpecLvl = InRelevantSpec.GetLevel();
 	return ((Coefficient.GetValueAtLevel(SpecLvl) * (AttribValue + PreMultiplyAdditiveValue.GetValueAtLevel(SpecLvl))) + PostMultiplyAdditiveValue.GetValueAtLevel(SpecLvl));
 }
@@ -453,6 +459,7 @@ FGameplayEffectSpec::FGameplayEffectSpec(FGameplayEffectSpec&& Other)
 	, CapturedSourceTags(MoveTemp(Other.CapturedSourceTags))
 	, CapturedTargetTags(MoveTemp(Other.CapturedTargetTags))
 	, DynamicGrantedTags(MoveTemp(Other.DynamicGrantedTags))
+	, DynamicAssetTags(MoveTemp(Other.DynamicAssetTags))
 	, Modifiers(MoveTemp(Other.Modifiers))
 	, StackCount(Other.StackCount)
 	, bCompletedSourceAttributeCapture(Other.bCompletedSourceAttributeCapture)
@@ -478,6 +485,7 @@ FGameplayEffectSpec& FGameplayEffectSpec::operator=(FGameplayEffectSpec&& Other)
 	CapturedSourceTags = MoveTemp(Other.CapturedSourceTags);
 	CapturedTargetTags = MoveTemp(Other.CapturedTargetTags);
 	DynamicGrantedTags = MoveTemp(Other.DynamicGrantedTags);
+	DynamicAssetTags = MoveTemp(Other.DynamicAssetTags);
 	Modifiers = MoveTemp(Other.Modifiers);
 	StackCount = Other.StackCount;
 	bCompletedSourceAttributeCapture = Other.bCompletedSourceAttributeCapture;
@@ -502,6 +510,7 @@ FGameplayEffectSpec& FGameplayEffectSpec::operator=(const FGameplayEffectSpec& O
 	CapturedSourceTags = Other.CapturedSourceTags;
 	CapturedTargetTags = Other.CapturedTargetTags;
 	DynamicGrantedTags = Other.DynamicGrantedTags;
+	DynamicAssetTags = Other.DynamicAssetTags;
 	Modifiers = Other.Modifiers;
 	StackCount = Other.StackCount;
 	bCompletedSourceAttributeCapture = Other.bCompletedSourceAttributeCapture;
@@ -791,6 +800,12 @@ void FGameplayEffectSpec::GetAllGrantedTags(OUT FGameplayTagContainer& Container
 {
 	Container.AppendTags(DynamicGrantedTags);
 	Container.AppendTags(Def->InheritableOwnedTagsContainer.CombinedTags);
+}
+
+void FGameplayEffectSpec::GetAllAssetTags(OUT FGameplayTagContainer& Container) const
+{
+	Container.AppendTags(DynamicAssetTags);
+	Container.AppendTags(Def->InheritableGameplayEffectTags.CombinedTags);
 }
 
 void FGameplayEffectSpec::SetSetByCallerMagnitude(FName DataName, float Magnitude)
@@ -2057,6 +2072,11 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 		// We only grant abilities on the first apply. So we *dont* want the new spec's GrantedAbilitySpecs list
 		TArray<FGameplayAbilitySpecDef>	GrantedSpecTempArray(MoveTemp(ExistingStackableGE->Spec.GrantedAbilitySpecs));
 
+		// @todo: If dynamic asset tags differ (which they shouldn't), we'll actually have to diff them
+		// and cause a removal and add of only the ones that have changed. For now, ensure on this happening and come
+		// back to this later.
+		ensureMsgf(ExistingSpec.DynamicAssetTags == Spec.DynamicAssetTags, TEXT("While adding a stack of the gameplay effect: %s, the old stack and the new application had different dynamic asset tags, which is currently not resolved properly!"), *Spec.Def->GetName());
+
 		ExistingStackableGE->Spec = Spec;
 		ExistingStackableGE->Spec.StackCount = NewStackCount;
 
@@ -3082,7 +3102,8 @@ bool FActiveGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) co
 	// if we are just looking for Tags on the Effect then look at the Gameplay Effect Tags
 	if (EffectTagContainer)
 	{
-		if (!Effect.Spec.Def->InheritableGameplayEffectTags.CombinedTags.MatchesAny(*EffectTagContainer, true))
+		if (!Effect.Spec.Def->InheritableGameplayEffectTags.CombinedTags.MatchesAny(*EffectTagContainer, true) &&
+			!Effect.Spec.DynamicAssetTags.MatchesAny(*EffectTagContainer, false))
 		{
 			// this doesn't match our Tags so bail
 			return false;
@@ -3092,7 +3113,8 @@ bool FActiveGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) co
 	// if we are just looking for Tags on the Effect then look at the Gameplay Effect Tags
 	if (EffectTagContainer_Rejection)
 	{
-		if (Effect.Spec.Def->InheritableGameplayEffectTags.CombinedTags.MatchesAny(*EffectTagContainer_Rejection, true))
+		if (Effect.Spec.Def->InheritableGameplayEffectTags.CombinedTags.MatchesAny(*EffectTagContainer_Rejection, true) ||
+			Effect.Spec.DynamicAssetTags.MatchesAny(*EffectTagContainer_Rejection, false))
 		{
 			// this matches our Rejection Tags so bail
 			return false;
@@ -3209,6 +3231,10 @@ void FActiveGameplayEffectsContainer::DecrementLock()
 			if (!PendingGameplayEffect->IsPendingRemove)
 			{
 				GameplayEffects_Internal.Add(MoveTemp(*PendingGameplayEffect));
+			}
+			else
+			{
+				PendingRemoves--;
 			}
 			PendingGameplayEffect = PendingGameplayEffect->PendingNext;
 		}

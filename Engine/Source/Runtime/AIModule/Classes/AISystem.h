@@ -65,9 +65,9 @@ public:
 	/** Behavior tree manager const getter */
 	FORCEINLINE const UBehaviorTreeManager* GetBehaviorTreeManager() const { return BehaviorTreeManager; }
 
-	/** Behavior tree manager getter */
+	/** Environment Query manager getter */
 	FORCEINLINE UEnvQueryManager* GetEnvironmentQueryManager() { return EnvironmentQueryManager; }
-	/** Behavior tree manager const getter */
+	/** Environment Query manager const getter */
 	FORCEINLINE const UEnvQueryManager* GetEnvironmentQueryManager() const { return EnvironmentQueryManager; }
 
 	FORCEINLINE UAIPerceptionSystem* GetPerceptionSystem() { return PerceptionSystem; }

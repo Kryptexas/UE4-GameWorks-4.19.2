@@ -10,6 +10,33 @@ public:
 	/** FName case insensitivity can make the casing of UPROPERTIES unpredictable. Attempt to standardize output. */
 	static FString StandardizeCase(const FString &StringIn);
 
+public: // UStruct -> JSON
+
+	/**
+	 * Optional callback to run when exporting a type which we don't already understand.
+	 * If this returns a valid pointer it will be inserted into the export chain. If not, or if this is not
+	 * passed in, then we will call the generic ToString on the type and export as a JSON string.
+	 */
+	DECLARE_DELEGATE_RetVal_TwoParams(TSharedPtr<FJsonValue>, CustomExportCallback, UProperty* /* Property */, const void* /* Value */);
+
+	/**
+	 * Templated version of UStructToJsonObject to try and make most of the params. Also serves as an example use case
+	 * 
+	 * @param InStruct The UStruct instance to read from
+	 * @param ExportCb Optional callback for types we don't understand. This is called right before falling back to the generic ToString()
+	 * @return FJsonObject pointer. Invalid if an error occurred.
+	 */
+	template<typename InStructType>
+	static TSharedPtr<FJsonObject> UStructToJsonObject(const InStructType& InStruct, const CustomExportCallback* ExportCb = nullptr)
+	{
+		TSharedRef<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+		if (UStructToJsonObject(InStructType::StaticStruct(), &InStruct, JsonObject, 0, 0, ExportCb))
+		{
+			return JsonObject;
+		}
+		return TSharedPtr<FJsonObject>(); // something went wrong
+	}
+
 	/**
 	 * Converts from a UStruct to a Json Object, using exportText
 	 *
@@ -18,10 +45,11 @@ public:
 	 * @param JsonObject Json Object to be filled in with data from the ustruct
 	 * @param CheckFlags Only convert properties that match at least one of these flags. If 0 check all properties.
 	 * @param SkipFlags Skip properties that match any of these flags
+	 * @param ExportCb Optional callback for types we don't understand. This is called right before falling back to the generic ToString()
 	 *
 	 * @return False if any properties failed to write
 	 */
-	static bool UStructToJsonObject(const UStruct* StructDefinition, const void* Struct, TSharedRef<FJsonObject> OutJsonObject, int64 CheckFlags, int64 SkipFlags);
+	static bool UStructToJsonObject(const UStruct* StructDefinition, const void* Struct, TSharedRef<FJsonObject> OutJsonObject, int64 CheckFlags, int64 SkipFlags, const CustomExportCallback* ExportCb = nullptr);
 
 	/**
 	 * Converts from a UStruct to a json string containing an object, using exportText
@@ -32,10 +60,11 @@ public:
 	 * @param CheckFlags Only convert properties that match at least one of these flags. If 0 check all properties.
 	 * @param SkipFlags Skip properties that match any of these flags
 	 * @param Indent How many tabs to add to the json serializer
+	 * @param ExportCb Optional callback for types we don't understand. This is called right before falling back to the generic ToString()
 	 *
 	 * @return False if any properties failed to write
 	 */
-	static bool UStructToJsonObjectString(const UStruct* StructDefinition, const void* Struct, FString& OutJsonString, int64 CheckFlags, int64 SkipFlags, int32 Indent = 0);
+	static bool UStructToJsonObjectString(const UStruct* StructDefinition, const void* Struct, FString& OutJsonString, int64 CheckFlags, int64 SkipFlags, int32 Indent = 0, const CustomExportCallback* ExportCb = nullptr);
 
 	/**
 	 * Converts from a UStruct to a set of json attributes (possibly from within a JsonObject)
@@ -45,10 +74,25 @@ public:
 	 * @param JsonAttributes Map of attributes to copy in to
 	 * @param CheckFlags Only convert properties that match at least one of these flags. If 0 check all properties.
 	 * @param SkipFlags Skip properties that match any of these flags
+	 * @param ExportCb Optional callback for types we don't understand. This is called right before falling back to the generic ToString()
 	 *
 	 * @return False if any properties failed to write
 	 */
-	static bool UStructToJsonAttributes(const UStruct* StructDefinition, const void* Struct, TMap< FString, TSharedPtr<FJsonValue> >& OutJsonAttributes, int64 CheckFlags, int64 SkipFlags);
+	static bool UStructToJsonAttributes(const UStruct* StructDefinition, const void* Struct, TMap< FString, TSharedPtr<FJsonValue> >& OutJsonAttributes, int64 CheckFlags, int64 SkipFlags, const CustomExportCallback* ExportCb = nullptr);
+	
+	/* * Converts from a UProperty to a Json Value using exportText
+	 *
+	 * @param Property			The property to export
+	 * @param Value				Pointer to the value of the property
+	 * @param CheckFlags		Only convert properties that match at least one of these flags. If 0 check all properties.
+	 * @param SkipFlags			Skip properties that match any of these flags
+	 * @param ExportCb			Optional callback for types we don't understand. This is called right before falling back to the generic ToString()
+	 *
+	 * @return					The constructed JsonValue from the property
+	 */
+	static TSharedPtr<FJsonValue> UPropertyToJsonValue(UProperty* Property, const void* Value, int64 CheckFlags, int64 SkipFlags, const CustomExportCallback* ExportCb = nullptr);
+
+public: // JSON -> UStruct
 
 	/**
 	 * Converts from a Json Object to a UStruct, using importText
@@ -154,16 +198,5 @@ public:
 		}
 		return true;
 	}
-
-	/* * Converts from a UProperty to a Json Value using exportText
-	 *
-	 * @param Property			The property to export
-	 * @param Value				Pointer to the value of the property
-	 * @param CheckFlags		Only convert properties that match at least one of these flags. If 0 check all properties.
-	 * @param SkipFlags			Skip properties that match any of these flags
-	 *
-	 * @return					The constructed JsonValue from the property
-	 */
-	static TSharedPtr<FJsonValue> UPropertyToJsonValue(UProperty* Property, const void* Value, int64 CheckFlags, int64 SkipFlags);
 };
 

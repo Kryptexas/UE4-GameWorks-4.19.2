@@ -58,6 +58,21 @@ void AOnlineBeacon::OnFailure()
 void AOnlineBeacon::OnActorChannelOpen(FInBunch& Bunch, UNetConnection* Connection)
 {
 	Connection->OwningActor = this;
+	Super::OnActorChannelOpen(Bunch, Connection);
+}
+
+bool AOnlineBeacon::IsRelevancyOwnerFor(const AActor* ReplicatedActor, const AActor* ActorOwner, const AActor* ConnectionActor) const
+{
+	bool bRelevantOwner = (ConnectionActor == ReplicatedActor);
+	return bRelevantOwner;
+}
+
+bool AOnlineBeacon::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
+{
+	// Only replicate to the owner or to connections of the same beacon type (possible that multiple UNetConnections come from the same client)
+	bool bIsOwner = GetNetConnection() == ViewTarget->GetNetConnection();
+	bool bSameBeaconType = GetClass() == RealViewer->GetClass();
+	return bOnlyRelevantToOwner ? bIsOwner : bSameBeaconType;
 }
 
 EAcceptConnection::Type AOnlineBeacon::NotifyAcceptingConnection()
@@ -117,7 +132,7 @@ bool AOnlineBeacon::NotifyAcceptingChannel(UChannel* Channel)
 	else
 	{
 		// We are the server.
-		if (Channel->ChIndex==0 && Channel->ChType==CHTYPE_Control)
+		if (Channel->ChIndex == 0 && Channel->ChType == CHTYPE_Control)
 		{
 			// The client has opened initial channel.
 			UE_LOG(LogNet, Log, TEXT("NotifyAcceptingChannel Control %i server %s: Accepted"), Channel->ChIndex, *GetFullName());

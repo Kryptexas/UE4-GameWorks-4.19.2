@@ -15,7 +15,7 @@ FString FJsonObjectConverter::StandardizeCase(const FString &StringIn)
 namespace
 {
 /** Convert property to JSON, assuming either the property is not an array or the value is an individual array element */
-TSharedPtr<FJsonValue> ConvertScalarUPropertyToJsonValue(UProperty* Property, const void* Value, int64 CheckFlags, int64 SkipFlags)
+TSharedPtr<FJsonValue> ConvertScalarUPropertyToJsonValue(UProperty* Property, const void* Value, int64 CheckFlags, int64 SkipFlags, const FJsonObjectConverter::CustomExportCallback* ExportCb)
 {
 	if (UNumericProperty *NumericProperty = Cast<UNumericProperty>(Property))
 	{
@@ -55,7 +55,7 @@ TSharedPtr<FJsonValue> ConvertScalarUPropertyToJsonValue(UProperty* Property, co
 		FScriptArrayHelper Helper(ArrayProperty, Value);
 		for (int32 i=0, n=Helper.Num(); i<n; ++i)
 		{
-			TSharedPtr<FJsonValue> Elem = FJsonObjectConverter::UPropertyToJsonValue(ArrayProperty->Inner, Helper.GetRawPtr(i), CheckFlags & (~CPF_ParmFlags), SkipFlags);
+			TSharedPtr<FJsonValue> Elem = FJsonObjectConverter::UPropertyToJsonValue(ArrayProperty->Inner, Helper.GetRawPtr(i), CheckFlags & (~CPF_ParmFlags), SkipFlags, ExportCb);
 			if (Elem.IsValid())
 			{
 				// add to the array
@@ -67,7 +67,7 @@ TSharedPtr<FJsonValue> ConvertScalarUPropertyToJsonValue(UProperty* Property, co
 	else if (UStructProperty *StructProperty = Cast<UStructProperty>(Property))
 	{
 		TSharedRef<FJsonObject> Out = MakeShareable(new FJsonObject());
-		if (FJsonObjectConverter::UStructToJsonObject(StructProperty->Struct, Value, Out, CheckFlags & (~CPF_ParmFlags), SkipFlags))
+		if (FJsonObjectConverter::UStructToJsonObject(StructProperty->Struct, Value, Out, CheckFlags & (~CPF_ParmFlags), SkipFlags, ExportCb))
 		{
 			return MakeShareable(new FJsonValueObject(Out));
 		}
@@ -75,6 +75,17 @@ TSharedPtr<FJsonValue> ConvertScalarUPropertyToJsonValue(UProperty* Property, co
 	}
 	else
 	{
+		// see if there's a custom export callback
+		if (ExportCb && ExportCb->IsBound())
+		{
+			TSharedPtr<FJsonValue> CustomValue = ExportCb->Execute(Property, Value);
+			if (CustomValue.IsValid())
+			{
+				return CustomValue;
+			}
+			// fall through and try ToString
+		}
+
 		// Default to export as string for everything else
 		FString StringValue;
 		Property->ExportTextItem(StringValue, Value, NULL, NULL, PPF_None);
@@ -86,27 +97,27 @@ TSharedPtr<FJsonValue> ConvertScalarUPropertyToJsonValue(UProperty* Property, co
 }
 }
 
-TSharedPtr<FJsonValue> FJsonObjectConverter::UPropertyToJsonValue(UProperty* Property, const void* Value, int64 CheckFlags, int64 SkipFlags)
+TSharedPtr<FJsonValue> FJsonObjectConverter::UPropertyToJsonValue(UProperty* Property, const void* Value, int64 CheckFlags, int64 SkipFlags, const CustomExportCallback* ExportCb)
 {
 	if (Property->ArrayDim == 1)
 	{
-		return ConvertScalarUPropertyToJsonValue(Property, Value, CheckFlags, SkipFlags);
+		return ConvertScalarUPropertyToJsonValue(Property, Value, CheckFlags, SkipFlags, ExportCb);
 	}
 
 	TArray< TSharedPtr<FJsonValue> > Array;
 	for (int Index = 0; Index != Property->ArrayDim; ++Index)
 	{
-		Array.Add(ConvertScalarUPropertyToJsonValue(Property, (char*)Value + Index * Property->ElementSize, CheckFlags, SkipFlags));
+		Array.Add(ConvertScalarUPropertyToJsonValue(Property, (char*)Value + Index * Property->ElementSize, CheckFlags, SkipFlags, ExportCb));
 	}
 	return MakeShareable(new FJsonValueArray(Array));
 }
 
-bool FJsonObjectConverter::UStructToJsonObject(const UStruct* StructDefinition, const void* Struct, TSharedRef<FJsonObject> OutJsonObject, int64 CheckFlags, int64 SkipFlags)
+bool FJsonObjectConverter::UStructToJsonObject(const UStruct* StructDefinition, const void* Struct, TSharedRef<FJsonObject> OutJsonObject, int64 CheckFlags, int64 SkipFlags, const CustomExportCallback* ExportCb)
 {
-	return UStructToJsonAttributes(StructDefinition, Struct, OutJsonObject->Values, CheckFlags, SkipFlags);
+	return UStructToJsonAttributes(StructDefinition, Struct, OutJsonObject->Values, CheckFlags, SkipFlags, ExportCb);
 }
 
-bool FJsonObjectConverter::UStructToJsonAttributes(const UStruct* StructDefinition, const void* Struct, TMap< FString, TSharedPtr<FJsonValue> >& OutJsonAttributes, int64 CheckFlags, int64 SkipFlags)
+bool FJsonObjectConverter::UStructToJsonAttributes(const UStruct* StructDefinition, const void* Struct, TMap< FString, TSharedPtr<FJsonValue> >& OutJsonAttributes, int64 CheckFlags, int64 SkipFlags, const CustomExportCallback* ExportCb)
 {
 	if (StructDefinition == FJsonObjectWrapper::StaticStruct())
 	{
@@ -138,7 +149,7 @@ bool FJsonObjectConverter::UStructToJsonAttributes(const UStruct* StructDefiniti
 		const void* Value = Property->ContainerPtrToValuePtr<uint8>(Struct);
 
 		// convert the property to a FJsonValue
-		TSharedPtr<FJsonValue> JsonValue = UPropertyToJsonValue(Property, Value, CheckFlags, SkipFlags);
+		TSharedPtr<FJsonValue> JsonValue = UPropertyToJsonValue(Property, Value, CheckFlags, SkipFlags, ExportCb);
 		if (!JsonValue.IsValid())
 		{
 			UClass* PropClass = Property->GetClass();
@@ -153,10 +164,10 @@ bool FJsonObjectConverter::UStructToJsonAttributes(const UStruct* StructDefiniti
 	return true;
 }
 
-bool FJsonObjectConverter::UStructToJsonObjectString(const UStruct* StructDefinition, const void* Struct, FString& OutJsonString, int64 CheckFlags, int64 SkipFlags, int32 Indent)
+bool FJsonObjectConverter::UStructToJsonObjectString(const UStruct* StructDefinition, const void* Struct, FString& OutJsonString, int64 CheckFlags, int64 SkipFlags, int32 Indent, const CustomExportCallback* ExportCb)
 {
 	TSharedRef<FJsonObject> JsonObject = MakeShareable( new FJsonObject() );
-	if (UStructToJsonObject(StructDefinition, Struct, JsonObject, CheckFlags, SkipFlags))
+	if (UStructToJsonObject(StructDefinition, Struct, JsonObject, CheckFlags, SkipFlags, ExportCb))
 	{
 		TSharedRef<TJsonWriter<> > JsonWriter = TJsonWriterFactory<>::Create(&OutJsonString, Indent);
 

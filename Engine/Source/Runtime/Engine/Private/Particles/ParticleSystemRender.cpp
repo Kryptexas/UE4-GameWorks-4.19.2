@@ -574,7 +574,8 @@ bool FDynamicSpriteEmitterData::GetVertexAndIndexData(void* VertexData, void* Dy
 	FVector CameraPosition = InCameraPosition;
 	if (Source.bUseLocalSpace)
 	{
-		CameraPosition = InLocalToWorld.InverseTransformPosition(InCameraPosition);
+		FMatrix InvSelf = InLocalToWorld.Inverse();
+		CameraPosition = InvSelf.TransformPosition(InCameraPosition);
 	}
 
 	// Pack the data
@@ -686,7 +687,8 @@ bool FDynamicSpriteEmitterData::GetVertexAndIndexDataNonInstanced(void* VertexDa
 	FVector CameraPosition = InCameraPosition;
 	if (Source.bUseLocalSpace)
 	{
-		CameraPosition = InLocalToWorld.InverseTransformPosition(InCameraPosition);
+		FMatrix InvSelf = InLocalToWorld.Inverse();
+		CameraPosition = InvSelf.TransformPosition(InCameraPosition);
 	}
 
 	// Pack the data

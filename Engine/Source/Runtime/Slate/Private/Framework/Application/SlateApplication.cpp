@@ -1356,7 +1356,7 @@ void FSlateApplication::Tick()
 	}
 
 	const bool bNeedsSyntheticMouseMouse = SynthesizeMouseMovePending > 0;
-	if (bNeedsSyntheticMouseMouse)
+	if (bNeedsSyntheticMouseMouse && (!GIsGameThreadIdInitialized || GGameThreadId == FPlatformTLS::GetCurrentThreadId())) // IsInGameThread actually includes 2 threads (main and slate loading) 
 	{
 		// Force a mouse move event to make sure all widgets know whether there is a mouse cursor hovering over them
 		SynthesizeMouseMove();

@@ -62,3 +62,10 @@ bool UBlueprintGameplayTagLibrary::DoesTagAssetInterfaceHaveTag(TScriptInterface
 	TagContainerInterface->GetOwnedGameplayTags(OwnedTags);
 	return (OwnedTags.HasTag(Tag, ContainerTagsMatchType, TagMatchType));
 }
+
+bool UBlueprintGameplayTagLibrary::AppendGameplayTagContainers(const FGameplayTagContainer& InTagContainer, UPARAM(ref) FGameplayTagContainer& InOutTagContainer)
+{
+	InOutTagContainer.AppendTags(InTagContainer);
+
+	return true;
+}

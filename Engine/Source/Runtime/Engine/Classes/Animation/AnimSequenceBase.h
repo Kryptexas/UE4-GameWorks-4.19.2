@@ -621,6 +621,10 @@ class UAnimSequenceBase : public UAnimationAsset
 	virtual void PostLoad() override;
 	// End of UObject interface
 
+	/** Returns the total play length of the montage, if played back with a speed of 1.0. */
+	UFUNCTION(BlueprintCallable, Category = "Animation")
+	virtual float GetPlayLength();
+
 	/** Sort the Notifies array by time, earliest first. */
 	ENGINE_API void SortNotifies();	
 

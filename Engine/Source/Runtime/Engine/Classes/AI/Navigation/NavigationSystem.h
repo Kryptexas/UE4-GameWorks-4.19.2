@@ -65,6 +65,17 @@ namespace FNavigationSystem
 	 * Used to construct an ANavigationData instance for specified navigation data agent 
 	 */
 	typedef ANavigationData* (*FNavigationDataInstanceCreator)(UWorld*, const FNavDataConfig&);
+
+	struct ENGINE_API FCustomLinkOwnerInfo
+	{
+		FWeakObjectPtr LinkOwner;
+		INavLinkCustomInterface* LinkInterface;
+
+		FCustomLinkOwnerInfo() : LinkInterface(nullptr) {}
+		FCustomLinkOwnerInfo(INavLinkCustomInterface* Link);
+
+		bool IsValid() const { return LinkOwner.IsValid(); }
+	};
 }
 
 struct FNavigationSystemExec: public FSelfRegisteringExec
@@ -73,6 +84,17 @@ struct FNavigationSystemExec: public FSelfRegisteringExec
 	virtual bool Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 	// End FExec Interface
 };
+
+namespace ENavigationBuildLock
+{
+	enum Type
+	{
+		LoadingAreas = 1 << 1,			// navigation areas are being loaded
+		NoUpdateInEditor = 1 << 2,			// editor doesn't allow automatic updates
+		InitialLock = 1 << 3,			// initial lock, release manually after levels are ready for rebuild (e.g. streaming)
+		Custom = 1 << 4,
+	};
+}
 
 namespace ENavigationLockReason
 {
@@ -650,7 +672,7 @@ public:
 	void OnPIEEnd();
 	
 	// @todo document
-	FORCEINLINE bool IsNavigationBuildingLocked() const { return bNavigationBuildingLocked || bInitialBuildingLockActive; }
+	FORCEINLINE bool IsNavigationBuildingLocked() const { return NavBuildingLockFlags != 0; }
 
 	// @todo document
 	UFUNCTION(BlueprintCallable, Category = "AI|Navigation")
@@ -691,9 +713,12 @@ public:
 	/** adds BSP collisions of currently streamed in levels to octree */
 	void InitializeLevelCollisions();
 
+	FORCEINLINE void AddNavigationBuildLock(uint8 Flags) { NavBuildingLockFlags |= Flags; }
+	void RemoveNavigationBuildLock(uint8 Flags, bool bSkipRebuildInEditor = false);
+
 #if WITH_EDITOR
 	/** allow editor to toggle whether seamless navigation building is enabled */
-	static void SetNavigationAutoUpdateEnabled(bool bNewEnable, UNavigationSystem* InNavigationsystem);
+	static void SetNavigationAutoUpdateEnabled(bool bNewEnable, UNavigationSystem* InNavigationSystem);
 
 	/** check whether seamless navigation building is enabled*/
 	FORCEINLINE static bool GetIsNavigationAutoUpdateEnabled() { return bNavigationAutoUpdateEnabled; }
@@ -748,9 +773,6 @@ public:
 	void CycleNavigationDataDrawn();
 
 protected:
-#if WITH_EDITOR
-	uint8 NavUpdateLockFlags;
-#endif
 
 	FNavigationSystem::EMode OperationMode;
 
@@ -768,7 +790,7 @@ protected:
 	TMultiMap<UObject*, FWeakObjectPtr> OctreeChildNodesMap;
 
 	/** Map of all custom navigation links, that are relevant for path following */
-	TMap<uint32, INavLinkCustomInterface*> CustomLinksMap;
+	TMap<uint32, FNavigationSystem::FCustomLinkOwnerInfo> CustomLinksMap;
 
 	/** stores areas marked as dirty throughout the frame, processes them 
 	 *	once a frame in Tick function */
@@ -778,11 +800,17 @@ protected:
 	FCriticalSection NavDataRegistrationSection;
 	static FCriticalSection NavAreaRegistrationSection;
 	
-	uint32 bNavigationBuildingLocked:1;
-	uint32 bInitialBuildingLockActive:1;
-	uint32 bInitialSetupHasBeenPerformed:1;
-	uint32 bInitialLevelsAdded:1;
-	uint32 bAsyncBuildPaused:1;
+#if WITH_EDITOR
+	uint8 NavUpdateLockFlags;
+#endif
+	uint8 NavBuildingLockFlags;
+
+	/** set of locking flags applied on startup of navigation system */
+	uint8 InitialNavBuildingLockFlags;
+
+	uint8 bInitialSetupHasBeenPerformed:1;
+	uint8 bInitialLevelsAdded:1;
+	uint8 bAsyncBuildPaused:1;
 
 	/** cached navigable world bounding box*/
 	mutable FBox NavigableWorldBounds;
@@ -847,14 +875,16 @@ protected:
 	/** Remove BSP collision data from navigation octree */
 	void RemoveLevelCollisionFromOctree(ULevel* Level);
 
-	/** registers or unregisters all generators from rebuilding callbacks */
-	void EnableAllGenerators(bool bEnable, bool bForce = false);
+	DEPRECATED(4.8, "EnableAllGenerators is deprecated. Use AddNavigationBuildLock / RemoveNavigationBuildLock instead.")
+	void EnableAllGenerators(bool bEnable, bool bForce = false) {}
 
 private:
-	// @todo document
-	void NavigationBuildingLock();
-	// @todo document
-	void NavigationBuildingUnlock(bool bForce = false);
+	DEPRECATED(4.8, "NavigationBuildingLock is deprecated. Use AddNavigationBuildLock instead.")
+	void NavigationBuildingLock() { return AddNavigationBuildLock(ENavigationBuildLock::NoUpdateInEditor); }
+
+	DEPRECATED(4.8, "NavigationBuildingUnlock is deprecated. Use RemoveNavigationBuildLock instead.")
+	void NavigationBuildingUnlock(bool bForce = false) { RemoveNavigationBuildLock(ENavigationBuildLock::NoUpdateInEditor); }
+
 	// adds navigation bounds update request to a pending list
 	void AddNavigationBoundsUpdateRequest(const FNavigationBoundsUpdateRequest& UpdateRequest);
 

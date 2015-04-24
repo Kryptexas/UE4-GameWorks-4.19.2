@@ -261,6 +261,11 @@ struct ENGINE_API FNavPathType
 		return Id == Other.Id || (ParentType != nullptr && *ParentType == Other);
 	}
 
+	bool IsA(const FNavPathType& Other) const
+	{
+		return (Id == Other.Id) || (ParentType && ParentType->IsA(Other));
+	}
+
 private:
 	static uint32 NextUniqueId;
 	uint32 Id;
@@ -436,9 +441,14 @@ struct FNavigationProjectionWork
 	const FVector Point;
 	FNavLocation OutLocation;
 	bool bResult;
+	bool bIsValid;
 
 	explicit FNavigationProjectionWork(const FVector& StartPoint)
-		: Point(StartPoint), bResult(false)
+		: Point(StartPoint), bResult(false), bIsValid(true)
+	{}
+
+	FNavigationProjectionWork()
+		: Point(FNavigationSystem::InvalidLocation), bResult(false), bIsValid(false)
 	{}
 };
 

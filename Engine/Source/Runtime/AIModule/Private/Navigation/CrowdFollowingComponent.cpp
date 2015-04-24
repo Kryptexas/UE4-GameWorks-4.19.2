@@ -16,6 +16,7 @@ UCrowdFollowingComponent::UCrowdFollowingComponent(const FObjectInitializer& Obj
 	bRotateToVelocity = true;
 	bEnableCrowdSimulation = true;
 	bSuspendCrowdSimulation = false;
+	bEnableSimulationReplanOnResume = true;
 
 	bEnableAnticipateTurns = false;
 	bEnableObstacleAvoidance = true;
@@ -332,8 +333,8 @@ void UCrowdFollowingComponent::ResumeMove(FAIRequestID RequestID)
 		UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
 		if (CrowdManager)
 		{
-			const bool bHasMoved = HasMovedDuringPause();
-			CrowdManager->ResumeAgent(this, bHasMoved);
+			const bool bReplanPath = bEnableSimulationReplanOnResume && HasMovedDuringPause();
+			CrowdManager->ResumeAgent(this, bReplanPath);
 		}
 
 		// reset cached direction, will be set again after velocity update

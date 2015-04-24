@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
+#include "OnlineBeaconHost.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/DataChannel.h"
 
@@ -168,32 +169,44 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 			}
 		case NMT_BeaconNetGUIDAck:
 			{
+				FString ErrorMsg;
 				FString BeaconType;
 				FNetControlMessage<NMT_BeaconNetGUIDAck>::Receive(Bunch, BeaconType);
 
 				AOnlineBeaconClient* ClientActor = GetClientActor(Connection);
 				if (ClientActor && BeaconType == ClientActor->GetBeaconType())
 				{
-					ClientActor->Role = ROLE_Authority;
-					ClientActor->SetReplicates(true);
-					ClientActor->SetAutonomousProxy(true);
-					// Send an RPC to the client to open the actor channel and guarantee RPCs will work
-					ClientActor->ClientOnConnected();
-					UE_LOG(LogNet, Log, TEXT("Beacon Handshake complete!"));
 					FOnBeaconConnected* OnBeaconConnectedDelegate = OnBeaconConnectedMapping.Find(BeaconType);
 					if (OnBeaconConnectedDelegate)
 					{
+						ClientActor->Role = ROLE_Authority;
+						ClientActor->SetReplicates(true);
+						ClientActor->SetAutonomousProxy(true);
+						// Send an RPC to the client to open the actor channel and guarantee RPCs will work
+						ClientActor->ClientOnConnected();
+						UE_LOG(LogNet, Log, TEXT("Beacon Handshake complete!"));
+
 						OnBeaconConnectedDelegate->ExecuteIfBound(ClientActor, Connection);
+					}
+					else
+					{
+						// Failed to connect.
+						ErrorMsg = NSLOCTEXT("NetworkErrors", "BeaconSpawnNetGUIDAckError1", "Join failure, no host object at NetGUIDAck.").ToString();
 					}
 				}
 				else
 				{
 					// Failed to connect.
-					FString ErrorMsg = NSLOCTEXT("NetworkErrors", "BeaconSpawnNetGUIDAckError", "Join failure, no actor at NetGUIDAck.").ToString();
+					ErrorMsg = NSLOCTEXT("NetworkErrors", "BeaconSpawnNetGUIDAckError2", "Join failure, no actor at NetGUIDAck.").ToString();
+				}
+
+				if (!ErrorMsg.IsEmpty())
+				{
 					UE_LOG(LogNet, Log, TEXT("%s"), *ErrorMsg);
 					FNetControlMessage<NMT_Failure>::Send(Connection, ErrorMsg);
 					bCloseConnection = true;
 				}
+
 				break;
 			}
 		case NMT_BeaconWelcome:
@@ -213,6 +226,12 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 			AOnlineBeaconClient* ClientActor = GetClientActor(Connection);
 			if (ClientActor)
 			{
+				AOnlineBeaconHostObject* BeaconHostObject = GetHost(ClientActor->GetBeaconType());
+				if (BeaconHostObject)
+				{
+					BeaconHostObject->NotifyClientDisconnected(ClientActor);
+				}
+
 				RemoveClientActor(ClientActor);
 			}
 
@@ -222,16 +241,17 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 	}
 }
 
-void AOnlineBeaconHost::GetSeamlessTravelActorList(bool bToEntry, TArray<AActor*>& ActorList)
+void AOnlineBeaconHost::DisconnectClient(AOnlineBeaconClient* ClientActor)
 {
-	for (int32 ChildIdx = 0; ChildIdx < Children.Num(); ChildIdx++)
+	if (ClientActor)
 	{
-		ActorList.Add(Children[ChildIdx]);
-	}
-
-	for (int32 ClientIdx = 0; ClientIdx < ClientActors.Num(); ClientIdx++)
-	{
-		ActorList.Add(ClientActors[ClientIdx]);
+		// Closing the connection will start the chain of events leading to the removal from lists and destruction of the actor
+		UNetConnection* Connection = ClientActor->GetNetConnection();
+		if (Connection)
+		{
+			Connection->FlushNet(true);
+			Connection->Close();
+		}
 	}
 }
 
@@ -253,26 +273,17 @@ void AOnlineBeaconHost::RemoveClientActor(AOnlineBeaconClient* ClientActor)
 	if (ClientActor)
 	{
 		ClientActors.RemoveSingleSwap(ClientActor);
-		ClientActor->Destroy();
+		if (!ClientActor->IsPendingKillPending())
+		{
+			ClientActor->Destroy();
+		}
 	}
 }
 
 void AOnlineBeaconHost::RegisterHost(AOnlineBeaconHostObject* NewHostObject)
 {
 	const FString& BeaconType = NewHostObject->GetBeaconType();
-
-	bool bFound = false;
-	for (int32 HostIdx=0; HostIdx < Children.Num(); HostIdx++)
-	{
-		AOnlineBeaconHostObject* HostObject = Cast<AOnlineBeaconHostObject>(Children[HostIdx]);
-		if (HostObject && HostObject->GetBeaconType() == BeaconType)
-		{
-			bFound = true;
-			break;
-		}
-	}
-
-	if (!bFound)
+	if (GetHost(BeaconType) == NULL)
 	{
 		NewHostObject->SetOwner(this);
 		OnBeaconSpawned(BeaconType).BindUObject(NewHostObject, &AOnlineBeaconHostObject::SpawnBeaconActor);
@@ -289,7 +300,7 @@ void AOnlineBeaconHost::UnregisterHost(const FString& BeaconType)
 	AOnlineBeaconHostObject* HostObject = GetHost(BeaconType);
 	if (HostObject)
 	{
-		HostObject->SetOwner(nullptr);
+		HostObject->Unregister();
 	}
 	
 	OnBeaconSpawned(BeaconType).Unbind();
@@ -334,32 +345,4 @@ AOnlineBeaconHost::FOnBeaconConnected& AOnlineBeaconHost::OnBeaconConnected(cons
 	}
 
 	return *BeaconDelegate; 
-}
-
-
-AOnlineBeaconHostObject::AOnlineBeaconHostObject(const FObjectInitializer& ObjectInitializer) :
-	Super(ObjectInitializer),
-	BeaconTypeName(TEXT("UNDEFINED"))
-{
-	PrimaryActorTick.bCanEverTick = true;
-}
-
-EBeaconState::Type AOnlineBeaconHostObject::GetBeaconState() const
-{
-	AOnlineBeaconHost* BeaconHost = Cast<AOnlineBeaconHost>(GetOwner());
-	if (BeaconHost)
-	{
-		return BeaconHost->GetBeaconState();
-	}
-
-	return EBeaconState::DenyRequests;
-}
-
-void AOnlineBeaconHostObject::RemoveClientActor(AOnlineBeaconClient* ClientActor)
-{
-	AOnlineBeaconHost* BeaconHost = Cast<AOnlineBeaconHost>(GetOwner());
-	if (BeaconHost)
-	{
-		BeaconHost->RemoveClientActor(ClientActor);
-	}
 }

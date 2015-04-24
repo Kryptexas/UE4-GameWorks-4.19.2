@@ -321,12 +321,18 @@ void UEnvQueryManager::OnWorldCleanup()
 
 void UEnvQueryManager::RegisterExternalQuery(TSharedPtr<FEnvQueryInstance> QueryInstance)
 {
-	ExternalQueries.Add(QueryInstance->QueryID, QueryInstance);
+	if (QueryInstance.IsValid())
+	{
+		ExternalQueries.Add(QueryInstance->QueryID, QueryInstance);
+	}
 }
 
 void UEnvQueryManager::UnregisterExternalQuery(TSharedPtr<FEnvQueryInstance> QueryInstance)
 {
-	ExternalQueries.Remove(QueryInstance->QueryID);
+	if (QueryInstance.IsValid())
+	{
+		ExternalQueries.Remove(QueryInstance->QueryID);
+	}
 }
 
 namespace EnvQueryTestSort

@@ -764,7 +764,7 @@ void FOutputDeviceRedirector::FlushThreadedLogs()
 
 void FOutputDeviceRedirector::PanicFlushThreadedLogs()
 {
-	SCOPE_CYCLE_COUNTER(STAT_FlushThreadedLogs);
+	//SCOPE_CYCLE_COUNTER(STAT_FlushThreadedLogs);
 	// Acquire a lock on SynchronizationObject and call the unsynchronized worker function.
 	FScopeLock ScopeLock( &SynchronizationObject );
 	

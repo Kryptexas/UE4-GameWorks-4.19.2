@@ -578,6 +578,36 @@ FGameplayEffectSpecHandle UAbilitySystemBlueprintLibrary::AddGrantedTags(FGamepl
 
 	return SpecHandle;
 }
+
+FGameplayEffectSpecHandle UAbilitySystemBlueprintLibrary::AddAssetTag(FGameplayEffectSpecHandle SpecHandle, FGameplayTag NewGameplayTag)
+{
+	FGameplayEffectSpec* Spec = SpecHandle.Data.Get();
+	if (Spec)
+	{
+		Spec->DynamicAssetTags.AddTag(NewGameplayTag);
+	}
+	else
+	{
+		ABILITY_LOG(Warning, TEXT("UAbilitySystemBlueprintLibrary::AddEffectTag called with invalid SpecHandle"));
+	}
+
+	return SpecHandle;
+}
+
+FGameplayEffectSpecHandle UAbilitySystemBlueprintLibrary::AddAssetTags(FGameplayEffectSpecHandle SpecHandle, FGameplayTagContainer NewGameplayTags)
+{
+	FGameplayEffectSpec* Spec = SpecHandle.Data.Get();
+	if (Spec)
+	{
+		Spec->DynamicAssetTags.AppendTags(NewGameplayTags);
+	}
+	else
+	{
+		ABILITY_LOG(Warning, TEXT("UAbilitySystemBlueprintLibrary::AddEffectTags called with invalid SpecHandle"));
+	}
+
+	return SpecHandle;
+}
 	
 FGameplayEffectSpecHandle UAbilitySystemBlueprintLibrary::AddLinkedGameplayEffectSpec(FGameplayEffectSpecHandle SpecHandle, FGameplayEffectSpecHandle LinkedGameplayEffectSpec)
 {
