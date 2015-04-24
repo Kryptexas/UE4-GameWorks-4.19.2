@@ -41,21 +41,6 @@ struct FPluginStatus
 
 
 /**
- * Structure holding information about a plug-in content folder.
- */
-struct FPluginContentFolder
-{
-	/** Name of the plug-in */
-	FString Name;
-
-	/** Virtual root path for asset paths */
-	FString RootPath;
-
-	/** Content path on disk */
-	FString ContentPath;
-};
-
-/**
  * Information about an enabled plugin.
  */
 class IPlugin
@@ -165,13 +150,6 @@ public:
 	 * @return	 Array of plug-in status objects.
 	 */
 	virtual TArray<FPluginStatus> QueryStatusForAllPlugins() const = 0;
-
-	/**
-	 * Gets a list of plug-in content folders.
-	 *
-	 * @return	 Array of plug-in content folders.
-	 */
-	virtual const TArray<FPluginContentFolder>& GetPluginContentFolders() const = 0;
 
 public:
 

@@ -345,7 +345,6 @@ bool FPluginManager::ConfigureEnabledPlugins()
 			}
 		}
 
-		ContentFolders.Empty();
 		for(const TSharedRef<FPlugin>& Plugin: AllPlugins)
 		{
 			if (Plugin->bEnabled)
@@ -353,17 +352,11 @@ bool FPluginManager::ConfigureEnabledPlugins()
 				// Build the list of content folders
 				if (Plugin->Descriptor.bCanContainContent)
 				{
-					FPluginContentFolder ContentFolder;
-					ContentFolder.Name = Plugin->GetName();
-					ContentFolder.RootPath = Plugin->GetMountedAssetPath();
-					ContentFolder.ContentPath = Plugin->GetContentDir();
-					ContentFolders.Emplace(ContentFolder);
-
 					if (auto EngineConfigFile = GConfig->Find(GEngineIni, false))
 					{
 						if (auto CoreSystemSection = EngineConfigFile->Find(TEXT("Core.System")))
 						{
-							CoreSystemSection->AddUnique("Paths", ContentFolder.ContentPath);
+							CoreSystemSection->AddUnique("Paths", Plugin->GetContentDir());
 						}
 					}
 				}
@@ -387,22 +380,26 @@ bool FPluginManager::ConfigureEnabledPlugins()
 		TArray<FString>	FoundPaks;
 		FPakFileSearchVisitor PakVisitor(FoundPaks);
 		IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
-		if( ContentFolders.Num() > 0 && ensure( RegisterMountPointDelegate.IsBound() ) )
+		if( ensure( RegisterMountPointDelegate.IsBound() ) )
 		{
-			for(const FPluginContentFolder& ContentFolder: ContentFolders)
+			for(IPlugin* Plugin: GetEnabledPlugins())
 			{
-				RegisterMountPointDelegate.Execute(ContentFolder.RootPath, ContentFolder.ContentPath);
-
-				// Pak files are loaded from <PluginName>/Content/Paks/<PlatformName>
-				if (FPlatformProperties::RequiresCookedData())
+				if(Plugin->CanContainContent())
 				{
-					FoundPaks.Reset();
-					PlatformFile.IterateDirectoryRecursively(*(ContentFolder.ContentPath / TEXT("Paks") / FPlatformProperties::PlatformName()), PakVisitor);
-					for (const auto& PakPath : FoundPaks)
+					FString ContentDir = Plugin->GetContentDir();
+					RegisterMountPointDelegate.Execute(Plugin->GetMountedAssetPath(), ContentDir);
+
+					// Pak files are loaded from <PluginName>/Content/Paks/<PlatformName>
+					if (FPlatformProperties::RequiresCookedData())
 					{
-						if (FCoreDelegates::OnMountPak.IsBound())
+						FoundPaks.Reset();
+						PlatformFile.IterateDirectoryRecursively(*(ContentDir / TEXT("Paks") / FPlatformProperties::PlatformName()), PakVisitor);
+						for (const auto& PakPath : FoundPaks)
 						{
-							FCoreDelegates::OnMountPak.Execute(PakPath, 0);
+							if (FCoreDelegates::OnMountPak.IsBound())
+							{
+								FCoreDelegates::OnMountPak.Execute(PakPath, 0);
+							}
 						}
 					}
 				}
@@ -580,11 +577,6 @@ TArray< FPluginStatus > FPluginManager::QueryStatusForAllPlugins() const
 	}
 
 	return PluginStatuses;
-}
-
-const TArray<FPluginContentFolder>& FPluginManager::GetPluginContentFolders() const
-{
-	return ContentFolders;
 }
 
 #undef LOCTEXT_NAMESPACE

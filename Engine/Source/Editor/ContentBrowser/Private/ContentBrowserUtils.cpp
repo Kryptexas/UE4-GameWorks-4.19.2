@@ -1097,11 +1097,14 @@ bool ContentBrowserUtils::IsDevelopersFolder( const FString& InPath )
 bool ContentBrowserUtils::IsPluginFolder( const FString& InPath )
 {
 	FString PathWithSlash = InPath / TEXT("");
-	for(const FPluginContentFolder& ContentFolder: IPluginManager::Get().GetPluginContentFolders())
+	for(const IPlugin* Plugin: IPluginManager::Get().GetEnabledPlugins())
 	{
-		if(PathWithSlash.StartsWith(ContentFolder.RootPath) || InPath == ContentFolder.Name)
+		if(Plugin->CanContainContent())
 		{
-			return true;
+			if(PathWithSlash.StartsWith(Plugin->GetMountedAssetPath()) || InPath == Plugin->GetName())
+			{
+				return true;
+			}
 		}
 	}
 	return false;

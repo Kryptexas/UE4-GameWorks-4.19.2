@@ -59,7 +59,6 @@ public:
 	virtual FPlugin* FindPlugin(const FString& Name) override;
 	virtual TArray<IPlugin*> GetEnabledPlugins() override;
 	virtual TArray< FPluginStatus > QueryStatusForAllPlugins() const override;
-	virtual const TArray< FPluginContentFolder >& GetPluginContentFolders() const override;
 
 private:
 
@@ -76,9 +75,6 @@ private:
 private:
 	/** All of the plugins that we know about */
 	TArray< TSharedRef< FPlugin > > AllPlugins;
-
-	/** All the plugin content folders */
-	TArray<FPluginContentFolder> ContentFolders;
 
 	/** Delegate for mounting content paths.  Bound by FPackageName code in CoreUObject, so that we can access
 	    content path mounting functionality from Core. */
