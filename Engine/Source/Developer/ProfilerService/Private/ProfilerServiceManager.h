@@ -39,27 +39,13 @@ public:
 	 */
 	FProfilerServiceManager();
 
-	/**
-	 * Default destructor
-	 */
-	~FProfilerServiceManager();
-
 public:
 
 	// Begin IProfilerServiceManager interface
-	virtual void SendData(FProfilerCycleCounter& Data) override;
-
-	virtual void SendData(FProfilerFloatAccumulator& Data) override;
-
-	virtual void SendData(FProfilerCountAccumulator& Data) override;
-
-	virtual void SendData(FProfilerCycleGraph& Data) override;
 
 	virtual void StartCapture() override;
 	
 	virtual void StopCapture() override;
-
-	virtual void StartFrame(uint32 FrameNumber, double FrameStart) override;
 
 	virtual FStatMetaData& GetStatMetaData() override
 	{
@@ -96,8 +82,6 @@ private:
 
 	/** Callback for a tick, used to ping the clients */
 	bool HandlePing( float DeltaTime );
-
-	void SendMetaData(const FMessageAddress& client);
 
 private:
 

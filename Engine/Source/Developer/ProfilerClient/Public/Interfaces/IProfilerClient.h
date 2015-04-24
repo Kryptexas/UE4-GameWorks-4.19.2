@@ -84,9 +84,6 @@ public:
 	 */
 	virtual void LoadCapture( const FString& DataFilepath, const FGuid& ProfileId ) = 0;
 
-	/** Requests the meta data from the service */
-	virtual void RequestMetaData() = 0;
-
 	/**
 	 * Requests the last captured file from the service.
 	 *

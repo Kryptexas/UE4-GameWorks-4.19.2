@@ -184,39 +184,6 @@ struct FProfilerServicePreviewAck
 
 
 /**
- */
-USTRUCT()
-struct FProfilerServiceMetaData
-{
-	GENERATED_USTRUCT_BODY()
-
-	/**
-	 */
-	UPROPERTY()
-	FGuid InstanceId;
-
-	/**
-	 */
-	UPROPERTY()
-	TArray<uint8> Data;
-
-
-	/**
-	 * Default constructor.
-	 */
-	FProfilerServiceMetaData( ) { }
-
-	/**
-	 * Creates and initializes a new instance.
-	 */
-	FProfilerServiceMetaData( const FGuid& InInstance, const TArray<uint8>& InData )
-		: InstanceId(InInstance)
-		, Data( InData )
-	{}
-};
-
-
-/**
  * Implements a message for copying a file through the network, as well as for synchronization.
  * Unfortunately assumes that InstanceId and Filename are transfered without errors.
  */

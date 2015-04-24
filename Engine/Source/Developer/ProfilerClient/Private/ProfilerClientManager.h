@@ -165,7 +165,6 @@ public:
 	virtual void SetCaptureState( const bool bRequestedCaptureState, const FGuid& InstanceId = FGuid() ) override;
 	virtual void SetPreviewState( const bool bRequestedPreviewState, const FGuid& InstanceId = FGuid() ) override;
 	virtual void LoadCapture( const FString& DataFilepath, const FGuid& ProfileId ) override;
-	virtual void RequestMetaData() override;
 	virtual void RequestLastCapturedFile( const FGuid& InstanceId = FGuid() ) override;
 
 	virtual const FStatMetaData& GetStatMetaData( const FGuid& InstanceId ) const override
@@ -221,14 +220,8 @@ private:
 	// Handles message bus shutdowns.
 	void HandleMessageBusShutdown();
 
-	// Handles FProfilerServiceAuthorize messages.
-	void HandleServiceAuthorizeMessage( const FProfilerServiceAuthorize& Message, const IMessageContextRef& Context );
-
 	// Handles FProfilerServiceAuthorize2 messages.
 	void HandleServiceAuthorize2Message( const FProfilerServiceAuthorize2& Message, const IMessageContextRef& Context );
-
-	// Handles FProfilerServiceMetaData messages.
-	void HandleServiceMetaDataMessage( const FProfilerServiceMetaData& Message, const IMessageContextRef& Context );
 
 	// Handles FProfilerServiceFileChunk messages.
 	void HandleServiceFileChunk( const FProfilerServiceFileChunk& FileChunk, const IMessageContextRef& Context );
