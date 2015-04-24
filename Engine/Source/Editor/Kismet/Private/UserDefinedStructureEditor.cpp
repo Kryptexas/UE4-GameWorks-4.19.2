@@ -36,7 +36,7 @@ public:
 
 		FStructureDetailsViewArgs StructureViewArgs;
 		StructureViewArgs.bShowObjects = false;
-		StructureViewArgs.bShowAssets = false;
+		StructureViewArgs.bShowAssets = true;
 		StructureViewArgs.bShowClasses = true;
 		StructureViewArgs.bShowInterfaces = false;
 
