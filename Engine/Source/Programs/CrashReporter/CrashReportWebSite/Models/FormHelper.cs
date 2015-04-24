@@ -16,17 +16,17 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>The user search query.</summary>
 		public string SearchQuery = "";
 
-	    public string UsernameQuery = "";
+		public string UsernameQuery = "";
 
-        public string EpicIdQuery = "";
+		public string EpicIdQuery = "";
 
-        public string MachineIdQuery = "";
+		public string MachineIdQuery = "";
 
-        public string JiraQuery = "";
+		public string JiraQuery = "";
 
-	    public string DescriptionQuery = "";
+		public string DescriptionQuery = "";
 
-	    public string MessageQuery = "";
+		public string MessageQuery = "";
 
 		/// <summary>The page to display from the list.</summary>
 		public int Page = 1;
@@ -133,17 +133,17 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			// Set up Default values if there is no QueryString and set values to the Query string if it is there.
 			GetFormParameter( Request, Form, "SearchQuery", SearchQuery, out SearchQuery );
 
-            GetFormParameter(Request, Form, "UsernameQuery", UsernameQuery, out UsernameQuery);
+			GetFormParameter(Request, Form, "UsernameQuery", UsernameQuery, out UsernameQuery);
 
-            GetFormParameter(Request, Form, "EpicIdQuery", EpicIdQuery, out EpicIdQuery);
+			GetFormParameter(Request, Form, "EpicIdQuery", EpicIdQuery, out EpicIdQuery);
 
-            GetFormParameter(Request, Form, "MachineIdQuery", MachineIdQuery, out MachineIdQuery);
+			GetFormParameter(Request, Form, "MachineIdQuery", MachineIdQuery, out MachineIdQuery);
 
-            GetFormParameter(Request, Form, "JiraQuery", JiraQuery, out JiraQuery);
+			GetFormParameter(Request, Form, "JiraQuery", JiraQuery, out JiraQuery);
 
-            GetFormParameter(Request, Form, "MessageQuery", MessageQuery, out MessageQuery);
+			GetFormParameter(Request, Form, "MessageQuery", MessageQuery, out MessageQuery);
 
-            GetFormParameter(Request, Form, "DescriptionQuery", DescriptionQuery, out DescriptionQuery);
+			GetFormParameter(Request, Form, "DescriptionQuery", DescriptionQuery, out DescriptionQuery);
 
 			GetFormParameter( Request, Form, "SortTerm", DefaultSortTerm, out SortTerm );
 
@@ -188,15 +188,15 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			TryParseDate(Request, Form, "DateTo", ref DateTo);
 
 			// Set the sort order 
-			if( PreviousOrder == "Descending" && PreviousTerm == SortTerm )
+			if (PreviousOrder == "Descending" && PreviousTerm == SortTerm)
 			{
 				SortOrder = "Ascending";
 			}
-			else if( PreviousOrder == "Ascending" && PreviousTerm == SortTerm )
+			else if (PreviousOrder == "Ascending" && PreviousTerm == SortTerm)
 			{
 				SortOrder = "Descending";
 			}
-			else if( string.IsNullOrEmpty( PreviousOrder ) )
+			else if (string.IsNullOrEmpty( PreviousOrder ))
 			{
 				// keep SortOrder Where it's at.
 			}

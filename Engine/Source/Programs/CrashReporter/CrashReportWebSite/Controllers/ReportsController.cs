@@ -51,10 +51,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				int AnonymousID = AnonumousIDs.First();
 				HashSet<string> UserNamesForUserGroup = FRepository.Get( BuggsRepo ).GetUserNamesFromGroupName( AnonumousGroup );
 
-				//FormData.DateFrom = DateTime.Now.AddDays( -1 );
-
 				var Crashes = CrashRepo
-					.FilterByDate( CrashRepo.ListAll(), FormData.DateFrom, FormData.DateTo.AddDays( 1 ) )
+					.FilterByDate( CrashRepo.ListAll(), FormData.DateFrom, FormData.DateTo )
 					// Only crashes and asserts
 					.Where( Crash => Crash.CrashType == 1 || Crash.CrashType == 2 )
 					// Only anonymous user
@@ -291,7 +289,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 					}
 				}
 
-				Buggs = Buggs.OrderByDescending( b => b.NumberOfCrashes ).ToList();
+				Buggs = Buggs.OrderByDescending( b => b.CrashesInTimeFrameGroup ).ToList();
 
 				return new ReportsViewModel
 				{

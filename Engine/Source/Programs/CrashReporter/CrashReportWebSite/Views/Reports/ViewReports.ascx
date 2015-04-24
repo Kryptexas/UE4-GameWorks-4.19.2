@@ -133,7 +133,7 @@ table, table tr, table th, table td
 		</td>
 		<td>
 			<%--NewBugg.NumberOfCrashes = Top.Value;					// # Occurrences--%>
-			<%=Bugg.NumberOfCrashes%>
+			<%=Bugg.CrashesInTimeFrameGroup%>
 		</td>
 		<td>
 			<%--NewBugg.BuildVersion = NewBugg.AffectedVersions.Last();	// Latest Version Affected--%>
