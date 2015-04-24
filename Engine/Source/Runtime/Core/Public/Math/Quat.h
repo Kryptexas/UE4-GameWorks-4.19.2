@@ -260,10 +260,19 @@ public:
 
 	/**
 	 * Normalize this quaternion if it is large enough.
+	 * If it is too small, returns an identity quaternion.
 	 *
-	 * @param Tolerance Minimum squared length of vector for normalization.
+	 * @param Tolerance Minimum squared length of quaternion for normalization.
 	 */
 	FORCEINLINE void Normalize( float Tolerance=SMALL_NUMBER );
+
+	/**
+	 * Get a normalized copy of this quaternion.
+	 * If it is too small, returns an identity quaternion.
+	 *
+	 * @param Tolerance Minimum squared length of quaternion for normalization.
+	 */
+	FORCEINLINE FQuat GetNormalized( float Tolerance=SMALL_NUMBER ) const;
 
 	// Return true if this quaternion is normalized
 	bool IsNormalized() const;
@@ -794,6 +803,15 @@ FORCEINLINE void FQuat::Normalize(float Tolerance)
 		*this = FQuat::Identity;
 	}
 }
+
+
+FORCEINLINE FQuat FQuat::GetNormalized(float Tolerance) const
+{
+	FQuat Result(*this);
+	Result.Normalize(Tolerance);
+	return Result;
+}
+
 
 
 FORCEINLINE bool FQuat::IsNormalized() const
