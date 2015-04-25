@@ -102,7 +102,7 @@ namespace Rocket
 				{
 					if (GetSourceHostPlatform(bp, HostPlatform, TargetPlatform) == HostPlatform)
 					{
-						bp.AddNode(new StripRocketMonolithicsNode(HostPlatform, bp.Branch.BaseEngineProject, TargetPlatform, CodeTargetPlatforms.Contains(TargetPlatform), StrippedDir));
+						bp.AddNode(new StripRocketMonolithicsNode(bp, HostPlatform, TargetPlatform, CodeTargetPlatforms.Contains(TargetPlatform), StrippedDir));
 					}
 				}
 
@@ -435,14 +435,19 @@ namespace Rocket
 		BranchInfo.BranchUProject Project;
 		bool bIsCodeTargetPlatform;
 
-		public StripRocketMonolithicsNode(UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InProject, UnrealTargetPlatform InTargetPlatform, bool bInIsCodeTargetPlatform, string InStrippedDir) : base(InHostPlatform, InTargetPlatform, InStrippedDir)
+		public StripRocketMonolithicsNode(GUBP bp, UnrealTargetPlatform InHostPlatform, UnrealTargetPlatform InTargetPlatform, bool bInIsCodeTargetPlatform, string InStrippedDir) : base(InHostPlatform, InTargetPlatform, InStrippedDir)
 		{
-			Project = InProject;
+			Project = bp.Branch.BaseEngineProject;
 			bIsCodeTargetPlatform = bInIsCodeTargetPlatform;
 
-			AddDependency(GUBP.GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, Project, InTargetPlatform, Precompiled: bIsCodeTargetPlatform));
+			GUBP.GUBPNode Node = bp.FindNode(GUBP.GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, Project, InTargetPlatform, Precompiled: bIsCodeTargetPlatform));
+			if(String.IsNullOrEmpty(Node.AgentSharingGroup))
+			{
+				Node.AgentSharingGroup = bp.Branch.BaseEngineProject.GameName + "_MonolithicsGroup_" + InTargetPlatform + StaticGetHostPlatformSuffix(InHostPlatform);
+			}
+			AddDependency(Node.GetFullName());
 
-			AgentSharingGroup = Project.GameName + "_MonolithicsGroup_" + InTargetPlatform + StaticGetHostPlatformSuffix(InHostPlatform);
+			AgentSharingGroup = Node.AgentSharingGroup;
 		}
 
 		public override string GetDisplayGroupName()
