@@ -2170,14 +2170,15 @@ FText UK2Node_CallFunction::GetMenuCategory() const
 
 bool UK2Node_CallFunction::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const
 {
-	const UClass* SourceClass = FunctionReference.GetMemberParentClass(GetBlueprintClassFromNode());
+	UFunction* Function = GetTargetFunction();
+	const UClass* SourceClass = Function ? Function->GetOwnerClass() : nullptr;
 	const UBlueprint* SourceBlueprint = GetBlueprint();
-	const bool bResult = (SourceClass != NULL) && (SourceClass->ClassGeneratedBy != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
+	const bool bResult = (SourceClass != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
 	if (bResult && OptionalOutput)
 	{
-		OptionalOutput->Add(GetTargetFunction());
+		OptionalOutput->AddUnique(Function);
 	}
-	return bResult || Super::HasExternalBlueprintDependencies(OptionalOutput);
+	return Super::HasExternalBlueprintDependencies(OptionalOutput) || bResult;
 }
 
 UEdGraph* UK2Node_CallFunction::GetFunctionGraph(const UEdGraphNode*& OutGraphNode) const

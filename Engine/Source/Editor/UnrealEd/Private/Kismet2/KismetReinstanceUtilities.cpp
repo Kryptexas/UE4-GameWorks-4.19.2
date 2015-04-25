@@ -130,6 +130,9 @@ TSet<TWeakObjectPtr<UBlueprint>> FBlueprintCompileReinstancer::DependentBlueprin
 TSet<TWeakObjectPtr<UBlueprint>> FBlueprintCompileReinstancer::DependentBlueprintsToRecompile = TSet<TWeakObjectPtr<UBlueprint>>();
 TSet<TWeakObjectPtr<UBlueprint>> FBlueprintCompileReinstancer::DependentBlueprintsToByteRecompile = TSet<TWeakObjectPtr<UBlueprint>>();
 
+UClass* FBlueprintCompileReinstancer::HotReloadedOldClass = nullptr;
+UClass* FBlueprintCompileReinstancer::HotReloadedNewClass = nullptr;
+
 FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToReinstance, bool bIsBytecodeOnly, bool bSkipGC)
 	: ClassToReinstance(InClassToReinstance)
 	, DuplicatedClass(NULL)
@@ -291,6 +294,22 @@ void FBlueprintCompileReinstancer::AddReferencedObjects(FReferenceCollector& Col
 {
 	Collector.AddReferencedObject(OriginalCDO);
 	Collector.AddReferencedObject(DuplicatedClass);
+}
+
+void FBlueprintCompileReinstancer::OptionallyRefreshNodes(UBlueprint* CurrentBP)
+{
+	if (HotReloadedNewClass)
+	{
+		UPackage* const Package = Cast<UPackage>(CurrentBP->GetOutermost());
+		const bool bStartedWithUnsavedChanges = Package != nullptr ? Package->IsDirty() : true;
+
+		FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(CurrentBP, HotReloadedNewClass);
+
+		if (Package != nullptr && Package->IsDirty() && !bStartedWithUnsavedChanges)
+		{
+			Package->SetDirtyFlag(false);
+		}
+	}
 }
 
 FBlueprintCompileReinstancer::~FBlueprintCompileReinstancer()

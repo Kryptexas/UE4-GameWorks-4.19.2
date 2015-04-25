@@ -20,6 +20,9 @@ protected:
 	static TSet<TWeakObjectPtr<UBlueprint>> DependentBlueprintsToRecompile;
 	static TSet<TWeakObjectPtr<UBlueprint>> DependentBlueprintsToByteRecompile;
 
+	static UClass* HotReloadedOldClass;
+	static UClass* HotReloadedNewClass;
+
 	/** Reference to the class we're actively reinstancing */
 	UClass* ClassToReinstance;
 
@@ -57,6 +60,8 @@ public:
 	// FSerializableObject interface
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	// End of FSerializableObject interface
+
+	static void OptionallyRefreshNodes(UBlueprint* BP);
 
 	void ListDependentBlueprintsToRefresh(const TArray<UBlueprint*>& DependentBPs);
 	void EnlistDependentBlueprintToRecompile(UBlueprint* BP, bool bBytecodeOnly);
