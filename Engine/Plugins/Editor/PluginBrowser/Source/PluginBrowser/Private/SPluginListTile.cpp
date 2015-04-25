@@ -31,7 +31,7 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 	FString Icon128FilePath = Item->PluginStatus.PluginDirectory / TEXT("Resources/Icon128.png");
 	if(!FPlatformFileManager::Get().GetPlatformFile().FileExists(*Icon128FilePath))
 	{
-		Icon128FilePath = IPluginManager::Get().FindPlugin(TEXT("PluginsEditor"))->GetBaseDir() / TEXT("Resources/DefaultIcon128.png");
+		Icon128FilePath = IPluginManager::Get().FindPlugin(TEXT("PluginBrowser"))->GetBaseDir() / TEXT("Resources/DefaultIcon128.png");
 	}
 
 	const FName BrushName( *Icon128FilePath );
