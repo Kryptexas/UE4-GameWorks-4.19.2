@@ -12,6 +12,8 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "SpriteDrawCall.h"
 
+DECLARE_CYCLE_STAT(TEXT("Tick Flipbook"), STAT_TickFlipbook, STATGROUP_Paper2D);
+
 #define LOCTEXT_NAMESPACE "Paper2D"
 
 //////////////////////////////////////////////////////////////////////////
@@ -325,6 +327,8 @@ void UPaperFlipbookComponent::OnRep_SourceFlipbook(class UPaperFlipbook* OldFlip
 
 void UPaperFlipbookComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
+	SCOPE_CYCLE_COUNTER(STAT_TickFlipbook);
+
 	// Advance time
 	TickFlipbook(DeltaTime);
 
@@ -522,14 +526,14 @@ void UPaperFlipbookComponent::SetPlaybackPosition(float NewPosition, bool bFireE
 			bool bFireThisEvent = false;
 			if (!bReversePlayback)
 			{
-				if (EventTime >= MinTime && EventTime < MaxTime)
+				if ((EventTime >= MinTime) && (EventTime < MaxTime))
 				{
 					bFireThisEvent = true;
 				}
 			}
 			else
 			{
-				if (EventTime > MinTime && EventTime <= MaxTime)
+				if ((EventTime > MinTime) && (EventTime <= MaxTime))
 				{
 					bFireThisEvent = true;
 				}
