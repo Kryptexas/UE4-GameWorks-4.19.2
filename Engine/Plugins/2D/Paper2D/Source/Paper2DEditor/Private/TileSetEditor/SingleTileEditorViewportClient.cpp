@@ -7,6 +7,9 @@
 #include "ScopedTransaction.h"
 #include "TileSetEditorSettings.h"
 
+#include "SNotificationList.h"
+#include "NotificationManager.h"
+
 #define LOCTEXT_NAMESPACE "TileSetEditor"
 
 //////////////////////////////////////////////////////////////////////////
@@ -244,6 +247,38 @@ void FSingleTileEditorViewportClient::ActivateEditMode(TSharedPtr<FUICommandList
 
 void FSingleTileEditorViewportClient::ApplyCollisionGeometryEdits()
 {
+	bool bConditionedSomething = false;
+
+	// See if anything needs to be conditioned
+	const int32 NumTiles = TileSet->GetTileCount();
+	for (int32 TileIndex = 0; TileIndex < NumTiles; ++TileIndex)
+	{
+		if (TileSet->GetTileMetadata(TileIndex) != nullptr)
+		{
+			FPaperTileMetadata* TileData = TileSet->GetMutableTileMetadata(TileIndex);
+			check(TileData);
+
+			if (TileData->HasCollision())
+			{
+				if (TileData->CollisionData.ConditionGeometry())
+				{
+					bConditionedSomething = true;
+				}
+			}
+		}
+	}
+
+	if (bConditionedSomething)
+	{
+		TileSet->Modify();
+
+		// Create and display a notification about the tile set being modified
+		const FText NotificationText = FText::Format(LOCTEXT("NeedToSaveTileSet", "Optimized collision on one or more tiles.\n'{0}' needs to be saved."), FText::AsCultureInvariant(TileSet->GetName()));
+		FNotificationInfo Info(NotificationText);
+		Info.ExpireDuration = 2.0f;
+		FSlateNotificationManager::Get().AddNotification(Info);
+	}
+
 	// Apply changes to all tile maps that use this tile set
 	for (TObjectIterator<UPaperTileMap> TileMapIt; TileMapIt; ++TileMapIt)
 	{

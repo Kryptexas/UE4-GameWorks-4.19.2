@@ -1985,8 +1985,10 @@ bool AreVectorsPerpendicular(const FVector2D& Vector1, const FVector2D& Vector2,
 	return FMath::IsNearlyEqual(DotProduct, 0.0f, Threshold);
 }
 
-void FSpriteGeometryCollection::ConditionGeometry()
+bool FSpriteGeometryCollection::ConditionGeometry()
 {
+	bool bModifiedGeometry = false;
+
 	for (FSpriteGeometryShape& Shape : Shapes)
 	{
 		if ((Shape.ShapeType == ESpriteShapeType::Polygon) && (Shape.Vertices.Num() == 4))
@@ -2014,10 +2016,13 @@ void FSpriteGeometryCollection::ConditionGeometry()
 					Shape.SetNewPivot(NewPivotTextureSpace);
 					Shape.BoxSize = FVector2D(AB.Size(), DA.Size());
 					Shape.ShapeType = ESpriteShapeType::Box;
+					bModifiedGeometry = true;
 				}
 			}
 		}
 	}
+
+	return bModifiedGeometry;
 }
 
 //////////////////////////////////////////////////////////////////////////
