@@ -203,8 +203,12 @@ bool GeomSweepMulti(const UWorld* World, const struct FCollisionShape& Collision
 #endif
 
 // Note: Do not use these methods for new code, they are being phased out!
+// These functions do not empty the OutOverlaps/OutHits array; they add items to them.
 #if WITH_PHYSX
+DEPRECATED_FORGAME(4.9, "Do not access this function directly, use the generic non-PhysX functions.")
 bool GeomOverlapMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const PxTransform& PGeomPose, TArray<FOverlapResult>& OutOverlaps, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams);
+
+DEPRECATED_FORGAME(4.9, "Do not access this function directly, use the generic non-PhysX functions.")
 bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const PxQuat& PGeomRot, TArray<FHitResult>& OutHits, FVector Start, FVector End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectParams = FCollisionObjectQueryParams::DefaultObjectQueryParam);
 #endif
 

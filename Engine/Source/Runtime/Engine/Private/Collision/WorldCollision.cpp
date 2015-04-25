@@ -489,7 +489,7 @@ bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrim
 		return RaycastMulti(this, OutHits, Start, End, TraceChannel, Params, FCollisionResponseParams(PrimComp->GetCollisionResponseToChannels()));
 	}
 
-	OutHits.Empty();
+	OutHits.Reset();
 
 #if UE_WITH_PHYSICS
 	if (!PrimComp->BodyInstance.IsValidBodyInstance())
@@ -534,12 +534,10 @@ bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrim
 				// consider localshape rotation for shape rotation
 				const PxQuat PShapeRot = PGeomRot * PLocalShape.q;
 
-				if (GeomSweepMulti_PhysX(this, *PGeom, PShapeRot, Hits, P2UVector(PShapeGlobalStartPose.p), P2UVector(PShapeGlobalEndPose.p), TraceChannel, Params, FCollisionResponseParams(PrimComp->GetCollisionResponseToChannels())))
+				if (GeomSweepMulti_PhysX(this, *PGeom, PShapeRot, OutHits, P2UVector(PShapeGlobalStartPose.p), P2UVector(PShapeGlobalEndPose.p), TraceChannel, Params, FCollisionResponseParams(PrimComp->GetCollisionResponseToChannels())))
 				{
 					bHaveBlockingHit = true;
 				}
-
-				OutHits.Append(Hits);
 			}
 		}
 	});
