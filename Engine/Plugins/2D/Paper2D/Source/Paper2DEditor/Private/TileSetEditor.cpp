@@ -249,6 +249,12 @@ void FTileSetEditor::ExtendToolbar()
 	{
 		static void FillToolbar(FToolBarBuilder& ToolbarBuilder)
 		{
+			ToolbarBuilder.BeginSection("Actions");
+			{
+				ToolbarBuilder.AddToolBarButton(FTileSetEditorCommands::Get().ApplyCollisionEdits);
+			}
+			ToolbarBuilder.EndSection();
+
 			ToolbarBuilder.BeginSection("Tools");
 			{
 				ToolbarBuilder.AddToolBarButton(FSpriteGeometryEditCommands::Get().AddBoxShape);

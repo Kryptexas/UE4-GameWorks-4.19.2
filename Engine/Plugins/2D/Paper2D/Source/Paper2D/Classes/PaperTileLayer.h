@@ -189,6 +189,10 @@ public:
 	// Sets the layer-specific color multiplier (Note: does not invalidate any components using this layer!)
 	void SetLayerColor(FLinearColor NewColor);
 
+	// Checks to see if this layer uses the specified tile set
+	// Note: This is a slow operation, it scans each tile!
+	bool UsesTileSet(UPaperTileSet* TileSet) const;
+
 protected:
 	void ReallocateAndCopyMap();
 };

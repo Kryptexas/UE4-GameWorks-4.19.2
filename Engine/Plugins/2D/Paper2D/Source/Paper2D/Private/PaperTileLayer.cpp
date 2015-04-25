@@ -150,8 +150,6 @@ void UPaperTileLayer::ReallocateAndCopyMap()
 			AllocatedCells[DstIndex] = SavedDesignedMap[SrcIndex];
 		}
 	}
-
-//	BakeMap();
 }
 
 #if WITH_EDITOR
@@ -267,4 +265,20 @@ void UPaperTileLayer::ConvertToTileSetPerCell()
 		Info->TileSet = TileSet_DEPRECATED;
 		Info->PackedTileIndex = AllocatedGrid_DEPRECATED[Index];
 	}
+}
+
+bool UPaperTileLayer::UsesTileSet(UPaperTileSet* TileSet) const
+{
+	for (const FPaperTileInfo& TileInfo : AllocatedCells)
+	{
+		if (TileInfo.TileSet == TileSet)
+		{
+			if (TileInfo.IsValid())
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
 }

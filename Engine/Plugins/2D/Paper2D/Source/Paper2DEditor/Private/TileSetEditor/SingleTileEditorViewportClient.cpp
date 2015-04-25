@@ -242,6 +242,21 @@ void FSingleTileEditorViewportClient::ActivateEditMode(TSharedPtr<FUICommandList
 	GeometryEditMode->SetGeometryColors(CollisionShapeColor, FLinearColor::White);
 }
 
+void FSingleTileEditorViewportClient::ApplyCollisionGeometryEdits()
+{
+	// Apply changes to all tile maps that use this tile set
+	for (TObjectIterator<UPaperTileMap> TileMapIt; TileMapIt; ++TileMapIt)
+	{
+		UPaperTileMap* TileMap = *TileMapIt;
+
+		if (TileMap->UsesTileSet(TileSet))
+		{
+			TileMap->Modify();
+			TileMap->PostEditChange();
+		}
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE
