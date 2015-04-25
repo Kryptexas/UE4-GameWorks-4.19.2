@@ -25,9 +25,12 @@ protected:
 	void DrawBoundsForLayer(FPrimitiveDrawInterface* PDI, const FLinearColor& Color, int32 LayerIndex) const;
 
 protected:
+
+#if WITH_EDITOR
 	bool bShowPerTileGrid;
 	bool bShowPerLayerGrid;
 	bool bShowOutlineWhenUnselected;
+#endif
 
 	//@TODO: Not thread safe
 	const class UPaperTileMap* TileMap;
