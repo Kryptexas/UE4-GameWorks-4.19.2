@@ -28,21 +28,17 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 	// @todo plugedit: Maybe we should do the FileExists check ONCE at plugin load time and not at query time
 
 	// Plugin thumbnail image
-	const FString Icon128FilePath = Item->PluginStatus.PluginDirectory / TEXT("Resources/Icon128.png");
-	if(FPlatformFileManager::Get().GetPlatformFile().FileExists(*Icon128FilePath))
+	FString Icon128FilePath = Item->PluginStatus.PluginDirectory / TEXT("Resources/Icon128.png");
+	if(!FPlatformFileManager::Get().GetPlatformFile().FileExists(*Icon128FilePath))
 	{
-		const FName BrushName( *Icon128FilePath );
-		const FIntPoint Size = FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(BrushName);
-
-		if ((Size.X > 0) && (Size.Y > 0))
-		{
-			PluginIconDynamicImageBrush = MakeShareable(new FSlateDynamicImageBrush(BrushName, FVector2D(Size.X, Size.Y)));
-		}
+		Icon128FilePath = IPluginManager::Get().FindPlugin(TEXT("PluginsEditor"))->GetBaseDir() / TEXT("Resources/DefaultIcon128.png");
 	}
-	else
+
+	const FName BrushName( *Icon128FilePath );
+	const FIntPoint Size = FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(BrushName);
+	if ((Size.X > 0) && (Size.Y > 0))
 	{
-		// Plugin is missing a thumbnail image
-		// @todo plugedit: Should display default image or just omit the thumbnail
+		PluginIconDynamicImageBrush = MakeShareable(new FSlateDynamicImageBrush(BrushName, FVector2D(Size.X, Size.Y)));
 	}
 
 	// create documentation link
