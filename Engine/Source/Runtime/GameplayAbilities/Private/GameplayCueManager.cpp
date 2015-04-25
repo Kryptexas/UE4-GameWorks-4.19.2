@@ -98,7 +98,7 @@ AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* Targ
 		{
 			SpawnedCue = WeakPtrPtr->Get();
 			// If the cue is scheduled to be destroyed, don't reuse it, create a new one instead
-			if (SpawnedCue && SpawnedCue->GetLifeSpan() > 0.0f)
+			if (SpawnedCue && SpawnedCue->GetLifeSpan() <= 0.0f)
 			{
 				return SpawnedCue;
 			}
