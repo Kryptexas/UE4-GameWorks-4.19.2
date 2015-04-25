@@ -1617,19 +1617,11 @@ public class GUBP : BuildCommand
                     AddPseudodependency(GamePlatformMonolithicsNode.StaticGetFullName(InHostPlatform, bp.Branch.BaseEngineProject, InHostPlatform, Precompiled: Precompiled));
                 }
             }
-			if(!WithXp && !Precompiled && HasPrecompiledTargets(GameProj, HostPlatform, TargetPlatform))
-			{
-				AddDependency(GamePlatformMonolithicsNode.StaticGetFullName(InHostPlatform, GameProj, InTargetPlatform, WithXp, Precompiled: true));
-			}
             if (InGameProj.Options(InHostPlatform).bTestWithShared)  /// compiling templates is only for testing purposes, and we will group them to avoid saturating the farm
             {
                 AddPseudodependency(WaitForTestShared.StaticGetFullName());
                 AgentSharingGroup = "TemplateMonolithics" + StaticGetHostPlatformSuffix(InHostPlatform);
             }
-			else if (!bp.BranchOptions.bNoInstalledEngine && GameProj == bp.Branch.BaseEngineProject)
-			{
-				AgentSharingGroup = GameProj.GameName + "_MonolithicsGroup_" + InTargetPlatform + StaticGetHostPlatformSuffix(InHostPlatform);
-			}
         }
 
 		public override string GetDisplayGroupName()
@@ -1695,6 +1687,16 @@ public class GUBP : BuildCommand
 				}
 			}
 			return false;
+		}
+
+		public override float Priority()
+		{
+			float Result = base.Priority();
+			if(Precompiled)
+			{
+				Result += 1.0f;
+			}
+			return Result;
 		}
 
 		public override void DoBuild(GUBP bp)
@@ -4057,24 +4059,31 @@ public class GUBP : BuildCommand
         return FrequencyString;
     }
 
-    public int ComputeDependentCISFrequencyQuantumShift(string NodeToDo)
+    public int ComputeDependentCISFrequencyQuantumShift(string NodeToDo, Dictionary<string, int> FrequencyOverrides)
     {
         int Result = GUBPNodes[NodeToDo].ComputedDependentCISFrequencyQuantumShift;        
         if (Result < 0)
         {
             Result = GUBPNodes[NodeToDo].CISFrequencyQuantumShift(this);
             Result = GetFrequencyForNode(this, GUBPNodes[NodeToDo].GetFullName(), Result);
+
+			int FrequencyOverride;
+			if(FrequencyOverrides.TryGetValue(NodeToDo, out FrequencyOverride) && Result > FrequencyOverride)
+			{
+				Result = FrequencyOverride;
+			}
+
             foreach (var Dep in GUBPNodes[NodeToDo].FullNamesOfDependencies)
             {
-                Result = Math.Max(ComputeDependentCISFrequencyQuantumShift(Dep), Result);
+                Result = Math.Max(ComputeDependentCISFrequencyQuantumShift(Dep, FrequencyOverrides), Result);
             }
             foreach (var Dep in GUBPNodes[NodeToDo].FullNamesOfPseudosependencies)
             {
-                Result = Math.Max(ComputeDependentCISFrequencyQuantumShift(Dep), Result);
+                Result = Math.Max(ComputeDependentCISFrequencyQuantumShift(Dep, FrequencyOverrides), Result);
             }
 			foreach (var Dep in GUBPNodes[NodeToDo].CompletedDependencies)
 			{
-				Result = Math.Max(ComputeDependentCISFrequencyQuantumShift(Dep), Result);
+				Result = Math.Max(ComputeDependentCISFrequencyQuantumShift(Dep, FrequencyOverrides), Result);
 			}
             if (Result < 0)
             {
@@ -6358,12 +6367,9 @@ public class GUBP : BuildCommand
                     }
                 }
             }
-            foreach (var NodeToDo in GUBPNodes)
-            {
-                ComputeDependentCISFrequencyQuantumShift(NodeToDo.Key);
-            }
 
 			// Make sure that everything that's listed as a frequency barrier is completed with the given interval
+			Dictionary<string, int> FrequencyOverrides = new Dictionary<string,int>();
 			foreach (KeyValuePair<string, sbyte> Barrier in BranchOptions.FrequencyBarriers)
 			{
 				// All the nodes which are dependencies of the barrier node
@@ -6374,7 +6380,7 @@ public class GUBP : BuildCommand
 				for (int Idx = 0; Idx < SearchNodes.Count; Idx++)
 				{
 					GUBPNode Node = GUBPNodes[SearchNodes[Idx]];
-					foreach (string DependencyName in Node.FullNamesOfDependencies)
+					foreach (string DependencyName in Node.FullNamesOfDependencies.Union(Node.FullNamesOfPseudosependencies))
 					{
 						if (!IncludedNodes.Contains(DependencyName))
 						{
@@ -6389,10 +6395,25 @@ public class GUBP : BuildCommand
 				{
 					if (IncludedNodes.Contains(NodePair.Key))
 					{
-						NodePair.Value.ComputedDependentCISFrequencyQuantumShift = Math.Min(NodePair.Value.ComputedDependentCISFrequencyQuantumShift, Barrier.Value);
+						int Frequency;
+						if(FrequencyOverrides.TryGetValue(NodePair.Key, out Frequency))
+						{
+							Frequency = Math.Min(Frequency, Barrier.Value);
+						}
+						else
+						{
+							Frequency = Barrier.Value;
+						}
+						FrequencyOverrides[NodePair.Key] = Frequency;
 					}
 				}
 			}
+
+			// Compute all the frequencies
+            foreach (var NodeToDo in GUBPNodes)
+            {
+                ComputeDependentCISFrequencyQuantumShift(NodeToDo.Key, FrequencyOverrides);
+            }
 
             foreach (var NodeToDo in GUBPNodes)
             {
