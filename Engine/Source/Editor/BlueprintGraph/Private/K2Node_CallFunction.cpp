@@ -2168,7 +2168,7 @@ FText UK2Node_CallFunction::GetMenuCategory() const
 	return FText::GetEmpty();
 }
 
-bool UK2Node_CallFunction::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const
+bool UK2Node_CallFunction::HasExternalDependencies(TArray<class UStruct*>* OptionalOutput) const
 {
 	UFunction* Function = GetTargetFunction();
 	const UClass* SourceClass = Function ? Function->GetOwnerClass() : nullptr;
@@ -2178,7 +2178,9 @@ bool UK2Node_CallFunction::HasExternalBlueprintDependencies(TArray<class UStruct
 	{
 		OptionalOutput->AddUnique(Function);
 	}
-	return Super::HasExternalBlueprintDependencies(OptionalOutput) || bResult;
+
+	const bool bSuperResult = Super::HasExternalDependencies(OptionalOutput);
+	return bSuperResult || bResult;
 }
 
 UEdGraph* UK2Node_CallFunction::GetFunctionGraph(const UEdGraphNode*& OutGraphNode) const

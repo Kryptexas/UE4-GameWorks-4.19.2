@@ -505,7 +505,7 @@ FText UK2Node_MacroInstance::GetActiveBreakpointToolTipText() const
 	return LOCTEXT("ActiveBreakpointToolTip", "Execution will break inside the macro.");
 }
 
-bool UK2Node_MacroInstance::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const
+bool UK2Node_MacroInstance::HasExternalDependencies(TArray<class UStruct*>* OptionalOutput) const
 {
 	UBlueprint* OtherBlueprint = MacroGraphReference.GetBlueprint();
 	const bool bResult = OtherBlueprint && (OtherBlueprint != GetBlueprint());
@@ -513,10 +513,11 @@ bool UK2Node_MacroInstance::HasExternalBlueprintDependencies(TArray<class UStruc
 	{
 		if (UClass* OtherClass = *OtherBlueprint->GeneratedClass)
 		{
-			OptionalOutput->Add(OtherClass);
+			OptionalOutput->AddUnique(OtherClass);
 		}
 	}
-	return bResult;
+	const bool bSuperResult = Super::HasExternalDependencies(OptionalOutput);
+	return bSuperResult || bResult;
 }
 
 void UK2Node_MacroInstance::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const

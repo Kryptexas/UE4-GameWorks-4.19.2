@@ -500,7 +500,7 @@ void FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(UBlueprint* 
 		for (auto NodeIt = AllNodes.CreateIterator(); NodeIt; ++NodeIt)
 		{
 			UK2Node* Node = *NodeIt;
-			if (Node->HasExternalBlueprintDependencies())
+			if (Node->HasExternalDependencies())
 			{
 				//@todo:  Do we really need per-schema refreshing?
 				const UEdGraphSchema* Schema = Node->GetGraph()->GetSchema();
@@ -514,7 +514,7 @@ void FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(UBlueprint* 
 		{
 			UK2Node* Node = *NodeIt;
 			TArray<UStruct*> Dependencies;
-			if (Node->HasExternalBlueprintDependencies(&Dependencies))
+			if (Node->HasExternalDependencies(&Dependencies))
 			{
 				for (UStruct* Struct : Dependencies)
 				{
@@ -1017,7 +1017,7 @@ struct FRegenerationHelper
 					if (Node)
 					{
 						TArray<UStruct*> LocalDependentStructures;
-						if (Node->HasExternalBlueprintDependencies(&LocalDependentStructures))
+						if (Node->HasExternalDependencies(&LocalDependentStructures))
 						{
 							for (auto Struct : LocalDependentStructures)
 							{
@@ -1044,13 +1044,6 @@ struct FRegenerationHelper
 									ForcedLoad(ArrayProperty->Inner);
 								}
 							}
-						}
-
-						LocalDependentStructures.Empty(LocalDependentStructures.Max());
-						Node->HasExternalUserDefinedStructDependencies(&LocalDependentStructures);
-						for (auto Struct : LocalDependentStructures)
-						{
-							ProcessHierarchy(Struct, Dependencies);
 						}
 
 						auto FunctionEntry = Cast<UK2Node_FunctionEntry>(Node);
@@ -2660,7 +2653,7 @@ void FBlueprintEditorUtils::GatherDependencies(const UBlueprint* InBlueprint, TS
 
 	for (const auto& InterfaceDesc : InBlueprint->ImplementedInterfaces)
 	{
-		UBlueprint* InterfaceBP = InterfaceDesc.Interface ? Cast<UBlueprint>(InterfaceDesc.Interface->ClassGeneratedBy) : NULL;
+		UBlueprint* InterfaceBP = InterfaceDesc.Interface ? Cast<UBlueprint>(InterfaceDesc.Interface->ClassGeneratedBy) : nullptr;
 		if (InterfaceBP)
 		{
 			Dependencies.Add(InterfaceBP);
@@ -2678,7 +2671,7 @@ void FBlueprintEditorUtils::GatherDependencies(const UBlueprint* InBlueprint, TS
 			for (auto Node : Nodes)
 			{
 				TArray<UStruct*> LocalDependentStructures;
-				if (Node && Node->HasExternalBlueprintDependencies(&LocalDependentStructures))
+				if (Node && Node->HasExternalDependencies(&LocalDependentStructures))
 				{
 					for (auto Struct : LocalDependentStructures)
 					{

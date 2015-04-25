@@ -30,6 +30,7 @@ class UK2Node_FunctionTerminator : public UK2Node_EditablePinBase
 
 	// Begin UK2Node interface
 	virtual bool NodeCausesStructuralBlueprintChange() const override { return true; }
+	virtual bool HasExternalDependencies(TArray<class UStruct*>* OptionalOutput) const override;
 	// End UK2Node interface
 
 	// Begin UK2Node_EditablePinBase interface

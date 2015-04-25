@@ -722,4 +722,20 @@ bool UK2Node_Event::AreEventNodesIdentical(const UK2Node_Event* InNodeA, const U
 		&& InNodeA->EventReference.GetMemberParentClass(InNodeA->GetBlueprintClassFromNode()) == InNodeB->EventReference.GetMemberParentClass(InNodeB->GetBlueprintClassFromNode());
 }
 
+bool UK2Node_Event::HasExternalDependencies(TArray<class UStruct*>* OptionalOutput) const
+{
+	const UBlueprint* SourceBlueprint = GetBlueprint();
+
+	UFunction* Function = EventReference.ResolveMember<UFunction>(GetBlueprintClassFromNode());
+	const UClass* SourceClass = Function ? Function->GetOwnerClass() : nullptr;
+	const bool bResult = (SourceClass != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
+	if (bResult && OptionalOutput)
+	{
+		OptionalOutput->AddUnique(Function);
+	}
+
+	const bool bSuperResult = Super::HasExternalDependencies(OptionalOutput);
+	return bSuperResult || bResult;
+}
+
 #undef LOCTEXT_NAMESPACE

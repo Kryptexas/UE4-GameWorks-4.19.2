@@ -115,16 +115,10 @@ class UK2Node : public UEdGraphNode
 	virtual bool IsNodePure() const { return false; }
 
 	/** 
-	 * Returns whether or not this node has dependencies on an external blueprint 
-	 * If OptionalOutput isn't null, it should be filled with the known dependencies objects (Classes, Functions, etc).
+	 * Returns whether or not this node has dependencies on an external structure 
+	 * If OptionalOutput isn't null, it should be filled with the known dependencies objects (Classes, Structures, Functions, etc).
 	 */
-	virtual bool HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput = NULL) const { return false; }
-
-	/**
-	* Returns whether or not this node has dependencies on an external user-defined structure
-	* If OptionalOutput isn't null, it should be filled with the known dependencies structures.
-	*/
-	virtual bool HasExternalUserDefinedStructDependencies(TArray<class UStruct*>* OptionalOutput = NULL) const { return false; }
+	virtual bool HasExternalDependencies(TArray<class UStruct*>* OptionalOutput = NULL) const { return false; }
 
 	/** Returns whether this node can have breakpoints placed on it in the debugger */
 	virtual bool CanPlaceBreakpoints() const { return !IsNodePure(); }
