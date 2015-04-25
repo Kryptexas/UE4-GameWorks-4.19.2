@@ -14,6 +14,11 @@
 //////////////////////////////////////////////////////////////////////////
 // FSpriteAssetTypeActions
 
+FSpriteAssetTypeActions::FSpriteAssetTypeActions(EAssetTypeCategories::Type InAssetCategory)
+	: MyAssetCategory(InAssetCategory)
+{
+}
+
 FText FSpriteAssetTypeActions::GetName() const
 {
 	return LOCTEXT("FSpriteAssetTypeActionsName", "Sprite");
@@ -45,7 +50,7 @@ void FSpriteAssetTypeActions::OpenAssetEditor(const TArray<UObject*>& InObjects,
 
 uint32 FSpriteAssetTypeActions::GetCategories()
 {
-	return EAssetTypeCategories::Misc;
+	return MyAssetCategory;
 }
 
 void FSpriteAssetTypeActions::GetActions(const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder)
