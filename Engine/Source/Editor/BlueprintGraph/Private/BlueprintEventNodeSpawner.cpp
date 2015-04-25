@@ -172,8 +172,7 @@ UEdGraphNode* UBlueprintEventNodeSpawner::Invoke(UEdGraph* ParentGraph, FBinding
 	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(ParentGraph);
 
 	UK2Node_Event* EventNode = nullptr;
-	bool const bIsTemplateNode = FBlueprintNodeTemplateCache::IsTemplateOuter(ParentGraph);
-	if (!bIsTemplateNode)
+	if (!FBlueprintNodeTemplateCache::IsTemplateOuter(ParentGraph))
 	{
 		// look to see if a node for this event already exists (only one node is
 		// allowed per event, per blueprint)
