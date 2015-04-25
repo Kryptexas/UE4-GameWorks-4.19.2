@@ -6358,10 +6358,6 @@ public class GUBP : BuildCommand
                     }
                 }
             }
-            foreach (var NodeToDo in GUBPNodes)
-            {
-                ComputeDependentCISFrequencyQuantumShift(NodeToDo.Key);
-            }
 
 			// Make sure that everything that's listed as a frequency barrier is completed with the given interval
 			foreach (KeyValuePair<string, sbyte> Barrier in BranchOptions.FrequencyBarriers)
@@ -6389,10 +6385,18 @@ public class GUBP : BuildCommand
 				{
 					if (IncludedNodes.Contains(NodePair.Key))
 					{
-						NodePair.Value.ComputedDependentCISFrequencyQuantumShift = Math.Min(NodePair.Value.ComputedDependentCISFrequencyQuantumShift, Barrier.Value);
+						if(NodePair.Value.ComputedDependentCISFrequencyQuantumShift == -1 || NodePair.Value.ComputedDependentCISFrequencyQuantumShift > Barrier.Value)
+						{
+							NodePair.Value.ComputedDependentCISFrequencyQuantumShift = Barrier.Value;
+						}
 					}
 				}
 			}
+
+            foreach (var NodeToDo in GUBPNodes)
+            {
+                ComputeDependentCISFrequencyQuantumShift(NodeToDo.Key);
+            }
 
             foreach (var NodeToDo in GUBPNodes)
             {
