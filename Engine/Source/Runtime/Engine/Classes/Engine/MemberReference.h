@@ -416,7 +416,16 @@ public:
 	static TFieldType* ResolveSimpleMemberReference(const FSimpleMemberReference& Reference)
 	{
 		FMemberReference TempMemberReference;
-		TempMemberReference.SetDirect(Reference.MemberName, Reference.MemberGuid, Reference.MemberParentClass, false);
-		return TempMemberReference.ResolveMember<TFieldType>((UClass*)NULL);
+		const FName Name = Reference.MemberGuid.IsValid() ? NAME_None : Reference.MemberName; // if the guid is valid don't check the name, it could be renamed 
+		TempMemberReference.SetDirect(Name, Reference.MemberGuid, Reference.MemberParentClass, false);
+		auto Result = TempMemberReference.ResolveMember<TFieldType>((UClass*)nullptr);
+
+		if (!Result && (Name != Reference.MemberName))
+		{
+			TempMemberReference.SetDirect(Reference.MemberName, Reference.MemberGuid, Reference.MemberParentClass, false);
+			Result = TempMemberReference.ResolveMember<TFieldType>((UClass*)nullptr);
+		}
+
+		return Result;
 	}
 };

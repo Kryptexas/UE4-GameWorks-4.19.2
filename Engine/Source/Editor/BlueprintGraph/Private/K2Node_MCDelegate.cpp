@@ -106,16 +106,10 @@ UFunction* UK2Node_BaseMCDelegate::GetDelegateSignature(bool bForceNotFromSkelCl
 	}
 
 	FMemberReference ReferenceToUse;
-	FGuid DelegateGuid;
+	ReferenceToUse.SetDirect(DelegateReference.GetMemberName(), DelegateReference.GetMemberGuid(), OwnerClass, /*bIsConsideredSelfContext =*/false);
 
-	if (OwnerClass != nullptr)
-	{
-		UBlueprint::GetGuidFromClassByFieldName<UFunction>(OwnerClass, DelegateReference.GetMemberName(), DelegateGuid);
-	}
-	ReferenceToUse.SetDirect(DelegateReference.GetMemberName(), DelegateGuid, OwnerClass, /*bIsConsideredSelfContext =*/false);
-
-	UMulticastDelegateProperty* DelegateProperty = ReferenceToUse.ResolveMember<UMulticastDelegateProperty>(GetBlueprintClassFromNode());
-	return (DelegateProperty != NULL) ? DelegateProperty->SignatureFunction : NULL;
+	UMulticastDelegateProperty* DelegateProperty = ReferenceToUse.ResolveMember<UMulticastDelegateProperty>((UClass*)nullptr);
+	return (DelegateProperty != nullptr) ? DelegateProperty->SignatureFunction : nullptr;
 }
 
 UEdGraphPin* UK2Node_BaseMCDelegate::GetDelegatePin() const
@@ -199,9 +193,9 @@ bool UK2Node_BaseMCDelegate::HasExternalBlueprintDependencies(TArray<class UStru
 	const bool bResult = (SourceClass != NULL) && (SourceClass->ClassGeneratedBy != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
 	if (bResult && OptionalOutput)
 	{
-		OptionalOutput->Add(GetDelegateSignature());
+		OptionalOutput->AddUnique(GetDelegateSignature());
 	}
-	return bResult || Super::HasExternalBlueprintDependencies(OptionalOutput);
+	return Super::HasExternalBlueprintDependencies(OptionalOutput) || bResult;
 }
 
 void UK2Node_BaseMCDelegate::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const

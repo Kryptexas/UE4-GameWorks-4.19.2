@@ -1042,6 +1042,13 @@ void UBlueprint::GetAllGraphs(TArray<UEdGraph*>& Graphs) const
 		Graph->GetAllChildrenGraphs(Graphs);
 	}
 
+	for (int32 i = 0; i < DelegateSignatureGraphs.Num(); ++i)
+	{
+		UEdGraph* Graph = DelegateSignatureGraphs[i];
+		Graphs.Add(Graph);
+		Graph->GetAllChildrenGraphs(Graphs);
+	}
+
 	for (int32 BPIdx=0; BPIdx<ImplementedInterfaces.Num(); BPIdx++)
 	{
 		const FBPInterfaceDescription& InterfaceDesc = ImplementedInterfaces[BPIdx];
