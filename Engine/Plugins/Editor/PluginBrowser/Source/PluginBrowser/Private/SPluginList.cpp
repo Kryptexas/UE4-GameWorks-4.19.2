@@ -1,18 +1,16 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "PluginsEditorPrivatePCH.h"
+#include "PluginBrowserPrivatePCH.h"
 #include "SPluginList.h"
-#include "SPluginsEditor.h"
-#include "PluginListItem.h"
+#include "SPluginBrowser.h"
 #include "SPluginListTile.h"
 #include "IPluginManager.h"
-#include "PluginCategoryTreeItem.h"
 
 
 #define LOCTEXT_NAMESPACE "PluginList"
 
 
-void SPluginList::Construct( const FArguments& Args, const TSharedRef< SPluginsEditor > Owner )
+void SPluginList::Construct( const FArguments& Args, const TSharedRef< SPluginBrowser > Owner )
 {
 	OwnerWeak = Owner;
 
@@ -25,7 +23,7 @@ void SPluginList::Construct( const FArguments& Args, const TSharedRef< SPluginsE
 	// @todo plugedit: Have optional compact version with only plugin icon + name + version?  Only expand selected?
 
 	PluginListView = 
-		SNew( SPluginListView )
+		SNew( SListView<TSharedRef<IPlugin*>> )
 
 		.SelectionMode( ESelectionMode::None )		// No need to select plugins!
 
@@ -39,7 +37,7 @@ void SPluginList::Construct( const FArguments& Args, const TSharedRef< SPluginsE
 
 SPluginList::~SPluginList()
 {
-	const TSharedPtr< SPluginsEditor > Owner( OwnerWeak.Pin() );
+	const TSharedPtr< SPluginBrowser > Owner( OwnerWeak.Pin() );
 	if( Owner.IsValid() )
 	{
 		Owner->GetPluginTextFilter().OnChanged().RemoveAll( this );
@@ -48,36 +46,21 @@ SPluginList::~SPluginList()
 
 
 /** @return Gets the owner of this list */
-SPluginsEditor& SPluginList::GetOwner()
+SPluginBrowser& SPluginList::GetOwner()
 {
 	return *OwnerWeak.Pin();
 }
 
 
-TSharedRef<ITableRow> SPluginList::PluginListView_OnGenerateRow( FPluginListItemPtr Item, const TSharedRef<STableViewBase>& OwnerTable )
+TSharedRef<ITableRow> SPluginList::PluginListView_OnGenerateRow( TSharedRef<IPlugin*> Item, const TSharedRef<STableViewBase>& OwnerTable )
 {
 	return
-		SNew( STableRow< FPluginListItemPtr >, OwnerTable )
+		SNew( STableRow< TSharedRef<IPlugin*> >, OwnerTable )
 		[
-			SNew( SPluginListTile, SharedThis( this ), Item.ToSharedRef() )
+			SNew( SPluginListTile, SharedThis( this ), Item.Get() )
 		];
 }
 
-
-
-void SPluginList::GetPlugins( const TSharedPtr< FPluginCategoryTreeItem >& Category )
-{
-	// Add plugins from this category
-	for(IPlugin* Plugin: Category->GetPlugins())
-	{
-		if(OwnerWeak.Pin()->GetPluginTextFilter().PassesFilter(Plugin))
-		{
-			const TSharedRef< FPluginListItem > NewItem( new FPluginListItem() );
-			NewItem->Plugin = Plugin;
-			PluginListItems.Add( NewItem );
-		}
-	}
-}
 
 
 void SPluginList::RebuildAndFilterPluginList()
@@ -87,19 +70,25 @@ void SPluginList::RebuildAndFilterPluginList()
 		PluginListItems.Reset();
 
 		// Get the currently selected category
-		const auto& SelectedCategory = OwnerWeak.Pin()->GetSelectedCategory();
+		const TSharedPtr<FPluginCategory>& SelectedCategory = OwnerWeak.Pin()->GetSelectedCategory();
 		if( SelectedCategory.IsValid() )
 		{
-			GetPlugins( SelectedCategory );
+			for(IPlugin* Plugin: SelectedCategory->Plugins)
+			{
+				if(OwnerWeak.Pin()->GetPluginTextFilter().PassesFilter(Plugin))
+				{
+					PluginListItems.Add(TSharedRef<IPlugin*>(new IPlugin*(Plugin)));
+				}
+			}
 		}
 
 		// Sort the plugins alphabetically
 		{
 			struct FPluginListItemSorter
 			{
-				bool operator()( const FPluginListItemPtr& A, const FPluginListItemPtr& B ) const
+				bool operator()( const TSharedRef<IPlugin*>& A, const TSharedRef<IPlugin*>& B ) const
 				{
-					return A->Plugin->GetDescriptor().FriendlyName < B->Plugin->GetDescriptor().FriendlyName;
+					return A.Get()->GetDescriptor().FriendlyName < B.Get()->GetDescriptor().FriendlyName;
 				}
 			};
 			PluginListItems.Sort( FPluginListItemSorter() );

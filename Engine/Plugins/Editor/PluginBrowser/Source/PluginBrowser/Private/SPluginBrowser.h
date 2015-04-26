@@ -13,13 +13,13 @@ class FPluginCategoryBreadcrumb
 public:
 
 	/** Initializing constructor */
-	FPluginCategoryBreadcrumb( TSharedPtr< class FPluginCategoryTreeItem > InitCategoryItem )
+	FPluginCategoryBreadcrumb( TSharedPtr< class FPluginCategory > InitCategoryItem )
 		: CategoryItem( InitCategoryItem )
 	{
 	}
 
 	/** @return Gets the category item for this breadcrumb */
-	const TSharedPtr< class FPluginCategoryTreeItem >& GetCategoryItem() const
+	const TSharedPtr< class FPluginCategory >& GetCategoryItem() const
 	{
 		return CategoryItem;
 	}
@@ -28,7 +28,7 @@ public:
 private:
 
 	/** The category tree item data for this breadcrumb */
-	TSharedPtr< class FPluginCategoryTreeItem > CategoryItem;
+	TSharedPtr< class FPluginCategory > CategoryItem;
 };
 
 
@@ -40,9 +40,9 @@ typedef SBreadcrumbTrail< FPluginCategoryBreadcrumbPtr > SPluginCategoryBreadcru
 /**
  * Implementation of main plugin editor Slate widget
  */
-class SPluginsEditor : public SCompoundWidget
+class SPluginBrowser : public SCompoundWidget
 {
-	SLATE_BEGIN_ARGS( SPluginsEditor )
+	SLATE_BEGIN_ARGS( SPluginBrowser )
 	{
 	}
 
@@ -59,7 +59,7 @@ class SPluginsEditor : public SCompoundWidget
 	}
 
 	/** @return Returns the currently selected category */
-	TSharedPtr< class FPluginCategoryTreeItem > GetSelectedCategory() const;
+	TSharedPtr< class FPluginCategory > GetSelectedCategory() const;
 
 	/** Called when the selected category changes so we can invalidate the list */
 	void OnCategorySelectionChanged();

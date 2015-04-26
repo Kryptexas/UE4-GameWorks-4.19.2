@@ -2,10 +2,7 @@
 
 #pragma once
 
-#include "PluginCategoryTreeItem.h"
-
-typedef STreeView< FPluginCategoryTreeItemPtr > SPluginCategoryTreeView;
-
+#include "SPluginCategoryTreeItem.h"
 
 /**
  * Tree view that displays all of the plugin categories and allows the user to switch views
@@ -23,22 +20,22 @@ public:
 
 
 	/** Widget constructor */
-	void Construct( const FArguments& Args, const TSharedRef< class SPluginsEditor > Owner );
+	void Construct( const FArguments& Args, const TSharedRef< class SPluginBrowser > Owner );
 
 	/** Destructor */
 	~SPluginCategories();
 
 	/** @return Gets the owner of this categories tree */
-	SPluginsEditor& GetOwner();
+	SPluginBrowser& GetOwner();
 
 	/** @return Returns the currently selected category item */
-	FPluginCategoryTreeItemPtr GetSelectedCategory() const;
+	TSharedPtr<FPluginCategory> GetSelectedCategory() const;
 
 	/** Selects the specified category */
-	void SelectCategory( const FPluginCategoryTreeItemPtr& CategoryToSelect );
+	void SelectCategory(const TSharedPtr<FPluginCategory>& CategoryToSelect);
 
 	/** @return Returns true if the specified item is currently expanded in the tree */
-	bool IsItemExpanded( const FPluginCategoryTreeItemPtr Item ) const;
+	bool IsItemExpanded(const TSharedPtr<FPluginCategory> Item) const;
 
 	/** Signal that the categories list needs to be refreshed */
 	void SetNeedsRefresh();
@@ -46,13 +43,13 @@ public:
 private:
 	
 	/** Called to generate a widget for the specified tree item */
-	TSharedRef<ITableRow> PluginCategoryTreeView_OnGenerateRow( FPluginCategoryTreeItemPtr Item, const TSharedRef<STableViewBase>& OwnerTable );
+	TSharedRef<ITableRow> PluginCategoryTreeView_OnGenerateRow(TSharedPtr<FPluginCategory> Item, const TSharedRef<STableViewBase>& OwnerTable);
 
 	/** Given a tree item, fills an array of child items */
-	void PluginCategoryTreeView_OnGetChildren( FPluginCategoryTreeItemPtr Item, TArray< FPluginCategoryTreeItemPtr >& OutChildren );
+	void PluginCategoryTreeView_OnGetChildren(TSharedPtr<FPluginCategory> Item, TArray<TSharedPtr<FPluginCategory>>& OutChildren);
 
 	/** Called when the user clicks on a plugin item, or when selection changes by some other means */
-	void PluginCategoryTreeView_OnSelectionChanged( FPluginCategoryTreeItemPtr Item, ESelectInfo::Type SelectInfo );
+	void PluginCategoryTreeView_OnSelectionChanged(TSharedPtr<FPluginCategory> Item, ESelectInfo::Type SelectInfo);
 
 	/** Rebuilds the category tree from scratch */
 	void RebuildAndFilterCategoryTree();
@@ -63,12 +60,12 @@ private:
 private:
 
 	/** Weak pointer back to its owner */
-	TWeakPtr< class SPluginsEditor > OwnerWeak;
+	TWeakPtr< class SPluginBrowser > OwnerWeak;
 
 	/** The tree view widget for our plugin categories tree */
-	TSharedPtr< SPluginCategoryTreeView > PluginCategoryTreeView;
+	TSharedPtr<STreeView<TSharedPtr<FPluginCategory>>> PluginCategoryTreeView;
 
 	/** Root list of categories */
-	TArray< FPluginCategoryTreeItemPtr > RootPluginCategories;
+	TArray<TSharedPtr<FPluginCategory>> RootPluginCategories;
 };
 

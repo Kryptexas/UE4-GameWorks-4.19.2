@@ -1,8 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "PluginsEditorPrivatePCH.h"
+#include "PluginBrowserPrivatePCH.h"
 #include "PluginStyle.h"
-#include "SPluginsEditor.h"
+#include "SPluginBrowser.h"
 #include "SPluginList.h"
 #include "SPluginCategories.h"
 #include "SSearchBox.h"
@@ -13,11 +13,11 @@
 // @todo plugedit: Intro anim!!!
 
 
-void SPluginsEditor::Construct( const FArguments& Args )
+void SPluginBrowser::Construct( const FArguments& Args )
 {
 	// @todo plugedit: Should we save/restore category selection and other view settings?  Splitter position, etc.
 
-	RegisterActiveTimer (0.f, FWidgetActiveTimerDelegate::CreateSP (this, &SPluginsEditor::TriggerBreadcrumbRefresh));
+	RegisterActiveTimer (0.f, FWidgetActiveTimerDelegate::CreateSP (this, &SPluginBrowser::TriggerBreadcrumbRefresh));
 
 	struct Local
 	{
@@ -65,14 +65,14 @@ void SPluginsEditor::Construct( const FArguments& Args )
 					SAssignNew( BreadcrumbTrail, SPluginCategoryBreadcrumbTrail )
 					.DelimiterImage( FPluginStyle::Get()->GetBrush( "Plugins.BreadcrumbArrow" ) ) 
 					.ShowLeadingDelimiter( true )
-					.OnCrumbClicked( this, &SPluginsEditor::BreadcrumbTrail_OnCrumbClicked )
+					.OnCrumbClicked( this, &SPluginBrowser::BreadcrumbTrail_OnCrumbClicked )
 				]
 	
 				+SHorizontalBox::Slot()
 				.Padding( PaddingAmount )
 				[
 					SNew( SSearchBox )
-					.OnTextChanged( this, &SPluginsEditor::SearchBox_OnPluginSearchTextChanged )
+					.OnTextChanged( this, &SPluginBrowser::SearchBox_OnPluginSearchTextChanged )
 				]
 			]
 
@@ -89,7 +89,7 @@ void SPluginsEditor::Construct( const FArguments& Args )
 				.BorderBackgroundColor(FLinearColor::Yellow)
 				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 				.Padding(8.0f)
-				.Visibility(this, &SPluginsEditor::HandleRestartEditorNoticeVisibility)
+				.Visibility(this, &SPluginBrowser::HandleRestartEditorNoticeVisibility)
 				[
 					SNew( SHorizontalBox )
 
@@ -116,7 +116,7 @@ void SPluginsEditor::Construct( const FArguments& Args )
 					[
 						SNew(SButton)
 						.Text(LOCTEXT("PluginSettingsRestartEditor", "Restart Now"))
-						.OnClicked(this, &SPluginsEditor::HandleRestartEditorButtonClicked)
+						.OnClicked(this, &SPluginBrowser::HandleRestartEditorButtonClicked)
 					]
 				]
 			]
@@ -125,13 +125,13 @@ void SPluginsEditor::Construct( const FArguments& Args )
 }
 
 
-EVisibility SPluginsEditor::HandleRestartEditorNoticeVisibility() const
+EVisibility SPluginBrowser::HandleRestartEditorNoticeVisibility() const
 {
-	return IProjectManager::Get().IsRestartRequired() ? EVisibility::Visible : EVisibility::Collapsed;
+	return (FPluginBrowserModule::Get().PendingEnablePlugins.Num() > 0)? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 
-FReply SPluginsEditor::HandleRestartEditorButtonClicked() const
+FReply SPluginBrowser::HandleRestartEditorButtonClicked() const
 {
 	const bool bWarn = false;
 	FUnrealEdMisc::Get().RestartEditor(bWarn);
@@ -139,19 +139,19 @@ FReply SPluginsEditor::HandleRestartEditorButtonClicked() const
 }
 
 
-void SPluginsEditor::SearchBox_OnPluginSearchTextChanged( const FText& NewText )
+void SPluginBrowser::SearchBox_OnPluginSearchTextChanged( const FText& NewText )
 {
 	PluginTextFilter->SetRawFilterText( NewText );
 }
 
 
-TSharedPtr< FPluginCategoryTreeItem > SPluginsEditor::GetSelectedCategory() const
+TSharedPtr< FPluginCategory > SPluginBrowser::GetSelectedCategory() const
 {
 	return PluginCategories->GetSelectedCategory();
 }
 
 
-void SPluginsEditor::OnCategorySelectionChanged()
+void SPluginBrowser::OnCategorySelectionChanged()
 {
 	if( PluginList.IsValid() )
 	{
@@ -159,10 +159,10 @@ void SPluginsEditor::OnCategorySelectionChanged()
 	}
 
 	// Breadcrumbs will need to be refreshed
-	RegisterActiveTimer (0.f, FWidgetActiveTimerDelegate::CreateSP (this, &SPluginsEditor::TriggerBreadcrumbRefresh));
+	RegisterActiveTimer (0.f, FWidgetActiveTimerDelegate::CreateSP (this, &SPluginBrowser::TriggerBreadcrumbRefresh));
 }
 
-void SPluginsEditor::SetNeedsRefresh()
+void SPluginBrowser::SetNeedsRefresh()
 {
 	if( PluginList.IsValid() )
 	{
@@ -175,46 +175,44 @@ void SPluginsEditor::SetNeedsRefresh()
 	}
 
 	// Breadcrumbs will need to be refreshed
-	RegisterActiveTimer (0.f, FWidgetActiveTimerDelegate::CreateSP (this, &SPluginsEditor::TriggerBreadcrumbRefresh));
+	RegisterActiveTimer (0.f, FWidgetActiveTimerDelegate::CreateSP (this, &SPluginBrowser::TriggerBreadcrumbRefresh));
 }
 
-EActiveTimerReturnType SPluginsEditor::TriggerBreadcrumbRefresh(double InCurrentTime, float InDeltaTime)
+EActiveTimerReturnType SPluginBrowser::TriggerBreadcrumbRefresh(double InCurrentTime, float InDeltaTime)
 {
 	RefreshBreadcrumbTrail();
 	return EActiveTimerReturnType::Stop;
 }
 
-void SPluginsEditor::RefreshBreadcrumbTrail()
+void SPluginBrowser::RefreshBreadcrumbTrail()
 {
 	// Update breadcrumb trail
 	if( BreadcrumbTrail.IsValid() )
 	{
+		TSharedPtr<FPluginCategory> SelectedCategory = PluginCategories->GetSelectedCategory();
+
 		// Build up the list of categories, starting at the selected node and working our way backwards.
-		TArray< FPluginCategoryTreeItemPtr > CategoryItemPath;
-		const auto& SelectedCategory = PluginCategories->GetSelectedCategory();
-		if( SelectedCategory.IsValid() )
+		TArray<TSharedPtr<FPluginCategory>> CategoryPath;
+		if(SelectedCategory.IsValid())
 		{
-			for( auto NextCategory = SelectedCategory; NextCategory.IsValid(); NextCategory = NextCategory->GetParentCategory() )
+			for(TSharedPtr<FPluginCategory> NextCategory = SelectedCategory; NextCategory.IsValid(); NextCategory = NextCategory->ParentCategory.Pin())
 			{
-				CategoryItemPath.Insert( NextCategory, 0 );
+				CategoryPath.Insert( NextCategory, 0 );
 			}
 		}
 
-
 		// Fill in the crumbs
 		BreadcrumbTrail->ClearCrumbs();
-		for( auto CategoryIt( CategoryItemPath.CreateConstIterator() ); CategoryIt; ++CategoryIt )
+		for(TSharedPtr<FPluginCategory>& Category: CategoryPath)
 		{
-			const auto& Category = *CategoryIt;
-
 			FPluginCategoryBreadcrumbPtr NewBreadcrumb( new FPluginCategoryBreadcrumb( Category ) );
-			BreadcrumbTrail->PushCrumb( Category->GetCategoryDisplayName(), NewBreadcrumb );
+			BreadcrumbTrail->PushCrumb( Category->DisplayName, NewBreadcrumb );
 		}
 	}
 }
 
 
-void SPluginsEditor::BreadcrumbTrail_OnCrumbClicked( const FPluginCategoryBreadcrumbPtr& CrumbData )
+void SPluginBrowser::BreadcrumbTrail_OnCrumbClicked( const FPluginCategoryBreadcrumbPtr& CrumbData )
 {
 	if( PluginCategories.IsValid() )
 	{

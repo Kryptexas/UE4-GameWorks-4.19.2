@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "PluginsEditorPrivatePCH.h"
-#include "SPluginsEditor.h"
+#include "PluginBrowserPrivatePCH.h"
+#include "SPluginBrowser.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
 #include "Editor/UnrealEd/Public/Features/EditorFeatures.h"
 #include "PluginMetadataObject.h"
@@ -34,7 +34,7 @@ void FPluginBrowserModule::StartupModule()
 				.Icon( FPluginStyle::Get()->GetBrush("Plugins.TabIcon") )
 				.TabRole( ETabRole::MajorTab );
 
-			MajorTab->SetContent( SNew( SPluginsEditor ) );
+			MajorTab->SetContent( SNew( SPluginBrowser ) );
 
 			return MajorTab;
 		}

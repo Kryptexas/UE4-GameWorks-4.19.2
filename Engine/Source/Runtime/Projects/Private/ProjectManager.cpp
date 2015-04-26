@@ -8,7 +8,6 @@ DEFINE_LOG_CATEGORY_STATIC( LogProjectManager, Log, All );
 
 FProjectManager::FProjectManager()
 {
-	bRestartRequired = false;
 }
 
 const FProjectDescriptor* FProjectManager::GetCurrentProject() const
@@ -323,14 +322,7 @@ bool FProjectManager::SetPluginEnabled(const FString& PluginName, bool bEnabled,
 		return false;
 	}
 
-	// Flag that a restart is required and return
-	bRestartRequired = true;
 	return true;
-}
-
-bool FProjectManager::IsRestartRequired() const
-{
-	return bRestartRequired;
 }
 
 void FProjectManager::GetDefaultEnabledPlugins(TArray<FString>& OutPluginNames)

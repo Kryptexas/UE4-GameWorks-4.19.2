@@ -1,9 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "PluginsEditorPrivatePCH.h"
+#include "PluginBrowserPrivatePCH.h"
 #include "SPluginListTile.h"
-#include "PluginListItem.h"
-#include "SPluginsEditor.h"
+#include "SPluginBrowser.h"
 #include "SPluginList.h"
 #include "PluginStyle.h"
 #include "GameProjectGenerationModule.h"
@@ -17,10 +16,10 @@
 #define LOCTEXT_NAMESPACE "PluginListTile"
 
 
-void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPluginList> Owner, const TSharedRef<class FPluginListItem>& Item )
+void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPluginList> Owner, IPlugin* InPlugin )
 {
 	OwnerWeak = Owner;
-	ItemData = Item;
+	Plugin = InPlugin;
 
 	const float PaddingAmount = FPluginStyle::Get()->GetFloat( "PluginTile.Padding" );
 	const float ThumbnailImageSize = FPluginStyle::Get()->GetFloat( "PluginTile.ThumbnailImageSize" );
@@ -31,7 +30,6 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 
 	// @todo plugedit: Maybe we should do the FileExists check ONCE at plugin load time and not at query time
 
-	IPlugin* Plugin = ItemData->Plugin;
 	const FPluginDescriptor& PluginDescriptor = Plugin->GetDescriptor();
 
 	// Plugin thumbnail image
@@ -312,13 +310,13 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 ECheckBoxState SPluginListTile::IsPluginEnabled() const
 {
 	FPluginBrowserModule& PluginBrowserModule = FPluginBrowserModule::Get();
-	if(PluginBrowserModule.PendingEnablePlugins.Contains(ItemData->Plugin))
+	if(PluginBrowserModule.PendingEnablePlugins.Contains(Plugin))
 	{
-		return PluginBrowserModule.PendingEnablePlugins[ItemData->Plugin]? ECheckBoxState::Checked : ECheckBoxState::Unchecked;;
+		return PluginBrowserModule.PendingEnablePlugins[Plugin]? ECheckBoxState::Checked : ECheckBoxState::Unchecked;;
 	}
 	else
 	{
-		return ItemData->Plugin->IsEnabled()? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		return Plugin->IsEnabled()? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 }
 
@@ -326,7 +324,7 @@ void SPluginListTile::OnEnablePluginCheckboxChanged(ECheckBoxState NewCheckedSta
 {
 	const bool bNewEnabledState = (NewCheckedState == ECheckBoxState::Checked);
 
-	const FPluginDescriptor& PluginDescriptor = ItemData->Plugin->GetDescriptor();
+	const FPluginDescriptor& PluginDescriptor = Plugin->GetDescriptor();
 	if (bNewEnabledState && PluginDescriptor.bIsBetaVersion)
 	{
 		FText WarningMessage = FText::Format(
@@ -343,20 +341,20 @@ void SPluginListTile::OnEnablePluginCheckboxChanged(ECheckBoxState NewCheckedSta
 	FGameProjectGenerationModule::Get().TryMakeProjectFileWriteable(FPaths::GetProjectFilePath());
 	FText FailMessage;
 
-	if (!IProjectManager::Get().SetPluginEnabled(ItemData->Plugin->GetName(), bNewEnabledState, FailMessage))
+	if (!IProjectManager::Get().SetPluginEnabled(Plugin->GetName(), bNewEnabledState, FailMessage))
 	{
 		FMessageDialog::Open(EAppMsgType::Ok, FailMessage);
 	}
 	else
 	{
 		FPluginBrowserModule& PluginBrowserModule = FPluginBrowserModule::Get();
-		if(ItemData->Plugin->IsEnabled() == bNewEnabledState)
+		if(Plugin->IsEnabled() == bNewEnabledState)
 		{
-			PluginBrowserModule.PendingEnablePlugins.Remove(ItemData->Plugin);
+			PluginBrowserModule.PendingEnablePlugins.Remove(Plugin);
 		}
 		else
 		{
-			PluginBrowserModule.PendingEnablePlugins.FindOrAdd(ItemData->Plugin) = bNewEnabledState;
+			PluginBrowserModule.PendingEnablePlugins.FindOrAdd(Plugin) = bNewEnabledState;
 		}
 	}
 
@@ -365,15 +363,15 @@ void SPluginListTile::OnEnablePluginCheckboxChanged(ECheckBoxState NewCheckedSta
 
 EVisibility SPluginListTile::GetAuthoringButtonsVisibility() const
 {
-	return (FApp::IsEngineInstalled() && ItemData->Plugin->GetLoadedFrom() == EPluginLoadedFrom::Engine)? EVisibility::Hidden : EVisibility::Visible;
+	return (FApp::IsEngineInstalled() && Plugin->GetLoadedFrom() == EPluginLoadedFrom::Engine)? EVisibility::Hidden : EVisibility::Visible;
 }
 
 void SPluginListTile::OnEditPlugin()
 {
 	// Construct the plugin metadata object using the descriptor for this plugin
 	UPluginMetadataObject* MetadataObject = NewObject<UPluginMetadataObject>();
-	MetadataObject->TargetIconPath = ItemData->Plugin->GetBaseDir() / TEXT("Resources/Icon128.png");
-	MetadataObject->PopulateFromDescriptor(ItemData->Plugin->GetDescriptor());
+	MetadataObject->TargetIconPath = Plugin->GetBaseDir() / TEXT("Resources/Icon128.png");
+	MetadataObject->PopulateFromDescriptor(Plugin->GetDescriptor());
 	MetadataObject->AddToRoot();
 
 	// Create a property view
@@ -401,7 +399,7 @@ void SPluginListTile::OnEditPlugin()
 				[
 					SNew(STextBlock)
 					.Font(FPluginStyle::Get()->GetFontStyle(TEXT("PluginMetadataNameFont")))
-					.Text(FText::FromString(ItemData->Plugin->GetName()))
+					.Text(FText::FromString(Plugin->GetName()))
 				]
 
 				+ SVerticalBox::Slot()
@@ -428,7 +426,6 @@ void SPluginListTile::OnEditPlugin()
 
 FReply SPluginListTile::OnEditPluginFinished(UPluginMetadataObject* MetadataObject)
 {
-	IPlugin* Plugin = ItemData->Plugin;
 	FPluginDescriptor OldDescriptor = Plugin->GetDescriptor();
 
 	// Update the descriptor with the new metadata
@@ -460,7 +457,7 @@ FReply SPluginListTile::OnEditPluginFinished(UPluginMetadataObject* MetadataObje
 
 		// Write to the file and update the in-memory metadata
 		FText FailReason;
-		if(!ItemData->Plugin->UpdateDescriptor(NewDescriptor, FailReason))
+		if(!Plugin->UpdateDescriptor(NewDescriptor, FailReason))
 		{
 			FMessageDialog::Open(EAppMsgType::Ok, FailReason);
 		}

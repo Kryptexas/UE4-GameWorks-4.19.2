@@ -2,10 +2,11 @@
 
 #pragma once 
 
+#include "IPluginBrowser.h"
 #include "IPluginManager.h"
 #include "ModuleManager.h"
 
-class FPluginBrowserModule : public IPluginsEditor
+class FPluginBrowserModule : public IPluginBrowser
 {
 public:
 	TMap<IPlugin*, bool> PendingEnablePlugins;

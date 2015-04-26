@@ -1,8 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "PluginsEditorPrivatePCH.h"
+#include "PluginBrowserPrivatePCH.h"
 #include "SPluginCategoryTreeItem.h"
-#include "PluginCategoryTreeItem.h"
 #include "SPluginCategories.h"
 #include "PluginStyle.h"
 
@@ -10,18 +9,15 @@
 #define LOCTEXT_NAMESPACE "PluginCategoryTreeItem"
 
 
-void SPluginCategoryTreeItem::Construct( const FArguments& Args, const TSharedRef< SPluginCategories > Owner, const TSharedRef< class FPluginCategoryTreeItem >& Item )
+void SPluginCategoryTreeItem::Construct(const FArguments& Args, const TSharedRef<FPluginCategory>& InCategory)
 {
-	OwnerWeak = Owner;
-	ItemData = Item;
+	Category = InCategory;
 
 	const float CategoryIconSize = FPluginStyle::Get()->GetFloat("CategoryTreeItem.IconSize");
 	const float PaddingAmount = FPluginStyle::Get()->GetFloat("CategoryTreeItem.PaddingAmount");;
 
-	// @todo plugedit: Show a badge when at least one plugin in this category is not at the latest version
-
 	// Figure out which font size to use
-	const auto bIsRootItem = !Item->GetParentCategory().IsValid();
+	const auto bIsRootItem = !Category->ParentCategory.IsValid();
 
 	ChildSlot
 	[ 
@@ -52,7 +48,7 @@ void SPluginCategoryTreeItem::Construct( const FArguments& Args, const TSharedRe
 			.VAlign(VAlign_Center)
 			[
 				SNew( STextBlock )
-				.Text( Item->GetCategoryDisplayName() )
+				.Text( Category->DisplayName )
 				.TextStyle( FPluginStyle::Get(), bIsRootItem ? "CategoryTreeItem.Root.Text" : "CategoryTreeItem.Text" )
 			]
 			
@@ -65,9 +61,9 @@ void SPluginCategoryTreeItem::Construct( const FArguments& Args, const TSharedRe
 				SNew( STextBlock )
 
 				// Only display if at there is least one plugin is in this category
-				.Visibility( Item->GetPlugins().Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed )
+				.Visibility( Category->Plugins.Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed )
 
-				.Text( FText::Format( LOCTEXT( "NumberOfPluginsWrapper", "({0})" ), FText::AsNumber( Item->GetPlugins().Num() ) ) )
+				.Text( FText::Format( LOCTEXT( "NumberOfPluginsWrapper", "({0})" ), FText::AsNumber( Category->Plugins.Num() ) ) )
 				.TextStyle( FPluginStyle::Get(), bIsRootItem ? "CategoryTreeItem.Root.PluginCountText" : "CategoryTreeItem.PluginCountText" )
 			]
 		]
@@ -77,23 +73,18 @@ void SPluginCategoryTreeItem::Construct( const FArguments& Args, const TSharedRe
 
 const FSlateBrush* SPluginCategoryTreeItem::GetIconBrush() const
 {
-	// @todo plugedit: Need support for styles embedded into plugins!
-	const FSlateBrush* IconBrush;
-
-	if(ItemData->GetParentCategory().IsValid())
+	if(Category->ParentCategory.IsValid())
 	{
-		IconBrush = FPluginStyle::Get()->GetBrush( "CategoryTreeItem.LeafItemWithPlugin" );
+		return FPluginStyle::Get()->GetBrush( "CategoryTreeItem.LeafItemWithPlugin" );
 	}
-	else if ( ItemData->GetCategoryName() == TEXT("Installed"))
+	else if (Category->Name == TEXT("Installed"))
 	{
-		IconBrush = FPluginStyle::Get()->GetBrush( "CategoryTreeItem.BuiltIn" );
+		return FPluginStyle::Get()->GetBrush( "CategoryTreeItem.BuiltIn" );
 	}
 	else
 	{
-		IconBrush = FPluginStyle::Get()->GetBrush( "CategoryTreeItem.Installed" );
+		return FPluginStyle::Get()->GetBrush( "CategoryTreeItem.Installed" );
 	}
-
-	return IconBrush;
 }
 
 
