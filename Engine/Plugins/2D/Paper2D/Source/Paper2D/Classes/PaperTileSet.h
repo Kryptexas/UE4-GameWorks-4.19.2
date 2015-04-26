@@ -40,6 +40,12 @@ public:
 	{
 		return CollisionData.Shapes.Num() > 0;
 	}
+
+	// Does this tile have user-specified metadata?
+	bool HasMetaData() const
+	{
+		return false;
+	}
 };
 
 // Information about a terrain type

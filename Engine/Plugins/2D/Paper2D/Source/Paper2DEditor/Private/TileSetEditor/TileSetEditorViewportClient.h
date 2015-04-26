@@ -20,10 +20,17 @@ public:
 	virtual FLinearColor GetBackgroundColor() const override;
 	// End of FEditorViewportClient interface
 
+	void ToggleShowTilesWithCollision();
+	bool IsShowTilesWithCollisionChecked() const;
+
+	void ToggleShowTilesWithMetaData();
+	bool IsShowTilesWithMetaDataChecked() const;
 public:
 	// Tile set
 	TWeakObjectPtr<UPaperTileSet> TileSetBeingEdited;
 
+	bool bShowTilesWithCollision;
+	bool bShowTilesWithMetaData;
 	bool bHasValidPaintRectangle;
 	FViewportSelectionRectangle ValidPaintRectangle;
 	int32 TileIndex;

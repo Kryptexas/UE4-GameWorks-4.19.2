@@ -100,6 +100,11 @@ public:
 	FSlateColor GetZoomTextColorAndOpacity() const;
 	FVector2D GetViewOffset() const;
 
+	virtual void BindCommands() { }
+
+	/** @return The viewport command list */
+	const TSharedPtr<FUICommandList> GetCommandList() const { return CommandList; }
+
 protected:
 	int32 FindNearestZoomLevel(int32 CurrentZoomLevel, float InZoomAmount) const;
 
@@ -168,4 +173,7 @@ protected:
 
 	// Selection changed delegate
 	FOnSelectionChanged OnSelectionChanged;
+
+	// The command list
+	TSharedPtr<FUICommandList> CommandList;
 };
