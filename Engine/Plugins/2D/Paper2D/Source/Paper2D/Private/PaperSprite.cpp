@@ -576,6 +576,14 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 		// bBothModified = true;
 	//}
 
+	// Don't do rebuilds during an interactive event to make things more responsive.
+	// They'll always be followed by a ValueSet event at the end to force the change.
+	if (PropertyChangedEvent.ChangeType == EPropertyChangeType::Interactive)
+	{
+		bCollisionDataModified = false;
+		bRenderDataModified = false;
+		bBothModified = false;
+	}
 
 	if (bCollisionDataModified || bBothModified)
 	{
