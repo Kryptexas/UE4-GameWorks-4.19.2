@@ -64,6 +64,8 @@ class SPluginsEditor : public SCompoundWidget
 	/** Called when the selected category changes so we can invalidate the list */
 	void OnCategorySelectionChanged();
 
+	/** Refresh the whole window */
+	void SetNeedsRefresh();
 
 private:
 
@@ -98,6 +100,5 @@ private:
 
 	/** Breadcrumb trail widget for the currently selected category */
 	TSharedPtr< SPluginCategoryBreadcrumbTrail > BreadcrumbTrail;
-
 };
 

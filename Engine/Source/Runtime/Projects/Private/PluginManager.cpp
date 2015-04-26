@@ -33,6 +33,11 @@ FString FPlugin::GetName() const
 	return Name;
 }
 
+FString FPlugin::GetDescriptorFileName() const
+{
+	return FileName;
+}
+
 FString FPlugin::GetBaseDir() const
 {
 	return FPaths::GetPath(FileName);
@@ -58,6 +63,26 @@ bool FPlugin::CanContainContent() const
 	return Descriptor.bCanContainContent;
 }
 
+EPluginLoadedFrom FPlugin::GetLoadedFrom() const
+{
+	return LoadedFrom;
+}
+
+const FPluginDescriptor& FPlugin::GetDescriptor() const
+{
+	return Descriptor;
+}
+
+bool FPlugin::UpdateDescriptor(const FPluginDescriptor& NewDescriptor, FText& OutFailReason)
+{
+	if(!NewDescriptor.Save(FileName, OutFailReason))
+	{
+		return false;
+	}
+
+	Descriptor = NewDescriptor;
+	return true;
+}
 
 
 
@@ -558,6 +583,16 @@ TArray<IPlugin*> FPluginManager::GetEnabledPlugins()
 		{
 			Plugins.Add(&(PossiblePlugin.Get()));
 		}
+	}
+	return Plugins;
+}
+
+TArray<IPlugin*> FPluginManager::GetDiscoveredPlugins()
+{
+	TArray<IPlugin*> Plugins;
+	for(TSharedRef<FPlugin>& Plugin : AllPlugins)
+	{
+		Plugins.Add(&(Plugin.Get()));
 	}
 	return Plugins;
 }

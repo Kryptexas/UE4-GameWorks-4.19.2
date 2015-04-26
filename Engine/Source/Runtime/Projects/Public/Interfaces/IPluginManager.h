@@ -54,6 +54,13 @@ public:
 	virtual FString GetName() const = 0;
 
 	/**
+	 * Get a path to the plugin's descriptor
+	 *
+	 * @return Path to the plugin's descriptor.
+	 */
+	virtual FString GetDescriptorFileName() const = 0;
+
+	/**
 	 * Get a path to the plugin's directory.
 	 *
 	 * @return Path to the plugin's base directory.
@@ -87,6 +94,29 @@ public:
 	 * @return True if the plugin can contain content.
 	 */
 	virtual bool CanContainContent() const = 0;
+
+	/**
+	 * Returns the plugin's location
+	 *
+	 * @return Where the plugin was loaded from
+	 */
+	virtual EPluginLoadedFrom GetLoadedFrom() const = 0;
+
+	/**
+	 * Gets the plugin's descriptor
+	 *
+	 * @return Reference to the plugin's descriptor
+	 */
+	virtual const FPluginDescriptor& GetDescriptor() const = 0;
+
+	/**
+	 * Updates the plugin's descriptor
+	 *
+	 * @param NewDescriptor The new plugin descriptor
+	 * @param OutFailReason The error message if the plugin's descriptor could not be updated
+	 * @return True if the descriptor was updated, false otherwise. 
+	 */ 
+	virtual bool UpdateDescriptor(const FPluginDescriptor& NewDescriptor, FText& OutFailReason) = 0;
 };
 
 /**
@@ -143,6 +173,13 @@ public:
 	 * @return	Array of the enabled plugins.
 	 */
 	virtual TArray<IPlugin*> GetEnabledPlugins() = 0;
+
+	/**
+	 * Gets an array of all the discovered plugins.
+	 *
+	 * @return	Array of the discovered plugins.
+	 */
+	virtual TArray<IPlugin*> GetDiscoveredPlugins() = 0;
 
 	/**
 	 * Gets status about all currently known plug-ins.

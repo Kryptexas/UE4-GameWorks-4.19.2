@@ -37,11 +37,15 @@ public:
 
 	/* IPluginInfo interface */
 	virtual FString GetName() const override;
+	virtual FString GetDescriptorFileName() const override;
 	virtual FString GetBaseDir() const override;
 	virtual FString GetContentDir() const override;
 	virtual FString GetMountedAssetPath() const override;
 	virtual bool IsEnabled() const override;
 	virtual bool CanContainContent() const override;
+	virtual EPluginLoadedFrom GetLoadedFrom() const override;
+	virtual const FPluginDescriptor& GetDescriptor() const override;
+	virtual bool UpdateDescriptor(const FPluginDescriptor& NewDescriptor, FText& OutFailReason) override;
 };
 
 /**
@@ -63,6 +67,7 @@ public:
 	virtual bool CheckModuleCompatibility( TArray<FString>& OutIncompatibleModules ) override;
 	virtual FPlugin* FindPlugin(const FString& Name) override;
 	virtual TArray<IPlugin*> GetEnabledPlugins() override;
+	virtual TArray<IPlugin*> GetDiscoveredPlugins() override;
 	virtual TArray< FPluginStatus > QueryStatusForAllPlugins() const override;
 
 private:

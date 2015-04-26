@@ -68,22 +68,12 @@ TSharedRef<ITableRow> SPluginList::PluginListView_OnGenerateRow( FPluginListItem
 void SPluginList::GetPlugins( const TSharedPtr< FPluginCategoryTreeItem >& Category )
 {
 	// Add plugins from this category
-	const TArray< TSharedPtr< FPluginStatus > >& Plugins = Category->GetPlugins();
-	for( auto PluginIt( Plugins.CreateConstIterator() ); PluginIt; ++PluginIt )
+	for(IPlugin* Plugin: Category->GetPlugins())
 	{
-		const auto& PluginStatus = *( *PluginIt );
-
-		// Skip plugins that don't match the current filter criteria
-		bool bPassesFilter = true;
-		if( !OwnerWeak.Pin()->GetPluginTextFilter().PassesFilter( PluginStatus ) )
-		{
-			bPassesFilter = false;
-		}
-
-		if( bPassesFilter )
+		if(OwnerWeak.Pin()->GetPluginTextFilter().PassesFilter(Plugin))
 		{
 			const TSharedRef< FPluginListItem > NewItem( new FPluginListItem() );
-			NewItem->PluginStatus = PluginStatus;
+			NewItem->Plugin = Plugin;
 			PluginListItems.Add( NewItem );
 		}
 	}
@@ -109,7 +99,7 @@ void SPluginList::RebuildAndFilterPluginList()
 			{
 				bool operator()( const FPluginListItemPtr& A, const FPluginListItemPtr& B ) const
 				{
-					return A->PluginStatus.Descriptor.FriendlyName < B->PluginStatus.Descriptor.FriendlyName;
+					return A->Plugin->GetDescriptor().FriendlyName < B->Plugin->GetDescriptor().FriendlyName;
 				}
 			};
 			PluginListItems.Sort( FPluginListItemSorter() );

@@ -15,21 +15,21 @@
 
 void SPluginsEditor::Construct( const FArguments& Args )
 {
-	struct Local
-	{
-		static void PluginStatusToStringArray( const FPluginStatus& PluginStatus, OUT TArray< FString >& StringArray )
-		{
-			// NOTE: Only the friendly name is searchable for now.  We don't display the actual plugin name in the UI.
-			StringArray.Add( PluginStatus.Descriptor.FriendlyName );
-		}
-	};
-
 	// @todo plugedit: Should we save/restore category selection and other view settings?  Splitter position, etc.
 
 	RegisterActiveTimer (0.f, FWidgetActiveTimerDelegate::CreateSP (this, &SPluginsEditor::TriggerBreadcrumbRefresh));
 
+	struct Local
+	{
+		static void PluginToStringArray( const IPlugin* Plugin, OUT TArray< FString >& StringArray )
+		{
+			// NOTE: Only the friendly name is searchable for now.  We don't display the actual plugin name in the UI.
+			StringArray.Add( Plugin->GetDescriptor().FriendlyName );
+		}
+	};
+
 	// Setup text filtering
-	PluginTextFilter = MakeShareable( new FPluginTextFilter( FPluginTextFilter::FItemToStringArray::CreateStatic( &Local::PluginStatusToStringArray ) ) );
+	PluginTextFilter = MakeShareable( new FPluginTextFilter( FPluginTextFilter::FItemToStringArray::CreateStatic( &Local::PluginToStringArray ) ) );
 
 	const float PaddingAmount = 2.0f;
 
@@ -156,6 +156,22 @@ void SPluginsEditor::OnCategorySelectionChanged()
 	if( PluginList.IsValid() )
 	{
 		PluginList->SetNeedsRefresh();
+	}
+
+	// Breadcrumbs will need to be refreshed
+	RegisterActiveTimer (0.f, FWidgetActiveTimerDelegate::CreateSP (this, &SPluginsEditor::TriggerBreadcrumbRefresh));
+}
+
+void SPluginsEditor::SetNeedsRefresh()
+{
+	if( PluginList.IsValid() )
+	{
+		PluginList->SetNeedsRefresh();
+	}
+
+	if( PluginCategories.IsValid() )
+	{
+		PluginCategories->SetNeedsRefresh();
 	}
 
 	// Breadcrumbs will need to be refreshed
