@@ -233,10 +233,17 @@ void UPaperSpriteComponent::GetUsedTextures(TArray<UTexture*>& OutTextures, EMat
 		{
 			OutTextures.AddUnique(BakedTexture);
 		}
-	}
 
-	// Add any extra textures
-	//@TODO: 
+		FAdditionalSpriteTextureArray AdditionalTextureList;
+		SourceSprite->GetBakedAdditionalSourceTextures(/*out*/ AdditionalTextureList);
+		for (UTexture* AdditionalTexture : AdditionalTextureList)
+		{
+			if (AdditionalTexture != nullptr)
+			{
+				OutTextures.AddUnique(AdditionalTexture);
+			}
+		}
+	}
 
 	// Get any textures referenced by our materials
 	Super::GetUsedTextures(OutTextures, QualityLevel);

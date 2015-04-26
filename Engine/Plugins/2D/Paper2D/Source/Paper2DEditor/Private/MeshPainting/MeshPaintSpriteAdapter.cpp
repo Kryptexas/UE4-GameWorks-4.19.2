@@ -121,10 +121,22 @@ void FMeshPaintSpriteAdapter::QueryPaintableTextures(int32 MaterialIndex, int32&
 	int32 ForceIndex = INDEX_NONE;
 	if (UTexture2D* SourceTexture = Sprite->GetBakedTexture())
 	{
-		new (InOutTextureList) FPaintableTexture(SourceTexture, 0);
-		ForceIndex = InOutTextureList.Num() - 1;
+		FPaintableTexture PaintableTexture(SourceTexture, 0);
+		ForceIndex = InOutTextureList.AddUnique(PaintableTexture);
 	}
-	
+
+	// Grab the additional textures next
+	FAdditionalSpriteTextureArray AdditionalTextureList;
+	Sprite->GetBakedAdditionalSourceTextures(/*out*/ AdditionalTextureList);
+	for (UTexture* AdditionalTexture : AdditionalTextureList)
+	{
+		if (AdditionalTexture != nullptr)
+		{
+			FPaintableTexture PaintableTexture(AdditionalTexture, 0);
+			InOutTextureList.AddUnique(AdditionalTexture);
+		}
+	}
+
 	// Now ask the material
 	DefaultQueryPaintableTextures(MaterialIndex, SpriteComponent, OutDefaultIndex, InOutTextureList);
 
