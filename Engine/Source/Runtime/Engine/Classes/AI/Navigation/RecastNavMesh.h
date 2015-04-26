@@ -425,6 +425,10 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	UPROPERTY(EditAnywhere, Category=Display, config)
 	uint32 bDrawPolyEdges:1;
 
+	/** if disabled skips filling drawn navmesh polygons */
+	UPROPERTY(EditAnywhere, Category = Display)
+	uint32 bDrawFilledPolys:1;
+
 	/** should we draw border-edges */
 	UPROPERTY(EditAnywhere, Category=Display)
 	uint32 bDrawNavMeshEdges:1;

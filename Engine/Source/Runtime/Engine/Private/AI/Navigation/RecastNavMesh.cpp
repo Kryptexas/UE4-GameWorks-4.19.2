@@ -210,6 +210,7 @@ ARecastNavMesh::FNavPolyFlags ARecastNavMesh::NavLinkFlag = ARecastNavMesh::FNav
 
 ARecastNavMesh::ARecastNavMesh(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, bDrawFilledPolys(true)
 	, bDrawNavMeshEdges(true)
 	, bDrawNavLinks(true)
 	, bDistinctlyDrawTilesBeingBuilt(true)
