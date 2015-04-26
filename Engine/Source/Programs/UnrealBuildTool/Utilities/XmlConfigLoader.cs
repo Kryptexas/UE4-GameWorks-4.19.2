@@ -18,7 +18,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// Attribute to annotate fields in type that can be set using XML configuration system.
 	/// </summary>
-	[AttributeUsage(AttributeTargets.Field)]
+	[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
 	public class XmlConfigAttribute : Attribute
 	{
 
@@ -198,7 +198,13 @@ namespace UnrealBuildTool
 		/// </summary>
 		public static void Init()
 		{
-			OverwriteIfDifferent(GetXSDPath(), BuildXSD());
+            // No one should try to refereence configuration values until the config files are loaded.
+            // The XmlConfig system itself will SET config values below, then anyone can read them.
+            // But our static constructor checks can't differentiate this, so we just allow reads starting now,
+            // right before the XML files are loaded.
+            UnrealBuildTool.bIsSafeToReferenceConfigurationValues = true;
+
+            OverwriteIfDifferent(GetXSDPath(), BuildXSD());
 
 			LoadData();
 
@@ -297,7 +303,12 @@ namespace UnrealBuildTool
 					DataPair.Key.SetValue(null, DataPair.Value);
 				}
 
-				bDoneLoading = true;
+                foreach (var PropertyPair in PropertyMap)
+                {
+                    PropertyPair.Key.SetValue(null, PropertyPair.Value, null);
+                }
+
+                bDoneLoading = true;
 			}
 
 			/// <summary>
@@ -317,7 +328,24 @@ namespace UnrealBuildTool
 				}
 			}
 
-			// A variable to indicate if loading was done during invoking of
+            /// <summary>
+            /// Adds or overrides value in the cache.
+            /// </summary>
+            /// <param name="Property">The property info of the class.</param>
+            /// <param name="Value">The value to store.</param>
+            public void SetValue(PropertyInfo Property, object Value)
+            {
+                if (PropertyMap.ContainsKey(Property))
+                {
+                    PropertyMap[Property] = Value;
+                }
+                else
+                {
+                    PropertyMap.Add(Property, Value);
+                }
+            }
+
+            // A variable to indicate if loading was done during invoking of
 			// default values loader.
 			bool bDoneLoading = false;
 
@@ -326,7 +354,10 @@ namespace UnrealBuildTool
 
 			// Loaded data map.
 			Dictionary<FieldInfo, object> DataMap = new Dictionary<FieldInfo, object>();
-		}
+        
+            // Loaded data map.
+            Dictionary<PropertyInfo, object> PropertyMap = new Dictionary<PropertyInfo, object>();
+        }
 
 		/// <summary>
 		/// Class that stores information about possible BuildConfiguration.xml
@@ -615,7 +646,18 @@ namespace UnrealBuildTool
 					// allow settings in the .xml that don't exist, as another branch may have it, and can share this file from Documents
 					if (Field == null)
 					{
-						continue;
+                        PropertyInfo Property = ClassType.GetProperty(XmlField.Name);
+                        if (Property != null)
+                        {
+                            if (!IsConfigurable(Property))
+                            {
+                                throw new BuildException("BuildConfiguration Loading: property '{0}' is either non-public, non-static or not-xml-configurable.", XmlField.Name);
+                            }
+
+                            ClassData.SetValue(Property, ParseFieldData(Property.PropertyType, XmlField.InnerText));
+                        }
+
+                        continue;
 					}
 					
 					if (!IsConfigurableField(Field))
@@ -747,10 +789,23 @@ namespace UnrealBuildTool
 		/// <returns>True if the class is configurable using XML system. Otherwise false.</returns>
 		private static bool IsConfigurableClass(Type Class)
 		{
-			return Class.GetFields().Any((Field) => IsConfigurableField(Field));
+            return
+                Class.GetFields().Any((Field) => IsConfigurableField(Field)) ||
+                Class.GetProperties().Any(prop => IsConfigurable(prop));
+
 		}
 
-		/// <summary>
+        /// <summary>
+        /// Tells if given property is XML configurable.
+        /// </summary>
+        /// <param name="Property">Property to check.</param>
+        /// <returns>True if the property is configurable using XML system. Otherwise false.</returns>
+        private static bool IsConfigurable(PropertyInfo Property)
+        {
+            return Property.GetCustomAttributes(typeof(XmlConfigAttribute), false).Length > 0 && Property.CanWrite && Property.GetSetMethod().IsStatic && Property.GetSetMethod().IsPublic;
+        }
+
+        /// <summary>
 		/// Tells if given field is XML configurable.
 		/// </summary>
 		/// <param name="Field">field to check.</param>

@@ -8,6 +8,7 @@ using System.Threading;
 using System.Diagnostics;
 using System.Management;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 namespace AutomationTool
 {
@@ -250,14 +251,16 @@ namespace AutomationTool
 			ProcessManager.RemoveProcess(this);
 		}
 
-		private void LogOutput(TraceEventType Verbosity, string Message)
+        /// <summary>
+        /// Log output of a remote process at a given severity.
+        /// To pretty up the output, we use a custom source so it will say the source of the process instead of this method name.
+        /// </summary>
+        /// <param name="Verbosity"></param>
+        /// <param name="Message"></param>
+        [MethodImplAttribute(MethodImplOptions.NoInlining)]
+        private void LogOutput(TraceEventType Verbosity, string Message)
 		{
-			// Manually send message to trace listeners (skips Class.Method source formatting of Log.WriteLine)
-			var EventCache = new TraceEventCache();
-			foreach (TraceListener Listener in Trace.Listeners)
-			{
-				Listener.TraceEvent(EventCache, Source, Verbosity, (int)Verbosity, Message);
-			}
+            UnrealBuildTool.Log.WriteLine(1, Source, Verbosity, Message);
 		}
        
 		/// <summary>

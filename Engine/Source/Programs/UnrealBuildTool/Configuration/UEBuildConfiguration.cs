@@ -7,6 +7,14 @@ namespace UnrealBuildTool
 {
 	public class UEBuildConfiguration
 	{
+        static UEBuildConfiguration()
+        {
+            if (!UnrealBuildTool.bIsSafeToReferenceConfigurationValues)
+            {
+                throw new BuildException("UEBuildConfiguration was referenced before the XmlConfig files could be loaded.");
+            }
+        }
+
 		/** Whether to include PhysX support */
 		[XmlConfig]
 		public static bool bCompilePhysX;

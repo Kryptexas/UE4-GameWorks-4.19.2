@@ -88,55 +88,62 @@ namespace AutomationTool
 			HostPlatform.Initialize();
 			
 			LogUtils.InitLogging(CommandLine);
-			Log.WriteLine(TraceEventType.Information, "Running on {0}", HostPlatform.Current.GetType().Name);
+            try
+            {
+                Log.WriteLine(TraceEventType.Information, "Running on {0}", HostPlatform.Current.GetType().Name);
 
-			XmlConfigLoader.Init();
+                XmlConfigLoader.Init();
 
-			// Log if we're running from the launcher
-			var ExecutingAssemblyLocation = CommandUtils.CombinePaths(Assembly.GetExecutingAssembly().Location);
-			if (String.Compare(ExecutingAssemblyLocation, CommandUtils.CombinePaths(InternalUtils.ExecutingAssemblyLocation), true) != 0)
-			{
-				Log.WriteLine(TraceEventType.Information, "Executed from AutomationToolLauncher ({0})", ExecutingAssemblyLocation);
-			}
-			Log.WriteLine(TraceEventType.Information, "CWD={0}", Environment.CurrentDirectory);
+                // Log if we're running from the launcher
+                var ExecutingAssemblyLocation = CommandUtils.CombinePaths(Assembly.GetExecutingAssembly().Location);
+                if (String.Compare(ExecutingAssemblyLocation, CommandUtils.CombinePaths(InternalUtils.ExecutingAssemblyLocation), true) != 0)
+                {
+                    Log.WriteLine(TraceEventType.Information, "Executed from AutomationToolLauncher ({0})", ExecutingAssemblyLocation);
+                }
+                Log.WriteLine(TraceEventType.Information, "CWD={0}", Environment.CurrentDirectory);
 
-			// Hook up exit callbacks
-			var Domain = AppDomain.CurrentDomain;
-			Domain.ProcessExit += Domain_ProcessExit;
-			Domain.DomainUnload += Domain_ProcessExit;
-			HostPlatform.Current.SetConsoleCtrlHandler(ProgramCtrlHandler);
+                // Hook up exit callbacks
+                var Domain = AppDomain.CurrentDomain;
+                Domain.ProcessExit += Domain_ProcessExit;
+                Domain.DomainUnload += Domain_ProcessExit;
+                HostPlatform.Current.SetConsoleCtrlHandler(ProgramCtrlHandler);
 
-			var Version = InternalUtils.ExecutableVersion;
-			Log.WriteLine(TraceEventType.Verbose, "{0} ver. {1}", Version.ProductName, Version.ProductVersion);
+                var Version = InternalUtils.ExecutableVersion;
+                Log.WriteLine(TraceEventType.Verbose, "{0} ver. {1}", Version.ProductName, Version.ProductVersion);
 
-			try
-			{
-				// Don't allow simultaneous execution of AT (in the same branch)
-				ReturnCode = InternalUtils.RunSingleInstance(MainProc, CommandLine);
-			}
-			catch (Exception Ex)
-			{
-				Log.WriteLine(TraceEventType.Error, "AutomationTool terminated with exception:");
-				Log.WriteLine(TraceEventType.Error, LogUtils.FormatException(Ex));
-				Log.WriteLine(TraceEventType.Error, Ex.Message);
-				if (ReturnCode == 0)
-				{
-					ReturnCode = (int)ErrorCodes.Error_Unknown;
-				}
-			}
+                try
+                {
+                    // Don't allow simultaneous execution of AT (in the same branch)
+                    ReturnCode = InternalUtils.RunSingleInstance(MainProc, CommandLine);
+                }
+                catch (Exception Ex)
+                {
+                    Log.WriteLine(TraceEventType.Error, "AutomationTool terminated with exception:");
+                    Log.WriteLine(TraceEventType.Error, LogUtils.FormatException(Ex));
+                    Log.WriteLine(TraceEventType.Error, Ex.Message);
+                    if (ReturnCode == 0)
+                    {
+                        ReturnCode = (int)ErrorCodes.Error_Unknown;
+                    }
+                }
 
-			// Make sure there's no directiories on the stack.
-			CommandUtils.ClearDirStack();
-			Environment.ExitCode = ReturnCode;
+                // Make sure there's no directiories on the stack.
+                CommandUtils.ClearDirStack();
+                Environment.ExitCode = ReturnCode;
 
-			// Try to kill process before app domain exits to leave the other KillAll call to extreme edge cases
-			if (ShouldKillProcesses && !Utils.IsRunningOnMono)
-			{
-				ProcessManager.KillAll();
-			}
+                // Try to kill process before app domain exits to leave the other KillAll call to extreme edge cases
+                if (ShouldKillProcesses && !Utils.IsRunningOnMono)
+                {
+                    ProcessManager.KillAll();
+                }
 
-			Log.WriteLine(TraceEventType.Information, "AutomationTool exiting with ExitCode={0}", ReturnCode);
-			LogUtils.CloseFileLogging();
+                Log.WriteLine(TraceEventType.Information, "AutomationTool exiting with ExitCode={0}", ReturnCode);
+            }
+            finally
+            {
+                // ensure that logging is always shut down cleanly, as this potentially copies the log to a final resting place.
+                LogUtils.ShutdownLogging();
+            }
 
 			return ReturnCode;
 		}

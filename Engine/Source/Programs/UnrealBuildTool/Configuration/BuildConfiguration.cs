@@ -10,6 +10,14 @@ namespace UnrealBuildTool
 {
 	public class BuildConfiguration
 	{
+        static BuildConfiguration()
+        {
+            if (!UnrealBuildTool.bIsSafeToReferenceConfigurationValues)
+            {
+                throw new BuildException("UEBuildConfiguration was referenced before the XmlConfig files could be loaded.");
+            }
+        }
+
 		/// <summary>
 		/// Whether to unify C++ code into larger files for faster compilation.
 		/// </summary>
@@ -116,11 +124,17 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bForcePrecompiledHeaderForGameModules;
 
-		/// <summary>
+        /// <summary>
 		/// Whether debug info should be written to the console.
-		/// </summary>
-		[XmlConfig]
-		public static bool bPrintDebugInfo;
+        /// </summary>
+        [XmlConfig]
+        public static bool bPrintDebugInfo;
+
+        /// <summary>
+        /// Allows logging to a file
+        /// </summary>
+        [XmlConfig]
+        public static string LogFilename;
 
 		/// <summary>
 		/// Prints performance diagnostics about include dependencies and other bits

@@ -582,66 +582,59 @@ namespace UnrealBuildTool
         }
 
         /// <summary>
-        /// Sets up UBT Trace listeners and filters.
+        /// This is a safeguard to our initialization order, which tends to be fragile.
+        /// It is not really safe to reference a configuration value until the XmlConfig system loads it (and command lines override it), but non-trivial
+        /// code needs to run before the XmlConfig can load, so it can be hard to tell if a function you are calling in these early 
+        /// stages might unsafely reference a config value.
+        /// 
+        /// This bool is set RIGHT BEFORE the XmlConfig system loads configs, so any references to the config class before that will be trapped.
+        /// If you think you need to change where this value is set, you need to reconsider how soon you are trying to reference config values.
         /// </summary>
-        private static void InitLogging()
+        public static bool bIsSafeToReferenceConfigurationValues = false;
+
+        /// <summary>
+        /// Paranoid init of the logging system in case someone tries to log super early in startup.
+        /// However, no configuration files have been loaded, and the command line has not been parsed, so 
+        /// certain features like verbose and log file cannot be initialized yet.
+        /// </summary>
+        private static void PreInitLogging()
         {
-            Trace.Listeners.Add(new ConsoleListener());
-            var Filter = new VerbosityFilter();
-            foreach (TraceListener Listener in Trace.Listeners)
-            {
-                Listener.Filter = Filter;
-            }
+            Log.InitLogging(
+                bLogTimestamps: false,
+                bLogVerbose: true,
+                bLogSeverity: false,
+                bLogSources: false,
+                bColorConsoleOutput: true,
+                TraceListeners: new[] { new ConsoleTraceListener() });
         }
 
-        private static int Main(string[] Arguments)
+        /// <summary>
+        /// UBT startup order is fairly fragile, and relies on globals that may or may not be safe to use yet.
+        /// This function is for super early startup stuff that should not access Configuration classes (anything loaded by XmlConfg).
+        /// This should be very minimal startup code.
+        /// </summary>
+        /// <param name="Arguments">Cmdline arguments</param>
+        private static void DoStartupStuffThatCannotAccessConfigurationClasses(string[] Arguments)
         {
-            InitLogging();
+            // Helpers used for stats tracking.
+            StartTime = DateTime.UtcNow;
 
-            try
-            {
-                XmlConfigLoader.Init();
-            }
-            catch (BuildException Exception)
-            {
-                Log.TraceError("UnrealBuildTool Exception: " + Exception);
-                return (int) ECompilationResult.OtherCompilationError;
-            }
+            // Do super early log init as a safeguard. We'll re-init with proper config options later.
+            PreInitLogging();
 
-			// Because XmlConfigLoader.Init() will reset all parameter by call LoadDefaults, 
-			// so need to parse verbose argument here.
-			int Verbose;
-			if (Utils.ParseCommandLineFlag(Arguments, "-verbose", out Verbose))
-			{
-				BuildConfiguration.bPrintDebugInfo = true;
-			}
+            // Copy off the arguments to allow checking for command-line arguments elsewhere
+            CmdLine = new List<string>(Arguments);
 
-			Log.TraceVerbose(Environment.CommandLine);
-
+            // Grab the environment.
             InitialEnvironment = Environment.GetEnvironmentVariables();
             if (InitialEnvironment.Count < 1)
             {
                 throw new BuildException("Environment could not be read");
             }
-            // Helpers used for stats tracking.
-            StartTime = DateTime.UtcNow;
 
-            Telemetry.Initialize();
-
-            // Copy off the arguments to allow checking for command-line arguments elsewhere
-            CmdLine = new List<string>(Arguments);
-
-            foreach (string Arg in Arguments)
-            {
-                string TempGameName = null;
-                if (ParseRocketCommandlineArg(Arg, ref TempGameName) == true)
-                {
-                    // This is to allow relative paths for the project file
-                    Log.TraceVerbose("UBT Running for Rocket: " + UProjectFile);
-                }
-            }
-
-            // Change the working directory to be the Engine/Source folder. We are running from Engine/Binaries/DotNET
+            // Change the working directory to be the Engine/Source folder. We are likely running from Engine/Binaries/DotNET
+            // This is critical to be done early so any code that relies on the current directory being Engine/Source will work.
+            // UEBuildConfiguration.PostReset is susceptible to this, so we must do this before configs are loaded.
             string EngineSourceDirectory = Path.Combine(Utils.GetExecutingAssemblyDirectory(), "..", "..", "..", "Engine", "Source");
 
             //@todo.Rocket: This is a workaround for recompiling game code in editor
@@ -662,6 +655,152 @@ namespace UnrealBuildTool
             {
                 Directory.SetCurrentDirectory(EngineSourceDirectory);
             }
+        }
+
+        /// <summary>
+        /// Enough startup work has been done to load configuration classes (like setting the proper current directory).
+        /// It is still not safe to log. Mostly this relates to XmlConfigLoader, but any other code added here cannot log yet either.
+        /// </summary>
+        /// <param name="Arguments"></param>
+        private static void InitConfigurationClasses(string[] Arguments)
+        {
+            // Load the Config XML files first.
+            XmlConfigLoader.Init();
+            
+            // Then let the command lines override any configs necessary.
+            const string UCAUsageThresholdString = "-ucausagethreshold=";
+            const string UCAModuleToAnalyzeString = "-ucamoduletoanalyze=";
+            foreach (var LowercaseArg in Arguments.Select(arg => arg.ToLowerInvariant()))
+            {
+                if (LowercaseArg == "-verbose")
+                {
+                    BuildConfiguration.bPrintDebugInfo = true;
+                }
+                else if (LowercaseArg.StartsWith("-log="))
+                {
+                    BuildConfiguration.LogFilename = LowercaseArg.Replace("-log=","");
+                }
+                else if (LowercaseArg == "-forceheadergeneration")
+                {
+                    UEBuildConfiguration.bForceHeaderGeneration = true;
+                }
+                else if (LowercaseArg == "-nobuilduht")
+                {
+                    UEBuildConfiguration.bDoNotBuildUHT = true;
+                }
+                else if (LowercaseArg == "-failifgeneratedcodechanges")
+                {
+                    UEBuildConfiguration.bFailIfGeneratedCodeChanges = true;
+                }
+                else if (LowercaseArg == "-clean")
+                {
+                    UEBuildConfiguration.bCleanProject = true;
+                }
+                else if (LowercaseArg == "-prepfordeploy")
+                {
+                    UEBuildConfiguration.bPrepForDeployment = true;
+                }
+                else if (LowercaseArg == "-generateexternalfilelist")
+                {
+                    UEBuildConfiguration.bGenerateExternalFileList = true;
+                }
+                else if (LowercaseArg == "-mergeexternalfilelist")
+                {
+                    UEBuildConfiguration.bMergeExternalFileList = true;
+                }
+                else if (LowercaseArg == "-generatemanifest")
+                {
+                    // Generate a manifest file containing all the files required to be in Perforce
+                    UEBuildConfiguration.bGenerateManifest = true;
+                }
+                else if (LowercaseArg == "-mergemanifests")
+                {
+                    // Whether to add to the existing manifest (if it exists), or start afresh
+                    UEBuildConfiguration.bMergeManifests = true;
+                }
+                else if (LowercaseArg == "-noxge")
+                {
+                    BuildConfiguration.bAllowXGE = false;
+                }
+                else if (LowercaseArg == "-noxgemonitor")
+                {
+                    BuildConfiguration.bShowXGEMonitor = false;
+                }
+                else if (LowercaseArg == "-xgeexport")
+                {
+                    BuildConfiguration.bXGEExport = true;
+                    BuildConfiguration.bAllowXGE = true;
+                }
+                else if (LowercaseArg == "-noubtmakefiles")
+                {
+                    BuildConfiguration.bUseUBTMakefiles = false;
+                }
+                else if (LowercaseArg == "-nosimplygon")
+                {
+                    UEBuildConfiguration.bCompileSimplygon = false;
+                }
+                else if (LowercaseArg == "-nospeedtree")
+                {
+                    UEBuildConfiguration.bCompileSpeedTree = false;
+                }
+                else if (LowercaseArg == "-canskiplink")
+                {
+                    UEBuildConfiguration.bSkipLinkingWhenNothingToCompile = true;
+                }
+                else if (LowercaseArg == "-nocef3")
+                {
+                    UEBuildConfiguration.bCompileCEF3 = false;
+                }
+                else if (LowercaseArg == "-rununrealcodeanalyzer")
+                {
+                    BuildConfiguration.bRunUnrealCodeAnalyzer = true;
+                }
+                else if (LowercaseArg.StartsWith(UCAUsageThresholdString))
+                {
+                    string UCAUsageThresholdValue = LowercaseArg.Substring(UCAUsageThresholdString.Length);
+                    BuildConfiguration.UCAUsageThreshold = float.Parse(UCAUsageThresholdValue.Replace(',', '.'), System.Globalization.CultureInfo.InvariantCulture);
+                }
+                else if (LowercaseArg.StartsWith(UCAModuleToAnalyzeString))
+                {
+                    BuildConfiguration.UCAModuleToAnalyze = LowercaseArg.Substring(UCAModuleToAnalyzeString.Length).Trim();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Sets up UBT Trace listeners and filters.
+        /// </summary>
+        private static void InitLogging()
+        {
+            // Initialize the shared log system using UBT specific listeners.
+            Log.InitLogging(
+                bLogTimestamps: false,
+                bLogVerbose: BuildConfiguration.bPrintDebugInfo,
+                bLogSeverity: false, 
+                bLogSources: false,
+                bColorConsoleOutput: true,
+                TraceListeners: new[] 
+                {
+                    new ConsoleTraceListener(),
+                    !string.IsNullOrEmpty(BuildConfiguration.LogFilename) ? new TextWriterTraceListener(new StreamWriter(new FileStream(BuildConfiguration.LogFilename, FileMode.Create, FileAccess.ReadWrite, FileShare.Read)) { AutoFlush = true }) : null,
+                });
+        }
+
+        private static int DoPostStartupStuffThatCanAccessConfigs(string[] Arguments)
+        {
+            // We can now do a full initialization of the logging system with proper configuration values.
+            InitLogging();
+
+            // Parse rocket-specific arguments.
+            foreach (string Arg in Arguments)
+            {
+                string TempGameName = null;
+                if (ParseRocketCommandlineArg(Arg, ref TempGameName) == true)
+                {
+                    // This is to allow relative paths for the project file
+                    Log.TraceVerbose("UBT Running for Rocket: " + UProjectFile);
+                }
+            }
 
             // Build the list of game projects that we know about. When building from the editor (for hot-reload) or for Rocket projects, we require the 
             // project file to be passed in. Otherwise we scan for projects in directories named in UE4Games.uprojectdirs.
@@ -680,17 +819,10 @@ namespace UnrealBuildTool
 
             ECompilationResult Result = ECompilationResult.Succeeded;
 
-            // Reset early so we can access BuildConfiguration even before RunUBT() is called
-            XmlConfigLoader.Reset<BuildConfiguration>();
-            XmlConfigLoader.Reset<UEBuildConfiguration>();
-
-			if (Utils.ParseCommandLineFlag(Arguments, "-verbose", out Verbose))
-			{
-				BuildConfiguration.bPrintDebugInfo = true;
-			}
-
             Log.TraceVerbose("UnrealBuildTool (DEBUG OUTPUT MODE)");
             Log.TraceVerbose("Command-line: {0}", String.Join(" ", Arguments));
+
+            Telemetry.Initialize();
 
             bool bRunCopyrightVerification = false;
             bool bDumpToFile = false;
@@ -793,8 +925,6 @@ namespace UnrealBuildTool
                     {
                         string LowercaseArg = Arg.ToLowerInvariant();
                         const string OnlyPlatformSpecificForArg = "-onlyplatformspecificfor=";
-						const string UCAUsageThresholdString = "-ucausagethreshold=";
-						const string UCAModuleToAnalyzeString = "-ucamoduletoanalyze=";
                         if (ParseRocketCommandlineArg(Arg, ref GameName))
                         {
                             // Already handled at startup. Calling now just to properly set the game name
@@ -857,19 +987,6 @@ namespace UnrealBuildTool
                             bSpecificModulesOnly = true;
                             continue;
                         }
-                        else if (LowercaseArg == "-forceheadergeneration")
-                        {
-                            // Don't reset this as we don't recheck the args in RunUBT
-                            UEBuildConfiguration.bForceHeaderGeneration = true;
-                        }
-                        else if (LowercaseArg == "-nobuilduht")
-                        {
-                            UEBuildConfiguration.bDoNotBuildUHT = true;
-                        }
-                        else if (LowercaseArg == "-failifgeneratedcodechanges")
-                        {
-                            UEBuildConfiguration.bFailIfGeneratedCodeChanges = true;
-                        }
                         else if (LowercaseArg == "-copyrightverification")
                         {
                             bRunCopyrightVerification = true;
@@ -882,45 +999,6 @@ namespace UnrealBuildTool
                         {
                             bCheckThirdPartyHeaders = true;
                         }
-                        else if (LowercaseArg == "-clean")
-                        {
-                            UEBuildConfiguration.bCleanProject = true;
-                        }
-                        else if (LowercaseArg == "-prepfordeploy")
-                        {
-                            UEBuildConfiguration.bPrepForDeployment = true;
-                        }
-                        else if (LowercaseArg == "-generateexternalfilelist")
-                        {
-                            UEBuildConfiguration.bGenerateExternalFileList = true;
-                        }
-                        else if (LowercaseArg == "-mergeexternalfilelist")
-                        {
-                            UEBuildConfiguration.bMergeExternalFileList = true;
-                        }
-                        else if (LowercaseArg == "-generatemanifest")
-                        {
-                            // Generate a manifest file containing all the files required to be in Perforce
-                            UEBuildConfiguration.bGenerateManifest = true;
-                        }
-                        else if (LowercaseArg == "-mergemanifests")
-                        {
-                            // Whether to add to the existing manifest (if it exists), or start afresh
-                            UEBuildConfiguration.bMergeManifests = true;
-                        }
-                        else if (LowercaseArg == "-noxge")
-                        {
-                            BuildConfiguration.bAllowXGE = false;
-                        }
-                        else if (LowercaseArg == "-xgeexport")
-                        {
-                            BuildConfiguration.bXGEExport = true;
-                            BuildConfiguration.bAllowXGE = true;
-                        }
-						else if (LowercaseArg == "-noubtmakefiles")
-						{
-							BuildConfiguration.bUseUBTMakefiles = false;
-						}
 						else if (LowercaseArg == "-invalidatemakefilesonly")
 						{
 							UnrealBuildTool.bIsInvalidatingMakefilesOnly = true;
@@ -951,14 +1029,6 @@ namespace UnrealBuildTool
                             UnrealBuildTool.bIsGatheringBuild_Unsafe = false;
                             UnrealBuildTool.bIsAssemblingBuild_Unsafe = true;
                         }
-                        else if (LowercaseArg == "-nosimplygon")
-                        {
-                            UEBuildConfiguration.bCompileSimplygon = false;
-                        }
-                        else if (LowercaseArg == "-nospeedtree")
-                        {
-                            UEBuildConfiguration.bCompileSpeedTree = false;
-                        }
                         else if (LowercaseArg == "-ignorejunk")
                         {
                             bIgnoreJunk = true;
@@ -971,27 +1041,6 @@ namespace UnrealBuildTool
                         {
                             ProgressWriter.bWriteMarkup = true;
                         }
-						else if (LowercaseArg == "-canskiplink")
-						{
-							UEBuildConfiguration.bSkipLinkingWhenNothingToCompile = true;
-						}
-						else if (LowercaseArg == "-nocef3")
-						{
-							UEBuildConfiguration.bCompileCEF3 = false;
-						}
-						else if (LowercaseArg == "-rununrealcodeanalyzer")
-						{
-							BuildConfiguration.bRunUnrealCodeAnalyzer = true;
-						}
-						else if (LowercaseArg.StartsWith(UCAUsageThresholdString))
-						{
-							string UCAUsageThresholdValue = LowercaseArg.Substring(UCAUsageThresholdString.Length);
-							BuildConfiguration.UCAUsageThreshold = float.Parse(UCAUsageThresholdValue.Replace(',', '.'), System.Globalization.CultureInfo.InvariantCulture);
-						}
-						else if (LowercaseArg.StartsWith(UCAModuleToAnalyzeString))
-						{
-							BuildConfiguration.UCAModuleToAnalyze = LowercaseArg.Substring(UCAModuleToAnalyzeString.Length).Trim();
-						}
                         else if (CheckPlatform.ToString().ToLowerInvariant() == LowercaseArg)
                         {
                             // It's the platform set...
@@ -1112,7 +1161,8 @@ namespace UnrealBuildTool
                     }
                     else if (bRunCopyrightVerification)
                     {
-                        CopyrightVerify.RunCopyrightVerification(EngineSourceDirectory, GameName, bDumpToFile);
+                        // We ensure we are in the engine source directory during startup.
+                        CopyrightVerify.RunCopyrightVerification(Directory.GetCurrentDirectory(), GameName, bDumpToFile);
                         Log.TraceInformation("Completed... exiting.");
                     }
                     else if (bAutoSDKOnly)
@@ -1225,6 +1275,33 @@ namespace UnrealBuildTool
             Log.TraceVerbose("Execution time: {0}", (DateTime.UtcNow - StartTime - MutexWaitTime).TotalSeconds);
 
             return (int)Result; 
+        }
+
+        private static int Main(string[] Arguments)
+        {
+            // make sure we catch any exceptions and return an appropriate error code.
+            // Some inner code already does this (to ensure the Mutex is released),
+            // but we need something to cover all outer code as well.
+            try
+            {
+                // Make it more explicit what startup code should not be accessing config data.
+                // The Configuration classes will also assert, but this clarifies where the line is.
+                DoStartupStuffThatCannotAccessConfigurationClasses(Arguments);
+
+                // Now we can load the configuration files.
+                InitConfigurationClasses(Arguments);
+
+                // Finally, we do execute code that relies on config classes.
+                return DoPostStartupStuffThatCanAccessConfigs(Arguments);
+            }
+            catch (Exception Exception)
+            {
+                if (Log.IsInitialized())
+                {
+                    Log.TraceError("UnrealBuildTool Exception: " + Exception.ToString());
+                }
+                return (int)ECompilationResult.OtherCompilationError;
+            }
         }
 
         /// <summary>
@@ -1341,8 +1418,6 @@ namespace UnrealBuildTool
 
             // Reset global configurations
             ActionGraph.ResetAllActions();
-
-            ParseBuildConfigurationFlags(Arguments);
 
             // We need to allow the target platform to perform the 'reset' as well...
             UnrealTargetPlatform ResetPlatform = UnrealTargetPlatform.Unknown;
@@ -1957,106 +2032,6 @@ namespace UnrealBuildTool
 			return bIsRunning;
 		}
 
-        private static void ParseBuildConfigurationFlags(string[] Arguments)
-        {
-            int ArgumentIndex = 0;
-
-            // Parse optional command-line flags.
-            if (Utils.ParseCommandLineFlag(Arguments, "-verbose", out ArgumentIndex))
-            {
-                BuildConfiguration.bPrintDebugInfo = true;
-            }
-
-            if (Utils.ParseCommandLineFlag(Arguments, "-noxge", out ArgumentIndex))
-            {
-                BuildConfiguration.bAllowXGE = false;
-            }
-
-            if (Utils.ParseCommandLineFlag(Arguments, "-noxgemonitor", out ArgumentIndex))
-            {
-                BuildConfiguration.bShowXGEMonitor = false;
-            }
-
-            if (Utils.ParseCommandLineFlag(Arguments, "-stresstestunity", out ArgumentIndex))
-            {
-                BuildConfiguration.bStressTestUnity = true;
-            }
-
-            if (Utils.ParseCommandLineFlag(Arguments, "-disableunity", out ArgumentIndex))
-            {
-                BuildConfiguration.bUseUnityBuild = false;
-            }
-            if (Utils.ParseCommandLineFlag(Arguments, "-forceunity", out ArgumentIndex))
-            {
-                BuildConfiguration.bForceUnityBuild = true;
-            }
-
-            // New Monolithic Graphics drivers have optional "fast calls" replacing various D3d functions
-            if (Utils.ParseCommandLineFlag(Arguments, "-fastmonocalls", out ArgumentIndex))
-            {
-                BuildConfiguration.bUseFastMonoCalls = true;
-            }
-            if (Utils.ParseCommandLineFlag(Arguments, "-nofastmonocalls", out ArgumentIndex))
-            {
-                BuildConfiguration.bUseFastMonoCalls = false;
-            }
-            
-            if (Utils.ParseCommandLineFlag(Arguments, "-uniqueintermediate", out ArgumentIndex))
-            {
-                BuildConfiguration.BaseIntermediateFolder = "Intermediate/Build/" + BuildGuid + "/";
-            }
-
-            if (Utils.ParseCommandLineFlag(Arguments, "-nopch", out ArgumentIndex))
-            {
-                BuildConfiguration.bUsePCHFiles = false;
-            }
-
-            if (Utils.ParseCommandLineFlag(Arguments, "-nosharedpch", out ArgumentIndex))
-            {
-                BuildConfiguration.bUseSharedPCHs = false;
-            }
-
-            if (Utils.ParseCommandLineFlag(Arguments, "-skipActionHistory", out ArgumentIndex))
-            {
-                BuildConfiguration.bUseActionHistory = false;
-            }
-
-            if (Utils.ParseCommandLineFlag(Arguments, "-noLTCG", out ArgumentIndex))
-            {
-                BuildConfiguration.bAllowLTCG = false;
-            }
-
-            if (Utils.ParseCommandLineFlag(Arguments, "-nopdb", out ArgumentIndex))
-            {
-                BuildConfiguration.bUsePDBFiles = false;
-            }
-
-            if (Utils.ParseCommandLineFlag(Arguments, "-deploy", out ArgumentIndex))
-            {
-                BuildConfiguration.bDeployAfterCompile = true;
-            }
-
-            if (Utils.ParseCommandLineFlag(Arguments, "-CopyAppBundleBackToDevice", out ArgumentIndex))
-            {
-                BuildConfiguration.bCopyAppBundleBackToDevice = true;
-            }
-
-            if (Utils.ParseCommandLineFlag(Arguments, "-flushmac", out ArgumentIndex))
-            {
-                BuildConfiguration.bFlushBuildDirOnRemoteMac = true;
-            }
-
-            if (Utils.ParseCommandLineFlag(Arguments, "-nodebuginfo", out ArgumentIndex))
-            {
-                BuildConfiguration.bDisableDebugInfo = true;
-            }
-            else if (Utils.ParseCommandLineFlag(Arguments, "-forcedebuginfo", out ArgumentIndex))
-            {
-                BuildConfiguration.bDisableDebugInfo = false;
-                BuildConfiguration.bOmitPCDebugInfoInDevelopment = false;
-            }
-        }
-
         /**
          * Parses the passed in command line for build configuration overrides.
          * 
@@ -2067,19 +2042,6 @@ namespace UnrealBuildTool
         {
             var TargetSettings = new List<string[]>();
             int ArgumentIndex = 0;
-
-            // Log command-line arguments.
-            if (BuildConfiguration.bPrintDebugInfo)
-            {
-                Console.Write("Command-line arguments: ");
-                foreach (string Argument in Arguments)
-                {
-                    Console.Write("{0} ", Argument);
-                }
-                Log.TraceInformation("");
-            }
-
-            ParseBuildConfigurationFlags(Arguments);
 
             if (Utils.ParseCommandLineFlag(Arguments, "-targets", out ArgumentIndex))
             {

@@ -14,8 +14,7 @@ namespace AutomationTool
 
 	public class LogUtils
 	{
-		private static Stopwatch Timer;
-		private static AutomationFileTraceListener FileLog;
+        private static string LogFilename;
 
 		/// <summary>
 		/// Initializes trace logging.
@@ -23,75 +22,126 @@ namespace AutomationTool
 		/// <param name="CommandLine">Command line.</param>
 		public static void InitLogging(string[] CommandLine)
 		{
-			Timer = (CommandUtils.ParseParam(CommandLine, "-Timestamps"))? Stopwatch.StartNew() : null;
-			var VerbosityLevel = CommandUtils.ParseParam(CommandLine, "-Verbose") ? TraceEventType.Verbose : TraceEventType.Information;
-			var Filter = new VerbosityFilter(VerbosityLevel);
-			Trace.Listeners.Add(new AutomationConsoleTraceListener());
-			FileLog = new AutomationFileTraceListener();
-			Trace.Listeners.Add(FileLog);
-			Trace.Listeners.Add(new AutomationMemoryLogListener());
-			foreach (TraceListener Listener in Trace.Listeners)
-			{
-				Listener.Filter = Filter;
-			}
-		}
+            UnrealBuildTool.Log.InitLogging(
+                bLogTimestamps: CommandUtils.ParseParam(CommandLine, "-Timestamps"),
+                bLogVerbose: CommandUtils.ParseParam(CommandLine, "-Verbose"),
+                bLogSeverity: true,
+                bLogSources: true,
+                bColorConsoleOutput: true,
+                TraceListeners: new TraceListener[]
+                {
+                    new ConsoleTraceListener(),
+                    // could return null, but InitLogging handles this gracefully.
+                    CreateLogFileListener(out LogFilename),
+                    //@todo - this is only used by GUBP nodes. Ideally we don't waste this 20MB if we are not running GUBP.
+                    new AutomationMemoryLogListener(),
+                });
 
-		/// <summary>
-		/// Closes logging system
-		/// </summary>
-		public static void CloseFileLogging()
-		{
-			if (FileLog != null)
-			{
-				Trace.Listeners.Remove(FileLog);
-				FileLog.Close();
-				FileLog.Dispose();
-				FileLog = null;
-			}
-		}
+            // ensure UTF8Output flag is respected, since we are initializing logging early in the program.
+            if (CommandLine.Any(Arg => Arg.Equals("-utf8output", StringComparison.InvariantCultureIgnoreCase)))
+            {
+                Console.OutputEncoding = new System.Text.UTF8Encoding(false, false);
+            }
+        }
 
-		/// <summary>
-		/// Formats message for logging.
-		/// </summary>
-		/// <param name="Source">Source of the message (usually "Class.Method")</param>
-		/// <param name="Verbosity">Message verbosity level</param>
-		/// <param name="Format">Message format string</param>
-		/// <param name="Args">Format arguments</param>
-		/// <returns>Formatted message</returns>
-		public static string FormatMessage(string Source, TraceEventType Verbosity, string Format, params object[] Args)
-		{
-			return FormatMessage(Source, Verbosity, String.Format(Format, Args));
-		}
+        public static void ShutdownLogging()
+        {
+            // This closes all the output streams immediately, inside the Global Lock, so it's threadsafe.
+            Trace.Close();
 
-		/// <summary>
-		/// Formats message for logging.
-		/// </summary>
-		/// <param name="Source">Source of the message (usually Class.Method)</param>
-		/// <param name="Verbosity">Message verbosity level</param>
-		/// <param name="Message">Message text</param>
-		/// <returns>Formatted message</returns>
-		public static string FormatMessage(string Source, TraceEventType Verbosity, string Message)
-		{
-			string FormattedMessage = "";
-			if(Timer != null)
-			{
-				FormattedMessage += String.Format("[{0:hh\\:mm\\:ss\\.fff}] ", Timer.Elapsed);
-			}
-			FormattedMessage += Source + ": ";
-			switch (Verbosity)
-			{
-				case TraceEventType.Error:
-					FormattedMessage += "ERROR: ";
-					break;
-				case TraceEventType.Warning:
-					FormattedMessage += "WARNING: ";
-					break;
-			}
-			FormattedMessage += Message;
-			return FormattedMessage;
-		}
+            // from here we can copy the log file to its final resting place
+            try
+            {
+                // Try to copy the log file to the log folder. The reason why it's done here is that
+                // at the time the log file is being initialized the env var may not yet be set (this 
+                // applies to local log folder in particular)
+                var LogFolder = Environment.GetEnvironmentVariable(EnvVarNames.LogFolder);
+                if (!String.IsNullOrEmpty(LogFolder) && Directory.Exists(LogFolder) &&
+                        !String.IsNullOrEmpty(LogFilename) && File.Exists(LogFilename))
+                {
+                    var DestFilename = CommandUtils.CombinePaths(LogFolder, "UAT_" + Path.GetFileName(LogFilename));
+                    SafeCopyLogFile(LogFilename, DestFilename);
+                }
+            }
+            catch (Exception)
+            {
+                // Silently ignore, logging is pointless because eveything is shut down at this point
+            }
+        }
 
-		/// <summary>
+        /// <summary>
+        /// Copies log file to the final log folder, does multiple attempts if the destination file could not be created.
+        /// </summary>
+        /// <param name="SourceFilename"></param>
+        /// <param name="DestFilename"></param>
+        private static void SafeCopyLogFile(string SourceFilename, string DestFilename)
+        {
+            const int MaxAttempts = 10;
+            int AttemptNo = 0;
+            var DestLogFilename = DestFilename;
+            bool Result = false;
+            do
+            {
+                try
+                {
+                    File.Copy(SourceFilename, DestLogFilename, true);
+                    Result = true;
+                }
+                catch (Exception)
+                {
+                    var ModifiedFilename = String.Format("{0}_{1}{2}", Path.GetFileNameWithoutExtension(DestFilename), AttemptNo, Path.GetExtension(DestLogFilename));
+                    DestLogFilename = CommandUtils.CombinePaths(Path.GetDirectoryName(DestFilename), ModifiedFilename);
+                    AttemptNo++;
+                }
+            }
+            while (Result == false && AttemptNo <= MaxAttempts);
+        }
+
+        /// <summary>
+        /// Creates the TraceListener used for file logging.
+        /// We cannot simply use a TextWriterTraceListener because we need more flexibility when the file cannot be created.
+        /// TextWriterTraceListener lazily creates the file, silently failing when it cannot.
+        /// </summary>
+        /// <returns>The newly created TraceListener, or null if it could not be created.</returns>
+        private static TraceListener CreateLogFileListener(out string LogFilename)
+        {
+            StreamWriter LogFile = null;
+            const int MaxAttempts = 10;
+            int Attempt = 0;
+            var TempLogFolder = Path.GetTempPath();
+            do
+            {
+                if (Attempt == 0)
+                {
+                    LogFilename = CommandUtils.CombinePaths(TempLogFolder, "Log.txt");
+                }
+                else
+                {
+                    LogFilename = CommandUtils.CombinePaths(TempLogFolder, String.Format("Log_{0}.txt", Attempt));
+                }
+                try
+                {
+                    // We do not need to set AutoFlush on the StreamWriter because we set Trace.AutoFlush, which calls it for us.
+                    // Not only would this be redundant, StreamWriter AutoFlush does not flush the encoder, while a direct call to 
+                    // StreamWriter.Flush() will, which is what the Trace system with AutoFlush = true will do.
+                    // Internally, FileStream constructor opens the file with good arguments for writing to log files.
+                    return new TextWriterTraceListener(new StreamWriter(LogFilename), "AutomationFileLogListener");
+                }
+                catch (Exception Ex)
+                {
+                    if (Attempt == (MaxAttempts - 1))
+                    {
+                        // Clear out the LogFilename to indicate we were not able to write one.
+                        LogFilename = null;
+                        UnrealBuildTool.Log.TraceWarning("Unable to create log file: {0}", LogFilename);
+                        UnrealBuildTool.Log.TraceWarning(LogUtils.FormatException(Ex));
+                    }
+                }
+            } while (LogFile == null && ++Attempt < MaxAttempts);
+            return null;
+        }
+
+        /// <summary>
 		/// Dumps exception info to log.
 		/// </summary>
 		/// <param name="Verbosity">Verbosity</param>
@@ -166,99 +216,6 @@ namespace AutomationTool
 
 	#endregion
 
-
-	#region VerbosityFilter
-
-	/// <summary>
-	/// Trace verbosity filter.
-	/// </summary>
-	class VerbosityFilter : TraceFilter
-	{
-		private TraceEventType VerbosityLevel = TraceEventType.Information;
-		public VerbosityFilter(TraceEventType Level)
-		{
-			VerbosityLevel = Level;
-		}
-
-		public override bool ShouldTrace(TraceEventCache Cache, string Source, TraceEventType EventType, int Id, string FormatOrMessage, object[] Args, object Data1, object[] Data)
-		{
-			return EventType <= VerbosityLevel;
-		}
-	}
-
-	#endregion
-
-	#region AutomationConsoleTraceListener
-
-	/// <summary>
-	/// Trace console listener.
-	/// </summary>
-	class AutomationConsoleTraceListener : TraceListener
-	{
-		public AutomationConsoleTraceListener()
-		{
-			// We use the command line directly here, because GlobalCommandLine isn't initialized early enough
-			if (SharedUtils.ParseCommandLine().Any(Arg => Arg.ToLower() == "-utf8output"))
-			{
-				Console.OutputEncoding = new System.Text.UTF8Encoding(false, false);
-			}
-		}
-
-		/// <summary>
-		/// Writes a formatted line to the console.
-		/// </summary>
-		/// <param name="Source">Message source</param>
-		/// <param name="Verbosity">Message verbosity</param>
-		/// <param name="Format">Message format string</param>
-		/// <param name="Args">Format arguments</param>
-		private void WriteLine(string Source, TraceEventType Verbosity, string Format, params object[] Args)
-		{
-			string Message = LogUtils.FormatMessage(Source, Verbosity, Format, Args);
-			if (Filter == null || Filter.ShouldTrace(null, Source, Verbosity, 0, Format, Args, null, null))
-			{
-				ConsoleColor DefaultColor = Console.ForegroundColor;
-				switch (Verbosity)
-				{
-					case TraceEventType.Critical:
-					case TraceEventType.Error:
-						Console.ForegroundColor = ConsoleColor.Red;
-						break;
-					case TraceEventType.Warning:
-						Console.ForegroundColor = ConsoleColor.Yellow;
-						break;
-				}
-				Console.WriteLine(Message);
-				Console.ForegroundColor = DefaultColor;
-			}
-		}
-
-		#region TraceListener Interface
-
-		public override void Write(string message)
-		{
-			WriteLine(String.Empty, TraceEventType.Information, message);
-		}
-
-		public override void WriteLine(string message)
-		{
-			WriteLine(String.Empty, TraceEventType.Information, message);
-		}
-
-		public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id, string message)
-		{
-			WriteLine(source, eventType, "{0}", message);
-		}
-
-		public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id, string format, params object[] args)
-		{
-			WriteLine(source, eventType, format, args);
-		}
-
-		#endregion
-	}
-
-	#endregion
-
 	#region AutomationMemoryLogListener
 
 	/// <summary>
@@ -269,22 +226,16 @@ namespace AutomationTool
 		private static StringBuilder AccumulatedLog = new StringBuilder(1024 * 1024 * 20);
 		private static object SyncObject = new object();
 
-		/// <summary>
+        public override bool IsThreadSafe { get { return true; } }
+
+        /// <summary>
 		/// Writes a formatted line to the console.
 		/// </summary>
-		/// <param name="Source">Message source</param>
-		/// <param name="Verbosity">Message verbosity</param>
-		/// <param name="Format">Message format string</param>
-		/// <param name="Args">Format arguments</param>
-		private void WriteLine(string Source, TraceEventType Verbosity, string Format, params object[] Args)
+		private void WriteLinePrivate(string Message)
 		{
 			lock (SyncObject)
 			{
-				string Message = LogUtils.FormatMessage(Source, Verbosity, Format, Args);
-				if (Filter == null || Filter.ShouldTrace(null, Source, Verbosity, 0, Format, Args, null, null))
-				{
-					AccumulatedLog.AppendLine(Message);
-				}
+				AccumulatedLog.AppendLine(Message);
 			}
 		}
 
@@ -300,207 +251,15 @@ namespace AutomationTool
 
 		public override void Write(string message)
 		{
-			WriteLine(String.Empty, TraceEventType.Information, message);
+            WriteLinePrivate(message);
 		}
 
 		public override void WriteLine(string message)
 		{
-			WriteLine(String.Empty, TraceEventType.Information, message);
+            WriteLinePrivate(message);
 		}
 
-		public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id, string message)
-		{
-			WriteLine(source, eventType, "{0}", message);
-		}
-
-		public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id, string format, params object[] args)
-		{
-			WriteLine(source, eventType, format, args);
-		}
-
-		#endregion
-	}
-
-	#endregion
-
-
-	#region AutomationFileTraceListener
-
-	/// <summary>
-	/// Log file trace listener.
-	/// </summary>
-	class AutomationFileTraceListener : TraceListener
-	{
-		private string LogFilename;
-		private StreamWriter LogFile;
-		private static object SyncObject = new object();
-
-		public AutomationFileTraceListener()
-		{
-			const int MaxAttempts = 10;
-			int Attempt = 0;
-			var TempLogFolder = Path.GetTempPath();
-			do
-			{
-				if (Attempt == 0)
-				{
-					LogFilename = CommandUtils.CombinePaths(TempLogFolder, "Log.txt");
-				}
-				else
-				{
-					LogFilename = CommandUtils.CombinePaths(TempLogFolder, String.Format("Log_{0}.txt", Attempt));
-				}
-				try
-				{
-					FileStream File = new FileStream(LogFilename, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
-					LogFile = new StreamWriter(File);
-					LogFile.AutoFlush = true;
-				}
-				catch (Exception Ex)
-				{
-					if (Attempt == (MaxAttempts - 1))
-					{
-						UnrealBuildTool.Log.TraceWarning("Unable to create log file: {0}", LogFilename);
-						UnrealBuildTool.Log.TraceWarning(LogUtils.FormatException(Ex));
-					}
-				}
-			} while (LogFile == null && ++Attempt < MaxAttempts);
-		}
-
-		private void WriteToFile(string Message)
-		{
-			lock (SyncObject)
-			{
-				if (LogFile != null)
-				{
-					LogFile.WriteLine(Message);
-				}
-			}
-		}
-
-		/// <summary>
-		/// Writes a formatted line to the log.
-		/// </summary>
-		/// <param name="SkipStackFrames"></param>
-		/// <param name="Verbosity"></param>
-		/// <param name="Format"></param>
-		/// <param name="Args"></param>
-		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public void WriteLine(string Source, TraceEventType Verbosity, string Format, params object[] Args)
-		{
-			var Message = LogUtils.FormatMessage(Source, Verbosity, Format, Args);
-			WriteToFile(Message);
-		}
-
-		/// <summary>
-		/// Writes a formatted line to the log.
-		/// </summary>
-		/// <param name="SkipStackFrames"></param>
-		/// <param name="Verbosity"></param>
-		/// <param name="Format"></param>
-		/// <param name="Args"></param>
-		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public void WriteLine(string Source, TraceEventType Verbosity, string Message)
-		{
-			Message = LogUtils.FormatMessage(Source, Verbosity, Message);
-			WriteToFile(Message);
-		}
-
-		#region TraceListener Interface
-
-		public override void Flush()
-		{
-			lock (SyncObject)
-			{
-				if (LogFile != null)
-				{
-					LogFile.Flush();
-				}
-			}
-			base.Flush();
-		}
-
-		public override void Close()
-		{
-			lock (SyncObject)
-			{
-				if (LogFile != null)
-				{
-					LogFile.Flush();
-					LogFile.Close();
-					LogFile.Dispose();
-					LogFile = null;
-				}
-			}
-			try
-			{
-				// Try to copy the log file to the log folder. The reason why it's done here is that
-				// at the time the log file is being initialized the env var may not yet be set (this 
-				// applies to local log folder in particular)
-				var LogFolder = Environment.GetEnvironmentVariable(EnvVarNames.LogFolder);
-				if (!String.IsNullOrEmpty(LogFolder) && Directory.Exists(LogFolder) &&
-						!String.IsNullOrEmpty(LogFilename) && File.Exists(LogFilename))
-				{
-					var DestFilename = CommandUtils.CombinePaths(LogFolder, "UAT_" + Path.GetFileName(LogFilename));
-					SafeCopyLogFile(LogFilename, DestFilename);
-				}
-			}
-			catch (Exception)
-			{
-				// Silently ignore, logging is pointless because eveything is shut down at this point
-			}
-			base.Close();
-		}
-
-		/// <summary>
-		/// Copies log file to the final log folder, does multiple attempts if the destination file could not be created.
-		/// </summary>
-		/// <param name="SourceFilename"></param>
-		/// <param name="DestFilename"></param>
-		private void SafeCopyLogFile(string SourceFilename, string DestFilename)
-		{
-			const int MaxAttempts = 10;
-			int AttemptNo = 0;
-			var DestLogFilename = DestFilename;
-			bool Result = false;
-			do
-			{				
-				try
-				{
-					File.Copy(SourceFilename, DestLogFilename, true);
-					Result = true;
-				}
-				catch (Exception)
-				{
-					var ModifiedFilename = String.Format("{0}_{1}{2}", Path.GetFileNameWithoutExtension(DestFilename), AttemptNo, Path.GetExtension(DestLogFilename));
-					DestLogFilename = CommandUtils.CombinePaths(Path.GetDirectoryName(DestFilename), ModifiedFilename);
-					AttemptNo++;
-				}
-			}
-			while (Result == false && AttemptNo <= MaxAttempts);
-		}
-
-		public override void Write(string message)
-		{
-			WriteLine(String.Empty, TraceEventType.Information, message);
-		}
-
-		public override void WriteLine(string message)
-		{
-			WriteLine(String.Empty, TraceEventType.Information, message);
-		}
-
-		public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id, string message)
-		{
-			WriteLine(source, TraceEventType.Verbose, message);
-		}
-
-		public override void TraceEvent(TraceEventCache eventCache, string source, TraceEventType eventType, int id, string format, params object[] args)
-		{
-			WriteLine(source, TraceEventType.Verbose, format, args);
-		}
-
-		#endregion
+        #endregion
 	}
 
 	#endregion
