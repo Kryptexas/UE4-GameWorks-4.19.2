@@ -2077,11 +2077,12 @@ void FSpriteGeometryCollisionBuilderBase::AddBoxCollisionShapesToBodySetup(const
 			{
 				case ESpriteCollisionMode::Use3DPhysics:
 					{
-					   const FVector BoxSize3D = (PaperAxisX * BoxSize2D.X) + (PaperAxisY * BoxSize2D.Y) + (PaperAxisZ * CollisionThickness);
+						const FVector BoxPos3D = (PaperAxisX * CenterInScaledSpace.X) + (PaperAxisY * CenterInScaledSpace.Y) + (PaperAxisZ * ZOffsetAmount);
+						const FVector BoxSize3D = (PaperAxisX * BoxSize2D.X) + (PaperAxisY * BoxSize2D.Y) + (PaperAxisZ * CollisionThickness);
 
 						// Create a new box primitive
 						FKBoxElem& Box = *new (MyBodySetup->AggGeom.BoxElems) FKBoxElem(FMath::Abs(BoxSize3D.X), FMath::Abs(BoxSize3D.Y), FMath::Abs(BoxSize3D.Z));
-						Box.Center = (PaperAxisX * CenterInScaledSpace.X) + (PaperAxisY * CenterInScaledSpace.Y) + (PaperAxisZ * ZOffsetAmount);
+						Box.Center = BoxPos3D;
 						Box.Orientation = FQuat(FRotator(Shape.Rotation, 0.0f, 0.0f));
 					}
 					break;
