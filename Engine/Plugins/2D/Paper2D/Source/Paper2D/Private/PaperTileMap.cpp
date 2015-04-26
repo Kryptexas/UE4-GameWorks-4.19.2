@@ -24,7 +24,7 @@ UPaperTileMap::UPaperTileMap(const FObjectInitializer& ObjectInitializer)
 	SeparationPerTileY = 0.0f;
 	SeparationPerLayer = 4.0f;
 	CollisionThickness = 50.0f;
-	SpriteCollisionDomain = ESpriteCollisionMode::None;
+	SpriteCollisionDomain = ESpriteCollisionMode::Use3DPhysics;
 
 #if WITH_EDITORONLY_DATA
 	SelectedLayerIndex = INDEX_NONE;
