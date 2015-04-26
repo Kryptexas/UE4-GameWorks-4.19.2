@@ -89,6 +89,10 @@ public:
 	virtual int32 GetNumMaterials() const override;
 	// End of UPrimitiveComponent interface
 
+#if WITH_EDITOR
+	void SetTransientTextureOverride(const UTexture* TextureToModifyOverrideFor, UTexture* OverrideTexture);
+#endif
+
 protected:
 	friend class FPaperSpriteSceneProxy;
 };
