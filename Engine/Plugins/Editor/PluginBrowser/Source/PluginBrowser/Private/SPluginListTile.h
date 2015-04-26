@@ -17,8 +17,10 @@ class SPluginListTile : public SCompoundWidget
 	/** Widget constructor */
 	void Construct( const FArguments& Args, const TSharedRef< class SPluginList > Owner, TSharedRef<IPlugin> Plugin );
 
-
 private:
+
+	/** Updates the contents of this tile */
+	void RecreateWidgets();
 
 	/** Returns the checked state for the enabled checkbox */
 	ECheckBoxState IsPluginEnabled() const;

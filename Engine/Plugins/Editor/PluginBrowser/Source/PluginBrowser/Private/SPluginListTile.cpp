@@ -21,6 +21,11 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 	OwnerWeak = Owner;
 	Plugin = InPlugin;
 
+	RecreateWidgets();
+}
+
+void SPluginListTile::RecreateWidgets()
+{
 	const float PaddingAmount = FPluginStyle::Get()->GetFloat( "PluginTile.Padding" );
 	const float ThumbnailImageSize = FPluginStyle::Get()->GetFloat( "PluginTile.ThumbnailImageSize" );
 
@@ -462,7 +467,10 @@ FReply SPluginListTile::OnEditPluginFinished(UPluginMetadataObject* MetadataObje
 			FMessageDialog::Open(EAppMsgType::Ok, FailReason);
 		}
 
-		// Refresh the view
+		// Recreate the widgets on this tile
+		RecreateWidgets();
+
+		// Refresh the parent too
 		if(OwnerWeak.IsValid())
 		{
 			OwnerWeak.Pin()->GetOwner().SetNeedsRefresh();
