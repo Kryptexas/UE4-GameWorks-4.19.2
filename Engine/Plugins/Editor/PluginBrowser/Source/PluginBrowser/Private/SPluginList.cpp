@@ -23,7 +23,7 @@ void SPluginList::Construct( const FArguments& Args, const TSharedRef< SPluginBr
 	// @todo plugedit: Have optional compact version with only plugin icon + name + version?  Only expand selected?
 
 	PluginListView = 
-		SNew( SListView<TSharedRef<IPlugin*>> )
+		SNew( SListView<TSharedRef<IPlugin>> )
 
 		.SelectionMode( ESelectionMode::None )		// No need to select plugins!
 
@@ -52,12 +52,12 @@ SPluginBrowser& SPluginList::GetOwner()
 }
 
 
-TSharedRef<ITableRow> SPluginList::PluginListView_OnGenerateRow( TSharedRef<IPlugin*> Item, const TSharedRef<STableViewBase>& OwnerTable )
+TSharedRef<ITableRow> SPluginList::PluginListView_OnGenerateRow( TSharedRef<IPlugin> Item, const TSharedRef<STableViewBase>& OwnerTable )
 {
 	return
-		SNew( STableRow< TSharedRef<IPlugin*> >, OwnerTable )
+		SNew( STableRow< TSharedRef<IPlugin> >, OwnerTable )
 		[
-			SNew( SPluginListTile, SharedThis( this ), Item.Get() )
+			SNew( SPluginListTile, SharedThis( this ), Item )
 		];
 }
 
@@ -73,11 +73,11 @@ void SPluginList::RebuildAndFilterPluginList()
 		const TSharedPtr<FPluginCategory>& SelectedCategory = OwnerWeak.Pin()->GetSelectedCategory();
 		if( SelectedCategory.IsValid() )
 		{
-			for(IPlugin* Plugin: SelectedCategory->Plugins)
+			for(TSharedRef<IPlugin> Plugin: SelectedCategory->Plugins)
 			{
-				if(OwnerWeak.Pin()->GetPluginTextFilter().PassesFilter(Plugin))
+				if(OwnerWeak.Pin()->GetPluginTextFilter().PassesFilter(&Plugin.Get()))
 				{
-					PluginListItems.Add(TSharedRef<IPlugin*>(new IPlugin*(Plugin)));
+					PluginListItems.Add(Plugin);
 				}
 			}
 		}
@@ -86,9 +86,9 @@ void SPluginList::RebuildAndFilterPluginList()
 		{
 			struct FPluginListItemSorter
 			{
-				bool operator()( const TSharedRef<IPlugin*>& A, const TSharedRef<IPlugin*>& B ) const
+				bool operator()( const TSharedRef<IPlugin>& A, const TSharedRef<IPlugin>& B ) const
 				{
-					return A.Get()->GetDescriptor().FriendlyName < B.Get()->GetDescriptor().FriendlyName;
+					return A->GetDescriptor().FriendlyName < B->GetDescriptor().FriendlyName;
 				}
 			};
 			PluginListItems.Sort( FPluginListItemSorter() );

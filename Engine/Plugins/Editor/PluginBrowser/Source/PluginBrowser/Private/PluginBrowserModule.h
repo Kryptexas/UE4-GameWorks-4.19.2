@@ -9,7 +9,7 @@
 class FPluginBrowserModule : public IPluginBrowser
 {
 public:
-	TMap<IPlugin*, bool> PendingEnablePlugins;
+	TMap<FString, bool> PendingEnablePlugins;
 
 	/** Accessor for the module interface */
 	static FPluginBrowserModule& Get()

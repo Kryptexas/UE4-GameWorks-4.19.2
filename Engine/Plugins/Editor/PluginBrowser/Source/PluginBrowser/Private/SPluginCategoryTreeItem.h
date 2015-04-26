@@ -21,7 +21,7 @@ public:
 	TArray<TSharedPtr<FPluginCategory>> SubCategories;
 
 	/** Plugins in this category */
-	TArray<IPlugin*> Plugins;
+	TArray<TSharedRef<IPlugin>> Plugins;
 
 	/** Constructor for FPluginCategory */
 	FPluginCategory(TSharedPtr<FPluginCategory> InParentCategory, const FString& InName, const FText& InDisplayName)

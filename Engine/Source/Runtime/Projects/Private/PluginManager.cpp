@@ -411,7 +411,7 @@ bool FPluginManager::ConfigureEnabledPlugins()
 		IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 		if( ensure( RegisterMountPointDelegate.IsBound() ) )
 		{
-			for(IPlugin* Plugin: GetEnabledPlugins())
+			for(TSharedRef<IPlugin> Plugin: GetEnabledPlugins())
 			{
 				if(Plugin->CanContainContent())
 				{
@@ -560,39 +560,39 @@ IPluginManager& IPluginManager::Get()
 	return *PluginManager;
 }
 
-FPlugin* FPluginManager::FindPlugin(const FString& Name)
+TSharedPtr<IPlugin> FPluginManager::FindPlugin(const FString& Name)
 {
-	FPlugin* Plugin = nullptr;
+	TSharedPtr<IPlugin> Plugin;
 	for(TSharedRef<FPlugin>& PossiblePlugin : AllPlugins)
 	{
 		if(PossiblePlugin->Name == Name)
 		{
-			Plugin = &(PossiblePlugin.Get());
+			Plugin = PossiblePlugin;
 			break;
 		}
 	}
 	return Plugin;
 }
 
-TArray<IPlugin*> FPluginManager::GetEnabledPlugins()
+TArray<TSharedRef<IPlugin>> FPluginManager::GetEnabledPlugins()
 {
-	TArray<IPlugin*> Plugins;
+	TArray<TSharedRef<IPlugin>> Plugins;
 	for(TSharedRef<FPlugin>& PossiblePlugin : AllPlugins)
 	{
 		if(PossiblePlugin->bEnabled)
 		{
-			Plugins.Add(&(PossiblePlugin.Get()));
+			Plugins.Add(PossiblePlugin);
 		}
 	}
 	return Plugins;
 }
 
-TArray<IPlugin*> FPluginManager::GetDiscoveredPlugins()
+TArray<TSharedRef<IPlugin>> FPluginManager::GetDiscoveredPlugins()
 {
-	TArray<IPlugin*> Plugins;
+	TArray<TSharedRef<IPlugin>> Plugins;
 	for(TSharedRef<FPlugin>& Plugin : AllPlugins)
 	{
-		Plugins.Add(&(Plugin.Get()));
+		Plugins.Add(Plugin);
 	}
 	return Plugins;
 }

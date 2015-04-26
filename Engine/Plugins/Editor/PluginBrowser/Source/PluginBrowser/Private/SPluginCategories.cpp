@@ -64,7 +64,7 @@ SPluginBrowser& SPluginCategories::GetOwner()
 void SPluginCategories::RebuildAndFilterCategoryTree()
 {
 	// Get a plugin from the currently selected category, so we can track it if it's removed
-	IPlugin* TrackPlugin = nullptr;
+	TSharedPtr<IPlugin> TrackPlugin = nullptr;
 	for(TSharedPtr<FPluginCategory> SelectedItem: PluginCategoryTreeView->GetSelectedItems())
 	{
 		if(SelectedItem->Plugins.Num() > 0)
@@ -85,7 +85,7 @@ void SPluginCategories::RebuildAndFilterCategoryTree()
 
 	// Add all the known plugins into categories
 	TSharedPtr<FPluginCategory> SelectCategory;
-	for(IPlugin* Plugin: IPluginManager::Get().GetDiscoveredPlugins())
+	for(TSharedRef<IPlugin> Plugin: IPluginManager::Get().GetDiscoveredPlugins())
 	{
 		// Figure out which base category this plugin belongs in
 		TSharedPtr<FPluginCategory> RootCategory;

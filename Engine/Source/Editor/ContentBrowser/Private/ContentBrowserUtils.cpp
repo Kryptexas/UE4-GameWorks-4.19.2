@@ -1097,7 +1097,7 @@ bool ContentBrowserUtils::IsDevelopersFolder( const FString& InPath )
 bool ContentBrowserUtils::IsPluginFolder( const FString& InPath )
 {
 	FString PathWithSlash = InPath / TEXT("");
-	for(const IPlugin* Plugin: IPluginManager::Get().GetEnabledPlugins())
+	for(const TSharedRef<IPlugin>& Plugin: IPluginManager::Get().GetEnabledPlugins())
 	{
 		if(Plugin->CanContainContent())
 		{

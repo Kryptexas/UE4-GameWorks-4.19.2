@@ -65,9 +65,9 @@ public:
 	virtual void SetRegisterMountPointDelegate( const FRegisterMountPointDelegate& Delegate ) override;
 	virtual bool AreRequiredPluginsAvailable() override;
 	virtual bool CheckModuleCompatibility( TArray<FString>& OutIncompatibleModules ) override;
-	virtual FPlugin* FindPlugin(const FString& Name) override;
-	virtual TArray<IPlugin*> GetEnabledPlugins() override;
-	virtual TArray<IPlugin*> GetDiscoveredPlugins() override;
+	virtual TSharedPtr<IPlugin> FindPlugin(const FString& Name) override;
+	virtual TArray<TSharedRef<IPlugin>> GetEnabledPlugins() override;
+	virtual TArray<TSharedRef<IPlugin>> GetDiscoveredPlugins() override;
 	virtual TArray< FPluginStatus > QueryStatusForAllPlugins() const override;
 
 private:

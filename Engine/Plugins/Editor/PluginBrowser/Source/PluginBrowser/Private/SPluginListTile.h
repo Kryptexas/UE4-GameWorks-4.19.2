@@ -15,7 +15,7 @@ class SPluginListTile : public SCompoundWidget
 
 
 	/** Widget constructor */
-	void Construct( const FArguments& Args, const TSharedRef< class SPluginList > Owner, IPlugin* Plugin );
+	void Construct( const FArguments& Args, const TSharedRef< class SPluginList > Owner, TSharedRef<IPlugin> Plugin );
 
 
 private:
@@ -38,7 +38,7 @@ private:
 private:
 
 	/** The item we're representing the in tree */
-	IPlugin* Plugin;
+	TSharedPtr<IPlugin> Plugin;
 
 	/** Weak pointer back to its owner */
 	TWeakPtr< class SPluginList > OwnerWeak;

@@ -16,7 +16,7 @@
 #define LOCTEXT_NAMESPACE "PluginListTile"
 
 
-void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPluginList> Owner, IPlugin* InPlugin )
+void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPluginList> Owner, TSharedRef<IPlugin> InPlugin )
 {
 	OwnerWeak = Owner;
 	Plugin = InPlugin;
@@ -310,9 +310,9 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 ECheckBoxState SPluginListTile::IsPluginEnabled() const
 {
 	FPluginBrowserModule& PluginBrowserModule = FPluginBrowserModule::Get();
-	if(PluginBrowserModule.PendingEnablePlugins.Contains(Plugin))
+	if(PluginBrowserModule.PendingEnablePlugins.Contains(Plugin->GetName()))
 	{
-		return PluginBrowserModule.PendingEnablePlugins[Plugin]? ECheckBoxState::Checked : ECheckBoxState::Unchecked;;
+		return PluginBrowserModule.PendingEnablePlugins[Plugin->GetName()]? ECheckBoxState::Checked : ECheckBoxState::Unchecked;;
 	}
 	else
 	{
@@ -350,11 +350,11 @@ void SPluginListTile::OnEnablePluginCheckboxChanged(ECheckBoxState NewCheckedSta
 		FPluginBrowserModule& PluginBrowserModule = FPluginBrowserModule::Get();
 		if(Plugin->IsEnabled() == bNewEnabledState)
 		{
-			PluginBrowserModule.PendingEnablePlugins.Remove(Plugin);
+			PluginBrowserModule.PendingEnablePlugins.Remove(Plugin->GetName());
 		}
 		else
 		{
-			PluginBrowserModule.PendingEnablePlugins.FindOrAdd(Plugin) = bNewEnabledState;
+			PluginBrowserModule.PendingEnablePlugins.FindOrAdd(Plugin->GetName()) = bNewEnabledState;
 		}
 	}
 

@@ -32,7 +32,7 @@ private:
 	void OnPluginTextFilterChanged();
 
 	/** Called to generate a widget for the specified list item */
-	TSharedRef<ITableRow> PluginListView_OnGenerateRow(TSharedRef<IPlugin*> Item, const TSharedRef<STableViewBase>& OwnerTable );
+	TSharedRef<ITableRow> PluginListView_OnGenerateRow(TSharedRef<IPlugin> Item, const TSharedRef<STableViewBase>& OwnerTable );
 
 	/** Rebuilds the list of plugins from scratch and applies filtering. */
 	void RebuildAndFilterPluginList();
@@ -46,10 +46,10 @@ private:
 	TWeakPtr< class SPluginBrowser > OwnerWeak;
 
 	/** The list view widget for our plugins list */
-	TSharedPtr<SListView<TSharedRef<IPlugin*>>> PluginListView;
+	TSharedPtr<SListView<TSharedRef<IPlugin>>> PluginListView;
 
 	/** List of everything that we want to display in the plugin list */
-	TArray<TSharedRef<IPlugin*>> PluginListItems;
+	TArray<TSharedRef<IPlugin>> PluginListItems;
 
 	/** Whether the active timer to refresh the list is registered */
 	bool bIsActiveTimerRegistered;
