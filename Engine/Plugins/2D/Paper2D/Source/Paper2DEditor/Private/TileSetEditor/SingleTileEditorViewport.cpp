@@ -141,6 +141,11 @@ void SSingleTileEditorViewport::BindCommands()
 		FExecuteAction::CreateSP(EditorViewportClientRef, &FSingleTileEditorViewportClient::ApplyCollisionGeometryEdits));
 }
 
+void SSingleTileEditorViewport::OnFocusViewportToSelection()
+{
+	TypedViewportClient->RequestFocusOnSelection(/*bInstant=*/ false);
+}
+
 TSharedRef<class SEditorViewport> SSingleTileEditorViewport::GetViewportWidget()
 {
 	return SharedThis(this);
