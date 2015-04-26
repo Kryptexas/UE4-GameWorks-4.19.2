@@ -3,8 +3,8 @@
 #include "PluginBrowserPrivatePCH.h"
 #include "PluginStyle.h"
 #include "SPluginBrowser.h"
-#include "SPluginList.h"
-#include "SPluginCategories.h"
+#include "SPluginTileList.h"
+#include "SPluginCategoryTree.h"
 #include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "PluginsEditor"
@@ -34,7 +34,7 @@ void SPluginBrowser::Construct( const FArguments& Args )
 	const float PaddingAmount = 2.0f;
 
 
-	PluginCategories = SNew( SPluginCategories, SharedThis( this ) );
+	PluginCategories = SNew( SPluginCategoryTree, SharedThis( this ) );
 
 
 	ChildSlot
@@ -62,7 +62,7 @@ void SPluginBrowser::Construct( const FArguments& Args )
 				+SHorizontalBox::Slot()
 				.Padding( PaddingAmount )
 				[
-					SAssignNew( BreadcrumbTrail, SPluginCategoryBreadcrumbTrail )
+					SAssignNew( BreadcrumbTrail, SBreadcrumbTrail<TSharedPtr<FPluginCategory>> )
 					.DelimiterImage( FPluginStyle::Get()->GetBrush( "Plugins.BreadcrumbArrow" ) ) 
 					.ShowLeadingDelimiter( true )
 					.OnCrumbClicked( this, &SPluginBrowser::BreadcrumbTrail_OnCrumbClicked )
@@ -78,7 +78,7 @@ void SPluginBrowser::Construct( const FArguments& Args )
 
 			+SVerticalBox::Slot()
 			[
-				SAssignNew( PluginList, SPluginList, SharedThis( this ) )
+				SAssignNew( PluginList, SPluginTileList, SharedThis( this ) )
 			]
 
 			+SVerticalBox::Slot()
@@ -205,18 +205,17 @@ void SPluginBrowser::RefreshBreadcrumbTrail()
 		BreadcrumbTrail->ClearCrumbs();
 		for(TSharedPtr<FPluginCategory>& Category: CategoryPath)
 		{
-			FPluginCategoryBreadcrumbPtr NewBreadcrumb( new FPluginCategoryBreadcrumb( Category ) );
-			BreadcrumbTrail->PushCrumb( Category->DisplayName, NewBreadcrumb );
+			BreadcrumbTrail->PushCrumb( Category->DisplayName, Category );
 		}
 	}
 }
 
 
-void SPluginBrowser::BreadcrumbTrail_OnCrumbClicked( const FPluginCategoryBreadcrumbPtr& CrumbData )
+void SPluginBrowser::BreadcrumbTrail_OnCrumbClicked( const TSharedPtr<FPluginCategory>& Category )
 {
 	if( PluginCategories.IsValid() )
 	{
-		PluginCategories->SelectCategory( CrumbData->GetCategoryItem() );
+		PluginCategories->SelectCategory( Category );
 	}
 }
 

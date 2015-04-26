@@ -5,9 +5,9 @@
 /**
  * A filtered list of plugins, driven by a category selection
  */
-class SPluginList : public SCompoundWidget
+class SPluginTileList : public SCompoundWidget
 {
-	SLATE_BEGIN_ARGS( SPluginList )
+	SLATE_BEGIN_ARGS( SPluginTileList )
 	{
 	}
 
@@ -17,7 +17,7 @@ class SPluginList : public SCompoundWidget
 	void Construct( const FArguments& Args, const TSharedRef< class SPluginBrowser > Owner );
 
 	/** Destructor */
-	~SPluginList();
+	~SPluginTileList();
 
 	/** @return Gets the owner of this list */
 	SPluginBrowser& GetOwner();

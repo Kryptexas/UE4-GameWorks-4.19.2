@@ -5,9 +5,9 @@
 /**
  * Widget that represents a "tile" for a single plugin in our plugins list
  */
-class SPluginListTile : public SCompoundWidget
+class SPluginTile : public SCompoundWidget
 {
-	SLATE_BEGIN_ARGS( SPluginListTile )
+	SLATE_BEGIN_ARGS( SPluginTile )
 	{
 	}
 
@@ -15,7 +15,7 @@ class SPluginListTile : public SCompoundWidget
 
 
 	/** Widget constructor */
-	void Construct( const FArguments& Args, const TSharedRef< class SPluginList > Owner, TSharedRef<IPlugin> Plugin );
+	void Construct( const FArguments& Args, const TSharedRef< class SPluginTileList > Owner, TSharedRef<IPlugin> Plugin );
 
 private:
 
@@ -43,7 +43,7 @@ private:
 	TSharedPtr<IPlugin> Plugin;
 
 	/** Weak pointer back to its owner */
-	TWeakPtr< class SPluginList > OwnerWeak;
+	TWeakPtr< class SPluginTileList > OwnerWeak;
 
 	/** Dialog for editing plugin properties */
 	TSharedPtr< SWindow > PropertiesWindow;

@@ -1,21 +1,21 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PluginBrowserPrivatePCH.h"
-#include "SPluginList.h"
+#include "SPluginTileList.h"
 #include "SPluginBrowser.h"
-#include "SPluginListTile.h"
+#include "SPluginTile.h"
 #include "IPluginManager.h"
 
 
 #define LOCTEXT_NAMESPACE "PluginList"
 
 
-void SPluginList::Construct( const FArguments& Args, const TSharedRef< SPluginBrowser > Owner )
+void SPluginTileList::Construct( const FArguments& Args, const TSharedRef< SPluginBrowser > Owner )
 {
 	OwnerWeak = Owner;
 
 	// Find out when the plugin text filter changes
-	Owner->GetPluginTextFilter().OnChanged().AddSP( this, &SPluginList::OnPluginTextFilterChanged );
+	Owner->GetPluginTextFilter().OnChanged().AddSP( this, &SPluginTileList::OnPluginTextFilterChanged );
 
 	bIsActiveTimerRegistered = false;
 	RebuildAndFilterPluginList();
@@ -28,14 +28,14 @@ void SPluginList::Construct( const FArguments& Args, const TSharedRef< SPluginBr
 		.SelectionMode( ESelectionMode::None )		// No need to select plugins!
 
 		.ListItemsSource( &PluginListItems )
-		.OnGenerateRow( this, &SPluginList::PluginListView_OnGenerateRow )
+		.OnGenerateRow( this, &SPluginTileList::PluginListView_OnGenerateRow )
 		;
 
 	ChildSlot.AttachWidget( PluginListView.ToSharedRef() );
 }
 
 
-SPluginList::~SPluginList()
+SPluginTileList::~SPluginTileList()
 {
 	const TSharedPtr< SPluginBrowser > Owner( OwnerWeak.Pin() );
 	if( Owner.IsValid() )
@@ -46,24 +46,24 @@ SPluginList::~SPluginList()
 
 
 /** @return Gets the owner of this list */
-SPluginBrowser& SPluginList::GetOwner()
+SPluginBrowser& SPluginTileList::GetOwner()
 {
 	return *OwnerWeak.Pin();
 }
 
 
-TSharedRef<ITableRow> SPluginList::PluginListView_OnGenerateRow( TSharedRef<IPlugin> Item, const TSharedRef<STableViewBase>& OwnerTable )
+TSharedRef<ITableRow> SPluginTileList::PluginListView_OnGenerateRow( TSharedRef<IPlugin> Item, const TSharedRef<STableViewBase>& OwnerTable )
 {
 	return
 		SNew( STableRow< TSharedRef<IPlugin> >, OwnerTable )
 		[
-			SNew( SPluginListTile, SharedThis( this ), Item )
+			SNew( SPluginTile, SharedThis( this ), Item )
 		];
 }
 
 
 
-void SPluginList::RebuildAndFilterPluginList()
+void SPluginTileList::RebuildAndFilterPluginList()
 {
 	// Build up the initial list of plugins
 	{
@@ -103,7 +103,7 @@ void SPluginList::RebuildAndFilterPluginList()
 	}
 }
 
-EActiveTimerReturnType SPluginList::TriggerListRebuild(double InCurrentTime, float InDeltaTime)
+EActiveTimerReturnType SPluginTileList::TriggerListRebuild(double InCurrentTime, float InDeltaTime)
 {
 	RebuildAndFilterPluginList();
 
@@ -111,18 +111,18 @@ EActiveTimerReturnType SPluginList::TriggerListRebuild(double InCurrentTime, flo
 	return EActiveTimerReturnType::Stop;
 }
 
-void SPluginList::OnPluginTextFilterChanged()
+void SPluginTileList::OnPluginTextFilterChanged()
 {
 	SetNeedsRefresh();
 }
 
 
-void SPluginList::SetNeedsRefresh()
+void SPluginTileList::SetNeedsRefresh()
 {
 	if (!bIsActiveTimerRegistered)
 	{
 		bIsActiveTimerRegistered = true;
-		RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SPluginList::TriggerListRebuild));
+		RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SPluginTileList::TriggerListRebuild));
 	}
 }
 

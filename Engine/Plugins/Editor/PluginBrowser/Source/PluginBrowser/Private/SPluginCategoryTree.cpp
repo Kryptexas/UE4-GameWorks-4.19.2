@@ -1,16 +1,16 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PluginBrowserPrivatePCH.h"
-#include "SPluginCategories.h"
+#include "SPluginCategoryTree.h"
 #include "IPluginManager.h"
-#include "SPluginCategoryTreeItem.h"
+#include "SPluginCategory.h"
 #include "SPluginBrowser.h"
 
 #define LOCTEXT_NAMESPACE "PluginCategories"
 
 
 
-void SPluginCategories::Construct( const FArguments& Args, const TSharedRef< SPluginBrowser > Owner )
+void SPluginCategoryTree::Construct( const FArguments& Args, const TSharedRef< SPluginBrowser > Owner )
 {
 	OwnerWeak = Owner;
 
@@ -30,10 +30,10 @@ void SPluginCategories::Construct( const FArguments& Args, const TSharedRef< SPl
 		.ClearSelectionOnClick( false )		// Don't allow user to select nothing.  We always expect a category to be selected!
 
 		.TreeItemsSource( &RootPluginCategories )
-		.OnGenerateRow( this, &SPluginCategories::PluginCategoryTreeView_OnGenerateRow ) 
-		.OnGetChildren( this, &SPluginCategories::PluginCategoryTreeView_OnGetChildren )
+		.OnGenerateRow( this, &SPluginCategoryTree::PluginCategoryTreeView_OnGenerateRow ) 
+		.OnGetChildren( this, &SPluginCategoryTree::PluginCategoryTreeView_OnGetChildren )
 
-		.OnSelectionChanged( this, &SPluginCategories::PluginCategoryTreeView_OnSelectionChanged )
+		.OnSelectionChanged( this, &SPluginCategoryTree::PluginCategoryTreeView_OnSelectionChanged )
 		;
 
 	// Expand the root categories by default
@@ -49,19 +49,19 @@ void SPluginCategories::Construct( const FArguments& Args, const TSharedRef< SPl
 }
 
 
-SPluginCategories::~SPluginCategories()
+SPluginCategoryTree::~SPluginCategoryTree()
 {
 }
 
 
 /** @return Gets the owner of this list */
-SPluginBrowser& SPluginCategories::GetOwner()
+SPluginBrowser& SPluginCategoryTree::GetOwner()
 {
 	return *OwnerWeak.Pin();
 }
 
 
-void SPluginCategories::RebuildAndFilterCategoryTree()
+void SPluginCategoryTree::RebuildAndFilterCategoryTree()
 {
 	// Get a plugin from the currently selected category, so we can track it if it's removed
 	TSharedPtr<IPlugin> TrackPlugin = nullptr;
@@ -169,30 +169,30 @@ void SPluginCategories::RebuildAndFilterCategoryTree()
 	}
 }
 
-TSharedRef<ITableRow> SPluginCategories::PluginCategoryTreeView_OnGenerateRow( TSharedPtr<FPluginCategory> Item, const TSharedRef<STableViewBase>& OwnerTable )
+TSharedRef<ITableRow> SPluginCategoryTree::PluginCategoryTreeView_OnGenerateRow( TSharedPtr<FPluginCategory> Item, const TSharedRef<STableViewBase>& OwnerTable )
 {
 	return
 		SNew( STableRow<TSharedPtr<FPluginCategory>>, OwnerTable )
 		[
-			SNew( SPluginCategoryTreeItem, Item.ToSharedRef() )
+			SNew( SPluginCategory, Item.ToSharedRef() )
 		];
 }
 
 
-void SPluginCategories::PluginCategoryTreeView_OnGetChildren(TSharedPtr<FPluginCategory> Item, TArray<TSharedPtr<FPluginCategory>>& OutChildren )
+void SPluginCategoryTree::PluginCategoryTreeView_OnGetChildren(TSharedPtr<FPluginCategory> Item, TArray<TSharedPtr<FPluginCategory>>& OutChildren )
 {
 	OutChildren.Append(Item->SubCategories);
 }
 
 
-void SPluginCategories::PluginCategoryTreeView_OnSelectionChanged(TSharedPtr<FPluginCategory> Item, ESelectInfo::Type SelectInfo )
+void SPluginCategoryTree::PluginCategoryTreeView_OnSelectionChanged(TSharedPtr<FPluginCategory> Item, ESelectInfo::Type SelectInfo )
 {
 	// Selection changed, which may affect which plugins are displayed in the list.  We need to invalidate the list.
 	OwnerWeak.Pin()->OnCategorySelectionChanged();
 }
 
 
-TSharedPtr<FPluginCategory> SPluginCategories::GetSelectedCategory() const
+TSharedPtr<FPluginCategory> SPluginCategoryTree::GetSelectedCategory() const
 {
 	if( PluginCategoryTreeView.IsValid() )
 	{
@@ -207,7 +207,7 @@ TSharedPtr<FPluginCategory> SPluginCategories::GetSelectedCategory() const
 	return NULL;
 }
 
-void SPluginCategories::SelectCategory( const TSharedPtr<FPluginCategory>& CategoryToSelect )
+void SPluginCategoryTree::SelectCategory( const TSharedPtr<FPluginCategory>& CategoryToSelect )
 {
 	if( ensure( PluginCategoryTreeView.IsValid() ) )
 	{
@@ -215,17 +215,17 @@ void SPluginCategories::SelectCategory( const TSharedPtr<FPluginCategory>& Categ
 	}
 }
 
-bool SPluginCategories::IsItemExpanded( const TSharedPtr<FPluginCategory> Item ) const
+bool SPluginCategoryTree::IsItemExpanded( const TSharedPtr<FPluginCategory> Item ) const
 {
 	return PluginCategoryTreeView->IsItemExpanded( Item );
 }
 
-void SPluginCategories::SetNeedsRefresh()
+void SPluginCategoryTree::SetNeedsRefresh()
 {
-	RegisterActiveTimer (0.f, FWidgetActiveTimerDelegate::CreateSP (this, &SPluginCategories::TriggerCategoriesRefresh));
+	RegisterActiveTimer (0.f, FWidgetActiveTimerDelegate::CreateSP (this, &SPluginCategoryTree::TriggerCategoriesRefresh));
 }
 
-EActiveTimerReturnType SPluginCategories::TriggerCategoriesRefresh(double InCurrentTime, float InDeltaTime)
+EActiveTimerReturnType SPluginCategoryTree::TriggerCategoriesRefresh(double InCurrentTime, float InDeltaTime)
 {
 	RebuildAndFilterCategoryTree();
 	return EActiveTimerReturnType::Stop;

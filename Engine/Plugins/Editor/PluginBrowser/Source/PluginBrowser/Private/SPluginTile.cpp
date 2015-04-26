@@ -1,9 +1,9 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PluginBrowserPrivatePCH.h"
-#include "SPluginListTile.h"
+#include "SPluginTile.h"
 #include "SPluginBrowser.h"
-#include "SPluginList.h"
+#include "SPluginTileList.h"
 #include "PluginStyle.h"
 #include "GameProjectGenerationModule.h"
 #include "IDetailsView.h"
@@ -16,7 +16,7 @@
 #define LOCTEXT_NAMESPACE "PluginListTile"
 
 
-void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPluginList> Owner, TSharedRef<IPlugin> InPlugin )
+void SPluginTile::Construct( const FArguments& Args, const TSharedRef<SPluginTileList> Owner, TSharedRef<IPlugin> InPlugin )
 {
 	OwnerWeak = Owner;
 	Plugin = InPlugin;
@@ -24,7 +24,7 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 	RecreateWidgets();
 }
 
-void SPluginListTile::RecreateWidgets()
+void SPluginTile::RecreateWidgets()
 {
 	const float PaddingAmount = FPluginStyle::Get()->GetFloat( "PluginTile.Padding" );
 	const float ThumbnailImageSize = FPluginStyle::Get()->GetFloat( "PluginTile.ThumbnailImageSize" );
@@ -258,8 +258,8 @@ void SPluginListTile::RecreateWidgets()
 													.HAlign(HAlign_Left)
 													[
 														SNew(SCheckBox)
-															.OnCheckStateChanged(this, &SPluginListTile::OnEnablePluginCheckboxChanged)
-															.IsChecked(this, &SPluginListTile::IsPluginEnabled)
+															.OnCheckStateChanged(this, &SPluginTile::OnEnablePluginCheckboxChanged)
+															.IsChecked(this, &SPluginTile::IsPluginEnabled)
 															.ToolTipText(LOCTEXT("EnableDisableButtonToolTip", "Toggles whether this plugin is enabled for your current project.  You may need to restart the program for this change to take effect."))
 															.Content()
 															[
@@ -281,8 +281,8 @@ void SPluginListTile::RecreateWidgets()
 															.Padding(PaddingAmount)
 															[
 																SNew(SHyperlink)
-																	.Visibility(this, &SPluginListTile::GetAuthoringButtonsVisibility)	
-																	.OnNavigate(this, &SPluginListTile::OnEditPlugin)
+																	.Visibility(this, &SPluginTile::GetAuthoringButtonsVisibility)	
+																	.OnNavigate(this, &SPluginTile::OnEditPlugin)
 																	.Text(LOCTEXT("EditPlugin", "Edit..."))
 															]
 													]
@@ -312,7 +312,7 @@ void SPluginListTile::RecreateWidgets()
 }
 
 
-ECheckBoxState SPluginListTile::IsPluginEnabled() const
+ECheckBoxState SPluginTile::IsPluginEnabled() const
 {
 	FPluginBrowserModule& PluginBrowserModule = FPluginBrowserModule::Get();
 	if(PluginBrowserModule.PendingEnablePlugins.Contains(Plugin->GetName()))
@@ -325,7 +325,7 @@ ECheckBoxState SPluginListTile::IsPluginEnabled() const
 	}
 }
 
-void SPluginListTile::OnEnablePluginCheckboxChanged(ECheckBoxState NewCheckedState)
+void SPluginTile::OnEnablePluginCheckboxChanged(ECheckBoxState NewCheckedState)
 {
 	const bool bNewEnabledState = (NewCheckedState == ECheckBoxState::Checked);
 
@@ -366,12 +366,12 @@ void SPluginListTile::OnEnablePluginCheckboxChanged(ECheckBoxState NewCheckedSta
 
 }
 
-EVisibility SPluginListTile::GetAuthoringButtonsVisibility() const
+EVisibility SPluginTile::GetAuthoringButtonsVisibility() const
 {
 	return (FApp::IsEngineInstalled() && Plugin->GetLoadedFrom() == EPluginLoadedFrom::Engine)? EVisibility::Hidden : EVisibility::Visible;
 }
 
-void SPluginListTile::OnEditPlugin()
+void SPluginTile::OnEditPlugin()
 {
 	// Construct the plugin metadata object using the descriptor for this plugin
 	UPluginMetadataObject* MetadataObject = NewObject<UPluginMetadataObject>();
@@ -421,7 +421,7 @@ void SPluginListTile::OnEditPlugin()
 					SNew(SButton)
 					.ContentPadding(FMargin(20.0f, 2.0f))
 					.Text(LOCTEXT("OkButtonLabel", "Ok"))
-					.OnClicked(this, &SPluginListTile::OnEditPluginFinished, MetadataObject)
+					.OnClicked(this, &SPluginTile::OnEditPluginFinished, MetadataObject)
 				]
 			]
 		];
@@ -429,7 +429,7 @@ void SPluginListTile::OnEditPlugin()
 	FSlateApplication::Get().AddModalWindow(PropertiesWindow.ToSharedRef(), OwnerWeak.Pin());//Args.ParentWidget);
 }
 
-FReply SPluginListTile::OnEditPluginFinished(UPluginMetadataObject* MetadataObject)
+FReply SPluginTile::OnEditPluginFinished(UPluginMetadataObject* MetadataObject)
 {
 	FPluginDescriptor OldDescriptor = Plugin->GetDescriptor();
 

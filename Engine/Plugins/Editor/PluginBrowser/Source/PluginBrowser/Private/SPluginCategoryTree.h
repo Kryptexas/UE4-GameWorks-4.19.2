@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include "SPluginCategoryTreeItem.h"
+#include "SPluginCategory.h"
 
 /**
  * Tree view that displays all of the plugin categories and allows the user to switch views
  */
-class SPluginCategories : public SCompoundWidget
+class SPluginCategoryTree : public SCompoundWidget
 {
 
 public:
 
-	SLATE_BEGIN_ARGS( SPluginCategories )
+	SLATE_BEGIN_ARGS( SPluginCategoryTree )
 	{
 	}
 
@@ -23,7 +23,7 @@ public:
 	void Construct( const FArguments& Args, const TSharedRef< class SPluginBrowser > Owner );
 
 	/** Destructor */
-	~SPluginCategories();
+	~SPluginCategoryTree();
 
 	/** @return Gets the owner of this categories tree */
 	SPluginBrowser& GetOwner();

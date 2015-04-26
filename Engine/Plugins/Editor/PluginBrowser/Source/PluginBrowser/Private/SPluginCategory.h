@@ -35,9 +35,9 @@ public:
 /**
  * Widget that represents a single category in the category tree view
  */
-class SPluginCategoryTreeItem : public SCompoundWidget
+class SPluginCategory : public SCompoundWidget
 {
-	SLATE_BEGIN_ARGS( SPluginCategoryTreeItem )
+	SLATE_BEGIN_ARGS( SPluginCategory )
 	{
 	}
 

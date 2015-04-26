@@ -1,15 +1,14 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PluginBrowserPrivatePCH.h"
-#include "SPluginCategoryTreeItem.h"
-#include "SPluginCategories.h"
+#include "SPluginCategory.h"
 #include "PluginStyle.h"
 
 
 #define LOCTEXT_NAMESPACE "PluginCategoryTreeItem"
 
 
-void SPluginCategoryTreeItem::Construct(const FArguments& Args, const TSharedRef<FPluginCategory>& InCategory)
+void SPluginCategory::Construct(const FArguments& Args, const TSharedRef<FPluginCategory>& InCategory)
 {
 	Category = InCategory;
 
@@ -38,7 +37,7 @@ void SPluginCategoryTreeItem::Construct(const FArguments& Args, const TSharedRef
 				.HeightOverride( CategoryIconSize )
 				[
 					SNew( SImage )
-					.Image( this, &SPluginCategoryTreeItem::GetIconBrush )
+					.Image( this, &SPluginCategory::GetIconBrush )
 				]
 			]
 
@@ -71,7 +70,7 @@ void SPluginCategoryTreeItem::Construct(const FArguments& Args, const TSharedRef
 }
 
 
-const FSlateBrush* SPluginCategoryTreeItem::GetIconBrush() const
+const FSlateBrush* SPluginCategory::GetIconBrush() const
 {
 	if(Category->ParentCategory.IsValid())
 	{

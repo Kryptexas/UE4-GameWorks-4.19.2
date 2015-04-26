@@ -3,39 +3,7 @@
 #pragma once
 
 #include "SBreadcrumbTrail.h"
-
-/**
- * Stores data about a breadcrumb entry for the plugins editor
- */
-class FPluginCategoryBreadcrumb
-{
-
-public:
-
-	/** Initializing constructor */
-	FPluginCategoryBreadcrumb( TSharedPtr< class FPluginCategory > InitCategoryItem )
-		: CategoryItem( InitCategoryItem )
-	{
-	}
-
-	/** @return Gets the category item for this breadcrumb */
-	const TSharedPtr< class FPluginCategory >& GetCategoryItem() const
-	{
-		return CategoryItem;
-	}
-
-
-private:
-
-	/** The category tree item data for this breadcrumb */
-	TSharedPtr< class FPluginCategory > CategoryItem;
-};
-
-
-
-typedef TSharedPtr< FPluginCategoryBreadcrumb > FPluginCategoryBreadcrumbPtr;
-typedef SBreadcrumbTrail< FPluginCategoryBreadcrumbPtr > SPluginCategoryBreadcrumbTrail;
-
+#include "SPluginCategory.h"
 
 /**
  * Implementation of main plugin editor Slate widget
@@ -79,7 +47,7 @@ private:
 	void SearchBox_OnPluginSearchTextChanged( const FText& NewText );
 
 	/** Called when a breadcrumb is clicked on the breadcrumb trail */
-	void BreadcrumbTrail_OnCrumbClicked( const FPluginCategoryBreadcrumbPtr& CrumbData );
+	void BreadcrumbTrail_OnCrumbClicked( const TSharedPtr<FPluginCategory>& CrumbData );
 
 	/** Called to refresh the breadcrumb trail immediately */
 	void RefreshBreadcrumbTrail();
@@ -90,15 +58,15 @@ private:
 private:
 
 	/** The plugin categories widget */
-	TSharedPtr< class SPluginCategories > PluginCategories;
+	TSharedPtr< class SPluginCategoryTree > PluginCategories;
 
 	/** The plugin list widget */
-	TSharedPtr< class SPluginList > PluginList;
+	TSharedPtr< class SPluginTileList > PluginList;
 
 	/** Text filter object for typing in filter text to the search box */
 	TSharedPtr< FPluginTextFilter > PluginTextFilter;
 
 	/** Breadcrumb trail widget for the currently selected category */
-	TSharedPtr< SPluginCategoryBreadcrumbTrail > BreadcrumbTrail;
+	TSharedPtr< SBreadcrumbTrail< TSharedPtr< FPluginCategory > > > BreadcrumbTrail;
 };
 
