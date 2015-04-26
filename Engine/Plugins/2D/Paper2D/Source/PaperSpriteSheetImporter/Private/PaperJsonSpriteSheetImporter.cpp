@@ -496,12 +496,7 @@ UTexture2D* FPaperJsonSpriteSheetImporter::ImportTexture(const FString& TextureS
 	if (ImportedTexture != nullptr)
 	{
 		// Change the compression settings
-		//@TODO: Should we always be doing this (particularly the TF_Nearest seems potentially undesirable; maybe make it a property of the sprite sheet asset?)
-		ImportedTexture->Modify();
-		ImportedTexture->LODGroup = TEXTUREGROUP_UI;
-		ImportedTexture->CompressionSettings = TC_EditorIcon;
-		ImportedTexture->Filter = TF_Nearest;
-		ImportedTexture->PostEditChange();
+		GetDefault<UPaperImporterSettings>()->ApplyTextureSettings(ImportedTexture);
 	}
 
 	return ImportedTexture;

@@ -7,6 +7,9 @@
 // UPaperImporterSettings
 
 UPaperImporterSettings::UPaperImporterSettings()
+: DefaultSpriteTextureGroup(TEXTUREGROUP_Pixels2D)
+	, bOverrideTextureCompression(true)
+	, DefaultSpriteTextureCompression(TC_EditorIcon)
 {
 	NormalMapTextureSuffixes.Add(TEXT("_N"));
 	NormalMapTextureSuffixes.Add(TEXT("_Normal"));
@@ -50,4 +53,25 @@ void UPaperImporterSettings::PopulateMaterialsIntoInitParams(FSpriteAssetInitPar
 	InitParams.MaskedMaterialOverride = Cast<UMaterialInterface>(LitDefaultMaskedMaterialName.TryLoad());
 	InitParams.OpaqueMaterialOverride = Cast<UMaterialInterface>(LitDefaultOpaqueMaterialName.TryLoad());
 	InitParams.TranslucentMaterialOverride = Cast<UMaterialInterface>(LitDefaultTranslucentMaterialName.TryLoad());
+}
+
+void UPaperImporterSettings::ApplyTextureSettings(UTexture2D* Texture) const
+{
+	if (Texture->IsNormalMap())
+	{
+		// Leave normal maps alone
+	}
+	else
+	{
+		Texture->Modify();
+
+		Texture->LODGroup = DefaultSpriteTextureGroup;
+
+		if (bOverrideTextureCompression)
+		{
+			Texture->CompressionSettings = DefaultSpriteTextureCompression;
+		}
+
+		Texture->PostEditChange();
+	}
 }

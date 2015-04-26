@@ -50,7 +50,7 @@ enum TextureGroup
 	// no compression, created on import of a .IES file
 	TEXTUREGROUP_IESLightProfile UMETA(DisplayName="IESLightProfile"),
 	// non-filtered, useful for 2D rendering
-	TEXTUREGROUP_Pixels2D UMETA(DisplayName="2D Pixels"),
+	TEXTUREGROUP_Pixels2D UMETA(DisplayName="2D Pixels (unfiltered)"),
 	TEXTUREGROUP_MAX,
 };
 

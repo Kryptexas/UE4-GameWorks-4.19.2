@@ -5,6 +5,7 @@
 #include "ContentBrowserExtensions.h"
 #include "PaperSpriteFactory.h"
 #include "PaperTileSetFactory.h"
+#include "PaperImporterSettings.h"
 
 #include "ExtractSprites/SPaperExtractSpritesDialog.h"
 
@@ -117,11 +118,7 @@ struct FConfigureTexturesForSpriteUsageExtension : public FContentBrowserSelecte
 			const FAssetData& AssetData = *AssetIt;
 			if (UTexture2D* Texture = Cast<UTexture2D>(AssetData.GetAsset()))
 			{
-				Texture->Modify();
-				Texture->LODGroup = TEXTUREGROUP_UI;
-				Texture->CompressionSettings = TC_EditorIcon;
-				Texture->Filter = TF_Nearest;
-				Texture->PostEditChange();
+				GetDefault<UPaperImporterSettings>()->ApplyTextureSettings(Texture);
 			}
 		}
 	}

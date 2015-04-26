@@ -7,6 +7,7 @@
 #include "PaperJSONHelpers.h"
 #include "AssetToolsModule.h"
 #include "AssetRegistryModule.h"
+#include "PaperImporterSettings.h"
 #include "PackageTools.h"
 
 #define LOCTEXT_NAMESPACE "Paper2D"
@@ -477,11 +478,7 @@ UTexture2D* UPaperTiledImporterFactory::ImportTexture(const FString& SourceFilen
 	if (ImportedTexture != nullptr)
 	{
 		// Change the compression settings
-		ImportedTexture->Modify();
-		ImportedTexture->LODGroup = TEXTUREGROUP_UI;
-		ImportedTexture->CompressionSettings = TC_EditorIcon;
-		ImportedTexture->Filter = TF_Nearest;
-		ImportedTexture->PostEditChange();
+		GetDefault<UPaperImporterSettings>()->ApplyTextureSettings(ImportedTexture);
 	}
 
 	return ImportedTexture;
