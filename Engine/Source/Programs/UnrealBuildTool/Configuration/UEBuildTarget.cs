@@ -675,6 +675,10 @@ namespace UnrealBuildTool
 		[NonSerialized]
 		public LinkEnvironment GlobalLinkEnvironment = new LinkEnvironment();
 
+		/** All plugins which are valid for this target */
+		[NonSerialized]
+		public List<PluginInfo> ValidPlugins;
+
 		/** All plugins which are built for this target */
 		[NonSerialized]
 		public List<PluginInfo> BuildPlugins;
@@ -2329,7 +2333,7 @@ namespace UnrealBuildTool
 		/// <returns>Matching plugin, or null if not found</returns>
 		private PluginInfo FindPluginForModule(string ModuleName)
 		{
-			return BuildPlugins.FirstOrDefault(BuildPlugin => BuildPlugin.Descriptor.Modules.Any(Module => Module.Name == ModuleName));
+			return ValidPlugins.FirstOrDefault(ValidPlugin => ValidPlugin.Descriptor.Modules.Any(Module => Module.Name == ModuleName));
 		}
 
 		/**
@@ -2442,7 +2446,7 @@ namespace UnrealBuildTool
 		protected virtual void SetupPlugins()
 		{
 			// Filter the plugins list by the current project
-			List<PluginInfo> ValidPlugins = Plugins.ReadAvailablePlugins(UnrealBuildTool.GetUProjectFile());
+			ValidPlugins = Plugins.ReadAvailablePlugins(UnrealBuildTool.GetUProjectFile());
 
 			// Remove any plugins for platforms we don't have
 			foreach (UnrealTargetPlatform TargetPlatform in Enum.GetValues(typeof(UnrealTargetPlatform)))

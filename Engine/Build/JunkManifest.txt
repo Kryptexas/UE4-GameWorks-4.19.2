@@ -19,6 +19,7 @@ Engine\Binaries\Win64\UE4Editor-AndroidTarget*.*
 Engine\Binaries\Win64\UE4Editor-IOSPlatformEditor*.*
 Engine\Binaries\Win64\UE4Editor-TaskBrowser*.*
 Engine\Binaries\Win64\UE4Editor-Levels*.*
+Engine\Binaries\Win64\UnrealFrontend-VisualStudioSourceCodeAccess*.*
 Engine\Binaries\Win64\*-ProjectWorkflows.*
 Engine\Binaries\Win64\*-WorkflowEditor.*
 Engine\Binaries\Win64\*-Workflows.*
@@ -32,6 +33,7 @@ Engine\Binaries\Win64\*-CameraDebugger*.*
 Engine\Binaries\Win64\*-SessionLauncher*.*
 Engine\Binaries\Mac\UnrealFrontend.app\Contents\Frameworks\*-CoreSlateStyle.*
 Engine\Binaries\Mac\UnrealFrontend.app\Contents\Frameworks\*-SlateStyle.*
+Engine\Binaries\Mac\UnrealFrontend.app\Contents\MacOS\*-XCodeSourceCodeAccess.*
 Engine\Binaries\Mac\UE4Editor.app\Contents\Frameworks\*-CoreSlateStyle.*
 Engine\Binaries\Mac\UE4Editor.app\Contents\Frameworks\*-SlateStyle.*
 Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\*-CameraDebugger.*
