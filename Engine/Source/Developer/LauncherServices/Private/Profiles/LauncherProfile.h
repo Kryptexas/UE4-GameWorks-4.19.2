@@ -757,7 +757,7 @@ public:
 		CookOptions = FString();
 		CookIncremental = false;
 		CookUnversioned = true;
-		Compressed = false;
+		Compressed = true;
 		CookedCultures.Reset();
 		CookedCultures.Add(I18N.GetCurrentCulture()->GetName());
 		CookedMaps.Reset();
