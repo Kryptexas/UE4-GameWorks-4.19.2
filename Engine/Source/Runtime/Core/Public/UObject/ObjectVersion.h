@@ -499,7 +499,7 @@ enum EUnrealEngineObjectUE4Version
 	// Added fastcall data serialization directly in UFunction
 	VER_UE4_SERIALIZE_BLUEPRINT_EVENTGRAPH_FASTCALLS_IN_UFUNCTION,
 	// Changes to USplineComponent and FInterpCurve
-	VER_UE4_SPLINE_COMPONENT_WITH_ROTATION_AND_SCALE,
+	VER_UE4_INTERPCURVE_SUPPORTS_LOOPING,
 	// Material Instances overriding base material LOD transitions
 	VER_UE4_MATERIAL_INSTANCE_BASE_PROPERTY_OVERRIDES_DITHERED_LOD_TRANSITION,
 

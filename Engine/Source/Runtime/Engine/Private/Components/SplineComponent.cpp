@@ -77,7 +77,7 @@ void USplineComponent::Serialize(FArchive& Ar)
 
 	// Support old resources which don't have the rotation and scale splines present
 	const int32 ArchiveUE4Version = Ar.UE4Ver();
-	if (ArchiveUE4Version < VER_UE4_SPLINE_COMPONENT_WITH_ROTATION_AND_SCALE)
+	if (ArchiveUE4Version < VER_UE4_INTERPCURVE_SUPPORTS_LOOPING)
 	{
 		int32 NumPoints = SplineInfo.Points.Num();
 
