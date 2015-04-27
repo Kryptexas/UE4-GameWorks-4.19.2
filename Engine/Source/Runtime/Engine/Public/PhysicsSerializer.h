@@ -17,7 +17,7 @@ namespace physx
 
 #include "PhysicsSerializer.generated.h"
 
-UCLASS(hidecategories=Object, MinimalAPI)
+UCLASS(DefaultToInstanced, hidecategories=Object, MinimalAPI)
 class UPhysicsSerializer : public UObject
 {
 	GENERATED_UCLASS_BODY()
