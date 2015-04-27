@@ -39,7 +39,7 @@ public class FLogger
 		string LogsPath = bHasFDrive ? "F:/" : (bHasDDrive ? "D:/" : "C:/");
 		LogsPath += "CrashReportWebsiteLogs";
 
-		string LogFileName = bUseGlobal ? "CrashReportWebSite-Global-" + Guid.NewGuid().ToString( "N" ) : string.Format( "CrashReportWebSite-{1}-[{0}]", System.Threading.Thread.CurrentThread.ManagedThreadId, GetPathName() );
+		string LogFileName = bUseGlobal ? "Global-" + Guid.NewGuid().ToString( "N" ) : string.Format( "{1}-[{0}]", System.Threading.Thread.CurrentThread.ManagedThreadId, GetPathName() );
 
 		LogWriter Log = new LogWriter( LogFileName,LogsPath );
 		return Log;

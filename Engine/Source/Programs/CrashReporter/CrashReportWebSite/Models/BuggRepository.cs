@@ -331,20 +331,17 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		}
 
 		/// <summary>
-		/// Filter the list of Buggs by a search query.
+		/// Filter the list of Buggs by a callstack entry.
 		/// </summary>
-		/// <param name="Results">The unfiltered set of Buggs.</param>
-		/// <param name="Query">The query to use as a filter.</param>
-		/// <returns>A filtered set of Buggs.</returns>
-		public IEnumerable<Bugg> Search( IEnumerable<Bugg> Results, string Query )
+		public IEnumerable<Bugg> FilterByCallstack( IEnumerable<Bugg> Results, string CallstackEntry )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(Query=" + Query + ")" ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(Query=" + CallstackEntry + ")" ) )
 			{
 				// Also may want to revisit how we search since this could get inefficient for a big search set.
 				IEnumerable<Bugg> Buggs;
 				try
 				{
-					string QueryString = HttpUtility.HtmlDecode( Query.ToString() );
+					string QueryString = HttpUtility.HtmlDecode( CallstackEntry.ToString() );
 					if( QueryString == null )
 					{
 						QueryString = "";
@@ -412,12 +409,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				Results = FilterByDate( ResultsAll, FormData.DateFrom, FormData.DateTo );
 
 				// Filter results by build version.
-				Results = FilterByBuildVersion( Results, FormData.BuildVersion );
+				Results = FilterByBuildVersion( Results, FormData.VersionName );
 
 				// Run at the end
 				if( !string.IsNullOrEmpty( FormData.SearchQuery ) )
 				{
-					Results = Search( Results, FormData.SearchQuery );
+					Results = FilterByCallstack( Results, FormData.SearchQuery );
 				}
 
 				// Filter by Crash Type
@@ -467,7 +464,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					SearchQuery = FormData.SearchQuery,
 					DateFrom = (long)( FormData.DateFrom - CrashesViewModel.Epoch ).TotalMilliseconds,
 					DateTo = (long)( FormData.DateTo - CrashesViewModel.Epoch ).TotalMilliseconds,
-					BuildVersion = FormData.BuildVersion,
+					VersionName = FormData.VersionName,
 					GroupCounts = GroupCounts,
 				};
 			}

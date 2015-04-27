@@ -30,7 +30,6 @@
 		{
 			$("#dateFrom").val($("#dateFromVisible").datepicker('getDate').getTime());
 			$("#dateTo").val($("#dateToVisible").datepicker('getDate').getTime());
-			$("#FilterBuggsForm").submit();
 		}
 	});
 
@@ -43,10 +42,6 @@
 		$("#CrashesTable tr:nth-child(even)").css("background-color", "#C3CAD0");
 		$("#CrashesTable tr:nth-child(odd)").css("background-color", "#eeeeee");
 
-		$(".CrashType").click(function ()
-		{
-			$("#FilterBuggsForm").submit();
-		});
 	});
 </script>
 </asp:Content>
@@ -69,7 +64,9 @@
 			<input type="radio" name="CrashType" class="CrashType" value="All" <%=( Model.CrashType == "All" ) ? "checked='checked'" : "" %>/> <span title='All Crashes'>All</span>
 	</span>
 
-	<div id="SearchBox"><%=Html.TextBox( "SearchQuery", Model.SearchQuery, new { width = "1000" })%><input type="submit" value="Search" class='SearchButton' /></div>
+	<div>
+		<%=Html.TextBox( "SearchQuery", Model.SearchQuery )%><input type="submit" value="Search" class='SearchButton' />
+	</div>
 
 	<script>$.datepicker.setDefaults($.datepicker.regional['']);</script>
 

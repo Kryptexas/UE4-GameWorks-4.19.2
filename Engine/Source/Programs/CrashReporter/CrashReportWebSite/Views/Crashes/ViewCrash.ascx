@@ -23,6 +23,7 @@
 						DateTo = Model.DateTo, 
 						CrashType = Model.CrashType,
 						BranchName = Model.BranchName,
+						VersionName = Model.VersionName,
 						GameName = Model.GameName
 					} 
 				) )%>

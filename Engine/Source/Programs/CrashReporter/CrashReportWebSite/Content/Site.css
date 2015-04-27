@@ -103,21 +103,21 @@ page width. Or, you can specify an exact pixel width. */
 	background-color: #000;
 }
 
-#header h1
-{
-	font-weight: bold;
-	padding: 5px 0;
-	margin: 0;
-	color: #fff;
-	border: none;
-	line-height: 2em;
-	font-family: Arial, Helvetica, sans-serif;
-	font-size: 32px !important;
-}
+	#header h1
+	{
+		font-weight: bold;
+		padding: 5px 0;
+		margin: 0;
+		color: #fff;
+		border: none;
+		line-height: 2em;
+		font-family: Arial, Helvetica, sans-serif;
+		font-size: 32px !important;
+	}
 
 #main
 {
-	background:#3E4B54 url('/Content/Images/MainHeaderBackground.jpg') top left repeat-x;
+	background: #3E4B54 url('/Content/Images/MainHeaderBackground.jpg') top left repeat-x;
 }
 
 #mainRight
@@ -155,48 +155,48 @@ ul#menu
 	text-align: right;
 }
 
-ul#menu li
-{
-	display: inline;
-	list-style: none;
-}
+	ul#menu li
+	{
+		display: inline;
+		list-style: none;
+	}
 
-ul#menu li#greeting
-{
-	padding: 10px 20px;
-	font-weight: bold;
-	text-decoration: none;
-	line-height: 2.8em;
-	color: #fff;
-}
+		ul#menu li#greeting
+		{
+			padding: 10px 20px;
+			font-weight: bold;
+			text-decoration: none;
+			line-height: 2.8em;
+			color: #fff;
+		}
 
-ul#menu li a
-{
-	padding: 10px 20px;
-	font-weight: bold;
-	text-decoration: none;
-	line-height: 2.8em;
-	background-color: #e8eef4;
-	color: #034af3;
-}
+		ul#menu li a
+		{
+			padding: 10px 20px;
+			font-weight: bold;
+			text-decoration: none;
+			line-height: 2.8em;
+			background-color: #e8eef4;
+			color: #034af3;
+		}
 
-ul#menu li a:hover
-{
-	background-color: #fff;
-	text-decoration: none;
-}
+			ul#menu li a:hover
+			{
+				background-color: #fff;
+				text-decoration: none;
+			}
 
-ul#menu li a:active
-{
-	background-color: #a6e2a6;
-	text-decoration: none;
-}
+			ul#menu li a:active
+			{
+				background-color: #a6e2a6;
+				text-decoration: none;
+			}
 
-ul#menu li.selected a
-{
-	background-color: #fff;
-	color: #000;
-}
+		ul#menu li.selected a
+		{
+			background-color: #fff;
+			color: #000;
+		}
 
 /* FORM LAYOUT ELEMENTS   
 ----------------------------------------------------------*/
@@ -208,10 +208,10 @@ fieldset
 	border: 1px solid #CCC;
 }
 
-fieldset p
-{
-	margin: 2px 12px 10px 10px;
-}
+	fieldset p
+	{
+		margin: 2px 12px 10px 10px;
+	}
 
 legend
 {
@@ -220,40 +220,47 @@ legend
 	padding: 2px 4px 8px 4px;
 }
 
-input[type="text"]
+input[type="text"],
+input[type="password"],
+input.date
 {
-	width: 200px;
-	border: 1px solid #CCC;
+	height: 18px;
+	padding:2px;
+	border: 1px solid #5c87b2;
 }
 
-input[type="password"]
+#BranchName,
+#VersionName
 {
-	width: 200px;
-	border: 1px solid #CCC;
+	height: 24px;
+	width: 100%;
+	padding:2px;
+	border: 1px solid #5c87b2;
 }
+
 
 /* TABLE
 ----------------------------------------------------------*/
 table
 {
-	border-collapse:collapse;
+	border-collapse: collapse;
 	border-top: none;
 	padding-top: 0;
 	margin-top: 0;
 }
 
-table td
-{
-	padding: 5px;
-}
+	table td
+	{
+		padding: 5px;
+	}
 
-table th
-{
-	padding: 6px 5px;
-	text-align: left;
-	background-color: #e8eef4;
-	border: none;
-}
+	table th
+	{
+		padding: 6px 5px;
+		text-align: left;
+		background-color: #e8eef4;
+		border: none;
+	}
 
 /* MISC  
 ----------------------------------------------------------*/
@@ -273,6 +280,7 @@ div#title
 	float: left;
 	text-align: left;
 }
+
 div#utils
 {
 	display: block;
@@ -289,23 +297,23 @@ div#utils
 	color: White;
 }
 
-#logindisplay a:link
-{
-	color: white;
-	text-decoration: underline;
-}
+	#logindisplay a:link
+	{
+		color: white;
+		text-decoration: underline;
+	}
 
-#logindisplay a:visited
-{
-	color: white;
-	text-decoration: underline;
-}
+	#logindisplay a:visited
+	{
+		color: white;
+		text-decoration: underline;
+	}
 
-#logindisplay a:hover
-{
-	color: white;
-	text-decoration: none;
-}
+	#logindisplay a:hover
+	{
+		color: white;
+		text-decoration: none;
+	}
 
 /* Styles for validation helpers
 -----------------------------------------------------------*/
@@ -351,10 +359,10 @@ div#utils
 	width: 30em;
 }
 
-.text-box.multi-line
-{
-	height: 6.5em;
-}
+	.text-box.multi-line
+	{
+		height: 6.5em;
+	}
 
 .tri-state
 {
@@ -369,7 +377,6 @@ div#utils
 
 .description
 {
-	
 }
 
 .callstack
@@ -398,25 +405,6 @@ div#utils
 	margin-bottom: 5px !important;
 }
 
-#SearchBox
-{
-	float: left;
-}
-
-.SearchButton
-{
-	width: 62px;
-	height: 23px;
-	border: none;
-	padding: 0;
-	cursor: pointer;
-	background : url('/Content/Images/Searchbutton.png') no-repeat left top;
-	outline: none;
-	color: white;
-	margin-top: 39px;
-	float: right;
-}
-
 .SetButton
 {
 	width: 41px;
@@ -424,15 +412,20 @@ div#utils
 	border: none;
 	padding: 0;
 	cursor: pointer;
-	background : url('/Content/Images/Setbutton.png') no-repeat left top;
+	background: url('/Content/Images/Setbutton.png') no-repeat left top;
 	outline: none;
 	color: white;
 }
 
-.searchText {
-	margin: 10px 13px;
-	margin-bottom: 10px;
-	text-decoration: underline;
+.SearchTextTitle
+{
+	margin: 2px;
+	padding: 2px;
+
+	color: white;
+	/**/background-color: black;
+	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	font-size: 14px;
 }
 
 .SetButtonGreen
@@ -442,42 +435,18 @@ div#utils
 	border: none;
 	padding: 0;
 	cursor: pointer;
-	background : url('/Content/Images/SetbuttonGreen.png') no-repeat left top;
+	background: url('/Content/Images/SetbuttonGreen.png') no-repeat left top;
 	outline: none;
 	color: white;
 }
 
 #SearchBox #SearchQuery
 {
-	width: 326px;
-	height: 23px;
+	height: 18px;
 	border: none;
-	padding: 0;
-	padding-left: 4px;
-	padding-right: 4px;
-	margin-left: 1em;
-	/*background-image: url('/Content/Images/RoundedInputBarBlack-500px.png');*/
-	background-repeat: no-repeat;
+	padding: 2px;
+	margin: 2px;
 	outline: none;
-}
-
-input.date,
-#BranchName,
-#GameName,
-#BuildVersion
-{
-	width: 70px;
-	height: 23px;
-	border: none;
-	padding: 0;
-	padding-left: 4px;
-	padding-right: 4px;
-	vertical-align: middle;
-	/*background-image: url('/Content/Images/RoundedInputBarBlack.png');*/
-	background-repeat: no-repeat;
-	outline: none;
-	color: black;
-	margin-left: 12px;
 }
 
 .selectedPage
@@ -507,16 +476,16 @@ input.date,
 	text-decoration: none;
 }
 
-.UserGroupTab a:link, .UserGroupTab a:visited, .UserGroupTab a:active
-{
-	color: white;
-	text-decoration: none;
-}
+	.UserGroupTab a:link, .UserGroupTab a:visited, .UserGroupTab a:active
+	{
+		color: white;
+		text-decoration: none;
+	}
 
-.UserGroupTab a:hover
-{
-	Color: Black;
-}
+	.UserGroupTab a:hover
+	{
+		Color: Black;
+	}
 
 .UserGroupTabSelected
 {
@@ -528,11 +497,11 @@ input.date,
 	text-decoration: none;
 }
 
-.UserGroupTabSelected a:link, .UserGroupTabSelected a:visited, .UserGroupTabSelected a:active
-{
-	color: White;
-	text-decoration: none;
-}
+	.UserGroupTabSelected a:link, .UserGroupTabSelected a:visited, .UserGroupTabSelected a:active
+	{
+		color: White;
+		text-decoration: none;
+	}
 
 .UserGroupResults
 {
@@ -550,14 +519,14 @@ input.date,
 
 #CrashesTable
 {
-	width: auto; 
+	width: auto;
 	min-width: 1280px;
-	table-layout: auto; 
+	table-layout: auto;
 }
 
 #SelectBar
 {
-	height:4em;
+	height: 4em;
 	background-color: #e8eef4;
 	border: none !important;
 }
@@ -594,11 +563,11 @@ input.date,
 	color: #5c87b2;
 }
 
-.PaginationBox a
-{
-	color: #5c87b2;
-	text-decoration: none;
-}
+	.PaginationBox a
+	{
+		color: #5c87b2;
+		text-decoration: none;
+	}
 
 th,
 th a,
@@ -620,31 +589,31 @@ th a:visited
 	border-right: 1px solid grey;
 }
 
-#CrashesTable td.Id a 
-{
-	font-weight: bold;
-	Color: #5c87b2;
-	text-decoration: none;
-}
+	#CrashesTable td.Id a
+	{
+		font-weight: bold;
+		Color: #5c87b2;
+		text-decoration: none;
+	}
 
-#CrashesTable td.Id a:hover 
-{
-	font-weight: bold;
-	text-decoration: underline;
-}
+		#CrashesTable td.Id a:hover
+		{
+			font-weight: bold;
+			text-decoration: underline;
+		}
 
-#CrashesTable td.CallStack a
-{
-	color: #5c87b2;
-	font-size: 1em;
-	font-family: monospace;
-	text-decoration: none;
-}
+	#CrashesTable td.CallStack a
+	{
+		color: #5c87b2;
+		font-size: 1em;
+		font-family: monospace;
+		text-decoration: none;
+	}
 
-#CrashesTable td.CallStack a:hover
-{
-	text-decoration: underline;
-}
+		#CrashesTable td.CallStack a:hover
+		{
+			text-decoration: underline;
+		}
 
 #CrashesTable .FullCallStackTriggerText
 {
@@ -662,26 +631,26 @@ th a:visited
 	position: relative;
 }
 
-.FullCallStackTrigger div
-{
-	cursor: text;
-	display: none;
-	background-color: #5c87b2;
-}
+	.FullCallStackTrigger div
+	{
+		cursor: text;
+		display: none;
+		background-color: #5c87b2;
+	}
 
-.FullCallStackTrigger:hover div
-{
-	display: block;
-	left: 7em;
-	min-width: 400px;
-	z-index: 500;
-	border: thin solid black; 
-	position: absolute;
-	background-color: #D1D1D1;
-	padding: 0.5em;
-	color: Black;
-	text-decoration: none;
-}
+	.FullCallStackTrigger:hover div
+	{
+		display: block;
+		left: 7em;
+		min-width: 400px;
+		z-index: 500;
+		border: thin solid black;
+		position: absolute;
+		background-color: #D1D1D1;
+		padding: 0.5em;
+		color: Black;
+		text-decoration: none;
+	}
 
 /* Custom styles for the detail view of crashes and buggs
 ----------------------------------------------------------*/
@@ -693,7 +662,7 @@ th a:visited
 	color: white;
 }
 
-#CrashDataContainer 
+#CrashDataContainer
 {
 	margin: 2px;
 	width: 440px;
@@ -707,33 +676,31 @@ th a:visited
 	border-bottom: 1px solid #718698;
 }
 
-#CrashDataContainer dt
-{
-	clear: both;
-	display: block;
-	float: left;
-	width: 210px;
-	margin: 2px;
-	font-weight: bold;
-	text-align: right;
-	color: #718698;
-
-	/*border:dotted;
+	#CrashDataContainer dt
+	{
+		clear: both;
+		display: block;
+		float: left;
+		width: 210px;
+		margin: 2px;
+		font-weight: bold;
+		text-align: right;
+		color: #718698;
+		/*border:dotted;
 	border-width:1px;*/
-}
+	}
 
-#CrashDataContainer dd
-{
-	display: block;
-	float: left;
-	width: 210px;
-	margin: 2px;
-	font-weight: normal;
-	color: #C3CAD0;
-
-	/*border:dotted;
+	#CrashDataContainer dd
+	{
+		display: block;
+		float: left;
+		width: 210px;
+		margin: 2px;
+		font-weight: normal;
+		color: #C3CAD0;
+		/*border:dotted;
 	border-width:1px;*/
-}
+	}
 
 #CallStackContainer
 {
@@ -744,12 +711,12 @@ th a:visited
 	background-color: #758a98;
 }
 
-#CallStackContainer h3
-{
-	margin-top: 0;
-	margin-bottom: 1em;
-	color: white;
-}
+	#CallStackContainer h3
+	{
+		margin-top: 0;
+		margin-bottom: 1em;
+		color: white;
+	}
 
 #FormattedCallStackContainer, #RawCallStackContainer
 {
@@ -760,25 +727,25 @@ th a:visited
 	overflow-x: scroll;
 }
 
-.module-name 
+.module-name
 {
 	color: #778a99;
 	font-weight: bold;
 }
 
-.function-name 
+.function-name
 {
 	color: #000;
 	font-weight: bold;
 }
 
-.file-name 
+.file-name
 {
 	color: #778a99;
 	font-weight: bold;
 }
 
-.file-path 
+.file-path
 {
 	font-style: italic;
 }
@@ -805,7 +772,7 @@ th a:visited
 	cursor: pointer;
 }
 
-#SaveDescription 
+#SaveDescription
 {
 	display: none;
 }
@@ -822,7 +789,7 @@ th a:visited
 	color: black;
 }
 
-#InputCrashDescription input[type="text"] 
+#InputCrashDescription input[type="text"]
 {
 	width: 100%;
 	height: 100%;
@@ -838,83 +805,60 @@ th a:visited
 	padding: 1em;
 }
 
-#UserNames form
+	#UserNames form
+	{
+		font-weight: bold;
+		font-size: 1.25em;
+		color: #c3cad0;
+	}
+
+#CrashTypeList ul, li
 {
-	font-weight: bold;
-	font-size: 1.25em;
-	color: #c3cad0;
-}
-
-#searchTypeBox {
-	width: 13%;
-	display: inline-block;
-	vertical-align: top;
-}
-
-#searchTypeBox ul {
-	padding-left: 10px;
 	list-style-type: none;
-}
-
-#searchTypeBox ul li {
-	margin-bottom: 12px;
-}
-
-#BranchName {
-	width: 200px;
-}
-
-#fieldSeperator {
-	display: inline-block;
-}
-
-#dateBox {
-	width: 26%;
-	display: inline-block;
-}
-
-#searchFields {
-	width: 29%;
-	display: inline-block;
-	vertical-align: top;
-	border-left: 1px solid rgba(128, 128, 128, 0.44);
-	border-right: 1px solid rgba(128, 128, 128, 0.44);
-}
-
-#titleText {
-	color: #718698;
 	margin: 0px;
+	padding: 0px;
+	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	font-size: 14px;
 }
 
-#Container {
-	width:1230px; 
-	border: 1px solid rgba(128, 128, 128, 0.44);
-	border-top: none; 
-	padding:10px; 
-	padding-bottom: 25px;
+
+#TitleBar
+{
+	min-width: 1280px;
+	border: 1px solid rgba(128, 128, 128, 0.5);
+	padding: 2px;
+	margin: 2px;
 }
 
-.CopyToJiraStyle
+#Container
+{
+	min-width: 1280px;
+	border: 1px solid rgba(128, 128, 128, 0.5);
+	padding: 2px;
+	margin: 2px;
+}
+
+.CopyToJiraStyle,
+.SearchButton
 {
 	/*padding: 0;*/
-
-	cursor:pointer;
-
+	cursor: pointer;
+	border-color: #718698;
 	border: solid;
 	border-width: 1px;
-
 	color: white;
-	background-color: black;
-
+	background-color: #5c87b2;
 	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-	font-size: 12px;
-
+	font-size: 14px;
 }
 
-.CopyToJiraStyle:hover
-{
-	color: blue;
-}
+	.CopyToJiraStyle:hover,
+	.SearchButton:hover
+	{
+		color: blue;
+		border-color: #718698;
+		background-color: #CCC;
+	}
 
 /* User admin screen
 ----------------------------------------------------------*/
@@ -924,9 +868,9 @@ th a:visited
 	padding: 1em;
 }
 
-#UserNames form
-{
-	font-weight: bold;
-	font-size: 1.25em;
-	color: #c3cad0;
-}
+	#UserNames form
+	{
+		font-weight: bold;
+		font-size: 1.25em;
+		color: #c3cad0;
+	}

@@ -16,16 +16,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>The user search query.</summary>
 		public string SearchQuery = "";
 
+		/// <summary>User name as query for filtering.</summary>
 		public string UsernameQuery = "";
 
-		public string EpicIdQuery = "";
+		/// <summary>Epic ID or Machine ID as query for filtering.</summary>
+		public string EpicIdOrMachineQuery = "";
 
-		public string MachineIdQuery = "";
-
+		/// <summary>Jira as query for crash filtering.</summary>
 		public string JiraQuery = "";
 
-		public string DescriptionQuery = "";
-
+		/// <summary>Message/Summary or Description as query for filtering.</summary>
 		public string MessageQuery = "";
 
 		/// <summary>The page to display from the list.</summary>
@@ -58,11 +58,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>The branch name to filter by.</summary>
 		public string BranchName = "";
 
+		/// <summary>The version name to filter by.</summary>
+		public string VersionName = "";
+
 		/// <summary>The game to filter by.</summary>
 		public string GameName = "";
-
-		/// <summary> The build version to filter by. </summary>
-		public string BuildVersion = "";
 
 		private string PreviousTerm = "";
 
@@ -80,7 +80,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			Result = DefaultValue;
 
 			string Value = "";
-			if( Form.Count == 0 )
+			if (Form.Count == 0)
 			{
 				Value = Request.QueryString[Key];
 			}
@@ -89,7 +89,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				Value = Form[Key];
 			}
 
-			if( !string.IsNullOrEmpty( Value ) )
+			if (!string.IsNullOrEmpty( Value ))
 			{
 				Result = Value.Trim();
 				return true;
@@ -105,17 +105,17 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <param name="Form">The form that contains parameters if the request does not.</param>
 		/// <param name="Key">Name of item in form/request</param>
 		/// <param name="Date">Result, only modified on succes</param>
-		void TryParseDate(HttpRequestBase Request, FormCollection Form, string Key, ref DateTime Date)
+		void TryParseDate( HttpRequestBase Request, FormCollection Form, string Key, ref DateTime Date )
 		{
 			string MillisecondsString;
-			if (!GetFormParameter(Request, Form, Key, "", out MillisecondsString))
-			{ 
-				return; 
+			if (!GetFormParameter( Request, Form, Key, "", out MillisecondsString ))
+			{
+				return;
 			}
 
 			try
 			{
-				Date = CrashesViewModel.Epoch.AddMilliseconds(long.Parse(MillisecondsString));
+				Date = CrashesViewModel.Epoch.AddMilliseconds( long.Parse( MillisecondsString ) );
 			}
 			catch (FormatException)
 			{
@@ -132,60 +132,45 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			// Set up Default values if there is no QueryString and set values to the Query string if it is there.
 			GetFormParameter( Request, Form, "SearchQuery", SearchQuery, out SearchQuery );
-
-			GetFormParameter(Request, Form, "UsernameQuery", UsernameQuery, out UsernameQuery);
-
-			GetFormParameter(Request, Form, "EpicIdQuery", EpicIdQuery, out EpicIdQuery);
-
-			GetFormParameter(Request, Form, "MachineIdQuery", MachineIdQuery, out MachineIdQuery);
-
-			GetFormParameter(Request, Form, "JiraQuery", JiraQuery, out JiraQuery);
-
-			GetFormParameter(Request, Form, "MessageQuery", MessageQuery, out MessageQuery);
-
-			GetFormParameter(Request, Form, "DescriptionQuery", DescriptionQuery, out DescriptionQuery);
-
+			GetFormParameter( Request, Form, "UsernameQuery", UsernameQuery, out UsernameQuery );
+			GetFormParameter( Request, Form, "EpicIdOrMachineQuery", EpicIdOrMachineQuery, out EpicIdOrMachineQuery );
+			GetFormParameter( Request, Form, "JiraQuery", JiraQuery, out JiraQuery );
+			GetFormParameter( Request, Form, "MessageQuery", MessageQuery, out MessageQuery );
 			GetFormParameter( Request, Form, "SortTerm", DefaultSortTerm, out SortTerm );
-
 			GetFormParameter( Request, Form, "CrashType", CrashType, out CrashType );
+			GetFormParameter( Request, Form, "UserGroup", UserGroup, out UserGroup );
+			GetFormParameter( Request, Form, "BranchName", BranchName, out BranchName );
+			GetFormParameter( Request, Form, "VersionName", VersionName, out VersionName );
+			GetFormParameter( Request, Form, "GameName", GameName, out GameName );
+
 
 			string PageString = Page.ToString();
-			if( GetFormParameter( Request, Form, "Page", PageString, out PageString ) )
+			if (GetFormParameter( Request, Form, "Page", PageString, out PageString ))
 			{
-				if( !int.TryParse( PageString, out Page ) || Page < 1 )
+				if (!int.TryParse( PageString, out Page ) || Page < 1)
 				{
 					Page = 1;
 				}
 			}
 
 			string PageSizeString = PageSize.ToString();
-			if( GetFormParameter( Request, Form, "PageSize", PageSizeString, out PageSizeString ) )
+			if (GetFormParameter( Request, Form, "PageSize", PageSizeString, out PageSizeString ))
 			{
-				if( !int.TryParse( PageSizeString, out PageSize ) || PageSize < 1 )
+				if (!int.TryParse( PageSizeString, out PageSize ) || PageSize < 1)
 				{
 					PageSize = 100;
 				}
 			}
 
 			GetFormParameter( Request, Form, "SortOrder", SortOrder, out SortOrder );
-
 			GetFormParameter( Request, Form, "PreviousOrder", PreviousOrder, out PreviousOrder );
-
 			GetFormParameter( Request, Form, "PreviousTerm", PreviousTerm, out PreviousTerm );
-
-			GetFormParameter( Request, Form, "UserGroup", UserGroup, out UserGroup );
-
-			GetFormParameter( Request, Form, "BranchName", BranchName, out BranchName );
-
-			GetFormParameter( Request, Form, "GameName", GameName, out GameName );
-
-			GetFormParameter( Request, Form, "BuildVersion", BuildVersion, out BuildVersion );
-
-			DateFrom = DateTime.Today.AddDays(-7).ToUniversalTime();
-			TryParseDate(Request, Form, "DateFrom", ref DateFrom);
+			
+			DateFrom = DateTime.Today.AddDays( -7 ).ToUniversalTime();
+			TryParseDate( Request, Form, "DateFrom", ref DateFrom );
 
 			DateTo = DateTime.Today.ToUniversalTime();
-			TryParseDate(Request, Form, "DateTo", ref DateTo);
+			TryParseDate( Request, Form, "DateTo", ref DateTo );
 
 			// Set the sort order 
 			if (PreviousOrder == "Descending" && PreviousTerm == SortTerm)
