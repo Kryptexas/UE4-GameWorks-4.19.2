@@ -16,6 +16,9 @@ public:
 	/** Migrate what was previously EditorUserSettings.ini to EditorPerProjectUserSettings.ini, if the former exists. */
 	static void MigrateEditorUserSettings();
 
+	/** Migrate a config section to a new section, only overwriting entries that don't exist in the new section. */
+	static void MigrateConfigSection(FConfigFile& ConfigFile, const TCHAR* OldSection, const TCHAR* NewSection);
+
 private:
 
 	/** Upgrade the config from the specified version, returning the current version after the upgrade (may be the same as FromVersion if upgrade was not possible). */
