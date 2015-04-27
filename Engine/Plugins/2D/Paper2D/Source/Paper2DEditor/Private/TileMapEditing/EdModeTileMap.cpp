@@ -448,15 +448,66 @@ void FEdModeTileMap::Render(const FSceneView* View, FViewport* Viewport, FPrimit
 				CursorRange = LastEyeDropperBounds;
 			}
 
-			const FVector TL(ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(CursorRange.Min.X, CursorRange.Min.Y, LastCursorTileZ)));
-			const FVector TR(ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(CursorRange.Max.X, CursorRange.Min.Y, LastCursorTileZ)));
-			const FVector BL(ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(CursorRange.Min.X, CursorRange.Max.Y, LastCursorTileZ)));
-			const FVector BR(ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(CursorRange.Max.X, CursorRange.Max.Y, LastCursorTileZ)));
+			switch (TileMap->ProjectionMode)
+			{
+			case ETileMapProjectionMode::Orthogonal:
+			case ETileMapProjectionMode::IsometricDiamond:
+			default:
+				{
+					const FVector TL(ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(CursorRange.Min.X, CursorRange.Min.Y, LastCursorTileZ)));
+					const FVector TR(ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(CursorRange.Max.X, CursorRange.Min.Y, LastCursorTileZ)));
+					const FVector BL(ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(CursorRange.Min.X, CursorRange.Max.Y, LastCursorTileZ)));
+					const FVector BR(ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(CursorRange.Max.X, CursorRange.Max.Y, LastCursorTileZ)));
 
-			PDI->DrawLine(TL, TR, CursorWireColor, SDPG_Foreground, 0.0f, DepthBias);
-			PDI->DrawLine(TR, BR, CursorWireColor, SDPG_Foreground, 0.0f, DepthBias);
-			PDI->DrawLine(BR, BL, CursorWireColor, SDPG_Foreground, 0.0f, DepthBias);
-			PDI->DrawLine(BL, TL, CursorWireColor, SDPG_Foreground, 0.0f, DepthBias);
+					PDI->DrawLine(TL, TR, CursorWireColor, SDPG_Foreground, 0.0f, DepthBias);
+					PDI->DrawLine(TR, BR, CursorWireColor, SDPG_Foreground, 0.0f, DepthBias);
+					PDI->DrawLine(BR, BL, CursorWireColor, SDPG_Foreground, 0.0f, DepthBias);
+					PDI->DrawLine(BL, TL, CursorWireColor, SDPG_Foreground, 0.0f, DepthBias);
+				}
+				break;
+
+			case ETileMapProjectionMode::IsometricStaggered:
+				{
+					const float UnrealUnitsPerPixel = TileMap->GetUnrealUnitsPerPixel();
+					const float TileWidthInUU = TileMap->TileWidth * UnrealUnitsPerPixel;
+					const float TileHeightInUU = TileMap->TileHeight * UnrealUnitsPerPixel;
+
+					const FVector RecenterOffset = PaperAxisX*TileWidthInUU*0.5f;
+					const FVector LSTM = TileMap->GetTilePositionInLocalSpace(CursorRange.Min.X, CursorRange.Min.Y, LastCursorTileZ) + RecenterOffset;
+
+					const FVector TL(ComponentToWorld.TransformPosition(LSTM));
+					const FVector TR(ComponentToWorld.TransformPosition(LSTM + PaperAxisX*TileWidthInUU*0.5f - PaperAxisY*TileHeightInUU*0.5f));
+					const FVector BL(ComponentToWorld.TransformPosition(LSTM - PaperAxisX*TileWidthInUU*0.5f - PaperAxisY*TileHeightInUU*0.5f));
+					const FVector BR(ComponentToWorld.TransformPosition(LSTM - PaperAxisY*TileHeightInUU*1.0f));
+
+					PDI->DrawLine(TL, TR, CursorWireColor, SDPG_Foreground, 0.0f, DepthBias);
+					PDI->DrawLine(TR, BR, CursorWireColor, SDPG_Foreground, 0.0f, DepthBias);
+					PDI->DrawLine(BR, BL, CursorWireColor, SDPG_Foreground, 0.0f, DepthBias);
+					PDI->DrawLine(BL, TL, CursorWireColor, SDPG_Foreground, 0.0f, DepthBias);
+				}
+				break;
+
+			case ETileMapProjectionMode::HexagonalStaggered:
+				{
+					const float UnrealUnitsPerPixel = TileMap->GetUnrealUnitsPerPixel();
+					const float TileWidthInUU = TileMap->TileWidth * UnrealUnitsPerPixel;
+					const float TileHeightInUU = TileMap->TileHeight * UnrealUnitsPerPixel;
+
+					const FVector RecenterOffset = PaperAxisX*TileWidthInUU*0.5f;
+					const FVector LSTM = TileMap->GetTilePositionInLocalSpace(CursorRange.Min.X, CursorRange.Min.Y, LastCursorTileZ) + RecenterOffset;
+
+					const FVector TL(ComponentToWorld.TransformPosition(LSTM));
+					const FVector TR(ComponentToWorld.TransformPosition(LSTM + PaperAxisX*TileWidthInUU*0.5f - PaperAxisY*TileHeightInUU*0.5f));
+					const FVector BL(ComponentToWorld.TransformPosition(LSTM - PaperAxisX*TileWidthInUU*0.5f - PaperAxisY*TileHeightInUU*0.5f));
+					const FVector BR(ComponentToWorld.TransformPosition(LSTM - PaperAxisY*TileHeightInUU*1.0f));
+
+					PDI->DrawLine(TL, TR, CursorWireColor, SDPG_Foreground, 0.0f, DepthBias);
+					PDI->DrawLine(TR, BR, CursorWireColor, SDPG_Foreground, 0.0f, DepthBias);
+					PDI->DrawLine(BR, BL, CursorWireColor, SDPG_Foreground, 0.0f, DepthBias);
+					PDI->DrawLine(BL, TL, CursorWireColor, SDPG_Foreground, 0.0f, DepthBias);
+				}
+				break;
+			};
 		}
 	}
 }
