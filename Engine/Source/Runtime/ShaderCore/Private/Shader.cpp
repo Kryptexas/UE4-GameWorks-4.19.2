@@ -856,6 +856,7 @@ bool FShader::SerializeBase(FArchive& Ar, bool bShadersInline)
 		}
 
 		// The shader has been serialized in, so this shader is now initialized.
+		check(Canary != ShaderMagic_CleaningUp);
 		Canary = ShaderMagic_Initialized;
 	}
 	else
