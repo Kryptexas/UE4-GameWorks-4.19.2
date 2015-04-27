@@ -570,9 +570,7 @@ bool FUnrealSync::Sync(const FSyncSettings& Settings, const FString& Label, cons
 
 			while (Match.FindNext())
 			{
-				CantClobbers.Add(Log.Mid(
-					Match.GetCaptureGroupBeginning(1),
-					Match.GetCaptureGroupEnding(1) - Match.GetCaptureGroupBeginning(1)));
+				CantClobbers.Add(Match.GetCaptureGroup(1));
 			}
 		}
 

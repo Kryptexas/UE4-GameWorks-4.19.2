@@ -7,21 +7,6 @@
 #include "P4Env.h"
 #include "Internationalization/Regex.h"
 
-/**
- * Helper function to get capture group value.
- * Missing in FRegexMatcher implementation (maybe it should go there?).
- *
- * @param Source Source text that was used to match.
- * @param Matcher Current matcher state.
- * @param Id Capture group ID to retrieve.
- *
- * @returns Captured group text.
- */
-FString GetGroupText(const FString& Source, FRegexMatcher& Matcher, int32 Id)
-{
-	return Source.Mid(Matcher.GetCaptureGroupBeginning(Id), Matcher.GetCaptureGroupEnding(Id) - Matcher.GetCaptureGroupBeginning(Id));
-}
-
 bool FP4DataCache::LoadFromLog(const FString& UnrealSyncListLog)
 {
 	const FRegexPattern Pattern(TEXT("Label ([^ ]+) (\\d{4})/(\\d{2})/(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})")); // '.+\\n
@@ -31,14 +16,14 @@ bool FP4DataCache::LoadFromLog(const FString& UnrealSyncListLog)
 	while (Matcher.FindNext())
 	{
 		Labels.Add(FP4Label(
-			GetGroupText(UnrealSyncListLog, Matcher, 1),
+			Matcher.GetCaptureGroup(1),
 			FDateTime(
-				FCString::Atoi(*GetGroupText(UnrealSyncListLog, Matcher, 2)),
-				FCString::Atoi(*GetGroupText(UnrealSyncListLog, Matcher, 3)),
-				FCString::Atoi(*GetGroupText(UnrealSyncListLog, Matcher, 4)),
-				FCString::Atoi(*GetGroupText(UnrealSyncListLog, Matcher, 5)),
-				FCString::Atoi(*GetGroupText(UnrealSyncListLog, Matcher, 6)),
-				FCString::Atoi(*GetGroupText(UnrealSyncListLog, Matcher, 7))
+				FCString::Atoi(*Matcher.GetCaptureGroup(2)),
+				FCString::Atoi(*Matcher.GetCaptureGroup(3)),
+				FCString::Atoi(*Matcher.GetCaptureGroup(4)),
+				FCString::Atoi(*Matcher.GetCaptureGroup(5)),
+				FCString::Atoi(*Matcher.GetCaptureGroup(6)),
+				FCString::Atoi(*Matcher.GetCaptureGroup(7))
 			)));
 	}
 
