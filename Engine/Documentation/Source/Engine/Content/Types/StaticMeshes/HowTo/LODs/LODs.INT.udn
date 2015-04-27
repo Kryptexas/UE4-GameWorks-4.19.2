@@ -50,7 +50,7 @@ When a player is up close to a Static Mesh you have placed in your level, you wa
 
 ## Set Up
 
-This How To does require that you already have some sort of mesh saved as a **.FBX** that you can import into UE4. For this example, we will be using a simple polygon sphere made in Maya.
+This How To does require that you already have some sort of mesh saved as a **.FBX** that you can import into UE4. For this example, we will be using a simple polygon sphere made in Maya. Note, you may also use an asset of your own that you have created in another application.
 
 Once you have exported your mesh, launch UE4. If you have a project that you would like to work with, feel free to use it for this How To.  Otherwise, go to the **New Project** tab and select the Blueprint First Person Template making sure that **Starter Content** is enabled.  If it is not, you may not have some of the assets that we will be using later and it may become hard to follow along.
 
