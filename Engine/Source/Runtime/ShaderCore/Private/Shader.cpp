@@ -807,7 +807,7 @@ FShader::FShader(const CompiledShaderInitializerType& Initializer):
 
 FShader::~FShader()
 {
-	check(Canary == ShaderMagic_Uninitialized || Canary == ShaderMagic_Initialized);
+	check(Canary == ShaderMagic_Uninitialized || Canary == ShaderMagic_CleaningUp || Canary == ShaderMagic_Initialized);
 	check(NumRefs == 0);
 	Canary = 0;
 
@@ -923,6 +923,7 @@ bool FShader::SerializeBase(FArchive& Ar, bool bShadersInline)
 
 void FShader::AddRef()
 {
+	check(Canary != ShaderMagic_CleaningUp);
 	++NumRefs;
 	if (NumRefs == 1)
 	{
@@ -943,6 +944,7 @@ void FShader::Release()
 		// Deregister the shader now to eliminate references to it by the type's ShaderIdMap
 		Deregister();
 
+		Canary = ShaderMagic_CleaningUp;
 		BeginCleanup(this);
 	}
 }

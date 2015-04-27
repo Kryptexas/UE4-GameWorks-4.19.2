@@ -693,6 +693,8 @@ private:
 
 	/** Canary is set to this if the FShader is a valid pointer but uninitialized. */
 	static const uint32 ShaderMagic_Uninitialized = 0xbd9922df;
+	/** Canary is set to this if the FShader is a valid pointer but in the process of being cleaned up. */
+	static const uint32 ShaderMagic_CleaningUp = 0xdc67f93b;
 	/** Canary is set to this if the FShader is a valid pointer and initialized. */
 	static const uint32 ShaderMagic_Initialized = 0x335b43ab;
 };
