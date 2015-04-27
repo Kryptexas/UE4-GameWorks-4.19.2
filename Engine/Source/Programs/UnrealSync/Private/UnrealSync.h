@@ -194,6 +194,11 @@ public:
 	static const FString& GetSharedPromotableDisplayName();
 
 	/**
+	 * Returns P4 folder name for shared promotable.
+	 */
+	static const FString& GetSharedPromotableP4FolderName();
+
+	/**
 	 * Registers event that will be trigger when data is loaded.
 	 *
 	 * @param OnDataLoaded Delegate to call when event happens.

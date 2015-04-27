@@ -214,10 +214,36 @@ TSharedPtr<TArray<FString> > FUnrealSync::GetPossibleGameNames()
 	/* TODO: Hard coded game names. Needs to be fixed! */
 	TSharedPtr<TArray<FString> > PossibleGames = MakeShareable(new TArray<FString>());
 
-	PossibleGames->Add("FortniteGame");
-	PossibleGames->Add("OrionGame");
-	PossibleGames->Add("Shadow");
-	PossibleGames->Add("Soul");
+	FP4Env& Env = FP4Env::Get();
+
+	FString FileList;
+	if (!Env.RunP4Output(FString::Printf(TEXT("files -e %s/.../Build/ArtistSyncRules.xml"), *Env.GetBranch()), FileList) || FileList.IsEmpty())
+	{
+		return PossibleGames;
+	}
+
+	FString Line, Rest = FileList;
+	while (Rest.Split(LINE_TERMINATOR, &Line, &Rest, ESearchCase::CaseSensitive))
+	{
+		if (!Line.StartsWith(Env.GetBranch(), ESearchCase::CaseSensitive))
+		{
+			continue;
+		}
+
+		int32 ArtistSyncRulesPos = Line.Find("/Build/ArtistSyncRules.xml#", ESearchCase::IgnoreCase);
+
+		if (ArtistSyncRulesPos == INDEX_NONE)
+		{
+			continue;
+		}
+
+		FString MiddlePart = Line.Mid(Env.GetBranch().Len(), ArtistSyncRulesPos - Env.GetBranch().Len());
+
+		int32 LastSlash = INDEX_NONE;
+		MiddlePart.FindLastChar('/', LastSlash);
+
+		PossibleGames->Add(MiddlePart.Mid(LastSlash + 1));
+	}
 
 	return PossibleGames;
 }
@@ -225,6 +251,13 @@ TSharedPtr<TArray<FString> > FUnrealSync::GetPossibleGameNames()
 const FString& FUnrealSync::GetSharedPromotableDisplayName()
 {
 	static const FString DispName = "Shared Promotable";
+
+	return DispName;
+}
+
+const FString& FUnrealSync::GetSharedPromotableP4FolderName()
+{
+	static const FString DispName = "Samples";
 
 	return DispName;
 }

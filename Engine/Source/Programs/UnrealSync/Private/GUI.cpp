@@ -923,7 +923,10 @@ public:
 
 		auto PossibleGameNames = FUnrealSync::GetPossibleGameNames();
 
-		GamesOptions->Add(FUnrealSync::GetSharedPromotableDisplayName());
+		if (PossibleGameNames->Remove(FUnrealSync::GetSharedPromotableP4FolderName()))
+		{
+			GamesOptions->Add(FUnrealSync::GetSharedPromotableDisplayName());
+		}
 
 		for (auto PossibleGameName : *PossibleGameNames)
 		{
