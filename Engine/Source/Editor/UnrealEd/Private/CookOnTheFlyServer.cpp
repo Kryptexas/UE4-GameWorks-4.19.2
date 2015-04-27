@@ -701,6 +701,10 @@ void UCookOnTheFlyServer::GetDependentPackages( const TSet<UPackage*>& RootPacka
 				UE_LOG(LogCook, Warning, TEXT("%s"), *( FailMessage.ToString() ));
 				continue;
 			}
+			else if (FPackageName::IsScriptPackage(PackageDepdencyString))
+			{
+				continue;
+			}
 
 			if ( FoundPackages.Contains(PackageDependency) == false )
 			{
