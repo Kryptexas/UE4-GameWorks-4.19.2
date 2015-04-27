@@ -315,6 +315,23 @@ struct FMaterialVertexParameters
 	}
 #endif //DECAL_RENDERSTAGE
 
+#if DECAL_RENDERSTAGE
+	/*
+	 * Deferred decal don't have a Primitive uniform buffer, because we don't know on which primitive the decal
+	 * is being projected to. But the user may still need to get the decal's actor world position.
+	 * So instead of setting up a primitive buffer that may cost to much CPU effort to be almost never used,
+	 * we directly fetch this value from the DeferredDecal.usf specific uniform variable DecalToWorld.
+	 */
+	float3 GetActorWorldPosition()
+	{
+		return DecalToWorld[3].xyz;
+	}
+#else
+	float3 GetActorWorldPosition()
+	{
+		return Primitive.ActorWorldPosition;
+	}
+#endif //DECAL_RENDERSTAGE
 
 #if HAS_PRIMITIVE_UNIFORM_BUFFER
 

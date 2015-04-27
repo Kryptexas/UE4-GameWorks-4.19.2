@@ -2134,7 +2134,7 @@ protected:
 
 	virtual int32 ActorWorldPosition() override
 	{
-		return AddInlinedCodeChunk(MCT_Float3,TEXT("Primitive.ActorWorldPosition"));		
+		return AddInlinedCodeChunk(MCT_Float3,TEXT("GetActorWorldPosition()"));		
 	}
 
 	virtual int32 If(int32 A,int32 B,int32 AGreaterThanB,int32 AEqualsB,int32 ALessThanB,int32 ThresholdArg) override
