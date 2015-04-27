@@ -509,11 +509,20 @@ TSharedRef<SWidget> UWidget::BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidge
 bool UWidget::IsGeneratedName() const
 {
 	FString Name = GetName();
-	FString BaseName = GetClass()->GetName() + TEXT("_");
 
-	if ( Name.StartsWith(BaseName) )
+	if (Name == GetClass()->GetName() || Name.StartsWith(GetClass()->GetName() + TEXT("_")))
 	{
 		return true;
+	}
+	else if (GetClass()->ClassGeneratedBy != nullptr)
+	{
+		FString BaseNameForBP = GetClass()->GetName();
+		BaseNameForBP.RemoveFromEnd(TEXT("_C"), ESearchCase::CaseSensitive);
+
+		if (Name == BaseNameForBP || Name.StartsWith(BaseNameForBP + TEXT("_")))
+		{
+			return true;
+		}
 	}
 
 	return false;
