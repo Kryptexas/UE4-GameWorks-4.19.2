@@ -2524,7 +2524,9 @@ public:
 	/** @return true if editor analytics are enabled */
 	virtual bool AreEditorAnalyticsEnabled() const { return false; }
 	virtual void CreateStartupAnalyticsAttributes( TArray<struct FAnalyticsEventAttribute>& StartSessionAttributes ) const {}
-
+	
+	/** @return true if the engine is autosaving a package */
+	virtual bool IsAutosaving() const { return false; }
 protected:
 
 	TIndirectArray<FWorldContext>	WorldList;

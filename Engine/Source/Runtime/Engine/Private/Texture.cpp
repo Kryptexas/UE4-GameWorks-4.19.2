@@ -366,8 +366,11 @@ void UTexture::PreSave()
 		UpdateResource();
 	}
 
-	GWarn->StatusUpdate( 0, 0, FText::Format( NSLOCTEXT("UnrealEd", "SavingPackage_CompressingSourceArt", "Compressing source art for texture:  {0}"), FText::FromString(GetName()) ) );
-	Source.Compress();
+	if( !GEngine->IsAutosaving() )
+	{
+		GWarn->StatusUpdate(0, 0, FText::Format(NSLOCTEXT("UnrealEd", "SavingPackage_CompressingSourceArt", "Compressing source art for texture:  {0}"), FText::FromString(GetName())));
+		Source.Compress();
+	}
 
 #endif // #if WITH_EDITOR
 }

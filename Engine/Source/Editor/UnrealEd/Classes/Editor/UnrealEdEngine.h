@@ -201,6 +201,7 @@ public:
 	virtual bool ShouldAbortActorDeletion() const override;
 	virtual void CloseEditor() override;
 	virtual void OnOpenMatinee() override;
+	virtual bool IsAutosaving() const override;
 	// End UEditorEngine Interface 
 	
 	// Begin FExec Interface

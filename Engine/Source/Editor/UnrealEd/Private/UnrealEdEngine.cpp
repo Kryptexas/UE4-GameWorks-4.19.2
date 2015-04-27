@@ -655,6 +655,11 @@ void UUnrealEdEngine::OnOpenMatinee()
 	OnMatineeEditorClosedDelegateHandle = GLevelEditorModeTools().OnEditorModeChanged().AddUObject( this, &UUnrealEdEngine::OnMatineeEditorClosed );
 }
 
+bool UUnrealEdEngine::IsAutosaving() const
+{
+	return PackageAutoSaver->IsAutoSaving();
+}
+
 
 void UUnrealEdEngine::ConvertMatinees()
 {
