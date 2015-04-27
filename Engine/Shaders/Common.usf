@@ -697,10 +697,15 @@ float2 CalcScreenUVFromOffsetFraction(float4 ScreenPosition, float2 OffsetFracti
 /** Applies an offset to the scene texture lookup and decodes the HDR linear space color. */
 float3 DecodeSceneColorForMaterialNode(float2 ScreenUV)
 {
+#if HIT_PROXY_SHADER
+	// Hit proxies rendering pass doesn't have access to valide render buffers
+	return float3(0.0f, 0.0f, 0.0f);
+#else
 	float4 EncodedSceneColor = Texture2DSample(LightAttenuationTexture, LightAttenuationTextureSampler, ScreenUV);
 
 	// Undo the function in EncodeSceneColorForMaterialNode
 	return pow(EncodedSceneColor.rgb, 4) * 10;
+#endif
 }
 
 // Converts depth buffer Z / W into W
